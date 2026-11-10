@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.Witness
 # A candidate, soundly
 
 `open_generic`: a specialization whose body is the template at `c` (`osBody c`), whose levels
-have their facts and callees (`LevelsOk`), whose finish has its static facts (`FinStatic`) and
+have their facts and callees (`LevelsOk`), whose finish has its static facts (`FinStaticS`) and
 whose `opening_queries` calls are the levels' (`osQCalls c = osQCallsL …`): a call establishes
 `OpenOutW` at the witness's words and openings. The head stores the root's halves and starts
 level `0` (`osHead_lvIn`); the levels and the closing rounds run `whirLevelsOpen`
@@ -85,7 +85,7 @@ theorem osHead_st (c : OsCfg) : (osHead c).2 =
 /-! ## A candidate -/
 
 /-- The finish's static facts and `fold_final_msg`'s meaning. -/
-structure FinStatic (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
+structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   n2 : 2 ≤ c.levels.length
   yr : c.yrLevel = c.levels.length - 1
   ylog : 1 ≤ c.yrLog
@@ -107,7 +107,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     (hshape : stackShape μ r = ((c.levels.headD default).depth, lvWidth 0 (c.levels.headD default)))
     (hoff0 : (c.levels.headD default).foldsOff = 0)
     (hlane : (cfg.head?.map (·.fold)).getD 0 = (c.levels.headD default).folds)
-    (hLOk : LevelsOk rd C σ c μ 0 c.levels cfg) (hFS : FinStatic rd C c)
+    (hLOk : LevelsOk rd C σ c μ 0 c.levels cfg) (hFS : FinStaticS rd C c)
     {fn : Fn} (hfp : fn.params = osParams 10) (hfb : fn.body = osBody c)
     {root : Digest} {fs : List E} {target root0 root1 cur tabs : E} {rets : List E}
     (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root) (hwt : WinTabs rd tabs)

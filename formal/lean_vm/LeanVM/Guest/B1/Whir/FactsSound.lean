@@ -2,12 +2,13 @@
   LeanVM.Guest.B1.Whir.FactsSound
 
   From a candidate's checked facts, its callees' meanings and its semantic facts (the vanishing
-  tables, the high parts' normalizers, the loop helpers): `LevelsOk` and `FinStatic`.
+  tables, the high parts' normalizers, the loop helpers): `LevelsOk` and `FinStaticS`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.Facts
+public import LeanVM.Guest.B1.Whir.Open
 
 /-!
 # The checked facts, used
@@ -17,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.Facts
 * `SemOk c`: the semantic facts of candidate `c`'s levels (`vanishOk`, `hsScale`'s values, the
   loop helpers' bodies);
 * `levelsOk_of`: `levelsB` and the two give `LevelsOk`; `finStatic_of`: `CandOk` and them give
-  `FinStatic`.
+  `FinStaticS`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -155,7 +156,7 @@ theorem midOk_of {c : OsCfg} {logN : ℕ} :
 /-- **The finish's static facts** from the checked facts. -/
 theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m μ r : ℕ} {cfg : List Whir.Level}
     (hcal : Callees rd C σ) (hsem : SemOk (osCfg m)) (h : CandOk m μ r cfg) :
-    FinStatic rd C (osCfg m) := by
+    FinStaticS rd C (osCfg m) := by
   obtain ⟨-, -, -, -, hn2, hyr, hyl, hyn, hnF, hla, h40, hffm, hlv⟩ := h
   refine ⟨hn2, hyr, hyl, hyn, fun i hi ↦ ?_, hsem.res, hnF, hla, h40,
     fun a r hc ↦ hcal.ffm _ hffm a r hc⟩
