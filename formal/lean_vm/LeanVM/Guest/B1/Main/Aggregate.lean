@@ -261,11 +261,12 @@ theorem absorb_head (m : ℕ) : aggS0.absorbAll (Batch.childCountCells m) dsObse
 
 /-- The sumcheck's rounds `aggregate_claims` hints, read off the memory at `bc_sumcheck_msgs`. -/
 noncomputable def aggRounds (rd : Reader) (σ : Val) : List (E × E) :=
-  (List.range 23).map fun k => (memAt rd (σ (.n 5)) (2 * k), memAt rd (σ (.n 5)) (2 * k + 1))
+  (List.range 23).map fun k => (memAt rd (σ (.n 6)) (1 + 2 * k), memAt rd (σ (.n 6)) (2 + 2 * k))
 
-/-- **`aggregate_claims`' hints**, read off its valuation and the memory: the rounds at
-`bc_sumcheck_msgs`, the bytecode's value `bc_star_hint`. -/
-noncomputable def aggHints (rd : Reader) (σ : Val) : BatchingHints := ⟨aggRounds rd σ, σ (.n 6)⟩
+/-- **`aggregate_claims`' hints**, read off its valuation and the memory: the proof of work's nonce,
+`bc_sumcheck_msgs`' first word, the rounds after it, the bytecode's value `bc_star_hint`. -/
+noncomputable def aggHints (rd : Reader) (σ : Val) : BatchingHints :=
+  ⟨memAt rd (σ (.n 6)) 0, aggRounds rd σ, σ (.n 7)⟩
 
 theorem pairs_getD : ∀ (l : List (E × E)) (i : ℕ),
     (l.flatMap fun g => [g.1, g.2]).getD (2 * i) 0 = (l.getD i 0).1 ∧
