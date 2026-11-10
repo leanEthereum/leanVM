@@ -393,6 +393,61 @@ fn aggregate_two_to_one() {
     assert_eq!(node.claims.xmss.len(), SMALL_LEAF_SIZE + big);
 }
 
+/// One child at a rate with Canopy and one at a rate without, in one node: the guest
+/// opens each child by its own announced rate.
+#[test]
+fn aggregate_children_with_and_without_canopy() {
+    leanvm_core::init_prover();
+    const PLAIN_RATE: usize = 3;
+    assert!(pcs::whir::canopy_enabled(LOG_INV_RATE) && !pcs::whir::canopy_enabled(PLAIN_RATE));
+    let signers = get_signers(2 * SMALL_LEAF_SIZE);
+    let canopy = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
+    let plain = aggregate(
+        &[],
+        signing(&signers[SMALL_LEAF_SIZE..], 0),
+        vec![],
+        &[],
+        None,
+        PLAIN_RATE,
+    )
+    .unwrap();
+    let node = aggregate(&[canopy, plain], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
+    node.verify().expect("node verifies");
+}
+
+/// Under Canopy nothing authenticates a child's level-0 forest paths: the guest must
+/// observe the subtree root its hinted siblings reach. A child whose forest sibling is
+/// flipped draws other challenges after the root, so its later query positions are
+/// not the ones its paths sit at and `aggregate` refuses it as a child it cannot walk;
+/// handing the guest a flipped sibling fails its run. A flipped word of a Canopy
+/// codeword row is not observed, so `aggregate` replays such a child, and the guest
+/// rejects it at the codeword's cap.
+#[test]
+fn tampered_canopy_openings_fail_the_guest() {
+    leanvm_core::init_prover();
+    assert!(pcs::whir::canopy_enabled(LOG_INV_RATE));
+    let honest = prove_leaf(&get_signers(SMALL_LEAF_SIZE));
+    let node = |child: &EthereumProof| aggregate(std::slice::from_ref(child), vec![], vec![], &[], None, LOG_INV_RATE);
+    // The phases under Canopy: level 0's forest, level 1's tree, then the Canopy codeword's.
+    let mut forest = honest.clone();
+    forest.proof.merkle[0][0].siblings[0][0] ^= 1;
+    assert!(forest.verify().is_err());
+    assert!(matches!(node(&forest), Err(AggregationError::InvalidChild(_))));
+    // The first query's lowest pair of children, both halves of both, so its sibling whichever side it is on.
+    FORGE.with(|forge| {
+        *forge.borrow_mut() = Some(Box::new(|hints: &mut Hints| {
+            hints.entry_mut("merkle_children", 0)[..4]
+                .iter_mut()
+                .for_each(|half| *half += F192::ONE)
+        }))
+    });
+    assert!(matches!(node(&honest), Err(AggregationError::ProofError(_))));
+    let mut row = honest.clone();
+    row.proof.merkle[2][0].leaf[0] += F64::ONE;
+    assert!(row.verify().is_err());
+    assert!(matches!(node(&row), Err(AggregationError::ProofError(_))));
+}
+
 fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
     let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
     (0..n_rows * (1 << DA_LOG_K))

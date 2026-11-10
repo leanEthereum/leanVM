@@ -28,9 +28,12 @@ INV_GEN = INV_GEN_PLACEHOLDER
 # coordinate bits, so a value reconstructs as Σ b_i·COORD_BASIS[i].
 FIELD_BITS = 192
 # A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
-# squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
+# squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`). Under
+# Canopy a level-0 position's subtree index takes windows of at most FOREST_JW bits, each a lookup
+# into an eq table of the terminal point (`canopy_terminal`).
 QW = 6
 QUERY_WINDOWS_CAP = 56
+FOREST_JW = 6
 BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
@@ -90,6 +93,16 @@ OOD_Y = 1
 OOD_C0 = 2
 OOD_C2 = 3
 OOD_SLOTS = 4
+# A level-0 Canopy record, one per pair of queries (`forest_queries`), field f of record i at
+# g^(f * stride + i), so a record is one product away from its loop counter: the sponge's capacity and
+# the first two cells of the permutation that observed the pairs before it, the pair's row dots and
+# subtree roots, then the three chains `canopy_terminal` runs through the records.
+FREC_CAP = 0
+FREC_HEAD = 5
+FREC_DOTS = 7
+FREC_ROOTS = 9
+FREC_CHAINS = 13
+FREC_FIELDS = 16
 
 # ---------------------------------------------------- the bus: sides and blocks
 # GKR sides. The layer counts mu_s are hinted and certified from the block kappas;
@@ -322,6 +335,12 @@ LIG_VANISH_VALS = LIG_VANISH_VALS_PLACEHOLDER
 LIG_VANISH_INVS = LIG_VANISH_INVS_PLACEHOLDER
 LIG_N_CANDIDATES = LIG_N_CANDIDATES_PLACEHOLDER
 LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
+# Canopy (doc annex B, "Canopy commitment"), per configuration: the forest height h' at level 0 (zero
+# without Canopy), the out-of-domain point's length the commitment reads (likewise), and where the
+# Canopy codeword's cap sits among the caps, its depth level 1's.
+LIG_CANOPY_HEIGHT = LIG_CANOPY_HEIGHT_PLACEHOLDER
+LIG_CANOPY_OOD_LEN = LIG_CANOPY_OOD_LEN_PLACEHOLDER
+LIG_CANOPY_CAP_OFF = LIG_CANOPY_CAP_OFF_PLACEHOLDER
 # eval_b claim descriptors. CLAIM_POINT_BUF says which point buffer a pooled
 # claim's x-part lives in, CLAIM_COMMITTED_COL maps it to the compact index of the
 # committed column it must open (a virtual KECCAK value claim maps to QKECCAK),
@@ -845,18 +864,25 @@ def query_window_split(word, wins, tabs, parts, at: Const, start: Const, width: 
     return
 
 
-def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth: Const, cap_depth: Const):
+def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth: Const, cap_depth: Const, levels: Const):
     # The squeezed word's bits are advice HERE, in windows: a window of w bits is hinted as g^n, n the integer
     # they spell, range checked below 2^w and read back as n's bit pattern. Each depth-bit group is a query
     # position (little-endian), whose windows are its path bits QW at a time from the bottom, then the cap
     # child bit, then the cap parent index: `opening_query` dispatches on them, and query j's run of windows
-    # is at win_ptrs_out[g^j]. The bits above the last position are windows too, and the windows' patterns,
+    # is at win_ptrs_out[g^j]. A Canopy forest's position (`levels` nonzero) has instead its `levels` path
+    # bits in one window, then its subtree index in n_jw near-equal windows of at most FOREST_JW bits, the
+    # wider first. The bits above the last position are windows too, and the windows' patterns,
     # shifted to their places, must rebuild the word. A position whose bits cross a 64-bit limb splits there,
     # the polynomial basis shifting a run as a whole only inside one limb.
     per_word = FIELD_BITS // depth
     path = depth - cap_depth
     n_pw = (path + QW - 1) // QW
     n_win = n_pw + 2
+    if const(levels != 0):
+        n_jw = (depth - levels + FOREST_JW - 1) // FOREST_JW
+        j_base = (depth - levels) // n_jw
+        j_rem = (depth - levels) % n_jw
+        n_win = n_jw + 1
     wins = StackBuf(QUERY_WINDOWS_CAP)
     wins_ptr = addr(wins)
     reconstructed = 0
@@ -868,8 +894,19 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
         p_lo = 0
         p_hi = 0
         for i in unroll(0, n_win):
-            # window i: QW path bits, the last path window's remainder, the cap child bit, the cap index
-            if const(i + 2 == n_win):
+            # window i: QW path bits, the last path window's remainder, the cap child bit, the cap index;
+            # or in a forest the path bits, then the subtree index's windows
+            if const(levels != 0):
+                if const(i == 0):
+                    off = 0
+                    width = levels
+                elif const(i // (j_rem + 1) == 0):
+                    off = levels + (i - 1) * (j_base + 1)
+                    width = j_base + 1
+                else:
+                    off = levels + (i - 1) * j_base + j_rem
+                    width = j_base
+            elif const(i + 2 == n_win):
                 off = path
                 width = 1
             elif const(i + 1 == n_win):
@@ -1213,14 +1250,17 @@ def verify_merkle_cap(cap, flags, depth: Const):
 # ============================== the stacked WHIR opening ============================
 
 
-def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2):
+def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2, pending: Const):
     # One fold round: its challenge takes the two scalars waiting in the sponge, w0 and
-    # w1, and the next round's two coefficients, returned, wait in their place.
+    # w1, and the next round's two coefficients, returned, wait in their place. Under
+    # Canopy, level 1's first round has nothing waiting (`pending` zero): the vector
+    # batch's challenge took the last scalar.
     cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
-    fs_pack(rate, 0, w0, DS_OBSERVE)
-    fs_pack(rate, 1, w1, DS_OBSERVE)
-    sp, r = squeeze(cap, rate, 2)
+    if const(pending == 2):
+        fs_pack(rate, 0, w0, DS_OBSERVE)
+        fs_pack(rate, 1, w1, DS_OBSERVE)
+    sp, r = squeeze(cap, rate, pending)
     claim = (c2 * r + c1) * r + c0
     # The next coefficients are read raw: every consumer of w0, w1 (the next fold, the
     # level's root absorb, the final message, the closing round) packs them first.
@@ -1343,10 +1383,24 @@ def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
     return
 
 
+def walk_forest(n0, n1, wins, levels: Const):
+    # A Canopy forest's path: its `levels` levels in one dispatch on the position's first window, up to
+    # the subtree's root, which nothing authenticates: the caller observes it as a claim.
+    path = StackBuf(16)
+    hint_witness(path[0:4 * levels], "merkle_children")
+    w = wins[GEN ** 0]
+    if const(levels == 4):
+        n0, n1 = match(log(w), range(0, 16), lambda k: walk_window(n0, n1, path, 0, 4, k))
+    elif const(levels == 3):
+        n0, n1 = match(log(w), range(0, 8), lambda k: walk_window(n0, n1, path, 0, 3, k))
+    else:
+        assert 0 == 1  # the forest heights `LIG_CANOPY_HEIGHT` takes
+    return n0, n1
+
+
 @inline
-def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
-    # One query: hash the hinted row up its Merkle path into the shared cap, and
-    # return its dot product with the row's eq weights.
+def query_row(row_eq_weights, base: Const, interleave: Const, leaf_cells: Const):
+    # One query's hinted row: its dot product with the row's eq weights, and its leaf hash.
     if base == 1:
         row_len = interleave
     else:
@@ -1386,7 +1440,15 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
     # Hash the packed row.
     leaf_hash_state = StackBuf(2)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
-    walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
+    return row_dot, leaf_hash_state[0], leaf_hash_state[1]
+
+
+@inline
+def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+    # One query: hash the hinted row up its Merkle path into the shared cap, and
+    # return its dot product with the row's eq weights.
+    row_dot, leaf_0, leaf_1 = query_row(row_eq_weights, base, interleave, leaf_cells)
+    walk_path(leaf_0, leaf_1, wins, cap, flags, depth - cap_depth, cap_depth)
     return row_dot
 
 
@@ -1416,6 +1478,161 @@ def opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_it
 
 
 @inline
+def forest_query(row_eq_weights, wins, interleave: Const, leaf_cells: Const, levels: Const):
+    # One level-0 query under Canopy: its row's dot product, and the root of its forest subtree.
+    row_dot, leaf_0, leaf_1 = query_row(row_eq_weights, 1, interleave, leaf_cells)
+    n0, n1 = walk_forest(leaf_0, leaf_1, wins, levels)
+    return row_dot, n0, n1
+
+
+def forest_queries(fs0, fs1, fs2, fs3, fs4, query_win_ptrs, row_eq_weights, n_queries: Const, interleave: Const, leaf_cells: Const, levels: Const):
+    # Level 0 under Canopy: each query's row hashed up its forest subtree, whose root the sponge observes as
+    # its two halves (a digest's top limbs are zero, so a half's tagged lanes are the half and Y * tag), two
+    # roots a permutation in query order, a last odd one alone. That last permutation is the one the level's
+    # batching challenge comes from, so its first two cells are returned with its capacity. The records keep
+    # the rows' dots and the roots for `canopy_terminal`, which batches them.
+    rs = n_queries // 2 + 1
+    recs = HeapBuf(GEN ** (FREC_FIELDS * rs))
+    recs[GEN ** (FREC_CAP * rs)] = fs0
+    recs[GEN ** ((FREC_CAP + 1) * rs)] = fs1
+    recs[GEN ** ((FREC_CAP + 2) * rs)] = fs2
+    recs[GEN ** ((FREC_CAP + 3) * rs)] = fs3
+    recs[GEN ** ((FREC_CAP + 4) * rs)] = fs4
+    for xi in mul_range(1, GEN ** (n_queries // 2)):
+        rs = n_queries // 2 + 1
+        rec = recs * xi
+        cap = fs_load(rec, FREC_CAP, rs)
+        pair_ptrs = query_win_ptrs * xi * xi
+        d_a, a0, a1 = forest_query(row_eq_weights, pair_ptrs[GEN ** 0], interleave, leaf_cells, levels)
+        d_b, b0, b1 = forest_query(row_eq_weights, pair_ptrs[GEN ** 1], interleave, leaf_cells, levels)
+        obs = Y_TOWER * DS_OBSERVE
+        nxt = StackBuf(KECCAK_STATE)
+        keccak([a0, obs], [a1, obs], nxt, tail=[b0, obs, b1, obs], cap=cap)
+        rec[GEN ** (FREC_DOTS * rs)] = d_a
+        rec[GEN ** ((FREC_DOTS + 1) * rs)] = d_b
+        rec[GEN ** (FREC_ROOTS * rs)] = a0
+        rec[GEN ** ((FREC_ROOTS + 1) * rs)] = a1
+        rec[GEN ** ((FREC_ROOTS + 2) * rs)] = b0
+        rec[GEN ** ((FREC_ROOTS + 3) * rs)] = b1
+        out = rec * GEN
+        fs_store(out, FREC_CAP, rs, nxt)
+        out[GEN ** (FREC_HEAD * rs)] = nxt[0]
+        out[GEN ** ((FREC_HEAD + 1) * rs)] = nxt[1]
+    last = recs * GEN ** (n_queries // 2)
+    if const(n_queries % 2 == 1):
+        cap = fs_load(last, FREC_CAP, rs)
+        d, r0, r1 = forest_query(row_eq_weights, query_win_ptrs[GEN ** (n_queries - 1)], interleave, leaf_cells, levels)
+        obs = Y_TOWER * DS_OBSERVE
+        nxt = StackBuf(KECCAK_STATE)
+        keccak([r0, obs], [r1, obs], nxt, cap=cap)
+        last[GEN ** (FREC_DOTS * rs)] = d
+        last[GEN ** (FREC_ROOTS * rs)] = r0
+        last[GEN ** ((FREC_ROOTS + 1) * rs)] = r1
+        head_0 = nxt[0]
+        head_1 = nxt[1]
+        cap = [nxt[8], nxt[9], nxt[10], nxt[11], nxt[12]]
+    else:
+        head_0 = last[GEN ** (FREC_HEAD * rs)]
+        head_1 = last[GEN ** ((FREC_HEAD + 1) * rs)]
+        cap = fs_load(last, FREC_CAP, rs)
+    return recs, head_0, head_1, cap[0], cap[1], cap[2], cap[3], cap[4]
+
+
+@inline
+def root_words(r0, r1, lc):
+    # sum_w lc^w word_w of a digest held as its two halves, each half's two words hinted and pinned by
+    # `canonical_limbs` (the half is lo + Y * hi with both in K).
+    w0, w1 = canonical_limbs(r0)
+    w2, w3 = canonical_limbs(r1)
+    return w0 + lc * (w1 + lc * (w2 + lc * w3))
+
+
+def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, lc, glue, beta, n_queries: Const, n1: Const, depth: Const, levels: Const):
+    # Level 0's Canopy sums, all at the terminal point in one pass over `forest_queries`' records, whose
+    # first n1 coordinates, in round order, are the rounds after level 0 (level 1's message coordinates).
+    # 1. Its query batch sum_q lam^q dot_q and the roots' words sum_q lc^(4q) sum_w lc^w word_w(root_q)
+    #    entered the running polynomial's linear coefficient at level 0 (at `glue`, and inside the Canopy
+    #    claim at beta^2 lc), deferred: such a term reaches the final claim times every later round's
+    #    challenge, which the returned target term carries.
+    # 2. The Canopy claims' weight W_c = eq(z_c, p) + lc A(p0, p1) sum_q lc^(4q) eq(j_q, p[2..]), with
+    #    A = sum_w lc^w eq(w, (p0, p1)) and j_q = x_q >> h' query q's subtree, whose windows past the first
+    #    (`decode_query_windows`) each select an entry of an eq table of the coordinates they cover;
+    #    returned glued at beta.
+    # Each sum runs the 1/lam chain of `opening_queries`, in the records' chain fields.
+    ood = GEN ** 0
+    rounds = GEN ** 0
+    for t in unroll(0, n1):
+        coordinate = point[GEN ** t]
+        ood *= 1 + z_c[GEN ** t] + coordinate
+        rounds *= coordinate
+    p0 = point[GEN ** 0]
+    p1 = point[GEN ** 1]
+    word_eq = (1 + p0 + lc * p0) * (1 + p1 + lc * lc * p1)
+    n_jw = (depth - levels + FOREST_JW - 1) // FOREST_JW
+    j_base = (depth - levels) // n_jw
+    j_rem = (depth - levels) % n_jw
+    tabs = HeapBuf(GEN ** (2 ** (FOREST_JW + 1) * n_jw))
+    for i in unroll(0, n_jw):
+        if const((i + 1) // (j_rem + 1) == 0):
+            off = i * (j_base + 1)
+            width = j_base + 1
+        else:
+            off = i * j_base + j_rem
+            width = j_base
+        eqtree(point * GEN ** (2 + off), tabs * GEN ** (2 ** (FOREST_JW + 1) * i), width)
+    mu = 1 / lam
+    lc4 = (lc * lc) * (lc * lc)
+    mu4 = 1 / lc4
+    rs = n_queries // 2 + 1
+    for c in unroll(0, 3):
+        recs[GEN ** ((FREC_CHAINS + c) * rs)] = 0
+    for xi in mul_range(1, GEN ** (n_queries // 2)):
+        rs = n_queries // 2 + 1
+        rec = recs * xi
+        out = rec * GEN
+        pair_ptrs = query_win_ptrs * xi * xi
+        dots = (rec[GEN ** (FREC_CHAINS * rs)] + rec[GEN ** (FREC_DOTS * rs)]) * mu
+        out[GEN ** (FREC_CHAINS * rs)] = (dots + rec[GEN ** ((FREC_DOTS + 1) * rs)]) * mu
+        words = (rec[GEN ** ((FREC_CHAINS + 1) * rs)] + root_words(rec[GEN ** (FREC_ROOTS * rs)], rec[GEN ** ((FREC_ROOTS + 1) * rs)], lc)) * mu4
+        out[GEN ** ((FREC_CHAINS + 1) * rs)] = (words + root_words(rec[GEN ** ((FREC_ROOTS + 2) * rs)], rec[GEN ** ((FREC_ROOTS + 3) * rs)], lc)) * mu4
+        subtrees = (rec[GEN ** ((FREC_CHAINS + 2) * rs)] + subtree_eq(tabs, pair_ptrs[GEN ** 0], depth, levels)) * mu4
+        out[GEN ** ((FREC_CHAINS + 2) * rs)] = (subtrees + subtree_eq(tabs, pair_ptrs[GEN ** 1], depth, levels)) * mu4
+    last = recs * GEN ** (n_queries // 2)
+    dots = last[GEN ** (FREC_CHAINS * rs)]
+    words = last[GEN ** ((FREC_CHAINS + 1) * rs)]
+    subtrees = last[GEN ** ((FREC_CHAINS + 2) * rs)]
+    if const(n_queries % 2 == 1):
+        dots = (dots + last[GEN ** (FREC_DOTS * rs)]) * mu
+        words = (words + root_words(last[GEN ** (FREC_ROOTS * rs)], last[GEN ** ((FREC_ROOTS + 1) * rs)], lc)) * mu4
+        subtrees = (subtrees + subtree_eq(tabs, query_win_ptrs[GEN ** (n_queries - 1)], depth, levels)) * mu4
+    lc4_n = lc4 ** n_queries
+    target = (glue * dots * lam ** n_queries + beta * beta * lc * words * lc4_n) * rounds
+    weight = beta * (ood + lc * word_eq * subtrees * lc4_n)
+    return target, weight
+
+
+@inline
+def subtree_eq(tabs, wins, depth: Const, levels: Const):
+    # eq(j, p[2..]) of a query's subtree index j, the product of its windows' table entries (the
+    # window layout of `decode_query_windows`).
+    n_jw = (depth - levels + FOREST_JW - 1) // FOREST_JW
+    j_base = (depth - levels) // n_jw
+    j_rem = (depth - levels) % n_jw
+    for i in unroll(0, n_jw):
+        if const((i + 1) // (j_rem + 1) == 0):
+            width = j_base + 1
+        else:
+            width = j_base
+        tab = tabs * GEN ** (2 ** (FOREST_JW + 1) * i + 2 ** width - 2)
+        entry = tab[wins[GEN ** (i + 1)]]
+        if const(i == 0):
+            product = entry
+        else:
+            product *= entry
+    return product
+
+
+@inline
 def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
     # prod_t (d_t + chain_t) over one query's message-column coordinates, chain_0
     # being the query position.
@@ -1427,13 +1644,16 @@ def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
     return prefix_eq
 
 
-def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
+def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor, z_c, y_c):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
     # opening proof data is hinted here, so only the executed arm pops its streams.
+    # Under Canopy, the commitment is the Canopy codeword's root, and z_c, y_c the
+    # Canopy message's out-of-domain claim the commitment read.
     #
     # The returned point is in witness order. Round-order challenges stay local
     # for the induced weights, OOD claims, and residual evaluation.
+    canopy_height = LIG_CANOPY_HEIGHT[m_idx]
     n_levels = LIG_N_LEVELS[m_idx]
     yr_level = LIG_YR_LEVEL[m_idx]
     yr_log = LIG_YR_LOG_LEN[m_idx]
@@ -1477,7 +1697,8 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     for n in unroll(0, 128):
         win_tabs[GEN ** n] = const(n)
     # Explicit OOD claims bind every recursive Johnson-list commitment. L0 needs
-    # none: the opening claim itself is its post-commit binding value. An OOD claim
+    # none: the opening claim itself is its post-commit binding value (under Canopy
+    # the commitment carried the Canopy codeword's, z_c and y_c). An OOD claim
     # is read before its level's query positions but batched after them (one
     # challenge per level), so its value and intro message wait here.
     ood_z = HeapBuf(GEN ** (n_levels * LIG_MAX_OOD_SAMPLES * LIG_LOG_MSG_COLS_CAP))
@@ -1490,8 +1711,17 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         interleave = LIG_INTERLEAVE[ml]
         folds_off = LIG_FOLDS_OFF[ml]
         pos_off = LIG_POSITIONS_OFF[ml]
+        # Under Canopy, the vector batch's challenge took the last scalar before level 1's first round.
+        first_pending = 2
+        if const(canopy_height != 0):
+            if const(lvl == 1):
+                first_pending = 0
         for j in unroll(0, LIG_FOLDS[ml]):
-            fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+            if const(j == 0):
+                pending = first_pending
+            else:
+                pending = 2
+            fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a, pending)
             w0 = round_quad_c
             w1 = round_quad_a
             fold_challenges[GEN ** (folds_off + j)] = fold_challenge
@@ -1571,19 +1801,10 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
             query_ptr = xs ** (FIELD_BITS // depth)
             cap_depth = LIG_CAP_DEPTH[m_idx * LIG_MAX_LEVELS + lvl]
-            decode_query_windows(packed_word, query_positions * GEN ** pos_off * query_ptr, query_win_ptrs * GEN ** pos_off * query_ptr, win_tabs, depth, cap_depth)
+            decode_query_windows(packed_word, query_positions * GEN ** pos_off * query_ptr, query_win_ptrs * GEN ** pos_off * query_ptr, win_tabs, depth, cap_depth, LIG_CANOPY_HEIGHT[m_idx] * (1 // (lvl + 1)))
         sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** FS_CELLS
         sp = fs_load(sqz_end, 0, 1)
 
-        # One batching challenge for the level, drawn once every claim it batches is
-        # fixed: its OOD claims above and these query positions. Claim tau of the
-        # level is weighted lam^tau, the running claim keeping lam^0 (Annex B,
-        # Protocol 1 step 1): query i is claim n_ood + 1 + i, so its weight splits
-        # into lam^i here and the level scalar lam^(n_ood+1) below.
-        no_rate = StackBuf(8)
-        sp, lam = squeeze(sp, no_rate, 0)
-        lam_pow = lam ** n_queries
-        level_mus[GEN ** lvl] = 1 / lam
         # At level 0, slot i of a leaf image is interleaving index n-1-i: the image
         # reads its lanes from the top down, so the lanes a padding-free commitment
         # leaves out are its LEADING words, whose whole blocks the committer hashes
@@ -1592,14 +1813,51 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
         opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
 
+        # One batching challenge for the level, drawn once every claim it batches is
+        # fixed: its OOD claims above and these query positions. Claim tau of the
+        # level is weighted lam^tau, the running claim keeping lam^0 (Annex B,
+        # Protocol 1 step 1): query i is claim n_ood + 1 + i, so its weight splits
+        # into lam^i here and the level scalar lam^(n_ood+1) below. Under Canopy,
+        # level 0 opens a forest instead of a tree: its subtree roots are claims on
+        # the Canopy message, observed before the challenge, which `forest_queries`'
+        # last permutation gives.
         cap_depth = LIG_CAP_DEPTH[ml]
-        cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
-        flags = cap_flags * GEN ** LIG_CAP_OFF[ml]
-        root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
-        level_roots[GEN ** (2 * lvl)] = root_0
-        level_roots[GEN ** (2 * lvl + 1)] = root_1
-
-        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        forest = canopy_height * (1 // (lvl + 1))
+        if const(forest != 0):
+            recs, head_0, head_1, fs0, fs1, fs2, fs3, fs4 = forest_queries(sp[0], sp[1], sp[2], sp[3], sp[4], query_win_ptrs * GEN ** pos_off, row_eq_weights, n_queries, interleave, LIG_LEAF_CELLS[ml], forest)
+            head = [head_0, head_1]
+            lam = challenge_from_state(head)
+            lam_pow = lam ** n_queries
+            canopy_recs = recs
+            canopy_lam = lam
+        else:
+            no_rate = StackBuf(8)
+            sp, lam = squeeze(sp, no_rate, 0)
+            fs0 = sp[8]
+            fs1 = sp[9]
+            fs2 = sp[10]
+            fs3 = sp[11]
+            fs4 = sp[12]
+            lam_pow = lam ** n_queries
+            cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
+            flags = cap_flags * GEN ** LIG_CAP_OFF[ml]
+            root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
+            level_roots[GEN ** (2 * lvl)] = root_0
+            level_roots[GEN ** (2 * lvl + 1)] = root_1
+            level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_mus[GEN ** lvl] = 1 / lam
+        if const(canopy_height != 0):
+            if const(lvl == 1):
+                # Under Canopy, level 1 opens the Canopy codeword at its positions too, after its
+                # own tree: the row it folds is f1's plus canopy_beta times the codeword's, in
+                # the same lanes, and the codeword's root is the commitment.
+                c_cap = merkle_caps * GEN ** (4 * LIG_CANOPY_CAP_OFF[m_idx])
+                c_flags = cap_flags * GEN ** LIG_CANOPY_CAP_OFF[m_idx]
+                c_root_0, c_root_1 = verify_merkle_cap(c_cap, c_flags, cap_depth)
+                level_roots[GEN ** 0] = c_root_0
+                level_roots[GEN ** 1] = c_root_1
+                c_sum = opening_queries(c_cap, c_flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // 2), n_queries % 2, 1, interleave, interleave // 2, depth, cap_depth)
+                level_query_sum += canopy_beta * c_sum
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
@@ -1607,13 +1865,41 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         intro_c0 = msg_cursor[GEN ** 0]
         intro_c2 = msg_cursor[GEN ** 1]
         msg_cursor = msg_cursor * GEN ** 2
-        fs0 = sp[8]
-        fs1 = sp[9]
-        fs2 = sp[10]
-        fs3 = sp[11]
-        fs4 = sp[12]
         w0 = intro_c0
         w1 = intro_c2
+        if const(forest != 0):
+            # Under Canopy, after level 0's intro: the claims on the Canopy message, batched
+            # with powers of their own challenge canopy_lc, the OOD claim's the first, then
+            # their two-vector batch with the folded witness at canopy_beta. The prover sends
+            # the batched claim's intro and the cross polynomial's three coefficients, which
+            # enter the running polynomial at canopy_beta and canopy_beta^2.
+            sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+            rate = StackBuf(8)
+            fs_pack(rate, 0, intro_c0, DS_OBSERVE)
+            fs_pack(rate, 1, intro_c2, DS_OBSERVE)
+            sp, canopy_lc = squeeze(sp, rate, 2)
+            rate = StackBuf(8)
+            c_intro_c0, msg_cursor = fs_next(rate, 0, msg_cursor)
+            c_intro_c2, msg_cursor = fs_next(rate, 1, msg_cursor)
+            cross_0, msg_cursor = fs_next(rate, 2, msg_cursor)
+            cross_1, msg_cursor = fs_next(rate, 3, msg_cursor)
+            sp = fs_perm(sp, rate, 4)
+            rate = StackBuf(8)
+            cross_2, msg_cursor = fs_next(rate, 0, msg_cursor)
+            sp, canopy_beta = squeeze(sp, rate, 1)
+            fs0 = sp[8]
+            fs1 = sp[9]
+            fs2 = sp[10]
+            fs3 = sp[11]
+            fs4 = sp[12]
+            # Level 0's query batch and the roots' words are summed at the terminal (`canopy_terminal`).
+            level_query_sum = 0
+            canopy_claim = y_c
+            beta_sq = canopy_beta * canopy_beta
+            round_quad_c += canopy_beta * cross_0 + beta_sq * c_intro_c0
+            round_quad_b += canopy_beta * cross_1 + beta_sq * (canopy_claim + c_intro_c2)
+            round_quad_a += canopy_beta * cross_2 + beta_sq * c_intro_c2
+            sumcheck_target += canopy_beta * (cross_1 + cross_2) + beta_sq * canopy_claim
         intro_c1 = level_query_sum + intro_c2  # the split fixes the linear coefficient
         if lvl == yr_level:
             beta_lvl = lam  # no OOD claim at the last level: no new oracle
@@ -1631,6 +1917,8 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
                 ood_scalar = ood_scalar * lam
             beta_lvl = ood_scalar
         level_betas[GEN ** lvl] = beta_lvl * lam_pow  # lam^n restores the residual's mu-chain
+        if const(forest != 0):
+            canopy_glue = beta_lvl
         round_quad_c += beta_lvl * intro_c0
         round_quad_b += beta_lvl * intro_c1
         round_quad_a += beta_lvl * intro_c2
@@ -1639,7 +1927,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     # ---- finish the sumcheck over the tail coordinates ----
     tail_challenges = HeapBuf(GEN ** YR_LOG_CAP)
     for j in unroll(0, yr_log - 1):
-        fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, tail_c = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+        fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, tail_c = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a, 2)
         w0 = round_quad_c
         w1 = round_quad_a
         tail_challenges[GEN ** j] = tail_c
@@ -1757,6 +2045,12 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             for t in unroll(0, yr_log):
                 scalar *= (1 + oz[GEN ** (z_folded + t)] + tail_challenges[GEN ** t])
             ood_inner += scalar
+    # Under Canopy, the Canopy claims glued at canopy_beta, over level 1's message coordinates.
+    if const(canopy_height != 0):
+        ml = m_idx * LIG_MAX_LEVELS
+        deferred, canopy_weight = canopy_terminal(point, z_c, query_win_ptrs * GEN ** LIG_POSITIONS_OFF[ml], canopy_recs, canopy_lam, canopy_lc, canopy_glue, canopy_beta, LIG_QUERIES[ml], LIG_LOG_MSG_COLS[ml], LIG_TREE_DEPTH[ml], canopy_height)
+        sumcheck_target += deferred
+        ood_inner += canopy_weight
     return sumcheck_target, point, point1, inner_chain[GEN ** n_levels] + ood_inner, yr_at_tail
 
 
@@ -3318,6 +3612,29 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
     assert inner_sum * yr_at_tail == sumcheck_target
 
 
+def commitment_ood(fs0, fs1, fs2, fs3, fs4, first, cursor, z_c, n: Const):
+    # The rest of the commitment's read, one specialization per out-of-domain length n. Under
+    # Canopy (n nonzero), the Canopy message's out-of-domain point z_c, its n coordinates the n
+    # challenges after the root, the first being `first`, then its claimed value y_c, waiting when
+    # the bus's first challenge is drawn. Without Canopy that challenge is `first`.
+    if const(n == 0):
+        challenge = first
+        y_c = 0
+        cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    else:
+        z_c[GEN ** 0] = first
+        sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+        no_rate = StackBuf(8)
+        for x in unroll(1, n):
+            sp, coordinate = squeeze(sp, no_rate, 0)
+            z_c[GEN ** x] = coordinate
+        rate = StackBuf(8)
+        y_c, cursor = fs_next(rate, 0, cursor)
+        sp, challenge = squeeze(sp, rate, 1)
+        cap = [sp[8], sp[9], sp[10], sp[11], sp[12]]
+    return cap[0], cap[1], cap[2], cap[3], cap[4], challenge, cursor, y_c
+
+
 def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # In-circuit verification of ONE inner proof for the statement (pi_0, pi_1),
     # mirroring `crates/verifier` step for step; the `# ---- ... ----` headers below run
@@ -3389,6 +3706,20 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     g_bus_mu = log2_ceil_in_the_exponent(push_total, g_squares, 0, SIZE_BITS)
     zeta = HeapBuf(g_bus_mu)  # the ONE shared GKR point: exactly mu coords
 
+    g_total, col_offsets = certify_placement(kappa_base, g_squares)
+
+    # ---- certify g^m: m = max(log2_ceil(sum_cols 2^kappa), PCS_MIN_MU) ----
+    # g_total is g^(sum 2^kappa) from the certified placement walk above. The
+    # commitment's read already depends on it, as the native one does on the layout.
+    gmv = log2_ceil_in_the_exponent(g_total, g_squares, PCS_MIN_MU, SIZE_BITS)  # g^m
+    size_sel = gmv * LIG_MIN_SHIFT_INV  # g^(m - MIN)
+    assert log(size_sel) < LIG_N_LOG_SIZES
+    # Flatten (rate-1, m-MIN) in rate-major order. Both coordinates are
+    # transcript-bound and range-checked above, so a single compiled guest can
+    # dispatch independently for every inner proof in a mixed-rate batch.
+    config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
+    assert log(config_sel) < LIG_N_CANDIDATES
+
     # ---- commitment root (2 words), kept for the opening phase ----
     # The announcement's N_TABLES + 2 words, then the root's two, wait as one run.
     if const((N_TABLES + 2) % 4 == 0):
@@ -3404,17 +3735,21 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     root_cells = StackBuf(2)
     root_cells[0] = assert_canonical(commit_root_0)
     root_cells[1] = assert_canonical(commit_root_1)
+    # Under Canopy, the Canopy message's out-of-domain claim follows: the first challenge
+    # after the root is the point's first coordinate, or without Canopy the bus's first.
+    sp, first = squeeze(sp, rate, (N_TABLES + 3) % 4 + 1)
+    z_c = HeapBuf(GEN ** LIG_LOG_MSG_COLS_CAP)
+    fs0, fs1, fs2, fs3, fs4, alpha_0, cursor, y_c = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: commitment_ood(sp[8], sp[9], sp[10], sp[11], sp[12], first, cursor, z_c, LIG_CANOPY_OOD_LEN[m_idx]))
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
 
     # ---- bus challenges (F192 provides the soundness margin without grinding) ----
     # A tuple is fingerprinted multilinearly: slot x weighs eq(alphas, x), so a leaf
     # factor has total degree N_TUPLE_BITS in the challenges and the aligned bytecode
     # polynomial is read off at the challenge vector itself (doc sec:gp, sec:e2e-bc).
     bus_alpha = HeapBuf(N_TUPLE_BITS)
-    for t in unroll(0, N_TUPLE_BITS):
-        if t == 0:
-            sp, av = squeeze(sp, rate, (N_TABLES + 3) % 4 + 1)
-        else:
-            sp, av = squeeze(sp, rate, 0)
+    bus_alpha[GEN ** 0] = alpha_0
+    for t in unroll(1, N_TUPLE_BITS):
+        sp, av = squeeze(sp, rate, 0)
         bus_alpha[GEN ** t] = av
     fp_w = HeapBuf(N_TUPLE_SLOTS)
     for x in unroll(0, N_TUPLE_SLOTS):
@@ -3484,19 +3819,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
 
-    g_total, col_offsets = certify_placement(kappa_base, g_squares)
-
-    # ---- certify g^m: m = max(log2_ceil(sum_cols 2^kappa), PCS_MIN_MU) ----
-    # g_total is g^(sum 2^kappa) from the certified placement walk above.
-    gmv = log2_ceil_in_the_exponent(g_total, g_squares, PCS_MIN_MU, SIZE_BITS)  # g^m
-    size_sel = gmv * LIG_MIN_SHIFT_INV  # g^(m - MIN)
-    assert log(size_sel) < LIG_N_LOG_SIZES
-    # Flatten (rate-1, m-MIN) in rate-major order. Both coordinates are
-    # transcript-bound and range-checked above, so a single compiled guest can
-    # dispatch independently for every inner proof in a mixed-rate batch.
-    config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
-    assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor))
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor, z_c, y_c))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.

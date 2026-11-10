@@ -178,14 +178,27 @@ pub(super) fn gen_verify(
 
     // ---- Hints for the stacked WHIR opening ----
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
-    // opaque; the guest authenticates every cap leaf a query reaches.
+    // opaque; the guest authenticates every cap leaf a query reaches. The phases
+    // follow the levels, but under Canopy level 0's is a forest, its paths climbing
+    // only its subtrees and no cap above them, and the Canopy codeword's phase, at
+    // level 1's positions in a tree of level 1's depth, follows level 1's.
+    let mut phases: Vec<(usize, usize, Option<usize>)> = stack
+        .config
+        .queries
+        .iter()
+        .zip(&stack.depth)
+        .map(|(&queries, &depth)| (queries, depth, None))
+        .collect();
+    if let Some(height) = stack.config.canopy_height {
+        phases[0].2 = Some(height);
+        phases.insert(2, phases[1]);
+    }
     let mut query_hints = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
-    let levels = stack.config.queries.iter().zip(&stack.depth);
-    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
+    for (&(queries, depth, forest), phase) in phases.iter().zip(&proof.merkle) {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
-        let path_depth = depth - cap_depth;
+        let path_depth = forest.unwrap_or(depth - cap_depth);
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F192::ZERO; n];
         for opening in phase {
@@ -217,8 +230,10 @@ pub(super) fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(hash_to_scalars));
-        cap_active.extend(active);
+        if forest.is_none() {
+            caps.extend(nodes.iter().flat_map(hash_to_scalars));
+            cap_active.extend(active);
+        }
     }
     let deferred = DeferredSubproof {
         public_input,
