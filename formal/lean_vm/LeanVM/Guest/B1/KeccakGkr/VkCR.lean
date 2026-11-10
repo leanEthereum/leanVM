@@ -124,7 +124,7 @@ theorem loads_in (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
     List.mem_flatMap, List.mem_range, Prod.mk.injEq] at hgm
   have hy : ∀ k < 12, (D.layer k).y = D.τ - 3 := fun k hk ↦ D.layer_y h hk.le
   have hchs : ∀ k < 12, ((D.layer k).chs (firstOf k)).length = D.τ - 3 := fun k hk ↦ by
-    obtain ⟨-, hpm, -⟩ := D.layer_facts h hk
+    obtain ⟨-, -, hpm, -⟩ := D.layer_facts h hk
     rw [LayerData.chs_length hpm, hy k hk]
   have hlocL : ∀ k < 12, ((D.layer k).locPt (firstOf k)).length = 11 := fun k hk ↦ locPt_length h hk
   have hpL := point_length h

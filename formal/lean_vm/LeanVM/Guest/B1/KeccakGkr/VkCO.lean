@@ -94,7 +94,7 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h6 : σ (.n 6) = gen ^ D.τ)
     (h9 : σ (.n 9) = ptr zvE) (h17 : σ (.n 18) = gen ^ (D.τ - 4)) (h58 : σ (.n 61) = ptr B)
     (h274 : σ (.n 234) = ptr (B + D.o274)) :
-    (cap5 957).map σ = D.L.2.cap ∧ σ (.n 920) = D.cL curE ∧
+    (cap5 915).map σ = D.L.2.cap ∧ σ (.n 920) = D.cL curE ∧
       σ (.n 921) = ptr zvE * gen ^ D.τ ∧ σ (.n 922) = 0 ∧ σ (.n 923) = 0 ∧
       (∀ j < 7, σ (.n (924 + j)) = (D.oRets curE).getD j 0) ∧ σ (.n 931) = D.word ∧
       (σ (.n 932), σ (.n 933)) = Keccak.scalarCells D.word dsObserve ∧
