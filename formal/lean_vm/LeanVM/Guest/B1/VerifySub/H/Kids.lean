@@ -194,17 +194,14 @@ def termOk (pv : List (List E × Main.Layout)) : Prop :=
   Tables.cpOut S.logMem S.hs (cpRes pv).1 (cpRes pv).2 ∧
     vsOsOut S.μs S.w (osRes pv).1 (osRes pv).2
 
-open Classical in
-/-- The bases the terminal reads `certify_placement`'s and `open_stacked`'s buffers at. -/
-noncomputable def termBs (pv : List (List E × Main.Layout)) : ℕ × ℕ × ℕ :=
-  if h : ∃ e b b1 : ℕ, (cpRes pv).1.getD 1 0 = ptr e ∧ (osRes pv).1.getD 1 0 = ptr b ∧
-      (osRes pv).1.getD 2 0 = ptr b1 then
-    (Classical.choose h, Classical.choose (Classical.choose_spec h),
-      Classical.choose (Classical.choose_spec (Classical.choose_spec h)))
-  else (0, 0, 0)
+/-- The bases the terminal reads `certify_placement`'s and `open_stacked`'s buffers at: the
+offsets' buffer, the two point buffers, as those callees return them. -/
+def termBs (pv : List (List E × Main.Layout)) : ℕ × ℕ × ℕ :=
+  (((cpRes pv).2.getD 4 (0, [])).1, ((osRes pv).2.getD 0 (0, [])).1,
+    ((osRes pv).2.getD 1 (0, [])).1)
 
 /-- The terminal's bases. -/
-noncomputable def termB (sqE : ℕ) (pv : List (List E × Main.Layout)) : TermBases :=
+def termB (sqE : ℕ) (pv : List (List E × Main.Layout)) : TermBases :=
   ⟨sqE, vb bs 5, vb bs 9, vb bs 4, (termBs pv).1, vb bs 11, vb bs 14, (termBs pv).2.1,
     (termBs pv).2.2, vb bs 6⟩
 
