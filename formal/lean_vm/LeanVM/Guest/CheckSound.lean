@@ -350,7 +350,7 @@ theorem keccakOk_sound (hB : BookHolds L fp B) {ins outs : List ℕ} {inOdd outO
       exact wd_of (hout' c hc)
     refine ⟨by rw [hins, keccakIns_eq]; rfl, oC, hlen, ?_⟩
     rw [ei]
-    exact ⟨hk.1, fun c hc ↦ (eo c hc).trans (hk.2 c hc)⟩
+    exact fun c hc ↦ (eo c hc).trans (hk c hc)
   · exact absurd hp Bool.false_ne_true
 
 theorem neOk_sound (hB : BookHolds L fp B) {x i p : ℕ} (h : neOk B x i p = true) :
