@@ -113,7 +113,7 @@ theorem loc_lt (j i : ℕ) : (guestLocs.getD j #[]).getD i 0 < 2 ^ 20 := by
 /-- A word's code (`wordCodeC`): at most `12`. -/
 theorem wordCode_cost (hP : Includes P wordCodeC.costDeps) (x : E) :
     machineCost P wordCodeC.costIdx [encodeValue x] ≤ 12 := by
-  rw [wordCodeC.costEq P hP] <;> omega
+  rw [wordCodeC.costEq P hP]; omega
 
 /-- A call's key (`callKeyC`): `27` per word, `19`. -/
 theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : List E) :

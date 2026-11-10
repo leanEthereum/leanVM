@@ -106,7 +106,7 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128227) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128341) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
       (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
