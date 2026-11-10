@@ -277,6 +277,7 @@ structure J5 (s u : MachineState) (pp : Word) (product : List E) (c : E) : Prop 
   plen : product.length = 47
   prod : eListAt u pp 47 = product
   pbuf : heapNext s ≤ pp.toNat ∧ pp.toNat + 24 * 47 ≤ heapNext u
+  palign : pp.toNat % 8 = 0
   rest : Rest s u (packRest (claimAt s (lClaim s)) (instanceWeightsRust c)
     (sumE (instanceWeightsRust c)) 0 (polyEvalRust product c, 1, []))
 
@@ -510,6 +511,7 @@ theorem powers (hD : DuplexSpec) (hM : MulSpec) {s u : MachineState} {pp : Word}
         · exact m1 hw
         · exact m2 hw
     pbuf := ⟨hpb.1, by simp only [heapNext, hNv]; exact hpb.2⟩
+    palign := J.palign
     rest := R₁.keep fun T hT ↦ Bw.tat hpre X.base.heap X.frame (fun a ha ↦ by
       simp only [PwW] at ha
       exact bodyW_tat hpre Bw X.base.heap (Or.inl (by

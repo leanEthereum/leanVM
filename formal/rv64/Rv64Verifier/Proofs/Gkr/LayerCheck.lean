@@ -131,6 +131,7 @@ structure I0 (s o : MachineState) (sg pp : Word) (product : List E) : Prop where
   plen : product.length = 47
   prod : eListAt o pp 47 = product
   pbuf : heapNext s ≤ pp.toNat ∧ pp.toNat + 24 * 47 ≤ heapNext o
+  palign : pp.toNat % 8 = 0
   rest : Rest s o (TM.require (check1 (shapeOf s) (s.getReg .x14).toNat (claimAt s (lClaim s))
     product) >>= fun _ ↦ stage2 (claimAt s (lClaim s)) product)
 
@@ -442,6 +443,7 @@ theorem to_iota (hEK : EqKernelSpec) {s u : MachineState} {pp : Word} {product :
         unfold verifyLayerStack at hw
         rcases hw with hw | hw | hw <;> addr_omega [hi, hw, hpb, hHu, hHs, hb, hab]
     pbuf := ⟨J.pbuf.1, by have := J.pbuf.2; omega⟩
+    palign := J.palign
     rest := J.rest.body hpre B B₅ Fu5 }⟩
 
 /-! ## The check -/
@@ -508,6 +510,7 @@ structure J3 (s u : MachineState) (pp : Word) (product : List E) : Prop where
   plen : product.length = 47
   prod : eListAt u pp 47 = product
   pbuf : heapNext s ≤ pp.toNat ∧ pp.toNat + 24 * 47 ≤ heapNext u
+  palign : pp.toNat % 8 = 0
   rest : Rest s u (stage2 (claimAt s (lClaim s)) product)
 
 set_option maxHeartbeats 8000000 in
@@ -791,6 +794,7 @@ theorem check (hM : MulSpec) (hSum : FieldContracts.SumSpec) {s o₀ v : Machine
       have hHo := I.ok.base.heap.hi
       exact Fo8.eListAt fun i hi hw ↦ by addr_omega [hi, hw, hpb, hHo, hb, hA]
     pbuf := ⟨I.pbuf.1, by rw [hN8]; exact I.pbuf.2⟩
+    palign := I.palign
     rest := (R.require_pass (hC.mpr ⟨e0, e1, e2⟩)).keep fun T hT ↦
       B.tat hpre B₈.heap F48 (fun a ha ↦ bodyW_tat hpre B B₈.heap (stk_body hpre ha)) hT }⟩
 

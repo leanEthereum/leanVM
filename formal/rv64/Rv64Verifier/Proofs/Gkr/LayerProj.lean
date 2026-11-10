@@ -705,6 +705,7 @@ structure J1 (s u : MachineState) (pp : Word) (product : List E) : Prop where
   plen : product.length = 47
   prod : eListAt u pp 47 = product
   pbuf : heapNext s ≤ pp.toNat ∧ pp.toNat + 24 * 47 ≤ heapNext u
+  palign : pp.toNat % 8 = 0
   rest : Rest s u (TM.require (check1 (shapeOf s) (s.getReg .x14).toNat (claimAt s (lClaim s))
     product) >>= fun _ ↦ stage2 (claimAt s (lClaim s)) product)
 
@@ -766,6 +767,7 @@ theorem proj (hM : MulSpec) {s o : MachineState} {pp : Word} {product : List E}
       rw [miss _ (Or.inl (by addr_omega [ppR, h1, hb, hA])), miss _ (Or.inl (by addr_omega [ppR, h1, hb, hA])),
         miss _ (Or.inl (by addr_omega [ppR, h1, hb, hA]))]
     pbuf := by simp only [heapNext, hNv]; exact Z.pbuf
+    palign := ppR.2.2
     rest := Z.rest.keep fun T hT ↦ L.base.tat hpre P.base.heap P.frame (fun a ha ↦ by
       have hS := hpre.self.self
       have hss := hpre.selfStack
