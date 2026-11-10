@@ -17,6 +17,7 @@ import Rv64Verifier.Model.Walk
 import Rv64Verifier.Proofs.End
 import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Proofs.EqEval
+import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
