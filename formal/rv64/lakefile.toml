@@ -1,0 +1,36 @@
+name = "rv64-verifier"
+version = "0.1.0"
+defaultTargets = ["Rv64Verifier"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# The trusted statement: `Statement/LeanVmVerifier.lean`'s `verifyWith` is what the image is proved to compute.
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# The RV64IM semantics: riscv-zkvm v0.4.0, with the one change Lean v4.35.0 needs (`scripts/riscv-zkvm.sh`).
+[[require]]
+name = "riscv-zkvm"
+path = ".deps/riscv-zkvm"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.35.0"
+
+[[lean_lib]]
+name = "Rv64Verifier"
+globs = ["Rv64Verifier.+"]
+
+# Block specifications of a function of the image, generated (`scripts/Gen.lean`).
+[[lean_exe]]
+name = "rv64-gen"
+srcDir = "scripts"
+root = "Gen"
+supportInterpreter = true

@@ -1,0 +1,14 @@
+[build]
+target = "riscv64im-unknown-none-elf"
+
+[unstable]
+build-std = ["core", "alloc"]
+
+# Little inlining (only the smallest functions) and no runtime or partial unrolling: functions stay functions and loops
+# of variable length stay single loops, while loops of constant length unroll fully into straight-line code.
+[target.riscv64im-unknown-none-elf]
+rustflags = [
+  "-C", "llvm-args=-inline-threshold=25",
+  "-C", "llvm-args=-unroll-runtime=false",
+  "-C", "llvm-args=-unroll-allow-partial=false",
+]

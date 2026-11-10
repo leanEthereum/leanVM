@@ -1,0 +1,504 @@
+import Rv64Verifier.Machine
+
+/-!
+# Symbolic 64-bit word expressions
+
+Ported from sig.golf's `SigGolfCandidate.Rv`.
+
+`E` is a small expression language over atoms taken from a fixed initial machine state `s`:
+`E.reg r` is the initial register value `s.getReg r`, and `E.ld a` the initial memory doubleword
+`s.getMem (a.eval s)`. `E.eval s e : Word` is the meaning of `e` relative to `s`. A sub-doubleword
+load or store whose byte position is not known (`BinOp.ldx`, `E.stx`) takes it as an operand. The
+smart
+constructors (`mkAdd`, `mkBin`, `mkUn`, `mkIte`) fold constants and normalize additive constants,
+so that addresses have the shape `base + const`.
+
+Memory accesses are checked as riscv-zkvm's `step` checks them (`validAccess`): a valid memory
+window and natural alignment.
+-/
+
+namespace Rv64Verifier.Sym
+open RiscvZkvm.Rv64
+
+inductive LoadKind where
+  | d | w | wu | h | hu | b | bu
+  deriving DecidableEq, Repr
+
+inductive StoreKind where
+  | d | w | h | b
+  deriving DecidableEq, Repr
+
+def LoadKind.width : LoadKind → Nat
+  | .d => 8 | .w => 4 | .wu => 4 | .h => 2 | .hu => 2 | .b => 1 | .bu => 1
+
+def StoreKind.width : StoreKind → Nat
+  | .d => 8 | .w => 4 | .h => 2 | .b => 1
+
+/-- riscv-zkvm's check of a data access of `width` bytes at `a`, as `RiscvZkvm.Rv64.step` makes
+it for each width. -/
+def validAccess (width : Nat) (a : Word) : Bool :=
+  match width with
+  | 8 => isValidDwordAccess a
+  | 4 => isValidMemAccess a
+  | 2 => isValidHalfwordAccess a
+  | _ => isValidByteAccess a
+
+/-- The value a sub-doubleword load extracts from the containing doubleword `x`, at byte offset
+`bo` (`0 ≤ bo < 8`). For `.d` it is the doubleword itself. -/
+def LoadKind.fromWord : LoadKind → Word → Nat → Word
+  | .d, x, _ => x
+  | .w, x, bo => (extractWord32 x (bo / 4)).signExtend 64
+  | .wu, x, bo => (extractWord32 x (bo / 4)).zeroExtend 64
+  | .h, x, bo => (extractHalfword x (bo / 2)).signExtend 64
+  | .hu, x, bo => (extractHalfword x (bo / 2)).zeroExtend 64
+  | .b, x, bo => (extractByte x bo).signExtend 64
+  | .bu, x, bo => (extractByte x bo).zeroExtend 64
+
+/-- The doubleword after a sub-doubleword store of `v` at byte offset `bo` into `old`. -/
+def StoreKind.merge : StoreKind → Word → Nat → Word → Word
+  | .d, _, _, v => v
+  | .w, old, bo, v => replaceWord32 old (bo / 4) (v.truncate 32)
+  | .h, old, bo, v => replaceHalfword old (bo / 2) (v.truncate 16)
+  | .b, old, bo, v => replaceByte old bo (v.truncate 8)
+
+/-- Binary operations: the RV64IM ALU operations, the 32-bit word operations, and sub-doubleword
+store merges. -/
+inductive BinOp where
+  | add | sub | and | or | xor | sll | srl | sra | slt | sltu
+  | mul | mulh | mulhsu | mulhu | div | divu | rem | remu
+  /-- a 32-bit word operation, sign-extended to 64 bits -/
+  | w (op : WordOp)
+  /-- sub-doubleword store merge: `eval old v = k.merge old bo v` -/
+  | st (k : StoreKind) (bo : Nat)
+  /-- sub-doubleword load extraction at a byte position given as a word: `eval x p = k.fromWord x
+  p.toNat` -/
+  | ldx (k : LoadKind)
+  deriving DecidableEq, Repr
+
+inductive UnOp where
+  /-- sub-doubleword load extraction: `eval x = k.fromWord x bo` -/
+  | ld (k : LoadKind) (bo : Nat)
+  deriving DecidableEq, Repr
+
+/-- Branch conditions. -/
+inductive CmpOp where
+  | eq | ne | lt | ge | ltu | geu
+  deriving DecidableEq, Repr
+
+def BinOp.eval : BinOp → Word → Word → Word
+  | .add, x, y => x + y
+  | .sub, x, y => x - y
+  | .and, x, y => x &&& y
+  | .or, x, y => x ||| y
+  | .xor, x, y => x ^^^ y
+  | .sll, x, y => x <<< (y.toNat % 64)
+  | .srl, x, y => x >>> (y.toNat % 64)
+  | .sra, x, y => BitVec.sshiftRight x (y.toNat % 64)
+  | .slt, x, y => if BitVec.slt x y then 1 else 0
+  | .sltu, x, y => if BitVec.ult x y then 1 else 0
+  | .mul, x, y => x * y
+  | .mulh, x, y => rv64_mulh x y
+  | .mulhsu, x, y => rv64_mulhsu x y
+  | .mulhu, x, y => rv64_mulhu x y
+  | .div, x, y => rv64_div x y
+  | .divu, x, y => rv64_divu x y
+  | .rem, x, y => rv64_rem x y
+  | .remu, x, y => rv64_remu x y
+  | .w op, x, y => (wordResult op (x.truncate 32) (y.truncate 32)).signExtend 64
+  | .st k bo, x, y => k.merge x bo y
+  | .ldx k, x, p => k.fromWord x p.toNat
+
+def UnOp.eval : UnOp → Word → Word
+  | .ld k bo, x => k.fromWord x bo
+
+def CmpOp.eval : CmpOp → Word → Word → Bool
+  | .eq, x, y => x == y
+  | .ne, x, y => x != y
+  | .lt, x, y => BitVec.slt x y
+  | .ge, x, y => !BitVec.slt x y
+  | .ltu, x, y => BitVec.ult x y
+  | .geu, x, y => !BitVec.ult x y
+
+/-- Symbolic 64-bit words. -/
+inductive E where
+  | c (v : Word)
+  /-- initial register value (atom) -/
+  | reg (r : Reg)
+  /-- initial memory doubleword at the given address (atom) -/
+  | ld (a : E)
+  | un (op : UnOp) (a : E)
+  | bin (op : BinOp) (a b : E)
+  /-- `if op x y then a else b` -/
+  | ite (op : CmpOp) (x y a b : E)
+  /-- sub-doubleword store merge at a byte position given as a word: `k.merge old p.toNat v` -/
+  | stx (k : StoreKind) (old p v : E)
+  deriving Repr
+
+/-- Meaning of a symbolic word relative to the initial state `s`. -/
+def E.eval (s : MachineState) : E → Word
+  | .c v => v
+  | .reg r => s.getReg r
+  | .ld a => s.getMem (a.eval s)
+  | .un op a => op.eval (a.eval s)
+  | .bin op a b => op.eval (a.eval s) (b.eval s)
+  | .ite op x y a b => if op.eval (x.eval s) (y.eval s) then a.eval s else b.eval s
+  | .stx k o p v => k.merge (o.eval s) (p.eval s).toNat (v.eval s)
+
+/-! ## Boolean equality -/
+
+def Reg.beqN (a b : Reg) : Bool := a.toNat == b.toNat
+
+theorem Reg.toNat_inj {a b : Reg} (h : a.toNat = b.toNat) : a = b := by
+  have key : ∀ r : Reg, RiscvZkvm.Interpreter.regOfBits (BitVec.ofNat 5 r.toNat) = r := by
+    intro r; cases r <;> rfl
+  rw [← key a, ← key b, h]
+
+theorem Reg.beqN_eq {a b : Reg} (h : Reg.beqN a b = true) : a = b :=
+  Reg.toNat_inj (by simpa [Reg.beqN] using h)
+
+def E.beq : E → E → Bool
+  | .c x, .c y => x.toNat == y.toNat
+  | .reg a, .reg b => Reg.beqN a b
+  | .ld a, .ld b => E.beq a b
+  | .un o a, .un o' b => decide (o = o') && E.beq a b
+  | .bin o a b, .bin o' a' b' => decide (o = o') && E.beq a a' && E.beq b b'
+  | .ite o x y a b, .ite o' x' y' a' b' =>
+      decide (o = o') && E.beq x x' && E.beq y y' && E.beq a a' && E.beq b b'
+  | .stx k o p v, .stx k' o' p' v' =>
+      decide (k = k') && E.beq o o' && E.beq p p' && E.beq v v'
+  | _, _ => false
+
+theorem E.beq_eq : ∀ {a b : E}, E.beq a b = true → a = b := by
+  intro a
+  induction a with
+  | c x => intro b h; cases b <;> simp [E.beq] at h; exact congrArg _ (BitVec.eq_of_toNat_eq h)
+  | reg r => intro b h; cases b <;> simp [E.beq] at h; exact congrArg _ (Reg.beqN_eq h)
+  | ld a ih => intro b h; cases b <;> simp [E.beq] at h; exact congrArg _ (ih h)
+  | un o a ih =>
+    intro b h; cases b <;> simp [E.beq] at h
+    obtain ⟨h1, h2⟩ := h; subst h1; rw [ih h2]
+  | bin o a b iha ihb =>
+    intro b' h; cases b' <;> simp [E.beq] at h
+    obtain ⟨⟨h1, h2⟩, h3⟩ := h; subst h1; rw [iha h2, ihb h3]
+  | ite o x y a b ihx ihy iha ihb =>
+    intro b' h; cases b' <;> simp [E.beq] at h
+    obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h; subst h1; rw [ihx h2, ihy h3, iha h4, ihb h5]
+  | stx k o p v iho ihp ihv =>
+    intro b' h; cases b' <;> simp [E.beq] at h
+    obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h; subst h1; rw [iho h2, ihp h3, ihv h4]
+
+/-! ## Smart constructors -/
+
+/-- `a + k` with constant folding and offset merging. -/
+def addC (a : E) (k : Word) : E :=
+  match a with
+  | .c x => .c (x + k)
+  | .bin .add a' (.c x) => if (x + k).toNat == 0 then a' else .bin .add a' (.c (x + k))
+  | a => if k.toNat == 0 then a else .bin .add a (.c k)
+
+def mkAdd (a b : E) : E :=
+  match b with
+  | .c k => addC a k
+  | b =>
+    match a with
+    | .c k => addC b k
+    | a =>
+      match b with
+      | .bin .add b' (.c k) => addC (.bin .add a b') k
+      | b => .bin .add a b
+
+def mkBin (op : BinOp) (a b : E) : E :=
+  match op with
+  | .add => mkAdd a b
+  | .sub =>
+    match a, b with
+    | .c x, .c y => .c (x - y)
+    | a, .c y => addC a (-y)
+    | a, b => .bin .sub a b
+  | op =>
+    match a, b with
+    | .c x, .c y => .c (op.eval x y)
+    | a, b => .bin op a b
+
+def mkUn (op : UnOp) (a : E) : E :=
+  match a with
+  | .c x => .c (op.eval x)
+  | a => .un op a
+
+def mkIte (op : CmpOp) (x y a b : E) : E :=
+  match x, y with
+  | .c u, .c v => if op.eval u v then a else b
+  | x, y => .ite op x y a b
+
+theorem addC_eval (s : MachineState) (a : E) (k : Word) :
+    (addC a k).eval s = a.eval s + k := by
+  unfold addC
+  split
+  · rfl
+  · rename_i a' x
+    split
+    · rename_i h
+      have h0 : x + k = 0 := BitVec.eq_of_toNat_eq (by simpa using h)
+      simp [E.eval, BinOp.eval, BitVec.add_assoc, h0]
+    · simp [E.eval, BinOp.eval, BitVec.add_assoc]
+  · split
+    · rename_i h
+      have h0 : k = 0 := BitVec.eq_of_toNat_eq (by simpa using h)
+      simp [h0]
+    · rfl
+
+theorem mkAdd_eval (s : MachineState) (a b : E) :
+    (mkAdd a b).eval s = a.eval s + b.eval s := by
+  unfold mkAdd
+  split
+  · rw [addC_eval]; rfl
+  · split
+    · rw [addC_eval, BitVec.add_comm]; rfl
+    · split
+      · rw [addC_eval]; simp [E.eval, BinOp.eval, BitVec.add_assoc]
+      · rfl
+
+theorem mkBin_eval (s : MachineState) (op : BinOp) (a b : E) :
+    (mkBin op a b).eval s = op.eval (a.eval s) (b.eval s) := by
+  unfold mkBin
+  split
+  · exact mkAdd_eval s a b
+  · split
+    · rfl
+    · rw [addC_eval]; simp [E.eval, BinOp.eval, BitVec.sub_eq_add_neg]
+    · rfl
+  · split
+    · rfl
+    · rfl
+
+theorem mkUn_eval (s : MachineState) (op : UnOp) (a : E) :
+    (mkUn op a).eval s = op.eval (a.eval s) := by
+  unfold mkUn; split <;> rfl
+
+theorem mkIte_eval (s : MachineState) (op : CmpOp) (x y a b : E) :
+    (mkIte op x y a b).eval s =
+      if op.eval (x.eval s) (y.eval s) then a.eval s else b.eval s := by
+  unfold mkIte
+  split
+  · split <;> simp_all [E.eval]
+  · rfl
+
+/-! ## Addresses -/
+
+/-- A normalized address: `base + off` (`base = none` means the constant `off`). -/
+structure Addr where
+  base : Option E
+  off : Word
+  deriving Repr
+
+def Addr.eval (s : MachineState) (a : Addr) : Word :=
+  match a.base with
+  | none => a.off
+  | some b => b.eval s + a.off
+
+def Addr.toE (a : Addr) : E :=
+  match a.base with
+  | none => .c a.off
+  | some b => addC b a.off
+
+theorem Addr.toE_eval (s : MachineState) (a : Addr) : a.toE.eval s = a.eval s := by
+  rcases a with ⟨_ | b, off⟩
+  · rfl
+  · simp [Addr.toE, Addr.eval, addC_eval]
+
+/-- Split an expression into `(base, constant offset)`. -/
+def norm : E → Addr
+  | .c k => ⟨none, k⟩
+  | .bin .add a (.c k) => ⟨some a, k⟩
+  | e => ⟨some e, 0⟩
+
+theorem norm_eval (s : MachineState) (e : E) : (norm e).eval s = e.eval s := by
+  unfold norm
+  split
+  · rfl
+  · rfl
+  · simp [Addr.eval]
+
+def Addr.beq (a b : Addr) : Bool :=
+  (match a.base, b.base with
+   | none, none => true
+   | some x, some y => E.beq x y
+   | _, _ => false) && a.off.toNat == b.off.toNat
+
+theorem Addr.beq_eq {a b : Addr} (h : Addr.beq a b = true) : a = b := by
+  rcases a with ⟨_ | x, o⟩ <;> rcases b with ⟨_ | y, o'⟩ <;> simp [Addr.beq] at h
+  · rw [BitVec.eq_of_toNat_eq h]
+  · rw [E.beq_eq h.1, BitVec.eq_of_toNat_eq h.2]
+
+/-- Result of an aliasing query. -/
+inductive Alias where
+  | same | diff | unknown
+  deriving DecidableEq, Repr
+
+/-- Decide whether two addresses are equal, different, or undecidable (sound, syntactic). -/
+def Addr.alias (a b : Addr) : Alias :=
+  match a.base, b.base with
+  | none, none => if a.off.toNat == b.off.toNat then .same else .diff
+  | some x, some y =>
+    if E.beq x y then (if a.off.toNat == b.off.toNat then .same else .diff) else .unknown
+  | _, _ => .unknown
+
+theorem Addr.alias_same {a b : Addr} (h : a.alias b = .same) (s : MachineState) :
+    a.eval s = b.eval s := by
+  rcases a with ⟨_ | x, o⟩ <;> rcases b with ⟨_ | y, o'⟩ <;>
+    simp only [Addr.alias, Addr.eval] at h ⊢
+  · split at h
+    · rename_i h'; exact BitVec.eq_of_toNat_eq (by simpa using h')
+    · cases h
+  · cases h
+  · cases h
+  · split at h
+    · rename_i hb; split at h
+      · rename_i h'
+        have h1 := E.beq_eq hb
+        have h2 : o = o' := BitVec.eq_of_toNat_eq (by simpa using h')
+        rw [h1, h2]
+      · cases h
+    · cases h
+
+theorem Addr.alias_diff {a b : Addr} (h : a.alias b = .diff) (s : MachineState) :
+    a.eval s ≠ b.eval s := by
+  rcases a with ⟨_ | x, o⟩ <;> rcases b with ⟨_ | y, o'⟩ <;>
+    simp only [Addr.alias, Addr.eval] at h ⊢
+  · split at h
+    · cases h
+    · rename_i h'; intro heq; apply h'; simp [heq]
+  · cases h
+  · cases h
+  · split at h
+    · rename_i hb; split at h
+      · cases h
+      · rename_i h'; rw [E.beq_eq hb]; intro heq; apply h'
+        have := (BitVec.add_right_inj _).mp heq
+        simp [this]
+    · cases h
+
+/-! ## Spans -/
+
+/-- `n` doublewords from register `reg` plus `lo`, as a configuration declares them
+(`Config.spans`): two addresses in different spans are told apart by one side condition on the
+spans (`Oblig.apart`), not one per pair of addresses. -/
+structure Span where
+  reg : Reg
+  lo : Word
+  n : Nat
+  deriving Repr
+
+def Span.start (s : MachineState) (A : Span) : Word := s.getReg A.reg + A.lo
+
+/-- The byte index in `A` of an address `A.reg + off`. -/
+def Span.idx (A : Span) (a : Addr) : Option Nat :=
+  match a.base with
+  | some (.reg r) =>
+    if Reg.beqN r A.reg && decide ((a.off - A.lo).toNat < 8 * A.n) then
+      some (a.off - A.lo).toNat
+    else none
+  | _ => none
+
+theorem Span.idx_eval {A : Span} {a : Addr} {i : Nat} (h : A.idx a = some i)
+    (s : MachineState) : a.eval s = A.start s + BitVec.ofNat 64 i ∧ i < 8 * A.n := by
+  rcases a with ⟨_ | b, off⟩
+  · simp [Span.idx] at h
+  · cases b with
+    | reg r =>
+      simp only [Span.idx, Bool.and_eq_true, decide_eq_true_eq] at h
+      split at h
+      · rename_i hc
+        obtain ⟨hr, hlt⟩ := hc
+        cases h
+        have hr' := Reg.beqN_eq hr
+        subst hr'
+        refine ⟨?_, hlt⟩
+        simp only [Addr.eval, E.eval, Span.start, BitVec.ofNat_toNat, BitVec.setWidth_eq]
+        rw [BitVec.add_assoc, BitVec.add_comm A.lo, BitVec.sub_add_cancel]
+      · cases h
+    | _ => simp [Span.idx] at h
+
+def Span.beq (A B : Span) : Bool :=
+  Reg.beqN A.reg B.reg && A.lo.toNat == B.lo.toNat && A.n == B.n
+
+theorem Span.beq_eq {A B : Span} (h : Span.beq A B = true) : A = B := by
+  rcases A with ⟨r, lo, n⟩
+  rcases B with ⟨r', lo', n'⟩
+  simp only [Span.beq, Bool.and_eq_true, beq_iff_eq] at h
+  obtain ⟨⟨h1, h2⟩, h3⟩ := h
+  rw [Reg.beqN_eq h1, BitVec.eq_of_toNat_eq h2, h3]
+
+/-! ## Side conditions -/
+
+/-- Side conditions emitted by the symbolic executor. -/
+inductive Oblig where
+  /-- `validAccess w (a.eval s) = true` -/
+  | valid (a : Addr) (w : Nat)
+  /-- `(b.eval s).toNat % 8 = 0` (base of a sub-doubleword access) -/
+  | align8 (b : E)
+  /-- `a.eval s ≠ b.eval s` (only emitted in `noAlias` mode) -/
+  | ne (a b : Addr)
+  /-- the spans `A` and `B` do not overlap, the one above the other ending by `2^64` -/
+  | apart (A B : Span)
+  deriving Repr
+
+def Oblig.holds (s : MachineState) : Oblig → Prop
+  | .valid a w => validAccess w (a.eval s) = true
+  | .align8 b => (b.eval s).toNat % 8 = 0
+  | .ne a b => a.eval s ≠ b.eval s
+  | .apart A B => (A.start s).toNat + 8 * A.n ≤ (B.start s).toNat ∧
+      (B.start s).toNat + 8 * B.n ≤ 2 ^ 64 ∨
+      (B.start s).toNat + 8 * B.n ≤ (A.start s).toNat ∧ (A.start s).toNat + 8 * A.n ≤ 2 ^ 64
+
+def Oblig.beq : Oblig → Oblig → Bool
+  | .valid a w, .valid b w' => Addr.beq a b && w == w'
+  | .align8 a, .align8 b => E.beq a b
+  | .ne a b, .ne a' b' => Addr.beq a a' && Addr.beq b b'
+  | .apart A B, .apart A' B' => Span.beq A A' && Span.beq B B'
+  | _, _ => false
+
+theorem Oblig.beq_eq {a b : Oblig} (h : Oblig.beq a b = true) : a = b := by
+  cases a <;> cases b <;> simp [Oblig.beq] at h
+  · rw [Addr.beq_eq h.1, h.2]
+  · rw [E.beq_eq h]
+  · rw [Addr.beq_eq h.1, Addr.beq_eq h.2]
+  · rw [Span.beq_eq h.1, Span.beq_eq h.2]
+
+/-- Addresses in apart spans differ. -/
+theorem Span.ne_of_apart {A B : Span} {a b : Addr} {i j : Nat} (ha : A.idx a = some i)
+    (hb : B.idx b = some j) {s : MachineState} (h : (Oblig.apart A B).holds s) :
+    a.eval s ≠ b.eval s := by
+  obtain ⟨ha', hi⟩ := Span.idx_eval ha s
+  obtain ⟨hb', hj⟩ := Span.idx_eval hb s
+  rw [ha', hb']
+  intro heq
+  have he := congrArg BitVec.toNat heq
+  simp only [Oblig.holds] at h
+  rw [BitVec.toNat_add, BitVec.toNat_add, BitVec.toNat_ofNat, BitVec.toNat_ofNat] at he
+  have := (A.start s).isLt
+  have := (B.start s).isLt
+  rcases h with h | h
+  · rw [Nat.mod_eq_of_lt (by omega : i < 2 ^ 64), Nat.mod_eq_of_lt (by omega : j < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)] at he
+    omega
+  · rw [Nat.mod_eq_of_lt (by omega : i < 2 ^ 64), Nat.mod_eq_of_lt (by omega : j < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)] at he
+    omega
+
+/-- All side conditions hold (a right-nested conjunction, simp-friendly). -/
+def Oblig.all (s : MachineState) : List Oblig → Prop
+  | [] => True
+  | [o] => o.holds s
+  | o :: os => o.holds s ∧ Oblig.all s os
+
+theorem Oblig.all_iff (s : MachineState) (os : List Oblig) :
+    Oblig.all s os ↔ ∀ o ∈ os, o.holds s := by
+  induction os with
+  | nil => simp [Oblig.all]
+  | cons o os ih =>
+    cases os with
+    | nil => simp [Oblig.all]
+    | cons o' os' => simp only [Oblig.all] at ih ⊢; simp [ih]
+
+end Rv64Verifier.Sym

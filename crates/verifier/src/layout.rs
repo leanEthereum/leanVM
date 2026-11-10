@@ -6,27 +6,40 @@ use crate::hash::{STATE_LANES, keccak_f};
 use crate::keccak::KeccakShape;
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
-use std::collections::BTreeMap;
-use std::ops::Add;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::ops::Add;
 
 pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
+
+/// A monomial of degree at most 2 in a table's columns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Monomial {
+    One,
+    X(usize),
+    /// `x_i * x_j`, `i <= j`.
+    Xy(usize, usize),
+}
 
 /// A polynomial of degree at most 2 in a table's columns.
 #[derive(Clone, Debug, Default)]
 pub struct Form {
-    terms: BTreeMap<Vec<usize>, E>, // monomial -> coefficient; [] is 1, [i] is x_i, [i, j] is x_i*x_j
+    terms: Vec<(Monomial, E)>, // each monomial once, with its coefficient, in the order first added
 }
 
 impl Form {
-    fn term(monomial: Vec<usize>, coefficient: E) -> Self {
+    fn term(monomial: Monomial, coefficient: E) -> Self {
         Self {
-            terms: BTreeMap::from([(monomial, coefficient)]),
+            terms: vec![(monomial, coefficient)],
         }
     }
 
     pub fn add_scaled(&mut self, other: &Form, weight: E) {
-        for (monomial, &coefficient) in &other.terms {
-            *self.terms.entry(monomial.clone()).or_default() += weight * coefficient;
+        for &(monomial, coefficient) in &other.terms {
+            match self.terms.iter_mut().find(|(m, _)| *m == monomial) {
+                Some((_, c)) => *c += weight * coefficient,
+                None => self.terms.push((monomial, weight * coefficient)),
+            }
         }
     }
 
@@ -36,11 +49,11 @@ impl Form {
     }
 
     pub fn evaluate(&self, column: &[E]) -> E {
-        E::sum(
-            self.terms
-                .iter()
-                .map(|(monomial, &c)| monomial.iter().fold(c, |acc, &index| acc * column[index])),
-        )
+        E::sum(self.terms.iter().map(|&(monomial, c)| match monomial {
+            Monomial::One => c,
+            Monomial::X(i) => c * column[i],
+            Monomial::Xy(i, j) => c * column[i] * column[j],
+        }))
     }
 }
 
@@ -97,18 +110,11 @@ pub struct Layout<'a> {
     pub count: Vec<BusBlock>,
     /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
     pub placements: Vec<Option<Placement>>,
+    /// Where q_keccak sits, its entry of `placements`.
+    pub qkeccak: Placement,
     pub stack_log: usize,
     pub table_log_heights: Vec<usize>,
     pub keccak: KeccakShape,
-}
-
-fn cols<const N: usize>(columns: &[&str], names: [&str; N]) -> [usize; N] {
-    names.map(|name| {
-        columns
-            .iter()
-            .position(|&column| column == name)
-            .expect("unknown column")
-    })
 }
 
 pub fn gpow(index: u64) -> E {
@@ -116,15 +122,15 @@ pub fn gpow(index: u64) -> E {
 }
 
 pub fn constant(value: E) -> Form {
-    Form::term(vec![], value)
+    Form::term(Monomial::One, value)
 }
 
 fn col(index: usize, exponent: u64) -> Form {
-    Form::term(vec![index], gpow(exponent))
+    Form::term(Monomial::X(index), gpow(exponent))
 }
 
 fn prod(a: usize, b: usize, exponent: u64) -> Form {
-    Form::term(vec![a.min(b), a.max(b)], gpow(exponent))
+    Form::term(Monomial::Xy(a.min(b), a.max(b)), gpow(exponent))
 }
 
 pub const SEP_STATE: E = ONE;
@@ -178,41 +184,47 @@ impl Flushes {
 
     /// The cell's limbs are the named columns, the missing top ones zero.
     fn memory_cols(&mut self, address: Form, count: usize, columns: &[usize]) {
-        let values = std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
+        let values = core::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
         self.memory(address, count, &values);
     }
 }
 
-/// One instruction's table: its columns, its bus flushes, its constraints.
+/// One instruction's table: its bus flushes. Its columns are the constants below, its constraints `constraints`.
 pub struct Table {
-    pub opcode: usize, // also its index in the table list, so g^opcode is its bytecode tag
-    pub columns: Vec<String>,
+    pub opcode: usize,   // also its index in the table list, so g^opcode is its bytecode tag
     pub padding: Vec<E>, // the row a padding row holds
     pub flushes: Flushes,
-    pub constraints: fn(&[E]) -> Vec<E>,
 }
+
+/// How many constraints each table has: JUMP's two, and none elsewhere.
+const N_CONSTRAINTS: [usize; N_TABLES] = [0, 0, 0, 0, 2, 0];
 
 impl Table {
     pub fn n_constraints(&self) -> usize {
-        (self.constraints)(&vec![ZERO; self.width()]).len()
+        N_CONSTRAINTS[self.opcode]
+    }
+
+    /// Its constraints at a row's `columns`, `n_constraints` of them.
+    pub fn constraints(&self, columns: &[E]) -> Vec<E> {
+        match self.opcode {
+            OP_JUMP => jump_constraints(columns).to_vec(),
+            _ => Vec::new(),
+        }
     }
 
     pub fn width(&self) -> usize {
-        self.columns.len()
+        TABLE_WIDTHS[self.opcode]
     }
 
-    fn count_columns(&self) -> impl Iterator<Item = usize> {
-        (0..self.width()).filter(|&i| self.columns[i].starts_with("cnt"))
+    fn count_columns(&self) -> &'static [usize] {
+        COUNT_COLUMNS[self.opcode]
     }
 }
 
 fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
-    let [pc, fp, o_a, o_b, o_c, cnt_a, cnt_b, cnt_c, cnt_bc] = cols(
-        ARITH_COLUMNS,
-        ["pc", "fp", "o_a", "o_b", "o_c", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"],
-    );
-    let va = cols(ARITH_COLUMNS, ["va_0", "va_1", "va_2"]);
-    let vb = cols(ARITH_COLUMNS, ["vb_0", "vb_1", "vb_2"]);
+    use arith::*;
+    let (pc, fp, o_a, o_b, o_c, va, vb) = (PC, FP, O_A, O_B, O_C, VA, VB);
+    let (cnt_a, cnt_b, cnt_c, cnt_bc) = (CNT_A, CNT_B, CNT_C, CNT_BC);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
     let operands = vec![col(o_a, 0), col(o_b, 0), col(o_c, 0), constant(ZERO), constant(ZERO)];
@@ -227,15 +239,15 @@ fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
     let result = if multiply {
         TOWER_LANES.map(|lane| Form::sum(lane.iter().map(|&(j, k)| prod(va[j], vb[k], 0))))
     } else {
-        std::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
+        core::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
     };
     flushes.memory(prod(fp, o_c, 0), cnt_c, &result);
     flushes
 }
 
 fn flushes_set() -> Flushes {
-    let [pc, fp, o, cnt, cnt_bc] = cols(SET_COLUMNS, ["pc", "fp", "o", "cnt", "cnt_bc"]);
-    let k = cols(SET_COLUMNS, ["k_0", "k_1", "k_2"]);
+    use set::*;
+    let (pc, fp, o, k, cnt, cnt_bc) = (PC, FP, O, K, CNT, CNT_BC);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
     let operands = vec![col(o, 0), col(k[0], 0), col(k[1], 0), col(k[2], 0), constant(ZERO)];
@@ -245,11 +257,9 @@ fn flushes_set() -> Flushes {
 }
 
 fn flushes_deref() -> Flushes {
-    let [pc, fp, o1, o2, o3, f_pc, f_fp, ptr] =
-        cols(DEREF_COLUMNS, ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr"]);
-    let [cnt_ptr, cnt_target, cnt_local, cnt_bc] =
-        cols(DEREF_COLUMNS, ["cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"]);
-    let v3 = cols(DEREF_COLUMNS, ["v3_0", "v3_1", "v3_2"]);
+    use deref::*;
+    let (pc, fp, o1, o2, o3, f_pc, f_fp, ptr, v3) = (PC, FP, O1, O2, O3, F_PC, F_FP, PTR, V3);
+    let (cnt_ptr, cnt_target, cnt_local, cnt_bc) = (CNT_PTR, CNT_TARGET, CNT_LOCAL, CNT_BC);
 
     let gated = |lane: usize| [col(lane, 0), prod(f_pc, lane, 0), prod(f_fp, lane, 0)];
 
@@ -270,11 +280,9 @@ fn flushes_deref() -> Flushes {
 }
 
 fn flushes_jump() -> Flushes {
-    let [pc, fp, o_c, o_d, o_f, cond, dest, frame, b] = cols(
-        JUMP_COLUMNS,
-        ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "b"],
-    );
-    let [cnt_c, cnt_d, cnt_f, cnt_bc] = cols(JUMP_COLUMNS, ["cnt_c", "cnt_d", "cnt_f", "cnt_bc"]);
+    use jump::*;
+    let (pc, fp, o_c, o_d, o_f, cond, dest, frame, b) = (PC, FP, O_C, O_D, O_F, V_COND, V_PC, V_FP, B);
+    let (cnt_c, cnt_d, cnt_f, cnt_bc) = (CNT_C, CNT_D, CNT_F, CNT_BC);
     let mut flushes = Flushes::default();
     // next_pc = b*dest + (b+1)*g*pc, next_fp = b*frame + (b+1)*fp, both derived.
     flushes.state_derived(
@@ -291,16 +299,16 @@ fn flushes_jump() -> Flushes {
     flushes
 }
 
-fn jump_constraints(columns: &[E]) -> Vec<E> {
-    let [condition, inverse, flag] = cols(JUMP_COLUMNS, ["v_cond", "w", "b"]).map(|index| columns[index]);
-    vec![flag + condition * inverse, condition * (flag + ONE)]
+fn jump_constraints(columns: &[E]) -> [E; 2] {
+    let [condition, inverse, flag] = [jump::V_COND, jump::W, jump::B].map(|index| columns[index]);
+    [flag + condition * inverse, condition * (flag + ONE)]
 }
 
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
 /// marking a limb that holds no lane: nine rate cells, lanes 0..16 two to a cell then lane 16 in a low limb (even), or
 /// lane 0 in a high limb then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
 fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
-    std::array::from_fn(|cell| match (odd, cell) {
+    core::array::from_fn(|cell| match (odd, cell) {
         (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
         (true, _) => (None, Some(0)),
         (false, 8) => (Some(16), None),
@@ -327,10 +335,10 @@ fn layout_limb(even: Option<usize>, odd: Option<usize>, flag: usize, missing: Op
 }
 
 fn flushes_keccak() -> Flushes {
-    let [pc, fp, free] = cols(KECCAK_HEAD, ["pc", "fp", "free"]);
-    let o_m = cols(KECCAK_HEAD, ["o_m0", "o_m1", "o_m2", "o_m3"]);
-    let [o_tail, o_b8, o_cap, o_out] = cols(KECCAK_HEAD, ["o_tail", "o_b8", "o_cap", "o_out"]);
-    let [in_odd, out_odd, out_two, out_all] = cols(KECCAK_HEAD, ["odd_in", "odd_out", "out_two", "out_all"]);
+    use keccak_head::*;
+    let (pc, fp, free, o_m) = (PC, FP, FREE, O_M);
+    let (o_tail, o_b8, o_cap, o_out) = (O_TAIL, O_B8, O_CAP, O_OUT);
+    let (in_odd, out_odd, out_two, out_all) = (ODD_IN, ODD_OUT, OUT_TWO, OUT_ALL);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
     let operands = o_m
@@ -378,23 +386,105 @@ pub const OP_JUMP: usize = 4;
 pub const OP_KECCAK: usize = 5;
 pub const N_TABLES: usize = 6;
 
-#[rustfmt::skip]
-const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
-const SET_COLUMNS: &[&str] = &["pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc"];
-#[rustfmt::skip]
-const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"];
-#[rustfmt::skip]
-const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
-// KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell
-// read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
-// q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
-#[rustfmt::skip]
-const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
+// Each table's local columns, by index. Its count columns, the ones a bus count reads, are those named `cnt*`.
+
+/// XOR's and MUL's columns.
+mod arith {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const O_A: usize = 2;
+    pub const O_B: usize = 3;
+    pub const O_C: usize = 4;
+    pub const VA: [usize; 3] = [5, 6, 7];
+    pub const VB: [usize; 3] = [8, 9, 10];
+    pub const CNT_A: usize = 11;
+    pub const CNT_B: usize = 12;
+    pub const CNT_C: usize = 13;
+    pub const CNT_BC: usize = 14;
+    pub const WIDTH: usize = 15;
+    pub const COUNTS: &[usize] = &[CNT_A, CNT_B, CNT_C, CNT_BC];
+}
+
+mod set {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const O: usize = 2;
+    pub const K: [usize; 3] = [3, 4, 5];
+    pub const CNT: usize = 6;
+    pub const CNT_BC: usize = 7;
+    pub const WIDTH: usize = 8;
+    pub const COUNTS: &[usize] = &[CNT, CNT_BC];
+}
+
+mod deref {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const O1: usize = 2;
+    pub const O2: usize = 3;
+    pub const O3: usize = 4;
+    pub const F_PC: usize = 5;
+    pub const F_FP: usize = 6;
+    pub const PTR: usize = 7;
+    pub const V3: [usize; 3] = [8, 9, 10];
+    pub const CNT_PTR: usize = 11;
+    pub const CNT_TARGET: usize = 12;
+    pub const CNT_LOCAL: usize = 13;
+    pub const CNT_BC: usize = 14;
+    pub const WIDTH: usize = 15;
+    pub const COUNTS: &[usize] = &[CNT_PTR, CNT_TARGET, CNT_LOCAL, CNT_BC];
+}
+
+mod jump {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const O_C: usize = 2;
+    pub const O_D: usize = 3;
+    pub const O_F: usize = 4;
+    pub const V_COND: usize = 5;
+    pub const V_PC: usize = 6;
+    pub const V_FP: usize = 7;
+    pub const CNT_C: usize = 8;
+    pub const CNT_D: usize = 9;
+    pub const CNT_F: usize = 10;
+    pub const CNT_BC: usize = 11;
+    pub const W: usize = 12;
+    pub const B: usize = 13;
+    pub const WIDTH: usize = 14;
+    pub const COUNTS: &[usize] = &[CNT_C, CNT_D, CNT_F, CNT_BC];
+}
+
+/// KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell
+/// read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
+/// q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
+mod keccak_head {
+    pub const PC: usize = 0;
+    pub const FP: usize = 1;
+    pub const O_M: [usize; 4] = [2, 3, 4, 5];
+    pub const O_TAIL: usize = 6;
+    pub const O_B8: usize = 7;
+    pub const O_CAP: usize = 8;
+    pub const O_OUT: usize = 9;
+    pub const ODD_IN: usize = 10;
+    pub const ODD_OUT: usize = 11;
+    pub const OUT_TWO: usize = 12;
+    pub const OUT_ALL: usize = 13;
+    pub const FREE: usize = 14;
+}
 const KECCAK_CELLS: usize = 13; // a sponge state, read then written
-pub const KECCAK_IN: usize = KECCAK_HEAD.len();
+pub const KECCAK_IN: usize = keccak_head::FREE + 1;
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
 const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
 const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
+/// KECCAK's count columns: each cell's, then `cnt_bc`.
+const KECCAK_COUNTS: [usize; 2 * KECCAK_CELLS + 1] = {
+    let mut counts = [0; 2 * KECCAK_CELLS + 1];
+    let mut i = 0;
+    while i < counts.len() {
+        counts[i] = KECCAK_CNT + i;
+        i += 1;
+    }
+    counts
+};
 
 /// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
 /// committed columns in local order, the ones before the value lanes then the read counts
@@ -431,27 +521,13 @@ fn qkeccak_slot(column: usize) -> Option<usize> {
     (KECCAK_IN..KECCAK_OUT).contains(&local).then(|| local - KECCAK_IN)
 }
 
-fn keccak_columns() -> Vec<String> {
-    let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| format!("{prefix}_{lane}"));
-    let counts = (0..2 * KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
-    let head = KECCAK_HEAD.iter().map(|name| name.to_string());
-    head.chain(lanes("in"))
-        .chain(lanes("out"))
-        .chain(counts)
-        .chain(["cnt_bc".to_string()])
-        .collect()
-}
-
 pub fn tables() -> Vec<Table> {
-    let table = |opcode, columns: Vec<String>, flushes, constraints| Table {
+    let table = |opcode: usize, flushes| Table {
         opcode,
-        padding: vec![ZERO; columns.len()],
-        columns,
+        padding: vec![ZERO; TABLE_WIDTHS[opcode]],
         flushes,
-        constraints,
     };
-    let named = |columns: &[&str]| columns.iter().map(|name| name.to_string()).collect();
-    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), |_| vec![]);
+    let mut keccak = table(OP_KECCAK, flushes_keccak());
     // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
     let mut output = [0; STATE_LANES];
     keccak_f(&mut output);
@@ -459,22 +535,30 @@ pub fn tables() -> Vec<Table> {
         *padding = E::new(lane, 0, 0);
     }
     vec![
-        table(OP_XOR, named(ARITH_COLUMNS), flushes_arith(OP_XOR, false), |_| vec![]),
-        table(OP_MUL, named(ARITH_COLUMNS), flushes_arith(OP_MUL, true), |_| vec![]),
-        table(OP_SET, named(SET_COLUMNS), flushes_set(), |_| vec![]),
-        table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref(), |_| vec![]),
-        table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump(), jump_constraints),
+        table(OP_XOR, flushes_arith(OP_XOR, false)),
+        table(OP_MUL, flushes_arith(OP_MUL, true)),
+        table(OP_SET, flushes_set()),
+        table(OP_DEREF, flushes_deref()),
+        table(OP_JUMP, flushes_jump()),
         keccak,
     ]
 }
 
 const TABLE_WIDTHS: [usize; N_TABLES] = [
-    ARITH_COLUMNS.len(),
-    ARITH_COLUMNS.len(),
-    SET_COLUMNS.len(),
-    DEREF_COLUMNS.len(),
-    JUMP_COLUMNS.len(),
+    arith::WIDTH,
+    arith::WIDTH,
+    set::WIDTH,
+    deref::WIDTH,
+    jump::WIDTH,
     KECCAK_CNT_BC + 1,
+];
+const COUNT_COLUMNS: [&[usize]; N_TABLES] = [
+    arith::COUNTS,
+    arith::COUNTS,
+    set::COUNTS,
+    deref::COUNTS,
+    jump::COUNTS,
+    &KECCAK_COUNTS,
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     let mut bases = [NUM_GLOBAL_COLUMNS; N_TABLES];
@@ -523,7 +607,7 @@ pub fn build_layout<'a>(
         };
         push.extend(table.flushes.push.iter().map(block));
         pull.extend(table.flushes.pull.iter().map(block));
-        count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
+        count.extend(table.count_columns().iter().map(|&local| block(&vec![col(local, 0)])));
     }
 
     // Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
@@ -554,12 +638,20 @@ pub fn build_layout<'a>(
         .collect();
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
+    let mut offsets = vec![0; kappas.len()]; // a block's offset, at the block's column
+    for (&column, offset) in blocks.iter().zip(block_offsets) {
+        offsets[column] = offset;
+    }
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
+    let qkeccak = Placement {
+        variables: qkeccak_kappa,
+        index: offsets[QKECCAK],
+    };
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
-            None => *offsets.get(&column)?,
+            Some(slot) => qkeccak.index + ((slot as u64) << kappa),
+            None if outputs.contains(&column) => return None,
+            None => offsets[column],
         };
         Some(Placement {
             variables: kappa,
@@ -576,8 +668,24 @@ pub fn build_layout<'a>(
         pull,
         count,
         placements,
+        qkeccak,
         stack_log,
         table_log_heights,
         keccak,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn constraint_counts_match_the_constraints() {
+        for table in tables() {
+            assert_eq!(
+                table.constraints(&vec![ZERO; table.width()]).len(),
+                table.n_constraints()
+            );
+        }
+    }
 }

@@ -1,0 +1,23 @@
+cargo-features = ["panic-immediate-abort"]
+
+# The RV64IM image of the verifier: `crates/verifier` behind an entry that reads its inputs from memory and halts with
+# the verdict. Its own workspace: it builds for bare-metal RV64IM only.
+[workspace]
+
+[package]
+name = "verifier-rv64"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+verifier = { path = "../../../crates/verifier" }
+
+[profile.release]
+opt-level = 2
+# Whole-program, so that `dealloc`, a no-op here, is seen to be one and the loops that only drop disappear.
+lto = "fat"
+codegen-units = 1
+# A panic traps where it happens: no formatting code in the image, and a trap never accepts.
+panic = "immediate-abort"
+debug = false

@@ -4,6 +4,7 @@ use crate::field::{E, GEN, ONE, ZERO};
 use crate::layout::K_BITS;
 use crate::multilinear::poly_eval;
 use crate::transcript::Transcript;
+use alloc::vec::Vec;
 
 // The Frobenius shifts of the six stages composing Phi, one challenge each.
 const RING_MAP_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
@@ -33,11 +34,23 @@ fn ring_weight(r: &[E], r_prime: &[E], coefficients: &[E]) -> E {
     total
 }
 
+/// `W`, by the claim's point and the map's Frobenius coefficients.
+pub struct RingWeight {
+    point: Vec<E>,
+    coefficients: Vec<E>,
+}
+
+impl RingWeight {
+    pub fn evaluate(&self, r_prime: &[E]) -> E {
+        ring_weight(&self.point, r_prime, &self.coefficients)
+    }
+}
+
 /// The 64 claims s\[i\] = z(i, point) become the one dense claim `sum_u W(u) qkeccak(u) = target`.
 ///
 /// Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
-/// MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure.
-pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript) -> (E, impl Fn(&[E]) -> E + use<>) {
+/// MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W.
+pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript) -> (E, RingWeight) {
     let challenges = transcript.samples(RING_MAP_SHIFTS.len());
     // The same map as a Frobenius sum, `Phi(a) = sum_k c_k a^(2^k)` for k < 64.
     let coefficient = |k: usize| {
@@ -50,5 +63,5 @@ pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript) -> (E, i
     let coefficients: Vec<E> = (0..K_BITS).map(coefficient).collect();
     let images: Vec<E> = s.iter().map(|&value| ring_map(value, &challenges)).collect();
     let target = poly_eval(&images, GEN);
-    (target, move |r_prime: &[E]| ring_weight(&point, r_prime, &coefficients))
+    (target, RingWeight { point, coefficients })
 }

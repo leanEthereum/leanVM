@@ -5,7 +5,9 @@ use crate::hash::Digest;
 use crate::layout::{MAX_STACKED_LOG, MIN_STACKED_LOG};
 use crate::multilinear::{dot, eq_eval, eq_kernel, log2_strict, multilinear_eval, poly_eval};
 use crate::transcript::Transcript;
-use crate::{VerifierError, require};
+use crate::{StackBasis, VerifierError, require};
+use alloc::vec;
+use alloc::vec::Vec;
 
 const INITIAL_FOLDING_FACTOR: usize = 6;
 const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
@@ -125,7 +127,30 @@ fn induced_weight(message_log: usize, queries: &[u64], query_weights: &[E], poin
     Ok(total)
 }
 
-type WeightAt = Box<dyn Fn(&[E]) -> Result<E, VerifierError>>;
+/// The weight a glued claim owes, a function of the terminal point restricted to its level's message coordinates.
+enum GluedWeight {
+    /// An out-of-domain claim: `eq(point, x)`.
+    Ood(Vec<E>),
+    /// A level's batched queries: [`induced_weight`].
+    Queries {
+        message_log: usize,
+        queries: Vec<u64>,
+        query_weights: Vec<E>,
+    },
+}
+
+impl GluedWeight {
+    fn evaluate(&self, x: &[E]) -> Result<E, VerifierError> {
+        match self {
+            Self::Ood(point) => Ok(eq_eval(point, x)),
+            Self::Queries {
+                message_log,
+                queries,
+                query_weights,
+            } => induced_weight(*message_log, queries, query_weights, x),
+        }
+    }
+}
 
 /// One claim folded into the running sumcheck, and the weight it owes back.
 ///
@@ -135,7 +160,7 @@ type WeightAt = Box<dyn Fn(&[E]) -> Result<E, VerifierError>>;
 struct GluedClaim {
     scalar: E,         // the power of lambda it was glued with
     fold_start: usize, // how many fold challenges preceded the level
-    weight_at: WeightAt,
+    weight: GluedWeight,
 }
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
@@ -145,7 +170,7 @@ pub fn verify_whir(
     log_inv_rate: usize,
     target: E,
     root: Digest,
-    evaluate_basis: &dyn Fn(&[E]) -> E,
+    basis: &StackBasis,
 ) -> Result<(), VerifierError> {
     let config = derive_config(log_n, log_inv_rate)?;
     let levels = config.folds.len();
@@ -168,7 +193,7 @@ pub fn verify_whir(
         let final_level = level == levels - 1;
         // The level's claims, held until its batching challenge is drawn: the
         // OOD claims first, then the query batch (Annex B, Protocol 1 step 1).
-        let mut pending: Vec<(Vec<E>, WeightAt)> = Vec::new();
+        let mut pending: Vec<(Vec<E>, GluedWeight)> = Vec::new();
         let mut residual = Vec::new();
         let mut next_root = current_root;
         if final_level {
@@ -179,7 +204,7 @@ pub fn verify_whir(
             let ood_point = transcript.samples(message_log);
             let ood_value = transcript.next_scalar()?;
             let intro = transcript.sumcheck_round_poly(3, ood_value, None)?;
-            pending.push((intro, Box::new(move |x| Ok(eq_eval(&ood_point, x)))));
+            pending.push((intro, GluedWeight::Ood(ood_point)));
         }
 
         transcript.grind_check(QUERY_GRINDING_BITS)?;
@@ -216,10 +241,14 @@ pub fn verify_whir(
         let intro = transcript.sumcheck_round_poly(3, enforced, None)?;
         pending.push((
             intro,
-            Box::new(move |x| induced_weight(message_log, &queries, &query_weights, x)),
+            GluedWeight::Queries {
+                message_log,
+                queries,
+                query_weights,
+            },
         ));
         let mut scalar = ONE;
-        for (intro, weight_at) in pending {
+        for (intro, weight) in pending {
             scalar *= lam;
             for (q, i) in running_quad.iter_mut().zip(intro) {
                 *q += scalar * i;
@@ -227,7 +256,7 @@ pub fn verify_whir(
             glued.push(GluedClaim {
                 scalar,
                 fold_start: folds.len(),
-                weight_at,
+                weight,
             });
         }
 
@@ -251,9 +280,9 @@ pub fn verify_whir(
             // challenges its level fixed after it was made, then the tail.
             let point = [&folds[..], &tail_folds].concat();
             let lane_folds = config.folds[0];
-            let mut weight = evaluate_basis(&[&point[lane_folds..], &point[..lane_folds]].concat());
+            let mut weight = basis.evaluate(&[&point[lane_folds..], &point[..lane_folds]].concat());
             for claim in &glued {
-                weight += claim.scalar * (claim.weight_at)(&point[claim.fold_start..])?;
+                weight += claim.scalar * claim.weight.evaluate(&point[claim.fold_start..])?;
             }
             let terminal = weight * multilinear_eval(&residual, &tail_folds)?;
             return require(terminal == running_target, VerifierError::WhirTerminal);

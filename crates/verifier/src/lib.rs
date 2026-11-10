@@ -1,4 +1,4 @@
-//! A self-contained verifier for leanVM execution proofs: single threaded, std only, plain integer arithmetic.
+//! A self-contained verifier for leanVM execution proofs: single threaded, `no_std` with `alloc`, plain integer arithmetic.
 //!
 //! Kept close enough to the Lean transcription (`formal/Statement/LeanVmVerifier.lean`) to read side by side: the same functions, in the same order, with the same constants.
 //!
@@ -6,7 +6,10 @@
 //!
 //! One walk of the protocol serves two entry points. [`verify_execution`] checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: every check it leaves out is behind `Transcript::checked`.
 
+#![no_std]
 #![forbid(unsafe_code)]
+
+extern crate alloc;
 
 mod bus;
 mod bytecode;
@@ -28,7 +31,10 @@ pub use merkle::MerklePath;
 pub use transcript::Proof;
 pub use whir::whir_queries;
 
+use alloc::vec;
+use alloc::vec::Vec;
 use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
+use core::ops::Range;
 use field::{ZERO, powers};
 use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
@@ -36,9 +42,8 @@ use layout::{
     GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES,
     OP_KECCAK, QKECCAK, build_layout,
 };
-use multilinear::{dot, eq_eval, multilinear_eval};
-use ring_switch::ring_switch;
-use std::ops::Range;
+use multilinear::{Placement, dot, eq_eval, multilinear_eval};
+use ring_switch::{RingWeight, ring_switch};
 use transcript::Transcript;
 use whir::verify_whir;
 
@@ -75,8 +80,8 @@ pub enum VerifierError {
     CommittedSize,
 }
 
-impl std::fmt::Display for VerifierError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for VerifierError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::DigestHalf => "a digest half is 128-bit",
             Self::MultilinearSize => "multilinear table has the wrong size",
@@ -110,14 +115,50 @@ impl std::fmt::Display for VerifierError {
     }
 }
 
-impl std::error::Error for VerifierError {}
+impl core::error::Error for VerifierError {}
 
 fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
     if condition { Ok(()) } else { Err(error) }
 }
 
+/// The weight a claim puts on the stack, a function of the opening's point `x`.
+enum StackWeight {
+    /// `eq(point, x)`.
+    Eq(Vec<E>),
+    /// The ring switch's weight `W(x)`, over the whole stack.
+    Ring(RingWeight),
+    /// The ring switch's weight on a placement's window, times the placement's selector.
+    PlacedRing(Placement, RingWeight),
+}
+
+impl StackWeight {
+    fn evaluate(&self, x: &[E]) -> E {
+        match self {
+            Self::Eq(point) => eq_eval(point, x),
+            Self::Ring(weight) => weight.evaluate(x),
+            Self::PlacedRing(placement, weight) => placement.eq_above(x) * weight.evaluate(&x[..placement.variables]),
+        }
+    }
+}
+
 /// The weight a claim puts on the stack, and the value it claims for it.
-type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
+struct StackClaim {
+    weight: StackWeight,
+    value: E,
+}
+
+/// The claims' weights batched by `scales`: the basis WHIR evaluates at its terminal point.
+struct StackBasis<'a> {
+    claims: &'a [StackClaim],
+    scales: Vec<E>,
+}
+
+impl StackBasis<'_> {
+    fn evaluate(&self, point: &[E]) -> E {
+        let weights: Vec<E> = self.claims.iter().map(|claim| claim.weight.evaluate(point)).collect();
+        dot(&self.scales, &weights)
+    }
+}
 
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
@@ -128,14 +169,11 @@ fn verify_stacked_opening(
     log_inv_rate: usize,
     claims: &[StackClaim],
 ) -> Result<(), VerifierError> {
-    let values: Vec<E> = claims.iter().map(|(_, value)| *value).collect();
+    let values: Vec<E> = claims.iter().map(|claim| claim.value).collect();
     let scales = powers(transcript.sample(), claims.len());
-    let evaluate_basis = |point: &[E]| {
-        let weights: Vec<E> = claims.iter().map(|(weight, _)| weight(point)).collect();
-        dot(&scales, &weights)
-    };
     let target = dot(&scales, &values);
-    verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
+    let basis = StackBasis { claims, scales };
+    verify_whir(transcript, stack_log, log_inv_rate, target, root, &basis)
 }
 
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
@@ -176,8 +214,11 @@ pub fn verify_keccak_batch(
     log_inv_rate: usize,
     proof: &Proof,
 ) -> Result<(), VerifierError> {
+    // A batch past the largest stack fails the next check too: bounding it first keeps the sum below from overflowing.
     require(
-        log_steps >= layout::KECCAK_MIN_STEPS_LOG && depth > 0 && ROUNDS.is_multiple_of(depth),
+        (layout::KECCAK_MIN_STEPS_LOG..=MAX_STACKED_LOG).contains(&log_steps)
+            && depth > 0
+            && ROUNDS.is_multiple_of(depth),
         VerifierError::CommittedSize,
     )?;
     let shape = KeccakShape { log_steps, depth };
@@ -203,9 +244,15 @@ pub fn verify_keccak_batch(
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
     let (target, weight) = ring_switch(point, &slices, &mut transcript);
-    let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
+    let mut claims = vec![StackClaim {
+        weight: StackWeight::Ring(weight),
+        value: target,
+    }];
     if let Some((point, word)) = openings.outputs {
-        claims.push((Box::new(move |x| eq_eval(&point, x)), word));
+        claims.push(StackClaim {
+            weight: StackWeight::Eq(point),
+            value: word,
+        });
     }
     verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
@@ -269,7 +316,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
-    let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
+    let mut public_point = vec![ZERO; layout.log_memory];
     public_point[0] = public_challenge;
     let public_pairs = [(first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)];
     for (column, (low, high)) in [MEMORY_0, MEMORY_1, MEMORY_2].into_iter().zip(public_pairs) {
@@ -304,11 +351,11 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript);
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
-    let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
-    let ringswitch: StackClaim = (
-        Box::new(move |x| qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])),
-        ringswitch_target,
-    );
+    let qkeccak = layout.qkeccak;
+    let ringswitch = StackClaim {
+        weight: StackWeight::PlacedRing(qkeccak, ringswitch_weight),
+        value: ringswitch_target,
+    };
     let mut stack_claims = vec![ringswitch];
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
     verify_stacked_opening(
