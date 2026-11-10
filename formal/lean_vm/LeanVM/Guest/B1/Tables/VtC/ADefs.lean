@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Bits.Tables
 # The honest memory
 
 `VtBases`: the caller's buffers' addresses (the cursor, `zeta`, `dims_g`, `table_rows`,
-`g_squares` (the exponent table), `fp_w`, `claim_pool`, `chi`, `gkr_leaves`, `tabs`, `bc_point`)
+`g_squares` (the exponent table), `fp_w`, `claim_pool`, `chi`, `gkr_leaves`, `bc_point`; `tabs` is `g_squares`' window section)
 and the first word of `verify_tables`' own buffers. `VtHonest.args`: the 20 arguments. `VtHonest.linL`: the caller's
 buffers' honest words. `vtAllocVars`: the 111 allocations' values, in order (`vt_allocs`, by the
 kernel); `VtHonest.sizes`, `VtHonest.ownW`: their sizes and honest words; `VtHonest.ownL`: them
@@ -35,13 +35,21 @@ open LeanVM.Protocol.EndToEnd.Complete (termsPure blockSel)
 
 @[expose] public section
 
+/-- The exponent table's words and its bit windows (`exponent_tables`). -/
+def expTableWordsW : List E := expTableWords ++ (List.range (2 ^ winTabBits)).map eOfNat
+
+theorem length_expTableWordsW : expTableWordsW.length = 236 + 2 ^ winTabBits := by
+  simp [expTableWordsW, expTableWords, length_etWordsN]
+
 /-- **The exponent table holds what `verify_tables` reads of it.** -/
-theorem vt_expTablesAt {rd : Reader} {sq : E} (h : TbReadsAt rd sq expTableWords) :
+theorem vt_expTablesAt {rd : Reader} {sq : E} (h : TbReadsAt rd sq expTableWordsW) :
     ExpTablesAt rd sq := by
+  have hl : expTableWords.length = 236 := by simp [expTableWords, length_etWordsN]
   have hE : ExpTables rd sq := (expTables_iff_words _ _).2 fun o ho ↦ by
-    rw [List.getD_eq_getElem _ _ (by simpa [expTableWords, length_etWordsN] using ho)]
-    exact h o (by simpa [expTableWords, length_etWordsN] using ho)
-  refine ⟨fun k hk ↦ ?_, fun k hk ↦ ?_, fun gi hgi ↦ ?_⟩
+    have := h o (by rw [length_expTableWordsW]; exact Nat.lt_add_right _ ho)
+    rw [← List.getD_eq_getElem _ 0, expTableWordsW, List.getD_append _ _ _ _ (by omega)] at this
+    exact this
+  refine ⟨fun k hk ↦ ?_, fun k hk ↦ ?_, fun gi hgi ↦ ?_, fun n hn ↦ ?_⟩
   · simp only [gSquaresList, List.length_map, List.length_range] at hk
     simpa [gSquaresList] using hE.1 k hk
   · simp only [rankKeysList, List.length_map, List.length_range] at hk
@@ -61,6 +69,12 @@ theorem vt_expTablesAt {rd : Reader} {sq : E} (h : TbReadsAt rd sq expTableWords
       | exact h0 _ (by decide)
       | exact h1 _ (by decide) (by decide)
       | exact h2 _ (by decide) (by decide)
+  · rw [loadHolds_mul_gen_pow]
+    have := h (236 + n) (by rw [length_expTableWordsW]; exact Nat.add_lt_add_left hn 236)
+    rw [← List.getD_eq_getElem _ 0, expTableWordsW, List.getD_append_right _ _ _ _ (by omega),
+      show 236 + n - expTableWords.length = n by omega, List.getD_eq_getElem _ _ (by simpa using hn),
+      List.getElem_map, List.getElem_range] at this
+    exact this
 
 /-- The caller's buffers' addresses and the first word of the function's own. -/
 structure VtBases where
@@ -73,7 +87,6 @@ structure VtBases where
   pool : ℕ
   chi : ℕ
   leaves : ℕ
-  tabs : ℕ
   bcp : ℕ
   own : ℕ
 
@@ -111,7 +124,7 @@ noncomputable def args : List E :=
     (digestHalves H.pi).1, (digestHalves H.pi).2, ofK (addressOfIndex B.zeta), gen ^ H.μ,
     ofK (addressOfIndex B.dims), ofK (addressOfIndex B.rows), ofK (addressOfIndex B.sq),
     ofK (addressOfIndex B.fpw), H.beta, ofK (addressOfIndex B.pool), ofK (addressOfIndex B.chi),
-    ofK (addressOfIndex B.leaves), ofK (addressOfIndex B.tabs), ofK (addressOfIndex B.bcp)]
+    ofK (addressOfIndex B.leaves), ofK (addressOfIndex B.sq) * gen ^ winTabAt, ofK (addressOfIndex B.bcp)]
 
 /-- `dims_g`'s words. -/
 noncomputable def dimsW : List E := gen ^ H.lm :: (vtTauList H.τ).map (gen ^ ·)
@@ -135,7 +148,7 @@ noncomputable def chiW : List E := zcChis H.cap0 H.target H.xsR H.n
 /-- **The caller's buffers.** -/
 noncomputable def linL : TLay :=
   [(B.cur, H.curW), (B.zeta, H.point), (B.dims, H.dimsW), (B.rows, H.rows.map eOfNat),
-    (B.sq, expTableWords), (B.fpw, H.weights), (B.pool, H.poolW), (B.chi, H.chiW),
+    (B.sq, expTableWordsW), (B.fpw, H.weights), (B.pool, H.poolW), (B.chi, H.chiW),
     (B.leaves, H.values), (B.bcp, H.slots)]
 
 /-- The own buffers' sizes, in allocation order. -/
@@ -152,7 +165,7 @@ noncomputable def ownW : List (List E) :=
       (H.τ (vtPushSel.getD i default).2.2.2.1)) ++
     (List.range 45).map (fun i ↦ offDigits (H.offC.getD i 0)
       (H.τ (vtCountSel.getD i default).2.2.2.1)) ++
-    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 5) H.xsR H.n,
+    [zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n,
       zcCprodW H.cap0 H.target H.xsR H.n,
       (List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))]
 
@@ -180,6 +193,15 @@ structure VtWOk (H : VtHonest) (B : VtBases) (w : ℕ → E) : Prop where
       blockSel (vtSizesP H.lm H.τ) H.μ (3 + i) H.point ∧
     w (vtSelE (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).2.2.2.1 + 1) =
       gen ^ H.offP.getD (3 + i) 0
+  hw1 : (List.range 8).map (fun i ↦ w (1876 + i)) = (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+    [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
+      (vtBcR1 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
+  hw2 : (List.range 8).map (fun i ↦ w (1884 + i)) = (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+    [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2, (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.1,
+      (vtBcR2 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
+  hw3 : (List.range 8).map (fun i ↦ w (1892 + i)) = (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).1 ++
+    [(H.args B).getD 5 0 * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2,
+      (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.1, (vtBcR3 (vtF0 (H.args B) H.xs4) H.bcW).2.2]
   hwC : ∀ i < 45, w (vtSelE (vtCountSel.getD i default).2.2.1
       (vtCountSel.getD i default).2.2.2.1) = blockSel (vtSizesC H.τ) H.μ i H.point ∧
     w (vtSelE (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).2.2.2.1 + 1) =
