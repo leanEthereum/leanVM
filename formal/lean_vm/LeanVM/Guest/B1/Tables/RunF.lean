@@ -542,19 +542,31 @@ theorem runT_noRoots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : 
     subst h0
     simp [runT] at h
 
-/-- `RunsTo` from a carried sponge to a sponge carried with the ground challenge `g`. -/
-def RunsToX {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (a : α) (s' : Fs)
-    (g : Option E) : Prop :=
-  ∀ sp : Sponge, s.Carries sp → ∀ (rest : List E) (os : List (List Opening))
-    (roots : List (Digest × ℕ × ℕ)), ∃ sp' : Sponge, TCar s' g sp' ∧
+/-- **A run between grounds**: from any Spec sponge the guest carries as `s` with the ground
+challenge `g`, `p` reads exactly `xs` and returns `a`, leaving a sponge carried as `s'` with the
+ground challenge `g'`, on any rest of the stream, openings and roots. `RunsTo` is the case
+`g = g' = none`. -/
+def RunsG {α : Type} (p : VerifierProgram α) (s : Fs) (g : Option E) (xs : List E) (a : α)
+    (s' : Fs) (g' : Option E) : Prop :=
+  ∀ sp : Sponge, TCar s g sp → ∀ (rest : List E) (os : List (List Opening))
+    (roots : List (Digest × ℕ × ℕ)), ∃ sp' : Sponge, TCar s' g' sp' ∧
       runId p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)
 
+/-- `RunsTo` from a carried sponge to a sponge carried with the ground challenge `g`. -/
+abbrev RunsToX {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (a : α) (s' : Fs)
+    (g : Option E) : Prop :=
+  RunsG p s none xs a s' g
+
 /-- `RunsTo` from a sponge carried with the ground challenge `g`. -/
-def RunsFromX {α : Type} (p : VerifierProgram α) (s : Fs) (g : Option E) (xs : List E) (a : α)
+abbrev RunsFromX {α : Type} (p : VerifierProgram α) (s : Fs) (g : Option E) (xs : List E) (a : α)
     (s' : Fs) : Prop :=
-  ∀ sp : Sponge, TCar s g sp → ∀ (rest : List E) (os : List (List Opening))
-    (roots : List (Digest × ℕ × ℕ)), ∃ sp' : Sponge, s'.Carries sp' ∧
-      runId p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)
+  RunsG p s g xs a s' none
+
+theorem RunsTo.toG {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsTo p s xs a s') : RunsG p s none xs a s' none := h
+
+theorem RunsG.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsG p s none xs a s' none) : RunsTo p s xs a s' := h
 
 theorem RunsToX.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
     (h : RunsToX p s xs a s' none) : RunsTo p s xs a s' := h
@@ -569,17 +581,24 @@ theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : Li
   obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
   exact ⟨sp', hc'⟩
 
-/-- **An accepting run of a sequence splits**, at a sponge carried with a ground challenge `g`
-(`none` unless `p` ends right after a grind). -/
-theorem RunsTo.unbindX {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
-    {s s'' : Fs} {xs : List E} {b : β}
-    (h : RunsTo (p >>= f) s xs b s'') (hc : ∃ sp, s.Carries sp) :
-    ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs) (g : Option E), xs = xs1 ++ xs2 ∧
-      RunsToX p s xs1 a s1 g ∧ RunsFromX (f a) s1 g xs2 b s'' := by
+/-- The sponge after a run between grounds is carried. -/
+theorem RunsG.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {g g' : Option E}
+    {xs : List E} {a : α} (h : RunsG p s g xs a s' g') (hc : ∃ sp, TCar s g sp) :
+    ∃ sp, TCar s' g' sp := by
+  obtain ⟨sp, hsp⟩ := hc
+  obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
+  exact ⟨sp', hc'⟩
+
+/-- **An accepting run of a sequence splits**, at a sponge carried with some ground challenge. -/
+theorem RunsG.unbind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    {s s'' : Fs} {g g'' : Option E} {xs : List E} {b : β}
+    (h : RunsG (p >>= f) s g xs b s'' g'') (hc : ∃ sp, TCar s g sp) :
+    ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs) (g1 : Option E), xs = xs1 ++ xs2 ∧
+      RunsG p s g xs1 a s1 g1 ∧ RunsG (f a) s1 g1 xs2 b s'' g'' := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp'', hc'', he⟩ := h sp hsp [] [] []
   simp only [List.append_nil] at he
-  have hT := runT_of_runId (p >>= f) ⟨s, none, xs, [], []⟩ sp hsp b _ he
+  have hT := runT_of_runId (p >>= f) ⟨s, g, xs, [], []⟩ sp hsp b _ he
   rw [prog_bind_eq, runT_bind] at hT
   obtain ⟨⟨a, st1⟩, h1, h2⟩ := Option.bind_eq_some_iff.mp hT
   obtain ⟨C1, hC1⟩ := runT_roots _ _ a st1 h1
@@ -593,7 +612,6 @@ theorem RunsTo.unbindX {α β : Type} {p : VerifierProgram α} {f : α → Verif
   have ho1' : opre1 = [] ∧ st1.openings = [] := List.append_eq_nil_iff.mp ho1.symm
   have ho2' : opre2 = [] := by rw [List.append_nil] at ho2; rw [← ho2, ho1'.2]
   rw [List.append_nil] at hs2
-  have hg'' : sp''.ground = none := hc''.2.2
   refine ⟨a, pre1, st1.stream, st1.sponge, st1.ground, by rw [hs1], ?_, ?_⟩
   · intro sp0 hs0 rest os R
     have e := hf1 rest os
@@ -611,17 +629,15 @@ theorem RunsTo.unbindX {α β : Type} {p : VerifierProgram α} {f : α → Verif
     obtain ⟨sp1, c1, c2⟩ := runId_of_runT (f a) ⟨st1.sponge, st1.ground, st1.stream ++ rest, os, R⟩
       sp0 hs0 b ⟨fsOfT sp'', sp''.ground, rest, os, R⟩ e2
     refine ⟨sp1, ?_, c2⟩
-    have e3 := (eq_fsOfT hc'').1
-    rw [e3]
-    simp only [hg''] at c1
+    obtain ⟨e3, e4⟩ := eq_fsOfT hc''
+    rw [e3, e4]
     exact c1
 
-/-- **Runs of one program from one sponge on one stream agree**, the first ending at a ground
-challenge `g`: it is the second's, so `g = none`. -/
-theorem runsToX_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {g : Option E}
+/-- **Runs of one program from one sponge on one stream agree.** -/
+theorem RunsG.det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {g g1 g2 : Option E}
     {xs1 xs2 r1 r2 : List E} {a b : α}
-    (h1 : RunsToX p s xs1 a t1 g) (h2 : RunsTo p s xs2 b t2) (hc : ∃ sp, s.Carries sp)
-    (he : xs1 ++ r1 = xs2 ++ r2) : a = b ∧ t1 = t2 ∧ g = none ∧ r1 = r2 := by
+    (h1 : RunsG p s g xs1 a t1 g1) (h2 : RunsG p s g xs2 b t2 g2) (hc : ∃ sp, TCar s g sp)
+    (he : xs1 ++ r1 = xs2 ++ r2) : a = b ∧ t1 = t2 ∧ g1 = g2 ∧ r1 = r2 := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp1, c1, e1⟩ := h1 sp hsp r1 [] []
   obtain ⟨sp2, c2, e2⟩ := h2 sp hsp r2 [] []
@@ -635,6 +651,41 @@ theorem runsToX_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {g : Opt
   simp only [Fs.mk.injEq]
   exact ⟨c1a.symm.trans c2a, c1b.symm.trans c2b⟩
 
+/-- An accepting run of a requirement checked it. -/
+theorem RunsG.require_inv {c : Prop} [Decidable c] {s t : Fs} {g g' : Option E} {xs : List E}
+    {u : Unit} (h : RunsG (VerifierProgram.require c) s g xs u t g') (hc : ∃ sp, TCar s g sp) :
+    c := by
+  by_contra hn
+  obtain ⟨sp, hsp⟩ := hc
+  obtain ⟨sp1, -, e⟩ := h sp hsp [] [] []
+  simp only [VerifierProgram.require, hn, ↓reduceIte] at e
+  exact absurd e (by simp [runId, Compile.runWithHash])
+
+/-- A run of a return returns its word, reading nothing, the sponge kept. -/
+theorem RunsG.ret_inv {α : Type} {x a : α} {s t : Fs} {g g' : Option E} {xs : List E}
+    (h : RunsG (VerifierProgram.ret x) s g xs a t g') (hc : ∃ sp, TCar s g sp) :
+    a = x ∧ t = s ∧ g' = g ∧ xs = [] := by
+  have hr : RunsG (VerifierProgram.ret x) s g [] x s g := fun sp hs rest os R ↦ ⟨sp, hs, rfl⟩
+  obtain ⟨e1, e2, e3, e4⟩ := RunsG.det h hr hc (r1 := []) (r2 := xs) (by simp)
+  exact ⟨e1, e2, e3, by simpa using e4.symm⟩
+
+/-- **An accepting run of a sequence splits**, at a sponge carried with a ground challenge `g`
+(`none` unless `p` ends right after a grind). -/
+theorem RunsTo.unbindX {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    {s s'' : Fs} {xs : List E} {b : β}
+    (h : RunsTo (p >>= f) s xs b s'') (hc : ∃ sp, s.Carries sp) :
+    ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs) (g : Option E), xs = xs1 ++ xs2 ∧
+      RunsToX p s xs1 a s1 g ∧ RunsFromX (f a) s1 g xs2 b s'' :=
+  RunsG.unbind (RunsTo.toG h) hc
+
+/-- **Runs of one program from one sponge on one stream agree**, the first ending at a ground
+challenge `g`: it is the second's, so `g = none`. -/
+theorem runsToX_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {g : Option E}
+    {xs1 xs2 r1 r2 : List E} {a b : α}
+    (h1 : RunsToX p s xs1 a t1 g) (h2 : RunsTo p s xs2 b t2) (hc : ∃ sp, s.Carries sp)
+    (he : xs1 ++ r1 = xs2 ++ r2) : a = b ∧ t1 = t2 ∧ g = none ∧ r1 = r2 :=
+  RunsG.det h1 (RunsTo.toG h2) hc he
+
 /-- **An accepting run of a sequence splits** where a run of its first part is known. -/
 theorem RunsTo.unbind_at {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
     {s s'' t : Fs} {xs ys : List E} {a : α} {b : β}
@@ -644,7 +695,7 @@ theorem RunsTo.unbind_at {α β : Type} {p : VerifierProgram α} {f : α → Ver
   obtain ⟨r, hr⟩ := hpre
   obtain ⟨ea, es, eg, er⟩ := runsToX_det r1 hp hc (r1 := xs2) (r2 := r) (by rw [← he, hr])
   subst ea es eg er
-  exact ⟨xs2, hr, k1.toRunsTo⟩
+  exact ⟨xs2, hr, k1⟩
 
 end
 end LeanVM.Guest.B1.Tables

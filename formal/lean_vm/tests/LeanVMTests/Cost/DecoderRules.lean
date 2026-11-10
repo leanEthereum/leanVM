@@ -102,7 +102,7 @@ def runOn (deps : List (ℕ × Term)) (i : ℕ) (vs : List MachineValue) : Optio
 #guard runOn lorNat.costDeps lorNat.costIdx
   [encodeValue (2 ^ 70 : ℕ), encodeValue (3 : ℕ)] == some (encodeValue (lorNat (2 ^ 70) 3))
 
-def x : E := E.ofLimbs (K.ofLane 0x0123456789abcdef) (K.ofLane 7) (K.ofLane 0xffff)
+def x : E := E.ofLimbs (K.ofLane 0x0123456789abcdef) (K.ofLane 7)
 #guard runOn plusOne.costDeps plusOne.costIdx [encodeValue x] == some (encodeValue (plusOne x))
 #guard runOn genPow.costDeps genPow.costIdx [encodeValue (0 : ℕ)] == some (encodeValue (genPow 0))
 #guard runOn genPow.costDeps genPow.costIdx [encodeValue (5 : ℕ)] == some (encodeValue (genPow 5))
