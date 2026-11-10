@@ -176,24 +176,30 @@ theorem eq_of_flatMap_childCells {bytecode : List K} :
     rw [Option.some.inj hc, eq_of_flatMap_childCells (fun x hx ↦ hs x (List.mem_cons_of_mem _ hx))
       (fun x hx ↦ hs' x (List.mem_cons_of_mem _ hx)) h2]
 
-/-! ## The batching after its children: no proof of work -/
+/-! ## The batching after its children: one proof of work, before `λ` -/
 
-theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), MovesOK (· ≤ 64) False (sumcheckRoundsProgram claim k)
+/-- The moves a batching's part allows: no commitment, every proof of work of at most `64` bits
+and followed by a challenge, no return right after one. -/
+abbrev BMoves {α : Type} (p : VerifierProgram α) : Prop :=
+  Moves (· ≤ 64) False (fun _ ↦ True) (fun _ ↦ False) p
+
+theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), BMoves (sumcheckRoundsProgram claim k)
   | 0, _ => trivial
-  | k + 1, _ => MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
-      MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_roundsProg k _) fun _ ↦ trivial
+  | k + 1, _ => Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+      Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' (movesOK_roundsProg k _) fun _ _ ↦ trivial
 
-theorem movesOK_require (q : Prop) (inst : Decidable q) :
-    MovesOK (· ≤ 64) False (@VerifierProgram.require q inst) :=
-  MovesOK.require q
+theorem movesOK_require (q : Prop) (inst : Decidable q) : BMoves (@VerifierProgram.require q inst) :=
+  (Moves.require q).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
 theorem movesOK_batchRest (bytecode : List K) (cs : List ChildClaims) :
-    MovesOK (· ≤ 64) False (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) := by
+    BMoves (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) := by
   unfold batchingAfterChildren
-  refine MovesOK.seq MovesOK.sampleE fun _ ↦ ?_
-  refine MovesOK.seq (movesOK_roundsProg _ _) fun _ ↦ ?_
-  refine MovesOK.seq MovesOK.readE fun _ ↦ ?_
-  exact MovesOK.seq (movesOK_require _ _) fun _ ↦ trivial
+  refine Moves.seq (Moves.grindP fun _ ↦ by decide) (fun _ _ ↦ ?_)
+    (fun _ _ _ ↦ Moves.startsSample_sampleChallenge _)
+  refine Moves.seq' Moves.sampleE fun _ _ ↦ ?_
+  refine Moves.seq' (movesOK_roundsProg _ _) fun _ _ ↦ ?_
+  refine Moves.seq' Moves.readE fun _ _ ↦ ?_
+  exact Moves.seq' (movesOK_require _ _) fun _ _ ↦ trivial
 
 /-! ## The certificate -/
 

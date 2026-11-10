@@ -46,26 +46,25 @@ open scoped ENNReal
 
 /-! ## The program commits nothing -/
 
-theorem movesOK_readCount (M : ℕ) : MovesOK (· ≤ 64) False (readChildCount M) := by
+theorem movesOK_readCount (M : ℕ) : BMoves (readChildCount M) := by
   unfold readChildCount
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (movesOK_require _ _) fun _ ↦
-    MovesOK.liftOption _
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (movesOK_require _ _) fun _ _ ↦
+    (Moves.liftOption _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
-theorem movesOK_readChild (nB : ℕ) : MovesOK (· ≤ 64) False (readChild nB) := by
+theorem movesOK_readChild (nB : ℕ) : BMoves (readChild nB) := by
   unfold readChild
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (movesOK_require _ _) fun _ ↦
-    MovesOK.liftOption _
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (movesOK_require _ _) fun _ _ ↦
+    (Moves.liftOption _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
-theorem movesOK_readChildren (nB : ℕ) : ∀ n, MovesOK (· ≤ 64) False (readChildren nB n)
+theorem movesOK_readChildren (nB : ℕ) : ∀ n, BMoves (readChildren nB n)
   | 0 => trivial
-  | n + 1 => MovesOK.seq (movesOK_readChild nB) fun _ ↦
-      MovesOK.seq (movesOK_readChildren nB n) fun _ ↦ trivial
+  | n + 1 => Moves.seq' (movesOK_readChild nB) fun _ _ ↦
+      Moves.seq' (movesOK_readChildren nB n) fun _ _ ↦ trivial
 
-theorem movesOK_batchAny (M : ℕ) (bytecode : List K) :
-    MovesOK (· ≤ 64) False (boundedBatchingProgram M bytecode) := by
+theorem movesOK_batchAny (M : ℕ) (bytecode : List K) : BMoves (boundedBatchingProgram M bytecode) := by
   unfold boundedBatchingProgram batchingProgram
-  exact MovesOK.seq (movesOK_readCount M) fun n ↦
-    MovesOK.seq (movesOK_readChildren _ n) fun cs ↦ movesOK_batchRest bytecode cs
+  exact Moves.seq' (movesOK_readCount M) fun n _ ↦
+    Moves.seq' (movesOK_readChildren _ n) fun cs _ ↦ movesOK_batchRest bytecode cs
 
 /-! ## The duplex discipline -/
 
