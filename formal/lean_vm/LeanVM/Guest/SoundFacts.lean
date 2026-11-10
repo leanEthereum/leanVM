@@ -124,23 +124,23 @@ memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, k
 below `g^23` (`τ + 6` is a column's log, at most `28`). -/
 def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
 
-/-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `127`) among `g^e`,
+/-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `71`) among `g^e`,
 `e < 34`, which `verify_tables` dispatches on (the tables' logs, entries `1` to `6`, are range
 checked in `verify_tables` itself, `lean_ethereum.py:2189`). -/
 def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := [(c, 0, 34)]
 
-/-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `552`) and takes
-the bound of entry `0` of `dims_g` (the value `127`). -/
-theorem vs_cut1 : ((certOf 19).cutAt 1).start = 552 ∧
-    ((certOf 19).cutAt 1).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ∧
+/-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `333`) and takes
+the bound of entry `0` of `dims_g` (the value `71`). -/
+theorem vs_cut1 : ((certOf 19).cutAt 1).start = 333 ∧
+    ((certOf 19).cutAt 1).known = vsDimsKnown ((certOf 19).locs.getD 71 0) ∧
     ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
 /-- `verify_sub`'s third window starts at its call of `check_opening_terminal` (statement
-`1600`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
-value `139`). -/
-theorem vs_cut : ((certOf 19).cutAt 2).start = 1600 ∧
-    ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ++
-      (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
+`1552`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
+value `83`). -/
+theorem vs_cut : ((certOf 19).cutAt 2).start = 1552 ∧
+    ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 71 0) ++
+      (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 83 0, c, vsKbBound c)) ∧
     ((certOf 19).cutAt 2).knownIf = [] ∧ ((certOf 19).cutAt 2).sems = [] := by decide +kernel
 
 theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 := by decide +kernel
