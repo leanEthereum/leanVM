@@ -1,4 +1,4 @@
-//! Fiat-Shamir proof transport, prover side. `add_scalar` transmits and binds together, which is the only way anything enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. So there is no absorb-only method at all. Merkle hints are authenticated by their trees and are not absorbed separately. The reading side is the `verifier` crate's transcript.
+//! Fiat-Shamir proof transport, prover side. `add_scalar` transmits and binds together, which is the only way a transmitted value enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. Merkle hints are authenticated by their trees and are not absorbed. The one absorb-only method, [`ProverState::observe_digest`], binds a digest the verifier derives from hints that no root authenticates: a Canopy forest's subtree roots. The reading side is the `verifier` crate's transcript.
 
 use crate::FiatShamirState;
 use crate::merkle::{Hash, MerklePath, hash_to_scalars};
@@ -56,6 +56,14 @@ impl ProverState {
     /// its binding is the Merkle structure itself.
     pub fn hint_merkle(&mut self, paths: Vec<MerklePath>) {
         self.merkle.push(paths);
+    }
+
+    /// Bind a digest the verifier recomputes from the hints rather than reads, as its two scalars, without
+    /// transmitting it: a Canopy forest's subtree root is a claim, and no root authenticates it.
+    pub fn observe_digest(&mut self, digest: &Hash) {
+        for x in hash_to_scalars(digest) {
+            self.fs.observe(x);
+        }
     }
 
     /// Transmit a scalar into the proof AND bind it into the state (the two are

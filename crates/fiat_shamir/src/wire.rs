@@ -18,11 +18,13 @@ impl Proof {
     ///
     /// - The stream: its length, then each element as its three words.
     /// - The number of phases, then each phase pruned: its queries' count and positions, in the order the verifier
-    ///   samples them; the tree's height, the leaf width, and the row width; the leaf at each distinct position,
-    ///   ascending, as its last row-width words, the ones before being zero in every leaf of the phase; then the
-    ///   siblings no other path's node gives, bottom level first and left to right within a level.
+    ///   samples them; the paths' height, the levels above them, the leaf width, and the row width; the leaf at each
+    ///   distinct position, ascending, as its last row-width words, the ones before being zero in every leaf of the
+    ///   phase; then the siblings no other path's node gives, bottom level first and left to right within a level.
     ///
-    /// The row width is the least that drops only zeros, and the sibling count follows from the positions.
+    /// A tree's paths climb to its root, so nothing is above them. A forest's paths climb its subtrees only, and the
+    /// levels above them are what the positions need beyond the height: the least count that fits them. The row width
+    /// is the least that drops only zeros, and the sibling count follows from the positions.
     pub fn to_bytes(&self) -> Vec<u8> {
         assert!(self.merkle.len() <= MAX_PHASES);
         let mut out = Vec::new();
@@ -58,7 +60,9 @@ impl Proof {
 /// out where another path's node gives it. No hashing.
 fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
     let (height, leaf_words) = (paths[0].siblings.len(), paths[0].leaf.len());
-    assert!(paths.len() <= MAX_QUERIES && leaf_words <= MAX_LEAF_WORDS && height <= MAX_HEIGHT);
+    let last = paths.iter().map(|path| path.leaf_index).max().unwrap_or(0);
+    let top = (u64::BITS - last.leading_zeros()).saturating_sub(height as u32) as usize;
+    assert!(paths.len() <= MAX_QUERIES && leaf_words <= MAX_LEAF_WORDS && height + top <= MAX_HEIGHT);
     let mut distinct: Vec<&MerklePath> = paths.iter().collect();
     distinct.sort_by_key(|path| path.leaf_index);
     distinct.dedup_by_key(|path| path.leaf_index);
@@ -72,7 +76,7 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
     for path in paths {
         write_u32(out, usize::try_from(path.leaf_index).expect("a position fits in usize"));
     }
-    for size in [height, leaf_words, leaf_words - zeros] {
+    for size in [height, top, leaf_words, leaf_words - zeros] {
         write_u32(out, size);
     }
     for path in &distinct {
@@ -97,14 +101,15 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
 fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
     let count = input.u32().filter(|&count| count as usize <= MAX_QUERIES)?;
     let queries: Vec<u64> = (0..count).map(|_| input.u32().map(u64::from)).collect::<Option<_>>()?;
-    let (height, leaf_words, row_words) = (input.u32()? as usize, input.u32()? as usize, input.u32()? as usize);
+    let (height, top) = (input.u32()? as usize, input.u32()? as usize);
+    let (leaf_words, row_words) = (input.u32()? as usize, input.u32()? as usize);
     let mut positions = queries.clone();
     positions.sort_unstable();
     positions.dedup();
-    if !(height <= MAX_HEIGHT
-        && leaf_words <= MAX_LEAF_WORDS
-        && row_words <= leaf_words
-        && positions.last().is_some_and(|&last| last >> height == 0))
+    // The positions fit below the levels above the paths, and need the last of them.
+    let fits = |last: u64| last >> (height + top) == 0 && (top == 0 || last >> (height + top - 1) == 1);
+    if !(height + top <= MAX_HEIGHT && leaf_words <= MAX_LEAF_WORDS && row_words <= leaf_words)
+        || !positions.last().is_some_and(|&last| fits(last))
     {
         return None;
     }
@@ -200,12 +205,37 @@ mod tests {
         };
         let proof = Proof {
             stream: vec![F192::new(1, 2, 3)],
-            merkle: vec![open(4, &[3, 1, 3], 3, node, |q| &rows[q])],
+            merkle: vec![open(4, 2, &[3, 1, 3], 3, node, |q| &rows[q])],
         };
         let bytes = proof.to_bytes();
-        // The stream, then the phase: its queries, three sizes, two rows of two words, and two siblings.
-        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);
+        // The stream, then the phase: its queries, four sizes, two rows of two words, and two siblings.
+        assert_eq!(bytes.len(), (4 + 24) + 4 + (4 + 3 * 4) + 4 * 4 + 2 * 2 * 8 + 2 * 32);
         assert_eq!(Proof::from_bytes(&bytes), Some(proof));
         assert_eq!(Proof::from_bytes(&[&bytes[..], &[0]].concat()), None);
+    }
+
+    /// A forest's paths climb their subtrees only, and its encoding carries the levels above them, the least count
+    /// that fits the positions: any other count is refused, as is one past the height bound.
+    #[test]
+    fn forest_phase_round_trips_with_the_least_levels_above() {
+        let rows: Vec<[F64; 2]> = (0..8u64).map(|q| [F64(0), F64(q + 1)]).collect();
+        let phase = open(8, 1, &[5, 6, 5], 2, |_, i| hash_words(&rows[i]), |q| &rows[q]);
+        let proof = Proof {
+            stream: Vec::new(),
+            merkle: vec![phase],
+        };
+        let bytes = proof.to_bytes();
+        // The phase: its queries, four sizes, two rows of one word, and two siblings.
+        assert_eq!(bytes.len(), 4 + 4 + (4 + 3 * 4) + 4 * 4 + 2 * 8 + 2 * 32);
+        assert_eq!(Proof::from_bytes(&bytes), Some(proof));
+        assert_eq!(Proof::from_bytes(&bytes[..bytes.len() - 1]), None);
+        // The levels above follow the stream's and the phase's counts, three positions and the height.
+        let at = 4 + 4 + (4 + 3 * 4) + 4;
+        assert_eq!(bytes[at..at + 4], 2u32.to_le_bytes());
+        for top in [1u32, 3, 31, 32] {
+            let mut changed = bytes.clone();
+            changed[at..at + 4].copy_from_slice(&top.to_le_bytes());
+            assert_eq!(Proof::from_bytes(&changed), None, "{top} levels above");
+        }
     }
 }

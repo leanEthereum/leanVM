@@ -48,21 +48,22 @@ pub struct MerklePath {
     pub siblings: Vec<Hash>,
 }
 
-/// Prover side: the paths of `positions` in a tree of `num_leaves` leaves held in pieces. `node(level, i)` is node `i`
-/// of `level`, leaves at level 0, and the leaf at `q` is `row(q)` behind the zeros that make it `leaf_words` long.
+/// Prover side: the paths of `positions` in a tree of `num_leaves` leaves held in pieces, climbing `levels` levels: the
+/// whole height for a tree, fewer for a forest of subtrees. `node(level, i)` is node `i` of `level`, leaves at level 0,
+/// and the leaf at `q` is `row(q)` behind the zeros that make it `leaf_words` long.
 pub fn open<'a>(
     num_leaves: usize,
+    levels: usize,
     positions: &[usize],
     leaf_words: usize,
     node: impl Fn(usize, usize) -> Hash,
     row: impl Fn(usize) -> &'a [F64],
 ) -> Vec<MerklePath> {
-    assert!(num_leaves.is_power_of_two());
-    let height = num_leaves.trailing_zeros() as usize;
+    assert!(num_leaves.is_power_of_two() && levels <= num_leaves.trailing_zeros() as usize);
     let path = |&q: &usize| MerklePath {
         leaf_index: q as u64,
         leaf: padded(row(q), leaf_words),
-        siblings: (0..height).map(|level| node(level, q >> level ^ 1)).collect(),
+        siblings: (0..levels).map(|level| node(level, q >> level ^ 1)).collect(),
     };
     positions.iter().map(path).collect()
 }
