@@ -317,7 +317,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     ring
 
 /-- `aggregate_claims`' constant words. -/
-def agA0 : ℕ := fs "aggregate_claims" + 108 + SB "batch_sumcheck__L23"
+def agA0 : ℕ := fs "aggregate_claims" + 109 + SB "grind_check__L2" + SB "batch_sumcheck__L23"
 
 /-- `aggregate_claims`' words per child: its buffers' and its three loops' iterations, each with
 its run's phantom frame, which `agA0` would otherwise charge `main` when it has no child. -/
