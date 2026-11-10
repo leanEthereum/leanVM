@@ -27,13 +27,16 @@ namespace Qrom.Sphincs
 
 variable [Params]
 
-/-- The search factor of an adversary making at most `n` calls. -/
+/-- The search factor of an adversary making at most `n` calls, checked at the verifier's reads. -/
 def searchK (n : ℕ) : ℝ := (√6 * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2
+
+/-- The search factor of an adversary making at most `n` calls, checked at one cell. -/
+def searchK1 (n : ℕ) : ℝ := (√6 * (1 + n + verifyQueries : ℕ) + 2) ^ 2
 
 /-- **The weight of a win in the hidden game.** -/
 def epsHid (n : ℕ) (t : ℝ) : ℝ≥0∞ :=
   (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) +
-    lamF * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
+    lamF * ENNReal.ofReal (searchK1 n)) * ENNReal.ofReal t
 
 theorem sum_inv_card (α : Type) [Fintype α] [Nonempty α] : ∑ _ : α, (Fintype.card α : ℝ≥0∞)⁻¹ = 1 := by
   rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul,
@@ -86,7 +89,7 @@ theorem avg_hid_le {A : QReg} (adv : Adversary A) {n : ℕ} (hadv : ∀ pk, (adv
   -- covered digests
   have h4 := avg_covF_le adv hadv ρ
   calc _ ≤ ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) * T +
-        ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T + lamF * ENNReal.ofReal (searchK n) * T :=
+        ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T + lamF * ENNReal.ofReal (searchK1 n) * T :=
         add_le_add (add_le_add h1 h2) h4
     _ = epsHid n ρ.matrix.trace.re := by unfold epsHid; ring
 
