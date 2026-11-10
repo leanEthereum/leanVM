@@ -1,6 +1,6 @@
 name = "lean-sphincs-security"
 version = "0.1.0"
-defaultTargets = ["Sphincs", "FORS"]
+defaultTargets = ["Sphincs", "FORS", "Qrom"]
 
 [leanOptions]
 warningAsError = true
@@ -44,6 +44,11 @@ rev = "d3ec3a414c233203e2050ed0f33fae8647f57eb7"
 # The bridge from upstream's model to the statement, and the end theorem.
 [[lean_lib]]
 name = "Sphincs"
+
+# leanSPHINCS in the quantum random-oracle model, a proof step beside the classical one: the generic
+# search, hiding and deferral bounds on VCVio's compressed oracle, then the scheme (`Qrom.Sphincs`).
+[[lean_lib]]
+name = "Qrom"
 
 [[lean_lib]]
 name = "FORS"
