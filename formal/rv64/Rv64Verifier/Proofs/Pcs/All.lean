@@ -15,7 +15,7 @@ import Rv64Verifier.Proofs.Pcs.ExtendSpec
 import Rv64Verifier.Proofs.Pcs.VsoClimb
 import Rv64Verifier.Proofs.Pcs.VsoLamPowers
 import Rv64Verifier.Proofs.Pcs.VsoQueries
-import Rv64Verifier.Proofs.Pcs.VsoOpenCommitD
+import Rv64Verifier.Proofs.Pcs.VsoLevelQ
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -225,3 +225,15 @@ end Rv64Verifier.Proofs.Pcs
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.oodValue
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.oodIntro' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.oodIntro
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.growPend' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.growPend
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.pushPend' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.pushPend
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.openLevel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.openLevel
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.queriesU' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.queriesU
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.lamPowersU' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.lamPowersU
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Opened.slots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Opened.slots

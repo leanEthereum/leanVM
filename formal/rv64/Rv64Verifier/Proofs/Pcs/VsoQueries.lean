@@ -82,7 +82,8 @@ theorem queries (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpec)
         (Model.TM.grind Model.Pcs.queryGrindingBitsRust >>= fun _ ↦
           Model.Pcs.sampleQueriesRust (1#64 <<< ((ml + rt) % 64)) cnt >>= k).run T = (k qs).run T') ∧
       TranscriptAt v (s.getReg .x10) T' ∧ T'.proof = T.proof ∧ T'.roots = T.roots ∧
-      T'.openingOffset = T.openingOffset) := by
+      T'.openingOffset = T.openingOffset ∧
+      v.getMem (s.getReg .x2 - 968) = u.getReg .x1 ∧ v.getMem (s.getReg .x2 - 960) = u.getReg .x31) := by
   have hb := bounds hpre
   have hI := hpre.self
   have hS := Region.bounds hI.ok.self
@@ -105,6 +106,22 @@ theorem queries (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpec)
       · rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> addr_omega [hw, hi, hb]
   have hn : heapNext w = heapNext u := by simp only [heapNext, hg.nx]
   have h9 : w.getReg .x9 = u.getReg .x9 := hg.regs .x9 (by decide)
+  obtain ⟨hnx, -⟩ := sfacts hpre
+  have spill {v : MachineState} (hfr : DFrame w v (QW s w v)) (hhi : heapNext v ≤ heapEnd) :
+      v.getMem (s.getReg .x2 - 968) = u.getReg .x1 ∧
+        v.getMem (s.getReg .x2 - 960) = u.getReg .x31 := by
+    have k (o : ℕ) (ho : o = 968 ∨ o = 960) : v.getMem (s.getReg .x2 - BitVec.ofNat 64 o) =
+        w.getMem (s.getReg .x2 - BitVec.ofNat 64 o) :=
+      hfr _ fun i hi hx ↦ by
+        rcases hx with hx | hx | hx | hx | hx | hx | hx
+        · simp only [W] at hx; rcases ho with rfl | rfl <;> addr_omega [hx, hi, hS, hIs, hb]
+        · rcases ho with rfl | rfl <;> addr_omega [hx, hi, hb]
+        · rcases ho with rfl | rfl <;> addr_omega [hx, hi, hb]
+        · rcases ho with rfl | rfl <;> addr_omega [hx, hi, hb]
+        · rcases ho with rfl | rfl <;> addr_omega [hx, hi, hb]
+        · rcases ho with rfl | rfl <;> addr_omega [hx, hi, hb, hnx]
+        · simp only [Fresh] at hx; rcases ho with rfl | rfl <;> addr_omega [hx.2, hi, hb, hhi]
+    exact ⟨(k 968 (Or.inl rfl)).trans hg.s72, (k 960 (Or.inr rfl)).trans hg.s80⟩
   have hbl : Model.log2StrictRust (1#64 <<< ((ml + rt) % 64)) = some (ml + rt) :=
     Model.Pcs.log2StrictRust_one_shiftLeft hmr
   obtain ⟨v, hr₂, hv₂⟩ := qsetup hTA hpre hc hconf hg.inv hg.pc hg.sp hlt hmr
@@ -115,7 +132,7 @@ theorem queries (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpec)
   · exact ⟨v, hr₁.trans hr₂, Or.inl (Or.inl hd)⟩
   · subst h0
     refine ⟨v, hr₁.trans hr₂, Or.inr ⟨0, [], T₁, hcnt, rfl, hpos, hq.rebase hg.fr hn h9,
-      fun k ↦ ?_, htr _ hT₁, p₁, r₁, o₁⟩⟩
+      fun k ↦ ?_, htr _ hT₁, p₁, r₁, o₁, spill hq.fr (hq.inv.heap hpre.heap).hi⟩⟩
     rw [run_bind_of hgr]
     simp only [Model.Pcs.sampleQueriesRust, hbl, Model.TM.ofOption, pure_bind,
       Model.Pcs.sampleQueriesLoop]
@@ -124,7 +141,8 @@ theorem queries (hD : DuplexSpec) (hA : AbsorbSpec) (hTA : TryAllocZeroedSpec)
   rcases hv₃ with hd | ⟨qs, T', hd, hql, hrun, hT', p, ro, o⟩
   · exact ⟨v', hr₁.trans (hr₂.trans hr₃), Or.inl (Or.inl hd)⟩
   refine ⟨v', hr₁.trans (hr₂.trans hr₃), Or.inr ⟨cnt, qs, T', hcnt, hql, hpos,
-    hd.rebase hg.fr hn h9, fun k ↦ ?_, hT', p.trans p₁, ro.trans r₁, o.trans o₁⟩⟩
+    hd.rebase hg.fr hn h9, fun k ↦ ?_, hT', p.trans p₁, ro.trans r₁, o.trans o₁,
+    spill hd.fr (hd.inv.heap hpre.heap).hi⟩⟩
   rw [run_bind_of hgr]
   simp only [Model.Pcs.sampleQueriesRust, hbl, Model.TM.ofOption, pure_bind]
   exact run_bind_of hrun

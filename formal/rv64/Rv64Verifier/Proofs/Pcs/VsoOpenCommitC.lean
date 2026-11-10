@@ -29,7 +29,8 @@ structure CommitS (s : MachineState) (x : LCtx) (h t u v : MachineState) (ℓ : 
   inv : InvR s v (v.getMem nextAddr)
   heap : HeapOk v
   mono : heapNext t ≤ heapNext v
-  fr : DFrame u v fun a ↦ Within a (s.getReg .x2 - 1008) 96 ∨ Within a (s.getReg .x2 - 592) 8 ∨
+  fr : DFrame u v fun a ↦ (Within a (s.getReg .x2 - 1008) 72 ∨ Within a (s.getReg .x2 - 920) 8) ∨
+    Within a (s.getReg .x2 - 592) 8 ∨
     Within a (s.getReg .x2 - 560) 24 ∨ Within a (s.getReg .x2 - 384) 24 ∨
     Within a (s.getReg .x10 + 8) 344 ∨ Within a (s.getReg .x2 - 2464) 1424 ∨
     Within a nextAddr 8 ∨ (heapNext t ≤ a.toNat ∧ a.toNat < heapNext v)
@@ -83,18 +84,20 @@ theorem oodPoint (hSm : SamplesSpec) {s : MachineState} {x : LCtx} {h t u w : Ma
           (by addr_omega [hb])
       | addr_omega [hbuf, hb, hhi])
   have k₁ := b8000a588_keeps h₁
-  have X₁ : DFrame w t₁ fun a ↦ Within a (s.getReg .x2 - 1008) 96 ∨
-      Within a (s.getReg .x2 - 592) 8 ∨ Within a (s.getReg .x2 - 384) 24 :=
+  have X₁ : DFrame w t₁ fun a ↦ (Within a (s.getReg .x2 - 1008) 72 ∨
+      Within a (s.getReg .x2 - 920) 8) ∨ Within a (s.getReg .x2 - 592) 8 ∨
+      Within a (s.getReg .x2 - 384) 24 :=
     (holds_dframe h₁).mono fun a ⟨k, hk, hw'⟩ ↦ by
       simp only [b8000a588, List.mem_cons, List.not_mem_nil, or_false] at hk
       rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
         rfl <;> rv_eval [hsp] at hw' <;> first
-        | exact Or.inl (by addr_omega [hw', hb])
+        | exact Or.inl (Or.inl (by addr_omega [hw', hb]))
+        | exact Or.inl (Or.inr (by addr_omega [hw', hb]))
         | exact Or.inr (Or.inl (by addr_omega [hw', hb]))
         | exact Or.inr (Or.inr (by addr_omega [hw', hb]))
   have hsp₁ : t₁.getReg .x2 = w.getReg .x2 := k₁ .x2 (by decide)
   obtain ⟨nx₁, inv₁⟩ := InvR.stk hpre hw.inv X₁ (fun a ha ↦ by
-    rcases ha with ha | ha | ha <;> addr_omega [ha, hb]) hsp₁
+    rcases ha with (ha | ha) | ha | ha <;> addr_omega [ha, hb]) hsp₁
   -- the root's words
   have B₁ := b58_of h₁
   have hd := dOf_get w p
@@ -139,7 +142,7 @@ theorem oodPoint (hSm : SamplesSpec) {s : MachineState} {x : LCtx} {h t u w : Ma
   obtain ⟨xs₀, T₀', -, hnew₀, -⟩ := hval₂ T₀ hT₀
   have hd₁ : digestAt t₁ (s.getReg .x11) = digestAt w (s.getReg .x11) :=
     digest_keep X₁ (root_bound hpre) fun y hy hw' ↦ by
-      rcases hw' with hw' | hw' | hw' <;> addr_omega [hy, hw', hrst, hb]
+      rcases hw' with (hw' | hw') | hw' | hw' <;> addr_omega [hy, hw', hrst, hb]
   have hd₂ : digestAt v (s.getReg .x11) = digestAt t₁ (s.getReg .x11) := by
     exact digest_keep X₂ (root_bound hpre) fun y hy hw' ↦ by
       rcases hw' with hw' | hw' | hw' | hw' | hw'
@@ -153,8 +156,8 @@ theorem oodPoint (hSm : SamplesSpec) {s : MachineState} {x : LCtx} {h t u w : Ma
         · addr_omega [hy, hw'.1, h1, hs₁]
         · addr_omega [hy, hw'.2, h1, hhi₂]
   have V₁ := hw.value.keep hpre hw.inv X₁ (fun a ha ↦ Or.inl (by
-      rcases ha with ha | ha | ha <;> addr_omega [ha, hb]))
-    fun y hy hw' ↦ by rcases hw' with hw' | hw' | hw' <;> addr_omega [hy, hw', hrst, hb]
+      rcases ha with (ha | ha) | ha | ha <;> addr_omega [ha, hb]))
+    fun y hy hw' ↦ by rcases hw' with (hw' | hw') | hw' | hw' <;> addr_omega [hy, hw', hrst, hb]
   have V₂ := V₁.bind (v := v) (nx' := []) (vecEs v (s.getReg .x2 - 560)) hd₂
     fun T hT ↦ by
       obtain ⟨xs, T', hrun, hnew, hT'⟩ := hval₂ T hT
