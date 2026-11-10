@@ -148,6 +148,9 @@ def tsEqLen (s : MachineState) : Word := s.getMem (s.getReg .x2)
 def tsTarget (s : MachineState) : Word := s.getMem (s.getReg .x2 + 8)
 def tsSelf (s : MachineState) : Word := s.getMem (s.getReg .x2 + 16)
 
+/-- The result and `target`: what the function writes besides the transcript and the stack. -/
+def tsWrites (s : MachineState) : List (Word × Nat) := [(s.getReg .x10, 24), (tsTarget s, 24)]
+
 /-- The statement's table of each `Table` from `a`: the one its opcode names (an opcode past the
 list traps). -/
 def tablesAt (s : MachineState) (a : Word) (n : Nat) : List Table :=
@@ -159,23 +162,25 @@ def natsAt (s : MachineState) (a : Word) (n : Nat) : List ℕ :=
   (s.readWords a n).map BitVec.toNat
 
 /-- The `m` bytes from `a` are read only by a function that writes the `n` bytes below `sp`,
-`w` (24 bytes) and the transcript's sponge and offsets at `p`: valid, outside the free heap and
-`NEXT`, apart from all three. -/
-structure RO (s : MachineState) (n : Nat) (w p a : Word) (m : Nat) : Prop where
+the regions `ws` and the transcript's sponge and offsets at `p`: valid, outside the free heap
+and `NEXT`, apart from all of them. -/
+structure RO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a : Word) (m : Nat) :
+    Prop where
   region : m = 0 ∨ Region a m
   free : Outside s a m
   stack : Apart a m (stackLo s n) n
-  out : Apart a m w 24
+  out : ∀ x ∈ ws, Apart a m x.1 x.2
   self : Apart a m (p + 8) 344
 
 /-- Every `Vec<Form>` from `a` (`n` of them), every form's header and every form's terms are
 read only. -/
-structure FormRowsRO (s : MachineState) (n : Nat) (w p a : Word) (k : Nat) : Prop where
-  rows : RO s n w p a (24 * k)
-  forms : ∀ i < k, RO s n w p (vecPtr s (a + BitVec.ofNat 64 (24 * i)))
+structure FormRowsRO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a : Word) (k : Nat) :
+    Prop where
+  rows : RO s n ws p a (24 * k)
+  forms : ∀ i < k, RO s n ws p (vecPtr s (a + BitVec.ofNat 64 (24 * i)))
     (24 * (vecLen s (a + BitVec.ofNat 64 (24 * i))).toNat)
   terms : ∀ i < k, ∀ j < (vecLen s (a + BitVec.ofNat 64 (24 * i))).toNat,
-    RO s n w p (vecPtr s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)))
+    RO s n ws p (vecPtr s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j)))
       (48 * (vecLen s (vecPtr s (a + BitVec.ofNat 64 (24 * i)) + BitVec.ofNat 64 (24 * j))).toNat)
 
 structure TableSumcheckPre (s : MachineState) : Prop where
@@ -186,7 +191,7 @@ structure TableSumcheckPre (s : MachineState) : Prop where
   outFree : Outside s (s.getReg .x10) 24
   outStack : Apart (s.getReg .x10) 24 (stackLo s tableSumcheckStack) tableSumcheckStack
   outRodata : Apart (s.getReg .x10) 24 rodataBase rodataSize
-  args : RO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x2) 24
+  args : RO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x2) 24
   self : TranscriptOk s (tsSelf s)
   checked : byteAt s (tsSelf s + 360) ≠ 0
   selfStack : Apart (tsSelf s) transcriptSize (stackLo s tableSumcheckStack) tableSumcheckStack
@@ -204,19 +209,18 @@ structure TableSumcheckPre (s : MachineState) : Prop where
   targetSelf : Apart (tsTarget s) 24 (tsSelf s) transcriptSize
   proofTarget : ProofApart s (tsSelf s) (tsTarget s) 24
   targetRodata : Apart (tsTarget s) 24 rodataBase rodataSize
-  tables : RO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x11)
+  tables : RO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x11)
     (80 * (s.getReg .x12).toNat)
-  heights : RO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x13)
+  heights : RO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x13)
     (8 * (s.getReg .x14).toNat)
-  forms : FormRowsRO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x15)
+  forms : FormRowsRO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x15)
     (s.getReg .x16).toNat
-  constraintPowers : RO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x17)
+  constraintPowers : RO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x17)
     (24 * (s.getReg .x28).toNat)
-  formPowers : RO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x29)
+  formPowers : RO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x29)
     (24 * (s.getReg .x30).toNat)
-  equalityPoint : RO s tableSumcheckStack (s.getReg .x10) (tsSelf s) (s.getReg .x31)
+  equalityPoint : RO s tableSumcheckStack (tsWrites s) (tsSelf s) (s.getReg .x31)
     (24 * (tsEqLen s).toNat)
-  targetTables : Apart (tsTarget s) 24 (s.getReg .x11) (80 * (s.getReg .x12).toNat)
 
 /-- The `Vec<(Vec<E>, Vec<E>)>` at `a` holds `rows`: every buffer allocated from `s` on. -/
 structure RowsAt (s t : MachineState) (a : Word) (rows : List (List E × List E)) : Prop where
@@ -291,11 +295,11 @@ def bytecodeOf (s : MachineState) (a : Word) : Word := s.getMem (a + 144)
 
 /-- Every `Vec<BusBlock>`'s buffer, every block's coordinates and every coordinate form's terms
 are read only. -/
-structure BlocksRO (s : MachineState) (n : Nat) (w p a : Word) : Prop where
-  header : RO s n w p a 24
-  blocks : RO s n w p (vecPtr s a) (48 * (vecLen s a).toNat)
+structure BlocksRO (s : MachineState) (n : Nat) (ws : List (Word × Nat)) (p a : Word) : Prop where
+  header : RO s n ws p a 24
+  blocks : RO s n ws p (vecPtr s a) (48 * (vecLen s a).toNat)
   coordinates : ∀ i < (vecLen s a).toNat,
-    FormRowsRO s n w p (vecPtr s a + BitVec.ofNat 64 (48 * i)) 1
+    FormRowsRO s n ws p (vecPtr s a + BitVec.ofNat 64 (48 * i)) 1
 
 structure BusBalancePre (s : MachineState) : Prop where
   heap : HeapOk s
@@ -315,18 +319,18 @@ structure BusBalancePre (s : MachineState) : Prop where
   proofOut : ProofApart s (s.getReg .x12) (s.getReg .x10) 120
   proofFree : Outside s (proofAt s (s.getReg .x12)) 48
   streamFree : Outside s (streamPtr s (s.getReg .x12)) (24 * streamLen s (s.getReg .x12))
-  layout : RO s busBalanceStack (s.getReg .x10) (s.getReg .x12) (s.getReg .x11) 168
-  push : BlocksRO s busBalanceStack (s.getReg .x10) (s.getReg .x12) (s.getReg .x11 + 24)
-  pull : BlocksRO s busBalanceStack (s.getReg .x10) (s.getReg .x12) (s.getReg .x11 + 48)
-  count : BlocksRO s busBalanceStack (s.getReg .x10) (s.getReg .x12) (s.getReg .x11 + 72)
+  layout : RO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12) (s.getReg .x11) 168
+  push : BlocksRO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12) (s.getReg .x11 + 24)
+  pull : BlocksRO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12) (s.getReg .x11 + 48)
+  count : BlocksRO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12) (s.getReg .x11 + 72)
   /-- The layout's tables are the statement's, their padding rows read only. -/
   tablesLen : (vecLen s (s.getReg .x11)).toNat = tables.length
-  tablesRO : RO s busBalanceStack (s.getReg .x10) (s.getReg .x12) (vecPtr s (s.getReg .x11))
+  tablesRO : RO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12) (vecPtr s (s.getReg .x11))
     (80 * tables.length)
   padding : ∀ i < tables.length,
     vecEs s (vecPtr s (s.getReg .x11) + BitVec.ofNat 64 (80 * i)) = (tables.getD i default).padding
   paddingRO : ∀ i < tables.length,
-    RO s busBalanceStack (s.getReg .x10) (s.getReg .x12)
+    RO s busBalanceStack [(s.getReg .x10, 120)] (s.getReg .x12)
       (vecPtr s (vecPtr s (s.getReg .x11) + BitVec.ofNat 64 (80 * i)))
       (24 * (vecLen s (vecPtr s (s.getReg .x11) + BitVec.ofNat 64 (80 * i))).toNat)
 
