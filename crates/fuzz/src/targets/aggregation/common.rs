@@ -454,19 +454,56 @@ pub fn reject_child(
     })?;
     note_kill(ctx, &result);
     match outcome(&result) {
-        Ok(()) => Err(Finding::critical(
-            format!("{context}: the guest accepts a child the Rust verifier rejects"),
-            format!(
-                "published {}\ninputs: {}",
-                describe_claims(&result.expect("ran").claims),
-                inputs.describe()
-            ),
-        )),
+        Ok(()) => {
+            if let Ok(f) = super::fixtures::fixtures(ctx)
+                && let Some(j) = reads_a_valid_twin(f, &inputs, at)
+            {
+                return Err(benign_twin(context, f.children[j].name));
+            }
+            Err(Finding::critical(
+                format!("{context}: the guest accepts a child the Rust verifier rejects"),
+                format!(
+                    "published {}\ninputs: {}",
+                    describe_claims(&result.expect("ran").claims),
+                    inputs.describe()
+                ),
+            ))
+        }
         Err(kind) => {
             ctx.note(format!("{context}: {kind}"));
             Ok(())
         }
     }
+}
+
+/// The fixture whose valid proof of the forged child's statement hands the guest exactly the witness `inputs` did,
+/// with the forged child at `k`. The host dropped every difference (a cap-level Merkle sibling another query's path
+/// recomputes, `gen_verify` in rec_aggregation's child.rs), so the guest verified that valid proof. Fixtures share
+/// statements: `x3r2` proves `x3`'s claims, and every leaf carries the same deferred claim.
+pub fn reads_a_valid_twin(f: &Fixtures, inputs: &Inputs, k: usize) -> Option<usize> {
+    let forged = inputs.children.get(k)?;
+    let twins: Vec<usize> = (0..f.children.len())
+        .filter(|&j| f.claims(j) == forged.claims() && f.proof(j).deferred() == forged.deferred())
+        .collect();
+    if twins.is_empty() {
+        return None;
+    }
+    let seen = witness_of(inputs)?;
+    twins.into_iter().find(|&j| {
+        let mut twin = inputs.clone();
+        twin.children[k] = f.proof(j).clone();
+        witness_of(&twin).as_ref() == Some(&seen)
+    })
+}
+
+/// The Low a forged child gets when [`reads_a_valid_twin`] finds the valid proof the guest really verified.
+pub fn benign_twin(context: &str, twin: &str) -> Finding {
+    Finding::low(
+        format!("{context}: a child the verifier rejects reads into the honest child's witness"),
+        format!(
+            "benign for the guest: the forged proof differs from `{twin}`'s, which proves the same statement, only in data the host drops (a cap-level Merkle sibling another query's path recomputes), so the guest verified `{twin}`'s proof; the native verifier checks every path whole and rejects it"
+        ),
+    )
 }
 
 /// Prove a valid node in full: it verifies, publishes `want`, round-trips the wire, and verifies for no other claims.

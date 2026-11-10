@@ -3,7 +3,7 @@
 //! `crates/verifier` against the recursive verifier in `lean_ethereum.py`: whatever [`EthereumProof::verify`] rejects,
 //! the guest's run has to refuse, and the other way round.
 
-use super::common::{Inputs, describe_claims, describe_outcome, outcome, verify_kind, witness_of};
+use super::common::{Inputs, benign_twin, describe_claims, describe_outcome, outcome, reads_a_valid_twin, verify_kind};
 use super::fixtures::{Fixtures, N_SPHINCS, N_XMSS, fixtures};
 use crate::mutate_proof::{mutate, perturb};
 use crate::{Ctx, Finding, Outcome, Source};
@@ -103,21 +103,15 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
                 return Ok(());
             }
             let why = verify_kind(verdict.as_ref().expect_err("rejected"));
-            // The host may read a forged child into the very witness of the honest one: a cap-level Merkle sibling
-            // that another query's path also computes is overwritten in the shared cap (`gen_verify`), so the
-            // guest never sees it. The guest then verified the honest proof, which is no attack on it.
-            let mut honest_inputs = inputs.clone();
-            if let Some(k) = honest_inputs.names.iter().position(|n| n.starts_with("forged")) {
-                honest_inputs.children[k] = honest.clone();
-                honest_inputs.names[k] = f.children[i].name.to_string();
-            }
-            if same_claims && same_defer && witness_of(&inputs).is_some_and(|w| Some(w) == witness_of(&honest_inputs)) {
-                return Err(Finding::low(
-                    format!("{context}: a child the verifier rejects reads into the honest child's witness"),
-                    detail(
-                        "benign for the guest: the forged proof differs from the honest one only in data the host drops (a cap-level Merkle sibling another query's path recomputes), so the guest verified the honest proof; the native verifier checks every path whole and rejects it",
-                    ),
-                ));
+            let k = inputs
+                .names
+                .iter()
+                .position(|n| n.starts_with("forged"))
+                .expect("a forged child");
+            if let Some(j) = reads_a_valid_twin(f, &inputs, k) {
+                let mut finding = benign_twin(&context, f.children[j].name);
+                finding.detail = detail(&finding.detail);
+                return Err(finding);
             }
             let value_only = same_claims && same_proof && forged_point_is(&inputs, honest);
             if why == "MalformedClaim" && value_only {

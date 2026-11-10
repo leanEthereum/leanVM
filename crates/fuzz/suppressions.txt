@@ -5,8 +5,10 @@
 
 # A forged child whose differences the host's replay overwrites before the guest sees them (a cap-level Merkle sibling
 # another query's computed node replaces, `gen_verify` in rec_aggregation's child.rs): the target confirms the guest
-# was handed exactly the honest child's witness before it records this.
+# was handed exactly the witness of a valid proof of the same statement before it records this.
 guest-child guest-child *: a child the verifier rejects reads into the honest child's witness
+aggregate-api aggregate-api *: a child the verifier rejects reads into the honest child's witness
+aggregation-scenarios aggregation-scenarios*: a child the verifier rejects reads into the honest child's witness
 
 # Hint cells the guest provably never reads, each traced to the guest line that explains it (the reason is in the key):
 # the pull side's block group order (`verify_tables` certifies only the push and count sides), the running node's own

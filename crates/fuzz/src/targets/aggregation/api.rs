@@ -478,8 +478,11 @@ fn child_bytes(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
         }
         Ok(child) => child,
     };
-    if child.proof_bytes() == f.proof(j).proof_bytes() {
-        // The very aggregate `j` is.
+    // A statement some fixture proves is true whatever bytes back it: `x3r2`'s proof under `x3`'s claims, say.
+    let true_statement =
+        (0..f.children.len()).any(|k| f.claims(k) == child.claims() && f.proof(k).deferred() == child.deferred());
+    if true_statement && child.verify().is_ok() {
+        ctx.note("child-bytes: a valid proof of a true statement");
         return Ok(());
     }
     super::common::reject_child(ctx, &context("child-bytes"), Inputs::default(), child, 0)
