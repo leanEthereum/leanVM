@@ -65,7 +65,8 @@ structure AtR10 (OI : MachineState → Word → List (List Opening) → Prop) (s
   bufQ : heapNext s ≤ Q.toNat ∧ Q.toNat % 8 = 0 ∧ Q.toNat + 48 ≤ heapNext u
   bufB : heapNext s ≤ B.toNat ∧ B.toNat % 8 = 0 ∧ B.toNat + 480 ≤ heapNext u
   apartB : Apart B 480 R 48 ∧ Apart B 480 Q 48
-  rows : ∀ i < 6, u.getMem (R + BitVec.ofNat 64 (8 * i)) = (rowsOf A).getD i 0
+  rows : [u.getMem R, u.getMem (R + 8), u.getMem (R + 16), u.getMem (R + 24), u.getMem (R + 32),
+    u.getMem (R + 40)] = rowsOf A
   heights : ∀ i < 6, u.getMem (Q + BitVec.ofNat 64 (8 * i)) =
     BitVec.ofNat 64 ((tableLogHeightsRust (rowsOf A)).getD i 0)
   tables : ∀ i t, tablesRust[i]? = some t → TableAt u (B + BitVec.ofNat 64 (80 * i)) t
