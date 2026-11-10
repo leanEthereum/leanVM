@@ -21,8 +21,7 @@ public import LeanVM.Guest.Batch.Node
 
 * `mainGoalL1`, `mainGoalL2`: the loops are atoms and a heap hint, so they hold on every memory
   (`loopF_complete` at an explicit valuation of each block) and place nothing (`mfLoop_pure`);
-* the claim tables' cells (`claimCells`) are canonical, their bytes the bytes the Spec's list
-  digest hashes (`mf_xmss_digest`, `mf_sphincs_digest`);
+* the claim tables' cells' (`claimCells`) bytes are the bytes the Spec's list digest hashes (`mf_xmss_digest`, `mf_sphincs_digest`);
 * `mf_reads`, `mf_region`: buffer `i` of `hLmain` holds `hOwn`'s list `i`;
 * `mainGoalSt`: the deferred claim's `24` cells (`NodeRelation`'s shape on a bytecode of `2^23` words)
   hash, with the seed, the claim lists' digests and the published DA digest, to the statement's
@@ -124,12 +123,6 @@ theorem mf_length_flatMap {α : Type} {k : ℕ} (f : α → List E) (hf : ∀ a,
       mf_length_flatMap f hf l, Nat.mul_add, Nat.mul_one]
     omega
 
-theorem mf_canon_flatMap {α : Type} (f : α → List E) (hf : ∀ a, AllCanonical (f a)) (l : List α) :
-    AllCanonical (l.flatMap f) := by
-  intro c hc
-  obtain ⟨a, -, hc⟩ := List.mem_flatMap.mp hc
-  exact hf a c hc
-
 /-! ### The signature claims -/
 
 theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytesOf r p m).length = 64 := by
@@ -137,12 +130,6 @@ theorem mf_claimBytes_length (r p : BitVec 128) (m : BitVec 256) : (claimBytesOf
 
 theorem mf_claimCells_length (r p : BitVec 128) (m : BitVec 256) : (claimCells r p m).length = 4 := by
   simp [claimCells, cellsOfBytes, mf_claimBytes_length]
-
-theorem mf_claimCells_canon (r p : BitVec 128) (m : BitVec 256) : AllCanonical (claimCells r p m) := by
-  intro c hc
-  simp only [claimCells, cellsOfBytes, List.mem_map] at hc
-  obtain ⟨i, -, rfl⟩ := hc
-  simp [IsCanonical128, cellOfBytes]
 
 theorem mf_claimCells_bytes (r p : BitVec 128) (m : BitVec 256) :
     cellsBytes (claimCells r p m) = claimBytesOf r p m :=
@@ -218,13 +205,9 @@ theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAt fs cert fun rd h => ?_
   have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
-  refine ⟨s.deferredClaim.cells, hlen, h9, ?_, ?_⟩
-  · intro c hc
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    all_goals first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
-  · exact congrArg digestCells (statementDigest_of_parts (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
+  exact ⟨s.deferredClaim.cells, hlen, h9, congrArg digestCells (statementDigest_of_parts
+    (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _)
+    (digestBytes_eq_cells _) rfl)⟩
 
 end
 end LeanVM.Guest.B1.Main

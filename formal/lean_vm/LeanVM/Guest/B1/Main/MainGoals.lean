@@ -102,7 +102,8 @@ def MainGoalAg : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtD fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+        (hm fs fp seed s w).et * word 133823759239872512 0] (Returns [])
 
 def MainGoalSt : Prop :=
   CompleteAtD fs cert 16 "statement_digest" (hLmain fs fp seed s w)

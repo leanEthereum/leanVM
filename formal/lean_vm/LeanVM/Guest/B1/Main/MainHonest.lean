@@ -89,9 +89,7 @@ def hCover : List E :=
 
 /-- A DA claim's four cells: its root's, then its challenge's rate cells with the tag `0`
 (`fs_pack(z_cells, 0, z, 0)`, `lean_ethereum.py:4336`). -/
-def daCells (c : DaClaim) : List E :=
-  B1.Digest.digestCells c.daRoot ++
-    [(Keccak.scalarCells c.membershipChallenge 0).1, (Keccak.scalarCells c.membershipChallenge 0).2]
+def daCells (c : DaClaim) : List E := B1.Digest.digestCells c.daRoot ++ [c.membershipChallenge]
 
 /-- The own DA digest: the checked claim's, or zeros. -/
 def hOwnDa : Digest := match w.daMatrix with
@@ -113,7 +111,7 @@ def hData : MainData where
   xd := claimListDigest xmssPublicKeyBytes s.claims.xmss
   sd := claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs
   sdg := statementDigest seed s
-  daR := (w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]
+  daR := (w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0]
   dap := s.claims.daDigest
   leaf := s.deferredClaim.bytecodeValue
 
