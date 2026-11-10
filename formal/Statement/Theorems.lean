@@ -80,7 +80,7 @@ structure Theorems
   `2^-126` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
   Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
   honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
-  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
+  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-127 +
   5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
   compose with the in-circuit statements (`LeanVmGuestCompleteness.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound

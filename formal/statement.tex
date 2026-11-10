@@ -687,7 +687,7 @@ proof. The probability that the batching accepts it while its proof stream begin
 $M$ children of the bytecode's shape, one of whose claims (fresh or carried) is false
 (\lean{SomeChildClaimFalse}), is at most
 \[
-\boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-191} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
+\boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-127} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
 \quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
 \]
 where $Q_V$ (\lean{batchingQueryBound}) is the batching's own query bound for $M$ children (about
