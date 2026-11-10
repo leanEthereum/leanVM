@@ -36,6 +36,7 @@ use crate::leaf::BusForm;
 use crate::transcript::ProverState;
 use primitives::field::{F64, F64x8, F192, F192x8, Prod8};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval, shrink_eq_high};
+use std::collections::BTreeMap;
 
 /// One table's involved columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,9 +52,6 @@ pub struct Air<'a> {
     pub cols: &'a [&'a [F64]],
     /// Its summand, a degree-2 form over `cols`.
     pub form: BusForm,
-    /// What the summand sums to against `eq(ζ, ·)`: prover-side only, for the line the table
-    /// contributes while it waits. The verifier derives the total.
-    pub sigma: F192,
 }
 
 /// Start of each table's disjoint range of `ξ`-powers.
@@ -176,26 +174,19 @@ fn splat(terms: &Lin) -> Vec<(usize, F192x8)> {
     terms.iter().map(|&(c, w)| (c, F192x8::splat(w))).collect()
 }
 
-/// A worker's scratch for [`load_rows`] over `n` columns: `end` and `sum`.
+/// A worker's scratch for [`load_rows`] over `n` columns: `lo` and `sum`.
 fn rows_scratch(n: usize) -> (Vec<F64x8>, Vec<F64x8>) {
     let zero = F64x8::from_array(&[F64::ZERO; 8]);
     (vec![zero; n], vec![zero; n])
 }
 
-/// Loads the vectors of rows `i` and `i + half` of every column in `read`: `end` takes the upper vector
-/// with `at_one` and the lower without, `sum` their sum.
+/// Loads the vectors of rows `i` and `i + half` of every column in `read`: `lo` takes the lower vector,
+/// `sum` their sum.
 #[inline(always)]
-fn load_rows(
-    cols: &[&[F64]],
-    read: &[usize],
-    i: usize,
-    half: usize,
-    at_one: bool,
-    (end, sum): &mut (Vec<F64x8>, Vec<F64x8>),
-) {
+fn load_rows(cols: &[&[F64]], read: &[usize], i: usize, half: usize, (lo, sum): &mut (Vec<F64x8>, Vec<F64x8>)) {
     for &c in read {
-        let (lo, hi) = (load_k(cols[c], i), load_k(cols[c], i + half));
-        (end[c], sum[c]) = (if at_one { hi } else { lo }, lo + hi);
+        let (l, h) = (load_k(cols[c], i), load_k(cols[c], i + half));
+        (lo[c], sum[c]) = (l, l + h);
     }
 }
 
@@ -208,20 +199,23 @@ fn task_blocks(t: usize, n: usize) -> std::ops::Range<usize> {
     t * TASK_BLOCKS..((t + 1) * TASK_BLOCKS).min(n)
 }
 
-fn xor2(a: [Prod8; 2], b: [Prod8; 2]) -> [Prod8; 2] {
-    [a[0] ^ b[0], a[1] ^ b[1]]
+fn xor<const N: usize>(a: [Prod8; N], b: [Prod8; N]) -> [Prod8; N] {
+    std::array::from_fn(|i| a[i] ^ b[i])
 }
 
 fn finish([endpoint, slope]: [Prod8; 2], constant: F192) -> [F192; 2] {
     [endpoint.reduce() + constant, slope.reduce()]
 }
 
-/// An active round of a table that has not joined: its message from the `K` columns, in place.
-/// Per vector of rows, the linear forms are `E x K` mixed dots, and every product of the
-/// summand is one mixed product against a reduced `right_g`.
-fn message_k(form: &Form, cols: &[&[F64]], eqr: &[F192], half: usize, at_one: bool) -> [F192; 2] {
+/// The round a table joins, its message from the `K` columns, in place: `[p(0), p(1), quadratic]`,
+/// both endpoints, so the caller also has the table's sum. Per vector of rows, the linear forms are
+/// `E x K` mixed dots, and every product of the summand is one mixed product against a reduced
+/// `right_g`. A linear form on the upper rows is its value on `lo` plus that on `lo + hi`.
+fn message_k(form: &Form, cols: &[&[F64]], eqr: &[F192], half: usize) -> [F192; 3] {
     if half < 8 {
-        return message_e(form, &form.small_state(cols, 2 * half), eqr, half, at_one);
+        let state = form.small_state(cols, 2 * half);
+        let [p0, quadratic] = message_e(form, &state, eqr, half, false);
+        return [p0, message_e(form, &state, eqr, half, true)[0], quadratic];
     }
     let lin = splat(&form.lin);
     let rights: Vec<_> = form.groups.iter().map(|(_, right)| splat(right)).collect();
@@ -234,25 +228,30 @@ fn message_k(form: &Form, cols: &[&[F64]], eqr: &[F192], half: usize, at_one: bo
     let acc = parallel::map_reduce_with_state(
         blocks.div_ceil(TASK_BLOCKS),
         || rows_scratch(cols.len()),
-        || [Prod8::ZERO; 2],
+        || [Prod8::ZERO; 3],
         |rows, acc, t| {
             for b in task_blocks(t, blocks) {
                 let i = 8 * b;
-                load_rows(cols, &form.used, i, half, at_one, rows);
-                let (end, sum) = &*rows;
-                let (mut endpoint, mut slope) = (dot(&lin, end), Prod8::ZERO);
+                load_rows(cols, &form.used, i, half, rows);
+                let (lo, sum) = &*rows;
+                let lin_lo = dot(&lin, lo);
+                let (mut p0, mut p1, mut slope) = (lin_lo, lin_lo ^ dot(&lin, sum), Prod8::ZERO);
                 for ((left, _), right) in form.groups.iter().zip(&rights) {
-                    endpoint ^= dot(right, end).reduce_lanes().mul_base_unreduced(end[*left]);
-                    slope ^= dot(right, sum).reduce_lanes().mul_base_unreduced(sum[*left]);
+                    let (right_lo, right_sum) = (dot(right, lo).reduce_lanes(), dot(right, sum).reduce_lanes());
+                    p0 ^= right_lo.mul_base_unreduced(lo[*left]);
+                    p1 ^= (right_lo + right_sum).mul_base_unreduced(lo[*left] + sum[*left]);
+                    slope ^= right_sum.mul_base_unreduced(sum[*left]);
                 }
                 let eq = load_e(eqr, i);
-                acc[0] ^= endpoint.reduce_lanes().mul_unreduced(eq);
-                acc[1] ^= slope.reduce_lanes().mul_unreduced(eq);
+                acc[0] ^= p0.reduce_lanes().mul_unreduced(eq);
+                acc[1] ^= p1.reduce_lanes().mul_unreduced(eq);
+                acc[2] ^= slope.reduce_lanes().mul_unreduced(eq);
             }
         },
-        xor2,
+        xor,
     );
-    finish(acc, form.constant)
+    let [p0, p1, quadratic] = acc.map(Prod8::reduce);
+    [p0 + form.constant, p1 + form.constant, quadratic]
 }
 
 /// An active round of a joined table, from its folded state.
@@ -291,7 +290,7 @@ fn message_e(form: &Form, state: &State, eqr: &[F192], half: usize, at_one: bool
                 acc[1] ^= slope.reduce_lanes().mul_unreduced(eq);
             }
         },
-        xor2,
+        xor,
     );
     finish(acc, form.constant)
 }
@@ -321,7 +320,7 @@ fn join(form: &Form, cols: &[&[F64]], r: F192, half: usize) -> State {
             parallel::chunks_mut(state, TASK_BLOCKS * width, |t, out| {
                 let mut rows = rows_scratch(cols.len());
                 for (b, out) in task_blocks(t, blocks).zip(out.chunks_exact_mut(width)) {
-                    load_rows(cols, &form.used, 8 * b, half, false, &mut rows);
+                    load_rows(cols, &form.used, 8 * b, half, &mut rows);
                     let (lo, sum) = &rows;
                     let dot = |terms: &[(usize, F192x8, F192x8)]| {
                         terms
@@ -367,22 +366,54 @@ fn fold_state(state: &mut State, r: F192, half: usize) {
 /// One table of the batch, and what the rounds have made of it.
 struct Table<'a> {
     tau: usize,
+    /// What its summand sums to against `eq(ζ[..τ], ·)`: the line it contributes while it waits.
     sigma: F192,
     /// Its summand's factor: the challenges it sat out, then the eq factors of the rounds it was active.
     weight: F192,
     form: Form,
     cols: &'a [&'a [F64]],
+    /// The message of the round it joins, `[p(0), p(1), quadratic]`, taken before the first round.
+    joining: [F192; 3],
     /// The folded state, once the table has joined: a few `E` columns, the batch's largest transients.
     state: Option<State>,
 }
 
-impl Table<'_> {
+impl<'a> Table<'a> {
+    /// A table before the first round. Its join message reads no challenge, only `eq`, which is
+    /// `eq(ζ[..τ − 1])` and what the batch's `eqr` has shrunk to by then, so it is taken here; its
+    /// endpoints give the table's sum `σ = (1 + ζ_m)·p(0) + ζ_m·p(1)` at `m = τ − 1`.
+    fn new(air: &Air<'a>, zeta: &[F192], eq: &[F192]) -> Self {
+        let form = Form::new(&air.form);
+        let (joining, sigma) = match air.tau.checked_sub(1) {
+            Some(m) => {
+                let p = message_k(&form, air.cols, eq, 1 << m);
+                (p, (F192::ONE + zeta[m]) * p[0] + zeta[m] * p[1])
+            }
+            // A table of one row never joins: its sum is that row, under a zero upper row.
+            None => {
+                let row = message_e(&form, &form.small_state(air.cols, 1), &[F192::ONE], 1, false)[0];
+                ([F192::ZERO; 3], row)
+            }
+        };
+        Self {
+            tau: air.tau,
+            sigma,
+            weight: F192::ONE,
+            form,
+            cols: air.cols,
+            joining,
+            state: None,
+        }
+    }
+
     /// The message of the round that binds variable `m`, while the table is active.
     fn message(&self, eqr: &[F192], m: usize, at_one: bool) -> [F192; 2] {
-        let (form, half) = (&self.form, 1 << m);
         match &self.state {
-            Some(state) => message_e(form, state, eqr, half, at_one),
-            None => message_k(form, self.cols, eqr, half, at_one),
+            Some(state) => message_e(&self.form, state, eqr, 1 << m, at_one),
+            None => {
+                debug_assert_eq!(m + 1, self.tau, "a table joins on its top variable");
+                [self.joining[usize::from(at_one)], self.joining[2]]
+            }
         }
     }
 
@@ -408,28 +439,38 @@ fn round_polynomial([endpoint, quadratic]: [F192; 2], zeta: F192, claim: F192, w
 }
 
 /// Prove that every table's batched constraint vanishes on all of its rows, as ONE
-/// sumcheck over `max τ_t` variables. Returns the per-table claims, in input order, on the
-/// nested points `ρ[..τ_t]`.
-pub fn prove(airs: &[Air<'_>], zeta: &[F192], ps: &mut ProverState) -> Vec<Claims> {
+/// sumcheck over `max τ_t` variables, `target` being what the summands sum to against
+/// `eq(ζ, ·)`. Returns the per-table claims, in input order, on the nested points `ρ[..τ_t]`.
+pub fn prove(airs: &[Air<'_>], zeta: &[F192], target: F192, ps: &mut ProverState) -> Vec<Claims> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
-    let mut tables: Vec<Table> = airs
-        .iter()
-        .map(|air| Table {
-            tau: air.tau,
-            sigma: air.sigma,
-            weight: F192::ONE,
-            form: Form::new(&air.form),
-            cols: air.cols,
-            state: None,
-        })
-        .collect();
     // ONE eq table over the low (still free) variables serves every active table.
     let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
+    // Each shorter table's join round has its own, one per height.
+    let mut eqs = BTreeMap::new();
+    let mut tables: Vec<Table> = airs
+        .iter()
+        .map(|air| {
+            let m = air.tau.saturating_sub(1);
+            let eq = if air.tau == n {
+                &eqr
+            } else {
+                eqs.entry(m).or_insert_with(|| eq_table(&zeta[..m]))
+            };
+            Table::new(air, zeta, eq)
+        })
+        .collect();
+    drop(eqs);
+    // Completeness only: the verifier derives the target, so a mismatch is a prover bug.
+    debug_assert_eq!(
+        tables.iter().map(|t| t.sigma).sum::<F192>(),
+        target,
+        "the tables must settle the bus"
+    );
     let mut chi = vec![F192::ZERO; n];
     // `k`, the challenges drawn so far, common to every table that is still waiting.
     let mut k = F192::ONE;
-    let mut claim = airs.iter().map(|a| a.sigma).sum();
+    let mut claim = target;
     for j in 0..n {
         let m = n - 1 - j; // the variable this round binds
         let at_one = zeta[m].is_zero();
@@ -574,7 +615,10 @@ mod tests {
             while half >= 1 {
                 for at_one in [false, true] {
                     let got = match &state {
-                        None => message_k(&form, &views, &eqr, half, at_one),
+                        None => {
+                            let p = message_k(&form, &views, &eqr, half);
+                            [p[usize::from(at_one)], p[2]]
+                        }
                         Some(st) => message_e(&form, st, &eqr, half, at_one),
                     };
                     assert_eq!(
@@ -594,6 +638,31 @@ mod tests {
                 }
                 half /= 2;
             }
+        }
+    }
+
+    /// A table's sum from its join message is `Σ_z eq(ζ[..τ], z)·P(z)`, summed row by row, from one
+    /// row (which never joins) to tables on both sides of one vector.
+    #[test]
+    fn join_message_gives_the_table_sum() {
+        let mut s = 11;
+        let pows: Vec<F192> = (0..3).map(|_| random_e(&mut s)).collect();
+        let zeta: Vec<F192> = (0..12).map(|_| random_e(&mut s)).collect();
+        for tau in [0usize, 1, 3, 4, 5, 12] {
+            let kcols = random_columns(&mut s, 1 << tau);
+            let views: Vec<&[F64]> = kcols.iter().map(|c| &c[..]).collect();
+            let eq = eq_table(&zeta[..tau]);
+            let want = (0..1 << tau).fold(F192::ZERO, |acc, z| {
+                let row: Vec<F192> = kcols.iter().map(|c| F192::from(c[z])).collect();
+                acc + eq[z] * synth(&pows).eval(&row, false)
+            });
+            let air = Air {
+                tau,
+                cols: &views,
+                form: synth(&pows),
+            };
+            let table = Table::new(&air, &zeta, &eq_table(&zeta[..tau.saturating_sub(1)]));
+            assert_eq!(table.sigma, want, "tau {tau}");
         }
     }
 }

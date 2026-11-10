@@ -9,8 +9,8 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
-use primitives::field::{F64, F192, F192Unreduced, Weights8, dot_base, g_pow, index_mle, mul_by_g};
-use primitives::multilinear::{eq_eval, eq_table, mle_eval, mle_eval_par};
+use primitives::field::{F64, F192, F192Unreduced, g_pow, index_mle, mul_by_g};
+use primitives::multilinear::{eq_eval, mle_eval, mle_eval_par};
 use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::Arc;
@@ -544,25 +544,12 @@ impl BusForm {
     }
 
     /// `constant + Σ coeffs[i]·evals[i]`.
+    #[cfg(test)]
     fn linear(&self, evals: &[F192]) -> F192 {
         self.coeffs
             .iter()
             .zip(evals)
             .fold(self.constant, |acc, (&w, &v)| acc + w * v)
-    }
-
-    /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the
-    /// zerocheck settles. The linear part factors through the columns' evaluations at
-    /// `ζ`, which is the whole point of a form; a product coordinate does NOT, so
-    /// `prod_sums` supplies `Σ_z eq(ζ,z)·col_a(z)·col_b(z)` for each pair it uses.
-    fn sum_at(&self, evals: &[F192], prod_sums: &[(usize, usize, F192)]) -> F192 {
-        self.prods.iter().fold(self.linear(evals), |acc, &(a, b, c)| {
-            let s = prod_sums
-                .iter()
-                .find(|p| (p.0, p.1) == (a, b))
-                .expect("every pair was summed");
-            acc + c * s.2
-        })
     }
 }
 
@@ -806,11 +793,10 @@ pub(crate) struct BusProof {
     pub point: Vec<F192>,
     /// `forms[side][table]`, in `[push, pull, count]` order.
     pub forms: [Vec<BusForm>; 3],
-    /// `sigmas[side][table]`: each form's eq-weighted sum over its table's rows.
-    /// Prover-side only. NOTHING here travels: the batch's target is the caller's
-    /// derived `Σ_s ξ^·totals[s]`, and the shares serve only to build each round's
-    /// waiting line, which rides inside the round polynomial.
-    pub sigmas: [Vec<F192>; 3],
+    /// `shares[side]`: the tables' share of the side's leaf value, `Ṽ₀(ζ)` less the framework
+    /// blocks, which the side's forms sum to. Prover-side only. NOTHING here travels: the batch's
+    /// target is the caller's `Σ_s ξ^·shares[s]`, which the verifier derives the same way.
+    pub shares: [F192; 3],
 }
 
 pub(crate) fn prove_balance(
@@ -858,12 +844,9 @@ pub(crate) fn prove_balance(
         &count_w,
         beta,
     );
-    // Each table's columns at ζ[..τ], computed once and shared by the three sides
-    // (a form's linear part factors through them). Nothing here travels, neither the
-    // evaluations nor any total: the verifier derives each side's table share as `Ṽ₀(ζ)` less the
-    // framework decomposition and the batch settles it. A
-    // transmitted total would appear in exactly one check, which it could always be
-    // solved to satisfy, and would settle nothing.
+    // No table total travels: the verifier derives each side's table share as `Ṽ₀(ζ)` less the
+    // framework decomposition, and the batch settles it. A transmitted total would appear in
+    // exactly one check, which it could always be solved to satisfy, and would settle nothing.
     let mut forms = std::array::from_fn(|_| tables.iter().map(|&(_, n)| BusForm::new(n)).collect::<Vec<_>>());
     let mut frameworks = [F192::ZERO; 3];
     let mut public = PublicEvals::new();
@@ -884,126 +867,12 @@ pub(crate) fn prove_balance(
             );
         }
     });
-    let (table_evals, prod_sums) = crate::stage!("Bus tables", || tables_and_prods_at(
-        cols,
-        tables,
-        &forms,
-        &bus_gkr.point
-    ));
-    let sigmas: [Vec<F192>; 3] = std::array::from_fn(|s| {
-        let sigmas: Vec<F192> = forms[s]
-            .iter()
-            .zip(&table_evals)
-            .zip(&prod_sums)
-            .map(|((f, e), p)| f.sum_at(e, p))
-            .collect();
-        // Completeness only: the verifier derives this identity rather than checking
-        // it, so a mismatch here is a prover bug, not a rejection path.
-        debug_assert_eq!(
-            sigmas.iter().fold(frameworks[s], |acc, &b| acc + b),
-            bus_gkr.values[s],
-            "side {s} must decompose into its leaf value"
-        );
-        sigmas
-    });
-
     BusProof {
         claims,
         point: bus_gkr.point,
         forms,
-        sigmas,
+        shares: std::array::from_fn(|s| bus_gkr.values[s] + frameworks[s]),
     }
-}
-
-/// `Σ_z eq(point, z)·c(z)` for every column `c`, then `Σ_z eq(point, z)·a(z)·b(z)` for
-/// every pair `(a, b)`, all in one parallel pass over the rows.
-///
-/// `eq` factors into a table over the low variables, packed for [`dot_base`] and
-/// held in L1, and one over the rest that weights each block's reduced inner sums,
-/// so every column moves only its own eight bytes a row and no `E` table of its
-/// length is ever written.
-fn eq_sums(point: &[F192], columns: &[&[F64]], pairs: &[(&[F64], &[F64])]) -> Vec<F192> {
-    const LOW: usize = 10;
-    if point.len() < 3 {
-        let eq = eq_table(point);
-        let dot = |f: &dyn Fn(usize) -> F64| eq.iter().enumerate().map(|(z, &w)| w.mul_base(f(z))).sum();
-        return columns
-            .iter()
-            .map(|c| dot(&|z| c[z]))
-            .chain(pairs.iter().map(|(a, b)| dot(&|z| a[z] * b[z])))
-            .collect();
-    }
-    let low_vars = point.len().min(LOW);
-    let low: Vec<Weights8> = eq_table(&point[..low_vars])
-        .as_chunks::<8>()
-        .0
-        .iter()
-        .map(Weights8::new)
-        .collect();
-    let high = eq_table(&point[low_vars..]);
-    let width = 1usize << low_vars;
-    parallel::fold_reduce(
-        high.len(),
-        || vec![F192::ZERO; columns.len() + pairs.len()],
-        |acc, row| {
-            let span = row * width..(row + 1) * width;
-            let (singles, products) = acc.split_at_mut(columns.len());
-            for (slot, c) in singles.iter_mut().zip(columns) {
-                *slot += high[row] * dot_base(&low, &c[span.clone()]).reduce();
-            }
-            let mut product = [F64::ZERO; 1 << LOW];
-            for (slot, (a, b)) in products.iter_mut().zip(pairs) {
-                for ((p, &x), &y) in product.iter_mut().zip(&a[span.clone()]).zip(&b[span.clone()]) {
-                    *p = x * y;
-                }
-                *slot += high[row] * dot_base(&low, &product[..width]).reduce();
-            }
-        },
-        |mut left, right| {
-            for (slot, part) in left.iter_mut().zip(right) {
-                *slot += part;
-            }
-            left
-        },
-    )
-}
-
-/// Every table's committed columns at `ζ[..τ_t]`, and, for every column pair its
-/// forms multiply, `Σ_z eq(ζ[..τ], z)·col_a(z)·col_b(z)`, in one pass per table
-/// ([`eq_sums`]). Pairs are deduped across the three sides and the several blocks
-/// that carry the same address, so an address costs one product however often it is
-/// flushed. `tables[t] = (base, n_cols)` in the global schema; a pair names LOCAL
-/// column indices.
-#[allow(clippy::type_complexity)]
-fn tables_and_prods_at(
-    cols: &[&[F64]],
-    tables: &[(usize, usize)],
-    forms: &[Vec<BusForm>; 3],
-    zeta: &[F192],
-) -> (Vec<Vec<F192>>, Vec<Vec<(usize, usize, F192)>>) {
-    tables
-        .iter()
-        .enumerate()
-        .map(|(t, &(base, n_cols))| {
-            let tau = crate::log2_strict_usize(cols[base].len());
-            let mut pairs: Vec<(usize, usize)> = forms
-                .iter()
-                .flat_map(|side| side[t].prods.iter().map(|&(a, b, _)| (a, b)))
-                .collect();
-            pairs.sort_unstable();
-            pairs.dedup();
-            let columns = &cols[base..base + n_cols];
-            let products: Vec<(&[F64], &[F64])> = pairs.iter().map(|&(a, b)| (columns[a], columns[b])).collect();
-            let mut sums = eq_sums(&zeta[..tau], columns, &products);
-            let prods = pairs
-                .iter()
-                .zip(&sums[n_cols..])
-                .map(|(&(a, b), &s)| (a, b, s))
-                .collect();
-            sums.truncate(n_cols);
-            (sums, prods)
-        })
-        .unzip()
 }
 
 #[cfg(test)]
