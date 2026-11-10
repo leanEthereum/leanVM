@@ -20,7 +20,7 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 
 /-- **The deployed budget's words**, `Bvf μ r` for `verify_sub` on a child of announced stack log
 `μ` and rate `r`. -/
-def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨32541, 33, 41, 1551, 8582, 186041, 215776, 82, 24708, 51, Bvf⟩
+def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := ⟨34589, 33, 41, 1551, 8582, 186041, 215776, 82, 24708, 51, Bvf⟩
 
 /-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
 stack log `μ` and rate `r` at its candidate `B1.Whir.candidate μ r` (`Budget.vsCnt`). -/

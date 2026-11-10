@@ -94,7 +94,7 @@ def numbers(g, certs):
     # `aggregate_claims`' loops: their phantoms per child (`SKt + fs`), as the base is charged
     # without a child.
     v['agA1'] = 18 + SK('__loop33') + SK('__loop34') + SK('__loop35')
-    base = (fs('main') + 283 + fs('exponent_tables') + 236 + 2 * (v['clC'] + fs('claim_list_digest'))
+    base = (fs('main') + 283 + fs('exponent_tables') + 2284 + 2 * (v['clC'] + fs('claim_list_digest'))
             + fs('__loop0') + fs('__loop1')
             + fs('__loop2') + fs('__loop3') + 2 * v['l5A0'] + (v['agA0'] + fs('aggregate_claims'))
             + SB('statement_digest') + fs('statement_digest'))

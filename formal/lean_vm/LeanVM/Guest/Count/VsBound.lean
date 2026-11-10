@@ -53,14 +53,14 @@ squeeze dispatch (`498`), the opening message (`58`), the bus grind dispatch (`6
 the candidate (`osC`). -/
 theorem vsBoundAt_eq {μ r : ℕ} (h : candidate μ r < 28) :
     B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 176056 + osC (candidate μ r) := by
-  rw [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
+  rewrite [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
     show vsWordsOs.Bnd = osBnd from rfl, show vsWordsOs.Kr = (fun f => wSK f - B2C.fs f) from rfl,
     osBosAt_eq h, show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,
     vkBound_eq, termBound_eq, show vsWords.Kst = wSB from rfl, show vsWords.B14 = 3204 from rfl,
     show B1.Tables.cpSizes.sum = 130 from rfl]
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := vs_frames
   obtain ⟨k1, k2, k3, k4⟩ := vs_static
-  rw [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, busGrindMax_eq]
+  rewrite [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, busGrindMax_eq]
   simp only [List.sum_cons, List.sum_nil]
   omega
 

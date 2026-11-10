@@ -68,9 +68,9 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) := by
   rw [mainVal_valid hv]
   have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
-  have hU := unfolds_of_V (Located.unfoldsV_replay End.b2SoundL hv)
+  have hU := unfolds_of_V (Located.unfoldsV_replay (End.b2SoundL End.endPending_proved) hv)
   refine main_facts hU (Located.rlg_le_rel t.memory) hm exponent_tables_holds (fun args h ↦ ?_)
-    (End.mainBodyL_of End.b2SoundL hv).1
+    (End.mainBodyL_of (End.b2SoundL End.endPending_proved) hv).1
   obtain ⟨fn, σ, hf, hp, hb⟩ := hU _ _ _ h
   rw [find_loop2] at hf
   cases hf
