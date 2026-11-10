@@ -38,6 +38,13 @@ open scoped ENNReal
 
 /-! ## The ideal failure probability -/
 
+/-- The uniform average over `E`; irreducible, so that no unification unfolds it into a sum over
+the `2^128` elements. -/
+@[irreducible] noncomputable def avgE (f : E → ℝ≥0∞) : ℝ≥0∞ := (∑ c : E, f c) / Fintype.card E
+
+/-- `|E|⁻¹`, the probability of one value of a uniform challenge. -/
+@[irreducible] noncomputable def epsE : ℝ≥0∞ := (Fintype.card E : ℝ≥0∞)⁻¹
+
 namespace Strategy
 
 open Classical in
@@ -51,9 +58,9 @@ noncomputable def failFrom (S : Strategy) : VerifierProgram Bool → List Ev →
       failFrom S (k (S.msg h)) (h ++ [Ev.read (S.msg h)]) none
   | .sample k, h, g => match g with
     | some c => failFrom S (k c) (h ++ [Ev.sample c]) none
-    | none => (∑ c : E, failFrom S (k c) (h ++ [Ev.sample c]) none) / Fintype.card E
+    | none => avgE fun c ↦ failFrom S (k c) (h ++ [Ev.sample c]) none
   | .grind b k, h, g => if g.isSome then 1 else
-      (∑ c : E, failFrom S k (h ++ [Ev.grind b]) (some c)) / Fintype.card E
+      avgE fun c ↦ failFrom S k (h ++ [Ev.grind b]) (some c)
   | .commit ht w k, h, g => if g.isSome ∨ ¬ WellShaped w (S.word h) then 1 else
       failFrom S k (h ++ [Ev.commit ht w (S.word h)]) none
   | .query i ps k, h, g => match answer h i ps with

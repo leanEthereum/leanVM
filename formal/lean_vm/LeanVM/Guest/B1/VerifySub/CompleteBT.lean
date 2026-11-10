@@ -124,7 +124,7 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
+    (hnz : Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)
@@ -159,7 +159,7 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
+    (hnz : Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2)

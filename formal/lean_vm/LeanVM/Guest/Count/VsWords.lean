@@ -13,7 +13,7 @@ module
 public import LeanVM.Guest.Count.StaticW
 public import LeanVM.Guest.B1.VerifySub.WordsB
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
-public import LeanVM.Guest.B1.Selectors.SharedTotal
+public import LeanVM.Guest.B1.Selectors.SharedWeight
 public import LeanVM.Guest.Count.RatioV
 
 namespace LeanVM.Guest.Count
@@ -201,6 +201,14 @@ theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (B2C.ωArm B
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
     exact weightLe_mono (kuSB_weightLe (j := 96) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
 
+theorem le_foldr_max {l : List ℕ} {a : ℕ} (h : a ∈ l) : a ≤ l.foldr max 0 := by
+  induction l with
+  | nil => simp at h
+  | cons b l ih =>
+    rcases List.mem_cons.mp h with rfl | h
+    · exact le_max_left _ _
+    · exact (ih h).trans (le_max_right _ _)
+
 /-- The column selectors' weights, at most. -/
 noncomputable def kCsW (op : Opcode) : ℕ :=
   ((List.range 29).map fun κ => kuSB op (B1.Tables.lName "column_selector" κ)).foldr max 0
@@ -213,7 +221,7 @@ theorem cs_weightLe (op : Opcode) : ∀ κ < 29, WeightLe coreProgram (B2C.ωArm
     (B1.Tables.lName "column_selector" κ) (fun _ => kCsW op) := by
   intro κ hκ
   refine weightLe_mono (kuSB_weightLe (List.all_eq_true.mp (cs_okW op) κ (List.mem_range.mpr hκ))) ?_
-  exact B1.Tables.le_foldr_max (List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩)
+  exact le_foldr_max (List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩)
 
 theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤ A * B / 1000 :=
   (Nat.le_div_iff_mul_le (by norm_num)).mpr (by

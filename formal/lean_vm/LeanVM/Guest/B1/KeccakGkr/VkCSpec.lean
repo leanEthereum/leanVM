@@ -35,10 +35,10 @@ def pinB : Stmt → Bool
 /-- The body but its pinned bits. -/
 def vkEvL : List Stmt := vkT.filter fun s ↦ !pinB s
 
-theorem vk_chk : Fwd.chk 11 vkEvL = some 3878 := by decide +kernel
+theorem vk_chk : Fwd.chk 12 vkEvL = some 3373 := by decide +kernel
 
 /-- The stores of the body. -/
-def vkSt : List Atom := storesOf 11 vkEvL
+def vkSt : List Atom := storesOf 12 vkEvL
 
 /-- **The honest valuation of `verify_keccak`.** -/
 noncomputable def vkσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=
@@ -47,17 +47,17 @@ noncomputable def vkσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-theorem vk_goodL (hl : args.length = 11) : ∀ s ∈ vkEvL, GoodS rd vkSt w (vkσ rd w args) s := by
+theorem vk_goodL (hl : args.length = 12) : ∀ s ∈ vkEvL, GoodS rd vkSt w (vkσ rd w args) s := by
   have h := (ev_spec rd w vkEvL args (by rw [hl]; exact vk_chk)).2.2
   rw [hl] at h
   exact h
 
 /-- **Every statement of the body but the pins satisfies its equations.** -/
-theorem vk_good (hl : args.length = 11) {s : Stmt} (hs : s ∈ vkT) (hp : pinB s = false) :
+theorem vk_good (hl : args.length = 12) {s : Stmt} (hs : s ∈ vkT) (hp : pinB s = false) :
     GoodS rd vkSt w (vkσ rd w args) s :=
   vk_goodL hl s (List.mem_filter.mpr ⟨hs, by simp [hp]⟩)
 
-theorem vk_param (hl : args.length = 11) {i : ℕ} (hi : i < 11) :
+theorem vk_param (hl : args.length = 12) {i : ℕ} (hi : i < 12) :
     vkσ rd w args (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact vk_chk) (by rw [hl]; exact hi)
 
