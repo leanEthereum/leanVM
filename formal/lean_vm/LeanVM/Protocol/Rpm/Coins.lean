@@ -144,14 +144,15 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + KeccakCalls) (Prog
 /-- **Knowledge soundness against adversaries with coins**: private coins do not help, so the
 bound of `knowledgeSoundnessRom_holds` holds for every adversary with coins of at most `Q` oracle
 calls. -/
-theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
+theorem knowledgeSoundness_coins (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface)
+    {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
     (hB : Common.QueryCostAtMost B hashCalls Q) :
     Pr{let z ← experimentCoins B}[Breaks extractor z] ≤ soundnessError Q := by
   obtain ⟨A, hA, hle⟩ := exists_det (fun p ↦ do
       let (verdict, cache) ←
         (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 p.1.1.1 p.1.1.2 p.1.2)).run p.2
       return ((p.1, verdict), cache, p.2)) (Breaks extractor) B Q hB ∅
-  exact hle.trans (knowledgeSoundnessRom_holds A Q hA)
+  exact hle.trans (knowledgeSoundnessRom_holds O A Q hA)
 
 /-! ## The random-permutation experiments -/
 

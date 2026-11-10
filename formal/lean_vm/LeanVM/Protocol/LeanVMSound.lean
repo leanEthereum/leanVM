@@ -56,6 +56,10 @@ probability at most `13261/2^256` (`Sound.prEvent_logged2_root_le`, the second t
 
 **Scope and trust.**
 
+* The stacked opening's specification enters as the interface `O : Sound.OpeningIface`
+  (`EndToEnd/Sound/Assemble.lean`): level 0's threshold, list bound and shape, and the opening's
+  specification from "every candidate violates a claim". Every theorem here takes it.
+
 * Keccak-256 and Keccak-f[1600] are independent random oracles here, the step of the proof before
   the random-permutation model of the statements (`LeanVM/Protocol/LeanVMRpm.lean`).
 * The extractor is straight-line (it reads the proof and the answers to the adversary's
@@ -119,23 +123,24 @@ queries, which chooses the program, the public input and the proof, the verifier
 the extractor `extractor`
 (`LeanVM/Protocol/Extraction/Extractor.lean`) does not return a valid execution of the program on the public
 input with probability at most `soundnessError Q`. -/
-theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem knowledgeSoundnessRom (O : Sound.OpeningIface) {A : Adversary} {Q : ℕ}
+    (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q := by
   -- Doom or failure, read off the final log.
-  have h1 := romSound_log Sound.anyProgram Sound.anyCert Sound.leanVmSeeds
-    (fun x ↦ Sound.rootOk_stmtHistory x) Sound.εLean Sound.anyCert_bound A Q hA
+  have h1 := romSound_log Sound.anyProgram (Sound.anyCert O) Sound.leanVmSeeds
+    (fun x ↦ Sound.rootOk_stmtHistory x) εmsg (Sound.anyCert_bound O) A Q hA
     leanVmQueryBound Sound.isTotalQueryBound_leanVmFam
     (fun z ℓ ↦ Fail Sound.leanVmSeeds ℓ ∨
       Rom.verify (lookH ℓ) (lookF ℓ)
         (leanVmSeed (bytecodeWords z.1.1) (publicInputDigest z.1.2))
         (leanVmVerifierProgram (bytecodeWords z.1.1) (publicInputDigest z.1.2)) z.2 ≠ some true ∨
-      ¬ Sound.Extracted z.1.1 z.1.2 (cacheOf ℓ) z.2)
+      ¬ Sound.Extracted O z.1.1 z.1.2 (cacheOf ℓ) z.2)
     (fun z ℓ hf hv hb ↦ by
       simp only [Sound.leanVmSeeds, Sound.nodeAt_stmtHistory] at hv
       rcases hb with hb | hb | hb
       · exact absurd hb hf
       · exact absurd hv hb
-      · exact Sound.doomed_of_doomedRun hv (Sound.doomed_of_not_extracted z.1.1 z.1.2 hv hb))
+      · exact Sound.doomed_of_doomedRun O hv (Sound.doomed_of_not_extracted O z.1.1 z.1.2 hv hb))
   rw [Sound.logExperiment_eq_logged2, prEvent_map] at h1
   -- A fresh Keccak-256 answer of the verifier that is the announced root.
   have h2 := Sound.prEvent_logged2_root_le A (Rom.verifierFam Sound.leanVmSeeds Sound.anyProgram)
@@ -155,13 +160,13 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
         w.1.1.2 = some true := by
       by_contra h
       exact hn1 ⟨hacc, Or.inr (Or.inl h)⟩
-    have hx : Sound.Extracted w.1.1.1.1 w.1.1.1.2 (cacheOf w.2.2) w.1.1.2 := by
+    have hx : Sound.Extracted O w.1.1.1.1 w.1.1.1.2 (cacheOf w.2.2) w.1.1.2 := by
       by_contra h
       exact hn1 ⟨hacc, Or.inr (Or.inr h)⟩
     have hpre : w.1.2 <+: w.2.2 := by
       by_contra h
       exact hn2 (Or.inl h)
-    obtain ⟨t, ht, htv⟩ := Sound.extractor_of_extracted Sound.leanVmSeeds hf hv
+    obtain ⟨t, ht, htv⟩ := Sound.extractor_of_extracted O Sound.leanVmSeeds hf hv
       (fun r hr x hx ↦ hn2 (Or.inr ⟨r, hr, x, hx⟩)) hx
     rw [← List.prefix_iff_eq_take.mp hpre] at ht
     exact hno ⟨t, ht, htv⟩
@@ -170,17 +175,18 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBoun
   · rw [leanVmQueryBound_eq, div_eq_mul_inv, verifierQueries]
 
 /-- **The extractor's list is short**: at every admissible stack size and rate, the candidates of
-any word at the Johnson threshold are at most `2^12` (level 0's list bound). -/
-theorem candidates_ncard_le {μ R : ℕ} (h : Parameters.Whir.Admissible μ R) (W : ℕ → List K) :
-    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ 2 ^ 12 :=
-  Sound.spec_candidates_ncard_le h W
+any word at the Johnson threshold are at most level 0's list bound. -/
+theorem candidates_ncard_le (O : Sound.OpeningIface) {μ R : ℕ} (h : Parameters.Whir.Admissible μ R)
+    (W : ℕ → List K) :
+    (Extraction.Candidates μ R (Extraction.johnsonThreshold μ R) W).ncard ≤ O.listMax₀ μ R :=
+  Sound.spec_candidates_ncard_le O h W
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 
 /-- **Knowledge soundness in the two-oracle random-oracle model holds**, for the extractor
-`extractor`. -/
-theorem knowledgeSoundnessRom_holds : KnowledgeSoundnessRom :=
-  fun _ _ hA ↦ knowledgeSoundnessRom hA
+`extractor`, given the stacked opening's interface `O`. -/
+theorem knowledgeSoundnessRom_holds (O : Sound.OpeningIface) : KnowledgeSoundnessRom :=
+  fun _ _ hA ↦ knowledgeSoundnessRom O hA
 
 end
 end LeanVM

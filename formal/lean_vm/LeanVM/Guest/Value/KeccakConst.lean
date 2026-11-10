@@ -188,8 +188,8 @@ theorem paddingBlobRoot_eq :
 /-- **`DA_PAD_BLOB_0`, `DA_PAD_BLOB_1`** (`aggregation/placeholders.rs:845-847`, `lean_ethereum.py:4360-4361`)
 are the padding blob root's two cells. -/
 theorem daPadBlob_cells :
-    (LeanVM.Guest.word 8002054802297438051 4108169256045952147 0,
-      LeanVM.Guest.word 12830724869163462953 1721925254677230945 0) =
+    (LeanVM.Guest.word 8002054802297438051 4108169256045952147,
+      LeanVM.Guest.word 12830724869163462953 1721925254677230945) =
       digestHalves daPadBlobDigest := by
   simp only [digestHalves, daPadBlobDigest, LeanVM.Guest.word]; rfl
 

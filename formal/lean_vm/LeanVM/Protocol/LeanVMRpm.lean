@@ -256,7 +256,8 @@ theorem romGame_le (A : DetAdversary) :
 adversary of at most `Q` queries to `π` and `π⁻¹` breaks soundness, for the extractor
 `transcriptExtractor`, with probability at most the random-oracle error at `Q` queries plus
 `(Q + verifierPermCalls)² / 2^508`. -/
-theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+theorem knowledgeSoundnessRpm (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface) {A : DetAdversary} {Q : ℕ}
+    (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← detExperiment A}[BreaksKnowledgeSoundnessWithHash z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
   rw [(detExperiment_evalDistEq A).prEvent_eq, game]
@@ -264,17 +265,18 @@ theorem knowledgeSoundnessRpm {A : DetAdversary} {Q : ℕ} (hA : A.IsTotalQueryB
     (fun _ z ↦ duplex_postR z) (Q + verifierPermCalls) (isWeightBound_game hA)
     (BreaksKnowledgeSoundnessWithHash)
   refine h1.trans (add_le_add ((romGame_le A).trans ?_) le_rfl)
-  exact knowledgeSoundness_coins (isWeightBound_romAdv hA)
+  exact knowledgeSoundness_coins O (isWeightBound_romAdv hA)
 
 /-- **Knowledge soundness in the random-permutation model**, for an adversary with coins of at
 most `Q` queries to `π` and `π⁻¹`: some deterministic adversary of at most `Q` queries does as
 well (`rpmExperiment_le_det`). -/
-theorem knowledgeSoundnessRpm_coins {B : RandomPermutationAdversary} {Q : ℕ}
+theorem knowledgeSoundnessRpm_coins (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface)
+    {B : RandomPermutationAdversary} {Q : ℕ}
     (hB : Common.QueryCostAtMost B Common.permutationCallCost Q) :
     Pr{let z ← soundnessExperimentWithHash B}[BreaksKnowledgeSoundnessWithHash z] ≤
       soundnessError Q + rpmError (Q + verifierPermCalls) := by
   obtain ⟨A, hA, hle⟩ := rpmExperiment_le_det hB (BreaksKnowledgeSoundnessWithHash)
-  exact hle.trans (knowledgeSoundnessRpm hA)
+  exact hle.trans (knowledgeSoundnessRpm O hA)
 
 /-! ## Completeness -/
 
@@ -378,15 +380,18 @@ namespace LeanVM
 /-! ## The statements of `Statement/LeanVm.lean` -/
 
 /-- Knowledge soundness in the experiment with the two calls, for the extractor
-`transcriptExtractorWithHash`. -/
-theorem knowledgeSoundnessWithHash_holds : KnowledgeSoundnessWithHash :=
-  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm_coins hA).trans (soundnessRpm_le_statement hQ)
+`transcriptExtractorWithHash`, given the stacked opening's interface `O`. -/
+theorem knowledgeSoundnessWithHash_holds (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface) :
+    KnowledgeSoundnessWithHash :=
+  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm_coins O hA).trans (soundnessRpm_le_statement hQ)
 
 /-- **Knowledge soundness holds** (in the random-permutation model), for the extractor
 `transcriptExtractor`: the statement's experiment, its transcript's coins left out, is the one
-with the two calls (`map_soundnessExperiment`). -/
-theorem knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor :=
-  knowledgeSoundness_of_withHash knowledgeSoundnessWithHash_holds
+with the two calls (`map_soundnessExperiment`). It takes the stacked opening's interface `O`
+(`EndToEnd/Sound/Assemble.lean`) until the opening's specification is built. -/
+theorem knowledgeSoundness_holds (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface) :
+    KnowledgeSoundness transcriptExtractor :=
+  knowledgeSoundness_of_withHash (knowledgeSoundnessWithHash_holds O)
 
 -- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.leanVmHonestProver`, is proved in
 -- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).

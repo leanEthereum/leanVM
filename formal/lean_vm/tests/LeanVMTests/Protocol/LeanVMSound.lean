@@ -1,4 +1,5 @@
 import LeanVM.Protocol.LeanVMSound
+import LeanVM.Protocol.ErrorBounds
 import LeanVM.Protocol.WithHash
 
 /-!
@@ -17,20 +18,22 @@ example (prog : LeanIsaProgram) (input : PublicInput) (proof : LeanVM.Protocol.C
     verify prog input proof = Id.run (verifierWithHash (m := Id) keccak256 keccakF1600 prog input proof) :=
   rfl
 
-example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
+example (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface) {A : Adversary} {Q : ℕ}
+    (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[z.1.2 = true ∧
       ¬ ∃ t, extractor z.1.1.1.1 z.1.1.1.2 z.2.2 z.1.1.2 = some t ∧
         ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
       soundnessError Q :=
-  knowledgeSoundnessRom hA
+  knowledgeSoundnessRom O hA
 
 /-- The adversary chooses the statement: a fixed statement is the special case of an adversary
 that outputs it. -/
-example (prog : LeanIsaProgram) (input : PublicInput) (P : OracleComp KeccakCalls LeanVM.Protocol.Compile.Proof) {Q : ℕ}
+example (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface) (prog : LeanIsaProgram) (input : PublicInput)
+    (P : OracleComp KeccakCalls LeanVM.Protocol.Compile.Proof) {Q : ℕ}
     (hP : P.IsTotalQueryBound Q) :
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> P)}[Breaks extractor z] ≤
       soundnessError Q :=
-  knowledgeSoundnessRom ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
+  knowledgeSoundnessRom O ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
 
 /-- The numbers: `13261` verifier queries, `2^-125` per message, a collision term of `5` per pair
 of queries. -/
@@ -55,7 +58,8 @@ info: 'LeanVM.soundnessError_le' depends on axioms: [propext, Classical.choice, 
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 
-example : KnowledgeSoundnessRom := knowledgeSoundnessRom_holds
+example (O : LeanVM.Protocol.EndToEnd.Sound.OpeningIface) : KnowledgeSoundnessRom :=
+  knowledgeSoundnessRom_holds O
 
 /--
 info: 'LeanVM.knowledgeSoundnessRom_holds' depends on axioms: [propext, Classical.choice, Quot.sound]
