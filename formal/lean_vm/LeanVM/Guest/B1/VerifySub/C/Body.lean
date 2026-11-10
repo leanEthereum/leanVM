@@ -153,11 +153,11 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
 
 /-! ## Helpers -/
 
-theorem rdg {rd : Reader} {p : E} {xs : List E} {k : ℕ} (h : ReadsAt rd p xs) (hk : k < xs.length) :
+theorem vs_rdg {rd : Reader} {p : E} {xs : List E} {k : ℕ} (h : ReadsAt rd p xs) (hk : k < xs.length) :
     LoadHolds rd p k (xs.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
-theorem rdAt_of_load {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) :
+theorem vs_rdAt_of_load {rd : Reader} {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) :
     rdAt rd p k = v := by
   unfold rdAt; rw [h.2]; rfl
 
@@ -170,25 +170,25 @@ theorem vsSPpush_notS : ∀ b < 54,
     Atom.load (.n (vsPushD b)) (.n (vsPushP b)) (Tables.blockKappaAdj b) ∉ vsSL := by
   decide +kernel
 
-theorem ld_new {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ} {v : E}
+theorem vs_ld_new {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ} {v : E}
     (hg : GoodS rd S w σ (.atom (.load d p off))) (hS : Atom.load d p off ∉ S)
     (hv : LoadHolds rd (σ p) off v) : (Atom.load d p off).Holds rd σ := by
   show LoadHolds _ _ _ _
-  rw [good_read hg hS hv]; exact hv
+  rw [vsg_read hg hS hv]; exact hv
 
-theorem ld_store {rd : Reader} {σ : Val} {d p : V} {off : ℕ} {v : E} (hd : σ d = v)
+theorem vs_ld_store {rd : Reader} {σ : Val} {d p : V} {off : ℕ} {v : E} (hd : σ d = v)
     (hv : LoadHolds rd (σ p) off v) : (Atom.load d p off).Holds rd σ := by
   show LoadHolds _ _ _ _
   rw [hd]; exact hv
 
-theorem gen_defined' {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {a : ℕ} (ha : a < 2 ^ κ) :
+theorem vs_gen_defined {κ : ℕ} {rd : Reader} (hlow : LowDef κ rd) {a : ℕ} (ha : a < 2 ^ κ) :
     (rd ((gen ^ a).limb 0 * Parameters.addressOfIndex 0)).isSome := by
   rw [gen_pow_eq_ofK, show Parameters.addressOfIndex 0 = 1 from pow_zero _, mul_one]
   rw [show (ofK (Parameters.addressOfIndex a)).limb 0 = Parameters.addressOfIndex a by simp]
   exact hlow a ha
 
 /-- A range check of `g^a` against `g^c`, `a ≤ c < 2^κ`, on an evaluated valuation. -/
-theorem rc_holds {κ : ℕ} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} (hlow : LowDef κ rd)
+theorem vs_rc_holds {κ : ℕ} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} (hlow : LowDef κ rd)
     {x y t1 t2 k : V} (hk : k.idx < y.idx) {a c : ℕ} (hac : a ≤ c) (hc : c < 2 ^ κ)
     (hx : σ x = gen ^ a) (hkv : σ k = gen ^ c) (hg : Good rd S w σ (.rangeCheck x y t1 t2 k)) :
     (Atom.rangeCheck x y t1 t2 k).Holds rd σ := by
@@ -199,10 +199,10 @@ theorem rc_holds {κ : ℕ} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : 
   refine holds_of_good hg ?_
   simp only [Side]
   rw [ite_pos' hk, hx, hy]
-  exact ⟨gen_pow_isInK a, gen_defined' hlow (by omega), gen_pow_isInK _,
-    gen_defined' hlow (by omega), pow_ne_zero _ gen_ne_zero⟩
+  exact ⟨gen_pow_isInK a, vs_gen_defined hlow (by omega), gen_pow_isInK _,
+    vs_gen_defined hlow (by omega), pow_ne_zero _ gen_ne_zero⟩
 
-theorem quot_holds {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : V}
+theorem vs_quot_holds {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : V}
     (hd : ¬ (x.idx < d.idx ∧ y.idx < d.idx)) (hy : σ y ≠ 0) (hg : Good rd S w σ (.mul d x y)) :
     (Atom.mul d x y).Holds rd σ := by
   refine holds_of_good hg ?_
@@ -211,7 +211,7 @@ theorem quot_holds {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x
   exact hy
 
 /-- `(range n).flatMap F` at `8 p + b`, blocks of eight. -/
-theorem getD_flatMap8 {F : ℕ → List E} (hF : ∀ q, (F q).length = 8) :
+theorem vs_getD_flatMap8 {F : ℕ → List E} (hF : ∀ q, (F q).length = 8) :
     ∀ n p b, p < n → b < 8 → ((List.range n).flatMap F).getD (8 * p + b) 0 = (F p).getD b 0
   | 0, _, _, h, _ => absurd h (by omega)
   | n + 1, p, b, hp, hb => by
@@ -221,7 +221,7 @@ theorem getD_flatMap8 {F : ℕ → List E} (hF : ∀ q, (F q).length = 8) :
     rcases Nat.lt_succ_iff_lt_or_eq.1 hp with hp | rfl
     · rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
         ← List.getD_eq_getElem?_getD]
-      exact getD_flatMap8 hF n p b hp hb
+      exact vs_getD_flatMap8 hF n p b hp hb
     · rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl,
         show 8 * p + b - 8 * p = b by omega, ← List.getD_eq_getElem?_getD]
 
@@ -245,8 +245,8 @@ theorem vs_kbV (D : VsSecData rd w args) :
   · exact h84
   · rw [h85, D.h72]; rfl
   · rw [show 84 + (t + 2) = 86 + t by omega, h86 t (by omega)]
-    have := rdg D.hdims (k := 1 + t) (by simp [D.hsWl]; omega)
-    rw [rdAt_of_load this]
+    have := vs_rdg D.hdims (k := 1 + t) (by simp [D.hsWl]; omega)
+    rw [vs_rdAt_of_load this]
     simp only [List.getD_cons_succ, show 1 + t = t + 1 by omega]
 
 theorem vsSPw_holds (D : VsSecData rd w args) :
@@ -254,7 +254,7 @@ theorem vsSPw_holds (D : VsSecData rd w args) :
   intro a ha hs
   obtain ⟨k, hk, rfl⟩ := List.mem_map.1 ha
   rw [List.mem_range] at hk
-  exact ld_new (vs_goodS D.hl hs) (vsSPw_notS k hk)
+  exact vs_ld_new (vs_goodS D.hl hs) (vsSPw_notS k hk)
     (by rw [vs_w D.hl (by decide)]; exact D.hws k hk)
 
 theorem vsSProws_holds (D : VsSecData rd w args) :
@@ -264,7 +264,7 @@ theorem vsSProws_holds (D : VsSecData rd w args) :
   rw [List.mem_range] at hi
   have W := vs_word (rd := rd) (w := w) D.hl (k := i + 1) (by omega) (D.hws (i + 1) (by omega))
   rw [vsWv_lt (i + 1) (by omega)] at W
-  exact ld_store W.1 (by rw [vs_w D.hl (by decide)]; exact D.hrows i hi)
+  exact vs_ld_store W.1 (by rw [vs_w D.hl (by decide)]; exact D.hrows i hi)
 
 theorem vsSPquot_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPquot, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -273,8 +273,8 @@ theorem vsSPquot_holds (D : VsSecData rd w args) :
   have hg := vs_goodS (rd := rd) (w := w) D.hl hs
   simp only [vsSPquot, List.mem_cons, List.not_mem_nil, or_false] at ha
   rcases ha with rfl | rfl
-  · exact quot_holds (S := vsSL) (w := w) (by simp) (by rw [h65]; exact gen_ne_zero) hg
-  · exact quot_holds (S := vsSL) (w := w) (by simp) (by rw [h78]; exact pow_ne_zero _ gen_ne_zero) hg
+  · exact vs_quot_holds (S := vsSL) (w := w) (by simp) (by rw [h65]; exact gen_ne_zero) hg
+  · exact vs_quot_holds (S := vsSL) (w := w) (by simp) (by rw [h78]; exact pow_ne_zero _ gen_ne_zero) hg
 
 theorem vsSPrng_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPrng, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -293,12 +293,12 @@ theorem vsSPrng_holds (D : VsSecData rd w args) :
   have hg := vs_goodS (rd := rd) (w := w) D.hl hs
   simp only [vsSPrng, List.mem_cons, List.not_mem_nil, or_false] at ha
   rcases ha with rfl | rfl | rfl | rfl | rfl | rfl
-  · exact rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h66 h67 hg
-  · exact rc_holds (S := vsSL) (w := w) D.hlow (by simp) D.hm32 (by omega) h72 h73 hg
-  · exact rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h79 h77 hg
-  · exact rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h278 h279 hg
-  · exact rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h322 h323 hg
-  · exact rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h1922 h1923 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h66 h67 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) D.hm32 (by omega) h72 h73 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h79 h77 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h278 h279 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h322 h323 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h1922 h1923 hg
 
 theorem vsSPdims_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPdims, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -307,21 +307,21 @@ theorem vsSPdims_holds (D : VsSecData rd w args) :
   have e71 : ς (.n 71) = w 71 := vs_w D.hl (by decide)
   simp only [vsSPdims, List.mem_cons, List.mem_map, List.mem_range] at ha
   rcases ha with rfl | rfl | ⟨t, ht, rfl⟩
-  · refine ld_store (vs_w D.hl (by decide)) ?_
-    rw [e71]; exact rdg D.hdims (k := 0) (by simp)
-  · refine ld_new hg (by decide +kernel) (v := (w 72 :: D.hsW).getD 6 0) ?_
-    rw [e71]; exact rdg D.hdims (k := 6) (by simp [D.hsWl])
-  · refine ld_new hg (vsSPdims_notS t ht) (v := (w 72 :: D.hsW).getD (1 + t) 0) ?_
-    rw [e71]; exact rdg D.hdims (k := 1 + t) (by simp [D.hsWl]; omega)
+  · refine vs_ld_store (vs_w D.hl (by decide)) ?_
+    rw [e71]; exact vs_rdg D.hdims (k := 0) (by simp)
+  · refine vs_ld_new hg (by decide +kernel) (v := (w 72 :: D.hsW).getD 6 0) ?_
+    rw [e71]; exact vs_rdg D.hdims (k := 6) (by simp [D.hsWl])
+  · refine vs_ld_new hg (vsSPdims_notS t ht) (v := (w 72 :: D.hsW).getD (1 + t) 0) ?_
+    rw [e71]; exact vs_rdg D.hdims (k := 1 + t) (by simp [D.hsWl]; omega)
 
 theorem vsSPkb_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPkb, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
   intro a ha _
   obtain ⟨i, hi, rfl⟩ := List.mem_map.1 ha
   rw [List.mem_range] at hi
-  refine ld_store (vs_kbV D i hi) ?_
+  refine vs_ld_store (vs_kbV D i hi) ?_
   rw [vs_w D.hl (by decide)]
-  exact rdg D.hkb (by simp [D.hsWl]; omega)
+  exact vs_rdg D.hkb (by simp [D.hsWl]; omega)
 
 theorem vsSPpush_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPpush, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -330,7 +330,7 @@ theorem vsSPpush_holds (D : VsSecData rd w args) :
   rw [List.mem_range] at hb
   obtain ⟨v, hv⟩ := D.hpush b hb
   have hsrc : Tables.blockKappaSrc.getD b 0 < 8 := blockKappaSrc_lt b (by show b < 153; omega)
-  refine ld_new (vs_goodS D.hl hs) (vsSPpush_notS b hb) (v := v) ?_
+  refine vs_ld_new (vs_goodS D.hl hs) (vsSPpush_notS b hb) (v := v) ?_
   rw [vs_pushP D.hl hb, vs_kbV D _ hsrc, vs_param4 D.hl]; exact hv
 
 theorem vsSPfpw_holds (D : VsSecData rd w args) :
@@ -340,9 +340,9 @@ theorem vsSPfpw_holds (D : VsSecData rd w args) :
   rw [List.mem_range] at hi
   have hlen : (w 313 :: ((vsFpwFs w).squeezeN 15).1).length = 16 := by
     simp [vs_squeezeN_length]
-  have hr := rdg D.hfpw (k := i) (by omega)
+  have hr := vs_rdg D.hfpw (k := i) (by omega)
   rw [← vs_w (rd := rd) (w := w) (args := args) D.hl (a := 335) (by decide)] at hr
-  refine ld_store ?_ hr
+  refine vs_ld_store ?_ hr
   rcases i with _ | i
   · exact vs_w D.hl (by decide)
   · simp only [Nat.add_one_ne_zero, ↓reduceIte, List.getD_cons_succ]
@@ -358,11 +358,11 @@ theorem vsSPmaps_holds (D : VsSecData rd w args) :
   intro a ha hs
   simp only [vsSPmaps, List.mem_cons, List.mem_map, List.mem_range] at ha
   rcases ha with rfl | ⟨i, hi, rfl⟩
-  · exact ld_new (vs_goodS D.hl hs) (by decide +kernel)
+  · exact vs_ld_new (vs_goodS D.hl hs) (by decide +kernel)
       (by rw [vs_w D.hl (by decide)]; exact D.hnonce)
-  · refine ld_store (hch i hi) ?_
+  · refine vs_ld_store (hch i hi) ?_
     rw [vs_w D.hl (by decide)]
-    exact rdg D.hmaps (by rw [vsRchs_length]; exact hi)
+    exact vs_rdg D.hmaps (by rw [vsRchs_length]; exact hi)
 
 theorem vsSPctab_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPctab, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -375,11 +375,11 @@ theorem vsSPctab_holds (D : VsSecData rd w args) :
   have hct := D.hct
   generalize vsRchs (vsKCap w) D.nonce = R at hch hct hR
   have ht8 : (R.take 8).length = 8 := by simp [hR]
-  refine ld_store (vs_ctabV D.hl hb p hp) ?_
+  refine vs_ld_store (vs_ctabV D.hl hb p hp) ?_
   rw [hch p (by omega), hch (8 + b) (by omega), vs_w D.hl (a := 848) (by decide)]
-  have hr := rdg hct (k := 8 * p + b)
+  have hr := vs_rdg hct (k := 8 * p + b)
     (by rw [ringCoefficients_eq ht8]; simp [List.length_flatMap, hR]; omega)
-  rw [ringCoefficients_eq ht8, getD_flatMap8 (fun q ↦ by simp [hR]) 8 p b hp hb] at hr
+  rw [ringCoefficients_eq ht8, vs_getD_flatMap8 (fun q ↦ by simp [hR]) 8 p b hp hb] at hr
   have e1 : (R.take 8).getD p 0 = R.getD p 0 := by
     simp [List.getD_eq_getElem?_getD, hp]
   have e3 : (R.drop 8).getD b 0 = R.getD (8 + b) 0 := by
@@ -395,7 +395,7 @@ theorem vsSPlam_holds (D : VsSecData rd w args) :
   simp only [vsSPlam, List.mem_cons, List.mem_map, List.mem_range] at ha
   rcases ha with rfl | ⟨i, hi, rfl⟩
   · obtain ⟨v, hv⟩ := D.hood
-    exact ld_new (vs_goodS D.hl hs) (by decide +kernel) (v := v)
+    exact vs_ld_new (vs_goodS D.hl hs) (by decide +kernel) (v := v)
       (by rw [vs_w D.hl (by decide)]; exact hv)
   · have hk : vsKept i < 159 := by simp only [vsKept]; split <;> omega
     have hex : ∃ v, LoadHolds rd (ς (.n (vsClaimAt (vsKept i)).1)) (vsClaimAt (vsKept i)).2 v := by
@@ -407,7 +407,7 @@ theorem vsSPlam_holds (D : VsSecData rd w args) :
           simp only [List.mem_cons, List.not_mem_nil, or_false]; omega)
         exact ⟨v, by rw [vs_w D.hl (a := 6) (by decide)]; exact hv⟩
     obtain ⟨v, hv⟩ := hex
-    exact ld_new (vs_goodS D.hl hs) (vsLamT_notS i hi) hv
+    exact vs_ld_new (vs_goodS D.hl hs) (vsLamT_notS i hi) hv
 
 theorem vsSPz_notS : ∀ k < 19, Atom.load (.n (1936 + k)) (.n 254) k ∉ vsSL := by decide +kernel
 
@@ -418,16 +418,16 @@ theorem vsSPz_holds (D : VsSecData rd w args) :
   intro a ha hs
   obtain ⟨k, hk, rfl⟩ := List.mem_map.1 ha
   rw [List.mem_range] at hk
-  exact ld_new (vs_goodS D.hl hs) (vsSPz_notS k hk)
-    (by rw [vs_w D.hl (by decide)]; exact rdg D.hz (by have := D.hzl; omega))
+  exact vs_ld_new (vs_goodS D.hl hs) (vsSPz_notS k hk)
+    (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hz (by have := D.hzl; omega))
 
 theorem vsSPal_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPal, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
   intro a ha hs
   obtain ⟨k, hk, rfl⟩ := List.mem_map.1 ha
   rw [List.mem_range] at hk
-  exact ld_new (vs_goodS D.hl hs) (vsSPal_notS k hk)
-    (by rw [vs_w D.hl (by decide)]; exact rdg D.hal (by have := D.hall; omega))
+  exact vs_ld_new (vs_goodS D.hl hs) (vsSPal_notS k hk)
+    (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hal (by have := D.hall; omega))
 
 theorem vs_zv (D : VsSecData rd w args) {k : ℕ} (hk : k < 19) :
     ς (.n (1936 + k)) = D.zs.getD k 0 := by
@@ -435,8 +435,8 @@ theorem vs_zv (D : VsSecData rd w args) {k : ℕ} (hk : k < 19) :
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.2 ⟨k, List.mem_range.2 hk, List.mem_cons_self⟩)))
-  exact good_read (vsTailP_good D.hl _ hm) (vsSPz_notS k hk)
-    (by rw [vs_w D.hl (by decide)]; exact rdg D.hz (by have := D.hzl; omega))
+  exact vsg_read (vsTailP_good D.hl _ hm) (vsSPz_notS k hk)
+    (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hz (by have := D.hzl; omega))
 
 theorem vs_alv (D : VsSecData rd w args) {k : ℕ} (hk : k < 4) :
     ς (.n (1955 + k)) = D.al.getD k 0 := by
@@ -444,8 +444,8 @@ theorem vs_alv (D : VsSecData rd w args) {k : ℕ} (hk : k < 4) :
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.2 ⟨k, List.mem_range.2 hk, List.mem_cons_self⟩))
-  exact good_read (vsTailP_good D.hl _ hm) (vsSPal_notS k hk)
-    (by rw [vs_w D.hl (by decide)]; exact rdg D.hal (by have := D.hall; omega))
+  exact vsg_read (vsTailP_good D.hl _ hm) (vsSPal_notS k hk)
+    (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hal (by have := D.hall; omega))
 
 theorem vs_outLen (D : VsSecData rd w args) : (D.zs.take 19 ++ D.al ++ [w 580]).length = 24 := by
   have := D.hzl; have := D.hall
@@ -460,20 +460,20 @@ theorem vsSPout_holds (D : VsSecData rd w args) :
   simp only [vsSPzo, vsSPalo, vsSPlast, List.mem_append, List.mem_map, List.mem_range,
     List.mem_cons, List.not_mem_nil, or_false] at ha
   rcases ha with (⟨k, hk, rfl⟩ | ⟨k, hk, rfl⟩) | rfl
-  · refine ld_store (vs_zv D hk) ?_
-    have hr := rdg D.hout (k := k) (by rw [vs_outLen]; omega)
+  · refine vs_ld_store (vs_zv D hk) ?_
+    have hr := vs_rdg D.hout (k := k) (by rw [vs_outLen]; omega)
     rw [h5]
     have e : (D.zs.take 19).getD k 0 = D.zs.getD k 0 := by
       simp [List.getD_eq_getElem?_getD, hk]
     rwa [List.append_assoc, List.getD_append _ _ _ _ (by rw [List.length_take]; omega), e] at hr
-  · refine ld_store (vs_alv D hk) ?_
-    have hr := rdg D.hout (k := 19 + k) (by rw [vs_outLen]; omega)
+  · refine vs_ld_store (vs_alv D hk) ?_
+    have hr := vs_rdg D.hout (k := 19 + k) (by rw [vs_outLen]; omega)
     rw [h5]
     rwa [List.getD_append _ _ _ _ (by rw [List.length_append, List.length_take]; omega),
       List.getD_append_right _ _ _ _ (by rw [List.length_take]; omega),
       show 19 + k - (D.zs.take 19).length = k by rw [List.length_take]; omega] at hr
-  · refine ld_store (vs_w D.hl (a := 580) (by decide)) ?_
-    have hr := rdg D.hout (k := 23) (by rw [vs_outLen]; omega)
+  · refine vs_ld_store (vs_w D.hl (a := 580) (by decide)) ?_
+    have hr := vs_rdg D.hout (k := 23) (by rw [vs_outLen]; omega)
     rw [h5]
     rwa [List.getD_append_right _ _ _ _ (by rw [List.length_append, List.length_take]; omega),
       show 23 - (D.zs.take 19 ++ D.al).length = 0 by
@@ -507,11 +507,11 @@ theorem vs_sideHolds (D : VsSecData rd w args) :
 /-! ## The dispatches -/
 
 /-- A dispatch's selector and its number of callees. -/
-def dispOf : Stmt → Option (V × ℕ)
+def vsDispOf : Stmt → Option (V × ℕ)
   | .dispatch x fs _ _ => some (x, fs.length)
   | _ => none
 
-theorem vs_disps : vsCPre.filterMap dispOf = [(.n 278, 7), (.n 322, 18), (.n 1922, 28)] := by
+theorem vs_disps : vsCPre.filterMap vsDispOf = [(.n 278, 7), (.n 322, 18), (.n 1922, 28)] := by
   decide +kernel
 
 /-- **The dispatches' indices**: `g^(m - 22)`, `g^(d - 16)` and the candidate. -/
@@ -522,7 +522,7 @@ theorem vs_dispIdx (D : VsSecData rd w args) : ∀ x fs as rs, Stmt.dispatch x f
   obtain ⟨h1922, -⟩ := vs_tailV (rd := rd) (w := w) D.hl D.hr1 D.hm22 D.h64 D.h276
   have := D.hm28; have := D.hd33; have := D.hr4
   intro x fs as rs h
-  have hm : (x, fs.length) ∈ vsCPre.filterMap dispOf := List.mem_filterMap.2 ⟨_, h, rfl⟩
+  have hm : (x, fs.length) ∈ vsCPre.filterMap vsDispOf := List.mem_filterMap.2 ⟨_, h, rfl⟩
   rw [vs_disps] at hm
   simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
   rcases hm with ⟨rfl, hl⟩ | ⟨rfl, hl⟩ | ⟨rfl, hl⟩
