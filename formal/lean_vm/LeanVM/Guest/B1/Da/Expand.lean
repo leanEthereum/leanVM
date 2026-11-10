@@ -213,7 +213,7 @@ theorem da_expand_val {fn : Fn} {top D W : ℕ} (hok : expOk fn top D W = true) 
         rw [word_eOfNat, eOfNat, hW]
       rw [hmul, hcst, hw]
       refine ⟨isInK_mul hfk (ofK_isInK _), fun k hk w hr ↦ ?_⟩
-      rw [limb0_mul_ofK hfk, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add] at hr
+      rw [limb0_mul_ofK _ _, mul_assoc, addressOfIndex, addressOfIndex, ← pow_add] at hr
       have hlen : (expRun D).length = 512 := by
         simp only [expRun, List.length_cons, List.length_append, List.length_map, List.length_range,
           length_nodesBelow]

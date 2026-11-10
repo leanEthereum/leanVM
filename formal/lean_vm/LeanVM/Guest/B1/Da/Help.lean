@@ -116,7 +116,7 @@ theorem levels_root_of {tree c0 c1 : E} {k L : ℕ} (hk : k < 11) (hL : L ≤ 10
     rw [← gen_pow_eq_ofK] at hkL
     exact gen_pow_inj (by omega) (by omega) hkL
   subst hkl
-  obtain ⟨leaves, hl, hr, -, hrets⟩ := da_levels_holds k (by omega) rd _ _ hrel
+  obtain ⟨leaves, hl, hr, hrets⟩ := da_levels_holds k (by omega) rd _ _ hrel
   have := leaves_of_reads (f := fun i => digestHalves (g i)) hl hr hf
   simp only [List.cons.injEq, and_true] at hrets
   rw [hrets.1, hrets.2, this, cellRoot_mRoot]
