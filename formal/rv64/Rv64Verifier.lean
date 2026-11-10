@@ -9,6 +9,7 @@ import Rv64Verifier.Model.FieldAlg
 import Rv64Verifier.Model.Transcript
 import Rv64Verifier.Model.Bus
 import Rv64Verifier.Proofs.End
+import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul

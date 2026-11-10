@@ -1234,7 +1234,9 @@ theorem tableLogHeightsRust_eq (tableRows : List (BitVec 64)) :
   | nil => simp
   | cons r rs ih => cases fl with
     | nil => simp
-    | cons f fs => simp [ih, log2CeilRust_eq]
+    | cons f fs =>
+      simp only [List.zip_cons_cons, List.map_cons, List.zipWith_cons_cons]
+      rw [ih, log2CeilRust_eq]
 
 theorem tablesRust_key :
     tablesRust.map (fun t ↦ (t.flushes.toSpec, t.opcode, t.countColumns)) =
@@ -1256,14 +1258,14 @@ theorem busBlocksRust_eq (heights : List ℕ) (tableRows : List (BitVec 64)) :
     intro t s h r hk <;>
     simp only [Prod.mk.injEq] at hk <;>
     obtain ⟨hf, ho, hc⟩ := hk
-  · simp only [List.map_map]
-    rw [← ho, ← hf]
+  · rw [← ho, ← hf]
+    simp only [FlushesRust.toSpec, List.map_map]
     rfl
-  · simp only [List.map_map]
-    rw [← ho, ← hf]
+  · rw [← ho, ← hf]
+    simp only [FlushesRust.toSpec, List.map_map]
     rfl
-  · simp only [List.map_map]
-    rw [← ho, ← hc]
+  · rw [← ho, ← hc]
+    simp only [List.map_map]
     rfl
 
 theorem kappasRust_eq (logMemory logBytecode : ℕ) (heights : List ℕ) :
@@ -1272,9 +1274,11 @@ theorem kappasRust_eq (logMemory logBytecode : ℕ) (heights : List ℕ) :
       columnKappas logMemory logBytecode heights := by
   have hs : slotBitsRust keccakDepthRust = qkeccakSlotBits := by decide +kernel
   unfold kappasRust columnKappas
-  rw [foldl_append_eq_flatMap, hs]
-  congr 1
-  exact flatMap_of_map_eq (fun p ↦ List.replicate p.2 (heights.getD p.1 0)) tablesRust_width
+  have h := flatMap_of_map_eq (fun p : ℕ × ℕ ↦ List.replicate p.2 (heights.getD p.1 0))
+    tablesRust_width
+  simp only at h
+  rw [foldl_append_eq_flatMap, hs, h]
+  rfl
 
 theorem outputsRust_eq : outputsRust = (113, 138) := by decide +kernel
 
@@ -1306,8 +1310,9 @@ theorem placementsRust_eq (kappas : List ℕ) (qkeccakKappa : ℕ)
         (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns := by
     apply List.filter_congr
     intro c _
-    rw [qkeccakSlotRust_eq, outputsRust_eq, mem_keccakOutputColumns]
-    cases (keccakSlot c).isNone <;> simp
+    simp only [qkeccakSlotRust_eq, outputsRust_eq, mem_keccakOutputColumns]
+    cases (keccakSlot c).isNone <;> simp only [decide_not, Bool.true_and, Bool.false_and,
+      decide_false, true_and, false_and, Bool.false_eq_true]
   unfold placementsRust placementsOf
   simp only [hblocks]
   generalize hB : (List.range kappas.length).filter (fun c ↦
@@ -1341,16 +1346,17 @@ theorem placementsRust_eq (kappas : List ℕ) (qkeccakKappa : ℕ)
   obtain ⟨S1, S2⟩ := S
   simp only at hoff htot hRlen ⊢
   -- the offsets array, at every column
-  have hoffs : ∀ c, ((blocks.zip R1).foldl (fun offsets co ↦ offsets.set co.1 co.2)
-      (List.replicate kappas.length 0#64)).getD c 0 |>.toNat = S1.getD (blocks.idxOf c) 0 := by
+  have hoffs : ∀ c, (((blocks.zip R1).foldl (fun offsets co ↦ offsets.set co.1 co.2)
+      (List.replicate kappas.length 0#64)).getD c 0).toNat = S1.getD (blocks.idxOf c) 0 := by
     intro c
-    rw [foldl_set_zip_getD 0#64 blocks R1 _ hnd hRlen (by simpa using hlt), ← hoff,
+    rw [foldl_set_zip_getD (0 : BitVec 64) blocks R1 _ hnd hRlen (by simpa using hlt), ← hoff,
       getD_map_toNat]
     split
     · rfl
     · next hc =>
-      rw [List.getD_eq_default _ _ (by rw [List.idxOf_eq_length hc, hRlen])]
-      simp [List.getD_eq_getElem?_getD, List.getElem?_replicate]
+      rw [List.getD_eq_default R1 _ (by rw [List.idxOf_eq_length hc, hRlen])]
+      simp only [List.getD_eq_getElem?_getD, List.getElem?_replicate]
+      split <;> rfl
   generalize hO : (blocks.zip R1).foldl (fun offsets co ↦ offsets.set co.1 co.2)
     (List.replicate kappas.length 0#64) = O at hoffs
   have hO5 : (O.getD qkeccakRust 0).toNat < 2 ^ 60 := by
@@ -1375,10 +1381,13 @@ theorem placementsRust_eq (kappas : List ℕ) (qkeccakKappa : ℕ)
         true_and]
       rw [bitvec_add_shift _ _ _ hs64 hk hO5, show qkeccakRust = qkeccak from rfl, hoffs]
     | none =>
-      simp only [outputsRust_eq, ← mem_keccakOutputColumns]
-      split_ifs
-      · rfl
-      · simp only [Option.map_some, PlacementRust.toSpec, hoffs]
+      have hiff := mem_keccakOutputColumns column
+      by_cases ho : column ∈ keccakOutputColumns
+      · have h' : 113 ≤ column ∧ column < 138 := hiff.mp ho
+        simp [outputsRust_eq, ho, h']
+      · have h' : ¬ (113 ≤ column ∧ column < 138) := fun h ↦ ho (hiff.mpr h)
+        simp only [outputsRust_eq, ho, h', decide_false, Bool.false_eq_true, ite_false,
+          Option.map_some, PlacementRust.toSpec, hoffs]
   · intro h5
     rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_zipIdx,
       List.getElem?_eq_getElem h5]
@@ -1386,3 +1395,110 @@ theorem placementsRust_eq (kappas : List ℕ) (qkeccakKappa : ℕ)
     simp only [Option.map_some, Nat.zero_add, h5s, outputsRust_eq, Option.getD_some]
     rw [← List.getD_eq_getElem _ 0 h5, hq]
     rfl
+
+theorem tableLogHeightsRust_le (tableRows : List (BitVec 64))
+    (h : ∀ r ∈ tableRows, r.toNat ≤ 2 ^ 32) : ∀ x ∈ tableLogHeightsRust tableRows, x ≤ 32 := by
+  intro x hx
+  unfold tableLogHeightsRust at hx
+  obtain ⟨⟨r, f⟩, hrf, rfl⟩ := List.mem_map.mp hx
+  have hr := h r (List.of_mem_zip hrf).1
+  have hf : f ≤ 9 := by
+    have := (List.of_mem_zip hrf).2
+    simp only [tableLogFloorsRust, keccakMinStepsLogRust, List.mem_cons, List.not_mem_nil,
+      or_false] at this
+    omega
+  rw [log2CeilRust_eq]
+  exact max_le (log2Ceil_le hr) (by omega)
+
+theorem getD_le {l : List ℕ} {b : ℕ} (h : ∀ x ∈ l, x ≤ b) (i : ℕ) : l.getD i 0 ≤ b := by
+  rw [List.getD_eq_getElem?_getD]
+  cases hi : l[i]? with
+  | none => simp
+  | some x => exact h x (List.mem_of_getElem? hi)
+
+theorem columnKappas_le (lm lb : ℕ) (H : List ℕ) (hm : lm ≤ 32) (hb : lb ≤ 32)
+    (hH : ∀ x ∈ H, x ≤ 32) : ∀ k ∈ columnKappas lm lb H, k ≤ 38 := by
+  have hq : qkeccakSlotBits = 6 := by decide +kernel
+  intro k hk
+  simp only [columnKappas, hq, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatMap, List.mem_replicate] at hk
+  have h5 := getD_le hH opKeccak
+  rcases hk with (rfl | rfl | rfl | rfl | rfl | rfl) | ⟨t, _, _, rfl⟩
+  all_goals first | omega | exact (getD_le hH _).trans (by norm_num)
+
+theorem columnKappas_length (lm lb : ℕ) (H : List ℕ) : (columnKappas lm lb H).length = 165 := by
+  simp only [columnKappas, List.length_append, List.length_cons, List.length_nil,
+    List.length_flatMap, List.length_replicate]
+  decide +kernel
+
+/-- `build_layout` computes the statement's `buildLayout`: `none` exactly where it returns an error,
+and the same layout otherwise. The verifier passes `N_TABLES` row counts. -/
+theorem buildLayoutRust_eq (bytecode : List K) (logMemory : BitVec 64)
+    (tableRows : List (BitVec 64)) (hlen : bytecode.length < 2 ^ 64)
+    (hrows : tableRows.length = nTablesRust) :
+    (buildLayoutRust (BitVec.ofNat 64 bytecode.length) logMemory tableRows).map
+        (·.toSpec bytecode) =
+      buildLayout bytecode logMemory.toNat (tableRows.map BitVec.toNat) := by
+  have hbb : busBitsRust = busBits := rfl
+  unfold buildLayoutRust buildLayout
+  rw [log2StrictRust_eq, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hlen]
+  cases log2Strict bytecode.length with
+  | none => rfl
+  | some L =>
+    simp only [hbb]
+    have hcond : ((16#64 ≤ logMemory ∧ logMemory ≤ 32#64) ∧
+        tableRows.all (fun rows ↦ rows ≤ 1#64 <<< maxTableLogRust) = true ∧
+        (busBits ≤ L ∧ L ≤ 32 + busBits)) ↔
+        (busBits ≤ L ∧ 16 ≤ logMemory.toNat ∧ logMemory.toNat ≤ 32 ∧
+          (tableRows.map BitVec.toNat).all (· ≤ 2 ^ 32) = true ∧ L - busBits ≤ 32 ∧
+          (tableRows.map BitVec.toNat).length = tables.length) := by
+      have h1 : (1#64 <<< maxTableLogRust) = BitVec.ofNat 64 (2 ^ 32) := by decide +kernel
+      have ht : tables.length = nTablesRust := by decide +kernel
+      have hr : ∀ r : BitVec 64, r ≤ BitVec.ofNat 64 (2 ^ 32) ↔ r.toNat ≤ 2 ^ 32 := by
+        intro r
+        rw [BitVec.le_def, BitVec.toNat_ofNat]
+        norm_num
+      have hall : tableRows.all (fun rows ↦ rows ≤ 1#64 <<< maxTableLogRust) =
+          (tableRows.map BitVec.toNat).all (· ≤ 2 ^ 32) := by
+        rw [List.all_map]
+        exact congrArg _ (funext fun r ↦ by rw [h1]; exact decide_eq_decide.mpr (hr r))
+      have h16 : 16#64 ≤ logMemory ↔ 16 ≤ logMemory.toNat := by rw [BitVec.le_def]; rfl
+      have h32 : logMemory ≤ 32#64 ↔ logMemory.toNat ≤ 32 := by rw [BitVec.le_def]; rfl
+      have h4 : busBits = 4 := rfl
+      rw [hall, h16, h32, List.length_map, hrows, ht]
+      constructor
+      · rintro ⟨⟨a, b⟩, c, d, e⟩
+        exact ⟨d, a, b, c, by omega, rfl⟩
+      · rintro ⟨a, b, c, d, e, -⟩
+        exact ⟨⟨b, c⟩, d, a, by omega⟩
+    by_cases hc : busBits ≤ L ∧ 16 ≤ logMemory.toNat ∧ logMemory.toNat ≤ 32 ∧
+          (tableRows.map BitVec.toNat).all (· ≤ 2 ^ 32) = true ∧ L - busBits ≤ 32 ∧
+          (tableRows.map BitVec.toNat).length = tables.length
+    · rw [ite_eq_left (hcond.mpr hc), ite_eq_left hc, Option.map_some]
+      obtain ⟨-, -, hm, hall, hlb, -⟩ := hc
+      have hrows' : ∀ r ∈ tableRows, r.toNat ≤ 2 ^ 32 := by
+        intro r hr
+        simpa using List.all_eq_true.mp hall r.toNat (List.mem_map_of_mem hr)
+      have hH := tableLogHeightsRust_le tableRows hrows'
+      obtain ⟨hpush, hpull, hcount⟩ := busBlocksRust_eq (tableLogHeightsRust tableRows) tableRows
+      rw [kappasRust_eq]
+      rw [← tableLogHeightsRust_eq]
+      have hK := columnKappas_le logMemory.toNat (L - busBits) _ hm hlb hH
+      have hKl := columnKappas_length logMemory.toNat (L - busBits) (tableLogHeightsRust tableRows)
+      have hq : (columnKappas logMemory.toNat (L - busBits) (tableLogHeightsRust tableRows)).getD
+          qkeccak 0 = (tableLogHeightsRust tableRows).getD opKeccakRust 0 +
+            slotBitsRust keccakDepthRust := by
+        have hs : slotBitsRust keccakDepthRust = qkeccakSlotBits := by decide +kernel
+        rw [hs]
+        rfl
+      obtain ⟨hpl, hsl, -⟩ := placementsRust_eq _ _ hq hK (by omega)
+      generalize busBlocks (tableLogHeightsRust tableRows) (tableRows.map BitVec.toNat) = B
+        at hpush hpull hcount
+      generalize placementsOf (columnKappas logMemory.toNat (L - busBits)
+        (tableLogHeightsRust tableRows)) = P at hpl hsl
+      obtain ⟨b1, b2, b3⟩ := B
+      obtain ⟨p1, p2⟩ := P
+      simp only at hpush hpull hcount hpl hsl ⊢
+      rw [LayoutRust.toSpec, hpush, hpull, hcount, hpl, hsl]
+    · rw [ite_eq_right (fun h ↦ hc (hcond.mp h)), ite_eq_right hc]
+      rfl
