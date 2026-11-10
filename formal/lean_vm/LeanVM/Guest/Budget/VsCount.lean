@@ -18,7 +18,7 @@ public import LeanVM.Guest.Count.VsCountChkK
 public import LeanVM.Guest.Count.RatioV
 public import LeanVM.Guest.Budget.FlatShape
 public import LeanVM.Guest.B1.Whir.Interface
-public import LeanVM.Guest.B1.VerifySub.CompleteB
+public import LeanVM.Guest.B1.VerifySub.BoundsB
 public import LeanVM.Guest.Count.VsWB
 public import LeanVM.Guest.Count.VsWordsOs
 
