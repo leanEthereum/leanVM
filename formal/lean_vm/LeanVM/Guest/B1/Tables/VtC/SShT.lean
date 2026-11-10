@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SShared
 
 /-!
-# The shared selector tables, honestly (G:2229-2239)
+# The shared selector tables, honestly (G:2201-2211)
 
 `vtc_shptr`: table `t`'s nibble tables' pointers, `shared_eq·g^(288 t)` and `shared_g·g^(144 t)`.
 `vtc_sh{t}`: with `kappa_base[2 + t] = g^τ`, `g_bus_mu = g^μ`, the bus point at `zeta`, `1 + ζ` at
@@ -34,151 +34,151 @@ local notation "σv" => vtσ rd w args
 set_option maxRecDepth 100000 in
 /-- **The tables' pointers**: table `t`'s nibble tables at `shared_eq·g^(288 t)`, `shared_g·g^(144 t)`. -/
 theorem vtc_shptr (hl : args.length = 20) : ∀ t < 6,
-    σv (.n (vtEqV t)) = σv (.n 705) * gen ^ (288 * t) ∧
-      σv (.n (vtGV t)) = σv (.n 706) * gen ^ (144 * t) := by
+    σv (.n (vtEqV t)) = σv (.n 701) * gen ^ (288 * t) ∧
+      σv (.n (vtGV t)) = σv (.n 702) * gen ^ (144 * t) := by
   intro t ht
   interval_cases t
-  · show σv (.n 705) = σv (.n 705) * gen ^ (288 * 0) ∧
-      σv (.n 706) = σv (.n 706) * gen ^ (144 * 0)
+  · show σv (.n 701) = σv (.n 701) * gen ^ (288 * 0) ∧
+      σv (.n 702) = σv (.n 702) * gen ^ (144 * 0)
     exact ⟨by ring,
       by ring⟩
-  · show σv (.n 723) = σv (.n 705) * gen ^ (288 * 1) ∧
-      σv (.n 725) = σv (.n 706) * gen ^ (144 * 1)
+  · show σv (.n 719) = σv (.n 701) * gen ^ (288 * 1) ∧
+      σv (.n 721) = σv (.n 702) * gen ^ (144 * 1)
     exact ⟨by
-      rw [vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
+      rw [vt_mulAt hl 710 (d := 719) (x := 701) (y := 718) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 709 (d := .n 718) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq],
       by
-      rw [vt_mulAt hl 716 (d := 725) (x := 706) (y := 724) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 715 (d := .n 724) (e := word 21299200 0) (by decide +kernel),
+      rw [vt_mulAt hl 712 (d := 721) (x := 702) (y := 720) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 711 (d := .n 720) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq]⟩
-  · show σv (.n 736) = σv (.n 705) * gen ^ (288 * 2) ∧
-      σv (.n 738) = σv (.n 706) * gen ^ (144 * 2)
+  · show σv (.n 732) = σv (.n 701) * gen ^ (288 * 2) ∧
+      σv (.n 734) = σv (.n 702) * gen ^ (144 * 2)
     exact ⟨by
-      rw [vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
+      rw [vt_mulAt hl 722 (d := 732) (x := 719) (y := 731) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 721 (d := .n 731) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 710 (d := 719) (x := 701) (y := 718) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 709 (d := .n 718) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring,
+      ring,
       by
-      rw [vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
+      rw [vt_mulAt hl 724 (d := 734) (x := 702) (y := 733) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 723 (d := .n 733) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]⟩
-  · show σv (.n 749) = σv (.n 705) * gen ^ (288 * 3) ∧
-      σv (.n 751) = σv (.n 706) * gen ^ (144 * 3)
+  · show σv (.n 745) = σv (.n 701) * gen ^ (288 * 3) ∧
+      σv (.n 747) = σv (.n 702) * gen ^ (144 * 3)
     exact ⟨by
-      rw [vt_mulAt hl 738 (d := 749) (x := 736) (y := 748) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0) (by decide +kernel),
+      rw [vt_mulAt hl 734 (d := 745) (x := 732) (y := 744) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 733 (d := .n 744) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 722 (d := 732) (x := 719) (y := 731) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 721 (d := .n 731) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 710 (d := 719) (x := 701) (y := 718) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 709 (d := .n 718) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring,
+      ring,
       by
-      rw [vt_mulAt hl 740 (d := 751) (x := 738) (y := 750) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0) (by decide +kernel),
+      rw [vt_mulAt hl 736 (d := 747) (x := 734) (y := 746) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 735 (d := .n 746) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
-        vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 724 (d := 734) (x := 702) (y := 733) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 723 (d := .n 733) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring⟩
-  · show σv (.n 762) = σv (.n 705) * gen ^ (288 * 4) ∧
-      σv (.n 764) = σv (.n 706) * gen ^ (144 * 4)
+      ring⟩
+  · show σv (.n 758) = σv (.n 701) * gen ^ (288 * 4) ∧
+      σv (.n 760) = σv (.n 702) * gen ^ (144 * 4)
     exact ⟨by
-      rw [vt_mulAt hl 750 (d := 762) (x := 749) (y := 761) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 749 (d := .n 761) (e := word 299140177199104 0) (by decide +kernel),
+      rw [vt_mulAt hl 746 (d := 758) (x := 745) (y := 757) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 745 (d := .n 757) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 738 (d := 749) (x := 736) (y := 748) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 734 (d := 745) (x := 732) (y := 744) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 733 (d := .n 744) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 722 (d := 732) (x := 719) (y := 731) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 721 (d := .n 731) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 710 (d := 719) (x := 701) (y := 718) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 709 (d := .n 718) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring,
+      ring,
       by
-      rw [vt_mulAt hl 752 (d := 764) (x := 751) (y := 763) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 751 (d := .n 763) (e := word 21299200 0) (by decide +kernel),
+      rw [vt_mulAt hl 748 (d := 760) (x := 747) (y := 759) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 747 (d := .n 759) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
-        vt_mulAt hl 740 (d := 751) (x := 738) (y := 750) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0) (by decide +kernel),
+        vt_mulAt hl 736 (d := 747) (x := 734) (y := 746) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 735 (d := .n 746) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
-        vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 724 (d := 734) (x := 702) (y := 733) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 723 (d := .n 733) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring⟩
-  · show σv (.n 775) = σv (.n 705) * gen ^ (288 * 5) ∧
-      σv (.n 777) = σv (.n 706) * gen ^ (144 * 5)
+      ring⟩
+  · show σv (.n 771) = σv (.n 701) * gen ^ (288 * 5) ∧
+      σv (.n 773) = σv (.n 702) * gen ^ (144 * 5)
     exact ⟨by
-      rw [vt_mulAt hl 762 (d := 775) (x := 762) (y := 774) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 761 (d := .n 774) (e := word 299140177199104 0) (by decide +kernel),
+      rw [vt_mulAt hl 758 (d := 771) (x := 758) (y := 770) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 757 (d := .n 770) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 750 (d := 762) (x := 749) (y := 761) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 749 (d := .n 761) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 746 (d := 758) (x := 745) (y := 757) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 745 (d := .n 757) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 738 (d := 749) (x := 736) (y := 748) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 737 (d := .n 748) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 734 (d := 745) (x := 732) (y := 744) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 733 (d := .n 744) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 726 (d := 736) (x := 723) (y := 735) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 725 (d := .n 735) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 722 (d := 732) (x := 719) (y := 731) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 721 (d := .n 731) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq,
-        vt_mulAt hl 714 (d := 723) (x := 705) (y := 722) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 713 (d := .n 722) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 710 (d := 719) (x := 701) (y := 718) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 709 (d := .n 718) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring,
+      ring,
       by
-      rw [vt_mulAt hl 764 (d := 777) (x := 764) (y := 776) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 763 (d := .n 776) (e := word 21299200 0) (by decide +kernel),
+      rw [vt_mulAt hl 760 (d := 773) (x := 760) (y := 772) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 759 (d := .n 772) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
-        vt_mulAt hl 752 (d := 764) (x := 751) (y := 763) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 751 (d := .n 763) (e := word 21299200 0) (by decide +kernel),
+        vt_mulAt hl 748 (d := 760) (x := 747) (y := 759) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 747 (d := .n 759) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
-        vt_mulAt hl 740 (d := 751) (x := 738) (y := 750) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 739 (d := .n 750) (e := word 21299200 0) (by decide +kernel),
+        vt_mulAt hl 736 (d := 747) (x := 734) (y := 746) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 735 (d := .n 746) (e := word 21299200 0) (by decide +kernel),
         vtW144_eq,
-        vt_mulAt hl 728 (d := 738) (x := 706) (y := 737) (by norm_num) (by norm_num) (by decide +kernel),
-        vt_constAt hl 727 (d := .n 737) (e := word 299140177199104 0) (by decide +kernel),
+        vt_mulAt hl 724 (d := 734) (x := 702) (y := 733) (by norm_num) (by norm_num) (by decide +kernel),
+        vt_constAt hl 723 (d := .n 733) (e := word 299140177199104 0) (by decide +kernel),
         vtW288_eq]
-      try ring⟩
+      ring⟩
 
 set_option maxRecDepth 100000 in
-/-- **Table `0`'s shared selector tables** (`701 ..< 709`). -/
+/-- **Table `0`'s shared selector tables** (`697 ..< 705`). -/
 theorem vtc_sh0 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {point : List E}
-    (hkb : σv (.n 30) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
+    (hkb : σv (.n 27) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
     (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * 0)) (σv (.n 706) * gen ^ (144 * 0)) (μ - τ)
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 0)) (σv (.n 702) * gen ^ (144 * 0)) (μ - τ)
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
-    (∀ s ∈ (vtPre.drop 701).take 8, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 697).take 8, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 0)) = gen ^ (μ - τ) := by
-  have qd : σv (.n 707) = σv (.n 9) * (σv (.n 30))⁻¹ := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 701 (.atom (.mul (.n 9) (.n 707) (.n 30))) (by decide +kernel)
+  have qd : σv (.n 703) = σv (.n 9) * (σv (.n 27))⁻¹ := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 697 (.atom (.mul (.n 9) (.n 703) (.n 27))) (by decide +kernel)
     simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h
-  have ev : σv (.n 707) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
-  have ec : σv (.n 708) = gen ^ (μ - τ) := by rw [vt_copyAt hl 702 (d := .n 708) (x := .n 707) (by decide +kernel), ev]
-  have qr := vt_goodAt (rd := rd) (w := w) hl 704 (.atom (.rangeCheck (.n 708) (.n 710) (.n 711) (.n 712) (.n 709))) (by decide +kernel)
+  have ev : σv (.n 703) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
+  have ec : σv (.n 704) = gen ^ (μ - τ) := by rw [vt_copyAt hl 698 (d := .n 704) (x := .n 703) (by decide +kernel), ev]
+  have qr := vt_goodAt (rd := rd) (w := w) hl 700 (.atom (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705))) (by decide +kernel)
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 703 (d := .n 709) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 699 (d := .n 705) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 0 (by norm_num)
-  have ez : σv (.n 713) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 705 (d := 713) (x := 8) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have ez1 : σv (.n 714) = σv (.n 703) * gen ^ τ := by rw [vt_mulAt hl 706 (d := 714) (x := 703) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have esq : σv (.n 715) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 707 (d := 715) (x := 12) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  refine ⟨vt_blockR hl 701 8 [
-    .atom (.mul (.n 9) (.n 707) (.n 30)),
-    .atom (.rangeCheck (.n 708) (.n 710) (.n 711) (.n 712) (.n 709)),
-    .call "shared_selector_tables" [.n 705, .n 706, .n 713, .n 714, .n 715, .n 708] []] (by decide +kernel) ?_, by
-      rw [show vtShLen 0 = 708 from rfl]; exact ec⟩
+  have ez : σv (.n 709) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 701 (d := 709) (x := 8) (y := 27) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have ez1 : σv (.n 710) = σv (.n 699) * gen ^ τ := by rw [vt_mulAt hl 702 (d := 710) (x := 699) (y := 27) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have esq : σv (.n 711) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 703 (d := 711) (x := 12) (y := 27) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  refine ⟨vt_blockR hl 697 8 [
+    .atom (.mul (.n 9) (.n 703) (.n 27)),
+    .atom (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)),
+    .call "shared_selector_tables" [.n 701, .n 702, .n 709, .n 710, .n 711, .n 704] []] (by decide +kernel) ?_, by
+      rw [show vtShLen 0 = 704 from rfl]; exact ec⟩
   intro s hs _
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl
@@ -186,43 +186,43 @@ theorem vtc_sh0 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   · exact hrc
   · show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [show vtEqV 0 = 705 from rfl] at pe
-    rw [show vtGV 0 = 706 from rfl] at pg
+    rw [show vtEqV 0 = 701 from rfl] at pe
+    rw [show vtGV 0 = 702 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
       (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
 
 set_option maxRecDepth 100000 in
-/-- **Table `1`'s shared selector tables** (`709 ..< 721`). -/
+/-- **Table `1`'s shared selector tables** (`705 ..< 717`). -/
 theorem vtc_sh1 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {point : List E}
-    (hkb : σv (.n 31) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
+    (hkb : σv (.n 28) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
     (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * 1)) (σv (.n 706) * gen ^ (144 * 1)) (μ - τ)
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 1)) (σv (.n 702) * gen ^ (144 * 1)) (μ - τ)
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
-    (∀ s ∈ (vtPre.drop 709).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 705).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 1)) = gen ^ (μ - τ) := by
-  have qd : σv (.n 716) = σv (.n 9) * (σv (.n 31))⁻¹ := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 709 (.atom (.mul (.n 9) (.n 716) (.n 31))) (by decide +kernel)
+  have qd : σv (.n 712) = σv (.n 9) * (σv (.n 28))⁻¹ := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 705 (.atom (.mul (.n 9) (.n 712) (.n 28))) (by decide +kernel)
     simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h
-  have ev : σv (.n 716) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
-  have ec : σv (.n 717) = gen ^ (μ - τ) := by rw [vt_copyAt hl 710 (d := .n 717) (x := .n 716) (by decide +kernel), ev]
-  have qr := vt_goodAt (rd := rd) (w := w) hl 712 (.atom (.rangeCheck (.n 717) (.n 719) (.n 720) (.n 721) (.n 718))) (by decide +kernel)
+  have ev : σv (.n 712) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
+  have ec : σv (.n 713) = gen ^ (μ - τ) := by rw [vt_copyAt hl 706 (d := .n 713) (x := .n 712) (by decide +kernel), ev]
+  have qr := vt_goodAt (rd := rd) (w := w) hl 708 (.atom (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714))) (by decide +kernel)
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 711 (d := .n 718) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 707 (d := .n 714) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 1 (by norm_num)
-  have ez : σv (.n 726) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 717 (d := 726) (x := 8) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have ez1 : σv (.n 727) = σv (.n 703) * gen ^ τ := by rw [vt_mulAt hl 718 (d := 727) (x := 703) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have esq : σv (.n 728) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 719 (d := 728) (x := 12) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  refine ⟨vt_blockR hl 709 12 [
-    .atom (.mul (.n 9) (.n 716) (.n 31)),
-    .atom (.rangeCheck (.n 717) (.n 719) (.n 720) (.n 721) (.n 718)),
-    .call "shared_selector_tables" [.n 723, .n 725, .n 726, .n 727, .n 728, .n 717] []] (by decide +kernel) ?_, by
-      rw [show vtShLen 1 = 717 from rfl]; exact ec⟩
+  have ez : σv (.n 722) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 713 (d := 722) (x := 8) (y := 28) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have ez1 : σv (.n 723) = σv (.n 699) * gen ^ τ := by rw [vt_mulAt hl 714 (d := 723) (x := 699) (y := 28) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have esq : σv (.n 724) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 715 (d := 724) (x := 12) (y := 28) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  refine ⟨vt_blockR hl 705 12 [
+    .atom (.mul (.n 9) (.n 712) (.n 28)),
+    .atom (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)),
+    .call "shared_selector_tables" [.n 719, .n 721, .n 722, .n 723, .n 724, .n 713] []] (by decide +kernel) ?_, by
+      rw [show vtShLen 1 = 713 from rfl]; exact ec⟩
   intro s hs _
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl
@@ -230,43 +230,43 @@ theorem vtc_sh1 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   · exact hrc
   · show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [show vtEqV 1 = 723 from rfl] at pe
-    rw [show vtGV 1 = 725 from rfl] at pg
+    rw [show vtEqV 1 = 719 from rfl] at pe
+    rw [show vtGV 1 = 721 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
       (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
 
 set_option maxRecDepth 100000 in
-/-- **Table `2`'s shared selector tables** (`721 ..< 733`). -/
+/-- **Table `2`'s shared selector tables** (`717 ..< 729`). -/
 theorem vtc_sh2 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {point : List E}
-    (hkb : σv (.n 32) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
+    (hkb : σv (.n 29) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
     (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * 2)) (σv (.n 706) * gen ^ (144 * 2)) (μ - τ)
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 2)) (σv (.n 702) * gen ^ (144 * 2)) (μ - τ)
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
-    (∀ s ∈ (vtPre.drop 721).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 717).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 2)) = gen ^ (μ - τ) := by
-  have qd : σv (.n 729) = σv (.n 9) * (σv (.n 32))⁻¹ := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 721 (.atom (.mul (.n 9) (.n 729) (.n 32))) (by decide +kernel)
+  have qd : σv (.n 725) = σv (.n 9) * (σv (.n 29))⁻¹ := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 717 (.atom (.mul (.n 9) (.n 725) (.n 29))) (by decide +kernel)
     simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h
-  have ev : σv (.n 729) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
-  have ec : σv (.n 730) = gen ^ (μ - τ) := by rw [vt_copyAt hl 722 (d := .n 730) (x := .n 729) (by decide +kernel), ev]
-  have qr := vt_goodAt (rd := rd) (w := w) hl 724 (.atom (.rangeCheck (.n 730) (.n 732) (.n 733) (.n 734) (.n 731))) (by decide +kernel)
+  have ev : σv (.n 725) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
+  have ec : σv (.n 726) = gen ^ (μ - τ) := by rw [vt_copyAt hl 718 (d := .n 726) (x := .n 725) (by decide +kernel), ev]
+  have qr := vt_goodAt (rd := rd) (w := w) hl 720 (.atom (.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727))) (by decide +kernel)
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 723 (d := .n 731) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 719 (d := .n 727) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 2 (by norm_num)
-  have ez : σv (.n 739) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 729 (d := 739) (x := 8) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have ez1 : σv (.n 740) = σv (.n 703) * gen ^ τ := by rw [vt_mulAt hl 730 (d := 740) (x := 703) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have esq : σv (.n 741) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 731 (d := 741) (x := 12) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  refine ⟨vt_blockR hl 721 12 [
-    .atom (.mul (.n 9) (.n 729) (.n 32)),
-    .atom (.rangeCheck (.n 730) (.n 732) (.n 733) (.n 734) (.n 731)),
-    .call "shared_selector_tables" [.n 736, .n 738, .n 739, .n 740, .n 741, .n 730] []] (by decide +kernel) ?_, by
-      rw [show vtShLen 2 = 730 from rfl]; exact ec⟩
+  have ez : σv (.n 735) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 725 (d := 735) (x := 8) (y := 29) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have ez1 : σv (.n 736) = σv (.n 699) * gen ^ τ := by rw [vt_mulAt hl 726 (d := 736) (x := 699) (y := 29) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have esq : σv (.n 737) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 727 (d := 737) (x := 12) (y := 29) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  refine ⟨vt_blockR hl 717 12 [
+    .atom (.mul (.n 9) (.n 725) (.n 29)),
+    .atom (.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727)),
+    .call "shared_selector_tables" [.n 732, .n 734, .n 735, .n 736, .n 737, .n 726] []] (by decide +kernel) ?_, by
+      rw [show vtShLen 2 = 726 from rfl]; exact ec⟩
   intro s hs _
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl
@@ -274,43 +274,43 @@ theorem vtc_sh2 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   · exact hrc
   · show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [show vtEqV 2 = 736 from rfl] at pe
-    rw [show vtGV 2 = 738 from rfl] at pg
+    rw [show vtEqV 2 = 732 from rfl] at pe
+    rw [show vtGV 2 = 734 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
       (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
 
 set_option maxRecDepth 100000 in
-/-- **Table `3`'s shared selector tables** (`733 ..< 745`). -/
+/-- **Table `3`'s shared selector tables** (`729 ..< 741`). -/
 theorem vtc_sh3 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {point : List E}
-    (hkb : σv (.n 33) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
+    (hkb : σv (.n 30) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
     (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * 3)) (σv (.n 706) * gen ^ (144 * 3)) (μ - τ)
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 3)) (σv (.n 702) * gen ^ (144 * 3)) (μ - τ)
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
-    (∀ s ∈ (vtPre.drop 733).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 729).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 3)) = gen ^ (μ - τ) := by
-  have qd : σv (.n 742) = σv (.n 9) * (σv (.n 33))⁻¹ := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 733 (.atom (.mul (.n 9) (.n 742) (.n 33))) (by decide +kernel)
+  have qd : σv (.n 738) = σv (.n 9) * (σv (.n 30))⁻¹ := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 729 (.atom (.mul (.n 9) (.n 738) (.n 30))) (by decide +kernel)
     simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h
-  have ev : σv (.n 742) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
-  have ec : σv (.n 743) = gen ^ (μ - τ) := by rw [vt_copyAt hl 734 (d := .n 743) (x := .n 742) (by decide +kernel), ev]
-  have qr := vt_goodAt (rd := rd) (w := w) hl 736 (.atom (.rangeCheck (.n 743) (.n 745) (.n 746) (.n 747) (.n 744))) (by decide +kernel)
+  have ev : σv (.n 738) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
+  have ec : σv (.n 739) = gen ^ (μ - τ) := by rw [vt_copyAt hl 730 (d := .n 739) (x := .n 738) (by decide +kernel), ev]
+  have qr := vt_goodAt (rd := rd) (w := w) hl 732 (.atom (.rangeCheck (.n 739) (.n 741) (.n 742) (.n 743) (.n 740))) (by decide +kernel)
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 735 (d := .n 744) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 731 (d := .n 740) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 3 (by norm_num)
-  have ez : σv (.n 752) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 741 (d := 752) (x := 8) (y := 33) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have ez1 : σv (.n 753) = σv (.n 703) * gen ^ τ := by rw [vt_mulAt hl 742 (d := 753) (x := 703) (y := 33) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have esq : σv (.n 754) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 743 (d := 754) (x := 12) (y := 33) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  refine ⟨vt_blockR hl 733 12 [
-    .atom (.mul (.n 9) (.n 742) (.n 33)),
-    .atom (.rangeCheck (.n 743) (.n 745) (.n 746) (.n 747) (.n 744)),
-    .call "shared_selector_tables" [.n 749, .n 751, .n 752, .n 753, .n 754, .n 743] []] (by decide +kernel) ?_, by
-      rw [show vtShLen 3 = 743 from rfl]; exact ec⟩
+  have ez : σv (.n 748) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 737 (d := 748) (x := 8) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have ez1 : σv (.n 749) = σv (.n 699) * gen ^ τ := by rw [vt_mulAt hl 738 (d := 749) (x := 699) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have esq : σv (.n 750) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 739 (d := 750) (x := 12) (y := 30) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  refine ⟨vt_blockR hl 729 12 [
+    .atom (.mul (.n 9) (.n 738) (.n 30)),
+    .atom (.rangeCheck (.n 739) (.n 741) (.n 742) (.n 743) (.n 740)),
+    .call "shared_selector_tables" [.n 745, .n 747, .n 748, .n 749, .n 750, .n 739] []] (by decide +kernel) ?_, by
+      rw [show vtShLen 3 = 739 from rfl]; exact ec⟩
   intro s hs _
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl
@@ -318,43 +318,43 @@ theorem vtc_sh3 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   · exact hrc
   · show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [show vtEqV 3 = 749 from rfl] at pe
-    rw [show vtGV 3 = 751 from rfl] at pg
+    rw [show vtEqV 3 = 745 from rfl] at pe
+    rw [show vtGV 3 = 747 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
       (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
 
 set_option maxRecDepth 100000 in
-/-- **Table `4`'s shared selector tables** (`745 ..< 757`). -/
+/-- **Table `4`'s shared selector tables** (`741 ..< 753`). -/
 theorem vtc_sh4 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {point : List E}
-    (hkb : σv (.n 34) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
+    (hkb : σv (.n 31) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
     (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * 4)) (σv (.n 706) * gen ^ (144 * 4)) (μ - τ)
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 4)) (σv (.n 702) * gen ^ (144 * 4)) (μ - τ)
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
-    (∀ s ∈ (vtPre.drop 745).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 741).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 4)) = gen ^ (μ - τ) := by
-  have qd : σv (.n 755) = σv (.n 9) * (σv (.n 34))⁻¹ := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 745 (.atom (.mul (.n 9) (.n 755) (.n 34))) (by decide +kernel)
+  have qd : σv (.n 751) = σv (.n 9) * (σv (.n 31))⁻¹ := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 741 (.atom (.mul (.n 9) (.n 751) (.n 31))) (by decide +kernel)
     simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h
-  have ev : σv (.n 755) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
-  have ec : σv (.n 756) = gen ^ (μ - τ) := by rw [vt_copyAt hl 746 (d := .n 756) (x := .n 755) (by decide +kernel), ev]
-  have qr := vt_goodAt (rd := rd) (w := w) hl 748 (.atom (.rangeCheck (.n 756) (.n 758) (.n 759) (.n 760) (.n 757))) (by decide +kernel)
+  have ev : σv (.n 751) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
+  have ec : σv (.n 752) = gen ^ (μ - τ) := by rw [vt_copyAt hl 742 (d := .n 752) (x := .n 751) (by decide +kernel), ev]
+  have qr := vt_goodAt (rd := rd) (w := w) hl 744 (.atom (.rangeCheck (.n 752) (.n 754) (.n 755) (.n 756) (.n 753))) (by decide +kernel)
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 747 (d := .n 757) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 743 (d := .n 753) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 4 (by norm_num)
-  have ez : σv (.n 765) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 753 (d := 765) (x := 8) (y := 34) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have ez1 : σv (.n 766) = σv (.n 703) * gen ^ τ := by rw [vt_mulAt hl 754 (d := 766) (x := 703) (y := 34) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have esq : σv (.n 767) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 755 (d := 767) (x := 12) (y := 34) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  refine ⟨vt_blockR hl 745 12 [
-    .atom (.mul (.n 9) (.n 755) (.n 34)),
-    .atom (.rangeCheck (.n 756) (.n 758) (.n 759) (.n 760) (.n 757)),
-    .call "shared_selector_tables" [.n 762, .n 764, .n 765, .n 766, .n 767, .n 756] []] (by decide +kernel) ?_, by
-      rw [show vtShLen 4 = 756 from rfl]; exact ec⟩
+  have ez : σv (.n 761) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 749 (d := 761) (x := 8) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have ez1 : σv (.n 762) = σv (.n 699) * gen ^ τ := by rw [vt_mulAt hl 750 (d := 762) (x := 699) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have esq : σv (.n 763) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 751 (d := 763) (x := 12) (y := 31) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  refine ⟨vt_blockR hl 741 12 [
+    .atom (.mul (.n 9) (.n 751) (.n 31)),
+    .atom (.rangeCheck (.n 752) (.n 754) (.n 755) (.n 756) (.n 753)),
+    .call "shared_selector_tables" [.n 758, .n 760, .n 761, .n 762, .n 763, .n 752] []] (by decide +kernel) ?_, by
+      rw [show vtShLen 4 = 752 from rfl]; exact ec⟩
   intro s hs _
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl
@@ -362,43 +362,43 @@ theorem vtc_sh4 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   · exact hrc
   · show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [show vtEqV 4 = 762 from rfl] at pe
-    rw [show vtGV 4 = 764 from rfl] at pg
+    rw [show vtEqV 4 = 758 from rfl] at pe
+    rw [show vtGV 4 = 760 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
       (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
 
 set_option maxRecDepth 100000 in
-/-- **Table `5`'s shared selector tables** (`757 ..< 769`). -/
+/-- **Table `5`'s shared selector tables** (`753 ..< 765`). -/
 theorem vtc_sh5 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {point : List E}
-    (hkb : σv (.n 35) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
+    (hkb : σv (.n 32) = gen ^ τ) (h9 : σv (.n 9) = gen ^ μ) (hμ : point.length = μ)
     (hμ33 : μ < 33) (hτμ : τ ≤ μ) (hz : TbReadsAt rd (σv (.n 8)) point)
-    (hz1 : TbReadsAt rd (σv (.n 703)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
-    (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * 5)) (σv (.n 706) * gen ^ (144 * 5)) (μ - τ)
+    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 5)) (σv (.n 702) * gen ^ (144 * 5)) (μ - τ)
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
-    (∀ s ∈ (vtPre.drop 757).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
+    (∀ s ∈ (vtPre.drop 753).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 5)) = gen ^ (μ - τ) := by
-  have qd : σv (.n 768) = σv (.n 9) * (σv (.n 35))⁻¹ := by
-    have h := vt_goodAt (rd := rd) (w := w) hl 757 (.atom (.mul (.n 9) (.n 768) (.n 35))) (by decide +kernel)
+  have qd : σv (.n 764) = σv (.n 9) * (σv (.n 32))⁻¹ := by
+    have h := vt_goodAt (rd := rd) (w := w) hl 753 (.atom (.mul (.n 9) (.n 764) (.n 32))) (by decide +kernel)
     simpa only [GoodS, fixNe, Good, Nat.reduceLT, and_false, false_and, ↓reduceIte] using h
-  have ev : σv (.n 768) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
-  have ec : σv (.n 769) = gen ^ (μ - τ) := by rw [vt_copyAt hl 758 (d := .n 769) (x := .n 768) (by decide +kernel), ev]
-  have qr := vt_goodAt (rd := rd) (w := w) hl 760 (.atom (.rangeCheck (.n 769) (.n 771) (.n 772) (.n 773) (.n 770))) (by decide +kernel)
+  have ev : σv (.n 764) = gen ^ (μ - τ) := by rw [qd, h9, hkb, gen_pow_div hτμ]
+  have ec : σv (.n 765) = gen ^ (μ - τ) := by rw [vt_copyAt hl 754 (d := .n 765) (x := .n 764) (by decide +kernel), ev]
+  have qr := vt_goodAt (rd := rd) (w := w) hl 756 (.atom (.rangeCheck (.n 765) (.n 767) (.n 768) (.n 769) (.n 766))) (by decide +kernel)
   simp only [GoodS, fixNe, Good, Nat.reduceLT, ↓reduceIte] at qr
   obtain ⟨r1, r2, r3⟩ := qr
   obtain ⟨hrc, -⟩ := rc_holds (κ := 14) hlow r1 r2 r3 ec
-    (by rw [vt_constAt hl 759 (d := .n 770) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
+    (by rw [vt_constAt hl 755 (d := .n 766) (e := word 8589934592 0) (by decide +kernel), ← vtW33, vtW33_gen])
     (by omega) (by norm_num)
   obtain ⟨pe, pg⟩ := vtc_shptr hl 5 (by norm_num)
-  have ez : σv (.n 778) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 765 (d := 778) (x := 8) (y := 35) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have ez1 : σv (.n 779) = σv (.n 703) * gen ^ τ := by rw [vt_mulAt hl 766 (d := 779) (x := 703) (y := 35) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  have esq : σv (.n 780) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 767 (d := 780) (x := 12) (y := 35) (by norm_num) (by norm_num) (by decide +kernel), hkb]
-  refine ⟨vt_blockR hl 757 12 [
-    .atom (.mul (.n 9) (.n 768) (.n 35)),
-    .atom (.rangeCheck (.n 769) (.n 771) (.n 772) (.n 773) (.n 770)),
-    .call "shared_selector_tables" [.n 775, .n 777, .n 778, .n 779, .n 780, .n 769] []] (by decide +kernel) ?_, by
-      rw [show vtShLen 5 = 769 from rfl]; exact ec⟩
+  have ez : σv (.n 774) = σv (.n 8) * gen ^ τ := by rw [vt_mulAt hl 761 (d := 774) (x := 8) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have ez1 : σv (.n 775) = σv (.n 699) * gen ^ τ := by rw [vt_mulAt hl 762 (d := 775) (x := 699) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  have esq : σv (.n 776) = σv (.n 12) * gen ^ τ := by rw [vt_mulAt hl 763 (d := 776) (x := 12) (y := 32) (by norm_num) (by norm_num) (by decide +kernel), hkb]
+  refine ⟨vt_blockR hl 753 12 [
+    .atom (.mul (.n 9) (.n 764) (.n 32)),
+    .atom (.rangeCheck (.n 765) (.n 767) (.n 768) (.n 769) (.n 766)),
+    .call "shared_selector_tables" [.n 771, .n 773, .n 774, .n 775, .n 776, .n 765] []] (by decide +kernel) ?_, by
+      rw [show vtShLen 5 = 765 from rfl]; exact ec⟩
   intro s hs _
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   rcases hs with rfl | rfl | rfl
@@ -406,8 +406,8 @@ theorem vtc_sh5 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
   · exact hrc
   · show coreProgram.Rel rd _ _ _
     simp only [List.map_cons, List.map_nil]
-    rw [show vtEqV 5 = 775 from rfl] at pe
-    rw [show vtGV 5 = 777 from rfl] at pg
+    rw [show vtEqV 5 = 771 from rfl] at pe
+    rw [show vtGV 5 = 773 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
       (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun

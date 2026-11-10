@@ -32,11 +32,11 @@ def plainLoad (n : ℕ) : Atom → Bool
   | _ => true
 
 set_option maxRecDepth 100000 in
-theorem plain60_leafOk : Stmt.leafOkList (plainLoad 6) Data.core265.body = true := by
+theorem plain60_leafOk : Stmt.leafOkList (plainLoad 6) Data.core266.body = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem plain41_leafOk : Stmt.leafOkList (plainLoad 4) Data.core267.body = true := by
+theorem plain41_leafOk : Stmt.leafOkList (plainLoad 4) Data.core268.body = true := by
   decide +kernel
 
 theorem plain_loads {n : ℕ} {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLeafOk (plainLoad n) e) :
@@ -58,7 +58,7 @@ theorem plain_loads {n : ℕ} {σ : Val} {es : List Ev} (h : ∀ e ∈ es, EvLea
   | _ => simp [Ev.loadAddr?] at hea
 
 theorem plain_relIn_of {n : ℕ} {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hparams : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9])
+    (hparams : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10])
     (hleaf : Stmt.leafOkList (plainLoad n) fn.body = true) {rd : Reader} {R : ℕ → Prop}
     {args rets : List E} (hcur : ∀ k < 2 * n, InR R (args.getD 7 0) k)
     (hpt : ∀ k < n, InR R (args.getD 9 0) k) (h : coreProgram.Rel rd f args rets) :

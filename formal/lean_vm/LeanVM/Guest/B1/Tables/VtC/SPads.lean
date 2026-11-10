@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# The tables' heights (G:2195-2209)
+# The tables' heights (G:2356-2369)
 
 `pad_ok` (`t < 5`, floor `0`) and `pad5_ok` (`KECCAK`, floor `9`): from the template's equations,
 its two reads not stores, a memory holding `g^τ` and the rows `n` with `τ = max (log2Ceil n)
@@ -46,7 +46,7 @@ theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 29) (hv : 
 theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
     (hg : GoodL rd w σ (vtPadT v t))
     (s4 : Atom.load (.n (v + 4)) (.n 11) t ∉ vtSL)
-    (hkb : σ (.n (30 + t)) = gen ^ τ)
+    (hkb : σ (.n (27 + t)) = gen ^ τ)
     (hrow : LoadHolds rd (σ (.n 11)) t (eOfNat n))
     (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 29) (hlog : log2Ceil n = τ)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
@@ -79,7 +79,7 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
     rw [g12, g11, mul_inv_cancel₀ (by rw [e10]; exact hlr2)]
 
 /-- **The `KECCAK` table's height**, its floor `9`. -/
-theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤ v)
+theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤ v)
     (hg : GoodL rd w σ (vtPad5T v))
     (hgb : GoodL rd w σ [.atom (.const (.n (v + 16)) (word 1 0)),
       .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0)),
@@ -87,7 +87,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤
       .atom (.hint (.inverse (.n (v + 18)) (.n (v + 19)))),
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))])
     (s4 : Atom.load (.n (v + 4)) (.n 11) 5 ∉ vtSL)
-    (hkb : σ (.n 35) = gen ^ τ)
+    (hkb : σ (.n 32) = gen ^ τ)
     (hrow : LoadHolds rd (σ (.n 11)) 5 (eOfNat n))
     (hz : TbReadsAt rd (σ (.n 8)) zs) (hzl : zs.length = τ) (hτ : τ < 29)
     (hlog : τ = max (log2Ceil n) 9)
@@ -101,7 +101,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤
   simp only [GoodL, GoodS, fixNe, Good, and_true] at hgb
   obtain ⟨b16, -, b17, b18, b19, b20⟩ := hgb
   simp only [show v < v + 1 by omega, show v + 8 < v + 11 by omega,
-    show ¬ (v + 10 < 35 ∧ v + 9 < 35) from fun h => by omega,
+    show ¬ (v + 10 < 32 ∧ v + 9 < 32) from fun h => by omega,
     show v + 18 < v + 20 ∧ v + 19 < v + 20 from ⟨by omega, by omega⟩, ↓reduceIte] at g1 g10 g11 b20
   have hn : n ≤ 2 ^ τ := by
     have := log2Ceil_le_iff.mp (show log2Ceil n ≤ τ by omega)

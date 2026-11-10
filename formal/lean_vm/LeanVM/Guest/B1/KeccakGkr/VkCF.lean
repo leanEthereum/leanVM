@@ -140,17 +140,17 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
   have m6578 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 3862) (.n 1376) (.n 3861)) (by rw [← k14]; simp [vkFinT]))
   have e6578 : σ (.n 3862) = σ (.n 1388) := by rw [m6578, hform', hchk]
-  have c6579 : σ (.n 3863) = word 1 0 0 := gA (.const (.n 3863) (word 1 0 0)) (by simp [vkFinT])
+  have c6579 : σ (.n 3863) = word 1 0 0 := gA (.const (.n 3863) (word 1 0)) (by simp [vkFinT])
   have a6580 : σ (.n 3864) = σ (.n 3863) + σ (.n 17) :=
     gA (.add (.n 3864) (.n 3863) (.n 17)) (by simp [vkFinT])
-  have c6581 : σ (.n 3865) = word 1 0 0 := gA (.const (.n 3865) (word 1 0 0)) (by simp [vkFinT])
+  have c6581 : σ (.n 3865) = word 1 0 0 := gA (.const (.n 3865) (word 1 0)) (by simp [vkFinT])
   have c6582 : σ (.n 3866) = word 16 0 0 :=
-    gA (.const (.n 3866) (word 16 0 0)) (by simp [vkFinT])
+    gA (.const (.n 3866) (word 16 0)) (by simp [vkFinT])
   have m6583 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 3867) (.n 1251) (.n 3866)) (by simp [vkFinT]))
   have ecp : ∀ j < 5, σ (.n (3868 + j)) = σ (.n (2237 + j)) := fun j hj ↦
     hg _ (mCP _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩))
-  have c6589 : σ (.n 3873) = word 27 0 0 := gA (.const (.n 3873) (word 27 0 0)) (by simp [vkFinT])
+  have c6589 : σ (.n 3873) = word 27 0 0 := gA (.const (.n 3873) (word 27 0)) (by simp [vkFinT])
   have m6590 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 3874) (.n 1387) (.n 3873)) (by simp [vkFinT]))
   have e6591 : σ (.n 3875) = σ (.n 3874) := gA (.copy (.n 3875) (.n 3874)) (by simp [vkFinT])
