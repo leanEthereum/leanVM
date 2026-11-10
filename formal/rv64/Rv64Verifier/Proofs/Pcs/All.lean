@@ -7,6 +7,7 @@ import Rv64Verifier.Proofs.Pcs.VsoConfig
 import Rv64Verifier.Proofs.Pcs.VsoMerkle
 import Rv64Verifier.Proofs.Transcript.All
 import Rv64Verifier.Proofs.Field.All
+import Rv64Verifier.Proofs.Pcs.VsoRound
 
 /-!
 # The opening's contracts, their callees' discharged
@@ -53,3 +54,6 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.ringSwitch' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.ringSwitch
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.toLevels' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.toLevels

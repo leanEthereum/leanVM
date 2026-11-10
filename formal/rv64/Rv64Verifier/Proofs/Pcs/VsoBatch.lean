@@ -57,6 +57,7 @@ with the values at `S - 752`. -/
 structure Batched (s u : MachineState) (nx : Word) : Prop extends Args s u where
   inv : Inv s u nx
   pc : u.pc = 0x80009f08
+  x25 : u.getReg .x25 = s.getReg .x10 + 8
   vec : VecOk u (s.getReg .x2 - 776) 24 8
   len : vecLen u (s.getReg .x2 - 776) = s.getReg .x15
   buf : NewBuf s u (vecPtr u (s.getReg .x2 - 776)) (24 * ncl s) 8
@@ -79,6 +80,7 @@ theorem region_sub {a : Word} {n : Nat} (h : Region a n) (k m : Nat) (hk : k + m
 structure Sampled (s u : MachineState) (nx VP : Word) : Prop extends Args s u where
   inv : Inv s u nx
   pc : u.pc = 0x80009ec0
+  x25 : u.getReg .x25 = s.getReg .x10 + 8
   x23 : u.getReg .x23 = VP
   x24 : u.getReg .x24 = s.getReg .x15
   buf : VBuf s VP nx
@@ -144,6 +146,8 @@ theorem sample {s u : MachineState} {nx VP : Word} (hD : DuplexSpec) (hpre : Vso
     toArgs := h.toArgs.of_eq fun r hr ↦ hreg r (by simp only [List.mem_cons] at hr ⊢; tauto)
     inv := inv₂
     pc := by rw [hpc₂, returnAddress_eq, b80009eb0_x1 h₁]; decide
+    x25 := by
+      rw [hpres₂ .x25 (by simp only [calleeSaved]; decide), b80009eb0_x25 h₁, h.x27]
     x23 := by rw [hreg .x23 (by decide), h.x23]
     x24 := by rw [hreg .x24 (by decide), h.x24]
     buf := h.buf
@@ -516,6 +520,9 @@ theorem target {s u : MachineState} {nx VP : Word} (hP : PowersSpec) (hDot : Dot
     toArgs := h.toArgs.of_eq hreg₄
     inv := inv₄
     pc := by rw [hpc₄, returnAddress_eq, b80009eec_x1 h₃]; decide
+    x25 := by
+      rw [hpres₄ .x25 (by simp only [calleeSaved]; decide), k₃ .x25 (by decide),
+        hpres₂ .x25 (by simp only [calleeSaved]; decide), k₁ .x25 (by decide), h.x25]
     vec := hvec
     len := hlen4
     buf := by

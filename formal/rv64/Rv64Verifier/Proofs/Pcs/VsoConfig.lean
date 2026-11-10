@@ -181,4 +181,30 @@ theorem configLoop_eq (n r : ℕ) (hn : 15 ≤ n) :
   rw [show min 4 (f + 1 - 6) = 4 by omega, e1, e2]
   exact h
 
+/-! ## `verify_stacked_opening` up to the level loop -/
+
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+theorem deriveConfig_ladder {n r : ℕ} {qs : List ℕ} (hn : 15 ≤ n)
+    (hq : whirQueriesRust n r = some qs) (hl : qs.length = (n - 12) / 4 + 2) :
+    deriveConfigRust n r =
+      some ⟨ladderRates r ((n - 12) / 4 + 1), ladderFolds ((n - 12) / 4 + 1), qs⟩ := by
+  have e := configLoop_eq n r hn
+  have hlen : (ladderFolds ((n - 12) / 4 + 1)).length = (n - 12) / 4 + 2 := by simp [ladderFolds]
+  simp only [deriveConfigRust, hq, Option.bind_eq_bind, Option.bind_some, e, hlen, hl, ite_true]
+
+/-- The sample, the configuration and the first round polynomial: the rest is the level loop. -/
+theorem vso_run {n r : ℕ} {claims : List StackClaimRust} {T T1 T2 : TState} {c : E}
+    {cfg : WhirConfigRust} {q : List E} (h1 : TM.sample.run T = some (c, T1))
+    (h2 : deriveConfigRust n r = some cfg)
+    (h3 : (TM.sumcheckRoundPoly 3 (dotRust (LeanVM.Protocol.Verifier.powers c claims.length)
+      (claims.map (·.value))) none).run T1 = some (q, T2)) :
+    (verifyStackedOpeningRust n r claims).run T =
+      (whirLevelsRust n cfg (stackBasisEvaluate claims
+        (LeanVM.Protocol.Verifier.powers c claims.length)) 0
+        (cfg.folds.zip cfg.logInvRates) ⟨q, [], []⟩).run T2 := by
+  simp only [verifyStackedOpeningRust, verifyWhirRust, h2, TM.ofOption, StateT.run_bind, h1,
+    Option.bind_eq_bind, StateT.run_pure]
+  simp only [Option.pure_def, Option.bind_some, h3]
+
 end Rv64Verifier.Model.Pcs
