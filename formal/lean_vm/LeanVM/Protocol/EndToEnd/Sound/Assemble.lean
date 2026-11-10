@@ -111,6 +111,7 @@ structure OpeningIface : Type where
   /-- The stack's root, as `commitStack` reads it, has level 0's shape: what the knowledge
   statement needs for the root's doom to hold on a run. -/
   shape_commitStack : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ {e : Ev},
+    (∀ ht w W, e = Ev.commit ht w W → WellShaped w W) →
     (commitStack μ R).after [e] = some (.ret ()) → ShapeOK₀ μ R (commits [e])
   candidates_finite : ∀ {μ R : ℕ} (W : Word), Whir.Admissible μ R →
     (Candidates μ R (thr₀ μ R) W).Finite
@@ -197,8 +198,9 @@ end Sizes
 
 /-- **What the assembly takes of the front phases** (W3's bus, table, public-input and Keccak
 specifications composed): for admissible sizes and any finite candidate set of at most one stack,
-from "no candidate satisfies the relation" to `FrontPost`, lead at most `εmsg` (the bus's
-fingerprint group, charged at the OOD answer's boundary when the bus does not grind). -/
+from "a stack is committed and no candidate satisfies the relation" to `FrontPost`, lead at most
+`εmsg` (the bus's fingerprint group, charged at the OOD answer's boundary when the bus does not
+grind). -/
 structure FrontIface (ev : List K → List E → E → VerifierProgram Unit) (prog : LeanIsaProgram)
     (input : PublicInput) (publicInput : Digest) : Type where
   frontSpec : ∀ (s : Sizes) (ρ : ℕ), s.Admissible prog →
@@ -206,7 +208,8 @@ structure FrontIface (ev : List K → List E → E → VerifierProgram Unit) (pr
     ∀ (S : Set (Column (verifierLayout prog s).stackLog)), S.Finite → S.ncard ≤ 1 →
     ∀ T : ℝ≥0∞, T ≤ εmsg →
     Spec (frontProg ev (verifierLayout prog s) publicInput)
-      (fun _ ↦ ∀ q ∈ S, ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q))
+      (fun h ↦ (∃ W, firstWord h = some W) ∧
+        ∀ q ∈ S, ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q))
       (FrontPost prog s S) εmsg εmsg T
 
 
@@ -473,7 +476,10 @@ noncomputable def afterOodPart (hev : ∀ w p v, Moves G64 False (fun _ ↦ True
       zero_le)
     (WordShape O prog s ρ W) (fun h₀ l hl hJ ↦
       ⟨keep_commits (moves_frontProg hev _ pd) (fun cs ↦ firstWordC cs = some W) h₀ l hl hJ.1,
-        keep_commits (moves_frontProg hev _ pd) (O.ShapeOK₀ (μs prog s) ρ) h₀ l hl hJ.2⟩)).bind'
+        keep_commits (moves_frontProg hev _ pd) (O.ShapeOK₀ (μs prog s) ρ) h₀ l hl hJ.2⟩)).mono
+    (Pre' := fun h ↦ (∀ q ∈ left O prog s ρ W z y, ¬ M3Holds (leanIsaInstance prog s) input
+      (toI prog s q)) ∧ WordShape O prog s ρ W h)
+    (fun _ hp ↦ ⟨⟨⟨W, hp.2.1⟩, hp.1⟩, hp.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl |>.bind'
     fun r ↦ by
       obtain ⟨claims, keccakPoint, keccakSlices⟩ := r
       exact (ringPart O hadm W z y hsep (claims, keccakPoint, keccakSlices)).congr
