@@ -16,5 +16,9 @@ keccak_gkr.workspace = true
 verifier.workspace = true
 tracing.workspace = true
 
+[features]
+# A malicious prover's hooks (`cpu::tamper`, and `fiat_shamir::tamper` beneath it), for the fuzzer. Never in a real build.
+fuzzing = ["fiat_shamir/fuzzing"]
+
 [dev-dependencies]
 lean_compiler.workspace = true

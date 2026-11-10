@@ -16,6 +16,8 @@ pub struct ProverState {
     fs: FiatShamirState,
     stream: Vec<F192>,
     merkle: Vec<Vec<MerklePath>>,
+    #[cfg(feature = "fuzzing")]
+    tamper: Option<crate::tamper::ScalarTamper>,
 }
 
 impl ProverState {
@@ -34,6 +36,8 @@ impl ProverState {
             fs,
             stream: Vec::new(),
             merkle: Vec::new(),
+            #[cfg(feature = "fuzzing")]
+            tamper: crate::tamper::take(),
         }
     }
 
@@ -62,6 +66,11 @@ impl ProverState {
     /// inseparable: you cannot send without binding).
     #[inline]
     pub fn add_scalar(&mut self, x: F192) {
+        #[cfg(feature = "fuzzing")]
+        let x = match &mut self.tamper {
+            Some(tamper) => tamper(self.stream.len(), x),
+            None => x,
+        };
         self.fs.observe(x);
         self.stream.push(x);
     }
@@ -107,6 +116,12 @@ impl ProverState {
     /// no-work nonce `0`.
     pub fn grind(&mut self, bits: u32) {
         let nonce = self.fs.grind_pow(bits);
-        self.stream.push(F192::new(nonce, 0, 0));
+        let nonce = F192::new(nonce, 0, 0);
+        #[cfg(feature = "fuzzing")]
+        let nonce = match &mut self.tamper {
+            Some(tamper) => tamper(self.stream.len(), nonce),
+            None => nonce,
+        };
+        self.stream.push(nonce);
     }
 }

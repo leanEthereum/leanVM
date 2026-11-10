@@ -1,0 +1,29 @@
+[package]
+name = "leanvm-fuzz"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "leanvm-fuzz"
+path = "src/main.rs"
+doc = false
+
+[lints]
+workspace = true
+
+[dependencies]
+fuzz = { path = "../../crates/fuzz", default-features = false }
+leanvm_core.workspace = true
+bench.workspace = true
+clap = { version = "4", features = ["derive"] }
+
+# The target groups, all by default: `--no-default-features --features <group>` builds one alone.
+[features]
+default = ["kernels", "decoders", "dsl", "isa", "soundness", "aggregation"]
+kernels = ["fuzz/kernels"]
+decoders = ["fuzz/decoders"]
+dsl = ["fuzz/dsl"]
+isa = ["fuzz/isa"]
+soundness = ["fuzz/soundness"]
+aggregation = ["fuzz/aggregation"]

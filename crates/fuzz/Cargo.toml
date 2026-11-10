@@ -1,0 +1,38 @@
+[package]
+name = "fuzz"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# Each group of targets is a feature, all on by default, so a group can be built alone.
+[features]
+default = ["kernels", "decoders", "dsl", "isa", "soundness", "aggregation"]
+# Differential tests of the field, hash, NTT, Merkle and multilinear kernels against plain references.
+kernels = []
+# Every byte string a peer can send: proofs, aggregates, signatures, keys.
+decoders = ["dep:rec_aggregation"]
+# The zkDSL front end and compiler: generated self-checking programs, mutated sources, the hand-written corpus.
+dsl = []
+# Hand-assembled bytecode straight into the VM, bypassing the compiler.
+isa = []
+# A malicious prover: mutated proofs, forged transcript messages, tampered witnesses, wrong statements.
+soundness = []
+# The recursion guest and the public aggregation API: forged hints, invalid children, adversarial inputs.
+aggregation = ["dep:rec_aggregation"]
+
+[dependencies]
+primitives.workspace = true
+fiat_shamir = { workspace = true, features = ["fuzzing"] }
+pcs.workspace = true
+keccak_gkr.workspace = true
+leanvm_core = { workspace = true, features = ["fuzzing"] }
+lean_compiler.workspace = true
+lean_da.workspace = true
+signatures = { workspace = true, features = ["mock"] }
+parallel.workspace = true
+verifier.workspace = true
+rec_aggregation = { workspace = true, features = ["fuzzing", "signers-cache"], optional = true }
+sha3.workspace = true

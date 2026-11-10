@@ -202,6 +202,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d45db016d36b838f563236e9193d0ee6ce38f3f68b6c94e914b4929c96bbb890"
 
 [[package]]
+name = "fuzz"
+version = "0.1.0"
+dependencies = [
+ "fiat_shamir",
+ "keccak_gkr",
+ "lean_compiler",
+ "lean_da",
+ "leanvm_core",
+ "parallel",
+ "pcs",
+ "primitives",
+ "rec_aggregation",
+ "sha3",
+ "signatures",
+ "verifier",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -310,6 +328,16 @@ dependencies = [
  "rec_aggregation",
  "signatures",
  "tracing",
+]
+
+[[package]]
+name = "leanvm-fuzz"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "clap",
+ "fuzz",
+ "leanvm_core",
 ]
 
 [[package]]

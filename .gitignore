@@ -2,3 +2,4 @@
 target
 __pycache__/
 .vscode
+fuzz-out

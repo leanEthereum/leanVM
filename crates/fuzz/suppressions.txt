@@ -1,0 +1,3 @@
+# Finding keys known to be benign or already tracked, one per line, matched as a prefix of `<target> <key>`. A matching
+# finding is still recorded, under `findings/suppressed/`, and does not count toward `report --fail-on`. A campaign can
+# add its own in `<out>/suppressions.txt`. Say why, in a comment, above each line.

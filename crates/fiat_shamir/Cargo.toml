@@ -10,3 +10,7 @@ workspace = true
 [dependencies]
 parallel.workspace = true
 primitives.workspace = true
+
+[features]
+# `tamper`: a malicious prover's edits to its own transcript, for the fuzzer. Never in a real build.
+fuzzing = []

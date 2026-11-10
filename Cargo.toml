@@ -1,5 +1,7 @@
 [workspace]
 members = ["crates/*", "bins/*"]
+# The libFuzzer harness is a workspace of its own, on nightly.
+exclude = ["fuzz"]
 resolver = "3"
 
 [workspace.package]
@@ -35,3 +37,12 @@ tracing-subscriber = { version = "0.3.23", features = ["std", "env-filter"] }
 [profile.release]
 lto = "thin"
 codegen-units = 1
+
+# The fuzzer's: release speed, but integer overflow and `debug_assert!` are bugs it should see.
+[profile.fuzz]
+inherits = "release"
+debug-assertions = true
+overflow-checks = true
+debug = "line-tables-only"
+lto = false
+codegen-units = 16

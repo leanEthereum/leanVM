@@ -800,7 +800,10 @@ pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) ->
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
     let roots = [layers[0][mu][0], layers[1][mu][0], layers[2][mu][0]];
-    assert_eq!(roots[0], roots[1], "the first two products must agree");
+    assert!(
+        roots[0] == roots[1] || !crate::witness_is_honest(),
+        "the first two products must agree"
+    );
     ps.add_scalar(roots[0]);
     ps.add_scalar(roots[2]);
     let mut point = Vec::new();

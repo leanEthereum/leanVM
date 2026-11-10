@@ -42,6 +42,16 @@ pub fn init_prover() {
     parallel::init();
 }
 
+/// Whether the prover's own consistency checks on its witness apply: always, but under the fuzzer's `fuzzing` feature
+/// not once it has handed the witness to an edit ([`cpu::tamper`]), so a malicious prover's proof reaches the verifier.
+#[inline]
+pub(crate) fn witness_is_honest() -> bool {
+    #[cfg(feature = "fuzzing")]
+    return !cpu::tamper::tampered();
+    #[cfg(not(feature = "fuzzing"))]
+    true
+}
+
 /// Target soundness of the whole proof, in bits. Every algebraic challenge is
 /// sampled in F192, and the PCS derives a WHIR configuration whose query,
 /// proximity-gap, and OOD-binding terms each clear this target.

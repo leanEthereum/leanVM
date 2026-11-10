@@ -44,10 +44,10 @@ pub(super) type SubHints = Vec<(&'static str, Vec<F192>)>;
 
 /// An edit to a node's hints: how a test hands the guest a witness the honest host
 /// would not.
-#[cfg(test)]
-pub(super) type Forgery = Box<dyn FnOnce(&mut Hints)>;
+#[cfg(any(test, feature = "fuzzing"))]
+pub type Forgery = Box<dyn FnOnce(&mut Hints)>;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "fuzzing"))]
 thread_local! {
     /// The forgery the next node this thread aggregates gets.
     pub(super) static FORGE: std::cell::RefCell<Option<Forgery>> = const { std::cell::RefCell::new(None) };
@@ -56,7 +56,7 @@ thread_local! {
 /// One `hint_witness` stream: a name and its entries, in the order the guest
 /// pops them.
 #[derive(Default)]
-pub(super) struct Hints(Vec<(String, Vec<Vec<F192>>)>);
+pub struct Hints(Vec<(String, Vec<Vec<F192>>)>);
 
 impl Hints {
     pub(super) fn push(&mut self, name: &str, entry: Vec<F192>) {
@@ -64,6 +64,12 @@ impl Hints {
             Some((_, entries)) => entries.push(entry),
             None => self.0.push((name.to_string(), vec![entry])),
         }
+    }
+
+    /// Every stream, by name, its entries in the order the guest pops them: what a forgery edits.
+    #[cfg(feature = "fuzzing")]
+    pub fn streams_mut(&mut self) -> &mut Vec<(String, Vec<Vec<F192>>)> {
+        &mut self.0
     }
 
     /// Entry `i` of stream `name`, for a test to forge.

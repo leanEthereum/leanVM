@@ -12,6 +12,8 @@
 //! previous output's.
 
 pub mod merkle;
+#[cfg(feature = "fuzzing")]
+pub mod tamper;
 pub mod transcript;
 mod wire;
 

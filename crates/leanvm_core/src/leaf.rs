@@ -899,9 +899,8 @@ pub(crate) fn prove_balance(
             .collect();
         // Completeness only: the verifier derives this identity rather than checking
         // it, so a mismatch here is a prover bug, not a rejection path.
-        debug_assert_eq!(
-            sigmas.iter().fold(frameworks[s], |acc, &b| acc + b),
-            bus_gkr.values[s],
+        debug_assert!(
+            sigmas.iter().fold(frameworks[s], |acc, &b| acc + b) == bus_gkr.values[s] || !crate::witness_is_honest(),
             "side {s} must decompose into its leaf value"
         );
         sigmas

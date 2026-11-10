@@ -42,6 +42,8 @@ mod claim_pool;
 mod coverage;
 mod deferred;
 mod error;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod guest;
 mod hints;
 mod node;

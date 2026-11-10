@@ -24,6 +24,8 @@ mod execute;
 pub mod hints;
 mod isa;
 pub mod layout;
+#[cfg(feature = "fuzzing")]
+pub mod tamper;
 mod trace;
 pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
@@ -475,6 +477,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
             log_committed: w.layout.shape.mu,
         });
     }
+    #[cfg(feature = "fuzzing")]
+    tamper::apply(&mut w);
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.
