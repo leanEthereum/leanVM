@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Lift.OsCallees
+public import LeanVM.Guest.B1.Place.OsRound
 
 /-!
 # The callees' meanings, by name
@@ -169,6 +170,12 @@ theorem kindD (h : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {f : 
   | ffm n =>
     simp only [osKindEntryOk, decide_eq_true_eq] at he
     exact h.foldFinal _ he
+
+/-- **Every named callee is complete placed on its meaning, its loads in the caller's words**, on
+memories defined below `2^κ`, `11 ≤ κ`. -/
+theorem kindD_holds (hκ : 11 ≤ κ) {f : String} {K : OsKind} (hK : osKindOf f = some K) :
+    CompleteRelRegD fs cert κ f K.Pre (RegPtrs K.spec) :=
+  kindD (osCalleesRegD_holds hκ) (osRoundRegD_holds hκ) hK
 
 /-! ## Fixed loads -/
 
