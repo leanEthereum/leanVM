@@ -25,7 +25,11 @@ theorem kvsstaticRange_439 : kvsStaticRange 439 30 := by
   unfold kvsStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvsstaticRange_469 : kvsStaticRange 469 28 := by
+theorem kvsstaticRange_469 : kvsStaticRange 469 23 := by
+  unfold kvsStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kvsstaticRange_492 : kvsStaticRange 492 21 := by
   unfold kvsStaticRange; decide +kernel
 
 end

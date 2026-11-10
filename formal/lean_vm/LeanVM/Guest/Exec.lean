@@ -154,7 +154,7 @@ theorem gpow_zero' : addressOfIndex 0 = 1 := pow_zero g
 theorem symOf_val {F : Facts} (hp : F.pows.Ok) {k0 k1 : ℕ} {v : Sym}
     (h : F.symOf k0 k1 = some v) (fp : K) : OffsetInstruction.immediateWord k0 k1 = v.val
         fp := by
-  simp only [Facts.symOf, Bool.cond_eq_ite, Bool.and_eq_true, beq_iff_eq] at h
+  simp only [Facts.symOf, Bool.cond_eq_ite, beq_iff_eq] at h
   split_ifs at h with h12 h0 h1
   · subst h12
     subst h0

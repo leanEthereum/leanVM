@@ -54,9 +54,7 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # count families (`Memory/GuestCntV*`), apart from `main`'s static callees' so that neither
 # family's change rebuilds the other's dependents.
 VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
-          ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34',
-           'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
-           'list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +
+          vscount.VS_ST + ['list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +
           ['child_claim_list_mono_last__L%d' % k for k in range(17)] +
           vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + vscount.CL_LP)
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
@@ -66,7 +64,8 @@ WROOTS = (['block_selector__L%d' % k for k in range(34)] + ['block_selector_tab_
           ['eq_prefix_run__L%d' % k for k in range(41)] + ['index_mle__L%d' % k for k in range(34)] +
           ['padding_weight__L%d' % k for k in range(29)] + ['plus_one_run__L%d' % k for k in range(34)] +
           ['sel_partial_nibble__L%d' % k for k in range(4)] + ['column_selector__L%d' % k for k in range(29)] +
-          ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables'])
+          ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables',
+           'opening_tail_round'])
 # `verify_sub`'s callees with no static bound, and the terminal's `__loop14` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).

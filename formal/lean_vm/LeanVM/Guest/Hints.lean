@@ -20,6 +20,7 @@ public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Guest.Word
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Protocol.KeccakHash
 
 /-!
 # The honest hint generator
@@ -108,8 +109,8 @@ def count (n : ℕ) : E := gpowE n
 /-- A bit as a word. -/
 def bit (b : Bool) : E := if b then 1 else 0
 
-/-- 16 bytes as a canonical cell, limb `0` the first 8 (`pack_16_bytes`). -/
-def cellOfBytes (b : List UInt8) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8)) 0
+/-- 16 bytes as a cell, limb `0` the first 8 (`pack_16_bytes`). -/
+def cellOfBytes (b : List UInt8) : E := E.ofLimbs (kOfBytes b) (kOfBytes (b.drop 8))
 
 /-- A byte string's 16-byte cells. -/
 def cellsOfBytes (b : List UInt8) : List E :=
@@ -196,7 +197,7 @@ def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXms
   let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer index
       LeanXmss.topLayer)
     (HashSig.littleEndianBytes 16 root) (σ.layers LeanXmss.topLayer)
-  ("lx_index", shifts.map fun x ↦ word x 0 0) ::
+  ("lx_index", shifts.map fun x ↦ word x 0) ::
     ("lx_windows", shifts.map fun x ↦ count (x % 2 ^ lxWindow)) :: bottom ++ top
 
 /-! ## A leanSPHINCS signature (`lean_sphincs_hints`) -/
