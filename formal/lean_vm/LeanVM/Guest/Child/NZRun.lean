@@ -1,8 +1,9 @@
 /-
   LeanVM.Guest.Child.NZRun
 
-  Where no challenge is zero, the verifier refusing a zero challenge runs as the verifier: with a
-  permutation none of whose outputs has a zero challenge, their runs are equal.
+  The guest's refusing programs (`Limits.verifyExecutionNZ`) are the statement's
+  combiner-refusing programs (`verifyExecutionRefusingZeroCombiner`) with, after some challenges,
+  a check that the challenge is not zero.
 -/
 
 module
@@ -12,19 +13,18 @@ public import LeanVM.Guest.Child.Fresh
 public import LeanVM.Protocol.WithHash
 
 /-!
-# Refusing a zero challenge changes nothing where none is zero
+# Refusing a zero challenge
 
 `NZ p' p`: `p'` is `p` with, after some challenges, a check that the challenge is not zero; at a
-nonzero challenge the two continue alike. The verifier program refusing a zero fold, tail or
-level batching challenge is such a `p'` of the verifier program (`nz_program`). A compiled run
-draws every challenge as `challengeOf` of a permutation output, so with a permutation that
-never outputs a zero challenge the two runs are the same run (`run_nz`).
+nonzero challenge the two continue alike. The guest's program refusing a zero fold, tail or level
+batching challenge and a vanishing combiner is such a `p'` of the statement's program refusing a
+vanishing combiner (`nz_verifyExecution`, `nz_deferredProgram`): both check the combiners alike.
 -/
 
 namespace LeanVM.Guest.Child
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
-open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Guest.Completeness
 
 @[expose] public section
 
@@ -82,52 +82,52 @@ end NZ
 
 /-! ## The programs -/
 
-theorem nz_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    NZ (Limits.foldRoundsNZ n s lf) (foldRoundsT n s lf)
-  | 0, s, lf => NZ.refl _
-  | n + 1, s, lf => by
-    unfold Limits.foldRoundsNZ foldRoundsT
-    refine NZ.sample_bind fun c hc ↦ ?_
-    refine NZ.require_bind_of hc ?_
-    exact NZ.bind (NZ.refl _) fun _ ↦ nz_foldRounds n _ _
+theorem nz_foldRound (s : WhirState) : NZ (Limits.foldRoundNZ s) (foldRound s) := by
+  unfold Limits.foldRoundNZ foldRound
+  iterate 8 refine NZ.bind (NZ.refl _) fun _ ↦ ?_
+  refine NZ.sample_bind fun c hc ↦ ?_
+  exact NZ.require_bind_of hc (NZ.refl _)
 
-theorem nz_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E),
-    NZ (Limits.tailRoundsNZ n t quad) (tailRoundsT n t quad)
-  | 0, t, quad => NZ.refl _
-  | n + 1, t, quad => by
-    unfold Limits.tailRoundsNZ tailRoundsT
+theorem nz_foldRounds : ∀ (n : ℕ) (s : WhirState),
+    NZ (Limits.foldRoundsNZ n s) (foldRounds n s)
+  | 0, s => NZ.refl _
+  | n + 1, s => by
+    unfold Limits.foldRoundsNZ foldRounds
+    exact NZ.bind (nz_foldRound s) fun _ ↦ NZ.bind (nz_foldRounds n _) fun _ ↦ NZ.refl _
+
+theorem nz_sumcheck (count : ℕ) : ∀ (eqs : List (Option E)) (claim : E),
+    NZ (Limits.sumcheckNZ claim count eqs) (sumcheck claim count eqs)
+  | [], claim => NZ.refl _
+  | e :: eqs, claim => by
+    unfold Limits.sumcheckNZ sumcheck
+    refine NZ.bind (NZ.refl _) fun m ↦ ?_
     refine NZ.sample_bind fun c hc ↦ ?_
-    refine NZ.require_bind_of hc ?_
-    split
-    · exact NZ.refl _
-    · exact NZ.bind (NZ.refl _) fun _ ↦ NZ.bind (nz_tailRounds n _ _) fun _ ↦ NZ.refl _
+    exact NZ.require_bind_of hc (NZ.bind (nz_sumcheck count eqs _) fun _ ↦ NZ.refl _)
 
 /-- The first program of a bind: the same, or one refusing zero challenges. -/
 local macro "nz_head" : tactic => `(tactic| first
   | with_reducible exact NZ.refl _
-  | exact nz_foldRounds _ _ _
-  | exact nz_tailRounds _ _ _)
+  | exact nz_foldRounds _ _
+  | exact nz_sumcheck _ _ _)
 
 /-- One step between two programs written alike. -/
 local macro "nz_step" : tactic => `(tactic| first
   | with_reducible exact NZ.refl _
-  | (apply NZ.require_bind_of (by assumption))
-  | (refine NZ.sample_bind fun _ _ ↦ ?_)
+  | (refine NZ.sample_bind fun _ hc ↦ NZ.require_bind_of hc ?_)
   | (refine NZ.bind ?h fun _ ↦ ?k; case h => nz_head)
   | split
-  | dsimp only
-  | exact NZ.refl _)
+  | dsimp only)
 
 theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List Whir.Level) :
-    ∀ (index : ℕ) (s : WhirStateT),
+    ∀ (index : ℕ) (s : WhirState),
       NZ (Limits.whirLevelsNZ logN laneFolds eb index levels s)
-        (whirLevelsT logN laneFolds eb index levels s) := by
+        (whirLevelsRefusingZeroCombiner logN laneFolds eb index levels s) := by
   induction levels with
   | nil => intro index s; exact NZ.refl _
   | cons level rest ih =>
     intro index s
-    unfold Limits.whirLevelsNZ whirLevelsT
-    apply NZ.bind (nz_foldRounds _ _ _)
+    unfold Limits.whirLevelsNZ whirLevelsRefusingZeroCombiner
+    apply NZ.bind (nz_foldRounds _ _)
     intro p
     obtain ⟨s', lf⟩ := p
     dsimp only
@@ -140,76 +140,34 @@ theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List 
       repeat (first | exact ih _ _ | nz_step)
 
 theorem nz_verifyWhir (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
-    NZ (Limits.verifyWhirNZ logN logInvRate target eb) (verifyWhirT logN logInvRate target eb) := by
-  unfold Limits.verifyWhirNZ verifyWhirT
+    NZ (Limits.verifyWhirNZ logN logInvRate target eb)
+      (verifyWhirRefusingZeroCombiner logN logInvRate target eb) := by
+  unfold Limits.verifyWhirNZ verifyWhirRefusingZeroCombiner
   repeat (first | exact nz_whirLevels _ _ _ _ _ _ | nz_step)
 
 theorem nz_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     NZ (Limits.verifyStackedOpeningNZ stackLog logInvRate claims)
-      (verifyStackedOpening stackLog logInvRate claims) := by
-  unfold Limits.verifyStackedOpeningNZ verifyStackedOpening
-  simp only [verifyWhir_eq_target]
+      (verifyStackedOpeningRefusingZeroCombiner stackLog logInvRate claims) := by
+  unfold Limits.verifyStackedOpeningNZ verifyStackedOpeningRefusingZeroCombiner
   repeat (first | exact nz_verifyWhir _ _ _ _ | nz_step)
 
-/-- **The verifier refusing zero challenges is the verifier refusing zero challenges.** -/
-theorem nz_program (ev : (List K → List E → VerifierProgram E)) (bytecode : List K) (publicInput :
-    Digest) :
-    NZ ((execWith ev Limits.verifyStackedOpeningNZ bytecode publicInput).bind
-        fun _ ↦ VerifierProgram.ret true)
-      ((execWith ev verifyStackedOpening bytecode publicInput).bind fun _ ↦ VerifierProgram.ret
-          true) := by
-  refine NZ.bind ?_ fun _ ↦ NZ.refl _
-  unfold execWith
-  refine NZ.bind (NZ.refl _) fun ls ↦ ?_
-  obtain ⟨layout, r⟩ := ls
-  refine NZ.bind (NZ.refl _) fun _ ↦ ?_
-  refine NZ.bind (NZ.refl _) fun bus ↦ ?_
-  refine NZ.bind (NZ.refl _) fun claims ↦ ?_
-  refine NZ.bind (NZ.refl _) fun pub ↦ ?_
-  refine NZ.bind (NZ.refl _) fun kr ↦ ?_
-  obtain ⟨cl, kp, ks⟩ := kr
-  refine NZ.bind (NZ.refl _) fun rs ↦ ?_
-  obtain ⟨rt, rw⟩ := rs
-  exact nz_verifyStackedOpening _ _ _
+/-- **The guest's refusing verifier refuses zero challenges of the statement's.** -/
+theorem nz_verifyExecution (bv : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (publicInput : Digest) :
+    NZ (Limits.verifyExecutionNZ bv bytecode publicInput)
+      (verifyExecutionRefusingZeroCombiner bv bytecode publicInput) := by
+  unfold Limits.verifyExecutionNZ verifyExecutionRefusingZeroCombiner
+  repeat (first | with_reducible exact nz_verifyStackedOpening _ _ _ | nz_step)
 
-/-! ## The runs -/
+/-- The statement's deferring program refusing a vanishing combiner. -/
+def deferredProgramRZC (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
+    VerifierProgram Bool := do
+  verifyExecutionRefusingZeroCombiner (claimedBytecodeValue c) bytecode publicInput
+  return true
 
-/-- **With a permutation that never outputs a zero challenge, the runs agree.** -/
-theorem run_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {α : Type} {p' p : VerifierProgram α} (h : NZ p' p) :
-    ∀ st : VerifierProgramState, Compile.runWithHash H F p' st = Compile.runWithHash H F p st := by
-  induction h with
-  | ret a => intro st; rfl
-  | fail => intro st; rfl
-  | read _ ih =>
-    intro st
-    unfold Compile.runWithHash
-    cases st.stream with
-    | nil => rfl
-    | cons x xs => exact ih x _
-  | sample _ ih =>
-    intro st
-    unfold Compile.runWithHash
-    exact ih _ (hF _) _
-  | grind _ ih =>
-    intro st
-    unfold Compile.runWithHash
-    simp only [ih]
-  | commit _ ih =>
-    intro st
-    unfold Compile.runWithHash
-    simp only [ih]
-  | query _ ih =>
-    intro st
-    unfold Compile.runWithHash
-    simp only [ih]
-
-theorem runProof_nz (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState)
-    (hF : ∀ s, challengeOf (Id.run (F s)) ≠ 0) {p' p : VerifierProgram Bool} (h : NZ p' p) (seed :
-        KeccakState)
-    (π : Proof) : runProofWithHash H F p' seed π = runProofWithHash H F p seed π := by
-  unfold runProofWithHash
-  rw [run_nz H F hF h]
+theorem nz_deferredProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
+    NZ (Limits.deferredProgramNZ c bytecode publicInput) (deferredProgramRZC c bytecode publicInput) :=
+  NZ.bind (nz_verifyExecution _ _ _) fun _ ↦ NZ.refl _
 
 end
 end LeanVM.Guest.Child
