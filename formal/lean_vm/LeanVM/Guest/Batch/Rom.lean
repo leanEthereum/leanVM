@@ -456,10 +456,14 @@ theorem xrun_reads (H : Bytes → Option Digest) (F : KeccakState → Option Kec
     case read k =>
       obtain ⟨t, ht⟩ := hl
       simp only [xrun, ← ht, List.cons_append] at hx
-      obtain ⟨sp, -, hx⟩ := Option.bind_eq_some_iff.mp hx
-      have := xrun_reads H F l (k x) _ _ (by simpa [VerifierProgram.after] using ha)
-        (List.prefix_append l t) hx
-      simpa using this
+      split at hx
+      · rename_i x' xs' heq _
+        obtain ⟨rfl, rfl⟩ := List.cons.inj heq
+        obtain ⟨sp, -, hx⟩ := Option.bind_eq_some_iff.mp hx
+        have := xrun_reads H F l (k _) _ _ (by simpa [VerifierProgram.after] using ha)
+          (List.prefix_append l t) hx
+        simpa using this
+      · simp at hx
     all_goals simp [VerifierProgram.after] at ha
 
 /-- **False children leave a nonzero gap**, `bytecode` of length a power of two. -/
