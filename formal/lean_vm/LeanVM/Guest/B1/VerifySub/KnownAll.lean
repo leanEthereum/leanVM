@@ -1,16 +1,22 @@
 /-
   LeanVM.Guest.B1.VerifySub.KnownAll
 
-  `VsDimsKnown`: the first `333` statements of `verify_sub` put `dims_g[g^0]` below `g^34`.
+  `VsKnown`: the first `1552` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
+  `e < kbBound i`; `VsDimsKnown`: the first `333` put `dims_g[g^0]` below `g^34`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.Mid
-public import LeanVM.Guest.B1.VerifySub.Body
+public import LeanVM.Guest.B1.VerifySub.Known
+public import LeanVM.Guest.B1.Placement.Certify
 
 /-!
 # `verify_sub`'s cut obligations
+
+`vsKnown_holds`: `vsKnown_of` with `certify_placement`'s soundness (`certify_placement_holds`):
+on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, over the exponent table at
+`verify_sub`'s argument `4`, its first `1552` statements (up to the call of
+`check_opening_terminal`) put the `8` entries of `kappa_base` (`83`) among `g^e`, `e < kbBound i`.
 
 `vsDimsKnown0_holds`: on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, the body's
 first `333` statements (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`,
@@ -26,16 +32,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem vsHeadT_noRet : Stmt.noRetList vsHeadT = true := by decide +kernel
-
-theorem vsReadsT_noRet : Stmt.noRetList vsReadsT = true := by decide +kernel
-
 theorem vsFront73_length : (vsHeadT ++ vsReadsT ++ vsSizesT).length = 73 := by decide +kernel
 
 theorem vsT_front73 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsRootsT ++
     vsPlaceT ++ vsOodT ++ vsBusGrindT ++ vsFpwT ++ vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT ++
     vsTailT) := by
   simp only [vsT, List.append_assoc]
+
+/-- **`VsKnown`**: `kappa_base`'s entries below `kbBound`. -/
+theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
+    (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1552) True
+      (fun _ ↦ True)) :
+    ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) :=
+  vsKnown_of L h16 h32 (Tables.certify_placement_holds h32 L) σ hexp h
 
 /-- **`dims_g`'s first word** (the memory's log, G:3603-3606): the body's first `333` statements
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`. -/
@@ -47,7 +57,7 @@ theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ 
   have hκ : κ ≤ 32 := h32
   have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
-  rw [vs_body, vsT_front73, List.take_append, List.take_of_length_le (by rw [vsFront73_length]; omega),
+  rw [show Fn.body Data.core18 = vsT from vs_body, vsT_front73, List.take_append, List.take_of_length_le (by rw [vsFront73_length]; omega),
     holdsList_append, holdsList_append, holdsList_append] at h
   have h := ((holdsList_noRet _ vsHeadT_noRet _ _).1 h).2
   have h := ((holdsList_noRet _ vsReadsT_noRet _ _).1 h).2

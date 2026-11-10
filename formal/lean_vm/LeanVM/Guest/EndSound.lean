@@ -12,15 +12,19 @@ public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Sound
 public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.B1.VerifySub.Proof
+public import LeanVM.Guest.B1.VerifySub.KnownAll
 
 /-!
 # B2, proved, and the end theorems from B1's statements
 
 * `expTablesSound`: `exponent_tables`' returns are the exponent tables (B1-a's
   `exponent_tables_holds`).
+* `vsDimsKnown_proved`: `verify_sub`'s `dims_g[g^0]` below `g^34`, an arm `verify_tables`
+  dispatches on (B1-d's `VerifySub.vsDimsKnown0_holds`).
+* `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
+  `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
 * `EndPending`: what the end theorems take until B1's ports to the f128 guest land:
-  `verify_sub`'s `dims_g[g^0]` below `g^34` (`VsDimsKnown`), its `kappa_base` entries below `vsKbBound`
-  (`VsKnown`), its statement with the proof `VerifySub.vsPiOf`, and the walks' cut obligations
+  `verify_sub`'s statement with the proof `VerifySub.vsPiOf`, and the walks' cut obligations
   (`WalkKnown`; `walkKnown_proved`, `WalkKnownAll.lean`: whir's `QueriesWalk` and ostack's
   `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers' parities).
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`), `b2SoundL` from
@@ -43,15 +47,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 theorem expTablesSound : ExpTablesSound := fun rd q h ↦
   (exponent_tables_holds rd [] [q]).mp h
 
-/-- **What the end theorems take** until B1's ports to the f128 guest land
-(`VerifySub.vsDimsKnown0_holds`, `VerifySub.vsKnown_holds`, `VerifySub.verify_sub_sound_w`): its
-two cut obligations, and its statement with the proof `VerifySub.vsPiOf`; and the walks' cut
+/-- **`verify_sub`'s `kappa_base`** below `vsKbBound` (B1-d's `VerifySub.vsKnown_holds`;
+`coreOf 19` is `Data.core18`). -/
+theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
+  VerifySub.vsKnown_holds L h16 h32 σ hexp h
+
+/-- **`verify_sub`'s `dims_g[g^0]`** below `g^34`, an arm `verify_tables` dispatches on (B1-d's
+`VerifySub.vsDimsKnown0_holds`). -/
+theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ h ↦
+  VerifySub.vsDimsKnown0_holds L h16 h32 σ h
+
+/-- **What the end theorems take** until B1's ports to the f128 guest land: `verify_sub`'s
+statement with the proof `VerifySub.vsPiOf` (`VerifySub.verify_sub_sound_w`), and the walks' cut
 obligations (`walkKnown_proved`, `WalkKnownAll.lean`, whose whir walks are not yet on f128). -/
 structure EndPending : Prop where
-  /-- `dims_g[g^0]` below `g^34` at the call of `verify_tables`. -/
-  dims : VsDimsKnown
-  /-- `kappa_base`'s entries below `vsKbBound` at the call of `check_opening_terminal`. -/
-  kb : VsKnown
   /-- `verify_sub`'s statement, its proof `VerifySub.vsPiOf`. -/
   sound : B1.Main.SubSoundW bytecode VerifySub.vsPiOf
   /-- The walks' cut obligations. -/
@@ -63,18 +72,18 @@ theorem b2SoundL_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) : B2
   ⟨b2_step fun _ h2 hj ↦ cutsKnown_of hvd hvs hwalk h2 hj, b2_mainL expTablesSound⟩
 
 /-- **B2, proved**, given `verify_sub`'s obligations. -/
-theorem b2SoundL (h : EndPending) : B2SoundL := b2SoundL_of h.dims h.kb h.walk
+theorem b2SoundL (h : EndPending) : B2SoundL := b2SoundL_of vsDimsKnown_proved vsKnown_proved h.walk
 
 variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
 
 /-- **Soundness of the deployed guest, its witness named**, from `verify_sub`'s statement. -/
-theorem guest_knowledge_sub (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown)
+theorem guest_knowledge_sub (hwalk : WalkKnown)
     (hv : B1.Main.SubSoundW bytecode piOf) :
     MemoryGuestKnowledge guestProgram (decodeV piOf) :=
-  guest_knowledge_V (b2SoundL_of hvd hvs hwalk) hv
+  guest_knowledge_V (b2SoundL_of vsDimsKnown_proved vsKnown_proved hwalk) hv
 
 /-- **What a consumer learns**, from `verify_sub`'s statement. -/
-theorem decode_binds_sub (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown)
+theorem decode_binds_sub (hwalk : WalkKnown)
     (hv : B1.Main.SubSoundW bytecode piOf)
     {input : PublicInput} {t : Execution guestProgram} (hvt : ValidExecution guestProgram input t) {iv : Digest}
     {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
@@ -82,7 +91,7 @@ theorem decode_binds_sub (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown)
     ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
       HasCollision (collisionCandidates (decodeV piOf t.memory).seed
         (decodeV piOf t.memory).statement iv s₀) :=
-  decode_binds_V (b2SoundL_of hvd hvs hwalk) hv hvt hs₀ hpub
+  decode_binds_V (b2SoundL_of vsDimsKnown_proved vsKnown_proved hwalk) hv hvt hs₀ hpub
 
 end
 end LeanVM.Guest.End
