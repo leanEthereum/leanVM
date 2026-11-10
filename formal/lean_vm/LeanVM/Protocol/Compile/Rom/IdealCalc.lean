@@ -446,6 +446,100 @@ theorem failFrom_eq_zero :
     exact ih _ _ _ hacc (grindThenSample_after hP (l := [Ev.query rows])
       (by simp [VerifierProgram.after])) (Or.inl rfl)
 
+
+/-- `exp0` scales. -/
+theorem exp0_const_mul {α : Type} (c : ℝ≥0∞) (C : α → List Ev → Option E → ℝ≥0∞) :
+    ∀ (A : VerifierProgram α) (h : List Ev) (g : Option E),
+      S.exp0 A h g (fun a h' g' ↦ c * C a h' g') = c * S.exp0 A h g C := by
+  intro A
+  induction A with
+  | ret a => intros; rfl
+  | fail => intros; simp [exp0]
+  | read k ih =>
+    intro h g
+    simp only [exp0]
+    split <;> simp [ih]
+  | sample k ih =>
+    intro h g
+    rcases g with _ | c'
+    · simp only [exp0, ih, ← Finset.mul_sum, mul_div_assoc]
+    · simp only [exp0, ih]
+  | grind b k ih =>
+    intro h g
+    simp only [exp0]
+    split
+    · simp
+    · simp only [ih, ← Finset.mul_sum, mul_div_assoc]
+  | commit ht w k ih =>
+    intro h g
+    simp only [exp0]
+    split <;> simp [ih]
+  | query i ps k ih =>
+    intro h g
+    simp only [exp0]
+    split <;> simp [ih]
+
+/-- `exp0` of a finite sum. -/
+theorem exp0_sum {α ι : Type} (s : Finset ι) (C : ι → α → List Ev → Option E → ℝ≥0∞)
+    (A : VerifierProgram α) (h : List Ev) (g : Option E) :
+    S.exp0 A h g (fun a h' g' ↦ ∑ i ∈ s, C i a h' g') = ∑ i ∈ s, S.exp0 A h g (C i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    simp only [Finset.sum_empty]
+    have := S.exp0_const_mul 0 (fun _ _ _ ↦ 0) A h g
+    simpa using this
+  | insert i s hi ih =>
+    simp only [Finset.sum_insert hi]
+    rw [S.exp0_add (C i) (fun a h' g' ↦ ∑ i ∈ s, C i a h' g') A h g, ih]
+
+/-- A bound on every continuation bounds the expectation after a common first part. -/
+theorem exp0_bind_le {α β : Type} {f : α → VerifierProgram β}
+    {C : β → List Ev → Option E → ℝ≥0∞} {B : ℝ≥0∞} (hf : ∀ a h g, S.exp0 (f a) h g C ≤ B)
+    (A : VerifierProgram α) (h : List Ev) (g : Option E) : S.exp0 (A >>= f) h g C ≤ B := by
+  rw [VerifierProgram.bind_eq, exp0_bind]
+  exact (exp0_mono hf A h g).trans (exp0_const_le B A h g)
+
+/-- `failFrom_bind_le` with a constant difference. -/
+theorem failFrom_bind_le_const {α : Type} {f' f : α → VerifierProgram Bool} {c : ℝ≥0∞}
+    (hf : ∀ a h g, S.failFrom (f' a) h g ≤ S.failFrom (f a) h g + c) (A : VerifierProgram α)
+    (h : List Ev) (g : Option E) : S.failFrom (A >>= f') h g ≤ S.failFrom (A >>= f) h g + c := by
+  rw [VerifierProgram.bind_eq, VerifierProgram.bind_eq]
+  exact (failFrom_bind_le (D := fun _ _ _ ↦ c) hf A h g).trans
+    (add_le_add le_rfl (exp0_const_le c A h g))
+
+/-- **`X'` fails at most `c` more often than `X`**, whatever follows them. -/
+def DivLE {α : Type} (S : Strategy) (c : ℝ≥0∞) (X' X : VerifierProgram α) : Prop :=
+  ∀ (K : α → VerifierProgram Bool) (h : List Ev) (g : Option E),
+    S.failFrom (X' >>= K) h g ≤ S.failFrom (X >>= K) h g + c
+
+theorem DivLE.refl {α : Type} (c : ℝ≥0∞) (X : VerifierProgram α) : DivLE S c X X :=
+  fun _ _ _ ↦ le_self_add
+
+/-- A common first part keeps a difference. -/
+theorem DivLE.bind_refl {α β : Type} {c : ℝ≥0∞} {f' f : α → VerifierProgram β}
+    (hf : ∀ a, DivLE S c (f' a) (f a)) (A : VerifierProgram α) :
+    DivLE S c (A >>= f') (A >>= f) := by
+  intro K h g
+  rw [LawfulMonad.bind_assoc, LawfulMonad.bind_assoc]
+  exact failFrom_bind_le_const (fun a h g ↦ hf a K h g) A h g
+
+/-- Differences add along a sequence. -/
+theorem DivLE.bind {α β : Type} {c d : ℝ≥0∞} {X' X : VerifierProgram α}
+    {f' f : α → VerifierProgram β} (hX : DivLE S c X' X) (hf : ∀ a, DivLE S d (f' a) (f a)) :
+    DivLE S (c + d) (X' >>= f') (X >>= f) := by
+  intro K h g
+  rw [LawfulMonad.bind_assoc, LawfulMonad.bind_assoc]
+  calc S.failFrom (X' >>= fun a ↦ f' a >>= K) h g
+      ≤ S.failFrom (X >>= fun a ↦ f' a >>= K) h g + c := hX _ h g
+    _ ≤ S.failFrom (X >>= fun a ↦ f a >>= K) h g + d + c := by
+        gcongr
+        exact failFrom_bind_le_const (fun a h g ↦ hf a K h g) X h g
+    _ = _ := by ring
+
+theorem DivLE.mono {α : Type} {c d : ℝ≥0∞} {X' X : VerifierProgram α} (h : DivLE S c X' X)
+    (hcd : c ≤ d) : DivLE S d X' X :=
+  fun K h' g ↦ (h K h' g).trans (add_le_add le_rfl hcd)
 end Strategy
 
 end
