@@ -161,24 +161,26 @@ theorem relabel_codeBindingGame (A : CodeBindingAdvRpmH r Crs Proof) :
   refine bind_congr fun vs ↦ ?_
   cases ok <;> simp [cbWin, Bool.and_comm]
 
-/-- **The knowledge-soundness game of the code-binding adversary** is the knowledge-soundness
-game of the virtual argument against `ksAdv` of the adversary without its openings. -/
+/-- **The knowledge-soundness game of the code-binding adversary** is the two-oracle game of the
+virtual argument against the adversary without its openings, with the deployed challenge by the
+nonce search (`postKG`). -/
 theorem relabel_ksGame (A : CodeBindingAdvRpmH r Crs Proof) :
     simulateQ relabel (ksGameH r ps ext (ksB r A)) =
       simulateQ (toOne (E := KRest) (C := KCap))
-        (ksGame2 r (psV r ps) (extV r ext) (ksAdv r (relabelAdv (advV0 r ps A)))) := by
-  rw [ksGame2, toOne_rpmGame2]
+        (rpmGame2 (liftM (psV r ps).setup) (fun crs ↦ relabelAdv (advV0 r ps A) ((), crs))
+          (postKG r (psV r ps) (extV r ext))) := by
+  rw [toOne_rpmGame2]
   unfold ksGameH
   rw [simulateQ_bind, simulateQ_liftM_of_coins _ (fun n ↦ rfl)]
   refine bind_congr fun crs ↦ ?_
-  simp only [ksB, ksAdv, relabelAdv, advV0, advV, simulateQ_map, StateT.run_map, simulateQ_bind,
+  simp only [ksB, relabelAdv, advV0, advV, simulateQ_map, StateT.run_map, simulateQ_bind,
     bind_map_left, map_bind, bind_assoc, simulateQ_pure, pure_bind, map_pure]
   refine bind_congr fun p ↦ ?_
   refine bind_congr fun ok ↦ ?_
-  simp only [relationMWithHash, simulateQ_bind, ← pairM_one,
-    bind_map_left, bind_assoc]
-  refine bind_congr fun zs ↦ ?_
-  simp only [ksPost, simulateQ_bind, toK_commitCellsM, relabel_commitCellsM, simulateQ_pure,
+  simp only [relationMWithHash, simulateQ_bind, relabel_membershipChallengeM, postKG,
+    toK_membershipChallengeM, bind_assoc]
+  refine bind_congr fun z ↦ ?_
+  simp only [ksPostG, simulateQ_bind, toK_commitCellsM, relabel_commitCellsM, simulateQ_pure,
     pure_bind]
   rfl
 
@@ -305,21 +307,6 @@ theorem leanDa_positionBinding_rpmH : PositionBindingRpmH := by
 end PositionBinding
 
 /-! ## Code binding -/
-
-/-- **A discarded computation is invisible** in the random-oracle model. -/
-theorem run'_bind_const {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
-    [∀ t : hs.Domain, SampleableType (hs.Range t)] {β γ : Type}
-    (X : OracleComp (unifSpec + hs) β) (Y : OracleComp (unifSpec + hs) γ) (c : hs.QueryCache) :
-    (simulateQ hs.romImpl (X >>= fun _ ↦ Y)).run' c =ᵈ (simulateQ hs.romImpl Y).run' c := by
-  have h := run_bind_bind_comm X Y (fun _ r ↦ pure r) c
-  simp only [bind_pure] at h
-  rw [StateT.run'_eq, StateT.run'_eq]
-  refine (h.map Prod.fst).trans ?_
-  rw [simulateQ_bind, StateT.run_bind, map_bind, map_eq_bind_pure_comp]
-  refine EvalDistEq.bind_right _ fun z ↦ ?_
-  rw [simulateQ_bind, StateT.run_bind, map_bind]
-  simp only [simulateQ_pure, StateT.run_pure, map_pure, Function.comp_apply]
-  exact EvalDistEq.bind_const _ _
 
 section CodeBinding
 
@@ -454,16 +441,17 @@ it**, by the straight-line argument built on Benedikt Wagner's framework and gam
 (`LeanDa.StraightBound`), for the virtual oracle-free argument that reads the verdict of the
 argument's verification (`psV`, `extV`): the transfer to the two-oracle model and the duplex lemma
 (`codeBindingGame_le_G`), then a win is a break of the argument's knowledge soundness, the
-statement's game of the code-binding adversary itself (`relabel_ksGame`, through `ksIdealG_le`
-and `rom2_le_ksExpRpm`), or a bad cache of the world with `H` and the challenges lazily sampled
-(`codeBindingExpG_le`). -/
+statement's game of the code-binding adversary itself (`relabel_ksGame`, through
+`ksIdealG_le_rpmG`: the draws read as the nonce search reads them), or a bad cache of the world
+with `H` and the draws lazily sampled (`codeBindingExpG_le`: the hash's bad events, a selected
+accepting draw among the adversary's, and the verifier's one fresh try). -/
 theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Crs Proof)
     (hks : ∀ q : ℕ, QueryCostAtMost (ksGameH r ps ext (ksB r A)) permCallsH q → q ≤ 2 ^ 128 →
       Pr{let b ← runKH (ksGameH r ps ext (ksB r A))}[b = true] ≤
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k)
     (hrM : r ≤ maxRows) (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q) :
     Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
+      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
   rcases le_or_gt Q (2 ^ 127) with hQcap | hQcap
   swap
@@ -483,26 +471,27 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
     unfold paddedRowCount
     calc 2 ^ logPaddedRowCount r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
       _ = 1024 := by norm_num
-  have hK : ksCalls r Q ≤ Q + 2 ^ 22 := by unfold ksCalls relCalls; omega
+  have hK : ksCalls r Q ≤ Q + 2 ^ 65 := by
+    unfold ksCalls relCalls nLabels nonceCount; omega
   -- the argument's knowledge soundness, against the code-binding adversary itself
-  have hε : prT (ksExpRpm r (psV r ps) (extV r ext)
-      (ksAdv r (relabelAdv (advV0 r ps A)))) ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k := by
+  have hε : prT (realGame2 keccakPadding KState.zero
+      (rpmGame2 (liftM (psV r ps).setup) (fun crs ↦ relabelAdv (advV0 r ps A) ((), crs))
+        (postKG r (psV r ps) (extV r ext)))) ≤
+      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k := by
     have e := relabel_ksGame r ps ext A
     have hW : QueryCostAtMost (ksGameH r ps ext (ksB r A)) permCallsH (ksCalls r Q) := by
       rw [← isWeightBound_relabel_iff, e, isWeightBound_toOne_iff]
-      exact isWeightBound_ksGame r (psV r ps) (extV r ext) _ Q hQ0
+      exact isWeightBound_postKGGame r (psV r ps) (extV r ext) _ Q hQ0
     have h := hks (ksCalls r Q) hW (by omega)
     rw [(runK_relabel _).prEvent_eq, e] at h
     refine h.trans (mul_le_mul_left ?_ _)
-    have : ((ksCalls r Q : ℕ) : ℝ≥0∞) ≤ (Q : ℝ≥0∞) + 2 ^ 22 := by exact_mod_cast hK
-    calc ((ksCalls r Q : ℕ) : ℝ≥0∞) + c ≤ (Q : ℝ≥0∞) + 2 ^ 22 + c := by gcongr
-      _ = (Q : ℝ≥0∞) + c + 2 ^ 22 := by ring
+    have : ((ksCalls r Q : ℕ) : ℝ≥0∞) ≤ (Q : ℝ≥0∞) + 2 ^ 65 := by exact_mod_cast hK
+    calc ((ksCalls r Q : ℕ) : ℝ≥0∞) + c ≤ (Q : ℝ≥0∞) + 2 ^ 65 + c := by gcongr
+      _ = (Q : ℝ≥0∞) + c + 2 ^ 65 := by ring
   have hG := codeBindingGame_le_G r ps A Q hQ
   have hA : ∀ crs ∈ support (psV r ps).setup,
       QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs) hgCalls (2 * Q + 1) ∧
-        QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs)
-          (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q := by
+        QueryCostAtMost (advSim r (relabelAdv (advV r ps A)) crs) gwCalls Q := by
     intro crs hcrs
     obtain ⟨h1, h2⟩ := isWeightBound_advSim r (psV r ps) _ Q hQ0 crs hcrs
     rw [relabelAdv_advV0, advSim_map] at h1 h2
@@ -510,29 +499,31 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
   have hS := codeBindingExpG_le r (psV r ps) (extV r ext) (relabelAdv (advV r ps A)) Q hrM hA
   have hKS : prT ((psV r ps).setup >>=
       ksIdealG r (psV r ps) (extV r ext) (relabelAdv (advV r ps A))) ≤
-      prT (ksExpRpm r (psV r ps) (extV r ext)
-        (ksAdv r (relabelAdv (advV0 r ps A)))) +
+      prT (realGame2 keccakPadding KState.zero
+        (rpmGame2 (liftM (psV r ps).setup) (fun crs ↦ relabelAdv (advV0 r ps A) ((), crs))
+          (postKG r (psV r ps) (extV r ext)))) +
         ((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q := by
     rw [show ksIdealG r (psV r ps) (extV r ext) (relabelAdv (advV r ps A)) =
       ksIdealG r (psV r ps) (extV r ext) (relabelAdv (advV0 r ps A)) from
         funext fun crs ↦ (ksIdealG_advV0 r ps ext A crs).symm]
-    exact (ksIdealG_le r (psV r ps) (extV r ext) _ Q hQ0).trans
-      (add_le_add (rom2_le_ksExpRpm r (psV r ps) (extV r ext) _ Q hQ0) le_rfl)
+    exact ksIdealG_le_rpmG r (psV r ps) (extV r ext) _ (fun _ _ _ _ ↦ rfl) (fun _ _ _ _ ↦ rfl)
+      Q hQ0
   have hR := straight_rest_le Q (ksCalls r Q) hK
   calc Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true]
       ≤ prT (codeBindingExpG r (psV r ps) (relabelAdv (advV r ps A))) +
           (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + dupTerm Q := hG
-    _ ≤ prT (ksExpRpm r (psV r ps) (extV r ext)
-            (ksAdv r (relabelAdv (advV0 r ps A)))) +
+    _ ≤ prT (realGame2 keccakPadding KState.zero
+            (rpmGame2 (liftM (psV r ps).setup) (fun crs ↦ relabelAdv (advV0 r ps A) ((), crs))
+              (postKG r (psV r ps) (extV r ext)))) +
           ((((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
             (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-              ((Q + 2 : ℕ) : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 192))) +
+              ((Q : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128))) +
             ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q)) := by
         refine (add_le_add (add_le_add (hS.trans (add_le_add hKS le_rfl)) le_rfl) le_rfl).trans
           (le_of_eq ?_)
         ring
-    _ ≤ ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k +
-          (((Q : ℝ≥0∞) + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ 178 +
+    _ ≤ ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k +
+          (((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247) := add_le_add hε hR
     _ = _ := by ring
 

@@ -70,7 +70,7 @@ noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
     (he4 : roundError L₀ 4 ≤ εmax)
     (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax)
     (hs : roundError 1 2 + 0 ≤ εmax)
-    {T : ℝ≥0∞} (he3 : roundError L₀ 3 + T ≤ εmax) (hTf : T ≤ εmax)
+    {T : ℝ≥0∞} (he3 : roundError L₀ 3 ≤ εmax) (hTf : T ≤ εmax)
     (hxi : (2 : ℝ≥0∞)⁻¹ ^ xiGrindBits * (xiError I L₀ +
       sumcheckLead (List.replicate (layout.tableLogHeights.foldl max 0) none) T) ≤ εmax) :
     Spec ((verifyBusBalance computedBytecodeValue layout).bind (tablePhaseClaims layout))

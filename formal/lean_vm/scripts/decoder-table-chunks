@@ -29,7 +29,7 @@ length and one. Run after `scripts/decoder-tables`, from any directory (the path
 import argparse, os, re, sys, textwrap
 from pathlib import Path
 
-N = 992
+N = 0  # the compiled functions: the rows `main` reads
 SPLIT = 37  # `__loop2`, leanXMSS's check inline (its 41 windows' cells)
 SIZE_DIR = Path("LeanVM/Cost/DecoderSize")
 CHECK_DIR = Path("LeanVM/Cost/Decoder/GuestTablesCheck")
@@ -278,7 +278,9 @@ def main():
     a = ap.parse_args()
     rows, names = nums(a.row_lengths), nums(a.split_lengths)
     os.chdir(Path(__file__).resolve().parent.parent)
-    assert len(rows) == N and sum(names) == rows[SPLIT], (len(rows), sum(names), rows[SPLIT])
+    global N
+    N = len(rows)
+    assert sum(names) == rows[SPLIT], (sum(names), rows[SPLIT])
     files = {**size_files(rows, names, a.limit), **check_files(a.functions), **bound_files(rows, a.bound_limit)}
     size_mods = [p.stem for p in files if p.parent == SIZE_DIR and p.stem != "Locs"]
     check_mods = [p.stem for p in files if p.parent == CHECK_DIR]

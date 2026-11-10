@@ -339,7 +339,7 @@ def ChildGroupStep (rd : Reader) (m nb : ℕ) (chain entries region base limit x
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
@@ -435,7 +435,7 @@ theorem childGroups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of `m` child claims**, called as
 `callIf (1 + N) f [1, N, chain, entries, region, base, last]` with `N = g^a`, `a < 2^34`. -/
 theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries region base last : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)

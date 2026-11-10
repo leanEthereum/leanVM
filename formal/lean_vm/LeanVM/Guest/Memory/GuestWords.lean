@@ -37,7 +37,7 @@ theorem womegaJ_eq' {j : ℕ} (hj : j < coreProgram.length) : womegaJ j = wfsJ j
 
 /-- `wfsJ` is `B2C.fs` by index. -/
 theorem wfs_eq {j : ℕ} (hj : j < coreProgram.length) : B2C.fs coreProgram[j].name = wfsJ j := by
-  have hl : j < 991 := by rw [coreProgram_length] at hj; exact hj
+  have hl : j < 1055 := by rw [coreProgram_length] at hj; exact hj
   unfold B2C.fs
   rw [coreProgram_indexOf?_getElem hj]
   rcases j with _ | k

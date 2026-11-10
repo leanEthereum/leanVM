@@ -7,12 +7,12 @@ public import Mathlib.Algebra.Algebra.ZMod
 public import Statement.LeanDa
 
 /-!
-# The fields `K = GF(2^64)` and `E = GF(2^192)`
+# The fields `K = GF(2^64)` and `E = GF(2^128)`
 
-CompPoly's carriers, as `formal/lean_vm/Statement/Field.lean` uses them: `K` is `BF64`, a
-`BitVec 64` whose bit `i` is the coefficient of `x^i` in `GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)`
-(`crates/primitives/src/field/gf2_64.rs`, `F64`), and `E` is `BF64.Ext3 = K[y]/(y^3 + y + 1)`
-(`F192`, limbs `c0 + c1·y + c2·y^2`). CompPoly proves both moduli irreducible.
+CompPoly's carriers, as `formal/Statement/Field.lean` defines them: `K` is `BF64`, a `BitVec 64`
+whose bit `i` is the coefficient of `x^i` in `GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)`
+(`crates/primitives/src/field/gf2_64.rs`, `F64`), and `E = K[y]/(y^2 + x·y + 1)` (`F128`, limbs
+`c0 + c1·y`), its modulus proved irreducible in `Statement/Field.lean`.
 
 The domain of the Reed-Solomon code is spanned over `GF(2)` by `e_c = x^c`
 (`doc/leanvm/body/d-novel-basis.tex`, the basis of Annex D), so its point of index `b` is the
