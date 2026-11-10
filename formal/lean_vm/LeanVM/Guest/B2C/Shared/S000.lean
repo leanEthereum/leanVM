@@ -28,69 +28,24 @@ set_option maxRecDepth 100000 in
 theorem w1_1 : shareWin 1 (snapsOf 1) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `assert_canonical`, once. -/
-theorem st2 : shareStatic 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `assert_canonical`, window 0. -/
-theorem w2_0 : shareWin 2 (snapsOf 2) 0 = true := by decide +kernel
-
-theorem ok2 : ShareOk 2 := ⟨st2, fun i hi ↦ by
-  have h : (snapsOf 2).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w2_0⟩
+/-- `main`, window 2. -/
+theorem w1_2 : shareWin 1 (snapsOf 1) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `exponent_tables`, once. -/
-theorem st3 : shareStatic 3 = true := by decide +kernel
+theorem st2 : shareStatic 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `exponent_tables`, window 0. -/
-theorem w3_0 : shareWin 3 (snapsOf 3) 0 = true := by decide +kernel
-
-theorem ok3 : ShareOk 3 := ⟨st3, fun i hi ↦ by
-  have h : (snapsOf 3).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w3_0⟩
+theorem w2_0 : shareWin 2 (snapsOf 2) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `g_power_of_word`, once. -/
-theorem st4 : shareStatic 4 = true := by decide +kernel
+/-- `exponent_tables`, window 1. -/
+theorem w2_1 : shareWin 2 (snapsOf 2) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `g_power_of_word`, window 0. -/
-theorem w4_0 : shareWin 4 (snapsOf 4) 0 = true := by decide +kernel
-
-theorem ok4 : ShareOk 4 := ⟨st4, fun i hi ↦ by
-  have h : (snapsOf 4).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w4_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `assert_small_g_power`, once. -/
-theorem st5 : shareStatic 5 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `assert_small_g_power`, window 0. -/
-theorem w5_0 : shareWin 5 (snapsOf 5) 0 = true := by decide +kernel
-
-theorem ok5 : ShareOk 5 := ⟨st5, fun i hi ↦ by
-  have h : (snapsOf 5).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w5_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `eq_prefix_chain`, once. -/
-theorem st6 : shareStatic 6 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `eq_prefix_chain`, window 0. -/
-theorem w6_0 : shareWin 6 (snapsOf 6) 0 = true := by decide +kernel
-
-theorem ok6 : ShareOk 6 := ⟨st6, fun i hi ↦ by
-  have h : (snapsOf 6).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w6_0⟩
+/-- `exponent_tables`, window 2. -/
+theorem w2_2 : shareWin 2 (snapsOf 2) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

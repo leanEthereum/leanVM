@@ -16,45 +16,32 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_expand__L7_L8`, window 2. -/
-theorem w403_2 : shareWin 403 (snapsOf 403) 2 = true := by decide +kernel
+/-- `open_stacked__L22`, window 2. -/
+theorem w354_2 : shareWin 354 (snapsOf 354) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_expand__L7_L8`, window 3. -/
-theorem w403_3 : shareWin 403 (snapsOf 403) 3 = true := by decide +kernel
+/-- `open_stacked__L22`, window 3. -/
+theorem w354_3 : shareWin 354 (snapsOf 354) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_expand__L7_L8`, window 4. -/
-theorem w403_4 : shareWin 403 (snapsOf 403) 4 = true := by decide +kernel
+/-- `open_stacked__L22`, window 4. -/
+theorem w354_4 : shareWin 354 (snapsOf 354) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop25`, once. -/
-theorem st404 : shareStatic 404 = true := by decide +kernel
+/-- `open_stacked__L22`, window 5. -/
+theorem w354_5 : shareWin 354 (snapsOf 354) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop25`, window 0. -/
-theorem w404_0 : shareWin 404 (snapsOf 404) 0 = true := by decide +kernel
-
-theorem ok404 : ShareOk 404 := ⟨st404, fun i hi ↦ by
-  have h : (snapsOf 404).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w404_0⟩
+/-- `open_stacked__L22`, window 6. -/
+theorem w354_6 : shareWin 354 (snapsOf 354) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_factors__L14_L7_L0`, once. -/
-theorem st405 : shareStatic 405 = true := by decide +kernel
+/-- `open_stacked__L22`, window 7. -/
+theorem w354_7 : shareWin 354 (snapsOf 354) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_factors__L14_L7_L0`, window 0. -/
-theorem w405_0 : shareWin 405 (snapsOf 405) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_factors__L14_L7_L0`, window 1. -/
-theorem w405_1 : shareWin 405 (snapsOf 405) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_expand__L14_L7`, once. -/
-theorem st406 : shareStatic 406 = true := by decide +kernel
+/-- `open_stacked__L22`, window 8. -/
+theorem w354_8 : shareWin 354 (snapsOf 354) 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -9,18 +9,18 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kvsstaticRange_304 : kvsStaticRange 304 1 := by
+theorem kvsstaticRange_318 : kvsStaticRange 318 14 := by
   unfold kvsStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvsstaticRange_305 : kvsStaticRange 305 1 := by
+theorem kvsstaticRange_332 : kvsStaticRange 332 1 := by
   unfold kvsStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvssplit_306_0 : noTopRet ((Data.core306.body.drop 0).take 1320) = true ∧
-    blockR (kvslookJ 306) (kvsomLookJ 306) false [(.n 347, 0), (.n 348, 25), (.n 396, 112), (.n 584, 0), (.n 585, 7), (.n 638, 56), (.n 826, 0), (.n 827, 4), (.n 878, 32), (.n 1066, 0), (.n 1067, 3), (.n 1120, 23), (.n 1206, 0), (.n 1207, 2), (.n 1258, 18), (.n 1922, 0), (.n 1923, 28), (.n 1936, 0), (.n 1937, 7), (.n 1950, 0), (.n 1951, 4), (.n 1964, 0), (.n 1965, 2), (.n 2307, 0), (.n 2308, 2)] Data.core306.params Data.core306.name ((Data.core306.body.drop 0).take 1320)
-      ([], []) = some (⟨9153, []⟩, []) ∧
-    blockEnv false [(.n 347, 0), (.n 348, 25), (.n 396, 112), (.n 584, 0), (.n 585, 7), (.n 638, 56), (.n 826, 0), (.n 827, 4), (.n 878, 32), (.n 1066, 0), (.n 1067, 3), (.n 1120, 23), (.n 1206, 0), (.n 1207, 2), (.n 1258, 18), (.n 1922, 0), (.n 1923, 28), (.n 1936, 0), (.n 1937, 7), (.n 1950, 0), (.n 1951, 4), (.n 1964, 0), (.n 1965, 2), (.n 2307, 0), (.n 2308, 2)] Data.core306.params ([], []) ((Data.core306.body.drop 0).take 1320) = ([(.n 1258, 18), (.n 1207, 2), (.n 1206, 0), (.n 1120, 23), (.n 1067, 3), (.n 1066, 0), (.n 878, 32), (.n 827, 4), (.n 826, 0), (.n 638, 56), (.n 585, 7), (.n 584, 0), (.n 396, 112), (.n 348, 25), (.n 347, 0)], []) := by
+theorem kvssplit_333_0 : noTopRet ((Data.core333.body.drop 0).take 1428) = true ∧
+    blockR (kvslookJ 333) (kvsomLookJ 333) false [(.n 160, 1), (.n 161, 37), (.n 213, 108), (.n 347, 1), (.n 348, 8), (.n 405, 55), (.n 537, 1), (.n 538, 5), (.n 595, 32), (.n 723, 1), (.n 724, 3), (.n 781, 23), (.n 862, 1), (.n 863, 3), (.n 910, 20), (.n 1457, 0), (.n 1458, 27), (.n 1610, 0), (.n 1611, 6), (.n 2332, 0), (.n 2333, 4), (.n 2354, 0), (.n 2355, 2)] Data.core333.params Data.core333.name ((Data.core333.body.drop 0).take 1428)
+      ([], []) = some (⟨9436, []⟩, []) ∧
+    blockEnv false [(.n 160, 1), (.n 161, 37), (.n 213, 108), (.n 347, 1), (.n 348, 8), (.n 405, 55), (.n 537, 1), (.n 538, 5), (.n 595, 32), (.n 723, 1), (.n 724, 3), (.n 781, 23), (.n 862, 1), (.n 863, 3), (.n 910, 20), (.n 1457, 0), (.n 1458, 27), (.n 1610, 0), (.n 1611, 6), (.n 2332, 0), (.n 2333, 4), (.n 2354, 0), (.n 2355, 2)] Data.core333.params ([], []) ((Data.core333.body.drop 0).take 1428) = ([(.n 1458, 27), (.n 1457, 0), (.n 910, 20), (.n 863, 3), (.n 862, 1), (.n 781, 23), (.n 724, 3), (.n 723, 1), (.n 595, 32), (.n 538, 5), (.n 537, 1), (.n 405, 55), (.n 348, 8), (.n 347, 1), (.n 213, 108), (.n 161, 37), (.n 160, 1)], []) := by
   decide +kernel
 
 end

@@ -68,7 +68,7 @@ def val (e : Expr) : R V := do
 
 def word' (e : Expr) : R E := do
   match e.consumeMData.getAppFnArgs with
-  | (``word, #[a, b, c]) => return word (← nat a) (← nat b) (← nat c)
+  | (``word, #[a, b]) => return word (← nat a) (← nat b)
   | _ => bad "a word" e
 
 def vals (e : Expr) : R (List V) := list val e
@@ -148,7 +148,7 @@ run_meta do
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 991 && P == Q.map Fn.renumber do
+  | .ok Q => unless P.length == 1055 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
   | .error e => throwError e
 
@@ -161,7 +161,7 @@ function 21). -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 991 := coreProgram_length
+example : coreProgram.length = 1055 := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
@@ -175,11 +175,11 @@ example : coreProgram.find? "sp_wots" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core471 :=
-  Program.find?_of_indexOf? (j := 471) (by decide +kernel) rfl
+example : coreProgram.find? "squeeze_point__L18" = some Data.core527 :=
+  Program.find?_of_indexOf? (j := 527) (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core990 :=
-  Program.find?_of_indexOf? (j := 990) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core1054 :=
+  Program.find?_of_indexOf? (j := 1054) (by decide +kernel) rfl
 
 example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 

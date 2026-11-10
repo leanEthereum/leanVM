@@ -27,15 +27,15 @@ def names(path, name):
     s = open(os.path.join(B1, path), encoding='utf-8').read()
     m = re.search(r'def %s : List \(String × ℕ\) :=\s*\[(.*?)\]\n' % name, s, re.S)
     return re.findall(r'\("([^"]+)", \d+\)', m.group(1))
-KINDS = set(["opening_fold", "assert_canonical", "grind_check__L17", "opening_row_weights__L4_L0",
+KINDS = set(["opening_fold", "grind_check__L17", "opening_row_weights__L4_L0",
              "opening_row_weights__L6_L1"] + names('Opening/Meaning.lean', 'oodPointNames')
             + names('Opening/Meaning.lean', 'finalMessageNames') + names('Merkle/Meaning.lean', 'merkleCapNames')
             + names('Eq/Meaning.lean', 'foldFinalMsgNames'))
 Bnd = lambda n: SB(n) if n in KINDS else 0
 src = open(os.path.join(LV, 'LeanVM', 'Guest', 'Data', 'Source.lean'), encoding='utf-8').read()
 def arr(name):
-    m = re.search(r'def arr_%s : List \(Nat × Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
-    return [int(x) for x in re.findall(r'\((\d+), \d+, \d+\)', m.group(1))]
+    m = re.search(r'def arr_%s : List \(Nat × Nat\) :=\s*\[(.*?)\]\n' % name, src, re.S)
+    return [int(x) for x in re.findall(r'\((\d+), \d+\)', m.group(1))]
 A = {k: arr(k) for k in ['LIG_N_LEVELS', 'LIG_CAP_LEN', 'LIG_YR_LEN', 'LIG_TOTAL_FOLDS',
                          'LIG_POSITIONS_LEN', 'LIG_MAX_SQUEEZES', 'LIG_MAX_INTERLEAVE', 'LIG_QUERIES',
                          'LIG_TREE_DEPTH', 'LIG_SQUEEZES', 'LIG_INTERLEAVE', 'LIG_LEAF_CELLS', 'LIG_CAP_DEPTH']}

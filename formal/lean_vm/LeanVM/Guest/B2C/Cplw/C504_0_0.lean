@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop74`, window 0, part 0. -/
+/-- `__loop47`, window 0, part 0. -/
 theorem cw504_0_0 : cplWin 504 0 0 = true := by decide +kernel
 
-/-- `__loop75`, window 0, part 0. -/
+/-- `squeeze_point_from__L17`, window 0, part 0. -/
 theorem cw505_0_0 : cplWin 505 0 0 = true := by decide +kernel
 
-/-- `__loop76`, window 0, part 0. -/
+/-- `squeeze_point__L17`, window 0, part 0. -/
 theorem cw506_0_0 : cplWin 506 0 0 = true := by decide +kernel
 
-/-- `opening_ood_point__L20`, window 0, part 0. -/
+/-- `decode_query_windows__L18_L8`, window 0, part 0. -/
 theorem cw507_0_0 : cplWin 507 0 0 = true := by decide +kernel
 
-/-- `__loop77`, window 0, part 0. -/
+/-- `__loop48`, window 0, part 0. -/
 theorem cw508_0_0 : cplWin 508 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L1_L64_L32_L21_L8`, window 0, part 0. -/
+/-- `opening_queries__L1_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw509_0_0 : cplWin 509 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L1_L64_L32_L21_L8`, window 1, part 0. -/
+/-- `opening_queries__L1_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw509_1_0 : cplWin 509 1 0 = true := by decide +kernel
 
-/-- `__loop78`, window 0, part 0. -/
+/-- `squeeze_point_from__L13`, window 0, part 0. -/
 theorem cw510_0_0 : cplWin 510 0 0 = true := by decide +kernel
 
 theorem ok504 : CplOk 504 := by

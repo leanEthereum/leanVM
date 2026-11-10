@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop369`, window 2. -/
-theorem w849_2 : shareWin 849 (snapsOf 849) 2 = true := by decide +kernel
+/-- `__loop174`, once. -/
+theorem st739 : shareStatic 739 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L15_L5`, once. -/
-theorem st850 : shareStatic 850 = true := by decide +kernel
+/-- `__loop174`, window 0. -/
+theorem w739_0 : shareWin 739 (snapsOf 739) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L15_L5`, window 0. -/
-theorem w850_0 : shareWin 850 (snapsOf 850) 0 = true := by decide +kernel
+/-- `__loop174`, window 1. -/
+theorem w739_1 : shareWin 739 (snapsOf 739) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L15_L5`, window 1. -/
-theorem w850_1 : shareWin 850 (snapsOf 850) 1 = true := by decide +kernel
+/-- `__loop174`, window 2. -/
+theorem w739_2 : shareWin 739 (snapsOf 739) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop370`, once. -/
-theorem st851 : shareStatic 851 = true := by decide +kernel
+/-- `__loop175`, once. -/
+theorem st740 : shareStatic 740 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop370`, window 0. -/
-theorem w851_0 : shareWin 851 (snapsOf 851) 0 = true := by decide +kernel
+/-- `__loop175`, window 0. -/
+theorem w740_0 : shareWin 740 (snapsOf 740) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop370`, window 1. -/
-theorem w851_1 : shareWin 851 (snapsOf 851) 1 = true := by decide +kernel
+/-- `__loop175`, window 1. -/
+theorem w740_1 : shareWin 740 (snapsOf 740) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop370`, window 2. -/
-theorem w851_2 : shareWin 851 (snapsOf 851) 2 = true := by decide +kernel
+/-- `__loop176`, once. -/
+theorem st741 : shareStatic 741 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
