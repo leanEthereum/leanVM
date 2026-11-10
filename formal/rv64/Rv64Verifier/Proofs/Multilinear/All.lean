@@ -1,0 +1,60 @@
+import Rv64Verifier.Proofs.Multilinear.Dot
+import Rv64Verifier.Proofs.Multilinear.PolyEval
+import Rv64Verifier.Proofs.Multilinear.IndexMle
+import Rv64Verifier.Proofs.Multilinear.Clone
+import Rv64Verifier.Proofs.Multilinear.SelectorPoint
+import Rv64Verifier.Proofs.Multilinear.EqAbove
+import Rv64Verifier.Proofs.Multilinear.FromElem
+import Rv64Verifier.Proofs.Multilinear.Powers
+import Rv64Verifier.Proofs.Field.All
+import Rv64Verifier.Proofs.Runtime.All
+
+/-!
+# The multilinear helpers' contracts, their callees' discharged
+
+Each `Proofs/Multilinear` contract with its callees' contracts proved, down to `memcpy`'s
+(`Runtime/All.lean` leaves its shifting path open), which `clone` takes as a hypothesis.
+-/
+
+namespace Rv64Verifier.Proofs.Multilinear
+open Rv64Verifier.MultilinearContracts Rv64Verifier.Runtime
+
+theorem dot : DotSpec := Dot.dot_spec Field.mul
+theorem polyEval : PolyEvalSpec := PolyEval.poly_eval_spec Field.mul
+theorem indexMle : IndexMleSpec := IndexMle.index_mle_spec Field.mul Field.eSquare
+theorem selectorPoint : SelectorSpec := SelectorPoint.selector_point_spec tryAllocZeroed
+theorem eqAbove : EqAboveSpec := EqAbove.eq_above_spec selectorPoint EqEval.eq_eval_proved
+theorem fromElem : FromElemSpec := FromElem.from_elem_spec tryAllocZeroed
+theorem powers : PowersSpec := Powers.powers_spec tryAllocZeroed Field.mul
+
+/-- `clone`, given `memcpy`'s contract. -/
+theorem clone (hC : MemcpySpec 0x80011ff8) : CloneSpec :=
+  Clone.clone_spec tryAllocZeroed (Wrap.memcpy_wrap hC)
+
+end Rv64Verifier.Proofs.Multilinear
+
+/-! Lean's three axioms, nothing native. -/
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.dot' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.dot
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.polyEval' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.polyEval
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.indexMle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.indexMle
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.selectorPoint' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.selectorPoint
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.eqAbove' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.eqAbove
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.fromElem' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.fromElem
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.powers' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.powers
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.clone' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.clone

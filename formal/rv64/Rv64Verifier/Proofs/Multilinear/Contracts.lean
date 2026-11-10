@@ -1,0 +1,284 @@
+import Rv64Verifier.Proofs.Contracts
+import Rv64Verifier.Proofs.Field.Contracts
+import Rv64Verifier.Model.Multilinear
+import Rv64Verifier.Proofs.Runtime.Contracts
+
+/-!
+# Contracts of the multilinear helpers
+
+Statements only (`multilinear.rs`, `field.rs`'s `powers`): a caller takes these as hypotheses,
+and `Proofs/Multilinear/*.lean` prove them from their callees' contracts. Each says the code
+computes its mirror in `Model/Multilinear.lean` (hence the statement's value, through the mirror's
+`_eq` theorem), how many bytes below `sp` it may use, its callees' included, and what else it may
+write.
+-/
+
+namespace Rv64Verifier.MultilinearContracts
+open RiscvZkvm.Rv64 LeanVM.Parameters Rv64Verifier.Contracts
+
+/-! ## `dot`, at `0x80007f3c` -/
+
+/-- `dot`'s 96-byte frame and `mul`'s stack below it. -/
+@[rv_addr] def dotStack : Nat := 96 + mulStack
+
+/-- `a0` = the return slot, `a1`/`a2` = `left`, `a3`/`a4` = `right`: valid, the slices apart
+from the result and from the stack, `.rodata` in place apart from the result and the stack. -/
+structure DotPre (s : MachineState) : Prop where
+  ret : ValidMemRange (s.getReg .x10) 3
+  left : ValidMemRange (s.getReg .x11) (3 * (s.getReg .x12).toNat)
+  right : ValidMemRange (s.getReg .x13) (3 * (s.getReg .x14).toNat)
+  stack : StackOk s dotStack
+  retLeft : Apart (s.getReg .x10) 24 (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  retRight : Apart (s.getReg .x10) 24 (s.getReg .x13) (24 * (s.getReg .x14).toNat)
+  retStack : Apart (s.getReg .x10) 24 (stackLo s dotStack) dotStack
+  leftStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s dotStack) dotStack
+  rightStack : Apart (s.getReg .x13) (24 * (s.getReg .x14).toNat) (stackLo s dotStack) dotStack
+  rodata : RodataOk s
+  retRodata : Apart (s.getReg .x10) 24 rodataBase rodataSize
+  stackRodata : Apart (stackLo s dotStack) dotStack rodataBase rodataSize
+
+/-- The lengths agree, the result is `dotRust` of the slices, and memory changes only in the
+result and the stack. -/
+structure DotPost (s t : MachineState) : Prop where
+  len : s.getReg .x12 = s.getReg .x14
+  value : eAt t (s.getReg .x10) = Model.dotRust (eListAt s (s.getReg .x11) (s.getReg .x12).toNat)
+    (eListAt s (s.getReg .x13) (s.getReg .x12).toNat)
+  frame : ∀ a, ¬ Within a (s.getReg .x10) 24 → ¬ Within a (stackLo s dotStack) dotStack →
+    t.getMem a = s.getMem a
+
+abbrev DotSpec : Prop := FunSpec Image.code 0x80007f3c DotPre DotPost
+
+/-! ## `poly_eval`, at `0x8000cef4` -/
+
+/-- `poly_eval`'s 96-byte frame and `mul`'s stack below it. -/
+@[rv_addr] def polyEvalStack : Nat := 96 + mulStack
+
+/-- `a0` = the return slot, `a1`/`a2` = the coefficients, `a3` = the point (an `E` passed by
+reference): valid, the result apart from the coefficients, the point and the stack, both inputs
+apart from the stack, `.rodata` in place apart from the result and the stack. -/
+structure PolyEvalPre (s : MachineState) : Prop where
+  ret : ValidMemRange (s.getReg .x10) 3
+  coeffs : ValidMemRange (s.getReg .x11) (3 * (s.getReg .x12).toNat)
+  point : ValidMemRange (s.getReg .x13) 3
+  stack : StackOk s polyEvalStack
+  retCoeffs : Apart (s.getReg .x10) 24 (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  retPoint : Apart (s.getReg .x10) 24 (s.getReg .x13) 24
+  retStack : Apart (s.getReg .x10) 24 (stackLo s polyEvalStack) polyEvalStack
+  coeffsStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s polyEvalStack)
+    polyEvalStack
+  pointStack : Apart (s.getReg .x13) 24 (stackLo s polyEvalStack) polyEvalStack
+  rodata : RodataOk s
+  retRodata : Apart (s.getReg .x10) 24 rodataBase rodataSize
+  stackRodata : Apart (stackLo s polyEvalStack) polyEvalStack rodataBase rodataSize
+
+/-- The result is `polyEvalRust` of the coefficients at the point; memory changes only in the
+result and the stack. -/
+structure PolyEvalPost (s t : MachineState) : Prop where
+  value : eAt t (s.getReg .x10) =
+    Model.polyEvalRust (eListAt s (s.getReg .x11) (s.getReg .x12).toNat) (eAt s (s.getReg .x13))
+  frame : ∀ a, ¬ Within a (s.getReg .x10) 24 →
+    ¬ Within a (stackLo s polyEvalStack) polyEvalStack → t.getMem a = s.getMem a
+
+abbrev PolyEvalSpec : Prop := FunSpec Image.code 0x8000cef4 PolyEvalPre PolyEvalPost
+
+/-! ## `index_mle`, at `0x80010cd4` -/
+
+/-- `index_mle`'s 160-byte frame and `mul`'s stack below it (`E::square` uses none). -/
+@[rv_addr] def indexMleStack : Nat := 160 + mulStack
+
+/-- `a0` = the return slot, `a1`/`a2` = the point: valid, apart from each other and the stack,
+`.rodata` in place apart from the stack. -/
+structure IndexMlePre (s : MachineState) : Prop where
+  ret : ValidMemRange (s.getReg .x10) 3
+  point : ValidMemRange (s.getReg .x11) (3 * (s.getReg .x12).toNat)
+  stack : StackOk s indexMleStack
+  retPoint : Apart (s.getReg .x10) 24 (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  retStack : Apart (s.getReg .x10) 24 (stackLo s indexMleStack) indexMleStack
+  pointStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s indexMleStack)
+    indexMleStack
+  rodata : RodataOk s
+  stackRodata : Apart (stackLo s indexMleStack) indexMleStack rodataBase rodataSize
+
+/-- The result is `indexMleRust` of the point; memory changes only in the result and the
+stack. -/
+structure IndexMlePost (s t : MachineState) : Prop where
+  value : eAt t (s.getReg .x10) =
+    Model.indexMleRust (eListAt s (s.getReg .x11) (s.getReg .x12).toNat)
+  frame : ∀ a, ¬ Within a (s.getReg .x10) 24 →
+    ¬ Within a (stackLo s indexMleStack) indexMleStack → t.getMem a = s.getMem a
+
+abbrev IndexMleSpec : Prop := FunSpec Image.code 0x80010cd4 IndexMlePre IndexMlePost
+
+/-! ## `<Vec<E> as Clone>::clone`, at `0x8000897c`: a slice to a new `Vec` -/
+
+/-- `clone`'s 64-byte frame and `try_allocate_in`'s stack below it (`memcpy`'s is smaller). -/
+@[rv_addr] def cloneStack : Nat := 64 + Runtime.tryAllocStack
+
+/-- `a0` = where the `Vec` goes, `a1`/`a2` = the slice: the result apart from the free heap, the
+slice mapped, aligned, apart from the free heap, the result and the stack. -/
+structure ClonePre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : ValidMemRange (s.getReg .x10) 3
+  src : Runtime.Mapped (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  srcAlign : (s.getReg .x11).toNat % 8 = 0
+  stack : Runtime.RtStack s cloneStack
+  outFree : Runtime.Outside s (s.getReg .x10) 24
+  outStack : Apart (s.getReg .x10) 24 (stackLo s cloneStack) cloneStack
+  srcFree : Runtime.Outside s (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  srcOut : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (s.getReg .x10) 24
+  srcStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s cloneStack) cloneStack
+
+/-- A new `Vec` of the slice's elements, its buffer freshly allocated; memory changes only in the
+`Vec`, the stack, `NEXT` and the new allocation. -/
+structure ClonePost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  vec : Runtime.VecOk t (s.getReg .x10) 24 8
+  len : Runtime.vecLen t (s.getReg .x10) = s.getReg .x12
+  elems : Runtime.vecEs t (s.getReg .x10) = eListAt s (s.getReg .x11) (s.getReg .x12).toNat
+  fresh : Runtime.NewBuf s t (Runtime.vecPtr t (s.getReg .x10)) (24 * (s.getReg .x12).toNat) 8
+  frame : Runtime.ByteFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
+    Within a (stackLo s cloneStack) cloneStack ∨ Within a Runtime.nextAddr 8 ∨ Runtime.Fresh s t a
+
+abbrev CloneSpec : Prop := FunSpec Image.code 0x8000897c ClonePre ClonePost
+
+/-! ## `selector_point`, at `0x8000e1bc` -/
+
+/-- `selector_point`'s 64-byte frame and `try_allocate_in`'s stack below it. -/
+@[rv_addr] def selectorStack : Nat := 64 + Runtime.tryAllocStack
+
+/-- `a0` = where the `Vec` goes, `a1` = the selector, `a2` = the length. -/
+structure SelectorPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : ValidMemRange (s.getReg .x10) 3
+  stack : Runtime.RtStack s selectorStack
+  outFree : Runtime.Outside s (s.getReg .x10) 24
+  outStack : Apart (s.getReg .x10) 24 (stackLo s selectorStack) selectorStack
+
+/-- A new `Vec` of `selectorPointRust selector length`, its buffer freshly allocated; memory
+changes only in the `Vec`, the stack, `NEXT` and the new allocation. -/
+structure SelectorPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  vec : Runtime.VecOk t (s.getReg .x10) 24 8
+  len : Runtime.vecLen t (s.getReg .x10) = s.getReg .x12
+  elems : Runtime.vecEs t (s.getReg .x10) =
+    Model.selectorPointRust (s.getReg .x11) (s.getReg .x12).toNat
+  fresh : Runtime.NewBuf s t (Runtime.vecPtr t (s.getReg .x10)) (24 * (s.getReg .x12).toNat) 8
+  frame : Runtime.ByteFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
+    Within a (stackLo s selectorStack) selectorStack ∨ Within a Runtime.nextAddr 8 ∨
+      Runtime.Fresh s t a
+
+abbrev SelectorSpec : Prop := FunSpec Image.code 0x8000e1bc SelectorPre SelectorPost
+
+/-! ## `Placement::eq_above`, at `0x8000e12c` -/
+
+/-- `eq_eval`'s stack, which `eq_above` tail-calls; `selector_point`'s, below `eq_above`'s
+80-byte frame, is smaller. -/
+@[rv_addr] def eqAboveStack : Nat := 112 + mulStack
+
+/-- `a0` = the return slot, `a1` = `variables`, `a2` = `index`, `a3`/`a4` = the point: the
+result and the point apart from the free heap and the stack, `.rodata` in place. -/
+structure EqAbovePre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  ret : ValidMemRange (s.getReg .x10) 3
+  point : ValidMemRange (s.getReg .x13) (3 * (s.getReg .x14).toNat)
+  stack : Runtime.RtStack s eqAboveStack
+  retFree : Runtime.Outside s (s.getReg .x10) 24
+  pointFree : Runtime.Outside s (s.getReg .x13) (24 * (s.getReg .x14).toNat)
+  retStack : Apart (s.getReg .x10) 24 (stackLo s eqAboveStack) eqAboveStack
+  pointStack : Apart (s.getReg .x13) (24 * (s.getReg .x14).toNat) (stackLo s eqAboveStack)
+    eqAboveStack
+  rodata : RodataOk s
+
+/-- What `eq_above` may write: the result, the stack, `NEXT` and what it allocates. -/
+@[rv_addr] def EqAboveW (s t : MachineState) (a : Word) : Prop :=
+  Within a (s.getReg .x10) 24 ∨ Within a (stackLo s eqAboveStack) eqAboveStack ∨
+    Within a Runtime.nextAddr 8 ∨ Runtime.Fresh s t a
+
+/-- The result is `PlacementRust.eqAbove` of the point; a doubleword none of whose bytes it may
+write keeps its value. -/
+structure EqAbovePost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  value : eAt t (s.getReg .x10) =
+    Model.PlacementRust.eqAbove ⟨(s.getReg .x11).toNat, s.getReg .x12⟩
+      (eListAt s (s.getReg .x13) (s.getReg .x14).toNat)
+  frame : ∀ a, (∀ i < 8, ¬ EqAboveW s t (a + BitVec.ofNat 64 i)) → t.getMem a = s.getMem a
+
+abbrev EqAboveSpec : Prop := FunSpec Image.code 0x8000e12c EqAbovePre EqAbovePost
+
+/-! ## `<E as SpecFromElem>::from_elem` (`vec![x; n]`), at `0x80005360` -/
+
+/-- `from_elem`'s 64-byte frame and `try_allocate_in`'s stack below it. -/
+@[rv_addr] def fromElemStack : Nat := 64 + Runtime.tryAllocStack
+
+/-- `a0` = where the `Vec` goes, `a1` = the element (an `E` by reference), `a2` = `n`: the result
+and the element apart from the free heap, the stack and each other. -/
+structure FromElemPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : ValidMemRange (s.getReg .x10) 3
+  elem : ValidMemRange (s.getReg .x11) 3
+  stack : Runtime.RtStack s fromElemStack
+  outFree : Runtime.Outside s (s.getReg .x10) 24
+  outStack : Apart (s.getReg .x10) 24 (stackLo s fromElemStack) fromElemStack
+  elemFree : Runtime.Outside s (s.getReg .x11) 24
+  elemStack : Apart (s.getReg .x11) 24 (stackLo s fromElemStack) fromElemStack
+  elemOut : Apart (s.getReg .x11) 24 (s.getReg .x10) 24
+
+/-- A new `Vec` of `n` copies of the element, its buffer freshly allocated; memory changes only
+in the `Vec`, the stack, `NEXT` and the new allocation. -/
+structure FromElemPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  vec : Runtime.VecOk t (s.getReg .x10) 24 8
+  len : Runtime.vecLen t (s.getReg .x10) = s.getReg .x12
+  elems : Runtime.vecEs t (s.getReg .x10) =
+    List.replicate (s.getReg .x12).toNat (eAt s (s.getReg .x11))
+  fresh : Runtime.NewBuf s t (Runtime.vecPtr t (s.getReg .x10)) (24 * (s.getReg .x12).toNat) 8
+  frame : Runtime.ByteFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
+    Within a (stackLo s fromElemStack) fromElemStack ∨ Within a Runtime.nextAddr 8 ∨
+      Runtime.Fresh s t a
+
+abbrev FromElemSpec : Prop := FunSpec Image.code 0x80005360 FromElemPre FromElemPost
+
+/-! ## `powers`, at `0x80007dfc` -/
+
+/-- `powers`' 144-byte frame and `mul`'s stack below it (`try_allocate_in`'s is smaller). -/
+@[rv_addr] def powersStack : Nat := 144 + mulStack
+
+/-- `a0` = where the `Vec` goes, `a1` = the base (an `E` by reference), `a2` = `count`: the result
+and the base apart from the free heap, the stack, `.rodata` and each other; `.rodata` in place. -/
+structure PowersPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : ValidMemRange (s.getReg .x10) 3
+  base : ValidMemRange (s.getReg .x11) 3
+  stack : Runtime.RtStack s powersStack
+  outFree : Runtime.Outside s (s.getReg .x10) 24
+  outStack : Apart (s.getReg .x10) 24 (stackLo s powersStack) powersStack
+  outRodata : Apart (s.getReg .x10) 24 rodataBase rodataSize
+  baseFree : Runtime.Outside s (s.getReg .x11) 24
+  baseStack : Apart (s.getReg .x11) 24 (stackLo s powersStack) powersStack
+  baseOut : Apart (s.getReg .x11) 24 (s.getReg .x10) 24
+  rodata : RodataOk s
+
+/-- What `powers` may write: the result, the stack, `NEXT` and what it allocates. -/
+@[rv_addr] def PowersW (s t : MachineState) (a : Word) : Prop :=
+  Within a (s.getReg .x10) 24 ∨ Within a (stackLo s powersStack) powersStack ∨
+    Within a Runtime.nextAddr 8 ∨ Runtime.Fresh s t a
+
+/-- A new `Vec` of `powers base count`, its buffer freshly allocated; a doubleword none of whose
+bytes it may write keeps its value (`mul`'s contract frames doublewords, not bytes). -/
+structure PowersPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  vec : Runtime.VecOk t (s.getReg .x10) 24 8
+  len : Runtime.vecLen t (s.getReg .x10) = s.getReg .x12
+  elems : Runtime.vecEs t (s.getReg .x10) =
+    LeanVM.Protocol.Verifier.powers (eAt s (s.getReg .x11)) (s.getReg .x12).toNat
+  fresh : Runtime.NewBuf s t (Runtime.vecPtr t (s.getReg .x10)) (24 * (s.getReg .x12).toNat) 8
+  frame : ∀ a, (∀ i < 8, ¬ PowersW s t (a + BitVec.ofNat 64 i)) → t.getMem a = s.getMem a
+
+abbrev PowersSpec : Prop := FunSpec Image.code 0x80007dfc PowersPre PowersPost
+
+end Rv64Verifier.MultilinearContracts
