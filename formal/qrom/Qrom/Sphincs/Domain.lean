@@ -24,19 +24,20 @@ namespace Qrom.Sphincs
 /-- The longest hash input. -/
 def maxLen : ℕ := 2048
 
-/-- The byte strings of length at most `maxLen`. -/
-abbrev Input := {l : HashInput // l.length ≤ maxLen}
-
-instance : Fintype Input :=
-  Fintype.ofEquiv (Σ n : Fin (maxLen + 1), List.Vector UInt8 n)
+/-- The lists of length at most `n` over a finite type are finitely many. -/
+instance boundedListFintype (α : Type) [Fintype α] (n : ℕ) : Fintype {l : List α // l.length ≤ n} :=
+  Fintype.ofEquiv (Σ k : Fin (n + 1), List.Vector α k)
     { toFun := fun v ↦ ⟨v.2.toList, by simpa using Nat.le_of_lt_succ v.1.2⟩
       invFun := fun x ↦ ⟨⟨x.1.length, Nat.lt_succ_of_le x.2⟩, ⟨x.1, rfl⟩⟩
       left_inv := by
-        rintro ⟨⟨n, hn⟩, l, hl⟩
+        rintro ⟨⟨k, hk⟩, l, hl⟩
         simp only at hl
         subst hl
         rfl
       right_inv := fun _ ↦ rfl }
+
+/-- The byte strings of length at most `maxLen`. -/
+abbrev Input := {l : HashInput // l.length ≤ maxLen}
 
 /-- A byte string as an input, when it is short enough. -/
 def embed (l : HashInput) : Option Input :=
