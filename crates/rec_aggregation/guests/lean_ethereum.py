@@ -505,10 +505,11 @@ SP_ENCODING_BYTES = 16 * 4 + SP_COUNTER_BYTES
 SP_UNUSED_BYTES = 8 - SP_TAIL_BYTES
 
 # --------------------------------------------------------------- node capacities
-# MAX_KEYS caps the coverage table's slots, both schemes' declared claims and their
-# duplicates, which is what the coverage range check needs below 2^MIN_LOG_MEM;
-# MAX_RECURSIONS is the arity of an aggregation tree.
-MAX_KEYS = MAX_KEYS_PLACEHOLDER
+# The coverage table's slots, both schemes' declared claims and their duplicates, are
+# bounded by the memory itself: each count is a g-power address (`assert_gpow`), so its
+# log is below the announced memory size, at most 2^32, and sums of a few never wrap.
+# The host's MAX_KEYS caps them further. MAX_RECURSIONS is the arity of an aggregation
+# tree.
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
 
@@ -4159,7 +4160,7 @@ def list_split(n_g):
     rest = split[2]
     assert log(rest) < CLAIM_GROUP
     assert log(groups) < BIG_GROUPS
-    assert log(bigs) < MAX_KEYS
+    assert_gpow(bigs)
     # Every exponent is small and nonnegative, so this is an identity over the
     # integers: CLAIM_BIG * bigs + CLAIM_GROUP * groups + rest == n.
     assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
@@ -4560,20 +4561,21 @@ def main():
     n_raw_s_g = meta[5]
     n_children_g = meta[6]
     n_direct_da_g = meta[7]
-    assert log(n_lx_g) < MAX_KEYS
-    assert log(n_xdup_g) < MAX_KEYS
-    assert log(n_raw_x_g) < MAX_KEYS
-    assert log(n_lean_sphincs_g) < MAX_KEYS
-    assert log(n_sdup_g) < MAX_KEYS
-    assert log(n_raw_s_g) < MAX_KEYS
+    assert_gpow(n_lx_g)
+    assert_gpow(n_xdup_g)
+    assert_gpow(n_raw_x_g)
+    assert_gpow(n_lean_sphincs_g)
+    assert_gpow(n_sdup_g)
+    assert_gpow(n_raw_s_g)
     assert log(n_children_g) < MAX_RECURSIONS + 1
     assert log(n_direct_da_g) < 2
     lx_slots_g = n_lx_g * n_xdup_g
     lean_sphincs_slots_g = n_lean_sphincs_g * n_sdup_g
-    # The sum of both regions bounds the coverage indices, so it is what has to sit
-    # below the minimum memory size.
+    # The sum of both regions bounds the coverage indices, so it is what has to be a
+    # memory address: its log is then below 2^32 and the runtime bounds below mean
+    # what they say. An honest node holds its coverage table in memory, so it fits.
     n_total_g = lx_slots_g * lean_sphincs_slots_g
-    assert log(n_total_g) < MAX_KEYS
+    assert_gpow(n_total_g)
 
     # The proving environment (the proof system's version and this bytecode) as one
     # digest. It rides the statement rather than the bytecode, so nothing here has to
@@ -4626,8 +4628,8 @@ def main():
             lx_tags[LX_TAG_SLOT[i] - 1] = i
     for xi in mul_range(1, n_raw_x_g):
         idx = hint_witness("raw_index")
-        # A runtime bound, whose `n_total < 2^MIN_LOG_MEM` precondition is
-        # discharged by `assert log(n_total_g) < MAX_KEYS` above. Without it this
+        # A runtime bound, whose bound is small by `assert_gpow(n_total_g)` above
+        # (its log below the memory size). Without it this
         # degenerates to what DEREF alone gives and an index could reach past
         # `cover`, which is the whole bijection. The bound is the leanXMSS region, so
         # a raw leanXMSS signature covers no leanSPHINCS claim.
@@ -4668,8 +4670,8 @@ def main():
         hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_lean_sphincs
         nsub_x_g = child_meta[0]
         nsub_s_g = child_meta[1]
-        assert log(nsub_x_g) < MAX_KEYS
-        assert log(nsub_s_g) < MAX_KEYS
+        assert_gpow(nsub_x_g)
+        assert_gpow(nsub_s_g)
         nsub_g = nsub_x_g * nsub_s_g
         cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, lx_slots_g, nsub_x_g)
         cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, sp_cover, base * nsub_x_g, lean_sphincs_slots_g, nsub_s_g)

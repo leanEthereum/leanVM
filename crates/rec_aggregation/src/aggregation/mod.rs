@@ -73,8 +73,7 @@ pub const MAX_RECURSIONS: usize = 16;
 /// Exclusive cap on coverage slots: signatures of both schemes, including duplicates
 /// and omitted claims. Exactly this many is already too many.
 ///
-/// It is where the coverage indices' range check has to sit to stay below
-/// `2^MIN_LOG_MEM`, so the bound means the same at every announced memory size.
-/// The guest checks it against a COMPILE-TIME bound, so raising it past
-/// `2^MIN_LOG_MEM` fails the build rather than weakening the index bound.
-pub const MAX_KEYS: usize = 1 << 16;
+/// A host policy: the guest bounds the counts by the memory instead, each one a
+/// memory address (`assert_gpow`), which an honest node's coverage table already
+/// makes it.
+pub const MAX_KEYS: usize = 1 << 20;

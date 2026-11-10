@@ -9,7 +9,7 @@ use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, pu
 use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
-use super::{MAX_KEYS, MAX_RECURSIONS};
+use super::MAX_RECURSIONS;
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::f192_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
@@ -938,7 +938,6 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("LX_TAG_SLOT", format!("{slots:?}"));
     ps("LX_TAG_LOG", format!("{logs:?}"));
     ps("LX_N_TAGS", n_tags.to_string());
-    ps("MAX_KEYS", MAX_KEYS.to_string());
     ps("CLAIM_GROUP", CLAIM_GROUP.to_string());
     ps("BIG_GROUPS", BIG_GROUPS.to_string());
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());
