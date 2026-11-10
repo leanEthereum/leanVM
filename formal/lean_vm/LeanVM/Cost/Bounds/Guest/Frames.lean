@@ -113,13 +113,13 @@ theorem proofAtFrame_cost (hP : Includes P Decoder.proofAtFrameC.costDeps) (Tb :
   omega
 
 /-- **The batching's hints off `aggregate_claims`' frame** (`hintsAtFrameC`):
-`47·F + 46·R + 138487`. -/
+`48·F + 47·R + 142050`. -/
 theorem hintsAtFrame_cost (hP : Includes P Decoder.hintsAtFrameC.costDeps) {rd : Reader}
     {rdV : MachineValue} (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
     {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R) (args : List E)
     (hlen : args.length ≤ 16) :
     machineCost P Decoder.hintsAtFrameC.costIdx [rdV, VnV, encodeValue args] ≤
-      47 * F + 46 * R + 138487 := by
+      48 * F + 47 * R + 142050 := by
   rw [Decoder.hintsAtFrameC.costEq P hP rd rdV hrd Vn VnV hVn]
   have hσ : ∀ v : V, RunsApp P (.closure Decoder.hintsAtFrameC.lam0.costIdx
       [VnV, encodeValue args, encodeValue ([] : List E)]) [encodeValue v]
@@ -185,11 +185,11 @@ theorem wV_cost (hP : Includes P Decoder.decWitNC.lam1.costDeps) (Tb : ReaderTab
   omega
 
 include hVn hF hrd hR in
-/-- The batching hints' witness function (`decWitNC.lam2`): `47·F + 46·R + 138493`. -/
+/-- The batching hints' witness function (`decWitNC.lam2`): `48·F + 47·R + 142056`. -/
 theorem wA_cost (hP : Includes P Decoder.decWitNC.lam2.costDeps) (args : List E)
     (hlen : args.length ≤ 16) :
     appCost P (.closure Decoder.decWitNC.lam2.costIdx [rdV, VnV]) [encodeValue args] ≤
-      47 * F + 46 * R + 138493 := by
+      48 * F + 47 * R + 142056 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
     Decoder.decWitNC.lam2.costEq P hP rd rdV hrd Vn VnV hVn, List.length_cons, List.length_cons, List.length_nil]
   have := hintsAtFrame_cost P hVn hF (by includes) hrd hR args hlen

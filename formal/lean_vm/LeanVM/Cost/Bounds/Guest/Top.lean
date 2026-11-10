@@ -293,7 +293,7 @@ include hrd hR hσ hS hVn hF hcl hC hL32
 prices, the signatures' readers' `WX`, `WS` given. -/
 @[expose] def decWitNPrice (G R S F C L DW WX WS K N X : ℕ) : ℕ :=
   decWitPrice G R S WX WS (DW + 17)
-    (vsPiPrice R (F + 9) F C L + 23) (47 * F + 46 * R + 138493) K N X + 29
+    (vsPiPrice R (F + 9) F C L + 23) (48 * F + 47 * R + 142056) K N X + 29
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
 tables `Tb` given, the leanSPHINCS reader `wS` of price at most `WS`, `da_verify`'s witness at its

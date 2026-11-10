@@ -50,7 +50,7 @@ theorem readCellsK_cost (hP : Includes P Decoder.readCellsKC.costDeps) (x : K) (
     machineCost P Decoder.readCellsKC.costIdx [rdV, encodeValue x, encodeValue n] ≤
       (R + 3003) * n + 27 := by
   rw [Decoder.readCellsKC.costEq P hP rd rdV hrd]
-  have := readCells_cost P hrd hR (by includes) (E.ofLimbs x 0 0) n hn
+  have := readCells_cost P hrd hR (by includes) (E.ofLimbs x 0) n hn
   omega
 
 /-- **A leanXMSS claim off its slot's address** (`xmssAtKC`): `4·R + 12320`. -/
@@ -187,30 +187,32 @@ theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
   unfold decStmtPrice
   omega
 
-/-- The sumcheck's rounds the batching hints (`aggRoundsC`): at most `46·S + 46·R + 138040`. -/
+/-- The sumcheck's rounds the batching hints (`aggRoundsC`): at most `46·S + 46·R + 138500`. -/
 theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
-    machineCost P Decoder.aggRoundsC.costIdx [rdV, σV] ≤ 46 * S + 46 * R + 138040 := by
+    machineCost P Decoder.aggRoundsC.costIdx [rdV, σV] ≤ 46 * S + 46 * R + 138500 := by
   rw [Decoder.aggRoundsC.costEq P hP rd rdV hrd σ σV hσ]
   have m := rangeMap_le P (by includes) (by includes) _
     (.closure Decoder.aggRoundsC.lam0.costIdx [rdV, σV])
     (fun k ↦ RunsApp.of_spec (Decoder.aggRoundsC.lam0.costSpec P (by includes) rd rdV hrd σ σV hσ k))
-    (2 * S + 2 * R + 5973) 23 23 le_rfl (by norm_num) (fun k hk ↦ by
+    (2 * S + 2 * R + 5993) 23 23 le_rfl (by norm_num) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.aggRoundsC.lam0.costEq P (by includes) rd rdV hrd σ σV hσ, List.length_cons,
         List.length_cons, List.length_nil]
-      have := memAt_cost P hrd hR (by includes) (σ (.n 5)) (2 * k) (by omega)
-      have := memAt_cost P hrd hR (by includes) (σ (.n 5)) (2 * k + 1) (by omega)
-      have := hS (.n 5)
+      have := memAt_cost P hrd hR (by includes) (σ (.n 6)) (1 + 2 * k) (by omega)
+      have := memAt_cost P hrd hR (by includes) (σ (.n 6)) (2 + 2 * k) (by omega)
+      have := hS (.n 6)
       limbs_one
       omega)
   omega
 
-/-- **The batching's hints** (`aggHintsC`): at most `47·S + 46·R + 138055`. -/
+/-- **The batching's hints** (`aggHintsC`): the nonce, the rounds, the bytecode's value: at most
+`48·S + 47·R + 141600`. -/
 theorem aggHints_cost (hP : Includes P Decoder.aggHintsC.costDeps) :
-    machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 47 * S + 46 * R + 138055 := by
+    machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 48 * S + 47 * R + 141600 := by
   rw [Decoder.aggHintsC.costEq P hP rd rdV hrd σ σV hσ]
   have := aggRounds_cost P hσ hS hrd hR (by includes)
-  have := hS (.n 6)
+  have := memAt_cost P hrd hR (by includes) (σ (.n 6)) 0 (by norm_num)
+  have := hS (.n 6); have := hS (.n 7)
   omega
 
 end Reader
