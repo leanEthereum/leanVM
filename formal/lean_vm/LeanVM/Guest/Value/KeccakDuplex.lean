@@ -175,7 +175,7 @@ theorem powLane_cells (S : KeccakState) : Keccak.lane S 2 = ((cellsOfState S fal
   simp [cellsOfState, cellLanes]
 
 /-- A `K` literal's lane. -/
-theorem ofLane_toUInt64 (t : ℕ) : K.ofLane t.toUInt64 = K.ofBits t := rfl
+@[simp] theorem ofLane_toUInt64 (t : ℕ) : K.ofLane t.toUInt64 = K.ofBits t := rfl
 
 end
 end LeanVM.Guest.Value.Keccak
