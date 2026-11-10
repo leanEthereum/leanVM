@@ -709,10 +709,9 @@ coverage table, one slot per raw signature and per entry of a child's lists
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
-($2^{25}$ nonces per proof of work) of an execution of $G$ of
-committed size above $2^{21}$ (so of stack log $\lceil\log_2 \mathrm{size}\rceil \ge 22$, the floor
-the guest program checks and leanVM's aggregator pads every aggregate to) on
-$\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
+($2^{25}$ nonces per proof of work) of an execution of $G$ on $\mathrm{dig}_{iv_G}(s_i)$ (the
+prover makes none past $2^{32}$ committed words, and $G$ opens every stack the verifier admits of an
+execution, of log $19$ to $32$); and the verifier that also refuses
 every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
 program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
@@ -723,8 +722,8 @@ below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
-statement's deferring-verifier conditions; a stack log of at least $22$ announced (the guest program
-has opening code for stack logs $22$ to $28$ only) and a proof stream of at most $8192$ field
+statement's deferring-verifier conditions; a stack log of $19$ to $32$ announced (the guest program
+has one opening arm per stack log, the rate dispatched inside it) and a proof stream of at most $8192$ field
 elements; at each query step of its deferring verifier, the Merkle openings agreeing wherever they
 share a node of the tree (an honest prover's openings, all from one tree, agree); and no zero
 challenge in its deferring verifier. \lean{lean_vm} proves that honest children meet it
@@ -762,9 +761,8 @@ bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest
 counted from its code, not measurements.
 
 \paragraph{The theorems.} Each concludes that $G$ has a valid execution $t$ on public input
-$\mathrm{dig}_{iv_G}(s)$ with $2^{21} < \mathrm{size}(t) \le 2^{28}$ (committed size; the
-\lean{lean_vm} theorems give $2^{22} \le \mathrm{size}(t)$), so that its honest proof is a child
-\lean{HonestChild} admits.
+$\mathrm{dig}_{iv_G}(s)$ with $\mathrm{size}(t) \le 2^{32}$ (committed size), so that its honest
+proof is a child \lean{HonestChild} admits.
 \begin{itemize}
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
 the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
@@ -789,7 +787,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 \end{tabular}
 \end{center}
 \lean{DeployedLimits} caps a recursion node at $16$ children, each at
-any $\mu \in [22,28]$ and $r \in [1,4]$.
+any $\mu \in [19,32]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
 $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA
@@ -805,7 +803,7 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 \paragraph{Honest proofs are rarely refused} (\lean{HonestProofRarelyRefused}). For the same named
 prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{25}$ nonces per proof of work, it
 makes no proof, or the verifier that also refuses every zero challenge (\lean{verifierRefusingZero})
-rejects its proof, of any valid execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$,
+rejects its proof, of any valid execution of committed size at most $2^{32}$, at $1 \le \rho \le 4$,
 with probability at most $2^{-126}$. The guest program checks a child with the deployed Keccak, so
 the bad events (a proof of work with no nonce within its fuel, a zero challenge) are bounded in the
 RPM for the same prover and check, and their absence at the deployed Keccak is what

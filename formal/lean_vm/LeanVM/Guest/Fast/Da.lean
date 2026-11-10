@@ -8,7 +8,7 @@ public import LeanVM.Guest.B1.Da.Verify
 
 `dvWit σ Vm` (`B1/Da/Verify.lean`) reads the DA matrix off `da_verify`'s callees' frames, which it
 names by string literals (`"da_verify_column"`, `"__loop25"`, `"da_verify_cell"`). `dvWitN σ Vn`
-reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `31`, `405`, `32`);
+reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `31`, `398`, `32`);
 `dvWitN_eq`: at `Vn k = Vm (decoderFunctionName k)` they are equal.
 -/
 
