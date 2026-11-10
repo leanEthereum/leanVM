@@ -7,7 +7,8 @@
 //! into `E` upstream, [`crate::leaf`]).
 //!
 //! On AVX-512 the large rounds run eight pairs of rows at a time in transposed form
-//! (`vertical`), two rounds a pass, and skip the runs of rows known to be the identity.
+//! (`vertical`), from `QUAD_THREADS` threads two rounds a pass, and skip the runs of
+//! rows known to be the identity.
 
 use std::ops::Range;
 
@@ -613,9 +614,9 @@ fn send_round(ps: &mut ProverState, lambda: F192, messages: [[F192; 4]; 3]) -> F
 /// keeps its rows transposed, in [`Group`]s, until it is small enough for the scalar
 /// kernels.
 ///
-/// A pass reads quads of rows: besides the next round's message it forms the one after,
-/// as a quartic in the next challenge, so the following pass binds both rounds, reading
-/// a level once and writing a quarter of it.
+/// From [`super::QUAD_THREADS`] threads a pass reads quads of rows: besides the next
+/// round's message it forms the one after, as a quartic in the next challenge, so the
+/// following pass binds both rounds, reading a level once and writing a quarter of it.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 mod vertical {
     use super::{SplitEq, add4, coarsen, sum_tasks};
@@ -949,7 +950,8 @@ mod vertical {
                 // a covered one.
                 *out = unsafe { primitives::uninit_vec(n_out[t]) };
             } else {
-                // SAFETY: as above; `Group` is plain data.
+                // SAFETY: `n_out[t]` is within the capacity, and as above; `Group` is
+                // plain data.
                 unsafe { out.set_len(n_out[t]) };
             }
             parallel::SendPtr(out.as_mut_ptr())
@@ -1041,7 +1043,13 @@ pub struct ProductTriple {
 /// The first two trees share a product by construction, as the bus's two sides do.
 /// One root is sent for both, then the third, so no verifier can be handed an unbalanced pair.
 pub(crate) fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState) -> ProductTriple {
-    prove_product_triple_with(leaves, ps, parallel::num_threads() >= QUAD_THREADS)
+    // Only the vertical kernels bind two rounds a pass.
+    let vertical = cfg!(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "vpclmulqdq"
+    ));
+    prove_product_triple_with(leaves, ps, vertical && parallel::num_threads() >= QUAD_THREADS)
 }
 
 /// [`prove_product_triple`], binding two rounds a pass on the vertical kernels when `quad`:
