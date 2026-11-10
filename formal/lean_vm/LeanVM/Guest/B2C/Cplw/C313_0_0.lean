@@ -25,12 +25,12 @@ theorem cw313_1_0 : cplWin 313 1 0 = true := by decide +kernel
 /-- `open_stacked__L2`, window 2, part 0. -/
 theorem cw313_2_0 : cplWin 313 2 0 = true := by decide +kernel
 
-/-- `open_stacked__L2`, window 3, part 0. -/
-theorem cw313_3_0 : cplWin 313 3 0 = true := by decide +kernel
+/-- `open_stacked__L2`, window 2, part 1. -/
+theorem cw313_2_1 : cplWin 313 2 1 = true := by decide +kernel
 
 theorem ok313 : CplOk 313 := by
   intro i hi k hk
-  have hc : (certOf 313).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 313).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 313 0 = 1 := by decide +kernel
@@ -41,14 +41,11 @@ theorem ok313 : CplOk 313 := by
     rw [hn] at hk
     interval_cases k
     · exact cw313_1_0
-  · have hn : nParts 313 2 = 1 := by decide +kernel
+  · have hn : nParts 313 2 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw313_2_0
-  · have hn : nParts 313 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw313_3_0
+    · exact cw313_2_1
 
 end
 end LeanVM.Guest.B2C.Cplw

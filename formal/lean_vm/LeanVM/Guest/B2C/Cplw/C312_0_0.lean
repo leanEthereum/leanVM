@@ -25,12 +25,9 @@ theorem cw312_1_0 : cplWin 312 1 0 = true := by decide +kernel
 /-- `open_stacked__L1`, window 2, part 0. -/
 theorem cw312_2_0 : cplWin 312 2 0 = true := by decide +kernel
 
-/-- `open_stacked__L1`, window 3, part 0. -/
-theorem cw312_3_0 : cplWin 312 3 0 = true := by decide +kernel
-
 theorem ok312 : CplOk 312 := by
   intro i hi k hk
-  have hc : (certOf 312).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 312).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 312 0 = 1 := by decide +kernel
@@ -45,10 +42,6 @@ theorem ok312 : CplOk 312 := by
     rw [hn] at hk
     interval_cases k
     · exact cw312_2_0
-  · have hn : nParts 312 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

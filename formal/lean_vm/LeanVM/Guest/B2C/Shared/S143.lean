@@ -16,18 +16,6 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 1. -/
-theorem w413_1 : shareWin 413 (snapsOf 413) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 2. -/
-theorem w413_2 : shareWin 413 (snapsOf 413) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 3. -/
-theorem w413_3 : shareWin 413 (snapsOf 413) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- `rs_eq_rows__L8`, window 4. -/
 theorem w413_4 : shareWin 413 (snapsOf 413) 4 = true := by decide +kernel
 
@@ -46,6 +34,45 @@ theorem w414_0 : shareWin 414 (snapsOf 414) 0 = true := by decide +kernel
 set_option maxRecDepth 100000 in
 /-- `__loop36`, window 1. -/
 theorem w414_1 : shareWin 414 (snapsOf 414) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L0`, once. -/
+theorem st415 : shareStatic 415 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L0`, window 0. -/
+theorem w415_0 : shareWin 415 (snapsOf 415) 0 = true := by decide +kernel
+
+theorem ok415 : ShareOk 415 := ⟨st415, fun i hi ↦ by
+  have h : (snapsOf 415).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w415_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L2`, once. -/
+theorem st416 : shareStatic 416 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L2`, window 0. -/
+theorem w416_0 : shareWin 416 (snapsOf 416) 0 = true := by decide +kernel
+
+theorem ok416 : ShareOk 416 := ⟨st416, fun i hi ↦ by
+  have h : (snapsOf 416).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w416_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L4`, once. -/
+theorem st417 : shareStatic 417 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `gkr_rounds__L4`, window 0. -/
+theorem w417_0 : shareWin 417 (snapsOf 417) 0 = true := by decide +kernel
+
+theorem ok417 : ShareOk 417 := ⟨st417, fun i hi ↦ by
+  have h : (snapsOf 417).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w417_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -19,13 +19,14 @@ public import LeanVM.Guest.Memory.GuestFresh.Part08
 public import LeanVM.Guest.Memory.GuestFresh.Part09
 public import LeanVM.Guest.Memory.GuestFresh.Part10
 public import LeanVM.Guest.Memory.GuestFresh.Part11
+public import LeanVM.Guest.Memory.GuestFresh.Part12
 public import LeanVM.Guest.Memory.GuestFresh.Fresh19
 public import LeanVM.Guest.Memory.GuestFresh.Fresh36
-public import LeanVM.Guest.Memory.GuestFresh.Fresh1207
-public import LeanVM.Guest.Memory.GuestFresh.Fresh1209
-public import LeanVM.Guest.Memory.GuestFresh.Fresh1213
-public import LeanVM.Guest.Memory.GuestFresh.Fresh1219
-public import LeanVM.Guest.Memory.GuestFresh.Fresh1223
+public import LeanVM.Guest.Memory.GuestFresh.Fresh1828
+public import LeanVM.Guest.Memory.GuestFresh.Fresh1830
+public import LeanVM.Guest.Memory.GuestFresh.Fresh1835
+public import LeanVM.Guest.Memory.GuestFresh.Fresh1842
+public import LeanVM.Guest.Memory.GuestFresh.Fresh1847
 
 /-!
 # The guest's temporaries are fresh
@@ -96,83 +97,91 @@ theorem coreProgram_fresh : coreProgram.Fresh := by
     h23.append' (freshRange_584.on) rfl rfl
   have h25 : FreshOn 0 884 :=
     h24.append' (freshRange_734.on) rfl rfl
-  have h26 : FreshOn 0 929 :=
+  have h26 : FreshOn 0 1034 :=
     h25.append' (freshRange_884.on) rfl rfl
-  have h27 : FreshOn 0 973 :=
-    h26.append' (freshRange_929.on) rfl rfl
-  have h28 : FreshOn 0 1024 :=
-    h27.append' (freshRange_973.on) rfl rfl
-  have h29 : FreshOn 0 1071 :=
-    h28.append' (freshRange_1024.on) rfl rfl
-  have h30 : FreshOn 0 1114 :=
-    h29.append' (freshRange_1071.on) rfl rfl
-  have h31 : FreshOn 0 1142 :=
-    h30.append' (freshRange_1114.on) rfl rfl
-  have h32 : FreshOn 0 1145 :=
-    h31.append' (freshRange_1142.on) rfl rfl
-  have h33 : FreshOn 0 1150 :=
-    h32.append' (freshRange_1145.on) rfl rfl
-  have h34 : FreshOn 0 1158 :=
-    h33.append' (freshRange_1150.on) rfl rfl
-  have h35 : FreshOn 0 1162 :=
-    h34.append' (freshRange_1158.on) rfl rfl
-  have h36 : FreshOn 0 1167 :=
-    h35.append' (freshRange_1162.on) rfl rfl
-  have h37 : FreshOn 0 1172 :=
-    h36.append' (freshRange_1167.on) rfl rfl
-  have h38 : FreshOn 0 1175 :=
-    h37.append' (freshRange_1172.on) rfl rfl
-  have h39 : FreshOn 0 1176 :=
-    h38.append' (freshRange_1175.on) rfl rfl
-  have h40 : FreshOn 0 1180 :=
-    h39.append' (freshRange_1176.on) rfl rfl
-  have h41 : FreshOn 0 1181 :=
-    h40.append' (freshRange_1180.on) rfl rfl
-  have h42 : FreshOn 0 1187 :=
-    h41.append' (freshRange_1181.on) rfl rfl
-  have h43 : FreshOn 0 1188 :=
-    h42.append' (freshRange_1187.on) rfl rfl
-  have h44 : FreshOn 0 1192 :=
-    h43.append' (freshRange_1188.on) rfl rfl
-  have h45 : FreshOn 0 1193 :=
-    h44.append' (freshRange_1192.on) rfl rfl
-  have h46 : FreshOn 0 1197 :=
-    h45.append' (freshRange_1193.on) rfl rfl
-  have h47 : FreshOn 0 1198 :=
-    h46.append' (freshRange_1197.on) rfl rfl
-  have h48 : FreshOn 0 1202 :=
-    h47.append' (freshRange_1198.on) rfl rfl
-  have h49 : FreshOn 0 1203 :=
-    h48.append' (freshRange_1202.on) rfl rfl
-  have h50 : FreshOn 0 1207 :=
-    h49.append' (freshRange_1203.on) rfl rfl
-  have h51 : FreshOn 0 1208 :=
-    h50.append' (freshOn_one (j := 1207) rfl core1207_fresh) rfl rfl
-  have h52 : FreshOn 0 1209 :=
-    h51.append' (freshRange_1208.on) rfl rfl
-  have h53 : FreshOn 0 1210 :=
-    h52.append' (freshOn_one (j := 1209) rfl core1209_fresh) rfl rfl
-  have h54 : FreshOn 0 1213 :=
-    h53.append' (freshRange_1210.on) rfl rfl
-  have h55 : FreshOn 0 1214 :=
-    h54.append' (freshOn_one (j := 1213) rfl core1213_fresh) rfl rfl
-  have h56 : FreshOn 0 1219 :=
-    h55.append' (freshRange_1214.on) rfl rfl
-  have h57 : FreshOn 0 1220 :=
-    h56.append' (freshOn_one (j := 1219) rfl core1219_fresh) rfl rfl
-  have h58 : FreshOn 0 1223 :=
-    h57.append' (freshRange_1220.on) rfl rfl
-  have h59 : FreshOn 0 1224 :=
-    h58.append' (freshOn_one (j := 1223) rfl core1223_fresh) rfl rfl
-  have h60 : FreshOn 0 1227 :=
-    h59.append' (freshRange_1224.on) rfl rfl
-  have h61 : FreshOn 0 1229 :=
-    h60.append' (freshRange_1227.on) rfl rfl
-  have h62 : FreshOn 0 1230 :=
-    h61.append' (freshRange_1229.on) rfl rfl
-  have h63 : FreshOn 0 1231 :=
-    h62.append' (freshRange_1230.on) rfl rfl
-  exact fresh_of_freshOn (coreProgram_length ▸ h63)
+  have h27 : FreshOn 0 1120 :=
+    h26.append' (freshRange_1034.on) rfl rfl
+  have h28 : FreshOn 0 1215 :=
+    h27.append' (freshRange_1120.on) rfl rfl
+  have h29 : FreshOn 0 1344 :=
+    h28.append' (freshRange_1215.on) rfl rfl
+  have h30 : FreshOn 0 1469 :=
+    h29.append' (freshRange_1344.on) rfl rfl
+  have h31 : FreshOn 0 1573 :=
+    h30.append' (freshRange_1469.on) rfl rfl
+  have h32 : FreshOn 0 1686 :=
+    h31.append' (freshRange_1573.on) rfl rfl
+  have h33 : FreshOn 0 1742 :=
+    h32.append' (freshRange_1686.on) rfl rfl
+  have h34 : FreshOn 0 1745 :=
+    h33.append' (freshRange_1742.on) rfl rfl
+  have h35 : FreshOn 0 1750 :=
+    h34.append' (freshRange_1745.on) rfl rfl
+  have h36 : FreshOn 0 1760 :=
+    h35.append' (freshRange_1750.on) rfl rfl
+  have h37 : FreshOn 0 1763 :=
+    h36.append' (freshRange_1760.on) rfl rfl
+  have h38 : FreshOn 0 1768 :=
+    h37.append' (freshRange_1763.on) rfl rfl
+  have h39 : FreshOn 0 1774 :=
+    h38.append' (freshRange_1768.on) rfl rfl
+  have h40 : FreshOn 0 1781 :=
+    h39.append' (freshRange_1774.on) rfl rfl
+  have h41 : FreshOn 0 1786 :=
+    h40.append' (freshRange_1781.on) rfl rfl
+  have h42 : FreshOn 0 1790 :=
+    h41.append' (freshRange_1786.on) rfl rfl
+  have h43 : FreshOn 0 1791 :=
+    h42.append' (freshRange_1790.on) rfl rfl
+  have h44 : FreshOn 0 1796 :=
+    h43.append' (freshRange_1791.on) rfl rfl
+  have h45 : FreshOn 0 1797 :=
+    h44.append' (freshRange_1796.on) rfl rfl
+  have h46 : FreshOn 0 1804 :=
+    h45.append' (freshRange_1797.on) rfl rfl
+  have h47 : FreshOn 0 1805 :=
+    h46.append' (freshRange_1804.on) rfl rfl
+  have h48 : FreshOn 0 1810 :=
+    h47.append' (freshRange_1805.on) rfl rfl
+  have h49 : FreshOn 0 1811 :=
+    h48.append' (freshRange_1810.on) rfl rfl
+  have h50 : FreshOn 0 1816 :=
+    h49.append' (freshRange_1811.on) rfl rfl
+  have h51 : FreshOn 0 1817 :=
+    h50.append' (freshRange_1816.on) rfl rfl
+  have h52 : FreshOn 0 1822 :=
+    h51.append' (freshRange_1817.on) rfl rfl
+  have h53 : FreshOn 0 1823 :=
+    h52.append' (freshRange_1822.on) rfl rfl
+  have h54 : FreshOn 0 1828 :=
+    h53.append' (freshRange_1823.on) rfl rfl
+  have h55 : FreshOn 0 1829 :=
+    h54.append' (freshOn_one (j := 1828) rfl core1828_fresh) rfl rfl
+  have h56 : FreshOn 0 1830 :=
+    h55.append' (freshRange_1829.on) rfl rfl
+  have h57 : FreshOn 0 1831 :=
+    h56.append' (freshOn_one (j := 1830) rfl core1830_fresh) rfl rfl
+  have h58 : FreshOn 0 1835 :=
+    h57.append' (freshRange_1831.on) rfl rfl
+  have h59 : FreshOn 0 1836 :=
+    h58.append' (freshOn_one (j := 1835) rfl core1835_fresh) rfl rfl
+  have h60 : FreshOn 0 1842 :=
+    h59.append' (freshRange_1836.on) rfl rfl
+  have h61 : FreshOn 0 1843 :=
+    h60.append' (freshOn_one (j := 1842) rfl core1842_fresh) rfl rfl
+  have h62 : FreshOn 0 1847 :=
+    h61.append' (freshRange_1843.on) rfl rfl
+  have h63 : FreshOn 0 1848 :=
+    h62.append' (freshOn_one (j := 1847) rfl core1847_fresh) rfl rfl
+  have h64 : FreshOn 0 1852 :=
+    h63.append' (freshRange_1848.on) rfl rfl
+  have h65 : FreshOn 0 1854 :=
+    h64.append' (freshRange_1852.on) rfl rfl
+  have h66 : FreshOn 0 1855 :=
+    h65.append' (freshRange_1854.on) rfl rfl
+  have h67 : FreshOn 0 1856 :=
+    h66.append' (freshRange_1855.on) rfl rfl
+  exact fresh_of_freshOn (coreProgram_length ▸ h67)
 
 end
 end LeanVM.Guest

@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `level_residual__L9`, window 0, part 0. -/
+/-- `level_residual__L112_L13`, window 0, part 0. -/
 theorem cw456_0_0 : cplWin 456 0 0 = true := by decide +kernel
 
-/-- `level_residual__L5`, window 0, part 0. -/
+/-- `level_residual__L75_L13`, window 0, part 0. -/
 theorem cw457_0_0 : cplWin 457 0 0 = true := by decide +kernel
 
-/-- `opening_ood_point__L14`, window 0, part 0. -/
+/-- `level_residual__L56_L13`, window 0, part 0. -/
 theorem cw458_0_0 : cplWin 458 0 0 = true := by decide +kernel
 
-/-- `level_positions__L19_L15_L3`, window 0, part 0. -/
+/-- `level_residual__L56_L9`, window 0, part 0. -/
 theorem cw459_0_0 : cplWin 459 0 0 = true := by decide +kernel
 
-/-- `level_positions__L10_L16_L4`, window 0, part 0. -/
+/-- `level_residual__L45_L9`, window 0, part 0. -/
 theorem cw460_0_0 : cplWin 460 0 0 = true := by decide +kernel
 
-/-- `level_positions__L7_L17_L5`, window 0, part 0. -/
+/-- `level_residual__L38_L9`, window 0, part 0. -/
 theorem cw461_0_0 : cplWin 461 0 0 = true := by decide +kernel
 
-/-- `level_positions__L6_L18_L6`, window 0, part 0. -/
+/-- `level_residual__L32_L9`, window 0, part 0. -/
 theorem cw462_0_0 : cplWin 462 0 0 = true := by decide +kernel
 
-/-- `level_queries__L223_L1_L64_L32_L15_L3`, window 0, part 0. -/
+/-- `level_residual__L32_L5`, window 0, part 0. -/
 theorem cw463_0_0 : cplWin 463 0 0 = true := by decide +kernel
 
 theorem ok456 : CplOk 456 := by
@@ -109,6 +109,16 @@ theorem ok462 : CplOk 462 := by
     rw [hn] at hk
     interval_cases k
     · exact cw462_0_0
+
+theorem ok463 : CplOk 463 := by
+  intro i hi k hk
+  have hc : (certOf 463).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 463 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw463_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

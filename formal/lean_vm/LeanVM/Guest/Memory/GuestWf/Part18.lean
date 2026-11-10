@@ -16,19 +16,19 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem wfRange_1207 : WfRange 1207 6 := by
+theorem wfRange_831 : WfRange 831 9 := by
   unfold WfRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wfRange_1213 : WfRange 1213 7 := by
+theorem wfRange_840 : WfRange 840 4 := by
   unfold WfRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wfRange_1220 : WfRange 1220 9 := by
+theorem wfRange_844 : WfRange 844 4 := by
   unfold WfRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wfRange_1229 : WfRange 1229 2 := by
+theorem wfRange_848 : WfRange 848 4 := by
   unfold WfRange; decide +kernel
 
 end

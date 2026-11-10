@@ -17,31 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop307`, window 0. -/
+/-- `__loop170`, window 0. -/
 theorem w1200_0 : WinOk 1200 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop307`, window 1. -/
-theorem w1200_1 : WinOk 1200 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop307`, window 2. -/
-theorem w1200_2 : WinOk 1200 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop307`, window 3. -/
-theorem w1200_3 : WinOk 1200 3 := winOk_of_C (by decide +kernel)
-
-/-- `__loop308`, window 0. -/
+/-- `__loop171`, window 0. -/
 theorem w1201_0 : WinOk 1201 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop308`, window 1. -/
-theorem w1201_1 : WinOk 1201 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop308`, window 2. -/
-theorem w1201_2 : WinOk 1201 2 := winOk_of_C (by decide +kernel)
-
-/-- `decode_query_windows__L26_L2`, window 0. -/
+/-- `__loop172`, window 0. -/
 theorem w1202_0 : WinOk 1202 0 := winOk_of_C (by decide +kernel)
 
+/-- `__loop173`, window 0. -/
+theorem w1203_0 : WinOk 1203 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop174`, window 0. -/
+theorem w1204_0 : WinOk 1204 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop175`, window 0. -/
+theorem w1205_0 : WinOk 1205 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop176`, window 0. -/
+theorem w1206_0 : WinOk 1206 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop177`, window 0. -/
+theorem w1207_0 : WinOk 1207 0 := winOk_of_C (by decide +kernel)
+
+theorem ok1200 : CheckOk 1200 := checkOk_one (by decide +kernel) w1200_0
+
+theorem ok1201 : CheckOk 1201 := checkOk_one (by decide +kernel) w1201_0
+
 theorem ok1202 : CheckOk 1202 := checkOk_one (by decide +kernel) w1202_0
+
+theorem ok1203 : CheckOk 1203 := checkOk_one (by decide +kernel) w1203_0
+
+theorem ok1204 : CheckOk 1204 := checkOk_one (by decide +kernel) w1204_0
+
+theorem ok1205 : CheckOk 1205 := checkOk_one (by decide +kernel) w1205_0
+
+theorem ok1206 : CheckOk 1206 := checkOk_one (by decide +kernel) w1206_0
+
+theorem ok1207 : CheckOk 1207 := checkOk_one (by decide +kernel) w1207_0
 
 end
 end LeanVM.Guest.Checked

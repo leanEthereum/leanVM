@@ -41,7 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
 XMSS = '__loop2'  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4469-4474)
-MAIN_FRAME = 444 + 16555  # B2C.mainFrame
+MAIN_FRAME = 444 + 14911  # B2C.mainFrame
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
@@ -53,7 +53,7 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # `claim_list_digest` and `da_verify`, whose trees' shapes count them (`vscount.MV_*`): the `V`
 # count families (`Memory/GuestCntV*`), apart from `main`'s static callees' so that neither
 # family's change rebuilds the other's dependents.
-VROOTS = (['open_stacked__L%d' % c for c in range(28)] +
+VROOTS = (['open_stacked__L%d' % c for c in range(14)] +
           ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
            'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
            'list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +

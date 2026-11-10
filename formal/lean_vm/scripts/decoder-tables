@@ -14,7 +14,7 @@ lean_vm's); `--check` fails when the file differs (`check-all.sh` and the CI run
 import argparse, glob, os, re, sys
 from pathlib import Path
 
-N = 1232
+N = 1857
 PART = 512  # rows per part of `guestLocsList`
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 

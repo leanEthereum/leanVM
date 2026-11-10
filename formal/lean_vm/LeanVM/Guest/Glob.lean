@@ -33,7 +33,7 @@ open LeanVM.Guest.Check
 @[expose] public section
 
 /-- The number of compiled functions. -/
-def nFns : ℕ := 1232
+def nFns : ℕ := 1857
 
 instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 

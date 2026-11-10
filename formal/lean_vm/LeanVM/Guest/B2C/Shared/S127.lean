@@ -16,18 +16,6 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop15`, window 0. -/
-theorem w325_0 : shareWin 325 (snapsOf 325) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop15`, window 1. -/
-theorem w325_1 : shareWin 325 (snapsOf 325) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop15`, window 2. -/
-theorem w325_2 : shareWin 325 (snapsOf 325) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
 /-- `__loop15`, window 3. -/
 theorem w325_3 : shareWin 325 (snapsOf 325) 3 = true := by decide +kernel
 
@@ -73,6 +61,45 @@ theorem ok328 : ShareOk 328 := ⟨st328, fun i hi ↦ by
   have h : (snapsOf 328).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w328_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_last__L2`, once. -/
+theorem st329 : shareStatic 329 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_last__L2`, window 0. -/
+theorem w329_0 : shareWin 329 (snapsOf 329) 0 = true := by decide +kernel
+
+theorem ok329 : ShareOk 329 := ⟨st329, fun i hi ↦ by
+  have h : (snapsOf 329).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w329_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_last__L3`, once. -/
+theorem st330 : shareStatic 330 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_last__L3`, window 0. -/
+theorem w330_0 : shareWin 330 (snapsOf 330) 0 = true := by decide +kernel
+
+theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
+  have h : (snapsOf 330).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w330_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_last__L4`, once. -/
+theorem st331 : shareStatic 331 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_last__L4`, window 0. -/
+theorem w331_0 : shareWin 331 (snapsOf 331) 0 = true := by decide +kernel
+
+theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by
+  have h : (snapsOf 331).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w331_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

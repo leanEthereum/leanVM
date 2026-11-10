@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop85`, window 0. -/
+/-- `level_residual__L19_L11`, window 0. -/
 theorem w894_0 : WinOk 894 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop86`, window 0. -/
+/-- `level_residual__L18_L11`, window 0. -/
 theorem w895_0 : WinOk 895 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop87`, window 0. -/
+/-- `level_residual__L16_L7`, window 0. -/
 theorem w896_0 : WinOk 896 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop88`, window 0. -/
+/-- `level_residual__L15_L7`, window 0. -/
 theorem w897_0 : WinOk 897 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop89`, window 0. -/
+/-- `level_residual__L13_L3`, window 0. -/
 theorem w898_0 : WinOk 898 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop90`, window 0. -/
+/-- `level_residual__L12_L3`, window 0. -/
 theorem w899_0 : WinOk 899 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop91`, window 0. -/
+/-- `opening_ood_point__L24`, window 0. -/
 theorem w900_0 : WinOk 900 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop92`, window 0. -/
+/-- `level_positions__L33_L25_L7`, window 0. -/
 theorem w901_0 : WinOk 901 0 := winOk_of_C (by decide +kernel)
 
 theorem ok894 : CheckOk 894 := checkOk_one (by decide +kernel) w894_0

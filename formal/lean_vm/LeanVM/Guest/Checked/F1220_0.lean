@@ -17,29 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `walk_path__L24_L5`, window 0. -/
+/-- `__loop187`, window 0. -/
 theorem w1220_0 : WinOk 1220 0 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L24_L5`, window 1. -/
-theorem w1220_1 : WinOk 1220 1 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L24_L5`, window 2. -/
-theorem w1220_2 : WinOk 1220 2 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L24_L5`, window 3. -/
-theorem w1220_3 : WinOk 1220 3 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L24_L5`, window 4. -/
-theorem w1220_4 : WinOk 1220 4 := winOk_of_C (by decide +kernel)
-
-/-- `__loop318`, window 0. -/
+/-- `__loop188`, window 0. -/
 theorem w1221_0 : WinOk 1221 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop318`, window 1. -/
-theorem w1221_1 : WinOk 1221 1 := winOk_of_C (by decide +kernel)
+/-- `__loop189`, window 0. -/
+theorem w1222_0 : WinOk 1222 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop318`, window 2. -/
-theorem w1221_2 : WinOk 1221 2 := winOk_of_C (by decide +kernel)
+/-- `__loop190`, window 0. -/
+theorem w1223_0 : WinOk 1223 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop191`, window 0. -/
+theorem w1224_0 : WinOk 1224 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop192`, window 0. -/
+theorem w1225_0 : WinOk 1225 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop193`, window 0. -/
+theorem w1226_0 : WinOk 1226 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop194`, window 0. -/
+theorem w1227_0 : WinOk 1227 0 := winOk_of_C (by decide +kernel)
+
+theorem ok1220 : CheckOk 1220 := checkOk_one (by decide +kernel) w1220_0
+
+theorem ok1221 : CheckOk 1221 := checkOk_one (by decide +kernel) w1221_0
+
+theorem ok1222 : CheckOk 1222 := checkOk_one (by decide +kernel) w1222_0
+
+theorem ok1223 : CheckOk 1223 := checkOk_one (by decide +kernel) w1223_0
+
+theorem ok1224 : CheckOk 1224 := checkOk_one (by decide +kernel) w1224_0
+
+theorem ok1225 : CheckOk 1225 := checkOk_one (by decide +kernel) w1225_0
+
+theorem ok1226 : CheckOk 1226 := checkOk_one (by decide +kernel) w1226_0
+
+theorem ok1227 : CheckOk 1227 := checkOk_one (by decide +kernel) w1227_0
 
 end
 end LeanVM.Guest.Checked

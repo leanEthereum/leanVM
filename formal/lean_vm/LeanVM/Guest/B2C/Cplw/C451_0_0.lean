@@ -37,7 +37,7 @@ theorem cw453_1_0 : cplWin 453 1 0 = true := by decide +kernel
 /-- `fold_final_msg__L5`, window 0, part 0. -/
 theorem cw454_0_0 : cplWin 454 0 0 = true := by decide +kernel
 
-/-- `level_residual__L13`, window 0, part 0. -/
+/-- `level_residual__L223_L13`, window 0, part 0. -/
 theorem cw455_0_0 : cplWin 455 0 0 = true := by decide +kernel
 
 theorem ok451 : CplOk 451 := by

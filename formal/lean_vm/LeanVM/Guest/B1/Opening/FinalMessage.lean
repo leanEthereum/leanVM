@@ -822,7 +822,7 @@ theorem core479_body : Fn.body Data.core479 = ofmBody 1 := stmtsEqb_sound (by de
 set_option maxRecDepth 100000 in
 theorem core498_body : Fn.body Data.core498 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core444_body : Fn.body Data.core548 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem core444_body : Fn.body Data.core581 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
 theorem core461_body : Fn.body Data.core461 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
 
@@ -851,7 +851,7 @@ set_option maxRecDepth 100000 in
 theorem ofm_L16_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_final_message__L16" args rets ↔
       MeaningOpeningFinalMessage 16 rd args rets :=
-  ofm_iff 4 (by decide) (by decide) (Program.find?_of_indexOf? (j := 548) (by decide +kernel) rfl)
+  ofm_iff 4 (by decide) (by decide) (Program.find?_of_indexOf? (j := 581) (by decide +kernel) rfl)
     rfl core444_body rd args rets
 
 set_option maxRecDepth 100000 in

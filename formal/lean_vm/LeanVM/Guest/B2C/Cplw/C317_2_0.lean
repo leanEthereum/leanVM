@@ -22,9 +22,6 @@ theorem cw317_2_0 : cplWin 317 2 0 = true := by decide +kernel
 /-- `open_stacked__L6`, window 3, part 0. -/
 theorem cw317_3_0 : cplWin 317 3 0 = true := by decide +kernel
 
-/-- `open_stacked__L6`, window 3, part 1. -/
-theorem cw317_3_1 : cplWin 317 3 1 = true := by decide +kernel
-
 /-- `open_stacked__L7`, window 0, part 0. -/
 theorem cw318_0_0 : cplWin 318 0 0 = true := by decide +kernel
 

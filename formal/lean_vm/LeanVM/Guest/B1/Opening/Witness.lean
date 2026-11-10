@@ -158,7 +158,7 @@ def openingQueriesLoops : List (String × String × Oq × ℕ) :=
     ("opening_queries__L0_L0_L16_L24_L18_L4", "__loop390", ⟨0, 16, 14, 4⟩, 0),
     ("opening_queries__L0_L0_L16_L24_L19_L5", "__loop383", ⟨0, 16, 14, 5⟩, 0),
     ("opening_queries__L0_L0_L16_L24_L20_L6", "__loop382", ⟨0, 16, 14, 6⟩, 0),
-    ("opening_queries__L0_L0_L16_L24_L22_L4", "__loop296", ⟨0, 16, 18, 4⟩, 0),
+    ("opening_queries__L0_L0_L16_L24_L22_L4", "__loop696", ⟨0, 16, 18, 4⟩, 0),
     ("opening_queries__L0_L0_L16_L24_L23_L6", "__loop401", ⟨0, 16, 17, 6⟩, 0),
     ("opening_queries__L0_L1_L64_L32_L18_L7", "__loop391", ⟨1, 64, 11, 7⟩, 0),
     ("opening_queries__L0_L1_L64_L32_L20_L6", "__loop109", ⟨1, 64, 14, 6⟩, 0),
@@ -201,7 +201,7 @@ def openingQueriesLoops : List (String × String × Oq × ℕ) :=
     ("opening_queries__L0_L0_L16_L24_L20_L5", "__loop386", ⟨0, 16, 15, 5⟩, 0),
     ("opening_queries__L0_L0_L16_L24_L21_L6", "__loop385", ⟨0, 16, 15, 6⟩, 0),
     ("opening_queries__L0_L0_L16_L24_L23_L5", "__loop412", ⟨0, 16, 18, 5⟩, 0),
-    ("opening_queries__L0_L0_L16_L24_L25_L5", "__loop295", ⟨0, 16, 20, 5⟩, 0)]
+    ("opening_queries__L0_L0_L16_L24_L25_L5", "__loop117", ⟨0, 16, 20, 5⟩, 0)]
 
 /-- The loop helper of a specialization. -/
 def oqLoopOf (name : String) : String :=

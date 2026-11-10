@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 1. -/
-theorem w909_1 : shareWin 909 (snapsOf 909) 1 = true := by decide +kernel
+/-- `level_queries__L19_L0_L16_L24_L25_L7`, window 0. -/
+theorem w971_0 : shareWin 971 (snapsOf 971) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 2. -/
-theorem w909_2 : shareWin 909 (snapsOf 909) 2 = true := by decide +kernel
+/-- `level_queries__L19_L0_L16_L24_L25_L7`, window 1. -/
+theorem w971_1 : shareWin 971 (snapsOf 971) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 3. -/
-theorem w909_3 : shareWin 909 (snapsOf 909) 3 = true := by decide +kernel
+/-- `level_queries__L18_L0_L16_L24_L26_L2`, once. -/
+theorem st972 : shareStatic 972 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 4. -/
-theorem w909_4 : shareWin 909 (snapsOf 909) 4 = true := by decide +kernel
+/-- `level_queries__L18_L0_L16_L24_L26_L2`, window 0. -/
+theorem w972_0 : shareWin 972 (snapsOf 972) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 5. -/
-theorem w909_5 : shareWin 909 (snapsOf 909) 5 = true := by decide +kernel
+/-- `level_queries__L18_L0_L16_L24_L26_L2`, window 1. -/
+theorem w972_1 : shareWin 972 (snapsOf 972) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 6. -/
-theorem w909_6 : shareWin 909 (snapsOf 909) 6 = true := by decide +kernel
+/-- `level_queries__L17_L0_L16_L24_L23_L5`, once. -/
+theorem st973 : shareStatic 973 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 7. -/
-theorem w909_7 : shareWin 909 (snapsOf 909) 7 = true := by decide +kernel
+/-- `level_queries__L17_L0_L16_L24_L23_L5`, window 0. -/
+theorem w973_0 : shareWin 973 (snapsOf 973) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 8. -/
-theorem w909_8 : shareWin 909 (snapsOf 909) 8 = true := by decide +kernel
+/-- `level_queries__L17_L0_L16_L24_L23_L5`, window 1. -/
+theorem w973_1 : shareWin 973 (snapsOf 973) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

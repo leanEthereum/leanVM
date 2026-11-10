@@ -115,7 +115,7 @@ theorem wpFn_964 : WalkFn "walk_path__L12_L5" 12 5 :=
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L8` is its template. -/
 theorem wpFn_965 : WalkFn "walk_path__L12_L8" 12 8 :=
-  ⟨_, Program.find?_of_indexOf? (j := 1229) (by decide +kernel) rfl, rfl, wpBody_965⟩
+  ⟨_, Program.find?_of_indexOf? (j := 1854) (by decide +kernel) rfl, rfl, wpBody_965⟩
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L13_L6` is its template. -/

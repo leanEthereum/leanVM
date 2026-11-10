@@ -1449,31 +1449,27 @@ def residual_query(basis_chain, row_d, n_cols: Const):
     return prefix_eq
 
 
-def level_residual(positions, row_d, mu, n_batches, n_rest, n_cols: Const):
-    # A level's residual weights at the terminal point: RES_BATCH queries an iteration,
-    # sharing the row's reads and constants, then the rest one at a time. Query q is
-    # weighted lam^q: the chain runs h <- (h + eq_q) * mu with mu = 1/lam, ending at
-    # lam^-n * sum_q lam^q eq_q.
-    chain = HeapBuf(n_batches * GEN)
+def residual_batch(batch, row_d, mu, h, n_cols: Const):
+    # RES_BATCH queries of a level's residual chain, sharing the row's reads and constants.
+    for k in unroll(0, RES_BATCH):
+        h = (h + residual_query(batch[GEN ** k], row_d, n_cols)) * mu
+    return h
+
+
+def level_residual(positions, row_d, mu, n_queries: Const, n_cols: Const):
+    # A level's residual weights at the terminal point: RES_BATCH queries an iteration
+    # (`residual_batch`), then the rest one at a time. Query q is weighted lam^q: the
+    # chain runs h <- (h + eq_q) * mu with mu = 1/lam, ending at lam^-n * sum_q lam^q eq_q.
+    chain = HeapBuf(GEN ** (n_queries // RES_BATCH + 1))
     chain[GEN ** 0] = 0
-    for xr in mul_range(1, n_batches):
-        batch = positions * xr ** RES_BATCH
-        h = chain[xr]
-        for k in unroll(0, RES_BATCH):
-            h = (h + residual_query(batch[GEN ** k], row_d, n_cols)) * mu
-        chain[xr * GEN] = h
-    rest = HeapBuf(n_rest * GEN)
-    rest[GEN ** 0] = chain[n_batches]
-    tail = positions * n_batches ** RES_BATCH
-    for xq in mul_range(1, n_rest):
+    for xr in mul_range(1, GEN ** (n_queries // RES_BATCH)):
+        chain[xr * GEN] = residual_batch(positions * xr ** RES_BATCH, row_d, mu, chain[xr], n_cols)
+    rest = HeapBuf(GEN ** (n_queries % RES_BATCH + 1))
+    rest[GEN ** 0] = chain[GEN ** (n_queries // RES_BATCH)]
+    tail = positions * (GEN ** (n_queries // RES_BATCH)) ** RES_BATCH
+    for xq in mul_range(1, GEN ** (n_queries % RES_BATCH)):
         rest[xq * GEN] = (rest[xq] + residual_query(tail[xq], row_d, n_cols)) * mu
-    return rest[n_rest]
-
-
-@inline
-def query_counts(n_queries: Const):
-    # A level's queries as g-powers: whole residual batches, and the rest.
-    return GEN ** (n_queries // RES_BATCH), GEN ** (n_queries % RES_BATCH)
+    return rest[GEN ** (n_queries % RES_BATCH)]
 
 
 def level_positions(fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, win_tabs, squeezes: Const, depth: Const, cap_depth: Const):
@@ -1787,8 +1783,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         # level_betas carries the lam^n that the residual chain's 1/lam steps leave out.
-        n_batches, n_rest = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: query_counts(LIG_QUERIES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
-        h = level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_mus[GEN ** lvl], n_batches, n_rest, LIG_LOG_MSG_COLS[ml])
+        h = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_mus[GEN ** lvl], LIG_QUERIES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_LOG_MSG_COLS[ml]))
         # accumulate beta_lvl * lam^n * prod_t b_t * (per-level residual chain) into the grand residual
         inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * h
 

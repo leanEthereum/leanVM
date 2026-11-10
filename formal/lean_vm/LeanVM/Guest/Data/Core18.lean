@@ -6657,7 +6657,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.const (.n 1128) (word 1 0 0)) ::
   [])
 
-/-- `open_stacked__L0`: statements 1119 to 1328 of the body. -/
+/-- `open_stacked__L0`: statements 1119 to 1322 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
   .atom (.add (.n 1129) (.n 1128) (.n 1125)) ::
   .atom (.mul (.n 1129) (.n 1130) (.n 1127)) ::
@@ -6692,243 +6692,177 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1154) (.n 1153))) ::
   .atom (.const (.n 1155) (word 0 0 0)) ::
   .atom (.load (.n 1155) (.n 1154) 0) ::
-  .atom (.const (.n 1156) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1157) (word 134217728 0 0)),
-      .atom (.copy (.n 1158) (.n 1157)),
-      .atom (.const (.n 1159) (word 128 0 0)),
-      .atom (.copy (.n 1160) (.n 1159))],
-    [
-      .atom (.const (.n 1161) (word 16384 0 0)),
-      .atom (.copy (.n 1158) (.n 1161)),
-      .atom (.const (.n 1162) (word 1 0 0)),
-      .atom (.copy (.n 1160) (.n 1162))],
-    [
-      .atom (.const (.n 1163) (word 512 0 0)),
-      .atom (.copy (.n 1158) (.n 1163)),
-      .atom (.const (.n 1164) (word 8 0 0)),
-      .atom (.copy (.n 1160) (.n 1164))],
-    [
-      .atom (.const (.n 1165) (word 128 0 0)),
-      .atom (.copy (.n 1158) (.n 1165)),
-      .atom (.const (.n 1166) (word 1 0 0)),
-      .atom (.copy (.n 1160) (.n 1166))]] ::
-  .atom (.load (.n 1167) (.n 22) 0) ::
-  .call "level_residual__L13" [.n 24, .n 964, .n 1167, .n 1158, .n 1160] [.n 1168] ::
-  .atom (.load (.n 1169) (.n 1154) 0) ::
-  .atom (.load (.n 1170) (.n 966) 0) ::
-  .atom (.mul (.n 1171) (.n 1170) (.n 1168)) ::
-  .atom (.add (.n 1172) (.n 1169) (.n 1171)) ::
-  .atom (.load (.n 1172) (.n 1154) 1) ::
-  .atom (.const (.n 1173) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1174) (word 128 0 0)),
-      .atom (.copy (.n 1175) (.n 1174)),
-      .atom (.const (.n 1176) (word 1 0 0)),
-      .atom (.copy (.n 1177) (.n 1176))],
-    [
-      .atom (.const (.n 1178) (word 32 0 0)),
-      .atom (.copy (.n 1175) (.n 1178)),
-      .atom (.const (.n 1179) (word 32 0 0)),
-      .atom (.copy (.n 1177) (.n 1179))],
-    [
-      .atom (.const (.n 1180) (word 16 0 0)),
-      .atom (.copy (.n 1175) (.n 1180)),
-      .atom (.const (.n 1181) (word 64 0 0)),
-      .atom (.copy (.n 1177) (.n 1181))],
-    [
-      .atom (.const (.n 1182) (word 16 0 0)),
-      .atom (.copy (.n 1175) (.n 1182)),
-      .atom (.const (.n 1183) (word 1 0 0)),
-      .atom (.copy (.n 1177) (.n 1183))]] ::
-  .atom (.const (.n 1184) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1185) (.n 24) (.n 1184)) ::
-  .atom (.const (.n 1186) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1187) (.n 964) (.n 1186)) ::
-  .atom (.load (.n 1188) (.n 22) 1) ::
-  .call "level_residual__L9" [.n 1185, .n 1187, .n 1188, .n 1175, .n 1177] [.n 1189] ::
-  .atom (.load (.n 1190) (.n 1154) 1) ::
-  .atom (.load (.n 1191) (.n 966) 1) ::
-  .atom (.mul (.n 1192) (.n 1191) (.n 1189)) ::
-  .atom (.add (.n 1193) (.n 1190) (.n 1192)) ::
-  .atom (.load (.n 1193) (.n 1154) 2) ::
-  .atom (.const (.n 1194) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1195) (word 16 0 0)),
-      .atom (.copy (.n 1196) (.n 1195)),
-      .atom (.const (.n 1197) (word 1 0 0)),
-      .atom (.copy (.n 1198) (.n 1197))],
-    [
-      .atom (.const (.n 1199) (word 8 0 0)),
-      .atom (.copy (.n 1196) (.n 1199)),
-      .atom (.const (.n 1200) (word 16 0 0)),
-      .atom (.copy (.n 1198) (.n 1200))],
-    [
-      .atom (.const (.n 1201) (word 8 0 0)),
-      .atom (.copy (.n 1196) (.n 1201)),
-      .atom (.const (.n 1202) (word 2 0 0)),
-      .atom (.copy (.n 1198) (.n 1202))],
-    [
-      .atom (.const (.n 1203) (word 4 0 0)),
-      .atom (.copy (.n 1196) (.n 1203)),
-      .atom (.const (.n 1204) (word 128 0 0)),
-      .atom (.copy (.n 1198) (.n 1204))]] ::
-  .atom (.const (.n 1205) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1206) (.n 564) (.n 1205)) ::
-  .atom (.const (.n 1207) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1208) (.n 1187) (.n 1207)) ::
-  .atom (.load (.n 1209) (.n 22) 2) ::
-  .call "level_residual__L5" [.n 1206, .n 1208, .n 1209, .n 1196, .n 1198] [.n 1210] ::
-  .atom (.load (.n 1211) (.n 1154) 2) ::
-  .atom (.load (.n 1212) (.n 966) 2) ::
-  .atom (.mul (.n 1213) (.n 1212) (.n 1210)) ::
-  .atom (.add (.n 1214) (.n 1211) (.n 1213)) ::
-  .atom (.load (.n 1214) (.n 1154) 3) ::
-  .atom (.load (.n 1215) (.n 160) 4) ::
-  .atom (.const (.n 1216) (word 1 0 0)) ::
-  .atom (.load (.n 1217) (.n 158) 26) ::
-  .atom (.add (.n 1218) (.n 1216) (.n 1217)) ::
-  .atom (.load (.n 1219) (.n 18) 6) ::
-  .atom (.add (.n 1220) (.n 1218) (.n 1219)) ::
-  .atom (.mul (.n 1221) (.n 1215) (.n 1220)) ::
-  .atom (.const (.n 1222) (word 1 0 0)) ::
-  .atom (.load (.n 1223) (.n 158) 27) ::
-  .atom (.add (.n 1224) (.n 1222) (.n 1223)) ::
-  .atom (.load (.n 1225) (.n 18) 7) ::
-  .atom (.add (.n 1226) (.n 1224) (.n 1225)) ::
-  .atom (.mul (.n 1227) (.n 1221) (.n 1226)) ::
-  .atom (.const (.n 1228) (word 1 0 0)) ::
-  .atom (.load (.n 1229) (.n 158) 28) ::
-  .atom (.add (.n 1230) (.n 1228) (.n 1229)) ::
-  .atom (.load (.n 1231) (.n 18) 8) ::
-  .atom (.add (.n 1232) (.n 1230) (.n 1231)) ::
-  .atom (.mul (.n 1233) (.n 1227) (.n 1232)) ::
-  .atom (.const (.n 1234) (word 1 0 0)) ::
-  .atom (.load (.n 1235) (.n 158) 29) ::
-  .atom (.add (.n 1236) (.n 1234) (.n 1235)) ::
-  .atom (.load (.n 1237) (.n 18) 9) ::
-  .atom (.add (.n 1238) (.n 1236) (.n 1237)) ::
-  .atom (.mul (.n 1239) (.n 1233) (.n 1238)) ::
-  .atom (.const (.n 1240) (word 1 0 0)) ::
-  .atom (.load (.n 1241) (.n 158) 30) ::
-  .atom (.add (.n 1242) (.n 1240) (.n 1241)) ::
-  .atom (.load (.n 1243) (.n 18) 10) ::
-  .atom (.add (.n 1244) (.n 1242) (.n 1243)) ::
-  .atom (.mul (.n 1245) (.n 1239) (.n 1244)) ::
-  .atom (.const (.n 1246) (word 1 0 0)) ::
-  .atom (.load (.n 1247) (.n 158) 31) ::
-  .atom (.add (.n 1248) (.n 1246) (.n 1247)) ::
-  .atom (.load (.n 1249) (.n 18) 11) ::
-  .atom (.add (.n 1250) (.n 1248) (.n 1249)) ::
-  .atom (.mul (.n 1251) (.n 1245) (.n 1250)) ::
-  .atom (.const (.n 1252) (word 1 0 0)) ::
-  .atom (.load (.n 1253) (.n 158) 32) ::
-  .atom (.add (.n 1254) (.n 1252) (.n 1253)) ::
-  .atom (.load (.n 1255) (.n 18) 12) ::
-  .atom (.add (.n 1256) (.n 1254) (.n 1255)) ::
-  .atom (.mul (.n 1257) (.n 1251) (.n 1256)) ::
-  .atom (.const (.n 1258) (word 1 0 0)) ::
-  .atom (.load (.n 1259) (.n 158) 33) ::
-  .atom (.add (.n 1260) (.n 1258) (.n 1259)) ::
-  .atom (.load (.n 1261) (.n 18) 13) ::
-  .atom (.add (.n 1262) (.n 1260) (.n 1261)) ::
-  .atom (.mul (.n 1263) (.n 1257) (.n 1262)) ::
-  .atom (.const (.n 1264) (word 1 0 0)) ::
-  .atom (.load (.n 1265) (.n 158) 34) ::
+  .atom (.load (.n 1156) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L223_L13", "level_residual__L112_L13", "level_residual__L75_L13", "level_residual__L56_L13"] [.n 24, .n 964, .n 1156] [.n 1157] ::
+  .atom (.load (.n 1158) (.n 1154) 0) ::
+  .atom (.load (.n 1159) (.n 966) 0) ::
+  .atom (.mul (.n 1160) (.n 1159) (.n 1157)) ::
+  .atom (.add (.n 1161) (.n 1158) (.n 1160)) ::
+  .atom (.load (.n 1161) (.n 1154) 1) ::
+  .atom (.const (.n 1162) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1163) (.n 24) (.n 1162)) ::
+  .atom (.const (.n 1164) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1165) (.n 964) (.n 1164)) ::
+  .atom (.load (.n 1166) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L9", "level_residual__L45_L9", "level_residual__L38_L9", "level_residual__L32_L9"] [.n 1163, .n 1165, .n 1166] [.n 1167] ::
+  .atom (.load (.n 1168) (.n 1154) 1) ::
+  .atom (.load (.n 1169) (.n 966) 1) ::
+  .atom (.mul (.n 1170) (.n 1169) (.n 1167)) ::
+  .atom (.add (.n 1171) (.n 1168) (.n 1170)) ::
+  .atom (.load (.n 1171) (.n 1154) 2) ::
+  .atom (.const (.n 1172) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1173) (.n 564) (.n 1172)) ::
+  .atom (.const (.n 1174) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1175) (.n 1165) (.n 1174)) ::
+  .atom (.load (.n 1176) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L5", "level_residual__L28_L5", "level_residual__L25_L5", "level_residual__L23_L5"] [.n 1173, .n 1175, .n 1176] [.n 1177] ::
+  .atom (.load (.n 1178) (.n 1154) 2) ::
+  .atom (.load (.n 1179) (.n 966) 2) ::
+  .atom (.mul (.n 1180) (.n 1179) (.n 1177)) ::
+  .atom (.add (.n 1181) (.n 1178) (.n 1180)) ::
+  .atom (.load (.n 1181) (.n 1154) 3) ::
+  .atom (.load (.n 1182) (.n 160) 4) ::
+  .atom (.const (.n 1183) (word 1 0 0)) ::
+  .atom (.load (.n 1184) (.n 158) 26) ::
+  .atom (.add (.n 1185) (.n 1183) (.n 1184)) ::
+  .atom (.load (.n 1186) (.n 18) 6) ::
+  .atom (.add (.n 1187) (.n 1185) (.n 1186)) ::
+  .atom (.mul (.n 1188) (.n 1182) (.n 1187)) ::
+  .atom (.const (.n 1189) (word 1 0 0)) ::
+  .atom (.load (.n 1190) (.n 158) 27) ::
+  .atom (.add (.n 1191) (.n 1189) (.n 1190)) ::
+  .atom (.load (.n 1192) (.n 18) 7) ::
+  .atom (.add (.n 1193) (.n 1191) (.n 1192)) ::
+  .atom (.mul (.n 1194) (.n 1188) (.n 1193)) ::
+  .atom (.const (.n 1195) (word 1 0 0)) ::
+  .atom (.load (.n 1196) (.n 158) 28) ::
+  .atom (.add (.n 1197) (.n 1195) (.n 1196)) ::
+  .atom (.load (.n 1198) (.n 18) 8) ::
+  .atom (.add (.n 1199) (.n 1197) (.n 1198)) ::
+  .atom (.mul (.n 1200) (.n 1194) (.n 1199)) ::
+  .atom (.const (.n 1201) (word 1 0 0)) ::
+  .atom (.load (.n 1202) (.n 158) 29) ::
+  .atom (.add (.n 1203) (.n 1201) (.n 1202)) ::
+  .atom (.load (.n 1204) (.n 18) 9) ::
+  .atom (.add (.n 1205) (.n 1203) (.n 1204)) ::
+  .atom (.mul (.n 1206) (.n 1200) (.n 1205)) ::
+  .atom (.const (.n 1207) (word 1 0 0)) ::
+  .atom (.load (.n 1208) (.n 158) 30) ::
+  .atom (.add (.n 1209) (.n 1207) (.n 1208)) ::
+  .atom (.load (.n 1210) (.n 18) 10) ::
+  .atom (.add (.n 1211) (.n 1209) (.n 1210)) ::
+  .atom (.mul (.n 1212) (.n 1206) (.n 1211)) ::
+  .atom (.const (.n 1213) (word 1 0 0)) ::
+  .atom (.load (.n 1214) (.n 158) 31) ::
+  .atom (.add (.n 1215) (.n 1213) (.n 1214)) ::
+  .atom (.load (.n 1216) (.n 18) 11) ::
+  .atom (.add (.n 1217) (.n 1215) (.n 1216)) ::
+  .atom (.mul (.n 1218) (.n 1212) (.n 1217)) ::
+  .atom (.const (.n 1219) (word 1 0 0)) ::
+  .atom (.load (.n 1220) (.n 158) 32) ::
+  .atom (.add (.n 1221) (.n 1219) (.n 1220)) ::
+  .atom (.load (.n 1222) (.n 18) 12) ::
+  .atom (.add (.n 1223) (.n 1221) (.n 1222)) ::
+  .atom (.mul (.n 1224) (.n 1218) (.n 1223)) ::
+  .atom (.const (.n 1225) (word 1 0 0)) ::
+  .atom (.load (.n 1226) (.n 158) 33) ::
+  .atom (.add (.n 1227) (.n 1225) (.n 1226)) ::
+  .atom (.load (.n 1228) (.n 18) 13) ::
+  .atom (.add (.n 1229) (.n 1227) (.n 1228)) ::
+  .atom (.mul (.n 1230) (.n 1224) (.n 1229)) ::
+  .atom (.const (.n 1231) (word 1 0 0)) ::
+  .atom (.load (.n 1232) (.n 158) 34) ::
+  .atom (.add (.n 1233) (.n 1231) (.n 1232)) ::
+  .atom (.load (.n 1234) (.n 747) 0) ::
+  .atom (.add (.n 1235) (.n 1233) (.n 1234)) ::
+  .atom (.mul (.n 1236) (.n 1230) (.n 1235)) ::
+  .atom (.const (.n 1237) (word 1 0 0)) ::
+  .atom (.load (.n 1238) (.n 158) 35) ::
+  .atom (.add (.n 1239) (.n 1237) (.n 1238)) ::
+  .atom (.load (.n 1240) (.n 747) 1) ::
+  .atom (.add (.n 1241) (.n 1239) (.n 1240)) ::
+  .atom (.mul (.n 1242) (.n 1236) (.n 1241)) ::
+  .atom (.const (.n 1243) (word 1 0 0)) ::
+  .atom (.load (.n 1244) (.n 158) 36) ::
+  .atom (.add (.n 1245) (.n 1243) (.n 1244)) ::
+  .atom (.load (.n 1246) (.n 747) 2) ::
+  .atom (.add (.n 1247) (.n 1245) (.n 1246)) ::
+  .atom (.mul (.n 1248) (.n 1242) (.n 1247)) ::
+  .atom (.const (.n 1249) (word 1 0 0)) ::
+  .atom (.load (.n 1250) (.n 158) 37) ::
+  .atom (.add (.n 1251) (.n 1249) (.n 1250)) ::
+  .atom (.load (.n 1252) (.n 747) 3) ::
+  .atom (.add (.n 1253) (.n 1251) (.n 1252)) ::
+  .atom (.mul (.n 1254) (.n 1248) (.n 1253)) ::
+  .atom (.const (.n 1255) (word 1 0 0)) ::
+  .atom (.load (.n 1256) (.n 158) 38) ::
+  .atom (.add (.n 1257) (.n 1255) (.n 1256)) ::
+  .atom (.load (.n 1258) (.n 747) 4) ::
+  .atom (.add (.n 1259) (.n 1257) (.n 1258)) ::
+  .atom (.mul (.n 1260) (.n 1254) (.n 1259)) ::
+  .atom (.load (.n 1261) (.n 160) 8) ::
+  .atom (.const (.n 1262) (word 1 0 0)) ::
+  .atom (.load (.n 1263) (.n 158) 52) ::
+  .atom (.add (.n 1264) (.n 1262) (.n 1263)) ::
+  .atom (.load (.n 1265) (.n 18) 10) ::
   .atom (.add (.n 1266) (.n 1264) (.n 1265)) ::
-  .atom (.load (.n 1267) (.n 747) 0) ::
-  .atom (.add (.n 1268) (.n 1266) (.n 1267)) ::
-  .atom (.mul (.n 1269) (.n 1263) (.n 1268)) ::
-  .atom (.const (.n 1270) (word 1 0 0)) ::
-  .atom (.load (.n 1271) (.n 158) 35) ::
+  .atom (.mul (.n 1267) (.n 1261) (.n 1266)) ::
+  .atom (.const (.n 1268) (word 1 0 0)) ::
+  .atom (.load (.n 1269) (.n 158) 53) ::
+  .atom (.add (.n 1270) (.n 1268) (.n 1269)) ::
+  .atom (.load (.n 1271) (.n 18) 11) ::
   .atom (.add (.n 1272) (.n 1270) (.n 1271)) ::
-  .atom (.load (.n 1273) (.n 747) 1) ::
-  .atom (.add (.n 1274) (.n 1272) (.n 1273)) ::
-  .atom (.mul (.n 1275) (.n 1269) (.n 1274)) ::
-  .atom (.const (.n 1276) (word 1 0 0)) ::
-  .atom (.load (.n 1277) (.n 158) 36) ::
+  .atom (.mul (.n 1273) (.n 1267) (.n 1272)) ::
+  .atom (.const (.n 1274) (word 1 0 0)) ::
+  .atom (.load (.n 1275) (.n 158) 54) ::
+  .atom (.add (.n 1276) (.n 1274) (.n 1275)) ::
+  .atom (.load (.n 1277) (.n 18) 12) ::
   .atom (.add (.n 1278) (.n 1276) (.n 1277)) ::
-  .atom (.load (.n 1279) (.n 747) 2) ::
-  .atom (.add (.n 1280) (.n 1278) (.n 1279)) ::
-  .atom (.mul (.n 1281) (.n 1275) (.n 1280)) ::
-  .atom (.const (.n 1282) (word 1 0 0)) ::
-  .atom (.load (.n 1283) (.n 158) 37) ::
+  .atom (.mul (.n 1279) (.n 1273) (.n 1278)) ::
+  .atom (.const (.n 1280) (word 1 0 0)) ::
+  .atom (.load (.n 1281) (.n 158) 55) ::
+  .atom (.add (.n 1282) (.n 1280) (.n 1281)) ::
+  .atom (.load (.n 1283) (.n 18) 13) ::
   .atom (.add (.n 1284) (.n 1282) (.n 1283)) ::
-  .atom (.load (.n 1285) (.n 747) 3) ::
-  .atom (.add (.n 1286) (.n 1284) (.n 1285)) ::
-  .atom (.mul (.n 1287) (.n 1281) (.n 1286)) ::
-  .atom (.const (.n 1288) (word 1 0 0)) ::
-  .atom (.load (.n 1289) (.n 158) 38) ::
+  .atom (.mul (.n 1285) (.n 1279) (.n 1284)) ::
+  .atom (.const (.n 1286) (word 1 0 0)) ::
+  .atom (.load (.n 1287) (.n 158) 56) ::
+  .atom (.add (.n 1288) (.n 1286) (.n 1287)) ::
+  .atom (.load (.n 1289) (.n 747) 0) ::
   .atom (.add (.n 1290) (.n 1288) (.n 1289)) ::
-  .atom (.load (.n 1291) (.n 747) 4) ::
-  .atom (.add (.n 1292) (.n 1290) (.n 1291)) ::
-  .atom (.mul (.n 1293) (.n 1287) (.n 1292)) ::
-  .atom (.load (.n 1294) (.n 160) 8) ::
-  .atom (.const (.n 1295) (word 1 0 0)) ::
-  .atom (.load (.n 1296) (.n 158) 52) ::
-  .atom (.add (.n 1297) (.n 1295) (.n 1296)) ::
-  .atom (.load (.n 1298) (.n 18) 10) ::
-  .atom (.add (.n 1299) (.n 1297) (.n 1298)) ::
-  .atom (.mul (.n 1300) (.n 1294) (.n 1299)) ::
-  .atom (.const (.n 1301) (word 1 0 0)) ::
-  .atom (.load (.n 1302) (.n 158) 53) ::
-  .atom (.add (.n 1303) (.n 1301) (.n 1302)) ::
-  .atom (.load (.n 1304) (.n 18) 11) ::
-  .atom (.add (.n 1305) (.n 1303) (.n 1304)) ::
-  .atom (.mul (.n 1306) (.n 1300) (.n 1305)) ::
-  .atom (.const (.n 1307) (word 1 0 0)) ::
-  .atom (.load (.n 1308) (.n 158) 54) ::
-  .atom (.add (.n 1309) (.n 1307) (.n 1308)) ::
-  .atom (.load (.n 1310) (.n 18) 12) ::
-  .atom (.add (.n 1311) (.n 1309) (.n 1310)) ::
-  .atom (.mul (.n 1312) (.n 1306) (.n 1311)) ::
-  .atom (.const (.n 1313) (word 1 0 0)) ::
-  .atom (.load (.n 1314) (.n 158) 55) ::
-  .atom (.add (.n 1315) (.n 1313) (.n 1314)) ::
-  .atom (.load (.n 1316) (.n 18) 13) ::
-  .atom (.add (.n 1317) (.n 1315) (.n 1316)) ::
-  .atom (.mul (.n 1318) (.n 1312) (.n 1317)) ::
-  .atom (.const (.n 1319) (word 1 0 0)) ::
-  .atom (.load (.n 1320) (.n 158) 56) ::
-  .atom (.add (.n 1321) (.n 1319) (.n 1320)) ::
-  .atom (.load (.n 1322) (.n 747) 0) ::
-  .atom (.add (.n 1323) (.n 1321) (.n 1322)) ::
-  .atom (.mul (.n 1324) (.n 1318) (.n 1323)) ::
-  .atom (.const (.n 1325) (word 1 0 0)) ::
-  .atom (.load (.n 1326) (.n 158) 57) ::
-  .atom (.add (.n 1327) (.n 1325) (.n 1326)) ::
-  .atom (.load (.n 1328) (.n 747) 1) ::
-  .atom (.add (.n 1329) (.n 1327) (.n 1328)) ::
-  .atom (.mul (.n 1330) (.n 1324) (.n 1329)) ::
-  .atom (.const (.n 1331) (word 1 0 0)) ::
-  .atom (.load (.n 1332) (.n 158) 58) ::
-  .atom (.add (.n 1333) (.n 1331) (.n 1332)) ::
-  .atom (.load (.n 1334) (.n 747) 2) ::
-  .atom (.add (.n 1335) (.n 1333) (.n 1334)) ::
-  .atom (.mul (.n 1336) (.n 1330) (.n 1335)) ::
-  .atom (.const (.n 1337) (word 1 0 0)) ::
-  .atom (.load (.n 1338) (.n 158) 59) ::
-  .atom (.add (.n 1339) (.n 1337) (.n 1338)) ::
-  .atom (.load (.n 1340) (.n 747) 3) ::
-  .atom (.add (.n 1341) (.n 1339) (.n 1340)) ::
-  .atom (.mul (.n 1342) (.n 1336) (.n 1341)) ::
-  .atom (.const (.n 1343) (word 1 0 0)) ::
-  .atom (.load (.n 1344) (.n 158) 60) ::
-  .atom (.add (.n 1345) (.n 1343) (.n 1344)) ::
-  .atom (.load (.n 1346) (.n 747) 4) ::
-  .atom (.add (.n 1347) (.n 1345) (.n 1346)) ::
-  .atom (.mul (.n 1348) (.n 1342) (.n 1347)) ::
-  .atom (.add (.n 1349) (.n 1293) (.n 1348)) ::
-  .atom (.copy (.n 1350) (.n 841)) ::
-  .atom (.copy (.n 1351) (.n 843)) ::
-  .atom (.copy (.n 1352) (.n 844)) ::
-  .atom (.load (.n 1353) (.n 1154) 3) ::
-  .atom (.add (.n 1354) (.n 1353) (.n 1349)) ::
-  .atom (.copy (.n 1355) (.n 842)) ::
-  .ret [.n 1350, .n 1351, .n 1352, .n 1354, .n 1355] ::
+  .atom (.mul (.n 1291) (.n 1285) (.n 1290)) ::
+  .atom (.const (.n 1292) (word 1 0 0)) ::
+  .atom (.load (.n 1293) (.n 158) 57) ::
+  .atom (.add (.n 1294) (.n 1292) (.n 1293)) ::
+  .atom (.load (.n 1295) (.n 747) 1) ::
+  .atom (.add (.n 1296) (.n 1294) (.n 1295)) ::
+  .atom (.mul (.n 1297) (.n 1291) (.n 1296)) ::
+  .atom (.const (.n 1298) (word 1 0 0)) ::
+  .atom (.load (.n 1299) (.n 158) 58) ::
+  .atom (.add (.n 1300) (.n 1298) (.n 1299)) ::
+  .atom (.load (.n 1301) (.n 747) 2) ::
+  .atom (.add (.n 1302) (.n 1300) (.n 1301)) ::
+  .atom (.mul (.n 1303) (.n 1297) (.n 1302)) ::
+  .atom (.const (.n 1304) (word 1 0 0)) ::
+  .atom (.load (.n 1305) (.n 158) 59) ::
+  .atom (.add (.n 1306) (.n 1304) (.n 1305)) ::
+  .atom (.load (.n 1307) (.n 747) 3) ::
+  .atom (.add (.n 1308) (.n 1306) (.n 1307)) ::
+  .atom (.mul (.n 1309) (.n 1303) (.n 1308)) ::
+  .atom (.const (.n 1310) (word 1 0 0)) ::
+  .atom (.load (.n 1311) (.n 158) 60) ::
+  .atom (.add (.n 1312) (.n 1310) (.n 1311)) ::
+  .atom (.load (.n 1313) (.n 747) 4) ::
+  .atom (.add (.n 1314) (.n 1312) (.n 1313)) ::
+  .atom (.mul (.n 1315) (.n 1309) (.n 1314)) ::
+  .atom (.add (.n 1316) (.n 1260) (.n 1315)) ::
+  .atom (.copy (.n 1317) (.n 841)) ::
+  .atom (.copy (.n 1318) (.n 843)) ::
+  .atom (.copy (.n 1319) (.n 844)) ::
+  .atom (.load (.n 1320) (.n 1154) 3) ::
+  .atom (.add (.n 1321) (.n 1320) (.n 1316)) ::
+  .atom (.copy (.n 1322) (.n 842)) ::
+  .ret [.n 1317, .n 1318, .n 1319, .n 1321, .n 1322] ::
   [])
 
 /-- `open_stacked__L0`: the body. -/
@@ -8045,7 +7979,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.const (.n 1162) (word 29686813949952 0 0)) ::
   [])
 
-/-- `open_stacked__L1`: statements 1093 to 1595 of the body. -/
+/-- `open_stacked__L1`: statements 1093 to 1587 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1163) (.n 1162))) ::
   .atom (.const (.n 1164) (word 16 0 0)) ::
@@ -8310,326 +8244,238 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1387) (.n 1386))) ::
   .atom (.const (.n 1388) (word 0 0 0)) ::
   .atom (.load (.n 1388) (.n 1387) 0) ::
-  .atom (.const (.n 1389) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1390) (word 134217728 0 0)),
-      .atom (.copy (.n 1391) (.n 1390)),
-      .atom (.const (.n 1392) (word 128 0 0)),
-      .atom (.copy (.n 1393) (.n 1392))],
-    [
-      .atom (.const (.n 1394) (word 16384 0 0)),
-      .atom (.copy (.n 1391) (.n 1394)),
-      .atom (.const (.n 1395) (word 1 0 0)),
-      .atom (.copy (.n 1393) (.n 1395))],
-    [
-      .atom (.const (.n 1396) (word 512 0 0)),
-      .atom (.copy (.n 1391) (.n 1396)),
-      .atom (.const (.n 1397) (word 8 0 0)),
-      .atom (.copy (.n 1393) (.n 1397))],
-    [
-      .atom (.const (.n 1398) (word 128 0 0)),
-      .atom (.copy (.n 1391) (.n 1398)),
-      .atom (.const (.n 1399) (word 1 0 0)),
-      .atom (.copy (.n 1393) (.n 1399))]] ::
-  .atom (.load (.n 1400) (.n 22) 0) ::
-  .call "level_residual__L14" [.n 24, .n 1163, .n 1400, .n 1391, .n 1393] [.n 1401] ::
-  .atom (.load (.n 1402) (.n 1387) 0) ::
-  .atom (.load (.n 1403) (.n 1165) 0) ::
-  .atom (.mul (.n 1404) (.n 1403) (.n 1401)) ::
-  .atom (.add (.n 1405) (.n 1402) (.n 1404)) ::
-  .atom (.load (.n 1405) (.n 1387) 1) ::
-  .atom (.const (.n 1406) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1407) (word 128 0 0)),
-      .atom (.copy (.n 1408) (.n 1407)),
-      .atom (.const (.n 1409) (word 1 0 0)),
-      .atom (.copy (.n 1410) (.n 1409))],
-    [
-      .atom (.const (.n 1411) (word 32 0 0)),
-      .atom (.copy (.n 1408) (.n 1411)),
-      .atom (.const (.n 1412) (word 32 0 0)),
-      .atom (.copy (.n 1410) (.n 1412))],
-    [
-      .atom (.const (.n 1413) (word 16 0 0)),
-      .atom (.copy (.n 1408) (.n 1413)),
-      .atom (.const (.n 1414) (word 64 0 0)),
-      .atom (.copy (.n 1410) (.n 1414))],
-    [
-      .atom (.const (.n 1415) (word 16 0 0)),
-      .atom (.copy (.n 1408) (.n 1415)),
-      .atom (.const (.n 1416) (word 1 0 0)),
-      .atom (.copy (.n 1410) (.n 1416))]] ::
-  .atom (.const (.n 1417) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1418) (.n 24) (.n 1417)) ::
-  .atom (.const (.n 1419) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1420) (.n 1163) (.n 1419)) ::
-  .atom (.load (.n 1421) (.n 22) 1) ::
-  .call "level_residual__L10" [.n 1418, .n 1420, .n 1421, .n 1408, .n 1410] [.n 1422] ::
-  .atom (.load (.n 1423) (.n 1387) 1) ::
-  .atom (.load (.n 1424) (.n 1165) 1) ::
-  .atom (.mul (.n 1425) (.n 1424) (.n 1422)) ::
-  .atom (.add (.n 1426) (.n 1423) (.n 1425)) ::
-  .atom (.load (.n 1426) (.n 1387) 2) ::
-  .atom (.const (.n 1427) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1428) (word 16 0 0)),
-      .atom (.copy (.n 1429) (.n 1428)),
-      .atom (.const (.n 1430) (word 1 0 0)),
-      .atom (.copy (.n 1431) (.n 1430))],
-    [
-      .atom (.const (.n 1432) (word 8 0 0)),
-      .atom (.copy (.n 1429) (.n 1432)),
-      .atom (.const (.n 1433) (word 16 0 0)),
-      .atom (.copy (.n 1431) (.n 1433))],
-    [
-      .atom (.const (.n 1434) (word 8 0 0)),
-      .atom (.copy (.n 1429) (.n 1434)),
-      .atom (.const (.n 1435) (word 2 0 0)),
-      .atom (.copy (.n 1431) (.n 1435))],
-    [
-      .atom (.const (.n 1436) (word 4 0 0)),
-      .atom (.copy (.n 1429) (.n 1436)),
-      .atom (.const (.n 1437) (word 128 0 0)),
-      .atom (.copy (.n 1431) (.n 1437))]] ::
-  .atom (.const (.n 1438) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1439) (.n 564) (.n 1438)) ::
-  .atom (.const (.n 1440) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1441) (.n 1420) (.n 1440)) ::
-  .atom (.load (.n 1442) (.n 22) 2) ::
-  .call "level_residual__L6" [.n 1439, .n 1441, .n 1442, .n 1429, .n 1431] [.n 1443] ::
-  .atom (.load (.n 1444) (.n 1387) 2) ::
-  .atom (.load (.n 1445) (.n 1165) 2) ::
-  .atom (.mul (.n 1446) (.n 1445) (.n 1443)) ::
-  .atom (.add (.n 1447) (.n 1444) (.n 1446)) ::
-  .atom (.load (.n 1447) (.n 1387) 3) ::
-  .atom (.const (.n 1448) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1449) (word 4 0 0)),
-      .atom (.copy (.n 1450) (.n 1449)),
-      .atom (.const (.n 1451) (word 64 0 0)),
-      .atom (.copy (.n 1452) (.n 1451))],
-    [
-      .atom (.const (.n 1453) (word 4 0 0)),
-      .atom (.copy (.n 1450) (.n 1453)),
-      .atom (.const (.n 1454) (word 16 0 0)),
-      .atom (.copy (.n 1452) (.n 1454))],
-    [
-      .atom (.const (.n 1455) (word 4 0 0)),
-      .atom (.copy (.n 1450) (.n 1455)),
-      .atom (.const (.n 1456) (word 4 0 0)),
-      .atom (.copy (.n 1452) (.n 1456))],
-    [
-      .atom (.const (.n 1457) (word 4 0 0)),
-      .atom (.copy (.n 1450) (.n 1457)),
-      .atom (.const (.n 1458) (word 2 0 0)),
-      .atom (.copy (.n 1452) (.n 1458))]] ::
-  .atom (.const (.n 1459) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1460) (.n 791) (.n 1459)) ::
-  .atom (.const (.n 1461) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1462) (.n 1441) (.n 1461)) ::
-  .atom (.load (.n 1463) (.n 22) 3) ::
-  .call "level_residual__L2" [.n 1460, .n 1462, .n 1463, .n 1450, .n 1452] [.n 1464] ::
-  .atom (.load (.n 1465) (.n 1387) 3) ::
-  .atom (.load (.n 1466) (.n 1165) 3) ::
-  .atom (.mul (.n 1467) (.n 1466) (.n 1464)) ::
-  .atom (.add (.n 1468) (.n 1465) (.n 1467)) ::
-  .atom (.load (.n 1468) (.n 1387) 4) ::
-  .atom (.load (.n 1469) (.n 160) 4) ::
-  .atom (.const (.n 1470) (word 1 0 0)) ::
-  .atom (.load (.n 1471) (.n 158) 26) ::
+  .atom (.load (.n 1389) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L223_L14", "level_residual__L112_L14", "level_residual__L75_L14", "level_residual__L56_L14"] [.n 24, .n 1163, .n 1389] [.n 1390] ::
+  .atom (.load (.n 1391) (.n 1387) 0) ::
+  .atom (.load (.n 1392) (.n 1165) 0) ::
+  .atom (.mul (.n 1393) (.n 1392) (.n 1390)) ::
+  .atom (.add (.n 1394) (.n 1391) (.n 1393)) ::
+  .atom (.load (.n 1394) (.n 1387) 1) ::
+  .atom (.const (.n 1395) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1396) (.n 24) (.n 1395)) ::
+  .atom (.const (.n 1397) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1398) (.n 1163) (.n 1397)) ::
+  .atom (.load (.n 1399) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L10", "level_residual__L45_L10", "level_residual__L38_L10", "level_residual__L32_L10"] [.n 1396, .n 1398, .n 1399] [.n 1400] ::
+  .atom (.load (.n 1401) (.n 1387) 1) ::
+  .atom (.load (.n 1402) (.n 1165) 1) ::
+  .atom (.mul (.n 1403) (.n 1402) (.n 1400)) ::
+  .atom (.add (.n 1404) (.n 1401) (.n 1403)) ::
+  .atom (.load (.n 1404) (.n 1387) 2) ::
+  .atom (.const (.n 1405) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1406) (.n 564) (.n 1405)) ::
+  .atom (.const (.n 1407) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1408) (.n 1398) (.n 1407)) ::
+  .atom (.load (.n 1409) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L6", "level_residual__L28_L6", "level_residual__L25_L6", "level_residual__L23_L6"] [.n 1406, .n 1408, .n 1409] [.n 1410] ::
+  .atom (.load (.n 1411) (.n 1387) 2) ::
+  .atom (.load (.n 1412) (.n 1165) 2) ::
+  .atom (.mul (.n 1413) (.n 1412) (.n 1410)) ::
+  .atom (.add (.n 1414) (.n 1411) (.n 1413)) ::
+  .atom (.load (.n 1414) (.n 1387) 3) ::
+  .atom (.const (.n 1415) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1416) (.n 791) (.n 1415)) ::
+  .atom (.const (.n 1417) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1418) (.n 1408) (.n 1417)) ::
+  .atom (.load (.n 1419) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L22_L2", "level_residual__L20_L2", "level_residual__L18_L2", "level_residual__L17_L2"] [.n 1416, .n 1418, .n 1419] [.n 1420] ::
+  .atom (.load (.n 1421) (.n 1387) 3) ::
+  .atom (.load (.n 1422) (.n 1165) 3) ::
+  .atom (.mul (.n 1423) (.n 1422) (.n 1420)) ::
+  .atom (.add (.n 1424) (.n 1421) (.n 1423)) ::
+  .atom (.load (.n 1424) (.n 1387) 4) ::
+  .atom (.load (.n 1425) (.n 160) 4) ::
+  .atom (.const (.n 1426) (word 1 0 0)) ::
+  .atom (.load (.n 1427) (.n 158) 26) ::
+  .atom (.add (.n 1428) (.n 1426) (.n 1427)) ::
+  .atom (.load (.n 1429) (.n 18) 6) ::
+  .atom (.add (.n 1430) (.n 1428) (.n 1429)) ::
+  .atom (.mul (.n 1431) (.n 1425) (.n 1430)) ::
+  .atom (.const (.n 1432) (word 1 0 0)) ::
+  .atom (.load (.n 1433) (.n 158) 27) ::
+  .atom (.add (.n 1434) (.n 1432) (.n 1433)) ::
+  .atom (.load (.n 1435) (.n 18) 7) ::
+  .atom (.add (.n 1436) (.n 1434) (.n 1435)) ::
+  .atom (.mul (.n 1437) (.n 1431) (.n 1436)) ::
+  .atom (.const (.n 1438) (word 1 0 0)) ::
+  .atom (.load (.n 1439) (.n 158) 28) ::
+  .atom (.add (.n 1440) (.n 1438) (.n 1439)) ::
+  .atom (.load (.n 1441) (.n 18) 8) ::
+  .atom (.add (.n 1442) (.n 1440) (.n 1441)) ::
+  .atom (.mul (.n 1443) (.n 1437) (.n 1442)) ::
+  .atom (.const (.n 1444) (word 1 0 0)) ::
+  .atom (.load (.n 1445) (.n 158) 29) ::
+  .atom (.add (.n 1446) (.n 1444) (.n 1445)) ::
+  .atom (.load (.n 1447) (.n 18) 9) ::
+  .atom (.add (.n 1448) (.n 1446) (.n 1447)) ::
+  .atom (.mul (.n 1449) (.n 1443) (.n 1448)) ::
+  .atom (.const (.n 1450) (word 1 0 0)) ::
+  .atom (.load (.n 1451) (.n 158) 30) ::
+  .atom (.add (.n 1452) (.n 1450) (.n 1451)) ::
+  .atom (.load (.n 1453) (.n 18) 10) ::
+  .atom (.add (.n 1454) (.n 1452) (.n 1453)) ::
+  .atom (.mul (.n 1455) (.n 1449) (.n 1454)) ::
+  .atom (.const (.n 1456) (word 1 0 0)) ::
+  .atom (.load (.n 1457) (.n 158) 31) ::
+  .atom (.add (.n 1458) (.n 1456) (.n 1457)) ::
+  .atom (.load (.n 1459) (.n 18) 11) ::
+  .atom (.add (.n 1460) (.n 1458) (.n 1459)) ::
+  .atom (.mul (.n 1461) (.n 1455) (.n 1460)) ::
+  .atom (.const (.n 1462) (word 1 0 0)) ::
+  .atom (.load (.n 1463) (.n 158) 32) ::
+  .atom (.add (.n 1464) (.n 1462) (.n 1463)) ::
+  .atom (.load (.n 1465) (.n 18) 12) ::
+  .atom (.add (.n 1466) (.n 1464) (.n 1465)) ::
+  .atom (.mul (.n 1467) (.n 1461) (.n 1466)) ::
+  .atom (.const (.n 1468) (word 1 0 0)) ::
+  .atom (.load (.n 1469) (.n 158) 33) ::
+  .atom (.add (.n 1470) (.n 1468) (.n 1469)) ::
+  .atom (.load (.n 1471) (.n 18) 13) ::
   .atom (.add (.n 1472) (.n 1470) (.n 1471)) ::
-  .atom (.load (.n 1473) (.n 18) 6) ::
-  .atom (.add (.n 1474) (.n 1472) (.n 1473)) ::
-  .atom (.mul (.n 1475) (.n 1469) (.n 1474)) ::
-  .atom (.const (.n 1476) (word 1 0 0)) ::
-  .atom (.load (.n 1477) (.n 158) 27) ::
+  .atom (.mul (.n 1473) (.n 1467) (.n 1472)) ::
+  .atom (.const (.n 1474) (word 1 0 0)) ::
+  .atom (.load (.n 1475) (.n 158) 34) ::
+  .atom (.add (.n 1476) (.n 1474) (.n 1475)) ::
+  .atom (.load (.n 1477) (.n 18) 14) ::
   .atom (.add (.n 1478) (.n 1476) (.n 1477)) ::
-  .atom (.load (.n 1479) (.n 18) 7) ::
-  .atom (.add (.n 1480) (.n 1478) (.n 1479)) ::
-  .atom (.mul (.n 1481) (.n 1475) (.n 1480)) ::
-  .atom (.const (.n 1482) (word 1 0 0)) ::
-  .atom (.load (.n 1483) (.n 158) 28) ::
+  .atom (.mul (.n 1479) (.n 1473) (.n 1478)) ::
+  .atom (.const (.n 1480) (word 1 0 0)) ::
+  .atom (.load (.n 1481) (.n 158) 35) ::
+  .atom (.add (.n 1482) (.n 1480) (.n 1481)) ::
+  .atom (.load (.n 1483) (.n 18) 15) ::
   .atom (.add (.n 1484) (.n 1482) (.n 1483)) ::
-  .atom (.load (.n 1485) (.n 18) 8) ::
-  .atom (.add (.n 1486) (.n 1484) (.n 1485)) ::
-  .atom (.mul (.n 1487) (.n 1481) (.n 1486)) ::
-  .atom (.const (.n 1488) (word 1 0 0)) ::
-  .atom (.load (.n 1489) (.n 158) 29) ::
+  .atom (.mul (.n 1485) (.n 1479) (.n 1484)) ::
+  .atom (.const (.n 1486) (word 1 0 0)) ::
+  .atom (.load (.n 1487) (.n 158) 36) ::
+  .atom (.add (.n 1488) (.n 1486) (.n 1487)) ::
+  .atom (.load (.n 1489) (.n 18) 16) ::
   .atom (.add (.n 1490) (.n 1488) (.n 1489)) ::
-  .atom (.load (.n 1491) (.n 18) 9) ::
-  .atom (.add (.n 1492) (.n 1490) (.n 1491)) ::
-  .atom (.mul (.n 1493) (.n 1487) (.n 1492)) ::
-  .atom (.const (.n 1494) (word 1 0 0)) ::
-  .atom (.load (.n 1495) (.n 158) 30) ::
+  .atom (.mul (.n 1491) (.n 1485) (.n 1490)) ::
+  .atom (.const (.n 1492) (word 1 0 0)) ::
+  .atom (.load (.n 1493) (.n 158) 37) ::
+  .atom (.add (.n 1494) (.n 1492) (.n 1493)) ::
+  .atom (.load (.n 1495) (.n 18) 17) ::
   .atom (.add (.n 1496) (.n 1494) (.n 1495)) ::
-  .atom (.load (.n 1497) (.n 18) 10) ::
-  .atom (.add (.n 1498) (.n 1496) (.n 1497)) ::
-  .atom (.mul (.n 1499) (.n 1493) (.n 1498)) ::
-  .atom (.const (.n 1500) (word 1 0 0)) ::
-  .atom (.load (.n 1501) (.n 158) 31) ::
+  .atom (.mul (.n 1497) (.n 1491) (.n 1496)) ::
+  .atom (.const (.n 1498) (word 1 0 0)) ::
+  .atom (.load (.n 1499) (.n 158) 38) ::
+  .atom (.add (.n 1500) (.n 1498) (.n 1499)) ::
+  .atom (.load (.n 1501) (.n 974) 0) ::
   .atom (.add (.n 1502) (.n 1500) (.n 1501)) ::
-  .atom (.load (.n 1503) (.n 18) 11) ::
-  .atom (.add (.n 1504) (.n 1502) (.n 1503)) ::
-  .atom (.mul (.n 1505) (.n 1499) (.n 1504)) ::
-  .atom (.const (.n 1506) (word 1 0 0)) ::
-  .atom (.load (.n 1507) (.n 158) 32) ::
+  .atom (.mul (.n 1503) (.n 1497) (.n 1502)) ::
+  .atom (.const (.n 1504) (word 1 0 0)) ::
+  .atom (.load (.n 1505) (.n 158) 39) ::
+  .atom (.add (.n 1506) (.n 1504) (.n 1505)) ::
+  .atom (.load (.n 1507) (.n 974) 1) ::
   .atom (.add (.n 1508) (.n 1506) (.n 1507)) ::
-  .atom (.load (.n 1509) (.n 18) 12) ::
-  .atom (.add (.n 1510) (.n 1508) (.n 1509)) ::
-  .atom (.mul (.n 1511) (.n 1505) (.n 1510)) ::
-  .atom (.const (.n 1512) (word 1 0 0)) ::
-  .atom (.load (.n 1513) (.n 158) 33) ::
-  .atom (.add (.n 1514) (.n 1512) (.n 1513)) ::
-  .atom (.load (.n 1515) (.n 18) 13) ::
-  .atom (.add (.n 1516) (.n 1514) (.n 1515)) ::
-  .atom (.mul (.n 1517) (.n 1511) (.n 1516)) ::
-  .atom (.const (.n 1518) (word 1 0 0)) ::
-  .atom (.load (.n 1519) (.n 158) 34) ::
-  .atom (.add (.n 1520) (.n 1518) (.n 1519)) ::
-  .atom (.load (.n 1521) (.n 18) 14) ::
-  .atom (.add (.n 1522) (.n 1520) (.n 1521)) ::
-  .atom (.mul (.n 1523) (.n 1517) (.n 1522)) ::
-  .atom (.const (.n 1524) (word 1 0 0)) ::
-  .atom (.load (.n 1525) (.n 158) 35) ::
-  .atom (.add (.n 1526) (.n 1524) (.n 1525)) ::
-  .atom (.load (.n 1527) (.n 18) 15) ::
-  .atom (.add (.n 1528) (.n 1526) (.n 1527)) ::
-  .atom (.mul (.n 1529) (.n 1523) (.n 1528)) ::
-  .atom (.const (.n 1530) (word 1 0 0)) ::
-  .atom (.load (.n 1531) (.n 158) 36) ::
-  .atom (.add (.n 1532) (.n 1530) (.n 1531)) ::
-  .atom (.load (.n 1533) (.n 18) 16) ::
-  .atom (.add (.n 1534) (.n 1532) (.n 1533)) ::
-  .atom (.mul (.n 1535) (.n 1529) (.n 1534)) ::
-  .atom (.const (.n 1536) (word 1 0 0)) ::
-  .atom (.load (.n 1537) (.n 158) 37) ::
-  .atom (.add (.n 1538) (.n 1536) (.n 1537)) ::
-  .atom (.load (.n 1539) (.n 18) 17) ::
-  .atom (.add (.n 1540) (.n 1538) (.n 1539)) ::
-  .atom (.mul (.n 1541) (.n 1535) (.n 1540)) ::
-  .atom (.const (.n 1542) (word 1 0 0)) ::
-  .atom (.load (.n 1543) (.n 158) 38) ::
-  .atom (.add (.n 1544) (.n 1542) (.n 1543)) ::
-  .atom (.load (.n 1545) (.n 974) 0) ::
-  .atom (.add (.n 1546) (.n 1544) (.n 1545)) ::
-  .atom (.mul (.n 1547) (.n 1541) (.n 1546)) ::
-  .atom (.const (.n 1548) (word 1 0 0)) ::
-  .atom (.load (.n 1549) (.n 158) 39) ::
-  .atom (.add (.n 1550) (.n 1548) (.n 1549)) ::
-  .atom (.load (.n 1551) (.n 974) 1) ::
-  .atom (.add (.n 1552) (.n 1550) (.n 1551)) ::
-  .atom (.mul (.n 1553) (.n 1547) (.n 1552)) ::
-  .atom (.load (.n 1554) (.n 160) 8) ::
-  .atom (.const (.n 1555) (word 1 0 0)) ::
-  .atom (.load (.n 1556) (.n 158) 52) ::
+  .atom (.mul (.n 1509) (.n 1503) (.n 1508)) ::
+  .atom (.load (.n 1510) (.n 160) 8) ::
+  .atom (.const (.n 1511) (word 1 0 0)) ::
+  .atom (.load (.n 1512) (.n 158) 52) ::
+  .atom (.add (.n 1513) (.n 1511) (.n 1512)) ::
+  .atom (.load (.n 1514) (.n 18) 10) ::
+  .atom (.add (.n 1515) (.n 1513) (.n 1514)) ::
+  .atom (.mul (.n 1516) (.n 1510) (.n 1515)) ::
+  .atom (.const (.n 1517) (word 1 0 0)) ::
+  .atom (.load (.n 1518) (.n 158) 53) ::
+  .atom (.add (.n 1519) (.n 1517) (.n 1518)) ::
+  .atom (.load (.n 1520) (.n 18) 11) ::
+  .atom (.add (.n 1521) (.n 1519) (.n 1520)) ::
+  .atom (.mul (.n 1522) (.n 1516) (.n 1521)) ::
+  .atom (.const (.n 1523) (word 1 0 0)) ::
+  .atom (.load (.n 1524) (.n 158) 54) ::
+  .atom (.add (.n 1525) (.n 1523) (.n 1524)) ::
+  .atom (.load (.n 1526) (.n 18) 12) ::
+  .atom (.add (.n 1527) (.n 1525) (.n 1526)) ::
+  .atom (.mul (.n 1528) (.n 1522) (.n 1527)) ::
+  .atom (.const (.n 1529) (word 1 0 0)) ::
+  .atom (.load (.n 1530) (.n 158) 55) ::
+  .atom (.add (.n 1531) (.n 1529) (.n 1530)) ::
+  .atom (.load (.n 1532) (.n 18) 13) ::
+  .atom (.add (.n 1533) (.n 1531) (.n 1532)) ::
+  .atom (.mul (.n 1534) (.n 1528) (.n 1533)) ::
+  .atom (.const (.n 1535) (word 1 0 0)) ::
+  .atom (.load (.n 1536) (.n 158) 56) ::
+  .atom (.add (.n 1537) (.n 1535) (.n 1536)) ::
+  .atom (.load (.n 1538) (.n 18) 14) ::
+  .atom (.add (.n 1539) (.n 1537) (.n 1538)) ::
+  .atom (.mul (.n 1540) (.n 1534) (.n 1539)) ::
+  .atom (.const (.n 1541) (word 1 0 0)) ::
+  .atom (.load (.n 1542) (.n 158) 57) ::
+  .atom (.add (.n 1543) (.n 1541) (.n 1542)) ::
+  .atom (.load (.n 1544) (.n 18) 15) ::
+  .atom (.add (.n 1545) (.n 1543) (.n 1544)) ::
+  .atom (.mul (.n 1546) (.n 1540) (.n 1545)) ::
+  .atom (.const (.n 1547) (word 1 0 0)) ::
+  .atom (.load (.n 1548) (.n 158) 58) ::
+  .atom (.add (.n 1549) (.n 1547) (.n 1548)) ::
+  .atom (.load (.n 1550) (.n 18) 16) ::
+  .atom (.add (.n 1551) (.n 1549) (.n 1550)) ::
+  .atom (.mul (.n 1552) (.n 1546) (.n 1551)) ::
+  .atom (.const (.n 1553) (word 1 0 0)) ::
+  .atom (.load (.n 1554) (.n 158) 59) ::
+  .atom (.add (.n 1555) (.n 1553) (.n 1554)) ::
+  .atom (.load (.n 1556) (.n 18) 17) ::
   .atom (.add (.n 1557) (.n 1555) (.n 1556)) ::
-  .atom (.load (.n 1558) (.n 18) 10) ::
-  .atom (.add (.n 1559) (.n 1557) (.n 1558)) ::
-  .atom (.mul (.n 1560) (.n 1554) (.n 1559)) ::
-  .atom (.const (.n 1561) (word 1 0 0)) ::
-  .atom (.load (.n 1562) (.n 158) 53) ::
+  .atom (.mul (.n 1558) (.n 1552) (.n 1557)) ::
+  .atom (.const (.n 1559) (word 1 0 0)) ::
+  .atom (.load (.n 1560) (.n 158) 60) ::
+  .atom (.add (.n 1561) (.n 1559) (.n 1560)) ::
+  .atom (.load (.n 1562) (.n 974) 0) ::
   .atom (.add (.n 1563) (.n 1561) (.n 1562)) ::
-  .atom (.load (.n 1564) (.n 18) 11) ::
-  .atom (.add (.n 1565) (.n 1563) (.n 1564)) ::
-  .atom (.mul (.n 1566) (.n 1560) (.n 1565)) ::
-  .atom (.const (.n 1567) (word 1 0 0)) ::
-  .atom (.load (.n 1568) (.n 158) 54) ::
+  .atom (.mul (.n 1564) (.n 1558) (.n 1563)) ::
+  .atom (.const (.n 1565) (word 1 0 0)) ::
+  .atom (.load (.n 1566) (.n 158) 61) ::
+  .atom (.add (.n 1567) (.n 1565) (.n 1566)) ::
+  .atom (.load (.n 1568) (.n 974) 1) ::
   .atom (.add (.n 1569) (.n 1567) (.n 1568)) ::
-  .atom (.load (.n 1570) (.n 18) 12) ::
-  .atom (.add (.n 1571) (.n 1569) (.n 1570)) ::
-  .atom (.mul (.n 1572) (.n 1566) (.n 1571)) ::
+  .atom (.mul (.n 1570) (.n 1564) (.n 1569)) ::
+  .atom (.add (.n 1571) (.n 1509) (.n 1570)) ::
+  .atom (.load (.n 1572) (.n 160) 12) ::
   .atom (.const (.n 1573) (word 1 0 0)) ::
-  .atom (.load (.n 1574) (.n 158) 55) ::
+  .atom (.load (.n 1574) (.n 158) 78) ::
   .atom (.add (.n 1575) (.n 1573) (.n 1574)) ::
-  .atom (.load (.n 1576) (.n 18) 13) ::
+  .atom (.load (.n 1576) (.n 18) 14) ::
   .atom (.add (.n 1577) (.n 1575) (.n 1576)) ::
   .atom (.mul (.n 1578) (.n 1572) (.n 1577)) ::
   .atom (.const (.n 1579) (word 1 0 0)) ::
-  .atom (.load (.n 1580) (.n 158) 56) ::
+  .atom (.load (.n 1580) (.n 158) 79) ::
   .atom (.add (.n 1581) (.n 1579) (.n 1580)) ::
-  .atom (.load (.n 1582) (.n 18) 14) ::
+  .atom (.load (.n 1582) (.n 18) 15) ::
   .atom (.add (.n 1583) (.n 1581) (.n 1582)) ::
   .atom (.mul (.n 1584) (.n 1578) (.n 1583)) ::
   .atom (.const (.n 1585) (word 1 0 0)) ::
-  .atom (.load (.n 1586) (.n 158) 57) ::
+  .atom (.load (.n 1586) (.n 158) 80) ::
   .atom (.add (.n 1587) (.n 1585) (.n 1586)) ::
-  .atom (.load (.n 1588) (.n 18) 15) ::
+  .atom (.load (.n 1588) (.n 18) 16) ::
   .atom (.add (.n 1589) (.n 1587) (.n 1588)) ::
   .atom (.mul (.n 1590) (.n 1584) (.n 1589)) ::
   .atom (.const (.n 1591) (word 1 0 0)) ::
-  .atom (.load (.n 1592) (.n 158) 58) ::
+  .atom (.load (.n 1592) (.n 158) 81) ::
   .atom (.add (.n 1593) (.n 1591) (.n 1592)) ::
-  .atom (.load (.n 1594) (.n 18) 16) ::
+  .atom (.load (.n 1594) (.n 18) 17) ::
   .atom (.add (.n 1595) (.n 1593) (.n 1594)) ::
   .atom (.mul (.n 1596) (.n 1590) (.n 1595)) ::
   .atom (.const (.n 1597) (word 1 0 0)) ::
-  .atom (.load (.n 1598) (.n 158) 59) ::
+  .atom (.load (.n 1598) (.n 158) 82) ::
   .atom (.add (.n 1599) (.n 1597) (.n 1598)) ::
-  .atom (.load (.n 1600) (.n 18) 17) ::
+  .atom (.load (.n 1600) (.n 974) 0) ::
   .atom (.add (.n 1601) (.n 1599) (.n 1600)) ::
   .atom (.mul (.n 1602) (.n 1596) (.n 1601)) ::
   .atom (.const (.n 1603) (word 1 0 0)) ::
-  .atom (.load (.n 1604) (.n 158) 60) ::
+  .atom (.load (.n 1604) (.n 158) 83) ::
   .atom (.add (.n 1605) (.n 1603) (.n 1604)) ::
-  .atom (.load (.n 1606) (.n 974) 0) ::
+  .atom (.load (.n 1606) (.n 974) 1) ::
   .atom (.add (.n 1607) (.n 1605) (.n 1606)) ::
   .atom (.mul (.n 1608) (.n 1602) (.n 1607)) ::
-  .atom (.const (.n 1609) (word 1 0 0)) ::
-  .atom (.load (.n 1610) (.n 158) 61) ::
-  .atom (.add (.n 1611) (.n 1609) (.n 1610)) ::
-  .atom (.load (.n 1612) (.n 974) 1) ::
-  .atom (.add (.n 1613) (.n 1611) (.n 1612)) ::
-  .atom (.mul (.n 1614) (.n 1608) (.n 1613)) ::
-  .atom (.add (.n 1615) (.n 1553) (.n 1614)) ::
-  .atom (.load (.n 1616) (.n 160) 12) ::
-  .atom (.const (.n 1617) (word 1 0 0)) ::
-  .atom (.load (.n 1618) (.n 158) 78) ::
-  .atom (.add (.n 1619) (.n 1617) (.n 1618)) ::
-  .atom (.load (.n 1620) (.n 18) 14) ::
-  .atom (.add (.n 1621) (.n 1619) (.n 1620)) ::
-  .atom (.mul (.n 1622) (.n 1616) (.n 1621)) ::
-  .atom (.const (.n 1623) (word 1 0 0)) ::
-  .atom (.load (.n 1624) (.n 158) 79) ::
-  .atom (.add (.n 1625) (.n 1623) (.n 1624)) ::
-  .atom (.load (.n 1626) (.n 18) 15) ::
-  .atom (.add (.n 1627) (.n 1625) (.n 1626)) ::
-  .atom (.mul (.n 1628) (.n 1622) (.n 1627)) ::
-  .atom (.const (.n 1629) (word 1 0 0)) ::
-  .atom (.load (.n 1630) (.n 158) 80) ::
-  .atom (.add (.n 1631) (.n 1629) (.n 1630)) ::
-  .atom (.load (.n 1632) (.n 18) 16) ::
-  .atom (.add (.n 1633) (.n 1631) (.n 1632)) ::
-  .atom (.mul (.n 1634) (.n 1628) (.n 1633)) ::
-  .atom (.const (.n 1635) (word 1 0 0)) ::
-  .atom (.load (.n 1636) (.n 158) 81) ::
-  .atom (.add (.n 1637) (.n 1635) (.n 1636)) ::
-  .atom (.load (.n 1638) (.n 18) 17) ::
-  .atom (.add (.n 1639) (.n 1637) (.n 1638)) ::
-  .atom (.mul (.n 1640) (.n 1634) (.n 1639)) ::
-  .atom (.const (.n 1641) (word 1 0 0)) ::
-  .atom (.load (.n 1642) (.n 158) 82) ::
-  .atom (.add (.n 1643) (.n 1641) (.n 1642)) ::
-  .atom (.load (.n 1644) (.n 974) 0) ::
-  .atom (.add (.n 1645) (.n 1643) (.n 1644)) ::
-  .atom (.mul (.n 1646) (.n 1640) (.n 1645)) ::
-  .atom (.const (.n 1647) (word 1 0 0)) ::
-  .atom (.load (.n 1648) (.n 158) 83) ::
-  .atom (.add (.n 1649) (.n 1647) (.n 1648)) ::
-  .atom (.load (.n 1650) (.n 974) 1) ::
-  .atom (.add (.n 1651) (.n 1649) (.n 1650)) ::
-  .atom (.mul (.n 1652) (.n 1646) (.n 1651)) ::
-  .atom (.add (.n 1653) (.n 1615) (.n 1652)) ::
-  .atom (.copy (.n 1654) (.n 1035)) ::
-  .atom (.copy (.n 1655) (.n 1040)) ::
-  .atom (.copy (.n 1656) (.n 1041)) ::
-  .atom (.load (.n 1657) (.n 1387) 4) ::
-  .atom (.add (.n 1658) (.n 1657) (.n 1653)) ::
-  .atom (.copy (.n 1659) (.n 1039)) ::
-  .ret [.n 1654, .n 1655, .n 1656, .n 1658, .n 1659] ::
+  .atom (.add (.n 1609) (.n 1571) (.n 1608)) ::
+  .atom (.copy (.n 1610) (.n 1035)) ::
+  .atom (.copy (.n 1611) (.n 1040)) ::
+  .atom (.copy (.n 1612) (.n 1041)) ::
+  .atom (.load (.n 1613) (.n 1387) 4) ::
+  .atom (.add (.n 1614) (.n 1613) (.n 1609)) ::
+  .atom (.copy (.n 1615) (.n 1039)) ::
+  .ret [.n 1610, .n 1611, .n 1612, .n 1614, .n 1615] ::
   [])
 
 /-- `open_stacked__L1`: the body. -/
@@ -9742,7 +9588,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.load (.n 1170) (.n 1050) 38) ::
   [])
 
-/-- `open_stacked__L2`: statements 1089 to 1603 of the body. -/
+/-- `open_stacked__L2`: statements 1089 to 1640 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
   .atom (.const (.n 1171) (word 1 0 0)) ::
   .atom (.load (.n 1171) (.n 1051) 38) ::
@@ -10046,352 +9892,260 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1427) (.n 1426))) ::
   .atom (.const (.n 1428) (word 0 0 0)) ::
   .atom (.load (.n 1428) (.n 1427) 0) ::
-  .atom (.const (.n 1429) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1430) (word 134217728 0 0)),
-      .atom (.copy (.n 1431) (.n 1430)),
-      .atom (.const (.n 1432) (word 128 0 0)),
-      .atom (.copy (.n 1433) (.n 1432))],
-    [
-      .atom (.const (.n 1434) (word 16384 0 0)),
-      .atom (.copy (.n 1431) (.n 1434)),
-      .atom (.const (.n 1435) (word 1 0 0)),
-      .atom (.copy (.n 1433) (.n 1435))],
-    [
-      .atom (.const (.n 1436) (word 512 0 0)),
-      .atom (.copy (.n 1431) (.n 1436)),
-      .atom (.const (.n 1437) (word 8 0 0)),
-      .atom (.copy (.n 1433) (.n 1437))],
-    [
-      .atom (.const (.n 1438) (word 128 0 0)),
-      .atom (.copy (.n 1431) (.n 1438)),
-      .atom (.const (.n 1439) (word 1 0 0)),
-      .atom (.copy (.n 1433) (.n 1439))]] ::
-  .atom (.load (.n 1440) (.n 22) 0) ::
-  .call "level_residual__L15" [.n 24, .n 1175, .n 1440, .n 1431, .n 1433] [.n 1441] ::
-  .atom (.load (.n 1442) (.n 1427) 0) ::
-  .atom (.load (.n 1443) (.n 1177) 0) ::
-  .atom (.mul (.n 1444) (.n 1443) (.n 1441)) ::
-  .atom (.add (.n 1445) (.n 1442) (.n 1444)) ::
-  .atom (.load (.n 1445) (.n 1427) 1) ::
-  .atom (.const (.n 1446) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1447) (word 128 0 0)),
-      .atom (.copy (.n 1448) (.n 1447)),
-      .atom (.const (.n 1449) (word 1 0 0)),
-      .atom (.copy (.n 1450) (.n 1449))],
-    [
-      .atom (.const (.n 1451) (word 32 0 0)),
-      .atom (.copy (.n 1448) (.n 1451)),
-      .atom (.const (.n 1452) (word 32 0 0)),
-      .atom (.copy (.n 1450) (.n 1452))],
-    [
-      .atom (.const (.n 1453) (word 16 0 0)),
-      .atom (.copy (.n 1448) (.n 1453)),
-      .atom (.const (.n 1454) (word 64 0 0)),
-      .atom (.copy (.n 1450) (.n 1454))],
-    [
-      .atom (.const (.n 1455) (word 16 0 0)),
-      .atom (.copy (.n 1448) (.n 1455)),
-      .atom (.const (.n 1456) (word 1 0 0)),
-      .atom (.copy (.n 1450) (.n 1456))]] ::
-  .atom (.const (.n 1457) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1458) (.n 24) (.n 1457)) ::
-  .atom (.const (.n 1459) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1460) (.n 1175) (.n 1459)) ::
-  .atom (.load (.n 1461) (.n 22) 1) ::
-  .call "level_residual__L11" [.n 1458, .n 1460, .n 1461, .n 1448, .n 1450] [.n 1462] ::
-  .atom (.load (.n 1463) (.n 1427) 1) ::
-  .atom (.load (.n 1464) (.n 1177) 1) ::
-  .atom (.mul (.n 1465) (.n 1464) (.n 1462)) ::
-  .atom (.add (.n 1466) (.n 1463) (.n 1465)) ::
-  .atom (.load (.n 1466) (.n 1427) 2) ::
-  .atom (.const (.n 1467) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1468) (word 16 0 0)),
-      .atom (.copy (.n 1469) (.n 1468)),
-      .atom (.const (.n 1470) (word 1 0 0)),
-      .atom (.copy (.n 1471) (.n 1470))],
-    [
-      .atom (.const (.n 1472) (word 8 0 0)),
-      .atom (.copy (.n 1469) (.n 1472)),
-      .atom (.const (.n 1473) (word 16 0 0)),
-      .atom (.copy (.n 1471) (.n 1473))],
-    [
-      .atom (.const (.n 1474) (word 8 0 0)),
-      .atom (.copy (.n 1469) (.n 1474)),
-      .atom (.const (.n 1475) (word 2 0 0)),
-      .atom (.copy (.n 1471) (.n 1475))],
-    [
-      .atom (.const (.n 1476) (word 4 0 0)),
-      .atom (.copy (.n 1469) (.n 1476)),
-      .atom (.const (.n 1477) (word 128 0 0)),
-      .atom (.copy (.n 1471) (.n 1477))]] ::
-  .atom (.const (.n 1478) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1479) (.n 564) (.n 1478)) ::
-  .atom (.const (.n 1480) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1481) (.n 1460) (.n 1480)) ::
-  .atom (.load (.n 1482) (.n 22) 2) ::
-  .call "level_residual__L7" [.n 1479, .n 1481, .n 1482, .n 1469, .n 1471] [.n 1483] ::
-  .atom (.load (.n 1484) (.n 1427) 2) ::
-  .atom (.load (.n 1485) (.n 1177) 2) ::
-  .atom (.mul (.n 1486) (.n 1485) (.n 1483)) ::
-  .atom (.add (.n 1487) (.n 1484) (.n 1486)) ::
-  .atom (.load (.n 1487) (.n 1427) 3) ::
-  .atom (.const (.n 1488) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1489) (word 4 0 0)),
-      .atom (.copy (.n 1490) (.n 1489)),
-      .atom (.const (.n 1491) (word 64 0 0)),
-      .atom (.copy (.n 1492) (.n 1491))],
-    [
-      .atom (.const (.n 1493) (word 4 0 0)),
-      .atom (.copy (.n 1490) (.n 1493)),
-      .atom (.const (.n 1494) (word 16 0 0)),
-      .atom (.copy (.n 1492) (.n 1494))],
-    [
-      .atom (.const (.n 1495) (word 4 0 0)),
-      .atom (.copy (.n 1490) (.n 1495)),
-      .atom (.const (.n 1496) (word 8 0 0)),
-      .atom (.copy (.n 1492) (.n 1496))],
-    [
-      .atom (.const (.n 1497) (word 4 0 0)),
-      .atom (.copy (.n 1490) (.n 1497)),
-      .atom (.const (.n 1498) (word 2 0 0)),
-      .atom (.copy (.n 1492) (.n 1498))]] ::
-  .atom (.const (.n 1499) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1500) (.n 791) (.n 1499)) ::
-  .atom (.const (.n 1501) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1502) (.n 1481) (.n 1501)) ::
-  .atom (.load (.n 1503) (.n 22) 3) ::
-  .call "level_residual__L3" [.n 1500, .n 1502, .n 1503, .n 1490, .n 1492] [.n 1504] ::
-  .atom (.load (.n 1505) (.n 1427) 3) ::
-  .atom (.load (.n 1506) (.n 1177) 3) ::
-  .atom (.mul (.n 1507) (.n 1506) (.n 1504)) ::
-  .atom (.add (.n 1508) (.n 1505) (.n 1507)) ::
-  .atom (.load (.n 1508) (.n 1427) 4) ::
-  .atom (.load (.n 1509) (.n 160) 4) ::
-  .atom (.const (.n 1510) (word 1 0 0)) ::
-  .atom (.load (.n 1511) (.n 158) 26) ::
+  .atom (.load (.n 1429) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L223_L15", "level_residual__L112_L15", "level_residual__L75_L15", "level_residual__L56_L15"] [.n 24, .n 1175, .n 1429] [.n 1430] ::
+  .atom (.load (.n 1431) (.n 1427) 0) ::
+  .atom (.load (.n 1432) (.n 1177) 0) ::
+  .atom (.mul (.n 1433) (.n 1432) (.n 1430)) ::
+  .atom (.add (.n 1434) (.n 1431) (.n 1433)) ::
+  .atom (.load (.n 1434) (.n 1427) 1) ::
+  .atom (.const (.n 1435) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1436) (.n 24) (.n 1435)) ::
+  .atom (.const (.n 1437) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1438) (.n 1175) (.n 1437)) ::
+  .atom (.load (.n 1439) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L11", "level_residual__L45_L11", "level_residual__L38_L11", "level_residual__L32_L11"] [.n 1436, .n 1438, .n 1439] [.n 1440] ::
+  .atom (.load (.n 1441) (.n 1427) 1) ::
+  .atom (.load (.n 1442) (.n 1177) 1) ::
+  .atom (.mul (.n 1443) (.n 1442) (.n 1440)) ::
+  .atom (.add (.n 1444) (.n 1441) (.n 1443)) ::
+  .atom (.load (.n 1444) (.n 1427) 2) ::
+  .atom (.const (.n 1445) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1446) (.n 564) (.n 1445)) ::
+  .atom (.const (.n 1447) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1448) (.n 1438) (.n 1447)) ::
+  .atom (.load (.n 1449) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L7", "level_residual__L28_L7", "level_residual__L25_L7", "level_residual__L23_L7"] [.n 1446, .n 1448, .n 1449] [.n 1450] ::
+  .atom (.load (.n 1451) (.n 1427) 2) ::
+  .atom (.load (.n 1452) (.n 1177) 2) ::
+  .atom (.mul (.n 1453) (.n 1452) (.n 1450)) ::
+  .atom (.add (.n 1454) (.n 1451) (.n 1453)) ::
+  .atom (.load (.n 1454) (.n 1427) 3) ::
+  .atom (.const (.n 1455) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1456) (.n 791) (.n 1455)) ::
+  .atom (.const (.n 1457) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1458) (.n 1448) (.n 1457)) ::
+  .atom (.load (.n 1459) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L22_L3", "level_residual__L20_L3", "level_residual__L19_L3", "level_residual__L17_L3"] [.n 1456, .n 1458, .n 1459] [.n 1460] ::
+  .atom (.load (.n 1461) (.n 1427) 3) ::
+  .atom (.load (.n 1462) (.n 1177) 3) ::
+  .atom (.mul (.n 1463) (.n 1462) (.n 1460)) ::
+  .atom (.add (.n 1464) (.n 1461) (.n 1463)) ::
+  .atom (.load (.n 1464) (.n 1427) 4) ::
+  .atom (.load (.n 1465) (.n 160) 4) ::
+  .atom (.const (.n 1466) (word 1 0 0)) ::
+  .atom (.load (.n 1467) (.n 158) 26) ::
+  .atom (.add (.n 1468) (.n 1466) (.n 1467)) ::
+  .atom (.load (.n 1469) (.n 18) 6) ::
+  .atom (.add (.n 1470) (.n 1468) (.n 1469)) ::
+  .atom (.mul (.n 1471) (.n 1465) (.n 1470)) ::
+  .atom (.const (.n 1472) (word 1 0 0)) ::
+  .atom (.load (.n 1473) (.n 158) 27) ::
+  .atom (.add (.n 1474) (.n 1472) (.n 1473)) ::
+  .atom (.load (.n 1475) (.n 18) 7) ::
+  .atom (.add (.n 1476) (.n 1474) (.n 1475)) ::
+  .atom (.mul (.n 1477) (.n 1471) (.n 1476)) ::
+  .atom (.const (.n 1478) (word 1 0 0)) ::
+  .atom (.load (.n 1479) (.n 158) 28) ::
+  .atom (.add (.n 1480) (.n 1478) (.n 1479)) ::
+  .atom (.load (.n 1481) (.n 18) 8) ::
+  .atom (.add (.n 1482) (.n 1480) (.n 1481)) ::
+  .atom (.mul (.n 1483) (.n 1477) (.n 1482)) ::
+  .atom (.const (.n 1484) (word 1 0 0)) ::
+  .atom (.load (.n 1485) (.n 158) 29) ::
+  .atom (.add (.n 1486) (.n 1484) (.n 1485)) ::
+  .atom (.load (.n 1487) (.n 18) 9) ::
+  .atom (.add (.n 1488) (.n 1486) (.n 1487)) ::
+  .atom (.mul (.n 1489) (.n 1483) (.n 1488)) ::
+  .atom (.const (.n 1490) (word 1 0 0)) ::
+  .atom (.load (.n 1491) (.n 158) 30) ::
+  .atom (.add (.n 1492) (.n 1490) (.n 1491)) ::
+  .atom (.load (.n 1493) (.n 18) 10) ::
+  .atom (.add (.n 1494) (.n 1492) (.n 1493)) ::
+  .atom (.mul (.n 1495) (.n 1489) (.n 1494)) ::
+  .atom (.const (.n 1496) (word 1 0 0)) ::
+  .atom (.load (.n 1497) (.n 158) 31) ::
+  .atom (.add (.n 1498) (.n 1496) (.n 1497)) ::
+  .atom (.load (.n 1499) (.n 18) 11) ::
+  .atom (.add (.n 1500) (.n 1498) (.n 1499)) ::
+  .atom (.mul (.n 1501) (.n 1495) (.n 1500)) ::
+  .atom (.const (.n 1502) (word 1 0 0)) ::
+  .atom (.load (.n 1503) (.n 158) 32) ::
+  .atom (.add (.n 1504) (.n 1502) (.n 1503)) ::
+  .atom (.load (.n 1505) (.n 18) 12) ::
+  .atom (.add (.n 1506) (.n 1504) (.n 1505)) ::
+  .atom (.mul (.n 1507) (.n 1501) (.n 1506)) ::
+  .atom (.const (.n 1508) (word 1 0 0)) ::
+  .atom (.load (.n 1509) (.n 158) 33) ::
+  .atom (.add (.n 1510) (.n 1508) (.n 1509)) ::
+  .atom (.load (.n 1511) (.n 18) 13) ::
   .atom (.add (.n 1512) (.n 1510) (.n 1511)) ::
-  .atom (.load (.n 1513) (.n 18) 6) ::
-  .atom (.add (.n 1514) (.n 1512) (.n 1513)) ::
-  .atom (.mul (.n 1515) (.n 1509) (.n 1514)) ::
-  .atom (.const (.n 1516) (word 1 0 0)) ::
-  .atom (.load (.n 1517) (.n 158) 27) ::
+  .atom (.mul (.n 1513) (.n 1507) (.n 1512)) ::
+  .atom (.const (.n 1514) (word 1 0 0)) ::
+  .atom (.load (.n 1515) (.n 158) 34) ::
+  .atom (.add (.n 1516) (.n 1514) (.n 1515)) ::
+  .atom (.load (.n 1517) (.n 18) 14) ::
   .atom (.add (.n 1518) (.n 1516) (.n 1517)) ::
-  .atom (.load (.n 1519) (.n 18) 7) ::
-  .atom (.add (.n 1520) (.n 1518) (.n 1519)) ::
-  .atom (.mul (.n 1521) (.n 1515) (.n 1520)) ::
-  .atom (.const (.n 1522) (word 1 0 0)) ::
-  .atom (.load (.n 1523) (.n 158) 28) ::
+  .atom (.mul (.n 1519) (.n 1513) (.n 1518)) ::
+  .atom (.const (.n 1520) (word 1 0 0)) ::
+  .atom (.load (.n 1521) (.n 158) 35) ::
+  .atom (.add (.n 1522) (.n 1520) (.n 1521)) ::
+  .atom (.load (.n 1523) (.n 18) 15) ::
   .atom (.add (.n 1524) (.n 1522) (.n 1523)) ::
-  .atom (.load (.n 1525) (.n 18) 8) ::
-  .atom (.add (.n 1526) (.n 1524) (.n 1525)) ::
-  .atom (.mul (.n 1527) (.n 1521) (.n 1526)) ::
-  .atom (.const (.n 1528) (word 1 0 0)) ::
-  .atom (.load (.n 1529) (.n 158) 29) ::
+  .atom (.mul (.n 1525) (.n 1519) (.n 1524)) ::
+  .atom (.const (.n 1526) (word 1 0 0)) ::
+  .atom (.load (.n 1527) (.n 158) 36) ::
+  .atom (.add (.n 1528) (.n 1526) (.n 1527)) ::
+  .atom (.load (.n 1529) (.n 18) 16) ::
   .atom (.add (.n 1530) (.n 1528) (.n 1529)) ::
-  .atom (.load (.n 1531) (.n 18) 9) ::
-  .atom (.add (.n 1532) (.n 1530) (.n 1531)) ::
-  .atom (.mul (.n 1533) (.n 1527) (.n 1532)) ::
-  .atom (.const (.n 1534) (word 1 0 0)) ::
-  .atom (.load (.n 1535) (.n 158) 30) ::
+  .atom (.mul (.n 1531) (.n 1525) (.n 1530)) ::
+  .atom (.const (.n 1532) (word 1 0 0)) ::
+  .atom (.load (.n 1533) (.n 158) 37) ::
+  .atom (.add (.n 1534) (.n 1532) (.n 1533)) ::
+  .atom (.load (.n 1535) (.n 18) 17) ::
   .atom (.add (.n 1536) (.n 1534) (.n 1535)) ::
-  .atom (.load (.n 1537) (.n 18) 10) ::
-  .atom (.add (.n 1538) (.n 1536) (.n 1537)) ::
-  .atom (.mul (.n 1539) (.n 1533) (.n 1538)) ::
-  .atom (.const (.n 1540) (word 1 0 0)) ::
-  .atom (.load (.n 1541) (.n 158) 31) ::
+  .atom (.mul (.n 1537) (.n 1531) (.n 1536)) ::
+  .atom (.const (.n 1538) (word 1 0 0)) ::
+  .atom (.load (.n 1539) (.n 158) 38) ::
+  .atom (.add (.n 1540) (.n 1538) (.n 1539)) ::
+  .atom (.load (.n 1541) (.n 974) 0) ::
   .atom (.add (.n 1542) (.n 1540) (.n 1541)) ::
-  .atom (.load (.n 1543) (.n 18) 11) ::
-  .atom (.add (.n 1544) (.n 1542) (.n 1543)) ::
-  .atom (.mul (.n 1545) (.n 1539) (.n 1544)) ::
-  .atom (.const (.n 1546) (word 1 0 0)) ::
-  .atom (.load (.n 1547) (.n 158) 32) ::
+  .atom (.mul (.n 1543) (.n 1537) (.n 1542)) ::
+  .atom (.const (.n 1544) (word 1 0 0)) ::
+  .atom (.load (.n 1545) (.n 158) 39) ::
+  .atom (.add (.n 1546) (.n 1544) (.n 1545)) ::
+  .atom (.load (.n 1547) (.n 974) 1) ::
   .atom (.add (.n 1548) (.n 1546) (.n 1547)) ::
-  .atom (.load (.n 1549) (.n 18) 12) ::
-  .atom (.add (.n 1550) (.n 1548) (.n 1549)) ::
-  .atom (.mul (.n 1551) (.n 1545) (.n 1550)) ::
-  .atom (.const (.n 1552) (word 1 0 0)) ::
-  .atom (.load (.n 1553) (.n 158) 33) ::
+  .atom (.mul (.n 1549) (.n 1543) (.n 1548)) ::
+  .atom (.const (.n 1550) (word 1 0 0)) ::
+  .atom (.load (.n 1551) (.n 158) 40) ::
+  .atom (.add (.n 1552) (.n 1550) (.n 1551)) ::
+  .atom (.load (.n 1553) (.n 974) 2) ::
   .atom (.add (.n 1554) (.n 1552) (.n 1553)) ::
-  .atom (.load (.n 1555) (.n 18) 13) ::
-  .atom (.add (.n 1556) (.n 1554) (.n 1555)) ::
-  .atom (.mul (.n 1557) (.n 1551) (.n 1556)) ::
-  .atom (.const (.n 1558) (word 1 0 0)) ::
-  .atom (.load (.n 1559) (.n 158) 34) ::
-  .atom (.add (.n 1560) (.n 1558) (.n 1559)) ::
-  .atom (.load (.n 1561) (.n 18) 14) ::
-  .atom (.add (.n 1562) (.n 1560) (.n 1561)) ::
-  .atom (.mul (.n 1563) (.n 1557) (.n 1562)) ::
-  .atom (.const (.n 1564) (word 1 0 0)) ::
-  .atom (.load (.n 1565) (.n 158) 35) ::
-  .atom (.add (.n 1566) (.n 1564) (.n 1565)) ::
-  .atom (.load (.n 1567) (.n 18) 15) ::
-  .atom (.add (.n 1568) (.n 1566) (.n 1567)) ::
-  .atom (.mul (.n 1569) (.n 1563) (.n 1568)) ::
-  .atom (.const (.n 1570) (word 1 0 0)) ::
-  .atom (.load (.n 1571) (.n 158) 36) ::
-  .atom (.add (.n 1572) (.n 1570) (.n 1571)) ::
-  .atom (.load (.n 1573) (.n 18) 16) ::
-  .atom (.add (.n 1574) (.n 1572) (.n 1573)) ::
-  .atom (.mul (.n 1575) (.n 1569) (.n 1574)) ::
-  .atom (.const (.n 1576) (word 1 0 0)) ::
-  .atom (.load (.n 1577) (.n 158) 37) ::
-  .atom (.add (.n 1578) (.n 1576) (.n 1577)) ::
-  .atom (.load (.n 1579) (.n 18) 17) ::
-  .atom (.add (.n 1580) (.n 1578) (.n 1579)) ::
-  .atom (.mul (.n 1581) (.n 1575) (.n 1580)) ::
-  .atom (.const (.n 1582) (word 1 0 0)) ::
-  .atom (.load (.n 1583) (.n 158) 38) ::
-  .atom (.add (.n 1584) (.n 1582) (.n 1583)) ::
-  .atom (.load (.n 1585) (.n 974) 0) ::
-  .atom (.add (.n 1586) (.n 1584) (.n 1585)) ::
-  .atom (.mul (.n 1587) (.n 1581) (.n 1586)) ::
-  .atom (.const (.n 1588) (word 1 0 0)) ::
-  .atom (.load (.n 1589) (.n 158) 39) ::
-  .atom (.add (.n 1590) (.n 1588) (.n 1589)) ::
-  .atom (.load (.n 1591) (.n 974) 1) ::
-  .atom (.add (.n 1592) (.n 1590) (.n 1591)) ::
-  .atom (.mul (.n 1593) (.n 1587) (.n 1592)) ::
-  .atom (.const (.n 1594) (word 1 0 0)) ::
-  .atom (.load (.n 1595) (.n 158) 40) ::
-  .atom (.add (.n 1596) (.n 1594) (.n 1595)) ::
-  .atom (.load (.n 1597) (.n 974) 2) ::
-  .atom (.add (.n 1598) (.n 1596) (.n 1597)) ::
-  .atom (.mul (.n 1599) (.n 1593) (.n 1598)) ::
-  .atom (.load (.n 1600) (.n 160) 8) ::
-  .atom (.const (.n 1601) (word 1 0 0)) ::
-  .atom (.load (.n 1602) (.n 158) 52) ::
+  .atom (.mul (.n 1555) (.n 1549) (.n 1554)) ::
+  .atom (.load (.n 1556) (.n 160) 8) ::
+  .atom (.const (.n 1557) (word 1 0 0)) ::
+  .atom (.load (.n 1558) (.n 158) 52) ::
+  .atom (.add (.n 1559) (.n 1557) (.n 1558)) ::
+  .atom (.load (.n 1560) (.n 18) 10) ::
+  .atom (.add (.n 1561) (.n 1559) (.n 1560)) ::
+  .atom (.mul (.n 1562) (.n 1556) (.n 1561)) ::
+  .atom (.const (.n 1563) (word 1 0 0)) ::
+  .atom (.load (.n 1564) (.n 158) 53) ::
+  .atom (.add (.n 1565) (.n 1563) (.n 1564)) ::
+  .atom (.load (.n 1566) (.n 18) 11) ::
+  .atom (.add (.n 1567) (.n 1565) (.n 1566)) ::
+  .atom (.mul (.n 1568) (.n 1562) (.n 1567)) ::
+  .atom (.const (.n 1569) (word 1 0 0)) ::
+  .atom (.load (.n 1570) (.n 158) 54) ::
+  .atom (.add (.n 1571) (.n 1569) (.n 1570)) ::
+  .atom (.load (.n 1572) (.n 18) 12) ::
+  .atom (.add (.n 1573) (.n 1571) (.n 1572)) ::
+  .atom (.mul (.n 1574) (.n 1568) (.n 1573)) ::
+  .atom (.const (.n 1575) (word 1 0 0)) ::
+  .atom (.load (.n 1576) (.n 158) 55) ::
+  .atom (.add (.n 1577) (.n 1575) (.n 1576)) ::
+  .atom (.load (.n 1578) (.n 18) 13) ::
+  .atom (.add (.n 1579) (.n 1577) (.n 1578)) ::
+  .atom (.mul (.n 1580) (.n 1574) (.n 1579)) ::
+  .atom (.const (.n 1581) (word 1 0 0)) ::
+  .atom (.load (.n 1582) (.n 158) 56) ::
+  .atom (.add (.n 1583) (.n 1581) (.n 1582)) ::
+  .atom (.load (.n 1584) (.n 18) 14) ::
+  .atom (.add (.n 1585) (.n 1583) (.n 1584)) ::
+  .atom (.mul (.n 1586) (.n 1580) (.n 1585)) ::
+  .atom (.const (.n 1587) (word 1 0 0)) ::
+  .atom (.load (.n 1588) (.n 158) 57) ::
+  .atom (.add (.n 1589) (.n 1587) (.n 1588)) ::
+  .atom (.load (.n 1590) (.n 18) 15) ::
+  .atom (.add (.n 1591) (.n 1589) (.n 1590)) ::
+  .atom (.mul (.n 1592) (.n 1586) (.n 1591)) ::
+  .atom (.const (.n 1593) (word 1 0 0)) ::
+  .atom (.load (.n 1594) (.n 158) 58) ::
+  .atom (.add (.n 1595) (.n 1593) (.n 1594)) ::
+  .atom (.load (.n 1596) (.n 18) 16) ::
+  .atom (.add (.n 1597) (.n 1595) (.n 1596)) ::
+  .atom (.mul (.n 1598) (.n 1592) (.n 1597)) ::
+  .atom (.const (.n 1599) (word 1 0 0)) ::
+  .atom (.load (.n 1600) (.n 158) 59) ::
+  .atom (.add (.n 1601) (.n 1599) (.n 1600)) ::
+  .atom (.load (.n 1602) (.n 18) 17) ::
   .atom (.add (.n 1603) (.n 1601) (.n 1602)) ::
-  .atom (.load (.n 1604) (.n 18) 10) ::
-  .atom (.add (.n 1605) (.n 1603) (.n 1604)) ::
-  .atom (.mul (.n 1606) (.n 1600) (.n 1605)) ::
-  .atom (.const (.n 1607) (word 1 0 0)) ::
-  .atom (.load (.n 1608) (.n 158) 53) ::
+  .atom (.mul (.n 1604) (.n 1598) (.n 1603)) ::
+  .atom (.const (.n 1605) (word 1 0 0)) ::
+  .atom (.load (.n 1606) (.n 158) 60) ::
+  .atom (.add (.n 1607) (.n 1605) (.n 1606)) ::
+  .atom (.load (.n 1608) (.n 974) 0) ::
   .atom (.add (.n 1609) (.n 1607) (.n 1608)) ::
-  .atom (.load (.n 1610) (.n 18) 11) ::
-  .atom (.add (.n 1611) (.n 1609) (.n 1610)) ::
-  .atom (.mul (.n 1612) (.n 1606) (.n 1611)) ::
-  .atom (.const (.n 1613) (word 1 0 0)) ::
-  .atom (.load (.n 1614) (.n 158) 54) ::
+  .atom (.mul (.n 1610) (.n 1604) (.n 1609)) ::
+  .atom (.const (.n 1611) (word 1 0 0)) ::
+  .atom (.load (.n 1612) (.n 158) 61) ::
+  .atom (.add (.n 1613) (.n 1611) (.n 1612)) ::
+  .atom (.load (.n 1614) (.n 974) 1) ::
   .atom (.add (.n 1615) (.n 1613) (.n 1614)) ::
-  .atom (.load (.n 1616) (.n 18) 12) ::
-  .atom (.add (.n 1617) (.n 1615) (.n 1616)) ::
-  .atom (.mul (.n 1618) (.n 1612) (.n 1617)) ::
-  .atom (.const (.n 1619) (word 1 0 0)) ::
-  .atom (.load (.n 1620) (.n 158) 55) ::
+  .atom (.mul (.n 1616) (.n 1610) (.n 1615)) ::
+  .atom (.const (.n 1617) (word 1 0 0)) ::
+  .atom (.load (.n 1618) (.n 158) 62) ::
+  .atom (.add (.n 1619) (.n 1617) (.n 1618)) ::
+  .atom (.load (.n 1620) (.n 974) 2) ::
   .atom (.add (.n 1621) (.n 1619) (.n 1620)) ::
-  .atom (.load (.n 1622) (.n 18) 13) ::
-  .atom (.add (.n 1623) (.n 1621) (.n 1622)) ::
-  .atom (.mul (.n 1624) (.n 1618) (.n 1623)) ::
+  .atom (.mul (.n 1622) (.n 1616) (.n 1621)) ::
+  .atom (.add (.n 1623) (.n 1555) (.n 1622)) ::
+  .atom (.load (.n 1624) (.n 160) 12) ::
   .atom (.const (.n 1625) (word 1 0 0)) ::
-  .atom (.load (.n 1626) (.n 158) 56) ::
+  .atom (.load (.n 1626) (.n 158) 78) ::
   .atom (.add (.n 1627) (.n 1625) (.n 1626)) ::
   .atom (.load (.n 1628) (.n 18) 14) ::
   .atom (.add (.n 1629) (.n 1627) (.n 1628)) ::
   .atom (.mul (.n 1630) (.n 1624) (.n 1629)) ::
   .atom (.const (.n 1631) (word 1 0 0)) ::
-  .atom (.load (.n 1632) (.n 158) 57) ::
+  .atom (.load (.n 1632) (.n 158) 79) ::
   .atom (.add (.n 1633) (.n 1631) (.n 1632)) ::
   .atom (.load (.n 1634) (.n 18) 15) ::
   .atom (.add (.n 1635) (.n 1633) (.n 1634)) ::
   .atom (.mul (.n 1636) (.n 1630) (.n 1635)) ::
   .atom (.const (.n 1637) (word 1 0 0)) ::
-  .atom (.load (.n 1638) (.n 158) 58) ::
+  .atom (.load (.n 1638) (.n 158) 80) ::
   .atom (.add (.n 1639) (.n 1637) (.n 1638)) ::
   .atom (.load (.n 1640) (.n 18) 16) ::
   .atom (.add (.n 1641) (.n 1639) (.n 1640)) ::
   .atom (.mul (.n 1642) (.n 1636) (.n 1641)) ::
   .atom (.const (.n 1643) (word 1 0 0)) ::
-  .atom (.load (.n 1644) (.n 158) 59) ::
+  .atom (.load (.n 1644) (.n 158) 81) ::
   .atom (.add (.n 1645) (.n 1643) (.n 1644)) ::
   .atom (.load (.n 1646) (.n 18) 17) ::
   .atom (.add (.n 1647) (.n 1645) (.n 1646)) ::
   .atom (.mul (.n 1648) (.n 1642) (.n 1647)) ::
   .atom (.const (.n 1649) (word 1 0 0)) ::
-  .atom (.load (.n 1650) (.n 158) 60) ::
+  .atom (.load (.n 1650) (.n 158) 82) ::
   .atom (.add (.n 1651) (.n 1649) (.n 1650)) ::
   .atom (.load (.n 1652) (.n 974) 0) ::
   .atom (.add (.n 1653) (.n 1651) (.n 1652)) ::
   .atom (.mul (.n 1654) (.n 1648) (.n 1653)) ::
   .atom (.const (.n 1655) (word 1 0 0)) ::
-  .atom (.load (.n 1656) (.n 158) 61) ::
+  .atom (.load (.n 1656) (.n 158) 83) ::
   .atom (.add (.n 1657) (.n 1655) (.n 1656)) ::
   .atom (.load (.n 1658) (.n 974) 1) ::
   .atom (.add (.n 1659) (.n 1657) (.n 1658)) ::
   .atom (.mul (.n 1660) (.n 1654) (.n 1659)) ::
   .atom (.const (.n 1661) (word 1 0 0)) ::
-  .atom (.load (.n 1662) (.n 158) 62) ::
+  .atom (.load (.n 1662) (.n 158) 84) ::
   .atom (.add (.n 1663) (.n 1661) (.n 1662)) ::
   .atom (.load (.n 1664) (.n 974) 2) ::
   .atom (.add (.n 1665) (.n 1663) (.n 1664)) ::
   .atom (.mul (.n 1666) (.n 1660) (.n 1665)) ::
-  .atom (.add (.n 1667) (.n 1599) (.n 1666)) ::
-  .atom (.load (.n 1668) (.n 160) 12) ::
-  .atom (.const (.n 1669) (word 1 0 0)) ::
-  .atom (.load (.n 1670) (.n 158) 78) ::
-  .atom (.add (.n 1671) (.n 1669) (.n 1670)) ::
-  .atom (.load (.n 1672) (.n 18) 14) ::
-  .atom (.add (.n 1673) (.n 1671) (.n 1672)) ::
-  [])
-
-/-- `open_stacked__L2`: statements 1604 to 1648 of the body. -/
-noncomputable def c3 : List Core.Stmt := (
-  .atom (.mul (.n 1674) (.n 1668) (.n 1673)) ::
-  .atom (.const (.n 1675) (word 1 0 0)) ::
-  .atom (.load (.n 1676) (.n 158) 79) ::
-  .atom (.add (.n 1677) (.n 1675) (.n 1676)) ::
-  .atom (.load (.n 1678) (.n 18) 15) ::
-  .atom (.add (.n 1679) (.n 1677) (.n 1678)) ::
-  .atom (.mul (.n 1680) (.n 1674) (.n 1679)) ::
-  .atom (.const (.n 1681) (word 1 0 0)) ::
-  .atom (.load (.n 1682) (.n 158) 80) ::
-  .atom (.add (.n 1683) (.n 1681) (.n 1682)) ::
-  .atom (.load (.n 1684) (.n 18) 16) ::
-  .atom (.add (.n 1685) (.n 1683) (.n 1684)) ::
-  .atom (.mul (.n 1686) (.n 1680) (.n 1685)) ::
-  .atom (.const (.n 1687) (word 1 0 0)) ::
-  .atom (.load (.n 1688) (.n 158) 81) ::
-  .atom (.add (.n 1689) (.n 1687) (.n 1688)) ::
-  .atom (.load (.n 1690) (.n 18) 17) ::
-  .atom (.add (.n 1691) (.n 1689) (.n 1690)) ::
-  .atom (.mul (.n 1692) (.n 1686) (.n 1691)) ::
-  .atom (.const (.n 1693) (word 1 0 0)) ::
-  .atom (.load (.n 1694) (.n 158) 82) ::
-  .atom (.add (.n 1695) (.n 1693) (.n 1694)) ::
-  .atom (.load (.n 1696) (.n 974) 0) ::
-  .atom (.add (.n 1697) (.n 1695) (.n 1696)) ::
-  .atom (.mul (.n 1698) (.n 1692) (.n 1697)) ::
-  .atom (.const (.n 1699) (word 1 0 0)) ::
-  .atom (.load (.n 1700) (.n 158) 83) ::
-  .atom (.add (.n 1701) (.n 1699) (.n 1700)) ::
-  .atom (.load (.n 1702) (.n 974) 1) ::
-  .atom (.add (.n 1703) (.n 1701) (.n 1702)) ::
-  .atom (.mul (.n 1704) (.n 1698) (.n 1703)) ::
-  .atom (.const (.n 1705) (word 1 0 0)) ::
-  .atom (.load (.n 1706) (.n 158) 84) ::
-  .atom (.add (.n 1707) (.n 1705) (.n 1706)) ::
-  .atom (.load (.n 1708) (.n 974) 2) ::
-  .atom (.add (.n 1709) (.n 1707) (.n 1708)) ::
-  .atom (.mul (.n 1710) (.n 1704) (.n 1709)) ::
-  .atom (.add (.n 1711) (.n 1667) (.n 1710)) ::
-  .atom (.copy (.n 1712) (.n 1046)) ::
-  .atom (.copy (.n 1713) (.n 1050)) ::
-  .atom (.copy (.n 1714) (.n 1051)) ::
-  .atom (.load (.n 1715) (.n 1427) 4) ::
-  .atom (.add (.n 1716) (.n 1715) (.n 1711)) ::
-  .atom (.copy (.n 1717) (.n 1049)) ::
-  .ret [.n 1712, .n 1713, .n 1714, .n 1716, .n 1717] ::
+  .atom (.add (.n 1667) (.n 1623) (.n 1666)) ::
+  .atom (.copy (.n 1668) (.n 1046)) ::
+  .atom (.copy (.n 1669) (.n 1050)) ::
+  .atom (.copy (.n 1670) (.n 1051)) ::
+  .atom (.load (.n 1671) (.n 1427) 4) ::
+  .atom (.add (.n 1672) (.n 1671) (.n 1667)) ::
+  .atom (.copy (.n 1673) (.n 1049)) ::
+  .ret [.n 1668, .n 1669, .n 1670, .n 1672, .n 1673] ::
   [])
 
 /-- `open_stacked__L2`: the body. -/
-noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3
+noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2
 
 end core312
 
@@ -11495,7 +11249,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.load (.n 1178) (.n 1060) 36) ::
   [])
 
-/-- `open_stacked__L3`: statements 1084 to 1597 of the body. -/
+/-- `open_stacked__L3`: statements 1084 to 1657 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
   .atom (.const (.n 1179) (word 1 0 0)) ::
   .atom (.load (.n 1179) (.n 1061) 36) ::
@@ -11839,366 +11593,278 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1467) (.n 1466))) ::
   .atom (.const (.n 1468) (word 0 0 0)) ::
   .atom (.load (.n 1468) (.n 1467) 0) ::
-  .atom (.const (.n 1469) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1470) (word 268435456 0 0)),
-      .atom (.copy (.n 1471) (.n 1470)),
-      .atom (.const (.n 1472) (word 1 0 0)),
-      .atom (.copy (.n 1473) (.n 1472))],
-    [
-      .atom (.const (.n 1474) (word 16384 0 0)),
-      .atom (.copy (.n 1471) (.n 1474)),
-      .atom (.const (.n 1475) (word 1 0 0)),
-      .atom (.copy (.n 1473) (.n 1475))],
-    [
-      .atom (.const (.n 1476) (word 512 0 0)),
-      .atom (.copy (.n 1471) (.n 1476)),
-      .atom (.const (.n 1477) (word 8 0 0)),
-      .atom (.copy (.n 1473) (.n 1477))],
-    [
-      .atom (.const (.n 1478) (word 128 0 0)),
-      .atom (.copy (.n 1471) (.n 1478)),
-      .atom (.const (.n 1479) (word 1 0 0)),
-      .atom (.copy (.n 1473) (.n 1479))]] ::
-  .atom (.load (.n 1480) (.n 22) 0) ::
-  .call "level_residual__L16" [.n 24, .n 1187, .n 1480, .n 1471, .n 1473] [.n 1481] ::
-  .atom (.load (.n 1482) (.n 1467) 0) ::
-  .atom (.load (.n 1483) (.n 1189) 0) ::
-  .atom (.mul (.n 1484) (.n 1483) (.n 1481)) ::
-  .atom (.add (.n 1485) (.n 1482) (.n 1484)) ::
-  .atom (.load (.n 1485) (.n 1467) 1) ::
-  .atom (.const (.n 1486) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1487) (word 128 0 0)),
-      .atom (.copy (.n 1488) (.n 1487)),
-      .atom (.const (.n 1489) (word 1 0 0)),
-      .atom (.copy (.n 1490) (.n 1489))],
-    [
-      .atom (.const (.n 1491) (word 32 0 0)),
-      .atom (.copy (.n 1488) (.n 1491)),
-      .atom (.const (.n 1492) (word 32 0 0)),
-      .atom (.copy (.n 1490) (.n 1492))],
-    [
-      .atom (.const (.n 1493) (word 16 0 0)),
-      .atom (.copy (.n 1488) (.n 1493)),
-      .atom (.const (.n 1494) (word 64 0 0)),
-      .atom (.copy (.n 1490) (.n 1494))],
-    [
-      .atom (.const (.n 1495) (word 16 0 0)),
-      .atom (.copy (.n 1488) (.n 1495)),
-      .atom (.const (.n 1496) (word 1 0 0)),
-      .atom (.copy (.n 1490) (.n 1496))]] ::
-  .atom (.const (.n 1497) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1498) (.n 24) (.n 1497)) ::
-  .atom (.const (.n 1499) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1500) (.n 1187) (.n 1499)) ::
-  .atom (.load (.n 1501) (.n 22) 1) ::
-  .call "level_residual__L12" [.n 1498, .n 1500, .n 1501, .n 1488, .n 1490] [.n 1502] ::
-  .atom (.load (.n 1503) (.n 1467) 1) ::
-  .atom (.load (.n 1504) (.n 1189) 1) ::
-  .atom (.mul (.n 1505) (.n 1504) (.n 1502)) ::
-  .atom (.add (.n 1506) (.n 1503) (.n 1505)) ::
-  .atom (.load (.n 1506) (.n 1467) 2) ::
-  .atom (.const (.n 1507) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1508) (word 16 0 0)),
-      .atom (.copy (.n 1509) (.n 1508)),
-      .atom (.const (.n 1510) (word 1 0 0)),
-      .atom (.copy (.n 1511) (.n 1510))],
-    [
-      .atom (.const (.n 1512) (word 8 0 0)),
-      .atom (.copy (.n 1509) (.n 1512)),
-      .atom (.const (.n 1513) (word 16 0 0)),
-      .atom (.copy (.n 1511) (.n 1513))],
-    [
-      .atom (.const (.n 1514) (word 8 0 0)),
-      .atom (.copy (.n 1509) (.n 1514)),
-      .atom (.const (.n 1515) (word 2 0 0)),
-      .atom (.copy (.n 1511) (.n 1515))],
-    [
-      .atom (.const (.n 1516) (word 4 0 0)),
-      .atom (.copy (.n 1509) (.n 1516)),
-      .atom (.const (.n 1517) (word 128 0 0)),
-      .atom (.copy (.n 1511) (.n 1517))]] ::
-  .atom (.const (.n 1518) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1519) (.n 564) (.n 1518)) ::
-  .atom (.const (.n 1520) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1521) (.n 1500) (.n 1520)) ::
-  .atom (.load (.n 1522) (.n 22) 2) ::
-  .call "level_residual__L8" [.n 1519, .n 1521, .n 1522, .n 1509, .n 1511] [.n 1523] ::
-  .atom (.load (.n 1524) (.n 1467) 2) ::
-  .atom (.load (.n 1525) (.n 1189) 2) ::
-  .atom (.mul (.n 1526) (.n 1525) (.n 1523)) ::
-  .atom (.add (.n 1527) (.n 1524) (.n 1526)) ::
-  .atom (.load (.n 1527) (.n 1467) 3) ::
-  .atom (.const (.n 1528) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1529) (word 4 0 0)),
-      .atom (.copy (.n 1530) (.n 1529)),
-      .atom (.const (.n 1531) (word 128 0 0)),
-      .atom (.copy (.n 1532) (.n 1531))],
-    [
-      .atom (.const (.n 1533) (word 4 0 0)),
-      .atom (.copy (.n 1530) (.n 1533)),
-      .atom (.const (.n 1534) (word 32 0 0)),
-      .atom (.copy (.n 1532) (.n 1534))],
-    [
-      .atom (.const (.n 1535) (word 4 0 0)),
-      .atom (.copy (.n 1530) (.n 1535)),
-      .atom (.const (.n 1536) (word 8 0 0)),
-      .atom (.copy (.n 1532) (.n 1536))],
-    [
-      .atom (.const (.n 1537) (word 4 0 0)),
-      .atom (.copy (.n 1530) (.n 1537)),
-      .atom (.const (.n 1538) (word 4 0 0)),
-      .atom (.copy (.n 1532) (.n 1538))]] ::
-  .atom (.const (.n 1539) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1540) (.n 791) (.n 1539)) ::
-  .atom (.const (.n 1541) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1542) (.n 1521) (.n 1541)) ::
-  .atom (.load (.n 1543) (.n 22) 3) ::
-  .call "level_residual__L4" [.n 1540, .n 1542, .n 1543, .n 1530, .n 1532] [.n 1544] ::
-  .atom (.load (.n 1545) (.n 1467) 3) ::
-  .atom (.load (.n 1546) (.n 1189) 3) ::
-  .atom (.mul (.n 1547) (.n 1546) (.n 1544)) ::
-  .atom (.add (.n 1548) (.n 1545) (.n 1547)) ::
-  .atom (.load (.n 1548) (.n 1467) 4) ::
-  .atom (.load (.n 1549) (.n 160) 4) ::
-  .atom (.const (.n 1550) (word 1 0 0)) ::
-  .atom (.load (.n 1551) (.n 158) 26) ::
+  .atom (.load (.n 1469) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L224_L16", "level_residual__L112_L16", "level_residual__L75_L16", "level_residual__L56_L16"] [.n 24, .n 1187, .n 1469] [.n 1470] ::
+  .atom (.load (.n 1471) (.n 1467) 0) ::
+  .atom (.load (.n 1472) (.n 1189) 0) ::
+  .atom (.mul (.n 1473) (.n 1472) (.n 1470)) ::
+  .atom (.add (.n 1474) (.n 1471) (.n 1473)) ::
+  .atom (.load (.n 1474) (.n 1467) 1) ::
+  .atom (.const (.n 1475) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1476) (.n 24) (.n 1475)) ::
+  .atom (.const (.n 1477) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1478) (.n 1187) (.n 1477)) ::
+  .atom (.load (.n 1479) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L12", "level_residual__L45_L12", "level_residual__L38_L12", "level_residual__L32_L12"] [.n 1476, .n 1478, .n 1479] [.n 1480] ::
+  .atom (.load (.n 1481) (.n 1467) 1) ::
+  .atom (.load (.n 1482) (.n 1189) 1) ::
+  .atom (.mul (.n 1483) (.n 1482) (.n 1480)) ::
+  .atom (.add (.n 1484) (.n 1481) (.n 1483)) ::
+  .atom (.load (.n 1484) (.n 1467) 2) ::
+  .atom (.const (.n 1485) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1486) (.n 564) (.n 1485)) ::
+  .atom (.const (.n 1487) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1488) (.n 1478) (.n 1487)) ::
+  .atom (.load (.n 1489) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L8", "level_residual__L28_L8", "level_residual__L25_L8", "level_residual__L23_L8"] [.n 1486, .n 1488, .n 1489] [.n 1490] ::
+  .atom (.load (.n 1491) (.n 1467) 2) ::
+  .atom (.load (.n 1492) (.n 1189) 2) ::
+  .atom (.mul (.n 1493) (.n 1492) (.n 1490)) ::
+  .atom (.add (.n 1494) (.n 1491) (.n 1493)) ::
+  .atom (.load (.n 1494) (.n 1467) 3) ::
+  .atom (.const (.n 1495) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1496) (.n 791) (.n 1495)) ::
+  .atom (.const (.n 1497) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1498) (.n 1488) (.n 1497)) ::
+  .atom (.load (.n 1499) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L4", "level_residual__L21_L4", "level_residual__L19_L4", "level_residual__L18_L4"] [.n 1496, .n 1498, .n 1499] [.n 1500] ::
+  .atom (.load (.n 1501) (.n 1467) 3) ::
+  .atom (.load (.n 1502) (.n 1189) 3) ::
+  .atom (.mul (.n 1503) (.n 1502) (.n 1500)) ::
+  .atom (.add (.n 1504) (.n 1501) (.n 1503)) ::
+  .atom (.load (.n 1504) (.n 1467) 4) ::
+  .atom (.load (.n 1505) (.n 160) 4) ::
+  .atom (.const (.n 1506) (word 1 0 0)) ::
+  .atom (.load (.n 1507) (.n 158) 26) ::
+  .atom (.add (.n 1508) (.n 1506) (.n 1507)) ::
+  .atom (.load (.n 1509) (.n 18) 6) ::
+  .atom (.add (.n 1510) (.n 1508) (.n 1509)) ::
+  .atom (.mul (.n 1511) (.n 1505) (.n 1510)) ::
+  .atom (.const (.n 1512) (word 1 0 0)) ::
+  .atom (.load (.n 1513) (.n 158) 27) ::
+  .atom (.add (.n 1514) (.n 1512) (.n 1513)) ::
+  .atom (.load (.n 1515) (.n 18) 7) ::
+  .atom (.add (.n 1516) (.n 1514) (.n 1515)) ::
+  .atom (.mul (.n 1517) (.n 1511) (.n 1516)) ::
+  .atom (.const (.n 1518) (word 1 0 0)) ::
+  .atom (.load (.n 1519) (.n 158) 28) ::
+  .atom (.add (.n 1520) (.n 1518) (.n 1519)) ::
+  .atom (.load (.n 1521) (.n 18) 8) ::
+  .atom (.add (.n 1522) (.n 1520) (.n 1521)) ::
+  .atom (.mul (.n 1523) (.n 1517) (.n 1522)) ::
+  .atom (.const (.n 1524) (word 1 0 0)) ::
+  .atom (.load (.n 1525) (.n 158) 29) ::
+  .atom (.add (.n 1526) (.n 1524) (.n 1525)) ::
+  .atom (.load (.n 1527) (.n 18) 9) ::
+  .atom (.add (.n 1528) (.n 1526) (.n 1527)) ::
+  .atom (.mul (.n 1529) (.n 1523) (.n 1528)) ::
+  .atom (.const (.n 1530) (word 1 0 0)) ::
+  .atom (.load (.n 1531) (.n 158) 30) ::
+  .atom (.add (.n 1532) (.n 1530) (.n 1531)) ::
+  .atom (.load (.n 1533) (.n 18) 10) ::
+  .atom (.add (.n 1534) (.n 1532) (.n 1533)) ::
+  .atom (.mul (.n 1535) (.n 1529) (.n 1534)) ::
+  .atom (.const (.n 1536) (word 1 0 0)) ::
+  .atom (.load (.n 1537) (.n 158) 31) ::
+  .atom (.add (.n 1538) (.n 1536) (.n 1537)) ::
+  .atom (.load (.n 1539) (.n 18) 11) ::
+  .atom (.add (.n 1540) (.n 1538) (.n 1539)) ::
+  .atom (.mul (.n 1541) (.n 1535) (.n 1540)) ::
+  .atom (.const (.n 1542) (word 1 0 0)) ::
+  .atom (.load (.n 1543) (.n 158) 32) ::
+  .atom (.add (.n 1544) (.n 1542) (.n 1543)) ::
+  .atom (.load (.n 1545) (.n 18) 12) ::
+  .atom (.add (.n 1546) (.n 1544) (.n 1545)) ::
+  .atom (.mul (.n 1547) (.n 1541) (.n 1546)) ::
+  .atom (.const (.n 1548) (word 1 0 0)) ::
+  .atom (.load (.n 1549) (.n 158) 33) ::
+  .atom (.add (.n 1550) (.n 1548) (.n 1549)) ::
+  .atom (.load (.n 1551) (.n 18) 13) ::
   .atom (.add (.n 1552) (.n 1550) (.n 1551)) ::
-  .atom (.load (.n 1553) (.n 18) 6) ::
-  .atom (.add (.n 1554) (.n 1552) (.n 1553)) ::
-  .atom (.mul (.n 1555) (.n 1549) (.n 1554)) ::
-  .atom (.const (.n 1556) (word 1 0 0)) ::
-  .atom (.load (.n 1557) (.n 158) 27) ::
+  .atom (.mul (.n 1553) (.n 1547) (.n 1552)) ::
+  .atom (.const (.n 1554) (word 1 0 0)) ::
+  .atom (.load (.n 1555) (.n 158) 34) ::
+  .atom (.add (.n 1556) (.n 1554) (.n 1555)) ::
+  .atom (.load (.n 1557) (.n 18) 14) ::
   .atom (.add (.n 1558) (.n 1556) (.n 1557)) ::
-  .atom (.load (.n 1559) (.n 18) 7) ::
-  .atom (.add (.n 1560) (.n 1558) (.n 1559)) ::
-  .atom (.mul (.n 1561) (.n 1555) (.n 1560)) ::
-  .atom (.const (.n 1562) (word 1 0 0)) ::
-  .atom (.load (.n 1563) (.n 158) 28) ::
+  .atom (.mul (.n 1559) (.n 1553) (.n 1558)) ::
+  .atom (.const (.n 1560) (word 1 0 0)) ::
+  .atom (.load (.n 1561) (.n 158) 35) ::
+  .atom (.add (.n 1562) (.n 1560) (.n 1561)) ::
+  .atom (.load (.n 1563) (.n 18) 15) ::
   .atom (.add (.n 1564) (.n 1562) (.n 1563)) ::
-  .atom (.load (.n 1565) (.n 18) 8) ::
-  .atom (.add (.n 1566) (.n 1564) (.n 1565)) ::
-  .atom (.mul (.n 1567) (.n 1561) (.n 1566)) ::
-  .atom (.const (.n 1568) (word 1 0 0)) ::
-  .atom (.load (.n 1569) (.n 158) 29) ::
+  .atom (.mul (.n 1565) (.n 1559) (.n 1564)) ::
+  .atom (.const (.n 1566) (word 1 0 0)) ::
+  .atom (.load (.n 1567) (.n 158) 36) ::
+  .atom (.add (.n 1568) (.n 1566) (.n 1567)) ::
+  .atom (.load (.n 1569) (.n 18) 16) ::
   .atom (.add (.n 1570) (.n 1568) (.n 1569)) ::
-  .atom (.load (.n 1571) (.n 18) 9) ::
-  .atom (.add (.n 1572) (.n 1570) (.n 1571)) ::
-  .atom (.mul (.n 1573) (.n 1567) (.n 1572)) ::
-  .atom (.const (.n 1574) (word 1 0 0)) ::
-  .atom (.load (.n 1575) (.n 158) 30) ::
+  .atom (.mul (.n 1571) (.n 1565) (.n 1570)) ::
+  .atom (.const (.n 1572) (word 1 0 0)) ::
+  .atom (.load (.n 1573) (.n 158) 37) ::
+  .atom (.add (.n 1574) (.n 1572) (.n 1573)) ::
+  .atom (.load (.n 1575) (.n 18) 17) ::
   .atom (.add (.n 1576) (.n 1574) (.n 1575)) ::
-  .atom (.load (.n 1577) (.n 18) 10) ::
-  .atom (.add (.n 1578) (.n 1576) (.n 1577)) ::
-  .atom (.mul (.n 1579) (.n 1573) (.n 1578)) ::
-  .atom (.const (.n 1580) (word 1 0 0)) ::
-  .atom (.load (.n 1581) (.n 158) 31) ::
+  .atom (.mul (.n 1577) (.n 1571) (.n 1576)) ::
+  .atom (.const (.n 1578) (word 1 0 0)) ::
+  .atom (.load (.n 1579) (.n 158) 38) ::
+  .atom (.add (.n 1580) (.n 1578) (.n 1579)) ::
+  .atom (.load (.n 1581) (.n 974) 0) ::
   .atom (.add (.n 1582) (.n 1580) (.n 1581)) ::
-  .atom (.load (.n 1583) (.n 18) 11) ::
-  .atom (.add (.n 1584) (.n 1582) (.n 1583)) ::
-  .atom (.mul (.n 1585) (.n 1579) (.n 1584)) ::
-  .atom (.const (.n 1586) (word 1 0 0)) ::
-  .atom (.load (.n 1587) (.n 158) 32) ::
+  .atom (.mul (.n 1583) (.n 1577) (.n 1582)) ::
+  .atom (.const (.n 1584) (word 1 0 0)) ::
+  .atom (.load (.n 1585) (.n 158) 39) ::
+  .atom (.add (.n 1586) (.n 1584) (.n 1585)) ::
+  .atom (.load (.n 1587) (.n 974) 1) ::
   .atom (.add (.n 1588) (.n 1586) (.n 1587)) ::
-  .atom (.load (.n 1589) (.n 18) 12) ::
-  .atom (.add (.n 1590) (.n 1588) (.n 1589)) ::
-  .atom (.mul (.n 1591) (.n 1585) (.n 1590)) ::
-  .atom (.const (.n 1592) (word 1 0 0)) ::
-  .atom (.load (.n 1593) (.n 158) 33) ::
+  .atom (.mul (.n 1589) (.n 1583) (.n 1588)) ::
+  .atom (.const (.n 1590) (word 1 0 0)) ::
+  .atom (.load (.n 1591) (.n 158) 40) ::
+  .atom (.add (.n 1592) (.n 1590) (.n 1591)) ::
+  .atom (.load (.n 1593) (.n 974) 2) ::
   .atom (.add (.n 1594) (.n 1592) (.n 1593)) ::
-  .atom (.load (.n 1595) (.n 18) 13) ::
-  .atom (.add (.n 1596) (.n 1594) (.n 1595)) ::
-  .atom (.mul (.n 1597) (.n 1591) (.n 1596)) ::
-  .atom (.const (.n 1598) (word 1 0 0)) ::
-  .atom (.load (.n 1599) (.n 158) 34) ::
+  .atom (.mul (.n 1595) (.n 1589) (.n 1594)) ::
+  .atom (.const (.n 1596) (word 1 0 0)) ::
+  .atom (.load (.n 1597) (.n 158) 41) ::
+  .atom (.add (.n 1598) (.n 1596) (.n 1597)) ::
+  .atom (.load (.n 1599) (.n 974) 3) ::
   .atom (.add (.n 1600) (.n 1598) (.n 1599)) ::
-  .atom (.load (.n 1601) (.n 18) 14) ::
-  .atom (.add (.n 1602) (.n 1600) (.n 1601)) ::
-  .atom (.mul (.n 1603) (.n 1597) (.n 1602)) ::
-  .atom (.const (.n 1604) (word 1 0 0)) ::
-  .atom (.load (.n 1605) (.n 158) 35) ::
-  .atom (.add (.n 1606) (.n 1604) (.n 1605)) ::
-  .atom (.load (.n 1607) (.n 18) 15) ::
-  .atom (.add (.n 1608) (.n 1606) (.n 1607)) ::
-  .atom (.mul (.n 1609) (.n 1603) (.n 1608)) ::
-  .atom (.const (.n 1610) (word 1 0 0)) ::
-  .atom (.load (.n 1611) (.n 158) 36) ::
-  .atom (.add (.n 1612) (.n 1610) (.n 1611)) ::
-  .atom (.load (.n 1613) (.n 18) 16) ::
-  .atom (.add (.n 1614) (.n 1612) (.n 1613)) ::
-  .atom (.mul (.n 1615) (.n 1609) (.n 1614)) ::
-  .atom (.const (.n 1616) (word 1 0 0)) ::
-  .atom (.load (.n 1617) (.n 158) 37) ::
-  .atom (.add (.n 1618) (.n 1616) (.n 1617)) ::
-  .atom (.load (.n 1619) (.n 18) 17) ::
-  .atom (.add (.n 1620) (.n 1618) (.n 1619)) ::
-  .atom (.mul (.n 1621) (.n 1615) (.n 1620)) ::
-  .atom (.const (.n 1622) (word 1 0 0)) ::
-  .atom (.load (.n 1623) (.n 158) 38) ::
-  .atom (.add (.n 1624) (.n 1622) (.n 1623)) ::
-  .atom (.load (.n 1625) (.n 974) 0) ::
-  .atom (.add (.n 1626) (.n 1624) (.n 1625)) ::
-  .atom (.mul (.n 1627) (.n 1621) (.n 1626)) ::
-  .atom (.const (.n 1628) (word 1 0 0)) ::
-  .atom (.load (.n 1629) (.n 158) 39) ::
-  .atom (.add (.n 1630) (.n 1628) (.n 1629)) ::
-  .atom (.load (.n 1631) (.n 974) 1) ::
-  .atom (.add (.n 1632) (.n 1630) (.n 1631)) ::
-  .atom (.mul (.n 1633) (.n 1627) (.n 1632)) ::
-  .atom (.const (.n 1634) (word 1 0 0)) ::
-  .atom (.load (.n 1635) (.n 158) 40) ::
-  .atom (.add (.n 1636) (.n 1634) (.n 1635)) ::
-  .atom (.load (.n 1637) (.n 974) 2) ::
-  .atom (.add (.n 1638) (.n 1636) (.n 1637)) ::
-  .atom (.mul (.n 1639) (.n 1633) (.n 1638)) ::
-  .atom (.const (.n 1640) (word 1 0 0)) ::
-  .atom (.load (.n 1641) (.n 158) 41) ::
-  .atom (.add (.n 1642) (.n 1640) (.n 1641)) ::
-  .atom (.load (.n 1643) (.n 974) 3) ::
-  .atom (.add (.n 1644) (.n 1642) (.n 1643)) ::
-  .atom (.mul (.n 1645) (.n 1639) (.n 1644)) ::
-  .atom (.load (.n 1646) (.n 160) 8) ::
-  .atom (.const (.n 1647) (word 1 0 0)) ::
-  .atom (.load (.n 1648) (.n 158) 52) ::
+  .atom (.mul (.n 1601) (.n 1595) (.n 1600)) ::
+  .atom (.load (.n 1602) (.n 160) 8) ::
+  .atom (.const (.n 1603) (word 1 0 0)) ::
+  .atom (.load (.n 1604) (.n 158) 52) ::
+  .atom (.add (.n 1605) (.n 1603) (.n 1604)) ::
+  .atom (.load (.n 1606) (.n 18) 10) ::
+  .atom (.add (.n 1607) (.n 1605) (.n 1606)) ::
+  .atom (.mul (.n 1608) (.n 1602) (.n 1607)) ::
+  .atom (.const (.n 1609) (word 1 0 0)) ::
+  .atom (.load (.n 1610) (.n 158) 53) ::
+  .atom (.add (.n 1611) (.n 1609) (.n 1610)) ::
+  .atom (.load (.n 1612) (.n 18) 11) ::
+  .atom (.add (.n 1613) (.n 1611) (.n 1612)) ::
+  .atom (.mul (.n 1614) (.n 1608) (.n 1613)) ::
+  .atom (.const (.n 1615) (word 1 0 0)) ::
+  .atom (.load (.n 1616) (.n 158) 54) ::
+  .atom (.add (.n 1617) (.n 1615) (.n 1616)) ::
+  .atom (.load (.n 1618) (.n 18) 12) ::
+  .atom (.add (.n 1619) (.n 1617) (.n 1618)) ::
+  .atom (.mul (.n 1620) (.n 1614) (.n 1619)) ::
+  .atom (.const (.n 1621) (word 1 0 0)) ::
+  .atom (.load (.n 1622) (.n 158) 55) ::
+  .atom (.add (.n 1623) (.n 1621) (.n 1622)) ::
+  .atom (.load (.n 1624) (.n 18) 13) ::
+  .atom (.add (.n 1625) (.n 1623) (.n 1624)) ::
+  .atom (.mul (.n 1626) (.n 1620) (.n 1625)) ::
+  .atom (.const (.n 1627) (word 1 0 0)) ::
+  .atom (.load (.n 1628) (.n 158) 56) ::
+  .atom (.add (.n 1629) (.n 1627) (.n 1628)) ::
+  .atom (.load (.n 1630) (.n 18) 14) ::
+  .atom (.add (.n 1631) (.n 1629) (.n 1630)) ::
+  .atom (.mul (.n 1632) (.n 1626) (.n 1631)) ::
+  .atom (.const (.n 1633) (word 1 0 0)) ::
+  .atom (.load (.n 1634) (.n 158) 57) ::
+  .atom (.add (.n 1635) (.n 1633) (.n 1634)) ::
+  .atom (.load (.n 1636) (.n 18) 15) ::
+  .atom (.add (.n 1637) (.n 1635) (.n 1636)) ::
+  .atom (.mul (.n 1638) (.n 1632) (.n 1637)) ::
+  .atom (.const (.n 1639) (word 1 0 0)) ::
+  .atom (.load (.n 1640) (.n 158) 58) ::
+  .atom (.add (.n 1641) (.n 1639) (.n 1640)) ::
+  .atom (.load (.n 1642) (.n 18) 16) ::
+  .atom (.add (.n 1643) (.n 1641) (.n 1642)) ::
+  .atom (.mul (.n 1644) (.n 1638) (.n 1643)) ::
+  .atom (.const (.n 1645) (word 1 0 0)) ::
+  .atom (.load (.n 1646) (.n 158) 59) ::
+  .atom (.add (.n 1647) (.n 1645) (.n 1646)) ::
+  .atom (.load (.n 1648) (.n 18) 17) ::
   .atom (.add (.n 1649) (.n 1647) (.n 1648)) ::
-  .atom (.load (.n 1650) (.n 18) 10) ::
-  .atom (.add (.n 1651) (.n 1649) (.n 1650)) ::
-  .atom (.mul (.n 1652) (.n 1646) (.n 1651)) ::
-  .atom (.const (.n 1653) (word 1 0 0)) ::
-  .atom (.load (.n 1654) (.n 158) 53) ::
+  .atom (.mul (.n 1650) (.n 1644) (.n 1649)) ::
+  .atom (.const (.n 1651) (word 1 0 0)) ::
+  .atom (.load (.n 1652) (.n 158) 60) ::
+  .atom (.add (.n 1653) (.n 1651) (.n 1652)) ::
+  .atom (.load (.n 1654) (.n 974) 0) ::
   .atom (.add (.n 1655) (.n 1653) (.n 1654)) ::
-  .atom (.load (.n 1656) (.n 18) 11) ::
-  .atom (.add (.n 1657) (.n 1655) (.n 1656)) ::
-  .atom (.mul (.n 1658) (.n 1652) (.n 1657)) ::
-  .atom (.const (.n 1659) (word 1 0 0)) ::
-  .atom (.load (.n 1660) (.n 158) 54) ::
+  .atom (.mul (.n 1656) (.n 1650) (.n 1655)) ::
+  .atom (.const (.n 1657) (word 1 0 0)) ::
+  .atom (.load (.n 1658) (.n 158) 61) ::
+  .atom (.add (.n 1659) (.n 1657) (.n 1658)) ::
+  .atom (.load (.n 1660) (.n 974) 1) ::
   .atom (.add (.n 1661) (.n 1659) (.n 1660)) ::
-  .atom (.load (.n 1662) (.n 18) 12) ::
-  .atom (.add (.n 1663) (.n 1661) (.n 1662)) ::
-  .atom (.mul (.n 1664) (.n 1658) (.n 1663)) ::
-  .atom (.const (.n 1665) (word 1 0 0)) ::
-  .atom (.load (.n 1666) (.n 158) 55) ::
+  .atom (.mul (.n 1662) (.n 1656) (.n 1661)) ::
+  .atom (.const (.n 1663) (word 1 0 0)) ::
+  .atom (.load (.n 1664) (.n 158) 62) ::
+  .atom (.add (.n 1665) (.n 1663) (.n 1664)) ::
+  .atom (.load (.n 1666) (.n 974) 2) ::
   .atom (.add (.n 1667) (.n 1665) (.n 1666)) ::
-  .atom (.load (.n 1668) (.n 18) 13) ::
-  .atom (.add (.n 1669) (.n 1667) (.n 1668)) ::
-  .atom (.mul (.n 1670) (.n 1664) (.n 1669)) ::
-  .atom (.const (.n 1671) (word 1 0 0)) ::
-  .atom (.load (.n 1672) (.n 158) 56) ::
-  [])
-
-/-- `open_stacked__L3`: statements 1598 to 1701 of the body. -/
-noncomputable def c3 : List Core.Stmt := (
+  .atom (.mul (.n 1668) (.n 1662) (.n 1667)) ::
+  .atom (.const (.n 1669) (word 1 0 0)) ::
+  .atom (.load (.n 1670) (.n 158) 63) ::
+  .atom (.add (.n 1671) (.n 1669) (.n 1670)) ::
+  .atom (.load (.n 1672) (.n 974) 3) ::
   .atom (.add (.n 1673) (.n 1671) (.n 1672)) ::
-  .atom (.load (.n 1674) (.n 18) 14) ::
-  .atom (.add (.n 1675) (.n 1673) (.n 1674)) ::
-  .atom (.mul (.n 1676) (.n 1670) (.n 1675)) ::
+  .atom (.mul (.n 1674) (.n 1668) (.n 1673)) ::
+  .atom (.add (.n 1675) (.n 1601) (.n 1674)) ::
+  .atom (.load (.n 1676) (.n 160) 12) ::
   .atom (.const (.n 1677) (word 1 0 0)) ::
-  .atom (.load (.n 1678) (.n 158) 57) ::
+  .atom (.load (.n 1678) (.n 158) 78) ::
   .atom (.add (.n 1679) (.n 1677) (.n 1678)) ::
-  .atom (.load (.n 1680) (.n 18) 15) ::
+  .atom (.load (.n 1680) (.n 18) 14) ::
   .atom (.add (.n 1681) (.n 1679) (.n 1680)) ::
   .atom (.mul (.n 1682) (.n 1676) (.n 1681)) ::
   .atom (.const (.n 1683) (word 1 0 0)) ::
-  .atom (.load (.n 1684) (.n 158) 58) ::
+  .atom (.load (.n 1684) (.n 158) 79) ::
   .atom (.add (.n 1685) (.n 1683) (.n 1684)) ::
-  .atom (.load (.n 1686) (.n 18) 16) ::
+  .atom (.load (.n 1686) (.n 18) 15) ::
   .atom (.add (.n 1687) (.n 1685) (.n 1686)) ::
   .atom (.mul (.n 1688) (.n 1682) (.n 1687)) ::
   .atom (.const (.n 1689) (word 1 0 0)) ::
-  .atom (.load (.n 1690) (.n 158) 59) ::
+  .atom (.load (.n 1690) (.n 158) 80) ::
   .atom (.add (.n 1691) (.n 1689) (.n 1690)) ::
-  .atom (.load (.n 1692) (.n 18) 17) ::
+  .atom (.load (.n 1692) (.n 18) 16) ::
   .atom (.add (.n 1693) (.n 1691) (.n 1692)) ::
   .atom (.mul (.n 1694) (.n 1688) (.n 1693)) ::
   .atom (.const (.n 1695) (word 1 0 0)) ::
-  .atom (.load (.n 1696) (.n 158) 60) ::
+  .atom (.load (.n 1696) (.n 158) 81) ::
+  [])
+
+/-- `open_stacked__L3`: statements 1658 to 1693 of the body. -/
+noncomputable def c3 : List Core.Stmt := (
   .atom (.add (.n 1697) (.n 1695) (.n 1696)) ::
-  .atom (.load (.n 1698) (.n 974) 0) ::
+  .atom (.load (.n 1698) (.n 18) 17) ::
   .atom (.add (.n 1699) (.n 1697) (.n 1698)) ::
   .atom (.mul (.n 1700) (.n 1694) (.n 1699)) ::
   .atom (.const (.n 1701) (word 1 0 0)) ::
-  .atom (.load (.n 1702) (.n 158) 61) ::
+  .atom (.load (.n 1702) (.n 158) 82) ::
   .atom (.add (.n 1703) (.n 1701) (.n 1702)) ::
-  .atom (.load (.n 1704) (.n 974) 1) ::
+  .atom (.load (.n 1704) (.n 974) 0) ::
   .atom (.add (.n 1705) (.n 1703) (.n 1704)) ::
   .atom (.mul (.n 1706) (.n 1700) (.n 1705)) ::
   .atom (.const (.n 1707) (word 1 0 0)) ::
-  .atom (.load (.n 1708) (.n 158) 62) ::
+  .atom (.load (.n 1708) (.n 158) 83) ::
   .atom (.add (.n 1709) (.n 1707) (.n 1708)) ::
-  .atom (.load (.n 1710) (.n 974) 2) ::
+  .atom (.load (.n 1710) (.n 974) 1) ::
   .atom (.add (.n 1711) (.n 1709) (.n 1710)) ::
   .atom (.mul (.n 1712) (.n 1706) (.n 1711)) ::
   .atom (.const (.n 1713) (word 1 0 0)) ::
-  .atom (.load (.n 1714) (.n 158) 63) ::
+  .atom (.load (.n 1714) (.n 158) 84) ::
   .atom (.add (.n 1715) (.n 1713) (.n 1714)) ::
-  .atom (.load (.n 1716) (.n 974) 3) ::
+  .atom (.load (.n 1716) (.n 974) 2) ::
   .atom (.add (.n 1717) (.n 1715) (.n 1716)) ::
   .atom (.mul (.n 1718) (.n 1712) (.n 1717)) ::
-  .atom (.add (.n 1719) (.n 1645) (.n 1718)) ::
-  .atom (.load (.n 1720) (.n 160) 12) ::
-  .atom (.const (.n 1721) (word 1 0 0)) ::
-  .atom (.load (.n 1722) (.n 158) 78) ::
+  .atom (.const (.n 1719) (word 1 0 0)) ::
+  .atom (.load (.n 1720) (.n 158) 85) ::
+  .atom (.add (.n 1721) (.n 1719) (.n 1720)) ::
+  .atom (.load (.n 1722) (.n 974) 3) ::
   .atom (.add (.n 1723) (.n 1721) (.n 1722)) ::
-  .atom (.load (.n 1724) (.n 18) 14) ::
-  .atom (.add (.n 1725) (.n 1723) (.n 1724)) ::
-  .atom (.mul (.n 1726) (.n 1720) (.n 1725)) ::
-  .atom (.const (.n 1727) (word 1 0 0)) ::
-  .atom (.load (.n 1728) (.n 158) 79) ::
-  .atom (.add (.n 1729) (.n 1727) (.n 1728)) ::
-  .atom (.load (.n 1730) (.n 18) 15) ::
-  .atom (.add (.n 1731) (.n 1729) (.n 1730)) ::
-  .atom (.mul (.n 1732) (.n 1726) (.n 1731)) ::
-  .atom (.const (.n 1733) (word 1 0 0)) ::
-  .atom (.load (.n 1734) (.n 158) 80) ::
-  .atom (.add (.n 1735) (.n 1733) (.n 1734)) ::
-  .atom (.load (.n 1736) (.n 18) 16) ::
-  .atom (.add (.n 1737) (.n 1735) (.n 1736)) ::
-  .atom (.mul (.n 1738) (.n 1732) (.n 1737)) ::
-  .atom (.const (.n 1739) (word 1 0 0)) ::
-  .atom (.load (.n 1740) (.n 158) 81) ::
-  .atom (.add (.n 1741) (.n 1739) (.n 1740)) ::
-  .atom (.load (.n 1742) (.n 18) 17) ::
-  .atom (.add (.n 1743) (.n 1741) (.n 1742)) ::
-  .atom (.mul (.n 1744) (.n 1738) (.n 1743)) ::
-  .atom (.const (.n 1745) (word 1 0 0)) ::
-  .atom (.load (.n 1746) (.n 158) 82) ::
-  .atom (.add (.n 1747) (.n 1745) (.n 1746)) ::
-  .atom (.load (.n 1748) (.n 974) 0) ::
-  .atom (.add (.n 1749) (.n 1747) (.n 1748)) ::
-  .atom (.mul (.n 1750) (.n 1744) (.n 1749)) ::
-  .atom (.const (.n 1751) (word 1 0 0)) ::
-  .atom (.load (.n 1752) (.n 158) 83) ::
-  .atom (.add (.n 1753) (.n 1751) (.n 1752)) ::
-  .atom (.load (.n 1754) (.n 974) 1) ::
-  .atom (.add (.n 1755) (.n 1753) (.n 1754)) ::
-  .atom (.mul (.n 1756) (.n 1750) (.n 1755)) ::
-  .atom (.const (.n 1757) (word 1 0 0)) ::
-  .atom (.load (.n 1758) (.n 158) 84) ::
-  .atom (.add (.n 1759) (.n 1757) (.n 1758)) ::
-  .atom (.load (.n 1760) (.n 974) 2) ::
-  .atom (.add (.n 1761) (.n 1759) (.n 1760)) ::
-  .atom (.mul (.n 1762) (.n 1756) (.n 1761)) ::
-  .atom (.const (.n 1763) (word 1 0 0)) ::
-  .atom (.load (.n 1764) (.n 158) 85) ::
-  .atom (.add (.n 1765) (.n 1763) (.n 1764)) ::
-  .atom (.load (.n 1766) (.n 974) 3) ::
-  .atom (.add (.n 1767) (.n 1765) (.n 1766)) ::
-  .atom (.mul (.n 1768) (.n 1762) (.n 1767)) ::
-  .atom (.add (.n 1769) (.n 1719) (.n 1768)) ::
-  .atom (.copy (.n 1770) (.n 1057)) ::
-  .atom (.copy (.n 1771) (.n 1060)) ::
-  .atom (.copy (.n 1772) (.n 1061)) ::
-  .atom (.load (.n 1773) (.n 1467) 4) ::
-  .atom (.add (.n 1774) (.n 1773) (.n 1769)) ::
-  .atom (.copy (.n 1775) (.n 1059)) ::
-  .ret [.n 1770, .n 1771, .n 1772, .n 1774, .n 1775] ::
+  .atom (.mul (.n 1724) (.n 1718) (.n 1723)) ::
+  .atom (.add (.n 1725) (.n 1675) (.n 1724)) ::
+  .atom (.copy (.n 1726) (.n 1057)) ::
+  .atom (.copy (.n 1727) (.n 1060)) ::
+  .atom (.copy (.n 1728) (.n 1061)) ::
+  .atom (.load (.n 1729) (.n 1467) 4) ::
+  .atom (.add (.n 1730) (.n 1729) (.n 1725)) ::
+  .atom (.copy (.n 1731) (.n 1059)) ::
+  .ret [.n 1726, .n 1727, .n 1728, .n 1730, .n 1731] ::
   [])
 
 /-- `open_stacked__L3`: the body. -/
@@ -13300,7 +12966,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.const (.n 1186) (word 0 0 0)) ::
   [])
 
-/-- `open_stacked__L4`: statements 1078 to 1589 of the body. -/
+/-- `open_stacked__L4`: statements 1078 to 1650 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
   .atom (.load (.n 1186) (.n 1070) 34) ::
   .atom (.const (.n 1187) (word 1 0 0)) ::
@@ -13685,384 +13351,296 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1507) (.n 1506))) ::
   .atom (.const (.n 1508) (word 0 0 0)) ::
   .atom (.load (.n 1508) (.n 1507) 0) ::
-  .atom (.const (.n 1509) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1510) (word 268435456 0 0)),
-      .atom (.copy (.n 1511) (.n 1510)),
-      .atom (.const (.n 1512) (word 1 0 0)),
-      .atom (.copy (.n 1513) (.n 1512))],
-    [
-      .atom (.const (.n 1514) (word 16384 0 0)),
-      .atom (.copy (.n 1511) (.n 1514)),
-      .atom (.const (.n 1515) (word 1 0 0)),
-      .atom (.copy (.n 1513) (.n 1515))],
-    [
-      .atom (.const (.n 1516) (word 512 0 0)),
-      .atom (.copy (.n 1511) (.n 1516)),
-      .atom (.const (.n 1517) (word 8 0 0)),
-      .atom (.copy (.n 1513) (.n 1517))],
-    [
-      .atom (.const (.n 1518) (word 128 0 0)),
-      .atom (.copy (.n 1511) (.n 1518)),
-      .atom (.const (.n 1519) (word 1 0 0)),
-      .atom (.copy (.n 1513) (.n 1519))]] ::
-  .atom (.load (.n 1520) (.n 22) 0) ::
-  .call "level_residual__L17" [.n 24, .n 1199, .n 1520, .n 1511, .n 1513] [.n 1521] ::
-  .atom (.load (.n 1522) (.n 1507) 0) ::
-  .atom (.load (.n 1523) (.n 1201) 0) ::
-  .atom (.mul (.n 1524) (.n 1523) (.n 1521)) ::
-  .atom (.add (.n 1525) (.n 1522) (.n 1524)) ::
-  .atom (.load (.n 1525) (.n 1507) 1) ::
-  .atom (.const (.n 1526) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1527) (word 128 0 0)),
-      .atom (.copy (.n 1528) (.n 1527)),
-      .atom (.const (.n 1529) (word 1 0 0)),
-      .atom (.copy (.n 1530) (.n 1529))],
-    [
-      .atom (.const (.n 1531) (word 32 0 0)),
-      .atom (.copy (.n 1528) (.n 1531)),
-      .atom (.const (.n 1532) (word 32 0 0)),
-      .atom (.copy (.n 1530) (.n 1532))],
-    [
-      .atom (.const (.n 1533) (word 16 0 0)),
-      .atom (.copy (.n 1528) (.n 1533)),
-      .atom (.const (.n 1534) (word 64 0 0)),
-      .atom (.copy (.n 1530) (.n 1534))],
-    [
-      .atom (.const (.n 1535) (word 16 0 0)),
-      .atom (.copy (.n 1528) (.n 1535)),
-      .atom (.const (.n 1536) (word 1 0 0)),
-      .atom (.copy (.n 1530) (.n 1536))]] ::
-  .atom (.const (.n 1537) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1538) (.n 24) (.n 1537)) ::
-  .atom (.const (.n 1539) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1540) (.n 1199) (.n 1539)) ::
-  .atom (.load (.n 1541) (.n 22) 1) ::
-  .call "level_residual__L13" [.n 1538, .n 1540, .n 1541, .n 1528, .n 1530] [.n 1542] ::
-  .atom (.load (.n 1543) (.n 1507) 1) ::
-  .atom (.load (.n 1544) (.n 1201) 1) ::
-  .atom (.mul (.n 1545) (.n 1544) (.n 1542)) ::
-  .atom (.add (.n 1546) (.n 1543) (.n 1545)) ::
-  .atom (.load (.n 1546) (.n 1507) 2) ::
-  .atom (.const (.n 1547) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1548) (word 16 0 0)),
-      .atom (.copy (.n 1549) (.n 1548)),
-      .atom (.const (.n 1550) (word 1 0 0)),
-      .atom (.copy (.n 1551) (.n 1550))],
-    [
-      .atom (.const (.n 1552) (word 8 0 0)),
-      .atom (.copy (.n 1549) (.n 1552)),
-      .atom (.const (.n 1553) (word 16 0 0)),
-      .atom (.copy (.n 1551) (.n 1553))],
-    [
-      .atom (.const (.n 1554) (word 8 0 0)),
-      .atom (.copy (.n 1549) (.n 1554)),
-      .atom (.const (.n 1555) (word 2 0 0)),
-      .atom (.copy (.n 1551) (.n 1555))],
-    [
-      .atom (.const (.n 1556) (word 4 0 0)),
-      .atom (.copy (.n 1549) (.n 1556)),
-      .atom (.const (.n 1557) (word 128 0 0)),
-      .atom (.copy (.n 1551) (.n 1557))]] ::
-  .atom (.const (.n 1558) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1559) (.n 564) (.n 1558)) ::
-  .atom (.const (.n 1560) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1561) (.n 1540) (.n 1560)) ::
-  .atom (.load (.n 1562) (.n 22) 2) ::
-  .call "level_residual__L9" [.n 1559, .n 1561, .n 1562, .n 1549, .n 1551] [.n 1563] ::
-  .atom (.load (.n 1564) (.n 1507) 2) ::
-  .atom (.load (.n 1565) (.n 1201) 2) ::
-  .atom (.mul (.n 1566) (.n 1565) (.n 1563)) ::
-  .atom (.add (.n 1567) (.n 1564) (.n 1566)) ::
-  .atom (.load (.n 1567) (.n 1507) 3) ::
-  .atom (.const (.n 1568) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1569) (word 4 0 0)),
-      .atom (.copy (.n 1570) (.n 1569)),
-      .atom (.const (.n 1571) (word 128 0 0)),
-      .atom (.copy (.n 1572) (.n 1571))],
-    [
-      .atom (.const (.n 1573) (word 4 0 0)),
-      .atom (.copy (.n 1570) (.n 1573)),
-      .atom (.const (.n 1574) (word 32 0 0)),
-      .atom (.copy (.n 1572) (.n 1574))],
-    [
-      .atom (.const (.n 1575) (word 4 0 0)),
-      .atom (.copy (.n 1570) (.n 1575)),
-      .atom (.const (.n 1576) (word 8 0 0)),
-      .atom (.copy (.n 1572) (.n 1576))],
-    [
-      .atom (.const (.n 1577) (word 4 0 0)),
-      .atom (.copy (.n 1570) (.n 1577)),
-      .atom (.const (.n 1578) (word 4 0 0)),
-      .atom (.copy (.n 1572) (.n 1578))]] ::
-  .atom (.const (.n 1579) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1580) (.n 791) (.n 1579)) ::
-  .atom (.const (.n 1581) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1582) (.n 1561) (.n 1581)) ::
-  .atom (.load (.n 1583) (.n 22) 3) ::
-  .call "level_residual__L5" [.n 1580, .n 1582, .n 1583, .n 1570, .n 1572] [.n 1584] ::
-  .atom (.load (.n 1585) (.n 1507) 3) ::
-  .atom (.load (.n 1586) (.n 1201) 3) ::
-  .atom (.mul (.n 1587) (.n 1586) (.n 1584)) ::
-  .atom (.add (.n 1588) (.n 1585) (.n 1587)) ::
-  .atom (.load (.n 1588) (.n 1507) 4) ::
-  .atom (.load (.n 1589) (.n 160) 4) ::
-  .atom (.const (.n 1590) (word 1 0 0)) ::
-  .atom (.load (.n 1591) (.n 158) 26) ::
+  .atom (.load (.n 1509) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L224_L17", "level_residual__L112_L17", "level_residual__L75_L17", "level_residual__L56_L17"] [.n 24, .n 1199, .n 1509] [.n 1510] ::
+  .atom (.load (.n 1511) (.n 1507) 0) ::
+  .atom (.load (.n 1512) (.n 1201) 0) ::
+  .atom (.mul (.n 1513) (.n 1512) (.n 1510)) ::
+  .atom (.add (.n 1514) (.n 1511) (.n 1513)) ::
+  .atom (.load (.n 1514) (.n 1507) 1) ::
+  .atom (.const (.n 1515) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1516) (.n 24) (.n 1515)) ::
+  .atom (.const (.n 1517) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1518) (.n 1199) (.n 1517)) ::
+  .atom (.load (.n 1519) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L13", "level_residual__L45_L13", "level_residual__L38_L13", "level_residual__L32_L13"] [.n 1516, .n 1518, .n 1519] [.n 1520] ::
+  .atom (.load (.n 1521) (.n 1507) 1) ::
+  .atom (.load (.n 1522) (.n 1201) 1) ::
+  .atom (.mul (.n 1523) (.n 1522) (.n 1520)) ::
+  .atom (.add (.n 1524) (.n 1521) (.n 1523)) ::
+  .atom (.load (.n 1524) (.n 1507) 2) ::
+  .atom (.const (.n 1525) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1526) (.n 564) (.n 1525)) ::
+  .atom (.const (.n 1527) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1528) (.n 1518) (.n 1527)) ::
+  .atom (.load (.n 1529) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L9", "level_residual__L28_L9", "level_residual__L25_L9", "level_residual__L23_L9"] [.n 1526, .n 1528, .n 1529] [.n 1530] ::
+  .atom (.load (.n 1531) (.n 1507) 2) ::
+  .atom (.load (.n 1532) (.n 1201) 2) ::
+  .atom (.mul (.n 1533) (.n 1532) (.n 1530)) ::
+  .atom (.add (.n 1534) (.n 1531) (.n 1533)) ::
+  .atom (.load (.n 1534) (.n 1507) 3) ::
+  .atom (.const (.n 1535) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1536) (.n 791) (.n 1535)) ::
+  .atom (.const (.n 1537) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1538) (.n 1528) (.n 1537)) ::
+  .atom (.load (.n 1539) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L5", "level_residual__L21_L5", "level_residual__L19_L5", "level_residual__L18_L5"] [.n 1536, .n 1538, .n 1539] [.n 1540] ::
+  .atom (.load (.n 1541) (.n 1507) 3) ::
+  .atom (.load (.n 1542) (.n 1201) 3) ::
+  .atom (.mul (.n 1543) (.n 1542) (.n 1540)) ::
+  .atom (.add (.n 1544) (.n 1541) (.n 1543)) ::
+  .atom (.load (.n 1544) (.n 1507) 4) ::
+  .atom (.load (.n 1545) (.n 160) 4) ::
+  .atom (.const (.n 1546) (word 1 0 0)) ::
+  .atom (.load (.n 1547) (.n 158) 26) ::
+  .atom (.add (.n 1548) (.n 1546) (.n 1547)) ::
+  .atom (.load (.n 1549) (.n 18) 6) ::
+  .atom (.add (.n 1550) (.n 1548) (.n 1549)) ::
+  .atom (.mul (.n 1551) (.n 1545) (.n 1550)) ::
+  .atom (.const (.n 1552) (word 1 0 0)) ::
+  .atom (.load (.n 1553) (.n 158) 27) ::
+  .atom (.add (.n 1554) (.n 1552) (.n 1553)) ::
+  .atom (.load (.n 1555) (.n 18) 7) ::
+  .atom (.add (.n 1556) (.n 1554) (.n 1555)) ::
+  .atom (.mul (.n 1557) (.n 1551) (.n 1556)) ::
+  .atom (.const (.n 1558) (word 1 0 0)) ::
+  .atom (.load (.n 1559) (.n 158) 28) ::
+  .atom (.add (.n 1560) (.n 1558) (.n 1559)) ::
+  .atom (.load (.n 1561) (.n 18) 8) ::
+  .atom (.add (.n 1562) (.n 1560) (.n 1561)) ::
+  .atom (.mul (.n 1563) (.n 1557) (.n 1562)) ::
+  .atom (.const (.n 1564) (word 1 0 0)) ::
+  .atom (.load (.n 1565) (.n 158) 29) ::
+  .atom (.add (.n 1566) (.n 1564) (.n 1565)) ::
+  .atom (.load (.n 1567) (.n 18) 9) ::
+  .atom (.add (.n 1568) (.n 1566) (.n 1567)) ::
+  .atom (.mul (.n 1569) (.n 1563) (.n 1568)) ::
+  .atom (.const (.n 1570) (word 1 0 0)) ::
+  .atom (.load (.n 1571) (.n 158) 30) ::
+  .atom (.add (.n 1572) (.n 1570) (.n 1571)) ::
+  .atom (.load (.n 1573) (.n 18) 10) ::
+  .atom (.add (.n 1574) (.n 1572) (.n 1573)) ::
+  .atom (.mul (.n 1575) (.n 1569) (.n 1574)) ::
+  .atom (.const (.n 1576) (word 1 0 0)) ::
+  .atom (.load (.n 1577) (.n 158) 31) ::
+  .atom (.add (.n 1578) (.n 1576) (.n 1577)) ::
+  .atom (.load (.n 1579) (.n 18) 11) ::
+  .atom (.add (.n 1580) (.n 1578) (.n 1579)) ::
+  .atom (.mul (.n 1581) (.n 1575) (.n 1580)) ::
+  .atom (.const (.n 1582) (word 1 0 0)) ::
+  .atom (.load (.n 1583) (.n 158) 32) ::
+  .atom (.add (.n 1584) (.n 1582) (.n 1583)) ::
+  .atom (.load (.n 1585) (.n 18) 12) ::
+  .atom (.add (.n 1586) (.n 1584) (.n 1585)) ::
+  .atom (.mul (.n 1587) (.n 1581) (.n 1586)) ::
+  .atom (.const (.n 1588) (word 1 0 0)) ::
+  .atom (.load (.n 1589) (.n 158) 33) ::
+  .atom (.add (.n 1590) (.n 1588) (.n 1589)) ::
+  .atom (.load (.n 1591) (.n 18) 13) ::
   .atom (.add (.n 1592) (.n 1590) (.n 1591)) ::
-  .atom (.load (.n 1593) (.n 18) 6) ::
-  .atom (.add (.n 1594) (.n 1592) (.n 1593)) ::
-  .atom (.mul (.n 1595) (.n 1589) (.n 1594)) ::
-  .atom (.const (.n 1596) (word 1 0 0)) ::
-  .atom (.load (.n 1597) (.n 158) 27) ::
+  .atom (.mul (.n 1593) (.n 1587) (.n 1592)) ::
+  .atom (.const (.n 1594) (word 1 0 0)) ::
+  .atom (.load (.n 1595) (.n 158) 34) ::
+  .atom (.add (.n 1596) (.n 1594) (.n 1595)) ::
+  .atom (.load (.n 1597) (.n 18) 14) ::
   .atom (.add (.n 1598) (.n 1596) (.n 1597)) ::
-  .atom (.load (.n 1599) (.n 18) 7) ::
-  .atom (.add (.n 1600) (.n 1598) (.n 1599)) ::
-  .atom (.mul (.n 1601) (.n 1595) (.n 1600)) ::
-  .atom (.const (.n 1602) (word 1 0 0)) ::
-  .atom (.load (.n 1603) (.n 158) 28) ::
+  .atom (.mul (.n 1599) (.n 1593) (.n 1598)) ::
+  .atom (.const (.n 1600) (word 1 0 0)) ::
+  .atom (.load (.n 1601) (.n 158) 35) ::
+  .atom (.add (.n 1602) (.n 1600) (.n 1601)) ::
+  .atom (.load (.n 1603) (.n 18) 15) ::
   .atom (.add (.n 1604) (.n 1602) (.n 1603)) ::
-  .atom (.load (.n 1605) (.n 18) 8) ::
-  .atom (.add (.n 1606) (.n 1604) (.n 1605)) ::
-  .atom (.mul (.n 1607) (.n 1601) (.n 1606)) ::
-  .atom (.const (.n 1608) (word 1 0 0)) ::
-  .atom (.load (.n 1609) (.n 158) 29) ::
+  .atom (.mul (.n 1605) (.n 1599) (.n 1604)) ::
+  .atom (.const (.n 1606) (word 1 0 0)) ::
+  .atom (.load (.n 1607) (.n 158) 36) ::
+  .atom (.add (.n 1608) (.n 1606) (.n 1607)) ::
+  .atom (.load (.n 1609) (.n 18) 16) ::
   .atom (.add (.n 1610) (.n 1608) (.n 1609)) ::
-  .atom (.load (.n 1611) (.n 18) 9) ::
-  .atom (.add (.n 1612) (.n 1610) (.n 1611)) ::
-  .atom (.mul (.n 1613) (.n 1607) (.n 1612)) ::
-  .atom (.const (.n 1614) (word 1 0 0)) ::
-  .atom (.load (.n 1615) (.n 158) 30) ::
+  .atom (.mul (.n 1611) (.n 1605) (.n 1610)) ::
+  .atom (.const (.n 1612) (word 1 0 0)) ::
+  .atom (.load (.n 1613) (.n 158) 37) ::
+  .atom (.add (.n 1614) (.n 1612) (.n 1613)) ::
+  .atom (.load (.n 1615) (.n 18) 17) ::
   .atom (.add (.n 1616) (.n 1614) (.n 1615)) ::
-  .atom (.load (.n 1617) (.n 18) 10) ::
-  .atom (.add (.n 1618) (.n 1616) (.n 1617)) ::
-  .atom (.mul (.n 1619) (.n 1613) (.n 1618)) ::
-  .atom (.const (.n 1620) (word 1 0 0)) ::
-  .atom (.load (.n 1621) (.n 158) 31) ::
+  .atom (.mul (.n 1617) (.n 1611) (.n 1616)) ::
+  .atom (.const (.n 1618) (word 1 0 0)) ::
+  .atom (.load (.n 1619) (.n 158) 38) ::
+  .atom (.add (.n 1620) (.n 1618) (.n 1619)) ::
+  .atom (.load (.n 1621) (.n 974) 0) ::
   .atom (.add (.n 1622) (.n 1620) (.n 1621)) ::
-  .atom (.load (.n 1623) (.n 18) 11) ::
-  .atom (.add (.n 1624) (.n 1622) (.n 1623)) ::
-  .atom (.mul (.n 1625) (.n 1619) (.n 1624)) ::
-  .atom (.const (.n 1626) (word 1 0 0)) ::
-  .atom (.load (.n 1627) (.n 158) 32) ::
+  .atom (.mul (.n 1623) (.n 1617) (.n 1622)) ::
+  .atom (.const (.n 1624) (word 1 0 0)) ::
+  .atom (.load (.n 1625) (.n 158) 39) ::
+  .atom (.add (.n 1626) (.n 1624) (.n 1625)) ::
+  .atom (.load (.n 1627) (.n 974) 1) ::
   .atom (.add (.n 1628) (.n 1626) (.n 1627)) ::
-  .atom (.load (.n 1629) (.n 18) 12) ::
-  .atom (.add (.n 1630) (.n 1628) (.n 1629)) ::
-  .atom (.mul (.n 1631) (.n 1625) (.n 1630)) ::
-  .atom (.const (.n 1632) (word 1 0 0)) ::
-  .atom (.load (.n 1633) (.n 158) 33) ::
+  .atom (.mul (.n 1629) (.n 1623) (.n 1628)) ::
+  .atom (.const (.n 1630) (word 1 0 0)) ::
+  .atom (.load (.n 1631) (.n 158) 40) ::
+  .atom (.add (.n 1632) (.n 1630) (.n 1631)) ::
+  .atom (.load (.n 1633) (.n 974) 2) ::
   .atom (.add (.n 1634) (.n 1632) (.n 1633)) ::
-  .atom (.load (.n 1635) (.n 18) 13) ::
-  .atom (.add (.n 1636) (.n 1634) (.n 1635)) ::
-  .atom (.mul (.n 1637) (.n 1631) (.n 1636)) ::
-  .atom (.const (.n 1638) (word 1 0 0)) ::
-  .atom (.load (.n 1639) (.n 158) 34) ::
+  .atom (.mul (.n 1635) (.n 1629) (.n 1634)) ::
+  .atom (.const (.n 1636) (word 1 0 0)) ::
+  .atom (.load (.n 1637) (.n 158) 41) ::
+  .atom (.add (.n 1638) (.n 1636) (.n 1637)) ::
+  .atom (.load (.n 1639) (.n 974) 3) ::
   .atom (.add (.n 1640) (.n 1638) (.n 1639)) ::
-  .atom (.load (.n 1641) (.n 18) 14) ::
-  .atom (.add (.n 1642) (.n 1640) (.n 1641)) ::
-  .atom (.mul (.n 1643) (.n 1637) (.n 1642)) ::
-  .atom (.const (.n 1644) (word 1 0 0)) ::
-  .atom (.load (.n 1645) (.n 158) 35) ::
+  .atom (.mul (.n 1641) (.n 1635) (.n 1640)) ::
+  .atom (.const (.n 1642) (word 1 0 0)) ::
+  .atom (.load (.n 1643) (.n 158) 42) ::
+  .atom (.add (.n 1644) (.n 1642) (.n 1643)) ::
+  .atom (.load (.n 1645) (.n 974) 4) ::
   .atom (.add (.n 1646) (.n 1644) (.n 1645)) ::
-  .atom (.load (.n 1647) (.n 18) 15) ::
-  .atom (.add (.n 1648) (.n 1646) (.n 1647)) ::
-  .atom (.mul (.n 1649) (.n 1643) (.n 1648)) ::
-  .atom (.const (.n 1650) (word 1 0 0)) ::
-  .atom (.load (.n 1651) (.n 158) 36) ::
-  .atom (.add (.n 1652) (.n 1650) (.n 1651)) ::
-  .atom (.load (.n 1653) (.n 18) 16) ::
-  .atom (.add (.n 1654) (.n 1652) (.n 1653)) ::
-  .atom (.mul (.n 1655) (.n 1649) (.n 1654)) ::
-  .atom (.const (.n 1656) (word 1 0 0)) ::
-  .atom (.load (.n 1657) (.n 158) 37) ::
-  .atom (.add (.n 1658) (.n 1656) (.n 1657)) ::
-  .atom (.load (.n 1659) (.n 18) 17) ::
-  .atom (.add (.n 1660) (.n 1658) (.n 1659)) ::
-  .atom (.mul (.n 1661) (.n 1655) (.n 1660)) ::
-  .atom (.const (.n 1662) (word 1 0 0)) ::
-  .atom (.load (.n 1663) (.n 158) 38) ::
-  .atom (.add (.n 1664) (.n 1662) (.n 1663)) ::
-  .atom (.load (.n 1665) (.n 974) 0) ::
-  .atom (.add (.n 1666) (.n 1664) (.n 1665)) ::
-  .atom (.mul (.n 1667) (.n 1661) (.n 1666)) ::
-  .atom (.const (.n 1668) (word 1 0 0)) ::
-  .atom (.load (.n 1669) (.n 158) 39) ::
+  .atom (.mul (.n 1647) (.n 1641) (.n 1646)) ::
+  .atom (.load (.n 1648) (.n 160) 8) ::
+  .atom (.const (.n 1649) (word 1 0 0)) ::
+  .atom (.load (.n 1650) (.n 158) 52) ::
+  .atom (.add (.n 1651) (.n 1649) (.n 1650)) ::
+  .atom (.load (.n 1652) (.n 18) 10) ::
+  .atom (.add (.n 1653) (.n 1651) (.n 1652)) ::
+  .atom (.mul (.n 1654) (.n 1648) (.n 1653)) ::
+  .atom (.const (.n 1655) (word 1 0 0)) ::
+  .atom (.load (.n 1656) (.n 158) 53) ::
+  .atom (.add (.n 1657) (.n 1655) (.n 1656)) ::
+  .atom (.load (.n 1658) (.n 18) 11) ::
+  .atom (.add (.n 1659) (.n 1657) (.n 1658)) ::
+  .atom (.mul (.n 1660) (.n 1654) (.n 1659)) ::
+  .atom (.const (.n 1661) (word 1 0 0)) ::
+  .atom (.load (.n 1662) (.n 158) 54) ::
+  .atom (.add (.n 1663) (.n 1661) (.n 1662)) ::
+  .atom (.load (.n 1664) (.n 18) 12) ::
+  .atom (.add (.n 1665) (.n 1663) (.n 1664)) ::
+  .atom (.mul (.n 1666) (.n 1660) (.n 1665)) ::
+  .atom (.const (.n 1667) (word 1 0 0)) ::
+  .atom (.load (.n 1668) (.n 158) 55) ::
+  .atom (.add (.n 1669) (.n 1667) (.n 1668)) ::
+  .atom (.load (.n 1670) (.n 18) 13) ::
+  .atom (.add (.n 1671) (.n 1669) (.n 1670)) ::
+  .atom (.mul (.n 1672) (.n 1666) (.n 1671)) ::
+  .atom (.const (.n 1673) (word 1 0 0)) ::
+  .atom (.load (.n 1674) (.n 158) 56) ::
+  .atom (.add (.n 1675) (.n 1673) (.n 1674)) ::
+  .atom (.load (.n 1676) (.n 18) 14) ::
+  .atom (.add (.n 1677) (.n 1675) (.n 1676)) ::
+  .atom (.mul (.n 1678) (.n 1672) (.n 1677)) ::
+  .atom (.const (.n 1679) (word 1 0 0)) ::
+  .atom (.load (.n 1680) (.n 158) 57) ::
+  .atom (.add (.n 1681) (.n 1679) (.n 1680)) ::
+  .atom (.load (.n 1682) (.n 18) 15) ::
+  .atom (.add (.n 1683) (.n 1681) (.n 1682)) ::
+  .atom (.mul (.n 1684) (.n 1678) (.n 1683)) ::
+  .atom (.const (.n 1685) (word 1 0 0)) ::
+  .atom (.load (.n 1686) (.n 158) 58) ::
+  .atom (.add (.n 1687) (.n 1685) (.n 1686)) ::
+  .atom (.load (.n 1688) (.n 18) 16) ::
+  .atom (.add (.n 1689) (.n 1687) (.n 1688)) ::
+  .atom (.mul (.n 1690) (.n 1684) (.n 1689)) ::
+  .atom (.const (.n 1691) (word 1 0 0)) ::
+  .atom (.load (.n 1692) (.n 158) 59) ::
+  .atom (.add (.n 1693) (.n 1691) (.n 1692)) ::
+  .atom (.load (.n 1694) (.n 18) 17) ::
   [])
 
-/-- `open_stacked__L4`: statements 1590 to 1754 of the body. -/
+/-- `open_stacked__L4`: statements 1651 to 1746 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
-  .atom (.add (.n 1670) (.n 1668) (.n 1669)) ::
-  .atom (.load (.n 1671) (.n 974) 1) ::
-  .atom (.add (.n 1672) (.n 1670) (.n 1671)) ::
-  .atom (.mul (.n 1673) (.n 1667) (.n 1672)) ::
-  .atom (.const (.n 1674) (word 1 0 0)) ::
-  .atom (.load (.n 1675) (.n 158) 40) ::
-  .atom (.add (.n 1676) (.n 1674) (.n 1675)) ::
-  .atom (.load (.n 1677) (.n 974) 2) ::
-  .atom (.add (.n 1678) (.n 1676) (.n 1677)) ::
-  .atom (.mul (.n 1679) (.n 1673) (.n 1678)) ::
-  .atom (.const (.n 1680) (word 1 0 0)) ::
-  .atom (.load (.n 1681) (.n 158) 41) ::
-  .atom (.add (.n 1682) (.n 1680) (.n 1681)) ::
-  .atom (.load (.n 1683) (.n 974) 3) ::
-  .atom (.add (.n 1684) (.n 1682) (.n 1683)) ::
-  .atom (.mul (.n 1685) (.n 1679) (.n 1684)) ::
-  .atom (.const (.n 1686) (word 1 0 0)) ::
-  .atom (.load (.n 1687) (.n 158) 42) ::
-  .atom (.add (.n 1688) (.n 1686) (.n 1687)) ::
-  .atom (.load (.n 1689) (.n 974) 4) ::
-  .atom (.add (.n 1690) (.n 1688) (.n 1689)) ::
-  .atom (.mul (.n 1691) (.n 1685) (.n 1690)) ::
-  .atom (.load (.n 1692) (.n 160) 8) ::
-  .atom (.const (.n 1693) (word 1 0 0)) ::
-  .atom (.load (.n 1694) (.n 158) 52) ::
   .atom (.add (.n 1695) (.n 1693) (.n 1694)) ::
-  .atom (.load (.n 1696) (.n 18) 10) ::
-  .atom (.add (.n 1697) (.n 1695) (.n 1696)) ::
-  .atom (.mul (.n 1698) (.n 1692) (.n 1697)) ::
-  .atom (.const (.n 1699) (word 1 0 0)) ::
-  .atom (.load (.n 1700) (.n 158) 53) ::
+  .atom (.mul (.n 1696) (.n 1690) (.n 1695)) ::
+  .atom (.const (.n 1697) (word 1 0 0)) ::
+  .atom (.load (.n 1698) (.n 158) 60) ::
+  .atom (.add (.n 1699) (.n 1697) (.n 1698)) ::
+  .atom (.load (.n 1700) (.n 974) 0) ::
   .atom (.add (.n 1701) (.n 1699) (.n 1700)) ::
-  .atom (.load (.n 1702) (.n 18) 11) ::
-  .atom (.add (.n 1703) (.n 1701) (.n 1702)) ::
-  .atom (.mul (.n 1704) (.n 1698) (.n 1703)) ::
-  .atom (.const (.n 1705) (word 1 0 0)) ::
-  .atom (.load (.n 1706) (.n 158) 54) ::
+  .atom (.mul (.n 1702) (.n 1696) (.n 1701)) ::
+  .atom (.const (.n 1703) (word 1 0 0)) ::
+  .atom (.load (.n 1704) (.n 158) 61) ::
+  .atom (.add (.n 1705) (.n 1703) (.n 1704)) ::
+  .atom (.load (.n 1706) (.n 974) 1) ::
   .atom (.add (.n 1707) (.n 1705) (.n 1706)) ::
-  .atom (.load (.n 1708) (.n 18) 12) ::
-  .atom (.add (.n 1709) (.n 1707) (.n 1708)) ::
-  .atom (.mul (.n 1710) (.n 1704) (.n 1709)) ::
-  .atom (.const (.n 1711) (word 1 0 0)) ::
-  .atom (.load (.n 1712) (.n 158) 55) ::
+  .atom (.mul (.n 1708) (.n 1702) (.n 1707)) ::
+  .atom (.const (.n 1709) (word 1 0 0)) ::
+  .atom (.load (.n 1710) (.n 158) 62) ::
+  .atom (.add (.n 1711) (.n 1709) (.n 1710)) ::
+  .atom (.load (.n 1712) (.n 974) 2) ::
   .atom (.add (.n 1713) (.n 1711) (.n 1712)) ::
-  .atom (.load (.n 1714) (.n 18) 13) ::
-  .atom (.add (.n 1715) (.n 1713) (.n 1714)) ::
-  .atom (.mul (.n 1716) (.n 1710) (.n 1715)) ::
-  .atom (.const (.n 1717) (word 1 0 0)) ::
-  .atom (.load (.n 1718) (.n 158) 56) ::
+  .atom (.mul (.n 1714) (.n 1708) (.n 1713)) ::
+  .atom (.const (.n 1715) (word 1 0 0)) ::
+  .atom (.load (.n 1716) (.n 158) 63) ::
+  .atom (.add (.n 1717) (.n 1715) (.n 1716)) ::
+  .atom (.load (.n 1718) (.n 974) 3) ::
   .atom (.add (.n 1719) (.n 1717) (.n 1718)) ::
-  .atom (.load (.n 1720) (.n 18) 14) ::
-  .atom (.add (.n 1721) (.n 1719) (.n 1720)) ::
-  .atom (.mul (.n 1722) (.n 1716) (.n 1721)) ::
-  .atom (.const (.n 1723) (word 1 0 0)) ::
-  .atom (.load (.n 1724) (.n 158) 57) ::
+  .atom (.mul (.n 1720) (.n 1714) (.n 1719)) ::
+  .atom (.const (.n 1721) (word 1 0 0)) ::
+  .atom (.load (.n 1722) (.n 158) 64) ::
+  .atom (.add (.n 1723) (.n 1721) (.n 1722)) ::
+  .atom (.load (.n 1724) (.n 974) 4) ::
   .atom (.add (.n 1725) (.n 1723) (.n 1724)) ::
-  .atom (.load (.n 1726) (.n 18) 15) ::
-  .atom (.add (.n 1727) (.n 1725) (.n 1726)) ::
-  .atom (.mul (.n 1728) (.n 1722) (.n 1727)) ::
+  .atom (.mul (.n 1726) (.n 1720) (.n 1725)) ::
+  .atom (.add (.n 1727) (.n 1647) (.n 1726)) ::
+  .atom (.load (.n 1728) (.n 160) 12) ::
   .atom (.const (.n 1729) (word 1 0 0)) ::
-  .atom (.load (.n 1730) (.n 158) 58) ::
+  .atom (.load (.n 1730) (.n 158) 78) ::
   .atom (.add (.n 1731) (.n 1729) (.n 1730)) ::
-  .atom (.load (.n 1732) (.n 18) 16) ::
+  .atom (.load (.n 1732) (.n 18) 14) ::
   .atom (.add (.n 1733) (.n 1731) (.n 1732)) ::
   .atom (.mul (.n 1734) (.n 1728) (.n 1733)) ::
   .atom (.const (.n 1735) (word 1 0 0)) ::
-  .atom (.load (.n 1736) (.n 158) 59) ::
+  .atom (.load (.n 1736) (.n 158) 79) ::
   .atom (.add (.n 1737) (.n 1735) (.n 1736)) ::
-  .atom (.load (.n 1738) (.n 18) 17) ::
+  .atom (.load (.n 1738) (.n 18) 15) ::
   .atom (.add (.n 1739) (.n 1737) (.n 1738)) ::
   .atom (.mul (.n 1740) (.n 1734) (.n 1739)) ::
   .atom (.const (.n 1741) (word 1 0 0)) ::
-  .atom (.load (.n 1742) (.n 158) 60) ::
+  .atom (.load (.n 1742) (.n 158) 80) ::
   .atom (.add (.n 1743) (.n 1741) (.n 1742)) ::
-  .atom (.load (.n 1744) (.n 974) 0) ::
+  .atom (.load (.n 1744) (.n 18) 16) ::
   .atom (.add (.n 1745) (.n 1743) (.n 1744)) ::
   .atom (.mul (.n 1746) (.n 1740) (.n 1745)) ::
   .atom (.const (.n 1747) (word 1 0 0)) ::
-  .atom (.load (.n 1748) (.n 158) 61) ::
+  .atom (.load (.n 1748) (.n 158) 81) ::
   .atom (.add (.n 1749) (.n 1747) (.n 1748)) ::
-  .atom (.load (.n 1750) (.n 974) 1) ::
+  .atom (.load (.n 1750) (.n 18) 17) ::
   .atom (.add (.n 1751) (.n 1749) (.n 1750)) ::
   .atom (.mul (.n 1752) (.n 1746) (.n 1751)) ::
   .atom (.const (.n 1753) (word 1 0 0)) ::
-  .atom (.load (.n 1754) (.n 158) 62) ::
+  .atom (.load (.n 1754) (.n 158) 82) ::
   .atom (.add (.n 1755) (.n 1753) (.n 1754)) ::
-  .atom (.load (.n 1756) (.n 974) 2) ::
+  .atom (.load (.n 1756) (.n 974) 0) ::
   .atom (.add (.n 1757) (.n 1755) (.n 1756)) ::
   .atom (.mul (.n 1758) (.n 1752) (.n 1757)) ::
   .atom (.const (.n 1759) (word 1 0 0)) ::
-  .atom (.load (.n 1760) (.n 158) 63) ::
+  .atom (.load (.n 1760) (.n 158) 83) ::
   .atom (.add (.n 1761) (.n 1759) (.n 1760)) ::
-  .atom (.load (.n 1762) (.n 974) 3) ::
+  .atom (.load (.n 1762) (.n 974) 1) ::
   .atom (.add (.n 1763) (.n 1761) (.n 1762)) ::
   .atom (.mul (.n 1764) (.n 1758) (.n 1763)) ::
   .atom (.const (.n 1765) (word 1 0 0)) ::
-  .atom (.load (.n 1766) (.n 158) 64) ::
+  .atom (.load (.n 1766) (.n 158) 84) ::
   .atom (.add (.n 1767) (.n 1765) (.n 1766)) ::
-  .atom (.load (.n 1768) (.n 974) 4) ::
+  .atom (.load (.n 1768) (.n 974) 2) ::
   .atom (.add (.n 1769) (.n 1767) (.n 1768)) ::
   .atom (.mul (.n 1770) (.n 1764) (.n 1769)) ::
-  .atom (.add (.n 1771) (.n 1691) (.n 1770)) ::
-  .atom (.load (.n 1772) (.n 160) 12) ::
-  .atom (.const (.n 1773) (word 1 0 0)) ::
-  .atom (.load (.n 1774) (.n 158) 78) ::
+  .atom (.const (.n 1771) (word 1 0 0)) ::
+  .atom (.load (.n 1772) (.n 158) 85) ::
+  .atom (.add (.n 1773) (.n 1771) (.n 1772)) ::
+  .atom (.load (.n 1774) (.n 974) 3) ::
   .atom (.add (.n 1775) (.n 1773) (.n 1774)) ::
-  .atom (.load (.n 1776) (.n 18) 14) ::
-  .atom (.add (.n 1777) (.n 1775) (.n 1776)) ::
-  .atom (.mul (.n 1778) (.n 1772) (.n 1777)) ::
-  .atom (.const (.n 1779) (word 1 0 0)) ::
-  .atom (.load (.n 1780) (.n 158) 79) ::
+  .atom (.mul (.n 1776) (.n 1770) (.n 1775)) ::
+  .atom (.const (.n 1777) (word 1 0 0)) ::
+  .atom (.load (.n 1778) (.n 158) 86) ::
+  .atom (.add (.n 1779) (.n 1777) (.n 1778)) ::
+  .atom (.load (.n 1780) (.n 974) 4) ::
   .atom (.add (.n 1781) (.n 1779) (.n 1780)) ::
-  .atom (.load (.n 1782) (.n 18) 15) ::
-  .atom (.add (.n 1783) (.n 1781) (.n 1782)) ::
-  .atom (.mul (.n 1784) (.n 1778) (.n 1783)) ::
-  .atom (.const (.n 1785) (word 1 0 0)) ::
-  .atom (.load (.n 1786) (.n 158) 80) ::
-  .atom (.add (.n 1787) (.n 1785) (.n 1786)) ::
-  .atom (.load (.n 1788) (.n 18) 16) ::
-  .atom (.add (.n 1789) (.n 1787) (.n 1788)) ::
-  .atom (.mul (.n 1790) (.n 1784) (.n 1789)) ::
-  .atom (.const (.n 1791) (word 1 0 0)) ::
-  .atom (.load (.n 1792) (.n 158) 81) ::
-  .atom (.add (.n 1793) (.n 1791) (.n 1792)) ::
-  .atom (.load (.n 1794) (.n 18) 17) ::
-  .atom (.add (.n 1795) (.n 1793) (.n 1794)) ::
-  .atom (.mul (.n 1796) (.n 1790) (.n 1795)) ::
-  .atom (.const (.n 1797) (word 1 0 0)) ::
-  .atom (.load (.n 1798) (.n 158) 82) ::
-  .atom (.add (.n 1799) (.n 1797) (.n 1798)) ::
-  .atom (.load (.n 1800) (.n 974) 0) ::
-  .atom (.add (.n 1801) (.n 1799) (.n 1800)) ::
-  .atom (.mul (.n 1802) (.n 1796) (.n 1801)) ::
-  .atom (.const (.n 1803) (word 1 0 0)) ::
-  .atom (.load (.n 1804) (.n 158) 83) ::
-  .atom (.add (.n 1805) (.n 1803) (.n 1804)) ::
-  .atom (.load (.n 1806) (.n 974) 1) ::
-  .atom (.add (.n 1807) (.n 1805) (.n 1806)) ::
-  .atom (.mul (.n 1808) (.n 1802) (.n 1807)) ::
-  .atom (.const (.n 1809) (word 1 0 0)) ::
-  .atom (.load (.n 1810) (.n 158) 84) ::
-  .atom (.add (.n 1811) (.n 1809) (.n 1810)) ::
-  .atom (.load (.n 1812) (.n 974) 2) ::
-  .atom (.add (.n 1813) (.n 1811) (.n 1812)) ::
-  .atom (.mul (.n 1814) (.n 1808) (.n 1813)) ::
-  .atom (.const (.n 1815) (word 1 0 0)) ::
-  .atom (.load (.n 1816) (.n 158) 85) ::
-  .atom (.add (.n 1817) (.n 1815) (.n 1816)) ::
-  .atom (.load (.n 1818) (.n 974) 3) ::
-  .atom (.add (.n 1819) (.n 1817) (.n 1818)) ::
-  .atom (.mul (.n 1820) (.n 1814) (.n 1819)) ::
-  .atom (.const (.n 1821) (word 1 0 0)) ::
-  .atom (.load (.n 1822) (.n 158) 86) ::
-  .atom (.add (.n 1823) (.n 1821) (.n 1822)) ::
-  .atom (.load (.n 1824) (.n 974) 4) ::
-  .atom (.add (.n 1825) (.n 1823) (.n 1824)) ::
-  .atom (.mul (.n 1826) (.n 1820) (.n 1825)) ::
-  .atom (.add (.n 1827) (.n 1771) (.n 1826)) ::
-  .atom (.copy (.n 1828) (.n 1068)) ::
-  .atom (.copy (.n 1829) (.n 1070)) ::
-  .atom (.copy (.n 1830) (.n 1071)) ::
-  .atom (.load (.n 1831) (.n 1507) 4) ::
-  .atom (.add (.n 1832) (.n 1831) (.n 1827)) ::
-  .atom (.copy (.n 1833) (.n 1069)) ::
-  .ret [.n 1828, .n 1829, .n 1830, .n 1832, .n 1833] ::
+  .atom (.mul (.n 1782) (.n 1776) (.n 1781)) ::
+  .atom (.add (.n 1783) (.n 1727) (.n 1782)) ::
+  .atom (.copy (.n 1784) (.n 1068)) ::
+  .atom (.copy (.n 1785) (.n 1070)) ::
+  .atom (.copy (.n 1786) (.n 1071)) ::
+  .atom (.load (.n 1787) (.n 1507) 4) ::
+  .atom (.add (.n 1788) (.n 1787) (.n 1783)) ::
+  .atom (.copy (.n 1789) (.n 1069)) ::
+  .ret [.n 1784, .n 1785, .n 1786, .n 1788, .n 1789] ::
   [])
 
 /-- `open_stacked__L4`: the body. -/
@@ -15713,7 +15291,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.mul (.n 1707) (.n 1705) (.n 1706)) ::
   [])
 
-/-- `open_stacked__L5`: statements 1623 to 2035 of the body. -/
+/-- `open_stacked__L5`: statements 1623 to 2025 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.const (.n 1708) (word 1 0 0)) ::
   .atom (.add (.n 1709) (.n 1708) (.n 1705)) ::
@@ -15765,469 +15343,359 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1747) (.n 1746))) ::
   .atom (.const (.n 1748) (word 0 0 0)) ::
   .atom (.load (.n 1748) (.n 1747) 0) ::
-  .atom (.const (.n 1749) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1750) (word 268435456 0 0)),
-      .atom (.copy (.n 1751) (.n 1750)),
-      .atom (.const (.n 1752) (word 1 0 0)),
-      .atom (.copy (.n 1753) (.n 1752))],
-    [
-      .atom (.const (.n 1754) (word 16384 0 0)),
-      .atom (.copy (.n 1751) (.n 1754)),
-      .atom (.const (.n 1755) (word 1 0 0)),
-      .atom (.copy (.n 1753) (.n 1755))],
-    [
-      .atom (.const (.n 1756) (word 512 0 0)),
-      .atom (.copy (.n 1751) (.n 1756)),
-      .atom (.const (.n 1757) (word 8 0 0)),
-      .atom (.copy (.n 1753) (.n 1757))],
-    [
-      .atom (.const (.n 1758) (word 128 0 0)),
-      .atom (.copy (.n 1751) (.n 1758)),
-      .atom (.const (.n 1759) (word 1 0 0)),
-      .atom (.copy (.n 1753) (.n 1759))]] ::
-  .atom (.load (.n 1760) (.n 22) 0) ::
-  .call "level_residual__L18" [.n 24, .n 1398, .n 1760, .n 1751, .n 1753] [.n 1761] ::
-  .atom (.load (.n 1762) (.n 1747) 0) ::
-  .atom (.load (.n 1763) (.n 1400) 0) ::
-  .atom (.mul (.n 1764) (.n 1763) (.n 1761)) ::
-  .atom (.add (.n 1765) (.n 1762) (.n 1764)) ::
-  .atom (.load (.n 1765) (.n 1747) 1) ::
-  .atom (.const (.n 1766) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1767) (word 128 0 0)),
-      .atom (.copy (.n 1768) (.n 1767)),
-      .atom (.const (.n 1769) (word 1 0 0)),
-      .atom (.copy (.n 1770) (.n 1769))],
-    [
-      .atom (.const (.n 1771) (word 32 0 0)),
-      .atom (.copy (.n 1768) (.n 1771)),
-      .atom (.const (.n 1772) (word 32 0 0)),
-      .atom (.copy (.n 1770) (.n 1772))],
-    [
-      .atom (.const (.n 1773) (word 16 0 0)),
-      .atom (.copy (.n 1768) (.n 1773)),
-      .atom (.const (.n 1774) (word 64 0 0)),
-      .atom (.copy (.n 1770) (.n 1774))],
-    [
-      .atom (.const (.n 1775) (word 16 0 0)),
-      .atom (.copy (.n 1768) (.n 1775)),
-      .atom (.const (.n 1776) (word 1 0 0)),
-      .atom (.copy (.n 1770) (.n 1776))]] ::
-  .atom (.const (.n 1777) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1778) (.n 24) (.n 1777)) ::
-  .atom (.const (.n 1779) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1780) (.n 1398) (.n 1779)) ::
-  .atom (.load (.n 1781) (.n 22) 1) ::
-  .call "level_residual__L14" [.n 1778, .n 1780, .n 1781, .n 1768, .n 1770] [.n 1782] ::
-  .atom (.load (.n 1783) (.n 1747) 1) ::
-  .atom (.load (.n 1784) (.n 1400) 1) ::
-  .atom (.mul (.n 1785) (.n 1784) (.n 1782)) ::
-  .atom (.add (.n 1786) (.n 1783) (.n 1785)) ::
-  .atom (.load (.n 1786) (.n 1747) 2) ::
-  .atom (.const (.n 1787) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1788) (word 16 0 0)),
-      .atom (.copy (.n 1789) (.n 1788)),
-      .atom (.const (.n 1790) (word 1 0 0)),
-      .atom (.copy (.n 1791) (.n 1790))],
-    [
-      .atom (.const (.n 1792) (word 8 0 0)),
-      .atom (.copy (.n 1789) (.n 1792)),
-      .atom (.const (.n 1793) (word 16 0 0)),
-      .atom (.copy (.n 1791) (.n 1793))],
-    [
-      .atom (.const (.n 1794) (word 8 0 0)),
-      .atom (.copy (.n 1789) (.n 1794)),
-      .atom (.const (.n 1795) (word 2 0 0)),
-      .atom (.copy (.n 1791) (.n 1795))],
-    [
-      .atom (.const (.n 1796) (word 4 0 0)),
-      .atom (.copy (.n 1789) (.n 1796)),
-      .atom (.const (.n 1797) (word 128 0 0)),
-      .atom (.copy (.n 1791) (.n 1797))]] ::
-  .atom (.const (.n 1798) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1799) (.n 564) (.n 1798)) ::
-  .atom (.const (.n 1800) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1801) (.n 1780) (.n 1800)) ::
-  .atom (.load (.n 1802) (.n 22) 2) ::
-  .call "level_residual__L10" [.n 1799, .n 1801, .n 1802, .n 1789, .n 1791] [.n 1803] ::
-  .atom (.load (.n 1804) (.n 1747) 2) ::
-  .atom (.load (.n 1805) (.n 1400) 2) ::
-  .atom (.mul (.n 1806) (.n 1805) (.n 1803)) ::
-  .atom (.add (.n 1807) (.n 1804) (.n 1806)) ::
-  .atom (.load (.n 1807) (.n 1747) 3) ::
-  .atom (.const (.n 1808) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1809) (word 4 0 0)),
-      .atom (.copy (.n 1810) (.n 1809)),
-      .atom (.const (.n 1811) (word 128 0 0)),
-      .atom (.copy (.n 1812) (.n 1811))],
-    [
-      .atom (.const (.n 1813) (word 4 0 0)),
-      .atom (.copy (.n 1810) (.n 1813)),
-      .atom (.const (.n 1814) (word 32 0 0)),
-      .atom (.copy (.n 1812) (.n 1814))],
-    [
-      .atom (.const (.n 1815) (word 4 0 0)),
-      .atom (.copy (.n 1810) (.n 1815)),
-      .atom (.const (.n 1816) (word 8 0 0)),
-      .atom (.copy (.n 1812) (.n 1816))],
-    [
-      .atom (.const (.n 1817) (word 4 0 0)),
-      .atom (.copy (.n 1810) (.n 1817)),
-      .atom (.const (.n 1818) (word 4 0 0)),
-      .atom (.copy (.n 1812) (.n 1818))]] ::
-  .atom (.const (.n 1819) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1820) (.n 791) (.n 1819)) ::
-  .atom (.const (.n 1821) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1822) (.n 1801) (.n 1821)) ::
-  .atom (.load (.n 1823) (.n 22) 3) ::
-  .call "level_residual__L6" [.n 1820, .n 1822, .n 1823, .n 1810, .n 1812] [.n 1824] ::
-  .atom (.load (.n 1825) (.n 1747) 3) ::
-  .atom (.load (.n 1826) (.n 1400) 3) ::
-  .atom (.mul (.n 1827) (.n 1826) (.n 1824)) ::
-  .atom (.add (.n 1828) (.n 1825) (.n 1827)) ::
-  .atom (.load (.n 1828) (.n 1747) 4) ::
-  .atom (.const (.n 1829) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1830) (word 4 0 0)),
-      .atom (.copy (.n 1831) (.n 1830)),
-      .atom (.const (.n 1832) (word 2 0 0)),
-      .atom (.copy (.n 1833) (.n 1832))],
-    [
-      .atom (.const (.n 1834) (word 4 0 0)),
-      .atom (.copy (.n 1831) (.n 1834)),
-      .atom (.const (.n 1835) (word 1 0 0)),
-      .atom (.copy (.n 1833) (.n 1835))],
-    [
-      .atom (.const (.n 1836) (word 2 0 0)),
-      .atom (.copy (.n 1831) (.n 1836)),
-      .atom (.const (.n 1837) (word 128 0 0)),
-      .atom (.copy (.n 1833) (.n 1837))],
-    [
-      .atom (.const (.n 1838) (word 2 0 0)),
-      .atom (.copy (.n 1831) (.n 1838)),
-      .atom (.const (.n 1839) (word 64 0 0)),
-      .atom (.copy (.n 1833) (.n 1839))]] ::
-  .atom (.const (.n 1840) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1841) (.n 1018) (.n 1840)) ::
-  .atom (.const (.n 1842) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1843) (.n 1822) (.n 1842)) ::
-  .atom (.load (.n 1844) (.n 22) 4) ::
-  .call "level_residual__L2" [.n 1841, .n 1843, .n 1844, .n 1831, .n 1833] [.n 1845] ::
-  .atom (.load (.n 1846) (.n 1747) 4) ::
-  .atom (.load (.n 1847) (.n 1400) 4) ::
-  .atom (.mul (.n 1848) (.n 1847) (.n 1845)) ::
-  .atom (.add (.n 1849) (.n 1846) (.n 1848)) ::
-  .atom (.load (.n 1849) (.n 1747) 5) ::
-  .atom (.load (.n 1850) (.n 160) 4) ::
-  .atom (.const (.n 1851) (word 1 0 0)) ::
-  .atom (.load (.n 1852) (.n 158) 26) ::
-  .atom (.add (.n 1853) (.n 1851) (.n 1852)) ::
-  .atom (.load (.n 1854) (.n 18) 6) ::
-  .atom (.add (.n 1855) (.n 1853) (.n 1854)) ::
-  .atom (.mul (.n 1856) (.n 1850) (.n 1855)) ::
-  .atom (.const (.n 1857) (word 1 0 0)) ::
-  .atom (.load (.n 1858) (.n 158) 27) ::
-  .atom (.add (.n 1859) (.n 1857) (.n 1858)) ::
-  .atom (.load (.n 1860) (.n 18) 7) ::
-  .atom (.add (.n 1861) (.n 1859) (.n 1860)) ::
-  .atom (.mul (.n 1862) (.n 1856) (.n 1861)) ::
-  .atom (.const (.n 1863) (word 1 0 0)) ::
-  .atom (.load (.n 1864) (.n 158) 28) ::
-  .atom (.add (.n 1865) (.n 1863) (.n 1864)) ::
-  .atom (.load (.n 1866) (.n 18) 8) ::
-  .atom (.add (.n 1867) (.n 1865) (.n 1866)) ::
-  .atom (.mul (.n 1868) (.n 1862) (.n 1867)) ::
-  .atom (.const (.n 1869) (word 1 0 0)) ::
-  .atom (.load (.n 1870) (.n 158) 29) ::
-  .atom (.add (.n 1871) (.n 1869) (.n 1870)) ::
-  .atom (.load (.n 1872) (.n 18) 9) ::
-  .atom (.add (.n 1873) (.n 1871) (.n 1872)) ::
-  .atom (.mul (.n 1874) (.n 1868) (.n 1873)) ::
-  .atom (.const (.n 1875) (word 1 0 0)) ::
-  .atom (.load (.n 1876) (.n 158) 30) ::
-  .atom (.add (.n 1877) (.n 1875) (.n 1876)) ::
-  .atom (.load (.n 1878) (.n 18) 10) ::
-  .atom (.add (.n 1879) (.n 1877) (.n 1878)) ::
-  .atom (.mul (.n 1880) (.n 1874) (.n 1879)) ::
-  .atom (.const (.n 1881) (word 1 0 0)) ::
-  .atom (.load (.n 1882) (.n 158) 31) ::
-  .atom (.add (.n 1883) (.n 1881) (.n 1882)) ::
-  .atom (.load (.n 1884) (.n 18) 11) ::
-  .atom (.add (.n 1885) (.n 1883) (.n 1884)) ::
-  .atom (.mul (.n 1886) (.n 1880) (.n 1885)) ::
-  .atom (.const (.n 1887) (word 1 0 0)) ::
-  .atom (.load (.n 1888) (.n 158) 32) ::
-  .atom (.add (.n 1889) (.n 1887) (.n 1888)) ::
-  .atom (.load (.n 1890) (.n 18) 12) ::
-  .atom (.add (.n 1891) (.n 1889) (.n 1890)) ::
-  .atom (.mul (.n 1892) (.n 1886) (.n 1891)) ::
-  .atom (.const (.n 1893) (word 1 0 0)) ::
-  .atom (.load (.n 1894) (.n 158) 33) ::
-  .atom (.add (.n 1895) (.n 1893) (.n 1894)) ::
-  .atom (.load (.n 1896) (.n 18) 13) ::
-  .atom (.add (.n 1897) (.n 1895) (.n 1896)) ::
-  .atom (.mul (.n 1898) (.n 1892) (.n 1897)) ::
-  .atom (.const (.n 1899) (word 1 0 0)) ::
-  .atom (.load (.n 1900) (.n 158) 34) ::
-  .atom (.add (.n 1901) (.n 1899) (.n 1900)) ::
-  .atom (.load (.n 1902) (.n 18) 14) ::
-  .atom (.add (.n 1903) (.n 1901) (.n 1902)) ::
-  .atom (.mul (.n 1904) (.n 1898) (.n 1903)) ::
+  .atom (.load (.n 1749) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L224_L18", "level_residual__L112_L18", "level_residual__L75_L18", "level_residual__L56_L18"] [.n 24, .n 1398, .n 1749] [.n 1750] ::
+  .atom (.load (.n 1751) (.n 1747) 0) ::
+  .atom (.load (.n 1752) (.n 1400) 0) ::
+  .atom (.mul (.n 1753) (.n 1752) (.n 1750)) ::
+  .atom (.add (.n 1754) (.n 1751) (.n 1753)) ::
+  .atom (.load (.n 1754) (.n 1747) 1) ::
+  .atom (.const (.n 1755) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1756) (.n 24) (.n 1755)) ::
+  .atom (.const (.n 1757) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1758) (.n 1398) (.n 1757)) ::
+  .atom (.load (.n 1759) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L14", "level_residual__L45_L14", "level_residual__L38_L14", "level_residual__L32_L14"] [.n 1756, .n 1758, .n 1759] [.n 1760] ::
+  .atom (.load (.n 1761) (.n 1747) 1) ::
+  .atom (.load (.n 1762) (.n 1400) 1) ::
+  .atom (.mul (.n 1763) (.n 1762) (.n 1760)) ::
+  .atom (.add (.n 1764) (.n 1761) (.n 1763)) ::
+  .atom (.load (.n 1764) (.n 1747) 2) ::
+  .atom (.const (.n 1765) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1766) (.n 564) (.n 1765)) ::
+  .atom (.const (.n 1767) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1768) (.n 1758) (.n 1767)) ::
+  .atom (.load (.n 1769) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L10", "level_residual__L28_L10", "level_residual__L25_L10", "level_residual__L23_L10"] [.n 1766, .n 1768, .n 1769] [.n 1770] ::
+  .atom (.load (.n 1771) (.n 1747) 2) ::
+  .atom (.load (.n 1772) (.n 1400) 2) ::
+  .atom (.mul (.n 1773) (.n 1772) (.n 1770)) ::
+  .atom (.add (.n 1774) (.n 1771) (.n 1773)) ::
+  .atom (.load (.n 1774) (.n 1747) 3) ::
+  .atom (.const (.n 1775) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1776) (.n 791) (.n 1775)) ::
+  .atom (.const (.n 1777) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1778) (.n 1768) (.n 1777)) ::
+  .atom (.load (.n 1779) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L6", "level_residual__L21_L6", "level_residual__L19_L6", "level_residual__L18_L6"] [.n 1776, .n 1778, .n 1779] [.n 1780] ::
+  .atom (.load (.n 1781) (.n 1747) 3) ::
+  .atom (.load (.n 1782) (.n 1400) 3) ::
+  .atom (.mul (.n 1783) (.n 1782) (.n 1780)) ::
+  .atom (.add (.n 1784) (.n 1781) (.n 1783)) ::
+  .atom (.load (.n 1784) (.n 1747) 4) ::
+  .atom (.const (.n 1785) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1786) (.n 1018) (.n 1785)) ::
+  .atom (.const (.n 1787) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1788) (.n 1778) (.n 1787)) ::
+  .atom (.load (.n 1789) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L17_L2", "level_residual__L16_L2", "level_residual__L15_L2", "level_residual__L14_L2"] [.n 1786, .n 1788, .n 1789] [.n 1790] ::
+  .atom (.load (.n 1791) (.n 1747) 4) ::
+  .atom (.load (.n 1792) (.n 1400) 4) ::
+  .atom (.mul (.n 1793) (.n 1792) (.n 1790)) ::
+  .atom (.add (.n 1794) (.n 1791) (.n 1793)) ::
+  .atom (.load (.n 1794) (.n 1747) 5) ::
+  .atom (.load (.n 1795) (.n 160) 4) ::
+  .atom (.const (.n 1796) (word 1 0 0)) ::
+  .atom (.load (.n 1797) (.n 158) 26) ::
+  .atom (.add (.n 1798) (.n 1796) (.n 1797)) ::
+  .atom (.load (.n 1799) (.n 18) 6) ::
+  .atom (.add (.n 1800) (.n 1798) (.n 1799)) ::
+  .atom (.mul (.n 1801) (.n 1795) (.n 1800)) ::
+  .atom (.const (.n 1802) (word 1 0 0)) ::
+  .atom (.load (.n 1803) (.n 158) 27) ::
+  .atom (.add (.n 1804) (.n 1802) (.n 1803)) ::
+  .atom (.load (.n 1805) (.n 18) 7) ::
+  .atom (.add (.n 1806) (.n 1804) (.n 1805)) ::
+  .atom (.mul (.n 1807) (.n 1801) (.n 1806)) ::
+  .atom (.const (.n 1808) (word 1 0 0)) ::
+  .atom (.load (.n 1809) (.n 158) 28) ::
+  .atom (.add (.n 1810) (.n 1808) (.n 1809)) ::
+  .atom (.load (.n 1811) (.n 18) 8) ::
+  .atom (.add (.n 1812) (.n 1810) (.n 1811)) ::
+  .atom (.mul (.n 1813) (.n 1807) (.n 1812)) ::
+  .atom (.const (.n 1814) (word 1 0 0)) ::
+  .atom (.load (.n 1815) (.n 158) 29) ::
+  .atom (.add (.n 1816) (.n 1814) (.n 1815)) ::
+  .atom (.load (.n 1817) (.n 18) 9) ::
+  .atom (.add (.n 1818) (.n 1816) (.n 1817)) ::
+  .atom (.mul (.n 1819) (.n 1813) (.n 1818)) ::
+  .atom (.const (.n 1820) (word 1 0 0)) ::
+  .atom (.load (.n 1821) (.n 158) 30) ::
+  .atom (.add (.n 1822) (.n 1820) (.n 1821)) ::
+  .atom (.load (.n 1823) (.n 18) 10) ::
+  .atom (.add (.n 1824) (.n 1822) (.n 1823)) ::
+  .atom (.mul (.n 1825) (.n 1819) (.n 1824)) ::
+  .atom (.const (.n 1826) (word 1 0 0)) ::
+  .atom (.load (.n 1827) (.n 158) 31) ::
+  .atom (.add (.n 1828) (.n 1826) (.n 1827)) ::
+  .atom (.load (.n 1829) (.n 18) 11) ::
+  .atom (.add (.n 1830) (.n 1828) (.n 1829)) ::
+  .atom (.mul (.n 1831) (.n 1825) (.n 1830)) ::
+  .atom (.const (.n 1832) (word 1 0 0)) ::
+  .atom (.load (.n 1833) (.n 158) 32) ::
+  .atom (.add (.n 1834) (.n 1832) (.n 1833)) ::
+  .atom (.load (.n 1835) (.n 18) 12) ::
+  .atom (.add (.n 1836) (.n 1834) (.n 1835)) ::
+  .atom (.mul (.n 1837) (.n 1831) (.n 1836)) ::
+  .atom (.const (.n 1838) (word 1 0 0)) ::
+  .atom (.load (.n 1839) (.n 158) 33) ::
+  .atom (.add (.n 1840) (.n 1838) (.n 1839)) ::
+  .atom (.load (.n 1841) (.n 18) 13) ::
+  .atom (.add (.n 1842) (.n 1840) (.n 1841)) ::
+  .atom (.mul (.n 1843) (.n 1837) (.n 1842)) ::
+  .atom (.const (.n 1844) (word 1 0 0)) ::
+  .atom (.load (.n 1845) (.n 158) 34) ::
+  .atom (.add (.n 1846) (.n 1844) (.n 1845)) ::
+  .atom (.load (.n 1847) (.n 18) 14) ::
+  .atom (.add (.n 1848) (.n 1846) (.n 1847)) ::
+  .atom (.mul (.n 1849) (.n 1843) (.n 1848)) ::
+  .atom (.const (.n 1850) (word 1 0 0)) ::
+  .atom (.load (.n 1851) (.n 158) 35) ::
+  .atom (.add (.n 1852) (.n 1850) (.n 1851)) ::
+  .atom (.load (.n 1853) (.n 18) 15) ::
+  .atom (.add (.n 1854) (.n 1852) (.n 1853)) ::
+  .atom (.mul (.n 1855) (.n 1849) (.n 1854)) ::
+  .atom (.const (.n 1856) (word 1 0 0)) ::
+  .atom (.load (.n 1857) (.n 158) 36) ::
+  .atom (.add (.n 1858) (.n 1856) (.n 1857)) ::
+  .atom (.load (.n 1859) (.n 18) 16) ::
+  .atom (.add (.n 1860) (.n 1858) (.n 1859)) ::
+  .atom (.mul (.n 1861) (.n 1855) (.n 1860)) ::
+  .atom (.const (.n 1862) (word 1 0 0)) ::
+  .atom (.load (.n 1863) (.n 158) 37) ::
+  .atom (.add (.n 1864) (.n 1862) (.n 1863)) ::
+  .atom (.load (.n 1865) (.n 18) 17) ::
+  .atom (.add (.n 1866) (.n 1864) (.n 1865)) ::
+  .atom (.mul (.n 1867) (.n 1861) (.n 1866)) ::
+  .atom (.const (.n 1868) (word 1 0 0)) ::
+  .atom (.load (.n 1869) (.n 158) 38) ::
+  .atom (.add (.n 1870) (.n 1868) (.n 1869)) ::
+  .atom (.load (.n 1871) (.n 18) 18) ::
+  .atom (.add (.n 1872) (.n 1870) (.n 1871)) ::
+  .atom (.mul (.n 1873) (.n 1867) (.n 1872)) ::
+  .atom (.const (.n 1874) (word 1 0 0)) ::
+  .atom (.load (.n 1875) (.n 158) 39) ::
+  .atom (.add (.n 1876) (.n 1874) (.n 1875)) ::
+  .atom (.load (.n 1877) (.n 18) 19) ::
+  .atom (.add (.n 1878) (.n 1876) (.n 1877)) ::
+  .atom (.mul (.n 1879) (.n 1873) (.n 1878)) ::
+  .atom (.const (.n 1880) (word 1 0 0)) ::
+  .atom (.load (.n 1881) (.n 158) 40) ::
+  .atom (.add (.n 1882) (.n 1880) (.n 1881)) ::
+  .atom (.load (.n 1883) (.n 18) 20) ::
+  .atom (.add (.n 1884) (.n 1882) (.n 1883)) ::
+  .atom (.mul (.n 1885) (.n 1879) (.n 1884)) ::
+  .atom (.const (.n 1886) (word 1 0 0)) ::
+  .atom (.load (.n 1887) (.n 158) 41) ::
+  .atom (.add (.n 1888) (.n 1886) (.n 1887)) ::
+  .atom (.load (.n 1889) (.n 18) 21) ::
+  .atom (.add (.n 1890) (.n 1888) (.n 1889)) ::
+  .atom (.mul (.n 1891) (.n 1885) (.n 1890)) ::
+  .atom (.const (.n 1892) (word 1 0 0)) ::
+  .atom (.load (.n 1893) (.n 158) 42) ::
+  .atom (.add (.n 1894) (.n 1892) (.n 1893)) ::
+  .atom (.load (.n 1895) (.n 1201) 0) ::
+  .atom (.add (.n 1896) (.n 1894) (.n 1895)) ::
+  .atom (.mul (.n 1897) (.n 1891) (.n 1896)) ::
+  .atom (.const (.n 1898) (word 1 0 0)) ::
+  .atom (.load (.n 1899) (.n 158) 43) ::
+  .atom (.add (.n 1900) (.n 1898) (.n 1899)) ::
+  .atom (.load (.n 1901) (.n 1201) 1) ::
+  .atom (.add (.n 1902) (.n 1900) (.n 1901)) ::
+  .atom (.mul (.n 1903) (.n 1897) (.n 1902)) ::
+  .atom (.load (.n 1904) (.n 160) 8) ::
   .atom (.const (.n 1905) (word 1 0 0)) ::
-  .atom (.load (.n 1906) (.n 158) 35) ::
+  .atom (.load (.n 1906) (.n 158) 52) ::
   .atom (.add (.n 1907) (.n 1905) (.n 1906)) ::
-  .atom (.load (.n 1908) (.n 18) 15) ::
+  .atom (.load (.n 1908) (.n 18) 10) ::
   .atom (.add (.n 1909) (.n 1907) (.n 1908)) ::
   .atom (.mul (.n 1910) (.n 1904) (.n 1909)) ::
   .atom (.const (.n 1911) (word 1 0 0)) ::
-  .atom (.load (.n 1912) (.n 158) 36) ::
+  .atom (.load (.n 1912) (.n 158) 53) ::
   .atom (.add (.n 1913) (.n 1911) (.n 1912)) ::
-  .atom (.load (.n 1914) (.n 18) 16) ::
+  .atom (.load (.n 1914) (.n 18) 11) ::
   .atom (.add (.n 1915) (.n 1913) (.n 1914)) ::
   .atom (.mul (.n 1916) (.n 1910) (.n 1915)) ::
   .atom (.const (.n 1917) (word 1 0 0)) ::
-  .atom (.load (.n 1918) (.n 158) 37) ::
+  .atom (.load (.n 1918) (.n 158) 54) ::
   .atom (.add (.n 1919) (.n 1917) (.n 1918)) ::
-  .atom (.load (.n 1920) (.n 18) 17) ::
+  .atom (.load (.n 1920) (.n 18) 12) ::
   .atom (.add (.n 1921) (.n 1919) (.n 1920)) ::
   .atom (.mul (.n 1922) (.n 1916) (.n 1921)) ::
   .atom (.const (.n 1923) (word 1 0 0)) ::
-  .atom (.load (.n 1924) (.n 158) 38) ::
+  .atom (.load (.n 1924) (.n 158) 55) ::
   .atom (.add (.n 1925) (.n 1923) (.n 1924)) ::
-  .atom (.load (.n 1926) (.n 18) 18) ::
+  .atom (.load (.n 1926) (.n 18) 13) ::
   .atom (.add (.n 1927) (.n 1925) (.n 1926)) ::
   .atom (.mul (.n 1928) (.n 1922) (.n 1927)) ::
   .atom (.const (.n 1929) (word 1 0 0)) ::
-  .atom (.load (.n 1930) (.n 158) 39) ::
+  .atom (.load (.n 1930) (.n 158) 56) ::
   .atom (.add (.n 1931) (.n 1929) (.n 1930)) ::
-  .atom (.load (.n 1932) (.n 18) 19) ::
+  .atom (.load (.n 1932) (.n 18) 14) ::
   .atom (.add (.n 1933) (.n 1931) (.n 1932)) ::
   .atom (.mul (.n 1934) (.n 1928) (.n 1933)) ::
   .atom (.const (.n 1935) (word 1 0 0)) ::
-  .atom (.load (.n 1936) (.n 158) 40) ::
+  .atom (.load (.n 1936) (.n 158) 57) ::
   .atom (.add (.n 1937) (.n 1935) (.n 1936)) ::
-  .atom (.load (.n 1938) (.n 18) 20) ::
+  .atom (.load (.n 1938) (.n 18) 15) ::
   .atom (.add (.n 1939) (.n 1937) (.n 1938)) ::
   .atom (.mul (.n 1940) (.n 1934) (.n 1939)) ::
   .atom (.const (.n 1941) (word 1 0 0)) ::
-  .atom (.load (.n 1942) (.n 158) 41) ::
+  .atom (.load (.n 1942) (.n 158) 58) ::
   .atom (.add (.n 1943) (.n 1941) (.n 1942)) ::
-  .atom (.load (.n 1944) (.n 18) 21) ::
+  .atom (.load (.n 1944) (.n 18) 16) ::
   .atom (.add (.n 1945) (.n 1943) (.n 1944)) ::
   .atom (.mul (.n 1946) (.n 1940) (.n 1945)) ::
   .atom (.const (.n 1947) (word 1 0 0)) ::
-  .atom (.load (.n 1948) (.n 158) 42) ::
+  .atom (.load (.n 1948) (.n 158) 59) ::
   .atom (.add (.n 1949) (.n 1947) (.n 1948)) ::
-  .atom (.load (.n 1950) (.n 1201) 0) ::
+  .atom (.load (.n 1950) (.n 18) 17) ::
   .atom (.add (.n 1951) (.n 1949) (.n 1950)) ::
   .atom (.mul (.n 1952) (.n 1946) (.n 1951)) ::
   .atom (.const (.n 1953) (word 1 0 0)) ::
-  .atom (.load (.n 1954) (.n 158) 43) ::
+  .atom (.load (.n 1954) (.n 158) 60) ::
   .atom (.add (.n 1955) (.n 1953) (.n 1954)) ::
-  .atom (.load (.n 1956) (.n 1201) 1) ::
+  .atom (.load (.n 1956) (.n 18) 18) ::
   .atom (.add (.n 1957) (.n 1955) (.n 1956)) ::
   .atom (.mul (.n 1958) (.n 1952) (.n 1957)) ::
-  .atom (.load (.n 1959) (.n 160) 8) ::
-  .atom (.const (.n 1960) (word 1 0 0)) ::
-  .atom (.load (.n 1961) (.n 158) 52) ::
-  .atom (.add (.n 1962) (.n 1960) (.n 1961)) ::
-  .atom (.load (.n 1963) (.n 18) 10) ::
-  .atom (.add (.n 1964) (.n 1962) (.n 1963)) ::
-  .atom (.mul (.n 1965) (.n 1959) (.n 1964)) ::
-  .atom (.const (.n 1966) (word 1 0 0)) ::
-  .atom (.load (.n 1967) (.n 158) 53) ::
-  .atom (.add (.n 1968) (.n 1966) (.n 1967)) ::
-  .atom (.load (.n 1969) (.n 18) 11) ::
-  .atom (.add (.n 1970) (.n 1968) (.n 1969)) ::
-  .atom (.mul (.n 1971) (.n 1965) (.n 1970)) ::
-  .atom (.const (.n 1972) (word 1 0 0)) ::
-  .atom (.load (.n 1973) (.n 158) 54) ::
-  .atom (.add (.n 1974) (.n 1972) (.n 1973)) ::
-  .atom (.load (.n 1975) (.n 18) 12) ::
-  .atom (.add (.n 1976) (.n 1974) (.n 1975)) ::
-  .atom (.mul (.n 1977) (.n 1971) (.n 1976)) ::
-  .atom (.const (.n 1978) (word 1 0 0)) ::
-  .atom (.load (.n 1979) (.n 158) 55) ::
-  .atom (.add (.n 1980) (.n 1978) (.n 1979)) ::
-  .atom (.load (.n 1981) (.n 18) 13) ::
-  .atom (.add (.n 1982) (.n 1980) (.n 1981)) ::
-  .atom (.mul (.n 1983) (.n 1977) (.n 1982)) ::
-  .atom (.const (.n 1984) (word 1 0 0)) ::
-  .atom (.load (.n 1985) (.n 158) 56) ::
-  .atom (.add (.n 1986) (.n 1984) (.n 1985)) ::
-  .atom (.load (.n 1987) (.n 18) 14) ::
-  .atom (.add (.n 1988) (.n 1986) (.n 1987)) ::
-  .atom (.mul (.n 1989) (.n 1983) (.n 1988)) ::
-  .atom (.const (.n 1990) (word 1 0 0)) ::
-  .atom (.load (.n 1991) (.n 158) 57) ::
-  .atom (.add (.n 1992) (.n 1990) (.n 1991)) ::
-  .atom (.load (.n 1993) (.n 18) 15) ::
-  .atom (.add (.n 1994) (.n 1992) (.n 1993)) ::
-  .atom (.mul (.n 1995) (.n 1989) (.n 1994)) ::
-  .atom (.const (.n 1996) (word 1 0 0)) ::
-  .atom (.load (.n 1997) (.n 158) 58) ::
-  .atom (.add (.n 1998) (.n 1996) (.n 1997)) ::
-  .atom (.load (.n 1999) (.n 18) 16) ::
-  .atom (.add (.n 2000) (.n 1998) (.n 1999)) ::
-  .atom (.mul (.n 2001) (.n 1995) (.n 2000)) ::
-  .atom (.const (.n 2002) (word 1 0 0)) ::
-  .atom (.load (.n 2003) (.n 158) 59) ::
-  .atom (.add (.n 2004) (.n 2002) (.n 2003)) ::
-  .atom (.load (.n 2005) (.n 18) 17) ::
-  .atom (.add (.n 2006) (.n 2004) (.n 2005)) ::
-  .atom (.mul (.n 2007) (.n 2001) (.n 2006)) ::
-  .atom (.const (.n 2008) (word 1 0 0)) ::
-  .atom (.load (.n 2009) (.n 158) 60) ::
-  .atom (.add (.n 2010) (.n 2008) (.n 2009)) ::
-  .atom (.load (.n 2011) (.n 18) 18) ::
-  .atom (.add (.n 2012) (.n 2010) (.n 2011)) ::
-  .atom (.mul (.n 2013) (.n 2007) (.n 2012)) ::
-  .atom (.const (.n 2014) (word 1 0 0)) ::
-  .atom (.load (.n 2015) (.n 158) 61) ::
-  .atom (.add (.n 2016) (.n 2014) (.n 2015)) ::
-  .atom (.load (.n 2017) (.n 18) 19) ::
-  .atom (.add (.n 2018) (.n 2016) (.n 2017)) ::
-  .atom (.mul (.n 2019) (.n 2013) (.n 2018)) ::
-  .atom (.const (.n 2020) (word 1 0 0)) ::
-  .atom (.load (.n 2021) (.n 158) 62) ::
-  .atom (.add (.n 2022) (.n 2020) (.n 2021)) ::
-  .atom (.load (.n 2023) (.n 18) 20) ::
-  .atom (.add (.n 2024) (.n 2022) (.n 2023)) ::
-  .atom (.mul (.n 2025) (.n 2019) (.n 2024)) ::
-  .atom (.const (.n 2026) (word 1 0 0)) ::
-  .atom (.load (.n 2027) (.n 158) 63) ::
-  .atom (.add (.n 2028) (.n 2026) (.n 2027)) ::
-  .atom (.load (.n 2029) (.n 18) 21) ::
-  .atom (.add (.n 2030) (.n 2028) (.n 2029)) ::
-  .atom (.mul (.n 2031) (.n 2025) (.n 2030)) ::
-  .atom (.const (.n 2032) (word 1 0 0)) ::
-  .atom (.load (.n 2033) (.n 158) 64) ::
-  .atom (.add (.n 2034) (.n 2032) (.n 2033)) ::
-  .atom (.load (.n 2035) (.n 1201) 0) ::
-  .atom (.add (.n 2036) (.n 2034) (.n 2035)) ::
-  .atom (.mul (.n 2037) (.n 2031) (.n 2036)) ::
-  .atom (.const (.n 2038) (word 1 0 0)) ::
-  .atom (.load (.n 2039) (.n 158) 65) ::
-  .atom (.add (.n 2040) (.n 2038) (.n 2039)) ::
-  .atom (.load (.n 2041) (.n 1201) 1) ::
-  .atom (.add (.n 2042) (.n 2040) (.n 2041)) ::
-  .atom (.mul (.n 2043) (.n 2037) (.n 2042)) ::
-  .atom (.add (.n 2044) (.n 1958) (.n 2043)) ::
-  .atom (.load (.n 2045) (.n 160) 12) ::
-  .atom (.const (.n 2046) (word 1 0 0)) ::
-  .atom (.load (.n 2047) (.n 158) 78) ::
-  .atom (.add (.n 2048) (.n 2046) (.n 2047)) ::
-  .atom (.load (.n 2049) (.n 18) 14) ::
-  .atom (.add (.n 2050) (.n 2048) (.n 2049)) ::
-  .atom (.mul (.n 2051) (.n 2045) (.n 2050)) ::
-  .atom (.const (.n 2052) (word 1 0 0)) ::
-  .atom (.load (.n 2053) (.n 158) 79) ::
-  .atom (.add (.n 2054) (.n 2052) (.n 2053)) ::
-  .atom (.load (.n 2055) (.n 18) 15) ::
-  .atom (.add (.n 2056) (.n 2054) (.n 2055)) ::
-  .atom (.mul (.n 2057) (.n 2051) (.n 2056)) ::
-  .atom (.const (.n 2058) (word 1 0 0)) ::
-  .atom (.load (.n 2059) (.n 158) 80) ::
-  .atom (.add (.n 2060) (.n 2058) (.n 2059)) ::
-  .atom (.load (.n 2061) (.n 18) 16) ::
-  .atom (.add (.n 2062) (.n 2060) (.n 2061)) ::
-  .atom (.mul (.n 2063) (.n 2057) (.n 2062)) ::
-  .atom (.const (.n 2064) (word 1 0 0)) ::
-  .atom (.load (.n 2065) (.n 158) 81) ::
-  .atom (.add (.n 2066) (.n 2064) (.n 2065)) ::
-  .atom (.load (.n 2067) (.n 18) 17) ::
-  .atom (.add (.n 2068) (.n 2066) (.n 2067)) ::
-  .atom (.mul (.n 2069) (.n 2063) (.n 2068)) ::
-  .atom (.const (.n 2070) (word 1 0 0)) ::
-  .atom (.load (.n 2071) (.n 158) 82) ::
-  .atom (.add (.n 2072) (.n 2070) (.n 2071)) ::
-  .atom (.load (.n 2073) (.n 18) 18) ::
-  .atom (.add (.n 2074) (.n 2072) (.n 2073)) ::
-  .atom (.mul (.n 2075) (.n 2069) (.n 2074)) ::
-  .atom (.const (.n 2076) (word 1 0 0)) ::
-  .atom (.load (.n 2077) (.n 158) 83) ::
-  .atom (.add (.n 2078) (.n 2076) (.n 2077)) ::
-  .atom (.load (.n 2079) (.n 18) 19) ::
-  .atom (.add (.n 2080) (.n 2078) (.n 2079)) ::
-  .atom (.mul (.n 2081) (.n 2075) (.n 2080)) ::
-  .atom (.const (.n 2082) (word 1 0 0)) ::
-  .atom (.load (.n 2083) (.n 158) 84) ::
-  .atom (.add (.n 2084) (.n 2082) (.n 2083)) ::
-  .atom (.load (.n 2085) (.n 18) 20) ::
-  .atom (.add (.n 2086) (.n 2084) (.n 2085)) ::
-  .atom (.mul (.n 2087) (.n 2081) (.n 2086)) ::
-  .atom (.const (.n 2088) (word 1 0 0)) ::
-  .atom (.load (.n 2089) (.n 158) 85) ::
-  .atom (.add (.n 2090) (.n 2088) (.n 2089)) ::
-  .atom (.load (.n 2091) (.n 18) 21) ::
-  .atom (.add (.n 2092) (.n 2090) (.n 2091)) ::
-  .atom (.mul (.n 2093) (.n 2087) (.n 2092)) ::
-  .atom (.const (.n 2094) (word 1 0 0)) ::
-  .atom (.load (.n 2095) (.n 158) 86) ::
-  .atom (.add (.n 2096) (.n 2094) (.n 2095)) ::
-  .atom (.load (.n 2097) (.n 1201) 0) ::
-  .atom (.add (.n 2098) (.n 2096) (.n 2097)) ::
-  .atom (.mul (.n 2099) (.n 2093) (.n 2098)) ::
-  .atom (.const (.n 2100) (word 1 0 0)) ::
-  .atom (.load (.n 2101) (.n 158) 87) ::
-  .atom (.add (.n 2102) (.n 2100) (.n 2101)) ::
-  .atom (.load (.n 2103) (.n 1201) 1) ::
-  .atom (.add (.n 2104) (.n 2102) (.n 2103)) ::
-  .atom (.mul (.n 2105) (.n 2099) (.n 2104)) ::
-  .atom (.add (.n 2106) (.n 2044) (.n 2105)) ::
-  .atom (.load (.n 2107) (.n 160) 16) ::
-  .atom (.const (.n 2108) (word 1 0 0)) ::
-  .atom (.load (.n 2109) (.n 158) 104) ::
-  .atom (.add (.n 2110) (.n 2108) (.n 2109)) ::
-  .atom (.load (.n 2111) (.n 18) 18) ::
-  .atom (.add (.n 2112) (.n 2110) (.n 2111)) ::
-  .atom (.mul (.n 2113) (.n 2107) (.n 2112)) ::
-  .atom (.const (.n 2114) (word 1 0 0)) ::
-  .atom (.load (.n 2115) (.n 158) 105) ::
-  .atom (.add (.n 2116) (.n 2114) (.n 2115)) ::
-  .atom (.load (.n 2117) (.n 18) 19) ::
-  .atom (.add (.n 2118) (.n 2116) (.n 2117)) ::
-  .atom (.mul (.n 2119) (.n 2113) (.n 2118)) ::
-  .atom (.const (.n 2120) (word 1 0 0)) ::
-  .atom (.load (.n 2121) (.n 158) 106) ::
-  .atom (.add (.n 2122) (.n 2120) (.n 2121)) ::
-  .atom (.load (.n 2123) (.n 18) 20) ::
-  .atom (.add (.n 2124) (.n 2122) (.n 2123)) ::
-  .atom (.mul (.n 2125) (.n 2119) (.n 2124)) ::
-  .atom (.const (.n 2126) (word 1 0 0)) ::
-  .atom (.load (.n 2127) (.n 158) 107) ::
-  .atom (.add (.n 2128) (.n 2126) (.n 2127)) ::
-  .atom (.load (.n 2129) (.n 18) 21) ::
-  .atom (.add (.n 2130) (.n 2128) (.n 2129)) ::
-  .atom (.mul (.n 2131) (.n 2125) (.n 2130)) ::
-  .atom (.const (.n 2132) (word 1 0 0)) ::
-  .atom (.load (.n 2133) (.n 158) 108) ::
-  .atom (.add (.n 2134) (.n 2132) (.n 2133)) ::
-  .atom (.load (.n 2135) (.n 1201) 0) ::
-  .atom (.add (.n 2136) (.n 2134) (.n 2135)) ::
-  .atom (.mul (.n 2137) (.n 2131) (.n 2136)) ::
-  .atom (.const (.n 2138) (word 1 0 0)) ::
-  .atom (.load (.n 2139) (.n 158) 109) ::
-  .atom (.add (.n 2140) (.n 2138) (.n 2139)) ::
-  .atom (.load (.n 2141) (.n 1201) 1) ::
-  .atom (.add (.n 2142) (.n 2140) (.n 2141)) ::
-  .atom (.mul (.n 2143) (.n 2137) (.n 2142)) ::
-  .atom (.add (.n 2144) (.n 2106) (.n 2143)) ::
-  .atom (.copy (.n 2145) (.n 1262)) ::
-  .atom (.copy (.n 2146) (.n 1267)) ::
-  .atom (.copy (.n 2147) (.n 1268)) ::
-  .atom (.load (.n 2148) (.n 1747) 5) ::
-  .atom (.add (.n 2149) (.n 2148) (.n 2144)) ::
-  .atom (.copy (.n 2150) (.n 1266)) ::
-  .ret [.n 2145, .n 2146, .n 2147, .n 2149, .n 2150] ::
+  .atom (.const (.n 1959) (word 1 0 0)) ::
+  .atom (.load (.n 1960) (.n 158) 61) ::
+  .atom (.add (.n 1961) (.n 1959) (.n 1960)) ::
+  .atom (.load (.n 1962) (.n 18) 19) ::
+  .atom (.add (.n 1963) (.n 1961) (.n 1962)) ::
+  .atom (.mul (.n 1964) (.n 1958) (.n 1963)) ::
+  .atom (.const (.n 1965) (word 1 0 0)) ::
+  .atom (.load (.n 1966) (.n 158) 62) ::
+  .atom (.add (.n 1967) (.n 1965) (.n 1966)) ::
+  .atom (.load (.n 1968) (.n 18) 20) ::
+  .atom (.add (.n 1969) (.n 1967) (.n 1968)) ::
+  .atom (.mul (.n 1970) (.n 1964) (.n 1969)) ::
+  .atom (.const (.n 1971) (word 1 0 0)) ::
+  .atom (.load (.n 1972) (.n 158) 63) ::
+  .atom (.add (.n 1973) (.n 1971) (.n 1972)) ::
+  .atom (.load (.n 1974) (.n 18) 21) ::
+  .atom (.add (.n 1975) (.n 1973) (.n 1974)) ::
+  .atom (.mul (.n 1976) (.n 1970) (.n 1975)) ::
+  .atom (.const (.n 1977) (word 1 0 0)) ::
+  .atom (.load (.n 1978) (.n 158) 64) ::
+  .atom (.add (.n 1979) (.n 1977) (.n 1978)) ::
+  .atom (.load (.n 1980) (.n 1201) 0) ::
+  .atom (.add (.n 1981) (.n 1979) (.n 1980)) ::
+  .atom (.mul (.n 1982) (.n 1976) (.n 1981)) ::
+  .atom (.const (.n 1983) (word 1 0 0)) ::
+  .atom (.load (.n 1984) (.n 158) 65) ::
+  .atom (.add (.n 1985) (.n 1983) (.n 1984)) ::
+  .atom (.load (.n 1986) (.n 1201) 1) ::
+  .atom (.add (.n 1987) (.n 1985) (.n 1986)) ::
+  .atom (.mul (.n 1988) (.n 1982) (.n 1987)) ::
+  .atom (.add (.n 1989) (.n 1903) (.n 1988)) ::
+  .atom (.load (.n 1990) (.n 160) 12) ::
+  .atom (.const (.n 1991) (word 1 0 0)) ::
+  .atom (.load (.n 1992) (.n 158) 78) ::
+  .atom (.add (.n 1993) (.n 1991) (.n 1992)) ::
+  .atom (.load (.n 1994) (.n 18) 14) ::
+  .atom (.add (.n 1995) (.n 1993) (.n 1994)) ::
+  .atom (.mul (.n 1996) (.n 1990) (.n 1995)) ::
+  .atom (.const (.n 1997) (word 1 0 0)) ::
+  .atom (.load (.n 1998) (.n 158) 79) ::
+  .atom (.add (.n 1999) (.n 1997) (.n 1998)) ::
+  .atom (.load (.n 2000) (.n 18) 15) ::
+  .atom (.add (.n 2001) (.n 1999) (.n 2000)) ::
+  .atom (.mul (.n 2002) (.n 1996) (.n 2001)) ::
+  .atom (.const (.n 2003) (word 1 0 0)) ::
+  .atom (.load (.n 2004) (.n 158) 80) ::
+  .atom (.add (.n 2005) (.n 2003) (.n 2004)) ::
+  .atom (.load (.n 2006) (.n 18) 16) ::
+  .atom (.add (.n 2007) (.n 2005) (.n 2006)) ::
+  .atom (.mul (.n 2008) (.n 2002) (.n 2007)) ::
+  .atom (.const (.n 2009) (word 1 0 0)) ::
+  .atom (.load (.n 2010) (.n 158) 81) ::
+  .atom (.add (.n 2011) (.n 2009) (.n 2010)) ::
+  .atom (.load (.n 2012) (.n 18) 17) ::
+  .atom (.add (.n 2013) (.n 2011) (.n 2012)) ::
+  .atom (.mul (.n 2014) (.n 2008) (.n 2013)) ::
+  .atom (.const (.n 2015) (word 1 0 0)) ::
+  .atom (.load (.n 2016) (.n 158) 82) ::
+  .atom (.add (.n 2017) (.n 2015) (.n 2016)) ::
+  .atom (.load (.n 2018) (.n 18) 18) ::
+  .atom (.add (.n 2019) (.n 2017) (.n 2018)) ::
+  .atom (.mul (.n 2020) (.n 2014) (.n 2019)) ::
+  .atom (.const (.n 2021) (word 1 0 0)) ::
+  .atom (.load (.n 2022) (.n 158) 83) ::
+  .atom (.add (.n 2023) (.n 2021) (.n 2022)) ::
+  .atom (.load (.n 2024) (.n 18) 19) ::
+  .atom (.add (.n 2025) (.n 2023) (.n 2024)) ::
+  .atom (.mul (.n 2026) (.n 2020) (.n 2025)) ::
+  .atom (.const (.n 2027) (word 1 0 0)) ::
+  .atom (.load (.n 2028) (.n 158) 84) ::
+  .atom (.add (.n 2029) (.n 2027) (.n 2028)) ::
+  .atom (.load (.n 2030) (.n 18) 20) ::
+  .atom (.add (.n 2031) (.n 2029) (.n 2030)) ::
+  .atom (.mul (.n 2032) (.n 2026) (.n 2031)) ::
+  .atom (.const (.n 2033) (word 1 0 0)) ::
+  .atom (.load (.n 2034) (.n 158) 85) ::
+  .atom (.add (.n 2035) (.n 2033) (.n 2034)) ::
+  .atom (.load (.n 2036) (.n 18) 21) ::
+  .atom (.add (.n 2037) (.n 2035) (.n 2036)) ::
+  .atom (.mul (.n 2038) (.n 2032) (.n 2037)) ::
+  .atom (.const (.n 2039) (word 1 0 0)) ::
+  .atom (.load (.n 2040) (.n 158) 86) ::
+  .atom (.add (.n 2041) (.n 2039) (.n 2040)) ::
+  .atom (.load (.n 2042) (.n 1201) 0) ::
+  .atom (.add (.n 2043) (.n 2041) (.n 2042)) ::
+  .atom (.mul (.n 2044) (.n 2038) (.n 2043)) ::
+  .atom (.const (.n 2045) (word 1 0 0)) ::
+  .atom (.load (.n 2046) (.n 158) 87) ::
+  .atom (.add (.n 2047) (.n 2045) (.n 2046)) ::
+  .atom (.load (.n 2048) (.n 1201) 1) ::
+  .atom (.add (.n 2049) (.n 2047) (.n 2048)) ::
+  .atom (.mul (.n 2050) (.n 2044) (.n 2049)) ::
+  .atom (.add (.n 2051) (.n 1989) (.n 2050)) ::
+  .atom (.load (.n 2052) (.n 160) 16) ::
+  .atom (.const (.n 2053) (word 1 0 0)) ::
+  .atom (.load (.n 2054) (.n 158) 104) ::
+  .atom (.add (.n 2055) (.n 2053) (.n 2054)) ::
+  .atom (.load (.n 2056) (.n 18) 18) ::
+  .atom (.add (.n 2057) (.n 2055) (.n 2056)) ::
+  .atom (.mul (.n 2058) (.n 2052) (.n 2057)) ::
+  .atom (.const (.n 2059) (word 1 0 0)) ::
+  .atom (.load (.n 2060) (.n 158) 105) ::
+  .atom (.add (.n 2061) (.n 2059) (.n 2060)) ::
+  .atom (.load (.n 2062) (.n 18) 19) ::
+  .atom (.add (.n 2063) (.n 2061) (.n 2062)) ::
+  .atom (.mul (.n 2064) (.n 2058) (.n 2063)) ::
+  .atom (.const (.n 2065) (word 1 0 0)) ::
+  .atom (.load (.n 2066) (.n 158) 106) ::
+  .atom (.add (.n 2067) (.n 2065) (.n 2066)) ::
+  .atom (.load (.n 2068) (.n 18) 20) ::
+  .atom (.add (.n 2069) (.n 2067) (.n 2068)) ::
+  .atom (.mul (.n 2070) (.n 2064) (.n 2069)) ::
+  .atom (.const (.n 2071) (word 1 0 0)) ::
+  .atom (.load (.n 2072) (.n 158) 107) ::
+  .atom (.add (.n 2073) (.n 2071) (.n 2072)) ::
+  .atom (.load (.n 2074) (.n 18) 21) ::
+  .atom (.add (.n 2075) (.n 2073) (.n 2074)) ::
+  .atom (.mul (.n 2076) (.n 2070) (.n 2075)) ::
+  .atom (.const (.n 2077) (word 1 0 0)) ::
+  .atom (.load (.n 2078) (.n 158) 108) ::
+  .atom (.add (.n 2079) (.n 2077) (.n 2078)) ::
+  .atom (.load (.n 2080) (.n 1201) 0) ::
+  .atom (.add (.n 2081) (.n 2079) (.n 2080)) ::
+  .atom (.mul (.n 2082) (.n 2076) (.n 2081)) ::
+  .atom (.const (.n 2083) (word 1 0 0)) ::
+  .atom (.load (.n 2084) (.n 158) 109) ::
+  .atom (.add (.n 2085) (.n 2083) (.n 2084)) ::
+  .atom (.load (.n 2086) (.n 1201) 1) ::
+  .atom (.add (.n 2087) (.n 2085) (.n 2086)) ::
+  .atom (.mul (.n 2088) (.n 2082) (.n 2087)) ::
+  .atom (.add (.n 2089) (.n 2051) (.n 2088)) ::
+  .atom (.copy (.n 2090) (.n 1262)) ::
+  .atom (.copy (.n 2091) (.n 1267)) ::
+  .atom (.copy (.n 2092) (.n 1268)) ::
+  .atom (.load (.n 2093) (.n 1747) 5) ::
+  .atom (.add (.n 2094) (.n 2093) (.n 2089)) ::
+  .atom (.copy (.n 2095) (.n 1266)) ::
+  .ret [.n 2090, .n 2091, .n 2092, .n 2094, .n 2095] ::
   [])
 
 /-- `open_stacked__L5`: the body. -/
@@ -17879,7 +17347,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.load (.n 1718) (.n 1201) 2) ::
   [])
 
-/-- `open_stacked__L6`: statements 1624 to 2102 of the body. -/
+/-- `open_stacked__L6`: statements 1624 to 2092 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.const (.n 1719) (word 10797586625038654684 0 0)) ::
   .atom (.mul (.n 1720) (.n 1718) (.n 1719)) ::
@@ -17973,493 +17441,383 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1794) (.n 1793))) ::
   .atom (.const (.n 1795) (word 0 0 0)) ::
   .atom (.load (.n 1795) (.n 1794) 0) ::
-  .atom (.const (.n 1796) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1797) (word 268435456 0 0)),
-      .atom (.copy (.n 1798) (.n 1797)),
-      .atom (.const (.n 1799) (word 1 0 0)),
-      .atom (.copy (.n 1800) (.n 1799))],
-    [
-      .atom (.const (.n 1801) (word 16384 0 0)),
-      .atom (.copy (.n 1798) (.n 1801)),
-      .atom (.const (.n 1802) (word 1 0 0)),
-      .atom (.copy (.n 1800) (.n 1802))],
-    [
-      .atom (.const (.n 1803) (word 512 0 0)),
-      .atom (.copy (.n 1798) (.n 1803)),
-      .atom (.const (.n 1804) (word 8 0 0)),
-      .atom (.copy (.n 1800) (.n 1804))],
-    [
-      .atom (.const (.n 1805) (word 128 0 0)),
-      .atom (.copy (.n 1798) (.n 1805)),
-      .atom (.const (.n 1806) (word 1 0 0)),
-      .atom (.copy (.n 1800) (.n 1806))]] ::
-  .atom (.load (.n 1807) (.n 22) 0) ::
-  .call "level_residual__L19" [.n 24, .n 1410, .n 1807, .n 1798, .n 1800] [.n 1808] ::
-  .atom (.load (.n 1809) (.n 1794) 0) ::
-  .atom (.load (.n 1810) (.n 1412) 0) ::
-  .atom (.mul (.n 1811) (.n 1810) (.n 1808)) ::
-  .atom (.add (.n 1812) (.n 1809) (.n 1811)) ::
-  .atom (.load (.n 1812) (.n 1794) 1) ::
-  .atom (.const (.n 1813) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1814) (word 128 0 0)),
-      .atom (.copy (.n 1815) (.n 1814)),
-      .atom (.const (.n 1816) (word 1 0 0)),
-      .atom (.copy (.n 1817) (.n 1816))],
-    [
-      .atom (.const (.n 1818) (word 32 0 0)),
-      .atom (.copy (.n 1815) (.n 1818)),
-      .atom (.const (.n 1819) (word 32 0 0)),
-      .atom (.copy (.n 1817) (.n 1819))],
-    [
-      .atom (.const (.n 1820) (word 16 0 0)),
-      .atom (.copy (.n 1815) (.n 1820)),
-      .atom (.const (.n 1821) (word 64 0 0)),
-      .atom (.copy (.n 1817) (.n 1821))],
-    [
-      .atom (.const (.n 1822) (word 16 0 0)),
-      .atom (.copy (.n 1815) (.n 1822)),
-      .atom (.const (.n 1823) (word 1 0 0)),
-      .atom (.copy (.n 1817) (.n 1823))]] ::
-  .atom (.const (.n 1824) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1825) (.n 24) (.n 1824)) ::
-  .atom (.const (.n 1826) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1827) (.n 1410) (.n 1826)) ::
-  .atom (.load (.n 1828) (.n 22) 1) ::
-  .call "level_residual__L15" [.n 1825, .n 1827, .n 1828, .n 1815, .n 1817] [.n 1829] ::
-  .atom (.load (.n 1830) (.n 1794) 1) ::
-  .atom (.load (.n 1831) (.n 1412) 1) ::
-  .atom (.mul (.n 1832) (.n 1831) (.n 1829)) ::
-  .atom (.add (.n 1833) (.n 1830) (.n 1832)) ::
-  .atom (.load (.n 1833) (.n 1794) 2) ::
-  .atom (.const (.n 1834) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1835) (word 16 0 0)),
-      .atom (.copy (.n 1836) (.n 1835)),
-      .atom (.const (.n 1837) (word 1 0 0)),
-      .atom (.copy (.n 1838) (.n 1837))],
-    [
-      .atom (.const (.n 1839) (word 8 0 0)),
-      .atom (.copy (.n 1836) (.n 1839)),
-      .atom (.const (.n 1840) (word 16 0 0)),
-      .atom (.copy (.n 1838) (.n 1840))],
-    [
-      .atom (.const (.n 1841) (word 8 0 0)),
-      .atom (.copy (.n 1836) (.n 1841)),
-      .atom (.const (.n 1842) (word 2 0 0)),
-      .atom (.copy (.n 1838) (.n 1842))],
-    [
-      .atom (.const (.n 1843) (word 4 0 0)),
-      .atom (.copy (.n 1836) (.n 1843)),
-      .atom (.const (.n 1844) (word 128 0 0)),
-      .atom (.copy (.n 1838) (.n 1844))]] ::
-  .atom (.const (.n 1845) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1846) (.n 564) (.n 1845)) ::
-  .atom (.const (.n 1847) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1848) (.n 1827) (.n 1847)) ::
-  .atom (.load (.n 1849) (.n 22) 2) ::
-  .call "level_residual__L11" [.n 1846, .n 1848, .n 1849, .n 1836, .n 1838] [.n 1850] ::
-  .atom (.load (.n 1851) (.n 1794) 2) ::
-  .atom (.load (.n 1852) (.n 1412) 2) ::
-  .atom (.mul (.n 1853) (.n 1852) (.n 1850)) ::
-  .atom (.add (.n 1854) (.n 1851) (.n 1853)) ::
-  .atom (.load (.n 1854) (.n 1794) 3) ::
-  .atom (.const (.n 1855) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1856) (word 4 0 0)),
-      .atom (.copy (.n 1857) (.n 1856)),
-      .atom (.const (.n 1858) (word 128 0 0)),
-      .atom (.copy (.n 1859) (.n 1858))],
-    [
-      .atom (.const (.n 1860) (word 4 0 0)),
-      .atom (.copy (.n 1857) (.n 1860)),
-      .atom (.const (.n 1861) (word 32 0 0)),
-      .atom (.copy (.n 1859) (.n 1861))],
-    [
-      .atom (.const (.n 1862) (word 4 0 0)),
-      .atom (.copy (.n 1857) (.n 1862)),
-      .atom (.const (.n 1863) (word 8 0 0)),
-      .atom (.copy (.n 1859) (.n 1863))],
-    [
-      .atom (.const (.n 1864) (word 4 0 0)),
-      .atom (.copy (.n 1857) (.n 1864)),
-      .atom (.const (.n 1865) (word 4 0 0)),
-      .atom (.copy (.n 1859) (.n 1865))]] ::
-  .atom (.const (.n 1866) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1867) (.n 791) (.n 1866)) ::
-  .atom (.const (.n 1868) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1869) (.n 1848) (.n 1868)) ::
-  .atom (.load (.n 1870) (.n 22) 3) ::
-  .call "level_residual__L7" [.n 1867, .n 1869, .n 1870, .n 1857, .n 1859] [.n 1871] ::
-  .atom (.load (.n 1872) (.n 1794) 3) ::
-  .atom (.load (.n 1873) (.n 1412) 3) ::
-  .atom (.mul (.n 1874) (.n 1873) (.n 1871)) ::
-  .atom (.add (.n 1875) (.n 1872) (.n 1874)) ::
-  .atom (.load (.n 1875) (.n 1794) 4) ::
-  .atom (.const (.n 1876) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1877) (word 4 0 0)),
-      .atom (.copy (.n 1878) (.n 1877)),
-      .atom (.const (.n 1879) (word 2 0 0)),
-      .atom (.copy (.n 1880) (.n 1879))],
-    [
-      .atom (.const (.n 1881) (word 4 0 0)),
-      .atom (.copy (.n 1878) (.n 1881)),
-      .atom (.const (.n 1882) (word 1 0 0)),
-      .atom (.copy (.n 1880) (.n 1882))],
-    [
-      .atom (.const (.n 1883) (word 2 0 0)),
-      .atom (.copy (.n 1878) (.n 1883)),
-      .atom (.const (.n 1884) (word 128 0 0)),
-      .atom (.copy (.n 1880) (.n 1884))],
-    [
-      .atom (.const (.n 1885) (word 2 0 0)),
-      .atom (.copy (.n 1878) (.n 1885)),
-      .atom (.const (.n 1886) (word 64 0 0)),
-      .atom (.copy (.n 1880) (.n 1886))]] ::
-  .atom (.const (.n 1887) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1888) (.n 1018) (.n 1887)) ::
-  .atom (.const (.n 1889) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1890) (.n 1869) (.n 1889)) ::
-  .atom (.load (.n 1891) (.n 22) 4) ::
-  .call "level_residual__L3" [.n 1888, .n 1890, .n 1891, .n 1878, .n 1880] [.n 1892] ::
-  .atom (.load (.n 1893) (.n 1794) 4) ::
-  .atom (.load (.n 1894) (.n 1412) 4) ::
-  .atom (.mul (.n 1895) (.n 1894) (.n 1892)) ::
-  .atom (.add (.n 1896) (.n 1893) (.n 1895)) ::
-  .atom (.load (.n 1896) (.n 1794) 5) ::
-  .atom (.load (.n 1897) (.n 160) 4) ::
-  .atom (.const (.n 1898) (word 1 0 0)) ::
-  .atom (.load (.n 1899) (.n 158) 26) ::
-  .atom (.add (.n 1900) (.n 1898) (.n 1899)) ::
-  .atom (.load (.n 1901) (.n 18) 6) ::
-  .atom (.add (.n 1902) (.n 1900) (.n 1901)) ::
-  .atom (.mul (.n 1903) (.n 1897) (.n 1902)) ::
-  .atom (.const (.n 1904) (word 1 0 0)) ::
-  .atom (.load (.n 1905) (.n 158) 27) ::
-  .atom (.add (.n 1906) (.n 1904) (.n 1905)) ::
-  .atom (.load (.n 1907) (.n 18) 7) ::
-  .atom (.add (.n 1908) (.n 1906) (.n 1907)) ::
-  .atom (.mul (.n 1909) (.n 1903) (.n 1908)) ::
-  .atom (.const (.n 1910) (word 1 0 0)) ::
-  .atom (.load (.n 1911) (.n 158) 28) ::
-  .atom (.add (.n 1912) (.n 1910) (.n 1911)) ::
-  .atom (.load (.n 1913) (.n 18) 8) ::
-  .atom (.add (.n 1914) (.n 1912) (.n 1913)) ::
-  .atom (.mul (.n 1915) (.n 1909) (.n 1914)) ::
-  .atom (.const (.n 1916) (word 1 0 0)) ::
-  .atom (.load (.n 1917) (.n 158) 29) ::
-  .atom (.add (.n 1918) (.n 1916) (.n 1917)) ::
-  .atom (.load (.n 1919) (.n 18) 9) ::
-  .atom (.add (.n 1920) (.n 1918) (.n 1919)) ::
-  .atom (.mul (.n 1921) (.n 1915) (.n 1920)) ::
-  .atom (.const (.n 1922) (word 1 0 0)) ::
-  .atom (.load (.n 1923) (.n 158) 30) ::
-  .atom (.add (.n 1924) (.n 1922) (.n 1923)) ::
-  .atom (.load (.n 1925) (.n 18) 10) ::
-  .atom (.add (.n 1926) (.n 1924) (.n 1925)) ::
-  .atom (.mul (.n 1927) (.n 1921) (.n 1926)) ::
-  .atom (.const (.n 1928) (word 1 0 0)) ::
-  .atom (.load (.n 1929) (.n 158) 31) ::
-  .atom (.add (.n 1930) (.n 1928) (.n 1929)) ::
-  .atom (.load (.n 1931) (.n 18) 11) ::
-  .atom (.add (.n 1932) (.n 1930) (.n 1931)) ::
-  .atom (.mul (.n 1933) (.n 1927) (.n 1932)) ::
-  .atom (.const (.n 1934) (word 1 0 0)) ::
-  .atom (.load (.n 1935) (.n 158) 32) ::
-  .atom (.add (.n 1936) (.n 1934) (.n 1935)) ::
-  .atom (.load (.n 1937) (.n 18) 12) ::
-  .atom (.add (.n 1938) (.n 1936) (.n 1937)) ::
-  .atom (.mul (.n 1939) (.n 1933) (.n 1938)) ::
-  .atom (.const (.n 1940) (word 1 0 0)) ::
-  .atom (.load (.n 1941) (.n 158) 33) ::
-  .atom (.add (.n 1942) (.n 1940) (.n 1941)) ::
-  .atom (.load (.n 1943) (.n 18) 13) ::
-  .atom (.add (.n 1944) (.n 1942) (.n 1943)) ::
-  .atom (.mul (.n 1945) (.n 1939) (.n 1944)) ::
-  .atom (.const (.n 1946) (word 1 0 0)) ::
-  .atom (.load (.n 1947) (.n 158) 34) ::
-  .atom (.add (.n 1948) (.n 1946) (.n 1947)) ::
-  .atom (.load (.n 1949) (.n 18) 14) ::
-  .atom (.add (.n 1950) (.n 1948) (.n 1949)) ::
-  .atom (.mul (.n 1951) (.n 1945) (.n 1950)) ::
-  .atom (.const (.n 1952) (word 1 0 0)) ::
-  .atom (.load (.n 1953) (.n 158) 35) ::
-  .atom (.add (.n 1954) (.n 1952) (.n 1953)) ::
-  .atom (.load (.n 1955) (.n 18) 15) ::
-  .atom (.add (.n 1956) (.n 1954) (.n 1955)) ::
-  .atom (.mul (.n 1957) (.n 1951) (.n 1956)) ::
+  .atom (.load (.n 1796) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L224_L19", "level_residual__L112_L19", "level_residual__L75_L19", "level_residual__L56_L19"] [.n 24, .n 1410, .n 1796] [.n 1797] ::
+  .atom (.load (.n 1798) (.n 1794) 0) ::
+  .atom (.load (.n 1799) (.n 1412) 0) ::
+  .atom (.mul (.n 1800) (.n 1799) (.n 1797)) ::
+  .atom (.add (.n 1801) (.n 1798) (.n 1800)) ::
+  .atom (.load (.n 1801) (.n 1794) 1) ::
+  .atom (.const (.n 1802) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1803) (.n 24) (.n 1802)) ::
+  .atom (.const (.n 1804) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1805) (.n 1410) (.n 1804)) ::
+  .atom (.load (.n 1806) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L15", "level_residual__L45_L15", "level_residual__L38_L15", "level_residual__L32_L15"] [.n 1803, .n 1805, .n 1806] [.n 1807] ::
+  .atom (.load (.n 1808) (.n 1794) 1) ::
+  .atom (.load (.n 1809) (.n 1412) 1) ::
+  .atom (.mul (.n 1810) (.n 1809) (.n 1807)) ::
+  .atom (.add (.n 1811) (.n 1808) (.n 1810)) ::
+  .atom (.load (.n 1811) (.n 1794) 2) ::
+  .atom (.const (.n 1812) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1813) (.n 564) (.n 1812)) ::
+  .atom (.const (.n 1814) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1815) (.n 1805) (.n 1814)) ::
+  .atom (.load (.n 1816) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L11", "level_residual__L28_L11", "level_residual__L25_L11", "level_residual__L23_L11"] [.n 1813, .n 1815, .n 1816] [.n 1817] ::
+  .atom (.load (.n 1818) (.n 1794) 2) ::
+  .atom (.load (.n 1819) (.n 1412) 2) ::
+  .atom (.mul (.n 1820) (.n 1819) (.n 1817)) ::
+  .atom (.add (.n 1821) (.n 1818) (.n 1820)) ::
+  .atom (.load (.n 1821) (.n 1794) 3) ::
+  .atom (.const (.n 1822) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1823) (.n 791) (.n 1822)) ::
+  .atom (.const (.n 1824) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1825) (.n 1815) (.n 1824)) ::
+  .atom (.load (.n 1826) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L7", "level_residual__L21_L7", "level_residual__L19_L7", "level_residual__L18_L7"] [.n 1823, .n 1825, .n 1826] [.n 1827] ::
+  .atom (.load (.n 1828) (.n 1794) 3) ::
+  .atom (.load (.n 1829) (.n 1412) 3) ::
+  .atom (.mul (.n 1830) (.n 1829) (.n 1827)) ::
+  .atom (.add (.n 1831) (.n 1828) (.n 1830)) ::
+  .atom (.load (.n 1831) (.n 1794) 4) ::
+  .atom (.const (.n 1832) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1833) (.n 1018) (.n 1832)) ::
+  .atom (.const (.n 1834) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1835) (.n 1825) (.n 1834)) ::
+  .atom (.load (.n 1836) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L17_L3", "level_residual__L16_L3", "level_residual__L15_L3", "level_residual__L14_L3"] [.n 1833, .n 1835, .n 1836] [.n 1837] ::
+  .atom (.load (.n 1838) (.n 1794) 4) ::
+  .atom (.load (.n 1839) (.n 1412) 4) ::
+  .atom (.mul (.n 1840) (.n 1839) (.n 1837)) ::
+  .atom (.add (.n 1841) (.n 1838) (.n 1840)) ::
+  .atom (.load (.n 1841) (.n 1794) 5) ::
+  .atom (.load (.n 1842) (.n 160) 4) ::
+  .atom (.const (.n 1843) (word 1 0 0)) ::
+  .atom (.load (.n 1844) (.n 158) 26) ::
+  .atom (.add (.n 1845) (.n 1843) (.n 1844)) ::
+  .atom (.load (.n 1846) (.n 18) 6) ::
+  .atom (.add (.n 1847) (.n 1845) (.n 1846)) ::
+  .atom (.mul (.n 1848) (.n 1842) (.n 1847)) ::
+  .atom (.const (.n 1849) (word 1 0 0)) ::
+  .atom (.load (.n 1850) (.n 158) 27) ::
+  .atom (.add (.n 1851) (.n 1849) (.n 1850)) ::
+  .atom (.load (.n 1852) (.n 18) 7) ::
+  .atom (.add (.n 1853) (.n 1851) (.n 1852)) ::
+  .atom (.mul (.n 1854) (.n 1848) (.n 1853)) ::
+  .atom (.const (.n 1855) (word 1 0 0)) ::
+  .atom (.load (.n 1856) (.n 158) 28) ::
+  .atom (.add (.n 1857) (.n 1855) (.n 1856)) ::
+  .atom (.load (.n 1858) (.n 18) 8) ::
+  .atom (.add (.n 1859) (.n 1857) (.n 1858)) ::
+  .atom (.mul (.n 1860) (.n 1854) (.n 1859)) ::
+  .atom (.const (.n 1861) (word 1 0 0)) ::
+  .atom (.load (.n 1862) (.n 158) 29) ::
+  .atom (.add (.n 1863) (.n 1861) (.n 1862)) ::
+  .atom (.load (.n 1864) (.n 18) 9) ::
+  .atom (.add (.n 1865) (.n 1863) (.n 1864)) ::
+  .atom (.mul (.n 1866) (.n 1860) (.n 1865)) ::
+  .atom (.const (.n 1867) (word 1 0 0)) ::
+  .atom (.load (.n 1868) (.n 158) 30) ::
+  .atom (.add (.n 1869) (.n 1867) (.n 1868)) ::
+  .atom (.load (.n 1870) (.n 18) 10) ::
+  .atom (.add (.n 1871) (.n 1869) (.n 1870)) ::
+  .atom (.mul (.n 1872) (.n 1866) (.n 1871)) ::
+  .atom (.const (.n 1873) (word 1 0 0)) ::
+  .atom (.load (.n 1874) (.n 158) 31) ::
+  .atom (.add (.n 1875) (.n 1873) (.n 1874)) ::
+  .atom (.load (.n 1876) (.n 18) 11) ::
+  .atom (.add (.n 1877) (.n 1875) (.n 1876)) ::
+  .atom (.mul (.n 1878) (.n 1872) (.n 1877)) ::
+  .atom (.const (.n 1879) (word 1 0 0)) ::
+  .atom (.load (.n 1880) (.n 158) 32) ::
+  .atom (.add (.n 1881) (.n 1879) (.n 1880)) ::
+  .atom (.load (.n 1882) (.n 18) 12) ::
+  .atom (.add (.n 1883) (.n 1881) (.n 1882)) ::
+  .atom (.mul (.n 1884) (.n 1878) (.n 1883)) ::
+  .atom (.const (.n 1885) (word 1 0 0)) ::
+  .atom (.load (.n 1886) (.n 158) 33) ::
+  .atom (.add (.n 1887) (.n 1885) (.n 1886)) ::
+  .atom (.load (.n 1888) (.n 18) 13) ::
+  .atom (.add (.n 1889) (.n 1887) (.n 1888)) ::
+  .atom (.mul (.n 1890) (.n 1884) (.n 1889)) ::
+  .atom (.const (.n 1891) (word 1 0 0)) ::
+  .atom (.load (.n 1892) (.n 158) 34) ::
+  .atom (.add (.n 1893) (.n 1891) (.n 1892)) ::
+  .atom (.load (.n 1894) (.n 18) 14) ::
+  .atom (.add (.n 1895) (.n 1893) (.n 1894)) ::
+  .atom (.mul (.n 1896) (.n 1890) (.n 1895)) ::
+  .atom (.const (.n 1897) (word 1 0 0)) ::
+  .atom (.load (.n 1898) (.n 158) 35) ::
+  .atom (.add (.n 1899) (.n 1897) (.n 1898)) ::
+  .atom (.load (.n 1900) (.n 18) 15) ::
+  .atom (.add (.n 1901) (.n 1899) (.n 1900)) ::
+  .atom (.mul (.n 1902) (.n 1896) (.n 1901)) ::
+  .atom (.const (.n 1903) (word 1 0 0)) ::
+  .atom (.load (.n 1904) (.n 158) 36) ::
+  .atom (.add (.n 1905) (.n 1903) (.n 1904)) ::
+  .atom (.load (.n 1906) (.n 18) 16) ::
+  .atom (.add (.n 1907) (.n 1905) (.n 1906)) ::
+  .atom (.mul (.n 1908) (.n 1902) (.n 1907)) ::
+  .atom (.const (.n 1909) (word 1 0 0)) ::
+  .atom (.load (.n 1910) (.n 158) 37) ::
+  .atom (.add (.n 1911) (.n 1909) (.n 1910)) ::
+  .atom (.load (.n 1912) (.n 18) 17) ::
+  .atom (.add (.n 1913) (.n 1911) (.n 1912)) ::
+  .atom (.mul (.n 1914) (.n 1908) (.n 1913)) ::
+  .atom (.const (.n 1915) (word 1 0 0)) ::
+  .atom (.load (.n 1916) (.n 158) 38) ::
+  .atom (.add (.n 1917) (.n 1915) (.n 1916)) ::
+  .atom (.load (.n 1918) (.n 18) 18) ::
+  .atom (.add (.n 1919) (.n 1917) (.n 1918)) ::
+  .atom (.mul (.n 1920) (.n 1914) (.n 1919)) ::
+  .atom (.const (.n 1921) (word 1 0 0)) ::
+  .atom (.load (.n 1922) (.n 158) 39) ::
+  .atom (.add (.n 1923) (.n 1921) (.n 1922)) ::
+  .atom (.load (.n 1924) (.n 18) 19) ::
+  .atom (.add (.n 1925) (.n 1923) (.n 1924)) ::
+  .atom (.mul (.n 1926) (.n 1920) (.n 1925)) ::
+  .atom (.const (.n 1927) (word 1 0 0)) ::
+  .atom (.load (.n 1928) (.n 158) 40) ::
+  .atom (.add (.n 1929) (.n 1927) (.n 1928)) ::
+  .atom (.load (.n 1930) (.n 18) 20) ::
+  .atom (.add (.n 1931) (.n 1929) (.n 1930)) ::
+  .atom (.mul (.n 1932) (.n 1926) (.n 1931)) ::
+  .atom (.const (.n 1933) (word 1 0 0)) ::
+  .atom (.load (.n 1934) (.n 158) 41) ::
+  .atom (.add (.n 1935) (.n 1933) (.n 1934)) ::
+  .atom (.load (.n 1936) (.n 18) 21) ::
+  .atom (.add (.n 1937) (.n 1935) (.n 1936)) ::
+  .atom (.mul (.n 1938) (.n 1932) (.n 1937)) ::
+  .atom (.const (.n 1939) (word 1 0 0)) ::
+  .atom (.load (.n 1940) (.n 158) 42) ::
+  .atom (.add (.n 1941) (.n 1939) (.n 1940)) ::
+  .atom (.load (.n 1942) (.n 1201) 0) ::
+  .atom (.add (.n 1943) (.n 1941) (.n 1942)) ::
+  .atom (.mul (.n 1944) (.n 1938) (.n 1943)) ::
+  .atom (.const (.n 1945) (word 1 0 0)) ::
+  .atom (.load (.n 1946) (.n 158) 43) ::
+  .atom (.add (.n 1947) (.n 1945) (.n 1946)) ::
+  .atom (.load (.n 1948) (.n 1201) 1) ::
+  .atom (.add (.n 1949) (.n 1947) (.n 1948)) ::
+  .atom (.mul (.n 1950) (.n 1944) (.n 1949)) ::
+  .atom (.const (.n 1951) (word 1 0 0)) ::
+  .atom (.load (.n 1952) (.n 158) 44) ::
+  .atom (.add (.n 1953) (.n 1951) (.n 1952)) ::
+  .atom (.load (.n 1954) (.n 1201) 2) ::
+  .atom (.add (.n 1955) (.n 1953) (.n 1954)) ::
+  .atom (.mul (.n 1956) (.n 1950) (.n 1955)) ::
+  .atom (.load (.n 1957) (.n 160) 8) ::
   .atom (.const (.n 1958) (word 1 0 0)) ::
-  .atom (.load (.n 1959) (.n 158) 36) ::
+  .atom (.load (.n 1959) (.n 158) 52) ::
   .atom (.add (.n 1960) (.n 1958) (.n 1959)) ::
-  .atom (.load (.n 1961) (.n 18) 16) ::
+  .atom (.load (.n 1961) (.n 18) 10) ::
   .atom (.add (.n 1962) (.n 1960) (.n 1961)) ::
   .atom (.mul (.n 1963) (.n 1957) (.n 1962)) ::
   .atom (.const (.n 1964) (word 1 0 0)) ::
-  .atom (.load (.n 1965) (.n 158) 37) ::
+  .atom (.load (.n 1965) (.n 158) 53) ::
   .atom (.add (.n 1966) (.n 1964) (.n 1965)) ::
-  .atom (.load (.n 1967) (.n 18) 17) ::
+  .atom (.load (.n 1967) (.n 18) 11) ::
   .atom (.add (.n 1968) (.n 1966) (.n 1967)) ::
   .atom (.mul (.n 1969) (.n 1963) (.n 1968)) ::
   .atom (.const (.n 1970) (word 1 0 0)) ::
-  .atom (.load (.n 1971) (.n 158) 38) ::
+  .atom (.load (.n 1971) (.n 158) 54) ::
   .atom (.add (.n 1972) (.n 1970) (.n 1971)) ::
-  .atom (.load (.n 1973) (.n 18) 18) ::
+  .atom (.load (.n 1973) (.n 18) 12) ::
   .atom (.add (.n 1974) (.n 1972) (.n 1973)) ::
   .atom (.mul (.n 1975) (.n 1969) (.n 1974)) ::
   .atom (.const (.n 1976) (word 1 0 0)) ::
-  .atom (.load (.n 1977) (.n 158) 39) ::
+  .atom (.load (.n 1977) (.n 158) 55) ::
   .atom (.add (.n 1978) (.n 1976) (.n 1977)) ::
-  .atom (.load (.n 1979) (.n 18) 19) ::
+  .atom (.load (.n 1979) (.n 18) 13) ::
   .atom (.add (.n 1980) (.n 1978) (.n 1979)) ::
   .atom (.mul (.n 1981) (.n 1975) (.n 1980)) ::
   .atom (.const (.n 1982) (word 1 0 0)) ::
-  .atom (.load (.n 1983) (.n 158) 40) ::
+  .atom (.load (.n 1983) (.n 158) 56) ::
   .atom (.add (.n 1984) (.n 1982) (.n 1983)) ::
-  .atom (.load (.n 1985) (.n 18) 20) ::
+  .atom (.load (.n 1985) (.n 18) 14) ::
   .atom (.add (.n 1986) (.n 1984) (.n 1985)) ::
   .atom (.mul (.n 1987) (.n 1981) (.n 1986)) ::
   .atom (.const (.n 1988) (word 1 0 0)) ::
-  .atom (.load (.n 1989) (.n 158) 41) ::
+  .atom (.load (.n 1989) (.n 158) 57) ::
   .atom (.add (.n 1990) (.n 1988) (.n 1989)) ::
-  .atom (.load (.n 1991) (.n 18) 21) ::
+  .atom (.load (.n 1991) (.n 18) 15) ::
   .atom (.add (.n 1992) (.n 1990) (.n 1991)) ::
   .atom (.mul (.n 1993) (.n 1987) (.n 1992)) ::
   .atom (.const (.n 1994) (word 1 0 0)) ::
-  .atom (.load (.n 1995) (.n 158) 42) ::
+  .atom (.load (.n 1995) (.n 158) 58) ::
   .atom (.add (.n 1996) (.n 1994) (.n 1995)) ::
-  .atom (.load (.n 1997) (.n 1201) 0) ::
+  .atom (.load (.n 1997) (.n 18) 16) ::
   .atom (.add (.n 1998) (.n 1996) (.n 1997)) ::
   .atom (.mul (.n 1999) (.n 1993) (.n 1998)) ::
   .atom (.const (.n 2000) (word 1 0 0)) ::
-  .atom (.load (.n 2001) (.n 158) 43) ::
+  .atom (.load (.n 2001) (.n 158) 59) ::
   .atom (.add (.n 2002) (.n 2000) (.n 2001)) ::
-  .atom (.load (.n 2003) (.n 1201) 1) ::
+  .atom (.load (.n 2003) (.n 18) 17) ::
   .atom (.add (.n 2004) (.n 2002) (.n 2003)) ::
   .atom (.mul (.n 2005) (.n 1999) (.n 2004)) ::
   .atom (.const (.n 2006) (word 1 0 0)) ::
-  .atom (.load (.n 2007) (.n 158) 44) ::
+  .atom (.load (.n 2007) (.n 158) 60) ::
   .atom (.add (.n 2008) (.n 2006) (.n 2007)) ::
-  .atom (.load (.n 2009) (.n 1201) 2) ::
+  .atom (.load (.n 2009) (.n 18) 18) ::
   .atom (.add (.n 2010) (.n 2008) (.n 2009)) ::
   .atom (.mul (.n 2011) (.n 2005) (.n 2010)) ::
-  .atom (.load (.n 2012) (.n 160) 8) ::
-  .atom (.const (.n 2013) (word 1 0 0)) ::
-  .atom (.load (.n 2014) (.n 158) 52) ::
-  .atom (.add (.n 2015) (.n 2013) (.n 2014)) ::
-  .atom (.load (.n 2016) (.n 18) 10) ::
-  .atom (.add (.n 2017) (.n 2015) (.n 2016)) ::
-  .atom (.mul (.n 2018) (.n 2012) (.n 2017)) ::
-  .atom (.const (.n 2019) (word 1 0 0)) ::
-  .atom (.load (.n 2020) (.n 158) 53) ::
-  .atom (.add (.n 2021) (.n 2019) (.n 2020)) ::
-  .atom (.load (.n 2022) (.n 18) 11) ::
-  .atom (.add (.n 2023) (.n 2021) (.n 2022)) ::
-  .atom (.mul (.n 2024) (.n 2018) (.n 2023)) ::
-  .atom (.const (.n 2025) (word 1 0 0)) ::
-  .atom (.load (.n 2026) (.n 158) 54) ::
-  .atom (.add (.n 2027) (.n 2025) (.n 2026)) ::
-  .atom (.load (.n 2028) (.n 18) 12) ::
-  .atom (.add (.n 2029) (.n 2027) (.n 2028)) ::
-  .atom (.mul (.n 2030) (.n 2024) (.n 2029)) ::
-  .atom (.const (.n 2031) (word 1 0 0)) ::
-  .atom (.load (.n 2032) (.n 158) 55) ::
-  .atom (.add (.n 2033) (.n 2031) (.n 2032)) ::
-  .atom (.load (.n 2034) (.n 18) 13) ::
-  .atom (.add (.n 2035) (.n 2033) (.n 2034)) ::
-  .atom (.mul (.n 2036) (.n 2030) (.n 2035)) ::
-  .atom (.const (.n 2037) (word 1 0 0)) ::
-  .atom (.load (.n 2038) (.n 158) 56) ::
-  .atom (.add (.n 2039) (.n 2037) (.n 2038)) ::
-  .atom (.load (.n 2040) (.n 18) 14) ::
-  .atom (.add (.n 2041) (.n 2039) (.n 2040)) ::
-  .atom (.mul (.n 2042) (.n 2036) (.n 2041)) ::
-  .atom (.const (.n 2043) (word 1 0 0)) ::
-  .atom (.load (.n 2044) (.n 158) 57) ::
-  .atom (.add (.n 2045) (.n 2043) (.n 2044)) ::
-  .atom (.load (.n 2046) (.n 18) 15) ::
-  .atom (.add (.n 2047) (.n 2045) (.n 2046)) ::
-  .atom (.mul (.n 2048) (.n 2042) (.n 2047)) ::
-  .atom (.const (.n 2049) (word 1 0 0)) ::
-  .atom (.load (.n 2050) (.n 158) 58) ::
-  .atom (.add (.n 2051) (.n 2049) (.n 2050)) ::
-  .atom (.load (.n 2052) (.n 18) 16) ::
-  .atom (.add (.n 2053) (.n 2051) (.n 2052)) ::
-  .atom (.mul (.n 2054) (.n 2048) (.n 2053)) ::
-  .atom (.const (.n 2055) (word 1 0 0)) ::
-  .atom (.load (.n 2056) (.n 158) 59) ::
-  .atom (.add (.n 2057) (.n 2055) (.n 2056)) ::
-  .atom (.load (.n 2058) (.n 18) 17) ::
-  .atom (.add (.n 2059) (.n 2057) (.n 2058)) ::
-  .atom (.mul (.n 2060) (.n 2054) (.n 2059)) ::
-  .atom (.const (.n 2061) (word 1 0 0)) ::
-  .atom (.load (.n 2062) (.n 158) 60) ::
-  .atom (.add (.n 2063) (.n 2061) (.n 2062)) ::
-  .atom (.load (.n 2064) (.n 18) 18) ::
-  .atom (.add (.n 2065) (.n 2063) (.n 2064)) ::
-  .atom (.mul (.n 2066) (.n 2060) (.n 2065)) ::
-  .atom (.const (.n 2067) (word 1 0 0)) ::
-  .atom (.load (.n 2068) (.n 158) 61) ::
-  .atom (.add (.n 2069) (.n 2067) (.n 2068)) ::
-  .atom (.load (.n 2070) (.n 18) 19) ::
-  .atom (.add (.n 2071) (.n 2069) (.n 2070)) ::
-  .atom (.mul (.n 2072) (.n 2066) (.n 2071)) ::
-  .atom (.const (.n 2073) (word 1 0 0)) ::
-  .atom (.load (.n 2074) (.n 158) 62) ::
-  .atom (.add (.n 2075) (.n 2073) (.n 2074)) ::
-  .atom (.load (.n 2076) (.n 18) 20) ::
-  .atom (.add (.n 2077) (.n 2075) (.n 2076)) ::
-  .atom (.mul (.n 2078) (.n 2072) (.n 2077)) ::
-  .atom (.const (.n 2079) (word 1 0 0)) ::
-  .atom (.load (.n 2080) (.n 158) 63) ::
-  .atom (.add (.n 2081) (.n 2079) (.n 2080)) ::
-  .atom (.load (.n 2082) (.n 18) 21) ::
-  .atom (.add (.n 2083) (.n 2081) (.n 2082)) ::
-  .atom (.mul (.n 2084) (.n 2078) (.n 2083)) ::
-  .atom (.const (.n 2085) (word 1 0 0)) ::
-  .atom (.load (.n 2086) (.n 158) 64) ::
-  .atom (.add (.n 2087) (.n 2085) (.n 2086)) ::
-  .atom (.load (.n 2088) (.n 1201) 0) ::
-  .atom (.add (.n 2089) (.n 2087) (.n 2088)) ::
-  .atom (.mul (.n 2090) (.n 2084) (.n 2089)) ::
-  .atom (.const (.n 2091) (word 1 0 0)) ::
-  .atom (.load (.n 2092) (.n 158) 65) ::
-  .atom (.add (.n 2093) (.n 2091) (.n 2092)) ::
-  .atom (.load (.n 2094) (.n 1201) 1) ::
-  .atom (.add (.n 2095) (.n 2093) (.n 2094)) ::
-  .atom (.mul (.n 2096) (.n 2090) (.n 2095)) ::
-  .atom (.const (.n 2097) (word 1 0 0)) ::
-  .atom (.load (.n 2098) (.n 158) 66) ::
-  .atom (.add (.n 2099) (.n 2097) (.n 2098)) ::
-  .atom (.load (.n 2100) (.n 1201) 2) ::
-  .atom (.add (.n 2101) (.n 2099) (.n 2100)) ::
-  .atom (.mul (.n 2102) (.n 2096) (.n 2101)) ::
-  .atom (.add (.n 2103) (.n 2011) (.n 2102)) ::
-  .atom (.load (.n 2104) (.n 160) 12) ::
-  .atom (.const (.n 2105) (word 1 0 0)) ::
-  .atom (.load (.n 2106) (.n 158) 78) ::
-  .atom (.add (.n 2107) (.n 2105) (.n 2106)) ::
-  .atom (.load (.n 2108) (.n 18) 14) ::
-  .atom (.add (.n 2109) (.n 2107) (.n 2108)) ::
-  .atom (.mul (.n 2110) (.n 2104) (.n 2109)) ::
-  .atom (.const (.n 2111) (word 1 0 0)) ::
-  .atom (.load (.n 2112) (.n 158) 79) ::
-  .atom (.add (.n 2113) (.n 2111) (.n 2112)) ::
-  .atom (.load (.n 2114) (.n 18) 15) ::
-  .atom (.add (.n 2115) (.n 2113) (.n 2114)) ::
-  .atom (.mul (.n 2116) (.n 2110) (.n 2115)) ::
-  .atom (.const (.n 2117) (word 1 0 0)) ::
-  .atom (.load (.n 2118) (.n 158) 80) ::
-  .atom (.add (.n 2119) (.n 2117) (.n 2118)) ::
-  .atom (.load (.n 2120) (.n 18) 16) ::
-  .atom (.add (.n 2121) (.n 2119) (.n 2120)) ::
-  .atom (.mul (.n 2122) (.n 2116) (.n 2121)) ::
-  .atom (.const (.n 2123) (word 1 0 0)) ::
-  .atom (.load (.n 2124) (.n 158) 81) ::
-  .atom (.add (.n 2125) (.n 2123) (.n 2124)) ::
-  .atom (.load (.n 2126) (.n 18) 17) ::
-  .atom (.add (.n 2127) (.n 2125) (.n 2126)) ::
-  .atom (.mul (.n 2128) (.n 2122) (.n 2127)) ::
-  .atom (.const (.n 2129) (word 1 0 0)) ::
-  .atom (.load (.n 2130) (.n 158) 82) ::
-  .atom (.add (.n 2131) (.n 2129) (.n 2130)) ::
-  .atom (.load (.n 2132) (.n 18) 18) ::
-  .atom (.add (.n 2133) (.n 2131) (.n 2132)) ::
-  .atom (.mul (.n 2134) (.n 2128) (.n 2133)) ::
-  .atom (.const (.n 2135) (word 1 0 0)) ::
-  .atom (.load (.n 2136) (.n 158) 83) ::
-  .atom (.add (.n 2137) (.n 2135) (.n 2136)) ::
-  .atom (.load (.n 2138) (.n 18) 19) ::
-  .atom (.add (.n 2139) (.n 2137) (.n 2138)) ::
-  .atom (.mul (.n 2140) (.n 2134) (.n 2139)) ::
-  .atom (.const (.n 2141) (word 1 0 0)) ::
-  .atom (.load (.n 2142) (.n 158) 84) ::
-  .atom (.add (.n 2143) (.n 2141) (.n 2142)) ::
-  .atom (.load (.n 2144) (.n 18) 20) ::
-  .atom (.add (.n 2145) (.n 2143) (.n 2144)) ::
-  .atom (.mul (.n 2146) (.n 2140) (.n 2145)) ::
-  .atom (.const (.n 2147) (word 1 0 0)) ::
-  .atom (.load (.n 2148) (.n 158) 85) ::
-  .atom (.add (.n 2149) (.n 2147) (.n 2148)) ::
-  .atom (.load (.n 2150) (.n 18) 21) ::
-  .atom (.add (.n 2151) (.n 2149) (.n 2150)) ::
-  .atom (.mul (.n 2152) (.n 2146) (.n 2151)) ::
-  .atom (.const (.n 2153) (word 1 0 0)) ::
-  .atom (.load (.n 2154) (.n 158) 86) ::
-  .atom (.add (.n 2155) (.n 2153) (.n 2154)) ::
-  .atom (.load (.n 2156) (.n 1201) 0) ::
-  .atom (.add (.n 2157) (.n 2155) (.n 2156)) ::
-  .atom (.mul (.n 2158) (.n 2152) (.n 2157)) ::
-  .atom (.const (.n 2159) (word 1 0 0)) ::
-  .atom (.load (.n 2160) (.n 158) 87) ::
-  .atom (.add (.n 2161) (.n 2159) (.n 2160)) ::
-  .atom (.load (.n 2162) (.n 1201) 1) ::
-  .atom (.add (.n 2163) (.n 2161) (.n 2162)) ::
-  .atom (.mul (.n 2164) (.n 2158) (.n 2163)) ::
-  .atom (.const (.n 2165) (word 1 0 0)) ::
-  .atom (.load (.n 2166) (.n 158) 88) ::
-  .atom (.add (.n 2167) (.n 2165) (.n 2166)) ::
-  .atom (.load (.n 2168) (.n 1201) 2) ::
-  .atom (.add (.n 2169) (.n 2167) (.n 2168)) ::
-  .atom (.mul (.n 2170) (.n 2164) (.n 2169)) ::
-  .atom (.add (.n 2171) (.n 2103) (.n 2170)) ::
-  .atom (.load (.n 2172) (.n 160) 16) ::
-  .atom (.const (.n 2173) (word 1 0 0)) ::
-  .atom (.load (.n 2174) (.n 158) 104) ::
-  .atom (.add (.n 2175) (.n 2173) (.n 2174)) ::
-  .atom (.load (.n 2176) (.n 18) 18) ::
-  .atom (.add (.n 2177) (.n 2175) (.n 2176)) ::
-  .atom (.mul (.n 2178) (.n 2172) (.n 2177)) ::
-  .atom (.const (.n 2179) (word 1 0 0)) ::
-  .atom (.load (.n 2180) (.n 158) 105) ::
-  .atom (.add (.n 2181) (.n 2179) (.n 2180)) ::
-  .atom (.load (.n 2182) (.n 18) 19) ::
-  .atom (.add (.n 2183) (.n 2181) (.n 2182)) ::
-  .atom (.mul (.n 2184) (.n 2178) (.n 2183)) ::
-  .atom (.const (.n 2185) (word 1 0 0)) ::
-  .atom (.load (.n 2186) (.n 158) 106) ::
-  .atom (.add (.n 2187) (.n 2185) (.n 2186)) ::
-  .atom (.load (.n 2188) (.n 18) 20) ::
-  .atom (.add (.n 2189) (.n 2187) (.n 2188)) ::
-  .atom (.mul (.n 2190) (.n 2184) (.n 2189)) ::
-  .atom (.const (.n 2191) (word 1 0 0)) ::
-  .atom (.load (.n 2192) (.n 158) 107) ::
-  .atom (.add (.n 2193) (.n 2191) (.n 2192)) ::
-  .atom (.load (.n 2194) (.n 18) 21) ::
-  .atom (.add (.n 2195) (.n 2193) (.n 2194)) ::
-  .atom (.mul (.n 2196) (.n 2190) (.n 2195)) ::
-  .atom (.const (.n 2197) (word 1 0 0)) ::
-  .atom (.load (.n 2198) (.n 158) 108) ::
-  .atom (.add (.n 2199) (.n 2197) (.n 2198)) ::
-  .atom (.load (.n 2200) (.n 1201) 0) ::
-  .atom (.add (.n 2201) (.n 2199) (.n 2200)) ::
-  .atom (.mul (.n 2202) (.n 2196) (.n 2201)) ::
-  .atom (.const (.n 2203) (word 1 0 0)) ::
-  .atom (.load (.n 2204) (.n 158) 109) ::
-  .atom (.add (.n 2205) (.n 2203) (.n 2204)) ::
-  .atom (.load (.n 2206) (.n 1201) 1) ::
-  .atom (.add (.n 2207) (.n 2205) (.n 2206)) ::
-  .atom (.mul (.n 2208) (.n 2202) (.n 2207)) ::
-  .atom (.const (.n 2209) (word 1 0 0)) ::
-  .atom (.load (.n 2210) (.n 158) 110) ::
-  .atom (.add (.n 2211) (.n 2209) (.n 2210)) ::
-  .atom (.load (.n 2212) (.n 1201) 2) ::
-  .atom (.add (.n 2213) (.n 2211) (.n 2212)) ::
-  .atom (.mul (.n 2214) (.n 2208) (.n 2213)) ::
-  .atom (.add (.n 2215) (.n 2171) (.n 2214)) ::
-  .atom (.copy (.n 2216) (.n 1273)) ::
-  .atom (.copy (.n 2217) (.n 1277)) ::
-  .atom (.copy (.n 2218) (.n 1278)) ::
-  .atom (.load (.n 2219) (.n 1794) 5) ::
-  .atom (.add (.n 2220) (.n 2219) (.n 2215)) ::
-  .atom (.copy (.n 2221) (.n 1276)) ::
-  .ret [.n 2216, .n 2217, .n 2218, .n 2220, .n 2221] ::
+  .atom (.const (.n 2012) (word 1 0 0)) ::
+  .atom (.load (.n 2013) (.n 158) 61) ::
+  .atom (.add (.n 2014) (.n 2012) (.n 2013)) ::
+  .atom (.load (.n 2015) (.n 18) 19) ::
+  .atom (.add (.n 2016) (.n 2014) (.n 2015)) ::
+  .atom (.mul (.n 2017) (.n 2011) (.n 2016)) ::
+  .atom (.const (.n 2018) (word 1 0 0)) ::
+  .atom (.load (.n 2019) (.n 158) 62) ::
+  .atom (.add (.n 2020) (.n 2018) (.n 2019)) ::
+  .atom (.load (.n 2021) (.n 18) 20) ::
+  .atom (.add (.n 2022) (.n 2020) (.n 2021)) ::
+  .atom (.mul (.n 2023) (.n 2017) (.n 2022)) ::
+  .atom (.const (.n 2024) (word 1 0 0)) ::
+  .atom (.load (.n 2025) (.n 158) 63) ::
+  .atom (.add (.n 2026) (.n 2024) (.n 2025)) ::
+  .atom (.load (.n 2027) (.n 18) 21) ::
+  .atom (.add (.n 2028) (.n 2026) (.n 2027)) ::
+  .atom (.mul (.n 2029) (.n 2023) (.n 2028)) ::
+  .atom (.const (.n 2030) (word 1 0 0)) ::
+  .atom (.load (.n 2031) (.n 158) 64) ::
+  .atom (.add (.n 2032) (.n 2030) (.n 2031)) ::
+  .atom (.load (.n 2033) (.n 1201) 0) ::
+  .atom (.add (.n 2034) (.n 2032) (.n 2033)) ::
+  .atom (.mul (.n 2035) (.n 2029) (.n 2034)) ::
+  .atom (.const (.n 2036) (word 1 0 0)) ::
+  .atom (.load (.n 2037) (.n 158) 65) ::
+  .atom (.add (.n 2038) (.n 2036) (.n 2037)) ::
+  .atom (.load (.n 2039) (.n 1201) 1) ::
+  .atom (.add (.n 2040) (.n 2038) (.n 2039)) ::
+  .atom (.mul (.n 2041) (.n 2035) (.n 2040)) ::
+  .atom (.const (.n 2042) (word 1 0 0)) ::
+  .atom (.load (.n 2043) (.n 158) 66) ::
+  .atom (.add (.n 2044) (.n 2042) (.n 2043)) ::
+  .atom (.load (.n 2045) (.n 1201) 2) ::
+  .atom (.add (.n 2046) (.n 2044) (.n 2045)) ::
+  .atom (.mul (.n 2047) (.n 2041) (.n 2046)) ::
+  .atom (.add (.n 2048) (.n 1956) (.n 2047)) ::
+  .atom (.load (.n 2049) (.n 160) 12) ::
+  .atom (.const (.n 2050) (word 1 0 0)) ::
+  .atom (.load (.n 2051) (.n 158) 78) ::
+  .atom (.add (.n 2052) (.n 2050) (.n 2051)) ::
+  .atom (.load (.n 2053) (.n 18) 14) ::
+  .atom (.add (.n 2054) (.n 2052) (.n 2053)) ::
+  .atom (.mul (.n 2055) (.n 2049) (.n 2054)) ::
+  .atom (.const (.n 2056) (word 1 0 0)) ::
+  .atom (.load (.n 2057) (.n 158) 79) ::
+  .atom (.add (.n 2058) (.n 2056) (.n 2057)) ::
+  .atom (.load (.n 2059) (.n 18) 15) ::
+  .atom (.add (.n 2060) (.n 2058) (.n 2059)) ::
+  .atom (.mul (.n 2061) (.n 2055) (.n 2060)) ::
+  .atom (.const (.n 2062) (word 1 0 0)) ::
+  .atom (.load (.n 2063) (.n 158) 80) ::
+  .atom (.add (.n 2064) (.n 2062) (.n 2063)) ::
+  .atom (.load (.n 2065) (.n 18) 16) ::
+  .atom (.add (.n 2066) (.n 2064) (.n 2065)) ::
+  .atom (.mul (.n 2067) (.n 2061) (.n 2066)) ::
+  .atom (.const (.n 2068) (word 1 0 0)) ::
+  .atom (.load (.n 2069) (.n 158) 81) ::
+  .atom (.add (.n 2070) (.n 2068) (.n 2069)) ::
+  .atom (.load (.n 2071) (.n 18) 17) ::
+  .atom (.add (.n 2072) (.n 2070) (.n 2071)) ::
+  .atom (.mul (.n 2073) (.n 2067) (.n 2072)) ::
+  .atom (.const (.n 2074) (word 1 0 0)) ::
+  .atom (.load (.n 2075) (.n 158) 82) ::
+  .atom (.add (.n 2076) (.n 2074) (.n 2075)) ::
+  .atom (.load (.n 2077) (.n 18) 18) ::
+  .atom (.add (.n 2078) (.n 2076) (.n 2077)) ::
+  .atom (.mul (.n 2079) (.n 2073) (.n 2078)) ::
+  .atom (.const (.n 2080) (word 1 0 0)) ::
+  .atom (.load (.n 2081) (.n 158) 83) ::
+  .atom (.add (.n 2082) (.n 2080) (.n 2081)) ::
+  .atom (.load (.n 2083) (.n 18) 19) ::
+  .atom (.add (.n 2084) (.n 2082) (.n 2083)) ::
+  .atom (.mul (.n 2085) (.n 2079) (.n 2084)) ::
+  .atom (.const (.n 2086) (word 1 0 0)) ::
+  .atom (.load (.n 2087) (.n 158) 84) ::
+  .atom (.add (.n 2088) (.n 2086) (.n 2087)) ::
+  .atom (.load (.n 2089) (.n 18) 20) ::
+  .atom (.add (.n 2090) (.n 2088) (.n 2089)) ::
+  .atom (.mul (.n 2091) (.n 2085) (.n 2090)) ::
+  .atom (.const (.n 2092) (word 1 0 0)) ::
+  .atom (.load (.n 2093) (.n 158) 85) ::
+  .atom (.add (.n 2094) (.n 2092) (.n 2093)) ::
+  .atom (.load (.n 2095) (.n 18) 21) ::
+  .atom (.add (.n 2096) (.n 2094) (.n 2095)) ::
+  .atom (.mul (.n 2097) (.n 2091) (.n 2096)) ::
+  .atom (.const (.n 2098) (word 1 0 0)) ::
+  .atom (.load (.n 2099) (.n 158) 86) ::
+  .atom (.add (.n 2100) (.n 2098) (.n 2099)) ::
+  .atom (.load (.n 2101) (.n 1201) 0) ::
+  .atom (.add (.n 2102) (.n 2100) (.n 2101)) ::
+  .atom (.mul (.n 2103) (.n 2097) (.n 2102)) ::
+  .atom (.const (.n 2104) (word 1 0 0)) ::
+  .atom (.load (.n 2105) (.n 158) 87) ::
+  .atom (.add (.n 2106) (.n 2104) (.n 2105)) ::
+  .atom (.load (.n 2107) (.n 1201) 1) ::
+  .atom (.add (.n 2108) (.n 2106) (.n 2107)) ::
+  .atom (.mul (.n 2109) (.n 2103) (.n 2108)) ::
+  .atom (.const (.n 2110) (word 1 0 0)) ::
+  .atom (.load (.n 2111) (.n 158) 88) ::
+  .atom (.add (.n 2112) (.n 2110) (.n 2111)) ::
+  .atom (.load (.n 2113) (.n 1201) 2) ::
+  .atom (.add (.n 2114) (.n 2112) (.n 2113)) ::
+  .atom (.mul (.n 2115) (.n 2109) (.n 2114)) ::
+  .atom (.add (.n 2116) (.n 2048) (.n 2115)) ::
+  .atom (.load (.n 2117) (.n 160) 16) ::
+  .atom (.const (.n 2118) (word 1 0 0)) ::
+  .atom (.load (.n 2119) (.n 158) 104) ::
+  .atom (.add (.n 2120) (.n 2118) (.n 2119)) ::
+  .atom (.load (.n 2121) (.n 18) 18) ::
+  .atom (.add (.n 2122) (.n 2120) (.n 2121)) ::
+  .atom (.mul (.n 2123) (.n 2117) (.n 2122)) ::
+  .atom (.const (.n 2124) (word 1 0 0)) ::
+  .atom (.load (.n 2125) (.n 158) 105) ::
+  .atom (.add (.n 2126) (.n 2124) (.n 2125)) ::
+  .atom (.load (.n 2127) (.n 18) 19) ::
+  .atom (.add (.n 2128) (.n 2126) (.n 2127)) ::
+  .atom (.mul (.n 2129) (.n 2123) (.n 2128)) ::
+  .atom (.const (.n 2130) (word 1 0 0)) ::
+  .atom (.load (.n 2131) (.n 158) 106) ::
+  .atom (.add (.n 2132) (.n 2130) (.n 2131)) ::
+  .atom (.load (.n 2133) (.n 18) 20) ::
+  .atom (.add (.n 2134) (.n 2132) (.n 2133)) ::
+  .atom (.mul (.n 2135) (.n 2129) (.n 2134)) ::
+  .atom (.const (.n 2136) (word 1 0 0)) ::
+  .atom (.load (.n 2137) (.n 158) 107) ::
+  .atom (.add (.n 2138) (.n 2136) (.n 2137)) ::
+  .atom (.load (.n 2139) (.n 18) 21) ::
+  .atom (.add (.n 2140) (.n 2138) (.n 2139)) ::
+  .atom (.mul (.n 2141) (.n 2135) (.n 2140)) ::
+  .atom (.const (.n 2142) (word 1 0 0)) ::
+  .atom (.load (.n 2143) (.n 158) 108) ::
+  .atom (.add (.n 2144) (.n 2142) (.n 2143)) ::
+  .atom (.load (.n 2145) (.n 1201) 0) ::
+  .atom (.add (.n 2146) (.n 2144) (.n 2145)) ::
+  .atom (.mul (.n 2147) (.n 2141) (.n 2146)) ::
+  .atom (.const (.n 2148) (word 1 0 0)) ::
+  .atom (.load (.n 2149) (.n 158) 109) ::
+  .atom (.add (.n 2150) (.n 2148) (.n 2149)) ::
+  .atom (.load (.n 2151) (.n 1201) 1) ::
+  .atom (.add (.n 2152) (.n 2150) (.n 2151)) ::
+  .atom (.mul (.n 2153) (.n 2147) (.n 2152)) ::
+  .atom (.const (.n 2154) (word 1 0 0)) ::
+  .atom (.load (.n 2155) (.n 158) 110) ::
+  .atom (.add (.n 2156) (.n 2154) (.n 2155)) ::
+  .atom (.load (.n 2157) (.n 1201) 2) ::
+  .atom (.add (.n 2158) (.n 2156) (.n 2157)) ::
+  .atom (.mul (.n 2159) (.n 2153) (.n 2158)) ::
+  .atom (.add (.n 2160) (.n 2116) (.n 2159)) ::
+  .atom (.copy (.n 2161) (.n 1273)) ::
+  .atom (.copy (.n 2162) (.n 1277)) ::
+  .atom (.copy (.n 2163) (.n 1278)) ::
+  .atom (.load (.n 2164) (.n 1794) 5) ::
+  .atom (.add (.n 2165) (.n 2164) (.n 2160)) ::
+  .atom (.copy (.n 2166) (.n 1276)) ::
+  .ret [.n 2161, .n 2162, .n 2163, .n 2165, .n 2166] ::
   [])
 
 /-- `open_stacked__L6`: the body. -/
@@ -20107,7 +19465,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.const (.n 1724) (word 1511496419735272010 0 0)) ::
   [])
 
-/-- `open_stacked__L7`: statements 1620 to 2124 of the body. -/
+/-- `open_stacked__L7`: statements 1620 to 2159 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.mul (.n 1725) (.n 1723) (.n 1724)) ::
   .atom (.const (.n 1726) (word 1 0 0)) ::
@@ -20248,525 +19606,411 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1841) (.n 1840))) ::
   .atom (.const (.n 1842) (word 0 0 0)) ::
   .atom (.load (.n 1842) (.n 1841) 0) ::
-  .atom (.const (.n 1843) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1844) (word 268435456 0 0)),
-      .atom (.copy (.n 1845) (.n 1844)),
-      .atom (.const (.n 1846) (word 1 0 0)),
-      .atom (.copy (.n 1847) (.n 1846))],
-    [
-      .atom (.const (.n 1848) (word 16384 0 0)),
-      .atom (.copy (.n 1845) (.n 1848)),
-      .atom (.const (.n 1849) (word 1 0 0)),
-      .atom (.copy (.n 1847) (.n 1849))],
-    [
-      .atom (.const (.n 1850) (word 512 0 0)),
-      .atom (.copy (.n 1845) (.n 1850)),
-      .atom (.const (.n 1851) (word 8 0 0)),
-      .atom (.copy (.n 1847) (.n 1851))],
-    [
-      .atom (.const (.n 1852) (word 128 0 0)),
-      .atom (.copy (.n 1845) (.n 1852)),
-      .atom (.const (.n 1853) (word 1 0 0)),
-      .atom (.copy (.n 1847) (.n 1853))]] ::
-  .atom (.load (.n 1854) (.n 22) 0) ::
-  .call "level_residual__L20" [.n 24, .n 1422, .n 1854, .n 1845, .n 1847] [.n 1855] ::
-  .atom (.load (.n 1856) (.n 1841) 0) ::
-  .atom (.load (.n 1857) (.n 1424) 0) ::
-  .atom (.mul (.n 1858) (.n 1857) (.n 1855)) ::
-  .atom (.add (.n 1859) (.n 1856) (.n 1858)) ::
-  .atom (.load (.n 1859) (.n 1841) 1) ::
-  .atom (.const (.n 1860) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1861) (word 128 0 0)),
-      .atom (.copy (.n 1862) (.n 1861)),
-      .atom (.const (.n 1863) (word 1 0 0)),
-      .atom (.copy (.n 1864) (.n 1863))],
-    [
-      .atom (.const (.n 1865) (word 32 0 0)),
-      .atom (.copy (.n 1862) (.n 1865)),
-      .atom (.const (.n 1866) (word 32 0 0)),
-      .atom (.copy (.n 1864) (.n 1866))],
-    [
-      .atom (.const (.n 1867) (word 16 0 0)),
-      .atom (.copy (.n 1862) (.n 1867)),
-      .atom (.const (.n 1868) (word 64 0 0)),
-      .atom (.copy (.n 1864) (.n 1868))],
-    [
-      .atom (.const (.n 1869) (word 16 0 0)),
-      .atom (.copy (.n 1862) (.n 1869)),
-      .atom (.const (.n 1870) (word 1 0 0)),
-      .atom (.copy (.n 1864) (.n 1870))]] ::
-  .atom (.const (.n 1871) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1872) (.n 24) (.n 1871)) ::
-  .atom (.const (.n 1873) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1874) (.n 1422) (.n 1873)) ::
-  .atom (.load (.n 1875) (.n 22) 1) ::
-  .call "level_residual__L16" [.n 1872, .n 1874, .n 1875, .n 1862, .n 1864] [.n 1876] ::
-  .atom (.load (.n 1877) (.n 1841) 1) ::
-  .atom (.load (.n 1878) (.n 1424) 1) ::
-  .atom (.mul (.n 1879) (.n 1878) (.n 1876)) ::
-  .atom (.add (.n 1880) (.n 1877) (.n 1879)) ::
-  .atom (.load (.n 1880) (.n 1841) 2) ::
-  .atom (.const (.n 1881) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1882) (word 16 0 0)),
-      .atom (.copy (.n 1883) (.n 1882)),
-      .atom (.const (.n 1884) (word 1 0 0)),
-      .atom (.copy (.n 1885) (.n 1884))],
-    [
-      .atom (.const (.n 1886) (word 8 0 0)),
-      .atom (.copy (.n 1883) (.n 1886)),
-      .atom (.const (.n 1887) (word 16 0 0)),
-      .atom (.copy (.n 1885) (.n 1887))],
-    [
-      .atom (.const (.n 1888) (word 8 0 0)),
-      .atom (.copy (.n 1883) (.n 1888)),
-      .atom (.const (.n 1889) (word 2 0 0)),
-      .atom (.copy (.n 1885) (.n 1889))],
-    [
-      .atom (.const (.n 1890) (word 4 0 0)),
-      .atom (.copy (.n 1883) (.n 1890)),
-      .atom (.const (.n 1891) (word 128 0 0)),
-      .atom (.copy (.n 1885) (.n 1891))]] ::
-  .atom (.const (.n 1892) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1893) (.n 564) (.n 1892)) ::
-  .atom (.const (.n 1894) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1895) (.n 1874) (.n 1894)) ::
-  .atom (.load (.n 1896) (.n 22) 2) ::
-  .call "level_residual__L12" [.n 1893, .n 1895, .n 1896, .n 1883, .n 1885] [.n 1897] ::
-  .atom (.load (.n 1898) (.n 1841) 2) ::
-  .atom (.load (.n 1899) (.n 1424) 2) ::
-  .atom (.mul (.n 1900) (.n 1899) (.n 1897)) ::
-  .atom (.add (.n 1901) (.n 1898) (.n 1900)) ::
-  .atom (.load (.n 1901) (.n 1841) 3) ::
-  .atom (.const (.n 1902) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1903) (word 4 0 0)),
-      .atom (.copy (.n 1904) (.n 1903)),
-      .atom (.const (.n 1905) (word 128 0 0)),
-      .atom (.copy (.n 1906) (.n 1905))],
-    [
-      .atom (.const (.n 1907) (word 4 0 0)),
-      .atom (.copy (.n 1904) (.n 1907)),
-      .atom (.const (.n 1908) (word 32 0 0)),
-      .atom (.copy (.n 1906) (.n 1908))],
-    [
-      .atom (.const (.n 1909) (word 4 0 0)),
-      .atom (.copy (.n 1904) (.n 1909)),
-      .atom (.const (.n 1910) (word 8 0 0)),
-      .atom (.copy (.n 1906) (.n 1910))],
-    [
-      .atom (.const (.n 1911) (word 4 0 0)),
-      .atom (.copy (.n 1904) (.n 1911)),
-      .atom (.const (.n 1912) (word 4 0 0)),
-      .atom (.copy (.n 1906) (.n 1912))]] ::
-  .atom (.const (.n 1913) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1914) (.n 791) (.n 1913)) ::
-  .atom (.const (.n 1915) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1916) (.n 1895) (.n 1915)) ::
-  .atom (.load (.n 1917) (.n 22) 3) ::
-  .call "level_residual__L8" [.n 1914, .n 1916, .n 1917, .n 1904, .n 1906] [.n 1918] ::
-  .atom (.load (.n 1919) (.n 1841) 3) ::
-  .atom (.load (.n 1920) (.n 1424) 3) ::
-  .atom (.mul (.n 1921) (.n 1920) (.n 1918)) ::
-  .atom (.add (.n 1922) (.n 1919) (.n 1921)) ::
-  .atom (.load (.n 1922) (.n 1841) 4) ::
-  .atom (.const (.n 1923) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1924) (word 4 0 0)),
-      .atom (.copy (.n 1925) (.n 1924)),
-      .atom (.const (.n 1926) (word 4 0 0)),
-      .atom (.copy (.n 1927) (.n 1926))],
-    [
-      .atom (.const (.n 1928) (word 4 0 0)),
-      .atom (.copy (.n 1925) (.n 1928)),
-      .atom (.const (.n 1929) (word 1 0 0)),
-      .atom (.copy (.n 1927) (.n 1929))],
-    [
-      .atom (.const (.n 1930) (word 2 0 0)),
-      .atom (.copy (.n 1925) (.n 1930)),
-      .atom (.const (.n 1931) (word 128 0 0)),
-      .atom (.copy (.n 1927) (.n 1931))],
-    [
-      .atom (.const (.n 1932) (word 2 0 0)),
-      .atom (.copy (.n 1925) (.n 1932)),
-      .atom (.const (.n 1933) (word 64 0 0)),
-      .atom (.copy (.n 1927) (.n 1933))]] ::
-  .atom (.const (.n 1934) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1935) (.n 1018) (.n 1934)) ::
-  .atom (.const (.n 1936) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1937) (.n 1916) (.n 1936)) ::
-  .atom (.load (.n 1938) (.n 22) 4) ::
-  .call "level_residual__L4" [.n 1935, .n 1937, .n 1938, .n 1925, .n 1927] [.n 1939] ::
-  .atom (.load (.n 1940) (.n 1841) 4) ::
-  .atom (.load (.n 1941) (.n 1424) 4) ::
-  .atom (.mul (.n 1942) (.n 1941) (.n 1939)) ::
-  .atom (.add (.n 1943) (.n 1940) (.n 1942)) ::
-  .atom (.load (.n 1943) (.n 1841) 5) ::
-  .atom (.load (.n 1944) (.n 160) 4) ::
-  .atom (.const (.n 1945) (word 1 0 0)) ::
-  .atom (.load (.n 1946) (.n 158) 26) ::
-  .atom (.add (.n 1947) (.n 1945) (.n 1946)) ::
-  .atom (.load (.n 1948) (.n 18) 6) ::
-  .atom (.add (.n 1949) (.n 1947) (.n 1948)) ::
-  .atom (.mul (.n 1950) (.n 1944) (.n 1949)) ::
-  .atom (.const (.n 1951) (word 1 0 0)) ::
-  .atom (.load (.n 1952) (.n 158) 27) ::
-  .atom (.add (.n 1953) (.n 1951) (.n 1952)) ::
-  .atom (.load (.n 1954) (.n 18) 7) ::
-  .atom (.add (.n 1955) (.n 1953) (.n 1954)) ::
-  .atom (.mul (.n 1956) (.n 1950) (.n 1955)) ::
-  .atom (.const (.n 1957) (word 1 0 0)) ::
-  .atom (.load (.n 1958) (.n 158) 28) ::
-  .atom (.add (.n 1959) (.n 1957) (.n 1958)) ::
-  .atom (.load (.n 1960) (.n 18) 8) ::
-  .atom (.add (.n 1961) (.n 1959) (.n 1960)) ::
-  .atom (.mul (.n 1962) (.n 1956) (.n 1961)) ::
-  .atom (.const (.n 1963) (word 1 0 0)) ::
-  .atom (.load (.n 1964) (.n 158) 29) ::
-  .atom (.add (.n 1965) (.n 1963) (.n 1964)) ::
-  .atom (.load (.n 1966) (.n 18) 9) ::
-  .atom (.add (.n 1967) (.n 1965) (.n 1966)) ::
-  .atom (.mul (.n 1968) (.n 1962) (.n 1967)) ::
-  .atom (.const (.n 1969) (word 1 0 0)) ::
-  .atom (.load (.n 1970) (.n 158) 30) ::
-  .atom (.add (.n 1971) (.n 1969) (.n 1970)) ::
-  .atom (.load (.n 1972) (.n 18) 10) ::
-  .atom (.add (.n 1973) (.n 1971) (.n 1972)) ::
-  .atom (.mul (.n 1974) (.n 1968) (.n 1973)) ::
-  .atom (.const (.n 1975) (word 1 0 0)) ::
-  .atom (.load (.n 1976) (.n 158) 31) ::
-  .atom (.add (.n 1977) (.n 1975) (.n 1976)) ::
-  .atom (.load (.n 1978) (.n 18) 11) ::
-  .atom (.add (.n 1979) (.n 1977) (.n 1978)) ::
-  .atom (.mul (.n 1980) (.n 1974) (.n 1979)) ::
-  .atom (.const (.n 1981) (word 1 0 0)) ::
-  .atom (.load (.n 1982) (.n 158) 32) ::
-  .atom (.add (.n 1983) (.n 1981) (.n 1982)) ::
-  .atom (.load (.n 1984) (.n 18) 12) ::
-  .atom (.add (.n 1985) (.n 1983) (.n 1984)) ::
-  .atom (.mul (.n 1986) (.n 1980) (.n 1985)) ::
-  .atom (.const (.n 1987) (word 1 0 0)) ::
-  .atom (.load (.n 1988) (.n 158) 33) ::
-  .atom (.add (.n 1989) (.n 1987) (.n 1988)) ::
-  .atom (.load (.n 1990) (.n 18) 13) ::
-  .atom (.add (.n 1991) (.n 1989) (.n 1990)) ::
-  .atom (.mul (.n 1992) (.n 1986) (.n 1991)) ::
-  .atom (.const (.n 1993) (word 1 0 0)) ::
-  .atom (.load (.n 1994) (.n 158) 34) ::
-  .atom (.add (.n 1995) (.n 1993) (.n 1994)) ::
-  .atom (.load (.n 1996) (.n 18) 14) ::
-  .atom (.add (.n 1997) (.n 1995) (.n 1996)) ::
-  .atom (.mul (.n 1998) (.n 1992) (.n 1997)) ::
-  .atom (.const (.n 1999) (word 1 0 0)) ::
-  .atom (.load (.n 2000) (.n 158) 35) ::
-  .atom (.add (.n 2001) (.n 1999) (.n 2000)) ::
-  .atom (.load (.n 2002) (.n 18) 15) ::
-  .atom (.add (.n 2003) (.n 2001) (.n 2002)) ::
-  .atom (.mul (.n 2004) (.n 1998) (.n 2003)) ::
-  .atom (.const (.n 2005) (word 1 0 0)) ::
-  .atom (.load (.n 2006) (.n 158) 36) ::
-  .atom (.add (.n 2007) (.n 2005) (.n 2006)) ::
-  .atom (.load (.n 2008) (.n 18) 16) ::
-  .atom (.add (.n 2009) (.n 2007) (.n 2008)) ::
-  .atom (.mul (.n 2010) (.n 2004) (.n 2009)) ::
+  .atom (.load (.n 1843) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L224_L20", "level_residual__L112_L20", "level_residual__L75_L20", "level_residual__L56_L20"] [.n 24, .n 1422, .n 1843] [.n 1844] ::
+  .atom (.load (.n 1845) (.n 1841) 0) ::
+  .atom (.load (.n 1846) (.n 1424) 0) ::
+  .atom (.mul (.n 1847) (.n 1846) (.n 1844)) ::
+  .atom (.add (.n 1848) (.n 1845) (.n 1847)) ::
+  .atom (.load (.n 1848) (.n 1841) 1) ::
+  .atom (.const (.n 1849) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1850) (.n 24) (.n 1849)) ::
+  .atom (.const (.n 1851) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1852) (.n 1422) (.n 1851)) ::
+  .atom (.load (.n 1853) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L16", "level_residual__L45_L16", "level_residual__L38_L16", "level_residual__L32_L16"] [.n 1850, .n 1852, .n 1853] [.n 1854] ::
+  .atom (.load (.n 1855) (.n 1841) 1) ::
+  .atom (.load (.n 1856) (.n 1424) 1) ::
+  .atom (.mul (.n 1857) (.n 1856) (.n 1854)) ::
+  .atom (.add (.n 1858) (.n 1855) (.n 1857)) ::
+  .atom (.load (.n 1858) (.n 1841) 2) ::
+  .atom (.const (.n 1859) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1860) (.n 564) (.n 1859)) ::
+  .atom (.const (.n 1861) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1862) (.n 1852) (.n 1861)) ::
+  .atom (.load (.n 1863) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L12", "level_residual__L28_L12", "level_residual__L25_L12", "level_residual__L23_L12"] [.n 1860, .n 1862, .n 1863] [.n 1864] ::
+  .atom (.load (.n 1865) (.n 1841) 2) ::
+  .atom (.load (.n 1866) (.n 1424) 2) ::
+  .atom (.mul (.n 1867) (.n 1866) (.n 1864)) ::
+  .atom (.add (.n 1868) (.n 1865) (.n 1867)) ::
+  .atom (.load (.n 1868) (.n 1841) 3) ::
+  .atom (.const (.n 1869) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1870) (.n 791) (.n 1869)) ::
+  .atom (.const (.n 1871) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1872) (.n 1862) (.n 1871)) ::
+  .atom (.load (.n 1873) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L8", "level_residual__L21_L8", "level_residual__L19_L8", "level_residual__L18_L8"] [.n 1870, .n 1872, .n 1873] [.n 1874] ::
+  .atom (.load (.n 1875) (.n 1841) 3) ::
+  .atom (.load (.n 1876) (.n 1424) 3) ::
+  .atom (.mul (.n 1877) (.n 1876) (.n 1874)) ::
+  .atom (.add (.n 1878) (.n 1875) (.n 1877)) ::
+  .atom (.load (.n 1878) (.n 1841) 4) ::
+  .atom (.const (.n 1879) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1880) (.n 1018) (.n 1879)) ::
+  .atom (.const (.n 1881) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1882) (.n 1872) (.n 1881)) ::
+  .atom (.load (.n 1883) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L18_L4", "level_residual__L16_L4", "level_residual__L15_L4", "level_residual__L14_L4"] [.n 1880, .n 1882, .n 1883] [.n 1884] ::
+  .atom (.load (.n 1885) (.n 1841) 4) ::
+  .atom (.load (.n 1886) (.n 1424) 4) ::
+  .atom (.mul (.n 1887) (.n 1886) (.n 1884)) ::
+  .atom (.add (.n 1888) (.n 1885) (.n 1887)) ::
+  .atom (.load (.n 1888) (.n 1841) 5) ::
+  .atom (.load (.n 1889) (.n 160) 4) ::
+  .atom (.const (.n 1890) (word 1 0 0)) ::
+  .atom (.load (.n 1891) (.n 158) 26) ::
+  .atom (.add (.n 1892) (.n 1890) (.n 1891)) ::
+  .atom (.load (.n 1893) (.n 18) 6) ::
+  .atom (.add (.n 1894) (.n 1892) (.n 1893)) ::
+  .atom (.mul (.n 1895) (.n 1889) (.n 1894)) ::
+  .atom (.const (.n 1896) (word 1 0 0)) ::
+  .atom (.load (.n 1897) (.n 158) 27) ::
+  .atom (.add (.n 1898) (.n 1896) (.n 1897)) ::
+  .atom (.load (.n 1899) (.n 18) 7) ::
+  .atom (.add (.n 1900) (.n 1898) (.n 1899)) ::
+  .atom (.mul (.n 1901) (.n 1895) (.n 1900)) ::
+  .atom (.const (.n 1902) (word 1 0 0)) ::
+  .atom (.load (.n 1903) (.n 158) 28) ::
+  .atom (.add (.n 1904) (.n 1902) (.n 1903)) ::
+  .atom (.load (.n 1905) (.n 18) 8) ::
+  .atom (.add (.n 1906) (.n 1904) (.n 1905)) ::
+  .atom (.mul (.n 1907) (.n 1901) (.n 1906)) ::
+  .atom (.const (.n 1908) (word 1 0 0)) ::
+  .atom (.load (.n 1909) (.n 158) 29) ::
+  .atom (.add (.n 1910) (.n 1908) (.n 1909)) ::
+  .atom (.load (.n 1911) (.n 18) 9) ::
+  .atom (.add (.n 1912) (.n 1910) (.n 1911)) ::
+  .atom (.mul (.n 1913) (.n 1907) (.n 1912)) ::
+  .atom (.const (.n 1914) (word 1 0 0)) ::
+  .atom (.load (.n 1915) (.n 158) 30) ::
+  .atom (.add (.n 1916) (.n 1914) (.n 1915)) ::
+  .atom (.load (.n 1917) (.n 18) 10) ::
+  .atom (.add (.n 1918) (.n 1916) (.n 1917)) ::
+  .atom (.mul (.n 1919) (.n 1913) (.n 1918)) ::
+  .atom (.const (.n 1920) (word 1 0 0)) ::
+  .atom (.load (.n 1921) (.n 158) 31) ::
+  .atom (.add (.n 1922) (.n 1920) (.n 1921)) ::
+  .atom (.load (.n 1923) (.n 18) 11) ::
+  .atom (.add (.n 1924) (.n 1922) (.n 1923)) ::
+  .atom (.mul (.n 1925) (.n 1919) (.n 1924)) ::
+  .atom (.const (.n 1926) (word 1 0 0)) ::
+  .atom (.load (.n 1927) (.n 158) 32) ::
+  .atom (.add (.n 1928) (.n 1926) (.n 1927)) ::
+  .atom (.load (.n 1929) (.n 18) 12) ::
+  .atom (.add (.n 1930) (.n 1928) (.n 1929)) ::
+  .atom (.mul (.n 1931) (.n 1925) (.n 1930)) ::
+  .atom (.const (.n 1932) (word 1 0 0)) ::
+  .atom (.load (.n 1933) (.n 158) 33) ::
+  .atom (.add (.n 1934) (.n 1932) (.n 1933)) ::
+  .atom (.load (.n 1935) (.n 18) 13) ::
+  .atom (.add (.n 1936) (.n 1934) (.n 1935)) ::
+  .atom (.mul (.n 1937) (.n 1931) (.n 1936)) ::
+  .atom (.const (.n 1938) (word 1 0 0)) ::
+  .atom (.load (.n 1939) (.n 158) 34) ::
+  .atom (.add (.n 1940) (.n 1938) (.n 1939)) ::
+  .atom (.load (.n 1941) (.n 18) 14) ::
+  .atom (.add (.n 1942) (.n 1940) (.n 1941)) ::
+  .atom (.mul (.n 1943) (.n 1937) (.n 1942)) ::
+  .atom (.const (.n 1944) (word 1 0 0)) ::
+  .atom (.load (.n 1945) (.n 158) 35) ::
+  .atom (.add (.n 1946) (.n 1944) (.n 1945)) ::
+  .atom (.load (.n 1947) (.n 18) 15) ::
+  .atom (.add (.n 1948) (.n 1946) (.n 1947)) ::
+  .atom (.mul (.n 1949) (.n 1943) (.n 1948)) ::
+  .atom (.const (.n 1950) (word 1 0 0)) ::
+  .atom (.load (.n 1951) (.n 158) 36) ::
+  .atom (.add (.n 1952) (.n 1950) (.n 1951)) ::
+  .atom (.load (.n 1953) (.n 18) 16) ::
+  .atom (.add (.n 1954) (.n 1952) (.n 1953)) ::
+  .atom (.mul (.n 1955) (.n 1949) (.n 1954)) ::
+  .atom (.const (.n 1956) (word 1 0 0)) ::
+  .atom (.load (.n 1957) (.n 158) 37) ::
+  .atom (.add (.n 1958) (.n 1956) (.n 1957)) ::
+  .atom (.load (.n 1959) (.n 18) 17) ::
+  .atom (.add (.n 1960) (.n 1958) (.n 1959)) ::
+  .atom (.mul (.n 1961) (.n 1955) (.n 1960)) ::
+  .atom (.const (.n 1962) (word 1 0 0)) ::
+  .atom (.load (.n 1963) (.n 158) 38) ::
+  .atom (.add (.n 1964) (.n 1962) (.n 1963)) ::
+  .atom (.load (.n 1965) (.n 18) 18) ::
+  .atom (.add (.n 1966) (.n 1964) (.n 1965)) ::
+  .atom (.mul (.n 1967) (.n 1961) (.n 1966)) ::
+  .atom (.const (.n 1968) (word 1 0 0)) ::
+  .atom (.load (.n 1969) (.n 158) 39) ::
+  .atom (.add (.n 1970) (.n 1968) (.n 1969)) ::
+  .atom (.load (.n 1971) (.n 18) 19) ::
+  .atom (.add (.n 1972) (.n 1970) (.n 1971)) ::
+  .atom (.mul (.n 1973) (.n 1967) (.n 1972)) ::
+  .atom (.const (.n 1974) (word 1 0 0)) ::
+  .atom (.load (.n 1975) (.n 158) 40) ::
+  .atom (.add (.n 1976) (.n 1974) (.n 1975)) ::
+  .atom (.load (.n 1977) (.n 18) 20) ::
+  .atom (.add (.n 1978) (.n 1976) (.n 1977)) ::
+  .atom (.mul (.n 1979) (.n 1973) (.n 1978)) ::
+  .atom (.const (.n 1980) (word 1 0 0)) ::
+  .atom (.load (.n 1981) (.n 158) 41) ::
+  .atom (.add (.n 1982) (.n 1980) (.n 1981)) ::
+  .atom (.load (.n 1983) (.n 18) 21) ::
+  .atom (.add (.n 1984) (.n 1982) (.n 1983)) ::
+  .atom (.mul (.n 1985) (.n 1979) (.n 1984)) ::
+  .atom (.const (.n 1986) (word 1 0 0)) ::
+  .atom (.load (.n 1987) (.n 158) 42) ::
+  .atom (.add (.n 1988) (.n 1986) (.n 1987)) ::
+  .atom (.load (.n 1989) (.n 1201) 0) ::
+  .atom (.add (.n 1990) (.n 1988) (.n 1989)) ::
+  .atom (.mul (.n 1991) (.n 1985) (.n 1990)) ::
+  .atom (.const (.n 1992) (word 1 0 0)) ::
+  .atom (.load (.n 1993) (.n 158) 43) ::
+  .atom (.add (.n 1994) (.n 1992) (.n 1993)) ::
+  .atom (.load (.n 1995) (.n 1201) 1) ::
+  .atom (.add (.n 1996) (.n 1994) (.n 1995)) ::
+  .atom (.mul (.n 1997) (.n 1991) (.n 1996)) ::
+  .atom (.const (.n 1998) (word 1 0 0)) ::
+  .atom (.load (.n 1999) (.n 158) 44) ::
+  .atom (.add (.n 2000) (.n 1998) (.n 1999)) ::
+  .atom (.load (.n 2001) (.n 1201) 2) ::
+  .atom (.add (.n 2002) (.n 2000) (.n 2001)) ::
+  .atom (.mul (.n 2003) (.n 1997) (.n 2002)) ::
+  .atom (.const (.n 2004) (word 1 0 0)) ::
+  .atom (.load (.n 2005) (.n 158) 45) ::
+  .atom (.add (.n 2006) (.n 2004) (.n 2005)) ::
+  .atom (.load (.n 2007) (.n 1201) 3) ::
+  .atom (.add (.n 2008) (.n 2006) (.n 2007)) ::
+  .atom (.mul (.n 2009) (.n 2003) (.n 2008)) ::
+  .atom (.load (.n 2010) (.n 160) 8) ::
   .atom (.const (.n 2011) (word 1 0 0)) ::
-  .atom (.load (.n 2012) (.n 158) 37) ::
+  .atom (.load (.n 2012) (.n 158) 52) ::
   .atom (.add (.n 2013) (.n 2011) (.n 2012)) ::
-  .atom (.load (.n 2014) (.n 18) 17) ::
+  .atom (.load (.n 2014) (.n 18) 10) ::
   .atom (.add (.n 2015) (.n 2013) (.n 2014)) ::
   .atom (.mul (.n 2016) (.n 2010) (.n 2015)) ::
   .atom (.const (.n 2017) (word 1 0 0)) ::
-  .atom (.load (.n 2018) (.n 158) 38) ::
+  .atom (.load (.n 2018) (.n 158) 53) ::
   .atom (.add (.n 2019) (.n 2017) (.n 2018)) ::
-  .atom (.load (.n 2020) (.n 18) 18) ::
+  .atom (.load (.n 2020) (.n 18) 11) ::
   .atom (.add (.n 2021) (.n 2019) (.n 2020)) ::
   .atom (.mul (.n 2022) (.n 2016) (.n 2021)) ::
   .atom (.const (.n 2023) (word 1 0 0)) ::
-  .atom (.load (.n 2024) (.n 158) 39) ::
+  .atom (.load (.n 2024) (.n 158) 54) ::
   .atom (.add (.n 2025) (.n 2023) (.n 2024)) ::
-  .atom (.load (.n 2026) (.n 18) 19) ::
+  .atom (.load (.n 2026) (.n 18) 12) ::
   .atom (.add (.n 2027) (.n 2025) (.n 2026)) ::
   .atom (.mul (.n 2028) (.n 2022) (.n 2027)) ::
   .atom (.const (.n 2029) (word 1 0 0)) ::
-  .atom (.load (.n 2030) (.n 158) 40) ::
+  .atom (.load (.n 2030) (.n 158) 55) ::
   .atom (.add (.n 2031) (.n 2029) (.n 2030)) ::
-  .atom (.load (.n 2032) (.n 18) 20) ::
+  .atom (.load (.n 2032) (.n 18) 13) ::
   .atom (.add (.n 2033) (.n 2031) (.n 2032)) ::
   .atom (.mul (.n 2034) (.n 2028) (.n 2033)) ::
   .atom (.const (.n 2035) (word 1 0 0)) ::
-  .atom (.load (.n 2036) (.n 158) 41) ::
+  .atom (.load (.n 2036) (.n 158) 56) ::
   .atom (.add (.n 2037) (.n 2035) (.n 2036)) ::
-  .atom (.load (.n 2038) (.n 18) 21) ::
+  .atom (.load (.n 2038) (.n 18) 14) ::
   .atom (.add (.n 2039) (.n 2037) (.n 2038)) ::
   .atom (.mul (.n 2040) (.n 2034) (.n 2039)) ::
   .atom (.const (.n 2041) (word 1 0 0)) ::
-  .atom (.load (.n 2042) (.n 158) 42) ::
+  .atom (.load (.n 2042) (.n 158) 57) ::
   .atom (.add (.n 2043) (.n 2041) (.n 2042)) ::
-  .atom (.load (.n 2044) (.n 1201) 0) ::
+  .atom (.load (.n 2044) (.n 18) 15) ::
   .atom (.add (.n 2045) (.n 2043) (.n 2044)) ::
   .atom (.mul (.n 2046) (.n 2040) (.n 2045)) ::
   .atom (.const (.n 2047) (word 1 0 0)) ::
-  .atom (.load (.n 2048) (.n 158) 43) ::
+  .atom (.load (.n 2048) (.n 158) 58) ::
   .atom (.add (.n 2049) (.n 2047) (.n 2048)) ::
-  .atom (.load (.n 2050) (.n 1201) 1) ::
+  .atom (.load (.n 2050) (.n 18) 16) ::
   .atom (.add (.n 2051) (.n 2049) (.n 2050)) ::
   .atom (.mul (.n 2052) (.n 2046) (.n 2051)) ::
   .atom (.const (.n 2053) (word 1 0 0)) ::
-  .atom (.load (.n 2054) (.n 158) 44) ::
+  .atom (.load (.n 2054) (.n 158) 59) ::
   .atom (.add (.n 2055) (.n 2053) (.n 2054)) ::
-  .atom (.load (.n 2056) (.n 1201) 2) ::
+  .atom (.load (.n 2056) (.n 18) 17) ::
   .atom (.add (.n 2057) (.n 2055) (.n 2056)) ::
   .atom (.mul (.n 2058) (.n 2052) (.n 2057)) ::
   .atom (.const (.n 2059) (word 1 0 0)) ::
-  .atom (.load (.n 2060) (.n 158) 45) ::
+  .atom (.load (.n 2060) (.n 158) 60) ::
   .atom (.add (.n 2061) (.n 2059) (.n 2060)) ::
-  .atom (.load (.n 2062) (.n 1201) 3) ::
+  .atom (.load (.n 2062) (.n 18) 18) ::
   .atom (.add (.n 2063) (.n 2061) (.n 2062)) ::
   .atom (.mul (.n 2064) (.n 2058) (.n 2063)) ::
-  .atom (.load (.n 2065) (.n 160) 8) ::
-  .atom (.const (.n 2066) (word 1 0 0)) ::
-  .atom (.load (.n 2067) (.n 158) 52) ::
-  .atom (.add (.n 2068) (.n 2066) (.n 2067)) ::
-  .atom (.load (.n 2069) (.n 18) 10) ::
-  .atom (.add (.n 2070) (.n 2068) (.n 2069)) ::
-  .atom (.mul (.n 2071) (.n 2065) (.n 2070)) ::
-  .atom (.const (.n 2072) (word 1 0 0)) ::
-  .atom (.load (.n 2073) (.n 158) 53) ::
-  .atom (.add (.n 2074) (.n 2072) (.n 2073)) ::
-  .atom (.load (.n 2075) (.n 18) 11) ::
-  .atom (.add (.n 2076) (.n 2074) (.n 2075)) ::
-  .atom (.mul (.n 2077) (.n 2071) (.n 2076)) ::
-  .atom (.const (.n 2078) (word 1 0 0)) ::
-  .atom (.load (.n 2079) (.n 158) 54) ::
-  .atom (.add (.n 2080) (.n 2078) (.n 2079)) ::
-  .atom (.load (.n 2081) (.n 18) 12) ::
-  .atom (.add (.n 2082) (.n 2080) (.n 2081)) ::
-  .atom (.mul (.n 2083) (.n 2077) (.n 2082)) ::
-  .atom (.const (.n 2084) (word 1 0 0)) ::
-  .atom (.load (.n 2085) (.n 158) 55) ::
-  .atom (.add (.n 2086) (.n 2084) (.n 2085)) ::
-  .atom (.load (.n 2087) (.n 18) 13) ::
-  .atom (.add (.n 2088) (.n 2086) (.n 2087)) ::
-  .atom (.mul (.n 2089) (.n 2083) (.n 2088)) ::
-  .atom (.const (.n 2090) (word 1 0 0)) ::
-  .atom (.load (.n 2091) (.n 158) 56) ::
-  .atom (.add (.n 2092) (.n 2090) (.n 2091)) ::
-  .atom (.load (.n 2093) (.n 18) 14) ::
-  .atom (.add (.n 2094) (.n 2092) (.n 2093)) ::
-  .atom (.mul (.n 2095) (.n 2089) (.n 2094)) ::
-  .atom (.const (.n 2096) (word 1 0 0)) ::
-  .atom (.load (.n 2097) (.n 158) 57) ::
-  .atom (.add (.n 2098) (.n 2096) (.n 2097)) ::
-  .atom (.load (.n 2099) (.n 18) 15) ::
-  .atom (.add (.n 2100) (.n 2098) (.n 2099)) ::
-  .atom (.mul (.n 2101) (.n 2095) (.n 2100)) ::
-  .atom (.const (.n 2102) (word 1 0 0)) ::
-  .atom (.load (.n 2103) (.n 158) 58) ::
-  .atom (.add (.n 2104) (.n 2102) (.n 2103)) ::
-  .atom (.load (.n 2105) (.n 18) 16) ::
-  .atom (.add (.n 2106) (.n 2104) (.n 2105)) ::
-  .atom (.mul (.n 2107) (.n 2101) (.n 2106)) ::
-  .atom (.const (.n 2108) (word 1 0 0)) ::
-  .atom (.load (.n 2109) (.n 158) 59) ::
-  .atom (.add (.n 2110) (.n 2108) (.n 2109)) ::
-  .atom (.load (.n 2111) (.n 18) 17) ::
-  .atom (.add (.n 2112) (.n 2110) (.n 2111)) ::
-  .atom (.mul (.n 2113) (.n 2107) (.n 2112)) ::
-  .atom (.const (.n 2114) (word 1 0 0)) ::
-  .atom (.load (.n 2115) (.n 158) 60) ::
-  .atom (.add (.n 2116) (.n 2114) (.n 2115)) ::
-  .atom (.load (.n 2117) (.n 18) 18) ::
-  .atom (.add (.n 2118) (.n 2116) (.n 2117)) ::
-  .atom (.mul (.n 2119) (.n 2113) (.n 2118)) ::
-  .atom (.const (.n 2120) (word 1 0 0)) ::
-  .atom (.load (.n 2121) (.n 158) 61) ::
-  .atom (.add (.n 2122) (.n 2120) (.n 2121)) ::
-  .atom (.load (.n 2123) (.n 18) 19) ::
-  .atom (.add (.n 2124) (.n 2122) (.n 2123)) ::
-  .atom (.mul (.n 2125) (.n 2119) (.n 2124)) ::
-  .atom (.const (.n 2126) (word 1 0 0)) ::
-  .atom (.load (.n 2127) (.n 158) 62) ::
-  .atom (.add (.n 2128) (.n 2126) (.n 2127)) ::
-  .atom (.load (.n 2129) (.n 18) 20) ::
-  .atom (.add (.n 2130) (.n 2128) (.n 2129)) ::
-  .atom (.mul (.n 2131) (.n 2125) (.n 2130)) ::
-  .atom (.const (.n 2132) (word 1 0 0)) ::
-  .atom (.load (.n 2133) (.n 158) 63) ::
-  .atom (.add (.n 2134) (.n 2132) (.n 2133)) ::
-  .atom (.load (.n 2135) (.n 18) 21) ::
-  .atom (.add (.n 2136) (.n 2134) (.n 2135)) ::
-  .atom (.mul (.n 2137) (.n 2131) (.n 2136)) ::
-  .atom (.const (.n 2138) (word 1 0 0)) ::
-  .atom (.load (.n 2139) (.n 158) 64) ::
-  .atom (.add (.n 2140) (.n 2138) (.n 2139)) ::
-  .atom (.load (.n 2141) (.n 1201) 0) ::
-  .atom (.add (.n 2142) (.n 2140) (.n 2141)) ::
-  .atom (.mul (.n 2143) (.n 2137) (.n 2142)) ::
-  .atom (.const (.n 2144) (word 1 0 0)) ::
-  .atom (.load (.n 2145) (.n 158) 65) ::
-  .atom (.add (.n 2146) (.n 2144) (.n 2145)) ::
-  .atom (.load (.n 2147) (.n 1201) 1) ::
-  .atom (.add (.n 2148) (.n 2146) (.n 2147)) ::
-  .atom (.mul (.n 2149) (.n 2143) (.n 2148)) ::
-  .atom (.const (.n 2150) (word 1 0 0)) ::
-  .atom (.load (.n 2151) (.n 158) 66) ::
-  .atom (.add (.n 2152) (.n 2150) (.n 2151)) ::
-  .atom (.load (.n 2153) (.n 1201) 2) ::
-  .atom (.add (.n 2154) (.n 2152) (.n 2153)) ::
-  .atom (.mul (.n 2155) (.n 2149) (.n 2154)) ::
-  .atom (.const (.n 2156) (word 1 0 0)) ::
-  .atom (.load (.n 2157) (.n 158) 67) ::
-  .atom (.add (.n 2158) (.n 2156) (.n 2157)) ::
-  .atom (.load (.n 2159) (.n 1201) 3) ::
-  .atom (.add (.n 2160) (.n 2158) (.n 2159)) ::
-  .atom (.mul (.n 2161) (.n 2155) (.n 2160)) ::
-  .atom (.add (.n 2162) (.n 2064) (.n 2161)) ::
-  .atom (.load (.n 2163) (.n 160) 12) ::
-  .atom (.const (.n 2164) (word 1 0 0)) ::
-  .atom (.load (.n 2165) (.n 158) 78) ::
-  .atom (.add (.n 2166) (.n 2164) (.n 2165)) ::
-  .atom (.load (.n 2167) (.n 18) 14) ::
-  .atom (.add (.n 2168) (.n 2166) (.n 2167)) ::
-  .atom (.mul (.n 2169) (.n 2163) (.n 2168)) ::
-  .atom (.const (.n 2170) (word 1 0 0)) ::
-  .atom (.load (.n 2171) (.n 158) 79) ::
-  .atom (.add (.n 2172) (.n 2170) (.n 2171)) ::
-  .atom (.load (.n 2173) (.n 18) 15) ::
-  .atom (.add (.n 2174) (.n 2172) (.n 2173)) ::
-  .atom (.mul (.n 2175) (.n 2169) (.n 2174)) ::
-  .atom (.const (.n 2176) (word 1 0 0)) ::
-  .atom (.load (.n 2177) (.n 158) 80) ::
-  .atom (.add (.n 2178) (.n 2176) (.n 2177)) ::
-  .atom (.load (.n 2179) (.n 18) 16) ::
-  .atom (.add (.n 2180) (.n 2178) (.n 2179)) ::
-  .atom (.mul (.n 2181) (.n 2175) (.n 2180)) ::
-  .atom (.const (.n 2182) (word 1 0 0)) ::
-  .atom (.load (.n 2183) (.n 158) 81) ::
-  .atom (.add (.n 2184) (.n 2182) (.n 2183)) ::
-  .atom (.load (.n 2185) (.n 18) 17) ::
-  .atom (.add (.n 2186) (.n 2184) (.n 2185)) ::
-  .atom (.mul (.n 2187) (.n 2181) (.n 2186)) ::
-  .atom (.const (.n 2188) (word 1 0 0)) ::
-  .atom (.load (.n 2189) (.n 158) 82) ::
-  .atom (.add (.n 2190) (.n 2188) (.n 2189)) ::
-  .atom (.load (.n 2191) (.n 18) 18) ::
-  .atom (.add (.n 2192) (.n 2190) (.n 2191)) ::
-  .atom (.mul (.n 2193) (.n 2187) (.n 2192)) ::
-  .atom (.const (.n 2194) (word 1 0 0)) ::
-  .atom (.load (.n 2195) (.n 158) 83) ::
-  .atom (.add (.n 2196) (.n 2194) (.n 2195)) ::
-  .atom (.load (.n 2197) (.n 18) 19) ::
-  .atom (.add (.n 2198) (.n 2196) (.n 2197)) ::
-  .atom (.mul (.n 2199) (.n 2193) (.n 2198)) ::
-  .atom (.const (.n 2200) (word 1 0 0)) ::
-  .atom (.load (.n 2201) (.n 158) 84) ::
-  .atom (.add (.n 2202) (.n 2200) (.n 2201)) ::
-  .atom (.load (.n 2203) (.n 18) 20) ::
-  .atom (.add (.n 2204) (.n 2202) (.n 2203)) ::
-  .atom (.mul (.n 2205) (.n 2199) (.n 2204)) ::
-  .atom (.const (.n 2206) (word 1 0 0)) ::
-  .atom (.load (.n 2207) (.n 158) 85) ::
-  .atom (.add (.n 2208) (.n 2206) (.n 2207)) ::
-  .atom (.load (.n 2209) (.n 18) 21) ::
-  .atom (.add (.n 2210) (.n 2208) (.n 2209)) ::
-  .atom (.mul (.n 2211) (.n 2205) (.n 2210)) ::
-  .atom (.const (.n 2212) (word 1 0 0)) ::
-  .atom (.load (.n 2213) (.n 158) 86) ::
-  .atom (.add (.n 2214) (.n 2212) (.n 2213)) ::
-  .atom (.load (.n 2215) (.n 1201) 0) ::
-  .atom (.add (.n 2216) (.n 2214) (.n 2215)) ::
-  .atom (.mul (.n 2217) (.n 2211) (.n 2216)) ::
-  .atom (.const (.n 2218) (word 1 0 0)) ::
-  .atom (.load (.n 2219) (.n 158) 87) ::
-  .atom (.add (.n 2220) (.n 2218) (.n 2219)) ::
-  .atom (.load (.n 2221) (.n 1201) 1) ::
-  .atom (.add (.n 2222) (.n 2220) (.n 2221)) ::
-  .atom (.mul (.n 2223) (.n 2217) (.n 2222)) ::
-  .atom (.const (.n 2224) (word 1 0 0)) ::
-  .atom (.load (.n 2225) (.n 158) 88) ::
-  .atom (.add (.n 2226) (.n 2224) (.n 2225)) ::
-  .atom (.load (.n 2227) (.n 1201) 2) ::
-  .atom (.add (.n 2228) (.n 2226) (.n 2227)) ::
-  .atom (.mul (.n 2229) (.n 2223) (.n 2228)) ::
-  .atom (.const (.n 2230) (word 1 0 0)) ::
-  .atom (.load (.n 2231) (.n 158) 89) ::
-  .atom (.add (.n 2232) (.n 2230) (.n 2231)) ::
-  .atom (.load (.n 2233) (.n 1201) 3) ::
-  .atom (.add (.n 2234) (.n 2232) (.n 2233)) ::
-  .atom (.mul (.n 2235) (.n 2229) (.n 2234)) ::
-  .atom (.add (.n 2236) (.n 2162) (.n 2235)) ::
-  .atom (.load (.n 2237) (.n 160) 16) ::
-  .atom (.const (.n 2238) (word 1 0 0)) ::
-  .atom (.load (.n 2239) (.n 158) 104) ::
-  .atom (.add (.n 2240) (.n 2238) (.n 2239)) ::
-  .atom (.load (.n 2241) (.n 18) 18) ::
-  .atom (.add (.n 2242) (.n 2240) (.n 2241)) ::
-  .atom (.mul (.n 2243) (.n 2237) (.n 2242)) ::
-  .atom (.const (.n 2244) (word 1 0 0)) ::
-  .atom (.load (.n 2245) (.n 158) 105) ::
-  .atom (.add (.n 2246) (.n 2244) (.n 2245)) ::
-  .atom (.load (.n 2247) (.n 18) 19) ::
-  .atom (.add (.n 2248) (.n 2246) (.n 2247)) ::
-  [])
-
-/-- `open_stacked__L7`: statements 2125 to 2169 of the body. -/
-noncomputable def c4 : List Core.Stmt := (
-  .atom (.mul (.n 2249) (.n 2243) (.n 2248)) ::
-  .atom (.const (.n 2250) (word 1 0 0)) ::
-  .atom (.load (.n 2251) (.n 158) 106) ::
-  .atom (.add (.n 2252) (.n 2250) (.n 2251)) ::
-  .atom (.load (.n 2253) (.n 18) 20) ::
-  .atom (.add (.n 2254) (.n 2252) (.n 2253)) ::
-  .atom (.mul (.n 2255) (.n 2249) (.n 2254)) ::
-  .atom (.const (.n 2256) (word 1 0 0)) ::
-  .atom (.load (.n 2257) (.n 158) 107) ::
-  .atom (.add (.n 2258) (.n 2256) (.n 2257)) ::
-  .atom (.load (.n 2259) (.n 18) 21) ::
-  .atom (.add (.n 2260) (.n 2258) (.n 2259)) ::
-  .atom (.mul (.n 2261) (.n 2255) (.n 2260)) ::
-  .atom (.const (.n 2262) (word 1 0 0)) ::
-  .atom (.load (.n 2263) (.n 158) 108) ::
-  .atom (.add (.n 2264) (.n 2262) (.n 2263)) ::
-  .atom (.load (.n 2265) (.n 1201) 0) ::
-  .atom (.add (.n 2266) (.n 2264) (.n 2265)) ::
-  .atom (.mul (.n 2267) (.n 2261) (.n 2266)) ::
-  .atom (.const (.n 2268) (word 1 0 0)) ::
-  .atom (.load (.n 2269) (.n 158) 109) ::
-  .atom (.add (.n 2270) (.n 2268) (.n 2269)) ::
-  .atom (.load (.n 2271) (.n 1201) 1) ::
-  .atom (.add (.n 2272) (.n 2270) (.n 2271)) ::
-  .atom (.mul (.n 2273) (.n 2267) (.n 2272)) ::
-  .atom (.const (.n 2274) (word 1 0 0)) ::
-  .atom (.load (.n 2275) (.n 158) 110) ::
-  .atom (.add (.n 2276) (.n 2274) (.n 2275)) ::
-  .atom (.load (.n 2277) (.n 1201) 2) ::
-  .atom (.add (.n 2278) (.n 2276) (.n 2277)) ::
-  .atom (.mul (.n 2279) (.n 2273) (.n 2278)) ::
-  .atom (.const (.n 2280) (word 1 0 0)) ::
-  .atom (.load (.n 2281) (.n 158) 111) ::
-  .atom (.add (.n 2282) (.n 2280) (.n 2281)) ::
-  .atom (.load (.n 2283) (.n 1201) 3) ::
-  .atom (.add (.n 2284) (.n 2282) (.n 2283)) ::
-  .atom (.mul (.n 2285) (.n 2279) (.n 2284)) ::
-  .atom (.add (.n 2286) (.n 2236) (.n 2285)) ::
-  .atom (.copy (.n 2287) (.n 1284)) ::
-  .atom (.copy (.n 2288) (.n 1287)) ::
-  .atom (.copy (.n 2289) (.n 1288)) ::
-  .atom (.load (.n 2290) (.n 1841) 5) ::
-  .atom (.add (.n 2291) (.n 2290) (.n 2286)) ::
-  .atom (.copy (.n 2292) (.n 1286)) ::
-  .ret [.n 2287, .n 2288, .n 2289, .n 2291, .n 2292] ::
+  .atom (.const (.n 2065) (word 1 0 0)) ::
+  .atom (.load (.n 2066) (.n 158) 61) ::
+  .atom (.add (.n 2067) (.n 2065) (.n 2066)) ::
+  .atom (.load (.n 2068) (.n 18) 19) ::
+  .atom (.add (.n 2069) (.n 2067) (.n 2068)) ::
+  .atom (.mul (.n 2070) (.n 2064) (.n 2069)) ::
+  .atom (.const (.n 2071) (word 1 0 0)) ::
+  .atom (.load (.n 2072) (.n 158) 62) ::
+  .atom (.add (.n 2073) (.n 2071) (.n 2072)) ::
+  .atom (.load (.n 2074) (.n 18) 20) ::
+  .atom (.add (.n 2075) (.n 2073) (.n 2074)) ::
+  .atom (.mul (.n 2076) (.n 2070) (.n 2075)) ::
+  .atom (.const (.n 2077) (word 1 0 0)) ::
+  .atom (.load (.n 2078) (.n 158) 63) ::
+  .atom (.add (.n 2079) (.n 2077) (.n 2078)) ::
+  .atom (.load (.n 2080) (.n 18) 21) ::
+  .atom (.add (.n 2081) (.n 2079) (.n 2080)) ::
+  .atom (.mul (.n 2082) (.n 2076) (.n 2081)) ::
+  .atom (.const (.n 2083) (word 1 0 0)) ::
+  .atom (.load (.n 2084) (.n 158) 64) ::
+  .atom (.add (.n 2085) (.n 2083) (.n 2084)) ::
+  .atom (.load (.n 2086) (.n 1201) 0) ::
+  .atom (.add (.n 2087) (.n 2085) (.n 2086)) ::
+  .atom (.mul (.n 2088) (.n 2082) (.n 2087)) ::
+  .atom (.const (.n 2089) (word 1 0 0)) ::
+  .atom (.load (.n 2090) (.n 158) 65) ::
+  .atom (.add (.n 2091) (.n 2089) (.n 2090)) ::
+  .atom (.load (.n 2092) (.n 1201) 1) ::
+  .atom (.add (.n 2093) (.n 2091) (.n 2092)) ::
+  .atom (.mul (.n 2094) (.n 2088) (.n 2093)) ::
+  .atom (.const (.n 2095) (word 1 0 0)) ::
+  .atom (.load (.n 2096) (.n 158) 66) ::
+  .atom (.add (.n 2097) (.n 2095) (.n 2096)) ::
+  .atom (.load (.n 2098) (.n 1201) 2) ::
+  .atom (.add (.n 2099) (.n 2097) (.n 2098)) ::
+  .atom (.mul (.n 2100) (.n 2094) (.n 2099)) ::
+  .atom (.const (.n 2101) (word 1 0 0)) ::
+  .atom (.load (.n 2102) (.n 158) 67) ::
+  .atom (.add (.n 2103) (.n 2101) (.n 2102)) ::
+  .atom (.load (.n 2104) (.n 1201) 3) ::
+  .atom (.add (.n 2105) (.n 2103) (.n 2104)) ::
+  .atom (.mul (.n 2106) (.n 2100) (.n 2105)) ::
+  .atom (.add (.n 2107) (.n 2009) (.n 2106)) ::
+  .atom (.load (.n 2108) (.n 160) 12) ::
+  .atom (.const (.n 2109) (word 1 0 0)) ::
+  .atom (.load (.n 2110) (.n 158) 78) ::
+  .atom (.add (.n 2111) (.n 2109) (.n 2110)) ::
+  .atom (.load (.n 2112) (.n 18) 14) ::
+  .atom (.add (.n 2113) (.n 2111) (.n 2112)) ::
+  .atom (.mul (.n 2114) (.n 2108) (.n 2113)) ::
+  .atom (.const (.n 2115) (word 1 0 0)) ::
+  .atom (.load (.n 2116) (.n 158) 79) ::
+  .atom (.add (.n 2117) (.n 2115) (.n 2116)) ::
+  .atom (.load (.n 2118) (.n 18) 15) ::
+  .atom (.add (.n 2119) (.n 2117) (.n 2118)) ::
+  .atom (.mul (.n 2120) (.n 2114) (.n 2119)) ::
+  .atom (.const (.n 2121) (word 1 0 0)) ::
+  .atom (.load (.n 2122) (.n 158) 80) ::
+  .atom (.add (.n 2123) (.n 2121) (.n 2122)) ::
+  .atom (.load (.n 2124) (.n 18) 16) ::
+  .atom (.add (.n 2125) (.n 2123) (.n 2124)) ::
+  .atom (.mul (.n 2126) (.n 2120) (.n 2125)) ::
+  .atom (.const (.n 2127) (word 1 0 0)) ::
+  .atom (.load (.n 2128) (.n 158) 81) ::
+  .atom (.add (.n 2129) (.n 2127) (.n 2128)) ::
+  .atom (.load (.n 2130) (.n 18) 17) ::
+  .atom (.add (.n 2131) (.n 2129) (.n 2130)) ::
+  .atom (.mul (.n 2132) (.n 2126) (.n 2131)) ::
+  .atom (.const (.n 2133) (word 1 0 0)) ::
+  .atom (.load (.n 2134) (.n 158) 82) ::
+  .atom (.add (.n 2135) (.n 2133) (.n 2134)) ::
+  .atom (.load (.n 2136) (.n 18) 18) ::
+  .atom (.add (.n 2137) (.n 2135) (.n 2136)) ::
+  .atom (.mul (.n 2138) (.n 2132) (.n 2137)) ::
+  .atom (.const (.n 2139) (word 1 0 0)) ::
+  .atom (.load (.n 2140) (.n 158) 83) ::
+  .atom (.add (.n 2141) (.n 2139) (.n 2140)) ::
+  .atom (.load (.n 2142) (.n 18) 19) ::
+  .atom (.add (.n 2143) (.n 2141) (.n 2142)) ::
+  .atom (.mul (.n 2144) (.n 2138) (.n 2143)) ::
+  .atom (.const (.n 2145) (word 1 0 0)) ::
+  .atom (.load (.n 2146) (.n 158) 84) ::
+  .atom (.add (.n 2147) (.n 2145) (.n 2146)) ::
+  .atom (.load (.n 2148) (.n 18) 20) ::
+  .atom (.add (.n 2149) (.n 2147) (.n 2148)) ::
+  .atom (.mul (.n 2150) (.n 2144) (.n 2149)) ::
+  .atom (.const (.n 2151) (word 1 0 0)) ::
+  .atom (.load (.n 2152) (.n 158) 85) ::
+  .atom (.add (.n 2153) (.n 2151) (.n 2152)) ::
+  .atom (.load (.n 2154) (.n 18) 21) ::
+  .atom (.add (.n 2155) (.n 2153) (.n 2154)) ::
+  .atom (.mul (.n 2156) (.n 2150) (.n 2155)) ::
+  .atom (.const (.n 2157) (word 1 0 0)) ::
+  .atom (.load (.n 2158) (.n 158) 86) ::
+  .atom (.add (.n 2159) (.n 2157) (.n 2158)) ::
+  .atom (.load (.n 2160) (.n 1201) 0) ::
+  .atom (.add (.n 2161) (.n 2159) (.n 2160)) ::
+  .atom (.mul (.n 2162) (.n 2156) (.n 2161)) ::
+  .atom (.const (.n 2163) (word 1 0 0)) ::
+  .atom (.load (.n 2164) (.n 158) 87) ::
+  .atom (.add (.n 2165) (.n 2163) (.n 2164)) ::
+  .atom (.load (.n 2166) (.n 1201) 1) ::
+  .atom (.add (.n 2167) (.n 2165) (.n 2166)) ::
+  .atom (.mul (.n 2168) (.n 2162) (.n 2167)) ::
+  .atom (.const (.n 2169) (word 1 0 0)) ::
+  .atom (.load (.n 2170) (.n 158) 88) ::
+  .atom (.add (.n 2171) (.n 2169) (.n 2170)) ::
+  .atom (.load (.n 2172) (.n 1201) 2) ::
+  .atom (.add (.n 2173) (.n 2171) (.n 2172)) ::
+  .atom (.mul (.n 2174) (.n 2168) (.n 2173)) ::
+  .atom (.const (.n 2175) (word 1 0 0)) ::
+  .atom (.load (.n 2176) (.n 158) 89) ::
+  .atom (.add (.n 2177) (.n 2175) (.n 2176)) ::
+  .atom (.load (.n 2178) (.n 1201) 3) ::
+  .atom (.add (.n 2179) (.n 2177) (.n 2178)) ::
+  .atom (.mul (.n 2180) (.n 2174) (.n 2179)) ::
+  .atom (.add (.n 2181) (.n 2107) (.n 2180)) ::
+  .atom (.load (.n 2182) (.n 160) 16) ::
+  .atom (.const (.n 2183) (word 1 0 0)) ::
+  .atom (.load (.n 2184) (.n 158) 104) ::
+  .atom (.add (.n 2185) (.n 2183) (.n 2184)) ::
+  .atom (.load (.n 2186) (.n 18) 18) ::
+  .atom (.add (.n 2187) (.n 2185) (.n 2186)) ::
+  .atom (.mul (.n 2188) (.n 2182) (.n 2187)) ::
+  .atom (.const (.n 2189) (word 1 0 0)) ::
+  .atom (.load (.n 2190) (.n 158) 105) ::
+  .atom (.add (.n 2191) (.n 2189) (.n 2190)) ::
+  .atom (.load (.n 2192) (.n 18) 19) ::
+  .atom (.add (.n 2193) (.n 2191) (.n 2192)) ::
+  .atom (.mul (.n 2194) (.n 2188) (.n 2193)) ::
+  .atom (.const (.n 2195) (word 1 0 0)) ::
+  .atom (.load (.n 2196) (.n 158) 106) ::
+  .atom (.add (.n 2197) (.n 2195) (.n 2196)) ::
+  .atom (.load (.n 2198) (.n 18) 20) ::
+  .atom (.add (.n 2199) (.n 2197) (.n 2198)) ::
+  .atom (.mul (.n 2200) (.n 2194) (.n 2199)) ::
+  .atom (.const (.n 2201) (word 1 0 0)) ::
+  .atom (.load (.n 2202) (.n 158) 107) ::
+  .atom (.add (.n 2203) (.n 2201) (.n 2202)) ::
+  .atom (.load (.n 2204) (.n 18) 21) ::
+  .atom (.add (.n 2205) (.n 2203) (.n 2204)) ::
+  .atom (.mul (.n 2206) (.n 2200) (.n 2205)) ::
+  .atom (.const (.n 2207) (word 1 0 0)) ::
+  .atom (.load (.n 2208) (.n 158) 108) ::
+  .atom (.add (.n 2209) (.n 2207) (.n 2208)) ::
+  .atom (.load (.n 2210) (.n 1201) 0) ::
+  .atom (.add (.n 2211) (.n 2209) (.n 2210)) ::
+  .atom (.mul (.n 2212) (.n 2206) (.n 2211)) ::
+  .atom (.const (.n 2213) (word 1 0 0)) ::
+  .atom (.load (.n 2214) (.n 158) 109) ::
+  .atom (.add (.n 2215) (.n 2213) (.n 2214)) ::
+  .atom (.load (.n 2216) (.n 1201) 1) ::
+  .atom (.add (.n 2217) (.n 2215) (.n 2216)) ::
+  .atom (.mul (.n 2218) (.n 2212) (.n 2217)) ::
+  .atom (.const (.n 2219) (word 1 0 0)) ::
+  .atom (.load (.n 2220) (.n 158) 110) ::
+  .atom (.add (.n 2221) (.n 2219) (.n 2220)) ::
+  .atom (.load (.n 2222) (.n 1201) 2) ::
+  .atom (.add (.n 2223) (.n 2221) (.n 2222)) ::
+  .atom (.mul (.n 2224) (.n 2218) (.n 2223)) ::
+  .atom (.const (.n 2225) (word 1 0 0)) ::
+  .atom (.load (.n 2226) (.n 158) 111) ::
+  .atom (.add (.n 2227) (.n 2225) (.n 2226)) ::
+  .atom (.load (.n 2228) (.n 1201) 3) ::
+  .atom (.add (.n 2229) (.n 2227) (.n 2228)) ::
+  .atom (.mul (.n 2230) (.n 2224) (.n 2229)) ::
+  .atom (.add (.n 2231) (.n 2181) (.n 2230)) ::
+  .atom (.copy (.n 2232) (.n 1284)) ::
+  .atom (.copy (.n 2233) (.n 1287)) ::
+  .atom (.copy (.n 2234) (.n 1288)) ::
+  .atom (.load (.n 2235) (.n 1841) 5) ::
+  .atom (.add (.n 2236) (.n 2235) (.n 2231)) ::
+  .atom (.copy (.n 2237) (.n 1286)) ::
+  .ret [.n 2232, .n 2233, .n 2234, .n 2236, .n 2237] ::
   [])
 
 /-- `open_stacked__L7`: the body. -/
-noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3 ++ c4
+noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3
 
 end core317
 
@@ -22406,7 +21650,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.mul (.n 1730) (.n 1728) (.n 1729)) ::
   [])
 
-/-- `open_stacked__L8`: statements 1616 to 2117 of the body. -/
+/-- `open_stacked__L8`: statements 1616 to 2192 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.const (.n 1731) (word 1 0 0)) ::
   .atom (.add (.n 1732) (.n 1731) (.n 1728)) ::
@@ -22594,545 +21838,435 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 1888) (.n 1887))) ::
   .atom (.const (.n 1889) (word 0 0 0)) ::
   .atom (.load (.n 1889) (.n 1888) 0) ::
-  .atom (.const (.n 1890) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1891) (word 268435456 0 0)),
-      .atom (.copy (.n 1892) (.n 1891)),
-      .atom (.const (.n 1893) (word 2 0 0)),
-      .atom (.copy (.n 1894) (.n 1893))],
-    [
-      .atom (.const (.n 1895) (word 16384 0 0)),
-      .atom (.copy (.n 1892) (.n 1895)),
-      .atom (.const (.n 1896) (word 1 0 0)),
-      .atom (.copy (.n 1894) (.n 1896))],
-    [
-      .atom (.const (.n 1897) (word 512 0 0)),
-      .atom (.copy (.n 1892) (.n 1897)),
-      .atom (.const (.n 1898) (word 8 0 0)),
-      .atom (.copy (.n 1894) (.n 1898))],
-    [
-      .atom (.const (.n 1899) (word 128 0 0)),
-      .atom (.copy (.n 1892) (.n 1899)),
-      .atom (.const (.n 1900) (word 1 0 0)),
-      .atom (.copy (.n 1894) (.n 1900))]] ::
-  .atom (.load (.n 1901) (.n 22) 0) ::
-  .call "level_residual__L21" [.n 24, .n 1434, .n 1901, .n 1892, .n 1894] [.n 1902] ::
-  .atom (.load (.n 1903) (.n 1888) 0) ::
-  .atom (.load (.n 1904) (.n 1436) 0) ::
-  .atom (.mul (.n 1905) (.n 1904) (.n 1902)) ::
-  .atom (.add (.n 1906) (.n 1903) (.n 1905)) ::
-  .atom (.load (.n 1906) (.n 1888) 1) ::
-  .atom (.const (.n 1907) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1908) (word 128 0 0)),
-      .atom (.copy (.n 1909) (.n 1908)),
-      .atom (.const (.n 1910) (word 1 0 0)),
-      .atom (.copy (.n 1911) (.n 1910))],
-    [
-      .atom (.const (.n 1912) (word 32 0 0)),
-      .atom (.copy (.n 1909) (.n 1912)),
-      .atom (.const (.n 1913) (word 32 0 0)),
-      .atom (.copy (.n 1911) (.n 1913))],
-    [
-      .atom (.const (.n 1914) (word 16 0 0)),
-      .atom (.copy (.n 1909) (.n 1914)),
-      .atom (.const (.n 1915) (word 64 0 0)),
-      .atom (.copy (.n 1911) (.n 1915))],
-    [
-      .atom (.const (.n 1916) (word 16 0 0)),
-      .atom (.copy (.n 1909) (.n 1916)),
-      .atom (.const (.n 1917) (word 1 0 0)),
-      .atom (.copy (.n 1911) (.n 1917))]] ::
-  .atom (.const (.n 1918) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1919) (.n 24) (.n 1918)) ::
-  .atom (.const (.n 1920) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1921) (.n 1434) (.n 1920)) ::
-  .atom (.load (.n 1922) (.n 22) 1) ::
-  .call "level_residual__L17" [.n 1919, .n 1921, .n 1922, .n 1909, .n 1911] [.n 1923] ::
-  .atom (.load (.n 1924) (.n 1888) 1) ::
-  .atom (.load (.n 1925) (.n 1436) 1) ::
-  .atom (.mul (.n 1926) (.n 1925) (.n 1923)) ::
-  .atom (.add (.n 1927) (.n 1924) (.n 1926)) ::
-  .atom (.load (.n 1927) (.n 1888) 2) ::
-  .atom (.const (.n 1928) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1929) (word 16 0 0)),
-      .atom (.copy (.n 1930) (.n 1929)),
-      .atom (.const (.n 1931) (word 1 0 0)),
-      .atom (.copy (.n 1932) (.n 1931))],
-    [
-      .atom (.const (.n 1933) (word 8 0 0)),
-      .atom (.copy (.n 1930) (.n 1933)),
-      .atom (.const (.n 1934) (word 16 0 0)),
-      .atom (.copy (.n 1932) (.n 1934))],
-    [
-      .atom (.const (.n 1935) (word 8 0 0)),
-      .atom (.copy (.n 1930) (.n 1935)),
-      .atom (.const (.n 1936) (word 2 0 0)),
-      .atom (.copy (.n 1932) (.n 1936))],
-    [
-      .atom (.const (.n 1937) (word 4 0 0)),
-      .atom (.copy (.n 1930) (.n 1937)),
-      .atom (.const (.n 1938) (word 128 0 0)),
-      .atom (.copy (.n 1932) (.n 1938))]] ::
-  .atom (.const (.n 1939) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1940) (.n 564) (.n 1939)) ::
-  .atom (.const (.n 1941) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1942) (.n 1921) (.n 1941)) ::
-  .atom (.load (.n 1943) (.n 22) 2) ::
-  .call "level_residual__L13" [.n 1940, .n 1942, .n 1943, .n 1930, .n 1932] [.n 1944] ::
-  .atom (.load (.n 1945) (.n 1888) 2) ::
-  .atom (.load (.n 1946) (.n 1436) 2) ::
-  .atom (.mul (.n 1947) (.n 1946) (.n 1944)) ::
-  .atom (.add (.n 1948) (.n 1945) (.n 1947)) ::
-  .atom (.load (.n 1948) (.n 1888) 3) ::
-  .atom (.const (.n 1949) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1950) (word 4 0 0)),
-      .atom (.copy (.n 1951) (.n 1950)),
-      .atom (.const (.n 1952) (word 128 0 0)),
-      .atom (.copy (.n 1953) (.n 1952))],
-    [
-      .atom (.const (.n 1954) (word 4 0 0)),
-      .atom (.copy (.n 1951) (.n 1954)),
-      .atom (.const (.n 1955) (word 32 0 0)),
-      .atom (.copy (.n 1953) (.n 1955))],
-    [
-      .atom (.const (.n 1956) (word 4 0 0)),
-      .atom (.copy (.n 1951) (.n 1956)),
-      .atom (.const (.n 1957) (word 8 0 0)),
-      .atom (.copy (.n 1953) (.n 1957))],
-    [
-      .atom (.const (.n 1958) (word 4 0 0)),
-      .atom (.copy (.n 1951) (.n 1958)),
-      .atom (.const (.n 1959) (word 4 0 0)),
-      .atom (.copy (.n 1953) (.n 1959))]] ::
-  .atom (.const (.n 1960) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1961) (.n 791) (.n 1960)) ::
-  .atom (.const (.n 1962) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1963) (.n 1942) (.n 1962)) ::
-  .atom (.load (.n 1964) (.n 22) 3) ::
-  .call "level_residual__L9" [.n 1961, .n 1963, .n 1964, .n 1951, .n 1953] [.n 1965] ::
-  .atom (.load (.n 1966) (.n 1888) 3) ::
-  .atom (.load (.n 1967) (.n 1436) 3) ::
-  .atom (.mul (.n 1968) (.n 1967) (.n 1965)) ::
-  .atom (.add (.n 1969) (.n 1966) (.n 1968)) ::
-  .atom (.load (.n 1969) (.n 1888) 4) ::
-  .atom (.const (.n 1970) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 1971) (word 4 0 0)),
-      .atom (.copy (.n 1972) (.n 1971)),
-      .atom (.const (.n 1973) (word 4 0 0)),
-      .atom (.copy (.n 1974) (.n 1973))],
-    [
-      .atom (.const (.n 1975) (word 4 0 0)),
-      .atom (.copy (.n 1972) (.n 1975)),
-      .atom (.const (.n 1976) (word 1 0 0)),
-      .atom (.copy (.n 1974) (.n 1976))],
-    [
-      .atom (.const (.n 1977) (word 2 0 0)),
-      .atom (.copy (.n 1972) (.n 1977)),
-      .atom (.const (.n 1978) (word 128 0 0)),
-      .atom (.copy (.n 1974) (.n 1978))],
-    [
-      .atom (.const (.n 1979) (word 2 0 0)),
-      .atom (.copy (.n 1972) (.n 1979)),
-      .atom (.const (.n 1980) (word 128 0 0)),
-      .atom (.copy (.n 1974) (.n 1980))]] ::
-  .atom (.const (.n 1981) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 1982) (.n 1018) (.n 1981)) ::
-  .atom (.const (.n 1983) (word 67108864 0 0)) ::
-  .atom (.mul (.n 1984) (.n 1963) (.n 1983)) ::
-  .atom (.load (.n 1985) (.n 22) 4) ::
-  .call "level_residual__L5" [.n 1982, .n 1984, .n 1985, .n 1972, .n 1974] [.n 1986] ::
-  .atom (.load (.n 1987) (.n 1888) 4) ::
-  .atom (.load (.n 1988) (.n 1436) 4) ::
-  .atom (.mul (.n 1989) (.n 1988) (.n 1986)) ::
-  .atom (.add (.n 1990) (.n 1987) (.n 1989)) ::
-  .atom (.load (.n 1990) (.n 1888) 5) ::
-  .atom (.load (.n 1991) (.n 160) 4) ::
-  .atom (.const (.n 1992) (word 1 0 0)) ::
-  .atom (.load (.n 1993) (.n 158) 26) ::
-  .atom (.add (.n 1994) (.n 1992) (.n 1993)) ::
-  .atom (.load (.n 1995) (.n 18) 6) ::
-  .atom (.add (.n 1996) (.n 1994) (.n 1995)) ::
-  .atom (.mul (.n 1997) (.n 1991) (.n 1996)) ::
-  .atom (.const (.n 1998) (word 1 0 0)) ::
-  .atom (.load (.n 1999) (.n 158) 27) ::
-  .atom (.add (.n 2000) (.n 1998) (.n 1999)) ::
-  .atom (.load (.n 2001) (.n 18) 7) ::
-  .atom (.add (.n 2002) (.n 2000) (.n 2001)) ::
-  .atom (.mul (.n 2003) (.n 1997) (.n 2002)) ::
-  .atom (.const (.n 2004) (word 1 0 0)) ::
-  .atom (.load (.n 2005) (.n 158) 28) ::
-  .atom (.add (.n 2006) (.n 2004) (.n 2005)) ::
-  .atom (.load (.n 2007) (.n 18) 8) ::
-  .atom (.add (.n 2008) (.n 2006) (.n 2007)) ::
-  .atom (.mul (.n 2009) (.n 2003) (.n 2008)) ::
-  .atom (.const (.n 2010) (word 1 0 0)) ::
-  .atom (.load (.n 2011) (.n 158) 29) ::
-  .atom (.add (.n 2012) (.n 2010) (.n 2011)) ::
-  .atom (.load (.n 2013) (.n 18) 9) ::
-  .atom (.add (.n 2014) (.n 2012) (.n 2013)) ::
-  .atom (.mul (.n 2015) (.n 2009) (.n 2014)) ::
-  .atom (.const (.n 2016) (word 1 0 0)) ::
-  .atom (.load (.n 2017) (.n 158) 30) ::
-  .atom (.add (.n 2018) (.n 2016) (.n 2017)) ::
-  .atom (.load (.n 2019) (.n 18) 10) ::
-  .atom (.add (.n 2020) (.n 2018) (.n 2019)) ::
-  .atom (.mul (.n 2021) (.n 2015) (.n 2020)) ::
-  .atom (.const (.n 2022) (word 1 0 0)) ::
-  .atom (.load (.n 2023) (.n 158) 31) ::
-  .atom (.add (.n 2024) (.n 2022) (.n 2023)) ::
-  .atom (.load (.n 2025) (.n 18) 11) ::
-  .atom (.add (.n 2026) (.n 2024) (.n 2025)) ::
-  .atom (.mul (.n 2027) (.n 2021) (.n 2026)) ::
-  .atom (.const (.n 2028) (word 1 0 0)) ::
-  .atom (.load (.n 2029) (.n 158) 32) ::
-  .atom (.add (.n 2030) (.n 2028) (.n 2029)) ::
-  .atom (.load (.n 2031) (.n 18) 12) ::
-  .atom (.add (.n 2032) (.n 2030) (.n 2031)) ::
-  .atom (.mul (.n 2033) (.n 2027) (.n 2032)) ::
-  .atom (.const (.n 2034) (word 1 0 0)) ::
-  .atom (.load (.n 2035) (.n 158) 33) ::
-  .atom (.add (.n 2036) (.n 2034) (.n 2035)) ::
-  .atom (.load (.n 2037) (.n 18) 13) ::
-  .atom (.add (.n 2038) (.n 2036) (.n 2037)) ::
-  .atom (.mul (.n 2039) (.n 2033) (.n 2038)) ::
-  .atom (.const (.n 2040) (word 1 0 0)) ::
-  .atom (.load (.n 2041) (.n 158) 34) ::
-  .atom (.add (.n 2042) (.n 2040) (.n 2041)) ::
-  .atom (.load (.n 2043) (.n 18) 14) ::
-  .atom (.add (.n 2044) (.n 2042) (.n 2043)) ::
-  .atom (.mul (.n 2045) (.n 2039) (.n 2044)) ::
-  .atom (.const (.n 2046) (word 1 0 0)) ::
-  .atom (.load (.n 2047) (.n 158) 35) ::
-  .atom (.add (.n 2048) (.n 2046) (.n 2047)) ::
-  .atom (.load (.n 2049) (.n 18) 15) ::
-  .atom (.add (.n 2050) (.n 2048) (.n 2049)) ::
-  .atom (.mul (.n 2051) (.n 2045) (.n 2050)) ::
-  .atom (.const (.n 2052) (word 1 0 0)) ::
-  .atom (.load (.n 2053) (.n 158) 36) ::
-  .atom (.add (.n 2054) (.n 2052) (.n 2053)) ::
-  .atom (.load (.n 2055) (.n 18) 16) ::
-  .atom (.add (.n 2056) (.n 2054) (.n 2055)) ::
-  .atom (.mul (.n 2057) (.n 2051) (.n 2056)) ::
-  .atom (.const (.n 2058) (word 1 0 0)) ::
-  .atom (.load (.n 2059) (.n 158) 37) ::
-  .atom (.add (.n 2060) (.n 2058) (.n 2059)) ::
-  .atom (.load (.n 2061) (.n 18) 17) ::
-  .atom (.add (.n 2062) (.n 2060) (.n 2061)) ::
-  .atom (.mul (.n 2063) (.n 2057) (.n 2062)) ::
+  .atom (.load (.n 1890) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L225_L21", "level_residual__L112_L21", "level_residual__L75_L21", "level_residual__L56_L21"] [.n 24, .n 1434, .n 1890] [.n 1891] ::
+  .atom (.load (.n 1892) (.n 1888) 0) ::
+  .atom (.load (.n 1893) (.n 1436) 0) ::
+  .atom (.mul (.n 1894) (.n 1893) (.n 1891)) ::
+  .atom (.add (.n 1895) (.n 1892) (.n 1894)) ::
+  .atom (.load (.n 1895) (.n 1888) 1) ::
+  .atom (.const (.n 1896) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1897) (.n 24) (.n 1896)) ::
+  .atom (.const (.n 1898) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1899) (.n 1434) (.n 1898)) ::
+  .atom (.load (.n 1900) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L17", "level_residual__L45_L17", "level_residual__L38_L17", "level_residual__L32_L17"] [.n 1897, .n 1899, .n 1900] [.n 1901] ::
+  .atom (.load (.n 1902) (.n 1888) 1) ::
+  .atom (.load (.n 1903) (.n 1436) 1) ::
+  .atom (.mul (.n 1904) (.n 1903) (.n 1901)) ::
+  .atom (.add (.n 1905) (.n 1902) (.n 1904)) ::
+  .atom (.load (.n 1905) (.n 1888) 2) ::
+  .atom (.const (.n 1906) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1907) (.n 564) (.n 1906)) ::
+  .atom (.const (.n 1908) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1909) (.n 1899) (.n 1908)) ::
+  .atom (.load (.n 1910) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L13", "level_residual__L28_L13", "level_residual__L25_L13", "level_residual__L23_L13"] [.n 1907, .n 1909, .n 1910] [.n 1911] ::
+  .atom (.load (.n 1912) (.n 1888) 2) ::
+  .atom (.load (.n 1913) (.n 1436) 2) ::
+  .atom (.mul (.n 1914) (.n 1913) (.n 1911)) ::
+  .atom (.add (.n 1915) (.n 1912) (.n 1914)) ::
+  .atom (.load (.n 1915) (.n 1888) 3) ::
+  .atom (.const (.n 1916) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1917) (.n 791) (.n 1916)) ::
+  .atom (.const (.n 1918) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1919) (.n 1909) (.n 1918)) ::
+  .atom (.load (.n 1920) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L9", "level_residual__L21_L9", "level_residual__L19_L9", "level_residual__L18_L9"] [.n 1917, .n 1919, .n 1920] [.n 1921] ::
+  .atom (.load (.n 1922) (.n 1888) 3) ::
+  .atom (.load (.n 1923) (.n 1436) 3) ::
+  .atom (.mul (.n 1924) (.n 1923) (.n 1921)) ::
+  .atom (.add (.n 1925) (.n 1922) (.n 1924)) ::
+  .atom (.load (.n 1925) (.n 1888) 4) ::
+  .atom (.const (.n 1926) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 1927) (.n 1018) (.n 1926)) ::
+  .atom (.const (.n 1928) (word 67108864 0 0)) ::
+  .atom (.mul (.n 1929) (.n 1919) (.n 1928)) ::
+  .atom (.load (.n 1930) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L18_L5", "level_residual__L16_L5", "level_residual__L15_L5", "level_residual__L15_L5"] [.n 1927, .n 1929, .n 1930] [.n 1931] ::
+  .atom (.load (.n 1932) (.n 1888) 4) ::
+  .atom (.load (.n 1933) (.n 1436) 4) ::
+  .atom (.mul (.n 1934) (.n 1933) (.n 1931)) ::
+  .atom (.add (.n 1935) (.n 1932) (.n 1934)) ::
+  .atom (.load (.n 1935) (.n 1888) 5) ::
+  .atom (.load (.n 1936) (.n 160) 4) ::
+  .atom (.const (.n 1937) (word 1 0 0)) ::
+  .atom (.load (.n 1938) (.n 158) 26) ::
+  .atom (.add (.n 1939) (.n 1937) (.n 1938)) ::
+  .atom (.load (.n 1940) (.n 18) 6) ::
+  .atom (.add (.n 1941) (.n 1939) (.n 1940)) ::
+  .atom (.mul (.n 1942) (.n 1936) (.n 1941)) ::
+  .atom (.const (.n 1943) (word 1 0 0)) ::
+  .atom (.load (.n 1944) (.n 158) 27) ::
+  .atom (.add (.n 1945) (.n 1943) (.n 1944)) ::
+  .atom (.load (.n 1946) (.n 18) 7) ::
+  .atom (.add (.n 1947) (.n 1945) (.n 1946)) ::
+  .atom (.mul (.n 1948) (.n 1942) (.n 1947)) ::
+  .atom (.const (.n 1949) (word 1 0 0)) ::
+  .atom (.load (.n 1950) (.n 158) 28) ::
+  .atom (.add (.n 1951) (.n 1949) (.n 1950)) ::
+  .atom (.load (.n 1952) (.n 18) 8) ::
+  .atom (.add (.n 1953) (.n 1951) (.n 1952)) ::
+  .atom (.mul (.n 1954) (.n 1948) (.n 1953)) ::
+  .atom (.const (.n 1955) (word 1 0 0)) ::
+  .atom (.load (.n 1956) (.n 158) 29) ::
+  .atom (.add (.n 1957) (.n 1955) (.n 1956)) ::
+  .atom (.load (.n 1958) (.n 18) 9) ::
+  .atom (.add (.n 1959) (.n 1957) (.n 1958)) ::
+  .atom (.mul (.n 1960) (.n 1954) (.n 1959)) ::
+  .atom (.const (.n 1961) (word 1 0 0)) ::
+  .atom (.load (.n 1962) (.n 158) 30) ::
+  .atom (.add (.n 1963) (.n 1961) (.n 1962)) ::
+  .atom (.load (.n 1964) (.n 18) 10) ::
+  .atom (.add (.n 1965) (.n 1963) (.n 1964)) ::
+  .atom (.mul (.n 1966) (.n 1960) (.n 1965)) ::
+  .atom (.const (.n 1967) (word 1 0 0)) ::
+  .atom (.load (.n 1968) (.n 158) 31) ::
+  .atom (.add (.n 1969) (.n 1967) (.n 1968)) ::
+  .atom (.load (.n 1970) (.n 18) 11) ::
+  .atom (.add (.n 1971) (.n 1969) (.n 1970)) ::
+  .atom (.mul (.n 1972) (.n 1966) (.n 1971)) ::
+  .atom (.const (.n 1973) (word 1 0 0)) ::
+  .atom (.load (.n 1974) (.n 158) 32) ::
+  .atom (.add (.n 1975) (.n 1973) (.n 1974)) ::
+  .atom (.load (.n 1976) (.n 18) 12) ::
+  .atom (.add (.n 1977) (.n 1975) (.n 1976)) ::
+  .atom (.mul (.n 1978) (.n 1972) (.n 1977)) ::
+  .atom (.const (.n 1979) (word 1 0 0)) ::
+  .atom (.load (.n 1980) (.n 158) 33) ::
+  .atom (.add (.n 1981) (.n 1979) (.n 1980)) ::
+  .atom (.load (.n 1982) (.n 18) 13) ::
+  .atom (.add (.n 1983) (.n 1981) (.n 1982)) ::
+  .atom (.mul (.n 1984) (.n 1978) (.n 1983)) ::
+  .atom (.const (.n 1985) (word 1 0 0)) ::
+  .atom (.load (.n 1986) (.n 158) 34) ::
+  .atom (.add (.n 1987) (.n 1985) (.n 1986)) ::
+  .atom (.load (.n 1988) (.n 18) 14) ::
+  .atom (.add (.n 1989) (.n 1987) (.n 1988)) ::
+  .atom (.mul (.n 1990) (.n 1984) (.n 1989)) ::
+  .atom (.const (.n 1991) (word 1 0 0)) ::
+  .atom (.load (.n 1992) (.n 158) 35) ::
+  .atom (.add (.n 1993) (.n 1991) (.n 1992)) ::
+  .atom (.load (.n 1994) (.n 18) 15) ::
+  .atom (.add (.n 1995) (.n 1993) (.n 1994)) ::
+  .atom (.mul (.n 1996) (.n 1990) (.n 1995)) ::
+  .atom (.const (.n 1997) (word 1 0 0)) ::
+  .atom (.load (.n 1998) (.n 158) 36) ::
+  .atom (.add (.n 1999) (.n 1997) (.n 1998)) ::
+  .atom (.load (.n 2000) (.n 18) 16) ::
+  .atom (.add (.n 2001) (.n 1999) (.n 2000)) ::
+  .atom (.mul (.n 2002) (.n 1996) (.n 2001)) ::
+  .atom (.const (.n 2003) (word 1 0 0)) ::
+  .atom (.load (.n 2004) (.n 158) 37) ::
+  .atom (.add (.n 2005) (.n 2003) (.n 2004)) ::
+  .atom (.load (.n 2006) (.n 18) 17) ::
+  .atom (.add (.n 2007) (.n 2005) (.n 2006)) ::
+  .atom (.mul (.n 2008) (.n 2002) (.n 2007)) ::
+  .atom (.const (.n 2009) (word 1 0 0)) ::
+  .atom (.load (.n 2010) (.n 158) 38) ::
+  .atom (.add (.n 2011) (.n 2009) (.n 2010)) ::
+  .atom (.load (.n 2012) (.n 18) 18) ::
+  .atom (.add (.n 2013) (.n 2011) (.n 2012)) ::
+  .atom (.mul (.n 2014) (.n 2008) (.n 2013)) ::
+  .atom (.const (.n 2015) (word 1 0 0)) ::
+  .atom (.load (.n 2016) (.n 158) 39) ::
+  .atom (.add (.n 2017) (.n 2015) (.n 2016)) ::
+  .atom (.load (.n 2018) (.n 18) 19) ::
+  .atom (.add (.n 2019) (.n 2017) (.n 2018)) ::
+  .atom (.mul (.n 2020) (.n 2014) (.n 2019)) ::
+  .atom (.const (.n 2021) (word 1 0 0)) ::
+  .atom (.load (.n 2022) (.n 158) 40) ::
+  .atom (.add (.n 2023) (.n 2021) (.n 2022)) ::
+  .atom (.load (.n 2024) (.n 18) 20) ::
+  .atom (.add (.n 2025) (.n 2023) (.n 2024)) ::
+  .atom (.mul (.n 2026) (.n 2020) (.n 2025)) ::
+  .atom (.const (.n 2027) (word 1 0 0)) ::
+  .atom (.load (.n 2028) (.n 158) 41) ::
+  .atom (.add (.n 2029) (.n 2027) (.n 2028)) ::
+  .atom (.load (.n 2030) (.n 18) 21) ::
+  .atom (.add (.n 2031) (.n 2029) (.n 2030)) ::
+  .atom (.mul (.n 2032) (.n 2026) (.n 2031)) ::
+  .atom (.const (.n 2033) (word 1 0 0)) ::
+  .atom (.load (.n 2034) (.n 158) 42) ::
+  .atom (.add (.n 2035) (.n 2033) (.n 2034)) ::
+  .atom (.load (.n 2036) (.n 1201) 0) ::
+  .atom (.add (.n 2037) (.n 2035) (.n 2036)) ::
+  .atom (.mul (.n 2038) (.n 2032) (.n 2037)) ::
+  .atom (.const (.n 2039) (word 1 0 0)) ::
+  .atom (.load (.n 2040) (.n 158) 43) ::
+  .atom (.add (.n 2041) (.n 2039) (.n 2040)) ::
+  .atom (.load (.n 2042) (.n 1201) 1) ::
+  .atom (.add (.n 2043) (.n 2041) (.n 2042)) ::
+  .atom (.mul (.n 2044) (.n 2038) (.n 2043)) ::
+  .atom (.const (.n 2045) (word 1 0 0)) ::
+  .atom (.load (.n 2046) (.n 158) 44) ::
+  .atom (.add (.n 2047) (.n 2045) (.n 2046)) ::
+  .atom (.load (.n 2048) (.n 1201) 2) ::
+  .atom (.add (.n 2049) (.n 2047) (.n 2048)) ::
+  .atom (.mul (.n 2050) (.n 2044) (.n 2049)) ::
+  .atom (.const (.n 2051) (word 1 0 0)) ::
+  .atom (.load (.n 2052) (.n 158) 45) ::
+  .atom (.add (.n 2053) (.n 2051) (.n 2052)) ::
+  .atom (.load (.n 2054) (.n 1201) 3) ::
+  .atom (.add (.n 2055) (.n 2053) (.n 2054)) ::
+  .atom (.mul (.n 2056) (.n 2050) (.n 2055)) ::
+  .atom (.const (.n 2057) (word 1 0 0)) ::
+  .atom (.load (.n 2058) (.n 158) 46) ::
+  .atom (.add (.n 2059) (.n 2057) (.n 2058)) ::
+  .atom (.load (.n 2060) (.n 1201) 4) ::
+  .atom (.add (.n 2061) (.n 2059) (.n 2060)) ::
+  .atom (.mul (.n 2062) (.n 2056) (.n 2061)) ::
+  .atom (.load (.n 2063) (.n 160) 8) ::
   .atom (.const (.n 2064) (word 1 0 0)) ::
-  .atom (.load (.n 2065) (.n 158) 38) ::
+  .atom (.load (.n 2065) (.n 158) 52) ::
   .atom (.add (.n 2066) (.n 2064) (.n 2065)) ::
-  .atom (.load (.n 2067) (.n 18) 18) ::
+  .atom (.load (.n 2067) (.n 18) 10) ::
   .atom (.add (.n 2068) (.n 2066) (.n 2067)) ::
   .atom (.mul (.n 2069) (.n 2063) (.n 2068)) ::
   .atom (.const (.n 2070) (word 1 0 0)) ::
-  .atom (.load (.n 2071) (.n 158) 39) ::
+  .atom (.load (.n 2071) (.n 158) 53) ::
   .atom (.add (.n 2072) (.n 2070) (.n 2071)) ::
-  .atom (.load (.n 2073) (.n 18) 19) ::
+  .atom (.load (.n 2073) (.n 18) 11) ::
   .atom (.add (.n 2074) (.n 2072) (.n 2073)) ::
   .atom (.mul (.n 2075) (.n 2069) (.n 2074)) ::
   .atom (.const (.n 2076) (word 1 0 0)) ::
-  .atom (.load (.n 2077) (.n 158) 40) ::
+  .atom (.load (.n 2077) (.n 158) 54) ::
   .atom (.add (.n 2078) (.n 2076) (.n 2077)) ::
-  .atom (.load (.n 2079) (.n 18) 20) ::
+  .atom (.load (.n 2079) (.n 18) 12) ::
   .atom (.add (.n 2080) (.n 2078) (.n 2079)) ::
   .atom (.mul (.n 2081) (.n 2075) (.n 2080)) ::
   .atom (.const (.n 2082) (word 1 0 0)) ::
-  .atom (.load (.n 2083) (.n 158) 41) ::
+  .atom (.load (.n 2083) (.n 158) 55) ::
   .atom (.add (.n 2084) (.n 2082) (.n 2083)) ::
-  .atom (.load (.n 2085) (.n 18) 21) ::
+  .atom (.load (.n 2085) (.n 18) 13) ::
   .atom (.add (.n 2086) (.n 2084) (.n 2085)) ::
   .atom (.mul (.n 2087) (.n 2081) (.n 2086)) ::
   .atom (.const (.n 2088) (word 1 0 0)) ::
-  .atom (.load (.n 2089) (.n 158) 42) ::
+  .atom (.load (.n 2089) (.n 158) 56) ::
   .atom (.add (.n 2090) (.n 2088) (.n 2089)) ::
-  .atom (.load (.n 2091) (.n 1201) 0) ::
+  .atom (.load (.n 2091) (.n 18) 14) ::
   .atom (.add (.n 2092) (.n 2090) (.n 2091)) ::
   .atom (.mul (.n 2093) (.n 2087) (.n 2092)) ::
   .atom (.const (.n 2094) (word 1 0 0)) ::
-  .atom (.load (.n 2095) (.n 158) 43) ::
+  .atom (.load (.n 2095) (.n 158) 57) ::
   .atom (.add (.n 2096) (.n 2094) (.n 2095)) ::
-  .atom (.load (.n 2097) (.n 1201) 1) ::
+  .atom (.load (.n 2097) (.n 18) 15) ::
   .atom (.add (.n 2098) (.n 2096) (.n 2097)) ::
   .atom (.mul (.n 2099) (.n 2093) (.n 2098)) ::
   .atom (.const (.n 2100) (word 1 0 0)) ::
-  .atom (.load (.n 2101) (.n 158) 44) ::
+  .atom (.load (.n 2101) (.n 158) 58) ::
   .atom (.add (.n 2102) (.n 2100) (.n 2101)) ::
-  .atom (.load (.n 2103) (.n 1201) 2) ::
+  .atom (.load (.n 2103) (.n 18) 16) ::
   .atom (.add (.n 2104) (.n 2102) (.n 2103)) ::
   .atom (.mul (.n 2105) (.n 2099) (.n 2104)) ::
   .atom (.const (.n 2106) (word 1 0 0)) ::
-  .atom (.load (.n 2107) (.n 158) 45) ::
+  .atom (.load (.n 2107) (.n 158) 59) ::
   .atom (.add (.n 2108) (.n 2106) (.n 2107)) ::
-  .atom (.load (.n 2109) (.n 1201) 3) ::
+  .atom (.load (.n 2109) (.n 18) 17) ::
   .atom (.add (.n 2110) (.n 2108) (.n 2109)) ::
   .atom (.mul (.n 2111) (.n 2105) (.n 2110)) ::
   .atom (.const (.n 2112) (word 1 0 0)) ::
-  .atom (.load (.n 2113) (.n 158) 46) ::
+  .atom (.load (.n 2113) (.n 158) 60) ::
   .atom (.add (.n 2114) (.n 2112) (.n 2113)) ::
-  .atom (.load (.n 2115) (.n 1201) 4) ::
+  .atom (.load (.n 2115) (.n 18) 18) ::
   .atom (.add (.n 2116) (.n 2114) (.n 2115)) ::
   .atom (.mul (.n 2117) (.n 2111) (.n 2116)) ::
-  .atom (.load (.n 2118) (.n 160) 8) ::
-  .atom (.const (.n 2119) (word 1 0 0)) ::
-  .atom (.load (.n 2120) (.n 158) 52) ::
-  .atom (.add (.n 2121) (.n 2119) (.n 2120)) ::
-  .atom (.load (.n 2122) (.n 18) 10) ::
-  .atom (.add (.n 2123) (.n 2121) (.n 2122)) ::
-  .atom (.mul (.n 2124) (.n 2118) (.n 2123)) ::
-  .atom (.const (.n 2125) (word 1 0 0)) ::
-  .atom (.load (.n 2126) (.n 158) 53) ::
-  .atom (.add (.n 2127) (.n 2125) (.n 2126)) ::
-  .atom (.load (.n 2128) (.n 18) 11) ::
-  .atom (.add (.n 2129) (.n 2127) (.n 2128)) ::
-  .atom (.mul (.n 2130) (.n 2124) (.n 2129)) ::
-  .atom (.const (.n 2131) (word 1 0 0)) ::
-  .atom (.load (.n 2132) (.n 158) 54) ::
-  .atom (.add (.n 2133) (.n 2131) (.n 2132)) ::
-  .atom (.load (.n 2134) (.n 18) 12) ::
-  .atom (.add (.n 2135) (.n 2133) (.n 2134)) ::
-  .atom (.mul (.n 2136) (.n 2130) (.n 2135)) ::
-  .atom (.const (.n 2137) (word 1 0 0)) ::
-  .atom (.load (.n 2138) (.n 158) 55) ::
-  .atom (.add (.n 2139) (.n 2137) (.n 2138)) ::
-  .atom (.load (.n 2140) (.n 18) 13) ::
-  .atom (.add (.n 2141) (.n 2139) (.n 2140)) ::
-  .atom (.mul (.n 2142) (.n 2136) (.n 2141)) ::
-  .atom (.const (.n 2143) (word 1 0 0)) ::
-  .atom (.load (.n 2144) (.n 158) 56) ::
-  .atom (.add (.n 2145) (.n 2143) (.n 2144)) ::
-  .atom (.load (.n 2146) (.n 18) 14) ::
-  .atom (.add (.n 2147) (.n 2145) (.n 2146)) ::
-  .atom (.mul (.n 2148) (.n 2142) (.n 2147)) ::
-  .atom (.const (.n 2149) (word 1 0 0)) ::
-  .atom (.load (.n 2150) (.n 158) 57) ::
-  .atom (.add (.n 2151) (.n 2149) (.n 2150)) ::
-  .atom (.load (.n 2152) (.n 18) 15) ::
-  .atom (.add (.n 2153) (.n 2151) (.n 2152)) ::
-  .atom (.mul (.n 2154) (.n 2148) (.n 2153)) ::
-  .atom (.const (.n 2155) (word 1 0 0)) ::
-  .atom (.load (.n 2156) (.n 158) 58) ::
-  .atom (.add (.n 2157) (.n 2155) (.n 2156)) ::
-  .atom (.load (.n 2158) (.n 18) 16) ::
-  .atom (.add (.n 2159) (.n 2157) (.n 2158)) ::
-  .atom (.mul (.n 2160) (.n 2154) (.n 2159)) ::
-  .atom (.const (.n 2161) (word 1 0 0)) ::
-  .atom (.load (.n 2162) (.n 158) 59) ::
-  .atom (.add (.n 2163) (.n 2161) (.n 2162)) ::
-  .atom (.load (.n 2164) (.n 18) 17) ::
-  .atom (.add (.n 2165) (.n 2163) (.n 2164)) ::
-  .atom (.mul (.n 2166) (.n 2160) (.n 2165)) ::
-  .atom (.const (.n 2167) (word 1 0 0)) ::
-  .atom (.load (.n 2168) (.n 158) 60) ::
-  .atom (.add (.n 2169) (.n 2167) (.n 2168)) ::
-  .atom (.load (.n 2170) (.n 18) 18) ::
-  .atom (.add (.n 2171) (.n 2169) (.n 2170)) ::
-  .atom (.mul (.n 2172) (.n 2166) (.n 2171)) ::
-  .atom (.const (.n 2173) (word 1 0 0)) ::
-  .atom (.load (.n 2174) (.n 158) 61) ::
-  .atom (.add (.n 2175) (.n 2173) (.n 2174)) ::
-  .atom (.load (.n 2176) (.n 18) 19) ::
-  .atom (.add (.n 2177) (.n 2175) (.n 2176)) ::
-  .atom (.mul (.n 2178) (.n 2172) (.n 2177)) ::
-  .atom (.const (.n 2179) (word 1 0 0)) ::
-  .atom (.load (.n 2180) (.n 158) 62) ::
-  .atom (.add (.n 2181) (.n 2179) (.n 2180)) ::
-  .atom (.load (.n 2182) (.n 18) 20) ::
-  .atom (.add (.n 2183) (.n 2181) (.n 2182)) ::
-  .atom (.mul (.n 2184) (.n 2178) (.n 2183)) ::
-  .atom (.const (.n 2185) (word 1 0 0)) ::
-  .atom (.load (.n 2186) (.n 158) 63) ::
-  .atom (.add (.n 2187) (.n 2185) (.n 2186)) ::
-  .atom (.load (.n 2188) (.n 18) 21) ::
-  .atom (.add (.n 2189) (.n 2187) (.n 2188)) ::
-  .atom (.mul (.n 2190) (.n 2184) (.n 2189)) ::
-  .atom (.const (.n 2191) (word 1 0 0)) ::
-  .atom (.load (.n 2192) (.n 158) 64) ::
-  .atom (.add (.n 2193) (.n 2191) (.n 2192)) ::
-  .atom (.load (.n 2194) (.n 1201) 0) ::
-  .atom (.add (.n 2195) (.n 2193) (.n 2194)) ::
-  .atom (.mul (.n 2196) (.n 2190) (.n 2195)) ::
-  .atom (.const (.n 2197) (word 1 0 0)) ::
-  .atom (.load (.n 2198) (.n 158) 65) ::
-  .atom (.add (.n 2199) (.n 2197) (.n 2198)) ::
-  .atom (.load (.n 2200) (.n 1201) 1) ::
-  .atom (.add (.n 2201) (.n 2199) (.n 2200)) ::
-  .atom (.mul (.n 2202) (.n 2196) (.n 2201)) ::
-  .atom (.const (.n 2203) (word 1 0 0)) ::
-  .atom (.load (.n 2204) (.n 158) 66) ::
-  .atom (.add (.n 2205) (.n 2203) (.n 2204)) ::
-  .atom (.load (.n 2206) (.n 1201) 2) ::
-  .atom (.add (.n 2207) (.n 2205) (.n 2206)) ::
-  .atom (.mul (.n 2208) (.n 2202) (.n 2207)) ::
-  .atom (.const (.n 2209) (word 1 0 0)) ::
-  .atom (.load (.n 2210) (.n 158) 67) ::
-  .atom (.add (.n 2211) (.n 2209) (.n 2210)) ::
-  .atom (.load (.n 2212) (.n 1201) 3) ::
-  .atom (.add (.n 2213) (.n 2211) (.n 2212)) ::
-  .atom (.mul (.n 2214) (.n 2208) (.n 2213)) ::
-  .atom (.const (.n 2215) (word 1 0 0)) ::
-  .atom (.load (.n 2216) (.n 158) 68) ::
-  .atom (.add (.n 2217) (.n 2215) (.n 2216)) ::
-  .atom (.load (.n 2218) (.n 1201) 4) ::
-  .atom (.add (.n 2219) (.n 2217) (.n 2218)) ::
-  .atom (.mul (.n 2220) (.n 2214) (.n 2219)) ::
-  .atom (.add (.n 2221) (.n 2117) (.n 2220)) ::
-  .atom (.load (.n 2222) (.n 160) 12) ::
-  .atom (.const (.n 2223) (word 1 0 0)) ::
-  .atom (.load (.n 2224) (.n 158) 78) ::
-  .atom (.add (.n 2225) (.n 2223) (.n 2224)) ::
-  .atom (.load (.n 2226) (.n 18) 14) ::
-  .atom (.add (.n 2227) (.n 2225) (.n 2226)) ::
-  .atom (.mul (.n 2228) (.n 2222) (.n 2227)) ::
-  .atom (.const (.n 2229) (word 1 0 0)) ::
-  .atom (.load (.n 2230) (.n 158) 79) ::
-  .atom (.add (.n 2231) (.n 2229) (.n 2230)) ::
-  .atom (.load (.n 2232) (.n 18) 15) ::
-  .atom (.add (.n 2233) (.n 2231) (.n 2232)) ::
-  .atom (.mul (.n 2234) (.n 2228) (.n 2233)) ::
-  .atom (.const (.n 2235) (word 1 0 0)) ::
-  .atom (.load (.n 2236) (.n 158) 80) ::
-  .atom (.add (.n 2237) (.n 2235) (.n 2236)) ::
-  .atom (.load (.n 2238) (.n 18) 16) ::
-  .atom (.add (.n 2239) (.n 2237) (.n 2238)) ::
-  .atom (.mul (.n 2240) (.n 2234) (.n 2239)) ::
-  .atom (.const (.n 2241) (word 1 0 0)) ::
-  .atom (.load (.n 2242) (.n 158) 81) ::
-  .atom (.add (.n 2243) (.n 2241) (.n 2242)) ::
-  .atom (.load (.n 2244) (.n 18) 17) ::
-  .atom (.add (.n 2245) (.n 2243) (.n 2244)) ::
+  .atom (.const (.n 2118) (word 1 0 0)) ::
+  .atom (.load (.n 2119) (.n 158) 61) ::
+  .atom (.add (.n 2120) (.n 2118) (.n 2119)) ::
+  .atom (.load (.n 2121) (.n 18) 19) ::
+  .atom (.add (.n 2122) (.n 2120) (.n 2121)) ::
+  .atom (.mul (.n 2123) (.n 2117) (.n 2122)) ::
+  .atom (.const (.n 2124) (word 1 0 0)) ::
+  .atom (.load (.n 2125) (.n 158) 62) ::
+  .atom (.add (.n 2126) (.n 2124) (.n 2125)) ::
+  .atom (.load (.n 2127) (.n 18) 20) ::
+  .atom (.add (.n 2128) (.n 2126) (.n 2127)) ::
+  .atom (.mul (.n 2129) (.n 2123) (.n 2128)) ::
+  .atom (.const (.n 2130) (word 1 0 0)) ::
+  .atom (.load (.n 2131) (.n 158) 63) ::
+  .atom (.add (.n 2132) (.n 2130) (.n 2131)) ::
+  .atom (.load (.n 2133) (.n 18) 21) ::
+  .atom (.add (.n 2134) (.n 2132) (.n 2133)) ::
+  .atom (.mul (.n 2135) (.n 2129) (.n 2134)) ::
+  .atom (.const (.n 2136) (word 1 0 0)) ::
+  .atom (.load (.n 2137) (.n 158) 64) ::
+  .atom (.add (.n 2138) (.n 2136) (.n 2137)) ::
+  .atom (.load (.n 2139) (.n 1201) 0) ::
+  .atom (.add (.n 2140) (.n 2138) (.n 2139)) ::
+  .atom (.mul (.n 2141) (.n 2135) (.n 2140)) ::
+  .atom (.const (.n 2142) (word 1 0 0)) ::
+  .atom (.load (.n 2143) (.n 158) 65) ::
+  .atom (.add (.n 2144) (.n 2142) (.n 2143)) ::
+  .atom (.load (.n 2145) (.n 1201) 1) ::
+  .atom (.add (.n 2146) (.n 2144) (.n 2145)) ::
+  .atom (.mul (.n 2147) (.n 2141) (.n 2146)) ::
+  .atom (.const (.n 2148) (word 1 0 0)) ::
+  .atom (.load (.n 2149) (.n 158) 66) ::
+  .atom (.add (.n 2150) (.n 2148) (.n 2149)) ::
+  .atom (.load (.n 2151) (.n 1201) 2) ::
+  .atom (.add (.n 2152) (.n 2150) (.n 2151)) ::
+  .atom (.mul (.n 2153) (.n 2147) (.n 2152)) ::
+  .atom (.const (.n 2154) (word 1 0 0)) ::
+  .atom (.load (.n 2155) (.n 158) 67) ::
+  .atom (.add (.n 2156) (.n 2154) (.n 2155)) ::
+  .atom (.load (.n 2157) (.n 1201) 3) ::
+  .atom (.add (.n 2158) (.n 2156) (.n 2157)) ::
+  .atom (.mul (.n 2159) (.n 2153) (.n 2158)) ::
+  .atom (.const (.n 2160) (word 1 0 0)) ::
+  .atom (.load (.n 2161) (.n 158) 68) ::
+  .atom (.add (.n 2162) (.n 2160) (.n 2161)) ::
+  .atom (.load (.n 2163) (.n 1201) 4) ::
+  .atom (.add (.n 2164) (.n 2162) (.n 2163)) ::
+  .atom (.mul (.n 2165) (.n 2159) (.n 2164)) ::
+  .atom (.add (.n 2166) (.n 2062) (.n 2165)) ::
+  .atom (.load (.n 2167) (.n 160) 12) ::
+  .atom (.const (.n 2168) (word 1 0 0)) ::
+  .atom (.load (.n 2169) (.n 158) 78) ::
+  .atom (.add (.n 2170) (.n 2168) (.n 2169)) ::
+  .atom (.load (.n 2171) (.n 18) 14) ::
+  .atom (.add (.n 2172) (.n 2170) (.n 2171)) ::
+  .atom (.mul (.n 2173) (.n 2167) (.n 2172)) ::
+  .atom (.const (.n 2174) (word 1 0 0)) ::
+  .atom (.load (.n 2175) (.n 158) 79) ::
+  .atom (.add (.n 2176) (.n 2174) (.n 2175)) ::
+  .atom (.load (.n 2177) (.n 18) 15) ::
+  .atom (.add (.n 2178) (.n 2176) (.n 2177)) ::
+  .atom (.mul (.n 2179) (.n 2173) (.n 2178)) ::
+  .atom (.const (.n 2180) (word 1 0 0)) ::
+  .atom (.load (.n 2181) (.n 158) 80) ::
+  .atom (.add (.n 2182) (.n 2180) (.n 2181)) ::
+  .atom (.load (.n 2183) (.n 18) 16) ::
+  .atom (.add (.n 2184) (.n 2182) (.n 2183)) ::
+  .atom (.mul (.n 2185) (.n 2179) (.n 2184)) ::
+  .atom (.const (.n 2186) (word 1 0 0)) ::
+  .atom (.load (.n 2187) (.n 158) 81) ::
+  .atom (.add (.n 2188) (.n 2186) (.n 2187)) ::
+  .atom (.load (.n 2189) (.n 18) 17) ::
+  .atom (.add (.n 2190) (.n 2188) (.n 2189)) ::
+  .atom (.mul (.n 2191) (.n 2185) (.n 2190)) ::
+  .atom (.const (.n 2192) (word 1 0 0)) ::
+  .atom (.load (.n 2193) (.n 158) 82) ::
+  .atom (.add (.n 2194) (.n 2192) (.n 2193)) ::
+  .atom (.load (.n 2195) (.n 18) 18) ::
+  .atom (.add (.n 2196) (.n 2194) (.n 2195)) ::
+  .atom (.mul (.n 2197) (.n 2191) (.n 2196)) ::
+  .atom (.const (.n 2198) (word 1 0 0)) ::
+  .atom (.load (.n 2199) (.n 158) 83) ::
+  .atom (.add (.n 2200) (.n 2198) (.n 2199)) ::
+  .atom (.load (.n 2201) (.n 18) 19) ::
+  .atom (.add (.n 2202) (.n 2200) (.n 2201)) ::
+  .atom (.mul (.n 2203) (.n 2197) (.n 2202)) ::
+  .atom (.const (.n 2204) (word 1 0 0)) ::
+  .atom (.load (.n 2205) (.n 158) 84) ::
+  .atom (.add (.n 2206) (.n 2204) (.n 2205)) ::
+  .atom (.load (.n 2207) (.n 18) 20) ::
+  .atom (.add (.n 2208) (.n 2206) (.n 2207)) ::
+  .atom (.mul (.n 2209) (.n 2203) (.n 2208)) ::
+  .atom (.const (.n 2210) (word 1 0 0)) ::
+  .atom (.load (.n 2211) (.n 158) 85) ::
+  .atom (.add (.n 2212) (.n 2210) (.n 2211)) ::
+  .atom (.load (.n 2213) (.n 18) 21) ::
+  .atom (.add (.n 2214) (.n 2212) (.n 2213)) ::
+  .atom (.mul (.n 2215) (.n 2209) (.n 2214)) ::
+  .atom (.const (.n 2216) (word 1 0 0)) ::
+  .atom (.load (.n 2217) (.n 158) 86) ::
+  .atom (.add (.n 2218) (.n 2216) (.n 2217)) ::
+  .atom (.load (.n 2219) (.n 1201) 0) ::
+  .atom (.add (.n 2220) (.n 2218) (.n 2219)) ::
+  .atom (.mul (.n 2221) (.n 2215) (.n 2220)) ::
+  .atom (.const (.n 2222) (word 1 0 0)) ::
+  .atom (.load (.n 2223) (.n 158) 87) ::
+  .atom (.add (.n 2224) (.n 2222) (.n 2223)) ::
+  .atom (.load (.n 2225) (.n 1201) 1) ::
+  .atom (.add (.n 2226) (.n 2224) (.n 2225)) ::
+  .atom (.mul (.n 2227) (.n 2221) (.n 2226)) ::
+  .atom (.const (.n 2228) (word 1 0 0)) ::
+  .atom (.load (.n 2229) (.n 158) 88) ::
+  .atom (.add (.n 2230) (.n 2228) (.n 2229)) ::
+  .atom (.load (.n 2231) (.n 1201) 2) ::
+  .atom (.add (.n 2232) (.n 2230) (.n 2231)) ::
+  .atom (.mul (.n 2233) (.n 2227) (.n 2232)) ::
+  .atom (.const (.n 2234) (word 1 0 0)) ::
+  .atom (.load (.n 2235) (.n 158) 89) ::
+  .atom (.add (.n 2236) (.n 2234) (.n 2235)) ::
+  .atom (.load (.n 2237) (.n 1201) 3) ::
+  .atom (.add (.n 2238) (.n 2236) (.n 2237)) ::
+  .atom (.mul (.n 2239) (.n 2233) (.n 2238)) ::
+  .atom (.const (.n 2240) (word 1 0 0)) ::
+  .atom (.load (.n 2241) (.n 158) 90) ::
+  .atom (.add (.n 2242) (.n 2240) (.n 2241)) ::
+  .atom (.load (.n 2243) (.n 1201) 4) ::
+  .atom (.add (.n 2244) (.n 2242) (.n 2243)) ::
+  .atom (.mul (.n 2245) (.n 2239) (.n 2244)) ::
+  .atom (.add (.n 2246) (.n 2166) (.n 2245)) ::
+  .atom (.load (.n 2247) (.n 160) 16) ::
+  .atom (.const (.n 2248) (word 1 0 0)) ::
+  .atom (.load (.n 2249) (.n 158) 104) ::
+  .atom (.add (.n 2250) (.n 2248) (.n 2249)) ::
+  .atom (.load (.n 2251) (.n 18) 18) ::
+  .atom (.add (.n 2252) (.n 2250) (.n 2251)) ::
+  .atom (.mul (.n 2253) (.n 2247) (.n 2252)) ::
+  .atom (.const (.n 2254) (word 1 0 0)) ::
+  .atom (.load (.n 2255) (.n 158) 105) ::
+  .atom (.add (.n 2256) (.n 2254) (.n 2255)) ::
+  .atom (.load (.n 2257) (.n 18) 19) ::
+  .atom (.add (.n 2258) (.n 2256) (.n 2257)) ::
+  .atom (.mul (.n 2259) (.n 2253) (.n 2258)) ::
+  .atom (.const (.n 2260) (word 1 0 0)) ::
+  .atom (.load (.n 2261) (.n 158) 106) ::
+  .atom (.add (.n 2262) (.n 2260) (.n 2261)) ::
+  .atom (.load (.n 2263) (.n 18) 20) ::
+  .atom (.add (.n 2264) (.n 2262) (.n 2263)) ::
+  .atom (.mul (.n 2265) (.n 2259) (.n 2264)) ::
+  .atom (.const (.n 2266) (word 1 0 0)) ::
+  .atom (.load (.n 2267) (.n 158) 107) ::
+  .atom (.add (.n 2268) (.n 2266) (.n 2267)) ::
+  .atom (.load (.n 2269) (.n 18) 21) ::
+  .atom (.add (.n 2270) (.n 2268) (.n 2269)) ::
+  .atom (.mul (.n 2271) (.n 2265) (.n 2270)) ::
+  .atom (.const (.n 2272) (word 1 0 0)) ::
+  .atom (.load (.n 2273) (.n 158) 108) ::
+  .atom (.add (.n 2274) (.n 2272) (.n 2273)) ::
+  .atom (.load (.n 2275) (.n 1201) 0) ::
   [])
 
-/-- `open_stacked__L8`: statements 2118 to 2236 of the body. -/
+/-- `open_stacked__L8`: statements 2193 to 2226 of the body. -/
 noncomputable def c4 : List Core.Stmt := (
-  .atom (.mul (.n 2246) (.n 2240) (.n 2245)) ::
-  .atom (.const (.n 2247) (word 1 0 0)) ::
-  .atom (.load (.n 2248) (.n 158) 82) ::
-  .atom (.add (.n 2249) (.n 2247) (.n 2248)) ::
-  .atom (.load (.n 2250) (.n 18) 18) ::
-  .atom (.add (.n 2251) (.n 2249) (.n 2250)) ::
-  .atom (.mul (.n 2252) (.n 2246) (.n 2251)) ::
-  .atom (.const (.n 2253) (word 1 0 0)) ::
-  .atom (.load (.n 2254) (.n 158) 83) ::
-  .atom (.add (.n 2255) (.n 2253) (.n 2254)) ::
-  .atom (.load (.n 2256) (.n 18) 19) ::
-  .atom (.add (.n 2257) (.n 2255) (.n 2256)) ::
-  .atom (.mul (.n 2258) (.n 2252) (.n 2257)) ::
-  .atom (.const (.n 2259) (word 1 0 0)) ::
-  .atom (.load (.n 2260) (.n 158) 84) ::
-  .atom (.add (.n 2261) (.n 2259) (.n 2260)) ::
-  .atom (.load (.n 2262) (.n 18) 20) ::
-  .atom (.add (.n 2263) (.n 2261) (.n 2262)) ::
-  .atom (.mul (.n 2264) (.n 2258) (.n 2263)) ::
-  .atom (.const (.n 2265) (word 1 0 0)) ::
-  .atom (.load (.n 2266) (.n 158) 85) ::
-  .atom (.add (.n 2267) (.n 2265) (.n 2266)) ::
-  .atom (.load (.n 2268) (.n 18) 21) ::
-  .atom (.add (.n 2269) (.n 2267) (.n 2268)) ::
-  .atom (.mul (.n 2270) (.n 2264) (.n 2269)) ::
-  .atom (.const (.n 2271) (word 1 0 0)) ::
-  .atom (.load (.n 2272) (.n 158) 86) ::
-  .atom (.add (.n 2273) (.n 2271) (.n 2272)) ::
-  .atom (.load (.n 2274) (.n 1201) 0) ::
-  .atom (.add (.n 2275) (.n 2273) (.n 2274)) ::
-  .atom (.mul (.n 2276) (.n 2270) (.n 2275)) ::
-  .atom (.const (.n 2277) (word 1 0 0)) ::
-  .atom (.load (.n 2278) (.n 158) 87) ::
-  .atom (.add (.n 2279) (.n 2277) (.n 2278)) ::
-  .atom (.load (.n 2280) (.n 1201) 1) ::
-  .atom (.add (.n 2281) (.n 2279) (.n 2280)) ::
-  .atom (.mul (.n 2282) (.n 2276) (.n 2281)) ::
-  .atom (.const (.n 2283) (word 1 0 0)) ::
-  .atom (.load (.n 2284) (.n 158) 88) ::
-  .atom (.add (.n 2285) (.n 2283) (.n 2284)) ::
-  .atom (.load (.n 2286) (.n 1201) 2) ::
-  .atom (.add (.n 2287) (.n 2285) (.n 2286)) ::
-  .atom (.mul (.n 2288) (.n 2282) (.n 2287)) ::
-  .atom (.const (.n 2289) (word 1 0 0)) ::
-  .atom (.load (.n 2290) (.n 158) 89) ::
-  .atom (.add (.n 2291) (.n 2289) (.n 2290)) ::
-  .atom (.load (.n 2292) (.n 1201) 3) ::
-  .atom (.add (.n 2293) (.n 2291) (.n 2292)) ::
-  .atom (.mul (.n 2294) (.n 2288) (.n 2293)) ::
-  .atom (.const (.n 2295) (word 1 0 0)) ::
-  .atom (.load (.n 2296) (.n 158) 90) ::
-  .atom (.add (.n 2297) (.n 2295) (.n 2296)) ::
-  .atom (.load (.n 2298) (.n 1201) 4) ::
-  .atom (.add (.n 2299) (.n 2297) (.n 2298)) ::
-  .atom (.mul (.n 2300) (.n 2294) (.n 2299)) ::
-  .atom (.add (.n 2301) (.n 2221) (.n 2300)) ::
-  .atom (.load (.n 2302) (.n 160) 16) ::
-  .atom (.const (.n 2303) (word 1 0 0)) ::
-  .atom (.load (.n 2304) (.n 158) 104) ::
-  .atom (.add (.n 2305) (.n 2303) (.n 2304)) ::
-  .atom (.load (.n 2306) (.n 18) 18) ::
-  .atom (.add (.n 2307) (.n 2305) (.n 2306)) ::
-  .atom (.mul (.n 2308) (.n 2302) (.n 2307)) ::
-  .atom (.const (.n 2309) (word 1 0 0)) ::
-  .atom (.load (.n 2310) (.n 158) 105) ::
-  .atom (.add (.n 2311) (.n 2309) (.n 2310)) ::
-  .atom (.load (.n 2312) (.n 18) 19) ::
-  .atom (.add (.n 2313) (.n 2311) (.n 2312)) ::
-  .atom (.mul (.n 2314) (.n 2308) (.n 2313)) ::
-  .atom (.const (.n 2315) (word 1 0 0)) ::
-  .atom (.load (.n 2316) (.n 158) 106) ::
-  .atom (.add (.n 2317) (.n 2315) (.n 2316)) ::
-  .atom (.load (.n 2318) (.n 18) 20) ::
-  .atom (.add (.n 2319) (.n 2317) (.n 2318)) ::
-  .atom (.mul (.n 2320) (.n 2314) (.n 2319)) ::
-  .atom (.const (.n 2321) (word 1 0 0)) ::
-  .atom (.load (.n 2322) (.n 158) 107) ::
-  .atom (.add (.n 2323) (.n 2321) (.n 2322)) ::
-  .atom (.load (.n 2324) (.n 18) 21) ::
-  .atom (.add (.n 2325) (.n 2323) (.n 2324)) ::
-  .atom (.mul (.n 2326) (.n 2320) (.n 2325)) ::
-  .atom (.const (.n 2327) (word 1 0 0)) ::
-  .atom (.load (.n 2328) (.n 158) 108) ::
-  .atom (.add (.n 2329) (.n 2327) (.n 2328)) ::
-  .atom (.load (.n 2330) (.n 1201) 0) ::
-  .atom (.add (.n 2331) (.n 2329) (.n 2330)) ::
-  .atom (.mul (.n 2332) (.n 2326) (.n 2331)) ::
-  .atom (.const (.n 2333) (word 1 0 0)) ::
-  .atom (.load (.n 2334) (.n 158) 109) ::
-  .atom (.add (.n 2335) (.n 2333) (.n 2334)) ::
-  .atom (.load (.n 2336) (.n 1201) 1) ::
-  .atom (.add (.n 2337) (.n 2335) (.n 2336)) ::
-  .atom (.mul (.n 2338) (.n 2332) (.n 2337)) ::
-  .atom (.const (.n 2339) (word 1 0 0)) ::
-  .atom (.load (.n 2340) (.n 158) 110) ::
-  .atom (.add (.n 2341) (.n 2339) (.n 2340)) ::
-  .atom (.load (.n 2342) (.n 1201) 2) ::
-  .atom (.add (.n 2343) (.n 2341) (.n 2342)) ::
-  .atom (.mul (.n 2344) (.n 2338) (.n 2343)) ::
-  .atom (.const (.n 2345) (word 1 0 0)) ::
-  .atom (.load (.n 2346) (.n 158) 111) ::
-  .atom (.add (.n 2347) (.n 2345) (.n 2346)) ::
-  .atom (.load (.n 2348) (.n 1201) 3) ::
-  .atom (.add (.n 2349) (.n 2347) (.n 2348)) ::
-  .atom (.mul (.n 2350) (.n 2344) (.n 2349)) ::
-  .atom (.const (.n 2351) (word 1 0 0)) ::
-  .atom (.load (.n 2352) (.n 158) 112) ::
-  .atom (.add (.n 2353) (.n 2351) (.n 2352)) ::
-  .atom (.load (.n 2354) (.n 1201) 4) ::
-  .atom (.add (.n 2355) (.n 2353) (.n 2354)) ::
-  .atom (.mul (.n 2356) (.n 2350) (.n 2355)) ::
-  .atom (.add (.n 2357) (.n 2301) (.n 2356)) ::
-  .atom (.copy (.n 2358) (.n 1295)) ::
-  .atom (.copy (.n 2359) (.n 1297)) ::
-  .atom (.copy (.n 2360) (.n 1298)) ::
-  .atom (.load (.n 2361) (.n 1888) 5) ::
-  .atom (.add (.n 2362) (.n 2361) (.n 2357)) ::
-  .atom (.copy (.n 2363) (.n 1296)) ::
-  .ret [.n 2358, .n 2359, .n 2360, .n 2362, .n 2363] ::
+  .atom (.add (.n 2276) (.n 2274) (.n 2275)) ::
+  .atom (.mul (.n 2277) (.n 2271) (.n 2276)) ::
+  .atom (.const (.n 2278) (word 1 0 0)) ::
+  .atom (.load (.n 2279) (.n 158) 109) ::
+  .atom (.add (.n 2280) (.n 2278) (.n 2279)) ::
+  .atom (.load (.n 2281) (.n 1201) 1) ::
+  .atom (.add (.n 2282) (.n 2280) (.n 2281)) ::
+  .atom (.mul (.n 2283) (.n 2277) (.n 2282)) ::
+  .atom (.const (.n 2284) (word 1 0 0)) ::
+  .atom (.load (.n 2285) (.n 158) 110) ::
+  .atom (.add (.n 2286) (.n 2284) (.n 2285)) ::
+  .atom (.load (.n 2287) (.n 1201) 2) ::
+  .atom (.add (.n 2288) (.n 2286) (.n 2287)) ::
+  .atom (.mul (.n 2289) (.n 2283) (.n 2288)) ::
+  .atom (.const (.n 2290) (word 1 0 0)) ::
+  .atom (.load (.n 2291) (.n 158) 111) ::
+  .atom (.add (.n 2292) (.n 2290) (.n 2291)) ::
+  .atom (.load (.n 2293) (.n 1201) 3) ::
+  .atom (.add (.n 2294) (.n 2292) (.n 2293)) ::
+  .atom (.mul (.n 2295) (.n 2289) (.n 2294)) ::
+  .atom (.const (.n 2296) (word 1 0 0)) ::
+  .atom (.load (.n 2297) (.n 158) 112) ::
+  .atom (.add (.n 2298) (.n 2296) (.n 2297)) ::
+  .atom (.load (.n 2299) (.n 1201) 4) ::
+  .atom (.add (.n 2300) (.n 2298) (.n 2299)) ::
+  .atom (.mul (.n 2301) (.n 2295) (.n 2300)) ::
+  .atom (.add (.n 2302) (.n 2246) (.n 2301)) ::
+  .atom (.copy (.n 2303) (.n 1295)) ::
+  .atom (.copy (.n 2304) (.n 1297)) ::
+  .atom (.copy (.n 2305) (.n 1298)) ::
+  .atom (.load (.n 2306) (.n 1888) 5) ::
+  .atom (.add (.n 2307) (.n 2306) (.n 2302)) ::
+  .atom (.copy (.n 2308) (.n 1296)) ::
+  .ret [.n 2303, .n 2304, .n 2305, .n 2307, .n 2308] ::
   [])
 
 /-- `open_stacked__L8`: the body. -/
@@ -24752,7 +23886,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.load (.n 1766) (.n 1633) 18) ::
   [])
 
-/-- `open_stacked__L9`: statements 1592 to 2079 of the body. -/
+/-- `open_stacked__L9`: statements 1592 to 2151 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.mul (.n 1767) (.n 1760) (.n 1763)) ::
   .atom (.load (.n 1768) (.n 18) 25) ::
@@ -25184,640 +24318,508 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 2135) (.n 2134))) ::
   .atom (.const (.n 2136) (word 0 0 0)) ::
   .atom (.load (.n 2136) (.n 2135) 0) ::
-  .atom (.const (.n 2137) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2138) (word 268435456 0 0)),
-      .atom (.copy (.n 2139) (.n 2138)),
-      .atom (.const (.n 2140) (word 2 0 0)),
-      .atom (.copy (.n 2141) (.n 2140))],
-    [
-      .atom (.const (.n 2142) (word 16384 0 0)),
-      .atom (.copy (.n 2139) (.n 2142)),
-      .atom (.const (.n 2143) (word 1 0 0)),
-      .atom (.copy (.n 2141) (.n 2143))],
-    [
-      .atom (.const (.n 2144) (word 512 0 0)),
-      .atom (.copy (.n 2139) (.n 2144)),
-      .atom (.const (.n 2145) (word 8 0 0)),
-      .atom (.copy (.n 2141) (.n 2145))],
-    [
-      .atom (.const (.n 2146) (word 128 0 0)),
-      .atom (.copy (.n 2139) (.n 2146)),
-      .atom (.const (.n 2147) (word 1 0 0)),
-      .atom (.copy (.n 2141) (.n 2147))]] ::
-  .atom (.load (.n 2148) (.n 22) 0) ::
-  .call "level_residual__L22" [.n 24, .n 1633, .n 2148, .n 2139, .n 2141] [.n 2149] ::
-  .atom (.load (.n 2150) (.n 2135) 0) ::
-  .atom (.load (.n 2151) (.n 1635) 0) ::
-  .atom (.mul (.n 2152) (.n 2151) (.n 2149)) ::
-  .atom (.add (.n 2153) (.n 2150) (.n 2152)) ::
-  .atom (.load (.n 2153) (.n 2135) 1) ::
-  .atom (.const (.n 2154) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2155) (word 128 0 0)),
-      .atom (.copy (.n 2156) (.n 2155)),
-      .atom (.const (.n 2157) (word 1 0 0)),
-      .atom (.copy (.n 2158) (.n 2157))],
-    [
-      .atom (.const (.n 2159) (word 32 0 0)),
-      .atom (.copy (.n 2156) (.n 2159)),
-      .atom (.const (.n 2160) (word 32 0 0)),
-      .atom (.copy (.n 2158) (.n 2160))],
-    [
-      .atom (.const (.n 2161) (word 16 0 0)),
-      .atom (.copy (.n 2156) (.n 2161)),
-      .atom (.const (.n 2162) (word 64 0 0)),
-      .atom (.copy (.n 2158) (.n 2162))],
-    [
-      .atom (.const (.n 2163) (word 16 0 0)),
-      .atom (.copy (.n 2156) (.n 2163)),
-      .atom (.const (.n 2164) (word 1 0 0)),
-      .atom (.copy (.n 2158) (.n 2164))]] ::
-  .atom (.const (.n 2165) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2166) (.n 24) (.n 2165)) ::
-  .atom (.const (.n 2167) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2168) (.n 1633) (.n 2167)) ::
-  .atom (.load (.n 2169) (.n 22) 1) ::
-  .call "level_residual__L18" [.n 2166, .n 2168, .n 2169, .n 2156, .n 2158] [.n 2170] ::
-  .atom (.load (.n 2171) (.n 2135) 1) ::
-  .atom (.load (.n 2172) (.n 1635) 1) ::
-  .atom (.mul (.n 2173) (.n 2172) (.n 2170)) ::
-  .atom (.add (.n 2174) (.n 2171) (.n 2173)) ::
-  .atom (.load (.n 2174) (.n 2135) 2) ::
-  .atom (.const (.n 2175) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2176) (word 16 0 0)),
-      .atom (.copy (.n 2177) (.n 2176)),
-      .atom (.const (.n 2178) (word 1 0 0)),
-      .atom (.copy (.n 2179) (.n 2178))],
-    [
-      .atom (.const (.n 2180) (word 8 0 0)),
-      .atom (.copy (.n 2177) (.n 2180)),
-      .atom (.const (.n 2181) (word 16 0 0)),
-      .atom (.copy (.n 2179) (.n 2181))],
-    [
-      .atom (.const (.n 2182) (word 8 0 0)),
-      .atom (.copy (.n 2177) (.n 2182)),
-      .atom (.const (.n 2183) (word 2 0 0)),
-      .atom (.copy (.n 2179) (.n 2183))],
-    [
-      .atom (.const (.n 2184) (word 4 0 0)),
-      .atom (.copy (.n 2177) (.n 2184)),
-      .atom (.const (.n 2185) (word 128 0 0)),
-      .atom (.copy (.n 2179) (.n 2185))]] ::
-  .atom (.const (.n 2186) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2187) (.n 564) (.n 2186)) ::
-  .atom (.const (.n 2188) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2189) (.n 2168) (.n 2188)) ::
-  .atom (.load (.n 2190) (.n 22) 2) ::
-  .call "level_residual__L14" [.n 2187, .n 2189, .n 2190, .n 2177, .n 2179] [.n 2191] ::
-  .atom (.load (.n 2192) (.n 2135) 2) ::
-  .atom (.load (.n 2193) (.n 1635) 2) ::
-  .atom (.mul (.n 2194) (.n 2193) (.n 2191)) ::
-  .atom (.add (.n 2195) (.n 2192) (.n 2194)) ::
-  .atom (.load (.n 2195) (.n 2135) 3) ::
-  .atom (.const (.n 2196) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2197) (word 4 0 0)),
-      .atom (.copy (.n 2198) (.n 2197)),
-      .atom (.const (.n 2199) (word 128 0 0)),
-      .atom (.copy (.n 2200) (.n 2199))],
-    [
-      .atom (.const (.n 2201) (word 4 0 0)),
-      .atom (.copy (.n 2198) (.n 2201)),
-      .atom (.const (.n 2202) (word 32 0 0)),
-      .atom (.copy (.n 2200) (.n 2202))],
-    [
-      .atom (.const (.n 2203) (word 4 0 0)),
-      .atom (.copy (.n 2198) (.n 2203)),
-      .atom (.const (.n 2204) (word 8 0 0)),
-      .atom (.copy (.n 2200) (.n 2204))],
-    [
-      .atom (.const (.n 2205) (word 4 0 0)),
-      .atom (.copy (.n 2198) (.n 2205)),
-      .atom (.const (.n 2206) (word 4 0 0)),
-      .atom (.copy (.n 2200) (.n 2206))]] ::
-  .atom (.const (.n 2207) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2208) (.n 791) (.n 2207)) ::
-  .atom (.const (.n 2209) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2210) (.n 2189) (.n 2209)) ::
-  .atom (.load (.n 2211) (.n 22) 3) ::
-  .call "level_residual__L10" [.n 2208, .n 2210, .n 2211, .n 2198, .n 2200] [.n 2212] ::
-  .atom (.load (.n 2213) (.n 2135) 3) ::
-  .atom (.load (.n 2214) (.n 1635) 3) ::
-  .atom (.mul (.n 2215) (.n 2214) (.n 2212)) ::
-  .atom (.add (.n 2216) (.n 2213) (.n 2215)) ::
-  .atom (.load (.n 2216) (.n 2135) 4) ::
-  .atom (.const (.n 2217) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2218) (word 4 0 0)),
-      .atom (.copy (.n 2219) (.n 2218)),
-      .atom (.const (.n 2220) (word 4 0 0)),
-      .atom (.copy (.n 2221) (.n 2220))],
-    [
-      .atom (.const (.n 2222) (word 4 0 0)),
-      .atom (.copy (.n 2219) (.n 2222)),
-      .atom (.const (.n 2223) (word 1 0 0)),
-      .atom (.copy (.n 2221) (.n 2223))],
-    [
-      .atom (.const (.n 2224) (word 2 0 0)),
-      .atom (.copy (.n 2219) (.n 2224)),
-      .atom (.const (.n 2225) (word 128 0 0)),
-      .atom (.copy (.n 2221) (.n 2225))],
-    [
-      .atom (.const (.n 2226) (word 2 0 0)),
-      .atom (.copy (.n 2219) (.n 2226)),
-      .atom (.const (.n 2227) (word 128 0 0)),
-      .atom (.copy (.n 2221) (.n 2227))]] ::
-  .atom (.const (.n 2228) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2229) (.n 1018) (.n 2228)) ::
-  .atom (.const (.n 2230) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2231) (.n 2210) (.n 2230)) ::
-  .atom (.load (.n 2232) (.n 22) 4) ::
-  .call "level_residual__L6" [.n 2229, .n 2231, .n 2232, .n 2219, .n 2221] [.n 2233] ::
-  .atom (.load (.n 2234) (.n 2135) 4) ::
-  .atom (.load (.n 2235) (.n 1635) 4) ::
+  .atom (.load (.n 2137) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L225_L22", "level_residual__L112_L22", "level_residual__L75_L22", "level_residual__L56_L22"] [.n 24, .n 1633, .n 2137] [.n 2138] ::
+  .atom (.load (.n 2139) (.n 2135) 0) ::
+  .atom (.load (.n 2140) (.n 1635) 0) ::
+  .atom (.mul (.n 2141) (.n 2140) (.n 2138)) ::
+  .atom (.add (.n 2142) (.n 2139) (.n 2141)) ::
+  .atom (.load (.n 2142) (.n 2135) 1) ::
+  .atom (.const (.n 2143) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2144) (.n 24) (.n 2143)) ::
+  .atom (.const (.n 2145) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2146) (.n 1633) (.n 2145)) ::
+  .atom (.load (.n 2147) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L18", "level_residual__L45_L18", "level_residual__L38_L18", "level_residual__L32_L18"] [.n 2144, .n 2146, .n 2147] [.n 2148] ::
+  .atom (.load (.n 2149) (.n 2135) 1) ::
+  .atom (.load (.n 2150) (.n 1635) 1) ::
+  .atom (.mul (.n 2151) (.n 2150) (.n 2148)) ::
+  .atom (.add (.n 2152) (.n 2149) (.n 2151)) ::
+  .atom (.load (.n 2152) (.n 2135) 2) ::
+  .atom (.const (.n 2153) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2154) (.n 564) (.n 2153)) ::
+  .atom (.const (.n 2155) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2156) (.n 2146) (.n 2155)) ::
+  .atom (.load (.n 2157) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L14", "level_residual__L28_L14", "level_residual__L25_L14", "level_residual__L23_L14"] [.n 2154, .n 2156, .n 2157] [.n 2158] ::
+  .atom (.load (.n 2159) (.n 2135) 2) ::
+  .atom (.load (.n 2160) (.n 1635) 2) ::
+  .atom (.mul (.n 2161) (.n 2160) (.n 2158)) ::
+  .atom (.add (.n 2162) (.n 2159) (.n 2161)) ::
+  .atom (.load (.n 2162) (.n 2135) 3) ::
+  .atom (.const (.n 2163) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2164) (.n 791) (.n 2163)) ::
+  .atom (.const (.n 2165) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2166) (.n 2156) (.n 2165)) ::
+  .atom (.load (.n 2167) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L10", "level_residual__L21_L10", "level_residual__L19_L10", "level_residual__L18_L10"] [.n 2164, .n 2166, .n 2167] [.n 2168] ::
+  .atom (.load (.n 2169) (.n 2135) 3) ::
+  .atom (.load (.n 2170) (.n 1635) 3) ::
+  .atom (.mul (.n 2171) (.n 2170) (.n 2168)) ::
+  .atom (.add (.n 2172) (.n 2169) (.n 2171)) ::
+  .atom (.load (.n 2172) (.n 2135) 4) ::
+  .atom (.const (.n 2173) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2174) (.n 1018) (.n 2173)) ::
+  .atom (.const (.n 2175) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2176) (.n 2166) (.n 2175)) ::
+  .atom (.load (.n 2177) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L18_L6", "level_residual__L16_L6", "level_residual__L15_L6", "level_residual__L15_L6"] [.n 2174, .n 2176, .n 2177] [.n 2178] ::
+  .atom (.load (.n 2179) (.n 2135) 4) ::
+  .atom (.load (.n 2180) (.n 1635) 4) ::
+  .atom (.mul (.n 2181) (.n 2180) (.n 2178)) ::
+  .atom (.add (.n 2182) (.n 2179) (.n 2181)) ::
+  .atom (.load (.n 2182) (.n 2135) 5) ::
+  .atom (.const (.n 2183) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2184) (.n 1245) (.n 2183)) ::
+  .atom (.const (.n 2185) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2186) (.n 2176) (.n 2185)) ::
+  .atom (.load (.n 2187) (.n 22) 5) ::
+  .dispatch (.n 0) ["level_residual__L14_L2", "level_residual__L13_L2", "level_residual__L13_L2", "level_residual__L12_L2"] [.n 2184, .n 2186, .n 2187] [.n 2188] ::
+  .atom (.load (.n 2189) (.n 2135) 5) ::
+  .atom (.load (.n 2190) (.n 1635) 5) ::
+  .atom (.mul (.n 2191) (.n 2190) (.n 2188)) ::
+  .atom (.add (.n 2192) (.n 2189) (.n 2191)) ::
+  .atom (.load (.n 2192) (.n 2135) 6) ::
+  .atom (.load (.n 2193) (.n 160) 4) ::
+  .atom (.const (.n 2194) (word 1 0 0)) ::
+  .atom (.load (.n 2195) (.n 158) 26) ::
+  .atom (.add (.n 2196) (.n 2194) (.n 2195)) ::
+  .atom (.load (.n 2197) (.n 18) 6) ::
+  .atom (.add (.n 2198) (.n 2196) (.n 2197)) ::
+  .atom (.mul (.n 2199) (.n 2193) (.n 2198)) ::
+  .atom (.const (.n 2200) (word 1 0 0)) ::
+  .atom (.load (.n 2201) (.n 158) 27) ::
+  .atom (.add (.n 2202) (.n 2200) (.n 2201)) ::
+  .atom (.load (.n 2203) (.n 18) 7) ::
+  .atom (.add (.n 2204) (.n 2202) (.n 2203)) ::
+  .atom (.mul (.n 2205) (.n 2199) (.n 2204)) ::
+  .atom (.const (.n 2206) (word 1 0 0)) ::
+  .atom (.load (.n 2207) (.n 158) 28) ::
+  .atom (.add (.n 2208) (.n 2206) (.n 2207)) ::
+  .atom (.load (.n 2209) (.n 18) 8) ::
+  .atom (.add (.n 2210) (.n 2208) (.n 2209)) ::
+  .atom (.mul (.n 2211) (.n 2205) (.n 2210)) ::
+  .atom (.const (.n 2212) (word 1 0 0)) ::
+  .atom (.load (.n 2213) (.n 158) 29) ::
+  .atom (.add (.n 2214) (.n 2212) (.n 2213)) ::
+  .atom (.load (.n 2215) (.n 18) 9) ::
+  .atom (.add (.n 2216) (.n 2214) (.n 2215)) ::
+  .atom (.mul (.n 2217) (.n 2211) (.n 2216)) ::
+  .atom (.const (.n 2218) (word 1 0 0)) ::
+  .atom (.load (.n 2219) (.n 158) 30) ::
+  .atom (.add (.n 2220) (.n 2218) (.n 2219)) ::
+  .atom (.load (.n 2221) (.n 18) 10) ::
+  .atom (.add (.n 2222) (.n 2220) (.n 2221)) ::
+  .atom (.mul (.n 2223) (.n 2217) (.n 2222)) ::
+  .atom (.const (.n 2224) (word 1 0 0)) ::
+  .atom (.load (.n 2225) (.n 158) 31) ::
+  .atom (.add (.n 2226) (.n 2224) (.n 2225)) ::
+  .atom (.load (.n 2227) (.n 18) 11) ::
+  .atom (.add (.n 2228) (.n 2226) (.n 2227)) ::
+  .atom (.mul (.n 2229) (.n 2223) (.n 2228)) ::
+  .atom (.const (.n 2230) (word 1 0 0)) ::
+  .atom (.load (.n 2231) (.n 158) 32) ::
+  .atom (.add (.n 2232) (.n 2230) (.n 2231)) ::
+  .atom (.load (.n 2233) (.n 18) 12) ::
+  .atom (.add (.n 2234) (.n 2232) (.n 2233)) ::
+  .atom (.mul (.n 2235) (.n 2229) (.n 2234)) ::
+  .atom (.const (.n 2236) (word 1 0 0)) ::
+  .atom (.load (.n 2237) (.n 158) 33) ::
+  .atom (.add (.n 2238) (.n 2236) (.n 2237)) ::
+  .atom (.load (.n 2239) (.n 18) 13) ::
+  .atom (.add (.n 2240) (.n 2238) (.n 2239)) ::
+  .atom (.mul (.n 2241) (.n 2235) (.n 2240)) ::
+  .atom (.const (.n 2242) (word 1 0 0)) ::
+  .atom (.load (.n 2243) (.n 158) 34) ::
+  .atom (.add (.n 2244) (.n 2242) (.n 2243)) ::
+  .atom (.load (.n 2245) (.n 18) 14) ::
+  .atom (.add (.n 2246) (.n 2244) (.n 2245)) ::
+  .atom (.mul (.n 2247) (.n 2241) (.n 2246)) ::
+  .atom (.const (.n 2248) (word 1 0 0)) ::
+  .atom (.load (.n 2249) (.n 158) 35) ::
+  .atom (.add (.n 2250) (.n 2248) (.n 2249)) ::
+  .atom (.load (.n 2251) (.n 18) 15) ::
+  .atom (.add (.n 2252) (.n 2250) (.n 2251)) ::
+  .atom (.mul (.n 2253) (.n 2247) (.n 2252)) ::
+  .atom (.const (.n 2254) (word 1 0 0)) ::
+  .atom (.load (.n 2255) (.n 158) 36) ::
+  .atom (.add (.n 2256) (.n 2254) (.n 2255)) ::
+  .atom (.load (.n 2257) (.n 18) 16) ::
+  .atom (.add (.n 2258) (.n 2256) (.n 2257)) ::
+  .atom (.mul (.n 2259) (.n 2253) (.n 2258)) ::
+  .atom (.const (.n 2260) (word 1 0 0)) ::
   [])
 
-/-- `open_stacked__L9`: statements 2080 to 2531 of the body. -/
+/-- `open_stacked__L9`: statements 2152 to 2519 of the body. -/
 noncomputable def c4 : List Core.Stmt := (
-  .atom (.mul (.n 2236) (.n 2235) (.n 2233)) ::
-  .atom (.add (.n 2237) (.n 2234) (.n 2236)) ::
-  .atom (.load (.n 2237) (.n 2135) 5) ::
-  .atom (.const (.n 2238) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2239) (word 2 0 0)),
-      .atom (.copy (.n 2240) (.n 2239)),
-      .atom (.const (.n 2241) (word 64 0 0)),
-      .atom (.copy (.n 2242) (.n 2241))],
-    [
-      .atom (.const (.n 2243) (word 2 0 0)),
-      .atom (.copy (.n 2240) (.n 2243)),
-      .atom (.const (.n 2244) (word 32 0 0)),
-      .atom (.copy (.n 2242) (.n 2244))],
-    [
-      .atom (.const (.n 2245) (word 2 0 0)),
-      .atom (.copy (.n 2240) (.n 2245)),
-      .atom (.const (.n 2246) (word 32 0 0)),
-      .atom (.copy (.n 2242) (.n 2246))],
-    [
-      .atom (.const (.n 2247) (word 2 0 0)),
-      .atom (.copy (.n 2240) (.n 2247)),
-      .atom (.const (.n 2248) (word 16 0 0)),
-      .atom (.copy (.n 2242) (.n 2248))]] ::
-  .atom (.const (.n 2249) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2250) (.n 1245) (.n 2249)) ::
-  .atom (.const (.n 2251) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2252) (.n 2231) (.n 2251)) ::
-  .atom (.load (.n 2253) (.n 22) 5) ::
-  .call "level_residual__L2" [.n 2250, .n 2252, .n 2253, .n 2240, .n 2242] [.n 2254] ::
-  .atom (.load (.n 2255) (.n 2135) 5) ::
-  .atom (.load (.n 2256) (.n 1635) 5) ::
-  .atom (.mul (.n 2257) (.n 2256) (.n 2254)) ::
-  .atom (.add (.n 2258) (.n 2255) (.n 2257)) ::
-  .atom (.load (.n 2258) (.n 2135) 6) ::
-  .atom (.load (.n 2259) (.n 160) 4) ::
-  .atom (.const (.n 2260) (word 1 0 0)) ::
-  .atom (.load (.n 2261) (.n 158) 26) ::
+  .atom (.load (.n 2261) (.n 158) 37) ::
   .atom (.add (.n 2262) (.n 2260) (.n 2261)) ::
-  .atom (.load (.n 2263) (.n 18) 6) ::
+  .atom (.load (.n 2263) (.n 18) 17) ::
   .atom (.add (.n 2264) (.n 2262) (.n 2263)) ::
   .atom (.mul (.n 2265) (.n 2259) (.n 2264)) ::
   .atom (.const (.n 2266) (word 1 0 0)) ::
-  .atom (.load (.n 2267) (.n 158) 27) ::
+  .atom (.load (.n 2267) (.n 158) 38) ::
   .atom (.add (.n 2268) (.n 2266) (.n 2267)) ::
-  .atom (.load (.n 2269) (.n 18) 7) ::
+  .atom (.load (.n 2269) (.n 18) 18) ::
   .atom (.add (.n 2270) (.n 2268) (.n 2269)) ::
   .atom (.mul (.n 2271) (.n 2265) (.n 2270)) ::
   .atom (.const (.n 2272) (word 1 0 0)) ::
-  .atom (.load (.n 2273) (.n 158) 28) ::
+  .atom (.load (.n 2273) (.n 158) 39) ::
   .atom (.add (.n 2274) (.n 2272) (.n 2273)) ::
-  .atom (.load (.n 2275) (.n 18) 8) ::
+  .atom (.load (.n 2275) (.n 18) 19) ::
   .atom (.add (.n 2276) (.n 2274) (.n 2275)) ::
   .atom (.mul (.n 2277) (.n 2271) (.n 2276)) ::
   .atom (.const (.n 2278) (word 1 0 0)) ::
-  .atom (.load (.n 2279) (.n 158) 29) ::
+  .atom (.load (.n 2279) (.n 158) 40) ::
   .atom (.add (.n 2280) (.n 2278) (.n 2279)) ::
-  .atom (.load (.n 2281) (.n 18) 9) ::
+  .atom (.load (.n 2281) (.n 18) 20) ::
   .atom (.add (.n 2282) (.n 2280) (.n 2281)) ::
   .atom (.mul (.n 2283) (.n 2277) (.n 2282)) ::
   .atom (.const (.n 2284) (word 1 0 0)) ::
-  .atom (.load (.n 2285) (.n 158) 30) ::
+  .atom (.load (.n 2285) (.n 158) 41) ::
   .atom (.add (.n 2286) (.n 2284) (.n 2285)) ::
-  .atom (.load (.n 2287) (.n 18) 10) ::
+  .atom (.load (.n 2287) (.n 18) 21) ::
   .atom (.add (.n 2288) (.n 2286) (.n 2287)) ::
   .atom (.mul (.n 2289) (.n 2283) (.n 2288)) ::
   .atom (.const (.n 2290) (word 1 0 0)) ::
-  .atom (.load (.n 2291) (.n 158) 31) ::
+  .atom (.load (.n 2291) (.n 158) 42) ::
   .atom (.add (.n 2292) (.n 2290) (.n 2291)) ::
-  .atom (.load (.n 2293) (.n 18) 11) ::
+  .atom (.load (.n 2293) (.n 18) 22) ::
   .atom (.add (.n 2294) (.n 2292) (.n 2293)) ::
   .atom (.mul (.n 2295) (.n 2289) (.n 2294)) ::
   .atom (.const (.n 2296) (word 1 0 0)) ::
-  .atom (.load (.n 2297) (.n 158) 32) ::
+  .atom (.load (.n 2297) (.n 158) 43) ::
   .atom (.add (.n 2298) (.n 2296) (.n 2297)) ::
-  .atom (.load (.n 2299) (.n 18) 12) ::
+  .atom (.load (.n 2299) (.n 18) 23) ::
   .atom (.add (.n 2300) (.n 2298) (.n 2299)) ::
   .atom (.mul (.n 2301) (.n 2295) (.n 2300)) ::
   .atom (.const (.n 2302) (word 1 0 0)) ::
-  .atom (.load (.n 2303) (.n 158) 33) ::
+  .atom (.load (.n 2303) (.n 158) 44) ::
   .atom (.add (.n 2304) (.n 2302) (.n 2303)) ::
-  .atom (.load (.n 2305) (.n 18) 13) ::
+  .atom (.load (.n 2305) (.n 18) 24) ::
   .atom (.add (.n 2306) (.n 2304) (.n 2305)) ::
   .atom (.mul (.n 2307) (.n 2301) (.n 2306)) ::
   .atom (.const (.n 2308) (word 1 0 0)) ::
-  .atom (.load (.n 2309) (.n 158) 34) ::
+  .atom (.load (.n 2309) (.n 158) 45) ::
   .atom (.add (.n 2310) (.n 2308) (.n 2309)) ::
-  .atom (.load (.n 2311) (.n 18) 14) ::
+  .atom (.load (.n 2311) (.n 18) 25) ::
   .atom (.add (.n 2312) (.n 2310) (.n 2311)) ::
   .atom (.mul (.n 2313) (.n 2307) (.n 2312)) ::
   .atom (.const (.n 2314) (word 1 0 0)) ::
-  .atom (.load (.n 2315) (.n 158) 35) ::
+  .atom (.load (.n 2315) (.n 158) 46) ::
   .atom (.add (.n 2316) (.n 2314) (.n 2315)) ::
-  .atom (.load (.n 2317) (.n 18) 15) ::
+  .atom (.load (.n 2317) (.n 1428) 0) ::
   .atom (.add (.n 2318) (.n 2316) (.n 2317)) ::
   .atom (.mul (.n 2319) (.n 2313) (.n 2318)) ::
   .atom (.const (.n 2320) (word 1 0 0)) ::
-  .atom (.load (.n 2321) (.n 158) 36) ::
+  .atom (.load (.n 2321) (.n 158) 47) ::
   .atom (.add (.n 2322) (.n 2320) (.n 2321)) ::
-  .atom (.load (.n 2323) (.n 18) 16) ::
+  .atom (.load (.n 2323) (.n 1428) 1) ::
   .atom (.add (.n 2324) (.n 2322) (.n 2323)) ::
   .atom (.mul (.n 2325) (.n 2319) (.n 2324)) ::
-  .atom (.const (.n 2326) (word 1 0 0)) ::
-  .atom (.load (.n 2327) (.n 158) 37) ::
-  .atom (.add (.n 2328) (.n 2326) (.n 2327)) ::
-  .atom (.load (.n 2329) (.n 18) 17) ::
-  .atom (.add (.n 2330) (.n 2328) (.n 2329)) ::
-  .atom (.mul (.n 2331) (.n 2325) (.n 2330)) ::
-  .atom (.const (.n 2332) (word 1 0 0)) ::
-  .atom (.load (.n 2333) (.n 158) 38) ::
-  .atom (.add (.n 2334) (.n 2332) (.n 2333)) ::
-  .atom (.load (.n 2335) (.n 18) 18) ::
-  .atom (.add (.n 2336) (.n 2334) (.n 2335)) ::
-  .atom (.mul (.n 2337) (.n 2331) (.n 2336)) ::
-  .atom (.const (.n 2338) (word 1 0 0)) ::
-  .atom (.load (.n 2339) (.n 158) 39) ::
-  .atom (.add (.n 2340) (.n 2338) (.n 2339)) ::
-  .atom (.load (.n 2341) (.n 18) 19) ::
-  .atom (.add (.n 2342) (.n 2340) (.n 2341)) ::
-  .atom (.mul (.n 2343) (.n 2337) (.n 2342)) ::
-  .atom (.const (.n 2344) (word 1 0 0)) ::
-  .atom (.load (.n 2345) (.n 158) 40) ::
-  .atom (.add (.n 2346) (.n 2344) (.n 2345)) ::
-  .atom (.load (.n 2347) (.n 18) 20) ::
-  .atom (.add (.n 2348) (.n 2346) (.n 2347)) ::
-  .atom (.mul (.n 2349) (.n 2343) (.n 2348)) ::
-  .atom (.const (.n 2350) (word 1 0 0)) ::
-  .atom (.load (.n 2351) (.n 158) 41) ::
-  .atom (.add (.n 2352) (.n 2350) (.n 2351)) ::
-  .atom (.load (.n 2353) (.n 18) 21) ::
-  .atom (.add (.n 2354) (.n 2352) (.n 2353)) ::
-  .atom (.mul (.n 2355) (.n 2349) (.n 2354)) ::
-  .atom (.const (.n 2356) (word 1 0 0)) ::
-  .atom (.load (.n 2357) (.n 158) 42) ::
-  .atom (.add (.n 2358) (.n 2356) (.n 2357)) ::
-  .atom (.load (.n 2359) (.n 18) 22) ::
-  .atom (.add (.n 2360) (.n 2358) (.n 2359)) ::
-  .atom (.mul (.n 2361) (.n 2355) (.n 2360)) ::
-  .atom (.const (.n 2362) (word 1 0 0)) ::
-  .atom (.load (.n 2363) (.n 158) 43) ::
-  .atom (.add (.n 2364) (.n 2362) (.n 2363)) ::
-  .atom (.load (.n 2365) (.n 18) 23) ::
-  .atom (.add (.n 2366) (.n 2364) (.n 2365)) ::
-  .atom (.mul (.n 2367) (.n 2361) (.n 2366)) ::
-  .atom (.const (.n 2368) (word 1 0 0)) ::
-  .atom (.load (.n 2369) (.n 158) 44) ::
-  .atom (.add (.n 2370) (.n 2368) (.n 2369)) ::
-  .atom (.load (.n 2371) (.n 18) 24) ::
-  .atom (.add (.n 2372) (.n 2370) (.n 2371)) ::
-  .atom (.mul (.n 2373) (.n 2367) (.n 2372)) ::
-  .atom (.const (.n 2374) (word 1 0 0)) ::
-  .atom (.load (.n 2375) (.n 158) 45) ::
-  .atom (.add (.n 2376) (.n 2374) (.n 2375)) ::
-  .atom (.load (.n 2377) (.n 18) 25) ::
-  .atom (.add (.n 2378) (.n 2376) (.n 2377)) ::
-  .atom (.mul (.n 2379) (.n 2373) (.n 2378)) ::
-  .atom (.const (.n 2380) (word 1 0 0)) ::
-  .atom (.load (.n 2381) (.n 158) 46) ::
-  .atom (.add (.n 2382) (.n 2380) (.n 2381)) ::
-  .atom (.load (.n 2383) (.n 1428) 0) ::
-  .atom (.add (.n 2384) (.n 2382) (.n 2383)) ::
-  .atom (.mul (.n 2385) (.n 2379) (.n 2384)) ::
-  .atom (.const (.n 2386) (word 1 0 0)) ::
-  .atom (.load (.n 2387) (.n 158) 47) ::
-  .atom (.add (.n 2388) (.n 2386) (.n 2387)) ::
-  .atom (.load (.n 2389) (.n 1428) 1) ::
-  .atom (.add (.n 2390) (.n 2388) (.n 2389)) ::
-  .atom (.mul (.n 2391) (.n 2385) (.n 2390)) ::
-  .atom (.load (.n 2392) (.n 160) 8) ::
+  .atom (.load (.n 2326) (.n 160) 8) ::
+  .atom (.const (.n 2327) (word 1 0 0)) ::
+  .atom (.load (.n 2328) (.n 158) 52) ::
+  .atom (.add (.n 2329) (.n 2327) (.n 2328)) ::
+  .atom (.load (.n 2330) (.n 18) 10) ::
+  .atom (.add (.n 2331) (.n 2329) (.n 2330)) ::
+  .atom (.mul (.n 2332) (.n 2326) (.n 2331)) ::
+  .atom (.const (.n 2333) (word 1 0 0)) ::
+  .atom (.load (.n 2334) (.n 158) 53) ::
+  .atom (.add (.n 2335) (.n 2333) (.n 2334)) ::
+  .atom (.load (.n 2336) (.n 18) 11) ::
+  .atom (.add (.n 2337) (.n 2335) (.n 2336)) ::
+  .atom (.mul (.n 2338) (.n 2332) (.n 2337)) ::
+  .atom (.const (.n 2339) (word 1 0 0)) ::
+  .atom (.load (.n 2340) (.n 158) 54) ::
+  .atom (.add (.n 2341) (.n 2339) (.n 2340)) ::
+  .atom (.load (.n 2342) (.n 18) 12) ::
+  .atom (.add (.n 2343) (.n 2341) (.n 2342)) ::
+  .atom (.mul (.n 2344) (.n 2338) (.n 2343)) ::
+  .atom (.const (.n 2345) (word 1 0 0)) ::
+  .atom (.load (.n 2346) (.n 158) 55) ::
+  .atom (.add (.n 2347) (.n 2345) (.n 2346)) ::
+  .atom (.load (.n 2348) (.n 18) 13) ::
+  .atom (.add (.n 2349) (.n 2347) (.n 2348)) ::
+  .atom (.mul (.n 2350) (.n 2344) (.n 2349)) ::
+  .atom (.const (.n 2351) (word 1 0 0)) ::
+  .atom (.load (.n 2352) (.n 158) 56) ::
+  .atom (.add (.n 2353) (.n 2351) (.n 2352)) ::
+  .atom (.load (.n 2354) (.n 18) 14) ::
+  .atom (.add (.n 2355) (.n 2353) (.n 2354)) ::
+  .atom (.mul (.n 2356) (.n 2350) (.n 2355)) ::
+  .atom (.const (.n 2357) (word 1 0 0)) ::
+  .atom (.load (.n 2358) (.n 158) 57) ::
+  .atom (.add (.n 2359) (.n 2357) (.n 2358)) ::
+  .atom (.load (.n 2360) (.n 18) 15) ::
+  .atom (.add (.n 2361) (.n 2359) (.n 2360)) ::
+  .atom (.mul (.n 2362) (.n 2356) (.n 2361)) ::
+  .atom (.const (.n 2363) (word 1 0 0)) ::
+  .atom (.load (.n 2364) (.n 158) 58) ::
+  .atom (.add (.n 2365) (.n 2363) (.n 2364)) ::
+  .atom (.load (.n 2366) (.n 18) 16) ::
+  .atom (.add (.n 2367) (.n 2365) (.n 2366)) ::
+  .atom (.mul (.n 2368) (.n 2362) (.n 2367)) ::
+  .atom (.const (.n 2369) (word 1 0 0)) ::
+  .atom (.load (.n 2370) (.n 158) 59) ::
+  .atom (.add (.n 2371) (.n 2369) (.n 2370)) ::
+  .atom (.load (.n 2372) (.n 18) 17) ::
+  .atom (.add (.n 2373) (.n 2371) (.n 2372)) ::
+  .atom (.mul (.n 2374) (.n 2368) (.n 2373)) ::
+  .atom (.const (.n 2375) (word 1 0 0)) ::
+  .atom (.load (.n 2376) (.n 158) 60) ::
+  .atom (.add (.n 2377) (.n 2375) (.n 2376)) ::
+  .atom (.load (.n 2378) (.n 18) 18) ::
+  .atom (.add (.n 2379) (.n 2377) (.n 2378)) ::
+  .atom (.mul (.n 2380) (.n 2374) (.n 2379)) ::
+  .atom (.const (.n 2381) (word 1 0 0)) ::
+  .atom (.load (.n 2382) (.n 158) 61) ::
+  .atom (.add (.n 2383) (.n 2381) (.n 2382)) ::
+  .atom (.load (.n 2384) (.n 18) 19) ::
+  .atom (.add (.n 2385) (.n 2383) (.n 2384)) ::
+  .atom (.mul (.n 2386) (.n 2380) (.n 2385)) ::
+  .atom (.const (.n 2387) (word 1 0 0)) ::
+  .atom (.load (.n 2388) (.n 158) 62) ::
+  .atom (.add (.n 2389) (.n 2387) (.n 2388)) ::
+  .atom (.load (.n 2390) (.n 18) 20) ::
+  .atom (.add (.n 2391) (.n 2389) (.n 2390)) ::
+  .atom (.mul (.n 2392) (.n 2386) (.n 2391)) ::
   .atom (.const (.n 2393) (word 1 0 0)) ::
-  .atom (.load (.n 2394) (.n 158) 52) ::
+  .atom (.load (.n 2394) (.n 158) 63) ::
   .atom (.add (.n 2395) (.n 2393) (.n 2394)) ::
-  .atom (.load (.n 2396) (.n 18) 10) ::
+  .atom (.load (.n 2396) (.n 18) 21) ::
   .atom (.add (.n 2397) (.n 2395) (.n 2396)) ::
   .atom (.mul (.n 2398) (.n 2392) (.n 2397)) ::
   .atom (.const (.n 2399) (word 1 0 0)) ::
-  .atom (.load (.n 2400) (.n 158) 53) ::
+  .atom (.load (.n 2400) (.n 158) 64) ::
   .atom (.add (.n 2401) (.n 2399) (.n 2400)) ::
-  .atom (.load (.n 2402) (.n 18) 11) ::
+  .atom (.load (.n 2402) (.n 18) 22) ::
   .atom (.add (.n 2403) (.n 2401) (.n 2402)) ::
   .atom (.mul (.n 2404) (.n 2398) (.n 2403)) ::
   .atom (.const (.n 2405) (word 1 0 0)) ::
-  .atom (.load (.n 2406) (.n 158) 54) ::
+  .atom (.load (.n 2406) (.n 158) 65) ::
   .atom (.add (.n 2407) (.n 2405) (.n 2406)) ::
-  .atom (.load (.n 2408) (.n 18) 12) ::
+  .atom (.load (.n 2408) (.n 18) 23) ::
   .atom (.add (.n 2409) (.n 2407) (.n 2408)) ::
   .atom (.mul (.n 2410) (.n 2404) (.n 2409)) ::
   .atom (.const (.n 2411) (word 1 0 0)) ::
-  .atom (.load (.n 2412) (.n 158) 55) ::
+  .atom (.load (.n 2412) (.n 158) 66) ::
   .atom (.add (.n 2413) (.n 2411) (.n 2412)) ::
-  .atom (.load (.n 2414) (.n 18) 13) ::
+  .atom (.load (.n 2414) (.n 18) 24) ::
   .atom (.add (.n 2415) (.n 2413) (.n 2414)) ::
   .atom (.mul (.n 2416) (.n 2410) (.n 2415)) ::
   .atom (.const (.n 2417) (word 1 0 0)) ::
-  .atom (.load (.n 2418) (.n 158) 56) ::
+  .atom (.load (.n 2418) (.n 158) 67) ::
   .atom (.add (.n 2419) (.n 2417) (.n 2418)) ::
-  .atom (.load (.n 2420) (.n 18) 14) ::
+  .atom (.load (.n 2420) (.n 18) 25) ::
   .atom (.add (.n 2421) (.n 2419) (.n 2420)) ::
   .atom (.mul (.n 2422) (.n 2416) (.n 2421)) ::
   .atom (.const (.n 2423) (word 1 0 0)) ::
-  .atom (.load (.n 2424) (.n 158) 57) ::
+  .atom (.load (.n 2424) (.n 158) 68) ::
   .atom (.add (.n 2425) (.n 2423) (.n 2424)) ::
-  .atom (.load (.n 2426) (.n 18) 15) ::
+  .atom (.load (.n 2426) (.n 1428) 0) ::
   .atom (.add (.n 2427) (.n 2425) (.n 2426)) ::
   .atom (.mul (.n 2428) (.n 2422) (.n 2427)) ::
   .atom (.const (.n 2429) (word 1 0 0)) ::
-  .atom (.load (.n 2430) (.n 158) 58) ::
+  .atom (.load (.n 2430) (.n 158) 69) ::
   .atom (.add (.n 2431) (.n 2429) (.n 2430)) ::
-  .atom (.load (.n 2432) (.n 18) 16) ::
+  .atom (.load (.n 2432) (.n 1428) 1) ::
   .atom (.add (.n 2433) (.n 2431) (.n 2432)) ::
   .atom (.mul (.n 2434) (.n 2428) (.n 2433)) ::
-  .atom (.const (.n 2435) (word 1 0 0)) ::
-  .atom (.load (.n 2436) (.n 158) 59) ::
-  .atom (.add (.n 2437) (.n 2435) (.n 2436)) ::
-  .atom (.load (.n 2438) (.n 18) 17) ::
+  .atom (.add (.n 2435) (.n 2325) (.n 2434)) ::
+  .atom (.load (.n 2436) (.n 160) 12) ::
+  .atom (.const (.n 2437) (word 1 0 0)) ::
+  .atom (.load (.n 2438) (.n 158) 78) ::
   .atom (.add (.n 2439) (.n 2437) (.n 2438)) ::
-  .atom (.mul (.n 2440) (.n 2434) (.n 2439)) ::
-  .atom (.const (.n 2441) (word 1 0 0)) ::
-  .atom (.load (.n 2442) (.n 158) 60) ::
-  .atom (.add (.n 2443) (.n 2441) (.n 2442)) ::
-  .atom (.load (.n 2444) (.n 18) 18) ::
+  .atom (.load (.n 2440) (.n 18) 14) ::
+  .atom (.add (.n 2441) (.n 2439) (.n 2440)) ::
+  .atom (.mul (.n 2442) (.n 2436) (.n 2441)) ::
+  .atom (.const (.n 2443) (word 1 0 0)) ::
+  .atom (.load (.n 2444) (.n 158) 79) ::
   .atom (.add (.n 2445) (.n 2443) (.n 2444)) ::
-  .atom (.mul (.n 2446) (.n 2440) (.n 2445)) ::
-  .atom (.const (.n 2447) (word 1 0 0)) ::
-  .atom (.load (.n 2448) (.n 158) 61) ::
-  .atom (.add (.n 2449) (.n 2447) (.n 2448)) ::
-  .atom (.load (.n 2450) (.n 18) 19) ::
+  .atom (.load (.n 2446) (.n 18) 15) ::
+  .atom (.add (.n 2447) (.n 2445) (.n 2446)) ::
+  .atom (.mul (.n 2448) (.n 2442) (.n 2447)) ::
+  .atom (.const (.n 2449) (word 1 0 0)) ::
+  .atom (.load (.n 2450) (.n 158) 80) ::
   .atom (.add (.n 2451) (.n 2449) (.n 2450)) ::
-  .atom (.mul (.n 2452) (.n 2446) (.n 2451)) ::
-  .atom (.const (.n 2453) (word 1 0 0)) ::
-  .atom (.load (.n 2454) (.n 158) 62) ::
-  .atom (.add (.n 2455) (.n 2453) (.n 2454)) ::
-  .atom (.load (.n 2456) (.n 18) 20) ::
+  .atom (.load (.n 2452) (.n 18) 16) ::
+  .atom (.add (.n 2453) (.n 2451) (.n 2452)) ::
+  .atom (.mul (.n 2454) (.n 2448) (.n 2453)) ::
+  .atom (.const (.n 2455) (word 1 0 0)) ::
+  .atom (.load (.n 2456) (.n 158) 81) ::
   .atom (.add (.n 2457) (.n 2455) (.n 2456)) ::
-  .atom (.mul (.n 2458) (.n 2452) (.n 2457)) ::
-  .atom (.const (.n 2459) (word 1 0 0)) ::
-  .atom (.load (.n 2460) (.n 158) 63) ::
-  .atom (.add (.n 2461) (.n 2459) (.n 2460)) ::
-  .atom (.load (.n 2462) (.n 18) 21) ::
+  .atom (.load (.n 2458) (.n 18) 17) ::
+  .atom (.add (.n 2459) (.n 2457) (.n 2458)) ::
+  .atom (.mul (.n 2460) (.n 2454) (.n 2459)) ::
+  .atom (.const (.n 2461) (word 1 0 0)) ::
+  .atom (.load (.n 2462) (.n 158) 82) ::
   .atom (.add (.n 2463) (.n 2461) (.n 2462)) ::
-  .atom (.mul (.n 2464) (.n 2458) (.n 2463)) ::
-  .atom (.const (.n 2465) (word 1 0 0)) ::
-  .atom (.load (.n 2466) (.n 158) 64) ::
-  .atom (.add (.n 2467) (.n 2465) (.n 2466)) ::
-  .atom (.load (.n 2468) (.n 18) 22) ::
+  .atom (.load (.n 2464) (.n 18) 18) ::
+  .atom (.add (.n 2465) (.n 2463) (.n 2464)) ::
+  .atom (.mul (.n 2466) (.n 2460) (.n 2465)) ::
+  .atom (.const (.n 2467) (word 1 0 0)) ::
+  .atom (.load (.n 2468) (.n 158) 83) ::
   .atom (.add (.n 2469) (.n 2467) (.n 2468)) ::
-  .atom (.mul (.n 2470) (.n 2464) (.n 2469)) ::
-  .atom (.const (.n 2471) (word 1 0 0)) ::
-  .atom (.load (.n 2472) (.n 158) 65) ::
-  .atom (.add (.n 2473) (.n 2471) (.n 2472)) ::
-  .atom (.load (.n 2474) (.n 18) 23) ::
+  .atom (.load (.n 2470) (.n 18) 19) ::
+  .atom (.add (.n 2471) (.n 2469) (.n 2470)) ::
+  .atom (.mul (.n 2472) (.n 2466) (.n 2471)) ::
+  .atom (.const (.n 2473) (word 1 0 0)) ::
+  .atom (.load (.n 2474) (.n 158) 84) ::
   .atom (.add (.n 2475) (.n 2473) (.n 2474)) ::
-  .atom (.mul (.n 2476) (.n 2470) (.n 2475)) ::
-  .atom (.const (.n 2477) (word 1 0 0)) ::
-  .atom (.load (.n 2478) (.n 158) 66) ::
-  .atom (.add (.n 2479) (.n 2477) (.n 2478)) ::
-  .atom (.load (.n 2480) (.n 18) 24) ::
+  .atom (.load (.n 2476) (.n 18) 20) ::
+  .atom (.add (.n 2477) (.n 2475) (.n 2476)) ::
+  .atom (.mul (.n 2478) (.n 2472) (.n 2477)) ::
+  .atom (.const (.n 2479) (word 1 0 0)) ::
+  .atom (.load (.n 2480) (.n 158) 85) ::
   .atom (.add (.n 2481) (.n 2479) (.n 2480)) ::
-  .atom (.mul (.n 2482) (.n 2476) (.n 2481)) ::
-  .atom (.const (.n 2483) (word 1 0 0)) ::
-  .atom (.load (.n 2484) (.n 158) 67) ::
-  .atom (.add (.n 2485) (.n 2483) (.n 2484)) ::
-  .atom (.load (.n 2486) (.n 18) 25) ::
+  .atom (.load (.n 2482) (.n 18) 21) ::
+  .atom (.add (.n 2483) (.n 2481) (.n 2482)) ::
+  .atom (.mul (.n 2484) (.n 2478) (.n 2483)) ::
+  .atom (.const (.n 2485) (word 1 0 0)) ::
+  .atom (.load (.n 2486) (.n 158) 86) ::
   .atom (.add (.n 2487) (.n 2485) (.n 2486)) ::
-  .atom (.mul (.n 2488) (.n 2482) (.n 2487)) ::
-  .atom (.const (.n 2489) (word 1 0 0)) ::
-  .atom (.load (.n 2490) (.n 158) 68) ::
-  .atom (.add (.n 2491) (.n 2489) (.n 2490)) ::
-  .atom (.load (.n 2492) (.n 1428) 0) ::
+  .atom (.load (.n 2488) (.n 18) 22) ::
+  .atom (.add (.n 2489) (.n 2487) (.n 2488)) ::
+  .atom (.mul (.n 2490) (.n 2484) (.n 2489)) ::
+  .atom (.const (.n 2491) (word 1 0 0)) ::
+  .atom (.load (.n 2492) (.n 158) 87) ::
   .atom (.add (.n 2493) (.n 2491) (.n 2492)) ::
-  .atom (.mul (.n 2494) (.n 2488) (.n 2493)) ::
-  .atom (.const (.n 2495) (word 1 0 0)) ::
-  .atom (.load (.n 2496) (.n 158) 69) ::
-  .atom (.add (.n 2497) (.n 2495) (.n 2496)) ::
-  .atom (.load (.n 2498) (.n 1428) 1) ::
+  .atom (.load (.n 2494) (.n 18) 23) ::
+  .atom (.add (.n 2495) (.n 2493) (.n 2494)) ::
+  .atom (.mul (.n 2496) (.n 2490) (.n 2495)) ::
+  .atom (.const (.n 2497) (word 1 0 0)) ::
+  .atom (.load (.n 2498) (.n 158) 88) ::
   .atom (.add (.n 2499) (.n 2497) (.n 2498)) ::
-  .atom (.mul (.n 2500) (.n 2494) (.n 2499)) ::
-  .atom (.add (.n 2501) (.n 2391) (.n 2500)) ::
-  .atom (.load (.n 2502) (.n 160) 12) ::
+  .atom (.load (.n 2500) (.n 18) 24) ::
+  .atom (.add (.n 2501) (.n 2499) (.n 2500)) ::
+  .atom (.mul (.n 2502) (.n 2496) (.n 2501)) ::
   .atom (.const (.n 2503) (word 1 0 0)) ::
-  .atom (.load (.n 2504) (.n 158) 78) ::
+  .atom (.load (.n 2504) (.n 158) 89) ::
   .atom (.add (.n 2505) (.n 2503) (.n 2504)) ::
-  .atom (.load (.n 2506) (.n 18) 14) ::
+  .atom (.load (.n 2506) (.n 18) 25) ::
   .atom (.add (.n 2507) (.n 2505) (.n 2506)) ::
   .atom (.mul (.n 2508) (.n 2502) (.n 2507)) ::
   .atom (.const (.n 2509) (word 1 0 0)) ::
-  .atom (.load (.n 2510) (.n 158) 79) ::
+  .atom (.load (.n 2510) (.n 158) 90) ::
   .atom (.add (.n 2511) (.n 2509) (.n 2510)) ::
-  .atom (.load (.n 2512) (.n 18) 15) ::
+  .atom (.load (.n 2512) (.n 1428) 0) ::
   .atom (.add (.n 2513) (.n 2511) (.n 2512)) ::
   .atom (.mul (.n 2514) (.n 2508) (.n 2513)) ::
   .atom (.const (.n 2515) (word 1 0 0)) ::
-  .atom (.load (.n 2516) (.n 158) 80) ::
+  .atom (.load (.n 2516) (.n 158) 91) ::
   .atom (.add (.n 2517) (.n 2515) (.n 2516)) ::
-  .atom (.load (.n 2518) (.n 18) 16) ::
+  .atom (.load (.n 2518) (.n 1428) 1) ::
   .atom (.add (.n 2519) (.n 2517) (.n 2518)) ::
   .atom (.mul (.n 2520) (.n 2514) (.n 2519)) ::
-  .atom (.const (.n 2521) (word 1 0 0)) ::
-  .atom (.load (.n 2522) (.n 158) 81) ::
-  .atom (.add (.n 2523) (.n 2521) (.n 2522)) ::
-  .atom (.load (.n 2524) (.n 18) 17) ::
+  .atom (.add (.n 2521) (.n 2435) (.n 2520)) ::
+  .atom (.load (.n 2522) (.n 160) 16) ::
+  .atom (.const (.n 2523) (word 1 0 0)) ::
+  .atom (.load (.n 2524) (.n 158) 104) ::
   .atom (.add (.n 2525) (.n 2523) (.n 2524)) ::
-  .atom (.mul (.n 2526) (.n 2520) (.n 2525)) ::
-  .atom (.const (.n 2527) (word 1 0 0)) ::
-  .atom (.load (.n 2528) (.n 158) 82) ::
-  .atom (.add (.n 2529) (.n 2527) (.n 2528)) ::
-  .atom (.load (.n 2530) (.n 18) 18) ::
+  .atom (.load (.n 2526) (.n 18) 18) ::
+  .atom (.add (.n 2527) (.n 2525) (.n 2526)) ::
+  .atom (.mul (.n 2528) (.n 2522) (.n 2527)) ::
+  .atom (.const (.n 2529) (word 1 0 0)) ::
+  .atom (.load (.n 2530) (.n 158) 105) ::
   .atom (.add (.n 2531) (.n 2529) (.n 2530)) ::
-  .atom (.mul (.n 2532) (.n 2526) (.n 2531)) ::
-  .atom (.const (.n 2533) (word 1 0 0)) ::
-  .atom (.load (.n 2534) (.n 158) 83) ::
-  .atom (.add (.n 2535) (.n 2533) (.n 2534)) ::
-  .atom (.load (.n 2536) (.n 18) 19) ::
+  .atom (.load (.n 2532) (.n 18) 19) ::
+  .atom (.add (.n 2533) (.n 2531) (.n 2532)) ::
+  .atom (.mul (.n 2534) (.n 2528) (.n 2533)) ::
+  .atom (.const (.n 2535) (word 1 0 0)) ::
+  .atom (.load (.n 2536) (.n 158) 106) ::
   .atom (.add (.n 2537) (.n 2535) (.n 2536)) ::
-  .atom (.mul (.n 2538) (.n 2532) (.n 2537)) ::
-  .atom (.const (.n 2539) (word 1 0 0)) ::
-  .atom (.load (.n 2540) (.n 158) 84) ::
-  .atom (.add (.n 2541) (.n 2539) (.n 2540)) ::
-  .atom (.load (.n 2542) (.n 18) 20) ::
+  .atom (.load (.n 2538) (.n 18) 20) ::
+  .atom (.add (.n 2539) (.n 2537) (.n 2538)) ::
+  .atom (.mul (.n 2540) (.n 2534) (.n 2539)) ::
+  .atom (.const (.n 2541) (word 1 0 0)) ::
+  .atom (.load (.n 2542) (.n 158) 107) ::
   .atom (.add (.n 2543) (.n 2541) (.n 2542)) ::
-  .atom (.mul (.n 2544) (.n 2538) (.n 2543)) ::
-  .atom (.const (.n 2545) (word 1 0 0)) ::
-  .atom (.load (.n 2546) (.n 158) 85) ::
-  .atom (.add (.n 2547) (.n 2545) (.n 2546)) ::
-  .atom (.load (.n 2548) (.n 18) 21) ::
+  .atom (.load (.n 2544) (.n 18) 21) ::
+  .atom (.add (.n 2545) (.n 2543) (.n 2544)) ::
+  .atom (.mul (.n 2546) (.n 2540) (.n 2545)) ::
+  .atom (.const (.n 2547) (word 1 0 0)) ::
+  .atom (.load (.n 2548) (.n 158) 108) ::
   .atom (.add (.n 2549) (.n 2547) (.n 2548)) ::
-  .atom (.mul (.n 2550) (.n 2544) (.n 2549)) ::
-  .atom (.const (.n 2551) (word 1 0 0)) ::
-  .atom (.load (.n 2552) (.n 158) 86) ::
-  .atom (.add (.n 2553) (.n 2551) (.n 2552)) ::
-  .atom (.load (.n 2554) (.n 18) 22) ::
+  .atom (.load (.n 2550) (.n 18) 22) ::
+  .atom (.add (.n 2551) (.n 2549) (.n 2550)) ::
+  .atom (.mul (.n 2552) (.n 2546) (.n 2551)) ::
+  .atom (.const (.n 2553) (word 1 0 0)) ::
+  .atom (.load (.n 2554) (.n 158) 109) ::
   .atom (.add (.n 2555) (.n 2553) (.n 2554)) ::
-  .atom (.mul (.n 2556) (.n 2550) (.n 2555)) ::
-  .atom (.const (.n 2557) (word 1 0 0)) ::
-  .atom (.load (.n 2558) (.n 158) 87) ::
-  .atom (.add (.n 2559) (.n 2557) (.n 2558)) ::
-  .atom (.load (.n 2560) (.n 18) 23) ::
+  .atom (.load (.n 2556) (.n 18) 23) ::
+  .atom (.add (.n 2557) (.n 2555) (.n 2556)) ::
+  .atom (.mul (.n 2558) (.n 2552) (.n 2557)) ::
+  .atom (.const (.n 2559) (word 1 0 0)) ::
+  .atom (.load (.n 2560) (.n 158) 110) ::
   .atom (.add (.n 2561) (.n 2559) (.n 2560)) ::
-  .atom (.mul (.n 2562) (.n 2556) (.n 2561)) ::
-  .atom (.const (.n 2563) (word 1 0 0)) ::
-  .atom (.load (.n 2564) (.n 158) 88) ::
-  .atom (.add (.n 2565) (.n 2563) (.n 2564)) ::
-  .atom (.load (.n 2566) (.n 18) 24) ::
+  .atom (.load (.n 2562) (.n 18) 24) ::
+  .atom (.add (.n 2563) (.n 2561) (.n 2562)) ::
+  .atom (.mul (.n 2564) (.n 2558) (.n 2563)) ::
+  .atom (.const (.n 2565) (word 1 0 0)) ::
+  .atom (.load (.n 2566) (.n 158) 111) ::
   .atom (.add (.n 2567) (.n 2565) (.n 2566)) ::
-  .atom (.mul (.n 2568) (.n 2562) (.n 2567)) ::
-  .atom (.const (.n 2569) (word 1 0 0)) ::
-  .atom (.load (.n 2570) (.n 158) 89) ::
-  .atom (.add (.n 2571) (.n 2569) (.n 2570)) ::
-  .atom (.load (.n 2572) (.n 18) 25) ::
+  .atom (.load (.n 2568) (.n 18) 25) ::
+  .atom (.add (.n 2569) (.n 2567) (.n 2568)) ::
+  .atom (.mul (.n 2570) (.n 2564) (.n 2569)) ::
+  .atom (.const (.n 2571) (word 1 0 0)) ::
+  .atom (.load (.n 2572) (.n 158) 112) ::
   .atom (.add (.n 2573) (.n 2571) (.n 2572)) ::
-  .atom (.mul (.n 2574) (.n 2568) (.n 2573)) ::
-  .atom (.const (.n 2575) (word 1 0 0)) ::
-  .atom (.load (.n 2576) (.n 158) 90) ::
-  .atom (.add (.n 2577) (.n 2575) (.n 2576)) ::
-  .atom (.load (.n 2578) (.n 1428) 0) ::
+  .atom (.load (.n 2574) (.n 1428) 0) ::
+  .atom (.add (.n 2575) (.n 2573) (.n 2574)) ::
+  .atom (.mul (.n 2576) (.n 2570) (.n 2575)) ::
+  .atom (.const (.n 2577) (word 1 0 0)) ::
+  .atom (.load (.n 2578) (.n 158) 113) ::
   .atom (.add (.n 2579) (.n 2577) (.n 2578)) ::
-  .atom (.mul (.n 2580) (.n 2574) (.n 2579)) ::
-  .atom (.const (.n 2581) (word 1 0 0)) ::
-  .atom (.load (.n 2582) (.n 158) 91) ::
-  .atom (.add (.n 2583) (.n 2581) (.n 2582)) ::
-  .atom (.load (.n 2584) (.n 1428) 1) ::
-  .atom (.add (.n 2585) (.n 2583) (.n 2584)) ::
-  .atom (.mul (.n 2586) (.n 2580) (.n 2585)) ::
-  .atom (.add (.n 2587) (.n 2501) (.n 2586)) ::
-  .atom (.load (.n 2588) (.n 160) 16) ::
-  .atom (.const (.n 2589) (word 1 0 0)) ::
-  .atom (.load (.n 2590) (.n 158) 104) ::
-  .atom (.add (.n 2591) (.n 2589) (.n 2590)) ::
-  .atom (.load (.n 2592) (.n 18) 18) ::
+  .atom (.load (.n 2580) (.n 1428) 1) ::
+  .atom (.add (.n 2581) (.n 2579) (.n 2580)) ::
+  .atom (.mul (.n 2582) (.n 2576) (.n 2581)) ::
+  .atom (.add (.n 2583) (.n 2521) (.n 2582)) ::
+  .atom (.load (.n 2584) (.n 160) 20) ::
+  .atom (.const (.n 2585) (word 1 0 0)) ::
+  .atom (.load (.n 2586) (.n 158) 130) ::
+  .atom (.add (.n 2587) (.n 2585) (.n 2586)) ::
+  .atom (.load (.n 2588) (.n 18) 22) ::
+  .atom (.add (.n 2589) (.n 2587) (.n 2588)) ::
+  .atom (.mul (.n 2590) (.n 2584) (.n 2589)) ::
+  .atom (.const (.n 2591) (word 1 0 0)) ::
+  .atom (.load (.n 2592) (.n 158) 131) ::
   .atom (.add (.n 2593) (.n 2591) (.n 2592)) ::
-  .atom (.mul (.n 2594) (.n 2588) (.n 2593)) ::
-  .atom (.const (.n 2595) (word 1 0 0)) ::
-  .atom (.load (.n 2596) (.n 158) 105) ::
-  .atom (.add (.n 2597) (.n 2595) (.n 2596)) ::
-  .atom (.load (.n 2598) (.n 18) 19) ::
+  .atom (.load (.n 2594) (.n 18) 23) ::
+  .atom (.add (.n 2595) (.n 2593) (.n 2594)) ::
+  .atom (.mul (.n 2596) (.n 2590) (.n 2595)) ::
+  .atom (.const (.n 2597) (word 1 0 0)) ::
+  .atom (.load (.n 2598) (.n 158) 132) ::
   .atom (.add (.n 2599) (.n 2597) (.n 2598)) ::
-  .atom (.mul (.n 2600) (.n 2594) (.n 2599)) ::
-  .atom (.const (.n 2601) (word 1 0 0)) ::
-  .atom (.load (.n 2602) (.n 158) 106) ::
-  .atom (.add (.n 2603) (.n 2601) (.n 2602)) ::
-  .atom (.load (.n 2604) (.n 18) 20) ::
+  .atom (.load (.n 2600) (.n 18) 24) ::
+  .atom (.add (.n 2601) (.n 2599) (.n 2600)) ::
+  .atom (.mul (.n 2602) (.n 2596) (.n 2601)) ::
+  .atom (.const (.n 2603) (word 1 0 0)) ::
+  .atom (.load (.n 2604) (.n 158) 133) ::
   .atom (.add (.n 2605) (.n 2603) (.n 2604)) ::
-  .atom (.mul (.n 2606) (.n 2600) (.n 2605)) ::
-  .atom (.const (.n 2607) (word 1 0 0)) ::
-  .atom (.load (.n 2608) (.n 158) 107) ::
-  .atom (.add (.n 2609) (.n 2607) (.n 2608)) ::
-  .atom (.load (.n 2610) (.n 18) 21) ::
+  .atom (.load (.n 2606) (.n 18) 25) ::
+  .atom (.add (.n 2607) (.n 2605) (.n 2606)) ::
+  .atom (.mul (.n 2608) (.n 2602) (.n 2607)) ::
+  .atom (.const (.n 2609) (word 1 0 0)) ::
+  .atom (.load (.n 2610) (.n 158) 134) ::
   .atom (.add (.n 2611) (.n 2609) (.n 2610)) ::
-  .atom (.mul (.n 2612) (.n 2606) (.n 2611)) ::
-  .atom (.const (.n 2613) (word 1 0 0)) ::
-  .atom (.load (.n 2614) (.n 158) 108) ::
-  .atom (.add (.n 2615) (.n 2613) (.n 2614)) ::
-  .atom (.load (.n 2616) (.n 18) 22) ::
+  .atom (.load (.n 2612) (.n 1428) 0) ::
+  .atom (.add (.n 2613) (.n 2611) (.n 2612)) ::
+  .atom (.mul (.n 2614) (.n 2608) (.n 2613)) ::
+  .atom (.const (.n 2615) (word 1 0 0)) ::
+  .atom (.load (.n 2616) (.n 158) 135) ::
   .atom (.add (.n 2617) (.n 2615) (.n 2616)) ::
-  .atom (.mul (.n 2618) (.n 2612) (.n 2617)) ::
-  .atom (.const (.n 2619) (word 1 0 0)) ::
-  .atom (.load (.n 2620) (.n 158) 109) ::
-  .atom (.add (.n 2621) (.n 2619) (.n 2620)) ::
-  .atom (.load (.n 2622) (.n 18) 23) ::
-  .atom (.add (.n 2623) (.n 2621) (.n 2622)) ::
-  .atom (.mul (.n 2624) (.n 2618) (.n 2623)) ::
-  .atom (.const (.n 2625) (word 1 0 0)) ::
-  .atom (.load (.n 2626) (.n 158) 110) ::
-  .atom (.add (.n 2627) (.n 2625) (.n 2626)) ::
-  .atom (.load (.n 2628) (.n 18) 24) ::
-  .atom (.add (.n 2629) (.n 2627) (.n 2628)) ::
-  .atom (.mul (.n 2630) (.n 2624) (.n 2629)) ::
-  .atom (.const (.n 2631) (word 1 0 0)) ::
-  .atom (.load (.n 2632) (.n 158) 111) ::
-  .atom (.add (.n 2633) (.n 2631) (.n 2632)) ::
-  .atom (.load (.n 2634) (.n 18) 25) ::
-  .atom (.add (.n 2635) (.n 2633) (.n 2634)) ::
-  .atom (.mul (.n 2636) (.n 2630) (.n 2635)) ::
-  .atom (.const (.n 2637) (word 1 0 0)) ::
-  .atom (.load (.n 2638) (.n 158) 112) ::
-  .atom (.add (.n 2639) (.n 2637) (.n 2638)) ::
-  .atom (.load (.n 2640) (.n 1428) 0) ::
-  .atom (.add (.n 2641) (.n 2639) (.n 2640)) ::
-  .atom (.mul (.n 2642) (.n 2636) (.n 2641)) ::
-  .atom (.const (.n 2643) (word 1 0 0)) ::
-  .atom (.load (.n 2644) (.n 158) 113) ::
-  .atom (.add (.n 2645) (.n 2643) (.n 2644)) ::
-  .atom (.load (.n 2646) (.n 1428) 1) ::
-  .atom (.add (.n 2647) (.n 2645) (.n 2646)) ::
-  .atom (.mul (.n 2648) (.n 2642) (.n 2647)) ::
-  .atom (.add (.n 2649) (.n 2587) (.n 2648)) ::
-  .atom (.load (.n 2650) (.n 160) 20) ::
-  .atom (.const (.n 2651) (word 1 0 0)) ::
-  .atom (.load (.n 2652) (.n 158) 130) ::
-  .atom (.add (.n 2653) (.n 2651) (.n 2652)) ::
-  .atom (.load (.n 2654) (.n 18) 22) ::
-  .atom (.add (.n 2655) (.n 2653) (.n 2654)) ::
-  .atom (.mul (.n 2656) (.n 2650) (.n 2655)) ::
-  .atom (.const (.n 2657) (word 1 0 0)) ::
-  .atom (.load (.n 2658) (.n 158) 131) ::
-  .atom (.add (.n 2659) (.n 2657) (.n 2658)) ::
-  .atom (.load (.n 2660) (.n 18) 23) ::
-  .atom (.add (.n 2661) (.n 2659) (.n 2660)) ::
-  .atom (.mul (.n 2662) (.n 2656) (.n 2661)) ::
-  .atom (.const (.n 2663) (word 1 0 0)) ::
-  .atom (.load (.n 2664) (.n 158) 132) ::
-  .atom (.add (.n 2665) (.n 2663) (.n 2664)) ::
-  .atom (.load (.n 2666) (.n 18) 24) ::
-  .atom (.add (.n 2667) (.n 2665) (.n 2666)) ::
-  .atom (.mul (.n 2668) (.n 2662) (.n 2667)) ::
-  .atom (.const (.n 2669) (word 1 0 0)) ::
-  .atom (.load (.n 2670) (.n 158) 133) ::
-  .atom (.add (.n 2671) (.n 2669) (.n 2670)) ::
-  .atom (.load (.n 2672) (.n 18) 25) ::
-  .atom (.add (.n 2673) (.n 2671) (.n 2672)) ::
-  .atom (.mul (.n 2674) (.n 2668) (.n 2673)) ::
-  .atom (.const (.n 2675) (word 1 0 0)) ::
-  .atom (.load (.n 2676) (.n 158) 134) ::
-  .atom (.add (.n 2677) (.n 2675) (.n 2676)) ::
-  .atom (.load (.n 2678) (.n 1428) 0) ::
-  .atom (.add (.n 2679) (.n 2677) (.n 2678)) ::
-  .atom (.mul (.n 2680) (.n 2674) (.n 2679)) ::
-  .atom (.const (.n 2681) (word 1 0 0)) ::
-  .atom (.load (.n 2682) (.n 158) 135) ::
-  .atom (.add (.n 2683) (.n 2681) (.n 2682)) ::
-  .atom (.load (.n 2684) (.n 1428) 1) ::
-  .atom (.add (.n 2685) (.n 2683) (.n 2684)) ::
-  .atom (.mul (.n 2686) (.n 2680) (.n 2685)) ::
-  .atom (.add (.n 2687) (.n 2649) (.n 2686)) ::
-  .atom (.copy (.n 2688) (.n 1489)) ::
-  .atom (.copy (.n 2689) (.n 1494)) ::
-  .atom (.copy (.n 2690) (.n 1495)) ::
-  .atom (.load (.n 2691) (.n 2135) 6) ::
-  .atom (.add (.n 2692) (.n 2691) (.n 2687)) ::
-  .atom (.copy (.n 2693) (.n 1493)) ::
-  .ret [.n 2688, .n 2689, .n 2690, .n 2692, .n 2693] ::
+  .atom (.load (.n 2618) (.n 1428) 1) ::
+  .atom (.add (.n 2619) (.n 2617) (.n 2618)) ::
+  .atom (.mul (.n 2620) (.n 2614) (.n 2619)) ::
+  .atom (.add (.n 2621) (.n 2583) (.n 2620)) ::
+  .atom (.copy (.n 2622) (.n 1489)) ::
+  .atom (.copy (.n 2623) (.n 1494)) ::
+  .atom (.copy (.n 2624) (.n 1495)) ::
+  .atom (.load (.n 2625) (.n 2135) 6) ::
+  .atom (.add (.n 2626) (.n 2625) (.n 2621)) ::
+  .atom (.copy (.n 2627) (.n 1493)) ::
+  .ret [.n 2622, .n 2623, .n 2624, .n 2626, .n 2627] ::
   [])
 
 /-- `open_stacked__L9`: the body. -/
@@ -27433,7 +26435,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.mul (.n 1772) (.n 1765) (.n 1768)) ::
   [])
 
-/-- `open_stacked__L10`: statements 1588 to 2107 of the body. -/
+/-- `open_stacked__L10`: statements 1588 to 2143 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.load (.n 1773) (.n 18) 24) ::
   .atom (.const (.n 1774) (word 13911455371512638823 0 0)) ::
@@ -27920,670 +26922,538 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 2189) (.n 2188))) ::
   .atom (.const (.n 2190) (word 0 0 0)) ::
   .atom (.load (.n 2190) (.n 2189) 0) ::
-  .atom (.const (.n 2191) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2192) (word 268435456 0 0)),
-      .atom (.copy (.n 2193) (.n 2192)),
-      .atom (.const (.n 2194) (word 2 0 0)),
-      .atom (.copy (.n 2195) (.n 2194))],
-    [
-      .atom (.const (.n 2196) (word 16384 0 0)),
-      .atom (.copy (.n 2193) (.n 2196)),
-      .atom (.const (.n 2197) (word 2 0 0)),
-      .atom (.copy (.n 2195) (.n 2197))],
-    [
-      .atom (.const (.n 2198) (word 512 0 0)),
-      .atom (.copy (.n 2193) (.n 2198)),
-      .atom (.const (.n 2199) (word 8 0 0)),
-      .atom (.copy (.n 2195) (.n 2199))],
-    [
-      .atom (.const (.n 2200) (word 128 0 0)),
-      .atom (.copy (.n 2193) (.n 2200)),
-      .atom (.const (.n 2201) (word 2 0 0)),
-      .atom (.copy (.n 2195) (.n 2201))]] ::
-  .atom (.load (.n 2202) (.n 22) 0) ::
-  .call "level_residual__L23" [.n 24, .n 1645, .n 2202, .n 2193, .n 2195] [.n 2203] ::
-  .atom (.load (.n 2204) (.n 2189) 0) ::
-  .atom (.load (.n 2205) (.n 1647) 0) ::
-  .atom (.mul (.n 2206) (.n 2205) (.n 2203)) ::
-  .atom (.add (.n 2207) (.n 2204) (.n 2206)) ::
-  .atom (.load (.n 2207) (.n 2189) 1) ::
-  .atom (.const (.n 2208) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2209) (word 128 0 0)),
-      .atom (.copy (.n 2210) (.n 2209)),
-      .atom (.const (.n 2211) (word 1 0 0)),
-      .atom (.copy (.n 2212) (.n 2211))],
-    [
-      .atom (.const (.n 2213) (word 32 0 0)),
-      .atom (.copy (.n 2210) (.n 2213)),
-      .atom (.const (.n 2214) (word 32 0 0)),
-      .atom (.copy (.n 2212) (.n 2214))],
-    [
-      .atom (.const (.n 2215) (word 16 0 0)),
-      .atom (.copy (.n 2210) (.n 2215)),
-      .atom (.const (.n 2216) (word 64 0 0)),
-      .atom (.copy (.n 2212) (.n 2216))],
-    [
-      .atom (.const (.n 2217) (word 16 0 0)),
-      .atom (.copy (.n 2210) (.n 2217)),
-      .atom (.const (.n 2218) (word 1 0 0)),
-      .atom (.copy (.n 2212) (.n 2218))]] ::
-  .atom (.const (.n 2219) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2220) (.n 24) (.n 2219)) ::
-  .atom (.const (.n 2221) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2222) (.n 1645) (.n 2221)) ::
-  .atom (.load (.n 2223) (.n 22) 1) ::
-  .call "level_residual__L19" [.n 2220, .n 2222, .n 2223, .n 2210, .n 2212] [.n 2224] ::
-  .atom (.load (.n 2225) (.n 2189) 1) ::
-  .atom (.load (.n 2226) (.n 1647) 1) ::
-  .atom (.mul (.n 2227) (.n 2226) (.n 2224)) ::
-  .atom (.add (.n 2228) (.n 2225) (.n 2227)) ::
-  .atom (.load (.n 2228) (.n 2189) 2) ::
-  .atom (.const (.n 2229) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2230) (word 16 0 0)),
-      .atom (.copy (.n 2231) (.n 2230)),
-      .atom (.const (.n 2232) (word 1 0 0)),
-      .atom (.copy (.n 2233) (.n 2232))],
-    [
-      .atom (.const (.n 2234) (word 8 0 0)),
-      .atom (.copy (.n 2231) (.n 2234)),
-      .atom (.const (.n 2235) (word 16 0 0)),
-      .atom (.copy (.n 2233) (.n 2235))],
-    [
-      .atom (.const (.n 2236) (word 8 0 0)),
-      .atom (.copy (.n 2231) (.n 2236)),
-      .atom (.const (.n 2237) (word 2 0 0)),
-      .atom (.copy (.n 2233) (.n 2237))],
-    [
-      .atom (.const (.n 2238) (word 4 0 0)),
-      .atom (.copy (.n 2231) (.n 2238)),
-      .atom (.const (.n 2239) (word 128 0 0)),
-      .atom (.copy (.n 2233) (.n 2239))]] ::
-  .atom (.const (.n 2240) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2241) (.n 564) (.n 2240)) ::
-  .atom (.const (.n 2242) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2243) (.n 2222) (.n 2242)) ::
-  .atom (.load (.n 2244) (.n 22) 2) ::
-  .call "level_residual__L15" [.n 2241, .n 2243, .n 2244, .n 2231, .n 2233] [.n 2245] ::
-  .atom (.load (.n 2246) (.n 2189) 2) ::
-  .atom (.load (.n 2247) (.n 1647) 2) ::
-  .atom (.mul (.n 2248) (.n 2247) (.n 2245)) ::
-  .atom (.add (.n 2249) (.n 2246) (.n 2248)) ::
-  .atom (.load (.n 2249) (.n 2189) 3) ::
+  .atom (.load (.n 2191) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L225_L23", "level_residual__L113_L23", "level_residual__L75_L23", "level_residual__L57_L23"] [.n 24, .n 1645, .n 2191] [.n 2192] ::
+  .atom (.load (.n 2193) (.n 2189) 0) ::
+  .atom (.load (.n 2194) (.n 1647) 0) ::
+  .atom (.mul (.n 2195) (.n 2194) (.n 2192)) ::
+  .atom (.add (.n 2196) (.n 2193) (.n 2195)) ::
+  .atom (.load (.n 2196) (.n 2189) 1) ::
+  .atom (.const (.n 2197) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2198) (.n 24) (.n 2197)) ::
+  .atom (.const (.n 2199) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2200) (.n 1645) (.n 2199)) ::
+  .atom (.load (.n 2201) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L19", "level_residual__L45_L19", "level_residual__L38_L19", "level_residual__L32_L19"] [.n 2198, .n 2200, .n 2201] [.n 2202] ::
+  .atom (.load (.n 2203) (.n 2189) 1) ::
+  .atom (.load (.n 2204) (.n 1647) 1) ::
+  .atom (.mul (.n 2205) (.n 2204) (.n 2202)) ::
+  .atom (.add (.n 2206) (.n 2203) (.n 2205)) ::
+  .atom (.load (.n 2206) (.n 2189) 2) ::
+  .atom (.const (.n 2207) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2208) (.n 564) (.n 2207)) ::
+  .atom (.const (.n 2209) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2210) (.n 2200) (.n 2209)) ::
+  .atom (.load (.n 2211) (.n 22) 2) ::
+  .dispatch (.n 0) ["level_residual__L32_L15", "level_residual__L28_L15", "level_residual__L25_L15", "level_residual__L23_L15"] [.n 2208, .n 2210, .n 2211] [.n 2212] ::
+  .atom (.load (.n 2213) (.n 2189) 2) ::
+  .atom (.load (.n 2214) (.n 1647) 2) ::
+  .atom (.mul (.n 2215) (.n 2214) (.n 2212)) ::
+  .atom (.add (.n 2216) (.n 2213) (.n 2215)) ::
+  .atom (.load (.n 2216) (.n 2189) 3) ::
+  .atom (.const (.n 2217) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2218) (.n 791) (.n 2217)) ::
+  .atom (.const (.n 2219) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2220) (.n 2210) (.n 2219)) ::
+  .atom (.load (.n 2221) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L11", "level_residual__L21_L11", "level_residual__L19_L11", "level_residual__L18_L11"] [.n 2218, .n 2220, .n 2221] [.n 2222] ::
+  .atom (.load (.n 2223) (.n 2189) 3) ::
+  .atom (.load (.n 2224) (.n 1647) 3) ::
+  .atom (.mul (.n 2225) (.n 2224) (.n 2222)) ::
+  .atom (.add (.n 2226) (.n 2223) (.n 2225)) ::
+  .atom (.load (.n 2226) (.n 2189) 4) ::
+  .atom (.const (.n 2227) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2228) (.n 1018) (.n 2227)) ::
+  .atom (.const (.n 2229) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2230) (.n 2220) (.n 2229)) ::
+  .atom (.load (.n 2231) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L18_L7", "level_residual__L16_L7", "level_residual__L15_L7", "level_residual__L15_L7"] [.n 2228, .n 2230, .n 2231] [.n 2232] ::
+  .atom (.load (.n 2233) (.n 2189) 4) ::
+  .atom (.load (.n 2234) (.n 1647) 4) ::
+  .atom (.mul (.n 2235) (.n 2234) (.n 2232)) ::
+  .atom (.add (.n 2236) (.n 2233) (.n 2235)) ::
+  .atom (.load (.n 2236) (.n 2189) 5) ::
+  .atom (.const (.n 2237) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2238) (.n 1245) (.n 2237)) ::
+  .atom (.const (.n 2239) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2240) (.n 2230) (.n 2239)) ::
+  .atom (.load (.n 2241) (.n 22) 5) ::
+  .dispatch (.n 0) ["level_residual__L14_L3", "level_residual__L14_L3", "level_residual__L13_L3", "level_residual__L12_L3"] [.n 2238, .n 2240, .n 2241] [.n 2242] ::
+  .atom (.load (.n 2243) (.n 2189) 5) ::
+  .atom (.load (.n 2244) (.n 1647) 5) ::
+  .atom (.mul (.n 2245) (.n 2244) (.n 2242)) ::
+  .atom (.add (.n 2246) (.n 2243) (.n 2245)) ::
+  .atom (.load (.n 2246) (.n 2189) 6) ::
+  .atom (.load (.n 2247) (.n 160) 4) ::
+  .atom (.const (.n 2248) (word 1 0 0)) ::
+  .atom (.load (.n 2249) (.n 158) 26) ::
+  .atom (.add (.n 2250) (.n 2248) (.n 2249)) ::
+  .atom (.load (.n 2251) (.n 18) 6) ::
+  .atom (.add (.n 2252) (.n 2250) (.n 2251)) ::
+  .atom (.mul (.n 2253) (.n 2247) (.n 2252)) ::
+  .atom (.const (.n 2254) (word 1 0 0)) ::
+  .atom (.load (.n 2255) (.n 158) 27) ::
   [])
 
-/-- `open_stacked__L10`: statements 2108 to 2612 of the body. -/
+/-- `open_stacked__L10`: statements 2144 to 2600 of the body. -/
 noncomputable def c4 : List Core.Stmt := (
-  .atom (.const (.n 2250) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2251) (word 4 0 0)),
-      .atom (.copy (.n 2252) (.n 2251)),
-      .atom (.const (.n 2253) (word 128 0 0)),
-      .atom (.copy (.n 2254) (.n 2253))],
-    [
-      .atom (.const (.n 2255) (word 4 0 0)),
-      .atom (.copy (.n 2252) (.n 2255)),
-      .atom (.const (.n 2256) (word 32 0 0)),
-      .atom (.copy (.n 2254) (.n 2256))],
-    [
-      .atom (.const (.n 2257) (word 4 0 0)),
-      .atom (.copy (.n 2252) (.n 2257)),
-      .atom (.const (.n 2258) (word 8 0 0)),
-      .atom (.copy (.n 2254) (.n 2258))],
-    [
-      .atom (.const (.n 2259) (word 4 0 0)),
-      .atom (.copy (.n 2252) (.n 2259)),
-      .atom (.const (.n 2260) (word 4 0 0)),
-      .atom (.copy (.n 2254) (.n 2260))]] ::
-  .atom (.const (.n 2261) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2262) (.n 791) (.n 2261)) ::
-  .atom (.const (.n 2263) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2264) (.n 2243) (.n 2263)) ::
-  .atom (.load (.n 2265) (.n 22) 3) ::
-  .call "level_residual__L11" [.n 2262, .n 2264, .n 2265, .n 2252, .n 2254] [.n 2266] ::
-  .atom (.load (.n 2267) (.n 2189) 3) ::
-  .atom (.load (.n 2268) (.n 1647) 3) ::
-  .atom (.mul (.n 2269) (.n 2268) (.n 2266)) ::
-  .atom (.add (.n 2270) (.n 2267) (.n 2269)) ::
-  .atom (.load (.n 2270) (.n 2189) 4) ::
-  .atom (.const (.n 2271) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2272) (word 4 0 0)),
-      .atom (.copy (.n 2273) (.n 2272)),
-      .atom (.const (.n 2274) (word 4 0 0)),
-      .atom (.copy (.n 2275) (.n 2274))],
-    [
-      .atom (.const (.n 2276) (word 4 0 0)),
-      .atom (.copy (.n 2273) (.n 2276)),
-      .atom (.const (.n 2277) (word 1 0 0)),
-      .atom (.copy (.n 2275) (.n 2277))],
-    [
-      .atom (.const (.n 2278) (word 2 0 0)),
-      .atom (.copy (.n 2273) (.n 2278)),
-      .atom (.const (.n 2279) (word 128 0 0)),
-      .atom (.copy (.n 2275) (.n 2279))],
-    [
-      .atom (.const (.n 2280) (word 2 0 0)),
-      .atom (.copy (.n 2273) (.n 2280)),
-      .atom (.const (.n 2281) (word 128 0 0)),
-      .atom (.copy (.n 2275) (.n 2281))]] ::
-  .atom (.const (.n 2282) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2283) (.n 1018) (.n 2282)) ::
-  .atom (.const (.n 2284) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2285) (.n 2264) (.n 2284)) ::
-  .atom (.load (.n 2286) (.n 22) 4) ::
-  .call "level_residual__L7" [.n 2283, .n 2285, .n 2286, .n 2273, .n 2275] [.n 2287] ::
-  .atom (.load (.n 2288) (.n 2189) 4) ::
-  .atom (.load (.n 2289) (.n 1647) 4) ::
-  .atom (.mul (.n 2290) (.n 2289) (.n 2287)) ::
-  .atom (.add (.n 2291) (.n 2288) (.n 2290)) ::
-  .atom (.load (.n 2291) (.n 2189) 5) ::
-  .atom (.const (.n 2292) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2293) (word 2 0 0)),
-      .atom (.copy (.n 2294) (.n 2293)),
-      .atom (.const (.n 2295) (word 64 0 0)),
-      .atom (.copy (.n 2296) (.n 2295))],
-    [
-      .atom (.const (.n 2297) (word 2 0 0)),
-      .atom (.copy (.n 2294) (.n 2297)),
-      .atom (.const (.n 2298) (word 64 0 0)),
-      .atom (.copy (.n 2296) (.n 2298))],
-    [
-      .atom (.const (.n 2299) (word 2 0 0)),
-      .atom (.copy (.n 2294) (.n 2299)),
-      .atom (.const (.n 2300) (word 32 0 0)),
-      .atom (.copy (.n 2296) (.n 2300))],
-    [
-      .atom (.const (.n 2301) (word 2 0 0)),
-      .atom (.copy (.n 2294) (.n 2301)),
-      .atom (.const (.n 2302) (word 16 0 0)),
-      .atom (.copy (.n 2296) (.n 2302))]] ::
-  .atom (.const (.n 2303) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2304) (.n 1245) (.n 2303)) ::
-  .atom (.const (.n 2305) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2306) (.n 2285) (.n 2305)) ::
-  .atom (.load (.n 2307) (.n 22) 5) ::
-  .call "level_residual__L3" [.n 2304, .n 2306, .n 2307, .n 2294, .n 2296] [.n 2308] ::
-  .atom (.load (.n 2309) (.n 2189) 5) ::
-  .atom (.load (.n 2310) (.n 1647) 5) ::
-  .atom (.mul (.n 2311) (.n 2310) (.n 2308)) ::
-  .atom (.add (.n 2312) (.n 2309) (.n 2311)) ::
-  .atom (.load (.n 2312) (.n 2189) 6) ::
-  .atom (.load (.n 2313) (.n 160) 4) ::
+  .atom (.add (.n 2256) (.n 2254) (.n 2255)) ::
+  .atom (.load (.n 2257) (.n 18) 7) ::
+  .atom (.add (.n 2258) (.n 2256) (.n 2257)) ::
+  .atom (.mul (.n 2259) (.n 2253) (.n 2258)) ::
+  .atom (.const (.n 2260) (word 1 0 0)) ::
+  .atom (.load (.n 2261) (.n 158) 28) ::
+  .atom (.add (.n 2262) (.n 2260) (.n 2261)) ::
+  .atom (.load (.n 2263) (.n 18) 8) ::
+  .atom (.add (.n 2264) (.n 2262) (.n 2263)) ::
+  .atom (.mul (.n 2265) (.n 2259) (.n 2264)) ::
+  .atom (.const (.n 2266) (word 1 0 0)) ::
+  .atom (.load (.n 2267) (.n 158) 29) ::
+  .atom (.add (.n 2268) (.n 2266) (.n 2267)) ::
+  .atom (.load (.n 2269) (.n 18) 9) ::
+  .atom (.add (.n 2270) (.n 2268) (.n 2269)) ::
+  .atom (.mul (.n 2271) (.n 2265) (.n 2270)) ::
+  .atom (.const (.n 2272) (word 1 0 0)) ::
+  .atom (.load (.n 2273) (.n 158) 30) ::
+  .atom (.add (.n 2274) (.n 2272) (.n 2273)) ::
+  .atom (.load (.n 2275) (.n 18) 10) ::
+  .atom (.add (.n 2276) (.n 2274) (.n 2275)) ::
+  .atom (.mul (.n 2277) (.n 2271) (.n 2276)) ::
+  .atom (.const (.n 2278) (word 1 0 0)) ::
+  .atom (.load (.n 2279) (.n 158) 31) ::
+  .atom (.add (.n 2280) (.n 2278) (.n 2279)) ::
+  .atom (.load (.n 2281) (.n 18) 11) ::
+  .atom (.add (.n 2282) (.n 2280) (.n 2281)) ::
+  .atom (.mul (.n 2283) (.n 2277) (.n 2282)) ::
+  .atom (.const (.n 2284) (word 1 0 0)) ::
+  .atom (.load (.n 2285) (.n 158) 32) ::
+  .atom (.add (.n 2286) (.n 2284) (.n 2285)) ::
+  .atom (.load (.n 2287) (.n 18) 12) ::
+  .atom (.add (.n 2288) (.n 2286) (.n 2287)) ::
+  .atom (.mul (.n 2289) (.n 2283) (.n 2288)) ::
+  .atom (.const (.n 2290) (word 1 0 0)) ::
+  .atom (.load (.n 2291) (.n 158) 33) ::
+  .atom (.add (.n 2292) (.n 2290) (.n 2291)) ::
+  .atom (.load (.n 2293) (.n 18) 13) ::
+  .atom (.add (.n 2294) (.n 2292) (.n 2293)) ::
+  .atom (.mul (.n 2295) (.n 2289) (.n 2294)) ::
+  .atom (.const (.n 2296) (word 1 0 0)) ::
+  .atom (.load (.n 2297) (.n 158) 34) ::
+  .atom (.add (.n 2298) (.n 2296) (.n 2297)) ::
+  .atom (.load (.n 2299) (.n 18) 14) ::
+  .atom (.add (.n 2300) (.n 2298) (.n 2299)) ::
+  .atom (.mul (.n 2301) (.n 2295) (.n 2300)) ::
+  .atom (.const (.n 2302) (word 1 0 0)) ::
+  .atom (.load (.n 2303) (.n 158) 35) ::
+  .atom (.add (.n 2304) (.n 2302) (.n 2303)) ::
+  .atom (.load (.n 2305) (.n 18) 15) ::
+  .atom (.add (.n 2306) (.n 2304) (.n 2305)) ::
+  .atom (.mul (.n 2307) (.n 2301) (.n 2306)) ::
+  .atom (.const (.n 2308) (word 1 0 0)) ::
+  .atom (.load (.n 2309) (.n 158) 36) ::
+  .atom (.add (.n 2310) (.n 2308) (.n 2309)) ::
+  .atom (.load (.n 2311) (.n 18) 16) ::
+  .atom (.add (.n 2312) (.n 2310) (.n 2311)) ::
+  .atom (.mul (.n 2313) (.n 2307) (.n 2312)) ::
   .atom (.const (.n 2314) (word 1 0 0)) ::
-  .atom (.load (.n 2315) (.n 158) 26) ::
+  .atom (.load (.n 2315) (.n 158) 37) ::
   .atom (.add (.n 2316) (.n 2314) (.n 2315)) ::
-  .atom (.load (.n 2317) (.n 18) 6) ::
+  .atom (.load (.n 2317) (.n 18) 17) ::
   .atom (.add (.n 2318) (.n 2316) (.n 2317)) ::
   .atom (.mul (.n 2319) (.n 2313) (.n 2318)) ::
   .atom (.const (.n 2320) (word 1 0 0)) ::
-  .atom (.load (.n 2321) (.n 158) 27) ::
+  .atom (.load (.n 2321) (.n 158) 38) ::
   .atom (.add (.n 2322) (.n 2320) (.n 2321)) ::
-  .atom (.load (.n 2323) (.n 18) 7) ::
+  .atom (.load (.n 2323) (.n 18) 18) ::
   .atom (.add (.n 2324) (.n 2322) (.n 2323)) ::
   .atom (.mul (.n 2325) (.n 2319) (.n 2324)) ::
   .atom (.const (.n 2326) (word 1 0 0)) ::
-  .atom (.load (.n 2327) (.n 158) 28) ::
+  .atom (.load (.n 2327) (.n 158) 39) ::
   .atom (.add (.n 2328) (.n 2326) (.n 2327)) ::
-  .atom (.load (.n 2329) (.n 18) 8) ::
+  .atom (.load (.n 2329) (.n 18) 19) ::
   .atom (.add (.n 2330) (.n 2328) (.n 2329)) ::
   .atom (.mul (.n 2331) (.n 2325) (.n 2330)) ::
   .atom (.const (.n 2332) (word 1 0 0)) ::
-  .atom (.load (.n 2333) (.n 158) 29) ::
+  .atom (.load (.n 2333) (.n 158) 40) ::
   .atom (.add (.n 2334) (.n 2332) (.n 2333)) ::
-  .atom (.load (.n 2335) (.n 18) 9) ::
+  .atom (.load (.n 2335) (.n 18) 20) ::
   .atom (.add (.n 2336) (.n 2334) (.n 2335)) ::
   .atom (.mul (.n 2337) (.n 2331) (.n 2336)) ::
   .atom (.const (.n 2338) (word 1 0 0)) ::
-  .atom (.load (.n 2339) (.n 158) 30) ::
+  .atom (.load (.n 2339) (.n 158) 41) ::
   .atom (.add (.n 2340) (.n 2338) (.n 2339)) ::
-  .atom (.load (.n 2341) (.n 18) 10) ::
+  .atom (.load (.n 2341) (.n 18) 21) ::
   .atom (.add (.n 2342) (.n 2340) (.n 2341)) ::
   .atom (.mul (.n 2343) (.n 2337) (.n 2342)) ::
   .atom (.const (.n 2344) (word 1 0 0)) ::
-  .atom (.load (.n 2345) (.n 158) 31) ::
+  .atom (.load (.n 2345) (.n 158) 42) ::
   .atom (.add (.n 2346) (.n 2344) (.n 2345)) ::
-  .atom (.load (.n 2347) (.n 18) 11) ::
+  .atom (.load (.n 2347) (.n 18) 22) ::
   .atom (.add (.n 2348) (.n 2346) (.n 2347)) ::
   .atom (.mul (.n 2349) (.n 2343) (.n 2348)) ::
   .atom (.const (.n 2350) (word 1 0 0)) ::
-  .atom (.load (.n 2351) (.n 158) 32) ::
+  .atom (.load (.n 2351) (.n 158) 43) ::
   .atom (.add (.n 2352) (.n 2350) (.n 2351)) ::
-  .atom (.load (.n 2353) (.n 18) 12) ::
+  .atom (.load (.n 2353) (.n 18) 23) ::
   .atom (.add (.n 2354) (.n 2352) (.n 2353)) ::
   .atom (.mul (.n 2355) (.n 2349) (.n 2354)) ::
   .atom (.const (.n 2356) (word 1 0 0)) ::
-  .atom (.load (.n 2357) (.n 158) 33) ::
+  .atom (.load (.n 2357) (.n 158) 44) ::
   .atom (.add (.n 2358) (.n 2356) (.n 2357)) ::
-  .atom (.load (.n 2359) (.n 18) 13) ::
+  .atom (.load (.n 2359) (.n 18) 24) ::
   .atom (.add (.n 2360) (.n 2358) (.n 2359)) ::
   .atom (.mul (.n 2361) (.n 2355) (.n 2360)) ::
   .atom (.const (.n 2362) (word 1 0 0)) ::
-  .atom (.load (.n 2363) (.n 158) 34) ::
+  .atom (.load (.n 2363) (.n 158) 45) ::
   .atom (.add (.n 2364) (.n 2362) (.n 2363)) ::
-  .atom (.load (.n 2365) (.n 18) 14) ::
+  .atom (.load (.n 2365) (.n 18) 25) ::
   .atom (.add (.n 2366) (.n 2364) (.n 2365)) ::
   .atom (.mul (.n 2367) (.n 2361) (.n 2366)) ::
   .atom (.const (.n 2368) (word 1 0 0)) ::
-  .atom (.load (.n 2369) (.n 158) 35) ::
+  .atom (.load (.n 2369) (.n 158) 46) ::
   .atom (.add (.n 2370) (.n 2368) (.n 2369)) ::
-  .atom (.load (.n 2371) (.n 18) 15) ::
+  .atom (.load (.n 2371) (.n 1428) 0) ::
   .atom (.add (.n 2372) (.n 2370) (.n 2371)) ::
   .atom (.mul (.n 2373) (.n 2367) (.n 2372)) ::
   .atom (.const (.n 2374) (word 1 0 0)) ::
-  .atom (.load (.n 2375) (.n 158) 36) ::
+  .atom (.load (.n 2375) (.n 158) 47) ::
   .atom (.add (.n 2376) (.n 2374) (.n 2375)) ::
-  .atom (.load (.n 2377) (.n 18) 16) ::
+  .atom (.load (.n 2377) (.n 1428) 1) ::
   .atom (.add (.n 2378) (.n 2376) (.n 2377)) ::
   .atom (.mul (.n 2379) (.n 2373) (.n 2378)) ::
   .atom (.const (.n 2380) (word 1 0 0)) ::
-  .atom (.load (.n 2381) (.n 158) 37) ::
+  .atom (.load (.n 2381) (.n 158) 48) ::
   .atom (.add (.n 2382) (.n 2380) (.n 2381)) ::
-  .atom (.load (.n 2383) (.n 18) 17) ::
+  .atom (.load (.n 2383) (.n 1428) 2) ::
   .atom (.add (.n 2384) (.n 2382) (.n 2383)) ::
   .atom (.mul (.n 2385) (.n 2379) (.n 2384)) ::
-  .atom (.const (.n 2386) (word 1 0 0)) ::
-  .atom (.load (.n 2387) (.n 158) 38) ::
-  .atom (.add (.n 2388) (.n 2386) (.n 2387)) ::
-  .atom (.load (.n 2389) (.n 18) 18) ::
-  .atom (.add (.n 2390) (.n 2388) (.n 2389)) ::
-  .atom (.mul (.n 2391) (.n 2385) (.n 2390)) ::
-  .atom (.const (.n 2392) (word 1 0 0)) ::
-  .atom (.load (.n 2393) (.n 158) 39) ::
-  .atom (.add (.n 2394) (.n 2392) (.n 2393)) ::
-  .atom (.load (.n 2395) (.n 18) 19) ::
-  .atom (.add (.n 2396) (.n 2394) (.n 2395)) ::
-  .atom (.mul (.n 2397) (.n 2391) (.n 2396)) ::
-  .atom (.const (.n 2398) (word 1 0 0)) ::
-  .atom (.load (.n 2399) (.n 158) 40) ::
-  .atom (.add (.n 2400) (.n 2398) (.n 2399)) ::
-  .atom (.load (.n 2401) (.n 18) 20) ::
-  .atom (.add (.n 2402) (.n 2400) (.n 2401)) ::
-  .atom (.mul (.n 2403) (.n 2397) (.n 2402)) ::
-  .atom (.const (.n 2404) (word 1 0 0)) ::
-  .atom (.load (.n 2405) (.n 158) 41) ::
-  .atom (.add (.n 2406) (.n 2404) (.n 2405)) ::
-  .atom (.load (.n 2407) (.n 18) 21) ::
-  .atom (.add (.n 2408) (.n 2406) (.n 2407)) ::
-  .atom (.mul (.n 2409) (.n 2403) (.n 2408)) ::
-  .atom (.const (.n 2410) (word 1 0 0)) ::
-  .atom (.load (.n 2411) (.n 158) 42) ::
-  .atom (.add (.n 2412) (.n 2410) (.n 2411)) ::
-  .atom (.load (.n 2413) (.n 18) 22) ::
-  .atom (.add (.n 2414) (.n 2412) (.n 2413)) ::
-  .atom (.mul (.n 2415) (.n 2409) (.n 2414)) ::
-  .atom (.const (.n 2416) (word 1 0 0)) ::
-  .atom (.load (.n 2417) (.n 158) 43) ::
-  .atom (.add (.n 2418) (.n 2416) (.n 2417)) ::
-  .atom (.load (.n 2419) (.n 18) 23) ::
-  .atom (.add (.n 2420) (.n 2418) (.n 2419)) ::
-  .atom (.mul (.n 2421) (.n 2415) (.n 2420)) ::
-  .atom (.const (.n 2422) (word 1 0 0)) ::
-  .atom (.load (.n 2423) (.n 158) 44) ::
-  .atom (.add (.n 2424) (.n 2422) (.n 2423)) ::
-  .atom (.load (.n 2425) (.n 18) 24) ::
-  .atom (.add (.n 2426) (.n 2424) (.n 2425)) ::
-  .atom (.mul (.n 2427) (.n 2421) (.n 2426)) ::
-  .atom (.const (.n 2428) (word 1 0 0)) ::
-  .atom (.load (.n 2429) (.n 158) 45) ::
-  .atom (.add (.n 2430) (.n 2428) (.n 2429)) ::
-  .atom (.load (.n 2431) (.n 18) 25) ::
-  .atom (.add (.n 2432) (.n 2430) (.n 2431)) ::
-  .atom (.mul (.n 2433) (.n 2427) (.n 2432)) ::
-  .atom (.const (.n 2434) (word 1 0 0)) ::
-  .atom (.load (.n 2435) (.n 158) 46) ::
-  .atom (.add (.n 2436) (.n 2434) (.n 2435)) ::
-  .atom (.load (.n 2437) (.n 1428) 0) ::
-  .atom (.add (.n 2438) (.n 2436) (.n 2437)) ::
-  .atom (.mul (.n 2439) (.n 2433) (.n 2438)) ::
-  .atom (.const (.n 2440) (word 1 0 0)) ::
-  .atom (.load (.n 2441) (.n 158) 47) ::
-  .atom (.add (.n 2442) (.n 2440) (.n 2441)) ::
-  .atom (.load (.n 2443) (.n 1428) 1) ::
-  .atom (.add (.n 2444) (.n 2442) (.n 2443)) ::
-  .atom (.mul (.n 2445) (.n 2439) (.n 2444)) ::
-  .atom (.const (.n 2446) (word 1 0 0)) ::
-  .atom (.load (.n 2447) (.n 158) 48) ::
-  .atom (.add (.n 2448) (.n 2446) (.n 2447)) ::
-  .atom (.load (.n 2449) (.n 1428) 2) ::
-  .atom (.add (.n 2450) (.n 2448) (.n 2449)) ::
-  .atom (.mul (.n 2451) (.n 2445) (.n 2450)) ::
-  .atom (.load (.n 2452) (.n 160) 8) ::
+  .atom (.load (.n 2386) (.n 160) 8) ::
+  .atom (.const (.n 2387) (word 1 0 0)) ::
+  .atom (.load (.n 2388) (.n 158) 52) ::
+  .atom (.add (.n 2389) (.n 2387) (.n 2388)) ::
+  .atom (.load (.n 2390) (.n 18) 10) ::
+  .atom (.add (.n 2391) (.n 2389) (.n 2390)) ::
+  .atom (.mul (.n 2392) (.n 2386) (.n 2391)) ::
+  .atom (.const (.n 2393) (word 1 0 0)) ::
+  .atom (.load (.n 2394) (.n 158) 53) ::
+  .atom (.add (.n 2395) (.n 2393) (.n 2394)) ::
+  .atom (.load (.n 2396) (.n 18) 11) ::
+  .atom (.add (.n 2397) (.n 2395) (.n 2396)) ::
+  .atom (.mul (.n 2398) (.n 2392) (.n 2397)) ::
+  .atom (.const (.n 2399) (word 1 0 0)) ::
+  .atom (.load (.n 2400) (.n 158) 54) ::
+  .atom (.add (.n 2401) (.n 2399) (.n 2400)) ::
+  .atom (.load (.n 2402) (.n 18) 12) ::
+  .atom (.add (.n 2403) (.n 2401) (.n 2402)) ::
+  .atom (.mul (.n 2404) (.n 2398) (.n 2403)) ::
+  .atom (.const (.n 2405) (word 1 0 0)) ::
+  .atom (.load (.n 2406) (.n 158) 55) ::
+  .atom (.add (.n 2407) (.n 2405) (.n 2406)) ::
+  .atom (.load (.n 2408) (.n 18) 13) ::
+  .atom (.add (.n 2409) (.n 2407) (.n 2408)) ::
+  .atom (.mul (.n 2410) (.n 2404) (.n 2409)) ::
+  .atom (.const (.n 2411) (word 1 0 0)) ::
+  .atom (.load (.n 2412) (.n 158) 56) ::
+  .atom (.add (.n 2413) (.n 2411) (.n 2412)) ::
+  .atom (.load (.n 2414) (.n 18) 14) ::
+  .atom (.add (.n 2415) (.n 2413) (.n 2414)) ::
+  .atom (.mul (.n 2416) (.n 2410) (.n 2415)) ::
+  .atom (.const (.n 2417) (word 1 0 0)) ::
+  .atom (.load (.n 2418) (.n 158) 57) ::
+  .atom (.add (.n 2419) (.n 2417) (.n 2418)) ::
+  .atom (.load (.n 2420) (.n 18) 15) ::
+  .atom (.add (.n 2421) (.n 2419) (.n 2420)) ::
+  .atom (.mul (.n 2422) (.n 2416) (.n 2421)) ::
+  .atom (.const (.n 2423) (word 1 0 0)) ::
+  .atom (.load (.n 2424) (.n 158) 58) ::
+  .atom (.add (.n 2425) (.n 2423) (.n 2424)) ::
+  .atom (.load (.n 2426) (.n 18) 16) ::
+  .atom (.add (.n 2427) (.n 2425) (.n 2426)) ::
+  .atom (.mul (.n 2428) (.n 2422) (.n 2427)) ::
+  .atom (.const (.n 2429) (word 1 0 0)) ::
+  .atom (.load (.n 2430) (.n 158) 59) ::
+  .atom (.add (.n 2431) (.n 2429) (.n 2430)) ::
+  .atom (.load (.n 2432) (.n 18) 17) ::
+  .atom (.add (.n 2433) (.n 2431) (.n 2432)) ::
+  .atom (.mul (.n 2434) (.n 2428) (.n 2433)) ::
+  .atom (.const (.n 2435) (word 1 0 0)) ::
+  .atom (.load (.n 2436) (.n 158) 60) ::
+  .atom (.add (.n 2437) (.n 2435) (.n 2436)) ::
+  .atom (.load (.n 2438) (.n 18) 18) ::
+  .atom (.add (.n 2439) (.n 2437) (.n 2438)) ::
+  .atom (.mul (.n 2440) (.n 2434) (.n 2439)) ::
+  .atom (.const (.n 2441) (word 1 0 0)) ::
+  .atom (.load (.n 2442) (.n 158) 61) ::
+  .atom (.add (.n 2443) (.n 2441) (.n 2442)) ::
+  .atom (.load (.n 2444) (.n 18) 19) ::
+  .atom (.add (.n 2445) (.n 2443) (.n 2444)) ::
+  .atom (.mul (.n 2446) (.n 2440) (.n 2445)) ::
+  .atom (.const (.n 2447) (word 1 0 0)) ::
+  .atom (.load (.n 2448) (.n 158) 62) ::
+  .atom (.add (.n 2449) (.n 2447) (.n 2448)) ::
+  .atom (.load (.n 2450) (.n 18) 20) ::
+  .atom (.add (.n 2451) (.n 2449) (.n 2450)) ::
+  .atom (.mul (.n 2452) (.n 2446) (.n 2451)) ::
   .atom (.const (.n 2453) (word 1 0 0)) ::
-  .atom (.load (.n 2454) (.n 158) 52) ::
+  .atom (.load (.n 2454) (.n 158) 63) ::
   .atom (.add (.n 2455) (.n 2453) (.n 2454)) ::
-  .atom (.load (.n 2456) (.n 18) 10) ::
+  .atom (.load (.n 2456) (.n 18) 21) ::
   .atom (.add (.n 2457) (.n 2455) (.n 2456)) ::
   .atom (.mul (.n 2458) (.n 2452) (.n 2457)) ::
   .atom (.const (.n 2459) (word 1 0 0)) ::
-  .atom (.load (.n 2460) (.n 158) 53) ::
+  .atom (.load (.n 2460) (.n 158) 64) ::
   .atom (.add (.n 2461) (.n 2459) (.n 2460)) ::
-  .atom (.load (.n 2462) (.n 18) 11) ::
+  .atom (.load (.n 2462) (.n 18) 22) ::
   .atom (.add (.n 2463) (.n 2461) (.n 2462)) ::
   .atom (.mul (.n 2464) (.n 2458) (.n 2463)) ::
   .atom (.const (.n 2465) (word 1 0 0)) ::
-  .atom (.load (.n 2466) (.n 158) 54) ::
+  .atom (.load (.n 2466) (.n 158) 65) ::
   .atom (.add (.n 2467) (.n 2465) (.n 2466)) ::
-  .atom (.load (.n 2468) (.n 18) 12) ::
+  .atom (.load (.n 2468) (.n 18) 23) ::
   .atom (.add (.n 2469) (.n 2467) (.n 2468)) ::
   .atom (.mul (.n 2470) (.n 2464) (.n 2469)) ::
   .atom (.const (.n 2471) (word 1 0 0)) ::
-  .atom (.load (.n 2472) (.n 158) 55) ::
+  .atom (.load (.n 2472) (.n 158) 66) ::
   .atom (.add (.n 2473) (.n 2471) (.n 2472)) ::
-  .atom (.load (.n 2474) (.n 18) 13) ::
+  .atom (.load (.n 2474) (.n 18) 24) ::
   .atom (.add (.n 2475) (.n 2473) (.n 2474)) ::
   .atom (.mul (.n 2476) (.n 2470) (.n 2475)) ::
   .atom (.const (.n 2477) (word 1 0 0)) ::
-  .atom (.load (.n 2478) (.n 158) 56) ::
+  .atom (.load (.n 2478) (.n 158) 67) ::
   .atom (.add (.n 2479) (.n 2477) (.n 2478)) ::
-  .atom (.load (.n 2480) (.n 18) 14) ::
+  .atom (.load (.n 2480) (.n 18) 25) ::
   .atom (.add (.n 2481) (.n 2479) (.n 2480)) ::
   .atom (.mul (.n 2482) (.n 2476) (.n 2481)) ::
   .atom (.const (.n 2483) (word 1 0 0)) ::
-  .atom (.load (.n 2484) (.n 158) 57) ::
+  .atom (.load (.n 2484) (.n 158) 68) ::
   .atom (.add (.n 2485) (.n 2483) (.n 2484)) ::
-  .atom (.load (.n 2486) (.n 18) 15) ::
+  .atom (.load (.n 2486) (.n 1428) 0) ::
   .atom (.add (.n 2487) (.n 2485) (.n 2486)) ::
   .atom (.mul (.n 2488) (.n 2482) (.n 2487)) ::
   .atom (.const (.n 2489) (word 1 0 0)) ::
-  .atom (.load (.n 2490) (.n 158) 58) ::
+  .atom (.load (.n 2490) (.n 158) 69) ::
   .atom (.add (.n 2491) (.n 2489) (.n 2490)) ::
-  .atom (.load (.n 2492) (.n 18) 16) ::
+  .atom (.load (.n 2492) (.n 1428) 1) ::
   .atom (.add (.n 2493) (.n 2491) (.n 2492)) ::
   .atom (.mul (.n 2494) (.n 2488) (.n 2493)) ::
   .atom (.const (.n 2495) (word 1 0 0)) ::
-  .atom (.load (.n 2496) (.n 158) 59) ::
+  .atom (.load (.n 2496) (.n 158) 70) ::
   .atom (.add (.n 2497) (.n 2495) (.n 2496)) ::
-  .atom (.load (.n 2498) (.n 18) 17) ::
+  .atom (.load (.n 2498) (.n 1428) 2) ::
   .atom (.add (.n 2499) (.n 2497) (.n 2498)) ::
   .atom (.mul (.n 2500) (.n 2494) (.n 2499)) ::
-  .atom (.const (.n 2501) (word 1 0 0)) ::
-  .atom (.load (.n 2502) (.n 158) 60) ::
-  .atom (.add (.n 2503) (.n 2501) (.n 2502)) ::
-  .atom (.load (.n 2504) (.n 18) 18) ::
+  .atom (.add (.n 2501) (.n 2385) (.n 2500)) ::
+  .atom (.load (.n 2502) (.n 160) 12) ::
+  .atom (.const (.n 2503) (word 1 0 0)) ::
+  .atom (.load (.n 2504) (.n 158) 78) ::
   .atom (.add (.n 2505) (.n 2503) (.n 2504)) ::
-  .atom (.mul (.n 2506) (.n 2500) (.n 2505)) ::
-  .atom (.const (.n 2507) (word 1 0 0)) ::
-  .atom (.load (.n 2508) (.n 158) 61) ::
-  .atom (.add (.n 2509) (.n 2507) (.n 2508)) ::
-  .atom (.load (.n 2510) (.n 18) 19) ::
+  .atom (.load (.n 2506) (.n 18) 14) ::
+  .atom (.add (.n 2507) (.n 2505) (.n 2506)) ::
+  .atom (.mul (.n 2508) (.n 2502) (.n 2507)) ::
+  .atom (.const (.n 2509) (word 1 0 0)) ::
+  .atom (.load (.n 2510) (.n 158) 79) ::
   .atom (.add (.n 2511) (.n 2509) (.n 2510)) ::
-  .atom (.mul (.n 2512) (.n 2506) (.n 2511)) ::
-  .atom (.const (.n 2513) (word 1 0 0)) ::
-  .atom (.load (.n 2514) (.n 158) 62) ::
-  .atom (.add (.n 2515) (.n 2513) (.n 2514)) ::
-  .atom (.load (.n 2516) (.n 18) 20) ::
+  .atom (.load (.n 2512) (.n 18) 15) ::
+  .atom (.add (.n 2513) (.n 2511) (.n 2512)) ::
+  .atom (.mul (.n 2514) (.n 2508) (.n 2513)) ::
+  .atom (.const (.n 2515) (word 1 0 0)) ::
+  .atom (.load (.n 2516) (.n 158) 80) ::
   .atom (.add (.n 2517) (.n 2515) (.n 2516)) ::
-  .atom (.mul (.n 2518) (.n 2512) (.n 2517)) ::
-  .atom (.const (.n 2519) (word 1 0 0)) ::
-  .atom (.load (.n 2520) (.n 158) 63) ::
-  .atom (.add (.n 2521) (.n 2519) (.n 2520)) ::
-  .atom (.load (.n 2522) (.n 18) 21) ::
+  .atom (.load (.n 2518) (.n 18) 16) ::
+  .atom (.add (.n 2519) (.n 2517) (.n 2518)) ::
+  .atom (.mul (.n 2520) (.n 2514) (.n 2519)) ::
+  .atom (.const (.n 2521) (word 1 0 0)) ::
+  .atom (.load (.n 2522) (.n 158) 81) ::
   .atom (.add (.n 2523) (.n 2521) (.n 2522)) ::
-  .atom (.mul (.n 2524) (.n 2518) (.n 2523)) ::
-  .atom (.const (.n 2525) (word 1 0 0)) ::
-  .atom (.load (.n 2526) (.n 158) 64) ::
-  .atom (.add (.n 2527) (.n 2525) (.n 2526)) ::
-  .atom (.load (.n 2528) (.n 18) 22) ::
+  .atom (.load (.n 2524) (.n 18) 17) ::
+  .atom (.add (.n 2525) (.n 2523) (.n 2524)) ::
+  .atom (.mul (.n 2526) (.n 2520) (.n 2525)) ::
+  .atom (.const (.n 2527) (word 1 0 0)) ::
+  .atom (.load (.n 2528) (.n 158) 82) ::
   .atom (.add (.n 2529) (.n 2527) (.n 2528)) ::
-  .atom (.mul (.n 2530) (.n 2524) (.n 2529)) ::
-  .atom (.const (.n 2531) (word 1 0 0)) ::
-  .atom (.load (.n 2532) (.n 158) 65) ::
-  .atom (.add (.n 2533) (.n 2531) (.n 2532)) ::
-  .atom (.load (.n 2534) (.n 18) 23) ::
+  .atom (.load (.n 2530) (.n 18) 18) ::
+  .atom (.add (.n 2531) (.n 2529) (.n 2530)) ::
+  .atom (.mul (.n 2532) (.n 2526) (.n 2531)) ::
+  .atom (.const (.n 2533) (word 1 0 0)) ::
+  .atom (.load (.n 2534) (.n 158) 83) ::
   .atom (.add (.n 2535) (.n 2533) (.n 2534)) ::
-  .atom (.mul (.n 2536) (.n 2530) (.n 2535)) ::
-  .atom (.const (.n 2537) (word 1 0 0)) ::
-  .atom (.load (.n 2538) (.n 158) 66) ::
-  .atom (.add (.n 2539) (.n 2537) (.n 2538)) ::
-  .atom (.load (.n 2540) (.n 18) 24) ::
+  .atom (.load (.n 2536) (.n 18) 19) ::
+  .atom (.add (.n 2537) (.n 2535) (.n 2536)) ::
+  .atom (.mul (.n 2538) (.n 2532) (.n 2537)) ::
+  .atom (.const (.n 2539) (word 1 0 0)) ::
+  .atom (.load (.n 2540) (.n 158) 84) ::
   .atom (.add (.n 2541) (.n 2539) (.n 2540)) ::
-  .atom (.mul (.n 2542) (.n 2536) (.n 2541)) ::
-  .atom (.const (.n 2543) (word 1 0 0)) ::
-  .atom (.load (.n 2544) (.n 158) 67) ::
-  .atom (.add (.n 2545) (.n 2543) (.n 2544)) ::
-  .atom (.load (.n 2546) (.n 18) 25) ::
+  .atom (.load (.n 2542) (.n 18) 20) ::
+  .atom (.add (.n 2543) (.n 2541) (.n 2542)) ::
+  .atom (.mul (.n 2544) (.n 2538) (.n 2543)) ::
+  .atom (.const (.n 2545) (word 1 0 0)) ::
+  .atom (.load (.n 2546) (.n 158) 85) ::
   .atom (.add (.n 2547) (.n 2545) (.n 2546)) ::
-  .atom (.mul (.n 2548) (.n 2542) (.n 2547)) ::
-  .atom (.const (.n 2549) (word 1 0 0)) ::
-  .atom (.load (.n 2550) (.n 158) 68) ::
-  .atom (.add (.n 2551) (.n 2549) (.n 2550)) ::
-  .atom (.load (.n 2552) (.n 1428) 0) ::
+  .atom (.load (.n 2548) (.n 18) 21) ::
+  .atom (.add (.n 2549) (.n 2547) (.n 2548)) ::
+  .atom (.mul (.n 2550) (.n 2544) (.n 2549)) ::
+  .atom (.const (.n 2551) (word 1 0 0)) ::
+  .atom (.load (.n 2552) (.n 158) 86) ::
   .atom (.add (.n 2553) (.n 2551) (.n 2552)) ::
-  .atom (.mul (.n 2554) (.n 2548) (.n 2553)) ::
-  .atom (.const (.n 2555) (word 1 0 0)) ::
-  .atom (.load (.n 2556) (.n 158) 69) ::
-  .atom (.add (.n 2557) (.n 2555) (.n 2556)) ::
-  .atom (.load (.n 2558) (.n 1428) 1) ::
+  .atom (.load (.n 2554) (.n 18) 22) ::
+  .atom (.add (.n 2555) (.n 2553) (.n 2554)) ::
+  .atom (.mul (.n 2556) (.n 2550) (.n 2555)) ::
+  .atom (.const (.n 2557) (word 1 0 0)) ::
+  .atom (.load (.n 2558) (.n 158) 87) ::
   .atom (.add (.n 2559) (.n 2557) (.n 2558)) ::
-  .atom (.mul (.n 2560) (.n 2554) (.n 2559)) ::
-  .atom (.const (.n 2561) (word 1 0 0)) ::
-  .atom (.load (.n 2562) (.n 158) 70) ::
-  .atom (.add (.n 2563) (.n 2561) (.n 2562)) ::
-  .atom (.load (.n 2564) (.n 1428) 2) ::
+  .atom (.load (.n 2560) (.n 18) 23) ::
+  .atom (.add (.n 2561) (.n 2559) (.n 2560)) ::
+  .atom (.mul (.n 2562) (.n 2556) (.n 2561)) ::
+  .atom (.const (.n 2563) (word 1 0 0)) ::
+  .atom (.load (.n 2564) (.n 158) 88) ::
   .atom (.add (.n 2565) (.n 2563) (.n 2564)) ::
-  .atom (.mul (.n 2566) (.n 2560) (.n 2565)) ::
-  .atom (.add (.n 2567) (.n 2451) (.n 2566)) ::
-  .atom (.load (.n 2568) (.n 160) 12) ::
+  .atom (.load (.n 2566) (.n 18) 24) ::
+  .atom (.add (.n 2567) (.n 2565) (.n 2566)) ::
+  .atom (.mul (.n 2568) (.n 2562) (.n 2567)) ::
   .atom (.const (.n 2569) (word 1 0 0)) ::
-  .atom (.load (.n 2570) (.n 158) 78) ::
+  .atom (.load (.n 2570) (.n 158) 89) ::
   .atom (.add (.n 2571) (.n 2569) (.n 2570)) ::
-  .atom (.load (.n 2572) (.n 18) 14) ::
+  .atom (.load (.n 2572) (.n 18) 25) ::
   .atom (.add (.n 2573) (.n 2571) (.n 2572)) ::
   .atom (.mul (.n 2574) (.n 2568) (.n 2573)) ::
   .atom (.const (.n 2575) (word 1 0 0)) ::
-  .atom (.load (.n 2576) (.n 158) 79) ::
+  .atom (.load (.n 2576) (.n 158) 90) ::
   .atom (.add (.n 2577) (.n 2575) (.n 2576)) ::
-  .atom (.load (.n 2578) (.n 18) 15) ::
+  .atom (.load (.n 2578) (.n 1428) 0) ::
   .atom (.add (.n 2579) (.n 2577) (.n 2578)) ::
   .atom (.mul (.n 2580) (.n 2574) (.n 2579)) ::
   .atom (.const (.n 2581) (word 1 0 0)) ::
-  .atom (.load (.n 2582) (.n 158) 80) ::
+  .atom (.load (.n 2582) (.n 158) 91) ::
   .atom (.add (.n 2583) (.n 2581) (.n 2582)) ::
-  .atom (.load (.n 2584) (.n 18) 16) ::
+  .atom (.load (.n 2584) (.n 1428) 1) ::
   .atom (.add (.n 2585) (.n 2583) (.n 2584)) ::
   .atom (.mul (.n 2586) (.n 2580) (.n 2585)) ::
   .atom (.const (.n 2587) (word 1 0 0)) ::
-  .atom (.load (.n 2588) (.n 158) 81) ::
+  .atom (.load (.n 2588) (.n 158) 92) ::
   .atom (.add (.n 2589) (.n 2587) (.n 2588)) ::
-  .atom (.load (.n 2590) (.n 18) 17) ::
+  .atom (.load (.n 2590) (.n 1428) 2) ::
   .atom (.add (.n 2591) (.n 2589) (.n 2590)) ::
   .atom (.mul (.n 2592) (.n 2586) (.n 2591)) ::
-  .atom (.const (.n 2593) (word 1 0 0)) ::
-  .atom (.load (.n 2594) (.n 158) 82) ::
-  .atom (.add (.n 2595) (.n 2593) (.n 2594)) ::
-  .atom (.load (.n 2596) (.n 18) 18) ::
+  .atom (.add (.n 2593) (.n 2501) (.n 2592)) ::
+  .atom (.load (.n 2594) (.n 160) 16) ::
+  .atom (.const (.n 2595) (word 1 0 0)) ::
+  .atom (.load (.n 2596) (.n 158) 104) ::
   .atom (.add (.n 2597) (.n 2595) (.n 2596)) ::
-  .atom (.mul (.n 2598) (.n 2592) (.n 2597)) ::
-  .atom (.const (.n 2599) (word 1 0 0)) ::
-  .atom (.load (.n 2600) (.n 158) 83) ::
-  .atom (.add (.n 2601) (.n 2599) (.n 2600)) ::
-  .atom (.load (.n 2602) (.n 18) 19) ::
+  .atom (.load (.n 2598) (.n 18) 18) ::
+  .atom (.add (.n 2599) (.n 2597) (.n 2598)) ::
+  .atom (.mul (.n 2600) (.n 2594) (.n 2599)) ::
+  .atom (.const (.n 2601) (word 1 0 0)) ::
+  .atom (.load (.n 2602) (.n 158) 105) ::
   .atom (.add (.n 2603) (.n 2601) (.n 2602)) ::
-  .atom (.mul (.n 2604) (.n 2598) (.n 2603)) ::
-  .atom (.const (.n 2605) (word 1 0 0)) ::
-  .atom (.load (.n 2606) (.n 158) 84) ::
-  .atom (.add (.n 2607) (.n 2605) (.n 2606)) ::
-  .atom (.load (.n 2608) (.n 18) 20) ::
+  .atom (.load (.n 2604) (.n 18) 19) ::
+  .atom (.add (.n 2605) (.n 2603) (.n 2604)) ::
+  .atom (.mul (.n 2606) (.n 2600) (.n 2605)) ::
+  .atom (.const (.n 2607) (word 1 0 0)) ::
+  .atom (.load (.n 2608) (.n 158) 106) ::
   .atom (.add (.n 2609) (.n 2607) (.n 2608)) ::
-  .atom (.mul (.n 2610) (.n 2604) (.n 2609)) ::
-  .atom (.const (.n 2611) (word 1 0 0)) ::
-  .atom (.load (.n 2612) (.n 158) 85) ::
-  .atom (.add (.n 2613) (.n 2611) (.n 2612)) ::
-  .atom (.load (.n 2614) (.n 18) 21) ::
+  .atom (.load (.n 2610) (.n 18) 20) ::
+  .atom (.add (.n 2611) (.n 2609) (.n 2610)) ::
+  .atom (.mul (.n 2612) (.n 2606) (.n 2611)) ::
+  .atom (.const (.n 2613) (word 1 0 0)) ::
+  .atom (.load (.n 2614) (.n 158) 107) ::
   .atom (.add (.n 2615) (.n 2613) (.n 2614)) ::
-  .atom (.mul (.n 2616) (.n 2610) (.n 2615)) ::
-  .atom (.const (.n 2617) (word 1 0 0)) ::
-  .atom (.load (.n 2618) (.n 158) 86) ::
-  .atom (.add (.n 2619) (.n 2617) (.n 2618)) ::
-  .atom (.load (.n 2620) (.n 18) 22) ::
+  .atom (.load (.n 2616) (.n 18) 21) ::
+  .atom (.add (.n 2617) (.n 2615) (.n 2616)) ::
+  .atom (.mul (.n 2618) (.n 2612) (.n 2617)) ::
+  .atom (.const (.n 2619) (word 1 0 0)) ::
+  .atom (.load (.n 2620) (.n 158) 108) ::
   .atom (.add (.n 2621) (.n 2619) (.n 2620)) ::
-  .atom (.mul (.n 2622) (.n 2616) (.n 2621)) ::
-  .atom (.const (.n 2623) (word 1 0 0)) ::
-  .atom (.load (.n 2624) (.n 158) 87) ::
-  .atom (.add (.n 2625) (.n 2623) (.n 2624)) ::
-  .atom (.load (.n 2626) (.n 18) 23) ::
+  .atom (.load (.n 2622) (.n 18) 22) ::
+  .atom (.add (.n 2623) (.n 2621) (.n 2622)) ::
+  .atom (.mul (.n 2624) (.n 2618) (.n 2623)) ::
+  .atom (.const (.n 2625) (word 1 0 0)) ::
+  .atom (.load (.n 2626) (.n 158) 109) ::
   .atom (.add (.n 2627) (.n 2625) (.n 2626)) ::
-  .atom (.mul (.n 2628) (.n 2622) (.n 2627)) ::
-  .atom (.const (.n 2629) (word 1 0 0)) ::
-  .atom (.load (.n 2630) (.n 158) 88) ::
-  .atom (.add (.n 2631) (.n 2629) (.n 2630)) ::
-  .atom (.load (.n 2632) (.n 18) 24) ::
+  .atom (.load (.n 2628) (.n 18) 23) ::
+  .atom (.add (.n 2629) (.n 2627) (.n 2628)) ::
+  .atom (.mul (.n 2630) (.n 2624) (.n 2629)) ::
+  .atom (.const (.n 2631) (word 1 0 0)) ::
+  .atom (.load (.n 2632) (.n 158) 110) ::
   .atom (.add (.n 2633) (.n 2631) (.n 2632)) ::
-  .atom (.mul (.n 2634) (.n 2628) (.n 2633)) ::
-  .atom (.const (.n 2635) (word 1 0 0)) ::
-  .atom (.load (.n 2636) (.n 158) 89) ::
-  .atom (.add (.n 2637) (.n 2635) (.n 2636)) ::
-  .atom (.load (.n 2638) (.n 18) 25) ::
+  .atom (.load (.n 2634) (.n 18) 24) ::
+  .atom (.add (.n 2635) (.n 2633) (.n 2634)) ::
+  .atom (.mul (.n 2636) (.n 2630) (.n 2635)) ::
+  .atom (.const (.n 2637) (word 1 0 0)) ::
+  .atom (.load (.n 2638) (.n 158) 111) ::
   .atom (.add (.n 2639) (.n 2637) (.n 2638)) ::
-  .atom (.mul (.n 2640) (.n 2634) (.n 2639)) ::
-  .atom (.const (.n 2641) (word 1 0 0)) ::
-  .atom (.load (.n 2642) (.n 158) 90) ::
-  .atom (.add (.n 2643) (.n 2641) (.n 2642)) ::
-  .atom (.load (.n 2644) (.n 1428) 0) ::
+  .atom (.load (.n 2640) (.n 18) 25) ::
+  .atom (.add (.n 2641) (.n 2639) (.n 2640)) ::
+  .atom (.mul (.n 2642) (.n 2636) (.n 2641)) ::
+  .atom (.const (.n 2643) (word 1 0 0)) ::
+  .atom (.load (.n 2644) (.n 158) 112) ::
   .atom (.add (.n 2645) (.n 2643) (.n 2644)) ::
-  .atom (.mul (.n 2646) (.n 2640) (.n 2645)) ::
-  .atom (.const (.n 2647) (word 1 0 0)) ::
-  .atom (.load (.n 2648) (.n 158) 91) ::
-  .atom (.add (.n 2649) (.n 2647) (.n 2648)) ::
-  .atom (.load (.n 2650) (.n 1428) 1) ::
+  .atom (.load (.n 2646) (.n 1428) 0) ::
+  .atom (.add (.n 2647) (.n 2645) (.n 2646)) ::
+  .atom (.mul (.n 2648) (.n 2642) (.n 2647)) ::
+  .atom (.const (.n 2649) (word 1 0 0)) ::
+  .atom (.load (.n 2650) (.n 158) 113) ::
   .atom (.add (.n 2651) (.n 2649) (.n 2650)) ::
-  .atom (.mul (.n 2652) (.n 2646) (.n 2651)) ::
-  .atom (.const (.n 2653) (word 1 0 0)) ::
-  .atom (.load (.n 2654) (.n 158) 92) ::
-  .atom (.add (.n 2655) (.n 2653) (.n 2654)) ::
-  .atom (.load (.n 2656) (.n 1428) 2) ::
+  .atom (.load (.n 2652) (.n 1428) 1) ::
+  .atom (.add (.n 2653) (.n 2651) (.n 2652)) ::
+  .atom (.mul (.n 2654) (.n 2648) (.n 2653)) ::
+  .atom (.const (.n 2655) (word 1 0 0)) ::
+  .atom (.load (.n 2656) (.n 158) 114) ::
   .atom (.add (.n 2657) (.n 2655) (.n 2656)) ::
-  .atom (.mul (.n 2658) (.n 2652) (.n 2657)) ::
-  .atom (.add (.n 2659) (.n 2567) (.n 2658)) ::
-  .atom (.load (.n 2660) (.n 160) 16) ::
-  .atom (.const (.n 2661) (word 1 0 0)) ::
-  .atom (.load (.n 2662) (.n 158) 104) ::
-  .atom (.add (.n 2663) (.n 2661) (.n 2662)) ::
-  .atom (.load (.n 2664) (.n 18) 18) ::
+  .atom (.load (.n 2658) (.n 1428) 2) ::
+  .atom (.add (.n 2659) (.n 2657) (.n 2658)) ::
+  .atom (.mul (.n 2660) (.n 2654) (.n 2659)) ::
+  .atom (.add (.n 2661) (.n 2593) (.n 2660)) ::
+  .atom (.load (.n 2662) (.n 160) 20) ::
+  .atom (.const (.n 2663) (word 1 0 0)) ::
+  .atom (.load (.n 2664) (.n 158) 130) ::
   .atom (.add (.n 2665) (.n 2663) (.n 2664)) ::
-  .atom (.mul (.n 2666) (.n 2660) (.n 2665)) ::
-  .atom (.const (.n 2667) (word 1 0 0)) ::
-  .atom (.load (.n 2668) (.n 158) 105) ::
-  .atom (.add (.n 2669) (.n 2667) (.n 2668)) ::
-  .atom (.load (.n 2670) (.n 18) 19) ::
+  .atom (.load (.n 2666) (.n 18) 22) ::
+  .atom (.add (.n 2667) (.n 2665) (.n 2666)) ::
+  .atom (.mul (.n 2668) (.n 2662) (.n 2667)) ::
+  .atom (.const (.n 2669) (word 1 0 0)) ::
+  .atom (.load (.n 2670) (.n 158) 131) ::
   .atom (.add (.n 2671) (.n 2669) (.n 2670)) ::
-  .atom (.mul (.n 2672) (.n 2666) (.n 2671)) ::
-  .atom (.const (.n 2673) (word 1 0 0)) ::
-  .atom (.load (.n 2674) (.n 158) 106) ::
-  .atom (.add (.n 2675) (.n 2673) (.n 2674)) ::
-  .atom (.load (.n 2676) (.n 18) 20) ::
+  .atom (.load (.n 2672) (.n 18) 23) ::
+  .atom (.add (.n 2673) (.n 2671) (.n 2672)) ::
+  .atom (.mul (.n 2674) (.n 2668) (.n 2673)) ::
+  .atom (.const (.n 2675) (word 1 0 0)) ::
+  .atom (.load (.n 2676) (.n 158) 132) ::
   .atom (.add (.n 2677) (.n 2675) (.n 2676)) ::
-  .atom (.mul (.n 2678) (.n 2672) (.n 2677)) ::
-  .atom (.const (.n 2679) (word 1 0 0)) ::
-  .atom (.load (.n 2680) (.n 158) 107) ::
-  .atom (.add (.n 2681) (.n 2679) (.n 2680)) ::
-  .atom (.load (.n 2682) (.n 18) 21) ::
+  .atom (.load (.n 2678) (.n 18) 24) ::
+  .atom (.add (.n 2679) (.n 2677) (.n 2678)) ::
+  .atom (.mul (.n 2680) (.n 2674) (.n 2679)) ::
+  .atom (.const (.n 2681) (word 1 0 0)) ::
+  .atom (.load (.n 2682) (.n 158) 133) ::
   .atom (.add (.n 2683) (.n 2681) (.n 2682)) ::
-  .atom (.mul (.n 2684) (.n 2678) (.n 2683)) ::
-  .atom (.const (.n 2685) (word 1 0 0)) ::
-  .atom (.load (.n 2686) (.n 158) 108) ::
-  .atom (.add (.n 2687) (.n 2685) (.n 2686)) ::
-  .atom (.load (.n 2688) (.n 18) 22) ::
+  .atom (.load (.n 2684) (.n 18) 25) ::
+  .atom (.add (.n 2685) (.n 2683) (.n 2684)) ::
+  .atom (.mul (.n 2686) (.n 2680) (.n 2685)) ::
+  .atom (.const (.n 2687) (word 1 0 0)) ::
+  .atom (.load (.n 2688) (.n 158) 134) ::
   .atom (.add (.n 2689) (.n 2687) (.n 2688)) ::
-  .atom (.mul (.n 2690) (.n 2684) (.n 2689)) ::
-  .atom (.const (.n 2691) (word 1 0 0)) ::
-  .atom (.load (.n 2692) (.n 158) 109) ::
-  .atom (.add (.n 2693) (.n 2691) (.n 2692)) ::
-  .atom (.load (.n 2694) (.n 18) 23) ::
+  .atom (.load (.n 2690) (.n 1428) 0) ::
+  .atom (.add (.n 2691) (.n 2689) (.n 2690)) ::
+  .atom (.mul (.n 2692) (.n 2686) (.n 2691)) ::
+  .atom (.const (.n 2693) (word 1 0 0)) ::
+  .atom (.load (.n 2694) (.n 158) 135) ::
   .atom (.add (.n 2695) (.n 2693) (.n 2694)) ::
-  .atom (.mul (.n 2696) (.n 2690) (.n 2695)) ::
-  .atom (.const (.n 2697) (word 1 0 0)) ::
-  .atom (.load (.n 2698) (.n 158) 110) ::
-  .atom (.add (.n 2699) (.n 2697) (.n 2698)) ::
-  .atom (.load (.n 2700) (.n 18) 24) ::
+  .atom (.load (.n 2696) (.n 1428) 1) ::
+  .atom (.add (.n 2697) (.n 2695) (.n 2696)) ::
+  .atom (.mul (.n 2698) (.n 2692) (.n 2697)) ::
+  .atom (.const (.n 2699) (word 1 0 0)) ::
+  .atom (.load (.n 2700) (.n 158) 136) ::
   .atom (.add (.n 2701) (.n 2699) (.n 2700)) ::
-  .atom (.mul (.n 2702) (.n 2696) (.n 2701)) ::
-  .atom (.const (.n 2703) (word 1 0 0)) ::
-  .atom (.load (.n 2704) (.n 158) 111) ::
-  .atom (.add (.n 2705) (.n 2703) (.n 2704)) ::
-  .atom (.load (.n 2706) (.n 18) 25) ::
-  .atom (.add (.n 2707) (.n 2705) (.n 2706)) ::
-  .atom (.mul (.n 2708) (.n 2702) (.n 2707)) ::
-  .atom (.const (.n 2709) (word 1 0 0)) ::
-  .atom (.load (.n 2710) (.n 158) 112) ::
-  .atom (.add (.n 2711) (.n 2709) (.n 2710)) ::
-  .atom (.load (.n 2712) (.n 1428) 0) ::
-  .atom (.add (.n 2713) (.n 2711) (.n 2712)) ::
-  .atom (.mul (.n 2714) (.n 2708) (.n 2713)) ::
-  .atom (.const (.n 2715) (word 1 0 0)) ::
-  .atom (.load (.n 2716) (.n 158) 113) ::
-  .atom (.add (.n 2717) (.n 2715) (.n 2716)) ::
-  .atom (.load (.n 2718) (.n 1428) 1) ::
-  .atom (.add (.n 2719) (.n 2717) (.n 2718)) ::
-  .atom (.mul (.n 2720) (.n 2714) (.n 2719)) ::
-  .atom (.const (.n 2721) (word 1 0 0)) ::
-  .atom (.load (.n 2722) (.n 158) 114) ::
-  .atom (.add (.n 2723) (.n 2721) (.n 2722)) ::
-  .atom (.load (.n 2724) (.n 1428) 2) ::
-  .atom (.add (.n 2725) (.n 2723) (.n 2724)) ::
-  .atom (.mul (.n 2726) (.n 2720) (.n 2725)) ::
-  .atom (.add (.n 2727) (.n 2659) (.n 2726)) ::
-  .atom (.load (.n 2728) (.n 160) 20) ::
-  .atom (.const (.n 2729) (word 1 0 0)) ::
-  .atom (.load (.n 2730) (.n 158) 130) ::
-  .atom (.add (.n 2731) (.n 2729) (.n 2730)) ::
-  .atom (.load (.n 2732) (.n 18) 22) ::
-  .atom (.add (.n 2733) (.n 2731) (.n 2732)) ::
-  .atom (.mul (.n 2734) (.n 2728) (.n 2733)) ::
-  .atom (.const (.n 2735) (word 1 0 0)) ::
-  .atom (.load (.n 2736) (.n 158) 131) ::
-  .atom (.add (.n 2737) (.n 2735) (.n 2736)) ::
-  .atom (.load (.n 2738) (.n 18) 23) ::
-  .atom (.add (.n 2739) (.n 2737) (.n 2738)) ::
-  .atom (.mul (.n 2740) (.n 2734) (.n 2739)) ::
-  .atom (.const (.n 2741) (word 1 0 0)) ::
-  .atom (.load (.n 2742) (.n 158) 132) ::
-  .atom (.add (.n 2743) (.n 2741) (.n 2742)) ::
-  .atom (.load (.n 2744) (.n 18) 24) ::
-  .atom (.add (.n 2745) (.n 2743) (.n 2744)) ::
-  .atom (.mul (.n 2746) (.n 2740) (.n 2745)) ::
-  .atom (.const (.n 2747) (word 1 0 0)) ::
-  .atom (.load (.n 2748) (.n 158) 133) ::
-  .atom (.add (.n 2749) (.n 2747) (.n 2748)) ::
-  .atom (.load (.n 2750) (.n 18) 25) ::
-  .atom (.add (.n 2751) (.n 2749) (.n 2750)) ::
-  .atom (.mul (.n 2752) (.n 2746) (.n 2751)) ::
-  .atom (.const (.n 2753) (word 1 0 0)) ::
-  .atom (.load (.n 2754) (.n 158) 134) ::
-  .atom (.add (.n 2755) (.n 2753) (.n 2754)) ::
-  .atom (.load (.n 2756) (.n 1428) 0) ::
-  .atom (.add (.n 2757) (.n 2755) (.n 2756)) ::
-  .atom (.mul (.n 2758) (.n 2752) (.n 2757)) ::
-  .atom (.const (.n 2759) (word 1 0 0)) ::
-  .atom (.load (.n 2760) (.n 158) 135) ::
-  .atom (.add (.n 2761) (.n 2759) (.n 2760)) ::
-  .atom (.load (.n 2762) (.n 1428) 1) ::
-  .atom (.add (.n 2763) (.n 2761) (.n 2762)) ::
-  .atom (.mul (.n 2764) (.n 2758) (.n 2763)) ::
-  .atom (.const (.n 2765) (word 1 0 0)) ::
-  .atom (.load (.n 2766) (.n 158) 136) ::
-  .atom (.add (.n 2767) (.n 2765) (.n 2766)) ::
-  .atom (.load (.n 2768) (.n 1428) 2) ::
-  .atom (.add (.n 2769) (.n 2767) (.n 2768)) ::
-  .atom (.mul (.n 2770) (.n 2764) (.n 2769)) ::
-  .atom (.add (.n 2771) (.n 2727) (.n 2770)) ::
-  .atom (.copy (.n 2772) (.n 1500)) ::
-  .atom (.copy (.n 2773) (.n 1504)) ::
-  .atom (.copy (.n 2774) (.n 1505)) ::
-  .atom (.load (.n 2775) (.n 2189) 6) ::
-  .atom (.add (.n 2776) (.n 2775) (.n 2771)) ::
-  .atom (.copy (.n 2777) (.n 1503)) ::
-  .ret [.n 2772, .n 2773, .n 2774, .n 2776, .n 2777] ::
+  .atom (.load (.n 2702) (.n 1428) 2) ::
+  .atom (.add (.n 2703) (.n 2701) (.n 2702)) ::
+  .atom (.mul (.n 2704) (.n 2698) (.n 2703)) ::
+  .atom (.add (.n 2705) (.n 2661) (.n 2704)) ::
+  .atom (.copy (.n 2706) (.n 1500)) ::
+  .atom (.copy (.n 2707) (.n 1504)) ::
+  .atom (.copy (.n 2708) (.n 1505)) ::
+  .atom (.load (.n 2709) (.n 2189) 6) ::
+  .atom (.add (.n 2710) (.n 2709) (.n 2705)) ::
+  .atom (.copy (.n 2711) (.n 1503)) ::
+  .ret [.n 2706, .n 2707, .n 2708, .n 2710, .n 2711] ::
   [])
 
 /-- `open_stacked__L10`: the body. -/
@@ -30194,7 +29064,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.mul (.n 1777) (.n 1770) (.n 1773)) ::
   [])
 
-/-- `open_stacked__L11`: statements 1583 to 2133 of the body. -/
+/-- `open_stacked__L11`: statements 1583 to 2146 of the body. -/
 noncomputable def c3 : List Core.Stmt := (
   .atom (.load (.n 1778) (.n 18) 23) ::
   .atom (.const (.n 1779) (word 7330356837328886549 0 0)) ::
@@ -30737,708 +29607,572 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.hint (.allocDyn (.n 2243) (.n 2242))) ::
   .atom (.const (.n 2244) (word 0 0 0)) ::
   .atom (.load (.n 2244) (.n 2243) 0) ::
-  .atom (.const (.n 2245) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2246) (word 268435456 0 0)),
-      .atom (.copy (.n 2247) (.n 2246)),
-      .atom (.const (.n 2248) (word 4 0 0)),
-      .atom (.copy (.n 2249) (.n 2248))],
-    [
-      .atom (.const (.n 2250) (word 16384 0 0)),
-      .atom (.copy (.n 2247) (.n 2250)),
-      .atom (.const (.n 2251) (word 2 0 0)),
-      .atom (.copy (.n 2249) (.n 2251))],
-    [
-      .atom (.const (.n 2252) (word 512 0 0)),
-      .atom (.copy (.n 2247) (.n 2252)),
-      .atom (.const (.n 2253) (word 8 0 0)),
-      .atom (.copy (.n 2249) (.n 2253))],
-    [
-      .atom (.const (.n 2254) (word 128 0 0)),
-      .atom (.copy (.n 2247) (.n 2254)),
-      .atom (.const (.n 2255) (word 2 0 0)),
-      .atom (.copy (.n 2249) (.n 2255))]] ::
-  .atom (.load (.n 2256) (.n 22) 0) ::
-  .call "level_residual__L24" [.n 24, .n 1657, .n 2256, .n 2247, .n 2249] [.n 2257] ::
-  .atom (.load (.n 2258) (.n 2243) 0) ::
-  .atom (.load (.n 2259) (.n 1659) 0) ::
-  .atom (.mul (.n 2260) (.n 2259) (.n 2257)) ::
-  .atom (.add (.n 2261) (.n 2258) (.n 2260)) ::
-  .atom (.load (.n 2261) (.n 2243) 1) ::
-  .atom (.const (.n 2262) (word 9223372036854775808 0 0)) ::
+  .atom (.load (.n 2245) (.n 22) 0) ::
+  .dispatch (.n 0) ["level_residual__L226_L24", "level_residual__L113_L24", "level_residual__L75_L24", "level_residual__L57_L24"] [.n 24, .n 1657, .n 2245] [.n 2246] ::
+  .atom (.load (.n 2247) (.n 2243) 0) ::
+  .atom (.load (.n 2248) (.n 1659) 0) ::
+  .atom (.mul (.n 2249) (.n 2248) (.n 2246)) ::
+  .atom (.add (.n 2250) (.n 2247) (.n 2249)) ::
+  .atom (.load (.n 2250) (.n 2243) 1) ::
+  .atom (.const (.n 2251) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2252) (.n 24) (.n 2251)) ::
+  .atom (.const (.n 2253) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2254) (.n 1657) (.n 2253)) ::
+  .atom (.load (.n 2255) (.n 22) 1) ::
+  .dispatch (.n 0) ["level_residual__L56_L20", "level_residual__L45_L20", "level_residual__L38_L20", "level_residual__L33_L20"] [.n 2252, .n 2254, .n 2255] [.n 2256] ::
+  .atom (.load (.n 2257) (.n 2243) 1) ::
+  .atom (.load (.n 2258) (.n 1659) 1) ::
+  .atom (.mul (.n 2259) (.n 2258) (.n 2256)) ::
+  .atom (.add (.n 2260) (.n 2257) (.n 2259)) ::
+  .atom (.load (.n 2260) (.n 2243) 2) ::
+  .atom (.const (.n 2261) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2262) (.n 564) (.n 2261)) ::
+  .atom (.const (.n 2263) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2264) (.n 2254) (.n 2263)) ::
+  .atom (.load (.n 2265) (.n 22) 2) ::
   [])
 
-/-- `open_stacked__L11`: statements 2134 to 2645 of the body. -/
+/-- `open_stacked__L11`: statements 2147 to 2681 of the body. -/
 noncomputable def c4 : List Core.Stmt := (
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2263) (word 128 0 0)),
-      .atom (.copy (.n 2264) (.n 2263)),
-      .atom (.const (.n 2265) (word 1 0 0)),
-      .atom (.copy (.n 2266) (.n 2265))],
-    [
-      .atom (.const (.n 2267) (word 32 0 0)),
-      .atom (.copy (.n 2264) (.n 2267)),
-      .atom (.const (.n 2268) (word 32 0 0)),
-      .atom (.copy (.n 2266) (.n 2268))],
-    [
-      .atom (.const (.n 2269) (word 16 0 0)),
-      .atom (.copy (.n 2264) (.n 2269)),
-      .atom (.const (.n 2270) (word 64 0 0)),
-      .atom (.copy (.n 2266) (.n 2270))],
-    [
-      .atom (.const (.n 2271) (word 16 0 0)),
-      .atom (.copy (.n 2264) (.n 2271)),
-      .atom (.const (.n 2272) (word 2 0 0)),
-      .atom (.copy (.n 2266) (.n 2272))]] ::
-  .atom (.const (.n 2273) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2274) (.n 24) (.n 2273)) ::
-  .atom (.const (.n 2275) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2276) (.n 1657) (.n 2275)) ::
-  .atom (.load (.n 2277) (.n 22) 1) ::
-  .call "level_residual__L20" [.n 2274, .n 2276, .n 2277, .n 2264, .n 2266] [.n 2278] ::
-  .atom (.load (.n 2279) (.n 2243) 1) ::
-  .atom (.load (.n 2280) (.n 1659) 1) ::
-  .atom (.mul (.n 2281) (.n 2280) (.n 2278)) ::
-  .atom (.add (.n 2282) (.n 2279) (.n 2281)) ::
-  .atom (.load (.n 2282) (.n 2243) 2) ::
-  .atom (.const (.n 2283) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2284) (word 16 0 0)),
-      .atom (.copy (.n 2285) (.n 2284)),
-      .atom (.const (.n 2286) (word 1 0 0)),
-      .atom (.copy (.n 2287) (.n 2286))],
-    [
-      .atom (.const (.n 2288) (word 8 0 0)),
-      .atom (.copy (.n 2285) (.n 2288)),
-      .atom (.const (.n 2289) (word 16 0 0)),
-      .atom (.copy (.n 2287) (.n 2289))],
-    [
-      .atom (.const (.n 2290) (word 8 0 0)),
-      .atom (.copy (.n 2285) (.n 2290)),
-      .atom (.const (.n 2291) (word 2 0 0)),
-      .atom (.copy (.n 2287) (.n 2291))],
-    [
-      .atom (.const (.n 2292) (word 4 0 0)),
-      .atom (.copy (.n 2285) (.n 2292)),
-      .atom (.const (.n 2293) (word 128 0 0)),
-      .atom (.copy (.n 2287) (.n 2293))]] ::
-  .atom (.const (.n 2294) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2295) (.n 564) (.n 2294)) ::
-  .atom (.const (.n 2296) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2297) (.n 2276) (.n 2296)) ::
-  .atom (.load (.n 2298) (.n 22) 2) ::
-  .call "level_residual__L16" [.n 2295, .n 2297, .n 2298, .n 2285, .n 2287] [.n 2299] ::
-  .atom (.load (.n 2300) (.n 2243) 2) ::
-  .atom (.load (.n 2301) (.n 1659) 2) ::
-  .atom (.mul (.n 2302) (.n 2301) (.n 2299)) ::
-  .atom (.add (.n 2303) (.n 2300) (.n 2302)) ::
-  .atom (.load (.n 2303) (.n 2243) 3) ::
-  .atom (.const (.n 2304) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2305) (word 4 0 0)),
-      .atom (.copy (.n 2306) (.n 2305)),
-      .atom (.const (.n 2307) (word 128 0 0)),
-      .atom (.copy (.n 2308) (.n 2307))],
-    [
-      .atom (.const (.n 2309) (word 4 0 0)),
-      .atom (.copy (.n 2306) (.n 2309)),
-      .atom (.const (.n 2310) (word 32 0 0)),
-      .atom (.copy (.n 2308) (.n 2310))],
-    [
-      .atom (.const (.n 2311) (word 4 0 0)),
-      .atom (.copy (.n 2306) (.n 2311)),
-      .atom (.const (.n 2312) (word 8 0 0)),
-      .atom (.copy (.n 2308) (.n 2312))],
-    [
-      .atom (.const (.n 2313) (word 4 0 0)),
-      .atom (.copy (.n 2306) (.n 2313)),
-      .atom (.const (.n 2314) (word 4 0 0)),
-      .atom (.copy (.n 2308) (.n 2314))]] ::
-  .atom (.const (.n 2315) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2316) (.n 791) (.n 2315)) ::
-  .atom (.const (.n 2317) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2318) (.n 2297) (.n 2317)) ::
-  .atom (.load (.n 2319) (.n 22) 3) ::
-  .call "level_residual__L12" [.n 2316, .n 2318, .n 2319, .n 2306, .n 2308] [.n 2320] ::
-  .atom (.load (.n 2321) (.n 2243) 3) ::
-  .atom (.load (.n 2322) (.n 1659) 3) ::
-  .atom (.mul (.n 2323) (.n 2322) (.n 2320)) ::
-  .atom (.add (.n 2324) (.n 2321) (.n 2323)) ::
-  .atom (.load (.n 2324) (.n 2243) 4) ::
-  .atom (.const (.n 2325) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2326) (word 4 0 0)),
-      .atom (.copy (.n 2327) (.n 2326)),
-      .atom (.const (.n 2328) (word 4 0 0)),
-      .atom (.copy (.n 2329) (.n 2328))],
-    [
-      .atom (.const (.n 2330) (word 4 0 0)),
-      .atom (.copy (.n 2327) (.n 2330)),
-      .atom (.const (.n 2331) (word 2 0 0)),
-      .atom (.copy (.n 2329) (.n 2331))],
-    [
-      .atom (.const (.n 2332) (word 4 0 0)),
-      .atom (.copy (.n 2327) (.n 2332)),
-      .atom (.const (.n 2333) (word 1 0 0)),
-      .atom (.copy (.n 2329) (.n 2333))],
-    [
-      .atom (.const (.n 2334) (word 2 0 0)),
-      .atom (.copy (.n 2327) (.n 2334)),
-      .atom (.const (.n 2335) (word 128 0 0)),
-      .atom (.copy (.n 2329) (.n 2335))]] ::
-  .atom (.const (.n 2336) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2337) (.n 1018) (.n 2336)) ::
-  .atom (.const (.n 2338) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2339) (.n 2318) (.n 2338)) ::
-  .atom (.load (.n 2340) (.n 22) 4) ::
-  .call "level_residual__L8" [.n 2337, .n 2339, .n 2340, .n 2327, .n 2329] [.n 2341] ::
-  .atom (.load (.n 2342) (.n 2243) 4) ::
-  .atom (.load (.n 2343) (.n 1659) 4) ::
-  .atom (.mul (.n 2344) (.n 2343) (.n 2341)) ::
-  .atom (.add (.n 2345) (.n 2342) (.n 2344)) ::
-  .atom (.load (.n 2345) (.n 2243) 5) ::
-  .atom (.const (.n 2346) (word 9223372036854775808 0 0)) ::
-  .match_ (.n 0) [
-    [
-      .atom (.const (.n 2347) (word 2 0 0)),
-      .atom (.copy (.n 2348) (.n 2347)),
-      .atom (.const (.n 2349) (word 64 0 0)),
-      .atom (.copy (.n 2350) (.n 2349))],
-    [
-      .atom (.const (.n 2351) (word 2 0 0)),
-      .atom (.copy (.n 2348) (.n 2351)),
-      .atom (.const (.n 2352) (word 64 0 0)),
-      .atom (.copy (.n 2350) (.n 2352))],
-    [
-      .atom (.const (.n 2353) (word 2 0 0)),
-      .atom (.copy (.n 2348) (.n 2353)),
-      .atom (.const (.n 2354) (word 32 0 0)),
-      .atom (.copy (.n 2350) (.n 2354))],
-    [
-      .atom (.const (.n 2355) (word 2 0 0)),
-      .atom (.copy (.n 2348) (.n 2355)),
-      .atom (.const (.n 2356) (word 16 0 0)),
-      .atom (.copy (.n 2350) (.n 2356))]] ::
-  .atom (.const (.n 2357) (word 33455939809968128 0 0)) ::
-  .atom (.mul (.n 2358) (.n 1245) (.n 2357)) ::
-  .atom (.const (.n 2359) (word 67108864 0 0)) ::
-  .atom (.mul (.n 2360) (.n 2339) (.n 2359)) ::
-  .atom (.load (.n 2361) (.n 22) 5) ::
-  .call "level_residual__L4" [.n 2358, .n 2360, .n 2361, .n 2348, .n 2350] [.n 2362] ::
-  .atom (.load (.n 2363) (.n 2243) 5) ::
-  .atom (.load (.n 2364) (.n 1659) 5) ::
-  .atom (.mul (.n 2365) (.n 2364) (.n 2362)) ::
-  .atom (.add (.n 2366) (.n 2363) (.n 2365)) ::
-  .atom (.load (.n 2366) (.n 2243) 6) ::
-  .atom (.load (.n 2367) (.n 160) 4) ::
+  .dispatch (.n 0) ["level_residual__L32_L16", "level_residual__L28_L16", "level_residual__L25_L16", "level_residual__L23_L16"] [.n 2262, .n 2264, .n 2265] [.n 2266] ::
+  .atom (.load (.n 2267) (.n 2243) 2) ::
+  .atom (.load (.n 2268) (.n 1659) 2) ::
+  .atom (.mul (.n 2269) (.n 2268) (.n 2266)) ::
+  .atom (.add (.n 2270) (.n 2267) (.n 2269)) ::
+  .atom (.load (.n 2270) (.n 2243) 3) ::
+  .atom (.const (.n 2271) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2272) (.n 791) (.n 2271)) ::
+  .atom (.const (.n 2273) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2274) (.n 2264) (.n 2273)) ::
+  .atom (.load (.n 2275) (.n 22) 3) ::
+  .dispatch (.n 0) ["level_residual__L23_L12", "level_residual__L21_L12", "level_residual__L19_L12", "level_residual__L18_L12"] [.n 2272, .n 2274, .n 2275] [.n 2276] ::
+  .atom (.load (.n 2277) (.n 2243) 3) ::
+  .atom (.load (.n 2278) (.n 1659) 3) ::
+  .atom (.mul (.n 2279) (.n 2278) (.n 2276)) ::
+  .atom (.add (.n 2280) (.n 2277) (.n 2279)) ::
+  .atom (.load (.n 2280) (.n 2243) 4) ::
+  .atom (.const (.n 2281) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2282) (.n 1018) (.n 2281)) ::
+  .atom (.const (.n 2283) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2284) (.n 2274) (.n 2283)) ::
+  .atom (.load (.n 2285) (.n 22) 4) ::
+  .dispatch (.n 0) ["level_residual__L18_L8", "level_residual__L17_L8", "level_residual__L16_L8", "level_residual__L15_L8"] [.n 2282, .n 2284, .n 2285] [.n 2286] ::
+  .atom (.load (.n 2287) (.n 2243) 4) ::
+  .atom (.load (.n 2288) (.n 1659) 4) ::
+  .atom (.mul (.n 2289) (.n 2288) (.n 2286)) ::
+  .atom (.add (.n 2290) (.n 2287) (.n 2289)) ::
+  .atom (.load (.n 2290) (.n 2243) 5) ::
+  .atom (.const (.n 2291) (word 33455939809968128 0 0)) ::
+  .atom (.mul (.n 2292) (.n 1245) (.n 2291)) ::
+  .atom (.const (.n 2293) (word 67108864 0 0)) ::
+  .atom (.mul (.n 2294) (.n 2284) (.n 2293)) ::
+  .atom (.load (.n 2295) (.n 22) 5) ::
+  .dispatch (.n 0) ["level_residual__L14_L4", "level_residual__L14_L4", "level_residual__L13_L4", "level_residual__L12_L4"] [.n 2292, .n 2294, .n 2295] [.n 2296] ::
+  .atom (.load (.n 2297) (.n 2243) 5) ::
+  .atom (.load (.n 2298) (.n 1659) 5) ::
+  .atom (.mul (.n 2299) (.n 2298) (.n 2296)) ::
+  .atom (.add (.n 2300) (.n 2297) (.n 2299)) ::
+  .atom (.load (.n 2300) (.n 2243) 6) ::
+  .atom (.load (.n 2301) (.n 160) 4) ::
+  .atom (.const (.n 2302) (word 1 0 0)) ::
+  .atom (.load (.n 2303) (.n 158) 26) ::
+  .atom (.add (.n 2304) (.n 2302) (.n 2303)) ::
+  .atom (.load (.n 2305) (.n 18) 6) ::
+  .atom (.add (.n 2306) (.n 2304) (.n 2305)) ::
+  .atom (.mul (.n 2307) (.n 2301) (.n 2306)) ::
+  .atom (.const (.n 2308) (word 1 0 0)) ::
+  .atom (.load (.n 2309) (.n 158) 27) ::
+  .atom (.add (.n 2310) (.n 2308) (.n 2309)) ::
+  .atom (.load (.n 2311) (.n 18) 7) ::
+  .atom (.add (.n 2312) (.n 2310) (.n 2311)) ::
+  .atom (.mul (.n 2313) (.n 2307) (.n 2312)) ::
+  .atom (.const (.n 2314) (word 1 0 0)) ::
+  .atom (.load (.n 2315) (.n 158) 28) ::
+  .atom (.add (.n 2316) (.n 2314) (.n 2315)) ::
+  .atom (.load (.n 2317) (.n 18) 8) ::
+  .atom (.add (.n 2318) (.n 2316) (.n 2317)) ::
+  .atom (.mul (.n 2319) (.n 2313) (.n 2318)) ::
+  .atom (.const (.n 2320) (word 1 0 0)) ::
+  .atom (.load (.n 2321) (.n 158) 29) ::
+  .atom (.add (.n 2322) (.n 2320) (.n 2321)) ::
+  .atom (.load (.n 2323) (.n 18) 9) ::
+  .atom (.add (.n 2324) (.n 2322) (.n 2323)) ::
+  .atom (.mul (.n 2325) (.n 2319) (.n 2324)) ::
+  .atom (.const (.n 2326) (word 1 0 0)) ::
+  .atom (.load (.n 2327) (.n 158) 30) ::
+  .atom (.add (.n 2328) (.n 2326) (.n 2327)) ::
+  .atom (.load (.n 2329) (.n 18) 10) ::
+  .atom (.add (.n 2330) (.n 2328) (.n 2329)) ::
+  .atom (.mul (.n 2331) (.n 2325) (.n 2330)) ::
+  .atom (.const (.n 2332) (word 1 0 0)) ::
+  .atom (.load (.n 2333) (.n 158) 31) ::
+  .atom (.add (.n 2334) (.n 2332) (.n 2333)) ::
+  .atom (.load (.n 2335) (.n 18) 11) ::
+  .atom (.add (.n 2336) (.n 2334) (.n 2335)) ::
+  .atom (.mul (.n 2337) (.n 2331) (.n 2336)) ::
+  .atom (.const (.n 2338) (word 1 0 0)) ::
+  .atom (.load (.n 2339) (.n 158) 32) ::
+  .atom (.add (.n 2340) (.n 2338) (.n 2339)) ::
+  .atom (.load (.n 2341) (.n 18) 12) ::
+  .atom (.add (.n 2342) (.n 2340) (.n 2341)) ::
+  .atom (.mul (.n 2343) (.n 2337) (.n 2342)) ::
+  .atom (.const (.n 2344) (word 1 0 0)) ::
+  .atom (.load (.n 2345) (.n 158) 33) ::
+  .atom (.add (.n 2346) (.n 2344) (.n 2345)) ::
+  .atom (.load (.n 2347) (.n 18) 13) ::
+  .atom (.add (.n 2348) (.n 2346) (.n 2347)) ::
+  .atom (.mul (.n 2349) (.n 2343) (.n 2348)) ::
+  .atom (.const (.n 2350) (word 1 0 0)) ::
+  .atom (.load (.n 2351) (.n 158) 34) ::
+  .atom (.add (.n 2352) (.n 2350) (.n 2351)) ::
+  .atom (.load (.n 2353) (.n 18) 14) ::
+  .atom (.add (.n 2354) (.n 2352) (.n 2353)) ::
+  .atom (.mul (.n 2355) (.n 2349) (.n 2354)) ::
+  .atom (.const (.n 2356) (word 1 0 0)) ::
+  .atom (.load (.n 2357) (.n 158) 35) ::
+  .atom (.add (.n 2358) (.n 2356) (.n 2357)) ::
+  .atom (.load (.n 2359) (.n 18) 15) ::
+  .atom (.add (.n 2360) (.n 2358) (.n 2359)) ::
+  .atom (.mul (.n 2361) (.n 2355) (.n 2360)) ::
+  .atom (.const (.n 2362) (word 1 0 0)) ::
+  .atom (.load (.n 2363) (.n 158) 36) ::
+  .atom (.add (.n 2364) (.n 2362) (.n 2363)) ::
+  .atom (.load (.n 2365) (.n 18) 16) ::
+  .atom (.add (.n 2366) (.n 2364) (.n 2365)) ::
+  .atom (.mul (.n 2367) (.n 2361) (.n 2366)) ::
   .atom (.const (.n 2368) (word 1 0 0)) ::
-  .atom (.load (.n 2369) (.n 158) 26) ::
+  .atom (.load (.n 2369) (.n 158) 37) ::
   .atom (.add (.n 2370) (.n 2368) (.n 2369)) ::
-  .atom (.load (.n 2371) (.n 18) 6) ::
+  .atom (.load (.n 2371) (.n 18) 17) ::
   .atom (.add (.n 2372) (.n 2370) (.n 2371)) ::
   .atom (.mul (.n 2373) (.n 2367) (.n 2372)) ::
   .atom (.const (.n 2374) (word 1 0 0)) ::
-  .atom (.load (.n 2375) (.n 158) 27) ::
+  .atom (.load (.n 2375) (.n 158) 38) ::
   .atom (.add (.n 2376) (.n 2374) (.n 2375)) ::
-  .atom (.load (.n 2377) (.n 18) 7) ::
+  .atom (.load (.n 2377) (.n 18) 18) ::
   .atom (.add (.n 2378) (.n 2376) (.n 2377)) ::
   .atom (.mul (.n 2379) (.n 2373) (.n 2378)) ::
   .atom (.const (.n 2380) (word 1 0 0)) ::
-  .atom (.load (.n 2381) (.n 158) 28) ::
+  .atom (.load (.n 2381) (.n 158) 39) ::
   .atom (.add (.n 2382) (.n 2380) (.n 2381)) ::
-  .atom (.load (.n 2383) (.n 18) 8) ::
+  .atom (.load (.n 2383) (.n 18) 19) ::
   .atom (.add (.n 2384) (.n 2382) (.n 2383)) ::
   .atom (.mul (.n 2385) (.n 2379) (.n 2384)) ::
   .atom (.const (.n 2386) (word 1 0 0)) ::
-  .atom (.load (.n 2387) (.n 158) 29) ::
+  .atom (.load (.n 2387) (.n 158) 40) ::
   .atom (.add (.n 2388) (.n 2386) (.n 2387)) ::
-  .atom (.load (.n 2389) (.n 18) 9) ::
+  .atom (.load (.n 2389) (.n 18) 20) ::
   .atom (.add (.n 2390) (.n 2388) (.n 2389)) ::
   .atom (.mul (.n 2391) (.n 2385) (.n 2390)) ::
   .atom (.const (.n 2392) (word 1 0 0)) ::
-  .atom (.load (.n 2393) (.n 158) 30) ::
+  .atom (.load (.n 2393) (.n 158) 41) ::
   .atom (.add (.n 2394) (.n 2392) (.n 2393)) ::
-  .atom (.load (.n 2395) (.n 18) 10) ::
+  .atom (.load (.n 2395) (.n 18) 21) ::
   .atom (.add (.n 2396) (.n 2394) (.n 2395)) ::
   .atom (.mul (.n 2397) (.n 2391) (.n 2396)) ::
   .atom (.const (.n 2398) (word 1 0 0)) ::
-  .atom (.load (.n 2399) (.n 158) 31) ::
+  .atom (.load (.n 2399) (.n 158) 42) ::
   .atom (.add (.n 2400) (.n 2398) (.n 2399)) ::
-  .atom (.load (.n 2401) (.n 18) 11) ::
+  .atom (.load (.n 2401) (.n 18) 22) ::
   .atom (.add (.n 2402) (.n 2400) (.n 2401)) ::
   .atom (.mul (.n 2403) (.n 2397) (.n 2402)) ::
   .atom (.const (.n 2404) (word 1 0 0)) ::
-  .atom (.load (.n 2405) (.n 158) 32) ::
+  .atom (.load (.n 2405) (.n 158) 43) ::
   .atom (.add (.n 2406) (.n 2404) (.n 2405)) ::
-  .atom (.load (.n 2407) (.n 18) 12) ::
+  .atom (.load (.n 2407) (.n 18) 23) ::
   .atom (.add (.n 2408) (.n 2406) (.n 2407)) ::
   .atom (.mul (.n 2409) (.n 2403) (.n 2408)) ::
   .atom (.const (.n 2410) (word 1 0 0)) ::
-  .atom (.load (.n 2411) (.n 158) 33) ::
+  .atom (.load (.n 2411) (.n 158) 44) ::
   .atom (.add (.n 2412) (.n 2410) (.n 2411)) ::
-  .atom (.load (.n 2413) (.n 18) 13) ::
+  .atom (.load (.n 2413) (.n 18) 24) ::
   .atom (.add (.n 2414) (.n 2412) (.n 2413)) ::
   .atom (.mul (.n 2415) (.n 2409) (.n 2414)) ::
   .atom (.const (.n 2416) (word 1 0 0)) ::
-  .atom (.load (.n 2417) (.n 158) 34) ::
+  .atom (.load (.n 2417) (.n 158) 45) ::
   .atom (.add (.n 2418) (.n 2416) (.n 2417)) ::
-  .atom (.load (.n 2419) (.n 18) 14) ::
+  .atom (.load (.n 2419) (.n 18) 25) ::
   .atom (.add (.n 2420) (.n 2418) (.n 2419)) ::
   .atom (.mul (.n 2421) (.n 2415) (.n 2420)) ::
   .atom (.const (.n 2422) (word 1 0 0)) ::
-  .atom (.load (.n 2423) (.n 158) 35) ::
+  .atom (.load (.n 2423) (.n 158) 46) ::
   .atom (.add (.n 2424) (.n 2422) (.n 2423)) ::
-  .atom (.load (.n 2425) (.n 18) 15) ::
+  .atom (.load (.n 2425) (.n 1428) 0) ::
   .atom (.add (.n 2426) (.n 2424) (.n 2425)) ::
   .atom (.mul (.n 2427) (.n 2421) (.n 2426)) ::
   .atom (.const (.n 2428) (word 1 0 0)) ::
-  .atom (.load (.n 2429) (.n 158) 36) ::
+  .atom (.load (.n 2429) (.n 158) 47) ::
   .atom (.add (.n 2430) (.n 2428) (.n 2429)) ::
-  .atom (.load (.n 2431) (.n 18) 16) ::
+  .atom (.load (.n 2431) (.n 1428) 1) ::
   .atom (.add (.n 2432) (.n 2430) (.n 2431)) ::
   .atom (.mul (.n 2433) (.n 2427) (.n 2432)) ::
   .atom (.const (.n 2434) (word 1 0 0)) ::
-  .atom (.load (.n 2435) (.n 158) 37) ::
+  .atom (.load (.n 2435) (.n 158) 48) ::
   .atom (.add (.n 2436) (.n 2434) (.n 2435)) ::
-  .atom (.load (.n 2437) (.n 18) 17) ::
+  .atom (.load (.n 2437) (.n 1428) 2) ::
   .atom (.add (.n 2438) (.n 2436) (.n 2437)) ::
   .atom (.mul (.n 2439) (.n 2433) (.n 2438)) ::
   .atom (.const (.n 2440) (word 1 0 0)) ::
-  .atom (.load (.n 2441) (.n 158) 38) ::
+  .atom (.load (.n 2441) (.n 158) 49) ::
   .atom (.add (.n 2442) (.n 2440) (.n 2441)) ::
-  .atom (.load (.n 2443) (.n 18) 18) ::
+  .atom (.load (.n 2443) (.n 1428) 3) ::
   .atom (.add (.n 2444) (.n 2442) (.n 2443)) ::
   .atom (.mul (.n 2445) (.n 2439) (.n 2444)) ::
-  .atom (.const (.n 2446) (word 1 0 0)) ::
-  .atom (.load (.n 2447) (.n 158) 39) ::
-  .atom (.add (.n 2448) (.n 2446) (.n 2447)) ::
-  .atom (.load (.n 2449) (.n 18) 19) ::
-  .atom (.add (.n 2450) (.n 2448) (.n 2449)) ::
-  .atom (.mul (.n 2451) (.n 2445) (.n 2450)) ::
-  .atom (.const (.n 2452) (word 1 0 0)) ::
-  .atom (.load (.n 2453) (.n 158) 40) ::
-  .atom (.add (.n 2454) (.n 2452) (.n 2453)) ::
-  .atom (.load (.n 2455) (.n 18) 20) ::
-  .atom (.add (.n 2456) (.n 2454) (.n 2455)) ::
-  .atom (.mul (.n 2457) (.n 2451) (.n 2456)) ::
-  .atom (.const (.n 2458) (word 1 0 0)) ::
-  .atom (.load (.n 2459) (.n 158) 41) ::
-  .atom (.add (.n 2460) (.n 2458) (.n 2459)) ::
-  .atom (.load (.n 2461) (.n 18) 21) ::
-  .atom (.add (.n 2462) (.n 2460) (.n 2461)) ::
-  .atom (.mul (.n 2463) (.n 2457) (.n 2462)) ::
-  .atom (.const (.n 2464) (word 1 0 0)) ::
-  .atom (.load (.n 2465) (.n 158) 42) ::
-  .atom (.add (.n 2466) (.n 2464) (.n 2465)) ::
-  .atom (.load (.n 2467) (.n 18) 22) ::
-  .atom (.add (.n 2468) (.n 2466) (.n 2467)) ::
-  .atom (.mul (.n 2469) (.n 2463) (.n 2468)) ::
-  .atom (.const (.n 2470) (word 1 0 0)) ::
-  .atom (.load (.n 2471) (.n 158) 43) ::
-  .atom (.add (.n 2472) (.n 2470) (.n 2471)) ::
-  .atom (.load (.n 2473) (.n 18) 23) ::
-  .atom (.add (.n 2474) (.n 2472) (.n 2473)) ::
-  .atom (.mul (.n 2475) (.n 2469) (.n 2474)) ::
-  .atom (.const (.n 2476) (word 1 0 0)) ::
-  .atom (.load (.n 2477) (.n 158) 44) ::
-  .atom (.add (.n 2478) (.n 2476) (.n 2477)) ::
-  .atom (.load (.n 2479) (.n 18) 24) ::
-  .atom (.add (.n 2480) (.n 2478) (.n 2479)) ::
-  .atom (.mul (.n 2481) (.n 2475) (.n 2480)) ::
-  .atom (.const (.n 2482) (word 1 0 0)) ::
-  .atom (.load (.n 2483) (.n 158) 45) ::
-  .atom (.add (.n 2484) (.n 2482) (.n 2483)) ::
-  .atom (.load (.n 2485) (.n 18) 25) ::
-  .atom (.add (.n 2486) (.n 2484) (.n 2485)) ::
-  .atom (.mul (.n 2487) (.n 2481) (.n 2486)) ::
-  .atom (.const (.n 2488) (word 1 0 0)) ::
-  .atom (.load (.n 2489) (.n 158) 46) ::
-  .atom (.add (.n 2490) (.n 2488) (.n 2489)) ::
-  .atom (.load (.n 2491) (.n 1428) 0) ::
-  .atom (.add (.n 2492) (.n 2490) (.n 2491)) ::
-  .atom (.mul (.n 2493) (.n 2487) (.n 2492)) ::
-  .atom (.const (.n 2494) (word 1 0 0)) ::
-  .atom (.load (.n 2495) (.n 158) 47) ::
-  .atom (.add (.n 2496) (.n 2494) (.n 2495)) ::
-  .atom (.load (.n 2497) (.n 1428) 1) ::
-  .atom (.add (.n 2498) (.n 2496) (.n 2497)) ::
-  .atom (.mul (.n 2499) (.n 2493) (.n 2498)) ::
-  .atom (.const (.n 2500) (word 1 0 0)) ::
-  .atom (.load (.n 2501) (.n 158) 48) ::
-  .atom (.add (.n 2502) (.n 2500) (.n 2501)) ::
-  .atom (.load (.n 2503) (.n 1428) 2) ::
-  .atom (.add (.n 2504) (.n 2502) (.n 2503)) ::
-  .atom (.mul (.n 2505) (.n 2499) (.n 2504)) ::
-  .atom (.const (.n 2506) (word 1 0 0)) ::
-  .atom (.load (.n 2507) (.n 158) 49) ::
-  .atom (.add (.n 2508) (.n 2506) (.n 2507)) ::
-  .atom (.load (.n 2509) (.n 1428) 3) ::
-  .atom (.add (.n 2510) (.n 2508) (.n 2509)) ::
-  .atom (.mul (.n 2511) (.n 2505) (.n 2510)) ::
-  .atom (.load (.n 2512) (.n 160) 8) ::
+  .atom (.load (.n 2446) (.n 160) 8) ::
+  .atom (.const (.n 2447) (word 1 0 0)) ::
+  .atom (.load (.n 2448) (.n 158) 52) ::
+  .atom (.add (.n 2449) (.n 2447) (.n 2448)) ::
+  .atom (.load (.n 2450) (.n 18) 10) ::
+  .atom (.add (.n 2451) (.n 2449) (.n 2450)) ::
+  .atom (.mul (.n 2452) (.n 2446) (.n 2451)) ::
+  .atom (.const (.n 2453) (word 1 0 0)) ::
+  .atom (.load (.n 2454) (.n 158) 53) ::
+  .atom (.add (.n 2455) (.n 2453) (.n 2454)) ::
+  .atom (.load (.n 2456) (.n 18) 11) ::
+  .atom (.add (.n 2457) (.n 2455) (.n 2456)) ::
+  .atom (.mul (.n 2458) (.n 2452) (.n 2457)) ::
+  .atom (.const (.n 2459) (word 1 0 0)) ::
+  .atom (.load (.n 2460) (.n 158) 54) ::
+  .atom (.add (.n 2461) (.n 2459) (.n 2460)) ::
+  .atom (.load (.n 2462) (.n 18) 12) ::
+  .atom (.add (.n 2463) (.n 2461) (.n 2462)) ::
+  .atom (.mul (.n 2464) (.n 2458) (.n 2463)) ::
+  .atom (.const (.n 2465) (word 1 0 0)) ::
+  .atom (.load (.n 2466) (.n 158) 55) ::
+  .atom (.add (.n 2467) (.n 2465) (.n 2466)) ::
+  .atom (.load (.n 2468) (.n 18) 13) ::
+  .atom (.add (.n 2469) (.n 2467) (.n 2468)) ::
+  .atom (.mul (.n 2470) (.n 2464) (.n 2469)) ::
+  .atom (.const (.n 2471) (word 1 0 0)) ::
+  .atom (.load (.n 2472) (.n 158) 56) ::
+  .atom (.add (.n 2473) (.n 2471) (.n 2472)) ::
+  .atom (.load (.n 2474) (.n 18) 14) ::
+  .atom (.add (.n 2475) (.n 2473) (.n 2474)) ::
+  .atom (.mul (.n 2476) (.n 2470) (.n 2475)) ::
+  .atom (.const (.n 2477) (word 1 0 0)) ::
+  .atom (.load (.n 2478) (.n 158) 57) ::
+  .atom (.add (.n 2479) (.n 2477) (.n 2478)) ::
+  .atom (.load (.n 2480) (.n 18) 15) ::
+  .atom (.add (.n 2481) (.n 2479) (.n 2480)) ::
+  .atom (.mul (.n 2482) (.n 2476) (.n 2481)) ::
+  .atom (.const (.n 2483) (word 1 0 0)) ::
+  .atom (.load (.n 2484) (.n 158) 58) ::
+  .atom (.add (.n 2485) (.n 2483) (.n 2484)) ::
+  .atom (.load (.n 2486) (.n 18) 16) ::
+  .atom (.add (.n 2487) (.n 2485) (.n 2486)) ::
+  .atom (.mul (.n 2488) (.n 2482) (.n 2487)) ::
+  .atom (.const (.n 2489) (word 1 0 0)) ::
+  .atom (.load (.n 2490) (.n 158) 59) ::
+  .atom (.add (.n 2491) (.n 2489) (.n 2490)) ::
+  .atom (.load (.n 2492) (.n 18) 17) ::
+  .atom (.add (.n 2493) (.n 2491) (.n 2492)) ::
+  .atom (.mul (.n 2494) (.n 2488) (.n 2493)) ::
+  .atom (.const (.n 2495) (word 1 0 0)) ::
+  .atom (.load (.n 2496) (.n 158) 60) ::
+  .atom (.add (.n 2497) (.n 2495) (.n 2496)) ::
+  .atom (.load (.n 2498) (.n 18) 18) ::
+  .atom (.add (.n 2499) (.n 2497) (.n 2498)) ::
+  .atom (.mul (.n 2500) (.n 2494) (.n 2499)) ::
+  .atom (.const (.n 2501) (word 1 0 0)) ::
+  .atom (.load (.n 2502) (.n 158) 61) ::
+  .atom (.add (.n 2503) (.n 2501) (.n 2502)) ::
+  .atom (.load (.n 2504) (.n 18) 19) ::
+  .atom (.add (.n 2505) (.n 2503) (.n 2504)) ::
+  .atom (.mul (.n 2506) (.n 2500) (.n 2505)) ::
+  .atom (.const (.n 2507) (word 1 0 0)) ::
+  .atom (.load (.n 2508) (.n 158) 62) ::
+  .atom (.add (.n 2509) (.n 2507) (.n 2508)) ::
+  .atom (.load (.n 2510) (.n 18) 20) ::
+  .atom (.add (.n 2511) (.n 2509) (.n 2510)) ::
+  .atom (.mul (.n 2512) (.n 2506) (.n 2511)) ::
   .atom (.const (.n 2513) (word 1 0 0)) ::
-  .atom (.load (.n 2514) (.n 158) 52) ::
+  .atom (.load (.n 2514) (.n 158) 63) ::
   .atom (.add (.n 2515) (.n 2513) (.n 2514)) ::
-  .atom (.load (.n 2516) (.n 18) 10) ::
+  .atom (.load (.n 2516) (.n 18) 21) ::
   .atom (.add (.n 2517) (.n 2515) (.n 2516)) ::
   .atom (.mul (.n 2518) (.n 2512) (.n 2517)) ::
   .atom (.const (.n 2519) (word 1 0 0)) ::
-  .atom (.load (.n 2520) (.n 158) 53) ::
+  .atom (.load (.n 2520) (.n 158) 64) ::
   .atom (.add (.n 2521) (.n 2519) (.n 2520)) ::
-  .atom (.load (.n 2522) (.n 18) 11) ::
+  .atom (.load (.n 2522) (.n 18) 22) ::
   .atom (.add (.n 2523) (.n 2521) (.n 2522)) ::
   .atom (.mul (.n 2524) (.n 2518) (.n 2523)) ::
   .atom (.const (.n 2525) (word 1 0 0)) ::
-  .atom (.load (.n 2526) (.n 158) 54) ::
+  .atom (.load (.n 2526) (.n 158) 65) ::
   .atom (.add (.n 2527) (.n 2525) (.n 2526)) ::
-  .atom (.load (.n 2528) (.n 18) 12) ::
+  .atom (.load (.n 2528) (.n 18) 23) ::
   .atom (.add (.n 2529) (.n 2527) (.n 2528)) ::
   .atom (.mul (.n 2530) (.n 2524) (.n 2529)) ::
   .atom (.const (.n 2531) (word 1 0 0)) ::
-  .atom (.load (.n 2532) (.n 158) 55) ::
+  .atom (.load (.n 2532) (.n 158) 66) ::
   .atom (.add (.n 2533) (.n 2531) (.n 2532)) ::
-  .atom (.load (.n 2534) (.n 18) 13) ::
+  .atom (.load (.n 2534) (.n 18) 24) ::
   .atom (.add (.n 2535) (.n 2533) (.n 2534)) ::
   .atom (.mul (.n 2536) (.n 2530) (.n 2535)) ::
   .atom (.const (.n 2537) (word 1 0 0)) ::
-  .atom (.load (.n 2538) (.n 158) 56) ::
+  .atom (.load (.n 2538) (.n 158) 67) ::
   .atom (.add (.n 2539) (.n 2537) (.n 2538)) ::
-  .atom (.load (.n 2540) (.n 18) 14) ::
+  .atom (.load (.n 2540) (.n 18) 25) ::
   .atom (.add (.n 2541) (.n 2539) (.n 2540)) ::
   .atom (.mul (.n 2542) (.n 2536) (.n 2541)) ::
   .atom (.const (.n 2543) (word 1 0 0)) ::
-  .atom (.load (.n 2544) (.n 158) 57) ::
+  .atom (.load (.n 2544) (.n 158) 68) ::
   .atom (.add (.n 2545) (.n 2543) (.n 2544)) ::
-  .atom (.load (.n 2546) (.n 18) 15) ::
+  .atom (.load (.n 2546) (.n 1428) 0) ::
   .atom (.add (.n 2547) (.n 2545) (.n 2546)) ::
   .atom (.mul (.n 2548) (.n 2542) (.n 2547)) ::
   .atom (.const (.n 2549) (word 1 0 0)) ::
-  .atom (.load (.n 2550) (.n 158) 58) ::
+  .atom (.load (.n 2550) (.n 158) 69) ::
   .atom (.add (.n 2551) (.n 2549) (.n 2550)) ::
-  .atom (.load (.n 2552) (.n 18) 16) ::
+  .atom (.load (.n 2552) (.n 1428) 1) ::
   .atom (.add (.n 2553) (.n 2551) (.n 2552)) ::
   .atom (.mul (.n 2554) (.n 2548) (.n 2553)) ::
   .atom (.const (.n 2555) (word 1 0 0)) ::
-  .atom (.load (.n 2556) (.n 158) 59) ::
+  .atom (.load (.n 2556) (.n 158) 70) ::
   .atom (.add (.n 2557) (.n 2555) (.n 2556)) ::
-  .atom (.load (.n 2558) (.n 18) 17) ::
+  .atom (.load (.n 2558) (.n 1428) 2) ::
   .atom (.add (.n 2559) (.n 2557) (.n 2558)) ::
   .atom (.mul (.n 2560) (.n 2554) (.n 2559)) ::
   .atom (.const (.n 2561) (word 1 0 0)) ::
-  .atom (.load (.n 2562) (.n 158) 60) ::
+  .atom (.load (.n 2562) (.n 158) 71) ::
   .atom (.add (.n 2563) (.n 2561) (.n 2562)) ::
-  .atom (.load (.n 2564) (.n 18) 18) ::
+  .atom (.load (.n 2564) (.n 1428) 3) ::
   .atom (.add (.n 2565) (.n 2563) (.n 2564)) ::
   .atom (.mul (.n 2566) (.n 2560) (.n 2565)) ::
-  .atom (.const (.n 2567) (word 1 0 0)) ::
-  .atom (.load (.n 2568) (.n 158) 61) ::
-  .atom (.add (.n 2569) (.n 2567) (.n 2568)) ::
-  .atom (.load (.n 2570) (.n 18) 19) ::
+  .atom (.add (.n 2567) (.n 2445) (.n 2566)) ::
+  .atom (.load (.n 2568) (.n 160) 12) ::
+  .atom (.const (.n 2569) (word 1 0 0)) ::
+  .atom (.load (.n 2570) (.n 158) 78) ::
   .atom (.add (.n 2571) (.n 2569) (.n 2570)) ::
-  .atom (.mul (.n 2572) (.n 2566) (.n 2571)) ::
-  .atom (.const (.n 2573) (word 1 0 0)) ::
-  .atom (.load (.n 2574) (.n 158) 62) ::
-  .atom (.add (.n 2575) (.n 2573) (.n 2574)) ::
-  .atom (.load (.n 2576) (.n 18) 20) ::
+  .atom (.load (.n 2572) (.n 18) 14) ::
+  .atom (.add (.n 2573) (.n 2571) (.n 2572)) ::
+  .atom (.mul (.n 2574) (.n 2568) (.n 2573)) ::
+  .atom (.const (.n 2575) (word 1 0 0)) ::
+  .atom (.load (.n 2576) (.n 158) 79) ::
   .atom (.add (.n 2577) (.n 2575) (.n 2576)) ::
-  .atom (.mul (.n 2578) (.n 2572) (.n 2577)) ::
-  .atom (.const (.n 2579) (word 1 0 0)) ::
-  .atom (.load (.n 2580) (.n 158) 63) ::
-  .atom (.add (.n 2581) (.n 2579) (.n 2580)) ::
-  .atom (.load (.n 2582) (.n 18) 21) ::
+  .atom (.load (.n 2578) (.n 18) 15) ::
+  .atom (.add (.n 2579) (.n 2577) (.n 2578)) ::
+  .atom (.mul (.n 2580) (.n 2574) (.n 2579)) ::
+  .atom (.const (.n 2581) (word 1 0 0)) ::
+  .atom (.load (.n 2582) (.n 158) 80) ::
   .atom (.add (.n 2583) (.n 2581) (.n 2582)) ::
-  .atom (.mul (.n 2584) (.n 2578) (.n 2583)) ::
-  .atom (.const (.n 2585) (word 1 0 0)) ::
-  .atom (.load (.n 2586) (.n 158) 64) ::
-  .atom (.add (.n 2587) (.n 2585) (.n 2586)) ::
-  .atom (.load (.n 2588) (.n 18) 22) ::
+  .atom (.load (.n 2584) (.n 18) 16) ::
+  .atom (.add (.n 2585) (.n 2583) (.n 2584)) ::
+  .atom (.mul (.n 2586) (.n 2580) (.n 2585)) ::
+  .atom (.const (.n 2587) (word 1 0 0)) ::
+  .atom (.load (.n 2588) (.n 158) 81) ::
   .atom (.add (.n 2589) (.n 2587) (.n 2588)) ::
-  .atom (.mul (.n 2590) (.n 2584) (.n 2589)) ::
-  .atom (.const (.n 2591) (word 1 0 0)) ::
-  .atom (.load (.n 2592) (.n 158) 65) ::
-  .atom (.add (.n 2593) (.n 2591) (.n 2592)) ::
-  .atom (.load (.n 2594) (.n 18) 23) ::
+  .atom (.load (.n 2590) (.n 18) 17) ::
+  .atom (.add (.n 2591) (.n 2589) (.n 2590)) ::
+  .atom (.mul (.n 2592) (.n 2586) (.n 2591)) ::
+  .atom (.const (.n 2593) (word 1 0 0)) ::
+  .atom (.load (.n 2594) (.n 158) 82) ::
   .atom (.add (.n 2595) (.n 2593) (.n 2594)) ::
-  .atom (.mul (.n 2596) (.n 2590) (.n 2595)) ::
-  .atom (.const (.n 2597) (word 1 0 0)) ::
-  .atom (.load (.n 2598) (.n 158) 66) ::
-  .atom (.add (.n 2599) (.n 2597) (.n 2598)) ::
-  .atom (.load (.n 2600) (.n 18) 24) ::
+  .atom (.load (.n 2596) (.n 18) 18) ::
+  .atom (.add (.n 2597) (.n 2595) (.n 2596)) ::
+  .atom (.mul (.n 2598) (.n 2592) (.n 2597)) ::
+  .atom (.const (.n 2599) (word 1 0 0)) ::
+  .atom (.load (.n 2600) (.n 158) 83) ::
   .atom (.add (.n 2601) (.n 2599) (.n 2600)) ::
-  .atom (.mul (.n 2602) (.n 2596) (.n 2601)) ::
-  .atom (.const (.n 2603) (word 1 0 0)) ::
-  .atom (.load (.n 2604) (.n 158) 67) ::
-  .atom (.add (.n 2605) (.n 2603) (.n 2604)) ::
-  .atom (.load (.n 2606) (.n 18) 25) ::
+  .atom (.load (.n 2602) (.n 18) 19) ::
+  .atom (.add (.n 2603) (.n 2601) (.n 2602)) ::
+  .atom (.mul (.n 2604) (.n 2598) (.n 2603)) ::
+  .atom (.const (.n 2605) (word 1 0 0)) ::
+  .atom (.load (.n 2606) (.n 158) 84) ::
   .atom (.add (.n 2607) (.n 2605) (.n 2606)) ::
-  .atom (.mul (.n 2608) (.n 2602) (.n 2607)) ::
-  .atom (.const (.n 2609) (word 1 0 0)) ::
-  .atom (.load (.n 2610) (.n 158) 68) ::
-  .atom (.add (.n 2611) (.n 2609) (.n 2610)) ::
-  .atom (.load (.n 2612) (.n 1428) 0) ::
+  .atom (.load (.n 2608) (.n 18) 20) ::
+  .atom (.add (.n 2609) (.n 2607) (.n 2608)) ::
+  .atom (.mul (.n 2610) (.n 2604) (.n 2609)) ::
+  .atom (.const (.n 2611) (word 1 0 0)) ::
+  .atom (.load (.n 2612) (.n 158) 85) ::
   .atom (.add (.n 2613) (.n 2611) (.n 2612)) ::
-  .atom (.mul (.n 2614) (.n 2608) (.n 2613)) ::
-  .atom (.const (.n 2615) (word 1 0 0)) ::
-  .atom (.load (.n 2616) (.n 158) 69) ::
-  .atom (.add (.n 2617) (.n 2615) (.n 2616)) ::
-  .atom (.load (.n 2618) (.n 1428) 1) ::
+  .atom (.load (.n 2614) (.n 18) 21) ::
+  .atom (.add (.n 2615) (.n 2613) (.n 2614)) ::
+  .atom (.mul (.n 2616) (.n 2610) (.n 2615)) ::
+  .atom (.const (.n 2617) (word 1 0 0)) ::
+  .atom (.load (.n 2618) (.n 158) 86) ::
   .atom (.add (.n 2619) (.n 2617) (.n 2618)) ::
-  .atom (.mul (.n 2620) (.n 2614) (.n 2619)) ::
-  .atom (.const (.n 2621) (word 1 0 0)) ::
-  .atom (.load (.n 2622) (.n 158) 70) ::
-  .atom (.add (.n 2623) (.n 2621) (.n 2622)) ::
-  .atom (.load (.n 2624) (.n 1428) 2) ::
+  .atom (.load (.n 2620) (.n 18) 22) ::
+  .atom (.add (.n 2621) (.n 2619) (.n 2620)) ::
+  .atom (.mul (.n 2622) (.n 2616) (.n 2621)) ::
+  .atom (.const (.n 2623) (word 1 0 0)) ::
+  .atom (.load (.n 2624) (.n 158) 87) ::
   .atom (.add (.n 2625) (.n 2623) (.n 2624)) ::
-  .atom (.mul (.n 2626) (.n 2620) (.n 2625)) ::
-  .atom (.const (.n 2627) (word 1 0 0)) ::
-  .atom (.load (.n 2628) (.n 158) 71) ::
-  .atom (.add (.n 2629) (.n 2627) (.n 2628)) ::
-  .atom (.load (.n 2630) (.n 1428) 3) ::
+  .atom (.load (.n 2626) (.n 18) 23) ::
+  .atom (.add (.n 2627) (.n 2625) (.n 2626)) ::
+  .atom (.mul (.n 2628) (.n 2622) (.n 2627)) ::
+  .atom (.const (.n 2629) (word 1 0 0)) ::
+  .atom (.load (.n 2630) (.n 158) 88) ::
   .atom (.add (.n 2631) (.n 2629) (.n 2630)) ::
-  .atom (.mul (.n 2632) (.n 2626) (.n 2631)) ::
-  .atom (.add (.n 2633) (.n 2511) (.n 2632)) ::
-  .atom (.load (.n 2634) (.n 160) 12) ::
+  .atom (.load (.n 2632) (.n 18) 24) ::
+  .atom (.add (.n 2633) (.n 2631) (.n 2632)) ::
+  .atom (.mul (.n 2634) (.n 2628) (.n 2633)) ::
   .atom (.const (.n 2635) (word 1 0 0)) ::
-  .atom (.load (.n 2636) (.n 158) 78) ::
+  .atom (.load (.n 2636) (.n 158) 89) ::
   .atom (.add (.n 2637) (.n 2635) (.n 2636)) ::
-  .atom (.load (.n 2638) (.n 18) 14) ::
+  .atom (.load (.n 2638) (.n 18) 25) ::
   .atom (.add (.n 2639) (.n 2637) (.n 2638)) ::
   .atom (.mul (.n 2640) (.n 2634) (.n 2639)) ::
   .atom (.const (.n 2641) (word 1 0 0)) ::
-  .atom (.load (.n 2642) (.n 158) 79) ::
+  .atom (.load (.n 2642) (.n 158) 90) ::
   .atom (.add (.n 2643) (.n 2641) (.n 2642)) ::
-  .atom (.load (.n 2644) (.n 18) 15) ::
+  .atom (.load (.n 2644) (.n 1428) 0) ::
   .atom (.add (.n 2645) (.n 2643) (.n 2644)) ::
   .atom (.mul (.n 2646) (.n 2640) (.n 2645)) ::
   .atom (.const (.n 2647) (word 1 0 0)) ::
-  .atom (.load (.n 2648) (.n 158) 80) ::
+  .atom (.load (.n 2648) (.n 158) 91) ::
   .atom (.add (.n 2649) (.n 2647) (.n 2648)) ::
-  .atom (.load (.n 2650) (.n 18) 16) ::
+  .atom (.load (.n 2650) (.n 1428) 1) ::
   .atom (.add (.n 2651) (.n 2649) (.n 2650)) ::
   .atom (.mul (.n 2652) (.n 2646) (.n 2651)) ::
   .atom (.const (.n 2653) (word 1 0 0)) ::
-  .atom (.load (.n 2654) (.n 158) 81) ::
+  .atom (.load (.n 2654) (.n 158) 92) ::
   .atom (.add (.n 2655) (.n 2653) (.n 2654)) ::
-  .atom (.load (.n 2656) (.n 18) 17) ::
+  .atom (.load (.n 2656) (.n 1428) 2) ::
   .atom (.add (.n 2657) (.n 2655) (.n 2656)) ::
   .atom (.mul (.n 2658) (.n 2652) (.n 2657)) ::
   .atom (.const (.n 2659) (word 1 0 0)) ::
-  .atom (.load (.n 2660) (.n 158) 82) ::
+  .atom (.load (.n 2660) (.n 158) 93) ::
   .atom (.add (.n 2661) (.n 2659) (.n 2660)) ::
-  .atom (.load (.n 2662) (.n 18) 18) ::
+  .atom (.load (.n 2662) (.n 1428) 3) ::
   .atom (.add (.n 2663) (.n 2661) (.n 2662)) ::
   .atom (.mul (.n 2664) (.n 2658) (.n 2663)) ::
-  .atom (.const (.n 2665) (word 1 0 0)) ::
-  .atom (.load (.n 2666) (.n 158) 83) ::
-  .atom (.add (.n 2667) (.n 2665) (.n 2666)) ::
-  .atom (.load (.n 2668) (.n 18) 19) ::
+  .atom (.add (.n 2665) (.n 2567) (.n 2664)) ::
+  .atom (.load (.n 2666) (.n 160) 16) ::
+  .atom (.const (.n 2667) (word 1 0 0)) ::
+  .atom (.load (.n 2668) (.n 158) 104) ::
   .atom (.add (.n 2669) (.n 2667) (.n 2668)) ::
-  .atom (.mul (.n 2670) (.n 2664) (.n 2669)) ::
-  .atom (.const (.n 2671) (word 1 0 0)) ::
-  .atom (.load (.n 2672) (.n 158) 84) ::
-  .atom (.add (.n 2673) (.n 2671) (.n 2672)) ::
-  .atom (.load (.n 2674) (.n 18) 20) ::
+  .atom (.load (.n 2670) (.n 18) 18) ::
+  .atom (.add (.n 2671) (.n 2669) (.n 2670)) ::
+  .atom (.mul (.n 2672) (.n 2666) (.n 2671)) ::
+  .atom (.const (.n 2673) (word 1 0 0)) ::
+  .atom (.load (.n 2674) (.n 158) 105) ::
   .atom (.add (.n 2675) (.n 2673) (.n 2674)) ::
-  .atom (.mul (.n 2676) (.n 2670) (.n 2675)) ::
-  .atom (.const (.n 2677) (word 1 0 0)) ::
-  .atom (.load (.n 2678) (.n 158) 85) ::
-  .atom (.add (.n 2679) (.n 2677) (.n 2678)) ::
-  .atom (.load (.n 2680) (.n 18) 21) ::
+  .atom (.load (.n 2676) (.n 18) 19) ::
+  .atom (.add (.n 2677) (.n 2675) (.n 2676)) ::
+  .atom (.mul (.n 2678) (.n 2672) (.n 2677)) ::
+  .atom (.const (.n 2679) (word 1 0 0)) ::
+  .atom (.load (.n 2680) (.n 158) 106) ::
   .atom (.add (.n 2681) (.n 2679) (.n 2680)) ::
-  .atom (.mul (.n 2682) (.n 2676) (.n 2681)) ::
-  .atom (.const (.n 2683) (word 1 0 0)) ::
-  .atom (.load (.n 2684) (.n 158) 86) ::
-  .atom (.add (.n 2685) (.n 2683) (.n 2684)) ::
-  .atom (.load (.n 2686) (.n 18) 22) ::
+  .atom (.load (.n 2682) (.n 18) 20) ::
+  .atom (.add (.n 2683) (.n 2681) (.n 2682)) ::
+  .atom (.mul (.n 2684) (.n 2678) (.n 2683)) ::
+  .atom (.const (.n 2685) (word 1 0 0)) ::
+  .atom (.load (.n 2686) (.n 158) 107) ::
   .atom (.add (.n 2687) (.n 2685) (.n 2686)) ::
-  .atom (.mul (.n 2688) (.n 2682) (.n 2687)) ::
-  .atom (.const (.n 2689) (word 1 0 0)) ::
-  .atom (.load (.n 2690) (.n 158) 87) ::
-  .atom (.add (.n 2691) (.n 2689) (.n 2690)) ::
-  .atom (.load (.n 2692) (.n 18) 23) ::
+  .atom (.load (.n 2688) (.n 18) 21) ::
+  .atom (.add (.n 2689) (.n 2687) (.n 2688)) ::
+  .atom (.mul (.n 2690) (.n 2684) (.n 2689)) ::
+  .atom (.const (.n 2691) (word 1 0 0)) ::
+  .atom (.load (.n 2692) (.n 158) 108) ::
   .atom (.add (.n 2693) (.n 2691) (.n 2692)) ::
-  .atom (.mul (.n 2694) (.n 2688) (.n 2693)) ::
-  .atom (.const (.n 2695) (word 1 0 0)) ::
-  .atom (.load (.n 2696) (.n 158) 88) ::
-  .atom (.add (.n 2697) (.n 2695) (.n 2696)) ::
-  .atom (.load (.n 2698) (.n 18) 24) ::
+  .atom (.load (.n 2694) (.n 18) 22) ::
+  .atom (.add (.n 2695) (.n 2693) (.n 2694)) ::
+  .atom (.mul (.n 2696) (.n 2690) (.n 2695)) ::
+  .atom (.const (.n 2697) (word 1 0 0)) ::
+  .atom (.load (.n 2698) (.n 158) 109) ::
   .atom (.add (.n 2699) (.n 2697) (.n 2698)) ::
-  .atom (.mul (.n 2700) (.n 2694) (.n 2699)) ::
-  .atom (.const (.n 2701) (word 1 0 0)) ::
-  .atom (.load (.n 2702) (.n 158) 89) ::
-  .atom (.add (.n 2703) (.n 2701) (.n 2702)) ::
-  .atom (.load (.n 2704) (.n 18) 25) ::
+  .atom (.load (.n 2700) (.n 18) 23) ::
+  .atom (.add (.n 2701) (.n 2699) (.n 2700)) ::
+  .atom (.mul (.n 2702) (.n 2696) (.n 2701)) ::
+  .atom (.const (.n 2703) (word 1 0 0)) ::
+  .atom (.load (.n 2704) (.n 158) 110) ::
   .atom (.add (.n 2705) (.n 2703) (.n 2704)) ::
-  .atom (.mul (.n 2706) (.n 2700) (.n 2705)) ::
-  .atom (.const (.n 2707) (word 1 0 0)) ::
-  .atom (.load (.n 2708) (.n 158) 90) ::
-  .atom (.add (.n 2709) (.n 2707) (.n 2708)) ::
-  .atom (.load (.n 2710) (.n 1428) 0) ::
+  .atom (.load (.n 2706) (.n 18) 24) ::
+  .atom (.add (.n 2707) (.n 2705) (.n 2706)) ::
+  .atom (.mul (.n 2708) (.n 2702) (.n 2707)) ::
+  .atom (.const (.n 2709) (word 1 0 0)) ::
+  .atom (.load (.n 2710) (.n 158) 111) ::
   .atom (.add (.n 2711) (.n 2709) (.n 2710)) ::
-  .atom (.mul (.n 2712) (.n 2706) (.n 2711)) ::
-  .atom (.const (.n 2713) (word 1 0 0)) ::
-  .atom (.load (.n 2714) (.n 158) 91) ::
-  .atom (.add (.n 2715) (.n 2713) (.n 2714)) ::
-  .atom (.load (.n 2716) (.n 1428) 1) ::
+  .atom (.load (.n 2712) (.n 18) 25) ::
+  .atom (.add (.n 2713) (.n 2711) (.n 2712)) ::
+  .atom (.mul (.n 2714) (.n 2708) (.n 2713)) ::
+  .atom (.const (.n 2715) (word 1 0 0)) ::
+  .atom (.load (.n 2716) (.n 158) 112) ::
   .atom (.add (.n 2717) (.n 2715) (.n 2716)) ::
-  .atom (.mul (.n 2718) (.n 2712) (.n 2717)) ::
-  .atom (.const (.n 2719) (word 1 0 0)) ::
-  .atom (.load (.n 2720) (.n 158) 92) ::
-  .atom (.add (.n 2721) (.n 2719) (.n 2720)) ::
-  .atom (.load (.n 2722) (.n 1428) 2) ::
+  .atom (.load (.n 2718) (.n 1428) 0) ::
+  .atom (.add (.n 2719) (.n 2717) (.n 2718)) ::
+  .atom (.mul (.n 2720) (.n 2714) (.n 2719)) ::
+  .atom (.const (.n 2721) (word 1 0 0)) ::
+  .atom (.load (.n 2722) (.n 158) 113) ::
   .atom (.add (.n 2723) (.n 2721) (.n 2722)) ::
-  .atom (.mul (.n 2724) (.n 2718) (.n 2723)) ::
-  .atom (.const (.n 2725) (word 1 0 0)) ::
-  .atom (.load (.n 2726) (.n 158) 93) ::
-  .atom (.add (.n 2727) (.n 2725) (.n 2726)) ::
-  .atom (.load (.n 2728) (.n 1428) 3) ::
+  .atom (.load (.n 2724) (.n 1428) 1) ::
+  .atom (.add (.n 2725) (.n 2723) (.n 2724)) ::
+  .atom (.mul (.n 2726) (.n 2720) (.n 2725)) ::
+  .atom (.const (.n 2727) (word 1 0 0)) ::
+  .atom (.load (.n 2728) (.n 158) 114) ::
   .atom (.add (.n 2729) (.n 2727) (.n 2728)) ::
-  .atom (.mul (.n 2730) (.n 2724) (.n 2729)) ::
-  .atom (.add (.n 2731) (.n 2633) (.n 2730)) ::
-  .atom (.load (.n 2732) (.n 160) 16) ::
+  .atom (.load (.n 2730) (.n 1428) 2) ::
+  .atom (.add (.n 2731) (.n 2729) (.n 2730)) ::
+  .atom (.mul (.n 2732) (.n 2726) (.n 2731)) ::
   .atom (.const (.n 2733) (word 1 0 0)) ::
-  .atom (.load (.n 2734) (.n 158) 104) ::
+  .atom (.load (.n 2734) (.n 158) 115) ::
   .atom (.add (.n 2735) (.n 2733) (.n 2734)) ::
-  .atom (.load (.n 2736) (.n 18) 18) ::
+  .atom (.load (.n 2736) (.n 1428) 3) ::
   .atom (.add (.n 2737) (.n 2735) (.n 2736)) ::
   .atom (.mul (.n 2738) (.n 2732) (.n 2737)) ::
-  .atom (.const (.n 2739) (word 1 0 0)) ::
-  .atom (.load (.n 2740) (.n 158) 105) ::
-  .atom (.add (.n 2741) (.n 2739) (.n 2740)) ::
-  .atom (.load (.n 2742) (.n 18) 19) ::
+  .atom (.add (.n 2739) (.n 2665) (.n 2738)) ::
+  .atom (.load (.n 2740) (.n 160) 20) ::
+  .atom (.const (.n 2741) (word 1 0 0)) ::
+  .atom (.load (.n 2742) (.n 158) 130) ::
   .atom (.add (.n 2743) (.n 2741) (.n 2742)) ::
-  .atom (.mul (.n 2744) (.n 2738) (.n 2743)) ::
-  .atom (.const (.n 2745) (word 1 0 0)) ::
-  .atom (.load (.n 2746) (.n 158) 106) ::
-  .atom (.add (.n 2747) (.n 2745) (.n 2746)) ::
-  .atom (.load (.n 2748) (.n 18) 20) ::
+  .atom (.load (.n 2744) (.n 18) 22) ::
+  .atom (.add (.n 2745) (.n 2743) (.n 2744)) ::
+  .atom (.mul (.n 2746) (.n 2740) (.n 2745)) ::
+  .atom (.const (.n 2747) (word 1 0 0)) ::
+  .atom (.load (.n 2748) (.n 158) 131) ::
   .atom (.add (.n 2749) (.n 2747) (.n 2748)) ::
-  .atom (.mul (.n 2750) (.n 2744) (.n 2749)) ::
-  .atom (.const (.n 2751) (word 1 0 0)) ::
-  .atom (.load (.n 2752) (.n 158) 107) ::
-  .atom (.add (.n 2753) (.n 2751) (.n 2752)) ::
-  .atom (.load (.n 2754) (.n 18) 21) ::
+  .atom (.load (.n 2750) (.n 18) 23) ::
+  .atom (.add (.n 2751) (.n 2749) (.n 2750)) ::
+  .atom (.mul (.n 2752) (.n 2746) (.n 2751)) ::
+  .atom (.const (.n 2753) (word 1 0 0)) ::
+  .atom (.load (.n 2754) (.n 158) 132) ::
   .atom (.add (.n 2755) (.n 2753) (.n 2754)) ::
-  .atom (.mul (.n 2756) (.n 2750) (.n 2755)) ::
-  .atom (.const (.n 2757) (word 1 0 0)) ::
-  .atom (.load (.n 2758) (.n 158) 108) ::
-  .atom (.add (.n 2759) (.n 2757) (.n 2758)) ::
-  .atom (.load (.n 2760) (.n 18) 22) ::
+  .atom (.load (.n 2756) (.n 18) 24) ::
+  .atom (.add (.n 2757) (.n 2755) (.n 2756)) ::
+  .atom (.mul (.n 2758) (.n 2752) (.n 2757)) ::
+  .atom (.const (.n 2759) (word 1 0 0)) ::
+  .atom (.load (.n 2760) (.n 158) 133) ::
   .atom (.add (.n 2761) (.n 2759) (.n 2760)) ::
-  .atom (.mul (.n 2762) (.n 2756) (.n 2761)) ::
-  .atom (.const (.n 2763) (word 1 0 0)) ::
-  .atom (.load (.n 2764) (.n 158) 109) ::
-  .atom (.add (.n 2765) (.n 2763) (.n 2764)) ::
-  .atom (.load (.n 2766) (.n 18) 23) ::
+  .atom (.load (.n 2762) (.n 18) 25) ::
+  .atom (.add (.n 2763) (.n 2761) (.n 2762)) ::
+  .atom (.mul (.n 2764) (.n 2758) (.n 2763)) ::
+  .atom (.const (.n 2765) (word 1 0 0)) ::
+  .atom (.load (.n 2766) (.n 158) 134) ::
   .atom (.add (.n 2767) (.n 2765) (.n 2766)) ::
-  .atom (.mul (.n 2768) (.n 2762) (.n 2767)) ::
-  .atom (.const (.n 2769) (word 1 0 0)) ::
-  .atom (.load (.n 2770) (.n 158) 110) ::
-  .atom (.add (.n 2771) (.n 2769) (.n 2770)) ::
-  .atom (.load (.n 2772) (.n 18) 24) ::
+  .atom (.load (.n 2768) (.n 1428) 0) ::
+  .atom (.add (.n 2769) (.n 2767) (.n 2768)) ::
+  .atom (.mul (.n 2770) (.n 2764) (.n 2769)) ::
+  .atom (.const (.n 2771) (word 1 0 0)) ::
+  .atom (.load (.n 2772) (.n 158) 135) ::
   .atom (.add (.n 2773) (.n 2771) (.n 2772)) ::
-  .atom (.mul (.n 2774) (.n 2768) (.n 2773)) ::
-  .atom (.const (.n 2775) (word 1 0 0)) ::
-  .atom (.load (.n 2776) (.n 158) 111) ::
-  .atom (.add (.n 2777) (.n 2775) (.n 2776)) ::
-  .atom (.load (.n 2778) (.n 18) 25) ::
+  .atom (.load (.n 2774) (.n 1428) 1) ::
+  .atom (.add (.n 2775) (.n 2773) (.n 2774)) ::
+  .atom (.mul (.n 2776) (.n 2770) (.n 2775)) ::
+  .atom (.const (.n 2777) (word 1 0 0)) ::
+  .atom (.load (.n 2778) (.n 158) 136) ::
   .atom (.add (.n 2779) (.n 2777) (.n 2778)) ::
-  .atom (.mul (.n 2780) (.n 2774) (.n 2779)) ::
-  .atom (.const (.n 2781) (word 1 0 0)) ::
-  .atom (.load (.n 2782) (.n 158) 112) ::
-  .atom (.add (.n 2783) (.n 2781) (.n 2782)) ::
-  .atom (.load (.n 2784) (.n 1428) 0) ::
+  .atom (.load (.n 2780) (.n 1428) 2) ::
+  .atom (.add (.n 2781) (.n 2779) (.n 2780)) ::
+  .atom (.mul (.n 2782) (.n 2776) (.n 2781)) ::
+  .atom (.const (.n 2783) (word 1 0 0)) ::
+  .atom (.load (.n 2784) (.n 158) 137) ::
   .atom (.add (.n 2785) (.n 2783) (.n 2784)) ::
-  .atom (.mul (.n 2786) (.n 2780) (.n 2785)) ::
-  .atom (.const (.n 2787) (word 1 0 0)) ::
-  .atom (.load (.n 2788) (.n 158) 113) ::
-  .atom (.add (.n 2789) (.n 2787) (.n 2788)) ::
-  .atom (.load (.n 2790) (.n 1428) 1) ::
-  .atom (.add (.n 2791) (.n 2789) (.n 2790)) ::
-  .atom (.mul (.n 2792) (.n 2786) (.n 2791)) ::
-  .atom (.const (.n 2793) (word 1 0 0)) ::
-  .atom (.load (.n 2794) (.n 158) 114) ::
-  .atom (.add (.n 2795) (.n 2793) (.n 2794)) ::
-  .atom (.load (.n 2796) (.n 1428) 2) ::
-  .atom (.add (.n 2797) (.n 2795) (.n 2796)) ::
-  .atom (.mul (.n 2798) (.n 2792) (.n 2797)) ::
-  .atom (.const (.n 2799) (word 1 0 0)) ::
-  .atom (.load (.n 2800) (.n 158) 115) ::
-  .atom (.add (.n 2801) (.n 2799) (.n 2800)) ::
-  .atom (.load (.n 2802) (.n 1428) 3) ::
-  .atom (.add (.n 2803) (.n 2801) (.n 2802)) ::
-  .atom (.mul (.n 2804) (.n 2798) (.n 2803)) ::
-  .atom (.add (.n 2805) (.n 2731) (.n 2804)) ::
-  .atom (.load (.n 2806) (.n 160) 20) ::
-  .atom (.const (.n 2807) (word 1 0 0)) ::
-  .atom (.load (.n 2808) (.n 158) 130) ::
-  .atom (.add (.n 2809) (.n 2807) (.n 2808)) ::
-  .atom (.load (.n 2810) (.n 18) 22) ::
-  .atom (.add (.n 2811) (.n 2809) (.n 2810)) ::
-  .atom (.mul (.n 2812) (.n 2806) (.n 2811)) ::
-  .atom (.const (.n 2813) (word 1 0 0)) ::
-  .atom (.load (.n 2814) (.n 158) 131) ::
-  [])
-
-/-- `open_stacked__L11`: statements 2646 to 2693 of the body. -/
-noncomputable def c5 : List Core.Stmt := (
-  .atom (.add (.n 2815) (.n 2813) (.n 2814)) ::
-  .atom (.load (.n 2816) (.n 18) 23) ::
-  .atom (.add (.n 2817) (.n 2815) (.n 2816)) ::
-  .atom (.mul (.n 2818) (.n 2812) (.n 2817)) ::
-  .atom (.const (.n 2819) (word 1 0 0)) ::
-  .atom (.load (.n 2820) (.n 158) 132) ::
-  .atom (.add (.n 2821) (.n 2819) (.n 2820)) ::
-  .atom (.load (.n 2822) (.n 18) 24) ::
-  .atom (.add (.n 2823) (.n 2821) (.n 2822)) ::
-  .atom (.mul (.n 2824) (.n 2818) (.n 2823)) ::
-  .atom (.const (.n 2825) (word 1 0 0)) ::
-  .atom (.load (.n 2826) (.n 158) 133) ::
-  .atom (.add (.n 2827) (.n 2825) (.n 2826)) ::
-  .atom (.load (.n 2828) (.n 18) 25) ::
-  .atom (.add (.n 2829) (.n 2827) (.n 2828)) ::
-  .atom (.mul (.n 2830) (.n 2824) (.n 2829)) ::
-  .atom (.const (.n 2831) (word 1 0 0)) ::
-  .atom (.load (.n 2832) (.n 158) 134) ::
-  .atom (.add (.n 2833) (.n 2831) (.n 2832)) ::
-  .atom (.load (.n 2834) (.n 1428) 0) ::
-  .atom (.add (.n 2835) (.n 2833) (.n 2834)) ::
-  .atom (.mul (.n 2836) (.n 2830) (.n 2835)) ::
-  .atom (.const (.n 2837) (word 1 0 0)) ::
-  .atom (.load (.n 2838) (.n 158) 135) ::
-  .atom (.add (.n 2839) (.n 2837) (.n 2838)) ::
-  .atom (.load (.n 2840) (.n 1428) 1) ::
-  .atom (.add (.n 2841) (.n 2839) (.n 2840)) ::
-  .atom (.mul (.n 2842) (.n 2836) (.n 2841)) ::
-  .atom (.const (.n 2843) (word 1 0 0)) ::
-  .atom (.load (.n 2844) (.n 158) 136) ::
-  .atom (.add (.n 2845) (.n 2843) (.n 2844)) ::
-  .atom (.load (.n 2846) (.n 1428) 2) ::
-  .atom (.add (.n 2847) (.n 2845) (.n 2846)) ::
-  .atom (.mul (.n 2848) (.n 2842) (.n 2847)) ::
-  .atom (.const (.n 2849) (word 1 0 0)) ::
-  .atom (.load (.n 2850) (.n 158) 137) ::
-  .atom (.add (.n 2851) (.n 2849) (.n 2850)) ::
-  .atom (.load (.n 2852) (.n 1428) 3) ::
-  .atom (.add (.n 2853) (.n 2851) (.n 2852)) ::
-  .atom (.mul (.n 2854) (.n 2848) (.n 2853)) ::
-  .atom (.add (.n 2855) (.n 2805) (.n 2854)) ::
-  .atom (.copy (.n 2856) (.n 1511)) ::
-  .atom (.copy (.n 2857) (.n 1514)) ::
-  .atom (.copy (.n 2858) (.n 1515)) ::
-  .atom (.load (.n 2859) (.n 2243) 6) ::
-  .atom (.add (.n 2860) (.n 2859) (.n 2855)) ::
-  .atom (.copy (.n 2861) (.n 1513)) ::
-  .ret [.n 2856, .n 2857, .n 2858, .n 2860, .n 2861] ::
+  .atom (.load (.n 2786) (.n 1428) 3) ::
+  .atom (.add (.n 2787) (.n 2785) (.n 2786)) ::
+  .atom (.mul (.n 2788) (.n 2782) (.n 2787)) ::
+  .atom (.add (.n 2789) (.n 2739) (.n 2788)) ::
+  .atom (.copy (.n 2790) (.n 1511)) ::
+  .atom (.copy (.n 2791) (.n 1514)) ::
+  .atom (.copy (.n 2792) (.n 1515)) ::
+  .atom (.load (.n 2793) (.n 2243) 6) ::
+  .atom (.add (.n 2794) (.n 2793) (.n 2789)) ::
+  .atom (.copy (.n 2795) (.n 1513)) ::
+  .ret [.n 2790, .n 2791, .n 2792, .n 2794, .n 2795] ::
   [])
 
 /-- `open_stacked__L11`: the body. -/
-noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3 ++ c4 ++ c5
+noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3 ++ c4
 
 end core321
 
