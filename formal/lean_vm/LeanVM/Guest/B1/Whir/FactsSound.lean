@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Facts
+public import LeanVM.Guest.B1.Whir.Open
 
 /-!
 # The checked facts, used
