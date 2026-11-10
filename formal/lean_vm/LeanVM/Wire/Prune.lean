@@ -172,7 +172,7 @@ def valueAt (paths : List Opening) (level node : ℕ) : Digest :=
 
 theorem phaseToBytes_eq (paths : List Opening) :
     Prover.phaseToBytes paths =
-      Prover.u32Bytes paths.length ++ paths.flatMap (fun path ↦ Prover.u64Bytes path.leafIndex) ++
+      Prover.u32Bytes paths.length ++ paths.flatMap (fun path ↦ Prover.u32Bytes path.leafIndex) ++
         Prover.u32Bytes (headHeight paths) ++ Prover.u32Bytes (headLeafWords paths) ++
         Prover.u32Bytes (headLeafWords paths - zerosOf paths) ++
         (distinctPaths paths).flatMap (fun path ↦ (path.leaf.drop (zerosOf paths)).flatMap
@@ -293,8 +293,7 @@ theorem readPhase_phaseToBytes (h : Bytes → Digest)
   have hL := headLeafWords_eq hp
   have hz := zerosOf_spec hp
   have hzL := zerosOf_le hp
-  have h64 : 2 ^ height ≤ 2 ^ 64 :=
-    Nat.pow_le_pow_right (by norm_num) (hp.height_le.trans (by norm_num [wireMaxHeight]))
+  have h32 : 2 ^ height ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hp.height_le
   have hqs : ∀ n ∈ paths.map Opening.leafIndex, n < 2 ^ height := by
     intro n hn
     obtain ⟨p, hpmem, rfl⟩ := List.mem_map.1 hn
@@ -352,18 +351,18 @@ theorem readPhase_phaseToBytes (h : Bytes → Digest)
     intro l hl
     exact levelBytes_eq hp (List.mem_range.1 hl)
   rw [phaseToBytes_eq, prunePhase_eq, hH, hL, hsiblings, List.range_eq_range',
-    ← List.flatMap_map (f := Opening.leafIndex) (g := Prover.u64Bytes),
+    ← List.flatMap_map (f := Opening.leafIndex) (g := Prover.u32Bytes),
     show (distinctPaths paths).flatMap (fun path ↦ (path.leaf.drop (zerosOf paths)).flatMap
         K.toBytes) = ((distinctPaths paths).map (fun p ↦ p.leaf.drop (zerosOf paths))).flatMap
           (·.flatMap K.toBytes) by rw [List.flatMap_map]]
   simp only [List.append_assoc]
   rw [readPhase, readU32_u32Bytes hcount]
-  have hqs64 : ∀ n ∈ paths.map Opening.leafIndex, n < 2 ^ 64 :=
-    fun n hn ↦ lt_of_lt_of_le (hqs n hn) h64
-  have hreadQueries : ∀ r, readU64s paths.length
-      ((paths.map Opening.leafIndex).flatMap Prover.u64Bytes ++ r) =
+  have hqs32 : ∀ n ∈ paths.map Opening.leafIndex, n < 2 ^ 32 :=
+    fun n hn ↦ lt_of_lt_of_le (hqs n hn) h32
+  have hreadQueries : ∀ r, readU32s paths.length
+      ((paths.map Opening.leafIndex).flatMap Prover.u32Bytes ++ r) =
         some (paths.map Opening.leafIndex, r) := fun r ↦ by
-    have := readU64s_u64Bytes hqs64 r
+    have := readU32s_u32Bytes hqs32 r
     rwa [List.length_map] at this
   have hreadRows : ∀ r, readRows (leafWords - zerosOf paths)
       (distinctPositions (paths.map Opening.leafIndex)).length

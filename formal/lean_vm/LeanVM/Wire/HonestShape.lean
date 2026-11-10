@@ -394,7 +394,7 @@ def stackWired : List Whir.Level → Bool
   | level :: _ => decide (2 ^ level.fold ≤ wireMaxLeafWords)
 
 /-- **Every admissible ladder is within the wire bounds**: at most `wireMaxPhases` levels, each
-within the bounds; decided over the `104` admissible pairs. -/
+within the bounds; decided over the `56` admissible pairs. -/
 theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     levels.length ≤ wireMaxPhases ∧ levelsWired μ levels = true ∧ stackWired levels = true := by

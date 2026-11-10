@@ -49,7 +49,7 @@ a 64-bit host in the Rust, where no product of the decoding overflows.
 -/
 
 /-- `MAX_PHASES`: the most phases a decoded proof has (`wire.rs:11`). -/
-def wireMaxPhases : ℕ := 9
+def wireMaxPhases : ℕ := 8
 
 /-- `MAX_QUERIES`: the most queries a decoded phase has (`wire.rs:12`). -/
 def wireMaxQueries : ℕ := 256
@@ -58,7 +58,7 @@ def wireMaxQueries : ℕ := 256
 def wireMaxLeafWords : ℕ := 64
 
 /-- `MAX_HEIGHT`: the greatest height of a decoded phase's tree (`wire.rs:14`). -/
-def wireMaxHeight : ℕ := 40
+def wireMaxHeight : ℕ := 32
 
 /-- `dedup_by_key`: keep the first of each run of consecutive elements with the same key. -/
 def dedupByKey {α β : Type} [DecidableEq β] (key : α → β) : List α → List α
@@ -95,18 +95,6 @@ def readBytes (length : ℕ) (input : Bytes) : Option (Bytes × Bytes) :=
 /-- `Reader::u32`: a little-endian 32-bit word. -/
 def readU32 (input : Bytes) : Option (ℕ × Bytes) :=
   (readBytes 4 input).map fun (head, rest) ↦ ((KeccakHash.littleEndianLane head 0).toNat, rest)
-
-/-- `Reader::u64`: a little-endian 64-bit word, a query position. -/
-def readU64 (input : Bytes) : Option (ℕ × Bytes) :=
-  (readBytes 8 input).map fun (head, rest) ↦ ((KeccakHash.littleEndianLane head 0).toNat, rest)
-
-/-- `count` little-endian 64-bit words, in order. -/
-def readU64s : (count : ℕ) → Bytes → Option (List ℕ × Bytes)
-  | 0, input => some ([], input)
-  | count + 1, input => do
-    let (value, input) ← readU64 input
-    let (values, input) ← readU64s count input
-    some (value :: values, input)
 
 /-- `count` little-endian 32-bit words, in order. -/
 def readU32s : (count : ℕ) → Bytes → Option (List ℕ × Bytes)
@@ -180,7 +168,7 @@ word is nonzero, or the rows are empty); then the carried siblings. -/
 def readPhase (input : Bytes) : Option (PrunedPhase × Bytes) := do
   let (count, input) ← readU32 input
   guard (count ≤ wireMaxQueries)
-  let (queries, input) ← readU64s count input
+  let (queries, input) ← readU32s count input
   let (height, input) ← readU32 input
   let (leafWords, input) ← readU32 input
   let (rowWords, input) ← readU32 input
@@ -287,10 +275,6 @@ open LeanVM.Protocol.KeccakHash in
 def u32Bytes (value : ℕ) : List UInt8 :=
   (List.range 4).map fun k ↦ UInt8.ofNat (value / 256 ^ k)
 
-/-- `u64::to_le_bytes`: the eight little-endian bytes of a query position, modulo `2^64`. -/
-def u64Bytes (value : ℕ) : List UInt8 :=
-  (List.range 8).map fun k ↦ UInt8.ofNat (value / 256 ^ k)
-
 open LeanVM.Protocol.KeccakHash in
 /-- `write_phase` (`wire.rs:57-93`): the queries' count and positions, in sampling order; the
 height, the leaf width and the row width, the leaf width less the leading zero words every distinct
@@ -304,7 +288,7 @@ def phaseToBytes (paths : List Opening) : List UInt8 :=
     (paths.mergeSort fun a b ↦ a.leafIndex ≤ b.leafIndex)
   let zeros := ((distinct.map fun path ↦
     (path.leaf.takeWhile fun word ↦ decide (word = 0)).length).min?).getD 0
-  u32Bytes paths.length ++ paths.flatMap (fun path ↦ u64Bytes path.leafIndex) ++
+  u32Bytes paths.length ++ paths.flatMap (fun path ↦ u32Bytes path.leafIndex) ++
     u32Bytes height ++ u32Bytes leafWords ++ u32Bytes (leafWords - zeros) ++
     distinct.flatMap (fun path ↦ (path.leaf.drop zeros).flatMap K.toBytes) ++
     (List.range height).flatMap fun level ↦
