@@ -14,13 +14,13 @@ layout's fields the extractor reads (`165` columns: their log-sizes, their place
 stack, sorted by size) and reads the stack's root at the ladder's first level. Its price depends on
 the proof only through those ten scalars, and on the bytecode only through its length:
 
-* **`afterRootLite_cost`**: at most `8·|bytecode| + 977128227` (`≈ 2^29.87` plus `8` per bytecode
+* **`afterRootLite_cost`**: at most `8·|bytecode| + 977131026` (`≈ 2^29.87` plus `8` per bytecode
   word), for a bytecode of fewer than `2^63` words;
 * `readSizesLite_cost`: `8·|bytecode| + 977124630`; `buildLayoutLite_cost`:
   `8·|bytecode| + 977122709`; `placementsOf_cost`: `977100324` for at most `200` columns of
   log-size at most `40` (`stackOffsets_cost`: `973716067`, its quadratic merge sort of the blocks
   (run twice) dominating, each comparison reading the sizes by `getD`); `commitStackPure_cost`:
-  `11·|roots| + 3513` (`ladder_cost`: `3201`; `commitPure_cost`: `11·|roots| + 290`);
+  `11·|roots| + 6312` (`ladder_cost`: `6000`; `commitPure_cost`: `11·|roots| + 290`);
   `readPure_cost`: `148` per scalar; `absorbPure_cost`: `94`; `keccakSlot_cost`: `2522`;
   `log2Strict_cost`: `789`; `bitLength_cost`: `771`.
 * The list functions compiled only here, on word-sized lengths (`W = 2^64`): `elem_cost`,
@@ -239,7 +239,11 @@ theorem shape_cost (hP : Includes P shapeC.costDeps) (μ R : ℕ) (hμ : μ ≤ 
   omega
 
 open LeanVM.Parameters.Whir in
-theorem queryTable_rows : ∀ r ∈ queryTable, r.length = 14 ∧ ∀ q ∈ r, q.length ≤ 6 := by
+theorem queryTable_rows : ∀ r ∈ queryTable, r.length = 18 ∧ ∀ q ∈ r, q.length ≤ 7 := by
+  decide +kernel
+
+open LeanVM.Parameters.Whir in
+theorem foldGrindingTable_rows : ∀ r ∈ foldGrindingTable, r.length = 18 ∧ ∀ q ∈ r, q.length ≤ 7 := by
   decide +kernel
 
 theorem getD_mem_or {β : Type} (l : List β) (i : ℕ) (d : β) : l.getD i d ∈ l ∨ l.getD i d = d := by
@@ -248,59 +252,112 @@ theorem getD_mem_or {β : Type} (l : List β) (i : ℕ) (d : β) : l.getD i d �
   | none => exact Or.inr rfl
   | some r => exact Or.inl (List.mem_of_getElem? h)
 
-open LeanVM.Parameters.Whir in
-theorem queryTable_row_length (i : ℕ) : (queryTable.getD i []).length ≤ 14 := by
-  rcases getD_mem_or queryTable i [] with h | h
-  · exact le_of_eq (queryTable_rows _ h).1
+/-- A table's row has at most `n` entries, each of at most `m`. -/
+theorem table_row_length {t : List (List (List ℕ))} {n m : ℕ}
+    (ht : ∀ r ∈ t, r.length = n ∧ ∀ q ∈ r, q.length ≤ m) (i : ℕ) : (t.getD i []).length ≤ n := by
+  rcases getD_mem_or t i [] with h | h
+  · exact le_of_eq (ht _ h).1
   · rw [h]; simp
 
-open LeanVM.Parameters.Whir in
-theorem queryTable_queries_length (i j : ℕ) : ((queryTable.getD i []).getD j []).length ≤ 6 := by
-  rcases getD_mem_or (queryTable.getD i []) j [] with h | h
-  · rcases getD_mem_or queryTable i [] with h' | h'
-    · exact (queryTable_rows _ h').2 _ h
+theorem table_entry_length {t : List (List (List ℕ))} {n m : ℕ}
+    (ht : ∀ r ∈ t, r.length = n ∧ ∀ q ∈ r, q.length ≤ m) (i j : ℕ) :
+    ((t.getD i []).getD j []).length ≤ m := by
+  rcases getD_mem_or (t.getD i []) j [] with h | h
+  · rcases getD_mem_or t i [] with h' | h'
+    · exact (ht _ h').2 _ h
     · rw [h'] at h; simp at h
   · rw [h]; simp
 
 open LeanVM.Parameters.Whir in
-/-- The ladder of a shape: at most `3201`. -/
+theorem queryTable_row_length (i : ℕ) : (queryTable.getD i []).length ≤ 18 :=
+  table_row_length queryTable_rows i
+
+open LeanVM.Parameters.Whir in
+theorem queryTable_queries_length (i j : ℕ) : ((queryTable.getD i []).getD j []).length ≤ 7 :=
+  table_entry_length queryTable_rows i j
+
+/-- **`List.zipWith3`** (`zipWith3.c353`): the closure's price and `25` per element of the first
+list, `11` at the end. -/
+theorem zipWith3_cost (hP : Includes P Auto.List.zipWith3.c353.costDeps) {α β γ δ : Type}
+    [MachineEncoding α] [MachineEncoding β] [MachineEncoding γ] [MachineEncoding δ]
+    (f : α → β → γ → δ) (fVal : MachineValue)
+    (hf : ∀ a b c, RunsApp P fVal [encodeValue a, encodeValue b, encodeValue c] (encodeValue (f a b c)))
+    (B : ℕ) (hB : ∀ (a : α) (b : β) (c : γ), appCost P fVal [encodeValue a, encodeValue b, encodeValue c] ≤ B) :
+    ∀ (xs : List α) (ys : List β) (zs : List γ),
+      machineCost P Auto.List.zipWith3.c353.costIdx [fVal, encodeValue xs, encodeValue ys, encodeValue zs] ≤
+        (B + 25) * xs.length + 11 := by
+  intro xs
+  induction xs with
+  | nil => intro ys zs; rw [Auto.List.zipWith3.c353.costEq_nil P hP f fVal hf]; omega
+  | cons a xs ih =>
+    intro ys zs
+    rw [Auto.List.zipWith3.c353.costEq_cons P hP f fVal hf]
+    cases ys with
+    | nil => simp only [List.length_cons]; nlinarith
+    | cons b ys =>
+      cases zs with
+      | nil => simp only [List.length_cons]; nlinarith
+      | cons c zs =>
+        have h1 := ih ys zs
+        have h2 := hB a b c
+        simp only [List.length_cons]
+        nlinarith
+
+open LeanVM.Parameters.Whir in
+/-- The ladder of a shape: at most `6000`. -/
 theorem ladder_cost (hP : Includes P ladderC.costDeps) (μ R : ℕ) (hμ : μ < 2 ^ 64)
-    (hR : R < 2 ^ 64) : machineCost P ladderC.costIdx [encodeValue μ, encodeValue R] ≤ 3201 := by
+    (hR : R < 2 ^ 64) : machineCost P ladderC.costIdx [encodeValue μ, encodeValue R] ≤ 6000 := by
   rw [ladderC.costEq P hP]
   simp only [minLogStack, maxLogStack, Admissible,
     limbs_of_lt hμ, limbs_of_lt hR, limbs_of_lt (by norm_num : (15 : ℕ) < 2 ^ 64),
-    limbs_of_lt (by norm_num : (28 : ℕ) < 2 ^ 64), max_self]
-  by_cases hadm : 15 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4
+    limbs_of_lt (by norm_num : (32 : ℕ) < 2 ^ 64), max_self]
+  by_cases hadm : 15 ≤ μ ∧ μ ≤ 32 ∧ 1 ≤ R ∧ R ≤ 4
   · obtain ⟨h1, h2, h3, h4⟩ := hadm
     have hs := shape_cost P (by includes) μ R (by omega) (by omega)
-    have hq : machineCost P queryTableC.costIdx [] = 1137 := queryTableC.costEq P (by includes)
+    rw [queryTableC.costEq P (by includes),
+      Auto.LeanVM.Parameters.Whir.foldGrindingTable.c352.costEq P (by includes)]
     have hg1 := getD_cost P (by includes) queryTable (R - 1) [] (by omega)
     have hg2 := getD_cost P (by includes) (queryTable.getD (R - 1) []) (μ - 15) [] (by omega)
-    have hl1 := length_cost P (by includes) (ladderShape μ R) (by
-      have := length_levelsFrom μ (μ - initialFold) initialFold R initialReduction
-      simp only [ladderShape, List.length_cons]; omega)
-    have hl2 := length_cost P (by includes) ((queryTable.getD (R - 1) []).getD (μ - 15) []) (by
-      have := queryTable_queries_length (R - 1) (μ - 15); omega)
-    have hqt : queryTable.length = 4 := by decide +kernel
-    have hrow := queryTable_row_length (R - 1)
+    have hg3 := getD_cost P (by includes) foldGrindingTable (R - 1) [] (by omega)
+    have hg4 := getD_cost P (by includes) (foldGrindingTable.getD (R - 1) []) (μ - 15) [] (by omega)
+    have hsl : (ladderShape μ R).length ≤ 7 := by
+      have key : ∀ μ < 33, ∀ R < 5, (ladderShape μ R).length ≤ 7 := by decide
+      exact key μ (by omega) R (by omega)
+    have hl1 := length_cost P (by includes) (ladderShape μ R) (by omega)
     have hqq := queryTable_queries_length (R - 1) (μ - 15)
-    have hsl : (ladderShape μ R).length ≤ 29 := by
-      have := length_levelsFrom μ (μ - initialFold) initialFold R initialReduction
-      simp only [ladderShape, List.length_cons]; omega
-    have hz := listZipWith_le P (by includes) (fun (g : ℕ × ℕ) (q : ℕ) ↦ (⟨g.1, g.2, q⟩ : Level))
-      (.closure ladderC.lam0.costIdx []) (fun g q ↦ RunsApp.of_spec (ladderC.lam0.costSpec P (by includes) g q))
-      9 (ladderShape μ R) ((queryTable.getD (R - 1) []).getD (μ - 15) [])
-      (fun g _ q _ ↦ by rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, ladderC.lam0.costEq P (by includes)])
-    have hmin : min (ladderShape μ R).length ((queryTable.getD (R - 1) []).getD (μ - 15)
-        []).length ≤ 6 :=
-      le_trans (min_le_right _ _) hqq
-    rw [limbs_of_lt (by omega : (ladderShape μ R).length < 2 ^ 64),
-      limbs_of_lt (by omega : ((queryTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64)]
-    simp only [h1, h2, h3, h4, and_self, ↓reduceIte, max_self]
+    have hgg := table_entry_length foldGrindingTable_rows (R - 1) (μ - 15)
+    have hl2 := length_cost P (by includes) ((queryTable.getD (R - 1) []).getD (μ - 15) []) (by omega)
+    have hl3 := length_cost P (by includes) ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) [])
+      (by omega)
+    have hqt : queryTable.length = 4 := by decide +kernel
+    have hgt : foldGrindingTable.length = 4 := by decide +kernel
+    have hrow := queryTable_row_length (R - 1)
+    have hrow' := table_row_length foldGrindingTable_rows (R - 1)
     rw [hqt] at hg1
-    by_cases he : (ladderShape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 15) []).length
-    · simp only [he, ↓reduceIte] at hz ⊢; omega
-    · simp only [he, ↓reduceIte]; omega
+    rw [hgt] at hg3
+    rw [limbs_of_lt (by omega : (ladderShape μ R).length < 2 ^ 64),
+      limbs_of_lt (by omega : ((queryTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64),
+      limbs_of_lt (by omega : ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64)]
+    have hz := zipWith3_cost P (by includes) (fun (g : ℕ × ℕ) (q b : ℕ) ↦ (⟨g.1, g.2, q, b⟩ : Level))
+      (.closure ladderC.lam0.costIdx [])
+      (fun g q b ↦ RunsApp.of_spec (ladderC.lam0.costSpec P (by includes) g q b)) 12
+      (fun g q b ↦ by
+        rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, ladderC.lam0.costEq P (by includes)]
+        omega)
+      (ladderShape μ R) ((queryTable.getD (R - 1) []).getD (μ - 15) [])
+      ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) [])
+    simp only [h1, h2, h3, h4, and_self, ↓reduceIte, max_self]
+    generalize machineCost P Auto.List.zipWith3.c353.costIdx
+        [MachineValue.closure ladderC.lam0.costIdx [], encodeValue (ladderShape μ R),
+          encodeValue ((queryTable.getD (R - 1) []).getD (μ - 15) []),
+          encodeValue ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) [])] = Z at hz ⊢
+    by_cases hc : (ladderShape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 15) []).length ∧
+        (ladderShape μ R).length = ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) []).length
+    · have hC := hc.1 ▸ hc.2
+      simp only [hc.1, hC, and_self, ↓reduceIte]
+      omega
+    · simp only [hc, ↓reduceIte]
+      split_ifs <;> omega
   · split_ifs <;> simp_all
 
 open LeanVM.Parameters.Whir in
@@ -312,19 +369,23 @@ theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
   obtain h := Option.some.inj h
   rw [ladderShape] at h
   generalize (queryTable.getD (R - 1) []).getD (μ - minLogStack) [] = qs at h
+  generalize (foldGrindingTable.getD (R - 1) []).getD (μ - minLogStack) [] = gs at h
   cases qs with
-  | nil => simp at h
+  | nil => simp [List.zipWith3] at h
   | cons q qs =>
-    simp only [List.zipWith_cons_cons, List.cons.injEq] at h
-    rw [← h.1]
-    exact ⟨rfl, rfl⟩
+    cases gs with
+    | nil => simp [List.zipWith3] at h
+    | cons b gs =>
+      simp only [List.zipWith3, List.cons.injEq] at h
+      rw [← h.1]
+      exact ⟨rfl, rfl⟩
 
 open LeanVM.Protocol.Compile in
 /-- **Reading the stack's root**: the ladder, then the root at its first level: at most
-`3513 + 11·|roots|`. -/
+`6312 + 11·|roots|`. -/
 theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R : ℕ) (s : VerifierProgramState)
     (hN : logN < 2 ^ 63) (hR : R < 2 ^ 60) (hs : s.sponge.pending.length ≤ 4) :
-    machineCost P commitStackPureC.costIdx [encodeValue logN, encodeValue R, encodeValue s] ≤ 11 * s.roots.length + 3513 := by
+    machineCost P commitStackPureC.costIdx [encodeValue logN, encodeValue R, encodeValue s] ≤ 11 * s.roots.length + 6312 := by
   rw [commitStackPureC.costEq P hP]
   have hl := ladder_cost P (by includes) logN R (by omega) (by omega)
   cases hla : LeanVM.Parameters.Whir.ladder logN R with
@@ -1083,11 +1144,11 @@ theorem readSizesLite_some {bytecode : List K} {s s' : VerifierProgramState} {L 
   exact ⟨h2.2, h3.2, hroots, hpend⟩
 
 /-- **The replay up to the stack's root** (`afterRootLite bytecode π`): at most
-`8·|bytecode| + 977128227`, whatever the proof (it reads ten scalars of it). -/
+`8·|bytecode| + 977131026`, whatever the proof (it reads ten scalars of it). -/
 theorem afterRootLite_cost (hP : Includes P afterRootLiteC.costDeps) (bytecode : List K)
     (π : LeanVM.Protocol.Compile.Proof) (hb : bytecode.length < 2 ^ 63) :
     machineCost P afterRootLiteC.costIdx [encodeValue bytecode, encodeValue π] ≤
-      8 * bytecode.length + 977128227 := by
+      8 * bytecode.length + 977131026 := by
   rw [afterRootLiteC.costEq P hP, initialStateC.costEq P (by includes)]
   have hrs := readSizesLite_cost P (by includes) bytecode (initialState π) hb (by simp [initialState])
   rw [Auto.Option.bind.c154.costEq P (by includes) _ _ _

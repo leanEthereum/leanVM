@@ -538,7 +538,7 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog :
 /-! ## The extractor -/
 
 /-- The price where the replay fails: the bytecode's words and the replay. -/
-@[expose] def replayPrice (ℓ : ℕ) : ℕ := bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128227) + 15
+@[expose] def replayPrice (ℓ : ℕ) : ℕ := bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977131026) + 15
 
 /-- **The compiled extractor's price** (`extractorC`), on every input: at most `extractorPrice` at the shape `afterRootLite` announces, or
 `replayPrice` when the replay fails. -/
@@ -567,12 +567,12 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
     (afterRootLite (bytecodeWords prog) π) (afterRootStage prog input qs) _ hk]
   cases har : afterRootLite (bytecodeWords prog) π with
   | none =>
-    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128227) + 15
+    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977131026) + 15
     dsimp only
     omega
   | some r =>
     obtain ⟨⟨L, R⟩, st⟩ := r
-    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128227) +
+    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977131026) +
       afterRootStagePrice L.stackLog R L.logMemory prog.logSize (Nat.log2 (qs.length + 2) + 1) qs.length
         (L.stackLog - 6 + R) (limbsBelowTwoPow (Nat.log2 (qs.length + 2) + 1 + 1)) + 69
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
