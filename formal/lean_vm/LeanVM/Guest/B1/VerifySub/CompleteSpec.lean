@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.CompleteSpec
 
-  `verify_sub`'s completeness statement (G7's target, 2026-10-23): one honest child at a time,
-  in the placed form `CompleteAtD`.
+  What a caller of `verify_sub` holds for its completeness: the exponent tables at `g^sqE`.
 -/
 
 module
@@ -17,19 +16,11 @@ public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# `verify_sub` is complete
+# The caller's exponent tables
 
-`verify_sub_complete_Spec bytecode`: for every honest child `c` of a node under the seed `seed` —
-its deferred claim shaped for the bytecode, its stack at least `2^minChildStackLog`, its stream at most
-`childStreamCap` words, the deferring verifier accepting it while refusing a zero challenge
-(`Limits.verifyDeferredRefusingZero`) and while refusing what makes the guest divide by zero
-(`Limits.verifyDeferredNZ`), and its openings agreeing per batch over the run's query
-steps (`Limits.queryStepsOf`) — and every caller's words `Lin` holding the exponent table at
-`g^sqE` (`vsExpLin`) and the child's fixed cells at `out = g^outE` (write-once:
-`verify_sub` writes them there), `verify_sub` on the statement's and the seed's cells, `g^sqE`,
-`out` is complete at every frame pointer (`CompleteAtD`), returning nothing, for
-certificates whose runs fit their frames with consecutive cells (`Lift.RunsFit`,
-`RunsConsec`). Its own buffers hold `Hints.childHints bytecode seed c`.
+`vsExpLin sqE`: the words a caller of `verify_sub` holds at `g^sqE`, the exponent table and its
+window section (`expTabAllWords`). `verify_sub`'s completeness is bounded, by its callees' trees
+(`VerifySub/CompleteBT`'s `verify_sub_completeBT`): no statement at every frame size remains.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -42,26 +33,6 @@ open LeanVM.Node LeanVM.Guest.B1.Main
 
 /-- The caller's exponent tables at `g^sqE`: the exponent table and its window section. -/
 def vsExpLin (sqE : ℕ) : Main.Layout := [(sqE, expTabAllWords)]
-
-/-- **`verify_sub` is complete on every honest child** (G7's target). -/
-def verify_sub_complete_Spec (bytecode : List K) : Prop :=
-  ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert → RunsConsec cert →
-  ∀ (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout) (κ : ℕ), 16 ≤ κ →
-    c.statement.deferredClaim.HasBytecodeShape bytecode →
-    (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
-      Coverage.minChildStackLog ≤ layout.stackLog) →
-    c.proof.stream.length ≤ Coverage.childStreamCap →
-    Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true →
-    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true →
-    (∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode (statementDigest seed c.statement))
-      (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) →
-    (∀ q ∈ vsExpLin sqE, q ∈ Lin) →
-    (outE, DeferredClaim.cells c.freshClaim) ∈ Lin →
-    CompleteAtD fs cert κ "verify_sub" Lin
-      [(digestHalves (statementDigest seed c.statement)).1,
-        (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
-        (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)] (Returns [])
 
 end
 end LeanVM.Guest.B1.VerifySub
