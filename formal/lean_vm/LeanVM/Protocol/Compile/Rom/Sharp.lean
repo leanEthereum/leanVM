@@ -614,5 +614,340 @@ theorem pr_search_le {sp : Sponge} {κ : PowKey} (hκ : KeyOk κ) {b fuel : ℕ}
 
 end Search
 
+/-- The average over `E` is the average over a uniform state's challenge. -/
+theorem avgE_eq (A : E → ℝ≥0∞) : (∑ c : E, A c) / (Fintype.card E : ℝ≥0∞) =
+    (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState := by
+  convert (sum_challengeOf_div A).symm using 3
+  · exact congrArg (@Finset.univ E) (Subsingleton.elim _ _)
+  · exact congrArg (@Fintype.card E) (Subsingleton.elim _ _)
+
+/-- A proof of work of fewer bits misses less often. -/
+theorem missProb_mono {b B : ℕ} (h : b ≤ B) : missProb b ≤ missProb B :=
+  tsub_le_tsub_left (pow_le_pow_right_of_le_one' (by norm_num) h) 1
+
+/-! ## The induction along the program -/
+
+section Main
+
+variable {β : Type}
+
+/-- The prover's trees are those of the history's commitments. -/
+def TreesOf (cs : List Tree) (h : List Ev) : Prop :=
+  cs.map (fun t ↦ (t.height, t.word)) = (commits h).map fun c ↦ (c.1, c.2.2)
+
+theorem treesOf_snoc {cs : List Tree} {h : List Ev} (hcs : TreesOf cs h) {e : Ev}
+    (he : commits [e] = []) : TreesOf cs (h ++ [e]) := by
+  rw [TreesOf, commits_append, he, List.append_nil]
+  exact hcs
+
+/-- The rows the prover opens are the interactive answer's. -/
+theorem answer_of_treesOf {cs : List Tree} {h : List Ev} (hcs : TreesOf cs h) (i : ℕ)
+    (ps : List ℕ) :
+    answer h i ps = cs[i]?.map fun t ↦ ps.map fun q ↦ t.word (q % 2 ^ t.height) := by
+  have e := congrArg (·[i]?) hcs
+  simp only [List.getElem?_map] at e
+  unfold answer
+  rcases hc : cs[i]? with _ | t <;> rcases hh : (commits h)[i]? with _ | c <;>
+    simp_all
+
+/-- **The bad event**: the honest transcript fails `P'`, the log having no collision. -/
+def TraceBad (S : Strategy) (fuel : ℕ) (P' : VerifierProgram Bool) (sp : Sponge) (h : List Ev)
+    (ℓ : Log) : Prop :=
+  ¬ traceOk (hOf ℓ) (fOf ℓ) S fuel P' sp h ∧ ¬ Collided ℓ
+
+theorem proverSp_absorbI (F : KeccakState → KeccakState) {sp : Sponge} (hsp : ProverSp sp)
+    (x : E) : ProverSp (absorbI F sp x dsObserve) := by
+  by_cases hfull : sp.pending.length = rateScalars
+  · rw [absorbI_full F hfull]
+    exact ⟨by simp, by simp [dsObserve]⟩
+  · rw [absorbI_short F hfull]
+    refine ⟨?_, fun e he ↦ ?_⟩
+    · have := hsp.1
+      simp only [rateScalars] at hfull
+      simp only [List.length_append, List.length_singleton]
+      omega
+    · rcases List.mem_append.mp he with he | he
+      · exact hsp.2 e he
+      · rw [List.mem_singleton] at he; subst he; rfl
+
+theorem proverSp_squeezeI (F : KeccakState → KeccakState) {sp : Sponge} (hsp : ProverSp sp) :
+    ProverSp (squeezeI F sp).2 := by
+  rcases hg : sp.ground with _ | c
+  · rw [squeezeI_none F hg]
+    exact ⟨by simp, by simp⟩
+  · rw [squeezeI_some F hg]
+    exact hsp
+
+theorem squeezeI_ground' (F : KeccakState → KeccakState) (sp : Sponge) :
+    (squeezeI F sp).2.ground = none := by
+  rcases hg : sp.ground with _ | c
+  · rw [squeezeI_none F hg]
+  · rw [squeezeI_some F hg]
+
+/-- **The honest transcript along the program**: from a node of the honest program `p` the
+honest prover reaches, with a fresh sponge, the probability that the transcript fails the
+refining program `p'` with no collision is at most `p'`'s ideal failure probability plus
+`(1 - 2^-bits)^fuel` per quarter of `p`'s cost. -/
+theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram Bool)
+    (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
+    (hg : ∀ h b k, Ptop.after h = some (.grind b k) → S.Follows h → b ≤ bits)
+    {p' p : VerifierProgram Bool} (hR : Guest.Limits.Refines p' p) :
+    ∀ (h : List Ev) (sp : Sponge) (cs : List Tree) (ℓ : Log) (n : ℕ)
+      (K : Option (List E × List (List Opening)) → OracleComp KeccakCalls β),
+      Ptop.after h = some p → S.Follows h → ProverSp sp → Fresh ℓ sp.state → TreesOf cs h →
+      p.CostLE height n →
+      Pr{let z ← runL (proveFromM callKeccak256 callKeccakF1600 S fuel p sp h cs >>= K) ℓ}[
+        TraceBad S fuel p' sp h z.2] ≤ S.failFrom p' h sp.ground + n * missProb bits ^ fuel := by
+  induction hR with
+  | fail p =>
+    intros
+    simp only [Strategy.failFrom]
+    exact (prEvent_le_one _).trans le_self_add
+  | ret b =>
+    intro h sp cs ℓ n K _ _ _ _ _ _
+    by_cases hbt : b = true
+    · exact le_of_eq_of_le (prEvent_eq_zero_of_forall_not _ _ fun z hz ↦ hz.1 hbt) bot_le
+    · simp only [Strategy.failFrom, hbt]
+      exact (prEvent_le_one _).trans le_self_add
+  | @read k k' _ ih =>
+    intro h sp cs ℓ n K ha hfo hsp hF hcs hc
+    rcases hgr : sp.ground with _ | c
+    swap
+    · simp only [Strategy.failFrom, Option.isSome_some, ↓reduceIte]
+      exact (prEvent_le_one _).trans le_self_add
+    simp only [Strategy.failFrom, Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
+    set m := S.msg h
+    have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.read k) sp h cs >>= K =
+        Compile.absorb callKeccakF1600 sp m dsObserve >>= fun sp' ↦
+          proveFromM callKeccak256 callKeccakF1600 S fuel (k m) sp' (h ++ [Ev.read m]) cs >>=
+            fun r ↦ K (r.map fun t ↦ (m :: t.1, t.2)) := by
+      simp [proveFromM, m]
+    rw [e]
+    refine (prEvent_mono _ _ (fun z ↦ TraceBad S fuel (k' m) (absorbI (fOf z.2) sp m dsObserve)
+      (h ++ [Ev.read m]) z.2) fun z hz ↦ ⟨fun ht ↦ hz.1 ⟨hgr, ht⟩, hz.2⟩).trans ?_
+    refine pr_absorb_le hF m dsObserve _ (fun sp' ℓf ↦ TraceBad S fuel (k' m) sp'
+      (h ++ [Ev.read m]) ℓf) (fun _ _ h ↦ h.2) _ fun F' ℓ' _ hF' _ ↦ ?_
+    have hn : 1 ≤ n := hc.1
+    refine (ih m _ _ cs ℓ' (n - 1) _ (after_read_step ha m)
+      (hfo.snoc (fun x hx ↦ (Ev.read.inj hx).symm) (fun _ _ _ hx ↦ by cases hx))
+      (proverSp_absorbI F' hsp m) hF' (treesOf_snoc hcs (by simp [commits])) (hc.2 m)).trans ?_
+    rw [absorbI_ground, hgr]
+    gcongr
+    exact_mod_cast Nat.sub_le n 1
+  | @sample k k' _ ih =>
+    intro h sp cs ℓ n K ha hfo hsp hF hcs hc
+    have hn : 4 ≤ n := hc.1
+    set M := missProb bits ^ fuel
+    have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.sample k) sp h cs >>= K =
+        squeeze callKeccakF1600 sp >>= fun r ↦
+          proveFromM callKeccak256 callKeccakF1600 S fuel (k r.1) r.2 (h ++ [Ev.sample r.1]) cs >>=
+            K := by
+      simp [proveFromM]
+    rw [e]
+    have hle := pr_squeeze_le hF (fun r ↦
+      proveFromM callKeccak256 callKeccakF1600 S fuel (k r.1) r.2 (h ++ [Ev.sample r.1]) cs >>= K)
+      (fun r ℓf ↦ TraceBad S fuel (k' r.1) r.2
+      (h ++ [Ev.sample r.1]) ℓf) (fun _ _ h ↦ h.2)
+      (fun c ↦ S.failFrom (k' c) (h ++ [Ev.sample c]) none + ((n - 4 : ℕ) : ℝ≥0∞) * M)
+      fun F' ℓ' _ hF' _ ↦ by
+        have := ih (squeezeI F' sp).1 _ _ cs ℓ' (n - 4) K (after_sample_step ha _)
+          (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx))
+          (proverSp_squeezeI F' hsp) hF' (treesOf_snoc hcs (by simp [commits]))
+          (hc.2 (squeezeI F' sp).1)
+        rwa [squeezeI_ground'] at this
+    refine hle.trans ?_
+    rcases hgr : sp.ground with _ | c
+    · simp only [Strategy.failFrom]
+      rw [avg_add_const, avgE_eq]
+      gcongr
+      exact_mod_cast Nat.sub_le n 4
+    · simp only [Strategy.failFrom]
+      gcongr
+      exact_mod_cast Nat.sub_le n 4
+  | @grind b k k' _ ih =>
+    intro h sp cs ℓ n K ha hfo hsp hF hcs hc
+    rcases hgr : sp.ground with _ | c
+    swap
+    · simp only [Strategy.failFrom, Option.isSome_some, ↓reduceIte]
+      exact (prEvent_le_one _).trans le_self_add
+    have hbb : b ≤ bits := hg h b k ha hfo
+    have hn : 5 ≤ n := hc.1
+    set M := missProb bits ^ fuel
+    set R : ℝ≥0∞ := ((n - 5 : ℕ) : ℝ≥0∞) * M
+    set h' := h ++ [Ev.grind b]
+    set A : E → ℝ≥0∞ := fun c ↦ S.failFrom k' h' (some c)
+    set K' : Option E → Option (List E × List (List Opening)) → Option (List E × List (List Opening)) :=
+      fun nn t ↦ t.map fun t ↦ ((nn.getD 0) :: t.1, t.2)
+    let G : Option E → OracleComp KeccakCalls β := fun o ↦ match o with
+      | none => K none
+      | some nn => absorbNonce callKeccakF1600 sp nn >>= fun r ↦
+          proveFromM callKeccak256 callKeccakF1600 S fuel k r.2 h' cs >>= fun t ↦
+            K (t.map fun t ↦ (nn :: t.1, t.2))
+    have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.grind b k) sp h cs >>= K =
+        searchM callKeccakF1600 b sp 0 fuel >>= G := by
+      simp only [proveFromM, findNonceM, bind_assoc]
+      congr 1
+      funext o
+      cases o <;> simp [G, h']
+    rw [e]
+    set ev := TraceBad S fuel (.grind b k') sp h
+    -- a passing nonce
+    have hG : ∀ κ : PowKey, ∀ (m : ℕ) (ℓ' : Log) (u : KeccakState), m < fuel → NonceAt ℓ' sp κ →
+        lookF ℓ' (nonceInput κ.1 κ.2 m) = some u → powOk b (Keccak.lane u 2) = true →
+        (∀ m' < m, ∃ u', lookF ℓ' (nonceInput κ.1 κ.2 m') = some u' ∧
+          powOk b (Keccak.lane u' 2) = false) →
+        Fresh ℓ' u →
+        Pr{let z ← runL (G (some (nonceOf m))) ℓ'}[ev z.2] ≤ A (challengeOf u) + R := by
+      intro κ m ℓ' u hm hat hu hpass hfails hFu
+      simp only [G]
+      rw [pr_absorbNonce hat m, pr_queryF_cached hu]
+      refine (prEvent_mono_of_support _ _ (fun z ↦ TraceBad S fuel k'
+        ⟨u, [], some (challengeOf u)⟩ h' z.2) ?_).trans ?_
+      · intro z hz hb'
+        refine ⟨fun ht ↦ hb'.1 ⟨hgr, ?_⟩, hb'.2⟩
+        have hp := (simulateQ_look_of_mem_support _ ℓ' z hz).1
+        refine ⟨nonceOf m, findNonce_of_log (nonceAt_of_prefix hp hat) hm (lookF_of_prefix hp hu)
+          hpass fun m' hm' ↦ ?_, ?_⟩
+        · obtain ⟨u', hu', hf⟩ := hfails m' hm'
+          exact ⟨u', lookF_of_prefix hp hu', hf⟩
+        · rw [powStep_of_nonceAt (nonceAt_of_prefix hp hat), fOf_eq (lookF_of_prefix hp hu)]
+          exact ht
+      · exact ih _ ⟨u, [], some (challengeOf u)⟩ cs ℓ' (n - 5) _ (after_grind_step ha)
+          (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx)) ⟨by simp, by simp⟩
+          hFu (treesOf_snoc hcs (by simp [commits])) hc.2
+    -- the search from a position
+    have hsearch : ∀ (κ : PowKey) (ℓ1 : Log), KeyOk κ → NonceAt ℓ1 sp κ → SearchInv ℓ1 κ 0 →
+        Pr{let z ← runL (searchM callKeccakF1600 b sp 0 fuel >>= G) ℓ1}[ev z.2] ≤
+          missProb b ^ fuel +
+            (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState + R :=
+      fun κ ℓ1 hκ hat hinv ↦ pr_search_le hκ (hbb.trans hb) hfuel G ev (fun _ h ↦ h.2) A R
+        (hG κ) fuel 0 ℓ1 (by simp) hat hinv fun m hm ↦ absurd hm (Nat.not_lt_zero m)
+    have hfinal : missProb b ^ fuel +
+        (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState + R ≤
+          S.failFrom (.grind b k') h none + n * M := by
+      simp only [Strategy.failFrom, Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
+      rw [avgE_eq]
+      generalize (∑ u : KeccakState, A (challengeOf u)) / Fintype.card KeccakState = X
+      have hMR : M + R ≤ n * M := by
+        calc M + R = (((n - 5 : ℕ) : ℝ≥0∞) + 1) * M := by rw [add_one_mul, add_comm]
+          _ ≤ n * M := by
+            gcongr
+            exact_mod_cast (show n - 5 + 1 ≤ n by omega)
+      calc missProb b ^ fuel + X + R ≤ M + X + R := by
+            gcongr
+            exact pow_le_pow_left₀ bot_le (missProb_mono hbb) fuel
+        _ = X + (M + R) := by rw [add_comm M X, add_assoc]
+        _ ≤ X + n * M := by gcongr
+    refine le_trans ?_ hfinal
+    by_cases h4 : sp.pending.length = rateScalars
+    · rcases Nat.eq_zero_or_pos fuel with hf0 | hf0
+      · refine (prEvent_le_one _).trans ?_
+        rw [hf0, pow_zero, add_assoc]
+        exact le_self_add
+      obtain ⟨f, rfl⟩ : ∃ f, fuel = f + 1 := ⟨fuel - 1, by omega⟩
+      have hs : lookF ℓ (duplexInput sp) = none :=
+        lookF_none_of_cap fun y hy ↦ by rw [capOf_duplexInput]; exact hF y hy
+      obtain ⟨mx, hmx⟩ : ∃ mx, searchM callKeccakF1600 b sp 0 (f + 1) >>= G =
+          callKeccakF1600 (duplexInput sp) >>= mx :=
+        ⟨_, by rw [searchM, bind_assoc, absorbNonce_bind_full h4]⟩
+      rw [hmx, pr_queryF_fresh_relog hs, ← hmx]
+      refine avg_le_of_le fun v ↦ ?_
+      by_cases hcap : CapHit ℓ (duplexInput sp) v
+      · rw [pr_eq_zero_of_collided (collided_append_inr hcap) _ fun _ h ↦ h.2]
+        exact bot_le
+      · refine hsearch (capOf v, []) _ ⟨by simp, by simp⟩
+          (Or.inr ⟨h4, v, lookF_append_inr_self hs v, rfl⟩) fun y hy hcy ↦ ?_
+        exact absurd (fresh_of_not_capHit hcap y hy) (not_not.mpr hcy)
+    · refine hsearch (capOf sp.state, sp.pending) ℓ ⟨?_, hsp.2⟩ (Or.inl ⟨h4, rfl⟩)
+        fun y hy hcy ↦ absurd hcy (hF y hy)
+      have := hsp.1
+      simp only [rateScalars] at h4
+      show sp.pending.length ≤ 3
+      omega
+  | @commit ht w k k' _ ih =>
+    intro h sp cs ℓ n K ha hfo hsp hF hcs hc
+    by_cases hbad : sp.ground.isSome ∨ ¬ WellShaped w (S.word h)
+    · simp only [Strategy.failFrom, hbad, ↓reduceIte]
+      exact (prEvent_le_one _).trans le_self_add
+    simp only [not_or, Bool.not_eq_true, Option.isSome_eq_false_iff, not_not] at hbad
+    obtain ⟨hgr, hws⟩ := hbad
+    have hgr' : sp.ground = none := by simpa using hgr
+    have hn : 2 ≤ n := hc.2.1
+    simp only [Strategy.failFrom, hgr', Option.isSome_none, Bool.false_eq_true, hws,
+      not_true_eq_false, or_self, ↓reduceIte]
+    set W := S.word h
+    set h' := h ++ [Ev.commit ht w W]
+    have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.commit ht w k) sp h cs >>= K =
+        buildTreeWithHash callKeccak256 ht W >>= fun tree ↦
+          Compile.absorb callKeccakF1600 sp (digestHalves tree.root).1 dsObserve >>= fun sp0 ↦
+            Compile.absorb callKeccakF1600 sp0 (digestHalves tree.root).2 dsObserve >>= fun sp1 ↦
+              proveFromM callKeccak256 callKeccakF1600 S fuel k sp1 h' (cs ++ [tree]) >>= fun r ↦
+                K (r.map fun t ↦
+                  ((digestHalves tree.root).1 :: (digestHalves tree.root).2 :: t.1, t.2)) := by
+      simp [proveFromM, W, h']
+    rw [e, runL, LeanVM.Protocol.Rom.run_simulateQ_bind]
+    refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun p hp ↦ ?_
+    obtain ⟨tree, ℓt⟩ := p
+    have hFt : Fresh ℓt sp.state := by
+      intro y hy
+      rw [hOnly_buildTree ht W ℓ _ hp] at hy
+      exact hF y hy
+    have htree : ∀ ℓf, ℓt <+: ℓf → tree = buildTreeWithHash (m := Id) (hOf ℓf) ht W :=
+      fun ℓf hpf ↦ tree_of_mem_support hp hpf
+    have hroot : ∀ ℓf, ℓt <+: ℓf → treeRoot (hOf ℓf) ht W = tree.root := fun ℓf hpf ↦ by
+      rw [htree ℓf hpf, root_buildTreeM_id]
+    have hfields : tree.height = ht ∧ tree.word = W := by
+      rw [htree ℓt (List.prefix_refl _)]
+      exact ⟨rfl, rfl⟩
+    set r1 := (digestHalves tree.root).1
+    set r2 := (digestHalves tree.root).2
+    change Pr{let z ← runL (Compile.absorb callKeccakF1600 sp r1 dsObserve >>= fun sp0 ↦
+        Compile.absorb callKeccakF1600 sp0 r2 dsObserve >>= fun sp1 ↦
+          proveFromM callKeccak256 callKeccakF1600 S fuel k sp1 h' (cs ++ [tree]) >>= fun r ↦
+            K (r.map fun t ↦ (r1 :: r2 :: t.1, t.2))) ℓt}[TraceBad S fuel (.commit ht w k') sp h z.2] ≤ _
+    refine (prEvent_mono_of_support _ _ (fun z ↦ TraceBad S fuel k'
+      (absorbI (fOf z.2) (absorbI (fOf z.2) sp r1 dsObserve) r2 dsObserve) h' z.2) ?_).trans ?_
+    · intro z hz hb'
+      refine ⟨fun ht' ↦ hb'.1 ⟨hgr', hws, ?_⟩, hb'.2⟩
+      rw [hroot z.2 (simulateQ_look_of_mem_support _ ℓt z hz).1]
+      exact ht'
+    refine pr_absorb_le hFt r1 dsObserve _ (fun sp0 ℓf ↦ TraceBad S fuel k'
+      (absorbI (fOf ℓf) sp0 r2 dsObserve) h' ℓf) (fun _ _ h ↦ h.2) _ fun F' ℓ' _ hF' _ ↦ ?_
+    refine pr_absorb_le hF' r2 dsObserve _ (fun sp1 ℓf ↦ TraceBad S fuel k' sp1 h' ℓf)
+      (fun _ _ h ↦ h.2) _ fun F'' ℓ'' _ hF'' _ ↦ ?_
+    have hcs' : TreesOf (cs ++ [tree]) h' := by
+      rw [TreesOf, List.map_append, commits_append, List.map_append, hcs]
+      simp [commits, W, hfields.1, hfields.2]
+    refine (ih _ _ (cs ++ [tree]) ℓ'' (n - 2) _ (after_commit_step ha W)
+      (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx; rfl))
+      (proverSp_absorbI F'' (proverSp_absorbI F' hsp r1) r2) hF'' hcs' hc.2.2).trans ?_
+    rw [absorbI_ground, absorbI_ground, hgr']
+    gcongr
+    exact_mod_cast Nat.sub_le n 2
+  | @query i ps k k' _ ih =>
+    intro h sp cs ℓ n K ha hfo hsp hF hcs hc
+    have hans := answer_of_treesOf hcs i ps
+    rcases hci : cs[i]? with _ | tree
+    · rw [hci, Option.map_none] at hans
+      simp only [Strategy.failFrom, hans]
+      exact (prEvent_le_one _).trans le_self_add
+    rw [hci, Option.map_some] at hans
+    set rows := ps.map fun q ↦ tree.word (q % 2 ^ tree.height)
+    have e : proveFromM callKeccak256 callKeccakF1600 S fuel (.query i ps k) sp h cs >>= K =
+        proveFromM callKeccak256 callKeccakF1600 S fuel (k rows) sp (h ++ [Ev.query rows]) cs >>=
+          fun r ↦ K (r.map fun t ↦ (t.1, ps.map tree.opening :: t.2)) := by
+      simp [proveFromM, hci, rows]
+    rw [e]
+    refine (prEvent_mono _ _ (fun z ↦ TraceBad S fuel (k' rows) sp (h ++ [Ev.query rows]) z.2)
+      fun z hz ↦ ⟨fun ht ↦ hz.1 ⟨rows, hans, ht⟩, hz.2⟩).trans ?_
+    refine (ih rows _ sp cs ℓ (n - VerifierProgram.openCost height ps.length) _ (after_query_step ha rows)
+      (hfo.snoc (fun _ hx ↦ by cases hx) (fun _ _ _ hx ↦ by cases hx)) hsp hF
+      (treesOf_snoc hcs (by simp [commits])) (hc.2 rows)).trans ?_
+    simp only [Strategy.failFrom, hans]
+    gcongr
+    exact_mod_cast Nat.sub_le _ _
+
+end Main
+
 end
 end LeanVM.Protocol.Compile.Rom
