@@ -42,7 +42,12 @@ abbrev sq (sp : Sponge) : E × Sponge := squeezeI keccakF1600 sp
 theorem obsAll_append (sp : Sponge) (xs ys : List E) :
     obsAll sp (xs ++ ys) = obsAll (obsAll sp xs) ys := List.foldl_append ..
 
-theorem sq_fst (sp : Sponge) : (sq sp).1 = challengeOf (sq sp).2.state := rfl
+theorem sq_fst {sp : Sponge} (hg : sp.ground = none) : (sq sp).1 = challengeOf (sq sp).2.state := by
+  obtain ⟨st, pe, g⟩ := sp
+  cases hg
+  rfl
+
+theorem obs_ground' (sp : Sponge) (x : E) : (obs sp x).ground = sp.ground := absorbI_ground _ _ _ _
 
 /-! ## The transcript -/
 
@@ -110,7 +115,7 @@ theorem sample_run (sp : Sponge) : sample.run sp = sq sp := rfl
 theorem grind_run (bits : ℕ) (n : E) (sp : Sponge) :
     (grind bits n).run sp = (powOk bits (powStep keccakF1600 sp n).1, (powStep keccakF1600 sp n).2) := rfl
 
-theorem batchRounds_run (rounds : List (E × E)) (claim : E) (sp : Sponge) :
+theorem batchRounds_run (rounds : List (E × E)) (claim : E) {sp : Sponge} (hg : sp.ground = none) :
     (batchRounds claim rounds).run sp = rsRun rounds claim sp := by
   induction rounds generalizing claim sp with
   | nil => rfl
@@ -119,7 +124,8 @@ theorem batchRounds_run (rounds : List (E × E)) (claim : E) (sp : Sponge) :
     show (fun q ↦ (((sq (obs (obs sp g1) gInf)).1 :: q.1.1, q.1.2), q.2))
       (StateT.run (batchRounds (sumcheckRoundPolynomial claim (g1, gInf) (sq (obs (obs sp g1) gInf)).1) rest)
         (sq (obs (obs sp g1) gInf)).2) = _
-    rw [ih]
+    rw [ih _ (squeezeI_ground _ _),
+      sq_fst (((obs_ground' _ _).trans (obs_ground' _ _)).trans hg)]
     rfl
 
 theorem id_bind {α β : Type} (x : Id α) (f : α → Id β) : x >>= f = f x := rfl
@@ -171,12 +177,18 @@ theorem batch_eq (cs : List ChildClaims) (h : BatchingHints) :
           some ⟨R.1.1, h.finalBytecodeValue⟩
         else none
       else none := by
+  have hs : obsAll (obsAll ⟨batchSeed, [], none⟩ (childCountCells cs.length)) (cs.flatMap childCells) =
+      batchSponge cs := (obsAll_append _ _ _).symm
   simp only [batch, batch.go, StateT.run'_eq, StateT.run_bind, forIn_observe_run,
-    forIn_children_run, grind_run, sample_run, batchRounds_run, powB]
-  rw [show batchSponge cs = obsAll (obsAll ⟨batchSeed, [], none⟩ (childCountCells cs.length))
-    (cs.flatMap childCells) from obsAll_append _ _ _]
-  simp only [id_bind, id_map, id_pure, ite_run, StateT.run_pure, apply_ite Prod.fst, childCountCells]
-  rfl
+    forIn_children_run, grind_run, id_bind]
+  rw [show padToRate [gpow cs.length] = childCountCells cs.length from rfl, hs,
+    show powStep keccakF1600 (batchSponge cs) h.lambdaGrindNonce = powB cs h from rfl, ite_run]
+  by_cases hp : powOk batchLambdaGrindBits (powB cs h).1 = true
+  · simp only [hp, ↓reduceIte, StateT.run_bind, sample_run, batchRounds_run _ _ (squeezeI_ground _ _),
+      id_bind, id_map, ite_run, StateT.run_pure, apply_ite Prod.fst]
+    rfl
+  · simp only [hp, Bool.false_eq_true, ↓reduceIte, StateT.run_pure, id_map]
+    rfl
 
 end
 end LeanVM.Guest.Batch
