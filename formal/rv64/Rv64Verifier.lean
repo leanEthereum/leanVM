@@ -19,6 +19,7 @@ import Rv64Verifier.Proofs.Common
 import Rv64Verifier.Proofs.Rodata
 import Rv64Verifier.Proofs.EqEval
 import Rv64Verifier.Proofs.Field.All
+import Rv64Verifier.Proofs.Runtime.All
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
