@@ -237,7 +237,7 @@ example : Pr{let z ← romExperiment toyAdv (verifierFam toySeeds toyProg)}[z.1.
 
 /-- A 70-bit proof of work passes on the zero challenge: the predicate tests one 64-bit lane, so
 for `b > 64` its success fraction is `2^-64`, and the discount is `2^-min(b, 64)`. -/
-example : powOk 70 0 (E.ofLimbs 0 0 0) = true := by
+example : powOk 70 0 (E.ofLimbs 0 0) = true := by
   simp [powOk, limb_ofLimbs, K.lane]
 
 /-- Extraction from no answers gives the zero row of the width. -/
