@@ -28,8 +28,9 @@ value lanes, `94` of the `158` (`committedCols`), in global order. `columnKappas
 (`BYTECODE_LOG`).
 
 * `PCtx rd kappas off`: `off` holds `g^offset` per committed column;
-* `certify_placement_Spec`: under its precondition the function's relation gives `PCtx` and the
-  total;
+* `certify_placement_Spec`: under its precondition the function's relation gives the table
+  logs (each below `34`, from its own range checks: `kappa_base`'s table entries are hinted words
+  when `verify_sub` calls it, before `verify_tables` certifies them), `PCtx` and the total;
 * `HypKappa`: once the stack is at most `2^28`, every committed column's `κ` is below `29` (the
   range of `column_selector`'s 29 specializations, which `check_opening_terminal` dispatches on).
 -/
@@ -85,16 +86,18 @@ sizes and `off` holds `g^offset` per committed column, the offsets `stackOffsets
 def PCtx (rd : Reader) (kappas : List ℕ) (off : E) : Prop :=
   kappas.length = 158 ∧ TbReadsAt rd off ((stackOffsets (committedKappas kappas)).1.map (gen ^ ·))
 
-/-- **`certify_placement` is sound**: over the base `[1, g^log_mem, g^τ_0, …, g^τ_5]`, the squares
-table and the rank keys, it returns `g^(Σ 2^κ)` over the committed columns of
-`columnKappas log_mem 19 τ` and a buffer of which `PCtx` holds. -/
+/-- **`certify_placement` is sound**: over the base `[1, g^log_mem, d_0, …, d_5]`, the squares
+table and the rank keys, the words `d_t` are `g^τ_t`, `τ_t < 34` (its range checks), and it
+returns `g^(Σ 2^κ)` over the committed columns of `columnKappas log_mem 19 τ` and a buffer of
+which `PCtx` holds. -/
 def certify_placement_Spec (rd : Reader) : Prop :=
-  ∀ (logMem : ℕ) (hs : List ℕ) (kb sq : E) (rets : List E), logMem ≤ 32 → hs.length = 6 →
-    (∀ h ∈ hs, h < 29) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
+  ∀ (logMem : ℕ) (ds : List E) (kb sq : E) (rets : List E), logMem ≤ 32 → ds.length = 6 →
+    TbReadsAt rd kb (1 :: gen ^ logMem :: ds) →
     TbReadsAt rd sq gSquaresList → TbReadsAt rd (sq * gen ^ 178) rankKeysList →
     coreProgram.Rel rd "certify_placement" [kb, sq] rets →
-      ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
-        PCtx rd (columnKappas logMem guestLogBytecode hs) off
+      ∃ hs : List ℕ, hs.length = 6 ∧ ds = hs.map (gen ^ ·) ∧ (∀ h ∈ hs, h < 34) ∧
+        ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
+          PCtx rd (columnKappas logMem guestLogBytecode hs) off
 
 /-- Every committed column's log is below `N_COLUMN_LOGS = 29`. -/
 def KappasBelow (kappas : List ℕ) : Prop :=

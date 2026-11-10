@@ -18,8 +18,8 @@ the flag, the cap leaf).
 
 `oqIter1_relAtIn`: the iteration at `x = g^j`, placed at `fp`, at its honest values (`oqIter1F`),
 its tail at `fp + fs loop`, its two walks after the tail's tree, is `RelAtIn` the caller's region
-`R`: no `HeapBuf`, no `frameAddr`, every load reading `R` (`OqQReg`: the weights; the window
-pointers and the chain), its walks' loads too.
+`R`: no `HeapBuf`, no `frameAddr`, every load reading `R` (`OqQReg`: the challenges and the final
+coefficients; the points, the window pointers and the chain), its walks' loads too.
 -/
 
 namespace LeanVM.Guest.B1
@@ -29,10 +29,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- What a query of an iteration and its walk read from the caller's region: its weights, its
-windows (the path's and the cap's two), its flag and its cap leaf. -/
-structure OqQReg (R : ℕ → Prop) (s : Oq) (cap flags wp bp : E) (q : ℕ) : Prop where
-  w : ∀ off < s.lo + s.I / s.lo, OqIn R (wp.limb 0 * Parameters.addressOfIndex off)
+/-- What a query of an iteration and its walk read from the caller's region: its challenges, its
+final coefficients (final level), its windows (the path's and the cap's two), its flag and its cap
+leaf. -/
+structure OqQReg (R : ℕ → Prop) (s : Oq) (cap flags coefs hs bp : E) (q : ℕ) : Prop where
+  co : ∀ off < 3 * s.folds, OqIn R (coefs.limb 0 * Parameters.addressOfIndex off)
+  h : s.final = 1 → ∀ off < s.nHs, OqIn R (hs.limb 0 * Parameters.addressOfIndex off)
   b : ∀ off < oqNpw s + 2, OqIn R (bp.limb 0 * Parameters.addressOfIndex off)
   f : OqIn R ((flags * gen ^ (q / 2 ^ (s.pd + 1))).limb 0 * Parameters.addressOfIndex (2 ^
       (s.cd - 1)))
@@ -48,16 +50,17 @@ structure OqWReg (R : ℕ → Prop) (pd cd : ℕ) (cap flags bp : E) (q : ℕ) :
     (if q.testBit pd then 2 else 0))).limb 0 * Parameters.addressOfIndex (2 ^ (cd + 1) + e))
 
 /-- A query's region holds its walk's. -/
-theorem OqQReg.toW {R : ℕ → Prop} {s : Oq} {cap flags wp bp : E} {q : ℕ}
-    (h : OqQReg R s cap flags wp bp q) : OqWReg R s.pd s.cd cap flags bp q :=
+theorem OqQReg.toW {R : ℕ → Prop} {s : Oq} {cap flags coefs hs bp : E} {q : ℕ}
+    (h : OqQReg R s cap flags coefs hs bp q) : OqWReg R s.pd s.cd cap flags bp q :=
   ⟨h.b, h.f, h.c⟩
 
-/-- A query's weight load reads the caller's region. -/
-theorem oqQLoad_in {R : ℕ → Prop} {s : Oq} {σ : Val} {wp : V} {cap flags bp : E} {q : ℕ}
-    (hreg : OqQReg R s cap flags (σ wp) bp q) {p : V} {off : ℕ}
-    (hl : OqQLoad s wp p off) : OqIn R ((σ p).limb 0 * Parameters.addressOfIndex off) := by
-  obtain ⟨rfl, ho⟩ := hl
-  exact hreg.w off ho
+/-- A query's load of its challenges or final coefficients reads the caller's region. -/
+theorem oqQLoad_in {R : ℕ → Prop} {s : Oq} {σ : Val} {coefs hs : V} {cap flags bp : E} {q : ℕ}
+    (hreg : OqQReg R s cap flags (σ coefs) (σ hs) bp q) {p : V} {off : ℕ}
+    (hl : OqQLoad s coefs hs p off) : OqIn R ((σ p).limb 0 * Parameters.addressOfIndex off) := by
+  rcases hl with ⟨rfl, ho⟩ | ⟨hf, rfl, ho⟩
+  · exact hreg.co off ho
+  · exact hreg.h hf off ho
 
 /-- **A walk's load reads the caller's region.** -/
 theorem oqWLoad_in {R : ℕ → Prop} {w : WD} {σ : Val} (hv : w.Hv σ)
@@ -134,53 +137,57 @@ theorem kidsFromIn_dacc {fs : String → ℕ} {cert : String → V → ℕ} {rd 
 /-- A level-0 iteration's calls: its two queries' walks. -/
 theorem oqLoop1A_callS (s : Oq) (odd : ℕ) (wlk : String) :
     (oqLoop1A s odd wlk).filterMap Stmt.callS =
-      [(none, wlk, [.n (oqOut s (oqKL s 11 true) (s.B - 1) 0), .n (oqOut s (oqKL s 11 true) (s.B - 1) 1),
-          .n 10, .n 3, .n 4], []),
-        (none, wlk, [.n (oqOut s (oqKL s (oqE1 s + 1) false) (s.B - 1) 0),
-          .n (oqOut s (oqKL s (oqE1 s + 1) false) (s.B - 1) 1), .n (oqE1 s), .n 3, .n 4], [])] := by
+      [(none, wlk, [.n (oqOut s (oqKL s 16 true) (s.B - 1) 0), .n (oqOut s (oqKL s 16 true) (s.B - 1) 1),
+          .n 15, .n 4, .n 5], []),
+        (none, wlk, [.n (oqOut s (oqKL s (oqE1 s + 2) false) (s.B - 1) 0),
+          .n (oqOut s (oqKL s (oqE1 s + 2) false) (s.B - 1) 1), .n (oqE1 s + 1), .n 4, .n 5], [])] := by
   unfold oqLoop1A
   simp only [List.filterMap_append, oqQueryT_callS]
-  rfl
+  split <;> rfl
 
 /-- **A level-0 iteration, placed**, its tail's tree `m` words, its walks after it. -/
 theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : String → V → ℕ)
-    {s : Oq} (hs : s.RowShape) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ} {wlk loop : String}
-    (hW : WalkFn wlk s.pd s.cd) {fl : Fn}
+    {s : Oq} (hs : s.RowShape) (hfin : s.FinOk) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
+    {wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fl : Fn}
     (hfl : coreProgram.find? loop = some fl) (hpl : fl.params = oqLoopParams)
     (hbl : fl.body = oqLoop1T s odd wlk loop) (hlp : coreProgram.loop loop = true)
-    {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N qptrs cap flags wp ch mu : E}
-    {r1 r2 : List K} {w1 w2 : ℕ → E} {q1 q2 : ℕ} {sb1 sb2 : List Digest} {bp1 bp2 v : E}
-    (hok1 : (⟨s, 11, true, 0, r1, w1, q1, sb1, cap, flags⟩ : QD).Ok rd wp bp1)
-    (hok2 : (⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2, cap, flags⟩ : QD).Ok rd wp bp2)
+    {rd : Reader} {R : ℕ → Prop} {fp m j : ℕ} {N positions qptrs cap flags coefs hsp ch mu : E}
+    {rounds : List FoldRound} {hsv : List E} {w1 w2 : QW} {bp1 bp2 v : E}
+    (hok1 : (oqQD s 16 true 0 cap flags rounds hsv w1).Ok rd coefs hsp bp1)
+    (hok2 : (oqQD s (oqE1 s + 2) false (oqK1 s 16) cap flags rounds hsv w2).Ok rd coefs hsp bp2)
+    (hx1 : LoadHolds rd positions (2 * j + odd) (eOfNat w1.1))
+    (hx2 : LoadHolds rd positions (2 * j + odd + 1) (eOfNat w2.1))
     (hb1 : LoadHolds rd qptrs (2 * j + odd) bp1) (hb2 : LoadHolds rd qptrs (2 * j + odd + 1) bp2)
-    (hv : LoadHolds rd ch j v)
-    (hv1 : LoadHolds rd ch (j + 1) (((v + rowDot s.base s.I r1 w1) * mu +
-      rowDot s.base s.I r2 w2) * mu))
+    (hv : s.final ≠ 1 → LoadHolds rd ch j v ∧
+      LoadHolds rd ch (j + 1) (((v + oqResV s rounds w1) * mu + oqResV s rounds w2) * mu))
     (hK : IsInK (gen ^ j * gen + N))
     (htail : if gen ^ j * gen + N ≠ 0 then
       RelAtIn coreProgram fs cert rd R (fun _ => False) (fp + fs loop) m loop
-        [gen ^ j * gen, N, qptrs, cap, flags, wp, ch, mu] []
+        [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] []
       else m = fs loop)
+    (hRp : ∀ e < 2, OqIn R ((positions * gen ^ j * gen ^ j).limb 0 * Parameters.addressOfIndex
+        (odd + e)))
     (hRq : ∀ e < 2, OqIn R ((qptrs * gen ^ j * gen ^ j).limb 0 * Parameters.addressOfIndex
         (odd + e)))
-    (hR1 : OqQReg R s cap flags wp bp1 q1) (hR2 : OqQReg R s cap flags wp bp2 q2)
-    (hRc : ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)) :
+    (hR1 : OqQReg R s cap flags coefs hsp bp1 w1.1) (hR2 : OqQReg R s cap flags coefs hsp bp2 w2.1)
+    (hRc : s.final ≠ 1 → ∀ e < 2, OqIn R ((ch * gen ^ j).limb 0 * Parameters.addressOfIndex e)) :
     RelAtIn coreProgram fs cert rd R (fun _ => False) fp (fs loop + m + 2 * fs wlk) loop
-      [gen ^ j, N, qptrs, cap, flags, wp, ch, mu] [] := by
-  set D1 : QD := ⟨s, 11, true, 0, r1, w1, q1, sb1, cap, flags⟩ with hD1
-  set D2 : QD := ⟨s, oqE1 s + 1, false, oqK1 11 s.R + s.D, r2, w2, q2, sb2, cap, flags⟩ with hD2
-  obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ w : V, σ w = oqIter1F s [gen ^ j, N, qptrs, cap, flags, wp, ch, mu]
-      D1 D2 bp1 bp2 v w.idx := ⟨_, fun _ ↦ rfl⟩
-  obtain ⟨hpar, hA, hv1', hv2', e9, e10, eE1, eC0, eC6, eC9, eC11, hl1, hl2⟩ :=
-    oqIter1_at (σ := σ) (walk := wlk) hs hok1 hok2 hb1 hb2 hv hv1 (fun _ ↦ hσ _)
-  have eP : ∀ i < 8, σ (.n i) = [gen ^ j, N, qptrs, cap, flags, wp, ch, mu].getD i 0 := by
+      [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] [] := by
+  set D1 := oqQD s 16 true 0 cap flags rounds hsv w1 with hD1
+  set D2 := oqQD s (oqE1 s + 2) false (oqK1 s 16) cap flags rounds hsv w2 with hD2
+  set args : List E := [gen ^ j, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] with hargs
+  obtain ⟨σ, hσ⟩ : ∃ σ : Val, ∀ w : V, σ w = oqIter1F s args D1 D2 bp1 bp2 v w.idx :=
+    ⟨_, fun _ ↦ rfl⟩
+  obtain ⟨hpar, hA, -, -, e11, e13, e15, eB2, eCh, eG2, eG4, hl1, hl2⟩ :=
+    oqIter1_at (σ := σ) (walk := wlk) hs hfin hok1 hok2 hx1 hx2 hb1 hb2 hv (fun _ ↦ hσ _)
+  have eP : ∀ i < 10, σ (.n i) = args.getD i 0 := by
     intro i hi
     have := congrArg (·.getD i 0) hpar
     simp only [oqLoopParams] at this
-    interval_cases i <;> simpa using this
+    interval_cases i <;> simpa [hargs] using this
   -- the body
-  set ca : Stmt := .callIf (.n (oqC1 s + 9)) loop
-    [.n (oqC1 s + 11), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] with hca
+  set ca : Stmt := .callIf (.n (oqG1 s + 2)) loop
+    [.n (oqG1 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] with hca
   set pre := oqLoop1A s odd wlk ++ [ca] with hpre
   have hok := oqLoop1A_ok s odd wlk
   have hfm : pre.all Stmt.flatM = true := by
@@ -191,20 +198,21 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
     · exact hok.matchOk hA x hx
     · simp only [List.mem_singleton] at hx
       subst hx; trivial
-  have hbody : fl.body = pre ++ [.ret []] := by rw [hbl, hpre, oqLoop1T, List.append_assoc]; rfl
+  have hbody : fl.body = pre ++ [.ret []] := by
+    rw [hbl, hpre, oqLoop1T, oqNextT, List.append_assoc]; rfl
   set es := pre.flatMap (fmEvs σ) with hes
   have hw : walk σ fl.body = .ret es [] := by rw [hbody]; exact walk_flatM σ [] pre hfm hmo
   obtain ⟨i1, i2, i3, i4⟩ := flatM_parts σ pre hfm
   have hal : pre.filterMap Stmt.allocSz = [] := by
     rw [hpre, List.filterMap_append, hok.allocSz]; rfl
   have hallocs : allocs σ es = [] := by rw [i2, hal]; rfl
-  set a1 : List V := [.n (oqOut s (oqKL s 11 true) (s.B - 1) 0), .n (oqOut s (oqKL s 11 true) (s.B - 1) 1),
-    .n 10, .n 3, .n 4] with ha1
-  set a2 : List V := [.n (oqOut s (oqKL s (oqE1 s + 1) false) (s.B - 1) 0),
-    .n (oqOut s (oqKL s (oqE1 s + 1) false) (s.B - 1) 1), .n (oqE1 s), .n 3, .n 4] with ha2
+  set a1 : List V := [.n (oqOut s (oqKL s 16 true) (s.B - 1) 0), .n (oqOut s (oqKL s 16 true) (s.B - 1) 1),
+    .n 15, .n 4, .n 5] with ha1
+  set a2 : List V := [.n (oqOut s (oqKL s (oqE1 s + 2) false) (s.B - 1) 0),
+    .n (oqOut s (oqKL s (oqE1 s + 2) false) (s.B - 1) 1), .n (oqE1 s + 1), .n 4, .n 5] with ha2
   have hcalls : calls es = [⟨wlk, a1, [], true⟩, ⟨wlk, a2, [], true⟩] ++
-      [⟨loop, [.n (oqC1 s + 11), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7],
-      [], decide (σ (.n (oqC1 s + 9)) ≠ 0)⟩] := by
+      [⟨loop, [.n (oqG1 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9],
+      [], decide (σ (.n (oqG1 s + 2)) ≠ 0)⟩] := by
     rw [i4, hpre, List.filterMap_append, oqLoop1A_callS]; rfl
   -- the events hold
   have hev : ∀ e ∈ es, e.Holds rd σ := by
@@ -216,35 +224,34 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
       change e ∈ slEvs σ ca at he
       simp only [hca, slEvs, List.mem_cons, List.not_mem_nil, or_false] at he
       rcases he with rfl | he
-      · show IsInK (σ (.n (oqC1 s + 9)))
-        rw [eC9]; exact hK
+      · show IsInK (σ (.n (oqG1 s + 2)))
+        rw [eG2]; exact hK
       · rw [he]; split <;> trivial
   -- the walks
-  have hW1 := wp_relAtIn (w := D1.wd bp1) hP fs cert hpd1 (show 1 ≤ s.cd by omega) hok1.hsibs hok1.hq hok1.hmem hW
-    hR1.toW
-  have hW2 := wp_relAtIn (w := D2.wd bp2) hP fs cert hpd1 (show 1 ≤ s.cd by omega) hok2.hsibs hok2.hq hok2.hmem hW
-    hR2.toW
+  have hW1 := wp_relAtIn (w := D1.wd bp1) hP fs cert hpd1 (show 1 ≤ s.cd by omega) hok1.hsibs
+    hok1.hq hok1.hmem hW hR1.toW
+  have hW2 := wp_relAtIn (w := D2.wd bp2) hP fs cert hpd1 (show 1 ≤ s.cd by omega) hok2.hsibs
+    hok2.hq hok2.hmem hW hR2.toW
   have hm1 : a1.map σ = [(digestHalves D1.leaf).1, (digestHalves D1.leaf).2, bp1, cap, flags] := by
     have e0 := congrArg Prod.fst hl1
     have e1 := congrArg Prod.snd hl1
     simp only at e0 e1
-    simp only [ha1, List.map_cons, List.map_nil, e0, e1, e10, eP 3 (by omega), eP 4 (by omega)]
+    simp only [ha1, List.map_cons, List.map_nil, e0, e1, e15, eP 4 (by omega), eP 5 (by omega)]
     rfl
   have hm2 : a2.map σ = [(digestHalves D2.leaf).1, (digestHalves D2.leaf).2, bp2, cap, flags] := by
     have e0 := congrArg Prod.fst hl2
     have e1 := congrArg Prod.snd hl2
     simp only at e0 e1
-    simp only [ha2, List.map_cons, List.map_nil, e0, e1, eE1, eP 3 (by omega), eP 4 (by omega)]
+    simp only [ha2, List.map_cons, List.map_nil, e0, e1, eB2, eP 4 (by omega), eP 5 (by omega)]
     rfl
   have inR : ∀ A, OqIn R A → ∃ i, A = Parameters.addressOfIndex i ∧
       (ownData cert fp (fp + fs loop + m) loop (allocs σ es) es i ∨ R i ∨ False ∨
-        ((⟨loop, [.n (oqC1 s + 11), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7], [],
-          decide (σ (.n (oqC1 s + 9)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=
+        ((⟨loop, [.n (oqG1 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], [],
+          decide (σ (.n (oqG1 s + 2)) ≠ 0)⟩ : Call).taken = true ∧ False)) :=
     fun A ⟨i, hi, hr⟩ ↦ ⟨i, hi, Or.inr (Or.inl hr)⟩
   have h := relAtIn_of_walk_loop (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     hP (R := R) (D := fun _ => False) (Dk := fun _ => False) (Rt := R) (Dt := fun _ => False)
-    (fp := fp) (m := m) (N := fs wlk + (fs wlk + 0))
-    (args := [gen ^ j, N, qptrs, cap, flags, wp, ch, mu]) (rets := [])
+    (fp := fp) (m := m) (N := fs wlk + (fs wlk + 0)) (args := args) (rets := [])
     hfl hlp (hpl ▸ hpar) hw rfl hev hcalls ?_
     (by rw [i1, hal, hallocs]; rfl)
     (fun q hq ↦ ?_) ?_ (fun i hi ↦ Or.inl hi)
@@ -253,18 +260,19 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
       show fs loop + m + (fs wlk + fs wlk) = fs loop + m + 2 * fs wlk by ring] at h
     exact h
   · -- the tail
-    have hargs' : ([.n (oqC1 s + 11), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] : List V).map σ =
-        [gen ^ j * gen, N, qptrs, cap, flags, wp, ch, mu] := by
-      simp only [List.map_cons, List.map_nil, eC11, eP 1 (by omega), eP 2 (by omega),
-        eP 3 (by omega), eP 4 (by omega), eP 5 (by omega), eP 6 (by omega), eP 7 (by omega)]
+    have hargs' : ([.n (oqG1 s + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] :
+        List V).map σ = [gen ^ j * gen, N, positions, qptrs, cap, flags, coefs, hsp, ch, mu] := by
+      simp only [List.map_cons, List.map_nil, eG4, eP 1 (by omega), eP 2 (by omega),
+        eP 3 (by omega), eP 4 (by omega), eP 5 (by omega), eP 6 (by omega), eP 7 (by omega),
+        eP 8 (by omega), eP 9 (by omega)]
       rfl
     by_cases ht : gen ^ j * gen + N ≠ 0
     · simp only [ht, ne_eq, not_false_eq_true, ↓reduceIte] at htail
-      have htk : decide (σ (.n (oqC1 s + 9)) ≠ 0) = true := by rw [eC9]; exact decide_eq_true ht
+      have htk : decide (σ (.n (oqG1 s + 2)) ≠ 0) = true := by rw [eG2]; exact decide_eq_true ht
       simp only [htk, ↓reduceIte, List.map_nil]
       rw [hargs']; exact htail
     · simp only [ht, ↓reduceIte] at htail
-      have htk : decide (σ (.n (oqC1 s + 9)) ≠ 0) = false := by rw [eC9]; exact decide_eq_false ht
+      have htk : decide (σ (.n (oqG1 s + 2)) ≠ 0) = false := by rw [eG2]; exact decide_eq_false ht
       simp only [htk, Bool.false_eq_true, ↓reduceIte]
       exact htail
   · -- no frame address
@@ -281,14 +289,19 @@ theorem oqIter1_relAtIn (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
     obtain ⟨⟨p, off⟩, hq, rfl⟩ := List.mem_map.mp hAl
     rw [hpre, List.filterMap_append] at hq
     rcases List.mem_append.mp hq with hq | hq
-    · rcases hok.load hq with hl | ⟨rfl, ho⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-      · exact inR _ (oqQLoad_in (σ := σ) (wp := .n 5) (by rw [eP 5 (by omega)]; exact hR1) hl)
-      · rw [e9]
+    · rcases hok.load hq with hl | ⟨rfl, ho⟩ | ⟨rfl, ho⟩ | ⟨hf, rfl, rfl⟩ | ⟨hf, rfl, rfl⟩
+      · exact inR _ (oqQLoad_in (σ := σ) (coefs := .n 6) (hs := .n 7)
+          (by rw [eP 6 (by omega), eP 7 (by omega)]; exact hR1) hl)
+      · rw [e11]
+        rcases ho with rfl | rfl
+        · exact inR _ (by simpa using hRp 0 (by omega))
+        · exact inR _ (hRp 1 (by omega))
+      · rw [e13]
         rcases ho with rfl | rfl
         · exact inR _ (by simpa using hRq 0 (by omega))
         · exact inR _ (hRq 1 (by omega))
-      · rw [eC0]; exact inR _ (hRc 0 (by omega))
-      · rw [eC6]; exact inR _ (hRc 1 (by omega))
+      · rw [(eCh hf).1]; exact inR _ (hRc hf 0 (by omega))
+      · rw [(eCh hf).2]; exact inR _ (hRc hf 1 (by omega))
     · simp [hca, stmtLoad?] at hq
 
 end
