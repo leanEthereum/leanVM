@@ -71,7 +71,8 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       LvIn rd σ (lvl + 1) lv' (osLevel c lvl lv st).2 ws' (recs ++ [r])
         (R ++ [(root', lv'.depth, lvWidth (lvl + 1) lv')]) root' ∧
       RecStored rd σ lvl lv r ∧
-      (osLevel c lvl lv st).2.cur σ = st.cur σ * gen ^ xs.length := by
+      (osLevel c lvl lv st).2.cur σ = st.cur σ * gen ^ xs.length ∧
+      ∃ gs, ws'.gammas = ws.gammas ++ gs ∧ gs.length = lv.folds := by
   obtain ⟨loop, sh, hmem, hent, hodd, hbase, hsf, hsd, hscd, hfin0, hcd2, hcd8, hcdd, hQ⟩ := hF.qsh
   have hnf := hF.nf
   obtain ⟨hshape, hloop⟩ := oqEntry_shape hent
@@ -290,7 +291,8 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     · rw [hx0, ← hcur0, show (x0 :: x1 :: high ++ [y0, y1, nn]).length = lv.folds + 5 by
         simp [hC.high_len], ← hC.cur, ← hSq.cur]
       exact hL.reads
-  refine ⟨xs0 ++ (x0 :: x1 :: high ++ [y0, y1, nn, n2]), ws', r, root', ?_, hxs1, ?_, ?_, ?_, ?_⟩
+  refine ⟨xs0 ++ (x0 :: x1 :: high ++ [y0, y1, nn, n2]), ws', r, root', ?_, hxs1, ?_, ?_, ?_, ?_,
+    gs, by simp [ws', glueLevel_two, ws1], hgl⟩
   · simp [lvWords, hnf, hx0, hC.high_len]
   · -- the run
     have h0 := RunsTo.withRoots hrun0 R
