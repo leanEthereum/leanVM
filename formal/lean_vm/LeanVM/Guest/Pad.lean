@@ -2,7 +2,7 @@
   LeanVM.Guest.Pad
 
   A valid execution on a larger memory: the memory extended past its end keeps every run and
-  every instruction count, and commits at least `4` cells per word of the larger memory.
+  every instruction count, and commits at least `3` cells per word of the larger memory.
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Semantics.KeccakCells
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 
 /-!
@@ -22,7 +22,7 @@ memory reads only addresses below its end; on the memory extended past it (`padI
 the same words, so it steps to the same registers and executes the same instructions
 (`run_pad`, `runCount_pad`). `Execution.pad`: the trace on `2^κ'` words, `κ ≤ κ' ≤ 32`, still a valid
 execution (`validExecution_pad`) of the same counts, its committed size the original's but for
-the memory's `4 · 2^κ'` cells (`committedSize_pad`). The aggregation guest pads its runs to a
+the memory's `3 · 2^κ'` cells (`committedSize_pad`). The aggregation guest pads its runs to a
 committed size of at least `2^22` this way, so its proofs have a stack log at least `MU_MIN`,
 the least the guest has an opening arm for (`aggregation/node.rs:321-325` grows the `SET` table
 instead; the committed size is what both secure).
@@ -135,13 +135,13 @@ theorem validExecution_pad {input : PublicInput} {t : Execution prog} {κ' : ℕ
 
 theorem committedSize_pad (t : Execution prog) (κ' : ℕ)
     (hc : ∀ op, (t.pad κ').opcodeCount op = t.opcodeCount op) :
-    (t.pad κ').committedSize + 4 * 2 ^ t.logMemorySize = t.committedSize + 4 * 2 ^ κ' := by
+    (t.pad κ').committedSize + 3 * 2 ^ t.logMemorySize = t.committedSize + 3 * 2 ^ κ' := by
   simp only [Semantics.Execution.committedSize, hc]
   simp only [Semantics.Execution.pad]
   omega
 
-/-- The memory alone commits `4` cells per word. -/
-theorem four_mul_le_committedSize (t : Execution prog) : 4 * 2 ^ t.logMemorySize ≤ t.committedSize := by
+/-- The memory alone commits `3` cells per word. -/
+theorem three_mul_le_committedSize (t : Execution prog) : 3 * 2 ^ t.logMemorySize ≤ t.committedSize := by
   unfold Semantics.Execution.committedSize
   simp only [Nat.add_assoc]
   exact Nat.le_add_right _ _

@@ -18,10 +18,8 @@ use std::collections::BTreeMap;
 mod consts;
 mod expr;
 mod subst;
-use consts::{
-    apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_f192_const, parse_gpow_bound,
-};
-pub use consts::{f192_literal, parse_const};
+use consts::{apply_replacements, const_int_expr, eval_const_int, gpow_bound, is_int_arith, parse_gpow_bound};
+pub use consts::{f128_literal, parse_const};
 use expr::{
     binding_name, call_args, is_ident, parse_expr, split_assign, split_aug, split_once_top, split_top, string_lit,
     strip_comment, strip_const_wrapper, top_level_cmp,
@@ -38,7 +36,7 @@ pub fn parse(src: &str) -> Result<Ast, String> {
 /// identifier that is a key of `replacements` becomes its value everywhere it
 /// appears, which is how a host bakes sizes and flags into a program without
 /// editing it. The top level then peels off the **global constants**, each
-/// evaluated as a compile-time integer (or an `f192` literal / constant array)
+/// evaluated as a compile-time integer (or a field-valued expression / constant array)
 /// and substituted into the `def`s below. See the "Placeholders" and "Global
 /// constants" sections of `zkDSL.md`.
 pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String>) -> Result<Ast, String> {
@@ -93,7 +91,7 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
     // positions that demand a parse-time literal (`StackBuf`, `**`, `assert log
     // _ < _`).
     let mut consts: BTreeMap<String, String> = BTreeMap::new();
-    let mut const_arrays: Vec<(String, Vec<F192>)> = Vec::new();
+    let mut const_arrays: Vec<(String, Vec<F128>)> = Vec::new();
     let mut start = 0;
     while start < lines.len() {
         let Line {
@@ -146,22 +144,13 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                 if p.is_empty() {
                     continue; // tolerate a trailing comma
                 }
-                let elem = if let Some(v) = parse_f192_const(p) {
-                    v.map_err(|e| at(format!("global constant array `{name}`: {e}")))?
-                } else {
-                    let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
-                    F192::new(n as u64, (n >> 64) as u64, 0)
-                };
-                elems.push(elem);
+                let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
+                elems.push(crate::lit_field(n));
             }
             const_arrays.push((name, elems));
         } else {
-            // A scalar constant: an `f192` literal, else a compile-time integer,
-            // else a field-valued expression.
-            if let Some(value) = parse_f192_const(rhs) {
-                let v = value.map_err(|e| at(format!("global constant `{name}`: {e}")))?;
-                consts.insert(name, f192_literal(v));
-            } else if let Ok(value) = eval_const_int(rhs) {
+            // A scalar constant: a compile-time integer, else a field-valued expression.
+            if let Ok(value) = eval_const_int(rhs) {
                 consts.insert(name, value.to_string());
             } else if parse_expr(rhs).is_ok_and(|e| is_int_arith(&e)) {
                 // Integer arithmetic that did not fold. Reading it in the field
@@ -172,18 +161,11 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
             } else {
                 // `GEN ** 2` and friends. The ISA is written in g-powers, so this
                 // is the natural spelling for a constant one, and it is not an
-                // integer expression. Rendered as a decimal wherever the value
-                // fits the low two limbs, so the constant still works in the
-                // positions that demand a literal rather than only as a value.
+                // integer expression. Rendered as the decimal its limbs spell, so the
+                // constant still works in the positions that demand a literal rather
+                // than only as a value.
                 let v = parse_const(rhs).map_err(|e| at(format!("global constant `{name}`: {e}")))?;
-                consts.insert(
-                    name,
-                    if v.c2 == 0 {
-                        (v.c0 as u128 | ((v.c1 as u128) << 64)).to_string()
-                    } else {
-                        f192_literal(v)
-                    },
-                );
+                consts.insert(name, f128_literal(v));
             }
         }
         start += 1;
@@ -254,12 +236,11 @@ const BUILTINS: &[&str] = &[
     "keccak",
     "keccak_cells",
     "const",
-    "f192",
     "hint_decompose_bits",
     "hint_decompose_bits_exponent",
     "hint_decompose_digits_exponent",
     "hint_windows_exponent",
-    "hint_f192_limbs",
+    "hint_f128_limbs",
     "hint_log2_ceil",
     "hint_witness",
     "len",

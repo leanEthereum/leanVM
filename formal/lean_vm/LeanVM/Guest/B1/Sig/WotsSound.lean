@@ -103,23 +103,22 @@ theorem mem_walksT (W : WotsT) (slots : Nat → Nat → Nat) (first k stride : N
       refine Or.inr (mem_walksT W slots first k stride m (r + 1) _ j (by omega) x ?_)
       simpa [walkBase, show r + 1 + j = r + (j + 1) by omega] using hx
 
-theorem word_two : word 2 0 0 = LeanVM.Protocol.Verifier.gen := by
+theorem word_two : word 2 0 = LeanVM.Protocol.Verifier.gen := by
   simp only [word, LeanVM.Protocol.Verifier.gen, LeanVM.Protocol.Verifier.eOfNat, Value.ofBits_zero]
   exact (ofK_eq_ofLimbs _).symm
 
-theorem word_eq_eOfNat (n : Nat) : word n 0 0 = LeanVM.Protocol.Verifier.eOfNat n := by
+theorem word_eq_eOfNat (n : Nat) : word n 0 = LeanVM.Protocol.Verifier.eOfNat n := by
   simp only [word, LeanVM.Protocol.Verifier.eOfNat, Value.ofBits_zero]
   exact (ofK_eq_ofLimbs _).symm
 
-theorem word_zero : word 0 0 0 = 0 := by
+theorem word_zero : word 0 0 = 0 := by
   simp only [word, Value.ofBits_zero]
   exact Value.zero_eq_ofLimbs.symm
 
-/-- The literal `lit c` is the 192-bit word of `c < 2^128`. -/
-theorem lit_eq (c : Nat) (hc : c < 2 ^ 128) : lit c = Value.eOfNat192 c := by
-  simp only [lit, word, Value.eOfNat192]
-  rw [Nat.div_eq_of_lt (b := 2 ^ 128) hc, Nat.mod_eq_of_lt (a := c / 2 ^ 64) (by omega),
-    Value.ofBits_mod]
+/-- The literal `lit c` is the 128-bit word of `c < 2^128`. -/
+theorem lit_eq (c : Nat) (hc : c < 2 ^ 128) : lit c = Value.eOfNat128 c := by
+  simp only [lit, word, Value.eOfNat128]
+  rw [Nat.mod_eq_of_lt (a := c / 2 ^ 64) (by omega), Value.ofBits_mod]
 
 /-- What arm `k` establishes, chain `r` starting at `start r`. -/
 structure ArmOK (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Nat → Nat → Nat)
@@ -164,7 +163,7 @@ theorem armT_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
       simpa [copyS, Atom.Holds] using this
   · have hz : fold = true → σ (.n b) = 0 := by
       intro hf
-      have hc : AtomsHold rd σ [cst b (word 0 0 0)] := by
+      have hc : AtomsHold rd σ [cst b (word 0 0)] := by
         refine h.sub fun x hx => ?_
         unfold armT
         simp only [List.mem_singleton] at hx

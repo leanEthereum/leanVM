@@ -17,17 +17,17 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `XOR` table
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:441-461` (`mod arith`, in that order), the flushes
-`tables.rs:488-500` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs:466-478`
+At `leanvm-rev` and Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs:460-478` (`mod arith`, in that order), the flushes
+`tables.rs:504-516` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs:483-494`
 (`arith_result`, the lane-wise sum), all matching specification §7.1
 (`doc/leanvm/body/07-instruction-tables.tex:9-26`). There is no constraint: the bus balance is
 the assertion `[o_C] = [o_A] + [o_B]` (§5, "M3").
 
 **The row** `XorRow` is the column list: `pc, fp`; the operands `o_A, o_B, o_C`; the two read
-words `v_A, v_B` as three limbs each; the memory counts `r_A, r_B, r_C`; the bytecode count
+words `v_A, v_B` as two limbs each; the memory counts `r_A, r_B, r_C`; the bytecode count
 `r_bc`. The result word is never a column: its limbs ride the third memory read as the sums
-`v_{A,i} + v_{B,i}`. A three-limb column `v` is the word `E.ofLimbs v[0] v[1] v[2]`, as
+`v_{A,i} + v_{B,i}`. A two-limb column `v` is the word `E.ofLimbs v[0] v[1]`, as
 `MemPull.Guarantees` spells it.
 
 **The relation.** `XorBindings mem r` binds the row to an image, as named facts: `readA_eq`,
@@ -113,7 +113,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `XOR` columns, in the order of `tables.rs:441-461`. -/
+/-- The `XOR` columns, in the order of `tables.rs:460-478`. -/
 structure XorRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -126,9 +126,9 @@ structure XorRow (F : Type) where
   /-- The operand `o_C`. -/
   oC : F
   /-- The word read at `fp · o_A`, as limbs. -/
-  vA : Vector F 3
+  vA : Vector F 2
   /-- The word read at `fp · o_B`, as limbs. -/
-  vB : Vector F 3
+  vB : Vector F 2
   /-- The read count of the cell `fp · o_A`. -/
   rA : F
   /-- The read count of the cell `fp · o_B`. -/
@@ -144,9 +144,9 @@ structure XorRow (F : Type) where
 /-- The row's bindings to an image: the operand cells hold the row's words. -/
 structure XorBindings {κ : ℕ} (mem : MemoryImage κ) (r : XorRow K) : Prop where
   /-- The cell `fp · o_A` holds the row's word `v_A`. -/
-  readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2])
+  readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1])
   /-- The cell `fp · o_B` holds the row's word `v_B`. -/
-  readB_eq : mem.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
+  readB_eq : mem.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1])
 
 /-- The relation an `XOR` row refines: it is bound to the image, and from its registers the
 machine executes the instruction it names, `XOR o_A o_B o_C`, to `next` (`execute`).
@@ -163,7 +163,7 @@ theorem xor_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : XorRow K) (next :
     XorRefines mem r next ↔
       XorBindings mem r ∧
         mem.read (r.fp * r.oC) =
-          some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] + E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
+          some (E.ofLimbs r.vA[0] r.vA[1] + E.ofLimbs r.vB[0] r.vB[1]) ∧
         next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨⟨hA, hB⟩, hexec⟩
@@ -195,7 +195,7 @@ private theorem xor_entry (a b c : K) :
 
 /-! ## The table -/
 
-/-- The `XOR` table (specification §7.1; `tables.rs:441-526`): state step, bytecode read of
+/-- The `XOR` table (specification §7.1; `tables.rs:456-532`): state step, bytecode read of
 `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
 limb-wise sum. Returns the pushed successor `(g·pc, fp)`. -/
 def xorTable : GeneralFormalCircuit K XorRow Registers where
@@ -210,7 +210,7 @@ def xorTable : GeneralFormalCircuit K XorRow Registers where
       0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
-    memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]
+    memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1]]
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
@@ -271,10 +271,10 @@ theorem xorRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} 
   obtain ⟨a, ha, b, hb, -⟩ := h
   refine ⟨⟨?_, ?_⟩, hexec⟩
   · show mem.read (fp * oA) = some (E.ofLimbs (mem.limbsAt (fp * oA))[0]
-      (mem.limbsAt (fp * oA))[1] (mem.limbsAt (fp * oA))[2])
+      (mem.limbsAt (fp * oA))[1])
     rw [MemoryImage.ofLimbs_limbsAt ha]; exact ha
   · show mem.read (fp * oB) = some (E.ofLimbs (mem.limbsAt (fp * oB))[0]
-      (mem.limbsAt (fp * oB))[1] (mem.limbsAt (fp * oB))[2])
+      (mem.limbsAt (fp * oB))[1])
     rw [MemoryImage.ofLimbs_limbsAt hb]; exact hb
 
 /-- Every valid `XOR` execution has a satisfying row, from the execution alone: the constraints

@@ -76,17 +76,15 @@ theorem spUn_spRen : ∀ v ∈ Stmt.valsList spBodyT, spUn (spRen v) = v := by
   intro v hv
   exact spUnOK_iff (h0 v (by rwa [List.drop_zero]))
 
-/-- **`sp_wots` is complete**: for canonical `pp`, `a0`, `a1`, digits below `4` of sum `128` and
-canonical chain values, on a memory of at least `64` words, its body holds of some valuation whose
-arguments are `pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the one-time leaf of the
-values (`spLeafCell`). -/
-theorem sp_wots_complete_cells {pp a0 a1 : E} (hpp : IsCanonical128 pp) (ha0 : IsCanonical128 a0)
-    (ha1 : IsCanonical128 a1) {d : Nat → Nat} (hd : ∀ i, d i < 4)
-    (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hv : ∀ i, IsCanonical128 (vals i))
-    (hm : MemOK rd 64) :
-    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat192 (spX d 64) ∧
+/-- **`sp_wots` is complete**: for any `pp`, `a0`, `a1`, digits below `4` of sum `128` and chain
+values, on a memory of at least `64` words, its body holds of some valuation whose arguments are
+`pp`, `a0`, `a1` and the digits' encoding (`spX`), returning the one-time leaf of the values
+(`spLeafCell`). -/
+theorem sp_wots_complete_cells {pp a0 a1 : E} {d : Nat → Nat} (hd : ∀ i, d i < 4)
+    (hsum : ∑ i ∈ Finset.range 64, d i = 128) {vals : Nat → E} (hm : MemOK rd 64) :
+    ∃ σ : Val, σ (.n 0) = pp ∧ σ (.n 1) = a0 ∧ σ (.n 2) = a1 ∧ σ (.n 3) = eOfNat128 (spX d 64) ∧
       Stmt.HoldsList C rd σ Data.core19.body False (fun rs => rs = [spLeafCell pp a0 a1 d vals]) := by
-  obtain ⟨σ', h0, h1, h2, h3, hh⟩ := sp_wots_completeT (C := C) hpp ha0 ha1 hd hsum hv hm
+  obtain ⟨σ', h0, h1, h2, h3, hh⟩ := sp_wots_completeT (C := C) (pp := pp) (a0 := a0) (a1 := a1) (vals := vals) hd hsum hm
   have e : ∀ j ≤ 29, (σ' ∘ spUn) (.n j) = σ' (.n j) := fun j hj => by
     simp [spUn, spRi_small hj, V.n]
   refine ⟨σ' ∘ spUn, by rw [e 0 (by norm_num), h0], by rw [e 1 (by norm_num), h1],

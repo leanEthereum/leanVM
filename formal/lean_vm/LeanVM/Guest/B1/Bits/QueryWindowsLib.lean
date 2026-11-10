@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
-public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
@@ -15,7 +14,7 @@ public import LeanVM.Guest.B1.Common.Atoms
 
 * `tS s v n = Σ_{t<n} 2^(s t)·v t`, the digits `v t < 2^(s (t+1) - s t)` on the tiles `[s t, s (t+1))`
   of a monotone `s`: `tS_lt` (below `2^(s n)`), `tS_mod` (a prefix is the sum modulo its tile's
-  start), `tS_get` (each digit read back), `eOfNat192_tS` (the sum of the digits' words, shifted).
+  start), `tS_get` (each digit read back), `eOfNat128_tS` (the sum of the digits' words, shifted).
 * `qwAH rd σ ss`: every atom of the block holds. Every block of `qwBody` is atoms only
   (`qwBody_atoms`), so its relation is that (`holdsList_atoms`).
 -/
@@ -77,15 +76,15 @@ theorem tS_get {s v : ℕ → ℕ} {m : ℕ} (h : Tiled s v m) {i : ℕ} (hi : i
     Nat.div_eq_of_lt (tS_lt h i (by omega)), Nat.zero_add]
 
 /-- Two words of disjoint bits add as their integers: `a < 2^s`. -/
-theorem eOfNat192_add_shift {a s b : ℕ} (ha : a < 2 ^ s) :
-    eOfNat192 a + eOfNat192 (2 ^ s * b) = eOfNat192 (a + 2 ^ s * b) := by
-  rw [← eOfNat192_xor, Nat.xor_comm, two_pow_mul_xor ha, Nat.add_comm]
+theorem eOfNat128_add_shift {a s b : ℕ} (ha : a < 2 ^ s) :
+    eOfNat128 a + eOfNat128 (2 ^ s * b) = eOfNat128 (a + 2 ^ s * b) := by
+  rw [← eOfNat128_xor, Nat.xor_comm, two_pow_mul_xor ha, Nat.add_comm]
 
-theorem eOfNat192_tS {s v : ℕ → ℕ} {m : ℕ} (h : Tiled s v m) : ∀ n ≤ m,
-    ∑ t ∈ Finset.range n, eOfNat192 (2 ^ s t * v t) = eOfNat192 (tS s v n)
-  | 0, _ => by simp [tS, eOfNat192_zero]
+theorem eOfNat128_tS {s v : ℕ → ℕ} {m : ℕ} (h : Tiled s v m) : ∀ n ≤ m,
+    ∑ t ∈ Finset.range n, eOfNat128 (2 ^ s t * v t) = eOfNat128 (tS s v n)
+  | 0, _ => by simp [tS, eOfNat128_zero]
   | n + 1, hn => by
-    rw [Finset.sum_range_succ, eOfNat192_tS h n (by omega), eOfNat192_add_shift
+    rw [Finset.sum_range_succ, eOfNat128_tS h n (by omega), eOfNat128_add_shift
       (tS_lt h n (by omega)), tS_succ]
 
 /-! ## Values of optional sums -/

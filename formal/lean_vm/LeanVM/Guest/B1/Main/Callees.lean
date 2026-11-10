@@ -33,7 +33,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 every call with the exponent tables has a proof that `VerifySubOut` describes. -/
 def SubSound (bytecode : List K) : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ pi0 pi1 s0 s1 gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
+      ExpTables rd gsq ∧ ExpWinTab rd gsq →
       ∃ π, VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] π
 
 /-- **Witness functions for `main`'s callees exist.** -/
@@ -72,52 +73,54 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   -- the matrix
   have edd : ∀ args rets : List E, ∃ w : LeanVM.Da.MatrixWitness, ∀ gsq, args = [gsq] →
       coreProgram.Rel L.read "da_verify" [gsq] rets → Da.SquaresAt L.read gsq →
-      ∃ (root : Digest) (z c2 : E), w.Opens root z ∧ IsInK c2 ∧
-        rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0] := by
+      ∃ (root : Digest) (z : E), w.Opens root z ∧ rets = digestCells root ++ [z] := by
     intro args rets
     by_cases h : ∃ gsq, args = [gsq] ∧ coreProgram.Rel L.read "da_verify" [gsq] rets ∧
         Da.SquaresAt L.read gsq
     · obtain ⟨gsq, rfl, hr, hsq⟩ := h
-      obtain ⟨w, root, z, c2, hop, hc2, hrets⟩ := hd L.read hm' [gsq] rets hr hsq
+      obtain ⟨w, root, z, hop, hrets⟩ := hd L.read hm' [gsq] rets hr hsq
       exact ⟨w, fun g hg _ _ => by
         simp only [List.cons.injEq, and_true] at hg
         subst hg
-        exact ⟨root, z, c2, hop, hc2, hrets⟩⟩
+        exact ⟨root, z, hop, hrets⟩⟩
     · exact ⟨⟨[]⟩, fun g hg hr hsq => absurd ⟨g, hg, hr, hsq⟩ h⟩
   -- the proofs
   have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 gsq out,
       args = [pi0, pi1, s0, s1, gsq, out] →
-      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq →
+      coreProgram.Rel L.read "verify_sub" args [] → ExpTables L.read gsq ∧ ExpWinTab L.read gsq →
       VerifySubOut bytecode L.read args π := by
     intro args
     by_cases h : ∃ pi0 pi1 s0 s1 gsq out, args = [pi0, pi1, s0, s1, gsq, out] ∧
-        coreProgram.Rel L.read "verify_sub" args [] ∧ ExpTables L.read gsq
+        coreProgram.Rel L.read "verify_sub" args [] ∧ (ExpTables L.read gsq ∧ ExpWinTab L.read gsq)
     · obtain ⟨pi0, pi1, s0, s1, gsq, out, rfl, hr, he⟩ := h
       obtain ⟨π, hπ⟩ := hv L.read hm' _ _ _ _ _ _ hr he
       exact ⟨π, fun _ _ _ _ _ _ _ _ _ => hπ⟩
     · exact ⟨Classical.ofNonempty, fun a b c d e f hargs hr he =>
         absurd ⟨a, b, c, d, e, f, hargs, hr, he⟩ h⟩
   -- the batching's hints
-  have ea : ∀ args : List E, ∃ hints : BatchingHints, ∀ ncg cpi cfresh ccarried dst,
-      args = [ncg, cpi, cfresh, ccarried, dst] →
-      coreProgram.Rel L.read "aggregate_claims" args [] → ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
+  have ea : ∀ args : List E, ∃ hints : BatchingHints, ∀ ncg cpi cfresh ccarried dst tabs,
+      args = [ncg, cpi, cfresh, ccarried, dst, tabs] →
+      coreProgram.Rel L.read "aggregate_claims" args [] → WinTabs L.read tabs →
+      ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
       ∃ out : DeferredClaim, out.bytecodePoint.length = bytecodeVars ∧
         ReadsAt L.read dst out.cells ∧ ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt L.read cpi cfresh ccarried c cs[c]) →
           batch cs hints = some out := by
     intro args
-    by_cases h : ∃ ncg cpi cfresh ccarried dst m, args = [ncg, cpi, cfresh, ccarried, dst] ∧
-        coreProgram.Rel L.read "aggregate_claims" args [] ∧ 1 ≤ m ∧ m ≤ 16 ∧ ncg = gen ^ m
-    · obtain ⟨ncg, cpi, cfresh, ccarried, dst, m, rfl, hr, h1, h16, hn⟩ := h
-      obtain ⟨-, hints, out, hl, hrd, hb⟩ := ha L.read _ _ hr m h1 h16 hn
-      refine ⟨hints, fun _ _ _ _ _ hargs _ m' h1' h16' hn' => ?_⟩
+    by_cases h : ∃ ncg cpi cfresh ccarried dst tabs m,
+        args = [ncg, cpi, cfresh, ccarried, dst, tabs] ∧
+        coreProgram.Rel L.read "aggregate_claims" args [] ∧ WinTabs L.read tabs ∧ 1 ≤ m ∧ m ≤ 16 ∧
+        ncg = gen ^ m
+    · obtain ⟨ncg, cpi, cfresh, ccarried, dst, tabs, m, rfl, hr, hw, h1, h16, hn⟩ := h
+      obtain ⟨-, hints, out, hl, hrd, hb⟩ := ha L.read hm' _ _ hr hw m h1 h16 hn
+      refine ⟨hints, fun _ _ _ _ _ _ hargs _ _ m' h1' h16' hn' => ?_⟩
       simp only [List.cons.injEq, and_true] at hargs
-      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hargs
+      obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
       have : m' = m := gen_pow_inj34 (by omega) (by omega) (hn'.symm.trans hn)
       subst this
       exact ⟨out, hl, hrd, hb⟩
-    · exact ⟨⟨[], 0⟩, fun a b c d e hargs hr m h1 h16 hn =>
-        absurd ⟨a, b, c, d, e, m, hargs, hr, h1, h16, hn⟩ h⟩
+    · exact ⟨⟨0, [], 0⟩, fun a b c d e t hargs hr hw m h1 h16 hn =>
+        absurd ⟨a, b, c, d, e, t, m, hargs, hr, hw, h1, h16, hn⟩ h⟩
   choose wX hwX using ex
   choose wS hwS using es
   choose wD hwD using edd
@@ -126,7 +129,8 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   exact ⟨wX, wS, wD, wV, wA, fun args hr => hwX args hr, fun p bb hr hbb => hwS p bb hr hbb,
     fun gsq rets hr hsq => hwD [gsq] rets gsq rfl hr hsq,
     fun pi0 pi1 s0 s1 gsq out hr he => hwV _ _ _ _ _ _ _ rfl hr he,
-    fun ncg cpi cfresh ccarried dst hr m h1 h16 hn => hwA _ _ _ _ _ _ rfl hr m h1 h16 hn⟩
+    fun ncg cpi cfresh ccarried dst tabs hr hw m h1 h16 hn =>
+      hwA _ _ _ _ _ _ _ rfl hr hw m h1 h16 hn⟩
 
 /-- **A run of `main` decodes to a statement of the public input's digest, held by a witness.** -/
 theorem main_sound_exists [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]

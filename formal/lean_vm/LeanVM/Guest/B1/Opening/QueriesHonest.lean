@@ -14,24 +14,21 @@ public import LeanVM.Guest.AcceptableChild
 # One query's honest values
 
 `QD` is what an honest query is made of: the shape, its first value, whether it emits the padding
-run, the row's words, the weights, the position `q`, the siblings below the cap, the cap's and the
-flags' pointers.
-`qVal d i` is the value of index `i` of the query's expansion (`oqQueryT`), piece by piece:
+run, the row's `K` words, the position `q`, the siblings below the cap, the cap's and the flags'
+pointers, the fold rounds and (final level) the final coefficients. Its values from `b` are the
+list `vals`, piece by piece as `oqQueryT` numbers them:
 
-* the row's words `ofK`, the packs `y`, `y·r`, `r + y·r` (`qPackV`);
-* the dot product: per term the assembled word (deeper), the weight, the product, the running sum
-  (`qPartV`), per group the weight, the product, the running dot product (`qDotAfterV`);
-* the padding run `1, 0, 0, 0, 0`;
-* the leaf hash: per block the XORed inputs and the permutation's output (`qLeafO`, `qLeafI`);
-  then the query calls `walk_path` (lean_ethereum.py:1308-1343 at 40f877dc), whose frame is `WD`'s.
+* the row's cells (`cell`: `ofK` of the words at level 0, `E.ofLimbs` of two words deeper);
+* at level 0 the packs `y`, `y·cell`, the leaf cell `pk` (`packVals`);
+* the padding run `1, 0, 0, 0, 0` when emitted;
+* the leaf hash: per block the XORed inputs and the permutation's output (`leafV`);
+* the fold (`foldVals`): round `j`'s `α, β, β·x, t, θ, 1, t⁻¹, r = θ + t⁻¹`, the scale
+  `Π_(i ≤ j) t_i` (`j ≥ 1`), its outputs `r·hi`, `lo + r·hi` (`roundVals`); the value
+  `scale · acc` (`foldVal`);
+* at the final level (`finVals`): the point, the chain `W_i` by threes, `novel_eval`'s level `0`
+  by fours (`nv0Vals`), its later levels (`nvVals`), the result `0`.
 
-`WD` is an honest `walk_path` frame: the shape, the leaf's digest, the position, the siblings, the
-window pointer, the cap's and the flags' pointers. `WD.val i` is the value of index `i` of its body
-(`wpBodyT`): the parameters (the leaf's halves, the pointers); the children `pathCell` (the node on
-the walk's side, the sibling off it); per window its word `g^v`, (window `0`) the padding run
-`1, 0, 0, 0, 0`, `0x80`, arm `v`'s steps (`0x80` and the pair's permutation, `levelIns`), the node
-after it at the match's targets, `0` in the arms not taken (`winV`); the cap leaf: the last two
-windows `g^b`, `g^Q`, the flag's address, the cap leaf's (`capV`).
+`val i` is `vals`' entry `i - b`; `WD` is an honest `walk_path` frame, `WD.val` its values.
 -/
 
 namespace LeanVM.Guest.B1
@@ -42,6 +39,60 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
+/-! ## Lists by blocks -/
+
+/-- The offsets of the blocks `f 0, f 1, …` laid end to end. -/
+def offOf {α : Type} (f : ℕ → List α) : ℕ → ℕ
+  | 0 => 0
+  | j + 1 => offOf f j + (f j).length
+
+theorem length_flatMap_range_of {α : Type} (f : ℕ → List α) :
+    ∀ n, ((List.range n).flatMap f).length = offOf f n
+  | 0 => rfl
+  | n + 1 => by
+    rw [List.range_succ, List.flatMap_append, List.length_append, length_flatMap_range_of f n]
+    simp [offOf]
+
+theorem offOf_mono {α : Type} (f : ℕ → List α) {i : ℕ} : ∀ {n : ℕ}, i ≤ n → offOf f i ≤ offOf f n
+  | 0, h => by rw [Nat.le_zero.mp h]
+  | n + 1, h => by
+    rcases Nat.lt_or_ge i (n + 1) with h' | h'
+    · have := offOf_mono f (i := i) (n := n) (by omega); simp only [offOf]; omega
+    · rw [show i = n + 1 by omega]
+
+theorem getD_flatMap_range_of {α : Type} (f : ℕ → List α) (d : α) :
+    ∀ (n j r : ℕ), j < n → r < (f j).length →
+      ((List.range n).flatMap f).getD (offOf f j + r) d = (f j).getD r d
+  | 0, _, _, hj, _ => absurd hj (Nat.not_lt_zero _)
+  | n + 1, j, r, hj, hr => by
+    rw [List.range_succ, List.flatMap_append]
+    have hl := length_flatMap_range_of f n
+    rcases Nat.lt_or_ge j n with h | h
+    · have h1 : offOf f (j + 1) ≤ offOf f n := offOf_mono f h
+      simp only [offOf] at h1
+      rw [List.getD_append _ _ _ _ (by rw [hl]; omega)]
+      exact getD_flatMap_range_of f d n j r h hr
+    · obtain rfl : j = n := by omega
+      rw [List.getD_append_right _ _ _ _ (by rw [hl]; omega), hl, Nat.add_sub_cancel_left]
+      simp
+
+theorem offOf_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀ j, (f j).length = c) :
+    ∀ j, offOf f j = c * j
+  | 0 => rfl
+  | j + 1 => by rw [offOf, offOf_const f hf j, hf, Nat.mul_succ]
+
+theorem length_flatMap_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀ j, (f j).length = c)
+    (n : ℕ) : ((List.range n).flatMap f).length = c * n := by
+  rw [length_flatMap_range_of, offOf_const f hf]
+
+theorem getD_flatMap_const {α : Type} (f : ℕ → List α) {c : ℕ} (hf : ∀ j, (f j).length = c)
+    (d : α) {n j r : ℕ} (hj : j < n) (hr : r < c) :
+    ((List.range n).flatMap f).getD (c * j + r) d = (f j).getD r d := by
+  rw [← offOf_const f hf j]
+  exact getD_flatMap_range_of f d n j r hj (by rw [hf]; exact hr)
+
+/-! ## An honest query -/
+
 /-- An honest query (its walk's siblings, cap and flags kept for its `walk_path` frame, `QD.wd`). -/
 structure QD where
   s : Oq
@@ -49,11 +100,12 @@ structure QD where
   emit : Bool
   pr : ℕ
   row : List K
-  w : ℕ → E
   q : ℕ
   sibs : List Digest
   capv : E
   flagsv : E
+  rounds : List FoldRound
+  hsv : List E
 
 namespace QD
 
@@ -61,69 +113,45 @@ variable (d : QD)
 
 /-- The padding run's first value. -/
 def prV : ℕ := oqPr d.s d.b d.emit d.pr
-/-- The first value of the dot product. -/
-def k1 : ℕ := oqK1 d.b d.s.R
+/-- The first value after the row and its packs. -/
+def k1 : ℕ := oqK1 d.s d.b
 /-- The first value of the leaf hash. -/
 def kL : ℕ := oqKL d.s d.b d.emit
-/-- The first value after the leaf hash: the call of `walk_path`. -/
+/-- The first value after the leaf hash: the fold's start. -/
 def ch : ℕ := oqCh d.s d.b d.emit
+/-- The fold's value. -/
+def v : ℕ := oqVal d.s d.ch
 /-- The first value after the query. -/
-def e : ℕ := d.ch
+def e : ℕ := oqEnd d.s d.b d.emit
 
-/-- Row word `j`. -/
-def rw (j : ℕ) : E := ofK (d.row.getD j 0)
+/-- The point: the position's word. -/
+def x : E := eOfNat d.q
 
-/-- The packed cell `j`. -/
-def pk (j : ℕ) : E := d.rw (2 * j) + word 0 1 0 * d.rw (2 * j + 1)
+/-- The row's hinted cell `j`: a word of `K` at level 0, two deeper. -/
+def cell (j : ℕ) : E :=
+  if d.s.base = 1 then ofK (d.row.getD j 0) else E.ofLimbs (d.row.getD (2 * j) 0) (d.row.getD (2 * j + 1) 0)
 
-/-- The row's `E` word `jw`. -/
-def W (jw : ℕ) : E := rowWord d.s.base d.row jw
+/-- The leaf's cell `j`: two words of the row. -/
+def pk (j : ℕ) : E := E.ofLimbs (d.row.getD (2 * j) 0) (d.row.getD (2 * j + 1) 0)
 
-/-- The running sum of group `h` after its term `l`. -/
-def partV (h l : ℕ) : E :=
-  ((List.range (l + 1)).map fun l' ↦ d.W (d.s.lo * h + l') * d.w l').foldl (· + ·) 0
+/-- The row's values. -/
+def rowVals : List E := (List.range d.s.I).map d.cell
 
-/-- The dot product after group `h`. -/
-def dotAfterV (h : ℕ) : E :=
-  ((List.range (h + 1)).map fun h' ↦ d.w (d.s.lo + h') * d.partV h' (d.s.lo - 1)).foldl (· + ·) 0
+/-- A pack's values: `y`, `y·cell(2j + 1)`, the leaf cell. -/
+def packV (j : ℕ) : List E := [word 0 1, word 0 1 * d.cell (2 * j + 1), d.pk j]
 
-/-- A deeper level's word statements' values, offset `o < 3`. -/
-def wordStmtV (jw o : ℕ) : E :=
-  if jw % 2 = 0 then
-    [word 0 0 1, word 0 0 1 * d.rw (3 * jw + 2), d.W jw].getD o 0
-  else
-    [word 0 1 0, word 0 1 0 * d.pk ((3 * jw + 1) / 2), d.W jw].getD o 0
+/-- The packs' values (level 0). -/
+def packVals : List E := if d.s.base = 1 then (List.range (d.s.I / 2)).flatMap d.packV else []
 
-/-- Term `l` of group `h`, offset `o`. -/
-def termV (h l o : ℕ) : E :=
-  if o < d.s.tsz then d.wordStmtV (d.s.lo * h + l) o
-  else if o = d.s.tsz then d.w l
-  else if o = d.s.tsz + 1 then d.W (d.s.lo * h + l) * d.w l
-  else d.partV h l
+/-- The padding run's values, when emitted. -/
+def padVals : List E := if d.emit then [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0] else []
 
-/-- The group of the dot product's offset `i`. -/
-def dotH (G i : ℕ) : ℕ := if i < G then 0 else (i - G) / (G + 1) + 1
-
-/-- The offset within its group. -/
-def dotR (G i : ℕ) : ℕ := if dotH G i = 0 then i else i + 1 - dotH G i * (G + 1)
-
-/-- The term of a group's offset `r`. -/
-def termL (t r : ℕ) : ℕ := if r < 2 + t then 0 else (r - (2 + t)) / (3 + t) + 1
-
-/-- The offset within its term. -/
-def termO (t r : ℕ) : ℕ := if r < 2 + t then r else (r - (2 + t)) % (3 + t)
-
-/-- The dot product's value at offset `i`. -/
-def dotV (i : ℕ) : E :=
-  if dotR d.s.G i < d.s.G - 2 then
-    d.termV (dotH d.s.G i) (termL d.s.tsz (dotR d.s.G i)) (termO d.s.tsz (dotR d.s.G i))
-  else if dotR d.s.G i = d.s.G - 2 then d.w (d.s.lo + dotH d.s.G i)
-  else if dotR d.s.G i = d.s.G - 1 then
-    d.w (d.s.lo + dotH d.s.G i) * d.partV (dotH d.s.G i) (d.s.lo - 1)
-  else d.dotAfterV (dotH d.s.G i)
+/-! ### The leaf hash -/
 
 /-- The padded message cell `m` of the leaf hash. -/
-def P (m : ℕ) : E := if m < d.s.ncells then d.pk m else if m = d.s.ncells then word 1 0 0 else oqW80 d.s
+def P (m : ℕ) : E :=
+  if m < d.s.ncells then d.pk m
+  else if m = d.s.ncells then (if m = d.s.lc then oqW81 d.s else word 1 0) else oqW80 d.s
 
 /-- The leaf hash's state before block `k`, as the cells block `k - 1` writes. -/
 def leafO : ℕ → Fin 13 → E
@@ -139,7 +167,7 @@ def leafI (k : ℕ) (c : Fin 13) : E :=
   else if c.val < 9 then d.leafO k c + d.P (17 * k / 2 + c.val) else d.leafO k c
 
 /-- The leaf hash's value at offset `i`: block `0`'s outputs, then per block the XORed inputs (the
-last's `0x80` constant before its cell `8`) and the outputs. -/
+last's padding constant before its cell `8`) and the outputs. -/
 def leafV (i : ℕ) : E :=
   if i < 13 then d.leafO 1 (Fin.ofNat 13 i)
   else
@@ -147,26 +175,105 @@ def leafV (i : ℕ) : E :=
     let r := i - (13 + (k - 1) * 22)
     if k + 1 = d.s.B then
       (if r < 8 then d.leafI k (Fin.ofNat 13 r)
-        else if r = 8 then oqW80 d.s
+        else if r = 8 then d.P d.s.lc
         else if r = 9 then d.leafI k 8
         else d.leafO (k + 1) (Fin.ofNat 13 (r - 10)))
     else
       (if r < 9 then d.leafI k (Fin.ofNat 13 r) else d.leafO (k + 1) (Fin.ofNat 13 (r - 9)))
 
+/-- The leaf hash's values. -/
+def leafVals : List E := (List.range d.s.chainLen).map d.leafV
+
 /-- The leaf's digest. -/
 def leaf : Digest := merkleLeafDigest d.row
 
+/-! ### The fold -/
+
+/-- Round `j`'s challenges. -/
+def rd (j : ℕ) : FoldRound := d.rounds.getD j ⟨0, 0, 0⟩
+
+/-- Round `j`'s combiner `t = α + β·x`. -/
+def t (j : ℕ) : E := (d.rd j).alpha + (d.rd j).beta * d.x
+
+/-- Round `j`'s fold factor `r = θ + t⁻¹`. -/
+def r (j : ℕ) : E := (d.rd j).theta + (d.t j)⁻¹
+
+/-- The scale after round `j`, `Π_(i ≤ j) t_i`. -/
+def scale : ℕ → E
+  | 0 => d.t 0
+  | j + 1 => scale j * d.t (j + 1)
+
+/-- Round `0`'s lanes `(lo, hi)` for its output `m`: the cells, reversed at level 0. -/
+def lane0 (m : ℕ) : E × E :=
+  if d.s.base = 1 then (d.cell (d.s.I - 1 - 2 * m), d.cell (d.s.I - 2 - 2 * m))
+  else (d.cell (2 * m), d.cell (2 * m + 1))
+
+/-- Lane `m` after round `j`. -/
+def acc : ℕ → ℕ → E
+  | 0, m => (d.lane0 m).1 + d.r 0 * (d.lane0 m).2
+  | j + 1, m => acc j (2 * m) + d.r (j + 1) * acc j (2 * m + 1)
+
+/-- The `hi` lane round `j` reads for its output `m`. -/
+def hiV (j m : ℕ) : E := if j = 0 then (d.lane0 m).2 else d.acc (j - 1) (2 * m + 1)
+
+/-- Round `j`'s values. -/
+def roundVals (j : ℕ) : List E :=
+  [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j, (d.rd j).theta, word 1 0, (d.t j)⁻¹,
+    d.r j] ++ (if j = 0 then [] else [d.scale j]) ++
+  (List.range (2 ^ (d.s.folds - 1 - j))).flatMap fun m ↦ [d.r j * d.hiV j m, d.acc j m]
+
+/-- The fold's value: the scale times the last lane. -/
+def foldVal : E := d.scale (d.s.folds - 1) * d.acc (d.s.folds - 1) 0
+
+/-- The fold's values. -/
+def foldVals : List E := (List.range d.s.folds).flatMap d.roundVals ++ [d.foldVal]
+
+/-! ### The final check -/
+
+/-- The chain `W_i` at the point. -/
+def W (i : ℕ) : E := wsChain (d.s.vs.map K.ofBits) d.x i
+
+/-- The chain's values: per step the constant, `W_i + vs_i`, `W_(i+1)`. -/
+def chainVals : List E :=
+  (List.range d.s.mu).flatMap fun i ↦
+    [word (d.s.vs.getD i 0) 0, d.W i + word (d.s.vs.getD i 0) 0, d.W (i + 1)]
+
+/-- `novel_eval`'s level `0`: per pair the two coefficients, `W_0·hi`, the sum. -/
+def nv0Vals : List E :=
+  (List.range (d.s.nHs / 2)).flatMap fun m ↦
+    [d.hsv.getD (2 * m) 0, d.hsv.getD (2 * m + 1) 0, d.W 0 * d.hsv.getD (2 * m + 1) 0,
+      d.hsv.getD (2 * m) 0 + d.W 0 * d.hsv.getD (2 * m + 1) 0]
+
+/-- A later level's values on the inputs `l`: per pair `w·hi`, `lo + w·hi`; an odd last copied. -/
+def nvLevelVals (w : E) : List E → List E
+  | lo :: hi :: rest => [w * hi, lo + w * hi] ++ nvLevelVals w rest
+  | [lo] => [lo]
+  | [] => []
+
+/-- Levels `i .. i + c` of `novel_eval`'s values on the inputs `l`. -/
+def nvVals (W : ℕ → E) : ℕ → ℕ → List E → List E
+  | 0, _, _ => []
+  | c + 1, i, l => nvLevelVals (W i) l ++ nvVals W c (i + 1) (nvPair (W i) l)
+
+/-- The final check's values after the fold's: the point, the chain, `novel_eval`'s levels, the
+result `0`. -/
+def finVals : List E :=
+  if d.s.final = 1 then
+    [d.x] ++ d.chainVals ++ d.nv0Vals ++
+      nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs)) ++ [word 0 0]
+  else []
+
+/-! ### The query -/
+
+/-- **The query's values from `b`.** -/
+def vals : List E :=
+  d.rowVals ++ d.packVals ++ d.padVals ++ d.leafVals ++ d.foldVals ++ d.finVals
+
 /-- **The honest value of index `i` of the query.** -/
-def val (i : ℕ) : E :=
-  if i < d.b + d.s.R then d.rw (i - d.b)
-  else if i < d.k1 then
-    [word 0 1 0, word 0 1 0 * d.rw (2 * ((i - d.b - d.s.R) / 3) + 1),
-      d.pk ((i - d.b - d.s.R) / 3)].getD ((i - d.b - d.s.R) % 3) 0
-  else if i < d.k1 + d.s.D then d.dotV (i - d.k1)
-  else if i < d.kL then [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD
-    (i - (d.k1 + d.s.D)) 0
-  else if i < d.ch then d.leafV (i - d.kL)
-  else 0
+def val (i : ℕ) : E := if d.b ≤ i then d.vals.getD (i - d.b) 0 else 0
+
+/-- The honest valuation on a query's values. -/
+abbrev Hv (σ : Val) : Prop := ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i
 
 end QD
 
@@ -176,151 +283,184 @@ variable (d : QD)
 
 /-! ## The pieces' places -/
 
-theorem k1_eq : d.k1 = d.b + d.s.R + 3 * (d.s.R / 2) := rfl
-theorem kL_eq : d.kL = d.k1 + d.s.D + (if d.emit then 5 else 0) := rfl
-theorem ch_eq : d.ch = d.kL + d.s.chainLen := rfl
-theorem e_eq : d.e = d.ch := rfl
+theorem vals_eq : d.vals =
+    d.rowVals ++ (d.packVals ++ (d.padVals ++ (d.leafVals ++ (d.foldVals ++ d.finVals)))) := by
+  simp only [vals, List.append_assoc]
 
-theorem end_eq : oqEnd d.s d.b d.emit = d.e := rfl
+theorem rowVals_length : d.rowVals.length = d.s.I := by simp [rowVals]
 
-/-- The honest valuation on a query's values. -/
-abbrev Hv (d : QD) (σ : Val) : Prop := ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i
+theorem packVals_length : d.packVals.length = if d.s.base = 1 then 3 * (d.s.I / 2) else 0 := by
+  unfold packVals
+  split
+  · rw [length_flatMap_const _ (c := 3) (fun _ ↦ rfl)]
+  · rfl
 
-theorem val_row {j : ℕ} (hj : j < d.s.R) : d.val (d.b + j) = d.rw j := by
-  unfold val; simp [hj]
+theorem padVals_length : d.padVals.length = if d.emit then 5 else 0 := by
+  unfold padVals; split <;> rfl
 
-theorem val_pack {j t : ℕ} (hj : j < d.s.R / 2) (ht : t < 3) :
-    d.val (d.b + d.s.R + 3 * j + t) =
-      [word 0 1 0, word 0 1 0 * d.rw (2 * j + 1), d.pk j].getD t 0 := by
-  unfold val
-  have := k1_eq d
-  simp only [show ¬ d.b + d.s.R + 3 * j + t < d.b + d.s.R by omega,
-    show d.b + d.s.R + 3 * j + t < d.k1 by omega, ↓reduceIte,
-    show (d.b + d.s.R + 3 * j + t - d.b - d.s.R) / 3 = j by omega,
-    show (d.b + d.s.R + 3 * j + t - d.b - d.s.R) % 3 = t by omega]
+theorem leafVals_length : d.leafVals.length = d.s.chainLen := by simp [leafVals]
 
-theorem val_dot {i : ℕ} (hi : i < d.s.D) : d.val (d.k1 + i) = d.dotV i := by
-  unfold val
-  have := k1_eq d
-  simp only [show ¬ d.k1 + i < d.b + d.s.R by omega, show ¬ d.k1 + i < d.k1 by omega,
-    show d.k1 + i < d.k1 + d.s.D by omega, ↓reduceIte, Nat.add_sub_cancel_left]
+theorem roundVals_length (j : ℕ) :
+    (d.roundVals j).length = 8 + (if j = 0 then 0 else 1) + 2 * 2 ^ (d.s.folds - 1 - j) := by
+  unfold roundVals
+  rw [List.length_append, List.length_append, length_flatMap_const _ (c := 2) (fun _ ↦ rfl)]
+  split <;> simp
 
-theorem val_pad (he : d.emit = true) {i : ℕ} (hi : i < 5) :
-    d.val (d.k1 + d.s.D + i) =
-      [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD i 0 := by
-  unfold val
-  have := k1_eq d
-  have hkL : d.kL = d.k1 + d.s.D + 5 := by rw [kL_eq, he]; rfl
-  simp only [show ¬ d.k1 + d.s.D + i < d.b + d.s.R by omega,
-    show ¬ d.k1 + d.s.D + i < d.k1 by omega, show ¬ d.k1 + d.s.D + i < d.k1 + d.s.D by omega,
-    show d.k1 + d.s.D + i < d.kL by omega, ↓reduceIte, Nat.add_sub_cancel_left]
-
-theorem val_leaf {i : ℕ} (hi : i < d.s.chainLen) : d.val (d.kL + i) = d.leafV i := by
-  unfold val
-  have := k1_eq d
-  have h1 := kL_eq d
-  have h2 : d.k1 + d.s.D ≤ d.kL := by rw [h1]; split <;> omega
-  simp only [show ¬ d.kL + i < d.b + d.s.R by omega, show ¬ d.kL + i < d.k1 by omega,
-    show ¬ d.kL + i < d.k1 + d.s.D by omega, show ¬ d.kL + i < d.kL by omega,
-    show d.kL + i < d.ch by rw [ch_eq]; omega, ↓reduceIte, Nat.add_sub_cancel_left]
-
-theorem le_kL : d.k1 + d.s.D ≤ d.kL := by rw [kL_eq]; split <;> omega
-
-end QD
-
-namespace QD
-
-/-! ## Decoding the dot product -/
-
-/-- The offset of group `h`. -/
-def gsOff (G h : ℕ) : ℕ := if h = 0 then 0 else h * (G + 1) - 1
-
-/-- The offset of term `l` in its group. -/
-def tsOff (t l : ℕ) : ℕ := if l = 0 then 0 else (2 + t) + (l - 1) * (3 + t)
-
-theorem dotH_eq {G h r : ℕ} (hG : 2 ≤ G) (hr : r < (if h = 0 then G else G + 1)) :
-    dotH G (gsOff G h + r) = h ∧ dotR G (gsOff G h + r) = r := by
-  unfold dotR dotH gsOff
-  rcases Nat.eq_zero_or_pos h with rfl | hpos
-  · simp only [↓reduceIte] at hr ⊢
-    simp [hr]
-  · simp only [show h ≠ 0 by omega, ↓reduceIte] at hr ⊢
-    obtain ⟨a, rfl⟩ : ∃ a, h = a + 1 := ⟨h - 1, by omega⟩
-    have hm : (a + 1) * (G + 1) = (G + 1) * a + (G + 1) := by ring
-    rw [hm]
-    have hdiv : ((G + 1) * a + (G + 1) - 1 + r - G) / (G + 1) = a := by
-      rw [show (G + 1) * a + (G + 1) - 1 + r - G = (G + 1) * a + r by omega,
-        Nat.mul_add_div (by omega), Nat.div_eq_of_lt hr, Nat.add_zero]
-    have hlt : ¬ (G + 1) * a + (G + 1) - 1 + r < G := by omega
-    simp only [hlt, ↓reduceIte, hdiv, true_and]
-    simp only [Nat.add_one_ne_zero, ↓reduceIte]
+theorem oqRK_eq (F : ℕ) : ∀ j, oqRK d.s F j = F + offOf d.roundVals j
+  | 0 => rfl
+  | j + 1 => by
+    rw [oqRK, oqRK_eq F j, offOf, roundVals_length]
     omega
 
-theorem termL_eq {t l o : ℕ} (ho : o < (if l = 0 then 2 + t else 3 + t)) :
-    termL t (tsOff t l + o) = l ∧ termO t (tsOff t l + o) = o := by
-  unfold termL termO tsOff
-  rcases Nat.eq_zero_or_pos l with rfl | hpos
-  · simp only [↓reduceIte] at ho ⊢
-    simp [ho]
-  · simp only [show l ≠ 0 by omega, ↓reduceIte] at ho ⊢
-    obtain ⟨a, rfl⟩ : ∃ a, l = a + 1 := ⟨l - 1, by omega⟩
-    have e : 2 + t + (a + 1 - 1) * (3 + t) + o - (2 + t) = (3 + t) * a + o := by
-      rw [Nat.add_sub_cancel]; ring_nf; omega
-    simp only [show ¬ 2 + t + (a + 1 - 1) * (3 + t) + o < 2 + t by omega, ↓reduceIte, e,
-      Nat.mul_add_div (show 0 < 3 + t by omega), Nat.div_eq_of_lt ho, Nat.add_zero,
-      Nat.mul_add_mod, Nat.mod_eq_of_lt ho, and_true]
+theorem foldVals_length : d.foldVals.length = offOf d.roundVals d.s.folds + 1 := by
+  simp only [foldVals, List.length_append, length_flatMap_range_of, List.length_singleton]
 
-/-- The dot product's offset of term `l`'s value `o` in group `h`. -/
-theorem oqTs_eq (s : Oq) (b h l : ℕ) :
-    oqTs s b h l = oqK1 b s.R + gsOff s.G h + tsOff s.tsz l := by
-  simp [oqTs, oqGs, gsOff, tsOff]
+theorem k1_eq : d.k1 = d.b + d.rowVals.length + d.packVals.length := by
+  rw [rowVals_length, packVals_length]; rfl
 
+theorem kL_eq : d.kL = d.k1 + d.padVals.length := by
+  rw [padVals_length]; rfl
 
-/-- The shape's numbers. -/
-theorem shape_nums {s : Oq} (hs : s.RowShape) :
-    (s.base = 1 ∧ s.I = 64 ∧ s.tsz = 0 ∧ s.lo = 8 ∧ s.G = 25 ∧ s.R = 64 ∧ s.D = 207 ∧
-      s.ncells = 32 ∧ s.B = 4 ∧ s.chainLen = 69) ∨
-    (s.base = 0 ∧ s.I = 16 ∧ s.tsz = 3 ∧ s.lo = 8 ∧ s.G = 49 ∧ s.R = 48 ∧ s.D = 99 ∧
-      s.ncells = 24 ∧ s.B = 3 ∧ s.chainLen = 47) := by
-  rcases hs with ⟨hb, hI⟩ | ⟨hb, hI⟩
-  · left; simp [Oq.tsz, Oq.lo, Oq.G, Oq.R, Oq.D, Oq.ncells, Oq.B, Oq.chainLen, rowLo, rate, hb, hI]
-  · right; simp [Oq.tsz, Oq.lo, Oq.G, Oq.R, Oq.D, Oq.ncells, Oq.B, Oq.chainLen, rowLo, rate, hb, hI]
+theorem ch_eq : d.ch = d.kL + d.leafVals.length := by
+  rw [leafVals_length]; rfl
 
-variable (d : QD)
+theorem v_eq : d.v = d.ch + offOf d.roundVals d.s.folds := by
+  rw [v, oqVal, oqRK_eq]
 
-theorem dotV_term (hs : d.s.RowShape) {h l o : ℕ} (hl : l < d.s.lo)
-    (ho : o < (if l = 0 then 2 + d.s.tsz else 3 + d.s.tsz)) :
-    d.dotV (gsOff d.s.G h + tsOff d.s.tsz l + o) = d.termV h l o := by
-  have hr : tsOff d.s.tsz l + o < d.s.G - 2 := by
-    unfold tsOff
-    rcases shape_nums hs with ⟨-, -, ht, hlo, hG, -⟩ | ⟨-, -, ht, hlo, hG, -⟩ <;>
-      simp only [ht, hlo, hG] at ho hl ⊢ <;> split <;> split at ho <;> omega
-  have hG2 : 2 ≤ d.s.G := by omega
-  obtain ⟨e1, e2⟩ := dotH_eq (G := d.s.G) (h := h) (r := tsOff d.s.tsz l + o) hG2
-    (by split <;> omega)
-  rw [Nat.add_assoc]
-  unfold dotV
-  rw [e1, e2]
-  simp only [hr, ↓reduceIte]
-  obtain ⟨f1, f2⟩ := termL_eq (t := d.s.tsz) (l := l) (o := o) ho
-  rw [f1, f2]
+theorem val_add (o : ℕ) : d.val (d.b + o) = d.vals.getD o 0 := by
+  simp [val]
 
-theorem dotV_tail (hs : d.s.RowShape) {h o : ℕ} (ho : o < (if h = 0 then 2 else 3)) :
-    d.dotV (gsOff d.s.G h + (d.s.G - 2 + o)) =
-      [d.w (d.s.lo + h), d.w (d.s.lo + h) * d.partV h (d.s.lo - 1), d.dotAfterV h].getD o 0 := by
-  have hG : 2 ≤ d.s.G := by
-    rcases shape_nums hs with ⟨-, -, -, -, hG, -⟩ | ⟨-, -, -, -, hG, -⟩ <;> omega
-  obtain ⟨e1, e2⟩ := dotH_eq (G := d.s.G) (h := h) (r := d.s.G - 2 + o) hG (by split at ho <;> split <;> omega)
-  unfold dotV
-  rw [e1, e2]
-  rcases (show o = 0 ∨ o = 1 ∨ o = 2 by split at ho <;> omega) with rfl | rfl | rfl
-  · simp
-  · rw [show d.s.G - 2 + 1 = d.s.G - 1 by omega]
-    simp only [show ¬ d.s.G - 1 < d.s.G - 2 by omega, show ¬ d.s.G - 1 = d.s.G - 2 by omega,
-      ↓reduceIte]; rfl
-  · rw [show d.s.G - 2 + 2 = d.s.G by omega]
-    simp only [show ¬ d.s.G < d.s.G - 2 by omega, show ¬ d.s.G = d.s.G - 2 by omega,
-      show ¬ d.s.G = d.s.G - 1 by omega, ↓reduceIte]; rfl
+/-- The fold's start, from `b`. -/
+theorem ch_off : d.ch = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
+    d.leafVals.length))) := by
+  rw [ch_eq, kL_eq, k1_eq]; omega
+
+theorem val_row {j : ℕ} (hj : j < d.s.I) : d.val (d.b + j) = d.cell j := by
+  rw [val_add, vals_eq, List.getD_append _ _ _ _ (by rw [rowVals_length]; exact hj)]
+  simp [rowVals, List.getD_eq_getElem?_getD, hj]
+
+theorem val_pack (hb : d.s.base = 1) {j t : ℕ} (hj : j < d.s.I / 2) (ht : t < 3) :
+    d.val (d.b + d.s.I + 3 * j + t) = (d.packV j).getD t 0 := by
+  have hl : d.packVals.length = 3 * (d.s.I / 2) := by rw [packVals_length]; simp [hb]
+  rw [show d.b + d.s.I + 3 * j + t = d.b + (d.rowVals.length + (3 * j + t)) by
+      rw [rowVals_length]; omega, val_add, vals_eq,
+    List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left,
+    List.getD_append _ _ _ _ (by rw [hl]; omega)]
+  unfold packVals
+  simp only [hb, ↓reduceIte]
+  exact getD_flatMap_const _ (c := 3) (fun _ ↦ rfl) 0 hj ht
+
+theorem val_pad (he : d.emit = true) {i : ℕ} (hi : i < 5) :
+    d.val (d.k1 + i) = [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD i 0 := by
+  have hl : d.padVals.length = 5 := by rw [padVals_length, he]; rfl
+  rw [k1_eq, show d.b + d.rowVals.length + d.packVals.length + i =
+      d.b + (d.rowVals.length + (d.packVals.length + i)) by omega, val_add, vals_eq,
+    List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left,
+    List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left,
+    List.getD_append _ _ _ _ (by omega)]
+  simp [padVals, he]
+
+theorem val_leaf {i : ℕ} (hi : i < d.s.chainLen) : d.val (d.kL + i) = d.leafV i := by
+  have hl := d.leafVals_length
+  rw [kL_eq, k1_eq, show d.b + d.rowVals.length + d.packVals.length + d.padVals.length + i =
+      d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length + i))) by omega, val_add,
+    vals_eq]
+  repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
+  rw [List.getD_append _ _ _ _ (by omega)]
+  simp [leafVals, List.getD_eq_getElem?_getD, hi]
+
+/-- The fold's values, from its start. -/
+theorem val_foldVals {o : ℕ} (ho : o < d.foldVals.length) :
+    d.val (d.ch + o) = d.foldVals.getD o 0 := by
+  rw [ch_off, show d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
+      d.leafVals.length))) + o = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
+      (d.leafVals.length + o)))) by omega, val_add, vals_eq]
+  repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
+  rw [List.getD_append _ _ _ _ ho]
+
+theorem val_round {j o : ℕ} (hj : j < d.s.folds) (ho : o < (d.roundVals j).length) :
+    d.val (oqRK d.s d.ch j + o) = (d.roundVals j).getD o 0 := by
+  have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
+  simp only [offOf] at h1
+  rw [oqRK_eq, Nat.add_assoc, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
+    List.getD_append _ _ _ _ (by rw [length_flatMap_range_of]; omega)]
+  exact getD_flatMap_range_of _ 0 _ _ _ hj ho
+
+theorem val_v : d.val d.v = d.foldVal := by
+  rw [v_eq, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
+    List.getD_append_right _ _ _ _ (by rw [length_flatMap_range_of]), length_flatMap_range_of,
+    Nat.sub_self]
+  rfl
+
+theorem val_fin (o : ℕ) : d.val (d.v + 1 + o) = d.finVals.getD o 0 := by
+  have hf := d.foldVals_length
+  have e : d.v + 1 + o = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
+      (d.leafVals.length + (d.foldVals.length + o))))) := by
+    rw [v_eq, ch_off]; omega
+  rw [e, val_add, vals_eq]
+  repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
+
+/-! ## The final check's places -/
+
+theorem length_nvLevelVals (w : E) : ∀ l : List E, (nvLevelVals w l).length = l.length
+  | _ :: _ :: rest => by simp [nvLevelVals, length_nvLevelVals w rest]
+  | [_] => rfl
+  | [] => rfl
+
+theorem length_nvLevelT_out {w : V} : ∀ (ins : List ℕ) (k : ℕ),
+    (nvLevelT w ins k).2.1.length = (ins.length + 1) / 2 ∧ (nvLevelT w ins k).2.2 = k + ins.length
+  | _ :: _ :: rest, k => by
+    have := length_nvLevelT_out (w := w) rest (k + 2)
+    simp only [nvLevelT, List.length_cons]
+    omega
+  | [_], _ => by simp [nvLevelT]
+  | [], _ => by simp [nvLevelT]
+
+theorem length_nvPair' (w : E) : ∀ l : List E, (nvPair w l).length = (l.length + 1) / 2
+  | _ :: _ :: rest => by
+    simp only [nvPair, List.length_cons, length_nvPair' w rest]
+    omega
+  | [_] => by simp [nvPair]
+  | [] => by simp [nvPair]
+
+theorem nvLevelsT_next {ws : ℕ → ℕ} (W : ℕ → E) : ∀ (c i : ℕ) (ins : List ℕ) (L : List E) (k : ℕ),
+    ins.length = L.length → (nvLevelsT ws c i ins k).2.2 = k + (nvVals W c i L).length
+  | 0, _, _, _, _, _ => by simp [nvLevelsT, nvVals]
+  | c + 1, i, ins, L, k, h => by
+    simp only [nvLevelsT, nvVals, List.length_append, length_nvLevelVals]
+    have := length_nvLevelT_out (w := .n (ws i)) ins k
+    rw [nvLevelsT_next W c (i + 1) _ (nvPair (W i) L) _ (by rw [this.1, length_nvPair', h]), this.2, h]
+    omega
+
+theorem chainVals_length : d.chainVals.length = 3 * d.s.mu := by
+  rw [chainVals, length_flatMap_const _ (c := 3) (fun _ ↦ rfl)]
+
+theorem nv0Vals_length : d.nv0Vals.length = 4 * (d.s.nHs / 2) := by
+  rw [nv0Vals, length_flatMap_const _ (c := 4) (fun _ ↦ rfl)]
+
+/-- The final check's novel sum's next free value (its result's index). -/
+theorem oqNovel_next (hn : d.s.nHs % 2 = 0) (hlen : d.s.nHs ≤ d.hsv.length) :
+    (oqNovel d.s (.n 0) d.v).2.2 = d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2) +
+      (nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs))).length := by
+  simp only [oqNovel]
+  rw [nvLevelsT_next d.W _ _ _ (nvPair (d.W 0) (d.hsv.take d.s.nHs)) _
+    (by rw [length_nvPair']; simp; omega)]
+
+theorem e_eq (hn : d.s.final = 1 → d.s.nHs % 2 = 0 ∧ d.s.nHs ≤ d.hsv.length) :
+    d.e = d.b + d.vals.length := by
+  have hv := d.v_eq
+  have hc := d.ch_off
+  have hf := d.foldVals_length
+  rw [e, oqEnd, oqRes]
+  change (if d.s.final = 1 then (oqNovel d.s (.n 0) d.v).2.2 else d.v) + 1 = _
+  by_cases h1 : d.s.final = 1
+  · simp only [h1, ↓reduceIte]
+    rw [d.oqNovel_next (hn h1).1 (hn h1).2]
+    simp only [vals, finVals, h1, ↓reduceIte, List.length_append, chainVals_length, nv0Vals_length,
+      List.length_cons, List.length_nil]
+    omega
+  · simp only [h1, ↓reduceIte, vals, finVals, List.length_append, List.length_nil]
+    omega
 
 end QD
 
@@ -351,7 +491,7 @@ namespace WD
 variable (w : WD)
 
 /-- The walk's shape: only its `pd` and `cd` are read. -/
-def s : Oq := ⟨0, 0, w.pd, w.cd⟩
+def s : Oq := ⟨0, 0, w.pd, w.cd, 0, [], 0, 0⟩
 
 /-- The windows' first value. -/
 def W0 : ℕ := oqWk w.s wpCh 0
@@ -368,12 +508,12 @@ def node (l : ℕ) : Digest := climbNode w.leaf w.q w.sibs l
 
 /-- The cells level `l`'s permutation reads. -/
 def levelIns (l : ℕ) : List E :=
-  [w.pc (4 * l), w.pc (4 * l + 1), w.pc (4 * l + 2), w.pc (4 * l + 3), word 1 0 0, word 0 0 0,
-    word 0 0 0, word 0 0 0, word (2 ^ 63) 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0]
+  [w.pc (4 * l), w.pc (4 * l + 1), w.pc (4 * l + 2), w.pc (4 * l + 3), word 1 0, word 0 0,
+    word 0 0, word 0 0, word (2 ^ 63) 0, word 0 0, word 0 0, word 0 0, word 0 0]
 
 /-- Level `l`'s step at offset `c < 3`: the `0x80` constant, the permutation's first two cells. -/
 def stepV (l c : ℕ) : E :=
-  if c = 0 then word (2 ^ 63) 0 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
+  if c = 0 then word (2 ^ 63) 0 else cellsOfState (permOf (w.levelIns l)) false (Fin.ofNat 13 (c - 1))
 
 /-- Window `i`'s value: the position's bits there. -/
 def wv (i : ℕ) : ℕ := qwVal (w.s.pd + w.s.cd) w.s.cd w.q i
@@ -384,7 +524,7 @@ def armOff (ww a : ℕ) : ℕ := if a = 0 then 2 else 4 + 3 * ww * a
 /-- Window `i`'s value at offset `o ≥ 1` after its padding run: `0x80`, the targets (the node after
 it), arm `v`'s steps, `0` elsewhere (the arms not taken). -/
 def winA (i o : ℕ) : E :=
-  if o = 1 then word (2 ^ 63) 0 0
+  if o = 1 then word (2 ^ 63) 0
   else if o = 2 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).1
   else if o = 3 + 3 * oqWw w.s i then (digestHalves (w.node (6 * i + oqWw w.s i))).2
   else if armOff (oqWw w.s i) (w.wv i) ≤ o ∧ o < armOff (oqWw w.s i) (w.wv i) + 3 * oqWw w.s i then
@@ -392,7 +532,7 @@ def winA (i o : ℕ) : E :=
   else 0
 
 /-- The padding run's cell `k`: `1, 0, 0, 0, 0`. -/
-def padV (k : ℕ) : E := [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD k 0
+def padV (k : ℕ) : E := [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD k 0
 
 /-- Window `i`'s value at offset `o`: its word `g^v`, (window `0`) the padding run, then `winA`. -/
 def winV (i o : ℕ) : E :=
@@ -406,7 +546,7 @@ def qV : E := gen ^ (w.q / 2 ^ (w.s.pd + 1))
 
 /-- The cap leaf at offset `o < 9`. -/
 def capV (o : ℕ) : E :=
-  [w.wbV, w.qV, w.flagsv * w.qV, word 1 0 0, w.qV * w.qV, w.capv * (w.qV * w.qV),
+  [w.wbV, w.qV, w.flagsv * w.qV, word 1 0, w.qV * w.qV, w.capv * (w.qV * w.qV),
     w.capv * (w.qV * w.qV) * (w.qV * w.qV), w.wbV * w.wbV,
     w.capv * (w.qV * w.qV) * (w.qV * w.qV) * (w.wbV * w.wbV)].getD o 0
 

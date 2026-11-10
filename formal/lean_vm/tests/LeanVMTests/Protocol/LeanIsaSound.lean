@@ -14,10 +14,10 @@ import LeanVM.Protocol.LeanIsa.Sound
 * **The relation's clauses are equivalences**, the direction this module does not use included:
   the counts, on a stack and a witness that agree.
 * **The input lanes are read at the deployed cells.** At a size vector of the instance tests, the
-  pinned verifier's `build_layout` places `QKECCAK` at offset `4980736` with a `KECCAK` table of
+  pinned verifier's `build_layout` places `QKECCAK` at offset `4194304` with a `KECCAK` table of
   `2^9` rows, and input lane `l` of row `x` is read at the stack's cell
-  `4980736 + 512 l + x` (the lane is `QKECCAK`'s column at slot `l`, `slot << kappa`,
-  `crates/verifier/src/layout.rs:561`);
+  `4194304 + 512 l + x` (the lane is `QKECCAK`'s column at slot `l`, `slot << kappa`,
+  `crates/verifier/src/layout.rs:531-553`);
   a read with the slot in the low coordinates would fail this.
 -/
 
@@ -63,6 +63,6 @@ def s₂ : Sizes := ⟨18, by decide, ![2 ^ 2, 2 ^ 18, 2 ^ 5, 2 ^ 0, 2 ^ 7, 2 ^ 
 #guard s₂.τ 5 = 9
 #guard (List.finRange 25).all fun l ↦ (List.finRange (2 ^ s₂.τ 5)).all fun x ↦
   (boolIndex ((layout prog4 s₂).extend (inCol l) (boolVec x))).val ==
-    4980736 + 512 * l.val + x.val
+    4194304 + 512 * l.val + x.val
 
 end LeanVMTests.Protocol.LeanIsaSound

@@ -231,7 +231,7 @@ theorem placementGetD_cost (hP : Includes P Auto.List.getD.c225.costDeps) (layou
   have := getD_cost_idx P hP layout.placements c none (by omega)
   omega
 
-/-- A word of the memory image (`memoryImageLite.c250`): three placements and three stack reads,
+/-- A word of the memory image (`memoryImageLite.c250`): two placements and two stack reads,
 at most `202`. -/
 theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c250.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 62) (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) {μ : ℕ}
@@ -241,23 +241,21 @@ theorem memoryImageLite_cost (hP : Includes P memoryImageLite.c250.costDeps) (la
   have hD : Includes P Auto.List.getD.c225.costDeps := by includes
   have h0 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory0 (by decide)
   have h1 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory1 (by decide)
-  have h2 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory2 (by decide)
   have ha : (a : ℕ) < 2 ^ 62 :=
     lt_of_lt_of_le a.isLt (Nat.pow_le_pow_right (by norm_num) hm)
   have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
   have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (a : ℕ) < 2 ^ 64)
   rw [limbs_of_lt (by omega : (a : ℕ) < 2 ^ 64), limbs_of_lt (hix _), limbs_of_lt (hix _),
-    limbs_of_lt (hix _), limbs_of_lt (hs _), limbs_of_lt (hs _), limbs_of_lt (hs _)]
+    limbs_of_lt (hs _), limbs_of_lt (hs _)]
   simp only [max_self]
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory0 none = o0
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory1 none = o1
-  generalize layout.placements.getD LeanVM.Protocol.Verifier.memory2 none = o2
-  cases o0 <;> cases o1 <;> cases o2 <;> dsimp only <;> omega
+  cases o0 <;> cases o1 <;> dsimp only <;> omega
 
 theorem word01_cost (hP : Includes P Auto.LeanVM.Semantics.PublicInput.word0.c251.costDeps)
     (hP' : Includes P Auto.LeanVM.Semantics.PublicInput.word1.c253.costDeps) (input : PublicInput) :
-    machineCost P Auto.LeanVM.Semantics.PublicInput.word0.c251.costIdx [encodeValue input] = 23 ∧
-      machineCost P Auto.LeanVM.Semantics.PublicInput.word1.c253.costIdx [encodeValue input] = 23 := by
+    machineCost P Auto.LeanVM.Semantics.PublicInput.word0.c251.costIdx [encodeValue input] = 21 ∧
+      machineCost P Auto.LeanVM.Semantics.PublicInput.word1.c253.costIdx [encodeValue input] = 21 := by
   have hF : Includes P Auto.Fin.ofNat.c252.costDeps := by includes
   rw [Auto.LeanVM.Semantics.PublicInput.word0.c251.costEq P hP,
     Auto.LeanVM.Semantics.PublicInput.word1.c253.costEq P hP']
@@ -282,7 +280,7 @@ theorem boundaryOfStack_cost (hP : Includes P boundaryOfStack.c249.costDeps) (in
     split_ifs <;> omega
   · split_ifs <;> omega
 
-/-- **The memory vector** (`memoryVec.c254`): three placements, then `2^κ` words of three limbs:
+/-- **The memory vector** (`memoryVec.c254`): two placements, then `2^κ` words of two limbs:
 at most `45·2^κ + 211`. -/
 theorem memoryVec_cost (hP : Includes P memoryVec.c254.costDeps) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 62) (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) {μ : ℕ}
@@ -292,31 +290,27 @@ theorem memoryVec_cost (hP : Includes P memoryVec.c254.costDeps) (layout : Layou
   have hD : Includes P Auto.List.getD.c225.costDeps := by includes
   have h0 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory0 (by decide)
   have h1 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory1 (by decide)
-  have h2 := placementGetD_cost P hD layout LeanVM.Protocol.Verifier.memory2 (by decide)
   have hN : 2 ^ layout.logMemory < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
   have hN2 : 2 ^ layout.logMemory ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) hm
   have hof := ofFnFrom_cost P (by includes) hN _
     (.closure memoryVec.c254.lam0.costIdx [encodeValue layout, encodeValue μ, encodeValue q,
       encodeValue (layout.placement LeanVM.Protocol.Verifier.memory0).index,
-      encodeValue (layout.placement LeanVM.Protocol.Verifier.memory2).index,
       encodeValue (layout.placement LeanVM.Protocol.Verifier.memory1).index])
-    (fun i ↦ RunsApp.of_spec (memoryVec.c254.lam0.costSpec P (by includes) layout q _ _ _ i)) 28
+    (fun i ↦ RunsApp.of_spec (memoryVec.c254.lam0.costSpec P (by includes) layout q _ _ i)) 28
     (fun i ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       have hi := i.isLt
       have hs := fun c ↦ (by have := hidx c; omega : (layout.placement c).index + (i : ℕ) < 2 ^ 64)
       have hix := fun c ↦ (hidx c).trans (by norm_num : 2 ^ 63 < 2 ^ 64)
       rw [memoryVec.c254.lam0.costEq P (by includes), limbs_of_lt (lt_trans i.isLt hN),
-        limbs_of_lt (hix _), limbs_of_lt (hix _), limbs_of_lt (hix _), limbs_of_lt (hs _),
-        limbs_of_lt (hs _), limbs_of_lt (hs _)]
+        limbs_of_lt (hix _), limbs_of_lt (hix _), limbs_of_lt (hs _), limbs_of_lt (hs _)]
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
   rw [limbs_shift (by omega), limbs_of_lt (by omega : layout.logMemory < 2 ^ 64)]
   simp only [Nat.sub_zero] at hof
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory0 none = o0
   generalize layout.placements.getD LeanVM.Protocol.Verifier.memory1 none = o1
-  generalize layout.placements.getD LeanVM.Protocol.Verifier.memory2 none = o2
-  cases o0 <;> cases o1 <;> cases o2 <;> dsimp only <;> omega
+  cases o0 <;> cases o1 <;> dsimp only <;> omega
 
 end Stack
 

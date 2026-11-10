@@ -112,7 +112,7 @@ at the block's valuation, its hinted counts `k`'s, its calls' trees satisfying `
 its tail call's `Tt`. -/
 theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
-    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
     (htail : c + 1 < nk → CompleteAtDT fs cert 16 "__loop4" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -161,13 +161,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     · exact hk.hS
     · refine statement_completeAt fs cert fun rd hm => ?_
       obtain ⟨-, -, -, -, -, -, hdef⟩ := hk.mem rd hm
-      refine ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, ?_, rfl⟩
-      intro x hx
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-      · exact hs01 _ (by simp)
-      · exact hs01 _ (by simp)
-      all_goals exact hk.can _ (by simp)
+      exact ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, rfl⟩
     · exact hk.hV
   have hokT : B1.KidsDT fs cert 16 ks (l5Ts4 Px Ps Pv) :=
     ⟨fun _ => hXT, fun _ => hST,
@@ -349,7 +343,7 @@ the `nk - c` iterations' nodes holding the children's hinted counts, child `c`'s
 by a tree satisfying `Pvs c`. -/
 theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {kid : ℕ → KidH} {Pxs Pss Pvs : ℕ → Tree → Prop}
-    (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34)
     (hk : ∀ c < nk, KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c
       (kid c))
     (hVT : ∀ c < nk, CompleteAtDT fs cert 16 "verify_sub" Lin
@@ -372,12 +366,12 @@ theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
     induction t with
     | zero =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert (Tt := fun _ => False) hnk (by omega) hs01
+      exact completeAtDT_mono (l5_stepAtT fs cert (Tt := fun _ => False) hnk (by omega)
         (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega)) (hXT c (by omega))
         (hST c (by omega))) fun _ ht => ht
     | succ t ih =>
       intro c hc
-      exact completeAtDT_mono (l5_stepAtT fs cert hnk (by omega) hs01 (hk c (by omega))
+      exact completeAtDT_mono (l5_stepAtT fs cert hnk (by omega) (hk c (by omega))
         (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega)))
         fun _ ht => ht
   intro c hc
@@ -434,16 +428,8 @@ theorem mainGoalL5T {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitn
     (D := hP fs fp seed s w 4) (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7)
     (nk := w.children.length)
     (kid := hKid s w) (Pxs := Pxs) (Pss := Pss) (Pvs := Pvs) (by omega)
-    (fun x hx => by
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl
-      · exact (digestScalars_canonical _).1
-      · exact (digestScalars_canonical _).2)
     (fun c hc => kidOk cert hbl hrel hl hV.goals (hX c hc).1.toD (hX c hc).2.toD hc)
-    (fun c hc => by
-      have hsh := kid_shapes hbl hrel _ (List.getElem_mem hc)
-      rw [hKid_pi seed (s := s) hc (by simp [DeferredClaim.cells, hsh.2, bytecodeVars])]
-      exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
+    (fun c hc => by rw [hKid_pi seed (s := s) hc]; exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
   rw [pow_zero, Nat.sub_zero] at h
   exact h
 

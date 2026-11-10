@@ -41,17 +41,14 @@ def LxWindowsC : Prop :=
         (lxWindowT (2 * layer) cur b0).2.1).2.1
       (Stmt.valsList ((lxWindowT (2 * layer) cur b0).1 ++ (lxWindowT (2 * layer + 1)
         (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1).1)) ∧
-    ∀ σ : Val, PadOK σ sLxPad → IsCanonical128 (σ sLxPP) →
-    IsCanonical128 (σ cur) → (∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v))) →
+    ∀ σ : Val, PadOK σ sLxPad → (∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v))) →
     (∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w))) → (∀ s < 13, σ (sPower s) = gen ^ s) →
-    ∀ sibs : Nat → E, (∀ l < 16, IsCanonical128 (sibs l)) →
+    ∀ sibs : Nat → E,
     Completes C rd b0 (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
         (lxWindowT (2 * layer) cur b0).2.1).2.1
       ((lxWindowT (2 * layer) cur b0).1 ++ (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
         (lxWindowT (2 * layer) cur b0).2.1).1) σ
-      (fun σ' => IsCanonical128 (σ' (.n (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
-          (lxWindowT (2 * layer) cur b0).2.1).2.2)) ∧
-        ∀ σ'', AgreeBelow (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
+      (fun σ' => ∀ σ'', AgreeBelow (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
             (lxWindowT (2 * layer) cur b0).2.1).2.1 σ' σ'' →
           (∀ r < 8, lxSibOf σ'' (2 * layer) (lxWin L (2 * layer)) b0 r = sibs r) ∧
           ∀ r < 8, lxSibOf σ'' (2 * layer + 1) (lxWin L (2 * layer + 1)) (lxWindowT (2 * layer) cur b0).2.1 r =

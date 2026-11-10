@@ -24,7 +24,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegWinSpec
   index `L`, the powers `g^s`);
 * `lxLevelT_complete`, `lxLevelsT_complete`, `lxArmT_complete`: a level, the eight levels and an
   arm of window `w` by the honest arm `lxWin L w`, each level's sibling hinted;
-* `lxWindowT_complete`: the window completes, its output canonical and the siblings the hinted
+* `lxWindowT_complete`: the window completes, the siblings the hinted
   ones; `lxWindowT_complete_fold`: its output is the fold of its eight levels over the index;
 * `lxWindowT_numBelow`: the window's values lie below its end;
 * `lxWindows_complete`: a layer's two windows complete, their output the layer's path fold
@@ -118,10 +118,9 @@ theorem CompletesO.append {lo m hi o : Nat} {xs ys : List Stmt} {σ : Val} {P Q 
 /-! ## A `KECCAK` writing its run anywhere -/
 
 /-- **A 64-byte `keccak` completes**, its constant at `c` and its run at `o` off its inputs. -/
-theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hp : PadOK σ pad)
-    (hpc : pad + 5 ≤ c) (hpo : pad + 5 ≤ o) (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
-    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ v)) :
-    CompletesO C rd c (c + 1) o (k64 pad m0 m1 m2 m3 c o) σ (fun σ' => IsCanonical128 (σ' (.n o))) := by
+theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hpo : pad + 5 ≤ o) (hco : c + 1 ≤ o ∨ o + 1 ≤ c)
+    (hm : ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v) :
+    CompletesO C rd c (c + 1) o (k64 pad m0 m1 m2 m3 c o) σ (fun _ => True) := by
   rw [k64_vals_eq]
   refine Completes.appendO (m := c + 1) (by omega) le_rfl (fun v hv => ?_) (cst_complete σ c _) (fun σ1 he1 hp1 => ?_)
   · simp only [cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
@@ -133,37 +132,25 @@ theorem k64_completeO {pad : Nat} {m0 m1 m2 m3 : V} {c o : Nat} (σ : Val) (hp :
       .n (pad + 2), .n (pad + 3), .n (pad + 4)], ¬ InR o 1 v := by
     intro v hv
     rcases (k64_ins pad m0 m1 m2 m3 c v).mp hv with h | rfl | ⟨k, hk, rfl⟩
-    · exact (hm v h).2.1
+    · exact (hm v h).2
     · rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega
     · rintro ⟨j, hj, e⟩; simp only [V.mk.injEq, true_and] at e; omega
-  obtain ⟨q0, q1, q2, q3, q4⟩ := hp.congr hpc hag
-  have h4 : ∀ v ∈ [m0, m1, m2, m3], IsCanonical128 (σ1 v) := fun v hv => by
-    rw [hag.apply (hm v hv).1]; exact (hm v hv).2.2
-  have hcan : ∀ cc : Fin 13, IsCanonical128 (cells13 ([m0, m1, m2, m3, .n pad, .n (pad + 1), .n (pad + 2),
-      .n (pad + 3), .n c, .n (pad + 1), .n (pad + 2), .n (pad + 3), .n (pad + 4)].map σ1) cc) := by
-    intro cc
-    fin_cases cc <;> simp [cells13, q0, q1, q2, q3, q4, hp1] <;>
-      first | exact h4 _ (by simp) | exact canon_word _ _
-  refine (kecS_complete_at (C := C) (rd := rd) σ1 o (.inl rfl) rfl hin hcan false false).toO_run.mono le_rfl le_rfl
-    (fun σ' h => ?_)
-  have := h 0 (by norm_num)
-  rw [Nat.add_zero] at this
-  rw [this]
-  exact canon_kOut _ _ _ _
+  exact (kecS_complete_at (C := C) (rd := rd) σ1 o (.inl rfl) rfl hin false false).toO_run.mono le_rfl
+    le_rfl (fun _ _ => trivial)
 
 /-! ## A level, generically -/
 
 /-- **A level completes**: sequential values `b ..< s`, the hinted sibling at `s` (loaded), the
 sequential values `s + 1 ..< c`, the `keccak` at `c` writing the run at `o`. -/
 theorem lvl_completeO {xs ys : List Stmt} {nm : String} {b s c o pad : Nat} {m0 m1 m2 m3 : V}
-    (σ : Val) (hx : SeqOK b xs s) (hy : SeqOK (s + 1) ys c) (hpad : PadOK σ pad) (hpb : pad + 5 ≤ b)
+    (σ : Val) (hx : SeqOK b xs s) (hy : SeqOK (s + 1) ys c)
     (hco : c + 1 ≤ o ∨ o + 1 ≤ b) (hpo : pad + 5 ≤ o)
     (hxo : ∀ v ∈ Stmt.valsList xs ++ Stmt.valsList ys, ¬ InR o 1 v)
     (hm : ∀ σ1, Ext b c σ σ1 → σ1 (.n s) = σ (.n s) →
       AtomsHold rd σ1 (xs ++ hintW nm [.n s] :: ys) →
-      ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ1 v)) :
+      ∀ v ∈ [m0, m1, m2, m3], NBv c v ∧ ¬ InR o 1 v) :
     CompletesO C rd b (c + 1) o (xs ++ hintW nm [.n s] :: ys ++ k64 pad m0 m1 m2 m3 c o) σ
-      (fun σ' => σ' (.n s) = σ (.n s) ∧ IsCanonical128 (σ' (.n o))) := by
+      (fun σ' => σ' (.n s) = σ (.n s)) := by
   have hsb := hx.le
   have hsc := hy.le
   have hatoms : atomsOnly (xs ++ hintW nm [.n s] :: ys) = true := by
@@ -193,29 +180,24 @@ theorem lvl_completeO {xs ys : List Stmt} {nm : String} {b s c o pad : Nat} {m0 
   rw [List.append_assoc, List.cons_append, ← List.cons_append, ← List.append_assoc]
   refine Completes.appendO (by omega) (by omega) hvals hpre.withHolds (fun σ1 he1 ⟨hs1, hh1⟩ => ?_)
   have hm1 := hm σ1 he1 hs1 (atomsHold_of_holdsList hatoms hh1)
-  refine (k64_completeO (C := C) (rd := rd) σ1 (hpad.congr hpb (he1.agree)) (by omega) hpo
-    (by omega) hm1).keep.mono le_rfl le_rfl (fun σ' ⟨hc, he⟩ => ⟨?_, hc⟩)
+  refine (k64_completeO (C := C) (rd := rd) σ1 hpo
+    (by omega) hm1).keep.mono le_rfl le_rfl (fun σ' ⟨_, he⟩ => ?_)
   rw [he.apply (Or.inl (by omega)) (by omega), hs1]
 
 /-! ## The values a window reads -/
 
-/-- The values below `103` a window of the index `L` reads: the padding run, `P`, the shifts
+/-- The values below `103` a window of the index `L` reads: the padding run, the shifts
 `his[v] = L >>> 8v` and the powers `g^s`. -/
 def LxEnv (L : Nat) (σ : Val) : Prop :=
-  PadOK σ sLxPad ∧ IsCanonical128 (σ sLxPP) ∧ (∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v))) ∧
-    ∀ s < 13, σ (sPower s) = gen ^ s
+  PadOK σ sLxPad ∧ (∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v))) ∧ ∀ s < 13, σ (sPower s) = gen ^ s
 
 theorem LxEnv.congr {L : Nat} {σ σ' : Val} (h : LxEnv L σ) (hσ : ∀ j < 103, σ' (.n j) = σ (.n j)) :
     LxEnv L σ' := by
-  obtain ⟨h1, h2, h3, h4⟩ := h
-  refine ⟨h1.congr (b := 103) (by simp [sLxPad]) (fun j hj => (hσ j hj).symm), ?_, fun v hv => ?_,
+  obtain ⟨h1, h3, h4⟩ := h
+  refine ⟨h1.congr (b := 103) (by simp [sLxPad]) (fun j hj => (hσ j hj).symm), fun v hv => ?_,
     fun s hs => ?_⟩
-  · rw [show sLxPP = .n 66 from rfl, hσ 66 (by omega)]; exact h2
   · rw [show sHis v = .n (67 + v) from rfl, hσ _ (by omega)]; exact h3 v hv
   · rw [show sPower s = .n (75 + s) from rfl, hσ _ (by omega)]; exact h4 s hs
-
-theorem lxCanon_eOfNat (n : Nat) : IsCanonical128 (eOfNat n) := by
-  rw [← word_eq_eOfNat]; exact canon_word n 0
 
 theorem notInR_of {o j : Nat} (h : j < o ∨ o + 1 ≤ j) : ¬ InR o 1 (.n j) := by
   rintro ⟨i, hi, e⟩; simp only [V.mk.injEq, true_and] at e; omega
@@ -228,18 +210,17 @@ theorem ord_cases {k r : Nat} (x y : V) :
   · exact Or.inr ⟨rfl, rfl⟩
 
 /-- A level's inputs: `P`, the address at `a`, the node and the sibling at `s` in either order. -/
-theorem lvl_inputs {L : Nat} {σ1 : Val} {cur m2 m3 : V} {s a c o : Nat} (hE : LxEnv L σ1)
-    (hcur : NBv c cur) (hcurO : ¬ InR o 1 cur) (hcc : IsCanonical128 (σ1 cur))
-    (hs : s < c) (hsO : s < o ∨ o + 1 ≤ s) (hsc : IsCanonical128 (σ1 (.n s)))
-    (ha : a < c) (haO : a < o ∨ o + 1 ≤ a) (hac : IsCanonical128 (σ1 (.n a))) (h66 : 66 < c) (ho : 103 ≤ o)
+theorem lvl_inputs {cur m2 m3 : V} {s a c o : Nat}
+    (hcur : NBv c cur) (hcurO : ¬ InR o 1 cur) (hs : s < c) (hsO : s < o ∨ o + 1 ≤ s)
+    (ha : a < c) (haO : a < o ∨ o + 1 ≤ a) (h66 : 66 < c) (ho : 103 ≤ o)
     (h23 : (m2 = cur ∧ m3 = .n s) ∨ (m2 = .n s ∧ m3 = cur)) :
-    ∀ v ∈ [sLxPP, .n a, m2, m3], NBv c v ∧ ¬ InR o 1 v ∧ IsCanonical128 (σ1 v) := by
-  have hcv : NBv c cur ∧ ¬ InR o 1 cur ∧ IsCanonical128 (σ1 cur) := ⟨hcur, hcurO, hcc⟩
-  have hsv : NBv c (.n s) ∧ ¬ InR o 1 (.n s) ∧ IsCanonical128 (σ1 (.n s)) := ⟨⟨s, hs, rfl⟩, notInR_of hsO, hsc⟩
+    ∀ v ∈ [sLxPP, .n a, m2, m3], NBv c v ∧ ¬ InR o 1 v := by
+  have hcv : NBv c cur ∧ ¬ InR o 1 cur := ⟨hcur, hcurO⟩
+  have hsv : NBv c (.n s) ∧ ¬ InR o 1 (.n s) := ⟨⟨s, hs, rfl⟩, notInR_of hsO⟩
   simp only [List.mem_cons, List.not_mem_nil, or_false]
   rintro v (rfl | rfl | rfl | rfl)
-  · exact ⟨⟨66, h66, rfl⟩, notInR_of (by omega), hE.2.1⟩
-  · exact ⟨⟨a, ha, rfl⟩, notInR_of haO, hac⟩
+  · exact ⟨⟨66, h66, rfl⟩, notInR_of (by omega)⟩
+  · exact ⟨⟨a, ha, rfl⟩, notInR_of haO⟩
   · rcases h23 with ⟨rfl, -⟩ | ⟨rfl, -⟩
     exacts [hcv, hsv]
   · rcases h23 with ⟨-, rfl⟩ | ⟨-, rfl⟩
@@ -265,15 +246,12 @@ theorem getD_cases {outO : Option Nat} {b d : Nat} {cur : V}
   | some o => exact Or.inr (hO o rfl)
 
 /-- **A level of a window completes** by the honest arm, its sibling `sib` hinted. -/
-theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (hr : r < 8) {cur : V}
-    {outO : Option Nat} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hb : 103 ≤ b) (hcur : NBv b cur)
-    (hcc : IsCanonical128 (σ cur)) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur)
-    {sib : E} (hsib : IsCanonical128 sib) :
+theorem lxLevelT_complete {L : Nat} {w r : Nat} (hw : w < 4) (hr : r < 8) {cur : V}
+    {outO : Option Nat} {b : Nat} (σ : Val) (hb : 103 ≤ b) (hcur : NBv b cur)
+    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur) {sib : E} :
     CompletesO C rd b (lxLevelT w (lxWin L w) r cur outO b).2.1 (lxLvlO w r outO b)
-      (lxLevelT w (lxWin L w) r cur outO b).1 σ
-      (fun σ' => σ' (.n (lxSibCell w r b)) = sib ∧ IsCanonical128 (σ' (.n (lxLvlO w r outO b)))) := by
+      (lxLevelT w (lxWin L w) r cur outO b).1 σ (fun σ' => σ' (.n (lxSibCell w r b)) = sib) := by
   obtain ⟨jc, hjc, rfl⟩ := hcur
-  have hpad := hE.1
   unfold lxLevelT lxLvlO lxSibCell
   by_cases hw3 : w + 1 = 4
   · simp only [hw3, ↓reduceIte]
@@ -290,24 +268,18 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
       (hv b le_rfl (by split <;> omega)) _ _) ?_
     have hσr : ∀ j, j ≠ b → Function.update σ (.n b) sib (.n j) = σ (.n j) := fun j hj =>
       Function.update_of_ne (by simp only [ne_eq, V.mk.injEq, true_and]; exact hj) _ _
-    refine (lvl_completeO (xs := []) (ys := [cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0)])
+    refine (lvl_completeO (xs := []) (ys := [cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0)])
       (nm := "lx_path") (s := b) (c := b + 2) (o := O) _ rfl ⟨rfl, rfl⟩
-      (hpad.congr (b := 103) (by simp [sLxPad]) (fun j hj => (hσr j (by omega)).symm)) (by simp [sLxPad]; omega)
       (by omega) (by simp only [sLxPad]; rcases hOc with h | h <;> omega) ?_ ?_).mono le_rfl (by split <;> omega)
-      (fun σ' ⟨h1, h2⟩ => ⟨by rw [h1, Function.update_self], h2⟩)
+      (fun σ' h1 => by rw [h1, Function.update_self])
     · intro v hv
       simp [cst, Stmt.vals, Atom.vals] at hv
       subst hv
       exact notInR_of (by rcases hOc with h | h <;> omega)
-    · intro σ1 he1 hs1 hh1
-      have hE1 : LxEnv L σ1 := hE.congr fun j hj => by
-        rw [he1.apply (Or.inl (by omega)), hσr j (by omega)]
-      have ha : σ1 (.n (b + 1)) = word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0 :=
-        hh1.atom (a := .const _ _) (by simp [cst])
-      exact lvl_inputs hE1 ⟨jc, by omega, rfl⟩ hcO
-        (by rw [he1.apply (Or.inl (by omega)), hσr jc (by omega)]; exact hcc) (by omega)
-        (by rcases hOc with h | h <;> omega) (by rw [hs1, Function.update_self]; exact hsib) (by omega)
-        (by rcases hOc with h | h <;> omega) (by rw [ha]; exact canon_word _ _) (by omega)
+    · intro _ _ _ _
+      exact lvl_inputs ⟨jc, by omega, rfl⟩ hcO (by omega)
+        (by rcases hOc with h | h <;> omega) (by omega)
+        (by rcases hOc with h | h <;> omega) (by omega)
         (by rcases hOc with h | h <;> omega) (ord_cases _ _)
   · simp only [hw3, ↓reduceIte]
     have hσr : ∀ (s j : Nat), j ≠ s → Function.update σ (.n s) sib (.n j) = σ (.n j) := fun s j hj =>
@@ -325,69 +297,39 @@ theorem lxLevelT_complete {L : Nat} (hL : L < 2 ^ 32) {w r : Nat} (hw : w < 4) (
         · exact h.2.2
       refine CompletesO.reload (σr := Function.update σ (.n (b + 2)) sib) (fun v hv => Function.update_of_ne
         (hv (b + 2) (by omega) (by cases outO <;> simp)) _ _) ?_
-      refine (lvl_completeO (xs := [cst b (word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0 0),
+      refine (lvl_completeO (xs := [cst b (word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0),
           addS (.n (b + 1)) (sHis (w + 1)) (.n b)]) (ys := [])
         (nm := "lx_path") (s := b + 2) (c := b + 3) (o := O) _ ⟨rfl, ⟨rfl, hhis.mono' (by omega),
           ⟨b, by omega, rfl⟩⟩, rfl⟩ rfl
-        (hpad.congr (b := 103) (by simp [sLxPad]) (fun j hj => (hσr (b + 2) j (by omega)).symm))
-        (by simp [sLxPad]; omega)
         (by omega) (by simp only [sLxPad]; rcases hOc with h | h <;> omega) ?_ ?_).mono le_rfl
-        (by cases outO <;> simp) (fun σ' ⟨h1, h2⟩ => ⟨by rw [h1, Function.update_self], h2⟩)
+        (by cases outO <;> simp) (fun σ' h1 => by rw [h1, Function.update_self])
       · intro v hv
         simp [cst, addS, Stmt.vals, Atom.vals] at hv
         rcases hv with rfl | rfl | rfl | rfl | rfl | rfl <;>
           exact notInR_of (by rcases hOc with h | h <;> omega)
-      · intro σ1 he1 hs1 hh1
-        have hE1 : LxEnv L σ1 := hE.congr fun j hj => by
-          rw [he1.apply (Or.inl (by omega)), hσr (b + 2) j (by omega)]
-        have hc : σ1 (.n b) = word (lxNodeConst w 7 + lxWin L w / 2 ^ 8) 0 0 :=
-          hh1.atom (a := .const _ _) (by simp [cst])
-        have ha : σ1 (.n (b + 1)) = σ1 (sHis (w + 1)) + σ1 (.n b) :=
-          hh1.atom (a := .add _ _ _) (by simp [addS])
-        exact lvl_inputs hE1 ⟨jc, by omega, rfl⟩ hcO
-          (by rw [he1.apply (Or.inl (by omega)), hσr (b + 2) jc (by omega)]; exact hcc) (by omega)
-          (by rcases hOc with h | h <;> omega) (by rw [hs1, Function.update_self]; exact hsib) (by omega)
+      · intro _ _ _ _
+        exact lvl_inputs ⟨jc, by omega, rfl⟩ hcO (by omega)
+          (by rcases hOc with h | h <;> omega) (by omega)
           (by rcases hOc with h | h <;> omega)
-          (by rw [ha, hc, hE1.2.2.1 (w + 1) (by omega)]; exact canon_add (lxCanon_eOfNat _) (canon_word _ _))
           (by omega) (by rcases hOc with h | h <;> omega) (ord_cases _ _)
     · simp only [hr7, ↓reduceIte]
       have hpw : NBv b (sPower (7 - r)) := ⟨75 + (7 - r), by omega, rfl⟩
       refine CompletesO.reload (σr := Function.update σ (.n (b + 3)) sib) (fun v hv => Function.update_of_ne
         (hv (b + 3) (by omega) (by omega)) _ _) ?_
       refine (lvl_completeO (xs := [mulS (.n b) (sHis (w + 1)) (sPower (7 - r)),
-          cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0),
+          cst (b + 1) (word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0),
           addS (.n (b + 2)) (.n b) (.n (b + 1))]) (ys := [])
         (nm := "lx_path") (s := b + 3) (c := b + 4) (o := b + 5) _
         ⟨⟨rfl, hhis, hpw⟩, rfl, ⟨rfl, ⟨b, by omega, rfl⟩, ⟨b + 1, by omega, rfl⟩⟩, rfl⟩ rfl
-        (hpad.congr (b := 103) (by simp [sLxPad]) (fun j hj => (hσr (b + 3) j (by omega)).symm))
-        (by simp [sLxPad]; omega) (by omega) (by simp only [sLxPad]; omega) ?_ ?_).mono le_rfl
-        (by omega) (fun σ' ⟨h1, h2⟩ => ⟨by rw [h1, Function.update_self], h2⟩)
+        (by omega) (by simp only [sLxPad]; omega) ?_ ?_).mono le_rfl
+        (by omega) (fun σ' h1 => by rw [h1, Function.update_self])
       · intro v hv
         simp [cst, addS, mulS, Stmt.vals, Atom.vals] at hv
         rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
           exact notInR_of (by omega)
-      · intro σ1 he1 hs1 hh1
-        have hE1 : LxEnv L σ1 := hE.congr fun j hj => by
-          rw [he1.apply (Or.inl (by omega)), hσr (b + 3) j (by omega)]
-        have hm : σ1 (.n b) = σ1 (sHis (w + 1)) * σ1 (sPower (7 - r)) :=
-          hh1.atom (a := .mul _ _ _) (by simp [mulS])
-        have hc : σ1 (.n (b + 1)) = word (lxNodeConst w r + lxWin L w / 2 ^ (r + 1)) 0 0 :=
-          hh1.atom (a := .const _ _) (by simp [cst])
-        have ha : σ1 (.n (b + 2)) = σ1 (.n b) + σ1 (.n (b + 1)) :=
-          hh1.atom (a := .add (.n (b + 2)) _ _) (by simp [addS])
-        have hlt : 2 ^ (7 - r) * (L >>> (8 * (w + 1))) < 2 ^ 64 := by
-          have h1 : L >>> (8 * (w + 1)) < 2 ^ 32 := lt_of_le_of_lt (Nat.shiftRight_le _ _) hL
-          have h2 : 2 ^ (7 - r) ≤ 2 ^ 7 := Nat.pow_le_pow_right (by norm_num) (by omega)
-          calc 2 ^ (7 - r) * (L >>> (8 * (w + 1))) ≤ 2 ^ 7 * 2 ^ 32 := Nat.mul_le_mul h2 (by omega)
-            _ < 2 ^ 64 := by norm_num
-        exact lvl_inputs hE1 ⟨jc, by omega, rfl⟩ (notInR_of (by omega))
-          (by rw [he1.apply (Or.inl (by omega)), hσr (b + 3) jc (by omega)]; exact hcc) (by omega)
-          (by omega) (by rw [hs1, Function.update_self]; exact hsib) (by omega) (by omega)
-          (by
-            rw [ha, hc, hm, hE1.2.2.1 (w + 1) (by omega), hE1.2.2.2 (7 - r) (by omega),
-              gen_pow_eq_eOfNat (by omega), eOfNat_mul_two_pow hlt]
-            exact canon_add (lxCanon_eOfNat _) (canon_word _ _))
-          (by omega) (by omega) (ord_cases _ _)
+      · intro _ _ _ _
+        exact lvl_inputs ⟨jc, by omega, rfl⟩ (notInR_of (by omega)) (by omega)
+          (by omega) (by omega) (by omega) (by omega) (by omega) (ord_cases _ _)
 
 
 /-! ## A level's values -/
@@ -486,22 +428,20 @@ theorem lxSibCell_lt (w r b : Nat) : b ≤ lxSibCell w r b ∧ lxSibCell w r b �
 
 /-- **The levels of an arm complete** by the honest arm, level `j`'s sibling `sibs j`. -/
 theorem lxLevelsT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {outO : Option Nat}
-    {b0 : Nat} (hb0 : 103 ≤ b0) (sibs : Nat → E) (hsc : ∀ r < 8, IsCanonical128 (sibs r))
-    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b0) :
+    {b0 : Nat} (hb0 : 103 ≤ b0) (sibs : Nat → E) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b0) :
     ∀ m r (cur : V) b (σ : Val), r + m = 8 → b = b0 + lxStride w * r → LxEnv L σ → NBv b cur →
-      IsCanonical128 (σ cur) → (∀ o, outO = some o → ¬ InR o 1 cur) →
+      (∀ o, outO = some o → ¬ InR o 1 cur) →
       CompletesO C rd b (lxLevelsT w (lxWin L w) outO m r cur b).2.1 (lxArmO w outO b0)
         (lxLevelsT w (lxWin L w) outO m r cur b).1 σ
-        (fun σ' => (∀ j, r ≤ j → j < 8 → lxSibF σ' w b0 j = sibs j) ∧
-          IsCanonical128 (σ' (lxLevelsT w (lxWin L w) outO m r cur b).2.2))
-  | 0, r, cur, b, σ, hrm, _, _, _, hcc, _ =>
-      ⟨σ, fun _ _ _ => rfl, ⟨fun j h1 h2 => absurd h2 (by omega), hcc⟩, fun _ _ hn => hn⟩
-  | m + 1, r, cur, b, σ, hrm, hb, hE, hcur, hcc, hcO => by
+        (fun σ' => ∀ j, r ≤ j → j < 8 → lxSibF σ' w b0 j = sibs j)
+  | 0, r, cur, b, σ, hrm, _, _, _, _ =>
+      ⟨σ, fun _ _ _ => rfl, fun j h1 h2 => absurd h2 (by omega), fun _ _ hn => hn⟩
+  | m + 1, r, cur, b, σ, hrm, hb, hE, hcur, hcO => by
       have hr : r < 8 := by omega
       have hst := lxStride_ge w
       have hbb : b0 ≤ b := by rw [hb]; omega
-      have hlv := lxLevelT_complete (C := C) (rd := rd) hL hw hr σ hE (by omega) hcur hcc
-        (fun o ho => ⟨(hO o ho).1, by have := (hO o ho).2; omega, hcO o ho⟩) (hsc r hr)
+      have hlv := lxLevelT_complete (C := C) (rd := rd) (L := L) (sib := sibs r) hw hr σ (by omega) hcur
+        (fun o ho => ⟨(hO o ho).1, by have := (hO o ho).2; omega, hcO o ho⟩)
       have hsl := lxSibCell_lt w r b
       simp only [lxLevelsT]
       by_cases hm : m = 0
@@ -510,8 +450,8 @@ theorem lxLevelsT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {o
         subst hr7
         simp only [lxLevelsT, List.append_nil]
         have ho : lxArmO w outO b0 = lxLvlO w 7 outO b := by rw [lxArmO, hb]
-        rw [ho, lxLevelT_out]
-        refine hlv.mono le_rfl le_rfl (fun σ' ⟨h1, h2⟩ => ⟨fun j h1' h2' => ?_, h2⟩)
+        rw [ho]
+        refine hlv.mono le_rfl le_rfl (fun σ' h1 j h1' h2' => ?_)
         obtain rfl : j = 7 := by omega
         rw [lxSibF, ← hb]
         exact h1
@@ -549,13 +489,13 @@ theorem lxLevelsT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {o
         rw [hnb] at hlv hshape
         rw [hnb]
         refine Completes.appendO (by omega) (by rw [hshape]; omega) hxs
-          (hlv.toC le_rfl (by omega) le_rfl (by omega)) (fun σ1 he1 ⟨hs1, hc1⟩ => ?_)
+          (hlv.toC le_rfl (by omega) le_rfl (by omega)) (fun σ1 he1 hs1 => ?_)
         have hE1 : LxEnv L σ1 := hE.congr fun j hj => he1.apply (Or.inl (by omega))
-        have ih := lxLevelsT_complete hL hw hb0 sibs hsc hO m (r + 1) (lxLevelT w (lxWin L w) r cur outO b).2.2
+        have ih := lxLevelsT_complete hL hw hb0 sibs hO m (r + 1) (lxLevelT w (lxWin L w) r cur outO b).2.2
           (b + lxStride w) σ1 (by omega) (by rw [hb]; ring) hE1
-          (by rw [lxLevelT_out]; exact ⟨_, by omega, rfl⟩) (by rw [lxLevelT_out]; exact hc1)
+          (by rw [lxLevelT_out]; exact ⟨_, by omega, rfl⟩)
           (fun o ho => by rw [lxLevelT_out]; exact notInR_of (by have := (hO o ho).2; omega))
-        refine ih.keep.mono le_rfl le_rfl (fun σ' ⟨⟨h1, h2⟩, he⟩ => ⟨fun j hj1 hj2 => ?_, h2⟩)
+        refine ih.keep.mono le_rfl le_rfl (fun σ' ⟨h1, he⟩ j hj1 hj2 => ?_)
         rcases Nat.lt_or_ge r j with hrj | hrj
         · exact h1 j hrj hj2
         · obtain rfl : j = r := by omega
@@ -678,20 +618,17 @@ theorem lxArmO_lt (w : Nat) (outO : Option Nat) (b : Nat)
   | some o => have := hO o rfl; simp only [Option.getD_some]; omega
 
 /-- **An arm of a window completes** by the honest arm, level `j`'s sibling `sibs j`: its siblings
-kept, its node canonical. -/
+kept. -/
 theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur : V}
     {outO : Option Nat} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hb : 103 ≤ b) (hcur : NBv b cur)
-    (hcc : IsCanonical128 (σ cur)) (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur)
-    (sibs : Nat → E) (hsc : ∀ r < 8, IsCanonical128 (sibs r)) :
+    (hO : ∀ o, outO = some o → 103 ≤ o ∧ o + 1 ≤ b ∧ ¬ InR o 1 cur) (sibs : Nat → E) :
     CompletesO C rd b (lxArmT w (lxWin L w) cur outO b).2 (lxArmO w outO b)
-      (lxArmT w (lxWin L w) cur outO b).1 σ
-      (fun σ' => (∀ j < 8, lxSibF σ' w b j = sibs j) ∧ IsCanonical128 (σ' (.n (lxArmO w outO b)))) := by
-  have hlv := lxLevelsT_complete (C := C) (rd := rd) hL hw hb sibs hsc
-    (fun o ho => ⟨(hO o ho).1, (hO o ho).2.1⟩) 8 0 cur b σ rfl (by simp) hE hcur hcc
+      (lxArmT w (lxWin L w) cur outO b).1 σ (fun σ' => ∀ j < 8, lxSibF σ' w b j = sibs j) := by
+  have hlv := lxLevelsT_complete (C := C) (rd := rd) hL hw hb sibs
+    (fun o ho => ⟨(hO o ho).1, (hO o ho).2.1⟩) 8 0 cur b σ rfl (by simp) hE hcur
     (fun o ho => (hO o ho).2.2)
   have hshape := lxLevelsT_shape (w := w) (k := lxWin L w) (outO := outO) (b0 := b) 8 0 cur b rfl
     (by omega) (by simp)
-  rw [hshape.2, ← lxArmO_eq] at hlv
   have hst := lxStride_ge w
   have hOg := lxArmO_cases w outO b
   have hOe := lxArmO_lt w outO b (fun o ho => (hO o ho).2.1)
@@ -715,10 +652,8 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
     rw [hshape.1]; unfold lxLastNext; split <;> split <;> omega
   -- the post, kept by the pin's values above the levels
   have hkeep : ∀ σ1 σ2, (∀ j, j < (lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1 → σ2 (.n j) = σ1 (.n j)) →
-      ((∀ j, 0 ≤ j → j < 8 → lxSibF σ1 w b j = sibs j) ∧ IsCanonical128 (σ1 (.n (lxArmO w outO b)))) →
-      (∀ j < 8, lxSibF σ2 w b j = sibs j) ∧ IsCanonical128 (σ2 (.n (lxArmO w outO b))) := by
-    intro σ1 σ2 h ⟨h1, h2⟩
-    refine ⟨fun j hj => ?_, by rw [h _ (by omega)]; exact h2⟩
+      (∀ j, 0 ≤ j → j < 8 → lxSibF σ1 w b j = sibs j) → ∀ j < 8, lxSibF σ2 w b j = sibs j := by
+    intro σ1 σ2 h h1 j hj
     have := lxSibCell_last (w := w) hj b
     rw [lxSibF, h _ (by omega)]
     exact h1 j (Nat.zero_le _) hj
@@ -729,9 +664,9 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
   · simp only [hw3, ↓reduceIte]
     obtain rfl : w = 3 := by omega
     refine CompletesO.append (by omega) le_rfl hnum hlv (fun σ1 he1 hp1 => ?_)
-    have hc : (Atom.const (.n (67 + 3)) (word (lxWin L 3) 0 0)).Holds rd σ1 := by
+    have hc : (Atom.const (.n (67 + 3)) (word (lxWin L 3) 0)).Holds rd σ1 := by
       show σ1 (sHis 3) = _
-      rw [(hE1 σ1 he1).2.2.1 3 (by omega), word_eq_eOfNat]
+      rw [(hE1 σ1 he1).2.1 3 (by omega), word_eq_eOfNat]
       exact hh3
     exact (check_complete hc _).mono le_rfl le_rfl (fun σ' e => by
       subst e; exact hkeep σ' σ' (fun _ _ => rfl) hp1)
@@ -742,7 +677,7 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
       have hc : (Atom.mul (sHis w) (sHis (w + 1)) (sPower 8)).Holds rd σ1 := by
         show σ1 (sHis w) = σ1 (sHis (w + 1)) * σ1 (sPower 8)
         have h1 := hE1 σ1 he1
-        rw [h1.2.2.1 w (by omega), h1.2.2.1 (w + 1) (by omega), h1.2.2.2 8 (by omega), hpow8,
+        rw [h1.2.1 w (by omega), h1.2.1 (w + 1) (by omega), h1.2.2 8 (by omega), hpow8,
           hhs w (by omega), hk, eOfNat_zero, add_zero]
       exact (check_complete hc _).mono le_rfl le_rfl (fun σ' e => by
         subst e; exact hkeep σ' σ' (fun _ _ => rfl) hp1)
@@ -754,13 +689,13 @@ theorem lxArmT_complete {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4) {cur 
         (fun σ2 he2 hh2 => ?_)
       have hm : σ2 (.n (lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1) = σ2 (sHis (w + 1)) * σ2 (sPower 8) :=
         hh2.atom (a := .mul _ _ _) (by simp [mulS])
-      have hcst : σ2 (.n ((lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1 + 1)) = word (lxWin L w) 0 0 :=
+      have hcst : σ2 (.n ((lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1 + 1)) = word (lxWin L w) 0 :=
         hh2.atom (a := .const _ _) (by simp [cst])
       have h2 : LxEnv L σ2 := h1.congr fun j hj => he2.apply (Or.inl (by omega))
       have hc : (Atom.add (sHis w) (.n (lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1)
           (.n ((lxLevelsT w (lxWin L w) outO 8 0 cur b).2.1 + 1))).Holds rd σ2 := by
         show σ2 (sHis w) = σ2 (.n _) + σ2 (.n _)
-        rw [hm, hcst, h2.2.2.1 w (by omega), h2.2.2.1 (w + 1) (by omega), h2.2.2.2 8 (by omega), hpow8,
+        rw [hm, hcst, h2.2.1 w (by omega), h2.2.1 (w + 1) (by omega), h2.2.2 8 (by omega), hpow8,
           word_eq_eOfNat]
         exact hhs w (by omega)
       exact (check_complete hc _).mono le_rfl le_rfl (fun σ' e => by
@@ -824,14 +759,12 @@ theorem lxArm_O (w k b : Nat) :
   · simp only [h0, ↓reduceIte, lxArmO_some]
 
 /-- **A window completes** by the honest arm `lxWin L w`, its range check against `g^255`, level
-`r`'s sibling `sibs r`: the siblings where the arm hints them, its node canonical. -/
+`r`'s sibling `sibs r`: the siblings where the arm hints them. -/
 theorem lxWindowT_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4)
     {cur : V} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hwin : σ (sWin w) = ofK (addressOfIndex (lxWin L w)))
-    (hb : 103 ≤ b) (hcur : NBv b cur) (hcc : IsCanonical128 (σ cur)) (sibs : Nat → E)
-    (hsc : ∀ r < 8, IsCanonical128 (sibs r)) :
+    (hb : 103 ≤ b) (hcur : NBv b cur) (sibs : Nat → E) :
     Completes C rd b (lxWindowT w cur b).2.1 (lxWindowT w cur b).1 σ
-      (fun σ' => (∀ r < 8, lxSibF σ' w (lxArmB w 0 (lxWin L w) (b + 5)) r = sibs r) ∧
-        IsCanonical128 (σ' (.n (lxWindowT w cur b).2.2))) := by
+      (fun σ' => ∀ r < 8, lxSibF σ' w (lxArmB w 0 (lxWin L w) (b + 5)) r = sibs r) := by
   have hk := lxWin_lt L w
   obtain ⟨p1, p2, p3, p4⟩ := lxArm_place w hk b
   have hsw : NBv b (sWin w) := ⟨71 + w, by omega, rfl⟩
@@ -858,14 +791,14 @@ theorem lxWindowT_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : 
   have hE2 : LxEnv L σ2 := hE.congr fun j hj => hσ2 j (by omega)
   have harm := lxArmT_complete (C := C) (rd := rd) hL hw (cur := .n jc)
     (outO := if lxWin L w = 0 then none else some (lxOut0 w (b + 5))) (b := lxArmB w 0 (lxWin L w) (b + 5))
-    σ2 hE2 (by omega) ⟨jc, by omega, rfl⟩ (by rw [hσ2 jc hjc]; exact hcc)
+    σ2 hE2 (by omega) ⟨jc, by omega, rfl⟩
     (fun o ho => by
       by_cases h0 : lxWin L w = 0
       · simp [h0] at ho
       · simp only [h0, ↓reduceIte, Option.some.injEq] at ho
         subst ho
         exact ⟨by have := (lxOut0_size w (b + 5)).2; omega, p4 h0,
-          notInR_of (by have := (lxOut0_size w (b + 5)).2; omega)⟩) sibs hsc
+          notInR_of (by have := (lxOut0_size w (b + 5)).2; omega)⟩) sibs
   rw [lxArm_O, lxArmT_next'] at harm
   have := (lxOut0_size w (b + 5)).2
   exact harm.toC (by omega) (by omega) p2 p3
@@ -924,15 +857,13 @@ theorem lxMFold_add (pp : E) (A : Nat → E) (bits : Nat → Bool) (sibs : Nat �
 `lxNodeAddr L w r`, the bits `8w + r` of `L`, the hinted siblings. -/
 theorem lxWindowT_complete_fold (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {w : Nat} (hw : w < 4)
     {cur : V} {b : Nat} (σ : Val) (hE : LxEnv L σ) (hwin : σ (sWin w) = ofK (addressOfIndex (lxWin L w)))
-    (hb : 103 ≤ b) (hcur : NBv b cur) (hcc : IsCanonical128 (σ cur)) (sibs : Nat → E)
-    (hsc : ∀ r < 8, IsCanonical128 (sibs r)) :
+    (hb : 103 ≤ b) (hcur : NBv b cur) (sibs : Nat → E) :
     Completes C rd b (lxWindowT w cur b).2.1 (lxWindowT w cur b).1 σ
       (fun σ' => (∀ r < 8, lxSibF σ' w (lxArmB w 0 (lxWin L w) (b + 5)) r = sibs r) ∧
         σ' (.n (lxWindowT w cur b).2.2) =
-          mFold (σ sLxPP) (lxNodeAddr L w) (fun r => L.testBit (8 * w + r)) sibs 8 0 (σ cur) ∧
-        IsCanonical128 (σ' (.n (lxWindowT w cur b).2.2))) := by
-  obtain ⟨σ', he, ⟨hs, hc⟩, hh⟩ := lxWindowT_complete (C := C) hm hL hw σ hE hwin hb hcur hcc sibs hsc
-  refine ⟨σ', he, ⟨hs, ?_, hc⟩, hh⟩
+          mFold (σ sLxPP) (lxNodeAddr L w) (fun r => L.testBit (8 * w + r)) sibs 8 0 (σ cur)) := by
+  obtain ⟨σ', he, hs, hh⟩ := lxWindowT_complete (C := C) hm hL hw σ hE hwin hb hcur sibs
+  refine ⟨σ', he, ⟨hs, ?_⟩, hh⟩
   have hlo : ∀ j < b, σ' (.n j) = σ (.n j) := fun j hj => he.apply (Or.inl hj)
   have hE' : LxEnv L σ' := hE.congr fun j hj => hlo j (by omega)
   obtain ⟨-, k, hk, hx, -, hout⟩ := lxWindowT_sound (C := C) (rd := rd) (rest := []) (next := True)
@@ -949,8 +880,8 @@ theorem lxWindowT_complete_fold (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) 
   rw [hout, show sLxPP = .n 66 from rfl, hlo 66 (by omega), hlo jc hjc]
   refine mFold_congr' 8 0 0 _ fun j hj => ⟨?_, ?_, ?_⟩
   · simp only [Nat.zero_add, lxAtF]
-    rw [hE'.2.2.2 (7 - j) (by omega), gen_pow_eq_eOfNat (by omega)]
-    exact lx_at hL (his := fun v => σ' (sHis v)) hE'.2.2.1 hw hj
+    rw [hE'.2.2 (7 - j) (by omega), gen_pow_eq_eOfNat (by omega)]
+    exact lx_at hL (his := fun v => σ' (sHis v)) hE'.2.1 hw hj
   · simp [lxBitF, lx_bit L w j hj]
   · simp only [Nat.zero_add]; exact hs j hj
 
@@ -968,11 +899,11 @@ theorem lxArmSize_ge (w k : Nat) : lxStride w * 7 + 3 ≤ lxArmSize w k := by
 
 /-- **A layer's two windows complete** (`2 · layer`, then `2 · layer + 1` on its node), the hinted
 siblings `sibs l` of its sixteen levels where the arms hint them: the node is the layer's path fold
-`xFold` over the index, canonical. -/
+`xFold` over the index. -/
 theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {layer : Nat} (hlay : layer < 2)
     {cur : V} {b0 : Nat} (σ : Val) (hE : LxEnv L σ)
     (hwin : ∀ w < 4, σ (sWin w) = ofK (addressOfIndex (lxWin L w))) (hb : 103 ≤ b0) (hcur : NBv b0 cur)
-    (hcc : IsCanonical128 (σ cur)) (sibs : Nat → E) (hsc : ∀ l < 16, IsCanonical128 (sibs l)) :
+    (sibs : Nat → E) :
     Completes C rd b0
       (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2) (lxWindowT (2 * layer) cur b0).2.1).2.1
       ((lxWindowT (2 * layer) cur b0).1 ++
@@ -982,9 +913,7 @@ theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {laye
             ((lxWindowT (2 * layer) cur b0).2.1 + 5)) r = sibs (8 + r)) ∧
         σ' (.n (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
             (lxWindowT (2 * layer) cur b0).2.1).2.2) =
-          xFold (σ sLxPP) (lxLayerA L layer) (lxLayerBit L layer) sibs 16 (σ cur) ∧
-        IsCanonical128 (σ' (.n (lxWindowT (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
-            (lxWindowT (2 * layer) cur b0).2.1).2.2))) := by
+          xFold (σ sLxPP) (lxLayerA L layer) (lxLayerBit L layer) sibs 16 (σ cur)) := by
   set W0 := lxWindowT (2 * layer) cur b0 with hW0
   have hw0 : 2 * layer < 4 := by omega
   have hw1 : 2 * layer + 1 < 4 := by omega
@@ -996,18 +925,17 @@ theorem lxWindows_complete (hm : MemOK rd 256) {L : Nat} (hL : L < 2 ^ 32) {laye
   have hend1 := lxArmB_ge (2 * layer + 1) 0 256 (W0.2.1 + 5)
   rw [← lxWindowT_snd (2 * layer + 1) (.n W0.2.2) W0.2.1] at hend1
   refine Completes.append (m := W0.2.1) (by omega) (by omega) (lxWindowT_numBelow hw0 hb hcur)
-    (lxWindowT_complete_fold (C := C) hm hL hw0 σ hE (hwin _ hw0) hb hcur hcc sibs
-      (fun r hr => hsc r (by omega))) (fun σ1 he1 ⟨hs0, hv0, hc0⟩ => ?_)
+    (lxWindowT_complete_fold (C := C) hm hL hw0 σ hE (hwin _ hw0) hb hcur sibs)
+    (fun σ1 he1 ⟨hs0, hv0⟩ => ?_)
   have hlo1 : ∀ j < b0, σ1 (.n j) = σ (.n j) := fun j hj => he1.apply (Or.inl hj)
   have hE1 : LxEnv L σ1 := hE.congr fun j hj => hlo1 j (by omega)
   have hW02 : W0.2.2 < W0.2.1 := by omega
   have hW01 : 103 ≤ W0.2.1 := by omega
-  obtain ⟨σ2, he2, ⟨hs1, hv1, hc1⟩, hh2⟩ := lxWindowT_complete_fold (C := C) (cur := .n W0.2.2) (b := W0.2.1)
+  obtain ⟨σ2, he2, ⟨hs1, hv1⟩, hh2⟩ := lxWindowT_complete_fold (C := C) (cur := .n W0.2.2) (b := W0.2.1)
     hm hL hw1 σ1 hE1
     (by rw [show sWin (2 * layer + 1) = .n (71 + (2 * layer + 1)) from rfl, hlo1 _ (by omega)];
-        exact hwin _ hw1) hW01 ⟨W0.2.2, hW02, rfl⟩ hc0 (fun r => sibs (8 + r))
-    (fun r hr => hsc _ (by omega))
-  refine ⟨σ2, he2, ⟨fun r hr => ⟨?_, hs1 r hr⟩, ?_, hc1⟩, hh2⟩
+        exact hwin _ hw1) hW01 ⟨W0.2.2, hW02, rfl⟩ (fun r => sibs (8 + r))
+  refine ⟨σ2, he2, ⟨fun r hr => ⟨?_, hs1 r hr⟩, ?_⟩, hh2⟩
   · have hc := lxSibCell_last (w := 2 * layer) hr (lxArmB (2 * layer) 0 (lxWin L (2 * layer)) (b0 + 5))
     have := lxArmSize_ge (2 * layer) (lxWin L (2 * layer))
     have hlt : lxSibCell (2 * layer) r (lxArmB (2 * layer) 0 (lxWin L (2 * layer)) (b0 + 5) +
@@ -1071,9 +999,9 @@ theorem lxWindowsC : LxWindowsC := by
   obtain ⟨h1, h2⟩ := lxWindowT_out_lt (2 * layer) cur b0
   obtain ⟨h3, h4⟩ := lxWindowT_out_lt (2 * layer + 1) (.n (lxWindowT (2 * layer) cur b0).2.2)
     (lxWindowT (2 * layer) cur b0).2.1
-  refine ⟨by omega, lxWindows_numBelow hlay hb hcur, fun σ hpad hpp hcc hhis hwin hpow sibs hsc => ?_⟩
-  refine (lxWindows_complete (C := C) hm hL hlay σ ⟨hpad, hpp, hhis, hpow⟩ hwin hb hcur hcc sibs hsc).mono
-    le_rfl le_rfl (fun σ' ⟨hs, _, hc⟩ => ⟨hc, fun σ'' hag => ⟨fun r hr => ?_, fun r hr => ?_⟩⟩)
+  refine ⟨by omega, lxWindows_numBelow hlay hb hcur, fun σ hpad hhis hwin hpow sibs => ?_⟩
+  refine (lxWindows_complete (C := C) hm hL hlay σ ⟨hpad, hhis, hpow⟩ hwin hb hcur sibs).mono
+    le_rfl le_rfl (fun σ' ⟨hs, _⟩ σ'' hag => ⟨fun r hr => ?_, fun r hr => ?_⟩)
   · have := lxSibCell_window (w := 2 * layer) (lxWin_lt L (2 * layer)) hr cur b0
     rw [lxSibOf, lxSibF, ← hag _ (by omega)]
     exact (hs r hr).1

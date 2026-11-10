@@ -80,7 +80,7 @@ def armT (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
   let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
     (if fold then b + 1 else b)
   let enc0 := if fold then V.n b else encIn
-  let pre := if fold then [cst b (word 0 0 0)] else []
+  let pre := if fold then [cst b (word 0 0)] else []
   let prod := if fold then copyS prodOut (W.power (digitSum k n))
     else mulS prodOut prodIn (W.power (digitSum k n))
   if k = 0 then (pre ++ ws.1 ++ [prod, copyS encOut enc0], ws.2)
@@ -109,7 +109,7 @@ def encT (W : WotsT) (fold : Bool) (n b : Nat) : V := .n (groupStart fold b + ch
 /-- The `2^63` a group sets above its dispatch: the compiler hoists the arms' common constants
 (the two-to-one closing lane of `walk`'s one-block `keccak`) above an all-`@inline` `match`; the
 arms set their own, so this one is unread. -/
-def closeLane : E := word (2 ^ 63) 0 0
+def closeLane : E := word (2 ^ 63) 0
 
 /-- The `4^n` arms of a group laid out from base `b`: arm `0` from `b + 6`. -/
 def groupArmsT (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
@@ -122,7 +122,7 @@ digit hint, its range check, the statements `pre`, the hoisted constant at `b + 
 over the `4^n` digit values; the statements and the next base. -/
 def groupD (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d : Nat) (pre : List Stmt)
     (b : Nat) : List Stmt × Nat :=
-  (hintW "digits" [.n d] :: rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0 0) (d + 1) ++ pre ++
+  (hintW "digits" [.n d] :: rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0) (d + 1) ++ pre ++
     [cst (b + 5) closeLane, .match_ (.n d) (groupArmsT W first n fold prodIn encIn b).1],
     (groupArmsT W first n fold prodIn encIn b).2)
 
@@ -168,7 +168,7 @@ def merkleT (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V)
       let rest := merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)
       ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
           addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
-          cst (b + 4) (word (addrOf l) 0 0)] ++
+          cst (b + 4) (word (addrOf l) 0)] ++
         (match nodeOf l with
           | none => []
           | some nd => [addS (.n (b + 5)) (.n (b + 4)) nd]) ++

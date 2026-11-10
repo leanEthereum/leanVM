@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B2C
 
 /-- A cell's word, fixed for the function: a `SET` immediate's limbs, or `fp · g^e`. -/
 inductive PC where
-  | k (k0 k1 k2 : ℕ)
+  | k (k0 k1 : ℕ)
   | fpg (e : ℕ)
   deriving DecidableEq, Repr
 
@@ -67,7 +67,7 @@ structure Snap where
   win : ℕ
   occ : ℕ
   named : List ℕ
-  cst : List (ℕ × ℕ × ℕ × ℕ)
+  cst : List (ℕ × ℕ × ℕ)
   keys : List (ℕ × ℕ × List ℕ)
   deriving Repr
 

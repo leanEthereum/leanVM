@@ -22,11 +22,10 @@ of leaf `v` (the program's `row.reverse.map ofK`). Its code is the novel-basis R
 `iList C₀ A (laneWord μ R W)`.
 
 * `isInK_of_agree`: a codeword of the `E`-code whose entries lie in `K` on at least `2^κ`
-  coordinates has a `K`-valued message. The message's limbs `1` and `2` encode `K`-codewords
-  vanishing on those coordinates (Annex B's remark: "limbs 1, 2 are codewords agreeing with `0` on
-  more than `2^κ − 1` points"), hence vanish.
+  coordinates has a `K`-valued message. The message's limb `1` encodes a `K`-codeword vanishing
+  on those coordinates, hence vanishes.
 * `exists_candidate_of_mem_iList`: **every list member is the encoding of a candidate**, for a
-  threshold `A ≥ 2^(μ−6)` (every Johnson threshold is: `LevelCode.two_pow_le_thr`).
+  threshold `A ≥ 2^(μ−6)` (the deployed thresholds are).
 * `mem_iList_of_candidate`: conversely, the encoding of a candidate is a list member.
 * `encStack_injective`: the encoding determines the stack, so list members and candidates are in
   bijection.
@@ -65,12 +64,11 @@ section Limbs
 variable {κ R : ℕ}
 
 /-- The limb `i` of a message, as a `K`-valued message. -/
-def msgLimb (g : (Fin κ → Bool) → E) (i : Fin 3) : (Fin κ → Bool) → K := fun u ↦ (g u).limb i
+def msgLimb (g : (Fin κ → Bool) → E) (i : Fin 2) : (Fin κ → Bool) → K := fun u ↦ (g u).limb i
 
-/-- A message is the sum of its limbs in the basis `1, y, y²`. -/
+/-- A message is the sum of its limbs in the basis `1, y`. -/
 theorem msg_eq_limbs (g : (Fin κ → Bool) → E) :
-    g = (fun u ↦ ofK (msgLimb g 0 u)) + y • (fun u ↦ ofK (msgLimb g 1 u)) +
-      (y ^ 2) • (fun u ↦ ofK (msgLimb g 2 u)) := by
+    g = (fun u ↦ ofK (msgLimb g 0 u)) + y • (fun u ↦ ofK (msgLimb g 1 u)) := by
   funext u
   simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, msgLimb]
   conv_lhs => rw [E.eq_sum_limbs (g u)]
@@ -79,15 +77,14 @@ theorem msg_eq_limbs (g : (Fin κ → Bool) → E) :
 /-- The encoding of a message, limb by limb: limb `i` of a codeword entry is the `K`-encoding of
 limb `i` of the message. -/
 theorem enc_eq_ofLimbs (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) :
-    enc κ R g v = E.ofLimbs (encK κ R (msgLimb g 0) v) (encK κ R (msgLimb g 1) v)
-      (encK κ R (msgLimb g 2) v) := by
+    enc κ R g v = E.ofLimbs (encK κ R (msgLimb g 0) v) (encK κ R (msgLimb g 1) v) := by
   conv_lhs => rw [msg_eq_limbs g]
-  rw [map_add, map_add, map_smul, map_smul, enc_ofK, enc_ofK, enc_ofK, ofLimbs_eq]
+  rw [map_add, map_smul, enc_ofK, enc_ofK, ofLimbs_eq]
   simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
 /-- Limb `i` of a codeword entry is the `K`-encoding of limb `i` of the message. -/
-theorem limb_enc (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) (i : Fin 3) :
+theorem limb_enc (g : (Fin κ → Bool) → E) (v : Fin (2 ^ (κ + R))) (i : Fin 2) :
     (enc κ R g v).limb i = encK κ R (msgLimb g i) v := by
   rw [enc_eq_ofLimbs, limb_ofLimbs]
   fin_cases i <;> rfl
@@ -111,10 +108,8 @@ theorem isInK_of_agree (h : κ + R ≤ 64) (g : (Fin κ → Bool) → E)
     (S : Finset (Fin (2 ^ (κ + R)))) (hS : 2 ^ κ ≤ S.card) (hK : ∀ v ∈ S, IsInK (enc κ R g v)) :
     ∀ u, IsInK (g u) := by
   have h1 := eq_zero_of_encK_vanish h (msgLimb g 1) S hS fun v hv ↦ by
-    rw [← limb_enc]; exact (hK v hv).1
-  have h2 := eq_zero_of_encK_vanish h (msgLimb g 2) S hS fun v hv ↦ by
-    rw [← limb_enc]; exact (hK v hv).2
-  exact fun u ↦ ⟨congrFun h1 u, congrFun h2 u⟩
+    rw [← limb_enc]; exact hK v hv
+  exact fun u ↦ congrFun h1 u
 
 end Limbs
 

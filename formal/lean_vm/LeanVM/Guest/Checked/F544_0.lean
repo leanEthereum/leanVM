@@ -17,35 +17,35 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop102`, window 0. -/
+/-- `__loop58`, window 0. -/
 theorem w544_0 : WinOk 544 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_merkle_cap__L4`, window 0. -/
+/-- `opening_message__L8_L1`, window 0. -/
 theorem w545_0 : WinOk 545 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L18_L4`, window 0. -/
+/-- `__loop59`, window 0. -/
 theorem w546_0 : WinOk 546 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L18_L4`, window 1. -/
-theorem w546_1 : WinOk 546 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop103`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L2_L208_L8_L3_L1`, window 0. -/
 theorem w547_0 : WinOk 547 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop104`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L2_L208_L8_L3_L1`, window 1. -/
+theorem w547_1 : WinOk 547 1 := winOk_of_C (by decide +kernel)
+
+/-- `fold_final_msg__L2`, window 0. -/
 theorem w548_0 : WinOk 548 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop105`, window 0. -/
+/-- `__loop60`, window 0. -/
 theorem w549_0 : WinOk 549 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop106`, window 0. -/
+/-- `__loop61`, window 0. -/
 theorem w550_0 : WinOk 550 0 := winOk_of_C (by decide +kernel)
 
 theorem ok544 : CheckOk 544 := checkOk_one (by decide +kernel) w544_0
 
 theorem ok545 : CheckOk 545 := checkOk_one (by decide +kernel) w545_0
 
-theorem ok547 : CheckOk 547 := checkOk_one (by decide +kernel) w547_0
+theorem ok546 : CheckOk 546 := checkOk_one (by decide +kernel) w546_0
 
 theorem ok548 : CheckOk 548 := checkOk_one (by decide +kernel) w548_0
 

@@ -1,19 +1,26 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesComplete1
 
-  The completeness of a query's row: its packs and its dot product hold at the honest values.
+  The completeness of one query's row: its packs, its padding run, its fold and, at the final
+  level, its check, at the honest values.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesHonest
+public import LeanVM.Guest.B1.Opening.QueriesW
 
 /-!
 # A query's row, completeness
 
-With the valuation `σ` the honest values `d.val` on the query's range (`hv`) and the weights in
-memory at `wp`, every atom of the packs (`oqPacks_complete`), of the dot product
-(`oqDot_complete`) and of the padding run (`oqPad_complete`) holds.
+With the valuation `σ` the honest values `d.val` on the query's range (`d.Hv σ`):
+
+* `oqPacks_complete`: every atom of the packs (level 0);
+* `oqPad_complete`: of the padding run, when emitted;
+* `oqFold_complete`: of the fold, the rounds in memory at `coefs` (`RoundsAt`), the point `x`,
+  no combiner `t_j` zero;
+* `oqFin_complete`: of the final check, the coefficients at `hs` (`WordsAt`), the fold's value
+  their novel sum over the chain (`finEq`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -23,287 +30,481 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
+/-- `novel_eval`'s later levels' statements' next free value is past their first. -/
+theorem nvLevelsT_ge {ws : ℕ → ℕ} : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ), k ≤ (nvLevelsT ws c i ins k).2.2 := by
+  intro c i ins k
+  rw [QD.nvLevelsT_next (fun _ ↦ 0) c i ins (ins.map fun _ ↦ 0) k (by simp)]
+  omega
+
 namespace QD
 
 variable (d : QD) {rd : Reader} {σ : Val}
 
-/-- The query's places in order. -/
-theorem places : d.b + d.s.R ≤ d.k1 ∧ d.k1 + d.s.D ≤ d.kL ∧ d.kL + d.s.chainLen = d.ch ∧
-    d.kL + 25 ≤ d.ch ∧ d.e = d.ch :=
-  ⟨by rw [k1_eq]; omega, le_kL d, (ch_eq d).symm, by rw [ch_eq]; unfold Oq.chainLen; omega,
-    e_eq d⟩
+/-! ## The places -/
 
-theorem partV_zero (h : ℕ) : d.partV h 0 = d.W (d.s.lo * h) * d.w 0 := by
-  simp [partV]
+theorem b_le_ch : d.b ≤ d.ch := by rw [ch_off]; omega
 
-theorem partV_succ (h l : ℕ) :
-    d.partV h (l + 1) = d.partV h l + d.W (d.s.lo * h + (l + 1)) * d.w (l + 1) := by
-  unfold partV; rw [foldl_range_succ]
+theorem ch_le_v : d.ch ≤ d.v := by rw [v_eq]; omega
 
-theorem dotAfterV_zero : d.dotAfterV 0 = d.w (d.s.lo + 0) * d.partV 0 (d.s.lo - 1) := by
-  simp [dotAfterV]
+theorem v_lt_oqNovel (s : Oq) (hs : V) (v : ℕ) : v < (oqNovel s hs v).2.2 := by
+  simp only [oqNovel]
+  exact lt_of_lt_of_le (by omega) (nvLevelsT_ge _ _ _ _)
 
-theorem dotAfterV_succ (h : ℕ) :
-    d.dotAfterV (h + 1) = d.dotAfterV h + d.w (d.s.lo + (h + 1)) * d.partV (h + 1) (d.s.lo - 1) := by
-  unfold dotAfterV; rw [foldl_range_succ]
+theorem v_lt_e : d.v < d.e := by
+  show d.v < oqRes d.s d.b d.emit + 1
+  unfold oqRes
+  split
+  · exact Nat.lt_succ_of_lt (v_lt_oqNovel _ _ _)
+  · exact Nat.lt_succ_self _
 
-theorem pk_eq (j : ℕ) :
-    d.pk j = E.ofLimbs (d.row.getD (2 * j) 0) (d.row.getD (2 * j + 1) 0) 0 := by
-  rw [pk, rw, rw, word_y, ofK_add_y_mul_ofK]
-
-theorem rw_inK (j : ℕ) : IsInK (d.rw j) := ofK_isInK _
-
-theorem W_base1 (hb : d.s.base = 1) (jw : ℕ) : d.W jw = d.rw jw := by
-  simp [W, rowWord, hb, QD.rw]
-
-theorem W_even (hb : d.s.base = 0) {jw : ℕ} (he : jw % 2 = 0) :
-    d.W jw = d.pk (3 * jw / 2) + word 0 0 1 * d.rw (3 * jw + 2) := by
-  rw [pk_eq, show 2 * (3 * jw / 2) = 3 * jw by omega, word_yy, QD.rw, add_y_mul_y_mul_ofK]
-  simp [W, rowWord, hb]
-
-theorem W_odd (hb : d.s.base = 0) {jw : ℕ} (ho : jw % 2 = 1) :
-    d.W jw = d.rw (3 * jw) + word 0 1 0 * d.pk ((3 * jw + 1) / 2) := by
-  rw [pk_eq, show 2 * ((3 * jw + 1) / 2) = 3 * jw + 1 by omega, word_y, QD.rw,
-    ofK_add_y_mul_ofLimbs]
-  simp [W, rowWord, hb]
+/-- The query's index `i` before the fold's value. -/
+theorem hv_of {σ : Val} (hv : d.Hv σ) {i : ℕ} (h1 : d.b ≤ i) (h2 : i ≤ d.v) : σ (.n i) = d.val i :=
+  hv i h1 (by have := d.v_lt_e; omega)
 
 /-! ## The packs -/
 
-theorem oqPacks_complete (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) :
-    ∀ a, Stmt.atom a ∈ oqPacksT d.b d.s.R → a.Holds rd σ := by
-  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
+theorem oqPacks_complete (hb : d.s.base = 1) (hv : d.Hv σ) :
+    ∀ a, Stmt.atom a ∈ oqPacksT d.b d.s.I → a.Holds rd σ := by
+  have hk1 := d.k1_eq
+  have hc := d.ch_off
+  have hcv := d.ch_le_v
+  have hpl : d.packVals.length = 3 * (d.s.I / 2) := by rw [packVals_length]; simp [hb]
+  have hrl := d.rowVals_length
   intro a ha
   simp only [oqPacksT, List.mem_flatten, List.mem_map, List.mem_range] at ha
   obtain ⟨_, ⟨j, hj, rfl⟩, ha⟩ := ha
-  have hk := k1_eq d
-  have r0 : σ (.n (d.b + 2 * j)) = d.rw (2 * j) := by
-    rw [hv _ (by omega) (by omega), val_row d (by omega)]
-  have r1 : σ (.n (d.b + 2 * j + 1)) = d.rw (2 * j + 1) := by
-    rw [hv _ (by omega) (by omega), Nat.add_assoc, val_row d (by omega)]
-  have v : ∀ t < 3, σ (.n (d.b + d.s.R + 3 * j + t)) =
-      [word 0 1 0, word 0 1 0 * d.rw (2 * j + 1), d.pk j].getD t 0 := fun t ht => by
-    rw [hv _ (by omega) (by omega), val_pack d hj ht]
-  have v0 := v 0 (by omega); have v1 := v 1 (by omega); have v2 := v 2 (by omega)
-  simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2
+  have r0 : σ (.n (d.b + 2 * j)) = d.cell (2 * j) := by
+    rw [d.hv_of hv (by omega) (by omega), val_row d (by omega)]
+  have r1 : σ (.n (d.b + 2 * j + 1)) = d.cell (2 * j + 1) := by
+    rw [d.hv_of hv (by omega) (by omega), Nat.add_assoc, val_row d (by omega)]
+  have vt : ∀ t < 3, σ (.n (d.b + d.s.I + 3 * j + t)) = (d.packV j).getD t 0 := fun t ht => by
+    rw [d.hv_of hv (by omega) (by omega), val_pack d hb hj ht]
+  have v0 := vt 0 (by omega); have v1 := vt 1 (by omega); have v2 := vt 2 (by omega)
+  simp only [packV, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2
+  have hcell : ∀ i, d.cell i = ofK (d.row.getD i 0) := fun i ↦ by simp [cell, hb]
   simp only [oqPackT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
   rcases ha with rfl | rfl | rfl | rfl
-  · exact ⟨by rw [r0]; exact rw_inK d _, by rw [r1]; exact rw_inK d _⟩
+  · exact ⟨by rw [r0, hcell]; exact ofK_isInK _, by rw [r1, hcell]; exact ofK_isInK _⟩
   · exact v0
   · show σ _ = σ _ * σ _
     rw [v1, v0, r1]
   · show σ _ = σ _ + σ _
-    rw [v2, r0, v1, pk]
-
-/-! ## The dot product -/
-
-theorem dot_idx (hs : d.s.RowShape) {h l o : ℕ} (hh : h < d.s.I / d.s.lo) (hl : l < d.s.lo)
-    (ho : o < (if l = 0 then 2 + d.s.tsz else 3 + d.s.tsz)) :
-    gsOff d.s.G h + tsOff d.s.tsz l + o < d.s.D := by
-  unfold gsOff tsOff
-  rcases shape_nums hs with ⟨-, hI, ht, hlo, hG, -, hD, -⟩ | ⟨-, hI, ht, hlo, hG, -, hD, -⟩ <;>
-    simp only [hI, ht, hlo, hG, hD] at hh hl ho ⊢ <;> split <;> split <;> split at ho <;> omega
-
-theorem tail_idx (hs : d.s.RowShape) {h o : ℕ} (hh : h < d.s.I / d.s.lo)
-    (ho : o < (if h = 0 then 2 else 3)) : gsOff d.s.G h + (d.s.G - 2 + o) < d.s.D := by
-  unfold gsOff
-  rcases shape_nums hs with ⟨-, hI, -, hlo, hG, -, hD, -⟩ | ⟨-, hI, -, hlo, hG, -, hD, -⟩ <;>
-    simp only [hI, hlo, hG, hD] at hh ho ⊢ <;> split <;> split at ho <;> omega
-
-theorem oqDot_complete (hs : d.s.RowShape) {wp : V}
-    (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i)
-    (hw : ∀ l < d.s.lo + d.s.I / d.s.lo, LoadHolds rd (σ wp) l (d.w l)) :
-    ∀ a, Stmt.atom a ∈ oqDotT d.s wp d.b → a.Holds rd σ := by
-  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
-  have hk := k1_eq d
-  have hlo : d.s.lo = 8 := by rcases shape_nums hs with h | h <;> exact h.2.2.2.1
-  have hR : ∀ jw, jw < d.s.I → (d.s.base = 1 → jw < d.s.R) ∧ (d.s.base = 0 → 3 * jw + 2 < d.s.R) :=
-    fun jw hjw => by
-      rcases shape_nums hs with ⟨hb, hI, -, -, -, hR, -⟩ | ⟨hb, hI, -, -, -, hR, -⟩ <;>
-        simp only [hb, hI, hR] at hjw ⊢ <;> omega
-  have hIlo : ∀ h l, h < d.s.I / d.s.lo → l < d.s.lo → d.s.lo * h + l < d.s.I := fun h l hh hl => by
-    rcases shape_nums hs with ⟨-, hI, -, hlo', -⟩ | ⟨-, hI, -, hlo', -⟩ <;>
-      simp only [hI, hlo'] at hh hl ⊢ <;> omega
-  -- σ on a term, on a group's tail
-  have hterm : ∀ h < d.s.I / d.s.lo, ∀ l < d.s.lo, ∀ o < (if l = 0 then 2 + d.s.tsz else 3 + d.s.tsz),
-      σ (.n (oqTs d.s d.b h l + o)) = d.termV h l o := fun h hh l hl o ho => by
-    have := dot_idx d hs hh hl ho
-    rw [oqTs_eq, show oqK1 d.b d.s.R + gsOff d.s.G h + tsOff d.s.tsz l + o =
-        d.k1 + (gsOff d.s.G h + tsOff d.s.tsz l + o) by simp only [QD.k1]; omega,
-      hv _ (by omega) (by omega), val_dot d this, dotV_term d hs hl ho]
-  have htail : ∀ h < d.s.I / d.s.lo, ∀ o < (if h = 0 then 2 else 3),
-      σ (.n (oqGs d.s d.b h + d.s.G - 2 + o)) =
-        [d.w (d.s.lo + h), d.w (d.s.lo + h) * d.partV h (d.s.lo - 1), d.dotAfterV h].getD o 0 :=
-    fun h hh o ho => by
-      have := tail_idx d hs hh ho
-      have hG : 2 ≤ d.s.G := by rcases shape_nums hs with h | h <;> omega
-      rw [show oqGs d.s d.b h + d.s.G - 2 + o = d.k1 + (gsOff d.s.G h + (d.s.G - 2 + o)) by
-          simp only [oqGs, gsOff, show oqK1 d.b d.s.R = d.k1 from rfl]; split <;> omega,
-        hv _ (by omega) (by omega), val_dot d this, dotV_tail d hs ho]
-  -- the running sums
-  have hpart : ∀ h < d.s.I / d.s.lo, ∀ l < d.s.lo, σ (.n (oqPart d.s d.b h l)) = d.partV h l :=
-    fun h hh l hl => by
-      rcases Nat.eq_zero_or_pos l with rfl | hpos
-      · rw [show oqPart d.s d.b h 0 = oqTs d.s d.b h 0 + (d.s.tsz + 1) by simp [oqPart]; omega,
-          hterm h hh 0 hl _ (by simp only [↓reduceIte]; omega), termV]
-        simp [partV_zero]
-      · rw [show oqPart d.s d.b h l = oqTs d.s d.b h l + (d.s.tsz + 2) by
-          simp [oqPart, show l ≠ 0 by omega]; omega,
-          hterm h hh l hl _ (by simp only [show l ≠ 0 by omega, ↓reduceIte]; omega)]
-        simp [termV]
-  have hdot : ∀ h < d.s.I / d.s.lo, σ (.n (oqDotAfter d.s d.b h)) = d.dotAfterV h := fun h hh => by
-    rcases Nat.eq_zero_or_pos h with rfl | hpos
-    · rw [show oqDotAfter d.s d.b 0 = oqGs d.s d.b 0 + d.s.G - 2 + 1 by
-        have : 2 ≤ d.s.G := by rcases shape_nums hs with h | h <;> omega
-        simp [oqDotAfter]; omega, htail 0 hh 1 (by simp)]
-      simp [dotAfterV_zero]
-    · rw [show oqDotAfter d.s d.b h = oqGs d.s d.b h + d.s.G - 2 + 2 by
-        have : 2 ≤ d.s.G := by rcases shape_nums hs with h | h <;> omega
-        simp [oqDotAfter, show h ≠ 0 by omega]; omega, htail h hh 2 (by simp [show h ≠ 0 by omega])]
-      rfl
-  -- the word a term reads
-  have hword : ∀ h < d.s.I / d.s.lo, ∀ l < d.s.lo,
-      σ (.n (oqWordV d.s d.b h l)) = d.W (d.s.lo * h + l) := fun h hh l hl => by
-    by_cases hb : d.s.base = 1
-    · simp only [oqWordV, hb, ↓reduceIte]
-      rw [hv _ (by omega) (by have := (hR _ (hIlo h l hh hl)).1 hb; omega),
-        val_row d ((hR _ (hIlo h l hh hl)).1 hb), W_base1 d hb]
-    · have ht : d.s.tsz = 3 := by simp [Oq.tsz, hb]
-      simp only [oqWordV, hb, ↓reduceIte]
-      rw [hterm h hh l hl 2 (by rw [ht]; split <;> omega), termV]
-      simp only [show 2 < d.s.tsz by omega, ↓reduceIte, wordStmtV]
-      split <;> rfl
-  intro a ha
-  simp only [oqDotT, List.mem_flatten, List.mem_map, List.mem_range] at ha
-  obtain ⟨_, ⟨h, hh, rfl⟩, ha⟩ := ha
-  simp only [oqGroupT, List.mem_append, List.mem_flatten, List.mem_map, List.mem_range] at ha
-  rcases ha with (⟨_, ⟨l, hl, rfl⟩, ha⟩ | ha) | ha
-  · -- a term
-    simp only [oqTermT, List.mem_append] at ha
-    rcases ha with (ha | ha) | ha
-    · -- the word statements (deeper levels)
-      by_cases hb : d.s.base = 1
-      · simp [hb] at ha
-      · simp only [hb, ↓reduceIte] at ha
-        have hb0 : d.s.base = 0 := by
-          rcases shape_nums hs with h | h
-          · exact absurd h.1 hb
-          · exact h.1
-        have ht : d.s.tsz = 3 := by simp [Oq.tsz, hb]
-        have hT := fun o (ho : o < 3) => hterm h hh l hl o (by rw [ht]; split <;> omega)
-        have t0 := hT 0 (by omega); have t1 := hT 1 (by omega); have t2 := hT 2 (by omega)
-        simp only [termV, ht, show (0 : ℕ) < 3 by omega, show (1 : ℕ) < 3 by omega,
-          show (2 : ℕ) < 3 by omega, ↓reduceIte, wordStmtV, Nat.add_zero] at t0 t1 t2
-        have hjw := (hR _ (hIlo h l hh hl)).2 hb0
-        unfold oqWordT at ha
-        split at ha <;> rename_i he
-        · simp only [he, ↓reduceIte, List.getD_cons_zero, List.getD_cons_succ] at t0 t1 t2
-          simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-          rcases ha with rfl | rfl | rfl
-          · exact t0
-          · show σ _ = σ _ * σ _
-            rw [t1, t0, hv _ (by omega) (by omega), val_row d (by omega)]
-          · show σ _ = σ _ + σ _
-            rw [t2, t1, show oqPk d.b d.s.R (3 * (d.s.lo * h + l) / 2) =
-                d.b + d.s.R + 3 * (3 * (d.s.lo * h + l) / 2) + 2 by simp [oqPk],
-              hv _ (by omega) (by omega), val_pack d (by omega) (by omega)]
-            simp [W_even d hb0 he]
-        · have ho : (d.s.lo * h + l) % 2 = 1 := by omega
-          simp only [he, ↓reduceIte, List.getD_cons_zero, List.getD_cons_succ] at t0 t1 t2
-          simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-          rcases ha with rfl | rfl | rfl
-          · exact t0
-          · show σ _ = σ _ * σ _
-            rw [t1, t0, show oqPk d.b d.s.R ((3 * (d.s.lo * h + l) + 1) / 2) =
-                d.b + d.s.R + 3 * ((3 * (d.s.lo * h + l) + 1) / 2) + 2 by simp [oqPk],
-              hv _ (by omega) (by omega), val_pack d (by omega) (by omega)]
-            rfl
-          · show σ _ = σ _ + σ _
-            rw [t2, t1, hv _ (by omega) (by omega), val_row d (by omega), W_odd d hb0 ho]
-    · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-      rcases ha with rfl | rfl
-      · have := hterm h hh l hl d.s.tsz (by split <;> omega)
-        simp only [termV, lt_irrefl, ↓reduceIte] at this
-        show LoadHolds rd _ _ _
-        rw [this]; exact hw l (by omega)
-      · have t1 := hterm h hh l hl (d.s.tsz + 1) (by split <;> omega)
-        have t0 := hterm h hh l hl d.s.tsz (by split <;> omega)
-        simp only [termV, lt_irrefl, ↓reduceIte, show ¬ d.s.tsz + 1 < d.s.tsz by omega,
-          show d.s.tsz + 1 ≠ d.s.tsz by omega] at t1 t0
-        show σ _ = σ _ * σ _
-        rw [show oqTs d.s d.b h l + d.s.tsz + 1 = oqTs d.s d.b h l + (d.s.tsz + 1) by omega, t1,
-          hword h hh l hl, t0]
-    · split at ha
-      · simp at ha
-      · rename_i hl0
-        simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-        subst ha
-        have t2 := hterm h hh l hl (d.s.tsz + 2) (by simp only [hl0, ↓reduceIte]; omega)
-        have t1 := hterm h hh l hl (d.s.tsz + 1) (by split <;> omega)
-        simp only [termV, show ¬ d.s.tsz + 2 < d.s.tsz by omega, show d.s.tsz + 2 ≠ d.s.tsz by omega,
-          show d.s.tsz + 2 ≠ d.s.tsz + 1 by omega, show ¬ d.s.tsz + 1 < d.s.tsz by omega,
-          show d.s.tsz + 1 ≠ d.s.tsz by omega, ↓reduceIte] at t2 t1
-        show σ _ = σ _ + σ _
-        obtain ⟨l', rfl⟩ : ∃ l', l = l' + 1 := ⟨l - 1, by omega⟩
-        rw [show oqTs d.s d.b h (l' + 1) + d.s.tsz + 2 = oqTs d.s d.b h (l' + 1) + (d.s.tsz + 2) by omega,
-          t2, show oqTs d.s d.b h (l' + 1) + d.s.tsz + 1 = oqTs d.s d.b h (l' + 1) + (d.s.tsz + 1) by omega,
-          t1, Nat.add_sub_cancel, hpart h hh l' (by omega), partV_succ]
-  · -- the group's tail
-    simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-    rcases ha with rfl | rfl
-    · have := htail h hh 0 (by split <;> omega)
-      simp only [List.getD_cons_zero, Nat.add_zero] at this
-      show LoadHolds rd _ _ _
-      rw [this]; exact hw _ (by omega)
-    · have t1 := htail h hh 1 (by split <;> omega)
-      have t0 := htail h hh 0 (by split <;> omega)
-      simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at t1 t0
-      show σ _ = σ _ * σ _
-      have hG : 2 ≤ d.s.G := by rcases shape_nums hs with h | h <;> omega
-      rw [show oqGs d.s d.b h + d.s.G - 1 = oqGs d.s d.b h + d.s.G - 2 + 1 by omega, t1, t0,
-        hpart h hh _ (by omega)]
-  · split at ha
-    · simp at ha
-    · rename_i hh0
-      simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-      subst ha
-      have hG : 2 ≤ d.s.G := by rcases shape_nums hs with h | h <;> omega
-      have t2 := htail h hh 2 (by simp [hh0])
-      have t1 := htail h hh 1 (by simp [hh0])
-      simp only [List.getD_cons_zero, List.getD_cons_succ] at t2 t1
-      show σ _ = σ _ + σ _
-      obtain ⟨h', rfl⟩ : ∃ h', h = h' + 1 := ⟨h - 1, by omega⟩
-      have e2 : σ (.n (oqGs d.s d.b (h' + 1) + d.s.G)) = d.dotAfterV (h' + 1) := by
-        rw [show oqGs d.s d.b (h' + 1) + d.s.G = oqGs d.s d.b (h' + 1) + d.s.G - 2 + 2 by omega, t2]
-      have e1 : σ (.n (oqGs d.s d.b (h' + 1) + d.s.G - 1)) =
-          d.w (d.s.lo + (h' + 1)) * d.partV (h' + 1) (d.s.lo - 1) := by
-        rw [show oqGs d.s d.b (h' + 1) + d.s.G - 1 = oqGs d.s d.b (h' + 1) + d.s.G - 2 + 1 by omega,
-          t1]
-      rw [e2, e1, Nat.add_sub_cancel, hdot h' (by omega), dotAfterV_succ]
+    rw [v2, r0, v1, pk, hcell, hcell, word_y, ofK_add_y_mul_ofK]
 
 /-! ## The padding run -/
 
-theorem oqPad_complete (he : d.emit = true)
-    (hv : ∀ i, d.b ≤ i → i < d.e → σ (.n i) = d.val i) :
-    ∀ a, Stmt.atom a ∈ oqPadT (oqK1 d.b d.s.R + d.s.D) → a.Holds rd σ := by
-  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
-  have hk := k1_eq d
-  have hkL : d.kL = d.k1 + d.s.D + 5 := by rw [kL_eq, he]; rfl
-  have v : ∀ i < 5, σ (.n (d.k1 + d.s.D + i)) =
-      [word 1 0 0, word 0 0 0, word 0 0 0, word 0 0 0, word 0 0 0].getD i 0 := fun i hi => by
-    rw [hv _ (by omega) (by omega), val_pad d he hi]
+theorem oqPad_complete (he : d.emit = true) (hv : d.Hv σ) :
+    ∀ a, Stmt.atom a ∈ oqPadT (oqK1 d.s d.b) → a.Holds rd σ := by
+  have hk1 := d.k1_eq
+  have hkL := d.kL_eq
+  have hc := d.ch_eq
+  have hcv := d.ch_le_v
+  have hpl : d.padVals.length = 5 := by rw [padVals_length, he]; rfl
+  have v : ∀ i < 5, σ (.n (d.k1 + i)) =
+      [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0].getD i 0 := fun i hi => by
+    rw [d.hv_of hv (by omega) (by omega), val_pad d he hi]
   intro a ha
   simp only [oqPadT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
   rcases ha with rfl | rfl | rfl | rfl | rfl
-  · show σ (.n (d.k1 + d.s.D)) = _
+  · show σ (.n d.k1) = _
     simpa using v 0 (by omega)
-  · show σ (.n (d.k1 + d.s.D + 1)) = _
+  · show σ (.n (d.k1 + 1)) = _
     simpa using v 1 (by omega)
-  · show σ (.n (d.k1 + d.s.D + 2)) = _
+  · show σ (.n (d.k1 + 2)) = _
     simpa using v 2 (by omega)
-  · show σ (.n (d.k1 + d.s.D + 3)) = _
+  · show σ (.n (d.k1 + 3)) = _
     simpa using v 3 (by omega)
-  · show σ (.n (d.k1 + d.s.D + 4)) = _
+  · show σ (.n (d.k1 + 4)) = _
     simpa using v 4 (by omega)
+
+/-! ## The fold -/
+
+/-- The offset of round `j`'s outputs in its values. -/
+def oH (j : ℕ) : ℕ := 8 + (if j = 0 then 0 else 1)
+
+theorem roundVals_head (j : ℕ) {o : ℕ} (ho : o < 8) :
+    (d.roundVals j).getD o 0 = [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j,
+      (d.rd j).theta, word 1 0, (d.t j)⁻¹, d.r j].getD o 0 := by
+  rw [roundVals, List.append_assoc, List.getD_append _ _ _ _ (by simpa using ho)]
+
+theorem roundVals_scale {j : ℕ} (hj : j ≠ 0) : (d.roundVals j).getD 8 0 = d.scale j := by
+  rw [roundVals, List.getD_append _ _ _ _ (by simp [hj]), List.getD_append_right _ _ _ _ (by simp)]
+  simp [hj]
+
+theorem roundVals_out (j : ℕ) {m c : ℕ} (hm : m < 2 ^ (d.s.folds - 1 - j)) (hc : c < 2) :
+    (d.roundVals j).getD (oH j + (2 * m + c)) 0 = [d.r j * d.hiV j m, d.acc j m].getD c 0 := by
+  have hl : ([(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j, (d.rd j).theta, word 1 0,
+      (d.t j)⁻¹, d.r j] ++ (if j = 0 then [] else [d.scale j])).length = oH j := by
+    unfold oH; split <;> simp
+  rw [roundVals, List.getD_append_right _ _ _ _ (by rw [hl]; omega), hl, Nat.add_sub_cancel_left]
+  exact getD_flatMap_const _ (c := 2) (fun _ ↦ rfl) 0 hm hc
+
+theorem oqRO_eq (F j : ℕ) : oqRO d.s F j = oqRK d.s F j + oH j := by
+  simp only [oqRO, oH]; omega
+
+/-- **The fold's atoms hold** at the honest values, the rounds at `coefs`, the point `x`, every
+combiner nonzero. -/
+theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
+    (hR : RoundsAt rd (σ coefs) d.rounds) (hrl : d.rounds.length = d.s.folds) (hx : σ x = d.x)
+    (hnz : ∀ j < d.s.folds, d.t j ≠ 0) :
+    ∀ a, Stmt.atom a ∈ oqFoldT d.s coefs x d.b d.ch → a.Holds rd σ := by
+  have hbc := d.b_le_ch
+  have hvv := d.v_eq
+  have hrk := d.oqRK_eq d.ch
+  -- a round's value at offset `o`
+  have hvr : ∀ j < d.s.folds, ∀ o < (d.roundVals j).length,
+      σ (.n (oqRK d.s d.ch j + o)) = (d.roundVals j).getD o 0 := by
+    intro j hj o ho
+    have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
+    simp only [offOf] at h1
+    rw [d.hv_of hv (by rw [hrk]; omega) (by rw [hrk, hvv]; omega), val_round d hj ho]
+  have hlen : ∀ j, oH j + 2 * 2 ^ (d.s.folds - 1 - j) = (d.roundVals j).length := fun j ↦ by
+    rw [roundVals_length]; simp only [oH]
+  have hhead : ∀ j < d.s.folds, ∀ o < 8,
+      σ (.n (oqRK d.s d.ch j + o)) = [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j,
+        (d.rd j).theta, word 1 0, (d.t j)⁻¹, d.r j].getD o 0 := fun j hj o ho ↦ by
+    rw [hvr j hj o (by rw [← hlen]; unfold oH; split <;> omega), roundVals_head d j ho]
+  have hout : ∀ j < d.s.folds, ∀ m < 2 ^ (d.s.folds - 1 - j), ∀ c < 2,
+      σ (.n (oqRO d.s d.ch j + 2 * m + c)) = [d.r j * d.hiV j m, d.acc j m].getD c 0 := by
+    intro j hj m hm c hc
+    rw [oqRO_eq, Nat.add_assoc, Nat.add_assoc, hvr j hj _ (by rw [← hlen]; omega),
+      roundVals_out d j hm hc]
+  -- the scale after round `j`
+  have hsc : ∀ j < d.s.folds, σ (.n (oqScale d.s d.ch j)) = d.scale j := by
+    intro j hj
+    rcases j with _ | j
+    · simp only [oqScale, ↓reduceIte]
+      rw [hhead 0 hj 3 (by omega)]
+      rfl
+    · simp only [oqScale, Nat.succ_ne_zero, ↓reduceIte]
+      rw [hvr _ hj 8 (by rw [← hlen]; simp only [oH, Nat.succ_ne_zero, ↓reduceIte]; omega),
+        roundVals_scale d (Nat.succ_ne_zero j)]
+  -- the lanes round `j` reads
+  have hlohi : ∀ j < d.s.folds, ∀ m < 2 ^ (d.s.folds - 1 - j),
+      σ (.n (oqLoHi d.s d.b d.ch j m).1) + d.r j * σ (.n (oqLoHi d.s d.b d.ch j m).2) = d.acc j m ∧
+        σ (.n (oqLoHi d.s d.b d.ch j m).2) = d.hiV j m := by
+    intro j hj m hm
+    have hI : d.s.I = 2 ^ d.s.folds := rfl
+    rcases j with _ | j
+    · have h2 : 2 * m + 1 < d.s.I := by
+        rw [hI]
+        have : 2 ^ d.s.folds = 2 * 2 ^ (d.s.folds - 1) := by
+          rw [← pow_succ']; congr 1; omega
+        simp only [Nat.sub_zero] at hm; omega
+      have hrow : ∀ i < d.s.I, σ (.n (d.b + i)) = d.cell i := fun i hi ↦ by
+        rw [d.hv_of hv (by omega) (by have := d.ch_off; rw [rowVals_length] at this; omega),
+          val_row d hi]
+      simp only [oqLoHi, ↓reduceIte, hiV, acc, lane0]
+      split
+      · rw [show d.b + d.s.I - 1 - 2 * m = d.b + (d.s.I - 1 - 2 * m) by omega,
+          show d.b + d.s.I - 2 - 2 * m = d.b + (d.s.I - 2 - 2 * m) by omega, hrow _ (by omega),
+          hrow _ (by omega)]
+        exact ⟨rfl, rfl⟩
+      · rw [hrow _ (by omega), Nat.add_assoc, hrow _ (by omega)]
+        exact ⟨rfl, rfl⟩
+    · have hm2 : 2 * m + 1 < 2 ^ (d.s.folds - 1 - j) := by
+        have : 2 ^ (d.s.folds - 1 - j) = 2 * 2 ^ (d.s.folds - 1 - (j + 1)) := by
+          rw [← pow_succ']; congr 1; omega
+        omega
+      simp only [oqLoHi, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel, oqAcc, hiV, acc]
+      have e0 := hout j (by omega) (2 * m) (by omega) 1 (by omega)
+      have e1 := hout j (by omega) (2 * m + 1) hm2 1 (by omega)
+      simp only [List.getD_cons_succ, List.getD_cons_zero] at e0 e1
+      rw [e0, e1]
+      exact ⟨rfl, rfl⟩
+  intro a ha
+  rcases List.mem_append.mp ha with ha | ha
+  · simp only [List.mem_flatten, List.mem_map, List.mem_range] at ha
+    obtain ⟨_, ⟨j, hj, rfl⟩, ha⟩ := ha
+    have hRj := hR j (by rw [hrl]; exact hj)
+    have g0 := hhead j hj 0 (by omega); have g1 := hhead j hj 1 (by omega)
+    have g2 := hhead j hj 2 (by omega); have g3 := hhead j hj 3 (by omega)
+    have g4 := hhead j hj 4 (by omega); have g5 := hhead j hj 5 (by omega)
+    have g6 := hhead j hj 6 (by omega); have g7 := hhead j hj 7 (by omega)
+    simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at g0 g1 g2 g3 g4 g5 g6 g7
+    unfold oqRoundT at ha
+    dsimp only at ha
+    rcases List.mem_append.mp ha with ha | ha
+    · rcases List.mem_append.mp ha with ha | ha
+      · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+        rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+        · show LoadHolds rd _ _ _
+          rw [g0]; exact hRj.1
+        · show LoadHolds rd _ _ _
+          rw [g1]; exact hRj.2.1
+        · show σ _ = σ _ * σ _
+          rw [g2, g1, hx]
+        · show σ _ = σ _ + σ _
+          rw [g3, g0, g2]; rfl
+        · show LoadHolds rd _ _ _
+          rw [g4]; exact hRj.2.2
+        · exact g5
+        · show σ _ = σ _ * σ _
+          rw [g5, g6, g3, word_one, inv_mul_cancel₀ (hnz j hj)]
+        · show σ _ = σ _ + σ _
+          rw [g7, g4, g6]; rfl
+      · rcases j with _ | j
+        · simp at ha
+        · simp only [Nat.succ_ne_zero, ↓reduceIte, List.mem_singleton, Stmt.atom.injEq] at ha
+          subst ha
+          show σ _ = σ _ * σ _
+          rw [hvr _ hj 8 (by rw [← hlen]; simp only [oH, Nat.succ_ne_zero, ↓reduceIte]; omega),
+            roundVals_scale d (Nat.succ_ne_zero j), Nat.add_sub_cancel, hsc j (by omega), g3]
+          rfl
+    · simp only [List.mem_flatten, List.mem_map, List.mem_range] at ha
+      obtain ⟨_, ⟨m, hm, rfl⟩, ha⟩ := ha
+      have o0 := hout j hj m hm 0 (by omega)
+      have o1 := hout j hj m hm 1 (by omega)
+      simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at o0 o1
+      obtain ⟨hl1, hl2⟩ := hlohi j hj m hm
+      simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+      rcases ha with rfl | rfl
+      · show σ _ = σ _ * σ _
+        rw [o0, g7, hl2]
+      · show σ _ = σ _ + σ _
+        rw [o1, o0, ← hl1, hl2]
+  · simp only [List.mem_singleton, Stmt.atom.injEq] at ha
+    subst ha
+    show σ _ = σ _ * σ _
+    have h0 := hout (d.s.folds - 1) (by omega) 0 (by positivity) 1 (by omega)
+    simp only [List.getD_cons_succ, List.getD_cons_zero, Nat.mul_zero, Nat.add_zero] at h0
+    rw [show oqVal d.s d.ch = d.v from rfl, d.hv_of hv (by have := d.ch_le_v; omega) le_rfl, val_v,
+      hsc _ (by omega), show oqAcc d.s d.ch (d.s.folds - 1) 0 = oqRO d.s d.ch (d.s.folds - 1) + 1
+        by simp [oqAcc], h0]
+    rfl
+
+/-! ## The final check -/
+
+theorem nvLevelT_complete {w : V} : ∀ (ins : List ℕ) (k : ℕ),
+    (∀ p < ins.length, σ (.n (k + p)) =
+      (nvLevelVals (σ w) (ins.map fun u ↦ σ (.n u))).getD p 0) →
+      (∀ a, Stmt.atom a ∈ (nvLevelT w ins k).1 → a.Holds rd σ) ∧
+        (nvLevelT w ins k).2.1.map (fun u ↦ σ (.n u)) = nvPair (σ w) (ins.map fun u ↦ σ (.n u))
+  | lo :: hi :: rest, k, hval => by
+    have v0 := hval 0 (by simp)
+    have v1 := hval 1 (by simp)
+    simp only [List.map_cons, nvLevelVals, List.cons_append, List.getD_cons_zero,
+      List.getD_cons_succ, Nat.add_zero] at v0 v1
+    have ih := nvLevelT_complete (w := w) rest (k + 2) fun p hp ↦ by
+      have := hval (p + 2) (by simp; omega)
+      simpa [nvLevelVals, show k + (p + 2) = k + 2 + p by omega] using this
+    rw [nvLevelT]
+    refine ⟨fun a ha ↦ ?_, ?_⟩
+    · rcases List.mem_append.mp ha with ha | ha
+      · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+        rcases ha with rfl | rfl
+        · exact v0
+        · show σ _ = σ _ + σ _
+          rw [v1, v0]
+      · exact ih.1 a ha
+    · simp only [List.map_cons, nvPair]
+      rw [ih.2, v1]
+  | [lo], k, hval => by
+    have v0 := hval 0 (by simp)
+    simp only [List.map_cons, List.map_nil, nvLevelVals, List.getD_cons_zero, Nat.add_zero] at v0
+    refine ⟨fun a ha ↦ ?_, by simp [nvLevelT, nvPair, v0]⟩
+    simp only [nvLevelT, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    subst ha
+    exact v0
+  | [], _, _ => ⟨fun a ha ↦ by simp [nvLevelT] at ha, by simp [nvLevelT, nvPair]⟩
+
+theorem nvLevelsT_complete {ws : ℕ → ℕ} (W : ℕ → E) : ∀ (c i : ℕ) (ins : List ℕ) (k : ℕ),
+    (∀ j, i ≤ j → j < i + c → σ (.n (ws j)) = W j) →
+    (∀ p < (nvVals W c i (ins.map fun u ↦ σ (.n u))).length, σ (.n (k + p)) =
+      (nvVals W c i (ins.map fun u ↦ σ (.n u))).getD p 0) →
+      (∀ a, Stmt.atom a ∈ (nvLevelsT ws c i ins k).1 → a.Holds rd σ) ∧
+        (nvLevelsT ws c i ins k).2.1.map (fun u ↦ σ (.n u)) = nvTree W c i (ins.map fun u ↦ σ (.n u))
+  | 0, _, _, _, _, _ => ⟨fun a ha ↦ by simp [nvLevelsT] at ha, rfl⟩
+  | c + 1, i, ins, k, hws, hval => by
+    have hw : σ (.n (ws i)) = W i := hws i le_rfl (by omega)
+    have hlen := length_nvLevelVals (W i) (ins.map fun u ↦ σ (.n u))
+    have hl := nvLevelT_complete (rd := rd) (σ := σ) (w := .n (ws i)) ins k fun p hp ↦ by
+      have := hval p (by simp only [nvVals, List.length_append, hlen, List.length_map]; omega)
+      rw [this, hw, nvVals, List.getD_append _ _ _ _ (by rw [hlen]; simpa using hp)]
+    have hout := length_nvLevelT_out (w := .n (ws i)) ins k
+    have ih := nvLevelsT_complete W c (i + 1) (nvLevelT (.n (ws i)) ins k).2.1
+      (nvLevelT (.n (ws i)) ins k).2.2 (fun j h1 h2 ↦ hws j (by omega) (by omega)) fun p hp ↦ by
+        rw [hl.2, hw] at hp ⊢
+        have hlt : ins.length + p < (nvVals W (c + 1) i (ins.map fun u ↦ σ (.n u))).length := by
+          simp only [nvVals, List.length_append, hlen, List.length_map]; omega
+        have := hval (ins.length + p) hlt
+        rw [hout.2, Nat.add_assoc, this, nvVals, List.getD_append_right _ _ _ _ (by simp [hlen]),
+          hlen, List.length_map, Nat.add_sub_cancel_left]
+    rw [nvLevelsT]
+    refine ⟨fun a ha ↦ ?_, ?_⟩
+    · rcases List.mem_append.mp ha with ha | ha
+      · exact hl.1 a ha
+      · exact ih.1 a ha
+    · rw [ih.2, hl.2, hw, nvTree]
+
+/-- The final check's honest equation: the fold's value is the novel sum of the coefficients over
+the chain. -/
+def finEq : Prop := d.foldVal = novelSum d.hsv d.W d.s.nHs d.s.hsBits
+
+theorem hsv_take_eq {l : List E} {n : ℕ} (h : n ≤ l.length) :
+    l.take n = (List.range' 0 n).map fun c ↦ l.getD c 0 := by
+  refine List.ext_getElem (by simp; omega) fun i h1 h2 ↦ ?_
+  simp [List.getD_eq_getElem?_getD, show i < l.length by simp at h1; omega]
+
+/-- **The final check's atoms hold** at the honest values, the coefficients at `hs`, the fold's
+value their novel sum (`finEq`). -/
+theorem oqFin_complete {x hs : V} (hfinal : d.s.final = 1) (hfin : d.s.FinOk) (hv : d.Hv σ)
+    (hx : σ x = d.x) (hW : WordsAt rd (σ hs) d.hsv) (hlen : d.hsv.length = d.s.nHs) (heq : d.finEq) :
+    ∀ a, Stmt.atom a ∈ oqFinT d.s x hs d.v → a.Holds rd σ := by
+  obtain ⟨hev, hn2, hb1, hbm⟩ := hfin hfinal
+  have he := d.e_eq fun _ ↦ ⟨hev, by omega⟩
+  have hvv := d.v_eq
+  have hc := d.ch_off
+  have hfl := d.foldVals_length
+  set nv := nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs)) with hnv
+  have hcl := d.chainVals_length
+  have hnl := d.nv0Vals_length
+  have hfinL : d.finVals.length = 1 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length + 1 := by
+    simp only [finVals, hfinal, ↓reduceIte, List.length_append, hcl, hnl, List.length_cons,
+      List.length_nil, hnv]
+  have hvf : ∀ o < d.finVals.length, σ (.n (d.v + 1 + o)) = d.finVals.getD o 0 := fun o ho ↦ by
+    rw [hv _ (by omega) (by rw [he]; simp only [vals, List.length_append]; omega), val_fin]
+  have hfv : d.finVals = [d.x] ++ (d.chainVals ++ (d.nv0Vals ++ (nv ++ [word 0 0]))) := by
+    simp only [finVals, hfinal, ↓reduceIte, List.append_assoc, hnv]
+  -- the pieces' values
+  have fx : σ (.n (d.v + 1)) = d.x := by
+    have := hvf 0 (by omega); rw [hfv] at this; simpa using this
+  have fch : ∀ i < d.s.mu, ∀ c < 3, σ (.n (d.v + 1 + (1 + (3 * i + c)))) =
+      [word (d.s.vs.getD i 0) 0, d.W i + word (d.s.vs.getD i 0) 0, d.W (i + 1)].getD c 0 := by
+    intro i hi c hcc
+    rw [hvf _ (by omega), hfv, List.getD_append_right _ _ _ _ (by simp), List.length_singleton,
+      Nat.add_sub_cancel_left, List.getD_append _ _ _ _ (by omega), chainVals]
+    exact getD_flatMap_const _ (c := 3) (fun _ ↦ rfl) 0 hi hcc
+  have fnv0 : ∀ m < d.s.nHs / 2, ∀ c < 4, σ (.n (d.v + 1 + (1 + (3 * d.s.mu + (4 * m + c))))) =
+      [d.hsv.getD (2 * m) 0, d.hsv.getD (2 * m + 1) 0, d.W 0 * d.hsv.getD (2 * m + 1) 0,
+        d.hsv.getD (2 * m) 0 + d.W 0 * d.hsv.getD (2 * m + 1) 0].getD c 0 := by
+    intro m hm c hcc
+    rw [hvf _ (by omega), hfv, List.getD_append_right _ _ _ _ (by simp), List.length_singleton,
+      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hcl,
+      Nat.add_sub_cancel_left, List.getD_append _ _ _ _ (by omega), nv0Vals]
+    exact getD_flatMap_const _ (c := 4) (fun _ ↦ rfl) 0 hm hcc
+  have fnv : ∀ p < nv.length, σ (.n (d.v + 1 + (1 + (3 * d.s.mu + (4 * (d.s.nHs / 2) + p))))) =
+      nv.getD p 0 := by
+    intro p hp
+    rw [hvf _ (by omega), hfv, List.getD_append_right _ _ _ _ (by simp), List.length_singleton,
+      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hcl,
+      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hnl,
+      Nat.add_sub_cancel_left, List.getD_append _ _ _ _ hp]
+  have flast : σ (.n (d.v + 1 + (1 + (3 * d.s.mu + (4 * (d.s.nHs / 2) + nv.length))))) = word 0 0 := by
+    rw [hvf _ (by omega), hfv, List.getD_append_right _ _ _ _ (by simp), List.length_singleton,
+      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hcl,
+      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ (by omega), hnl,
+      Nat.add_sub_cancel_left, List.getD_append_right _ _ _ _ le_rfl, Nat.sub_self]
+    rfl
+  -- the chain's words
+  have hws : ∀ i ≤ d.s.mu, σ (.n (oqWs d.v i)) = d.W i := by
+    intro i hi
+    rcases i with _ | i
+    · simp only [oqWs, ↓reduceIte]; rw [fx]; rfl
+    · have := fch i (by omega) 2 (by omega)
+      simp only [List.getD_cons_succ, List.getD_cons_zero] at this
+      simp only [oqWs, Nat.succ_ne_zero, ↓reduceIte]
+      rw [← this]; congr 2; omega
+  have hWs : ∀ i < d.s.mu, d.W (i + 1) = d.W i * (d.W i + word (d.s.vs.getD i 0) 0) := by
+    intro i hi
+    rw [W, W, wsChain, word_eOfNat, eOfNat]
+    congr 3
+    simp [List.getD_eq_getElem?_getD, show i < d.s.vs.length from hi]
+  -- the novel sum's inputs after level 0
+  have hins : ((List.range (d.s.nHs / 2)).map fun m ↦ d.v + 2 + 3 * d.s.mu + 4 * m + 3).map
+      (fun u ↦ σ (.n u)) = nvPair (d.W 0) (d.hsv.take d.s.nHs) := by
+    have h2 : d.s.nHs = 2 * (d.s.nHs / 2) := by omega
+    rw [hsv_take_eq (by omega), h2, nvPair_range', ← h2, List.map_map]
+    refine List.map_congr_left fun m hm ↦ ?_
+    have := fnv0 m (List.mem_range.mp hm) 3 (by omega)
+    simp only [List.getD_cons_succ, List.getD_cons_zero] at this
+    simp only [Function.comp_apply, Nat.zero_add]
+    rw [← this]; congr 2; omega
+  have hnvT := nvLevelsT_complete (rd := rd) (σ := σ) (ws := oqWs d.v) d.W (d.s.hsBits - 1) 1
+    ((List.range (d.s.nHs / 2)).map fun m ↦ d.v + 2 + 3 * d.s.mu + 4 * m + 3)
+    (d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2)) (fun j h1 h2 ↦ hws j (by omega)) (fun p hp ↦ by
+      rw [hins] at hp ⊢
+      rw [← fnv p hp]; congr 2; omega)
+  have hnext : (oqNovel d.s hs d.v).2.2 = d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length :=
+    d.oqNovel_next hev (by omega)
+  intro a ha
+  unfold oqFinT at ha
+  rcases List.mem_append.mp ha with ha | ha
+  · rcases List.mem_append.mp ha with ha | ha
+    · -- the chain
+      unfold oqWsT at ha
+      rcases List.mem_append.mp ha with ha | ha
+      · simp only [List.mem_singleton, Stmt.atom.injEq] at ha
+        subst ha
+        show σ _ = σ _
+        rw [fx, hx]
+      · simp only [List.mem_flatten, List.mem_map, List.mem_range] at ha
+        obtain ⟨_, ⟨i, hi, rfl⟩, ha⟩ := ha
+        have c0 := fch i hi 0 (by omega)
+        have c1 := fch i hi 1 (by omega)
+        have c2 := fch i hi 2 (by omega)
+        simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at c0 c1 c2
+        simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+        rcases ha with rfl | rfl | rfl
+        · show σ _ = _
+          rw [← c0]; congr 2; omega
+        · show σ _ = σ _ + σ _
+          rw [show d.v + 3 + 3 * i = d.v + 1 + (1 + (3 * i + 1)) by omega, c1,
+            show d.v + 2 + 3 * i = d.v + 1 + (1 + 3 * i) by omega, c0, hws i (by omega)]
+        · show σ _ = σ _ * σ _
+          rw [show d.v + 4 + 3 * i = d.v + 1 + (1 + (3 * i + 2)) by omega, c2,
+            show d.v + 3 + 3 * i = d.v + 1 + (1 + (3 * i + 1)) by omega, c1, hws i (by omega),
+            hWs i hi]
+    · -- the novel sum
+      unfold oqNovel at ha
+      dsimp only at ha
+      rcases List.mem_append.mp ha with ha | ha
+      · simp only [nvLevel0T, List.mem_flatten, List.mem_map, List.mem_range] at ha
+        obtain ⟨_, ⟨m, hm, rfl⟩, ha⟩ := ha
+        have n0 := fnv0 m hm 0 (by omega)
+        have n1 := fnv0 m hm 1 (by omega)
+        have n2 := fnv0 m hm 2 (by omega)
+        have n3 := fnv0 m hm 3 (by omega)
+        simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at n0 n1 n2 n3
+        have e0 : d.v + 2 + 3 * d.s.mu + 4 * m = d.v + 1 + (1 + (3 * d.s.mu + 4 * m)) := by omega
+        have e : ∀ c, d.v + 2 + 3 * d.s.mu + 4 * m + c =
+            d.v + 1 + (1 + (3 * d.s.mu + (4 * m + c))) := fun c ↦ by omega
+        simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+        rcases ha with rfl | rfl | rfl | rfl
+        · show LoadHolds rd _ _ _
+          rw [e0, n0]
+          exact hW _ (by omega)
+        · show LoadHolds rd _ _ _
+          rw [e, n1]
+          exact hW _ (by omega)
+        · show σ _ = σ _ * σ _
+          rw [e, n2, e, n1, hws 0 (by omega)]
+        · show σ _ = σ _ + σ _
+          rw [e, n3, e, n2, e0, n0]
+      · exact hnvT.1 a ha
+  · -- the check and the result
+    simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    rcases ha with rfl | rfl
+    · show σ _ + σ _ = 0
+      have hne := nvLevelsT_ne (ws := oqWs d.v) (d.s.hsBits - 1) 1
+        ((List.range (d.s.nHs / 2)).map fun m ↦ d.v + 2 + 3 * d.s.mu + 4 * m + 3)
+        (d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2)) (by simp; omega)
+      have hout : σ (.n ((oqNovel d.s hs d.v).2.1.headD 0)) =
+          novelSum d.hsv d.W d.s.nHs d.s.hsBits := by
+        rw [novelSum, show d.s.hsBits = d.s.hsBits - 1 + 1 by omega, nvTree, Nat.zero_add, ← hins,
+          ← hnvT.2]
+        simp only [oqNovel]
+        revert hne
+        generalize (nvLevelsT (oqWs d.v) (d.s.hsBits - 1) 1 _ _).2.1 = outs
+        intro hne
+        cases outs with
+        | nil => exact absurd rfl hne
+        | cons o _ => rfl
+      rw [hout, d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, val_v,
+        show d.foldVal = _ from heq, CharTwo.add_self_eq_zero]
+    · show σ _ = _
+      rw [hnext, show d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length =
+        d.v + 1 + (1 + (3 * d.s.mu + (4 * (d.s.nHs / 2) + nv.length))) by omega, flast]
 
 end QD
 

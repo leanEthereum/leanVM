@@ -28,7 +28,7 @@ calls, and its completeness is stated under any call relation holding of every h
   least `64` words, the body holds of some valuation whose arguments are `PK.seed`'s cell, the
   key's address cells (`keyAdrsCells`) and the digest's cell, under any call relation, returning
   the leaf's cell, for any chain values (they are hinted);
-* `verify_sig_lean_sphincs_complete_loads_Spec`: for a claim held at `p` in its canonical cells, a
+* `verify_sig_lean_sphincs_complete_loads_Spec`: for a claim held at `p` in its cells, a
   signature that verifies it, the byte table at `bb` and a memory of at least `256` words, under
   any call relation holding of every honest `sp_wots` call, the body holds of some valuation whose
   arguments are `p` and `bb`, and its path loads only the claim's four words and the byte table;
@@ -92,7 +92,7 @@ def SpWotsCalls (C : CallRel) : Prop :=
         [cellOf128 (wotsLeafOf publicSeed layer tree leaf digest values)]
 
 /-- **`verify_sig_lean_sphincs` is complete, loading the claim and the byte table**: for a claim held
-at `p` in its canonical cells and a signature that verifies it, on a memory of at least `256` words
+at `p` in its cells and a signature that verifies it, on a memory of at least `256` words
 with the byte table at `bb`, under any call relation holding of every honest `sp_wots` call, its
 body holds of some valuation whose arguments are `p` and `bb`, and whose path loads only from
 `p·g^k`, `k < 4` (the claim), or `bb·g^v`, `v < 256` (the byte table). -/

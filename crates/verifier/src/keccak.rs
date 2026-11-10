@@ -8,7 +8,7 @@ use crate::field::{E, K, ONE, ZERO};
 use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS, STATE_LANES};
 use crate::layout::K_BITS;
 use crate::multilinear::{dot, eq_kernel, log2_ceil, multilinear_eval, poly_eval};
-use crate::transcript::{Transcript, sumcheck};
+use crate::transcript::{Transcript, grinding_bits, sumcheck};
 use crate::{VerifierError, require};
 
 const PACK_BITS: usize = 4;
@@ -143,7 +143,9 @@ fn verify_layer(
         )?;
     }
 
-    // 2] At a random point a pack is one field element, and the polynomial's value a sumcheck claim.
+    // 2] At a random point a pack is one field element, and the polynomial's value a sumcheck claim. The polynomial
+    // has degree PRODUCT_BITS - 1.
+    transcript.grind_check(grinding_bits(PRODUCT_BITS as u128 - 1))?;
     let s = transcript.sample();
     let mu = instance_weights(s);
     let kappa = E::sum(mu.iter().copied());
@@ -180,7 +182,9 @@ fn verify_layer(
     }
 
     // 5] `t[k] = sum_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's input through the linear map.
-    // Position `j` is `k` columns along from `along(j, 5 - k)`, which moves the lane and keeps `z`.
+    // Position `j` is `k` columns along from `along(j, 5 - k)`, which moves the lane and keeps `z`. The next claim is
+    // quadratic in beta.
+    transcript.grind_check(grinding_bits(2))?;
     let beta = transcript.sample();
     let lane_weights: [E; STATE_LANES] = std::array::from_fn(|lane| {
         let shifted = |k| eq_lane[along(64 * lane, k) / 64];
@@ -244,7 +248,10 @@ pub fn verify_keccak(
         instance.len() == shape.log_steps && output.len() == STATE_LANES && shape.log_steps >= PACK_BITS,
         VerifierError::AnnouncedTableSizes,
     )?;
-    let segment = transcript.samples(log2_ceil(shape.segments() as u64));
+    // One message, the segment then the lane: the first claim is multilinear in them.
+    let segment_bits = log2_ceil(shape.segments() as u64);
+    transcript.grind_check(grinding_bits((segment_bits + LANE_BITS) as u128))?;
+    let segment = transcript.samples(segment_bits);
     let point = [&instance[PACK_BITS..], &segment[..]].concat();
     // The first claim combines the output lanes as words: bit z of a word weighs x^z.
     let lanes = eq_kernel(&transcript.samples(LANE_BITS));

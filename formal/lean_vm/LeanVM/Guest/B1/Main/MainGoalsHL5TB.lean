@@ -48,7 +48,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bt Bv Bx Bs : ℕ} {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
-    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk)
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
     (htail : c + 1 < nk → CompleteAtDTB fs cert 16 "__loop4" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -96,13 +96,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
       (args := [s0, s1, k.cx.1, k.cx.2, k.cs.1, k.cs.2, k.da.1, k.da.2, gen ^ Cr * gen ^ (24 * c)])
       (rets := [(k.pi s0 s1).1, (k.pi s0 s1).2]) SB hSD fun rd hm => by
     obtain ⟨-, -, -, -, -, -, hdef⟩ := hk.mem rd hm
-    refine ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, ?_, rfl⟩
-    intro x hx
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-    rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact hs01 _ (by simp)
-    · exact hs01 _ (by simp)
-    all_goals exact hk.can _ (by simp)
+    exact ⟨k.defer, hk.defer_len, by rw [← pow_add]; exact hdef, rfl⟩
   have hokB : KidsDTB fs cert 16 ks (l5Ts4 Px Ps Pv) [Bx, Bs, SB "statement_digest", Bv] :=
     ⟨fun _ => hXT, fun _ => hST, fun _ => ksd, fun _ => hVT, trivial⟩
   obtain ⟨Nk, Lk, outs, hNB, hoo, hW, hD, -, hKids⟩ :=
@@ -292,7 +286,7 @@ theorem l5_completeAtTB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {Lin : Layout} {W D Pi Cr nk : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {kid : ℕ → KidH} {Pxs Pss Pvs : ℕ → Tree → Prop}
-    (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
+    (hnk : nk < 2 ^ 34)
     (hk : ∀ c < nk, KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c
       (kid c))
     (hVT : ∀ c < nk, CompleteAtDTB fs cert 16 "verify_sub" Lin
@@ -318,13 +312,13 @@ theorem l5_completeAtTB (SB : String → ℕ)
     induction t with
     | zero =>
       intro c hc
-      refine (l5_stepAtTB fs cert SB hSD (Bt := 0) (Tt := fun _ => False) hnk (by omega) hs01
+      refine (l5_stepAtTB fs cert SB hSD (Bt := 0) (Tt := fun _ => False) hnk (by omega)
         (hk c (by omega)) (fun h => absurd h (by omega)) (hVT c (by omega)) (hXT c (by omega))
         (hST c (by omega))).mono (le_of_eq ?_) fun _ ht => ht
       simp only [l5ChainB, show ¬ c + 1 < nk by omega, ↓reduceIte]
     | succ t ih =>
       intro c hc
-      refine (l5_stepAtTB fs cert SB hSD hnk (by omega) hs01 (hk c (by omega))
+      refine (l5_stepAtTB fs cert SB hSD hnk (by omega) (hk c (by omega))
         (fun _ => ih (c + 1) (by omega)) (hVT c (by omega)) (hXT c (by omega)) (hST c (by omega))).mono
         (le_of_eq ?_) fun _ ht => ht
       simp only [l5ChainB, show c + 1 < nk by omega, ↓reduceIte]
@@ -397,17 +391,9 @@ theorem mainGoalL5TB (SB : String → ℕ)
     (Lin := hLmain fs fp seed s w) (W := hP fs fp seed s w 8) (D := hP fs fp seed s w 4)
     (Pi := hP fs fp seed s w 5) (Cr := hP fs fp seed s w 7) (nk := w.children.length)
     (kid := hKid s w) (Pxs := Pxs) (Pss := Pss) (Pvs := Pvs) (by omega)
-    (fun x hx => by
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hx
-      rcases hx with rfl | rfl
-      · exact (digestScalars_canonical _).1
-      · exact (digestScalars_canonical _).2)
     (fun c hc => kidOk cert hbl hrel hl hV.goals (CompleteAtDTB.toDT (hX c hc).1).toD
       (CompleteAtDTB.toDT (hX c hc).2).toD hc)
-    (fun c hc => by
-      have hsh := kid_shapes hbl hrel _ (List.getElem_mem hc)
-      rw [hKid_pi seed (s := s) hc (by simp [DeferredClaim.cells, hsh.2, bytecodeVars])]
-      exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
+    (fun c hc => by rw [hKid_pi seed (s := s) hc]; exact hV c hc) (fun c hc => (hX c hc).1) (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
   rw [pow_zero, Nat.sub_zero] at h
   exact h
 

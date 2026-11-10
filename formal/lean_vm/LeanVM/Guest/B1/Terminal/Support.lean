@@ -15,7 +15,8 @@ public import LeanVM.Guest.B1.Terminal.Body
 # The head's values
 
 * `chain_value`: `eq_prefix_chain(chain, 1, a, point1, g^|A|)` over the words `A` at `a` makes
-  `chain[m]` the weight of `A`'s first `m` words against `x`'s;
+  `chain[m]` the weight of `A`'s first `m` words against `x`'s (`chain_value_seed`: seeded with
+  `s`, `s` times it);
 * `sel_value`: committed column `c`'s selector is `selProd` of its offset's bits above its size,
   the offset a multiple of `2^κ`;
 * the sizes of `columnKappas` (`kappas_qkeccak`, `kappas_lane`, `kappas_memory`).
@@ -46,6 +47,30 @@ theorem x1_getD {x : List E} (hx : x.length ≤ termPointCap) {i : ℕ} (hi : i 
     ((padPoint x).map (1 + ·)).getD i 0 = 1 + x.getD i 0 := by
   rw [getD_map_one (by rw [padPoint_length hx]; exact hi), padPoint_getD]
 
+theorem prefixProd_seed (s : E) (as bs : List E) (j : ℕ) :
+    prefixProd s as bs j = s * prefixProd 1 as bs j := by
+  rw [prefixProd, prefixProd, foldl_mul_eq, foldl_mul_eq, one_mul]
+
+/-- **A prefix chain's values**, seeded with `s`. -/
+theorem chain_value_seed {chain s a b1 cg : E} {A x : List E}
+    (h : MeaningEqPrefixChain rd [chain, s, a, b1, cg] []) (hcg : cg = gen ^ A.length)
+    (hA : A.length ≤ 40) (hAr : ReadsAt rd a A) (hx : x.length ≤ termPointCap)
+    (hx1 : ReadsAt rd b1 ((padPoint x).map (1 + ·))) :
+    ∀ m ≤ A.length, m ≤ x.length → valOf rd chain m = s * eqEval (A.take m) (x.take m) := by
+  obtain ⟨-, -, n, hn, hcg', as, bs, hal, hbl, har, hbr, hch⟩ := h
+  have hnA : n = A.length := gen_pow_inj_le (by omega) (by omega) (hcg'.symm.trans hcg)
+  subst hnA
+  have hasA : as = A := readsAt_unique har hAr hal
+  subst hasA
+  intro m hm hmx
+  rw [valOf_eq (hch m hm), prefixProd_seed]
+  refine congrArg (s * ·) (prefixProd_eq hm (by omega) hmx fun i hi ↦ ?_)
+  have hpl : ((padPoint x).map (1 + ·)).length = termPointCap := by simp [padPoint_length hx]
+  have hi40 : i < ((padPoint x).map (1 + ·)).length := by
+    rw [hpl]; simp only [termPointCap] at hx ⊢; omega
+  have e := loadHolds_unique (readsAt_getD hbr (by omega)) (readsAt_getD hx1 hi40)
+  rw [e, x1_getD hx (by rw [hpl] at hi40; exact hi40)]
+
 /-- **A prefix chain's values.** -/
 theorem chain_value {chain a b1 cg : E} {A x : List E}
     (h : MeaningEqPrefixChain rd [chain, 1, a, b1, cg] []) (hcg : cg = gen ^ A.length)
@@ -70,8 +95,8 @@ theorem chain_value {chain a b1 cg : E} {A x : List E}
 
 theorem kappas_getD_eq {lm lb h0 h1 h2 h3 h4 h5 : ℕ} {g : ℕ} :
     (columnKappas lm lb [h0, h1, h2, h3, h4, h5]).getD g 0 =
-      ([lm, lm, lm, lm, lb, h5 + 6] ++ List.replicate 15 h0 ++ List.replicate 15 h1 ++
-        List.replicate 8 h2 ++ List.replicate 15 h3 ++ List.replicate 14 h4 ++
+      ([lm, lm, lm, lb, h5 + 6] ++ List.replicate 13 h0 ++ List.replicate 13 h1 ++
+        List.replicate 7 h2 ++ List.replicate 14 h3 ++ List.replicate 14 h4 ++
         List.replicate 92 h5).getD g 0 := by
   rw [Tables.columnKappas_eq]
 
@@ -80,9 +105,9 @@ theorem six_of_length {hs : List ℕ} (hl : hs.length = 6) :
   match hs, hl with
   | [h0, h1, h2, h3, h4, h5], _ => exact ⟨h0, h1, h2, h3, h4, h5, rfl⟩
 
-/-- `KECCAK`'s columns (global `73 .. 164`) have its log-height. -/
-theorem kappas_keccak {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) {g : ℕ} (h1 : 73 ≤ g)
-    (h2 : g < 165) : (columnKappas lm lb hs).getD g 0 = hs.getD 5 0 := by
+/-- `KECCAK`'s columns (global `66 .. 157`) have its log-height. -/
+theorem kappas_keccak {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) {g : ℕ} (h1 : 66 ≤ g)
+    (h2 : g < 158) : (columnKappas lm lb hs).getD g 0 = hs.getD 5 0 := by
   obtain ⟨a0, a1, a2, a3, a4, a5, rfl⟩ := six_of_length hl
   rw [kappas_getD_eq, List.getD_eq_getElem?_getD,
     List.getElem?_append_right (by simp only [List.length_append, List.length_cons,
@@ -93,17 +118,17 @@ theorem kappas_keccak {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) {g : �
   · omega
 
 theorem kappas_small {lm lb : ℕ} {hs : List ℕ} (hl : hs.length = 6) :
-    (columnKappas lm lb hs).take 6 = [lm, lm, lm, lm, lb, hs.getD 5 0 + 6] := by
+    (columnKappas lm lb hs).take 5 = [lm, lm, lm, lb, hs.getD 5 0 + 6] := by
   obtain ⟨a0, a1, a2, a3, a4, a5, rfl⟩ := six_of_length hl
   rw [Tables.columnKappas_eq]
   rfl
 
-theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 165) {c : ℕ} (hc : c < 73) :
+theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 158) {c : ℕ} (hc : c < 66) :
     (Tables.committedKappas kappas).getD c 0 = kappas.getD c 0 := by
-  have hlen : c < (Tables.committedCols 165).length := by
-    rw [Tables.committedCols_165_length]; show c < 101; omega
+  have hlen : c < (Tables.committedCols 158).length := by
+    rw [Tables.committedCols_158_length]; show c < 94; omega
   rw [Tables.committedKappas, hl, List.getD_eq_getElem _ _ (by simpa using hlen), List.getElem_map,
-    ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 101 by omega)]
+    ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 94 by omega)]
   simp [colOfCommitted, hc]
 
 theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
@@ -126,7 +151,7 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
     {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
     {σ : Val} {c κ o L : ℕ} {x : List E} {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel Lm.read) Lm.read σ (selBlockT c) True kret)
-    (hstc : coreProgram.Rel Lm.read "selector_tables" [σ (.n 13), σ (.n 14)] [σ (.n 41)])
+    (hstc : coreProgram.Rel Lm.read "selector_tables" [σ (.n 13), σ (.n 14)] [σ (.n 43)])
     (hgt : Tables.GTabsAt Lm.read (σ (.n 0) * gen ^ 34))
     (hkap : σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ κ)
     (hoff : LoadHolds Lm.read (σ (.n 10)) c (gen ^ o)) (hdvd : 2 ^ κ ∣ o)

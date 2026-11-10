@@ -83,23 +83,23 @@ theorem belowLog_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 33) (hb : b = gen ^ M) (h 
 /-! ## Compile-time powers of `g` -/
 
 set_option maxRecDepth 100000 in
-theorem word_gmax : word 9272771591053052074 0 0 = gen ^ 65535 := by
+theorem word_gmax : word 9272771591053052074 0 = gen ^ 65535 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
-theorem word_g16 : word 65536 0 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
+theorem word_g16 : word 65536 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
 
 /-! ## `list_split` (G:4106-4121, TRIAGE #87) -/
 
-theorem word_g7 : word 128 0 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
+theorem word_g7 : word 128 0 = gen ^ 7 := word_two_pow (a := 7) (by decide)
 
 theorem core21_body : Fn.body Data.core22 =
     [.atom (.hint (.witness "signers_split" (.stack [.n 1, .n 2, .n 3]))),
-     .atom (.const (.n 4) (word 65536 0 0)),
+     .atom (.const (.n 4) (word 65536 0)),
      .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-     .atom (.const (.n 8) (word 128 0 0)),
+     .atom (.const (.n 8) (word 128 0)),
      .atom (.rangeCheck (.n 2) (.n 9) (.n 10) (.n 11) (.n 8)),
-     .atom (.const (.n 12) (word 9272771591053052074 0 0)),
+     .atom (.const (.n 12) (word 9272771591053052074 0)),
      .atom (.rangeCheck (.n 1) (.n 13) (.n 14) (.n 15) (.n 12)),
      .atom (.mul (.n 16) (.n 1) (.n 1)), .atom (.mul (.n 17) (.n 16) (.n 16)),
      .atom (.mul (.n 18) (.n 17) (.n 17)), .atom (.mul (.n 19) (.n 18) (.n 18)),

@@ -19,13 +19,13 @@ open LeanVM.Protocol.EndToEnd.Sound
 /-! ## Statement locks -/
 
 example (layout : LeanVM.Protocol.Verifier.Layout) :
-    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 545)
+    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 157)
       ((LeanVM.Protocol.Verifier.verifyBusBalance LeanVM.Protocol.Verifier.computedBytecodeValue layout).bind
         (LeanVM.Protocol.Verifier.tablePhaseClaims layout)) :=
-  retOK_busTable layout
+  retOK_busTable _ layout
 
 example (layout : LeanVM.Protocol.Verifier.Layout) (publicInput : Digest) :
-    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 3)
+    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 2)
       (LeanVM.Protocol.Verifier.publicInputPhase layout publicInput) :=
   retOK_publicInputPhase layout publicInput
 

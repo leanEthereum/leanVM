@@ -317,7 +317,7 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
     ring
 
 /-- `aggregate_claims`' constant words. -/
-def agA0 : ℕ := fs "aggregate_claims" + 108 + SB "batch_sumcheck__L23"
+def agA0 : ℕ := fs "aggregate_claims" + 109 + SB "grind_check__L2" + SB "batch_sumcheck__L23"
 
 /-- `aggregate_claims`' words per child: its buffers' and its three loops' iterations, each with
 its run's phantom frame, which `agA0` would otherwise charge `main` when it has no child. -/
@@ -357,7 +357,7 @@ theorem sum_childBv (Bvf : ℕ → ℕ → ℕ) (s : NodeStatement) (w : NodeWit
 and each callee's frame and bound, child `c`'s `verify_sub` within `Bvf` at its announced stack log
 and rate. -/
 def mainWords (Bvf : ℕ → ℕ → ℕ) : End.Linear where
-  base := fs "main" + 283 + fs "exponent_tables" + 236 + 2 * (clC fs SB + fs "claim_list_digest") +
+  base := fs "main" + 283 + fs "exponent_tables" + 2284 + 2 * (clC fs SB + fs "claim_list_digest") +
     fs "__loop0" + fs "__loop1" +
     fs "__loop2" + fs "__loop3" + 2 * l5A0 fs + (agA0 fs SB + fs "aggregate_claims") + SB "statement_digest" +
     fs "statement_digest"
@@ -414,7 +414,7 @@ theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest}
   have hK := kidsBoundL_mKids fs SB SK (hm fs 0 seed s w) (hLmain fs 0 seed s w)
     (mainBsH fs SB SK (childBv Bvf w) s w)
   have hB : Bmain fs SB SK (childBv Bvf w) 0 seed s w = fs "main" + (mSizes (hData seed s w)).sum +
-      (fs "exponent_tables" + 236 + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
+      (fs "exponent_tables" + 2284 + kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
         (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w))) := rfl
   generalize kidsBoundL fs (mKids (hm fs 0 seed s w) (hLmain fs 0 seed s w))
     (mBs fs SB SK (hm fs 0 seed s w) (mainBsH fs SB SK (childBv Bvf w) s w)) = KB at hK hB

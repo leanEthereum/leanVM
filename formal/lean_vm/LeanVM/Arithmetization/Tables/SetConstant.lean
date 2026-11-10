@@ -16,18 +16,18 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `SET_CONSTANT` table
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:532-543` (`mod set`, in that order) and the flushes
-`tables.rs:553-566` (`SetTable::flushes`), matching specification §7.3
-(`doc/leanvm/body/07-instruction-tables.tex:52-64`). There is no constraint.
+At `leanvm-rev` and Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs:538-548` (`mod set`, in that order) and the flushes
+`tables.rs:558-571` (`SetTable::flushes`), matching specification §7.3
+(`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint.
 
-**The row** `SetRow` is the column list: `pc, fp`; the operand `o`; the immediate `k` as three
-limbs (`K_LO, K_HI, K_TOP`, the bytecode's spare slots); the memory count `r`; the bytecode
+**The row** `SetRow` is the column list: `pc, fp`; the operand `o`; the immediate `k` as two
+limbs (`K_LO, K_HI`, the bytecode's spare slots); the memory count `r`; the bytecode
 count `r_bc`.
 
 **The relation.** `SetRefines mem r next` is one fact, `exec_eq`: from the row's registers the
 machine executes the instruction the row names, `SET_CONSTANT o k` with the row's immediate
-`E.ofLimbs k[0] k[1] k[2]`, all three limbs, to `next`. There is no separate binding: the only
+`E.ofLimbs k[0] k[1]`, both limbs, to `next`. There is no separate binding: the only
 cell read is the one `execute` checks against the immediate, and the immediate is the row's
 own, so a `SetBindings` would be empty (the other tables bind their input words). The table is
 program-free, as leanVM's is (`Arithmetization.Channels`). `set_refines_iff` expands it: the
@@ -40,7 +40,7 @@ from it through `set_refines_iff`, the tuple `main` emits decoding to the instru
 names (`decode_entry`).
 
 **The component** `setTable` pulls the state `(pc, fp)`, pushes and returns the fall-through
-successor `(g·pc, fp)`, reads the bytecode entry `(SET, o, k₀, k₁, k₂, 0, 0, 0)` at `pc`, and
+successor `(g·pc, fp)`, reads the bytecode entry `(SET, o, k₀, k₁, 0, 0, 0, 0)` at `pc`, and
 reads the cell `fp·o` carrying the immediate. `Spec` is `SetSpec`.
 
 **Rows from executions.** `setRowOf pc fp o k r rbc` is the row of an execution of
@@ -49,9 +49,9 @@ back and is computable; `setRowOf_refines` and `set_exec_complete` are the `XOR`
 
 ## Wrong readings excluded
 
-* The immediate's three lanes are bytecode coordinates `4, 5, 6` of the entry, the slots
-  `DEREF` uses for `o₃, f_pc, f_fp` (`entry`).
-* The word read at `fp·o` is the immediate itself, all three limbs: a row whose cell holds any
+* The immediate's two limbs are bytecode coordinates `4, 5` of the entry, the slots `DEREF`
+  uses for `o₂, o₃`; coordinate `6`, `DEREF`'s `f_pc`, is a spare zero (`entry`).
+* The word read at `fp·o` is the immediate itself, both limbs: a row whose cell holds any
   other word fails `SetRefines` (the mutated row in the tests). A row whose immediate is not the
   program's at its counter is the bus's to reject (`Soundness.BytecodeChannel`), as it is for
   leanVM's `SET` AIR, never this table's.
@@ -63,7 +63,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `SET_CONSTANT` columns, in the order of `tables.rs:532-543`. -/
+/-- The `SET_CONSTANT` columns, in the order of `tables.rs:538-548`. -/
 structure SetRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -71,8 +71,8 @@ structure SetRow (F : Type) where
   fp : F
   /-- The operand `o`. -/
   o : F
-  /-- The immediate `k = k₀ + k₁·y + k₂·y²`, as limbs. -/
-  k : Vector F 3
+  /-- The immediate `k = k₀ + k₁·y`, as limbs. -/
+  k : Vector F 2
   /-- The read count of the cell `fp · o`. -/
   r : F
   /-- The read count of the bytecode entry at `pc`. -/
@@ -87,13 +87,13 @@ instruction it names, `SET_CONSTANT o k` with the row's immediate, to `next` (`e
 structure SetRefines {κ : ℕ} (mem : MemoryImage κ) (r : SetRow K) (next : Registers K) : Prop where
   /-- From the row's registers the machine executes `SET_CONSTANT o k` to `next`. -/
   exec_eq :
-    execute mem ⟨r.pc, r.fp⟩ (.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2])) = some next
+    execute mem ⟨r.pc, r.fp⟩ (.setConstant r.o (E.ofLimbs r.k[0] r.k[1])) = some next
 
 /-- `SetRefines`, expanded: the cell `fp·o` holds the immediate, and the successor is the
 fall-through `(g·pc, fp)`. -/
 theorem set_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : SetRow K) (next : Registers K) :
     SetRefines mem r next ↔
-      mem.read (r.fp * r.o) = some (E.ofLimbs r.k[0] r.k[1] r.k[2]) ∧
+      mem.read (r.fp * r.o) = some (E.ofLimbs r.k[0] r.k[1]) ∧
         next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨hexec⟩
@@ -119,13 +119,14 @@ def SetSpec (r : SetRow K) (next : Registers K) (data : ProverData K) : Prop :=
 
 /-- The bytecode tuple of a row is `entry` of the instruction it names, by definition; spelled
 once, so that the unifier need not see it through `decode`. -/
-private theorem setConstant_entry (o k0 k1 k2 : K) :
-    #v[Opcode.setConstant.busCode] ++ #v[o, k0, k1, k2, 0, 0, 0, 0, 0, 0, 0, 0] = busEntry (.setConstant o (E.ofLimbs k0 k1 k2)) := rfl
+private theorem setConstant_entry (o k0 k1 : K) :
+    #v[Opcode.setConstant.busCode] ++ #v[o, k0, k1, 0, 0, 0, 0, 0, 0, 0, 0, 0] =
+      busEntry (.setConstant o (E.ofLimbs k0 k1)) := rfl
 
 /-! ## The table -/
 
-/-- The `SET_CONSTANT` table (specification §7.3; `tables.rs:532-585`): state step, bytecode
-read of `(SET, o, k₀, k₁, k₂, 0, 0, 0)`, and the read of `fp·o` carrying the immediate. Returns
+/-- The `SET_CONSTANT` table (specification §7.3; `tables.rs:536-590`): state step, bytecode
+read of `(SET, o, k₀, k₁, 0, 0, 0, 0)`, and the read of `fp·o` carrying the immediate. Returns
 the pushed successor `(g·pc, fp)`. -/
 def setTable : GeneralFormalCircuit K SetRow Registers where
   -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
@@ -136,7 +137,7 @@ def setTable : GeneralFormalCircuit K SetRow Registers where
     StatePull.pull ⟨r.pc, r.fp⟩
     StatePush.push next
     bytecodeRead r.pc r.rbc (Expression.const Opcode.setConstant.busCode)
-      #v[r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0, 0, 0, 0, 0, 0]
+      #v[r.o, r.k[0], r.k[1], 0, 0, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.o) r.r r.k
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.
@@ -176,7 +177,7 @@ def setTable : GeneralFormalCircuit K SetRow Registers where
 /-- The row of an execution of `SET_CONSTANT o k` from `(pc, fp)`: the registers, the operand,
 the immediate's limbs, and the counts as parameters. -/
 def setRowOf (pc fp o : K) (k : E) (rc rbc : K) : SetRow K :=
-  ⟨pc, fp, o, #v[k.limb 0, k.limb 1, k.limb 2], rc, rbc⟩
+  ⟨pc, fp, o, #v[k.limb 0, k.limb 1], rc, rbc⟩
 
 /-- A valid execution of `SET_CONSTANT o k` is represented by `setRowOf`, with any counts: the
 honest prover's row refines the relation, which is `ProverAssumptions` over the data. -/
@@ -184,8 +185,7 @@ theorem setRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp o : K} {k : E}
     (hexec : execute mem ⟨pc, fp⟩ (.setConstant o k) = some next) (rc rbc : K) :
     SetRefines mem (setRowOf pc fp o k rc rbc) next :=
   ⟨by
-    show execute mem ⟨pc, fp⟩ (.setConstant o (E.ofLimbs (k.limb 0) (k.limb 1) (k.limb 2))) =
-      some next
+    show execute mem ⟨pc, fp⟩ (.setConstant o (E.ofLimbs (k.limb 0) (k.limb 1))) = some next
     rw [ofLimbs_limb]; exact hexec⟩
 
 /-- Every valid `SET_CONSTANT` execution has a satisfying row, from the execution alone: the

@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Protocol.Compile.Spec
-import LeanVM.Protocol.Compile.Prover
 
 /-!
 # Runs of a sequenced program

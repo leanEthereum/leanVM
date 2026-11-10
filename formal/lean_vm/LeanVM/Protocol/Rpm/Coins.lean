@@ -144,7 +144,8 @@ noncomputable def experimentCoins (B : OracleComp (unifSpec + KeccakCalls) (Prog
 /-- **Knowledge soundness against adversaries with coins**: private coins do not help, so the
 bound of `knowledgeSoundnessRom_holds` holds for every adversary with coins of at most `Q` oracle
 calls. -/
-theorem knowledgeSoundness_coins {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
+theorem knowledgeSoundness_coins
+    {B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)} {Q : ℕ}
     (hB : Common.QueryCostAtMost B hashCalls Q) :
     Pr{let z ← experimentCoins B}[Breaks extractor z] ≤ soundnessError Q := by
   obtain ⟨A, hA, hle⟩ := exists_det (fun p ↦ do

@@ -6,7 +6,7 @@
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F64, F128, g_pow};
 
 /// A returned value that repeats a constant computed earlier in the same
 /// function. The return slot lives in the callee frame and is read by the
@@ -30,7 +30,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(3)) * F192::from(F64(7)), F192::from(F64(7))];
+    let want = [F128::from(g_pow(3)) * F128::from(F64(7)), F128::from(F64(7))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("returned duplicate constant is preserved");
 }
@@ -55,7 +55,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     // (k + k) + (k + k) == 0 in characteristic two.
-    let want = [F192::ZERO, F192::ZERO];
+    let want = [F128::ZERO, F128::ZERO];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("duplicated call arguments are preserved");
 }
@@ -86,13 +86,13 @@ def main():
     p[GEN] = x
     return
 ";
-    let run = |pi: [F192; 2]| -> bool {
+    let run = |pi: [F128; 2]| -> bool {
         let program = compile(&parse(src).expect("parse"));
         prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE)
             .is_ok_and(|(proof, _)| verify(&program, &pi, &proof).is_ok())
     };
     assert!(
-        run([F192::from(g_pow(4)), F192::from(g_pow(3))]),
+        run([F128::from(g_pow(4)), F128::from(g_pow(3))]),
         "the arm that runs keeps its own constant"
     );
 }
@@ -130,7 +130,7 @@ def main():
 #[test]
 fn assert_survives_a_duplicated_comparison() {
     let program = compile(&parse(&duplicated_comparison(9)).expect("parse"));
-    let want = [F192::ZERO, F192::from(g_pow(9))];
+    let want = [F128::ZERO, F128::from(g_pow(9))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("passing assert still verifies");
 }
@@ -155,8 +155,8 @@ def main():
     return
 ";
     let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("flag", vec![vec![F192::ZERO]]);
-    let want = [F192::ZERO, F192::ZERO];
+    program.set_witness("flag", vec![vec![F128::ZERO]]);
+    let want = [F128::ZERO, F128::ZERO];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("untaken branch must not consume its witness");
 }
@@ -199,7 +199,7 @@ def main():
     return
 ";
     let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(11)), F192::from(g_pow(22))];
+    let want = [F128::from(g_pow(11)), F128::from(g_pow(22))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("each hash absorbs into its own state");
 }
@@ -220,10 +220,10 @@ def main():
     h[1] = public[GEN]
     return
 "#;
-    let value = F192::new(17, 31, 43);
+    let value = F128::new(17, 31);
     let mut program = compile(&parse(source).unwrap());
-    program.set_witness("values", vec![vec![value, F192::ONE, value]]);
-    for branch in [F192::ZERO, F192::ONE] {
+    program.set_witness("values", vec![vec![value, F128::ONE, value]]);
+    for branch in [F128::ZERO, F128::ONE] {
         assert!(program.execute([branch, value]).unwrap().unconstrained_reads.is_empty());
     }
 }
@@ -249,7 +249,7 @@ def main():
     assert public[GEN] == out[1]
     return
 "#;
-    let value = F192::from(F64(7));
+    let value = F128::from(F64(7));
     let public = [value * value, value];
     for touch in ["assert log(h) < 1024", "early = StackBuf(1)\n    early[0] = h[1]"] {
         for fill in ["hint_witness(h[0:1], \"value\")", "fill(h)"] {
@@ -278,7 +278,7 @@ def main():
     return
 ";
     let program = compile(&parse(source).unwrap());
-    let public = [F192::from(g_pow(4)), F192::ZERO];
+    let public = [F128::from(g_pow(4)), F128::ZERO];
     let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &public, &proof).unwrap();
 }
@@ -295,7 +295,7 @@ def main():
     public[1] = x * GEN
     return
 ";
-    let exec = compile(&parse(source).unwrap()).execute([F192::ZERO; 2]).unwrap();
+    let exec = compile(&parse(source).unwrap()).execute([F128::ZERO; 2]).unwrap();
     assert!(!exec.unconstrained_reads.is_empty());
 }
 
@@ -319,8 +319,8 @@ def main():
     assert public[1] == result
     return
 "#;
-    let value = F192::from(F64(7));
-    let public = [value * value, F192::ZERO];
+    let value = F128::from(F64(7));
+    let public = [value * value, F128::ZERO];
     for (dest, fill) in [
         ("early", "early[0] = value"),
         ("other", "other[0] = value"),

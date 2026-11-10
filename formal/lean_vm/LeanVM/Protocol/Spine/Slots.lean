@@ -19,7 +19,7 @@ public import LeanVM.Protocol.ToArkLib.Typed.Schedule
 Each phase's typed component is at the slot written here (the slot is part of its type), and its
 security at the errors written here, the numbers `Spine/Errors.lean` charges the same challenges:
 
-* the bus (`busSlot`, `busErrors`): `(α, β)` at `4·2^{μ_bus}/|E|`, the roots at no error, the
+* the bus (`busSlot`, `busErrors`): `(α, β)` at `2^{μ_bus}/|E|`, the roots at no error, the
   grand-product argument at its errors from the unit `1/|E|`, the boundary values at no error;
 * the table sumcheck (`tableSlot`, `tableErrors`): `ξ` at `(B + 2)/|E|`, the `τ_max` rounds of
   degree `3` at `3/|E|` each, the final values at no error;
@@ -49,14 +49,14 @@ variable (I : M3Instance)
 /-- The bus phase's slot: the fingerprint challenges `(α, β)`, the two roots, the grand-product
 argument for the three trees, then the boundary columns' values. -/
 abbrev busSlot : Slot :=
-  (((drawSlot ((Fin 4 → E) × E)).append (saySlot (E × E))).append (gkrSlot E 3 I.μBus)).append
+  (((drawSlot ((Fin 16 → E) × E)).append (saySlot (E × E))).append (gkrSlot E 3 I.μBus)).append
     (saySlot (Vector E I.busClaims))
 
-/-- The bus phase's errors: `4·2^{μ_bus}` on `(α, β)`, then the grand-product argument's at the
+/-- The bus phase's errors: `2^{μ_bus}` on `(α, β)`, then the grand-product argument's at the
 unit `1/|E|`. -/
 noncomputable abbrev busErrors : Errors (busSlot I).tree (busSlot I).roles :=
-  Errors.append _ _ (Errors.append _ _ (Errors.append (drawSlot ((Fin 4 → E) × E)).tree
-    (drawSlot ((Fin 4 → E) × E)).roles (drawErrors _ (overE (4 * 2 ^ I.μBus))) (sayErrors _))
+  Errors.append _ _ (Errors.append _ _ (Errors.append (drawSlot ((Fin 16 → E) × E)).tree
+    (drawSlot ((Fin 16 → E) × E)).roles (drawErrors _ (overE (2 ^ I.μBus))) (sayErrors _))
     (gkrErrors E (overE 1) 3 I.μBus)) (sayErrors _)
 
 /-! ## The table sumcheck -/
@@ -96,10 +96,10 @@ noncomputable abbrev ringErrors : Errors (drawsSlot E 6).tree (drawsSlot E 6).ro
 
 /-! ## Each slot's errors along a path -/
 
-/-- The bus phase's errors sum to at most `(4·2^{μ_bus} + (μ_bus + 1)·2 + 2μ_bus² + 3μ_bus + 3)/|E|`
+/-- The bus phase's errors sum to at most `(2^{μ_bus} + (μ_bus + 1)·2 + 2μ_bus² + 3μ_bus + 3)/|E|`
 along every path. -/
 theorem busErrors_bounded : Errors.Bounded (busSlot I).tree (busSlot I).roles (busErrors I)
-    (overE (4 * 2 ^ I.μBus + ((I.μBus + 1) * 2 + 2 * I.μBus * I.μBus + 3 * I.μBus + 3))) :=
+    (overE (2 ^ I.μBus + ((I.μBus + 1) * 2 + 2 * I.μBus * I.μBus + 3 * I.μBus + 3))) :=
   ((((drawErrors_bounded _ _).append (sayErrors_bounded _)).append
     (gkrErrors_bounded E (overE 1) 3 I.μBus)).append (sayErrors_bounded _)).mono
     (le_of_eq (by rw [nat_mul_overE, add_zero, add_zero, mul_one, ← overE_add]))

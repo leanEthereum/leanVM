@@ -81,7 +81,8 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDTB fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
-        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa b.Ba
+        (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
+          (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) p.Pa b.Ba
   l5 : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDTB fs cert 16 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,

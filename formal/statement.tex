@@ -77,7 +77,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{SufCma.lean}: the single-key SUF-CMA game and \lean{StronglyUnforgeable}.
 \item \lean{HashSignatures.lean}: the tweakable hash, chain, path fold and tree both schemes share.
 \item \lean{LeanXmss.lean}, \lean{LeanSphincs.lean}: the two schemes and their end statements.
-\item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{192})$ and the Fiat--Shamir duplex sponge.
+\item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{128})$ and the Fiat--Shamir duplex sponge.
 \item \lean{LeanDa.lean}: LeanDA, its argument and games, and its three end statements.
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
 \item \lean{LeanVmVerifier.lean}: the verifier, the readable reference of \lean{crates/verifier}.
@@ -154,17 +154,17 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
-program $P$, of size at most $14500$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $14225$ and a slack of $275$, less than one leanXMSS signature's encoding), run on the encoded
+program $P$, of size at most $14159$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
+extractor's $13884$ and a slack of $275$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
-$2^{81} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
+$2^{82} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for $N$ permutation queries, $D = \log_2(N + 2) + 1$,
 above the price \lean{lean_vm} proves of the compiled extractor at every shape; polylogarithmic per
-query: about $2^{81}$ for $N \le 2^{50}$, the list decoder dominating, and $2^{157.08}$ at
+query: about $2^{82}$ for $N \le 2^{50}$, the list decoder dominating, and $2^{157.08}$ at
 $N = 2^{128}$, the transcript's index dominating), its output parsed as an execution; a run out of
 budget outputs nothing, which counts as a break. The budget passes $2^{128}$ at about
-$N = 2^{100}$, where the soundness bound is still $2^{-28}$, and its constant $2^{81}$ would pay for
-a search of about $2^{70}$ Keccak-f[1600] evaluations: knowledge of a witness such a search finds
+$N = 2^{100}$, where the soundness bound is still $2^{-28}$, and its constant $2^{82}$ would pay for
+a search of about $2^{71}$ Keccak-f[1600] evaluations: knowledge of a witness such a search finds
 (of low entropy) is not what the statement certifies. The
 statement takes $P$ as a parameter (\texttt{leanVmKnowledgeExtractor := P}) and constrains it only
 by its size and budget: $P$ is a program (no classical choice), the size bound leaves the compiled
@@ -189,7 +189,7 @@ whole padded sponge path appears as a chain of forward queries from the zero sta
 (\lean{keccakEvaluationsOfTranscript}). It reads the announced sizes and the stack's Merkle root off the proof,
 inverts the Merkle tree through those evaluations to recover the committed word, lists the stacks
 whose Reed--Solomon encoding agrees with the word on at least the Johnson threshold of columns (at
-most $2^{12}$ of them, \lean{LeanVM.candidates_ncard_le}, \lean{lean_vm}), and returns a candidate's memory
+most $166$ of them, \lean{Whir.Params.listMax₀_le}, \lean{lean_vm}), and returns a candidate's memory
 image whose halting run is a valid execution, if one exists.
 
 It is an algorithm: every definition it uses is computable and deterministic. It lists the
@@ -210,7 +210,11 @@ of siblings, in the order the verifier samples the queries. The verifier opens a
 (\lean{openPhase}, \texttt{Transcript::merkle}) in the Rust's order: it rejects unless every leaf is
 the commitment's width and every path its height (the shape), then unless the phase's positions are
 the queries it sampled, in order (the positions), then unless each path climbs to the committed
-root.
+root. A proof of work of $b$ bits (\lean{grindingBits}, round by round for a $2^{-125}$ error per
+verifier message) reads a nonce from the stream, absorbs it with its own tag and permutes at once:
+the third lane of that permutation must have its low $b$ bits zero, and its first two lanes are the
+next challenge; nothing is absorbed while that challenge waits, and a grind of zero bits is no step
+at all (\lean{run}, \texttt{Transcript::grind\_check}).
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
 (\lean{knowledgeSoundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and
@@ -220,12 +224,14 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 \[
 \boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (\mathit{prog},x,\text{proof}) \text{ and the}\\
 \text{extractor outputs no valid execution of } \mathit{prog} \text{ on } x\end{array}\right]
-\le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
+\le (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
-(\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
-Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to $12006\cdot 2^{32}$, the IV
-hashing a bytecode of up to $2^{32}$ instructions) and two further terms of at most $2^{-128}$ each:
-the transfer to the RPM, which pays for those calls, and the verifier's own $12006/2^{256}$.
+(\lean{LeanVM.knowledgeSoundness_holds}). Each call may complete a verifier message, whose
+round-by-round error after its proof of work is at most $2^{-125}$. The constant $2^{14}$ absorbs
+the verifier's $13261$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
+$13261\cdot 2^{32}$, the IV hashing a bytecode of up to $2^{32}$ instructions) and two further terms
+of at most $2^{-128}$ each: the transfer to the RPM, which pays for those calls, and the verifier's own
+$13261/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
@@ -237,8 +243,8 @@ verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
-most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
-per proof of work,
+most $2^{28}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{33}$ nonces
+per proof of work (the widest grind within that size is the bus's, $25$ bits),
 \[
 \boxed{\ \Pr[\text{the verifier rejects the honest proof}] \le 2^{-256}\ }
 \]
@@ -247,13 +253,13 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
-Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
+\delta(f) = Q_f\,(1-2^{-25})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
+Q_f = 13263 + 53036\,(2^{27} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
-$4\cdot 2^{\kappa} + 2^{\ell} + 15h_{\mathrm{xor}} + 15h_{\mathrm{mul}} + 8h_{\mathrm{set}} +
-15h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 28k + 2^6 k$, where $2^\kappa$ is the memory size,
+$3\cdot 2^{\kappa} + 2^{\ell} + 13h_{\mathrm{xor}} + 13h_{\mathrm{mul}} + 7h_{\mathrm{set}} +
+14h_{\mathrm{deref}} + 14h_{\mathrm{jump}} + 28k + 2^6 k$, where $2^\kappa$ is the memory size,
 $2^\ell$ the bytecode size, $h_{op}$ the least power of two at least the number of executed
 instructions of opcode $op$, and $k$ the same for \texttt{KECCAK}, at least $2^9$.
 
@@ -348,11 +354,18 @@ prover and a verifier that may query the oracles), that the cells satisfy LeanDA
 \begin{itemize}
 \item the cells hash to the root, and
 \item every row passes the \emph{membership test}: from the root, the duplex derives one
-challenge $z$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
+challenge $z \in \mathbb{E}$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
 dual code (\lean{dualCodewordAt}); every row must be orthogonal to $L$. A row that is not a codeword
-passes with probability at most $(2^{14}-1)/2^{192} < 2^{-178}$: its inner product with $L$ is a
+passes with probability at most $(2^{14}-1)/2^{128} < 2^{-114}$: its inner product with $L$ is a
 nonzero polynomial in $z$ of degree below $2^{14}$.
 \end{itemize}
+The challenge is ground (\lean{membershipChallengeWith}): the duplex seeded with the root absorbs
+the nonces $0, 1, \dots$ of $64$ bits, each into a copy of the seeded sponge, and the first whose
+permutation's third lane has $11$ low zero bits gives $z$, the first two lanes of that permutation.
+The nonce is not sent; anyone deriving $z$ finds it, about $2^{11}$ permutations per root. If no
+$64$-bit nonce is valid, the Rust search never ends; the statement then has no challenge and the
+relation asks every row to be a codeword (\lean{membershipCheckOpt}), which keeps honest matrices
+in the relation for every $\pi$.
 
 \paragraph{Completeness} (\lean{LeanDa.LeanDaPerfectlyComplete}). If the argument is perfectly
 complete, every position of an honest commitment opens and verifies, with probability $1$, for
@@ -389,24 +402,31 @@ probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 \emph{The theorem.} Under this assumption, an adversary making $Q$ calls (any $Q$, verifications
 included) wins the code-binding game with probability at most
 \[
-\boxed{\ (Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{22})\cdot 2^{-178} + (Q + 2^{22})^2\cdot 2^{-247}\ }
+\boxed{\ (Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{11})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
 \]
 (\lean{LeanDa.leanDa_codeBinding_rpm_bound}). At $Q = 2^{64}$ the last two terms are about
-$2^{-114}$ and $2^{-119}$.
+$2^{-61}$ and $2^{-119}$. The offset $2^{65}$ of the first term is the knowledge-soundness game's
+own calls beyond the adversary's: the relation's check hashes the extracted matrix (fewer than
+$2^{22}$ calls) and, on its worst path, runs the whole nonce search, $2^{64} + 2$ calls; the
+assumption is read at $q = Q + 2^{65}$.
 
 \emph{Why.} Run the extractor on the adversary; it returns cells $c^*$. One of three things holds.
 \begin{enumerate}
 \item $c^*$ fails the relation. Then the adversary breaks the argument's knowledge soundness:
 the first term.
 \item $c^*$ satisfies the relation but has a row that is not a codeword. Then it passed the
-membership test by luck, $(2^{14}-1)/2^{192}$ per root: the second term.
+membership test by luck: the second term. The grind makes luck cost permutation calls. A call of
+the adversary on one of a root's nonces gives a valid proof of work and an accepting challenge at
+once with probability at most $2^{-11}\cdot(2^{14}-1)/2^{128} < 2^{-125}$, the two independent;
+the verifier's own search for the root, however many nonces it tries, stops at its first valid
+one, so it is a single fresh try, $(2^{14}-1)/2^{128} < 2^{11}\cdot 2^{-125}$.
 \item $c^*$ is a codeword. Every opened cell hashes to the same root as $c^*$, so unless Keccak-256
 has a collision, each opened cell is $c^*$'s cell, and the codeword $c^*$ agrees with all of them:
 the adversary loses. Collisions and other bad hash events give the third term.
 \end{enumerate}
 This proof needs no rewinding. Wagner's original proof, with a forking lemma, is also formalized
 (\lean{LeanDa.leanDa_codeBinding_core}, \lean{lean_da}, for arguments that do not query the oracles); it gives
-the weaker $(Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-93} + (Q + 2^{22})^2\cdot 2^{-158}$.
+the weaker $(Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-56} + (Q + 2^{22})^2\cdot 2^{-158}$.
 
 \emph{What is open.} The assumption can be met: the argument whose proof is simply all the cells
 is complete and knowledge sound, though its proof is as large as the matrix (an observation, not
@@ -431,11 +451,11 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{40f877dc}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{98ceacf2c}),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
-$\mathbb{E} = \mathbb{F}[y]/(y^3+y+1)$, the field of $2^{192}$ elements. Its \emph{deployed seed}
+$\mathbb{E} = \mathbb{F}[y]/(y^2+xy+1)$, the field of $2^{128}$ elements. Its \emph{deployed seed}
 \[
 iv_G = \mathrm{IV}(B) = H(\mathit{TAG} \,\|\, \bar B), \qquad \mathit{TAG} = \texttt{leanvm-v1}
 \]
@@ -452,8 +472,8 @@ meaning ``$pk$ signed $m$'';
 \item a \emph{DA digest} $\mathit{da}$ (\lean{NodeClaims.daDigest}): either $H(\rho \,\|\, z)$ of one
 data-availability claim (\lean{DaClaim}, \lean{daClaimDigest}), a matrix root $\rho$
 (\lean{daRoot}) and a membership challenge $z \in \mathbb{E}$ (\lean{membershipChallenge}, as its
-three limbs and a zero word), or $32$ zero bytes without one (\lean{zeroDigest};
-\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:19-26}). The claim: some matrix of
+two limbs and two zero words), or $32$ zero bytes without one (\lean{zeroDigest};
+\texttt{verifier::da::digest}, \texttt{crates/verifier/src/da.rs:36-43}). The claim: some matrix of
 $1$ to $1024$ encoded blobs with root $\rho$ has every row orthogonal to the dual codeword $L$ of $z$
 (\lean{Da.MatrixWitness.Opens}), which the guest program builds from $z$. The outer verifier holds
 $\rho$, derives $z$ from $\rho$ (Section~\ref{sec:schemes}) and checks $\mathit{da} = H(\rho \,\|\, z)$; that
@@ -464,16 +484,15 @@ satisfies $\widehat{B}(\zeta) = v$ (\lean{DeferredClaim.HoldsWithShape}).
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation/statement.rs:85-114}) is
+\texttt{aggregation/statement.rs:81-102}) is
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
 where $\enc(\Cx)$ concatenates, per claim, the key's bytes, a leanXMSS key's root ($16$ bytes)
 then its parameter ($16$), and the message ($32$); $\enc(\Cs)$ likewise, a leanSPHINCS key's bytes
 being $\mathrm{PK.seed}$ then $\mathrm{PK.root}$ (\lean{claimListDigest},
-\texttt{aggregation/statement.rs:32-56}); and $\enc(c)$ is the $24$-byte encodings of
-$z_1, \dots, z_{23}, v$,
-padded with one zero element to an even number. The lists' lengths are bound by Keccak's padding;
+\texttt{aggregation/statement.rs:32-56}); and $\enc(c)$ is the $16$-byte encodings of
+$z_1, \dots, z_{23}, v$. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
 
@@ -489,7 +508,7 @@ $\sigma = iv_G$.
 $f_i = (\zeta_i, v_i)$ on the bytecode, the evaluation the child's proof leaves to be checked;
 \item the \emph{raw signatures}, leanXMSS and leanSPHINCS, each with the claim it signs;
 \item optionally, one LeanDA matrix the node checks directly, with the DA claim it opens;
-\item the \emph{batching hints}: the round messages of one sumcheck, and a final value.
+\item the \emph{batching hints}: a proof of work's nonce, the round messages of one sumcheck, and a final value.
 \end{itemize}
 
 \subsection{What one node establishes}
@@ -502,12 +521,13 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4643-4647}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4878-4882}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
-except that, instead of evaluating $\widehat{B}$ at the point it reaches, it outputs that evaluation
-as the claim $f_i$. It runs on the real Keccak-256 and Keccak-f[1600], the ones the guest program
+except that, where the proof claims a value of $\widehat{B}$ at the point its bytecode sumcheck
+reaches, it does not evaluate $\widehat{B}$ there but requires that point and value to be the claim
+$f_i$ (\lean{claimedBytecodeValue}). It runs on the real Keccak-256 and Keccak-f[1600], the ones the guest program
 computes.
 \item The deferred claim batches the children's (\lean{DeferredClaimBatched}). With no children, its
 point is all-zero (its value is left to the outer verifier); otherwise $\mathrm{batch}\big(
@@ -515,7 +535,7 @@ point is all-zero (its value is left to the outer verifier); otherwise $\mathrm{
 \lean{runBatching}; \lean{batch} in \lean{lean_vm}), with $c_i$ the deferred claim of $s_i$. The
 batching is a Fiat--Shamir transcript on Keccak-f[1600], seeded from the hash of the label
 \texttt{leanvm/recursion-aggregation/v1}: it absorbs the number of children, then each child's
-digest and two claims; squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
+digest and two claims; checks a proof of work of $2$ bits (\lean{batchLambdaGrindBits}) and squeezes one challenge $\lambda \in \mathbb{E}$, whose powers batch the
 claims (\lean{lambdaPowers}); and runs one degree-$2$ sumcheck reducing
 $\sum_i (\lambda^{2i} v_i + \lambda^{2i+1} v'_i)$, with $v_i$
 the value of $f_i$ and $v'_i$ that of $c_i$, to one claim on $\widehat{B}$ at a new point.
@@ -526,7 +546,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:149-166})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
 (sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
@@ -543,7 +563,7 @@ What does that establish about $s$? The answer has three parts, each an end theo
 \item \textbf{The zkVM is knowledge sound} (\lean{KnowledgeSoundness},
 Section~\ref{sec:zkvm}). Except with probability
 \[
-\varepsilon(Q) = (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256},
+\varepsilon(Q) = (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256},
 \]
 the extractor returns a valid execution $t$ of $G$ on $x$. This is the only step with an oracle
 and a probability.
@@ -667,7 +687,7 @@ proof. The probability that the batching accepts it while its proof stream begin
 $M$ children of the bytecode's shape, one of whose claims (fresh or carried) is false
 (\lean{SomeChildClaimFalse}), is at most
 \[
-\boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-191} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
+\boxed{\ (Q_A + Q_V + 1)\cdot M\cdot 2^{-127} + 5\,(Q_A+Q_V)^2\cdot 2^{-256}\ }
 \quad\text{for } Q_A \le 2^{128},\ Q_V \le 2^{96},
 \]
 where $Q_V$ (\lean{batchingQueryBound}) is the batching's own query bound for $M$ children (about
@@ -680,8 +700,9 @@ a sumcheck round's challenge. For $G$'s $16$ children, $M = 17$.
 \subsection{What the soundness theorems do not give}\label{sec:notgive}
 
 They speak about one node. A claim the root holds through a child carries no knowledge by itself:
-the deferring verifier reads the bytecode only through its length and takes the bytecode's value at
-the child's point from the witness (the fresh claim $f_i$), which no end statement requires true, so
+the deferring verifier reads the bytecode only through its length and holds the bytecode's value
+the proof claims at the child's point to the witness (the fresh claim $f_i$), which no end statement
+requires true, so
 a proof of any program of $G$'s length, under the node's seed, makes a child of any statement. A
 child's claims mean something only once its fresh claim is true. That needs the root's deferred
 claim recomputed, as the outer verifier does (\lean{AggregateSound} assumes it), and the batching
@@ -707,17 +728,20 @@ coverage table, one slot per raw signature and per entry of a child's lists
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
-($2^{25}$ nonces per proof of work) of an execution of $G$ of
+($2^{33}$ nonces per proof of work) of an execution of $G$ of
 committed size above $2^{21}$ (so of stack log $\lceil\log_2 \mathrm{size}\rceil \ge 22$, the floor
 the guest program checks and leanVM's aggregator pads every aggregate to) on
 $\mathrm{dig}_{iv_G}(s_i)$; and the verifier that also refuses
-every zero challenge (\lean{verifierRefusingZero}, through
-\lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
-program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
-challenges and by the batching coefficient $\lambda$ at the stacked opening; refusing every zero
-challenge is slightly stronger, each challenge being zero with probability $2^{-192}$. An honest
-proof is refused with probability at most $2^{-126}$ in the RPM (\lean{HonestProofRarelyRefused}
-below).
+every zero challenge and every fold combiner $\alpha + \beta x$ vanishing at a queried point $x$
+(\lean{verifierRefusingZero}: \lean{VerifierProgram.refusingZeroChallenge}, which fails on every
+zero challenge the verifier program samples, of \lean{verifyExecutionRefusingZeroCombiner}, the
+verifier program with \lean{CombinersNonzero} required after each level's queries) accepts it with
+the deployed Keccak. The guest program divides by the fold and tail challenges and by the batching
+coefficient $\lambda$ at the stacked opening, and folds each opened row by $\theta + 1/(\alpha +
+\beta x)$; refusing every zero challenge is slightly stronger, each challenge being zero with
+probability $2^{-128}$, and a combiner vanishes at a queried point with probability $2^{-128}$ for
+each round and query, the point being drawn after $\alpha$ and $\beta$. An honest proof is refused
+with probability at most $2^{-100}$ in the RPM (\lean{HonestProofRarelyRefused} below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
@@ -755,7 +779,7 @@ The instructions of each opcode are bounded by linear forms of the same shape
 2175\cnt{rows} + \cnt{pad} + 173\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu, r)$ with
 $\gamma$ between $4460$ and $9517$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
-$2^{\max(\lceil\log_2 W\rceil, 20)}$ and each table's height the least power of two at least its
+$2^{\max(\lceil\log_2 W\rceil, 21)}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
 counted from its code, not measurements.
 
@@ -801,11 +825,12 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 \end{itemize}
 
 \paragraph{Honest proofs are rarely refused} (\lean{HonestProofRarelyRefused}). For the same named
-prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{25}$ nonces per proof of work, it
-makes no proof, or the verifier that also refuses every zero challenge (\lean{verifierRefusingZero})
-rejects its proof, of any valid execution of committed size at most $2^{28}$, at $1 \le \rho \le 4$,
-with probability at most $2^{-126}$. The guest program checks a child with the deployed Keccak, so
-the bad events (a proof of work with no nonce within its fuel, a zero challenge) are bounded in the
+prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{33}$ nonces per proof of work, it
+makes no proof, or the verifier that also refuses every zero challenge and every vanishing fold
+combiner at a queried point (\lean{verifierRefusingZero}) rejects its proof, of any valid execution
+of committed size at most $2^{28}$, at $1 \le \rho \le 4$, with probability at most $2^{-100}$. The
+guest program checks a child with the deployed Keccak, so the bad events (a proof of work with no
+nonce within its fuel, a zero challenge, a vanishing combiner) are bounded in the
 RPM for the same prover and check, and their absence at the deployed Keccak is what
 \lean{HonestChild} asks. Completeness thus holds level after level as far as the deployed Keccak
 behaves like $\pi$ for these events; that step is the model's assumption, not a theorem. Not stated
@@ -855,7 +880,7 @@ written differently could pack the guest's frame-cell table about three times ti
 room for about $1270$ signatures' encodings, or compute it from its input, freeing room for about $1900$).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
-\item A tight extractor budget: it is $2^{81} + O(N\log^3 N)$, priced at the worst shape.
+\item A tight extractor budget: it is $2^{82} + O(N\log^3 N)$, priced at the worst shape.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the wire differential (the Lean decoding against the Rust
 \texttt{Proof::from\_bytes} on honest wire proofs and their mutations); the prover differential (the Lean prover's proofs byte-identical to the

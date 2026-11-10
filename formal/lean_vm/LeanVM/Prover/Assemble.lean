@@ -7,7 +7,6 @@
 -/
 
 import Statement.Prover.Prove
-import LeanVM.Prover.Complete
 import LeanVM.Prover.Refine
 import LeanVM.Prover.Witness
 import LeanVM.Prover.Bus
@@ -25,17 +24,14 @@ import LeanVM.Protocol.WithHash
   (`LeanVM.Prover.honestScript`) of the execution's witness (`witness?`) makes the moves of the
   specification's honest script `honestProver prog s ρ q (leanVmPhases prog s q)` at the
   witness `skelWitness prog input t.image t.runSkels`, its sizes and its stack: the announcement,
-  the stack's commitment (`stackWordFast_eq`), the bus (`corr_busFast`), the table sumcheck
+  the stack's commitment (`stackWordFast_eq`), its out-of-domain sample (`corr_oodFast`: the
+  stack's extension off its array, `mleK_stack`), the bus (`corr_busFast`), the table sumcheck
   (`corr_tableFast`, which needs the bus's result true: `BusGood`), the public input, the Keccak
   phase (`corr_keccakPhase`, which needs the output lanes' point of the table's height), ring
   switching (`corr_ringFast`) and the opening (`corr_openingFast`). Each of the first four runs
   beside the verifier's phase (`Script.alongside`), whose result the specification's phase
   returns too, by its simulation (`corr_alongside`: the `Phases.Honest` facts, the bus's and the
   table's through the claim-list form, `follows_of_bind_ret`).
-* `prove_eq_honestComp`: so the prover with the oracle calls is `Rom.honestComp?` of the
-  specification's strategy there (`runScript_corr`, `runScript_eq_proveM`).
-* `specOnValid_prove`, `childSpec_prove`: the hypotheses of `completeness_of_spec` and
-  `guestChildComplete_of_spec`.
 -/
 
 namespace LeanVM.Prover
@@ -43,7 +39,7 @@ namespace LeanVM.Prover
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
 open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete
-open LeanVM.Protocol.Whir.Complete LeanVM.Guest.Child
+open LeanVM.Protocol.Whir.Complete
 open Air.Flat (EnsembleWitness)
 open OracleComp
 
@@ -52,16 +48,6 @@ open OracleComp
 namespace Script
 
 variable {α β γ : Type}
-
-theorem bind_assoc' (p : Script α) (f : α → Script β) (g : β → Script γ) :
-    (p.bind f).bind g = p.bind fun a ↦ (f a).bind g := by
-  induction p with
-  | ret a => rfl
-  | send x k ih => simp only [bind, ih]
-  | sample k ih => simp only [bind, ih]
-  | grind k ih => simp only [bind, ih]
-  | commit w k ih => simp only [bind, ih]
-  | query k ih => simp only [bind, ih]
 
 theorem AllRet.mono {P Q : α → Prop} (hPQ : ∀ a, P a → Q a) :
     ∀ H : Script α, Script.AllRet P H → Script.AllRet Q H
@@ -109,72 +95,91 @@ theorem noQuery_sampleN : ∀ n : ℕ, Script.NoQuery (Script.sampleN n)
       (Script.sampleN n).bind fun xs ↦ Script.ret (x :: xs))
     exact noQuery_sampleE_bind fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_sampleN n)
 
+section NoQueryScripts
+
+theorem nq_bind {α β : Type} {H : Script α} {f : α → Script β} (h : Script.NoQuery H)
+    (hk : ∀ a, Script.NoQuery (f a)) : Script.NoQuery (H.bind f) :=
+  Script.NoQuery.bind hk H h
+
+theorem nq_ret {α : Type} (a : α) : Script.NoQuery (Script.ret a) := trivial
+
+theorem nq_sendE (x : E) : Script.NoQuery (Script.sendE x) := trivial
+
+theorem nq_sampleE : Script.NoQuery Script.sampleE := fun _ ↦ trivial
+
+theorem nq_grindBits (b : ℕ) : Script.NoQuery (Script.grindBits b) := by
+  unfold Script.grindBits Script.grindS
+  split <;> trivial
+
+/-- One step of a script of sends, grinds and challenges: a primitive, or split a `bind`. -/
+macro "nqstep" : tactic => `(tactic| first
+  | exact nq_ret _ | exact noQuery_sendList _ | exact nq_sendE _ | exact nq_grindBits _
+  | exact nq_sampleE | exact noQuery_sampleN _
+  | refine nq_bind ?_ fun _ ↦ ?_)
+
+/- The scripts are kept folded: a failed match must not evaluate a grind's bits or a sumcheck's
+rounds. -/
+attribute [local irreducible] Script.bind Script.grindBits Script.sendList Script.sampleN
+  Script.sendE Script.sampleE
+
 theorem noQuery_hSumcheck (count : ℕ) (claimOf : List E → E) :
     ∀ (modes : List (Option E)) (pre : List E), Script.NoQuery (hSumcheck count claimOf modes pre)
   | [], _ => trivial
   | _ :: modes, pre => by
     simp only [hSumcheck]
-    exact Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun c ↦
-      Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hSumcheck count claimOf modes (pre ++ [c])))
-      _ (noQuery_sendList _)
+    exact nq_bind (nq_bind (noQuery_sendList _) fun _ ↦ nq_grindBits _) fun _ ↦
+      nq_bind nq_sampleE fun c ↦ nq_bind (noQuery_hSumcheck count claimOf modes (pre ++ [c]))
+        fun _ ↦ nq_ret _
 
-theorem noQuery_hStep (L₀ L₁ L₂ : List E) (k step : ℕ) (s : GkrState) :
-    Script.NoQuery (hStep L₀ L₁ L₂ k step s) := by
+attribute [local irreducible] hSumcheck
+
+theorem noQuery_hStep (L₀ L₁ L₂ : List E) (k step : ℕ) (last : Bool) (s : GkrState) :
+    Script.NoQuery (hStep L₀ L₁ L₂ k step last s) := by
   unfold hStep
-  refine noQuery_sampleE_bind fun c ↦ Script.NoQuery.bind (fun r ↦ ?_) _ (noQuery_hSumcheck _ _ _ _)
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_sendList _)
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_sendList _)
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_sendList _)
-  exact Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_sampleN _)
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | nqstep)
+
+attribute [local irreducible] hStep
 
 theorem noQuery_hLayers (L₀ L₁ L₂ : List E) :
     ∀ (n : ℕ) (s : GkrState), Script.NoQuery (hLayers L₀ L₁ L₂ n s)
   | 0, _ => trivial
   | 1, s => by
     simp only [hLayers]
-    exact Script.NoQuery.bind (fun _ ↦ noQuery_hLayers L₀ L₁ L₂ 0 _) _ (noQuery_hStep _ _ _ _ _ _)
+    exact nq_bind (noQuery_hStep _ _ _ _ _ _ _) fun _ ↦ noQuery_hLayers L₀ L₁ L₂ 0 _
   | n + 2, s => by
     simp only [hLayers]
     split
-    · exact Script.NoQuery.bind (fun _ ↦ noQuery_hLayers L₀ L₁ L₂ (n + 1) _) _
-        (noQuery_hStep _ _ _ _ _ _)
-    · exact Script.NoQuery.bind (fun _ ↦ noQuery_hLayers L₀ L₁ L₂ n _) _
-        (noQuery_hStep _ _ _ _ _ _)
+    · exact nq_bind (noQuery_hStep _ _ _ _ _ _ _) fun _ ↦ noQuery_hLayers L₀ L₁ L₂ (n + 1) _
+    · exact nq_bind (noQuery_hStep _ _ _ _ _ _ _) fun _ ↦ noQuery_hLayers L₀ L₁ L₂ n _
 
 theorem noQuery_hGkr (D : ℕ) (L₀ L₁ L₂ : List E) : Script.NoQuery (hGkr D L₀ L₁ L₂) := by
   unfold hGkr
-  refine noQuery_sendE_bind L₀.prod (noQuery_sendE_bind L₂.prod ?_)
-  exact Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hLayers _ _ _ _ _)
+  exact nq_bind (nq_sendE _) fun _ ↦ nq_bind (nq_sendE _) fun _ ↦
+    nq_bind (noQuery_hLayers _ _ _ _ _) fun _ ↦ nq_ret _
 
-theorem noQuery_hBusK3 (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (alphas : List E) (beta : E) (g : E × List E × List E) :
-    Script.NoQuery (hBusK3 prog s q alphas beta g) := by
-  unfold hBusK3
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_sendList _)
-  exact noQuery_sendE_bind (mfVal prog s q g.2.1) (noQuery_sendE_bind (bfVal prog s q g.2.1) trivial)
+attribute [local irreducible] hGkr EndToEnd.Complete.hLayers
 
-attribute [local irreducible] Script.NoQuery Script.bind hBusK1 hBusK2 hBusK3 hGkr in
+theorem noQuery_hShare (prog : LeanIsaProgram) (w z : List E) :
+    Script.NoQuery (hShare prog w z) := by
+  unfold hShare
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | nqstep)
+
+attribute [local irreducible] hShare
+
 theorem noQuery_hBus (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script.NoQuery (hBus prog s q) := by
   unfold hBus
-  refine Script.NoQuery.bind (fun alphas ↦ ?_) _ (noQuery_sampleN _)
-  unfold hBusK1
-  refine noQuery_sampleE_bind fun beta ↦ ?_
-  unfold hBusK2
-  exact Script.NoQuery.bind (fun g ↦ noQuery_hBusK3 prog s q alphas beta g) _ (noQuery_hGkr _ _ _ _)
+  repeat' (first | exact noQuery_hGkr _ _ _ _ | exact noQuery_hShare _ _ _ | nqstep)
 
 theorem noQuery_hTable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
     (bus : BusResult) : Script.NoQuery (hTable prog s q bus) := by
   unfold hTable
-  refine noQuery_sampleE_bind fun xi ↦ ?_
-  generalize List.replicate (nRounds s) none = modes
-  exact Script.NoQuery.bind (fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_sendList _))
-    _ (noQuery_hSumcheck _ _ _ _)
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | nqstep)
 
 theorem noQuery_hPub (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script.NoQuery (hPub prog s q) := by
   unfold hPub
-  exact noQuery_sampleE_bind fun _ ↦ trivial
+  repeat' nqstep
 
 /-! ## The Keccak phase's honest script opens nothing -/
 
@@ -187,52 +192,54 @@ theorem noQuery_hPack (F : List E → E) :
   | [], _, _ => trivial
   | _ :: rs, acc, _ => by
     simp only [hPack]
-    exact Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun c ↦
-      Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hPack F rs (acc ++ [c]) _)) _
-      (noQuery_sendList _)
+    exact nq_bind (nq_bind (noQuery_sendList _) fun _ ↦ nq_grindBits _) fun _ ↦
+      nq_bind nq_sampleE fun c ↦ nq_bind (noQuery_hPack F rs (acc ++ [c]) _) fun _ ↦ nq_ret _
+
+attribute [local irreducible] hPack
 
 theorem noQuery_hLayer (T : States) (P : ℕ) (claim : KeccakClaim) :
     Script.NoQuery (hLayer T P claim) := by
   unfold hLayer
-  simp only [Script.bind_eq, Script.ret_bind]
-  refine Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun _ ↦ ?_) _ (noQuery_sendList _)
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_hPack _ _ _ _)
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_hSumcheck _ _ _ _)
-  exact Script.NoQuery.bind (fun _ ↦ noQuery_sampleE_bind fun _ ↦ trivial) _ (noQuery_sendList _)
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | exact noQuery_hPack _ _ _ _ | nqstep)
+
+attribute [local irreducible] hLayer
 
 theorem noQuery_keccakLayers (P : ℕ) (col : ℕ → K) :
     ∀ (ds : List ℕ) (claim : KeccakClaim), Script.NoQuery (hLayers P col ds claim)
   | [], _ => trivial
-  | _ :: ds, _ => Script.NoQuery.bind (fun c ↦ noQuery_keccakLayers P col ds c) _
-      (noQuery_hLayer _ _ _)
+  | _ :: ds, _ => nq_bind (noQuery_hLayer _ _ _) fun c ↦ noQuery_keccakLayers P col ds c
 
-theorem noQuery_hOpen (F : List E → E) : Script.NoQuery (hOpen F) :=
-  Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hSumcheck _ _ _ _)
+attribute [local irreducible] KeccakGkr.hLayers
+
+theorem noQuery_hOpen (F : List E → E) : Script.NoQuery (hOpen F) := by
+  unfold hOpen
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | nqstep)
+
+attribute [local irreducible] hOpen
 
 theorem noQuery_hInput (P : ℕ) (col : ℕ → K) (claim : KeccakClaim) (outs : List ColumnClaim) :
     Script.NoQuery (hInput P col claim outs) := by
   unfold hInput
-  simp only [Script.bind_eq, Script.ret_bind]
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_hSumcheck _ _ _ _)
-  exact Script.NoQuery.bind (fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_sendList _))
-    _ (noQuery_hOpen _)
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | exact noQuery_hOpen _ | nqstep)
+
+attribute [local irreducible] hInput
 
 theorem noQuery_hKeccak (P : ℕ) (col : ℕ → K) (inst output : List E) :
     Script.NoQuery (hKeccak P col inst output) := by
   unfold hKeccak
-  simp only [Script.bind_eq, Script.ret_bind]
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_sampleN _)
-  refine Script.NoQuery.bind (fun _ ↦ noQuery_sendE_bind _ ?_) _ (noQuery_sampleN _)
-  refine Script.NoQuery.bind (fun _ ↦ ?_) _ (noQuery_keccakLayers _ _ _ _)
-  exact Script.NoQuery.bind (fun _ ↦ noQuery_sendE_bind _ (noQuery_hInput _ _ _ _)) _
-    (noQuery_hOpen _)
+  repeat' (first | exact noQuery_keccakLayers _ _ _ _ | exact noQuery_hOpen _ |
+    exact noQuery_hInput _ _ _ _ | nqstep)
+
+attribute [local irreducible] hKeccak
 
 theorem noQuery_hKeccakPhase (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
-    (claims : List ColumnClaim) : Script.NoQuery (hKeccakPhase prog s q claims) :=
-  Script.NoQuery.bind (fun _ ↦ Script.NoQuery.bind (fun _ ↦ trivial) _ (noQuery_hKeccak _ _ _ _))
-    _ trivial
+    (claims : List ColumnClaim) : Script.NoQuery (hKeccakPhase prog s q claims) := by
+  unfold hKeccakPhase
+  repeat' (first | exact noQuery_hKeccak _ _ _ _ | nqstep)
 
 end KeccakNoQuery
+
+end NoQueryScripts
 
 /-! ## A phase's script beside the verifier's phase -/
 
@@ -331,6 +338,31 @@ theorem layoutOk_verifierLayout {prog : LeanIsaProgram} {s : Sizes} (h : LayoutO
   simp only [h, ↓reduceIte] at e
   exact Claims.buildLayout_ok e
 
+/-! ## The commitment's out-of-domain sample -/
+
+/-- The stack's extension off its array is the out-of-domain claim's value. -/
+theorem mleK_stack {μ : ℕ} (q : Column μ) (z : List E) (hz : z.length = μ) :
+    mleK q.values.toArray z = oodValue q z := by
+  rw [mleK_eq, Whir.Complete.multilinearEval_eq_sum μ _ z (by simp) hz, Finset.sum_range, oodValue]
+  refine Finset.sum_congr rfl fun x _ ↦ ?_
+  have hs : (x : ℕ) < q.values.toArray.size := by simp
+  rw [mul_comm, Whir.Complete.eqEval_comm, List.getD_eq_getElem _ _ (by simp), List.getElem_map,
+    Array.getElem_toList]
+  simp only [Vector.getD, Array.getD, hs, ↓reduceDIte]
+  rfl
+
+/-- **The executable out-of-domain sample makes the specification's moves**, and the
+specification's claim is the executable's point and value. -/
+theorem corr_oodFast {μ : ℕ} (q : Column μ) :
+    Corr (fun a b ↦ b = (fun x ↦ eqEval a.1 x, a.2)) (oodFast μ q.values.toArray) (hOod q) := by
+  unfold oodFast hOod
+  refine Corr.bind_same _ fun _ ↦ ?_
+  refine Corr.bind (fun a b h ↦ ?_) _ _ (corr_sampleN μ)
+  obtain ⟨rfl, hl⟩ := h
+  dsimp only
+  rw [mleK_stack q a hl]
+  exact Corr.bind_same _ fun _ ↦ Corr.ret_ret rfl
+
 /-! ## The honest script makes the specification's moves -/
 
 section Honest
@@ -355,7 +387,7 @@ theorem getD_tableLogs_keccak (s : Sizes) : (tableLogs s).getD opKeccak 0 = s.τ
 
 attribute [local irreducible] Corr Script.bind Script.NoQuery Script.alongside hBus hTable hPub
   hKeccakPhase hRing honestOpening busFast tableFast KeccakGkr.keccakPhaseProve ringFast
-  openingFast in
+  openingFast hOod oodFast in
 /-- **The honest script makes the specification's moves** at the execution's witness, its
 sizes and its stack. -/
 theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
@@ -382,6 +414,9 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
   simp only [Script.bind_eq, Script.bind_assoc', hWann, stackLog_verifierLayout, hWstack,
     Enc.stackWordFast_eq hμ]
   refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ ?_
+  -- the commitment's out-of-domain sample
+  refine Corr.bind (fun ood ood' hood ↦ ?_) _ _ (corr_oodFast q)
+  subst hood
   -- the bus, beside `verifyBusBalance`
   refine Corr.bind (fun _ bus hb ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hBus prog s q)
     (corr_busFast hcols) (follows_and_allRet _ _ _
@@ -393,14 +428,14 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
   refine Corr.bind (fun rows cl hc ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hTable prog s q bus)
     (corr_tableFast W.cols hcols _ (tableLogHeights_verifierLayout s) bus hbg)
     (follows_and_allRet _ _ _ (follows_of_bind_ret _ _ _ htab) (Claims.allRet_tablePhase hl hbok)))
-  obtain ⟨_, ⟨-, rfl, htrue, tc, htc, z, hz⟩, hrows⟩ := hc
+  obtain ⟨_, ⟨-, rfl, htrue, tc, htc, -, z, hz⟩, hrows⟩ := hc
   obtain rfl := List.append_cancel_left htc
   -- the public input, beside `publicInputPhase`
   refine Corr.bind (fun _ pub hp ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hPub prog s q)
     (corr_sampleE_hPub prog s q) (follows_and_allRet _ _ _ (follows_retOK _ _ _
       (follows_publicInputPhase hq.1 []) (retOK_publicColumns _ _))
       (Claims.allRet_publicInputPhase _ _)))
-  obtain ⟨_, ⟨⟨-, rfl, hpub⟩, hpcol⟩, hpmem⟩ := hp
+  obtain ⟨_, ⟨⟨-, rfl, hpub, -⟩, hpcol⟩, hpmem⟩ := hp
   -- the Keccak phase, beside `keccakPhase`
   have hlanes : lanesOf (bus.claims ++ tableColumnClaims rows ++ pub) =
       Claims.laneClaims (rows.getD opKeccak ([], [])) := Claims.lanes_eq hbok.2 hpmem hrows
@@ -419,80 +454,20 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
   obtain ⟨_, -, rfl, -⟩ := hk'
   -- ring switching, then the opening
   refine Corr.bind (fun r rs hr ↦ ?_) _ _ (corr_ringFast kr.2.1 kr.2.2)
-  obtain ⟨rfl, -, -⟩ := hr
+  obtain ⟨rfl, -, -, -⟩ := hr
   have hcl : ∀ L : List ColumnClaim, (RingOut.claim r (verifierLayout prog s) ::
-      L.map (ClaimDesc.column (verifierLayout prog s))).map ClaimDesc.denote =
+      L.map (ClaimDesc.column (verifierLayout prog s)) ++ [ClaimDesc.ood ood.1 ood.2]).map
+        ClaimDesc.denote =
       openingClaims prog s (r.target, fun rPrime ↦ ringWeight r.point rPrime
-        (ringCoefficients r.challenges)) L := by
+        (Protocol.Ring.ringCoefficients r.f r.g)) L (fun x ↦ eqEval ood.1 x, ood.2) := by
     intro L
-    simp only [openingClaims, RingOut.claim, ClaimDesc.denote, List.map_cons, List.map_map,
-      Function.comp_def]
+    simp only [openingClaims, RingOut.claim, ClaimDesc.denote, List.map_cons, List.map_append,
+      List.map_map, Function.comp_def, Protocol.Ring.verifier_ringCoefficients, List.map_nil,
+      List.cons_append]
     rfl
   rw [← hcl, ← Script.bind_ret (openingFast _ _ _ _)]
-  exact Corr.bind (fun _ _ _ ↦ by unfold Corr; trivial) _ _ (corr_openingFast hμ ρ q _)
+  exact Corr.bind (fun _ _ _ ↦ by unfold Corr; trivial) _ _ (corr_openingFast ρ q _)
 
 end Honest
-
-/-! ## The prover is the specification at the execution's witness -/
-
-section Prove
-
-variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-
-/-- **The prover with the oracle calls is the specification** at the execution's witness: on a
-valid execution within the cap at a valid rate, `proveWithHash callKeccak256 callKeccakF1600` is
-`Rom.honestComp?` of the specification's honest strategy at `skelWitness`, its sizes and its
-stack. -/
-theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
-    {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
-    proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel =
-      Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-        (leanVmProver prog (traceSizes prog input t) ρ
-          (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) fuel := by
-  obtain ⟨W, hW, hspec⟩ := witness?_spec hv hcap
-  simp only [proveWithHash, hW, hρ, and_self, ↓reduceIte, Rom.honestComp?,
-    seedRun_leanVmSeed]
-  refine congrArg (fun k : KeccakState → OracleComp KeccakCalls (Option Proof) ↦
-    seedWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicInputDigest input) >>= k)
-    (funext fun seed ↦ ?_)
-  rw [runScript_corr callKeccak256 callKeccakF1600 fuel _ (corr_honestScript hv hcap hρ hspec) seed,
-    runScript_eq_proveM]
-  rfl
-
-/-- The statement's honest prover is `prove` with the oracle calls. -/
-abbrev oracleProver : HonestProverWithHash := LeanVM.proverWithHash
-
-/-- **The hypothesis of the completeness theorems**: on valid executions within the cap at a
-valid rate, the prover is the specification at a child's witness. -/
-theorem specOnValid_prove : SpecOnValid oracleProver ChildFor :=
-  fun _ _ _ _ fuel hv hcap hρ ↦ ⟨_, _, childFor_trace hv hcap hρ, prove_eq_honestComp hv hcap hρ fuel⟩
-
-/-- The same, at an honest witness. -/
-theorem specOnValid_prove_honest : SpecOnValid oracleProver HonestFor :=
-  fun prog input t ρ fuel hv hcap hρ ↦
-    let ⟨w, s, h, e⟩ := specOnValid_prove prog input t ρ fuel hv hcap hρ
-    ⟨w, s, h.1, e⟩
-
-/-- **Everywhere, the prover is the specification at a child's witness or makes no proof.** -/
-theorem childSpec_prove (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ
-    fuel : ℕ) :
-    ChildSpec oracleProver prog input t ρ fuel := by
-  by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
-  · exact .inr (specOnValid_prove prog input t ρ fuel h.1 h.2.1 h.2.2)
-  · left
-    show proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel = pure none
-    unfold proveWithHash
-    cases hW : witness? prog input t with
-    | none => rfl
-    | some W =>
-      have hs := (isSome_witness?_iff prog input t).mp (by rw [hW]; rfl)
-      have hρ : ¬ (1 ≤ ρ ∧ ρ ≤ 4) := fun hρ ↦ h ⟨hs.1, hs.2, hρ⟩
-      simp only [hρ, ↓reduceIte]
-
-end Prove
-
-/-! ## Completeness of the named prover -/
-
 
 end LeanVM.Prover

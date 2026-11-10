@@ -27,9 +27,9 @@ interaction's coordinates, then zeros (specification §5.1,
 `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE`). The three interactions and their coordinate orders:
 
 * state, separator `g^0`: `(pc, fp)` (§6.1, `06-bus-interactions.tex:8`; `tables.rs:131-145`);
-* memory, separator `g^1`: `(addr, count, v₀, v₁, v₂)`, a read of the word `v` at `addr` with
+* memory, separator `g^1`: `(addr, count, v₀, v₁)`, a read of the word `v` at `addr` with
   count `count` (§6.2 "Tuple and columns" and "Flush rules", `:40-47`, and §6.3, `:86`;
-  `tables.rs:163-170`);
+  `tables.rs:124-148` at `leanvm-rev`, two limbs);
 * bytecode, separator `g^2`: `(pc, count, opcode, op₁, …, op₁₂)`, the bytecode `entry` after the
   address and the count, fifteen coordinates, the widest message, filling the sixteen slots (§6.4;
   `tables.rs:113-122` at leanVM main `40f877dc`).
@@ -79,7 +79,7 @@ delete `Direction` and `channelDir` and make every push owe its pull's guarantee
 strength does not depend on it.
 
 **The image** is read off Clean's `ProverData`, the string-keyed store a component's `Spec`
-sees: `memRows` is its `"mem"` table, one row of three limbs per word. `imageOf` is total, since
+sees: `memRows` is its `"mem"` table, one row of two limbs per word. `imageOf` is total, since
 a channel guarantee is a total proposition on arbitrary data, and so it normalises: it takes
 the *floor* logarithm of the table's row count, capped at the verifier's bound (`maxLogMem`),
 as its log-size, which drops the rows at indices from that power of two on whenever the count
@@ -89,7 +89,7 @@ every data. `WellShapedData` is the shape under which the reading drops nothing 
 is exactly a power of two within the cap, `wellShapedData_iff`), and `imageOf_apply` is its
 specification. Clean derives the prover data from the witness's rows by component name, and the
 memory block is named `"mem"` (`Arithmetization.Boundary`), so the image is the block's rows, cut at
-their three limbs, and the derived data is well shaped (`Caps.well_shaped`,
+their two limbs, and the derived data is well shaped (`Caps.well_shaped`,
 `SatisfiedBy.seed_rows`).
 
 **The program is public and the channels are program-free.** leanVM's bytecode is "public,
@@ -119,7 +119,7 @@ blocks" itself (§8.6, Bus 4).
   could never assume the guarantee of its own pull; `memRead` and `bytecodeRead` use
   `Channel.pull` instead.
 * The element order of a typed message is its field order, a vector field contributing its
-  elements in place: `(addr, count, v₀, v₁, v₂)`, never `(v, addr, count)` or the separator
+  elements in place: `(addr, count, v₀, v₁)`, never `(v, addr, count)` or the separator
   inside the message (`memMsg_toElements`).
 * A table whose row count is not a power of two within its cap is silently truncated by
   `imageOf` (a three-row store yields a one-bit image, tests) and is not `WellShapedData`; the
@@ -152,15 +152,15 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## Messages -/
 
-/-- The memory tuple after its separator: `(addr, count, v₀, v₁, v₂)`, a read of the word
-`v = v₀ + v₁·y + v₂·y²` at address `addr` with count `count` (specification §6.2, §6.3). -/
+/-- The memory tuple after its separator: `(addr, count, v₀, v₁)`, a read of the word
+`v = v₀ + v₁·y` at address `addr` with count `count` (specification §6.2, §6.3). -/
 structure MemMsg (F : Type) where
   /-- The address, `fp · o` for an operand `o`. -/
   addr : F
   /-- The read count, a power of `g`. -/
   count : F
-  /-- The three limbs of the word. -/
-  v : Vector F 3
+  /-- The two limbs of the word. -/
+  v : Vector F 2
   deriving ProvableStruct
 
 /-- The bytecode tuple after its separator: `(pc, count, opcode, op₁, …, op₁₂)`, a read of the
@@ -178,20 +178,20 @@ structure BytecodeMsg (F : Type) where
 
 /-! ## The image in the prover data -/
 
-/-- The prover-data table holding the memory image: one row of three limbs per word. The
+/-- The prover-data table holding the memory image: one row of two limbs per word. The
 program has no table: it is public (the module docstring). -/
 def memDataName : String := "mem"
 
 /-- The rows of the `"mem"` table. -/
-def memRows (data : ProverData K) : Array (Vector K 3) := data memDataName 3
+def memRows (data : ProverData K) : Array (Vector K 2) := data memDataName 2
 
 /-- The memory image named by the prover data: `κ` is the floor logarithm of the `"mem"` row
-count, capped at `maxLogMem`, word `i` is row `i` as limbs `(c₀, c₁, c₂)`, and a missing row
+count, capped at `maxLogMem`, word `i` is row `i` as limbs `(c₀, c₁)`, and a missing row
 reads as `0`. Rows at indices from `2^κ` on are dropped; `WellShapedData` is the shape under
 which there are none. -/
 def imageOf (data : ProverData K) : (κ : ℕ) × MemoryImage κ :=
   ⟨min (Nat.log 2 (memRows data).size) maxLogMem,
-    fun i ↦ (((memRows data)[(i : ℕ)]?).map fun v ↦ E.ofLimbs v[0] v[1] v[2]).getD 0⟩
+    fun i ↦ (((memRows data)[(i : ℕ)]?).map fun v ↦ E.ofLimbs v[0] v[1]).getD 0⟩
 
 /-- The prover data is well shaped: the `"mem"` table has exactly the `2^κ` rows of its image,
 that is, its row count is a power of two within the cap `2^maxLogMem` (`wellShapedData_iff`),
@@ -216,7 +216,7 @@ def StatePush : Channel K Registers where
 the prover data (specification Theorem 6.4 and Corollary 6.5). -/
 def MemPull : Channel K MemMsg where
   name := "mem.pull"
-  Guarantees m data := (imageOf data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
+  Guarantees m data := (imageOf data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1])
 
 /-- The memory push, separator `g^1`. -/
 def MemPush : Channel K MemMsg where
@@ -242,18 +242,18 @@ def BytecodePush : Channel K BytecodeMsg where
 /-! ## The read gadgets -/
 
 /-- A memory read of the word `v` at `addr` with count `count`: pull `(addr, count, v)`, push
-`(addr, g·count, v)` (specification §6.2 "Flush rules"; `tables.rs:163-170`). The pull is a
+`(addr, g·count, v)` (specification §6.2 "Flush rules"; `tables.rs:124-148` at `leanvm-rev`). The pull is a
 `Channel.pull`, so that a soundness proof may assume `MemPull.Guarantees` of it. -/
-def memRead (addr count : Expression K) (v : Vector (Expression K) 3) : Circuit K Unit := do
+def memRead (addr count : Expression K) (v : Vector (Expression K) 2) : Circuit K Unit := do
   MemPull.pull ⟨addr, count, v⟩
   MemPush.push ⟨addr, Expression.const g * count, v⟩
 
 /-- A memory read of the word `v` at `addr` with count `count` when `flag` is `1`
-(`memory_coords_if`, `tables.rs:132-147`, and `memory_if`, `crates/verifier/src/layout.rs:174-178`,
-at leanVM main `40f877dc`): pull `(addr, count, v)` and push `(addr, count + flag·count·g +
+(`memory_coords_if`, `tables.rs:133-137`, and `memory_if`, `crates/verifier/src/layout.rs:171-176`,
+at `leanvm-rev`): pull `(addr, count, v)` and push `(addr, count + flag·count·g +
 flag·count, v)`, `g·count` at `flag = 1` and the pull's own tuple at `flag = 0`, where the pair
 cancels. The pull is a `Channel.pullIf flag`: its guarantee is assumed at `flag = 1` only. -/
-def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 3) : Circuit K Unit := do
+def memReadIf (flag addr count : Expression K) (v : Vector (Expression K) 2) : Circuit K Unit := do
   MemPull.pullIf flag ⟨addr, count, v⟩
   MemPush.push ⟨addr, count + Expression.const g * (flag * count) + flag * count, v⟩
 
@@ -318,7 +318,7 @@ theorem regs_toElements (s : Registers K) : (toElements s).toList = [s.pc, s.fp]
   obtain ⟨pc, fp⟩ := s
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
 
-/-- A memory message flattens to `[addr, count, v₀, v₁, v₂]` (specification §6.2). -/
+/-- A memory message flattens to `[addr, count, v₀, v₁]` (specification §6.2). -/
 theorem memMsg_toElements (m : MemMsg K) :
     (toElements m).toList = [m.addr, m.count] ++ m.v.toList := by
   obtain ⟨addr, count, v⟩ := m
@@ -355,9 +355,9 @@ theorem WellShapedData.memIndex_lt {data : ProverData K} (h : WellShapedData dat
 
 /-- Under the shape, word `i` of the image is row `i` of the `"mem"` table, as limbs. -/
 theorem imageOf_apply {data : ProverData K} (h : WellShapedData data)
-    (i : Fin (2 ^ (imageOf data).1)) {v : Vector K 3}
+    (i : Fin (2 ^ (imageOf data).1)) {v : Vector K 2}
     (hv : (memRows data)[(i : ℕ)]'(h.memIndex_lt i) = v) :
-    (imageOf data).2 i = E.ofLimbs v[0] v[1] v[2] := by
+    (imageOf data).2 i = E.ofLimbs v[0] v[1] := by
   simp [imageOf, Array.getElem?_eq_getElem (h.memIndex_lt i), hv]
 
 end LeanVM.Arithmetization

@@ -75,18 +75,18 @@ theorem oqCapT_atoms (s : Oq) (bp cap flags : V) (kL ch : ℕ) : AllAtoms (oqCap
 
 /-- The padding run's values: `1, 0, 0, 0, 0`. -/
 theorem oqPad_values {pr : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqPadT pr → a.Holds rd σ) :
-    σ (.n pr) = word 1 0 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 := by
-  refine ⟨hA _ (by simp [oqPadT] : Stmt.atom (.const (.n pr) (word 1 0 0)) ∈ _), fun i hi => ?_⟩
+    σ (.n pr) = word 1 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 := by
+  refine ⟨hA _ (by simp [oqPadT] : Stmt.atom (.const (.n pr) (word 1 0)) ∈ _), fun i hi => ?_⟩
   interval_cases i
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 1)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 2)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 3)) (word 0 0 0)) ∈ _)).trans word_zero
-  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 4)) (word 0 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 1)) (word 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 2)) (word 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 3)) (word 0 0)) ∈ _)).trans word_zero
+  · exact (hA _ (by simp [oqPadT] : Stmt.atom (.const (.n (pr + 4)) (word 0 0)) ∈ _)).trans word_zero
 
 /-- The path's first window places the padding run (`pd ≥ 1`). -/
 theorem oqPath_pad {s : Oq} (hpd : 1 ≤ s.pd) {bp : V} {pr kL ch : ℕ}
     (hA : BlockOk rd σ (oqPathT s bp pr kL ch)) :
-    σ (.n pr) = word 1 0 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 :=
+    σ (.n pr) = word 1 0 ∧ ∀ i < 4, σ (.n (pr + 1 + i)) = 0 :=
   oqPad_values fun a ha ↦ hA.atom (oqPathT_mem_win (i := 0) (by unfold oqNpw; omega)
     (by simp only [oqWinT, ↓reduceIte, List.mem_append]; exact Or.inl (Or.inr ha)))
 
@@ -200,7 +200,7 @@ theorem wp_frame_sound {s : Oq} (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) {C : CallR
 template. -/
 def WalkFn (walk : String) (pd cd : ℕ) : Prop :=
   ∃ fn : Fn, coreProgram.find? walk = some fn ∧ fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4] ∧
-    fn.body = wpBodyT ⟨0, 0, pd, cd⟩
+    fn.body = wpBodyT ⟨0, 0, pd, cd, 0, [], 0, 0⟩
 
 /-- **A `walk_path` specialization is a sound walk.** -/
 theorem WalkFn.sound {walk : String} {pd cd : ℕ} (hpd : 1 ≤ pd) (hcd : 1 ≤ cd)
@@ -210,7 +210,7 @@ theorem WalkFn.sound {walk : String} {pd cd : ℕ} (hpd : 1 ≤ pd) (hcd : 1 ≤
   rw [rel_iff_sem hf, hb, hp] at h
   obtain ⟨τ, hpar, h⟩ := h
   obtain ⟨hr, hl, sibs, hsl, -, hfl, h0, h1⟩ :=
-    wp_frame_sound (s := ⟨0, 0, pd, cd⟩) hpd hcd hpar h hleaf hq hwin
+    wp_frame_sound (s := ⟨0, 0, pd, cd, 0, [], 0, 0⟩) hpd hcd hpar h hleaf hq hwin
   exact ⟨hr, hl, sibs, hsl, hfl, h0, h1⟩
 
 end

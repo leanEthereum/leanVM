@@ -38,27 +38,27 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- `rs_eq_run`'s atoms before `__loop5`: the count's bits, `r_g`, `q_g`, the check. -/
 def rsA : List Stmt :=
   [.atom (.hint (.bitsExp (.n 3) 6 (.stack [.n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))),
-    .atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.const (.n 10) (word 1 0 0)),
-    .atom (.const (.n 11) (word 3 0 0)), .atom (.mul (.n 12) (.n 4) (.n 11)),
+    .atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.const (.n 10) (word 1 0)),
+    .atom (.const (.n 11) (word 3 0)), .atom (.mul (.n 12) (.n 4) (.n 11)),
     .atom (.add (.n 13) (.n 10) (.n 12)), .atom (.mul (.n 5) (.n 5) (.n 5)),
-    .atom (.const (.n 14) (word 1 0 0)), .atom (.const (.n 15) (word 5 0 0)),
+    .atom (.const (.n 14) (word 1 0)), .atom (.const (.n 15) (word 5 0)),
     .atom (.mul (.n 16) (.n 5) (.n 15)), .atom (.add (.n 17) (.n 14) (.n 16)),
     .atom (.mul (.n 18) (.n 13) (.n 17)), .atom (.mul (.n 6) (.n 6) (.n 6)),
-    .atom (.const (.n 19) (word 1 0 0)), .atom (.const (.n 20) (word 17 0 0)),
+    .atom (.const (.n 19) (word 1 0)), .atom (.const (.n 20) (word 17 0)),
     .atom (.mul (.n 21) (.n 6) (.n 20)), .atom (.add (.n 22) (.n 19) (.n 21)),
     .atom (.mul (.n 23) (.n 18) (.n 22)), .atom (.mul (.n 7) (.n 7) (.n 7)),
-    .atom (.const (.n 24) (word 1 0 0)), .atom (.const (.n 25) (word 3 0 0)),
+    .atom (.const (.n 24) (word 1 0)), .atom (.const (.n 25) (word 3 0)),
     .atom (.mul (.n 26) (.n 7) (.n 25)), .atom (.add (.n 27) (.n 24) (.n 26)),
-    .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.const (.n 28) (word 1 0 0)),
-    .atom (.const (.n 29) (word 5 0 0)), .atom (.mul (.n 30) (.n 8) (.n 29)),
+    .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.const (.n 28) (word 1 0)),
+    .atom (.const (.n 29) (word 5 0)), .atom (.mul (.n 30) (.n 8) (.n 29)),
     .atom (.add (.n 31) (.n 28) (.n 30)), .atom (.mul (.n 32) (.n 27) (.n 31)),
-    .atom (.mul (.n 9) (.n 9) (.n 9)), .atom (.const (.n 33) (word 1 0 0)),
-    .atom (.const (.n 34) (word 17 0 0)), .atom (.mul (.n 35) (.n 9) (.n 34)),
+    .atom (.mul (.n 9) (.n 9) (.n 9)), .atom (.const (.n 33) (word 1 0)),
+    .atom (.const (.n 34) (word 17 0)), .atom (.mul (.n 35) (.n 9) (.n 34)),
     .atom (.add (.n 36) (.n 33) (.n 35)), .atom (.mul (.n 37) (.n 32) (.n 36)),
     .atom (.mul (.n 38) (.n 37) (.n 37)), .atom (.mul (.n 39) (.n 38) (.n 38)),
     .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 23)),
-    .atom (.assertEq (.n 41) (.n 3)), .atom (.const (.n 42) (word 1 0 0)),
-    .atom (.add (.n 43) (.n 42) (.n 37)), .atom (.const (.n 44) (word 1 0 0))]
+    .atom (.assertEq (.n 41) (.n 3)), .atom (.const (.n 42) (word 1 0)),
+    .atom (.add (.n 43) (.n 42) (.n 37)), .atom (.const (.n 44) (word 1 0))]
 
 /-- `__loop5`'s call and the remainder's pointers. -/
 def rsT0 : List Stmt :=
@@ -128,8 +128,8 @@ theorem walk_flat_stuck (σ : Val) : ∀ (pre rest : List Stmt), pre.all Stmt.fl
 
 /-- **The walk is stuck unless the remainder's selector names a callee.** -/
 theorem rs_walk_stuck (σ : Val) (h : ¬ ∃ j < 8, σ (.n 23) = ofK (addressOfIndex j)) :
-    walk σ (Fn.body Data.core6) = .stuck := by
-  rw [core6_body, rsBody_split']
+    walk σ (Fn.body Data.core5) = .stuck := by
+  rw [core5_body, rsBody_split']
   refine walk_flat_stuck σ _ _ (by decide +kernel) (rs_dispOk0 σ) ?_
   rw [walk, rsD, walk1, pick_stuck σ _ _ _ _ 0 fun i hi hx ↦ h ⟨i, by simpa using hi, by
     rwa [Nat.zero_add] at hx⟩]
@@ -144,8 +144,8 @@ theorem rs_callSF (σ : Val) : (rsA ++ rsT).filterMap (Stmt.callSF σ) =
 theorem rs_allocSz : (rsA ++ rsT).filterMap Main.Stmt.allocSz = [] := rfl
 
 theorem rs_walk {σ : Val} (h : ∃ j < 8, σ (.n 23) = ofK (addressOfIndex j)) :
-    walk σ (Fn.body Data.core6) = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 58] := by
-  rw [core6_body, rsBody_split]
+    walk σ (Fn.body Data.core5) = .ret ((rsA ++ rsT).flatMap (flEvs σ)) [.n 58] := by
+  rw [core5_body, rsBody_split]
   exact walk_flat σ _ _ rs_flat (rs_dispOk h)
 
 /-- `rs_eq_run`'s frames: `__loop5`'s (entered unless `q = 0`), the remainder's. -/

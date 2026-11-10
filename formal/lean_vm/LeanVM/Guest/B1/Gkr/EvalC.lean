@@ -20,9 +20,9 @@ On a valuation satisfying `Fwd.Good` for every statement of a body's evaluation 
 * `good_read`: a load that is not one of the body's stores (`loadKey`, checked by kernel
   evaluation) reads the memory's word;
 * `good_mul`: a product of older values;
-* `keccak_good`: a `KECCAK` of canonical cells holds, its outputs the permutation's;
+* `keccak_good`: a `KECCAK` holds, its outputs the permutation's;
 * `fsNextT_good`, `challengeT_good`: `fs_next` reading a word holds, its cells the word's;
-  `challenge_from_state` of a canonical cell is the template's `ChallengeOk`;
+  `challenge_from_state` is the template's `ChallengeOk`;
 * `holdsList_auto`: a block of pure atoms and hints holds;
 * `good_slice`, `good_ite`: a slice of a body, or an `ite`'s branches, are in its evaluation list.
 -/
@@ -108,16 +108,16 @@ theorem good_readS {d p off : ℕ} (hg : GoodS rd S w σ (.atom (.load (.n d) (.
     σ (.n d) = v ∧ LoadHolds rd (σ (.n p)) off (σ (.n d)) :=
   good_read (rd := rd) (S := S) (w := w) hg hS hl
 
-/-- **A permutation of canonical cells** holds, its outputs the permutation's. -/
+/-- **A permutation** holds, its outputs the permutation's. -/
 theorem keccak_good {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs false false))
-    (hc : AllCanonical (ins.map σ)) (ho : outs.length = 13 := by first | rfl | simp) :
+    (ho : outs.length = 13 := by first | rfl | simp) :
     (Atom.keccak ins outs false false).Holds rd σ ∧
       cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false := by
   obtain ⟨hi, -, he⟩ := hg
   have hout : cells13 (outs.map σ) = cellsOfState (permOf (ins.map σ)) false := funext fun c => by
     rw [cells13, List.getD_eq_getElem _ _ (by simp [ho]), List.getElem_map]
     exact he c (by omega)
-  exact ⟨keccakA_of hi ho hc hout, hout⟩
+  exact ⟨keccakA_of hi ho hout, hout⟩
 
 /-! ## Blocks of pure atoms -/
 
@@ -133,75 +133,23 @@ def autoBG : Stmt → Bool
 theorem fsNextT_good {C : CallRel} {kret : List E → Prop} {cur off b : ℕ}
     (hg : ∀ s ∈ fsNextT (.n cur) off b, GoodS rd S w σ s)
     (hS : some (b, cur, off) ∉ S.map loadKey) {v : E} (hl : LoadHolds rd (σ (.n cur)) off v) :
-    σ (.n b) = v ∧ (σ (.n (b + 7)), σ (.n (b + 9))) = Keccak.scalarCells v dsObserve ∧
+    σ (.n b) = v ∧ (σ (.n (b + 1)), σ (.n (b + 2))) = Keccak.scalarCells v dsObserve ∧
       Stmt.HoldsList C rd σ (fsNextT (.n cur) off b) True kret := by
   obtain ⟨e0, hl0⟩ := good_read (rd := rd) (S := S) (w := w)
     (hg (.atom (.load (.n b) (.n cur) off)) (by simp [fsNextT])) hS hl
-  have gl : ∀ j (h : j < 3), σ ([V.n (b + 1), .n (b + 1 + 1), .n (b + 1 + 2)][j]) =
-      limbAt (σ (.n b)) j := hg (.atom (.hint (.limbs (.n b) [.n (b + 1), .n (b + 1 + 1),
-        .n (b + 1 + 2)]))) (by simp [fsNextT, fsPackT])
-  have c3 : σ (.n (b + 1 + 3)) = word dsObserve 0 0 := hg (.atom (.const (.n (b + 1 + 3))
-    (word dsObserve 0 0))) (by simp [fsNextT, fsPackT])
-  have c4 : σ (.n (b + 1 + 4)) = word 0 0 1 := hg (.atom (.const (.n (b + 1 + 4))
-    (word 0 0 1))) (by simp [fsNextT, fsPackT])
-  have m5 : σ (.n (b + 1 + 5)) = σ (.n (b + 1 + 4)) * σ (.n (b + 1 + 2)) :=
-    good_mul (rd := rd) (S := S) (w := w) (hg (.atom (.mul (.n (b + 1 + 5)) (.n (b + 1 + 4)) (.n (b + 1 + 2))))
-      (by simp [fsNextT, fsPackT])) (by omega) (by omega)
-  have a6 : σ (.n (b + 1 + 6)) = σ (.n b) + σ (.n (b + 1 + 5)) := hg (.atom (.add
-    (.n (b + 1 + 6)) (.n b) (.n (b + 1 + 5)))) (by simp [fsNextT, fsPackT])
-  have c7 : σ (.n (b + 1 + 7)) = word 0 dsObserve 0 := hg (.atom (.const (.n (b + 1 + 7))
-    (word 0 dsObserve 0))) (by simp [fsNextT, fsPackT])
-  have a8 : σ (.n (b + 1 + 8)) = σ (.n (b + 1 + 2)) + σ (.n (b + 1 + 7)) := hg (.atom (.add
-    (.n (b + 1 + 8)) (.n (b + 1 + 2)) (.n (b + 1 + 7)))) (by simp [fsNextT, fsPackT])
-  have l0 : σ (.n (b + 1)) = ofK ((σ (.n b)).limb 0) := (gl 0 (by omega)).trans (by simp [limbAt])
-  have l1 : σ (.n (b + 1 + 1)) = ofK ((σ (.n b)).limb 1) := (gl 1 (by omega)).trans (by simp [limbAt])
-  have l2 : σ (.n (b + 1 + 2)) = ofK ((σ (.n b)).limb 2) := (gl 2 (by omega)).trans (by simp [limbAt])
-  have hv : ∀ i < 9, σ (.n (b + 1 + i)) = fsPackVals (σ (.n b)) dsObserve i := by
-    intro i hi
-    interval_cases i
-    · exact l0
-    · exact l1
-    · exact l2
-    · exact c3
-    · exact c4
-    · rw [m5, c4, l2]; rfl
-    · rw [a6, m5, c4, l2]; rfl
-    · exact c7
-    · rw [a8, l2, c7]; rfl
-  have hok := fsPackOk_of_vals hv
-  have hcells := fsPackVals_cells (σ (.n b)) dsObserve
-  rw [← hv 6 (by omega), ← hv 8 (by omega), e0] at hcells
-  refine ⟨e0, hcells, (holds_fsNextT _ _ _ _ _).mpr ⟨⟨hl0, hok⟩, trivial⟩⟩
+  have c1 : σ (.n (b + 1)) = σ (.n b) := hg (.atom (.copy (.n (b + 1)) (.n b)))
+    (by simp [fsNextT, fsPackT])
+  have c2 : σ (.n (b + 1 + 1)) = word 0 dsObserve := hg (.atom (.const (.n (b + 1 + 1))
+    (word 0 dsObserve))) (by simp [fsNextT, fsPackT])
+  have hok : FsPackOk σ (.n b) (b + 1) dsObserve := ⟨c1, c2⟩
+  refine ⟨e0, ?_, (holds_fsNextT _ _ _ _ _).mpr ⟨⟨hl0, hok⟩, trivial⟩⟩
+  rw [← e0]
+  exact fsPackT_cells hok
 
-/-- **`challenge_from_state` on its equations**, from a canonical cell. -/
-theorem challengeT_good {s0 s1 b : ℕ} (hg : ∀ s ∈ challengeT (.n s0) (.n s1) b, GoodS rd S w σ s)
-    (hc : IsCanonical128 (σ (.n s1))) : ChallengeOk σ (.n s0) (.n s1) b := by
-  have gl : ∀ j (h : j < 1), σ ([V.n b][j]) = limbAt (σ (.n s1)) j :=
-    hg (.atom (.hint (.limbs (.n s1) [.n b]))) (by simp [challengeT])
-  have a1 : σ (.n (b + 1)) = σ (.n s1) + σ (.n b) :=
-    hg (.atom (.add (.n (b + 1)) (.n s1) (.n b))) (by simp [challengeT])
-  have c2 : σ (.n (b + 2)) = word 1 0 1 :=
-    hg (.atom (.const (.n (b + 2)) (word 1 0 1))) (by simp [challengeT])
-  have m3 : σ (.n (b + 3)) = σ (.n (b + 1)) * σ (.n (b + 2)) :=
-    good_mul (rd := rd) (S := S) (w := w) (hg (.atom (.mul (.n (b + 3)) (.n (b + 1)) (.n (b + 2)))) (by simp [challengeT]))
-      (by omega) (by omega)
-  have c4 : σ (.n (b + 4)) = word 0 0 1 :=
-    hg (.atom (.const (.n (b + 4)) (word 0 0 1))) (by simp [challengeT])
-  have m5 : σ (.n (b + 5)) = σ (.n (b + 4)) * σ (.n b) :=
-    good_mul (rd := rd) (S := S) (w := w) (hg (.atom (.mul (.n (b + 5)) (.n (b + 4)) (.n b))) (by simp [challengeT]))
-      (by omega) (by omega)
-  have a6 : σ (.n (b + 6)) = σ (.n s0) + σ (.n (b + 5)) :=
-    hg (.atom (.add (.n (b + 6)) (.n s0) (.n (b + 5)))) (by simp [challengeT])
-  have l0 : σ (.n b) = ofK ((σ (.n s1)).limb 0) := (gl 0 (by omega)).trans (by simp [limbAt])
-  refine challengeOk_of_vals hc fun i hi => ?_
-  interval_cases i
-  · exact l0
-  · rw [a1, l0]; rfl
-  · exact c2
-  · rw [m3, a1, c2, l0]; rfl
-  · exact c4
-  · rw [m5, c4, l0]; rfl
-  · rw [a6, m5, c4, l0]; rfl
+/-- **`challenge_from_state` on its equations.** -/
+theorem challengeT_good {s0 b : ℕ} (hg : ∀ s ∈ challengeT (.n s0) b, GoodS rd S w σ s) :
+    ChallengeOk σ (.n s0) b :=
+  hg (.atom (.copy (.n b) (.n s0))) (by simp [challengeT])
 
 end
 end LeanVM.Guest.B1.Tables

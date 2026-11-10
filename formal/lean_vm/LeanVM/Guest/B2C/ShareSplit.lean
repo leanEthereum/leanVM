@@ -49,11 +49,11 @@ theorem cell_congr {v : V} (h : A v.idx) : L.cell v = L'.cell v := by
 
 theorem cellN_congr {n : ℕ} (h : A n) : cellN L n = cellN L' n := cell_congr hA (v := V.n n) h
 
-theorem nameV_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SSt) {v : V} (h : A v.idx) :
+theorem nameV_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) {v : V} (h : A v.idx) :
     nameV L sh kc st v = nameV L' sh kc st v := by
   unfold nameV; rw [cell_congr hA h]
 
-theorem nameAll_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ × ℕ)) :
+theorem nameAll_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ)) :
     ∀ (st : SSt) (vs : List V), (∀ v ∈ vs, A v.idx) → nameAll L sh kc st vs = nameAll L' sh kc st vs
   | _, [], _ => rfl
   | st, v :: vs, h => by
@@ -113,7 +113,7 @@ end Congr
 
 /-! ### Pending values stay among the walked values -/
 
-theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V} :
+theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {v : V} :
     ∀ p ∈ (nameV L sh kc st v).pend, p ∈ st.pend ∨ p = ⟨v.idx, L.cell v, none, [], []⟩ := by
   intro p hp
   unfold nameV at hp
@@ -126,14 +126,14 @@ theorem nameV_pend {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)
     · exact Or.inl hp
   · exact Or.inl hp
 
-theorem nameV_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt}
+theorem nameV_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ)} {st : SSt}
     {v : V} (h : PendIn A st) (hv : A v.idx) : PendIn A (nameV L sh kc st v) := by
   intro p hp
   rcases nameV_pend p hp with hp | rfl
   · exact h p hp
   · exact ⟨hv, by simp, by simp⟩
 
-theorem nameAll_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ × ℕ)} :
+theorem nameAll_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Option (ℕ × ℕ)} :
     ∀ {st : SSt} {vs : List V}, PendIn A st → (∀ v ∈ vs, A v.idx) → PendIn A (nameAll L sh kc st vs)
   | _, [], h, _ => h
   | _, v :: vs, h, hv => by
@@ -185,7 +185,7 @@ variable {L L' : Loc} {A : ℕ → Prop} (hA : ∀ n, A n → L.get? n = L'.get?
 include hA
 
 theorem recCst_congr (sh : ℕ) {a : Core.Atom} (ha : ∀ w ∈ Memory.atomUses a, A w.idx)
-    (cst : Exec.Trie (ℕ × ℕ × ℕ)) : recCst L sh a cst = recCst L' sh a cst := by
+    (cst : Exec.Trie (ℕ × ℕ)) : recCst L sh a cst = recCst L' sh a cst := by
   cases a <;> simp only [recCst]
   · rw [cell_congr hA (ha _ (by simp [Memory.atomUses]))]
   · rw [cell_congr hA (ha _ (by simp [Memory.atomUses]))]

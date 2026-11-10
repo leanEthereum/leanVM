@@ -183,7 +183,7 @@ def family(benchmark):
         "pcs": "PCS",
         "ntt": "PCS",
         "f64": "Field and transpose kernels",
-        "f192": "Field and transpose kernels",
+        "f128": "Field and transpose kernels",
         "transpose": "Field and transpose kernels",
     }.get(prefix, "Other benchmarks")
 

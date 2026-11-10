@@ -15,12 +15,13 @@ public import LeanVM.Guest.B1.Sig.Interface
 /-!
 # `main` and `aggregate_claims`: meanings (TRIAGE G #96, #97)
 
-**`aggregate_claims`** (G:4670-4774, `core33`): from the batching seed (`AGG_SEED_*`), the
-duplex sponge absorbs the children's count and every child's words, squeezes two coefficients per
-child, and one sumcheck (`batch_sumcheck`) reduces the children's claims on the bytecode to the
-claim written at `defer_stmt`: `Node.batch` (N:272) of the children whose words the memory holds
-(`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs`, `bc_star_hint`
-(`MeaningAggregateClaims`).
+**`aggregate_claims`** (`core33`): from the batching seed (`AGG_SEED_*`), the duplex sponge
+absorbs the children's count and every child's words, checks the proof of work on the hinted
+nonce, squeezes the challenge `λ`, and one sumcheck (`batch_sumcheck`) reduces the children's
+claims on the bytecode to the claim written at `defer_stmt`: `Node.batch` of the children whose
+words the memory holds (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs` (the
+nonce first) and `bc_star_hint` (`MeaningAggregateClaims`), given the grind's window tables at
+its last argument (`WinTabs`).
 
 **`main`** (G:4491-4667, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
@@ -70,10 +71,10 @@ def indexSearch (κ : ℕ) (a : K) : Option (Fin (2 ^ κ)) :=
   (List.finRange (2 ^ κ)).find? fun i ↦ decide (a = Parameters.addressOfIndex i)
 
 /-- The exponent `i < 2^34` with `g^i` the word's low limb, `0` if there is none. Only the low limb
-is read: a word whose `y`, `y²` limbs are nonzero gets the exponent of its low limb. -/
+is read: a word whose `y` limb is nonzero gets the exponent of its low limb. -/
 @[irreducible] noncomputable def gLog (x : E) : ℕ := ((indexSearch 34 (x.limb 0)).map Fin.val).getD 0
 
-/-- The digest of two cells, their low limbs its four words (`digestFromHalves`, unchecked). -/
+/-- The digest of two cells, their limbs its four words (`digestFromHalves`). -/
 def digestOfCells (a b : E) : Digest :=
   #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane]
 
@@ -105,12 +106,13 @@ def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildCl
     ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredClaim.cells cc.freshClaim) ∧
     ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carriedClaim.cells
 
-/-- **`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt)`**, for
-`n_children_g = g^m`, `1 ≤ m ≤ 16`: it returns nothing, and for some hints the claim written at
-`defer_stmt` (`23` coordinates, then the value) is the batching (`Node.batch`) of every list of
-`m` children whose words the memory holds. -/
+/-- **`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt, tabs)`**,
+for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`: it returns nothing, and
+for some hints the claim written at `defer_stmt` (`23` coordinates, then the value) is the
+batching (`Node.batch`) of every list of `m` children whose words the memory holds. -/
 def MeaningAggregateClaims (rd : Reader) : List E → List E → Prop
-  | [ncg, cpi, cfresh, ccarried, dst], rets => ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
+  | [ncg, cpi, cfresh, ccarried, dst, tabs], rets => WinTabs rd tabs →
+      ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
       rets = [] ∧ ∃ (h : BatchingHints) (out : DeferredClaim),
         out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
@@ -118,9 +120,9 @@ def MeaningAggregateClaims (rd : Reader) : List E → List E → Prop
           batch cs h = some out
   | _, _ => False
 
-/-- `aggregate_claims`' core IR gives its meaning. -/
+/-- `aggregate_claims`' core IR gives its meaning, on a memory image. -/
 def aggregate_claims_sound_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
+  ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "aggregate_claims" args rets → MeaningAggregateClaims rd args rets
 
 /-! ## What `main` asks of its callees with a witness -/
@@ -155,21 +157,23 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
   sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
     Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
   /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim,
-  the root's cells and the challenge's rate cells (`Da.MeaningDaVerify`). -/
+  the root's cells and the challenge (`Da.MeaningDaVerify`). -/
   da : ∀ gsq rets, coreProgram.Rel rd "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
-    ∃ (root : Digest) (z c2 : E), (wD [gsq] rets).Opens root z ∧ IsInK c2 ∧
-      rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
-  /-- A child proof's check with the exponent table: the proof `wV args`. -/
+    ∃ (root : Digest) (z : E), (wD [gsq] rets).Opens root z ∧ rets = digestCells root ++ [z]
+  /-- A child proof's check with the exponent and window tables: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
+    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
+      ExpTables rd gsq ∧ ExpWinTab rd gsq →
     VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] (wV [pi0, pi1, s0, s1, gsq, out])
-  /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the hints `wA args`. -/
-  agg : ∀ ncg cpi cfresh ccarried dst, coreProgram.Rel rd "aggregate_claims"
-    [ncg, cpi, cfresh, ccarried, dst] [] → ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
+  /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`,
+  with the hints `wA args`. -/
+  agg : ∀ ncg cpi cfresh ccarried dst tabs, coreProgram.Rel rd "aggregate_claims"
+    [ncg, cpi, cfresh, ccarried, dst, tabs] [] → WinTabs rd tabs → ∀ m, 1 ≤ m → m ≤ 16 →
+      ncg = gen ^ m →
       ∃ out : DeferredClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs (wA [ncg, cpi, cfresh, ccarried, dst]) = some out
+          batch cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out
 
 /-! ## The decoders
 
@@ -178,8 +182,9 @@ structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.S
 (each `g^count`); the region sizes `lx_slots = .n 40`, `ls_slots = .n 41`, `n_total = .n 42`;
 `fs_seed = .n 47, .n 48`; the exponent table `.n 49`; the pointers
 `lx_table = .n 52`, `ls_table = .n 55`, `cover = .n 66`, `da_digests = .n 385`,
-`child_pi = .n 405`, `child_fresh = .n 411`, `child_carried = .n 417`, `written = .n 420`,
-`defer_stmt = .n 438`; the direct DA check's words `.n 390 … .n 393`; `da_pick = .n 427`. -/
+`child_pi = .n 404`, `child_fresh = .n 410`, `child_carried = .n 416`, `written = .n 419`,
+`defer_stmt = .n 437`; the direct DA check's words `.n 390 … .n 392`; `da_pick = .n 426`; the
+window tables `.n 465`. -/
 
 /-- The four cells of slot `s` of a table at `p`. -/
 noncomputable def slotCells (rd : Reader) (p : E) (s : ℕ) : List E := readCells rd (p * gen ^ (4 * s)) 4
@@ -199,7 +204,7 @@ noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : LeanSphincsClaim :
 noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n 66)) s)
 
 /-- The running count `written[c]`, as a log. -/
-noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 420)) c)
+noncomputable def countOf (rd : Reader) (σ : Val) (c : ℕ) : ℕ := gLog (cellAt rd (σ (.n 419)) c)
 
 /-- The number of children. -/
 noncomputable def nKids (σ : Val) : ℕ := gLog (σ (.n 6))
@@ -242,17 +247,17 @@ noncomputable def kidStmt (rd : Reader) (σ : Val) (c : ℕ) : NodeStatement :=
   ⟨⟨(kidSlots rd σ 0 (lxSlots σ) a b).map (xmssAt rd (σ (.n 52))),
     (kidSlots rd σ (lxSlots σ) (lsSlots σ) (a + nx) b).map (sphincsAt rd (σ (.n 55))),
     daDigestAt rd σ c⟩,
-   deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)⟩
+   deferOfCells (readCells rd (σ (.n 416) * gen ^ (24 * c)) 24)⟩
 
 /-- The words of child `c`'s `verify_sub` call. -/
 noncomputable def subArgs (rd : Reader) (σ : Val) (c : ℕ) : List E :=
-  [cellAt rd (σ (.n 405)) (2 * c), cellAt rd (σ (.n 405)) (2 * c + 1), σ (.n 47), σ (.n 48),
-    σ (.n 49), σ (.n 411) * gen ^ (24 * c)]
+  [cellAt rd (σ (.n 404)) (2 * c), cellAt rd (σ (.n 404)) (2 * c + 1), σ (.n 47), σ (.n 48),
+    σ (.n 49), σ (.n 410) * gen ^ (24 * c)]
 
 /-- **Child `c`**: its statement (`kidStmt`), its fresh claim at `child_fresh · g^(24c)`, its
 proof `wV` at its `verify_sub` call's words. -/
 noncomputable def decKid (rd : Reader) (σ : Val) (wV : List E → Proof) (c : ℕ) : Child :=
-  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 411) * gen ^ (24 * c)) 24),
+  ⟨kidStmt rd σ c, fixedOfCells (readCells rd (σ (.n 410) * gen ^ (24 * c)) 24),
     wV (subArgs rd σ c)⟩
 
 /-- **The seed**: the cells `fs_seed`. -/
@@ -263,17 +268,17 @@ at the slot `da_pick` of `da_digests`, the deferred claim at `defer_stmt`. -/
 noncomputable def decStmt (σ : Val) (rd : Reader) : NodeStatement :=
   ⟨⟨(List.range (gLog (σ (.n 0)))).map (xmssAt rd (σ (.n 52))),
     (List.range (gLog (σ (.n 3)))).map (sphincsAt rd (σ (.n 55))),
-    daDigestAt rd σ (gLog (σ (.n 427)))⟩,
-   deferOfCells (readCells rd (σ (.n 438)) 24)⟩
+    daDigestAt rd σ (gLog (σ (.n 426)))⟩,
+   deferOfCells (readCells rd (σ (.n 437)) 24)⟩
 
 /-- The number of raw leanXMSS signatures, raw leanSPHINCS signatures, direct DA checks. -/
 noncomputable def nRawX (σ : Val) : ℕ := gLog (σ (.n 2))
 noncomputable def nRawS (σ : Val) : ℕ := gLog (σ (.n 5))
 noncomputable def nDirect (σ : Val) : ℕ := gLog (σ (.n 7))
 
-/-- The DA claim `da_verify` returns: its root and the challenge of its rate cells. -/
+/-- The DA claim `da_verify` returns: its root and its challenge. -/
 noncomputable def dvClaim (σ : Val) : DaClaim :=
-  ⟨digestOfCells (σ (.n 390)) (σ (.n 391)), Da.scalarOfCells (σ (.n 392)) (σ (.n 393))⟩
+  ⟨digestOfCells (σ (.n 390)) (σ (.n 391)), σ (.n 392)⟩
 
 /-- `__loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
 the `51` carried tags `lx_tags` (`.n 325 ..< .n 376`; lean_ethereum.py:4578-4591). -/
@@ -302,9 +307,9 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
     (List.range (nRawX σ)).map (rawXmss rd σ wX),
     (List.range (nRawS σ)).map (rawSphincs rd σ wS),
     if nDirect σ = 1 then
-      some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)])
+      some (dvClaim σ, wD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392)])
     else none,
-    wA [σ (.n 6), σ (.n 405), σ (.n 411), σ (.n 417), σ (.n 438)]⟩
+    wA [σ (.n 6), σ (.n 404), σ (.n 410), σ (.n 416), σ (.n 437), σ (.n 465)]⟩
 
 /-! ## The statement -/
 

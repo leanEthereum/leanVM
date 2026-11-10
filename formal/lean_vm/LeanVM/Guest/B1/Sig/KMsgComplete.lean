@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.KMsgComplete
 
-  The lowered Keccak message (`kMsg`, `emit_keccak_message`) is complete: on canonical cells, its
-  statements hold of an extension of any valuation holding the padding run.
+  The lowered Keccak message (`kMsg`, `emit_keccak_message`) is complete: its statements hold of
+  an extension of any valuation holding the padding run.
 -/
 
 module
@@ -12,10 +12,10 @@ public import LeanVM.Guest.B1.Sig.SeqComplete
 /-!
 # The Keccak message, complete
 
-* `KCb`, `KCc`: a message cell's value numbered below a bound, and canonical;
+* `KCb`: a message cell's value numbered below a bound;
 * `kCell_seq`, `kXor_seq`, `kRunFresh_seq`, `kRun_seq`, `kTailXor_seq`, `kIns_seq`, `kXorByte_seq`:
   the blocks between two `KECCAK`s are sequential (`SeqOK`);
-* `kBlocks_complete`, `kMsg_complete`: the message completes, each `KECCAK` on canonical inputs.
+* `kBlocks_complete`, `kMsg_complete`: the message completes.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -27,35 +27,10 @@ open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
 
 variable {C : CallRel} {rd : Reader}
 
-/-! ## Canonical cells -/
-
-theorem canon_add {x y : E} (hx : IsCanonical128 x) (hy : IsCanonical128 y) : IsCanonical128 (x + y) := by
-  unfold IsCanonical128 at *
-  rw [limb_add, hx, hy, add_zero]
-
-theorem canon_zero : IsCanonical128 (0 : E) := limb_zero 2
-
-theorem canon_word (a b : Nat) : IsCanonical128 (word a b 0) := by
-  simp [IsCanonical128, word, Value.ofBits_zero]
-
-theorem canon_cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) :
-    IsCanonical128 (cellsOfState s odd c) := by
-  simp [IsCanonical128, cellsOfState]
-
-theorem canon_kOut (ws : List E) (inOdd outOdd : Bool) (c : Nat) :
-    IsCanonical128 (kOut ws inOdd outOdd c) := by
-  unfold kOut
-  split
-  · exact canon_cellsOfState _ _ _
-  · exact canon_zero
-
 /-- A message cell's value is numbered below `b`. -/
 def KCb (b : Nat) : KC → Prop
   | .cell o => NBv b o
   | _ => True
-
-/-- A message cell is canonical. -/
-def KCc (σ : Val) (k : KC) : Prop := IsCanonical128 (k.val σ)
 
 theorem KCb.mono {b b' : Nat} {k : KC} (h : KCb b k) (hle : b ≤ b') : KCb b' k := by
   cases k with
@@ -64,15 +39,6 @@ theorem KCb.mono {b b' : Nat} {k : KC} (h : KCb b k) (hle : b ≤ b') : KCb b' k
 
 theorem NBv.mono {b b' : Nat} {v : V} (h : NBv b v) (hle : b ≤ b') : NBv b' v := by
   obtain ⟨j, hj, rfl⟩ := h; exact ⟨j, by omega, rfl⟩
-
-theorem KCc.congr {σ σ' : Val} {b : Nat} {k : KC} (h : KCc σ k) (hb : KCb b k)
-    (hσ : AgreeBelow b σ σ') : KCc σ' k := by
-  cases k with
-  | cell o =>
-      show IsCanonical128 (σ' o)
-      rw [hσ.apply (show NBv b o from hb)]
-      exact h
-  | _ => exact h
 
 theorem PadOK.congr {σ σ' : Val} {pad b : Nat} (h : PadOK σ pad) (hb : pad + 5 ≤ b)
     (hσ : AgreeBelow b σ σ') : PadOK σ' pad := by
@@ -337,28 +303,6 @@ theorem kXorByte_seq {cs : List KC} {pos v b : Nat} (hc : ∀ k ∈ cs, KCb b k)
     refine ⟨⟨rfl, ⟨rfl, hob.mono (by omega), ⟨b, by omega, rfl⟩⟩, rfl⟩,
       hset _ _ _ _ (fun k hk => (hc k hk).mono (by omega)) ⟨b + 1, by omega, rfl⟩, by omega⟩
 
-theorem canon_xorByte {cs : List E} (hc : ∀ x ∈ cs, IsCanonical128 x) (pos v : Nat) :
-    ∀ x ∈ xorByte cs pos v, IsCanonical128 x := by
-  intro x hx
-  unfold xorByte at hx
-  rw [List.mem_iff_getElem] at hx
-  obtain ⟨i, hi, rfl⟩ := hx
-  rw [List.getElem_modify]
-  split
-  · exact canon_add (hc _ (List.getElem_mem _)) (by unfold byteCell; split <;> exact canon_word _ _)
-  · exact hc _ (List.getElem_mem _)
-
-theorem kcc_of_xorByte {σ : Val} {cs : List KC} {pos v b : Nat}
-    (h : AtomsHold rd σ (kXorByte cs pos v b).1) (hc : ∀ k ∈ cs, KCc σ k) :
-    ∀ k ∈ (kXorByte cs pos v b).2.1, KCc σ k := by
-  have e := kXorByte_sound h
-  intro k hk
-  have : KC.val σ k ∈ (kXorByte cs pos v b).2.1.map (KC.val σ) := List.mem_map_of_mem hk
-  rw [e] at this
-  exact canon_xorByte (fun x hx => by
-    obtain ⟨k', hk', rfl⟩ := List.mem_map.mp hx
-    exact hc k' hk') pos v _ this
-
 /-! ## The blocks -/
 
 theorem blockOf_mem {cs : List KC} {k : Nat} {c : KC} (h : c ∈ (cs.drop (17 * k / 2)).take 9) : c ∈ cs :=
@@ -369,17 +313,6 @@ theorem cells13_getD (l : List V) (σ : Val) (hl : l.length = 13) (c : Fin 13) :
   simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
   rw [List.getElem?_eq_getElem (by omega)]
   rfl
-
-theorem prevVal_canon {σ : Val} {st : Option (List V)}
-    (h : ∀ s, st = some s → s.length = 13 ∧ ∀ v ∈ s, IsCanonical128 (σ v))
-    {c : Nat} (hc : c < 13) : IsCanonical128 (prevVal σ st c) := by
-  cases st with
-  | none => exact canon_zero
-  | some s =>
-      show IsCanonical128 (σ (s.getD c default))
-      have hs := h s rfl
-      rw [List.getD_eq_getElem _ _ (by omega)]
-      exact hs.2 _ (List.getElem_mem _)
 
 theorem kBlocks_none_eq (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n m k : Nat)
     (st : Option (List V)) (b : Nat) :
@@ -453,13 +386,11 @@ theorem kBlocks_nb {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool} :
         exact ⟨j, by omega, rfl⟩
       · exact runV_nb (by omega) v hv
 
-/-- **The blocks complete**, each `KECCAK` on canonical inputs, the last writing `n` cells (one,
-two or thirteen). -/
+/-- **The blocks complete**, the last writing `n` cells (one, two or thirteen). -/
 theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
     (hn : n = 1 ∨ n = 2 ∨ n = 13) :
     ∀ (m k : Nat) (st : Option (List V)) (b : Nat) (σ : Val), k + m ≤ B → PadOK σ pad →
-      pad + 5 ≤ b → (∀ c ∈ cs, KCb b c ∧ KCc σ c) →
-      (∀ s, st = some s → s.length = 13 ∧ ∀ v ∈ s, NBv b v ∧ IsCanonical128 (σ v)) →
+      pad + 5 ≤ b → (∀ c ∈ cs, KCb b c) → (∀ s, st = some s → ∀ v ∈ s, NBv b v) →
       (st = none → tailRun = true → TailCells (blockOf cs k)) →
       Completes C rd b (kBlocks pad cs B tailRun none n m k st b).2.1
           (kBlocks pad cs B tailRun none n m k st b).1 σ (fun _ => True) ∧
@@ -470,13 +401,12 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
       ⟨⟨σ, Ext.refl _ _ _, trivial, fun _ _ hn => hn⟩, NumBelow.nil _, le_rfl⟩
   | m + 1, k, st, b, σ, hkm, hp, hpb, hcs, hst, htr => by
       obtain ⟨n1, n2⟩ := kBlocks_nb (pad := pad) (cs := cs) (B := B) (n := n) (tailRun := tailRun)
-        (m + 1) k st b hkm hpb (fun c hc => (hcs c hc).1) (fun s hs v hv => ((hst s hs).2 v hv).1)
+        (m + 1) k st b hkm hpb hcs hst
       rw [kBlocks_none_eq]
       dsimp only
       set blk := (cs.drop (17 * k / 2)).take 9 with hblk
-      have hblkb : ∀ c ∈ blk, KCb b c := fun c hc => (hcs c (blockOf_mem hc)).1
-      obtain ⟨i1, i2, i3⟩ := kIns_seq (pad := pad) (tailRun := tailRun) (blk := blk) hpb
-        (fun s hs v hv => ((hst s hs).2 v hv).1) hblkb
+      have hblkb : ∀ c ∈ blk, KCb b c := fun c hc => hcs c (blockOf_mem hc)
+      obtain ⟨i1, i2, i3⟩ := kIns_seq (pad := pad) (tailRun := tailRun) (blk := blk) hpb hst hblkb
       have hlen : (kIns pad blk tailRun st b).2.1.length = 13 := kIns_length htr b
       set ins := kIns pad blk tailRun st b with hins
       rw [kBlocks_none_eq] at n1 n2
@@ -484,8 +414,7 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
       rw [← hblk, ← hins] at n1 n2
       refine ⟨?_, n1, n2⟩
       set w := kOutN B n k with hw
-      have hr : ∀ σ2 : Val, PadOK σ2 pad → (∀ c ∈ cs, KCc σ2 c) →
-          (∀ c < w, IsCanonical128 (σ2 (.n (ins.2.2 + c)))) →
+      have hr : ∀ σ2 : Val, PadOK σ2 pad →
           Completes C rd (ins.2.2 + w)
             (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + w)).2.1
             (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + w)).1
@@ -496,22 +425,15 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
               (ins.2.2 + w)).1) ∧
           ins.2.2 + w ≤ (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
             (ins.2.2 + w)).2.1 := by
-        intro σ2 hp2 hc2 hcan2
+        intro σ2 hp2
         by_cases hl : k + 1 = B
         · obtain rfl : m = 0 := by omega
           exact ⟨⟨σ2, Ext.refl _ _ _, trivial, fun _ _ hn => hn⟩, NumBelow.nil _, le_rfl⟩
         · have hw13 : w = 13 := kOutN_mid hl
-          rw [hw13] at hcan2 ⊢
+          rw [hw13]
           exact kBlocks_complete hn m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + 13) σ2
-            (by omega) hp2 (by omega)
-            (fun c hc => ⟨((hcs c hc).1).mono (by omega), hc2 c hc⟩)
-            (fun s hs => by
-              cases hs
-              refine ⟨runV_length _ _, fun v hv => ⟨runV_nb (by omega) v hv, ?_⟩⟩
-              simp only [runV, List.mem_map, List.mem_range] at hv
-              obtain ⟨c, hc, rfl⟩ := hv
-              exact hcan2 c hc)
-            (fun h => by simp at h)
+            (by omega) hp2 (by omega) (fun c hc => (hcs c hc).mono (by omega))
+            (fun s hs v hv => by cases hs; exact runV_nb (by omega) v hv) (fun h => by simp at h)
       obtain ⟨r1, r2⟩ : NumBelow (kBlocks pad cs B tailRun none n m (k + 1)
             (some (runV ins.2.2 13)) (ins.2.2 + w)).2.1
           (Stmt.valsList (kBlocks pad cs B tailRun none n m (k + 1) (some (runV ins.2.2 13))
@@ -523,29 +445,14 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
           exact ⟨NumBelow.nil _, le_rfl⟩
         · rw [show w = 13 from kOutN_mid hl]
           exact kBlocks_nb m (k + 1) (some (runV ins.2.2 13)) (ins.2.2 + 13) (by omega) (by omega)
-            (fun c hc => ((hcs c hc).1).mono (by omega))
+            (fun c hc => (hcs c hc).mono (by omega))
             (fun s hs v hv => by cases hs; exact runV_nb (by omega) v hv)
       refine Completes.append (m := ins.2.2) i3 (by omega) i1.numBelow (seq_completes i1 σ)
         (fun σ1 he1 hh1 => ?_)
       have hag1 : AgreeBelow b σ σ1 := he1.agree
       have hp1 := hp.congr hpb hag1
-      have hcanon : ∀ c : Fin 13, IsCanonical128 (cells13 (ins.2.1.map σ1) c) := by
-        intro c
-        have e := kIns_sound (blk := blk) hp1 htr hh1 c c.isLt
-        rw [← hins] at e
-        rw [cells13_getD _ _ hlen, e]
-        refine canon_add (prevVal_canon (fun s hs => ⟨(hst s hs).1, fun v hv => by
-          rw [hag1.apply ((hst s hs).2 v hv).1]; exact ((hst s hs).2 v hv).2⟩) c.isLt) ?_
-        split
-        · rw [List.getD_eq_getElem?_getD]
-          cases hk : blk[c.val]? with
-          | none => exact canon_zero
-          | some k' =>
-              have hm := blockOf_mem (List.mem_of_getElem? hk)
-              exact (hcs k' hm).2.congr (hcs k' hm).1 hag1
-        · exact canon_zero
       refine Completes.append (m := ins.2.2 + w) (by omega) r2 ?_
-        (kecS_complete σ1 ins.2.2 (kOutN_cellCount hn) hlen i2 hcanon _ _)
+        (kecS_complete σ1 ins.2.2 (kOutN_cellCount hn) hlen i2 _ _)
         (fun σ2 he2 hpost => ?_)
       · simp only [kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
         intro v hv
@@ -554,9 +461,7 @@ theorem kBlocks_complete {pad : Nat} {cs : List KC} {B n : Nat} {tailRun : Bool}
           exact ⟨j, by omega, rfl⟩
         · exact runV_nb (by omega) v hv
       have hag2 : AgreeBelow ins.2.2 σ1 σ2 := he2.agree
-      exact (hr σ2 (hp1.congr (by omega) hag2)
-        (fun c hc => ((hcs c hc).2.congr (hcs c hc).1 hag1).congr (((hcs c hc).1).mono i3) hag2)
-        (fun c hc => by rw [hpost c hc]; exact canon_kOut _ _ _ _)).1
+      exact (hr σ2 (hp1.congr (by omega) hag2)).1
 
 theorem kMsg_eq (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (b n : Nat) :
     kMsg pad cells len tailRun none b n =
@@ -568,10 +473,9 @@ theorem kMsg_eq (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (b n 
         (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none n (kBlocksOf len) 0 none x2.2.2).2.1,
         (kBlocks pad x2.2.1 (kBlocksOf len) tailRun none n (kBlocksOf len) 0 none x2.2.2).2.2) :=
   rfl
-/-- **The Keccak message completes** on canonical cells, its last block writing `n` cells (one,
-two or thirteen). -/
+/-- **The Keccak message completes**, its last block writing `n` cells (one, two or thirteen). -/
 theorem kMsg_complete {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool} {b : Nat}
-    (σ : Val) (hp : PadOK σ pad) (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c ∧ KCc σ c)
+    (σ : Val) (hp : PadOK σ pad) (hpb : pad + 5 ≤ b) (hc : ∀ c ∈ cells, KCb b c)
     (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0)) (n : Nat := 1)
     (hn : n = 1 ∨ n = 2 ∨ n = 13 := by decide) :
     Completes C rd b (kMsg pad cells len tailRun none b n).2.1 (kMsg pad cells len tailRun none b n).1
@@ -582,13 +486,13 @@ theorem kMsg_complete {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool}
   rw [kMsg_eq]
   dsimp only
   set cs0 := cells ++ List.replicate (17 * (kBlocksOf len - 1) / 2 + 9 - cells.length) KC.zero with hcs0
-  have hc0 : ∀ c ∈ cs0, KCb b c ∧ KCc σ c := by
+  have hc0 : ∀ c ∈ cs0, KCb b c := by
     intro c hc'
     rcases List.mem_append.mp hc' with h | h
     · exact hc c h
     · rw [List.eq_of_mem_replicate h]
-      exact ⟨trivial, canon_zero⟩
-  obtain ⟨a1, a2, a3⟩ := kXorByte_seq (cs := cs0) (pos := len) (v := 1) (b := b) (fun c h => (hc0 c h).1)
+      trivial
+  obtain ⟨a1, a2, a3⟩ := kXorByte_seq (cs := cs0) (pos := len) (v := 1) (b := b) hc0
   set x1 := kXorByte cs0 len 1 b with hx1
   obtain ⟨b1, b2, b3⟩ := kXorByte_seq (cs := x1.2.1) (pos := 136 * kBlocksOf len - 1) (v := 0x80)
     (b := x1.2.2) a2
@@ -601,11 +505,9 @@ theorem kMsg_complete {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool}
   refine Completes.append (m := x2.2.2) (by omega) n2 hs.numBelow (seq_completes hs σ)
     (fun σ1 he1 hh1 => ?_)
   have hag1 : AgreeBelow b σ σ1 := he1.agree
-  have k1 := kcc_of_xorByte (rd := rd) hh1.left (fun c h => (hc0 c h).2.congr (hc0 c h).1 hag1)
-  have k2 := kcc_of_xorByte (rd := rd) hh1.right k1
   exact (kBlocks_complete (pad := pad) (cs := x2.2.1) (B := kBlocksOf len) (tailRun := tailRun) hn
     (kBlocksOf len) 0 none x2.2.2 σ1 (by omega) (hp.congr hpb hag1) (by omega)
-    (fun c h => ⟨b2 c h, k2 c h⟩) (fun s hs => by simp at hs) (fun _ h => htr h)).1
+    b2 (fun s hs => by simp at hs) (fun _ h => htr h)).1
 
 end
 end LeanVM.Guest.B1.Sig

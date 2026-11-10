@@ -25,8 +25,8 @@ inverse (`Rpm.runAdversaryThen`; `Rpm.detRun` for a deterministic adversary): `b
 `M` children of the bytecode's shapes one of whose claims is false (`SomeChildClaimFalse`) by
 `batch_rom`'s bound at the adversary's `QA` queries, plus `rpmError (QA + QV · 2^32)`, `QV` the
 program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
-`QA + QV ≤ 2^64`, at most `(QA + QV) · 2^-188`. `batch_bound_le`: for `QA ≤ 2^128` and
-`QV ≤ 2^96`, at most `(QA + QV + 1) · 2^-191 + 5 (QA + QV)² · 2^-256`; `batch_sound_holds` is it as
+`QA + QV ≤ 2^64`, at most `(QA + QV) · max(M, 1) · 2^-125`. `batch_bound_le`: for `QA ≤ 2^128` and
+`QV ≤ 2^96`, at most `(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`; `batch_sound_holds` is it as
 the end statement `BatchingSound` of `Statement/LeanVmGuestCompleteness.lean` states it: the verifier written out
 (`runBatching`, the seeding `F(H(label) ‖ 0)` then the program).
 
@@ -46,26 +46,25 @@ open scoped ENNReal
 
 /-! ## The program commits nothing -/
 
-theorem movesOK_readCount (M : ℕ) : MovesOK (· ≤ 64) False (readChildCount M) := by
+theorem movesOK_readCount (M : ℕ) : BMoves (readChildCount M) := by
   unfold readChildCount
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (movesOK_require _ _) fun _ ↦
-    MovesOK.liftOption _
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (movesOK_require _ _) fun _ _ ↦
+    (Moves.liftOption _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
-theorem movesOK_readChild (nB : ℕ) : MovesOK (· ≤ 64) False (readChild nB) := by
+theorem movesOK_readChild (nB : ℕ) : BMoves (readChild nB) := by
   unfold readChild
-  exact MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (movesOK_require _ _) fun _ ↦
-    MovesOK.liftOption _
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (movesOK_require _ _) fun _ _ ↦
+    (Moves.liftOption _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
-theorem movesOK_readChildren (nB : ℕ) : ∀ n, MovesOK (· ≤ 64) False (readChildren nB n)
+theorem movesOK_readChildren (nB : ℕ) : ∀ n, BMoves (readChildren nB n)
   | 0 => trivial
-  | n + 1 => MovesOK.seq (movesOK_readChild nB) fun _ ↦
-      MovesOK.seq (movesOK_readChildren nB n) fun _ ↦ trivial
+  | n + 1 => Moves.seq' (movesOK_readChild nB) fun _ _ ↦
+      Moves.seq' (movesOK_readChildren nB n) fun _ _ ↦ trivial
 
-theorem movesOK_batchAny (M : ℕ) (bytecode : List K) :
-    MovesOK (· ≤ 64) False (boundedBatchingProgram M bytecode) := by
+theorem movesOK_batchAny (M : ℕ) (bytecode : List K) : BMoves (boundedBatchingProgram M bytecode) := by
   unfold boundedBatchingProgram batchingProgram
-  exact MovesOK.seq (movesOK_readCount M) fun n ↦
-    MovesOK.seq (movesOK_readChildren _ n) fun cs ↦ movesOK_batchRest bytecode cs
+  exact Moves.seq' (movesOK_readCount M) fun n _ ↦
+    Moves.seq' (movesOK_readChildren _ n) fun cs _ ↦ movesOK_batchRest bytecode cs
 
 /-! ## The duplex discipline -/
 
@@ -140,11 +139,11 @@ theorem batch_rpm (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M 
   refine hle.trans (add_le_add (le_of_eq_of_le ?_ (batch_rom hb hM A' QA hA')) le_rfl)
   rw [romStep_eq, prEvent_map]
 
-/-- `batchε M + failBound` at `N ≤ 2^64` queries is at most `max(M, 1) · 2^-189`. -/
+/-- `batchε M + failBound` at `N ≤ 2^64` queries is at most `max(M, 1) · 2^-126`. -/
 theorem batchε_add_failBound_le {N : ℕ} (M : ℕ) (hN : N ≤ 2 ^ 64) :
-    batchε M + failBound batchSeeds N ≤ (max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189 := by
+    batchε M + failBound batchSeeds N ≤ (max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 126 := by
   rw [batchε_eq_pow, failBound_batchSeeds]
-  exact bits_189 (by omega) hN
+  exact bits_126 (by omega) hN
 
 /-- `(QA + QV · 2^32)² ≤ (QA + QV) · c` for `QA + QV ≤ 2^64` and `c ≥ 2^128`. -/
 theorem sq_batch_le {QA QV c : ℕ} (hN : QA + QV ≤ 2 ^ 64) (hc : 2 ^ 128 ≤ c) :
@@ -166,67 +165,69 @@ theorem rpmError_batch_le {QA QV : ℕ} (hN : QA + QV ≤ 2 ^ 64) :
   rw [show 508 - 189 = 128 + 191 from rfl, pow_add]
   exact sq_batch_le hN (Nat.le_mul_of_pos_right _ (Nat.two_pow_pos _))
 
-theorem two_mul_inv_pow_189 : 2 * (2 : ℝ≥0∞)⁻¹ ^ 189 = (2 : ℝ≥0∞)⁻¹ ^ 188 := by
+theorem two_mul_inv_pow_126 : 2 * (2 : ℝ≥0∞)⁻¹ ^ 126 = (2 : ℝ≥0∞)⁻¹ ^ 125 := by
   rw [pow_succ, ← mul_assoc, mul_comm 2, mul_assoc,
     ENNReal.mul_inv_cancel (by norm_num) (by norm_num), mul_one]
 
 /-- **The batching in the random-permutation model, in bits**: for `QA + QV ≤ 2^64` (the
 adversary's queries to `π` and `π⁻¹` and the program's query bound), the program accepts fewer
-than `M` children with a false claim with probability at most `(QA + QV) · max(M, 1) · 2^-188`. -/
+than `M` children with a false claim with probability at most `(QA + QV) · max(M, 1) · 2^-125`. -/
 theorem batch_rpm_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp (Common.permutationOracleSpec KeccakState) (Unit × Proof)) (QA : ℕ)
     (hA : A.IsTotalQueryBound QA) (hQ : QA + batchingQueryBound bytecode M ≤ 2 ^ 64) :
     Pr{let z ← detRun A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
       z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2] ≤
-      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 188) := by
+      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 125) := by
   refine (batch_rpm hb hM A QA hA).trans ?_
   have hm : (1 : ℝ≥0∞) ≤ (max M 1 : ℕ) := by exact_mod_cast (show 1 ≤ max M 1 by omega)
   calc ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
           (batchε M + failBound batchSeeds (QA + batchingQueryBound bytecode M)) +
         rpmError (QA + batchingQueryBound bytecode M * 2 ^ 32)
-      ≤ ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) +
-          ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) :=
+      ≤ ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 126) +
+          ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 126) :=
         add_le_add (by gcongr; exact batchε_add_failBound_le M hQ)
-          ((rpmError_batch_le hQ).trans (by gcongr; exact le_mul_of_one_le_left zero_le hm))
-    _ = ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 188) := by
-        rw [← mul_add, ← two_mul, ← two_mul_inv_pow_189]
+          ((rpmError_batch_le hQ).trans (by
+            gcongr
+            exact (Common.inv_two_pow_le_of_le (by norm_num)).trans (le_mul_of_one_le_left zero_le hm)))
+    _ = ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 125) := by
+        rw [← mul_add, ← two_mul, ← two_mul_inv_pow_126]
         ring
 
 /-- **The batching's bound up to `2^128` queries of the adversary**: for `QA ≤ 2^128`, a program
 bound `QV ≤ 2^96` and `M ≥ 1`, `batch_rpm`'s bound is at most
-`(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`: `batchε M = M · 2^-191`, the failure term
+`(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`: `batchε M = M · 2^-127`, the failure term
 `5 (QA + QV) / 2^256` per query, and the transfer's `(QA + QV · 2^32)² / 2^508 ≤ 2^-250`, within
-one more `M · 2^-191`. -/
+one more `M · 2^-127`. -/
 theorem batch_bound_le {QA QV M : ℕ} (hQA : QA ≤ 2 ^ 128) (hQV : QV ≤ 2 ^ 96) (hM : 1 ≤ M) :
     ((QA + QV : ℕ) : ℝ≥0∞) * (batchε M + failBound batchSeeds (QA + QV)) +
         rpmError (QA + QV * 2 ^ 32) ≤
-      (((QA + QV : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + QV : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
         5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   have hq : QA + QV * 2 ^ 32 ≤ 2 ^ 129 :=
     calc QA + QV * 2 ^ 32 ≤ 2 ^ 128 + 2 ^ 96 * 2 ^ 32 :=
           Nat.add_le_add hQA (Nat.mul_le_mul_right _ hQV)
       _ = 2 ^ 129 := by norm_num
   have hm : (1 : ℝ≥0∞) ≤ M := by exact_mod_cast hM
-  have hr : rpmError (QA + QV * 2 ^ 32) ≤ M * (2 : ℝ≥0∞)⁻¹ ^ 191 :=
+  have hr : rpmError (QA + QV * 2 ^ 32) ≤ M * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
     calc rpmError (QA + QV * 2 ^ 32) ≤ ((QA + QV * 2 ^ 32 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 379 :=
           Common.sq_div_le_mul_inv_pow (k := 129) 379 hq
       _ ≤ (2 : ℝ≥0∞) ^ 129 * (2 : ℝ≥0∞)⁻¹ ^ 379 := by
           gcongr
           exact_mod_cast hq
       _ = (2 : ℝ≥0∞)⁻¹ ^ 250 := Common.two_pow_mul_inv_pow 129 250
-      _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 191 := Common.inv_two_pow_le_of_le (by norm_num)
-      _ ≤ M * (2 : ℝ≥0∞)⁻¹ ^ 191 := le_mul_of_one_le_left zero_le hm
+      _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 127 := Common.inv_two_pow_le_of_le (by norm_num)
+      _ ≤ M * (2 : ℝ≥0∞)⁻¹ ^ 127 := le_mul_of_one_le_left zero_le hm
   have hf : ((QA + QV : ℕ) : ℝ≥0∞) * failBound batchSeeds (QA + QV) =
       5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
     rw [failBound_batchSeeds, Nat.cast_mul, Nat.cast_ofNat, div_eq_mul_inv, ENNReal.inv_pow]
     ring
   rw [batchε_eq_pow, max_eq_left hM, mul_add, hf]
-  calc ((QA + QV : ℕ) : ℝ≥0∞) * ((M : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 191) +
+  calc ((QA + QV : ℕ) : ℝ≥0∞) * ((M : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 127) +
         5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 + rpmError (QA + QV * 2 ^ 32)
-      ≤ ((QA + QV : ℕ) : ℝ≥0∞) * ((M : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 191) +
-        5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 + M * (2 : ℝ≥0∞)⁻¹ ^ 191 :=
+      ≤ ((QA + QV : ℕ) : ℝ≥0∞) * ((M : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 127) +
+        5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 + M * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
         add_le_add le_rfl hr
-    _ = (((QA + QV : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+    _ = (((QA + QV : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
         5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
 
 /-! ## The end statements -/

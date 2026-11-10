@@ -476,32 +476,32 @@ theorem extendPrefixC_cost (hP : Includes P Auto.CompPoly.GuruswamiSudan.extendP
 /-! ## The lane filter -/
 
 /-- `p(x)` by Horner's rule (`hornerEval`): at most `46·|p| + 10`. -/
-theorem hornerEvalC_cost (hP : Includes P hornerEval.c650.costDeps) (x : K) (p : CPolynomial K) :
-    machineCost P hornerEval.c650.costIdx [encodeValue x, encodeValue p] ≤ 46 * p.val.size + 10 := by
-  rw [hornerEval.c650.costEq P hP]
-  have := foldr_cost P (by includes) _ (.closure hornerEval.c650.lam0.costIdx [encodeValue x])
+theorem hornerEvalC_cost (hP : Includes P hornerEval.c649.costDeps) (x : K) (p : CPolynomial K) :
+    machineCost P hornerEval.c649.costIdx [encodeValue x, encodeValue p] ≤ 46 * p.val.size + 10 := by
+  rw [hornerEval.c649.costEq P hP]
+  have := foldr_cost P (by includes) _ (.closure hornerEval.c649.lam0.costIdx [encodeValue x])
     (fun a acc ↦ RunsApp.of_spec (us := [encodeValue x]) (vs := [encodeValue a, encodeValue acc])
-      (hornerEval.c650.lam0.costSpec P (by includes) x a acc)) 32 (0 : K) p.val.toList
+      (hornerEval.c649.lam0.costSpec P (by includes) x a acc)) 32 (0 : K) p.val.toList
     (fun a _ acc ↦ by
-      rw [appCost_fn, List.singleton_append, hornerEval.c650.lam0.costEq P (by includes)]; simp)
+      rw [appCost_fn, List.singleton_append, hornerEval.c649.lam0.costEq P (by includes)]; simp)
   simp only [Array.length_toList] at this
   omega
 
 /-- **The mismatch count** (`mismatchCountFast`: `p` evaluated at each of `n` points): at most
 `(46·|p| + 36)·n + 10`. -/
-theorem mismatchCountC_cost (hP : Includes P mismatchCountFast.c648.costDeps)
+theorem mismatchCountC_cost (hP : Includes P mismatchCountFast.c647.costDeps)
     (points : Array (K × K)) (p : CPolynomial K) (hn : points.size < 2 ^ 63) :
-    machineCost P mismatchCountFast.c648.costIdx [encodeValue points, encodeValue p] ≤
+    machineCost P mismatchCountFast.c647.costIdx [encodeValue points, encodeValue p] ≤
       (46 * p.val.size + 36) * points.size + 10 := by
-  rw [mismatchCountFast.c648.costEq P hP]
-  have := listFoldl_le_idx P (by includes) _ (.closure mismatchCountFast.c648.lam0.costIdx [encodeValue p])
+  rw [mismatchCountFast.c647.costEq P hP]
+  have := listFoldl_le_idx P (by includes) _ (.closure mismatchCountFast.c647.lam0.costIdx [encodeValue p])
     (fun c pt ↦ RunsApp.of_spec (us := [encodeValue p]) (vs := [encodeValue c, encodeValue pt])
-      (mismatchCountFast.c648.lam0.costSpec P (by includes) p c pt)) (46 * p.val.size + 22)
+      (mismatchCountFast.c647.lam0.costSpec P (by includes) p c pt)) (46 * p.val.size + 22)
     (fun k c ↦ c + k ≤ points.size) points.toList
     (fun k c hc pt _ ↦ by
       refine ⟨by split_ifs <;> omega, ?_⟩
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [mismatchCountFast.c648.lam0.costEq P (by includes)]
+      rw [mismatchCountFast.c647.lam0.costEq P (by includes)]
       have := hornerEvalC_cost P (by includes) pt.1 p
       cost_simp
       split_ifs <;> omega)

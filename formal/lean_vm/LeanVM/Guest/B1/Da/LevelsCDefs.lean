@@ -59,7 +59,6 @@ noncomputable def lvlCOk (fn : Fn) (offA offB : ℕ) : Bool :=
   let c0 := if offA = 0 then 10 else 12
   (chk 3 fn.body).isSome &&
   (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
-  canonChk ((List.range 4).map (c0 + ·)) (lvlA' fn) &&
   A.all (fun a => !needsSide a || decide (a ∈ storesOf 3 fn.body) || isLoadVia (.n pa) c0 a) &&
   decide (storesOf 3 fn.body = [.load ((lvlSp fn c0).outV ((lvlSp fn c0).nb - 1) 0) (.n pb) 0,
     .load ((lvlSp fn c0).outV ((lvlSp fn c0).nb - 1) 1) (.n pb) 1]) &&
@@ -84,7 +83,6 @@ noncomputable def dlCEntryOk (k : ℕ) : Bool :=
   (chk 1 fn.body).isSome && (storesOf 1 fn.body).isEmpty &&
   (match splitRet fn.body with
    | some (P, _) =>
-     canonChk [] (atomsIn P) &&
      (atomsIn P).all (fun a => !needsSide a ||
        isLoadAt (.n (5 * k + 1)) (.n 0) (4 * 2 ^ k - 4) a ||
        isLoadAt (.n (5 * k + 2)) (.n 0) (4 * 2 ^ k - 3) a) &&

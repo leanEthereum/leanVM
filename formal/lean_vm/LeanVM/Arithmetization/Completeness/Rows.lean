@@ -49,23 +49,20 @@ open Air.Flat (Component)
 
 /-- The limbs read back at an address that holds a word are the word's. -/
 theorem MemImage.limbsAt_eq_of_read {κ : ℕ} {L : MemoryImage κ} {a : K} {v : E}
-    (h : L.read a = some v) : L.limbsAt a = #v[v.limb 0, v.limb 1, v.limb 2] := by
+    (h : L.read a = some v) : L.limbsAt a = #v[v.limb 0, v.limb 1] := by
   unfold MemoryImage.limbsAt
   rw [h]
 
-/-- The three limbs of `E.ofLimbs`, one by one. -/
-theorem limb0_ofLimbs (c0 c1 c2 : K) : (E.ofLimbs c0 c1 c2).limb 0 = c0 := rfl
+/-- The two limbs of `E.ofLimbs`, one by one. -/
+theorem limb0_ofLimbs (c0 c1 : K) : (E.ofLimbs c0 c1).limb 0 = c0 := rfl
 
 /-- The second limb of `E.ofLimbs`. -/
-theorem limb1_ofLimbs (c0 c1 c2 : K) : (E.ofLimbs c0 c1 c2).limb 1 = c1 := rfl
-
-/-- The third limb of `E.ofLimbs`. -/
-theorem limb2_ofLimbs (c0 c1 c2 : K) : (E.ofLimbs c0 c1 c2).limb 2 = c2 := rfl
+theorem limb1_ofLimbs (c0 c1 : K) : (E.ofLimbs c0 c1).limb 1 = c1 := rfl
 
 /-! ## The messages -/
 
 /-- The array a memory message `(addr, count, v)` flattens to. -/
-def memMsgOf (a c : K) (v : Vector K 3) : Array K := #[a, c, v[0], v[1], v[2]]
+def memMsgOf (a c : K) (v : Vector K 2) : Array K := #[a, c, v[0], v[1]]
 
 /-- The array a bytecode message `(pc, count, entry)` flattens to. -/
 def bcMsgOf (pc c : K) (e : Vector K 13) : Array K :=
@@ -75,7 +72,7 @@ def bcMsgOf (pc c : K) (e : Vector K 13) : Array K :=
 with count `rbc` and the push with count `g·rbc`, then for each read `(addr, count, v)` the
 memory pull and the memory push with count `g·count`, in the circuits' order. -/
 def sendsOf (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
-    (reads : List (K × K × Vector K 3)) : List (String × Array K) :=
+    (reads : List (K × K × Vector K 2)) : List (String × Array K) :=
   [(StatePull.name, #[pc, fp]), (StatePush.name, #[next.pc, next.fp]),
     (BytecodePull.name, bcMsgOf pc rbc e), (BytecodePush.name, bcMsgOf pc (g * rbc) e)] ++
   reads.flatMap fun x ↦
@@ -83,14 +80,14 @@ def sendsOf (pc fp : K) (next : Registers K) (rbc : K) (e : Vector K 13)
 
 /-- What gated reads send: for each `(flag, addr, count, v)` the memory pull of `(addr, count, v)`
 and the memory push of `(addr, gatedCount flag count, v)`, in the circuit's order. -/
-def gatedSends (l : List (K × K × K × Vector K 3)) : List (String × Array K) :=
+def gatedSends (l : List (K × K × K × Vector K 2)) : List (String × Array K) :=
   l.flatMap fun y ↦
     [(MemPull.name, memMsgOf y.2.1 y.2.2.1 y.2.2.2),
       (MemPush.name, memMsgOf y.2.1 (gatedCount y.1 y.2.2.1) y.2.2.2)]
 
 /-- What cancelled pairs send: for each `(addr, count, v)` the memory pull and the memory push of
 the one tuple `(addr, count, v)`, a gated read at flag `0`. -/
-def skipSends (l : List (K × K × Vector K 3)) : List (String × Array K) :=
+def skipSends (l : List (K × K × Vector K 2)) : List (String × Array K) :=
   l.flatMap fun x ↦
     [(MemPull.name, memMsgOf x.1 x.2.1 x.2.2), (MemPush.name, memMsgOf x.1 x.2.1 x.2.2)]
 
@@ -117,7 +114,7 @@ theorem rowSends_bytecodeComponent (prog : LeanIsaProgram) (env : Environment K)
 
 /-- The cells an instruction reads, in the order its row's reads carry them (the circuits'
 order): the operand cells (for `KECCAK` the thirteen read, then the `outCells.cellCount` written,
-as the Rust's execution bumps the counts of exactly these, `execute.rs:976-986` at leanVM main `40f877dc`), and for
+as the Rust's execution bumps the counts of exactly these, `execute.rs:962-972` at `leanvm-rev`), and for
 `DEREF` the pointer cell `fp·o₁`, the pointer's target `p·o₂`
 (`p` the low limb of the word at `fp·o₁`) and the local cell `fp·o₃`. -/
 noncomputable def readAddrs {κ : ℕ} (mem : MemoryImage κ) (fp : K) : LeanIsaInstruction → List K
@@ -146,7 +143,7 @@ noncomputable def readAddrs {κ : ℕ} (mem : MemoryImage κ) (fp : K) : LeanIsa
 and the limbs the image holds there. -/
 noncomputable def readsOf {κ : ℕ} (mem : MemoryImage κ) (fp : K) (cnt : ℕ → K) (ins :
     LeanIsaInstruction) :
-    List (K × K × Vector K 3) :=
+    List (K × K × Vector K 2) :=
   (readAddrs mem fp ins).mapIdx fun j a ↦ (a, cnt j, mem.limbsAt a)
 
 /-- The output lanes of a `KECCAK` with these operands at `fp` over the image: Keccak-f[1600] of
@@ -160,14 +157,14 @@ write (`outCells.cellCount ≤ c`), at its address, with its count (`cnt (13 + c
 position) and the limbs of the output lanes in the layout `outOdd`, which the row pushes and pulls
 alike; none for any other instruction. -/
 noncomputable def skipsOf {κ : ℕ} (mem : MemoryImage κ) (fp : K) (cnt : ℕ → K) :
-    LeanIsaInstruction → List (K × K × Vector K 3)
+    LeanIsaInstruction → List (K × K × Vector K 2)
   | .keccak om otail ob8 ocap oout inOdd outOdd outCells =>
       ((List.range 13).filter (outCells.cellCount ≤ ·)).map fun c ↦
         (fp * (g ^ c * oout), cnt (13 + c),
           #v[laneLimb (keccakOutLanes mem fp om otail ob8 ocap inOdd) 0
               (cellLanes outOdd (Fin.ofNat 13 c)).1,
             laneLimb (keccakOutLanes mem fp om otail ob8 ocap inOdd) 0
-              (cellLanes outOdd (Fin.ofNat 13 c)).2, 0])
+              (cellLanes outOdd (Fin.ofNat 13 c)).2])
   | _ => []
 
 /-! ## The six instructions -/
@@ -227,7 +224,7 @@ theorem set_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp o : K} {k : E} {
   simp [sendsOf, memMsgOf, bcMsgOf, busEntry, Registers.next]
 
 /-- The `DEREF` row of an execution sends the `DEREF` messages: the pointer cell carries
-`(p, 0, 0)`, the target `p·o₂` the limbs of the mode's source, and the local cell its word. -/
+`(p, 0)`, the target `p·o₂` the limbs of the mode's source, and the local cell its word. -/
 theorem deref_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp o1 o2 o3 : K} {mode : DerefMode}
     {next : Registers K} (hexec : execute mem ⟨pc, fp⟩ (.deref o1 o2 o3 mode) = some next)
     (r1 r2 r3 rbc : K) (data : ProverData K) :
@@ -242,16 +239,15 @@ theorem deref_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp o1 o2 o3 : K} 
   rw [rowSends_mk, deref_sends_gen _ _ _ _ (eval_rowVar _ data)]
   simp only [derefRowOf] at hflags h1 h3 h2 ⊢
   obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
-  -- the pointer cell holds `(p, 0, 0)`
+  -- the pointer cell holds `(p, 0)`
   have e1 := MemImage.limbsAt_eq_of_read h1
-  simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at e1
+  simp only [limb0_ofLimbs, limb1_ofLimbs] at e1
   have e1' : (mem.limbsAt (fp * o1))[1] = 0 := by rw [e1]; rfl
-  have e1'' : (mem.limbsAt (fp * o1))[2] = 0 := by rw [e1]; rfl
   -- the target cell holds the limbs of the mode's source
   have e2 := MemImage.limbsAt_eq_of_read h2
   rw [← storeCoords_eval, h4, h5] at e2
-  simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at e2
-  simp [sendsOf, memMsgOf, bcMsgOf, busEntry, Registers.next, e1', e1'', e2]
+  simp only [limb0_ofLimbs, limb1_ofLimbs] at e2
+  simp [sendsOf, memMsgOf, bcMsgOf, busEntry, Registers.next, e1', e2]
 
 /-- The indicator slot of a `JUMP` raw row is its second witness. -/
 theorem jumpRaw_get_indicator (r : JumpRow K) (w b : K) (data : ProverData K) :
@@ -269,17 +265,17 @@ theorem jumpRaw_sends (r : JumpRow K) (w b : K) (data : ProverData K) :
            0, 0, 0, 0]),
        (BytecodePush.name, #[r.pc, g * r.rbc, Opcode.jump.busCode, r.oc, r.od, r.of, 0, 0, 0, 0, 0,
            0, 0, 0, 0]),
-       (MemPull.name, #[r.fp * r.oc, r.rc, r.vcond, 0, 0]),
-       (MemPush.name, #[r.fp * r.oc, g * r.rc, r.vcond, 0, 0]),
-       (MemPull.name, #[r.fp * r.od, r.rd, r.vpc, 0, 0]),
-       (MemPush.name, #[r.fp * r.od, g * r.rd, r.vpc, 0, 0]),
-       (MemPull.name, #[r.fp * r.of, r.rf, r.vfp, 0, 0]),
-       (MemPush.name, #[r.fp * r.of, g * r.rf, r.vfp, 0, 0])] :=
+       (MemPull.name, #[r.fp * r.oc, r.rc, r.vcond, 0]),
+       (MemPush.name, #[r.fp * r.oc, g * r.rc, r.vcond, 0]),
+       (MemPull.name, #[r.fp * r.od, r.rd, r.vpc, 0]),
+       (MemPush.name, #[r.fp * r.od, g * r.rd, r.vpc, 0]),
+       (MemPull.name, #[r.fp * r.of, r.rf, r.vfp, 0]),
+       (MemPush.name, #[r.fp * r.of, g * r.rf, r.vfp, 0])] :=
   jump_sends_gen (varFromOffset JumpRow 0) (Environment.fromArray (jumpRaw r w b) data)
     (size JumpRow) r (eval_rowVar_append r #[w, b] data) b (jumpRaw_get_indicator r w b data)
 
 /-- The `JUMP` row of an execution, with its honest local witnesses, sends the `JUMP` messages:
-the condition, destination and frame cells carry `(v, 0, 0)` for the words in `K` they hold, and
+the condition, destination and frame cells carry `(v, 0)` for the words in `K` they hold, and
 the pushed successor is the destination and frame when the condition is nonzero and the
 fall-through otherwise. -/
 theorem jump_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp oc od of : K} {next : Registers K}
@@ -299,30 +295,26 @@ theorem jump_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp oc od of : K} {
   have ec := MemImage.limbsAt_eq_of_read hc
   have ed := MemImage.limbsAt_eq_of_read hd
   have ef := MemImage.limbsAt_eq_of_read hf
-  simp only [limb0_ofLimbs, limb1_ofLimbs, limb2_ofLimbs] at ec ed ef
+  simp only [limb0_ofLimbs, limb1_ofLimbs] at ec ed ef
   have ec1 : (mem.limbsAt (fp * oc))[1] = 0 := by rw [ec]; rfl
-  have ec2 : (mem.limbsAt (fp * oc))[2] = 0 := by rw [ec]; rfl
   have ed1 : (mem.limbsAt (fp * od))[1] = 0 := by rw [ed]; rfl
-  have ed2 : (mem.limbsAt (fp * od))[2] = 0 := by rw [ed]; rfl
   have ef1 : (mem.limbsAt (fp * of))[1] = 0 := by rw [ef]; rfl
-  have ef2 : (mem.limbsAt (fp * of))[2] = 0 := by rw [ef]; rfl
   subst hnext
   by_cases h0 : (mem.limbsAt (fp * oc))[0] = 0
-  · simp [sendsOf, memMsgOf, bcMsgOf, busEntry, Registers.next, h0, ec1, ec2, ed1, ed2, ef1, ef2]
-  · simp [sendsOf, memMsgOf, bcMsgOf, busEntry, h0, ec1, ec2, ed1, ed2, ef1, ef2, add_assoc,
+  · simp [sendsOf, memMsgOf, bcMsgOf, busEntry, Registers.next, h0, ec1, ed1, ef1]
+  · simp [sendsOf, memMsgOf, bcMsgOf, busEntry, h0, ec1, ed1, ef1, add_assoc,
       CharTwo.add_self_eq_zero]
 
 /-- A memory message is its address, its count, then its limbs. -/
-theorem memMsgOf_eq (a c : K) (v : Vector K 3) : memMsgOf a c v = #[a, c] ++ v.toArray := by
+theorem memMsgOf_eq (a c : K) (v : Vector K 2) : memMsgOf a c v = #[a, c] ++ v.toArray := by
   obtain ⟨⟨l⟩, hl⟩ := v
   match l, hl with
-  | [_, _, _], _ => rfl
+  | [_, _], _ => rfl
 
 /-- The limbs the image holds at an address that holds a cell of lanes. -/
 theorem limbsAt_laneCells {κ : ℕ} {mem : MemoryImage κ} {a : K} {L : Fin 25 → K} {odd : Bool}
     {free : K} {c : Fin 13} (h : mem.read a = some (laneCells L odd free c)) :
-    mem.limbsAt a = #v[laneLimb L free (cellLanes odd c).1, laneLimb L free (cellLanes odd c).2,
-      0] := by
+    mem.limbsAt a = #v[laneLimb L free (cellLanes odd c).1, laneLimb L free (cellLanes odd c).2] := by
   rw [MemImage.limbsAt_eq_of_read h]
   simp [laneCells, limb_ofLimbs]
 
@@ -331,7 +323,7 @@ theorem add_add_self_left (x y : K) : x + y + x = y := by
   rw [add_comm x y, add_assoc, CharTwo.add_self_eq_zero, add_zero]
 
 /-- The `KECCAK` row of an execution sends the `KECCAK` messages: each of the cells it reads and
-writes carries the limbs of its lanes in its layout and a zero third limb, its reads numbered by
+writes carries the limbs of its lanes in its layout, its reads numbered by
 `cnt` in the circuit's order; each output cell it does not write is a cancelled pair carrying the
 output lanes' limbs (`skipsOf`). -/
 theorem keccak_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fin 4 → K}
@@ -357,49 +349,49 @@ theorem keccak_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fi
   have hRc : R.ocap = ocap := rfl
   have hRo : R.oout = oout := rfl
   have hL0 : mem.limbsAt (fp * om 0) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 0).1, laneLimb R.inLanes R.free (cellLanes inOdd 0).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 0).1, laneLimb R.inLanes R.free (cellLanes inOdd 0).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨0, by decide⟩)
   have hL1 : mem.limbsAt (fp * om 1) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 1).1, laneLimb R.inLanes R.free (cellLanes inOdd 1).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 1).1, laneLimb R.inLanes R.free (cellLanes inOdd 1).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨1, by decide⟩)
   have hL2 : mem.limbsAt (fp * om 2) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 2).1, laneLimb R.inLanes R.free (cellLanes inOdd 2).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 2).1, laneLimb R.inLanes R.free (cellLanes inOdd 2).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨2, by decide⟩)
   have hL3 : mem.limbsAt (fp * om 3) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 3).1, laneLimb R.inLanes R.free (cellLanes inOdd 3).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 3).1, laneLimb R.inLanes R.free (cellLanes inOdd 3).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨3, by decide⟩)
   have hL4 : mem.limbsAt (fp * (g ^ 0 * otail)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 4).1, laneLimb R.inLanes R.free (cellLanes inOdd 4).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 4).1, laneLimb R.inLanes R.free (cellLanes inOdd 4).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨4, by decide⟩)
   have hL5 : mem.limbsAt (fp * (g ^ 1 * otail)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 5).1, laneLimb R.inLanes R.free (cellLanes inOdd 5).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 5).1, laneLimb R.inLanes R.free (cellLanes inOdd 5).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨5, by decide⟩)
   have hL6 : mem.limbsAt (fp * (g ^ 2 * otail)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 6).1, laneLimb R.inLanes R.free (cellLanes inOdd 6).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 6).1, laneLimb R.inLanes R.free (cellLanes inOdd 6).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨6, by decide⟩)
   have hL7 : mem.limbsAt (fp * (g ^ 3 * otail)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 7).1, laneLimb R.inLanes R.free (cellLanes inOdd 7).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 7).1, laneLimb R.inLanes R.free (cellLanes inOdd 7).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨7, by decide⟩)
   have hL8 : mem.limbsAt (fp * ob8) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 8).1, laneLimb R.inLanes R.free (cellLanes inOdd 8).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 8).1, laneLimb R.inLanes R.free (cellLanes inOdd 8).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨8, by decide⟩)
   have hL9 : mem.limbsAt (fp * (g ^ 0 * ocap)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 9).1, laneLimb R.inLanes R.free (cellLanes inOdd 9).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 9).1, laneLimb R.inLanes R.free (cellLanes inOdd 9).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨9, by decide⟩)
   have hL10 : mem.limbsAt (fp * (g ^ 1 * ocap)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 10).1, laneLimb R.inLanes R.free (cellLanes inOdd 10).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 10).1, laneLimb R.inLanes R.free (cellLanes inOdd 10).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨10, by decide⟩)
   have hL11 : mem.limbsAt (fp * (g ^ 2 * ocap)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 11).1, laneLimb R.inLanes R.free (cellLanes inOdd 11).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 11).1, laneLimb R.inLanes R.free (cellLanes inOdd 11).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨11, by decide⟩)
   have hL12 : mem.limbsAt (fp * (g ^ 3 * ocap)) =
-      #v[laneLimb R.inLanes R.free (cellLanes inOdd 12).1, laneLimb R.inLanes R.free (cellLanes inOdd 12).2, 0] := by
+      #v[laneLimb R.inLanes R.free (cellLanes inOdd 12).1, laneLimb R.inLanes R.free (cellLanes inOdd 12).2] := by
     simpa [hRoms, hRf, hRt, hRb, hRc, hRo, keccakInputCellOffset] using limbsAt_laneCells (hb.in_eq ⟨12, by decide⟩)
   rw [rowSends_mk, keccak_sends_gen _ _ _ _ (eval_rowVar _ data)]
   cases outCells
   · -- `one`: the first 1 output cell written
     have hO0 : mem.limbsAt (fp * (g ^ 0 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 0).1, laneLimb R.outLanes 0 (cellLanes outOdd 0).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 0).1, laneLimb R.outLanes 0 (cellLanes outOdd 0).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨0, by decide⟩ (by decide))
     simp only [sendsOf, skipSends, readsOf, readAddrs, skipsOf, KeccakOutputCells.cellCount,
       List.range_succ, List.range_zero, List.filter, List.map, List.mapIdx_cons, List.mapIdx_nil,
@@ -412,10 +404,10 @@ theorem keccak_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fi
       CharTwo.add_self_eq_zero]
   · -- `two`: the first 2 output cells written
     have hO0 : mem.limbsAt (fp * (g ^ 0 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 0).1, laneLimb R.outLanes 0 (cellLanes outOdd 0).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 0).1, laneLimb R.outLanes 0 (cellLanes outOdd 0).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨0, by decide⟩ (by decide))
     have hO1 : mem.limbsAt (fp * (g ^ 1 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 1).1, laneLimb R.outLanes 0 (cellLanes outOdd 1).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 1).1, laneLimb R.outLanes 0 (cellLanes outOdd 1).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨1, by decide⟩ (by decide))
     simp only [sendsOf, skipSends, readsOf, readAddrs, skipsOf, KeccakOutputCells.cellCount,
       List.range_succ, List.range_zero, List.filter, List.map, List.mapIdx_cons, List.mapIdx_nil,
@@ -428,43 +420,43 @@ theorem keccak_exec_sends {κ : ℕ} {mem : MemoryImage κ} {pc fp : K} {om : Fi
       CharTwo.add_self_eq_zero, add_add_self_left]
   · -- `all`: the first 13 output cells written
     have hO0 : mem.limbsAt (fp * (g ^ 0 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 0).1, laneLimb R.outLanes 0 (cellLanes outOdd 0).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 0).1, laneLimb R.outLanes 0 (cellLanes outOdd 0).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨0, by decide⟩ (by decide))
     have hO1 : mem.limbsAt (fp * (g ^ 1 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 1).1, laneLimb R.outLanes 0 (cellLanes outOdd 1).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 1).1, laneLimb R.outLanes 0 (cellLanes outOdd 1).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨1, by decide⟩ (by decide))
     have hO2 : mem.limbsAt (fp * (g ^ 2 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 2).1, laneLimb R.outLanes 0 (cellLanes outOdd 2).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 2).1, laneLimb R.outLanes 0 (cellLanes outOdd 2).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨2, by decide⟩ (by decide))
     have hO3 : mem.limbsAt (fp * (g ^ 3 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 3).1, laneLimb R.outLanes 0 (cellLanes outOdd 3).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 3).1, laneLimb R.outLanes 0 (cellLanes outOdd 3).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨3, by decide⟩ (by decide))
     have hO4 : mem.limbsAt (fp * (g ^ 4 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 4).1, laneLimb R.outLanes 0 (cellLanes outOdd 4).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 4).1, laneLimb R.outLanes 0 (cellLanes outOdd 4).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨4, by decide⟩ (by decide))
     have hO5 : mem.limbsAt (fp * (g ^ 5 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 5).1, laneLimb R.outLanes 0 (cellLanes outOdd 5).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 5).1, laneLimb R.outLanes 0 (cellLanes outOdd 5).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨5, by decide⟩ (by decide))
     have hO6 : mem.limbsAt (fp * (g ^ 6 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 6).1, laneLimb R.outLanes 0 (cellLanes outOdd 6).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 6).1, laneLimb R.outLanes 0 (cellLanes outOdd 6).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨6, by decide⟩ (by decide))
     have hO7 : mem.limbsAt (fp * (g ^ 7 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 7).1, laneLimb R.outLanes 0 (cellLanes outOdd 7).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 7).1, laneLimb R.outLanes 0 (cellLanes outOdd 7).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨7, by decide⟩ (by decide))
     have hO8 : mem.limbsAt (fp * (g ^ 8 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 8).1, laneLimb R.outLanes 0 (cellLanes outOdd 8).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 8).1, laneLimb R.outLanes 0 (cellLanes outOdd 8).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨8, by decide⟩ (by decide))
     have hO9 : mem.limbsAt (fp * (g ^ 9 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 9).1, laneLimb R.outLanes 0 (cellLanes outOdd 9).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 9).1, laneLimb R.outLanes 0 (cellLanes outOdd 9).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨9, by decide⟩ (by decide))
     have hO10 : mem.limbsAt (fp * (g ^ 10 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 10).1, laneLimb R.outLanes 0 (cellLanes outOdd 10).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 10).1, laneLimb R.outLanes 0 (cellLanes outOdd 10).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨10, by decide⟩ (by decide))
     have hO11 : mem.limbsAt (fp * (g ^ 11 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 11).1, laneLimb R.outLanes 0 (cellLanes outOdd 11).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 11).1, laneLimb R.outLanes 0 (cellLanes outOdd 11).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨11, by decide⟩ (by decide))
     have hO12 : mem.limbsAt (fp * (g ^ 12 * oout)) =
-        #v[laneLimb R.outLanes 0 (cellLanes outOdd 12).1, laneLimb R.outLanes 0 (cellLanes outOdd 12).2, 0] := by
+        #v[laneLimb R.outLanes 0 (cellLanes outOdd 12).1, laneLimb R.outLanes 0 (cellLanes outOdd 12).2] := by
       simpa [hRf, hRo] using limbsAt_laneCells (hb.out_eq ⟨12, by decide⟩ (by decide))
     simp only [sendsOf, skipSends, readsOf, readAddrs, skipsOf, KeccakOutputCells.cellCount,
       List.range_succ, List.range_zero, List.filter, List.map, List.mapIdx_cons, List.mapIdx_nil,

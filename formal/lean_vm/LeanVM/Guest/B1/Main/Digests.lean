@@ -134,11 +134,10 @@ theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y
     (hx : digestBytes (claimListDigest xmssPublicKeyBytes s.claims.xmss) = cellsBytes [x0, x1])
     (hs : digestBytes (claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs) = cellsBytes [y0, y1])
     (hda : digestBytes s.claims.daDigest = cellsBytes [d0, d1])
-    (hdef : s.deferredClaim.cells = defer) (hlen : defer.length = 24) :
+    (hdef : s.deferredClaim.cells = defer) :
     statementDigest seed s = keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, d0, d1] defer) := by
-  unfold statementDigest statementPreimage paddedDeferredClaimCells stmtBytes
-  rw [hseed, hx, hs, hda, hdef, hlen, cellsBytes_eight]
-  simp
+  unfold statementDigest statementPreimage stmtBytes
+  rw [hseed, hx, hs, hda, hdef, cellsBytes_eight]
 
 /-! ## Deferred claims of 24 cells -/
 

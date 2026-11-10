@@ -16,63 +16,28 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_row_shape`, once. -/
-theorem st29 : shareStatic 29 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 34. -/
+theorem w21_34 : shareWin 21 (snapsOf 21) 34 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_row_shape`, window 0. -/
-theorem w29_0 : shareWin 29 (snapsOf 29) 0 = true := by decide +kernel
-
-theorem ok29 : ShareOk 29 := ⟨st29, fun i hi ↦ by
-  have h : (snapsOf 29).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w29_0⟩
+/-- `verify_sig_lean_sphincs`, window 35. -/
+theorem w21_35 : shareWin 21 (snapsOf 21) 35 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_column`, once. -/
-theorem st30 : shareStatic 30 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 36. -/
+theorem w21_36 : shareWin 21 (snapsOf 21) 36 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_column`, window 0. -/
-theorem w30_0 : shareWin 30 (snapsOf 30) 0 = true := by decide +kernel
-
-theorem ok30 : ShareOk 30 := ⟨st30, fun i hi ↦ by
-  have h : (snapsOf 30).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w30_0⟩
+/-- `verify_sig_lean_sphincs`, window 37. -/
+theorem w21_37 : shareWin 21 (snapsOf 21) 37 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, once. -/
-theorem st31 : shareStatic 31 = true := by decide +kernel
+/-- `verify_sig_lean_sphincs`, window 38. -/
+theorem w21_38 : shareWin 21 (snapsOf 21) 38 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 0. -/
-theorem w31_0 : shareWin 31 (snapsOf 31) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 1. -/
-theorem w31_1 : shareWin 31 (snapsOf 31) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 2. -/
-theorem w31_2 : shareWin 31 (snapsOf 31) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_cell`, window 3. -/
-theorem w31_3 : shareWin 31 (snapsOf 31) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_vector`, once. -/
-theorem st32 : shareStatic 32 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_vector`, window 0. -/
-theorem w32_0 : shareWin 32 (snapsOf 32) 0 = true := by decide +kernel
-
-theorem ok32 : ShareOk 32 := ⟨st32, fun i hi ↦ by
-  have h : (snapsOf 32).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w32_0⟩
+/-- `verify_sig_lean_sphincs`, window 39. -/
+theorem w21_39 : shareWin 21 (snapsOf 21) 39 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

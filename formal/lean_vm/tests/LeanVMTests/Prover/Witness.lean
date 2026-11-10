@@ -16,14 +16,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Prover
 
 /-- `SET [g^2] = 5`, then the last slot. -/
 def toyProg : LeanIsaProgram :=
-  ⟨1, by decide, fun i ↦ if i.val = 0 then .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 5) 0 0)
+  ⟨1, by decide, fun i ↦ if i.val = 0 then .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 5) 0)
     else .setConstant (addressOfIndex 3) 0⟩
 
 /-- The zero public input. -/
 def toyInput : PublicInput := ⟨fun _ ↦ 0⟩
 
 /-- `2^16` words, `5` at word `2`. -/
-def toyImage : MemoryImage 16 := fun i ↦ if i.val = 2 then E.ofLimbs (K.ofBits 5) 0 0 else 0
+def toyImage : MemoryImage 16 := fun i ↦ if i.val = 2 then E.ofLimbs (K.ofBits 5) 0 else 0
 
 /-- The run of one step. -/
 def toyTrace : Execution toyProg := ⟨16, toyImage, 1⟩
@@ -39,8 +39,8 @@ def toyTrace2 : Execution toyProg := ⟨16, toyImage, 2⟩
   match witness? toyProg toyInput toyTrace with
   | some W => W.rows == [0, 0, 1, 0, 0, 0] && W.layout.logMemory == 16 &&
       W.stack.size == 2 ^ W.layout.stackLog &&
-      W.cols.size == 165 && (W.cols.getD 3 #[]).getD 2 0 == g &&
-      (W.cols.getD 3 #[]).getD 3 0 == 1
+      W.cols.size == 158 && (W.cols.getD 2 #[]).getD 2 0 == g &&
+      (W.cols.getD 2 #[]).getD 3 0 == 1
   | none => false
 
 /-- info: 'LeanVM.Prover.witness?_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/

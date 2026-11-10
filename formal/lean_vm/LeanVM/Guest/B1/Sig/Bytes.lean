@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.Bytes
 
-  The schemes' bit vectors as the guest's cells: a 128-bit value is the canonical cell of its two
+  The schemes' bit vectors as the guest's cells: a 128-bit value is the cell of its two
   64-bit halves, its bytes are the cell's bytes, a hash's truncation is its first output cell, and
   an address is the cell of its packed fields.
 -/
@@ -17,8 +17,8 @@ public import LeanVM.Guest.WithHash
 
 The schemes hash byte strings `P || A || payload` of 16-byte fields (`HashSig.littleEndianBytes`,
 `Sphincs.bytesLE`), the guest hashes cells (`Value.Keccak.cellBytes`). A field `v : BitVec 128` is
-the cell `cellOf128 v`, and a cell `x` reads back as `cellVal x`, whose bytes are `x`'s for any `x`
-(`bytesLE_cellVal`): the bytes ignore the top limb, which `KECCAK` pins to zero.
+the cell `cellOf128 v`, and a cell `x` reads back as `cellVal x`, whose bytes are `x`'s
+(`bytesLE_cellVal`).
 
 Everything goes through `leBytes n k`, the `k` low little-endian bytes of `n`.
 -/
@@ -134,7 +134,7 @@ theorem toNat_cellVal (x : E) : (cellVal x).toNat = cellNat x := by
   rw [two_pow_mul_or h0]
   omega
 
-/-- **A cell's bytes are its value's**, whatever its top limb. -/
+/-- **A cell's bytes are its value's.** -/
 theorem bytesLE_cellVal (x : E) : HashSig.littleEndianBytes 16 (cellVal x) = cellBytes x := by
   rw [bytesLE_eq, toNat_cellVal, cellBytes_eq_leBytes]
 
@@ -155,17 +155,15 @@ theorem cellVal_cellOf128 (v : BitVec 128) : cellVal (cellOf128 v) = v := by
   apply BitVec.eq_of_toNat_eq
   rw [toNat_cellVal, cellNat_cellOf128]
 
-theorem isCanonical128_cellOf128 (v : BitVec 128) : IsCanonical128 (cellOf128 v) := rfl
-
 theorem limb_eq_of_kToNat {a b : K} (h : kToNat a = kToNat b) : a = b := by
   rw [← ofBits_kToNat a, ← ofBits_kToNat b, h]
 
-theorem cellOf128_cellVal {x : E} (h : IsCanonical128 x) : cellOf128 (cellVal x) = x := by
-  rw [eq_ofLimbs_of_canonical h, cellOf128, ofLimbs_inj]
+theorem cellOf128_cellVal (x : E) : cellOf128 (cellVal x) = x := by
+  rw [eq_ofLimbs x, cellOf128, ofLimbs_inj]
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
   have ht := toNat_cellVal x
-  refine ⟨limb_eq_of_kToNat ?_, limb_eq_of_kToNat ?_, rfl⟩
+  refine ⟨limb_eq_of_kToNat ?_, limb_eq_of_kToNat ?_⟩
   · show ((cellVal x).extractLsb' 0 64).toNat = _
     rw [BitVec.extractLsb'_toNat, Nat.shiftRight_zero, ht, cellNat,
       Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt h0]
@@ -173,10 +171,9 @@ theorem cellOf128_cellVal {x : E} (h : IsCanonical128 x) : cellOf128 (cellVal x)
     rw [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, ht, cellNat,
       Nat.add_mul_div_left _ _ (by norm_num), Nat.div_eq_of_lt h0, zero_add, Nat.mod_eq_of_lt h1]
 
-/-- Two canonical cells are equal when their values are. -/
-theorem cellVal_inj {x y : E} (hx : IsCanonical128 x) (hy : IsCanonical128 y)
-    (h : cellVal x = cellVal y) : x = y := by
-  rw [← cellOf128_cellVal hx, ← cellOf128_cellVal hy, h]
+/-- Two cells are equal when their values are. -/
+theorem cellVal_inj {x y : E} (h : cellVal x = cellVal y) : x = y := by
+  rw [← cellOf128_cellVal x, ← cellOf128_cellVal y, h]
 
 theorem kToNat_zero : kToNat (0 : K) = 0 := rfl
 
@@ -261,8 +258,8 @@ theorem sphincs_truncateHash_keccakBits (I : List UInt8) :
 /-! ## Addresses -/
 
 /-- A cell's bytes from its 128-bit number. -/
-theorem cellNat_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat192 n) = n := by
-  simp only [cellNat, eOfNat192, ofLimbs_limb0, ofLimbs_limb1, kToNat_ofBits]
+theorem cellNat_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat128 n) = n := by
+  simp only [cellNat, eOfNat128, ofLimbs_limb0, ofLimbs_limb1, kToNat_ofBits]
   have h2 : n / 2 ^ 64 < 2 ^ 64 := by
     rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)]
     calc n < 2 ^ 128 := h
@@ -271,8 +268,8 @@ theorem cellNat_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat192 n) = 
   have := Nat.mod_add_div n (2 ^ 64)
   omega
 
-theorem cellBytes_eOfNat192 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat192 n) = leBytes n 16 := by
-  rw [cellBytes_eq_leBytes, cellNat_eOfNat192 h]
+theorem cellBytes_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat128 n) = leBytes n 16 := by
+  rw [cellBytes_eq_leBytes, cellNat_eOfNat128 h]
 
 /-- The number a leanXMSS address packs into (`address`, `lean_xmss/hash.rs:73-81`): `lo`, `hi`
 from bit 32, the type and step byte from bit 56; its high eight bytes are zero. -/
@@ -303,8 +300,8 @@ theorem addressBytes_eq (f : LeanXmss.TweakFields) :
 
 /-- **An address is the cell of its packed number.** -/
 theorem addressBytes_eq_cell (f : LeanXmss.TweakFields) :
-    LeanXmss.addressBytes f = cellBytes (eOfNat192 (tweakNat f)) := by
-  rw [addressBytes_eq, cellBytes_eOfNat192 (lt_trans (tweakNat_lt f) (by norm_num))]
+    LeanXmss.addressBytes f = cellBytes (eOfNat128 (tweakNat f)) := by
+  rw [addressBytes_eq, cellBytes_eOfNat128 (lt_trans (tweakNat_lt f) (by norm_num))]
 
 /-- The number an address's four fields pack into: `lo`, `hi` from bit 32, the type and step byte
 from bit 56. -/

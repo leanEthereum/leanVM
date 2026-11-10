@@ -7,15 +7,18 @@ public import Statement.RandomPermutation
 @[expose] public section
 
 /-!
-# A duplex challenge derivation whose chains start at the root: the derivation and its simulator
+# A duplex challenge derivation from a seeded state, with branches: the derivation and its simulator
 
 The duplex of `Common.Duplex` (`Common.SimDefs`) shares the answer `y₀` of the label's state among
-the roots, a root absorbed after it. This one starts each root's chain at a state of its own,
-`first r iv` from the label's hash `iv`, as LeanDA derives its challenge at leanVM main `40f877dc`
-(`membership_challenge`, `verifier/src/da.rs:14-17`: the transcript seeded with the label's hash
-and the root, then sampled): `y₁ = F (first r iv)`, then `y_{k+1} = F (next y_k)`. The first states
-share the capacity of `init iv`. The simulator recognises a chain's first state from the label's
-hash (`dec iv x`), which it records when the label is hashed.
+the roots, a root absorbed after it. This one starts each root's derivation at a state of its own,
+`first r iv` from the label's hash `iv`, and branches from its answer: `y₀ = F (first r iv)`, then
+`y_j = F (next j y₀)` for `j = 1 … n - 1`, each branch's state written over the rate of `y₀` and
+keeping its capacity. LeanDA derives its challenge so (`membership_challenge`,
+`verifier/src/da.rs:20-34` at `../../leanvm-rev`: the transcript seeded with the label's hash and
+the root, then a grind whose nonce `j - 1` is absorbed into a copy of the seeded sponge, branch
+`j`). The first states share the capacity of `init iv`. The simulator recognises a root's first
+state from the label's hash (`dec iv x`), which it records when the label is hashed, and the
+branches of a root once it has programmed the root's first answer.
 -/
 
 set_option linter.unusedSectionVars false
@@ -25,32 +28,35 @@ open Common.Duplex (GSpec hP gaP)
 
 namespace Common.SeedDuplex
 
-/-- **A duplex challenge derivation** with `n` challenges: the label, a state of the chains'
-first capacity (`init`), the first state of a root's chain from the label's hash (`first`), the
-step (`next`), the answers as a challenge and the rest (`build`), the capacity of the rest
-(`capW`), and the recognition of the first states (`dec`). -/
+/-- **A duplex challenge derivation** with `n` challenges: the label, a state of the first
+states' capacity (`init`), the first state of a root's derivation from the label's hash
+(`first`), the state of branch `j` from the first answer (`next j`), the answers as a challenge
+and the rest (`build`), the capacity of the rest (`capW`), and the recognition of the first
+states (`dec`). -/
 structure DuplexSpec (Msg Dg St Root Z W Cp : Type) (n : ℕ) where
-  /-- The label whose hash seeds the chains. -/
+  /-- The label whose hash seeds the derivations. -/
   label : Msg
-  /-- A state with the capacity of the chains' first states, from the label's hash. -/
+  /-- A state with the capacity of the first states, from the label's hash. -/
   init : Dg → St
-  /-- The first state of a root's chain, from the label's hash. -/
+  /-- The first state of a root's derivation, from the label's hash. -/
   first : Root → Dg → St
-  /-- The state after an answer, absorbing nothing. -/
-  next : St → St
+  /-- The state of branch `j` (`0 < j`) from the first answer. -/
+  next : Fin n → St → St
   /-- An answer from its challenge and its rest. -/
   build : Z × W ≃ St
   /-- The capacity of a rest. -/
   capW : W → Cp
-  /-- The root whose chain a state starts, from the label's hash, if any. -/
+  /-- The root whose derivation a state starts, from the label's hash, if any. -/
   dec : Dg → St → Option Root
   dec_iff : ∀ d x r, dec d x = some r ↔ first r d = x
   /-- There is at least one challenge. -/
   n_pos : 0 < n
   /-- The first states have the capacity of `init`. -/
   cap_first : ∀ r d, capW (build.symm (first r d)).2 = capW (build.symm (init d)).2
-  /-- A step keeps the capacity. -/
-  cap_next : ∀ y, capW (build.symm (next y)).2 = capW (build.symm y).2
+  /-- A branch keeps the first answer's capacity. -/
+  cap_next : ∀ j y, capW (build.symm (next j y)).2 = capW (build.symm y).2
+  /-- Different branches of one answer have different states. -/
+  next_inj : ∀ j j' y, j.val ≠ 0 → j'.val ≠ 0 → next j y = next j' y → j = j'
 
 variable {Msg Dg St Root Z W Cp : Type} {n : ℕ}
 
@@ -79,7 +85,7 @@ variable (D : DuplexSpec Msg Dg St Root Z W Cp n)
 end Programs
 
 /-- The simulator's state: the answered states with their answers and the challenge they were
-programmed with, newest first; the registered steps of the challenge chains; the state `init`
+programmed with, newest first; the registered branches; the state `init`
 of the label's hash and the hash, once known; the collision flag. -/
 structure SimSt (Dg St Root : Type) (n : ℕ) where
   log : List (St × St × Option (Root × Fin n))
@@ -103,7 +109,7 @@ def SimSt.answer (s : SimSt Dg St Root n) (x : St) : Option St :=
 /-- The challenges used for programming. -/
 def SimSt.used (s : SimSt Dg St Root n) : List (Root × Fin n) := s.log.filterMap (·.2.2)
 
-/-- The registered challenge of a chain state. -/
+/-- The registered challenge of a branch state. -/
 def SimSt.labOf (s : SimSt Dg St Root n) (x : St) : Option (Root × Fin n) :=
   (s.lab.find? (·.1 = x)).map (·.2)
 
@@ -116,20 +122,22 @@ def efflab (s : SimSt Dg St Root n) (x : St) : Option (Root × Fin n) :=
       | none => s.labOf x
     | none => s.labOf x
 
-/-- The capacities seen: of the answered states, of their answers, and of the chains' first
+/-- The capacities seen: of the answered states, of their answers, and of the first
 states. -/
 def forb (s : SimSt Dg St Root n) : Finset Cp :=
   (s.log.map (D.cap ·.1) ++ s.log.map (D.cap ·.2.1) ++ s.x0.toList.map D.cap).toFinset
 
-/-- The state after answering the fresh state `x` with `y`, programmed with `lbl`. -/
+/-- The branches of the root `r` from its first answer `y`, each with its challenge. -/
+def children (r : Root) (y : St) : List (St × (Root × Fin n)) :=
+  ((List.finRange n).filter fun j ↦ j.val ≠ 0).map fun j ↦ (D.next j y, (r, j))
+
+/-- The state after answering the fresh state `x` with `y`, programmed with `lbl`: programming a
+root's first answer registers its branches. -/
 def SimSt.record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
     SimSt Dg St Root n where
   log := (x, y, lbl) :: s.log
   lab := match lbl with
-    | some (r, j) =>
-      if h : j.val + 1 < n then
-        if s.labOf (D.next y) = none then (D.next y, (r, ⟨j.val + 1, h⟩)) :: s.lab else s.lab
-      else s.lab
+    | some (r, j) => if j.val = 0 then children D r y ++ s.lab else s.lab
     | none => s.lab
   x0 := s.x0
   iv := s.iv

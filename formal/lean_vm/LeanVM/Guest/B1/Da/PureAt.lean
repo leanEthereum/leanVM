@@ -27,14 +27,14 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 /-- The level loops of the `da_levels` functions. -/
 def lvlLoops : List String :=
-  ["__loop334", "__loop335", "__loop336", "__loop337", "__loop338", "__loop339", "__loop340",
+  ["__loop306", "__loop307", "__loop308", "__loop309", "__loop310", "__loop311", "__loop312",
+  "__loop285", "__loop286", "__loop287", "__loop288", "__loop289", "__loop290", "__loop291",
+  "__loop292", "__loop293", "__loop294", "__loop295", "__loop296", "__loop297", "__loop298",
+  "__loop299", "__loop300", "__loop301", "__loop302", "__loop303", "__loop304", "__loop305",
   "__loop313", "__loop314", "__loop315", "__loop316", "__loop317", "__loop318", "__loop319",
   "__loop320", "__loop321", "__loop322", "__loop323", "__loop324", "__loop325", "__loop326",
   "__loop327", "__loop328", "__loop329", "__loop330", "__loop331", "__loop332", "__loop333",
-  "__loop341", "__loop342", "__loop343", "__loop344", "__loop345", "__loop346", "__loop347",
-  "__loop348", "__loop349", "__loop350", "__loop351", "__loop352", "__loop353", "__loop354",
-  "__loop355", "__loop356", "__loop357", "__loop358", "__loop359", "__loop360", "__loop361",
-  "__loop362", "__loop363", "__loop364", "__loop365", "__loop366", "__loop367"]
+  "__loop334", "__loop335", "__loop336", "__loop337", "__loop338", "__loop339"]
 
 /-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs (`__loop21`,
 `__loop23`, `__loop24`), the columns' row loop (`__loop25`), the offsets' doubling loops

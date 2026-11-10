@@ -14,10 +14,10 @@ public import LeanVM.Guest.AcceptableChild
 # A query and an iteration, their witnesses named
 
 `winPosOf_eq`: the windows a run holds spell the position. `oqSibsOf_eq`: children cells holding
-siblings off the walk's side give them. `oqQuery_sound_s`, `oqQuery_sound_w`: one query is
-`QueryOpensS` at its witness `oqQueryW`. `oqIter1_sound_w`, `oqIter0_sound_w`: a loop iteration's
-queries are those of `oqIterOf`. `loopV_frames`: a guarded loop's iterations, under a call relation
-unfolding at `V`, hold at the frames `V f (g^j :: ps) []`.
+siblings off the walk's side give them. `oqQuery_sound_w`: one query is `QueryW` at its witness
+`oqQueryW`. `oqIter1_sound_w`, `oqIter0_sound_w`: a loop iteration's queries are those of
+`oqIterOf`. `loopV_frames`: a guarded loop's iterations, under a call relation unfolding at `V`,
+hold at the frames `V f (g^j :: ps) []`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -34,13 +34,6 @@ variable {rd : Reader} {σ : Val}
 theorem memRead_of_load {p : E} {off : ℕ} {v : E} (h : LoadHolds rd p off v) :
     memRead rd p off = v := by
   unfold memRead; rw [h.2]; rfl
-
-theorem readN_of_readsAt {p : E} {xs : List E} (h : ReadsAt rd p xs) :
-    readN rd p xs.length = xs := by
-  apply List.ext_getElem (by simp [readN])
-  intro i h1 h2
-  simp only [readN, List.getElem_map, List.getElem_range]
-  exact memRead_of_load (h i h2)
 
 /-- **The exponent of a small power of `g`.** -/
 theorem gLog7_gen_pow {v : ℕ} (hv : v < 128) : gLog7 (gen ^ v) = v := by
@@ -87,7 +80,6 @@ theorem digestOfCells_scalars (d : Digest) :
     digestOfCells (digestHalves d).1 (digestHalves d).2 = d := by
   unfold digestOfCells
   rw [Prod.mk.eta, digestOfScalars_digestScalars]
-  rfl
 
 /-- **Children cells holding siblings off the walk's side give them.** -/
 theorem oqSibsOf_eq {pd ch q : ℕ} {sibs : List Digest} (hl : sibs.length = pd)
@@ -106,154 +98,223 @@ theorem oqSibsOf_eq {pd ch q : ℕ} {sibs : List Digest} (hl : sibs.length = pd)
 
 /-! ## One query -/
 
-/-- **One query is `QueryOpensS`** at its row and the siblings its walk's frame's children cells
-hold: under a call relation unfolding at `V`, the query's `walk_path` call holds at the frame
-`V (oqWalkOf s) (oqWalkArgs …) []`. -/
-theorem oqQuery_sound_s {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
-    (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hW : WalkFn (oqWalkOf s) s.pd s.cd)
-    {bp cap flags wp : Core.V} {b : ℕ} {emit : Bool} {pr : ℕ}
-    (hA : BlockOkC C rd σ (oqQueryT s bp cap flags wp b emit pr (oqWalkOf s)))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
-    (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
-    {q : ℕ} (hq : q < 2 ^ (s.pd + s.cd))
-    (hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + s.cd) s.cd →
-      v = gen ^ qwVal (s.pd + s.cd) s.cd q i) :
-    (∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd (σ bp) i (gen ^ qwVal (s.pd + s.cd) s.cd q i)) ∧
-    QueryOpensS rd s.base s.I (s.pd + s.cd) s.cd (σ cap) (σ flags) (σ wp) q (oqRow b s.R σ)
-      (oqSibsOf s.pd wpCh q (V (oqWalkOf s) (oqWalkArgs s b emit (σ bp) (σ cap) (σ flags) σ) []))
-      (σ (.n (oqDot s b))) := by
-  obtain ⟨hP, hD, -, -, hcall⟩ := oqQuery_pieces hA
-  obtain ⟨fn, hf, hp, hb⟩ := hW
-  obtain ⟨fn', hf', hpar, hh⟩ := hU _ _ _ hcall
-  rw [hf] at hf'
-  cases hf'
-  rw [hp] at hpar
-  rw [hb] at hh
-  obtain ⟨-, hwl, sibs, hsl, hsib, hflag, hc0, hc1⟩ :=
-    wp_frame_sound (s := ⟨0, 0, s.pd, s.cd⟩) hpd hcd hpar hh (oqQuery_leaf hs hA hpad hz) hq hwin
-  have hrl : (oqRow b s.R σ).length = s.R := by simp [oqRow]
-  have hWd := oqWord_sound hs hP hD
-  obtain ⟨hw, hdot⟩ := oqDot_sound hs hD hWd
-  refine ⟨hwl, ?_⟩
-  rw [show oqWalkArgs s b emit (σ bp) (σ cap) (σ flags) σ = [σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 0)),
-    σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 1)), σ bp, σ cap, σ flags] from rfl, oqSibsOf_eq hsl hsib]
-  unfold QueryOpensS
-  rw [show s.pd + s.cd - s.cd = s.pd by omega]
-  refine ⟨by rw [hrl]; rfl, hsl, oqW s b σ, fun l hl => hw l (by simpa [Oq.lo] using hl),
-    hc0, hc1, hflag, ?_⟩
-  rw [hdot, rowDot_eq]
-  congr 1
-
-/-- What a query establishes of its witness `w`: its position below `2^(pd + cd)`, the window
-run at `bp` holding its windows, and `QueryOpensS` at its row and siblings. -/
-def QueryW (rd : Reader) (s : Oq) (cap flags wp bp : E) (w : QW) (d : E) : Prop :=
-  w.1 < 2 ^ (s.pd + s.cd) ∧
+/-- What a query establishes of its witness `w` at the point `x` (window run `bp`): its position
+below `2^(pd + cd)`, the point `eOfNat` of it, the run holding its windows, `QueryOpensS` at its
+row and siblings, and some rounds read at `coefs` with no combiner vanishing at it; at a non-final
+level its result `d` is the fold, at the final level the fold is the final polynomial, the
+coefficients read at `hs`. -/
+def QueryW (rd : Reader) (s : Oq) (cap flags coefs hs x bp : E) (w : QW) (d : E) : Prop :=
+  w.1 < 2 ^ (s.pd + s.cd) ∧ x = eOfNat w.1 ∧
     (∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd bp i (gen ^ qwVal (s.pd + s.cd) s.cd w.1 i)) ∧
-    QueryOpensS rd s.base s.I (s.pd + s.cd) s.cd cap flags wp w.1 w.2.1 w.2.2 d
+    QueryOpensS rd s.base s.folds (s.pd + s.cd) s.cd cap flags w.1 w.2.1 w.2.2 ∧
+    ∃ rounds : List FoldRound, rounds.length = s.folds ∧ RoundsAt rd coefs rounds ∧
+      FoldsNonzero rounds (K.ofBits w.1) ∧
+      (s.final ≠ 1 → d = foldRow (lanesOf s.base w.2.1) (K.ofBits w.1) rounds) ∧
+      (s.final = 1 → ∃ hsv : List E, hsv.length = s.nHs ∧ WordsAt rd hs hsv ∧
+        foldRow (lanesOf s.base w.2.1) (K.ofBits w.1) rounds =
+          novelSum hsv (wsChain (s.vs.map K.ofBits) x) s.nHs s.hsBits)
 
-/-- **A query whose window pointer names a position's windows** is sound at its witness
-`oqQueryW`. -/
+/-- The final level's shape facts the check needs. -/
+def Oq.FinOk (s : Oq) : Prop :=
+  s.final = 1 → s.nHs % 2 = 0 ∧ 2 ≤ s.nHs ∧ 1 ≤ s.hsBits ∧ s.hsBits - 1 ≤ s.mu
+
+instance (s : Oq) : Decidable s.FinOk := by unfold Oq.FinOk; infer_instance
+
+/-- **A query** at the point `x` whose window pointer names a run of the windows of the position
+`x` encodes is sound at its witness `oqQueryW`, under a call relation unfolding at `V`. -/
 theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
-    (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8)
+    (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
     (hW : WalkFn (oqWalkOf s) s.pd s.cd)
-    {bp cap flags wp : Core.V} {b : ℕ} {emit : Bool} {pr : ℕ}
-    (hA : BlockOkC C rd σ (oqQueryT s bp cap flags wp b emit pr (oqWalkOf s)))
-    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0 0)
+    {x bp cap flags coefs hsV : Core.V} {b : ℕ} {emit : Bool} {pr : ℕ}
+    (hA : BlockOkC C rd σ (oqQueryT s x bp cap flags coefs hsV b emit pr (oqWalkOf s)))
+    (hpad : σ (.n (oqPr s b emit pr)) = word 1 0)
     (hz : ∀ i < 4, σ (.n (oqPr s b emit pr + 1 + i)) = 0)
-    (hrun : WinRun rd (σ bp) (s.pd + s.cd) s.cd) :
-    QueryW rd s (σ cap) (σ flags) (σ wp) (σ bp) (oqQueryW s rd (σ bp) (σ cap) (σ flags) b emit σ V)
-      (σ (.n (oqDot s b))) := by
-  obtain ⟨q, hq, -, hfr⟩ := hrun
+    (hpos : ∃ q < 2 ^ (s.pd + s.cd), σ x = eOfNat q ∧
+      FrameRun rd (σ bp) (qwN (s.pd + s.cd) s.cd) fun i ↦ gen ^ qwVal (s.pd + s.cd) s.cd q i) :
+    QueryW rd s (σ cap) (σ flags) (σ coefs) (σ hsV) (σ x) (σ bp)
+      (oqQueryW s rd (σ bp) (σ cap) (σ flags) b emit σ V) (σ (.n (oqRes s b emit))) := by
+  obtain ⟨q, hq, hx, -, hfr⟩ := hpos
   have hwin : ∀ i v, LoadHolds rd (σ bp) i v → i < qwN (s.pd + s.cd) s.cd →
       v = gen ^ qwVal (s.pd + s.cd) s.cd q i := fun i v hv hi ↦ hfr i hi v hv.2
-  obtain ⟨hl, ho⟩ := oqQuery_sound_s hU hs hpd (by omega) hW hA hpad hz hq hwin
-  have e : winPosOf rd (σ bp) (s.pd + s.cd) s.cd = q := winPosOf_eq hcd8 hq hl
+  obtain ⟨hP, -, hL, hcall, hF, hFin⟩ := oqQuery_pieces hA
+  have hf : 1 ≤ s.folds := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> omega
+  have hI : s.I % 2 = 0 := by
+    unfold Oq.I; rw [show s.folds = s.folds - 1 + 1 by omega, pow_succ]; omega
+  have hKr : s.base = 1 → ∀ j < s.I, IsInK (σ (.n (b + j))) := fun hb ↦ (oqQuery_packs hb hI hP).1
+  -- the leaf
+  have hleaf : (σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 0)),
+      σ (.n (oqOut s (oqKL s b emit) (s.B - 1) 1))) = digestHalves (merkleLeafDigest (oqRow s b σ)) := by
+    by_cases hb : s.base = 1
+    · have hpk := (oqQuery_packs hb hI hP).2
+      refine oqLeaf_sound hs hL hpad hz (cs := (List.range s.ncells).map fun j ↦
+        E.ofLimbs ((oqRow s b σ).getD (2 * j) 0) ((oqRow s b σ).getD (2 * j + 1) 0)) (by simp)
+        (fun j hj ↦ by rw [hpk j hj]; simp [List.getD_eq_getElem?_getD, hj]) ?_
+      refine cellsBytes_packed _ _ ?_
+      rw [length_oqRow]; simp [rowLen, hb, Oq.ncells, Oq.I]
+      have : 2 ^ s.folds = 2 * 2 ^ (s.folds - 1) := by rw [← pow_succ']; congr 1; omega
+      omega
+    · refine oqLeaf_sound hs hL hpad hz (cs := oqCells s b σ) (by simp [oqCells, Oq.ncells, hb])
+        (fun j hj ↦ by simp [oqPk, hb, oqCells, List.getD_eq_getElem?_getD,
+          show j < s.I by simpa [Oq.ncells, hb] using hj]) ?_
+      rw [cellsBytes_limbs]
+      simp [oqRow, hb, oqCells, List.flatMap_map]
+  -- the walk's frame
+  obtain ⟨fn, hfw, hpw, hbw⟩ := hW
+  obtain ⟨fn', hf', hpar, hh⟩ := hU _ _ _ hcall
+  rw [hfw] at hf'
+  cases hf'
+  rw [hpw] at hpar
+  rw [hbw] at hh
+  obtain ⟨-, hwl, sibs, hsl, hsib, hflag, hc0, hc1⟩ :=
+    wp_frame_sound (s := ⟨0, 0, s.pd, s.cd, 0, [], 0, 0⟩) hpd hcd hpar hh hleaf hq hwin
+  have e : winPosOf rd (σ bp) (s.pd + s.cd) s.cd = q := winPosOf_eq hcd8 hq hwl
+  have hsibs : oqSibsOf s.pd wpCh q (V (oqWalkOf s) (oqWalkArgs s b emit (σ bp) (σ cap) (σ flags) σ) []) =
+      sibs := oqSibsOf_eq hsl hsib
+  -- the fold
+  obtain ⟨hRA, hNZ, hval⟩ := oqFold_sound hf hF
+  have hfold : σ (.n (oqVal s (oqCh s b emit))) =
+      foldRow (lanesOf s.base (oqRow s b σ)) (K.ofBits q) (oqRounds s (oqCh s b emit) σ) := by
+    rw [hval, foldRow_eq, lanesOf_oqRow hKr, hx]
+    rfl
   unfold oqQueryW
-  rw [e]
-  exact ⟨hq, hl, ho⟩
+  rw [e, hsibs]
+  refine ⟨hq, hx, hwl, ⟨length_oqRow s b σ, by simp only at hsl ⊢; omega, ?_, ?_, ?_⟩, oqRounds s (oqCh s b emit) σ,
+    by simp [oqRounds], hRA, fun r hr ↦ by have := hNZ r hr; rwa [hx] at this, fun hnf ↦ ?_,
+    fun h1 ↦ ?_⟩
+  · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc0
+  · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc1
+  · rw [show s.pd + s.cd - s.cd + 1 = s.pd + 1 by omega]; exact hflag
+  · simp only [oqRes, hnf, ↓reduceIte]; exact hfold
+  · obtain ⟨hn, hn2, hb1, hmu⟩ := hfin h1
+    obtain ⟨hW', hl, hv⟩ := oqFin_sound hn hn2 hb1 hmu (hFin h1)
+    exact ⟨_, hl, hW', by rw [← hfold, hv]⟩
 
 /-! ## The iterations -/
 
-/-- **A level-0 iteration** at `x = g^i`, its two queries at their witnesses. -/
+/-- The query's points and windows name a position (`QueryPosOk`, one query). -/
+def PosRun (rd : Reader) (s : Oq) (x bp : E) : Prop :=
+  ∃ q < 2 ^ (s.pd + s.cd), x = eOfNat q ∧
+    FrameRun rd bp (qwN (s.pd + s.cd) s.cd) fun i ↦ gen ^ qwVal (s.pd + s.cd) s.cd q i
+
+theorem oqLoop1A_mem_q1 {s : Oq} {odd : ℕ} {walk : String} {a : Stmt}
+    (h : a ∈ oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 walk) :
+    a ∈ oqLoop1A s odd walk := by
+  simp only [oqLoop1A, List.mem_append]; simp_all
+
+theorem oqLoop1A_mem_q2 {s : Oq} {odd : ℕ} {walk : String} {a : Stmt}
+    (h : a ∈ oqQueryT s (.n (oqE1 s)) (.n (oqE1 s + 1)) (.n 4) (.n 5) (.n 6) (.n 7) (oqE1 s + 2) false
+      (oqK1 s 16) walk) :
+    a ∈ oqLoop1A s odd walk := by
+  simp only [oqLoop1A, List.mem_append]; simp_all
+
+theorem oqLoop0A_mem_q {s : Oq} {walk : String} {a : Stmt}
+    (h : a ∈ oqQueryT s (.n 11) (.n 13) (.n 4) (.n 5) (.n 6) (.n 7) 14 true 0 walk) :
+    a ∈ oqLoop0A s walk := by
+  simp only [oqLoop0A, List.mem_append]; simp_all
+
+/-- **A level-0 iteration** at `x = g^i`, its two queries at their witnesses, and (non-final
+levels) the chain step. -/
 theorem oqIter1_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
-    (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8)
+    (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
     (hW : WalkFn (oqWalkOf s) s.pd s.cd) {odd i : ℕ}
     (hA : BlockOkC C rd σ (oqLoop1A s odd (oqWalkOf s))) (hx : σ (.n 0) = gen ^ i)
-    (hbool : ∀ k, k = 2 * i + odd ∨ k = 2 * i + odd + 1 → ∀ bp, LoadHolds rd (σ (.n 2)) k bp →
-      WinRun rd bp (s.pd + s.cd) s.cd) :
-    ∃ v : E,
-      LoadHolds rd (σ (.n 2)) (2 * i + odd) (σ (.n 10)) ∧
-      QueryW rd s (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) (σ (.n 10))
-        (oqQueryW s rd (σ (.n 10)) (σ (.n 3)) (σ (.n 4)) 11 true σ V) (σ (.n (oqDot s 11))) ∧
+    (hpos : ∀ k, k = 2 * i + odd ∨ k = 2 * i + odd + 1 → ∀ x bp, LoadHolds rd (σ (.n 2)) k x →
+      LoadHolds rd (σ (.n 3)) k bp → PosRun rd s x bp) :
+    LoadHolds rd (σ (.n 2)) (2 * i + odd) (σ (.n 14)) ∧
+      LoadHolds rd (σ (.n 3)) (2 * i + odd) (σ (.n 15)) ∧
+      QueryW rd s (σ (.n 4)) (σ (.n 5)) (σ (.n 6)) (σ (.n 7)) (σ (.n 14)) (σ (.n 15))
+        (oqQueryW s rd (σ (.n 15)) (σ (.n 4)) (σ (.n 5)) 16 true σ V) (σ (.n (oqRes s 16 true))) ∧
       LoadHolds rd (σ (.n 2)) (2 * i + odd + 1) (σ (.n (oqE1 s))) ∧
-      QueryW rd s (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) (σ (.n (oqE1 s)))
-        (oqQueryW s rd (σ (.n (oqE1 s))) (σ (.n 3)) (σ (.n 4)) (oqE1 s + 1) false σ V)
-        (σ (.n (oqDot s (oqE1 s + 1)))) ∧
-      LoadHolds rd (σ (.n 6)) i v ∧
-      LoadHolds rd (σ (.n 6)) (i + 1) (((v + σ (.n (oqDot s 11))) * σ (.n 7) +
-        σ (.n (oqDot s (oqE1 s + 1)))) * σ (.n 7)) := by
-  have p8 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.mul (.n 8) (.n 2) (.n 0)) ∈ _)
-  have p9 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.mul (.n 9) (.n 8) (.n 0)) ∈ _)
-  have p10 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.load (.n 10) (.n 9) odd) ∈ _)
-  have pe1 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.load (.n (oqE1 s)) (.n 9) (odd + 1)) ∈ _)
-  simp only [Atom.Holds] at p8 p9 p10 pe1
-  have h9 : σ (.n 9) = σ (.n 2) * gen ^ (2 * i) := by rw [p9, p8, hx, mul_assoc, ← pow_add]; ring_nf
-  rw [h9, loadHolds_mul_gen_pow] at p10 pe1
+      LoadHolds rd (σ (.n 3)) (2 * i + odd + 1) (σ (.n (oqE1 s + 1))) ∧
+      QueryW rd s (σ (.n 4)) (σ (.n 5)) (σ (.n 6)) (σ (.n 7)) (σ (.n (oqE1 s))) (σ (.n (oqE1 s + 1)))
+        (oqQueryW s rd (σ (.n (oqE1 s + 1))) (σ (.n 4)) (σ (.n 5)) (oqE1 s + 2) false σ V)
+        (σ (.n (oqRes s (oqE1 s + 2) false))) ∧
+      (s.final ≠ 1 → ∃ v : E, LoadHolds rd (σ (.n 8)) i v ∧
+        LoadHolds rd (σ (.n 8)) (i + 1) (((v + σ (.n (oqRes s 16 true))) * σ (.n 9) +
+          σ (.n (oqRes s (oqE1 s + 2) false))) * σ (.n 9))) := by
+  have p10 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.mul (.n 10) (.n 2) (.n 0)) ∈ _)
+  have p11 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.mul (.n 11) (.n 10) (.n 0)) ∈ _)
+  have p12 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.mul (.n 12) (.n 3) (.n 0)) ∈ _)
+  have p13 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.mul (.n 13) (.n 12) (.n 0)) ∈ _)
+  have p14 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.load (.n 14) (.n 11) odd) ∈ _)
+  have p15 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.load (.n 15) (.n 13) odd) ∈ _)
+  have pe1 := hA.atom (by simp [oqLoop1A] : Stmt.atom (.load (.n (oqE1 s)) (.n 11) (odd + 1)) ∈ _)
+  have pe2 := hA.atom (by simp [oqLoop1A] :
+    Stmt.atom (.load (.n (oqE1 s + 1)) (.n 13) (odd + 1)) ∈ _)
+  simp only [Atom.Holds] at p10 p11 p12 p13 p14 p15 pe1 pe2
+  have h11 : σ (.n 11) = σ (.n 2) * gen ^ (2 * i) := by rw [p11, p10, hx, mul_assoc, ← pow_add]; ring_nf
+  have h13 : σ (.n 13) = σ (.n 3) * gen ^ (2 * i) := by rw [p13, p12, hx, mul_assoc, ← pow_add]; ring_nf
+  rw [h11, loadHolds_mul_gen_pow] at p14 pe1
+  rw [h13, loadHolds_mul_gen_pow] at p15 pe2
+  rw [show 2 * i + (odd + 1) = 2 * i + odd + 1 by omega] at pe1 pe2
   have hq1 := hA.mono fun a h => oqLoop1A_mem_q1 (odd := odd) h
   have hq2 := hA.mono fun a h => oqLoop1A_mem_q2 (odd := odd) h
-  obtain ⟨-, -, hpd', -, -⟩ := oqQuery_pieces hq1
+  obtain ⟨-, hpd', -, -, -, -⟩ := oqQuery_pieces hq1
   obtain ⟨e1, z⟩ := oqPad_values (hpd' rfl)
-  have pe1' : LoadHolds rd (σ (.n 2)) (2 * i + odd + 1) (σ (.n (oqE1 s))) := by
-    rw [show 2 * i + odd + 1 = 2 * i + (odd + 1) by omega]; exact pe1
-  have w1 := oqQuery_sound_w hU hs hpd hcd hcd8 hW hq1 e1 z (hbool _ (Or.inl rfl) _ p10)
-  have w2 := oqQuery_sound_w hU hs hpd hcd hcd8 hW hq2 e1 z (hbool _ (Or.inr rfl) _ pe1')
+  have w1 := oqQuery_sound_w hU hs hfin hpd hcd hcd8 hW hq1 e1 z (hpos _ (Or.inl rfl) _ _ p14 p15)
+  have w2 := oqQuery_sound_w hU hs hfin hpd hcd hcd8 hW hq2 e1 z (hpos _ (Or.inr rfl) _ _ pe1 pe2)
+  refine ⟨p14, p15, w1, pe1, pe2, w2, fun hnf ↦ ?_⟩
   set c := oqC1 s with hc
-  have c0 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.mul (.n c) (.n 6) (.n 0)) ∈ _)
-  have c1 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.load (.n (c + 1)) (.n c) 0) ∈ _)
-  have c2 := hA.atom (by simp [oqLoop1A, ← hc] :
-    Stmt.atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqDot s 11))) ∈ _)
-  have c3 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 7)) ∈ _)
-  have c4 := hA.atom (by simp [oqLoop1A, ← hc] :
-    Stmt.atom (.add (.n (c + 4)) (.n (c + 3)) (.n (oqDot s (oqE1 s + 1)))) ∈ _)
-  have c5 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.mul (.n (c + 5)) (.n (c + 4)) (.n 7)) ∈ _)
-  have c6 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.mul (.n (c + 6)) (.n 6) (.n 0)) ∈ _)
-  have c7 := hA.atom (by simp [oqLoop1A, ← hc] : Stmt.atom (.load (.n (c + 5)) (.n (c + 6)) 1) ∈ _)
+  have mem : ∀ a, Stmt.atom a ∈ [Stmt.atom (.mul (.n c) (.n 8) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
+      .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 16 true))),
+      .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 9)),
+      .atom (.add (.n (c + 4)) (.n (c + 3)) (.n (oqRes s (oqE1 s + 2) false))),
+      .atom (.mul (.n (c + 5)) (.n (c + 4)) (.n 9)), .atom (.mul (.n (c + 6)) (.n 8) (.n 0)),
+      .atom (.load (.n (c + 5)) (.n (c + 6)) 1)] → a.Holds rd σ := fun a h ↦
+    hA.atom (by simp only [oqLoop1A, hnf, ↓reduceIte, List.mem_append]; exact Or.inl (Or.inr h))
+  have c0 := mem _ (List.mem_cons_self ..)
+  have c1 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+  have c2 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+  have c3 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))
+  have c4 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))))
+  have c5 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))
+  have c6 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))))))
+  have c7 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))))
   simp only [Atom.Holds] at c0 c1 c2 c3 c4 c5 c6 c7
   rw [c0, hx, loadHolds_mul_gen_pow, Nat.add_zero] at c1
   rw [c6, hx, loadHolds_mul_gen_pow, c5, c4, c3, c2] at c7
-  exact ⟨_, p10, w1, pe1', w2, c1, c7⟩
+  exact ⟨_, c1, c7⟩
 
-/-- **A deeper iteration** at `x = g^i`, its query at its witness. -/
+/-- **A deeper iteration** at `x = g^i`, its query at its witness, and (non-final levels) the
+chain step. -/
 theorem oqIter0_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}
-    (hs : s.RowShape) (hpd : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) (hcd8 : s.cd ≤ 8)
+    (hs : s.RowShape) (hfin : s.FinOk) (hpd : 1 ≤ s.pd) (hcd : 1 ≤ s.cd) (hcd8 : s.cd ≤ 8)
     (hW : WalkFn (oqWalkOf s) s.pd s.cd) {i : ℕ}
     (hA : BlockOkC C rd σ (oqLoop0A s (oqWalkOf s))) (hx : σ (.n 0) = gen ^ i)
-    (hbool : ∀ bp, LoadHolds rd (σ (.n 2)) i bp → WinRun rd bp (s.pd + s.cd) s.cd) :
-    ∃ v : E, LoadHolds rd (σ (.n 2)) i (σ (.n 9)) ∧
-      QueryW rd s (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) (σ (.n 9))
-        (oqQueryW s rd (σ (.n 9)) (σ (.n 3)) (σ (.n 4)) 10 true σ V) (σ (.n (oqDot s 10))) ∧
-      LoadHolds rd (σ (.n 6)) i v ∧
-      LoadHolds rd (σ (.n 6)) (i + 1) ((v + σ (.n (oqDot s 10))) * σ (.n 7)) := by
-  have p8 := hA.atom (by simp [oqLoop0A] : Stmt.atom (.mul (.n 8) (.n 2) (.n 0)) ∈ _)
-  have p9 := hA.atom (by simp [oqLoop0A] : Stmt.atom (.load (.n 9) (.n 8) 0) ∈ _)
-  simp only [Atom.Holds] at p8 p9
-  rw [p8, hx, loadHolds_mul_gen_pow, Nat.add_zero] at p9
+    (hpos : ∀ x bp, LoadHolds rd (σ (.n 2)) i x → LoadHolds rd (σ (.n 3)) i bp → PosRun rd s x bp) :
+    LoadHolds rd (σ (.n 2)) i (σ (.n 11)) ∧ LoadHolds rd (σ (.n 3)) i (σ (.n 13)) ∧
+      QueryW rd s (σ (.n 4)) (σ (.n 5)) (σ (.n 6)) (σ (.n 7)) (σ (.n 11)) (σ (.n 13))
+        (oqQueryW s rd (σ (.n 13)) (σ (.n 4)) (σ (.n 5)) 14 true σ V) (σ (.n (oqRes s 14 true))) ∧
+      (s.final ≠ 1 → ∃ v : E, LoadHolds rd (σ (.n 8)) i v ∧
+        LoadHolds rd (σ (.n 8)) (i + 1) ((v + σ (.n (oqRes s 14 true))) * σ (.n 9))) := by
+  have p10 := hA.atom (by simp [oqLoop0A] : Stmt.atom (.mul (.n 10) (.n 2) (.n 0)) ∈ _)
+  have p11 := hA.atom (by simp [oqLoop0A] : Stmt.atom (.load (.n 11) (.n 10) 0) ∈ _)
+  have p12 := hA.atom (by simp [oqLoop0A] : Stmt.atom (.mul (.n 12) (.n 3) (.n 0)) ∈ _)
+  have p13 := hA.atom (by simp [oqLoop0A] : Stmt.atom (.load (.n 13) (.n 12) 0) ∈ _)
+  simp only [Atom.Holds] at p10 p11 p12 p13
+  rw [p10, hx, loadHolds_mul_gen_pow, Nat.add_zero] at p11
+  rw [p12, hx, loadHolds_mul_gen_pow, Nat.add_zero] at p13
   have hq := hA.mono fun a h => oqLoop0A_mem_q h
-  obtain ⟨-, -, hpd', -, -⟩ := oqQuery_pieces hq
+  obtain ⟨-, hpd', -, -, -, -⟩ := oqQuery_pieces hq
   obtain ⟨e1, z⟩ := oqPad_values (hpd' rfl)
-  have w1 := oqQuery_sound_w hU hs hpd hcd hcd8 hW hq e1 z (hbool _ p9)
+  have w1 := oqQuery_sound_w hU hs hfin hpd hcd hcd8 hW hq e1 z (hpos _ _ p11 p13)
+  refine ⟨p11, p13, w1, fun hnf ↦ ?_⟩
   set c := oqC0 s with hc
-  have c0 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.mul (.n c) (.n 6) (.n 0)) ∈ _)
-  have c1 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.load (.n (c + 1)) (.n c) 0) ∈ _)
-  have c2 := hA.atom (by simp [oqLoop0A, ← hc] :
-    Stmt.atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqDot s 10))) ∈ _)
-  have c3 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 7)) ∈ _)
-  have c4 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.mul (.n (c + 4)) (.n 6) (.n 0)) ∈ _)
-  have c5 := hA.atom (by simp [oqLoop0A, ← hc] : Stmt.atom (.load (.n (c + 3)) (.n (c + 4)) 1) ∈ _)
+  have mem : ∀ a, Stmt.atom a ∈ [Stmt.atom (.mul (.n c) (.n 8) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
+      .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 14 true))),
+      .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 9)), .atom (.mul (.n (c + 4)) (.n 8) (.n 0)),
+      .atom (.load (.n (c + 3)) (.n (c + 4)) 1)] → a.Holds rd σ := fun a h ↦
+    hA.atom (by simp only [oqLoop0A, hnf, ↓reduceIte, List.mem_append]; exact Or.inl (Or.inr h))
+  have c0 := mem _ (List.mem_cons_self ..)
+  have c1 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+  have c2 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+  have c3 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))
+  have c4 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))))
+  have c5 := mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))
   simp only [Atom.Holds] at c0 c1 c2 c3 c4 c5
   rw [c0, hx, loadHolds_mul_gen_pow, Nat.add_zero] at c1
   rw [c4, hx, loadHolds_mul_gen_pow, c3, c2] at c5
-  exact ⟨_, p9, w1, c1, c5⟩
+  exact ⟨_, c1, c5⟩
 
 /-! ## A guarded loop's frames -/
 

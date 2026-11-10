@@ -38,18 +38,17 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     (hnext : ReadsAt rd (chainT * x ^ 2 * gen ^ 2) [pw * lamSq, acc + pw * (fv + lam * cv)])
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hfv : LoadHolds rd pf 23 fv) (hcv : LoadHolds rd pc 23 cv) :
-    LoopBlock rd (coreProgram.getD 415 default) x N [chainT, lfT, lcT, lamSq, lam] := by
+    LoopBlock rd (coreProgram.getD 445 default) x N [chainT, lfT, lcT, lamSq, lam] := by
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
     hm12⟩, hl13⟩, hm14⟩, hl15⟩, hl16⟩, hl17⟩, hm18⟩, ha19⟩, hm20⟩, ha21⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 415 default
+  set fn := coreProgram.getD 445 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, chainT, lfT, lcT, lamSq, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
   rw [show args.length = 7 from rfl, ← hσ, l26_stores] at hgs
   have hg : ∀ a ∈ A, Good rd l26Stores (fun _ => 0) σ a := fun a ha =>
@@ -73,7 +72,7 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
   have v11 : σ (.n 11) = pf := by rw [(load_any_val hnS hg' hl11).1, p10, rdAt_of_load hlf]
   have v13 : σ (.n 13) = pc := by rw [(load_any_val hnS hg' hl13).1, p12, rdAt_of_load hlc]
   have hat' : ∀ a ∈ l26A, a.Holds rd σ := by
-    refine atoms_holds hidx hcanA hg' (fun i hi => absurd hi (by simp)) fun a ha hns => ?_
+    refine atoms_holds hg' fun a ha hns => ?_
     rcases hneeds a ha with h | h
     · rw [hns] at h; exact absurd h (by simp)
     · cases a <;> simp only [isL26Load, Bool.false_eq_true, Bool.or_eq_true, Bool.and_eq_true,
@@ -133,18 +132,17 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
     (hpw : LoadHolds rd (chainT * x ^ 2) 0 pw) (hw : LoadHolds rd (wT * x) 0 wc)
     (hw1 : LoadHolds rd (wT * x) 1 (wc + pw * (eqEval pp (r1.map (1 + ·)) +
       lam * eqEval pq (r1.map (1 + ·))))) :
-    LoopBlock rd (coreProgram.getD 417 default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
+    LoopBlock rd (coreProgram.getD 447 default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
     he2⟩, hm171⟩, hm172⟩, hm173⟩, hl174⟩, hl175⟩, hm176⟩, ha177⟩, hm178⟩, ha179⟩, hm180⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 417 default
+  set fn := coreProgram.getD 447 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, lfT, lcT, pt1, chainT, wT, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
   rw [show args.length = 8 from rfl, ← hσ, l27_stores] at hgs
   have hg : ∀ a ∈ A, Good rd l27Stores (fun _ => 0) σ a := fun a ha =>
@@ -169,7 +167,7 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
   have v9 : σ (.n 9) = pf := by rw [(load_any_val hnS hg' hl9).1, p8, rdAt_of_load hlf]
   have v11 : σ (.n 11) = pc := by rw [(load_any_val hnS hg' hl11).1, p10, rdAt_of_load hlc]
   have hat' : ∀ a ∈ l27A, a.Holds rd σ := by
-    refine atoms_holds hidx hcanA hg' (fun i hi => absurd hi (by simp)) fun a ha hns => ?_
+    refine atoms_holds hg' fun a ha hns => ?_
     rcases hneeds a ha with h | h
     · rw [hns] at h; exact absurd h (by simp)
     · cases a <;> simp only [isL27Load, Bool.false_eq_true, Bool.or_eq_true, Bool.and_eq_true,

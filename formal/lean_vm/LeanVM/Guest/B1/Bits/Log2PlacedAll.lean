@@ -39,7 +39,7 @@ theorem log2_L0_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N <
     CompleteAtB fs cert κ "log2_ceil_in_the_exponent__L0_L34" (log2Lin sqE)
       [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 0 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power") :=
-  lce_completeAtB 0 (by norm_num) find_lce_L0 rfl core300_body loop_lce_L0 κ hκ6 N sqE hN hL
+  lce_completeAtB 0 (by norm_num) find_lce_L0 rfl core301_body loop_lce_L0 κ hκ6 N sqE hN hL
 
 /-- **`log2_ceil_in_the_exponent__L15_L34`, placed and bounded.** -/
 theorem log2_L15_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N < 2 ^ 34)
@@ -47,7 +47,7 @@ theorem log2_L15_completeAtB (κ : ℕ) (hκ6 : 6 ≤ κ) (N sqE : ℕ) (hN : N 
     CompleteAtB fs cert κ "log2_ceil_in_the_exponent__L15_L34" (log2Lin sqE)
       [gen ^ N, ofK (Parameters.addressOfIndex sqE)] (Returns [gen ^ max 15 (log2Ceil N)])
       (fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power") :=
-  lce_completeAtB 15 (by norm_num) find_lce_L15 rfl core301_body loop_lce_L15 κ hκ6 N sqE hN hL
+  lce_completeAtB 15 (by norm_num) find_lce_L15 rfl core302_body loop_lce_L15 κ hκ6 N sqE hN hL
 
 /-- **`log2_ceil_in_the_exponent__L0_L34`, placed.** -/
 theorem log2_L0_completeAt (κ : ℕ) (hκ6 : 6 ≤ κ) : ∀ (N sqE : ℕ), N < 2 ^ 34 →

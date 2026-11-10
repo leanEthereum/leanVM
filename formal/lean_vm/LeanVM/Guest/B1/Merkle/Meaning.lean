@@ -35,11 +35,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- A node's two cells hash its children's: the children's four cells are canonical, and the
-node's cells are the digest of their 64 bytes. -/
+/-- A node's two cells hash its children's: the node's cells are the digest of their 64 bytes. -/
 def HashesPair (l0 l1 r0 r1 p0 p1 : E) : Prop :=
-  AllCanonical [l0, l1, r0, r1] ∧
-    (p0, p1) = digestHalves (keccak256 (Keccak.cellsBytes [l0, l1, r0, r1]))
+  (p0, p1) = digestHalves (keccak256 (Keccak.cellsBytes [l0, l1, r0, r1]))
 
 /-- **`verify_merkle_cap(cap, flags, D)`** (G:1167-1210; TRIAGE #34): the cap's cells `cell k`,
 `2 ≤ k < 2^(D+2)` (node `k / 2`'s cell `k % 2`), are in memory; the flags `fl k` of the internal

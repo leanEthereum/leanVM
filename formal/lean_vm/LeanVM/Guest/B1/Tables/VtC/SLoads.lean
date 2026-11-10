@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.SLoads
 
-  Where `verify_tables`' loads of statements `0 ..< 769` read: in `dims_g`, `table_rows`, the
+  Where `verify_tables`' loads of statements `0 ..< 765` read: in `dims_g`, `table_rows`, the
   exponent table, the four group buffers and `idxc_tab`, some through computed pointers.
 -/
 
@@ -11,16 +11,16 @@ public import LeanVM.Guest.B1.Tables.VtC.SAll
 public import LeanVM.Guest.B1.Tables.VtC.InBuf
 
 /-!
-# The loads of statements `0 ..< 769`
+# The loads of statements `0 ..< 765`
 
 A load through a computed pointer (`p = base · x`, `x = g^a` with `a` bounded) lands in `base`'s
 buffer when `a + off` is below its length. `ptrRun` tracks, statement by statement, what the
 holding statements say of the variables: `PF.pw e` (`σ v = g^a`, `a ≤ e`: a constant
 `word (2^k)`, a product of two such, a word read from a buffer whose words are such) and
 `PF.pt b e` (`σ v = σ b · g^a`, `a ≤ e`), and checks every load against the buffers
-(`ptrRun_sound`). `vtS_loads`: statements `0 ..< 769`, whose loads read `dims_g` (`7`),
+(`ptrRun_sound`). `vtS_loads`: statements `0 ..< 765`, whose loads read `dims_g` (`7`),
 `table_rows` (`6`), the exponent table (`236`, at `σ12 · g^κ` and `σ12 · g^gi`), the group buffers
-(`24` each, also at `σ(36+i) · g^gi`) and `idxc_tab` (`34`), from `dims_g`'s words (`g^` at most
+(`24` each, also at `σ(33+i) · g^gi`) and `idxc_tab` (`34`), from `dims_g`'s words (`g^` at most
 `32`) and the group order's (`g^` at most `23`).
 -/
 
@@ -85,7 +85,7 @@ def pfMul (F : List (ℕ × PF)) (x y : ℕ) : Option PF :=
 
 /-- The fact a constant gives: `word (2^k)` for `k ∈ ks`. -/
 def constFact (ks : List ℕ) (c : E) : Option PF :=
-  (ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0 0))).map PF.pw
+  (ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0))).map PF.pw
 
 /-- The fact a load gives: a word of a buffer whose words at `offs` are `g^` at most `c`. -/
 def loadFact (pws : List (ℕ × ℕ × List ℕ)) (p off : ℕ) : Option PF :=
@@ -152,7 +152,7 @@ theorem pfMul_sound {F : List (ℕ × PF)} (hF : ∀ q ∈ F, q.2.Holds σ q.1) 
 theorem constFact_sound {ks : List ℕ} {c : E} {d : ℕ} {f : PF} (hc : σ (.n d) = c)
     (h : constFact ks c = some f) : f.Holds σ d := by
   unfold constFact at h
-  cases hk : ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0 0)) with
+  cases hk : ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0)) with
   | none => rw [hk] at h; simp at h
   | some k =>
     rw [hk] at h
@@ -268,19 +268,19 @@ theorem ptrRun_sound {bufs : List (E × ℕ)} {bs : List (ℕ × ℕ)} {pws : Li
 end
 
 
-/-! ## Statements `0 ..< 769` -/
+/-! ## Statements `0 ..< 765` -/
 
-/-- The buffers statements `0 ..< 769` load from: `dims_g`, `table_rows`, the exponent table, the
+/-- The buffers statements `0 ..< 765` load from: `dims_g`, `table_rows`, the exponent table, the
 group buffers, `idxc_tab`. -/
 def vtBufsSIdx : List (ℕ × ℕ) :=
-  [(10, 7), (11, 6), (12, 236), (36, 24), (37, 24), (38, 24), (39, 24), (668, 34)]
+  [(10, 7), (11, 6), (12, 236), (33, 24), (34, 24), (35, 24), (36, 24), (664, 34)]
 
 /-- The buffers the pointers' exponents come from: `dims_g` (`g^` at most `32`), the group order
 at the push and the pull side's slots (`g^` at most `23`). -/
 def vtPwsS : List (ℕ × ℕ × List ℕ) :=
-  [(10, 32, List.range 7), (39, 23, List.range 9 ++ (List.range 6).map (18 + ·))]
+  [(10, 32, List.range 7), (36, 23, List.range 9 ++ (List.range 6).map (18 + ·))]
 
-theorem vtS_ptr_check : ptrRun vtBufsSIdx vtPwsS [0, 19] [] ((vtPre.drop 0).take 769) = true := by
+theorem vtS_ptr_check : ptrRun vtBufsSIdx vtPwsS [0, 19] [] ((vtPre.drop 0).take 765) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 theorem pw_of_reads {rd : Reader} {p : E} {ws : List E} (h : TbReadsAt rd p ws) {c : ℕ} {j : ℕ}
@@ -293,15 +293,15 @@ theorem pw_of_reads {rd : Reader} {p : E} {ws : List E} (h : TbReadsAt rd p ws) 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
-/-- **Where statements `0 ..< 769` load**: in `dims_g`, `table_rows`, the exponent table, the
+/-- **Where statements `0 ..< 765` load**: in `dims_g`, `table_rows`, the exponent table, the
 group buffers and `idxc_tab`, on `dims_g`'s and the group order's honest words. -/
 theorem vtS_loads {bufs : List (E × ℕ)}
-    (hV : ∀ s ∈ (vtPre.drop 0).take 769, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
+    (hV : ∀ s ∈ (vtPre.drop 0).take 765, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
     (hb : ∀ q ∈ vtBufsSIdx, (vtσ rd w args (.n q.1), q.2) ∈ bufs) {lm : ℕ} (hlm : lm ≤ 32)
     {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
     (hdims : TbReadsAt rd (vtσ rd w args (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
-    (hord : TbReadsAt rd (vtσ rd w args (.n 39)) (vtGOrdW lm τ)) :
-    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take 769) := by
+    (hord : TbReadsAt rd (vtσ rd w args (.n 36)) (vtGOrdW lm τ)) :
+    LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take 765) := by
   refine ptrRun_sound hb (fun q hq j hj v hl ↦ ?_) _ [] (by simp) hV vtS_ptr_check
   simp only [vtPwsS, List.mem_cons, List.not_mem_nil, or_false] at hq
   rcases hq with rfl | rfl <;> dsimp only at hj hl ⊢

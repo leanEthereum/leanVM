@@ -5,9 +5,9 @@ Ring switching was introduced in \cite{DP24}. We present a variant tailored to o
 
 \subsection{Setting}\label{rs:setting}
 
-The two fields are those of \S\ref{sec:vm}: $\K=\F_2[x]/(x^{64}+x^4+x^3+x+1)$ inside $\E=\K[y]/(y^3+y+1)$. As $\F_2$-vector spaces, $\K$ has basis $x^0,\dots,x^{63}$, and $\E$ has the $192$ products
+The two fields are those of \S\ref{sec:vm}: $\K=\F_2[x]/(x^{64}+x^4+x^3+x+1)$ inside $\E=\K[y]/(y^2+xy+1)$. As $\F_2$-vector spaces, $\K$ has basis $x^0,\dots,x^{63}$, and $\E$ has the $128$ products
 \[
-e_w=x^iy^j\in\E,\qquad w=64j+i,\quad 0\le i<64,\quad 0\le j<3.
+e_w=x^iy^j\in\E,\qquad w=64j+i,\quad 0\le i<64,\quad 0\le j<2.
 \]
 
 The witness is $64$ bit-valued multilinears $Q_0,\dots,Q_{63}:\cube{\nkeccak}\to\{0,1\}$. We commit to them packed, one $\K$ element per point:
@@ -22,7 +22,7 @@ The weight $W$ and target $T$ are $\E$-valued, the committed values are $\K$-val
 
 What arrives is not of that shape. It is $64$ claimed values $s_i\in\E$, one per bit polynomial, at a point $r\in\E^{\nkeccak}$ they all share.
 \[
-s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nkeccak}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64,
+s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nkeccak}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64.
 \]
 
 Ring switching~\cite{DP24} turns those $64$ claims into a single statement the opening can prove.
@@ -53,39 +53,39 @@ Everything now turns on which $\Phi$ we can afford to draw.
 \[
 \sum_{i=0}^{63}x^i\,\Phi(\delta_i)=0.
 \]
-Expand each error in the $\F_2$-basis of $\E$, say $\delta_i=\sum_{w=0}^{191}\delta_{i,w}e_w$ with $\delta_{i,w}\in\F_2$, and exchange the two sums:
+Expand each error in the $\F_2$-basis of $\E$, say $\delta_i=\sum_{w=0}^{127}\delta_{i,w}e_w$ with $\delta_{i,w}\in\F_2$, and exchange the two sums:
 \begin{equation}
 \sum_{i=0}^{63}x^i\,\Phi(\delta_i)
-=\sum_{i=0}^{63}x^i\sum_{w=0}^{191}\delta_{i,w}\,\Phi(e_w)
-=\sum_{w=0}^{191}\Phi(e_w)\,\Delta_w,
+=\sum_{i=0}^{63}x^i\sum_{w=0}^{127}\delta_{i,w}\,\Phi(e_w)
+=\sum_{w=0}^{127}\Phi(e_w)\,\Delta_w,
 \qquad
 \Delta_w:=\sum_{i=0}^{63}\delta_{i,w}x^i\in\K.
 \label{eq:transpose}
 \end{equation}
-The $x^i$ are an $\F_2$-basis of $\K$, so some $\Delta_w\neq0$. The cheating prover succeeds if $\sum_{w=0}^{191}\Phi(e_w)\,\Delta_w=0$. We must thus draw $\Phi$ to make this event unlikely.
+The $x^i$ are an $\F_2$-basis of $\K$, so some $\Delta_w\neq0$. The cheating prover succeeds if $\sum_{w=0}^{127}\Phi(e_w)\,\Delta_w=0$. We must thus draw $\Phi$ to make this event unlikely.
 
 \paragraph{Linear maps are Frobenius sums.} Squaring is additive in characteristic $2$, so
 \[
-\Phi(a)=\sum_{k=0}^{191}c_k\,a^{2^k},\qquad a\in\E,\quad c_k\in\E,
+\Phi(a)=\sum_{k=0}^{127}c_k\,a^{2^k},\qquad a\in\E,\quad c_k\in\E,
 \]
-is $\F_2$-linear for any choice of coefficients. Every $\F_2$-linear map $\E\to\E$ arises this way, and exactly once. Distinct tuples of $(c_k)$ give distinct maps: their difference would be a nonzero polynomial of degree at most $2^{191}$ with $2^{192}$ roots. There are $|\E|^{192}$ tuples and as many maps. Call $\supp=\{k:c_k\neq0\}\subseteq\{0,\dots,191\}$ the \emph{support} of $\Phi$. Substituting into the check above,
+is $\F_2$-linear for any choice of coefficients. Every $\F_2$-linear map $\E\to\E$ arises this way, and exactly once. Distinct tuples of $(c_k)$ give distinct maps: their difference would be a nonzero polynomial of degree at most $2^{127}$ with $2^{128}$ roots. There are $|\E|^{128}$ tuples and as many maps. Call $\supp=\{k:c_k\neq0\}\subseteq\{0,\dots,127\}$ the \emph{support} of $\Phi$. Substituting into the check above,
 \begin{equation}
-\sum_{w=0}^{191}\Phi(e_w)\,\Delta_w=\sum_{w=0}^{191}\sum_{k\in\supp}c_k\,e_w^{2^k}\,\Delta_w=\sum_{k\in\supp}c_k\,\pair_k,
+\sum_{w=0}^{127}\Phi(e_w)\,\Delta_w=\sum_{w=0}^{127}\sum_{k\in\supp}c_k\,e_w^{2^k}\,\Delta_w=\sum_{k\in\supp}c_k\,\pair_k,
 \qquad
-\pair_k:=\sum_{w=0}^{191}e_w^{2^k}\,\Delta_w\in\E.
+\pair_k:=\sum_{w=0}^{127}e_w^{2^k}\,\Delta_w\in\E.
 \label{eq:pairing}
 \end{equation}
-The $\pair_k$ depend only on the error, the $c_k$ only on the randomness. So we need the map $\K^{192}\to\E^{|\supp|}$, $\Delta\mapsto(\pair_k)_{k\in\supp}$, to be injective: a nonzero error has to leave some $\pair_k\neq0$ for the coefficients to act on.
+The $\pair_k$ depend only on the error, the $c_k$ only on the randomness. So we need the map $\K^{128}\to\E^{|\supp|}$, $\Delta\mapsto(\pair_k)_{k\in\supp}$, to be injective: a nonzero error has to leave some $\pair_k\neq0$ for the coefficients to act on.
 
-\paragraph{Sixty-four terms.} That map is $\K$-linear, since the $\Delta_w$ enter linearly and the Frobenius touches only the constants $e_w$. It sends $\K^{192}$, of $\K$-dimension $192$, into $\E^{|\supp|}$, of $\K$-dimension $3|\supp|$, so injectivity needs $|\supp|\ge64$. Take $\supp=\{0,\dots,63\}$ and suppose $\pair_k=0$ for all $k<64$. Two steps force $\Delta=0$.
+\paragraph{Sixty-four terms.} That map is $\K$-linear, since the $\Delta_w$ enter linearly and the Frobenius touches only the constants $e_w$. It sends $\K^{128}$, of $\K$-dimension $128$, into $\E^{|\supp|}$, of $\K$-dimension $2|\supp|$, so injectivity needs $|\supp|\ge\lceil128/2\rceil=64$. Take $\supp=\{0,\dots,63\}$ and suppose $\pair_k=0$ for all $k<64$. Two steps force $\Delta=0$.
 
 First, split $\pair_k$ over $\K$. Write $w=64j+i$, so that $e_w^{2^k}=x^{i2^k}\,\bigl(y^{2^k}\bigr)^{j}$ and
 \[
-\pair_k=\sum_{j=0}^{2}\bigl(y^{2^k}\bigr)^{j}\,\pair_{j,k},
+\pair_k=\pair_{0,k}+y^{2^k}\,\pair_{1,k},
 \qquad
-\pair_{j,k}:=\sum_{i=0}^{63}\Delta_{64j+i}\,x^{i2^k}\in\K,\qquad 0\le j<3.
+\pair_{j,k}:=\sum_{i=0}^{63}\Delta_{64j+i}\,x^{i2^k}\in\K,\qquad 0\le j<2.
 \]
-Squaring is a bijection of $\K$ onto itself, so $y^{2^k}\in\K$ would force $y\in\K$, hence $\E=\K[y]=\K$. By Lemma~\ref{lem:kbasis} applied to $y^{2^k}$, the set $\bigl\{1,y^{2^k},\bigl(y^{2^k}\bigr)^{2}\bigr\}$ is a $\K$-basis of $\E$, and $\pair_k=0$ forces $\pair_{0,k}=\pair_{1,k}=\pair_{2,k}=0$.
+Squaring is a bijection of $\K$ onto itself, so $y^{2^k}\in\K$ would force $y\in\K$, hence $\E=\K[y]=\K$. By Lemma~\ref{lem:kbasis} applied to $y^{2^k}$, the set $\bigl\{1,y^{2^k}\bigr\}$ is a $\K$-basis of $\E$, and $\pair_k=0$ forces $\pair_{0,k}=\pair_{1,k}=0$.
 
 Second, read the $64$ equations $\pair_{j,k}=0$, at fixed $j$, as a single polynomial. Put
 \[
@@ -95,37 +95,37 @@ D_j(v)=\sum_{i=0}^{63}\Delta_{64j+i}\,v^i\in\K[v],
 \]
 Then $D_j$ has degree at most $63$ and vanishes at the $64$ points $x,x^2,x^4,\dots,x^{2^{63}}$. Those are distinct, because $x$ has degree $64$ over $\F_2$ and so has $64$ distinct conjugates. A nonzero polynomial of degree at most $63$ cannot have $64$ roots, so $D_j=0$ and every $\Delta_{64j+i}$ vanishes. A nonzero error therefore leaves some $\pair_k\neq0$.
 
-The count is tight on both sides: $64$ terms give $64$ equations $\pair_k=0$ over $\E$, which is $192$ equations over $\K$, against exactly $192$ unknowns $\Delta_w\in\K$.
+The count is tight on both sides: $64$ terms give $64$ equations $\pair_k=0$ over $\E$, which is $128$ equations over $\K$, against exactly $128$ unknowns $\Delta_w\in\K$.
 
 \subsection{The map we draw}\label{rs:map}
 
-We need a random $\Phi$ of support $\{0,\dots,63\}$, cheap to apply. Instead of drawing its $64$ coefficients independently, we derive them from six challenges.
+We need a random $\Phi$ of support $\{0,\dots,63\}$, cheap to apply. Instead of drawing its $64$ coefficients independently, we derive them from sixteen challenges, in two stages of eight.
 
-Draw $f_0,\dots,f_5\leftarrow\E$ once the $s_i$ are fixed, and compose six two-term maps: for an input $a\in\E$, put $a_0=a$ and
+Draw $f_0,\dots,f_7,g_0,\dots,g_7\leftarrow\E$, in this order, once the $s_i$ are fixed, and put, for $a\in\E$,
 \begin{equation}
-a_{p+1}=a_p+f_p\,a_p^{2^{2^{5-p}}}\in\E\quad(0\le p<6),
+\Psi(a)=\sum_{b<8}g_b\,a^{2^b},
 \qquad
-\Phi(a)=a_6.
+\Phi(a)=\sum_{p<8}f_p\,\Psi(a)^{2^{8p}}.
 \label{eq:phi}
 \end{equation}
-Each stage is $\F_2$-linear, so $\Phi$ is. Write $k=\sum_{p=0}^{5}k_p\,2^{5-p}$ for the binary digits of $k$. The composition expands to
+Both stages are $\F_2$-linear, so $\Phi$ is. Squaring is additive, so $\Psi(a)^{2^{8p}}=\sum_bg_b^{2^{8p}}a^{2^{8p+b}}$, and with $k=8p+b$ the composition expands to
 \begin{equation}
 \Phi(a)=\sum_{k=0}^{63}c_k\,a^{2^k},
 \qquad
-c_k=\prod_{p\,:\,k_p=1}f_p^{\,2^{(k\bmod 2^{5-p})}}.
+c_{8p+b}=f_p\,g_b^{\,2^{8p}}\qquad(p,b<8).
 \label{eq:ck}
 \end{equation}
-Stage $p$ fires when $k_p=1$ and contributes a factor $f_p$, which every later stage that fires raises to its own Frobenius power; those shifts sum to $k\bmod 2^{5-p}$. Each $k$ from $0$ to $63$ occurs exactly once, so the $c_k$ are $64$ distinct monomials in $f_0,\dots,f_5$, one for every Frobenius power the previous section requires.
+Each $k$ from $0$ to $63$ occurs exactly once, one term for every Frobenius power the previous section requires.
 
-\paragraph{Soundness.} Fix a nonzero error before the challenges are drawn. The previous section gives some $\pair_k\neq0$, and distinct monomials cannot cancel, so
+\paragraph{Soundness.} Fix a nonzero error before the challenges are drawn. The previous section gives some $\pair_{8p+b}\neq0$. Group the check by $p$, writing $a^{2^{-8p}}$ for the inverse of the Frobenius $a\mapsto a^{2^{8p}}$, a bijection of $\E$:
 \[
-\sum_{k=0}^{63}c_k\,\pair_k
+\sum_{k=0}^{63}c_k\,\pair_k=\sum_{p<8}f_p\,M_p,
+\qquad
+M_p=\sum_{b<8}g_b^{\,2^{8p}}\,\pair_{8p+b}=\Bigl(\sum_{b<8}g_b\,\pair_{8p+b}^{\,2^{-8p}}\Bigr)^{2^{8p}}.
 \]
-is a nonzero polynomial in $f_0,\dots,f_5$. Its total degree is at most the largest degree of a $c_k$, reached at $k=63$ where every bit is set:
-\[
-2^{31}+2^{15}+2^7+2^3+2+1<2^{32},
-\]
-so by Schwartz--Zippel (Lemma~\ref{lem:sz}) the check passes with probability less than $2^{32}/2^{192}=2^{-160}$.
+For that $p$ the inner sum is a nonzero linear form in $g_0,\dots,g_7$, so $M_p=0$ with probability $1/|\E|$; when $M_p\neq0$, the outer sum is a nonzero linear form in $f_0,\dots,f_7$, drawn independently, and vanishes with probability $1/|\E|$. The check passes with probability at most $2/|\E|$ for one committed polynomial. The bound is for the sixteen challenges jointly, one verifier message: it does not split into one bound per challenge in the order they are drawn. That the $c_k$ reach degree $2^{56}$ in the $g_b$ does not matter: each stage is linear in its own challenges, and the Frobenius only permutes $\E$. Against the list of the committed oracle (Annex~\ref{annex:pcs}), a union bound pays this once per member; the protocol draws the sixteen challenges with the opening's batching challenge, after one grind of $\grind{batch}$ bits that brings the whole row to $2^{-125}$ (\S\ref{sec:soundness-outer}).
+
+One stage of sixty-four terms would take sixty-four challenges; two stages of eight take sixteen, and putting the large Frobenius powers outside lets the target share them across the $64$ slices (\S\ref{rs:cost}).
 
 \subsection{Evaluating the weight}\label{rs:weight}
 
@@ -155,21 +155,25 @@ The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinea
 
 \subsection{Cost}\label{rs:cost}
 
-One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frobenius ladder climbs $32+16+8+4+2+1$ steps, and each stage multiplies once by its challenge. The same recurrence run on the coefficient table gives the $c_k$ of \eqref{eq:ck}: stage $p$ raises its $2^p$ entries to the $2^{2^{5-p}}$ power and multiplies each by $f_p$; the raising is $32$ squarings whatever $p$ is.
+The target need not apply $\Phi$ to each slice. Put $z_p=x^{2^{-8p}}$, a constant of $\K$, equal to $x^{2^{64-8p}}$ since the Frobenius of $\K$ has order $64$. Then $x^i\,\Psi(a)^{2^{8p}}=\bigl(z_p^i\,\Psi(a)\bigr)^{2^{8p}}$, and
+\[
+T=\sum_{i=0}^{63}x^i\,\Phi(s_i)=\sum_{p<8}f_p\Bigl(\sum_{i=0}^{63}z_p^i\,\Psi(s_i)\Bigr)^{2^{8p}}.
+\]
+One application of $\Psi$ takes $7$ squarings and $8$ multiplications. The verifier applies it to each slice, takes the eight inner sums by Horner in $z_p$, raises the $p$-th to $2^{8p}$, $224$ squarings in all, and multiplies by $f_p$. The coefficients of \eqref{eq:ck} take $56$ squarings per $g_b$ and one multiplication per $c_k$.
 
 \begin{center}
 \begin{tabular}{lrr}
 & squarings & multiplications\\[2pt]
 \hline
-one application of $\Phi$ & $63$ & $6$\\
-the target $T$, $64$ applications & $4032$ & $384$\\
-the coefficients $c_k$, once & $192$ & $63$\\
+one application of $\Psi$ & $7$ & $8$\\
+the target $T$, $64$ applications and $8$ sums & $672$ & $520$\\
+the coefficients $c_k$, once & $448$ & $64$\\
 the weight $\mle{W}(r')$ & $63\nkeccak$ & $64\nkeccak$\\
 \end{tabular}
 \end{center}
 
-Everything above is in $\E$. The $64$ products $x^i\,\Phi(s_i)$ in the target are left out: $x^i$ lies in $\K$, so they are cheaper, and stepping $x^i$ to $x^{i+1}$ is a shift.
+Everything above is in $\E$. The $504$ Horner steps in the target are left out: each multiplies by a constant $z_p$ of $\K$, which is cheaper.
 
 \subsection{Credits}\label{rs:credits}
 
-The construction above rests on generalizing ring switching~\cite{DP24} to extension degrees that are not powers of two, an idea of Lev Soukhanov, \textit{[[alloc]init]}. The map $\Phi$ follows~\cite{Flock26}.
+The construction above rests on generalizing ring switching~\cite{DP24} beyond the binary-tower setting, an idea of Lev Soukhanov, \textit{[[alloc]init]}. The idea of drawing $\Phi$ as a composition of cheap stages is from~\cite{Flock26}.

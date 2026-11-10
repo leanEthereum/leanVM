@@ -119,6 +119,9 @@ theorem honestProofWithDeployedKeccak_eq_withHash (prog : LeanIsaProgram) (input
   simp only [honestProofWithDeployedKeccak, honestProofWithDeployedKeccakWithHash,
       leanVmHonestProver,
     Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]
+  have h1 : implH deployedKeccakCalls = keccak256With (m := Id) keccakF1600 := by funext x; rfl
+  have h2 : implF deployedKeccakCalls = keccakF1600 := by funext x; rfl
+  rw [h1, h2]
   rfl
 
 /-- **`GuestChildComplete`, from the statement with the two calls.** -/

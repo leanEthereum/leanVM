@@ -16,9 +16,10 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 
 /-! ## The extractor's price
 
-About `2^80.49 + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
-worst shape `(μ, R) = (28, 4)` with `κ = ℓ = 32`: about `2^80.49` for at most `2^40` queries (the
-list decoder dominating), `2^86.74` for `2^60`, `2^90.91` for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128`
+About `2^81.25 + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
+worst shape (the list decoder's `(μ, R) = (28, 3)`, the rest's `(28, 4)`) with `κ = ℓ = 32`: about
+`2^81.25` for at most `2^40` queries (the list decoder dominating), `2^86.76` for `2^60`, `2^90.91`
+for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128`
 queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
@@ -78,11 +79,11 @@ def committedLeavesPrice (D h W : ℕ) : ℕ :=
 
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
 interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
-the worst admissible shape `(28, 4)`: about `2^80.49`. It is `lean_vm`'s `pmDecoderWorstPrice`
-(`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 4 0 0`), evaluated
+the worst admissible shape `(28, 3)`: about `2^81.25`. It is `lean_vm`'s `pmDecoderWorstPrice`
+(`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 3 0 0`), evaluated
 (`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
 (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
-def listDecoderWorstPrice : ℕ := 1696768204877294467202512
+def listDecoderWorstPrice : ℕ := 2878560092845958798122512
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
 `listDecoderWorstPrice`. -/
@@ -106,7 +107,7 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128227) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128341) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
       (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
