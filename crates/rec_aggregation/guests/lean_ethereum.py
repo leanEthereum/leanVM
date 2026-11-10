@@ -1569,9 +1569,10 @@ def root_words(r0, r1, lc):
     return lo_0[0] + lc * (w1 + lc * (lo_1[0] + lc * w3))
 
 
-def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, lc, glue, beta, n_queries: Const, n1: Const, depth: Const, levels: Const):
+def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, glue, beta, n_queries: Const, n1: Const, depth: Const, levels: Const):
     # Level 0's Canopy sums, all at the terminal point in one pass over `forest_queries`' records, whose
     # first n1 coordinates, in round order, are the rounds after level 0 (level 1's message coordinates).
+    # Level 0's lam batches both its claims and the Canopy claims, so lc below is lam.
     # 1. Its query batch sum_q lam^q dot_q and the roots' words sum_q lc^(4q) sum_w lc^w word_w(root_q)
     #    entered the running polynomial's linear coefficient at level 0 (at `glue`, and inside the Canopy
     #    claim at beta^2 lc), deferred: such a term reaches the final claim times every later round's
@@ -1581,6 +1582,7 @@ def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, lc, glue, beta, n_que
     #    (`decode_query_windows`) each select an entry of an eq table of the coordinates they cover;
     #    returned glued at beta.
     # Each sum runs the 1/lam chain of `opening_queries`, in the records' chain fields.
+    lc = lam
     ood = GEN ** 0
     rounds = GEN ** 0
     for t in unroll(0, n1):
@@ -1914,24 +1916,22 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         w1 = intro_c2
         if const(forest != 0):
             # Under Canopy, after level 0's intro: the claims on the Canopy message, batched
-            # with powers of their own challenge canopy_lc, the OOD claim's the first, then
-            # their two-vector batch with the folded witness at canopy_beta. The prover sends
-            # the batched claim's intro and the cross polynomial's three coefficients, which
-            # enter the running polynomial at canopy_beta and canopy_beta^2.
+            # with powers of the level's lam, the OOD claim's the first, then their two-vector
+            # batch with the folded witness at canopy_beta. The prover sends the batched
+            # claim's intro and the cross polynomial's three coefficients, which enter the
+            # running polynomial at canopy_beta and canopy_beta^2.
             sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
             rate = StackBuf(8)
             fs_pack(rate, 0, intro_c0, DS_OBSERVE)
             fs_pack(rate, 1, intro_c2, DS_OBSERVE)
-            sp, canopy_lc = squeeze(sp, rate, 2)
-            rate = StackBuf(8)
-            c_intro_c0, msg_cursor = fs_next(rate, 0, msg_cursor)
-            c_intro_c2, msg_cursor = fs_next(rate, 1, msg_cursor)
-            cross_0, msg_cursor = fs_next(rate, 2, msg_cursor)
-            cross_1, msg_cursor = fs_next(rate, 3, msg_cursor)
+            c_intro_c0, msg_cursor = fs_next(rate, 2, msg_cursor)
+            c_intro_c2, msg_cursor = fs_next(rate, 3, msg_cursor)
             sp = fs_perm(sp, rate, 4)
             rate = StackBuf(8)
-            cross_2, msg_cursor = fs_next(rate, 0, msg_cursor)
-            sp, canopy_beta = squeeze(sp, rate, 1)
+            cross_0, msg_cursor = fs_next(rate, 0, msg_cursor)
+            cross_1, msg_cursor = fs_next(rate, 1, msg_cursor)
+            cross_2, msg_cursor = fs_next(rate, 2, msg_cursor)
+            sp, canopy_beta = squeeze(sp, rate, 3)
             fs0 = sp[8]
             fs1 = sp[9]
             fs2 = sp[10]
@@ -2093,7 +2093,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     # Under Canopy, the Canopy claims glued at canopy_beta, over level 1's message coordinates.
     if const(canopy_height != 0):
         ml = m_idx * LIG_MAX_LEVELS
-        deferred, canopy_weight = canopy_terminal(point, z_c, query_win_ptrs * GEN ** LIG_POSITIONS_OFF[ml], canopy_recs, canopy_lam, canopy_lc, canopy_glue, canopy_beta, LIG_QUERIES[ml], LIG_LOG_MSG_COLS[ml], LIG_TREE_DEPTH[ml], canopy_height)
+        deferred, canopy_weight = canopy_terminal(point, z_c, query_win_ptrs * GEN ** LIG_POSITIONS_OFF[ml], canopy_recs, canopy_lam, canopy_glue, canopy_beta, LIG_QUERIES[ml], LIG_LOG_MSG_COLS[ml], LIG_TREE_DEPTH[ml], canopy_height)
         sumcheck_target += deferred
         ood_inner += canopy_weight
     return sumcheck_target, point, point1, inner_chain[GEN ** n_levels] + ood_inner, yr_at_tail

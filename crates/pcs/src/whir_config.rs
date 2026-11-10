@@ -542,10 +542,11 @@ fn johnson_interleaved_list_log2(log_inv_rate: usize, log_msg_cols: usize, eta: 
 ///   level and `J_0` is set by the outer protocol's claim pool rather than by a
 ///   query count, so 0 is passed; that pool is a few hundred claims, orders below
 ///   the ring-switch degree the `max` takes anyway;
-/// - under Canopy, at L1, `canopy_degree`: the c-claim batch's degree in its
-///   own challenge, over the list of the L1 code the Canopy codeword lies in
-///   (one claim from the commit-time OOD sample and four per L0 query, so
-///   `4 n_0`); and
+/// - under Canopy, at L1, `canopy_degree` more: the claims on the Canopy
+///   message (one from the commit-time OOD sample and four per L0 query) are
+///   batched with powers of the same lambda, a second identity of degree
+///   `4 n_0` over the list of the L1 code the Canopy codeword lies in, so the
+///   challenge fails when either does and the two degrees add; and
 /// - 2 for quadratic sumcheck.
 ///
 /// The two-vector batch `f1 + beta c` needs no row of its own: `(f1, c)` is one
@@ -561,8 +562,7 @@ fn johnson_algebraic_bits_for(
 ) -> f64 {
     let log2_l = johnson_interleaved_list_log2(log_inv_rate, log_msg_cols, eta);
     let degree = crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE
-        .max(prev_queries + ood_samples)
-        .max(canopy_degree)
+        .max(prev_queries + ood_samples + canopy_degree)
         .max(2);
     ANALYSIS_LOG_Q - (degree as f64).log2() - log2_l
 }
@@ -584,7 +584,7 @@ fn prev_queries_at(levels: &[WhirLevelConfig], i: usize) -> usize {
     if i == 0 { 0 } else { levels[i - 1].queries }
 }
 
-/// The degree of the Canopy c-claim batch entering `levels[i]`: `4 n_0` at L1 under Canopy, 0 elsewhere.
+/// The degree of the Canopy claims' batch in the lambda entering `levels[i]`: `4 n_0` at L1 under Canopy, 0 elsewhere.
 fn canopy_degree_at(levels: &[WhirLevelConfig], i: usize, canopy: bool) -> usize {
     if canopy && i == 1 {
         levels[0].queries << CANOPY_DIGEST_WORDS_LOG
@@ -767,8 +767,9 @@ impl WhirSecurityConfig {
     ///   cuts the L0 tree at `h' = R0 + 2`.
     /// - Its commit-time OOD sample binds it to one member of the L1 list before any challenge, and with it the L0
     ///   word whose forest roots that member's message holds.
-    /// - The c-claim batch's degree enters the L1 algebraic check ([`canopy_degree_at`]), and the two-vector batch
-    ///   is an L1 fold ([`johnson_algebraic_bits_for`]).
+    /// - The claims on the Canopy message share the L1 batch's lambda, their degree adding to its own in the L1
+    ///   algebraic check ([`canopy_degree_at`]), and the two-vector batch is an L1 fold
+    ///   ([`johnson_algebraic_bits_for`]).
     fn validate_canopy(&self) -> Result<(), String> {
         let Some(height) = self.canopy_height else {
             return Ok(());
@@ -1112,11 +1113,15 @@ mod tests {
                         assert_eq!(level.ood_samples, 1);
                     }
                 }
-                // Canopy: the commit-time OOD sample binds the L1 list, and the c-claim batch, of degree four
-                // claims per L0 query, stays below the ring-switch degree the L1 algebraic row already pays.
+                // Canopy: the commit-time OOD sample binds the L1 list, and the L1 lambda's degree, its own claims
+                // and the Canopy claims' four per L0 query together, stays below the ring-switch degree the L1
+                // algebraic row already pays.
                 if canopy_enabled(log_inv_rate) {
                     assert!(cfg.canopy_ood_bits().unwrap() >= 128.0);
-                    assert!(canopy_degree_at(&cfg.levels, 1, true) < crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE);
+                    let degree = prev_queries_at(&cfg.levels, 1)
+                        + cfg.levels[1].ood_samples
+                        + canopy_degree_at(&cfg.levels, 1, true);
+                    assert!(degree < crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE);
                 } else {
                     assert_eq!(cfg.canopy_ood_bits(), None);
                 }

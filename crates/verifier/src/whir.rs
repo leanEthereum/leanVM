@@ -263,7 +263,8 @@ pub fn verify_whir(
             ),
         };
         // One batching challenge per level, drawn once every claim it batches is
-        // fixed: the OOD claims above, these query positions and any forest roots.
+        // fixed: the OOD claims above, these query positions and any forest roots,
+        // whose claims on the Canopy message it batches too.
         let lam = transcript.sample();
         let query_weights = powers(lam, queries.len());
         let lane_weights = eq_kernel(&level_folds);
@@ -313,12 +314,11 @@ pub fn verify_whir(
             });
         }
 
-        // Under Canopy, after L0's claims: the claims on the Canopy message batched with powers of their own
-        // challenge, the OOD claim's the first, then its two-vector batch with the folded witness at `beta`. The
-        // prover sends the batched claim's intro and the cross polynomial's three coefficients.
+        // Under Canopy, after L0's claims: the claims on the Canopy message batched with powers of the level's `lam`,
+        // the OOD claim's the first, then their two-vector batch with the folded witness at `beta`. The prover sends
+        // the batched claim's intro and the cross polynomial's three coefficients.
         if let Some((ood_point, ood_value)) = canopy.take().filter(|_| level == 0) {
-            let lambda_c = transcript.sample();
-            let scales = powers(lambda_c, 1 + (forest_roots.len() << CANOPY_DIGEST_WORDS_LOG));
+            let scales = powers(lam, 1 + (forest_roots.len() << CANOPY_DIGEST_WORDS_LOG));
             let mut claim = ood_value;
             for (forest_root, scales) in forest_roots
                 .iter()

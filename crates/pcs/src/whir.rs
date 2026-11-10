@@ -1352,7 +1352,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     drop(span);
 
     // One batching challenge for the whole level, drawn once every claim it
-    // batches is fixed: the OOD claims above, these query positions and, under Canopy, the forest roots.
+    // batches is fixed: the OOD claims above, these query positions and, under Canopy, the forest roots, whose
+    // claims on the Canopy message it batches too.
     let lambda_0 = ps.sample();
     let weights_0 = powers(lambda_0, num_queries_0);
 
@@ -1379,7 +1380,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     drop(span);
 
     let mut canopy_l1 = canopy.zip(canopy_height).map(|(canopy, levels)| {
-        tracing::info_span!("Canopy batch").in_scope(|| canopy_batch(&mut sc_prover, ps, canopy, &queries_0, levels))
+        tracing::info_span!("Canopy batch")
+            .in_scope(|| canopy_batch(&mut sc_prover, ps, canopy, &queries_0, levels, lambda_0))
     });
 
     // Recursive levels.
@@ -1511,21 +1513,21 @@ fn open_level(
 }
 
 /// The Canopy block, once the L0 claims are glued (the PCS annex, "Canopy commitment"): the claims on the Canopy
-/// message, its commit-time OOD claim and the four words of each L0 query's forest root, batched with powers of a
-/// fresh challenge into one weight, then the two-vector batch of the message with the folded witness. The Canopy
-/// codeword and the vector batch's `beta` are what the L1 open needs.
+/// message, its commit-time OOD claim and the four words of each L0 query's forest root, batched with powers of the
+/// level's challenge `lambda_0` into one weight, then the two-vector batch of the message with the folded witness.
+/// The Canopy codeword and the vector batch's `beta` are what the L1 open needs.
 fn canopy_batch(
     sc: &mut SumcheckProver,
     ps: &mut ProverState,
     canopy: Canopy,
     queries_0: &[usize],
     levels: usize,
+    lambda_0: F192,
 ) -> (LigeroWitness, F192) {
     let Canopy { message, witness, ood } = canopy;
     let (point, value) = ood.expect("the commitment was sent");
-    let lambda_c = ps.sample();
     let words = 1usize << CANOPY_DIGEST_WORDS_LOG;
-    let scales = powers(lambda_c, 1 + words * queries_0.len());
+    let scales = powers(lambda_0, 1 + words * queries_0.len());
     // The OOD claim takes the power 0; root `j` is words `4 j ..= 4 j + 3` of the message.
     let mut weight = eq_table(&point);
     let mut s_c = value;
