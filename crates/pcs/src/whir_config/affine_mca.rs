@@ -217,6 +217,7 @@ pub(crate) fn find_witness(n: u128, d: u128, a: u128) -> Option<(AffineWitness, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::test_rng::Rng;
 
     /// The paper's worked example: `n = 2^20`, `d = 2^18`, `A = 576717`, `m = 3`, `D = 49`, `B = 567980`.
     #[test]
@@ -254,13 +255,8 @@ mod tests {
     /// The closed forms against the sums they replace.
     #[test]
     fn closed_form_matches_the_sums() {
-        let mut state = 0x9e37_79b9_7f4a_7c15u64;
-        let mut next = |bound: u64| {
-            state = state
-                .wrapping_mul(6_364_136_223_846_793_005)
-                .wrapping_add(1_442_695_040_888_963_407);
-            (state >> 33) % bound
-        };
+        let mut rng = Rng::new(0x9e37_79b9_7f4a_7c15);
+        let mut next = |bound: u64| rng.next_u64() % bound;
         for _ in 0..2000 {
             let n = 1u128 << (8 + next(7));
             let d = 1 + next(n as u64 / 2) as u128;
