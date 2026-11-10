@@ -7,6 +7,7 @@ import Rv64Verifier.Model.Ext
 import Rv64Verifier.Model.Multilinear
 import Rv64Verifier.Model.FieldAlg
 import Rv64Verifier.Model.Transcript
+import Rv64Verifier.Proofs.End
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
@@ -78,3 +79,6 @@ import Rv64Verifier.Field.BaseMul
 
 /-- info: 'Rv64Verifier.Model.Sim.merkle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.Sim.merkle
+
+/-- info: 'Rv64Verifier.Proofs.End.sound_of_main' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.End.sound_of_main

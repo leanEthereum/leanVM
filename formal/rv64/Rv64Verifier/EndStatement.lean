@@ -17,7 +17,7 @@ open RiscvZkvm.Rv64 LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Pr
   LeanVM.Protocol.Verifier
 
 /-- A loadable image: code, and the words its data segments hold. -/
-structure Image where
+structure LoadImage where
   entry : Word
   code : Code
   data : List (Word × Word)
@@ -78,7 +78,7 @@ def decodeInput (words : List Word) : Option (List K × Digest × Proof) :=
 /-! ## Loading -/
 
 /-- `s` is the image loaded with the input `words`, about to run. -/
-def Loaded (image : Image) (words : List Word) (s : MachineState) : Prop :=
+def Loaded (image : LoadImage) (words : List Word) (s : MachineState) : Prop :=
   s.pc = image.entry ∧
   (∀ p ∈ image.data, s.getMem p.1 = p.2) ∧
   (∀ i (h : i < words.length), s.getMem (inputBase + BitVec.ofNat 64 (8 * i)) = words[i]) ∧
@@ -91,7 +91,7 @@ def verify (bytecode : List K) (publicInput : Digest) (proof : Proof) : Bool :=
   Id.run (verifyWith (m := Id) keccakF1600 bytecode publicInput proof)
 
 /-- Accepting is sound: a run that halts with `a0 = 1` read a proof the verifier accepts. -/
-def Sound (image : Image) : Prop :=
+def Sound (image : LoadImage) : Prop :=
   ∀ words s n, Loaded image words s → HaltsWith image.code s n 1 →
     ∃ bytecode publicInput proof, decodeInput words = some (bytecode, publicInput, proof) ∧
       verify bytecode publicInput proof = true
