@@ -39,7 +39,7 @@ variable {rd : Reader}
 
 variable {C : CallRel} {Vm : FrameMap}
 
-theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 403 default) = true)
+theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 397 default) = true)
     (hidx : coreProgram.indexOf? "__loop25" = some 403) {x : E} {ps : List E}
     (h : C "__loop25" (x :: ps) []) :
     (∀ N lv rb xb xb2, ps = [N, lv, rb, xb, xb2] →
@@ -53,7 +53,7 @@ theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 403 de
   set σ := Vm "__loop25" (x :: ps) [] with hσ
   refine ⟨fun N lv rb xb xb2 hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 403 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
+  have hpar : (coreProgram.getD 397 default).params = [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -87,7 +87,7 @@ check's frame (`colSyms`), whose digest is leaf `h` of the region at `rowbase[i]
 product with the dual codeword's entries `256 h + e` steps the region's running sum from word
 `512 + h` to `513 + h`. -/
 theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 403 default) = true)
+    (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 397 default) = true)
     (hidx : coreProgram.indexOf? "__loop25" = some 403) {z zs tl cf off rb : E} {h r : ℕ}
     (hh : h < 128) (hr : r < ordG) (hvec : MeaningDaVector rd [z] [zs, tl, cf, off])
     (hrel : C "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :

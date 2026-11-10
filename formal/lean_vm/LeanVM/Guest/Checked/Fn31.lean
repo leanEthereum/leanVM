@@ -8,22 +8,15 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1550_1
-public import LeanVM.Guest.Checked.F1555_0
-public import LeanVM.Guest.Checked.F1594_0
-public import LeanVM.Guest.Checked.F1600_0
+public import LeanVM.Guest.Checked.F1591_0
+public import LeanVM.Guest.Checked.F1591_0
+public import LeanVM.Guest.Checked.F1596_0
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
-theorem ok1551 : CheckOk 1551 := fun i hi ↦ by
-  have h : (certOf 1551).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1551_0
-  · exact w1551_1
-  · exact w1551_2
+theorem plain1551 : Plain 1551 := plain_of_nil (by decide +kernel)
 
 theorem plain1552 : Plain 1552 := plain_of_nil (by decide +kernel)
 
@@ -31,12 +24,7 @@ theorem plain1553 : Plain 1553 := plain_of_nil (by decide +kernel)
 
 theorem plain1554 : Plain 1554 := plain_of_nil (by decide +kernel)
 
-theorem ok1555 : CheckOk 1555 := fun i hi ↦ by
-  have h : (certOf 1555).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1555_0
-  · exact w1555_1
+theorem plain1555 : Plain 1555 := plain_of_nil (by decide +kernel)
 
 theorem plain1556 : Plain 1556 := plain_of_nil (by decide +kernel)
 
@@ -112,32 +100,37 @@ theorem plain1591 : Plain 1591 := plain_of_nil (by decide +kernel)
 
 theorem plain1592 : Plain 1592 := plain_of_nil (by decide +kernel)
 
-theorem plain1593 : Plain 1593 := plain_of_nil (by decide +kernel)
+theorem ok1593 : CheckOk 1593 := fun i hi ↦ by
+  have h : (certOf 1593).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1593_0
+  · exact w1593_1
 
-theorem plain1594 : Plain 1594 := plain_of_nil (by decide +kernel)
+theorem ok1594 : CheckOk 1594 := fun i hi ↦ by
+  have h : (certOf 1594).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1594_0
+  · exact w1594_1
+  · exact w1594_2
 
 theorem plain1595 : Plain 1595 := plain_of_nil (by decide +kernel)
 
-theorem ok1596 : CheckOk 1596 := fun i hi ↦ by
-  have h : (certOf 1596).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1596_0
-  · exact w1596_1
-  · exact w1596_2
+theorem plain1596 : Plain 1596 := plain_of_nil (by decide +kernel)
 
 theorem plain1597 : Plain 1597 := plain_of_nil (by decide +kernel)
 
-theorem plain1598 : Plain 1598 := plain_of_nil (by decide +kernel)
+theorem ok1598 : CheckOk 1598 := fun i hi ↦ by
+  have h : (certOf 1598).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1598_0
+  · exact w1598_1
 
 theorem plain1599 : Plain 1599 := plain_of_nil (by decide +kernel)
 
-theorem ok1600 : CheckOk 1600 := fun i hi ↦ by
-  have h : (certOf 1600).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1600_0
-  · exact w1600_1
+theorem plain1600 : Plain 1600 := plain_of_nil (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

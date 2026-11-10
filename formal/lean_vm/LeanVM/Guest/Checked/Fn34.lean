@@ -8,24 +8,62 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1736_0
-public import LeanVM.Guest.Checked.F1743_1
-public import LeanVM.Guest.Checked.F1743_1
-public import LeanVM.Guest.Checked.F1743_1
-public import LeanVM.Guest.Checked.F1745_3
-public import LeanVM.Guest.Checked.F1745_3
-public import LeanVM.Guest.Checked.F1745_3
-public import LeanVM.Guest.Checked.F1748_0
+public import LeanVM.Guest.Checked.F1700_1
+public import LeanVM.Guest.Checked.F1700_1
+public import LeanVM.Guest.Checked.F1703_2
+public import LeanVM.Guest.Checked.F1703_2
+public import LeanVM.Guest.Checked.F1709_0
+public import LeanVM.Guest.Checked.F1709_0
+public import LeanVM.Guest.Checked.F1711_0
+public import LeanVM.Guest.Checked.F1711_0
+public import LeanVM.Guest.Checked.F1711_0
+public import LeanVM.Guest.Checked.F1713_1
+public import LeanVM.Guest.Checked.F1713_1
+public import LeanVM.Guest.Checked.F1717_0
+public import LeanVM.Guest.Checked.F1717_0
+public import LeanVM.Guest.Checked.F1721_2
+public import LeanVM.Guest.Checked.F1721_2
+public import LeanVM.Guest.Checked.F1721_2
+public import LeanVM.Guest.Checked.F1723_2
+public import LeanVM.Guest.Checked.F1723_2
+public import LeanVM.Guest.Checked.F1729_2
+public import LeanVM.Guest.Checked.F1729_2
+public import LeanVM.Guest.Checked.F1729_2
+public import LeanVM.Guest.Checked.F1731_3
+public import LeanVM.Guest.Checked.F1731_3
+public import LeanVM.Guest.Checked.F1737_0
+public import LeanVM.Guest.Checked.F1737_0
+public import LeanVM.Guest.Checked.F1739_3
+public import LeanVM.Guest.Checked.F1739_3
+public import LeanVM.Guest.Checked.F1739_3
+public import LeanVM.Guest.Checked.F1742_0
+public import LeanVM.Guest.Checked.F1742_0
+public import LeanVM.Guest.Checked.F1745_2
+public import LeanVM.Guest.Checked.F1745_2
+public import LeanVM.Guest.Checked.F1745_2
+public import LeanVM.Guest.Checked.F1747_2
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
-theorem plain1701 : Plain 1701 := plain_of_nil (by decide +kernel)
+theorem ok1701 : CheckOk 1701 := fun i hi ↦ by
+  have h : (certOf 1701).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1701_0
+  · exact w1701_1
+  · exact w1701_2
 
 theorem plain1702 : Plain 1702 := plain_of_nil (by decide +kernel)
 
-theorem plain1703 : Plain 1703 := plain_of_nil (by decide +kernel)
+theorem ok1703 : CheckOk 1703 := fun i hi ↦ by
+  have h : (certOf 1703).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1703_0
+  · exact w1703_1
+  · exact w1703_2
 
 theorem plain1704 : Plain 1704 := plain_of_nil (by decide +kernel)
 
@@ -35,19 +73,65 @@ theorem plain1706 : Plain 1706 := plain_of_nil (by decide +kernel)
 
 theorem plain1707 : Plain 1707 := plain_of_nil (by decide +kernel)
 
-theorem plain1708 : Plain 1708 := plain_of_nil (by decide +kernel)
+theorem ok1708 : CheckOk 1708 := fun i hi ↦ by
+  have h : (certOf 1708).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1708_0
+  · exact w1708_1
+  · exact w1708_2
 
-theorem plain1709 : Plain 1709 := plain_of_nil (by decide +kernel)
+theorem ok1709 : CheckOk 1709 := fun i hi ↦ by
+  have h : (certOf 1709).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1709_0
+  · exact w1709_1
+  · exact w1709_2
+  · exact w1709_3
 
-theorem plain1710 : Plain 1710 := plain_of_nil (by decide +kernel)
+theorem ok1710 : CheckOk 1710 := fun i hi ↦ by
+  have h : (certOf 1710).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1710_0
+  · exact w1710_1
+  · exact w1710_2
+  · exact w1710_3
 
-theorem plain1711 : Plain 1711 := plain_of_nil (by decide +kernel)
+theorem ok1711 : CheckOk 1711 := fun i hi ↦ by
+  have h : (certOf 1711).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1711_0
+  · exact w1711_1
+  · exact w1711_2
 
-theorem plain1712 : Plain 1712 := plain_of_nil (by decide +kernel)
+theorem ok1712 : CheckOk 1712 := fun i hi ↦ by
+  have h : (certOf 1712).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1712_0
+  · exact w1712_1
+  · exact w1712_2
+  · exact w1712_3
 
-theorem plain1713 : Plain 1713 := plain_of_nil (by decide +kernel)
+theorem ok1713 : CheckOk 1713 := fun i hi ↦ by
+  have h : (certOf 1713).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1713_0
+  · exact w1713_1
+  · exact w1713_2
+  · exact w1713_3
 
-theorem plain1714 : Plain 1714 := plain_of_nil (by decide +kernel)
+theorem ok1714 : CheckOk 1714 := fun i hi ↦ by
+  have h : (certOf 1714).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1714_0
+  · exact w1714_1
+  · exact w1714_2
 
 theorem plain1715 : Plain 1715 := plain_of_nil (by decide +kernel)
 
@@ -59,13 +143,39 @@ theorem plain1718 : Plain 1718 := plain_of_nil (by decide +kernel)
 
 theorem plain1719 : Plain 1719 := plain_of_nil (by decide +kernel)
 
-theorem plain1720 : Plain 1720 := plain_of_nil (by decide +kernel)
+theorem ok1720 : CheckOk 1720 := fun i hi ↦ by
+  have h : (certOf 1720).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1720_0
+  · exact w1720_1
+  · exact w1720_2
 
-theorem plain1721 : Plain 1721 := plain_of_nil (by decide +kernel)
+theorem ok1721 : CheckOk 1721 := fun i hi ↦ by
+  have h : (certOf 1721).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1721_0
+  · exact w1721_1
+  · exact w1721_2
+  · exact w1721_3
 
-theorem plain1722 : Plain 1722 := plain_of_nil (by decide +kernel)
+theorem ok1722 : CheckOk 1722 := fun i hi ↦ by
+  have h : (certOf 1722).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1722_0
+  · exact w1722_1
+  · exact w1722_2
+  · exact w1722_3
 
-theorem plain1723 : Plain 1723 := plain_of_nil (by decide +kernel)
+theorem ok1723 : CheckOk 1723 := fun i hi ↦ by
+  have h : (certOf 1723).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1723_0
+  · exact w1723_1
+  · exact w1723_2
 
 theorem plain1724 : Plain 1724 := plain_of_nil (by decide +kernel)
 
@@ -77,13 +187,39 @@ theorem plain1727 : Plain 1727 := plain_of_nil (by decide +kernel)
 
 theorem plain1728 : Plain 1728 := plain_of_nil (by decide +kernel)
 
-theorem plain1729 : Plain 1729 := plain_of_nil (by decide +kernel)
+theorem ok1729 : CheckOk 1729 := fun i hi ↦ by
+  have h : (certOf 1729).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1729_0
+  · exact w1729_1
+  · exact w1729_2
 
-theorem plain1730 : Plain 1730 := plain_of_nil (by decide +kernel)
+theorem ok1730 : CheckOk 1730 := fun i hi ↦ by
+  have h : (certOf 1730).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1730_0
+  · exact w1730_1
+  · exact w1730_2
+  · exact w1730_3
 
-theorem plain1731 : Plain 1731 := plain_of_nil (by decide +kernel)
+theorem ok1731 : CheckOk 1731 := fun i hi ↦ by
+  have h : (certOf 1731).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1731_0
+  · exact w1731_1
+  · exact w1731_2
+  · exact w1731_3
 
-theorem plain1732 : Plain 1732 := plain_of_nil (by decide +kernel)
+theorem ok1732 : CheckOk 1732 := fun i hi ↦ by
+  have h : (certOf 1732).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1732_0
+  · exact w1732_1
+  · exact w1732_2
 
 theorem plain1733 : Plain 1733 := plain_of_nil (by decide +kernel)
 
@@ -95,22 +231,44 @@ theorem plain1736 : Plain 1736 := plain_of_nil (by decide +kernel)
 
 theorem plain1737 : Plain 1737 := plain_of_nil (by decide +kernel)
 
-theorem plain1738 : Plain 1738 := plain_of_nil (by decide +kernel)
+theorem ok1738 : CheckOk 1738 := fun i hi ↦ by
+  have h : (certOf 1738).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1738_0
+  · exact w1738_1
+  · exact w1738_2
+  · exact w1738_3
 
-theorem plain1739 : Plain 1739 := plain_of_nil (by decide +kernel)
+theorem ok1739 : CheckOk 1739 := fun i hi ↦ by
+  have h : (certOf 1739).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1739_0
+  · exact w1739_1
+  · exact w1739_2
+  · exact w1739_3
 
-theorem plain1740 : Plain 1740 := plain_of_nil (by decide +kernel)
+theorem ok1740 : CheckOk 1740 := fun i hi ↦ by
+  have h : (certOf 1740).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1740_0
+  · exact w1740_1
+  · exact w1740_2
+  · exact w1740_3
 
-theorem plain1741 : Plain 1741 := plain_of_nil (by decide +kernel)
+theorem ok1741 : CheckOk 1741 := fun i hi ↦ by
+  have h : (certOf 1741).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1741_0
+  · exact w1741_1
+  · exact w1741_2
 
 theorem plain1742 : Plain 1742 := plain_of_nil (by decide +kernel)
 
-theorem ok1743 : CheckOk 1743 := fun i hi ↦ by
-  have h : (certOf 1743).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1743_0
-  · exact w1743_1
+theorem plain1743 : Plain 1743 := plain_of_nil (by decide +kernel)
 
 theorem ok1744 : CheckOk 1744 := fun i hi ↦ by
   have h : (certOf 1744).cuts.length = 3 := by decide +kernel
@@ -131,30 +289,23 @@ theorem ok1745 : CheckOk 1745 := fun i hi ↦ by
   · exact w1745_3
 
 theorem ok1746 : CheckOk 1746 := fun i hi ↦ by
-  have h : (certOf 1746).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1746).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1746_0
   · exact w1746_1
   · exact w1746_2
+  · exact w1746_3
 
 theorem ok1747 : CheckOk 1747 := fun i hi ↦ by
-  have h : (certOf 1747).cuts.length = 3 := by decide +kernel
+  have h : (certOf 1747).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1747_0
   · exact w1747_1
   · exact w1747_2
-  · exact w1747_3
 
-theorem ok1748 : CheckOk 1748 := fun i hi ↦ by
-  have h : (certOf 1748).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1748_0
-  · exact w1748_1
-  · exact w1748_2
-  · exact w1748_3
+theorem plain1748 : Plain 1748 := plain_of_nil (by decide +kernel)
 
 theorem plain1749 : Plain 1749 := plain_of_nil (by decide +kernel)
 

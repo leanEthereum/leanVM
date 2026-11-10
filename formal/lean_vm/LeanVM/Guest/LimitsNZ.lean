@@ -152,15 +152,16 @@ end Run
 
 /-! ## The deferring program refusing a zero challenge -/
 
-theorem foldRoundsNZ_refines : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    Refines (foldRoundsNZ n s lf) (foldRoundsT n s lf)
+theorem foldRoundsNZ_refines (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    Refines (foldRoundsNZ b n s lf) (foldRoundsT b n s lf)
   | 0, s, lf => Refines.refl _
   | n + 1, s, lf => by
     unfold foldRoundsNZ foldRoundsT
+    refine Refines.bind (Refines.refl _) fun _ ↦ ?_
     refine Refines.bind (Refines.refl _) fun c ↦ ?_
     refine Refines.require_bind ?_
     refine Refines.bind (Refines.refl _) fun quad ↦ ?_
-    exact foldRoundsNZ_refines n _ _
+    exact foldRoundsNZ_refines b n _ _
 
 theorem tailRoundsNZ_refines : ∀ (n : ℕ) (t : E) (quad : List E),
     Refines (tailRoundsNZ n t quad) (tailRoundsT n t quad)
@@ -177,7 +178,7 @@ theorem tailRoundsNZ_refines : ∀ (n : ℕ) (t : E) (quad : List E),
 /-- The first program of a bind: the same, or a refining one. -/
 local macro "refines_head" : tactic => `(tactic| first
   | with_reducible exact Refines.refl _
-  | exact foldRoundsNZ_refines _ _ _
+  | exact foldRoundsNZ_refines _ _ _ _
   | exact tailRoundsNZ_refines _ _ _)
 
 /-- One step of a refinement proof between two programs written alike. -/

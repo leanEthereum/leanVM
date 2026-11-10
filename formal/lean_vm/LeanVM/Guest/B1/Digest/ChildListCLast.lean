@@ -282,7 +282,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
 /-! ## The two frame loops -/
 
 theorem any136c_recs : ∀ i < 136,
-    recW (ccOwn (loopAtoms (coreProgram.getD 349 default)) 15 i) (anyP 21) 22 i = true :=
+    recW (ccOwn (loopAtoms (coreProgram.getD 343 default)) 15 i) (anyP 21) 22 i = true :=
   recs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => by
     have hw : ∀ i < 16, anycWin i = true := by
       intro i hi
@@ -292,10 +292,10 @@ theorem any136c_recs : ∀ i < 136,
         anycWin_14, anycWin_15]
     exact hw i hi
 
-theorem any17c_parts : anycHead (coreProgram.getD 350 default) "__loop18" = true ∧
-    anycCanon (coreProgram.getD 350 default) 17 19 255 = true ∧
-    anycEdge (coreProgram.getD 350 default) 17 19 12 18 255 = true ∧
-    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 350 default)) 12 i) (anyP 18) 19 i = true := by
+theorem any17c_parts : anycHead (coreProgram.getD 344 default) "__loop18" = true ∧
+    anycCanon (coreProgram.getD 344 default) 17 19 255 = true ∧
+    anycEdge (coreProgram.getD 344 default) 17 19 12 18 255 = true ∧
+    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 344 default)) 12 i) (anyP 18) 19 i = true := by
   have h := any17c_ok
   simp only [anycOk, Bool.and_eq_true] at h
   exact ⟨h.1.1.1, h.1.1.2, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by

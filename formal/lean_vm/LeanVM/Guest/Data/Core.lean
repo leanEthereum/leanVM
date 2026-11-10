@@ -158,10 +158,7 @@ noncomputable def coreFunctions : List Core.Fn :=
   core1744 :: core1745 :: core1746 :: core1747 :: core1748 :: core1749 :: core1750 :: core1751 :: core1752 :: core1753 :: core1754 :: core1755 :: core1756 :: core1757 :: core1758 :: core1759 ::
   core1760 :: core1761 :: core1762 :: core1763 :: core1764 :: core1765 :: core1766 :: core1767 :: core1768 :: core1769 :: core1770 :: core1771 :: core1772 :: core1773 :: core1774 :: core1775 ::
   core1776 :: core1777 :: core1778 :: core1779 :: core1780 :: core1781 :: core1782 :: core1783 :: core1784 :: core1785 :: core1786 :: core1787 :: core1788 :: core1789 :: core1790 :: core1791 ::
-  core1792 :: core1793 :: core1794 :: core1795 :: core1796 :: core1797 :: core1798 :: core1799 :: core1800 :: core1801 :: core1802 :: core1803 :: core1804 :: core1805 :: core1806 :: core1807 ::
-  core1808 :: core1809 :: core1810 :: core1811 :: core1812 :: core1813 :: core1814 :: core1815 :: core1816 :: core1817 :: core1818 :: core1819 :: core1820 :: core1821 :: core1822 :: core1823 ::
-  core1824 :: core1825 :: core1826 :: core1827 :: core1828 :: core1829 :: core1830 :: core1831 :: core1832 :: core1833 :: core1834 :: core1835 :: core1836 :: core1837 :: core1838 :: core1839 ::
-  core1840 :: core1841 :: core1842 :: core1843 :: core1844 :: core1845 :: core1846 :: core1847 :: core1848 :: core1849 :: core1850 :: core1851 :: core1852 :: core1853 :: core1854 :: core1855 :: []
+  core1792 :: core1793 :: core1794 :: core1795 :: core1796 :: core1797 :: core1798 :: core1799 :: core1800 :: core1801 :: core1802 :: []
 
 end
 end LeanVM.Guest.Data

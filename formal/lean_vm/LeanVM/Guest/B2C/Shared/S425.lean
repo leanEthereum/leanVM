@@ -16,45 +16,20 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop698`, once. -/
-theorem st1800 : shareStatic 1800 = true := by decide +kernel
+/-- `walk_path__L18_L5`, once. -/
+theorem st1758 : shareStatic 1758 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop698`, window 0. -/
-theorem w1800_0 : shareWin 1800 (snapsOf 1800) 0 = true := by decide +kernel
+/-- `walk_path__L18_L5`, window 0. -/
+theorem w1758_0 : shareWin 1758 (snapsOf 1758) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop698`, window 1. -/
-theorem w1800_1 : shareWin 1800 (snapsOf 1800) 1 = true := by decide +kernel
+/-- `walk_path__L18_L5`, window 1. -/
+theorem w1758_1 : shareWin 1758 (snapsOf 1758) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop698`, window 2. -/
-theorem w1800_2 : shareWin 1800 (snapsOf 1800) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `residual_batch__L18`, once. -/
-theorem st1801 : shareStatic 1801 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `residual_batch__L18`, window 0. -/
-theorem w1801_0 : shareWin 1801 (snapsOf 1801) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `residual_batch__L18`, window 1. -/
-theorem w1801_1 : shareWin 1801 (snapsOf 1801) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L20_L8`, once. -/
-theorem st1802 : shareStatic 1802 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L20_L8`, window 0. -/
-theorem w1802_0 : shareWin 1802 (snapsOf 1802) 0 = true := by decide +kernel
-
-theorem ok1802 : ShareOk 1802 := ⟨st1802, fun i hi ↦ by
-  have h : (snapsOf 1802).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1802_0⟩
+/-- `walk_path__L18_L5`, window 2. -/
+theorem w1758_2 : shareWin 1758 (snapsOf 1758) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

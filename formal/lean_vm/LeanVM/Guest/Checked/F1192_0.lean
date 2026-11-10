@@ -38,7 +38,7 @@ theorem w1197_0 : WinOk 1197 0 := winOk_of_C (by decide +kernel)
 /-- `__loop168`, window 0. -/
 theorem w1198_0 : WinOk 1198 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop169`, window 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L18_L6`, window 0. -/
 theorem w1199_0 : WinOk 1199 0 := winOk_of_C (by decide +kernel)
 
 theorem ok1192 : CheckOk 1192 := checkOk_one (by decide +kernel) w1192_0
@@ -54,8 +54,6 @@ theorem ok1196 : CheckOk 1196 := checkOk_one (by decide +kernel) w1196_0
 theorem ok1197 : CheckOk 1197 := checkOk_one (by decide +kernel) w1197_0
 
 theorem ok1198 : CheckOk 1198 := checkOk_one (by decide +kernel) w1198_0
-
-theorem ok1199 : CheckOk 1199 := checkOk_one (by decide +kernel) w1199_0
 
 end
 end LeanVM.Guest.Checked

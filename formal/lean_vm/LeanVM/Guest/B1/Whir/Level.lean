@@ -35,7 +35,7 @@ variable {rd : Reader} {σ : Val}
 theorem levelHead_eq (logN index : ℕ) (level : Whir.Level) (rest : List Whir.Level)
     (s : WhirStateT) :
     levelHead logN index level rest s =
-      (foldRoundsT level.fold s []).bind fun p ↦
+      (foldRoundsT level.foldGrinding level.fold s []).bind fun p ↦
         (do
           let r ← levelMid (logN - p.1.folds.length) rest
           VerifierProgram.grindProofOfWork Whir.queryGrindingBits

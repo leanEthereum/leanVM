@@ -16,7 +16,7 @@ public import LeanVM.Protocol.WithHash
 
 * `openAll_inv`: openings that pass `openAll` are the first `|ps|` of the list, each passing
   `openOne`, their leaves the rows (the converse of `openAll_eq`).
-* `foldsNZ_inv`: `foldRoundsNZ n` followed by `K`, accepting on the words `xs`: the first `2n`
+* `foldsNZ_inv`: `foldRoundsNZ 0 n` followed by `K`, accepting on the words `xs`: the first `2n`
   words are the rounds' (`foldsTr`), every challenge is nonzero, and `K` accepts on the state
   `foldsTr` leaves.
 * `tailTr`, `tailNZ_inv`: the tail rounds, as a function of the sponge and the words, the same
@@ -102,7 +102,7 @@ theorem squeeze_absorb_two (F : Fs) (d0 d2 : E) :
 theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → VerifierProgram β} :
     ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)) (r : β × FSt),
-      runF ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ = some r →
+      runF ((foldRoundsNZ 0 n ws lf).bind K) ⟨F, xs, os, R⟩ = some r →
         2 * n ≤ xs.length ∧ (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) ∧
         runF (K ({ ws with
             target := (foldsTr n F ws.quad ws.target xs).2.2.2
@@ -113,15 +113,16 @@ theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → VerifierProgram β
   | 0, ws, lf, F, xs, os, R, r, h => by
     refine ⟨Nat.zero_le _, fun c hc ↦ by simp [foldsTr] at hc, ?_⟩
     simp only [foldsTr, List.append_nil, Nat.mul_zero, List.drop_zero]
-    simpa [foldRoundsNZ] using h
+    simpa [foldRoundsNZ, VerifierProgram.foldProofOfWork] using h
   | n + 1, ws, lf, F, xs, os, R, r, h => by
-    have e : (foldRoundsNZ (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
+    have e : (foldRoundsNZ 0 (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
         (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦ VerifierProgram.readScalar.bind fun d2 ↦
-          (foldRoundsNZ n { ws with
+          (foldRoundsNZ 0 n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]
             folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
-      simp only [foldRoundsNZ, VerifierProgram.bind_eq, VerifierProgram.bind_assoc, sumcheck3_bind]
+      simp only [foldRoundsNZ, VerifierProgram.foldProofOfWork, ↓reduceIte, VerifierProgram.bind_eq,
+        VerifierProgram.bind_assoc, VerifierProgram.ret_bind, sumcheck3_bind]
     rw [e, runF_sampleE_bind] at h
     obtain ⟨hc, h⟩ := runF_require_bind h
     obtain ⟨d0, xs1, hx1, h1⟩ := runF_readE_bind h

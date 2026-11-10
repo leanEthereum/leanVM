@@ -373,16 +373,16 @@ set_option maxRecDepth 100000 in
 theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 368 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 368 default))).nb = 64 := by
+theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 362 default))).nb = 64 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono136_head :
-    monoHead (coreProgram.getD 368 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
+    monoHead (coreProgram.getD 362 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
   decide +kernel
 
 theorem mono136_ok :
-    monoOk (coreProgram.getD 368 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
+    monoOk (coreProgram.getD 362 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
   have hw : ∀ i < 16, monoWinOk i = true := by
     intro i hi
     interval_cases i
@@ -398,11 +398,11 @@ set_option maxRecDepth 100000 in
 theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 369 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 369 default))).nb = 8 := by
+theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 363 default))).nb = 8 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_ok : monoOk (coreProgram.getD 369 default) "__loop20" 17 9 187 131072 432 = true := by
+theorem mono17_ok : monoOk (coreProgram.getD 363 default) "__loop20" 17 9 187 131072 432 = true := by
   decide +kernel
 
 theorem word_g17 : word 131072 0 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)

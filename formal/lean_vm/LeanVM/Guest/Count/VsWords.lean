@@ -158,15 +158,15 @@ theorem gr_totalLe : ∀ n ∈ B1.Tables.grCounts,
   simp only [B1.Tables.grCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl | rfl | rfl
   · rw [show B1.Tables.lName "gkr_rounds" 0 = "gkr_rounds__L0" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 420) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := 414) (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 1 = "gkr_rounds__L1" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 424) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := 418) (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 2 = "gkr_rounds__L2" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 421) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := 415) (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 4 = "gkr_rounds__L4" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 422) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := 416) (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 6 = "gkr_rounds__L6" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 423) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := 417) (by decide +kernel)) (by unfold kGr; omega)
 
 /-! ## The weights of `verify_tables`' and the terminal's callees -/
 

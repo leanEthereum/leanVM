@@ -294,15 +294,15 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
 
 -- `__loop17`: 136 claims a frame, 64 blocks.
 set_option maxRecDepth 100000 in
-theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 349 default))).nb = 64 := by
+theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 343 default))).nb = 64 := by
   decide +kernel
 
 -- its head here, its sixteen windows in `ChildListAny{q}`.
 set_option maxRecDepth 100000 in
-theorem any136_head : anyHead (coreProgram.getD 349 default) "__loop17" 136 22 21 1924 = true := by
+theorem any136_head : anyHead (coreProgram.getD 343 default) "__loop17" 136 22 21 1924 = true := by
   decide +kernel
 
-theorem any136_ok : anyOk (coreProgram.getD 349 default) "__loop17" 136 22 15 21 1924 = true := by
+theorem any136_ok : anyOk (coreProgram.getD 343 default) "__loop17" 136 22 15 21 1924 = true := by
   have hw : ∀ i < 16, anyWin i = true := by
     intro i hi
     interval_cases i
@@ -318,14 +318,14 @@ theorem any136_idx : coreProgram.indexOf? "__loop17" = some 349 := by decide +ke
 
 -- `__loop18`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem any17_ok : anyOk (coreProgram.getD 350 default) "__loop18" 17 19 12 18 255 = true := by
+theorem any17_ok : anyOk (coreProgram.getD 344 default) "__loop18" 17 19 12 18 255 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem any17_idx : coreProgram.indexOf? "__loop18" = some 350 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 350 default))).nb = 8 := by
+theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 344 default))).nb = 8 := by
   decide +kernel
 
 /-- **One frame of `m` child claims, `nb` blocks**: from the state at `chain · x^13` after whole

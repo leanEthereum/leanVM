@@ -34,13 +34,13 @@ theorem Ref.bind_refl {α β : Type} (p : VerifierProgram α) {f' f : α → Ver
     Ref (p.bind f') (p.bind f) := Ref.bind (Ref.refl p) hf
 
 /-- **`foldRoundsNZ` refines `foldRounds`.** -/
-theorem foldRoundsNZ_ref : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    Ref (foldRoundsNZ n s lf) (foldRoundsT n s lf)
+theorem foldRoundsNZ_ref (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    Ref (foldRoundsNZ b n s lf) (foldRoundsT b n s lf)
   | 0, s, lf => Ref.refl _
   | n + 1, s, lf => by
     simp only [foldRoundsNZ, foldRoundsT, VerifierProgram.bind_eq]
-    refine Ref.bind_refl _ fun c ↦ Ref.require _ (Ref.bind_refl _ fun q ↦ ?_)
-    exact foldRoundsNZ_ref n _ _
+    refine Ref.bind_refl _ fun _ ↦ Ref.bind_refl _ fun c ↦ Ref.require _ (Ref.bind_refl _ fun q ↦ ?_)
+    exact foldRoundsNZ_ref b n _ _
 
 /-- **`tailRoundsNZ` refines `tailRounds`.** -/
 theorem tailRoundsNZ_ref : ∀ (n : ℕ) (t : E) (quad : List E),
@@ -61,7 +61,7 @@ theorem whirLevelsOpenNZ_ref (logN lane : ℕ) : ∀ (index : ℕ) (levels : Lis
   | _, [], _ => Ref.refl _
   | index, level :: rest, s => by
     simp only [whirLevelsOpenNZ, whirLevelsOpen, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    refine Ref.bind (foldRoundsNZ_ref _ _ _) fun p ↦ ?_
+    refine Ref.bind (foldRoundsNZ_ref _ _ _ _) fun p ↦ ?_
     obtain ⟨s1, lf⟩ := p
     rcases rest with _ | ⟨next, rest⟩
     all_goals simp only [VerifierProgram.ret_bind]

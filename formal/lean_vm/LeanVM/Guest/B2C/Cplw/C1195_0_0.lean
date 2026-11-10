@@ -28,17 +28,17 @@ theorem cw1197_0_0 : cplWin 1197 0 0 = true := by decide +kernel
 /-- `__loop168`, window 0, part 0. -/
 theorem cw1198_0_0 : cplWin 1198 0 0 = true := by decide +kernel
 
-/-- `__loop169`, window 0, part 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L18_L6`, window 0, part 0. -/
 theorem cw1199_0_0 : cplWin 1199 0 0 = true := by decide +kernel
 
-/-- `__loop170`, window 0, part 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L18_L6`, window 1, part 0. -/
+theorem cw1199_1_0 : cplWin 1199 1 0 = true := by decide +kernel
+
+/-- `opening_queries__L1_L1_L64_L32_L18_L6`, window 2, part 0. -/
+theorem cw1199_2_0 : cplWin 1199 2 0 = true := by decide +kernel
+
+/-- `opening_queries__L0_L1_L64_L32_L19_L7`, window 0, part 0. -/
 theorem cw1200_0_0 : cplWin 1200 0 0 = true := by decide +kernel
-
-/-- `__loop171`, window 0, part 0. -/
-theorem cw1201_0_0 : cplWin 1201 0 0 = true := by decide +kernel
-
-/-- `__loop172`, window 0, part 0. -/
-theorem cw1202_0_0 : cplWin 1202 0 0 = true := by decide +kernel
 
 theorem ok1195 : CplOk 1195 := by
   intro i hi k hk
@@ -82,43 +82,21 @@ theorem ok1198 : CplOk 1198 := by
 
 theorem ok1199 : CplOk 1199 := by
   intro i hi k hk
-  have hc : (certOf 1199).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 1199).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1199 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1199_0_0
-
-theorem ok1200 : CplOk 1200 := by
-  intro i hi k hk
-  have hc : (certOf 1200).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1200 0 = 1 := by decide +kernel
+  · have hn : nParts 1199 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1200_0_0
-
-theorem ok1201 : CplOk 1201 := by
-  intro i hi k hk
-  have hc : (certOf 1201).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1201 0 = 1 := by decide +kernel
+    · exact cw1199_1_0
+  · have hn : nParts 1199 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1201_0_0
-
-theorem ok1202 : CplOk 1202 := by
-  intro i hi k hk
-  have hc : (certOf 1202).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1202 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1202_0_0
+    · exact cw1199_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

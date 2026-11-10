@@ -126,13 +126,13 @@ theorem sumE_single (x : E) : sumE [x] = x := by simp [sumE]
 quadratic's two words read. -/
 theorem foldRounds_succ_run (F : Fs) (ws : WhirStateT) (lf : List E) (d0 d2 : E) {n : ℕ}
     {xs : List E} {a : WhirStateT × List E} {F' : Fs}
-    (h : RunsTo (foldRoundsT n
+    (h : RunsTo (foldRoundsT 0 n
         { ws with
           target := polyEval ws.quad F.squeeze.1
           quad := [d0, polyEval ws.quad F.squeeze.1 + d2, d2]
           folds := ws.folds ++ [F.squeeze.1] }
         (lf ++ [F.squeeze.1])) ⟨F.squeeze.2.cap, [(d0, dsObserve), (d2, dsObserve)]⟩ xs a F') :
-    RunsTo (foldRoundsT (n + 1) ws lf) F (d0 :: d2 :: xs) a F' := by
+    RunsTo (foldRoundsT 0 (n + 1) ws lf) F (d0 :: d2 :: xs) a F' := by
   have hs := runsTo_sampleE F
   have hr0 := runsTo_readE F.squeeze.2 d0
   have hr1 := runsTo_readN (F.squeeze.2.absorb d0 dsObserve) [d2]
@@ -151,12 +151,12 @@ theorem foldRounds_succ_run (F : Fs) (ws : WhirStateT) (lf : List E) (d0 d2 : E)
     simpa [sumcheckRoundPoly, sumE_single] using this
   have := hs.bind (f := fun c ↦ do
       let quad ← sumcheckRoundPoly 3 (polyEval ws.quad c) none
-      foldRoundsT n { ws with target := polyEval ws.quad c, quad := quad, folds := ws.folds ++ [c] }
-        (lf ++ [c])) (hq.bind (f := fun quad ↦ foldRoundsT n { ws with
+      foldRoundsT 0 n { ws with target := polyEval ws.quad c, quad := quad, folds := ws.folds ++ [c] }
+        (lf ++ [c])) (hq.bind (f := fun quad ↦ foldRoundsT 0 n { ws with
           target := polyEval ws.quad F.squeeze.1, quad := quad,
           folds := ws.folds ++ [F.squeeze.1] }
           (lf ++ [F.squeeze.1])) h)
-  simpa [foldRoundsT] using this
+  simpa [foldRoundsT, VerifierProgram.foldProofOfWork] using this
 
 /-! ## The rounds -/
 
@@ -168,7 +168,7 @@ theorem osFolds_sound (hC : ∀ args rets, C "opening_fold" args rets → Meanin
       st.co < u128Bound → ws.quad = st.quad σ → ws.target = σ (.n st.t) →
       AllOk C rd σ (osFolds p off n st).1 →
       ∃ xs chs : List E, xs.length = 2 * n ∧ chs.length = n ∧ ReadsAt rd (st.cur σ) xs ∧
-        RunsTo (foldRoundsT n ws lf) (st.F σ) xs
+        RunsTo (foldRoundsT 0 n ws lf) (st.F σ) xs
           ({ ws with
               target := σ (.n (osFolds p off n st).2.t)
               quad := (osFolds p off n st).2.quad σ
@@ -181,7 +181,7 @@ theorem osFolds_sound (hC : ∀ args rets, C "opening_fold" args rets → Meanin
   | 0, off, st, ws, lf, hfs, _, hq, ht, _ => by
     refine ⟨[], [], rfl, rfl, readsAt_nil _ _, ?_, by simp [osFolds], hfs, Or.inl rfl,
       fun j hj ↦ by simp at hj⟩
-    have hr : RunsTo (foldRoundsT 0 ws lf) (st.F σ) [] (ws, lf) (st.F σ) := runsTo_ret _ _
+    have hr : RunsTo (foldRoundsT 0 0 ws lf) (st.F σ) [] (ws, lf) (st.F σ) := runsTo_ret _ _
     refine RunsTo.of_eq hr rfl rfl ?_ rfl
     obtain ⟨t, q, f, g⟩ := ws
     simp only at ht hq

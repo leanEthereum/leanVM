@@ -16,63 +16,63 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L64_L32_L25_L7`, window 1. -/
-theorem w1504_1 : shareWin 1504 (snapsOf 1504) 1 = true := by decide +kernel
+/-- `__loop444`, once. -/
+theorem st1499 : shareStatic 1499 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L64_L32_L25_L7`, window 2. -/
-theorem w1504_2 : shareWin 1504 (snapsOf 1504) 2 = true := by decide +kernel
+/-- `__loop444`, window 0. -/
+theorem w1499_0 : shareWin 1499 (snapsOf 1499) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L26_L2`, once. -/
-theorem st1505 : shareStatic 1505 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L26_L2`, window 0. -/
-theorem w1505_0 : shareWin 1505 (snapsOf 1505) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L26_L2`, window 1. -/
-theorem w1505_1 : shareWin 1505 (snapsOf 1505) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop452`, once. -/
-theorem st1506 : shareStatic 1506 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop452`, window 0. -/
-theorem w1506_0 : shareWin 1506 (snapsOf 1506) 0 = true := by decide +kernel
-
-theorem ok1506 : ShareOk 1506 := ⟨st1506, fun i hi ↦ by
-  have h : (snapsOf 1506).length = 0 := by decide +kernel
+theorem ok1499 : ShareOk 1499 := ⟨st1499, fun i hi ↦ by
+  have h : (snapsOf 1499).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1506_0⟩
+  exact w1499_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop453`, once. -/
-theorem st1507 : shareStatic 1507 = true := by decide +kernel
+/-- `__loop445`, once. -/
+theorem st1500 : shareStatic 1500 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop453`, window 0. -/
-theorem w1507_0 : shareWin 1507 (snapsOf 1507) 0 = true := by decide +kernel
+/-- `__loop445`, window 0. -/
+theorem w1500_0 : shareWin 1500 (snapsOf 1500) 0 = true := by decide +kernel
 
-theorem ok1507 : ShareOk 1507 := ⟨st1507, fun i hi ↦ by
-  have h : (snapsOf 1507).length = 0 := by decide +kernel
+theorem ok1500 : ShareOk 1500 := ⟨st1500, fun i hi ↦ by
+  have h : (snapsOf 1500).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1507_0⟩
+  exact w1500_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop454`, once. -/
-theorem st1508 : shareStatic 1508 = true := by decide +kernel
+/-- `__loop446`, once. -/
+theorem st1501 : shareStatic 1501 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop454`, window 0. -/
-theorem w1508_0 : shareWin 1508 (snapsOf 1508) 0 = true := by decide +kernel
+/-- `__loop446`, window 0. -/
+theorem w1501_0 : shareWin 1501 (snapsOf 1501) 0 = true := by decide +kernel
 
-theorem ok1508 : ShareOk 1508 := ⟨st1508, fun i hi ↦ by
-  have h : (snapsOf 1508).length = 0 := by decide +kernel
+theorem ok1501 : ShareOk 1501 := ⟨st1501, fun i hi ↦ by
+  have h : (snapsOf 1501).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1508_0⟩
+  exact w1501_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L64_L32_L26_L2`, once. -/
+theorem st1502 : shareStatic 1502 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L64_L32_L26_L2`, window 0. -/
+theorem w1502_0 : shareWin 1502 (snapsOf 1502) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L64_L32_L26_L2`, window 1. -/
+theorem w1502_1 : shareWin 1502 (snapsOf 1502) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L64_L32_L26_L2`, window 2. -/
+theorem w1502_2 : shareWin 1502 (snapsOf 1502) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L64_L32_L27_L3`, once. -/
+theorem st1503 : shareStatic 1503 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

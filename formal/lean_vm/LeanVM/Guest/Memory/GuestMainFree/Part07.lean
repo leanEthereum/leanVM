@@ -31,5 +31,9 @@ set_option maxRecDepth 100000 in
 theorem mainFreeRange_343 : MainFreeRange 343 80 := by
   unfold MainFreeRange; decide +kernel
 
+set_option maxRecDepth 100000 in
+theorem mainFreeRange_423 : MainFreeRange 423 150 := by
+  unfold MainFreeRange; decide +kernel
+
 end
 end LeanVM.Guest

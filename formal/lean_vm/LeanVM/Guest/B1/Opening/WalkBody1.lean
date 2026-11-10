@@ -37,7 +37,7 @@ theorem wpBody_964 : Data.core964.body = wpBodyT ⟨0, 0, 12, 5⟩ :=
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L12_L8`. -/
-theorem wpBody_965 : Data.core1854.body = wpBodyT ⟨0, 0, 12, 8⟩ :=
+theorem wpBody_965 : Data.core1801.body = wpBodyT ⟨0, 0, 12, 8⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in

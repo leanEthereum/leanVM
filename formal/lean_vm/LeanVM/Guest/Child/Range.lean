@@ -170,28 +170,35 @@ end InRange
 
 /-! ## WHIR -/
 
-theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : WhirStateT × List E},
-    VerifierProgram.Returns (foldRoundsT n s lf) r → r.1.folds.length = s.folds.length + n
+theorem foldRounds_returns (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : WhirStateT × List E},
+    VerifierProgram.Returns (foldRoundsT b n s lf) r → r.1.folds.length = s.folds.length + n
   | 0, s, lf, r, h => by
     have := VerifierProgram.returns_ret h
     subst this
     rfl
   | n + 1, s, lf, r, h => by
     unfold foldRoundsT at h
+    obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
     obtain ⟨c, -, h⟩ := VerifierProgram.returns_bind h
     obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-    have := foldRounds_returns n _ _ h
+    have := foldRounds_returns b n _ _ h
     simp only [List.length_append, List.length_singleton] at this
     omega
 
-theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    NoCommit (foldRoundsT n s lf)
+theorem noCommit_foldProofOfWork (b : ℕ) : NoCommit (VerifierProgram.foldProofOfWork b) := by
+  unfold VerifierProgram.foldProofOfWork
+  split
+  · exact noCommit_ret _
+  · exact (noCommit_iff _).2 trivial
+
+theorem noCommit_foldRounds (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    NoCommit (foldRoundsT b n s lf)
   | 0, _, _ => noCommit_ret _
   | n + 1, s, lf => by
     unfold foldRoundsT
     simp only [VerifierProgram.bind_eq]
-    exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
-      (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds n _ _
+    exact NoCommit.bind (noCommit_foldProofOfWork b) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
+      NoCommit.bind (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds b n _ _
 
 theorem noCommit_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E), NoCommit (tailRoundsT n t quad)
   | 0, _, _ => noCommit_ret _
@@ -249,9 +256,9 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
   | level :: rest, index, s, hs, hl, hh => by
     have hh' := hh level rfl
     unfold whirLevelsT
-    refine InRange.nc_bind (noCommit_foldRounds _ _ _) fun r hr ↦ ?_
+    refine InRange.nc_bind (noCommit_foldRounds _ _ _ _) fun r hr ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
-    have hf := foldRounds_returns _ _ _ hr
+    have hf := foldRounds_returns _ _ _ _ hr
     simp only at hf
     have hdepth : logN - s'.folds.length + level.logInvRate = hs.getD index 0 := by
       rw [hh', hf]; omega

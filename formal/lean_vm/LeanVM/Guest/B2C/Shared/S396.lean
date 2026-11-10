@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L12_L6`, window 1. -/
-theorem w1755_1 : shareWin 1755 (snapsOf 1755) 1 = true := by decide +kernel
+/-- `__loop631`, window 1. -/
+theorem w1712_1 : shareWin 1712 (snapsOf 1712) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop681`, once. -/
-theorem st1756 : shareStatic 1756 = true := by decide +kernel
+/-- `__loop631`, window 2. -/
+theorem w1712_2 : shareWin 1712 (snapsOf 1712) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop681`, window 0. -/
-theorem w1756_0 : shareWin 1756 (snapsOf 1756) 0 = true := by decide +kernel
+/-- `__loop631`, window 3. -/
+theorem w1712_3 : shareWin 1712 (snapsOf 1712) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop681`, window 1. -/
-theorem w1756_1 : shareWin 1756 (snapsOf 1756) 1 = true := by decide +kernel
+/-- `__loop632`, once. -/
+theorem st1713 : shareStatic 1713 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop681`, window 2. -/
-theorem w1756_2 : shareWin 1756 (snapsOf 1756) 2 = true := by decide +kernel
+/-- `__loop632`, window 0. -/
+theorem w1713_0 : shareWin 1713 (snapsOf 1713) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `residual_batch__L13`, once. -/
-theorem st1757 : shareStatic 1757 = true := by decide +kernel
+/-- `__loop632`, window 1. -/
+theorem w1713_1 : shareWin 1713 (snapsOf 1713) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `residual_batch__L13`, window 0. -/
-theorem w1757_0 : shareWin 1757 (snapsOf 1757) 0 = true := by decide +kernel
+/-- `__loop632`, window 2. -/
+theorem w1713_2 : shareWin 1713 (snapsOf 1713) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `residual_batch__L13`, window 1. -/
-theorem w1757_1 : shareWin 1757 (snapsOf 1757) 1 = true := by decide +kernel
+/-- `__loop632`, window 3. -/
+theorem w1713_3 : shareWin 1713 (snapsOf 1713) 3 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

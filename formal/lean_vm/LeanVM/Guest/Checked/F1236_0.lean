@@ -17,45 +17,35 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop203`, window 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L19_L7`, window 0. -/
 theorem w1236_0 : WinOk 1236 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop204`, window 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L19_L7`, window 1. -/
+theorem w1236_1 : WinOk 1236 1 := winOk_of_C (by decide +kernel)
+
+/-- `opening_queries__L1_L1_L64_L32_L19_L7`, window 2. -/
+theorem w1236_2 : WinOk 1236 2 := winOk_of_C (by decide +kernel)
+
+/-- `opening_queries__L0_L1_L64_L32_L20_L2`, window 0. -/
 theorem w1237_0 : WinOk 1237 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop205`, window 0. -/
+/-- `opening_queries__L0_L1_L64_L32_L20_L2`, window 1. -/
+theorem w1237_1 : WinOk 1237 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop203`, window 0. -/
 theorem w1238_0 : WinOk 1238 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop206`, window 0. -/
+/-- `__loop204`, window 0. -/
 theorem w1239_0 : WinOk 1239 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop207`, window 0. -/
+/-- `__loop205`, window 0. -/
 theorem w1240_0 : WinOk 1240 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop208`, window 0. -/
-theorem w1241_0 : WinOk 1241 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop209`, window 0. -/
-theorem w1242_0 : WinOk 1242 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop210`, window 0. -/
-theorem w1243_0 : WinOk 1243 0 := winOk_of_C (by decide +kernel)
-
-theorem ok1236 : CheckOk 1236 := checkOk_one (by decide +kernel) w1236_0
-
-theorem ok1237 : CheckOk 1237 := checkOk_one (by decide +kernel) w1237_0
 
 theorem ok1238 : CheckOk 1238 := checkOk_one (by decide +kernel) w1238_0
 
 theorem ok1239 : CheckOk 1239 := checkOk_one (by decide +kernel) w1239_0
 
 theorem ok1240 : CheckOk 1240 := checkOk_one (by decide +kernel) w1240_0
-
-theorem ok1241 : CheckOk 1241 := checkOk_one (by decide +kernel) w1241_0
-
-theorem ok1242 : CheckOk 1242 := checkOk_one (by decide +kernel) w1242_0
-
-theorem ok1243 : CheckOk 1243 := checkOk_one (by decide +kernel) w1243_0
 
 end
 end LeanVM.Guest.Checked

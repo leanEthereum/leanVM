@@ -1464,12 +1464,15 @@ def level_residual(positions, row_d, mu, n_queries: Const, n_cols: Const):
     chain[GEN ** 0] = 0
     for xr in mul_range(1, GEN ** (n_queries // RES_BATCH)):
         chain[xr * GEN] = residual_batch(positions * xr ** RES_BATCH, row_d, mu, chain[xr], n_cols)
-    rest = HeapBuf(GEN ** (n_queries % RES_BATCH + 1))
-    rest[GEN ** 0] = chain[GEN ** (n_queries // RES_BATCH)]
-    tail = positions * (GEN ** (n_queries // RES_BATCH)) ** RES_BATCH
-    for xq in mul_range(1, GEN ** (n_queries % RES_BATCH)):
-        rest[xq * GEN] = (rest[xq] + residual_query(tail[xq], row_d, n_cols)) * mu
-    return rest[GEN ** (n_queries % RES_BATCH)]
+    h = chain[GEN ** (n_queries // RES_BATCH)]
+    if const(n_queries % RES_BATCH != 0):
+        rest = HeapBuf(GEN ** (n_queries % RES_BATCH + 1))
+        rest[GEN ** 0] = h
+        tail = positions * (GEN ** (n_queries // RES_BATCH)) ** RES_BATCH
+        for xq in mul_range(1, GEN ** (n_queries % RES_BATCH)):
+            rest[xq * GEN] = (rest[xq] + residual_query(tail[xq], row_d, n_cols)) * mu
+        h = rest[GEN ** (n_queries % RES_BATCH)]
+    return h
 
 
 def level_positions(fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, win_tabs, squeezes: Const, depth: Const, cap_depth: Const):

@@ -275,7 +275,7 @@ def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirStateT) : VerifierP
 /-- **The last level**: its folds, its final message, its proof of work, its queries, its tail. -/
 theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : WhirStateT) :
     whirLevelsOpenNZ logN lane index [level] s = (do
-      let (s, levelFolds) ← foldRoundsNZ level.fold s []
+      let (s, levelFolds) ← foldRoundsNZ level.foldGrinding level.fold s []
       let messageLog := logN - s.folds.length
       let residual ← VerifierProgram.readScalars (2 ^ messageLog)
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits

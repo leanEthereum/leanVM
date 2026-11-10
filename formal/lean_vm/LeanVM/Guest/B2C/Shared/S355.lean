@@ -16,108 +16,99 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop460`, once. -/
-theorem st1515 : shareStatic 1515 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L26_L2`, window 1. -/
+theorem w1507_1 : shareWin 1507 (snapsOf 1507) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop460`, window 0. -/
-theorem w1515_0 : shareWin 1515 (snapsOf 1515) 0 = true := by decide +kernel
+/-- `__loop450`, once. -/
+theorem st1508 : shareStatic 1508 = true := by decide +kernel
 
-theorem ok1515 : ShareOk 1515 := ⟨st1515, fun i hi ↦ by
-  have h : (snapsOf 1515).length = 0 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `__loop450`, window 0. -/
+theorem w1508_0 : shareWin 1508 (snapsOf 1508) 0 = true := by decide +kernel
+
+theorem ok1508 : ShareOk 1508 := ⟨st1508, fun i hi ↦ by
+  have h : (snapsOf 1508).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1515_0⟩
+  exact w1508_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop461`, once. -/
-theorem st1516 : shareStatic 1516 = true := by decide +kernel
+/-- `__loop451`, once. -/
+theorem st1509 : shareStatic 1509 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop461`, window 0. -/
-theorem w1516_0 : shareWin 1516 (snapsOf 1516) 0 = true := by decide +kernel
+/-- `__loop451`, window 0. -/
+theorem w1509_0 : shareWin 1509 (snapsOf 1509) 0 = true := by decide +kernel
 
-theorem ok1516 : ShareOk 1516 := ⟨st1516, fun i hi ↦ by
-  have h : (snapsOf 1516).length = 0 := by decide +kernel
+theorem ok1509 : ShareOk 1509 := ⟨st1509, fun i hi ↦ by
+  have h : (snapsOf 1509).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1516_0⟩
+  exact w1509_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop462`, once. -/
-theorem st1517 : shareStatic 1517 = true := by decide +kernel
+/-- `__loop452`, once. -/
+theorem st1510 : shareStatic 1510 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop462`, window 0. -/
-theorem w1517_0 : shareWin 1517 (snapsOf 1517) 0 = true := by decide +kernel
+/-- `__loop452`, window 0. -/
+theorem w1510_0 : shareWin 1510 (snapsOf 1510) 0 = true := by decide +kernel
 
-theorem ok1517 : ShareOk 1517 := ⟨st1517, fun i hi ↦ by
-  have h : (snapsOf 1517).length = 0 := by decide +kernel
+theorem ok1510 : ShareOk 1510 := ⟨st1510, fun i hi ↦ by
+  have h : (snapsOf 1510).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1517_0⟩
+  exact w1510_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop463`, once. -/
-theorem st1518 : shareStatic 1518 = true := by decide +kernel
+/-- `__loop453`, once. -/
+theorem st1511 : shareStatic 1511 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop463`, window 0. -/
-theorem w1518_0 : shareWin 1518 (snapsOf 1518) 0 = true := by decide +kernel
+/-- `__loop453`, window 0. -/
+theorem w1511_0 : shareWin 1511 (snapsOf 1511) 0 = true := by decide +kernel
 
-theorem ok1518 : ShareOk 1518 := ⟨st1518, fun i hi ↦ by
-  have h : (snapsOf 1518).length = 0 := by decide +kernel
+theorem ok1511 : ShareOk 1511 := ⟨st1511, fun i hi ↦ by
+  have h : (snapsOf 1511).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1518_0⟩
+  exact w1511_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop464`, once. -/
-theorem st1519 : shareStatic 1519 = true := by decide +kernel
+/-- `__loop454`, once. -/
+theorem st1512 : shareStatic 1512 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop464`, window 0. -/
-theorem w1519_0 : shareWin 1519 (snapsOf 1519) 0 = true := by decide +kernel
+/-- `__loop454`, window 0. -/
+theorem w1512_0 : shareWin 1512 (snapsOf 1512) 0 = true := by decide +kernel
 
-theorem ok1519 : ShareOk 1519 := ⟨st1519, fun i hi ↦ by
-  have h : (snapsOf 1519).length = 0 := by decide +kernel
+theorem ok1512 : ShareOk 1512 := ⟨st1512, fun i hi ↦ by
+  have h : (snapsOf 1512).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1519_0⟩
+  exact w1512_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop465`, once. -/
-theorem st1520 : shareStatic 1520 = true := by decide +kernel
+/-- `__loop455`, once. -/
+theorem st1513 : shareStatic 1513 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop465`, window 0. -/
-theorem w1520_0 : shareWin 1520 (snapsOf 1520) 0 = true := by decide +kernel
+/-- `__loop455`, window 0. -/
+theorem w1513_0 : shareWin 1513 (snapsOf 1513) 0 = true := by decide +kernel
 
-theorem ok1520 : ShareOk 1520 := ⟨st1520, fun i hi ↦ by
-  have h : (snapsOf 1520).length = 0 := by decide +kernel
+theorem ok1513 : ShareOk 1513 := ⟨st1513, fun i hi ↦ by
+  have h : (snapsOf 1513).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1520_0⟩
+  exact w1513_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop466`, once. -/
-theorem st1521 : shareStatic 1521 = true := by decide +kernel
+/-- `__loop456`, once. -/
+theorem st1514 : shareStatic 1514 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop466`, window 0. -/
-theorem w1521_0 : shareWin 1521 (snapsOf 1521) 0 = true := by decide +kernel
+/-- `__loop456`, window 0. -/
+theorem w1514_0 : shareWin 1514 (snapsOf 1514) 0 = true := by decide +kernel
 
-theorem ok1521 : ShareOk 1521 := ⟨st1521, fun i hi ↦ by
-  have h : (snapsOf 1521).length = 0 := by decide +kernel
+theorem ok1514 : ShareOk 1514 := ⟨st1514, fun i hi ↦ by
+  have h : (snapsOf 1514).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1521_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop467`, once. -/
-theorem st1522 : shareStatic 1522 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop467`, window 0. -/
-theorem w1522_0 : shareWin 1522 (snapsOf 1522) 0 = true := by decide +kernel
-
-theorem ok1522 : ShareOk 1522 := ⟨st1522, fun i hi ↦ by
-  have h : (snapsOf 1522).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1522_0⟩
+  exact w1514_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

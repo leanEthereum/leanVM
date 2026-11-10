@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1419_0
-public import LeanVM.Guest.Checked.F1419_0
-public import LeanVM.Guest.Checked.F1424_0
+public import LeanVM.Guest.Checked.F1423_0
+public import LeanVM.Guest.Checked.F1423_0
+public import LeanVM.Guest.Checked.F1428_0
 
 namespace LeanVM.Guest.Checked
 
@@ -54,24 +54,19 @@ theorem plain1418 : Plain 1418 := plain_of_nil (by decide +kernel)
 
 theorem plain1419 : Plain 1419 := plain_of_nil (by decide +kernel)
 
-theorem ok1420 : CheckOk 1420 := fun i hi ↦ by
-  have h : (certOf 1420).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1420_0
-  · exact w1420_1
-  · exact w1420_2
+theorem plain1420 : Plain 1420 := plain_of_nil (by decide +kernel)
 
-theorem ok1421 : CheckOk 1421 := fun i hi ↦ by
-  have h : (certOf 1421).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1421_0
-  · exact w1421_1
+theorem plain1421 : Plain 1421 := plain_of_nil (by decide +kernel)
 
 theorem plain1422 : Plain 1422 := plain_of_nil (by decide +kernel)
 
-theorem plain1423 : Plain 1423 := plain_of_nil (by decide +kernel)
+theorem ok1423 : CheckOk 1423 := fun i hi ↦ by
+  have h : (certOf 1423).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1423_0
+  · exact w1423_1
+  · exact w1423_2
 
 theorem ok1424 : CheckOk 1424 := fun i hi ↦ by
   have h : (certOf 1424).cuts.length = 1 := by decide +kernel
@@ -86,7 +81,12 @@ theorem plain1426 : Plain 1426 := plain_of_nil (by decide +kernel)
 
 theorem plain1427 : Plain 1427 := plain_of_nil (by decide +kernel)
 
-theorem plain1428 : Plain 1428 := plain_of_nil (by decide +kernel)
+theorem ok1428 : CheckOk 1428 := fun i hi ↦ by
+  have h : (certOf 1428).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1428_0
+  · exact w1428_1
 
 theorem plain1429 : Plain 1429 := plain_of_nil (by decide +kernel)
 

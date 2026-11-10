@@ -87,7 +87,7 @@ theorem loopTotalLeOn_fs {f : String} {K : ℕ} {ks : List (V × ℕ)}
 theorem l15_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * 19 + B2C.fs "__loop14" :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 270) (by decide +kernel)]; rfl :
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 274) (by decide +kernel)]; rfl :
     wcertOf "__loop14" = .loop none [] ⟨19, []⟩ [])
 
 /-- `__loop5` within `1644` words per iteration and its run's phantom frame, `27`. -/
@@ -102,7 +102,7 @@ run's phantom frame, `661`). -/
 theorem l14_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 5949 := by
   intro rd t args rets hn ha hv hb
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 269) (by decide +kernel)]; rfl :
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 273) (by decide +kernel)]; rfl :
       wcertOf "__loop13" = .loop (some 8) [] ⟨661, []⟩ []) hn hv hb (a := 0) (e := 8)
     (by rw [ha]; simp [Parameters.addressOfIndex]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)

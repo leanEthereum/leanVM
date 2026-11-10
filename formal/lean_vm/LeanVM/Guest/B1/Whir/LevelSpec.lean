@@ -51,7 +51,7 @@ theorem levelQueries_eq (messageLog index : ℕ) (level : Whir.Level) (levelFold
 the level's folds and the state. -/
 def levelHead (logN index : ℕ) (level : Whir.Level) (rest : List Whir.Level) (s : WhirStateT) :
     VerifierProgram (List E × ℕ × WhirStateT) := do
-  let (s, levelFolds) ← foldRoundsT level.fold s []
+  let (s, levelFolds) ← foldRoundsT level.foldGrinding level.fold s []
   let (residual, pending) ← levelMid (logN - s.folds.length) rest
   VerifierProgram.grindProofOfWork Whir.queryGrindingBits
   let s' ← levelRest (logN - s.folds.length) index level levelFolds s pending

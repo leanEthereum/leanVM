@@ -161,7 +161,7 @@ def levelTail (laneFolds messageLog : ℕ) (residual : List E) (s : WhirStateT) 
 theorem whirLevelsOpen_cons (logN laneFolds index : ℕ) (level : Whir.Level)
     (rest : List Whir.Level) (s : WhirStateT) :
     whirLevelsOpen logN laneFolds index (level :: rest) s = (do
-      let (s, levelFolds) ← foldRoundsT level.fold s []
+      let (s, levelFolds) ← foldRoundsT level.foldGrinding level.fold s []
       let messageLog := logN - s.folds.length
       let (residual, pending) ← levelMid messageLog rest
       let s ← levelQueries messageLog index level levelFolds s pending

@@ -90,7 +90,7 @@ theorem walk_767 : CutsKnown 767 :=
 
 set_option maxRecDepth 100000 in
 theorem walk_851 : CutsKnown 851 :=
-  loop0_cutsKnown (j := 851) oqBody_831
+  loop0_cutsKnown (j := 1128) oqBody_831
     (by decide) (by decide) (by decide) walkOk_851
 
 set_option maxRecDepth 100000 in
@@ -135,27 +135,27 @@ theorem walk_925 : CutsKnown 925 :=
 
 set_option maxRecDepth 100000 in
 theorem walk_940 : CutsKnown 940 :=
-  loop0_cutsKnown (j := 940) oqBody_883
+  loop0_cutsKnown (j := 1133) oqBody_883
     (by decide) (by decide) (by decide) walkOk_940
 
 set_option maxRecDepth 100000 in
 theorem walk_941 : CutsKnown 941 :=
-  loop1_cutsKnown (j := 941) oqBody_884
+  loop1_cutsKnown (j := 1134) oqBody_884
     (by decide) (by decide) (by decide) (by decide) walkOk_941
 
 set_option maxRecDepth 100000 in
 theorem walk_944 : CutsKnown 944 :=
-  loop1_cutsKnown (j := 944) oqBody_887
+  loop1_cutsKnown (j := 1137) oqBody_887
     (by decide) (by decide) (by decide) (by decide) walkOk_944
 
 set_option maxRecDepth 100000 in
 theorem walk_947 : CutsKnown 947 :=
-  loop1_cutsKnown (j := 947) oqBody_889
+  loop1_cutsKnown (j := 1139) oqBody_889
     (by decide) (by decide) (by decide) (by decide) walkOk_947
 
 set_option maxRecDepth 100000 in
 theorem walk_949 : CutsKnown 949 :=
-  loop0_cutsKnown (j := 949) oqBody_890
+  loop0_cutsKnown (j := 1140) oqBody_890
     (by decide) (by decide) (by decide) walkOk_949
 
 end

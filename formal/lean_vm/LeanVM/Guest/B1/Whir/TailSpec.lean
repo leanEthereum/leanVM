@@ -27,15 +27,15 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 theorem tailRounds_eq : ∀ (k : ℕ) (t : E) (q : List E) (F : List E) (G : List GluedClaim)
     (lf : List E),
     (tailRoundsT (k + 1) t q).bind (fun r ↦ VerifierProgram.ret (lf ++ r.1, r.2)) =
-      (foldRoundsT k ⟨t, q, F, G⟩ lf).bind fun p ↦
+      (foldRoundsT 0 k ⟨t, q, F, G⟩ lf).bind fun p ↦
         VerifierProgram.sampleChallenge.bind fun c ↦ VerifierProgram.ret (p.2 ++ [c], polyEval
             p.1.quad c)
   | 0, t, q, F, G, lf => by
-    simp only [tailRoundsT, foldRoundsT, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+    simp only [tailRoundsT, foldRoundsT, VerifierProgram.foldProofOfWork, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
         VerifierProgram.bind_assoc, VerifierProgram.ret_bind,
       ↓reduceIte, VerifierProgram.sampleChallenge]
   | k + 1, t, q, F, G, lf => by
-    simp only [tailRoundsT, foldRoundsT, Nat.add_one_ne_zero, ↓reduceIte, VerifierProgram.bind_eq,
+    simp only [tailRoundsT, foldRoundsT, VerifierProgram.foldProofOfWork, Nat.add_one_ne_zero, ↓reduceIte, VerifierProgram.bind_eq,
       VerifierProgram.pure_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
     refine prog_bind_congr fun c ↦ prog_bind_congr fun quad ↦ ?_
     have := tailRounds_eq k (polyEval q c) quad (F ++ [c]) G (lf ++ [c])

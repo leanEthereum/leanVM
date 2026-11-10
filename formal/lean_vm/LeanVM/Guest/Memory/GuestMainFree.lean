@@ -18,7 +18,6 @@ public import LeanVM.Guest.Memory.GuestMainFree.Part07
 public import LeanVM.Guest.Memory.GuestMainFree.Part08
 public import LeanVM.Guest.Memory.GuestMainFree.Part09
 public import LeanVM.Guest.Memory.GuestMainFree.Part10
-public import LeanVM.Guest.Memory.GuestMainFree.Part11
 public import LeanVM.Guest.Memory.SizeTransfer
 
 /-!
@@ -85,20 +84,18 @@ theorem mainFree_all : ∀ j < coreProgram.length, mainFreeJ j = true := by
     h21.append' (mainFreeRange_1323.on) rfl rfl
   have h23 : MainFreeOn 0 1623 :=
     h22.append' (mainFreeRange_1473.on) rfl rfl
-  have h24 : MainFreeOn 0 1749 :=
+  have h24 : MainFreeOn 0 1709 :=
     h23.append' (mainFreeRange_1623.on) rfl rfl
-  have h25 : MainFreeOn 0 1786 :=
-    h24.append' (mainFreeRange_1749.on) rfl rfl
-  have h26 : MainFreeOn 0 1812 :=
-    h25.append' (mainFreeRange_1786.on) rfl rfl
-  have h27 : MainFreeOn 0 1833 :=
-    h26.append' (mainFreeRange_1812.on) rfl rfl
-  have h28 : MainFreeOn 0 1853 :=
-    h27.append' (mainFreeRange_1833.on) rfl rfl
-  have h29 : MainFreeOn 0 1856 :=
-    h28.append' (mainFreeRange_1853.on) rfl rfl
+  have h25 : MainFreeOn 0 1742 :=
+    h24.append' (mainFreeRange_1709.on) rfl rfl
+  have h26 : MainFreeOn 0 1767 :=
+    h25.append' (mainFreeRange_1742.on) rfl rfl
+  have h27 : MainFreeOn 0 1787 :=
+    h26.append' (mainFreeRange_1767.on) rfl rfl
+  have h28 : MainFreeOn 0 1803 :=
+    h27.append' (mainFreeRange_1787.on) rfl rfl
   intro j hj
-  exact h29 j (Nat.zero_le _) (by rw [coreProgram_length] at hj; omega)
+  exact h28 j (Nat.zero_le _) (by rw [coreProgram_length] at hj; omega)
 
 /-- **No path of the guest calls `main`.** -/
 theorem coreProgram_callsIn_noMain : CallsIn coreProgram (· ≠ "main") := by

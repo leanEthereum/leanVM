@@ -47,15 +47,15 @@ theorem l18Body_split : l18Body = l18Pre ++ [.ret []] := rfl
 
 theorem l18Pre_straight : l18Pre.all Main.Stmt.straight = true := rfl
 
-theorem find_l18 : coreProgram.find? "__loop22" = some (coreProgram.getD 388 default) :=
+theorem find_l18 : coreProgram.find? "__loop22" = some (coreProgram.getD 382 default) :=
   find_of_idx dv_loops_idx.2.1 (by rw [coreProgram_length]; omega)
 
-theorem l18_body : Fn.body (coreProgram.getD 388 default) = l18Body := by
+theorem l18_body : Fn.body (coreProgram.getD 382 default) = l18Body := by
   have h := l18_ok
   simp only [l18Ok, Bool.and_eq_true] at h
   exact stmtsEqb_sound h.2
 
-theorem l18_params : (coreProgram.getD 388 default).params = (List.range 7).map V.n := by
+theorem l18_params : (coreProgram.getD 382 default).params = (List.range 7).map V.n := by
   have h := l18_ok
   simp only [l18Ok, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.1

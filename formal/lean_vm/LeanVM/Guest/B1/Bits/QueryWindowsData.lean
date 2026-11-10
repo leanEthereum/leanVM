@@ -170,7 +170,7 @@ theorem qw_L21_L8 : QwIs "decode_query_windows__L21_L8" (qwBody 21 8) :=
 
 set_option maxRecDepth 100000 in
 theorem qw_L22_L4 : QwIs "decode_query_windows__L22_L4" (qwBody 22 4) :=
-  ⟨Data.core1795, Program.find?_of_indexOf? (j := 1795) (by decide +kernel) rfl, rfl,
+  ⟨Data.core1742, Program.find?_of_indexOf? (j := 1742) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in

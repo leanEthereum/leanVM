@@ -37,7 +37,7 @@ theorem cw1344_0_0 : cplWin 1344 0 0 = true := by decide +kernel
 /-- `__loop303`, window 0, part 0. -/
 theorem cw1345_0_0 : cplWin 1345 0 0 = true := by decide +kernel
 
-/-- `__loop304`, window 0, part 0. -/
+/-- `opening_queries__L0_L1_L64_L32_L20_L8`, window 0, part 0. -/
 theorem cw1346_0_0 : cplWin 1346 0 0 = true := by decide +kernel
 
 theorem ok1339 : CplOk 1339 := by
@@ -109,16 +109,6 @@ theorem ok1345 : CplOk 1345 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1345_0_0
-
-theorem ok1346 : CplOk 1346 := by
-  intro i hi k hk
-  have hc : (certOf 1346).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1346 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1346_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

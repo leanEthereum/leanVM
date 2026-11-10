@@ -71,7 +71,7 @@ structure WhirEnd where
 def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → VerifierProgram WhirEnd
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRoundsT level.fold s []
+    let (s, levelFolds) ← foldRoundsT level.foldGrinding level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do

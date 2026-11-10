@@ -259,9 +259,9 @@ def keccakReads (L : ℕ) : ℕ :=
 /-- The reads of the WHIR levels from a message of `μ` variables. -/
 def whirReads : ℕ → List Whir.Level → ℕ
   | _, [] => 0
-  | μ, [level] => 2 * level.fold + 2 ^ (μ - level.fold) + 1 + 2 + 2 * (μ - level.fold)
+  | μ, [level] => 3 * level.fold + 2 ^ (μ - level.fold) + 1 + 2 + 2 * (μ - level.fold)
   | μ, level :: next :: rest =>
-    2 * level.fold + (2 + 1 + 2) + 1 + 2 + whirReads (μ - level.fold) (next :: rest)
+    3 * level.fold + (2 + 1 + 2) + 1 + 2 + whirReads (μ - level.fold) (next :: rest)
 
 /-- The bound on the WHIR levels' reads over every admissible ladder. -/
 def whirReadsBound : ℕ := 300
@@ -550,16 +550,25 @@ end Phases
 
 section Whir
 
-theorem reads_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    Reads (foldRoundsT n s levelFolds) (2 * n) fun r ↦ r.1.folds.length = s.folds.length + n
+/-- The proof of work before a fold challenge: none at `0` bits, else one nonce. -/
+theorem reads_foldProofOfWork (b : ℕ) :
+    Reads (VerifierProgram.foldProofOfWork b) 1 fun _ ↦ True := by
+  unfold VerifierProgram.foldProofOfWork
+  split
+  · trivial
+  · exact Reads.grindP b
+
+theorem reads_foldRounds (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    Reads (foldRoundsT b n s levelFolds) (3 * n) fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
-    refine Reads.seq Reads.sampleE (fun c _ ↦ Reads.seq
-      (reads_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
-        (reads_foldRounds n _ _).mono ?_ fun r hr ↦ ?_) ?_) ?_
+    refine Reads.seq (reads_foldProofOfWork b) (fun _ _ ↦ Reads.seq Reads.sampleE (fun c _ ↦
+      Reads.seq (reads_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
+        (reads_foldRounds b n _ _).mono ?_ fun r hr ↦ ?_) ?_) ?_) ?_
     · simp only [show max 3 2 - 1 = 2 from rfl]; omega
     · rw [hr, List.length_append, List.length_singleton]; omega
     · simp only [show max 3 2 - 1 = 2 from rfl]; omega
+    · omega
     · omega
 
 theorem reads_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
@@ -591,7 +600,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
   | [level], index, s, μ, hμ => by
     simp only [whirReads]
     generalize hP : 2 ^ (μ - level.fold) = P
-    refine Reads.seq (reads_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
+    refine Reads.seq (reads_foldRounds level.foldGrinding level.fold s []) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', levelFolds⟩ := r
     simp only at hr
     have hm : logN - s'.folds.length = μ - level.fold := by rw [hr]; omega
@@ -611,7 +620,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     all_goals omega
   | level :: next :: rest, index, s, μ, hμ => by
     simp only [whirReads]
-    refine Reads.seq (reads_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
+    refine Reads.seq (reads_foldRounds level.foldGrinding level.fold s []) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', levelFolds⟩ := r
     simp only at hr
     have hm : logN - s'.folds.length = μ - level.fold := by rw [hr]; omega

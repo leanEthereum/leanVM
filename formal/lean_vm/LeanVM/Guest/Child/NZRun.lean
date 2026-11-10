@@ -82,14 +82,15 @@ end NZ
 
 /-! ## The programs -/
 
-theorem nz_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    NZ (Limits.foldRoundsNZ n s lf) (foldRoundsT n s lf)
+theorem nz_foldRounds (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    NZ (Limits.foldRoundsNZ b n s lf) (foldRoundsT b n s lf)
   | 0, s, lf => NZ.refl _
   | n + 1, s, lf => by
     unfold Limits.foldRoundsNZ foldRoundsT
+    refine NZ.bind (NZ.refl _) fun _ ↦ ?_
     refine NZ.sample_bind fun c hc ↦ ?_
     refine NZ.require_bind_of hc ?_
-    exact NZ.bind (NZ.refl _) fun _ ↦ nz_foldRounds n _ _
+    exact NZ.bind (NZ.refl _) fun _ ↦ nz_foldRounds b n _ _
 
 theorem nz_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E),
     NZ (Limits.tailRoundsNZ n t quad) (tailRoundsT n t quad)
@@ -105,7 +106,7 @@ theorem nz_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E),
 /-- The first program of a bind: the same, or one refusing zero challenges. -/
 local macro "nz_head" : tactic => `(tactic| first
   | with_reducible exact NZ.refl _
-  | exact nz_foldRounds _ _ _
+  | exact nz_foldRounds _ _ _ _
   | exact nz_tailRounds _ _ _)
 
 /-- One step between two programs written alike. -/
@@ -127,7 +128,7 @@ theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List 
   | cons level rest ih =>
     intro index s
     unfold Limits.whirLevelsNZ whirLevelsT
-    apply NZ.bind (nz_foldRounds _ _ _)
+    apply NZ.bind (nz_foldRounds _ _ _ _)
     intro p
     obtain ⟨s', lf⟩ := p
     dsimp only

@@ -136,7 +136,7 @@ theorem qs_folds {K : WhirStateT × List E → VerifierProgram β} :
     ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List (List Opening))
       (R : List (Digest × ℕ × ℕ)), 2 * n ≤ xs.length →
       (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) →
-      queryStepsOf ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ =
+      queryStepsOf ((foldRoundsNZ 0 n ws lf).bind K) ⟨F, xs, os, R⟩ =
         queryStepsOf (K ({ ws with
             target := (foldsTr n F ws.quad ws.target xs).2.2.2
             quad := (foldsTr n F ws.quad ws.target xs).2.2.1
@@ -147,13 +147,14 @@ theorem qs_folds {K : WhirStateT × List E → VerifierProgram β} :
     simp only [foldsTr, List.append_nil, Nat.mul_zero, List.drop_zero]
     rfl
   | n + 1, ws, lf, F, d0 :: d2 :: xs, os, R, hl, hnz => by
-    have e : (foldRoundsNZ (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
+    have e : (foldRoundsNZ 0 (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
         (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦ VerifierProgram.readScalar.bind fun d2 ↦
-          (foldRoundsNZ n { ws with
+          (foldRoundsNZ 0 n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]
             folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
-      simp only [foldRoundsNZ, VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
+      simp only [foldRoundsNZ, VerifierProgram.foldProofOfWork, ↓reduceIte, VerifierProgram.bind_eq,
+        VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
       congr 1; funext c; congr 1; funext u
       rw [sumcheck3_bind]
     have hc : F.squeeze.1 ≠ 0 := hnz _ (by simp [foldsTr])

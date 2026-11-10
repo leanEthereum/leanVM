@@ -41,7 +41,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
     (hpi : ∀ o < 2, ∃ v, LoadHolds rd (cpi * x ^ 2) o v)
     (hfr : ∀ o < 24, ∃ v, LoadHolds rd (cfresh * x ^ 24) o v)
     (hca : ∀ o < 24, ∃ v, LoadHolds rd (ccarried * x ^ 24) o v) :
-    LoopBlock rd (coreProgram.getD 414 default) x N [absorb, cfresh, lfT, ccarried, lcT, cpi] := by
+    LoopBlock rd (coreProgram.getD 408 default) x N [absorb, cfresh, lfT, ccarried, lcT, cpi] := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
@@ -57,7 +57,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   simp only [List.all_eq_true, List.mem_range] at hsrc
   simp only [List.all_eq_true, List.mem_range, decide_eq_true_eq, Bool.and_eq_true] at hcst hrst
   have hS := l25_stores
-  set fn := coreProgram.getD 414 default
+  set fn := coreProgram.getD 408 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, absorb, cfresh, lfT, ccarried, lcT, cpi]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
