@@ -424,7 +424,7 @@ def guestLocsList0 : List (List ℕ) := [
     [Data.cert16_w0_0].flatten,
     [Data.cert17_w0_0].flatten,
     [Data.cert18_w0_0, Data.cert18_w1_0, Data.cert18_w2_0].flatten,
-    [Data.cert19_w0_0, Data.cert19_w1_0, Data.cert19_w2_0].flatten,
+    [Data.cert19_w0_0, Data.cert19_w1_0, Data.cert19_w2_0, Data.cert19_w3_0].flatten,
     [Data.cert20_w0_0, Data.cert20_w1_0, Data.cert20_w2_0, Data.cert20_w3_0, Data.cert20_w4_0, Data.cert20_w5_0, Data.cert20_w6_0, Data.cert20_w7_0, Data.cert20_w8_0, Data.cert20_w9_0, Data.cert20_w10_0, Data.cert20_w11_0, Data.cert20_w12_0, Data.cert20_w13_0, Data.cert20_w14_0, Data.cert20_w15_0, Data.cert20_w16_0, Data.cert20_w17_0, Data.cert20_w18_0, Data.cert20_w19_0, Data.cert20_w20_0].flatten,
     [Data.cert21_w0_0, Data.cert21_w1_0, Data.cert21_w2_0, Data.cert21_w3_0, Data.cert21_w4_0, Data.cert21_w5_0, Data.cert21_w6_0, Data.cert21_w7_0, Data.cert21_w8_0, Data.cert21_w9_0, Data.cert21_w10_0, Data.cert21_w11_0, Data.cert21_w12_0, Data.cert21_w13_0, Data.cert21_w14_0, Data.cert21_w15_0, Data.cert21_w16_0, Data.cert21_w17_0, Data.cert21_w18_0, Data.cert21_w19_0, Data.cert21_w20_0, Data.cert21_w21_0, Data.cert21_w22_0, Data.cert21_w23_0, Data.cert21_w24_0, Data.cert21_w25_0].flatten,
     [Data.cert22_w0_0].flatten,
