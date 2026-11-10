@@ -25,6 +25,7 @@ import Rv64Verifier.Proofs.Transcript.All
 import Rv64Verifier.Proofs.Multilinear.All
 import Rv64Verifier.Proofs.Bus.All
 import Rv64Verifier.Proofs.Pcs.All
+import Rv64Verifier.Proofs.Gkr.Open
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
