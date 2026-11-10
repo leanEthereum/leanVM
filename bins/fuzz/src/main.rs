@@ -1,7 +1,7 @@
 //! `cargo leanvm-fuzz`: run a fuzzing campaign over leanVM, and triage what it finds. See `crates/fuzz/README.md`.
 
-#[global_allocator]
-static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+// No `bench::Jemalloc`: it never returns freed pages, so a worker's resident set would only grow over its slice and
+// `--mem-limit-mb` would kill whichever case ran when it crossed the limit. The system allocator's tracks live memory.
 
 mod store;
 mod supervisor;

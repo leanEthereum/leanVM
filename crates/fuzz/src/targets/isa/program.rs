@@ -283,6 +283,7 @@ impl Frame {
 
     /// One deliberate mistake: the run must fail cleanly.
     pub fn mistake(&mut self, src: &mut Source) {
+        let was_broken = self.broken;
         self.broken = true;
         let fresh = self.fresh(1);
         match src.below(7) {
@@ -296,7 +297,8 @@ impl Frame {
                 // A read of a cell nothing wrote: refused by the prover, not the run.
                 let c = self.fresh(1);
                 self.code.push(Op::Xor { a: fresh, b: fresh, c });
-                self.broken = false;
+                // The run accepts it, so the program is as broken as an earlier mistake left it.
+                self.broken = was_broken;
                 self.written.insert(c, F192::ZERO);
                 self.written.insert(fresh, F192::ZERO);
             }

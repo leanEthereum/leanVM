@@ -17,7 +17,7 @@ decoders = ["dep:rec_aggregation"]
 # The zkDSL front end and compiler: generated self-checking programs, mutated sources, the hand-written corpus.
 dsl = []
 # Hand-assembled bytecode straight into the VM, bypassing the compiler.
-isa = []
+isa = ["kernels"]
 # A malicious prover: mutated proofs, forged transcript messages, tampered witnesses, wrong statements.
 soundness = []
 # The recursion guest and the public aggregation API: forged hints, invalid children, adversarial inputs.
