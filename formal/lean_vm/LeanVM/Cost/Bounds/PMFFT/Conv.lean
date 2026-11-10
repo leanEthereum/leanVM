@@ -24,38 +24,38 @@ variable (P : MachineProgram)
 
 /-! ## The sparse sums -/
 
-theorem sumAsc_cost (hP : Includes P sumAsc.c375.costDeps) (pw : Array ℕ)
+theorem sumAsc_cost (hP : Includes P sumAsc.c377.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 64) (f : ℕ → K) (fVal : MachineValue)
     (hf : ∀ a : ℕ, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
     (hB : ∀ a : ℕ, appCost P fVal [encodeValue a] ≤ B) (x : ℕ) (hx : x < 2 ^ 64) :
     ∀ n a, a + n < 2 ^ 64 →
-      machineCost P sumAsc.c375.costIdx [encodeValue pw, fVal, encodeValue x, encodeValue a,
+      machineCost P sumAsc.c377.costIdx [encodeValue pw, fVal, encodeValue x, encodeValue a,
         encodeValue n] ≤ (B + 29) * n + 5 := by
   intro n
   induction n with
-  | zero => intro a _; rw [sumAsc.c375.costEq P hP pw f fVal hf]; simp
+  | zero => intro a _; rw [sumAsc.c377.costEq P hP pw f fVal hf]; simp
   | succ n ih =>
     intro a ha
-    rw [sumAsc.c375.costEq P hP pw f fVal hf]
+    rw [sumAsc.c377.costEq P hP pw f fVal hf]
     have h1 := hpw a
     have h2 := hB a
     have h3 := ih (a + 1) (by omega)
     cost_simp
     split <;> nlinarith
 
-theorem sumDesc_cost (hP : Includes P sumDesc.c372.costDeps) (pw : Array ℕ)
+theorem sumDesc_cost (hP : Includes P sumDesc.c374.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 64) (f : ℕ → K) (fVal : MachineValue)
     (hf : ∀ a : ℕ, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
     (hB : ∀ a : ℕ, appCost P fVal [encodeValue a] ≤ B) (x : ℕ) (hx : x < 2 ^ 64) :
     ∀ n, n < 2 ^ 64 →
-      machineCost P sumDesc.c372.costIdx [encodeValue pw, fVal, encodeValue x, encodeValue n] ≤
+      machineCost P sumDesc.c374.costIdx [encodeValue pw, fVal, encodeValue x, encodeValue n] ≤
         (B + 24) * n + 5 := by
   intro n
   induction n with
-  | zero => intro _; rw [sumDesc.c372.costEq_zero P hP pw f fVal hf]; omega
+  | zero => intro _; rw [sumDesc.c374.costEq_zero P hP pw f fVal hf]; omega
   | succ n ih =>
     intro hn
-    rw [sumDesc.c372.costEq_succ P hP pw f fVal hf]
+    rw [sumDesc.c374.costEq_succ P hP pw f fVal hf]
     have h1 := hpw n
     have h2 := hB n
     have h3 := ih (by omega)
@@ -64,45 +64,45 @@ theorem sumDesc_cost (hP : Includes P sumDesc.c372.costDeps) (pw : Array ℕ)
 
 /-! ## Monomial → novel: one level -/
 
-/-- The quotient pass's product (`toQuot.c370.lam0.lam0`): at most `44`. -/
-theorem toQuotTerm_cost (hP : Includes P toQuot.c370.lam0.lam0.costDeps) (pw : Array ℕ)
+/-- The quotient pass's product (`toQuot.c372.lam0.lam0`): at most `44`. -/
+theorem toQuotTerm_cost (hP : Includes P toQuot.c372.lam0.lam0.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) (s B : Array K) (c1 c0 c2 t : ℕ) (h1 : c1 < 2 ^ 42)
     (h0 : c0 < 2 ^ 42) (h2 : c2 < 2 ^ 42) :
-    machineCost P toQuot.c370.lam0.lam0.costIdx [encodeValue pw, encodeValue s, encodeValue B,
+    machineCost P toQuot.c372.lam0.lam0.costIdx [encodeValue pw, encodeValue s, encodeValue B,
       encodeValue c1, encodeValue c0, encodeValue c2, encodeValue t] ≤ 44 := by
-  rw [toQuot.c370.lam0.lam0.costEq P hP]
+  rw [toQuot.c372.lam0.lam0.costEq P hP]
   have := hpw t
   cost_simp
   omega
 
-/-- The output pass's product (`toLevel.c369.lam0.lam0`, also `fromLevel`'s): at most `42`. -/
-theorem levelTerm_cost (hP : Includes P toLevel.c369.lam0.lam0.costDeps) (pw : Array ℕ)
+/-- The output pass's product (`toLevel.c371.lam0.lam0`, also `fromLevel`'s): at most `42`. -/
+theorem levelTerm_cost (hP : Includes P toLevel.c371.lam0.lam0.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) (c1 c2 : Array K) (c0 c3 t : ℕ) (h0 : c0 < 2 ^ 42)
     (h3 : c3 < 2 ^ 42) :
-    machineCost P toLevel.c369.lam0.lam0.costIdx [encodeValue pw, encodeValue c1, encodeValue c2,
+    machineCost P toLevel.c371.lam0.lam0.costIdx [encodeValue pw, encodeValue c1, encodeValue c2,
       encodeValue c0, encodeValue c3, encodeValue t] ≤ 42 := by
-  rw [toLevel.c369.lam0.lam0.costEq P hP]
+  rw [toLevel.c371.lam0.lam0.costEq P hP]
   have := hpw t
   cost_simp
   omega
 
-/-- A quotient entry (`toQuot.c370.lam0`): `74·i + 45` if it runs the sum (`m mod H < H/2`),
+/-- A quotient entry (`toQuot.c372.lam0`): `74·i + 45` if it runs the sum (`m mod H < H/2`),
 `22` otherwise. -/
-theorem toQuotEntry_cost (hP : Includes P toQuot.c370.lam0.costDeps) (pw : Array ℕ)
+theorem toQuotEntry_cost (hP : Includes P toQuot.c372.lam0.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) (N i : ℕ) (hN : N ≤ 2 ^ 40) (hi : i ≤ 40) (s B : Array K)
     (H : ℕ) (hH : H ≤ 2 ^ 40) (hH0 : 0 < H) (m : Fin (N / 2)) :
-    machineCost P toQuot.c370.lam0.costIdx [encodeValue pw, encodeValue N, encodeValue i,
+    machineCost P toQuot.c372.lam0.costIdx [encodeValue pw, encodeValue N, encodeValue i,
       encodeValue s, encodeValue B, encodeValue (H / 2), encodeValue (2 * H), encodeValue H,
       encodeValue m] ≤ if m.val % H < H / 2 then 74 * i + 45 else 22 := by
-  rw [toQuot.c370.lam0.costEq P hP]
+  rw [toQuot.c372.lam0.costEq P hP]
   have hm : m.val < 2 ^ 40 := by have := m.isLt; omega
   have hmod : m.val % H < H := Nat.mod_lt _ hH0
   have hmod' : m.val % H ≤ m.val := Nat.mod_le _ _
   have hsd := sumDesc_cost P (by includes) pw (fun t ↦ (hpw t).trans (by norm_num))
     (fun t ↦ s.getD t 0 * B.getD (2 * (m.val - m.val % H) + 2 * H + m.val % H - pw.getD t 0) 0)
-    (.closure toQuot.c370.lam0.lam0.costIdx [encodeValue pw, encodeValue s, encodeValue B,
+    (.closure toQuot.c372.lam0.lam0.costIdx [encodeValue pw, encodeValue s, encodeValue B,
       encodeValue (2 * H), encodeValue (2 * (m.val - m.val % H)), encodeValue (m.val % H)])
-    (fun a ↦ RunsApp.of_spec (toQuot.c370.lam0.lam0.costSpec P (by includes) pw s B _ _ _ a)) 50
+    (fun a ↦ RunsApp.of_spec (toQuot.c372.lam0.lam0.costSpec P (by includes) pw s B _ _ _ a)) 50
     (fun a ↦ by
       rw [appCost_fn]
       have := toQuotTerm_cost P (by includes) pw hpw s B (2 * H) (2 * (m.val - m.val % H)) (m.val % H) a
@@ -126,14 +126,14 @@ theorem block_sum_le {H M a b : ℕ} :
 theorem two_pow_split {i j : ℕ} (h : i < j) : 2 ^ j = 2 * (2 ^ i * 2 ^ (j - i - 1)) := by
   rw [← pow_add, ← pow_succ']; congr 1; omega
 
-/-- **The quotient pass** of level `i` over `N = 2^j` (`toQuot.c370`): at most
+/-- **The quotient pass** of level `i` over `N = 2^j` (`toQuot.c372`): at most
 `19·N·i + 30·N + 41`. -/
-theorem toQuot_cost (hP : Includes P toQuot.c370.costDeps) (pw : Array ℕ)
+theorem toQuot_cost (hP : Includes P toQuot.c372.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) {i j : ℕ} (hij : i < j) (hj : j ≤ 40)
     (hH : pw.getD i 0 = 2 ^ i) (s B : Array K) :
-    machineCost P toQuot.c370.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
+    machineCost P toQuot.c372.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
       encodeValue s, encodeValue B] ≤ 19 * (2 ^ j * i) + 30 * 2 ^ j + 41 := by
-  rw [toQuot.c370.costEq P hP, hH]
+  rw [toQuot.c372.costEq P hP, hH]
   have hsplit := two_pow_split hij
   set H := 2 ^ i with hHdef
   set M := 2 ^ (j - i - 1) with hMdef
@@ -142,9 +142,9 @@ theorem toQuot_cost (hP : Includes P toQuot.c370.costDeps) (pw : Array ℕ)
   have hNle : 2 ^ j ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hj
   have hhalf : 2 ^ j / 2 = H * M := by omega
   have hof := ofFnFrom_cost_sum0 P (by includes) (n := 2 ^ j / 2) (by omega) _
-    (.closure toQuot.c370.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
+    (.closure toQuot.c372.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
       encodeValue s, encodeValue B, encodeValue (H / 2), encodeValue (2 * H), encodeValue H])
-    (fun m ↦ RunsApp.of_spec (toQuot.c370.lam0.costSpec P (by includes) pw (2 ^ j) i s B _ _ _ m))
+    (fun m ↦ RunsApp.of_spec (toQuot.c372.lam0.costSpec P (by includes) pw (2 ^ j) i s B _ _ _ m))
     (fun m ↦ if m % H < H / 2 then 74 * i + 53 else 30)
     (fun m ↦ by
       rw [appCost_fn]
@@ -173,23 +173,23 @@ theorem toQuot_cost (hP : Includes P toQuot.c370.costDeps) (pw : Array ℕ)
     have e3 : 2 ^ j = 4 * (h * M) := by rw [hsplit, hh]; ring
     omega
 
-/-- An output entry of level `i` (`toLevel.c369.lam0`): `76·i + 40` in the block's low half (the
+/-- An output entry of level `i` (`toLevel.c371.lam0`): `76·i + 40` in the block's low half (the
 remainder's sum), `50` in its high half (`β·q`). -/
-theorem toLevelEntry_cost (hP : Includes P toLevel.c369.lam0.costDeps) (pw : Array ℕ)
+theorem toLevelEntry_cost (hP : Includes P toLevel.c371.lam0.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) (N i : ℕ) (hN : N ≤ 2 ^ 40) (hi : i ≤ 40) (B Q s : Array K)
     (β : K) (H : ℕ) (hH : H ≤ 2 ^ 40) (hH0 : 0 < H) (p : Fin N) :
-    machineCost P toLevel.c369.lam0.costIdx [encodeValue pw, encodeValue N, encodeValue i,
+    machineCost P toLevel.c371.lam0.costIdx [encodeValue pw, encodeValue N, encodeValue i,
       encodeValue B, encodeValue (2 * H), encodeValue Q, encodeValue s, encodeValue H,
       encodeValue β, encodeValue p] ≤ if p.val % (2 * H) < 2 * H / 2 then 76 * i + 40 else 50 := by
-  rw [toLevel.c369.lam0.costEq P hP]
+  rw [toLevel.c371.lam0.costEq P hP]
   have hp : p.val < 2 ^ 40 := by have := p.isLt; omega
   have hmod : p.val % (2 * H) < 2 * H := Nat.mod_lt _ (by omega)
   have hmod' : p.val % (2 * H) ≤ p.val := Nat.mod_le _ _
   have hsa := sumAsc_cost P (by includes) pw (fun t ↦ (hpw t).trans (by norm_num))
     (fun t ↦ s.getD t 0 * Q.getD ((p.val - p.val % (2 * H)) / 2 + p.val % (2 * H) - pw.getD t 0) 0)
-    (.closure toLevel.c369.lam0.lam0.costIdx [encodeValue pw, encodeValue Q, encodeValue s,
+    (.closure toLevel.c371.lam0.lam0.costIdx [encodeValue pw, encodeValue Q, encodeValue s,
       encodeValue ((p.val - p.val % (2 * H)) / 2), encodeValue (p.val % (2 * H))])
-    (fun a ↦ RunsApp.of_spec (toLevel.c369.lam0.lam0.costSpec P (by includes) pw Q s _ _ a)) 47
+    (fun a ↦ RunsApp.of_spec (toLevel.c371.lam0.lam0.costSpec P (by includes) pw Q s _ _ a)) 47
     (fun a ↦ by
       rw [appCost_fn]
       have := levelTerm_cost P (by includes) pw hpw Q s ((p.val - p.val % (2 * H)) / 2) (p.val % (2 * H)) a
@@ -201,14 +201,14 @@ theorem toLevelEntry_cost (hP : Includes P toLevel.c369.lam0.costDeps) (pw : Arr
   cost_simp
   split_ifs <;> omega
 
-/-- **Level `i` of monomial → novel** over `N = 2^j` (`toLevel.c369`): at most
+/-- **Level `i` of monomial → novel** over `N = 2^j` (`toLevel.c371`): at most
 `57·N·i + 101·N + 91`. -/
-theorem toLevel_cost (hP : Includes P toLevel.c369.costDeps) (pw : Array ℕ)
+theorem toLevel_cost (hP : Includes P toLevel.c371.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) {i j : ℕ} (hij : i < j) (hj : j ≤ 40)
     (hH : pw.getD i 0 = 2 ^ i) (d : Array K × K) (B : Array K) :
-    machineCost P toLevel.c369.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
+    machineCost P toLevel.c371.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
       encodeValue d, encodeValue B] ≤ 57 * (2 ^ j * i) + 101 * 2 ^ j + 91 := by
-  rw [toLevel.c369.costEq P hP]
+  rw [toLevel.c371.costEq P hP]
   have hq := toQuot_cost P (by includes) pw hpw hij hj hH d.1 B
   rw [hH]
   have hsplit := two_pow_split hij
@@ -218,10 +218,10 @@ theorem toLevel_cost (hP : Includes P toLevel.c369.costDeps) (pw : Array ℕ)
   have hHle : H ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hNle : 2 ^ j ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hj
   have hof := ofFnFrom_cost_sum0 P (by includes) (n := 2 ^ j) (by omega) _
-    (.closure toLevel.c369.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
+    (.closure toLevel.c371.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
       encodeValue B, encodeValue (2 * H), encodeValue (LeanVM.Extraction.Fast.FFT.toQuot pw (2 ^ j) i d.1 B),
       encodeValue d.1, encodeValue H, encodeValue d.2])
-    (fun p ↦ RunsApp.of_spec (toLevel.c369.lam0.costSpec P (by includes) pw (2 ^ j) i B _ _ _ _ _ p))
+    (fun p ↦ RunsApp.of_spec (toLevel.c371.lam0.costSpec P (by includes) pw (2 ^ j) i B _ _ _ _ _ p))
     (fun p ↦ if p % (2 * H) < 2 * H / 2 then 76 * i + 49 else 59)
     (fun p ↦ by
       rw [appCost_fn]
@@ -253,24 +253,24 @@ theorem sum_range_level (a b L : ℕ) :
   have : L * b = b * L := Nat.mul_comm _ _
   omega
 
-/-- **Levels `L − 1, …, 0` of monomial → novel** over `N = 2^j` (`toLevels.c367`): at most
+/-- **Levels `L − 1, …, 0` of monomial → novel** over `N = 2^j` (`toLevels.c369`): at most
 `29·N·L² + 101·N·L + 134·L + 20`. -/
-theorem toLevels_cost (hP : Includes P toLevels.c367.costDeps) (pw : Array ℕ)
+theorem toLevels_cost (hP : Includes P toLevels.c369.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) {j L : ℕ} (hL : L ≤ j) (hj : j ≤ 40)
     (hH : ∀ i < L, pw.getD i 0 = 2 ^ i) (D : Array (Array K × K)) (B : Array K) :
-    machineCost P toLevels.c367.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D,
+    machineCost P toLevels.c369.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D,
       encodeValue L, encodeValue B] ≤
       29 * (2 ^ j * (L * L)) + 101 * (2 ^ j * L) + 134 * L + 20 := by
-  rw [toLevels.c367.costEq P hP]
+  rw [toLevels.c369.costEq P hP]
   have hr := rangeLoop_cost P (by includes) L [] (by omega)
   have hf := foldr_cost_sum P (by includes) _
-    (.closure toLevels.c367.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D])
-    (fun i b ↦ RunsApp.of_spec (toLevels.c367.lam0.costSpec P (by includes) pw (2 ^ j) D i b))
+    (.closure toLevels.c369.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D])
+    (fun i b ↦ RunsApp.of_spec (toLevels.c369.lam0.costSpec P (by includes) pw (2 ^ j) D i b))
     (fun i ↦ 57 * 2 ^ j * i + (101 * 2 ^ j + 108)) B (List.range L)
     (fun i hi b ↦ by
       have hi := List.mem_range.mp hi
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [toLevels.c367.lam0.costEq P (by includes)]
+      rw [toLevels.c369.lam0.costEq P (by includes)]
       have := toLevel_cost P (by includes) pw hpw (by omega : i < j) hj (hH i hi) (D.getD i (#[], 0)) b
       rw [mul_assoc]
       omega)
@@ -316,19 +316,19 @@ theorem toNovelInPlaceC_cost (hP : Includes P toNovelInPlaceC.costDeps) {j : ℕ
 
 /-! ## Novel → monomial -/
 
-/-- An entry of level `i` of novel → monomial (`fromLevel.c381.lam0`): `76·i + 40` in the block's
+/-- An entry of level `i` of novel → monomial (`fromLevel.c383.lam0`): `76·i + 40` in the block's
 low half, `71·i + 69` in its high half. -/
-theorem fromLevelEntry_cost (hP : Includes P fromLevel.c381.lam0.costDeps) (pw : Array ℕ)
+theorem fromLevelEntry_cost (hP : Includes P fromLevel.c383.lam0.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) (N i : ℕ) (hN : N ≤ 2 ^ 40) (hi : i ≤ 40) (B s : Array K)
     (β : K) (H : ℕ) (hH : H ≤ 2 ^ 40) (hH0 : 0 < H) (p : Fin N) :
-    machineCost P fromLevel.c381.lam0.costIdx [encodeValue pw, encodeValue N, encodeValue i,
+    machineCost P fromLevel.c383.lam0.costIdx [encodeValue pw, encodeValue N, encodeValue i,
       encodeValue B, encodeValue (2 * H), encodeValue s, encodeValue H, encodeValue β,
       encodeValue p] ≤ if p.val % (2 * H) < 2 * H / 2 then 76 * i + 40 else 71 * i + 69 := by
-  rw [fromLevel.c381.lam0.costEq P hP]
+  rw [fromLevel.c383.lam0.costEq P hP]
   have hp : p.val < 2 ^ 40 := by have := p.isLt; omega
   have hmod : p.val % (2 * H) < 2 * H := Nat.mod_lt _ (by omega)
   have hmod' : p.val % (2 * H) ≤ p.val := Nat.mod_le _ _
-  have hterm : ∀ a : ℕ, appCost P (.closure toLevel.c369.lam0.lam0.costIdx [encodeValue pw,
+  have hterm : ∀ a : ℕ, appCost P (.closure toLevel.c371.lam0.lam0.costIdx [encodeValue pw,
       encodeValue B, encodeValue s, encodeValue (p.val - p.val % (2 * H) + H),
       encodeValue (p.val % (2 * H))]) [encodeValue a] ≤ 47 := fun a ↦ by
     rw [appCost_fn]
@@ -336,11 +336,11 @@ theorem fromLevelEntry_cost (hP : Includes P fromLevel.c381.lam0.costDeps) (pw :
       (by omega) (by omega)
     simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
     omega
-  have hrun : ∀ a : ℕ, RunsApp P (.closure toLevel.c369.lam0.lam0.costIdx [encodeValue pw,
+  have hrun : ∀ a : ℕ, RunsApp P (.closure toLevel.c371.lam0.lam0.costIdx [encodeValue pw,
       encodeValue B, encodeValue s, encodeValue (p.val - p.val % (2 * H) + H),
       encodeValue (p.val % (2 * H))]) [encodeValue a] (encodeValue (s.getD a 0 *
         B.getD (p.val - p.val % (2 * H) + H + p.val % (2 * H) - pw.getD a 0) 0)) := fun a ↦
-    RunsApp.of_spec (toLevel.c369.lam0.lam0.costSpec P (by includes) pw B s _ _ a)
+    RunsApp.of_spec (toLevel.c371.lam0.lam0.costSpec P (by includes) pw B s _ _ a)
   have hsa := sumAsc_cost P (by includes) pw (fun t ↦ (hpw t).trans (by norm_num)) _ _ hrun 47
     hterm (p.val % (2 * H)) (by omega) i 0 (by omega)
   have hsd := sumDesc_cost P (by includes) pw (fun t ↦ (hpw t).trans (by norm_num)) _ _ hrun 47
@@ -349,14 +349,14 @@ theorem fromLevelEntry_cost (hP : Includes P fromLevel.c381.lam0.costDeps) (pw :
   cost_simp
   split_ifs <;> omega
 
-/-- **Level `i` of novel → monomial** over `N = 2^j` (`fromLevel.c381`): at most
+/-- **Level `i` of novel → monomial** over `N = 2^j` (`fromLevel.c383`): at most
 `74·N·i + 80·N + 41`. -/
-theorem fromLevel_cost (hP : Includes P fromLevel.c381.costDeps) (pw : Array ℕ)
+theorem fromLevel_cost (hP : Includes P fromLevel.c383.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) {i j : ℕ} (hij : i < j) (hj : j ≤ 40)
     (hH : pw.getD i 0 = 2 ^ i) (d : Array K × K) (B : Array K) :
-    machineCost P fromLevel.c381.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
+    machineCost P fromLevel.c383.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
       encodeValue d, encodeValue B] ≤ 74 * (2 ^ j * i) + 80 * 2 ^ j + 41 := by
-  rw [fromLevel.c381.costEq P hP, hH]
+  rw [fromLevel.c383.costEq P hP, hH]
   have hsplit := two_pow_split hij
   set H := 2 ^ i with hHdef
   set M := 2 ^ (j - i - 1) with hMdef
@@ -364,9 +364,9 @@ theorem fromLevel_cost (hP : Includes P fromLevel.c381.costDeps) (pw : Array ℕ
   have hHle : H ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hNle : 2 ^ j ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hj
   have hof := ofFnFrom_cost_sum0 P (by includes) (n := 2 ^ j) (by omega) _
-    (.closure fromLevel.c381.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
+    (.closure fromLevel.c383.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue i,
       encodeValue B, encodeValue (2 * H), encodeValue d.1, encodeValue H, encodeValue d.2])
-    (fun p ↦ RunsApp.of_spec (fromLevel.c381.lam0.costSpec P (by includes) pw (2 ^ j) i B _ _ _ _ p))
+    (fun p ↦ RunsApp.of_spec (fromLevel.c383.lam0.costSpec P (by includes) pw (2 ^ j) i B _ _ _ _ p))
     (fun p ↦ if p % (2 * H) < 2 * H / 2 then 76 * i + 48 else 71 * i + 77)
     (fun p ↦ by
       rw [appCost_fn]
@@ -386,24 +386,24 @@ theorem fromLevel_cost (hP : Includes P fromLevel.c381.costDeps) (pw : Array ℕ
   cost_simp
   omega
 
-/-- **Levels `0, …, L − 1` of novel → monomial** over `N = 2^j` (`fromLevels.c379`): at most
+/-- **Levels `0, …, L − 1` of novel → monomial** over `N = 2^j` (`fromLevels.c381`): at most
 `37·N·L² + 80·N·L + 84·L + 20`. -/
-theorem fromLevels_cost (hP : Includes P fromLevels.c379.costDeps) (pw : Array ℕ)
+theorem fromLevels_cost (hP : Includes P fromLevels.c381.costDeps) (pw : Array ℕ)
     (hpw : ∀ t, pw.getD t 0 < 2 ^ 40) {j L : ℕ} (hL : L ≤ j) (hj : j ≤ 40)
     (hH : ∀ i < L, pw.getD i 0 = 2 ^ i) (D : Array (Array K × K)) (B : Array K) :
-    machineCost P fromLevels.c379.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D,
+    machineCost P fromLevels.c381.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D,
       encodeValue L, encodeValue B] ≤
       37 * (2 ^ j * (L * L)) + 80 * (2 ^ j * L) + 84 * L + 20 := by
-  rw [fromLevels.c379.costEq P hP]
+  rw [fromLevels.c381.costEq P hP]
   have hr := rangeLoop_cost P (by includes) L [] (by omega)
   have hf := listFoldl_cost_sum P (by includes) _
-    (.closure fromLevels.c379.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D])
-    (fun b i ↦ RunsApp.of_spec (fromLevels.c379.lam0.costSpec P (by includes) pw (2 ^ j) D b i))
+    (.closure fromLevels.c381.lam0.costIdx [encodeValue pw, encodeValue (2 ^ j), encodeValue D])
+    (fun b i ↦ RunsApp.of_spec (fromLevels.c381.lam0.costSpec P (by includes) pw (2 ^ j) D b i))
     (fun i ↦ 74 * 2 ^ j * i + (80 * 2 ^ j + 58)) (List.range L) B
     (fun b i hi ↦ by
       have hi := List.mem_range.mp hi
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [fromLevels.c379.lam0.costEq P (by includes)]
+      rw [fromLevels.c381.lam0.costEq P (by includes)]
       have := fromLevel_cost P (by includes) pw hpw (by omega : i < j) hj (hH i hi) (D.getD i (#[], 0)) b
       rw [mul_assoc]
       omega)

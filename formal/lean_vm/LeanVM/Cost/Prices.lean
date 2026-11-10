@@ -8,7 +8,7 @@ public import Statement.CostMachine
 The closed-form prices `lean_vm` proves of the compiled extractor and the compiled guest decoder,
 part by part (`Cost/Bounds/`), natural-number formulas only. The statement's budgets are short
 upper bounds on them: `leanVmKnowledgeExtractorBudget` (`Statement/CostMachine.lean`) above `extractorPrice`
-at every shape the replay admits (`extractorPrice_le_worst`, `extractorPrice_worst_le`, and the
+at every shape the replay admits, at its stack size (`extractorPrice_le_budget`, and the
 compiled extractor within it, `extractorC_within`, `Cost/Bounds/Top.lean`), and
 `guestWitnessDecoderBudget` (`Statement/LeanVmGuest.lean`) above `guestDecoderPrice` on every valid
 execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
@@ -16,10 +16,11 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 
 /-! ## The extractor's price
 
-About `2^85.80 + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
-worst shape `(μ, R) = (32, 4)` with `κ = ℓ = 32`: about `2^85.80` for at most `2^40` queries (the
-list decoder dominating), `2^87.34` for `2^60`, `2^90.95` for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128`
-queries (the transcript's index dominating). -/
+At a stack of `2^μ`, about `2^max(81, 2μ + 22) + 2^14.85·N·log²N` for `N` permutation queries
+(`O(N·log³N)` as `N` grows), the list decoder's part taken at its budget: at `μ = 32` with
+`κ = ℓ = 32`, about `2^86` for at most `2^40` queries (the list decoder dominating), `2^87.56` for
+`2^60`, `2^91.18` for `2^64`, `2^107.76` for `2^80` and `2^157.08` for `2^128` queries (the
+transcript's index dominating). -/
 
 namespace LeanVM.Cost
 
@@ -78,15 +79,15 @@ def committedLeavesPrice (D h W : ℕ) : ℕ :=
 
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
 interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
-the worst admissible shape `(32, 3)`: about `2^85.80`. It is `lean_vm`'s `pmDecoderWorstPrice`
-(`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 32 3 0 0`), evaluated
-(`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
-(`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
-def listDecoderWorstPrice : ℕ := 67498454346174488641581264
+a stack of `2^μ`: the statement's budget term `2^max(81, 2μ + 22)` less `2^75`. It is `lean_vm`'s
+`pmDecoderBudget` (`Cost/Bounds/PMLane/ShapeDefs.lean`), and bounds the decoder at every admissible
+shape of that size (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`): about
+`2^80.49` at `μ = 28`, `2^85.80` at `μ = 32`. -/
+def listDecoderWorstPrice (μ : ℕ) : ℕ := 2 ^ max 81 (2 * μ + 22) - 2 ^ 75
 
-/-- The list decoder's part, at every admissible shape: its word's reads and
-`listDecoderWorstPrice`. -/
-def listDecoderPrice : ℕ := 1751 * 2 ^ 30 + listDecoderWorstPrice + 22
+/-- The list decoder's part, at every admissible shape of a stack of `2^μ`: its word's reads and
+`listDecoderWorstPrice μ`. -/
+def listDecoderPrice (μ : ℕ) : ℕ := 1751 * 2 ^ 30 + listDecoderWorstPrice μ + 22
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 5712 * 2 ^ ℓ + 947
@@ -95,7 +96,7 @@ def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 5712 * 2 ^ ℓ + 947
 the fast path, the runner's tables, at most `1 + 2^12` candidate runs and the list decoder. -/
 def afterRootStagePrice (μ R κ ℓ D N h W : ℕ) : ℕ :=
   transcriptIndexPrice D 512 N W + committedLeavesPrice D h W + fastPathPrice μ R 64 23 +
-    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 21) * (2 ^ 12 + 1) + listDecoderPrice + 133
+    runnerTablesPrice κ ℓ + (stackRunPrice κ ℓ + 21) * (2 ^ 12 + 1) + listDecoderPrice μ + 133
 
 /-- The levels of the extractor's sorted maps for `N` permutation queries: `log₂(N + 2) + 1`. -/
 def extractorSortedMapLevels (N : ℕ) : ℕ := Nat.log2 (N + 2) + 1

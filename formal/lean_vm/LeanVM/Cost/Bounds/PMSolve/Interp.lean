@@ -92,7 +92,7 @@ theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoice
       refine ⟨choiceInv_step hbest hdeg (by omega), ?_⟩
       · simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
         rw [leastShiftedDegreeChoiceC.lam0.costEq P (by includes),
-          Auto.CompPoly.PolynomialMatrix.leastShiftedDegreeRowStep?.c585.costEq P (by includes)]
+          Auto.CompPoly.PolynomialMatrix.leastShiftedDegreeRowStep?.c587.costEq P (by includes)]
         have := rowShiftedDegree_cost P (by includes) hC (by omega) (M.getD i #[]) (hrw i) shift hS
         generalize M.getD i #[] = row at this hdeg ⊢
         generalize hd : rowShiftedDegree? row shift = o
@@ -105,7 +105,7 @@ theorem leastShiftedDegreeChoiceC_cost (hP : Includes P leastShiftedDegreeChoice
           | some cur =>
             have := hbest cur rfl
             dsimp only
-            rw [Auto.CompPoly.PolynomialMatrix.betterRowChoice.c586.costEq P (by includes)]
+            rw [Auto.CompPoly.PolynomialMatrix.betterRowChoice.c588.costEq P (by includes)]
             cost_simp
             split_ifs <;> omega)
   simp only [List.length_range] at hf
@@ -360,7 +360,7 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
       max (limbCount c.degree) (limbCount params.weightedDegreeBound) +
         (if c.degree ≤ params.weightedDegreeBound then
           machineCost P ofCoeffRowC.costIdx [encodeValue c.row] +
-            machineCost P Auto.LeanVM.Extraction.Fast.normalizeLeeFast.c630.costIdx
+            machineCost P Auto.LeanVM.Extraction.Fast.normalizeLeeFast.c632.costIdx
               [encodeValue params, encodeValue (CBivariate.ofCoeffRow c.row)] + 5
         else 1) + 8 ≤
       (3 * (params.multiplicity * points.size + params.weightedDegreeBound + 2 + 2) + 32) *
@@ -380,8 +380,8 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
     cost_simp
     split <;> omega
   -- the assembly
-  rw [Auto.CompPoly.GuruswamiSudan.ApproximantBasis.modularEquation.c623.costEq P (by includes),
-    Auto.LeanVM.Extraction.Fast.solveWindow.c624.costEq P (by includes)]
+  rw [Auto.CompPoly.GuruswamiSudan.ApproximantBasis.modularEquation.c625.costEq P (by includes),
+    Auto.LeanVM.Extraction.Fast.solveWindow.c626.costEq P (by includes)]
   have hGn' := Nat.mul_le_mul_right points.size hGs
   have hMs' := Nat.mul_le_mul_left (84 * GuruswamiSudan.interpolationWidth params + 98) hMs
   have hopt : Option.casesOn (motive := fun _ ↦ ℕ)
@@ -389,7 +389,7 @@ theorem interpolatePMC_cost (hP : Includes P interpolatePMC.costDeps) (p : PMPri
       (fun val ↦ max (limbCount val.degree) (limbCount params.weightedDegreeBound) +
         (if val.degree ≤ params.weightedDegreeBound then
           machineCost P ofCoeffRowC.costIdx [encodeValue val.row] +
-            machineCost P Auto.LeanVM.Extraction.Fast.normalizeLeeFast.c630.costIdx
+            machineCost P Auto.LeanVM.Extraction.Fast.normalizeLeeFast.c632.costIdx
               [encodeValue params, encodeValue (CBivariate.ofCoeffRow val.row)] + 5
         else 1) + 8) ≤
       (3 * (params.multiplicity * points.size + params.weightedDegreeBound + 2 + 2) + 32) *

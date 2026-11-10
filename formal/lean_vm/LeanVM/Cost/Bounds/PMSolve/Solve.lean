@@ -74,11 +74,11 @@ theorem maxOrder_lt (problem : XAdicProblem K) (B : ℕ)
   exact this _ 0 (Nat.zero_le _) ho
 
 /-- `pmBasisFuel`: at most `21·|orders| + 13`. -/
-theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c570.costDeps) (problem : XAdicProblem K)
+theorem pmBasisFuelC_cost (hP : Includes P pmBasisFuel.c572.costDeps) (problem : XAdicProblem K)
     (ho : ∀ x ∈ problem.orders.toList, x < 2 ^ 62) :
-    machineCost P pmBasisFuel.c570.costIdx [encodeValue problem] ≤
+    machineCost P pmBasisFuel.c572.costIdx [encodeValue problem] ≤
       21 * problem.orders.size + 13 := by
-  rw [pmBasisFuel.c570.costEq P hP]
+  rw [pmBasisFuel.c572.costEq P hP]
   have := PMCore.maxOrderC_cost P (by includes) problem (fun x hx ↦ by
     have := ho x (Array.mem_toList_iff.2 hx); omega)
   have := maxOrder_lt problem (2 ^ 62) (fun x hx ↦ (ho x hx).le)
@@ -282,8 +282,8 @@ theorem certifiedSolveC_cost (hP : Includes P certifiedSolveC.costDeps) (p : PMP
   unfold certSolveCost
   split
   · rename_i hguard
-    rw [ModularEquation.solutionWidth.c549.costEq P (by includes),
-      certShift.c569.costEq P (by includes)]
+    rw [ModularEquation.solutionWidth.c551.costEq P (by includes),
+      certShift.c571.costEq P (by includes)]
     have hsh := exactNullspaceShiftC_cost P (by includes) shift equation.moduli.size bound
       (by omega) hsv
     have hfw := fullWindowProblemC_cost P (by includes) equation bound (by omega) hs

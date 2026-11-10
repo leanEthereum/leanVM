@@ -8,8 +8,8 @@ public import LeanVM.Cost.Bounds.PMLane.ShapeDefs
 At each of the `72` admissible shapes (`15 ≤ μ ≤ 32`, `1 ≤ R ≤ 4`), one `decide +kernel` each
 (a single `decide` over all shapes at once outgrows the memory): the lanes are word-sized
 (`DecoderLaneSizes`) and the decoder's bound beyond the word's prices, at the model's prices
-with their margin, is at most the one at `(32, 3)` (`pmDecoderWorstPrice`,
-`67498454346174488641581264 ≈ 2^85.80`): **`decoderShapePM_ok`**, which
+with their margin, is within the stack size's budget less `2^75` (`pmDecoderBudget`; the worst,
+`(32, 3)`, about `2^85.80`): **`decoderShapePM_ok`**, which
 `decodeStacksPMC_cost_worst` (`Bounds/PMLane/Decode.lean`) reads.
 
 The checks evaluate only the extractor's parameter search and the bounds' definitions, none of
@@ -176,10 +176,6 @@ theorem decoderShapePM_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShape
   · exact decoderShapeOkPM_32_2
   · exact decoderShapeOkPM_32_3
   · exact decoderShapeOkPM_32_4
-
-/-- **The worst price**: `67498454346174488641581264 ≈ 2^85.80`. -/
-theorem pmDecoderWorstPrice_eq : pmDecoderWorstPrice = 67498454346174488641581264 := by
-  decide +kernel
 
 end
 

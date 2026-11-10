@@ -42,10 +42,10 @@ structure Theorems
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
   `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
   5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
-  its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget N`, for
-  `N` permutation queries: about `2^86` up to `2^50` queries, `O(N·log³N)`), and extracting nothing
-  from an accepted proof is a break; so, but with that probability, the program extracts a valid
-  execution within its budget. That a price unit is a constant number of instructions of a 64-bit
+  its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget μ N`, for
+  `N` permutation queries at a stack of `2^μ`: about `2^max(81, 2μ + 22)` up to `2^50` queries,
+  `O(N·log³N)`), and extracting nothing from an accepted proof is a break; so, but with that
+  probability, the program extracts a valid execution within its budget. That a price unit is a constant number of instructions of a 64-bit
   CPU is trusted (`CostMachine.lean`). -/
   leanVmKnowledgeSoundness : LeanVM.KnowledgeSoundness
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)

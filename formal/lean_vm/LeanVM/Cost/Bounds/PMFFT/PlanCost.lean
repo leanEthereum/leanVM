@@ -21,34 +21,34 @@ public section
 
 variable (P : MachineProgram)
 
-/-- `Σ_{t<n} s_{o+t}·a^(2^t)` (`evalLinFrom.c395`): `76` per term, `5` at the end. -/
-theorem evalLinFrom_cost (hP : Includes P evalLinFrom.c395.costDeps) (s : Array K) :
+/-- `Σ_{t<n} s_{o+t}·a^(2^t)` (`evalLinFrom.c397`): `76` per term, `5` at the end. -/
+theorem evalLinFrom_cost (hP : Includes P evalLinFrom.c397.costDeps) (s : Array K) :
     ∀ (n o : ℕ) (a : K), o + n < 2 ^ 64 →
-      machineCost P evalLinFrom.c395.costIdx [encodeValue s, encodeValue n, encodeValue o,
+      machineCost P evalLinFrom.c397.costIdx [encodeValue s, encodeValue n, encodeValue o,
         encodeValue a] ≤ 76 * n + 5 := by
   intro n
   induction n with
-  | zero => intro o a _; rw [evalLinFrom.c395.costEq P hP]; cost_simp; omega
+  | zero => intro o a _; rw [evalLinFrom.c397.costEq P hP]; cost_simp; omega
   | succ n ih =>
     intro o a h
-    rw [evalLinFrom.c395.costEq P hP]
+    rw [evalLinFrom.c397.costEq P hP]
     have := ih (o + 1) (a * a) (by omega)
     cost_simp
     omega
 
-/-- `W_{i+1}`'s coefficients from `W_i`'s (`linStep.c396`), `n` coefficients: at most
+/-- `W_{i+1}`'s coefficients from `W_i`'s (`linStep.c398`), `n` coefficients: at most
 `95·(n + 1) + 17`. -/
-theorem linStep_cost (hP : Includes P linStep.c396.costDeps) (s : Array K) (β : K)
+theorem linStep_cost (hP : Includes P linStep.c398.costDeps) (s : Array K) (β : K)
     (hs : s.size < 2 ^ 40) :
-    machineCost P linStep.c396.costIdx [encodeValue s, encodeValue β] ≤ 95 * (s.size + 1) + 17 := by
-  rw [linStep.c396.costEq P hP]
+    machineCost P linStep.c398.costIdx [encodeValue s, encodeValue β] ≤ 95 * (s.size + 1) + 17 := by
+  rw [linStep.c398.costEq P hP]
   have hof := ofFnFrom_cost P (by includes) (n := s.size + 1) (by omega) _
-    (.closure linStep.c396.lam0.costIdx [encodeValue s, encodeValue β])
-    (fun t ↦ RunsApp.of_spec (linStep.c396.lam0.costSpec P (by includes) s β t)) 78
+    (.closure linStep.c398.lam0.costIdx [encodeValue s, encodeValue β])
+    (fun t ↦ RunsApp.of_spec (linStep.c398.lam0.costSpec P (by includes) s β t)) 78
     (fun t ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       have ht : t.val < 2 ^ 41 := by have := t.isLt; omega
-      rw [linStep.c396.lam0.costEq P (by includes)]
+      rw [linStep.c398.lam0.costEq P (by includes)]
       cost_simp
       split_ifs <;> omega) 0 (Nat.zero_le _)
   rw [ofFnFrom_length]
@@ -69,21 +69,21 @@ theorem tableUpTo_size_le {j : ℕ} : ∀ d ∈ FFT.tableUpTo j, d.1.size ≤ j 
   simp at hi
   omega
 
-/-- **The conversion table** (`tableUpTo.c393`): at most `86·k² + 150·k + 5`. -/
-theorem tableUpTo_cost (hP : Includes P tableUpTo.c393.costDeps) :
-    ∀ k, k ≤ 40 → machineCost P tableUpTo.c393.costIdx [encodeValue k] ≤ 86 * (k * k) + 150 * k + 5 := by
+/-- **The conversion table** (`tableUpTo.c395`): at most `86·k² + 150·k + 5`. -/
+theorem tableUpTo_cost (hP : Includes P tableUpTo.c395.costDeps) :
+    ∀ k, k ≤ 40 → machineCost P tableUpTo.c395.costIdx [encodeValue k] ≤ 86 * (k * k) + 150 * k + 5 := by
   intro k
   induction k with
-  | zero => intro _; rw [tableUpTo.c393.costEq P hP]; simp
+  | zero => intro _; rw [tableUpTo.c395.costEq P hP]; simp
   | succ k ih =>
     intro hk
-    rw [tableUpTo.c393.costEq P hP]
+    rw [tableUpTo.c395.costEq P hP]
     have h1 := ih (by omega)
     cost_simp
     cases k with
     | zero =>
       simp only [show FFT.tableUpTo 0 = [] from rfl]
-      rw [linData.c394.costEq P (by includes)]
+      rw [linData.c396.costEq P (by includes)]
       have := evalLinFrom_cost P (by includes) #[1] 1 0 (K.ofBits 1) (by norm_num)
       cost_simp
       simp only [Array.size_singleton] at this ⊢
@@ -103,69 +103,69 @@ theorem tableUpTo_cost (hP : Includes P tableUpTo.c393.costDeps) :
       rw [limbs_shift (by omega), limbs_two_pow (by omega)]
       nlinarith
 
-/-- **Batched inversion** (`batchInvAux.c398`): `104` per element, one inversion. -/
-theorem batchInvAux_cost (hP : Includes P batchInvAux.c398.costDeps) :
-    ∀ (l : List K) (b : K), machineCost P batchInvAux.c398.costIdx [encodeValue l, encodeValue b] ≤
+/-- **Batched inversion** (`batchInvAux.c400`): `104` per element, one inversion. -/
+theorem batchInvAux_cost (hP : Includes P batchInvAux.c400.costDeps) :
+    ∀ (l : List K) (b : K), machineCost P batchInvAux.c400.costIdx [encodeValue l, encodeValue b] ≤
       104 * l.length + 2831 := by
   intro l
   induction l with
   | nil =>
     intro b
-    rw [batchInvAux.c398.costEq P hP]
+    rw [batchInvAux.c400.costEq P hP]
     have := invK_cost P (by includes) b
     dsimp only
     omega
   | cons x l ih =>
     intro b
-    rw [batchInvAux.c398.costEq P hP]
+    rw [batchInvAux.c400.costEq P hP]
     have := ih (b * x)
     simp only [List.length_cons]
     omega
 
-/-- **Subset sums by doubling** (`spanTable.c403`), the closure at most `C`: at most
+/-- **Subset sums by doubling** (`spanTable.c405`), the closure at most `C`: at most
 `28·2^n + (C + 36)·n + 11`. -/
-theorem spanTable_cost (hP : Includes P spanTable.c403.costDeps) (c : ℕ → K) (cVal : MachineValue)
+theorem spanTable_cost (hP : Includes P spanTable.c405.costDeps) (c : ℕ → K) (cVal : MachineValue)
     (hc : ∀ a : ℕ, RunsApp P cVal [encodeValue a] (encodeValue (c a))) (C : ℕ)
     : ∀ n, n ≤ 40 → (∀ a : ℕ, a < n → appCost P cVal [encodeValue a] ≤ C) →
-      machineCost P spanTable.c403.costIdx [cVal, encodeValue n] ≤ 28 * 2 ^ n + (C + 36) * n + 11 := by
+      machineCost P spanTable.c405.costIdx [cVal, encodeValue n] ≤ 28 * 2 ^ n + (C + 36) * n + 11 := by
   intro n
   induction n with
-  | zero => intro _ _; rw [spanTable.c403.costEq P hP c cVal hc]; simp
+  | zero => intro _ _; rw [spanTable.c405.costEq P hP c cVal hc]; simp
   | succ k ih =>
     intro hk hC
-    rw [spanTable.c403.costEq P hP c cVal hc]
+    rw [spanTable.c405.costEq P hP c cVal hc]
     have h1 := ih (by omega) fun a ha ↦ hC a (by omega)
     have h2 := hC k (by omega)
     have hN : 2 ^ k ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
     have hof := ofFnFrom_cost P (by includes) (n := 2 ^ k) (by omega) _
-      (.closure spanTable.c403.lam0.costIdx [encodeValue k, encodeValue (FFT.spanTable c k), encodeValue (c k)])
-      (fun w ↦ RunsApp.of_spec (spanTable.c403.lam0.costSpec P (by includes) k _ _ w)) 9
+      (.closure spanTable.c405.lam0.costIdx [encodeValue k, encodeValue (FFT.spanTable c k), encodeValue (c k)])
+      (fun w ↦ RunsApp.of_spec (spanTable.c405.lam0.costSpec P (by includes) k _ _ w)) 9
       (fun w ↦ by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [spanTable.c403.lam0.costEq P (by includes) k (FFT.spanTable c k) (c k) w]) 0
+        rw [spanTable.c405.lam0.costEq P (by includes) k (FFT.spanTable c k) (c k) w]) 0
         (Nat.zero_le _)
     cost_simp
     rw [ofFnFrom_length, FFT.size_spanTable, Array.size_ofFn]
     simp only [Nat.sub_zero] at hof
     -- `cost_simp` reads the closure's index as its literal
-    rw [show spanTable.c403.lam0.costIdx = (spanTable.c403.lam0.costIdx : ℕ) from rfl] at hof
-    unfold spanTable.c403.lam0.costIdx at hof
+    rw [show spanTable.c405.lam0.costIdx = (spanTable.c405.lam0.costIdx : ℕ) from rfl] at hof
+    unfold spanTable.c405.lam0.costIdx at hof
     rw [pow_succ]
     nlinarith
 
-/-- **Stage `i`'s twiddles of size `2^j`** (`stageTwiddles.c402`), `d.1` of at most `j`
+/-- **Stage `i`'s twiddles of size `2^j`** (`stageTwiddles.c404`), `d.1` of at most `j`
 coefficients: at most `28·2^(j−i−1) + (76·j + 91)·(j − i − 1) + 22`. -/
-theorem stageTwiddles_cost (hP : Includes P stageTwiddles.c402.costDeps) {i j : ℕ} (hij : i < j)
+theorem stageTwiddles_cost (hP : Includes P stageTwiddles.c404.costDeps) {i j : ℕ} (hij : i < j)
     (hj : j ≤ 40) (d : Array K × K) (hd : d.1.size ≤ j) :
-    machineCost P stageTwiddles.c402.costIdx [encodeValue j, encodeValue i, encodeValue d] ≤
+    machineCost P stageTwiddles.c404.costIdx [encodeValue j, encodeValue i, encodeValue d] ≤
       28 * 2 ^ (j - (i + 1)) + (76 * j + 91) * (j - (i + 1)) + 22 := by
-  rw [stageTwiddles.c402.costEq P hP]
+  rw [stageTwiddles.c404.costEq P hP]
   have hs := spanTable_cost P (by includes) _
-    (.closure stageTwiddles.c402.lam0.costIdx [encodeValue i, encodeValue d])
-    (fun b ↦ RunsApp.of_spec (stageTwiddles.c402.lam0.costSpec P (by includes) i d b)) (76 * j + 55)
+    (.closure stageTwiddles.c404.lam0.costIdx [encodeValue i, encodeValue d])
+    (fun b ↦ RunsApp.of_spec (stageTwiddles.c404.lam0.costSpec P (by includes) i d b)) (76 * j + 55)
     (j - (i + 1)) (by omega) (fun b hb ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stageTwiddles.c402.lam0.costEq P (by includes)]
+      rw [stageTwiddles.c404.lam0.costEq P (by includes)]
       have := evalLinFrom_cost P (by includes) d.1 d.1.size 0
         (K.ofBits (2 ^ b * 2 ^ (i + 1))) (by omega)
       have hprod : limbCount (2 ^ b * 2 ^ (i + 1)) = 1 := by

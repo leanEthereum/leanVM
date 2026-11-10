@@ -23,8 +23,8 @@ The price of `decodeStacksDistinctPM μ R W` (`Fast/LanePM.lean`, compiled in
   lists, and the pruning's states, are the extractor's: `laneListWith_eq`, `pruneUpToWith_eq`);
 * **`decodeStacksPMC_cost`** `≤ decoderBoundPM p μ R BW Lw` at an admissible shape whose lanes
   are word-sized, and **`decodeStacksPMC_cost_worst`**: at every admissible shape, at the model's
-  prices with their margin, at most `(BW + 12·Lw)·2^30 + pmDecoderWorstPrice`
-  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^85.80`).
+  prices with their margin, at most `(BW + 12·Lw)·2^30 + pmDecoderBudget μ`
+  (`decoderShapePM_ok`; the stack size's budget less `2^75`).
 
 Each lane's interpolation is priced by `interpolatePMC_cost_price` (`Bounds/PMSolve/Final.lean`),
 at prices fitting the proved transforms (`FFTPricesOK p`) and where its per-shape conditions hold
@@ -421,8 +421,8 @@ theorem decoderBoundPM_eq (p : PMPrices) (μ R BW Lw : ℕ) :
 /-! ## At every admissible shape -/
 
 /-- **The decoder on `pmSolver` at every admissible shape**, at the model's prices with
-their margin: at most `(BW + 12·Lw)·2^30 + pmDecoderWorstPrice` (`decoderShapePM_ok`,
-`pmDecoderWorstPrice = 67498454346174488641581264 ≈ 2^85.80`): no hypothesis but the word's
+their margin: at most `(BW + 12·Lw)·2^30 + pmDecoderBudget μ` (`decoderShapePM_ok`, the stack
+size's budget less `2^75`): no hypothesis but the word's
 prices, each lane's interpolation priced by `interpolatePMC_cost_price` at the shape's
 decided conditions (`LaneInterpOKPM marginPrices`) and `FFTPricesOK marginPrices`
 (`PMSolve.fftPricesOK_margin`). -/
@@ -432,7 +432,7 @@ theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
     {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksPMC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
-      (BW + 12 * Lw) * 2 ^ 30 + pmDecoderWorstPrice := by
+      (BW + 12 * Lw) * 2 ^ 30 + pmDecoderBudget μ := by
   obtain ⟨hsz, hI, hle⟩ := decoderShapePM_ok hadm
   have h := decodeStacksPMC_cost P hP PMSolve.fftPricesOK_margin μ R hadm hsz hI W WVal hW hBW
     hLw

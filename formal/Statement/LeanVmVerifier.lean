@@ -2126,4 +2126,34 @@ def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (claim : Byteco
 
 end LeanVM.Protocol.Verifier
 
+/-! ## The sizes a proof announces
+
+The verifier's first step reads the announced sizes and nothing else (`readAnnouncedSizes`): its
+reads only absorb, so no hash or permutation is consulted for a value, and running it with every
+permutation answered by `default` gives the layout the proof announces. The extractor's budget
+(`Statement/CostMachine.lean`) grows with the stack size it announces. -/
+
+namespace LeanVM.Protocol.Compile
+
+open LeanVM.Parameters
+
+/-- A run with every permutation answered by `default`, for the steps that only read scalars: what
+they read does not depend on the sponge. -/
+def runPure {α : Type} (program : VerifierProgram α) (s : VerifierProgramState) : Option
+    (α × VerifierProgramState) :=
+  Id.run (run (m := Id) (fun _ ↦ default) program s)
+
+end LeanVM.Protocol.Compile
+
+namespace LeanVM.Protocol.Verifier
+
+open LeanVM.Parameters LeanVM.Protocol.Compile
+
+/-- The announced layout and rate exponent of a stream, read by the program's own
+`readAnnouncedSizes` (reads only absorb: no hash or permutation is consulted for a value). -/
+def announcedLayoutAndRate (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
+  (runPure (readAnnouncedSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩).map (·.1)
+
+end LeanVM.Protocol.Verifier
+
 end

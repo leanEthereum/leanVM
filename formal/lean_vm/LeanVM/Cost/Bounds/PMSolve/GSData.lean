@@ -57,7 +57,7 @@ variable (P : MachineProgram)
 theorem moduliLoopC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB : MulBound P N MB)
     (G : CPolynomial K) (m : ℕ) (hm : m < 2 ^ 30) (hGN : m * G.natDegree + 1 ≤ N) :
     ∀ (n k : ℕ), k + 1 + n ≤ m → ∀ l : List ℕ, l.length = n →
-      machineCost P Auto.LeanVM.Cost.LoopLib.listForInId.c520.costIdx
+      machineCost P Auto.LeanVM.Cost.LoopLib.listForInId.c522.costIdx
           [.closure gsModuliC.lam0.costIdx [encodeValue G], encodeValue l,
             encodeValue (powersArr G k)] ≤ (MB + m + 33) * n + 3 := by
   have hf := fun x s ↦ (RunsApp.of_spec (us := [encodeValue G]) (vs := [encodeValue x,
@@ -67,7 +67,7 @@ theorem moduliLoopC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB 
   induction n with
   | zero =>
     intro k _ l hl
-    rw [List.length_eq_zero_iff.1 hl, Auto.LeanVM.Cost.LoopLib.listForInId.c520.costEq P
+    rw [List.length_eq_zero_iff.1 hl, Auto.LeanVM.Cost.LoopLib.listForInId.c522.costEq P
       (by includes) _ _ hf]
     simp
   | succ n ih =>
@@ -76,7 +76,7 @@ theorem moduliLoopC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB 
       cases l with
       | nil => simp at hl
       | cons x l' => exact ⟨x, l', rfl⟩
-    rw [Auto.LeanVM.Cost.LoopLib.listForInId.c520.costEq_cons P (by includes) _ _ hf]
+    rw [Auto.LeanVM.Cost.LoopLib.listForInId.c522.costEq_cons P (by includes) _ _ hf]
     simp only [appCost_fn, List.cons_append, List.nil_append]
     rw [gsModuliC.lam0.costEq P (by includes)]
     have hs : (powersArr G k).size = k + 1 := by simp [powersArr]
@@ -129,7 +129,7 @@ theorem gsModuliC_cost (hP : Includes P gsModuliC.costDeps) {N MB : ℕ} (hMB : 
   have hm0 : (m == 0) = false := by simp; omega
   rw [hm0]
   simp only [Bool.false_eq_true, ↓reduceIte]
-  rw [Auto.Std.Legacy.Range.size.c523.costEq P (by includes)]
+  rw [Auto.Std.Legacy.Range.size.c525.costEq P (by includes)]
   have hX := moduliForIn_size G m (by omega)
   have hsz : [1:m].size = m - 1 := by simp [Std.Legacy.Range.size]
   have hst : [1:m].start = 1 := rfl

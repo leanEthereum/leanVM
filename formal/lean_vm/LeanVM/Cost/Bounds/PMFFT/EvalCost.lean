@@ -118,31 +118,31 @@ theorem cpoly_size_lt {f : CompPoly.CPolynomial K} {d : ℕ} (h : f.natDegree �
   have := FFT.size_le_natDegree_succ f
   omega
 
-/-- **The entries' largest degree** (`maxEntryDegree.c432`), `rows × cols` entries of degree
+/-- **The entries' largest degree** (`maxEntryDegree.c434`), `rows × cols` entries of degree
 below `2^40`: at most `81·rows·cols + 46·rows + 18`. -/
-theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c432.costDeps)
+theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c434.costDeps)
     (M : CompPoly.PolynomialMatrix K) (rows cols : ℕ) (hr : rows < 2 ^ 40) (hc : cols < 2 ^ 40)
     (d : ℕ) (hd : d < 2 ^ 40)
     (hM : ∀ i k, (CompPoly.PolynomialMatrix.rowGet (M.getD i #[]) k).natDegree ≤ d) :
-    machineCost P maxEntryDegree.c432.costIdx [encodeValue M, encodeValue rows, encodeValue cols] ≤
+    machineCost P maxEntryDegree.c434.costIdx [encodeValue M, encodeValue rows, encodeValue cols] ≤
       81 * (rows * cols) + 46 * rows + 18 := by
-  rw [maxEntryDegree.c432.costEq P hP]
+  rw [maxEntryDegree.c434.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) rows [] (by omega)
-  have hinner : ∀ i acc : ℕ, acc < 2 ^ 40 → machineCost P maxEntryDegree.c432.lam0.costIdx
+  have hinner : ∀ i acc : ℕ, acc < 2 ^ 40 → machineCost P maxEntryDegree.c434.lam0.costIdx
       [encodeValue M, encodeValue cols, encodeValue acc, encodeValue i] ≤ 81 * cols + 18 := by
     intro i acc hacc
-    rw [maxEntryDegree.c432.lam0.costEq P (by includes)]
+    rw [maxEntryDegree.c434.lam0.costEq P (by includes)]
     have h2 := rangeLoop_cost P (by includes) cols [] (by omega)
     have h3 := listFoldl_le P (by includes) _
-      (.closure maxEntryDegree.c432.lam0.lam0.costIdx [encodeValue M, encodeValue i])
-      (fun a k ↦ RunsApp.of_spec (maxEntryDegree.c432.lam0.lam0.costSpec P (by includes) M i a k))
+      (.closure maxEntryDegree.c434.lam0.lam0.costIdx [encodeValue M, encodeValue i])
+      (fun a k ↦ RunsApp.of_spec (maxEntryDegree.c434.lam0.lam0.costSpec P (by includes) M i a k))
       55 (fun a ↦ a < 2 ^ 40) (List.range cols) acc hacc
       (fun a ha k _ ↦ ⟨by
         have := hM i k
         show max a _ < 2 ^ 40
         omega, by
         simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-        rw [maxEntryDegree.c432.lam0.lam0.costEq P (by includes)]
+        rw [maxEntryDegree.c434.lam0.lam0.costEq P (by includes)]
         have e1 := hM i k
         have e2 := Decoder.natDegree_cost P (by includes)
           (CompPoly.PolynomialMatrix.rowGet (M.getD i #[]) k) (by
@@ -153,8 +153,8 @@ theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c432.costDeps)
     rw [List.length_range] at h3
     omega
   have h4 := listFoldl_le P (by includes) _
-    (.closure maxEntryDegree.c432.lam0.costIdx [encodeValue M, encodeValue cols])
-    (fun a i ↦ RunsApp.of_spec (maxEntryDegree.c432.lam0.costSpec P (by includes) M cols a i))
+    (.closure maxEntryDegree.c434.lam0.costIdx [encodeValue M, encodeValue cols])
+    (fun a i ↦ RunsApp.of_spec (maxEntryDegree.c434.lam0.costSpec P (by includes) M cols a i))
     (81 * cols + 20) (fun a ↦ a < 2 ^ 40) (List.range rows) 0 (by norm_num)
     (fun a ha i _ ↦ ⟨by
       exact foldl_max_lt _ _ (fun k ↦ (hM i k).trans_lt hd) _ _ ha, by
@@ -165,19 +165,19 @@ theorem maxEntryDegreeC_cost (hP : Includes P maxEntryDegree.c432.costDeps)
   have : (81 * cols + 20 + 11) * rows = 81 * (rows * cols) + 31 * rows := by ring
   omega
 
-/-- **The size's search** (`ceilLogLoop.c437`) from `a`, `e ≤ 2^K`, `K ≤ 40`: at most
+/-- **The size's search** (`ceilLogLoop.c439`) from `a`, `e ≤ 2^K`, `K ≤ 40`: at most
 `22·(K − a) + 17`. -/
-theorem ceilLogLoopC_cost (hP : Includes P ceilLogLoop.c437.costDeps) (e K : ℕ) (he : e ≤ 2 ^ K)
+theorem ceilLogLoopC_cost (hP : Includes P ceilLogLoop.c439.costDeps) (e K : ℕ) (he : e ≤ 2 ^ K)
     (hK : K ≤ 40) : ∀ fuel a, fuel < 2 ^ 64 → a ≤ K →
-      machineCost P ceilLogLoop.c437.costIdx [encodeValue e, encodeValue fuel, encodeValue a] ≤
+      machineCost P ceilLogLoop.c439.costIdx [encodeValue e, encodeValue fuel, encodeValue a] ≤
         22 * (K - a) + 17 := by
   have hpK : 2 ^ K ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) hK
   intro fuel
   induction fuel with
-  | zero => intro a _ _; rw [ceilLogLoop.c437.costEq P hP]; cost_simp; omega
+  | zero => intro a _ _; rw [ceilLogLoop.c439.costEq P hP]; cost_simp; omega
   | succ n ih =>
     intro a hn ha
-    rw [ceilLogLoop.c437.costEq P hP]
+    rw [ceilLogLoop.c439.costEq P hP]
     cost_simp
     rw [limbs_shift (by omega), limbs_two_pow (by omega)]
     split_ifs with h
@@ -190,30 +190,30 @@ theorem ceilLogLoopC_cost (hP : Includes P ceilLogLoop.c437.costDeps) (e K : ℕ
       cost_simp
       omega
 
-/-- **A matrix of entries** (`PolynomialMatrix.ofFn.c439`), each at most `E`: at most
+/-- **A matrix of entries** (`PolynomialMatrix.ofFn.c441`), each at most `E`: at most
 `rows·width·(E + 35) + 49·rows + 18`. -/
-theorem matrixOfFnC_cost (hP : Includes P ofFn.c439.costDeps) (rows width : ℕ)
+theorem matrixOfFnC_cost (hP : Includes P ofFn.c441.costDeps) (rows width : ℕ)
     (hr : rows < 2 ^ 40) (hw : width < 2 ^ 40) (entry : ℕ → ℕ → CompPoly.CPolynomial K)
     (eVal : MachineValue)
     (he : ∀ a b : ℕ, RunsApp P eVal [encodeValue a, encodeValue b] (encodeValue (entry a b)))
     (E : ℕ) (hE : ∀ a b : ℕ, appCost P eVal [encodeValue a, encodeValue b] ≤ E) :
-    machineCost P ofFn.c439.costIdx [encodeValue rows, encodeValue width, eVal] ≤
+    machineCost P ofFn.c441.costIdx [encodeValue rows, encodeValue width, eVal] ≤
       rows * width * (E + 35) + 49 * rows + 18 := by
-  rw [ofFn.c439.costEq P hP rows width entry eVal he]
+  rw [ofFn.c441.costEq P hP rows width entry eVal he]
   have h1 := rangeLoop_cost P (by includes) rows [] (by omega)
-  have h2 := map_cost P (by includes) _ (.closure ofFn.c439.lam0.costIdx [encodeValue width, eVal])
-    (fun i ↦ RunsApp.of_spec (ofFn.c439.lam0.costSpec P (by includes) width entry eVal he i))
+  have h2 := map_cost P (by includes) _ (.closure ofFn.c441.lam0.costIdx [encodeValue width, eVal])
+    (fun i ↦ RunsApp.of_spec (ofFn.c441.lam0.costSpec P (by includes) width entry eVal he i))
     ((E + 19) * width + width + 20 + 15 * width) (List.range rows)
     (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [ofFn.c439.lam0.costEq P (by includes) width entry eVal he i]
+      rw [ofFn.c441.lam0.costEq P (by includes) width entry eVal he i]
       have h3 := rangeLoop_cost P (by includes) width [] (by omega)
-      have h4 := map_cost P (by includes) _ (.closure ofFn.c439.lam0.lam0.costIdx [eVal, encodeValue i])
-        (fun k ↦ RunsApp.of_spec (ofFn.c439.lam0.lam0.costSpec P (by includes) entry eVal he i k))
+      have h4 := map_cost P (by includes) _ (.closure ofFn.c441.lam0.lam0.costIdx [eVal, encodeValue i])
+        (fun k ↦ RunsApp.of_spec (ofFn.c441.lam0.lam0.costSpec P (by includes) entry eVal he i k))
         (E + 6) (List.range width)
         (fun k _ ↦ by
           simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [ofFn.c439.lam0.lam0.costEq P (by includes) entry eVal he i k]
+          rw [ofFn.c441.lam0.lam0.costEq P (by includes) entry eVal he i k]
           have := hE i k
           omega)
       simp only [List.length_map, List.length_range] at h4 ⊢
@@ -449,38 +449,38 @@ theorem mulEvalPC_cost (hP : Includes P mulEvalPC.costDeps) (p : PMPrices) (hp :
 
 /-! ## The column-truncated product -/
 
-/-- **An X-adic truncation** (`truncateX.c452`) at `order`: at most `55·order + 31`. -/
-theorem truncateXC_cost (hP : Includes P truncateX.c452.costDeps) (order : ℕ) (ho : order < 2 ^ 40)
+/-- **An X-adic truncation** (`truncateX.c454`) at `order`: at most `55·order + 31`. -/
+theorem truncateXC_cost (hP : Includes P truncateX.c454.costDeps) (order : ℕ) (ho : order < 2 ^ 40)
     (f : CompPoly.CPolynomial K) :
-    machineCost P truncateX.c452.costIdx [encodeValue order, encodeValue f] ≤ 55 * order + 31 := by
-  rw [truncateX.c452.costEq P hP]
+    machineCost P truncateX.c454.costIdx [encodeValue order, encodeValue f] ≤ 55 * order + 31 := by
+  rw [truncateX.c454.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) order [] (by omega)
-  have h2 := map_cost P (by includes) _ (.closure truncateX.c452.lam0.costIdx [encodeValue f])
-    (fun i ↦ RunsApp.of_spec (truncateX.c452.lam0.costSpec P (by includes) f i)) 5 (List.range order)
+  have h2 := map_cost P (by includes) _ (.closure truncateX.c454.lam0.costIdx [encodeValue f])
+    (fun i ↦ RunsApp.of_spec (truncateX.c454.lam0.costSpec P (by includes) f i)) 5 (List.range order)
     (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [truncateX.c452.lam0.costEq P (by includes)])
+      rw [truncateX.c454.lam0.costEq P (by includes)])
   have h3 := Decoder.ofArray_cost P (by includes)
     ((List.map (fun i ↦ f.coeff i) (List.range order)).toArray) (by simp; omega)
   simp only [List.size_toArray, List.length_map, List.length_range] at h2 h3 ⊢
   omega
 
-/-- **The largest order** (`maxOrderOf.c449`), `cols` orders at most `O < 2^40`: at most
+/-- **The largest order** (`maxOrderOf.c451`), `cols` orders at most `O < 2^40`: at most
 `40·cols + 16`. -/
-theorem maxOrderOfC_cost (hP : Includes P maxOrderOf.c449.costDeps) (orders : Array ℕ) (cols O : ℕ)
+theorem maxOrderOfC_cost (hP : Includes P maxOrderOf.c451.costDeps) (orders : Array ℕ) (cols O : ℕ)
     (hc : cols < 2 ^ 40) (hO : O < 2 ^ 40) (ho : ∀ c, orders.getD c 0 ≤ O) :
-    machineCost P maxOrderOf.c449.costIdx [encodeValue orders, encodeValue cols] ≤ 40 * cols + 16 := by
-  rw [maxOrderOf.c449.costEq P hP]
+    machineCost P maxOrderOf.c451.costIdx [encodeValue orders, encodeValue cols] ≤ 40 * cols + 16 := by
+  rw [maxOrderOf.c451.costEq P hP]
   have h1 := rangeLoop_cost P (by includes) cols [] (by omega)
-  have h2 := listFoldl_le P (by includes) _ (.closure maxOrderOf.c449.lam0.costIdx [encodeValue orders])
-    (fun a c ↦ RunsApp.of_spec (maxOrderOf.c449.lam0.costSpec P (by includes) orders a c)) 14
+  have h2 := listFoldl_le P (by includes) _ (.closure maxOrderOf.c451.lam0.costIdx [encodeValue orders])
+    (fun a c ↦ RunsApp.of_spec (maxOrderOf.c451.lam0.costSpec P (by includes) orders a c)) 14
     (fun a ↦ a < 2 ^ 40) (List.range cols) 0 (by norm_num)
     (fun a ha c _ ↦ ⟨by
       have := ho c
       show max a _ < 2 ^ 40
       omega, by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [maxOrderOf.c449.lam0.costEq P (by includes)]
+      rw [maxOrderOf.c451.lam0.costEq P (by includes)]
       have := ho c
       cost_simp
       split_ifs <;> omega⟩)
