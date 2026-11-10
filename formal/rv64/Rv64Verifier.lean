@@ -24,6 +24,7 @@ import Rv64Verifier.Proofs.Hash.KeccakHash
 import Rv64Verifier.Proofs.Transcript.All
 import Rv64Verifier.Proofs.Multilinear.All
 import Rv64Verifier.Proofs.Bus.All
+import Rv64Verifier.Proofs.Pcs.All
 import Rv64Verifier.Sym
 import Rv64Verifier.Field.ClmulLow
 import Rv64Verifier.Field.BaseMul
