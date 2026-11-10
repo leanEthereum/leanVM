@@ -339,3 +339,51 @@ fn fold_packs_equal_the_byte_tables() {
         );
     }
 }
+
+/// The spare slots' slices as they were, a subset-sum table of the `eq` table per eight steps:
+/// the oracle of [`crate::open::spare_slices`].
+fn spare_slices_by_tables(shape: Shape, committed: &[primitives::field::F64], instance: &[F192]) -> Vec<[F192; 64]> {
+    let (n, spare) = (shape.n(), (1 << shape.slot_log()) - shape.slots());
+    let eq = eq_table(instance);
+    let slots = &committed[shape.slots() * n..];
+    let mut out = vec![[F192::ZERO; 64]; spare];
+    for (group, weights) in eq.as_chunks::<8>().0.iter().enumerate() {
+        let table = crate::basis::byte_sums(weights);
+        for (slot, out) in out.iter_mut().enumerate() {
+            let mut bytes = [0u8; 64];
+            for (b, w) in bytes
+                .as_chunks_mut::<8>()
+                .0
+                .iter_mut()
+                .zip(&slots[slot * n + 8 * group..][..8])
+            {
+                *b = w.0.to_le_bytes();
+            }
+            let mut gathered = [0u8; 64];
+            primitives::bits::bit_transpose_64bytes(&bytes, &mut gathered);
+            for (out, &byte) in out.iter_mut().zip(&gathered) {
+                *out += table[byte as usize];
+            }
+        }
+    }
+    out
+}
+
+/// The spare slots' slices by one fold over a split `eq` table give the byte tables' values, at
+/// the counts of spare slots of depths 6, 8, 12 and 24.
+#[test]
+fn spare_slices_equal_the_byte_tables() {
+    let mut rng = Rng::new(84);
+    for (n, depth) in [(0, 12), (600, 8), (1100, 12), (4700, 6), (20000, 12), (70000, 24)] {
+        let shape = Shape::new(n, depth);
+        let committed: Vec<_> = (0..1usize << shape.stack_log())
+            .map(|_| primitives::field::F64(rng.next_u64()))
+            .collect();
+        let instance = rng.ext_vec(shape.n_log());
+        assert!(
+            crate::open::spare_slices(shape, &committed, &instance)
+                == spare_slices_by_tables(shape, &committed, &instance),
+            "{n} instances, depth {depth}"
+        );
+    }
+}

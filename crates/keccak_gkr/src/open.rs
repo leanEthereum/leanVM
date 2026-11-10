@@ -13,7 +13,6 @@ use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 
-use crate::basis::byte_sums;
 use crate::keccak::{BITS, LANES, along, iota_bit};
 use crate::protocol::{Claim, dot};
 use crate::witness::{BLOCK_WORDS, Shape, Witness, words};
@@ -253,38 +252,48 @@ pub fn open_outputs(
 /// nothing about them, but the claim it leaves is on the whole committed block, so the slot
 /// fold below has to carry their bits.
 ///
-/// Slice `z` of slot `s` is `Σ_step eq(instance, step) · bit z of committed[s·n + step]`: a
-/// subset sum of the `eq` table over the steps whose bit is set, read eight steps at a time off
-/// their transposed bytes.
-fn spare_slices(shape: Shape, committed: &[F64], instance: &[F192]) -> Vec<[F192; 64]> {
+/// Slice `z` of slot `s` is `Σ_step eq(instance, step) · bit z of committed[s·n + step]`. The
+/// `eq` table is the product of one on the low [`CHUNK_VARS`] instance variables and one on the
+/// rest, so a chunk of steps is one [`BitFold`] by the low table, row `z` being the chunk's bits
+/// `z` read off their transposed bytes, and only the chunk's 64 sums meet the high table.
+pub(crate) fn spare_slices(shape: Shape, committed: &[F64], instance: &[F192]) -> Vec<[F192; 64]> {
     let (n, spare) = (shape.n(), (1 << shape.slot_log()) - shape.slots());
-    let eq = eq_table(instance);
-    let (groups, slots) = (eq.as_chunks::<8>().0, &committed[shape.slots() * n..]);
-    // A task per group of eight steps rather than per slot: the subset sums are the work, and one
-    // group's table serves every slot, where a task per slot would rebuild it and, there being as
-    // few slots as there are, leave most of the pool idle.
-    parallel::fold_reduce(
-        n / 8,
-        || vec![[F192::ZERO; 64]; spare],
-        |acc, group| {
-            let table = byte_sums(&groups[group]);
+    // An instance point has `Shape::n_log` variables, at least nine.
+    let (low, high) = instance.split_at(CHUNK_VARS);
+    let (fold, high) = (BitFold::new(&eq_table(low)), eq_table(high));
+    let slots = &committed[shape.slots() * n..];
+    // A task per chunk rather than per slot, there being few slots; one BitFold serves them all.
+    let sums = parallel::fold_reduce(
+        n >> CHUNK_VARS,
+        || vec![[F192Unreduced::ZERO; 64]; spare],
+        |acc, chunk| {
             for (slot, acc) in acc.iter_mut().enumerate() {
-                let words = std::array::from_fn(|w| slots[slot * n + 8 * group + w].0);
-                let mut gathered = [0u8; 64];
-                primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
-                for (acc, &byte) in acc.iter_mut().zip(&gathered) {
-                    *acc += table[byte as usize];
+                let steps = &slots[slot * n + (chunk << CHUNK_VARS)..][..1 << CHUNK_VARS];
+                // Column `g` gathers bit `z` of the eight steps `8 * g ..` at byte `z`.
+                let mut cols = [[0u8; BLOCK]; CHUNK_BYTES];
+                for (col, steps) in cols.iter_mut().zip(steps.as_chunks::<8>().0) {
+                    primitives::bits::bit_transpose_64bytes(&le_bytes(&steps.map(|step| step.0)), col);
+                }
+                let mut sums = [F192::ZERO; BLOCK];
+                fold.fold_columns(&cols, &mut sums);
+                for (acc, sum) in acc.iter_mut().zip(sums) {
+                    *acc ^= high[chunk].mul_unreduced(sum);
                 }
             }
         },
         |mut a, b| {
             for (a, b) in a.iter_mut().flatten().zip(b.iter().flatten()) {
-                *a += *b;
+                *a ^= *b;
             }
             a
         },
-    )
+    );
+    sums.iter().map(|sums| sums.map(F192Unreduced::reduce)).collect()
 }
+
+/// Instance variables of a [`spare_slices`] chunk, and the bytes of each of its rows.
+const CHUNK_VARS: usize = 8;
+const CHUNK_BYTES: usize = (1 << CHUNK_VARS) / 8;
 
 /// Open the claim on the inputs: the instances of a pack first, then the slot.
 pub fn open_inputs(ps: &mut ProverState, witness: &Witness, committed: &[F64], claim: &Claim) -> Opening {
