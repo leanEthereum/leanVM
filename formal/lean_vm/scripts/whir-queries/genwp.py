@@ -1,0 +1,48 @@
+"""Write Guest/WalkWpOk.lean and Guest/WalkWp.lean from the guest data: walk_path's certificates
+(index j = core index + 1)."""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gen
+D = os.path.join(sys.argv[1], 'LeanVM') + '/' + 'Guest/'
+ws = sorted((i, tuple(map(int, n[len('walk_path__L'):].split('_L'))), n)
+            for n, i in gen.fns.items() if n.startswith('walk_path__L'))
+ok = ['''/-
+  LeanVM.Guest.WalkWpOk
+
+  The certificates of `walk_path`'s specializations take its windows (`winsTag`) and hand on only
+  their bounds (`wpOk`), by kernel evaluation.
+-/
+
+module
+
+public import LeanVM.Guest.WalkKnownDefs
+
+namespace LeanVM.Guest.End
+
+@[expose] public section
+''']
+wp = ['''/-
+  LeanVM.Guest.WalkWp
+
+  The cut obligations (`CutsKnown`) of `walk_path`'s specializations (`wp_cutsKnown`,
+  `WalkWpOk.lean`'s checks).
+-/
+
+module
+
+public import LeanVM.Guest.WalkKnown
+public import LeanVM.Guest.WalkWpOk
+
+namespace LeanVM.Guest.End
+
+@[expose] public section
+''']
+for i, (pd, cd), n in ws:
+    j = i + 1
+    ok.append('/-- `%s`. -/\ntheorem walkOk_%d : wpOkJ %d %d %d = true := by decide +kernel\n' % (n, j, j, pd, cd))
+    wp.append('/-- `%s`. -/\ntheorem walk_%d : CutsKnown %d :=\n  wp_cutsKnown (by decide) (by decide) walkOk_%d\n' % (n, j, j, j))
+for out in (ok, wp):
+    out.append('end\nend LeanVM.Guest.End\n')
+open(D + 'WalkWpOk.lean', 'w').write('\n'.join(ok))
+open(D + 'WalkWp.lean', 'w').write('\n'.join(wp))
+print(' '.join('walk_%d' % (i + 1) for i, _, _ in ws))
