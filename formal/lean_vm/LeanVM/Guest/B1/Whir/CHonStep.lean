@@ -197,5 +197,92 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
   · show (osQCallAt c l lv (lvH c l lv (osStAt c l)).2).2.2.2.map σ' = _
     rw [← hst, q2]
 
+/-! ## The final level -/
+
+/-- **The final level's step.** -/
+theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyStatic h.c)
+    {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs h.c.yrLevel st σ) (W : FinWD)
+    (hpZ : W.pZ = osPtrF h.c b (13 + 2 * h.c.yrLevel)) (hpH : W.pH = osPtrF h.c b (14 + 2 * h.c.yrLevel))
+    (hr3 : 3 * ((osLvAt h.c h.c.yrLevel).foldsOff + (osLvAt h.c h.c.yrLevel).folds) < u128Bound)
+    (hpo : (osLvAt h.c h.c.yrLevel).posOff < u128Bound)
+    (hS5 : (osLvAt h.c h.c.yrLevel).squeezes * 5 < u128Bound)
+    (hc4 : 4 * (osLvAt h.c h.c.yrLevel).capOff < u128Bound) (hh8 : h.c.yrLevel * hsStride < u128Bound)
+    (hqu : (osLvAt h.c h.c.yrLevel).queries < u128Bound)
+    (hC : ∀ C rd, H C rd → FinC C rd σ h.c h.c.yrLevel (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel)
+      (h.claimAt h.c.yrLevel) (cur * gen ^ (xs.length - (h.xsAt h.c.yrLevel).length)) W)
+    (hcap' : W.cap3 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) =
+      h.capAt (h.c.yrLevel + 1))
+    (hcl' : W.cl1 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) =
+      h.claimAt (h.c.yrLevel + 1))
+    (hcur' : xs.length - (h.xsAt h.c.yrLevel).length +
+        (7 * (osLvAt h.c h.c.yrLevel).folds + (h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds + 1)) =
+      xs.length - (h.xsAt (h.c.yrLevel + 1)).length)
+    (hw0 : cellsOfState (W.S2 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel))
+      false 0 = h.word h.c.yrLevel 0) :
+    BlkA H σ st.k (osLevel h.c h.c.yrLevel (osLvAt h.c h.c.yrLevel) st).2.k
+      (osLevel h.c h.c.yrLevel (osLvAt h.c h.c.yrLevel) st).1 (fun σ' ↦
+      st.k ≤ (osLevel h.c h.c.yrLevel (osLvAt h.c h.c.yrLevel) st).2.k ∧
+      QAt h b tabs cur xs (h.c.yrLevel + 1) (osLevel h.c h.c.yrLevel (osLvAt h.c h.c.yrLevel) st).2 σ' ∧
+      RAt h b tabs h.c.yrLevel σ' ∧ RQ h b h.c.yrLevel W.batched σ') := by
+  set c := h.c with hc
+  set l := c.yrLevel with hl
+  set lv := osLvAt c l with hlv
+  obtain ⟨-, hLv, -, hlen, hyr, -, hLs, -, -, -, -, -, -, -, -, hlt⟩ := hS
+  have hst : st = osStAt c l := hq.eq
+  have hfs := hq.fs
+  have hcl := hq.claim
+  have hcu := hq.cur
+  have hblk := osLevelFin_complete (H := H) (c := c) (lvl := l) (lv := lv) (st := st) σ hq.ok.sf
+    (fun _ _ _ ↦ hq.ok) rfl W hr3 hpo hS5 (by omega) hc4 (by omega) hh8
+    (by split_ifs <;> omega) (fun C rd hH ↦ by rw [hfs, hcl, hcu]; exact hC C rd hH)
+  refine hblk.mono fun σ' ⟨hstep, eF, ecur, ecl, e3, e4, e5, e6, d1, s1, s2, q1, q2⟩ ↦ ?_
+  have hp : ∀ i < 13, σ' (.n (11 + 2 * i)) = osPtrF c b i := fun i hi ↦ by
+    rw [hstep.agree _ (by have := hq.ok.sf.k; omega)]; exact hq.ptr i hi
+  have ht : σ (.n osTabs) = tabs := hq.tabs
+  have hptr : ∀ i < 13, σ (.n (11 + 2 * i)) = osPtrF c b i := hq.ptr
+  rw [hfs, hcl, hcu] at *
+  have hsz : (osSizesF c).getD (13 + 2 * l) 0 = (c.maxSq + 1) * 5 ∧
+      (osSizesF c).getD (14 + 2 * l) 0 = c.yrLen + lv.folds := by
+    obtain ⟨a1, a2⟩ := hLs l (by omega)
+    exact ⟨a1.trans (ite_eq_left_of_eq_true _ _ (eq_true hl)), a2.trans (ite_eq_left_of_eq_true _ _ (eq_true hl))⟩
+  have hix : osIxSqz c l = 13 + 2 * l := by simp only [osIxSqz, hl, ↓reduceIte]; ring
+  have hhs : osHsPtr c b l = osPtrF c b (14 + 2 * l) := by simp only [osHsPtr, osIxHsF, hl, ↓reduceIte]
+  have hN : gen ^ (if l = 0 then lv.queries / 2 else lv.queries) = gen ^ oqN c l := by
+    unfold oqN; split_ifs <;> simp <;> rfl
+  have hli : h.lamInv l = 0 := by simp [OsHD.lamInv, hl, hc]
+  refine ⟨hstep.le, ⟨?_, hstep.ok, hp, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · rw [hq.eq, osStFrom_get c 0 c.levels _ l (by omega), Nat.zero_add]
+  · rw [hstep.agree _ (by have := hq.ok.sf.k; show 9 < st.k; omega)]; exact ht
+  · have := congrArg Fs.cap eF
+    simp only [OsSt.F] at this
+    rw [← hcap']; exact this
+  · rw [ecl, hcl']
+  · rw [ecur, ← hcur', MidW.cur1]
+    simp only [mul_assoc, ← pow_add]
+    ring_nf
+  · have hf := hLv l (by omega)
+    simp only [lvAllocsV, hl, ↓reduceIte] at hf
+    rw [← hst] at hf
+    rw [show osStAt c l = st from hst.symm, allocsAt_two hf, e3, e4, e5, e6, hpZ, hpH, bufsAt_two,
+      show 13 + 2 * l + 1 = 14 + 2 * l by ring, hsz.1, hsz.2]
+    rw [logG_gw (by have := hlt (13 + 2 * l) (by omega); rwa [hsz.1] at this),
+      logG_gw (by have := hlt (14 + 2 * l) (by omega); rwa [hsz.2] at this)]
+  · show (osDecCallAt c lv (lvM c l lv (osStAt c l)).2).2.2.1.map σ' = _
+    rw [← hst, d1, hw0, ht, show σ (.n osQpos) = osPtrF c b 11 from hptr 11 (by norm_num),
+      show σ (.n osQbp) = osPtrF c b osIxQbp from hptr 12 (by norm_num)]
+  · show (osSqCallAt c l lv (lvM c l lv (osStAt c l)).2).1.map σ' = _
+    rw [← hst, s1]
+  · show (osSqCallAt c l lv (lvM c l lv (osStAt c l)).2).2.2.1.map σ' = _
+    rw [← hst, s2, ht, hpZ, show σ (.n osQpos) = osPtrF c b 11 from hptr 11 (by norm_num),
+      show σ (.n osQbp) = osPtrF c b osIxQbp from hptr 12 (by norm_num), hix]
+  · show (osQCallAt c l lv (lvH c l lv (osStAt c l)).2).2.2.1.map σ' = _
+    rw [← hst, q1, hli, show σ (.n osQpos) = osPtrF c b 11 from hptr 11 (by norm_num),
+      show σ (.n osQbp) = osPtrF c b osIxQbp from hptr 12 (by norm_num),
+      show σ (.n osCaps) = osPtrF c b 0 from hptr 0 (by norm_num),
+      show σ (.n osFlags) = osPtrF c b 1 from hptr 1 (by norm_num),
+      show σ (.n osCoefs) = osPtrF c b 5 from hptr 5 (by norm_num), hhs, hN, hpH]
+  · show (osQCallAt c l lv (lvH c l lv (osStAt c l)).2).2.2.2.map σ' = _
+    rw [← hst, q2]
+
 end
 end LeanVM.Guest.B1.Whir
