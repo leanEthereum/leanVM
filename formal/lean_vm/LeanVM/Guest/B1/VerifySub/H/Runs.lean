@@ -160,6 +160,45 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 
 theorem c1 : ∃ sp, S.s1.Carries sp := Tables.RunsTo.carries S.runS (seedFs_carries _ _)
 
+/-- **The announced sizes' run absorbs their words**: the sponge after it is the seed's with the
+eight words absorbed. -/
+theorem s1_eq : S.s1 = (seedFs seed (Node.statementDigest seed c.statement)).absorbAll
+    (sizeWords S.logMem S.rowsN S.rate) dsObserve := by
+  obtain ⟨sp, hsp⟩ := seedFs_carries seed (Node.statementDigest seed c.statement)
+  have h := Tables.RunsTo.toT S.runS hsp []
+  rw [List.append_nil] at h
+  generalize hp : readAnnouncedSizes bytecode = p at h
+  unfold readAnnouncedSizes at hp
+  subst hp
+  obtain ⟨xs, st1, h1, h2⟩ := Tables.runT_bind_some h
+  obtain ⟨rest, hl, hz, rfl⟩ := Tables.runT_readN_some _ _ _ _ _ _ _ h1
+  have hsl : (sizeWords S.logMem S.rowsN S.rate).length = 8 := by simp [sizeWords, S.hrowsL]
+  have hxl : xs.length = 8 := by rw [hl]; rfl
+  have hrest : rest = [] := by
+    have := congrArg List.length hz
+    simp only [List.length_append, hsl, hxl] at this
+    exact List.eq_nil_of_length_eq_zero (by omega)
+  subst hrest
+  rw [List.append_nil] at hz
+  subst hz
+  obtain ⟨u, st2, h3, h4⟩ := Tables.runT_bind_some h2
+  obtain ⟨-, rfl⟩ := Tables.runT_require_some h3
+  obtain ⟨u, st3, h5, h6⟩ := Tables.runT_bind_some h4
+  obtain ⟨-, rfl⟩ := Tables.runT_require_some h5
+  obtain ⟨L, st4, h7, h8⟩ := Tables.runT_bind_some h6
+  cases ho : buildLayout bytecode (kToNat (((sizeWords S.logMem S.rowsN S.rate).headD 0).limb 0))
+      ((((sizeWords S.logMem S.rowsN S.rate).drop 1).take tables.length).map
+        fun value ↦ kToNat (value.limb 0)) with
+  | none => rw [ho] at h7; exact absurd h7 (by simp [Verifier.liftOption, Tables.runT])
+  | some L' =>
+    rw [ho] at h7
+    obtain ⟨-, rfl⟩ := Tables.runT_pure_some h7
+    obtain ⟨u, st5, h9, h10⟩ := Tables.runT_bind_some h8
+    obtain ⟨-, rfl⟩ := Tables.runT_require_some h9
+    obtain ⟨-, e⟩ := Tables.runT_pure_some h10
+    simp only [Tables.TSt.mk.injEq] at e
+    exact e.1
+
 theorem cSR : ∃ sp, S.sR.Carries sp := by
   obtain ⟨sp, h⟩ := S.c1
   exact ⟨_, carries_absorb (carries_absorb h _ _) _ _⟩
