@@ -138,12 +138,13 @@ theorem honest_encoding (d : Data) {k : Key} {param : PublicParameter} {lay : La
     obtain ⟨hm, hc⟩ := List.append_inj hpay hl
     exact ⟨by rw [bytesBE_injective hc], hm.symm⟩
 
-/-- Two counters of a key on a path whose encodings carry the key's word: a collision of the data. -/
-def BadEnc (d : Data) : Prop :=
-  ∃ (i : Index) (lay : Layer) (cw : Counter × Encoding) (c : Counter),
-    encH (hOf d) lay (treeIndexAt i lay) (leafIndexAt i lay) encodingAttemptLimit 0 = some cw ∧
-    c ≠ cw.1 ∧ truncateHash (hOf d (.enc lay (treeIndexAt i lay) (leafIndexAt i lay) c)) =
-      Completeness.pack cw.2
+/-- `x` is the honest input of a counter other than the one found for its key, and the data's value
+there carries the key's word: an encoding collision read at `x`. -/
+def EncAt (d : Data) (x : Input) : Prop :=
+  ∃ (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (cw : Counter × Encoding) (c : Counter),
+    encH (hOf d) lay tree leaf encodingAttemptLimit 0 = some cw ∧ c ≠ cw.1 ∧
+    pt (hOf d) (d none) (.enc lay tree leaf c) = x ∧
+    truncateHash (hOf d (.enc lay tree leaf c)) = Completeness.pack cw.2
 
 theorem encH_none_decode (h : Key → HashOutput) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) :
     ∀ n c₀, encH h lay tree leaf n c₀ = none → ∀ c, c₀ ≤ c → c < c₀ + n →
@@ -169,9 +170,10 @@ abbrev fD (d : Data) (G : Input → HashOutput) : QueryImpl HashSpec Id :=
 /-- The public key read from the data. -/
 abbrev pkD (d : Data) : PublicKey := (keysH (d none) (hOf d)).1
 
-/-- The outcomes of a branch: a hit, a protected read, or a collision of encodings. -/
+/-- The outcomes of a branch: a hit, a protected read, or a read encoding collision. -/
 def BranchOut (d : Data) (s : Log) (G : Input → HashOutput) (trace : List HashInput) : Prop :=
-  (∃ l ∈ trace, HitAt d G l) ∨ (∃ l ∈ trace, ∃ x : Input, x.1 = l ∧ Prot d s x) ∨ BadEnc d
+  (∃ l ∈ trace, HitAt d G l) ∨ (∃ l ∈ trace, ∃ x : Input, x.1 = l ∧ Prot d s x) ∨
+    ∃ l ∈ trace, ∃ x : Input, x.1 = l ∧ EncAt d x
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 1000000 in
@@ -221,7 +223,8 @@ theorem wotsException_out (d : Data) (s : Log) (G : Input → HashOutput) (messa
           Completeness.decodeDigest_pack _ ReferenceChoice.dummyWord_valid] at hdec
         simp at hdec
       | some cw =>
-        refine Or.inr (Or.inr ⟨i, lay, cw, counter, hsel, fun hc ↦ hexempt ?_, ?_⟩)
+        refine Or.inr (Or.inr ⟨l, hmem, pt (hOf d) (d none) (.enc lay (treeIndexAt i lay)
+          (leafIndexAt i lay) counter), hk, lay, _, _, cw, counter, hsel, fun hc ↦ hexempt ?_, rfl, ?_⟩)
         · have hs : ReferenceChoice.selection f (pkD d).parameter lay
               (SignatureWitness.keyTree i lay) (SignatureWitness.keyLeaf i lay)
               (SignatureWitness.canonicalMessage f (pkD d).parameter (d none) i lay) = some cw :=

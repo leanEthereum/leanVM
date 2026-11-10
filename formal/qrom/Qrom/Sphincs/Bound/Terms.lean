@@ -5,12 +5,11 @@ public import Qrom.Sphincs.Bound.Split
 @[expose] public section
 
 /-!
-# The protected reads and the hits
+# The protected reads
 
 Averaged over the data, the verifier reads a protected input of the hidden game with weight at most
-`verifyQueries · 2^-128 tr ρ` (`Qrom.Sphincs.sum_prot_le`). Averaged over `G`, it reads an input at
-which `G` hits the honest value with weight at most `2^-128 (√6 (n + 1 + verifyQueries) +
-2 verifyQueries)² tr ρ` for an adversary making at most `n` calls (`Qrom.Sphincs.sum_hit_le`).
+`verifyQueries · 2^-128 tr ρ` (`Qrom.Sphincs.sum_prot_le`). The budgets of the adversary with the
+public key and of the verifier are counted here too.
 -/
 
 open OracleComp OracleSpec FORS Quantum
@@ -62,24 +61,5 @@ theorem sum_prot_le (G : Input → HashOutput) {A : QReg} (adv : Adversary A) (�
   gcongr
   refine (Finset.sum_le_sum fun d _ ↦ OvGame.sideW_true_le (hidGame d) G _ _ ρ).trans ?_
   simp
-
-open Classical in
-/-- **Hits**, averaged over `G`. -/
-theorem sum_hit_le (d : Data) {A : QReg} (adv : Adversary A) {n : ℕ}
-    (hadv : ∀ pk, (adv pk).IsTotalQueryBound n) (ρ : SubState A) :
-    ∑ G : Input → HashOutput, (Fintype.card (Input → HashOutput) : ℝ≥0∞)⁻¹ *
-      OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦
-        evHit d G (evalWithAnswerFn (hidAns d G s) (verifier p.2.2))) ≤
-      ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 *
-        (√6 * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2) *
-        ENNReal.ofReal ρ.matrix.trace.re := by
-  have h := OvGame.search_withVerifier_le (hidGame d) (good d) (2 ^ 128) (card_good_le d)
-    (withKey adv) verifier outK verifyQueries card_outK_le (1 + n) verifyQueries
-    (isTotalQueryBound_withKey hadv) isTotalQueryBound_verifier ρ
-  have hc : ((2 ^ 128 : ℕ) : ℝ) / Fintype.card HashOutput = (2 : ℝ)⁻¹ ^ 128 := by
-    rw [card_hashOutput]
-    norm_num
-  rw [hc] at h
-  exact h
 
 end Qrom.Sphincs

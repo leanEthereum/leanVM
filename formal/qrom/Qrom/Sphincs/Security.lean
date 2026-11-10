@@ -12,7 +12,7 @@ public import Qrom.Sphincs.Bound.CoverCells
 An adversary given the public key, making at most `n` calls in all (hash queries, quantum or
 classical, and signing queries), forges with probability at most
 `(√ε_hid + (n + 1 + verifyQueries) √(4 · 2^-128 tr ρ))²`, where `ε_hid` is the weight of a win in the
-hidden game: a protected read, a hit, an encoding collision of the data, or a covered digest
+hidden game: a protected read, a hit, a read encoding collision, or a covered digest
 (`Qrom.Sphincs.winProb_le`).
 -/
 
@@ -30,13 +30,10 @@ variable [Params]
 /-- The search factor of an adversary making at most `n` calls. -/
 def searchK (n : ℕ) : ℝ := (√6 * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2
 
-/-- The probability bound of an encoding collision of the data. -/
-def badB : ℝ := 2 ^ totalHeight * numLayers * 2 ^ counterBits * (2 : ℝ)⁻¹ ^ 128
-
 /-- **The weight of a win in the hidden game.** -/
 def epsHid (n : ℕ) (t : ℝ) : ℝ≥0∞ :=
   (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) +
-    ENNReal.ofReal badB + lamF * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
+    lamF * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
 
 theorem sum_inv_card (α : Type) [Fintype α] [Nonempty α] : ∑ _ : α, (Fintype.card α : ℝ≥0∞)⁻¹ = 1 := by
   rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul,
@@ -57,13 +54,11 @@ theorem avg_hid_le {A : QReg} (adv : Adversary A) {n : ℕ} (hadv : ∀ pk, (adv
     (fun p s ↦ evProt d s p.2.2.2)
   set T2 := fun d G ↦ OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦
     evHit d G (evalWithAnswerFn (hidAns d G s) (verifier p.2.2)))
-  set T3 := fun d G ↦ if evBad d then OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ
-    (fun _ _ ↦ true) else 0
   set T4 := fun d G ↦ OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ
     (fun p s ↦ evCov d s G p.2.2.2)
   have hsplit : OvGame.avgSide hidGame .instruments (gameProg adv) ρ (fun _ _ p s ↦ win p.2.2 s) ≤
       ∑ d, ∑ G, (cD * cG)⁻¹ * T1 d G + ∑ d, ∑ G, (cD * cG)⁻¹ * T2 d G +
-        (∑ d, ∑ G, (cD * cG)⁻¹ * T3 d G + ∑ d, ∑ G, (cD * cG)⁻¹ * T4 d G) := by
+        ∑ d, ∑ G, (cD * cG)⁻¹ * T4 d G := by
     unfold OvGame.avgSide
     simp only [← Finset.sum_add_distrib, ← mul_add]
     exact Finset.sum_le_sum fun d _ ↦ Finset.sum_le_sum fun G _ ↦
@@ -85,50 +80,14 @@ theorem avg_hid_le {A : QReg} (adv : Adversary A) {n : ℕ} (hadv : ∀ pk, (adv
           calc cD⁻¹ * (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) * (cD * T)) =
               (cD⁻¹ * cD) * (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) * T) := by ring
             _ = _ := by rw [hD, one_mul]
-  -- hits
-  have h2 : ∑ d, ∑ G, (cD * cG)⁻¹ * T2 d G ≤ ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T := by
-    calc ∑ d, ∑ G, (cD * cG)⁻¹ * T2 d G = ∑ d, cD⁻¹ * ∑ G, cG⁻¹ * T2 d G := by
-          refine Finset.sum_congr rfl fun d _ ↦ ?_
-          rw [Finset.mul_sum]
-          refine Finset.sum_congr rfl fun G _ ↦ ?_
-          rw [hinv]; ring
-      _ ≤ ∑ _d : Data, cD⁻¹ * (ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T) :=
-          Finset.sum_le_sum fun d _ ↦ mul_le_mul_right (sum_hit_le d adv hadv ρ) _
-      _ = _ := by rw [← Finset.sum_mul, sum_inv_card, one_mul]
-  -- encoding collisions
-  have h3 : ∑ d, ∑ G, (cD * cG)⁻¹ * T3 d G ≤ ENNReal.ofReal badB * T := by
-    have hT3 : ∀ d G, T3 d G ≤ if evBad d then T else 0 := fun d G ↦ by
-      simp only [T3]
-      split_ifs
-      · exact OvGame.sideW_true_le _ G _ _ ρ
-      · exact le_rfl
-    calc ∑ d, ∑ G, (cD * cG)⁻¹ * T3 d G ≤ ∑ d, ∑ _G : Input → HashOutput,
-          (cD * cG)⁻¹ * (if evBad d then T else 0) :=
-          Finset.sum_le_sum fun d _ ↦ Finset.sum_le_sum fun G _ ↦ mul_le_mul_right (hT3 d G) _
-      _ = ∑ d, cD⁻¹ * (if evBad d then T else 0) := by
-          refine Finset.sum_congr rfl fun d _ ↦ ?_
-          simp only [hinv]
-          rw [← Finset.sum_mul, ← Finset.mul_sum, sum_inv_card, mul_one]
-      _ = cD⁻¹ * ((Finset.univ.filter BadEnc).card * T) := by
-          rw [← Finset.mul_sum, Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const,
-            nsmul_eq_mul]
-          congr 3
-      _ ≤ ENNReal.ofReal badB * T := by
-          have hc := card_badEnc_le
-          have hc' : ((Finset.univ.filter BadEnc).card : ℝ≥0∞) ≤ ENNReal.ofReal badB * cD := by
-            rw [← ENNReal.ofReal_natCast, show cD = ENNReal.ofReal (Fintype.card Data) from
-              (ENNReal.ofReal_natCast _).symm, ← ENNReal.ofReal_mul (by unfold badB; positivity)]
-            exact ENNReal.ofReal_le_ofReal hc
-          calc cD⁻¹ * ((Finset.univ.filter BadEnc).card * T) ≤ cD⁻¹ * (ENNReal.ofReal badB * cD * T) :=
-                mul_le_mul_right (mul_le_mul_left hc' _) _
-            _ = (cD⁻¹ * cD) * (ENNReal.ofReal badB * T) := by ring
-            _ = _ := by rw [hD, one_mul]
+  -- hits and encoding collisions
+  have h2 : ∑ d, ∑ G, (cD * cG)⁻¹ * T2 d G ≤ ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T :=
+    avg_hit_le adv hadv ρ
   -- covered digests
   have h4 := avg_covF_le adv hadv ρ
   calc _ ≤ ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) * T +
-        ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T +
-        (ENNReal.ofReal badB * T + lamF * ENNReal.ofReal (searchK n) * T) :=
-        add_le_add (add_le_add h1 h2) (add_le_add h3 h4)
+        ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) * T + lamF * ENNReal.ofReal (searchK n) * T :=
+        add_le_add (add_le_add h1 h2) h4
     _ = epsHid n ρ.matrix.trace.re := by unfold epsHid; ring
 
 /-- **leanSPHINCS is secure in the QROM.** An adversary from the register `A` in the state `ρ`,

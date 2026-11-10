@@ -12,7 +12,7 @@ With the cover probability bounded (`Qrom.Sphincs.lamF_le`), the forgery bound i
 (`Qrom.Sphincs.winProb_le_lamS`). For the parameters of `FORS.h26_layered` (`h = 26`, `d = 3`,
 `k = 24`, `a = 10`, `1,182,000,000` signatures), `λ_full ≤ 9 · 2^-130` (`Qrom.Sphincs.lamS_h26`) and
 a win in the hidden game weighs at most
-`(13 · 2^-130 (√6 (n + 1 + verifyQueries) + 2 verifyQueries)² + 2^-68) tr ρ`
+`(13 · 2^-130 (√6 (n + 1 + verifyQueries) + 2 verifyQueries)² + 879 · 2^-128) tr ρ`
 (`Qrom.Sphincs.winProb_le_h26`).
 -/
 
@@ -32,7 +32,7 @@ variable [Params]
 /-- The weight of a win in the hidden game, with the cover probability bounded. -/
 def epsB (n : ℕ) (t : ℝ) : ℝ≥0∞ :=
   (ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * searchK n) +
-    ENNReal.ofReal badB + ENNReal.ofReal (lamS) * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
+    ENNReal.ofReal lamS * ENNReal.ofReal (searchK n)) * ENNReal.ofReal t
 
 theorem epsHid_le (n : ℕ) (t : ℝ) : epsHid n t ≤ epsB n t := by
   unfold epsHid epsB
@@ -67,17 +67,14 @@ theorem lamS_h26 : lamS ≤ 9 * (2 : ℝ)⁻¹ ^ 130 := by
 
 theorem verifyQueries_h26 : verifyQueries = 879 := by decide
 
-theorem badB_h26 : badB = 3 * (2 : ℝ)⁻¹ ^ 70 := by
-  unfold badB
-  norm_num [totalHeight, numLayers, counterBits]
-
 /-- **leanSPHINCS in the QROM, for the parameters of `FORS.h26_layered`.** An adversary from the
 register `A` in the state `ρ`, making at most `n` calls in all (hash queries, quantum or classical,
 and signing requests), forges with probability at most
-`(√((13 · 2^-130 (√6 (n + 880) + 1758)² + 2^-68) tr ρ) + (n + 880) √(4 · 2^-128 tr ρ))²`. -/
+`(√((13 · 2^-130 (√6 (n + 880) + 1758)² + 879 · 2^-128) tr ρ) + (n + 880) √(4 · 2^-128 tr ρ))²`. -/
 theorem winProb_le_h26 {A : QReg} (adv : Adversary A) {n : ℕ}
     (hadv : ∀ pk, (adv pk).IsTotalQueryBound n) (ρ : SubState A) :
-    winProb adv ρ ≤ ((ENNReal.ofReal (13 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 1758) ^ 2 + (2 : ℝ)⁻¹ ^ 68) *
+    winProb adv ρ ≤ ((ENNReal.ofReal (13 * (2 : ℝ)⁻¹ ^ 130 * (√6 * (n + 880) + 1758) ^ 2 +
+        879 * (2 : ℝ)⁻¹ ^ 128) *
         ENNReal.ofReal ρ.matrix.trace.re) ^ (2⁻¹ : ℝ) + ((n + 880 : ℕ) : ℝ≥0∞) *
       (4 * ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128) * ENNReal.ofReal ρ.matrix.trace.re) ^ (2⁻¹ : ℝ)) ^ 2 := by
   refine (winProb_le_lamS adv hadv ρ).trans ?_
@@ -93,27 +90,24 @@ theorem winProb_le_h26 {A : QReg} (adv : Adversary A) {n : ℕ}
   unfold epsB
   gcongr ?_ * _
   calc ENNReal.ofReal (verifyQueries * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * K) +
-        ENNReal.ofReal badB + ENNReal.ofReal (lamS) * ENNReal.ofReal K ≤
+        ENNReal.ofReal lamS * ENNReal.ofReal K ≤
       ENNReal.ofReal (879 * (2 : ℝ)⁻¹ ^ 128) + ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * K) +
-        ENNReal.ofReal (3 * (2 : ℝ)⁻¹ ^ 70) + ENNReal.ofReal (9 * (2 : ℝ)⁻¹ ^ 130 * K) := by
-        rw [verifyQueries_h26, badB_h26]
+        ENNReal.ofReal (9 * (2 : ℝ)⁻¹ ^ 130 * K) := by
+        rw [verifyQueries_h26]
         push_cast
         gcongr
         rw [ENNReal.ofReal_mul (by positivity)]
         gcongr
         exact lamS_h26
-    _ = ENNReal.ofReal (879 * (2 : ℝ)⁻¹ ^ 128 + (2 : ℝ)⁻¹ ^ 128 * K + 3 * (2 : ℝ)⁻¹ ^ 70 +
-          9 * (2 : ℝ)⁻¹ ^ 130 * K) := by
+    _ = ENNReal.ofReal (879 * (2 : ℝ)⁻¹ ^ 128 + (2 : ℝ)⁻¹ ^ 128 * K + 9 * (2 : ℝ)⁻¹ ^ 130 * K) := by
         rw [ENNReal.ofReal_add (by positivity) (by positivity),
-          ENNReal.ofReal_add (by positivity) (by positivity),
           ENNReal.ofReal_add (by positivity) (by positivity)]
     _ ≤ _ := by
         rw [← hK]
-        refine ENNReal.ofReal_le_ofReal ?_
-        have h1 : (2 : ℝ)⁻¹ ^ 128 + 9 * (2 : ℝ)⁻¹ ^ 130 = 13 * (2 : ℝ)⁻¹ ^ 130 := by norm_num
-        have h2 : 879 * (2 : ℝ)⁻¹ ^ 128 + 3 * (2 : ℝ)⁻¹ ^ 70 ≤ (2 : ℝ)⁻¹ ^ 68 := by norm_num
-        have h3 : ((2 : ℝ)⁻¹ ^ 128 + 9 * (2 : ℝ)⁻¹ ^ 130) * K = 13 * (2 : ℝ)⁻¹ ^ 130 * K := by rw [h1]
-        linarith
+        refine ENNReal.ofReal_le_ofReal (le_of_eq ?_)
+        have h1 : (2 : ℝ)⁻¹ ^ 128 = 4 * (2 : ℝ)⁻¹ ^ 130 := by norm_num
+        rw [h1]
+        ring
 
 end h26
 

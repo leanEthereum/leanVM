@@ -8,8 +8,9 @@ public import Qrom.Sphincs.Bound.Reach
 # The win event, split
 
 On the side state `s` of the hidden game, with the data's public key and an honest log, the
-adversary wins only if the verifier reads a protected input, or an input at which `G` hits, or the
-data has an encoding collision, or the forgery's digest is covered (`Qrom.Sphincs.win_split`).
+adversary wins only if the verifier reads a protected input, or an input at which `G` hits or the
+data collides with an encoding word (`Qrom.Sphincs.HitE`), or the forgery's digest is covered
+(`Qrom.Sphincs.win_split`).
 -/
 
 open OracleComp OracleSpec FORS FORS.Security Quantum
@@ -57,6 +58,11 @@ theorem outK_verifier (f : Input → HashOutput) (x : PublicKey × Forgery) :
   rw [outK, eval_verifier]
   rw [List.take_of_length_le (length_queriedInputs_le _ (bound_verify _ _ _))]
 
+/-- `G` hits the honest value of a dishonest input's address, or the data collides at an encoding
+input. -/
+def HitE (d : Data) (G : Input → HashOutput) (x : Input) : Prop :=
+  (good d x (G x) ∧ ∀ k, pt (hOf d) (d none) k ≠ x) ∨ EncAt d x
+
 open Classical in
 /-- **The win event, split.** -/
 theorem win_split (d : Data) (s : Log) (G : Input → HashOutput) (F : Forgery) (hlog : HonestLog d s)
@@ -65,17 +71,16 @@ theorem win_split (d : Data) (s : Log) (G : Input → HashOutput) (F : Forgery) 
     (∃ x ∈ outOf (evalWithAnswerFn (QueryImpl.ofFn ((hidGame d).answer s G)) (verifier (pkD d, F))),
       Prot d s x) ∨
     (∃ x ∈ outOf (evalWithAnswerFn (QueryImpl.ofFn ((hidGame d).answer s G)) (verifier (pkD d, F))),
-      good d x (G x)) ∨
-    BadEnc d ∨ CoverE d s G F.message F.signature.randomness := by
+      HitE d G x) ∨ CoverE d s G F.message F.signature.randomness := by
   rw [eval_verifier] at hw ⊢
   simp only [win, Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at hw
   obtain ⟨hver, hfresh⟩ := hw
   rcases classify d s G F.message F.signature hlog hver hfresh with
-    ⟨l, hl, x, rfl, hp⟩ | ⟨l, hl, x, rfl, -, hg⟩ | hbad | hcov
+    ⟨l, hl, x, rfl, hp⟩ | ⟨l, hl, x, rfl, hnh, hg⟩ | ⟨l, hl, x, rfl, hbad⟩ | hcov
   · exact Or.inl ⟨x, mem_outOf.mpr hl, hp⟩
-  · exact Or.inr (Or.inl ⟨x, mem_outOf.mpr hl, hg⟩)
-  · exact Or.inr (Or.inr (Or.inl hbad))
-  · exact Or.inr (Or.inr (Or.inr hcov))
+  · exact Or.inr (Or.inl ⟨x, mem_outOf.mpr hl, Or.inl ⟨hg, fun k hk ↦ hnh k (congrArg Subtype.val hk)⟩⟩)
+  · exact Or.inr (Or.inl ⟨x, mem_outOf.mpr hl, Or.inr hbad⟩)
+  · exact Or.inr (Or.inr hcov)
 
 /-- An event may assume the data's public key. -/
 theorem sideW_pk_restrict (d : Data) (G : Input → HashOutput) {A : QReg} (adv : Adversary A)
@@ -113,13 +118,10 @@ open Classical in
 def evProt (d : Data) (s : Log) (b : Bool × List HashInput) : Bool := decide (∃ x ∈ outK b, Prot d s x)
 
 open Classical in
-/-- `G` hits at an input the verifier read. -/
+/-- `G` hits, or the data collides, at an input the verifier read. -/
 def evHit (d : Data) (G : Input → HashOutput) (b : Bool × List HashInput) : Bool :=
-  decide (∃ z ∈ outK b, good d z (G z))
+  decide (∃ z ∈ outK b, HitE d G z)
 
-open Classical in
-/-- The data has an encoding collision. -/
-def evBad (d : Data) : Bool := decide (BadEnc d)
 
 open Classical in
 /-- The forgery's digest is covered. -/
@@ -132,11 +134,8 @@ theorem evProt_iff {d : Data} {s : Log} {b : Bool × List HashInput} :
   unfold evProt; exact decide_eq_true_iff
 open Classical in
 theorem evHit_iff {d : Data} {G : Input → HashOutput} {b : Bool × List HashInput} :
-    evHit d G b = true ↔ ∃ z ∈ outK b, good d z (G z) := by
+    evHit d G b = true ↔ ∃ z ∈ outK b, HitE d G z := by
   unfold evHit; exact decide_eq_true_iff
-open Classical in
-theorem evBad_iff {d : Data} : evBad d = true ↔ BadEnc d := by
-  unfold evBad; exact decide_eq_true_iff
 open Classical in
 theorem evCov_iff {d : Data} {s : Log} {G : Input → HashOutput} {F : Forgery} :
     evCov d s G F = true ↔ CoverE d s G F.message F.signature.randomness := by
@@ -147,16 +146,14 @@ abbrev hidAns (d : Data) (G : Input → HashOutput) (s : Log) : QueryImpl (Input
   QueryImpl.ofFn ((hidGame d).answer s G)
 
 open Classical in
-/-- **The win weight is at most the weights of the four events.** -/
+/-- **The win weight is at most the weights of the three events.** -/
 theorem sideW_win_le (d : Data) (G : Input → HashOutput) {A : QReg} (adv : Adversary A)
     (ρ : SubState A) :
     OvGame.sideW (hidGame d) G .instruments (gameProg adv) ρ (fun p s ↦ win p.2.2 s) ≤
       OvGame.sideW (hidGame d) G .instruments (gameProg adv) ρ (fun p s ↦ evProt d s p.2.2.2) +
       OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦
         evHit d G (evalWithAnswerFn (hidAns d G s) (verifier p.2.2))) +
-      ((if evBad d then OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun _ _ ↦ true)
-        else 0) +
-      OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦ evCov d s G p.2.2.2)) := by
+      OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦ evCov d s G p.2.2.2) := by
   have hW := OvGame.sideW_withVerifier (hidGame d) G (withKey adv) verifier ρ fun v s ↦ win v s
   have hP := OvGame.sideW_withVerifier (hidGame d) G (withKey adv) verifier ρ
     fun v s ↦ evProt d s v.2
@@ -166,28 +163,20 @@ theorem sideW_win_le (d : Data) (G : Input → HashOutput) {A : QReg} (adv : Adv
   rw [OvGame.sideW_restrict (hidGame d) G {s | ¬ HonestLog d s}
     (fun j s h hs ↦ h (honestLog_closed d j s hs)) (fun h ↦ h (honestLog_empty d)) .instruments
     (withKey adv) ρ, sideW_pk_restrict d G adv ρ]
-  have hBad : OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun _ _ ↦ evBad d) =
-      if evBad d then OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun _ _ ↦ true) else 0 := by
-    cases evBad d
-    · exact sideW_false _ G _ ρ
-    · rfl
-  rw [← hBad]
   refine (OvGame.sideW_mono _ G _ _ ρ (ev' := fun p s ↦
       evProt d s (evalWithAnswerFn (hidAns d G s) (verifier p.2.2)) ||
-      (evHit d G (evalWithAnswerFn (hidAns d G s) (verifier p.2.2)) ||
-      (evBad d || evCov d s G p.2.2.2))) fun p s hps ↦ ?_).trans ?_
+      (evHit d G (evalWithAnswerFn (hidAns d G s) (verifier p.2.2)) || evCov d s G p.2.2.2)) fun p s hps ↦
+      ?_).trans ?_
   · simp only [Bool.and_eq_true, decide_eq_true_eq, Set.mem_ofPred_eq, not_not] at hps
     obtain ⟨⟨hw, hlog⟩, hpk⟩ := hps
     have hv : p.2.2 = (pkD d, p.2.2.2) := Prod.ext hpk rfl
     rw [hv] at hw ⊢
     simp only [Bool.or_eq_true]
-    rcases win_split d s G p.2.2.2 hlog hw with h | h | h | h
+    rcases win_split d s G p.2.2.2 hlog hw with h | h | h
     · exact Or.inl (evProt_iff.mpr (by rw [outK_verifier]; exact h))
     · exact Or.inr (Or.inl (evHit_iff.mpr (by rw [outK_verifier]; exact h)))
-    · exact Or.inr (Or.inr (Or.inl (evBad_iff.mpr h)))
-    · exact Or.inr (Or.inr (Or.inr (evCov_iff.mpr h)))
+    · exact Or.inr (Or.inr (evCov_iff.mpr h))
   · rw [add_assoc]
-    exact (OvGame.sideW_or_le _ G _ _ ρ _ _).trans (add_le_add le_rfl
-      ((OvGame.sideW_or_le _ G _ _ ρ _ _).trans (add_le_add le_rfl (OvGame.sideW_or_le _ G _ _ ρ _ _))))
+    exact (OvGame.sideW_or_le _ G _ _ ρ _ _).trans (add_le_add le_rfl (OvGame.sideW_or_le _ G _ _ ρ _ _))
 
 end Qrom.Sphincs

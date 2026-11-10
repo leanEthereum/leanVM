@@ -9,8 +9,8 @@ public import Qrom.Sphincs.Classify.Canon
 
 In side state `s` of the hidden game, with an honest log, a forgery that verifies on the game's
 hash and that the log does not hold makes the verifier read a protected input, or an input that is
-no honest input at which `G` hits the honest value of its address; or the data has a collision of
-encodings; or the forgery's digest comes from `G` at a fresh randomizer and is covered by the logged
+no honest input at which `G` hits the honest value of its address; or an encoding input whose
+data value collides with the key's word; or the forgery's digest comes from `G` at a fresh randomizer and is covered by the logged
 digests (`Qrom.Sphincs.classify`).
 -/
 
@@ -37,7 +37,9 @@ theorem classify (d : Data) (s : Log) (G : Input → HashOutput) (message : Mess
       ∃ x : Input, x.1 = l ∧ Prot d s x) ∨
     (∃ l ∈ queriedInputs (QueryImpl.ofFn (hidFun d s G))
         (Concrete.verify (pkD d) message signature : OracleComp HashSpec Bool), HitAt d G l) ∨
-    BadEnc d ∨ CoverE d s G message signature.randomness := by
+    (∃ l ∈ queriedInputs (QueryImpl.ofFn (hidFun d s G))
+        (Concrete.verify (pkD d) message signature : OracleComp HashSpec Bool),
+      ∃ x : Input, x.1 = l ∧ EncAt d x) ∨ CoverE d s G message signature.randomness := by
   set f₂ := QueryImpl.ofFn (hidFun d s G)
   by_cases hp : ∃ l ∈ queriedInputs f₂ (Concrete.verify (pkD d) message signature : OracleComp HashSpec Bool),
       ∃ x : Input, x.1 = l ∧ Prot d s x
@@ -61,10 +63,10 @@ theorem classify (d : Data) (s : Log) (G : Input → HashOutput) (message : Mess
   · obtain ⟨l, hl, hhit⟩ := treeHit_hit d G message signature j htree
     exact Or.inr (Or.inl ⟨l, htr ▸ hl, hhit⟩)
   · rcases wotsException_out d s G message signature lay hwots with ⟨l, hl, hhit⟩ |
-      ⟨l, hl, x, hx, hpx⟩ | hbad
+      ⟨l, hl, x, hx, hpx⟩ | ⟨l, hl, x, hx, hbad⟩
     · exact Or.inr (Or.inl ⟨l, htr ▸ hl, hhit⟩)
     · exact absurd hpx (hp l (htr ▸ hl) x hx)
-    · exact Or.inr (Or.inr (Or.inl hbad))
+    · exact Or.inr (Or.inr (Or.inl ⟨l, htr ▸ hl, x, hx, hbad⟩))
   · obtain ⟨l, hl, hhit⟩ := forsException_hit d G message signature hfors.1
     exact Or.inr (Or.inl ⟨l, htr ▸ hl, hhit⟩)
 
