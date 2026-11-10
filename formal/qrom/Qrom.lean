@@ -7,7 +7,7 @@ public import Qrom.Deferral
 public import Qrom.Presample
 public import Qrom.Verify
 public import Qrom.Assembly
-public import Qrom.Sphincs.Security
+public import Qrom.Sphincs.Numeric
 
 /-! # Generic results in the quantum random-oracle model
 
@@ -18,7 +18,8 @@ outputting at most `k` inputs outputs one whose value is good with probability a
 data, depending on a classical side state, beside classical side ports such as a signing oracle,
 with `t` the number of calls in all. `Qrom.Sphincs.winProb_le` bounds a leanSPHINCS forgery by an
 adversary making at most `n` calls in all, from those and from the classical classification of a
-winning forgery. The build fails if their axiom footprints grow beyond Lean's
+winning forgery; `Qrom.Sphincs.winProb_le_h26` makes it numeric for the parameters of
+`FORS.h26_layered`, with the cover probability at most `2^-98` (`Qrom.Sphincs.lamB_h26`). The build fails if their axiom footprints grow beyond Lean's
 three standard axioms. -/
 
 /-- info: 'Qrom.qrom_search_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -60,3 +61,7 @@ three standard axioms. -/
 /-- info: 'Qrom.Sphincs.winProb_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.Sphincs.winProb_le
+
+/-- info: 'Qrom.Sphincs.winProb_le_h26' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.Sphincs.winProb_le_h26
