@@ -31,8 +31,8 @@ def epcPre : List Stmt :=
     .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
     .dispatch (.n 4) eqPrefixRunNames [.n 0, .n 1, .n 2, .n 3] [.n 9]]
 
-theorem epc_body : Fn.body Data.core5 = epcPre ++ [.ret []] := by
-  rw [B1.core5_body]; rfl
+theorem epc_body : Fn.body Data.core4 = epcPre ++ [.ret []] := by
+  rw [B1.core4_body]; rfl
 
 theorem epc_flat : epcPre.all Stmt.flat = true := by decide +kernel
 
@@ -43,7 +43,7 @@ theorem eq_prefix_chain_relIn {rd : Reader} {R : ℕ → Prop} {chain seed a b1 
     (h : coreProgram.Rel rd "eq_prefix_chain" [chain, seed, a, b1, gen ^ n] rets) :
     coreProgram.RelIn rd R "eq_prefix_chain" [chain, seed, a, b1, gen ^ n] rets := by
   refine relIn_of_flatRel B1.find_eq_prefix_chain epc_body epc_flat h fun σ hpar hh ↦ ?_
-  rw [show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hpar
+  rw [show Fn.params Data.core4 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hpar
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
   obtain ⟨p0, p1, p2, p3, p4⟩ := hpar
   rw [epc_body] at hh
