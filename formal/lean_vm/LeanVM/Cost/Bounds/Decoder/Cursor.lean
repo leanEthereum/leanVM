@@ -42,7 +42,6 @@ theorem limbQuot_cost (hP : Includes P limbQuotC.costDeps) (p q : E) :
   rw [limbQuotC.costEq P hP]
   have h0 := invK_cost P (by includes) (p.limb 0)
   have h1 := invK_cost P (by includes) (p.limb 1)
-  have h2 := invK_cost P (by includes) (p.limb 2)
   split_ifs <;> omega
 
 /-- **The cursor's length** (`cursorLengthC`), the logarithm at most `Lg`, its logarithms
@@ -66,7 +65,7 @@ theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : Discrete
   have hlam : ∀ n : ℕ, RunsApp P (.closure cursorLenWithC.lam0.costIdx
       [encodeValue p, encodeValue q, encodeValue (limbQuot p q)]) [encodeValue n]
       (encodeValue (decide (n ≤ 2 ^ 32 ∧ q = E.ofLimbs (p.limb 0 * limbQuot p q)
-        (p.limb 1 * limbQuot p q) (p.limb 2 * limbQuot p q)))) :=
+        (p.limb 1 * limbQuot p q)))) :=
     fun n ↦ RunsApp.of_spec (cursorLenWithC.lam0.costSpec P (by includes) p q _ n)
   rw [optionFilterNatC.costEq P (by includes) _ _ hlam]
   generalize ho : discreteLogWith D (limbQuot p q) = o
