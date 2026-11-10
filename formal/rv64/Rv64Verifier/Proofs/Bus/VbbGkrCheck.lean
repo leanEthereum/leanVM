@@ -96,10 +96,12 @@ structure AtSm (s u w : MachineState) (k : Start) (cnt : E) (P : Word) (n : ℕ)
   x22 : (w.getReg .x22).toNat = n % 2
   layers : (w.getMem (s.getReg .x2 - 1128)).toNat = n
   valuesPtr : w.getMem (s.getReg .x2 - 1280) = P
-  xv : NewVecR s w (w.getMem (s.getReg .x2 - 1120)) (w.getReg .x8) (w.getMem (s.getReg .x2 - 1144)) x
-  ch0 : HeapVec s w (w.getReg .x27) (w.getReg .x18) c0
-  ch1 : HeapVec s w (w.getReg .x26) (w.getReg .x21) c1
-  ch2 : HeapVec s w (w.getMem (s.getReg .x2 - 1112)) (w.getReg .x25) c2
+  hu : heapNext s ≤ heapNext u
+  xv : NewVecR u w (w.getMem (s.getReg .x2 - 1120)) (w.getReg .x8) (w.getMem (s.getReg .x2 - 1144)) x
+  ch0 : HeapVec u w (w.getReg .x27) (w.getReg .x18) c0
+  ch1 : HeapVec u w (w.getReg .x26) (w.getReg .x21) c1
+  ch2 : HeapVec u w (w.getMem (s.getReg .x2 - 1112)) (w.getReg .x25) c2
+  lens : c0.length = 2 ^ stepOf n ∧ c1.length = 2 ^ stepOf n ∧ c2.length = 2 ^ stepOf n
   step : StepR s u w (Scratch s)
 
 theorem limbs_eOf3 (a b c : Word) : Model.limbs (eOf3 a b c) = (a, b, c) := rfl
@@ -155,14 +157,14 @@ theorem claimCheck (hMul : MulSpec) (hMC : Runtime.MemcpySpec 0x800126e4)
   have x24₁ : w₁.getReg .x24 = 1 := by rw [k₁ .x24 (by decide), h.regs .x24 (by decide), h24]
   -- the three products
   obtain ⟨y₁, hry₁, hd | ⟨hpcy₁, Ph₁⟩⟩ := phase8000684c hMul hpre C₁ pc₁ x24₁ rfl rfl (by
-    rw [k₁ .x27 (by decide), k₁ .x18 (by decide)]; exact h.ch0.keepG hpre st₁ fA)
+    rw [k₁ .x27 (by decide), k₁ .x18 (by decide)]; exact (h.ch0.toS h.hu).keepG hpre st₁ fA)
   · exact ⟨y₁, hr₁.trans hry₁, Or.inr (Or.inl hd)⟩
   have s₁ : StepR s w₀ y₁ Aa := st₁.join (Ph₁.step.weaken (pA (by omega)))
   obtain ⟨y₂, hry₂, hd | ⟨hpcy₂, Ph₂, sv₂⟩⟩ := phase800068a8 hMul hpre Ph₁.ctx hpcy₁
     (by rw [Ph₁.regs .x24 (by decide), x24₁]) rfl rfl (by
       rw [Ph₁.regs .x26 (by decide), Ph₁.regs .x21 (by decide), k₁ .x26 (by decide),
         k₁ .x21 (by decide)]
-      exact h.ch1.keepG hpre s₁ fA)
+      exact (h.ch1.toS h.hu).keepG hpre s₁ fA)
   · exact ⟨y₂, hr₁.trans (hry₁.trans hry₂), Or.inr (Or.inl hd)⟩
   have s₂ : StepR s w₀ y₂ Aa := s₁.join (Ph₂.step.weaken (pA (by omega)))
   have sp₂ := Ph₂.ctx.inv.sp
@@ -173,7 +175,7 @@ theorem claimCheck (hMul : MulSpec) (hMC : Runtime.MemcpySpec 0x800126e4)
           apply BitVec.eq_of_toNat_eq; addr_omega [hb1],
         s₂.word hpre (fun y hy hs ↦ by rcases hs with hs | hs <;> addr_omega [hy, hs, hb1])
           (Or.inl (by addr_omega [hb1]))]
-      exact h.ch2.keepG hpre s₂ fA)
+      exact (h.ch2.toS h.hu).keepG hpre s₂ fA)
   · exact ⟨y₃, hr₁.trans (hry₁.trans (hry₂.trans hry₃)), Or.inr (Or.inl hd)⟩
   have s₃ : StepR s w₀ y₃ Aa := s₂.join (Ph₃.step.weaken (pA (by omega)))
   have hr03 := hr₁.trans (hry₁.trans (hry₂.trans hry₃))
@@ -374,7 +376,7 @@ theorem claimCheck (hMul : MulSpec) (hMC : Runtime.MemcpySpec 0x800126e4)
       y₁₀.getMem (s.getReg .x2 - BitVec.ofNat 64 j) = w₀.getMem (s.getReg .x2 - BitVec.ofNat 64 j) :=
     stE.word hpre (fun y hy hs ↦ by rcases hs with hs | hs <;> addr_omega [hy, hs, hb1, hj])
       (Or.inl (by addr_omega [hb1, hj]))
-  have xv := h.xv.keepG hpre stE fA
+  have xv := h.xv.keepU hpre h.hu stE fA
   refine ⟨y₁₀, hr07.trans (hr₈.trans (hr₉.trans hr₁₀)), Or.inr (Or.inr ⟨pc₁₀, {
     ctx := C₀.step hpre (stE.weaken sA)
     regs := fun r hr ↦ by
@@ -389,12 +391,14 @@ theorem claimCheck (hMul : MulSpec) (hMC : Runtime.MemcpySpec 0x800126e4)
         show s.getReg .x2 - 1144 = s.getReg .x2 - BitVec.ofNat 64 1144 from rfl,
         wE 1120 (by omega), wE 1144 (by omega), rgE .x8 (by decide)]
       exact xv
-    ch0 := by rw [rgE .x27 (by decide), rgE .x18 (by decide)]; exact h.ch0.keepG hpre stE fA
-    ch1 := by rw [rgE .x26 (by decide), rgE .x21 (by decide)]; exact h.ch1.keepG hpre stE fA
+    ch0 := by rw [rgE .x27 (by decide), rgE .x18 (by decide)]; exact h.ch0.keepU hpre h.hu stE fA
+    ch1 := by rw [rgE .x26 (by decide), rgE .x21 (by decide)]; exact h.ch1.keepU hpre h.hu stE fA
     ch2 := by
       rw [show s.getReg .x2 - 1112 = s.getReg .x2 - BitVec.ofNat 64 1112 from rfl,
         wE 1112 (by omega), rgE .x25 (by decide)]
-      exact h.ch2.keepG hpre stE fA
+      exact h.ch2.keepU hpre h.hu stE fA
+    lens := h.lens
+    hu := h.hu
     step := h.step.join (stE.weaken sA) }, ?_⟩)⟩
   refine (htr.require heq).keep fun T hT ↦ ?_
   have t3 := Ph₃.tr T (Ph₂.tr T (Ph₁.tr T (TranscriptAt.same hpre C₀.inv m₁ hT)))

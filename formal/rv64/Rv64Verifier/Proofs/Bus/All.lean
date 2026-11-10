@@ -8,6 +8,7 @@ import Rv64Verifier.Proofs.Bus.VbbTail9
 import Rv64Verifier.Proofs.Bus.VbbGkrLoop
 import Rv64Verifier.Proofs.Bus.VbbGkrSumcheck
 import Rv64Verifier.Proofs.Bus.VbbGkrCheck
+import Rv64Verifier.Proofs.Bus.VbbGkrIter
 import Rv64Verifier.Proofs.Bus.VbbTail19
 import Rv64Verifier.Proofs.Bus.VbbTail22
 
@@ -24,7 +25,7 @@ the transcript callees' steps with the call of `samples` (`VbbSteps.lean`), the 
 code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `next_scalar` and
 `alloc` (`VbbCalls.lean`), the challenges and the GKR loop's start (`VbbHead.lean`,
 `VbbValues.lean`, `start` in `VbbInit.lean`), and the contract from the GKR loop's and the rest's
-stages (`verify_bus_balance_spec` in `VbbSpine.lean`): the GKR loop's from one iteration (`gkrStage`, `VbbGkr*.lean`, the iteration's first steps proved), the rest's from the scalar reads on (`tailStage`, `VbbTail*.lean`, the reads, the claims' points proved).
+stages (`verify_bus_balance_spec` in `VbbSpine.lean`): the GKR loop's (`gkrStage`, `VbbGkr*.lean`, closed), the rest's from the scalar reads on (`tailStage`, `VbbTail*.lean`, the reads, the claims' points proved).
 `table_sumcheck` is closed down to `vec![None; n]` (`OptFromElemBelowSpec`), `sumcheck`
 and `Form::evaluate` (`FormEvaluateSpecE`).
 Of the rest, from `0x80006ca0` to `concat`'s entry (`restToConcat`, `VbbTail10.lean` to `VbbTail19.lean`), and on through `concat`, `Bytecode::evaluate`, `final_pc`, the framework fingerprints, `vec![Form::default(); 3]` and the forms' buffer to the clone loop's test (`restToRows`, `VbbTail20.lean` to `VbbTail22.lean`).
@@ -40,6 +41,14 @@ theorem tableSumcheck (hOF : TableSumcheck.OptFromElemBelowSpec) : TableSumcheck
   TableSumcheck.table_sumcheck_spec hOF Transcript.sumcheck tryAllocZeroed Runtime.reserveFresh_80008a10
     Multilinear.fromElem Field.mul memcpy Transcript.nextScalars alloc_spec Multilinear.dot
     Layout.form_evaluate_e_proved
+
+open RiscvZkvm.Rv64 LeanVM.Parameters in
+/-- `verify_bus_balance`'s GKR loop, closed (`SumcheckSpec`). -/
+theorem gkrStage (bev : MachineState → Word → List E → Option E) :
+    VerifyBusBalance.GkrStage bev :=
+  VerifyBusBalance.gkrStage bev (VerifyBusBalance.iter Transcript.duplex Multilinear.polyEval
+    tryAllocZeroed reserveFast_8001086c Transcript.sumcheck Transcript.nextScalars Field.mul memcpy
+    Transcript.samples Multilinear.mleEvalVbb Multilinear.concat bev)
 
 end Rv64Verifier.Proofs.Bus
 
@@ -159,3 +168,33 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.restToRows' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.restToRows
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.gkrIter_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.gkrIter_eq
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.iter' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.iter
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.smTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.smTail
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.samplesStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.samplesStep
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.mleCall' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.mleCall
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.mleRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.mleRun
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.push0Step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.push0Step
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.push1Step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.push1Step
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.ccStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.ccStep
+
+/-- info: 'Rv64Verifier.Proofs.Bus.gkrStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.gkrStage

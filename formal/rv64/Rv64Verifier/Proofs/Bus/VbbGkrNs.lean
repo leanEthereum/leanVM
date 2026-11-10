@@ -44,6 +44,7 @@ theorem nsCall (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
         (w.getMem (s.getReg .x2 - BitVec.ofNat 64 608) ≠ 0xffffffffffffffff ∧
           NewVecE v w (s.getReg .x2 - BitVec.ofNat 64 608)
             (vecEs w (s.getReg .x2 - BitVec.ofNat 64 608)) ∧
+          (vecEs w (s.getReg .x2 - BitVec.ofNat 64 608)).length = m ∧
           Tracks (prog bev s) (s.getReg .x12) s w
             (K (vecEs w (s.getReg .x2 - BitVec.ofNat 64 608))))))) := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
@@ -82,8 +83,8 @@ theorem nsCall (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
       have e : xs = vecEs w (s.getReg .x2 - BitVec.ofNat 64 608) := hx.elems.symm
       subst e
       exact ⟨T', rfl, hx, hT'⟩
-  obtain ⟨T₀, -, hx₀, -⟩ := hok _ (canonT_at v (s.getReg .x12))
-  exact Or.inr ⟨hc, hx₀, htr.bind fun T hT ↦ by
+  obtain ⟨T₀, e₀, hx₀, -⟩ := hok _ (canonT_at v (s.getReg .x12))
+  exact Or.inr ⟨hc, hx₀, Returns.nextScalars m _ _ _ e₀, htr.bind fun T hT ↦ by
     obtain ⟨T', e, -, hT'⟩ := hok T hT
     exact ⟨T', e, hT'⟩⟩
 
@@ -125,6 +126,31 @@ theorem HeapVec.keepG {s v w : MachineState} {A : Word → Prop} (hpre : BusBala
   obtain ⟨c, hc⟩ := h
   exact ⟨c, hc.keepG hpre st hA⟩
 
+theorem NewVecR.toS {s u v : MachineState} {c p l : Word} {xs : List E}
+    (hu : heapNext s ≤ heapNext u) (h : NewVecR u v c p l xs) : NewVecR s v c p l xs := by
+  have hb := h.buf
+  exact ⟨h.le, ⟨hb.1, hb.2.imp_right fun h' ↦ ⟨by omega, h'.2⟩⟩, h.elems⟩
+
+/-- A `Vec<E>` held in registers, its buffer allocated since `u`, keeps what it holds. -/
+theorem NewVecR.keepU {s u v w : MachineState} {A : Word → Prop} (hpre : BusBalancePre s)
+    (hu : heapNext s ≤ heapNext u) (st : StepR s v w A) (hA : FrameW s A) {c p l : Word}
+    {xs : List E} (h : NewVecR u v c p l xs) : NewVecR u w c p l xs := by
+  have hb := h.buf
+  have hm := st.mono
+  exact ⟨h.le, ⟨hb.1, hb.2.imp_right fun h' ↦ ⟨h'.1, by omega⟩⟩,
+    ((h.toS hu).keepG hpre st hA).elems⟩
+
+theorem HeapVec.toS {s u v : MachineState} {p l : Word} {xs : List E}
+    (hu : heapNext s ≤ heapNext u) (h : HeapVec u v p l xs) : HeapVec s v p l xs := by
+  obtain ⟨c, hc⟩ := h
+  exact ⟨c, hc.toS hu⟩
+
+theorem HeapVec.keepU {s u v w : MachineState} {A : Word → Prop} (hpre : BusBalancePre s)
+    (hu : heapNext s ≤ heapNext u) (st : StepR s v w A) (hA : FrameW s A) {p l : Word}
+    {xs : List E} (h : HeapVec u v p l xs) : HeapVec u w p l xs := by
+  obtain ⟨c, hc⟩ := h
+  exact ⟨c, hc.keepU hpre hu st hA⟩
+
 theorem _root_.Rv64Verifier.Transcript.NewVecE.heapVec {s v w : MachineState} {a : Word} {xs : List E} (h : NewVecE v w a xs)
     (hm : heapNext s ≤ heapNext v) : HeapVec s w (vecPtr w a) (vecLen w a) xs := by
   have hb := h.buf
@@ -142,11 +168,13 @@ structure AtCk (s u w : MachineState) (k : Start) (cnt : E) (P : Word) (n : ℕ)
   layers : (w.getMem (s.getReg .x2 - 1128)).toNat = n
   combAt : eAt w (s.getReg .x2 - BitVec.ofNat 64 128) = comb
   valuesPtr : w.getMem (s.getReg .x2 - 1280) = P
-  xv : NewVecR s w (w.getMem (s.getReg .x2 - 1120)) (w.getReg .x8) (w.getMem (s.getReg .x2 - 1144)) x
+  hu : heapNext s ≤ heapNext u
+  xv : NewVecR u w (w.getMem (s.getReg .x2 - 1120)) (w.getReg .x8) (w.getMem (s.getReg .x2 - 1144)) x
   claimAt : eOf3 (w.getReg .x23) (w.getMem (s.getReg .x2 - 1208)) (w.getMem (s.getReg .x2 - 1216)) = cl
-  ch0 : HeapVec s w (w.getReg .x27) (w.getReg .x18) c0
-  ch1 : HeapVec s w (w.getReg .x26) (w.getReg .x21) c1
-  ch2 : HeapVec s w (w.getMem (s.getReg .x2 - 1112)) (w.getReg .x25) c2
+  ch0 : HeapVec u w (w.getReg .x27) (w.getReg .x18) c0
+  ch1 : HeapVec u w (w.getReg .x26) (w.getReg .x21) c1
+  ch2 : HeapVec u w (w.getMem (s.getReg .x2 - 1112)) (w.getReg .x25) c2
+  lens : c0.length = 2 ^ stepOf n ∧ c1.length = 2 ^ stepOf n ∧ c2.length = 2 ^ stepOf n
   step : StepR s u w (Scratch s)
 
 /-- The three `next_scalars`, from the first's entry to the `checked` test. -/
@@ -201,7 +229,7 @@ theorem nsStep (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
   have C₂ := C₁.step hpre (st₂.weaken sA)
   have x9₁ : w₁.getReg .x9 = 0xffffffffffffffff := by
     rw [hp₁ .x9 (by decide), h.regs .x9 (by decide), h9]
-  rcases res₁ with ⟨hc, hnone⟩ | ⟨hc₁, hv₁, htr₁⟩
+  rcases res₁ with ⟨hc, hnone⟩ | ⟨hc₁, hv₁, hl₁, htr₁⟩
   · obtain ⟨t, hrt, hdt⟩ := errNs hpre C₂
       (Or.inl (b800067dc_pc_taken h₂ (by rw [e736 _ sp₁, x9₁]; exact hc))) hnone
     exact ⟨t, hr₁.trans (hr₂.trans hrt), Or.inl hdt⟩
@@ -253,7 +281,7 @@ theorem nsStep (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
   have x9₄ : w₄.getReg .x9 = 0xffffffffffffffff := by
     rw [hp₄ .x9 (by decide), k₃ .x9 (by decide), k₂ .x9 (by decide), x9₁]
   have hr05 := hr₁.trans (hr₂.trans (hr₃.trans (hr₄.trans hr₅)))
-  rcases res₄ with ⟨hc, hnone⟩ | ⟨hc₄, hv₄, htr₄⟩
+  rcases res₄ with ⟨hc, hnone⟩ | ⟨hc₄, hv₄, hl₄, htr₄⟩
   · obtain ⟨t, hrt, hdt⟩ := errNs hpre C₅
       (Or.inr (Or.inl (b80006808_pc_taken h₅ (by rw [e736 _ sp₄, x9₄]; exact hc)))) hnone
     exact ⟨t, hr05.trans hrt, Or.inl hdt⟩
@@ -299,7 +327,7 @@ theorem nsStep (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
   have x9₇ : w₇.getReg .x9 = 0xffffffffffffffff := by
     rw [hp₇ .x9 (by decide), k₆ .x9 (by decide), k₅ .x9 (by decide), x9₄]
   have hr08 := hr05.trans (hr₆.trans (hr₇.trans hr₈))
-  rcases res₇ with ⟨hc, hnone⟩ | ⟨hc₇, hv₇, htr₇⟩
+  rcases res₇ with ⟨hc, hnone⟩ | ⟨hc₇, hv₇, hl₇, htr₇⟩
   · obtain ⟨t, hrt, hdt⟩ := errNs hpre C₈
       (Or.inr (Or.inr (b80006830_pc_taken h₈ (by rw [e736 _ sp₇, x9₇]; exact hc)))) hnone
     exact ⟨t, hr08.trans hrt, Or.inl hdt⟩
@@ -346,15 +374,15 @@ theorem nsStep (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
   have x25₈ := b80006830_x25 h₈
   rw [e752 _ sp₇] at x25₈
   -- the vectors
-  have xs₀ : NewVecR s w₀ (w₀.getReg .x26) (w₀.getReg .x8) (w₀.getReg .x21) x := by
-    have hx := h.xv
-    have hb := hx.buf
-    simp only [NewBuf] at hb
-    exact ⟨hx.le, ⟨hb.1, hb.2.imp_right fun h' ↦ ⟨by omega, h'.2⟩⟩, hx.elems⟩
-  have ch0 := (hv₁.heapVec C₀.inv.mono).keepG hpre ((StepR.same m₂ C₁.inv.heap
+  have mU₀ := h.step.mono
+  have mU₃ : heapNext u ≤ heapNext w₃ := by
+    have := st₁.mono; have := st₂.mono; have := st₃.mono; omega
+  have mU₆ : heapNext u ≤ heapNext w₆ := by
+    have := st₄.mono; have := st₅.mono; have := st₆.mono; omega
+  have ch0 := (hv₁.heapVec mU₀).keepU hpre hu ((StepR.same m₂ C₁.inv.heap
     (k₂ .x2 (by decide)) (A := A)).join t2) fA
-  have ch1 := (hv₄.heapVec C₃.inv.mono).keepG hpre ((g₅ (B := A)).join t5) fA
-  have ch2 := (hv₇.heapVec C₆.inv.mono).keepG hpre st₈ fA
+  have ch1 := (hv₄.heapVec mU₃).keepU hpre hu ((g₅ (B := A)).join t5) fA
+  have ch2 := (hv₇.heapVec mU₆).keepU hpre hu st₈ fA
   refine ⟨w₈, hr08, Or.inr (Or.inr ⟨_, _, _, hpc₈, {
     ctx := C₈
     regs := fun r hr ↦ by
@@ -372,7 +400,7 @@ theorem nsStep (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
       rw [all.word hpre (nA 1280 8 (by omega)) (Or.inl (by addr_omega [hb1]))]
       exact h.valuesPtr
     xv := by
-      have hx := xs₀.keepG hpre all fA
+      have hx := h.xv.keepU hpre hu all fA
       rw [tail₁.word hpre (fun y hy hs ↦ by rcases hs with hs | hs | hs <;> addr_omega [hy, hs, hb1])
           (Or.inl (by addr_omega [hb1])), m224,
         tail₁.word hpre (fun y hy hs ↦ by rcases hs with hs | hs | hs <;> addr_omega [hy, hs, hb1])
@@ -395,6 +423,8 @@ theorem nsStep (hN : NextScalarsSpec) {bev : MachineState → Word → List E �
         e744 _ sp₄, e752 _ sp₄]
       exact ch1
     ch2 := by rw [m232, x25₈]; exact ch2
+    lens := ⟨hl₁, hl₄, hl₇⟩
+    hu := hu
     step := h.step.join (all.weaken sA) },
     htr₇.keepF hpre C₇.inv C₈.inv.heap (DFrame.of_memFrame fr₈) fun a ha ↦ by
       addr_omega [ha, hb1]⟩)⟩
