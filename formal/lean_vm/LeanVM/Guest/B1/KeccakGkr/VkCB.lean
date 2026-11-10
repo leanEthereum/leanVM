@@ -107,9 +107,9 @@ theorem vkFirst_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ s ∈ vkF
   have mPD : ∀ s ∈ vkFirstPD, s ∈ vkFirstT := fun s hs ↦ by
     rw [vkFirstT]; exact (List.mem_append_left _ (List.mem_append_right _ hs))
   -- the atoms
-  have c202 : σ (.n 204) = word 1 0 0 := gA ((.const (.n 204) (word 1 0 0))) (by simp [vkFirstT])
+  have c202 : σ (.n 204) = word 1 0 0 := gA ((.const (.n 204) (word 1 0))) (by simp [vkFirstT])
   have c380 : σ (.n 382) = word 1073741824 0 0 :=
-    gA ((.const (.n 382) (word 1073741824 0 0))) (by simp [vkFirstT])
+    gA ((.const (.n 382) (word 1073741824 0))) (by simp [vkFirstT])
   have m381 := mulG (by norm_num) (by norm_num)
     (gA ((.mul (.n 383) (.n 276) (.n 382))) (by simp [vkFirstT]))
   have g485 : Good rd vkSt w σ (.load (.n 487) (.n 384) 1) :=
