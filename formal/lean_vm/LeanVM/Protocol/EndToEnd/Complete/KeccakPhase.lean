@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.EndToEnd.Complete.Table
+public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanVM.Protocol.EndToEnd.Front.KeccakBridge
 public import LeanVM.Protocol.Keccak.Complete
 public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
@@ -110,18 +111,20 @@ open LeanVM.Protocol.EndToEnd.Sound (RetOK RetOK.ret RetOK.bind_true) in
 theorem retOK_busColumns (layout : Verifier.Layout) :
     RetOK (fun bus : BusResult ↦ ∀ c ∈ bus.claims, c.column < 6)
       (verifyBusBalance computedBytecodeValue layout) := by
-  unfold verifyBusBalance
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun r ↦ ?_
-  obtain ⟨countRoot, point, treeValues⟩ := r
-  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun memory ↦ RetOK.bind_true fun _ ↦
-    RetOK.bind_true fun _ ↦ RetOK.ret ?_
+  rw [verifyBusBalance_eq]
+  refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+    RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+      RetOK.bind_true fun memory ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+        RetOK.bind_true fun r ↦ ?_
+  obtain ⟨share, bp, value⟩ := r
+  refine RetOK.bind_true fun _ ↦ RetOK.ret ?_
   intro c hc
-  simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+  simp only [busOut, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with hc | rfl | rfl
   · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
     simp only [List.getElem_zipWith, List.length_zipWith] at hi ⊢
-    have : i < 3 := by simp at hi; omega
-    interval_cases i <;> simp [memory0, memory1, memory2]
+    have : i < 2 := by simp at hi; omega
+    interval_cases i <;> simp [memory0, memory1]
   · show memoryFinalCounters < 6; decide
   · show bytecodeFinalCounters < 6; decide
 
@@ -135,8 +138,8 @@ theorem retOK_publicColumns (layout : Verifier.Layout) (publicInput : Digest) :
   intro c hc
   obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
   simp only [List.getElem_zipWith, List.length_zipWith] at hi ⊢
-  have : i < 3 := by simp at hi; omega
-  interval_cases i <;> simp [memory0, memory1, memory2]
+  have : i < 2 := by simp at hi; omega
+  interval_cases i <;> simp [memory0, memory1]
 
 variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 

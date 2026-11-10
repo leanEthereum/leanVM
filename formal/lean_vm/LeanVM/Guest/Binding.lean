@@ -83,7 +83,7 @@ theorem eBytes_inj {x y : E} (h : E.toBytes x = E.toBytes y) : x = y := by
   match i, hi with
   | 0, _ => exact kBytes_inj h1
   | 1, _ => exact kBytes_inj h2
-  | n + 2, hi => exact absurd hi (by simp)
+  | n + 2, hi => exact absurd hi (show ¬ (n + 2 < 2) by omega)
 
 theorem length_bytesLE (n : ℕ) (v : BitVec (8 * n)) : (HashSig.littleEndianBytes n v).length = n :=
   List.length_ofFn

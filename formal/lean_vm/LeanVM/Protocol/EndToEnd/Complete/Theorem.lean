@@ -71,11 +71,14 @@ attribute [local irreducible] Follows in
 /-- The phases are honest for a stack satisfying `M3Honest` at admissible sizes. -/
 theorem leanVmPhases_honest {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hq : M3Honest (inst prog s) input q) :
-    (leanVmPhases prog s q).Honest prog s q where
-  bus cs := follows_verifyBusBalance (by have := busDepth_le hs; omega) hq cs
-  table bus hb cs := follows_tablePhase hq.1 bus hb cs
-  keccak _ htrue z hl cs := follows_keccakPhase prog s q hq.1 htrue z hl cs
-  ring r hr cs := follows_ringSwitch_leanIsa r hr cs
+    (leanVmPhases prog s q).Honest prog s q := by
+  have hD : busDepth prog s < 64 := by have := busDepth_le hs; omega
+  refine ⟨fun cs ↦ ?_, fun bus hb cs ↦ ?_, fun _ htrue z hl cs ↦ ?_, fun r hr cs ↦ ?_⟩
+  · dsimp only [leanVmPhases]
+    exact follows_verifyBusBalance hD hq cs
+  · exact follows_tablePhase hq.1 bus hb cs
+  · exact follows_keccakPhase prog s q hq.1 htrue z hl cs
+  · exact follows_ringSwitch_leanIsa r hr cs
 
 /-- The honest strategy of the leanVM verifier for the stack `q` and the rate `ρ`. -/
 noncomputable def leanVmProver (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ)
@@ -133,7 +136,7 @@ theorem exists_prove_verifyWith (hW : OpeningComplete) (H : Bytes → Digest)
           true := by
   obtain ⟨S, hS⟩ := leanVm_complete hW h hsz hs hρ
   obtain ⟨π, hπ, hacc⟩ := exists_prove_runProof H F _ S _ fuel
-    (grindThenSample_leanVmProgram _ _) (fun chal ↦ (hS chal).1) (fun chal ↦ (hS chal).2) hg
+    (Sound.grindThenSample_leanVmProgram _ _) (fun chal ↦ (hS chal).1) (fun chal ↦ (hS chal).2) hg
   exact ⟨S, π, hπ, hacc⟩
 
 /-- **The deployed verifier accepts the honest proof**: `exists_prove_verifyWith` at Keccak-256

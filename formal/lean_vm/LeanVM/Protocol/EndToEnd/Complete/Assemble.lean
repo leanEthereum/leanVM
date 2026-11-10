@@ -157,9 +157,7 @@ theorem follows_verifyExecution (hW : OpeningComplete) {prog : LeanIsaProgram} {
   refine (follows_verifyStackedOpening hW hadm q _ ?_ ?_ ?_)
   · have hl : (openingClaims prog s rs kr.1 ood).length = kr.1.length + 2 := by
       simp [openingClaims]
-    rw [show (ringSwitchClaim (verifierLayout prog s) rs.1 rs.2 ::
-        kr.1.map (·.stackClaim (verifierLayout prog s)) ++ [ood]) =
-          openingClaims prog s rs kr.1 ood from rfl, hl]
+    rw [hl]
     simp only [List.length_append, hbus.claims_length, htc, hpl] at hkl
     simp only [maxStackedClaims]
     omega
