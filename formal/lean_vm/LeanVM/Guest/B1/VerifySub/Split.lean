@@ -60,17 +60,21 @@ def stackClaims (layout : Layout) (claims : List ColumnClaim) (target : E)
     (weight : List E → E) (ood : StackClaim) : List StackClaim :=
   ringSwitchClaim layout target weight :: claims.map (·.stackClaim layout) ++ [ood]
 
+/-- The bus's grind, its slot weights and `β`. -/
+def busChallenges (depth : ℕ) : VerifierProgram (List E × E) :=
+  (VerifierProgram.grindProofOfWork (busGrindingBits depth)).bind fun _ ↦
+  (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
+  VerifierProgram.sampleChallenge.bind fun beta ↦ VerifierProgram.ret (weights, beta)
+
 /-- **The deferring verifier's program, regrouped.** -/
 def deferredFlat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) : VerifierProgram Bool :=
   (readAnnouncedSizes bytecode).bind fun ls ↦
   (commitStack ls.1.stackLog ls.2).bind fun _ ↦
   (readOod ls.1.stackLog).bind fun ood ↦
   (VerifierProgram.require (busDepth ls.1 < 64)).bind fun _ ↦
-  (VerifierProgram.grindProofOfWork (busGrindingBits (busDepth ls.1))).bind fun _ ↦
-  (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun weights ↦
-  VerifierProgram.sampleChallenge.bind fun beta ↦
+  (busChallenges (busDepth ls.1)).bind fun wb ↦
   (Tables.gkrPhase (busDepth ls.1)).bind fun r ↦
-  (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi weights beta r.2.1 r.2.2).bind fun bc ↦
+  (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi wb.1 wb.2 r.2.1 r.2.2).bind fun bc ↦
   (keccakPhaseClaims ls.1 bc.2).bind fun kc ↦
   (ringSwitch kc.2.1 kc.2.2).bind fun rs ↦
   (verifyStackedOpening ls.1.stackLog ls.2 (stackClaims ls.1 kc.1 rs.1 rs.2 ood)).bind fun _ ↦
@@ -79,10 +83,9 @@ def deferredFlat (c : BytecodeClaim) (bytecode : List K) (pi : Digest) : Verifie
 theorem deferred_eq (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
     deferringVerifierProgram c bytecode pi = deferredFlat c bytecode pi := by
   rw [deferredProgram_eq]
-  simp only [verifyExecutionClaims, deferredFlat, verifyBusBalance_split, Tables.tablesSeg,
-    stackClaims, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
+  simp only [verifyExecutionClaims, deferredFlat, verifyBusBalance_split, busChallenges,
+    Tables.tablesSeg, stackClaims, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
     VerifierProgram.ret_bind]
-  rfl
 
 end
 end LeanVM.Guest.B1.VerifySub

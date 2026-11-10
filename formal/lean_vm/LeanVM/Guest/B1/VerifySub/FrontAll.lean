@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.VerifySub.Mid
 public import LeanVM.Guest.B1.VerifySub.Ctab
 public import LeanVM.Guest.B1.VerifySub.Tail
 public import LeanVM.Guest.B1.Tables.InterfaceC
-public import LeanVM.Guest.B1.Bits.AssertCanonical
 
 /-!
 # The front of `verify_sub`, assembled
