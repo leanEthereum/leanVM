@@ -42,8 +42,8 @@ theorem copy_calls (name : String) :
 
 /-- An iteration's valuation at `x`, copying `v`. -/
 noncomputable def copyStepσ (x N dst src v : E) : Val :=
-  B1.Val.ofArgs [x, N, dst, src, src * x, v, dst * x, word 2 0 0, x * word 2 0 0,
-    x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
+  B1.Val.ofArgs [x, N, dst, src, src * x, v, dst * x, word 2 0, x * word 2 0,
+    x * word 2 0 + N, word 2 0, x * word 2 0]
 
 /-- **One iteration on its loads' region**, the next one (if any) given. -/
 theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
@@ -58,7 +58,7 @@ theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? na
   have hw : walk σ fn.body = .ret ((copyPre name).flatMap (slEvs σ)) [] := by
     rw [hb, copyLoopT_split]
     exact walk_straight σ [] _ (copy_straight name)
-  have e2 : word 2 0 0 = gen := word_gen
+  have e2 : word 2 0 = gen := word_gen
   refine relIn_of_walk coreProgram_wf hf (by rw [hpar]; rfl) hw rfl
     (fun e he ↦ ?_) (fun A hA ↦ ?_) (fun c hc ht ↦ ?_)
   · simp only [copyPre, copyLoopT, List.dropLast, List.flatMap_cons, List.flatMap_nil,
@@ -75,7 +75,7 @@ theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? na
     · rfl
     · show σ (.n 11) = σ (.n 0) * σ (.n 10); rfl
     · show IsInK (σ (.n 9))
-      show IsInK (gen ^ k * word 2 0 0 + gen ^ m)
+      show IsInK (gen ^ k * word 2 0 + gen ^ m)
       rw [e2, ← pow_succ]
       exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)
     · split <;> trivial
@@ -91,10 +91,10 @@ theorem copyLoop_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? na
     have hk1 : k + 1 < m := by
       by_contra hge
       apply ht
-      show gen ^ k * word 2 0 0 + gen ^ m = 0
+      show gen ^ k * word 2 0 + gen ^ m = 0
       rw [e2, ← pow_succ, show k + 1 = m by omega]
       exact e_add_eq_zero_iff.mpr rfl
-    show coreProgram.RelIn rd R name [gen ^ k * word 2 0 0, gen ^ m, dst, src] []
+    show coreProgram.RelIn rd R name [gen ^ k * word 2 0, gen ^ m, dst, src] []
     rw [e2, ← pow_succ]
     exact hnext hk1
 
