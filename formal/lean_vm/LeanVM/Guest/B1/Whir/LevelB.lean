@@ -173,10 +173,28 @@ theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   obtain ⟨ecp, hm1⟩ := osMatS_val' hcp hm hb
   obtain ⟨efl, hm2⟩ := osMatS_val' hfl hm1 (lt_of_le_of_lt (by omega) hb)
   by_cases hfin : lvl = c.yrLevel
-  · simp only [hfin, ↓reduceIte, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const,
-      osCst] at hli hhp hcall ⊢
-    sorry
-  · sorry
+  · subst hfin
+    simp only [↓reduceIte] at hcf hhp hqp hwp hli hcall ⊢
+    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, osCst,
+      List.map_cons, List.map_nil] at hli hcall
+    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm2 hf
+    obtain ⟨eqp, hm4⟩ := osMatS_val' hqp hm3 hp
+    obtain ⟨ewp, hm5⟩ := osMatS_val' hwp hm4 hp
+    obtain ⟨eg, hc⟩ := hcall
+    refine ⟨?_, hm5, rfl⟩
+    rw [ecp, efl, hli, ecf, eqp, ewp, eg, gw_eq hpairs, word_zero] at hc
+    simpa [osQArgs] using hc
+  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp hli hcall ⊢
+    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, osCst,
+      List.map_cons, List.map_nil] at hcall
+    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm2 hf
+    obtain ⟨ehp, hm4⟩ := osMatS_val' hhp hm3 hh
+    obtain ⟨eqp, hm5⟩ := osMatS_val' hqp hm4 hp
+    obtain ⟨ewp, hm6⟩ := osMatS_val' hwp hm5 hp
+    obtain ⟨eg, hc⟩ := hcall
+    refine ⟨?_, hm6, rfl⟩
+    rw [ecp, efl, ecf, ehp, eqp, ewp, eg, gw_eq hpairs] at hc
+    simpa [osQArgs, hfin] using hc
 
 end
 end LeanVM.Guest.B1.Whir
