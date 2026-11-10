@@ -2,6 +2,9 @@ import Rv64Verifier.Proofs.Gkr.Open
 import Rv64Verifier.Proofs.Gkr.LayerScalars
 import Rv64Verifier.Proofs.Gkr.LayerProj
 import Rv64Verifier.Proofs.Gkr.LayerIota
+import Rv64Verifier.Proofs.Gkr.LayerCheck
+import Rv64Verifier.Proofs.Gkr.LayerSample
+import Rv64Verifier.Proofs.Gkr.LayerWeights
 import Rv64Verifier.Proofs.Multilinear.All
 
 /-!
