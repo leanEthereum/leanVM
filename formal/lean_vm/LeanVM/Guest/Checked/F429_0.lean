@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop40`, window 0. -/
+/-- `da_levels__L256_L8`, window 0. -/
 theorem w429_0 : WinOk 429 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L16`, window 0. -/
+/-- `da_levels__L512_L9`, window 0. -/
 theorem w430_0 : WinOk 430 0 := winOk_of_C (by decide +kernel)
 
-/-- `grind_check__L17`, window 0. -/
+/-- `da_levels__L1024_L10`, window 0. -/
 theorem w431_0 : WinOk 431 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop41`, window 0. -/
+/-- `da_expand__L7_L8`, window 0. -/
 theorem w432_0 : WinOk 432 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_row_weights__L6_L1`, window 0. -/
+/-- `da_expand__L7_L8`, window 1. -/
+theorem w432_1 : WinOk 432 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop25`, window 0. -/
 theorem w433_0 : WinOk 433 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_merkle_cap__L8`, window 0. -/
+/-- `da_factors__L14_L7_L0`, window 0. -/
 theorem w434_0 : WinOk 434 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_merkle_cap__L8`, window 1. -/
-theorem w434_1 : WinOk 434 1 := winOk_of_C (by decide +kernel)
-
-/-- `verify_merkle_cap__L8`, window 2. -/
-theorem w434_2 : WinOk 434 2 := winOk_of_C (by decide +kernel)
+/-- `da_expand__L14_L7`, window 0. -/
+theorem w435_0 : WinOk 435 0 := winOk_of_C (by decide +kernel)
 
 theorem ok429 : CheckOk 429 := checkOk_one (by decide +kernel) w429_0
 
@@ -47,9 +47,11 @@ theorem ok430 : CheckOk 430 := checkOk_one (by decide +kernel) w430_0
 
 theorem ok431 : CheckOk 431 := checkOk_one (by decide +kernel) w431_0
 
-theorem ok432 : CheckOk 432 := checkOk_one (by decide +kernel) w432_0
-
 theorem ok433 : CheckOk 433 := checkOk_one (by decide +kernel) w433_0
+
+theorem ok434 : CheckOk 434 := checkOk_one (by decide +kernel) w434_0
+
+theorem ok435 : CheckOk 435 := checkOk_one (by decide +kernel) w435_0
 
 end
 end LeanVM.Guest.Checked

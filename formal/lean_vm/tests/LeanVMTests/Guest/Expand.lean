@@ -176,7 +176,7 @@ def packMain (a b : Expr) : Source.Program :=
   %s0#1 = 3
   %s0#2 = 5
   assert_in_k %s0#1, %s0#2
-  %s0.i3:pack64x2.s1#0 = (0, 1, 0)
+  %s0.i3:pack64x2.s1#0 = (0, 1)
   %s0.i3:pack64x2.s1#1 = %s0.i3:pack64x2.s1#0 * %s0#2
   %s0#0 = %s0#1 + %s0.i3:pack64x2.s1#1
   %s2#0 = 1
@@ -191,9 +191,8 @@ def packMain (a b : Expr) : Source.Program :=
 #eval IO.println (showProgram (packMain (.lit 3) (.lit 5)))
 
 -- `pack64x2(3, 5)` is `3 + 5·y`; a word outside `K` fails `assert_in_k`.
-#guard isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 5 0, 0])
-#guard !isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 6 0, 0])
-#guard !isOk (runMain (packMain (.call "f192" [.lit 0, .lit 1, .lit 0]) (.lit 5)) [word 0 6 0, 0])
+#guard isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 5, 0])
+#guard !isOk (runMain (packMain (.lit 3) (.lit 5)) [word 3 6, 0])
 
 /-! ## The Keccak builtins
 
@@ -395,7 +394,7 @@ def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
     | _ => true
 
 #guard match Expand.expandProgram Data.guest with
-  | .ok fns => fns.length == 991 && fns.head?.map (·.name) == some "main" &&
+  | .ok fns => fns.length == 1055 && fns.head?.map (·.name) == some "main" &&
       fns.getLast?.map (·.name) == some "walk_path__L18_L4" &&
       fns.map (·.name) == Data.functions.tail.map (·.name) &&
       (fns.zip Data.functions.tail).all fun (f, c) => keccakAgree f c

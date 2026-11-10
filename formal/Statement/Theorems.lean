@@ -40,7 +40,7 @@ of the same type: every use names them). -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
-  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
+  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-125 +
   5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
   its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget N`, for
   `N` permutation queries: about `2^81` up to `2^50` queries, `O(N·log³N)`), and extracting nothing

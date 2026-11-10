@@ -124,9 +124,9 @@ example : toy.pubClaims = 4 := by decide
 
 /-! ## The slots -/
 
-/-- The bus phase's errors on the toy: `4 · 2` on `(α, β)` and the binary layer's `2 + 1`. -/
+/-- The bus phase's errors on the toy: `2` on `(α, β)` and the binary layer's `2 + 1`. -/
 example : Errors.Bounded (busSlot toy).tree (busSlot toy).roles (busErrors toy)
-    (overE (4 * 2 ^ 1 + ((1 + 1) * 2 + 2 * 1 * 1 + 3 * 1 + 3))) :=
+    (overE (2 ^ 1 + ((1 + 1) * 2 + 2 * 1 * 1 + 3 * 1 + 3))) :=
   busErrors_bounded toy
 
 /-! ## The seams -/

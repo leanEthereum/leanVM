@@ -59,7 +59,7 @@ theorem Aff.eval_le_of_leB {a b : Aff} (h : a.leB b = true) (args : List E) : a.
 theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addressOfIndex e) ∧ e < 2 ^
     20 := by
   simp only [constOk, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨he, h1⟩, h2⟩, h0⟩ := h
+  obtain ⟨⟨he, h1⟩, h0⟩ := h
   have h0' : w.limb 0 = addressOfIndex e := by
     split at h0
     · rename_i h64
@@ -72,7 +72,6 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addre
   fin_cases i
   · simpa using h0'
   · simpa using h1
-  · simpa using h2
 
 theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e)) = e := logG_spec he
 

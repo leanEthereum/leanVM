@@ -26,25 +26,25 @@ namespace core19
 noncomputable def c0 : List Core.Stmt := (
   .atom (.copy (.n 4) (.n 1)) ::
   .atom (.copy (.n 5) (.n 2)) ::
-  .atom (.const (.n 6) (word 1 0 0)) ::
-  .atom (.const (.n 7) (word 2 0 0)) ::
-  .atom (.const (.n 8) (word 4 0 0)) ::
-  .atom (.const (.n 9) (word 8 0 0)) ::
-  .atom (.const (.n 10) (word 16 0 0)) ::
-  .atom (.const (.n 11) (word 32 0 0)) ::
-  .atom (.const (.n 12) (word 64 0 0)) ::
-  .atom (.const (.n 13) (word 128 0 0)) ::
-  .atom (.const (.n 14) (word 256 0 0)) ::
-  .atom (.const (.n 15) (word 512 0 0)) ::
+  .atom (.const (.n 6) (word 1 0)) ::
+  .atom (.const (.n 7) (word 2 0)) ::
+  .atom (.const (.n 8) (word 4 0)) ::
+  .atom (.const (.n 9) (word 8 0)) ::
+  .atom (.const (.n 10) (word 16 0)) ::
+  .atom (.const (.n 11) (word 32 0)) ::
+  .atom (.const (.n 12) (word 64 0)) ::
+  .atom (.const (.n 13) (word 128 0)) ::
+  .atom (.const (.n 14) (word 256 0)) ::
+  .atom (.const (.n 15) (word 512 0)) ::
   .atom (.hint (.witness "digits" (.stack [.n 16]))) ::
-  .atom (.const (.n 17) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 17) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 16) (.n 18) (.n 19) (.n 20) (.n 17)) ::
-  .atom (.const (.n 21) (word 1 0 0)) ::
-  .atom (.const (.n 22) (word 0 0 0)) ::
-  .atom (.const (.n 23) (word 0 0 0)) ::
-  .atom (.const (.n 24) (word 0 0 0)) ::
-  .atom (.const (.n 25) (word 0 0 0)) ::
-  .atom (.const (.n 26) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 21) (word 1 0)) ::
+  .atom (.const (.n 22) (word 0 0)) ::
+  .atom (.const (.n 23) (word 0 0)) ::
+  .atom (.const (.n 24) (word 0 0)) ::
+  .atom (.const (.n 25) (word 0 0)) ::
+  .atom (.const (.n 26) (word 9223372036854775808 0)) ::
   .match_ (.n 16) (
     s21_a0 ::
     s21_a1 ::
@@ -112,9 +112,9 @@ noncomputable def c0 : List Core.Stmt := (
     s21_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 1141]))) ::
-  .atom (.const (.n 1142) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 1142) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 1141) (.n 1143) (.n 1144) (.n 1145) (.n 1142)) ::
-  .atom (.const (.n 1146) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 1146) (word 9223372036854775808 0)) ::
   .match_ (.n 1141) (
     s26_a0 ::
     s26_a1 ::
@@ -182,9 +182,9 @@ noncomputable def c0 : List Core.Stmt := (
     s26_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 2229]))) ::
-  .atom (.const (.n 2230) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 2230) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 2229) (.n 2231) (.n 2232) (.n 2233) (.n 2230)) ::
-  .atom (.const (.n 2234) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 2234) (word 9223372036854775808 0)) ::
   .match_ (.n 2229) (
     s31_a0 ::
     s31_a1 ::
@@ -252,9 +252,9 @@ noncomputable def c0 : List Core.Stmt := (
     s31_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 3317]))) ::
-  .atom (.const (.n 3318) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 3318) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 3317) (.n 3319) (.n 3320) (.n 3321) (.n 3318)) ::
-  .atom (.const (.n 3322) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 3322) (word 9223372036854775808 0)) ::
   .match_ (.n 3317) (
     s36_a0 ::
     s36_a1 ::
@@ -322,9 +322,9 @@ noncomputable def c0 : List Core.Stmt := (
     s36_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 4405]))) ::
-  .atom (.const (.n 4406) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 4406) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 4405) (.n 4407) (.n 4408) (.n 4409) (.n 4406)) ::
-  .atom (.const (.n 4410) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 4410) (word 9223372036854775808 0)) ::
   .match_ (.n 4405) (
     s41_a0 ::
     s41_a1 ::
@@ -392,9 +392,9 @@ noncomputable def c0 : List Core.Stmt := (
     s41_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 5493]))) ::
-  .atom (.const (.n 5494) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 5494) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 5493) (.n 5495) (.n 5496) (.n 5497) (.n 5494)) ::
-  .atom (.const (.n 5498) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 5498) (word 9223372036854775808 0)) ::
   .match_ (.n 5493) (
     s46_a0 ::
     s46_a1 ::
@@ -462,9 +462,9 @@ noncomputable def c0 : List Core.Stmt := (
     s46_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 6581]))) ::
-  .atom (.const (.n 6582) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 6582) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 6581) (.n 6583) (.n 6584) (.n 6585) (.n 6582)) ::
-  .atom (.const (.n 6586) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 6586) (word 9223372036854775808 0)) ::
   .match_ (.n 6581) (
     s51_a0 ::
     s51_a1 ::
@@ -532,9 +532,9 @@ noncomputable def c0 : List Core.Stmt := (
     s51_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 7669]))) ::
-  .atom (.const (.n 7670) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 7670) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 7669) (.n 7671) (.n 7672) (.n 7673) (.n 7670)) ::
-  .atom (.const (.n 7674) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 7674) (word 9223372036854775808 0)) ::
   .match_ (.n 7669) (
     s56_a0 ::
     s56_a1 ::
@@ -602,9 +602,9 @@ noncomputable def c0 : List Core.Stmt := (
     s56_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 8757]))) ::
-  .atom (.const (.n 8758) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 8758) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 8757) (.n 8759) (.n 8760) (.n 8761) (.n 8758)) ::
-  .atom (.const (.n 8762) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 8762) (word 9223372036854775808 0)) ::
   .match_ (.n 8757) (
     s61_a0 ::
     s61_a1 ::
@@ -672,9 +672,9 @@ noncomputable def c0 : List Core.Stmt := (
     s61_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 9845]))) ::
-  .atom (.const (.n 9846) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 9846) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 9845) (.n 9847) (.n 9848) (.n 9849) (.n 9846)) ::
-  .atom (.const (.n 9850) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 9850) (word 9223372036854775808 0)) ::
   .match_ (.n 9845) (
     s66_a0 ::
     s66_a1 ::
@@ -742,9 +742,9 @@ noncomputable def c0 : List Core.Stmt := (
     s66_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 10933]))) ::
-  .atom (.const (.n 10934) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 10934) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 10933) (.n 10935) (.n 10936) (.n 10937) (.n 10934)) ::
-  .atom (.const (.n 10938) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 10938) (word 9223372036854775808 0)) ::
   .match_ (.n 10933) (
     s71_a0 ::
     s71_a1 ::
@@ -812,9 +812,9 @@ noncomputable def c0 : List Core.Stmt := (
     s71_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 12021]))) ::
-  .atom (.const (.n 12022) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 12022) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 12021) (.n 12023) (.n 12024) (.n 12025) (.n 12022)) ::
-  .atom (.const (.n 12026) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 12026) (word 9223372036854775808 0)) ::
   .match_ (.n 12021) (
     s76_a0 ::
     s76_a1 ::
@@ -882,9 +882,9 @@ noncomputable def c0 : List Core.Stmt := (
     s76_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 13109]))) ::
-  .atom (.const (.n 13110) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 13110) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 13109) (.n 13111) (.n 13112) (.n 13113) (.n 13110)) ::
-  .atom (.const (.n 13114) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 13114) (word 9223372036854775808 0)) ::
   .match_ (.n 13109) (
     s81_a0 ::
     s81_a1 ::
@@ -952,9 +952,9 @@ noncomputable def c0 : List Core.Stmt := (
     s81_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 14197]))) ::
-  .atom (.const (.n 14198) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 14198) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 14197) (.n 14199) (.n 14200) (.n 14201) (.n 14198)) ::
-  .atom (.const (.n 14202) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 14202) (word 9223372036854775808 0)) ::
   .match_ (.n 14197) (
     s86_a0 ::
     s86_a1 ::
@@ -1022,9 +1022,9 @@ noncomputable def c0 : List Core.Stmt := (
     s86_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 15285]))) ::
-  .atom (.const (.n 15286) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 15286) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 15285) (.n 15287) (.n 15288) (.n 15289) (.n 15286)) ::
-  .atom (.const (.n 15290) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 15290) (word 9223372036854775808 0)) ::
   .match_ (.n 15285) (
     s91_a0 ::
     s91_a1 ::
@@ -1092,9 +1092,9 @@ noncomputable def c0 : List Core.Stmt := (
     s91_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 16373]))) ::
-  .atom (.const (.n 16374) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 16374) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 16373) (.n 16375) (.n 16376) (.n 16377) (.n 16374)) ::
-  .atom (.const (.n 16378) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 16378) (word 9223372036854775808 0)) ::
   .match_ (.n 16373) (
     s96_a0 ::
     s96_a1 ::
@@ -1162,9 +1162,9 @@ noncomputable def c0 : List Core.Stmt := (
     s96_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 17461]))) ::
-  .atom (.const (.n 17462) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 17462) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 17461) (.n 17463) (.n 17464) (.n 17465) (.n 17462)) ::
-  .atom (.const (.n 17466) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 17466) (word 9223372036854775808 0)) ::
   .match_ (.n 17461) (
     s101_a0 ::
     s101_a1 ::
@@ -1232,9 +1232,9 @@ noncomputable def c0 : List Core.Stmt := (
     s101_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 18549]))) ::
-  .atom (.const (.n 18550) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 18550) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 18549) (.n 18551) (.n 18552) (.n 18553) (.n 18550)) ::
-  .atom (.const (.n 18554) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 18554) (word 9223372036854775808 0)) ::
   .match_ (.n 18549) (
     s106_a0 ::
     s106_a1 ::
@@ -1302,9 +1302,9 @@ noncomputable def c0 : List Core.Stmt := (
     s106_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 19637]))) ::
-  .atom (.const (.n 19638) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 19638) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 19637) (.n 19639) (.n 19640) (.n 19641) (.n 19638)) ::
-  .atom (.const (.n 19642) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 19642) (word 9223372036854775808 0)) ::
   .match_ (.n 19637) (
     s111_a0 ::
     s111_a1 ::
@@ -1372,9 +1372,9 @@ noncomputable def c0 : List Core.Stmt := (
     s111_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 20725]))) ::
-  .atom (.const (.n 20726) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 20726) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 20725) (.n 20727) (.n 20728) (.n 20729) (.n 20726)) ::
-  .atom (.const (.n 20730) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 20730) (word 9223372036854775808 0)) ::
   .match_ (.n 20725) (
     s116_a0 ::
     s116_a1 ::
@@ -1442,9 +1442,9 @@ noncomputable def c0 : List Core.Stmt := (
     s116_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 21813]))) ::
-  .atom (.const (.n 21814) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 21814) (word 9223372036854775808 0)) ::
   .atom (.rangeCheck (.n 21813) (.n 21815) (.n 21816) (.n 21817) (.n 21814)) ::
-  .atom (.const (.n 21818) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 21818) (word 9223372036854775808 0)) ::
   .match_ (.n 21813) (
     s121_a0 ::
     s121_a1 ::
@@ -1512,9 +1512,9 @@ noncomputable def c0 : List Core.Stmt := (
     s121_a63 ::
     []) ::
   .atom (.hint (.witness "digits" (.stack [.n 22901]))) ::
-  .atom (.const (.n 22902) (word 8 0 0)) ::
+  .atom (.const (.n 22902) (word 8 0)) ::
   .atom (.rangeCheck (.n 22901) (.n 22903) (.n 22904) (.n 22905) (.n 22902)) ::
-  .atom (.const (.n 22906) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 22906) (word 9223372036854775808 0)) ::
   [])
 
 end core19

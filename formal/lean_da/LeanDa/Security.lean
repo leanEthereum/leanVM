@@ -153,6 +153,27 @@ theorem selectFrom_eq (v : MembershipChallenge) : ∀ fuel nonce,
     · rfl
     · exact selectFrom_eq v fuel (nonce + 1)
 
+/-- **The label the search selects**: past `nonce`, within the fuel, with a valid proof of work,
+and every label between invalid. -/
+theorem selIdxFrom_spec (k : Fin nLabels → K) : ∀ fuel nonce j, selIdxFrom k nonce fuel = some j →
+    nonce < j ∧ j ≤ nonce + fuel ∧ powValid (powAt k j).lane = true ∧
+      ∀ i, nonce < i → i < j → powValid (powAt k i).lane = false
+  | 0, _, _, h => by cases h
+  | fuel + 1, nonce, j, h => by
+    simp only [selIdxFrom] at h
+    split at h
+    · next hv =>
+      cases h
+      exact ⟨by omega, by omega, hv, fun i h1 h2 ↦ by omega⟩
+    · next hv =>
+      obtain ⟨h1, h2, h3, h4⟩ := selIdxFrom_spec k fuel (nonce + 1) j h
+      refine ⟨by omega, by omega, h3, fun i hi1 hi2 ↦ ?_⟩
+      by_cases hi : i = nonce + 1
+      · subst hi
+        simpa using hv
+      · exact h4 i (by omega) hi2
+
+
 /-- The label the nonce search selects from nonce `0`, label `0` if none. -/
 def selIdx (k : Fin nLabels → K) : Fin nLabels :=
   ⟨(selIdxFrom k 0 nonceCount).getD 0, by
@@ -282,6 +303,119 @@ theorem checker_sound (r : ℕ) :
         calc ((acceptSet (matrixRow c i)).card : ℝ≥0∞) ≤ ((2 ^ 14 - 1 : ℕ) : ℝ≥0∞) :=
               Nat.cast_le.mpr hcard
           _ = 2 ^ 14 - 1 := by rw [ENNReal.natCast_sub]; norm_num
+
+/-! ### The grind's draws -/
+
+/-- A matrix that is not a codeword has a row that is not. -/
+theorem not_mem_code_row {r : ℕ} {c : Fin (r * 128) → Cell} (h : c ∉ (leanDaErasureCode r).code) :
+    ∃ i, matrixRow c i ∉ rsCode := by
+  rw [mem_code_iff] at h
+  push Not at h
+  exact h
+
+/-- **A matrix every challenge accepts is a codeword**: a row that is not a codeword is accepted
+by at most `2^14 - 1 < |E|` challenges. -/
+theorem mem_code_of_forall_check {r : ℕ} {c : Fin (r * 128) → Cell}
+    (h : ∀ z : E, membershipCheck z c = true) : c ∈ (leanDaErasureCode r).code := by
+  by_contra hc
+  obtain ⟨i, hi⟩ := not_mem_code_row hc
+  have hcard := card_acceptSet_le hi
+  have hlt : (acceptSet (matrixRow c i)).card < Fintype.card E := by
+    rw [card_E]; omega
+  obtain ⟨z₀, -, hz₀⟩ := Finset.exists_mem_notMem_of_card_lt_card
+    (s := acceptSet (matrixRow c i)) (t := Finset.univ) (by rw [Finset.card_univ]; exact hlt)
+  rw [mem_acceptSet] at hz₀
+  exact hz₀ ((membershipCheck_iff z₀ c).mp (h z₀) i)
+
+/-- The lane of a symbol determines it. -/
+theorem lane_injective : Function.Injective K.lane := fun _ _ h ↦
+  BF64.toBitVec_injective (congrArg UInt64.toBitVec h)
+
+/-- **Valid proofs of work**: at most `2^53` of the `2^64` lanes have `11` low zero bits. -/
+theorem card_valid_le :
+    (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card ≤ 2 ^ 53 := by
+  classical
+  have hv : ∀ k : K, k ∈ Finset.univ.filter (fun k : K ↦ powValid k.lane = true) →
+      k.lane.toNat % 2 ^ 11 = 0 := fun k hk ↦ by
+    have := (Finset.mem_filter.mp hk).2
+    unfold powValid membershipGrindingBits at this
+    exact of_decide_eq_true this
+  calc _ ≤ (Finset.range (2 ^ 53)).card := by
+        refine Finset.card_le_card_of_injOn (fun k ↦ k.lane.toNat / 2 ^ 11) (fun k _ ↦ ?_)
+          (fun a ha b hb hab ↦ ?_)
+        · have := k.lane.toNat_lt
+          show k.lane.toNat / 2 ^ 11 ∈ (Finset.range (2 ^ 53) : Set ℕ)
+          rw [Finset.mem_coe, Finset.mem_range]
+          omega
+        · have ha' := hv a (Finset.mem_coe.mp ha)
+          have hb' := hv b (Finset.mem_coe.mp hb)
+          have hab' : a.lane.toNat / 2 ^ 11 = b.lane.toNat / 2 ^ 11 := hab
+          have e : a.lane.toNat = b.lane.toNat := by
+            have h1 := Nat.div_add_mod a.lane.toNat (2 ^ 11)
+            have h2 := Nat.div_add_mod b.lane.toNat (2 ^ 11)
+            omega
+          exact lane_injective (UInt64.toNat_inj.mp e)
+    _ = 2 ^ 53 := Finset.card_range _
+
+/-- **A uniform draw has a valid proof of work and a challenge in `A`** with probability at most
+`2^-11 · |A| / 2^128`: the two parts of a draw are independent. -/
+theorem prob_valid_accept_le {A : Finset E} (hA : A.card ≤ 2 ^ 14 - 1) :
+    Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[powValid x.2.lane = true ∧ x.1 ∈ A] ≤
+      (2 ^ 14 - 1) / 2 ^ 139 := by
+  classical
+  rw [SampleableType.prEvent_uniformSample]
+  have hf : (Finset.univ.filter fun x : Draw ↦ powValid x.2.lane = true ∧ x.1 ∈ A) =
+      A ×ˢ (Finset.univ.filter fun k : K ↦ powValid k.lane = true) := by
+    ext x
+    simp [and_comm]
+  rw [hf, Finset.card_product, Fintype.card_prod, card_E, card_K]
+  have hV := card_valid_le
+  calc ((A.card * (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card : ℕ) : ℝ≥0∞) /
+        ((2 ^ 128 * 2 ^ 64 : ℕ) : ℝ≥0∞)
+      ≤ (((2 ^ 14 - 1) * 2 ^ 53 : ℕ) : ℝ≥0∞) / ((2 ^ 128 * 2 ^ 64 : ℕ) : ℝ≥0∞) := by
+        gcongr
+    _ = (2 ^ 14 - 1) / 2 ^ 139 := by
+        rw [show (2 ^ 128 * 2 ^ 64 : ℕ) = 2 ^ 53 * 2 ^ 139 by norm_num,
+          show ((2 ^ 14 - 1) * 2 ^ 53 : ℕ) = 2 ^ 53 * (2 ^ 14 - 1) by ring, Nat.cast_mul,
+          Nat.cast_mul, ENNReal.mul_div_mul_left _ _ (by simp) (by simp), ENNReal.natCast_sub]
+        norm_num
+
+/-- **A uniform draw's proof of work is valid**, and has a challenge in `A`, with the probability
+of the one times `|A| / |E|`: the two parts of a draw are independent. -/
+theorem prob_valid_accept_eq (A : Finset E) :
+    Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[powValid x.2.lane = true ∧ x.1 ∈ A] =
+      Pr{let x ← ($ᵗ Draw : ProbComp Draw)}[powValid x.2.lane = true] * (A.card / Fintype.card E) := by
+  classical
+  rw [SampleableType.prEvent_uniformSample, SampleableType.prEvent_uniformSample]
+  have hf : (Finset.univ.filter fun x : Draw ↦ powValid x.2.lane = true ∧ x.1 ∈ A) =
+      A ×ˢ (Finset.univ.filter fun k : K ↦ powValid k.lane = true) := by
+    ext x
+    simp [and_comm]
+  have hg : (Finset.univ.filter fun x : Draw ↦ powValid x.2.lane = true) =
+      Finset.univ ×ˢ (Finset.univ.filter fun k : K ↦ powValid k.lane = true) := by
+    ext x
+    simp
+  rw [hf, hg, Finset.card_product, Finset.card_product, Finset.card_univ, Fintype.card_prod]
+  have hE : (Fintype.card E : ℝ≥0∞) ≠ 0 := Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+  have hE' : (Fintype.card E : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  push_cast
+  rw [ENNReal.div_eq_inv_mul, ENNReal.div_eq_inv_mul, ENNReal.div_eq_inv_mul,
+    ENNReal.mul_inv (Or.inl hE) (Or.inl hE')]
+  calc ((Fintype.card E : ℝ≥0∞)⁻¹ * (Fintype.card K : ℝ≥0∞)⁻¹) *
+        (A.card * (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card)
+      = ((Fintype.card E : ℝ≥0∞)⁻¹ * (Fintype.card K : ℝ≥0∞)⁻¹) *
+        (Fintype.card E * (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card) *
+          ((Fintype.card E : ℝ≥0∞)⁻¹ * A.card) := by
+        rw [show ((Fintype.card E : ℝ≥0∞)⁻¹ * (Fintype.card K : ℝ≥0∞)⁻¹) *
+            (Fintype.card E * (Finset.univ.filter fun k : K ↦ powValid k.lane = true).card) *
+            ((Fintype.card E : ℝ≥0∞)⁻¹ * A.card) =
+            ((Fintype.card E : ℝ≥0∞)⁻¹ * (Fintype.card K : ℝ≥0∞)⁻¹) *
+            ((Finset.univ.filter fun k : K ↦ powValid k.lane = true).card * A.card) *
+            ((Fintype.card E : ℝ≥0∞) * (Fintype.card E : ℝ≥0∞)⁻¹) by ring,
+          ENNReal.mul_inv_cancel hE hE', mul_one]
+        ring
+    _ = _ := rfl
+
 
 /-! ## The vector commitment -/
 

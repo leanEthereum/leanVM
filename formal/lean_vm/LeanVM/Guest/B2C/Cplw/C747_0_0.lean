@@ -16,20 +16,17 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop275`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L1300_L8_L3_L1`, window 0, part 0. -/
 theorem cw747_0_0 : cplWin 747 0 0 = true := by decide +kernel
 
-/-- `__loop276`, window 0, part 0. -/
+/-- `__loop182`, window 0, part 0. -/
 theorem cw748_0_0 : cplWin 748 0 0 = true := by decide +kernel
 
-/-- `__loop276`, window 0, part 1. -/
+/-- `__loop182`, window 0, part 1. -/
 theorem cw748_0_1 : cplWin 748 0 1 = true := by decide +kernel
 
-/-- `__loop277`, window 0, part 0. -/
+/-- `__loop183`, window 0, part 0. -/
 theorem cw749_0_0 : cplWin 749 0 0 = true := by decide +kernel
-
-/-- `__loop278`, window 0, part 0. -/
-theorem cw750_0_0 : cplWin 750 0 0 = true := by decide +kernel
 
 theorem ok747 : CplOk 747 := by
   intro i hi k hk
@@ -61,16 +58,6 @@ theorem ok749 : CplOk 749 := by
     rw [hn] at hk
     interval_cases k
     · exact cw749_0_0
-
-theorem ok750 : CplOk 750 := by
-  intro i hi k hk
-  have hc : (certOf 750).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 750 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw750_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

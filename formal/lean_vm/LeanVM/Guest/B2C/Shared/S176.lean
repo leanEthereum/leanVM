@@ -16,45 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L14_L5`, window 0. -/
-theorem w447_0 : shareWin 447 (snapsOf 447) 0 = true := by decide +kernel
+/-- `open_stacked__L25`, window 6. -/
+theorem w357_6 : shareWin 357 (snapsOf 357) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L14_L5`, window 1. -/
-theorem w447_1 : shareWin 447 (snapsOf 447) 1 = true := by decide +kernel
+/-- `open_stacked__L25`, window 7. -/
+theorem w357_7 : shareWin 357 (snapsOf 357) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `fold_final_msg__L4`, once. -/
-theorem st448 : shareStatic 448 = true := by decide +kernel
+/-- `open_stacked__L25`, window 8. -/
+theorem w357_8 : shareWin 357 (snapsOf 357) 8 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `fold_final_msg__L4`, window 0. -/
-theorem w448_0 : shareWin 448 (snapsOf 448) 0 = true := by decide +kernel
-
-theorem ok448 : ShareOk 448 := ⟨st448, fun i hi ↦ by
-  have h : (snapsOf 448).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w448_0⟩
+/-- `open_stacked__L25`, window 9. -/
+theorem w357_9 : shareWin 357 (snapsOf 357) 9 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop45`, once. -/
-theorem st449 : shareStatic 449 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop45`, window 0. -/
-theorem w449_0 : shareWin 449 (snapsOf 449) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop45`, window 1. -/
-theorem w449_1 : shareWin 449 (snapsOf 449) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop46`, once. -/
-theorem st450 : shareStatic 450 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop46`, window 0. -/
-theorem w450_0 : shareWin 450 (snapsOf 450) 0 = true := by decide +kernel
+/-- `open_stacked__L25`, window 10. -/
+theorem w357_10 : shareWin 357 (snapsOf 357) 10 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -202,7 +202,7 @@ theorem keyHolds_keyCells {rd : Reader} {x : E} {Ψ : ℕ → E} (op : ℕ) (cs 
 /-! ## The invariant -/
 
 /-- The word of a constant's limbs. -/
-def tw (x : ℕ × ℕ × ℕ) : E := OffsetInstruction.immediateWord x.1 x.2.1 x.2.2
+def tw (x : ℕ × ℕ) : E := OffsetInstruction.immediateWord x.1 x.2
 
 section Inv
 
@@ -248,16 +248,16 @@ theorem isNamed_eq (st : SSt) (n : ℕ) : isNamed st n = st.named.testBit n := b
 
 variable {loc : Loc} {sh : ℕ}
 
-theorem nameV_skip {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
+theorem nameV_skip {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = true) : nameV loc sh kc st v = st := by
   unfold nameV; rw [h]; rfl
 
-theorem nameV_low {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
+theorem nameV_low {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : loc.cell v < 2) :
     nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, setBit st.named v.idx, st.pend⟩ := by
   unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, Nat.blt_eq.mpr h2, Bool.cond_true]
 
-theorem nameV_occ {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
+theorem nameV_occ {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ loc.cell v)
     (ho : st.occ.testBit (loc.cell v) = true) :
     nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, loc.cell v, none, [], []⟩ :: st.pend⟩ := by
@@ -265,7 +265,7 @@ theorem nameV_occ {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
     Bool.eq_false_iff.mpr fun hb ↦ absurd (Nat.blt_eq.mp hb) (by omega)
   unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, bitN_eq, ho, Bool.cond_true]
 
-theorem nameV_fresh {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
+theorem nameV_fresh {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {v : V}
     (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ loc.cell v)
     (ho : st.occ.testBit (loc.cell v) = false) :
     nameV loc sh kc st v = ⟨setBit st.occ (loc.cell v), cstAt sh st.cst (loc.cell v) (kc v.idx), st.keys,
@@ -274,7 +274,7 @@ theorem nameV_fresh {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
     Bool.eq_false_iff.mpr fun hb ↦ absurd (Nat.blt_eq.mp hb) (by omega)
   unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, bitN_eq, ho]
 
-theorem getF_cstAt {cst : Exec.Trie (ℕ × ℕ × ℕ)} {c c' : ℕ} {k : Option (ℕ × ℕ × ℕ)} {x : ℕ × ℕ × ℕ}
+theorem getF_cstAt {cst : Exec.Trie (ℕ × ℕ)} {c c' : ℕ} {k : Option (ℕ × ℕ)} {x : ℕ × ℕ}
     (h : getF (cstAt sh cst c k) c' = some x) : (c' = c ∧ k = some x) ∨ getF cst c' = some x := by
   cases k with
   | none => exact Or.inr h
@@ -287,7 +287,7 @@ theorem getF_cstAt {cst : Exec.Trie (ℕ × ℕ × ℕ)} {c c' : ℕ} {k : Optio
     · exact Or.inr h
 
 /-- **Naming a value** keeps the invariant: `Ψ` changes only at a cell nothing occupied. -/
-theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : List V} {Ψ : ℕ → E} {v : V}
+theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {pre : List V} {Ψ : ℕ → E} {v : V}
     (hI : Inv cg rd σ st pre Ψ) (hv : v = V.n v.idx) (hcg : loc.cell v = cg v)
     (hkc : ∀ x, kc v.idx = some x → σ v = tw x) :
     ∃ Ψ', Inv cg rd σ (nameV loc sh kc st v) (pre ++ [v]) Ψ' ∧ Step st Ψ (nameV loc sh kc st v) Ψ' := by
@@ -408,7 +408,7 @@ section Steps
 
 variable {loc : Loc} {sh : ℕ} {cg : V → ℕ} {rd : Reader} {σ : Val}
 
-theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} : ∀ (vs : List V) {st : SSt} {pre : List V}
+theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st : SSt} {pre : List V}
     {Ψ : ℕ → E}, Inv cg rd σ st pre Ψ → FitV loc cg vs → (∀ v ∈ vs, ∀ x, kc v.idx = some x → σ v = tw x) →
     ∃ Ψ', Inv cg rd σ (nameAll loc sh kc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameAll loc sh kc st vs) Ψ'
   | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll] using hI, by simpa [nameAll] using Step.refl st Ψ⟩
@@ -423,16 +423,16 @@ theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} : ∀ (vs : List V
 
 theorem ofBits_one : K.ofBits 1 = 1 := by decide
 
-theorem tw_limbs (x : E) : tw (limbNat x 0, limbNat x 1, limbNat x 2) = x :=
-  (eq_imm_of_limbs rfl rfl rfl).symm
+theorem tw_limbs (x : E) : tw (limbNat x 0, limbNat x 1) = x :=
+  (eq_imm_of_limbs rfl rfl).symm
 
-theorem tw_one : tw (1, 0, 0) = 1 := by
+theorem tw_one : tw (1, 0) = 1 := by
   rw [tw, imm_of_ofBits ofBits_one, ofK_one]
 
 /-- The values of an atom are named by their numbers. -/
 def VnA (a : Core.Atom) : Prop := ∀ u ∈ Memory.atomUses a, u = V.n u.idx
 
-theorem constOf_sound {a : Core.Atom} {v : ℕ} {x : ℕ × ℕ × ℕ} (ha : a.Holds rd σ) (hvn : VnA a)
+theorem constOf_sound {a : Core.Atom} {v : ℕ} {x : ℕ × ℕ} (ha : a.Holds rd σ) (hvn : VnA a)
     (h : constOf a v = some x) : σ (V.n v) = tw x := by
   cases a with
   | const d c =>
@@ -764,11 +764,11 @@ theorem mem_foldl_keys : ∀ (ks : List (ℕ × ℕ × List ℕ)) (t : Exec.Trie
           · rw [hg']; exact Or.inl h
     · exact Or.inr ⟨List.mem_cons_of_mem _ h1, h2, h3⟩
 
-theorem getF_recCst {a : Core.Atom} {cst : Exec.Trie (ℕ × ℕ × ℕ)} {c : ℕ} {x : ℕ × ℕ × ℕ}
+theorem getF_recCst {a : Core.Atom} {cst : Exec.Trie (ℕ × ℕ)} {c : ℕ} {x : ℕ × ℕ}
     (h : getF (recCst loc sh a cst) c = some x) : getF cst c = some x ∨
       (getF cst c = none ∧ 2 ≤ c ∧ ((∃ d y, a = .const d y ∧ c = loc.cell d ∧
-        x = (limbNat y 0, limbNat y 1, limbNat y 2)) ∨
-        ∃ u i p, a = .assertNe u i p ∧ c = loc.cell p ∧ x = (1, 0, 0))) := by
+        x = (limbNat y 0, limbNat y 1)) ∨
+        ∃ u i p, a = .assertNe u i p ∧ c = loc.cell p ∧ x = (1, 0))) := by
   unfold recCst at h
   cases a with
   | const d y =>
@@ -1535,7 +1535,7 @@ section Snaps
 
 variable {cg : V → ℕ} {rd : Reader} {σ : Val}
 
-theorem getF_foldl_cst : ∀ (l : List (ℕ × ℕ × ℕ × ℕ)) (t : Exec.Trie (ℕ × ℕ × ℕ)) {c : ℕ} {x : ℕ × ℕ × ℕ},
+theorem getF_foldl_cst : ∀ (l : List (ℕ × ℕ × ℕ)) (t : Exec.Trie (ℕ × ℕ)) {c : ℕ} {x : ℕ × ℕ},
     getF (l.foldl (fun t q ↦ setF q.2 envDepth t q.1) t) c = some x → (c, x) ∈ l ∨ getF t c = some x
   | [], _, _, _, h => Or.inr h
   | q :: l, t, c, x, h => by
@@ -1831,9 +1831,9 @@ open LeanVM.Guest.Memory
 
 variable {j : ℕ} {rd : Reader} {σ : Val}
 
-theorem getF_initCst : ∀ (l : List (ℕ × PC)) (t : Exec.Trie (ℕ × ℕ × ℕ)) {c : ℕ} {x : ℕ × ℕ × ℕ},
+theorem getF_initCst : ∀ (l : List (ℕ × PC)) (t : Exec.Trie (ℕ × ℕ)) {c : ℕ} {x : ℕ × ℕ},
     getF (l.foldl (fun t q ↦ match q.2 with
-      | .k a b c => setF (a, b, c) envDepth t q.1
+      | .k a b => setF (a, b) envDepth t q.1
       | .fpg _ => t) t) c = some x → (∃ q ∈ l, q.1 = c) ∨ getF t c = some x
   | [], _, _, _, h => Or.inr h
   | q :: l, t, c, x, h => by
@@ -1873,8 +1873,7 @@ theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : Share
     {es : List Ev} {vs : List V} (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ) :
     ∃ Ψ : ℕ → E, (∀ v ∈ (coreOf j).params ++ es.flatMap Ev.uses ++ vs, 2 ≤ cellJ j v →
       σ v = Ψ (cellJ j v)) ∧
-      ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OffsetInstruction.immediateWord a b
-          c := by
+      ∀ o a b, (o, PC.k a b) ∈ (plumbOf j).stat → Ψ o = OffsetInstruction.immediateWord a b := by
   have hcont := cont_of hchk
   obtain ⟨hlists, hsn, -, hpv⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
@@ -1889,13 +1888,13 @@ theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : Share
     simp only [fromW, startW, beq_self_eq_true, Bool.cond_true, List.drop_zero]
   obtain ⟨Ψf, hf1, hf2⟩ := chain_sound hS hA _ 0 (Nat.zero_add _) (coreOf j).params Ψ1 (hst0 ▸ by
     simpa using hI1) es vs (by rw [hfrom]; exact hw) he
-  refine ⟨Ψf, fun v hv hc ↦ hf1 v (by simpa [List.append_assoc] using hv) hc, fun o a b c ho ↦ ?_⟩
+  refine ⟨Ψf, fun v hv hc ↦ hf1 v (by simpa [List.append_assoc] using hv) hc, fun o a b ho ↦ ?_⟩
   simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
   have := hlists.1.1.1.1.1 _ ho
   simp only [beq_iff_eq] at this
   have hocc : (initSt (plumbOf j)).occ.testBit o = true :=
     (testBit_bitsOf _ _).mpr (List.mem_map_of_mem (f := Prod.fst) ho)
-  have h0 : initW (plumbOf j) o = OffsetInstruction.immediateWord a b c :=
+  have h0 : initW (plumbOf j) o = OffsetInstruction.immediateWord a b :=
       by simp only [initW, this.2]; rfl
   rw [hf2 o (by rw [hst0]; exact (hs1 o hocc).1), (hs1 o hocc).2, h0]
 

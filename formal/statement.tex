@@ -189,7 +189,7 @@ whole padded sponge path appears as a chain of forward queries from the zero sta
 (\lean{keccakEvaluationsOfTranscript}). It reads the announced sizes and the stack's Merkle root off the proof,
 inverts the Merkle tree through those evaluations to recover the committed word, lists the stacks
 whose Reed--Solomon encoding agrees with the word on at least the Johnson threshold of columns (at
-most $2^{12}$ of them, \lean{LeanVM.candidates_ncard_le}, \lean{lean_vm}), and returns a candidate's memory
+most $166$ of them, \lean{Whir.Params.listMax₀_le}, \lean{lean_vm}), and returns a candidate's memory
 image whose halting run is a valid execution, if one exists.
 
 It is an algorithm: every definition it uses is computable and deterministic. It lists the
@@ -224,12 +224,14 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 \[
 \boxed{\ \Pr\left[\begin{array}{l}\text{the verifier accepts } (\mathit{prog},x,\text{proof}) \text{ and the}\\
 \text{extractor outputs no valid execution of } \mathit{prog} \text{ on } x\end{array}\right]
-\le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
+\le (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
-(\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $12006$
-Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to $12006\cdot 2^{32}$, the IV
-hashing a bytecode of up to $2^{32}$ instructions) and two further terms of at most $2^{-128}$ each:
-the transfer to the RPM, which pays for those calls, and the verifier's own $12006/2^{256}$.
+(\lean{LeanVM.knowledgeSoundness_holds}). Each call may complete a verifier message, whose
+round-by-round error after its proof of work is at most $2^{-125}$. The constant $2^{14}$ absorbs
+the verifier's $13261$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
+$13261\cdot 2^{32}$, the IV hashing a bytecode of up to $2^{32}$ instructions) and two further terms
+of at most $2^{-128}$ each: the transfer to the RPM, which pays for those calls, and the verifier's own
+$13261/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
@@ -251,8 +253,8 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
-Q_f = 12008 + 48017\,(2^{27} + 2f + 2)
+\delta(f) = Q_f\,(1-2^{-25})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
+Q_f = 13263 + 53036\,(2^{27} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
@@ -352,11 +354,18 @@ prover and a verifier that may query the oracles), that the cells satisfy LeanDA
 \begin{itemize}
 \item the cells hash to the root, and
 \item every row passes the \emph{membership test}: from the root, the duplex derives one
-challenge $z$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
+challenge $z \in \mathbb{E}$, which defines a codeword $L(x) = \prod_{j<14} (1 + z^{2^j}\,\widehat{W}_j(x))$ of the
 dual code (\lean{dualCodewordAt}); every row must be orthogonal to $L$. A row that is not a codeword
-passes with probability at most $(2^{14}-1)/2^{192} < 2^{-178}$: its inner product with $L$ is a
+passes with probability at most $(2^{14}-1)/2^{128} < 2^{-114}$: its inner product with $L$ is a
 nonzero polynomial in $z$ of degree below $2^{14}$.
 \end{itemize}
+The challenge is ground (\lean{membershipChallengeWith}): the duplex seeded with the root absorbs
+the nonces $0, 1, \dots$ of $64$ bits, each into a copy of the seeded sponge, and the first whose
+permutation's third lane has $11$ low zero bits gives $z$, the first two lanes of that permutation.
+The nonce is not sent; anyone deriving $z$ finds it, about $2^{11}$ permutations per root. If no
+$64$-bit nonce is valid, the Rust search never ends; the statement then has no challenge and the
+relation asks every row to be a codeword (\lean{membershipCheckOpt}), which keeps honest matrices
+in the relation for every $\pi$.
 
 \paragraph{Completeness} (\lean{LeanDa.LeanDaPerfectlyComplete}). If the argument is perfectly
 complete, every position of an honest commitment opens and verifies, with probability $1$, for
@@ -393,24 +402,31 @@ probability at most $(q + c)\cdot 2^{-k}$, for some constants $c$ and $k$.
 \emph{The theorem.} Under this assumption, an adversary making $Q$ calls (any $Q$, verifications
 included) wins the code-binding game with probability at most
 \[
-\boxed{\ (Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{22})\cdot 2^{-178} + (Q + 2^{22})^2\cdot 2^{-247}\ }
+\boxed{\ (Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{11})\cdot 2^{-125} + (Q + 2^{22})^2\cdot 2^{-247}\ }
 \]
 (\lean{LeanDa.leanDa_codeBinding_rpm_bound}). At $Q = 2^{64}$ the last two terms are about
-$2^{-114}$ and $2^{-119}$.
+$2^{-61}$ and $2^{-119}$. The offset $2^{65}$ of the first term is the knowledge-soundness game's
+own calls beyond the adversary's: the relation's check hashes the extracted matrix (fewer than
+$2^{22}$ calls) and, on its worst path, runs the whole nonce search, $2^{64} + 2$ calls; the
+assumption is read at $q = Q + 2^{65}$.
 
 \emph{Why.} Run the extractor on the adversary; it returns cells $c^*$. One of three things holds.
 \begin{enumerate}
 \item $c^*$ fails the relation. Then the adversary breaks the argument's knowledge soundness:
 the first term.
 \item $c^*$ satisfies the relation but has a row that is not a codeword. Then it passed the
-membership test by luck, $(2^{14}-1)/2^{192}$ per root: the second term.
+membership test by luck: the second term. The grind makes luck cost permutation calls. A call of
+the adversary on one of a root's nonces gives a valid proof of work and an accepting challenge at
+once with probability at most $2^{-11}\cdot(2^{14}-1)/2^{128} < 2^{-125}$, the two independent;
+the verifier's own search for the root, however many nonces it tries, stops at its first valid
+one, so it is a single fresh try, $(2^{14}-1)/2^{128} < 2^{11}\cdot 2^{-125}$.
 \item $c^*$ is a codeword. Every opened cell hashes to the same root as $c^*$, so unless Keccak-256
 has a collision, each opened cell is $c^*$'s cell, and the codeword $c^*$ agrees with all of them:
 the adversary loses. Collisions and other bad hash events give the third term.
 \end{enumerate}
 This proof needs no rewinding. Wagner's original proof, with a forking lemma, is also formalized
 (\lean{LeanDa.leanDa_codeBinding_core}, \lean{lean_da}, for arguments that do not query the oracles); it gives
-the weaker $(Q + c + 2^{22})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-93} + (Q + 2^{22})^2\cdot 2^{-158}$.
+the weaker $(Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-56} + (Q + 2^{22})^2\cdot 2^{-158}$.
 
 \emph{What is open.} The assumption can be met: the argument whose proof is simply all the cells
 is complete and knowledge sound, though its proof is as large as the matrix (an observation, not
@@ -547,7 +563,7 @@ What does that establish about $s$? The answer has three parts, each an end theo
 \item \textbf{The zkVM is knowledge sound} (\lean{KnowledgeSoundness},
 Section~\ref{sec:zkvm}). Except with probability
 \[
-\varepsilon(Q) = (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256},
+\varepsilon(Q) = (Q+2^{14})\cdot 2^{-125} + 5\,(Q+2^{14})^2\cdot 2^{-256},
 \]
 the extractor returns a valid execution $t$ of $G$ on $x$. This is the only step with an oracle
 and a probability.

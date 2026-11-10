@@ -25,7 +25,7 @@ public import LeanVM.Facts.ClaimBytes
 `statementDigest seed s` hashes the seed, the two claim lists' digests, the DA digest and the
 deferred claim's cells, an odd count paired with a zero cell (`statement_digest`,
 `crates/rec_aggregation/src/aggregation.rs:316-345` at leanVM `542b035`). Every encoding on the
-way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytesOf`, 64; `eBytes`, 24). So
+way is injective at a fixed width (`digestBytes`, 32 bytes; `claimBytesOf`, 64; `eBytes`, 16). So
 two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs
 `collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : StatementDigestBinds`).
@@ -74,18 +74,16 @@ theorem flatMap_inj {α β : Type} {f : α → List β} {n : ℕ} (hn : 0 < n)
 theorem kBytes_inj {a b : K} (h : K.toBytes a = K.toBytes b) : a = b :=
   K.lane_injective (wordBytes_injective h)
 
-theorem length_eBytes (x : E) : (E.toBytes x).length = 24 := rfl
+theorem length_eBytes (x : E) : (E.toBytes x).length = 16 := rfl
 
 theorem eBytes_inj {x y : E} (h : E.toBytes x = E.toBytes y) : x = y := by
-  obtain ⟨h12, h3⟩ := List.append_inj h rfl
-  obtain ⟨h1, h2⟩ := List.append_inj h12 rfl
+  obtain ⟨h1, h2⟩ := List.append_inj h rfl
   apply CompPoly.Extension.Ext.ext
   rintro ⟨i, hi⟩
   match i, hi with
   | 0, _ => exact kBytes_inj h1
   | 1, _ => exact kBytes_inj h2
-  | 2, _ => exact kBytes_inj h3
-  | n + 3, hi => exact absurd hi (by simp)
+  | n + 2, hi => exact absurd hi (show ¬ (n + 2 < 2) by omega)
 
 theorem length_bytesLE (n : ℕ) (v : BitVec (8 * n)) : (HashSig.littleEndianBytes n v).length = n :=
   List.length_ofFn
@@ -156,7 +154,7 @@ theorem statementPreimage_inj {seed seed' : Digest} {s s' : NodeStatement}
   obtain ⟨h123, h4⟩ := List.append_inj h1234 (by simp [digestBytes_length])
   obtain ⟨h12, h3⟩ := List.append_inj h123 (by simp [digestBytes_length])
   obtain ⟨h1, h2⟩ := List.append_inj h12 (by simp [digestBytes_length])
-  have hp := flatMap_inj (n := 24) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h5
+  have hp := flatMap_inj (n := 16) (by decide) length_eBytes (fun _ _ ↦ eBytes_inj) h5
   unfold paddedDeferredClaimCells at hp
   obtain ⟨hcells, -⟩ := List.append_inj hp hc
   exact ⟨digestBytes_injective h1, digestBytes_injective h2, digestBytes_injective h3,

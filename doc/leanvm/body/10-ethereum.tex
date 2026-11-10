@@ -151,4 +151,4 @@ for every row $w_i$. Factor $j$ of \eqref{eq:dual-product} depends only on the b
 
 The native verifier derives $\dachal$ from $\daroot$ outside the SNARK, as the security proof requires, and checks the proof against $H(\daroot,\dachal)$. A node passing on a child's root passes its digest unchanged.
 
-Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-114}$ (Proposition~\ref{prop:rs-membership}), which the $11$-bit grind brings to $2^{-125}$ per root tried (\S\ref{sec:grinding}).
+Every valid row passes. Under a uniform challenge, a fixed invalid matrix passes with probability at most $(\kdim-1)/|\E|<2^{-114}$ (Proposition~\ref{prop:rs-membership}), which the $11$-bit grind brings to $2^{-125}$ per permutation call of a prover trying roots (\S\ref{sec:grinding}); the root it finally submits adds one untried $2^{-114}$.
