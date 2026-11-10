@@ -52,7 +52,7 @@ theorem eqtree_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
   have g2 := gd (.add (.n (b + 2)) (.n (b + 1)) (.n b)) (by simp [eqtreeT])
   have e0 : σ (.n b) = rs.getD 0 0 :=
     load_val g0 (hS _ (by simp [eqtreeReads])) (by simpa using hpt 0 hn)
-  have e1 : σ (.n (b + 1)) = 1 := by rw [show σ (.n (b + 1)) = word 1 0 0 from g1, word_one]
+  have e1 : σ (.n (b + 1)) = 1 := by rw [show σ (.n (b + 1)) = word 1 0 from g1, word_one]
   have e2 : σ (.n (b + 2)) = 1 + rs.getD 0 0 := by
     rw [show σ (.n (b + 2)) = σ (.n (b + 1)) + σ (.n b) from g2, e1, e0]
   have hhead : ∀ k < 3, σ (.n (b + k)) = [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD k 0 := by
@@ -89,7 +89,7 @@ theorem eqtree_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
     have h1 := gl (.const (.n (Sb + 1)) (word 1 0)) (by simp [eqtreeLevelT, hSb])
     have h2 := gl (.add (.n (Sb + 2)) (.n (Sb + 1)) (.n Sb)) (by simp [eqtreeLevelT, hSb])
     have v0 : σ (.n Sb) = rs.getD (t' + 1) 0 := load_val h0 rd0 (hpt _ htn)
-    have v1 : σ (.n (Sb + 1)) = 1 := by rw [show σ (.n (Sb + 1)) = word 1 0 0 from h1, word_one]
+    have v1 : σ (.n (Sb + 1)) = 1 := by rw [show σ (.n (Sb + 1)) = word 1 0 from h1, word_one]
     have v2 : σ (.n (Sb + 2)) = 1 + rs.getD (t' + 1) 0 := by
       rw [show σ (.n (Sb + 2)) = σ (.n (Sb + 1)) + σ (.n Sb) from h2, v1, v0]
     rcases Nat.lt_or_ge k 3 with hk3 | hk3
