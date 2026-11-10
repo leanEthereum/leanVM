@@ -81,12 +81,9 @@ fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize) 
     let mut result = Vec::with_capacity(count);
     while result.len() < count {
         let sample = transcript.sample();
-        let bits = [sample.c0, sample.c1, 0];
+        let word = sample.c0 as u128 | (sample.c1 as u128) << 64;
         for chunk in 0..per_word.min(count - result.len()) {
-            // The `depth` bits at `chunk * depth` of the 128-bit integer, which may straddle two limbs.
-            let (limb, shift) = (chunk * depth / 64, chunk * depth % 64);
-            let window = (bits[limb] as u128 | (bits[limb + 1] as u128) << 64) >> shift;
-            result.push(window as u64 & (block_length - 1));
+            result.push((word >> (chunk * depth)) as u64 & (block_length - 1));
         }
     }
     Ok(result)

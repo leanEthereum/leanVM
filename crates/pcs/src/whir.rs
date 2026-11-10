@@ -710,16 +710,10 @@ fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) 
     let per = 128 / d;
     let mut out = Vec::with_capacity(count);
     while out.len() < count {
-        let v = ch.sample();
+        let [c0, c1] = ch.sample().to_limbs();
+        let word = c0 as u128 | (c1 as u128) << 64;
         for j in 0..per.min(count - out.len()) {
-            let off = j * d;
-            let limbs = v.to_limbs();
-            let (li, sh) = (off / 64, off % 64);
-            let mut chunk = limbs[li] >> sh;
-            if sh + d > 64 {
-                chunk |= limbs[li + 1] << (64 - sh);
-            }
-            out.push(chunk as usize & (block_len - 1));
+            out.push((word >> (j * d)) as usize & (block_len - 1));
         }
     }
     out
