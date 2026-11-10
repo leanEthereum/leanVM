@@ -1,7 +1,7 @@
 import Rv64Verifier.Proofs.Walk.Head
 import Rv64Verifier.Proofs.Walk.R6
 import Rv64Verifier.Proofs.Walk.R6U
-import Rv64Verifier.Proofs.Walk.R8C
+import Rv64Verifier.Proofs.Walk.AtDeref
 
 /-!
 # `walk`: what is proved so far
@@ -17,7 +17,7 @@ conditions of `buildLayoutRust`'s `if`); `r5` runs `table_log_heights` to `state
 the 26-cell loop to `0x80001f00`, the `Flushes` at `sp + 1168` holding `flushes_keccak()`; `r7` from there
 through KECCAK's padding row (`keccak_f` of zeros) and the tables' buffer to the first `flushes_arith`
 (`M8`, the KECCAK `Table` finished), `xorStage` and `mulStage` through the XOR and MUL `Table`s to
-SET's `state_step`, `setHead` through it and the operands' allocation to SET's first `col`. The axioms: Lean's three.
+SET's `state_step`, `setHead` through it and the operands' allocation to SET's first `col`, `setStage` through the SET `Table` to DEREF's first `col` (`setStage_atDeref`: `AtDeref`). The axioms: Lean's three.
 -/
 
 /-- info: 'Rv64Verifier.Proofs.Walk.start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -76,3 +76,9 @@ SET's `state_step`, `setHead` through it and the operands' allocation to SET's f
 
 /-- info: 'Rv64Verifier.Proofs.Walk.setHead' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.setHead
+
+/-- info: 'Rv64Verifier.Proofs.Walk.setStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.setStage
+
+/-- info: 'Rv64Verifier.Proofs.Walk.setStage_atDeref' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.setStage_atDeref

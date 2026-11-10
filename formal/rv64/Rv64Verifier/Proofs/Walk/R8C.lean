@@ -83,7 +83,7 @@ theorem setHead (hSS : Rv64Verifier.Layout.StateStepSpec) (hAS : AllocSpec)
     (x1 : u.getReg .x1 = 0x80002100) (hpc : u.pc = 0x80004a90) :
     ∃ t, Reaches Image.code u t ∧ ((t.pc = 0x80004b34 ∧ ∃ P, M8 OI s t A k R Q B Bb W L ∧
       FB t (s.getReg .x2 - 928) (({} : LayoutMirror.FlushesRust).stateStep 0 1) (heapNext u) ∧
-      OpsBuf t (s.getReg .x2 - 928) P ∧ R8 t ∧ t.getReg .x10 = P ∧ t.getReg .x25 = P ∧
+      OpsBuf t (s.getReg .x2 - 928) P ∧ heapNext u ≤ P.toNat ∧ R8 t ∧ t.getReg .x10 = P ∧ t.getReg .x25 = P ∧
       t.getReg .x11 = 2 ∧ t.getReg .x12 = 0 ∧ t.getReg .x27 = 6 ∧ t.getReg .x1 = 0x80002134) ∨
       Dead Image.code t) := by
   obtain ⟨hb1, -, hb3, -⟩ := bounds hpre
@@ -171,7 +171,7 @@ theorem setHead (hSS : Rv64Verifier.Layout.StateStepSpec) (hAS : AllocSpec)
   refine ⟨u₅, r₁.trans (r₂.trans (r₃.trans (r₄.trans r₅))), Or.inl ⟨b80002120_pc g₅, P, M₅, F₅.1,
     ⟨hal, by rw [hn₅, hnx], fun x hx ↦ by
       rw [hd₅] at hx; have := (F₁.ok.deep_below hx).2; rw [← hn₂] at this; omega⟩,
-    ⟨?_, ?_⟩, ?_, by rw [b80002120_x25 g₅, k₄ .x10 (by decide)], b80002120_x11 g₅, b80002120_x12 g₅, ?_, b80002120_x1 g₅⟩⟩
+    (g.mono.trans hn₂.symm.le).trans hab, ⟨?_, ?_⟩, ?_, by rw [b80002120_x25 g₅, k₄ .x10 (by decide)], b80002120_x11 g₅, b80002120_x12 g₅, ?_, b80002120_x1 g₅⟩⟩
   · rw [k₅ .x8 (by decide), k₄ .x8 (by decide), hp₃.reg .x8, k₂ .x8 (by decide), hp₁.reg .x8]; exact r.x8
   · rw [k₅ .x24 (by decide), k₄ .x24 (by decide), hp₃.reg .x24, k₂ .x24 (by decide), hp₁.reg .x24]; exact r.x24
   · rw [k₅ .x10 (by decide), k₄ .x10 (by decide)]
