@@ -11,7 +11,8 @@ module
 public import LeanVM.Guest.Budget.DeployedBudget
 public import LeanVM.Guest.Count.VsWords
 public import LeanVM.Guest.B1.Main.VerifySubGoals
-public import LeanVM.Guest.B1.VerifySub.CompleteAll
+public import LeanVM.Guest.B1.VerifySub.CompleteBT
+public import LeanVM.Guest.B1.KeccakGkr.VkCW
 public import LeanVM.Guest.B2C.RunsConsec
 
 namespace LeanVM.Guest.Budget
