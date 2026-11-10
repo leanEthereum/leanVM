@@ -89,8 +89,8 @@ theorem tb_isInK_mul_ofK {p : E} {c : K} (hc : c ≠ 0) : IsInK (p * ofK c) ↔ 
   rw [eq_ofLimbs p, ofLimbs_mul_ofK, isInK_ofLimbs_iff, isInK_ofLimbs_iff]
   simp [hc]
 
-theorem tb_limb0_mul_ofK {p : E} (hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
-  rw [eq_ofLimbs p, ofLimbs_mul_ofK, hp.1, hp.2]
+theorem tb_limb0_mul_ofK {p : E} (_hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
+  rw [eq_ofLimbs p, ofLimbs_mul_ofK]
   rfl
 
 /-! ## Memory -/
