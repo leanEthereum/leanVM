@@ -83,5 +83,76 @@ theorem escRet_queryCheck_le (Post : List (ℕ × ℕ × Word) → Prop) (i dept
     · exact absurd (hS qs hr.1 hr.2 hch hP) hall
   · exact zero_le
 
+/-! ## The program -/
+
+/-- The final level after its fold rounds. -/
+def finalTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level : Whir.Level)
+    (s : WhirState) (rounds : List FoldRound) : VerifierProgram Unit :=
+  readScalars (2 ^ (logN - s.gammas.length) + level.fold) >>= fun folded ↦
+  grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
+  (sampleQueries (logN - s.gammas.length + level.logInvRate) level.queries >>= fun qs ↦
+    queryOpenings index qs >>= fun words ↦
+    VerifierProgram.require ((List.zip qs words).all fun (qq, row) ↦
+      foldRow (lanesOf index row) (K.ofBits qq) rounds =
+        novelEval folded (subspaceAt (logN - s.gammas.length) (K.ofBits qq)))) >>= fun _ ↦
+  sumcheck s.claim 3 (List.replicate (logN - s.gammas.length) none) >>= fun r ↦
+  VerifierProgram.require (s.glued.foldl
+      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.gammas ++ r.1).drop glued.foldStart))
+      (eb ((s.gammas ++ r.1).drop laneFolds ++ (s.gammas ++ r.1).take laneFolds)) *
+    multilinearEval (folded.take (2 ^ (logN - s.gammas.length))) r.1 = r.2)
+
+theorem whirLevels_final (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
+    (level : Whir.Level) (s : WhirState) :
+    whirLevels logN laneFolds eb index [level] s =
+      foldRounds level.fold s >>= fun r ↦ finalTail logN laneFolds eb index level r.1 r.2 := by
+  simp only [whirLevels, finalTail, bind_eq, VerifierProgram.bind_assoc]
+  rfl
+
+/-! ## The terminal weight -/
+
+/-- The verifier's terminal weight is the running weight at the tail point. -/
+theorem terminal_weight (eb : List E → E) (laneFolds : ℕ) (s : WhirState)
+    (hg : ∀ g ∈ s.glued, g.foldStart ≤ s.gammas.length) (tail : List E) :
+    s.glued.foldl
+      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.gammas ++ tail).drop glued.foldStart))
+      (eb ((s.gammas ++ tail).drop laneFolds ++ (s.gammas ++ tail).take laneFolds)) =
+    runW eb laneFolds s tail := by
+  rw [runW_eq, foldl_add_map]
+  refine congrArg₂ (· + ·) rfl (congrArg List.sum (List.map_congr_left fun g hgm ↦ ?_))
+  rw [List.drop_append_of_le_length (hg g hgm)]
+
+/-! ## The final query step -/
+
+/-- **The final query step**: unless the lane's low part violates the running claim, the lane
+agrees with the folded word on fewer than `A` columns. -/
+theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.κ) (C : Fin P.n → E)
+    (Φ : List E → E) (σ : E) (folded : List E) (hlen : folded.length = 2 ^ P.κ + P.ℓ)
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) (P.deg P.ℓ)) :
+    ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧
+      (∑ x : Fin P.κ → Bool, Φ (bitsL x) * folded.getD (bitsToNat x) 0 = σ →
+        ∀ v : Fin P.n, (polyOf folded).eval (P.dom v) = C v → v ∈ S) := by
+  classical
+  have h64 := P.κ_lt
+  have hlow : lowMsg P.κ (polyOf folded) = fun u ↦ folded.getD (bitsToNat u) 0 := by
+    rw [polyOf_split h64 folded hlen hℓκ, lowMsg_msgPoly_add_hat (by omega)]
+  have hdeg : DegLE (P.deg P.ℓ) (fun _ : Fin 0 → Bool ↦ polyOf folded) := fun _ ↦ by
+    have := natDegree_polyOf_le folded (by
+      rw [hlen]
+      calc 2 ^ P.κ + P.ℓ ≤ 2 ^ P.κ + 2 ^ P.κ := by omega
+        _ = 2 ^ (P.κ + 1) := by ring
+        _ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) (by omega))
+    have h1 := Nat.one_le_two_pow (n := P.κ)
+    rw [hlen, max_eq_left (by omega)] at this
+    simp only [LevelCode.deg]
+    omega
+  set S := agreeT P.dom (fun _ : Fin 0 → Bool ↦ polyOf folded) (fun _ ↦ C)
+  by_cases hS : P.A ≤ S.card
+  · refine ⟨∅, by simpa using hA, fun heq ↦ absurd ?_ (hviol _ hdeg (by simpa [LevelCode.thr] using hS))⟩
+    rw [tclaim, claimSum_zero, hlow]
+    exact heq
+  · refine ⟨S, by omega, fun _ v hv ↦ ?_⟩
+    rw [mem_agreeT]
+    exact fun _ ↦ hv
+
 end
 end LeanVM.Protocol.Whir.Sound
