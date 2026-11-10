@@ -76,10 +76,10 @@ def sigmaVal : MachineValue := .closure oneSigmaC.costIdx []
 #guard runOn (decSeedC.costDeps ++ oneSigmaC.costDeps) decSeedC.costIdx [sigmaVal] ==
   some (encodeValue (decSeed oneSigma))
 
--- The batching's hints: the rounds at `bc_sumcheck_msgs = 1`, the cells `g^0, g^1, …`.
+-- The batching's hints: the nonce and the rounds at `bc_sumcheck_msgs = 1`, the cells `g^0, g^1, …`.
 #guard runOn (aggHintsC.costDeps ++ oneSigmaC.costDeps ++ smallReaderC.costDeps) aggHintsC.costIdx
-  [rdVal, sigmaVal] == some (encodeValue (⟨(List.range 23).map fun k ↦
-    ((gen ^ (2 * k + 1) : E), (gen ^ (2 * k + 2) : E)), 1⟩ : LeanVM.Node.BatchingHints))
+  [rdVal, sigmaVal] == some (encodeValue (⟨(gen : E), (List.range 23).map fun k ↦
+    ((gen ^ (2 * k + 2) : E), (gen ^ (2 * k + 3) : E)), 1⟩ : LeanVM.Node.BatchingHints))
 
 -- The statement off `main`'s frame: no declared claim (`gLog 1 = 0`), the DA digest at slot `0`
 -- of `da_digests = 1`, the deferred claim at `defer_stmt = 1`. (`decStmt` is `noncomputable` in
