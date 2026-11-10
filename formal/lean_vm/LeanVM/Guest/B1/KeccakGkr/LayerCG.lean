@@ -110,6 +110,8 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     let σ := layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8),
       gen ^ (D.y % 8), claim, out, iota, tb]) first
     (σ (.n (layOff first + 739)) = w (layOff first + 720) * gen ^ (D.y / 8) * gen ^ (D.y % 8) ∧
+      σ (.n (layOff first + 532)) = cellsOfState (((D.s0 first).absorbAll D.product
+        dsObserve).nonceState D.nonce) false ⟨1, by omega⟩ ∧
       σ (.n (layOff first + 745)) = cur * gen ^ (48 + 2 * D.y) ∧
       σ (.n (layOff first + 1190)) = cw.getD 3 0 ∧
       (first = 0 → σ (.n (layOff first + 1191)) = cw.getD 4 0) ∧
@@ -186,12 +188,12 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   -- the product, the grind and `s`
   have hs0 : plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] D.w0 =
       D.s0 first := by rw [a0, a1, a2, a3, a4, LayerData.s0, hcapE]
-  obtain ⟨-, hprodE, hsq, HA⟩ := layerA_complete (C := coreProgram.Rel rd) hf hσ gA
+  obtain ⟨-, hprodE, h532, hsq, HA⟩ := layerA_complete (C := coreProgram.Rel rd) hf hσ gA
     (hS7 · ·) (hS11 · ·) (w0 := D.w0) (fun h1 ↦ by rw [a5, a6]; exact hw h1) (c := D.c) hmuL
     (by rw [a11]; exact hval) (by rw [a11]; exact hkap) (fun i hi ↦ by rw [a11]; exact hmus i hi)
     hpl (by rw [a7]; exact hxP) (by rw [a13]; exact hproj) (n := D.nonce) (by rw [a7]; exact hxN)
     (by rw [hs0]; exact hgrind) (fun v hv ↦ by rw [a14]; exact hgr v hv)
-  rw [hs0] at hsq
+  rw [hs0] at hsq h532
   have e544 : σ (.n (layOff first + 544)) = D.sv first := by rw [LayerData.sv, hsq]
   have ecapS : (cap5 (layOff first + 539)).map σ = D.capS first := by rw [LayerData.capS, hsq]
   -- the instance weights
@@ -361,7 +363,7 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     have g := gW (.atom (.load (.n (layOff first + 1191)) (.n 11) 4)) (by
       unfold weightT; simp [h0])
     exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 4 (by norm_num))
-  refine ⟨⟨by rw [e739, e727, g720, a9, a10], e745, e1190, e1191, e718⟩, ?_⟩
+  refine ⟨⟨by rw [e739, e727, g720, a9, a10], h532, e745, e1190, e1191, e718⟩, ?_⟩
   -- the sections in turn
   rw [← List.append_assoc, holdsList_append]
   refine HA ?_
