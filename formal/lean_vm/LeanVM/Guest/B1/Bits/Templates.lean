@@ -58,5 +58,27 @@ def splitLimbsVals (w : E) : ℕ → E
   | 2 => word 2 1
   | _ => ofK (w.limb 1)
 
+/-- `pack64x2(a, b)`'s atoms from the value `b0`: both limbs asserted in `K`, `Y_TOWER` at `b0`,
+`y·b` at `b0 + 1`, the cell `a + y·b` at `b0 + 2`. -/
+def pack64x2T (a b : V) (b0 : ℕ) : List Stmt :=
+  [.atom (.assertInK a b), .atom (.const (.n b0) (word 0 1)), .atom (.mul (.n (b0 + 1)) (.n b0) b),
+    .atom (.add (.n (b0 + 2)) a (.n (b0 + 1)))]
+
+/-- **`pack64x2`**: the block holds exactly when both limbs lie in `K`; the cell is then the word
+with those limbs. -/
+theorem holds_pack64x2T (a b : V) (b0 : ℕ) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ (pack64x2T a b b0) next kret ↔
+      (IsInK (σ a) ∧ IsInK (σ b) ∧ σ (.n b0) = word 0 1 ∧ σ (.n (b0 + 1)) = σ (.n b0) * σ b ∧
+        σ (.n (b0 + 2)) = σ a + σ (.n (b0 + 1))) ∧ next := by
+  simp only [pack64x2T, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_assoc]
+
+/-- The cell `pack64x2` builds, from its block. -/
+theorem pack64x2T_cell {a b : V} {b0 : ℕ}
+    (h : IsInK (σ a) ∧ IsInK (σ b) ∧ σ (.n b0) = word 0 1 ∧ σ (.n (b0 + 1)) = σ (.n b0) * σ b ∧
+      σ (.n (b0 + 2)) = σ a + σ (.n (b0 + 1))) :
+    σ (.n (b0 + 2)) = E.ofLimbs ((σ a).limb 0) ((σ b).limb 0) := by
+  obtain ⟨ha, hb, h0, h1, h2⟩ := h
+  rw [h2, h1, h0, word_y, pack64x2_eq ha hb]
+
 end
 end LeanVM.Guest.B1

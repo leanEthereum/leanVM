@@ -23,7 +23,7 @@ certificates of the compiled functions (`B2C`), do not import them.
 | --- | --- | --- |
 | `j < 34` | `g^(2^j)` | `log2_ceil_in_the_exponent`, `verify_sub`, `certify_placement`, `da_row_shape` |
 | `34 + 16 j + u`, `j < 9`, `u < 16` | `g^(u·16^j)`, the nibble shares | `assert_small_g_power`, `check_opening_terminal` |
-| `178 + k`, `k < 34` | `g^(k·254)`, the rank keys | `verify_tables`, `certify_placement` |
+| `178 + k`, `k < 34` | `g^(k·247)`, the rank keys | `verify_tables`, `certify_placement` |
 | `212 + gi`, `gi < 24` | `E(s)`, block group `gi`'s side `s` | `verify_tables` |
 | `236 + n`, `n < 2^11` | `E(n)`, a bit window's pattern | `grind_check`, `query_window` (`WinTabs`, at `q·g^236`) |
 -/
@@ -43,8 +43,8 @@ abbrev selTabNibbles : ℕ := 9
 /-- `RANK_KEYS_AT = SIZE_BITS + 16 SEL_TAB_NIBBLES` (`lean_ethereum.py:289`). -/
 abbrev rankKeysAt : ℕ := 178
 
-/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 101` (`lean_ethereum.py:290`, deployed). -/
-abbrev rankStride : ℕ := 254
+/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 94` (`lean_ethereum.py:290`, deployed). -/
+abbrev rankStride : ℕ := 247
 
 /-- `SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS` (`lean_ethereum.py:292`). -/
 abbrev sideTabAt : ℕ := 212
@@ -60,7 +60,7 @@ abbrev nBlockGroups : ℕ := 24
 
 /-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:717-742`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
-`u < 16`; the rank keys `q[g^(178 + k)] = g^(k·254)`, `k < 34`; and each bus block group's side,
+`u < 16`; the rank keys `q[g^(178 + k)] = g^(k·247)`, `k < 34`; and each bus block group's side,
 `q[g^(212 + gi)] = E(s)` for the groups `gi` of side `s`. -/
 def ExpTables (rd : Reader) (q : E) : Prop :=
   (∀ j < sizeBits, LoadHolds rd q j (gen ^ 2 ^ j)) ∧
