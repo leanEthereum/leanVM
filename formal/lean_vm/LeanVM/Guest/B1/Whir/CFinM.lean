@@ -14,7 +14,8 @@ public import LeanVM.Guest.B1.Whir.CFinA
 `fin0_complete`: `fold_final_msg` and the two point buffers; `finHeaps_complete`: `basis_d`,
 `level_scale`, `level_after`; `finIch0_complete`: `inner_chain` started at `0` and the claim;
 `finRet_complete`: the returns' loads and copies. `osFinishA_complete`: the finish's blocks in
-sequence.
+sequence; `osFinishA_completeR` with its returns, `osFinishA_completeC` with its loop calls' values
+too (`FinCallV`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -267,19 +268,37 @@ theorem take_getElem {c : OsCfg} {i : ℕ} (hi : i < (c.levels.take c.yrLevel).l
   rw [← List.getD_eq_getElem _ default hi]
   simp only [finLv, List.getD_eq_getElem?_getD, List.getElem?_take, hi', ↓reduceIte]
 
-/-- **The finish before its return, honestly, and what it returns**: its statements hold at values
-fixed before the memory and the callees, allocating its buffers at the given pointers; the returns
-are the closing claim plus the deficit times the closing challenges, the point buffers, the glued
-weight at the terminal point and `fold_final_msg`'s value (`osFinish_sound`'s). -/
-theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
+/-- The first free value of non-final level `l`'s residual chain in the finish at `st`. -/
+def finResK (c : OsCfg) (st : OsSt) (tch l : ℕ) : ℕ :=
+  let pt := st.k + 1
+  let pts := osPtBlks c pt (pt + 1) tch 0 pointCap (pt + 2)
+  let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) (pts.2 + 6)
+  (osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 ((c.levels.take c.yrLevel).take l)
+    (bs.2 + 3)).2
+
+/-- The finish's `basis_d` value. -/
+def finBdV (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
+  (osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)).2 + 1
+
+/-- The values the finish's residual loop calls read under `σ'`. -/
+def FinCallV (c : OsCfg) (st : OsSt) (tch : ℕ) (σ σ' : Val) (li RC : ℕ → E) (BD : E) : Prop :=
+  σ' (.n (finBdV c st tch)) = BD ∧ σ' (.n osQpos) = σ (.n osQpos) ∧ σ' (.n osHs) = σ (.n osHs) ∧
+    ∀ l < c.yrLevel, ResCallV σ' (finResK c st tch l) (finLv c l).queries (li l) (RC l)
+
+/-- **The finish before its return, honestly, what it returns and its loop calls' values**: its
+statements hold at values fixed before the memory and the callees, allocating its buffers at the
+given pointers; the returns are the closing claim plus the deficit times the closing challenges,
+the point buffers, the glued weight at the terminal point and `fold_final_msg`'s value
+(`osFinish_sound`'s). -/
+theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
     {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E} {RC : ℕ → E}
     (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 36 ≤ st.k)
     (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH RC) :
     BlkA H σ st.k (finEnd c st tch) (osFinishA c st tch).1
-      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC ∧
+      (fun σ' ↦ (AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC ∧
         (osFinishA c st tch).2.map σ' = [σ (.n st.claim) + T.prod * recsDeficit recs G, PT, PT1,
           (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
-          Y]) := by
+          Y]) ∧ FinCallV c st tch σ σ' li RC BD) := by
   set n := c.levels.length with hn
   set y := c.yrLevel with hy
   set mid := c.levels.take y with hmid
@@ -476,8 +495,8 @@ theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
     rfl
   have hend : finEnd c st tch = K + 6 := rfl
   rw [hend, e]
-  refine s7.monoH fun C rd hH σ' ha hσ' ↦ ⟨?_, ?_⟩
-  · obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -, -, a0⟩, -⟩, ⟨-, -, -, a2⟩⟩, -⟩, ⟨-, a4⟩⟩, a5⟩, ⟨a6, -⟩⟩, -⟩ := hσ'
+  refine s7.monoH fun C rd hH σ' ha hσ' ↦ ⟨⟨?_, ?_⟩, ?_⟩
+  · obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -, -, a0⟩, -⟩, ⟨-, -, -, a2⟩⟩, -⟩, ⟨-, a4⟩⟩, a5, -⟩, ⟨a6, -⟩⟩, -⟩ := hσ'
     have p1 : AllocsAt σ' pts.1 = [] := osPtBlks_allocs σ' c _ _ tch pointCap 0 _
     have p3 : AllocsAt σ' bs.1 = [] := osBases_allocs σ' c tch _ _ _ 0 mid _
     have p5 : AllocsAt σ' rs.1 = (List.range mid.length).map fun i ↦
@@ -606,6 +625,23 @@ theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       refine Finset.sum_congr rfl fun i hi ↦ ?_
       rw [← add_assoc]
       exact (hterms i (Finset.mem_range.mp hi)).1
+  · obtain ⟨⟨⟨⟨⟨⟨-, eBD, -⟩, -⟩, -⟩, -, hcalls⟩, -⟩, -⟩ := hσ'
+    refine ⟨eBD, ha osQpos (by show 33 < k0; omega), ha osHs (by show 27 < k0; omega), fun l hl ↦ ?_⟩
+    have := hcalls l (by omega)
+    rw [Nat.zero_add, take_getD (by omega)] at this
+    exact this
+
+/-- **The finish before its return, honestly, and what it returns.** -/
+theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
+    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E} {RC : ℕ → E}
+    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 36 ≤ st.k)
+    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH RC) :
+    BlkA H σ st.k (finEnd c st tch) (osFinishA c st tch).1
+      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC ∧
+        (osFinishA c st tch).2.map σ' = [σ (.n st.claim) + T.prod * recsDeficit recs G, PT, PT1,
+          (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
+          Y]) :=
+  (osFinishA_completeC hS htch hcl hk hm).mono fun _ h ↦ h.1
 
 /-- **The finish before its return, honestly**: its statements hold at values fixed before the
 memory and the callees, allocating its buffers at the given pointers. -/
@@ -615,7 +651,7 @@ theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T :
     (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH RC) :
     BlkA H σ st.k (finEnd c st tch) (osFinishA c st tch).1
       (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC) :=
-  (osFinishA_completeR hS htch hcl hk hm).mono fun _ h ↦ h.1
+  (osFinishA_completeC hS htch hcl hk hm).mono fun _ h ↦ h.1.1
 
 end
 end LeanVM.Guest.B1.Whir

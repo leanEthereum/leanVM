@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CHonLv
 public import LeanVM.Guest.B1.Whir.CCapsRun
-public import LeanVM.Guest.B1.Whir.FactsSound
+public import LeanVM.Guest.B1.Whir.Facts
 
 /-!
 # The run's levels, indexed (continued)

@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Whir.CHead
 
 `BodyStatic c` (decided per candidate in `Whir/CHonAlloc{0..3}`): the head's, each level's and
 the closing rounds' allocation statements (`lvAllocsV`), and the sizes of the buffers they
-allocate. `osLevels_flat`: the levels' statements are each level's at its state `osStAt`.
+allocate. `osLevels_split`: the levels' statements are each level's at its state `osStAt`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -82,12 +82,12 @@ theorem osStFrom_zero (c : OsCfg) (lvl : ℕ) (lvs : List OsLv) (s : OsSt) :
   cases lvs <;> rfl
 
 /-- **The levels' statements are each level's at its state.** -/
-theorem osLevels_flat (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt),
+theorem osLevels_split (c : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt),
     (osLevels c lvl lvs s).1 = ((List.range lvs.length).map fun i ↦
       (osLevel c (lvl + i) (lvs.getD i default) (osStFrom c lvl lvs s i)).1).flatten
   | _, [], _ => rfl
   | lvl, lv :: rest, s => by
-    have ih := osLevels_flat c (lvl + 1) rest (osLevel c lvl lv s).2
+    have ih := osLevels_split c (lvl + 1) rest (osLevel c lvl lv s).2
     rw [List.length_cons, List.range_succ_eq_map, List.map_cons, List.map_map, List.flatten_cons]
     show (osLevel c lvl lv s).1 ++ (osLevels c (lvl + 1) rest (osLevel c lvl lv s).2).1 = _
     rw [ih, Nat.add_zero, List.getD_cons_zero, osStFrom_zero]
