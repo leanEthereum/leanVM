@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.InterfaceC
 public import LeanVM.Guest.B1.Tables.Vt.VerifyTables
-public import LeanVM.Guest.B1.Gkr.Holds
+public import LeanVM.Guest.B1.Gkr.RoundsHolds
 public import LeanVM.Guest.B1.Placement.Certify
 public import LeanVM.Guest.B1.Placement.Kappas
 
