@@ -110,9 +110,9 @@ theorem a1Hi_xor {z P v : Nat} (hz : z < 2 ^ 24) (hP : P < 2 ^ 16) (hv : v < 2 ^
     e1 _ hPv, two_pow_mul_xor (by omega), a1Hi]
   ring
 
-/-- Two words without a top limb add limb by limb. -/
+/-- Two words add limb by limb. -/
 theorem word_add_word (a b c d : Nat) : word a b + word c d = word (a ^^^ c) (b ^^^ d) := by
-  simp only [word, ofLimbs_add, ofBits_xor, Value.ofBits_zero, add_zero]
+  simp only [word, ofLimbs_add, ofBits_xor]
 
 /-- A literal past the low limb. -/
 theorem lit_hi {X : Nat} (h : X < 2 ^ 64) : lit (2 ^ 64 * X) = word 0 X := by

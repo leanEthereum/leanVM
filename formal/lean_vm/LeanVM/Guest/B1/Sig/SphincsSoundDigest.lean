@@ -165,11 +165,11 @@ theorem sDigests_sound (h : AtomsHold rd σ sDigests) :
 
 /-! ## The message -/
 
-theorem word_eq192 {a b : Nat} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
+theorem word_eq128 {a b : Nat} (ha : a < 2 ^ 64) :
     word a b = eOfNat128 (a + 2 ^ 64 * b) := by
   unfold word eOfNat128
   rw [← ofBits_mod (a + 2 ^ 64 * b), show (a + 2 ^ 64 * b) % 2 ^ 64 = a by omega,
-    show (a + 2 ^ 64 * b) / 2 ^ 64 = b by omega, show (a + 2 ^ 64 * b) / 2 ^ 128 = 0 by omega]
+    show (a + 2 ^ 64 * b) / 2 ^ 64 = b by omega]
 
 theorem pw_64 : word 0 1 = pw 64 := by simp [pw]
 
@@ -227,19 +227,17 @@ theorem layerLeaf01 (T : Nat) : 2 ^ 8 * layerLeafN T 0 + layerLeafN T 1 = T / 2 
       congr 1; omega
     · simp [sLeafLen, hj16, show ¬ j - 8 < 8 by omega]
 
-theorem word_y_inv' : word 1 0 1 = y⁻¹ := by rw [y_inv]; rfl
+theorem word_y_inv' : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 
 /-- **The second call's low bytes**: its cell, the bytes `l` and the unused bytes `N` times `g^16`
 checked into `K` after `y⁻¹`. -/
 theorem high_low_bytes {x : E} {l N : Nat} (hl : l < 2 ^ 16)
-    (hK : IsInK ((x + eOfNat l + eOfNat (2 ^ 16 * N)) * word 1 0 1)) : cellNat x % 2 ^ 16 = l := by
+    (hK : IsInK ((x + eOfNat l + eOfNat (2 ^ 16 * N)) * word 2 1)) : cellNat x % 2 ^ 16 = l := by
   rw [word_y_inv', eq_ofLimbs x, eOfNat_eq_ofLimbs, eOfNat_eq_ofLimbs, ofLimbs_add, ofLimbs_add,
     ofLimbs_mul_y_inv, isInK_ofLimbs_iff] at hK
-  simp only [add_zero] at hK
   have h0 : x.limb 0 = K.ofBits l + K.ofBits (2 ^ 16 * N) := by
-    have := hK.2
-    rw [add_assoc] at this
-    exact (add_eq_zero_iff_eq_neg.mp this).trans (CharTwo.neg_eq _)
+    rw [add_assoc] at hK
+    exact (add_eq_zero_iff_eq_neg.mp hK).trans (CharTwo.neg_eq _)
   rw [cellNat, h0, ← ofBits_xor, Nat.xor_comm, two_pow_mul_xor hl, kToNat_ofBits]
   omega
 
@@ -302,7 +300,7 @@ def sCheckC : List Stmt :=
   [addS (.n 1363) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n 1365) (sLVal 0) (.n 1364),
     addS (.n 1366) (.n 1363) (.n 1365), cst 1367 (word 65536 0),
     mulS (.n 1368) sUnused.2.2 (.n 1367), addS (.n 1369) (.n 1366) (.n 1368),
-    cst 1370 (word 1 0 1), mulS (.n 1371) (.n 1369) (.n 1370)]
+    cst 1370 (word 2 1), mulS (.n 1371) (.n 1369) (.n 1370)]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
     [addS sHm0b (.n 1303) (.n 1305), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
@@ -371,7 +369,7 @@ theorem sCheckB_sound {T : Nat} (hl : LValsAt σ T) (tm : σ sTreeMid = eOfNat (
 `y⁻¹`. -/
 theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOfNat N) (hN48 : N < 2 ^ 48)
     (hC : AtomsHold rd σ sCheckC) :
-    σ (.n 1371) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 1 0 1 := by
+    σ (.n 1371) = (σ sHm1 + eOfNat (T / 2 ^ 256 % 2 ^ 16) + eOfNat (2 ^ 16 * N)) * word 2 1 := by
   have hL1 : layerLeafN T 1 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 1
   have hL0 : layerLeafN T 0 < 2 ^ 8 := by simpa [sLeafLen] using layerLeafN_lt T 0
   have a01 : σ (.n 1363) = σ sHm1 + σ (sLVal 8) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
@@ -381,7 +379,7 @@ theorem sCheckC_sound {T N : Nat} (hl : LValsAt σ T) (hN : σ sUnused.2.2 = eOf
   have k05 : σ (.n 1367) = word 65536 0 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
   have m06 : σ (.n 1368) = σ sUnused.2.2 * σ (.n 1367) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
   have a07 : σ (.n 1369) = σ (.n 1366) + σ (.n 1368) := hC.atom (a := .add _ _ _) (by simp [sCheckC, addS])
-  have k08 : σ (.n 1370) = word 1 0 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
+  have k08 : σ (.n 1370) = word 2 1 := hC.atom (a := .const _ _) (by simp [sCheckC, cst])
   have m09 : σ (.n 1371) = σ (.n 1369) * σ (.n 1370) := hC.atom (a := .mul _ _ _) (by simp [sCheckC, mulS])
   rw [m09, k08, a07, m06, k05, a04, m03, k02, a01, lval_8 hl, lval_0 hl, hN, word_eq_eOfNat, word_eq_eOfNat,
     show (256 : Nat) = 2 ^ 8 by norm_num, show (65536 : Nat) = 2 ^ 16 by norm_num,
@@ -671,9 +669,6 @@ theorem treeOfIndex_digest {T : Nat} (hT : T < 2 ^ 272) (l : Sphincs.Layer) :
   fin_cases l <;> simp <;> omega
 
 /-! ## The block, against the statement -/
-
-theorem canon_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : IsCanonical128 (eOfNat128 n) := by
-  rw [eOfNat128, isCanonical128_ofLimbs_iff, Nat.div_eq_of_lt h, Value.ofBits_zero]
 
 theorem cellPairVal_toNat (lo hi : E) : (cellPairVal lo hi).toNat = cellNat lo + 2 ^ 128 * cellNat hi := by
   rw [cellPairVal, BitVec.toNat_append, toNat_cellVal, toNat_cellVal, Nat.shiftLeft_eq, mul_comm,

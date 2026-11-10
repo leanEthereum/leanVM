@@ -44,7 +44,7 @@ theorem eOfNat_mul_lit_lo {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) (hs : s < 64) :
 theorem eOfNat_mul_lit_hi {a s : Nat} (h : 2 ^ s * a < 2 ^ 64) (hs : s < 64) :
     eOfNat a * lit (2 ^ (64 + s)) = eOfNat128 (2 ^ (64 + s) * a) := by
   rw [pow_add, lit_hi (Nat.pow_lt_pow_right (by norm_num) hs), eOfNat_mul_word_hi' h,
-    word_eq192 (by norm_num) h, Nat.zero_add, mul_assoc]
+    word_eq128 (by norm_num), Nat.zero_add, mul_assoc]
 
 /-- Three shifted values with disjoint bits, a byte apart. -/
 theorem e192_three {s a b c : Nat} (ha : a < 2 ^ 8) (hb : b < 2 ^ 8) :

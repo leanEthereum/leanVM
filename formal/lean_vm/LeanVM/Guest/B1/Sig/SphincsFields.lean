@@ -199,13 +199,10 @@ theorem shiftsP_sound {bit : Nat → V} {n o P : Nat} {f : Nat → Bool} (hn : 0
 theorem pw_eq {s : Nat} (hs : s < 128) : pw s = coordBasis s := by
   unfold pw coordBasis eOfNat128 word
   split_ifs with h
-  · rw [Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) h),
-      Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) (by omega))]
+  · rw [Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) h)]
   · obtain ⟨t, rfl⟩ : ∃ t, s = 64 + t := ⟨s - 64, by omega⟩
     rw [show 64 + t - 64 = t by omega, pow_add, Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64),
-      ← ofBits_mod (2 ^ 64 * 2 ^ t), Nat.mul_mod_right,
-      Nat.div_eq_of_lt (show 2 ^ 64 * 2 ^ t < 2 ^ 128 by
-        rw [← pow_add]; exact Nat.pow_lt_pow_right (by norm_num) (by omega))]
+      ← ofBits_mod (2 ^ 64 * 2 ^ t), Nat.mul_mod_right]
 
 /-- **A word times `2^s`**: below the limb's top, the bit pattern `2^s · v`. -/
 theorem pw_mul {s v : Nat} (hs : s < 128) (h : 2 ^ (s % 64) * v < 2 ^ 64) :
@@ -465,10 +462,9 @@ theorem mdPlaces_succ (i0 n : Nat) : mdPlaces i0 (n + 1) = mdPlaces i0 n + mdPla
 
 /-- Limb `j` of `pw s`. -/
 def pwLimb (s j : Nat) : Nat :=
-  if j = 0 then (if s < 64 then 2 ^ s else 0) else if j = 1 then (if s < 64 then 0 else 2 ^ (s - 64))
-  else 0
+  if j = 0 then (if s < 64 then 2 ^ s else 0) else if s < 64 then 0 else 2 ^ (s - 64)
 
-theorem pw_limbs (s : Nat) : pw s = word (pwLimb s 0) (pwLimb s 1) (pwLimb s 2) := by
+theorem pw_limbs (s : Nat) : pw s = word (pwLimb s 0) (pwLimb s 1) := by
   unfold pw pwLimb
   by_cases h : s < 64 <;> simp [h]
 
@@ -481,14 +477,14 @@ def mdPlacesLimb (i0 j : Nat) : Nat → K
   | n + 1 => mdPlacesLimb i0 j n + mdPlaceLimb (i0 + n) j
 
 theorem mdPlace_limbs (i : Nat) :
-    mdPlace i = E.ofLimbs (mdPlaceLimb i 0) (mdPlaceLimb i 1) (mdPlaceLimb i 2) := by
+    mdPlace i = E.ofLimbs (mdPlaceLimb i 0) (mdPlaceLimb i 1) := by
   rw [mdPlace, pw_limbs, mul_comm, eOfNat, word, ofLimbs_mul_ofK]
   rfl
 
 theorem mdPlaces_limbs (i0 : Nat) : ∀ n, mdPlaces i0 n =
-    E.ofLimbs (mdPlacesLimb i0 0 n) (mdPlacesLimb i0 1 n) (mdPlacesLimb i0 2 n)
+    E.ofLimbs (mdPlacesLimb i0 0 n) (mdPlacesLimb i0 1 n)
   | 0 => by
-      show (0 : E) = E.ofLimbs 0 0 0
+      show (0 : E) = E.ofLimbs 0 0
       rw [← word_zero, word, ofBits_zero]
   | n + 1 => by
       rw [mdPlaces_succ, mdPlaces_limbs i0 n, mdPlace_limbs, ofLimbs_add]
