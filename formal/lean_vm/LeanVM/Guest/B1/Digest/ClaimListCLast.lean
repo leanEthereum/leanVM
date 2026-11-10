@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.PairComplete
 /-!
 # The last claims and a group of claims, completely
 
-`claimLast_complete`: from a state at `sp` after whole blocks `pre` and `4k` canonical cells at
+`claimLast_complete`: from a state at `sp` after whole blocks `pre` and `4k` cells at
 `blk`, `claim_list_last__L{k}` returns the digest of `pre ++` the cells: its evaluated valuation
 (`Fwd.ev`) loads them, every atom holds (`Fwd.atoms_holds`), and soundness (`claimLast_sound`)
 names the returns. `grp_block`: a frame loop's block (`m` claims) at the counter `x` holds when

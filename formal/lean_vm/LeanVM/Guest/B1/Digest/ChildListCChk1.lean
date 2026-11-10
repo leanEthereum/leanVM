@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Digest.ChildListCChk1
 
   `child_claim_list_any`'s big frame loop `__loop17` (136 records), evaluated: `anycOk`'s head,
-  canonical inputs and atoms around the records, each a kernel check of its own (the records by
+  atoms around the records, each a kernel check of its own (the records by
   windows in `ChildListCW{q}`).
 -/
 

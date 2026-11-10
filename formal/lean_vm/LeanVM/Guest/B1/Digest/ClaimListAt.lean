@@ -23,7 +23,7 @@ dispatches on `r` to `claim_list_last__L{r}` (`cl_core`: the evaluated valuation
 on a memory holding the zero state at the buffer). `chainCells`: the buffer's honest words, the
 state after each group (`claimChainMem_of_reads`).
 
-`claim_list_digest_completeAt`: for `n < 17 · 2^16` canonical claims' cells at `g^eP` among the
+`claim_list_digest_completeAt`: for `n < 17 · 2^16` claims' cells at `g^eP` among the
 caller's words `Lin`, `claim_list_digest` is `CompleteAtD` returning their digest's cells.
 -/
 
@@ -128,7 +128,7 @@ theorem clz_core (entries : E) :
   simp only [czOk, Bool.and_eq_true, decide_eq_true_eq] at hz1
   simp only [clBrOk, Bool.and_eq_true] at hb1
   obtain ⟨⟨⟨-, hzc⟩, hz10⟩, hz11⟩ := hz1
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, b12⟩, b13⟩, b14⟩, b15⟩, -⟩ := hb1
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, b12⟩, b13⟩, b15⟩, -⟩ := hb1
   have c2 : Stmt.atom (.const (.n 2) (word 1 0)) ∈ clHead := by simp [clHead]
   have a3 : Stmt.atom (.add (.n 3) (.n 1) (.n 2)) ∈ clHead := by simp [clHead]
   have t87 : Stmt.atom (.copy (.n 76) (.n 10)) ∈ clTail := by simp [clTail]
@@ -136,7 +136,6 @@ theorem clz_core (entries : E) :
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b12
   let args : List E := [entries, gen ^ 0]
   set σ := clzσ rd entries with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) clZEval args hchk
   rw [show args.length = 2 from rfl, List.isEmpty_iff.mp b13] at hgs
   have hg : ∀ a ∈ atomsIn clZEval, Good rd [] (fun _ => 0) σ a := fun a ha =>
@@ -146,7 +145,7 @@ theorem clz_core (entries : E) :
     have := List.all_eq_true.mp b15 a ha
     simpa using this
   have hat : ∀ a ∈ atomsIn clZEval, a.Holds rd σ :=
-    atoms_holds hidx b14 hg (A := []) (by simp) fun a ha hn => absurd hn (by simp [hns a ha])
+    atoms_holds hg fun a ha hn => absurd hn (by simp [hns a ha])
   have mH : ∀ s ∈ clHead, s ∈ clZEval := fun s hs => by unfold clZEval; simp [hs]
   have mZ : ∀ s ∈ cl23Zero, s ∈ clZEval := fun s hs => by unfold clZEval; simp [hs]
   have mT : ∀ s ∈ clTail, s ∈ clZEval := fun s hs => by unfold clZEval; simp [hs]
@@ -212,8 +211,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   simp only [clBrOk, Bool.and_eq_true] at hb1
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, h50⟩, h49⟩, h48⟩, h70⟩, h69⟩, h68⟩, -⟩, hm56⟩, hm67⟩,
     hm76⟩, hm84⟩, -⟩, -⟩ := he1
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨b1, b2⟩, b3⟩, b4⟩, b5⟩, -⟩, b7⟩, -⟩, -⟩, b10⟩, b11⟩, b12⟩, -⟩, -⟩, -⟩, -⟩,
-    -⟩ := hb1
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨b1, b2⟩, b3⟩, b4⟩, -⟩, b7⟩, -⟩, -⟩, b10⟩, b11⟩, b12⟩, -⟩, -⟩, -⟩, -⟩ := hb1
   have hE := stmtsEqb_sound b1
   have c2 : Stmt.atom (.const (.n 2) (word 1 0)) ∈ clHead := by simp [clHead]
   have a3 : Stmt.atom (.add (.n 3) (.n 1) (.n 2)) ∈ clHead := by simp [clHead]
@@ -234,7 +232,6 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b2
   let args : List E := [entries, gen ^ n]
   set σ := clσ rd entries n chain D with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w clEEval args hchk
   rw [show args.length = 2 from rfl] at hgs
   set SE := storesOf 2 clEEval with hSE
@@ -273,8 +270,7 @@ theorem cl_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd cha
     have hga' : σ (.n (24 + c)) = _ := hga
     rw [hga', eEqb_sound he, word_zero]
   have hat : ∀ a ∈ atomsIn clEEval, a.Holds rd σ := by
-    refine atoms_holds_stores (S := SE) (w := w) (dec := fun _ => instDecidableNot) hidx b5 hg (A := []) (by simp)
-      (fun a ha hnS hns => ?_) (fun _ a ha haS => ?_)
+    refine atoms_holds_stores hg (fun a ha hnS hns => ?_) (fun _ a ha haS => ?_)
     · have := List.all_eq_true.mp b4 a ha
       simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at this
       rcases this with h | h
@@ -468,7 +464,7 @@ def clTs : List (Tree → Prop) := [fun _ => True, fun _ => True, fun _ => True,
 
 set_option maxRecDepth 20000 in
 /-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^16`
-canonical claims' cells at `g^eP` among the caller's words, its chain buffer after its frame
+claims' cells at `g^eP` among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
@@ -601,13 +597,13 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
         have hr := hLe rd (memL_append.mp hm).1
         have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
         exact (guard_complete (find_of_idx big_idx (by rw [coreProgram_length]; omega))
-          (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hc hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
+          (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
       · simp only [decide_eq_true_eq] at ht
         refine completeAt_of_rel_pureD grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 16
         have hr := hLe rd (memL_append.mp hm).1
         have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
         have := (guard_complete (find_of_idx grp_idx (by rw [coreProgram_length]; omega))
-          (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hc hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
+          (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         exact this
       · show CompleteAtD fs cert 16 clNames[r]! (Lin ++ Own) _ _
         rw [clNames_get hr17]
@@ -799,7 +795,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
       rw [hal]
       exact hown _ (by omega) (by omega)
 
-/-- **`claim_list_digest` is complete, placed**: `n < 136 · 2^16` canonical claims' cells at `g^eP`
+/-- **`claim_list_digest` is complete, placed**: `n < 136 · 2^16` claims' cells at `g^eP`
 among the caller's words, its chain buffer after its frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
@@ -807,7 +803,7 @@ theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V 
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) :
     CompleteAtD fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (claim_list_digest_completeAtT fs cert hn hl hc hLe hLr).toD
+  (claim_list_digest_completeAtT fs cert hn hl hLe hLr).toD
 
 end
 end LeanVM.Guest.B1.Digest

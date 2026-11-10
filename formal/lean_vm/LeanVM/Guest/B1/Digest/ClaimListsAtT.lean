@@ -116,7 +116,7 @@ noncomputable def ccZEval : List Stmt := ccdHead ++ cc25Zero ++ fillH 15 25 ++ c
 
 /-- **The empty list's run, evaluated**: in order, no store, no side condition. -/
 noncomputable def cczOk : Bool :=
-  (chk 5 ccZEval).isSome && (storesOf 5 ccZEval).isEmpty && canonChk [] (atomsIn ccZEval) &&
+  (chk 5 ccZEval).isSome && (storesOf 5 ccZEval).isEmpty &&
     (atomsIn ccZEval).all (fun a => !needsSide a)
 
 set_option maxRecDepth 100000 in
@@ -142,14 +142,13 @@ theorem ccz_core (entries region base limit : E) :
   simp only [cc25ZOk, Bool.and_eq_true, decide_eq_true_eq] at hz1
   simp only [cczOk, Bool.and_eq_true] at hb1
   obtain ⟨⟨⟨-, hzc⟩, hz13⟩, hz14⟩ := hz1
-  obtain ⟨⟨⟨b12, b13⟩, b14⟩, b15⟩ := hb1
+  obtain ⟨⟨b12, b13⟩, b15⟩ := hb1
   have c5 : Stmt.atom (.const (.n 5) (word 1 0)) ∈ ccdHead := by simp [ccdHead]
   have a6 : Stmt.atom (.add (.n 6) (.n 4) (.n 5)) ∈ ccdHead := by simp [ccdHead]
   have t36 : Stmt.atom (.copy (.n 25) (.n 13)) ∈ ccdTail := by simp [ccdTail]
   have t37 : Stmt.atom (.copy (.n 26) (.n 14)) ∈ ccdTail := by simp [ccdTail]
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp b12
   let args : List E := [entries, region, base, limit, gen ^ 0]
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) ccZEval args hchk
   rw [show args.length = 5 from rfl, List.isEmpty_iff.mp b13] at hgs
   have hg : ∀ a ∈ atomsIn ccZEval, Good rd [] (fun _ => 0) σ a := fun a ha =>
@@ -159,7 +158,7 @@ theorem ccz_core (entries region base limit : E) :
     have := List.all_eq_true.mp b15 a ha
     simpa using this
   have hat : ∀ a ∈ atomsIn ccZEval, a.Holds rd σ :=
-    atoms_holds hidx b14 hg (A := []) (by simp) fun a ha hn => absurd hn (by simp [hns a ha])
+    atoms_holds hg fun a ha hn => absurd hn (by simp [hns a ha])
   have mH : ∀ s ∈ ccdHead, s ∈ ccZEval := fun s hs => by unfold ccZEval; simp [hs]
   have mZ : ∀ s ∈ cc25Zero, s ∈ ccZEval := fun s hs => by unfold ccZEval; simp [hs]
   have mT : ∀ s ∈ ccdTail, s ∈ ccZEval := fun s hs => by unfold ccZEval; simp [hs]
@@ -463,7 +462,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
       B1.disj_nil, fun rd _ _ => cc_empty fs cert fp rd⟩
   have hok : KidsDT fs cert κ (ccKids Lin eP rg L n base (keccak256 (cellsBytes cells))) (ccTs n) :=
     ⟨fun _ => (list_split_n fs cert hκ hn).toT,
-      fun _ => child_claim_list_any_completeAtT fs cert hn hl hc hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, -, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDT hok _)
   exact ⟨_, Lown, _, [], ⟨rfl, rfl⟩, hW, hD, hr⟩
@@ -478,7 +477,7 @@ theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String 
     (hR3 : ∀ j < n, ∀ c < 4, RegionL Lin (eP + 4 * o j + c)) :
     CompleteAtD fs cert κ "child_claim_list_digest" Lin [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (child_claim_list_digest_completeAtT fs cert hκ hn hl hc hL33 hLκ hrec hR2 hR3).toD
+  (child_claim_list_digest_completeAtT fs cert hκ hn hl hL33 hLκ hrec hR2 hR3).toD
 
 end
 end LeanVM.Guest.B1.Digest

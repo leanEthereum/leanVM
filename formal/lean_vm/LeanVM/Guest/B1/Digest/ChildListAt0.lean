@@ -116,8 +116,7 @@ noncomputable def anyCOk : Bool :=
   (chk 7 anyFlat).isSome &&
   SE.all (fun a => (List.range 13).any fun c => atomEqb a (.load (.n (18 + c)) (.n 17) c)) &&
   (atomsIn anyFlat).all (fun a => !needsSide a || decide (a ∈ SE) ||
-    atomEqb a (.mul (.n 3) (.n 8) (.n 7))) &&
-  canonChk [] ((atomsIn anyFlat).filter fun a => decide (a ∉ SE))
+    atomEqb a (.mul (.n 3) (.n 8) (.n 7)))
 
 set_option maxRecDepth 100000 in
 theorem anyc_ok : anyCOk = true := by decide +kernel
@@ -171,7 +170,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
       [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] a b chain D := by
   have hk := anyc_ok
   simp only [anyCOk, Bool.and_eq_true] at hk
-  obtain ⟨⟨⟨hchk1, hst⟩, hside⟩⟩ := hk
+  obtain ⟨⟨hchk1, hst⟩, hside⟩ := hk
   have hb := anyBody_ok
   simp only [anyBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hb
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, hdis⟩, -⟩, h33⟩, h32⟩, h31⟩, h51⟩, h50⟩, h49⟩,
@@ -180,7 +179,6 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
   obtain ⟨c', hchk⟩ := Option.isSome_iff_exists.mp hchk1
   let args : List E := [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c]
   set σ := anyσ rd args chain D with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w anyFlat args hchk
   rw [show args.length = 7 from rfl] at hgs
   set SE := storesOf 7 anyFlat with hSE
@@ -206,8 +204,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
     have hgx' : σ (.n (18 + c)) = _ := hgx
     rw [hgx', eEqb_sound he, word_zero]
   have hat : ∀ x ∈ atomsIn anyFlat, x.Holds rd σ := by
-    refine atoms_holds_stores (S := SE) (w := w) hidx hcan hg (A := []) (by simp)
-      (fun x hx hnS hns => ?_) (fun _ x hx hxS => ?_)
+    refine atoms_holds_stores hg (fun x hx hnS hns => ?_) (fun _ x hx hxS => ?_)
     · have := List.all_eq_true.mp hside x hx
       simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at this
       rcases this with (h | h) | h
@@ -334,7 +331,7 @@ theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
     B1.disj_nil, fun rd hlow hm => ?_⟩
   simp only [List.append_nil, List.nil_append] at hm
   obtain ⟨hS, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload⟩ := ccl_core hk hsp hen hrg hpre hS hl hc hrec hlast hL33
+  obtain ⟨vs, σ, hb, hp, hat, hr, hload⟩ := ccl_core hk hsp hen hrg hpre hS hl hrec hlast hL33
     (boundMem_of_low hlow hLκ)
   refine RelAtIn.relAtInT (relAtIn_atoms (ccl_name hk) hb (ccl_loop hk) (ccl_na hk) hp hat hr
     (fun q hq => by rw [ccl_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)

@@ -81,7 +81,7 @@ theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : Strin
   have hok : KidsDTB fs cert κ (ccKids Lin eP rg L n base (keccak256 (cellsBytes cells))) (ccTs n)
       [SB "list_split", anyB fs n] :=
     ⟨fun _ => list_split_nB fs cert hκ hn hLS,
-      fun _ => child_claim_list_any_completeAtTB fs cert hn hl hc hL33 hLκ hrec hR2 hR3, trivial⟩
+      fun _ => child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3, trivial⟩
   obtain ⟨N, Lown, rets, Lout, hN, ⟨rfl, rfl⟩, hW, hD, hr⟩ :=
     cc_nonempty fs cert (by omega) hn fp (kidsAt_of_kidsDTB hok _)
   refine ⟨_, Lown, _, [], ?_, ⟨rfl, rfl⟩, hW, hD, hr⟩

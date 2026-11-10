@@ -150,7 +150,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
     · simp only [decide_eq_true_eq] at ht
       refine anyLoop_completeAtB fs cert (j := 379)
         (find_of_idx any17_idx (by rw [coreProgram_length]; omega)) any17_ok any17c_parts.1
-        any17c_parts.2.1 any17c_parts.2.2.1 any17c_parts.2.2.2 any17_nb any17_unplaced
+        any17c_parts.2.1 any17c_parts.2.2 any17_nb any17_unplaced
         (by norm_num) (chP := b0 + 13 * a) (n0 := 64 * a)
         (pre0 := cellsBytes (cells.take (544 * a))) (o := fun i => o (136 * a + i))
         (cells := cells.drop (544 * a)) (by rw [hchain, ← pow_add]) rfl rfl
@@ -358,7 +358,7 @@ theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String �
     CompleteAtDT fs cert κ "child_claim_list_any" Lin
       [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) (anyHonest n) :=
-  (child_claim_list_any_completeAtTB fs cert hn hl hc hL33 hLκ hrec hR2 hR3).toDT
+  (child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3).toDT
 
 /-- **`child_claim_list_any` is complete, placed.** -/
 theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
@@ -371,7 +371,7 @@ theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String →
     CompleteAtD fs cert κ "child_claim_list_any" Lin
       [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (child_claim_list_any_completeAtT fs cert hn hl hc hL33 hLκ hrec hR2 hR3).toD
+  (child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3).toD
 
 end
 end LeanVM.Guest.B1.Digest
