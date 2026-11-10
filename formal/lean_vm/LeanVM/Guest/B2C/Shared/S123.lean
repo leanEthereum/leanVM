@@ -16,36 +16,32 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L2`, window 4. -/
-theorem w364_4 : shareWin 364 (snapsOf 364) 4 = true := by decide +kernel
+/-- `open_stacked__L11`, window 2. -/
+theorem w317_2 : shareWin 317 (snapsOf 317) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, once. -/
-theorem st365 : shareStatic 365 = true := by decide +kernel
+/-- `open_stacked__L11`, window 3. -/
+theorem w317_3 : shareWin 317 (snapsOf 317) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 0. -/
-theorem w365_0 : shareWin 365 (snapsOf 365) 0 = true := by decide +kernel
+/-- `open_stacked__L11`, window 4. -/
+theorem w317_4 : shareWin 317 (snapsOf 317) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 1. -/
-theorem w365_1 : shareWin 365 (snapsOf 365) 1 = true := by decide +kernel
+/-- `open_stacked__L11`, window 5. -/
+theorem w317_5 : shareWin 317 (snapsOf 317) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 2. -/
-theorem w365_2 : shareWin 365 (snapsOf 365) 2 = true := by decide +kernel
+/-- `open_stacked__L11`, window 6. -/
+theorem w317_6 : shareWin 317 (snapsOf 317) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 3. -/
-theorem w365_3 : shareWin 365 (snapsOf 365) 3 = true := by decide +kernel
+/-- `open_stacked__L12`, once. -/
+theorem st318 : shareStatic 318 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L3`, window 4. -/
-theorem w365_4 : shareWin 365 (snapsOf 365) 4 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `open_stacked__L4`, once. -/
-theorem st366 : shareStatic 366 = true := by decide +kernel
+/-- `open_stacked__L12`, window 0. -/
+theorem w318_0 : shareWin 318 (snapsOf 318) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

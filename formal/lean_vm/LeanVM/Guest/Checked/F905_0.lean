@@ -17,37 +17,33 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `opening_fold_round__L3`, window 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L14_L8`, window 0. -/
 theorem w905_0 : WinOk 905 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L11_L0_L16_L24_L23_L5`, window 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L14_L8`, window 1. -/
+theorem w905_1 : WinOk 905 1 := winOk_of_C (by decide +kernel)
+
+/-- `verify_merkle_cap__L3`, window 0. -/
 theorem w906_0 : WinOk 906 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L11_L0_L16_L24_L23_L5`, window 1. -/
-theorem w906_1 : WinOk 906 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L11_L0_L16_L24_L24_L6`, window 0. -/
+/-- `opening_queries__L0_L1_L64_L32_L15_L3`, window 0. -/
 theorem w907_0 : WinOk 907 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L11_L0_L16_L24_L24_L6`, window 1. -/
+/-- `opening_queries__L0_L1_L64_L32_L15_L3`, window 1. -/
 theorem w907_1 : WinOk 907 1 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L26`, window 0. -/
+/-- `verify_merkle_cap__L4`, window 0. -/
 theorem w908_0 : WinOk 908 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L27`, window 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L16_L4`, window 0. -/
 theorem w909_0 : WinOk 909 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_positions__L38_L28_L4`, window 0. -/
-theorem w910_0 : WinOk 910 0 := winOk_of_C (by decide +kernel)
+/-- `opening_queries__L1_L1_L64_L32_L16_L4`, window 1. -/
+theorem w909_1 : WinOk 909 1 := winOk_of_C (by decide +kernel)
 
-theorem ok905 : CheckOk 905 := checkOk_one (by decide +kernel) w905_0
+theorem ok906 : CheckOk 906 := checkOk_one (by decide +kernel) w906_0
 
 theorem ok908 : CheckOk 908 := checkOk_one (by decide +kernel) w908_0
-
-theorem ok909 : CheckOk 909 := checkOk_one (by decide +kernel) w909_0
-
-theorem ok910 : CheckOk 910 := checkOk_one (by decide +kernel) w910_0
 
 end
 end LeanVM.Guest.Checked

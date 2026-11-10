@@ -16,39 +16,17 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `keccak_layer__L0`, window 0, part 0. -/
+/-- `open_stacked__L6`, window 0, part 0. -/
 theorem cw312_0_0 : cplWin 312 0 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0`, window 1, part 0. -/
+/-- `open_stacked__L6`, window 1, part 0. -/
 theorem cw312_1_0 : cplWin 312 1 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0`, window 2, part 0. -/
+/-- `open_stacked__L6`, window 2, part 0. -/
 theorem cw312_2_0 : cplWin 312 2 0 = true := by decide +kernel
 
-/-- `keccak_layer__L0`, window 3, part 0. -/
+/-- `open_stacked__L6`, window 3, part 0. -/
 theorem cw312_3_0 : cplWin 312 3 0 = true := by decide +kernel
-
-theorem ok312 : CplOk 312 := by
-  intro i hi k hk
-  have hc : (certOf 312).cuts.length = 3 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 312 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_0_0
-  · have hn : nParts 312 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_1_0
-  · have hn : nParts 312 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_2_0
-  · have hn : nParts 312 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw312_3_0
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -11,8 +11,8 @@ public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 `DecoderLaneSizes`, as for the extractor's decoder; the lanes' interpolation within the model's
 price, `LaneInterpOKPM`: `PMInterpOK` and `interpPMModel ≤ interpPMPrice`,
 `Bounds/PMLane/InterpDefs.lean`) and its value, at the model's prices with their
-margin (`marginPrices`), at most the one at `(28, 4)`, which
-`Bounds/PMLane/Shapes.lean` decides at each of the `56` admissible shapes. Definitions only, so
+margin (`marginPrices`), at most the one at `(32, 3)`, which
+`Bounds/PMLane/Shapes.lean` decides at each of the `72` admissible shapes. Definitions only, so
 that the checks import no proof (`Bounds/PMLane/ShapesFirewall.lean`).
 -/
 
@@ -22,9 +22,9 @@ open LeanVM.Parameters LeanVM.Extraction LeanVM.Cost.Bounds.Decoder LeanVM.Cost.
 
 public section
 
-/-- **The decoder's worst price beyond the word's**: `decoderBoundPM` at `(28, 4)`, the
+/-- **The decoder's worst price beyond the word's**: `decoderBoundPM` at `(32, 3)`, the
 model's prices with their margin. -/
-@[expose] def pmDecoderWorstPrice : ℕ := decoderBoundPM marginPrices 28 4 0 0
+@[expose] def pmDecoderWorstPrice : ℕ := decoderBoundPM marginPrices 32 3 0 0
 
 /-- **The lanes' interpolation within the model's price**, at prices `p`, a lane of `2^κ`
 symbols, `2^(κ+R)` points, threshold `A`: the interpolation bound's per-shape conditions

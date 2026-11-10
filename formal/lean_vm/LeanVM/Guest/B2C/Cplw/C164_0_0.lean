@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `plus_one_run__L19`, window 0, part 0. -/
+/-- `block_selector__L2`, window 0, part 0. -/
 theorem cw164_0_0 : cplWin 164 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L20`, window 0, part 0. -/
+/-- `block_selector__L3`, window 0, part 0. -/
 theorem cw165_0_0 : cplWin 165 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L21`, window 0, part 0. -/
+/-- `block_selector__L4`, window 0, part 0. -/
 theorem cw166_0_0 : cplWin 166 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L22`, window 0, part 0. -/
+/-- `block_selector__L5`, window 0, part 0. -/
 theorem cw167_0_0 : cplWin 167 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L23`, window 0, part 0. -/
+/-- `block_selector__L6`, window 0, part 0. -/
 theorem cw168_0_0 : cplWin 168 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L24`, window 0, part 0. -/
+/-- `block_selector__L7`, window 0, part 0. -/
 theorem cw169_0_0 : cplWin 169 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L25`, window 0, part 0. -/
+/-- `block_selector__L8`, window 0, part 0. -/
 theorem cw170_0_0 : cplWin 170 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L26`, window 0, part 0. -/
+/-- `block_selector__L9`, window 0, part 0. -/
 theorem cw171_0_0 : cplWin 171 0 0 = true := by decide +kernel
 
 theorem ok164 : CplOk 164 := by

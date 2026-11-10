@@ -16,32 +16,45 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 3. -/
-theorem w368_3 : shareWin 368 (snapsOf 368) 3 = true := by decide +kernel
+/-- `open_stacked__L13`, window 7. -/
+theorem w319_7 : shareWin 319 (snapsOf 319) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 4. -/
-theorem w368_4 : shareWin 368 (snapsOf 368) 4 = true := by decide +kernel
+/-- `__loop15`, once. -/
+theorem st320 : shareStatic 320 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, once. -/
-theorem st369 : shareStatic 369 = true := by decide +kernel
+/-- `__loop15`, window 0. -/
+theorem w320_0 : shareWin 320 (snapsOf 320) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 0. -/
-theorem w369_0 : shareWin 369 (snapsOf 369) 0 = true := by decide +kernel
+/-- `__loop15`, window 1. -/
+theorem w320_1 : shareWin 320 (snapsOf 320) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 1. -/
-theorem w369_1 : shareWin 369 (snapsOf 369) 1 = true := by decide +kernel
+/-- `__loop15`, window 2. -/
+theorem w320_2 : shareWin 320 (snapsOf 320) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 2. -/
-theorem w369_2 : shareWin 369 (snapsOf 369) 2 = true := by decide +kernel
+/-- `__loop15`, window 3. -/
+theorem w320_3 : shareWin 320 (snapsOf 320) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, window 3. -/
-theorem w369_3 : shareWin 369 (snapsOf 369) 3 = true := by decide +kernel
+/-- `__loop15`, window 4. -/
+theorem w320_4 : shareWin 320 (snapsOf 320) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop16`, once. -/
+theorem st321 : shareStatic 321 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop16`, window 0. -/
+theorem w321_0 : shareWin 321 (snapsOf 321) 0 = true := by decide +kernel
+
+theorem ok321 : ShareOk 321 := ⟨st321, fun i hi ↦ by
+  have h : (snapsOf 321).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w321_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

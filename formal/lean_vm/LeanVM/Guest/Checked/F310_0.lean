@@ -17,31 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop10`, window 0. -/
+/-- `open_stacked__L4`, window 0. -/
 theorem w310_0 : WinOk 310 0 := winOk_of_C (by decide +kernel)
 
-/-- `keccak_layer__L1`, window 0. -/
+/-- `open_stacked__L4`, window 1. -/
+theorem w310_1 : WinOk 310 1 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L4`, window 2. -/
+theorem w310_2 : WinOk 310 2 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L4`, window 3. -/
+theorem w310_3 : WinOk 310 3 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L5`, window 0. -/
 theorem w311_0 : WinOk 311 0 := winOk_of_C (by decide +kernel)
 
-/-- `keccak_layer__L1`, window 1. -/
+/-- `open_stacked__L5`, window 1. -/
 theorem w311_1 : WinOk 311 1 := winOk_of_C (by decide +kernel)
 
-/-- `keccak_layer__L1`, window 2. -/
+/-- `open_stacked__L5`, window 2. -/
 theorem w311_2 : WinOk 311 2 := winOk_of_C (by decide +kernel)
 
-/-- `keccak_layer__L0`, window 0. -/
-theorem w312_0 : WinOk 312 0 := winOk_of_C (by decide +kernel)
-
-/-- `keccak_layer__L0`, window 1. -/
-theorem w312_1 : WinOk 312 1 := winOk_of_C (by decide +kernel)
-
-/-- `keccak_layer__L0`, window 2. -/
-theorem w312_2 : WinOk 312 2 := winOk_of_C (by decide +kernel)
-
-/-- `keccak_layer__L0`, window 3. -/
-theorem w312_3 : WinOk 312 3 := winOk_of_C (by decide +kernel)
-
-theorem ok310 : CheckOk 310 := checkOk_one (by decide +kernel) w310_0
+/-- `open_stacked__L5`, window 3. -/
+theorem w311_3 : WinOk 311 3 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

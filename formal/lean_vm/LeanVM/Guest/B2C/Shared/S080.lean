@@ -81,11 +81,11 @@ theorem ok79 : ShareOk 79 := ⟨st79, fun i hi ↦ by
   exact w79_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L40`, once. -/
+/-- `__loop5`, once. -/
 theorem st80 : shareStatic 80 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L40`, window 0. -/
+/-- `__loop5`, window 0. -/
 theorem w80_0 : shareWin 80 (snapsOf 80) 0 = true := by decide +kernel
 
 theorem ok80 : ShareOk 80 := ⟨st80, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok80 : ShareOk 80 := ⟨st80, fun i hi ↦ by
   exact w80_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L41`, once. -/
+/-- `rs_eq_rows__L0`, once. -/
 theorem st81 : shareStatic 81 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L41`, window 0. -/
+/-- `rs_eq_rows__L0`, window 0. -/
 theorem w81_0 : shareWin 81 (snapsOf 81) 0 = true := by decide +kernel
 
 theorem ok81 : ShareOk 81 := ⟨st81, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok81 : ShareOk 81 := ⟨st81, fun i hi ↦ by
   exact w81_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L42`, once. -/
+/-- `rs_eq_rows__L1`, once. -/
 theorem st82 : shareStatic 82 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `eq_prefix_run__L42`, window 0. -/
+/-- `rs_eq_rows__L1`, window 0. -/
 theorem w82_0 : shareWin 82 (snapsOf 82) 0 = true := by decide +kernel
 
 theorem ok82 : ShareOk 82 := ⟨st82, fun i hi ↦ by

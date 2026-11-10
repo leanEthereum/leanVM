@@ -5,11 +5,11 @@ public import LeanVM.Cost.Bounds.PMLane.ShapeDefs
 /-!
 # Bounds: the decoder on `pmSolver` at every admissible shape
 
-At each of the `56` admissible shapes (`15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`), one `decide +kernel` each
+At each of the `72` admissible shapes (`15 ≤ μ ≤ 32`, `1 ≤ R ≤ 4`), one `decide +kernel` each
 (a single `decide` over all shapes at once outgrows the memory): the lanes are word-sized
 (`DecoderLaneSizes`) and the decoder's bound beyond the word's prices, at the model's prices
-with their margin, is at most the one at `(28, 4)` (`pmDecoderWorstPrice`,
-`1696768204877294467202512 ≈ 2^80.49`): **`decoderShapePM_ok`**, which
+with their margin, is at most the one at `(32, 3)` (`pmDecoderWorstPrice`,
+`67498454346174488641581264 ≈ 2^85.80`): **`decoderShapePM_ok`**, which
 `decodeStacksPMC_cost_worst` (`Bounds/PMLane/Decode.lean`) reads.
 
 The checks evaluate only the extractor's parameter search and the bounds' definitions, none of
@@ -79,14 +79,30 @@ theorem decoderShapeOkPM_28_1 : DecoderShapeOkPM 28 1 := by decide +kernel
 theorem decoderShapeOkPM_28_2 : DecoderShapeOkPM 28 2 := by decide +kernel
 theorem decoderShapeOkPM_28_3 : DecoderShapeOkPM 28 3 := by decide +kernel
 theorem decoderShapeOkPM_28_4 : DecoderShapeOkPM 28 4 := by decide +kernel
+theorem decoderShapeOkPM_29_1 : DecoderShapeOkPM 29 1 := by decide +kernel
+theorem decoderShapeOkPM_29_2 : DecoderShapeOkPM 29 2 := by decide +kernel
+theorem decoderShapeOkPM_29_3 : DecoderShapeOkPM 29 3 := by decide +kernel
+theorem decoderShapeOkPM_29_4 : DecoderShapeOkPM 29 4 := by decide +kernel
+theorem decoderShapeOkPM_30_1 : DecoderShapeOkPM 30 1 := by decide +kernel
+theorem decoderShapeOkPM_30_2 : DecoderShapeOkPM 30 2 := by decide +kernel
+theorem decoderShapeOkPM_30_3 : DecoderShapeOkPM 30 3 := by decide +kernel
+theorem decoderShapeOkPM_30_4 : DecoderShapeOkPM 30 4 := by decide +kernel
+theorem decoderShapeOkPM_31_1 : DecoderShapeOkPM 31 1 := by decide +kernel
+theorem decoderShapeOkPM_31_2 : DecoderShapeOkPM 31 2 := by decide +kernel
+theorem decoderShapeOkPM_31_3 : DecoderShapeOkPM 31 3 := by decide +kernel
+theorem decoderShapeOkPM_31_4 : DecoderShapeOkPM 31 4 := by decide +kernel
+theorem decoderShapeOkPM_32_1 : DecoderShapeOkPM 32 1 := by decide +kernel
+theorem decoderShapeOkPM_32_2 : DecoderShapeOkPM 32 2 := by decide +kernel
+theorem decoderShapeOkPM_32_3 : DecoderShapeOkPM 32 3 := by decide +kernel
+theorem decoderShapeOkPM_32_4 : DecoderShapeOkPM 32 4 := by decide +kernel
 
 /-- **The decoder's hypotheses at every admissible shape.** -/
 theorem decoderShapePM_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShapeOkPM μ R := by
   obtain ⟨h1, h2, h3, h4⟩ := h
   simp only [Whir.minLogStack, Whir.maxLogStack] at h1 h2
   have hR : R = 1 ∨ R = 2 ∨ R = 3 ∨ R = 4 := by omega
-  rcases (show μ = 15 ∨ μ = 16 ∨ μ = 17 ∨ μ = 18 ∨ μ = 19 ∨ μ = 20 ∨ μ = 21 ∨ μ = 22 ∨ μ = 23 ∨ μ = 24 ∨ μ = 25 ∨ μ = 26 ∨ μ = 27 ∨ μ = 28 by omega) with
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+  rcases (show μ = 15 ∨ μ = 16 ∨ μ = 17 ∨ μ = 18 ∨ μ = 19 ∨ μ = 20 ∨ μ = 21 ∨ μ = 22 ∨ μ = 23 ∨ μ = 24 ∨ μ = 25 ∨ μ = 26 ∨ μ = 27 ∨ μ = 28 ∨ μ = 29 ∨ μ = 30 ∨ μ = 31 ∨ μ = 32 by omega) with
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     rcases hR with rfl | rfl | rfl | rfl
   · exact decoderShapeOkPM_15_1
   · exact decoderShapeOkPM_15_2
@@ -144,9 +160,25 @@ theorem decoderShapePM_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShape
   · exact decoderShapeOkPM_28_2
   · exact decoderShapeOkPM_28_3
   · exact decoderShapeOkPM_28_4
+  · exact decoderShapeOkPM_29_1
+  · exact decoderShapeOkPM_29_2
+  · exact decoderShapeOkPM_29_3
+  · exact decoderShapeOkPM_29_4
+  · exact decoderShapeOkPM_30_1
+  · exact decoderShapeOkPM_30_2
+  · exact decoderShapeOkPM_30_3
+  · exact decoderShapeOkPM_30_4
+  · exact decoderShapeOkPM_31_1
+  · exact decoderShapeOkPM_31_2
+  · exact decoderShapeOkPM_31_3
+  · exact decoderShapeOkPM_31_4
+  · exact decoderShapeOkPM_32_1
+  · exact decoderShapeOkPM_32_2
+  · exact decoderShapeOkPM_32_3
+  · exact decoderShapeOkPM_32_4
 
-/-- **The worst price**: `1696768204877294467202512 ≈ 2^80.49`, below `2^80.49`. -/
-theorem pmDecoderWorstPrice_eq : pmDecoderWorstPrice = 1696768204877294467202512 := by
+/-- **The worst price**: `67498454346174488641581264 ≈ 2^85.80`. -/
+theorem pmDecoderWorstPrice_eq : pmDecoderWorstPrice = 67498454346174488641581264 := by
   decide +kernel
 
 end

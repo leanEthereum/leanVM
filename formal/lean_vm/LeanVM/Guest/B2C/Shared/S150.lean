@@ -16,32 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L21`, window 20. -/
-theorem w383_20 : shareWin 383 (snapsOf 383) 20 = true := by decide +kernel
+/-- `level_queries__L28_L0_L16_L24_L13_L7`, once. -/
+theorem st446 : shareStatic 446 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L21`, window 21. -/
-theorem w383_21 : shareWin 383 (snapsOf 383) 21 = true := by decide +kernel
+/-- `level_queries__L28_L0_L16_L24_L13_L7`, window 0. -/
+theorem w446_0 : shareWin 446 (snapsOf 446) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop15`, once. -/
-theorem st384 : shareStatic 384 = true := by decide +kernel
+/-- `level_queries__L28_L0_L16_L24_L13_L7`, window 1. -/
+theorem w446_1 : shareWin 446 (snapsOf 446) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop15`, window 0. -/
-theorem w384_0 : shareWin 384 (snapsOf 384) 0 = true := by decide +kernel
+/-- `level_queries__L25_L0_L16_L24_L14_L2`, once. -/
+theorem st447 : shareStatic 447 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop15`, window 1. -/
-theorem w384_1 : shareWin 384 (snapsOf 384) 1 = true := by decide +kernel
+/-- `level_queries__L25_L0_L16_L24_L14_L2`, window 0. -/
+theorem w447_0 : shareWin 447 (snapsOf 447) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop15`, window 2. -/
-theorem w384_2 : shareWin 384 (snapsOf 384) 2 = true := by decide +kernel
+/-- `level_queries__L25_L0_L16_L24_L14_L2`, window 1. -/
+theorem w447_1 : shareWin 447 (snapsOf 447) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop15`, window 3. -/
-theorem w384_3 : shareWin 384 (snapsOf 384) 3 = true := by decide +kernel
+/-- `level_queries__L23_L0_L16_L24_L15_L3`, once. -/
+theorem st448 : shareStatic 448 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_queries__L23_L0_L16_L24_L15_L3`, window 0. -/
+theorem w448_0 : shareWin 448 (snapsOf 448) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

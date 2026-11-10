@@ -8,9 +8,12 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1200_0
-public import LeanVM.Guest.Checked.F1200_0
-public import LeanVM.Guest.Checked.F1200_0
+public import LeanVM.Guest.Checked.F1203_0
+public import LeanVM.Guest.Checked.F1203_0
+public import LeanVM.Guest.Checked.F1203_0
+public import LeanVM.Guest.Checked.F1203_0
+public import LeanVM.Guest.Checked.F1207_1
+public import LeanVM.Guest.Checked.F1207_1
 
 namespace LeanVM.Guest.Checked
 
@@ -18,12 +21,7 @@ namespace LeanVM.Guest.Checked
 
 theorem plain1201 : Plain 1201 := plain_of_nil (by decide +kernel)
 
-theorem ok1202 : CheckOk 1202 := fun i hi ↦ by
-  have h : (certOf 1202).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1202_0
-  · exact w1202_1
+theorem plain1202 : Plain 1202 := plain_of_nil (by decide +kernel)
 
 theorem ok1203 : CheckOk 1203 := fun i hi ↦ by
   have h : (certOf 1203).cuts.length = 1 := by decide +kernel
@@ -39,97 +37,28 @@ theorem ok1204 : CheckOk 1204 := fun i hi ↦ by
   · exact w1204_0
   · exact w1204_1
 
-theorem plain1205 : Plain 1205 := plain_of_nil (by decide +kernel)
+theorem ok1205 : CheckOk 1205 := fun i hi ↦ by
+  have h : (certOf 1205).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1205_0
+  · exact w1205_1
 
 theorem plain1206 : Plain 1206 := plain_of_nil (by decide +kernel)
 
-theorem plain1207 : Plain 1207 := plain_of_nil (by decide +kernel)
+theorem ok1207 : CheckOk 1207 := fun i hi ↦ by
+  have h : (certOf 1207).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1207_0
+  · exact w1207_1
 
-theorem plain1208 : Plain 1208 := plain_of_nil (by decide +kernel)
-
-theorem plain1209 : Plain 1209 := plain_of_nil (by decide +kernel)
-
-theorem plain1210 : Plain 1210 := plain_of_nil (by decide +kernel)
-
-theorem plain1211 : Plain 1211 := plain_of_nil (by decide +kernel)
-
-theorem plain1212 : Plain 1212 := plain_of_nil (by decide +kernel)
-
-theorem plain1213 : Plain 1213 := plain_of_nil (by decide +kernel)
-
-theorem plain1214 : Plain 1214 := plain_of_nil (by decide +kernel)
-
-theorem plain1215 : Plain 1215 := plain_of_nil (by decide +kernel)
-
-theorem plain1216 : Plain 1216 := plain_of_nil (by decide +kernel)
-
-theorem plain1217 : Plain 1217 := plain_of_nil (by decide +kernel)
-
-theorem plain1218 : Plain 1218 := plain_of_nil (by decide +kernel)
-
-theorem plain1219 : Plain 1219 := plain_of_nil (by decide +kernel)
-
-theorem plain1220 : Plain 1220 := plain_of_nil (by decide +kernel)
-
-theorem plain1221 : Plain 1221 := plain_of_nil (by decide +kernel)
-
-theorem plain1222 : Plain 1222 := plain_of_nil (by decide +kernel)
-
-theorem plain1223 : Plain 1223 := plain_of_nil (by decide +kernel)
-
-theorem plain1224 : Plain 1224 := plain_of_nil (by decide +kernel)
-
-theorem plain1225 : Plain 1225 := plain_of_nil (by decide +kernel)
-
-theorem plain1226 : Plain 1226 := plain_of_nil (by decide +kernel)
-
-theorem plain1227 : Plain 1227 := plain_of_nil (by decide +kernel)
-
-theorem plain1228 : Plain 1228 := plain_of_nil (by decide +kernel)
-
-theorem plain1229 : Plain 1229 := plain_of_nil (by decide +kernel)
-
-theorem plain1230 : Plain 1230 := plain_of_nil (by decide +kernel)
-
-theorem plain1231 : Plain 1231 := plain_of_nil (by decide +kernel)
-
-theorem plain1232 : Plain 1232 := plain_of_nil (by decide +kernel)
-
-theorem plain1233 : Plain 1233 := plain_of_nil (by decide +kernel)
-
-theorem plain1234 : Plain 1234 := plain_of_nil (by decide +kernel)
-
-theorem plain1235 : Plain 1235 := plain_of_nil (by decide +kernel)
-
-theorem plain1236 : Plain 1236 := plain_of_nil (by decide +kernel)
-
-theorem plain1237 : Plain 1237 := plain_of_nil (by decide +kernel)
-
-theorem plain1238 : Plain 1238 := plain_of_nil (by decide +kernel)
-
-theorem plain1239 : Plain 1239 := plain_of_nil (by decide +kernel)
-
-theorem plain1240 : Plain 1240 := plain_of_nil (by decide +kernel)
-
-theorem plain1241 : Plain 1241 := plain_of_nil (by decide +kernel)
-
-theorem plain1242 : Plain 1242 := plain_of_nil (by decide +kernel)
-
-theorem plain1243 : Plain 1243 := plain_of_nil (by decide +kernel)
-
-theorem plain1244 : Plain 1244 := plain_of_nil (by decide +kernel)
-
-theorem plain1245 : Plain 1245 := plain_of_nil (by decide +kernel)
-
-theorem plain1246 : Plain 1246 := plain_of_nil (by decide +kernel)
-
-theorem plain1247 : Plain 1247 := plain_of_nil (by decide +kernel)
-
-theorem plain1248 : Plain 1248 := plain_of_nil (by decide +kernel)
-
-theorem plain1249 : Plain 1249 := plain_of_nil (by decide +kernel)
-
-theorem plain1250 : Plain 1250 := plain_of_nil (by decide +kernel)
+theorem ok1208 : CheckOk 1208 := fun i hi ↦ by
+  have h : (certOf 1208).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1208_0
+  · exact w1208_1
 
 end
 end LeanVM.Guest.Checked

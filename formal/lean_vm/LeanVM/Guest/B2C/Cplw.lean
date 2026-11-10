@@ -22,17 +22,17 @@ public import LeanVM.Guest.B2C.Cplw.C12_8_0
 public import LeanVM.Guest.B2C.Cplw.C13_0_0
 public import LeanVM.Guest.B2C.Cplw.C13_3_0
 public import LeanVM.Guest.B2C.Cplw.C15_0_0
-public import LeanVM.Guest.B2C.Cplw.C18_1_0
-public import LeanVM.Guest.B2C.Cplw.C19_1_0
-public import LeanVM.Guest.B2C.Cplw.C20_3_0
-public import LeanVM.Guest.B2C.Cplw.C20_9_0
-public import LeanVM.Guest.B2C.Cplw.C20_15_0
-public import LeanVM.Guest.B2C.Cplw.C21_1_0
-public import LeanVM.Guest.B2C.Cplw.C21_9_0
-public import LeanVM.Guest.B2C.Cplw.C21_17_0
-public import LeanVM.Guest.B2C.Cplw.C21_24_0
-public import LeanVM.Guest.B2C.Cplw.C28_0_0
-public import LeanVM.Guest.B2C.Cplw.C35_0_0
+public import LeanVM.Guest.B2C.Cplw.C18_2_0
+public import LeanVM.Guest.B2C.Cplw.C19_1_1
+public import LeanVM.Guest.B2C.Cplw.C20_4_0
+public import LeanVM.Guest.B2C.Cplw.C20_10_0
+public import LeanVM.Guest.B2C.Cplw.C20_16_0
+public import LeanVM.Guest.B2C.Cplw.C21_3_0
+public import LeanVM.Guest.B2C.Cplw.C21_11_0
+public import LeanVM.Guest.B2C.Cplw.C21_19_0
+public import LeanVM.Guest.B2C.Cplw.C22_0_0
+public import LeanVM.Guest.B2C.Cplw.C30_0_0
+public import LeanVM.Guest.B2C.Cplw.C37_0_0
 public import LeanVM.Guest.B2C.Cplw.C37_1_0
 public import LeanVM.Guest.B2C.Cplw.C37_2_0
 public import LeanVM.Guest.B2C.Cplw.C37_3_0
@@ -69,9 +69,9 @@ public import LeanVM.Guest.B2C.Cplw.C58_0_0
 public import LeanVM.Guest.B2C.Cplw.C66_0_0
 public import LeanVM.Guest.B2C.Cplw.C74_0_0
 public import LeanVM.Guest.B2C.Cplw.C82_0_0
-public import LeanVM.Guest.B2C.Cplw.C90_0_0
-public import LeanVM.Guest.B2C.Cplw.C94_0_0
-public import LeanVM.Guest.B2C.Cplw.C96_0_0
+public import LeanVM.Guest.B2C.Cplw.C86_0_0
+public import LeanVM.Guest.B2C.Cplw.C88_0_0
+public import LeanVM.Guest.B2C.Cplw.C92_0_0
 public import LeanVM.Guest.B2C.Cplw.C100_0_0
 public import LeanVM.Guest.B2C.Cplw.C108_0_0
 public import LeanVM.Guest.B2C.Cplw.C116_0_0
@@ -88,314 +88,198 @@ public import LeanVM.Guest.B2C.Cplw.C196_0_0
 public import LeanVM.Guest.B2C.Cplw.C204_0_0
 public import LeanVM.Guest.B2C.Cplw.C212_0_0
 public import LeanVM.Guest.B2C.Cplw.C220_0_0
-public import LeanVM.Guest.B2C.Cplw.C226_0_0
-public import LeanVM.Guest.B2C.Cplw.C234_0_0
-public import LeanVM.Guest.B2C.Cplw.C242_0_0
-public import LeanVM.Guest.B2C.Cplw.C250_0_0
-public import LeanVM.Guest.B2C.Cplw.C258_0_0
-public import LeanVM.Guest.B2C.Cplw.C266_0_0
-public import LeanVM.Guest.B2C.Cplw.C274_0_0
-public import LeanVM.Guest.B2C.Cplw.C282_0_0
-public import LeanVM.Guest.B2C.Cplw.C290_0_0
-public import LeanVM.Guest.B2C.Cplw.C298_0_0
-public import LeanVM.Guest.B2C.Cplw.C306_0_0
+public import LeanVM.Guest.B2C.Cplw.C228_0_0
+public import LeanVM.Guest.B2C.Cplw.C236_0_0
+public import LeanVM.Guest.B2C.Cplw.C244_0_0
+public import LeanVM.Guest.B2C.Cplw.C252_0_0
+public import LeanVM.Guest.B2C.Cplw.C260_0_0
+public import LeanVM.Guest.B2C.Cplw.C264_0_0
+public import LeanVM.Guest.B2C.Cplw.C265_0_0
+public import LeanVM.Guest.B2C.Cplw.C273_0_0
+public import LeanVM.Guest.B2C.Cplw.C281_0_0
+public import LeanVM.Guest.B2C.Cplw.C289_0_0
+public import LeanVM.Guest.B2C.Cplw.C297_0_0
+public import LeanVM.Guest.B2C.Cplw.C305_0_0
+public import LeanVM.Guest.B2C.Cplw.C307_1_0
+public import LeanVM.Guest.B2C.Cplw.C308_1_0
+public import LeanVM.Guest.B2C.Cplw.C309_1_0
+public import LeanVM.Guest.B2C.Cplw.C310_1_0
+public import LeanVM.Guest.B2C.Cplw.C311_1_0
 public import LeanVM.Guest.B2C.Cplw.C312_0_0
-public import LeanVM.Guest.B2C.Cplw.C313_0_0
-public import LeanVM.Guest.B2C.Cplw.C321_0_0
-public import LeanVM.Guest.B2C.Cplw.C329_0_0
-public import LeanVM.Guest.B2C.Cplw.C337_0_0
-public import LeanVM.Guest.B2C.Cplw.C345_0_0
-public import LeanVM.Guest.B2C.Cplw.C353_0_0
-public import LeanVM.Guest.B2C.Cplw.C361_0_0
-public import LeanVM.Guest.B2C.Cplw.C363_0_0
-public import LeanVM.Guest.B2C.Cplw.C364_0_0
+public import LeanVM.Guest.B2C.Cplw.C312_3_1
+public import LeanVM.Guest.B2C.Cplw.C313_3_0
+public import LeanVM.Guest.B2C.Cplw.C314_2_0
+public import LeanVM.Guest.B2C.Cplw.C315_1_0
+public import LeanVM.Guest.B2C.Cplw.C315_4_0
+public import LeanVM.Guest.B2C.Cplw.C316_2_0
+public import LeanVM.Guest.B2C.Cplw.C317_0_0
+public import LeanVM.Guest.B2C.Cplw.C317_3_0
+public import LeanVM.Guest.B2C.Cplw.C318_1_0
+public import LeanVM.Guest.B2C.Cplw.C318_4_1
+public import LeanVM.Guest.B2C.Cplw.C319_3_0
+public import LeanVM.Guest.B2C.Cplw.C320_0_0
+public import LeanVM.Guest.B2C.Cplw.C326_0_0
+public import LeanVM.Guest.B2C.Cplw.C334_0_0
+public import LeanVM.Guest.B2C.Cplw.C339_3_0
+public import LeanVM.Guest.B2C.Cplw.C346_0_0
+public import LeanVM.Guest.B2C.Cplw.C354_0_0
+public import LeanVM.Guest.B2C.Cplw.C358_2_0
 public import LeanVM.Guest.B2C.Cplw.C365_0_0
-public import LeanVM.Guest.B2C.Cplw.C366_0_0
-public import LeanVM.Guest.B2C.Cplw.C367_0_0
-public import LeanVM.Guest.B2C.Cplw.C367_3_0
-public import LeanVM.Guest.B2C.Cplw.C368_2_0
-public import LeanVM.Guest.B2C.Cplw.C369_1_0
-public import LeanVM.Guest.B2C.Cplw.C370_0_0
-public import LeanVM.Guest.B2C.Cplw.C370_3_0
-public import LeanVM.Guest.B2C.Cplw.C371_2_0
-public import LeanVM.Guest.B2C.Cplw.C372_0_0
-public import LeanVM.Guest.B2C.Cplw.C372_3_0
-public import LeanVM.Guest.B2C.Cplw.C373_1_0
-public import LeanVM.Guest.B2C.Cplw.C373_4_1
-public import LeanVM.Guest.B2C.Cplw.C374_3_0
-public import LeanVM.Guest.B2C.Cplw.C375_1_0
-public import LeanVM.Guest.B2C.Cplw.C375_4_1
-public import LeanVM.Guest.B2C.Cplw.C376_2_0
-public import LeanVM.Guest.B2C.Cplw.C376_5_0
-public import LeanVM.Guest.B2C.Cplw.C377_3_0
-public import LeanVM.Guest.B2C.Cplw.C378_0_0
-public import LeanVM.Guest.B2C.Cplw.C378_4_0
-public import LeanVM.Guest.B2C.Cplw.C379_0_0
-public import LeanVM.Guest.B2C.Cplw.C379_4_0
-public import LeanVM.Guest.B2C.Cplw.C380_0_0
-public import LeanVM.Guest.B2C.Cplw.C380_4_0
+public import LeanVM.Guest.B2C.Cplw.C373_0_0
 public import LeanVM.Guest.B2C.Cplw.C381_0_0
-public import LeanVM.Guest.B2C.Cplw.C381_4_0
-public import LeanVM.Guest.B2C.Cplw.C382_0_0
-public import LeanVM.Guest.B2C.Cplw.C382_4_0
-public import LeanVM.Guest.B2C.Cplw.C382_6_0
-public import LeanVM.Guest.B2C.Cplw.C383_2_0
-public import LeanVM.Guest.B2C.Cplw.C383_5_0
-public import LeanVM.Guest.B2C.Cplw.C384_0_0
-public import LeanVM.Guest.B2C.Cplw.C390_0_0
-public import LeanVM.Guest.B2C.Cplw.C398_0_0
-public import LeanVM.Guest.B2C.Cplw.C403_3_0
-public import LeanVM.Guest.B2C.Cplw.C410_0_0
-public import LeanVM.Guest.B2C.Cplw.C418_0_0
-public import LeanVM.Guest.B2C.Cplw.C422_2_0
-public import LeanVM.Guest.B2C.Cplw.C429_0_0
-public import LeanVM.Guest.B2C.Cplw.C437_0_0
-public import LeanVM.Guest.B2C.Cplw.C445_0_0
-public import LeanVM.Guest.B2C.Cplw.C453_0_0
-public import LeanVM.Guest.B2C.Cplw.C459_0_0
-public import LeanVM.Guest.B2C.Cplw.C466_0_0
-public import LeanVM.Guest.B2C.Cplw.C472_1_0
+public import LeanVM.Guest.B2C.Cplw.C389_0_0
+public import LeanVM.Guest.B2C.Cplw.C395_0_0
+public import LeanVM.Guest.B2C.Cplw.C402_0_0
+public import LeanVM.Guest.B2C.Cplw.C408_1_0
+public import LeanVM.Guest.B2C.Cplw.C415_0_0
+public import LeanVM.Guest.B2C.Cplw.C423_0_0
+public import LeanVM.Guest.B2C.Cplw.C428_1_0
+public import LeanVM.Guest.B2C.Cplw.C435_0_0
+public import LeanVM.Guest.B2C.Cplw.C439_1_0
+public import LeanVM.Guest.B2C.Cplw.C446_0_0
+public import LeanVM.Guest.B2C.Cplw.C451_0_0
+public import LeanVM.Guest.B2C.Cplw.C458_1_0
+public import LeanVM.Guest.B2C.Cplw.C463_0_0
+public import LeanVM.Guest.B2C.Cplw.C468_1_0
+public import LeanVM.Guest.B2C.Cplw.C475_0_0
 public import LeanVM.Guest.B2C.Cplw.C479_0_0
-public import LeanVM.Guest.B2C.Cplw.C487_0_0
-public import LeanVM.Guest.B2C.Cplw.C492_1_0
-public import LeanVM.Guest.B2C.Cplw.C499_0_0
-public import LeanVM.Guest.B2C.Cplw.C503_1_0
-public import LeanVM.Guest.B2C.Cplw.C510_0_0
-public import LeanVM.Guest.B2C.Cplw.C515_0_0
-public import LeanVM.Guest.B2C.Cplw.C522_1_0
-public import LeanVM.Guest.B2C.Cplw.C527_0_0
-public import LeanVM.Guest.B2C.Cplw.C532_1_0
+public import LeanVM.Guest.B2C.Cplw.C483_1_0
+public import LeanVM.Guest.B2C.Cplw.C491_0_0
+public import LeanVM.Guest.B2C.Cplw.C496_1_0
+public import LeanVM.Guest.B2C.Cplw.C502_1_0
+public import LeanVM.Guest.B2C.Cplw.C507_0_0
+public import LeanVM.Guest.B2C.Cplw.C511_0_0
+public import LeanVM.Guest.B2C.Cplw.C515_1_0
+public import LeanVM.Guest.B2C.Cplw.C523_0_0
+public import LeanVM.Guest.B2C.Cplw.C528_1_0
+public import LeanVM.Guest.B2C.Cplw.C534_1_0
 public import LeanVM.Guest.B2C.Cplw.C539_0_0
-public import LeanVM.Guest.B2C.Cplw.C543_0_0
-public import LeanVM.Guest.B2C.Cplw.C547_1_0
+public import LeanVM.Guest.B2C.Cplw.C543_1_0
+public import LeanVM.Guest.B2C.Cplw.C548_1_0
 public import LeanVM.Guest.B2C.Cplw.C555_0_0
-public import LeanVM.Guest.B2C.Cplw.C560_1_0
+public import LeanVM.Guest.B2C.Cplw.C561_1_0
 public import LeanVM.Guest.B2C.Cplw.C566_1_0
 public import LeanVM.Guest.B2C.Cplw.C571_0_0
-public import LeanVM.Guest.B2C.Cplw.C575_0_0
-public import LeanVM.Guest.B2C.Cplw.C579_1_0
-public import LeanVM.Guest.B2C.Cplw.C587_0_0
-public import LeanVM.Guest.B2C.Cplw.C592_1_0
-public import LeanVM.Guest.B2C.Cplw.C598_1_0
-public import LeanVM.Guest.B2C.Cplw.C603_0_0
-public import LeanVM.Guest.B2C.Cplw.C607_1_0
-public import LeanVM.Guest.B2C.Cplw.C612_1_0
-public import LeanVM.Guest.B2C.Cplw.C619_0_0
+public import LeanVM.Guest.B2C.Cplw.C575_1_0
+public import LeanVM.Guest.B2C.Cplw.C581_0_0
+public import LeanVM.Guest.B2C.Cplw.C586_1_0
+public import LeanVM.Guest.B2C.Cplw.C592_0_0
+public import LeanVM.Guest.B2C.Cplw.C596_1_0
+public import LeanVM.Guest.B2C.Cplw.C601_0_0
+public import LeanVM.Guest.B2C.Cplw.C605_0_0
+public import LeanVM.Guest.B2C.Cplw.C612_0_0
+public import LeanVM.Guest.B2C.Cplw.C616_0_0
+public import LeanVM.Guest.B2C.Cplw.C621_0_0
 public import LeanVM.Guest.B2C.Cplw.C625_1_0
-public import LeanVM.Guest.B2C.Cplw.C630_1_0
+public import LeanVM.Guest.B2C.Cplw.C630_0_0
 public import LeanVM.Guest.B2C.Cplw.C635_0_0
-public import LeanVM.Guest.B2C.Cplw.C639_1_0
-public import LeanVM.Guest.B2C.Cplw.C645_0_0
+public import LeanVM.Guest.B2C.Cplw.C641_0_0
+public import LeanVM.Guest.B2C.Cplw.C646_0_0
 public import LeanVM.Guest.B2C.Cplw.C650_1_0
-public import LeanVM.Guest.B2C.Cplw.C656_0_0
-public import LeanVM.Guest.B2C.Cplw.C660_1_0
-public import LeanVM.Guest.B2C.Cplw.C665_0_0
-public import LeanVM.Guest.B2C.Cplw.C669_0_0
-public import LeanVM.Guest.B2C.Cplw.C676_0_0
+public import LeanVM.Guest.B2C.Cplw.C655_0_0
+public import LeanVM.Guest.B2C.Cplw.C659_0_0
+public import LeanVM.Guest.B2C.Cplw.C666_0_0
+public import LeanVM.Guest.B2C.Cplw.C670_0_0
+public import LeanVM.Guest.B2C.Cplw.C675_1_0
 public import LeanVM.Guest.B2C.Cplw.C680_0_0
-public import LeanVM.Guest.B2C.Cplw.C685_0_0
-public import LeanVM.Guest.B2C.Cplw.C689_1_0
-public import LeanVM.Guest.B2C.Cplw.C694_0_0
-public import LeanVM.Guest.B2C.Cplw.C699_0_0
+public import LeanVM.Guest.B2C.Cplw.C684_0_0
+public import LeanVM.Guest.B2C.Cplw.C689_0_0
+public import LeanVM.Guest.B2C.Cplw.C695_0_0
+public import LeanVM.Guest.B2C.Cplw.C700_1_0
 public import LeanVM.Guest.B2C.Cplw.C705_0_0
-public import LeanVM.Guest.B2C.Cplw.C710_0_0
-public import LeanVM.Guest.B2C.Cplw.C714_1_0
-public import LeanVM.Guest.B2C.Cplw.C719_0_0
-public import LeanVM.Guest.B2C.Cplw.C723_0_0
+public import LeanVM.Guest.B2C.Cplw.C709_0_0
+public import LeanVM.Guest.B2C.Cplw.C713_1_0
+public import LeanVM.Guest.B2C.Cplw.C718_0_0
+public import LeanVM.Guest.B2C.Cplw.C724_1_0
 public import LeanVM.Guest.B2C.Cplw.C730_0_0
 public import LeanVM.Guest.B2C.Cplw.C734_0_0
-public import LeanVM.Guest.B2C.Cplw.C739_1_0
-public import LeanVM.Guest.B2C.Cplw.C744_0_0
+public import LeanVM.Guest.B2C.Cplw.C738_1_0
+public import LeanVM.Guest.B2C.Cplw.C743_0_0
 public import LeanVM.Guest.B2C.Cplw.C748_0_0
-public import LeanVM.Guest.B2C.Cplw.C753_0_0
-public import LeanVM.Guest.B2C.Cplw.C759_0_0
-public import LeanVM.Guest.B2C.Cplw.C764_1_0
-public import LeanVM.Guest.B2C.Cplw.C769_0_0
+public import LeanVM.Guest.B2C.Cplw.C754_0_0
+public import LeanVM.Guest.B2C.Cplw.C759_1_0
+public import LeanVM.Guest.B2C.Cplw.C764_0_0
+public import LeanVM.Guest.B2C.Cplw.C768_1_0
 public import LeanVM.Guest.B2C.Cplw.C773_0_0
-public import LeanVM.Guest.B2C.Cplw.C777_1_0
-public import LeanVM.Guest.B2C.Cplw.C782_0_0
-public import LeanVM.Guest.B2C.Cplw.C788_1_0
-public import LeanVM.Guest.B2C.Cplw.C794_0_0
+public import LeanVM.Guest.B2C.Cplw.C777_0_0
+public import LeanVM.Guest.B2C.Cplw.C784_0_0
+public import LeanVM.Guest.B2C.Cplw.C788_0_0
+public import LeanVM.Guest.B2C.Cplw.C793_1_0
 public import LeanVM.Guest.B2C.Cplw.C798_0_0
 public import LeanVM.Guest.B2C.Cplw.C802_1_0
-public import LeanVM.Guest.B2C.Cplw.C807_0_0
+public import LeanVM.Guest.B2C.Cplw.C806_1_0
 public import LeanVM.Guest.B2C.Cplw.C812_0_0
-public import LeanVM.Guest.B2C.Cplw.C818_0_0
-public import LeanVM.Guest.B2C.Cplw.C823_1_0
-public import LeanVM.Guest.B2C.Cplw.C828_0_0
-public import LeanVM.Guest.B2C.Cplw.C832_1_0
-public import LeanVM.Guest.B2C.Cplw.C837_0_0
+public import LeanVM.Guest.B2C.Cplw.C817_1_0
+public import LeanVM.Guest.B2C.Cplw.C823_0_0
+public import LeanVM.Guest.B2C.Cplw.C827_1_0
+public import LeanVM.Guest.B2C.Cplw.C832_0_0
+public import LeanVM.Guest.B2C.Cplw.C836_0_0
 public import LeanVM.Guest.B2C.Cplw.C841_0_0
-public import LeanVM.Guest.B2C.Cplw.C848_0_0
-public import LeanVM.Guest.B2C.Cplw.C852_0_0
-public import LeanVM.Guest.B2C.Cplw.C857_1_0
-public import LeanVM.Guest.B2C.Cplw.C862_0_0
-public import LeanVM.Guest.B2C.Cplw.C866_1_0
-public import LeanVM.Guest.B2C.Cplw.C870_1_0
-public import LeanVM.Guest.B2C.Cplw.C876_0_0
-public import LeanVM.Guest.B2C.Cplw.C881_1_0
+public import LeanVM.Guest.B2C.Cplw.C847_0_0
+public import LeanVM.Guest.B2C.Cplw.C855_0_0
+public import LeanVM.Guest.B2C.Cplw.C863_0_0
+public import LeanVM.Guest.B2C.Cplw.C871_0_0
+public import LeanVM.Guest.B2C.Cplw.C879_0_0
 public import LeanVM.Guest.B2C.Cplw.C887_0_0
-public import LeanVM.Guest.B2C.Cplw.C891_1_0
-public import LeanVM.Guest.B2C.Cplw.C896_0_0
-public import LeanVM.Guest.B2C.Cplw.C900_0_0
-public import LeanVM.Guest.B2C.Cplw.C905_0_0
+public import LeanVM.Guest.B2C.Cplw.C895_0_0
+public import LeanVM.Guest.B2C.Cplw.C903_0_0
+public import LeanVM.Guest.B2C.Cplw.C904_7_0
+public import LeanVM.Guest.B2C.Cplw.C905_1_0
 public import LeanVM.Guest.B2C.Cplw.C911_0_0
-public import LeanVM.Guest.B2C.Cplw.C916_1_0
-public import LeanVM.Guest.B2C.Cplw.C922_0_0
-public import LeanVM.Guest.B2C.Cplw.C927_0_0
-public import LeanVM.Guest.B2C.Cplw.C931_1_0
-public import LeanVM.Guest.B2C.Cplw.C935_1_0
-public import LeanVM.Guest.B2C.Cplw.C940_0_0
-public import LeanVM.Guest.B2C.Cplw.C947_0_0
-public import LeanVM.Guest.B2C.Cplw.C951_1_0
-public import LeanVM.Guest.B2C.Cplw.C957_0_0
+public import LeanVM.Guest.B2C.Cplw.C916_2_0
+public import LeanVM.Guest.B2C.Cplw.C921_0_0
+public import LeanVM.Guest.B2C.Cplw.C927_1_0
+public import LeanVM.Guest.B2C.Cplw.C935_0_0
+public import LeanVM.Guest.B2C.Cplw.C940_1_0
+public import LeanVM.Guest.B2C.Cplw.C946_0_0
+public import LeanVM.Guest.B2C.Cplw.C954_0_0
 public import LeanVM.Guest.B2C.Cplw.C962_0_0
-public import LeanVM.Guest.B2C.Cplw.C966_1_0
-public import LeanVM.Guest.B2C.Cplw.C970_1_0
-public import LeanVM.Guest.B2C.Cplw.C976_0_0
-public import LeanVM.Guest.B2C.Cplw.C982_0_0
-public import LeanVM.Guest.B2C.Cplw.C987_0_0
-public import LeanVM.Guest.B2C.Cplw.C992_1_0
-public import LeanVM.Guest.B2C.Cplw.C997_1_0
+public import LeanVM.Guest.B2C.Cplw.C967_1_0
+public import LeanVM.Guest.B2C.Cplw.C975_0_0
+public import LeanVM.Guest.B2C.Cplw.C981_1_0
+public import LeanVM.Guest.B2C.Cplw.C988_0_0
+public import LeanVM.Guest.B2C.Cplw.C996_0_0
 public import LeanVM.Guest.B2C.Cplw.C1002_0_0
-public import LeanVM.Guest.B2C.Cplw.C1006_0_0
-public import LeanVM.Guest.B2C.Cplw.C1010_1_0
-public import LeanVM.Guest.B2C.Cplw.C1017_0_0
-public import LeanVM.Guest.B2C.Cplw.C1021_1_0
-public import LeanVM.Guest.B2C.Cplw.C1027_0_0
-public import LeanVM.Guest.B2C.Cplw.C1032_0_0
-public import LeanVM.Guest.B2C.Cplw.C1036_1_0
-public import LeanVM.Guest.B2C.Cplw.C1040_1_0
+public import LeanVM.Guest.B2C.Cplw.C1009_0_0
+public import LeanVM.Guest.B2C.Cplw.C1015_0_0
+public import LeanVM.Guest.B2C.Cplw.C1021_0_1
+public import LeanVM.Guest.B2C.Cplw.C1028_0_0
+public import LeanVM.Guest.B2C.Cplw.C1033_0_0
+public import LeanVM.Guest.B2C.Cplw.C1040_0_0
 public import LeanVM.Guest.B2C.Cplw.C1045_1_0
-public import LeanVM.Guest.B2C.Cplw.C1050_1_0
-public import LeanVM.Guest.B2C.Cplw.C1057_0_0
-public import LeanVM.Guest.B2C.Cplw.C1061_1_0
-public import LeanVM.Guest.B2C.Cplw.C1067_0_0
-public import LeanVM.Guest.B2C.Cplw.C1072_0_0
-public import LeanVM.Guest.B2C.Cplw.C1076_1_0
-public import LeanVM.Guest.B2C.Cplw.C1080_1_0
-public import LeanVM.Guest.B2C.Cplw.C1085_1_0
-public import LeanVM.Guest.B2C.Cplw.C1090_0_0
-public import LeanVM.Guest.B2C.Cplw.C1097_0_0
+public import LeanVM.Guest.B2C.Cplw.C1052_0_0
+public import LeanVM.Guest.B2C.Cplw.C1058_0_0
+public import LeanVM.Guest.B2C.Cplw.C1064_0_0
+public import LeanVM.Guest.B2C.Cplw.C1070_0_0
+public import LeanVM.Guest.B2C.Cplw.C1076_0_0
+public import LeanVM.Guest.B2C.Cplw.C1082_1_0
+public import LeanVM.Guest.B2C.Cplw.C1089_0_0
+public import LeanVM.Guest.B2C.Cplw.C1095_1_0
 public import LeanVM.Guest.B2C.Cplw.C1102_0_0
-public import LeanVM.Guest.B2C.Cplw.C1106_1_0
-public import LeanVM.Guest.B2C.Cplw.C1111_1_0
-public import LeanVM.Guest.B2C.Cplw.C1116_0_0
-public import LeanVM.Guest.B2C.Cplw.C1120_0_0
-public import LeanVM.Guest.B2C.Cplw.C1125_0_0
-public import LeanVM.Guest.B2C.Cplw.C1132_0_0
-public import LeanVM.Guest.B2C.Cplw.C1136_1_0
+public import LeanVM.Guest.B2C.Cplw.C1109_0_0
+public import LeanVM.Guest.B2C.Cplw.C1114_1_0
+public import LeanVM.Guest.B2C.Cplw.C1121_0_0
+public import LeanVM.Guest.B2C.Cplw.C1127_1_0
+public import LeanVM.Guest.B2C.Cplw.C1134_0_0
+public import LeanVM.Guest.B2C.Cplw.C1139_0_0
 public import LeanVM.Guest.B2C.Cplw.C1142_0_0
-public import LeanVM.Guest.B2C.Cplw.C1147_0_0
-public import LeanVM.Guest.B2C.Cplw.C1151_1_0
+public import LeanVM.Guest.B2C.Cplw.C1145_0_0
+public import LeanVM.Guest.B2C.Cplw.C1149_1_0
+public import LeanVM.Guest.B2C.Cplw.C1154_0_0
 public import LeanVM.Guest.B2C.Cplw.C1156_0_0
-public import LeanVM.Guest.B2C.Cplw.C1160_1_0
-public import LeanVM.Guest.B2C.Cplw.C1166_0_0
+public import LeanVM.Guest.B2C.Cplw.C1160_0_0
+public import LeanVM.Guest.B2C.Cplw.C1164_0_0
+public import LeanVM.Guest.B2C.Cplw.C1168_0_0
 public import LeanVM.Guest.B2C.Cplw.C1172_0_0
-public import LeanVM.Guest.B2C.Cplw.C1177_1_0
-public import LeanVM.Guest.B2C.Cplw.C1182_0_0
+public import LeanVM.Guest.B2C.Cplw.C1176_0_0
+public import LeanVM.Guest.B2C.Cplw.C1179_0_0
+public import LeanVM.Guest.B2C.Cplw.C1183_0_0
 public import LeanVM.Guest.B2C.Cplw.C1187_0_0
-public import LeanVM.Guest.B2C.Cplw.C1191_1_0
-public import LeanVM.Guest.B2C.Cplw.C1195_1_0
-public import LeanVM.Guest.B2C.Cplw.C1200_0_0
-public import LeanVM.Guest.B2C.Cplw.C1205_0_0
-public import LeanVM.Guest.B2C.Cplw.C1213_0_0
-public import LeanVM.Guest.B2C.Cplw.C1221_0_0
-public import LeanVM.Guest.B2C.Cplw.C1229_0_0
-public import LeanVM.Guest.B2C.Cplw.C1237_0_0
-public import LeanVM.Guest.B2C.Cplw.C1245_0_0
-public import LeanVM.Guest.B2C.Cplw.C1253_0_0
-public import LeanVM.Guest.B2C.Cplw.C1261_0_0
-public import LeanVM.Guest.B2C.Cplw.C1265_4_0
-public import LeanVM.Guest.B2C.Cplw.C1265_12_0
-public import LeanVM.Guest.B2C.Cplw.C1270_0_0
-public import LeanVM.Guest.B2C.Cplw.C1276_0_0
-public import LeanVM.Guest.B2C.Cplw.C1280_1_0
-public import LeanVM.Guest.B2C.Cplw.C1286_0_0
-public import LeanVM.Guest.B2C.Cplw.C1293_0_0
-public import LeanVM.Guest.B2C.Cplw.C1300_0_0
-public import LeanVM.Guest.B2C.Cplw.C1305_0_0
-public import LeanVM.Guest.B2C.Cplw.C1312_0_0
-public import LeanVM.Guest.B2C.Cplw.C1320_0_0
-public import LeanVM.Guest.B2C.Cplw.C1326_0_0
-public import LeanVM.Guest.B2C.Cplw.C1333_0_0
-public import LeanVM.Guest.B2C.Cplw.C1341_0_0
-public import LeanVM.Guest.B2C.Cplw.C1346_1_0
-public import LeanVM.Guest.B2C.Cplw.C1354_0_0
-public import LeanVM.Guest.B2C.Cplw.C1361_1_0
-public import LeanVM.Guest.B2C.Cplw.C1367_0_0
-public import LeanVM.Guest.B2C.Cplw.C1374_1_0
-public import LeanVM.Guest.B2C.Cplw.C1380_0_0
-public import LeanVM.Guest.B2C.Cplw.C1387_0_0
-public import LeanVM.Guest.B2C.Cplw.C1392_0_0
-public import LeanVM.Guest.B2C.Cplw.C1398_0_0
-public import LeanVM.Guest.B2C.Cplw.C1404_0_0
-public import LeanVM.Guest.B2C.Cplw.C1410_0_0
-public import LeanVM.Guest.B2C.Cplw.C1416_1_0
-public import LeanVM.Guest.B2C.Cplw.C1422_0_1
-public import LeanVM.Guest.B2C.Cplw.C1429_0_0
-public import LeanVM.Guest.B2C.Cplw.C1435_0_0
-public import LeanVM.Guest.B2C.Cplw.C1442_0_0
-public import LeanVM.Guest.B2C.Cplw.C1447_1_0
-public import LeanVM.Guest.B2C.Cplw.C1454_0_0
-public import LeanVM.Guest.B2C.Cplw.C1460_1_0
-public import LeanVM.Guest.B2C.Cplw.C1467_0_0
-public import LeanVM.Guest.B2C.Cplw.C1473_0_0
-public import LeanVM.Guest.B2C.Cplw.C1479_0_0
-public import LeanVM.Guest.B2C.Cplw.C1486_0_0
-public import LeanVM.Guest.B2C.Cplw.C1493_0_0
-public import LeanVM.Guest.B2C.Cplw.C1499_1_0
-public import LeanVM.Guest.B2C.Cplw.C1505_0_0
-public import LeanVM.Guest.B2C.Cplw.C1511_1_0
-public import LeanVM.Guest.B2C.Cplw.C1518_0_0
-public import LeanVM.Guest.B2C.Cplw.C1523_1_0
-public import LeanVM.Guest.B2C.Cplw.C1530_1_0
-public import LeanVM.Guest.B2C.Cplw.C1537_0_0
-public import LeanVM.Guest.B2C.Cplw.C1543_0_0
-public import LeanVM.Guest.B2C.Cplw.C1550_0_0
-public import LeanVM.Guest.B2C.Cplw.C1556_0_0
-public import LeanVM.Guest.B2C.Cplw.C1563_0_0
-public import LeanVM.Guest.B2C.Cplw.C1570_0_0
-public import LeanVM.Guest.B2C.Cplw.C1576_0_0
-public import LeanVM.Guest.B2C.Cplw.C1583_0_0
-public import LeanVM.Guest.B2C.Cplw.C1589_0_0
-public import LeanVM.Guest.B2C.Cplw.C1594_1_0
-public import LeanVM.Guest.B2C.Cplw.C1601_1_0
-public import LeanVM.Guest.B2C.Cplw.C1607_1_0
-public import LeanVM.Guest.B2C.Cplw.C1613_0_0
-public import LeanVM.Guest.B2C.Cplw.C1619_1_1
-public import LeanVM.Guest.B2C.Cplw.C1626_0_0
-public import LeanVM.Guest.B2C.Cplw.C1633_0_0
-public import LeanVM.Guest.B2C.Cplw.C1639_0_0
-public import LeanVM.Guest.B2C.Cplw.C1644_0_0
-public import LeanVM.Guest.B2C.Cplw.C1647_0_0
-public import LeanVM.Guest.B2C.Cplw.C1650_0_0
-public import LeanVM.Guest.B2C.Cplw.C1654_1_0
-public import LeanVM.Guest.B2C.Cplw.C1659_0_0
-public import LeanVM.Guest.B2C.Cplw.C1661_0_0
-public import LeanVM.Guest.B2C.Cplw.C1665_0_0
-public import LeanVM.Guest.B2C.Cplw.C1669_0_0
-public import LeanVM.Guest.B2C.Cplw.C1673_0_0
-public import LeanVM.Guest.B2C.Cplw.C1677_0_0
-public import LeanVM.Guest.B2C.Cplw.C1681_0_0
-public import LeanVM.Guest.B2C.Cplw.C1684_0_0
-public import LeanVM.Guest.B2C.Cplw.C1688_0_0
-public import LeanVM.Guest.B2C.Cplw.C1692_0_0
-public import LeanVM.Guest.B2C.Cplw.C1696_0_0
-public import LeanVM.Guest.B2C.Cplw.C1699_3_0
-public import LeanVM.Guest.B2C.Cplw.C1703_0_0
-public import LeanVM.Guest.B2C.Cplw.C1708_0_0
-public import LeanVM.Guest.B2C.Cplw.C1712_0_0
-public import LeanVM.Guest.B2C.Cplw.C1716_0_0
-public import LeanVM.Guest.B2C.Cplw.C1720_0_0
-public import LeanVM.Guest.B2C.Cplw.C1722_3_0
-public import LeanVM.Guest.B2C.Cplw.C1726_0_0
-public import LeanVM.Guest.B2C.Cplw.C1730_0_0
-public import LeanVM.Guest.B2C.Cplw.C1734_0_0
-public import LeanVM.Guest.B2C.Cplw.C1738_0_0
-public import LeanVM.Guest.B2C.Cplw.C1742_0_0
-public import LeanVM.Guest.B2C.Cplw.C1746_0_0
-public import LeanVM.Guest.B2C.Cplw.C1748_1_0
+public import LeanVM.Guest.B2C.Cplw.C1191_0_0
+public import LeanVM.Guest.B2C.Cplw.C1194_3_0
+public import LeanVM.Guest.B2C.Cplw.C1198_0_0
+public import LeanVM.Guest.B2C.Cplw.C1203_0_0
+public import LeanVM.Guest.B2C.Cplw.C1207_0_0
 public import LeanVM.Guest.B2C.Cplw.D37_17_0
 public import LeanVM.Guest.B2C.Cplw.D37_17_8
 public import LeanVM.Guest.B2C.Cplw.E37_17
@@ -896,657 +780,569 @@ theorem ok37 : CplOk 37 := by
     interval_cases k
     · exact cw37_40_0
 
-theorem ok367 : CplOk 367 := by
+theorem ok307 : CplOk 307 := by
   intro i hi k hk
-  have hc : (certOf 367).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 307).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 367 0 = 1 := by decide +kernel
+  · have hn : nParts 307 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw367_0_0
-  · have hn : nParts 367 1 = 1 := by decide +kernel
+    · exact cw307_0_0
+  · have hn : nParts 307 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw367_1_0
-  · have hn : nParts 367 2 = 1 := by decide +kernel
+    · exact cw307_1_0
+  · have hn : nParts 307 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw367_2_0
-  · have hn : nParts 367 3 = 1 := by decide +kernel
+    · exact cw307_2_0
+  · have hn : nParts 307 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw367_3_0
+    · exact cw307_3_0
 
-theorem ok368 : CplOk 368 := by
+theorem ok308 : CplOk 308 := by
   intro i hi k hk
-  have hc : (certOf 368).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 308).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 368 0 = 1 := by decide +kernel
+  · have hn : nParts 308 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw368_0_0
-  · have hn : nParts 368 1 = 1 := by decide +kernel
+    · exact cw308_0_0
+  · have hn : nParts 308 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw368_1_0
-  · have hn : nParts 368 2 = 1 := by decide +kernel
+    · exact cw308_1_0
+  · have hn : nParts 308 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw368_2_0
-  · have hn : nParts 368 3 = 2 := by decide +kernel
+    · exact cw308_2_0
+  · have hn : nParts 308 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw368_3_0
-    · exact cw368_3_1
+    · exact cw308_3_0
 
-theorem ok369 : CplOk 369 := by
+theorem ok309 : CplOk 309 := by
   intro i hi k hk
-  have hc : (certOf 369).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 309).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 369 0 = 1 := by decide +kernel
+  · have hn : nParts 309 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw369_0_0
-  · have hn : nParts 369 1 = 1 := by decide +kernel
+    · exact cw309_0_0
+  · have hn : nParts 309 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw369_1_0
-  · have hn : nParts 369 2 = 1 := by decide +kernel
+    · exact cw309_1_0
+  · have hn : nParts 309 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw369_2_0
-  · have hn : nParts 369 3 = 1 := by decide +kernel
+    · exact cw309_2_0
+  · have hn : nParts 309 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw369_3_0
-  · have hn : nParts 369 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw369_4_0
+    · exact cw309_3_0
 
-theorem ok370 : CplOk 370 := by
+theorem ok310 : CplOk 310 := by
   intro i hi k hk
-  have hc : (certOf 370).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 310).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 370 0 = 1 := by decide +kernel
+  · have hn : nParts 310 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw370_0_0
-  · have hn : nParts 370 1 = 1 := by decide +kernel
+    · exact cw310_0_0
+  · have hn : nParts 310 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw370_1_0
-  · have hn : nParts 370 2 = 1 := by decide +kernel
+    · exact cw310_1_0
+  · have hn : nParts 310 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw370_2_0
-  · have hn : nParts 370 3 = 1 := by decide +kernel
+    · exact cw310_2_0
+  · have hn : nParts 310 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw370_3_0
-  · have hn : nParts 370 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw370_4_0
+    · exact cw310_3_0
 
-theorem ok371 : CplOk 371 := by
+theorem ok311 : CplOk 311 := by
   intro i hi k hk
-  have hc : (certOf 371).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 311).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 371 0 = 1 := by decide +kernel
+  · have hn : nParts 311 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw371_0_0
-  · have hn : nParts 371 1 = 1 := by decide +kernel
+    · exact cw311_0_0
+  · have hn : nParts 311 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw371_1_0
-  · have hn : nParts 371 2 = 1 := by decide +kernel
+    · exact cw311_1_0
+  · have hn : nParts 311 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw371_2_0
-  · have hn : nParts 371 3 = 1 := by decide +kernel
+    · exact cw311_2_0
+  · have hn : nParts 311 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw371_3_0
-  · have hn : nParts 371 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw371_4_0
+    · exact cw311_3_0
 
-theorem ok372 : CplOk 372 := by
+theorem ok312 : CplOk 312 := by
   intro i hi k hk
-  have hc : (certOf 372).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 312).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 372 0 = 1 := by decide +kernel
+  · have hn : nParts 312 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw372_0_0
-  · have hn : nParts 372 1 = 1 := by decide +kernel
+    · exact cw312_0_0
+  · have hn : nParts 312 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw372_1_0
-  · have hn : nParts 372 2 = 1 := by decide +kernel
+    · exact cw312_1_0
+  · have hn : nParts 312 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw372_2_0
-  · have hn : nParts 372 3 = 1 := by decide +kernel
+    · exact cw312_2_0
+  · have hn : nParts 312 3 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw372_3_0
-  · have hn : nParts 372 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw372_4_0
+    · exact cw312_3_0
+    · exact cw312_3_1
 
-theorem ok373 : CplOk 373 := by
+theorem ok313 : CplOk 313 := by
   intro i hi k hk
-  have hc : (certOf 373).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 313).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 373 0 = 1 := by decide +kernel
+  · have hn : nParts 313 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw373_0_0
-  · have hn : nParts 373 1 = 1 := by decide +kernel
+    · exact cw313_0_0
+  · have hn : nParts 313 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw373_1_0
-  · have hn : nParts 373 2 = 1 := by decide +kernel
+    · exact cw313_1_0
+  · have hn : nParts 313 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw373_2_0
-  · have hn : nParts 373 3 = 1 := by decide +kernel
+    · exact cw313_2_0
+  · have hn : nParts 313 3 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw373_3_0
-  · have hn : nParts 373 4 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw373_4_0
-    · exact cw373_4_1
+    · exact cw313_3_0
+    · exact cw313_3_1
 
-theorem ok374 : CplOk 374 := by
+theorem ok314 : CplOk 314 := by
   intro i hi k hk
-  have hc : (certOf 374).cuts.length = 4 := by decide +kernel
+  have hc : (certOf 314).cuts.length = 4 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 374 0 = 1 := by decide +kernel
+  · have hn : nParts 314 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw374_0_0
-  · have hn : nParts 374 1 = 1 := by decide +kernel
+    · exact cw314_0_0
+  · have hn : nParts 314 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw374_1_0
-  · have hn : nParts 374 2 = 1 := by decide +kernel
+    · exact cw314_1_0
+  · have hn : nParts 314 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw374_2_0
-  · have hn : nParts 374 3 = 1 := by decide +kernel
+    · exact cw314_2_0
+  · have hn : nParts 314 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw374_3_0
-  · have hn : nParts 374 4 = 2 := by decide +kernel
+    · exact cw314_3_0
+  · have hn : nParts 314 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw374_4_0
-    · exact cw374_4_1
+    · exact cw314_4_0
 
-theorem ok375 : CplOk 375 := by
+theorem ok315 : CplOk 315 := by
   intro i hi k hk
-  have hc : (certOf 375).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 315).cuts.length = 4 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 375 0 = 1 := by decide +kernel
+  · have hn : nParts 315 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw375_0_0
-  · have hn : nParts 375 1 = 1 := by decide +kernel
+    · exact cw315_0_0
+  · have hn : nParts 315 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw375_1_0
-  · have hn : nParts 375 2 = 1 := by decide +kernel
+    · exact cw315_1_0
+  · have hn : nParts 315 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw375_2_0
-  · have hn : nParts 375 3 = 1 := by decide +kernel
+    · exact cw315_2_0
+  · have hn : nParts 315 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw375_3_0
-  · have hn : nParts 375 4 = 2 := by decide +kernel
+    · exact cw315_3_0
+  · have hn : nParts 315 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw375_4_0
-    · exact cw375_4_1
-  · have hn : nParts 375 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw375_5_0
+    · exact cw315_4_0
 
-theorem ok376 : CplOk 376 := by
+theorem ok316 : CplOk 316 := by
   intro i hi k hk
-  have hc : (certOf 376).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 316).cuts.length = 4 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 376 0 = 1 := by decide +kernel
+  · have hn : nParts 316 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw376_0_0
-  · have hn : nParts 376 1 = 1 := by decide +kernel
+    · exact cw316_0_0
+  · have hn : nParts 316 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw376_1_0
-  · have hn : nParts 376 2 = 1 := by decide +kernel
+    · exact cw316_1_0
+  · have hn : nParts 316 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw376_2_0
-  · have hn : nParts 376 3 = 1 := by decide +kernel
+    · exact cw316_2_0
+  · have hn : nParts 316 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw376_3_0
-  · have hn : nParts 376 4 = 2 := by decide +kernel
+    · exact cw316_3_0
+  · have hn : nParts 316 4 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw376_4_0
-    · exact cw376_4_1
-  · have hn : nParts 376 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw376_5_0
+    · exact cw316_4_0
 
-theorem ok377 : CplOk 377 := by
+theorem ok317 : CplOk 317 := by
   intro i hi k hk
-  have hc : (certOf 377).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 317).cuts.length = 4 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 377 0 = 1 := by decide +kernel
+  · have hn : nParts 317 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw377_0_0
-  · have hn : nParts 377 1 = 1 := by decide +kernel
+    · exact cw317_0_0
+  · have hn : nParts 317 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw377_1_0
-  · have hn : nParts 377 2 = 1 := by decide +kernel
+    · exact cw317_1_0
+  · have hn : nParts 317 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw377_2_0
-  · have hn : nParts 377 3 = 1 := by decide +kernel
+    · exact cw317_2_0
+  · have hn : nParts 317 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw377_3_0
-  · have hn : nParts 377 4 = 2 := by decide +kernel
+    · exact cw317_3_0
+  · have hn : nParts 317 4 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw377_4_0
-    · exact cw377_4_1
-  · have hn : nParts 377 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw377_5_0
+    · exact cw317_4_0
+    · exact cw317_4_1
 
-theorem ok378 : CplOk 378 := by
+theorem ok318 : CplOk 318 := by
   intro i hi k hk
-  have hc : (certOf 378).cuts.length = 5 := by decide +kernel
+  have hc : (certOf 318).cuts.length = 4 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 378 0 = 1 := by decide +kernel
+  · have hn : nParts 318 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw378_0_0
-  · have hn : nParts 378 1 = 1 := by decide +kernel
+    · exact cw318_0_0
+  · have hn : nParts 318 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw378_1_0
-  · have hn : nParts 378 2 = 1 := by decide +kernel
+    · exact cw318_1_0
+  · have hn : nParts 318 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw378_2_0
-  · have hn : nParts 378 3 = 1 := by decide +kernel
+    · exact cw318_2_0
+  · have hn : nParts 318 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw378_3_0
-  · have hn : nParts 378 4 = 1 := by decide +kernel
+    · exact cw318_3_0
+  · have hn : nParts 318 4 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw378_4_0
-  · have hn : nParts 378 5 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw378_5_0
-    · exact cw378_5_1
+    · exact cw318_4_0
+    · exact cw318_4_1
 
-theorem ok379 : CplOk 379 := by
+theorem ok319 : CplOk 319 := by
   intro i hi k hk
-  have hc : (certOf 379).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 319).cuts.length = 5 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 379 0 = 1 := by decide +kernel
+  · have hn : nParts 319 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw379_0_0
-  · have hn : nParts 379 1 = 1 := by decide +kernel
+    · exact cw319_0_0
+  · have hn : nParts 319 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw379_1_0
-  · have hn : nParts 379 2 = 1 := by decide +kernel
+    · exact cw319_1_0
+  · have hn : nParts 319 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw379_2_0
-  · have hn : nParts 379 3 = 1 := by decide +kernel
+    · exact cw319_2_0
+  · have hn : nParts 319 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw379_3_0
-  · have hn : nParts 379 4 = 1 := by decide +kernel
+    · exact cw319_3_0
+  · have hn : nParts 319 4 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw379_4_0
-  · have hn : nParts 379 5 = 2 := by decide +kernel
+    · exact cw319_4_0
+    · exact cw319_4_1
+  · have hn : nParts 319 5 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw379_5_0
-    · exact cw379_5_1
-  · have hn : nParts 379 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw379_6_0
+    · exact cw319_5_0
 
-theorem ok380 : CplOk 380 := by
+theorem ok339 : CplOk 339 := by
   intro i hi k hk
-  have hc : (certOf 380).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 339).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 380 0 = 1 := by decide +kernel
+  · have hn : nParts 339 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw380_0_0
-  · have hn : nParts 380 1 = 1 := by decide +kernel
+    · exact cw339_0_0
+  · have hn : nParts 339 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw380_1_0
-  · have hn : nParts 380 2 = 1 := by decide +kernel
+    · exact cw339_1_0
+  · have hn : nParts 339 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw380_2_0
-  · have hn : nParts 380 3 = 1 := by decide +kernel
+    · exact cw339_2_0
+  · have hn : nParts 339 3 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw380_3_0
-  · have hn : nParts 380 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw380_4_0
-  · have hn : nParts 380 5 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw380_5_0
-    · exact cw380_5_1
-  · have hn : nParts 380 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw380_6_0
+    · exact cw339_3_0
+    · exact cw339_3_1
 
-theorem ok381 : CplOk 381 := by
+theorem ok358 : CplOk 358 := by
   intro i hi k hk
-  have hc : (certOf 381).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 358).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 381 0 = 1 := by decide +kernel
+  · have hn : nParts 358 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw381_0_0
-  · have hn : nParts 381 1 = 1 := by decide +kernel
+    · exact cw358_0_0
+  · have hn : nParts 358 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw381_1_0
-  · have hn : nParts 381 2 = 1 := by decide +kernel
+    · exact cw358_1_0
+  · have hn : nParts 358 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw381_2_0
-  · have hn : nParts 381 3 = 1 := by decide +kernel
+    · exact cw358_2_0
+  · have hn : nParts 358 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw381_3_0
-  · have hn : nParts 381 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw381_4_0
-  · have hn : nParts 381 5 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw381_5_0
-    · exact cw381_5_1
-  · have hn : nParts 381 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw381_6_0
+    · exact cw358_3_0
 
-theorem ok382 : CplOk 382 := by
+theorem ok408 : CplOk 408 := by
   intro i hi k hk
-  have hc : (certOf 382).cuts.length = 6 := by decide +kernel
+  have hc : (certOf 408).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 382 0 = 1 := by decide +kernel
+  · have hn : nParts 408 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw382_0_0
-  · have hn : nParts 382 1 = 1 := by decide +kernel
+    · exact cw408_0_0
+  · have hn : nParts 408 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw382_1_0
-  · have hn : nParts 382 2 = 1 := by decide +kernel
+    · exact cw408_1_0
+  · have hn : nParts 408 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw382_2_0
-  · have hn : nParts 382 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw382_3_0
-  · have hn : nParts 382 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw382_4_0
-  · have hn : nParts 382 5 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw382_5_0
-    · exact cw382_5_1
-  · have hn : nParts 382 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw382_6_0
+    · exact cw408_2_0
 
-theorem ok383 : CplOk 383 := by
+theorem ok428 : CplOk 428 := by
   intro i hi k hk
-  have hc : (certOf 383).cuts.length = 7 := by decide +kernel
+  have hc : (certOf 428).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 383 0 = 1 := by decide +kernel
+  · have hn : nParts 428 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw383_0_0
-  · have hn : nParts 383 1 = 1 := by decide +kernel
+    · exact cw428_0_0
+  · have hn : nParts 428 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw383_1_0
-  · have hn : nParts 383 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw383_2_0
-  · have hn : nParts 383 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw383_3_0
-  · have hn : nParts 383 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw383_4_0
-  · have hn : nParts 383 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw383_5_0
-  · have hn : nParts 383 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw383_6_0
-  · have hn : nParts 383 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw383_7_0
+    · exact cw428_1_0
 
-theorem ok403 : CplOk 403 := by
+theorem ok439 : CplOk 439 := by
   intro i hi k hk
-  have hc : (certOf 403).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 439).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 403 0 = 1 := by decide +kernel
+  · have hn : nParts 439 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw403_0_0
-  · have hn : nParts 403 1 = 1 := by decide +kernel
+    · exact cw439_0_0
+  · have hn : nParts 439 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw403_1_0
-  · have hn : nParts 403 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw403_2_0
-  · have hn : nParts 403 3 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw403_3_0
-    · exact cw403_3_1
+    · exact cw439_1_0
 
-theorem ok422 : CplOk 422 := by
+theorem ok458 : CplOk 458 := by
   intro i hi k hk
-  have hc : (certOf 422).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 458).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 422 0 = 1 := by decide +kernel
+  · have hn : nParts 458 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw422_0_0
-  · have hn : nParts 422 1 = 1 := by decide +kernel
+    · exact cw458_0_0
+  · have hn : nParts 458 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw422_1_0
-  · have hn : nParts 422 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw422_2_0
-  · have hn : nParts 422 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw422_3_0
+    · exact cw458_1_0
 
-theorem ok472 : CplOk 472 := by
+theorem ok468 : CplOk 468 := by
   intro i hi k hk
-  have hc : (certOf 472).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 468).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 472 0 = 1 := by decide +kernel
+  · have hn : nParts 468 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw472_0_0
-  · have hn : nParts 472 1 = 1 := by decide +kernel
+    · exact cw468_0_0
+  · have hn : nParts 468 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw472_1_0
-  · have hn : nParts 472 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw472_2_0
+    · exact cw468_1_0
 
-theorem ok492 : CplOk 492 := by
+theorem ok483 : CplOk 483 := by
   intro i hi k hk
-  have hc : (certOf 492).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 483).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 492 0 = 1 := by decide +kernel
+  · have hn : nParts 483 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw492_0_0
-  · have hn : nParts 492 1 = 1 := by decide +kernel
+    · exact cw483_0_0
+  · have hn : nParts 483 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw492_1_0
+    · exact cw483_1_0
 
-theorem ok503 : CplOk 503 := by
+theorem ok496 : CplOk 496 := by
   intro i hi k hk
-  have hc : (certOf 503).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 496).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 503 0 = 1 := by decide +kernel
+  · have hn : nParts 496 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw503_0_0
-  · have hn : nParts 503 1 = 1 := by decide +kernel
+    · exact cw496_0_0
+  · have hn : nParts 496 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw503_1_0
+    · exact cw496_1_0
 
-theorem ok522 : CplOk 522 := by
+theorem ok502 : CplOk 502 := by
   intro i hi k hk
-  have hc : (certOf 522).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 502).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 522 0 = 1 := by decide +kernel
+  · have hn : nParts 502 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw522_0_0
-  · have hn : nParts 522 1 = 1 := by decide +kernel
+    · exact cw502_0_0
+  · have hn : nParts 502 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw522_1_0
+    · exact cw502_1_0
 
-theorem ok532 : CplOk 532 := by
+theorem ok515 : CplOk 515 := by
   intro i hi k hk
-  have hc : (certOf 532).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 515).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 532 0 = 1 := by decide +kernel
+  · have hn : nParts 515 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw532_0_0
-  · have hn : nParts 532 1 = 1 := by decide +kernel
+    · exact cw515_0_0
+  · have hn : nParts 515 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw532_1_0
+    · exact cw515_1_0
 
-theorem ok547 : CplOk 547 := by
+theorem ok528 : CplOk 528 := by
   intro i hi k hk
-  have hc : (certOf 547).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 528).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 547 0 = 1 := by decide +kernel
+  · have hn : nParts 528 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw547_0_0
-  · have hn : nParts 547 1 = 1 := by decide +kernel
+    · exact cw528_0_0
+  · have hn : nParts 528 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw547_1_0
+    · exact cw528_1_0
 
-theorem ok560 : CplOk 560 := by
+theorem ok534 : CplOk 534 := by
   intro i hi k hk
-  have hc : (certOf 560).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 534).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 560 0 = 1 := by decide +kernel
+  · have hn : nParts 534 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw560_0_0
-  · have hn : nParts 560 1 = 1 := by decide +kernel
+    · exact cw534_0_0
+  · have hn : nParts 534 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw560_1_0
+    · exact cw534_1_0
+
+theorem ok543 : CplOk 543 := by
+  intro i hi k hk
+  have hc : (certOf 543).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 543 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw543_0_0
+  · have hn : nParts 543 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw543_1_0
+
+theorem ok548 : CplOk 548 := by
+  intro i hi k hk
+  have hc : (certOf 548).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 548 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw548_0_0
+  · have hn : nParts 548 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw548_1_0
+
+theorem ok561 : CplOk 561 := by
+  intro i hi k hk
+  have hc : (certOf 561).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 561 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw561_0_0
+  · have hn : nParts 561 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw561_1_0
 
 theorem ok566 : CplOk 566 := by
   intro i hi k hk
@@ -1562,75 +1358,47 @@ theorem ok566 : CplOk 566 := by
     interval_cases k
     · exact cw566_1_0
 
-theorem ok579 : CplOk 579 := by
+theorem ok575 : CplOk 575 := by
   intro i hi k hk
-  have hc : (certOf 579).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 575).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 579 0 = 1 := by decide +kernel
+  · have hn : nParts 575 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw579_0_0
-  · have hn : nParts 579 1 = 1 := by decide +kernel
+    · exact cw575_0_0
+  · have hn : nParts 575 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw579_1_0
+    · exact cw575_1_0
 
-theorem ok592 : CplOk 592 := by
+theorem ok586 : CplOk 586 := by
   intro i hi k hk
-  have hc : (certOf 592).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 586).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 592 0 = 1 := by decide +kernel
+  · have hn : nParts 586 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw592_0_0
-  · have hn : nParts 592 1 = 1 := by decide +kernel
+    · exact cw586_0_0
+  · have hn : nParts 586 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw592_1_0
+    · exact cw586_1_0
 
-theorem ok598 : CplOk 598 := by
+theorem ok596 : CplOk 596 := by
   intro i hi k hk
-  have hc : (certOf 598).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 596).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 598 0 = 1 := by decide +kernel
+  · have hn : nParts 596 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw598_0_0
-  · have hn : nParts 598 1 = 1 := by decide +kernel
+    · exact cw596_0_0
+  · have hn : nParts 596 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw598_1_0
-
-theorem ok607 : CplOk 607 := by
-  intro i hi k hk
-  have hc : (certOf 607).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 607 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw607_0_0
-  · have hn : nParts 607 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw607_1_0
-
-theorem ok612 : CplOk 612 := by
-  intro i hi k hk
-  have hc : (certOf 612).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 612 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw612_0_0
-  · have hn : nParts 612 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw612_1_0
+    · exact cw596_1_0
 
 theorem ok625 : CplOk 625 := by
   intro i hi k hk
@@ -1646,34 +1414,6 @@ theorem ok625 : CplOk 625 := by
     interval_cases k
     · exact cw625_1_0
 
-theorem ok630 : CplOk 630 := by
-  intro i hi k hk
-  have hc : (certOf 630).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 630 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw630_0_0
-  · have hn : nParts 630 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw630_1_0
-
-theorem ok639 : CplOk 639 := by
-  intro i hi k hk
-  have hc : (certOf 639).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 639 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw639_0_0
-  · have hn : nParts 639 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw639_1_0
-
 theorem ok650 : CplOk 650 := by
   intro i hi k hk
   have hc : (certOf 650).cuts.length = 1 := by decide +kernel
@@ -1688,103 +1428,117 @@ theorem ok650 : CplOk 650 := by
     interval_cases k
     · exact cw650_1_0
 
-theorem ok660 : CplOk 660 := by
+theorem ok675 : CplOk 675 := by
   intro i hi k hk
-  have hc : (certOf 660).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 675).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 660 0 = 1 := by decide +kernel
+  · have hn : nParts 675 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw660_0_0
-  · have hn : nParts 660 1 = 1 := by decide +kernel
+    · exact cw675_0_0
+  · have hn : nParts 675 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw660_1_0
+    · exact cw675_1_0
 
-theorem ok689 : CplOk 689 := by
+theorem ok700 : CplOk 700 := by
   intro i hi k hk
-  have hc : (certOf 689).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 700).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 689 0 = 1 := by decide +kernel
+  · have hn : nParts 700 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw689_0_0
-  · have hn : nParts 689 1 = 1 := by decide +kernel
+    · exact cw700_0_0
+  · have hn : nParts 700 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw689_1_0
+    · exact cw700_1_0
 
-theorem ok714 : CplOk 714 := by
+theorem ok713 : CplOk 713 := by
   intro i hi k hk
-  have hc : (certOf 714).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 713).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 714 0 = 1 := by decide +kernel
+  · have hn : nParts 713 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw714_0_0
-  · have hn : nParts 714 1 = 1 := by decide +kernel
+    · exact cw713_0_0
+  · have hn : nParts 713 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw714_1_0
+    · exact cw713_1_0
 
-theorem ok739 : CplOk 739 := by
+theorem ok724 : CplOk 724 := by
   intro i hi k hk
-  have hc : (certOf 739).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 724).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 739 0 = 1 := by decide +kernel
+  · have hn : nParts 724 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw739_0_0
-  · have hn : nParts 739 1 = 1 := by decide +kernel
+    · exact cw724_0_0
+  · have hn : nParts 724 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw739_1_0
+    · exact cw724_1_0
 
-theorem ok764 : CplOk 764 := by
+theorem ok738 : CplOk 738 := by
   intro i hi k hk
-  have hc : (certOf 764).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 738).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 764 0 = 1 := by decide +kernel
+  · have hn : nParts 738 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw764_0_0
-  · have hn : nParts 764 1 = 1 := by decide +kernel
+    · exact cw738_0_0
+  · have hn : nParts 738 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw764_1_0
+    · exact cw738_1_0
 
-theorem ok777 : CplOk 777 := by
+theorem ok759 : CplOk 759 := by
   intro i hi k hk
-  have hc : (certOf 777).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 759).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 777 0 = 1 := by decide +kernel
+  · have hn : nParts 759 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw777_0_0
-  · have hn : nParts 777 1 = 1 := by decide +kernel
+    · exact cw759_0_0
+  · have hn : nParts 759 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw777_1_0
+    · exact cw759_1_0
 
-theorem ok788 : CplOk 788 := by
+theorem ok768 : CplOk 768 := by
   intro i hi k hk
-  have hc : (certOf 788).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 768).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 788 0 = 1 := by decide +kernel
+  · have hn : nParts 768 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw788_0_0
-  · have hn : nParts 788 1 = 1 := by decide +kernel
+    · exact cw768_0_0
+  · have hn : nParts 768 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw788_1_0
+    · exact cw768_1_0
+
+theorem ok793 : CplOk 793 := by
+  intro i hi k hk
+  have hc : (certOf 793).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 793 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw793_0_0
+  · have hn : nParts 793 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw793_1_0
 
 theorem ok802 : CplOk 802 := by
   intro i hi k hk
@@ -1800,107 +1554,127 @@ theorem ok802 : CplOk 802 := by
     interval_cases k
     · exact cw802_1_0
 
-theorem ok823 : CplOk 823 := by
+theorem ok806 : CplOk 806 := by
   intro i hi k hk
-  have hc : (certOf 823).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 806).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 823 0 = 1 := by decide +kernel
+  · have hn : nParts 806 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw823_0_0
-  · have hn : nParts 823 1 = 1 := by decide +kernel
+    · exact cw806_0_0
+  · have hn : nParts 806 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw823_1_0
+    · exact cw806_1_0
 
-theorem ok832 : CplOk 832 := by
+theorem ok817 : CplOk 817 := by
   intro i hi k hk
-  have hc : (certOf 832).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 817).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 832 0 = 1 := by decide +kernel
+  · have hn : nParts 817 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw832_0_0
-  · have hn : nParts 832 1 = 1 := by decide +kernel
+    · exact cw817_0_0
+  · have hn : nParts 817 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw832_1_0
+    · exact cw817_1_0
 
-theorem ok857 : CplOk 857 := by
+theorem ok827 : CplOk 827 := by
   intro i hi k hk
-  have hc : (certOf 857).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 827).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 857 0 = 1 := by decide +kernel
+  · have hn : nParts 827 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw857_0_0
-  · have hn : nParts 857 1 = 1 := by decide +kernel
+    · exact cw827_0_0
+  · have hn : nParts 827 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw857_1_0
+    · exact cw827_1_0
 
-theorem ok866 : CplOk 866 := by
+theorem ok904 : CplOk 904 := by
   intro i hi k hk
-  have hc : (certOf 866).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 904).cuts.length = 13 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 866 0 = 1 := by decide +kernel
+  · have hn : nParts 904 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw866_0_0
-  · have hn : nParts 866 1 = 1 := by decide +kernel
+    · exact cw904_0_0
+  · have hn : nParts 904 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw866_1_0
+    · exact cw904_1_0
+  · have hn : nParts 904 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_2_0
+  · have hn : nParts 904 3 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_3_0
+  · have hn : nParts 904 4 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_4_0
+  · have hn : nParts 904 5 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_5_0
+  · have hn : nParts 904 6 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_6_0
+  · have hn : nParts 904 7 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_7_0
+  · have hn : nParts 904 8 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_8_0
+  · have hn : nParts 904 9 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_9_0
+  · have hn : nParts 904 10 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_10_0
+  · have hn : nParts 904 11 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_11_0
+  · have hn : nParts 904 12 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_12_0
+  · have hn : nParts 904 13 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw904_13_0
 
-theorem ok870 : CplOk 870 := by
+theorem ok905 : CplOk 905 := by
   intro i hi k hk
-  have hc : (certOf 870).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 905).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 870 0 = 1 := by decide +kernel
+  · have hn : nParts 905 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw870_0_0
-  · have hn : nParts 870 1 = 1 := by decide +kernel
+    · exact cw905_0_0
+  · have hn : nParts 905 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw870_1_0
-
-theorem ok881 : CplOk 881 := by
-  intro i hi k hk
-  have hc : (certOf 881).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 881 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw881_0_0
-  · have hn : nParts 881 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw881_1_0
-
-theorem ok891 : CplOk 891 := by
-  intro i hi k hk
-  have hc : (certOf 891).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 891 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw891_0_0
-  · have hn : nParts 891 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw891_1_0
+    · exact cw905_1_0
 
 theorem ok916 : CplOk 916 := by
   intro i hi k hk
-  have hc : (certOf 916).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 916).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 916 0 = 1 := by decide +kernel
@@ -1911,160 +1685,77 @@ theorem ok916 : CplOk 916 := by
     rw [hn] at hk
     interval_cases k
     · exact cw916_1_0
+  · have hn : nParts 916 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw916_2_0
 
-theorem ok931 : CplOk 931 := by
+theorem ok927 : CplOk 927 := by
   intro i hi k hk
-  have hc : (certOf 931).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 927).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 931 0 = 1 := by decide +kernel
+  · have hn : nParts 927 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw931_0_0
-  · have hn : nParts 931 1 = 1 := by decide +kernel
+    · exact cw927_0_0
+  · have hn : nParts 927 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw931_1_0
+    · exact cw927_1_0
 
-theorem ok935 : CplOk 935 := by
+theorem ok940 : CplOk 940 := by
   intro i hi k hk
-  have hc : (certOf 935).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 940).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 935 0 = 1 := by decide +kernel
+  · have hn : nParts 940 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw935_0_0
-  · have hn : nParts 935 1 = 1 := by decide +kernel
+    · exact cw940_0_0
+  · have hn : nParts 940 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw935_1_0
+    · exact cw940_1_0
 
-theorem ok951 : CplOk 951 := by
+theorem ok967 : CplOk 967 := by
   intro i hi k hk
-  have hc : (certOf 951).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 967).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 951 0 = 1 := by decide +kernel
+  · have hn : nParts 967 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw951_0_0
-  · have hn : nParts 951 1 = 1 := by decide +kernel
+    · exact cw967_0_0
+  · have hn : nParts 967 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw951_1_0
+    · exact cw967_1_0
 
-theorem ok966 : CplOk 966 := by
+theorem ok981 : CplOk 981 := by
   intro i hi k hk
-  have hc : (certOf 966).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 981).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 966 0 = 1 := by decide +kernel
+  · have hn : nParts 981 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw966_0_0
-  · have hn : nParts 966 1 = 1 := by decide +kernel
+    · exact cw981_0_0
+  · have hn : nParts 981 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw966_1_0
-
-theorem ok970 : CplOk 970 := by
-  intro i hi k hk
-  have hc : (certOf 970).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 970 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw970_0_0
-  · have hn : nParts 970 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw970_1_0
-
-theorem ok992 : CplOk 992 := by
-  intro i hi k hk
-  have hc : (certOf 992).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 992 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw992_0_0
-  · have hn : nParts 992 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw992_1_0
-
-theorem ok997 : CplOk 997 := by
-  intro i hi k hk
-  have hc : (certOf 997).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 997 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw997_0_0
-  · have hn : nParts 997 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw997_1_0
-
-theorem ok1010 : CplOk 1010 := by
-  intro i hi k hk
-  have hc : (certOf 1010).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1010 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1010_0_0
-  · have hn : nParts 1010 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1010_1_0
+    · exact cw981_1_0
 
 theorem ok1021 : CplOk 1021 := by
   intro i hi k hk
-  have hc : (certOf 1021).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1021).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1021 0 = 1 := by decide +kernel
+  · have hn : nParts 1021 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1021_0_0
-  · have hn : nParts 1021 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1021_1_0
-
-theorem ok1036 : CplOk 1036 := by
-  intro i hi k hk
-  have hc : (certOf 1036).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1036 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1036_0_0
-  · have hn : nParts 1036 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1036_1_0
-
-theorem ok1040 : CplOk 1040 := by
-  intro i hi k hk
-  have hc : (certOf 1040).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1040 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1040_0_0
-  · have hn : nParts 1040 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1040_1_0
+    · exact cw1021_0_1
 
 theorem ok1045 : CplOk 1045 := by
   intro i hi k hk
@@ -2080,553 +1771,102 @@ theorem ok1045 : CplOk 1045 := by
     interval_cases k
     · exact cw1045_1_0
 
-theorem ok1050 : CplOk 1050 := by
+theorem ok1082 : CplOk 1082 := by
   intro i hi k hk
-  have hc : (certOf 1050).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1082).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1050 0 = 1 := by decide +kernel
+  · have hn : nParts 1082 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1050_0_0
-  · have hn : nParts 1050 1 = 1 := by decide +kernel
+    · exact cw1082_0_0
+  · have hn : nParts 1082 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1050_1_0
+    · exact cw1082_1_0
 
-theorem ok1061 : CplOk 1061 := by
+theorem ok1095 : CplOk 1095 := by
   intro i hi k hk
-  have hc : (certOf 1061).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1095).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1061 0 = 1 := by decide +kernel
+  · have hn : nParts 1095 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1061_0_0
-  · have hn : nParts 1061 1 = 1 := by decide +kernel
+    · exact cw1095_0_0
+  · have hn : nParts 1095 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1061_1_0
+    · exact cw1095_1_0
 
-theorem ok1076 : CplOk 1076 := by
+theorem ok1114 : CplOk 1114 := by
   intro i hi k hk
-  have hc : (certOf 1076).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1114).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1076 0 = 1 := by decide +kernel
+  · have hn : nParts 1114 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1076_0_0
-  · have hn : nParts 1076 1 = 1 := by decide +kernel
+    · exact cw1114_0_0
+  · have hn : nParts 1114 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1076_1_0
+    · exact cw1114_1_0
 
-theorem ok1080 : CplOk 1080 := by
+theorem ok1127 : CplOk 1127 := by
   intro i hi k hk
-  have hc : (certOf 1080).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1127).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1080 0 = 1 := by decide +kernel
+  · have hn : nParts 1127 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1080_0_0
-  · have hn : nParts 1080 1 = 1 := by decide +kernel
+    · exact cw1127_0_0
+  · have hn : nParts 1127 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1080_1_0
+    · exact cw1127_1_0
 
-theorem ok1085 : CplOk 1085 := by
+theorem ok1149 : CplOk 1149 := by
   intro i hi k hk
-  have hc : (certOf 1085).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1149).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1085 0 = 1 := by decide +kernel
+  · have hn : nParts 1149 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1085_0_0
-  · have hn : nParts 1085 1 = 1 := by decide +kernel
+    · exact cw1149_0_0
+  · have hn : nParts 1149 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1085_1_0
+    · exact cw1149_1_0
 
-theorem ok1106 : CplOk 1106 := by
+theorem ok1194 : CplOk 1194 := by
   intro i hi k hk
-  have hc : (certOf 1106).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 1194).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1106 0 = 1 := by decide +kernel
+  · have hn : nParts 1194 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1106_0_0
-  · have hn : nParts 1106 1 = 1 := by decide +kernel
+    · exact cw1194_0_0
+  · have hn : nParts 1194 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1106_1_0
-
-theorem ok1111 : CplOk 1111 := by
-  intro i hi k hk
-  have hc : (certOf 1111).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1111 0 = 1 := by decide +kernel
+    · exact cw1194_1_0
+  · have hn : nParts 1194 2 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1111_0_0
-  · have hn : nParts 1111 1 = 1 := by decide +kernel
+    · exact cw1194_2_0
+  · have hn : nParts 1194 3 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw1111_1_0
-
-theorem ok1136 : CplOk 1136 := by
-  intro i hi k hk
-  have hc : (certOf 1136).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1136 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1136_0_0
-  · have hn : nParts 1136 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1136_1_0
-
-theorem ok1151 : CplOk 1151 := by
-  intro i hi k hk
-  have hc : (certOf 1151).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1151 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1151_0_0
-  · have hn : nParts 1151 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1151_1_0
-
-theorem ok1160 : CplOk 1160 := by
-  intro i hi k hk
-  have hc : (certOf 1160).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1160 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1160_0_0
-  · have hn : nParts 1160 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1160_1_0
-
-theorem ok1177 : CplOk 1177 := by
-  intro i hi k hk
-  have hc : (certOf 1177).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1177 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1177_0_0
-  · have hn : nParts 1177 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1177_1_0
-
-theorem ok1191 : CplOk 1191 := by
-  intro i hi k hk
-  have hc : (certOf 1191).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1191 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_0_0
-  · have hn : nParts 1191 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1191_1_0
-
-theorem ok1195 : CplOk 1195 := by
-  intro i hi k hk
-  have hc : (certOf 1195).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1195 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1195_0_0
-  · have hn : nParts 1195 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1195_1_0
-
-theorem ok1265 : CplOk 1265 := by
-  intro i hi k hk
-  have hc : (certOf 1265).cuts.length = 13 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1265 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_0_0
-  · have hn : nParts 1265 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_1_0
-  · have hn : nParts 1265 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_2_0
-  · have hn : nParts 1265 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_3_0
-  · have hn : nParts 1265 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_4_0
-  · have hn : nParts 1265 5 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_5_0
-  · have hn : nParts 1265 6 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_6_0
-  · have hn : nParts 1265 7 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_7_0
-  · have hn : nParts 1265 8 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_8_0
-  · have hn : nParts 1265 9 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_9_0
-  · have hn : nParts 1265 10 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_10_0
-  · have hn : nParts 1265 11 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_11_0
-  · have hn : nParts 1265 12 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_12_0
-  · have hn : nParts 1265 13 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1265_13_0
-
-theorem ok1280 : CplOk 1280 := by
-  intro i hi k hk
-  have hc : (certOf 1280).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1280 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1280_0_0
-  · have hn : nParts 1280 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1280_1_0
-
-theorem ok1346 : CplOk 1346 := by
-  intro i hi k hk
-  have hc : (certOf 1346).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1346 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1346_0_0
-  · have hn : nParts 1346 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1346_1_0
-
-theorem ok1361 : CplOk 1361 := by
-  intro i hi k hk
-  have hc : (certOf 1361).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1361 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1361_0_0
-  · have hn : nParts 1361 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1361_1_0
-
-theorem ok1374 : CplOk 1374 := by
-  intro i hi k hk
-  have hc : (certOf 1374).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1374 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1374_0_0
-  · have hn : nParts 1374 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1374_1_0
-
-theorem ok1416 : CplOk 1416 := by
-  intro i hi k hk
-  have hc : (certOf 1416).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1416 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1416_0_0
-  · have hn : nParts 1416 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1416_1_0
-
-theorem ok1422 : CplOk 1422 := by
-  intro i hi k hk
-  have hc : (certOf 1422).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1422 0 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1422_0_0
-    · exact cw1422_0_1
-
-theorem ok1447 : CplOk 1447 := by
-  intro i hi k hk
-  have hc : (certOf 1447).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1447 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1447_0_0
-  · have hn : nParts 1447 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1447_1_0
-
-theorem ok1460 : CplOk 1460 := by
-  intro i hi k hk
-  have hc : (certOf 1460).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1460 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1460_0_0
-  · have hn : nParts 1460 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1460_1_0
-
-theorem ok1499 : CplOk 1499 := by
-  intro i hi k hk
-  have hc : (certOf 1499).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1499 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1499_0_0
-  · have hn : nParts 1499 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1499_1_0
-
-theorem ok1511 : CplOk 1511 := by
-  intro i hi k hk
-  have hc : (certOf 1511).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1511 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1511_0_0
-  · have hn : nParts 1511 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1511_1_0
-
-theorem ok1523 : CplOk 1523 := by
-  intro i hi k hk
-  have hc : (certOf 1523).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1523 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1523_0_0
-  · have hn : nParts 1523 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1523_1_0
-
-theorem ok1530 : CplOk 1530 := by
-  intro i hi k hk
-  have hc : (certOf 1530).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1530 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1530_0_0
-  · have hn : nParts 1530 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1530_1_0
-
-theorem ok1594 : CplOk 1594 := by
-  intro i hi k hk
-  have hc : (certOf 1594).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1594 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1594_0_0
-  · have hn : nParts 1594 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1594_1_0
-
-theorem ok1601 : CplOk 1601 := by
-  intro i hi k hk
-  have hc : (certOf 1601).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1601 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1601_0_0
-  · have hn : nParts 1601 1 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1601_1_0
-    · exact cw1601_1_1
-
-theorem ok1607 : CplOk 1607 := by
-  intro i hi k hk
-  have hc : (certOf 1607).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1607 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1607_0_0
-  · have hn : nParts 1607 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1607_1_0
-
-theorem ok1619 : CplOk 1619 := by
-  intro i hi k hk
-  have hc : (certOf 1619).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1619 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1619_0_0
-  · have hn : nParts 1619 1 = 2 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1619_1_0
-    · exact cw1619_1_1
-
-theorem ok1654 : CplOk 1654 := by
-  intro i hi k hk
-  have hc : (certOf 1654).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1654 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1654_0_0
-  · have hn : nParts 1654 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1654_1_0
-
-theorem ok1699 : CplOk 1699 := by
-  intro i hi k hk
-  have hc : (certOf 1699).cuts.length = 3 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1699 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1699_0_0
-  · have hn : nParts 1699 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1699_1_0
-  · have hn : nParts 1699 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1699_2_0
-  · have hn : nParts 1699 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1699_3_0
-
-theorem ok1722 : CplOk 1722 := by
-  intro i hi k hk
-  have hc : (certOf 1722).cuts.length = 4 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1722 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1722_0_0
-  · have hn : nParts 1722 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1722_1_0
-  · have hn : nParts 1722 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1722_2_0
-  · have hn : nParts 1722 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1722_3_0
-  · have hn : nParts 1722 4 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1722_4_0
-
-theorem ok1748 : CplOk 1748 := by
-  intro i hi k hk
-  have hc : (certOf 1748).cuts.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1748 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1748_0_0
-  · have hn : nParts 1748 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1748_1_0
+    · exact cw1194_3_0
 
 /-- **Every compiled function passes the completeness check.** -/
 theorem cplOk_all : ∀ j, 1 ≤ j → j < nFns → CplOk j := fun j h1 h2 ↦
-  have h2 : j < 1750 := h2
-  (if h : j < 875 then (if h : j < 438 then (if h : j < 219 then (if h : j < 110 then (if h : j < 55 then (if h : j < 28 then (if h : j < 14 then (if h : j < 7 then (if h : j < 4 then (if h : j < 2 then (by obtain rfl : j = 1 := (by omega); exact ok1) else (if h : j < 3 then (by obtain rfl : j = 2 := (by omega); exact ok2) else (by obtain rfl : j = 3 := (by omega); exact ok3))) else (if h : j < 5 then (by obtain rfl : j = 4 := (by omega); exact ok4) else (if h : j < 6 then (by obtain rfl : j = 5 := (by omega); exact ok5) else (by obtain rfl : j = 6 := (by omega); exact ok6)))) else (if h : j < 10 then (if h : j < 8 then (by obtain rfl : j = 7 := (by omega); exact ok7) else (if h : j < 9 then (by obtain rfl : j = 8 := (by omega); exact ok8) else (by obtain rfl : j = 9 := (by omega); exact ok9))) else (if h : j < 12 then (if h : j < 11 then (by obtain rfl : j = 10 := (by omega); exact ok10) else (by obtain rfl : j = 11 := (by omega); exact ok11)) else (if h : j < 13 then (by obtain rfl : j = 12 := (by omega); exact ok12) else (by obtain rfl : j = 13 := (by omega); exact ok13))))) else (if h : j < 21 then (if h : j < 17 then (if h : j < 15 then (by obtain rfl : j = 14 := (by omega); exact ok14) else (if h : j < 16 then (by obtain rfl : j = 15 := (by omega); exact ok15) else (by obtain rfl : j = 16 := (by omega); exact ok16))) else (if h : j < 19 then (if h : j < 18 then (by obtain rfl : j = 17 := (by omega); exact ok17) else (by obtain rfl : j = 18 := (by omega); exact ok18)) else (if h : j < 20 then (by obtain rfl : j = 19 := (by omega); exact ok19) else (by obtain rfl : j = 20 := (by omega); exact ok20)))) else (if h : j < 24 then (if h : j < 22 then (by obtain rfl : j = 21 := (by omega); exact ok21) else (if h : j < 23 then (by obtain rfl : j = 22 := (by omega); exact ok22) else (by obtain rfl : j = 23 := (by omega); exact ok23))) else (if h : j < 26 then (if h : j < 25 then (by obtain rfl : j = 24 := (by omega); exact ok24) else (by obtain rfl : j = 25 := (by omega); exact ok25)) else (if h : j < 27 then (by obtain rfl : j = 26 := (by omega); exact ok26) else (by obtain rfl : j = 27 := (by omega); exact ok27)))))) else (if h : j < 41 then (if h : j < 34 then (if h : j < 31 then (if h : j < 29 then (by obtain rfl : j = 28 := (by omega); exact ok28) else (if h : j < 30 then (by obtain rfl : j = 29 := (by omega); exact ok29) else (by obtain rfl : j = 30 := (by omega); exact ok30))) else (if h : j < 32 then (by obtain rfl : j = 31 := (by omega); exact ok31) else (if h : j < 33 then (by obtain rfl : j = 32 := (by omega); exact ok32) else (by obtain rfl : j = 33 := (by omega); exact ok33)))) else (if h : j < 37 then (if h : j < 35 then (by obtain rfl : j = 34 := (by omega); exact ok34) else (if h : j < 36 then (by obtain rfl : j = 35 := (by omega); exact ok35) else (by obtain rfl : j = 36 := (by omega); exact ok36))) else (if h : j < 39 then (if h : j < 38 then (by obtain rfl : j = 37 := (by omega); exact ok37) else (by obtain rfl : j = 38 := (by omega); exact ok38)) else (if h : j < 40 then (by obtain rfl : j = 39 := (by omega); exact ok39) else (by obtain rfl : j = 40 := (by omega); exact ok40))))) else (if h : j < 48 then (if h : j < 44 then (if h : j < 42 then (by obtain rfl : j = 41 := (by omega); exact ok41) else (if h : j < 43 then (by obtain rfl : j = 42 := (by omega); exact ok42) else (by obtain rfl : j = 43 := (by omega); exact ok43))) else (if h : j < 46 then (if h : j < 45 then (by obtain rfl : j = 44 := (by omega); exact ok44) else (by obtain rfl : j = 45 := (by omega); exact ok45)) else (if h : j < 47 then (by obtain rfl : j = 46 := (by omega); exact ok46) else (by obtain rfl : j = 47 := (by omega); exact ok47)))) else (if h : j < 51 then (if h : j < 49 then (by obtain rfl : j = 48 := (by omega); exact ok48) else (if h : j < 50 then (by obtain rfl : j = 49 := (by omega); exact ok49) else (by obtain rfl : j = 50 := (by omega); exact ok50))) else (if h : j < 53 then (if h : j < 52 then (by obtain rfl : j = 51 := (by omega); exact ok51) else (by obtain rfl : j = 52 := (by omega); exact ok52)) else (if h : j < 54 then (by obtain rfl : j = 53 := (by omega); exact ok53) else (by obtain rfl : j = 54 := (by omega); exact ok54))))))) else (if h : j < 82 then (if h : j < 68 then (if h : j < 61 then (if h : j < 58 then (if h : j < 56 then (by obtain rfl : j = 55 := (by omega); exact ok55) else (if h : j < 57 then (by obtain rfl : j = 56 := (by omega); exact ok56) else (by obtain rfl : j = 57 := (by omega); exact ok57))) else (if h : j < 59 then (by obtain rfl : j = 58 := (by omega); exact ok58) else (if h : j < 60 then (by obtain rfl : j = 59 := (by omega); exact ok59) else (by obtain rfl : j = 60 := (by omega); exact ok60)))) else (if h : j < 64 then (if h : j < 62 then (by obtain rfl : j = 61 := (by omega); exact ok61) else (if h : j < 63 then (by obtain rfl : j = 62 := (by omega); exact ok62) else (by obtain rfl : j = 63 := (by omega); exact ok63))) else (if h : j < 66 then (if h : j < 65 then (by obtain rfl : j = 64 := (by omega); exact ok64) else (by obtain rfl : j = 65 := (by omega); exact ok65)) else (if h : j < 67 then (by obtain rfl : j = 66 := (by omega); exact ok66) else (by obtain rfl : j = 67 := (by omega); exact ok67))))) else (if h : j < 75 then (if h : j < 71 then (if h : j < 69 then (by obtain rfl : j = 68 := (by omega); exact ok68) else (if h : j < 70 then (by obtain rfl : j = 69 := (by omega); exact ok69) else (by obtain rfl : j = 70 := (by omega); exact ok70))) else (if h : j < 73 then (if h : j < 72 then (by obtain rfl : j = 71 := (by omega); exact ok71) else (by obtain rfl : j = 72 := (by omega); exact ok72)) else (if h : j < 74 then (by obtain rfl : j = 73 := (by omega); exact ok73) else (by obtain rfl : j = 74 := (by omega); exact ok74)))) else (if h : j < 78 then (if h : j < 76 then (by obtain rfl : j = 75 := (by omega); exact ok75) else (if h : j < 77 then (by obtain rfl : j = 76 := (by omega); exact ok76) else (by obtain rfl : j = 77 := (by omega); exact ok77))) else (if h : j < 80 then (if h : j < 79 then (by obtain rfl : j = 78 := (by omega); exact ok78) else (by obtain rfl : j = 79 := (by omega); exact ok79)) else (if h : j < 81 then (by obtain rfl : j = 80 := (by omega); exact ok80) else (by obtain rfl : j = 81 := (by omega); exact ok81)))))) else (if h : j < 96 then (if h : j < 89 then (if h : j < 85 then (if h : j < 83 then (by obtain rfl : j = 82 := (by omega); exact ok82) else (if h : j < 84 then (by obtain rfl : j = 83 := (by omega); exact ok83) else (by obtain rfl : j = 84 := (by omega); exact ok84))) else (if h : j < 87 then (if h : j < 86 then (by obtain rfl : j = 85 := (by omega); exact ok85) else (by obtain rfl : j = 86 := (by omega); exact ok86)) else (if h : j < 88 then (by obtain rfl : j = 87 := (by omega); exact ok87) else (by obtain rfl : j = 88 := (by omega); exact ok88)))) else (if h : j < 92 then (if h : j < 90 then (by obtain rfl : j = 89 := (by omega); exact ok89) else (if h : j < 91 then (by obtain rfl : j = 90 := (by omega); exact ok90) else (by obtain rfl : j = 91 := (by omega); exact ok91))) else (if h : j < 94 then (if h : j < 93 then (by obtain rfl : j = 92 := (by omega); exact ok92) else (by obtain rfl : j = 93 := (by omega); exact ok93)) else (if h : j < 95 then (by obtain rfl : j = 94 := (by omega); exact ok94) else (by obtain rfl : j = 95 := (by omega); exact ok95))))) else (if h : j < 103 then (if h : j < 99 then (if h : j < 97 then (by obtain rfl : j = 96 := (by omega); exact ok96) else (if h : j < 98 then (by obtain rfl : j = 97 := (by omega); exact ok97) else (by obtain rfl : j = 98 := (by omega); exact ok98))) else (if h : j < 101 then (if h : j < 100 then (by obtain rfl : j = 99 := (by omega); exact ok99) else (by obtain rfl : j = 100 := (by omega); exact ok100)) else (if h : j < 102 then (by obtain rfl : j = 101 := (by omega); exact ok101) else (by obtain rfl : j = 102 := (by omega); exact ok102)))) else (if h : j < 106 then (if h : j < 104 then (by obtain rfl : j = 103 := (by omega); exact ok103) else (if h : j < 105 then (by obtain rfl : j = 104 := (by omega); exact ok104) else (by obtain rfl : j = 105 := (by omega); exact ok105))) else (if h : j < 108 then (if h : j < 107 then (by obtain rfl : j = 106 := (by omega); exact ok106) else (by obtain rfl : j = 107 := (by omega); exact ok107)) else (if h : j < 109 then (by obtain rfl : j = 108 := (by omega); exact ok108) else (by obtain rfl : j = 109 := (by omega); exact ok109)))))))) else (if h : j < 164 then (if h : j < 137 then (if h : j < 123 then (if h : j < 116 then (if h : j < 113 then (if h : j < 111 then (by obtain rfl : j = 110 := (by omega); exact ok110) else (if h : j < 112 then (by obtain rfl : j = 111 := (by omega); exact ok111) else (by obtain rfl : j = 112 := (by omega); exact ok112))) else (if h : j < 114 then (by obtain rfl : j = 113 := (by omega); exact ok113) else (if h : j < 115 then (by obtain rfl : j = 114 := (by omega); exact ok114) else (by obtain rfl : j = 115 := (by omega); exact ok115)))) else (if h : j < 119 then (if h : j < 117 then (by obtain rfl : j = 116 := (by omega); exact ok116) else (if h : j < 118 then (by obtain rfl : j = 117 := (by omega); exact ok117) else (by obtain rfl : j = 118 := (by omega); exact ok118))) else (if h : j < 121 then (if h : j < 120 then (by obtain rfl : j = 119 := (by omega); exact ok119) else (by obtain rfl : j = 120 := (by omega); exact ok120)) else (if h : j < 122 then (by obtain rfl : j = 121 := (by omega); exact ok121) else (by obtain rfl : j = 122 := (by omega); exact ok122))))) else (if h : j < 130 then (if h : j < 126 then (if h : j < 124 then (by obtain rfl : j = 123 := (by omega); exact ok123) else (if h : j < 125 then (by obtain rfl : j = 124 := (by omega); exact ok124) else (by obtain rfl : j = 125 := (by omega); exact ok125))) else (if h : j < 128 then (if h : j < 127 then (by obtain rfl : j = 126 := (by omega); exact ok126) else (by obtain rfl : j = 127 := (by omega); exact ok127)) else (if h : j < 129 then (by obtain rfl : j = 128 := (by omega); exact ok128) else (by obtain rfl : j = 129 := (by omega); exact ok129)))) else (if h : j < 133 then (if h : j < 131 then (by obtain rfl : j = 130 := (by omega); exact ok130) else (if h : j < 132 then (by obtain rfl : j = 131 := (by omega); exact ok131) else (by obtain rfl : j = 132 := (by omega); exact ok132))) else (if h : j < 135 then (if h : j < 134 then (by obtain rfl : j = 133 := (by omega); exact ok133) else (by obtain rfl : j = 134 := (by omega); exact ok134)) else (if h : j < 136 then (by obtain rfl : j = 135 := (by omega); exact ok135) else (by obtain rfl : j = 136 := (by omega); exact ok136)))))) else (if h : j < 150 then (if h : j < 143 then (if h : j < 140 then (if h : j < 138 then (by obtain rfl : j = 137 := (by omega); exact ok137) else (if h : j < 139 then (by obtain rfl : j = 138 := (by omega); exact ok138) else (by obtain rfl : j = 139 := (by omega); exact ok139))) else (if h : j < 141 then (by obtain rfl : j = 140 := (by omega); exact ok140) else (if h : j < 142 then (by obtain rfl : j = 141 := (by omega); exact ok141) else (by obtain rfl : j = 142 := (by omega); exact ok142)))) else (if h : j < 146 then (if h : j < 144 then (by obtain rfl : j = 143 := (by omega); exact ok143) else (if h : j < 145 then (by obtain rfl : j = 144 := (by omega); exact ok144) else (by obtain rfl : j = 145 := (by omega); exact ok145))) else (if h : j < 148 then (if h : j < 147 then (by obtain rfl : j = 146 := (by omega); exact ok146) else (by obtain rfl : j = 147 := (by omega); exact ok147)) else (if h : j < 149 then (by obtain rfl : j = 148 := (by omega); exact ok148) else (by obtain rfl : j = 149 := (by omega); exact ok149))))) else (if h : j < 157 then (if h : j < 153 then (if h : j < 151 then (by obtain rfl : j = 150 := (by omega); exact ok150) else (if h : j < 152 then (by obtain rfl : j = 151 := (by omega); exact ok151) else (by obtain rfl : j = 152 := (by omega); exact ok152))) else (if h : j < 155 then (if h : j < 154 then (by obtain rfl : j = 153 := (by omega); exact ok153) else (by obtain rfl : j = 154 := (by omega); exact ok154)) else (if h : j < 156 then (by obtain rfl : j = 155 := (by omega); exact ok155) else (by obtain rfl : j = 156 := (by omega); exact ok156)))) else (if h : j < 160 then (if h : j < 158 then (by obtain rfl : j = 157 := (by omega); exact ok157) else (if h : j < 159 then (by obtain rfl : j = 158 := (by omega); exact ok158) else (by obtain rfl : j = 159 := (by omega); exact ok159))) else (if h : j < 162 then (if h : j < 161 then (by obtain rfl : j = 160 := (by omega); exact ok160) else (by obtain rfl : j = 161 := (by omega); exact ok161)) else (if h : j < 163 then (by obtain rfl : j = 162 := (by omega); exact ok162) else (by obtain rfl : j = 163 := (by omega); exact ok163))))))) else (if h : j < 191 then (if h : j < 177 then (if h : j < 170 then (if h : j < 167 then (if h : j < 165 then (by obtain rfl : j = 164 := (by omega); exact ok164) else (if h : j < 166 then (by obtain rfl : j = 165 := (by omega); exact ok165) else (by obtain rfl : j = 166 := (by omega); exact ok166))) else (if h : j < 168 then (by obtain rfl : j = 167 := (by omega); exact ok167) else (if h : j < 169 then (by obtain rfl : j = 168 := (by omega); exact ok168) else (by obtain rfl : j = 169 := (by omega); exact ok169)))) else (if h : j < 173 then (if h : j < 171 then (by obtain rfl : j = 170 := (by omega); exact ok170) else (if h : j < 172 then (by obtain rfl : j = 171 := (by omega); exact ok171) else (by obtain rfl : j = 172 := (by omega); exact ok172))) else (if h : j < 175 then (if h : j < 174 then (by obtain rfl : j = 173 := (by omega); exact ok173) else (by obtain rfl : j = 174 := (by omega); exact ok174)) else (if h : j < 176 then (by obtain rfl : j = 175 := (by omega); exact ok175) else (by obtain rfl : j = 176 := (by omega); exact ok176))))) else (if h : j < 184 then (if h : j < 180 then (if h : j < 178 then (by obtain rfl : j = 177 := (by omega); exact ok177) else (if h : j < 179 then (by obtain rfl : j = 178 := (by omega); exact ok178) else (by obtain rfl : j = 179 := (by omega); exact ok179))) else (if h : j < 182 then (if h : j < 181 then (by obtain rfl : j = 180 := (by omega); exact ok180) else (by obtain rfl : j = 181 := (by omega); exact ok181)) else (if h : j < 183 then (by obtain rfl : j = 182 := (by omega); exact ok182) else (by obtain rfl : j = 183 := (by omega); exact ok183)))) else (if h : j < 187 then (if h : j < 185 then (by obtain rfl : j = 184 := (by omega); exact ok184) else (if h : j < 186 then (by obtain rfl : j = 185 := (by omega); exact ok185) else (by obtain rfl : j = 186 := (by omega); exact ok186))) else (if h : j < 189 then (if h : j < 188 then (by obtain rfl : j = 187 := (by omega); exact ok187) else (by obtain rfl : j = 188 := (by omega); exact ok188)) else (if h : j < 190 then (by obtain rfl : j = 189 := (by omega); exact ok189) else (by obtain rfl : j = 190 := (by omega); exact ok190)))))) else (if h : j < 205 then (if h : j < 198 then (if h : j < 194 then (if h : j < 192 then (by obtain rfl : j = 191 := (by omega); exact ok191) else (if h : j < 193 then (by obtain rfl : j = 192 := (by omega); exact ok192) else (by obtain rfl : j = 193 := (by omega); exact ok193))) else (if h : j < 196 then (if h : j < 195 then (by obtain rfl : j = 194 := (by omega); exact ok194) else (by obtain rfl : j = 195 := (by omega); exact ok195)) else (if h : j < 197 then (by obtain rfl : j = 196 := (by omega); exact ok196) else (by obtain rfl : j = 197 := (by omega); exact ok197)))) else (if h : j < 201 then (if h : j < 199 then (by obtain rfl : j = 198 := (by omega); exact ok198) else (if h : j < 200 then (by obtain rfl : j = 199 := (by omega); exact ok199) else (by obtain rfl : j = 200 := (by omega); exact ok200))) else (if h : j < 203 then (if h : j < 202 then (by obtain rfl : j = 201 := (by omega); exact ok201) else (by obtain rfl : j = 202 := (by omega); exact ok202)) else (if h : j < 204 then (by obtain rfl : j = 203 := (by omega); exact ok203) else (by obtain rfl : j = 204 := (by omega); exact ok204))))) else (if h : j < 212 then (if h : j < 208 then (if h : j < 206 then (by obtain rfl : j = 205 := (by omega); exact ok205) else (if h : j < 207 then (by obtain rfl : j = 206 := (by omega); exact ok206) else (by obtain rfl : j = 207 := (by omega); exact ok207))) else (if h : j < 210 then (if h : j < 209 then (by obtain rfl : j = 208 := (by omega); exact ok208) else (by obtain rfl : j = 209 := (by omega); exact ok209)) else (if h : j < 211 then (by obtain rfl : j = 210 := (by omega); exact ok210) else (by obtain rfl : j = 211 := (by omega); exact ok211)))) else (if h : j < 215 then (if h : j < 213 then (by obtain rfl : j = 212 := (by omega); exact ok212) else (if h : j < 214 then (by obtain rfl : j = 213 := (by omega); exact ok213) else (by obtain rfl : j = 214 := (by omega); exact ok214))) else (if h : j < 217 then (if h : j < 216 then (by obtain rfl : j = 215 := (by omega); exact ok215) else (by obtain rfl : j = 216 := (by omega); exact ok216)) else (if h : j < 218 then (by obtain rfl : j = 217 := (by omega); exact ok217) else (by obtain rfl : j = 218 := (by omega); exact ok218))))))))) else (if h : j < 328 then (if h : j < 273 then (if h : j < 246 then (if h : j < 232 then (if h : j < 225 then (if h : j < 222 then (if h : j < 220 then (by obtain rfl : j = 219 := (by omega); exact ok219) else (if h : j < 221 then (by obtain rfl : j = 220 := (by omega); exact ok220) else (by obtain rfl : j = 221 := (by omega); exact ok221))) else (if h : j < 223 then (by obtain rfl : j = 222 := (by omega); exact ok222) else (if h : j < 224 then (by obtain rfl : j = 223 := (by omega); exact ok223) else (by obtain rfl : j = 224 := (by omega); exact ok224)))) else (if h : j < 228 then (if h : j < 226 then (by obtain rfl : j = 225 := (by omega); exact ok225) else (if h : j < 227 then (by obtain rfl : j = 226 := (by omega); exact ok226) else (by obtain rfl : j = 227 := (by omega); exact ok227))) else (if h : j < 230 then (if h : j < 229 then (by obtain rfl : j = 228 := (by omega); exact ok228) else (by obtain rfl : j = 229 := (by omega); exact ok229)) else (if h : j < 231 then (by obtain rfl : j = 230 := (by omega); exact ok230) else (by obtain rfl : j = 231 := (by omega); exact ok231))))) else (if h : j < 239 then (if h : j < 235 then (if h : j < 233 then (by obtain rfl : j = 232 := (by omega); exact ok232) else (if h : j < 234 then (by obtain rfl : j = 233 := (by omega); exact ok233) else (by obtain rfl : j = 234 := (by omega); exact ok234))) else (if h : j < 237 then (if h : j < 236 then (by obtain rfl : j = 235 := (by omega); exact ok235) else (by obtain rfl : j = 236 := (by omega); exact ok236)) else (if h : j < 238 then (by obtain rfl : j = 237 := (by omega); exact ok237) else (by obtain rfl : j = 238 := (by omega); exact ok238)))) else (if h : j < 242 then (if h : j < 240 then (by obtain rfl : j = 239 := (by omega); exact ok239) else (if h : j < 241 then (by obtain rfl : j = 240 := (by omega); exact ok240) else (by obtain rfl : j = 241 := (by omega); exact ok241))) else (if h : j < 244 then (if h : j < 243 then (by obtain rfl : j = 242 := (by omega); exact ok242) else (by obtain rfl : j = 243 := (by omega); exact ok243)) else (if h : j < 245 then (by obtain rfl : j = 244 := (by omega); exact ok244) else (by obtain rfl : j = 245 := (by omega); exact ok245)))))) else (if h : j < 259 then (if h : j < 252 then (if h : j < 249 then (if h : j < 247 then (by obtain rfl : j = 246 := (by omega); exact ok246) else (if h : j < 248 then (by obtain rfl : j = 247 := (by omega); exact ok247) else (by obtain rfl : j = 248 := (by omega); exact ok248))) else (if h : j < 250 then (by obtain rfl : j = 249 := (by omega); exact ok249) else (if h : j < 251 then (by obtain rfl : j = 250 := (by omega); exact ok250) else (by obtain rfl : j = 251 := (by omega); exact ok251)))) else (if h : j < 255 then (if h : j < 253 then (by obtain rfl : j = 252 := (by omega); exact ok252) else (if h : j < 254 then (by obtain rfl : j = 253 := (by omega); exact ok253) else (by obtain rfl : j = 254 := (by omega); exact ok254))) else (if h : j < 257 then (if h : j < 256 then (by obtain rfl : j = 255 := (by omega); exact ok255) else (by obtain rfl : j = 256 := (by omega); exact ok256)) else (if h : j < 258 then (by obtain rfl : j = 257 := (by omega); exact ok257) else (by obtain rfl : j = 258 := (by omega); exact ok258))))) else (if h : j < 266 then (if h : j < 262 then (if h : j < 260 then (by obtain rfl : j = 259 := (by omega); exact ok259) else (if h : j < 261 then (by obtain rfl : j = 260 := (by omega); exact ok260) else (by obtain rfl : j = 261 := (by omega); exact ok261))) else (if h : j < 264 then (if h : j < 263 then (by obtain rfl : j = 262 := (by omega); exact ok262) else (by obtain rfl : j = 263 := (by omega); exact ok263)) else (if h : j < 265 then (by obtain rfl : j = 264 := (by omega); exact ok264) else (by obtain rfl : j = 265 := (by omega); exact ok265)))) else (if h : j < 269 then (if h : j < 267 then (by obtain rfl : j = 266 := (by omega); exact ok266) else (if h : j < 268 then (by obtain rfl : j = 267 := (by omega); exact ok267) else (by obtain rfl : j = 268 := (by omega); exact ok268))) else (if h : j < 271 then (if h : j < 270 then (by obtain rfl : j = 269 := (by omega); exact ok269) else (by obtain rfl : j = 270 := (by omega); exact ok270)) else (if h : j < 272 then (by obtain rfl : j = 271 := (by omega); exact ok271) else (by obtain rfl : j = 272 := (by omega); exact ok272))))))) else (if h : j < 300 then (if h : j < 286 then (if h : j < 279 then (if h : j < 276 then (if h : j < 274 then (by obtain rfl : j = 273 := (by omega); exact ok273) else (if h : j < 275 then (by obtain rfl : j = 274 := (by omega); exact ok274) else (by obtain rfl : j = 275 := (by omega); exact ok275))) else (if h : j < 277 then (by obtain rfl : j = 276 := (by omega); exact ok276) else (if h : j < 278 then (by obtain rfl : j = 277 := (by omega); exact ok277) else (by obtain rfl : j = 278 := (by omega); exact ok278)))) else (if h : j < 282 then (if h : j < 280 then (by obtain rfl : j = 279 := (by omega); exact ok279) else (if h : j < 281 then (by obtain rfl : j = 280 := (by omega); exact ok280) else (by obtain rfl : j = 281 := (by omega); exact ok281))) else (if h : j < 284 then (if h : j < 283 then (by obtain rfl : j = 282 := (by omega); exact ok282) else (by obtain rfl : j = 283 := (by omega); exact ok283)) else (if h : j < 285 then (by obtain rfl : j = 284 := (by omega); exact ok284) else (by obtain rfl : j = 285 := (by omega); exact ok285))))) else (if h : j < 293 then (if h : j < 289 then (if h : j < 287 then (by obtain rfl : j = 286 := (by omega); exact ok286) else (if h : j < 288 then (by obtain rfl : j = 287 := (by omega); exact ok287) else (by obtain rfl : j = 288 := (by omega); exact ok288))) else (if h : j < 291 then (if h : j < 290 then (by obtain rfl : j = 289 := (by omega); exact ok289) else (by obtain rfl : j = 290 := (by omega); exact ok290)) else (if h : j < 292 then (by obtain rfl : j = 291 := (by omega); exact ok291) else (by obtain rfl : j = 292 := (by omega); exact ok292)))) else (if h : j < 296 then (if h : j < 294 then (by obtain rfl : j = 293 := (by omega); exact ok293) else (if h : j < 295 then (by obtain rfl : j = 294 := (by omega); exact ok294) else (by obtain rfl : j = 295 := (by omega); exact ok295))) else (if h : j < 298 then (if h : j < 297 then (by obtain rfl : j = 296 := (by omega); exact ok296) else (by obtain rfl : j = 297 := (by omega); exact ok297)) else (if h : j < 299 then (by obtain rfl : j = 298 := (by omega); exact ok298) else (by obtain rfl : j = 299 := (by omega); exact ok299)))))) else (if h : j < 314 then (if h : j < 307 then (if h : j < 303 then (if h : j < 301 then (by obtain rfl : j = 300 := (by omega); exact ok300) else (if h : j < 302 then (by obtain rfl : j = 301 := (by omega); exact ok301) else (by obtain rfl : j = 302 := (by omega); exact ok302))) else (if h : j < 305 then (if h : j < 304 then (by obtain rfl : j = 303 := (by omega); exact ok303) else (by obtain rfl : j = 304 := (by omega); exact ok304)) else (if h : j < 306 then (by obtain rfl : j = 305 := (by omega); exact ok305) else (by obtain rfl : j = 306 := (by omega); exact ok306)))) else (if h : j < 310 then (if h : j < 308 then (by obtain rfl : j = 307 := (by omega); exact ok307) else (if h : j < 309 then (by obtain rfl : j = 308 := (by omega); exact ok308) else (by obtain rfl : j = 309 := (by omega); exact ok309))) else (if h : j < 312 then (if h : j < 311 then (by obtain rfl : j = 310 := (by omega); exact ok310) else (by obtain rfl : j = 311 := (by omega); exact ok311)) else (if h : j < 313 then (by obtain rfl : j = 312 := (by omega); exact ok312) else (by obtain rfl : j = 313 := (by omega); exact ok313))))) else (if h : j < 321 then (if h : j < 317 then (if h : j < 315 then (by obtain rfl : j = 314 := (by omega); exact ok314) else (if h : j < 316 then (by obtain rfl : j = 315 := (by omega); exact ok315) else (by obtain rfl : j = 316 := (by omega); exact ok316))) else (if h : j < 319 then (if h : j < 318 then (by obtain rfl : j = 317 := (by omega); exact ok317) else (by obtain rfl : j = 318 := (by omega); exact ok318)) else (if h : j < 320 then (by obtain rfl : j = 319 := (by omega); exact ok319) else (by obtain rfl : j = 320 := (by omega); exact ok320)))) else (if h : j < 324 then (if h : j < 322 then (by obtain rfl : j = 321 := (by omega); exact ok321) else (if h : j < 323 then (by obtain rfl : j = 322 := (by omega); exact ok322) else (by obtain rfl : j = 323 := (by omega); exact ok323))) else (if h : j < 326 then (if h : j < 325 then (by obtain rfl : j = 324 := (by omega); exact ok324) else (by obtain rfl : j = 325 := (by omega); exact ok325)) else (if h : j < 327 then (by obtain rfl : j = 326 := (by omega); exact ok326) else (by obtain rfl : j = 327 := (by omega); exact ok327)))))))) else (if h : j < 383 then (if h : j < 355 then (if h : j < 341 then (if h : j < 334 then (if h : j < 331 then (if h : j < 329 then (by obtain rfl : j = 328 := (by omega); exact ok328) else (if h : j < 330 then (by obtain rfl : j = 329 := (by omega); exact ok329) else (by obtain rfl : j = 330 := (by omega); exact ok330))) else (if h : j < 332 then (by obtain rfl : j = 331 := (by omega); exact ok331) else (if h : j < 333 then (by obtain rfl : j = 332 := (by omega); exact ok332) else (by obtain rfl : j = 333 := (by omega); exact ok333)))) else (if h : j < 337 then (if h : j < 335 then (by obtain rfl : j = 334 := (by omega); exact ok334) else (if h : j < 336 then (by obtain rfl : j = 335 := (by omega); exact ok335) else (by obtain rfl : j = 336 := (by omega); exact ok336))) else (if h : j < 339 then (if h : j < 338 then (by obtain rfl : j = 337 := (by omega); exact ok337) else (by obtain rfl : j = 338 := (by omega); exact ok338)) else (if h : j < 340 then (by obtain rfl : j = 339 := (by omega); exact ok339) else (by obtain rfl : j = 340 := (by omega); exact ok340))))) else (if h : j < 348 then (if h : j < 344 then (if h : j < 342 then (by obtain rfl : j = 341 := (by omega); exact ok341) else (if h : j < 343 then (by obtain rfl : j = 342 := (by omega); exact ok342) else (by obtain rfl : j = 343 := (by omega); exact ok343))) else (if h : j < 346 then (if h : j < 345 then (by obtain rfl : j = 344 := (by omega); exact ok344) else (by obtain rfl : j = 345 := (by omega); exact ok345)) else (if h : j < 347 then (by obtain rfl : j = 346 := (by omega); exact ok346) else (by obtain rfl : j = 347 := (by omega); exact ok347)))) else (if h : j < 351 then (if h : j < 349 then (by obtain rfl : j = 348 := (by omega); exact ok348) else (if h : j < 350 then (by obtain rfl : j = 349 := (by omega); exact ok349) else (by obtain rfl : j = 350 := (by omega); exact ok350))) else (if h : j < 353 then (if h : j < 352 then (by obtain rfl : j = 351 := (by omega); exact ok351) else (by obtain rfl : j = 352 := (by omega); exact ok352)) else (if h : j < 354 then (by obtain rfl : j = 353 := (by omega); exact ok353) else (by obtain rfl : j = 354 := (by omega); exact ok354)))))) else (if h : j < 369 then (if h : j < 362 then (if h : j < 358 then (if h : j < 356 then (by obtain rfl : j = 355 := (by omega); exact ok355) else (if h : j < 357 then (by obtain rfl : j = 356 := (by omega); exact ok356) else (by obtain rfl : j = 357 := (by omega); exact ok357))) else (if h : j < 360 then (if h : j < 359 then (by obtain rfl : j = 358 := (by omega); exact ok358) else (by obtain rfl : j = 359 := (by omega); exact ok359)) else (if h : j < 361 then (by obtain rfl : j = 360 := (by omega); exact ok360) else (by obtain rfl : j = 361 := (by omega); exact ok361)))) else (if h : j < 365 then (if h : j < 363 then (by obtain rfl : j = 362 := (by omega); exact ok362) else (if h : j < 364 then (by obtain rfl : j = 363 := (by omega); exact ok363) else (by obtain rfl : j = 364 := (by omega); exact ok364))) else (if h : j < 367 then (if h : j < 366 then (by obtain rfl : j = 365 := (by omega); exact ok365) else (by obtain rfl : j = 366 := (by omega); exact ok366)) else (if h : j < 368 then (by obtain rfl : j = 367 := (by omega); exact ok367) else (by obtain rfl : j = 368 := (by omega); exact ok368))))) else (if h : j < 376 then (if h : j < 372 then (if h : j < 370 then (by obtain rfl : j = 369 := (by omega); exact ok369) else (if h : j < 371 then (by obtain rfl : j = 370 := (by omega); exact ok370) else (by obtain rfl : j = 371 := (by omega); exact ok371))) else (if h : j < 374 then (if h : j < 373 then (by obtain rfl : j = 372 := (by omega); exact ok372) else (by obtain rfl : j = 373 := (by omega); exact ok373)) else (if h : j < 375 then (by obtain rfl : j = 374 := (by omega); exact ok374) else (by obtain rfl : j = 375 := (by omega); exact ok375)))) else (if h : j < 379 then (if h : j < 377 then (by obtain rfl : j = 376 := (by omega); exact ok376) else (if h : j < 378 then (by obtain rfl : j = 377 := (by omega); exact ok377) else (by obtain rfl : j = 378 := (by omega); exact ok378))) else (if h : j < 381 then (if h : j < 380 then (by obtain rfl : j = 379 := (by omega); exact ok379) else (by obtain rfl : j = 380 := (by omega); exact ok380)) else (if h : j < 382 then (by obtain rfl : j = 381 := (by omega); exact ok381) else (by obtain rfl : j = 382 := (by omega); exact ok382))))))) else (if h : j < 410 then (if h : j < 396 then (if h : j < 389 then (if h : j < 386 then (if h : j < 384 then (by obtain rfl : j = 383 := (by omega); exact ok383) else (if h : j < 385 then (by obtain rfl : j = 384 := (by omega); exact ok384) else (by obtain rfl : j = 385 := (by omega); exact ok385))) else (if h : j < 387 then (by obtain rfl : j = 386 := (by omega); exact ok386) else (if h : j < 388 then (by obtain rfl : j = 387 := (by omega); exact ok387) else (by obtain rfl : j = 388 := (by omega); exact ok388)))) else (if h : j < 392 then (if h : j < 390 then (by obtain rfl : j = 389 := (by omega); exact ok389) else (if h : j < 391 then (by obtain rfl : j = 390 := (by omega); exact ok390) else (by obtain rfl : j = 391 := (by omega); exact ok391))) else (if h : j < 394 then (if h : j < 393 then (by obtain rfl : j = 392 := (by omega); exact ok392) else (by obtain rfl : j = 393 := (by omega); exact ok393)) else (if h : j < 395 then (by obtain rfl : j = 394 := (by omega); exact ok394) else (by obtain rfl : j = 395 := (by omega); exact ok395))))) else (if h : j < 403 then (if h : j < 399 then (if h : j < 397 then (by obtain rfl : j = 396 := (by omega); exact ok396) else (if h : j < 398 then (by obtain rfl : j = 397 := (by omega); exact ok397) else (by obtain rfl : j = 398 := (by omega); exact ok398))) else (if h : j < 401 then (if h : j < 400 then (by obtain rfl : j = 399 := (by omega); exact ok399) else (by obtain rfl : j = 400 := (by omega); exact ok400)) else (if h : j < 402 then (by obtain rfl : j = 401 := (by omega); exact ok401) else (by obtain rfl : j = 402 := (by omega); exact ok402)))) else (if h : j < 406 then (if h : j < 404 then (by obtain rfl : j = 403 := (by omega); exact ok403) else (if h : j < 405 then (by obtain rfl : j = 404 := (by omega); exact ok404) else (by obtain rfl : j = 405 := (by omega); exact ok405))) else (if h : j < 408 then (if h : j < 407 then (by obtain rfl : j = 406 := (by omega); exact ok406) else (by obtain rfl : j = 407 := (by omega); exact ok407)) else (if h : j < 409 then (by obtain rfl : j = 408 := (by omega); exact ok408) else (by obtain rfl : j = 409 := (by omega); exact ok409)))))) else (if h : j < 424 then (if h : j < 417 then (if h : j < 413 then (if h : j < 411 then (by obtain rfl : j = 410 := (by omega); exact ok410) else (if h : j < 412 then (by obtain rfl : j = 411 := (by omega); exact ok411) else (by obtain rfl : j = 412 := (by omega); exact ok412))) else (if h : j < 415 then (if h : j < 414 then (by obtain rfl : j = 413 := (by omega); exact ok413) else (by obtain rfl : j = 414 := (by omega); exact ok414)) else (if h : j < 416 then (by obtain rfl : j = 415 := (by omega); exact ok415) else (by obtain rfl : j = 416 := (by omega); exact ok416)))) else (if h : j < 420 then (if h : j < 418 then (by obtain rfl : j = 417 := (by omega); exact ok417) else (if h : j < 419 then (by obtain rfl : j = 418 := (by omega); exact ok418) else (by obtain rfl : j = 419 := (by omega); exact ok419))) else (if h : j < 422 then (if h : j < 421 then (by obtain rfl : j = 420 := (by omega); exact ok420) else (by obtain rfl : j = 421 := (by omega); exact ok421)) else (if h : j < 423 then (by obtain rfl : j = 422 := (by omega); exact ok422) else (by obtain rfl : j = 423 := (by omega); exact ok423))))) else (if h : j < 431 then (if h : j < 427 then (if h : j < 425 then (by obtain rfl : j = 424 := (by omega); exact ok424) else (if h : j < 426 then (by obtain rfl : j = 425 := (by omega); exact ok425) else (by obtain rfl : j = 426 := (by omega); exact ok426))) else (if h : j < 429 then (if h : j < 428 then (by obtain rfl : j = 427 := (by omega); exact ok427) else (by obtain rfl : j = 428 := (by omega); exact ok428)) else (if h : j < 430 then (by obtain rfl : j = 429 := (by omega); exact ok429) else (by obtain rfl : j = 430 := (by omega); exact ok430)))) else (if h : j < 434 then (if h : j < 432 then (by obtain rfl : j = 431 := (by omega); exact ok431) else (if h : j < 433 then (by obtain rfl : j = 432 := (by omega); exact ok432) else (by obtain rfl : j = 433 := (by omega); exact ok433))) else (if h : j < 436 then (if h : j < 435 then (by obtain rfl : j = 434 := (by omega); exact ok434) else (by obtain rfl : j = 435 := (by omega); exact ok435)) else (if h : j < 437 then (by obtain rfl : j = 436 := (by omega); exact ok436) else (by obtain rfl : j = 437 := (by omega); exact ok437)))))))))) else (if h : j < 656 then (if h : j < 547 then (if h : j < 492 then (if h : j < 465 then (if h : j < 451 then (if h : j < 444 then (if h : j < 441 then (if h : j < 439 then (by obtain rfl : j = 438 := (by omega); exact ok438) else (if h : j < 440 then (by obtain rfl : j = 439 := (by omega); exact ok439) else (by obtain rfl : j = 440 := (by omega); exact ok440))) else (if h : j < 442 then (by obtain rfl : j = 441 := (by omega); exact ok441) else (if h : j < 443 then (by obtain rfl : j = 442 := (by omega); exact ok442) else (by obtain rfl : j = 443 := (by omega); exact ok443)))) else (if h : j < 447 then (if h : j < 445 then (by obtain rfl : j = 444 := (by omega); exact ok444) else (if h : j < 446 then (by obtain rfl : j = 445 := (by omega); exact ok445) else (by obtain rfl : j = 446 := (by omega); exact ok446))) else (if h : j < 449 then (if h : j < 448 then (by obtain rfl : j = 447 := (by omega); exact ok447) else (by obtain rfl : j = 448 := (by omega); exact ok448)) else (if h : j < 450 then (by obtain rfl : j = 449 := (by omega); exact ok449) else (by obtain rfl : j = 450 := (by omega); exact ok450))))) else (if h : j < 458 then (if h : j < 454 then (if h : j < 452 then (by obtain rfl : j = 451 := (by omega); exact ok451) else (if h : j < 453 then (by obtain rfl : j = 452 := (by omega); exact ok452) else (by obtain rfl : j = 453 := (by omega); exact ok453))) else (if h : j < 456 then (if h : j < 455 then (by obtain rfl : j = 454 := (by omega); exact ok454) else (by obtain rfl : j = 455 := (by omega); exact ok455)) else (if h : j < 457 then (by obtain rfl : j = 456 := (by omega); exact ok456) else (by obtain rfl : j = 457 := (by omega); exact ok457)))) else (if h : j < 461 then (if h : j < 459 then (by obtain rfl : j = 458 := (by omega); exact ok458) else (if h : j < 460 then (by obtain rfl : j = 459 := (by omega); exact ok459) else (by obtain rfl : j = 460 := (by omega); exact ok460))) else (if h : j < 463 then (if h : j < 462 then (by obtain rfl : j = 461 := (by omega); exact ok461) else (by obtain rfl : j = 462 := (by omega); exact ok462)) else (if h : j < 464 then (by obtain rfl : j = 463 := (by omega); exact ok463) else (by obtain rfl : j = 464 := (by omega); exact ok464)))))) else (if h : j < 478 then (if h : j < 471 then (if h : j < 468 then (if h : j < 466 then (by obtain rfl : j = 465 := (by omega); exact ok465) else (if h : j < 467 then (by obtain rfl : j = 466 := (by omega); exact ok466) else (by obtain rfl : j = 467 := (by omega); exact ok467))) else (if h : j < 469 then (by obtain rfl : j = 468 := (by omega); exact ok468) else (if h : j < 470 then (by obtain rfl : j = 469 := (by omega); exact ok469) else (by obtain rfl : j = 470 := (by omega); exact ok470)))) else (if h : j < 474 then (if h : j < 472 then (by obtain rfl : j = 471 := (by omega); exact ok471) else (if h : j < 473 then (by obtain rfl : j = 472 := (by omega); exact ok472) else (by obtain rfl : j = 473 := (by omega); exact ok473))) else (if h : j < 476 then (if h : j < 475 then (by obtain rfl : j = 474 := (by omega); exact ok474) else (by obtain rfl : j = 475 := (by omega); exact ok475)) else (if h : j < 477 then (by obtain rfl : j = 476 := (by omega); exact ok476) else (by obtain rfl : j = 477 := (by omega); exact ok477))))) else (if h : j < 485 then (if h : j < 481 then (if h : j < 479 then (by obtain rfl : j = 478 := (by omega); exact ok478) else (if h : j < 480 then (by obtain rfl : j = 479 := (by omega); exact ok479) else (by obtain rfl : j = 480 := (by omega); exact ok480))) else (if h : j < 483 then (if h : j < 482 then (by obtain rfl : j = 481 := (by omega); exact ok481) else (by obtain rfl : j = 482 := (by omega); exact ok482)) else (if h : j < 484 then (by obtain rfl : j = 483 := (by omega); exact ok483) else (by obtain rfl : j = 484 := (by omega); exact ok484)))) else (if h : j < 488 then (if h : j < 486 then (by obtain rfl : j = 485 := (by omega); exact ok485) else (if h : j < 487 then (by obtain rfl : j = 486 := (by omega); exact ok486) else (by obtain rfl : j = 487 := (by omega); exact ok487))) else (if h : j < 490 then (if h : j < 489 then (by obtain rfl : j = 488 := (by omega); exact ok488) else (by obtain rfl : j = 489 := (by omega); exact ok489)) else (if h : j < 491 then (by obtain rfl : j = 490 := (by omega); exact ok490) else (by obtain rfl : j = 491 := (by omega); exact ok491))))))) else (if h : j < 519 then (if h : j < 505 then (if h : j < 498 then (if h : j < 495 then (if h : j < 493 then (by obtain rfl : j = 492 := (by omega); exact ok492) else (if h : j < 494 then (by obtain rfl : j = 493 := (by omega); exact ok493) else (by obtain rfl : j = 494 := (by omega); exact ok494))) else (if h : j < 496 then (by obtain rfl : j = 495 := (by omega); exact ok495) else (if h : j < 497 then (by obtain rfl : j = 496 := (by omega); exact ok496) else (by obtain rfl : j = 497 := (by omega); exact ok497)))) else (if h : j < 501 then (if h : j < 499 then (by obtain rfl : j = 498 := (by omega); exact ok498) else (if h : j < 500 then (by obtain rfl : j = 499 := (by omega); exact ok499) else (by obtain rfl : j = 500 := (by omega); exact ok500))) else (if h : j < 503 then (if h : j < 502 then (by obtain rfl : j = 501 := (by omega); exact ok501) else (by obtain rfl : j = 502 := (by omega); exact ok502)) else (if h : j < 504 then (by obtain rfl : j = 503 := (by omega); exact ok503) else (by obtain rfl : j = 504 := (by omega); exact ok504))))) else (if h : j < 512 then (if h : j < 508 then (if h : j < 506 then (by obtain rfl : j = 505 := (by omega); exact ok505) else (if h : j < 507 then (by obtain rfl : j = 506 := (by omega); exact ok506) else (by obtain rfl : j = 507 := (by omega); exact ok507))) else (if h : j < 510 then (if h : j < 509 then (by obtain rfl : j = 508 := (by omega); exact ok508) else (by obtain rfl : j = 509 := (by omega); exact ok509)) else (if h : j < 511 then (by obtain rfl : j = 510 := (by omega); exact ok510) else (by obtain rfl : j = 511 := (by omega); exact ok511)))) else (if h : j < 515 then (if h : j < 513 then (by obtain rfl : j = 512 := (by omega); exact ok512) else (if h : j < 514 then (by obtain rfl : j = 513 := (by omega); exact ok513) else (by obtain rfl : j = 514 := (by omega); exact ok514))) else (if h : j < 517 then (if h : j < 516 then (by obtain rfl : j = 515 := (by omega); exact ok515) else (by obtain rfl : j = 516 := (by omega); exact ok516)) else (if h : j < 518 then (by obtain rfl : j = 517 := (by omega); exact ok517) else (by obtain rfl : j = 518 := (by omega); exact ok518)))))) else (if h : j < 533 then (if h : j < 526 then (if h : j < 522 then (if h : j < 520 then (by obtain rfl : j = 519 := (by omega); exact ok519) else (if h : j < 521 then (by obtain rfl : j = 520 := (by omega); exact ok520) else (by obtain rfl : j = 521 := (by omega); exact ok521))) else (if h : j < 524 then (if h : j < 523 then (by obtain rfl : j = 522 := (by omega); exact ok522) else (by obtain rfl : j = 523 := (by omega); exact ok523)) else (if h : j < 525 then (by obtain rfl : j = 524 := (by omega); exact ok524) else (by obtain rfl : j = 525 := (by omega); exact ok525)))) else (if h : j < 529 then (if h : j < 527 then (by obtain rfl : j = 526 := (by omega); exact ok526) else (if h : j < 528 then (by obtain rfl : j = 527 := (by omega); exact ok527) else (by obtain rfl : j = 528 := (by omega); exact ok528))) else (if h : j < 531 then (if h : j < 530 then (by obtain rfl : j = 529 := (by omega); exact ok529) else (by obtain rfl : j = 530 := (by omega); exact ok530)) else (if h : j < 532 then (by obtain rfl : j = 531 := (by omega); exact ok531) else (by obtain rfl : j = 532 := (by omega); exact ok532))))) else (if h : j < 540 then (if h : j < 536 then (if h : j < 534 then (by obtain rfl : j = 533 := (by omega); exact ok533) else (if h : j < 535 then (by obtain rfl : j = 534 := (by omega); exact ok534) else (by obtain rfl : j = 535 := (by omega); exact ok535))) else (if h : j < 538 then (if h : j < 537 then (by obtain rfl : j = 536 := (by omega); exact ok536) else (by obtain rfl : j = 537 := (by omega); exact ok537)) else (if h : j < 539 then (by obtain rfl : j = 538 := (by omega); exact ok538) else (by obtain rfl : j = 539 := (by omega); exact ok539)))) else (if h : j < 543 then (if h : j < 541 then (by obtain rfl : j = 540 := (by omega); exact ok540) else (if h : j < 542 then (by obtain rfl : j = 541 := (by omega); exact ok541) else (by obtain rfl : j = 542 := (by omega); exact ok542))) else (if h : j < 545 then (if h : j < 544 then (by obtain rfl : j = 543 := (by omega); exact ok543) else (by obtain rfl : j = 544 := (by omega); exact ok544)) else (if h : j < 546 then (by obtain rfl : j = 545 := (by omega); exact ok545) else (by obtain rfl : j = 546 := (by omega); exact ok546)))))))) else (if h : j < 601 then (if h : j < 574 then (if h : j < 560 then (if h : j < 553 then (if h : j < 550 then (if h : j < 548 then (by obtain rfl : j = 547 := (by omega); exact ok547) else (if h : j < 549 then (by obtain rfl : j = 548 := (by omega); exact ok548) else (by obtain rfl : j = 549 := (by omega); exact ok549))) else (if h : j < 551 then (by obtain rfl : j = 550 := (by omega); exact ok550) else (if h : j < 552 then (by obtain rfl : j = 551 := (by omega); exact ok551) else (by obtain rfl : j = 552 := (by omega); exact ok552)))) else (if h : j < 556 then (if h : j < 554 then (by obtain rfl : j = 553 := (by omega); exact ok553) else (if h : j < 555 then (by obtain rfl : j = 554 := (by omega); exact ok554) else (by obtain rfl : j = 555 := (by omega); exact ok555))) else (if h : j < 558 then (if h : j < 557 then (by obtain rfl : j = 556 := (by omega); exact ok556) else (by obtain rfl : j = 557 := (by omega); exact ok557)) else (if h : j < 559 then (by obtain rfl : j = 558 := (by omega); exact ok558) else (by obtain rfl : j = 559 := (by omega); exact ok559))))) else (if h : j < 567 then (if h : j < 563 then (if h : j < 561 then (by obtain rfl : j = 560 := (by omega); exact ok560) else (if h : j < 562 then (by obtain rfl : j = 561 := (by omega); exact ok561) else (by obtain rfl : j = 562 := (by omega); exact ok562))) else (if h : j < 565 then (if h : j < 564 then (by obtain rfl : j = 563 := (by omega); exact ok563) else (by obtain rfl : j = 564 := (by omega); exact ok564)) else (if h : j < 566 then (by obtain rfl : j = 565 := (by omega); exact ok565) else (by obtain rfl : j = 566 := (by omega); exact ok566)))) else (if h : j < 570 then (if h : j < 568 then (by obtain rfl : j = 567 := (by omega); exact ok567) else (if h : j < 569 then (by obtain rfl : j = 568 := (by omega); exact ok568) else (by obtain rfl : j = 569 := (by omega); exact ok569))) else (if h : j < 572 then (if h : j < 571 then (by obtain rfl : j = 570 := (by omega); exact ok570) else (by obtain rfl : j = 571 := (by omega); exact ok571)) else (if h : j < 573 then (by obtain rfl : j = 572 := (by omega); exact ok572) else (by obtain rfl : j = 573 := (by omega); exact ok573)))))) else (if h : j < 587 then (if h : j < 580 then (if h : j < 577 then (if h : j < 575 then (by obtain rfl : j = 574 := (by omega); exact ok574) else (if h : j < 576 then (by obtain rfl : j = 575 := (by omega); exact ok575) else (by obtain rfl : j = 576 := (by omega); exact ok576))) else (if h : j < 578 then (by obtain rfl : j = 577 := (by omega); exact ok577) else (if h : j < 579 then (by obtain rfl : j = 578 := (by omega); exact ok578) else (by obtain rfl : j = 579 := (by omega); exact ok579)))) else (if h : j < 583 then (if h : j < 581 then (by obtain rfl : j = 580 := (by omega); exact ok580) else (if h : j < 582 then (by obtain rfl : j = 581 := (by omega); exact ok581) else (by obtain rfl : j = 582 := (by omega); exact ok582))) else (if h : j < 585 then (if h : j < 584 then (by obtain rfl : j = 583 := (by omega); exact ok583) else (by obtain rfl : j = 584 := (by omega); exact ok584)) else (if h : j < 586 then (by obtain rfl : j = 585 := (by omega); exact ok585) else (by obtain rfl : j = 586 := (by omega); exact ok586))))) else (if h : j < 594 then (if h : j < 590 then (if h : j < 588 then (by obtain rfl : j = 587 := (by omega); exact ok587) else (if h : j < 589 then (by obtain rfl : j = 588 := (by omega); exact ok588) else (by obtain rfl : j = 589 := (by omega); exact ok589))) else (if h : j < 592 then (if h : j < 591 then (by obtain rfl : j = 590 := (by omega); exact ok590) else (by obtain rfl : j = 591 := (by omega); exact ok591)) else (if h : j < 593 then (by obtain rfl : j = 592 := (by omega); exact ok592) else (by obtain rfl : j = 593 := (by omega); exact ok593)))) else (if h : j < 597 then (if h : j < 595 then (by obtain rfl : j = 594 := (by omega); exact ok594) else (if h : j < 596 then (by obtain rfl : j = 595 := (by omega); exact ok595) else (by obtain rfl : j = 596 := (by omega); exact ok596))) else (if h : j < 599 then (if h : j < 598 then (by obtain rfl : j = 597 := (by omega); exact ok597) else (by obtain rfl : j = 598 := (by omega); exact ok598)) else (if h : j < 600 then (by obtain rfl : j = 599 := (by omega); exact ok599) else (by obtain rfl : j = 600 := (by omega); exact ok600))))))) else (if h : j < 628 then (if h : j < 614 then (if h : j < 607 then (if h : j < 604 then (if h : j < 602 then (by obtain rfl : j = 601 := (by omega); exact ok601) else (if h : j < 603 then (by obtain rfl : j = 602 := (by omega); exact ok602) else (by obtain rfl : j = 603 := (by omega); exact ok603))) else (if h : j < 605 then (by obtain rfl : j = 604 := (by omega); exact ok604) else (if h : j < 606 then (by obtain rfl : j = 605 := (by omega); exact ok605) else (by obtain rfl : j = 606 := (by omega); exact ok606)))) else (if h : j < 610 then (if h : j < 608 then (by obtain rfl : j = 607 := (by omega); exact ok607) else (if h : j < 609 then (by obtain rfl : j = 608 := (by omega); exact ok608) else (by obtain rfl : j = 609 := (by omega); exact ok609))) else (if h : j < 612 then (if h : j < 611 then (by obtain rfl : j = 610 := (by omega); exact ok610) else (by obtain rfl : j = 611 := (by omega); exact ok611)) else (if h : j < 613 then (by obtain rfl : j = 612 := (by omega); exact ok612) else (by obtain rfl : j = 613 := (by omega); exact ok613))))) else (if h : j < 621 then (if h : j < 617 then (if h : j < 615 then (by obtain rfl : j = 614 := (by omega); exact ok614) else (if h : j < 616 then (by obtain rfl : j = 615 := (by omega); exact ok615) else (by obtain rfl : j = 616 := (by omega); exact ok616))) else (if h : j < 619 then (if h : j < 618 then (by obtain rfl : j = 617 := (by omega); exact ok617) else (by obtain rfl : j = 618 := (by omega); exact ok618)) else (if h : j < 620 then (by obtain rfl : j = 619 := (by omega); exact ok619) else (by obtain rfl : j = 620 := (by omega); exact ok620)))) else (if h : j < 624 then (if h : j < 622 then (by obtain rfl : j = 621 := (by omega); exact ok621) else (if h : j < 623 then (by obtain rfl : j = 622 := (by omega); exact ok622) else (by obtain rfl : j = 623 := (by omega); exact ok623))) else (if h : j < 626 then (if h : j < 625 then (by obtain rfl : j = 624 := (by omega); exact ok624) else (by obtain rfl : j = 625 := (by omega); exact ok625)) else (if h : j < 627 then (by obtain rfl : j = 626 := (by omega); exact ok626) else (by obtain rfl : j = 627 := (by omega); exact ok627)))))) else (if h : j < 642 then (if h : j < 635 then (if h : j < 631 then (if h : j < 629 then (by obtain rfl : j = 628 := (by omega); exact ok628) else (if h : j < 630 then (by obtain rfl : j = 629 := (by omega); exact ok629) else (by obtain rfl : j = 630 := (by omega); exact ok630))) else (if h : j < 633 then (if h : j < 632 then (by obtain rfl : j = 631 := (by omega); exact ok631) else (by obtain rfl : j = 632 := (by omega); exact ok632)) else (if h : j < 634 then (by obtain rfl : j = 633 := (by omega); exact ok633) else (by obtain rfl : j = 634 := (by omega); exact ok634)))) else (if h : j < 638 then (if h : j < 636 then (by obtain rfl : j = 635 := (by omega); exact ok635) else (if h : j < 637 then (by obtain rfl : j = 636 := (by omega); exact ok636) else (by obtain rfl : j = 637 := (by omega); exact ok637))) else (if h : j < 640 then (if h : j < 639 then (by obtain rfl : j = 638 := (by omega); exact ok638) else (by obtain rfl : j = 639 := (by omega); exact ok639)) else (if h : j < 641 then (by obtain rfl : j = 640 := (by omega); exact ok640) else (by obtain rfl : j = 641 := (by omega); exact ok641))))) else (if h : j < 649 then (if h : j < 645 then (if h : j < 643 then (by obtain rfl : j = 642 := (by omega); exact ok642) else (if h : j < 644 then (by obtain rfl : j = 643 := (by omega); exact ok643) else (by obtain rfl : j = 644 := (by omega); exact ok644))) else (if h : j < 647 then (if h : j < 646 then (by obtain rfl : j = 645 := (by omega); exact ok645) else (by obtain rfl : j = 646 := (by omega); exact ok646)) else (if h : j < 648 then (by obtain rfl : j = 647 := (by omega); exact ok647) else (by obtain rfl : j = 648 := (by omega); exact ok648)))) else (if h : j < 652 then (if h : j < 650 then (by obtain rfl : j = 649 := (by omega); exact ok649) else (if h : j < 651 then (by obtain rfl : j = 650 := (by omega); exact ok650) else (by obtain rfl : j = 651 := (by omega); exact ok651))) else (if h : j < 654 then (if h : j < 653 then (by obtain rfl : j = 652 := (by omega); exact ok652) else (by obtain rfl : j = 653 := (by omega); exact ok653)) else (if h : j < 655 then (by obtain rfl : j = 654 := (by omega); exact ok654) else (by obtain rfl : j = 655 := (by omega); exact ok655))))))))) else (if h : j < 765 then (if h : j < 710 then (if h : j < 683 then (if h : j < 669 then (if h : j < 662 then (if h : j < 659 then (if h : j < 657 then (by obtain rfl : j = 656 := (by omega); exact ok656) else (if h : j < 658 then (by obtain rfl : j = 657 := (by omega); exact ok657) else (by obtain rfl : j = 658 := (by omega); exact ok658))) else (if h : j < 660 then (by obtain rfl : j = 659 := (by omega); exact ok659) else (if h : j < 661 then (by obtain rfl : j = 660 := (by omega); exact ok660) else (by obtain rfl : j = 661 := (by omega); exact ok661)))) else (if h : j < 665 then (if h : j < 663 then (by obtain rfl : j = 662 := (by omega); exact ok662) else (if h : j < 664 then (by obtain rfl : j = 663 := (by omega); exact ok663) else (by obtain rfl : j = 664 := (by omega); exact ok664))) else (if h : j < 667 then (if h : j < 666 then (by obtain rfl : j = 665 := (by omega); exact ok665) else (by obtain rfl : j = 666 := (by omega); exact ok666)) else (if h : j < 668 then (by obtain rfl : j = 667 := (by omega); exact ok667) else (by obtain rfl : j = 668 := (by omega); exact ok668))))) else (if h : j < 676 then (if h : j < 672 then (if h : j < 670 then (by obtain rfl : j = 669 := (by omega); exact ok669) else (if h : j < 671 then (by obtain rfl : j = 670 := (by omega); exact ok670) else (by obtain rfl : j = 671 := (by omega); exact ok671))) else (if h : j < 674 then (if h : j < 673 then (by obtain rfl : j = 672 := (by omega); exact ok672) else (by obtain rfl : j = 673 := (by omega); exact ok673)) else (if h : j < 675 then (by obtain rfl : j = 674 := (by omega); exact ok674) else (by obtain rfl : j = 675 := (by omega); exact ok675)))) else (if h : j < 679 then (if h : j < 677 then (by obtain rfl : j = 676 := (by omega); exact ok676) else (if h : j < 678 then (by obtain rfl : j = 677 := (by omega); exact ok677) else (by obtain rfl : j = 678 := (by omega); exact ok678))) else (if h : j < 681 then (if h : j < 680 then (by obtain rfl : j = 679 := (by omega); exact ok679) else (by obtain rfl : j = 680 := (by omega); exact ok680)) else (if h : j < 682 then (by obtain rfl : j = 681 := (by omega); exact ok681) else (by obtain rfl : j = 682 := (by omega); exact ok682)))))) else (if h : j < 696 then (if h : j < 689 then (if h : j < 686 then (if h : j < 684 then (by obtain rfl : j = 683 := (by omega); exact ok683) else (if h : j < 685 then (by obtain rfl : j = 684 := (by omega); exact ok684) else (by obtain rfl : j = 685 := (by omega); exact ok685))) else (if h : j < 687 then (by obtain rfl : j = 686 := (by omega); exact ok686) else (if h : j < 688 then (by obtain rfl : j = 687 := (by omega); exact ok687) else (by obtain rfl : j = 688 := (by omega); exact ok688)))) else (if h : j < 692 then (if h : j < 690 then (by obtain rfl : j = 689 := (by omega); exact ok689) else (if h : j < 691 then (by obtain rfl : j = 690 := (by omega); exact ok690) else (by obtain rfl : j = 691 := (by omega); exact ok691))) else (if h : j < 694 then (if h : j < 693 then (by obtain rfl : j = 692 := (by omega); exact ok692) else (by obtain rfl : j = 693 := (by omega); exact ok693)) else (if h : j < 695 then (by obtain rfl : j = 694 := (by omega); exact ok694) else (by obtain rfl : j = 695 := (by omega); exact ok695))))) else (if h : j < 703 then (if h : j < 699 then (if h : j < 697 then (by obtain rfl : j = 696 := (by omega); exact ok696) else (if h : j < 698 then (by obtain rfl : j = 697 := (by omega); exact ok697) else (by obtain rfl : j = 698 := (by omega); exact ok698))) else (if h : j < 701 then (if h : j < 700 then (by obtain rfl : j = 699 := (by omega); exact ok699) else (by obtain rfl : j = 700 := (by omega); exact ok700)) else (if h : j < 702 then (by obtain rfl : j = 701 := (by omega); exact ok701) else (by obtain rfl : j = 702 := (by omega); exact ok702)))) else (if h : j < 706 then (if h : j < 704 then (by obtain rfl : j = 703 := (by omega); exact ok703) else (if h : j < 705 then (by obtain rfl : j = 704 := (by omega); exact ok704) else (by obtain rfl : j = 705 := (by omega); exact ok705))) else (if h : j < 708 then (if h : j < 707 then (by obtain rfl : j = 706 := (by omega); exact ok706) else (by obtain rfl : j = 707 := (by omega); exact ok707)) else (if h : j < 709 then (by obtain rfl : j = 708 := (by omega); exact ok708) else (by obtain rfl : j = 709 := (by omega); exact ok709))))))) else (if h : j < 737 then (if h : j < 723 then (if h : j < 716 then (if h : j < 713 then (if h : j < 711 then (by obtain rfl : j = 710 := (by omega); exact ok710) else (if h : j < 712 then (by obtain rfl : j = 711 := (by omega); exact ok711) else (by obtain rfl : j = 712 := (by omega); exact ok712))) else (if h : j < 714 then (by obtain rfl : j = 713 := (by omega); exact ok713) else (if h : j < 715 then (by obtain rfl : j = 714 := (by omega); exact ok714) else (by obtain rfl : j = 715 := (by omega); exact ok715)))) else (if h : j < 719 then (if h : j < 717 then (by obtain rfl : j = 716 := (by omega); exact ok716) else (if h : j < 718 then (by obtain rfl : j = 717 := (by omega); exact ok717) else (by obtain rfl : j = 718 := (by omega); exact ok718))) else (if h : j < 721 then (if h : j < 720 then (by obtain rfl : j = 719 := (by omega); exact ok719) else (by obtain rfl : j = 720 := (by omega); exact ok720)) else (if h : j < 722 then (by obtain rfl : j = 721 := (by omega); exact ok721) else (by obtain rfl : j = 722 := (by omega); exact ok722))))) else (if h : j < 730 then (if h : j < 726 then (if h : j < 724 then (by obtain rfl : j = 723 := (by omega); exact ok723) else (if h : j < 725 then (by obtain rfl : j = 724 := (by omega); exact ok724) else (by obtain rfl : j = 725 := (by omega); exact ok725))) else (if h : j < 728 then (if h : j < 727 then (by obtain rfl : j = 726 := (by omega); exact ok726) else (by obtain rfl : j = 727 := (by omega); exact ok727)) else (if h : j < 729 then (by obtain rfl : j = 728 := (by omega); exact ok728) else (by obtain rfl : j = 729 := (by omega); exact ok729)))) else (if h : j < 733 then (if h : j < 731 then (by obtain rfl : j = 730 := (by omega); exact ok730) else (if h : j < 732 then (by obtain rfl : j = 731 := (by omega); exact ok731) else (by obtain rfl : j = 732 := (by omega); exact ok732))) else (if h : j < 735 then (if h : j < 734 then (by obtain rfl : j = 733 := (by omega); exact ok733) else (by obtain rfl : j = 734 := (by omega); exact ok734)) else (if h : j < 736 then (by obtain rfl : j = 735 := (by omega); exact ok735) else (by obtain rfl : j = 736 := (by omega); exact ok736)))))) else (if h : j < 751 then (if h : j < 744 then (if h : j < 740 then (if h : j < 738 then (by obtain rfl : j = 737 := (by omega); exact ok737) else (if h : j < 739 then (by obtain rfl : j = 738 := (by omega); exact ok738) else (by obtain rfl : j = 739 := (by omega); exact ok739))) else (if h : j < 742 then (if h : j < 741 then (by obtain rfl : j = 740 := (by omega); exact ok740) else (by obtain rfl : j = 741 := (by omega); exact ok741)) else (if h : j < 743 then (by obtain rfl : j = 742 := (by omega); exact ok742) else (by obtain rfl : j = 743 := (by omega); exact ok743)))) else (if h : j < 747 then (if h : j < 745 then (by obtain rfl : j = 744 := (by omega); exact ok744) else (if h : j < 746 then (by obtain rfl : j = 745 := (by omega); exact ok745) else (by obtain rfl : j = 746 := (by omega); exact ok746))) else (if h : j < 749 then (if h : j < 748 then (by obtain rfl : j = 747 := (by omega); exact ok747) else (by obtain rfl : j = 748 := (by omega); exact ok748)) else (if h : j < 750 then (by obtain rfl : j = 749 := (by omega); exact ok749) else (by obtain rfl : j = 750 := (by omega); exact ok750))))) else (if h : j < 758 then (if h : j < 754 then (if h : j < 752 then (by obtain rfl : j = 751 := (by omega); exact ok751) else (if h : j < 753 then (by obtain rfl : j = 752 := (by omega); exact ok752) else (by obtain rfl : j = 753 := (by omega); exact ok753))) else (if h : j < 756 then (if h : j < 755 then (by obtain rfl : j = 754 := (by omega); exact ok754) else (by obtain rfl : j = 755 := (by omega); exact ok755)) else (if h : j < 757 then (by obtain rfl : j = 756 := (by omega); exact ok756) else (by obtain rfl : j = 757 := (by omega); exact ok757)))) else (if h : j < 761 then (if h : j < 759 then (by obtain rfl : j = 758 := (by omega); exact ok758) else (if h : j < 760 then (by obtain rfl : j = 759 := (by omega); exact ok759) else (by obtain rfl : j = 760 := (by omega); exact ok760))) else (if h : j < 763 then (if h : j < 762 then (by obtain rfl : j = 761 := (by omega); exact ok761) else (by obtain rfl : j = 762 := (by omega); exact ok762)) else (if h : j < 764 then (by obtain rfl : j = 763 := (by omega); exact ok763) else (by obtain rfl : j = 764 := (by omega); exact ok764)))))))) else (if h : j < 820 then (if h : j < 792 then (if h : j < 778 then (if h : j < 771 then (if h : j < 768 then (if h : j < 766 then (by obtain rfl : j = 765 := (by omega); exact ok765) else (if h : j < 767 then (by obtain rfl : j = 766 := (by omega); exact ok766) else (by obtain rfl : j = 767 := (by omega); exact ok767))) else (if h : j < 769 then (by obtain rfl : j = 768 := (by omega); exact ok768) else (if h : j < 770 then (by obtain rfl : j = 769 := (by omega); exact ok769) else (by obtain rfl : j = 770 := (by omega); exact ok770)))) else (if h : j < 774 then (if h : j < 772 then (by obtain rfl : j = 771 := (by omega); exact ok771) else (if h : j < 773 then (by obtain rfl : j = 772 := (by omega); exact ok772) else (by obtain rfl : j = 773 := (by omega); exact ok773))) else (if h : j < 776 then (if h : j < 775 then (by obtain rfl : j = 774 := (by omega); exact ok774) else (by obtain rfl : j = 775 := (by omega); exact ok775)) else (if h : j < 777 then (by obtain rfl : j = 776 := (by omega); exact ok776) else (by obtain rfl : j = 777 := (by omega); exact ok777))))) else (if h : j < 785 then (if h : j < 781 then (if h : j < 779 then (by obtain rfl : j = 778 := (by omega); exact ok778) else (if h : j < 780 then (by obtain rfl : j = 779 := (by omega); exact ok779) else (by obtain rfl : j = 780 := (by omega); exact ok780))) else (if h : j < 783 then (if h : j < 782 then (by obtain rfl : j = 781 := (by omega); exact ok781) else (by obtain rfl : j = 782 := (by omega); exact ok782)) else (if h : j < 784 then (by obtain rfl : j = 783 := (by omega); exact ok783) else (by obtain rfl : j = 784 := (by omega); exact ok784)))) else (if h : j < 788 then (if h : j < 786 then (by obtain rfl : j = 785 := (by omega); exact ok785) else (if h : j < 787 then (by obtain rfl : j = 786 := (by omega); exact ok786) else (by obtain rfl : j = 787 := (by omega); exact ok787))) else (if h : j < 790 then (if h : j < 789 then (by obtain rfl : j = 788 := (by omega); exact ok788) else (by obtain rfl : j = 789 := (by omega); exact ok789)) else (if h : j < 791 then (by obtain rfl : j = 790 := (by omega); exact ok790) else (by obtain rfl : j = 791 := (by omega); exact ok791)))))) else (if h : j < 806 then (if h : j < 799 then (if h : j < 795 then (if h : j < 793 then (by obtain rfl : j = 792 := (by omega); exact ok792) else (if h : j < 794 then (by obtain rfl : j = 793 := (by omega); exact ok793) else (by obtain rfl : j = 794 := (by omega); exact ok794))) else (if h : j < 797 then (if h : j < 796 then (by obtain rfl : j = 795 := (by omega); exact ok795) else (by obtain rfl : j = 796 := (by omega); exact ok796)) else (if h : j < 798 then (by obtain rfl : j = 797 := (by omega); exact ok797) else (by obtain rfl : j = 798 := (by omega); exact ok798)))) else (if h : j < 802 then (if h : j < 800 then (by obtain rfl : j = 799 := (by omega); exact ok799) else (if h : j < 801 then (by obtain rfl : j = 800 := (by omega); exact ok800) else (by obtain rfl : j = 801 := (by omega); exact ok801))) else (if h : j < 804 then (if h : j < 803 then (by obtain rfl : j = 802 := (by omega); exact ok802) else (by obtain rfl : j = 803 := (by omega); exact ok803)) else (if h : j < 805 then (by obtain rfl : j = 804 := (by omega); exact ok804) else (by obtain rfl : j = 805 := (by omega); exact ok805))))) else (if h : j < 813 then (if h : j < 809 then (if h : j < 807 then (by obtain rfl : j = 806 := (by omega); exact ok806) else (if h : j < 808 then (by obtain rfl : j = 807 := (by omega); exact ok807) else (by obtain rfl : j = 808 := (by omega); exact ok808))) else (if h : j < 811 then (if h : j < 810 then (by obtain rfl : j = 809 := (by omega); exact ok809) else (by obtain rfl : j = 810 := (by omega); exact ok810)) else (if h : j < 812 then (by obtain rfl : j = 811 := (by omega); exact ok811) else (by obtain rfl : j = 812 := (by omega); exact ok812)))) else (if h : j < 816 then (if h : j < 814 then (by obtain rfl : j = 813 := (by omega); exact ok813) else (if h : j < 815 then (by obtain rfl : j = 814 := (by omega); exact ok814) else (by obtain rfl : j = 815 := (by omega); exact ok815))) else (if h : j < 818 then (if h : j < 817 then (by obtain rfl : j = 816 := (by omega); exact ok816) else (by obtain rfl : j = 817 := (by omega); exact ok817)) else (if h : j < 819 then (by obtain rfl : j = 818 := (by omega); exact ok818) else (by obtain rfl : j = 819 := (by omega); exact ok819))))))) else (if h : j < 847 then (if h : j < 833 then (if h : j < 826 then (if h : j < 823 then (if h : j < 821 then (by obtain rfl : j = 820 := (by omega); exact ok820) else (if h : j < 822 then (by obtain rfl : j = 821 := (by omega); exact ok821) else (by obtain rfl : j = 822 := (by omega); exact ok822))) else (if h : j < 824 then (by obtain rfl : j = 823 := (by omega); exact ok823) else (if h : j < 825 then (by obtain rfl : j = 824 := (by omega); exact ok824) else (by obtain rfl : j = 825 := (by omega); exact ok825)))) else (if h : j < 829 then (if h : j < 827 then (by obtain rfl : j = 826 := (by omega); exact ok826) else (if h : j < 828 then (by obtain rfl : j = 827 := (by omega); exact ok827) else (by obtain rfl : j = 828 := (by omega); exact ok828))) else (if h : j < 831 then (if h : j < 830 then (by obtain rfl : j = 829 := (by omega); exact ok829) else (by obtain rfl : j = 830 := (by omega); exact ok830)) else (if h : j < 832 then (by obtain rfl : j = 831 := (by omega); exact ok831) else (by obtain rfl : j = 832 := (by omega); exact ok832))))) else (if h : j < 840 then (if h : j < 836 then (if h : j < 834 then (by obtain rfl : j = 833 := (by omega); exact ok833) else (if h : j < 835 then (by obtain rfl : j = 834 := (by omega); exact ok834) else (by obtain rfl : j = 835 := (by omega); exact ok835))) else (if h : j < 838 then (if h : j < 837 then (by obtain rfl : j = 836 := (by omega); exact ok836) else (by obtain rfl : j = 837 := (by omega); exact ok837)) else (if h : j < 839 then (by obtain rfl : j = 838 := (by omega); exact ok838) else (by obtain rfl : j = 839 := (by omega); exact ok839)))) else (if h : j < 843 then (if h : j < 841 then (by obtain rfl : j = 840 := (by omega); exact ok840) else (if h : j < 842 then (by obtain rfl : j = 841 := (by omega); exact ok841) else (by obtain rfl : j = 842 := (by omega); exact ok842))) else (if h : j < 845 then (if h : j < 844 then (by obtain rfl : j = 843 := (by omega); exact ok843) else (by obtain rfl : j = 844 := (by omega); exact ok844)) else (if h : j < 846 then (by obtain rfl : j = 845 := (by omega); exact ok845) else (by obtain rfl : j = 846 := (by omega); exact ok846)))))) else (if h : j < 861 then (if h : j < 854 then (if h : j < 850 then (if h : j < 848 then (by obtain rfl : j = 847 := (by omega); exact ok847) else (if h : j < 849 then (by obtain rfl : j = 848 := (by omega); exact ok848) else (by obtain rfl : j = 849 := (by omega); exact ok849))) else (if h : j < 852 then (if h : j < 851 then (by obtain rfl : j = 850 := (by omega); exact ok850) else (by obtain rfl : j = 851 := (by omega); exact ok851)) else (if h : j < 853 then (by obtain rfl : j = 852 := (by omega); exact ok852) else (by obtain rfl : j = 853 := (by omega); exact ok853)))) else (if h : j < 857 then (if h : j < 855 then (by obtain rfl : j = 854 := (by omega); exact ok854) else (if h : j < 856 then (by obtain rfl : j = 855 := (by omega); exact ok855) else (by obtain rfl : j = 856 := (by omega); exact ok856))) else (if h : j < 859 then (if h : j < 858 then (by obtain rfl : j = 857 := (by omega); exact ok857) else (by obtain rfl : j = 858 := (by omega); exact ok858)) else (if h : j < 860 then (by obtain rfl : j = 859 := (by omega); exact ok859) else (by obtain rfl : j = 860 := (by omega); exact ok860))))) else (if h : j < 868 then (if h : j < 864 then (if h : j < 862 then (by obtain rfl : j = 861 := (by omega); exact ok861) else (if h : j < 863 then (by obtain rfl : j = 862 := (by omega); exact ok862) else (by obtain rfl : j = 863 := (by omega); exact ok863))) else (if h : j < 866 then (if h : j < 865 then (by obtain rfl : j = 864 := (by omega); exact ok864) else (by obtain rfl : j = 865 := (by omega); exact ok865)) else (if h : j < 867 then (by obtain rfl : j = 866 := (by omega); exact ok866) else (by obtain rfl : j = 867 := (by omega); exact ok867)))) else (if h : j < 871 then (if h : j < 869 then (by obtain rfl : j = 868 := (by omega); exact ok868) else (if h : j < 870 then (by obtain rfl : j = 869 := (by omega); exact ok869) else (by obtain rfl : j = 870 := (by omega); exact ok870))) else (if h : j < 873 then (if h : j < 872 then (by obtain rfl : j = 871 := (by omega); exact ok871) else (by obtain rfl : j = 872 := (by omega); exact ok872)) else (if h : j < 874 then (by obtain rfl : j = 873 := (by omega); exact ok873) else (by obtain rfl : j = 874 := (by omega); exact ok874))))))))))) else (if h : j < 1312 then (if h : j < 1093 then (if h : j < 984 then (if h : j < 929 then (if h : j < 902 then (if h : j < 888 then (if h : j < 881 then (if h : j < 878 then (if h : j < 876 then (by obtain rfl : j = 875 := (by omega); exact ok875) else (if h : j < 877 then (by obtain rfl : j = 876 := (by omega); exact ok876) else (by obtain rfl : j = 877 := (by omega); exact ok877))) else (if h : j < 879 then (by obtain rfl : j = 878 := (by omega); exact ok878) else (if h : j < 880 then (by obtain rfl : j = 879 := (by omega); exact ok879) else (by obtain rfl : j = 880 := (by omega); exact ok880)))) else (if h : j < 884 then (if h : j < 882 then (by obtain rfl : j = 881 := (by omega); exact ok881) else (if h : j < 883 then (by obtain rfl : j = 882 := (by omega); exact ok882) else (by obtain rfl : j = 883 := (by omega); exact ok883))) else (if h : j < 886 then (if h : j < 885 then (by obtain rfl : j = 884 := (by omega); exact ok884) else (by obtain rfl : j = 885 := (by omega); exact ok885)) else (if h : j < 887 then (by obtain rfl : j = 886 := (by omega); exact ok886) else (by obtain rfl : j = 887 := (by omega); exact ok887))))) else (if h : j < 895 then (if h : j < 891 then (if h : j < 889 then (by obtain rfl : j = 888 := (by omega); exact ok888) else (if h : j < 890 then (by obtain rfl : j = 889 := (by omega); exact ok889) else (by obtain rfl : j = 890 := (by omega); exact ok890))) else (if h : j < 893 then (if h : j < 892 then (by obtain rfl : j = 891 := (by omega); exact ok891) else (by obtain rfl : j = 892 := (by omega); exact ok892)) else (if h : j < 894 then (by obtain rfl : j = 893 := (by omega); exact ok893) else (by obtain rfl : j = 894 := (by omega); exact ok894)))) else (if h : j < 898 then (if h : j < 896 then (by obtain rfl : j = 895 := (by omega); exact ok895) else (if h : j < 897 then (by obtain rfl : j = 896 := (by omega); exact ok896) else (by obtain rfl : j = 897 := (by omega); exact ok897))) else (if h : j < 900 then (if h : j < 899 then (by obtain rfl : j = 898 := (by omega); exact ok898) else (by obtain rfl : j = 899 := (by omega); exact ok899)) else (if h : j < 901 then (by obtain rfl : j = 900 := (by omega); exact ok900) else (by obtain rfl : j = 901 := (by omega); exact ok901)))))) else (if h : j < 915 then (if h : j < 908 then (if h : j < 905 then (if h : j < 903 then (by obtain rfl : j = 902 := (by omega); exact ok902) else (if h : j < 904 then (by obtain rfl : j = 903 := (by omega); exact ok903) else (by obtain rfl : j = 904 := (by omega); exact ok904))) else (if h : j < 906 then (by obtain rfl : j = 905 := (by omega); exact ok905) else (if h : j < 907 then (by obtain rfl : j = 906 := (by omega); exact ok906) else (by obtain rfl : j = 907 := (by omega); exact ok907)))) else (if h : j < 911 then (if h : j < 909 then (by obtain rfl : j = 908 := (by omega); exact ok908) else (if h : j < 910 then (by obtain rfl : j = 909 := (by omega); exact ok909) else (by obtain rfl : j = 910 := (by omega); exact ok910))) else (if h : j < 913 then (if h : j < 912 then (by obtain rfl : j = 911 := (by omega); exact ok911) else (by obtain rfl : j = 912 := (by omega); exact ok912)) else (if h : j < 914 then (by obtain rfl : j = 913 := (by omega); exact ok913) else (by obtain rfl : j = 914 := (by omega); exact ok914))))) else (if h : j < 922 then (if h : j < 918 then (if h : j < 916 then (by obtain rfl : j = 915 := (by omega); exact ok915) else (if h : j < 917 then (by obtain rfl : j = 916 := (by omega); exact ok916) else (by obtain rfl : j = 917 := (by omega); exact ok917))) else (if h : j < 920 then (if h : j < 919 then (by obtain rfl : j = 918 := (by omega); exact ok918) else (by obtain rfl : j = 919 := (by omega); exact ok919)) else (if h : j < 921 then (by obtain rfl : j = 920 := (by omega); exact ok920) else (by obtain rfl : j = 921 := (by omega); exact ok921)))) else (if h : j < 925 then (if h : j < 923 then (by obtain rfl : j = 922 := (by omega); exact ok922) else (if h : j < 924 then (by obtain rfl : j = 923 := (by omega); exact ok923) else (by obtain rfl : j = 924 := (by omega); exact ok924))) else (if h : j < 927 then (if h : j < 926 then (by obtain rfl : j = 925 := (by omega); exact ok925) else (by obtain rfl : j = 926 := (by omega); exact ok926)) else (if h : j < 928 then (by obtain rfl : j = 927 := (by omega); exact ok927) else (by obtain rfl : j = 928 := (by omega); exact ok928))))))) else (if h : j < 956 then (if h : j < 942 then (if h : j < 935 then (if h : j < 932 then (if h : j < 930 then (by obtain rfl : j = 929 := (by omega); exact ok929) else (if h : j < 931 then (by obtain rfl : j = 930 := (by omega); exact ok930) else (by obtain rfl : j = 931 := (by omega); exact ok931))) else (if h : j < 933 then (by obtain rfl : j = 932 := (by omega); exact ok932) else (if h : j < 934 then (by obtain rfl : j = 933 := (by omega); exact ok933) else (by obtain rfl : j = 934 := (by omega); exact ok934)))) else (if h : j < 938 then (if h : j < 936 then (by obtain rfl : j = 935 := (by omega); exact ok935) else (if h : j < 937 then (by obtain rfl : j = 936 := (by omega); exact ok936) else (by obtain rfl : j = 937 := (by omega); exact ok937))) else (if h : j < 940 then (if h : j < 939 then (by obtain rfl : j = 938 := (by omega); exact ok938) else (by obtain rfl : j = 939 := (by omega); exact ok939)) else (if h : j < 941 then (by obtain rfl : j = 940 := (by omega); exact ok940) else (by obtain rfl : j = 941 := (by omega); exact ok941))))) else (if h : j < 949 then (if h : j < 945 then (if h : j < 943 then (by obtain rfl : j = 942 := (by omega); exact ok942) else (if h : j < 944 then (by obtain rfl : j = 943 := (by omega); exact ok943) else (by obtain rfl : j = 944 := (by omega); exact ok944))) else (if h : j < 947 then (if h : j < 946 then (by obtain rfl : j = 945 := (by omega); exact ok945) else (by obtain rfl : j = 946 := (by omega); exact ok946)) else (if h : j < 948 then (by obtain rfl : j = 947 := (by omega); exact ok947) else (by obtain rfl : j = 948 := (by omega); exact ok948)))) else (if h : j < 952 then (if h : j < 950 then (by obtain rfl : j = 949 := (by omega); exact ok949) else (if h : j < 951 then (by obtain rfl : j = 950 := (by omega); exact ok950) else (by obtain rfl : j = 951 := (by omega); exact ok951))) else (if h : j < 954 then (if h : j < 953 then (by obtain rfl : j = 952 := (by omega); exact ok952) else (by obtain rfl : j = 953 := (by omega); exact ok953)) else (if h : j < 955 then (by obtain rfl : j = 954 := (by omega); exact ok954) else (by obtain rfl : j = 955 := (by omega); exact ok955)))))) else (if h : j < 970 then (if h : j < 963 then (if h : j < 959 then (if h : j < 957 then (by obtain rfl : j = 956 := (by omega); exact ok956) else (if h : j < 958 then (by obtain rfl : j = 957 := (by omega); exact ok957) else (by obtain rfl : j = 958 := (by omega); exact ok958))) else (if h : j < 961 then (if h : j < 960 then (by obtain rfl : j = 959 := (by omega); exact ok959) else (by obtain rfl : j = 960 := (by omega); exact ok960)) else (if h : j < 962 then (by obtain rfl : j = 961 := (by omega); exact ok961) else (by obtain rfl : j = 962 := (by omega); exact ok962)))) else (if h : j < 966 then (if h : j < 964 then (by obtain rfl : j = 963 := (by omega); exact ok963) else (if h : j < 965 then (by obtain rfl : j = 964 := (by omega); exact ok964) else (by obtain rfl : j = 965 := (by omega); exact ok965))) else (if h : j < 968 then (if h : j < 967 then (by obtain rfl : j = 966 := (by omega); exact ok966) else (by obtain rfl : j = 967 := (by omega); exact ok967)) else (if h : j < 969 then (by obtain rfl : j = 968 := (by omega); exact ok968) else (by obtain rfl : j = 969 := (by omega); exact ok969))))) else (if h : j < 977 then (if h : j < 973 then (if h : j < 971 then (by obtain rfl : j = 970 := (by omega); exact ok970) else (if h : j < 972 then (by obtain rfl : j = 971 := (by omega); exact ok971) else (by obtain rfl : j = 972 := (by omega); exact ok972))) else (if h : j < 975 then (if h : j < 974 then (by obtain rfl : j = 973 := (by omega); exact ok973) else (by obtain rfl : j = 974 := (by omega); exact ok974)) else (if h : j < 976 then (by obtain rfl : j = 975 := (by omega); exact ok975) else (by obtain rfl : j = 976 := (by omega); exact ok976)))) else (if h : j < 980 then (if h : j < 978 then (by obtain rfl : j = 977 := (by omega); exact ok977) else (if h : j < 979 then (by obtain rfl : j = 978 := (by omega); exact ok978) else (by obtain rfl : j = 979 := (by omega); exact ok979))) else (if h : j < 982 then (if h : j < 981 then (by obtain rfl : j = 980 := (by omega); exact ok980) else (by obtain rfl : j = 981 := (by omega); exact ok981)) else (if h : j < 983 then (by obtain rfl : j = 982 := (by omega); exact ok982) else (by obtain rfl : j = 983 := (by omega); exact ok983)))))))) else (if h : j < 1038 then (if h : j < 1011 then (if h : j < 997 then (if h : j < 990 then (if h : j < 987 then (if h : j < 985 then (by obtain rfl : j = 984 := (by omega); exact ok984) else (if h : j < 986 then (by obtain rfl : j = 985 := (by omega); exact ok985) else (by obtain rfl : j = 986 := (by omega); exact ok986))) else (if h : j < 988 then (by obtain rfl : j = 987 := (by omega); exact ok987) else (if h : j < 989 then (by obtain rfl : j = 988 := (by omega); exact ok988) else (by obtain rfl : j = 989 := (by omega); exact ok989)))) else (if h : j < 993 then (if h : j < 991 then (by obtain rfl : j = 990 := (by omega); exact ok990) else (if h : j < 992 then (by obtain rfl : j = 991 := (by omega); exact ok991) else (by obtain rfl : j = 992 := (by omega); exact ok992))) else (if h : j < 995 then (if h : j < 994 then (by obtain rfl : j = 993 := (by omega); exact ok993) else (by obtain rfl : j = 994 := (by omega); exact ok994)) else (if h : j < 996 then (by obtain rfl : j = 995 := (by omega); exact ok995) else (by obtain rfl : j = 996 := (by omega); exact ok996))))) else (if h : j < 1004 then (if h : j < 1000 then (if h : j < 998 then (by obtain rfl : j = 997 := (by omega); exact ok997) else (if h : j < 999 then (by obtain rfl : j = 998 := (by omega); exact ok998) else (by obtain rfl : j = 999 := (by omega); exact ok999))) else (if h : j < 1002 then (if h : j < 1001 then (by obtain rfl : j = 1000 := (by omega); exact ok1000) else (by obtain rfl : j = 1001 := (by omega); exact ok1001)) else (if h : j < 1003 then (by obtain rfl : j = 1002 := (by omega); exact ok1002) else (by obtain rfl : j = 1003 := (by omega); exact ok1003)))) else (if h : j < 1007 then (if h : j < 1005 then (by obtain rfl : j = 1004 := (by omega); exact ok1004) else (if h : j < 1006 then (by obtain rfl : j = 1005 := (by omega); exact ok1005) else (by obtain rfl : j = 1006 := (by omega); exact ok1006))) else (if h : j < 1009 then (if h : j < 1008 then (by obtain rfl : j = 1007 := (by omega); exact ok1007) else (by obtain rfl : j = 1008 := (by omega); exact ok1008)) else (if h : j < 1010 then (by obtain rfl : j = 1009 := (by omega); exact ok1009) else (by obtain rfl : j = 1010 := (by omega); exact ok1010)))))) else (if h : j < 1024 then (if h : j < 1017 then (if h : j < 1014 then (if h : j < 1012 then (by obtain rfl : j = 1011 := (by omega); exact ok1011) else (if h : j < 1013 then (by obtain rfl : j = 1012 := (by omega); exact ok1012) else (by obtain rfl : j = 1013 := (by omega); exact ok1013))) else (if h : j < 1015 then (by obtain rfl : j = 1014 := (by omega); exact ok1014) else (if h : j < 1016 then (by obtain rfl : j = 1015 := (by omega); exact ok1015) else (by obtain rfl : j = 1016 := (by omega); exact ok1016)))) else (if h : j < 1020 then (if h : j < 1018 then (by obtain rfl : j = 1017 := (by omega); exact ok1017) else (if h : j < 1019 then (by obtain rfl : j = 1018 := (by omega); exact ok1018) else (by obtain rfl : j = 1019 := (by omega); exact ok1019))) else (if h : j < 1022 then (if h : j < 1021 then (by obtain rfl : j = 1020 := (by omega); exact ok1020) else (by obtain rfl : j = 1021 := (by omega); exact ok1021)) else (if h : j < 1023 then (by obtain rfl : j = 1022 := (by omega); exact ok1022) else (by obtain rfl : j = 1023 := (by omega); exact ok1023))))) else (if h : j < 1031 then (if h : j < 1027 then (if h : j < 1025 then (by obtain rfl : j = 1024 := (by omega); exact ok1024) else (if h : j < 1026 then (by obtain rfl : j = 1025 := (by omega); exact ok1025) else (by obtain rfl : j = 1026 := (by omega); exact ok1026))) else (if h : j < 1029 then (if h : j < 1028 then (by obtain rfl : j = 1027 := (by omega); exact ok1027) else (by obtain rfl : j = 1028 := (by omega); exact ok1028)) else (if h : j < 1030 then (by obtain rfl : j = 1029 := (by omega); exact ok1029) else (by obtain rfl : j = 1030 := (by omega); exact ok1030)))) else (if h : j < 1034 then (if h : j < 1032 then (by obtain rfl : j = 1031 := (by omega); exact ok1031) else (if h : j < 1033 then (by obtain rfl : j = 1032 := (by omega); exact ok1032) else (by obtain rfl : j = 1033 := (by omega); exact ok1033))) else (if h : j < 1036 then (if h : j < 1035 then (by obtain rfl : j = 1034 := (by omega); exact ok1034) else (by obtain rfl : j = 1035 := (by omega); exact ok1035)) else (if h : j < 1037 then (by obtain rfl : j = 1036 := (by omega); exact ok1036) else (by obtain rfl : j = 1037 := (by omega); exact ok1037))))))) else (if h : j < 1065 then (if h : j < 1051 then (if h : j < 1044 then (if h : j < 1041 then (if h : j < 1039 then (by obtain rfl : j = 1038 := (by omega); exact ok1038) else (if h : j < 1040 then (by obtain rfl : j = 1039 := (by omega); exact ok1039) else (by obtain rfl : j = 1040 := (by omega); exact ok1040))) else (if h : j < 1042 then (by obtain rfl : j = 1041 := (by omega); exact ok1041) else (if h : j < 1043 then (by obtain rfl : j = 1042 := (by omega); exact ok1042) else (by obtain rfl : j = 1043 := (by omega); exact ok1043)))) else (if h : j < 1047 then (if h : j < 1045 then (by obtain rfl : j = 1044 := (by omega); exact ok1044) else (if h : j < 1046 then (by obtain rfl : j = 1045 := (by omega); exact ok1045) else (by obtain rfl : j = 1046 := (by omega); exact ok1046))) else (if h : j < 1049 then (if h : j < 1048 then (by obtain rfl : j = 1047 := (by omega); exact ok1047) else (by obtain rfl : j = 1048 := (by omega); exact ok1048)) else (if h : j < 1050 then (by obtain rfl : j = 1049 := (by omega); exact ok1049) else (by obtain rfl : j = 1050 := (by omega); exact ok1050))))) else (if h : j < 1058 then (if h : j < 1054 then (if h : j < 1052 then (by obtain rfl : j = 1051 := (by omega); exact ok1051) else (if h : j < 1053 then (by obtain rfl : j = 1052 := (by omega); exact ok1052) else (by obtain rfl : j = 1053 := (by omega); exact ok1053))) else (if h : j < 1056 then (if h : j < 1055 then (by obtain rfl : j = 1054 := (by omega); exact ok1054) else (by obtain rfl : j = 1055 := (by omega); exact ok1055)) else (if h : j < 1057 then (by obtain rfl : j = 1056 := (by omega); exact ok1056) else (by obtain rfl : j = 1057 := (by omega); exact ok1057)))) else (if h : j < 1061 then (if h : j < 1059 then (by obtain rfl : j = 1058 := (by omega); exact ok1058) else (if h : j < 1060 then (by obtain rfl : j = 1059 := (by omega); exact ok1059) else (by obtain rfl : j = 1060 := (by omega); exact ok1060))) else (if h : j < 1063 then (if h : j < 1062 then (by obtain rfl : j = 1061 := (by omega); exact ok1061) else (by obtain rfl : j = 1062 := (by omega); exact ok1062)) else (if h : j < 1064 then (by obtain rfl : j = 1063 := (by omega); exact ok1063) else (by obtain rfl : j = 1064 := (by omega); exact ok1064)))))) else (if h : j < 1079 then (if h : j < 1072 then (if h : j < 1068 then (if h : j < 1066 then (by obtain rfl : j = 1065 := (by omega); exact ok1065) else (if h : j < 1067 then (by obtain rfl : j = 1066 := (by omega); exact ok1066) else (by obtain rfl : j = 1067 := (by omega); exact ok1067))) else (if h : j < 1070 then (if h : j < 1069 then (by obtain rfl : j = 1068 := (by omega); exact ok1068) else (by obtain rfl : j = 1069 := (by omega); exact ok1069)) else (if h : j < 1071 then (by obtain rfl : j = 1070 := (by omega); exact ok1070) else (by obtain rfl : j = 1071 := (by omega); exact ok1071)))) else (if h : j < 1075 then (if h : j < 1073 then (by obtain rfl : j = 1072 := (by omega); exact ok1072) else (if h : j < 1074 then (by obtain rfl : j = 1073 := (by omega); exact ok1073) else (by obtain rfl : j = 1074 := (by omega); exact ok1074))) else (if h : j < 1077 then (if h : j < 1076 then (by obtain rfl : j = 1075 := (by omega); exact ok1075) else (by obtain rfl : j = 1076 := (by omega); exact ok1076)) else (if h : j < 1078 then (by obtain rfl : j = 1077 := (by omega); exact ok1077) else (by obtain rfl : j = 1078 := (by omega); exact ok1078))))) else (if h : j < 1086 then (if h : j < 1082 then (if h : j < 1080 then (by obtain rfl : j = 1079 := (by omega); exact ok1079) else (if h : j < 1081 then (by obtain rfl : j = 1080 := (by omega); exact ok1080) else (by obtain rfl : j = 1081 := (by omega); exact ok1081))) else (if h : j < 1084 then (if h : j < 1083 then (by obtain rfl : j = 1082 := (by omega); exact ok1082) else (by obtain rfl : j = 1083 := (by omega); exact ok1083)) else (if h : j < 1085 then (by obtain rfl : j = 1084 := (by omega); exact ok1084) else (by obtain rfl : j = 1085 := (by omega); exact ok1085)))) else (if h : j < 1089 then (if h : j < 1087 then (by obtain rfl : j = 1086 := (by omega); exact ok1086) else (if h : j < 1088 then (by obtain rfl : j = 1087 := (by omega); exact ok1087) else (by obtain rfl : j = 1088 := (by omega); exact ok1088))) else (if h : j < 1091 then (if h : j < 1090 then (by obtain rfl : j = 1089 := (by omega); exact ok1089) else (by obtain rfl : j = 1090 := (by omega); exact ok1090)) else (if h : j < 1092 then (by obtain rfl : j = 1091 := (by omega); exact ok1091) else (by obtain rfl : j = 1092 := (by omega); exact ok1092))))))))) else (if h : j < 1202 then (if h : j < 1147 then (if h : j < 1120 then (if h : j < 1106 then (if h : j < 1099 then (if h : j < 1096 then (if h : j < 1094 then (by obtain rfl : j = 1093 := (by omega); exact ok1093) else (if h : j < 1095 then (by obtain rfl : j = 1094 := (by omega); exact ok1094) else (by obtain rfl : j = 1095 := (by omega); exact ok1095))) else (if h : j < 1097 then (by obtain rfl : j = 1096 := (by omega); exact ok1096) else (if h : j < 1098 then (by obtain rfl : j = 1097 := (by omega); exact ok1097) else (by obtain rfl : j = 1098 := (by omega); exact ok1098)))) else (if h : j < 1102 then (if h : j < 1100 then (by obtain rfl : j = 1099 := (by omega); exact ok1099) else (if h : j < 1101 then (by obtain rfl : j = 1100 := (by omega); exact ok1100) else (by obtain rfl : j = 1101 := (by omega); exact ok1101))) else (if h : j < 1104 then (if h : j < 1103 then (by obtain rfl : j = 1102 := (by omega); exact ok1102) else (by obtain rfl : j = 1103 := (by omega); exact ok1103)) else (if h : j < 1105 then (by obtain rfl : j = 1104 := (by omega); exact ok1104) else (by obtain rfl : j = 1105 := (by omega); exact ok1105))))) else (if h : j < 1113 then (if h : j < 1109 then (if h : j < 1107 then (by obtain rfl : j = 1106 := (by omega); exact ok1106) else (if h : j < 1108 then (by obtain rfl : j = 1107 := (by omega); exact ok1107) else (by obtain rfl : j = 1108 := (by omega); exact ok1108))) else (if h : j < 1111 then (if h : j < 1110 then (by obtain rfl : j = 1109 := (by omega); exact ok1109) else (by obtain rfl : j = 1110 := (by omega); exact ok1110)) else (if h : j < 1112 then (by obtain rfl : j = 1111 := (by omega); exact ok1111) else (by obtain rfl : j = 1112 := (by omega); exact ok1112)))) else (if h : j < 1116 then (if h : j < 1114 then (by obtain rfl : j = 1113 := (by omega); exact ok1113) else (if h : j < 1115 then (by obtain rfl : j = 1114 := (by omega); exact ok1114) else (by obtain rfl : j = 1115 := (by omega); exact ok1115))) else (if h : j < 1118 then (if h : j < 1117 then (by obtain rfl : j = 1116 := (by omega); exact ok1116) else (by obtain rfl : j = 1117 := (by omega); exact ok1117)) else (if h : j < 1119 then (by obtain rfl : j = 1118 := (by omega); exact ok1118) else (by obtain rfl : j = 1119 := (by omega); exact ok1119)))))) else (if h : j < 1133 then (if h : j < 1126 then (if h : j < 1123 then (if h : j < 1121 then (by obtain rfl : j = 1120 := (by omega); exact ok1120) else (if h : j < 1122 then (by obtain rfl : j = 1121 := (by omega); exact ok1121) else (by obtain rfl : j = 1122 := (by omega); exact ok1122))) else (if h : j < 1124 then (by obtain rfl : j = 1123 := (by omega); exact ok1123) else (if h : j < 1125 then (by obtain rfl : j = 1124 := (by omega); exact ok1124) else (by obtain rfl : j = 1125 := (by omega); exact ok1125)))) else (if h : j < 1129 then (if h : j < 1127 then (by obtain rfl : j = 1126 := (by omega); exact ok1126) else (if h : j < 1128 then (by obtain rfl : j = 1127 := (by omega); exact ok1127) else (by obtain rfl : j = 1128 := (by omega); exact ok1128))) else (if h : j < 1131 then (if h : j < 1130 then (by obtain rfl : j = 1129 := (by omega); exact ok1129) else (by obtain rfl : j = 1130 := (by omega); exact ok1130)) else (if h : j < 1132 then (by obtain rfl : j = 1131 := (by omega); exact ok1131) else (by obtain rfl : j = 1132 := (by omega); exact ok1132))))) else (if h : j < 1140 then (if h : j < 1136 then (if h : j < 1134 then (by obtain rfl : j = 1133 := (by omega); exact ok1133) else (if h : j < 1135 then (by obtain rfl : j = 1134 := (by omega); exact ok1134) else (by obtain rfl : j = 1135 := (by omega); exact ok1135))) else (if h : j < 1138 then (if h : j < 1137 then (by obtain rfl : j = 1136 := (by omega); exact ok1136) else (by obtain rfl : j = 1137 := (by omega); exact ok1137)) else (if h : j < 1139 then (by obtain rfl : j = 1138 := (by omega); exact ok1138) else (by obtain rfl : j = 1139 := (by omega); exact ok1139)))) else (if h : j < 1143 then (if h : j < 1141 then (by obtain rfl : j = 1140 := (by omega); exact ok1140) else (if h : j < 1142 then (by obtain rfl : j = 1141 := (by omega); exact ok1141) else (by obtain rfl : j = 1142 := (by omega); exact ok1142))) else (if h : j < 1145 then (if h : j < 1144 then (by obtain rfl : j = 1143 := (by omega); exact ok1143) else (by obtain rfl : j = 1144 := (by omega); exact ok1144)) else (if h : j < 1146 then (by obtain rfl : j = 1145 := (by omega); exact ok1145) else (by obtain rfl : j = 1146 := (by omega); exact ok1146))))))) else (if h : j < 1174 then (if h : j < 1160 then (if h : j < 1153 then (if h : j < 1150 then (if h : j < 1148 then (by obtain rfl : j = 1147 := (by omega); exact ok1147) else (if h : j < 1149 then (by obtain rfl : j = 1148 := (by omega); exact ok1148) else (by obtain rfl : j = 1149 := (by omega); exact ok1149))) else (if h : j < 1151 then (by obtain rfl : j = 1150 := (by omega); exact ok1150) else (if h : j < 1152 then (by obtain rfl : j = 1151 := (by omega); exact ok1151) else (by obtain rfl : j = 1152 := (by omega); exact ok1152)))) else (if h : j < 1156 then (if h : j < 1154 then (by obtain rfl : j = 1153 := (by omega); exact ok1153) else (if h : j < 1155 then (by obtain rfl : j = 1154 := (by omega); exact ok1154) else (by obtain rfl : j = 1155 := (by omega); exact ok1155))) else (if h : j < 1158 then (if h : j < 1157 then (by obtain rfl : j = 1156 := (by omega); exact ok1156) else (by obtain rfl : j = 1157 := (by omega); exact ok1157)) else (if h : j < 1159 then (by obtain rfl : j = 1158 := (by omega); exact ok1158) else (by obtain rfl : j = 1159 := (by omega); exact ok1159))))) else (if h : j < 1167 then (if h : j < 1163 then (if h : j < 1161 then (by obtain rfl : j = 1160 := (by omega); exact ok1160) else (if h : j < 1162 then (by obtain rfl : j = 1161 := (by omega); exact ok1161) else (by obtain rfl : j = 1162 := (by omega); exact ok1162))) else (if h : j < 1165 then (if h : j < 1164 then (by obtain rfl : j = 1163 := (by omega); exact ok1163) else (by obtain rfl : j = 1164 := (by omega); exact ok1164)) else (if h : j < 1166 then (by obtain rfl : j = 1165 := (by omega); exact ok1165) else (by obtain rfl : j = 1166 := (by omega); exact ok1166)))) else (if h : j < 1170 then (if h : j < 1168 then (by obtain rfl : j = 1167 := (by omega); exact ok1167) else (if h : j < 1169 then (by obtain rfl : j = 1168 := (by omega); exact ok1168) else (by obtain rfl : j = 1169 := (by omega); exact ok1169))) else (if h : j < 1172 then (if h : j < 1171 then (by obtain rfl : j = 1170 := (by omega); exact ok1170) else (by obtain rfl : j = 1171 := (by omega); exact ok1171)) else (if h : j < 1173 then (by obtain rfl : j = 1172 := (by omega); exact ok1172) else (by obtain rfl : j = 1173 := (by omega); exact ok1173)))))) else (if h : j < 1188 then (if h : j < 1181 then (if h : j < 1177 then (if h : j < 1175 then (by obtain rfl : j = 1174 := (by omega); exact ok1174) else (if h : j < 1176 then (by obtain rfl : j = 1175 := (by omega); exact ok1175) else (by obtain rfl : j = 1176 := (by omega); exact ok1176))) else (if h : j < 1179 then (if h : j < 1178 then (by obtain rfl : j = 1177 := (by omega); exact ok1177) else (by obtain rfl : j = 1178 := (by omega); exact ok1178)) else (if h : j < 1180 then (by obtain rfl : j = 1179 := (by omega); exact ok1179) else (by obtain rfl : j = 1180 := (by omega); exact ok1180)))) else (if h : j < 1184 then (if h : j < 1182 then (by obtain rfl : j = 1181 := (by omega); exact ok1181) else (if h : j < 1183 then (by obtain rfl : j = 1182 := (by omega); exact ok1182) else (by obtain rfl : j = 1183 := (by omega); exact ok1183))) else (if h : j < 1186 then (if h : j < 1185 then (by obtain rfl : j = 1184 := (by omega); exact ok1184) else (by obtain rfl : j = 1185 := (by omega); exact ok1185)) else (if h : j < 1187 then (by obtain rfl : j = 1186 := (by omega); exact ok1186) else (by obtain rfl : j = 1187 := (by omega); exact ok1187))))) else (if h : j < 1195 then (if h : j < 1191 then (if h : j < 1189 then (by obtain rfl : j = 1188 := (by omega); exact ok1188) else (if h : j < 1190 then (by obtain rfl : j = 1189 := (by omega); exact ok1189) else (by obtain rfl : j = 1190 := (by omega); exact ok1190))) else (if h : j < 1193 then (if h : j < 1192 then (by obtain rfl : j = 1191 := (by omega); exact ok1191) else (by obtain rfl : j = 1192 := (by omega); exact ok1192)) else (if h : j < 1194 then (by obtain rfl : j = 1193 := (by omega); exact ok1193) else (by obtain rfl : j = 1194 := (by omega); exact ok1194)))) else (if h : j < 1198 then (if h : j < 1196 then (by obtain rfl : j = 1195 := (by omega); exact ok1195) else (if h : j < 1197 then (by obtain rfl : j = 1196 := (by omega); exact ok1196) else (by obtain rfl : j = 1197 := (by omega); exact ok1197))) else (if h : j < 1200 then (if h : j < 1199 then (by obtain rfl : j = 1198 := (by omega); exact ok1198) else (by obtain rfl : j = 1199 := (by omega); exact ok1199)) else (if h : j < 1201 then (by obtain rfl : j = 1200 := (by omega); exact ok1200) else (by obtain rfl : j = 1201 := (by omega); exact ok1201)))))))) else (if h : j < 1257 then (if h : j < 1229 then (if h : j < 1215 then (if h : j < 1208 then (if h : j < 1205 then (if h : j < 1203 then (by obtain rfl : j = 1202 := (by omega); exact ok1202) else (if h : j < 1204 then (by obtain rfl : j = 1203 := (by omega); exact ok1203) else (by obtain rfl : j = 1204 := (by omega); exact ok1204))) else (if h : j < 1206 then (by obtain rfl : j = 1205 := (by omega); exact ok1205) else (if h : j < 1207 then (by obtain rfl : j = 1206 := (by omega); exact ok1206) else (by obtain rfl : j = 1207 := (by omega); exact ok1207)))) else (if h : j < 1211 then (if h : j < 1209 then (by obtain rfl : j = 1208 := (by omega); exact ok1208) else (if h : j < 1210 then (by obtain rfl : j = 1209 := (by omega); exact ok1209) else (by obtain rfl : j = 1210 := (by omega); exact ok1210))) else (if h : j < 1213 then (if h : j < 1212 then (by obtain rfl : j = 1211 := (by omega); exact ok1211) else (by obtain rfl : j = 1212 := (by omega); exact ok1212)) else (if h : j < 1214 then (by obtain rfl : j = 1213 := (by omega); exact ok1213) else (by obtain rfl : j = 1214 := (by omega); exact ok1214))))) else (if h : j < 1222 then (if h : j < 1218 then (if h : j < 1216 then (by obtain rfl : j = 1215 := (by omega); exact ok1215) else (if h : j < 1217 then (by obtain rfl : j = 1216 := (by omega); exact ok1216) else (by obtain rfl : j = 1217 := (by omega); exact ok1217))) else (if h : j < 1220 then (if h : j < 1219 then (by obtain rfl : j = 1218 := (by omega); exact ok1218) else (by obtain rfl : j = 1219 := (by omega); exact ok1219)) else (if h : j < 1221 then (by obtain rfl : j = 1220 := (by omega); exact ok1220) else (by obtain rfl : j = 1221 := (by omega); exact ok1221)))) else (if h : j < 1225 then (if h : j < 1223 then (by obtain rfl : j = 1222 := (by omega); exact ok1222) else (if h : j < 1224 then (by obtain rfl : j = 1223 := (by omega); exact ok1223) else (by obtain rfl : j = 1224 := (by omega); exact ok1224))) else (if h : j < 1227 then (if h : j < 1226 then (by obtain rfl : j = 1225 := (by omega); exact ok1225) else (by obtain rfl : j = 1226 := (by omega); exact ok1226)) else (if h : j < 1228 then (by obtain rfl : j = 1227 := (by omega); exact ok1227) else (by obtain rfl : j = 1228 := (by omega); exact ok1228)))))) else (if h : j < 1243 then (if h : j < 1236 then (if h : j < 1232 then (if h : j < 1230 then (by obtain rfl : j = 1229 := (by omega); exact ok1229) else (if h : j < 1231 then (by obtain rfl : j = 1230 := (by omega); exact ok1230) else (by obtain rfl : j = 1231 := (by omega); exact ok1231))) else (if h : j < 1234 then (if h : j < 1233 then (by obtain rfl : j = 1232 := (by omega); exact ok1232) else (by obtain rfl : j = 1233 := (by omega); exact ok1233)) else (if h : j < 1235 then (by obtain rfl : j = 1234 := (by omega); exact ok1234) else (by obtain rfl : j = 1235 := (by omega); exact ok1235)))) else (if h : j < 1239 then (if h : j < 1237 then (by obtain rfl : j = 1236 := (by omega); exact ok1236) else (if h : j < 1238 then (by obtain rfl : j = 1237 := (by omega); exact ok1237) else (by obtain rfl : j = 1238 := (by omega); exact ok1238))) else (if h : j < 1241 then (if h : j < 1240 then (by obtain rfl : j = 1239 := (by omega); exact ok1239) else (by obtain rfl : j = 1240 := (by omega); exact ok1240)) else (if h : j < 1242 then (by obtain rfl : j = 1241 := (by omega); exact ok1241) else (by obtain rfl : j = 1242 := (by omega); exact ok1242))))) else (if h : j < 1250 then (if h : j < 1246 then (if h : j < 1244 then (by obtain rfl : j = 1243 := (by omega); exact ok1243) else (if h : j < 1245 then (by obtain rfl : j = 1244 := (by omega); exact ok1244) else (by obtain rfl : j = 1245 := (by omega); exact ok1245))) else (if h : j < 1248 then (if h : j < 1247 then (by obtain rfl : j = 1246 := (by omega); exact ok1246) else (by obtain rfl : j = 1247 := (by omega); exact ok1247)) else (if h : j < 1249 then (by obtain rfl : j = 1248 := (by omega); exact ok1248) else (by obtain rfl : j = 1249 := (by omega); exact ok1249)))) else (if h : j < 1253 then (if h : j < 1251 then (by obtain rfl : j = 1250 := (by omega); exact ok1250) else (if h : j < 1252 then (by obtain rfl : j = 1251 := (by omega); exact ok1251) else (by obtain rfl : j = 1252 := (by omega); exact ok1252))) else (if h : j < 1255 then (if h : j < 1254 then (by obtain rfl : j = 1253 := (by omega); exact ok1253) else (by obtain rfl : j = 1254 := (by omega); exact ok1254)) else (if h : j < 1256 then (by obtain rfl : j = 1255 := (by omega); exact ok1255) else (by obtain rfl : j = 1256 := (by omega); exact ok1256))))))) else (if h : j < 1284 then (if h : j < 1270 then (if h : j < 1263 then (if h : j < 1260 then (if h : j < 1258 then (by obtain rfl : j = 1257 := (by omega); exact ok1257) else (if h : j < 1259 then (by obtain rfl : j = 1258 := (by omega); exact ok1258) else (by obtain rfl : j = 1259 := (by omega); exact ok1259))) else (if h : j < 1261 then (by obtain rfl : j = 1260 := (by omega); exact ok1260) else (if h : j < 1262 then (by obtain rfl : j = 1261 := (by omega); exact ok1261) else (by obtain rfl : j = 1262 := (by omega); exact ok1262)))) else (if h : j < 1266 then (if h : j < 1264 then (by obtain rfl : j = 1263 := (by omega); exact ok1263) else (if h : j < 1265 then (by obtain rfl : j = 1264 := (by omega); exact ok1264) else (by obtain rfl : j = 1265 := (by omega); exact ok1265))) else (if h : j < 1268 then (if h : j < 1267 then (by obtain rfl : j = 1266 := (by omega); exact ok1266) else (by obtain rfl : j = 1267 := (by omega); exact ok1267)) else (if h : j < 1269 then (by obtain rfl : j = 1268 := (by omega); exact ok1268) else (by obtain rfl : j = 1269 := (by omega); exact ok1269))))) else (if h : j < 1277 then (if h : j < 1273 then (if h : j < 1271 then (by obtain rfl : j = 1270 := (by omega); exact ok1270) else (if h : j < 1272 then (by obtain rfl : j = 1271 := (by omega); exact ok1271) else (by obtain rfl : j = 1272 := (by omega); exact ok1272))) else (if h : j < 1275 then (if h : j < 1274 then (by obtain rfl : j = 1273 := (by omega); exact ok1273) else (by obtain rfl : j = 1274 := (by omega); exact ok1274)) else (if h : j < 1276 then (by obtain rfl : j = 1275 := (by omega); exact ok1275) else (by obtain rfl : j = 1276 := (by omega); exact ok1276)))) else (if h : j < 1280 then (if h : j < 1278 then (by obtain rfl : j = 1277 := (by omega); exact ok1277) else (if h : j < 1279 then (by obtain rfl : j = 1278 := (by omega); exact ok1278) else (by obtain rfl : j = 1279 := (by omega); exact ok1279))) else (if h : j < 1282 then (if h : j < 1281 then (by obtain rfl : j = 1280 := (by omega); exact ok1280) else (by obtain rfl : j = 1281 := (by omega); exact ok1281)) else (if h : j < 1283 then (by obtain rfl : j = 1282 := (by omega); exact ok1282) else (by obtain rfl : j = 1283 := (by omega); exact ok1283)))))) else (if h : j < 1298 then (if h : j < 1291 then (if h : j < 1287 then (if h : j < 1285 then (by obtain rfl : j = 1284 := (by omega); exact ok1284) else (if h : j < 1286 then (by obtain rfl : j = 1285 := (by omega); exact ok1285) else (by obtain rfl : j = 1286 := (by omega); exact ok1286))) else (if h : j < 1289 then (if h : j < 1288 then (by obtain rfl : j = 1287 := (by omega); exact ok1287) else (by obtain rfl : j = 1288 := (by omega); exact ok1288)) else (if h : j < 1290 then (by obtain rfl : j = 1289 := (by omega); exact ok1289) else (by obtain rfl : j = 1290 := (by omega); exact ok1290)))) else (if h : j < 1294 then (if h : j < 1292 then (by obtain rfl : j = 1291 := (by omega); exact ok1291) else (if h : j < 1293 then (by obtain rfl : j = 1292 := (by omega); exact ok1292) else (by obtain rfl : j = 1293 := (by omega); exact ok1293))) else (if h : j < 1296 then (if h : j < 1295 then (by obtain rfl : j = 1294 := (by omega); exact ok1294) else (by obtain rfl : j = 1295 := (by omega); exact ok1295)) else (if h : j < 1297 then (by obtain rfl : j = 1296 := (by omega); exact ok1296) else (by obtain rfl : j = 1297 := (by omega); exact ok1297))))) else (if h : j < 1305 then (if h : j < 1301 then (if h : j < 1299 then (by obtain rfl : j = 1298 := (by omega); exact ok1298) else (if h : j < 1300 then (by obtain rfl : j = 1299 := (by omega); exact ok1299) else (by obtain rfl : j = 1300 := (by omega); exact ok1300))) else (if h : j < 1303 then (if h : j < 1302 then (by obtain rfl : j = 1301 := (by omega); exact ok1301) else (by obtain rfl : j = 1302 := (by omega); exact ok1302)) else (if h : j < 1304 then (by obtain rfl : j = 1303 := (by omega); exact ok1303) else (by obtain rfl : j = 1304 := (by omega); exact ok1304)))) else (if h : j < 1308 then (if h : j < 1306 then (by obtain rfl : j = 1305 := (by omega); exact ok1305) else (if h : j < 1307 then (by obtain rfl : j = 1306 := (by omega); exact ok1306) else (by obtain rfl : j = 1307 := (by omega); exact ok1307))) else (if h : j < 1310 then (if h : j < 1309 then (by obtain rfl : j = 1308 := (by omega); exact ok1308) else (by obtain rfl : j = 1309 := (by omega); exact ok1309)) else (if h : j < 1311 then (by obtain rfl : j = 1310 := (by omega); exact ok1310) else (by obtain rfl : j = 1311 := (by omega); exact ok1311)))))))))) else (if h : j < 1531 then (if h : j < 1421 then (if h : j < 1366 then (if h : j < 1339 then (if h : j < 1325 then (if h : j < 1318 then (if h : j < 1315 then (if h : j < 1313 then (by obtain rfl : j = 1312 := (by omega); exact ok1312) else (if h : j < 1314 then (by obtain rfl : j = 1313 := (by omega); exact ok1313) else (by obtain rfl : j = 1314 := (by omega); exact ok1314))) else (if h : j < 1316 then (by obtain rfl : j = 1315 := (by omega); exact ok1315) else (if h : j < 1317 then (by obtain rfl : j = 1316 := (by omega); exact ok1316) else (by obtain rfl : j = 1317 := (by omega); exact ok1317)))) else (if h : j < 1321 then (if h : j < 1319 then (by obtain rfl : j = 1318 := (by omega); exact ok1318) else (if h : j < 1320 then (by obtain rfl : j = 1319 := (by omega); exact ok1319) else (by obtain rfl : j = 1320 := (by omega); exact ok1320))) else (if h : j < 1323 then (if h : j < 1322 then (by obtain rfl : j = 1321 := (by omega); exact ok1321) else (by obtain rfl : j = 1322 := (by omega); exact ok1322)) else (if h : j < 1324 then (by obtain rfl : j = 1323 := (by omega); exact ok1323) else (by obtain rfl : j = 1324 := (by omega); exact ok1324))))) else (if h : j < 1332 then (if h : j < 1328 then (if h : j < 1326 then (by obtain rfl : j = 1325 := (by omega); exact ok1325) else (if h : j < 1327 then (by obtain rfl : j = 1326 := (by omega); exact ok1326) else (by obtain rfl : j = 1327 := (by omega); exact ok1327))) else (if h : j < 1330 then (if h : j < 1329 then (by obtain rfl : j = 1328 := (by omega); exact ok1328) else (by obtain rfl : j = 1329 := (by omega); exact ok1329)) else (if h : j < 1331 then (by obtain rfl : j = 1330 := (by omega); exact ok1330) else (by obtain rfl : j = 1331 := (by omega); exact ok1331)))) else (if h : j < 1335 then (if h : j < 1333 then (by obtain rfl : j = 1332 := (by omega); exact ok1332) else (if h : j < 1334 then (by obtain rfl : j = 1333 := (by omega); exact ok1333) else (by obtain rfl : j = 1334 := (by omega); exact ok1334))) else (if h : j < 1337 then (if h : j < 1336 then (by obtain rfl : j = 1335 := (by omega); exact ok1335) else (by obtain rfl : j = 1336 := (by omega); exact ok1336)) else (if h : j < 1338 then (by obtain rfl : j = 1337 := (by omega); exact ok1337) else (by obtain rfl : j = 1338 := (by omega); exact ok1338)))))) else (if h : j < 1352 then (if h : j < 1345 then (if h : j < 1342 then (if h : j < 1340 then (by obtain rfl : j = 1339 := (by omega); exact ok1339) else (if h : j < 1341 then (by obtain rfl : j = 1340 := (by omega); exact ok1340) else (by obtain rfl : j = 1341 := (by omega); exact ok1341))) else (if h : j < 1343 then (by obtain rfl : j = 1342 := (by omega); exact ok1342) else (if h : j < 1344 then (by obtain rfl : j = 1343 := (by omega); exact ok1343) else (by obtain rfl : j = 1344 := (by omega); exact ok1344)))) else (if h : j < 1348 then (if h : j < 1346 then (by obtain rfl : j = 1345 := (by omega); exact ok1345) else (if h : j < 1347 then (by obtain rfl : j = 1346 := (by omega); exact ok1346) else (by obtain rfl : j = 1347 := (by omega); exact ok1347))) else (if h : j < 1350 then (if h : j < 1349 then (by obtain rfl : j = 1348 := (by omega); exact ok1348) else (by obtain rfl : j = 1349 := (by omega); exact ok1349)) else (if h : j < 1351 then (by obtain rfl : j = 1350 := (by omega); exact ok1350) else (by obtain rfl : j = 1351 := (by omega); exact ok1351))))) else (if h : j < 1359 then (if h : j < 1355 then (if h : j < 1353 then (by obtain rfl : j = 1352 := (by omega); exact ok1352) else (if h : j < 1354 then (by obtain rfl : j = 1353 := (by omega); exact ok1353) else (by obtain rfl : j = 1354 := (by omega); exact ok1354))) else (if h : j < 1357 then (if h : j < 1356 then (by obtain rfl : j = 1355 := (by omega); exact ok1355) else (by obtain rfl : j = 1356 := (by omega); exact ok1356)) else (if h : j < 1358 then (by obtain rfl : j = 1357 := (by omega); exact ok1357) else (by obtain rfl : j = 1358 := (by omega); exact ok1358)))) else (if h : j < 1362 then (if h : j < 1360 then (by obtain rfl : j = 1359 := (by omega); exact ok1359) else (if h : j < 1361 then (by obtain rfl : j = 1360 := (by omega); exact ok1360) else (by obtain rfl : j = 1361 := (by omega); exact ok1361))) else (if h : j < 1364 then (if h : j < 1363 then (by obtain rfl : j = 1362 := (by omega); exact ok1362) else (by obtain rfl : j = 1363 := (by omega); exact ok1363)) else (if h : j < 1365 then (by obtain rfl : j = 1364 := (by omega); exact ok1364) else (by obtain rfl : j = 1365 := (by omega); exact ok1365))))))) else (if h : j < 1393 then (if h : j < 1379 then (if h : j < 1372 then (if h : j < 1369 then (if h : j < 1367 then (by obtain rfl : j = 1366 := (by omega); exact ok1366) else (if h : j < 1368 then (by obtain rfl : j = 1367 := (by omega); exact ok1367) else (by obtain rfl : j = 1368 := (by omega); exact ok1368))) else (if h : j < 1370 then (by obtain rfl : j = 1369 := (by omega); exact ok1369) else (if h : j < 1371 then (by obtain rfl : j = 1370 := (by omega); exact ok1370) else (by obtain rfl : j = 1371 := (by omega); exact ok1371)))) else (if h : j < 1375 then (if h : j < 1373 then (by obtain rfl : j = 1372 := (by omega); exact ok1372) else (if h : j < 1374 then (by obtain rfl : j = 1373 := (by omega); exact ok1373) else (by obtain rfl : j = 1374 := (by omega); exact ok1374))) else (if h : j < 1377 then (if h : j < 1376 then (by obtain rfl : j = 1375 := (by omega); exact ok1375) else (by obtain rfl : j = 1376 := (by omega); exact ok1376)) else (if h : j < 1378 then (by obtain rfl : j = 1377 := (by omega); exact ok1377) else (by obtain rfl : j = 1378 := (by omega); exact ok1378))))) else (if h : j < 1386 then (if h : j < 1382 then (if h : j < 1380 then (by obtain rfl : j = 1379 := (by omega); exact ok1379) else (if h : j < 1381 then (by obtain rfl : j = 1380 := (by omega); exact ok1380) else (by obtain rfl : j = 1381 := (by omega); exact ok1381))) else (if h : j < 1384 then (if h : j < 1383 then (by obtain rfl : j = 1382 := (by omega); exact ok1382) else (by obtain rfl : j = 1383 := (by omega); exact ok1383)) else (if h : j < 1385 then (by obtain rfl : j = 1384 := (by omega); exact ok1384) else (by obtain rfl : j = 1385 := (by omega); exact ok1385)))) else (if h : j < 1389 then (if h : j < 1387 then (by obtain rfl : j = 1386 := (by omega); exact ok1386) else (if h : j < 1388 then (by obtain rfl : j = 1387 := (by omega); exact ok1387) else (by obtain rfl : j = 1388 := (by omega); exact ok1388))) else (if h : j < 1391 then (if h : j < 1390 then (by obtain rfl : j = 1389 := (by omega); exact ok1389) else (by obtain rfl : j = 1390 := (by omega); exact ok1390)) else (if h : j < 1392 then (by obtain rfl : j = 1391 := (by omega); exact ok1391) else (by obtain rfl : j = 1392 := (by omega); exact ok1392)))))) else (if h : j < 1407 then (if h : j < 1400 then (if h : j < 1396 then (if h : j < 1394 then (by obtain rfl : j = 1393 := (by omega); exact ok1393) else (if h : j < 1395 then (by obtain rfl : j = 1394 := (by omega); exact ok1394) else (by obtain rfl : j = 1395 := (by omega); exact ok1395))) else (if h : j < 1398 then (if h : j < 1397 then (by obtain rfl : j = 1396 := (by omega); exact ok1396) else (by obtain rfl : j = 1397 := (by omega); exact ok1397)) else (if h : j < 1399 then (by obtain rfl : j = 1398 := (by omega); exact ok1398) else (by obtain rfl : j = 1399 := (by omega); exact ok1399)))) else (if h : j < 1403 then (if h : j < 1401 then (by obtain rfl : j = 1400 := (by omega); exact ok1400) else (if h : j < 1402 then (by obtain rfl : j = 1401 := (by omega); exact ok1401) else (by obtain rfl : j = 1402 := (by omega); exact ok1402))) else (if h : j < 1405 then (if h : j < 1404 then (by obtain rfl : j = 1403 := (by omega); exact ok1403) else (by obtain rfl : j = 1404 := (by omega); exact ok1404)) else (if h : j < 1406 then (by obtain rfl : j = 1405 := (by omega); exact ok1405) else (by obtain rfl : j = 1406 := (by omega); exact ok1406))))) else (if h : j < 1414 then (if h : j < 1410 then (if h : j < 1408 then (by obtain rfl : j = 1407 := (by omega); exact ok1407) else (if h : j < 1409 then (by obtain rfl : j = 1408 := (by omega); exact ok1408) else (by obtain rfl : j = 1409 := (by omega); exact ok1409))) else (if h : j < 1412 then (if h : j < 1411 then (by obtain rfl : j = 1410 := (by omega); exact ok1410) else (by obtain rfl : j = 1411 := (by omega); exact ok1411)) else (if h : j < 1413 then (by obtain rfl : j = 1412 := (by omega); exact ok1412) else (by obtain rfl : j = 1413 := (by omega); exact ok1413)))) else (if h : j < 1417 then (if h : j < 1415 then (by obtain rfl : j = 1414 := (by omega); exact ok1414) else (if h : j < 1416 then (by obtain rfl : j = 1415 := (by omega); exact ok1415) else (by obtain rfl : j = 1416 := (by omega); exact ok1416))) else (if h : j < 1419 then (if h : j < 1418 then (by obtain rfl : j = 1417 := (by omega); exact ok1417) else (by obtain rfl : j = 1418 := (by omega); exact ok1418)) else (if h : j < 1420 then (by obtain rfl : j = 1419 := (by omega); exact ok1419) else (by obtain rfl : j = 1420 := (by omega); exact ok1420)))))))) else (if h : j < 1476 then (if h : j < 1448 then (if h : j < 1434 then (if h : j < 1427 then (if h : j < 1424 then (if h : j < 1422 then (by obtain rfl : j = 1421 := (by omega); exact ok1421) else (if h : j < 1423 then (by obtain rfl : j = 1422 := (by omega); exact ok1422) else (by obtain rfl : j = 1423 := (by omega); exact ok1423))) else (if h : j < 1425 then (by obtain rfl : j = 1424 := (by omega); exact ok1424) else (if h : j < 1426 then (by obtain rfl : j = 1425 := (by omega); exact ok1425) else (by obtain rfl : j = 1426 := (by omega); exact ok1426)))) else (if h : j < 1430 then (if h : j < 1428 then (by obtain rfl : j = 1427 := (by omega); exact ok1427) else (if h : j < 1429 then (by obtain rfl : j = 1428 := (by omega); exact ok1428) else (by obtain rfl : j = 1429 := (by omega); exact ok1429))) else (if h : j < 1432 then (if h : j < 1431 then (by obtain rfl : j = 1430 := (by omega); exact ok1430) else (by obtain rfl : j = 1431 := (by omega); exact ok1431)) else (if h : j < 1433 then (by obtain rfl : j = 1432 := (by omega); exact ok1432) else (by obtain rfl : j = 1433 := (by omega); exact ok1433))))) else (if h : j < 1441 then (if h : j < 1437 then (if h : j < 1435 then (by obtain rfl : j = 1434 := (by omega); exact ok1434) else (if h : j < 1436 then (by obtain rfl : j = 1435 := (by omega); exact ok1435) else (by obtain rfl : j = 1436 := (by omega); exact ok1436))) else (if h : j < 1439 then (if h : j < 1438 then (by obtain rfl : j = 1437 := (by omega); exact ok1437) else (by obtain rfl : j = 1438 := (by omega); exact ok1438)) else (if h : j < 1440 then (by obtain rfl : j = 1439 := (by omega); exact ok1439) else (by obtain rfl : j = 1440 := (by omega); exact ok1440)))) else (if h : j < 1444 then (if h : j < 1442 then (by obtain rfl : j = 1441 := (by omega); exact ok1441) else (if h : j < 1443 then (by obtain rfl : j = 1442 := (by omega); exact ok1442) else (by obtain rfl : j = 1443 := (by omega); exact ok1443))) else (if h : j < 1446 then (if h : j < 1445 then (by obtain rfl : j = 1444 := (by omega); exact ok1444) else (by obtain rfl : j = 1445 := (by omega); exact ok1445)) else (if h : j < 1447 then (by obtain rfl : j = 1446 := (by omega); exact ok1446) else (by obtain rfl : j = 1447 := (by omega); exact ok1447)))))) else (if h : j < 1462 then (if h : j < 1455 then (if h : j < 1451 then (if h : j < 1449 then (by obtain rfl : j = 1448 := (by omega); exact ok1448) else (if h : j < 1450 then (by obtain rfl : j = 1449 := (by omega); exact ok1449) else (by obtain rfl : j = 1450 := (by omega); exact ok1450))) else (if h : j < 1453 then (if h : j < 1452 then (by obtain rfl : j = 1451 := (by omega); exact ok1451) else (by obtain rfl : j = 1452 := (by omega); exact ok1452)) else (if h : j < 1454 then (by obtain rfl : j = 1453 := (by omega); exact ok1453) else (by obtain rfl : j = 1454 := (by omega); exact ok1454)))) else (if h : j < 1458 then (if h : j < 1456 then (by obtain rfl : j = 1455 := (by omega); exact ok1455) else (if h : j < 1457 then (by obtain rfl : j = 1456 := (by omega); exact ok1456) else (by obtain rfl : j = 1457 := (by omega); exact ok1457))) else (if h : j < 1460 then (if h : j < 1459 then (by obtain rfl : j = 1458 := (by omega); exact ok1458) else (by obtain rfl : j = 1459 := (by omega); exact ok1459)) else (if h : j < 1461 then (by obtain rfl : j = 1460 := (by omega); exact ok1460) else (by obtain rfl : j = 1461 := (by omega); exact ok1461))))) else (if h : j < 1469 then (if h : j < 1465 then (if h : j < 1463 then (by obtain rfl : j = 1462 := (by omega); exact ok1462) else (if h : j < 1464 then (by obtain rfl : j = 1463 := (by omega); exact ok1463) else (by obtain rfl : j = 1464 := (by omega); exact ok1464))) else (if h : j < 1467 then (if h : j < 1466 then (by obtain rfl : j = 1465 := (by omega); exact ok1465) else (by obtain rfl : j = 1466 := (by omega); exact ok1466)) else (if h : j < 1468 then (by obtain rfl : j = 1467 := (by omega); exact ok1467) else (by obtain rfl : j = 1468 := (by omega); exact ok1468)))) else (if h : j < 1472 then (if h : j < 1470 then (by obtain rfl : j = 1469 := (by omega); exact ok1469) else (if h : j < 1471 then (by obtain rfl : j = 1470 := (by omega); exact ok1470) else (by obtain rfl : j = 1471 := (by omega); exact ok1471))) else (if h : j < 1474 then (if h : j < 1473 then (by obtain rfl : j = 1472 := (by omega); exact ok1472) else (by obtain rfl : j = 1473 := (by omega); exact ok1473)) else (if h : j < 1475 then (by obtain rfl : j = 1474 := (by omega); exact ok1474) else (by obtain rfl : j = 1475 := (by omega); exact ok1475))))))) else (if h : j < 1503 then (if h : j < 1489 then (if h : j < 1482 then (if h : j < 1479 then (if h : j < 1477 then (by obtain rfl : j = 1476 := (by omega); exact ok1476) else (if h : j < 1478 then (by obtain rfl : j = 1477 := (by omega); exact ok1477) else (by obtain rfl : j = 1478 := (by omega); exact ok1478))) else (if h : j < 1480 then (by obtain rfl : j = 1479 := (by omega); exact ok1479) else (if h : j < 1481 then (by obtain rfl : j = 1480 := (by omega); exact ok1480) else (by obtain rfl : j = 1481 := (by omega); exact ok1481)))) else (if h : j < 1485 then (if h : j < 1483 then (by obtain rfl : j = 1482 := (by omega); exact ok1482) else (if h : j < 1484 then (by obtain rfl : j = 1483 := (by omega); exact ok1483) else (by obtain rfl : j = 1484 := (by omega); exact ok1484))) else (if h : j < 1487 then (if h : j < 1486 then (by obtain rfl : j = 1485 := (by omega); exact ok1485) else (by obtain rfl : j = 1486 := (by omega); exact ok1486)) else (if h : j < 1488 then (by obtain rfl : j = 1487 := (by omega); exact ok1487) else (by obtain rfl : j = 1488 := (by omega); exact ok1488))))) else (if h : j < 1496 then (if h : j < 1492 then (if h : j < 1490 then (by obtain rfl : j = 1489 := (by omega); exact ok1489) else (if h : j < 1491 then (by obtain rfl : j = 1490 := (by omega); exact ok1490) else (by obtain rfl : j = 1491 := (by omega); exact ok1491))) else (if h : j < 1494 then (if h : j < 1493 then (by obtain rfl : j = 1492 := (by omega); exact ok1492) else (by obtain rfl : j = 1493 := (by omega); exact ok1493)) else (if h : j < 1495 then (by obtain rfl : j = 1494 := (by omega); exact ok1494) else (by obtain rfl : j = 1495 := (by omega); exact ok1495)))) else (if h : j < 1499 then (if h : j < 1497 then (by obtain rfl : j = 1496 := (by omega); exact ok1496) else (if h : j < 1498 then (by obtain rfl : j = 1497 := (by omega); exact ok1497) else (by obtain rfl : j = 1498 := (by omega); exact ok1498))) else (if h : j < 1501 then (if h : j < 1500 then (by obtain rfl : j = 1499 := (by omega); exact ok1499) else (by obtain rfl : j = 1500 := (by omega); exact ok1500)) else (if h : j < 1502 then (by obtain rfl : j = 1501 := (by omega); exact ok1501) else (by obtain rfl : j = 1502 := (by omega); exact ok1502)))))) else (if h : j < 1517 then (if h : j < 1510 then (if h : j < 1506 then (if h : j < 1504 then (by obtain rfl : j = 1503 := (by omega); exact ok1503) else (if h : j < 1505 then (by obtain rfl : j = 1504 := (by omega); exact ok1504) else (by obtain rfl : j = 1505 := (by omega); exact ok1505))) else (if h : j < 1508 then (if h : j < 1507 then (by obtain rfl : j = 1506 := (by omega); exact ok1506) else (by obtain rfl : j = 1507 := (by omega); exact ok1507)) else (if h : j < 1509 then (by obtain rfl : j = 1508 := (by omega); exact ok1508) else (by obtain rfl : j = 1509 := (by omega); exact ok1509)))) else (if h : j < 1513 then (if h : j < 1511 then (by obtain rfl : j = 1510 := (by omega); exact ok1510) else (if h : j < 1512 then (by obtain rfl : j = 1511 := (by omega); exact ok1511) else (by obtain rfl : j = 1512 := (by omega); exact ok1512))) else (if h : j < 1515 then (if h : j < 1514 then (by obtain rfl : j = 1513 := (by omega); exact ok1513) else (by obtain rfl : j = 1514 := (by omega); exact ok1514)) else (if h : j < 1516 then (by obtain rfl : j = 1515 := (by omega); exact ok1515) else (by obtain rfl : j = 1516 := (by omega); exact ok1516))))) else (if h : j < 1524 then (if h : j < 1520 then (if h : j < 1518 then (by obtain rfl : j = 1517 := (by omega); exact ok1517) else (if h : j < 1519 then (by obtain rfl : j = 1518 := (by omega); exact ok1518) else (by obtain rfl : j = 1519 := (by omega); exact ok1519))) else (if h : j < 1522 then (if h : j < 1521 then (by obtain rfl : j = 1520 := (by omega); exact ok1520) else (by obtain rfl : j = 1521 := (by omega); exact ok1521)) else (if h : j < 1523 then (by obtain rfl : j = 1522 := (by omega); exact ok1522) else (by obtain rfl : j = 1523 := (by omega); exact ok1523)))) else (if h : j < 1527 then (if h : j < 1525 then (by obtain rfl : j = 1524 := (by omega); exact ok1524) else (if h : j < 1526 then (by obtain rfl : j = 1525 := (by omega); exact ok1525) else (by obtain rfl : j = 1526 := (by omega); exact ok1526))) else (if h : j < 1529 then (if h : j < 1528 then (by obtain rfl : j = 1527 := (by omega); exact ok1527) else (by obtain rfl : j = 1528 := (by omega); exact ok1528)) else (if h : j < 1530 then (by obtain rfl : j = 1529 := (by omega); exact ok1529) else (by obtain rfl : j = 1530 := (by omega); exact ok1530))))))))) else (if h : j < 1640 then (if h : j < 1585 then (if h : j < 1558 then (if h : j < 1544 then (if h : j < 1537 then (if h : j < 1534 then (if h : j < 1532 then (by obtain rfl : j = 1531 := (by omega); exact ok1531) else (if h : j < 1533 then (by obtain rfl : j = 1532 := (by omega); exact ok1532) else (by obtain rfl : j = 1533 := (by omega); exact ok1533))) else (if h : j < 1535 then (by obtain rfl : j = 1534 := (by omega); exact ok1534) else (if h : j < 1536 then (by obtain rfl : j = 1535 := (by omega); exact ok1535) else (by obtain rfl : j = 1536 := (by omega); exact ok1536)))) else (if h : j < 1540 then (if h : j < 1538 then (by obtain rfl : j = 1537 := (by omega); exact ok1537) else (if h : j < 1539 then (by obtain rfl : j = 1538 := (by omega); exact ok1538) else (by obtain rfl : j = 1539 := (by omega); exact ok1539))) else (if h : j < 1542 then (if h : j < 1541 then (by obtain rfl : j = 1540 := (by omega); exact ok1540) else (by obtain rfl : j = 1541 := (by omega); exact ok1541)) else (if h : j < 1543 then (by obtain rfl : j = 1542 := (by omega); exact ok1542) else (by obtain rfl : j = 1543 := (by omega); exact ok1543))))) else (if h : j < 1551 then (if h : j < 1547 then (if h : j < 1545 then (by obtain rfl : j = 1544 := (by omega); exact ok1544) else (if h : j < 1546 then (by obtain rfl : j = 1545 := (by omega); exact ok1545) else (by obtain rfl : j = 1546 := (by omega); exact ok1546))) else (if h : j < 1549 then (if h : j < 1548 then (by obtain rfl : j = 1547 := (by omega); exact ok1547) else (by obtain rfl : j = 1548 := (by omega); exact ok1548)) else (if h : j < 1550 then (by obtain rfl : j = 1549 := (by omega); exact ok1549) else (by obtain rfl : j = 1550 := (by omega); exact ok1550)))) else (if h : j < 1554 then (if h : j < 1552 then (by obtain rfl : j = 1551 := (by omega); exact ok1551) else (if h : j < 1553 then (by obtain rfl : j = 1552 := (by omega); exact ok1552) else (by obtain rfl : j = 1553 := (by omega); exact ok1553))) else (if h : j < 1556 then (if h : j < 1555 then (by obtain rfl : j = 1554 := (by omega); exact ok1554) else (by obtain rfl : j = 1555 := (by omega); exact ok1555)) else (if h : j < 1557 then (by obtain rfl : j = 1556 := (by omega); exact ok1556) else (by obtain rfl : j = 1557 := (by omega); exact ok1557)))))) else (if h : j < 1571 then (if h : j < 1564 then (if h : j < 1561 then (if h : j < 1559 then (by obtain rfl : j = 1558 := (by omega); exact ok1558) else (if h : j < 1560 then (by obtain rfl : j = 1559 := (by omega); exact ok1559) else (by obtain rfl : j = 1560 := (by omega); exact ok1560))) else (if h : j < 1562 then (by obtain rfl : j = 1561 := (by omega); exact ok1561) else (if h : j < 1563 then (by obtain rfl : j = 1562 := (by omega); exact ok1562) else (by obtain rfl : j = 1563 := (by omega); exact ok1563)))) else (if h : j < 1567 then (if h : j < 1565 then (by obtain rfl : j = 1564 := (by omega); exact ok1564) else (if h : j < 1566 then (by obtain rfl : j = 1565 := (by omega); exact ok1565) else (by obtain rfl : j = 1566 := (by omega); exact ok1566))) else (if h : j < 1569 then (if h : j < 1568 then (by obtain rfl : j = 1567 := (by omega); exact ok1567) else (by obtain rfl : j = 1568 := (by omega); exact ok1568)) else (if h : j < 1570 then (by obtain rfl : j = 1569 := (by omega); exact ok1569) else (by obtain rfl : j = 1570 := (by omega); exact ok1570))))) else (if h : j < 1578 then (if h : j < 1574 then (if h : j < 1572 then (by obtain rfl : j = 1571 := (by omega); exact ok1571) else (if h : j < 1573 then (by obtain rfl : j = 1572 := (by omega); exact ok1572) else (by obtain rfl : j = 1573 := (by omega); exact ok1573))) else (if h : j < 1576 then (if h : j < 1575 then (by obtain rfl : j = 1574 := (by omega); exact ok1574) else (by obtain rfl : j = 1575 := (by omega); exact ok1575)) else (if h : j < 1577 then (by obtain rfl : j = 1576 := (by omega); exact ok1576) else (by obtain rfl : j = 1577 := (by omega); exact ok1577)))) else (if h : j < 1581 then (if h : j < 1579 then (by obtain rfl : j = 1578 := (by omega); exact ok1578) else (if h : j < 1580 then (by obtain rfl : j = 1579 := (by omega); exact ok1579) else (by obtain rfl : j = 1580 := (by omega); exact ok1580))) else (if h : j < 1583 then (if h : j < 1582 then (by obtain rfl : j = 1581 := (by omega); exact ok1581) else (by obtain rfl : j = 1582 := (by omega); exact ok1582)) else (if h : j < 1584 then (by obtain rfl : j = 1583 := (by omega); exact ok1583) else (by obtain rfl : j = 1584 := (by omega); exact ok1584))))))) else (if h : j < 1612 then (if h : j < 1598 then (if h : j < 1591 then (if h : j < 1588 then (if h : j < 1586 then (by obtain rfl : j = 1585 := (by omega); exact ok1585) else (if h : j < 1587 then (by obtain rfl : j = 1586 := (by omega); exact ok1586) else (by obtain rfl : j = 1587 := (by omega); exact ok1587))) else (if h : j < 1589 then (by obtain rfl : j = 1588 := (by omega); exact ok1588) else (if h : j < 1590 then (by obtain rfl : j = 1589 := (by omega); exact ok1589) else (by obtain rfl : j = 1590 := (by omega); exact ok1590)))) else (if h : j < 1594 then (if h : j < 1592 then (by obtain rfl : j = 1591 := (by omega); exact ok1591) else (if h : j < 1593 then (by obtain rfl : j = 1592 := (by omega); exact ok1592) else (by obtain rfl : j = 1593 := (by omega); exact ok1593))) else (if h : j < 1596 then (if h : j < 1595 then (by obtain rfl : j = 1594 := (by omega); exact ok1594) else (by obtain rfl : j = 1595 := (by omega); exact ok1595)) else (if h : j < 1597 then (by obtain rfl : j = 1596 := (by omega); exact ok1596) else (by obtain rfl : j = 1597 := (by omega); exact ok1597))))) else (if h : j < 1605 then (if h : j < 1601 then (if h : j < 1599 then (by obtain rfl : j = 1598 := (by omega); exact ok1598) else (if h : j < 1600 then (by obtain rfl : j = 1599 := (by omega); exact ok1599) else (by obtain rfl : j = 1600 := (by omega); exact ok1600))) else (if h : j < 1603 then (if h : j < 1602 then (by obtain rfl : j = 1601 := (by omega); exact ok1601) else (by obtain rfl : j = 1602 := (by omega); exact ok1602)) else (if h : j < 1604 then (by obtain rfl : j = 1603 := (by omega); exact ok1603) else (by obtain rfl : j = 1604 := (by omega); exact ok1604)))) else (if h : j < 1608 then (if h : j < 1606 then (by obtain rfl : j = 1605 := (by omega); exact ok1605) else (if h : j < 1607 then (by obtain rfl : j = 1606 := (by omega); exact ok1606) else (by obtain rfl : j = 1607 := (by omega); exact ok1607))) else (if h : j < 1610 then (if h : j < 1609 then (by obtain rfl : j = 1608 := (by omega); exact ok1608) else (by obtain rfl : j = 1609 := (by omega); exact ok1609)) else (if h : j < 1611 then (by obtain rfl : j = 1610 := (by omega); exact ok1610) else (by obtain rfl : j = 1611 := (by omega); exact ok1611)))))) else (if h : j < 1626 then (if h : j < 1619 then (if h : j < 1615 then (if h : j < 1613 then (by obtain rfl : j = 1612 := (by omega); exact ok1612) else (if h : j < 1614 then (by obtain rfl : j = 1613 := (by omega); exact ok1613) else (by obtain rfl : j = 1614 := (by omega); exact ok1614))) else (if h : j < 1617 then (if h : j < 1616 then (by obtain rfl : j = 1615 := (by omega); exact ok1615) else (by obtain rfl : j = 1616 := (by omega); exact ok1616)) else (if h : j < 1618 then (by obtain rfl : j = 1617 := (by omega); exact ok1617) else (by obtain rfl : j = 1618 := (by omega); exact ok1618)))) else (if h : j < 1622 then (if h : j < 1620 then (by obtain rfl : j = 1619 := (by omega); exact ok1619) else (if h : j < 1621 then (by obtain rfl : j = 1620 := (by omega); exact ok1620) else (by obtain rfl : j = 1621 := (by omega); exact ok1621))) else (if h : j < 1624 then (if h : j < 1623 then (by obtain rfl : j = 1622 := (by omega); exact ok1622) else (by obtain rfl : j = 1623 := (by omega); exact ok1623)) else (if h : j < 1625 then (by obtain rfl : j = 1624 := (by omega); exact ok1624) else (by obtain rfl : j = 1625 := (by omega); exact ok1625))))) else (if h : j < 1633 then (if h : j < 1629 then (if h : j < 1627 then (by obtain rfl : j = 1626 := (by omega); exact ok1626) else (if h : j < 1628 then (by obtain rfl : j = 1627 := (by omega); exact ok1627) else (by obtain rfl : j = 1628 := (by omega); exact ok1628))) else (if h : j < 1631 then (if h : j < 1630 then (by obtain rfl : j = 1629 := (by omega); exact ok1629) else (by obtain rfl : j = 1630 := (by omega); exact ok1630)) else (if h : j < 1632 then (by obtain rfl : j = 1631 := (by omega); exact ok1631) else (by obtain rfl : j = 1632 := (by omega); exact ok1632)))) else (if h : j < 1636 then (if h : j < 1634 then (by obtain rfl : j = 1633 := (by omega); exact ok1633) else (if h : j < 1635 then (by obtain rfl : j = 1634 := (by omega); exact ok1634) else (by obtain rfl : j = 1635 := (by omega); exact ok1635))) else (if h : j < 1638 then (if h : j < 1637 then (by obtain rfl : j = 1636 := (by omega); exact ok1636) else (by obtain rfl : j = 1637 := (by omega); exact ok1637)) else (if h : j < 1639 then (by obtain rfl : j = 1638 := (by omega); exact ok1638) else (by obtain rfl : j = 1639 := (by omega); exact ok1639)))))))) else (if h : j < 1695 then (if h : j < 1667 then (if h : j < 1653 then (if h : j < 1646 then (if h : j < 1643 then (if h : j < 1641 then (by obtain rfl : j = 1640 := (by omega); exact ok1640) else (if h : j < 1642 then (by obtain rfl : j = 1641 := (by omega); exact ok1641) else (by obtain rfl : j = 1642 := (by omega); exact ok1642))) else (if h : j < 1644 then (by obtain rfl : j = 1643 := (by omega); exact ok1643) else (if h : j < 1645 then (by obtain rfl : j = 1644 := (by omega); exact ok1644) else (by obtain rfl : j = 1645 := (by omega); exact ok1645)))) else (if h : j < 1649 then (if h : j < 1647 then (by obtain rfl : j = 1646 := (by omega); exact ok1646) else (if h : j < 1648 then (by obtain rfl : j = 1647 := (by omega); exact ok1647) else (by obtain rfl : j = 1648 := (by omega); exact ok1648))) else (if h : j < 1651 then (if h : j < 1650 then (by obtain rfl : j = 1649 := (by omega); exact ok1649) else (by obtain rfl : j = 1650 := (by omega); exact ok1650)) else (if h : j < 1652 then (by obtain rfl : j = 1651 := (by omega); exact ok1651) else (by obtain rfl : j = 1652 := (by omega); exact ok1652))))) else (if h : j < 1660 then (if h : j < 1656 then (if h : j < 1654 then (by obtain rfl : j = 1653 := (by omega); exact ok1653) else (if h : j < 1655 then (by obtain rfl : j = 1654 := (by omega); exact ok1654) else (by obtain rfl : j = 1655 := (by omega); exact ok1655))) else (if h : j < 1658 then (if h : j < 1657 then (by obtain rfl : j = 1656 := (by omega); exact ok1656) else (by obtain rfl : j = 1657 := (by omega); exact ok1657)) else (if h : j < 1659 then (by obtain rfl : j = 1658 := (by omega); exact ok1658) else (by obtain rfl : j = 1659 := (by omega); exact ok1659)))) else (if h : j < 1663 then (if h : j < 1661 then (by obtain rfl : j = 1660 := (by omega); exact ok1660) else (if h : j < 1662 then (by obtain rfl : j = 1661 := (by omega); exact ok1661) else (by obtain rfl : j = 1662 := (by omega); exact ok1662))) else (if h : j < 1665 then (if h : j < 1664 then (by obtain rfl : j = 1663 := (by omega); exact ok1663) else (by obtain rfl : j = 1664 := (by omega); exact ok1664)) else (if h : j < 1666 then (by obtain rfl : j = 1665 := (by omega); exact ok1665) else (by obtain rfl : j = 1666 := (by omega); exact ok1666)))))) else (if h : j < 1681 then (if h : j < 1674 then (if h : j < 1670 then (if h : j < 1668 then (by obtain rfl : j = 1667 := (by omega); exact ok1667) else (if h : j < 1669 then (by obtain rfl : j = 1668 := (by omega); exact ok1668) else (by obtain rfl : j = 1669 := (by omega); exact ok1669))) else (if h : j < 1672 then (if h : j < 1671 then (by obtain rfl : j = 1670 := (by omega); exact ok1670) else (by obtain rfl : j = 1671 := (by omega); exact ok1671)) else (if h : j < 1673 then (by obtain rfl : j = 1672 := (by omega); exact ok1672) else (by obtain rfl : j = 1673 := (by omega); exact ok1673)))) else (if h : j < 1677 then (if h : j < 1675 then (by obtain rfl : j = 1674 := (by omega); exact ok1674) else (if h : j < 1676 then (by obtain rfl : j = 1675 := (by omega); exact ok1675) else (by obtain rfl : j = 1676 := (by omega); exact ok1676))) else (if h : j < 1679 then (if h : j < 1678 then (by obtain rfl : j = 1677 := (by omega); exact ok1677) else (by obtain rfl : j = 1678 := (by omega); exact ok1678)) else (if h : j < 1680 then (by obtain rfl : j = 1679 := (by omega); exact ok1679) else (by obtain rfl : j = 1680 := (by omega); exact ok1680))))) else (if h : j < 1688 then (if h : j < 1684 then (if h : j < 1682 then (by obtain rfl : j = 1681 := (by omega); exact ok1681) else (if h : j < 1683 then (by obtain rfl : j = 1682 := (by omega); exact ok1682) else (by obtain rfl : j = 1683 := (by omega); exact ok1683))) else (if h : j < 1686 then (if h : j < 1685 then (by obtain rfl : j = 1684 := (by omega); exact ok1684) else (by obtain rfl : j = 1685 := (by omega); exact ok1685)) else (if h : j < 1687 then (by obtain rfl : j = 1686 := (by omega); exact ok1686) else (by obtain rfl : j = 1687 := (by omega); exact ok1687)))) else (if h : j < 1691 then (if h : j < 1689 then (by obtain rfl : j = 1688 := (by omega); exact ok1688) else (if h : j < 1690 then (by obtain rfl : j = 1689 := (by omega); exact ok1689) else (by obtain rfl : j = 1690 := (by omega); exact ok1690))) else (if h : j < 1693 then (if h : j < 1692 then (by obtain rfl : j = 1691 := (by omega); exact ok1691) else (by obtain rfl : j = 1692 := (by omega); exact ok1692)) else (if h : j < 1694 then (by obtain rfl : j = 1693 := (by omega); exact ok1693) else (by obtain rfl : j = 1694 := (by omega); exact ok1694))))))) else (if h : j < 1722 then (if h : j < 1708 then (if h : j < 1701 then (if h : j < 1698 then (if h : j < 1696 then (by obtain rfl : j = 1695 := (by omega); exact ok1695) else (if h : j < 1697 then (by obtain rfl : j = 1696 := (by omega); exact ok1696) else (by obtain rfl : j = 1697 := (by omega); exact ok1697))) else (if h : j < 1699 then (by obtain rfl : j = 1698 := (by omega); exact ok1698) else (if h : j < 1700 then (by obtain rfl : j = 1699 := (by omega); exact ok1699) else (by obtain rfl : j = 1700 := (by omega); exact ok1700)))) else (if h : j < 1704 then (if h : j < 1702 then (by obtain rfl : j = 1701 := (by omega); exact ok1701) else (if h : j < 1703 then (by obtain rfl : j = 1702 := (by omega); exact ok1702) else (by obtain rfl : j = 1703 := (by omega); exact ok1703))) else (if h : j < 1706 then (if h : j < 1705 then (by obtain rfl : j = 1704 := (by omega); exact ok1704) else (by obtain rfl : j = 1705 := (by omega); exact ok1705)) else (if h : j < 1707 then (by obtain rfl : j = 1706 := (by omega); exact ok1706) else (by obtain rfl : j = 1707 := (by omega); exact ok1707))))) else (if h : j < 1715 then (if h : j < 1711 then (if h : j < 1709 then (by obtain rfl : j = 1708 := (by omega); exact ok1708) else (if h : j < 1710 then (by obtain rfl : j = 1709 := (by omega); exact ok1709) else (by obtain rfl : j = 1710 := (by omega); exact ok1710))) else (if h : j < 1713 then (if h : j < 1712 then (by obtain rfl : j = 1711 := (by omega); exact ok1711) else (by obtain rfl : j = 1712 := (by omega); exact ok1712)) else (if h : j < 1714 then (by obtain rfl : j = 1713 := (by omega); exact ok1713) else (by obtain rfl : j = 1714 := (by omega); exact ok1714)))) else (if h : j < 1718 then (if h : j < 1716 then (by obtain rfl : j = 1715 := (by omega); exact ok1715) else (if h : j < 1717 then (by obtain rfl : j = 1716 := (by omega); exact ok1716) else (by obtain rfl : j = 1717 := (by omega); exact ok1717))) else (if h : j < 1720 then (if h : j < 1719 then (by obtain rfl : j = 1718 := (by omega); exact ok1718) else (by obtain rfl : j = 1719 := (by omega); exact ok1719)) else (if h : j < 1721 then (by obtain rfl : j = 1720 := (by omega); exact ok1720) else (by obtain rfl : j = 1721 := (by omega); exact ok1721)))))) else (if h : j < 1736 then (if h : j < 1729 then (if h : j < 1725 then (if h : j < 1723 then (by obtain rfl : j = 1722 := (by omega); exact ok1722) else (if h : j < 1724 then (by obtain rfl : j = 1723 := (by omega); exact ok1723) else (by obtain rfl : j = 1724 := (by omega); exact ok1724))) else (if h : j < 1727 then (if h : j < 1726 then (by obtain rfl : j = 1725 := (by omega); exact ok1725) else (by obtain rfl : j = 1726 := (by omega); exact ok1726)) else (if h : j < 1728 then (by obtain rfl : j = 1727 := (by omega); exact ok1727) else (by obtain rfl : j = 1728 := (by omega); exact ok1728)))) else (if h : j < 1732 then (if h : j < 1730 then (by obtain rfl : j = 1729 := (by omega); exact ok1729) else (if h : j < 1731 then (by obtain rfl : j = 1730 := (by omega); exact ok1730) else (by obtain rfl : j = 1731 := (by omega); exact ok1731))) else (if h : j < 1734 then (if h : j < 1733 then (by obtain rfl : j = 1732 := (by omega); exact ok1732) else (by obtain rfl : j = 1733 := (by omega); exact ok1733)) else (if h : j < 1735 then (by obtain rfl : j = 1734 := (by omega); exact ok1734) else (by obtain rfl : j = 1735 := (by omega); exact ok1735))))) else (if h : j < 1743 then (if h : j < 1739 then (if h : j < 1737 then (by obtain rfl : j = 1736 := (by omega); exact ok1736) else (if h : j < 1738 then (by obtain rfl : j = 1737 := (by omega); exact ok1737) else (by obtain rfl : j = 1738 := (by omega); exact ok1738))) else (if h : j < 1741 then (if h : j < 1740 then (by obtain rfl : j = 1739 := (by omega); exact ok1739) else (by obtain rfl : j = 1740 := (by omega); exact ok1740)) else (if h : j < 1742 then (by obtain rfl : j = 1741 := (by omega); exact ok1741) else (by obtain rfl : j = 1742 := (by omega); exact ok1742)))) else (if h : j < 1746 then (if h : j < 1744 then (by obtain rfl : j = 1743 := (by omega); exact ok1743) else (if h : j < 1745 then (by obtain rfl : j = 1744 := (by omega); exact ok1744) else (by obtain rfl : j = 1745 := (by omega); exact ok1745))) else (if h : j < 1748 then (if h : j < 1747 then (by obtain rfl : j = 1746 := (by omega); exact ok1746) else (by obtain rfl : j = 1747 := (by omega); exact ok1747)) else (if h : j < 1749 then (by obtain rfl : j = 1748 := (by omega); exact ok1748) else (by obtain rfl : j = 1749 := (by omega); exact ok1749))))))))))))
+  have h2 : j < 1209 := h2
+  (if h : j < 605 then (if h : j < 303 then (if h : j < 152 then (if h : j < 76 then (if h : j < 38 then (if h : j < 19 then (if h : j < 10 then (if h : j < 5 then (if h : j < 3 then (if h : j < 2 then (by obtain rfl : j = 1 := (by omega); exact ok1) else (by obtain rfl : j = 2 := (by omega); exact ok2)) else (if h : j < 4 then (by obtain rfl : j = 3 := (by omega); exact ok3) else (by obtain rfl : j = 4 := (by omega); exact ok4))) else (if h : j < 7 then (if h : j < 6 then (by obtain rfl : j = 5 := (by omega); exact ok5) else (by obtain rfl : j = 6 := (by omega); exact ok6)) else (if h : j < 8 then (by obtain rfl : j = 7 := (by omega); exact ok7) else (if h : j < 9 then (by obtain rfl : j = 8 := (by omega); exact ok8) else (by obtain rfl : j = 9 := (by omega); exact ok9))))) else (if h : j < 14 then (if h : j < 12 then (if h : j < 11 then (by obtain rfl : j = 10 := (by omega); exact ok10) else (by obtain rfl : j = 11 := (by omega); exact ok11)) else (if h : j < 13 then (by obtain rfl : j = 12 := (by omega); exact ok12) else (by obtain rfl : j = 13 := (by omega); exact ok13))) else (if h : j < 16 then (if h : j < 15 then (by obtain rfl : j = 14 := (by omega); exact ok14) else (by obtain rfl : j = 15 := (by omega); exact ok15)) else (if h : j < 17 then (by obtain rfl : j = 16 := (by omega); exact ok16) else (if h : j < 18 then (by obtain rfl : j = 17 := (by omega); exact ok17) else (by obtain rfl : j = 18 := (by omega); exact ok18)))))) else (if h : j < 28 then (if h : j < 23 then (if h : j < 21 then (if h : j < 20 then (by obtain rfl : j = 19 := (by omega); exact ok19) else (by obtain rfl : j = 20 := (by omega); exact ok20)) else (if h : j < 22 then (by obtain rfl : j = 21 := (by omega); exact ok21) else (by obtain rfl : j = 22 := (by omega); exact ok22))) else (if h : j < 25 then (if h : j < 24 then (by obtain rfl : j = 23 := (by omega); exact ok23) else (by obtain rfl : j = 24 := (by omega); exact ok24)) else (if h : j < 26 then (by obtain rfl : j = 25 := (by omega); exact ok25) else (if h : j < 27 then (by obtain rfl : j = 26 := (by omega); exact ok26) else (by obtain rfl : j = 27 := (by omega); exact ok27))))) else (if h : j < 33 then (if h : j < 30 then (if h : j < 29 then (by obtain rfl : j = 28 := (by omega); exact ok28) else (by obtain rfl : j = 29 := (by omega); exact ok29)) else (if h : j < 31 then (by obtain rfl : j = 30 := (by omega); exact ok30) else (if h : j < 32 then (by obtain rfl : j = 31 := (by omega); exact ok31) else (by obtain rfl : j = 32 := (by omega); exact ok32)))) else (if h : j < 35 then (if h : j < 34 then (by obtain rfl : j = 33 := (by omega); exact ok33) else (by obtain rfl : j = 34 := (by omega); exact ok34)) else (if h : j < 36 then (by obtain rfl : j = 35 := (by omega); exact ok35) else (if h : j < 37 then (by obtain rfl : j = 36 := (by omega); exact ok36) else (by obtain rfl : j = 37 := (by omega); exact ok37))))))) else (if h : j < 57 then (if h : j < 47 then (if h : j < 42 then (if h : j < 40 then (if h : j < 39 then (by obtain rfl : j = 38 := (by omega); exact ok38) else (by obtain rfl : j = 39 := (by omega); exact ok39)) else (if h : j < 41 then (by obtain rfl : j = 40 := (by omega); exact ok40) else (by obtain rfl : j = 41 := (by omega); exact ok41))) else (if h : j < 44 then (if h : j < 43 then (by obtain rfl : j = 42 := (by omega); exact ok42) else (by obtain rfl : j = 43 := (by omega); exact ok43)) else (if h : j < 45 then (by obtain rfl : j = 44 := (by omega); exact ok44) else (if h : j < 46 then (by obtain rfl : j = 45 := (by omega); exact ok45) else (by obtain rfl : j = 46 := (by omega); exact ok46))))) else (if h : j < 52 then (if h : j < 49 then (if h : j < 48 then (by obtain rfl : j = 47 := (by omega); exact ok47) else (by obtain rfl : j = 48 := (by omega); exact ok48)) else (if h : j < 50 then (by obtain rfl : j = 49 := (by omega); exact ok49) else (if h : j < 51 then (by obtain rfl : j = 50 := (by omega); exact ok50) else (by obtain rfl : j = 51 := (by omega); exact ok51)))) else (if h : j < 54 then (if h : j < 53 then (by obtain rfl : j = 52 := (by omega); exact ok52) else (by obtain rfl : j = 53 := (by omega); exact ok53)) else (if h : j < 55 then (by obtain rfl : j = 54 := (by omega); exact ok54) else (if h : j < 56 then (by obtain rfl : j = 55 := (by omega); exact ok55) else (by obtain rfl : j = 56 := (by omega); exact ok56)))))) else (if h : j < 66 then (if h : j < 61 then (if h : j < 59 then (if h : j < 58 then (by obtain rfl : j = 57 := (by omega); exact ok57) else (by obtain rfl : j = 58 := (by omega); exact ok58)) else (if h : j < 60 then (by obtain rfl : j = 59 := (by omega); exact ok59) else (by obtain rfl : j = 60 := (by omega); exact ok60))) else (if h : j < 63 then (if h : j < 62 then (by obtain rfl : j = 61 := (by omega); exact ok61) else (by obtain rfl : j = 62 := (by omega); exact ok62)) else (if h : j < 64 then (by obtain rfl : j = 63 := (by omega); exact ok63) else (if h : j < 65 then (by obtain rfl : j = 64 := (by omega); exact ok64) else (by obtain rfl : j = 65 := (by omega); exact ok65))))) else (if h : j < 71 then (if h : j < 68 then (if h : j < 67 then (by obtain rfl : j = 66 := (by omega); exact ok66) else (by obtain rfl : j = 67 := (by omega); exact ok67)) else (if h : j < 69 then (by obtain rfl : j = 68 := (by omega); exact ok68) else (if h : j < 70 then (by obtain rfl : j = 69 := (by omega); exact ok69) else (by obtain rfl : j = 70 := (by omega); exact ok70)))) else (if h : j < 73 then (if h : j < 72 then (by obtain rfl : j = 71 := (by omega); exact ok71) else (by obtain rfl : j = 72 := (by omega); exact ok72)) else (if h : j < 74 then (by obtain rfl : j = 73 := (by omega); exact ok73) else (if h : j < 75 then (by obtain rfl : j = 74 := (by omega); exact ok74) else (by obtain rfl : j = 75 := (by omega); exact ok75)))))))) else (if h : j < 114 then (if h : j < 95 then (if h : j < 85 then (if h : j < 80 then (if h : j < 78 then (if h : j < 77 then (by obtain rfl : j = 76 := (by omega); exact ok76) else (by obtain rfl : j = 77 := (by omega); exact ok77)) else (if h : j < 79 then (by obtain rfl : j = 78 := (by omega); exact ok78) else (by obtain rfl : j = 79 := (by omega); exact ok79))) else (if h : j < 82 then (if h : j < 81 then (by obtain rfl : j = 80 := (by omega); exact ok80) else (by obtain rfl : j = 81 := (by omega); exact ok81)) else (if h : j < 83 then (by obtain rfl : j = 82 := (by omega); exact ok82) else (if h : j < 84 then (by obtain rfl : j = 83 := (by omega); exact ok83) else (by obtain rfl : j = 84 := (by omega); exact ok84))))) else (if h : j < 90 then (if h : j < 87 then (if h : j < 86 then (by obtain rfl : j = 85 := (by omega); exact ok85) else (by obtain rfl : j = 86 := (by omega); exact ok86)) else (if h : j < 88 then (by obtain rfl : j = 87 := (by omega); exact ok87) else (if h : j < 89 then (by obtain rfl : j = 88 := (by omega); exact ok88) else (by obtain rfl : j = 89 := (by omega); exact ok89)))) else (if h : j < 92 then (if h : j < 91 then (by obtain rfl : j = 90 := (by omega); exact ok90) else (by obtain rfl : j = 91 := (by omega); exact ok91)) else (if h : j < 93 then (by obtain rfl : j = 92 := (by omega); exact ok92) else (if h : j < 94 then (by obtain rfl : j = 93 := (by omega); exact ok93) else (by obtain rfl : j = 94 := (by omega); exact ok94)))))) else (if h : j < 104 then (if h : j < 99 then (if h : j < 97 then (if h : j < 96 then (by obtain rfl : j = 95 := (by omega); exact ok95) else (by obtain rfl : j = 96 := (by omega); exact ok96)) else (if h : j < 98 then (by obtain rfl : j = 97 := (by omega); exact ok97) else (by obtain rfl : j = 98 := (by omega); exact ok98))) else (if h : j < 101 then (if h : j < 100 then (by obtain rfl : j = 99 := (by omega); exact ok99) else (by obtain rfl : j = 100 := (by omega); exact ok100)) else (if h : j < 102 then (by obtain rfl : j = 101 := (by omega); exact ok101) else (if h : j < 103 then (by obtain rfl : j = 102 := (by omega); exact ok102) else (by obtain rfl : j = 103 := (by omega); exact ok103))))) else (if h : j < 109 then (if h : j < 106 then (if h : j < 105 then (by obtain rfl : j = 104 := (by omega); exact ok104) else (by obtain rfl : j = 105 := (by omega); exact ok105)) else (if h : j < 107 then (by obtain rfl : j = 106 := (by omega); exact ok106) else (if h : j < 108 then (by obtain rfl : j = 107 := (by omega); exact ok107) else (by obtain rfl : j = 108 := (by omega); exact ok108)))) else (if h : j < 111 then (if h : j < 110 then (by obtain rfl : j = 109 := (by omega); exact ok109) else (by obtain rfl : j = 110 := (by omega); exact ok110)) else (if h : j < 112 then (by obtain rfl : j = 111 := (by omega); exact ok111) else (if h : j < 113 then (by obtain rfl : j = 112 := (by omega); exact ok112) else (by obtain rfl : j = 113 := (by omega); exact ok113))))))) else (if h : j < 133 then (if h : j < 123 then (if h : j < 118 then (if h : j < 116 then (if h : j < 115 then (by obtain rfl : j = 114 := (by omega); exact ok114) else (by obtain rfl : j = 115 := (by omega); exact ok115)) else (if h : j < 117 then (by obtain rfl : j = 116 := (by omega); exact ok116) else (by obtain rfl : j = 117 := (by omega); exact ok117))) else (if h : j < 120 then (if h : j < 119 then (by obtain rfl : j = 118 := (by omega); exact ok118) else (by obtain rfl : j = 119 := (by omega); exact ok119)) else (if h : j < 121 then (by obtain rfl : j = 120 := (by omega); exact ok120) else (if h : j < 122 then (by obtain rfl : j = 121 := (by omega); exact ok121) else (by obtain rfl : j = 122 := (by omega); exact ok122))))) else (if h : j < 128 then (if h : j < 125 then (if h : j < 124 then (by obtain rfl : j = 123 := (by omega); exact ok123) else (by obtain rfl : j = 124 := (by omega); exact ok124)) else (if h : j < 126 then (by obtain rfl : j = 125 := (by omega); exact ok125) else (if h : j < 127 then (by obtain rfl : j = 126 := (by omega); exact ok126) else (by obtain rfl : j = 127 := (by omega); exact ok127)))) else (if h : j < 130 then (if h : j < 129 then (by obtain rfl : j = 128 := (by omega); exact ok128) else (by obtain rfl : j = 129 := (by omega); exact ok129)) else (if h : j < 131 then (by obtain rfl : j = 130 := (by omega); exact ok130) else (if h : j < 132 then (by obtain rfl : j = 131 := (by omega); exact ok131) else (by obtain rfl : j = 132 := (by omega); exact ok132)))))) else (if h : j < 142 then (if h : j < 137 then (if h : j < 135 then (if h : j < 134 then (by obtain rfl : j = 133 := (by omega); exact ok133) else (by obtain rfl : j = 134 := (by omega); exact ok134)) else (if h : j < 136 then (by obtain rfl : j = 135 := (by omega); exact ok135) else (by obtain rfl : j = 136 := (by omega); exact ok136))) else (if h : j < 139 then (if h : j < 138 then (by obtain rfl : j = 137 := (by omega); exact ok137) else (by obtain rfl : j = 138 := (by omega); exact ok138)) else (if h : j < 140 then (by obtain rfl : j = 139 := (by omega); exact ok139) else (if h : j < 141 then (by obtain rfl : j = 140 := (by omega); exact ok140) else (by obtain rfl : j = 141 := (by omega); exact ok141))))) else (if h : j < 147 then (if h : j < 144 then (if h : j < 143 then (by obtain rfl : j = 142 := (by omega); exact ok142) else (by obtain rfl : j = 143 := (by omega); exact ok143)) else (if h : j < 145 then (by obtain rfl : j = 144 := (by omega); exact ok144) else (if h : j < 146 then (by obtain rfl : j = 145 := (by omega); exact ok145) else (by obtain rfl : j = 146 := (by omega); exact ok146)))) else (if h : j < 149 then (if h : j < 148 then (by obtain rfl : j = 147 := (by omega); exact ok147) else (by obtain rfl : j = 148 := (by omega); exact ok148)) else (if h : j < 150 then (by obtain rfl : j = 149 := (by omega); exact ok149) else (if h : j < 151 then (by obtain rfl : j = 150 := (by omega); exact ok150) else (by obtain rfl : j = 151 := (by omega); exact ok151))))))))) else (if h : j < 227 then (if h : j < 189 then (if h : j < 170 then (if h : j < 161 then (if h : j < 156 then (if h : j < 154 then (if h : j < 153 then (by obtain rfl : j = 152 := (by omega); exact ok152) else (by obtain rfl : j = 153 := (by omega); exact ok153)) else (if h : j < 155 then (by obtain rfl : j = 154 := (by omega); exact ok154) else (by obtain rfl : j = 155 := (by omega); exact ok155))) else (if h : j < 158 then (if h : j < 157 then (by obtain rfl : j = 156 := (by omega); exact ok156) else (by obtain rfl : j = 157 := (by omega); exact ok157)) else (if h : j < 159 then (by obtain rfl : j = 158 := (by omega); exact ok158) else (if h : j < 160 then (by obtain rfl : j = 159 := (by omega); exact ok159) else (by obtain rfl : j = 160 := (by omega); exact ok160))))) else (if h : j < 165 then (if h : j < 163 then (if h : j < 162 then (by obtain rfl : j = 161 := (by omega); exact ok161) else (by obtain rfl : j = 162 := (by omega); exact ok162)) else (if h : j < 164 then (by obtain rfl : j = 163 := (by omega); exact ok163) else (by obtain rfl : j = 164 := (by omega); exact ok164))) else (if h : j < 167 then (if h : j < 166 then (by obtain rfl : j = 165 := (by omega); exact ok165) else (by obtain rfl : j = 166 := (by omega); exact ok166)) else (if h : j < 168 then (by obtain rfl : j = 167 := (by omega); exact ok167) else (if h : j < 169 then (by obtain rfl : j = 168 := (by omega); exact ok168) else (by obtain rfl : j = 169 := (by omega); exact ok169)))))) else (if h : j < 179 then (if h : j < 174 then (if h : j < 172 then (if h : j < 171 then (by obtain rfl : j = 170 := (by omega); exact ok170) else (by obtain rfl : j = 171 := (by omega); exact ok171)) else (if h : j < 173 then (by obtain rfl : j = 172 := (by omega); exact ok172) else (by obtain rfl : j = 173 := (by omega); exact ok173))) else (if h : j < 176 then (if h : j < 175 then (by obtain rfl : j = 174 := (by omega); exact ok174) else (by obtain rfl : j = 175 := (by omega); exact ok175)) else (if h : j < 177 then (by obtain rfl : j = 176 := (by omega); exact ok176) else (if h : j < 178 then (by obtain rfl : j = 177 := (by omega); exact ok177) else (by obtain rfl : j = 178 := (by omega); exact ok178))))) else (if h : j < 184 then (if h : j < 181 then (if h : j < 180 then (by obtain rfl : j = 179 := (by omega); exact ok179) else (by obtain rfl : j = 180 := (by omega); exact ok180)) else (if h : j < 182 then (by obtain rfl : j = 181 := (by omega); exact ok181) else (if h : j < 183 then (by obtain rfl : j = 182 := (by omega); exact ok182) else (by obtain rfl : j = 183 := (by omega); exact ok183)))) else (if h : j < 186 then (if h : j < 185 then (by obtain rfl : j = 184 := (by omega); exact ok184) else (by obtain rfl : j = 185 := (by omega); exact ok185)) else (if h : j < 187 then (by obtain rfl : j = 186 := (by omega); exact ok186) else (if h : j < 188 then (by obtain rfl : j = 187 := (by omega); exact ok187) else (by obtain rfl : j = 188 := (by omega); exact ok188))))))) else (if h : j < 208 then (if h : j < 198 then (if h : j < 193 then (if h : j < 191 then (if h : j < 190 then (by obtain rfl : j = 189 := (by omega); exact ok189) else (by obtain rfl : j = 190 := (by omega); exact ok190)) else (if h : j < 192 then (by obtain rfl : j = 191 := (by omega); exact ok191) else (by obtain rfl : j = 192 := (by omega); exact ok192))) else (if h : j < 195 then (if h : j < 194 then (by obtain rfl : j = 193 := (by omega); exact ok193) else (by obtain rfl : j = 194 := (by omega); exact ok194)) else (if h : j < 196 then (by obtain rfl : j = 195 := (by omega); exact ok195) else (if h : j < 197 then (by obtain rfl : j = 196 := (by omega); exact ok196) else (by obtain rfl : j = 197 := (by omega); exact ok197))))) else (if h : j < 203 then (if h : j < 200 then (if h : j < 199 then (by obtain rfl : j = 198 := (by omega); exact ok198) else (by obtain rfl : j = 199 := (by omega); exact ok199)) else (if h : j < 201 then (by obtain rfl : j = 200 := (by omega); exact ok200) else (if h : j < 202 then (by obtain rfl : j = 201 := (by omega); exact ok201) else (by obtain rfl : j = 202 := (by omega); exact ok202)))) else (if h : j < 205 then (if h : j < 204 then (by obtain rfl : j = 203 := (by omega); exact ok203) else (by obtain rfl : j = 204 := (by omega); exact ok204)) else (if h : j < 206 then (by obtain rfl : j = 205 := (by omega); exact ok205) else (if h : j < 207 then (by obtain rfl : j = 206 := (by omega); exact ok206) else (by obtain rfl : j = 207 := (by omega); exact ok207)))))) else (if h : j < 217 then (if h : j < 212 then (if h : j < 210 then (if h : j < 209 then (by obtain rfl : j = 208 := (by omega); exact ok208) else (by obtain rfl : j = 209 := (by omega); exact ok209)) else (if h : j < 211 then (by obtain rfl : j = 210 := (by omega); exact ok210) else (by obtain rfl : j = 211 := (by omega); exact ok211))) else (if h : j < 214 then (if h : j < 213 then (by obtain rfl : j = 212 := (by omega); exact ok212) else (by obtain rfl : j = 213 := (by omega); exact ok213)) else (if h : j < 215 then (by obtain rfl : j = 214 := (by omega); exact ok214) else (if h : j < 216 then (by obtain rfl : j = 215 := (by omega); exact ok215) else (by obtain rfl : j = 216 := (by omega); exact ok216))))) else (if h : j < 222 then (if h : j < 219 then (if h : j < 218 then (by obtain rfl : j = 217 := (by omega); exact ok217) else (by obtain rfl : j = 218 := (by omega); exact ok218)) else (if h : j < 220 then (by obtain rfl : j = 219 := (by omega); exact ok219) else (if h : j < 221 then (by obtain rfl : j = 220 := (by omega); exact ok220) else (by obtain rfl : j = 221 := (by omega); exact ok221)))) else (if h : j < 224 then (if h : j < 223 then (by obtain rfl : j = 222 := (by omega); exact ok222) else (by obtain rfl : j = 223 := (by omega); exact ok223)) else (if h : j < 225 then (by obtain rfl : j = 224 := (by omega); exact ok224) else (if h : j < 226 then (by obtain rfl : j = 225 := (by omega); exact ok225) else (by obtain rfl : j = 226 := (by omega); exact ok226)))))))) else (if h : j < 265 then (if h : j < 246 then (if h : j < 236 then (if h : j < 231 then (if h : j < 229 then (if h : j < 228 then (by obtain rfl : j = 227 := (by omega); exact ok227) else (by obtain rfl : j = 228 := (by omega); exact ok228)) else (if h : j < 230 then (by obtain rfl : j = 229 := (by omega); exact ok229) else (by obtain rfl : j = 230 := (by omega); exact ok230))) else (if h : j < 233 then (if h : j < 232 then (by obtain rfl : j = 231 := (by omega); exact ok231) else (by obtain rfl : j = 232 := (by omega); exact ok232)) else (if h : j < 234 then (by obtain rfl : j = 233 := (by omega); exact ok233) else (if h : j < 235 then (by obtain rfl : j = 234 := (by omega); exact ok234) else (by obtain rfl : j = 235 := (by omega); exact ok235))))) else (if h : j < 241 then (if h : j < 238 then (if h : j < 237 then (by obtain rfl : j = 236 := (by omega); exact ok236) else (by obtain rfl : j = 237 := (by omega); exact ok237)) else (if h : j < 239 then (by obtain rfl : j = 238 := (by omega); exact ok238) else (if h : j < 240 then (by obtain rfl : j = 239 := (by omega); exact ok239) else (by obtain rfl : j = 240 := (by omega); exact ok240)))) else (if h : j < 243 then (if h : j < 242 then (by obtain rfl : j = 241 := (by omega); exact ok241) else (by obtain rfl : j = 242 := (by omega); exact ok242)) else (if h : j < 244 then (by obtain rfl : j = 243 := (by omega); exact ok243) else (if h : j < 245 then (by obtain rfl : j = 244 := (by omega); exact ok244) else (by obtain rfl : j = 245 := (by omega); exact ok245)))))) else (if h : j < 255 then (if h : j < 250 then (if h : j < 248 then (if h : j < 247 then (by obtain rfl : j = 246 := (by omega); exact ok246) else (by obtain rfl : j = 247 := (by omega); exact ok247)) else (if h : j < 249 then (by obtain rfl : j = 248 := (by omega); exact ok248) else (by obtain rfl : j = 249 := (by omega); exact ok249))) else (if h : j < 252 then (if h : j < 251 then (by obtain rfl : j = 250 := (by omega); exact ok250) else (by obtain rfl : j = 251 := (by omega); exact ok251)) else (if h : j < 253 then (by obtain rfl : j = 252 := (by omega); exact ok252) else (if h : j < 254 then (by obtain rfl : j = 253 := (by omega); exact ok253) else (by obtain rfl : j = 254 := (by omega); exact ok254))))) else (if h : j < 260 then (if h : j < 257 then (if h : j < 256 then (by obtain rfl : j = 255 := (by omega); exact ok255) else (by obtain rfl : j = 256 := (by omega); exact ok256)) else (if h : j < 258 then (by obtain rfl : j = 257 := (by omega); exact ok257) else (if h : j < 259 then (by obtain rfl : j = 258 := (by omega); exact ok258) else (by obtain rfl : j = 259 := (by omega); exact ok259)))) else (if h : j < 262 then (if h : j < 261 then (by obtain rfl : j = 260 := (by omega); exact ok260) else (by obtain rfl : j = 261 := (by omega); exact ok261)) else (if h : j < 263 then (by obtain rfl : j = 262 := (by omega); exact ok262) else (if h : j < 264 then (by obtain rfl : j = 263 := (by omega); exact ok263) else (by obtain rfl : j = 264 := (by omega); exact ok264))))))) else (if h : j < 284 then (if h : j < 274 then (if h : j < 269 then (if h : j < 267 then (if h : j < 266 then (by obtain rfl : j = 265 := (by omega); exact ok265) else (by obtain rfl : j = 266 := (by omega); exact ok266)) else (if h : j < 268 then (by obtain rfl : j = 267 := (by omega); exact ok267) else (by obtain rfl : j = 268 := (by omega); exact ok268))) else (if h : j < 271 then (if h : j < 270 then (by obtain rfl : j = 269 := (by omega); exact ok269) else (by obtain rfl : j = 270 := (by omega); exact ok270)) else (if h : j < 272 then (by obtain rfl : j = 271 := (by omega); exact ok271) else (if h : j < 273 then (by obtain rfl : j = 272 := (by omega); exact ok272) else (by obtain rfl : j = 273 := (by omega); exact ok273))))) else (if h : j < 279 then (if h : j < 276 then (if h : j < 275 then (by obtain rfl : j = 274 := (by omega); exact ok274) else (by obtain rfl : j = 275 := (by omega); exact ok275)) else (if h : j < 277 then (by obtain rfl : j = 276 := (by omega); exact ok276) else (if h : j < 278 then (by obtain rfl : j = 277 := (by omega); exact ok277) else (by obtain rfl : j = 278 := (by omega); exact ok278)))) else (if h : j < 281 then (if h : j < 280 then (by obtain rfl : j = 279 := (by omega); exact ok279) else (by obtain rfl : j = 280 := (by omega); exact ok280)) else (if h : j < 282 then (by obtain rfl : j = 281 := (by omega); exact ok281) else (if h : j < 283 then (by obtain rfl : j = 282 := (by omega); exact ok282) else (by obtain rfl : j = 283 := (by omega); exact ok283)))))) else (if h : j < 293 then (if h : j < 288 then (if h : j < 286 then (if h : j < 285 then (by obtain rfl : j = 284 := (by omega); exact ok284) else (by obtain rfl : j = 285 := (by omega); exact ok285)) else (if h : j < 287 then (by obtain rfl : j = 286 := (by omega); exact ok286) else (by obtain rfl : j = 287 := (by omega); exact ok287))) else (if h : j < 290 then (if h : j < 289 then (by obtain rfl : j = 288 := (by omega); exact ok288) else (by obtain rfl : j = 289 := (by omega); exact ok289)) else (if h : j < 291 then (by obtain rfl : j = 290 := (by omega); exact ok290) else (if h : j < 292 then (by obtain rfl : j = 291 := (by omega); exact ok291) else (by obtain rfl : j = 292 := (by omega); exact ok292))))) else (if h : j < 298 then (if h : j < 295 then (if h : j < 294 then (by obtain rfl : j = 293 := (by omega); exact ok293) else (by obtain rfl : j = 294 := (by omega); exact ok294)) else (if h : j < 296 then (by obtain rfl : j = 295 := (by omega); exact ok295) else (if h : j < 297 then (by obtain rfl : j = 296 := (by omega); exact ok296) else (by obtain rfl : j = 297 := (by omega); exact ok297)))) else (if h : j < 300 then (if h : j < 299 then (by obtain rfl : j = 298 := (by omega); exact ok298) else (by obtain rfl : j = 299 := (by omega); exact ok299)) else (if h : j < 301 then (by obtain rfl : j = 300 := (by omega); exact ok300) else (if h : j < 302 then (by obtain rfl : j = 301 := (by omega); exact ok301) else (by obtain rfl : j = 302 := (by omega); exact ok302)))))))))) else (if h : j < 454 then (if h : j < 378 then (if h : j < 340 then (if h : j < 321 then (if h : j < 312 then (if h : j < 307 then (if h : j < 305 then (if h : j < 304 then (by obtain rfl : j = 303 := (by omega); exact ok303) else (by obtain rfl : j = 304 := (by omega); exact ok304)) else (if h : j < 306 then (by obtain rfl : j = 305 := (by omega); exact ok305) else (by obtain rfl : j = 306 := (by omega); exact ok306))) else (if h : j < 309 then (if h : j < 308 then (by obtain rfl : j = 307 := (by omega); exact ok307) else (by obtain rfl : j = 308 := (by omega); exact ok308)) else (if h : j < 310 then (by obtain rfl : j = 309 := (by omega); exact ok309) else (if h : j < 311 then (by obtain rfl : j = 310 := (by omega); exact ok310) else (by obtain rfl : j = 311 := (by omega); exact ok311))))) else (if h : j < 316 then (if h : j < 314 then (if h : j < 313 then (by obtain rfl : j = 312 := (by omega); exact ok312) else (by obtain rfl : j = 313 := (by omega); exact ok313)) else (if h : j < 315 then (by obtain rfl : j = 314 := (by omega); exact ok314) else (by obtain rfl : j = 315 := (by omega); exact ok315))) else (if h : j < 318 then (if h : j < 317 then (by obtain rfl : j = 316 := (by omega); exact ok316) else (by obtain rfl : j = 317 := (by omega); exact ok317)) else (if h : j < 319 then (by obtain rfl : j = 318 := (by omega); exact ok318) else (if h : j < 320 then (by obtain rfl : j = 319 := (by omega); exact ok319) else (by obtain rfl : j = 320 := (by omega); exact ok320)))))) else (if h : j < 330 then (if h : j < 325 then (if h : j < 323 then (if h : j < 322 then (by obtain rfl : j = 321 := (by omega); exact ok321) else (by obtain rfl : j = 322 := (by omega); exact ok322)) else (if h : j < 324 then (by obtain rfl : j = 323 := (by omega); exact ok323) else (by obtain rfl : j = 324 := (by omega); exact ok324))) else (if h : j < 327 then (if h : j < 326 then (by obtain rfl : j = 325 := (by omega); exact ok325) else (by obtain rfl : j = 326 := (by omega); exact ok326)) else (if h : j < 328 then (by obtain rfl : j = 327 := (by omega); exact ok327) else (if h : j < 329 then (by obtain rfl : j = 328 := (by omega); exact ok328) else (by obtain rfl : j = 329 := (by omega); exact ok329))))) else (if h : j < 335 then (if h : j < 332 then (if h : j < 331 then (by obtain rfl : j = 330 := (by omega); exact ok330) else (by obtain rfl : j = 331 := (by omega); exact ok331)) else (if h : j < 333 then (by obtain rfl : j = 332 := (by omega); exact ok332) else (if h : j < 334 then (by obtain rfl : j = 333 := (by omega); exact ok333) else (by obtain rfl : j = 334 := (by omega); exact ok334)))) else (if h : j < 337 then (if h : j < 336 then (by obtain rfl : j = 335 := (by omega); exact ok335) else (by obtain rfl : j = 336 := (by omega); exact ok336)) else (if h : j < 338 then (by obtain rfl : j = 337 := (by omega); exact ok337) else (if h : j < 339 then (by obtain rfl : j = 338 := (by omega); exact ok338) else (by obtain rfl : j = 339 := (by omega); exact ok339))))))) else (if h : j < 359 then (if h : j < 349 then (if h : j < 344 then (if h : j < 342 then (if h : j < 341 then (by obtain rfl : j = 340 := (by omega); exact ok340) else (by obtain rfl : j = 341 := (by omega); exact ok341)) else (if h : j < 343 then (by obtain rfl : j = 342 := (by omega); exact ok342) else (by obtain rfl : j = 343 := (by omega); exact ok343))) else (if h : j < 346 then (if h : j < 345 then (by obtain rfl : j = 344 := (by omega); exact ok344) else (by obtain rfl : j = 345 := (by omega); exact ok345)) else (if h : j < 347 then (by obtain rfl : j = 346 := (by omega); exact ok346) else (if h : j < 348 then (by obtain rfl : j = 347 := (by omega); exact ok347) else (by obtain rfl : j = 348 := (by omega); exact ok348))))) else (if h : j < 354 then (if h : j < 351 then (if h : j < 350 then (by obtain rfl : j = 349 := (by omega); exact ok349) else (by obtain rfl : j = 350 := (by omega); exact ok350)) else (if h : j < 352 then (by obtain rfl : j = 351 := (by omega); exact ok351) else (if h : j < 353 then (by obtain rfl : j = 352 := (by omega); exact ok352) else (by obtain rfl : j = 353 := (by omega); exact ok353)))) else (if h : j < 356 then (if h : j < 355 then (by obtain rfl : j = 354 := (by omega); exact ok354) else (by obtain rfl : j = 355 := (by omega); exact ok355)) else (if h : j < 357 then (by obtain rfl : j = 356 := (by omega); exact ok356) else (if h : j < 358 then (by obtain rfl : j = 357 := (by omega); exact ok357) else (by obtain rfl : j = 358 := (by omega); exact ok358)))))) else (if h : j < 368 then (if h : j < 363 then (if h : j < 361 then (if h : j < 360 then (by obtain rfl : j = 359 := (by omega); exact ok359) else (by obtain rfl : j = 360 := (by omega); exact ok360)) else (if h : j < 362 then (by obtain rfl : j = 361 := (by omega); exact ok361) else (by obtain rfl : j = 362 := (by omega); exact ok362))) else (if h : j < 365 then (if h : j < 364 then (by obtain rfl : j = 363 := (by omega); exact ok363) else (by obtain rfl : j = 364 := (by omega); exact ok364)) else (if h : j < 366 then (by obtain rfl : j = 365 := (by omega); exact ok365) else (if h : j < 367 then (by obtain rfl : j = 366 := (by omega); exact ok366) else (by obtain rfl : j = 367 := (by omega); exact ok367))))) else (if h : j < 373 then (if h : j < 370 then (if h : j < 369 then (by obtain rfl : j = 368 := (by omega); exact ok368) else (by obtain rfl : j = 369 := (by omega); exact ok369)) else (if h : j < 371 then (by obtain rfl : j = 370 := (by omega); exact ok370) else (if h : j < 372 then (by obtain rfl : j = 371 := (by omega); exact ok371) else (by obtain rfl : j = 372 := (by omega); exact ok372)))) else (if h : j < 375 then (if h : j < 374 then (by obtain rfl : j = 373 := (by omega); exact ok373) else (by obtain rfl : j = 374 := (by omega); exact ok374)) else (if h : j < 376 then (by obtain rfl : j = 375 := (by omega); exact ok375) else (if h : j < 377 then (by obtain rfl : j = 376 := (by omega); exact ok376) else (by obtain rfl : j = 377 := (by omega); exact ok377)))))))) else (if h : j < 416 then (if h : j < 397 then (if h : j < 387 then (if h : j < 382 then (if h : j < 380 then (if h : j < 379 then (by obtain rfl : j = 378 := (by omega); exact ok378) else (by obtain rfl : j = 379 := (by omega); exact ok379)) else (if h : j < 381 then (by obtain rfl : j = 380 := (by omega); exact ok380) else (by obtain rfl : j = 381 := (by omega); exact ok381))) else (if h : j < 384 then (if h : j < 383 then (by obtain rfl : j = 382 := (by omega); exact ok382) else (by obtain rfl : j = 383 := (by omega); exact ok383)) else (if h : j < 385 then (by obtain rfl : j = 384 := (by omega); exact ok384) else (if h : j < 386 then (by obtain rfl : j = 385 := (by omega); exact ok385) else (by obtain rfl : j = 386 := (by omega); exact ok386))))) else (if h : j < 392 then (if h : j < 389 then (if h : j < 388 then (by obtain rfl : j = 387 := (by omega); exact ok387) else (by obtain rfl : j = 388 := (by omega); exact ok388)) else (if h : j < 390 then (by obtain rfl : j = 389 := (by omega); exact ok389) else (if h : j < 391 then (by obtain rfl : j = 390 := (by omega); exact ok390) else (by obtain rfl : j = 391 := (by omega); exact ok391)))) else (if h : j < 394 then (if h : j < 393 then (by obtain rfl : j = 392 := (by omega); exact ok392) else (by obtain rfl : j = 393 := (by omega); exact ok393)) else (if h : j < 395 then (by obtain rfl : j = 394 := (by omega); exact ok394) else (if h : j < 396 then (by obtain rfl : j = 395 := (by omega); exact ok395) else (by obtain rfl : j = 396 := (by omega); exact ok396)))))) else (if h : j < 406 then (if h : j < 401 then (if h : j < 399 then (if h : j < 398 then (by obtain rfl : j = 397 := (by omega); exact ok397) else (by obtain rfl : j = 398 := (by omega); exact ok398)) else (if h : j < 400 then (by obtain rfl : j = 399 := (by omega); exact ok399) else (by obtain rfl : j = 400 := (by omega); exact ok400))) else (if h : j < 403 then (if h : j < 402 then (by obtain rfl : j = 401 := (by omega); exact ok401) else (by obtain rfl : j = 402 := (by omega); exact ok402)) else (if h : j < 404 then (by obtain rfl : j = 403 := (by omega); exact ok403) else (if h : j < 405 then (by obtain rfl : j = 404 := (by omega); exact ok404) else (by obtain rfl : j = 405 := (by omega); exact ok405))))) else (if h : j < 411 then (if h : j < 408 then (if h : j < 407 then (by obtain rfl : j = 406 := (by omega); exact ok406) else (by obtain rfl : j = 407 := (by omega); exact ok407)) else (if h : j < 409 then (by obtain rfl : j = 408 := (by omega); exact ok408) else (if h : j < 410 then (by obtain rfl : j = 409 := (by omega); exact ok409) else (by obtain rfl : j = 410 := (by omega); exact ok410)))) else (if h : j < 413 then (if h : j < 412 then (by obtain rfl : j = 411 := (by omega); exact ok411) else (by obtain rfl : j = 412 := (by omega); exact ok412)) else (if h : j < 414 then (by obtain rfl : j = 413 := (by omega); exact ok413) else (if h : j < 415 then (by obtain rfl : j = 414 := (by omega); exact ok414) else (by obtain rfl : j = 415 := (by omega); exact ok415))))))) else (if h : j < 435 then (if h : j < 425 then (if h : j < 420 then (if h : j < 418 then (if h : j < 417 then (by obtain rfl : j = 416 := (by omega); exact ok416) else (by obtain rfl : j = 417 := (by omega); exact ok417)) else (if h : j < 419 then (by obtain rfl : j = 418 := (by omega); exact ok418) else (by obtain rfl : j = 419 := (by omega); exact ok419))) else (if h : j < 422 then (if h : j < 421 then (by obtain rfl : j = 420 := (by omega); exact ok420) else (by obtain rfl : j = 421 := (by omega); exact ok421)) else (if h : j < 423 then (by obtain rfl : j = 422 := (by omega); exact ok422) else (if h : j < 424 then (by obtain rfl : j = 423 := (by omega); exact ok423) else (by obtain rfl : j = 424 := (by omega); exact ok424))))) else (if h : j < 430 then (if h : j < 427 then (if h : j < 426 then (by obtain rfl : j = 425 := (by omega); exact ok425) else (by obtain rfl : j = 426 := (by omega); exact ok426)) else (if h : j < 428 then (by obtain rfl : j = 427 := (by omega); exact ok427) else (if h : j < 429 then (by obtain rfl : j = 428 := (by omega); exact ok428) else (by obtain rfl : j = 429 := (by omega); exact ok429)))) else (if h : j < 432 then (if h : j < 431 then (by obtain rfl : j = 430 := (by omega); exact ok430) else (by obtain rfl : j = 431 := (by omega); exact ok431)) else (if h : j < 433 then (by obtain rfl : j = 432 := (by omega); exact ok432) else (if h : j < 434 then (by obtain rfl : j = 433 := (by omega); exact ok433) else (by obtain rfl : j = 434 := (by omega); exact ok434)))))) else (if h : j < 444 then (if h : j < 439 then (if h : j < 437 then (if h : j < 436 then (by obtain rfl : j = 435 := (by omega); exact ok435) else (by obtain rfl : j = 436 := (by omega); exact ok436)) else (if h : j < 438 then (by obtain rfl : j = 437 := (by omega); exact ok437) else (by obtain rfl : j = 438 := (by omega); exact ok438))) else (if h : j < 441 then (if h : j < 440 then (by obtain rfl : j = 439 := (by omega); exact ok439) else (by obtain rfl : j = 440 := (by omega); exact ok440)) else (if h : j < 442 then (by obtain rfl : j = 441 := (by omega); exact ok441) else (if h : j < 443 then (by obtain rfl : j = 442 := (by omega); exact ok442) else (by obtain rfl : j = 443 := (by omega); exact ok443))))) else (if h : j < 449 then (if h : j < 446 then (if h : j < 445 then (by obtain rfl : j = 444 := (by omega); exact ok444) else (by obtain rfl : j = 445 := (by omega); exact ok445)) else (if h : j < 447 then (by obtain rfl : j = 446 := (by omega); exact ok446) else (if h : j < 448 then (by obtain rfl : j = 447 := (by omega); exact ok447) else (by obtain rfl : j = 448 := (by omega); exact ok448)))) else (if h : j < 451 then (if h : j < 450 then (by obtain rfl : j = 449 := (by omega); exact ok449) else (by obtain rfl : j = 450 := (by omega); exact ok450)) else (if h : j < 452 then (by obtain rfl : j = 451 := (by omega); exact ok451) else (if h : j < 453 then (by obtain rfl : j = 452 := (by omega); exact ok452) else (by obtain rfl : j = 453 := (by omega); exact ok453))))))))) else (if h : j < 529 then (if h : j < 491 then (if h : j < 472 then (if h : j < 463 then (if h : j < 458 then (if h : j < 456 then (if h : j < 455 then (by obtain rfl : j = 454 := (by omega); exact ok454) else (by obtain rfl : j = 455 := (by omega); exact ok455)) else (if h : j < 457 then (by obtain rfl : j = 456 := (by omega); exact ok456) else (by obtain rfl : j = 457 := (by omega); exact ok457))) else (if h : j < 460 then (if h : j < 459 then (by obtain rfl : j = 458 := (by omega); exact ok458) else (by obtain rfl : j = 459 := (by omega); exact ok459)) else (if h : j < 461 then (by obtain rfl : j = 460 := (by omega); exact ok460) else (if h : j < 462 then (by obtain rfl : j = 461 := (by omega); exact ok461) else (by obtain rfl : j = 462 := (by omega); exact ok462))))) else (if h : j < 467 then (if h : j < 465 then (if h : j < 464 then (by obtain rfl : j = 463 := (by omega); exact ok463) else (by obtain rfl : j = 464 := (by omega); exact ok464)) else (if h : j < 466 then (by obtain rfl : j = 465 := (by omega); exact ok465) else (by obtain rfl : j = 466 := (by omega); exact ok466))) else (if h : j < 469 then (if h : j < 468 then (by obtain rfl : j = 467 := (by omega); exact ok467) else (by obtain rfl : j = 468 := (by omega); exact ok468)) else (if h : j < 470 then (by obtain rfl : j = 469 := (by omega); exact ok469) else (if h : j < 471 then (by obtain rfl : j = 470 := (by omega); exact ok470) else (by obtain rfl : j = 471 := (by omega); exact ok471)))))) else (if h : j < 481 then (if h : j < 476 then (if h : j < 474 then (if h : j < 473 then (by obtain rfl : j = 472 := (by omega); exact ok472) else (by obtain rfl : j = 473 := (by omega); exact ok473)) else (if h : j < 475 then (by obtain rfl : j = 474 := (by omega); exact ok474) else (by obtain rfl : j = 475 := (by omega); exact ok475))) else (if h : j < 478 then (if h : j < 477 then (by obtain rfl : j = 476 := (by omega); exact ok476) else (by obtain rfl : j = 477 := (by omega); exact ok477)) else (if h : j < 479 then (by obtain rfl : j = 478 := (by omega); exact ok478) else (if h : j < 480 then (by obtain rfl : j = 479 := (by omega); exact ok479) else (by obtain rfl : j = 480 := (by omega); exact ok480))))) else (if h : j < 486 then (if h : j < 483 then (if h : j < 482 then (by obtain rfl : j = 481 := (by omega); exact ok481) else (by obtain rfl : j = 482 := (by omega); exact ok482)) else (if h : j < 484 then (by obtain rfl : j = 483 := (by omega); exact ok483) else (if h : j < 485 then (by obtain rfl : j = 484 := (by omega); exact ok484) else (by obtain rfl : j = 485 := (by omega); exact ok485)))) else (if h : j < 488 then (if h : j < 487 then (by obtain rfl : j = 486 := (by omega); exact ok486) else (by obtain rfl : j = 487 := (by omega); exact ok487)) else (if h : j < 489 then (by obtain rfl : j = 488 := (by omega); exact ok488) else (if h : j < 490 then (by obtain rfl : j = 489 := (by omega); exact ok489) else (by obtain rfl : j = 490 := (by omega); exact ok490))))))) else (if h : j < 510 then (if h : j < 500 then (if h : j < 495 then (if h : j < 493 then (if h : j < 492 then (by obtain rfl : j = 491 := (by omega); exact ok491) else (by obtain rfl : j = 492 := (by omega); exact ok492)) else (if h : j < 494 then (by obtain rfl : j = 493 := (by omega); exact ok493) else (by obtain rfl : j = 494 := (by omega); exact ok494))) else (if h : j < 497 then (if h : j < 496 then (by obtain rfl : j = 495 := (by omega); exact ok495) else (by obtain rfl : j = 496 := (by omega); exact ok496)) else (if h : j < 498 then (by obtain rfl : j = 497 := (by omega); exact ok497) else (if h : j < 499 then (by obtain rfl : j = 498 := (by omega); exact ok498) else (by obtain rfl : j = 499 := (by omega); exact ok499))))) else (if h : j < 505 then (if h : j < 502 then (if h : j < 501 then (by obtain rfl : j = 500 := (by omega); exact ok500) else (by obtain rfl : j = 501 := (by omega); exact ok501)) else (if h : j < 503 then (by obtain rfl : j = 502 := (by omega); exact ok502) else (if h : j < 504 then (by obtain rfl : j = 503 := (by omega); exact ok503) else (by obtain rfl : j = 504 := (by omega); exact ok504)))) else (if h : j < 507 then (if h : j < 506 then (by obtain rfl : j = 505 := (by omega); exact ok505) else (by obtain rfl : j = 506 := (by omega); exact ok506)) else (if h : j < 508 then (by obtain rfl : j = 507 := (by omega); exact ok507) else (if h : j < 509 then (by obtain rfl : j = 508 := (by omega); exact ok508) else (by obtain rfl : j = 509 := (by omega); exact ok509)))))) else (if h : j < 519 then (if h : j < 514 then (if h : j < 512 then (if h : j < 511 then (by obtain rfl : j = 510 := (by omega); exact ok510) else (by obtain rfl : j = 511 := (by omega); exact ok511)) else (if h : j < 513 then (by obtain rfl : j = 512 := (by omega); exact ok512) else (by obtain rfl : j = 513 := (by omega); exact ok513))) else (if h : j < 516 then (if h : j < 515 then (by obtain rfl : j = 514 := (by omega); exact ok514) else (by obtain rfl : j = 515 := (by omega); exact ok515)) else (if h : j < 517 then (by obtain rfl : j = 516 := (by omega); exact ok516) else (if h : j < 518 then (by obtain rfl : j = 517 := (by omega); exact ok517) else (by obtain rfl : j = 518 := (by omega); exact ok518))))) else (if h : j < 524 then (if h : j < 521 then (if h : j < 520 then (by obtain rfl : j = 519 := (by omega); exact ok519) else (by obtain rfl : j = 520 := (by omega); exact ok520)) else (if h : j < 522 then (by obtain rfl : j = 521 := (by omega); exact ok521) else (if h : j < 523 then (by obtain rfl : j = 522 := (by omega); exact ok522) else (by obtain rfl : j = 523 := (by omega); exact ok523)))) else (if h : j < 526 then (if h : j < 525 then (by obtain rfl : j = 524 := (by omega); exact ok524) else (by obtain rfl : j = 525 := (by omega); exact ok525)) else (if h : j < 527 then (by obtain rfl : j = 526 := (by omega); exact ok526) else (if h : j < 528 then (by obtain rfl : j = 527 := (by omega); exact ok527) else (by obtain rfl : j = 528 := (by omega); exact ok528)))))))) else (if h : j < 567 then (if h : j < 548 then (if h : j < 538 then (if h : j < 533 then (if h : j < 531 then (if h : j < 530 then (by obtain rfl : j = 529 := (by omega); exact ok529) else (by obtain rfl : j = 530 := (by omega); exact ok530)) else (if h : j < 532 then (by obtain rfl : j = 531 := (by omega); exact ok531) else (by obtain rfl : j = 532 := (by omega); exact ok532))) else (if h : j < 535 then (if h : j < 534 then (by obtain rfl : j = 533 := (by omega); exact ok533) else (by obtain rfl : j = 534 := (by omega); exact ok534)) else (if h : j < 536 then (by obtain rfl : j = 535 := (by omega); exact ok535) else (if h : j < 537 then (by obtain rfl : j = 536 := (by omega); exact ok536) else (by obtain rfl : j = 537 := (by omega); exact ok537))))) else (if h : j < 543 then (if h : j < 540 then (if h : j < 539 then (by obtain rfl : j = 538 := (by omega); exact ok538) else (by obtain rfl : j = 539 := (by omega); exact ok539)) else (if h : j < 541 then (by obtain rfl : j = 540 := (by omega); exact ok540) else (if h : j < 542 then (by obtain rfl : j = 541 := (by omega); exact ok541) else (by obtain rfl : j = 542 := (by omega); exact ok542)))) else (if h : j < 545 then (if h : j < 544 then (by obtain rfl : j = 543 := (by omega); exact ok543) else (by obtain rfl : j = 544 := (by omega); exact ok544)) else (if h : j < 546 then (by obtain rfl : j = 545 := (by omega); exact ok545) else (if h : j < 547 then (by obtain rfl : j = 546 := (by omega); exact ok546) else (by obtain rfl : j = 547 := (by omega); exact ok547)))))) else (if h : j < 557 then (if h : j < 552 then (if h : j < 550 then (if h : j < 549 then (by obtain rfl : j = 548 := (by omega); exact ok548) else (by obtain rfl : j = 549 := (by omega); exact ok549)) else (if h : j < 551 then (by obtain rfl : j = 550 := (by omega); exact ok550) else (by obtain rfl : j = 551 := (by omega); exact ok551))) else (if h : j < 554 then (if h : j < 553 then (by obtain rfl : j = 552 := (by omega); exact ok552) else (by obtain rfl : j = 553 := (by omega); exact ok553)) else (if h : j < 555 then (by obtain rfl : j = 554 := (by omega); exact ok554) else (if h : j < 556 then (by obtain rfl : j = 555 := (by omega); exact ok555) else (by obtain rfl : j = 556 := (by omega); exact ok556))))) else (if h : j < 562 then (if h : j < 559 then (if h : j < 558 then (by obtain rfl : j = 557 := (by omega); exact ok557) else (by obtain rfl : j = 558 := (by omega); exact ok558)) else (if h : j < 560 then (by obtain rfl : j = 559 := (by omega); exact ok559) else (if h : j < 561 then (by obtain rfl : j = 560 := (by omega); exact ok560) else (by obtain rfl : j = 561 := (by omega); exact ok561)))) else (if h : j < 564 then (if h : j < 563 then (by obtain rfl : j = 562 := (by omega); exact ok562) else (by obtain rfl : j = 563 := (by omega); exact ok563)) else (if h : j < 565 then (by obtain rfl : j = 564 := (by omega); exact ok564) else (if h : j < 566 then (by obtain rfl : j = 565 := (by omega); exact ok565) else (by obtain rfl : j = 566 := (by omega); exact ok566))))))) else (if h : j < 586 then (if h : j < 576 then (if h : j < 571 then (if h : j < 569 then (if h : j < 568 then (by obtain rfl : j = 567 := (by omega); exact ok567) else (by obtain rfl : j = 568 := (by omega); exact ok568)) else (if h : j < 570 then (by obtain rfl : j = 569 := (by omega); exact ok569) else (by obtain rfl : j = 570 := (by omega); exact ok570))) else (if h : j < 573 then (if h : j < 572 then (by obtain rfl : j = 571 := (by omega); exact ok571) else (by obtain rfl : j = 572 := (by omega); exact ok572)) else (if h : j < 574 then (by obtain rfl : j = 573 := (by omega); exact ok573) else (if h : j < 575 then (by obtain rfl : j = 574 := (by omega); exact ok574) else (by obtain rfl : j = 575 := (by omega); exact ok575))))) else (if h : j < 581 then (if h : j < 578 then (if h : j < 577 then (by obtain rfl : j = 576 := (by omega); exact ok576) else (by obtain rfl : j = 577 := (by omega); exact ok577)) else (if h : j < 579 then (by obtain rfl : j = 578 := (by omega); exact ok578) else (if h : j < 580 then (by obtain rfl : j = 579 := (by omega); exact ok579) else (by obtain rfl : j = 580 := (by omega); exact ok580)))) else (if h : j < 583 then (if h : j < 582 then (by obtain rfl : j = 581 := (by omega); exact ok581) else (by obtain rfl : j = 582 := (by omega); exact ok582)) else (if h : j < 584 then (by obtain rfl : j = 583 := (by omega); exact ok583) else (if h : j < 585 then (by obtain rfl : j = 584 := (by omega); exact ok584) else (by obtain rfl : j = 585 := (by omega); exact ok585)))))) else (if h : j < 595 then (if h : j < 590 then (if h : j < 588 then (if h : j < 587 then (by obtain rfl : j = 586 := (by omega); exact ok586) else (by obtain rfl : j = 587 := (by omega); exact ok587)) else (if h : j < 589 then (by obtain rfl : j = 588 := (by omega); exact ok588) else (by obtain rfl : j = 589 := (by omega); exact ok589))) else (if h : j < 592 then (if h : j < 591 then (by obtain rfl : j = 590 := (by omega); exact ok590) else (by obtain rfl : j = 591 := (by omega); exact ok591)) else (if h : j < 593 then (by obtain rfl : j = 592 := (by omega); exact ok592) else (if h : j < 594 then (by obtain rfl : j = 593 := (by omega); exact ok593) else (by obtain rfl : j = 594 := (by omega); exact ok594))))) else (if h : j < 600 then (if h : j < 597 then (if h : j < 596 then (by obtain rfl : j = 595 := (by omega); exact ok595) else (by obtain rfl : j = 596 := (by omega); exact ok596)) else (if h : j < 598 then (by obtain rfl : j = 597 := (by omega); exact ok597) else (if h : j < 599 then (by obtain rfl : j = 598 := (by omega); exact ok598) else (by obtain rfl : j = 599 := (by omega); exact ok599)))) else (if h : j < 602 then (if h : j < 601 then (by obtain rfl : j = 600 := (by omega); exact ok600) else (by obtain rfl : j = 601 := (by omega); exact ok601)) else (if h : j < 603 then (by obtain rfl : j = 602 := (by omega); exact ok602) else (if h : j < 604 then (by obtain rfl : j = 603 := (by omega); exact ok603) else (by obtain rfl : j = 604 := (by omega); exact ok604))))))))))) else (if h : j < 907 then (if h : j < 756 then (if h : j < 680 then (if h : j < 642 then (if h : j < 623 then (if h : j < 614 then (if h : j < 609 then (if h : j < 607 then (if h : j < 606 then (by obtain rfl : j = 605 := (by omega); exact ok605) else (by obtain rfl : j = 606 := (by omega); exact ok606)) else (if h : j < 608 then (by obtain rfl : j = 607 := (by omega); exact ok607) else (by obtain rfl : j = 608 := (by omega); exact ok608))) else (if h : j < 611 then (if h : j < 610 then (by obtain rfl : j = 609 := (by omega); exact ok609) else (by obtain rfl : j = 610 := (by omega); exact ok610)) else (if h : j < 612 then (by obtain rfl : j = 611 := (by omega); exact ok611) else (if h : j < 613 then (by obtain rfl : j = 612 := (by omega); exact ok612) else (by obtain rfl : j = 613 := (by omega); exact ok613))))) else (if h : j < 618 then (if h : j < 616 then (if h : j < 615 then (by obtain rfl : j = 614 := (by omega); exact ok614) else (by obtain rfl : j = 615 := (by omega); exact ok615)) else (if h : j < 617 then (by obtain rfl : j = 616 := (by omega); exact ok616) else (by obtain rfl : j = 617 := (by omega); exact ok617))) else (if h : j < 620 then (if h : j < 619 then (by obtain rfl : j = 618 := (by omega); exact ok618) else (by obtain rfl : j = 619 := (by omega); exact ok619)) else (if h : j < 621 then (by obtain rfl : j = 620 := (by omega); exact ok620) else (if h : j < 622 then (by obtain rfl : j = 621 := (by omega); exact ok621) else (by obtain rfl : j = 622 := (by omega); exact ok622)))))) else (if h : j < 632 then (if h : j < 627 then (if h : j < 625 then (if h : j < 624 then (by obtain rfl : j = 623 := (by omega); exact ok623) else (by obtain rfl : j = 624 := (by omega); exact ok624)) else (if h : j < 626 then (by obtain rfl : j = 625 := (by omega); exact ok625) else (by obtain rfl : j = 626 := (by omega); exact ok626))) else (if h : j < 629 then (if h : j < 628 then (by obtain rfl : j = 627 := (by omega); exact ok627) else (by obtain rfl : j = 628 := (by omega); exact ok628)) else (if h : j < 630 then (by obtain rfl : j = 629 := (by omega); exact ok629) else (if h : j < 631 then (by obtain rfl : j = 630 := (by omega); exact ok630) else (by obtain rfl : j = 631 := (by omega); exact ok631))))) else (if h : j < 637 then (if h : j < 634 then (if h : j < 633 then (by obtain rfl : j = 632 := (by omega); exact ok632) else (by obtain rfl : j = 633 := (by omega); exact ok633)) else (if h : j < 635 then (by obtain rfl : j = 634 := (by omega); exact ok634) else (if h : j < 636 then (by obtain rfl : j = 635 := (by omega); exact ok635) else (by obtain rfl : j = 636 := (by omega); exact ok636)))) else (if h : j < 639 then (if h : j < 638 then (by obtain rfl : j = 637 := (by omega); exact ok637) else (by obtain rfl : j = 638 := (by omega); exact ok638)) else (if h : j < 640 then (by obtain rfl : j = 639 := (by omega); exact ok639) else (if h : j < 641 then (by obtain rfl : j = 640 := (by omega); exact ok640) else (by obtain rfl : j = 641 := (by omega); exact ok641))))))) else (if h : j < 661 then (if h : j < 651 then (if h : j < 646 then (if h : j < 644 then (if h : j < 643 then (by obtain rfl : j = 642 := (by omega); exact ok642) else (by obtain rfl : j = 643 := (by omega); exact ok643)) else (if h : j < 645 then (by obtain rfl : j = 644 := (by omega); exact ok644) else (by obtain rfl : j = 645 := (by omega); exact ok645))) else (if h : j < 648 then (if h : j < 647 then (by obtain rfl : j = 646 := (by omega); exact ok646) else (by obtain rfl : j = 647 := (by omega); exact ok647)) else (if h : j < 649 then (by obtain rfl : j = 648 := (by omega); exact ok648) else (if h : j < 650 then (by obtain rfl : j = 649 := (by omega); exact ok649) else (by obtain rfl : j = 650 := (by omega); exact ok650))))) else (if h : j < 656 then (if h : j < 653 then (if h : j < 652 then (by obtain rfl : j = 651 := (by omega); exact ok651) else (by obtain rfl : j = 652 := (by omega); exact ok652)) else (if h : j < 654 then (by obtain rfl : j = 653 := (by omega); exact ok653) else (if h : j < 655 then (by obtain rfl : j = 654 := (by omega); exact ok654) else (by obtain rfl : j = 655 := (by omega); exact ok655)))) else (if h : j < 658 then (if h : j < 657 then (by obtain rfl : j = 656 := (by omega); exact ok656) else (by obtain rfl : j = 657 := (by omega); exact ok657)) else (if h : j < 659 then (by obtain rfl : j = 658 := (by omega); exact ok658) else (if h : j < 660 then (by obtain rfl : j = 659 := (by omega); exact ok659) else (by obtain rfl : j = 660 := (by omega); exact ok660)))))) else (if h : j < 670 then (if h : j < 665 then (if h : j < 663 then (if h : j < 662 then (by obtain rfl : j = 661 := (by omega); exact ok661) else (by obtain rfl : j = 662 := (by omega); exact ok662)) else (if h : j < 664 then (by obtain rfl : j = 663 := (by omega); exact ok663) else (by obtain rfl : j = 664 := (by omega); exact ok664))) else (if h : j < 667 then (if h : j < 666 then (by obtain rfl : j = 665 := (by omega); exact ok665) else (by obtain rfl : j = 666 := (by omega); exact ok666)) else (if h : j < 668 then (by obtain rfl : j = 667 := (by omega); exact ok667) else (if h : j < 669 then (by obtain rfl : j = 668 := (by omega); exact ok668) else (by obtain rfl : j = 669 := (by omega); exact ok669))))) else (if h : j < 675 then (if h : j < 672 then (if h : j < 671 then (by obtain rfl : j = 670 := (by omega); exact ok670) else (by obtain rfl : j = 671 := (by omega); exact ok671)) else (if h : j < 673 then (by obtain rfl : j = 672 := (by omega); exact ok672) else (if h : j < 674 then (by obtain rfl : j = 673 := (by omega); exact ok673) else (by obtain rfl : j = 674 := (by omega); exact ok674)))) else (if h : j < 677 then (if h : j < 676 then (by obtain rfl : j = 675 := (by omega); exact ok675) else (by obtain rfl : j = 676 := (by omega); exact ok676)) else (if h : j < 678 then (by obtain rfl : j = 677 := (by omega); exact ok677) else (if h : j < 679 then (by obtain rfl : j = 678 := (by omega); exact ok678) else (by obtain rfl : j = 679 := (by omega); exact ok679)))))))) else (if h : j < 718 then (if h : j < 699 then (if h : j < 689 then (if h : j < 684 then (if h : j < 682 then (if h : j < 681 then (by obtain rfl : j = 680 := (by omega); exact ok680) else (by obtain rfl : j = 681 := (by omega); exact ok681)) else (if h : j < 683 then (by obtain rfl : j = 682 := (by omega); exact ok682) else (by obtain rfl : j = 683 := (by omega); exact ok683))) else (if h : j < 686 then (if h : j < 685 then (by obtain rfl : j = 684 := (by omega); exact ok684) else (by obtain rfl : j = 685 := (by omega); exact ok685)) else (if h : j < 687 then (by obtain rfl : j = 686 := (by omega); exact ok686) else (if h : j < 688 then (by obtain rfl : j = 687 := (by omega); exact ok687) else (by obtain rfl : j = 688 := (by omega); exact ok688))))) else (if h : j < 694 then (if h : j < 691 then (if h : j < 690 then (by obtain rfl : j = 689 := (by omega); exact ok689) else (by obtain rfl : j = 690 := (by omega); exact ok690)) else (if h : j < 692 then (by obtain rfl : j = 691 := (by omega); exact ok691) else (if h : j < 693 then (by obtain rfl : j = 692 := (by omega); exact ok692) else (by obtain rfl : j = 693 := (by omega); exact ok693)))) else (if h : j < 696 then (if h : j < 695 then (by obtain rfl : j = 694 := (by omega); exact ok694) else (by obtain rfl : j = 695 := (by omega); exact ok695)) else (if h : j < 697 then (by obtain rfl : j = 696 := (by omega); exact ok696) else (if h : j < 698 then (by obtain rfl : j = 697 := (by omega); exact ok697) else (by obtain rfl : j = 698 := (by omega); exact ok698)))))) else (if h : j < 708 then (if h : j < 703 then (if h : j < 701 then (if h : j < 700 then (by obtain rfl : j = 699 := (by omega); exact ok699) else (by obtain rfl : j = 700 := (by omega); exact ok700)) else (if h : j < 702 then (by obtain rfl : j = 701 := (by omega); exact ok701) else (by obtain rfl : j = 702 := (by omega); exact ok702))) else (if h : j < 705 then (if h : j < 704 then (by obtain rfl : j = 703 := (by omega); exact ok703) else (by obtain rfl : j = 704 := (by omega); exact ok704)) else (if h : j < 706 then (by obtain rfl : j = 705 := (by omega); exact ok705) else (if h : j < 707 then (by obtain rfl : j = 706 := (by omega); exact ok706) else (by obtain rfl : j = 707 := (by omega); exact ok707))))) else (if h : j < 713 then (if h : j < 710 then (if h : j < 709 then (by obtain rfl : j = 708 := (by omega); exact ok708) else (by obtain rfl : j = 709 := (by omega); exact ok709)) else (if h : j < 711 then (by obtain rfl : j = 710 := (by omega); exact ok710) else (if h : j < 712 then (by obtain rfl : j = 711 := (by omega); exact ok711) else (by obtain rfl : j = 712 := (by omega); exact ok712)))) else (if h : j < 715 then (if h : j < 714 then (by obtain rfl : j = 713 := (by omega); exact ok713) else (by obtain rfl : j = 714 := (by omega); exact ok714)) else (if h : j < 716 then (by obtain rfl : j = 715 := (by omega); exact ok715) else (if h : j < 717 then (by obtain rfl : j = 716 := (by omega); exact ok716) else (by obtain rfl : j = 717 := (by omega); exact ok717))))))) else (if h : j < 737 then (if h : j < 727 then (if h : j < 722 then (if h : j < 720 then (if h : j < 719 then (by obtain rfl : j = 718 := (by omega); exact ok718) else (by obtain rfl : j = 719 := (by omega); exact ok719)) else (if h : j < 721 then (by obtain rfl : j = 720 := (by omega); exact ok720) else (by obtain rfl : j = 721 := (by omega); exact ok721))) else (if h : j < 724 then (if h : j < 723 then (by obtain rfl : j = 722 := (by omega); exact ok722) else (by obtain rfl : j = 723 := (by omega); exact ok723)) else (if h : j < 725 then (by obtain rfl : j = 724 := (by omega); exact ok724) else (if h : j < 726 then (by obtain rfl : j = 725 := (by omega); exact ok725) else (by obtain rfl : j = 726 := (by omega); exact ok726))))) else (if h : j < 732 then (if h : j < 729 then (if h : j < 728 then (by obtain rfl : j = 727 := (by omega); exact ok727) else (by obtain rfl : j = 728 := (by omega); exact ok728)) else (if h : j < 730 then (by obtain rfl : j = 729 := (by omega); exact ok729) else (if h : j < 731 then (by obtain rfl : j = 730 := (by omega); exact ok730) else (by obtain rfl : j = 731 := (by omega); exact ok731)))) else (if h : j < 734 then (if h : j < 733 then (by obtain rfl : j = 732 := (by omega); exact ok732) else (by obtain rfl : j = 733 := (by omega); exact ok733)) else (if h : j < 735 then (by obtain rfl : j = 734 := (by omega); exact ok734) else (if h : j < 736 then (by obtain rfl : j = 735 := (by omega); exact ok735) else (by obtain rfl : j = 736 := (by omega); exact ok736)))))) else (if h : j < 746 then (if h : j < 741 then (if h : j < 739 then (if h : j < 738 then (by obtain rfl : j = 737 := (by omega); exact ok737) else (by obtain rfl : j = 738 := (by omega); exact ok738)) else (if h : j < 740 then (by obtain rfl : j = 739 := (by omega); exact ok739) else (by obtain rfl : j = 740 := (by omega); exact ok740))) else (if h : j < 743 then (if h : j < 742 then (by obtain rfl : j = 741 := (by omega); exact ok741) else (by obtain rfl : j = 742 := (by omega); exact ok742)) else (if h : j < 744 then (by obtain rfl : j = 743 := (by omega); exact ok743) else (if h : j < 745 then (by obtain rfl : j = 744 := (by omega); exact ok744) else (by obtain rfl : j = 745 := (by omega); exact ok745))))) else (if h : j < 751 then (if h : j < 748 then (if h : j < 747 then (by obtain rfl : j = 746 := (by omega); exact ok746) else (by obtain rfl : j = 747 := (by omega); exact ok747)) else (if h : j < 749 then (by obtain rfl : j = 748 := (by omega); exact ok748) else (if h : j < 750 then (by obtain rfl : j = 749 := (by omega); exact ok749) else (by obtain rfl : j = 750 := (by omega); exact ok750)))) else (if h : j < 753 then (if h : j < 752 then (by obtain rfl : j = 751 := (by omega); exact ok751) else (by obtain rfl : j = 752 := (by omega); exact ok752)) else (if h : j < 754 then (by obtain rfl : j = 753 := (by omega); exact ok753) else (if h : j < 755 then (by obtain rfl : j = 754 := (by omega); exact ok754) else (by obtain rfl : j = 755 := (by omega); exact ok755))))))))) else (if h : j < 831 then (if h : j < 793 then (if h : j < 774 then (if h : j < 765 then (if h : j < 760 then (if h : j < 758 then (if h : j < 757 then (by obtain rfl : j = 756 := (by omega); exact ok756) else (by obtain rfl : j = 757 := (by omega); exact ok757)) else (if h : j < 759 then (by obtain rfl : j = 758 := (by omega); exact ok758) else (by obtain rfl : j = 759 := (by omega); exact ok759))) else (if h : j < 762 then (if h : j < 761 then (by obtain rfl : j = 760 := (by omega); exact ok760) else (by obtain rfl : j = 761 := (by omega); exact ok761)) else (if h : j < 763 then (by obtain rfl : j = 762 := (by omega); exact ok762) else (if h : j < 764 then (by obtain rfl : j = 763 := (by omega); exact ok763) else (by obtain rfl : j = 764 := (by omega); exact ok764))))) else (if h : j < 769 then (if h : j < 767 then (if h : j < 766 then (by obtain rfl : j = 765 := (by omega); exact ok765) else (by obtain rfl : j = 766 := (by omega); exact ok766)) else (if h : j < 768 then (by obtain rfl : j = 767 := (by omega); exact ok767) else (by obtain rfl : j = 768 := (by omega); exact ok768))) else (if h : j < 771 then (if h : j < 770 then (by obtain rfl : j = 769 := (by omega); exact ok769) else (by obtain rfl : j = 770 := (by omega); exact ok770)) else (if h : j < 772 then (by obtain rfl : j = 771 := (by omega); exact ok771) else (if h : j < 773 then (by obtain rfl : j = 772 := (by omega); exact ok772) else (by obtain rfl : j = 773 := (by omega); exact ok773)))))) else (if h : j < 783 then (if h : j < 778 then (if h : j < 776 then (if h : j < 775 then (by obtain rfl : j = 774 := (by omega); exact ok774) else (by obtain rfl : j = 775 := (by omega); exact ok775)) else (if h : j < 777 then (by obtain rfl : j = 776 := (by omega); exact ok776) else (by obtain rfl : j = 777 := (by omega); exact ok777))) else (if h : j < 780 then (if h : j < 779 then (by obtain rfl : j = 778 := (by omega); exact ok778) else (by obtain rfl : j = 779 := (by omega); exact ok779)) else (if h : j < 781 then (by obtain rfl : j = 780 := (by omega); exact ok780) else (if h : j < 782 then (by obtain rfl : j = 781 := (by omega); exact ok781) else (by obtain rfl : j = 782 := (by omega); exact ok782))))) else (if h : j < 788 then (if h : j < 785 then (if h : j < 784 then (by obtain rfl : j = 783 := (by omega); exact ok783) else (by obtain rfl : j = 784 := (by omega); exact ok784)) else (if h : j < 786 then (by obtain rfl : j = 785 := (by omega); exact ok785) else (if h : j < 787 then (by obtain rfl : j = 786 := (by omega); exact ok786) else (by obtain rfl : j = 787 := (by omega); exact ok787)))) else (if h : j < 790 then (if h : j < 789 then (by obtain rfl : j = 788 := (by omega); exact ok788) else (by obtain rfl : j = 789 := (by omega); exact ok789)) else (if h : j < 791 then (by obtain rfl : j = 790 := (by omega); exact ok790) else (if h : j < 792 then (by obtain rfl : j = 791 := (by omega); exact ok791) else (by obtain rfl : j = 792 := (by omega); exact ok792))))))) else (if h : j < 812 then (if h : j < 802 then (if h : j < 797 then (if h : j < 795 then (if h : j < 794 then (by obtain rfl : j = 793 := (by omega); exact ok793) else (by obtain rfl : j = 794 := (by omega); exact ok794)) else (if h : j < 796 then (by obtain rfl : j = 795 := (by omega); exact ok795) else (by obtain rfl : j = 796 := (by omega); exact ok796))) else (if h : j < 799 then (if h : j < 798 then (by obtain rfl : j = 797 := (by omega); exact ok797) else (by obtain rfl : j = 798 := (by omega); exact ok798)) else (if h : j < 800 then (by obtain rfl : j = 799 := (by omega); exact ok799) else (if h : j < 801 then (by obtain rfl : j = 800 := (by omega); exact ok800) else (by obtain rfl : j = 801 := (by omega); exact ok801))))) else (if h : j < 807 then (if h : j < 804 then (if h : j < 803 then (by obtain rfl : j = 802 := (by omega); exact ok802) else (by obtain rfl : j = 803 := (by omega); exact ok803)) else (if h : j < 805 then (by obtain rfl : j = 804 := (by omega); exact ok804) else (if h : j < 806 then (by obtain rfl : j = 805 := (by omega); exact ok805) else (by obtain rfl : j = 806 := (by omega); exact ok806)))) else (if h : j < 809 then (if h : j < 808 then (by obtain rfl : j = 807 := (by omega); exact ok807) else (by obtain rfl : j = 808 := (by omega); exact ok808)) else (if h : j < 810 then (by obtain rfl : j = 809 := (by omega); exact ok809) else (if h : j < 811 then (by obtain rfl : j = 810 := (by omega); exact ok810) else (by obtain rfl : j = 811 := (by omega); exact ok811)))))) else (if h : j < 821 then (if h : j < 816 then (if h : j < 814 then (if h : j < 813 then (by obtain rfl : j = 812 := (by omega); exact ok812) else (by obtain rfl : j = 813 := (by omega); exact ok813)) else (if h : j < 815 then (by obtain rfl : j = 814 := (by omega); exact ok814) else (by obtain rfl : j = 815 := (by omega); exact ok815))) else (if h : j < 818 then (if h : j < 817 then (by obtain rfl : j = 816 := (by omega); exact ok816) else (by obtain rfl : j = 817 := (by omega); exact ok817)) else (if h : j < 819 then (by obtain rfl : j = 818 := (by omega); exact ok818) else (if h : j < 820 then (by obtain rfl : j = 819 := (by omega); exact ok819) else (by obtain rfl : j = 820 := (by omega); exact ok820))))) else (if h : j < 826 then (if h : j < 823 then (if h : j < 822 then (by obtain rfl : j = 821 := (by omega); exact ok821) else (by obtain rfl : j = 822 := (by omega); exact ok822)) else (if h : j < 824 then (by obtain rfl : j = 823 := (by omega); exact ok823) else (if h : j < 825 then (by obtain rfl : j = 824 := (by omega); exact ok824) else (by obtain rfl : j = 825 := (by omega); exact ok825)))) else (if h : j < 828 then (if h : j < 827 then (by obtain rfl : j = 826 := (by omega); exact ok826) else (by obtain rfl : j = 827 := (by omega); exact ok827)) else (if h : j < 829 then (by obtain rfl : j = 828 := (by omega); exact ok828) else (if h : j < 830 then (by obtain rfl : j = 829 := (by omega); exact ok829) else (by obtain rfl : j = 830 := (by omega); exact ok830)))))))) else (if h : j < 869 then (if h : j < 850 then (if h : j < 840 then (if h : j < 835 then (if h : j < 833 then (if h : j < 832 then (by obtain rfl : j = 831 := (by omega); exact ok831) else (by obtain rfl : j = 832 := (by omega); exact ok832)) else (if h : j < 834 then (by obtain rfl : j = 833 := (by omega); exact ok833) else (by obtain rfl : j = 834 := (by omega); exact ok834))) else (if h : j < 837 then (if h : j < 836 then (by obtain rfl : j = 835 := (by omega); exact ok835) else (by obtain rfl : j = 836 := (by omega); exact ok836)) else (if h : j < 838 then (by obtain rfl : j = 837 := (by omega); exact ok837) else (if h : j < 839 then (by obtain rfl : j = 838 := (by omega); exact ok838) else (by obtain rfl : j = 839 := (by omega); exact ok839))))) else (if h : j < 845 then (if h : j < 842 then (if h : j < 841 then (by obtain rfl : j = 840 := (by omega); exact ok840) else (by obtain rfl : j = 841 := (by omega); exact ok841)) else (if h : j < 843 then (by obtain rfl : j = 842 := (by omega); exact ok842) else (if h : j < 844 then (by obtain rfl : j = 843 := (by omega); exact ok843) else (by obtain rfl : j = 844 := (by omega); exact ok844)))) else (if h : j < 847 then (if h : j < 846 then (by obtain rfl : j = 845 := (by omega); exact ok845) else (by obtain rfl : j = 846 := (by omega); exact ok846)) else (if h : j < 848 then (by obtain rfl : j = 847 := (by omega); exact ok847) else (if h : j < 849 then (by obtain rfl : j = 848 := (by omega); exact ok848) else (by obtain rfl : j = 849 := (by omega); exact ok849)))))) else (if h : j < 859 then (if h : j < 854 then (if h : j < 852 then (if h : j < 851 then (by obtain rfl : j = 850 := (by omega); exact ok850) else (by obtain rfl : j = 851 := (by omega); exact ok851)) else (if h : j < 853 then (by obtain rfl : j = 852 := (by omega); exact ok852) else (by obtain rfl : j = 853 := (by omega); exact ok853))) else (if h : j < 856 then (if h : j < 855 then (by obtain rfl : j = 854 := (by omega); exact ok854) else (by obtain rfl : j = 855 := (by omega); exact ok855)) else (if h : j < 857 then (by obtain rfl : j = 856 := (by omega); exact ok856) else (if h : j < 858 then (by obtain rfl : j = 857 := (by omega); exact ok857) else (by obtain rfl : j = 858 := (by omega); exact ok858))))) else (if h : j < 864 then (if h : j < 861 then (if h : j < 860 then (by obtain rfl : j = 859 := (by omega); exact ok859) else (by obtain rfl : j = 860 := (by omega); exact ok860)) else (if h : j < 862 then (by obtain rfl : j = 861 := (by omega); exact ok861) else (if h : j < 863 then (by obtain rfl : j = 862 := (by omega); exact ok862) else (by obtain rfl : j = 863 := (by omega); exact ok863)))) else (if h : j < 866 then (if h : j < 865 then (by obtain rfl : j = 864 := (by omega); exact ok864) else (by obtain rfl : j = 865 := (by omega); exact ok865)) else (if h : j < 867 then (by obtain rfl : j = 866 := (by omega); exact ok866) else (if h : j < 868 then (by obtain rfl : j = 867 := (by omega); exact ok867) else (by obtain rfl : j = 868 := (by omega); exact ok868))))))) else (if h : j < 888 then (if h : j < 878 then (if h : j < 873 then (if h : j < 871 then (if h : j < 870 then (by obtain rfl : j = 869 := (by omega); exact ok869) else (by obtain rfl : j = 870 := (by omega); exact ok870)) else (if h : j < 872 then (by obtain rfl : j = 871 := (by omega); exact ok871) else (by obtain rfl : j = 872 := (by omega); exact ok872))) else (if h : j < 875 then (if h : j < 874 then (by obtain rfl : j = 873 := (by omega); exact ok873) else (by obtain rfl : j = 874 := (by omega); exact ok874)) else (if h : j < 876 then (by obtain rfl : j = 875 := (by omega); exact ok875) else (if h : j < 877 then (by obtain rfl : j = 876 := (by omega); exact ok876) else (by obtain rfl : j = 877 := (by omega); exact ok877))))) else (if h : j < 883 then (if h : j < 880 then (if h : j < 879 then (by obtain rfl : j = 878 := (by omega); exact ok878) else (by obtain rfl : j = 879 := (by omega); exact ok879)) else (if h : j < 881 then (by obtain rfl : j = 880 := (by omega); exact ok880) else (if h : j < 882 then (by obtain rfl : j = 881 := (by omega); exact ok881) else (by obtain rfl : j = 882 := (by omega); exact ok882)))) else (if h : j < 885 then (if h : j < 884 then (by obtain rfl : j = 883 := (by omega); exact ok883) else (by obtain rfl : j = 884 := (by omega); exact ok884)) else (if h : j < 886 then (by obtain rfl : j = 885 := (by omega); exact ok885) else (if h : j < 887 then (by obtain rfl : j = 886 := (by omega); exact ok886) else (by obtain rfl : j = 887 := (by omega); exact ok887)))))) else (if h : j < 897 then (if h : j < 892 then (if h : j < 890 then (if h : j < 889 then (by obtain rfl : j = 888 := (by omega); exact ok888) else (by obtain rfl : j = 889 := (by omega); exact ok889)) else (if h : j < 891 then (by obtain rfl : j = 890 := (by omega); exact ok890) else (by obtain rfl : j = 891 := (by omega); exact ok891))) else (if h : j < 894 then (if h : j < 893 then (by obtain rfl : j = 892 := (by omega); exact ok892) else (by obtain rfl : j = 893 := (by omega); exact ok893)) else (if h : j < 895 then (by obtain rfl : j = 894 := (by omega); exact ok894) else (if h : j < 896 then (by obtain rfl : j = 895 := (by omega); exact ok895) else (by obtain rfl : j = 896 := (by omega); exact ok896))))) else (if h : j < 902 then (if h : j < 899 then (if h : j < 898 then (by obtain rfl : j = 897 := (by omega); exact ok897) else (by obtain rfl : j = 898 := (by omega); exact ok898)) else (if h : j < 900 then (by obtain rfl : j = 899 := (by omega); exact ok899) else (if h : j < 901 then (by obtain rfl : j = 900 := (by omega); exact ok900) else (by obtain rfl : j = 901 := (by omega); exact ok901)))) else (if h : j < 904 then (if h : j < 903 then (by obtain rfl : j = 902 := (by omega); exact ok902) else (by obtain rfl : j = 903 := (by omega); exact ok903)) else (if h : j < 905 then (by obtain rfl : j = 904 := (by omega); exact ok904) else (if h : j < 906 then (by obtain rfl : j = 905 := (by omega); exact ok905) else (by obtain rfl : j = 906 := (by omega); exact ok906)))))))))) else (if h : j < 1058 then (if h : j < 982 then (if h : j < 944 then (if h : j < 925 then (if h : j < 916 then (if h : j < 911 then (if h : j < 909 then (if h : j < 908 then (by obtain rfl : j = 907 := (by omega); exact ok907) else (by obtain rfl : j = 908 := (by omega); exact ok908)) else (if h : j < 910 then (by obtain rfl : j = 909 := (by omega); exact ok909) else (by obtain rfl : j = 910 := (by omega); exact ok910))) else (if h : j < 913 then (if h : j < 912 then (by obtain rfl : j = 911 := (by omega); exact ok911) else (by obtain rfl : j = 912 := (by omega); exact ok912)) else (if h : j < 914 then (by obtain rfl : j = 913 := (by omega); exact ok913) else (if h : j < 915 then (by obtain rfl : j = 914 := (by omega); exact ok914) else (by obtain rfl : j = 915 := (by omega); exact ok915))))) else (if h : j < 920 then (if h : j < 918 then (if h : j < 917 then (by obtain rfl : j = 916 := (by omega); exact ok916) else (by obtain rfl : j = 917 := (by omega); exact ok917)) else (if h : j < 919 then (by obtain rfl : j = 918 := (by omega); exact ok918) else (by obtain rfl : j = 919 := (by omega); exact ok919))) else (if h : j < 922 then (if h : j < 921 then (by obtain rfl : j = 920 := (by omega); exact ok920) else (by obtain rfl : j = 921 := (by omega); exact ok921)) else (if h : j < 923 then (by obtain rfl : j = 922 := (by omega); exact ok922) else (if h : j < 924 then (by obtain rfl : j = 923 := (by omega); exact ok923) else (by obtain rfl : j = 924 := (by omega); exact ok924)))))) else (if h : j < 934 then (if h : j < 929 then (if h : j < 927 then (if h : j < 926 then (by obtain rfl : j = 925 := (by omega); exact ok925) else (by obtain rfl : j = 926 := (by omega); exact ok926)) else (if h : j < 928 then (by obtain rfl : j = 927 := (by omega); exact ok927) else (by obtain rfl : j = 928 := (by omega); exact ok928))) else (if h : j < 931 then (if h : j < 930 then (by obtain rfl : j = 929 := (by omega); exact ok929) else (by obtain rfl : j = 930 := (by omega); exact ok930)) else (if h : j < 932 then (by obtain rfl : j = 931 := (by omega); exact ok931) else (if h : j < 933 then (by obtain rfl : j = 932 := (by omega); exact ok932) else (by obtain rfl : j = 933 := (by omega); exact ok933))))) else (if h : j < 939 then (if h : j < 936 then (if h : j < 935 then (by obtain rfl : j = 934 := (by omega); exact ok934) else (by obtain rfl : j = 935 := (by omega); exact ok935)) else (if h : j < 937 then (by obtain rfl : j = 936 := (by omega); exact ok936) else (if h : j < 938 then (by obtain rfl : j = 937 := (by omega); exact ok937) else (by obtain rfl : j = 938 := (by omega); exact ok938)))) else (if h : j < 941 then (if h : j < 940 then (by obtain rfl : j = 939 := (by omega); exact ok939) else (by obtain rfl : j = 940 := (by omega); exact ok940)) else (if h : j < 942 then (by obtain rfl : j = 941 := (by omega); exact ok941) else (if h : j < 943 then (by obtain rfl : j = 942 := (by omega); exact ok942) else (by obtain rfl : j = 943 := (by omega); exact ok943))))))) else (if h : j < 963 then (if h : j < 953 then (if h : j < 948 then (if h : j < 946 then (if h : j < 945 then (by obtain rfl : j = 944 := (by omega); exact ok944) else (by obtain rfl : j = 945 := (by omega); exact ok945)) else (if h : j < 947 then (by obtain rfl : j = 946 := (by omega); exact ok946) else (by obtain rfl : j = 947 := (by omega); exact ok947))) else (if h : j < 950 then (if h : j < 949 then (by obtain rfl : j = 948 := (by omega); exact ok948) else (by obtain rfl : j = 949 := (by omega); exact ok949)) else (if h : j < 951 then (by obtain rfl : j = 950 := (by omega); exact ok950) else (if h : j < 952 then (by obtain rfl : j = 951 := (by omega); exact ok951) else (by obtain rfl : j = 952 := (by omega); exact ok952))))) else (if h : j < 958 then (if h : j < 955 then (if h : j < 954 then (by obtain rfl : j = 953 := (by omega); exact ok953) else (by obtain rfl : j = 954 := (by omega); exact ok954)) else (if h : j < 956 then (by obtain rfl : j = 955 := (by omega); exact ok955) else (if h : j < 957 then (by obtain rfl : j = 956 := (by omega); exact ok956) else (by obtain rfl : j = 957 := (by omega); exact ok957)))) else (if h : j < 960 then (if h : j < 959 then (by obtain rfl : j = 958 := (by omega); exact ok958) else (by obtain rfl : j = 959 := (by omega); exact ok959)) else (if h : j < 961 then (by obtain rfl : j = 960 := (by omega); exact ok960) else (if h : j < 962 then (by obtain rfl : j = 961 := (by omega); exact ok961) else (by obtain rfl : j = 962 := (by omega); exact ok962)))))) else (if h : j < 972 then (if h : j < 967 then (if h : j < 965 then (if h : j < 964 then (by obtain rfl : j = 963 := (by omega); exact ok963) else (by obtain rfl : j = 964 := (by omega); exact ok964)) else (if h : j < 966 then (by obtain rfl : j = 965 := (by omega); exact ok965) else (by obtain rfl : j = 966 := (by omega); exact ok966))) else (if h : j < 969 then (if h : j < 968 then (by obtain rfl : j = 967 := (by omega); exact ok967) else (by obtain rfl : j = 968 := (by omega); exact ok968)) else (if h : j < 970 then (by obtain rfl : j = 969 := (by omega); exact ok969) else (if h : j < 971 then (by obtain rfl : j = 970 := (by omega); exact ok970) else (by obtain rfl : j = 971 := (by omega); exact ok971))))) else (if h : j < 977 then (if h : j < 974 then (if h : j < 973 then (by obtain rfl : j = 972 := (by omega); exact ok972) else (by obtain rfl : j = 973 := (by omega); exact ok973)) else (if h : j < 975 then (by obtain rfl : j = 974 := (by omega); exact ok974) else (if h : j < 976 then (by obtain rfl : j = 975 := (by omega); exact ok975) else (by obtain rfl : j = 976 := (by omega); exact ok976)))) else (if h : j < 979 then (if h : j < 978 then (by obtain rfl : j = 977 := (by omega); exact ok977) else (by obtain rfl : j = 978 := (by omega); exact ok978)) else (if h : j < 980 then (by obtain rfl : j = 979 := (by omega); exact ok979) else (if h : j < 981 then (by obtain rfl : j = 980 := (by omega); exact ok980) else (by obtain rfl : j = 981 := (by omega); exact ok981)))))))) else (if h : j < 1020 then (if h : j < 1001 then (if h : j < 991 then (if h : j < 986 then (if h : j < 984 then (if h : j < 983 then (by obtain rfl : j = 982 := (by omega); exact ok982) else (by obtain rfl : j = 983 := (by omega); exact ok983)) else (if h : j < 985 then (by obtain rfl : j = 984 := (by omega); exact ok984) else (by obtain rfl : j = 985 := (by omega); exact ok985))) else (if h : j < 988 then (if h : j < 987 then (by obtain rfl : j = 986 := (by omega); exact ok986) else (by obtain rfl : j = 987 := (by omega); exact ok987)) else (if h : j < 989 then (by obtain rfl : j = 988 := (by omega); exact ok988) else (if h : j < 990 then (by obtain rfl : j = 989 := (by omega); exact ok989) else (by obtain rfl : j = 990 := (by omega); exact ok990))))) else (if h : j < 996 then (if h : j < 993 then (if h : j < 992 then (by obtain rfl : j = 991 := (by omega); exact ok991) else (by obtain rfl : j = 992 := (by omega); exact ok992)) else (if h : j < 994 then (by obtain rfl : j = 993 := (by omega); exact ok993) else (if h : j < 995 then (by obtain rfl : j = 994 := (by omega); exact ok994) else (by obtain rfl : j = 995 := (by omega); exact ok995)))) else (if h : j < 998 then (if h : j < 997 then (by obtain rfl : j = 996 := (by omega); exact ok996) else (by obtain rfl : j = 997 := (by omega); exact ok997)) else (if h : j < 999 then (by obtain rfl : j = 998 := (by omega); exact ok998) else (if h : j < 1000 then (by obtain rfl : j = 999 := (by omega); exact ok999) else (by obtain rfl : j = 1000 := (by omega); exact ok1000)))))) else (if h : j < 1010 then (if h : j < 1005 then (if h : j < 1003 then (if h : j < 1002 then (by obtain rfl : j = 1001 := (by omega); exact ok1001) else (by obtain rfl : j = 1002 := (by omega); exact ok1002)) else (if h : j < 1004 then (by obtain rfl : j = 1003 := (by omega); exact ok1003) else (by obtain rfl : j = 1004 := (by omega); exact ok1004))) else (if h : j < 1007 then (if h : j < 1006 then (by obtain rfl : j = 1005 := (by omega); exact ok1005) else (by obtain rfl : j = 1006 := (by omega); exact ok1006)) else (if h : j < 1008 then (by obtain rfl : j = 1007 := (by omega); exact ok1007) else (if h : j < 1009 then (by obtain rfl : j = 1008 := (by omega); exact ok1008) else (by obtain rfl : j = 1009 := (by omega); exact ok1009))))) else (if h : j < 1015 then (if h : j < 1012 then (if h : j < 1011 then (by obtain rfl : j = 1010 := (by omega); exact ok1010) else (by obtain rfl : j = 1011 := (by omega); exact ok1011)) else (if h : j < 1013 then (by obtain rfl : j = 1012 := (by omega); exact ok1012) else (if h : j < 1014 then (by obtain rfl : j = 1013 := (by omega); exact ok1013) else (by obtain rfl : j = 1014 := (by omega); exact ok1014)))) else (if h : j < 1017 then (if h : j < 1016 then (by obtain rfl : j = 1015 := (by omega); exact ok1015) else (by obtain rfl : j = 1016 := (by omega); exact ok1016)) else (if h : j < 1018 then (by obtain rfl : j = 1017 := (by omega); exact ok1017) else (if h : j < 1019 then (by obtain rfl : j = 1018 := (by omega); exact ok1018) else (by obtain rfl : j = 1019 := (by omega); exact ok1019))))))) else (if h : j < 1039 then (if h : j < 1029 then (if h : j < 1024 then (if h : j < 1022 then (if h : j < 1021 then (by obtain rfl : j = 1020 := (by omega); exact ok1020) else (by obtain rfl : j = 1021 := (by omega); exact ok1021)) else (if h : j < 1023 then (by obtain rfl : j = 1022 := (by omega); exact ok1022) else (by obtain rfl : j = 1023 := (by omega); exact ok1023))) else (if h : j < 1026 then (if h : j < 1025 then (by obtain rfl : j = 1024 := (by omega); exact ok1024) else (by obtain rfl : j = 1025 := (by omega); exact ok1025)) else (if h : j < 1027 then (by obtain rfl : j = 1026 := (by omega); exact ok1026) else (if h : j < 1028 then (by obtain rfl : j = 1027 := (by omega); exact ok1027) else (by obtain rfl : j = 1028 := (by omega); exact ok1028))))) else (if h : j < 1034 then (if h : j < 1031 then (if h : j < 1030 then (by obtain rfl : j = 1029 := (by omega); exact ok1029) else (by obtain rfl : j = 1030 := (by omega); exact ok1030)) else (if h : j < 1032 then (by obtain rfl : j = 1031 := (by omega); exact ok1031) else (if h : j < 1033 then (by obtain rfl : j = 1032 := (by omega); exact ok1032) else (by obtain rfl : j = 1033 := (by omega); exact ok1033)))) else (if h : j < 1036 then (if h : j < 1035 then (by obtain rfl : j = 1034 := (by omega); exact ok1034) else (by obtain rfl : j = 1035 := (by omega); exact ok1035)) else (if h : j < 1037 then (by obtain rfl : j = 1036 := (by omega); exact ok1036) else (if h : j < 1038 then (by obtain rfl : j = 1037 := (by omega); exact ok1037) else (by obtain rfl : j = 1038 := (by omega); exact ok1038)))))) else (if h : j < 1048 then (if h : j < 1043 then (if h : j < 1041 then (if h : j < 1040 then (by obtain rfl : j = 1039 := (by omega); exact ok1039) else (by obtain rfl : j = 1040 := (by omega); exact ok1040)) else (if h : j < 1042 then (by obtain rfl : j = 1041 := (by omega); exact ok1041) else (by obtain rfl : j = 1042 := (by omega); exact ok1042))) else (if h : j < 1045 then (if h : j < 1044 then (by obtain rfl : j = 1043 := (by omega); exact ok1043) else (by obtain rfl : j = 1044 := (by omega); exact ok1044)) else (if h : j < 1046 then (by obtain rfl : j = 1045 := (by omega); exact ok1045) else (if h : j < 1047 then (by obtain rfl : j = 1046 := (by omega); exact ok1046) else (by obtain rfl : j = 1047 := (by omega); exact ok1047))))) else (if h : j < 1053 then (if h : j < 1050 then (if h : j < 1049 then (by obtain rfl : j = 1048 := (by omega); exact ok1048) else (by obtain rfl : j = 1049 := (by omega); exact ok1049)) else (if h : j < 1051 then (by obtain rfl : j = 1050 := (by omega); exact ok1050) else (if h : j < 1052 then (by obtain rfl : j = 1051 := (by omega); exact ok1051) else (by obtain rfl : j = 1052 := (by omega); exact ok1052)))) else (if h : j < 1055 then (if h : j < 1054 then (by obtain rfl : j = 1053 := (by omega); exact ok1053) else (by obtain rfl : j = 1054 := (by omega); exact ok1054)) else (if h : j < 1056 then (by obtain rfl : j = 1055 := (by omega); exact ok1055) else (if h : j < 1057 then (by obtain rfl : j = 1056 := (by omega); exact ok1056) else (by obtain rfl : j = 1057 := (by omega); exact ok1057))))))))) else (if h : j < 1133 then (if h : j < 1095 then (if h : j < 1076 then (if h : j < 1067 then (if h : j < 1062 then (if h : j < 1060 then (if h : j < 1059 then (by obtain rfl : j = 1058 := (by omega); exact ok1058) else (by obtain rfl : j = 1059 := (by omega); exact ok1059)) else (if h : j < 1061 then (by obtain rfl : j = 1060 := (by omega); exact ok1060) else (by obtain rfl : j = 1061 := (by omega); exact ok1061))) else (if h : j < 1064 then (if h : j < 1063 then (by obtain rfl : j = 1062 := (by omega); exact ok1062) else (by obtain rfl : j = 1063 := (by omega); exact ok1063)) else (if h : j < 1065 then (by obtain rfl : j = 1064 := (by omega); exact ok1064) else (if h : j < 1066 then (by obtain rfl : j = 1065 := (by omega); exact ok1065) else (by obtain rfl : j = 1066 := (by omega); exact ok1066))))) else (if h : j < 1071 then (if h : j < 1069 then (if h : j < 1068 then (by obtain rfl : j = 1067 := (by omega); exact ok1067) else (by obtain rfl : j = 1068 := (by omega); exact ok1068)) else (if h : j < 1070 then (by obtain rfl : j = 1069 := (by omega); exact ok1069) else (by obtain rfl : j = 1070 := (by omega); exact ok1070))) else (if h : j < 1073 then (if h : j < 1072 then (by obtain rfl : j = 1071 := (by omega); exact ok1071) else (by obtain rfl : j = 1072 := (by omega); exact ok1072)) else (if h : j < 1074 then (by obtain rfl : j = 1073 := (by omega); exact ok1073) else (if h : j < 1075 then (by obtain rfl : j = 1074 := (by omega); exact ok1074) else (by obtain rfl : j = 1075 := (by omega); exact ok1075)))))) else (if h : j < 1085 then (if h : j < 1080 then (if h : j < 1078 then (if h : j < 1077 then (by obtain rfl : j = 1076 := (by omega); exact ok1076) else (by obtain rfl : j = 1077 := (by omega); exact ok1077)) else (if h : j < 1079 then (by obtain rfl : j = 1078 := (by omega); exact ok1078) else (by obtain rfl : j = 1079 := (by omega); exact ok1079))) else (if h : j < 1082 then (if h : j < 1081 then (by obtain rfl : j = 1080 := (by omega); exact ok1080) else (by obtain rfl : j = 1081 := (by omega); exact ok1081)) else (if h : j < 1083 then (by obtain rfl : j = 1082 := (by omega); exact ok1082) else (if h : j < 1084 then (by obtain rfl : j = 1083 := (by omega); exact ok1083) else (by obtain rfl : j = 1084 := (by omega); exact ok1084))))) else (if h : j < 1090 then (if h : j < 1087 then (if h : j < 1086 then (by obtain rfl : j = 1085 := (by omega); exact ok1085) else (by obtain rfl : j = 1086 := (by omega); exact ok1086)) else (if h : j < 1088 then (by obtain rfl : j = 1087 := (by omega); exact ok1087) else (if h : j < 1089 then (by obtain rfl : j = 1088 := (by omega); exact ok1088) else (by obtain rfl : j = 1089 := (by omega); exact ok1089)))) else (if h : j < 1092 then (if h : j < 1091 then (by obtain rfl : j = 1090 := (by omega); exact ok1090) else (by obtain rfl : j = 1091 := (by omega); exact ok1091)) else (if h : j < 1093 then (by obtain rfl : j = 1092 := (by omega); exact ok1092) else (if h : j < 1094 then (by obtain rfl : j = 1093 := (by omega); exact ok1093) else (by obtain rfl : j = 1094 := (by omega); exact ok1094))))))) else (if h : j < 1114 then (if h : j < 1104 then (if h : j < 1099 then (if h : j < 1097 then (if h : j < 1096 then (by obtain rfl : j = 1095 := (by omega); exact ok1095) else (by obtain rfl : j = 1096 := (by omega); exact ok1096)) else (if h : j < 1098 then (by obtain rfl : j = 1097 := (by omega); exact ok1097) else (by obtain rfl : j = 1098 := (by omega); exact ok1098))) else (if h : j < 1101 then (if h : j < 1100 then (by obtain rfl : j = 1099 := (by omega); exact ok1099) else (by obtain rfl : j = 1100 := (by omega); exact ok1100)) else (if h : j < 1102 then (by obtain rfl : j = 1101 := (by omega); exact ok1101) else (if h : j < 1103 then (by obtain rfl : j = 1102 := (by omega); exact ok1102) else (by obtain rfl : j = 1103 := (by omega); exact ok1103))))) else (if h : j < 1109 then (if h : j < 1106 then (if h : j < 1105 then (by obtain rfl : j = 1104 := (by omega); exact ok1104) else (by obtain rfl : j = 1105 := (by omega); exact ok1105)) else (if h : j < 1107 then (by obtain rfl : j = 1106 := (by omega); exact ok1106) else (if h : j < 1108 then (by obtain rfl : j = 1107 := (by omega); exact ok1107) else (by obtain rfl : j = 1108 := (by omega); exact ok1108)))) else (if h : j < 1111 then (if h : j < 1110 then (by obtain rfl : j = 1109 := (by omega); exact ok1109) else (by obtain rfl : j = 1110 := (by omega); exact ok1110)) else (if h : j < 1112 then (by obtain rfl : j = 1111 := (by omega); exact ok1111) else (if h : j < 1113 then (by obtain rfl : j = 1112 := (by omega); exact ok1112) else (by obtain rfl : j = 1113 := (by omega); exact ok1113)))))) else (if h : j < 1123 then (if h : j < 1118 then (if h : j < 1116 then (if h : j < 1115 then (by obtain rfl : j = 1114 := (by omega); exact ok1114) else (by obtain rfl : j = 1115 := (by omega); exact ok1115)) else (if h : j < 1117 then (by obtain rfl : j = 1116 := (by omega); exact ok1116) else (by obtain rfl : j = 1117 := (by omega); exact ok1117))) else (if h : j < 1120 then (if h : j < 1119 then (by obtain rfl : j = 1118 := (by omega); exact ok1118) else (by obtain rfl : j = 1119 := (by omega); exact ok1119)) else (if h : j < 1121 then (by obtain rfl : j = 1120 := (by omega); exact ok1120) else (if h : j < 1122 then (by obtain rfl : j = 1121 := (by omega); exact ok1121) else (by obtain rfl : j = 1122 := (by omega); exact ok1122))))) else (if h : j < 1128 then (if h : j < 1125 then (if h : j < 1124 then (by obtain rfl : j = 1123 := (by omega); exact ok1123) else (by obtain rfl : j = 1124 := (by omega); exact ok1124)) else (if h : j < 1126 then (by obtain rfl : j = 1125 := (by omega); exact ok1125) else (if h : j < 1127 then (by obtain rfl : j = 1126 := (by omega); exact ok1126) else (by obtain rfl : j = 1127 := (by omega); exact ok1127)))) else (if h : j < 1130 then (if h : j < 1129 then (by obtain rfl : j = 1128 := (by omega); exact ok1128) else (by obtain rfl : j = 1129 := (by omega); exact ok1129)) else (if h : j < 1131 then (by obtain rfl : j = 1130 := (by omega); exact ok1130) else (if h : j < 1132 then (by obtain rfl : j = 1131 := (by omega); exact ok1131) else (by obtain rfl : j = 1132 := (by omega); exact ok1132)))))))) else (if h : j < 1171 then (if h : j < 1152 then (if h : j < 1142 then (if h : j < 1137 then (if h : j < 1135 then (if h : j < 1134 then (by obtain rfl : j = 1133 := (by omega); exact ok1133) else (by obtain rfl : j = 1134 := (by omega); exact ok1134)) else (if h : j < 1136 then (by obtain rfl : j = 1135 := (by omega); exact ok1135) else (by obtain rfl : j = 1136 := (by omega); exact ok1136))) else (if h : j < 1139 then (if h : j < 1138 then (by obtain rfl : j = 1137 := (by omega); exact ok1137) else (by obtain rfl : j = 1138 := (by omega); exact ok1138)) else (if h : j < 1140 then (by obtain rfl : j = 1139 := (by omega); exact ok1139) else (if h : j < 1141 then (by obtain rfl : j = 1140 := (by omega); exact ok1140) else (by obtain rfl : j = 1141 := (by omega); exact ok1141))))) else (if h : j < 1147 then (if h : j < 1144 then (if h : j < 1143 then (by obtain rfl : j = 1142 := (by omega); exact ok1142) else (by obtain rfl : j = 1143 := (by omega); exact ok1143)) else (if h : j < 1145 then (by obtain rfl : j = 1144 := (by omega); exact ok1144) else (if h : j < 1146 then (by obtain rfl : j = 1145 := (by omega); exact ok1145) else (by obtain rfl : j = 1146 := (by omega); exact ok1146)))) else (if h : j < 1149 then (if h : j < 1148 then (by obtain rfl : j = 1147 := (by omega); exact ok1147) else (by obtain rfl : j = 1148 := (by omega); exact ok1148)) else (if h : j < 1150 then (by obtain rfl : j = 1149 := (by omega); exact ok1149) else (if h : j < 1151 then (by obtain rfl : j = 1150 := (by omega); exact ok1150) else (by obtain rfl : j = 1151 := (by omega); exact ok1151)))))) else (if h : j < 1161 then (if h : j < 1156 then (if h : j < 1154 then (if h : j < 1153 then (by obtain rfl : j = 1152 := (by omega); exact ok1152) else (by obtain rfl : j = 1153 := (by omega); exact ok1153)) else (if h : j < 1155 then (by obtain rfl : j = 1154 := (by omega); exact ok1154) else (by obtain rfl : j = 1155 := (by omega); exact ok1155))) else (if h : j < 1158 then (if h : j < 1157 then (by obtain rfl : j = 1156 := (by omega); exact ok1156) else (by obtain rfl : j = 1157 := (by omega); exact ok1157)) else (if h : j < 1159 then (by obtain rfl : j = 1158 := (by omega); exact ok1158) else (if h : j < 1160 then (by obtain rfl : j = 1159 := (by omega); exact ok1159) else (by obtain rfl : j = 1160 := (by omega); exact ok1160))))) else (if h : j < 1166 then (if h : j < 1163 then (if h : j < 1162 then (by obtain rfl : j = 1161 := (by omega); exact ok1161) else (by obtain rfl : j = 1162 := (by omega); exact ok1162)) else (if h : j < 1164 then (by obtain rfl : j = 1163 := (by omega); exact ok1163) else (if h : j < 1165 then (by obtain rfl : j = 1164 := (by omega); exact ok1164) else (by obtain rfl : j = 1165 := (by omega); exact ok1165)))) else (if h : j < 1168 then (if h : j < 1167 then (by obtain rfl : j = 1166 := (by omega); exact ok1166) else (by obtain rfl : j = 1167 := (by omega); exact ok1167)) else (if h : j < 1169 then (by obtain rfl : j = 1168 := (by omega); exact ok1168) else (if h : j < 1170 then (by obtain rfl : j = 1169 := (by omega); exact ok1169) else (by obtain rfl : j = 1170 := (by omega); exact ok1170))))))) else (if h : j < 1190 then (if h : j < 1180 then (if h : j < 1175 then (if h : j < 1173 then (if h : j < 1172 then (by obtain rfl : j = 1171 := (by omega); exact ok1171) else (by obtain rfl : j = 1172 := (by omega); exact ok1172)) else (if h : j < 1174 then (by obtain rfl : j = 1173 := (by omega); exact ok1173) else (by obtain rfl : j = 1174 := (by omega); exact ok1174))) else (if h : j < 1177 then (if h : j < 1176 then (by obtain rfl : j = 1175 := (by omega); exact ok1175) else (by obtain rfl : j = 1176 := (by omega); exact ok1176)) else (if h : j < 1178 then (by obtain rfl : j = 1177 := (by omega); exact ok1177) else (if h : j < 1179 then (by obtain rfl : j = 1178 := (by omega); exact ok1178) else (by obtain rfl : j = 1179 := (by omega); exact ok1179))))) else (if h : j < 1185 then (if h : j < 1182 then (if h : j < 1181 then (by obtain rfl : j = 1180 := (by omega); exact ok1180) else (by obtain rfl : j = 1181 := (by omega); exact ok1181)) else (if h : j < 1183 then (by obtain rfl : j = 1182 := (by omega); exact ok1182) else (if h : j < 1184 then (by obtain rfl : j = 1183 := (by omega); exact ok1183) else (by obtain rfl : j = 1184 := (by omega); exact ok1184)))) else (if h : j < 1187 then (if h : j < 1186 then (by obtain rfl : j = 1185 := (by omega); exact ok1185) else (by obtain rfl : j = 1186 := (by omega); exact ok1186)) else (if h : j < 1188 then (by obtain rfl : j = 1187 := (by omega); exact ok1187) else (if h : j < 1189 then (by obtain rfl : j = 1188 := (by omega); exact ok1188) else (by obtain rfl : j = 1189 := (by omega); exact ok1189)))))) else (if h : j < 1199 then (if h : j < 1194 then (if h : j < 1192 then (if h : j < 1191 then (by obtain rfl : j = 1190 := (by omega); exact ok1190) else (by obtain rfl : j = 1191 := (by omega); exact ok1191)) else (if h : j < 1193 then (by obtain rfl : j = 1192 := (by omega); exact ok1192) else (by obtain rfl : j = 1193 := (by omega); exact ok1193))) else (if h : j < 1196 then (if h : j < 1195 then (by obtain rfl : j = 1194 := (by omega); exact ok1194) else (by obtain rfl : j = 1195 := (by omega); exact ok1195)) else (if h : j < 1197 then (by obtain rfl : j = 1196 := (by omega); exact ok1196) else (if h : j < 1198 then (by obtain rfl : j = 1197 := (by omega); exact ok1197) else (by obtain rfl : j = 1198 := (by omega); exact ok1198))))) else (if h : j < 1204 then (if h : j < 1201 then (if h : j < 1200 then (by obtain rfl : j = 1199 := (by omega); exact ok1199) else (by obtain rfl : j = 1200 := (by omega); exact ok1200)) else (if h : j < 1202 then (by obtain rfl : j = 1201 := (by omega); exact ok1201) else (if h : j < 1203 then (by obtain rfl : j = 1202 := (by omega); exact ok1202) else (by obtain rfl : j = 1203 := (by omega); exact ok1203)))) else (if h : j < 1206 then (if h : j < 1205 then (by obtain rfl : j = 1204 := (by omega); exact ok1204) else (by obtain rfl : j = 1205 := (by omega); exact ok1205)) else (if h : j < 1207 then (by obtain rfl : j = 1206 := (by omega); exact ok1206) else (if h : j < 1208 then (by obtain rfl : j = 1207 := (by omega); exact ok1207) else (by obtain rfl : j = 1208 := (by omega); exact ok1208))))))))))))
 
 end
 end LeanVM.Guest.B2C.Cplw

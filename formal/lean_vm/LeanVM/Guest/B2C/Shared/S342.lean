@@ -16,54 +16,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L12_L0_L16_L24_L29_L5`, once. -/
-theorem st1122 : shareStatic 1122 = true := by decide +kernel
+/-- `walk_path__L24`, window 0. -/
+theorem w1194_0 : shareWin 1194 (snapsOf 1194) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L12_L0_L16_L24_L29_L5`, window 0. -/
-theorem w1122_0 : shareWin 1122 (snapsOf 1122) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_queries__L12_L0_L16_L24_L29_L5`, window 1. -/
-theorem w1122_1 : shareWin 1122 (snapsOf 1122) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_queries__L11_L0_L16_L24_L30_L6`, once. -/
-theorem st1123 : shareStatic 1123 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_queries__L11_L0_L16_L24_L30_L6`, window 0. -/
-theorem w1123_0 : shareWin 1123 (snapsOf 1123) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_queries__L11_L0_L16_L24_L30_L6`, window 1. -/
-theorem w1123_1 : shareWin 1123 (snapsOf 1123) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_fold_round__L9`, once. -/
-theorem st1124 : shareStatic 1124 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_fold_round__L9`, window 0. -/
-theorem w1124_0 : shareWin 1124 (snapsOf 1124) 0 = true := by decide +kernel
-
-theorem ok1124 : ShareOk 1124 := ⟨st1124, fun i hi ↦ by
-  have h : (snapsOf 1124).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1124_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `opening_fold_round__L12`, once. -/
-theorem st1125 : shareStatic 1125 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_fold_round__L12`, window 0. -/
-theorem w1125_0 : shareWin 1125 (snapsOf 1125) 0 = true := by decide +kernel
-
-theorem ok1125 : ShareOk 1125 := ⟨st1125, fun i hi ↦ by
-  have h : (snapsOf 1125).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1125_0⟩
+/-- `walk_path__L24`, window 1. -/
+theorem w1194_1 : shareWin 1194 (snapsOf 1194) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

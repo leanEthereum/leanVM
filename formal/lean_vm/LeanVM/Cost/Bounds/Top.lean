@@ -29,7 +29,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   `transcriptIndex_keys`), **`leavesOfC_cost`** (`transcriptIndexPrice` and `committedLeavesPrice`);
 * the bytecode's words: **`bytecodeWordsC_cost`** (`bytecodeWordsPrice ℓ = 5712·2^ℓ + 947`);
 * **`fastOfC_cost`** (`fastPathPrice`), **`decOfC_cost`** (`PMLane.decodeStacksPMC_cost_worst`, at every
-  admissible shape: `1751·2^26 + listDecoderWorstPrice`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
+  admissible shape: `1751·2^30 + listDecoderWorstPrice`), **`runBothC_cost`**, **`runFromLeavesC_cost`**,
   **`stageTC_cost`** (`afterRootStagePrice`), **`afterRootStageC_cost`**;
 * **`extractorC_cost`**: on every input, at most `extractorPrice μ R κ ℓ N` at the shape
   `afterRootLite` announces (`replayPrice ℓ` if it fails), `N` the permutation queries, any number:
@@ -39,10 +39,10 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
 * **`extractorC_within`**: the price and the entry's `14` within the statement's
   `leanVmKnowledgeExtractorBudget` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
   through `extractorPrice_le_worst` (the worst admissible shape) and `extractorPrice_worst_le`;
-* **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `1696880284798342437308744 ≈ 2^80.49`, the decoder (`listDecoderWorstPrice ≈ 2^80.49`) all
+* **`extractorPrice_32_4`**: at `(32, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
+  `67498566427363885418631496 ≈ 2^85.80`, the decoder (`listDecoderWorstPrice ≈ 2^85.80`) all
   but `≈ 2^66.6` of it (the `1 + 2^12` runs `≈ 2^65.60`, the transcript's index `≈ 2^65.61`);
-  **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.86`, the transcript's index
+  **`extractorPrice_32_4_2_128`**: at most `2^128` queries, `≈ 2^156.86`, the transcript's index
   dominating.
 
 The `includes` between the top functions' lists of about `500` bodies takes seconds each: those
@@ -430,11 +430,11 @@ theorem runBothC_cost (hP : Includes P runBothC.costDeps) (prog : Semantics.Lean
 
 /-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape: the
 lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most `pmDecoderWorstPrice
-≈ 2^80.49` beyond the word's reads), `listDecoderWorstPrice`. -/
+≈ 2^85.80` beyond the word's reads), `listDecoderWorstPrice`. -/
 theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
-      1751 * 2 ^ 26 + listDecoderWorstPrice + 10 := by
+      1751 * 2 ^ 30 + listDecoderWorstPrice + 10 := by
   rw [decOfC.costEq P hP]
   have := PMLane.decodeStacksPMC_cost_worst P (by includes_sub) hadm _
     (.closure fastOfC.lam0.costIdx [encodeValue leaves, encodeValue h, encodeValue 64])
@@ -472,7 +472,7 @@ theorem runFromLeavesC_cost (hP : Includes P runFromLeavesC.costDeps) (prog :
     RunsApp.of_spec (runFromLeavesC.lam0.costSpec P (by includes_sub) L R leaves h 64 x)
   have hB := runBothC_cost P (by includes_sub) prog input L hf (fastOf L.stackLog R leaves h 64)
     (fastStacksFast_length_le _ _ _) (fun _ ↦ decOf L.stackLog R leaves h 64) _ hslow
-    (1751 * 2 ^ 26 + listDecoderWorstPrice + 22)
+    (1751 * 2 ^ 30 + listDecoderWorstPrice + 22)
     (by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
       rw [runFromLeavesC.lam0.costEq P (by includes_sub)]
@@ -584,10 +584,10 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
 
 /-! ## The statement's budget -/
 
-/-- The price grows with the shape: at most the worst admissible one's, `(28, 4)` with
+/-- The price grows with the shape: at most the worst admissible one's, `(32, 4)` with
 `κ = ℓ = 32`. -/
-theorem extractorPrice_le_worst {μ R κ ℓ N : ℕ} (hμ : μ ≤ 28) (hR : R ≤ 4) (hκ : κ ≤ 32)
-    (hℓ : ℓ ≤ 32) : extractorPrice μ R κ ℓ N ≤ extractorPrice 28 4 32 32 N := by
+theorem extractorPrice_le_worst {μ R κ ℓ N : ℕ} (hμ : μ ≤ 32) (hR : R ≤ 4) (hκ : κ ≤ 32)
+    (hℓ : ℓ ≤ 32) : extractorPrice μ R κ ℓ N ≤ extractorPrice 32 4 32 32 N := by
   unfold extractorPrice afterRootStagePrice fastPathPrice runnerTablesPrice stackRunPrice
     runnerStepPrice committedLeavesPrice bytecodeWordsPrice
   gcongr
@@ -595,7 +595,7 @@ theorem extractorPrice_le_worst {μ R κ ℓ N : ℕ} (hμ : μ ≤ 28) (hR : R 
 /-- **The worst shape's price within the statement's budget** (`leanVmKnowledgeExtractorBudget`), the entry's
 `14` included, for every number of queries: monomial by monomial in `N` and the levels `D`, the
 positions' limbs `W` at most `(D + 65)/64`. -/
-theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 28 4 32 32 N + 14 ≤ leanVmKnowledgeExtractorBudget N := by
+theorem extractorPrice_worst_le (N : ℕ) : extractorPrice 32 4 32 32 N + 14 ≤ leanVmKnowledgeExtractorBudget N := by
   unfold leanVmKnowledgeExtractorBudget extractorPrice extractorSortedMapLevels
   have hW : 64 * limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1) ≤ Nat.log2 (N + 2) + 1 + 65 := by
     unfold limbsBelowTwoPow; omega
@@ -631,38 +631,38 @@ theorem extractorC_within (hP : Includes P extractorC.costDeps) (prog : Semantic
   have hb := extractorPrice_worst_le (permutationQueries T).length
   omega
 
-/-! ## At `(28, 4)` -/
+/-! ## At `(32, 4)` -/
 
 theorem stageBound_mono {μ R κ ℓ D D' N N' h W W' : ℕ} (hD : D ≤ D') (hN : N ≤ N') (hW : W ≤ W') :
     afterRootStagePrice μ R κ ℓ D N h W ≤ afterRootStagePrice μ R κ ℓ D' N' h W' := by
   unfold afterRootStagePrice transcriptIndexPrice committedLeavesPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
   gcongr
 
-/-- **The extractor's price at `(μ, R) = (28, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
-most `1696880284798342437308744 ≈ 2^80.49`, the decoder's `2^80.49` dominating. -/
-theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
-    extractorPrice 28 4 32 32 N ≤ 1696880284798342437308744 := by
+/-- **The extractor's price at `(μ, R) = (32, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
+most `67498566427363885418631496 ≈ 2^85.80`, the decoder's `2^85.80` dominating. -/
+theorem extractorPrice_32_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
+    extractorPrice 32 4 32 32 N ≤ 67498566427363885418631496 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 41 := by
     have := (Nat.log2_lt (n := N + 2) (k := 41) (by omega)).2 (by omega)
     omega
   have hW : limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1) ≤ 1 := by unfold limbsBelowTwoPow; omega
-  have h := stageBound_mono (μ := 28) (R := 4) (κ := 32) (ℓ := 32) (h := 28 - 6 + 4) hD hN hW
+  have h := stageBound_mono (μ := 32) (R := 4) (κ := 32) (ℓ := 32) (h := 32 - 6 + 4) hD hN hW
   unfold extractorPrice
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left h _) _) ?_
   unfold afterRootStagePrice transcriptIndexPrice committedLeavesPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
     fastPathPrice runnerTablesPrice stackRunPrice runnerStepPrice listDecoderPrice listDecoderWorstPrice bytecodeWordsPrice
   norm_num
 
-/-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
-adversaries), `κ = ℓ = 32`: at most `165504966199035608965493564522839320679702871778 ≈ 2^156.86`,
+/-- **The extractor's price at `(32, 4)` for up to `2^128` queries** (the soundness statement's
+adversaries), `κ = ℓ = 32`: at most `165504966199035608965559366208987713012883326690 ≈ 2^156.86`,
 the transcript's index dominating (`D = 129` levels of binary searches, positions of `3` limbs). -/
-theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
-    extractorPrice 28 4 32 32 N ≤ 165504966199035608965493564522839320679702871778 := by
+theorem extractorPrice_32_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
+    extractorPrice 32 4 32 32 N ≤ 165504966199035608965559366208987713012883326690 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 129 := by
     have := (Nat.log2_lt (n := N + 2) (k := 129) (by omega)).2 (by omega)
     omega
   have hW : limbsBelowTwoPow (Nat.log2 (N + 2) + 1 + 1) ≤ 3 := by unfold limbsBelowTwoPow; omega
-  have h := stageBound_mono (μ := 28) (R := 4) (κ := 32) (ℓ := 32) (h := 28 - 6 + 4) hD hN hW
+  have h := stageBound_mono (μ := 32) (R := 4) (κ := 32) (ℓ := 32) (h := 32 - 6 + 4) hD hN hW
   unfold extractorPrice
   refine le_trans (Nat.add_le_add_right (Nat.add_le_add_left h _) _) ?_
   unfold afterRootStagePrice transcriptIndexPrice committedLeavesPrice replayStepPrice firstAnswersStepPrice preimageStepPrice

@@ -34,10 +34,10 @@ theorem cw78_0_0 : cplWin 78 0 0 = true := by decide +kernel
 /-- `eq_prefix_run__L39`, window 0, part 0. -/
 theorem cw79_0_0 : cplWin 79 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L40`, window 0, part 0. -/
+/-- `__loop5`, window 0, part 0. -/
 theorem cw80_0_0 : cplWin 80 0 0 = true := by decide +kernel
 
-/-- `eq_prefix_run__L41`, window 0, part 0. -/
+/-- `rs_eq_rows__L0`, window 0, part 0. -/
 theorem cw81_0_0 : cplWin 81 0 0 = true := by decide +kernel
 
 theorem ok74 : CplOk 74 := by

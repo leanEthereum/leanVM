@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop37`, window 0, part 0. -/
+/-- `opening_final_message__L4`, window 0, part 0. -/
 theorem cw479_0_0 : cplWin 479 0 0 = true := by decide +kernel
 
-/-- `__loop38`, window 0, part 0. -/
+/-- `level_queries__L22_L0_L16_L24_L12_L6`, window 0, part 0. -/
 theorem cw480_0_0 : cplWin 480 0 0 = true := by decide +kernel
 
-/-- `__loop39`, window 0, part 0. -/
+/-- `level_queries__L22_L0_L16_L24_L12_L6`, window 1, part 0. -/
+theorem cw480_1_0 : cplWin 480 1 0 = true := by decide +kernel
+
+/-- `level_queries__L20_L0_L16_L24_L13_L7`, window 0, part 0. -/
 theorem cw481_0_0 : cplWin 481 0 0 = true := by decide +kernel
 
-/-- `__loop40`, window 0, part 0. -/
+/-- `level_queries__L20_L0_L16_L24_L13_L7`, window 1, part 0. -/
+theorem cw481_1_0 : cplWin 481 1 0 = true := by decide +kernel
+
+/-- `level_queries__L18_L0_L16_L24_L14_L2`, window 0, part 0. -/
 theorem cw482_0_0 : cplWin 482 0 0 = true := by decide +kernel
 
-/-- `opening_ood_point__L13`, window 0, part 0. -/
+/-- `level_queries__L18_L0_L16_L24_L14_L2`, window 1, part 0. -/
+theorem cw482_1_0 : cplWin 482 1 0 = true := by decide +kernel
+
+/-- `level_queries__L17_L0_L16_L24_L15_L3`, window 0, part 0. -/
 theorem cw483_0_0 : cplWin 483 0 0 = true := by decide +kernel
-
-/-- `grind_check__L17`, window 0, part 0. -/
-theorem cw484_0_0 : cplWin 484 0 0 = true := by decide +kernel
-
-/-- `level_positions__L18_L14_L8`, window 0, part 0. -/
-theorem cw485_0_0 : cplWin 485 0 0 = true := by decide +kernel
-
-/-- `level_positions__L10_L15_L3`, window 0, part 0. -/
-theorem cw486_0_0 : cplWin 486 0 0 = true := by decide +kernel
 
 theorem ok479 : CplOk 479 := by
   intro i hi k hk
@@ -52,73 +52,45 @@ theorem ok479 : CplOk 479 := by
 
 theorem ok480 : CplOk 480 := by
   intro i hi k hk
-  have hc : (certOf 480).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 480).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 480 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw480_0_0
+  · have hn : nParts 480 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw480_1_0
 
 theorem ok481 : CplOk 481 := by
   intro i hi k hk
-  have hc : (certOf 481).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 481).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 481 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw481_0_0
+  · have hn : nParts 481 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw481_1_0
 
 theorem ok482 : CplOk 482 := by
   intro i hi k hk
-  have hc : (certOf 482).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 482).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 482 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw482_0_0
-
-theorem ok483 : CplOk 483 := by
-  intro i hi k hk
-  have hc : (certOf 483).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 483 0 = 1 := by decide +kernel
+  · have hn : nParts 482 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw483_0_0
-
-theorem ok484 : CplOk 484 := by
-  intro i hi k hk
-  have hc : (certOf 484).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 484 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw484_0_0
-
-theorem ok485 : CplOk 485 := by
-  intro i hi k hk
-  have hc : (certOf 485).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 485 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw485_0_0
-
-theorem ok486 : CplOk 486 := by
-  intro i hi k hk
-  have hc : (certOf 486).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 486 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw486_0_0
+    · exact cw482_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

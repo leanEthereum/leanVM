@@ -1067,7 +1067,7 @@ open LeanVM.Protocol.Compile in
 theorem readSizesLite_some {bytecode : List K} {s s' : VerifierProgramState} {L : LayoutLite}
     {R : ℕ}
     (h : readSizesLite bytecode s = some ((L, R), s')) :
-    R ≤ 4 ∧ L.stackLog ≤ 28 ∧ s'.roots = s.roots ∧
+    R ≤ 4 ∧ L.stackLog ≤ 32 ∧ s'.roots = s.roots ∧
       (s.sponge.pending.length ≤ 4 → s'.sponge.pending.length ≤ 4) := by
   unfold readSizesLite at h
   obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.1 h

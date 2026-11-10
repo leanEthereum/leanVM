@@ -19,7 +19,7 @@ layout `afterRootLite` returns:
   but `q_keccak`'s `38`): every placement's offset below `2^48`: a block's offset is at most
   `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
 * **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
-  stack's log-size in `[15, 28]` and the rate's in `[1, 4]`;
+  stack's log-size in `[15, 32]` and the rate's in `[1, 4]`;
 * **`runner_cost_afterRootLite`**: `runner_cost` on `afterRootLite`'s layouts, its hypotheses
   discharged: at most `runnerBudget` (`≈ 2^65.60`).
 -/
@@ -174,13 +174,13 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     · show log2Strict bytecode.length = some (val - busBits + busBits)
       rw [Nat.sub_add_cancel c1]; exact hval
 
-/-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[15, 28]`, its rate
+/-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[15, 32]`, its rate
 in `[1, 4]`. -/
 theorem readSizesLite_layout {bytecode : List K} {s s' :
     LeanVM.Protocol.Compile.VerifierProgramState}
     {L : LayoutLite} {R : ℕ} (h : readSizesLite bytecode s = some ((L, R), s')) :
     (∃ logMemory tableRows, buildLayoutLite bytecode logMemory tableRows = some L) ∧
-      15 ≤ L.stackLog ∧ L.stackLog ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4 := by
+      15 ≤ L.stackLog ∧ L.stackLog ≤ 32 ∧ 1 ≤ R ∧ R ≤ 4 := by
   unfold readSizesLite at h
   obtain ⟨r, -, h⟩ := Option.bind_eq_some_iff.1 h
   split_ifs at h
@@ -193,12 +193,12 @@ theorem readSizesLite_layout {bytecode : List K} {s s' :
   simp only [Whir.minLogStack, Whir.maxLogStack] at h3
   exact ⟨⟨_, _, hL'⟩, h3.1, h3.2, h2.1, h2.2⟩
 
-/-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[15, 28]`, the
+/-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[15, 32]`, the
 rate's in `[1, 4]`, and the bytecode has `2^(ℓ + 4)` words. -/
 theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof}
     {L : LayoutLite} {R : ℕ} {st : LeanVM.Protocol.Compile.VerifierProgramState}
     (h : afterRootLite bytecode π = some ((L, R), st)) :
-    LayoutFacts L ∧ 15 ≤ L.stackLog ∧ L.stackLog ≤ 28 ∧ 1 ≤ R ∧ R ≤ 4 ∧
+    LayoutFacts L ∧ 15 ≤ L.stackLog ∧ L.stackLog ≤ 32 ∧ 1 ≤ R ∧ R ≤ 4 ∧
       log2Strict bytecode.length = some (L.logBytecode + busBits) := by
   unfold afterRootLite at h
   cases hr : readSizesLite bytecode (initialState π) with

@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.CheckWinC
+public import LeanVM.Guest.Checked.F262_0
+public import LeanVM.Guest.Checked.F262_0
 
 namespace LeanVM.Guest.Checked
 
@@ -37,9 +39,30 @@ theorem plain261 : Plain 261 := plain_of_nil (by decide +kernel)
 
 theorem plain262 : Plain 262 := plain_of_nil (by decide +kernel)
 
-theorem plain263 : Plain 263 := plain_of_nil (by decide +kernel)
+theorem ok263 : CheckOk 263 := fun i hi ↦ by
+  have h : (certOf 263).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w263_0
+  · exact w263_1
+  · exact w263_2
 
-theorem plain264 : Plain 264 := plain_of_nil (by decide +kernel)
+theorem plain263 : Plain 263 := by
+  unfold Plain
+  decide +kernel
+
+theorem ok264 : CheckOk 264 := fun i hi ↦ by
+  have h : (certOf 264).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w264_0
+  · exact w264_1
+  · exact w264_2
+  · exact w264_3
+
+theorem plain264 : Plain 264 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain265 : Plain 265 := plain_of_nil (by decide +kernel)
 

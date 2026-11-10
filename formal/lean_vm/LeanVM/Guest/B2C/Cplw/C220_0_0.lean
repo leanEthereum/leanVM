@@ -16,23 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `block_selector__L34`, window 0, part 0. -/
+/-- `index_mle__L25`, window 0, part 0. -/
 theorem cw220_0_0 : cplWin 220 0 0 = true := by decide +kernel
 
-/-- `block_selector__L35`, window 0, part 0. -/
+/-- `index_mle__L26`, window 0, part 0. -/
 theorem cw221_0_0 : cplWin 221 0 0 = true := by decide +kernel
 
-/-- `block_selector__L36`, window 0, part 0. -/
+/-- `index_mle__L27`, window 0, part 0. -/
 theorem cw222_0_0 : cplWin 222 0 0 = true := by decide +kernel
 
-/-- `block_selector__L37`, window 0, part 0. -/
+/-- `index_mle__L28`, window 0, part 0. -/
 theorem cw223_0_0 : cplWin 223 0 0 = true := by decide +kernel
 
-/-- `block_selector__L38`, window 0, part 0. -/
+/-- `index_mle__L29`, window 0, part 0. -/
 theorem cw224_0_0 : cplWin 224 0 0 = true := by decide +kernel
 
-/-- `block_selector__L39`, window 0, part 0. -/
+/-- `index_mle__L30`, window 0, part 0. -/
 theorem cw225_0_0 : cplWin 225 0 0 = true := by decide +kernel
+
+/-- `index_mle__L31`, window 0, part 0. -/
+theorem cw226_0_0 : cplWin 226 0 0 = true := by decide +kernel
+
+/-- `index_mle__L32`, window 0, part 0. -/
+theorem cw227_0_0 : cplWin 227 0 0 = true := by decide +kernel
 
 theorem ok220 : CplOk 220 := by
   intro i hi k hk
@@ -93,6 +99,26 @@ theorem ok225 : CplOk 225 := by
     rw [hn] at hk
     interval_cases k
     · exact cw225_0_0
+
+theorem ok226 : CplOk 226 := by
+  intro i hi k hk
+  have hc : (certOf 226).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 226 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw226_0_0
+
+theorem ok227 : CplOk 227 := by
+  intro i hi k hk
+  have hc : (certOf 227).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 227 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw227_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

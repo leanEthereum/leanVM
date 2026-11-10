@@ -28,6 +28,9 @@ theorem cw17_0_0 : cplWin 17 0 0 = true := by decide +kernel
 /-- `check_opening_terminal`, window 0, part 0. -/
 theorem cw18_0_0 : cplWin 18 0 0 = true := by decide +kernel
 
+/-- `check_opening_terminal`, window 1, part 0. -/
+theorem cw18_1_0 : cplWin 18 1 0 = true := by decide +kernel
+
 theorem ok15 : CplOk 15 := by
   intro i hi k hk
   have hc : (certOf 15).cuts.length = 0 := by decide +kernel
