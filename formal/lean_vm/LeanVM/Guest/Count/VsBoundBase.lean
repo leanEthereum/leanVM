@@ -9,7 +9,7 @@
 
 module
 
-public import LeanVM.Guest.Count.VsWords
+public import LeanVM.Guest.Count.Words
 public import LeanVM.Guest.Count.VsOsDefs
 public import LeanVM.Guest.B1.Whir.Names
 public import LeanVM.Guest.B1.Place.OsSpec
