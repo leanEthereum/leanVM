@@ -142,7 +142,8 @@ theorem kids_boundB (B curE chiE olE zvE slE tbE KC KP KR KO KI : ℕ) :
 at most `KC` words per iteration, the layers' eight-round loops `KP` and remainder loops `KR` (each
 loop's run and its one phantom frame), the openings' rounds `KO` (`plainName 0`) and `KI`
 (`plainName 1`). -/
-theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE tbE : ℕ) {KC KP KR KO KI : ℕ}
+theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ)
+    {KC KP KR KO KI : ℕ}
     (hC : ∀ name ∈ ["__loop10", "__loop11", "__loop12"],
       TotalLeOn coreProgram fs name LoopPre fun a ↦ logG (a.getD 1 0) * KC + fs name)
     (hP : ∀ first < 2, TotalLeOn coreProgram fs (packLoopName first) LoopPre
@@ -178,11 +179,11 @@ theorem kids_completeB (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE tbE : ℕ)
     obtain ⟨hpl, hgr, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
     have hf2 : firstOf s < 2 := by unfold firstOf; split <;> omega
     have H := layer_completeAtFB (fs := fs) (cert := cert) (first := firstOf s)
-      hf2 κ (D.layer s)
-      (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1))
-      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (hP _ hf2) (hR _ hf2) hcl hcap (fun hf1 ↦ by
+      hf2 hκ (D.layer s)
+      (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1)) tbE
+      (p0 := (D.cells s).1) (p1 := (D.cells s).2) (hP _ hf2) (hR _ hf2) hcl (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
-        rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
+        rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hgr hfin
       (D.CL_ok h B _ (by omega))
     have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H
