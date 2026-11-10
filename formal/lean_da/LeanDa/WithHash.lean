@@ -376,15 +376,16 @@ included) makes at most `q ≤ 2^128` permutation calls (`permutationCallCost`) 
 probability at most `(q + c) · 2^-k`, then every adversary whose code-binding game, verifications
 included, makes at most `Q` calls breaks code binding with probability at most
 
-`(Q + c + 2^22) · 2^-k + (Q + 2^22) · 2^-178 + (Q + 2^22)² · 2^-247`.
+`(Q + c + 2^65) · 2^-k + (Q + 2^11) · 2^-125 + (Q + 2^22)² · 2^-247`.
 
 The first term is the argument's knowledge soundness against the code-binding adversary itself,
-its transcript handed to the extractor (at most `Q + 2^22` calls with the relation's check). The
-second is the membership test's soundness, `(2^14 - 1) / 2^192` for each root whose challenge is
-drawn. The third gathers the transfer to the two-oracle model and the duplex lemma, of the two
-games, and the hash's bad events among at most `2 Q + 2^20` hash and challenge queries: a
-collision, or a fresh answer that is a digest an earlier input or a root with a drawn challenge
-already carries; it exceeds one before `Q = 2^124`.
+its transcript handed to the extractor (at most `Q + 2^65` calls with the relation's check, the
+nonce search's `2^64 + 2` on the worst path among them). The second is the membership test with its
+grind: `2^-11 · (2^14 - 1) / 2^128 ≤ 2^-125` for each of the adversary's calls, and
+`(2^14 - 1) / 2^128` for the verifier's one search. The third gathers the transfer to the
+two-oracle model and the duplex lemma, of the two games, and the hash's bad events among at most
+`2 Q + 2^20` hash queries: a collision, or a fresh answer that is a digest an earlier input or a
+root with a drawn challenge already carries; it exceeds one before `Q = 2^124`.
 
 The argument queries the oracles the adversary does, so its knowledge soundness here is the
 usual one of an argument in the random-permutation model, with a straight-line extractor reading
@@ -403,8 +404,8 @@ abbrev CodeBindingRpmWithHash : Prop :=
     ∀ (A : CodeBindingAdversary r Crs Proof) (Q : ℕ),
       QueryCostAtMost (codeBindingGameWithHash r ps A) permutationCallCost Q →
         Pr{let b ← runWithRandomPermutation (codeBindingGameWithHash r ps A)}[b = true] ≤
-          ((Q : ℝ≥0∞) + c + 2 ^ 22) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 22) *
-            (2 : ℝ≥0∞)⁻¹ ^ 178 +
+          ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) *
+            (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247
 
 end LeanDa

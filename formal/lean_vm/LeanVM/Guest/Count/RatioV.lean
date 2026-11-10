@@ -72,7 +72,7 @@ theorem krVl15_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : 
     t.name = "__loop14" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       1000 * t.weight (ωArm xmssArmC op) ≤ krVl15A op * t.total fs :=
   fun _ _ _ _ hn hv _ => kr_weight krVl15_closed krVl15_ratio (by decide +kernel)
-    ⟨270, by decide +kernel, by decide +kernel⟩ op hn hv
+    ⟨271, by decide +kernel, by decide +kernel⟩ op hn hv
 
 theorem krVrsw_closed : (krVrswJ).all (krClosedAt krVrswJ krVrswC) = true :=
   krVrsw_closed0

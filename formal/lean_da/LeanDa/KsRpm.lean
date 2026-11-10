@@ -205,6 +205,26 @@ theorem isWeightBound_membershipChallengeVecM (root : Common.DigestBytes) :
       (by have h0 : 0 < nLabels := by simp
           rw [hl]; omega)
 
+include hP in
+theorem isWeightBound_grindM (y : Lanes) : ∀ fuel nonce,
+    QueryCostAtMost (grindMWithHash P y nonce fuel) w fuel
+  | 0, _ => isWeightBound_pure _ _ _
+  | fuel + 1, nonce => by
+    unfold grindMWithHash
+    refine ((hP _).bind (b := fuel) fun o ↦ ?_).mono (by omega)
+    split
+    · exact (isWeightBound_pure _ _ 0).mono (Nat.zero_le _)
+    · exact isWeightBound_grindM y fuel (nonce + 1)
+
+include hH hP in
+/-- **The nonce search takes at most `nLabels + 1` calls**: the label's hash, the fresh sponge
+and one per nonce. -/
+theorem isWeightBound_membershipChallengeM (root : Common.DigestBytes) :
+    QueryCostAtMost (membershipChallengeMWithHash H P root) w (nLabels + 1) := by
+  unfold membershipChallengeMWithHash Sponge.newWith
+  exact (hH.bind fun _ ↦ ((hP _).bind fun _ ↦ isWeightBound_pure _ _ 0).bind fun _ ↦
+    isWeightBound_grindM w P hP _ _ _).mono (by simp only [nLabels]; omega)
+
 end ChalWeight
 
 theorem label_calls : membershipLabel.length / 136 + 1 = 1 := by decide +kernel
@@ -348,6 +368,221 @@ noncomputable def ksIdealG (crs : Crs) : ProbComp Bool :=
       readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
         simulateQ embG (ksPostH r ps ext crs out l))).run' ∅
 
+/-! ### The draws and the nonce search agree in the two-oracle model
+
+The verifier's part of Wagner's game reads all the draws of the root and selects the challenge
+(`selectChal`); the statement's relation runs the nonce search, which stops at the first valid
+draw. Over the random function `F` the two give the same distribution: the search's calls are the
+draws' first ones, and the draws past the selected one are never read again
+(`run'_bind_const`). -/
+
+/-- An unused computation before another is invisible in the random-oracle model. -/
+theorem run'_bind_const {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
+    [∀ t : hs.Domain, SampleableType (hs.Range t)] {β γ : Type}
+    (X : OracleComp (unifSpec + hs) β) (Y : OracleComp (unifSpec + hs) γ) (c : hs.QueryCache) :
+    (simulateQ hs.romImpl (X >>= fun _ ↦ Y)).run' c =ᵈ (simulateQ hs.romImpl Y).run' c := by
+  have h := run_bind_bind_comm X Y (fun _ r ↦ pure r) c
+  simp only [bind_pure] at h
+  rw [StateT.run'_eq, StateT.run'_eq]
+  refine (h.map Prod.fst).trans ?_
+  rw [simulateQ_bind, StateT.run_bind, map_bind, map_eq_bind_pure_comp]
+  refine EvalDistEq.bind_right _ fun z ↦ ?_
+  rw [simulateQ_bind, StateT.run_bind, map_bind]
+  simp only [simulateQ_pure, StateT.run_pure, map_pure, Function.comp_apply]
+  exact EvalDistEq.bind_const _ _
+
+theorem run'_bind_eq {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
+    [∀ t : hs.Domain, SampleableType (hs.Range t)] {β γ : Type}
+    (X : OracleComp (unifSpec + hs) β) (f : β → OracleComp (unifSpec + hs) γ) (c : hs.QueryCache) :
+    (simulateQ hs.romImpl (X >>= f)).run' c =
+      (simulateQ hs.romImpl X).run c >>= fun p ↦ (simulateQ hs.romImpl (f p.1)).run' p.2 := by
+  rw [StateT.run'_eq, simulateQ_bind, StateT.run_bind, map_bind]
+  rfl
+
+/-- **Runs with equal continuations from every cache** agree. -/
+theorem run'_bind_congr {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
+    [∀ t : hs.Domain, SampleableType (hs.Range t)] {β γ : Type}
+    (X : OracleComp (unifSpec + hs) β) (f g : β → OracleComp (unifSpec + hs) γ) (c : hs.QueryCache)
+    (h : ∀ b c', (simulateQ hs.romImpl (f b)).run' c' =ᵈ (simulateQ hs.romImpl (g b)).run' c') :
+    (simulateQ hs.romImpl (X >>= f)).run' c =ᵈ (simulateQ hs.romImpl (X >>= g)).run' c := by
+  rw [run'_bind_eq, run'_bind_eq]
+  exact EvalDistEq.bind_right _ fun p ↦ h p.1 p.2
+
+/-- The draws of a list of nonces from the seeded answer `y`. -/
+def drawsL {m : Type → Type} [Monad m] (P : Lanes → m Lanes) (y : Lanes) (L : List ℕ) :
+    m (List Draw) :=
+  L.mapM fun n ↦ drawOfState <$> P (nonceInput y n)
+
+/-- The nonce search over a list of nonces from the seeded answer `y`. -/
+def grindL {m : Type → Type} [Monad m] (P : Lanes → m Lanes) (y : Lanes) : List ℕ → m (Option E)
+  | [] => pure none
+  | n :: L => do
+    let o ← P (nonceInput y n)
+    if powValid o[2] then pure (some (chalOfState o)) else grindL P y L
+
+/-- The selection over a list of draws: the first valid one's challenge. -/
+def selectList : List Draw → Option E
+  | [] => none
+  | d :: ds => if powValid d.2.lane then some d.1 else selectList ds
+
+theorem grindM_eq_grindL {m : Type → Type} [Monad m] (P : Lanes → m Lanes) (y : Lanes) :
+    ∀ fuel nonce, grindMWithHash P y nonce fuel = grindL P y (List.range' nonce fuel)
+  | 0, _ => rfl
+  | fuel + 1, nonce => by
+    rw [List.range'_succ, grindMWithHash, grindL, grindM_eq_grindL P y fuel (nonce + 1)]
+
+theorem branchDrawsM_eq_drawsL {m : Type → Type} [Monad m] [LawfulMonad m] (P : Lanes → m Lanes)
+    (y : Lanes) : ∀ js : List (Fin nLabels),
+      branchDrawsM P y js = drawsL P y (js.map fun j ↦ j.val - 1)
+  | [] => rfl
+  | j :: js => by
+    rw [branchDrawsM, List.map_cons, drawsL, List.mapM_cons, ← drawsL,
+      ← branchDrawsM_eq_drawsL P y js]
+    simp only [bind_map_left]
+
+theorem branchIdx_map (n : ℕ) :
+    (Common.SeedDuplex.branchIdx (n + 1)).map (fun j : Fin (n + 1) ↦ j.val - 1) = List.range' 0 n := by
+  refine List.ext_getElem (by simp [Common.SeedDuplex.branchIdx_length]) fun i h1 h2 ↦ ?_
+  rw [List.getElem_map, Common.SeedDuplex.branchIdx_getElem, List.getElem_range']
+  simp
+
+theorem membershipChallengeVecM_eq_drawsL {m : Type → Type} [Monad m] [LawfulMonad m]
+    (H : List UInt8 → m Common.DigestBytes) (P : Lanes → m Lanes) (root : Common.DigestBytes) :
+    membershipChallengeVecM H P root = (do
+      let iv ← H membershipLabel
+      let s ← Sponge.newWith P iv root
+      let zs ← drawsL P s.state (List.range' 0 nonceCount)
+      pure (drawsVec (drawOfState s.state :: zs))) := by
+  unfold membershipChallengeVecM
+  simp only [branchDrawsM_eq_drawsL, branchIdx_map]
+
+theorem membershipChallengeM_eq_grindL {m : Type → Type} [Monad m]
+    (H : List UInt8 → m Common.DigestBytes) (P : Lanes → m Lanes) (root : Common.DigestBytes) :
+    membershipChallengeMWithHash H P root = (do
+      let iv ← H membershipLabel
+      let s ← Sponge.newWith P iv root
+      grindL P s.state (List.range' 0 nonceCount)) := by
+  unfold membershipChallengeMWithHash
+  simp only [grindM_eq_grindL]
+
+/-- **The deployed challenge of the draws is the selection over the nonces'.** -/
+theorem selectChal_drawsVec (d0 : Draw) (zs : List Draw) (hz : zs.length = nonceCount) :
+    selectChal (drawsVec (d0 :: zs)) = selectList zs := by
+  have key : ∀ fuel nonce, nonce + fuel = zs.length →
+      selectFrom (drawsVec (d0 :: zs)) nonce fuel = selectList (zs.drop nonce) := by
+    intro fuel
+    induction fuel with
+    | zero =>
+      intro nonce h
+      rw [List.drop_of_length_le (by omega)]
+      rfl
+    | succ fuel ih =>
+      intro nonce h
+      have hn : nonce < zs.length := by omega
+      have hd : drawAt (drawsVec (d0 :: zs)) (nonce + 1) = zs[nonce] := by
+        have hl : nonce + 1 < nLabels := by simp only [nLabels]; omega
+        simp only [drawAt, hl, ↓reduceDIte, drawsVec]
+        rw [List.getD_eq_getElem _ _ (by simp; omega)]
+        simp
+      rw [selectFrom, hd, List.drop_eq_getElem_cons hn, selectList, ih (nonce + 1) (by omega)]
+  exact key nonceCount 0 (by omega)
+
+/-- **The draws then their selection, or the nonce search**, over the random function `F`. -/
+theorem run'_drawsL_select {β : Type} (y : Lanes) (K : Option E → OracleComp Rom2 β) :
+    ∀ (L : List ℕ) (c : Cache2),
+      (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
+          (drawsL pR y L >>= fun zs ↦ K (selectList zs))).run' c =ᵈ
+        (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl (grindL pR y L >>= K)).run' c
+  | [], c => by simp [drawsL, grindL, selectList]
+  | n :: L, c => by
+    rw [drawsL, List.mapM_cons, ← drawsL]
+    simp only [grindL, bind_assoc, bind_map_left, pure_bind]
+    refine run'_bind_congr _ _ _ c fun o c' ↦ ?_
+    have hv : (drawOfState o).2.lane = o[2] := rfl
+    simp only [selectList, hv]
+    split
+    · exact run'_bind_const _ _ c'
+    · exact run'_drawsL_select y K L c'
+
+/-- The knowledge-soundness verdict on the challenge `z`, the statement's draws `default`. -/
+noncomputable def ksPostG (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (z : Option E) :
+    OracleComp Rom2 Bool := do
+  let root ← commitCellsMWithHash hR (ext crs ((), out.1.1, default) out.1.2)
+  pure (ps.verify crs ((), out.1.1, default) out.1.2 &&
+    !(decide (root = out.1.1) && membershipCheckOpt z (ext crs ((), out.1.1, default) out.1.2)))
+
+/-- The same with `H` among coins and `H`. -/
+noncomputable def ksPostHG (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (z : Option E) :
+    OracleComp (unifSpec + roSpec (List UInt8) DigestBytes) Bool := do
+  let root ← commitCellsMWithHash hH (ext crs ((), out.1.1, default) out.1.2)
+  pure (ps.verify crs ((), out.1.1, default) out.1.2 &&
+    !(decide (root = out.1.1) && membershipCheckOpt z (ext crs ((), out.1.1, default) out.1.2)))
+
+theorem ksPostG_embH (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (z : Option E) :
+    ksPostG r ps ext crs out z = simulateQ embH (ksPostHG r ps ext crs out z) := by
+  rw [ksPostHG, simulateQ_bind, commitCellsM_map (fun x ↦ simulateQ embH x) (fun _ ↦ rfl)
+    (fun x f ↦ simulateQ_bind _ x f)]
+  simp only [simulateQ_embH_hH, simulateQ_pure, ksPostG]
+
+theorem isWeightBound_ksPostG (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) (z : Option E) :
+    QueryCostAtMost (ksPostG r ps ext crs out z) rCalls (relCalls r) := by
+  unfold ksPostG
+  have h := isWeightBound_commitCellsM hR rCalls 1 16
+    (fun a b ↦ (isWeightBound_query rCalls (.inr (.inl (pairBytes a b)))).mono
+      (by simp [rCalls, length_pairBytes]))
+    (fun x ↦ (isWeightBound_query rCalls (.inr (.inl (cellBytes x)))).mono
+      (by simp [rCalls, length_cellBytes])) (ext crs ((), out.1.1, default) out.1.2)
+  exact (h.bind fun _ ↦ isWeightBound_pure _ _ 0).mono (le_of_eq (by ring))
+
+/-- **The knowledge-soundness game with the deployed challenge**, by the nonce search over the
+verifier's direct calls. -/
+noncomputable def postKG (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
+    OracleComp Rom2 Bool :=
+  membershipChallengeMWithHash hR pR out.1.1 >>= ksPostG r ps ext crs out
+
+/-- **Wagner's verdict and the deployed one agree** for an argument and an extractor that ignore
+the statement's draws. -/
+theorem run'_postK_eq_postKG
+    (hver : ∀ crs root l proof, ps.verify crs ((), root, l) proof = ps.verify crs ((), root, default) proof)
+    (hext : ∀ crs root l proof, ext crs ((), root, l) proof = ext crs ((), root, default) proof)
+    (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
+    (c : Cache2) :
+    (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl (postK r ps ext crs out)).run' c =ᵈ
+      (simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl (postKG r ps ext crs out)).run' c := by
+  have hpost : ∀ l, ksPost r ps ext crs (((), out.1.1, l), out.1.2) =
+      ksPostG r ps ext crs out (selectChal l) := fun l ↦ by
+    simp only [ksPost, ksPostG, hver crs out.1.1 l, hext crs out.1.1 l]
+  have e1 : postK r ps ext crs out = hR membershipLabel >>= fun iv ↦
+      Sponge.newWith pR iv out.1.1 >>= fun s ↦
+        drawsL pR s.state (List.range' 0 nonceCount) >>= fun zs ↦
+          ksPostG r ps ext crs out (selectList zs) := by
+    rw [postK, membershipChallengeVecM_eq_drawsL]
+    simp only [bind_assoc, pure_bind, hpost]
+    refine bind_congr fun iv ↦ bind_congr fun s ↦ ?_
+    rw [drawsL]
+    exact mapM_bind_congr _ _ _ _ fun zs hzs ↦ by
+      rw [selectChal_drawsVec _ zs (by simpa using hzs)]
+  have e2 : postKG r ps ext crs out = hR membershipLabel >>= fun iv ↦
+      Sponge.newWith pR iv out.1.1 >>= fun s ↦
+        grindL pR s.state (List.range' 0 nonceCount) >>= ksPostG r ps ext crs out := by
+    rw [postKG, membershipChallengeM_eq_grindL]
+    simp only [bind_assoc]
+  rw [e1, e2]
+  exact run'_bind_congr (hR membershipLabel) _ _ c fun iv c₁ ↦
+    run'_bind_congr (Sponge.newWith pR iv out.1.1) _ _ c₁ fun s c₂ ↦
+      run'_drawsL_select s.state _ _ c₂
+
+theorem duplex_postKG (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
+    Duplex KState.zero keccakNF (postKG r ps ext crs out) [] :=
+  duplex_of_duplexP (Q := fun _ _ ↦ True) <|
+    duplexP_bind (duplexP_membershipChallengeR _ []) fun z _ _ ↦ by
+      rw [ksPostG_embH]; exact duplexP_embH _ _
+
 /-- **The duplex lemma, reversed, for knowledge soundness.** -/
 theorem ksIdealG_le (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← ps.setup >>= ksIdealG r ps ext A}[b = true] ≤
@@ -374,6 +609,59 @@ theorem ksIdealG_le (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) pe
   rw [e]
   exact duplex_ge (D := daDuplex) daDuplex_cap _ Q hB (fun out ↦ out.1.1)
     (fun out l ↦ ksPostH r ps ext crs out l)
+
+theorem isWeightBound_postKG (crs : Crs)
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :
+    QueryCostAtMost (postKG r ps ext crs out) rCalls (nLabels + 1 + relCalls r) :=
+  (isWeightBound_membershipChallengeM rCalls hR pR
+    ((isWeightBound_query rCalls (.inr (.inl membershipLabel))).mono
+        (by simp [rCalls, label_calls]))
+    (fun L ↦ isWeightBound_map _ (isWeightBound_query rCalls (.inr (.inr _)))) _).bind fun z ↦
+      isWeightBound_ksPostG r ps ext crs out z
+
+theorem isWeightBound_postKGGame (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
+    QueryCostAtMost (rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postKG r ps ext)) permCalls2
+      (ksCalls r Q) :=
+  (IsWeightBound.bind_of_mem_support (isWeightBound_hEmbed2_setup ps.setup) fun x hx ↦
+    (isWeightBound_advEmbed_A r ps A Q hQ x hx).bind fun _ ↦
+      isWeightBound_hfEmbed (isWeightBound_postKG r ps ext x _)).mono (by unfold ksCalls; omega)
+
+/-- **From the two-oracle model to the RPM, with the deployed challenge**: the transfer
+`q² / 2^508`. -/
+theorem rom2G_le_rpm (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
+    Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
+        advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postKG r ps ext x a)}[b = true] ≤
+      Pr{let b ← realGame2 keccakPadding KState.zero
+          (rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postKG r ps ext))}[b = true] +
+        ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 := by
+  have hq := isWeightBound_postKGGame r ps ext A Q hQ
+  rw [permCalls2_eq] at hq
+  exact (keccak256_transfer2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postKG r ps ext)
+    (fun x a ↦ duplex_postKG r ps ext x a) (ksCalls r Q) hq (· = true)).2
+
+/-- **The simulated world of knowledge soundness is at most the RPM game with the deployed
+challenge**, for an argument and an extractor that ignore the statement's draws: the duplex
+lemma reversed, the draws read as the nonce search reads them, and the transfer. -/
+theorem ksIdealG_le_rpmG
+    (hver : ∀ crs root l proof, ps.verify crs ((), root, l) proof = ps.verify crs ((), root, default) proof)
+    (hext : ∀ crs root l proof, ext crs ((), root, l) proof = ext crs ((), root, default) proof)
+    (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
+    Pr{let b ← ps.setup >>= ksIdealG r ps ext A}[b = true] ≤
+      Pr{let b ← realGame2 keccakPadding KState.zero
+          (rpmGame2 (liftM ps.setup) (fun crs ↦ A ((), crs)) (postKG r ps ext))}[b = true] +
+        ((ksCalls r Q) ^ 2 : ℝ≥0∞) / 2 ^ 508 +
+        ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
+  have heq : Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
+        advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postK r ps ext x a)}[b = true] =
+      Pr{let b ← romRun2 (simulateQ (hInF (E := KRest) (C := KCap)) (liftM ps.setup) >>= fun x ↦
+        advS2 keccakPadding KState.zero (A ((), x)) >>= fun a ↦ postKG r ps ext x a)}[b = true] := by
+    rw [romRun2, romRun2]
+    exact (run'_bind_congr _ _ _ ∅ fun x c₁ ↦ run'_bind_congr _ _ _ c₁ fun a c₂ ↦
+      run'_postK_eq_postKG r ps ext hver hext x a c₂).prEvent_eq _
+  refine (ksIdealG_le r ps ext A Q hQ).trans ?_
+  rw [heq]
+  refine add_le_add (rom2G_le_rpm r ps ext A Q hQ) le_rfl
+
 
 end Chain2
 

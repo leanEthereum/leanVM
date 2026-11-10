@@ -6,7 +6,7 @@ count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per op
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os
 
-VS_ST = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'assert_canonical', 'ring_switch_target',
+VS_ST = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'ring_switch_target',
          'certify_placement', 'log2_ceil_in_the_exponent__L15_L34']
 OM = ['verify_sub', 'child_claim_list_digest', '__loop4', 'child_claim_list_any', 'child_claim_list_mono']
 # A list of `n = 136·bigs + 17·groups + rest` claims (`list_split`, `groups < 8`, `rest < 17`): the

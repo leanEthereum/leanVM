@@ -256,7 +256,7 @@ def MonoStep (rd : Reader) (m nb : ℕ) (chain mark x : E) : Prop :=
       LoadHolds rd (chain * x ^ 15) 29 (entries * gen ^ (4 * O'))
 
 theorem mono_step {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 0 = gen ^ m) (hew : word ew 0 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
@@ -352,7 +352,7 @@ theorem monoFrames_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of the walk**, called as `callIf (1 + N) f [1, N, chain, mark]` with
 `N = g^a`, `a < 2^34`. -/
 theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 991)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1055)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 0 = gen ^ m) (hew : word ew 0 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)

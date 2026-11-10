@@ -164,8 +164,7 @@ theorem mc_keccak_of {L k c : ℕ} (hP : σ (.n (mcP L)) = word 1 0 0)
   have hS := pair_digest (σ (.n (4 * k))) (σ (.n (4 * k + 1))) (σ (.n (4 * k + 2)))
     (σ (.n (4 * k + 3))) _ ⟨hcanI, fun _ _ ↦ rfl⟩
   rw [← hd, Prod.mk.injEq] at hS
-  refine keccak_holds_two.mpr ⟨rfl, ?_, ?_, ?_⟩
-  · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hcanI
+  refine keccak_holds_two.mpr ⟨rfl, ?_, ?_⟩
   · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hS.1.symm
   · rw [mcIns_map hP h1 h2 h3 h4 hc]; exact hS.2.symm
 

@@ -16,63 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_keccak`, window 9. -/
-theorem w13_9 : shareWin 13 (snapsOf 13) 9 = true := by decide +kernel
+/-- `verify_tables`, window 22. -/
+theorem w12_22 : shareWin 12 (snapsOf 12) 22 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_keccak`, window 10. -/
-theorem w13_10 : shareWin 13 (snapsOf 13) 10 = true := by decide +kernel
+/-- `verify_tables`, window 23. -/
+theorem w12_23 : shareWin 12 (snapsOf 12) 23 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `ring_switch_target`, once. -/
-theorem st14 : shareStatic 14 = true := by decide +kernel
+/-- `verify_tables`, window 24. -/
+theorem w12_24 : shareWin 12 (snapsOf 12) 24 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `ring_switch_target`, window 0. -/
-theorem w14_0 : shareWin 14 (snapsOf 14) 0 = true := by decide +kernel
-
-theorem ok14 : ShareOk 14 := ⟨st14, fun i hi ↦ by
-  have h : (snapsOf 14).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w14_0⟩
+/-- `verify_tables`, window 25. -/
+theorem w12_25 : shareWin 12 (snapsOf 12) 25 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `ring_switch_weight`, once. -/
-theorem st15 : shareStatic 15 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `ring_switch_weight`, window 0. -/
-theorem w15_0 : shareWin 15 (snapsOf 15) 0 = true := by decide +kernel
-
-theorem ok15 : ShareOk 15 := ⟨st15, fun i hi ↦ by
-  have h : (snapsOf 15).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w15_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, once. -/
-theorem st16 : shareStatic 16 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 0. -/
-theorem w16_0 : shareWin 16 (snapsOf 16) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 1. -/
-theorem w16_1 : shareWin 16 (snapsOf 16) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `selector_tables`, once. -/
-theorem st17 : shareStatic 17 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `selector_tables`, window 0. -/
-theorem w17_0 : shareWin 17 (snapsOf 17) 0 = true := by decide +kernel
-
-theorem ok17 : ShareOk 17 := ⟨st17, fun i hi ↦ by
-  have h : (snapsOf 17).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w17_0⟩
+/-- `verify_tables`, window 26. -/
+theorem w12_26 : shareWin 12 (snapsOf 12) 26 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared
