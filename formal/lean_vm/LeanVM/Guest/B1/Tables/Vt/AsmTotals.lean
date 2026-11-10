@@ -77,7 +77,7 @@ theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.le
     {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
     (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
     (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ} (hlm : lm ≤ 32)
-    {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 29)
+    {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
     (hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {alphas : List E} (hal : alphas.length = 4)
     (hW : TbReadsAt Lm.read (σ (.n 13)) (eqKernel alphas))

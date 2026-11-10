@@ -61,7 +61,7 @@ theorem termKids_names (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
-    (hCsW : ∀ i, ∀ κ' < 29, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
+    (hCsW : ∀ i, ∀ κ' < 33, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
     {K15 Brs Beqc Bcs : ℕ}
     (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
@@ -70,7 +70,7 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ω i) ≤ Wrsw i)
-    {D : TermData} (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 29) {t : Tree}
+    {D : TermData} (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 33) {t : Tree}
     (h : Budget.FlatShape coreProgram "check_opening_terminal"
       (List.zipWith (Budget.NamedWithin fs) (termNames D) (termBs fs Beqc K15 Bcs Brs)) t)
     {rd : Reader} {args rets : List E} (hv : t.Valid coreProgram rd args rets)
@@ -131,13 +131,13 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 33, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
-    (hCsW : ∀ i, ∀ κ' < 29, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
+    (hCsW : ∀ i, ∀ κ' < 33, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
     (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
@@ -150,7 +150,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       (fun t => ∀ i, Budget.WeighsLe coreProgram (ω i)
         (ω i "check_opening_terminal" + (termWs Weqc W15 Wst Wcs Wrsw i).sum) t)
       (fs "check_opening_terminal" + 146 + 3 * Beqc + (32 * K15 + fs "__loop14") +
-        (fs "selector_tables" + 448) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
+        (fs "selector_tables" + 512) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)) := by
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
   swap
   · intro fp
@@ -187,24 +187,24 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
   have hxl40 : x.length ≤ termPointCap := by simp only [termPointCap]; omega
   set D := termD B layout bus out ringPoint coeffs x chis rm gmu gzcn glm gtau with hD
   have hst : ∀ rd, LowDef κ rd → MemL rd Lin →
-      MemL rd (Tables.stLin B.pt B.pt1 (pt28 x) (pt128 x)) := fun rd hl hm q hq => by
+      MemL rd (Tables.stLin B.pt B.pt1 (pt32 x) (pt132 x)) := fun rd hl hm q hq => by
     have P := hpre rd hl hm
     simp only [TermPre, termArgs] at P
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hpt, hpt1⟩ := P
     simp only [Tables.stLin, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl
-    · exact readsAt_take hpt 28
-    · exact readsAt_take hpt1 28
+    · exact readsAt_take hpt 32
+    · exact readsAt_take hpt1 32
   have f1 : D.τ + 6 ≤ 34 := by show τ + 6 ≤ 34; omega
   have f2 : D.ringPoint.length = D.τ + 6 := by
     show ringPoint.length = τ + 6; rw [hrpl, Tables.qkeccakSlotBits_eq]
   have f3 : D.coeffs.length = 64 := by show coeffs.length = 64; rw [hcfl]; rfl
-  have f4 : D.x.length ≤ 28 := by show x.length ≤ 28; omega
+  have f4 : D.x.length ≤ 32 := by show x.length ≤ 32; omega
   have f5 : D.outPt.length = D.τ + 6 := by
     show out.point.length = τ + 6; rw [hopl, Tables.qkeccakSlotBits_eq]
   have f7 : D.chis.length ≤ 34 := by show chis.length ≤ 34; omega
-  have hKC29 : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 29 := fun c hc => by
-    have := hK c hc; show KC.getD c 0 < 29; omega
+  have hKC33 : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 33 := fun c hc => by
+    have := hK c hc; show KC.getD c 0 < 33; omega
   refine (completeAt_flatDepRBT find_term term_not_loop κ Lin _ [] term_body' term_flat term_addrs
     (by decide +kernel)
     [35, 35, 35, 41] (fun _ => termOwn D) (fun _ => ?_)
@@ -214,7 +214,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     (fun fp outs _ => termKids_regions Lin D _ hreg f1 f2 f3 f4 outs)
     (fun fp outs _ rd hl hB hLin hLo => ?_) (fun fp outs hlen' ho rd hl hB hLin _ => ?_)).mono
     (le_of_eq ?_) fun t ht i rd' _ _ hv hb =>
-      term_weight_le ω Weqc W15 Wst Wcs Wrsw hEqcW hStW hCsW h15W hrswW hKC29 ht hv hb i
+      term_weight_le ω Weqc W15 Wst Wcs Wrsw hEqcW hStW hCsW h15W hrswW hKC33 ht hv hb i
   · simp only [termOwn, List.forall₂_cons, eqChain_length, piW_length,
       List.Forall₂.nil, and_true]
     have hol : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
@@ -222,7 +222,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       out.point.length + 1 ≤ 41
     omega
   · refine termKids_completeB κ hκ Lin D _ hreg hbus f7 f4 f1 f5 f2 f3 hgmu hgzc hglm hgtau hlm1
-      hlm32 hKC29 (fun c hc => ?_)
+      hlm32 hKC33 (fun c hc => ?_)
       (fun rd hl hm => ?_) hEqc hL15 hCsF hrs
     · exact ⟨lt_of_lt_of_le (hO c) (Nat.pow_le_pow_right (by decide) hSL28),
         dvd_stackOffset KC (by omega)⟩

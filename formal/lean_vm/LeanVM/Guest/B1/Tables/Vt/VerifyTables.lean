@@ -49,7 +49,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
   obtain ⟨tf, htf⟩ := tb_exists_fun_of_forall (α := ℕ × ℕ) (n := 6)
-    (P := fun t p ↦ ∃ zs : List E, p.1 < 29 ∧ LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ p.1) ∧
+    (P := fun t p ↦ ∃ zs : List E, p.1 < 33 ∧ LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ p.1) ∧
       LoadHolds Lm.read (σ (.n 11)) t (eOfNat p.2) ∧ p.2 ≤ 2 ^ p.1 ∧ zs.length = p.1 ∧
       TbReadsAt Lm.read (σ (.n 8)) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs p.2 ∧
       p.1 = max (log2Ceil p.2) (tableLogFloors.getD t 0))
@@ -65,7 +65,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [he, vtHt, tableHeightsOf, List.getD_eq_getElem _ _ (by simp [hr, tableLogFloors]; omega)]
     simp only [List.getElem_zipWith]
     rw [← List.getD_eq_getElem _ 0, ← List.getD_eq_getElem _ 0, ← vtRw, hRw t ht]
-  have hτ : ∀ t < 6, vtHt rows t < 29 := fun t ht ↦ by
+  have hτ : ∀ t < 6, vtHt rows t < 33 := fun t ht ↦ by
     rw [hHt t ht]; exact (htf t ht).choose_spec.1
   have hdim : ∀ t < 6, LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ vtHt rows t) := fun t ht ↦ by
     rw [hHt t ht]; exact (htf t ht).choose_spec.2.1
@@ -197,7 +197,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [hpc, htc, ← hrm]
     rfl
   refine ⟨vtFreshWords σ ++ (xs ++ vtEvs σ), (vtEvalFs σ).squeeze.2.cap, rows, bus,
-    bus.claims ++ tclaims ++ pclaims, hr, ?rowsRead, ?dimsRead, ?h29, ?xsRead, ?run, ?len, ?pool,
+    bus.claims ++ tclaims ++ pclaims, hr, ?rowsRead, ?dimsRead, ?h33, ?xsRead, ?run, ?len, ?pool,
     ?cew, ?pipool, ?tctx, ?caps, ?cur⟩
   case rowsRead =>
     intro t ht
@@ -207,7 +207,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [← List.getD_eq_getElem _ 0 (by omega), ← vtRw, hRw t ht6]
     exact h3
   case dimsRead => rwa [vt_tableHeights_eq hr]
-  case h29 =>
+  case h33 =>
     intro x hx
     rw [vt_tableHeights_eq hr] at hx
     obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx

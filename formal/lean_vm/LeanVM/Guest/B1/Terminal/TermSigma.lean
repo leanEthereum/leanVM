@@ -358,11 +358,11 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ KC.getD c 0 :=
     fun c hc ↦ by rw [hkb _ (hsrc8 c), hKCv c hc, pow_add]
   -- the selectors
-  have hst3 : Tables.stOut B.pt B.pt1 (pt28 x) (pt128 x) (stRes outs).1 (stRes outs).2 := by
+  have hst3 : Tables.stOut B.pt B.pt1 (pt32 x) (pt132 x) (stRes outs).1 (stRes outs).2 := by
     have := outsOk_at ho 3 (by rw [termKids_length]; omega) (by omega) (by rw [termKid3])
     rw [termKid3] at this
     exact this
-  have hKC29 : ∀ c < Tables.nCommittedCols, KC.getD c 0 < 29 := fun c hc => by
+  have hKC33 : ∀ c < Tables.nCommittedCols, KC.getD c 0 < 33 := fun c hc => by
     have := hK c hc; omega
   have hsl : ∀ c, c < Tables.nCommittedCols →
       (∀ s ∈ selBlockT c, Fwd.SHolds TrivC rd σ s) ∧ (∀ s ∈ selBlockT c, DispOk σ s) ∧
@@ -372,7 +372,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n ((selKap c).2.2 + 1)) = σ (.n 0) * gen ^ 34 ∧
       σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := fun c hc =>
     sel_complete hS hc (fun s hs => gS s (List.mem_flatMap.mpr ⟨c, List.mem_range.mpr hc, hs⟩))
-      (hKC29 c hc) (by rw [e10]; exact hoff' c hc)
+      (hKC33 c hc) (by rw [e10]; exact hoff' c hc)
       (by have hc' : c < 101 := hc; rw [e10]; exact aL _ _ (by simp only [TermRegion]; omega))
       (hkapc c hc)
   have hselv : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =
@@ -392,7 +392,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rw [(hsl c hc).2.2.2.2.2.2, h1]
     rw [List.getD_cons_zero]
     show selRet x KC (stackOffsets KC).1 c = _
-    unfold selRet pt28 pt128 p1Of
+    unfold selRet pt32 pt132 p1Of
     rw [bitsEq_sel _ (by have := hK c hc; omega) hxl40,
       selProd_pad hxl (hO c) (hK c hc) (by omega)]
   -- the claims
@@ -602,11 +602,11 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       rw [termKids_getD_sel Lin D b0 hc] at hOK ⊢
       obtain ⟨-, -, -, e36, e37, e38, esel⟩ := hsl c hc
       have hlog : logG (σ (.n (selKap c).2.1)) = KC.getD c 0 := by
-        rw [e37, gen_pow_eq_ofK]; exact logG_spec (by have := hKC29 c hc; omega)
+        rw [e37, gen_pow_eq_ofK]; exact logG_spec (by have := hKC33 c hc; omega)
       refine ⟨?_, ?_, fun ht => ⟨?_, ?_⟩⟩
       · show colSelNames.getD (logG (σ (.n (selKap c).2.1))) "" =
           Tables.lName "column_selector" (KC.getD c 0)
-        rw [hlog, colSelNames, List.getD_eq_getElem _ _ (by simp; exact hKC29 c hc),
+        rw [hlog, colSelNames, List.getD_eq_getElem _ _ (by simp; exact hKC33 c hc),
           List.getElem_map, List.getElem_range]
       · show true = @decide _ (Classical.propDecidable _)
         refine (@decide_eq_true _ (Classical.propDecidable _) ?_).symm

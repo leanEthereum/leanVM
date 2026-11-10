@@ -60,13 +60,13 @@ theorem vt_sizesC_eq (lm : ℕ) (τ : ℕ → ℕ) :
   simp only [List.length_map, List.length_range] at h1
   rw [List.getElem_map, List.getElem_range, ← List.getD_eq_getElem _ 0 h2, vt_kapC lm τ h1]
 
-theorem vtSizesP_le (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 29) (b : ℕ) :
+theorem vtSizesP_le (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33) (b : ℕ) :
     (vtSizesP lm τ).getD b 0 ≤ 34 := by
   rcases Nat.lt_or_ge b 54 with hb | hb
   · rw [← vt_kapP lm τ hb]; have := vt_kap_lt lm τ hlm hτ (b := b) (by omega); omega
   · rw [List.getD_eq_default _ _ (by rw [vtSizesP_length]; exact hb)]; omega
 
-theorem vtSizesC_le (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 29) (b : ℕ) :
+theorem vtSizesC_le (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33) (b : ℕ) :
     (vtSizesC τ).getD b 0 ≤ 34 := by
   rcases Nat.lt_or_ge b 45 with hb | hb
   · rw [← vt_kapC lm τ hb]; have := vt_kap_lt lm τ hlm hτ (b := 108 + b) (by omega); omega
@@ -147,7 +147,7 @@ include hμ
 theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     (hz : TbReadsAt Lm.read (σ (.n 8)) point) (hmu : σ (.n 9) = gen ^ point.length)
     (hml : point.length < 33) (hE : ExpTablesAt Lm.read (σ (.n 12))) {lm : ℕ}
-    (hlm : lm ≤ 32) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
+    (hlm : lm ≤ 32) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hkb : ∀ i < 8, σ (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) :
     lm ≤ point.length ∧ 19 ≤ point.length ∧
       σ (.n 794) = blockSel (vtSizesP lm τ) point.length 0 point ∧
