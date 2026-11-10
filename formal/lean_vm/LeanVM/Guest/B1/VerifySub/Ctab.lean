@@ -83,7 +83,7 @@ theorem loads_map {p : ℕ} (f : ℕ → ℕ) : ∀ (l : List ℕ) {nx : Prop},
       · exact li
       · exact hl x hx, hn⟩
 
-theorem winTabs_of {q tabs : E} (hwin : ExpWinTab rd q) (h : tabs = q * gen ^ winTabAt) :
+theorem maps_winTabs_of {q tabs : E} (hwin : ExpWinTab rd q) (h : tabs = q * gen ^ winTabAt) :
     WinTabs rd tabs := fun n hn ↦ by rw [h, loadHolds_mul_gen_pow]; exact hwin n hn
 
 /-- The sixteen challenges, from the sponge's ground challenge. -/
@@ -146,7 +146,7 @@ theorem vsMapsT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L
   have hc1 : σ (.n 606) = cellsOfState S false 1 := hc 1
   -- the grind
   simp only [List.map_cons, List.map_nil] at hg
-  have hW : WinTabs L.read (σ (.n 619)) := winTabs_of hwin h619
+  have hW : WinTabs L.read (σ (.n 619)) := maps_winTabs_of hwin h619
   have hgm := (grind_check_holds 14 (by decide) hκ hκw L _ _ hW []).1 (hC _ _ _ hg)
   simp only [MeaningGrindCheck] at hgm
   have hb : _root_.LeanVM.Parameters.Whir.batchGrindingBits ≠ 0 := by decide

@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.EndSound
 
-  B2 for the deployed bytecode, from the certificates (`Sound.lean`) and B1's two statements about
-  the core IR, and the end theorems with what remains of B1 as a hypothesis: `verify_sub`'s
-  statement with its proof named (`B1.Main.SubSoundW`).
+  B2 for the deployed bytecode, from the certificates (`Sound.lean`), B1's statements about the
+  core IR and the walks' cut obligations.
 -/
 
 module
@@ -14,6 +13,7 @@ public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.B1.VerifySub.Sound
 public import LeanVM.Guest.B1.VerifySub.KnownAll
 public import LeanVM.Guest.VsTabs
+public import LeanVM.Guest.WalkKnownAll
 
 /-!
 # B2, proved, and the end theorems from B1's statements
@@ -25,10 +25,10 @@ public import LeanVM.Guest.VsTabs
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
   `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`), and the window table
   it hands `open_stacked` (`vsTabsKnown_proved`, `VsTabs.lean`).
-* `EndPending`: what the end theorems take until the walks' ports to the f128 guest land: their
-  cut obligations (`WalkKnown`; `walkKnown_proved`, `WalkKnownAll.lean`: whir's `QueriesWalk`
-  and ostack's `oqMainWins_of_queryWinsOk` through the certificates' cells, and the GKR layers'
-  parities). `verify_sub`'s statement is proved (`VerifySub.verify_sub_sound_w`).
+* `EndPending`, `endPending_proved`: the walks' cut obligations (`WalkKnown`; `walkKnown_proved`,
+  `WalkKnownAll.lean`: whir's `QueriesWalk` and ostack's `oqMainWins_of_queryWinsOk` through the
+  certificates' cells, and the GKR layers' parities); `verify_sub`'s statement is
+  `VerifySub.verify_sub_sound_w`.
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`), `b2SoundL` from
   `EndPending`.
 * `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
@@ -59,11 +59,13 @@ theorem vsKnown_proved : VsKnown :=
 theorem vsDimsKnown_proved : VsDimsKnown := fun L h16 h32 σ h ↦
   VerifySub.vsDimsKnown0_holds L h16 h32 σ h
 
-/-- **What the end theorems take** until the walks' ports to the f128 guest land: the walks' cut
-obligations (`walkKnown_proved`, `WalkKnownAll.lean`, whose whir walks are not yet on f128). -/
+/-- **The walks' cut obligations**, what B2 takes beyond `verify_sub`'s. -/
 structure EndPending : Prop where
   /-- The walks' cut obligations. -/
   walk : WalkKnown
+
+/-- **The walks' cut obligations hold** (`walkKnown_proved`). -/
+theorem endPending_proved : EndPending := ⟨walkKnown_proved⟩
 
 /-- **B2, proved**, given `verify_sub`'s `dims_g` and `kappa_base` bounds and the walks'
 obligations. -/
