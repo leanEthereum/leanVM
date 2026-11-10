@@ -56,7 +56,7 @@ theorem length_foldLanesE (x : E) (r : FoldRound) :
     simp only [List.length_cons]
     omega
   | [] => rfl
-  | [_] => rfl
+  | [_] => by simp [foldLanesE]
 
 theorem getD_foldLanesE (x : E) (r : FoldRound) :
     ∀ (l : List E) (m : ℕ), 2 * m + 1 < l.length →
@@ -65,8 +65,7 @@ theorem getD_foldLanesE (x : E) (r : FoldRound) :
   | f :: g :: rest, 0, _ => by simp [foldLanesE]
   | f :: g :: rest, m + 1, h => by
     rw [foldLanesE, List.getD_cons_succ, getD_foldLanesE x r rest m (by simp at h; omega)]
-    simp only [show 2 * (m + 1) + 1 = (2 * m + 1) + 1 + 1 by omega, show 2 * (m + 1) = 2 * m + 1 + 1 by
-      omega, List.getD_cons_succ]
+    simp only [show 2 * (m + 1) = 2 * m + 1 + 1 by omega, List.getD_cons_succ]
   | [], _, h => by simp at h
   | [_], _, h => by simp at h
 
@@ -76,8 +75,9 @@ def lanesAt (x : E) (rounds : List FoldRound) (l : List E) (j : ℕ) : List E :=
 
 theorem lanesAt_succ (x : E) (rounds : List FoldRound) (l : List E) {j : ℕ} (hj : j < rounds.length) :
     lanesAt x rounds l (j + 1) = foldLanesE x (rounds.getD j ⟨0, 0, 0⟩) (lanesAt x rounds l j) := by
-  rw [lanesAt, lanesAt, List.take_succ, List.getElem?_eq_getElem hj, Option.toList_some,
-    List.foldl_append, List.foldl_cons, List.foldl_nil, List.getD_eq_getElem _ _ hj]
+  rw [lanesAt, lanesAt, List.take_add_one, List.getElem?_eq_getElem hj, Option.toList_some,
+    List.foldl_append, List.foldl_cons, List.foldl_nil, List.getD_eq_getElem?_getD,
+    List.getElem?_eq_getElem hj, Option.getD_some]
 
 theorem length_lanesAt (x : E) (rounds : List FoldRound) (l : List E) {n : ℕ}
     (hl : l.length = 2 ^ n) : ∀ j ≤ rounds.length, (lanesAt x rounds l j).length = 2 ^ n / 2 ^ j
@@ -95,7 +95,9 @@ theorem foldRowE_eq_lanesAt (values : List E) (x : E) (rounds : List FoldRound) 
 /-- One guest round's outputs: `f + (θ + t⁻¹)·g` is the Spec's output over `t`. -/
 theorem guest_lane {t f g θ α β x : E} (ht : t = α + β * x) (h0 : t ≠ 0) :
     t * (f + (θ + t⁻¹) * g) = g + (α + β * x) * (f + θ * g) := by
-  rw [← ht, mul_add, mul_add, ← mul_assoc, mul_inv_cancel₀ h0, one_mul]
+  rw [← ht]
+  have h : t * (θ + t⁻¹) = t * θ + 1 := by rw [mul_add, mul_inv_cancel₀ h0]
+  rw [mul_add, ← mul_assoc, h]
   ring
 
 /-- **The guest's fold** of `2^n` lanes over `n ≥ 1` rounds: round `j`'s outputs `acc j m`
@@ -118,29 +120,26 @@ theorem guestFold_eq {x : E} {rounds : List FoldRound} {n : ℕ} (hn : rounds.le
   | zero =>
     intro hj m hm
     have hL := hlen 0 (by omega)
-    rw [lanesAt_succ x rounds lanes (by omega),
-      getD_foldLanesE _ _ _ _ (by rw [hL]; have : 2 ^ (n - 0) = 2 * 2 ^ (n - 1) := by
-        rw [← pow_succ']; congr 1; omega
-        omega),
-      hs0, ha0 m (by simpa using hm), hr 0 hj]
+    simp only [Nat.sub_zero] at hm hL
+    have h2 : 2 ^ n = 2 * 2 ^ (n - 1) := by rw [← pow_succ']; congr 1; omega
+    rw [lanesAt_succ x rounds lanes (by omega), getD_foldLanesE _ _ _ _ (by rw [hL]; omega),
+      hs0, ha0 m hm, hr 0 hj]
     simp only [lanesAt, List.take_zero, List.foldl_nil]
     exact guest_lane (ht 0 hj) (h0 0 hj)
   | succ j ih =>
     intro hj m hm
     have hL := hlen (j + 1) (by omega)
-    have hm2 : 2 * m + 1 < 2 ^ (n - 1 - j) := by
-      have : 2 ^ (n - 1 - j) = 2 * 2 ^ (n - 1 - (j + 1)) := by rw [← pow_succ']; congr 1; omega
-      omega
-    rw [lanesAt_succ x rounds lanes (by omega),
-      getD_foldLanesE _ _ _ _ (by rw [hL]; have : n - (j + 1) = n - 1 - j := by omega
-                                  rw [this]; exact hm2),
-      hs j hj, ha j hj m (by have : n - 2 - j = n - 1 - (j + 1) := by omega
-                             rw [this]; exact hm),
-      ← ih (by omega) (2 * m) (by omega), ← ih (by omega) (2 * m + 1) hm2, hr (j + 1) hj]
-    rw [show scale j * ts (j + 1) * (acc j (2 * m) + ((rounds.getD (j + 1) ⟨0, 0, 0⟩).theta + (ts (j + 1))⁻¹) *
-        acc j (2 * m + 1)) = ts (j + 1) * (scale j * acc j (2 * m) +
-          ((rounds.getD (j + 1) ⟨0, 0, 0⟩).theta + (ts (j + 1))⁻¹) * (scale j * acc j (2 * m + 1))) by ring]
-    exact guest_lane (ht (j + 1) hj) (h0 (j + 1) hj)
+    have e1 : n - (j + 1) = n - 1 - j := by omega
+    have e2 : n - 2 - j = n - 1 - (j + 1) := by omega
+    have h2 : 2 ^ (n - 1 - j) = 2 * 2 ^ (n - 1 - (j + 1)) := by rw [← pow_succ']; congr 1; omega
+    have hm2 : 2 * m + 1 < 2 ^ (n - 1 - j) := by omega
+    rw [lanesAt_succ x rounds lanes (by omega), getD_foldLanesE _ _ _ _ (by rw [hL, e1]; exact hm2),
+      hs j hj, ha j hj m (by rw [e2]; exact hm), ← ih (by omega) (2 * m) (by omega),
+      ← ih (by omega) (2 * m + 1) hm2, hr (j + 1) hj]
+    have key := guest_lane (f := scale j * acc j (2 * m)) (g := scale j * acc j (2 * m + 1))
+      (θ := (rounds.getD (j + 1) ⟨0, 0, 0⟩).theta) (ht (j + 1) hj) (h0 (j + 1) hj)
+    rw [← key]
+    ring
 
 /-- The guest's fold's value is `foldRowE`. -/
 theorem guestFold_value {x : E} {rounds : List FoldRound} {n : ℕ} (hn : rounds.length = n)
