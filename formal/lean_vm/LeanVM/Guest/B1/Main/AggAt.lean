@@ -23,8 +23,7 @@ sumcheck placing nothing (`aggPure`). Its valuation is `agg_core`'s at the alloc
 (`aggPtrsAt`).
 `aggregate_claims_completeAt`: `aggregate_claims` is `CompleteAtD`, reading the children's words,
 the window tables at `tabs` and the batching's claim at `g^ds` among the caller's words `Lin`, given
-`batch_sumcheck__L23`'s meaning (`agg_batch_sumcheck_Spec`) and `grind_check__L2`'s completeness
-(`CompleteRelD` with `aggGrindPre`).
+`grind_check__L2`'s completeness (`CompleteRelD` with `aggGrindPre`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -110,8 +109,8 @@ theorem aggConts_fit {m : ℕ} {cfresh ccarried : E} {cs : List ChildClaims} {h 
   · simp [hrl]
   · rw [len_frange _ 13 _ (rowW_abs_len m cs)]; omega
   · rw [len_frange _ 2 _ (fun _ => rfl)]; omega
-  · rw [aggRun, aggBsRun_len, hrl]
-  · rw [List.length_map, aggRun, aggBsRun_len, hrl]
+  · rw [aggRun, bsRun_len, hrl]
+  · rw [List.length_map, aggRun, bsRun_len, hrl]
 
 theorem readsAt_rows {rd : Reader} {p : E} {n w : ℕ} {f : ℕ → List E}
     (hw : ∀ c, (f c).length = w) (h : ReadsAt rd p ((List.range n).flatMap f)) :
@@ -279,10 +278,9 @@ def aggGrindPre (rd : Reader) (args rets : List E) : Prop :=
 set_option maxRecDepth 20000 in
 /-- **`aggregate_claims` is complete, placed**: on `m ≤ 16` children whose words the caller's
 words `Lin` hold, the window tables at `tabs`, the hints of an accepting batching, writing the
-batching's claim, which `Lin` holds at `g^ds`; given `batch_sumcheck__L23`'s meaning and
+batching's claim, which `Lin` holds at `g^ds`; given
 `grind_check__L2`'s completeness. -/
 theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
-    (hBS : agg_batch_sumcheck_Spec)
     (hGr : CompleteRelD fs cert 16 "grind_check__L2" aggGrindPre) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
     {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
@@ -336,7 +334,7 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
           (rest := [P.chain, P.lf, P.lc, lamA cs h * lamA cs h, lamA cs h])
           (agg_l26 (hcw' rd hm) (hbm rd hm))).2 hne) 16
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet])
-        (fun rd hm => agg_bs hBS tabs hrl (hbm rd hm)) 16
+        (fun rd hm => agg_bs tabs hrl (hbm rd hm)) 16
     · exact completeAt_of_rel_pureD aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l27 l27_shape.1 (rest := [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs h])
           (agg_l27 (hcw' rd hm) hrl (hbm rd hm))).2 hne) 16
@@ -491,7 +489,7 @@ theorem aggregate_claims_completeAt (fs : String → ℕ) (cert : String → V �
       show (σ (.n 188)).limb 0 * addressOfIndex 0 = _
       rw [hV.v188]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
-        simp [aggOut, DeferredClaim.cells, aggRun, aggBsRun_len, hrl]
+        simp [aggOut, DeferredClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
       show (σ (.n 4)).limb 0 * addressOfIndex k = _
       rw [hV.e4]; exact limb0_gen_pow_mul _ _

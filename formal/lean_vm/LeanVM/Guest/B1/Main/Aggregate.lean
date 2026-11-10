@@ -9,12 +9,13 @@ module
 
 public import LeanVM.Guest.B1.Main.AggBody
 public import LeanVM.Guest.Batch.Def
+public import LeanVM.Guest.B1.Sumcheck.Batch
 
 /-!
 # `aggregate_claims` (TRIAGE G #97)
 
 `aggregate_claims_holds : aggregate_claims_sound_Spec`, given `batch_sumcheck__L23`'s meaning
-(`agg_batch_sumcheck_Spec`, `MeaningAggBatchSumcheck`) and `grind_check__L2`'s soundness
+(`agg_batch_sumcheck_Spec`, `MeaningBatchSumcheck`) and `grind_check__L2`'s soundness
 (`agg_grind_check_Spec`), both hypotheses until their families are ported. For
 `n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
 `bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
@@ -297,25 +298,6 @@ theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
 
 /-! ## The callees' meanings this proof takes -/
 
-/-- **`batch_sumcheck(fs0..fs4, msgs, running, point, tabs, n)`** (`ROUND2_GRIND_BITS = 0`, so
-`tabs` is not read): from the carried capacity (nothing waiting), the `n` rounds' words at `msgs`
-(`g(1)`, `g(∞)` per round, `BC_ROUND_WORDS = 2`) are `Node.batchRounds running rounds`
-(`aggBsRun`), its challenges stored at `point`; the function returns the final sponge's capacity
-and the final claim. -/
-def MeaningAggBatchSumcheck (n : ℕ) (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, msgs, running, point, _], rets =>
-      ∃ rounds : List (E × E), rounds.length = n ∧
-        ReadsAt rd msgs (rounds.flatMap fun g ↦ [g.1, g.2]) ∧
-        let res := aggBsRun rounds running ⟨[f0, f1, f2, f3, f4], []⟩
-        ReadsAt rd point res.1.1 ∧ rets = res.2.cap ++ [res.1.2]
-  | _, _ => False
-
-/-- `batch_sumcheck__L23`'s core IR is its meaning (a hypothesis of `aggregate_claims`' proofs
-until `B1/Sumcheck` is ported). -/
-def agg_batch_sumcheck_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "batch_sumcheck__L23" args rets ↔ MeaningAggBatchSumcheck 23 rd args rets
-
 /-- `grind_check__L2`'s core IR gives its meaning on any memory whose `tabs` holds the bit windows
 (a hypothesis of `aggregate_claims_holds` until `B1/Bits/Grind` is ported; the name is a literal,
 since the kernel does not reduce `grindCheckName 2`'s `toString`). -/
@@ -346,7 +328,7 @@ theorem nonce_ins {s : Fs} (hs : s.pend.length = 4) (n : E) :
 
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
-theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_check_Spec)
+theorem aggregate_claims_val (hGr : agg_grind_check_Spec)
     {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
     {σ : Val} {args rets : List E} (hpar : Data.core33.params.map σ = args)
     (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core33) False (fun rs => rs = rets)) :
@@ -382,25 +364,25 @@ theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_ch
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => by simpa using guard_sound hg33 hall hne)
   -- the sumcheck
-  have hbsm := (hBS rd _ _).mp (call_of_flat hall hbs)
-  simp only [List.map_cons, List.map_nil, MeaningAggBatchSumcheck] at hbsm
+  have hbsm := (batch_sumcheck_holds rd _ _).mp (call_of_flat hall hbs)
+  simp only [List.map_cons, List.map_nil, MeaningBatchSumcheck] at hbsm
   obtain ⟨rounds, hrl, hrd, hpt, hrets⟩ := hbsm
   rw [genMul_sound hg109 hat] at hrd
   have hrnd : rounds = aggRounds rd σ := rounds_of_reads hrl hrd
-  have h115 : σ (.n 115) = (aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
+  have h115 : σ (.n 115) = (bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
       σ (.n 92), σ (.n 93)], []⟩).1.2 := by
     have := congrArg List.getLast? hrets
     simpa using this
-  have hptl : (aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92),
-      σ (.n 93)], []⟩).1.1.length = 23 := by rw [aggBsRun_len, hrl]
-  refine ⟨⟨(aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
+  have hptl : (bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92),
+      σ (.n 93)], []⟩).1.1.length = 23 := by rw [bsRun_len, hrl]
+  refine ⟨⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
     σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩, hptl, ?_, ?_⟩
   · -- the claim written
     intro k hk
     simp only [DeferredClaim.cells, List.length_append, List.length_cons, List.length_nil,
       hptl] at hk
     by_cases hk23 : k < 23
-    · rw [show (DeferredClaim.cells ⟨(aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
+    · rw [show (DeferredClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
         σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[k] = _ from
         List.getElem_append_left (by rw [hptl]; exact hk23)]
       obtain ⟨h1, h2⟩ := hout k hk23
@@ -409,7 +391,7 @@ theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_ch
       exact load_sound h2 hat
     · have hk' : k = 23 := by omega
       subst hk'
-      rw [show (DeferredClaim.cells ⟨(aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
+      rw [show (DeferredClaim.cells ⟨(bsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
         σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[23] = σ (.n 7) by
           simp [DeferredClaim.cells, List.getElem_append_right, hptl]]
       exact load_sound hl7 hat
@@ -524,7 +506,7 @@ theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_ch
     rw [List.take_of_length_le (by omega)] at hacc
     rw [hagg, ← memAt_of_load (load_sound hl106 hat), p105, hacc]
     rfl
-  have hrun : aggRun cs (aggHints rd σ) = aggBsRun rounds (σ (.n 106))
+  have hrun : aggRun cs (aggHints rd σ) = bsRun rounds (σ (.n 106))
       ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩ := by
     rw [aggRun, hclaim, ← hcapN, hrnd]
     rfl
@@ -538,7 +520,7 @@ theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_ch
         obtain ⟨h1, h2⟩ := l27_step hy
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
       (fun hne => by simpa using guard_sound hg35 hall hne)
-  have hptr : (memRun rd (σ (.n 116)) 23).map (1 + ·) = (aggBsRun rounds (σ (.n 106))
+  have hptr : (memRun rd (σ (.n 116)) 23).map (1 + ·) = (bsRun rounds (σ (.n 106))
       ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1 := by
     rw [readsAt_memRun hpt, hptl]
     refine map_one_add_memRun fun k hk => ?_
@@ -550,7 +532,7 @@ theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_ch
   have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz188 m le_rfl
   rw [List.take_of_length_le (by omega)] at W
   have hw : Batch.batchedBytecodeWeight cs (aggLam cs (aggHints rd σ).lambdaGrindNonce).1
-      (aggBsRun rounds (σ (.n 106))
+      (bsRun rounds (σ (.n 106))
       ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1 = σ (.n 194) := by
     rw [hagg, ← memAt_of_load (load_sound hl194 hat), isMul_sound hm193 hat, hN, W]
     rfl
@@ -560,11 +542,11 @@ theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_ch
 
 /-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
 holds**, given `batch_sumcheck`'s and `grind_check__L2`'s meanings. -/
-theorem aggregate_claims_holds (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_check_Spec) :
+theorem aggregate_claims_holds (hGr : agg_grind_check_Spec) :
     aggregate_claims_sound_Spec := by
   intro rd args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
-  have h := aggregate_claims_val hBS hGr (fun _ _ _ h => h) hpar hb
+  have h := aggregate_claims_val hGr (fun _ _ _ h => h) hpar hb
   match args, h with
   | [ncg, cpi, cfresh, ccarried, dst, tabs], h =>
     intro hW m hm1 hm16 hN

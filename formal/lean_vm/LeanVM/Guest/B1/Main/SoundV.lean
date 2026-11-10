@@ -58,9 +58,8 @@ def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Pro
 /-- **`main` is sound, its witness decoded from the frame map**, given `verify_sub`'s statement
 with its proof named, `exponent_tables`' and the batching's two callees'. -/
 theorem main_sound_V_of_sub {bytecode : List K} {piOf : Reader → Val → FrameMap → Proof}
-    (hv : SubSoundW bytecode piOf) (hexp : exponent_tables_Spec) (hBS : agg_batch_sumcheck_Spec)
-    (hGr : agg_grind_check_Spec) : main_sound_V bytecode piOf :=
-  main_sound_VX Sig.verify_lean_xmss_sound_holds hv hexp hBS hGr
+    (hv : SubSoundW bytecode piOf) (hexp : exponent_tables_Spec) (hGr : agg_grind_check_Spec) : main_sound_V bytecode piOf :=
+  main_sound_VX Sig.verify_lean_xmss_sound_holds hv hexp hGr
 
 end
 end LeanVM.Guest.B1.Main
