@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatF
 
 `layerPre first odd`: the body but its return (`layerT_pre`); it is flat (`layerPre_flat`), places
 no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`128`),
-the local point (`11`), the next claim's lanes (`25`) and slices (`64`) (`layerPre_alloc`), calls
-the pack loop and with `odd` the last round (`layerPre_calls`), and loads only through the
+the local point (`11`), the next claim's lanes (`25`) and flips (`7`) (`layerPre_alloc`), calls
+the grind's `grind_check` and the two pack loops (`layerPre_calls`), and loads only through the
 pointers `layerGroups` below their bounds (`layerPre_loads`).
 -/
 
@@ -29,15 +29,16 @@ open LeanVM.Guest.Memory
 
 /-- The body but its return. -/
 def layerPre (first : ℕ) : List Stmt :=
-  secA1 first ++ (secA2 first ++ (rmfeBlockT ++ (hornerS first ++ (packSetupT first ++
-    (lastT ++ (localS ++ (tReadsT ++ (eqfS ++
-      (weightT first ++ tailPre (weightEnd first) (weightVal first))))))))))
+  secA1 first ++ (secA2 first ++ (rmfeBlockT (layOff first) ++ (hornerS first ++
+    (packSetupT (layOff first) first ++ (lastT (layOff first) ++ (localS (layOff first) ++
+      (tReadsT (layOff first) ++ (eqfS (layOff first) ++ (weightT first (layOff first) ++
+        tailPre (layOff first) (tW first) (tV first))))))))))
 
 /-- The returned values. -/
 def layerVs (first : ℕ) : List V :=
-  [.n (topV (weightEnd first) + 305), .n (topV (weightEnd first) + 306),
-    .n (topV (weightEnd first) + 307), .n (topV (weightEnd first) + 308),
-    .n (topV (weightEnd first) + 309), .n (topV (weightEnd first) + 312)]
+  [.n (topV (tW first) + 305), .n (topV (tW first) + 306),
+    .n (topV (tW first) + 307), .n (topV (tW first) + 308),
+    .n (topV (tW first) + 309), .n (topV (tW first) + 312)]
 
 theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layerVs first)] := by
   rw [layerT_sections, tailT_split]
@@ -46,7 +47,7 @@ theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layer
 theorem layer_fn {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
       fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13] := by
+        .n 13, .n 14] := by
   interval_cases first
   · exact ⟨_, find_layer265, layer_body265, rfl⟩
   · exact ⟨_, find_layer264, layer_body264, rfl⟩
@@ -62,22 +63,30 @@ def dispB : Stmt → Bool
 
 /-- The pointers the body loads through, each with a bound on the offsets. -/
 def layerGroups (first : ℕ) : List (V × ℕ) :=
-  [(.n 7, 47), (.n 11, 22), (.n 12, 22), (.n 1053, 128), (.n 1072, 113), (.n 1078, 36),
-    (.n 1841, 25), (.n 1081, 11), (.n (weightEnd first + 33), 25),
-    (.n (topV (weightEnd first) + 3), 7)] ++
-    if first = 1 then [] else [(.n 1842, 11)]
+  [(.n 7, 48), (.n 11, 22), (.n 12, 22), (.n (layOff first + 720), 128),
+    (.n (layOff first + 739), 113), (.n (layOff first + 745), 36),
+    (.n (layOff first + 1190), 25), (.n (layOff first + 748), 11), (.n (tW first + 27), 25),
+    (.n (topV (tW first) + 3), 7)] ++
+    if first = 1 then [] else [(.n (layOff first + 1191), 11)]
 
-/-- The calls of the body: the eight-round loop and the remainder loop. -/
+/-- The calls of the body: the grind's `grind_check`, the eight-round loop and the remainder
+loop. -/
 def layerCalls (first : ℕ) : List (Option V × String × List V × List V) :=
-  [(some (.n 1058), packLoopName first, [.n 1059, .n 9, .n 1053, .n 1051, .n 1052], []),
-    (some (.n 1070), remLoopName first, [.n 1071, .n 10, .n 1060, .n 1064, .n 1068], [])]
+  [(none, grindCheckName 3, [.n (layOff first + 532), .n 14], []),
+    (some (.n (layOff first + 725)), packLoopName first,
+      [.n (layOff first + 726), .n 9, .n (layOff first + 720), .n (layOff first + 718),
+        .n (layOff first + 719), .n 14], []),
+    (some (.n (layOff first + 737)), remLoopName first,
+      [.n (layOff first + 738), .n 10, .n (layOff first + 727), .n (layOff first + 731), .n 14,
+        .n (layOff first + 735)], [])]
 
 theorem layerPre_kernel {first : ℕ} (hf : first < 2) :
     (layerPre first).all Stmt.flat = true ∧
     (layerPre first).filterMap Main.Stmt.addrS = [] ∧
     (layerPre first).filterMap Main.Stmt.allocSz =
-      [(.n 1052, .inr (.n 8)), (.n 1053, .inl 128), (.n 1081, .inl 11),
-        (.n (weightEnd first + 33), .inl 25), (.n (topV (weightEnd first) + 3), .inl 7)] ∧
+      [(.n (layOff first + 719), .inr (.n 8)), (.n (layOff first + 720), .inl 128),
+        (.n (layOff first + 748), .inl 11), (.n (tW first + 27), .inl 25),
+        (.n (topV (tW first) + 3), .inl 7)] ∧
     (layerPre first).all (fun s ↦ !dispB s) = true ∧
     (layerPre first).filterMap Main.Stmt.callS = layerCalls first ∧
     ((layerPre first).filterMap Stmt.loadS).all
