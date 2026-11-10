@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Compile.Rom.IdealCalc
 public import LeanVM.Guest.Child.Combiner
 public import LeanVM.Protocol.Verifier.Deferred
+public import LeanVM.Protocol.Compile.Cost
 
 /-!
 # The refusing verifier's ideal failure probability
@@ -347,6 +348,112 @@ theorem whirLevels_div (logN lf : ℕ) (eb : List E → E) :
             simp only [roundQueries, List.map_cons, List.sum_cons]
             push_cast
             ring
+
+/-! ## The verifier -/
+
+/-- A refining program costs at most what the refined one costs. -/
+theorem costs_of_refines {α : Type} {height : ℕ} {P' P : VerifierProgram α}
+    (h : Limits.Refines P' P) :
+    ∀ {n : ℕ} {Q : α → Prop}, VerifierProgram.Costs height P n Q →
+      VerifierProgram.Costs height P' n Q := by
+  induction h with
+  | fail P => intro n Q _; trivial
+  | ret a => intro n Q hc; exact hc
+  | read _ ih => intro n Q hc; exact ⟨hc.1, fun x ↦ ih x (hc.2 x)⟩
+  | sample _ ih => intro n Q hc; exact ⟨hc.1, fun x ↦ ih x (hc.2 x)⟩
+  | grind _ ih => intro n Q hc; exact ⟨hc.1, ih hc.2⟩
+  | commit _ ih => intro n Q hc; exact ⟨hc.1, hc.2.1, ih hc.2.2⟩
+  | query _ ih => intro n Q hc; exact ⟨hc.1, fun r ↦ ih r (hc.2 r)⟩
+
+/-- A common first part keeps a difference, the continuations compared at its returned
+values. -/
+theorem DivLE.bind_refl_returns {α β : Type} {c : ℝ≥0∞} {f' f : α → VerifierProgram β}
+    (A : VerifierProgram α) (hf : ∀ a, VerifierProgram.Returns A a → DivLE S c (f' a) (f a)) :
+    DivLE S c (A >>= f') (A >>= f) := by
+  intro K h g
+  rw [LawfulMonad.bind_assoc, LawfulMonad.bind_assoc]
+  exact failFrom_bind_le_of (D := fun _ _ _ ↦ c) (fun a ha h g ↦ hf a ha K h g)
+    (exp0_const_le _ _ _ _)
+
+/-- Every ladder has at most `2048` rounds times queries. -/
+theorem roundQueries_ladder_le {μ r : ℕ} {L : List Whir.Level} (h : Whir.ladder μ r = some L) :
+    roundQueries L ≤ 2048 := by
+  have hA : μ < 29 ∧ r < 5 := by
+    unfold Whir.ladder at h
+    split_ifs at h with hA
+    obtain ⟨-, h2, -, h4⟩ := hA
+    exact ⟨Nat.lt_succ_of_le h2, Nat.lt_succ_of_le h4⟩
+  have key : ∀ μ < 29, ∀ r < 5, (Whir.ladder μ r).all (fun L ↦ roundQueries L ≤ 2048) = true := by
+    decide +kernel
+  have := key μ hA.1 r hA.2
+  rw [h] at this
+  simpa using this
+
+/-- One step of a difference proof between two programs written alike, no check inserted. -/
+local macro "div_step0" : tactic => `(tactic| first
+  | with_reducible exact DivLE.refl _ _
+  | (refine DivLE.bind_refl (fun _ ↦ ?_) _)
+  | split
+  | dsimp only)
+
+theorem verifyWhir_div (logN rate : ℕ) (target : E) (eb : List E → E) :
+    DivLE S (2048 * epsE) (verifyWhirRefusingZeroCombiner logN rate target eb)
+      (verifyWhir logN rate target eb) := by
+  unfold verifyWhirRefusingZeroCombiner verifyWhir
+  refine DivLE.bind_refl_returns _ fun L hL ↦ ?_
+  have hl : Whir.ladder logN rate = some L := by
+    revert hL
+    cases Whir.ladder logN rate with
+    | none => intro h; cases h
+    | some L' => intro h; cases h; rfl
+  refine (whirLevels_div _ _ _ L 0 _).mono ?_
+  gcongr
+  exact_mod_cast roundQueries_ladder_le hl
+
+theorem verifyStackedOpening_div (stackLog rate : ℕ) (claims : List StackClaim) :
+    DivLE S (2048 * epsE) (verifyStackedOpeningRefusingZeroCombiner stackLog rate claims)
+      (verifyStackedOpening stackLog rate claims) := by
+  unfold verifyStackedOpeningRefusingZeroCombiner verifyStackedOpening
+  repeat (first | with_reducible exact verifyWhir_div _ _ _ _ | div_step0)
+
+theorem verifyExecution_div (bv : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (publicInput : Digest) :
+    DivLE S (2048 * epsE) (verifyExecutionRefusingZeroCombiner bv bytecode publicInput)
+      (verifyExecution bv bytecode publicInput) := by
+  unfold verifyExecutionRefusingZeroCombiner verifyExecution
+  repeat (first | with_reducible exact verifyStackedOpening_div _ _ _ | div_step0)
+
+/-- **The statement's refusing verifier, against a winning strategy**, fails with probability at
+most `|E|⁻¹` per round and query of the opening (at most `2048`) and per sample (a quarter of the
+cost). -/
+theorem failFrom_refusingZeroProgram_le {bytecode : List K} {publicInput : Digest} {height n : ℕ}
+    (hacc : S.AcceptsFrom (leanVmVerifierProgram bytecode publicInput) [])
+    (hgs : GrindThenSample (leanVmVerifierProgram bytecode publicInput))
+    (hP : (leanVmVerifierProgram bytecode publicInput).CostLE height n) :
+    S.failFrom (Limits.refusingZeroProgram bytecode publicInput) [] none ≤
+      (2048 + (n / 4 : ℕ)) * epsE := by
+  have hR : Limits.Refines (verifyExecutionRefusingZeroCombiner computedBytecodeValue bytecode
+      publicInput >>= fun _ ↦ VerifierProgram.ret true) (leanVmVerifierProgram bytecode
+        publicInput) :=
+    Limits.Refines.bind (Limits.verifyExecutionRefusingZeroCombiner_refines _ _ _)
+      fun _ ↦ Limits.Refines.refl _
+  have h1 := failFrom_refusingZero_le (S := S) _ n (costs_of_refines hR hP) [] none
+  have h2 := verifyExecution_div (S := S) computedBytecodeValue bytecode publicInput
+    (fun _ ↦ VerifierProgram.ret true) [] none
+  have h3 : S.failFrom (leanVmVerifierProgram bytecode publicInput) [] none = 0 :=
+    failFrom_eq_zero _ _ _ hacc hgs (Or.inl rfl)
+  have e : leanVmVerifierProgram bytecode publicInput =
+      verifyExecution computedBytecodeValue bytecode publicInput >>= fun _ ↦
+        VerifierProgram.ret true := rfl
+  rw [e] at h3
+  rw [h3, zero_add] at h2
+  unfold Limits.refusingZeroProgram
+  refine h1.trans ?_
+  simp only [reduceCtorEq, ↓reduceIte, add_zero]
+  calc S.failFrom (verifyExecutionRefusingZeroCombiner computedBytecodeValue bytecode publicInput >>=
+        fun _ ↦ VerifierProgram.ret true) [] none + ((n / 4 : ℕ) : ℝ≥0∞) * epsE
+      ≤ 2048 * epsE + ((n / 4 : ℕ) : ℝ≥0∞) * epsE := add_le_add h2 le_rfl
+    _ = _ := by ring
 
 end
 end LeanVM.Guest.Child
