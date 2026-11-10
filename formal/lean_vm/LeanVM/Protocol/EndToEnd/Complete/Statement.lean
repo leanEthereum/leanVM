@@ -24,7 +24,7 @@ bounds the probability that the verifier rejects the honest prover's proof
 (`completeness_le`), by the statement's `completenessError`, which is `completenessError`
 evaluated (`completenessError_eq`):
 
-  `completenessError fuel = (12008 + 48019 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
+  `completenessError fuel = (18540 + 74145 · (2^39 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
 
 below `2^-257` at a fuel of `2^25` nonces per proof of work (`statement_completenessError_le`).
 `completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
@@ -61,8 +61,8 @@ noncomputable def honestProverRom (prog : LeanIsaProgram) (input : PublicInput) 
 /-- The statement's completeness error is `completenessError`, evaluated. -/
 theorem completenessError_eq (fuel : ℕ) :
     LeanVM.completenessError fuel = completenessError fuel := by
-  have hc : leanVmCost = 48019 := by decide
-  have hQ : completenessQueries fuel = 12008 + 48019 * (2 ^ 27 + 2 * fuel + 2) := by
+  have hc : leanVmCost = 74145 := by decide
+  have hQ : completenessQueries fuel = 18540 + 74145 * (2 ^ 39 + 2 * fuel + 2) := by
     rw [completenessQueries, proverFactor, costHeight, hc, leanVmQueryBound_eq]
     ring
   rw [LeanVM.completenessError, completenessError, hQ]

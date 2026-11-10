@@ -11,7 +11,7 @@ Regression and negative tests for `LeanVM.Protocol.Compile.Cost` and
   the cost the accounting gives, and the conditions doing the work are load-bearing: a
   commitment taller than the height bound, an opening charged per position and level, and a
   budget one short are refuted.
-* The leanVM constants: the bound is `12006`; the WHIR bound and the height bound are attained
+* The leanVM constants: the bound is `18538`; the WHIR bound and the height bound are attained
   by an admissible ladder (`μ = 28` at rates `1` and `4`), so they are not slack in the ladder
   table.
 * The seed: the leanVM seeding has three hash steps.
@@ -64,14 +64,14 @@ example : ¬ (VerifierProgram.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ a
 
 /-! ## The leanVM constants -/
 
-example : leanVmQueryBound = 12006 := leanVmQueryBound_eq
+example : leanVmQueryBound = 18538 := leanVmQueryBound_eq
 
-/-- The WHIR bound is attained by the ladder at `μ = 28`, rate `1`. -/
-example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) = whirBound := by decide +kernel
+/-- The WHIR bound is attained by the ladder at `μ = 40`, rate `1`. -/
+example : whirCost costHeight 40 ((Whir.ladder 40 1).getD []) = whirBound := by decide +kernel
 
-/-- The height bound is attained: the stack's commitment at `μ = 28`, rate `4`, has height
-`28 - 6 + 4 = 26`. -/
-example : stackHeightLE (costHeight - 1) 28 ((Whir.ladder 28 4).getD []) = false := by
+/-- The height bound is attained: the stack's commitment at `μ = 40`, rate `4`, has height
+`40 - 6 + 4 = 38`. -/
+example : stackHeightLE (costHeight - 1) 40 ((Whir.ladder 40 4).getD []) = false := by
   decide +kernel
 
 /-- The bus depth bound: `54` blocks of `2^32` rows. -/

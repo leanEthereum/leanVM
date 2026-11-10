@@ -26,7 +26,8 @@ ends outward (`Cert.OK` records the rounding inequalities, each a `Nat` comparis
   certificate's when it checks.
 * `Cert.thr_le`, `Cert.thrLo_le`, `Cert.listMax_le`, `Cert.mcaMax_le`: the four bounds.
 * `chkLevels B μ cs`: a Boolean check of a ladder against certificates: the ladder arithmetic,
-  and every group escape at most `2^-B` as a `Nat` inequality.
+  and every group escape at most `2^-B` as a `Nat` inequality, a fold group's after the `2^-b`
+  of its level's fold grinding.
 * `chkLevels_sound`: **a checked ladder satisfies `LadderArith` and `levelEps ≤ 2^-B`.**
 -/
 
@@ -454,6 +455,13 @@ theorem grind_le {z : ENNReal} {B : ℕ} (hB : 17 ≤ B) (h : z ≤ (2 : ENNReal
       ≤ (2 : ENNReal)⁻¹ ^ 17 * (2 : ENNReal)⁻¹ ^ (B - 17) := by gcongr
     _ = _ := by rw [← pow_add]; congr 1; omega
 
+/-- `2^-g·z ≤ 2^-B` from `z ≤ 2^-(B−g)`: the fold grinding's discount. -/
+theorem foldGrind_le {z : ENNReal} {g B : ℕ} (hg : g ≤ B) (h : z ≤ (2 : ENNReal)⁻¹ ^ (B - g)) :
+    (2 : ENNReal)⁻¹ ^ g * z ≤ (2 : ENNReal)⁻¹ ^ B :=
+  calc (2 : ENNReal)⁻¹ ^ g * z
+      ≤ (2 : ENNReal)⁻¹ ^ g * (2 : ENNReal)⁻¹ ^ (B - g) := by gcongr
+    _ = _ := by rw [← pow_add]; congr 1; omega
+
 /-- `2^-k < 1` for `k ≥ 1`. -/
 theorem inv_two_pow_lt_one {k : ℕ} (hk : 1 ≤ k) : (2 : ENNReal)⁻¹ ^ k < 1 :=
   pow_lt_one₀ (by positivity) (ENNReal.inv_lt_one.mpr (by norm_num)) (by omega)
@@ -498,13 +506,15 @@ end Cert
 
 /-- **The check of a ladder** from level `i` (after `pre` folds) against the certificates `cs`:
 each level's certificate checks, matches the ladder's arithmetic, and bounds its groups'
-escapes by `2^-B`. -/
+escapes by `2^-B`, its fold group's after the level's fold grinding. -/
 def chkLevels (B μ : ℕ) (cs : ℕ → Cert) : ℕ → ℕ → List Whir.Level → Bool
   | _, _, [] => true
   | i, pre, [l] => decide ((cs i).OK ∧ (cs i).κ + pre + l.fold = μ ∧ (cs i).R = l.logInvRate ∧
-      (cs i).FoldOK B l.fold ∧ (cs i).FinalOK B l.queries)
+      l.foldGrinding ≤ B ∧ (cs i).FoldOK (B - l.foldGrinding) l.fold ∧
+      (cs i).FinalOK B l.queries)
   | i, pre, l :: l' :: rest => decide ((cs i).OK ∧ (cs i).κ + pre + l.fold = μ ∧
-      (cs i).R = l.logInvRate ∧ (cs i).FoldOK B l.fold ∧ (cs i).OodOK B (cs (i + 1)) ∧
+      (cs i).R = l.logInvRate ∧ l.foldGrinding ≤ B ∧
+      (cs i).FoldOK (B - l.foldGrinding) l.fold ∧ (cs i).OodOK B (cs (i + 1)) ∧
       (cs i).QueryOK B (cs (i + 1)) l.queries) &&
     chkLevels B μ cs (i + 1) (pre + l.fold) (l' :: rest)
 
@@ -570,14 +580,15 @@ theorem chkLevels_sound (hB : 18 ≤ B) (hB' : B ≤ 191) :
         levelEps (codesOf cs) i levels ≤ (2 : ENNReal)⁻¹ ^ B
   | [], _, _, _ => ⟨trivial, by simp [levelEps]⟩
   | [l], i, pre, hc => by
-    obtain ⟨hok, hκ, hR, hf, hq⟩ := of_decide_eq_true hc
+    obtain ⟨hok, hκ, hR, hg, hf, hq⟩ := of_decide_eq_true hc
     have hq' := eQueryFinal_le hok hq
     refine ⟨⟨by rw [codesOf, mkCode_eq hok]; exact hκ, by rw [codesOf, mkCode_eq hok]; exact hR,
       lt_of_le_of_lt hq' (inv_two_pow_lt_one (by omega))⟩, ?_⟩
-    exact max_le (eFold_le hok hf) (max_le (grind_le (by omega) hq') (eTail_le hB'))
+    exact max_le (foldGrind_le hg (eFold_le hok hf)) (max_le (grind_le (by omega) hq')
+      (eTail_le hB'))
   | l :: l' :: rest, i, pre, hc => by
     simp only [chkLevels, Bool.and_eq_true] at hc
-    obtain ⟨⟨hok, hκ, hR, hf, ho, hq⟩, hrest⟩ := And.imp_left of_decide_eq_true hc
+    obtain ⟨⟨hok, hκ, hR, hg, hf, ho, hq⟩, hrest⟩ := And.imp_left of_decide_eq_true hc
     have hok' := chkLevels_head hrest
     have ih := chkLevels_sound hB hB' (l' :: rest) (i + 1) (pre + l.fold) hrest
     have ho' := eOod_le hok hok' ho
@@ -585,7 +596,8 @@ theorem chkLevels_sound (hB : 18 ≤ B) (hB' : B ≤ 191) :
     refine ⟨⟨by rw [codesOf, mkCode_eq hok]; exact hκ, by rw [codesOf, mkCode_eq hok]; exact hR,
       lt_of_le_of_lt ho' (inv_two_pow_lt_one (by omega)),
       lt_of_le_of_lt hq' (inv_two_pow_lt_one (by omega)), ih.1⟩, ?_⟩
-    exact max_le (max_le (eFold_le hok hf) ho') (max_le (grind_le (by omega) hq') ih.2)
+    exact max_le (max_le (foldGrind_le hg (eFold_le hok hf)) ho')
+      (max_le (grind_le (by omega) hq') ih.2)
 
 end
 end LeanVM.Protocol.Whir.Params

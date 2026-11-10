@@ -20,7 +20,7 @@ The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor, `Sta
 `LeanVM/Protocol/Rom/Statement.lean`. There, knowledge soundness, `knowledgeSoundnessRom_holds`,
 and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page proves completeness,
 `completenessRom_holds`, with an explicit honest prover, and the soundness bound in bits: at most
-`(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundnessRom_bits`).
+`(Q + 2^15) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundnessRom_bits`).
 
 **Completeness** (`completenessRom`): for a valid execution whose committed size
 (`Execution.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
@@ -68,7 +68,7 @@ noncomputable def honestProver (prog : LeanIsaProgram) (input : PublicInput) (t 
   Complete.honestProverRom prog input t ρ fuel
 
 /-- The statement's completeness error is the random-oracle theorem's,
-`(12008 + 48019 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`. -/
+`(18540 + 74145 · (2^39 + 2·fuel + 2)) · (1 - 2^-17)^fuel`. -/
 theorem completenessError_eq (fuel : ℕ) :
     completenessError fuel = Complete.completenessError fuel :=
   Complete.completenessError_eq fuel
@@ -91,28 +91,28 @@ theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)�
 /-! ## Knowledge soundness in bits -/
 
 /-- **The soundness bound in bits**: for `Q ≤ 2^120`, the soundness error is at most
-`(Q + 2^14) · 2^-127`. With `N = Q + 12006`, `5N ≤ 2^128`, so the error is at most
-`(2N · 2^128 + 12006) / 2^256`, and `2N + 1 ≤ 2(Q + 2^14)`. -/
+`(Q + 2^15) · 2^-127`. With `N = Q + 18538`, `5N ≤ 2^128`, so the error is at most
+`(2N · 2^128 + 18538) / 2^256`, and `2N + 1 ≤ 2(Q + 2^15)`. -/
 theorem soundnessError_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
-    soundnessError Q ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
+    soundnessError Q ≤ (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
   have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((12006 : ℕ) : ℝ≥0∞) := rfl
-  have hQ' : (Q + 2 ^ 14 : ℝ≥0∞) = ((Q + 2 ^ 14 : ℕ) : ℝ≥0∞) := by norm_cast
-  rw [soundnessError, hV, show verifierQueries = 12006 from rfl,
+  have hV : (verifierQueries : ℝ≥0∞) = ((18538 : ℕ) : ℝ≥0∞) := rfl
+  have hQ' : (Q + 2 ^ 15 : ℝ≥0∞) = ((Q + 2 ^ 15 : ℕ) : ℝ≥0∞) := by norm_cast
+  rw [soundnessError, hV, show verifierQueries = 18538 from rfl,
     Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
     ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
     ENNReal.div_add_div_same, ← Nat.cast_add, Sound.inv_pow_eq_div 127 256 (by norm_num), hQ',
     ← mul_div_assoc, ← Nat.cast_mul]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   rw [show 256 - 128 = 128 from rfl, show 256 - 127 = 129 from rfl]
-  have h5 : 5 * (Q + 12006) ≤ 2 ^ 128 :=
-    calc 5 * (Q + 12006) ≤ 5 * (2 ^ 120 + 12006) := by gcongr
+  have h5 : 5 * (Q + 18538) ≤ 2 ^ 128 :=
+    calc 5 * (Q + 18538) ≤ 5 * (2 ^ 120 + 18538) := by gcongr
       _ ≤ 2 ^ 128 := by norm_num
-  calc (Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006
-      ≤ (Q + 12006) * (2 ^ 128 + 2 ^ 128) + 12006 := by gcongr
-    _ = Q * 2 ^ 129 + (12006 * 2 ^ 129 + 12006) := by ring
-    _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
-    _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
+  calc (Q + 18538) * (2 ^ 128 + 5 * (Q + 18538)) + 18538
+      ≤ (Q + 18538) * (2 ^ 128 + 2 ^ 128) + 18538 := by gcongr
+    _ = Q * 2 ^ 129 + (18538 * 2 ^ 129 + 18538) := by ring
+    _ ≤ Q * 2 ^ 129 + 2 ^ 15 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
+    _ = (Q + 2 ^ 15) * 2 ^ 129 := by ring
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 

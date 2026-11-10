@@ -494,7 +494,7 @@ def BreaksKnowledgeSoundnessWithHash (z : ExperimentOutcomeWithHash) : Prop :=
 /-- **Knowledge soundness in the random-permutation model**, for the extractor
 `transcriptExtractor`: an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free)
 breaks soundness with probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14`
-covering the verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root,
+covering the verifier's own `18538` oracle calls and two terms of `2^-128` (a guessed stack root,
 the transfer from two random oracles to one permutation). -/
 def KnowledgeSoundnessWithHash : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),

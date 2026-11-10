@@ -27,8 +27,8 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 **Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
 to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `transcriptExtractor` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
-`soundnessError Q + (Q + 12006 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
-`Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for
+`soundnessError Q + (Q + 18538 · 2^32)² / 2^508`, which is at most `(Q + 2^15) · 2^-127` for
+`Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_128`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
@@ -358,11 +358,11 @@ theorem completenessRpm {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
 /-! ## The numbers -/
 
 theorem soundnessError_eq (Q : ℕ) :
-    soundnessError Q = (((Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006 : ℕ) : ℝ≥0∞) /
+    soundnessError Q = (((Q + 18538) * (2 ^ 128 + 5 * (Q + 18538)) + 18538 : ℕ) : ℝ≥0∞) /
       ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
   have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((12006 : ℕ) : ℝ≥0∞) := rfl
-  rw [soundnessError, hV, show verifierQueries = 12006 from rfl,
+  have hV : (verifierQueries : ℝ≥0∞) = ((18538 : ℕ) : ℝ≥0∞) := rfl
+  rw [soundnessError, hV, show verifierQueries = 18538 from rfl,
     EndToEnd.Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
     ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
     ENNReal.div_add_div_same, ← Nat.cast_add]
@@ -381,64 +381,64 @@ theorem soundnessRpm_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) :
     ← ENNReal.mul_div_mul_right _ _ hc hc', ← Nat.cast_mul, ← Nat.cast_mul,
     ← pow_add, ENNReal.div_add_div_same, ← Nat.cast_add, show 256 + 252 = 508 from rfl]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show verifierPermCalls = 12006 * 2 ^ 32 from rfl]
-  calc ((Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006) * 2 ^ 252 +
-        (Q + 12006 * 2 ^ 32) ^ 2
-      ≤ ((2 ^ 64 + 12006) * (2 ^ 128 + 5 * (2 ^ 64 + 12006)) + 12006) * 2 ^ 252 +
-        (2 ^ 64 + 12006 * 2 ^ 32) ^ 2 := by gcongr
+  rw [show verifierPermCalls = 18538 * 2 ^ 32 from rfl]
+  calc ((Q + 18538) * (2 ^ 128 + 5 * (Q + 18538)) + 18538) * 2 ^ 252 +
+        (Q + 18538 * 2 ^ 32) ^ 2
+      ≤ ((2 ^ 64 + 18538) * (2 ^ 128 + 5 * (2 ^ 64 + 18538)) + 18538) * 2 ^ 252 +
+        (2 ^ 64 + 18538 * 2 ^ 32) ^ 2 := by gcongr
     _ ≤ 2 ^ 200 * 2 ^ 245 := by norm_num
     _ = 2 ^ (508 - 63) := by rw [← pow_add]
 
 /-- **The knowledge-soundness bound in bits in the random-permutation model**: for `Q ≤ 2^120`
-queries to `π` and `π⁻¹`, at most `(Q + 2^14) · 2^-127`. The random-oracle error is bounded as in
+queries to `π` and `π⁻¹`, at most `(Q + 2^15) · 2^-127`. The random-oracle error is bounded as in
 `soundnessError_le_bits`, and `(Q + verifierPermCalls)² / 2^508 ≤ 2^242 / 2^508` fits in the
 slack. -/
 theorem soundnessRpm_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
     soundnessError Q + rpmError (Q + verifierPermCalls) ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
+      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
   have hc : ((2 ^ 252 : ℕ) : ℝ≥0∞) ≠ 0 := by positivity
   have hc' : ((2 ^ 252 : ℕ) : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-  have hQ' : (Q + 2 ^ 14 : ℝ≥0∞) = ((Q + 2 ^ 14 : ℕ) : ℝ≥0∞) := by norm_cast
+  have hQ' : (Q + 2 ^ 15 : ℝ≥0∞) = ((Q + 2 ^ 15 : ℕ) : ℝ≥0∞) := by norm_cast
   rw [soundnessError_eq, rpmError_eq,
     ← ENNReal.mul_div_mul_right _ _ hc hc', ← Nat.cast_mul, ← Nat.cast_mul,
     ← pow_add, ENNReal.div_add_div_same, ← Nat.cast_add, show 256 + 252 = 508 from rfl,
     EndToEnd.Sound.inv_pow_eq_div 127 508 (by norm_num), hQ', ← mul_div_assoc, ← Nat.cast_mul]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show verifierPermCalls = 12006 * 2 ^ 32 from rfl, show 508 - 127 = 381 from rfl]
-  have h5 : 5 * (Q + 12006) ≤ 2 ^ 128 :=
-    calc 5 * (Q + 12006) ≤ 5 * (2 ^ 120 + 12006) := by gcongr
+  rw [show verifierPermCalls = 18538 * 2 ^ 32 from rfl, show 508 - 127 = 381 from rfl]
+  have h5 : 5 * (Q + 18538) ≤ 2 ^ 128 :=
+    calc 5 * (Q + 18538) ≤ 5 * (2 ^ 120 + 18538) := by gcongr
       _ ≤ 2 ^ 128 := by norm_num
-  have hP : Q + 12006 * 2 ^ 32 ≤ 2 ^ 121 :=
-    calc Q + 12006 * 2 ^ 32 ≤ 2 ^ 120 + 12006 * 2 ^ 32 := by gcongr
+  have hP : Q + 18538 * 2 ^ 32 ≤ 2 ^ 121 :=
+    calc Q + 18538 * 2 ^ 32 ≤ 2 ^ 120 + 18538 * 2 ^ 32 := by gcongr
       _ ≤ 2 ^ 121 := by norm_num
-  calc ((Q + 12006) * (2 ^ 128 + 5 * (Q + 12006)) + 12006) * 2 ^ 252 + (Q + 12006 * 2 ^ 32) ^ 2
-      ≤ ((Q + 12006) * (2 ^ 128 + 2 ^ 128) + 12006) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
-    _ ≤ ((Q + 12006) * (2 ^ 128 + 2 ^ 128) + 12006) * 2 ^ 252 + 2 ^ 252 :=
+  calc ((Q + 18538) * (2 ^ 128 + 5 * (Q + 18538)) + 18538) * 2 ^ 252 + (Q + 18538 * 2 ^ 32) ^ 2
+      ≤ ((Q + 18538) * (2 ^ 128 + 2 ^ 128) + 18538) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
+    _ ≤ ((Q + 18538) * (2 ^ 128 + 2 ^ 128) + 18538) * 2 ^ 252 + 2 ^ 252 :=
         Nat.add_le_add_left (by norm_num) _
-    _ = ((Q + 12006) * (2 ^ 128 + 2 ^ 128) + 12006 + 1) * 2 ^ 252 := by ring
-    _ ≤ (Q + 2 ^ 14) * 2 ^ 129 * 2 ^ 252 := by
+    _ = ((Q + 18538) * (2 ^ 128 + 2 ^ 128) + 18538 + 1) * 2 ^ 252 := by ring
+    _ ≤ (Q + 2 ^ 15) * 2 ^ 129 * 2 ^ 252 := by
         gcongr
-        calc (Q + 12006) * (2 ^ 128 + 2 ^ 128) + 12006 + 1
-            = Q * 2 ^ 129 + (12006 * 2 ^ 129 + 12007) := by ring
-          _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
-          _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
-    _ = (Q + 2 ^ 14) * 2 ^ 381 := by rw [mul_assoc, ← pow_add]
+        calc (Q + 18538) * (2 ^ 128 + 2 ^ 128) + 18538 + 1
+            = Q * 2 ^ 129 + (18538 * 2 ^ 129 + 18539) := by ring
+          _ ≤ Q * 2 ^ 129 + 2 ^ 15 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
+          _ = (Q + 2 ^ 15) * 2 ^ 129 := by ring
+    _ = (Q + 2 ^ 15) * 2 ^ 381 := by rw [mul_assoc, ← pow_add]
 
 /-- **The knowledge-soundness bound up to `2^128` queries**: for `Q ≤ 2^128` queries to `π` and
-`π⁻¹`, at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The random-oracle error is
-`A · 2^-128 + 5 A² · 2^-256 + V / 2^256` with `A = Q + V`, `V = 12006`; the verifier's
+`π⁻¹`, at most `(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256`. The random-oracle error is
+`A · 2^-128 + 5 A² · 2^-256 + V / 2^256` with `A = Q + V`, `V = 18538`; the verifier's
 `V / 2^256` and the transfer's `(Q + verifierPermCalls)² / 2^508` are each at most `2^-128`, and
-`A + 2 ≤ Q + 2^14`. -/
+`A + 2 ≤ Q + 2^15`. -/
 theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
     soundnessError Q + rpmError (Q + verifierPermCalls) ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-  have hA2 : ((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2 ≤ (Q + 2 ^ 14 : ℝ≥0∞) := by
-    have h : Q + verifierQueries + 2 ≤ Q + 2 ^ 14 := by
+      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  have hA2 : ((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2 ≤ (Q + 2 ^ 15 : ℝ≥0∞) := by
+    have h : Q + verifierQueries + 2 ≤ Q + 2 ^ 15 := by
       rw [Nat.add_assoc]
       exact Nat.add_le_add_left (by unfold verifierQueries; norm_num) Q
     exact_mod_cast h
-  have hA : ((Q + verifierQueries : ℕ) : ℝ≥0∞) ≤ (Q + 2 ^ 14 : ℝ≥0∞) := le_self_add.trans hA2
+  have hA : ((Q + verifierQueries : ℕ) : ℝ≥0∞) ≤ (Q + 2 ^ 15 : ℝ≥0∞) := le_self_add.trans hA2
   have hV : (verifierQueries : ℝ≥0∞) / 2 ^ 256 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 :=
     calc (verifierQueries : ℝ≥0∞) / 2 ^ 256 = (verifierQueries : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
           rw [div_eq_mul_inv, ENNReal.inv_pow]
@@ -474,8 +474,8 @@ theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
           ((2 : ℝ≥0∞)⁻¹ ^ 128 + (2 : ℝ≥0∞)⁻¹ ^ 128) := add_le_add le_rfl (add_le_add hV hR)
     _ = (((Q + verifierQueries : ℕ) : ℝ≥0∞) + 2) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
           5 * ((Q + verifierQueries : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
-    _ ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-          5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+    _ ≤ (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+          5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
         gcongr ?_ * _ + ?_ * ?_ ^ 2 * _
         all_goals norm_num
 

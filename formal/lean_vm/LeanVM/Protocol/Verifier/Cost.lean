@@ -24,7 +24,7 @@ of
 work `5`, a commitment `2`, and an opening of `k` positions `4 · k · (1 + height)` (one hash per
 leaf and per level). A run's shape depends on the sizes the proof announces, but a run that is
 not rejected has sizes inside the window the program checks: memory and table log-heights at most
-`32`, a bytecode of at most `2^36` words, a stack of `15 ≤ μ ≤ 28` variables, a rate exponent
+`32`, a bytecode of at most `2^36` words, a stack of `15 ≤ μ ≤ 40` variables, a rate exponent
 `1 ≤ R ≤ 4`, and the WHIR ladder `Parameters.Whir.ladder μ R`. The cost is maximised over that
 window:
 
@@ -38,14 +38,15 @@ window:
 * `KECCAK`'s reduction (`keccakPhase`, `verifyKeccak`) at a point of at most `32` coordinates:
   `keccakCost 29`, `12` layers of `135 + 6 · 29`;
 * ring switching: `6` challenges, `24`;
-* the stacked opening: `6` plus the WHIR levels (`whirCost`), at most `whirBound` over the 56
+* the stacked opening: `6` plus the WHIR levels (`whirCost`, each fold round charged `11`, a
+  proof of work's `5` included whether or not the level grinds), at most `whirBound` over the 104
   admissible ladders (`ladder_cost`, decided), every commitment of height at most
-  `costHeight = 26`.
+  `costHeight = 38`.
 
-In total `leanVmCost = 48019` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
+In total `leanVmCost = 74145` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
 hash and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at
 most
-`leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 12006` queries on every proof
+`leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 18538` queries on every proof
 (`isTotalQueryBound_leanVm`). The bound is crude where a tight one would cost proof without
 changing the soundness bound, in which it enters linearly: the bus depth, the table heights and
 the Keccak point are bounded by the announced sizes' window (`32`), not by the stack's size, and
@@ -93,11 +94,11 @@ enforced claim, and on the final level the tail rounds. -/
 def whirCost (height : ℕ) : ℕ → List Whir.Level → ℕ
   | _, [] => 0
   | μ, [level] =>
-    6 * level.fold + 2 ^ (μ - level.fold) + 5 +
+    11 * level.fold + 2 ^ (μ - level.fold) + 5 +
       4 * queryRounds (μ - level.fold + level.logInvRate) level.queries + 4 +
       VerifierProgram.openCost height level.queries + 2 + 6 * (μ - level.fold)
   | μ, level :: next :: rest =>
-    6 * level.fold + (5 + 4 * (μ - level.fold)) + 5 +
+    11 * level.fold + (5 + 4 * (μ - level.fold)) + 5 +
       4 * queryRounds (μ - level.fold + level.logInvRate) level.queries + 4 +
       VerifierProgram.openCost height level.queries + 2 + whirCost height (μ - level.fold) (next
           :: rest)
@@ -124,10 +125,10 @@ def queryDepthsLE : ℕ → List Whir.Level → Bool
       queryDepthsLE (μ - level.fold) rest
 
 /-- The bound on every commitment's height. -/
-def costHeight : ℕ := 26
+def costHeight : ℕ := 38
 
 /-- The bound on the WHIR levels' cost over every admissible ladder (`ladder_cost`). -/
-def whirBound : ℕ := 40475
+def whirBound : ℕ := 66601
 
 /-- The bound on the GKR walk: the push side's depth is at most `38`. -/
 def gkrBound : ℕ := gkrCost 38 0
@@ -658,19 +659,30 @@ section Whir
 
 variable {height : ℕ}
 
-/-- A level's fold rounds, six each; they append one fold challenge each. -/
-theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    VerifierProgram.Costs height (foldRoundsT n s levelFolds) (6 * n)
+/-- The proof of work before a fold challenge, at most a proof of work's `5`. -/
+theorem costs_foldProofOfWork (b : ℕ) :
+    VerifierProgram.Costs height (VerifierProgram.foldProofOfWork b) 5 fun _ ↦ True := by
+  unfold VerifierProgram.foldProofOfWork
+  split
+  · trivial
+  · exact VerifierProgram.Costs.grindP b
+
+/-- A level's fold rounds, eleven each, a proof of work charged whether or not the level grinds;
+they append one fold challenge each. -/
+theorem costs_foldRounds (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    VerifierProgram.Costs height (foldRoundsT b n s levelFolds) (11 * n)
       fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
-    refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun c _ ↦
+    refine VerifierProgram.Costs.seq (costs_foldProofOfWork b) (fun _ _ ↦
+      VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun c _ ↦
         VerifierProgram.Costs.seq
       (costs_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
-        (costs_foldRounds n _ _).mono ?_ fun r hr ↦ ?_) ?_) ?_
+        (costs_foldRounds b n _ _).mono ?_ fun r hr ↦ ?_) ?_) ?_) ?_
     · simp only [show max 3 2 = 3 from rfl]; omega
     · rw [hr, List.length_append, List.length_singleton]; omega
     · simp only [show max 3 2 = 3 from rfl]; omega
+    · omega
     · omega
 
 /-- The final level's tail rounds, at most six each. -/
@@ -759,7 +771,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     simp only [queryDepthsLE, Bool.and_eq_true, decide_eq_true_eq] at hD
     simp only [whirCost]
     generalize hP : 2 ^ (μ - level.fold) = P
-    refine VerifierProgram.Costs.seq (costs_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
+    refine VerifierProgram.Costs.seq (costs_foldRounds level.foldGrinding level.fold s []) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', levelFolds⟩ := r
     simp only at hr
     have hm : logN - s'.folds.length = μ - level.fold := by rw [hr]; omega
@@ -785,7 +797,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     simp only [whirHeightsLE, Bool.and_eq_true, decide_eq_true_eq] at hH
     rw [queryDepthsLE, Bool.and_eq_true, decide_eq_true_eq] at hD
     simp only [whirCost]
-    refine VerifierProgram.Costs.seq (costs_foldRounds level.fold s []) (fun r hr ↦ ?_) (by omega)
+    refine VerifierProgram.Costs.seq (costs_foldRounds level.foldGrinding level.fold s []) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', levelFolds⟩ := r
     simp only at hr
     have hm : logN - s'.folds.length = μ - level.fold := by rw [hr]; omega
@@ -856,7 +868,7 @@ end Whir
 
 /-- Over every ladder `Parameters.Whir.ladder` returns, the commitments have height at most
 `costHeight`, the query positions at most `64` bits, and the WHIR levels cost at most
-`whirBound`; decided over the 56 admissible pairs. -/
+`whirBound`; decided over the 104 admissible pairs. -/
 theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     whirHeightsLE costHeight μ levels = true ∧ stackHeightLE costHeight μ levels = true ∧
@@ -941,9 +953,9 @@ program's cost in quarters. -/
 def leanVmQueryBound : ℕ := 1 + 1 + leanVmCost / 4
 
 /-- The bound, evaluated. -/
-theorem leanVmQueryBound_eq : leanVmQueryBound = 12006 := by decide
+theorem leanVmQueryBound_eq : leanVmQueryBound = 18538 := by decide
 
-/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 12006` queries** to the random
+/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 18538` queries** to the random
 oracles on every proof, for every bytecode and public input: the hypothesis `hV` of `romSound`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :
