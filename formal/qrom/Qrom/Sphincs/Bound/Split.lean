@@ -45,6 +45,18 @@ theorem eval_verifier (f : Input → HashOutput) (pk : PublicKey) (F : Forgery) 
         (Concrete.verify pk F.message F.signature : OracleComp HashSpec Bool)) := by
   rw [verifier, eval_liftH, eval_traced]
 
+/-- The inputs a recorded trace reads among its first `verifyQueries`. -/
+def outK (b : Bool × List HashInput) : Finset Input := outOf (b.1, b.2.take verifyQueries)
+
+theorem card_outK_le (b : Bool × List HashInput) : (outK b).card ≤ verifyQueries :=
+  (card_outOf_le _).trans (List.length_take_le _ _)
+
+theorem outK_verifier (f : Input → HashOutput) (x : PublicKey × Forgery) :
+    outK (evalWithAnswerFn (QueryImpl.ofFn f) (verifier x)) =
+      outOf (evalWithAnswerFn (QueryImpl.ofFn f) (verifier x)) := by
+  rw [outK, eval_verifier]
+  rw [List.take_of_length_le (length_queriedInputs_le _ (bound_verify _ _ _))]
+
 open Classical in
 /-- **The win event, split.** -/
 theorem win_split (d : Data) (s : Log) (G : Input → HashOutput) (F : Forgery) (hlog : HonestLog d s)
@@ -98,12 +110,12 @@ theorem sideW_false (g : OvGame Input HashOutput Log Port Res) (G : Input → Ha
 
 open Classical in
 /-- The verifier read a protected input. -/
-def evProt (d : Data) (s : Log) (b : Bool × List HashInput) : Bool := decide (∃ x ∈ outOf b, Prot d s x)
+def evProt (d : Data) (s : Log) (b : Bool × List HashInput) : Bool := decide (∃ x ∈ outK b, Prot d s x)
 
 open Classical in
 /-- `G` hits at an input the verifier read. -/
 def evHit (d : Data) (G : Input → HashOutput) (b : Bool × List HashInput) : Bool :=
-  decide (∃ z ∈ outOf b, good d z (G z))
+  decide (∃ z ∈ outK b, good d z (G z))
 
 open Classical in
 /-- The data has an encoding collision. -/
@@ -116,11 +128,11 @@ def evCov (d : Data) (s : Log) (G : Input → HashOutput) (F : Forgery) : Bool :
 
 open Classical in
 theorem evProt_iff {d : Data} {s : Log} {b : Bool × List HashInput} :
-    evProt d s b = true ↔ ∃ x ∈ outOf b, Prot d s x := by
+    evProt d s b = true ↔ ∃ x ∈ outK b, Prot d s x := by
   unfold evProt; exact decide_eq_true_iff
 open Classical in
 theorem evHit_iff {d : Data} {G : Input → HashOutput} {b : Bool × List HashInput} :
-    evHit d G b = true ↔ ∃ z ∈ outOf b, good d z (G z) := by
+    evHit d G b = true ↔ ∃ z ∈ outK b, good d z (G z) := by
   unfold evHit; exact decide_eq_true_iff
 open Classical in
 theorem evBad_iff {d : Data} : evBad d = true ↔ BadEnc d := by
@@ -170,8 +182,8 @@ theorem sideW_win_le (d : Data) (G : Input → HashOutput) {A : QReg} (adv : Adv
     rw [hv] at hw ⊢
     simp only [Bool.or_eq_true]
     rcases win_split d s G p.2.2.2 hlog hw with h | h | h | h
-    · exact Or.inl (evProt_iff.mpr h)
-    · exact Or.inr (Or.inl (evHit_iff.mpr h))
+    · exact Or.inl (evProt_iff.mpr (by rw [outK_verifier]; exact h))
+    · exact Or.inr (Or.inl (evHit_iff.mpr (by rw [outK_verifier]; exact h)))
     · exact Or.inr (Or.inr (Or.inl (evBad_iff.mpr h)))
     · exact Or.inr (Or.inr (Or.inr (evCov_iff.mpr h)))
   · rw [add_assoc]
