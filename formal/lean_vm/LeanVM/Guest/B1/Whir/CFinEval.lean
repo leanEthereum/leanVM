@@ -378,5 +378,16 @@ theorem allocsAt_heap (σ : Val) (e k : ℕ) (he : e < 2 ^ 64 - 1) (hs : σ (.n 
     List.map_cons, List.map_nil, Sum.elim_inr, hs, gw_eq (show e < u128Bound by unfold u128Bound; omega)]
   rw [Memory.logG_gen_pow he]
 
+/-- **A pure block holds at its evaluated values**, its loads reading words every reader `H` admits
+fixes, from pointers below its first value. -/
+theorem pure_blk {H : CallRel → Reader → Prop} {σ : Val} {w w' : ℕ} {ss : List Stmt} (h : SsaP w ss w')
+    (hL : ∀ p o, (p, o) ∈ loadsOf ss → p < w ∧ ∃ v, ∀ C rd, H C rd → LoadHolds rd (σ (.n p)) o v) :
+    BlkA H σ w w' ss (fun σ' ↦ AllocsAt σ' ss = []) := by
+  refine ssa_blk (Pt := fun _ ↦ 0) h.toSsa (fun _ _ _ σ' _ _ _ ↦ h.allocs σ') fun C rd hH σ' ha _ ↦ ?_
+  refine h.sidesOk fun p o hpo ↦ ?_
+  obtain ⟨hp, v, hv⟩ := hL p o hpo
+  rw [ha _ hp, memOf_eq hv hH]
+  exact hv C rd hH
+
 end
 end LeanVM.Guest.B1.Whir
