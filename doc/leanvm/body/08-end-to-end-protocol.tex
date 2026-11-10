@@ -97,7 +97,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \begin{enumerate}
 \item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the two memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
-\item \textbf{Prover \& Verifier.} The commitment's OOD sample, before any other challenge (\S\ref{sec:protocol}): the prover grinds $\grind{ood}$ bits, the verifier samples $z_0\in\E^{\nv_0}$, and the prover sends the stack's multilinear at $z_0$. The value joins the claim pool last.
+\item \textbf{Prover \& Verifier.} The commitment's OOD sample, before any other challenge (\S\ref{sec:protocol}): the verifier samples $z_0\in\E^{\nv_0}$, and the prover sends the stack's multilinear at $z_0$. The value joins the claim pool last.
 \end{enumerate}
 
 \paragraph{Bus.}
@@ -132,14 +132,14 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Prover \& Verifier.} The prover sends the part of the first claim on the committed state after twelve rounds; the part on the output is the table's claims on its output lanes. The parties run the layers of the reduction with the middle state committed (\S\ref{keccak:layer}, \S\ref{keccak:segments}): twelve, one per round of a segment, which take the claim to one on the committed states twelve rounds earlier (\S\ref{keccak:layer}), each challenge ground for its degree (\S\ref{keccak:soundness}).
 \item \textbf{Prover \& Verifier.} Open the part on the committed state: a sumcheck over the slot leaves one evaluation of $\qkeccak$, an ordinary column claim, which joins the pool after every other column claim (\S\ref{keccak:segments}).
 \item \textbf{Prover \& Verifier.} Open the last claim: a sumcheck over the permutations of a pack, then over the slot, leaves the $64$ bit slices of $\qkeccak$ at one point, which the prover sends (\S\ref{keccak:openings}).
-\item \textbf{Prover \& Verifier.} The prover grinds $\grind{batch}$ bits (Annex~\ref{annex:pcs}); the verifier samples the sixteen challenges of the ring-switching map, and the ring switching of \S\ref{sec:ringswitch} reduces those $64$ values to a weighted-sum claim on the $\qkeccak$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}).
+\item \textbf{Prover \& Verifier.} The verifier samples the sixteen challenges of the ring-switching map, and the ring switching of \S\ref{sec:ringswitch} reduces those $64$ values to a weighted-sum claim on the $\qkeccak$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}).
 \end{enumerate}
 
 \paragraph{Opening.}
 
 \begin{enumerate}
 \item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qkeccak$ region.)
-\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn right after the ring-switching challenges with no prover message between: the seventeen are one verifier message, under one grind (\S\ref{sec:soundness-outer}). Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first, the pooled column claims after, then the OOD claim: the $J\le512$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
+\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn right after the ring-switching challenges with no prover message between: the seventeen are one verifier message (\S\ref{sec:soundness-outer}). Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first, the pooled column claims after, then the OOD claim: the $J\le512$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
 \item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the Keccak reduction's checks, and the PCS opening.
 \end{enumerate}
