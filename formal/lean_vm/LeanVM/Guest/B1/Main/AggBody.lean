@@ -97,7 +97,7 @@ theorem agg_ok : aggOk = true := by decide +kernel
 
 /-- **The seed's constants are the batching seed's capacity cells.** -/
 theorem seed_cells : ∀ i < 5,
-    word (seedLo.getD i (0, 0)).1 (seedLo.getD i (0, 0)).2 0 = (capOf batchSeed).getD i 0 := by
+    word (seedLo.getD i (0, 0)).1 (seedLo.getD i (0, 0)).2 = (capOf batchSeed).getD i 0 := by
   intro i hi
   have e := fun c : Fin 5 => aggSeed_cells c
   rcases (show i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 by omega) with rfl | rfl | rfl | rfl | rfl

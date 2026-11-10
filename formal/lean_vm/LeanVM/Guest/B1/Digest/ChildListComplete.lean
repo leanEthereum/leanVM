@@ -56,11 +56,11 @@ theorem boundMem_of_low {κ : ℕ} (hl : LowDef κ rd) {L : ℕ} (hL : L ≤ 2 ^
 
 set_option maxRecDepth 100000 in
 theorem any136_unplaced :
-    (atomsIn (loopPre (coreProgram.getD 349 default))).all atomUnplaced = true := by decide +kernel
+    (atomsIn (loopPre (coreProgram.getD 378 default))).all atomUnplaced = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem any17_unplaced :
-    (atomsIn (loopPre (coreProgram.getD 350 default))).all atomUnplaced = true := by decide +kernel
+    (atomsIn (loopPre (coreProgram.getD 379 default))).all atomUnplaced = true := by decide +kernel
 
 set_option maxRecDepth 20000 in
 /-- **A frame loop of child claims, its frames**: at every frame `q < M`, the block's valuation

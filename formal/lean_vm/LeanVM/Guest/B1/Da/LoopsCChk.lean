@@ -67,23 +67,23 @@ def tailAt (f : String) (c n : ℕ) : List Stmt :=
   [.callIf (.n (c + 2)) f (.n (c + 4) :: (List.range n).map fun k => V.n (k + 1)), .ret []]
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_body : Fn.body (coreProgram.getD 387 default) = l17Pre ++ tailAt "__loop21" 18 3 ∧
-    Fn.body (coreProgram.getD 389 default) = l19Pre ++ tailAt "__loop23" 12 3 ∧
-    Fn.body (coreProgram.getD 390 default) = l20Pre ++ tailAt "__loop24" 10 3 ∧
-    Fn.body (coreProgram.getD 403 default) = l21Pre ++ tailAt "__loop25" 15 5 := by
+theorem dv_loops_body : Fn.body (coreProgram.getD 416 default) = l17Pre ++ tailAt "__loop21" 18 3 ∧
+    Fn.body (coreProgram.getD 418 default) = l19Pre ++ tailAt "__loop23" 12 3 ∧
+    Fn.body (coreProgram.getD 419 default) = l20Pre ++ tailAt "__loop24" 10 3 ∧
+    Fn.body (coreProgram.getD 432 default) = l21Pre ++ tailAt "__loop25" 15 5 := by
   refine ⟨stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_, stmtsEqb_sound ?_⟩ <;>
     decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem dv_loops_shape :
-    (loopShapeF (coreProgram.getD 387 default) "__loop21" = true ∧
-      (coreProgram.getD 387 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 389 default) "__loop23" = true ∧
-      (coreProgram.getD 389 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 390 default) "__loop24" = true ∧
-      (coreProgram.getD 390 default).params.length = 4) ∧
-    (loopShapeF (coreProgram.getD 403 default) "__loop25" = true ∧
-      (coreProgram.getD 403 default).params.length = 6) := by
+    (loopShapeF (coreProgram.getD 416 default) "__loop21" = true ∧
+      (coreProgram.getD 416 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 418 default) "__loop23" = true ∧
+      (coreProgram.getD 418 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 419 default) "__loop24" = true ∧
+      (coreProgram.getD 419 default).params.length = 4) ∧
+    (loopShapeF (coreProgram.getD 432 default) "__loop25" = true ∧
+      (coreProgram.getD 432 default).params.length = 6) := by
   decide +kernel
 
 end

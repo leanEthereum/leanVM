@@ -36,11 +36,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_last__L{k}` -/
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (332 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (361 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (332 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (361 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -54,7 +54,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (332 + k) default
+  set f := coreProgram.getD (361 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -116,16 +116,16 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
   refine ⟨_, by simp [ChainSpec.vals, grpSpec], by rwa [← hE], hcan, by rwa [← h9]⟩
 
 set_option maxRecDepth 100000 in
-theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 330 default))).nb = 64 := by
+theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 359 default))).nb = 64 := by
   decide +kernel
 
 -- The big frame loop `__loop15` (136 claims, 64 blocks): its head here, its sixteen windows in
 -- `ClaimListBig{q}`.
 set_option maxRecDepth 100000 in
-theorem big_head : grpHead (coreProgram.getD 330 default) "__loop15" 136 21 565 20 = true := by
+theorem big_head : grpHead (coreProgram.getD 359 default) "__loop15" 136 21 565 20 = true := by
   decide +kernel
 
-theorem big_ok : grpOk (coreProgram.getD 330 default) "__loop15" 136 21 565 20 = true := by
+theorem big_ok : grpOk (coreProgram.getD 359 default) "__loop15" 136 21 565 20 = true := by
   have hw : ∀ i < 16, bigWin i = true := by
     intro i hi
     interval_cases i
@@ -136,19 +136,19 @@ theorem big_ok : grpOk (coreProgram.getD 330 default) "__loop15" 136 21 565 20 =
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem big_idx : coreProgram.indexOf? "__loop15" = some 330 := by decide +kernel
+theorem big_idx : coreProgram.indexOf? "__loop15" = some 359 := by decide +kernel
 
 
 -- The group frame loop `__loop16` (17 claims, 8 blocks).
 set_option maxRecDepth 100000 in
-theorem grp_ok : grpOk (coreProgram.getD 331 default) "__loop16" 17 18 86 17 = true := by
+theorem grp_ok : grpOk (coreProgram.getD 360 default) "__loop16" 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_idx : coreProgram.indexOf? "__loop16" = some 331 := by decide +kernel
+theorem grp_idx : coreProgram.indexOf? "__loop16" = some 360 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 331 default))).nb = 8 := by
+theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 360 default))).nb = 8 := by
   decide +kernel
 
 theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' : V} {e e' : ℕ}

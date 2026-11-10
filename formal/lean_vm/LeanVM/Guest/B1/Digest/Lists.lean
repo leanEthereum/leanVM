@@ -102,16 +102,14 @@ def retOk (atoms : List Atom) (s : ChainSpec) (r0 r1 : V) : Bool :=
 theorem straight_digest {rd : Reader} {σ : Val} {atoms : List Atom} {s : ChainSpec} {r0 r1 : V}
     (hc : s.check atoms = true) (hfin : s.final = true) (hinit : s.init = none)
     (hr : retOk atoms s r0 r1 = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
-    [σ r0, σ r1] = digestCells (keccak256 (cellsBytes ((s.vals σ).take (s.len / 16)))) ∧
-      AllCanonical ((s.vals σ).take (s.len / 16)) := by
+    [σ r0, σ r1] = digestCells (keccak256 (cellsBytes ((s.vals σ).take (s.len / 16)))) := by
   have h0 : ∀ c : Fin 13, s.initCell σ c =
       cellsOfState (absorbChunks 0 zeroState []) false c := fun c => by
     rw [ChainSpec.initCell, hinit]
     exact (cellsOfState_zero false c).symm
-  obtain ⟨hd, hcan⟩ := chain_final hc hfin hat (pre := []) (n := 0) rfl h0
+  have hd := chain_final hc hfin hat (pre := []) (n := 0) rfl h0
   rw [List.nil_append] at hd
   simp only [retOk, Bool.and_eq_true] at hr
-  refine ⟨?_, hcan⟩
   rw [copy_sound hr.1 hat, copy_sound hr.2 hat, digestCells, ← hd]
 
 theorem find_of_idx {name : String} {j : ℕ} (h : coreProgram.indexOf? name = some j)
