@@ -455,13 +455,15 @@ def oqQueryT (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr 
 
 /-! ## The loop and the function -/
 
-/-- The loop's guard and its next call from `g`, on its parameters `x, N, …` (`0 .. 9`). -/
-def oqGuardT (g : ℕ) (name : String) : List Stmt :=
+/-- The loop's guard `x·g + N` and next counter `x·g` from `g`, on its parameters `x, N, …`. -/
+def oqGuardA (g : ℕ) : List Stmt :=
   [.atom (.const (.n g) (word 2 0)), .atom (.mul (.n (g + 1)) (.n 0) (.n g)),
     .atom (.add (.n (g + 2)) (.n (g + 1)) (.n 1)), .atom (.const (.n (g + 3)) (word 2 0)),
-    .atom (.mul (.n (g + 4)) (.n 0) (.n (g + 3))),
-    .callIf (.n (g + 2)) name
-      [.n (g + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], .ret []]
+    .atom (.mul (.n (g + 4)) (.n 0) (.n (g + 3)))]
+
+/-- The loop's next call from the guard at `g`, on its ten parameters. -/
+def oqNextT (g : ℕ) (name : String) : List Stmt :=
+  [.callIf (.n (g + 2)) name [.n (g + 4), .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9], .ret []]
 
 /-- The first value of the second query of a level-0 iteration (its point; its windows next). -/
 def oqE1 (s : Oq) : ℕ := oqEnd s 16 true
@@ -469,11 +471,15 @@ def oqE1 (s : Oq) : ℕ := oqEnd s 16 true
 /-- The first value of a level-0 iteration's chain step. -/
 def oqC1 (s : Oq) : ℕ := oqEnd s (oqE1 s + 2) false
 
-/-- **The loop helper's body at level 0** (`base = 1`: two queries an iteration, the points and
-window pointers at `positions·x²`, `qptrs·x²` offsets `odd`, `odd + 1`), on its parameters
-`x, N, positions, qptrs, cap, flags, coefs, hs, chain, λ⁻¹` (`0 .. 9`): the queries, the chain
-step `chain[x·g] = ((chain[x] + d0)·λ⁻¹ + d1)·λ⁻¹` (non-final levels), the guard and the next call. -/
-def oqLoop1T (s : Oq) (odd : ℕ) (walk name : String) : List Stmt :=
+/-- The first value of a level-0 iteration's guard. -/
+def oqG1 (s : Oq) : ℕ := if s.final = 1 then oqC1 s else oqC1 s + 7
+
+/-- **The loop helper's body at level 0** but its next call (`base = 1`: two queries an
+iteration, the points and window pointers at `positions·x²`, `qptrs·x²` offsets `odd`,
+`odd + 1`), on its parameters `x, N, positions, qptrs, cap, flags, coefs, hs, chain, λ⁻¹`
+(`0 .. 9`): the queries, the chain step `chain[x·g] = ((chain[x] + d0)·λ⁻¹ + d1)·λ⁻¹`
+(non-final levels), the guard. -/
+def oqLoop1A (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
   let e1 := oqE1 s
   let c := oqC1 s
   [.atom (.mul (.n 10) (.n 2) (.n 0)), .atom (.mul (.n 11) (.n 10) (.n 0)),
@@ -482,38 +488,51 @@ def oqLoop1T (s : Oq) (odd : ℕ) (walk name : String) : List Stmt :=
     oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 walk ++
     [.atom (.load (.n e1) (.n 11) (odd + 1)), .atom (.load (.n (e1 + 1)) (.n 13) (odd + 1))] ++
     oqQueryT s (.n e1) (.n (e1 + 1)) (.n 4) (.n 5) (.n 6) (.n 7) (e1 + 2) false (oqK1 s 16) walk ++
-    (if s.final = 1 then oqGuardT c name else
+    (if s.final = 1 then [] else
       [.atom (.mul (.n c) (.n 8) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
         .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 16 true))),
         .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 9)),
         .atom (.add (.n (c + 4)) (.n (c + 3)) (.n (oqRes s (e1 + 2) false))),
         .atom (.mul (.n (c + 5)) (.n (c + 4)) (.n 9)), .atom (.mul (.n (c + 6)) (.n 8) (.n 0)),
-        .atom (.load (.n (c + 5)) (.n (c + 6)) 1)] ++ oqGuardT (c + 7) name)
+        .atom (.load (.n (c + 5)) (.n (c + 6)) 1)]) ++
+    oqGuardA (oqG1 s)
+
+/-- The loop helper's body at level 0. -/
+def oqLoop1T (s : Oq) (odd : ℕ) (walk name : String) : List Stmt :=
+  oqLoop1A s odd walk ++ oqNextT (oqG1 s) name
 
 /-- The first value of a deeper iteration's chain step. -/
 def oqC0 (s : Oq) : ℕ := oqEnd s 14 true
 
-/-- **The loop helper's body deeper** (`base = 0`: one query an iteration, its point
-`positions[x]` and window pointer `qptrs[x]`): the query, the chain step
-`chain[x·g] = (chain[x] + d)·λ⁻¹` (non-final levels), the guard and the next call. -/
-def oqLoop0T (s : Oq) (walk name : String) : List Stmt :=
+/-- The first value of a deeper iteration's guard. -/
+def oqG0 (s : Oq) : ℕ := if s.final = 1 then oqC0 s else oqC0 s + 5
+
+/-- **The loop helper's body deeper** but its next call (`base = 0`: one query an iteration, its
+point `positions[x]` and window pointer `qptrs[x]`): the query, the chain step
+`chain[x·g] = (chain[x] + d)·λ⁻¹` (non-final levels), the guard. -/
+def oqLoop0A (s : Oq) (walk : String) : List Stmt :=
   let c := oqC0 s
   [.atom (.mul (.n 10) (.n 2) (.n 0)), .atom (.load (.n 11) (.n 10) 0),
     .atom (.mul (.n 12) (.n 3) (.n 0)), .atom (.load (.n 13) (.n 12) 0)] ++
     oqQueryT s (.n 11) (.n 13) (.n 4) (.n 5) (.n 6) (.n 7) 14 true 0 walk ++
-    (if s.final = 1 then oqGuardT c name else
+    (if s.final = 1 then [] else
       [.atom (.mul (.n c) (.n 8) (.n 0)), .atom (.load (.n (c + 1)) (.n c) 0),
         .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 14 true))),
         .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n 9)), .atom (.mul (.n (c + 4)) (.n 8) (.n 0)),
-        .atom (.load (.n (c + 3)) (.n (c + 4)) 1)] ++ oqGuardT (c + 5) name)
+        .atom (.load (.n (c + 3)) (.n (c + 4)) 1)]) ++
+    oqGuardA (oqG0 s)
+
+/-- The loop helper's body deeper. -/
+def oqLoop0T (s : Oq) (walk name : String) : List Stmt :=
+  oqLoop0A s walk ++ oqNextT (oqG0 s) name
 
 /-- The first value after the function's start. -/
 def oqMK (s : Oq) (odd : ℕ) : ℕ := if odd = 1 then oqEnd s 13 true + 1 else 12
 
-/-- **The function's body**, on its parameters `cap, flags, λ⁻¹, coefs, hs, positions, qptrs, N`
+/-- **The function's start**, on its parameters `cap, flags, λ⁻¹, coefs, hs, positions, qptrs, N`
 (`0 .. 7`): the chain allocated, its start (the odd first query's result times `λ⁻¹`, or `0`),
-the loop from `1`, the chain's end (non-final levels) or `0`. -/
-def oqMainT (s : Oq) (odd : ℕ) (walk loop : String) : List Stmt :=
+the loop's guard `1 + N` and start `1`. -/
+def oqMainA (s : Oq) (odd : ℕ) (walk : String) : List Stmt :=
   let k := oqMK s odd
   [.atom (.const (.n 8) (word 2 0)), .atom (.mul (.n 9) (.n 7) (.n 8)),
     .atom (.hint (.allocDyn (.n 10) (.n 9)))] ++
@@ -523,8 +542,13 @@ def oqMainT (s : Oq) (odd : ℕ) (walk loop : String) : List Stmt :=
         [.atom (.mul (.n (k - 1)) (.n (oqRes s 13 true)) (.n 2)), .atom (.load (.n (k - 1)) (.n 10) 0)]
     else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n 10) 0)]) ++
   [.atom (.const (.n k) (word 1 0)), .atom (.add (.n (k + 1)) (.n k) (.n 7)),
-    .atom (.const (.n (k + 2)) (word 1 0)),
-    .callIf (.n (k + 1)) loop [.n (k + 2), .n 7, .n 5, .n 6, .n 0, .n 1, .n 3, .n 4, .n 10, .n 2]] ++
+    .atom (.const (.n (k + 2)) (word 1 0))]
+
+/-- **The function's body**: the start, the loop, the chain's end (non-final levels) or `0`. -/
+def oqMainT (s : Oq) (odd : ℕ) (walk loop : String) : List Stmt :=
+  let k := oqMK s odd
+  oqMainA s odd walk ++
+  [.callIf (.n (k + 1)) loop [.n (k + 2), .n 7, .n 5, .n 6, .n 0, .n 1, .n 3, .n 4, .n 10, .n 2]] ++
   (if s.final = 1 then [.atom (.const (.n (k + 3)) (word 0 0)), .ret [.n (k + 3)]]
    else [.atom (.mul (.n (k + 3)) (.n 10) (.n 7)), .atom (.load (.n (k + 4)) (.n (k + 3)) 0),
      .atom (.copy (.n (k + 5)) (.n (k + 4))), .ret [.n (k + 5)]])
