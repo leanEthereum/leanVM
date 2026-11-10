@@ -949,5 +949,165 @@ theorem trace_le (S : Strategy) {fuel bits height : ℕ} (Ptop : VerifierProgram
 
 end Main
 
+/-! ## The bound -/
+
+/-- Where the honest transcript passes the checks of a refining program, the prover makes its
+proof. -/
+theorem proveFrom_ne_none_of_trace (H : Bytes → Digest) (F : KeccakState → KeccakState)
+    (S : Strategy) (fuel : ℕ) {p' p : VerifierProgram Bool} (hR : Guest.Limits.Refines p' p) :
+    ∀ (sp : Sponge) (h : List Ev), traceOk H F S fuel p' sp h → proveFrom H F S fuel p sp h ≠ none := by
+  induction hR with
+  | fail p => intro sp h ht; exact absurd ht id
+  | ret b => intro sp h _; simp [proveFrom]
+  | @read k k' _ ih =>
+    intro sp h ht
+    simp only [proveFrom, ne_eq, Option.map_eq_none_iff]
+    exact ih _ _ _ ht.2
+  | @sample k k' _ ih =>
+    intro sp h ht
+    simp only [proveFrom]
+    exact ih _ _ _ ht
+  | @grind b k k' _ ih =>
+    intro sp h ht
+    obtain ⟨-, nn, hn, ht⟩ := ht
+    simp only [proveFrom, hn, ne_eq, Option.map_eq_none_iff]
+    exact ih _ _ ht
+  | @commit ht w k k' _ ih =>
+    intro sp h htr
+    simp only [proveFrom, ne_eq, Option.map_eq_none_iff]
+    exact ih _ _ htr.2.2
+  | @query i ps k k' _ ih =>
+    intro sp h htr
+    obtain ⟨rows, hans, htr⟩ := htr
+    simp only [proveFrom]
+    split
+    · simp
+    · rename_i ht w word hc
+      simp only [answer, hc, Option.map_some, Option.some.injEq] at hans
+      subst hans
+      simp only [ne_eq, Option.map_eq_none_iff]
+      exact ih _ _ _ htr
+
+theorem hOnly_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
+    HOnly (Seed.hsRun callKeccak256 fs ds)
+  | [], ds => hOnly_pure ds
+  | _ :: fs, ds => hOnly_bind (hOnly_callH _) fun d ↦ hOnly_hsRun fs (ds ++ [d])
+
+/-- **Completeness against the random oracles, union only over the transcript's answers.** For
+a verifier program `P` whose proofs of work ask for at most `bits ≤ 64` bits wherever the prover
+has made the strategy's moves, a program `P'` refining it (`P` with failures inserted), both of
+cost `n`, the seeding `σ` and a fuel of at most `2^64` nonces: the compiled verifier of `P'`
+rejects the honest prover's proof of `P` with probability at most `P'`'s ideal failure
+probability against `S` (every challenge uniform and independent), plus `(1 - 2^-bits)^fuel`
+per quarter of cost, plus a capacity collision among the `Q` queries of the prover and the
+verifier, `Q · Q · 2^-256`. -/
+theorem romCompleteSharp (P P' : VerifierProgram Bool) (hR : Guest.Limits.Refines P' P)
+    (S : Strategy) (σ : Seed) {bits fuel height n : ℕ} (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → S.Follows h → b ≤ bits)
+    (hP : P.CostLE height n) (hP' : P'.CostLE height n) :
+    Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P')}[z.1.2 = false] ≤
+      S.failFrom P' [] none + n * missProb bits ^ fuel +
+        ((σ.hs.length + 1 + n * proverFactor height fuel + (σ.hs.length + 1 + n / 4) : ℕ) :
+          ℝ≥0∞) *
+          (((σ.hs.length + 1 + n * proverFactor height fuel + (σ.hs.length + 1 + n / 4) : ℕ) :
+            ℝ≥0∞) * 2⁻¹ ^ 256) := by
+  set QA := σ.hs.length + 1 + n * proverFactor height fuel
+  set QV := σ.hs.length + 1 + n / 4
+  have hA := isTotalQueryBound_honestComp (σ := σ) hP S fuel
+  have hV : ∀ π, IsTotalQueryBound (verifierComp σ P' π) QV :=
+    isTotalQueryBound_verifierComp hP' σ
+  have hQ : IsTotalQueryBound (honestComp σ P S fuel >>= fun a ↦ (a, ·) <$> verifierComp σ P' a)
+      (QA + QV) := isTotalQueryBound_bind hA fun a ↦
+    (isQueryBound_map_iff (verifierComp σ P' a) _ QV _ _).mpr (hV a)
+  rw [prEvent_romExperiment_eq_logExperiment _ _ fun r _ ↦ r.2 = false]
+  -- a rejection is a failed transcript or a collision
+  set seedOf : Log → KeccakState := fun ℓ ↦ σ.run (m := Id) (hOf ℓ) (fOf ℓ)
+  have hrej : ∀ z ∈ support (logExperiment (honestComp σ P S fuel) (verifierComp σ P')),
+      z.1.2 = false →
+        TraceBad S fuel P' ⟨seedOf z.2, [], none⟩ [] z.2 ∨ Collided z.2 := by
+    intro z hz hz2
+    by_cases hc : Collided z.2
+    · exact Or.inr hc
+    refine Or.inl ⟨fun ht ↦ ?_, hc⟩
+    set ℓ := z.2
+    have h := (simulateQ_look_of_mem_support _ [] z hz).2 ℓ (List.prefix_refl _)
+    rw [simulateQ_bind] at h
+    obtain ⟨π, hA', h⟩ := Option.bind_eq_some_iff.mp h
+    rw [simulateQ_map] at h
+    obtain ⟨b, hb', hπb⟩ := Option.map_eq_some_iff.mp h
+    have hzb : b = false := by rw [← hz2, ← hπb]
+    subst hzb
+    simp only [honestComp, simulateQ_bind, simulateQ_seedRun, simulateQ_proveM,
+      simulateQ_pure] at hA'
+    change (σ.run (lookH ℓ) (lookF ℓ)).bind (fun seed ↦ (proveM (lookH ℓ) (lookF ℓ) P S seed
+      fuel).bind fun r ↦ some (r.getD ⟨[], []⟩)) = some π at hA'
+    obtain ⟨seed, hseed, hA'⟩ := Option.bind_eq_some_iff.mp hA'
+    obtain ⟨r, hr, hA'⟩ := Option.bind_eq_some_iff.mp hA'
+    have hH : ∀ x u, lookH ℓ x = some u → hOf ℓ x = u := fun _ _ h ↦ hOf_eq h
+    have hF : ∀ s u, lookF ℓ s = some u → fOf ℓ s = u := fun _ _ h ↦ fOf_eq h
+    have hseed' : seedOf ℓ = seed := by
+      have := simulateQ_id_of_look ℓ (hOf ℓ) (fOf ℓ) hH hF (σ.run callKeccak256 callKeccakF1600) seed
+        (by rw [simulateQ_seedRun]; exact hseed)
+      rwa [simulateQ_seedRun] at this
+    have hπ : prove (hOf ℓ) (fOf ℓ) P S seed fuel = r := by
+      have := simulateQ_id_of_look ℓ (hOf ℓ) (fOf ℓ) hH hF
+        (proveM callKeccak256 callKeccakF1600 P S seed fuel) r
+        (by rw [simulateQ_proveM]; exact hr)
+      rw [simulateQ_proveM] at this
+      rw [← proveM_id]
+      exact this
+    rw [hseed'] at ht
+    have hne : prove (hOf ℓ) (fOf ℓ) P S seed fuel ≠ none := by
+      simp only [prove, ne_eq, Option.map_eq_none_iff]
+      exact proveFrom_ne_none_of_trace _ _ S fuel hR _ _ ht
+    obtain ⟨π', hπ'⟩ := Option.ne_none_iff_exists'.mp hne
+    rw [hπ'] at hπ
+    subst hπ
+    cases hA'
+    have hb'' : simulateQ (lookImpl ℓ) (verifierComp σ P' π') = some false := hb'
+    have hv := simulateQ_id_of_look ℓ (hOf ℓ) (fOf ℓ) hH hF (verifierComp σ P' π') false hb''
+    rw [simulateQ_verify] at hv
+    have hacc := runProof_prove_trace (hOf ℓ) (fOf ℓ) S fuel hR seed ht hπ'
+    have hv' : runProofWithHash (m := Id) (hOf ℓ) (fOf ℓ) P' (σ.run (m := Id) (hOf ℓ) (fOf ℓ))
+        π' = false := hv
+    have hs2 : σ.run (m := Id) (hOf ℓ) (fOf ℓ) = seed := hseed'
+    rw [hs2, hacc] at hv'
+    cases hv'
+  refine (prEvent_mono_of_support _ _ _ fun z hz h ↦ hrej z hz h).trans
+    ((prEvent_or_le _ _ _).trans ?_)
+  refine add_le_add ?_ (collided_le _ (QA + QV) hQ)
+  -- the transcript, from the seed on
+  unfold logExperiment
+  have e : (honestComp σ P S fuel >>= fun a ↦ (a, ·) <$> verifierComp σ P' a) =
+      Seed.hsRun callKeccak256 σ.hs [] >>= fun ds ↦ callKeccakF1600 (σ.fin ds) >>= fun seed ↦
+        proveFromM callKeccak256 callKeccakF1600 S fuel P ⟨seed, [], none⟩ [] [] >>= fun r ↦
+          (fun a ↦ (a, ·) <$> verifierComp σ P' a) ((r.map fun t ↦ (⟨t.1, t.2⟩ : Proof)).getD
+            ⟨[], []⟩) := by
+    simp [honestComp, proveM, Seed.run]
+  change Pr{let z ← runL _ []}[_] ≤ _
+  rw [e, runL, LeanVM.Protocol.Rom.run_simulateQ_bind]
+  refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun p hp ↦ ?_
+  obtain ⟨ds, ℓ1⟩ := p
+  have hfIns : fIns ℓ1 = [] := by rw [hOnly_hsRun σ.hs [] [] _ hp]; rfl
+  have hfresh : lookF ℓ1 (σ.fin ds) = none :=
+    lookF_none_of_cap fun y hy ↦ by rw [hfIns] at hy; cases hy
+  change Pr{let z ← runL (callKeccakF1600 (σ.fin ds) >>= _) ℓ1}[_] ≤ _
+  rw [pr_queryF_fresh hfresh]
+  refine avg_le_of_le fun u0 ↦ ?_
+  have hds : ∀ ℓf, ℓ1 <+: ℓf → Seed.hsRun (m := Id) (hOf ℓf) σ.hs [] = ds := fun ℓf hpf ↦ by
+    have := eq_id_of_mem_support hp hpf
+    rwa [simulateQ_hsRun, implH_totalImpl] at this
+  have hseedf : ∀ ℓf, ℓ1 ++ [.inr (σ.fin ds, u0)] <+: ℓf → seedOf ℓf = u0 := fun ℓf hpf ↦ by
+    simp only [seedOf, Seed.run]
+    rw [hds ℓf ((List.prefix_append _ _).trans hpf)]
+    exact fOf_eq (lookF_of_prefix hpf (lookF_append_inr_self hfresh u0))
+  rw [pr_congr_final (fun ℓf ↦ seedOf ℓf) u0 hseedf
+    (fun s ℓf ↦ TraceBad S fuel P' ⟨s, [], none⟩ [] ℓf)]
+  by_cases hcap : CapHit ℓ1 (σ.fin ds) u0
+  · rw [pr_eq_zero_of_collided (collided_append_inr hcap) _ fun _ h ↦ h.2]
+    exact bot_le
+  · exact trace_le S P hb hfuel hg hR [] ⟨u0, [], none⟩ [] _ n _ (VerifierProgram.after.eq_1 P)
+      S.follows_nil ⟨by simp, by simp⟩ (fresh_of_not_capHit hcap) (by simp [TreesOf, commits]) hP
+
 end
 end LeanVM.Protocol.Compile.Rom
