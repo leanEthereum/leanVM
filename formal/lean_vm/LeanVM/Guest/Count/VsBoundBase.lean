@@ -9,16 +9,20 @@
 
 module
 
-public import LeanVM.Guest.Count.VsWords
+public import LeanVM.Guest.Count.Words
 public import LeanVM.Guest.Count.VsOsDefs
 public import LeanVM.Guest.B1.Whir.Names
-public import LeanVM.Guest.B1.Place.OsCandB
+public import LeanVM.Guest.B1.Place.OsSpec
 
 namespace LeanVM.Guest.Count
 
 open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
 
 @[expose] public section
+
+/-- **`open_stacked`'s named callees' words**: `wSB` on the names `osKindOf` knows, `0` on the
+others (the queries' callees and the loops, which `osBk` bounds by `osSpB`). -/
+noncomputable def osBnd (f : String) : ℕ := if (B1.osKindOf f).isSome then wSB f else 0
 
 set_option maxRecDepth 100000 in
 theorem osKindIdx_eq : osKindIdx = B1.osKindTable.filterMap fun p => wNameIdx p.1 := by
