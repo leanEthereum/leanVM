@@ -11,13 +11,13 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCU
 /-!
 # `verify_keccak`, complete and placed
 
-`VkCompleteAtK fs cert κ`: for every accepting run of `keccakSeg` from a carried capacity `f` (the
-instance coordinates `chis`, the output lanes `outs`, the words read `xs`, the committed outputs'
-opening `op`, the inputs' point `point`, the slices), `verify_keccak` is complete at every frame
-pointer: the caller's words are the stream, the coordinates and lanes, `z_vals` and the slices'
-buffer, and the function writes `op` at `z_vals`, `point` at `z_vals·g^39`, the slices at
-`slices`, and returns the capacity after, the cursor past `xs`, the word and the ring map's first
-challenge.
+`VkCompleteAtK fs cert κ`: for every accepting run of `verifyKeccak` from a carried capacity `f`
+(the instance coordinates `chis`, the output lanes `outs`, the words read `xs`, the committed
+outputs' opening `op`, the inputs' point `point`, the slices, the sponge `s'` after them),
+`verify_keccak` is complete at every frame pointer: the caller's words are the stream, the
+coordinates and lanes, `z_vals`, the slices' buffer and the window table at `tbE`, and the function
+writes `op` at `z_vals`, `point` at `z_vals·g^39`, the slices at `slices`, and returns the
+capacity after the slices' full queue is permuted, the cursor past `xs` and the word.
 
 `verify_keccak_completeAt`: it holds. The run is read back as a `VkData` (`vkData_of_run`); the
 body is flat (`completeAt_flatG`): its buffers' words (`VkData.own`), its eighteen callees

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkCH
+public import LeanVM.Guest.B1.KeccakGkr.LayerCPlaced
 public import LeanVM.Guest.B1.KeccakGkr.CopyLoopIn
 public import LeanVM.Guest.B1.KeccakGkr.PlainCompleteIn
 

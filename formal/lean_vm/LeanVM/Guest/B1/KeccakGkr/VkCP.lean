@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCO
 /-!
 # The inputs' opening and the return, on the layout
 
-`in_on`: the inputs' opening holds on the layout, and the ring map's first challenge and the
-sponge after it are the honest run's (`D.fin`). `fin_on`: the inputs' check holds by the honest
+`in_on`: the inputs' opening holds on the layout, and the sponge after the slices is the honest
+run's (`D.sF`: a full queue, its permutation's capacity the slices' last). `fin_on`: the inputs' check holds by the honest
 run's, and the body returns the honest words.
 -/
 
