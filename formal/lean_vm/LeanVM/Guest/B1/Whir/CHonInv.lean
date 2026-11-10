@@ -31,6 +31,18 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
+
+theorem lvsRecs_succ {logN : ℕ} {Ls : List LvAt} {l : ℕ} (hl : l < Ls.length) :
+    lvsRecs logN Ls (l + 1) = lvsRecs logN Ls l ++ [(Ls.getD l default).osRec logN] := by
+  rw [lvsRecs, lvsRecs, List.take_add_one, List.map_append, List.getElem?_eq_getElem hl]
+  simp [List.getElem?_eq_getElem hl]
+
+theorem osRec_F {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextStep logN index L L') :
+    (L.osRec logN).F = L.s1.gammas.length := by
+  obtain ⟨rw, W, hd, -⟩ := hN
+  unfold LvAt.osRec; rw [hd]; rfl
+
+
 namespace HonRun
 
 variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List E}
@@ -125,6 +137,27 @@ theorem gammas : ∀ l < (osCfg (candidate μ r)).levels.length,
     have hoff := hR.mid (l := l) (by omega)
     rw [(hR.stepS (by omega)).1, LvAt.s1, roundsSpec_gammas_length, ih, hf]
     exact hoff.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1.symm
+
+/-- **The records before level `l`**: what its state glued, their `F` within its challenges. -/
+theorem recs : ∀ l < (osCfg (candidate μ r)).levels.length,
+    (∀ q ∈ lvsRecs μ Ls l, q.F ≤ (Ls.getD l default).s.gammas.length) ∧
+    (Ls.getD l default).s.glued = (lvsRecs μ Ls l).flatMap recGlued
+  | 0, _ => by
+    refine ⟨fun q hq ↦ by simp [lvsRecs] at hq, ?_⟩
+    rw [hR.start.1]; simp [lvsRecs]
+  | l + 1, hl => by
+    have hy := hR.yr
+    obtain ⟨ih1, ih2⟩ := recs l (by omega)
+    obtain ⟨e1, e2⟩ := hR.stepS (l := l) (by omega)
+    have hlen := hR.len
+    rw [lvsRecs_succ (by rw [hlen]; omega), e1, e2, ih2, List.flatMap_append, List.flatMap_singleton]
+    refine ⟨fun q hq ↦ ?_, rfl⟩
+    have hge : (Ls.getD l default).s.gammas.length ≤ (Ls.getD l default).s1.gammas.length := by
+      rw [LvAt.s1, roundsSpec_gammas_length]; omega
+    rcases List.mem_append.mp hq with hq | hq
+    · exact le_trans (ih1 q hq) hge
+    · rw [List.mem_singleton] at hq
+      rw [hq, osRec_F (hR.step (l := l) (by omega))]
 
 end HonRun
 
