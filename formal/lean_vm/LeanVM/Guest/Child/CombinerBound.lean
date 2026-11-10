@@ -228,5 +228,125 @@ theorem avg2_queryHits_le (d q : ℕ) : avg2 (queryHits S d q) ≤ q * epsE := b
   exact avgE_avgE_list_le (fun q a b ↦ if a + b * ofK (K.ofBits q) = 0 then 1 else 0) epsE qs
     fun x _ ↦ avgE_avgE_combiner _
 
+/-! ## A level's check -/
+
+/-- The query grind is a proof of work. -/
+theorem grindPoW_query : VerifierProgram.grindProofOfWork Whir.queryGrindingBits =
+    VerifierProgram.grind Whir.queryGrindingBits (VerifierProgram.ret ()) := rfl
+
+/-- **The query grind, the queried points and the check that no combiner vanishes there**: the
+check fails, against a uniform waiting challenge, with at most the rounds' expected hits. -/
+theorem sqStep {β : Type} {depth q : ℕ} {rounds : List FoldRound} {d : ℝ≥0∞}
+    {T' T : List ℕ → VerifierProgram β} (hT : ∀ qs, DivLE S d (T' qs) (T qs)) :
+    DivLE S ((rounds.map fun r ↦ queryHits S depth q r.alpha r.beta).sum + d)
+      (VerifierProgram.grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
+        sampleQueries depth q >>= fun qs ↦
+          VerifierProgram.require (CombinersNonzero qs rounds) >>= fun _ ↦ T' qs)
+      (VerifierProgram.grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
+        sampleQueries depth q >>= fun qs ↦ T qs) := by
+  intro K h g
+  simp only [LawfulMonad.bind_assoc]
+  refine (failFrom_bind_le_returns
+    (f := fun _ ↦ sampleQueries depth q >>= fun qs ↦ T qs >>= K)
+    (D := fun _ h' g' ↦ S.exp0 (sampleQueries depth q) h' g'
+      (fun qs _ _ ↦ (if CombinersNonzero qs rounds then 0 else 1) + d)) _
+    (fun _ _ h' g' ↦ ?_) h g).trans ?_
+  · refine failFrom_bind_le_returns (f := fun qs ↦ T qs >>= K) _ (fun qs _ h'' g'' ↦ ?_) h' g'
+    rw [VerifierProgram.bind_eq]
+    refine (failFrom_require_bind_le _ _ h'' g'').trans ?_
+    calc (if CombinersNonzero qs rounds then 0 else 1) + S.failFrom (T' qs >>= K) h'' g''
+        ≤ (if CombinersNonzero qs rounds then 0 else 1) + (S.failFrom (T qs >>= K) h'' g'' + d) :=
+          add_le_add le_rfl (hT qs K h'' g'')
+      _ = _ := by ring
+  · refine add_le_add le_rfl ?_
+    rw [grindPoW_query]
+    simp only [exp0]
+    split
+    · exact bot_le
+    · rename_i hg
+      rcases q with _ | q
+      · refine avgE_le_const fun c ↦ ?_
+        show (if CombinersNonzero [] rounds then 0 else 1) + d ≤ _
+        have hc : CombinersNonzero [] rounds := fun q hq ↦ absurd hq List.not_mem_nil
+        simp only [hc, ↓reduceIte, zero_add]
+        exact le_add_self
+      · have e := avg_exp0_sQA_ground (S := S) depth q (q + 1) (Nat.succ_ne_zero q)
+          (fun qs _ _ ↦ (if CombinersNonzero qs rounds then 0 else 1) + d)
+          (h ++ [Ev.grind Whir.queryGrindingBits])
+        refine le_of_eq_of_le e ?_
+        rw [exp0_add (C := fun qs _ _ ↦ if CombinersNonzero qs rounds then 0 else 1)
+          (C' := fun _ _ _ ↦ d)]
+        exact add_le_add (exp0_notCombinersNonzero_le depth (q + 1) rounds _)
+          (exp0_const_le _ _ _ _)
+
+/-! ## The levels -/
+
+/-- `failFrom_bind_le_returns` with the expected difference bounded. -/
+theorem failFrom_bind_le_of {α : Type} {f' f : α → VerifierProgram Bool}
+    {D : α → List Ev → Option E → ℝ≥0∞} {A : VerifierProgram α} {h : List Ev} {g : Option E}
+    {c : ℝ≥0∞}
+    (hf : ∀ a, VerifierProgram.Returns A a → ∀ h g,
+      S.failFrom (f' a) h g ≤ S.failFrom (f a) h g + D a h g)
+    (hD : S.exp0 A h g D ≤ c) : S.failFrom (A >>= f') h g ≤ S.failFrom (A >>= f) h g + c :=
+  (failFrom_bind_le_returns A hf h g).trans (add_le_add le_rfl hD)
+
+/-- The rounds times the queries of a list of levels. -/
+def roundQueries (L : List Whir.Level) : ℕ := (L.map fun l ↦ l.fold * l.queries).sum
+
+/-- One step of a difference proof between two programs written alike. -/
+local macro "div_step" : tactic => `(tactic| first
+  | exact DivLE.refl _ _
+  | (refine sqStep (fun _ ↦ ?_))
+  | (refine DivLE.bind_refl (fun _ ↦ ?_) _)
+  | split
+  | dsimp only)
+
+/-- **The levels refusing a vanishing combiner** fail at most `|E|⁻¹` more often per round and
+query of each level. -/
+theorem whirLevels_div (logN lf : ℕ) (eb : List E → E) :
+    ∀ (L : List Whir.Level) (index : ℕ) (s : WhirState),
+      DivLE S (roundQueries L * epsE) (whirLevelsRefusingZeroCombiner logN lf eb index L s)
+        (whirLevels logN lf eb index L s)
+  | [], _, _ => DivLE.refl _ _
+  | level :: rest, index, s => by
+    intro K h g
+    rw [whirLevelsRefusingZeroCombiner, whirLevels, LawfulMonad.bind_assoc,
+      LawfulMonad.bind_assoc]
+    refine failFrom_bind_le_of (D := fun p _ _ ↦
+      (p.2.map fun r ↦ queryHits S (logN - p.1.gammas.length + level.logInvRate) level.queries
+        r.alpha r.beta).sum + roundQueries rest * epsE) (fun p _ h' g' ↦ ?_) ?_
+    · obtain ⟨s', rounds⟩ := p
+      dsimp only
+      refine (?_ : DivLE S _ _ _) K h' g'
+      cases rest with
+      | nil =>
+        dsimp only
+        repeat div_step
+      | cons next rest' =>
+        dsimp only
+        repeat (first | exact whirLevels_div logN lf eb _ _ _ | div_step)
+    · rw [exp0_add (fun (p : WhirState × List FoldRound) (_ : List Ev) (_ : Option E) ↦
+        (p.2.map fun r ↦ queryHits S (logN - p.1.gammas.length + level.logInvRate) level.queries
+          r.alpha r.beta).sum) (fun _ _ _ ↦ (roundQueries rest : ℝ≥0∞) * epsE)]
+      calc S.exp0 (foldRounds level.fold s) h g (fun p _ _ ↦ (p.2.map fun r ↦ queryHits S
+              (logN - p.1.gammas.length + level.logInvRate) level.queries r.alpha r.beta).sum) +
+            S.exp0 (foldRounds level.fold s) h g (fun _ _ _ ↦ roundQueries rest * epsE)
+          ≤ level.fold * avg2 (queryHits S
+              (logN - (s.gammas.length + level.fold) + level.logInvRate) level.queries) +
+            roundQueries rest * epsE := by
+            refine add_le_add ?_ (exp0_const_le _ _ _ _)
+            refine le_trans (exp0_mono_returns (C' := fun p _ _ ↦ (p.2.map fun r ↦ queryHits S
+              (logN - (s.gammas.length + level.fold) + level.logInvRate) level.queries
+                r.alpha r.beta).sum) _ (fun p hp _ _ ↦ le_of_eq ?_) h g) ?_
+            · rw [returns_foldRounds hp]
+            · exact exp0_foldRounds_le _ _ _ _ _
+        _ ≤ level.fold * (level.queries * epsE) + roundQueries rest * epsE := by
+            gcongr
+            exact avg2_queryHits_le _ _
+        _ = roundQueries (level :: rest) * epsE := by
+            simp only [roundQueries, List.map_cons, List.sum_cons]
+            push_cast
+            ring
+
 end
 end LeanVM.Guest.Child
