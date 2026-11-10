@@ -18,7 +18,7 @@ public import LeanVM.Guest.Count.VsCountChkK
 public import LeanVM.Guest.Count.RatioV
 public import LeanVM.Guest.Budget.FlatShape
 public import LeanVM.Guest.B1.Whir.Interface
-public import LeanVM.Guest.B1.VerifySub.CompleteB
+public import LeanVM.Guest.B1.VerifySub.BoundsB
 public import LeanVM.Guest.Count.VsWB
 public import LeanVM.Guest.Count.VsWordsOs
 
@@ -33,7 +33,7 @@ arm's (candidate `c`) from the `V` certificates, the two dispatches' the largest
 `kcTermW`: their trees within B1's `vtWB`, `termWB`), `verify_bus_gkr`'s and `verify_keccak`'s
 within their ratios of their words `Bs[9]`, `Bs[11]`. `vs_weight_le`: a `verify_sub` node of
 B1-d's shape (`vsTs` at `Count.vsWordsOs`) weighs at most its frame's weight and `vsWs`.
-`vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `46339` and `65770` words,
+`vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `46339` and `56391` words,
 at most `vsCountT op c`.
 -/
 
@@ -223,8 +223,8 @@ theorem vs_weight_le (op : Opcode) {μ r d : ℕ} (hc : B1.Whir.candidate μ r <
     exact kcOs_weightLe op hc rd' t' args' rets' hTi.1.1 hv' hb'
   · exact (hTi.2 op rd' args' rets' hv' hb').trans (termWB_eq op).le
 
-/-- The ratio-bounded callees' words at their deployed bounds, `46339` and `65770`. -/
-def vsBs0 : List ℕ := [0, 0, 0, 0, 0, 0, 0, 0, 0, 46339, 0, 65770, 0, 0, 0, 0]
+/-- The ratio-bounded callees' words at their deployed bounds, `46339` and `56391`. -/
+def vsBs0 : List ℕ := [0, 0, 0, 0, 0, 0, 0, 0, 0, 46339, 0, 56391, 0, 0, 0, 0]
 
 /-- `vsCountT` is the frame's weight and `vsWs` at the two ratio-bounded callees' words. -/
 theorem vsCountT_eq (op : Opcode) : ∀ c < 28, (omT op).getD 0 0 +
@@ -239,11 +239,11 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h9 : Bs.getD 9 0 
   omega
 
 /-- **`verify_sub`'s instructions of `op` on a tree of B1-d's shape** (`vsTs` at
-`Count.vsWordsOs`), `verify_bus_gkr`'s and `verify_keccak`'s bounds within `46339` and `65770`
+`Count.vsWordsOs`), `verify_bus_gkr`'s and `verify_keccak`'s bounds within `46339` and `56391`
 words: at most `vsCountT op` at the candidate. -/
 theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r d : ℕ} (hc : B1.Whir.candidate μ r < 28)
     (hμ : μ - 22 < 7) (hd : d < 18)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 46339) (h7 : Bvk ≤ 65770)
+    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 46339) (h7 : Bvk ≤ 56391)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWordsOs Bvk μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
