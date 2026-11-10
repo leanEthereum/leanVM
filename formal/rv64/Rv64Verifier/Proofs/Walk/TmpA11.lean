@@ -19,7 +19,7 @@ theorem kapTmpA (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000d628)
     {s u c : MachineState} {A : List E} {k : Nat} {R Q B : Word} {lo lo2 i : Nat}
     (hpre : WalkPre s) (h : Kap11 OI s u A k R Q B lo lo2 i) (hc : c.pc = 0x80003100)
     (mc : ∀ a, c.getMem a = u.getMem a)
-    (kc : ∀ r ∈ ([.x2, .x8, .x9, .x19, .x20, .x22, .x27] : List Reg), c.getReg r = u.getReg r)
+    (kc : ∀ r ∈ ([.x2, .x8, .x9, .x18, .x19, .x20, .x22, .x23, .x26, .x27] : List Reg), c.getReg r = u.getReg r)
     (x10 : c.getReg .x10 = s.getReg .x2 - 928)
     (x21 : c.getReg .x21 = BitVec.ofNat 64 ((hts A).getD i 0))
     (x24 : c.getReg .x24 = BitVec.ofNat 64 (tableWidthsRust.getD i 0)) :
@@ -94,10 +94,10 @@ theorem kapTmpA (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000d628)
     rv_eval [sp₃]; simp only [Sym.validAccess_eight]; and_intros <;> addr_omega [hb1, hb2, hb3])
   have mf := b80003148_mem_same hf
   have kf := b80003148_keeps hf
-  have rg (r : Reg) (hr : r ∈ ([.x8, .x9, .x19, .x20, .x21, .x22, .x24, .x27] : List Reg)) :
+  have rg (r : Reg) (hr : r ∈ ([.x8, .x9, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x26, .x27] : List Reg)) :
       f₀.getReg r = c.getReg r := by
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
-    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       rw [kf _ (by decide), hp₃ _ (by decide), k₂ _ (by decide), k₁t _ (by decide), hp _ (by decide),
         k₁ _ (by decide)]
   have x10f : f₀.getReg .x10 = 0 := by rw [b80003148_x10 hf, sp₃]; rv_eval [m₃, w16]
@@ -167,6 +167,9 @@ theorem kapTmpA (hTA : TryAllocZeroedSpec) (hRF : ReserveFastSpec 0x8000d628)
       x20 := by rw [regsf .x20 (by decide), rg .x20 (by decide), kc .x20 (by decide)]; exact h.x20
       x22 := by rw [regsf .x22 (by decide), rg .x22 (by decide), kc .x22 (by decide)]; exact h.x22
       x27 := by rw [regsf .x27 (by decide), rg .x27 (by decide), kc .x27 (by decide)]; exact h.x27
+      x18 := by rw [regsf .x18 (by decide), rg .x18 (by decide), kc .x18 (by decide)]; exact h.x18
+      x23 := by rw [regsf .x23 (by decide), rg .x23 (by decide), kc .x23 (by decide)]; exact h.x23
+      x26 := by rw [regsf .x26 (by decide), rg .x26 (by decide), kc .x26 (by decide)]; exact h.x26
       x24 := by rw [x24f, x10f, rg .x24 (by decide)]; exact (BitVec.add_zero _).trans x24
       x25 := by rw [regsf .x25 (by decide), b80003148_x25 hf, sp₃]; rv_eval [m₃, w8]
       tal := o1

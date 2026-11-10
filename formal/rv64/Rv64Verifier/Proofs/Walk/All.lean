@@ -1,6 +1,7 @@
 import Rv64Verifier.Proofs.Walk.Head
 import Rv64Verifier.Proofs.Walk.R6
 import Rv64Verifier.Proofs.Walk.R6U
+import Rv64Verifier.Proofs.Walk.R8C
 
 /-!
 # `walk`: what is proved so far
@@ -13,7 +14,10 @@ and checks the rate, `headStage` runs `build_layout`'s head to `0x80001338` (`He
 conditions of `buildLayoutRust`'s `if`); `r5` runs `table_log_heights` to `state_step`'s call
 (`AtR5`), `r6a` from there through `state_step`, the operands and `bytecode` to the first
 `keccak_cell_lanes` (`AtR6a`); `keccakLoop` from there through both `keccak_cell_lanes` calls and
-the 26-cell loop to `0x80001f00`, the `Flushes` at `sp + 1168` holding `flushes_keccak()`. The axioms: Lean's three.
+the 26-cell loop to `0x80001f00`, the `Flushes` at `sp + 1168` holding `flushes_keccak()`; `r7` from there
+through KECCAK's padding row (`keccak_f` of zeros) and the tables' buffer to the first `flushes_arith`
+(`M8`, the KECCAK `Table` finished), `xorStage` and `mulStage` through the XOR and MUL `Table`s to
+SET's `state_step`, `setHead` through it and the operands' allocation to SET's first `col`. The axioms: Lean's three.
 -/
 
 /-- info: 'Rv64Verifier.Proofs.Walk.start' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -60,3 +64,15 @@ the 26-cell loop to `0x80001f00`, the `Flushes` at `sp + 1168` holding `flushes_
 
 /-- info: 'Rv64Verifier.Proofs.Walk.keccakLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.keccakLoop
+
+/-- info: 'Rv64Verifier.Proofs.Walk.r7' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.r7
+
+/-- info: 'Rv64Verifier.Proofs.Walk.xorStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.xorStage
+
+/-- info: 'Rv64Verifier.Proofs.Walk.mulStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.mulStage
+
+/-- info: 'Rv64Verifier.Proofs.Walk.setHead' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.setHead

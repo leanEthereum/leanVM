@@ -70,7 +70,7 @@ theorem kapCheck {OI : MachineState → Word → List (List Opening) → Prop} {
     ∃ t, Reaches Image.code u t ∧
       t.pc = (if (hts A).getD i 0 = 0 then 0x80003180 else 0x80003100) ∧
       (∀ a, t.getMem a = u.getMem a) ∧
-      (∀ r ∈ ([.x2, .x8, .x9, .x19, .x20, .x22, .x27] : List Reg), t.getReg r = u.getReg r) ∧
+      (∀ r ∈ ([.x2, .x8, .x9, .x18, .x19, .x20, .x22, .x23, .x26, .x27] : List Reg), t.getReg r = u.getReg r) ∧
       t.getReg .x10 = s.getReg .x2 - 928 ∧ t.getReg .x21 = BitVec.ofNat 64 ((hts A).getD i 0) ∧
       t.getReg .x24 = BitVec.ofNat 64 (tableWidthsRust.getD i 0) := by
   obtain ⟨hb1, hb2, hb3, -⟩ := bounds hpre
@@ -131,7 +131,7 @@ theorem kapCheck {OI : MachineState → Word → List (List Opening) → Prop} {
     · exact b800030e0_pc_taken h₃ (by rw [hgt]; exact hz.mpr h0)
     · exact b800030e0_pc_not_taken h₃ (by rw [hgt]; exact fun he ↦ h0 (hz.mp he))
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
-    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       rw [k₃ _ (by decide), k₂ _ (by decide), k₁ _ (by decide)]
   · rw [b800030e0_x10 h₃, sp₂]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1]
   · rw [b800030e0_x21 h₃]; exact hgt

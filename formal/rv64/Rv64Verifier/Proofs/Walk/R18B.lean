@@ -21,17 +21,50 @@ open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 def claimsIn (u : MachineState) (P : Word) (L : Nat) : List ColumnClaim :=
   (List.range L).map fun i ↦ claimAt u (P + BitVec.ofNat 64 (56 * i))
 
-/-- At `0x80003854`, `k` tables' claims appended. -/
-structure LoopR18 (OI : MachineState → Word → List (List Opening) → Prop)
+/-- What the claims loop keeps from step to step: the claims `Vec` at `S - 1632` (capacity `C`,
+buffer `P`, also at `S - 2472`) holding `cl`, `M` of them, every claim's point allocated by `walk`
+apart from the buffer, and the evaluations as `table_sumcheck` left them at `t`. -/
+structure CoreR18 (OI : MachineState → Word → List (List Opening) → Prop)
     (s u₀ w t u : MachineState) (layout : LayoutMirror.LayoutRust) (rows : List (BitVec 64))
-    (lir : BitVec 64) (bus : BusResultRust) (evs : List (List E × List E)) (k : Nat)
-    (P C L : Word) : Prop where
-  pc : u.pc = 0x80003854
+    (lir : BitVec 64) (bus : BusResultRust) (evs : List (List E × List E)) (P C : Word) (M : Nat)
+    (cl : List ColumnClaim) : Prop where
   rest : Rest s u₀ u
+  smono : heapNext s ≤ heapNext u₀
   wmono : heapNext u₀ ≤ heapNext w
+  umono : heapNext u₀ ≤ heapNext t
   tmono : heapNext t ≤ heapNext u
   evKept : ∀ x : Word, heapNext w ≤ x.toNat → x.toNat + 8 ≤ heapNext t → u.getMem x = t.getMem x
   rowsAt : RowsAt w t (s.getReg .x2 - 928) evs
+  bases : ∀ i < 6, u.getMem (s.getReg .x2 - 896 + BitVec.ofNat 64 (8 * i)) =
+    BitVec.ofNat 64 (LayoutMirror.globalColumnBasesRust.getD i 0)
+  capSlot : u.getMem (s.getReg .x2 - 1632) = C
+  ptrSlot : u.getMem (s.getReg .x2 - 1624) = P
+  ptr184 : u.getMem (s.getReg .x2 - 2472) = P
+  proofPtr : u.getMem (tp s) = s.getReg .x13
+  len : M ≤ C.toNat
+  /-- The buffer: `u₀`'s, or one allocated after `table_sumcheck`. -/
+  buf : P.toNat % 8 = 0 ∧ P.toNat + 56 * C.toNat ≤ heapNext u ∧
+    (C.toNat = 0 ∨ heapNext s ≤ P.toNat) ∧
+    ((P = vecPtr u₀ (s.getReg .x2 - 928) ∧ C = vecCap u₀ (s.getReg .x2 - 928) ∧
+      P.toNat + 56 * C.toNat ≤ heapNext u₀) ∨ heapNext t ≤ P.toNat)
+  claims : claimsIn u P M = cl
+  /-- An empty point's dangling pointer may lie anywhere. -/
+  points : ∀ i < M, ((vecLen u (P + BitVec.ofNat 64 (56 * i))).toNat = 0 ∨
+      Old s u (vecPtr u (P + BitVec.ofNat 64 (56 * i)))
+        (24 * (vecLen u (P + BitVec.ofNat 64 (56 * i))).toNat)) ∧
+    Apart (vecPtr u (P + BitVec.ofNat 64 (56 * i)))
+      (24 * (vecLen u (P + BitVec.ofNat 64 (56 * i))).toNat) P (56 * C.toNat)
+  tracks : TracksR OI s u
+    (PcsContracts.digestAt u₀ (s.getReg .x2 - 1800), stackShape layout.stackLog lir.toNat)
+    (afterTables (bytesAt s (s.getReg .x12) 32) layout rows lir bus evs)
+
+/-- At `0x80003854`, `k` tables' claims appended, `L` claims in all. -/
+structure LoopR18 (OI : MachineState → Word → List (List Opening) → Prop)
+    (s u₀ w t u : MachineState) (layout : LayoutMirror.LayoutRust) (rows : List (BitVec 64))
+    (lir : BitVec 64) (bus : BusResultRust) (evs : List (List E × List E)) (k : Nat)
+    (P C L : Word) : Prop extends CoreR18 OI s u₀ w t u layout rows lir bus evs P C L.toNat
+      (bus.claims ++ tableClaimsRust (evs.take k)) where
+  pc : u.pc = 0x80003854
   hk : k ≤ 6 ∧ k ≤ evs.length
   x8 : u.getReg .x8 = 6
   x9 : u.getReg .x9 = 0xffffffffffffffff
@@ -41,25 +74,7 @@ structure LoopR18 (OI : MachineState → Word → List (List Opening) → Prop)
   x22 : u.getReg .x22 = vecPtr t (s.getReg .x2 - 928) + 48 * vecLen t (s.getReg .x2 - 928)
   x23 : u.getReg .x23 = vecPtr t (s.getReg .x2 - 928) + BitVec.ofNat 64 (48 * k)
   x25 : u.getReg .x25 = L
-  bases : ∀ i < 6, u.getMem (s.getReg .x2 - 896 + BitVec.ofNat 64 (8 * i)) =
-    BitVec.ofNat 64 (LayoutMirror.globalColumnBasesRust.getD i 0)
-  capSlot : u.getMem (s.getReg .x2 - 1632) = C
-  ptrSlot : u.getMem (s.getReg .x2 - 1624) = P
   lenSlot : u.getMem (s.getReg .x2 - 1616) = L
-  ptr184 : u.getMem (s.getReg .x2 - 2472) = P
-  len : L.toNat ≤ C.toNat
-  /-- The buffer: `u₀`'s, or one allocated after `table_sumcheck`. -/
-  buf : P.toNat % 8 = 0 ∧ P.toNat + 56 * C.toNat ≤ heapNext u ∧
-    ((P = vecPtr u₀ (s.getReg .x2 - 928) ∧ C = vecCap u₀ (s.getReg .x2 - 928)) ∨
-      heapNext t ≤ P.toNat)
-  claims : claimsIn u P L.toNat = bus.claims ++ tableClaimsRust (evs.take k)
-  points : ∀ i < L.toNat, Old s u (vecPtr u (P + BitVec.ofNat 64 (56 * i)))
-      (24 * (vecLen u (P + BitVec.ofNat 64 (56 * i))).toNat) ∧
-    Apart (vecPtr u (P + BitVec.ofNat 64 (56 * i)))
-      (24 * (vecLen u (P + BitVec.ofNat 64 (56 * i))).toNat) P (56 * C.toNat)
-  tracks : TracksR OI s u
-    (PcsContracts.digestAt u₀ (s.getReg .x2 - 1800), stackShape layout.stackLog lir.toNat)
-    (afterTables (bytesAt s (s.getReg .x12) 32) layout rows lir bus evs)
 
 theorem Old.mono {s u v : MachineState} {p : Word} {n : Nat} (h : Old s u p n)
     (hm : heapNext u ≤ heapNext v) : Old s v p n :=
@@ -82,6 +97,23 @@ theorem claimAt_congr {u v : MachineState} {N : Nat}
       (hm _ (by addr_omega [hp, hi, hN])) (hm _ (by addr_omega [hp, hi, hN]))
   · exact eAt_congr (g 32 (by omega) _ rfl) (g 40 (by omega) _ (by bv_omega))
       (g 48 (by omega) _ (by bv_omega))
+
+/-- `claimAt_congr`, the point empty or below `N`. -/
+theorem claimAt_congr' {u v : MachineState} {N : Nat}
+    (hm : ∀ y : Word, y.toNat + 8 ≤ N → u.getMem y = v.getMem y) (hN : N ≤ 2 ^ 63) {x : Word}
+    (hx : x.toNat + 56 ≤ N)
+    (hp : (vecLen v x).toNat = 0 ∨ (vecPtr v x).toNat + 24 * (vecLen v x).toNat ≤ N) :
+    claimAt u x = claimAt v x := by
+  rcases hp with h0 | hp
+  · have g (c : Nat) (hc : c ≤ 48) (y : Word) (hy : y = x + BitVec.ofNat 64 c) :
+        u.getMem y = v.getMem y := by
+      subst hy; exact hm _ (by addr_omega [hx, hc, hN])
+    have el : vecLen u x = vecLen v x := g 16 (by omega) _ rfl
+    simp only [claimAt, vecEs, el, h0, g 24 (by omega) (x + 24) rfl]
+    congr 1
+    exact eAt_congr (g 32 (by omega) _ rfl) (g 40 (by omega) _ (by bv_omega))
+      (g 48 (by omega) _ (by bv_omega))
+  · exact claimAt_congr hm hN hx hp
 
 /-- `0x800037c0`'s frame writes. -/
 @[rv_addr] def W37c0 (s : MachineState) (a : Word) : Prop :=
@@ -184,7 +216,9 @@ theorem r18Entry {OI : MachineState → Word → List (List Opening) → Prop}
   refine ⟨u₂, hr₁.trans hr₂, {
     pc := b800037c0_pc h₂
     rest := R₂
+    smono := h.inv.mono
     wmono := H.mono
+    umono := R.mono
     tmono := by have := st.mono; omega
     evKept := fun x _ hx ↦ oldT x hx
     rowsAt := H.rowsAt
@@ -231,8 +265,12 @@ theorem r18Entry {OI : MachineState → Word → List (List Opening) → Prop}
         rcases hw with hw | hw | hw | hw | hw | hw | hw | hw | hw | hw | hw | hw | hw | hw | hw <;>
           · have := congrArg BitVec.toNat hw; addr_omega [this, hb1, hi])]
       exact H.m184.trans e920₀
+    proofPtr := by
+      have etp : tp s = s.getReg .x2 - BitVec.ofNat 64 2448 := rfl
+      rw [etp, R₂.get (keep_slot hpre (by omega)), ← etp]; exact h.proofPtr
     len := hlen
-    buf := ⟨CO.1, by have := st.mono; omega, Or.inl ⟨rfl, rfl⟩⟩
+    buf := ⟨CO.1, by have := st.mono; omega, by rcases CO.2.2 with h0 | h0 <;> omega,
+      Or.inl ⟨rfl, rfl, CO.2.1⟩⟩
     claims := by
       rw [List.take_zero, show tableClaimsRust [] = [] from rfl, List.append_nil, ← B.2.2.1]
       simp only [claimsIn]
@@ -244,7 +282,7 @@ theorem r18Entry {OI : MachineState → Word → List (List Opening) → Prop}
     points := fun i hi ↦ by
       obtain ⟨e1, e2⟩ := pv i hi
       rw [e1, e2]
-      exact ⟨(h.claimPoints i hi).mono (by have := st.mono; omega), h.claimsApart i hi⟩
+      exact ⟨Or.inr ((h.claimPoints i hi).mono (by have := st.mono; omega)), h.claimsApart i hi⟩
     tracks := H.tracks.keep fun T hT ↦ st.transcript hpre R₁.inv (by
         have etp : tp s = s.getReg .x2 - BitVec.ofNat 64 2448 := rfl
         rw [etp, R₁.get (keep_slot hpre (by omega)), ← etp]; exact h.proofPtr)

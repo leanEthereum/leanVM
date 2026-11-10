@@ -214,6 +214,7 @@ structure SCtx (bev : MachineState → Word → List E → Option E) (s z w v h�
   kept : Kept2 s v k
   setup : Setup s v h₀
   ptrs : Ptrs s z v (w.getReg .x23) (w.getReg .x25).toNat
+  vlen : state.values.length = 3
 
 /-- At the side loop's head (or past its last iteration), the fold `acc` done. -/
 structure Sides (s z h₀ h : MachineState) (P : Word) (n : Nat)
@@ -227,6 +228,8 @@ structure Sides (s z h₀ h : MachineState) (P : Word) (n : Nat)
   totals : NewVecE z h (s.getReg .x2 - 632) acc.2
   x25 : h.getReg .x25 = h₀.getReg .x25
   x27 : h.getReg .x27 = h₀.getReg .x27
+  tbuf : ∀ x, Within x (vecPtr h (s.getReg .x2 - 632)) (24 * (vecCap h (s.getReg .x2 - 632)).toNat) →
+    ¬ Within x P (24 * n) ∧ ∀ a < n, ∀ j ≤ 3, ¬ piece h P a j x
 
 /-- One iteration of the side loop: to the next side's head, past the last one to `0x80007c2c`, or
 a dead end. -/
@@ -341,7 +344,14 @@ theorem Sides.start {bev : MachineState → Word → List E → Option E} {s z w
   have hptr (i : Nat) (hi : i < (w.getReg .x25).toNat) :
       vecPtr h₀ (rowAt (w.getReg .x23) i) = vecPtr v (rowAt (w.getReg .x23) i) := by
     simpa [vecPtr] using hrow i hi 1 (by omega)
-  refine ⟨I₀, StepS.same (fun _ ↦ rfl) I₀.heap rfl, M, fun i hi j hj ↦ ?_, ?_, ?_, rfl, rfl⟩
+  have stZ := C.rows1.step.trans stS
+  have t0 : vecCap h₀ (s.getReg .x2 - 632) = 0 :=
+    (stZ.slot' hpre (j := 632) (by omega) (by omega) fun y hy hy' ↦ by
+      rcases hy' with hy' | hy'
+      · rcases hy' with hy' | hy' | hy' <;> addr_omega [hy, hy', hb1]
+      · rcases hy' with hy' | hy' <;> addr_omega [hy, hy', hb1]).trans C.fps.t0
+  refine ⟨I₀, StepS.same (fun _ ↦ rfl) I₀.heap rfl, M, fun i hi j hj ↦ ?_, ?_, ?_, rfl, rfl,
+    fun x hx ↦ ?_⟩
   · have hc : cellAt h₀ (rowAt (w.getReg .x23) i) j = cellAt v (rowAt (w.getReg .x23) i) j := by
       simp only [cellAt, hptr i hi]
     have e8 : vecPtr h₀ (cellAt v (rowAt (w.getReg .x23) i) j) =
@@ -382,6 +392,10 @@ theorem Sides.start {bev : MachineState → Word → List E → Option E} {s z w
     · rw [t0, t2]
     · simp only [NewBuf, t0, t1]; exact ⟨rfl, Or.inl rfl⟩
     · simp only [vecEs, t2, accAt, List.take_zero, List.foldl_nil]; rfl
+  · rw [t0] at hx
+    simp only [Within] at hx
+    have : (0 : Word).toNat = 0 := rfl
+    omega
 
 /-! ## The rest -/
 

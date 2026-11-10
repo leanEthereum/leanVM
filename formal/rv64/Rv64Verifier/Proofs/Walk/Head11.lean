@@ -181,6 +181,9 @@ theorem r11head (hAS : AllocSpec) {OI : MachineState → Word → List (List Ope
     x20 := b80003074_x20 h₄
     x22 := by rw [k₄ .x22 (by decide)]; exact x22₃
     x27 := by
-      rw [b80003074_x27 h₄, sp₃]; rv_eval [m₃]; rw [rd _ (by addr_omega [hb1])]; exact sB }⟩⟩
+      rw [b80003074_x27 h₄, sp₃]; rv_eval [m₃]; rw [rd _ (by addr_omega [hb1])]; exact sB
+    x18 := by rw [k₄ .x18 (by decide)]; exact x18₃
+    x23 := by rw [k₄ .x23 (by decide)]; exact x23₃
+    x26 := by rw [b80003074_x26 h₄, x18₃, ofNat_add6] }⟩⟩
 
 end Rv64Verifier.Proofs.Walk

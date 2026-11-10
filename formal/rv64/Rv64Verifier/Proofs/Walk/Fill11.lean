@@ -12,7 +12,8 @@ open RiscvZkvm.Rv64 Rv64Verifier.Runtime Rv64Verifier.Blocks.F4
 open Rv64Verifier.Sym (reduceReg reducePc reduceMem reduceWrites reduceObl)
 
 /-- The registers the loop leaves. -/
-def fillRegs : List Reg := [.x2, .x8, .x9, .x10, .x12, .x19, .x20, .x21, .x22, .x24, .x25, .x27]
+def fillRegs : List Reg :=
+  [.x2, .x8, .x9, .x10, .x12, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27]
 
 /-- At `0x80003168`, `m` words stored. -/
 structure Fill11 (f₀ u : MachineState) (T : Word) (w m : Nat) : Prop where
@@ -27,8 +28,8 @@ theorem fillLoop {f₀ : MachineState} {T : Word} {w : Nat} (hT : T.toNat % 8 = 
     (hT1 : 0x20000000 ≤ T.toNat) (hT2 : T.toNat + 8 * w ≤ 0x78000000)
     (x12 : f₀.getReg .x12 = T + BitVec.ofNat 64 (8 * w) - 8) :
     ∀ d m u, w - 2 - m = d → Fill11 f₀ u T w m → ∃ t, Reaches Image.code u t ∧
-      t.pc = 0x800031a4 ∧ (∀ r ∈ ([.x2, .x8, .x9, .x10, .x12, .x19, .x20, .x21, .x22, .x25, .x27] :
-        List Reg), t.getReg r = f₀.getReg r) ∧
+      t.pc = 0x800031a4 ∧ (∀ r ∈ ([.x2, .x8, .x9, .x10, .x12, .x18, .x19, .x20, .x21, .x22, .x23, .x25,
+        .x26, .x27] : List Reg), t.getReg r = f₀.getReg r) ∧
       t.getReg .x24 = f₀.getReg .x24 + f₀.getReg .x10 ∧
       Layout.DFrame f₀ t (fun a ↦ Within a T (8 * w)) ∧
       ∀ j < w, t.getMem (T + BitVec.ofNat 64 (8 * j)) = f₀.getReg .x21 := by
@@ -58,7 +59,7 @@ theorem fillLoop {f₀ : MachineState} {T : Word} {w : Nat} (hT : T.toNat % 8 = 
     have kt := b80003174_keeps ht
     refine ⟨t, hrv.trans hrt, b80003174_pc ht, fun r hr ↦ ?_, ?_, ?_, fun j hj ↦ ?_⟩
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
-      rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
         rw [kt _ (by decide), kv _ (by decide), h.regs _ (by decide)]
     · rw [b80003174_x24 ht, kv .x24 (by decide), kv .x10 (by decide), h.regs .x24 (by decide),
         h.regs .x10 (by decide)]
@@ -97,8 +98,8 @@ theorem fillLoop {f₀ : MachineState} {T : Word} {w : Nat} (hT : T.toNat % 8 = 
       x11 := x11v
       regs := fun r hr ↦ by
         simp only [fillRegs, List.mem_cons, List.not_mem_nil, or_false] at hr
-        rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-          rw [kv _ (by decide), h.regs _ (by decide)]
+        rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+          rfl <;> rw [kv _ (by decide), h.regs _ (by decide)]
       fr := (h.fr.union frv).mono fun a ha ↦ by
         simp only [Within] at ha ⊢
         rcases ha with ha | ha <;> addr_omega [ha, hT1, hT2, hm]

@@ -12,7 +12,7 @@ import Rv64Verifier.Proofs.Bus.VbbGkrIter
 import Rv64Verifier.Proofs.Bus.VbbTail19
 import Rv64Verifier.Proofs.Bus.VbbTail22
 import Rv64Verifier.Proofs.Bus.VbbTail30
-import Rv64Verifier.Proofs.Bus.VbbTail39
+import Rv64Verifier.Proofs.Bus.VbbTail45
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -214,3 +214,16 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
 
 /-- info: 'Rv64Verifier.Proofs.Bus.vbbTailStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.vbbTailStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideFront' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideFront
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideShift' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideShift
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideDot' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.sideDot
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkHead' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.blkHead
+

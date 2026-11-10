@@ -37,6 +37,7 @@ structure AfterGkr (bev : MachineState → Word → List E → Option E) (s u : 
   cntEq : cnt = eOf3 k.count0 k.count1 (u.getReg .x13)
   point : NewVecR s u (u.getReg .x22) (u.getReg .x27) (u.getReg .x21) state.point
   values : NewVecE s u (s.getReg .x2 - 176) state.values
+  len : state.values.length = 3
   tracks : Tracks (prog bev s) (s.getReg .x12) s u (tail bev s k cnt state)
 
 /-- The GKR loop with a positive depth, to `0x80006b60`, or out. -/
@@ -83,6 +84,7 @@ theorem depthZero {bev : MachineState → Word → List E → Option E} {s u : M
       exact ⟨Nat.le_refl _, ⟨by decide, Or.inl rfl⟩, rfl⟩
     values := h.values.keepR hpre (st (A := fun _ ↦ False)) (fun _ h ↦ False.elim h)
       (by addr_omega [hb1]) fun _ _ h ↦ h
+    len := rfl
     tracks := by
       have := h.tracks
       rw [hd, gkrLoopM_zero, pure_bind] at this

@@ -24,6 +24,7 @@ structure Folded (s : MachineState) (x : LCtx) (h u : MachineState) (ℓ : ℕ)
   x5 : u.getReg .x5 = BitVec.ofNat 64 ℓ
   x6 : u.getReg .x6 = BitVec.ofNat 64 (Wl.folds ++ lf).length
   x17 : u.getReg .x17 = 8
+  x8 : u.getReg .x8 = 0xffffffffffffffff
   lfl : lf.length = fcOf s ℓ
   value : Runs s u ℓ (AFk s x ℓ (Model.Pcs.foldSt Wl lf q))
 
@@ -112,6 +113,7 @@ theorem roundEnd {s : MachineState} {x : LCtx} {h u : MachineState} {ℓ : ℕ}
         rw [b8000a2f4_x6 h₂, sp₁, ← hFl, ofNat_toNat']; simp only [vecLen]; congr 1
         addr_omega [hb]
       x17 := b8000a2f4_x17 h₂
+      x8 := by rw [k₂ .x8 (by decide), k₁ .x8 (by decide), hd.x8]
       lfl := by rw [hd.lfl, he]
       value := by
         have v₂ := v₁.keepStk hpre inv₁ (DFrame.of_same hm₂ (fun _ ↦ False)) fun _ h ↦ h.elim

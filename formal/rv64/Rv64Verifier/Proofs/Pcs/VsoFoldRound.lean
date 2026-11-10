@@ -22,6 +22,7 @@ structure Rd (s : MachineState) (x : LCtx) (h u : MachineState) (ℓ : ℕ)
   x20 : u.getReg .x20 = BitVec.ofNat 64 (24 * n)
   x21 : u.getReg .x21 = BitVec.ofNat 64 (n + 1)
   x24 : u.getReg .x24 = BitVec.ofNat 64 Wl.folds.length
+  x8 : u.getReg .x8 = 0xffffffffffffffff
   jlt : n < fcOf s ℓ
   lfl : lf.length = n + 1
   value : Runs s u ℓ (Model.Pcs.TM.loopN Model.Pcs.foldRoundRust (fcOf s ℓ - (n + 1))
@@ -261,6 +262,7 @@ theorem roundStep (hRP : RoundPolyErrSpec) {s : MachineState} {x : LCtx} {h u : 
     x20 := by rw [k₃ .x20 (by decide), hpres₂ .x20 (by decide), k₁ .x20 (by decide), hs.x20]
     x21 := by rw [k₃ .x21 (by decide), hpres₂ .x21 (by decide), k₁ .x21 (by decide), hs.x21]
     x24 := by rw [k₃ .x24 (by decide), hpres₂ .x24 (by decide), k₁ .x24 (by decide), hs.x24]
+    x8 := b8000a2cc_x8 h₃
     jlt := hs.jlt
     lfl := by rw [List.length_append, hs.lfl]; rfl
     value := v₁.step hdig fun T hT ↦ by

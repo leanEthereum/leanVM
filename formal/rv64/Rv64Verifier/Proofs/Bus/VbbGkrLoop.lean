@@ -141,6 +141,7 @@ theorem gkrExit {bev : MachineState → Word → List E → Option E} {s u : Mac
       exact h.point.same m₁
     values := h.values.keepR hpre (st (A := fun _ ↦ False)) (fun _ h ↦ False.elim h)
       (by addr_omega [hb1]) fun _ _ h ↦ h
+    len := h.len
     tracks := by
       have := h.tracks
       rw [gkrLoopM_zero, pure_bind] at this

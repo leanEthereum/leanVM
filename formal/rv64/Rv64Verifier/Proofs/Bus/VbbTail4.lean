@@ -68,6 +68,7 @@ structure Scalars (bev : MachineState → Word → List E → Option E) (s q : M
   x9 : q.getReg .x9 = vecLen q (s.getReg .x2 - 864)
   memory : NewVecE s q (s.getReg .x2 - 864) mem
   values : NewVecE s q (s.getReg .x2 - 176) state.values
+  len : state.values.length = 3
   point : NewVecR s q (q.getMem (s.getReg .x2 - 1320)) (q.getReg .x27) (q.getReg .x21) state.point
   lm : (logMem s).toNat ≤ state.point.length
   lb : (logBc s).toNat ≤ state.point.length
@@ -154,6 +155,7 @@ theorem scalarsStage (hNS : NextScalarsSpec) (hN : NextScalarSpec)
     memory := M.memory.keepR hpre stYQ fYQ (by addr_omega [hb1])
       fun y' hy h' ↦ by addr_omega [hy, h', hb1]
     values := hvals
+    len := G.len
     point := by
       rw [cap, rq .x27 (by decide), rq .x21 (by decide)]
       exact G.point.keepR hpre stUQ fW

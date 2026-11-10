@@ -25,6 +25,9 @@ structure Tmp11 (OI : MachineState → Word → List (List Opening) → Prop) (s
   x20 : u.getReg .x20 = 480
   x22 : u.getReg .x22 = 6
   x27 : u.getReg .x27 = B
+  x18 : u.getReg .x18 = BitVec.ofNat 64 ((hts A).getD 5 0)
+  x23 : u.getReg .x23 = BitVec.ofNat 64 (k - 4)
+  x26 : u.getReg .x26 = BitVec.ofNat 64 ((hts A).getD 5 0 + 6)
   x24 : u.getReg .x24 = BitVec.ofNat 64 (tableWidthsRust.getD i 0)
   x25 : u.getReg .x25 = T
   tal : T.toNat % 8 = 0
@@ -77,7 +80,7 @@ theorem kapTmpB (hTA : TryAllocZeroedSpec) {OI : MachineState → Word → List 
     {s u c : MachineState} {A : List E} {k : Nat} {R Q B : Word} {lo lo2 i : Nat}
     (hpre : WalkPre s) (h : Kap11 OI s u A k R Q B lo lo2 i) (hc : c.pc = 0x80003180)
     (mc : ∀ a, c.getMem a = u.getMem a)
-    (kc : ∀ r ∈ ([.x2, .x8, .x9, .x19, .x20, .x22, .x27] : List Reg), c.getReg r = u.getReg r)
+    (kc : ∀ r ∈ ([.x2, .x8, .x9, .x18, .x19, .x20, .x22, .x23, .x26, .x27] : List Reg), c.getReg r = u.getReg r)
     (x10 : c.getReg .x10 = s.getReg .x2 - 928)
     (x24 : c.getReg .x24 = BitVec.ofNat 64 (tableWidthsRust.getD i 0))
     (h0 : (hts A).getD i 0 = 0) :
@@ -116,10 +119,10 @@ theorem kapTmpB (hTA : TryAllocZeroedSpec) {OI : MachineState → Word → List 
     simp only [Sym.validAccess_eight]; addr_omega [hb1, hb2, hb3])
   have mt₂ (a : Word) : t₂.getMem a = t.getMem a := by
     rw [b800031a0_mem_same ht₂, b80003198_mem_same ht₁]
-  have kt₂ (r : Reg) (hr : r ∈ ([.x2, .x8, .x9, .x19, .x20, .x22, .x24, .x27] : List Reg)) :
+  have kt₂ (r : Reg) (hr : r ∈ ([.x2, .x8, .x9, .x18, .x19, .x20, .x22, .x23, .x24, .x26, .x27] : List Reg)) :
       t₂.getReg r = c.getReg r := by
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
-    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       rw [b800031a0_keeps ht₂ _ (by decide), b80003198_keeps ht₁ _ (by decide), hp _ (by decide),
         k₁ _ (by decide)]
   have hn₂ : heapNext t₂ = heapNext t := by simp only [heapNext, mt₂]
@@ -135,6 +138,9 @@ theorem kapTmpB (hTA : TryAllocZeroedSpec) {OI : MachineState → Word → List 
     x20 := by rw [kt₂ .x20 (by decide), kc .x20 (by decide)]; exact h.x20
     x22 := by rw [kt₂ .x22 (by decide), kc .x22 (by decide)]; exact h.x22
     x27 := by rw [kt₂ .x27 (by decide), kc .x27 (by decide)]; exact h.x27
+    x18 := by rw [kt₂ .x18 (by decide), kc .x18 (by decide)]; exact h.x18
+    x23 := by rw [kt₂ .x23 (by decide), kc .x23 (by decide)]; exact h.x23
+    x26 := by rw [kt₂ .x26 (by decide), kc .x26 (by decide)]; exact h.x26
     x24 := by rw [kt₂ .x24 (by decide)]; exact x24
     x25 := by
       rw [b800031a0_x25 ht₂, b80003198_keeps ht₁ .x2 (by decide), spt]

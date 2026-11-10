@@ -89,5 +89,8 @@ structure Kap11 (OI : MachineState → Word → List (List Opening) → Prop) (s
   x20 : u.getReg .x20 = 480
   x22 : u.getReg .x22 = 6
   x27 : u.getReg .x27 = B
+  x18 : u.getReg .x18 = BitVec.ofNat 64 ((hts A).getD 5 0)
+  x23 : u.getReg .x23 = BitVec.ofNat 64 (k - 4)
+  x26 : u.getReg .x26 = BitVec.ofNat 64 ((hts A).getD 5 0 + 6)
 
 end Rv64Verifier.Proofs.Walk

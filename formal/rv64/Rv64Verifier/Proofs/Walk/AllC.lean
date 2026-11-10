@@ -7,6 +7,7 @@ import Rv64Verifier.Proofs.Walk.Spec
 import Rv64Verifier.Proofs.Walk.R17E
 import Rv64Verifier.Proofs.Walk.R18C
 import Rv64Verifier.Proofs.Walk.TailStages
+import Rv64Verifier.Proofs.Walk.R18K
 
 /-!
 # `walk` from `AtR17`: the regions proved so far, and the assembly of its contract
@@ -121,3 +122,57 @@ The axioms: Lean's three.
 
 /-- info: 'Rv64Verifier.Proofs.Walk.afterTables_stages' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.afterTables_stages
+
+/-- info: 'Rv64Verifier.Proofs.Walk.CoreR18.stepW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.CoreR18.stepW
+
+/-- info: 'Rv64Verifier.Proofs.Walk.CoreR18.store' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.CoreR18.store
+
+/-- info: 'Rv64Verifier.Proofs.Walk.claimAt_keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.claimAt_keep
+
+/-- info: 'Rv64Verifier.Proofs.Walk.transcript_heapW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.transcript_heapW
+
+/-- info: 'Rv64Verifier.Proofs.Walk.innerClone' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.innerClone
+
+/-- info: 'Rv64Verifier.Proofs.Walk.innerStore' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.innerStore
+
+/-- info: 'Rv64Verifier.Proofs.Walk.innerStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.innerStep
+
+/-- info: 'Rv64Verifier.Proofs.Walk.innerLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.innerLoop
+
+/-- info: 'Rv64Verifier.Proofs.Walk.outerHead' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.outerHead
+
+/-- info: 'Rv64Verifier.Proofs.Walk.tab3878' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.tab3878
+
+/-- info: 'Rv64Verifier.Proofs.Walk.tab387c' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.tab387c
+
+/-- info: 'Rv64Verifier.Proofs.Walk.endStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.endStep
+
+/-- info: 'Rv64Verifier.Proofs.Walk.claimAt_move' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.claimAt_move
+
+/-- info: 'Rv64Verifier.Proofs.Walk.tabGrow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.tabGrow
+
+/-- info: 'Rv64Verifier.Proofs.Walk.tabRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.tabRun
+
+/-- info: 'Rv64Verifier.Proofs.Walk.outerStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.outerStep
+
+/-- info: 'Rv64Verifier.Proofs.Walk.outerLoop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.outerLoop
+
+/-- info: 'Rv64Verifier.Proofs.Walk.r18' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Walk.r18
