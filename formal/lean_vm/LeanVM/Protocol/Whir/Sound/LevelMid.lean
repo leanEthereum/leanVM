@@ -220,5 +220,44 @@ theorem escRet_mid_queries_le (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A) (h�
 
 end Escapes
 
+/-! ## The batching challenge -/
+
+section Lambda
+
+variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+
+open Classical in
+/-- **The batching challenge's escape**: at most `(t + 2) L'` values of `λ` leave the next
+level's doom, the rows being the words' at the positions. -/
+theorem card_mid_lambda_le (hκ : P.κ = P'.ℓ + P'.κ) (hℓκ : P.ℓ ≤ 2 ^ P.κ)
+    (gap : P'.n * P'.deg 0 < P'.thr 0 * P'.thr 0) (s : WhirState) (rounds : List FoldRound)
+    (high : List E) (pts : List (List E)) (ys : List E) (qs : List ℕ)
+    (cs : List (ℕ × ℕ × Word)) (hI : MidI3 μ ℓ₀ w i P P' pre hκ s rounds high pts ys qs cs) :
+    (univ.filter fun lam ↦ ¬ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
+      (glueLevel s lam P.κ pts ys qs (powers lam qs.length)
+        (batchedOf i P.κ rounds high qs (powers lam qs.length) (qs.map (wordOf cs i)))) cs).card ≤
+      (qs.length + 2) * P'.listMax := by
+  obtain ⟨⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hpts, hz₁, hz₂, hsep⟩, hys, hqs, hQ⟩ := hI
+  have hb := fun lam ↦ batchedOf_eq P i cs hS rounds hr high
+    (by rw [hhigh]; exact hℓκ.trans (Nat.pow_le_pow_right (by norm_num) (by omega))) qs hqs lam
+  refine (card_le_card fun lam hlam ↦ ?_).trans ((card_lambda_bad_le P P' hκ _ (runW w ℓ₀ s)
+    s.claim (pts.getD 0 []) (pts.getD 1 []) (ys.getD 0 0) (ys.getD 1 0) (cOf P i cs rounds high) qs
+    hqs hQ).trans (by rw [mul_comm]; exact Nat.mul_le_mul_left _ (card_tlist_le_jl _ _ _ _ gap)))
+  simp only [mem_filter, mem_univ, true_and] at hlam ⊢
+  by_contra hno
+  refine hlam ⟨?_, hS', hlen⟩
+  rw [hpts, hys]
+  exact nextInv_of hκ s rounds cs hR hr _ _ hz₁ hz₂ _ _ qs (cOf P i cs rounds high) lam _
+    (hb lam) hno
+
+end Lambda
+
+/-! ## The specification -/
+
+theorem noMoves_sampleOodPoints (mu : ℕ) : ∀ n, NoMoves (sampleOodPoints mu n)
+  | 0 => NoMoves.ret []
+  | n + 1 => (noMoves_sampleN mu).bind fun _ ↦ (noMoves_sampleOodPoints mu n).bind fun _ ↦
+      NoMoves.ret _
+
 end
 end LeanVM.Protocol.Whir.Sound
