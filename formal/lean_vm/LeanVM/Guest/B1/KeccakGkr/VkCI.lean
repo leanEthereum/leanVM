@@ -92,7 +92,7 @@ def layKid (fs : String → ℕ) (B curE tbE : ℕ) (s : ℕ) : KidG where
     ptr (B + D.o201 + 22 * s), ptr (B + D.o201 + 22 * (s + 1)), keccakIota D.τ s (D.layer s).c,
     ptr tbE]
   Lin := fun ps ↦ layerLin (D.layer s) (firstOf s) (D.CL B (D.lsOf fs ps.dropLast) s) (curE + D.lcur s)
-    (B + D.o201 + 22 * (s + 1)) (ps.getLast?.getD 0 + fs (D.lname s))
+    (B + D.o201 + 22 * (s + 1)) tbE (ps.getLast?.getD 0 + fs (D.lname s))
   Out := fun ps rets Lout ↦ rets = (D.layer s).rets (firstOf s) (ptr (curE + D.lcur s)) ∧
     Lout = layerBufs (D.layer s) (firstOf s) (ptr (curE + D.lcur s))
       (ps.getLast?.getD 0 + fs (D.lname s))
@@ -236,7 +236,7 @@ theorem iMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE tbE : ℕ}
   simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
   refine ⟨D.mI, h.2.2.2.2.2.2.2.1, ?_, fun w hw ↦ ?_⟩
   · rw [cL, ptr_mul_gen, ptr_mul_gen1]; exact hmI
-  have hw' : w = D.word := scalarCells_inj ((hw rfl).symm)
+  have hw' : w = D.word := scalarCells_inj ((hw trivial).symm)
   subst hw'
   rw [← hc, I_run h]
   refine ⟨?_, by simp [iRets, plainCount]⟩
@@ -266,7 +266,7 @@ theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE tbE : ℕ}
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **The calls, complete where `verify_keccak` places them.** -/
-theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE tbE : ℕ) :
+theorem kids_complete (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE zvE slE tbE : ℕ) :
     ∀ k ∈ D.kids fs B curE chiE olE zvE slE tbE, k.taken = true → ∀ ps,
       CompleteAtF fs cert κ k.f (fun p ↦ k.Lin (ps ++ [p])) (k.args ps)
         (fun p ↦ k.Out (ps ++ [p])) := by
@@ -293,11 +293,11 @@ theorem kids_complete (h : D.Ok) (κ : ℕ) (B curE chiE olE zvE slE tbE : ℕ) 
     have hcl := D.layer_cap h hs
     obtain ⟨hpl, hgr, hpm, hlm, hproj, hfin⟩ := D.layer_facts h hs
     have H := layer_completeAtF (fs := fs) (cert := cert) (first := firstOf s)
-      (by unfold firstOf; split <;> omega) κ (D.layer s)
-      (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1))
-      (p0 := (D.cells s).1) (p1 := (D.cells s).2) hcl hcap (fun hf1 ↦ by
+      (by unfold firstOf; split <;> omega) hκ (D.layer s)
+      (D.CL B (D.lsOf fs ps) s) (curE + D.lcur s) (B + D.o201 + 22 * (s + 1)) tbE
+      (p0 := (D.cells s).1) (p1 := (D.cells s).2) hcl (fun hf1 ↦ by
         obtain rfl : s = 0 := by unfold firstOf at hf1; split at hf1 <;> omega
-        rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hfin
+        rfl) (by rw [hy]; omega) (by rw [hy]; omega) hpl hpm hlm hproj hgr hfin
       (D.CL_ok h B _ hs.le)
     have hb : (D.CL B (D.lsOf fs ps) s).bclaim = B + D.o201 + 22 * s := by cases s <;> rfl
     rw [hb] at H

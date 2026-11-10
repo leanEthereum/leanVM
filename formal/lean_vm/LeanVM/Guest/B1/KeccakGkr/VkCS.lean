@@ -74,10 +74,11 @@ theorem layKid_lin_mem (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE (D.
   obtain ⟨-, hlx, -⟩ := xs_reads h (memL_entry hm.lin (b := curE) (ws := D.xs) (by simp [lin]))
   intro q hq
   simp only [layerLin, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hq
-  rcases hq with (rfl | rfl) | hq
+  rcases hq with ((rfl | rfl) | hq) | rfl
   · exact claims_slice h hs m201
   · exact hlx s hs
   · exact CL_mem h hm hs q hq
+  · exact memL_entry hm.lin (by simp [lin])
 
 /-- **Layer `s`'s words lie in the caller's words, the buffers or the previous layer's
 buffers.** -/
@@ -106,7 +107,9 @@ theorem layKid_lin_region (h : D.Ok) {s : ℕ} (hs : s < 12) (hl : s + 2 ≤ fps
   intro x ⟨q, hq, hx⟩
   have hx' : RegionL [q] x := ⟨q, List.mem_singleton_self _, hx⟩
   simp only [layerLin, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hq
-  rcases hq with (rfl | rfl) | hq
+  rcases hq with ((rfl | rfl) | hq) | rfl
+  rotate_right
+  · exact inLin (b := tbE) (ws := winTabWords) (by simp [lin]) le_rfl le_rfl x hx'
   · exact own (b := B + D.o201) (ws := D.claims B (D.lsOf fs fps)) (by rw [hO]; simp) (by omega)
       (by rw [hcl, ← outWs, outWs_length]; omega) x hx'
   · exact inLin (b := curE) (ws := D.xs) (by simp [lin]) (by omega)
