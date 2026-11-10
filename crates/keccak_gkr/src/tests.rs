@@ -228,7 +228,7 @@ fn a_wrong_ood_value_fails_the_opening() {
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
     ps.add_root(&commitment.root);
-    ps.grind(OOD_GRINDING_BITS as u32);
+    ps.grind(OOD_GRINDING_BITS);
     let low_point = ps.sample_vec(shape.stack_log());
     let value = primitives::multilinear::mle_eval(&committed, &low_point) + F128::ONE;
     ps.add_scalar(value);

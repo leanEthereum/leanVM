@@ -52,18 +52,18 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
 /// Per-level query-phase proof-of-work budget. These bits are ground after the
 /// level commitment and before its query positions are sampled, so the query
 /// count only needs to close the remaining `SECURITY_BITS - 17` bits.
-pub const QUERY_GRINDING_BITS: usize = 17;
+pub const QUERY_GRINDING_BITS: u32 = 17;
 
 /// Grinding before each fold round's `theta` and before its `(gamma, alpha, beta)`: the least for which the fold
 /// rounds never cost a query.
-pub const FOLD_GRINDING_BITS: usize = 9;
+pub const FOLD_GRINDING_BITS: u32 = 9;
 
 /// Grinding before each level's batching challenge `lambda` and the stacked opening's outer batching challenge: the
 /// least for which the batching terms never cost a query.
-pub const BATCH_GRINDING_BITS: usize = 14;
+pub const BATCH_GRINDING_BITS: u32 = 14;
 
 /// Grinding before the level-0 OOD sample: the least for which its term never costs a query.
-pub const OOD_GRINDING_BITS: usize = 15;
+pub const OOD_GRINDING_BITS: u32 = 15;
 
 /// Out-of-domain points after each commitment past level 0, drawn as one verifier message: two independent points
 /// square the OOD term, which then needs no grind.
@@ -111,7 +111,7 @@ pub struct ProverConfig {
     /// Per-level **query-phase** PoW grinding bits (L0, L1, ..., L_r), ground
     /// post-commit/pre-queries. Length = level_steps + 1. Each bit here
     /// substitutes for ~1/log₂(1/(1−γ)) queries at that level.
-    pub grinding_bits: Vec<usize>,
+    pub grinding_bits: Vec<u32>,
     /// Per-commit-level out-of-domain points (L0, ..., L_r), drawn together right
     /// after the level's Merkle root and high part enter the transcript. `[0]` must be 0:
     /// L0's OOD sample is the caller's, right after its root (`crate::ood`).
@@ -228,7 +228,7 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
         level_steps: shape.k_levels.len() - 1,
         initial_k,
         level_ks: shape.k_levels[1..].to_vec(),
-        grinding_bits: vec![0usize; n_levels],
+        grinding_bits: vec![0; n_levels],
         ood_samples: vec![0usize; n_levels],
     })
 }
@@ -342,10 +342,10 @@ pub(crate) struct Grinding {
 }
 
 const PRODUCTION_GRINDING: Grinding = Grinding {
-    fold: FOLD_GRINDING_BITS,
-    batch: BATCH_GRINDING_BITS,
-    ood: OOD_GRINDING_BITS,
-    query: QUERY_GRINDING_BITS,
+    fold: FOLD_GRINDING_BITS as usize,
+    batch: BATCH_GRINDING_BITS as usize,
+    ood: OOD_GRINDING_BITS as usize,
+    query: QUERY_GRINDING_BITS as usize,
 };
 
 /// The grind of each tail sumcheck round, of degree two.
@@ -761,15 +761,15 @@ mod tests {
         assert_eq!(queries_with(PRODUCTION_GRINDING), best);
         for less in [
             Grinding {
-                batch: BATCH_GRINDING_BITS - 1,
+                batch: PRODUCTION_GRINDING.batch - 1,
                 ..PRODUCTION_GRINDING
             },
             Grinding {
-                ood: OOD_GRINDING_BITS - 1,
+                ood: PRODUCTION_GRINDING.ood - 1,
                 ..PRODUCTION_GRINDING
             },
             Grinding {
-                fold: FOLD_GRINDING_BITS - 1,
+                fold: PRODUCTION_GRINDING.fold - 1,
                 ..PRODUCTION_GRINDING
             },
         ] {
@@ -781,7 +781,7 @@ mod tests {
     #[test]
     fn to_config_rejects_other_grinding() {
         let more = Grinding {
-            query: QUERY_GRINDING_BITS + 1,
+            query: PRODUCTION_GRINDING.query + 1,
             ..PRODUCTION_GRINDING
         };
         let cfg = WhirSecurityConfig::derive_with(20 + crate::LOG_PACKING, 1, more).unwrap();

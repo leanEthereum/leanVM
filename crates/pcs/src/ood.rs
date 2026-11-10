@@ -18,7 +18,7 @@ use crate::whir_config::OOD_GRINDING_BITS;
 /// The OOD sample of the level-0 commitment to `stack`, the committed lanes of a `2^log_n`-word stack that is zero
 /// past them; call it right after the root is sent. Returns the claim the stacked opening must discharge.
 pub fn ood_sample(ps: &mut ProverState, stack: &[F64], log_n: usize) -> StackClaim {
-    ps.grind(OOD_GRINDING_BITS as u32);
+    ps.grind(OOD_GRINDING_BITS);
     let low_point = ps.sample_vec(log_n);
     let value = tracing::info_span!("OOD").in_scope(|| mle_eval_par(stack, &low_point));
     ps.add_scalar(value);

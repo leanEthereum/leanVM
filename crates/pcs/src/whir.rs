@@ -552,11 +552,11 @@ impl FoldChallenges {
 /// One fold round's transcript: `theta`, the table the prover builds from it, then `(gamma, alpha, beta)`, each
 /// sample after its grind.
 fn fold_round(ps: &mut ProverState, table: impl FnOnce(F128) -> FoldTable) -> (FoldChallenges, FoldTable) {
-    ps.grind(FOLD_GRINDING_BITS as u32);
+    ps.grind(FOLD_GRINDING_BITS);
     let theta = ps.sample();
     let t = table(theta);
     ps.add_scalars(&t);
-    ps.grind(FOLD_GRINDING_BITS as u32);
+    ps.grind(FOLD_GRINDING_BITS);
     let (gamma, alpha, beta) = (ps.sample(), ps.sample(), ps.sample());
     (
         FoldChallenges {
@@ -863,7 +863,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         if level == r {
             let _span = tracing::info_span!("Final level").entered();
             ps.add_scalars(&p);
-            ps.grind(config.grinding_bits[level] as u32);
+            ps.grind(config.grinding_bits[level]);
             let queries = sample_queries_ordered(ps, block_len, config.queries[level]);
             let wtns = wtns_prev.as_ref().expect("the final level is not level 0");
             let (rows, paths) = wtns.open(&queries);
@@ -911,9 +911,9 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         ps.add_scalars(&ys);
         let mut pending: Vec<(Vec<F128>, F128)> = eqs.into_iter().zip(ys).collect();
 
-        ps.grind(config.grinding_bits[level] as u32);
+        ps.grind(config.grinding_bits[level]);
         let queries = sample_queries_ordered(ps, block_len, config.queries[level]);
-        ps.grind(BATCH_GRINDING_BITS as u32);
+        ps.grind(BATCH_GRINDING_BITS);
         let lambda = ps.sample();
         let weights = powers(lambda, queries.len());
 

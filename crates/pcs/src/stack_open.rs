@@ -181,7 +181,7 @@ pub fn open_batch_mixed_whir_stacked(
         ));
     }
     // One grind covers the map challenges and the batching challenge below: one verifier message.
-    ps.grind(BATCH_GRINDING_BITS as u32);
+    ps.grind(BATCH_GRINDING_BITS);
     let map_challenges = ring_switch::sample_map_challenges(ps);
     let coordinate_weights = ring_switch::build_coordinate_weights(&map_challenges);
 
