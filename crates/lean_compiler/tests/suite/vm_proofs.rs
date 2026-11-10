@@ -64,18 +64,6 @@ fn an_unsupported_rate_is_an_error() {
     );
 }
 
-/// A public input that is not a 256-bit digest is an error, not a panic or a proof no verifier accepts.
-#[test]
-fn a_public_input_with_a_third_limb_is_an_error() {
-    let program = compile(&parse(HASHING).expect("parse"));
-    let mut pi = hashing_pi();
-    pi[1].c2 = 1;
-    assert_eq!(
-        prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).err(),
-        Some(ProveError::PublicInputNotDigest)
-    );
-}
-
 /// A KECCAK table of any height proves and verifies: below the Keccak reduction's
 /// block of 512 steps, where padding fills the floor, at it, and one step past it.
 #[test]

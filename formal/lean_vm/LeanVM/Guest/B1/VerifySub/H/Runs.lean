@@ -365,7 +365,9 @@ theorem gkr_inv (hbl : bytecode.length = 2 ^ 23) : S.s3 = ⟨S.s3.cap, []⟩ ∧
 /-- **The ring map, read back.** -/
 theorem ring_inv : S.xsR = [S.ringN] ∧ S.s6.GrindOk Whir.batchGrindingBits S.ringN ∧
     S.rs.1 = ringTarget S.kc.2.2 (S.rchs.take ringMapWidth) (S.rchs.drop ringMapWidth) ∧
-    S.s7 = ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).2 := by
+    S.s7 = ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).2 ∧
+    S.rs.2 = fun r ↦ ringWeight S.kc.2.1 r
+      (ringCoefficients (S.rchs.take ringMapWidth) (S.rchs.drop ringMapWidth)) := by
   obtain ⟨sp, hsp⟩ := S.c6
   have h := Tables.RunsTo.toT S.runR hsp []
   rw [List.append_nil] at h
@@ -387,7 +389,8 @@ theorem ring_inv : S.xsR = [S.ringN] ∧ S.s6.GrindOk Whir.batchGrindingBits S.r
       ((⟨capOf (S.s6.nonceState n), []⟩ : Fs).squeezeN 15).1 := by
     show challengeOf S.ringSt :: ((⟨capOf S.ringSt, []⟩ : Fs).squeezeN 15).1 = _
     rw [hS]
-  refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [e1, hC], by rw [hS]; exact e3⟩
+  refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [e1, hC], by rw [hS]; exact e3,
+    by rw [e1, hC]⟩
 
 /-- The ring map's grind's proof of work, as `grind_check__L14` reads it. -/
 theorem ringPow : ((cellsOfState S.ringSt false 1).limb 0).lane.toNat % 2 ^ 14 = 0 :=

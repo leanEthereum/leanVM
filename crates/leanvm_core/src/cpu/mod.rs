@@ -229,9 +229,6 @@ pub use crate::transcript::Proof;
 pub enum ProveError {
     /// `log_inv_rate` is outside the range the WHIR configuration accepts (1, 2, 3 or 4).
     InvalidRate { log_inv_rate: usize },
-    /// A public input half has a nonzero third limb, so it is not half of a 256-bit
-    /// digest and no verifier would accept the proof.
-    PublicInputNotDigest,
     /// The program has no execution on this input and advice: a failed `assert`,
     /// a wild pointer, advice that does not fit, ...
     Execution(ExecError),
@@ -247,10 +244,6 @@ impl std::fmt::Display for ProveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidRate { log_inv_rate } => write!(f, "log_inv_rate {log_inv_rate} is not supported"),
-            Self::PublicInputNotDigest => write!(
-                f,
-                "the public input is not a 256-bit digest: a half has a nonzero third limb"
-            ),
             Self::Execution(e) => write!(f, "{e}"),
             Self::UnconstrainedReads(cells) => write!(
                 f,
@@ -441,9 +434,6 @@ impl Stats {
 pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
-    }
-    if public_input.iter().any(|h| h.c2 != 0) {
-        return Err(ProveError::PublicInputNotDigest);
     }
     let (exec, keccak_blocks) = crate::stage!("Execute program", || {
         crate::keccak::while_executing(|step| program.execute_with(public_input, step))
