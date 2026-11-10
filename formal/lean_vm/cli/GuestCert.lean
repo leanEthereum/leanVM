@@ -854,7 +854,7 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
   m := m.insert "verify_sub" [(0, [6])]
   m := m.insert "__loop4" [(0, [16])]
   -- `verify_bus_gkr`'s radix-four layer loop, which dispatches `gkr_rounds` on the layer's parity:
-  -- `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]` (arguments 4, 0, 2, 3, 6)
+  -- `GkrPar` on `[layers, x, start_g, k_mod_next]` (arguments 3, 0, 2, 9)
   let byName : Std.HashMap String Core.Fn := P.foldl (fun m f => m.insert f.name f) {}
   for cf in P do
     if cf.name == "verify_bus_gkr" then
@@ -862,7 +862,7 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
         let dispatchesRounds := ((byName.get? g).map fun l => l.body.any fun
           | .dispatch _ (h :: _) _ _ => h.startsWith "gkr_rounds"
           | _ => false).getD false
-        if dispatchesRounds then m := m.insert g [(tagGkr, [6, 2, 4, 5, 8])]
+        if dispatchesRounds then m := m.insert g [(tagGkr, [5, 2, 4, 11])]
   for cf in P do
     if let some (odd, base, d, cd) := oqParams cf.name then
       m := m.insert cf.name [(walkTag (2 + base) odd d cd, [8, 9])]
