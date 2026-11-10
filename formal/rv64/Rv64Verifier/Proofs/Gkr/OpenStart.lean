@@ -430,7 +430,7 @@ theorem to_sumcheck (hOF : OptFromElemSpec) (hSC : SumcheckSpec) {s : MachineSta
     claim := by rw [x12₃]; exact hpre.value
     eqs := by rw [x15₃, x14₃]; right; addr_omega [hfr, hHu', hHv']
     claimFree := by rw [x12₃]; exact outside_mono hvf mono₃
-    eqsFree := by rw [x15₃, x14₃]; addr_omega [hfr, hfrN, hHv']
+    eqsFree := Or.inr (by rw [x15₃, x14₃]; addr_omega [hfr, hfrN, hHv'])
     claimStack := by rw [x12₃]; simp only [stackLo, x2₃]; addr_omega [hvs, hb]
     eqsStack := by rw [x15₃, x14₃]; simp only [stackLo, x2₃]; addr_omega [hfr, hHv', hab, hb]
     claimSelf := by rw [x12₃, x11₃]; exact hpre.valueSelf

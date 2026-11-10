@@ -348,7 +348,7 @@ structure SumcheckPre (s : MachineState) : Prop extends TPre 48 sumcheckStack s 
   claim : Region (s.getReg .x12) 24
   eqs : (s.getReg .x15).toNat = 0 ∨ Region (s.getReg .x14) (32 * (s.getReg .x15).toNat)
   claimFree : Outside s (s.getReg .x12) 24
-  eqsFree : Outside s (s.getReg .x14) (32 * (s.getReg .x15).toNat)
+  eqsFree : (s.getReg .x15).toNat = 0 ∨ Outside s (s.getReg .x14) (32 * (s.getReg .x15).toNat)
   claimStack : Apart (s.getReg .x12) 24 (stackLo s sumcheckStack) sumcheckStack
   eqsStack : Apart (s.getReg .x14) (32 * (s.getReg .x15).toNat) (stackLo s sumcheckStack)
     sumcheckStack

@@ -208,7 +208,7 @@ theorem sumcheckPre {s v : MachineState} (hpre : TableSumcheckPre s) (h : Inv s 
       · exact Or.inl h0
       · exact Or.inr (by addr_omega [h0, hn, hbuf.1, hl])
     claimFree := by rw [h12]; simp only [Outside, heapNext, heapEnd]; addr_omega [tf, hm]
-    eqsFree := by simp only [Outside, heapNext, heapEnd]; addr_omega [hb, hn, hbelow]
+    eqsFree := Or.inr (by simp only [Outside, heapNext, heapEnd]; addr_omega [hb, hn, hbelow])
     claimStack := by rw [h12, hsl]; addr_omega [hb1, tst]
     eqsStack := by rw [hsl]; addr_omega [hb, hn, ha, hb1]
     claimSelf := h11 ▸ h12 ▸ hpre.targetSelf
