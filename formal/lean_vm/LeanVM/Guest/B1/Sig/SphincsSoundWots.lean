@@ -117,7 +117,7 @@ theorem wotsLeafOf_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIn
     have h4 := (Sphincs.TargetSum.base2bDigits enc i).isLt
     simp only [chainLength, winternitzBits] at h4
     unfold Sphincs.Verification.recoverChain
-    (HashSig.OverPermutation.keccakHash rw) [hd i] at h4 ⊢
+    rw [hd i] at h4 ⊢
     rw [show chainLength - 1 - d i.val = 3 - d i.val by simp [chainLength, winternitzBits]]
     exact chainWalk_cells pp layer tree lf i (d i.val) (starts i.val) (3 - d i.val) (by omega)
   unfold wotsLeafOf

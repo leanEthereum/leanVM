@@ -35,11 +35,11 @@ open Sphincs Sphincs.Verification
 
 /-- The message digest a signature's randomizer gives. -/
 def sDigestOf (pk : Sphincs.PublicKey) (m : Message) (sig : Sphincs.Signature) : MessageDigest :=
-  Id.run (messageDigest (m := Id) keccakF1600 pk sig.randomizer m)
+  Id.run (messageDigest (m := Id) (keccakHash keccakF1600) pk sig.randomizer m)
 
 /-- The FORS key a signature's openings recover at its digest. -/
 def sForsKeyOf (pk : Sphincs.PublicKey) (m : Message) (sig : Sphincs.Signature) : HashSig.Digest :=
-  Id.run (forsRecover (m := Id) keccakF1600 pk.publicSeed (digestIndex (sDigestOf pk m sig))
+  Id.run (forsRecover (m := Id) (keccakHash keccakF1600) pk.publicSeed (digestIndex (sDigestOf pk m sig))
     (digestForsLeaves (sDigestOf pk m sig)) sig.forsOpening)
 
 /-- **The root layer `l` reaches from `msg`**: its one-time key `K_l(idx)` recovers a leaf from the
@@ -47,10 +47,10 @@ message `msg` and the layer's counter and chain values, and the layer's path fol
 nothing when the counter does not encode `msg`. -/
 def layerRoot (P : PublicParameter) (idx : Index) (sig : Sphincs.Signature) (l : Layer)
     (msg : HashSig.Digest) : Option HashSig.Digest :=
-  match Id.run (otsLeaf (m := Id) keccakF1600 P l (treeOfIndex l idx) (leafOfIndex l idx) msg
+  match Id.run (otsLeaf (m := Id) (keccakHash keccakF1600) P l (treeOfIndex l idx) (leafOfIndex l idx) msg
       (sig.layers l).counter (sig.layers l).chainValues) with
   | none => none
-  | some v => some (Id.run (treeFold (m := Id) keccakF1600 P l (treeOfIndex l idx) (leafOfIndex l idx)
+  | some v => some (Id.run (treeFold (m := Id) (keccakHash keccakF1600) P l (treeOfIndex l idx) (leafOfIndex l idx)
       (layerPath sig l) (layerHeight l) v))
 
 /-- **Layer `l` of the signature reaches `root` from `msg`.** -/
@@ -62,9 +62,9 @@ def LayerReaches (P : PublicParameter) (idx : Index) (sig : Sphincs.Signature) (
 theorem layerReaches_iff (P : PublicParameter) (idx : Index) (sig : Sphincs.Signature) (l : Layer)
     (msg : HashSig.Digest) (root : HashSig.Digest) :
     LayerReaches P idx sig l msg root ↔
-      ∃ v, Id.run (otsLeaf (m := Id) keccakF1600 P l (treeOfIndex l idx) (leafOfIndex l idx) msg
+      ∃ v, Id.run (otsLeaf (m := Id) (keccakHash keccakF1600) P l (treeOfIndex l idx) (leafOfIndex l idx) msg
           (sig.layers l).counter (sig.layers l).chainValues) = some v ∧
-        Id.run (treeFold (m := Id) keccakF1600 P l (treeOfIndex l idx) (leafOfIndex l idx)
+        Id.run (treeFold (m := Id) (keccakHash keccakF1600) P l (treeOfIndex l idx) (leafOfIndex l idx)
           (layerPath sig l) (layerHeight l) v) = root := by
   unfold LayerReaches layerRoot
   split <;> simp_all
@@ -72,12 +72,12 @@ theorem layerReaches_iff (P : PublicParameter) (idx : Index) (sig : Sphincs.Sign
 /-- One layer of the walk up, in `Id`. -/
 theorem verifyLayers_succ_eq (P : PublicParameter) (idx : Index) (sig : Sphincs.Signature) (n : Nat)
     (hn : n < layerCount) (msg : HashSig.Digest) :
-    Id.run (verifyLayers (m := Id) keccakF1600 P idx sig (n + 1) msg) =
+    Id.run (verifyLayers (m := Id) (keccakHash keccakF1600) P idx sig (n + 1) msg) =
       (layerRoot P idx sig ⟨layerCount - 1 - n, by omega⟩ msg).bind fun r =>
-        if n = 0 then some r else Id.run (verifyLayers (m := Id) keccakF1600 P idx sig n r) := by
+        if n = 0 then some r else Id.run (verifyLayers (m := Id) (keccakHash keccakF1600) P idx sig n r) := by
   rw [verifyLayers.eq_2]
   simp only [hn, ↓reduceDIte, Id.run_bind, layerRoot]
-  generalize Id.run (otsLeaf (m := Id) keccakF1600 P ⟨layerCount - 1 - n, by omega⟩
+  generalize Id.run (otsLeaf (m := Id) (keccakHash keccakF1600) P ⟨layerCount - 1 - n, by omega⟩
     (treeOfIndex ⟨layerCount - 1 - n, by omega⟩ idx) (leafOfIndex ⟨layerCount - 1 - n, by omega⟩ idx) msg
     (sig.layers ⟨layerCount - 1 - n, by omega⟩).counter (sig.layers ⟨layerCount - 1 - n, by omega⟩).chainValues) = o
   rcases o with _ | v
@@ -88,7 +88,7 @@ theorem verifyLayers_succ_eq (P : PublicParameter) (idx : Index) (sig : Sphincs.
 /-- The walk up the three layers, in `Id`. -/
 theorem verifyLayers_three (P : PublicParameter) (idx : Index) (sig : Sphincs.Signature)
     (msg : HashSig.Digest) :
-    Id.run (verifyLayers (m := Id) keccakF1600 P idx sig layerCount msg) =
+    Id.run (verifyLayers (m := Id) (keccakHash keccakF1600) P idx sig layerCount msg) =
       (layerRoot P idx sig 0 msg).bind fun r0 => (layerRoot P idx sig 1 r0).bind
         fun r1 => layerRoot P idx sig 2 r1 := by
   conv_lhs => rw [show layerCount = 2 + 1 from rfl]
@@ -103,7 +103,7 @@ theorem verifyLayers_three (P : PublicParameter) (idx : Index) (sig : Sphincs.Si
 /-- The walk reaches `root` exactly when each layer reaches the next one's message. -/
 theorem verifyLayers_some (P : PublicParameter) (idx : Index) (sig : Sphincs.Signature)
     (msg : HashSig.Digest) (root : HashSig.Digest) :
-    Id.run (verifyLayers (m := Id) keccakF1600 P idx sig layerCount msg) = some root ↔
+    Id.run (verifyLayers (m := Id) (keccakHash keccakF1600) P idx sig layerCount msg) = some root ↔
       ∃ r0 r1, LayerReaches P idx sig 0 msg r0 ∧ LayerReaches P idx sig 1 r0 r1 ∧
         LayerReaches P idx sig 2 r1 root := by
   rw [verifyLayers_three]
@@ -119,14 +119,14 @@ key's root. -/
 theorem verify_id_eq_true (π : KeccakState → KeccakState) (pk : Sphincs.PublicKey) (m : Message)
     (sig : Sphincs.Signature) :
     Id.run (Verification.verify (m := Id) (HashSig.OverPermutation.keccakHash π) pk m sig) = true ↔
-      Id.run (verifyLayers (m := Id) π pk.publicSeed
-          (digestIndex (Id.run (messageDigest (m := Id) π pk sig.randomizer m))) sig layerCount
-          (Id.run (forsRecover (m := Id) π pk.publicSeed
-            (digestIndex (Id.run (messageDigest (m := Id) π pk sig.randomizer m)))
-            (digestForsLeaves (Id.run (messageDigest (m := Id) π pk sig.randomizer m)))
+      Id.run (verifyLayers (m := Id) (keccakHash π) pk.publicSeed
+          (digestIndex (Id.run (messageDigest (m := Id) (keccakHash π) pk sig.randomizer m))) sig layerCount
+          (Id.run (forsRecover (m := Id) (keccakHash π) pk.publicSeed
+            (digestIndex (Id.run (messageDigest (m := Id) (keccakHash π) pk sig.randomizer m)))
+            (digestForsLeaves (Id.run (messageDigest (m := Id) (keccakHash π) pk sig.randomizer m)))
             sig.forsOpening))) = some pk.root := by
   unfold Verification.verify
-  (HashSig.OverPermutation.keccakHash simp) only [Id.run_bind]
+  simp only [Id.run_bind]
   split <;> simp_all
 
 /-- **leanSPHINCS verification by stages**: a signature verifies exactly when, from the FORS key

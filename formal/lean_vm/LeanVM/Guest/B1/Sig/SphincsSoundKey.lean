@@ -63,12 +63,12 @@ theorem forsTreeRecover_cells (pp a0 secret : E) (idx : Index) (c : ForsTreeInde
     (ha0 : a0 = adrsCell0 0 (treeOfIndex 0 idx).val)
     (hsec : opening.secret = cellVal secret)
     (hsib : ∀ z : Fin forsTreeHeight, opening.path z = cellVal (sib z.val)) :
-    Id.run (forsTreeRecover (m := Id) keccakF1600 (cellVal pp) idx c leaf opening) =
+    Id.run (forsTreeRecover (m := Id) (keccakHash keccakF1600) (cellVal pp) idx c leaf opening) =
       cellVal (fRootE pp a0 (adrsCell1 3 (leafOfIndex 0 idx).val 0 0) c.val leaf.val secret sib) := by
   have hc : c.val < 24 := c.isLt
   have hs : leaf.val < 2 ^ 10 := leaf.isLt
   have hfold : ∀ k ≤ 10,
-      Id.run (foldPath (fun level node => tweakableHash (m := Id) keccakF1600 (cellVal pp)
+      Id.run (foldPath (fun level node => tweakableHash (m := Id) (keccakHash keccakF1600) (cellVal pp)
           (.forsNode idx c (level + 1) node)) leaf.val
           (fun level => if h : level < forsTreeHeight then opening.path ⟨level, h⟩ else 0) k
           (cellVal (fLeafE pp a0 (adrsCell1 3 (leafOfIndex 0 idx).val 0 0) c.val leaf.val secret))) =
@@ -165,9 +165,9 @@ theorem forsKey_cells (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T) (h : A
 /-- `fors_pkFromSig` in `Id`: `T_k` of the trees' roots. -/
 theorem forsRecover_id (P : PublicParameter) (idx : Index) (leaves : ForsTreeIndex → ForsLeafIndex)
     (opening : ForsTreeIndex → ForsTreeOpening) :
-    Id.run (forsRecover (m := Id) keccakF1600 P idx leaves opening) =
-      Id.run (forsPublicKey (m := Id) keccakF1600 P idx fun c =>
-        Id.run (forsTreeRecover (m := Id) keccakF1600 P idx c (leaves c) (opening c))) := by
+    Id.run (forsRecover (m := Id) (keccakHash keccakF1600) P idx leaves opening) =
+      Id.run (forsPublicKey (m := Id) (keccakHash keccakF1600) P idx fun c =>
+        Id.run (forsTreeRecover (m := Id) (keccakHash keccakF1600) P idx c (leaves c) (opening c))) := by
   unfold forsRecover
   rw [Id.run_bind, sequenceFin_id]
   rfl
@@ -178,7 +178,7 @@ cells, the FORS key at `fors_pk` is the statement's `fors_pkFromSig` of the open
 theorem forsKey_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T)
     (hA0 : σ sA0B = adrsCell0 0 (layerTreeN T 0))
     (hK : σ sKeyB = adrsCell1 0 (layerLeafN T 0) 0 0) (h : AtomsHold rd σ sForsB.1) :
-    cellVal (σ sForsPk) = Id.run (forsRecover (m := Id) keccakF1600 (cellVal (σ sPP))
+    cellVal (σ sForsPk) = Id.run (forsRecover (m := Id) (keccakHash keccakF1600) (cellVal (σ sPP))
       (digestIndex (digestOf T)) (digestForsLeaves (digestOf T)) fun c => sForsOpeningOf σ c.val) := by
   have hT := hD.1
   have h0 : (treeOfIndex 0 (digestIndex (digestOf T))).val = layerTreeN T 0 := treeOfIndex_digest hT 0
@@ -192,7 +192,7 @@ theorem forsKey_sound (hp : PadOK σ sPad) {T : Nat} (hD : DigestAt σ T)
     rw [hK, h1, lit_of_lt (by norm_num)]
     exact adrsCell1_add_type (by norm_num)
   have hroot : ∀ c : ForsTreeIndex,
-      Id.run (forsTreeRecover (m := Id) keccakF1600 (cellVal (σ sPP)) (digestIndex (digestOf T)) c
+      Id.run (forsTreeRecover (m := Id) (keccakHash keccakF1600) (cellVal (σ sPP)) (digestIndex (digestOf T)) c
           (digestForsLeaves (digestOf T) c) (sForsOpeningOf σ c.val)) =
         cellVal (fRootE (σ sPP) (σ sA0B) (σ sKeyB + lit (3 * 2 ^ 24)) c.val (forsLeafN T c.val)
           (σ (.n (forsTreeBase 1382 c.val))) (forsSib σ sForsBit 1382 c.val)) := by

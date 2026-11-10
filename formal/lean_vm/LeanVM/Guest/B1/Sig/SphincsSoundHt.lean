@@ -53,10 +53,10 @@ open Sphincs Sphincs.Verification
 theorem otsLeaf_of_valid {P : PublicParameter} {layer : Layer} {tree : TreeIndex}
     {lf : TreeLeafIndex} {msg : HashSig.Digest} {ctr : EncodingCounter}
     {values : ChainIndex → HashSig.Digest} {d : HashSig.Digest}
-    (hd : Id.run (tweakableHash (m := Id) keccakF1600 P (.encoding layer tree lf)
+    (hd : Id.run (tweakableHash (m := Id) (keccakHash keccakF1600) P (.encoding layer tree lf)
       (littleEndianBytes 16 msg ++ Sphincs.bigEndianBytes 4 ctr)) = d)
     (hv : TargetSum.Valid (TargetSum.base2bDigits d)) :
-    Id.run (otsLeaf (m := Id) keccakF1600 P layer tree lf msg ctr values) =
+    Id.run (otsLeaf (m := Id) (keccakHash keccakF1600) P layer tree lf msg ctr values) =
       some (wotsLeafOf P layer tree lf d values) := by
   unfold otsLeaf encode
   simp only [Id.run_bind, Id.run_pure] at hd ⊢
@@ -77,7 +77,7 @@ that are cells' values is `pFold` of `pNodeE` at the tree's first address cell. 
 theorem htTreeFold_cells (pp : E) (layer : Layer) (tree : TreeIndex) (lf : TreeLeafIndex)
     (sib : Nat → E) (path : Nat → HashSig.Digest) (v : E) :
     ∀ k, k ≤ 16 → (∀ j < k, path j = cellVal (sib j)) →
-      Id.run (treeFold (m := Id) keccakF1600 (cellVal pp) layer tree lf path k (cellVal v)) =
+      Id.run (treeFold (m := Id) (keccakHash keccakF1600) (cellVal pp) layer tree lf path k (cellVal v)) =
         cellVal (pFold (pNodeE pp (adrsCell0 layer.val tree.val) lf.val sib) k v)
   | 0, _, _ => rfl
   | k + 1, hk, hp => by
@@ -102,13 +102,13 @@ message and the layer's counter, the leaf is the one the layer's chain values re
 digits (which reach the target sum), and the root is the statement's fold of the leaf. -/
 theorem layerReaches_of_cells {P : PublicParameter} {idx : Index} {sig : Sphincs.Signature}
     {l : Layer} {msg root : HashSig.Digest} {enc leaf : HashSig.Digest}
-    (henc : Id.run (tweakableHash (m := Id) keccakF1600 P
+    (henc : Id.run (tweakableHash (m := Id) (keccakHash keccakF1600) P
       (.encoding l (treeOfIndex l idx) (leafOfIndex l idx))
       (littleEndianBytes 16 msg ++ Sphincs.bigEndianBytes 4 (sig.layers l).counter)) = enc)
     (hv : TargetSum.Valid (TargetSum.base2bDigits enc))
     (hleaf : leaf = wotsLeafOf P l (treeOfIndex l idx) (leafOfIndex l idx) enc
       (sig.layers l).chainValues)
-    (hroot : Id.run (treeFold (m := Id) keccakF1600 P l (treeOfIndex l idx) (leafOfIndex l idx)
+    (hroot : Id.run (treeFold (m := Id) (keccakHash keccakF1600) P l (treeOfIndex l idx) (leafOfIndex l idx)
       (layerPath sig l) (layerHeight l) leaf) = root) :
     LayerReaches P idx sig l msg root := by
   rw [layerReaches_iff]
@@ -187,7 +187,7 @@ theorem sLayerPre_sound {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
     {lf : TreeLeafIndex} (hl : layer.val = l) (ha0 : σ a0 = adrsCell0 l tree.val)
     (ha1 : σ a1 = adrsCell1 0 lf.val 0 0) :
     ∃ N < 2 ^ 32, σ (sCtrOf l) = eOfNat N ∧
-      Id.run (tweakableHash (m := Id) keccakF1600 (cellVal (σ sPP)) (.encoding layer tree lf)
+      Id.run (tweakableHash (m := Id) (keccakHash keccakF1600) (cellVal (σ sPP)) (.encoding layer tree lf)
         (littleEndianBytes 16 (cellVal (σ signed)) ++
           Sphincs.bigEndianBytes 4 (BitVec.ofNat 32 (beWordAt 0 N)))) = cellVal (σ (sEncOf l)) := by
   obtain ⟨N, hN, hctr, hE⟩ := sLayerPre_cells hκ hbb hp h

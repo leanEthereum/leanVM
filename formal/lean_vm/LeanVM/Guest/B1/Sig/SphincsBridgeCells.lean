@@ -230,7 +230,7 @@ theorem otsLeaf_cells (pp msg : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeI
         (adrsCell0 layer.val tree.val) (adrsCell1 7 leaf.val 0 0) msg
         (eOfNat (beWordAt 0 ctr.toNat)))) := encode_cells pp msg layer tree leaf ctr
   unfold Sphincs.Verification.otsLeaf
-  (HashSig.OverPermutation.keccakHash rw) [he]
+  rw [he]
   unfold Sphincs.TargetSum.decodeDigest
   split_ifs <;> rfl
 
