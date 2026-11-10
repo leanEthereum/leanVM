@@ -90,5 +90,135 @@ structure MidOK (P P' : LevelCode) (t : ℕ) (εmax : ENNReal) : Prop where
   eQ1 : eQuery P t < 1
   eL : (2 : ENNReal)⁻¹ ^ Whir.batchGrindingBits * eLam P' t ≤ εmax
 
+/-! ## The steps -/
+
+section Steps
+
+variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+
+/-- The commitment appends the next level's word, of its shape. -/
+theorem mid_commit {logN : ℕ} {next : Whir.Level} (hκ : P.κ = P'.ℓ + P'.κ)
+    (hnext : next.fold = P'.ℓ ∧ next.logInvRate = P'.R) (s : WhirState)
+    (rounds : List FoldRound) (cs : List (ℕ × ℕ × Word))
+    (hI : RoundInv μ ℓ₀ w i P pre s rounds cs) (hS : ShapeOK i P cs) (hlen : cs.length = i + 1)
+    (hmu : logN - s.gammas.length = P.κ) (W : Word) (hW : WellShaped (2 * 2 ^ next.fold) W) :
+    RoundInv μ ℓ₀ w i P pre s rounds
+        (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
+      ShapeOK i P
+        (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
+      ShapeOK (i + 1) P'
+        (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
+      (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]).length =
+        i + 2 := by
+  have hi : i < cs.length := by omega
+  refine ⟨?_, ?_, ?_, by simp [hlen]⟩
+  · obtain ⟨h1, h2, h3, h4, h5⟩ := hI
+    exact ⟨h1, h2, h3, h4, by rw [laneO_append _ _ hi]; exact h5⟩
+  · obtain ⟨W₀, hW₀, hl⟩ := hS
+    exact ⟨W₀, by rw [List.getElem?_append_left hi]; exact hW₀, hl⟩
+  · refine ⟨W, ?_, fun v ↦ ?_⟩
+    · rw [List.getElem?_append_right (by omega), hlen, Nat.sub_self]
+      simp only [List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq]
+      refine ⟨by rw [hmu, hnext.1, hnext.2, hκ]; omega, by simp [wdOf, hnext.1]⟩
+    · rw [hW v]; simp [wdOf, hnext.1]
+
+end Steps
+
+/-! ## The interface's doom -/
+
+section Interface
+
+variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P P' : LevelCode) (pre : ℕ)
+
+/-- After the next commitment. -/
+def MidI1 (s : WhirState) (rounds : List FoldRound) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  RoundInv μ ℓ₀ w i P pre s rounds cs ∧ ShapeOK i P cs ∧ ShapeOK (i + 1) P' cs ∧
+    cs.length = i + 2 ∧ rounds.length = P.ℓ
+
+/-- After the out-of-domain points. -/
+def MidI2 (s : WhirState) (rounds : List FoldRound) (high : List E) (pts : List (List E))
+    (cs : List (ℕ × ℕ × Word)) : Prop :=
+  MidI1 μ ℓ₀ w i P P' pre s rounds cs ∧ high.length = P.ℓ ∧
+    pts = [pts.getD 0 [], pts.getD 1 []] ∧ (pts.getD 0 []).length = P.κ ∧
+    (pts.getD 1 []).length = P.κ ∧
+    OodSep2 P' (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (pts.getD 0 []) (pts.getD 1 [])
+
+/-- After the query positions. -/
+def MidI3 (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List FoldRound) (high : List E)
+    (pts : List (List E)) (ys : List E) (qs : List ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  MidI2 μ ℓ₀ w i P P' pre s rounds high pts cs ∧ ys = [ys.getD 0 0, ys.getD 1 0] ∧
+    (∀ q ∈ qs, q < P.n) ∧
+    QDoom P P' hκ (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (runW w ℓ₀ s) s.claim (pts.getD 0 [])
+      (pts.getD 1 []) (ys.getD 0 0) (ys.getD 1 0) (cOf P i cs rounds high) qs
+
+end Interface
+
+section Escapes
+
+variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre : ℕ}
+
+open Classical in
+/-- **The out-of-domain group's escape** is at most `eOod`. -/
+theorem escRet_mid_ood_le (hκ : P.κ = P'.ℓ + P'.κ) (gap : P'.n * P'.deg 0 < P'.thr 0 * P'.thr 0)
+    (s : WhirState) (rounds : List FoldRound) (high : List E) (h₀ : List Ev) (hhigh : high.length = P.ℓ)
+    (hI : MidI1 μ ℓ₀ w i P P' pre s rounds (commits h₀)) :
+    escRet (fun pts h ↦ MidI2 μ ℓ₀ w i P P' pre s rounds high pts (commits h)) h₀ []
+      (sampleOodPoints P.κ 2) ≤ eOod P P' := by
+  set Q' := rowsOf P'.ℓ (laneO (i + 1) (commits h₀) P'.n)
+  refine (escRet_oodPoints_le _ P.κ h₀ (univ.filter fun zz : (Fin P.κ → E) × (Fin P.κ → E) ↦
+    ¬ OodSep2 P' Q' (List.ofFn zz.1) (List.ofFn zz.2)) fun f₁ f₂ hf ↦ ?_).trans ?_
+  · simp only [mem_filter, mem_univ, true_and]
+    intro hsep
+    exact hf ⟨hI, hhigh, rfl, by simp, by simp, by simpa using hsep⟩
+  · rw [eOod]
+    gcongr
+    refine (card_oodSep2_bad_le P' hκ Q').trans ?_
+    gcongr
+    exact card_tlist_le_jl _ _ _ _ gap
+
+open Classical in
+/-- **The query group's escape** is at most `eQuery`. -/
+theorem escRet_mid_queries_le (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A) (hℓ : 1 ≤ P.ℓ)
+    (hℓκ : P.ℓ ≤ 2 ^ P.κ) (s : WhirState) (rounds : List FoldRound) (high : List E)
+    (pts : List (List E)) (ys : List E) (t : ℕ) (h₀ : List Ev)
+    (hI : MidI2 μ ℓ₀ w i P P' pre s rounds high pts (commits h₀))
+    (hys : ys = [ys.getD 0 0, ys.getD 1 0]) :
+    escRet (fun qs h ↦ MidI3 μ ℓ₀ w i P P' pre hκ s rounds high pts ys qs (commits h)) h₀ []
+      (sampleQueries (P.κ + P.R) t) ≤ eQuery P t := by
+  obtain ⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hpts, hz₁, hz₂, hsep⟩ := hI
+  set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
+  have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim (P.thr P.ℓ)
+      (P.deg P.ℓ) := by
+    have h5 := hR.2.2.2.2
+    rw [tviol_rowsOf_congr (show P.ℓ - rounds.length = 0 by omega), hr] at h5
+    have hrow : rowsOf 0 (foldsA P.dom rounds (laneO i (commits h₀) P.n)) =
+        fun _ : Fin 0 → Bool ↦ C := by
+      funext u v
+      simp [rowsOf, C, bitsToNat]
+    rwa [hrow] at h5
+  have hH : (polyOf high).natDegree + 1 ≤ P.ℓ := by
+    have h64 : 2 ^ P.κ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) (le_of_lt P.κ_lt)
+    have := natDegree_polyOf_le high (by rw [hhigh]; exact hℓκ.trans h64)
+    rw [hhigh, max_eq_left hℓ] at this
+    exact this
+  obtain ⟨S, hScard, hSq⟩ := exists_agreeSet P P' hκ hA (rowsOf P'.ℓ (laneO (i + 1) (commits h₀) P'.n))
+    C (runW w ℓ₀ s) s.claim (pts.getD 0 []) (pts.getD 1 []) (ys.getD 0 0) (ys.getD 1 0)
+    (polyOf high) hH (cOf P i (commits h₀) rounds high) (fun q h ↦ by simp [cOf, h, C]) hviol hsep
+  have hdepth : 1 ≤ P.κ + P.R := by have := P.hR; omega
+  refine (escRet_queries_le _ (P.κ + P.R) t hdepth (by have := P.h64; omega) h₀
+    (fun j ↦ ∃ h : j < P.n, (⟨j, h⟩ : Fin P.n) ∈ S) fun qs hqs _ hQ q hq ↦ ?_).trans ?_
+  · refine ⟨hqs q hq, hSq qs (fun hD ↦ hQ ⟨⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hpts, hz₁, hz₂, hsep⟩,
+      hys, hqs, hD⟩) q hq (hqs q hq)⟩
+  · rw [eQuery, Nat.cast_pow, Nat.cast_ofNat]
+    gcongr
+    have : (univ.filter fun j : Fin (2 ^ (P.κ + P.R)) ↦
+        ∃ h : (j : ℕ) < P.n, (⟨j, h⟩ : Fin P.n) ∈ S).card ≤ P.A - 1 := by
+      refine le_trans (card_le_card fun j hj ↦ ?_) (by omega : S.card ≤ P.A - 1)
+      obtain ⟨-, h, hjS⟩ := mem_filter.mp hj
+      exact hjS
+    exact_mod_cast this
+
+end Escapes
+
 end
 end LeanVM.Protocol.Whir.Sound
