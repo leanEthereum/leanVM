@@ -16,7 +16,7 @@ The fields are
 
 `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^3 + y + 1) = GF(2^192)`.
 
-Machine **words** (the contents of a memory cell, an immediate, a hashed value, the `JUMP` condition) are elements of `E`. **Addresses**, the program counter, the frame pointer, read counters, operands, opcodes, and domain separators live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
+Machine **words** (the contents of a memory cell, an immediate, a hashed value) are elements of `E`. **Addresses**, the program counter, the frame pointer, the `JUMP` condition, read counters, operands, opcodes, and domain separators live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
 
 - `+` is field addition = bitwise **XOR** (192-bit on words, so `x + x == 0`),
 - `*` is multiplication in `E`; for g-powers and addresses it stays within `K`,
@@ -299,7 +299,7 @@ else:
     r[1] = 9
 ```
 
-Conditions are field-equality tests: `a == b` or `a != b` (there are no other predicates: order facts come from range-check asserts). The lowering is one `XOR` plus one conditional `JUMP` on it; the taken jump goes to whichever block the test doesn't fall into, so no negation gadget is needed. An `elif` is sugar for an `else` holding a nested `if`.
+Conditions are field-equality tests: `a == b` or `a != b` (there are no other predicates: order facts come from range-check asserts). The lowering is one `XOR` plus one conditional `JUMP` on it; the taken jump goes to whichever block the test doesn't fall into, so no negation gadget is needed. A `JUMP` condition must lie in `K`, so a runtime test needs `a + b` in `K`: both sides in `K` (g-powers, bits, integers below `2^64`), or words that differ only in their lowest limb. Two words that differ above it, such as digest halves, fail at execution with `JUMP condition is not a K-valued word`; `assert a == b` and `assert a != b` take any words. An `elif` is sugar for an `else` holding a nested `if`.
 
 When **both sides are compile-time integers** (e.g. after a `Const` parameter is substituted, `if k % 2 == 0:`), the condition is known at compile time and the `if` **folds** to just the taken branch: no `XOR`, no `JUMP`, no `self-fp`. This is what lets an `@inline` function bake different straight-line code per `Const` value. A side whose integer reading and field reading disagree (`3 + 1` is the integer 4 and the field element 2) is **rejected** rather than folded either way, since the fold and a runtime test of the same condition would answer differently; write `if const(...)` below to decide it with integer arithmetic. Note that the rejection is per side, so it fires however the OTHER side is spelled.
 
