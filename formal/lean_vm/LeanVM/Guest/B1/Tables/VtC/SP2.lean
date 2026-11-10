@@ -103,9 +103,9 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
   have hpad5 : (∀ st ∈ vtPad5T 647, VSH (coreProgram.Rel rd) rd σv st) ∧
       σv (.n (647 + 5)) = paddingWeight (point.take (τ 5)) (n 5) := by
     obtain ⟨w5, w6, w7⟩ := hwp 5 (by norm_num)
-    have hm : Stmt.ite (.n (647 + 15)) [] [.atom (.const (.n (647 + 16)) (word 1 0 0)),
+    have hm : Stmt.ite (.n (647 + 15)) [] [.atom (.const (.n (647 + 16)) (word 1 0)),
       .atom (.assertEq (.n (647 + 6)) (.n (647 + 16))),
-      .atom (.const (.n (647 + 17)) (word 0 0 0)),
+      .atom (.const (.n (647 + 17)) (word 0 0)),
       .atom (.add (.n (647 + 18)) (.n (647 + 7)) (.n (647 + 17))),
       .atom (.hint (.inverse (.n (647 + 18)) (.n (647 + 19)))),
       .atom (.assertNe (.n (647 + 18)) (.n (647 + 19)) (.n (647 + 20)))] ∈ vtPre :=

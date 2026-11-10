@@ -82,7 +82,7 @@ theorem z_keccak {S : List Atom} {w : ℕ → E} {ins outs : List V} {i o : Bool
   · exact z_canon_zero
   · exact hc x (List.mem_of_getElem? h)
 
-theorem z_w32 : word 4294967296 0 0 = gen ^ 32 := by
+theorem z_w32 : word 4294967296 0 = gen ^ 32 := by
   rw [show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num)]
 
 /-- **`challenge_from_state`'s atoms** on a canonical cell `s1`, by their equations. -/

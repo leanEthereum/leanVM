@@ -62,7 +62,7 @@ theorem vtc_side_offsets {rd : Reader} {σ : Val} {lm : ℕ} {τ : ℕ → ℕ}
       ∀ i < vtLen k - 1, σ (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
         σ (.n ((vtBoffData.getD k default).2.2.2 + i)) *
           σ (.n ((vtBoffData.getD k default).2.2.2 - 1)))
-    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0 0)) :
+    (hsideT : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0)) :
     ∀ (base G0 kOff m n v0 s : ℕ), base + n ≤ 153 → s < 3 →
     (∀ r < m, VtRankFacts rd σ v0 s r) →
     (∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) →
@@ -210,7 +210,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
   have hkb : ∀ i < 8, σv (.n (28 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     rcases i with _ | i
-    · rw [vt_constAt hl 8 (e := word 1 0 0) (by decide +kernel), tb_word_one]; simp
+    · rw [vt_constAt hl 8 (e := word 1 0) (by decide +kernel), tb_word_one]; simp
     · have := (hkbR i (by omega)).1
       rw [show 28 + (i + 1) = 29 + i by omega, this]
       rfl
@@ -276,7 +276,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     rwa [show vtGrpA (9 + 0) = 342 from rfl,
       show ∑ k ∈ range 6, vtGrpL (9 + k) = 64 by decide] at this
   -- the exponent tables' sides
-  have hsideT : ∀ e < 24, LoadHolds rd (σv (.n 12)) (212 + e) (word (vtGroupSide e) 0 0) := by
+  have hsideT : ∀ e < 24, LoadHolds rd (σv (.n 12)) (212 + e) (word (vtGroupSide e) 0) := by
     intro e he
     have := hsd e (by simp [sideTabList]; exact he)
     rw [tb_loadHolds_mul_gen_pow] at this
@@ -284,7 +284,7 @@ theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ :
     exact this
   -- one side's ranks
   have hside : ∀ s0 ∈ [0, 2], ∀ r < vtGm s0,
-      LoadHolds rd (σv (.n 12) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 212 (word s0 0 0) := by
+      LoadHolds rd (σv (.n 12) * gen ^ (vtG0 s0 + vtPi lm τ s0 r)) 212 (word s0 0) := by
     intro s0 hs0 r hr
     have hp := vtPi_lt (lm := lm) (τ := τ) hr
     rw [tb_loadHolds_mul_gen_pow, Nat.add_comm]

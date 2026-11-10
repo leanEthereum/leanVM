@@ -59,7 +59,7 @@ def btkR (n : ℕ) (bs : List Bool) (gs : List E) (k : ℕ) : E :=
 /-- Value `s` of nibble `k`. -/
 noncomputable def btkRole (n : ℕ) (eqt gt : E) (bs : List Bool) (zs zs1 gs : List E)
     (rd : Reader) (k s : ℕ) : E :=
-  if s = 0 then gen ^ btkU n bs k else if s = 1 then word (2 ^ (2 ^ btW n k - 1)) 0 0
+  if s = 0 then gen ^ btkU n bs k else if s = 1 then word (2 ^ (2 ^ btW n k - 1)) 0
   else if s = 2 then gen ^ (2 ^ btW n k - 1 - btkU n bs k)
   else if s = 3 then cskRd rd (btkU n bs k)
   else if s = 4 then cskRd rd (2 ^ btW n k - 1 - btkU n bs k)
@@ -72,7 +72,7 @@ noncomputable def btkRole (n : ℕ) (eqt gt : E) (bs : List Bool) (zs zs1 gs : L
 noncomputable def btkVal (n : ℕ) (sb eqt gt : E) (bs : List Bool) (zs zs1 gs : List E)
     (rd : Reader) (x : ℕ) : E :=
   if x = 0 then sb else if x = 1 then eqt else if x = 2 then gt
-  else if n = 0 then word 1 0 0
+  else if n = 0 then word 1 0
   else if x < 12 then btkRole n eqt gt bs zs zs1 gs rd 0 (x - 3)
   else if x < btC (btN n) then btkRole n eqt gt bs zs zs1 gs rd (1 + (x - 12) / 11) ((x - 12) % 11)
   else if x = btC (btN n) then btkS n bs zs zs1 (btN n - 1)
@@ -267,7 +267,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
         have h := tbReadsAt_getD hbr (k := k) (by simpa [nibDigits, hbl, btN] using hk)
         rwa [btk_digit hbl hk] at h
       have hrc : LoadHolds rd (gen ^ btkU n bs k) 0 (cskRd rd (btkU n bs k)) ∧
-          word (2 ^ (2 ^ btW n k - 1)) 0 0 =
+          word (2 ^ (2 ^ btW n k - 1)) 0 =
             gen ^ btkU n bs k * gen ^ (2 ^ btW n k - 1 - btkU n bs k) ∧
           LoadHolds rd (gen ^ (2 ^ btW n k - 1 - btkU n bs k)) 0
             (cskRd rd (2 ^ btW n k - 1 - btkU n bs k)) :=

@@ -81,8 +81,8 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
 /-- **The `KECCAK` table's height**, its floor `9`. -/
 theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤ v)
     (hg : GoodL rd w σ (vtPad5T v))
-    (hgb : GoodL rd w σ [.atom (.const (.n (v + 16)) (word 1 0 0)),
-      .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0 0)),
+    (hgb : GoodL rd w σ [.atom (.const (.n (v + 16)) (word 1 0)),
+      .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0)),
       .atom (.add (.n (v + 18)) (.n (v + 7)) (.n (v + 17))),
       .atom (.hint (.inverse (.n (v + 18)) (.n (v + 19)))),
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))])
@@ -113,7 +113,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 36 ≤
   have e5 : σ (.n (v + 5)) = paddingWeight zs n := by rw [g5, hw5]
   have e6 : σ (.n (v + 6)) = PadLead τ n := by rw [g6, hw6]
   have e7 : σ (.n (v + 7)) = PadRest τ n := by rw [g7, hw7]
-  have w512 : word 512 0 0 = gen ^ 9 := by
+  have w512 : word 512 0 = gen ^ 9 := by
     rw [show (512 : ℕ) = 2 ^ 9 by norm_num, tb_word_two_pow (by norm_num)]
   have e9 : σ (.n (v + 9)) = gen ^ 9 := by rw [g9, w512]
   have e10 : σ (.n (v + 10)) = gen ^ (τ - 9) := by rw [g10, hkb, e9, gen_pow_div (by omega)]
