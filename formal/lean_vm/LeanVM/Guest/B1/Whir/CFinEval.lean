@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CBlk
+public import LeanVM.Guest.Memory.Straight
 
 /-!
 # Straight-line blocks, evaluated
@@ -262,6 +263,18 @@ theorem ssa_blk {H : CallRel → Reader → Prop} {σ : Val} {Pt : ℕ → E} {w
   have hok := ssa_allOk h _ σ' hv (hs C rd hH σ' ha hr)
   exact ⟨hok, hside C rd hH σ' ha hr hok⟩
 
+theorem Ssa.evalV_append {M : E → ℕ → E} {Pt : ℕ → E} {w w1 : ℕ} {a : List Stmt} (ha : Ssa w a w1)
+    (v : ℕ → E) (b : List Stmt) : evalV M Pt w v (a ++ b) = evalV M Pt w1 (evalV M Pt w v a) b := by
+  induction ha generalizing v with
+  | nil => rfl
+  | cons h1 _ ih => simp only [List.cons_append, evalV, h1.wm, ih]
+
+/-- A block's values below its watermark are its prefix's. -/
+theorem Ssa.evalV_lt {M : E → ℕ → E} {Pt : ℕ → E} {w w1 w2 : ℕ} {a b : List Stmt} (ha : Ssa w a w1)
+    (hb : Ssa w1 b w2) (v : ℕ → E) {j : ℕ} (hj : j < w1) :
+    evalV M Pt w v (a ++ b) j = evalV M Pt w v a j := by
+  rw [ha.evalV_append, hb.keep _ j hj]
+
 /-! ## Pure blocks: definitions and fresh loads only -/
 
 /-- **A pure block in order**: constants, sums, products, copies and fresh loads, each past the
@@ -335,6 +348,35 @@ theorem SsaP.sidesOk {M : E → ℕ → E} {Pt : ℕ → E} {C : CallRel} {rd : 
       exact hM p off (by simp [loadsOf])
     · simp only [stepW, h1, ↓reduceIte]
       exact ih fun p' o' hm ↦ hM p' o' (by simp [loadsOf, hm])
+
+/-! ## Allocations -/
+
+/-- **A block's allocations**, in order: each pointer's value and its size (a dynamic one's the
+exponent of its size word). -/
+noncomputable def AllocsAt (σ : Val) (ss : List Stmt) : List (E × ℕ) :=
+  (ss.filterMap Memory.Stmt.allocSz).map fun x ↦ (σ x.1, x.2.elim id fun s ↦ Memory.logG (σ s))
+
+theorem allocsAt_append (σ : Val) (a b : List Stmt) :
+    AllocsAt σ (a ++ b) = AllocsAt σ a ++ AllocsAt σ b := by
+  simp [AllocsAt, List.filterMap_append]
+
+theorem allocsAt_cons (σ : Val) (s : Stmt) (ss : List Stmt) :
+    AllocsAt σ (s :: ss) = AllocsAt σ [s] ++ AllocsAt σ ss := by
+  rw [← allocsAt_append]; rfl
+
+/-- A pure block allocates nothing. -/
+theorem SsaP.allocs {w w' : ℕ} {ss : List Stmt} (h : SsaP w ss w') (σ : Val) : AllocsAt σ ss = [] := by
+  induction h with
+  | nil => rfl
+  | const _ _ ih | add _ _ _ _ ih | mul _ _ _ _ ih | copy _ _ _ ih | load _ _ _ ih =>
+    rw [allocsAt_cons, ih]; rfl
+
+/-- A `HeapBuf(g^e)` at `k`: its pointer `k + 1`, its size `e`. -/
+theorem allocsAt_heap (σ : Val) (e k : ℕ) (he : e < 2 ^ 64 - 1) (hs : σ (.n k) = gw e) :
+    AllocsAt σ (osHeap e k) = [(σ (.n (k + 1)), e)] := by
+  simp only [AllocsAt, osHeap, List.filterMap_cons, Memory.Stmt.allocSz, List.filterMap_nil,
+    List.map_cons, List.map_nil, Sum.elim_inr, hs, gw_eq (show e < u128Bound by unfold u128Bound; omega)]
+  rw [Memory.logG_gen_pow he]
 
 end
 end LeanVM.Guest.B1.Whir
