@@ -54,6 +54,28 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
     Ok(())
 }
 
+/// The Canopy message carries each forest root as its `2^CANOPY_DIGEST_WORDS_LOG` little-endian K words: a digest
+/// never fits one E element without truncation, which would halve its collision security.
+pub const CANOPY_DIGEST_WORDS_LOG: usize = 2;
+
+/// Whether the L0 commitment at this rate is a Canopy commitment: the L0 tree is cut to a forest whose roots are the
+/// message of a codeword in the L1 code, committed in its stead (the PCS annex, "Canopy commitment").
+///
+/// Only the two highest rates gain: the forest saves the siblings above it on every L0 query and costs a second tree
+/// opened at the L1 queries, and the L0 queries outnumber the L1 ones less and less as the rate falls.
+pub fn canopy_enabled(log_inv_rate: usize) -> bool {
+    matches!(log_inv_rate, 1 | 2)
+}
+
+/// The forest height `h' = R0 + 2` of a Canopy commitment at L0 rate `2^-R0`, `None` where Canopy is off.
+///
+/// The Canopy message is a word of the L1 message length `2^(log_n - k0)`, four words a root, so the forest has
+/// `2^(log_n - k0 - 2)` roots over the `2^(log_n - k0 + R0)` L0 leaves: whatever `log_n` and `k0`, each subtree
+/// covers `2^(R0 + 2)` leaves.
+pub fn canopy_height(log_inv_rate: usize) -> Option<usize> {
+    canopy_enabled(log_inv_rate).then_some(log_inv_rate + CANOPY_DIGEST_WORDS_LOG)
+}
+
 /// Per-level query-phase proof-of-work budget. These bits are ground after the
 /// level commitment and before its query positions are sampled, so the query
 /// count only needs to close the remaining `SECURITY_BITS - 17` bits.
@@ -112,6 +134,8 @@ pub struct ProverConfig {
     /// L0 is bound by the opening's own (post-commit, random-point)
     /// evaluation claim. Length = level_steps + 1.
     pub ood_samples: Vec<usize>,
+    /// The Canopy forest height when the L0 commitment is a Canopy commitment ([`canopy_height`]).
+    pub canopy_height: Option<usize>,
 }
 
 /// The per-level shape table a [`ProverConfig`] implies for a
@@ -217,6 +241,7 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
         level_ks: shape.k_levels[1..].to_vec(),
         grinding_bits: vec![0usize; n_levels],
         ood_samples: vec![0usize; n_levels],
+        canopy_height: None,
     })
 }
 
@@ -399,6 +424,8 @@ pub struct WhirSecurityConfig {
     pub levels: Vec<WhirLevelConfig>,
     /// Final residual block descriptor.
     pub final_block: FinalBlockConfig,
+    /// The Canopy forest height, when the L0 commitment is a Canopy commitment ([`canopy_height`]).
+    pub canopy_height: Option<usize>,
 }
 
 /// Extension-field size used for soundness analysis: `q = 2^192`.
@@ -514,36 +541,56 @@ fn johnson_interleaved_list_log2(log_inv_rate: usize, log_msg_cols: usize, eta: 
 ///   understate the degree and overstate the bound. At L0 there is no previous
 ///   level and `J_0` is set by the outer protocol's claim pool rather than by a
 ///   query count, so 0 is passed; that pool is a few hundred claims, orders below
-///   the ring-switch degree the `max` takes anyway; and
+///   the ring-switch degree the `max` takes anyway;
+/// - under Canopy, at L1, `canopy_degree`: the c-claim batch's degree in its
+///   own challenge, over the list of the L1 code the Canopy codeword lies in
+///   (one claim from the commit-time OOD sample and four per L0 query, so
+///   `4 n_0`); and
 /// - 2 for quadratic sumcheck.
+///
+/// The two-vector batch `f1 + beta c` needs no row of its own: `(f1, c)` is one
+/// word of twice the L1 interleaving, and `beta` one more fold challenge on it,
+/// which the L1 fold row covers whatever the interleaving (`lem:fold-list`).
 fn johnson_algebraic_bits_for(
     log_inv_rate: usize,
     log_msg_cols: usize,
     eta: f64,
     prev_queries: usize,
     ood_samples: usize,
+    canopy_degree: usize,
 ) -> f64 {
     let log2_l = johnson_interleaved_list_log2(log_inv_rate, log_msg_cols, eta);
     let degree = crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE
         .max(prev_queries + ood_samples)
+        .max(canopy_degree)
         .max(2);
     ANALYSIS_LOG_Q - (degree as f64).log2() - log2_l
 }
 
-/// `prev_queries` is `levels[i-1].queries`, and 0 for `i = 0`.
-fn johnson_algebraic_bits(level: &WhirLevelConfig, prev_queries: usize) -> f64 {
+/// `prev_queries` is `levels[i-1].queries`, and 0 for `i = 0`; `canopy_degree` is [`canopy_degree_at`]'s.
+fn johnson_algebraic_bits(level: &WhirLevelConfig, prev_queries: usize, canopy_degree: usize) -> f64 {
     johnson_algebraic_bits_for(
         level.log_inv_rate,
         level.log_msg_cols,
         level.eta,
         prev_queries,
         level.ood_samples,
+        canopy_degree,
     )
 }
 
 /// The query count the batch at `levels[i]` carries claims from.
 fn prev_queries_at(levels: &[WhirLevelConfig], i: usize) -> usize {
     if i == 0 { 0 } else { levels[i - 1].queries }
+}
+
+/// The degree of the Canopy c-claim batch entering `levels[i]`: `4 n_0` at L1 under Canopy, 0 elsewhere.
+fn canopy_degree_at(levels: &[WhirLevelConfig], i: usize, canopy: bool) -> usize {
+    if canopy && i == 1 {
+        levels[0].queries << CANOPY_DIGEST_WORDS_LOG
+    } else {
+        0
+    }
 }
 
 /// OOD binding bits for a level. `mu_vars` is the level's multilinear
@@ -599,6 +646,10 @@ fn johnson_eta_for_m(log_inv_rate: usize, log_msg_cols: usize, m: usize) -> f64 
 /// discrete `m` search but using this implementation's exact reduced rate and
 /// corrected BCHKS25 parameter. Candidates must satisfy every non-grindable
 /// 128-bit term and the proximity-gap target without fold grinding.
+///
+/// `canopy_degree` is nonzero at L1 under Canopy ([`canopy_degree_at`]), where the Canopy codeword's single
+/// commit-time OOD sample must also bind the L1 code's list.
+#[allow(clippy::too_many_arguments)]
 fn optimize_johnson_level(
     level: usize,
     log_inv_rate: usize,
@@ -607,6 +658,7 @@ fn optimize_johnson_level(
     target_bits: usize,
     query_grinding_bits: usize,
     prev_queries: usize,
+    canopy_degree: usize,
 ) -> Result<OptimizedJohnsonLevel, String> {
     let target = target_bits as f64;
     let query_target = target_bits.saturating_sub(query_grinding_bits).max(1) as f64;
@@ -646,9 +698,16 @@ fn optimize_johnson_level(
             }
         };
         let eps_ood = paper_ood_bits(log_inv_rate, log_msg_cols, eta, mu, ood_samples);
-        if eps_ood + 1e-12 < target
-            || johnson_algebraic_bits_for(log_inv_rate, log_msg_cols, eta, prev_queries, ood_samples) + 1e-12 < target
-        {
+        let canopy_ood = canopy_degree == 0 || paper_ood_bits(log_inv_rate, log_msg_cols, eta, mu, 1) + 1e-12 >= target;
+        let algebraic = johnson_algebraic_bits_for(
+            log_inv_rate,
+            log_msg_cols,
+            eta,
+            prev_queries,
+            ood_samples,
+            canopy_degree,
+        );
+        if eps_ood + 1e-12 < target || !canopy_ood || algebraic + 1e-12 < target {
             continue;
         }
 
@@ -689,6 +748,56 @@ impl WhirLevelConfig {
     fn paper_predicted_ood_bits(&self) -> f64 {
         let mu = self.log_msg_cols + self.log_num_interleaved;
         paper_ood_bits(self.log_inv_rate, self.log_msg_cols, self.eta, mu, self.ood_samples)
+    }
+}
+
+impl WhirSecurityConfig {
+    /// The binding bits of the Canopy codeword's commit-time OOD sample: one sample over the list of the L1 code, which
+    /// the codeword lies in. `None` without Canopy.
+    pub fn canopy_ood_bits(&self) -> Option<f64> {
+        self.canopy_height?;
+        let l1 = self.levels.get(1)?;
+        let mu = l1.log_msg_cols + l1.log_num_interleaved;
+        Some(paper_ood_bits(l1.log_inv_rate, l1.log_msg_cols, l1.eta, mu, 1))
+    }
+
+    /// The Canopy rows of `thm:rbr` (the PCS annex, "Canopy commitment"), past what the per-level checks cover.
+    ///
+    /// - The Canopy codeword is a word of the L1 code: four words per forest root make an L1 message, so the forest
+    ///   cuts the L0 tree at `h' = R0 + 2`.
+    /// - Its commit-time OOD sample binds it to one member of the L1 list before any challenge, and with it the L0
+    ///   word whose forest roots that member's message holds.
+    /// - The c-claim batch's degree enters the L1 algebraic check ([`canopy_degree_at`]), and the two-vector batch
+    ///   is an L1 fold ([`johnson_algebraic_bits_for`]).
+    fn validate_canopy(&self) -> Result<(), String> {
+        let Some(height) = self.canopy_height else {
+            return Ok(());
+        };
+        let [l0, l1, ..] = &self.levels[..] else {
+            return Err("Canopy: the Canopy codeword needs an L1 code".into());
+        };
+        if canopy_height(l0.log_inv_rate) != Some(height) {
+            return Err(format!(
+                "Canopy: forest height {height} at L0 rate 1/2^{} is not the aligned one {:?}",
+                l0.log_inv_rate,
+                canopy_height(l0.log_inv_rate)
+            ));
+        }
+        let l0_leaves = l0.log_msg_cols + l0.log_inv_rate;
+        let l1_message = l1.log_msg_cols + l1.log_num_interleaved;
+        if l0_leaves < height || l0_leaves - height + CANOPY_DIGEST_WORDS_LOG != l1_message {
+            return Err(format!(
+                "Canopy: 2^{l0_leaves} L0 leaves in subtrees of 2^{height} are not an L1 message of 2^{l1_message} words"
+            ));
+        }
+        let ood = self.canopy_ood_bits().expect("Canopy has an L1 code");
+        if ood + 1e-12 < self.target_security_bits as f64 {
+            return Err(format!(
+                "Canopy: commit-time OOD binding ({ood:.2} bits) < target ({})",
+                self.target_security_bits
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -836,7 +945,8 @@ impl WhirSecurityConfig {
             // The largest list-unioned algebraic identity test (currently the
             // composed ring-switch batching map) is not grindable and must
             // clear the target.
-            let algebraic = johnson_algebraic_bits(lv, prev_queries_at(&self.levels, i));
+            let canopy_degree = canopy_degree_at(&self.levels, i, self.canopy_height.is_some());
+            let algebraic = johnson_algebraic_bits(lv, prev_queries_at(&self.levels, i), canopy_degree);
             if algebraic + 1e-12 < lv.target_security_bits as f64 {
                 return Err(format!(
                     "L{i}: list-unioned algebraic soundness ({algebraic:.2} bits) < target ({})",
@@ -860,6 +970,7 @@ impl WhirSecurityConfig {
                 "after consuming all levels, dim_in ({dim_in}) ≠ yr_log_n ({yr_log_n})"
             ));
         }
+        self.validate_canopy()?;
 
         // Round-by-round soundness (doc/leanvm/body/b-polynomial-commitment-scheme.tex, Thm `thm:rbr`): each
         // verifier-challenge transition is checked against
@@ -895,13 +1006,24 @@ impl WhirSecurityConfig {
         // this configuration targets 128-bit RBR soundness, as required by the
         // Fiat--Shamir analysis, rather than 128-bit interactive soundness after
         // summing every transition probability.
+        let canopy = canopy_enabled(log_inv_rate);
         let mut levels = Vec::with_capacity(n_levels);
         for i in 0..n_levels {
             let rate = shape.log_inv_rates[i];
             let cols = shape.log_msg_cols[i];
             let ilv = shape.k_levels[i];
             let prev_queries = prev_queries_at(&levels, i);
-            let optimized = optimize_johnson_level(i, rate, cols, ilv, target_bits, query_grind, prev_queries)?;
+            let canopy_degree = canopy_degree_at(&levels, i, canopy);
+            let optimized = optimize_johnson_level(
+                i,
+                rate,
+                cols,
+                ilv,
+                target_bits,
+                query_grind,
+                prev_queries,
+                canopy_degree,
+            )?;
 
             levels.push(WhirLevelConfig {
                 log_inv_rate: rate,
@@ -925,6 +1047,7 @@ impl WhirSecurityConfig {
             final_block: FinalBlockConfig {
                 yr_log_n: shape.yr_log_n,
             },
+            canopy_height: canopy_height(log_inv_rate),
         };
         cfg.validate()?;
         Ok(cfg)
@@ -941,6 +1064,7 @@ impl WhirSecurityConfig {
             queries: self.levels.iter().map(|lv| lv.queries).collect(),
             grinding_bits: self.levels.iter().map(|lv| lv.grinding_bits).collect(),
             ood_samples: self.levels.iter().map(|lv| lv.ood_samples).collect(),
+            canopy_height: self.canopy_height,
         })
     }
 }
@@ -972,10 +1096,12 @@ mod tests {
                 assert_eq!(cfg.target_security_bits, 128);
                 assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
                 assert_eq!(cfg.levels[0].ood_samples, 0);
+                assert_eq!(cfg.canopy_height, canopy_height(log_inv_rate));
                 for (i, level) in cfg.levels.iter().enumerate() {
                     let (pg_bits, query_bits) = level.paper_predicted_bits();
                     let ood_bits = level.paper_predicted_ood_bits();
-                    let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i));
+                    let canopy_degree = canopy_degree_at(&cfg.levels, i, cfg.canopy_height.is_some());
+                    let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i), canopy_degree);
                     min_pg_bits = min_pg_bits.min(pg_bits);
                     assert_eq!(level.grinding_bits, QUERY_GRINDING_BITS);
                     assert!(query_bits + level.grinding_bits as f64 >= 128.0);
@@ -986,12 +1112,53 @@ mod tests {
                         assert_eq!(level.ood_samples, 1);
                     }
                 }
+                // Canopy: the commit-time OOD sample binds the L1 list, and the c-claim batch, of degree four
+                // claims per L0 query, stays below the ring-switch degree the L1 algebraic row already pays.
+                if canopy_enabled(log_inv_rate) {
+                    assert!(cfg.canopy_ood_bits().unwrap() >= 128.0);
+                    assert!(canopy_degree_at(&cfg.levels, 1, true) < crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE);
+                } else {
+                    assert_eq!(cfg.canopy_ood_bits(), None);
+                }
             }
         }
         assert!(
             (128.0..129.0).contains(&min_pg_bits),
             "eta search should use, but not exceed, the one-bit PG margin: {min_pg_bits}"
         );
+    }
+
+    /// The Canopy forest's roots, four words each, are an L1 message at every size and enabled rate, and a forest of
+    /// any other height is refused.
+    #[test]
+    fn canopy_height_matches_alignment() {
+        for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+            assert_eq!(canopy_height(log_inv_rate).is_some(), log_inv_rate <= 2);
+            let Some(height) = canopy_height(log_inv_rate) else {
+                continue;
+            };
+            assert_eq!(height, log_inv_rate + 2);
+            for log_n in 15..=28 {
+                let mut cfg =
+                    WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)
+                        .unwrap();
+                let l0_leaves = log_n - INITIAL_FOLDING_FACTOR + log_inv_rate;
+                let l1 = &cfg.levels[1];
+                assert_eq!(
+                    (log_n - 8) + height,
+                    l0_leaves,
+                    "log_n {log_n}, rate 1/2^{log_inv_rate}"
+                );
+                assert_eq!(
+                    log_n - 8 + CANOPY_DIGEST_WORDS_LOG,
+                    l1.log_msg_cols + l1.log_num_interleaved
+                );
+                for wrong in [height - 1, height + 1] {
+                    cfg.canopy_height = Some(wrong);
+                    assert!(cfg.validate().is_err(), "forest height {wrong} accepted");
+                }
+            }
+        }
     }
 
     /// Parameter-report helper:
@@ -1024,6 +1191,106 @@ mod tests {
                 pretty_integer(params.queries),
                 pretty_integer(johnson_m_param(params.log_inv_rate, params.log_msg_cols, eta) as usize),
             );
+        }
+        if let Some(height) = cfg.canopy_height {
+            println!(
+                "Canopy: forest height {height}, commit-time OOD binding {:.2} bits",
+                cfg.canopy_ood_bits().expect("Canopy has an L1 code")
+            );
+        }
+    }
+
+    /// One Merkle phase of `queries` random positions below `2^height`: its wire bytes, the native verifier's
+    /// permutations (one full leaf image and one parent per level a path climbs) and the guest's `KECCAK`s (the rows
+    /// alone, a path to a cap of `ceil(log2 queries)` levels and the cap's nodes the paths reach), for paths that
+    /// climb `levels` levels, with or without a cap.
+    fn phase_cost(positions: &[usize], height: usize, leaf_words: usize, row_words: usize, levels: usize) -> [f64; 3] {
+        let perms = |bytes: usize| (bytes / primitives::hash::RATE + 1) as f64;
+        let distinct: std::collections::BTreeSet<usize> = positions.iter().copied().collect();
+        let climb = |mut nodes: std::collections::BTreeSet<usize>, levels: usize| {
+            let mut siblings = 0;
+            for _ in 0..levels {
+                siblings += nodes.iter().filter(|&&x| !nodes.contains(&(x ^ 1))).count();
+                nodes = nodes.iter().map(|&x| x >> 1).collect();
+            }
+            (siblings, nodes)
+        };
+        let (siblings, _) = climb(distinct.clone(), levels);
+        let bytes = 4 + 4 * positions.len() + 16 + distinct.len() * row_words * 8 + siblings * 32;
+        let q = positions.len() as f64;
+        let native = q * (perms(8 * leaf_words) + levels as f64);
+        let guest = if levels == height {
+            let cap = (positions.len().next_power_of_two().ilog2() as usize).min(height);
+            let (_, mut nodes) = climb(distinct, height - cap);
+            let mut active = 0;
+            for _ in 0..cap {
+                nodes = nodes.iter().map(|&x| x >> 1).collect();
+                active += nodes.len();
+            }
+            q * (perms(8 * row_words) + (height - cap) as f64) + active as f64
+        } else {
+            q * (perms(8 * row_words) + levels as f64)
+        };
+        [bytes as f64, native, guest]
+    }
+
+    /// Canopy cost model, a port of the study's: PCS Merkle bytes, native Merkle-path permutations and guest Merkle
+    /// `KECCAK`s per proof, without and with Canopy (the forest phase in place of the L0 phase, a phase of the Canopy
+    /// codeword at the L1 positions, and six more scalars), at the production query counts, averaged over random
+    /// positions. `WHIR_LANES` is the committed lane count (default 45).
+    /// `cargo test --release -p pcs print_canopy_proof_model -- --ignored --nocapture`
+    #[test]
+    #[ignore = "manual parameter report"]
+    fn print_canopy_proof_model() {
+        const SAMPLES: usize = 200;
+        let lanes: usize = std::env::var("WHIR_LANES").map_or(45, |v| v.parse().expect("WHIR_LANES is a count"));
+        let mut rng = primitives::test_rng::Rng::new(7);
+        println!("rate log_n h' | KiB base canopy delta | native base canopy | guest base canopy");
+        for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+            let height = canopy_height(log_inv_rate).unwrap_or(log_inv_rate + CANOPY_DIGEST_WORDS_LOG);
+            for log_n in 22..=28 {
+                let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)
+                    .unwrap();
+                let (mut base, mut canopy) = ([0.0; 3], [0.0; 3]);
+                for _ in 0..SAMPLES {
+                    for (i, level) in cfg.levels.iter().enumerate() {
+                        let tree = level.log_msg_cols + level.log_inv_rate;
+                        let positions: Vec<usize> = (0..level.queries)
+                            .map(|_| rng.next_u64() as usize & ((1 << tree) - 1))
+                            .collect();
+                        let (leaf_words, row_words) = match i {
+                            0 => (1 << level.log_num_interleaved, lanes),
+                            _ => (3 << level.log_num_interleaved, 3 << level.log_num_interleaved),
+                        };
+                        let phase = phase_cost(&positions, tree, leaf_words, row_words, tree);
+                        let add = |cost: &mut [f64; 3], phase: [f64; 3]| {
+                            cost.iter_mut().zip(phase).for_each(|(c, p)| *c += p / SAMPLES as f64)
+                        };
+                        add(&mut base, phase);
+                        match i {
+                            0 => add(&mut canopy, phase_cost(&positions, tree, leaf_words, row_words, height)),
+                            1 => {
+                                let c_words = 1 << level.log_num_interleaved;
+                                add(&mut canopy, phase);
+                                add(&mut canopy, phase_cost(&positions, tree, c_words, c_words, tree));
+                            }
+                            _ => add(&mut canopy, phase),
+                        }
+                    }
+                }
+                canopy[0] += 6.0 * 24.0;
+                println!(
+                    "1/{} {log_n} {height} | {:.1} {:.1} {:+.1} | {:.0} {:.0} | {:.0} {:.0}",
+                    1 << log_inv_rate,
+                    base[0] / 1024.0,
+                    canopy[0] / 1024.0,
+                    (canopy[0] - base[0]) / 1024.0,
+                    base[1],
+                    canopy[1],
+                    base[2],
+                    canopy[2],
+                );
+            }
         }
     }
 }
