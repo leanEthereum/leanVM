@@ -12,6 +12,7 @@ public import LeanVM.Protocol.Whir.Sound.Code
 public import LeanVM.Protocol.Whir.ColumnWeight
 public import LeanVM.Protocol.EndToEnd.Claims
 public import LeanVM.Protocol.Verifier
+public import LeanVM.Protocol.Whir.SubspaceAt
 
 /-!
 # The verifier's weights
@@ -178,72 +179,46 @@ theorem isMultiaffine_of_isMultilinearFn {μ : ℕ} {w : List E → E} (hw : IsM
 
 /-! ## The induced weight -/
 
-/-- The root `W_i(e_i)`, in `E`. -/
-abbrev rootE (i : ℕ) : E := ofK (vanishingAt i (basisVec i))
-
-private theorem ofK_pow' (a : K) (m : ℕ) : ofK (a ^ m) = ofK a ^ m :=
-  map_pow (algebraMap K E) a m
-
-private theorem vanishingAt_zero' (a : K) : vanishingAt 0 a = a := by
-  simp [vanishingAt]
-
-private theorem subspaceRootsAux_eq (k j : ℕ) :
-    subspaceRootsAux k (rootE j)
-        ((List.range' (j + 1) k).map fun c ↦ ofK (vanishingAt j (basisVec c))) =
-      (List.range' (j + 1) k).map rootE := by
-  induction k generalizing j with
-  | zero => rfl
-  | succ k ih =>
-    have hstep : ∀ c, ofK (vanishingAt j (basisVec c)) ^ 2 +
-        rootE j * ofK (vanishingAt j (basisVec c)) = ofK (vanishingAt (j + 1) (basisVec c)) := by
-      intro c
-      rw [vanishingAt_succ, ofK_add, ofK_mul, ofK_pow']
-    rw [List.range'_succ]
-    simp only [subspaceRootsAux, List.map_cons, List.map_map, Function.comp_def, hstep]
-    have := ih (j + 1)
-    simp only [show j + 1 + 1 = j + 2 by omega] at this ⊢
-    rw [this]
-
-/-- The verifier's `subspace_roots(n)` is `[W_0(e_0), …, W_n(e_n)]`. -/
-theorem subspaceRoots_eq_closed (n : ℕ) :
-    Verifier.subspaceRoots n = (List.range (n + 1)).map rootE := by
-  have h1 : rootE 0 = 1 := by simp [rootE, vanishingAt_zero', basisVec_zero]
-  have hl : (List.range n).map (fun i ↦ eOfNat (2 ^ (i + 1))) =
-      (List.range' (0 + 1) n).map fun c ↦ ofK (vanishingAt 0 (basisVec c)) := by
-    refine List.ext_getElem (by simp) fun i h₁ h₂ ↦ ?_
-    simp [eOfNat, vanishingAt_zero', basisVec, add_comm]
-  rw [Verifier.subspaceRoots, hl, ← h1, subspaceRootsAux_eq n 0, List.range_eq_range',
-    List.range'_succ, List.map_cons]
-
-/-- The verifier's `subspace_roots` is the Annex transcription's. -/
-theorem subspaceRoots_eq_whir (n : ℕ) : Verifier.subspaceRoots n = Whir.subspaceRoots n := by
-  rw [subspaceRoots_eq_closed, Whir.subspaceRoots_eq]
-
-/-- The verifier's `induced_weight` is the Annex transcription's on well-formed input. -/
-theorem inducedWeight_eq_whir (n : ℕ) (qs : List ℕ) (ws p : List E) (hp : p.length = n)
-    (hw : ws.length = qs.length) :
-    Verifier.inducedWeight n qs ws p = (Whir.inducedWeight n qs ws p).getD 0 := by
-  simp only [Verifier.inducedWeight, Whir.inducedWeight, hp, hw, and_self, ite_true,
-    Option.getD_some, subspaceRoots_eq_whir]
-  rfl
-
 /-- The per-query factor of the induced weight at coordinate `i`: `(1 + r) + r·Ŵ_i(x_q)`. -/
 def colFactor (q i : ℕ) (r : E) : E := (1 + r) + r * ofK (normVanishingAt i (K.ofBits q))
 
-/-- **The induced weight in closed form**: `Σ_q w_q Π_i ((1 + r_i) + r_i Ŵ_i(x_q))`. -/
+/-- The product loop of `induced_weight` over the coordinates from `s`. -/
+private theorem foldl_colFactor (q : ℕ) : ∀ (l : List E) (s k : ℕ) (w : E), l.length ≤ k →
+    (List.zip l ((List.range' s k).map fun i ↦ normVanishingAt i (K.ofBits q))).foldl
+        (fun product (cv : E × K) ↦ product * (1 + cv.1 * ofK (1 + cv.2))) w =
+      w * ∏ i ∈ Finset.range l.length, colFactor q (s + i) (l.getD i 0)
+  | [], _, _, w, _ => by simp
+  | c :: l, s, k + 1, w, h => by
+    rw [List.range'_succ, List.map_cons, List.zip_cons_cons, List.foldl_cons,
+      foldl_colFactor q l (s + 1) k _ (by simpa using h), List.length_cons,
+      Finset.prod_range_succ']
+    simp only [List.getD_cons_zero, Nat.add_zero, List.getD_cons_succ, colFactor, ofK_add]
+    rw [show (ofK 1 : E) = 1 from map_one (algebraMap K E)]
+    have : ∀ i : ℕ, s + 1 + i = s + (i + 1) := fun i ↦ by omega
+    simp only [this]
+    ring
+  | _ :: _, _, 0, _, h => by simp at h
+
+/-- A left fold adding `f` from `0` is the sum of the `f`s. -/
+theorem foldl_add_sum_map {γ : Type*} (f : γ → E) : ∀ (L : List γ) (a : E),
+    L.foldl (fun acc c ↦ acc + f c) a = a + (L.map f).sum
+  | [], a => by simp
+  | c :: L, a => by rw [List.foldl_cons, foldl_add_sum_map f L, List.map_cons, List.sum_cons,
+      add_assoc]
+
+/-- **The induced weight in closed form**: `Σ_q w_q Π_i ((1 + r_i) + r_i Ŵ_i(x_q))`, on points of
+`n` coordinates. -/
 theorem inducedWeight_eq_sum (n : ℕ) (qs : List ℕ) (ws l : List E) (hl : l.length = n)
     (hw : ws.length = qs.length) :
     Verifier.inducedWeight n qs ws l =
       ((ws.zip qs).map fun wq ↦ wq.1 * ∏ i : Fin n, colFactor wq.2 i (l.getD i 0)).sum := by
-  rw [inducedWeight_eq_whir n qs ws l hl hw]
-  have hv : (⟨l.toArray, by simp [hl]⟩ : Vector E n).toList = l := by simp
-  have := Whir.inducedWeight_eq n qs ws ⟨l.toArray, by simp [hl]⟩ hw
-  rw [hv] at this
-  rw [this, Option.getD_some]
+  have _ := hw
+  simp only [Verifier.inducedWeight]
+  rw [foldl_add_sum_map, zero_add]
   refine congrArg List.sum (List.map_congr_left fun wq _ ↦ ?_)
-  rw [eval₂Mle_colWeightTable]
-  refine congrArg (wq.1 * ·) (Finset.prod_congr rfl fun i _ ↦ ?_)
-  simp [colFactor, List.getD_eq_getElem?_getD, hl, Vector.getElem_mk]
+  rw [subspaceAt_eq, List.range_eq_range', foldl_colFactor _ l 0 (n + 1) _ (by omega), hl,
+    ← Fin.prod_univ_eq_prod_range (fun i ↦ colFactor wq.2 (0 + i) (l.getD i 0))]
+  simp
 
 /-- A list-indexed linear combination of multiaffine weights is multiaffine. -/
 theorem isMultiaffine_listSum {n : ℕ} {α : Type*} (xs : List α) (c : α → E)
