@@ -177,4 +177,97 @@ theorem signOf_override (G : Input → HashOutput) (m : Message) :
     fun lay tree leaf c ↦ (ovFun_input seed h G (.enc lay tree leaf c)).trans
       (ovFun_input seed h _ (.enc lay tree leaf c)).symm
 
+/-! ## The presampled game -/
+
+/-- The data: `SK.seed` at `none`, the value of each honest position at `some k`. -/
+abbrev Data := Option Key → HashOutput
+
+/-- The data of `SK.seed` and the honest values. -/
+def combine (seed : MasterSeed) (h : Key → HashOutput) : Data := fun o ↦ o.elim seed h
+
+/-- The presampled game: the honest positions answered from the data, the classical ports read from
+it. -/
+def presGame (d : Data) : OvGame Input HashOutput Log Port Res where
+  init := Log.empty
+  ov := fun _ x ↦ if hx : ∃ k, (proc (d none)).pt (fun k ↦ d (some k)) k = x then
+    some (d (some (Classical.choose hx))) else none
+  trans := portTrans (keysH (d none) fun k ↦ d (some k)).1 (signH (d none) fun k ↦ d (some k))
+
+theorem presGame_answer (s : Log) (G : Input → HashOutput) (x : Input) :
+    (presGame (combine seed h)).answer s G x = override (proc seed) G h x := by
+  unfold OvGame.answer presGame override
+  show (if hx : ∃ k, (proc seed).pt h k = x then some (h (Classical.choose hx)) else none).getD (G x) =
+    if hx : ∃ k, (proc seed).pt h k = x then h (Classical.choose hx) else G x
+  split <;> rfl
+
+theorem sampled_realGame (G : Input → HashOutput) :
+    (realGame seed (override (proc seed) G h)).sampled (override (proc seed) G h) =
+      (presGame (combine seed h)).sampled G := by
+  refine OvGame.sampled_congr (fun s x ↦ ?_) ?_ rfl
+  · rw [presGame_answer]
+    rfl
+  · simp only [realGame, presGame, keysOf_override]
+    congr 1
+    funext m
+    exact signOf_override seed h G m
+
+theorem sideW_realGame (G : Input → HashOutput) {A : Quantum.QReg} {α : Type}
+    (x : Quantum.QComp Spec A (Quantum.QReg.of Unit) α) (ρ : Quantum.SubState A)
+    (ev : (Σ u, Quantum.QuantumComp₂.Leaf (Quantum.QReg.of Unit) α u) → Log → Bool) :
+    OvGame.sideW (realGame seed (override (proc seed) G h)) (override (proc seed) G h) .instruments
+        x ρ ev = OvGame.sideW (presGame (combine seed h)) G .instruments x ρ ev := by
+  refine OvGame.sideW_congr (g := realGame seed (override (proc seed) G h))
+    (g' := presGame (combine seed h)) (G := override (proc seed) G h) (G' := G)
+    (fun s x ↦ ?_) ?_ rfl _ x ρ ev
+  · rw [presGame_answer]
+    rfl
+  · simp only [realGame, presGame, keysOf_override]
+    congr 1
+    funext m
+    exact signOf_override seed h G m
+
+open scoped ENNReal in
+/-- **Presampling.** The probability that the adversary wins is its average over the data in the
+presampled game. -/
+theorem winProb_eq {A : Quantum.QReg} (adv : Adversary A) (ρ : Quantum.SubState A) :
+    winProb adv ρ = OvGame.avgSide presGame .instruments (gameProg adv) ρ
+      (fun _ _ p s ↦ win p.2.2 s) := by
+  set W : MasterSeed → (Input → HashOutput) → ℝ≥0∞ := fun seed H ↦
+    OvGame.sideW (realGame seed H) H .instruments (gameProg adv) ρ (fun p s ↦ win p.2.2 s)
+  set V : Data → (Input → HashOutput) → ℝ≥0∞ := fun d G ↦
+    OvGame.sideW (presGame d) G .instruments (gameProg adv) ρ (fun p s ↦ win p.2.2 s)
+  have hY0 : ((Fintype.card HashOutput : ℝ≥0∞) ^ Fintype.card Key) ≠ 0 :=
+    pow_ne_zero _ (Nat.cast_ne_zero.mpr Fintype.card_ne_zero)
+  have hYt : ((Fintype.card HashOutput : ℝ≥0∞) ^ Fintype.card Key) ≠ ⊤ :=
+    ENNReal.pow_ne_top (ENNReal.natCast_ne_top _)
+  have hpres : ∀ seed, ∑ H, W seed H =
+      ((Fintype.card HashOutput : ℝ≥0∞) ^ Fintype.card Key)⁻¹ *
+        ∑ h, ∑ G, V (combine seed h) G := by
+    intro seed
+    have := sum_eq_sum_override (proc seed) (W seed)
+    simp only [W, sideW_realGame] at this
+    rw [← this, ← mul_assoc, ENNReal.inv_mul_cancel hY0 hYt, one_mul]
+  unfold winProb OvGame.avgSide
+  rw [← (Equiv.piOptionEquivProd (β := fun _ ↦ HashOutput)).symm.sum_comp, Fintype.sum_prod_type]
+  refine Finset.sum_congr rfl fun seed _ ↦ ?_
+  rw [← Finset.mul_sum]
+  change _ * ∑ H, W seed H = _
+  rw [hpres seed, Finset.mul_sum]
+  have hcomb : ∀ y, (Equiv.piOptionEquivProd (β := fun _ ↦ HashOutput)).symm (seed, y) =
+      combine seed y := fun y ↦ funext fun o ↦ by cases o <;> rfl
+  simp only [hcomb]
+  rw [← Finset.mul_sum]
+  simp only [← Finset.mul_sum]
+  rw [← mul_assoc]
+  congr 1
+  have hinv : ∀ a b : ℝ≥0∞, a ≠ ⊤ → b ≠ ⊤ → (a * b)⁻¹ = a⁻¹ * b⁻¹ := fun a b ha hb ↦
+    ENNReal.mul_inv (Or.inr hb) (Or.inl ha)
+  have hms : Fintype.card MasterSeed = Fintype.card HashOutput := rfl
+  rw [hms]
+  simp only [Fintype.card_fun, Fintype.card_option, pow_succ, Nat.cast_mul, Nat.cast_pow]
+  have ha : (Fintype.card HashOutput : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  have hb : (Fintype.card HashOutput : ℝ≥0∞) ^ Fintype.card Input ≠ ⊤ := ENNReal.pow_ne_top ha
+  rw [hinv _ _ ha hb, hinv _ _ (ENNReal.mul_ne_top hYt ha) hb, hinv _ _ hYt ha]
+  ring
+
 end Qrom.Sphincs

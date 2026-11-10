@@ -158,6 +158,46 @@ theorem sideW_true_le (g : OvGame X Y S P Res) (G : X → Y) (I : L.Interp)
 
 end events
 
+/-- Two games with the same answers, transitions and initial side state run alike. -/
+theorem sampled_congr {g g' : OvGame X Y S P Res} {G G' : X → Y}
+    (hans : ∀ s x, g.answer s G x = g'.answer s G' x) (htr : g.trans = g'.trans)
+    (hinit : g.init = g'.init) : g.sampled G = g'.sampled G' := by
+  have ha : (fun t : S × Unit ↦ g.answer t.1 G) = fun t ↦ g'.answer t.1 G' :=
+    funext fun t ↦ funext fun x ↦ hans t.1 x
+  have hs : ∀ j, g.sideStep Unit j = g'.sideStep Unit j := by
+    intro j
+    have hk : g.sideKraus Unit j = g'.sideKraus Unit j := by
+      funext rs
+      simp only [sideKraus, htr]
+    unfold sideStep
+    congr 1
+  simp only [sampled, tabRuntime, hinit]
+  congr 1
+  funext i
+  rcases i with ⟨⟩ | j
+  · simp only [ha]
+    rfl
+  · exact hs j
+
+/-- Two games with the same answers, transitions and initial side state give every event the same
+weight. -/
+theorem sideW_congr {g g' : OvGame X Y S P Res} {G G' : X → Y}
+    (hans : ∀ s x, g.answer s G x = g'.answer s G' x) (htr : g.trans = g'.trans)
+    (hinit : g.init = g'.init) {L : LocalSig.{u, v}} {W : QReg → Type w} {A : QReg} (I : L.Interp)
+    (x : QuantumComp L (ovSpec X Y S P Res) W A) (ρ : SubState A) (ev : (Σ u, W u) → S → Bool) :
+    sideW g G I x ρ ev = sideW g' G' I x ρ ev := by
+  have ha : (fun t : S × Unit ↦ g.answer t.1 G) = fun t ↦ g'.answer t.1 G' :=
+    funext fun t ↦ funext fun x ↦ hans t.1 x
+  have hs : g.sideStep Unit = g'.sideStep Unit := by
+    funext j
+    have hk : g.sideKraus Unit j = g'.sideKraus Unit j := by
+      funext rs
+      simp only [sideKraus, htr]
+    unfold sideStep
+    congr 1
+  unfold sideW sampled tabRuntime
+  rw [ha, hs, hinit]
+
 end OvGame
 
 end Qrom
