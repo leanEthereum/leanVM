@@ -307,6 +307,67 @@ theorem sideW_withVerifier (g : OvGame X Y S P Res) (G : X → Y) {A : QReg} {α
   simp only [↓reduceIte]
   rfl
 
+/-- A side port's read-out: no outcome the reading never gives. -/
+theorem callBasisMeasure_side_zero {β : Type} [DecidableEq β] (j : P) (B : QReg)
+    (read : (ovSpec X Y S P Res).Out (Sum.inr j) → (ovSpec X Y S P Res).Result (Sum.inr j) → β)
+    (r : (ovSpec X Y S P Res).Result (Sum.inr j)) (b : β) (hb : ∀ o, read o r ≠ b) :
+    (QComp.callBasisMeasure (spec := ovSpec X Y S P Res) (Sum.inr j) B read r).branch b = 0 := by
+  rw [QComp.callBasisMeasure]
+  ext1 M
+  rw [DSubInstrument.branch_bind_apply]
+  refine (tsum_congr fun c ↦ ?_).trans tsum_zero
+  by_cases hc : c = b
+  · subst hc
+    have hz : ((DSubInstrument.classical (B := fun _ ↦ Unit) (fun o ↦ read o r)
+        (fun _ ↦ ())).frame B.carrier).branch c = 0 := by
+      rw [DSubInstrument.branch_frame_apply, DSubInstrument.classical,
+        DSubInstrument.branch_map_apply_univ]
+      simp only [cast_eq]
+      rw [Finset.sum_eq_zero fun o _ ↦ by rw [dite_eq_right (hb o)]]
+      exact MatrixMap.amplify_zero
+    rw [hz, LinearMap.zero_apply]
+    exact map_zero _
+  · rw [DSubInstrument.branch_bind_unit, LinearMap.comp_apply,
+      SubInstrument.branch_pure_of_ne (Ne.symm hc)]
+    rfl
+
+/-- A classical call of a side port beside the register `B`. -/
+noncomputable def sideCall {β : Type} (j : P) (B : QReg)
+    (read : (ovSpec X Y S P Res).Out (Sum.inr j) → (ovSpec X Y S P Res).Result (Sum.inr j) → β) :
+    QComp (ovSpec X Y S P Res) B B β :=
+  QComp.callBasis (spec := ovSpec X Y S P Res) (Sum.inr j) B (() : Unit) read
+
+/-- **A side port reports only what the game gives.** -/
+theorem sideCall_zero (g : OvGame X Y S P Res) (G : X → Y) {β : Type} [DecidableEq β] (j : P)
+    (B : QReg) (read : (ovSpec X Y S P Res).Out (Sum.inr j) → (ovSpec X Y S P Res).Result (Sum.inr j) → β)
+    (b : β) (hb : ∀ o s, read o ((g.trans j s).1, s) ≠ b) :
+    ((g.sampled G).run₂ .instruments (sideCall j B read)).branch b = 0 := by
+  rw [sideCall, QComp.run₂_callBasis (g.sampled G) (Sum.inr j) B (() : Unit) read]
+  ext1 M
+  rw [DSubInstrument.branch_bind_apply]
+  refine (tsum_congr fun u ↦ ?_).trans tsum_zero
+  rw [DSubInstrument.branch_bind_apply]
+  refine (tsum_congr fun r ↦ ?_).trans tsum_zero
+  by_cases hr : (g.trans j r.2).1 = r.1
+  · have hz : ∀ o, read o r ≠ b := fun o ↦ by
+      have := hb o r.2
+      rwa [hr] at this
+    rw [SubInstrument.bind_pure, DSubInstrument.branch_frame_apply,
+      callBasisMeasure_side_zero j B read r b hz, MatrixMap.amplify_zero]
+    rfl
+  · rw [QuantumRuntime.queryStep_branch_apply]
+    have hk : ((g.sampled G).step (Sum.inr j)).branch r = 0 := by
+      rw [sampled_branch]
+      have hK : g.sampKraus G (Sum.inr j) r = 0 := by
+        show g.sideKraus Unit j r = 0
+        unfold sideKraus
+        rw [ite_eq_right hr, zero_smul]
+      rw [hK]
+      ext1 N
+      rw [MatrixMap.conj_apply, LinearMap.zero_apply, Matrix.zero_mul, Matrix.zero_mul]
+    rw [DSubInstrument.branch_frame_apply, hk, MatrixMap.amplify_zero, LinearMap.zero_apply, map_zero,
+      map_zero]
+
 end OvGame
 
 end Qrom
