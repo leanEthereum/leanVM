@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.B1.Opening.FoldAlg
 
 /-!
 # The WHIR queries: the interface
@@ -85,19 +86,6 @@ def RoundsAt (rd : Reader) (coefs : E) (rounds : List FoldRound) : Prop :=
 /-- No round's combiner vanishes at the point: `α + β·x ≠ 0` (the guest inverts it). -/
 def FoldsNonzero (rounds : List FoldRound) (x : K) : Prop :=
   ∀ r ∈ rounds, r.alpha + r.beta * ofK x ≠ 0
-
-/-! ## The final polynomial -/
-
-/-- The guest's unnormalized subspace chain at `x` (`opening_query`'s `ws`): `W_0 = x`,
-`W_(i+1) = W_i·(W_i + vs_i)`. -/
-def wsChain (vs : List K) (x : E) : ℕ → E
-  | 0 => x
-  | i + 1 => wsChain vs x i * (wsChain vs x i + ofK (vs.getD i 0))
-
-/-- `novel_eval(hs, ws, n, nbits)`: `Σ_(c < n) hs_c Π_(i < nbits, c_i = 1) ws_i`. -/
-def novelSum (hs : List E) (ws : ℕ → E) (n nbits : ℕ) : E :=
-  ((List.range n).map fun c ↦ hs.getD c 0 *
-    ((List.range nbits).map fun i ↦ if c.testBit i then ws i else 1).prod).sum
 
 /-- The `n` words at `p`. -/
 def WordsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
