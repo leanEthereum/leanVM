@@ -73,8 +73,11 @@ def verifierRefusingZeroWithHash {m : Type → Type} [Monad m] (H : Bytes → m 
     (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
   runProofWithHash H F
-    (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).refusingZeroChallenge
-        seed proof
+    (do
+      verifyExecutionRefusingZeroCombiner computedBytecodeValue (bytecodeWords prog)
+        (publicInputDigest input)
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    seed proof
 
 /-- Keccak-256 and Keccak-f[1600] answering the calls `KeccakCalls`. -/
 def deployedKeccakCalls : QueryImpl KeccakCalls Id
