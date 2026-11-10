@@ -54,9 +54,9 @@ set_option maxRecDepth 20000 in
 /-- **`aggregate_claims` is complete, placed, its tree of honest shape, within `aggB`**: on `m ≤ 16` children whose words the caller's
 words `Lin` hold, the window tables at `tabs`, the hints of an accepting batching, writing the
 batching's claim, which `Lin` holds at `g^ds`; given
-`grind_check__L2`'s completeness. -/
+`grind_check__L2`'s trees within `SB` (`hGr`). -/
 theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (hGr : CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
+    (hGr : TotalLe coreProgram fs "grind_check__L2" (fun _ => SB "grind_check__L2"))
     (h25 : TotalLeOn coreProgram fs "__loop33" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop33" + fs "__loop33"))
     (h26 : TotalLeOn coreProgram fs "__loop34" LoopPre
@@ -115,7 +115,7 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
     ⟨fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l25 l25_shape' (rest := [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi])
           (agg_l25 (hcw' rd hm) (hbm rd hm))).2 hne) 16 (hL h25 _ _)).toDTB,
-      fun _ => (hGr _ _ _ fun rd hl hm =>
+      fun _ => (aggGrind_completeB_of cert hGr _ _ _ fun rd hl hm =>
         ⟨rfl, _, _, rfl, htabs rd hl (Main.memL_append.mp hm).2, agg_pow hpow⟩).toDTB,
       fun _ => (completeAt_of_rel_pureBat aggPure (by simp [aggPureSet]) (fun rd hm =>
         (guard_complete find_l26 l26_shape.1

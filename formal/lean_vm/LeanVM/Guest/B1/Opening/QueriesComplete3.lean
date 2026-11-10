@@ -34,11 +34,6 @@ variable (w : WD) {rd : Reader} {σ : Val}
 
 /-! ## The path's values -/
 
-theorem pc_canonical (k : ℕ) : IsCanonical128 (w.pc k) := by
-  unfold pc pathCell
-  dsimp only
-  split <;> exact canonical_ofLimbs _ _
-
 /-- A level's pair hash is the climb's step. -/
 theorem level_out {l : ℕ} (hl : l < w.sibs.length) {o0 o1 : E}
     (h : HashesPair (w.pc (4 * l)) (w.pc (4 * l + 1)) (w.pc (4 * l + 2)) (w.pc (4 * l + 3)) o0 o1) :
