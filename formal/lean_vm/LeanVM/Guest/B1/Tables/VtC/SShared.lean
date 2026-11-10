@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SBase
 public import LeanVM.Guest.B1.Selectors.SharedTablesComplete
 
 /-!
-# The index factors, `1 + ζ` and the shared tables (G:2210-2228)
+# The index factors, `1 + ζ` and the shared tables (G:2360-2378)
 
 `vtIdxcW`: `idxc_tab`'s words `1 + g^(2^t)`; `idxc_ok`: its stores hold on a memory holding them.
 `zeta1_ok`: `plus_one_run` on `g^μ` holds when `zeta1` holds `1 + ζ_k`. `sh_call`: a table's
@@ -38,15 +38,15 @@ theorem vtIdxcT_length : vtIdxcT.length = 68 := by decide +kernel
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **`idxc_tab`'s stores.** -/
-theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 668)) vtIdxcW) :
+theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 664)) vtIdxcW) :
     ∀ st ∈ vtIdxcT, VSH (coreProgram.Rel rd) rd (vtσ rd w args) st := by
   intro st hst
   have hst' := hst
   simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range] at hst'
   obtain ⟨_, ⟨t, ht, rfl⟩, hm⟩ := hst'
-  have hc : vtσ rd w args (.n (669 + t)) = 1 + gen ^ 2 ^ t := by
-    have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (vtPre_drop 629 ▸ vtIdxc_check)
-      (show Stmt.atom (.const (.n (669 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)) ∈
+  have hc : vtσ rd w args (.n (665 + t)) = 1 + gen ^ 2 ^ t := by
+    have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (vtPre_drop 625 ▸ vtIdxc_check)
+      (show Stmt.atom (.const (.n (665 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)) ∈
         vtIdxcT by
           simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range]
           exact ⟨_, ⟨t, ht, rfl⟩, List.mem_cons_self⟩))
@@ -65,10 +65,10 @@ theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 66
 theorem zeta1_ok (hl : args.length = 20) {point : List E}
     (h9 : vtσ rd w args (.n 9) = gen ^ point.length) (hμ : point.length ≤ 33)
     (hz : TbReadsAt rd (vtσ rd w args (.n 8)) point)
-    (hz1 : TbReadsAt rd (vtσ rd w args (.n 703)) (point.map (1 + ·))) (hw : w 704 = 0) :
+    (hz1 : TbReadsAt rd (vtσ rd w args (.n 699)) (point.map (1 + ·))) (hw : w 700 = 0) :
     VSH (coreProgram.Rel rd) rd (vtσ rd w args)
-      (.dispatch (.n 9) plusOneRunNames [.n 703, .n 8] [.n 704]) := by
-  have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop 698 ▸ vtZeta1_check)
+      (.dispatch (.n 9) plusOneRunNames [.n 699, .n 8] [.n 700]) := by
+  have hg := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) (vtPre_drop 694 ▸ vtZeta1_check)
     List.mem_cons_self)
   simp only [fixNe, GoodS, List.mem_cons, List.not_mem_nil, or_false, forall_eq] at hg
   rw [vsh_dispatch]
