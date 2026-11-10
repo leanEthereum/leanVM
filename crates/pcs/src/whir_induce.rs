@@ -363,20 +363,18 @@ pub(crate) fn novel_basis_at(x: F64, mu: usize) -> Vec<F64> {
 
 /// `X_c(x)` from `what = W-hat_i(x)` for every bit `i` of `c`.
 #[inline]
-pub(crate) fn novel_x_c(c: usize, what: &[F64]) -> F64 {
+fn novel_x_c(c: usize, what: &[F64]) -> F64 {
     (0..usize::BITS as usize)
         .filter(|&i| (c >> i) & 1 == 1)
         .map(|i| what[i])
         .product()
 }
 
-/// `sum_j p_high[j] X_(2^mu + j)(x)`, from `what = W-hat_i(x)` for `i <= mu`: what the coefficients from `2^mu` on
-/// add to a polynomial at `x`.
-pub(crate) fn high_part_at(p_high: &[F128], what: &[F64]) -> F128 {
-    let mu = what.len() - 1;
-    p_high
-        .iter()
+/// `sum_j p[j] X_(first + j)(x)`, from `what = W-hat_i(x)` for every bit `i` of the indices: what the coefficients
+/// from `first` on add to a polynomial at `x`.
+pub(crate) fn novel_sum_at(p: &[F128], first: usize, what: &[F64]) -> F128 {
+    p.iter()
         .enumerate()
-        .map(|(j, &p)| p.mul_base(novel_x_c((1 << mu) + j, what)))
+        .map(|(j, &v)| v.mul_base(novel_x_c(first + j, what)))
         .sum()
 }

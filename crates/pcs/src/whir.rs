@@ -870,13 +870,9 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             ps.hint_merkle(paths);
             if cfg!(test) {
                 for (row, &q) in rows.chunks_exact(wtns.num_interleaved).zip(&queries) {
-                    let what = novel_basis_at(F64(q as u64), mu);
-                    let at: F128 = p.iter().enumerate().map(|(c, v)| v.mul_base(novel_x_c(c, &what))).sum();
-                    assert_eq!(
-                        fold_row(row.iter().copied(), &rounds, F64(q as u64)),
-                        at,
-                        "final row {q}"
-                    );
+                    let x = F64(q as u64);
+                    let at = novel_sum_at(&p, 0, &novel_basis_at(x, mu));
+                    assert_eq!(fold_row(row.iter().copied(), &rounds, x), at, "final row {q}");
                 }
             }
             p.truncate(1 << mu);
@@ -958,11 +954,10 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             .zip(&queries)
             .map(|(row, &q)| {
                 let x = F64(q as u64);
-                let value = fold_row(row.iter().copied(), &rounds, x) + high_part_at(&p_high, &novel_basis_at(x, mu));
+                let what = novel_basis_at(x, mu);
+                let value = fold_row(row.iter().copied(), &rounds, x) + novel_sum_at(&p_high, 1 << mu, &what);
                 if cfg!(test) {
-                    let what = novel_basis_at(x, mu);
-                    let at: F128 = p.iter().enumerate().map(|(c, v)| v.mul_base(novel_x_c(c, &what))).sum();
-                    assert_eq!(value, at, "level {level}, row {q}");
+                    assert_eq!(value, novel_sum_at(&p, 0, &what), "level {level}, row {q}");
                 }
                 value
             })
@@ -1184,8 +1179,8 @@ mod tests {
 
     /// `P(x) = sum_c p_c X_c(x)`.
     fn eval_at(p: &[F128], x: F64) -> F128 {
-        let what = novel_basis_at(x, (usize::BITS - p.len().leading_zeros()) as usize);
-        p.iter().enumerate().map(|(c, v)| v.mul_base(novel_x_c(c, &what))).sum()
+        let mu = (usize::BITS - p.len().leading_zeros()) as usize;
+        novel_sum_at(p, 0, &novel_basis_at(x, mu))
     }
 
     /// After a level's folds, the folded lane at a domain point is the opened codeword row there folded by the
@@ -1214,7 +1209,7 @@ mod tests {
                 let x = F64(q as u64);
                 let folded = fold_row(row.iter().copied(), &rounds, x);
                 assert_eq!(folded, eval_at(&p, x), "k {k}, mu {mu}, position {q}");
-                let low = folded + high_part_at(&p[1 << mu..], &novel_basis_at(x, mu));
+                let low = folded + novel_sum_at(&p[1 << mu..], 1 << mu, &novel_basis_at(x, mu));
                 assert_eq!(low, eval_at(&p[..1 << mu], x), "low part, k {k}, mu {mu}, position {q}");
             }
         }
