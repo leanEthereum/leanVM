@@ -26,7 +26,7 @@ theorem vtB02_0 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
       [[([], 1)], [([0], 2)], [([1], 1)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3434 [
     .atom (.load (.n 3523) (.n 13) 0),
-    .atom (.const (.n 3524) (word 2 0 0)),
+    .atom (.const (.n 3524) (word 2 0)),
     .atom (.mul (.n 3525) (.n 3524) (.n 3419)),
     .atom (.load (.n 3526) (.n 13) 1),
     .atom (.mul (.n 3527) (.n 3526) (.n 3525)),
@@ -60,18 +60,18 @@ theorem vtB02_1 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
       [[([], 4)], [([0], 1)], [([7], 2)], [([], 4)], [([2], 1)], [([3], 1)], [([4], 1)], [([5], 1)], [([], 0)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3445 [
     .atom (.load (.n 3534) (.n 13) 0),
-    .atom (.const (.n 3535) (word 4 0 0)),
+    .atom (.const (.n 3535) (word 4 0)),
     .atom (.mul (.n 3536) (.n 3534) (.n 3535)),
     .atom (.load (.n 3537) (.n 13) 1),
     .atom (.mul (.n 3538) (.n 3537) (.n 3419)),
     .atom (.add (.n 3539) (.n 3536) (.n 3538)),
-    .atom (.const (.n 3540) (word 2 0 0)),
+    .atom (.const (.n 3540) (word 2 0)),
     .atom (.mul (.n 3541) (.n 3540) (.n 3522)),
     .atom (.load (.n 3542) (.n 13) 2),
     .atom (.mul (.n 3543) (.n 3542) (.n 3541)),
     .atom (.add (.n 3544) (.n 3539) (.n 3543)),
     .atom (.load (.n 3545) (.n 13) 3),
-    .atom (.const (.n 3546) (word 4 0 0)),
+    .atom (.const (.n 3546) (word 4 0)),
     .atom (.mul (.n 3547) (.n 3545) (.n 3546)),
     .atom (.add (.n 3548) (.n 3544) (.n 3547)),
     .atom (.load (.n 3549) (.n 13) 4),
@@ -87,7 +87,7 @@ theorem vtB02_1 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
     .atom (.mul (.n 3559) (.n 3558) (.n 3487)),
     .atom (.add (.n 3560) (.n 3557) (.n 3559)),
     .atom (.load (.n 3561) (.n 13) 8),
-    .atom (.const (.n 3562) (word 0 0 0)),
+    .atom (.const (.n 3562) (word 0 0)),
     .atom (.mul (.n 3563) (.n 3561) (.n 3562)),
     .atom (.add (.n 3564) (.n 3560) (.n 3563)),
     .atom (.add (.n 3565) (.n 14) (.n 3564)),
@@ -136,13 +136,13 @@ theorem vtB02_2 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
       [[([], 2)], [([1, 2], 1)], [([6], 2)], [([3], 1)], [([4], 1)], [([5], 1)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3479 [
     .atom (.load (.n 3568) (.n 13) 0),
-    .atom (.const (.n 3569) (word 2 0 0)),
+    .atom (.const (.n 3569) (word 2 0)),
     .atom (.mul (.n 3570) (.n 3568) (.n 3569)),
     .atom (.mul (.n 3571) (.n 3430) (.n 3454)),
     .atom (.load (.n 3572) (.n 13) 1),
     .atom (.mul (.n 3573) (.n 3572) (.n 3571)),
     .atom (.add (.n 3574) (.n 3570) (.n 3573)),
-    .atom (.const (.n 3575) (word 2 0 0)),
+    .atom (.const (.n 3575) (word 2 0)),
     .atom (.mul (.n 3576) (.n 3575) (.n 3511)),
     .atom (.load (.n 3577) (.n 13) 2),
     .atom (.mul (.n 3578) (.n 3577) (.n 3576)),
@@ -207,7 +207,7 @@ theorem vtD2_0 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
     σ (.n 3597) = σ (.n 1988) * vtSlots W ev 0
       [[], [([0], 3)], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3504 [
-    .atom (.const (.n 3593) (word 3 0 0)),
+    .atom (.const (.n 3593) (word 3 0)),
     .atom (.mul (.n 3594) (.n 3593) (.n 3419)),
     .atom (.load (.n 3595) (.n 13) 1),
     .atom (.mul (.n 3596) (.n 3595) (.n 3594)),
@@ -231,7 +231,7 @@ theorem vtD2_1 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
     σ (.n 3603) = σ (.n 3597) + σ (.n 1990) * vtSlots W ev 0
       [[], [], [([7], 3)], [], [], [], [], [], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3509 [
-    .atom (.const (.n 3598) (word 3 0 0)),
+    .atom (.const (.n 3598) (word 3 0)),
     .atom (.mul (.n 3599) (.n 3598) (.n 3522)),
     .atom (.load (.n 3600) (.n 13) 2),
     .atom (.mul (.n 3601) (.n 3600) (.n 3599)),
@@ -256,7 +256,7 @@ theorem vtD2_2 {rd : Reader} {σ : Val} (h : VtH rd σ) {W ev : ℕ → E}
     σ (.n 3609) = σ (.n 3603) + σ (.n 1992) * vtSlots W ev 0
       [[], [], [([6], 3)], [], [], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3515 [
-    .atom (.const (.n 3604) (word 3 0 0)),
+    .atom (.const (.n 3604) (word 3 0)),
     .atom (.mul (.n 3605) (.n 3604) (.n 3511)),
     .atom (.load (.n 3606) (.n 13) 2),
     .atom (.mul (.n 3607) (.n 3606) (.n 3605)),

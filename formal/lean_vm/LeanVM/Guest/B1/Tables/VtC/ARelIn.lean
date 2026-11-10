@@ -367,7 +367,7 @@ theorem vt_fw_kv (I : VtIn H B w rd) {b : ℕ} (hb : b < 3) :
   · show σv (.n 876) = gen ^ 19
     rw [vt_mulF (H := H) (B := B) (w := w) (rd := rd) (d := 876) (x := 28) (y := 875)
         (vt_mem_at 863 _ (by decide +kernel)) (by norm_num) (by norm_num),
-      vt_const (H := H) (B := B) (w := w) (rd := rd) (d := 875) (e := word 524288 0 0)
+      vt_const (H := H) (B := B) (w := w) (rd := rd) (d := 875) (e := word 524288 0)
         (vt_mem_at 862 _ (by decide +kernel)), show (524288 : ℕ) = 2 ^ 19 by norm_num,
       tb_word_two_pow (by norm_num), vt_kb0 I, one_mul]
 
@@ -491,7 +491,7 @@ theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option �
         (mem (.atom (.mul (.n (v + 4)) (.n gs) (.n (v + 3)))) (by simp [vtSelT, ht0])) hgs
         (by omega)
       have c3 := vt_const (H := H) (B := B) (w := w) (rd := rd)
-        (mem (.atom (.const (.n (v + 3)) (word gw 0 0))) (by simp [vtSelT, ht0]))
+        (mem (.atom (.const (.n (v + 3)) (word gw 0))) (by simp [vtSelT, ht0]))
       simp only [ht0, ↓reduceIte]
       rw [e4, c3]
       rcases (hd h0).2 with ⟨rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -525,10 +525,10 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   have e2500 := vt_e2500 I
   have e2597 : σv (.n 2613) = 1 + gen ^ H.n := by
     rw [vt_add (d := 2613) (x := 2612) (y := 2516) (vt_mem_at 2668 _ (by decide +kernel)),
-      vt_const (vt_mem_at 2667 (.atom (.const (.n 2612) (word 1 0 0))) (by decide +kernel)),
+      vt_const (vt_mem_at 2667 (.atom (.const (.n 2612) (word 1 0))) (by decide +kernel)),
       tb_word_one, e2500]
   have e2598 : σv (.n 2614) = gen ^ 0 := by
-    rw [vt_const (vt_mem_at 2669 (.atom (.const (.n 2614) (word 1 0 0))) (by decide +kernel)),
+    rw [vt_const (vt_mem_at 2669 (.atom (.const (.n 2614) (word 1 0))) (by decide +kernel)),
       tb_word_one, pow_zero]
   have hK : 0 < H.n := by
     rcases Nat.eq_zero_or_pos H.n with h0 | h0

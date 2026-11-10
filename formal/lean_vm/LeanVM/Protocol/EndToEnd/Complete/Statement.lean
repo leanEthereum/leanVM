@@ -24,9 +24,9 @@ bounds the probability that the verifier rejects the honest prover's proof
 (`completeness_le`), by the statement's `completenessError`, which is `completenessError`
 evaluated (`completenessError_eq`):
 
-  `completenessError fuel = (12008 + 48019 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
+  `completenessError fuel = (13263 + 53036 · (2^27 + 2·fuel + 2)) · (1 - 2^-25)^fuel`,
 
-below `2^-257` at a fuel of `2^25` nonces per proof of work (`statement_completenessError_le`).
+below `2^-257` at a fuel of `2^33` nonces per proof of work (`statement_completenessError_le`).
 `completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
 -/
 
@@ -61,8 +61,8 @@ noncomputable def honestProverRom (prog : LeanIsaProgram) (input : PublicInput) 
 /-- The statement's completeness error is `completenessError`, evaluated. -/
 theorem completenessError_eq (fuel : ℕ) :
     LeanVM.completenessError fuel = completenessError fuel := by
-  have hc : leanVmCost = 48019 := by decide
-  have hQ : completenessQueries fuel = 12008 + 48019 * (2 ^ 27 + 2 * fuel + 2) := by
+  have hc : leanVmCost = 53036 := by decide
+  have hQ : completenessQueries fuel = 13263 + 53036 * (2 ^ 27 + 2 * fuel + 2) := by
     rw [completenessQueries, proverFactor, costHeight, hc, leanVmQueryBound_eq]
     ring
   rw [LeanVM.completenessError, completenessError, hQ]
@@ -72,7 +72,8 @@ theorem completenessError_eq (fuel : ℕ) :
 is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
 nonces: the verifier rejects the honest prover's proof with probability at most
 `completenessError fuel`. -/
-theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+theorem completeness_le (hW : Whir.Complete.OpeningComplete)
+    {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← LeanVM.experiment (honestProverRom prog input t ρ fuel)}[z.rejected] ≤
@@ -81,7 +82,7 @@ theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
       verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
         (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
-  have h := romComplete_leanVm hv hbudget hρ hfuel
+  have h := romComplete_leanVm hW hv hbudget hρ hfuel
   rw [← hV, ← completenessError_eq] at h
   have e := prEvent_map (LeanVM.experiment (honestProverRom prog input t ρ fuel))
     (fun z ↦ (z.1, z.2.1)) (fun z ↦ z.1.2 = false)
@@ -97,12 +98,13 @@ theorem statement_completenessError_le :
     LeanVM.completenessError (2 ^ 33) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
   completenessError_two_pow_33_le
 
-/-- **Completeness holds**, with the honest prover `honestComp` (which always makes a proof). -/
-theorem completeness_holds : LeanVM.CompletenessRom :=
+/-- **Completeness holds**, with the honest prover `honestComp` (which always makes a proof), given
+the stacked opening's completeness (`OpeningComplete`). -/
+theorem completeness_holds (hW : Whir.Complete.OpeningComplete) : LeanVM.CompletenessRom :=
   ⟨fun prog input t ρ fuel ↦ some <$> honestComp prog input t ρ fuel,
     fun _ _ _ _ _ hv hbudget hρ hfuel ↦ by
       simp only [Functor.map_map, Option.getD_some]
-      exact completeness_le hv hbudget hρ hfuel⟩
+      exact completeness_le hW hv hbudget hρ hfuel⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

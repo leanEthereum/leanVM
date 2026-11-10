@@ -131,7 +131,7 @@ theorem vt_running_sum (S : ℕ → E) (prev : ℕ → E) (x : ℕ → E) (s0 : 
 /-- The shared tables' pointers a table block `t > 0` steps from. -/
 theorem vt_ptr_step {rd : Reader} {σ : Val} (h : VtH rd σ) {t : ℕ} (ht : t < 6) (ht0 : 0 < t) :
     σ (.n (vtEqV (t - 1))) * vtW288 = σ (.n 705) * gen ^ (288 * t) ∧
-      σ (.n (vtGV (t - 1))) * word 21299200 0 0 = σ (.n 706) * gen ^ (144 * t) := by
+      σ (.n (vtGV (t - 1))) * word 21299200 0 = σ (.n 706) * gen ^ (144 * t) := by
   obtain ⟨e1, e2⟩ := vt_ptrs h (t - 1) (by omega)
   obtain ⟨s, rfl⟩ : ∃ s, t = s + 1 := ⟨t - 1, by omega⟩
   simp only [Nat.add_sub_cancel] at e1 e2 ⊢
@@ -212,7 +212,7 @@ theorem vt_sels {σ : Val} (h : VtH Lm.read σ) {point : List E}
     intro sizes b c w t prev pos es gs gw hc ht hd hsz hob hoff
     obtain ⟨d, hdv, hpl, hrun⟩ := hsh t ht
     have hptr : 0 < t → σ (.n es) * vtW288 = σ (.n 705) * gen ^ (288 * t) ∧
-        σ (.n gs) * word gw 0 0 = σ (.n 706) * gen ^ (144 * t) := fun ht0 => by
+        σ (.n gs) * word gw 0 = σ (.n 706) * gen ^ (144 * t) := fun ht0 => by
       obtain ⟨rfl, hg⟩ := hd ht0
       refine ⟨(vt_ptr_step h ht ht0).1, ?_⟩
       rcases hg with ⟨rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩

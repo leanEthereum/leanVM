@@ -47,7 +47,7 @@ theorem vtc_fsNext (hl : args.length = 20) {cur : V} {off b pos : ℕ}
     fun s hs ↦ vt_goodS hl (hmem s hs)
   have gl := hG (.atom (.hint (.limbs (.n b) [.n (b + 1), .n (b + 1 + 1), .n (b + 1 + 2)])))
     (by simp [fsNextT, fsPackT])
-  have g3 := hG (.atom (.const (.n (b + 1 + 3)) (word dsObserve 0 0))) (by simp [fsNextT, fsPackT])
+  have g3 := hG (.atom (.const (.n (b + 1 + 3)) (word dsObserve 0))) (by simp [fsNextT, fsPackT])
   have g4 := hG (.atom (.const (.n (b + 1 + 4)) (word 0 0 1))) (by simp [fsNextT, fsPackT])
   have g5 := hG (.atom (.mul (.n (b + 1 + 5)) (.n (b + 1 + 4)) (.n (b + 1 + 2))))
     (by simp [fsNextT, fsPackT])
@@ -82,7 +82,7 @@ theorem vtc_fsNext (hl : args.length = 20) {cur : V} {off b pos : ℕ}
   · show IsInK _ ∧ IsInK _
     rw [hv 2 (by norm_num), hv 3 (by norm_num)]
     refine ⟨ofK_isInK _, ?_⟩
-    show IsInK (word dsObserve 0 0); rw [word_eOfNat]; exact eOfNat_isInK _
+    show IsInK (word dsObserve 0); rw [word_eOfNat]; exact eOfNat_isInK _
   all_goals simp [autoB, pureB, hintB] at ha
 
 end

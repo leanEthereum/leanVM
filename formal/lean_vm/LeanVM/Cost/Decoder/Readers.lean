@@ -94,13 +94,13 @@ open LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protoco
 open LeanVM.Protocol.Verifier LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-- `p · x`, `x ∈ K`, limb by limb. -/
-def mulK (p : E) (x : K) : E := E.ofLimbs (p.limb 0 * x) (p.limb 1 * x) (p.limb 2 * x)
+def mulK (p : E) (x : K) : E := E.ofLimbs (p.limb 0 * x) (p.limb 1 * x)
 
 theorem mulK_gen_pow (p : E) (n : ℕ) : mulK p (Parameters.g ^ n) = p * gen ^ n :=
   (LeanVM.Guest.Fast.mul_gen_pow_eq p n).symm
 
 /-- The `n` cells from the address of low limb `x`. -/
-noncomputable def readCellsK (rd : Reader) (x : K) (n : ℕ) : List E := readCells rd (E.ofLimbs x 0 0) n
+noncomputable def readCellsK (rd : Reader) (x : K) (n : ℕ) : List E := readCells rd (E.ofLimbs x 0) n
 
 theorem readCells_mul_gen_pow (rd : Reader) (p : E) (k n : ℕ) :
     readCells rd (p * gen ^ k) n = readCellsK rd (p.limb 0 * Parameters.g ^ k) n := by
