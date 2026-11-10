@@ -118,6 +118,8 @@ def QueryW (rd : Reader) (s : Oq) (cap flags coefs hs x bp : E) (w : QW) (d : E)
 def Oq.FinOk (s : Oq) : Prop :=
   s.final = 1 → s.nHs % 2 = 0 ∧ 2 ≤ s.nHs ∧ 1 ≤ s.hsBits ∧ s.hsBits - 1 ≤ s.mu
 
+instance (s : Oq) : Decidable s.FinOk := by unfold Oq.FinOk; infer_instance
+
 /-- **A query** at the point `x` whose window pointer names a run of the windows of the position
 `x` encodes is sound at its witness `oqQueryW`, under a call relation unfolding at `V`. -/
 theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s : Oq}

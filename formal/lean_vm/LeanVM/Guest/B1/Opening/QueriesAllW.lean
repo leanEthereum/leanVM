@@ -22,63 +22,81 @@ open LeanVM.Protocol.Verifier
 theorem opening_queries_all_sound_w : opening_queries_all_sound_w_Spec := by
   intro p hp
   simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact oqSpecW_413
-  · exact oqSpecW_449
-  · exact oqSpecW_701
-  · exact oqSpecW_575
-  · exact oqSpecW_598
-  · exact oqSpecW_623
-  · exact oqSpecW_654
-  · exact oqSpecW_425
-  · exact oqSpecW_418
-  · exact oqSpecW_524
-  · exact oqSpecW_491
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+
+  · exact oqSpecW_482
   · exact oqSpecW_489
-  · exact oqSpecW_761
-  · exact oqSpecW_600
-  · exact oqSpecW_533
-  · exact oqSpecW_692
-  · exact oqSpecW_563
-  · exact oqSpecW_721
-  · exact oqSpecW_743
-  · exact oqSpecW_632
-  · exact oqSpecW_515
-  · exact oqSpecW_422
-  · exact oqSpecW_568
-  · exact oqSpecW_474
-  · exact oqSpecW_471
-  · exact oqSpecW_683
-  · exact oqSpecW_602
-  · exact oqSpecW_745
-  · exact oqSpecW_433
-  · exact oqSpecW_551
-  · exact oqSpecW_487
-  · exact oqSpecW_586
-  · exact oqSpecW_755
-  · exact oqSpecW_643
-  · exact oqSpecW_665
+  · exact oqSpecW_495
+  · exact oqSpecW_499
+  · exact oqSpecW_508
+  · exact oqSpecW_513
+  · exact oqSpecW_518
+  · exact oqSpecW_521
+  · exact oqSpecW_530
+  · exact oqSpecW_535
+  · exact oqSpecW_540
+  · exact oqSpecW_546
   · exact oqSpecW_556
-  · exact oqSpecW_455
-  · exact oqSpecW_452
-  · exact oqSpecW_605
-  · exact oqSpecW_519
-  · exact oqSpecW_517
-  · exact oqSpecW_678
-  · exact oqSpecW_542
-  · exact oqSpecW_468
-  · exact oqSpecW_710
-  · exact oqSpecW_732
-  · exact oqSpecW_614
-  · exact oqSpecW_501
-  · exact oqSpecW_676
-  · exact oqSpecW_439
-  · exact oqSpecW_436
+  · exact oqSpecW_561
+  · exact oqSpecW_566
+  · exact oqSpecW_572
+  · exact oqSpecW_582
+  · exact oqSpecW_585
+  · exact oqSpecW_588
   · exact oqSpecW_591
-  · exact oqSpecW_505
-  · exact oqSpecW_503
-  · exact oqSpecW_680
-  · exact oqSpecW_757
+  · exact oqSpecW_600
+  · exact oqSpecW_603
+  · exact oqSpecW_606
+  · exact oqSpecW_609
+  · exact oqSpecW_617
+  · exact oqSpecW_620
+  · exact oqSpecW_623
+  · exact oqSpecW_629
+  · exact oqSpecW_638
+  · exact oqSpecW_642
+  · exact oqSpecW_648
+  · exact oqSpecW_652
+  · exact oqSpecW_658
+  · exact oqSpecW_663
+  · exact oqSpecW_670
+  · exact oqSpecW_675
+  · exact oqSpecW_682
+  · exact oqSpecW_687
+  · exact oqSpecW_694
+  · exact oqSpecW_699
+  · exact oqSpecW_706
+  · exact oqSpecW_709
+  · exact oqSpecW_712
+  · exact oqSpecW_716
+  · exact oqSpecW_719
+  · exact oqSpecW_729
+  · exact oqSpecW_737
+  · exact oqSpecW_746
+  · exact oqSpecW_756
+  · exact oqSpecW_766
+  · exact oqSpecW_776
+  · exact oqSpecW_783
+  · exact oqSpecW_786
+  · exact oqSpecW_789
+  · exact oqSpecW_793
+  · exact oqSpecW_795
+  · exact oqSpecW_802
+  · exact oqSpecW_806
+  · exact oqSpecW_811
+  · exact oqSpecW_815
+  · exact oqSpecW_820
+  · exact oqSpecW_825
+  · exact oqSpecW_831
+  · exact oqSpecW_836
+  · exact oqSpecW_842
+  · exact oqSpecW_847
+  · exact oqSpecW_854
+  · exact oqSpecW_857
+  · exact oqSpecW_861
+  · exact oqSpecW_868
+  · exact oqSpecW_871
+  · exact oqSpecW_876
+  · exact oqSpecW_878
 
 end
 end LeanVM.Guest.B1

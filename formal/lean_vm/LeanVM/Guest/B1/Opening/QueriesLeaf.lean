@@ -45,6 +45,8 @@ def Oq.lc (s : Oq) : ℕ := 17 * (s.B - 1) / 2 + 8
 `folds = 4`). -/
 def Oq.RowShape (s : Oq) : Prop := (s.base = 1 ∧ s.folds = 6) ∨ (s.base = 0 ∧ s.folds = 4)
 
+instance (s : Oq) : Decidable s.RowShape := by unfold Oq.RowShape; infer_instance
+
 /-- The leaf shapes: `n` cells hashed in `B` blocks, the last reading cells `17(B-1)/2 .. lc`,
 `lc` the cell after the row (its `0x01` and `0x80` share it) or the one after that, the middle
 blocks row cells only. -/
