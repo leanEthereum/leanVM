@@ -12,7 +12,7 @@ public import Qrom.Sphincs.StatementGame
 (`Statement/LeanSphincsQrom.lean`): the statement's game is at most the proof's on the translated
 adversary (`Qrom.Sphincs.winProb_le_qrom`), which makes the same calls
 (`Qrom.Sphincs.isTotalQueryBound_toQromAdversary`) and forges with probability at most
-`((n + 2048) / 2^61)²` (`Qrom.Sphincs.winProb_le_h26`).
+`((n + 2048) / 2^61.8)²` (`Qrom.Sphincs.winProb_le_h26`).
 -/
 
 namespace Qrom.Sphincs

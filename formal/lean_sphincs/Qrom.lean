@@ -19,7 +19,7 @@ The proof of the end statement `Sphincs.QuantumRandomOracleModel.LeanSphincsQrom
 quantum layer (compressed oracle, instability,
 square-root hybrid). `Qrom.Sphincs.winProb_le_h26`: for the parameters of `FORS.h26_layered`, an
 adversary given the public key and making at most `n` calls in all (hash queries, quantum or
-classical, and signing requests) forges with probability at most `((n + 2048) / 2^61)²`.
+classical, and signing requests) forges with probability at most `((n + 2048) / 2^61.8)²`.
 
 ## Generic results
 
@@ -49,23 +49,33 @@ signing); the signer and key generation hash classically through the same random
    a hit of `G` on an honest value or an encoding collision read at a counter the signer did not
    take, or a digest from `G` covered by the logged digests.
 4. Bounds (`Sphincs/Bound`): protected reads cost `verifyQueries · 2^-128` (`Terms`). Hits and
-   encoding collisions cost `2^-128 (√6 (n + 1 + verifyQueries) + 2 verifyQueries)²` (`Swap`):
-   exchanging the data above the found counters with `G` is an involution of the pairs `(d, G)`
-   that makes a collision a hit. Covered digests go through the deferral of the signed digests to
-   presampled ones (`Defer`) and a search with the digest calls of one message and randomizer as
-   one cell (`DigCells`, `CoverCells`), costing `λ_full (√6 (n + 1) + 2)²`, where `λ_full` is at
-   most `∑_j S(k, j) (N / 2^h)^j / 2^(k a)` for `N` signatures (`LamCov`), `9 · 2^-130` for h26.
+   encoding collisions cost `2^-128 (√(2 + 4 · 2^-128) (n + 1 + verifyQueries) + 2 verifyQueries)²`
+   (`Swap`): exchanging the data above the found counters with `G` is an involution of the pairs
+   `(d, G)` that makes a collision a hit. Covered digests go through the deferral of the signed
+   digests to presampled ones (`Defer`) and a search with the digest calls of one message and
+   randomizer as one cell (`DigCells`, `CoverCells`), costing `λ_δ (√(2 + 4 λ_δ) (n + 1) + 2)²` for
+   presampled digests covering a fraction `λ_δ`; averaged with the first and second moments of
+   `λ_δ` (`LamCov`, `LamCov2`) that is at most `1123 · 2^-137 (√2 (n + 1) + 2)²` for h26.
 
-The bound reaches 1/2 at about `2^60.5` calls (`2^60.8` term by term,
-`Qrom.Sphincs.winProb_le_h26_terms`), `2^6.2` above the success of Grover's search for a covered
-digest at 4 hash calls an iteration: about 2 bits from simulating the oracle on cells, 2 from
-Grover's uncomputation, and the rest from the search constant `6` and the hit and hiding terms.
+The search constant `2 + 4 λ` (against VCVio's `6` from the commutators) comes from the
+one-directional hybrid (`Fwd`): only the weight a call moves into the search event is charged, and
+on the databases the compressed oracle reaches, whose written cells are orthogonal to the uniform
+superposition, one call moves at most `λ (2 + 4 λ)` of it (`FwdCell`, `FwdOracle`, `FwdGame`,
+`FwdEvent`).
+
+The bound reaches 1/2 at about `2^61.3` calls; Grover's search for a covered digest reaches it at
+about `2^63`, at 2 hash calls an iteration. The remaining gap is the search constant `2` against
+Grover's `1` and the hiding term, which a hybrid charges at twice the amplitude of a query.
 
 The build fails if the axiom footprints below grow beyond Lean's three. -/
 
 /-- info: 'Qrom.qrom_search_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.qrom_search_le
+
+/-- info: 'Qrom.OvGame.tsum_eventWeight_compressed_le_fwd' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.OvGame.tsum_eventWeight_compressed_le_fwd
 
 /-- info: 'Qrom.OvGame.ov_search_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

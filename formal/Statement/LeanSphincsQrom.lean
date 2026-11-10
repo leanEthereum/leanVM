@@ -31,7 +31,7 @@ wins, averaged over `SK.seed` and `H`.
 
 The end statement, `LeanSphincsQromStronglyUnforgeable`: an adversary making at most `n` calls in
 all (hash queries, quantum or classical, and signing requests) wins with probability at most
-`((n + 2048) / 2^61)²`. As in `LeanSphincs.lean`, a key past its signature limit, which the deployed
+`((n + 2048) / 2^61.8)²`. As in `LeanSphincs.lean`, a key past its signature limit, which the deployed
 signer does not count, is not covered.
 -/
 
@@ -272,11 +272,11 @@ noncomputable def winProb {A : QReg} (adv : Adversary A) (ρ : SubState A) : ℝ
 
 /-- **leanSPHINCS in the quantum random-oracle model**: an adversary making at most `n` calls in
 all, hash queries (quantum or classical) and signing requests, on every public key, forges with
-probability at most `((n + 2048) / 2^61)²`. Key generation's hashing, the signer's and the
+probability at most `((n + 2048) / 2^61.8)²`. Key generation's hashing, the signer's and the
 forgery's verification are not charged to `n`. Proved by `Qrom.Sphincs.leanSphincsQrom`. -/
 def LeanSphincsQromStronglyUnforgeable : Prop :=
   ∀ (A : QReg) (adv : Adversary A) (n : ℕ), (∀ pk, (adv pk).IsTotalQueryBound n) →
-    ∀ ρ : SubState A, winProb adv ρ ≤ ((n + 2048 : ℝ≥0∞) / 2 ^ 61) ^ 2
+    ∀ ρ : SubState A, winProb adv ρ ≤ ((n + 2048 : ℝ≥0∞) / 2 ^ (61.8 : ℝ)) ^ 2
 
 end Sphincs.QuantumRandomOracleModel
 

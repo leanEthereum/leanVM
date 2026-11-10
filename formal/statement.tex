@@ -343,10 +343,10 @@ The adversary starts from any state of its register and wins when its forgery ve
 log does not hold it. An adversary making at most $n$ calls in all, hash queries (quantum or
 classical) and signing requests, forges with probability at most
 \[
-\boxed{\ \left(\frac{n + 2048}{2^{61}}\right)^2\ }
+\boxed{\ \left(\frac{n + 2048}{2^{61.8}}\right)^2\ }
 \]
 (\lean{Sphincs.QuantumRandomOracleModel.LeanSphincsQromStronglyUnforgeable}, proved by
-\lean{Qrom.Sphincs.leanSphincsQrom}): about $2^{60.5}$ calls for probability $1/2$. Key generation's
+\lean{Qrom.Sphincs.leanSphincsQrom}): about $2^{61.3}$ calls for probability $1/2$. Key generation's
 hashing, the signer's and the forgery's verification are not charged to $n$. As in the
 random-permutation statement, a key past its signature limit, which the deployed signer does not
 count, is not covered.

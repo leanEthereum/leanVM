@@ -2,6 +2,7 @@ module
 
 public import Qrom.Leaf
 public import Qrom.OvBridge
+public import Qrom.FwdEvent
 public import Qrom.OvEvent
 
 @[expose] public section
@@ -12,7 +13,7 @@ public import Qrom.OvEvent
 `Qrom.OvGame.ov_search_le`: in a game with overrides and side ports (`Qrom.OvGame`), averaged over
 the random function `G`, a program with at most `n` calls in all outputs, at each leaf `p`, a set
 `out p` of at most `k` inputs one of which satisfies `good z (G z)` with probability at most
-`λ (√6 n + 2 k)² tr ρ`. The proof is that of `Qrom.qrom_search_le`, on the register
+`λ (√(2 + 4 λ) n + 2 k)² tr ρ`. The proof is that of `Qrom.qrom_search_le`, on the register
 `B × (S × Database X Y)`, which reassociates to `(B × S) × Database X Y` for the per-leaf bound.
 -/
 
@@ -116,9 +117,9 @@ theorem ov_search_le (I : L.Interp) (s : ℕ) (hs : ∀ z, (Finset.univ.filter (
     (n k : ℕ) (x : QuantumComp L (ovSpec X Y S P Res) W A) (hx : x.IsTotalQueryBound n)
     (ρ : SubState A) (out : (Σ u, W u) → Finset X) (hout : ∀ p, (out p).card ≤ k) :
     sampledEvalDistMap g.sampled I x ρ (fun G p ↦ decide (∃ z ∈ out p, good z (G z))) {true} ≤
-      ENNReal.ofReal (((s : ℝ) / Fintype.card Y) * (√6 * n + 2 * k) ^ 2) *
+      ENNReal.ofReal (((s : ℝ) / Fintype.card Y) *
+        (√(2 + 4 * ((s : ℝ) / Fintype.card Y)) * n + 2 * k) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
-  let _ : UniformAnswerMeasure (X →ₒ Y) := UniformAnswerMeasure.ofFiniteNonempty _
   set lam : ℝ := (s : ℝ) / Fintype.card Y with hlam
   have hlam0 : 0 ≤ lam := by positivity
   set δ : ℝ := k * (2 * √lam) with hδ
@@ -163,16 +164,8 @@ theorem ov_search_le (I : L.Interp) (s : ℕ) (hs : ∀ z, (Finset.univ.filter (
     exact mul_le_mul_of_nonneg_right (by exact_mod_cast hout p) (by positivity)
   have hsum := rpow_inv_two_tsum_le_of_le_add_tsum hleaf
   have hbad : ∑' p, ENNReal.ofReal (b p) ≤
-      ENNReal.ofReal (6 * lam) * (n : ℝ≥0∞) ^ 2 * ENNReal.ofReal ρ.matrix.trace.re := by
-    refine (g.tsum_eventWeight_compressed_le I (searchEvent good) (searchEvent_empty good) n x hx
-      ρ).trans ?_
-    gcongr
-    have hI := instability_searchEvent_le good s hs (Fintype.card X)
-    have hne : (s : ℝ≥0∞) / Fintype.card Y ≠ ⊤ :=
-      ENNReal.div_ne_top (ENNReal.natCast_ne_top s) (by simp)
-    have := (ENNReal.toReal_le_toReal (Database.instability_ne_top _ _) hne).mpr hI
-    rw [ENNReal.toReal_div, ENNReal.toReal_natCast, ENNReal.toReal_natCast] at this
-    linarith
+      ENNReal.ofReal (lam * (2 + 4 * lam)) * (n : ℝ≥0∞) ^ 2 * ENNReal.ofReal ρ.matrix.trace.re :=
+    g.tsum_eventWeight_compressed_le_fwd good I s hs n x hx ρ
   have htr : ∑' p, ENNReal.ofReal (J p).trace.re ≤ ENNReal.ofReal ρ.matrix.trace.re := by
     have h := (g.compressed.run I x).isCPTNIFamily.tsum_ofReal_trace_re_le
       (ρ.prod g.compressed.init).posSemidef
@@ -188,7 +181,7 @@ theorem ov_search_le (I : L.Interp) (s : ℕ) (hs : ∀ z, (Finset.univ.filter (
     simp only [ENNReal.ofReal_mul (sq_nonneg δ), ENNReal.tsum_mul_left]
     gcongr
   have hfinal : (∑' p, ENNReal.ofReal (R p)) ^ (2⁻¹ : ℝ) ≤
-      (ENNReal.ofReal (6 * lam) * (n : ℝ≥0∞) ^ 2 * ENNReal.ofReal ρ.matrix.trace.re) ^
+      (ENNReal.ofReal (lam * (2 + 4 * lam)) * (n : ℝ≥0∞) ^ 2 * ENNReal.ofReal ρ.matrix.trace.re) ^
           (2⁻¹ : ℝ) +
         (ENNReal.ofReal (δ ^ 2) * ENNReal.ofReal ρ.matrix.trace.re) ^ (2⁻¹ : ℝ) :=
     hsum.trans (add_le_add (ENNReal.rpow_le_rpow hbad (by norm_num)) hrest)
@@ -198,10 +191,11 @@ theorem ov_search_le (I : L.Interp) (s : ℕ) (hs : ∀ z, (Finset.univ.filter (
     ENNReal.rpow_two] at hsq
   refine hsq.trans (le_of_eq ?_)
   have htr0 : 0 ≤ ρ.matrix.trace.re := SubState.trace_re_nonneg _
-  have e1 : ENNReal.ofReal (6 * lam) * (n : ℝ≥0∞) ^ 2 * ENNReal.ofReal ρ.matrix.trace.re =
-      ENNReal.ofReal (6 * lam * n ^ 2 * ρ.matrix.trace.re) := by
-    rw [ENNReal.ofReal_mul (show (0 : ℝ) ≤ 6 * lam * n ^ 2 by positivity),
-      ENNReal.ofReal_mul (show (0 : ℝ) ≤ 6 * lam by positivity),
+  have e1 : ENNReal.ofReal (lam * (2 + 4 * lam)) * (n : ℝ≥0∞) ^ 2 *
+      ENNReal.ofReal ρ.matrix.trace.re =
+      ENNReal.ofReal (lam * (2 + 4 * lam) * n ^ 2 * ρ.matrix.trace.re) := by
+    rw [ENNReal.ofReal_mul (show (0 : ℝ) ≤ lam * (2 + 4 * lam) * n ^ 2 by positivity),
+      ENNReal.ofReal_mul (show (0 : ℝ) ≤ lam * (2 + 4 * lam) by positivity),
       ENNReal.ofReal_pow (Nat.cast_nonneg _), ENNReal.ofReal_natCast]
   have e2 : ENNReal.ofReal (δ ^ 2) * ENNReal.ofReal ρ.matrix.trace.re =
       ENNReal.ofReal (δ ^ 2 * ρ.matrix.trace.re) := (ENNReal.ofReal_mul (sq_nonneg _)).symm
@@ -212,7 +206,8 @@ theorem ov_search_le (I : L.Interp) (s : ℕ) (hs : ∀ z, (Finset.univ.filter (
   rw [Real.sqrt_mul' _ htr0, Real.sqrt_mul' _ htr0, ← add_mul, mul_pow, Real.sq_sqrt htr0,
     Real.sqrt_mul (by positivity), Real.sqrt_mul (by positivity), Real.sqrt_sq (Nat.cast_nonneg _),
     Real.sqrt_sq hδ0, hδ]
-  have h6 : √(6 : ℝ) * √lam * n + k * (2 * √lam) = √lam * (√6 * n + 2 * k) := by ring
+  have h6 : √lam * √(2 + 4 * lam) * n + k * (2 * √lam) = √lam * (√(2 + 4 * lam) * n + 2 * k) := by
+    ring
   rw [h6, mul_pow, Real.sq_sqrt hlam0]
 
 end OvGame

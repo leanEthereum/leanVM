@@ -15,8 +15,9 @@ answer the calls of a cell together: the hidden game overrides one call of a pre
 overrides all of them (`Qrom.Sphincs.hidGame_ov_whole`), so its overrides are those of a game on
 cells (`Qrom.Sphincs.cellOv_spec`).
 
-A cell value is then a whole digest, and the fraction `λ_full` of the digests that the presampled
-digests cover is at most `∑_j S(k, j) (N / 2^h)^j / 2^(k a)` (`Qrom.Sphincs.lamF_le`).
+A cell value is then a whole digest, and the fraction of the digests that presampled digests `δ`
+cover is at most `∑_t c_t^k / (2^h 2^(k a))`, with `c_t` the number of them at the index `t`
+(`Qrom.Sphincs.sbF_le`).
 -/
 
 open OracleComp OracleSpec FORS FORS.Security Concrete Quantum
@@ -217,11 +218,6 @@ open Classical in
 def sbF (δ : Fin signatureLimit → DigV) : ℕ :=
   (Finset.univ.filter fun v : DigV ↦ Covered (leavesAll δ) (fullDigestView (truncateMessageDigest v))).card
 
-/-- **`λ_full`**: the probability, over uniform presampled digests and uniform digest calls, that
-the digest is covered. -/
-def lamF : ℝ≥0∞ := (Fintype.card (Fin signatureLimit → DigV) : ℝ≥0∞)⁻¹ *
-  ∑ δ, ENNReal.ofReal ((sbF δ : ℝ) / Fintype.card DigV)
-
 open Classical in
 theorem sbF_le (δ : Fin signatureLimit → DigV) :
     (sbF δ : ℝ) / Fintype.card DigV ≤
@@ -253,9 +249,5 @@ theorem sbF_le (δ : Fin signatureLimit → DigV) :
   rw [← Finset.sum_div, div_le_div_iff₀ hD (mul_pos hI hF), hv']
   rw [mul_comm]
   exact mul_le_mul_of_nonneg_right (by exact_mod_cast hc) hD.le
-
-/-- **`λ_full` is at most `lamS`.** -/
-theorem lamF_le : lamF ≤ ENNReal.ofReal lamS :=
-  avg_le_lamS _ (fun δ ↦ by positivity) sbF_le
 
 end Qrom.Sphincs

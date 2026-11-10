@@ -96,7 +96,7 @@ theorem isTotalQueryBound_withVerifier {A : QReg} {α β : Type}
 
 /-- **The search bound with a classical verifier.** A program making at most `n` calls, followed by
 a verifier making at most `m` queries and reading at most `k` inputs, reads a good value in the side
-state it ends in with probability at most `λ (√6 (n + m) + 2 k)²`, where every input has a fraction
+state it ends in with probability at most `λ (√(2 + 4 λ) (n + m) + 2 k)²`, where every input has a fraction
 at most `λ` of good values. -/
 theorem search_withVerifier_le (g : OvGame X Y S P Res) [Nonempty Y] (good : X → Y → Prop)
     [∀ z, DecidablePred (good z)] (sb : ℕ) (hs : ∀ z, (Finset.univ.filter (good z)).card ≤ sb)
@@ -108,7 +108,8 @@ theorem search_withVerifier_le (g : OvGame X Y S P Res) [Nonempty Y] (good : X �
     ∑ G : X → Y, (Fintype.card (X → Y) : ℝ≥0∞)⁻¹ * sideW g G .instruments adv ρ (fun p s ↦
         decide (∃ z ∈ out (evalWithAnswerFn (QueryImpl.ofFn (g.answer s G)) (ver p.2.2)),
           good z (G z))) ≤
-      ENNReal.ofReal (((sb : ℝ) / Fintype.card Y) * (√6 * (n + m : ℕ) + 2 * k) ^ 2) *
+      ENNReal.ofReal (((sb : ℝ) / Fintype.card Y) *
+        (√(2 + 4 * ((sb : ℝ) / Fintype.card Y)) * (n + m : ℕ) + 2 * k) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
   have h := ov_search_le g good .instruments sb hs (n + m) k (withVerifier adv ver)
     (isTotalQueryBound_withVerifier hadv hver) ρ (fun p ↦ out p.2.2.2) fun p ↦ hout _

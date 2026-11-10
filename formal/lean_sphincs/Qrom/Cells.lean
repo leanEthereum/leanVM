@@ -470,7 +470,7 @@ theorem evalDistMap_true_mono {spec : QuantumOracleSpec.{0, 0}} {L : LocalSig.{u
 
 /-- **The search bound for a predicate on cells.** A program making at most `n` calls outputs at
 most `k` cells, one of which has only good completions with probability at most
-`λ (√6 n + 2 k)²`, where every cell has a fraction at most `λ` of good values. The inputs sit in the
+`λ (√(2 + 4 λ) n + 2 k)²`, where every cell has a fraction at most `λ` of good values. The inputs sit in the
 cells by the injection `cellOf`, and the overrides of `g` are components of overrides of whole
 cells. -/
 theorem search_cells_le (g : OvGame X Y S P Res) [Nonempty Y] (cellOf : X → C × K)
@@ -484,7 +484,8 @@ theorem search_cells_le (g : OvGame X Y S P Res) [Nonempty Y] (cellOf : X → C 
     ∑ G : X → Y, (Fintype.card (X → Y) : ℝ≥0∞)⁻¹ * sideW g G .instruments adv ρ (fun p _ ↦
         decide (∃ c ∈ out p.2.2,
           ∀ v : K → Y, (∀ x, (cellOf x).1 = c → v (cellOf x).2 = G x) → good c v)) ≤
-      ENNReal.ofReal (((sb : ℝ) / Fintype.card (K → Y)) * (√6 * n + 2 * k) ^ 2) *
+      ENNReal.ofReal (((sb : ℝ) / Fintype.card (K → Y)) *
+        (√(2 + 4 * ((sb : ℝ) / Fintype.card (K → Y))) * n + 2 * k) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
   let ev : (X → Y) → C → Prop := fun G c ↦
     ∀ v : K → Y, (∀ x, (cellOf x).1 = c → v (cellOf x).2 = G x) → good c v

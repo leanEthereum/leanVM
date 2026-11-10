@@ -16,7 +16,7 @@ reads the counters up to the one it finds (`Qrom.Sphincs.encH_congr_found`,
 found counters with `G` at their inputs is then an involution of the pairs `(d, G)`
 (`Qrom.Sphincs.swapE`) that carries the hidden game to one answering those inputs by `G` once
 revealed (`Qrom.Sphincs.answer_swap`), where both events are hits of `G`. Averaged over the data and
-`G`, they weigh at most `2^-128 (√6 (n + 1 + verifyQueries) + 2 verifyQueries)² tr ρ`
+`G`, they weigh at most `2^-128 (√(2 + 4 · 2^-128) (n + 1 + verifyQueries) + 2 verifyQueries)² tr ρ`
 (`Qrom.Sphincs.avg_hit_le`).
 -/
 
@@ -428,11 +428,13 @@ theorem avg_hit_le {A : QReg} (adv : Adversary A) {n : ℕ}
     ∑ d, ∑ G, ((Fintype.card Data : ℝ≥0∞) * Fintype.card (Input → HashOutput))⁻¹ *
       OvGame.sideW (hidGame d) G .instruments (withKey adv) ρ (fun p s ↦
         evHit d G (evalWithAnswerFn (hidAns d G s) (verifier p.2.2))) ≤
-      ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * (√6 * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2) *
+      ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 *
+        (√(2 + 4 * (2 : ℝ)⁻¹ ^ 128) * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2) *
         ENNReal.ofReal ρ.matrix.trace.re := by
   set cD := (Fintype.card Data : ℝ≥0∞)
   set cG := (Fintype.card (Input → HashOutput) : ℝ≥0∞)
-  set B := ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 * (√6 * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2) *
+  set B := ENNReal.ofReal ((2 : ℝ)⁻¹ ^ 128 *
+      (√(2 + 4 * (2 : ℝ)⁻¹ ^ 128) * (1 + n + verifyQueries : ℕ) + 2 * verifyQueries) ^ 2) *
     ENNReal.ofReal ρ.matrix.trace.re
   set Φ : Data × (Input → HashOutput) → ℝ≥0∞ := fun p ↦ OvGame.sideW (hidX p.1) p.2 .instruments
     (withKey adv) ρ (fun q s ↦ evX p.1 p.2 (evalWithAnswerFn (QueryImpl.ofFn ((hidX p.1).answer s p.2))
