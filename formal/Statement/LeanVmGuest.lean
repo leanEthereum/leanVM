@@ -427,7 +427,8 @@ instance : MachineEncoding Child :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.statement, encodeValue c.freshClaim, encodeValue c.proof]⟩
 
 instance : MachineEncoding BatchingHints :=
-  ⟨fun h ↦ .constructor 0 [encodeValue h.sumcheckMessages, encodeValue h.finalBytecodeValue]⟩
+  ⟨fun h ↦ .constructor 0 [encodeValue h.lambdaGrindNonce, encodeValue h.sumcheckMessages,
+    encodeValue h.finalBytecodeValue]⟩
 
 instance : MachineEncoding NodeWitness :=
   ⟨fun w ↦ .constructor 0 [encodeValue w.children, encodeValue w.xmssSignatures,
