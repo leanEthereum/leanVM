@@ -122,9 +122,14 @@ noncomputable def vsPs {fs : String → ℕ} (W : VsWordsOs fs) : List (Tree →
     [fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t]
 
 /-- **`verify_sub`'s callees' trees**: callee `j` a call of its name within its bound satisfying
-its predicate. -/
+its predicate; `vsTsAny`, a flat node of them at some bus grind arm. -/
 noncomputable def vsTs (fs : String → ℕ) (W : VsWordsOs fs) (Bvk μ r d : ℕ) : List (Tree → Prop) :=
   namedP fs (vsNames μ r d) (vsBsAt W Bvk μ r) (vsPs W)
+
+/-- **`verify_sub`'s trees at the stack log `μ` and the rate `r`**: a flat node whose callees are
+`vsTs` at some bus grind arm `d < 18` (the child's bus depth less `16`). -/
+noncomputable def vsTsAny (fs : String → ℕ) (W : VsWordsOs fs) (Bvk μ r : ℕ) (t : Tree) : Prop :=
+  ∃ d < 18, Budget.FlatShape coreProgram "verify_sub" (vsTs fs W Bvk μ r d) t
 
 end
 end LeanVM.Guest.B1.VerifySub
