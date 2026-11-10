@@ -92,10 +92,6 @@ theorem guest_target_eq (s : Fin 64 → E) (f g' : Fin 8 → E) :
   rw [wHorner_ofFn, sum_pow_char_pow, Finset.mul_sum, Finset.sum_mul]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   have hw := ringWK_frob p.isLt
-  have hg : genE ≠ 0 := by
-    intro h0
-    rw [h0, mul_zero] at hw
-    exact zero_ne_one hw
   have hi : (i : ℕ) ≤ 63 := by omega
   rw [verifier_ringPsi, ringPsi_ofFn, mul_pow, ← pow_mul, mul_comm (63 - (i : ℕ)), pow_mul]
   have e : genE ^ 63 = genE ^ (i : ℕ) * genE ^ (63 - (i : ℕ)) := by
