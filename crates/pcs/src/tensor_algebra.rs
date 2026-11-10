@@ -30,17 +30,10 @@ pub fn transpose_s_hat(s_hat_v: &[F128; PACKING_WIDTH]) -> [F64; DEGREE_E] {
     let mut s_hat_u = [F64::ZERO; DEGREE_E];
     for (i, elem) in s_hat_v.iter().enumerate() {
         // Deposit bit w of elem into bit i of s_hat_u[w]; scan set bits only.
-        let mut c0 = elem.c0;
-        while c0 != 0 {
-            let w = c0.trailing_zeros() as usize;
-            s_hat_u[w].0 |= 1u64 << i;
-            c0 &= c0 - 1;
-        }
-        let mut c1 = elem.c1;
-        while c1 != 0 {
-            let w = c1.trailing_zeros() as usize;
-            s_hat_u[64 | w].0 |= 1u64 << i;
-            c1 &= c1 - 1;
+        let mut bits = u128::from(*elem);
+        while bits != 0 {
+            s_hat_u[bits.trailing_zeros() as usize].0 |= 1u64 << i;
+            bits &= bits - 1;
         }
     }
     s_hat_u
@@ -53,7 +46,7 @@ mod tests {
 
     /// Bit w of an E element in the basis `x^i y^j`, `w = 64 j + i` (w in 0..128).
     fn ext_bit(e: F128, w: usize) -> u64 {
-        e.to_limbs()[w / 64] >> (w % 64) & 1
+        (u128::from(e) >> w & 1) as u64
     }
 
     #[test]

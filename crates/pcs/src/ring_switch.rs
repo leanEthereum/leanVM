@@ -197,23 +197,15 @@ fn xor_accs(mut a: [F128; PACKING_WIDTH], b: [F128; PACKING_WIDTH]) -> [F128; PA
 ///
 /// `rs_eq_ind[y] = sum_w bit_w(suffix_tensor[y]) * coordinate_weights[w]`
 ///
-/// Naive reference: a per-position bit-scan over the two 64-bit limbs.
+/// Naive reference: a per-position bit-scan.
 #[cfg(test)]
 pub fn fold_ext_elems_naive(suffix_tensor: &[F128], coordinate_weights: &[F128; DEGREE_E]) -> Vec<F128> {
     parallel::map_collect(suffix_tensor.len(), |i| {
-        let elem = suffix_tensor[i];
+        let mut bits = u128::from(suffix_tensor[i]);
         let mut acc = F128::ZERO;
-        let mut c0 = elem.c0;
-        while c0 != 0 {
-            let w = c0.trailing_zeros() as usize;
-            acc += coordinate_weights[w];
-            c0 &= c0 - 1;
-        }
-        let mut c1 = elem.c1;
-        while c1 != 0 {
-            let w = c1.trailing_zeros() as usize;
-            acc += coordinate_weights[64 | w];
-            c1 &= c1 - 1;
+        while bits != 0 {
+            acc += coordinate_weights[bits.trailing_zeros() as usize];
+            bits &= bits - 1;
         }
         acc
     })
@@ -248,10 +240,7 @@ pub(crate) struct RingFold {
 /// The `w`-th `F_2`-coordinate basis element of `E`: bits 0..64 are K's power
 /// basis, and bits 64..128 shift it by Y.
 pub(crate) fn coordinate_basis(w: usize) -> F128 {
-    match w / PACKING_WIDTH {
-        0 => F128::new(1u64 << (w % PACKING_WIDTH), 0),
-        _ => F128::new(0, 1u64 << (w % PACKING_WIDTH)),
-    }
+    F128::from(1u128 << w)
 }
 
 impl RingWeight {

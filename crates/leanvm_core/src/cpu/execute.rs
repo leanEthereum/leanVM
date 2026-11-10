@@ -707,12 +707,10 @@ impl Program {
                         }
                         RHint::BitDecompose { value, bits, nbits } => {
                             assert!(*nbits <= 128, "a machine word has 128 bits");
-                            let v = m.get(fp + value);
-                            let limbs = v.to_limbs();
+                            let v = u128::from(m.get(fp + value));
                             let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
                             for j in 0..*nbits {
-                                let bit = (limbs[j as usize / 64] >> (j % 64)) & 1;
-                                m.put(bb + j, F128::new(bit, 0))?;
+                                m.put(bb + j, F128::from((v >> j) & 1))?;
                             }
                         }
                         RHint::BitDecomposeExp { value, bits, nbits } => {
@@ -736,14 +734,12 @@ impl Program {
                             count,
                         } => {
                             assert!(start + width * count <= 128, "a machine word has 128 bits");
-                            let v = m.get(fp + value);
-                            let limbs = v.to_limbs();
+                            let v = u128::from(m.get(fp + value));
                             let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
                             for i in 0..*count {
                                 let mut n = 0usize;
                                 for j in 0..*width {
-                                    let bit = start + i * width + j;
-                                    n |= (((limbs[bit as usize / 64] >> (bit % 64)) & 1) as usize) << j;
+                                    n |= (((v >> (start + i * width + j)) & 1) as usize) << j;
                                 }
                                 m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
                             }
