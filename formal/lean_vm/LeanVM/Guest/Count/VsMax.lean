@@ -29,8 +29,8 @@ theorem vtMax_eq : B1.VerifySub.vtMax B2C.fs vsWords.Kf vsWords.Ksh vsWords.K10 
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vkBound_eq : B1.VerifySub.vkBound = 65770 := by
-  show B2C.fs "verify_keccak" + 440 + 61728 = 65770
+theorem vkBound_eq : B1.VerifySub.vkBound = 56391 := by
+  show B2C.fs "verify_keccak" + 440 + 52647 = 56391
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in

@@ -75,7 +75,9 @@ theorem fs_five (st : OsSt) (hfs : st.fs.length = 5) :
 /-- **One `opening_round` call** (G:1581-1582) runs `foldRound` from a Spec state whose claim is
 the guest's plus `D`: the seven words at the cursor; the new claim the guest's plus `γ·D`; `γ`
 stored at `fold_challenges·g^i`, `α, β, θ` at `round_coefs·g^(3i)`. -/
-theorem osRound_sound (hR : ∀ a r, C "opening_round" a r → MeaningOpeningRound rd a r)
+theorem osRound_sound
+    (hR : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r)
+    (hwt : WinTabs rd (σ (.n osTabs)))
     {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {st : OsSt} (ws : WhirState) (D : E) (hfs : st.fs.length = 5)
     (hm : MatsOk σ st.mats) (hco : st.co < u128Bound) (hi : 3 * i < u128Bound)
     (hc : ws.claim = σ (.n st.claim) + D) (hok : AllOk C rd σ (osRound P i st).1) :
@@ -99,7 +101,7 @@ theorem osRound_sound (hR : ∀ a r, C "opening_round" a r → MeaningOpeningRou
   obtain ⟨efp, hm1⟩ := osMatS_val (s := (osCurS st).2.2) (off := i) hm hi1 hfp
   obtain ⟨ecp, hm2⟩ := osMatS_val hm1 hi hcp
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_call] at hcall
-  have hM := hR _ _ hcall
+  have hM := hR _ _ (by simpa [hf] using hwt) hcall
   simp only [hf, List.cons_append, List.nil_append, List.map_cons, List.map_nil, osRun,
     List.range_succ, List.range_zero, Nat.add_zero] at hM
   simp only [MeaningOpeningRound] at hM
@@ -135,8 +137,9 @@ instance : Inhabited FoldRound := ⟨⟨0, 0, 0⟩⟩
 plus `D`: the `7n` words at the cursor; the Spec's claim after them the guest's plus `D` times the
 `γ`s; the `γ`s stored from `fold_challenges·g^i`, the rounds' `α, β, θ` from
 `round_coefs·g^(3i)`. -/
-theorem osRounds_sound (hR : ∀ a r, C "opening_round" a r → MeaningOpeningRound rd a r)
-    (P : List (ℕ × ℕ × ℕ)) : ∀ (n i : ℕ) (st : OsSt) (ws : WhirState) (D : E),
+theorem osRounds_sound
+    (hR : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r)
+    (hwt : WinTabs rd (σ (.n osTabs))) (P : List (ℕ × ℕ × ℕ)) : ∀ (n i : ℕ) (st : OsSt) (ws : WhirState) (D : E),
       st.fs.length = 5 → MatsOk σ st.mats → st.co < u128Bound → 3 * (i + n) < u128Bound →
       ws.claim = σ (.n st.claim) + D → AllOk C rd σ (osRounds P i n st).1 →
       ∃ (xs gs : List E) (rounds : List FoldRound), xs.length = 7 * n ∧ gs.length = n ∧
@@ -163,9 +166,9 @@ theorem osRounds_sound (hR : ∀ a r, C "opening_round" a r → MeaningOpeningRo
     simp only [osRounds] at hok ⊢
     rw [allOk_append] at hok
     obtain ⟨xs0, g0, r0, hx0, hrd0, hrun0, hcur0, hfs0, hm0, hco0, hpad0, lg0, la0, lb0, lt0⟩ :=
-      osRound_sound hR ws D hfs hm hco (by omega) hc hok.1
+      osRound_sound hR hwt ws D hfs hm hco (by omega) hc hok.1
     obtain ⟨xs, gs, rounds, hxl, hgl, hrl, hrd, hrun, hcur, hfs', hm', hco', hpad', lg, lc⟩ :=
-      osRounds_sound hR P n (i + 1) (osRound P i st).2
+      osRounds_sound hR hwt P n (i + 1) (osRound P i st).2
         { ws with
           claim := σ (.n (osRound P i st).2.claim) + g0 * D
           gammas := ws.gammas ++ [g0] } (g0 * D) hfs0 hm0 (by rw [hco0]; unfold u128Bound; positivity)

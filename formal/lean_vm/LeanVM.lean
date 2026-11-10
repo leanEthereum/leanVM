@@ -85,7 +85,7 @@ random-permutation model where an adversary is involved, except the memory-decod
   is such a child) and `LeanVM.Guest.Child.freshClaim_unique`;
 * `LeanVM.Guest.Completeness.honest_proof_rarely_refused : HonestProofRarelyRefused`
   (`Statement/LeanVmGuestCompleteness.lean`): the honest proof of a guest execution is rejected
-  with probability at most `2^-126` in the random-permutation model;
+  with probability at most `2^-100` in the random-permutation model;
 * `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`).

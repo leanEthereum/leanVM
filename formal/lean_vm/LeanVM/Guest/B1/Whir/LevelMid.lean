@@ -108,7 +108,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   set D := recsDeficit recs ws.gammas with hD
   -- the folds
   obtain ⟨xs0, gs, rounds, hx0, hgl, hrl, hrd0, hrun0, hcur0, hfs0, hm0, hco0, hpad0, lg, lc⟩ :=
-    osRounds_sound hcal.round c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
+    osRounds_sound hcal.round hwt c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
       hin.claim hoF
   -- the message
   obtain ⟨x0, x1, high, y0, y1, nn, hC⟩ :=
