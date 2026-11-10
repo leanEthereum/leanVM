@@ -6,6 +6,11 @@ import Rv64Verifier.Proofs.Layout.AddScaled
 import Rv64Verifier.Proofs.Layout.SpecExtend
 import Rv64Verifier.Proofs.Layout.Concat
 import Rv64Verifier.Proofs.Layout.Clone
+import Rv64Verifier.Proofs.Layout.StateStep
+import Rv64Verifier.Proofs.Layout.StateDerived
+import Rv64Verifier.Proofs.Layout.Memory
+import Rv64Verifier.Proofs.Layout.Counted
+import Rv64Verifier.Proofs.Layout.BusBridge
 import Rv64Verifier.Proofs.Runtime.All
 import Rv64Verifier.Proofs.Field.All
 
@@ -35,6 +40,20 @@ theorem concat_of (hR : SpecExtend.ReserveFreshSpec) : ConcatSpec :=
 
 theorem clone_proved : CloneSpec := Clone.clone_spec Runtime.tryAllocZeroed Runtime.memcpy
 
+theorem state_derived_of (hG : GrowOneFreshSpec 0x80011c78 24 8) : StateDerivedSpec :=
+  StateDerived.state_derived_spec Runtime.alloc_spec term_proved col_proved (Pair.pair_spec hG)
+
+theorem state_step_of (hG : GrowOneFreshSpec 0x80011c78 24 8) : StateStepSpec :=
+  StateStep.state_step_spec col_proved (state_derived_of hG)
+
+theorem counted_of (hR : SpecExtend.ReserveFreshSpec) (hG : GrowOneFreshSpec 0x80011c78 24 8) :
+    CountedSpec :=
+  Counted.counted_spec (concat_of hR) col_proved (Pair.pair_spec hG)
+
+theorem memory_of (hR : SpecExtend.ReserveFreshSpec) (hG : GrowOneFreshSpec 0x80011c78 24 8) :
+    MemorySpec :=
+  Memory.memory_spec term_proved col_proved (counted_of hR hG)
+
 /-- info: 'Rv64Verifier.Layout.evaluate_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms evaluate_proved
 
@@ -55,5 +74,11 @@ theorem clone_proved : CloneSpec := Clone.clone_spec Runtime.tryAllocZeroed Runt
 
 /-- info: 'Rv64Verifier.Layout.Pair.pair_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Pair.pair_spec
+
+/-- info: 'Rv64Verifier.Layout.state_step_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms state_step_of
+
+/-- info: 'Rv64Verifier.Layout.memory_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms memory_of
 
 end Rv64Verifier.Layout
