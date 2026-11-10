@@ -1477,6 +1477,21 @@ def opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_it
     return chain[n_iters_g] * lam_n
 
 
+def canopy_queries(cap, flags, c_cap, c_flags, lam, lam_n, query_win_ptrs, row_eq_weights, c_row_eq_weights, n_queries: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+    # Level 1 under Canopy: `opening_queries`' extension rows, each query opening the Canopy
+    # codeword's K row at its position too, on the same windows, its dot (by c_row_eq_weights)
+    # joining the row's in the one chain.
+    mu = 1 / lam
+    chain = HeapBuf(GEN ** (n_queries + 1))
+    chain[GEN ** 0] = 0
+    for xi in mul_range(1, GEN ** n_queries):
+        wins = query_win_ptrs[xi]
+        d = opening_query(cap, flags, row_eq_weights, wins, 0, interleave, leaf_cells, depth, cap_depth)
+        c = opening_query(c_cap, c_flags, c_row_eq_weights, wins, 1, interleave, interleave // 2, depth, cap_depth)
+        chain[xi * GEN] = (chain[xi] + d + c) * mu
+    return chain[GEN ** n_queries] * lam_n
+
+
 @inline
 def forest_query(row_eq_weights, wins, interleave: Const, leaf_cells: Const, levels: Const):
     # One level-0 query under Canopy: its row's dot product, and the root of its forest subtree.
@@ -1540,11 +1555,18 @@ def forest_queries(fs0, fs1, fs2, fs3, fs4, query_win_ptrs, row_eq_weights, n_qu
 
 @inline
 def root_words(r0, r1, lc):
-    # sum_w lc^w word_w of a digest held as its two halves, each half's two words hinted and pinned by
-    # `canonical_limbs` (the half is lo + Y * hi with both in K).
-    w0, w1 = canonical_limbs(r0)
-    w2, w3 = canonical_limbs(r1)
-    return w0 + lc * (w1 + lc * (w2 + lc * w3))
+    # sum_w lc^w word_w of a digest held as its two halves, each half's low word hinted and its high
+    # word derived, both pinned in K as `canonical_limbs` does (the half is lo + Y * hi), and read in
+    # place.
+    lo_0 = StackBuf(1)
+    lo_1 = StackBuf(1)
+    hint_f192_limbs(lo_0, r0)
+    hint_f192_limbs(lo_1, r1)
+    w1 = (r0 + lo_0[0]) * Y_INV
+    w3 = (r1 + lo_1[0]) * Y_INV
+    assert_in_k(lo_0[0], w1)
+    assert_in_k(lo_1[0], w3)
+    return lo_0[0] + lc * (w1 + lc * (lo_1[0] + lc * w3))
 
 
 def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, lc, glue, beta, n_queries: Const, n1: Const, depth: Const, levels: Const):
@@ -1586,21 +1608,24 @@ def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, lc, glue, beta, n_que
     rs = n_queries // 2 + 1
     for c in unroll(0, 3):
         recs[GEN ** ((FREC_CHAINS + c) * rs)] = 0
-    for xi in mul_range(1, GEN ** (n_queries // 2)):
+    # Two pairs an iteration; an odd pair, then an odd query, after.
+    for xi in mul_range(1, GEN ** (n_queries // 4)):
         rs = n_queries // 2 + 1
-        rec = recs * xi
-        out = rec * GEN
-        pair_ptrs = query_win_ptrs * xi * xi
-        dots = (rec[GEN ** (FREC_CHAINS * rs)] + rec[GEN ** (FREC_DOTS * rs)]) * mu
-        out[GEN ** (FREC_CHAINS * rs)] = (dots + rec[GEN ** ((FREC_DOTS + 1) * rs)]) * mu
-        words = (rec[GEN ** ((FREC_CHAINS + 1) * rs)] + root_words(rec[GEN ** (FREC_ROOTS * rs)], rec[GEN ** ((FREC_ROOTS + 1) * rs)], lc)) * mu4
-        out[GEN ** ((FREC_CHAINS + 1) * rs)] = (words + root_words(rec[GEN ** ((FREC_ROOTS + 2) * rs)], rec[GEN ** ((FREC_ROOTS + 3) * rs)], lc)) * mu4
-        subtrees = (rec[GEN ** ((FREC_CHAINS + 2) * rs)] + subtree_eq(tabs, pair_ptrs[GEN ** 0], depth, levels)) * mu4
-        out[GEN ** ((FREC_CHAINS + 2) * rs)] = (subtrees + subtree_eq(tabs, pair_ptrs[GEN ** 1], depth, levels)) * mu4
+        rec = recs * xi * xi
+        quad_ptrs = query_win_ptrs * (xi * xi) * (xi * xi)
+        dots, words, subtrees = canopy_pair(rec[GEN ** (FREC_CHAINS * rs)], rec[GEN ** ((FREC_CHAINS + 1) * rs)], rec[GEN ** ((FREC_CHAINS + 2) * rs)], rec, quad_ptrs[GEN ** 0], quad_ptrs[GEN ** 1], tabs, mu, mu4, lc, rs, depth, levels)
+        dots, words, subtrees = canopy_pair(dots, words, subtrees, rec * GEN, quad_ptrs[GEN ** 2], quad_ptrs[GEN ** 3], tabs, mu, mu4, lc, rs, depth, levels)
+        out = rec * GEN ** 2
+        out[GEN ** (FREC_CHAINS * rs)] = dots
+        out[GEN ** ((FREC_CHAINS + 1) * rs)] = words
+        out[GEN ** ((FREC_CHAINS + 2) * rs)] = subtrees
+    at = recs * GEN ** (2 * (n_queries // 4))
+    dots = at[GEN ** (FREC_CHAINS * rs)]
+    words = at[GEN ** ((FREC_CHAINS + 1) * rs)]
+    subtrees = at[GEN ** ((FREC_CHAINS + 2) * rs)]
+    if const((n_queries // 2) % 2 == 1):
+        dots, words, subtrees = canopy_pair(dots, words, subtrees, at, query_win_ptrs[GEN ** (4 * (n_queries // 4))], query_win_ptrs[GEN ** (4 * (n_queries // 4) + 1)], tabs, mu, mu4, lc, rs, depth, levels)
     last = recs * GEN ** (n_queries // 2)
-    dots = last[GEN ** (FREC_CHAINS * rs)]
-    words = last[GEN ** ((FREC_CHAINS + 1) * rs)]
-    subtrees = last[GEN ** ((FREC_CHAINS + 2) * rs)]
     if const(n_queries % 2 == 1):
         dots = (dots + last[GEN ** (FREC_DOTS * rs)]) * mu
         words = (words + root_words(last[GEN ** (FREC_ROOTS * rs)], last[GEN ** ((FREC_ROOTS + 1) * rs)], lc)) * mu4
@@ -1609,6 +1634,17 @@ def canopy_terminal(point, z_c, query_win_ptrs, recs, lam, lc, glue, beta, n_que
     target = (glue * dots * lam ** n_queries + beta * beta * lc * words * lc4_n) * rounds
     weight = beta * (ood + lc * word_eq * subtrees * lc4_n)
     return target, weight
+
+
+@inline
+def canopy_pair(dots, words, subtrees, rec, wins_a, wins_b, tabs, mu, mu4, lc, rs: Const, depth: Const, levels: Const):
+    # `canopy_terminal`'s three chains through one record's pair of queries.
+    dots = ((dots + rec[GEN ** (FREC_DOTS * rs)]) * mu + rec[GEN ** ((FREC_DOTS + 1) * rs)]) * mu
+    word_a = root_words(rec[GEN ** (FREC_ROOTS * rs)], rec[GEN ** ((FREC_ROOTS + 1) * rs)], lc)
+    word_b = root_words(rec[GEN ** ((FREC_ROOTS + 2) * rs)], rec[GEN ** ((FREC_ROOTS + 3) * rs)], lc)
+    words = ((words + word_a) * mu4 + word_b) * mu4
+    subtrees = ((subtrees + subtree_eq(tabs, wins_a, depth, levels)) * mu4 + subtree_eq(tabs, wins_b, depth, levels)) * mu4
+    return dots, words, subtrees
 
 
 @inline
@@ -1844,20 +1880,29 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
             level_roots[GEN ** (2 * lvl)] = root_0
             level_roots[GEN ** (2 * lvl + 1)] = root_1
-            level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
-        level_mus[GEN ** lvl] = 1 / lam
-        if const(canopy_height != 0):
-            if const(lvl == 1):
-                # Under Canopy, level 1 opens the Canopy codeword at its positions too, after its
-                # own tree: the row it folds is f1's plus canopy_beta times the codeword's, in
-                # the same lanes, and the codeword's root is the commitment.
+            canopy_level_1 = 0
+            if const(canopy_height != 0):
+                if const(lvl == 1):
+                    canopy_level_1 = 1
+            if const(canopy_level_1 == 1):
+                # Under Canopy, level 1 opens the Canopy codeword at each position too, after its
+                # own tree: the row it folds is f1's plus canopy_beta times the codeword's, in the
+                # same lanes, so the codeword's weights are the row's with canopy_beta in their high
+                # factors. The codeword's root is the commitment.
                 c_cap = merkle_caps * GEN ** (4 * LIG_CANOPY_CAP_OFF[m_idx])
                 c_flags = cap_flags * GEN ** LIG_CANOPY_CAP_OFF[m_idx]
                 c_root_0, c_root_1 = verify_merkle_cap(c_cap, c_flags, cap_depth)
                 level_roots[GEN ** 0] = c_root_0
                 level_roots[GEN ** 1] = c_root_1
-                c_sum = opening_queries(c_cap, c_flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // 2), n_queries % 2, 1, interleave, interleave // 2, depth, cap_depth)
-                level_query_sum += canopy_beta * c_sum
+                c_row_eq_weights = HeapBuf(GEN ** interleave)
+                for i in unroll(0, 8):
+                    c_row_eq_weights[GEN ** i] = row_eq_weights[GEN ** i]
+                for i in unroll(8, 8 + interleave // 8):
+                    c_row_eq_weights[GEN ** i] = canopy_beta * row_eq_weights[GEN ** i]
+                level_query_sum = canopy_queries(cap, flags, c_cap, c_flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, c_row_eq_weights, n_queries, interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+            else:
+                level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_mus[GEN ** lvl] = 1 / lam
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
