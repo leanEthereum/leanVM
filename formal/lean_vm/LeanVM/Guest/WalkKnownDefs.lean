@@ -37,31 +37,31 @@ def winSemOk (C : Cert) (d cd : ℕ) (src : List (ℕ × ℕ)) (start : ℕ) (t 
   src.any fun v ↦ t == (winsTag d cd, [C.locs.getD v.1 0]) && Nat.ble v.2 start
 
 /-- A loop's cut: no plain bound, its window bounds and `walk_path`'s tuples of the loaded pointers
-`src`, its other tuples the walk's tail `[2, xv, 1]` once `tl` statements hold. -/
+`src`, its other tuples the walk's tail `[3, xv, 1]` once `tl` statements hold. -/
 def loopCutOk (C : Cert) (tag d cd : ℕ) (src : List (ℕ × ℕ)) (xv tl : ℕ) (c : Cut) : Bool :=
   c.known.isEmpty && c.knownIf.all (winTripOk C d cd src c.start) &&
-    c.sems.all fun t ↦ (t == (tag, [C.locs.getD 2 0, C.locs.getD xv 0, C.locs.getD 1 0]) &&
+    c.sems.all fun t ↦ (t == (tag, [C.locs.getD 3 0, C.locs.getD xv 0, C.locs.getD 1 0]) &&
       Nat.ble tl c.start) || winSemOk C d cd src c.start t
 
-/-- A loop's certificate: the walk `tag` on `[2, 0, 1]` and `0 ≠ 1` assumed, every cut a
+/-- A loop's certificate: the walk `tag` on `[3, 0, 1]` and `0 ≠ 1` assumed, every cut a
 `loopCutOk`. -/
 def loopOk (C : Cert) (tag d cd : ℕ) (src : List (ℕ × ℕ)) (xv tl : ℕ) : Bool :=
-  C.sem == [(tag, [C.locs.getD 2 0, C.locs.getD 0 0, C.locs.getD 1 0]),
+  C.sem == [(tag, [C.locs.getD 3 0, C.locs.getD 0 0, C.locs.getD 1 0]),
     (tagNe, [C.locs.getD 0 0, C.locs.getD 1 0])] && C.cuts.all (loopCutOk C tag d cd src xv tl)
 
 /-- A specialization's cut: no plain bound, its window bounds and `walk_path`'s tuple of an odd
-count's first query (`src`), its other tuples the loop call's walk `tagW` on `[4, x, 6]`, conditional
+count's first query (`src`), its other tuples the loop call's walk `tagW` on `[6, x, 7]`, conditional
 on `x = 1`. -/
 def mainCutOk (C : Cert) (tagW d cd : ℕ) (src : List (ℕ × ℕ)) (c : Cut) : Bool :=
   c.known.isEmpty && c.knownIf.all (winTripOk C d cd src c.start) &&
     c.sems.all fun t ↦ (t.1 == impTag tagW 1 1 && t.2.length == 3 &&
-      t.2.getD 0 0 == C.locs.getD 4 0 && t.2.getD 2 0 == C.locs.getD 6 0) ||
+      t.2.getD 0 0 == C.locs.getD 6 0 && t.2.getD 2 0 == C.locs.getD 7 0) ||
       winSemOk C d cd src c.start t
 
-/-- A specialization's certificate: `OqMainWins` (`tagM`) on `[4, 6]` assumed, every cut a
+/-- A specialization's certificate: `OqMainWins` (`tagM`) on `[6, 7]` assumed, every cut a
 `mainCutOk`. -/
 def mainOk (C : Cert) (tagM tagW d cd : ℕ) (src : List (ℕ × ℕ)) : Bool :=
-  C.sem == [(tagM, [C.locs.getD 4 0, C.locs.getD 6 0])] && C.cuts.all (mainCutOk C tagW d cd src)
+  C.sem == [(tagM, [C.locs.getD 6 0, C.locs.getD 7 0])] && C.cuts.all (mainCutOk C tagW d cd src)
 
 /-- A cut of `walk_path`: no plain bound, no tuple, its window bounds those of its argument `wins`
 (value `2`, from the function's start). -/
@@ -77,14 +77,15 @@ def wpOk (C : Cert) (d cd : ℕ) : Bool :=
 
 /-- A deeper loop's certificate (`oqLoop0T s`; its specialization's `odd` is `0`). -/
 noncomputable def loop0Ok (j : ℕ) (s : Oq) : Bool :=
-  loopOk (certOf j) (walkTag 0 0 (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd [(9, 2)] (oqC0 s + 9)
+  loopOk (certOf j) (walkTag 0 0 (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd [(13, 4)] (oqG0 s + 4)
     (oqLoop0A s "").length
 
 /-- A level-0 loop's certificate (`oqLoop1T s odd`). -/
 noncomputable def loop1Ok (j odd : ℕ) (s : Oq) : Bool :=
   loopOk (certOf j) (walkTag 1 odd (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd
-    [(10, 3), (oqE1 s, (oqQueryT s (.n 10) (.n 3) (.n 4) (.n 5) 11 true 0 "").length + 4)]
-    (oqC1 s + 11) (oqLoop1A s odd "").length
+    [(15, 6), (oqE1 s + 1,
+      (oqQueryT s (.n 14) (.n 15) (.n 4) (.n 5) (.n 6) (.n 7) 16 true 0 "").length + 8)]
+    (oqG1 s + 4) (oqLoop1A s odd "").length
 
 /-- `walk_path__L{pd}_L{cd}`'s certificate (`wpBodyT ⟨_, _, pd, cd⟩`). -/
 noncomputable def wpOkJ (j pd cd : ℕ) : Bool := wpOk (certOf j) (pd + cd) cd
@@ -93,7 +94,7 @@ noncomputable def wpOkJ (j pd cd : ℕ) : Bool := wpOk (certOf j) (pd + cd) cd
 noncomputable def mainOkS (j odd : ℕ) (s : Oq) : Bool :=
   mainOk (certOf j) (walkTag (2 + s.base) odd (s.pd + s.cd) s.cd)
     (walkTag (if s.base = 1 then 1 else 0) odd (s.pd + s.cd) s.cd) (s.pd + s.cd) s.cd
-    (if odd = 1 then [(12, 6)] else [])
+    (if odd = 1 then [(12, 5)] else [])
 
 end
 end LeanVM.Guest.End

@@ -182,9 +182,9 @@ theorem semRel_of_winSem {κ : ℕ} {L : MemoryImage κ} {fp : K} {C : Cert} {d 
   exact hw v hv hle
 
 /-- The length of a body's prefix does not read `walk_path`'s name. -/
-theorem oqQueryT_length_walk (s : Oq) (bp cap flags wp : V) (b : ℕ) (emit : Bool) (pr : ℕ)
-    (walk : String) : (oqQueryT s bp cap flags wp b emit pr walk).length =
-      (oqQueryT s bp cap flags wp b emit pr "").length := by
+theorem oqQueryT_length_walk (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ)
+    (walk : String) : (oqQueryT s x bp cap flags coefs hs b emit pr walk).length =
+      (oqQueryT s x bp cap flags coefs hs b emit pr "").length := by
   simp [oqQueryT]
 
 theorem oqLoop0A_length_walk (s : Oq) (walk : String) :
@@ -205,18 +205,18 @@ theorem loop_cutsKnown {j tag d cd xv tl : ℕ} {src : List (ℕ × ℕ)} (hc : 
     (hsem : ∀ rd ws, SemRel glob tag rd ws ↔ W rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0))
     (hwins : ∀ {κ : ℕ} (L : MemoryImage κ) (σ : Val) (n : ℕ),
       Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf j).body.take n) True (fun _ ↦ True) →
-      W L.read (σ (.n 2)) (σ (.n 0)) (σ (.n 1)) → σ (.n 0) ≠ σ (.n 1) →
+      W L.read (σ (.n 3)) (σ (.n 0)) (σ (.n 1)) → σ (.n 0) ≠ σ (.n 1) →
       ∀ v ∈ src, v.2 ≤ n → WinsAt L.read d cd (σ (.n v.1)))
     (htail : ∀ {κ : ℕ} (L : MemoryImage κ) (σ : Val) (n : ℕ), tl ≤ n →
       Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf j).body.take n) True (fun _ ↦ True) →
-      W L.read (σ (.n 2)) (σ (.n 0)) (σ (.n 1)) → σ (.n 0) ≠ σ (.n 1) →
-      W L.read (σ (.n 2)) (σ (.n xv)) (σ (.n 1))) :
+      W L.read (σ (.n 3)) (σ (.n 0)) (σ (.n 1)) → σ (.n 0) ≠ σ (.n 1) →
+      W L.read (σ (.n 3)) (σ (.n xv)) (σ (.n 1))) :
     CutsKnown j := by
   intro κ L _ _ fp _ hsem' i hi h0 hl
   simp only [loopOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨hs, hcuts⟩ := hok
   rw [hs] at hsem'
-  have hW : W L.read (valG L fp (certOf j) (.n 2)) (valG L fp (certOf j) (.n 0))
+  have hW : W L.read (valG L fp (certOf j) (.n 3)) (valG L fp (certOf j) (.n 0))
       (valG L fp (certOf j) (.n 1)) :=
     (hsem _ _).mp (hsem' _ (List.mem_cons_self ..))
   have hne : valG L fp (certOf j) (.n 0) ≠ valG L fp (certOf j) (.n 1) :=
@@ -261,7 +261,7 @@ theorem loop1_cutsKnown {j odd : ℕ} {s : Oq} {walk name : String}
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
     rcases hv with rfl | rfl
     · exact oqLoop1T_wins1 hle hl hw hne
-    · rw [← oqQueryT_length_walk _ _ _ _ _ _ _ _ walk] at hle
+    · rw [← oqQueryT_length_walk _ _ _ _ _ _ _ _ _ _ _ walk] at hle
       exact oqLoop1T_wins2 hle hl hw hne
   · rw [hb] at hl
     rw [← oqLoop1A_length_walk s odd walk] at hle
@@ -283,13 +283,13 @@ theorem main_cutsKnown {j o : ℕ} {s : Oq} {walk loop : String}
   simp only [mainOkS, mainOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨hs, hcuts⟩ := hok
   rw [hs] at hsem'
-  have hW : OqMainWins L.read (s.pd + s.cd) s.cd o s.base (valG L fp (certOf j) (.n 4))
-      (valG L fp (certOf j) (.n 6)) :=
+  have hW : OqMainWins L.read (s.pd + s.cd) s.cd o s.base (valG L fp (certOf j) (.n 6))
+      (valG L fp (certOf j) (.n 7)) :=
     (semRel_main ho hc hbase hlt _ _).mp (hsem' _ (List.mem_singleton_self _))
   have hcut := hcuts _ (cutAt_mem hi h0)
   simp only [mainCutOk, Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at hcut
   obtain ⟨⟨hkn, hki⟩, hsm⟩ := hcut
-  have hwv : ∀ v ∈ (if o = 1 then [((12 : ℕ), (6 : ℕ))] else []), v.2 ≤ ((certOf j).cutAt i).start →
+  have hwv : ∀ v ∈ (if o = 1 then [((12 : ℕ), (5 : ℕ))] else []), v.2 ≤ ((certOf j).cutAt i).start →
       WinsAt L.read (s.pd + s.cd) s.cd (valG L fp (certOf j) (.n v.1)) := by
     intro v hv hle
     split at hv
