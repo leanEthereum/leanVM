@@ -123,8 +123,8 @@ def offsets (prog : LeanIsaProgram) (s : Sizes) : List (Option ℕ) :=
 #guard leanIsaμ prog4 s₃ = leanIsaμ prog4 s₂
 #guard !decide (Sizes.Admissible prog4 ⟨15, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
 #guard !decide (Sizes.Admissible prog4 ⟨16, by decide, ![2 ^ 32 + 1, 8, 1, 1, 1, 1]⟩)
-#guard !decide (Sizes.Admissible prog4 ⟨28, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
-#guard leanIsaμ prog4 ⟨28, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩ = 31
+#guard !decide (Sizes.Admissible prog4 ⟨31, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
+#guard leanIsaμ prog4 ⟨31, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩ = 34
 #guard (List.range 6).map (fun ρ ↦ decide (validRate ρ)) = [false, true, true, true, true, false]
 
 /-! ## The public lines, the bus, the Keccak region -/

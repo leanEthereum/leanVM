@@ -16,50 +16,27 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `level_positions__L23_L19_L7`, once. -/
-theorem st580 : shareStatic 580 = true := by decide +kernel
+/-- `level_queries__L19_L0_L16_L24_L17_L5`, window 1. -/
+theorem w581_1 : shareWin 581 (snapsOf 581) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_positions__L23_L19_L7`, window 0. -/
-theorem w580_0 : shareWin 580 (snapsOf 580) 0 = true := by decide +kernel
-
-theorem ok580 : ShareOk 580 := ⟨st580, fun i hi ↦ by
-  have h : (snapsOf 580).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w580_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L13_L20_L2`, once. -/
-theorem st581 : shareStatic 581 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L13_L20_L2`, window 0. -/
-theorem w581_0 : shareWin 581 (snapsOf 581) 0 = true := by decide +kernel
-
-theorem ok581 : ShareOk 581 := ⟨st581, fun i hi ↦ by
-  have h : (snapsOf 581).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w581_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `level_positions__L9_L21_L3`, once. -/
+/-- `level_queries__L18_L0_L16_L24_L18_L6`, once. -/
 theorem st582 : shareStatic 582 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_positions__L9_L21_L3`, window 0. -/
+/-- `level_queries__L18_L0_L16_L24_L18_L6`, window 0. -/
 theorem w582_0 : shareWin 582 (snapsOf 582) 0 = true := by decide +kernel
 
-theorem ok582 : ShareOk 582 := ⟨st582, fun i hi ↦ by
-  have h : (snapsOf 582).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w582_0⟩
+set_option maxRecDepth 100000 in
+/-- `level_queries__L18_L0_L16_L24_L18_L6`, window 1. -/
+theorem w582_1 : shareWin 582 (snapsOf 582) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_positions__L7_L22_L4`, once. -/
+/-- `level_residual__L17`, once. -/
 theorem st583 : shareStatic 583 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_positions__L7_L22_L4`, window 0. -/
+/-- `level_residual__L17`, window 0. -/
 theorem w583_0 : shareWin 583 (snapsOf 583) 0 = true := by decide +kernel
 
 theorem ok583 : ShareOk 583 := ⟨st583, fun i hi ↦ by
@@ -68,20 +45,43 @@ theorem ok583 : ShareOk 583 := ⟨st583, fun i hi ↦ by
   exact w583_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L224_L1_L64_L32_L19_L7`, once. -/
+/-- `opening_ood_point__L18`, once. -/
 theorem st584 : shareStatic 584 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L224_L1_L64_L32_L19_L7`, window 0. -/
+/-- `opening_ood_point__L18`, window 0. -/
 theorem w584_0 : shareWin 584 (snapsOf 584) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `level_queries__L224_L1_L64_L32_L19_L7`, window 1. -/
-theorem w584_1 : shareWin 584 (snapsOf 584) 1 = true := by decide +kernel
+theorem ok584 : ShareOk 584 := ⟨st584, fun i hi ↦ by
+  have h : (snapsOf 584).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w584_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L112_L1_L64_L32_L20_L2`, once. -/
+/-- `level_positions__L23_L19_L7`, once. -/
 theorem st585 : shareStatic 585 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L23_L19_L7`, window 0. -/
+theorem w585_0 : shareWin 585 (snapsOf 585) 0 = true := by decide +kernel
+
+theorem ok585 : ShareOk 585 := ⟨st585, fun i hi ↦ by
+  have h : (snapsOf 585).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w585_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L13_L20_L2`, once. -/
+theorem st586 : shareStatic 586 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_positions__L13_L20_L2`, window 0. -/
+theorem w586_0 : shareWin 586 (snapsOf 586) 0 = true := by decide +kernel
+
+theorem ok586 : ShareOk 586 := ⟨st586, fun i hi ↦ by
+  have h : (snapsOf 586).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w586_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

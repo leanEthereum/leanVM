@@ -29,7 +29,7 @@ length and one. Run after `scripts/decoder-tables`, from any directory (the path
 import argparse, os, re, sys, textwrap
 from pathlib import Path
 
-N = 992
+N = 1232
 SPLIT = 37  # `__loop2`, leanXMSS's check inline (its 41 windows' cells)
 SIZE_DIR = Path("LeanVM/Cost/DecoderSize")
 CHECK_DIR = Path("LeanVM/Cost/Decoder/GuestTablesCheck")

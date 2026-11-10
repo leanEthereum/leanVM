@@ -443,12 +443,12 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size** (`MachineProgram.size`): `14500`, the compiled
-extractor's size (`14225`: its `700` compiled bodies and the entry, at `713` indices, `12` of
+/-- **The bound on the extractor program's size** (`MachineProgram.size`): `16048`, the compiled
+extractor's size (`15773`: its `702` compiled bodies and the entry, at `715` indices, `12` of
 them holes, a literal `0` each) and a slack of `275`, less than one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs), so the compiled extractor could carry no useful table of witnesses beside its code. -/
-def leanVmKnowledgeExtractorSizeBound : ℕ := 14500
+def leanVmKnowledgeExtractorSizeBound : ℕ := 16048
 
 /-- **The extractor a program computes**: the program, of size at most
 `leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof

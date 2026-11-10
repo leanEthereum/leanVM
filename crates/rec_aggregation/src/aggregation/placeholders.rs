@@ -2,8 +2,8 @@
 
 use super::cells::{dsl_u128, pack_16_bytes};
 use super::child::{
-    MU_CAP, MU_MAX, MU_MIN, QUERY_WINDOW_BITS, SIZE_BITS, STREAM_CAP, block_groups, col_groups, merkle_cap_depth,
-    whir_shape,
+    MU_CAP, MU_MAX, MU_MIN, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups,
+    merkle_cap_depth, whir_shape,
 };
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
@@ -179,7 +179,6 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
     ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
-    ps("SIZE_BITS", SIZE_BITS.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
     ps("GKR_POINTS_CAP", ((MU_CAP + 1) * MU_CAP).to_string());
@@ -348,7 +347,7 @@ fn bus_placeholders(
     ps("TERM_COL_A", literals(terms.iter().map(|t| t.column_a)));
     ps("TERM_COL_B", literals(terms.iter().map(|t| t.column_b)));
     ps("N_BUS_CLAIMS", nclaims.to_string());
-    let idxc: Vec<u128> = (0..SIZE_BITS)
+    let idxc: Vec<u128> = (0..34)
         .map(|i| {
             let mut g2k = F192::from(F64::G);
             for _ in 0..i {
@@ -712,24 +711,15 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_ROW_CAP", row_cap.to_string());
         ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
         // `decode_query_windows`: a squeezed word's positions, each its path bits QW at a time, then the cap
-        // child bit and the cap index.
+        // child bit and the cap index, read back through `win_tabs`' 128 bit patterns.
         let windows = cands.iter().flat_map(|c| {
             (0..c.n_levels).map(|lv| {
-                let depth = c.tree_depths[lv];
-                (192 / depth) * ((depth - c.cap_depths[lv]) / QUERY_WINDOW_BITS + 2)
+                let (depth, cap) = (c.tree_depths[lv], c.cap_depths[lv]);
+                assert!((2..=8).contains(&cap), "a cap of {cap} levels");
+                (192 / depth) * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
             })
         });
-        // A cap index window is read back through `win_tabs`' 128 bit patterns, and a walk is whole windows.
-        let walkable = |c: &OpeningShape, lv: usize| {
-            let (depth, cap) = (c.tree_depths[lv], c.cap_depths[lv]);
-            (2..=8).contains(&cap) && (depth - cap).is_multiple_of(QUERY_WINDOW_BITS)
-        };
-        assert!(
-            cands.iter().all(|c| (0..c.n_levels).all(|lv| walkable(c, lv))),
-            "a cap index past 7 bits, or a path of a partial window"
-        );
-        ps("QW", QUERY_WINDOW_BITS.to_string());
-        ps("QUERY_WINDOWS_CAP", windows.max().unwrap().to_string());
+        assert!(windows.max().unwrap() <= QUERY_WINDOWS_CAP, "a squeezed word's windows past QUERY_WINDOWS_CAP");
         ps(
             "LIG_PATH_CAP",
             cands

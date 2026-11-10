@@ -43,7 +43,7 @@ def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
 `15·w + cW`. -/
 def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15013) +
+  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15137) +
     (15 * w + cW + 12 * w + 44) * 2 ^ (μ - 6 + R) + 1008 * 2 ^ μ + 1071
 
 /-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among

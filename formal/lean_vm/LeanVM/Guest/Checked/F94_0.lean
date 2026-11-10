@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `sel_partial_nibble__L2`, window 0. -/
+/-- `sel_partial_nibble__L1`, window 0. -/
 theorem w94_0 : WinOk 94 0 := winOk_of_C (by decide +kernel)
 
-/-- `sel_partial_nibble__L3`, window 0. -/
+/-- `sel_partial_nibble__L2`, window 0. -/
 theorem w95_0 : WinOk 95 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L0`, window 0. -/
+/-- `sel_partial_nibble__L3`, window 0. -/
 theorem w96_0 : WinOk 96 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L1`, window 0. -/
+/-- `padding_weight__L0`, window 0. -/
 theorem w97_0 : WinOk 97 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L2`, window 0. -/
+/-- `padding_weight__L1`, window 0. -/
 theorem w98_0 : WinOk 98 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L3`, window 0. -/
+/-- `padding_weight__L2`, window 0. -/
 theorem w99_0 : WinOk 99 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L4`, window 0. -/
+/-- `padding_weight__L3`, window 0. -/
 theorem w100_0 : WinOk 100 0 := winOk_of_C (by decide +kernel)
 
-/-- `padding_weight__L5`, window 0. -/
+/-- `padding_weight__L4`, window 0. -/
 theorem w101_0 : WinOk 101 0 := winOk_of_C (by decide +kernel)
 
 theorem ok94 : CheckOk 94 := checkOk_one (by decide +kernel) w94_0

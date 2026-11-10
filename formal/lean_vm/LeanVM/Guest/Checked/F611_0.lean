@@ -17,31 +17,41 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_positions__L7_L23_L5`, window 0. -/
+/-- `level_residual__L18`, window 0. -/
 theorem w611_0 : WinOk 611 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L224_L1_L64_L32_L20_L8`, window 0. -/
+/-- `opening_ood_point__L19`, window 0. -/
 theorem w612_0 : WinOk 612 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L224_L1_L64_L32_L20_L8`, window 1. -/
-theorem w612_1 : WinOk 612 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L112_L1_L64_L32_L21_L3`, window 0. -/
+/-- `level_positions__L25_L20_L8`, window 0. -/
 theorem w613_0 : WinOk 613 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L112_L1_L64_L32_L21_L3`, window 1. -/
-theorem w613_1 : WinOk 613 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L75_L1_L64_L32_L22_L4`, window 0. -/
+/-- `level_positions__L13_L21_L3`, window 0. -/
 theorem w614_0 : WinOk 614 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L75_L1_L64_L32_L22_L4`, window 1. -/
-theorem w614_1 : WinOk 614 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L56_L1_L64_L32_L23_L5`, window 0. -/
+/-- `level_positions__L10_L22_L4`, window 0. -/
 theorem w615_0 : WinOk 615 0 := winOk_of_C (by decide +kernel)
 
+/-- `level_positions__L7_L23_L5`, window 0. -/
+theorem w616_0 : WinOk 616 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L224_L1_L64_L32_L20_L8`, window 0. -/
+theorem w617_0 : WinOk 617 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L224_L1_L64_L32_L20_L8`, window 1. -/
+theorem w617_1 : WinOk 617 1 := winOk_of_C (by decide +kernel)
+
 theorem ok611 : CheckOk 611 := checkOk_one (by decide +kernel) w611_0
+
+theorem ok612 : CheckOk 612 := checkOk_one (by decide +kernel) w612_0
+
+theorem ok613 : CheckOk 613 := checkOk_one (by decide +kernel) w613_0
+
+theorem ok614 : CheckOk 614 := checkOk_one (by decide +kernel) w614_0
+
+theorem ok615 : CheckOk 615 := checkOk_one (by decide +kernel) w615_0
+
+theorem ok616 : CheckOk 616 := checkOk_one (by decide +kernel) w616_0
 
 end
 end LeanVM.Guest.Checked

@@ -29,8 +29,8 @@ INV_GEN = INV_GEN_PLACEHOLDER
 FIELD_BITS = 192
 # A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
 # squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
-QW = QW_PLACEHOLDER
-QUERY_WINDOWS_CAP = QUERY_WINDOWS_CAP_PLACEHOLDER
+QW = 6
+QUERY_WINDOWS_CAP = 56
 BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
@@ -44,14 +44,13 @@ RES_BATCH = 8  # residual queries per loop iteration
 RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
-# structural size (sums of 2^kappa, packing offsets: at most a stack, 2^MU_MAX) fits
-# SIZE_BITS bits; and a
+# structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
 # structural LOG (log_mem, log_inv_rate), announced as an integer word and
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
 # are enough and the reconstruction IS the bound (a larger announced log cannot
 # reproduce itself from this many bits).
 COUNT_BITS = 33
-SIZE_BITS = SIZE_BITS_PLACEHOLDER
+SIZE_BITS = 34
 LOG_WORD_BITS = 6
 
 # ------------------------------------------------------------------- Fiat-Shamir
@@ -102,7 +101,6 @@ COUNT_SIDE = 2
 N_GKR_SIDES = 3
 GKR_ROUNDS_CAP = GKR_ROUNDS_CAP_PLACEHOLDER
 MU_CAP = MU_CAP_PLACEHOLDER
-BUS_DEPTH_BOUND = MU_CAP + 1  # a bus depth is at most MU_CAP
 GKR_POINTS_CAP = GKR_POINTS_CAP_PLACEHOLDER
 # Bus blocks, flattened across the 3 sides (side s covers blocks
 # [SIDE_BLOCK_START[s], SIDE_BLOCK_START[s+1])). The block STRUCTURE is
@@ -851,7 +849,8 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
     # the polynomial basis shifting a run as a whole only inside one limb.
     per_word = FIELD_BITS // depth
     path = depth - cap_depth
-    n_win = path // QW + 2
+    n_pw = (path + QW - 1) // QW
+    n_win = n_pw + 2
     wins = StackBuf(QUERY_WINDOWS_CAP)
     wins_ptr = addr(wins)
     reconstructed = 0
@@ -863,13 +862,16 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
         p_lo = 0
         p_hi = 0
         for i in unroll(0, n_win):
-            # window i: QW path bits (a path is whole windows), the cap child bit, the cap index
+            # window i: QW path bits, the last path window's remainder, the cap child bit, the cap index
             if const(i + 2 == n_win):
                 off = path
                 width = 1
             elif const(i + 1 == n_win):
                 off = path + 1
                 width = cap_depth - 1
+            elif const(i + 3 == n_win):
+                off = QW * i
+                width = path - QW * i
             else:
                 off = QW * i
                 width = QW
@@ -1325,26 +1327,35 @@ def walk_window(n0, n1, path, lvl0: Const, width: Const, k: Const):
     return n0, n1
 
 
-def walk_path(n0, n1, wins, path_depth: Const):
+def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
     # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
     # levels' order bits, so it hashes the running node against the sibling its hinted pair holds.
-    # A path is whole windows (`merkle_cap_depth`), so a walk depends on its length alone.
     path = StackBuf(LIG_PATH_CAP)
     hint_witness(path[0:4 * path_depth], "merkle_children")
-    for i in unroll(0, path_depth // QW):
+    for i in unroll(0, (path_depth + QW - 1) // QW):
+        if const(QW * i + QW == QW * ((path_depth + QW - 1) // QW)):
+            width = path_depth - QW * i
+        else:
+            width = QW
         w = wins[GEN ** i]
-        n0, n1 = match(log(w), range(0, 64), lambda k: walk_window(n0, n1, path, QW * i, QW, k))
-    return n0, n1
-
-
-@inline
-def place_cap_leaf(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
+        if const(width == 6):
+            n0, n1 = match(log(w), range(0, 64), lambda k: walk_window(n0, n1, path, QW * i, 6, k))
+        elif const(width == 5):
+            n0, n1 = match(log(w), range(0, 32), lambda k: walk_window(n0, n1, path, QW * i, 5, k))
+        elif const(width == 4):
+            n0, n1 = match(log(w), range(0, 16), lambda k: walk_window(n0, n1, path, QW * i, 4, k))
+        elif const(width == 3):
+            n0, n1 = match(log(w), range(0, 8), lambda k: walk_window(n0, n1, path, QW * i, 3, k))
+        elif const(width == 2):
+            n0, n1 = match(log(w), range(0, 4), lambda k: walk_window(n0, n1, path, QW * i, 2, k))
+        else:
+            n0, n1 = match(log(w), range(0, 2), lambda k: walk_window(n0, n1, path, QW * i, 1, k))
     # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1, where
     # parent = 2^(cap_depth-1) + q: the child bit and q are the last two windows, g^bit
     # and g^q, the constant parts folded into the address immediates. Every cap is at
     # least two levels deep (`decode_query_windows` gives q cap_depth - 1 bits).
-    wb = wins[GEN ** (path_depth // QW)]
-    q = wins[GEN ** (path_depth // QW + 1)]
+    wb = wins[GEN ** ((path_depth + QW - 1) // QW)]
+    q = wins[GEN ** ((path_depth + QW - 1) // QW + 1)]
     flags_q = flags * q
     flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
     q2 = q * q
@@ -1397,8 +1408,7 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
     # Hash the packed row.
     leaf_hash_state = StackBuf(2)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
-    n0, n1 = walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, depth - cap_depth)
-    place_cap_leaf(n0, n1, wins, cap, flags, depth - cap_depth, cap_depth)
+    walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
     return row_dot
 
 
@@ -1815,7 +1825,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
     layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)  # mu + 2 layers
     rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
     gkr_pts = HeapBuf(GKR_POINTS_CAP)
-    assert log(g_bus_mu) < BUS_DEPTH_BOUND
+    assert log(g_bus_mu) < COUNT_BITS
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
     root_push, cursor = fs_next(rate, 0, cursor)
@@ -1845,9 +1855,9 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
     # Contract two binary product levels at a time. pair_bounds[g^d] = g^(d//2) is
     # the radix-four layer count, and shift is g exactly when the depth is odd, in
     # which case the root-most BINARY layer runs first.
-    pair_bounds = HeapBuf(BUS_DEPTH_BOUND)
-    depth_shift = HeapBuf(BUS_DEPTH_BOUND)
-    for depth in unroll(0, BUS_DEPTH_BOUND):
+    pair_bounds = HeapBuf(COUNT_BITS)
+    depth_shift = HeapBuf(COUNT_BITS)
+    for depth in unroll(0, COUNT_BITS):
         pair_bounds[GEN ** depth] = GEN ** (depth // 2)
         depth_shift[GEN ** depth] = GEN ** (depth % 2)
 

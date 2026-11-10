@@ -17,29 +17,39 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_queries__L223_L1_L64_L32_L15_L3`, window 0. -/
+/-- `opening_ood_point__L14`, window 0. -/
 theorem w458_0 : WinOk 458 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L223_L1_L64_L32_L15_L3`, window 1. -/
-theorem w458_1 : WinOk 458 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L112_L1_L64_L32_L16_L4`, window 0. -/
+/-- `level_positions__L19_L15_L3`, window 0. -/
 theorem w459_0 : WinOk 459 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L112_L1_L64_L32_L16_L4`, window 1. -/
-theorem w459_1 : WinOk 459 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L75_L1_L64_L32_L17_L5`, window 0. -/
+/-- `level_positions__L10_L16_L4`, window 0. -/
 theorem w460_0 : WinOk 460 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L75_L1_L64_L32_L17_L5`, window 1. -/
-theorem w460_1 : WinOk 460 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L56_L1_L64_L32_L18_L6`, window 0. -/
+/-- `level_positions__L7_L17_L5`, window 0. -/
 theorem w461_0 : WinOk 461 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L56_L1_L64_L32_L18_L6`, window 1. -/
-theorem w461_1 : WinOk 461 1 := winOk_of_C (by decide +kernel)
+/-- `level_positions__L6_L18_L6`, window 0. -/
+theorem w462_0 : WinOk 462 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L223_L1_L64_L32_L15_L3`, window 0. -/
+theorem w463_0 : WinOk 463 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L223_L1_L64_L32_L15_L3`, window 1. -/
+theorem w463_1 : WinOk 463 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L112_L1_L64_L32_L16_L4`, window 0. -/
+theorem w464_0 : WinOk 464 0 := winOk_of_C (by decide +kernel)
+
+theorem ok458 : CheckOk 458 := checkOk_one (by decide +kernel) w458_0
+
+theorem ok459 : CheckOk 459 := checkOk_one (by decide +kernel) w459_0
+
+theorem ok460 : CheckOk 460 := checkOk_one (by decide +kernel) w460_0
+
+theorem ok461 : CheckOk 461 := checkOk_one (by decide +kernel) w461_0
+
+theorem ok462 : CheckOk 462 := checkOk_one (by decide +kernel) w462_0
 
 end
 end LeanVM.Guest.Checked

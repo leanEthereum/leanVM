@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 1. -/
+theorem w909_1 : shareWin 909 (snapsOf 909) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 2. -/
+theorem w909_2 : shareWin 909 (snapsOf 909) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 3. -/
+theorem w909_3 : shareWin 909 (snapsOf 909) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 4. -/
+theorem w909_4 : shareWin 909 (snapsOf 909) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 5. -/
+theorem w909_5 : shareWin 909 (snapsOf 909) 5 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 6. -/
+theorem w909_6 : shareWin 909 (snapsOf 909) 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
 /-- `verify_merkle_cap__L8`, window 7. -/
-theorem w904_7 : shareWin 904 (snapsOf 904) 7 = true := by decide +kernel
+theorem w909_7 : shareWin 909 (snapsOf 909) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `verify_merkle_cap__L8`, window 8. -/
-theorem w904_8 : shareWin 904 (snapsOf 904) 8 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 9. -/
-theorem w904_9 : shareWin 904 (snapsOf 904) 9 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 10. -/
-theorem w904_10 : shareWin 904 (snapsOf 904) 10 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 11. -/
-theorem w904_11 : shareWin 904 (snapsOf 904) 11 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 12. -/
-theorem w904_12 : shareWin 904 (snapsOf 904) 12 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 13. -/
-theorem w904_13 : shareWin 904 (snapsOf 904) 13 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L64_L32_L14_L8`, once. -/
-theorem st905 : shareStatic 905 = true := by decide +kernel
+theorem w909_8 : shareWin 909 (snapsOf 909) 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

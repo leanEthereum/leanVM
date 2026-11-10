@@ -16,54 +16,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop316`, window 1. -/
-theorem w1200_1 : shareWin 1200 (snapsOf 1200) 1 = true := by decide +kernel
+/-- `walk_path__L18_L3`, window 3. -/
+theorem w1181_3 : shareWin 1181 (snapsOf 1181) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L26_L8`, once. -/
-theorem st1201 : shareStatic 1201 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L26_L8`, window 0. -/
-theorem w1201_0 : shareWin 1201 (snapsOf 1201) 0 = true := by decide +kernel
-
-theorem ok1201 : ShareOk 1201 := ⟨st1201, fun i hi ↦ by
-  have h : (snapsOf 1201).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1201_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L29_L5`, once. -/
-theorem st1202 : shareStatic 1202 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L29_L5`, window 0. -/
-theorem w1202_0 : shareWin 1202 (snapsOf 1202) 0 = true := by decide +kernel
-
-theorem ok1202 : ShareOk 1202 := ⟨st1202, fun i hi ↦ by
-  have h : (snapsOf 1202).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1202_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop317`, once. -/
-theorem st1203 : shareStatic 1203 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop317`, window 0. -/
-theorem w1203_0 : shareWin 1203 (snapsOf 1203) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop317`, window 1. -/
-theorem w1203_1 : shareWin 1203 (snapsOf 1203) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop317`, window 2. -/
-theorem w1203_2 : shareWin 1203 (snapsOf 1203) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop318`, once. -/
-theorem st1204 : shareStatic 1204 = true := by decide +kernel
+/-- `walk_path__L18_L3`, window 4. -/
+theorem w1181_4 : shareWin 1181 (snapsOf 1181) 4 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

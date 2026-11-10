@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `child_claim_list_mono_last__L10`, window 0. -/
+/-- `child_claim_list_mono_last__L5`, window 0. -/
 theorem w370_0 : WinOk 370 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_mono_last__L11`, window 0. -/
+/-- `child_claim_list_mono_last__L6`, window 0. -/
 theorem w371_0 : WinOk 371 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_mono_last__L12`, window 0. -/
+/-- `child_claim_list_mono_last__L7`, window 0. -/
 theorem w372_0 : WinOk 372 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_mono_last__L13`, window 0. -/
+/-- `child_claim_list_mono_last__L8`, window 0. -/
 theorem w373_0 : WinOk 373 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_mono_last__L14`, window 0. -/
+/-- `child_claim_list_mono_last__L9`, window 0. -/
 theorem w374_0 : WinOk 374 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_mono_last__L15`, window 0. -/
+/-- `child_claim_list_mono_last__L10`, window 0. -/
 theorem w375_0 : WinOk 375 0 := winOk_of_C (by decide +kernel)
 
-/-- `child_claim_list_mono_last__L16`, window 0. -/
+/-- `child_claim_list_mono_last__L11`, window 0. -/
 theorem w376_0 : WinOk 376 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop21`, window 0. -/
+/-- `child_claim_list_mono_last__L12`, window 0. -/
 theorem w377_0 : WinOk 377 0 := winOk_of_C (by decide +kernel)
 
 theorem ok370 : CheckOk 370 := checkOk_one (by decide +kernel) w370_0

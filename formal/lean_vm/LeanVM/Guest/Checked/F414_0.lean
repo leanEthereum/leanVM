@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `gkr_rounds__L1`, window 0. -/
+/-- `__loop36`, window 0. -/
 theorem w414_0 : WinOk 414 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop37`, window 0. -/
+/-- `gkr_rounds__L0`, window 0. -/
 theorem w415_0 : WinOk 415 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop38`, window 0. -/
+/-- `gkr_rounds__L2`, window 0. -/
 theorem w416_0 : WinOk 416 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop39`, window 0. -/
+/-- `gkr_rounds__L4`, window 0. -/
 theorem w417_0 : WinOk 417 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop40`, window 0. -/
+/-- `gkr_rounds__L6`, window 0. -/
 theorem w418_0 : WinOk 418 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L13`, window 0. -/
+/-- `gkr_rounds__L1`, window 0. -/
 theorem w419_0 : WinOk 419 0 := winOk_of_C (by decide +kernel)
 
-/-- `grind_check__L17`, window 0. -/
+/-- `__loop37`, window 0. -/
 theorem w420_0 : WinOk 420 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_positions__L18_L14_L8`, window 0. -/
+/-- `__loop38`, window 0. -/
 theorem w421_0 : WinOk 421 0 := winOk_of_C (by decide +kernel)
 
 theorem ok414 : CheckOk 414 := checkOk_one (by decide +kernel) w414_0

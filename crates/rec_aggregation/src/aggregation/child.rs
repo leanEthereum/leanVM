@@ -36,12 +36,13 @@ pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     }
 }
 
-/// The path bits a query's Merkle walk dispatches on at a time (`walk_path`).
+/// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
 pub(super) const QUERY_WINDOW_BITS: usize = 6;
+/// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
+pub(super) const QUERY_WINDOWS_CAP: usize = 56;
 
-/// The depth of the cap a level's paths are walked into: the guest's own split of a path, which leaves the walked
-/// part whole windows of [`QUERY_WINDOW_BITS`] bits, so walks share code across depths. The cap is at least two levels
-/// deep, and from `log2(queries) - 5` to five levels below that.
+/// The depth of the cap a level's paths are walked into, which leaves the walked part whole windows of
+/// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - 5` to five levels below that.
 pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     let near = (queries.next_power_of_two().ilog2() as usize)
         .saturating_sub(QUERY_WINDOW_BITS - 1)
@@ -270,6 +271,4 @@ const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU && MU_MAX == leanvm_cor
 /// `gen_verify` admits against: one definition, so a hinted shape can never
 /// outgrow the buffer the guest was compiled with.
 pub(super) const MU_CAP: usize = 40;
-/// Bits every structural size fits: a sum of `2^kappa`, a stack's or a bus side's, is at most a stack, `2^MU_MAX`.
-pub(super) const SIZE_BITS: usize = MU_MAX + 1;
 pub(super) const STREAM_CAP: usize = 8192;

@@ -17,31 +17,41 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `log2_ceil_in_the_exponent__L15_L33`, window 0. -/
+/-- `column_selector__L29`, window 0. -/
 theorem w305_0 : WinOk 305 0 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L0`, window 0. -/
+/-- `column_selector__L30`, window 0. -/
 theorem w306_0 : WinOk 306 0 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L0`, window 1. -/
-theorem w306_1 : WinOk 306 1 := winOk_of_C (by decide +kernel)
-
-/-- `open_stacked__L0`, window 2. -/
-theorem w306_2 : WinOk 306 2 := winOk_of_C (by decide +kernel)
-
-/-- `open_stacked__L1`, window 0. -/
+/-- `column_selector__L31`, window 0. -/
 theorem w307_0 : WinOk 307 0 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L1`, window 1. -/
-theorem w307_1 : WinOk 307 1 := winOk_of_C (by decide +kernel)
+/-- `column_selector__L32`, window 0. -/
+theorem w308_0 : WinOk 308 0 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L1`, window 2. -/
-theorem w307_2 : WinOk 307 2 := winOk_of_C (by decide +kernel)
+/-- `log2_ceil_in_the_exponent__L0_L34`, window 0. -/
+theorem w309_0 : WinOk 309 0 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L1`, window 3. -/
-theorem w307_3 : WinOk 307 3 := winOk_of_C (by decide +kernel)
+/-- `log2_ceil_in_the_exponent__L15_L34`, window 0. -/
+theorem w310_0 : WinOk 310 0 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L0`, window 0. -/
+theorem w311_0 : WinOk 311 0 := winOk_of_C (by decide +kernel)
+
+/-- `open_stacked__L0`, window 1. -/
+theorem w311_1 : WinOk 311 1 := winOk_of_C (by decide +kernel)
 
 theorem ok305 : CheckOk 305 := checkOk_one (by decide +kernel) w305_0
+
+theorem ok306 : CheckOk 306 := checkOk_one (by decide +kernel) w306_0
+
+theorem ok307 : CheckOk 307 := checkOk_one (by decide +kernel) w307_0
+
+theorem ok308 : CheckOk 308 := checkOk_one (by decide +kernel) w308_0
+
+theorem ok309 : CheckOk 309 := checkOk_one (by decide +kernel) w309_0
+
+theorem ok310 : CheckOk 310 := checkOk_one (by decide +kernel) w310_0
 
 end
 end LeanVM.Guest.Checked

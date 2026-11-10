@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L12_L6`, once. -/
-theorem st1150 : shareStatic 1150 = true := by decide +kernel
+/-- `__loop275`, window 1. -/
+theorem w1147_1 : shareWin 1147 (snapsOf 1147) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L12_L6`, window 0. -/
-theorem w1150_0 : shareWin 1150 (snapsOf 1150) 0 = true := by decide +kernel
+/-- `__loop275`, window 2. -/
+theorem w1147_2 : shareWin 1147 (snapsOf 1147) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L12_L6`, window 1. -/
-theorem w1150_1 : shareWin 1150 (snapsOf 1150) 1 = true := by decide +kernel
+/-- `__loop275`, window 3. -/
+theorem w1147_3 : shareWin 1147 (snapsOf 1147) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop281`, once. -/
-theorem st1151 : shareStatic 1151 = true := by decide +kernel
+/-- `__loop276`, once. -/
+theorem st1148 : shareStatic 1148 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop281`, window 0. -/
-theorem w1151_0 : shareWin 1151 (snapsOf 1151) 0 = true := by decide +kernel
+/-- `__loop276`, window 0. -/
+theorem w1148_0 : shareWin 1148 (snapsOf 1148) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop281`, window 1. -/
-theorem w1151_1 : shareWin 1151 (snapsOf 1151) 1 = true := by decide +kernel
+/-- `__loop276`, window 1. -/
+theorem w1148_1 : shareWin 1148 (snapsOf 1148) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L6`, once. -/
-theorem st1152 : shareStatic 1152 = true := by decide +kernel
+/-- `__loop276`, window 2. -/
+theorem w1148_2 : shareWin 1148 (snapsOf 1148) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L6`, window 0. -/
-theorem w1152_0 : shareWin 1152 (snapsOf 1152) 0 = true := by decide +kernel
+/-- `__loop276`, window 3. -/
+theorem w1148_3 : shareWin 1148 (snapsOf 1148) 3 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

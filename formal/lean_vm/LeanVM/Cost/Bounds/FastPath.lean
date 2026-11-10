@@ -462,12 +462,12 @@ theorem ceilSqrt_cost (hP : Includes P Auto.LeanVM.Extraction.ceilSqrt.c220.cost
   rw [limbs_of_lt (by omega : Nat.sqrt x < 2 ^ 64), limbs_of_lt (by omega : Nat.sqrt x + 1 < 2 ^ 64)]
   split_ifs <;> omega
 
-theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 14 := by
+theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 18 := by
   rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
 
-theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 22794 := by
+theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 38959 := by
   unfold johnsonSlackOf
-  have hrow : ∀ i, ∀ x ∈ johnsonSlack.getD i [], x ≤ 22794 := by
+  have hrow : ∀ i, ∀ x ∈ johnsonSlack.getD i [], x ≤ 38959 := by
     intro i
     rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
   rw [List.getD_eq_getElem?_getD]
@@ -476,10 +476,10 @@ theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 22794 := by
   | none => simp
   | some x => exact hrow _ x (List.mem_of_getElem? h)
 
-/-- The slack table lookup (`johnsonSlackOf.c224`): at most `540`. -/
+/-- The slack table lookup (`johnsonSlackOf.c224`): at most `664`. -/
 theorem johnsonSlackOf_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonSlackOf.c224.costDeps)
     (μ R : ℕ) (hμ : μ < 2 ^ 64) (hR : R < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Extraction.johnsonSlackOf.c224.costIdx [encodeValue μ, encodeValue R] ≤ 540 := by
+    machineCost P Auto.LeanVM.Extraction.johnsonSlackOf.c224.costIdx [encodeValue μ, encodeValue R] ≤ 664 := by
   rw [Auto.LeanVM.Extraction.johnsonSlackOf.c224.costEq P hP,
     Auto.LeanVM.Extraction.johnsonSlack.c227.costEq P (by includes), limbs_of_lt hR,
     limbs_of_lt hμ, limbs_of_lt (by unfold Whir.minLogStack; omega : Whir.minLogStack < 2 ^ 64)]
@@ -492,11 +492,11 @@ theorem johnsonSlackOf_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonSlack
   omega
 
 /-- **The Johnson threshold** (`johnsonThreshold.c219`): two `⌈√·⌉`s' worth of `Nat.sqrt` on a
-number below `2^126`, the slack table and a few two-limb operations: at most `14075`, for
+number below `2^126`, the slack table and a few two-limb operations: at most `14199`, for
 `2κ + R ≤ 80` (`κ = μ − 6`). -/
 theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThreshold.c219.costDeps)
     (μ R : ℕ) (hμ : μ < 2 ^ 64) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 80) :
-    machineCost P Auto.LeanVM.Extraction.johnsonThreshold.c219.costIdx [encodeValue μ, encodeValue R] ≤ 14075 := by
+    machineCost P Auto.LeanVM.Extraction.johnsonThreshold.c219.costIdx [encodeValue μ, encodeValue R] ≤ 14199 := by
   rw [Auto.LeanVM.Extraction.johnsonThreshold.c219.costEq P hP]
   have hf : Whir.initialFold = 6 := rfl
   set κ := μ - Whir.initialFold with hκ
@@ -515,7 +515,7 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
   have hsl' := johnsonSlackOf_le μ R
   have hcsv : ceilSqrt X ≤ X + 1 := by
     unfold ceilSqrt; have := Nat.sqrt_le_self X; split_ifs <;> omega
-  have hslN : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 22794 * 2 ^ 80 :=
+  have hslN : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 38959 * 2 ^ 80 :=
     Nat.mul_le_mul hsl' hN
   have l1 := hL μ (by omega)
   have l2 := hL κ (by omega)
@@ -584,7 +584,7 @@ theorem johnsonThreshold_lt (μ R : ℕ) (hκR : 2 * (μ - Whir.initialFold) + R
   have hcs : ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) ≤
       2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) + 1 := by
     unfold ceilSqrt; have := Nat.sqrt_le_self (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)); split_ifs <;> omega
-  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 22794 * 2 ^ 80 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
+  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 38959 * 2 ^ 80 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
   refine lt_of_le_of_lt (Nat.div_le_self _ _) ?_
   generalize ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) = cs at hcs ⊢
   generalize johnsonSlackOf μ R * 2 ^ (κ + R) = y at hsl ⊢
@@ -632,7 +632,7 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
     (hJ : 2 * (μ - Whir.initialFold) + R ≤ 80) (hκR : κ + R ≤ 62)
     (hst : FastInv (2 ^ (κ + R)) st (r + 1)) :
     machineCost P fastStacksFastC.lam1.costIdx [encodeValue μ, encodeValue R, encodeValue T, encodeValue κ, encodeValue st, encodeValue u] ≤
-      κ * (345 * 2 ^ (κ + R) + 5845) + 108 * 2 ^ (κ + R) + 14998 := by
+      κ * (345 * 2 ^ (κ + R) + 5845) + 108 * 2 ^ (κ + R) + 15122 := by
   rw [fastStacksFastC.lam1.costEq P hP]
   have hK : 2 ^ κ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (by omega)
   have hN : 2 ^ (κ + R) < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) (by omega)
@@ -671,14 +671,14 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
 /-- **The fast path** (`fastStacksFast μ R W`, compiled as `fastStacksFastC`): the word's
 `N = 2^(κ+R)` columns reversed into a table (`B_W` per column read, `W_d` words each), then `64`
 lanes (`fastLane_cost`), then at most one stack (`stackOf_cost`): at most
-`64·(κ·(345·N + 5845) + 108·N + 15013) + (B_W + 12·W_d + 44)·N + 1008·2^μ + 1071`, for
+`64·(κ·(345·N + 5845) + 108·N + 15137) + (B_W + 12·W_d + 44)·N + 1008·2^μ + 1071`, for
 `μ ≤ 40`, `R ≤ 8`. -/
 theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40)
     (hR : R ≤ 8) (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a : ℕ, RunsApp P WVal [encodeValue a] (encodeValue (W a)))
     (BW Wd : ℕ) (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hWd : ∀ v, (W v).length ≤ Wd) :
     machineCost P fastStacksFastC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
       64 * ((μ - Whir.initialFold) * (345 * 2 ^ (μ - Whir.initialFold + R) + 5845) +
-          108 * 2 ^ (μ - Whir.initialFold + R) + 15013) +
+          108 * 2 ^ (μ - Whir.initialFold + R) + 15137) +
         (BW + 12 * Wd + 44) * 2 ^ (μ - Whir.initialFold + R) + 1008 * 2 ^ μ + 1071 := by
   have hI : Includes P fastStacksFastC.lam1.costDeps := by includes
   rw [fastStacksFastC.costEq P hP μ R W WVal hW]
@@ -724,7 +724,7 @@ theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : �
   have hfold := listFoldl_amortized P (by includes) _
     (.closure fastStacksFastC.lam1.costIdx [encodeValue μ, encodeValue R, encodeValue (Fast.laneTable N W), encodeValue κ])
     (fun a b ↦ RunsApp.of_spec (fastStacksFastC.lam1.costSpec P (by includes) μ R _ κ a b))
-    (κ * (345 * N + 5845) + 108 * N + 15002) (fun _ ↦ 0) (FastInv N)
+    (κ * (345 * N + 5845) + 108 * N + 15126) (fun _ ↦ 0) (FastInv N)
     (List.range (2 ^ Whir.initialFold)) [([], List.range N)] hinit
     (fun st r hst u hu ↦ ⟨hstep st r hst u hu, by
       simp only [appCost_fn, List.cons_append, List.nil_append, Nat.add_zero, Nat.zero_add]

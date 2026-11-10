@@ -9,8 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.Checked.F357_0
-public import LeanVM.Guest.Checked.F386_0
-public import LeanVM.Guest.Checked.F393_0
+public import LeanVM.Guest.Checked.F363_2
+public import LeanVM.Guest.Checked.F394_0
 
 namespace LeanVM.Guest.Checked
 
@@ -30,18 +30,7 @@ theorem plain356 : Plain 356 := plain_of_nil (by decide +kernel)
 
 theorem plain357 : Plain 357 := plain_of_nil (by decide +kernel)
 
-theorem ok358 : CheckOk 358 := fun i hi ↦ by
-  have h : (certOf 358).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w358_0
-  · exact w358_1
-  · exact w358_2
-  · exact w358_3
-
-theorem plain358 : Plain 358 := by
-  unfold Plain
-  decide +kernel
+theorem plain358 : Plain 358 := plain_of_nil (by decide +kernel)
 
 theorem plain359 : Plain 359 := plain_of_nil (by decide +kernel)
 
@@ -51,7 +40,18 @@ theorem plain361 : Plain 361 := plain_of_nil (by decide +kernel)
 
 theorem plain362 : Plain 362 := plain_of_nil (by decide +kernel)
 
-theorem plain363 : Plain 363 := plain_of_nil (by decide +kernel)
+theorem ok363 : CheckOk 363 := fun i hi ↦ by
+  have h : (certOf 363).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w363_0
+  · exact w363_1
+  · exact w363_2
+  · exact w363_3
+
+theorem plain363 : Plain 363 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain364 : Plain 364 := plain_of_nil (by decide +kernel)
 
@@ -109,16 +109,7 @@ theorem plain390 : Plain 390 := plain_of_nil (by decide +kernel)
 
 theorem plain391 : Plain 391 := plain_of_nil (by decide +kernel)
 
-theorem ok392 : CheckOk 392 := fun i hi ↦ by
-  have h : (certOf 392).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w392_0
-  · exact w392_1
-
-theorem plain392 : Plain 392 := by
-  unfold Plain
-  decide +kernel
+theorem plain392 : Plain 392 := plain_of_nil (by decide +kernel)
 
 theorem plain393 : Plain 393 := plain_of_nil (by decide +kernel)
 
@@ -126,18 +117,18 @@ theorem plain394 : Plain 394 := plain_of_nil (by decide +kernel)
 
 theorem plain395 : Plain 395 := plain_of_nil (by decide +kernel)
 
-theorem ok396 : CheckOk 396 := fun i hi ↦ by
-  have h : (certOf 396).cuts.length = 1 := by decide +kernel
+theorem plain396 : Plain 396 := plain_of_nil (by decide +kernel)
+
+theorem ok397 : CheckOk 397 := fun i hi ↦ by
+  have h : (certOf 397).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w396_0
-  · exact w396_1
+  · exact w397_0
+  · exact w397_1
 
-theorem plain396 : Plain 396 := by
+theorem plain397 : Plain 397 := by
   unfold Plain
   decide +kernel
-
-theorem plain397 : Plain 397 := plain_of_nil (by decide +kernel)
 
 theorem plain398 : Plain 398 := plain_of_nil (by decide +kernel)
 

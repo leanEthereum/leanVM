@@ -9,7 +9,8 @@ module
 
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.Checked.F262_0
-public import LeanVM.Guest.Checked.F262_0
+public import LeanVM.Guest.Checked.F268_2
+public import LeanVM.Guest.Checked.F268_2
 
 namespace LeanVM.Guest.Checked
 
@@ -39,30 +40,9 @@ theorem plain261 : Plain 261 := plain_of_nil (by decide +kernel)
 
 theorem plain262 : Plain 262 := plain_of_nil (by decide +kernel)
 
-theorem ok263 : CheckOk 263 := fun i hi ↦ by
-  have h : (certOf 263).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w263_0
-  · exact w263_1
-  · exact w263_2
+theorem plain263 : Plain 263 := plain_of_nil (by decide +kernel)
 
-theorem plain263 : Plain 263 := by
-  unfold Plain
-  decide +kernel
-
-theorem ok264 : CheckOk 264 := fun i hi ↦ by
-  have h : (certOf 264).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w264_0
-  · exact w264_1
-  · exact w264_2
-  · exact w264_3
-
-theorem plain264 : Plain 264 := by
-  unfold Plain
-  decide +kernel
+theorem plain264 : Plain 264 := plain_of_nil (by decide +kernel)
 
 theorem plain265 : Plain 265 := plain_of_nil (by decide +kernel)
 
@@ -70,9 +50,30 @@ theorem plain266 : Plain 266 := plain_of_nil (by decide +kernel)
 
 theorem plain267 : Plain 267 := plain_of_nil (by decide +kernel)
 
-theorem plain268 : Plain 268 := plain_of_nil (by decide +kernel)
+theorem ok268 : CheckOk 268 := fun i hi ↦ by
+  have h : (certOf 268).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w268_0
+  · exact w268_1
+  · exact w268_2
 
-theorem plain269 : Plain 269 := plain_of_nil (by decide +kernel)
+theorem plain268 : Plain 268 := by
+  unfold Plain
+  decide +kernel
+
+theorem ok269 : CheckOk 269 := fun i hi ↦ by
+  have h : (certOf 269).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w269_0
+  · exact w269_1
+  · exact w269_2
+  · exact w269_3
+
+theorem plain269 : Plain 269 := by
+  unfold Plain
+  decide +kernel
 
 theorem plain270 : Plain 270 := plain_of_nil (by decide +kernel)
 

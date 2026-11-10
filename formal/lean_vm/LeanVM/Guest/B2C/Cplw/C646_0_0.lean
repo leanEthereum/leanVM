@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `level_queries__L45_L0_L16_L24_L21_L3`, window 0, part 0. -/
+/-- `level_queries__L75_L1_L64_L32_L23_L5`, window 0, part 0. -/
 theorem cw646_0_0 : cplWin 646 0 0 = true := by decide +kernel
 
-/-- `level_queries__L45_L0_L16_L24_L21_L3`, window 1, part 0. -/
+/-- `level_queries__L75_L1_L64_L32_L23_L5`, window 1, part 0. -/
 theorem cw646_1_0 : cplWin 646 1 0 = true := by decide +kernel
 
-/-- `level_queries__L38_L0_L16_L24_L22_L4`, window 0, part 0. -/
+/-- `level_queries__L56_L1_L64_L32_L24_L6`, window 0, part 0. -/
 theorem cw647_0_0 : cplWin 647 0 0 = true := by decide +kernel
 
-/-- `level_queries__L38_L0_L16_L24_L22_L4`, window 1, part 0. -/
+/-- `level_queries__L56_L1_L64_L32_L24_L6`, window 1, part 0. -/
 theorem cw647_1_0 : cplWin 647 1 0 = true := by decide +kernel
 
-/-- `level_queries__L32_L0_L16_L24_L23_L5`, window 0, part 0. -/
+/-- `level_positions__L5_L22_L4`, window 0, part 0. -/
 theorem cw648_0_0 : cplWin 648 0 0 = true := by decide +kernel
 
-/-- `level_queries__L32_L0_L16_L24_L23_L5`, window 1, part 0. -/
-theorem cw648_1_0 : cplWin 648 1 0 = true := by decide +kernel
-
-/-- `level_positions__L3_L22_L4`, window 0, part 0. -/
+/-- `level_positions__L4_L23_L5`, window 0, part 0. -/
 theorem cw649_0_0 : cplWin 649 0 0 = true := by decide +kernel
 
-/-- `level_queries__L28_L0_L16_L24_L20_L2`, window 0, part 0. -/
+/-- `level_queries__L56_L0_L16_L24_L20_L2`, window 0, part 0. -/
 theorem cw650_0_0 : cplWin 650 0 0 = true := by decide +kernel
+
+/-- `level_queries__L56_L0_L16_L24_L20_L2`, window 1, part 0. -/
+theorem cw650_1_0 : cplWin 650 1 0 = true := by decide +kernel
 
 theorem ok646 : CplOk 646 := by
   intro i hi k hk
@@ -70,17 +70,13 @@ theorem ok647 : CplOk 647 := by
 
 theorem ok648 : CplOk 648 := by
   intro i hi k hk
-  have hc : (certOf 648).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 648).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 648 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw648_0_0
-  · have hn : nParts 648 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw648_1_0
 
 theorem ok649 : CplOk 649 := by
   intro i hi k hk
@@ -91,6 +87,20 @@ theorem ok649 : CplOk 649 := by
     rw [hn] at hk
     interval_cases k
     · exact cw649_0_0
+
+theorem ok650 : CplOk 650 := by
+  intro i hi k hk
+  have hc : (certOf 650).cuts.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 650 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw650_0_0
+  · have hn : nParts 650 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw650_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

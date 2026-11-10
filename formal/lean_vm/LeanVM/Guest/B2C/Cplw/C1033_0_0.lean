@@ -16,60 +16,71 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop192`, window 0, part 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L22_L4`, window 0, part 0. -/
 theorem cw1033_0_0 : cplWin 1033 0 0 = true := by decide +kernel
 
-/-- `__loop193`, window 0, part 0. -/
+/-- `opening_queries__L1_L1_L64_L32_L22_L4`, window 1, part 0. -/
+theorem cw1033_1_0 : cplWin 1033 1 0 = true := by decide +kernel
+
+/-- `opening_queries__L1_L1_L64_L32_L22_L4`, window 2, part 0. -/
+theorem cw1033_2_0 : cplWin 1033 2 0 = true := by decide +kernel
+
+/-- `opening_queries__L0_L1_L64_L32_L23_L5`, window 0, part 0. -/
 theorem cw1034_0_0 : cplWin 1034 0 0 = true := by decide +kernel
 
-/-- `__loop194`, window 0, part 0. -/
+/-- `opening_queries__L0_L1_L64_L32_L23_L5`, window 1, part 0. -/
+theorem cw1034_1_0 : cplWin 1034 1 0 = true := by decide +kernel
+
+/-- `__loop190`, window 0, part 0. -/
 theorem cw1035_0_0 : cplWin 1035 0 0 = true := by decide +kernel
 
-/-- `__loop194`, window 0, part 1. -/
-theorem cw1035_0_1 : cplWin 1035 0 1 = true := by decide +kernel
-
-/-- `__loop195`, window 0, part 0. -/
+/-- `__loop191`, window 0, part 0. -/
 theorem cw1036_0_0 : cplWin 1036 0 0 = true := by decide +kernel
 
-/-- `__loop196`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L16_L24_L22_L4`, window 0, part 0. -/
 theorem cw1037_0_0 : cplWin 1037 0 0 = true := by decide +kernel
-
-/-- `__loop197`, window 0, part 0. -/
-theorem cw1038_0_0 : cplWin 1038 0 0 = true := by decide +kernel
-
-/-- `__loop198`, window 0, part 0. -/
-theorem cw1039_0_0 : cplWin 1039 0 0 = true := by decide +kernel
 
 theorem ok1033 : CplOk 1033 := by
   intro i hi k hk
-  have hc : (certOf 1033).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 1033).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1033 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1033_0_0
+  · have hn : nParts 1033 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1033_1_0
+  · have hn : nParts 1033 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1033_2_0
 
 theorem ok1034 : CplOk 1034 := by
   intro i hi k hk
-  have hc : (certOf 1034).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 1034).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1034 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1034_0_0
+  · have hn : nParts 1034 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw1034_1_0
 
 theorem ok1035 : CplOk 1035 := by
   intro i hi k hk
   have hc : (certOf 1035).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 1035 0 = 2 := by decide +kernel
+  · have hn : nParts 1035 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1035_0_0
-    · exact cw1035_0_1
 
 theorem ok1036 : CplOk 1036 := by
   intro i hi k hk
@@ -80,36 +91,6 @@ theorem ok1036 : CplOk 1036 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1036_0_0
-
-theorem ok1037 : CplOk 1037 := by
-  intro i hi k hk
-  have hc : (certOf 1037).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1037 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1037_0_0
-
-theorem ok1038 : CplOk 1038 := by
-  intro i hi k hk
-  have hc : (certOf 1038).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1038 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1038_0_0
-
-theorem ok1039 : CplOk 1039 := by
-  intro i hi k hk
-  have hc : (certOf 1039).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1039 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1039_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

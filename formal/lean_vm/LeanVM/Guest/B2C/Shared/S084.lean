@@ -16,48 +16,39 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L7`, window 3. -/
-theorem w88_3 : shareWin 88 (snapsOf 88) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L7`, window 4. -/
-theorem w88_4 : shareWin 88 (snapsOf 88) 4 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop6`, once. -/
-theorem st89 : shareStatic 89 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop6`, window 0. -/
-theorem w89_0 : shareWin 89 (snapsOf 89) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop6`, window 1. -/
-theorem w89_1 : shareWin 89 (snapsOf 89) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop6`, window 2. -/
+/-- `rs_eq_rows__L7`, window 2. -/
 theorem w89_2 : shareWin 89 (snapsOf 89) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop7`, once. -/
+/-- `rs_eq_rows__L7`, window 3. -/
+theorem w89_3 : shareWin 89 (snapsOf 89) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `rs_eq_rows__L7`, window 4. -/
+theorem w89_4 : shareWin 89 (snapsOf 89) 4 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop6`, once. -/
 theorem st90 : shareStatic 90 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop7`, window 0. -/
+/-- `__loop6`, window 0. -/
 theorem w90_0 : shareWin 90 (snapsOf 90) 0 = true := by decide +kernel
 
-theorem ok90 : ShareOk 90 := ⟨st90, fun i hi ↦ by
-  have h : (snapsOf 90).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w90_0⟩
+set_option maxRecDepth 100000 in
+/-- `__loop6`, window 1. -/
+theorem w90_1 : shareWin 90 (snapsOf 90) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop8`, once. -/
+/-- `__loop6`, window 2. -/
+theorem w90_2 : shareWin 90 (snapsOf 90) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop7`, once. -/
 theorem st91 : shareStatic 91 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop8`, window 0. -/
+/-- `__loop7`, window 0. -/
 theorem w91_0 : shareWin 91 (snapsOf 91) 0 = true := by decide +kernel
 
 theorem ok91 : ShareOk 91 := ⟨st91, fun i hi ↦ by
