@@ -82,10 +82,6 @@ impl FnLower<'_> {
             // statement-only builtin used as a value (`x = assert_in_k(a, b)`),
             // or an `@inline` callee reached where inlining did not happen, all
             // used to die later in `resolve` as a bare `no entry found for key`.
-            None if callee == "match" => self.fail(
-                "`match(...)` is only the whole right-hand side of an assignment, `r = match(...)`: \
-                 bind its results, then return or store them",
-            ),
             None => self.fail(format!(
                 "no function named `{callee}`. A builtin that writes into a destination \
                  (`keccak`, `assert_in_k`, a `hint_*`) is a statement and returns nothing, so it \
