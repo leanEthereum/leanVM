@@ -2,6 +2,7 @@ import Rv64Verifier.Proofs.Bus.Fingerprints
 import Rv64Verifier.Proofs.Bus.TsCalls
 import Rv64Verifier.Proofs.Multilinear.All
 import Rv64Verifier.Proofs.Bus.VbbSpine
+import Rv64Verifier.Proofs.Bus.VbbTail9
 
 /-!
 # The bus's contracts, their callees' discharged
@@ -16,7 +17,13 @@ the transcript callees' steps with the call of `samples` (`VbbSteps.lean`), the 
 code's order (`Tracks`, `VbbRun.lean`), the calls of `eq_kernel`, `duplex`, `next_scalar` and
 `alloc` (`VbbCalls.lean`), the challenges and the GKR loop's start (`VbbHead.lean`,
 `VbbValues.lean`, `start` in `VbbInit.lean`), and the contract from the GKR loop's and the rest's
-stages (`verify_bus_balance_spec` in `VbbSpine.lean`; `GkrStage` and `TailStage` still to prove).
+stages (`verify_bus_balance_spec` in `VbbSpine.lean`; `GkrStage` and `TailStage` still to prove), and
+of the rest, from `0x80006b60` to `0x80006ca0`: the count's check, `next_scalars(3)` and the two
+`next_scalar`s (`scalarsStage`, `VbbTail1.lean` to `VbbTail4.lean`), `TailStage` from the stage after
+them (`tailStage`, given `s3` = `values`' buffer, which `AfterGkr` does not yet say); for the stage after
+them, the calls of `try_allocate_in`, `memcpy` and the claims' `grow_one` (`VbbTail5.lean`,
+`VbbTail7.lean`), the claims in memory (`VbbTail6.lean`) and the three copies of the point's prefix
+(`copy1` to `copy3`, `VbbTail8.lean`, `VbbTail9.lean`).
 -/
 
 namespace Rv64Verifier.Proofs.Bus
@@ -83,3 +90,27 @@ info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec' depends
  Quot.sound]
 -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.verify_bus_balance_spec
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.scalarsStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.scalarsStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.tailStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.tailStage
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.copy1' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.copy1
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.copy2' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.copy2
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.copy3' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.copy3
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.growOneCall' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.growOneCall
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsAt.grow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsAt.grow
+
+/-- info: 'Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsAt.keepR' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Bus.VerifyBusBalance.ClaimsAt.keepR
