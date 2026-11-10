@@ -125,5 +125,21 @@ theorem osRounds_completeA {P : List (ℕ × ℕ × ℕ)} :
     rw [ho.cur, ro.cur, mul_assoc, ← pow_add]
     ring_nf
 
+theorem osRound_sf (P : List (ℕ × ℕ × ℕ)) (i : ℕ) (st : OsSt) (h : st.Sf) : (osRound P i st).2.Sf := by
+  have hk := osRound_k P i st
+  refine ⟨rfl, osRound_below P i st h.below h.k, by show 0 < u128Bound; unfold u128Bound; positivity,
+    fun p hp ↦ ?_, by have := h.k; omega⟩
+  have := h.padB p hp
+  omega
+
+/-- The state after the rounds keeps the static facts. -/
+theorem osRounds_sf (P : List (ℕ × ℕ × ℕ)) : ∀ (n i : ℕ) (st : OsSt), st.Sf → (osRounds P i n st).2.Sf
+  | 0, _, _, h => h
+  | n + 1, i, st, h => osRounds_sf P n (i + 1) _ (osRound_sf P i st h)
+
+theorem osRounds_pad (P : List (ℕ × ℕ × ℕ)) : ∀ (n i : ℕ) (st : OsSt), (osRounds P i n st).2.pad = st.pad
+  | 0, _, _ => rfl
+  | n + 1, i, st => osRounds_pad P n (i + 1) (osRound P i st).2
+
 end
 end LeanVM.Guest.B1.Whir
