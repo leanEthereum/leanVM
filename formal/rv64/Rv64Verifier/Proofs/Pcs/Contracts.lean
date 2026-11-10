@@ -65,6 +65,17 @@ def WeightSrc (s : MachineState) (k : Nat) (a : Word) : Prop :=
     else if s.getMem a = ringTag then RingSrc s k (a + 8)
     else RingSrc s k a
 
+/-- The buffers of the `RingWeight` at `a` miss the `k` bytes from `lo`. -/
+def RingApart (s : MachineState) (a lo : Word) (k : Nat) : Prop :=
+  Apart (vecPtr s a) (24 * (vecLen s a).toNat) lo k ∧
+    Apart (vecPtr s (a + 24)) (24 * (vecLen s (a + 24)).toNat) lo k
+
+/-- The buffers of the `StackWeight` at `a` miss the `k` bytes from `lo`. -/
+def WeightApart (s : MachineState) (a lo : Word) (k : Nat) : Prop :=
+  if s.getMem a = eqTag then Apart (vecPtr s (a + 8)) (24 * (vecLen s (a + 8)).toNat) lo k
+  else if s.getMem a = ringTag then RingApart s (a + 8) lo k
+  else RingApart s a lo k
+
 /-- The `StackClaim` at `a`. -/
 def stackClaimAt (s : MachineState) (a : Word) : StackClaimRust :=
   ⟨stackWeightAt s a, eAt s (a + 64)⟩
@@ -290,7 +301,8 @@ abbrev ExtendSpec : Prop := FunSpec Image.code 0x80009b94 ExtendPre ExtendPost
 /-! ## `verify_stacked_opening`, at `0x80009db8`
 
 `verify_whir` and the Merkle checks inlined. `Ok(())` is `a0 = -1` (the caller's check at
-`0x8000412c`); an `Err` is its discriminant. -/
+`0x8000412c`); an `Err` is its discriminant. What the function reads lies apart from what it
+writes: the sponge and both offsets, `352` bytes from the transcript's `8`. -/
 
 @[rv_addr] def okTag : Word := 0xffffffffffffffff
 
@@ -313,8 +325,13 @@ structure VsoPre (s : MachineState) : Prop where
   claims : Src s vsoStack (s.getReg .x14) (88 * (s.getReg .x15).toNat)
   weights : ∀ i < (s.getReg .x15).toNat,
     WeightSrc s vsoStack (s.getReg .x14 + BitVec.ofNat 64 (88 * i))
-  rootSponge : Apart (s.getReg .x11) 32 (s.getReg .x10 + 8) 344
-  claimsSponge : Apart (s.getReg .x14) (88 * (s.getReg .x15).toNat) (s.getReg .x10 + 8) 344
+  rootSponge : Apart (s.getReg .x11) 32 (s.getReg .x10 + 8) 352
+  claimsSponge : Apart (s.getReg .x14) (88 * (s.getReg .x15).toNat) (s.getReg .x10 + 8) 352
+  weightsSponge : ∀ i < (s.getReg .x15).toNat,
+    WeightApart s (s.getReg .x14 + BitVec.ofNat 64 (88 * i)) (s.getReg .x10 + 8) 352
+  proofSponge : ProofApart s (s.getReg .x10) (s.getReg .x10 + 8) 352
+  /-- A checked transcript: a replay skips the checks, and its `Ok` says nothing. -/
+  checked : byteAt s (s.getReg .x10 + 360) ≠ 0
 
 /-- `Ok` only when `verifyStackedOpeningRust` returns, on a transcript whose roots so far are the
 stack's alone, at the shape level `0` opens, and whose Merkle openings `OpeningsAt` places in

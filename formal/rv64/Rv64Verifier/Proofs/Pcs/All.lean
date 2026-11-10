@@ -1,6 +1,9 @@
 import Rv64Verifier.Proofs.Pcs.RingEvalSpec
 import Rv64Verifier.Proofs.Pcs.BasisSpec
 import Rv64Verifier.Proofs.Multilinear.All
+import Rv64Verifier.Proofs.Pcs.VsoBatch
+import Rv64Verifier.Proofs.Pcs.VsoConfig
+import Rv64Verifier.Proofs.Pcs.VsoMerkle
 
 /-!
 # The opening's contracts, their callees' discharged
@@ -27,3 +30,15 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.basis' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.basis
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.exit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.exit
+
+/-- info: 'Rv64Verifier.Model.Pcs.merkleRust_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Pcs.merkleRust_run
+
+/-- info: 'Rv64Verifier.Model.Pcs.RodataOk.queries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Pcs.RodataOk.queries
+
+/-- info: 'Rv64Verifier.Model.Pcs.configLoop_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Model.Pcs.configLoop_eq
