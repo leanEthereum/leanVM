@@ -26,7 +26,7 @@ mod call;
 mod eval;
 mod mem;
 use call::ret_binding;
-use eval::field_pow;
+use eval::{field_pow, small_gpow};
 
 /// A value equal to `pointer(base)·g^exp`, or the pure constant `g^exp` when
 /// `base` is `None`. Heap-address arithmetic (`ptr·gᵏ`, and constant g-power

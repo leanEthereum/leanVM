@@ -103,17 +103,24 @@ impl FnLower<'_> {
         if (bare_int || known.addr.is_none())
             && let Some(c) = known.field
         {
-            // Two reasons reach here and they read differently. A bare integer
-            // index may well BE a g-power (4 is g²), and is rejected for being
-            // ambiguous against slice syntax rather than for naming nothing.
-            let why = match self.const_gpow(idx) {
-                Some(k) => format!(
+            // A constant the address tracking does not follow. An index whose integer
+            // and field readings differ (`3 + 7` is 10 and g²) would name two cells, and a
+            // bare integer may well BE a g-power (4 is g²) but is ambiguous against slice
+            // syntax. Any other g-power names its cell (`(GEN ** 2) ** 3` is cell 6).
+            let why = match (known.diverging_readings(), small_gpow(c)) {
+                (Some((n, _)), _) => format!(
+                    "reads as the integer {n} but as the field constant {:#x}:{:#x}, so it would \
+                     name two different cells. Write `buf[GEN ** k]` for cell k",
+                    c.c1, c.c0
+                ),
+                (None, Some(k)) if bare_int => format!(
                     "is a plain integer naming cell {k}, while the slice `buf[n:n + 1]` reads the \
                      same number as cell n. Write `buf[GEN ** {k}]` and say which you mean"
                 ),
-                None => format!(
-                    "folds to the field constant {:#x}:{:#x}, which is not a g-power, so it names \
-                     no heap cell (did an integer index leak in from a StackBuf conversion?)",
+                (None, Some(k)) => return self.heap_base(arr, k),
+                (None, None) => format!(
+                    "folds to the field constant {:#x}:{:#x}, which is not a g-power up to g^{FOLD_MAX}, \
+                     so it names no heap cell (did an integer index leak in from a StackBuf conversion?)",
                     c.c1, c.c0
                 ),
             };
