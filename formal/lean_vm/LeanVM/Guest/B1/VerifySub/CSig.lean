@@ -280,5 +280,36 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
       rw [h580]
       exact h }⟩
 
+/-! ## The allocations -/
+
+/-- **The allocations' sizes**: the fifteen buffers, `zeta` of `g^d` words. -/
+theorem vs_alloc_sizes {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 6) {d : ℕ}
+    (hd : d < 2 ^ 64 - 1) (h253 : w 253 = gen ^ d) :
+    (vsCPre.filterMap Main.Stmt.allocSz).map
+        (fun x ↦ x.2.elim id fun s ↦ logG (vsσ rd w args s)) = vsSizes d := by
+  rw [vs_allocs]
+  simp only [vsAllocVars, List.zip_cons_cons, List.zip_nil_right, List.map_cons, List.map_nil,
+    Sum.elim_inl, Sum.elim_inr, id]
+  rw [vs_w hl (by decide), h253, logG_gen_pow hd]
+  rfl
+
+theorem vs_allocVars_w : ∀ a ∈ vsAllocVars, a ∈ vsWVars := by decide
+
+theorem vs_allocFst : (vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst = vsAllocVars.map V.n := by
+  rw [vs_allocs]; rfl
+
+/-- **The allocations' bases**: the oracle's pointers. -/
+theorem vs_alloc_bases {rd : Reader} {args : List E} (hl : args.length = 6) (bs : List ℕ)
+    (outs : List (List E × Main.Layout)) (hbs : bs.length = 15) :
+    ((vsCPre.filterMap Main.Stmt.allocSz).map Prod.fst).map (vsσ rd (vsW bs outs) args) =
+      bs.map (fun x ↦ ofK (addressOfIndex x)) := by
+  rw [vs_allocFst, List.map_map]
+  apply List.ext_getElem (by simp [vsAllocVars, hbs])
+  intro i h1 h2
+  have hi : i < 15 := by simpa [vsAllocVars] using h1
+  rw [List.getElem_map, List.getElem_map, Function.comp_apply,
+    vs_w hl (by rw [← List.getD_eq_getElem _ 0]; exact vs_allocVars_w _ (vsAllocVars_idx i hi).1),
+    ← List.getD_eq_getElem _ 0, vsW_alloc bs outs hi, List.getD_eq_getElem _ _ (by omega)]
+
 end
 end LeanVM.Guest.B1.VerifySub
