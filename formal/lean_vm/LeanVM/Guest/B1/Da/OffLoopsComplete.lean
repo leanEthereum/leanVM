@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Da.OffsetsChk
 /-!
 # The offsets' loops, completely
 
-`offLoops_body`: bit `b`'s loop (`core 407 + b`) is its atoms `offLoopA b` then the closing tail
+`offLoops_body`: bit `b`'s loop (`core 436 + b`) is its atoms `offLoopA b` then the closing tail
 call (kernel evaluation). `off_block`: its block at the counter `x` holds when, for each `j < 8`,
 the region `offsets·x^8` holds a word at `j`, `steps` a word at `j`, and the region their sum at
 `8·2^b + j`.

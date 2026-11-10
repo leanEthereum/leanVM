@@ -61,7 +61,7 @@ def tmplA : List Atom := (List.range 128).flatMap blkA
 /-- **Pair `e`'s facts.** -/
 theorem blk_sound {e : ℕ} (he : e < 128) (hat : ∀ a ∈ tmplA, a.Holds rd σ) :
     IsInK (σ (.n (2 * e + 1))) ∧ IsInK (σ (.n (2 * e + 2))) ∧
-    σ (.n (packV e)) = E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) 0 ∧
+    σ (.n (packV e)) = E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) ∧
     LoadHolds rd (σ (.n 0)) (2 * e) (memAt rd (σ (.n 0)) (2 * e)) ∧
     LoadHolds rd (σ (.n 0)) (2 * e + 1) (memAt rd (σ (.n 0)) (2 * e + 1)) ∧
     σ (.n (accV e)) = (if e = 0 then 0 else σ (.n (accV (e - 1)))) +

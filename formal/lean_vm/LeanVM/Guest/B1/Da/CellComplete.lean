@@ -124,7 +124,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
           exact hl
     -- the packed cells
     have hpack : ∀ e < 128, σ (.n (packV e)) =
-        E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) 0 :=
+        E.ofLimbs ((σ (.n (2 * e + 1))).limb 0) ((σ (.n (2 * e + 2))).limb 0) :=
       fun e he => (blk_sound he htmpl).2.2.1
     have hcanP : ∀ i ∈ (List.range 128).map packV, IsCanonical128 (σ (.n i)) := by
       intro i hi
@@ -143,7 +143,7 @@ theorem da_verify_cell_complete : da_verify_cell_complete_Spec := by
       · exact htmpl a ha
       · exact hC a ha
     -- the returns
-    obtain ⟨hd, -⟩ := straight_digest hchain rfl rfl hret hC
+    have hd := straight_digest hchain rfl rfl hret hC
     have hsum := acc_sum htmpl 127 (by norm_num)
     rw [show accV 127 = 1407 from rfl] at hsum
     have hrets : [σ (.n 1740), σ (.n 1741), σ (.n 1742)] = cellRets syms ws := by
