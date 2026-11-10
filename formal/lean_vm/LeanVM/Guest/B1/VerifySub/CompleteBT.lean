@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.Complete
+public import LeanVM.Guest.B1.VerifySub.CMatch
 public import LeanVM.Guest.B1.VerifySub.CompleteB
 public import LeanVM.Guest.B1.Place.OsCandAll
 public import LeanVM.Guest.ChildShape
@@ -63,15 +63,14 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin)
-    (hcm : ∀ S : ChildSegs bytecode seed c, VsCallsMatch S sqE outE Lin) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (vsTsAny fs W Bvk (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W Bvk (childShape bytecode c).1 (childShape bytecode c).2) := by
   obtain ⟨S⟩ := child_segments hbl seed c hmu hrz hnz hcaps
   rw [childShape_of S.hann]
   have hd := S.d_bounds hbl
-  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexp hout (hcm S)
+  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexp hout (vs_callsMatch hbl S hexp)
   have h := completeAt_flatDepRBP (fs := fs) (cert := cert) find_vs vs_not_loop κ Lin _ []
     (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.d) (fun _ ↦ S.ownW)
     (fun _ ↦ S.ownW_fits hbl hst)
@@ -100,13 +99,12 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin)
-    (hcm : ∀ S : ChildSegs bytecode seed c, VsCallsMatch S sqE outE Lin) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (vsTsAny LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=
   verify_sub_completeBT hbl hrf hcons W hκ (verify_keccak_completeAtB_fs (by omega)) hos seed c sqE
-    outE Lin hmu hst hrz hnz hcaps hexp hout hcm
+    outE Lin hmu hst hrz hnz hcaps hexp hout
 
 end
 end LeanVM.Guest.B1.VerifySub
