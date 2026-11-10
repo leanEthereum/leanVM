@@ -315,10 +315,10 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
   have hstream : batchingStream cs h = childCountCells cs.length ++ (cs.flatMap childCells ++
       (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++ [h.finalBytecodeValue])) := by
     simp only [batchingStream, cellsBeforeChallenge, List.append_assoc]
-  show (match runD (boundedBatchingProgram M bytecode) ⟨⟨batchSeed, []⟩, batchingStream cs h, [], []⟩ with
+  show (match runD (boundedBatchingProgram M bytecode) ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
       | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
       | _ => false) = true ↔ _
-  have hsp : batchSponge cs = obsAll (obsAll ⟨batchSeed, []⟩ (childCountCells cs.length))
+  have hsp : batchSponge cs = obsAll (obsAll ⟨batchSeed, [], none⟩ (childCountCells cs.length))
       (cs.flatMap childCells) := obsAll_append _ _ _
   rw [hstream, boundedBatchingProgram, runD_bind_of_runsTo (runsTo_readCount hM hn _), batchingProgram,
     runD_bind_of_runsTo (runsTo_readChildren hs _), ← hsp, batchingAfterChildren,

@@ -42,7 +42,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 /-- The batching's initial sponge, carried: the seed's capacity, nothing waiting. -/
 def aggS0 : Fs := ⟨capOf batchSeed, []⟩
 
-theorem carries_aggS0 : aggS0.Carries ⟨batchSeed, []⟩ := ⟨rfl, rfl⟩
+theorem carries_aggS0 : aggS0.Carries ⟨batchSeed, [], none⟩ := ⟨rfl, rfl⟩
 
 theorem carries_obsAll : ∀ (xs : List E) {s : Fs} {sp : Sponge}, s.Carries sp →
     (s.absorbAll xs dsObserve).Carries (Batch.obsAll sp xs)

@@ -259,11 +259,11 @@ def SomeChildClaimFalse (bytecode : List K) (childCountBound : ℕ) (proof : Pro
       child.freshClaim.Holds bytecode ∧ child.carriedClaim.HoldsWithShape bytecode
 
 /-- **The batching program's query bound** on child counts below `childCountBound`: the seed's two
-queries, then a quarter of the program's cost (the count, the children's cells, the challenge, the
-sumcheck's rounds and the final value). -/
+queries, then a quarter of the program's cost (the count, the children's cells, the proof of work
+and the challenge, the sumcheck's rounds and the final value). -/
 def batchingQueryBound (bytecode : List K) (childCountBound : ℕ) : ℕ :=
   2 + (rateScalars + (childCountBound * (childWordCount (Nat.log2 bytecode.length) +
-    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2
+    zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 5 + 4 + 6 * Nat.log2
       bytecode.length + 1)) / 4
 
 open OracleComp OracleSpec in
