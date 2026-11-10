@@ -1,6 +1,6 @@
 # formal
 
-Lean 4 proofs that leanVM is knowledge sound and complete, that its aggregation program is sound and complete, that leanXMSS and leanSPHINCS are strongly unforgeable and that LeanDA is binding, all in the random-permutation model. What is proved, and what is not, is [statement.tex](./statement.tex).
+Lean 4 proofs that leanVM is knowledge sound and complete, that its aggregation program is sound and complete, that leanXMSS and leanSPHINCS are strongly unforgeable and that LeanDA is binding, all in the random-permutation model, and that leanSPHINCS is strongly unforgeable against quantum adversaries in the quantum random-oracle model. What is proved, and what is not, is [statement.tex](./statement.tex).
 
 Key file: [Theorems.lean](./Statement/Theorems.lean)
 

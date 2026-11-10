@@ -13,7 +13,8 @@ public import VCVio.Quantum.Comp.TotalQueryBound
 
 Read after `LeanSphincs.lean`. Keccak-256 is a uniform random function `H` on the byte strings of
 at most `2048` bytes (`Input`), which the adversary queries in superposition, as VCVio's
-quantum random oracle (`Quantum.qromSpec`, its table oracle `|x, y⟩ ↦ |x, y + H x⟩`). Key
+quantum random oracle (`Quantum.qromSpec`, its table oracle `|x, y⟩ ↦ |x, y + H x⟩`, where `+` on
+the 256-bit answers is XOR, `Output`). Key
 generation, the signer and the verifier are those of `LeanSphincs.lean` with `H` as the hash
 (`hashOf`): every input they hash is shorter than `2048` bytes, and a longer one would be answered
 `0`. The adversary's queries count the same whether quantum or classical.
@@ -21,7 +22,8 @@ generation, the signer and the verifier are those of `LeanSphincs.lean` with `H`
 The game draws `SK.seed` and `H` uniformly. Beside the hash it offers two classical ports, which
 read and update the game's signing log: the public key, and the signer, which signs a message and
 logs the request and its answer while the log holds fewer than `signatureLimit` entries (and
-answers `none` past them). A port returns its answer and the log it read (`portTrans`). The
+answers `none` past them). A port returns its answer and the log it read, and moves the log on
+(`portTrans`). The
 adversary starts from any substate `ρ` of its register, reads the public key, makes its calls and
 returns a forgery; it wins when the forgery verifies on `H` and the log does not hold it
 (`win`, strong unforgeability). `winProb` is the weight of the final leaves and logs at which it
@@ -29,7 +31,8 @@ wins, averaged over `SK.seed` and `H`.
 
 The end statement, `LeanSphincsQromStronglyUnforgeable`: an adversary making at most `n` calls in
 all (hash queries, quantum or classical, and signing requests) wins with probability at most
-`((n + 2048) / 2^61)²`.
+`((n + 2048) / 2^61)²`. As in `LeanSphincs.lean`, a key past its signature limit, which the deployed
+signer does not count, is not covered.
 -/
 
 @[expose] public section
@@ -80,6 +83,26 @@ instance : Fintype Signature :=
 
 /-! ## The hash -/
 
+/-- The oracle's answers: Keccak-256's outputs, 256-bit strings, added by XOR, so that the oracle
+is the usual `|x, y⟩ ↦ |x, y ⊕ H x⟩`. -/
+def Output := BitVec 256
+
+instance : Add Output := ⟨fun a b ↦ BitVec.xor (n := 256) a b⟩
+instance : Zero Output := ⟨(0 : BitVec 256)⟩
+instance : Neg Output := ⟨fun a ↦ a⟩
+
+instance : AddCommGroup Output where
+  add_assoc a b c := BitVec.xor_assoc (w := 256) a b c
+  zero_add a := BitVec.zero_xor (w := 256) (x := a)
+  add_zero a := BitVec.xor_zero (w := 256) (x := a)
+  nsmul := nsmulRec
+  zsmul := zsmulRec
+  neg_add_cancel a := BitVec.xor_self (w := 256) (x := a)
+  add_comm a b := BitVec.xor_comm (w := 256) a b
+
+instance : Fintype Output := inferInstanceAs (Fintype (BitVec 256))
+instance : DecidableEq Output := inferInstanceAs (DecidableEq (BitVec 256))
+
 /-- The longest input the random oracle answers. -/
 def maxInputLength : ℕ := 2048
 
@@ -87,19 +110,19 @@ def maxInputLength : ℕ := 2048
 abbrev Input := {l : HashInput // l.length ≤ maxInputLength}
 
 /-- The hash of the algorithms on the random function `H`: `H` on its inputs, `0` past them. -/
-def hashOf (H : Input → HashOutput) (input : HashInput) : Id HashOutput :=
+def hashOf (H : Input → Output) (input : HashInput) : Id HashOutput :=
   if h : input.length ≤ maxInputLength then H ⟨input, h⟩ else 0
 
 /-- Key generation from `SK.seed` on `H`. -/
-def keysOn (seed : MasterSeed) (H : Input → HashOutput) : PublicKey × SecretKey :=
+def keysOn (seed : MasterSeed) (H : Input → Output) : PublicKey × SecretKey :=
   Id.run (KeyGenerationAndSigning.keygenFromSeed (hashOf H) seed)
 
 /-- The signature of a message on `H`, `none` if the signer fails. -/
-def signOn (seed : MasterSeed) (H : Input → HashOutput) (message : Message) : Option Signature :=
+def signOn (seed : MasterSeed) (H : Input → Output) (message : Message) : Option Signature :=
   Id.run (KeyGenerationAndSigning.sign (hashOf H) seed message)
 
 /-- Verification on `H`. -/
-def verifyOn (H : Input → HashOutput) (publicKey : PublicKey) (forgery : Forgery) : Bool :=
+def verifyOn (H : Input → Output) (publicKey : PublicKey) (forgery : Forgery) : Bool :=
   Id.run (Verification.verify (hashOf H) publicKey forgery.message forgery.signature)
 
 /-! ## The classical ports -/
@@ -145,7 +168,7 @@ instance (log : Log) (forgery : Forgery) : Decidable (log.Contains forgery) := b
 
 /-- A port's answer and the log after it, from the log before: the public key leaves the log alone;
 the signer signs and logs while the log has room, and answers `none` past it. -/
-def portTrans (seed : MasterSeed) (H : Input → HashOutput) : (j : Port) → Log → Answer j × Log
+def portTrans (seed : MasterSeed) (H : Input → Output) : (j : Port) → Log → Answer j × Log
   | .publicKey, log => ((keysOn seed H).1, log)
   | .sign m, log =>
     if h : log.1.length < signatureLimit then
@@ -164,18 +187,18 @@ def portSpec : QuantumOracleSpec.{0, 0} where
 
 /-- The game's signature: the random oracle, then the classical ports. -/
 @[reducible]
-def spec : QuantumOracleSpec.{0, 0} := (qromSpec Input HashOutput).sum portSpec
+def spec : QuantumOracleSpec.{0, 0} := (qromSpec Input Output).sum portSpec
 
 /-- The Kraus operator of port `j` with answer `a` read at log `log₀`: it moves `log₀` to its
 successor, `|log'⟩⟨log₀|`, when `a` is the answer at `log₀`. -/
-noncomputable def portKraus (seed : MasterSeed) (H : Input → HashOutput) (j : Port)
+noncomputable def portKraus (seed : MasterSeed) (H : Input → Output) (j : Port)
     (al : Answer j × Log) : Matrix (Unit × (Log × Unit)) (Unit × (Log × Unit)) ℂ :=
   (if (portTrans seed H j al.2).1 = al.1 then (1 : ℂ) else 0) •
     ((1 : Matrix Unit Unit ℂ) ⊗ₖ (Matrix.single (portTrans seed H j al.2).2 al.2 (1 : ℂ) ⊗ₖ
       (1 : Matrix Unit Unit ℂ)))
 
 /-- The Kraus operators of a port sum to the identity: a port is a measurement of the log. -/
-theorem sum_portKraus (seed : MasterSeed) (H : Input → HashOutput) (j : Port) :
+theorem sum_portKraus (seed : MasterSeed) (H : Input → Output) (j : Port) :
     ∑ al, (portKraus seed H j al)ᴴ * portKraus seed H j al = 1 := by
   have hterm : ∀ al : Answer j × Log, (portKraus seed H j al)ᴴ * portKraus seed H j al =
       (if (portTrans seed H j al.2).1 = al.1 then (1 : ℂ) else 0) •
@@ -200,18 +223,18 @@ theorem sum_portKraus (seed : MasterSeed) (H : Input → HashOutput) (j : Port) 
   rw [← hsum, sum_single_one, one_kronecker_one, one_kronecker_one]
 
 /-- A call of the random oracle: `|x, y⟩ ↦ |x, y + H x⟩`, the log untouched. -/
-noncomputable def hashStep (H : Input → HashOutput) :
-    SubInstrument ((Input × HashOutput) × (Log × Unit)) ((Input × HashOutput) × (Log × Unit)) Unit :=
+noncomputable def hashStep (H : Input → Output) :
+    SubInstrument ((Input × Output) × (Log × Unit)) ((Input × Output) × (Log × Unit)) Unit :=
   SubInstrument.ofIsometry (tableOracle fun (_ : Log × Unit) ↦ H) (conjTranspose_tableOracle_mul_self _)
 
 /-- A call of port `j`: the measurement of `portKraus`. -/
-noncomputable def portStep (seed : MasterSeed) (H : Input → HashOutput) (j : Port) :
+noncomputable def portStep (seed : MasterSeed) (H : Input → Output) (j : Port) :
     SubInstrument (Unit × (Log × Unit)) (Unit × (Log × Unit)) (Answer j × Log) :=
   SubInstrument.ofKraus (portKraus seed H j) (sum_portKraus seed H j)
 
 /-- **The game's runtime** on `SK.seed` and `H`: its register holds the signing log, empty at the
 start; the random oracle answers `H`, and the classical ports read and update the log. -/
-noncomputable def runtime (seed : MasterSeed) (H : Input → HashOutput) : QuantumRuntime spec where
+noncomputable def runtime (seed : MasterSeed) (H : Input → Output) : QuantumRuntime spec where
   D := QReg.of (Log × Unit)
   init := (SubState.basis Log.empty).prod (SubState.basis ())
   step
@@ -232,15 +255,15 @@ noncomputable def withKey {A : QReg} (adv : Adversary A) :
 
 /-- The adversary wins: its forgery verifies on `H` against the key it read, and the log does not
 hold it. -/
-def win (H : Input → HashOutput) (v : PublicKey × Forgery) (log : Log) : Bool :=
+def win (H : Input → Output) (v : PublicKey × Forgery) (log : Log) : Bool :=
   verifyOn H v.1 v.2 && !decide (log.Contains v.2)
 
 /-- **The probability that the adversary wins** from the substate `ρ` of its register: the weight,
 in the joint post-state of the run, of the leaves and final logs at which it wins, averaged over a
 uniform `SK.seed` and a uniform `H`. -/
 noncomputable def winProb {A : QReg} (adv : Adversary A) (ρ : SubState A) : ℝ≥0∞ :=
-  ∑ seed : MasterSeed, ∑ H : Input → HashOutput,
-    ((Fintype.card MasterSeed : ℝ≥0∞) * Fintype.card (Input → HashOutput))⁻¹ *
+  ∑ seed : MasterSeed, ∑ H : Input → Output,
+    ((Fintype.card MasterSeed : ℝ≥0∞) * Fintype.card (Input → Output))⁻¹ *
       ∑' p, ∑ log : Log, if win H p.2.2 log then
         ENNReal.ofReal (∑ b, (((runtime seed H).jointPost .instruments (withKey adv) ρ p).matrix
           (b, (log, ())) (b, (log, ()))).re) else 0

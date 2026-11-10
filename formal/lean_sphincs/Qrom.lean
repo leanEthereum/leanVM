@@ -13,9 +13,10 @@ public import Qrom.Sphincs.EndStatement
 
 /-! # leanSPHINCS in the quantum random-oracle model
 
-A proof step beside the classical one (`FORS.Lifetimes.h26_layered_adversary`), not an end
-statement: Keccak-256 is a random function on the byte strings of at most `maxLen` bytes, which the
-adversary queries in superposition, on VCVio's quantum layer (compressed oracle, instability,
+The proof of the end statement `Sphincs.QuantumRandomOracleModel.LeanSphincsQromStronglyUnforgeable`
+(`Qrom.Sphincs.leanSphincsQrom`): Keccak-256 is a random function on the byte strings of at most
+`maxLen` bytes, which the adversary queries in superposition through the XOR oracle, on VCVio's
+quantum layer (compressed oracle, instability,
 square-root hybrid). `Qrom.Sphincs.winProb_le_h26`: for the parameters of `FORS.h26_layered`, an
 adversary given the public key and making at most `n` calls in all (hash queries, quantum or
 classical, and signing requests) forges with probability at most `((n + 2048) / 2^61)²`.

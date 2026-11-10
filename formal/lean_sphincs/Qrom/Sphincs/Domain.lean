@@ -2,6 +2,7 @@ module
 
 public import FORS.Classification.Accepted
 public import Qrom.Assembly
+public import Statement.LeanSphincsQrom
 
 @[expose] public section
 
@@ -12,7 +13,8 @@ The quantum random oracle is a function on a finite set: the byte strings of len
 `maxLen` (`Qrom.Sphincs.Input`), which holds every input that key generation, the signer and the
 verifier of leanSPHINCS hash. A hash computation of the scheme runs on such a function `f` by
 answering a longer input with zero (`Qrom.Sphincs.extend`, `Qrom.Sphincs.liftH`), and its run records
-the inputs it reads (`Qrom.Sphincs.traced`).
+the inputs it reads (`Qrom.Sphincs.traced`). The oracle adds its answers by XOR
+(`Qrom.Sphincs.xorGroup`).
 -/
 
 open OracleComp OracleSpec FORS
@@ -23,6 +25,11 @@ namespace Qrom.Sphincs
 
 /-- The longest hash input. -/
 def maxLen : ℕ := 2048
+
+/-- The oracle adds its answers by XOR, the group of the statement's
+`Sphincs.QuantumRandomOracleModel.Output`. -/
+scoped instance (priority := high) xorGroup : AddCommGroup HashOutput :=
+  inferInstanceAs (AddCommGroup _root_.Sphincs.QuantumRandomOracleModel.Output)
 
 /-- The lists of length at most `n` over a finite type are finitely many. -/
 instance boundedListFintype (α : Type) [Fintype α] (n : ℕ) : Fintype {l : List α // l.length ≤ n} :=

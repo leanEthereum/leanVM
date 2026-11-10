@@ -45,9 +45,10 @@ instance : DecidableEq Log := inferInstance
 instance : Fintype Log := inferInstance
 
 /-- A hash function on the proof's inputs as one on the statement's: the same function, the two
-types of inputs and outputs being the same. -/
+types of inputs and outputs being the same, and their groups both XOR. -/
 abbrev asStmt (H : Input → HashOutput) :
-    _root_.Sphincs.QuantumRandomOracleModel.Input → HashSig.HashOutput :=
+    _root_.Sphincs.QuantumRandomOracleModel.Input →
+      _root_.Sphincs.QuantumRandomOracleModel.Output :=
   H
 
 /-- A message of the statement as the proof's: the same bit vector. -/
@@ -698,8 +699,8 @@ theorem winProb_eq_qrom {A : QReg} (adv : _root_.Sphincs.QuantumRandomOracleMode
     _root_.Sphincs.QuantumRandomOracleModel.winProb adv ρ = winProb (toQromAdversary adv) ρ := by
   unfold _root_.Sphincs.QuantumRandomOracleModel.winProb winProb
   refine Finset.sum_congr rfl fun seed _ ↦ ?_
-  have hcard : Fintype.card (_root_.Sphincs.QuantumRandomOracleModel.Input → HashSig.HashOutput) =
-      Fintype.card (Input → HashOutput) :=
+  have hcard : Fintype.card (_root_.Sphincs.QuantumRandomOracleModel.Input →
+      _root_.Sphincs.QuantumRandomOracleModel.Output) = Fintype.card (Input → HashOutput) :=
     Fintype.card_congr (Equiv.refl _)
   refine Fintype.sum_equiv (Equiv.refl _) _ _ fun H ↦ ?_
   exact congrArg₂ (· * ·)

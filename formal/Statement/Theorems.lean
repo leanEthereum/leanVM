@@ -97,7 +97,8 @@ structure Theorems
   (`LeanSphincs.lean`); the honest parties' hashing is not charged to `q`. -/
   leanSphincsStronglyUnforgeable : Sphincs.LeanSphincsStronglyUnforgeable
   /-- leanSPHINCS is strongly unforgeable against quantum adversaries, for one key, Keccak-256 a
-  random function queried in superposition: at most `((n + 2048) / 2^61)²` for an adversary making
+  random function on the inputs of at most 2048 bytes, queried in superposition through the XOR
+  oracle `|x, y⟩ ↦ |x, y ⊕ H x⟩`: at most `((n + 2048) / 2^61)²` for an adversary making
   `n` calls in all, hash queries (quantum or classical) and signing requests, the signer refusing
   past `1,182,000,000` signatures (`LeanSphincsQrom.lean`); the honest parties' hashing is not
   charged to `n`. -/

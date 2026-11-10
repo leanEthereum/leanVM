@@ -116,7 +116,8 @@ while deployed they are the same function. The model thus excludes, by construct
 evaluate their own proof's Fiat--Shamir duplex, the setting of the known attacks on Fiat--Shamir
 for GKR-based systems (Khovratovich, Rothblum and Soukhanov, 2025). The adversary is classical,
 and its code is fixed before $\pi$ is sampled (no advice that depends on the permutation). Every end statement with
-an adversary is in this model; \lean{Statement/} contains no random oracle. Queries are counted in
+an adversary is in this model but one, leanSPHINCS against quantum adversaries
+(Section~\ref{sec:schemes}), the one random oracle in \lean{Statement/}. Queries are counted in
 one of two ways:
 \begin{itemize}
 \item for leanVM and its guest program (Sections~\ref{sec:zkvm} and~\ref{sec:guest}), $Q$ bounds
@@ -327,8 +328,14 @@ and share the shape of one tweakable hash (\texttt{hasher}, \texttt{truncate} of
 \paragraph{leanSPHINCS against quantum adversaries.} \lean{Statement/LeanSphincsQrom.lean} states
 leanSPHINCS's game in the quantum random-oracle model, the one end statement outside the
 random-permutation model: Keccak-256 is a uniform random function $H$ on the byte strings of at most
-$2048$ bytes (every input the scheme hashes is shorter), which the adversary queries in
-superposition, as VCVio's quantum random oracle; key generation, the signer and the verifier are
+$2048$ bytes, which the adversary queries in superposition through VCVio's quantum random oracle,
+$\lvert x, y\rangle \mapsto \lvert x, y \oplus H(x)\rangle$ on 256-bit answers
+(\lean{Sphincs.QuantumRandomOracleModel.Output}). \emph{The assumption is that Keccak-256 behaves like
+a random function to quantum adversaries}; it does not follow from the random-permutation assumption,
+since the sponge's indifferentiability from a random oracle is proved against classical adversaries
+only. Every input the scheme hashes is shorter than $2048$ bytes (at most $1072$), and leaving the
+longer ones out loses nothing: their answers are independent of the game, and an adversary can draw
+them itself. Key generation, the signer and the verifier are
 those of \lean{Statement/LeanSphincs.lean}, whose algorithms take the hash as a parameter, with $H$
 as the hash. Beside the oracle the game offers two classical ports on a signing log: the public key,
 and the signer, which signs and logs while the log holds fewer than $N = 1\,182\,000\,000$ entries.
@@ -340,7 +347,9 @@ classical) and signing requests, forges with probability at most
 \]
 (\lean{Sphincs.QuantumRandomOracleModel.LeanSphincsQromStronglyUnforgeable}, proved by
 \lean{Qrom.Sphincs.leanSphincsQrom}): about $2^{60.5}$ calls for probability $1/2$. Key generation's
-hashing, the signer's and the forgery's verification are not charged to $n$.
+hashing, the signer's and the forgery's verification are not charged to $n$. As in the
+random-permutation statement, a key past its signature limit, which the deployed signer does not
+count, is not covered.
 
 \subsection*{LeanDA}
 
@@ -848,7 +857,9 @@ statement's model of computation (a one-limb operation, the carry-less product i
 unit: a few instructions of a 64-bit CPU).
 \item Security against quantum adversaries in a quantum random-permutation model, for the
 signature schemes and for leanVM's Fiat--Shamir; and for leanXMSS in the quantum random-oracle
-model. Only leanSPHINCS is stated against quantum adversaries, in the quantum random-oracle model.
+model. Only leanSPHINCS is stated against quantum adversaries, in the quantum random-oracle model,
+which assumes Keccak-256 itself a random function: that the sponge over a random permutation is
+indifferentiable from one against quantum adversaries is not proved.
 \item LeanDA's code binding for an argument whose relation uses the deployed Keccak-f[1600] rather than $\pi$ (leanVM's in-circuit DA check), and the link from the guest
 program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's derivation of the challenge to
 LeanDA's code binding.
