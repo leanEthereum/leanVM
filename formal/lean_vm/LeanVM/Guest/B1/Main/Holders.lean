@@ -274,7 +274,7 @@ theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E 
     refine ⟨fun c m h => ?_, fun h => (by rw [hdec] at h; cases h)⟩
     rw [hdec, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    obtain ⟨hcall, hcan, l0, l1⟩ := MF.da hd
+    obtain ⟨hcall, l0, l1⟩ := MF.da hd
     rw [hown, loadHolds_gen_pow_iff, Nat.add_zero] at l0
     rw [hown, loadHolds_gen_pow_iff] at l1
     obtain ⟨root, z, c2, hop, hc2, hrets⟩ := cw.da _ _ hcall (fun j hj => MF.exp.1 j hj)

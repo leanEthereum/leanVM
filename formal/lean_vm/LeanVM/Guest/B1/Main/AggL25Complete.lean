@@ -49,7 +49,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
   have hcok := l25c_ok
   simp only [l25COk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
     decide_eq_true_eq, Bool.or_eq_true, Bool.not_eq_true', List.mem_range] at hcok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hrl⟩ := hcok
+  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩⟩, hneeds⟩, hrl⟩ := hcok
   have hdok := l25d_ok
   simp only [l25DOk, Bool.and_eq_true, decide_eq_true_eq] at hdok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpk, hchkS⟩, hnb⟩, hrin⟩, hcst⟩, hrst⟩, hsrc⟩, hm13⟩, hm59⟩, hm70⟩, hm50⟩,

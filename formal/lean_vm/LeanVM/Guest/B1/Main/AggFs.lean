@@ -134,7 +134,7 @@ theorem list_eq_of_getD {l1 l2 : List E} {n : ℕ} (h1 : l1.length = n) (h2 : l2
 /-- The rate cells of waiting scalars of tag `1` whose cells are the packed `cells`
 (canonical). -/
 theorem rateOf_of_packs {pend : List (E × ℕ)} {cells : List E}
-    (hc : cells.length = 8) (hcan : AllCanonical cells)
+    (hc : cells.length = 8)
     (h : ∀ k < 4, if h : k < pend.length then
       pend[k].2 = dsObserve ∧ PackOf pend[k].1 (cells.getD (2 * k) 0) (cells.getD (2 * k + 1) 0)
     else cells.getD (2 * k) 0 = 0 ∧ cells.getD (2 * k + 1) 0 = 0) :
@@ -166,7 +166,7 @@ theorem rowRate_getD (rd : Reader) (p : E) (c : ℕ) (hc : c < 8) :
 /-- **A row's permutation**: a `KECCAK` reading the row's rate cells (canonical) and capacity
 cells permutes the sponge the row carries. -/
 theorem rowRel_perm {rd : Reader} {p : E} {s : Fs} (h : RowRel rd p s)
-    (hc : AllCanonical (rowRate rd p)) : s.perm = permOf (rowRate rd p ++ rowCap rd p) := by
+    : s.perm = permOf (rowRate rd p ++ rowCap rd p) := by
   obtain ⟨hcap, -, hk⟩ := h
   rw [Fs.perm, hcap, rateOf_of_packs (by simp [rowRate]) hc]
   intro k hk4
@@ -291,10 +291,10 @@ theorem check_facts (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds r
 /-- A `KECCAK` atom's facts: its inputs canonical, its outputs the permutation's cells. -/
 theorem keccak_facts {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)
     (ho : outs.length = 13 := by first | rfl | simp) :
-    AllCanonical (ins.map σ) ∧ ∀ c (hc : c < 13), σ (outs.getD c default) =
+    ∀ c (hc : c < 13), σ (outs.getD c default) =
       cellsOfState (permOf (ins.map σ)) false ⟨c, hc⟩ := by
-  obtain ⟨-, -, hcan, hc⟩ := keccakA_perm hk ho
-  refine ⟨hcan, fun c hc13 => ?_⟩
+  obtain ⟨-, -, hc⟩ := keccakA_perm hk ho
+  refine ⟨fun c hc13 => ?_⟩
   rw [List.getD_eq_getElem outs default (by omega : c < outs.length)]
   exact outs_eq hc ⟨c, hc13⟩ (by rw [ho]; exact hc13)
 
@@ -312,7 +312,7 @@ theorem step_ins (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd �
   obtain ⟨-, hwl, hK, hP, hL⟩ := check_facts h hat
   obtain ⟨hl1, ho1, hk1⟩ := hK (k + 1) hk
   obtain ⟨-, ho0, hk0⟩ := hK k (by omega)
-  obtain ⟨hcan, -⟩ := keccak_facts hk1 ho1
+  obtain ⟨-⟩ := keccak_facts hk1 ho1
   have hout := (keccak_facts hk0 ho0).2
   obtain ⟨hr, hc⟩ := hL k hk
   have hR : (rateOf ((s.blk σ k).map (·, dsObserve))).length = 8 := by simp [rateOf]

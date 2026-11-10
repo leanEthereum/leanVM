@@ -125,18 +125,16 @@ def pairHashOk (atoms : List Atom) (a b c d p : V) : Bool :=
 
 theorem pairHash_sound {rd : Reader} {σ : Val} {atoms : List Atom} {a b c d p : V}
     (h : pairHashOk atoms a b c d p = true) (hat : ∀ x ∈ atoms, x.Holds rd σ) :
-    AllCanonical [σ a, σ b, σ c, σ d] ∧
-      LoadHolds rd (σ p) 0 (digestHalves (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).1 ∧
+    LoadHolds rd (σ p) 0 (digestHalves (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).1 ∧
       LoadHolds rd (σ p) 1 (digestHalves (keccak256 (cellsBytes [σ a, σ b, σ c, σ d]))).2 := by
   simp only [pairHashOk, Bool.and_eq_true] at h
   obtain ⟨⟨hc, h0⟩, h1⟩ := h
-  obtain ⟨hd, hcan⟩ := chain_final hc rfl hat (pre := []) (n := 0) rfl
+  have hd := chain_final hc rfl hat (pre := []) (n := 0) rfl
     (fun c => (cellsOfState_zero false c).symm)
   have hv : ((pairSpec a b c d atoms).vals σ).take ((pairSpec a b c d atoms).len / 16) =
       [σ a, σ b, σ c, σ d] := by simp [pairSpec, ChainSpec.vals, srcVal]
   rw [hv, List.nil_append] at hd
-  rw [hv] at hcan
-  refine ⟨hcan, ?_, ?_⟩
+  refine ⟨?_, ?_⟩
   · have := load_sound h0 hat
     rw [show ((pairSpec a b c d atoms).outV ((pairSpec a b c d atoms).nb - 1) 0) =
       ((pairSpec a b c d atoms).outV ((pairSpec a b c d atoms).nb - 1) ((0 : Fin 13) : ℕ)) from rfl]

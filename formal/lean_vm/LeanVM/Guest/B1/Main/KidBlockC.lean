@@ -113,7 +113,7 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   unfold l5COk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcanA⟩, hneeds⟩, hcalls⟩ := hok
+  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩⟩, hneeds⟩, hcalls⟩ := hok
   set args : List E := [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
     s0, s1, cpi, gsq, cfresh] with hargs
   set w := l5W ex es cx0 cx1 cs0 cs1 p0 p1 with hw

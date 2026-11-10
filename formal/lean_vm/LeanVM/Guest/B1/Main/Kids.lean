@@ -95,13 +95,13 @@ theorem kid_rec {rd : Reader} (hm : MemOk rd) {σ : Val} (MF : MainFacts C rd σ
   obtain ⟨base, cx0, cx1, cs0, cs1, d0, d1, p0, p1, ex, es, hb, hex, hes, hcx, hcs, hd0, hd1, hsd,
     hp0, hp1, hsub, hnext⟩ := MF.children c hc
   -- the leanXMSS records
-  obtain ⟨nx, hnx, hgx, mx, ox, cellsx, hlx, hcanx, hmonox, hrecx, hdigx⟩ :=
+  obtain ⟨nx, hnx, hgx, mx, ox, cellsx, hlx, hmonox, hrecx, hdigx⟩ :=
     child_claim_list_digest_sound rd hm _ _ hcx
   have hnx' : nx < 8912896 := hnx
   have hexn := gen_pow_inj34 (by omega) (by omega) hgx
   subst hexn
   -- the leanSPHINCS records
-  obtain ⟨ns, hns, hgs, ms, os, cellss, hls, hcans, hmonos, hrecs, hdigs⟩ :=
+  obtain ⟨ns, hns, hgs, ms, os, cellss, hls, hmonos, hrecs, hdigs⟩ :=
     child_claim_list_digest_sound rd hm _ _ hcs
   have hns' : ns < 8912896 := hns
   have hesn := gen_pow_inj34 (by omega) (by omega) hgs
@@ -110,7 +110,7 @@ theorem kid_rec {rd : Reader} (hm : MemOk rd) {σ : Val} (MF : MainFacts C rd σ
   obtain ⟨defer, hdlen, hdefr, hhdr, hpdig⟩ := statement_digest_sound rd _ _ hsd
   refine ⟨⟨base, cx0, cx1, cs0, cs1, d0, d1, p0, p1, ex, es, ox, cellsx, os, cellss, defer, mx, ms⟩,
     ?_⟩
-  refine ⟨?_, ?_, ⟨hex, hes⟩, hlx, hcanx, hrecx, hmonox, hdigx, hls, hcans, hrecs, hmonos, hdigs,
+  refine ⟨?_, ?_, ⟨hex, hes⟩, hlx, hrecx, hmonox, hdigx, hls, hrecs, hmonos, hdigs,
     ?_, ?_, hdlen, ?_, hhdr, hpdig, ?_, ?_, ?_⟩
   · have := loadHolds_gen_pow_iff.mp hb; simpa using this
   · have := loadHolds_gen_pow_iff.mp hnext; exact this

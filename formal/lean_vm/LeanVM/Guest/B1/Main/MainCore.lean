@@ -107,7 +107,7 @@ structure MainBounds (m : MainIn) : Prop where
   total : m.total ≤ 65535
   pick : m.pick ≤ m.nc
   pickD : m.nd = 1 → m.pick = m.nc
-  daR : m.nd = 1 → m.daR.length = 4 ∧ AllCanonical m.daR
+  daR : m.nd = 1 → m.daR.length = 4
 
 /-- **The words `main` stores or reads in its buffers and its header.** -/
 structure MainMem (rd : Reader) (m : MainIn) : Prop where

@@ -35,7 +35,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
   unfold mainCOk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true, Bool.or_eq_true,
     Bool.not_eq_true'] at hok
-  obtain ⟨⟨⟨⟨⟨⟨c', hchk⟩, hcan1⟩, hcan2⟩, hcan3⟩, hcan4⟩, hside⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨c', hchk⟩⟩⟩⟩⟩, hside⟩ := hok
   obtain ⟨σ, hσ⟩ : ∃ σ, σ = mσ rd m := ⟨_, rfl⟩
   rw [← hσ]
   have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
@@ -300,7 +300,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
       ∀ a ∈ atomsIn P, a.Holds rd σ := fun hP a ha => hB1 a (mem_atomsIn' (hP _ (atom_mem_of_atomsIn' ha)))
   have hDa : m.nd = 1 → ∀ a ∈ atomsIn mDa, a.Holds rd σ := by
     intro h1
-    obtain ⟨hl4, hcanR⟩ := hb.daR h1
+    obtain ⟨hl4⟩ := hb.daR h1
     have hR : ∀ i ∈ [390, 391, 392, 393], σ (.n i) = m.daR.getD (i - 390) 0 := by
       intro i hi
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
@@ -320,7 +320,7 @@ theorem main_core {rd : Reader} {m : MainIn} (hl : Sig.MemOK rd (2 ^ 16)) (hb : 
     · have hA' : ∀ b ∈ noStores mDa, b.Holds rd σ := fun b hb' =>
         h1' b (List.mem_filter.mp hb').1 (by simpa using (List.mem_filter.mp hb').2)
       obtain ⟨hsp, ho0, ho1⟩ := daSpec_ok
-      obtain ⟨hd, -⟩ := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
+      have hd := chain_final hsp rfl hA' (pre := []) (n := 0) rfl
         (fun c => (cellsOfState_zero false c).symm)
       have hv : (daSpec.vals σ).take (daSpec.len / 16) =
           [σ (.n 390), σ (.n 391), σ (.n 392), σ (.n 393)] := by

@@ -221,7 +221,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
   simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hpt1
   have hcok := aggc_ok
   simp only [aggCOk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hcanA⟩, hneeds⟩, hpk⟩, hll⟩, hhints⟩, hcallsAll⟩, hcallsIn⟩, hm69⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩⟩, hneeds⟩, hpk⟩, hll⟩, hhints⟩, hcallsAll⟩, hcallsIn⟩, hm69⟩,
     hm118⟩, hm204⟩, hm206⟩, hadd⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hneeds
   simp only [List.all_eq_true, List.mem_range] at hadd
@@ -455,7 +455,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst : E}
   obtain ⟨g202, g203⟩ := guardOk_vals hg27 hat
   -- the permutation and `λ`
   have hin := rowIn_sound hrin hat
-  obtain ⟨hcan, hout1⟩ := DupSpec.keccak_facts (keccak_sound hk hat)
+  obtain ⟨hout1⟩ := DupSpec.keccak_facts (keccak_sound hk hat)
   rw [hin] at hcan hout1
   have hperm := rowRel_perm (rowRel_of_reads hokA (by rw [p69]; exact hlast))
     (fun c hc => hcan c (List.mem_append_left _ hc))

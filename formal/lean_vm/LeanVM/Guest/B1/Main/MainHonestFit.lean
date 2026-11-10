@@ -242,8 +242,7 @@ theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) 
     | none => simp [hw] at h'
     | some p => exact daPick_da (by simp [hw])
   · have h' : (w.daMatrix.map fun _ => 1).getD 0 = 1 := h
-    show ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]).length = 4 ∧
-      AllCanonical ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0])
+    show ((w.daMatrix.map fun p => daCells p.1).getD [0, 0, 0, 0]).length = 4
     cases hw : w.daMatrix with
     | none => simp [hw] at h'
     | some p => exact ⟨length_daCells _, daCells_canon _⟩

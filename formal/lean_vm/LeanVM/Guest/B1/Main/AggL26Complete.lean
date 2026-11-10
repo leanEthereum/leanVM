@@ -42,7 +42,7 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
     hm12⟩, hl13⟩, hm14⟩, hl15⟩, hl16⟩, hl17⟩, hm18⟩, ha19⟩, hm20⟩, ha21⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
   set fn := coreProgram.getD 445 default
@@ -137,7 +137,7 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
     he2⟩, hm171⟩, hm172⟩, hm173⟩, hl174⟩, hl175⟩, hm176⟩, ha177⟩, hm178⟩, ha179⟩, hm180⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
   set fn := coreProgram.getD 447 default

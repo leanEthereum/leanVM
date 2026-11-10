@@ -411,7 +411,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
     exact hrowm
   -- the permutation and `λ`
   have hin := rowIn_sound hrin hat
-  obtain ⟨hcan, hout1⟩ := DupSpec.keccak_facts (keccak_sound hk hat)
+  obtain ⟨hout1⟩ := DupSpec.keccak_facts (keccak_sound hk hat)
   rw [hin] at hcan hout1
   have hperm := rowRel_perm hrow69 (fun c hc => hcan c (List.mem_append_left _ hc))
   rw [← hperm] at hout1
