@@ -44,7 +44,7 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-! ## The bounds -/
 
 /-- `verify_bus_gkr`'s bound over the depths below `30`. -/
-@[irreducible] def vbgMax (fs : String → ℕ) (K29 R K8 : ℕ) : ℕ :=
+@[irreducible] noncomputable def vbgMax (fs : String → ℕ) (K29 R K8 : ℕ) : ℕ :=
   lmax ((List.range 30).map (Tables.vbgBound fs K29 R K8))
 
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
