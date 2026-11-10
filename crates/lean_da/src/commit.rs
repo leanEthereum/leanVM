@@ -50,6 +50,10 @@ pub fn commit(rows: &[u64]) -> Result<(Hash, DaWitness), BlobSizeError> {
 }
 
 /// [`commit`] over rows that are already encoded.
+///
+/// # Panics
+///
+/// If `codewords` is not 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) whole codewords.
 pub fn commit_codewords(codewords: Vec<u64>) -> (Hash, DaWitness) {
     let blob_trees = blob_trees(&codewords);
     let blob_roots = blob_trees
