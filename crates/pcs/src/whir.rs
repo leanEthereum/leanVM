@@ -28,13 +28,14 @@ use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{
     Acc8, F64, F192, F192Unreduced, F192x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext,
-    powers, xor_into8,
+    mul_base_splat8, powers, xor_into8,
 };
-use primitives::multilinear::{eq_table, interp};
+use primitives::multilinear::{eq_table, interp, mle_eval_par};
 
 pub use super::whir_config::{
-    INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
-    QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
+    CANOPY_DIGEST_WORDS_LOG, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
+    ProverConfig, QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, canopy_enabled, canopy_height,
+    validate_log_inv_rate,
 };
 #[cfg(test)]
 pub use super::whir_config::{default_config, udr_queries};
@@ -77,7 +78,7 @@ pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig
 // Commit: F64 message -> interleaved RS codeword -> Merkle root
 // ===================================================================
 
-/// Public commitment for an `F64` message: the L0 Merkle root.
+/// Public commitment for an `F64` message: the L0 Merkle root, or under Canopy the Canopy codeword's.
 #[derive(Clone, Debug)]
 pub struct Commitment {
     pub root: Hash,
@@ -91,7 +92,20 @@ pub struct ProverData {
     codeword: Codeword,
     /// Words per codeword row: the committed lanes, with zero lanes in front up to the vector width.
     row_words: usize,
+    /// The L0 tree, or under Canopy the forest whose roots are the Canopy message.
     pub(crate) merkle_tree: merkle::CutTree,
+    canopy: Option<Canopy>,
+}
+
+/// A Canopy commitment's own part (the PCS annex, "Canopy commitment"): the L0 forest's roots as the message `m` of
+/// a codeword `c` in the L1 code, whose tree's root is the commitment.
+struct Canopy {
+    /// `m`, four words a forest root, in the order of the L1 message: word `4 j + w` is word `w` of root `j`.
+    message: Vec<F64>,
+    /// `c` and its tree.
+    witness: LigeroWitness,
+    /// The commit-time out-of-domain point and the value of `m`'s multilinear extension there, once sent.
+    ood: Option<(Vec<F192>, F192)>,
 }
 
 /// The largest L0 codeword the commit keeps where [`primitives::REBUILD_OVER_STORE`], in bytes.
@@ -102,13 +116,12 @@ pub struct ProverData {
 ///   the commit keeps none and encodes half of the cosets at a time; otherwise it keeps them as below.
 const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 
-/// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
-/// leading `n_lanes` lane blocks of `2^(log_n - log_batch_size)` words each, one
-/// RS codeword per lane, Merkle-committed one leaf per codeword position, the
-/// leaf being that position across all `2^log_batch_size` lanes
-/// (`2^log_batch_size * 8` bytes).
+/// Commit to the `F64` message of a `2^log_n`-word witness under `config`: the message is its
+/// leading `n_lanes` lane blocks of `2^(log_n - k0)` words each (`k0 = config.initial_k`), one
+/// RS codeword per lane at rate `2^-config.log_inv_rates[0]`, Merkle-committed one leaf per codeword position, the
+/// leaf being that position across all `2^k0` lanes (`2^k0 * 8` bytes).
 ///
-/// `n_lanes` is read off the message length, and `n_lanes < 2^log_batch_size` is
+/// `n_lanes` is read off the message length, and `n_lanes < 2^k0` is
 /// the padding-free case: the stacked witness's zero tail is whole lanes, so those
 /// lanes are never encoded. Their codeword is zero (the encoding is linear), so the
 /// leaf image is the one a full-width commitment would have hashed, with those
@@ -120,7 +133,11 @@ const KEEP_CODEWORD_MAX_BYTES: usize = 1 << 30;
 /// The encoded row is padded to a whole AVX-512 vector of lanes with zero lanes
 /// in front, so the NTT has no masked tail. The padding is the image's zeros and
 /// never rides the proof.
-pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {
+///
+/// Under Canopy (`config.canopy_height`) the leaves climb only to the forest's roots, which are the message of a
+/// codeword in the L1 code, and that codeword's root is the commitment. [`send_commitment`] transmits it.
+pub fn commit(message: &[F64], log_n: usize, config: &ProverConfig) -> (Commitment, ProverData) {
+    let (log_batch_size, log_inv_rate) = (config.initial_k, config.log_inv_rates[0]);
     assert!(log_inv_rate >= 1, "log_inv_rate must be >= 1 for a non-trivial RS code");
     assert!(log_n > log_batch_size, "witness must be wider than the interleaving");
     let log_rows = log_n - log_batch_size;
@@ -135,7 +152,11 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let row_words = n_lanes.next_multiple_of(8).min(1usize << log_batch_size);
 
     // Leaves are hashed as the encode finishes each block of rows.
-    let tree = merkle::MerkleBuilder::new(n_positions, row_words, 1usize << log_batch_size);
+    let leaf_words = 1usize << log_batch_size;
+    let tree = match config.canopy_height {
+        Some(levels) => merkle::MerkleBuilder::new_forest(n_positions, row_words, leaf_words, levels),
+        None => merkle::MerkleBuilder::new(n_positions, row_words, leaf_words),
+    };
     let ntt = AdditiveNttF64::standard(k_code);
     let codeword =
         tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = row_words).in_scope(|| {
@@ -150,7 +171,12 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
             ntt.encode_lane_major(message, n_lanes, row_words, log_inv_rate, keep, &on_rows)
         });
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
-    let root = merkle_tree.root();
+    let canopy = config
+        .canopy_height
+        .map(|_| tracing::info_span!("Canopy").in_scope(|| canopy_commit(merkle_tree.top_nodes(), config)));
+    let root = canopy
+        .as_ref()
+        .map_or_else(|| merkle_tree.root(), |canopy| canopy.witness.root());
 
     (
         Commitment { root },
@@ -159,44 +185,123 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
             codeword,
             row_words,
             merkle_tree,
+            canopy,
         },
     )
 }
 
-/// Codeword + Merkle tree for one deeper WHIR commitment level: a row is one position across the
-/// `num_interleaved` lanes, one Merkle leaf of `num_interleaved * 24` bytes.
+/// The Canopy codeword of the forest `roots`: their words as an L1 message, encoded and committed as L1 commits the
+/// folded witness, but K-valued, one word a lane.
 ///
-/// A codeword kept before its deep layers has them finished on the rows a query opens.
+/// Where [`primitives::REBUILD_OVER_STORE`], the commit keeps none of the codeword, which would otherwise be held
+/// through the whole outer protocol: the L1 open recomputes the rows it reads from the message.
+fn canopy_commit(roots: &[Hash], config: &ProverConfig) -> Canopy {
+    let message: Vec<F64> = roots.iter().flat_map(fiat_shamir::digest_words).collect();
+    let n_lanes = 1usize << config.level_ks[0];
+    let log_inv_rate = config.log_inv_rates[1];
+    let cols = message.len() / n_lanes;
+    // The encode reads lane-major blocks and puts block `b` in codeword lane `n_lanes - 1 - b`, so block `b` is lane
+    // `n_lanes - 1 - b` of the L1 message: its words `n_lanes - 1 - b + n_lanes x`.
+    // SAFETY: the fill writes every element before it reads any.
+    let lanes = unsafe {
+        primitives::filled_vec(message.len(), |lanes| {
+            parallel::chunks_mut(lanes, cols, |b, block| {
+                let words = message[n_lanes - 1 - b..].iter().step_by(n_lanes);
+                block.iter_mut().zip(words).for_each(|(slot, &word)| *slot = word);
+            })
+        })
+    };
+    let log_block_len = cols.ilog2() as usize + log_inv_rate;
+    let ntt = AdditiveNttF64::standard(log_block_len);
+    let builder = merkle::MerkleBuilder::new(1 << log_block_len, n_lanes, n_lanes);
+    let keep = if primitives::REBUILD_OVER_STORE {
+        Keep::Nothing
+    } else {
+        Keep::Whole
+    };
+    let codeword = tracing::info_span!(
+        "NTT",
+        kind = "Canopy encode",
+        log_domain = log_block_len,
+        lanes = n_lanes
+    )
+    .in_scope(|| {
+        let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
+        ntt.encode_lane_major(&lanes, n_lanes, n_lanes, log_inv_rate, keep, &on_rows)
+    });
+    let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
+    // A plan that cannot rebuild from the message keeps the codeword before its deep layers instead.
+    let lanes = if matches!(codeword, Codeword::Nothing(..)) {
+        lanes
+    } else {
+        Vec::new()
+    };
+    let witness = LigeroWitness {
+        ntt,
+        codeword,
+        tree,
+        block_len: 1 << log_block_len,
+        row_words: n_lanes,
+        lanes,
+    };
+    Canopy {
+        message,
+        witness,
+        ood: None,
+    }
+}
+
+/// Transmit the commitment, before any challenge: its root and, under Canopy, the value of the Canopy message's
+/// multilinear extension at an out-of-domain point drawn right after it, which binds the Canopy codeword to one member
+/// of its list before anything else is drawn.
+pub fn send_commitment(ps: &mut ProverState, commitment: &Commitment, prover_data: &mut ProverData) {
+    ps.add_root(&commitment.root);
+    if let Some(canopy) = &mut prover_data.canopy {
+        let point = ps.sample_vec(canopy.message.len().ilog2() as usize);
+        let value = mle_eval_par(&canopy.message, &point);
+        ps.add_scalar(value);
+        canopy.ood = Some((point, value));
+    }
+}
+
+/// Codeword + Merkle tree for one deeper WHIR commitment level, or for the Canopy codeword: a row is one position
+/// across the `num_interleaved` lanes, one Merkle leaf of its `row_words` K words (three a lane for an E codeword, one
+/// for the K-valued Canopy codeword).
+///
+/// A codeword kept before its deep layers has them finished on the rows a query opens, and one not kept at all has
+/// them recomputed from its lane-major message `lanes`.
 pub(crate) struct LigeroWitness {
     ntt: AdditiveNttF64,
     codeword: Codeword,
     pub tree: merkle::CutTree,
     pub block_len: usize,
-    pub num_interleaved: usize,
+    row_words: usize,
+    lanes: Vec<F64>,
 }
 
 impl LigeroWitness {
-    /// The rows at the sorted `positions`, back to back, each as the K words its Merkle leaf is hashed from.
-    fn opened_words(&self, positions: &[usize]) -> Vec<F64> {
-        self.ntt.rows(&self.codeword, &[], positions)
+    /// The rows at `queries`, in order and back to back, each as the K words its Merkle leaf is hashed from, and
+    /// their paths.
+    fn open_words(&self, queries: &[usize]) -> (Vec<F64>, Vec<MerklePath>) {
+        let group = self.tree.group_positions(queries);
+        let group_rows = self.ntt.rows(&self.codeword, &self.lanes, &group);
+        let row = |q| fetched_row(&group, &group_rows, self.row_words, q);
+        let rows = queries.iter().flat_map(|&q| row(q)).copied().collect();
+        let paths = self
+            .tree
+            .open(queries, self.row_words, self.row_words, &group_rows, row);
+        (rows, paths)
     }
 
-    /// The rows at `queries`, in order and back to back, and their paths.
+    /// The rows of an E codeword at `queries`, in order and back to back, and their paths.
     fn open(&self, queries: &[usize]) -> (Vec<F192>, Vec<MerklePath>) {
-        let group = self.tree.group_positions(queries);
-        let group_rows = self.opened_words(&group);
-        let row_words = 3 * self.num_interleaved;
-        let row = |q| fetched_row(&group, &group_rows, row_words, q);
-        let mut rows = Vec::with_capacity(queries.len() * self.num_interleaved);
-        rows.extend(queries.iter().flat_map(|&q| {
-            row(q)
-                .as_chunks::<3>()
-                .0
-                .iter()
-                .map(|w| F192::new(w[0].0, w[1].0, w[2].0))
-        }));
-        let paths = self.tree.open(queries, row_words, row_words, &group_rows, row);
-        (rows, paths)
+        let (words, paths) = self.open_words(queries);
+        let rows = words
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .map(|w| F192::new(w[0].0, w[1].0, w[2].0));
+        (rows.collect(), paths)
     }
 
     #[inline]
@@ -205,46 +310,46 @@ impl LigeroWitness {
     }
 }
 
-/// Commit an extension-field polynomial at one recursive WHIR level.
-///
-/// - Each lane of the row-major message is RS-encoded with base-field twiddles.
-/// - The codeword is then Merkle-committed, one leaf per row.
+/// Commit a row-major message of `2^log_msg_cols` rows of `row_words` K words at one WHIR level: each word column is
+/// RS-encoded, and the codeword is Merkle-committed one leaf per row, hashed as the encode finishes each block.
+fn ligero_commit(
+    message: &[F64],
+    log_msg_cols: usize,
+    row_words: usize,
+    log_inv_rate: usize,
+    kind: &'static str,
+) -> LigeroWitness {
+    let log_block_len = log_msg_cols + log_inv_rate;
+    let ntt = AdditiveNttF64::standard(log_block_len);
+    let block_len = 1usize << log_block_len;
+    assert_eq!(message.len(), row_words << log_msg_cols);
+    let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
+    let codeword = tracing::info_span!("NTT", kind, log_domain = log_block_len, lanes = row_words).in_scope(|| {
+        let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
+        let defer_deep = primitives::REBUILD_OVER_STORE;
+        ntt.encode_interleaved_with(message, row_words, log_inv_rate, defer_deep, &on_rows)
+    });
+    let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
+    LigeroWitness {
+        ntt,
+        codeword,
+        tree,
+        block_len,
+        row_words,
+        lanes: Vec::new(),
+    }
+}
+
+/// Commit an extension-field polynomial at one recursive WHIR level: each of the `2^log_num_interleaved` lanes of the
+/// row-major message, three K words a lane, is RS-encoded with base-field twiddles.
 pub(crate) fn ligero_commit_ext(
     poly: &[F192],
     log_msg_cols: usize,
     log_num_interleaved: usize,
     log_inv_rate: usize,
 ) -> LigeroWitness {
-    let ntt = AdditiveNttF64::standard(log_msg_cols + log_inv_rate);
-    let msg_cols = 1usize << log_msg_cols;
-    let num_interleaved = 1usize << log_num_interleaved;
-    let block_len = msg_cols << log_inv_rate;
-    let log_block_len = log_msg_cols + log_inv_rate;
-    assert_eq!(poly.len(), num_interleaved * msg_cols);
-
-    // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
-    let row_words = 3 * num_interleaved;
-    let builder = merkle::MerkleBuilder::new(block_len, row_words, row_words);
-    let codeword = tracing::info_span!(
-        "NTT",
-        kind = "extension encode",
-        log_domain = log_block_len,
-        lanes = num_interleaved
-    )
-    .in_scope(|| {
-        let on_rows = |row, rows: &[F64]| builder.absorb(row, rows);
-        let defer_deep = primitives::REBUILD_OVER_STORE;
-        ntt.encode_interleaved_with(words(poly), row_words, log_inv_rate, defer_deep, &on_rows)
-    });
-    let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
-
-    LigeroWitness {
-        ntt,
-        codeword,
-        tree,
-        block_len,
-        num_interleaved,
-    }
+    let row_words = 3 << log_num_interleaved;
+    ligero_commit(words(poly), log_msg_cols, row_words, log_inv_rate, "extension encode")
 }
 
 // ===================================================================
@@ -410,12 +515,37 @@ const FOLD_STAGE: usize = 256;
 /// store only adds the line fetch.
 const STREAM_FOLD_MIN: usize = 1 << 19;
 
+/// The second vector of a two-vector batch (the PCS annex, "Canopy commitment"): the Canopy message `m`, its weight
+/// `w` and the batching challenge `beta`. The fold that takes it in reads the witness `f + beta m` against the weight
+/// `b + beta w` without ever writing either.
+#[derive(Clone, Copy)]
+struct Batch<'a> {
+    m: &'a [F64],
+    w: &'a [F192],
+    beta: F192,
+}
+
+/// `out[i] = x[i] + s * k[i]` for K values `k`, eight at a time where the multiplier is wide.
+#[inline]
+fn add_scaled_base(out: &mut [F192], x: &[F192], k: &[F64], s: F192) {
+    let (o8, o_r) = out.as_chunks_mut::<8>();
+    let ((x8, x_r), (k8, k_r)) = (x.as_chunks::<8>(), k.as_chunks::<8>());
+    for ((o, x), k) in o8.iter_mut().zip(x8).zip(k8) {
+        *o = (F192x8::from_array(x) + mul_base_splat8(s, k).reduce_lanes()).to_array();
+    }
+    for ((o, &x), &k) in o_r.iter_mut().zip(x_r).zip(k_r) {
+        *o = x + s.mul_base(k);
+    }
+}
+
 /// Fused fold + next-round message: the witness and the basis fold, and the
 /// next-round message is built over the freshly folded values in the same pass.
-fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
+/// With a `batch`, the witness and the basis it folds are its sums, formed a stage at a time.
+fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192, batch: Option<Batch>) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
+    debug_assert!(batch.is_none_or(|batch| batch.m.len() == n && batch.w.len() == n));
     let half = n / 2;
 
     // `half` is a power of two and so are `ROUND_CHUNK` and `FOLD_STAGE`: every window has even
@@ -425,9 +555,20 @@ fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, S
         let base = ci * ROUND_CHUNK;
         let len = fc.len();
         let mut acc = (Acc8::ZERO, Acc8::ZERO);
-        let fold = |fo: &mut [F192], bo: &mut [F192], at: std::ops::Range<usize>| {
-            fold_adjacent(fo, &f[at.clone()], r);
-            fold_adjacent(bo, &b[at], r);
+        let mut sums = batch.map(|_| ([F192::ZERO; 2 * FOLD_STAGE], [F192::ZERO; 2 * FOLD_STAGE]));
+        let mut fold = |fo: &mut [F192], bo: &mut [F192], at: std::ops::Range<usize>| {
+            let (fi, bi) = match (&mut sums, batch) {
+                (Some((sf, sb)), Some(Batch { m, w, beta })) => {
+                    let k = at.len();
+                    add_scaled_base(&mut sf[..k], &f[at.clone()], &m[at.clone()], beta);
+                    sb[..k].copy_from_slice(&b[at.clone()]);
+                    add_scaled(&mut sb[..k], &w[at], beta);
+                    (&sf[..k], &sb[..k])
+                }
+                _ => (&f[at.clone()], &b[at]),
+            };
+            fold_adjacent(fo, fi, r);
+            fold_adjacent(bo, bi, r);
             adjacent_dots::<false>(fo, bo)
         };
         let (mut sf, mut sb) = ([F192::ZERO; FOLD_STAGE], [F192::ZERO; FOLD_STAGE]);
@@ -804,6 +945,44 @@ pub(crate) struct SumcheckProver {
     /// The level's claims, in Protocol 1 step 1 order: the OOD claims, then the
     /// query batch. Drained by `glue_pending`.
     pending: Vec<(Vec<F192>, F192, RoundQuad)>,
+    /// The Canopy message, its weight and `beta`, from [`Self::batch_canopy`] until the next fold takes them in.
+    canopy: Option<(Vec<F64>, Vec<F192>, F192)>,
+}
+
+/// Over the adjacent pairs, the sums of the Canopy batch's messages, as [`adjacent_dots`] gives them: `f` against `w`
+/// and `m` against `b` with the odd halves, then `m` against `w`.
+fn canopy_dots(f: &[F192], b: &[F192], m: &[F64], w: &[F192]) -> [Acc8; 8] {
+    let n = f.len();
+    assert!(b.len() == n && m.len() == n && w.len() == n);
+    const SUB: usize = 2 * FOLD_STAGE;
+    let dots = |c: usize| {
+        let mut acc = [Acc8::ZERO; 8];
+        let mut lifted = [F192::ZERO; SUB];
+        let chunk = c * ROUND_CHUNK..(c * ROUND_CHUNK + ROUND_CHUNK).min(n);
+        for at in chunk.clone().step_by(SUB).map(|s| s..(s + SUB).min(chunk.end)) {
+            let mc = &mut lifted[..at.len()];
+            mc.iter_mut().zip(&m[at.clone()]).for_each(|(e, &k)| *e = F192::from(k));
+            let (fw, mb) = (
+                adjacent_dots::<true>(&f[at.clone()], &w[at.clone()]),
+                adjacent_dots::<true>(mc, &b[at.clone()]),
+            );
+            let mw = adjacent_dots::<false>(mc, &w[at]);
+            for (a, d) in acc.iter_mut().zip([fw.0, fw.1, fw.2, mb.0, mb.1, mb.2, mw.0, mw.1]) {
+                *a ^= d;
+            }
+        }
+        acc
+    };
+    let add = |mut a: [Acc8; 8], b: [Acc8; 8]| {
+        a.iter_mut().zip(b).for_each(|(a, b)| *a ^= b);
+        a
+    };
+    let n_tasks = n.div_ceil(ROUND_CHUNK);
+    if n / 2 < PAR_THRESHOLD {
+        (0..n_tasks).map(dots).fold([Acc8::ZERO; 8], add)
+    } else {
+        parallel::map_reduce(n_tasks, || [Acc8::ZERO; 8], dots, add)
+    }
 }
 
 impl SumcheckProver {
@@ -829,6 +1008,7 @@ impl SumcheckProver {
             quad: RoundQuad::from_msg(msg, h1),
             round: 0,
             pending: Vec::new(),
+            canopy: None,
         };
         (inst, msg)
     }
@@ -879,13 +1059,50 @@ impl SumcheckProver {
         self.round += 1;
         let _span =
             tracing::info_span!("Sumcheck round", round = self.round, log_size = self.f.len().ilog2()).entered();
-        let (nf, nb, msg) = fold_and_msg_lsb(&self.f, &self.combined_basis, r);
+        let canopy = self.canopy.take();
+        let batch = canopy.as_ref().map(|(m, w, beta)| Batch { m, w, beta: *beta });
+        let (nf, nb, msg) = fold_and_msg_lsb(&self.f, &self.combined_basis, r, batch);
         // Swap the freshly folded buffers in and drop the consumed ones, so the
         // allocator serves the next round's `filled_vecs` from their memory.
         drop(std::mem::replace(&mut self.f, nf));
         drop(std::mem::replace(&mut self.combined_basis, nb));
+        drop(canopy);
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
+    }
+
+    /// The Canopy two-vector batch's messages, once every claim on the folded witness is glued: the intro message of
+    /// the claim `sum_x m(x) w(x) = s_c` on the Canopy message `m`, and the cross polynomial `sum_x f(X, x) w(X, x) +
+    /// m(X, x) b(X, x)` of the batch `(f + beta m)(b + beta w)`, as its three coefficients, constant first.
+    fn canopy_messages(&self, m: &[F64], w: &[F192]) -> (SumcheckMessage, [F192; 3]) {
+        assert!(self.pending.is_empty() && self.canopy.is_none());
+        let [fw0, fw2, fw1, mb0, mb2, mb1, mw0, mw2] =
+            canopy_dots(&self.f, &self.combined_basis, m, w).map(Acc8::reduce);
+        let (at_0, at_1, at_inf) = (fw0 + mb0, fw1 + mb1, fw2 + mb2);
+        let intro = SumcheckMessage { u_0: mw0, u_2: mw2 };
+        (intro, [at_0, at_0 + at_1 + at_inf, at_inf])
+    }
+
+    /// Take in the Canopy message `m` with its weight `w`, claimed sum `s_c`, and the messages
+    /// [`Self::canopy_messages`] gave, at the batching challenge `beta`: the running quadratic becomes `h + beta h_x +
+    /// beta^2 h_c`, and the next fold folds `f + beta m` against `b + beta w`.
+    fn batch_canopy(
+        &mut self,
+        (m, w): (Vec<F64>, Vec<F192>),
+        s_c: F192,
+        (intro, cross): (SumcheckMessage, [F192; 3]),
+        beta: F192,
+    ) {
+        let quad_c = RoundQuad::from_msg(intro, s_c);
+        let quad_x = RoundQuad {
+            c: cross[0],
+            b: cross[1],
+            a: cross[2],
+        };
+        let beta_2 = beta * beta;
+        self.t_r += beta * (cross[1] + cross[2]) + beta_2 * s_c;
+        self.quad = RoundQuad::fold(&RoundQuad::fold(&self.quad, &quad_x, beta), &quad_c, beta_2);
+        self.canopy = Some((m, w, beta));
     }
 
     /// Introduce a fresh basis poly with claimed sum `h_new`; sends the
@@ -1014,7 +1231,12 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     prover_data: ProverData,
     ps: &mut ProverState,
 ) {
-    let l0_tree = &prover_data.merkle_tree;
+    let canopy_height = config.canopy_height;
+    assert_eq!(
+        canopy_height.is_some(),
+        prover_data.canopy.is_some(),
+        "Canopy as committed"
+    );
     let r = config.level_steps;
     let initial_k = config.initial_k;
 
@@ -1096,15 +1318,17 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // Open L0; lane-fold weights = r_lane_fold.
     let num_queries_0 = config.queries[0];
     let queries_0 = sample_queries_ordered(ps, block_len_0, num_queries_0);
-    // One batching challenge for the whole level, drawn once every claim it
-    // batches is fixed: the OOD claims above and these query positions.
-    let lambda_0 = ps.sample();
-    let weights_0 = powers(lambda_0, num_queries_0);
     let span = tracing::info_span!("Open", level = 0).entered();
+    let ProverData {
+        ntt,
+        codeword,
+        row_words,
+        merkle_tree: l0_tree,
+        canopy,
+    } = prover_data;
     // The tree keeps no leaves: the rows of whole leaf groups are read back and rehashed.
-    let row_words = prover_data.row_words;
     let group_0 = l0_tree.group_positions(&queries_0);
-    let group_rows_0 = prover_data.ntt.rows(&prover_data.codeword, &stack, &group_0);
+    let group_rows_0 = ntt.rows(&codeword, &stack, &group_0);
     let image = |q| &fetched_row(&group_0, &group_rows_0, row_words, q)[row_words - n_lanes..];
     let mut opened_rows_0 = Vec::with_capacity(queries_0.len() * num_interleaved_0);
     // The induce folds a lane-ASCENDING row against the lane eq table: reversing the image puts
@@ -1114,10 +1338,24 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         opened_rows_0.extend(image(q).iter().rev().copied().chain(zeros));
     }
     ps.hint_merkle(l0_tree.open(&queries_0, row_words, num_interleaved_0, &group_rows_0, image));
+    // Under Canopy no root authenticates the rows: the forest roots they climb to are claims on the Canopy message,
+    // bound before anything they are batched with is drawn.
+    if let Some(levels) = canopy_height {
+        let roots = l0_tree.top_nodes();
+        for &q in &queries_0 {
+            ps.observe_digest(&roots[q >> levels]);
+        }
+    }
     // Nothing reads the L0 codeword, its stack or its tree again, and the next levels' buffers can be served
     // from their memory.
-    drop((prover_data, stack));
+    drop((ntt, codeword, l0_tree, stack));
     drop(span);
+
+    // One batching challenge for the whole level, drawn once every claim it
+    // batches is fixed: the OOD claims above, these query positions and, under Canopy, the forest roots, whose
+    // claims on the Canopy message it batches too.
+    let lambda_0 = ps.sample();
+    let weights_0 = powers(lambda_0, num_queries_0);
 
     // Induce basis_0 from the L0 opens: the dispatcher picks the sparse transposed NTT wherever the level opens
     // more queries than its blowup.
@@ -1141,11 +1379,18 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     sc_prover.glue_pending(lambda_0);
     drop(span);
 
+    let mut canopy_l1 = canopy.zip(canopy_height).map(|(canopy, levels)| {
+        tracing::info_span!("Canopy batch")
+            .in_scope(|| canopy_batch(&mut sc_prover, ps, canopy, &queries_0, levels, lambda_0))
+    });
+
     // Recursive levels.
     let mut wtns_prev = wtns_1;
 
     for i in 0..r {
         let k_i = config.level_ks[i];
+        // Under Canopy, L1's queries open the Canopy codeword too: only the first iteration has it.
+        let canopy_open = canopy_l1.take();
         let mut level_rs = Vec::with_capacity(k_i);
         let sumcheck_span = tracing::info_span!("Sumcheck");
         for _ in 0..k_i {
@@ -1167,8 +1412,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             let lambda_last = ps.sample();
             let weights_last = powers(lambda_last, num_queries_last);
             let span = tracing::info_span!("Final level").entered();
-            let (rows_last, paths) = wtns_prev.open(&queries_last);
-            ps.hint_merkle(paths);
+            let rows_last = open_level(ps, &wtns_prev, &queries_last, canopy_open.as_ref());
             // Tie the last commitment into the running claim through the same
             // intro/glue step as every other level, then finish the remaining
             // sumcheck rounds. This closes on one weight evaluation instead of
@@ -1222,8 +1466,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let lambda_i = ps.sample();
         let weights_i = powers(lambda_i, num_queries_i);
         let span = tracing::info_span!("Open", level = i + 1).entered();
-        let (opened_rows_i, paths) = wtns_prev.open(&queries_i);
-        ps.hint_merkle(paths);
+        let opened_rows_i = open_level(ps, &wtns_prev, &queries_i, canopy_open.as_ref());
         drop(span);
 
         let sks_vks_i = eval_sk_at_vks(n_next);
@@ -1242,6 +1485,65 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     }
 
     unreachable!()
+}
+
+/// The rows of `witness` at `queries`, their paths hinted, and under Canopy at L1 those of the Canopy codeword `c`,
+/// hinted after them and taken in at `beta`: the rows of `f1 + beta c`.
+fn open_level(
+    ps: &mut ProverState,
+    witness: &LigeroWitness,
+    queries: &[usize],
+    canopy: Option<&(LigeroWitness, F192)>,
+) -> Vec<F192> {
+    let (mut rows, paths) = witness.open(queries);
+    ps.hint_merkle(paths);
+    if let Some((c, beta)) = canopy {
+        let (c_rows, c_paths) = c.open_words(queries);
+        ps.hint_merkle(c_paths);
+        assert_eq!(
+            c_rows.len(),
+            rows.len(),
+            "c is in the code of the level it is opened with"
+        );
+        for (row, &word) in rows.iter_mut().zip(&c_rows) {
+            *row += beta.mul_base(word);
+        }
+    }
+    rows
+}
+
+/// The Canopy block, once the L0 claims are glued (the PCS annex, "Canopy commitment"): the claims on the Canopy
+/// message, its commit-time OOD claim and the four words of each L0 query's forest root, batched with powers of the
+/// level's challenge `lambda_0` into one weight, then the two-vector batch of the message with the folded witness.
+/// The Canopy codeword and the vector batch's `beta` are what the L1 open needs.
+fn canopy_batch(
+    sc: &mut SumcheckProver,
+    ps: &mut ProverState,
+    canopy: Canopy,
+    queries_0: &[usize],
+    levels: usize,
+    lambda_0: F192,
+) -> (LigeroWitness, F192) {
+    let Canopy { message, witness, ood } = canopy;
+    let (point, value) = ood.expect("the commitment was sent");
+    let words = 1usize << CANOPY_DIGEST_WORDS_LOG;
+    let scales = powers(lambda_0, 1 + words * queries_0.len());
+    // The OOD claim takes the power 0; root `j` is words `4 j ..= 4 j + 3` of the message.
+    let mut weight = eq_table(&point);
+    let mut s_c = value;
+    for (&q, scales) in queries_0.iter().zip(scales[1..].chunks_exact(words)) {
+        let first = (q >> levels) * words;
+        for (w, &scale) in scales.iter().enumerate() {
+            weight[first + w] += scale;
+            s_c += scale.mul_base(message[first + w]);
+        }
+    }
+    let messages = sc.canopy_messages(&message, &weight);
+    send_msg(ps, messages.0);
+    ps.add_scalars(&messages.1);
+    let beta = ps.sample();
+    sc.batch_canopy((message, weight), s_c, messages, beta);
+    (witness, beta)
 }
 
 #[cfg(test)]
@@ -1314,8 +1616,9 @@ mod tests {
                 };
 
                 let prove = |msg: &[F64]| {
-                    let (cm, pd) = commit(msg, log_n, pc.initial_k, pc.log_inv_rates[0]);
+                    let (cm, mut pd) = commit(msg, log_n, &pc);
                     let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
+                    send_commitment(&mut ps, &cm, &mut pd);
                     open_batch_mixed_whir_stacked(&mut ps, log_n, msg.to_vec(), pd, &pc, &claims, &ring);
                     (cm.root, ps.into_proof())
                 };
@@ -1399,7 +1702,7 @@ mod tests {
             let fold =
                 |x: &[F192]| -> Vec<F192> { x.as_chunks::<2>().0.iter().map(|p| interp(p[0], p[1], r)).collect() };
             let (nb_ref, nf_ref) = (fold(&b), fold(&f));
-            let (nf, nb, msg) = fold_and_msg_lsb(&f, &b, r);
+            let (nf, nb, msg) = fold_and_msg_lsb(&f, &b, r, None);
             assert_eq!(
                 (&nf, &nb, msg),
                 (&nf_ref, &nb_ref, msg_ref(&nf_ref, &nb_ref)),
@@ -1419,6 +1722,77 @@ mod tests {
             add_scaled(&mut got, &v, s);
             let want: Vec<F192> = acc.iter().zip(&v).map(|(&a, &v)| a + s * v).collect();
             assert_eq!(got, want, "n={n}");
+        }
+    }
+
+    /// A Canopy commitment's message is its forest's roots, four little-endian words each with nothing lost, and its
+    /// codeword is the L1 code's encoding of that message lifted to E: the same rows in the low limbs, zero above.
+    #[test]
+    fn canopy_codeword_is_l1_code() {
+        let mut rng = Rng::new(0xCA70);
+        for (log_n, log_inv_rate, n_lanes) in [(16usize, 1usize, 37usize), (17, 2, 64), (15, 1, 9)] {
+            let pc = config_for_rate(log_n, log_inv_rate).unwrap();
+            assert_eq!(pc.canopy_height, Some(log_inv_rate + 2));
+            let message: Vec<F64> = (0..n_lanes << (log_n - pc.initial_k))
+                .map(|_| F64(rng.next_u64()))
+                .collect();
+            let (commitment, prover_data) = commit(&message, log_n, &pc);
+            let canopy = prover_data.canopy.as_ref().expect("Canopy at this rate");
+            assert_eq!(commitment.root, canopy.witness.root());
+
+            let roots = prover_data.merkle_tree.top_nodes();
+            assert_eq!(roots.len() << CANOPY_DIGEST_WORDS_LOG, 1 << (log_n - pc.initial_k));
+            for (root, words) in roots.iter().zip(canopy.message.as_chunks::<4>().0) {
+                assert_eq!(words.iter().flat_map(|w| w.0.to_le_bytes()).collect::<Vec<u8>>(), root);
+            }
+
+            let lifted: Vec<F192> = canopy.message.iter().map(|&k| F192::from(k)).collect();
+            let log_msg_cols_1 = log_n - pc.initial_k - pc.level_ks[0];
+            let l1 = ligero_commit_ext(&lifted, log_msg_cols_1, pc.level_ks[0], pc.log_inv_rates[1]);
+            assert_eq!(l1.block_len, canopy.witness.block_len);
+            let positions: Vec<usize> = (0..l1.block_len).step_by(97).chain([l1.block_len - 1]).collect();
+            let (c_rows, _) = canopy.witness.open_words(&positions);
+            assert_eq!(
+                l1.open(&positions).0,
+                c_rows.iter().map(|&k| F192::from(k)).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    /// The Canopy batch's sums are the ones of the four tables, and the fold that takes the batch in is the fold of
+    /// the materialized `f + beta m` against `b + beta w`.
+    #[test]
+    fn canopy_batch_matches_the_materialized_sums() {
+        let mut rng = Rng::new(0xBA7C);
+        for log in [1usize, 4, 9, 13, 14] {
+            let n = 1usize << log;
+            let (f, b, w) = (rng.ext_vec(n), rng.ext_vec(n), rng.ext_vec(n));
+            let m: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
+            let (beta, r) = (rng.ext(), rng.ext());
+            let lifted: Vec<F192> = m.iter().map(|&k| F192::from(k)).collect();
+            let odd =
+                |x: &[F192], y: &[F192]| -> F192 { x.iter().zip(y).skip(1).step_by(2).map(|(&a, &b)| a * b).sum() };
+            let (fw, mb, mw) = (msg_ref(&f, &w), msg_ref(&lifted, &b), msg_ref(&lifted, &w));
+            let want = [
+                fw.u_0,
+                fw.u_2,
+                odd(&f, &w),
+                mb.u_0,
+                mb.u_2,
+                odd(&lifted, &b),
+                mw.u_0,
+                mw.u_2,
+            ];
+            assert_eq!(canopy_dots(&f, &b, &m, &w).map(Acc8::reduce), want, "n={n}");
+
+            let g: Vec<F192> = f.iter().zip(&m).map(|(&x, &k)| x + beta.mul_base(k)).collect();
+            let h: Vec<F192> = b.iter().zip(&w).map(|(&x, &y)| x + beta * y).collect();
+            let batch = Batch { m: &m, w: &w, beta };
+            assert_eq!(
+                fold_and_msg_lsb(&f, &b, r, Some(batch)),
+                fold_and_msg_lsb(&g, &h, r, None),
+                "fold, n={n}"
+            );
         }
     }
 }

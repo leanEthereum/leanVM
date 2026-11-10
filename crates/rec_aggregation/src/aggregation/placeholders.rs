@@ -155,6 +155,12 @@ struct OpeningShape {
     query_grinding_bits: Vec<usize>,
     cap_depths: Vec<usize>,
     cap_offsets: Vec<usize>,
+    /// The caps' total length, in cap leaves.
+    cap_len: usize,
+    /// The Canopy forest height, 0 without Canopy.
+    canopy_height: usize,
+    /// Where the Canopy codeword's cap starts: right after level 1's, its depth the same.
+    canopy_cap_offset: usize,
     positions_offsets: Vec<usize>,
     vanish_offsets: Vec<usize>,
     fold_offsets: Vec<usize>,
@@ -621,7 +627,26 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             offsets
         };
         let cap_depths: Vec<_> = (0..cn).map(|lv| merkle_cap_depth(cq[lv], cd[lv])).collect();
-        let cap_offsets = psum(&|lv| 1 << cap_depths[lv]);
+        // The caps in phase order: under Canopy, level 0's forest has none, and the Canopy codeword's
+        // follows level 1's.
+        let canopy_height = vc.canopy_height.unwrap_or(0);
+        let cap_lens: Vec<usize> = (0..cn)
+            .map(|lv| {
+                if lv == 0 && canopy_height != 0 {
+                    0
+                } else {
+                    1 << cap_depths[lv]
+                }
+            })
+            .collect();
+        let mut cap_offsets = psum(&|lv| cap_lens[lv]);
+        let canopy_cap_offset = cap_offsets[1] + cap_lens[1];
+        if canopy_height != 0 {
+            for offset in &mut cap_offsets[2..] {
+                *offset += cap_lens[1];
+            }
+        }
+        let cap_len = cap_lens.iter().sum::<usize>() + if canopy_height != 0 { cap_lens[1] } else { 0 };
         let c_qpoff = psum(&|lv| cs[lv] * cp[lv]);
         let c_svkoff = psum(&|lv| cl[lv] + 1);
         let c_foldbase = psum(&|lv| ck[lv]);
@@ -648,6 +673,9 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             query_grinding_bits: shape.config.grinding_bits,
             cap_depths,
             cap_offsets,
+            cap_len,
+            canopy_height,
+            canopy_cap_offset,
             positions_offsets: c_qpoff,
             vanish_offsets: c_svkoff,
             fold_offsets: c_foldbase,
@@ -772,7 +800,20 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_TREE_DEPTH", flat(&|c| c.tree_depths.clone()));
         ps("LIG_CAP_DEPTH", flat(&|c| c.cap_depths.clone()));
         ps("LIG_CAP_OFF", flat(&|c| c.cap_offsets.clone()));
-        ps("LIG_CAP_LEN", scal(&|c| c.cap_depths.iter().map(|&d| 1 << d).sum()));
+        ps("LIG_CAP_LEN", scal(&|c| c.cap_len));
+        ps("LIG_CANOPY_HEIGHT", scal(&|c| c.canopy_height));
+        // The Canopy message has level 1's message length, its out-of-domain point that many coordinates.
+        ps(
+            "LIG_CANOPY_OOD_LEN",
+            scal(&|c| {
+                if c.canopy_height != 0 {
+                    c.log_message_columns[0]
+                } else {
+                    0
+                }
+            }),
+        );
+        ps("LIG_CANOPY_CAP_OFF", scal(&|c| c.canopy_cap_offset));
         ps("LIG_SQUEEZES", flat(&|c| c.squeezes.clone()));
         ps("LIG_POSITIONS_OFF", flat(&|c| c.positions_offsets.clone()));
         ps("LIG_LOG_MSG_COLS", flat(&|c| c.log_message_columns.clone()));

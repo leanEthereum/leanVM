@@ -1,4 +1,4 @@
-//! Merkle openings: one full path per query.
+//! Merkle openings: one full path per query, or under Canopy at L0 one path up a forest's subtree.
 
 use crate::field::K;
 use crate::hash::{Digest, keccak_hash};
@@ -25,6 +25,7 @@ pub struct MerklePath {
 }
 
 impl MerklePath {
+    /// The node the siblings climb to: the tree's root, or for a forest's path the root of its subtree.
     pub(crate) fn root(&self) -> Digest {
         let mut node = hash_leaf(&self.leaf);
         for (level, sibling) in self.siblings.iter().enumerate() {

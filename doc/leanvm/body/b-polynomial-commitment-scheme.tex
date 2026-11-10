@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/b-polynomial-commitment-scheme.tex
 \section{The polynomial commitment scheme: WHIR \slash Ligerito}\label{annex:pcs}
 
-A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed-Solomon codes of Annex~\ref{app:ntt}, which gives the novel polynomial basis and additive NTT used for encoding. Following Flock~\cite{Flock26}, we do not use out-of-domain (OOD) sampling at commitment, so our PCS is only list binding. The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$.
+A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed-Solomon codes of Annex~\ref{app:ntt}, which gives the novel polynomial basis and additive NTT used for encoding. Following Flock~\cite{Flock26}, the plain commitment takes no out-of-domain (OOD) sample, so it is only list binding. At the two highest rates the commitment is instead a Canopy commitment (\S\ref{sec:canopy}, after~\cite{BMMN26}), which cuts the level-$0$ Merkle tree to a forest and binds the forest's roots through a codeword of the level-$1$ code, with one OOD sample at commitment. The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$.
 
 \paragraph{Symbols.}
 
@@ -41,6 +41,9 @@ $\ntmap_d$     & $q_d$        & linearized map of the NTT ($q$ is the witness st
 $\bfarr$       & $B$          & butterfly array\\
 $\mpoly$       & $P$          & message polynomial ($P_i$ is a committed column)\\
 $e_c$          & $\beta_c$    & the fixed $\Ftwo$-basis, as in Annex \ref{annex:rs}\\
+$\canh$        & $h$          & Canopy forest height (\S\ref{sec:canopy}; here and below, the names of \cite{BMMN26}'s reference code)\\
+$\canmsg$, $\canorc$ & $m$, $C$ & Canopy message and Canopy oracle\\
+$\canbeta$ & $\beta$ & batching challenge of the two vectors (the claims on $\canmsg$ take the level-$1$ $\lambda$, \cite{BMMN26}'s $\gamma$)\\
 \hline
 \end{tabular}
 \end{center}
@@ -102,7 +105,7 @@ The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc} evaluates $2^\kapp
 \emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$ plus a plaintext final level $\nlev$: variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$ with fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$); per level, a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$); and a query count $\nq_i$. (The proximity radii $\rad_i \in (0, 1 - \sqrt{\rate_i})$ appear only in the analysis.)
 
 \smallskip
-\textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. No OOD sample is taken.
+\textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. No OOD sample is taken. (Under Canopy, \S\ref{sec:canopy}, $\mathbf{P}$ sends instead an oracle of the level-$1$ code derived from $\orc^{(0)}$, and one OOD sample is taken on it.)
 
 \smallskip
 \textbf{Open}$\bigl(\{(W_t, c_t)\}_{t = 1, \dots, J_0}\bigr)$, $J_0 \ge 1$ weighted claims about $f$: set $f^{(0)} := f$. For $i = 0, 1, \dots, \nlev - 1$:
@@ -127,6 +130,35 @@ All weights in the protocol are MLE-friendly and multilinear, so every sumcheck 
 Completeness is perfect: the honest prover passes every check ($h_j(0) + h_j(1) = \rc{j-1}$ by definition of $h_j$, $c_q = \Enc_i(f^{(i+1)})[x_q]$ by Fact~\ref{fact:fold-decode}, the OOD and residual claims by construction, the final checks as identities).
 
 %=====================================================================
+\subsection{Canopy commitment}\label{sec:canopy}
+%=====================================================================
+
+At the rates $\rexp_0 \in \{1, 2\}$ the commitment of Protocol~\ref{fig:protocol} is a \emph{Canopy commitment}, the vector commit-and-reduce scheme of~\cite{BMMN26} fitted to the ladder: the Merkle tree over the columns of $\orc^{(0)}$ is cut to a forest, the forest's roots are the message of a codeword of the level-$1$ code, and that codeword is what the commitment binds; the opening proves it together with $f^{(1)}$. A level-$0$ query then authenticates its column through $\canh$ levels instead of $\kappa_0 + \rexp_0$, at the price of one more tree opened at the level-$1$ queries. At lower rates the level-$0$ queries outnumber the level-$1$ ones too little for this to pay, and the commitment stays plain.
+
+\paragraph{Commit.} With $\nv_1 = \nv - \ell_0$, the forest height is $\canh := \rexp_0 + 2$, so that the forest has $2^{\kappa_0 + \rexp_0 - \canh} = 2^{\nv_1 - 2}$ subtrees.
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+\item $\mathbf{P}$ computes $\orc^{(0)}$ and hashes its columns into Merkle leaves as in \S\ref{sec:pcs-opt}, but builds only the lowest $\canh$ levels of the tree: subtree $j$, over the leaves at positions $j 2^{\canh}, \dots, (j+1) 2^{\canh} - 1$, has root $\candig_j$.
+\item The \emph{Canopy message} $\canmsg : \cube{\nv_1} \to \K$ holds every root as its four little-endian $64$-bit words: $\canmsg(w, v)$, for $w \in \cube{2}$ and $v \in \cube{\nv_1 - 2}$, is word $\langle w \rangle$ of $\candig_{\langle v \rangle}$. A digest does not fit one element of $\E$, and truncating it would halve its collision resistance, so it is never hashed or cut: $\canmsg$ is a bijective encoding of the roots.
+\item $\mathbf{P}$ sends the \emph{Canopy oracle} $\canorc[u, \cdot] := \Enc_1(\canmsg(u, \cdot))$, $u \in \cube{\ell_1}$: an interleaved codeword of $\mathcal{C}_1$, the code of $\orc^{(1)}$, with entries in $\K$. Its Merkle root $\canroot$ is the commitment.
+\item \emph{(ood)} $\mathbf{V}$ sends $\canz \leftarrow \E^{\nv_1}$; $\mathbf{P}$ sends $\canood \in \E$ (honestly $\mle{\canmsg}(\canz)$).
+\end{enumerate}
+
+\paragraph{Opening.} Level $0$ runs as in Protocol~\ref{fig:protocol} up to its query message, with two changes and one addition.
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+\item \emph{(query)} A column $\orc^{(0)}[\cdot, x_q]$ comes with the siblings of its leaf in its subtree only. $\mathbf{V}$ recomputes the subtree's root $\candig_{j_q}$ and has nothing to compare it with: the roots are claims, and they enter the transcript before any challenge they are batched with is drawn (the level-$1$ batching challenge $\lambda$ comes after them).
+\item \emph{(claims on $\canmsg$)} Beside the claims of step 3(d), the query message raises $4\nq_0 + 1$ claims on $\canmsg$: the OOD claim $(\eq(\canz, \cdot), \canood)$, and for each query $q$ and $w \in \cube{2}$ the claim $(\eq((w, \bar{j}_q), \cdot),\, \text{word } \langle w \rangle \text{ of } \candig_{j_q})$, with $\bar{j}_q \in \cube{\nv_1 - 2}$ the bits of $j_q$. The level-$1$ batching challenge $\lambda$ batches them too, with its powers $\lambda^0, \lambda^1, \dots$, the OOD claim first, into one claim $(W_{\mathfrak{c}}, s_{\mathfrak{c}})$, which $\mathbf{V}$ forms once the level-$1$ claims are batched.
+\item \emph{(two-vector batch)} Before the first fold of level $1$, $\mathbf{P}$ sends $h_{\mathfrak{c}}$, the first round polynomial of $(W_{\mathfrak{c}}, s_{\mathfrak{c}})$, and the cross polynomial $h_\times(X) := \sum_x \mle{W}(X, x)\, \mle{\canmsg}(X, x) + \mle{W_{\mathfrak{c}}}(X, x)\, \mle{f^{(1)}}(X, x)$, whole since $\mathbf{V}$ knows no value of it; $\mathbf{V}$ sends $\canbeta \leftarrow \E$. Level $1$ then runs on $f^{(1)} + \canbeta \canmsg$ against the weight $W + \canbeta W_{\mathfrak{c}}$, from the claim $\rc{0} + \canbeta (h_\times(0) + h_\times(1)) + \canbeta^2 s_{\mathfrak{c}}$ with first round polynomial $h_1 + \canbeta h_\times + \canbeta^2 h_{\mathfrak{c}}$, and its queries read the oracle $\orc^{(1)} + \canbeta \canorc$: both columns at each $x_q$, each authenticated against its own root. Everything after is unchanged.
+\end{enumerate}
+Read $(\orc^{(1)}, \canorc)$ as one interleaved word of $\mathcal{C}_1$ with $2^{\ell_1 + 1}$ rows: $\canbeta$ is one more fold challenge on it, with the coefficients $(1, \canbeta)$, which the footnote of \S\ref{sec:tools} makes equivalent to $(1 - \canbeta, \canbeta)$.
+
+\paragraph{Soundness.} Two verifier messages are new, $\canz$ and $\canbeta$, and the level-$1$ $\lambda$ batches more claims; Theorem~\ref{thm:rbr} lists their errors.
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item \emph{The OOD sample $\canz$.} By Lemma~\ref{lem:ood}, except with probability $\binom{L_1}{2} \nv_1 / |\E|$ the members of $\lst_{\rad_1}(\canorc)$ decode to multilinears distinct at $\canz$, so at most one of them, $U_{\mathfrak{c}}^\ast$, satisfies the OOD claim. Every level-$0$ argument is then about one fixed word: $\orc^{(0)}$ is the matrix whose columns are the preimages, under the leaf and node hashes, of the roots $U_{\mathfrak{c}}^\ast$'s message encodes (a column without one disagrees with every codeword). In the random-permutation model these preimages are extracted as for a Merkle tree. Sampled after the first fold instead, as in~\cite{BMMN26}, $\canz$ would leave every level-$0$ error to be unioned over $\lst_{\rad_1}(\canorc)$, which the level-$0$ parameters cannot absorb.
+\item \emph{The query message $\qset_0$.} Its error is unchanged. A column whose root is the one $U_{\mathfrak{c}}^\ast$ encodes is a column of $\orc^{(0)}$, except for a hash collision; any other makes $U_{\mathfrak{c}}^\ast$ violate one of the claims on $\canmsg$.
+\item \emph{The challenges $\lambda$ and $\canbeta$.} The level-$1$ $\lambda$ batches, besides the claims on $f^{(1)}$, the $4\nq_0 + 1$ claims on $\canmsg$: a second identity, of degree $4\nq_0$ in $\lambda$, over the list of $\mathcal{C}_1$. $\lambda$ is bad if it is a root of either, so the two degrees add in the level-$1$ batching row, $J_1 - 1 = \nq_0 + 1 + 4\nq_0$. $\canbeta$ is a fold of the $2^{\ell_1 + 1}$-row word above, and Lemma~\ref{lem:fold-list} holds whatever the interleaving, so its error is the level-$1$ fold row.
+\end{itemize}
+
+%=====================================================================
 \subsection{Round-by-round soundness}\label{sec:soundness}
 %=====================================================================
 
@@ -145,10 +177,12 @@ Suppose that for every level $i$: $\rad_i = 1 - \sqrt{\rate_i} - \slack_i$ with 
 \textnormal{OOD challenge entering level } i \ge 1: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \cdot \dfrac{\nv_i}{|\E|} , \\[2ex]
 \textnormal{query message } \qset_i: & \varepsilon^{\mathrm{query}}_i &=& (1 - \rad_i)^{\nq_i} , \\[2ex]
 \textnormal{final batching challenge } \lambda: & \varepsilon^{\mathrm{fin}} &=& \dfrac{\nq_{\nlev-1}}{|\E|} , \\[2ex]
-\textnormal{each of the } \nv_\nlev \textnormal{ closing rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
+\textnormal{each of the } \nv_\nlev \textnormal{ closing rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} , \\[2ex]
+\textnormal{Canopy, OOD challenge } \canz: & \varepsilon^{\mathrm{ood}}_{\mathfrak{c}} &=& \dbinom{L_1}{2} \cdot \dfrac{\nv_1}{|\E|} , \\[2ex]
+\textnormal{Canopy, two-vector batch } \canbeta: & \varepsilon^{\mathrm{vec}}_{\mathfrak{c}} &=& \dfrac{2 L_1}{|\E|} + \epsilon_1 .
 \end{array}
 \]
-Here $J_0$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. The \emph{RBR error}, which governs the Fiat--Shamir compilation (\S\ref{sec:iopcs}), is the maximum of these entries over all rounds.
+Here $J_0$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$, except $J_1 = 5\nq_0 + 2$ under a Canopy commitment, whose claims on $\canmsg$ share the level-$1$ $\lambda$; the two Canopy rows apply under a Canopy commitment (\S\ref{sec:canopy}), whose soundness paragraph argues them and that batching, with the level-$0$ word fixed by the Canopy oracle's OOD sample and the query row unchanged up to a hash collision. The \emph{RBR error}, which governs the Fiat--Shamir compilation (\S\ref{sec:iopcs}), is the maximum of these entries over all rounds.
 \end{theorem}
 
 The remainder of this section proves the theorem: \S\ref{sec:tools} states the coding-theoretic tools, \S\ref{pcs:proof} the invariant and the round-by-round argument.
@@ -286,7 +320,8 @@ The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements
 \begin{itemize}[itemsep=1pt,topsep=2pt]
 \item the FFT-encoder only runs on $\nrows$ rows (and not the full $2^{\ell_0}$), since FFT-ing zeros gives zeros;
 \item a Merkle leaf only contains $\nrows$ elements of $\K$ (proof size optimization), we keep the convention of hashing the full $2^{\ell_0}$ values for simplicity, but we hash them in reverse order, starting from the padding zeros;
-\item the prover can thus preprocess the sponge state after hashing the whole $136$-byte blocks of those zeros, and then hash the rest of each leaf starting from this state.
+\item the prover can thus preprocess the sponge state after hashing the whole $136$-byte blocks of those zeros, and then hash the rest of each leaf starting from this state;
+\item under Canopy (\S\ref{sec:canopy}) the leaves are hashed the same way and climb only to the forest's roots, which are all the prover keeps of the tree: a queried subtree is rehashed from its columns, and the Canopy oracle is encoded like $\orc^{(1)}$, with one $\K$ word in each row entry instead of the three of an $\E$ element.
 \end{itemize}
 
 Conclusion: at commitment, both the FFT and the Merkle leaf hashing cost are proportional to $\nstack$ (not its next power of two). Unfortunately we still pay for the padding inside the $\nstack$ field elements, because some instruction counts are not powers of two. This could be prevented using the Jagged PCS \cite{jagged_pcs}.

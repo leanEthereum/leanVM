@@ -178,14 +178,29 @@ pub(super) fn gen_verify(
 
     // ---- Hints for the stacked WHIR opening ----
     // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
-    // opaque; the guest authenticates every cap leaf a query reaches.
-    let mut query_hints = Vec::new();
+    // opaque; the guest authenticates every cap leaf a query reaches. The phases
+    // follow the levels, but under Canopy level 0's is a forest, its paths climbing
+    // only its subtrees and no cap above them, and the Canopy codeword's phase, at
+    // level 1's positions in a tree of level 1's depth, follows level 1's.
+    let mut phases: Vec<(usize, usize, Option<usize>)> = stack
+        .config
+        .queries
+        .iter()
+        .zip(&stack.depth)
+        .map(|(&queries, &depth)| (queries, depth, None))
+        .collect();
+    if let Some(height) = stack.config.canopy_height {
+        phases[0].2 = Some(height);
+        phases.insert(2, phases[1]);
+    }
+    // One entry run per phase: each query's row, then its path's children.
+    let mut phase_hints: Vec<Vec<(&'static str, Vec<F192>)>> = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
-    let levels = stack.config.queries.iter().zip(&stack.depth);
-    for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
+    for (&(queries, depth, forest), phase) in phases.iter().zip(&proof.merkle) {
+        let mut query_hints = Vec::with_capacity(2 * phase.len());
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
-        let path_depth = depth - cap_depth;
+        let path_depth = forest.unwrap_or(depth - cap_depth);
         let mut nodes = vec![[0u8; 32]; 2 * n];
         let mut active = vec![F192::ZERO; n];
         for opening in phase {
@@ -217,9 +232,22 @@ pub(super) fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(hash_to_scalars));
-        cap_active.extend(active);
+        if forest.is_none() {
+            caps.extend(nodes.iter().flat_map(hash_to_scalars));
+            cap_active.extend(active);
+        }
+        phase_hints.push(query_hints);
     }
+    if stack.config.canopy_height.is_some() {
+        // The guest opens level 1's row and then the Canopy codeword's at each position in turn.
+        let mut codeword = phase_hints.remove(2).into_iter();
+        let mut level_1 = std::mem::take(&mut phase_hints[1]).into_iter();
+        phase_hints[1] =
+            std::iter::from_fn(|| Some([level_1.next()?, level_1.next()?, codeword.next()?, codeword.next()?]))
+                .flatten()
+                .collect();
+    }
+    let query_hints = phase_hints.concat();
     let deferred = DeferredSubproof {
         public_input,
         bytecode_point,

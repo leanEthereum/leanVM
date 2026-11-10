@@ -67,7 +67,7 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The IV is the hash of a fixed tag naming the proof system's version, \texttt{leanvm-v1}, followed by the bytecode: the tag has a fixed length and comes first, and the padding binds the preimage's length, so no length field is needed. The statement is bound before any challenge is drawn.
 
-\paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar over lanes $4i,\dots,4i+3$, as its three $\K$-limbs followed by a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce), zeroes the rest of the rate and keeps the capacity. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate.
+\paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar over lanes $4i,\dots,4i+3$, as its three $\K$-limbs followed by a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce), zeroes the rest of the rate and keeps the capacity. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate. One kind of value is absorbed without being sent: a Canopy forest root the verifier recomputes from a level-$0$ opening (\S\ref{sec:canopy}), as the two scalars a digest travels as, with the tag of a sent scalar.
 
 \paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is the first three lanes of its output, read as an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{KECCAK} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
 
@@ -79,7 +79,7 @@ Merkle trees hash with Keccak-256, apart from the sponge.
 
 Multiple paths opened in the same Merkle tree share nodes, so we can reduce proof size by \emph{pruning} them, storing each shared node only once. For simplicity, we keep the verifier implementation handling normal Merkle paths, and we see pruning simply as a compression algorithm, to optimize bandwidth over the network. But unpruning requires knowing the Merkle leaf indexes, which are sampled by Fiat-Shamir. To avoid re-running the verifier, we store the indexes in clear in the proof, and the native verifier ensures they match the Fiat-Shamir output. This way, pruning / unpruning is a standalone, easy operation (at the cost of $\approx$ 1 KiB of additional proof data).
 
-\paragraph{Remark:} The same idea applies to Merkle leaves: their padding zeros (\S\ref{sec:pcs-opt}) are not stored in the proof, and unpruning restores them from the leaf size (stored in the proof).
+\paragraph{Remark:} The same idea applies to Merkle leaves: their padding zeros (\S\ref{sec:pcs-opt}) are not stored in the proof, and unpruning restores them from the leaf size (stored in the proof). A Canopy forest (\S\ref{sec:canopy}) prunes the same way: its paths stop at the subtree roots, and the proof stores, beside their height, the levels above them that the leaf indexes need.
 
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 
@@ -94,7 +94,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \begin{enumerate}
 \item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-keccak}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
-\item \textbf{Verifier.} Receives the commitment to $q$.
+\item \textbf{Verifier.} Receives the commitment to $q$: one Merkle root, and at the rates with a Canopy commitment (\S\ref{sec:canopy}) the value of the Canopy message at an out-of-domain point the verifier samples right after the root.
 \end{enumerate}
 
 \paragraph{Bus.}

@@ -162,6 +162,31 @@ impl<'a> Transcript<'a> {
         leaf_words: usize,
     ) -> Result<Vec<&'a [K]>, VerifierError> {
         let height = log2_strict(block_length)?;
+        let paths = self.paths(queries, height, leaf_words)?;
+        require(
+            !self.checked || paths.iter().all(|path| path.root() == root),
+            VerifierError::MerkleRootMismatch,
+        )?;
+        Ok(paths.iter().map(|path| &path.leaf[..]).collect())
+    }
+
+    /// The leaf images at `queries` in a tree cut to a forest of subtrees `levels` high, and the root of each one's
+    /// subtree.
+    ///
+    /// Nothing authenticates them: the roots are claims, which the caller observes, so a replay computes them too.
+    /// The paths' positions and sizes are pinned as [`Self::merkle`] pins them.
+    pub fn forest(
+        &mut self,
+        levels: usize,
+        queries: &[u64],
+        leaf_words: usize,
+    ) -> Result<(Vec<&'a [K]>, Vec<Digest>), VerifierError> {
+        let paths = self.paths(queries, levels, leaf_words)?;
+        Ok(paths.iter().map(|path| (&path.leaf[..], path.root())).unzip())
+    }
+
+    /// The next phase's paths, each `levels` siblings high over a leaf of `leaf_words`, at `queries` in order.
+    fn paths(&mut self, queries: &[u64], levels: usize, leaf_words: usize) -> Result<&'a [MerklePath], VerifierError> {
         let paths = self
             .proof
             .merkle_openings
@@ -171,18 +196,21 @@ impl<'a> Transcript<'a> {
         require(
             paths
                 .iter()
-                .all(|path| path.leaf.len() == leaf_words && path.siblings.len() == height),
+                .all(|path| path.leaf.len() == leaf_words && path.siblings.len() == levels),
             VerifierError::MerkleOpeningShape,
         )?;
         require(
             paths.iter().map(|path| path.leaf_index).eq(queries.iter().copied()),
             VerifierError::MerkleOpeningPosition,
         )?;
-        require(
-            !self.checked || paths.iter().all(|path| path.root() == root),
-            VerifierError::MerkleRootMismatch,
-        )?;
-        Ok(paths.iter().map(|path| &path.leaf[..]).collect())
+        Ok(paths)
+    }
+
+    /// Bind a digest derived from the proof rather than read from its stream, as its two halves.
+    pub fn observe_digest(&mut self, digest: &Digest) {
+        let (low, high) = digest.halves();
+        self.sponge.observe(low);
+        self.sponge.observe(high);
     }
 
     /// returns q(X) := c0 + c1X + c2X^2 + ...

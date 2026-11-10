@@ -40,7 +40,7 @@ use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
 use transcript::Transcript;
-use whir::verify_whir;
+use whir::{Commitment, read_commitment, verify_whir};
 
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -123,7 +123,7 @@ type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
 fn verify_stacked_opening(
     transcript: &mut Transcript,
-    root: Digest,
+    commitment: Commitment,
     stack_log: usize,
     log_inv_rate: usize,
     claims: &[StackClaim],
@@ -135,7 +135,7 @@ fn verify_stacked_opening(
         dot(&scales, &weights)
     };
     let target = dot(&scales, &values);
-    verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
+    verify_whir(transcript, stack_log, log_inv_rate, target, commitment, &evaluate_basis)
 }
 
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
@@ -166,9 +166,10 @@ pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 /// Exposed for the Keccak reduction's benchmark and tests: a batch of `2^log_steps` permutations proved alone, a state
 /// committed every `depth` rounds, the committed states the whole stack.
 ///
-/// The proof is the commitment root, the output lanes claimed at a challenge point, the reduction, then the ring
-/// switch and its opening, as in an execution proof. Its public input is the shape, the words `log_steps`, `depth`,
-/// `log_inv_rate` and zero, so a proof of one shape verifies for no other.
+/// The proof is the commitment (its root, and under Canopy the Canopy message's out-of-domain value), the output lanes
+/// claimed at a challenge point, the reduction, then the ring switch and its opening, as in an execution proof. Its
+/// public input is the shape, the words `log_steps`, `depth`, `log_inv_rate` and zero, so a proof of one shape
+/// verifies for no other.
 pub fn verify_keccak_batch(
     fiat_shamir_iv: &[u8; 32],
     log_steps: usize,
@@ -196,8 +197,7 @@ pub fn verify_keccak_batch(
         *bytes = (word as u64).to_le_bytes();
     }
     let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
-    let halves = transcript.next_scalars(2)?;
-    let root = Digest::from_halves(halves[0], halves[1])?;
+    let commitment = read_commitment(&mut transcript, stack_log, log_inv_rate)?;
     let instance = transcript.samples(log_steps);
     let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
@@ -207,7 +207,7 @@ pub fn verify_keccak_batch(
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
     }
-    verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
+    verify_stacked_opening(&mut transcript, commitment, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
     Ok(())
 }
@@ -232,9 +232,9 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         VerifierError::CommittedSize,
     )?;
 
-    // 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
-    let halves = transcript.next_scalars(2)?;
-    let root = Digest::from_halves(halves[0], halves[1])?;
+    // 2] parse the WHIR commitment: one Merkle root, under Canopy with the Canopy message's value at an out-of-domain
+    // point (otherwise no OOD: our PCS is only list binding).
+    let commitment = read_commitment(&mut transcript, layout.stack_log, log_inverse_rate as usize)?;
 
     // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
     let bus = verify_bus_balance(&layout, &mut transcript)?;
@@ -313,7 +313,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
     verify_stacked_opening(
         &mut transcript,
-        root,
+        commitment,
         layout.stack_log,
         log_inverse_rate as usize,
         &stack_claims,
