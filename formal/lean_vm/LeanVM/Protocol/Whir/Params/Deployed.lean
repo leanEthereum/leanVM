@@ -1,210 +1,480 @@
 /-
   LeanVM.Protocol.Whir.Params.Deployed
 
-  Level codes for every admissible WHIR ladder of the deployed opening, with the certificate that
-  their group escapes are at most `2^-128`: a table of Johnson slacks and square-root brackets,
-  checked by kernel evaluation.
+  The deployed WHIR opening's codes and the round-by-round bounds of every group at `2^-125`,
+  read off the kernel-checked parameter check, and the stacked opening's specification at every
+  admissible shape.
 -/
 
 module
 
+public import LeanVM.Protocol.Whir.Sound.Spec
+public import LeanVM.Protocol.Whir.Sound.FoldRoundCywz
 public import LeanVM.Protocol.Whir.Params.Check
+public import LeanVM.Protocol.Compile.SpecRules.Grind
 
 /-!
-# The deployed codes and their escape bound
+# The deployed WHIR parameters
 
-For each of the 56 admissible pairs `(μ, R)` (`LeanVM.Parameters.Whir.Admissible`, leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`), `certTable` gives one `Cert` per level of the ladder
-`ladder μ R`: the level's `κ` and `R`, its Johnson slack `η = e / 2^22`, and the bracket
-`s / 2^40 ≤ √ρ₋ ≤ (s + 1) / 2^40`. The slacks were chosen offline by `scripts/whir-params/gen.py`.
-From level 1 on, they balance the fold group's exception count (decreasing in `η`) against the
-query group's `((A − 1)/n)^t` (increasing in `η`). Level 0's, the slack the extractor
-list-decodes at (`LeanVM.Extraction.johnsonSlack`), is the largest at which every group of
-level 0 is at most `2^-128`, the next level's certificate fixed: a larger slack shortens the
-Johnson list and lowers the decoder's multiplicity, and only the query group grows with it. The
-table is untrusted data: `shapeOK_all` checks it by kernel evaluation.
+Level `i` of a shape's fold certificate `(κ, R, k, Aend, rounds)` is the code `mkCode`
+(`codesOf μ R i`). From `shapeOK μ R = true` (`shapeOK_all`, every admissible shape):
 
-* `deployedCodes μ R`: the codes of the levels.
-* `deployed_spec_hyps`: **for every admissible `(μ, R)` with ladder `config`**, the hypotheses
-  of `whirSpec` and `stackedSpec` about the codes: level 0 has `κ = μ − laneBits` and rate `R`,
-  `LadderArith μ (deployedCodes μ R) 0 0 config`, and `whirEps (deployedCodes μ R) config ≤ 2^-128`;
-  moreover `listMax ≤ 2^12` at level 0, which bounds `eBatch`.
-* `exists_codes`: the existential form.
-
-The certified bound is `B = 128`, with no margin at level 0: at every shape its query group is
-between `2^-128.16` (`(15, 2)`, where the threshold moves in steps of `2^11` slack units) and
-`2^-128.000003` (`(25, 4)`), one more unit of slack breaks it, and `shapeOK 129` fails at every
-shape (see the tests). Level 0's list bound is at most `2049` (`(15, 2)`; at most `642`
-elsewhere), so `2^12`.
-
-The fold group is the one `LeanVM.Protocol.Whir.Sound.eFold` proves, with the row-union factor:
-`(2·listMax + 2^(ℓ−1)·mcaMax)/|E|`. Annex B at this pin states the smaller `2L/|E| + ε`
-(`lem:fold-list`, citing Jo, ePrint 2026/891, Thm 4.4), and the deployed query counts were
-derived under it (`b977f5fa`, 25 of the 56 shapes lowered by one to three queries). The table
-certifies the lowered counts under the larger, proved bound; the Annex's bound is not used.
+* `roundBoundsOf`: each level's fold rounds, from their certificate (`foldRoundBound_of_ok`),
+  with the premix's count at most the fold budget `2^12` and `(γ, α, β)`'s `2^12 |E|²`, both
+  `2^-125` after the `9`-bit grind;
+* `ladderOK_of_chain`: the ladder's groups (`MidOK`, `FinalOK`) within `εmsg = 2^-125` after
+  their grinds;
+* `listMax₀ μ R`, level 0's list bound, at most `166` (`listMax₀_le`), with the out-of-domain and
+  batching rows `ood_row`, `lambda_row`, and the candidates' count `card_candidates_le`;
+* **`deployedStackedSpec`**: `verifyStackedOpening μ R claims` from `StackedPre` at level 0's
+  threshold `thr0Of μ R`, with lead `eBatch J (listMax₀ μ R)`.
 -/
 
 namespace LeanVM.Protocol.Whir.Params
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Sound
-  LeanVM.Protocol.EndToEnd
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.Whir
+  LeanVM.Protocol.Whir.Sound LeanVM.Protocol.EndToEnd
 
 @[expose] public section
 
-/-- The certificates `(κ, R, e, s)` of the levels, indexed by `R − 1`, then `μ − 15`, then the
-level. -/
-def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
-  [
-    -- rate exponent 1, stack sizes 15 to 28
-    [
-      [(9, 1, 6676, 776712506778), (5, 4, 12, 270548850458)],
-      [(10, 1, 7275, 777092410204), (6, 4, 19, 272721968504), (2, 7, 7, 84163826697)],
-      [(11, 1, 5527, 777282292286), (7, 4, 21, 273802059735), (3, 7, 10, 90907322834)],
-      [(12, 1, 5165, 777377215934), (8, 4, 25, 274340510717), (4, 7, 19, 94098018870)],
-      [(13, 1, 4984, 777424673412), (9, 4, 31, 274609340287), (5, 7, 20, 95653463400)],
-      [(14, 1, 4765, 777448401065), (10, 4, 39, 274743656431), (6, 7, 23, 96421776654),
-        (2, 10, 21, 29756406294)],
-      [(15, 1, 4720, 777460264620), (11, 4, 49, 274810789885), (7, 7, 27, 96803646571),
-        (3, 10, 15, 32140592218)],
-      [(16, 1, 9241, 777466196329), (12, 4, 61, 274844350463), (8, 7, 34, 96994017741),
-        (4, 10, 46, 33268673619)],
-      [(17, 1, 9214, 777469162167), (13, 4, 76, 274861129215), (9, 7, 42, 97089063347),
-        (5, 10, 51, 33818606307)],
-      [(18, 1, 9200, 777470645082), (14, 4, 96, 274869518207), (10, 7, 52, 97136551275),
-        (6, 10, 60, 34090246063), (2, 13, 25, 10520478337)],
-      [(19, 1, 9198, 777471386538), (15, 4, 121, 274873712607), (11, 7, 65, 97160286535),
-        (7, 10, 74, 34225257466), (3, 13, 21, 11363415354)],
-      [(20, 1, 9194, 777471757266), (16, 4, 152, 274875809783), (12, 7, 82, 97172151991),
-        (8, 10, 91, 34292563839), (4, 13, 95, 11762252358)],
-      [(21, 1, 13737, 777471942630), (17, 4, 191, 274876858365), (13, 7, 103, 97178084176),
-        (9, 10, 114, 34326167535), (5, 13, 109, 11956682925)],
-      [(22, 1, 13737, 777472035311), (18, 4, 240, 274877382655), (14, 7, 129, 97181050133),
-        (10, 10, 142, 34342957053), (6, 13, 130, 12052722081), (2, 16, 42, 3719550786)]],
-    -- rate exponent 2, stack sizes 15 to 28
-    [
-      [(9, 2, 2049, 549218680575), (5, 5, 19, 191306926801)],
-      [(10, 2, 14336, 549487312863), (6, 5, 22, 192843553308), (2, 8, 14, 59512812588)],
-      [(11, 2, 13824, 549621579771), (7, 5, 25, 193607293142), (3, 8, 22, 64281184436)],
-      [(12, 2, 13312, 549688700927), (8, 5, 31, 193988035482), (4, 8, 20, 66537347239)],
-      [(13, 2, 13184, 549722258431), (9, 5, 38, 194178126694), (5, 8, 22, 67637212614)],
-      [(14, 2, 13120, 549739036415), (10, 5, 48, 194273102551), (6, 8, 25, 68180492126),
-        (2, 11, 21, 21040956674)],
-      [(15, 2, 13056, 549747425215), (11, 5, 60, 194320573071), (7, 8, 30, 68450514933),
-        (3, 11, 16, 22726830708)],
-      [(16, 2, 13040, 549751619567), (12, 5, 75, 194344303983), (8, 8, 37, 68585127679),
-        (4, 11, 56, 23524504717)],
-      [(17, 2, 13032, 549753716731), (13, 5, 94, 194356168353), (9, 8, 46, 68652335071),
-        (5, 11, 63, 23913365850)],
-      [(18, 2, 13024, 549754765310), (14, 5, 118, 194362100266), (10, 8, 58, 68685914107),
-        (6, 11, 75, 24105444163), (2, 14, 37, 7439101573)],
-      [(19, 2, 13022, 549755289599), (15, 5, 149, 194365066155), (11, 8, 72, 68702697471),
-        (7, 11, 92, 24200911642), (3, 14, 32, 8035148054)],
-      [(20, 2, 13021, 549755551743), (16, 5, 187, 194366549082), (12, 8, 91, 68711087615),
-        (8, 11, 114, 24248504435), (4, 14, 33, 8317168404)],
-      [(21, 2, 13020, 549755682815), (17, 5, 236, 194367290541), (13, 8, 114, 68715282303),
-        (9, 11, 142, 24272265836), (5, 14, 39, 8454651576)],
-      [(22, 2, 13019, 549755748351), (18, 5, 296, 194367661270), (14, 8, 144, 68717379551),
-        (10, 11, 178, 24284137818), (6, 14, 47, 8522561515), (2, 17, 32, 2630119584)]],
-    -- rate exponent 3, stack sizes 15 to 28
-    [
-      [(9, 3, 22794, 388356253389), (5, 6, 15, 135274425229)],
-      [(10, 3, 21557, 388546205102), (6, 6, 16, 136360984252), (2, 9, 13, 42081913348)],
-      [(11, 3, 21195, 388641146143), (7, 6, 20, 136901029867), (3, 9, 25, 45453661417)],
-      [(12, 3, 20886, 388688607967), (8, 6, 48, 137170255358), (4, 9, 24, 47049009435)],
-      [(13, 3, 20796, 388712336706), (9, 6, 59, 137304670143), (5, 9, 26, 47826731700)],
-      [(14, 3, 20750, 388724200532), (10, 6, 74, 137371828215), (6, 9, 31, 48210888327),
-        (2, 12, 13, 14878203147)],
-      [(15, 3, 20728, 388730132310), (11, 6, 93, 137405394942), (7, 9, 37, 48401823285),
-        (3, 12, 42, 16070296109)],
-      [(16, 3, 20716, 388733098164), (12, 6, 117, 137422175231), (8, 9, 46, 48497008870),
-        (4, 12, 43, 16634336809)],
-      [(17, 3, 20707, 388734581083), (13, 6, 147, 137430564607), (9, 9, 58, 48544531673),
-        (5, 12, 49, 16909303153)],
-      [(18, 3, 20704, 388735322541), (14, 6, 184, 137434759103), (10, 9, 72, 48568275637),
-        (6, 12, 59, 17045123031), (2, 15, 44, 5260239168)],
-      [(19, 3, 20703, 388735693269), (15, 6, 232, 137436856303), (11, 9, 90, 48580143267),
-        (7, 12, 73, 17112628733), (3, 15, 39, 5681707677)],
-      [(20, 3, 20701, 388735878633), (16, 6, 292, 137437904891), (12, 9, 114, 48586075995),
-        (8, 12, 90, 17146281919), (4, 15, 41, 5881126179)],
-      [(21, 3, 20701, 388735971315), (17, 6, 367, 137438429182), (13, 9, 143, 48589042088),
-        (9, 12, 113, 17163083767), (5, 15, 48, 5978341462)],
-      [(22, 3, 20700, 388736017655), (18, 6, 461, 137438691327), (14, 9, 179, 48590525066),
-        (10, 12, 141, 17171478526), (6, 15, 58, 6026361040), (2, 18, 148, 1859775393)]],
-    -- rate exponent 4, stack sizes 15 to 28
-    [
-      [(9, 4, 14336, 274609340287), (5, 7, 20, 95653463400)],
-      [(10, 4, 13824, 274743656431), (6, 7, 23, 96421776654), (2, 10, 21, 29756406294)],
-      [(11, 4, 13440, 274810789885), (7, 7, 27, 96803646571), (3, 10, 15, 32140592218)],
-      [(12, 4, 13248, 274844350463), (8, 7, 34, 96994017741), (4, 10, 46, 33268673619)],
-      [(13, 4, 13152, 274861129215), (9, 7, 42, 97089063347), (5, 10, 51, 33818606307)],
-      [(14, 4, 13104, 274869518207), (10, 7, 52, 97136551275), (6, 10, 60, 34090246063),
-        (2, 13, 25, 10520478337)],
-      [(15, 4, 13080, 274873712607), (11, 7, 65, 97160286535), (7, 10, 74, 34225257466),
-        (3, 13, 21, 11363415354)],
-      [(16, 4, 13068, 274875809783), (12, 7, 82, 97172151991), (8, 10, 91, 34292563839),
-        (4, 13, 95, 11762252358)],
-      [(17, 4, 13064, 274876858365), (13, 7, 103, 97178084176), (9, 10, 114, 34326167535),
-        (5, 13, 109, 11956682925)],
-      [(18, 4, 13062, 274877382655), (14, 7, 129, 97181050133), (10, 10, 142, 34342957053),
-        (6, 13, 130, 12052722081), (2, 16, 42, 3719550786)],
-      [(19, 4, 13061, 274877644799), (15, 7, 163, 97182533077), (11, 10, 179, 34351348735),
-        (7, 13, 161, 12100455821), (3, 16, 38, 4017574027)],
-      [(20, 4, 13060, 274877775871), (16, 7, 204, 97183274541), (12, 10, 224, 34355543807),
-        (8, 13, 198, 12124252217), (4, 16, 41, 4158584202)],
-      [(21, 4, 13059, 274877841407), (17, 7, 257, 97183645270), (13, 10, 282, 34357641151),
-        (9, 13, 247, 12136132918), (5, 16, 288, 4227325788)],
-      [(22, 4, 13059, 274877874175), (18, 7, 323, 97183830635), (14, 10, 353, 34358689775),
-        (10, 13, 309, 12142068909), (6, 16, 339, 4261280757), (2, 19, 81, 1315059792)]]]
+/-! ## The error arithmetic -/
 
-/-- The certificate of level `i` of the ladder `(μ, R)` (the default certificate off the table). -/
-def certOf (μ R i : ℕ) : Cert :=
-  match ((certTable.getD (R - 1) []).getD (μ - 15) []).getD i (1, 1, 2 ^ 20, 2 ^ 39) with
-  | (κ, R', e, s) => ⟨κ, R', e, s⟩
+/-- `N · 2^-b ≤ 2^-k` from `N · 2^k ≤ 2^b`. -/
+theorem natMul_inv_pow_le {N b k : ℕ} (h : N * 2 ^ k ≤ 2 ^ b) :
+    (N : ENNReal) * 2⁻¹ ^ b ≤ 2⁻¹ ^ k := by
+  rcases le_or_gt k b with hkb | hkb
+  · obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le hkb
+    have h' : 2 ^ k * N ≤ 2 ^ k * 2 ^ m := by rw [← pow_add]; linarith
+    have hN : N ≤ 2 ^ m := Nat.le_of_mul_le_mul_left h' (by positivity)
+    have h1 : (N : ENNReal) * 2⁻¹ ^ m ≤ 1 :=
+      calc (N : ENNReal) * 2⁻¹ ^ m ≤ 2 ^ m * 2⁻¹ ^ m := by gcongr; exact_mod_cast hN
+        _ = 1 := by rw [← mul_pow, ENNReal.mul_inv_cancel (by norm_num) (by norm_num), one_pow]
+    calc (N : ENNReal) * 2⁻¹ ^ (k + m) = 2⁻¹ ^ k * ((N : ENNReal) * 2⁻¹ ^ m) := by ring
+      _ ≤ 2⁻¹ ^ k * 1 := by gcongr
+      _ = _ := mul_one _
+  · have hN : N = 0 := by
+      by_contra h0
+      have h1 := Nat.pow_lt_pow_right (by norm_num : 1 < 2) hkb
+      have h2 : 2 ^ k ≤ N * 2 ^ k := Nat.le_mul_of_pos_left _ (Nat.pos_of_ne_zero h0)
+      omega
+    simp [hN]
 
-/-- **The codes of the deployed ladder `(μ, R)`.** -/
-noncomputable def deployedCodes (μ R : ℕ) : ℕ → LevelCode := codesOf (certOf μ R)
+theorem div_card (N : ℕ) : (N : ENNReal) / Fintype.card E = N * 2⁻¹ ^ 128 := by
+  rw [card_E, Nat.cast_pow, Nat.cast_ofNat, div_eq_mul_inv, ENNReal.inv_pow]
 
-/-- The check of a shape at `2^-B`: the ladder against its certificates, level 0's `κ` and rate,
-its fold `laneBits`, and its list bound at most `2^12`. -/
-def shapeOK (B μ R : ℕ) : Bool :=
-  match Whir.ladder μ R with
-  | some config => chkLevels B μ (certOf μ R) 0 0 config &&
-      decide ((certOf μ R 0).κ = μ - laneBits ∧ (certOf μ R 0).R = R ∧
-        (certOf μ R 0).listHi ≤ 2 ^ 12 ∧ (config.head?.map (·.fold)) = some laneBits)
-  | none => false
+/-- The fold group's count `2^12 |E|²` over `|E|³` is `2^12/|E|`. -/
+theorem budget_div_card_cube :
+    (((AffineCombiner.foldBudget * Fintype.card E ^ 2 : ℕ) : ENNReal) / Fintype.card E ^ 3) =
+      ((2 ^ 12 : ℕ) : ENNReal) / Fintype.card E := by
+  have hq0 : ((Fintype.card E : ℕ) : ENNReal) ^ 2 ≠ 0 := by simp [Fintype.card_ne_zero]
+  have hqt : ((Fintype.card E : ℕ) : ENNReal) ^ 2 ≠ ⊤ := by simp
+  rw [show (Fintype.card E : ENNReal) ^ 3 = (Fintype.card E : ENNReal) * (Fintype.card E) ^ 2 by
+    ring, Nat.cast_mul, Nat.cast_pow (Fintype.card E), ENNReal.mul_div_mul_right _ _ hq0 hqt]
 
-/-- Every admissible shape checks at `2^-128` (kernel evaluation). -/
-theorem shapeOK_all : ∀ μ < 29, ∀ R < 5, Whir.Admissible μ R → shapeOK 128 μ R = true := by
-  decide +kernel
+/-- A group of error `N/|E|` ground by `g` bits is within `2^-125` when `N · 2^125 ≤ 2^(g+128)`. -/
+theorem grind_div_card_le {g N : ℕ} (h : N * 2 ^ 125 ≤ 2 ^ (g + 128)) :
+    (2 : ENNReal)⁻¹ ^ g * ((N : ENNReal) / Fintype.card E) ≤ εmsg := by
+  rw [div_card, εmsg, securityBits]
+  calc (2 : ENNReal)⁻¹ ^ g * ((N : ENNReal) * 2⁻¹ ^ 128) = N * 2⁻¹ ^ (g + 128) := by
+        rw [pow_add]; ring
+    _ ≤ _ := natMul_inv_pow_le h
 
-/-- **The hypotheses of `whirSpec` and `stackedSpec` about the codes**, for every admissible
-shape: level 0 folds `laneBits` variables at `κ = μ − laneBits` and rate `R`, the ladder
-arithmetic holds, every group escapes with probability at most `2^-128`, and level 0's list
-bound is at most `2^12`. -/
-theorem deployed_spec_hyps {μ R : ℕ} (h : Whir.Admissible μ R) {level : Whir.Level}
-    {rest : List Whir.Level} (hc : Whir.ladder μ R = some (level :: rest)) :
-    level.fold = laneBits ∧ laneBits ≤ μ ∧ (deployedCodes μ R 0).κ = μ - laneBits ∧
-      (deployedCodes μ R 0).R = R ∧ (deployedCodes μ R 0).listMax ≤ 2 ^ 12 ∧
-      LadderArith μ (deployedCodes μ R) 0 0 (level :: rest) ∧
-      whirEps (deployedCodes μ R) (level :: rest) ≤ (2 : ENNReal)⁻¹ ^ 128 := by
-  have hc' : Whir.ladder μ R = some (level :: rest) := hc
-  have hok := shapeOK_all μ (by have := h.2.1; unfold Whir.maxLogStack at this; omega) R
-    (by have := h.2.2.2; omega) h
-  rw [shapeOK, hc'] at hok
-  simp only [Bool.and_eq_true] at hok
-  obtain ⟨hchk, hd⟩ := hok
-  obtain ⟨hκ, hR, hL, hf⟩ := of_decide_eq_true hd
-  have h0 := chkLevels_head hchk
-  have hsound := chkLevels_sound (by norm_num) (by norm_num) _ 0 0 hchk
-  have hμ : laneBits ≤ μ := by
-    have := h.1
-    unfold Whir.minLogStack at this
-    unfold laneBits
-    omega
-  refine ⟨by simpa using hf, hμ, ?_, ?_, ?_, hsound.1, hsound.2⟩
-  · rw [deployedCodes, codesOf, mkCode_eq h0]; exact hκ
-  · rw [deployedCodes, codesOf, mkCode_eq h0]; exact hR
-  · rw [deployedCodes, codesOf, mkCode_eq h0]; exact (Cert.listMax_le h0).trans hL
+theorem eTail_le : eTail ≤ εmsg := by
+  have h := natMul_inv_pow_le (N := 2) (b := 128) (k := 125) (by norm_num)
+  rw [eTail, show (2 : ENNReal) = ((2 : ℕ) : ENNReal) by norm_num, div_card, εmsg, securityBits]
+  exact h
+
+theorem eQuery_eq (P : LevelCode) (t : ℕ) :
+    eQuery P t = (((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ ((P.κ + P.R) * t) := by
+  rw [eQuery, Nat.cast_pow (P.A - 1), pow_mul, ← mul_pow, ← ENNReal.inv_pow, ← div_eq_mul_inv]
+  norm_cast
+
+/-- The query group within `2^-125` after its `17`-bit grind. -/
+theorem eQ_le {P : LevelCode} {t : ℕ} (h : (P.A - 1) ^ t * 2 ^ 108 ≤ (2 ^ (P.κ + P.R)) ^ t) :
+    (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P t ≤ εmsg := by
+  rw [eQuery_eq, εmsg, securityBits, Whir.queryGrindingBits]
+  calc (2 : ENNReal)⁻¹ ^ 17 * ((((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ ((P.κ + P.R) * t)) =
+      (((P.A - 1) ^ t : ℕ) : ENNReal) * 2⁻¹ ^ (17 + (P.κ + P.R) * t) := by rw [pow_add]; ring
+    _ ≤ _ := natMul_inv_pow_le (by
+      rw [pow_add, pow_mul]
+      calc (P.A - 1) ^ t * 2 ^ 125 = (P.A - 1) ^ t * 2 ^ 108 * 2 ^ 17 := by ring
+        _ ≤ (2 ^ (P.κ + P.R)) ^ t * 2 ^ 17 := Nat.mul_le_mul_right _ h
+        _ = _ := by ring)
+
+theorem eQuery_lt_one {P : LevelCode} {t : ℕ}
+    (h : (P.A - 1) ^ t * 2 ^ 108 ≤ (2 ^ (P.κ + P.R)) ^ t) : eQuery P t < 1 := by
+  rw [eQuery_eq]
+  refine lt_of_le_of_lt (natMul_inv_pow_le (k := 1) ?_) (by rw [pow_one, ENNReal.inv_lt_one]; norm_num)
+  rw [pow_mul]
+  calc (P.A - 1) ^ t * 2 ^ 1 ≤ (P.A - 1) ^ t * 2 ^ 108 := Nat.mul_le_mul_left _ (by norm_num)
+    _ ≤ _ := h
+
+/-- The next level's out-of-domain points within `2^-125`, from `L'² κ² ≤ 2^131`. -/
+theorem eOod_le {P P' : LevelCode} (h : P'.listMax ^ 2 * P.κ ^ 2 ≤ 2 ^ 131) (hκ : 1 ≤ P.κ) :
+    eOod P P' ≤ εmsg := by
+  obtain ⟨m, hm⟩ : ∃ m, P.κ = m + 1 := ⟨P.κ - 1, by omega⟩
+  rw [hm] at h
+  set L := P'.listMax
+  rw [eOod, hm, Nat.add_sub_cancel, εmsg, securityBits, card_E]
+  set q : ENNReal := ((2 ^ 128 : ℕ) : ENNReal) with hq
+  have hq1 : q⁻¹ * q = 1 := ENNReal.inv_mul_cancel (by simp [hq]) (by simp [hq])
+  have hcast : ((L ^ 2 * ((m + 1) * (2 ^ 128) ^ m) ^ 2 : ℕ) : ENNReal) =
+      ((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * q ^ (2 * m) := by
+    rw [hq]; push_cast; ring
+  have hq2 : q⁻¹ ^ 2 = 2⁻¹ ^ 256 := by
+    rw [hq, Nat.cast_pow, Nat.cast_ofNat, ENNReal.inv_pow, ← pow_mul]
+  rw [hcast]
+  calc q⁻¹ ^ (m + 1) * q⁻¹ ^ (m + 1) * (((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * q ^ (2 * m)) =
+      ((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * q⁻¹ ^ 2 * (q⁻¹ * q) ^ (2 * m) := by ring
+    _ = ((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * 2⁻¹ ^ 256 := by rw [hq1, one_pow, mul_one, hq2]
+    _ ≤ _ := natMul_inv_pow_le (by
+      calc L ^ 2 * (m + 1) ^ 2 * 2 ^ 125 ≤ 2 ^ 131 * 2 ^ 125 := Nat.mul_le_mul_right _ h
+        _ = 2 ^ 256 := by norm_num)
+
+/-- The batching group within `2^-125` after its `14`-bit grind. -/
+theorem eLam_le {P' : LevelCode} {t : ℕ} (h : (t + 2) * P'.listMax ≤ 2 ^ 17) :
+    (2 : ENNReal)⁻¹ ^ Whir.batchGrindingBits * eLam P' t ≤ εmsg := by
+  rw [eLam, Whir.batchGrindingBits]
+  exact grind_div_card_le (by
+    calc (t + 2) * P'.listMax * 2 ^ 125 ≤ 2 ^ 17 * 2 ^ 125 := Nat.mul_le_mul_right _ h
+      _ = 2 ^ (14 + 128) := by norm_num)
+
+/-! ## The codes -/
+
+/-- The fallback level, never read at an admissible shape. -/
+def junkLv : Lv := (0, 1, 0, 1, [])
+
+/-- A level's code. -/
+def mkCode (lv : Lv) : LevelCode :=
+  if h : lv.1 + lv.2.1 ≤ 64 ∧ 1 ≤ lv.2.1 then ⟨lv.1, lv.2.1, lv.2.2.1, lv.2.2.2.1, h.1, h.2⟩
+  else ⟨0, 1, 0, 1, by omega, le_rfl⟩
+
+theorem mkCode_eq {lv : Lv} (h : lv.1 + lv.2.1 ≤ 64 ∧ 1 ≤ lv.2.1) :
+    mkCode lv = ⟨lv.1, lv.2.1, lv.2.2.1, lv.2.2.2.1, h.1, h.2⟩ := by
+  rw [mkCode]
+  split_ifs
+  rfl
+
+/-- The codes of a shape's levels. -/
+def codesOf (μ R : ℕ) (i : ℕ) : LevelCode := mkCode ((levelsOf μ R).getD i junkLv)
+
+/-- Level 0's list bound. -/
+def listMax₀ (μ R : ℕ) : ℕ := jlStart ((levelsOf μ R).headD junkLv)
+
+/-! ## The fold rounds -/
+
+/-- The fold rounds of a certified level. -/
+noncomputable def roundBoundsMk {κ R k A : ℕ} (h64 : κ + R ≤ 64) (hR : 1 ≤ R) {rs : List (ℕ × ℕ × ℕ)}
+    (hlv : AffineCombiner.levelOK AffineCombiner.foldBudget (κ, R, k, A, rs) = true)
+    (hkA : k < A) : RoundBounds ⟨κ, R, k, A, h64, hR⟩ εmsg where
+  Lθ j := AffineCombiner.jl (2 ^ (κ + R)) (A - (k - (j + 1)) - 1) (2 ^ κ - 1 + (j + 1))
+  N _ := AffineCombiner.foldBudget * Fintype.card E ^ 2
+  hA := hkA
+  bound j hj := by
+    have hlen : rs.length = k := by
+      have h := hlv
+      simp only [AffineCombiner.levelOK, Bool.and_eq_true, beq_iff_eq] at h
+      exact h.1
+    have hj' : j < k := hj
+    exact Sound.foldRoundBound_of_ok h64 (AffineCombiner.levelOK_round hlv j (by omega)).2
+  eθ j hj := by
+    have hlen : rs.length = k := by
+      have h := hlv
+      simp only [AffineCombiner.levelOK, Bool.and_eq_true, beq_iff_eq] at h
+      exact h.1
+    have hj' : j < k := hj
+    have hb := (AffineCombiner.foldRoundOK_sound
+      (AffineCombiner.levelOK_round hlv j (by omega)).2).2.2.1
+    refine grind_div_card_le ?_
+    rw [Whir.foldGrindingBits]
+    calc AffineCombiner.jl (2 ^ (κ + R)) (A - (k - (j + 1)) - 1) (2 ^ κ - 1 + (j + 1)) * 2 ^ 125
+        ≤ 2 ^ 12 * 2 ^ 125 := Nat.mul_le_mul_right _ hb
+      _ = 2 ^ (9 + 128) := by norm_num
+  eF j _ := by
+    rw [budget_div_card_cube]
+    exact grind_div_card_le (by unfold Whir.foldGrindingBits; norm_num)
+  eF1 j _ := by
+    rw [budget_div_card_cube, div_card]
+    exact lt_of_le_of_lt (natMul_inv_pow_le (k := 1) (by norm_num))
+      (by rw [pow_one, ENNReal.inv_lt_one]; norm_num)
+
+/-- The fallback code's rounds: none. -/
+noncomputable def roundBoundsJunk : RoundBounds ⟨0, 1, 0, 1, by omega, le_rfl⟩ εmsg where
+  Lθ _ := 0
+  N _ := 0
+  hA := by norm_num
+  bound j hj := absurd hj (Nat.not_lt_zero _)
+  eθ j hj := absurd hj (Nat.not_lt_zero _)
+  eF j hj := absurd hj (Nat.not_lt_zero _)
+  eF1 j hj := absurd hj (Nat.not_lt_zero _)
+
+/-- The fold rounds of a level whose certificate checks. -/
+noncomputable def roundBoundsOf : (lv : Lv) → AffineCombiner.levelOK AffineCombiner.foldBudget lv = true →
+    lv.2.2.1 < lv.2.2.2.1 → RoundBounds (mkCode lv) εmsg
+  | (κ, R, k, A, rs), hlv, hkA =>
+    if h : κ + R ≤ 64 ∧ 1 ≤ R then by
+      rw [show mkCode (κ, R, k, A, rs) = ⟨κ, R, k, A, h.1, h.2⟩ from mkCode_eq h]
+      exact roundBoundsMk h.1 h.2 hlv hkA
+    else by
+      rw [show mkCode (κ, R, k, A, rs) = ⟨0, 1, 0, 1, by omega, le_rfl⟩ by
+        rw [mkCode]
+        split_ifs with h'
+        · exact absurd h' h
+        · rfl]
+      exact roundBoundsJunk
+
+/-! ## The levels -/
+
+/-- What `levelChecks` checks of a level. -/
+structure LevelFacts (κprev : ℕ) (lv : Lv) (cfg : Whir.Level) : Prop where
+  hκ : lv.1 + lv.2.2.1 = κprev
+  hfold : cfg.fold = lv.2.2.1
+  hrate : cfg.logInvRate = lv.2.1
+  h64 : lv.1 + lv.2.1 ≤ 64
+  hR : 1 ≤ lv.2.1
+  hk1 : 1 ≤ lv.2.2.1
+  hk2 : lv.2.2.1 ≤ 2 ^ lv.1
+  hkA : lv.2.2.1 < lv.2.2.2.1
+  hlv : AffineCombiner.levelOK AffineCombiner.foldBudget lv = true
+  hq : (lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 108 ≤ (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries
+  hgap : 2 ^ (lv.1 + lv.2.1) * (2 ^ lv.1 - 1) <
+    (lv.2.2.2.1 - lv.2.2.1) * (lv.2.2.2.1 - lv.2.2.1)
+
+theorem levelFacts_of {κprev : ℕ} {lv : Lv} {cfg : Whir.Level}
+    (h : levelChecks κprev lv cfg = true) : LevelFacts κprev lv cfg := by
+  simp only [levelChecks, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩
+
+theorem finalOK_of {κprev : ℕ} {lv : Lv} {cfg : Whir.Level} (F : LevelFacts κprev lv cfg) :
+    FinalOK (mkCode lv) cfg.queries εmsg := by
+  rw [mkCode_eq ⟨F.h64, F.hR⟩]
+  exact { hℓκ := F.hk2, hA := Nat.one_le_of_lt F.hkA, eQ := eQ_le F.hq,
+          eQ1 := eQuery_lt_one F.hq, eT := eTail_le }
+
+/-- A level's list bound is `jlStart`. -/
+theorem listMax_mkCode {lv : Lv} (h : lv.1 + lv.2.1 ≤ 64 ∧ 1 ≤ lv.2.1) :
+    (mkCode lv).listMax = jlStart lv := by
+  rw [mkCode_eq h]
+  rfl
+
+theorem midOK_of {κprev : ℕ} {lv lv' : Lv} {c c' : Whir.Level} (F : LevelFacts κprev lv c)
+    (F' : LevelFacts lv.1 lv' c') (hl : (c.queries + 2) * jlStart lv' ≤ 2 ^ 17)
+    (ho : jlStart lv' ^ 2 * lv.1 ^ 2 ≤ 2 ^ 131) (h1 : 1 ≤ lv.1) :
+    MidOK (mkCode lv) (mkCode lv') c.queries εmsg := by
+  have hL := listMax_mkCode ⟨F'.h64, F'.hR⟩
+  have eO : eOod (mkCode lv) (mkCode lv') ≤ εmsg :=
+    eOod_le (by rw [hL, mkCode_eq ⟨F.h64, F.hR⟩]; exact ho)
+      (by rw [mkCode_eq ⟨F.h64, F.hR⟩]; exact h1)
+  have eL : (2 : ENNReal)⁻¹ ^ Whir.batchGrindingBits * eLam (mkCode lv') c.queries ≤ εmsg :=
+    eLam_le (by rw [hL]; exact hl)
+  have eO1 : eOod (mkCode lv) (mkCode lv') < 1 := lt_of_le_of_lt eO (by
+    rw [εmsg, securityBits]
+    exact pow_lt_one₀ (by norm_num) (by rw [ENNReal.inv_lt_one]; norm_num) (by norm_num))
+  rw [mkCode_eq ⟨F.h64, F.hR⟩, mkCode_eq ⟨F'.h64, F'.hR⟩] at *
+  refine { hκ := ?_, hℓ := F.hk1, hℓκ := F.hk2, hA := Nat.one_le_of_lt F.hkA, gap := ?_,
+           eO := eO, eO1 := eO1, eQ := eQ_le F.hq, eQ1 := eQuery_lt_one F.hq, eL := eL }
+  · have := F'.hκ; dsimp only; omega
+  · have := F'.hgap
+    simp only [LevelCode.n, LevelCode.deg, LevelCode.thr, Nat.add_zero, Nat.sub_zero]
+    exact this
+
+theorem levelChecks_of_chain {κp : ℕ} {lv : Lv} {rest : List Lv} {c : Whir.Level}
+    {crest : List Whir.Level} (h : chainChecks κp (lv :: rest) (c :: crest) = true) :
+    levelChecks κp lv c = true := by
+  match rest, crest, h with
+  | [], [], h => exact h
+  | [], _ :: _, h => simp [chainChecks] at h
+  | _ :: _, [], h => simp [chainChecks] at h
+  | _ :: _, _ :: _, h =>
+    simp only [chainChecks, Bool.and_eq_true] at h
+    exact h.1.1.1.1
+
+/-- **The ladder's groups** from the chain's checks. -/
+theorem ladderOK_of_chain (codes : ℕ → LevelCode) :
+    ∀ (lvs : List Lv) (cfg : List Whir.Level) (κp i : ℕ), chainChecks κp lvs cfg = true →
+      (∀ j (hj : j < lvs.length), codes (i + j) = mkCode lvs[j]) → LadderOK codes εmsg i cfg
+  | [], _, _, _, h, _ => by simp [chainChecks] at h
+  | [_], [], _, _, h, _ => by simp [chainChecks] at h
+  | [_], _ :: _ :: _, _, _, h, _ => by simp [chainChecks] at h
+  | _ :: _ :: _, [], _, _, h, _ => by simp [chainChecks] at h
+  | _ :: _ :: _, [_], _, _, h, _ => by simp [chainChecks] at h
+  | [lv], [c], κp, i, h, hc => by
+    have F := levelFacts_of (κprev := κp) (lv := lv) (cfg := c) h
+    have h0 : codes i = mkCode lv := hc 0 (by simp)
+    rw [LadderOK, h0, mkCode_eq ⟨F.h64, F.hR⟩]
+    refine ⟨F.hfold, F.hrate, ?_⟩
+    rw [← mkCode_eq ⟨F.h64, F.hR⟩]
+    exact finalOK_of F
+  | lv :: lv' :: rest, c :: c' :: crest, κp, i, h, hc => by
+    have h' := h
+    simp only [chainChecks, Bool.and_eq_true, decide_eq_true_eq] at h'
+    obtain ⟨⟨⟨⟨h1, hl⟩, ho⟩, hκ1⟩, hrest⟩ := h'
+    have F := levelFacts_of h1
+    have F' := levelFacts_of (levelChecks_of_chain hrest)
+    have h0 : codes i = mkCode lv := hc 0 (by simp)
+    have h1' : codes (i + 1) = mkCode lv' := hc 1 (by simp)
+    rw [LadderOK, h0, h1']
+    refine ⟨by rw [mkCode_eq ⟨F.h64, F.hR⟩]; exact F.hfold,
+      by rw [mkCode_eq ⟨F.h64, F.hR⟩]; exact F.hrate, midOK_of F F' hl ho hκ1, ?_⟩
+    exact ladderOK_of_chain codes (lv' :: rest) (c' :: crest) lv.1 (i + 1) hrest fun j hj ↦ by
+      rw [show i + 1 + j = i + (j + 1) by omega]
+      exact hc (j + 1) (by simp only [List.length_cons] at hj ⊢; omega)
+
+/-- Every level of a chain checks its fold rounds. -/
+theorem chain_mem : ∀ (lvs : List Lv) (cfg : List Whir.Level) (κp : ℕ),
+    chainChecks κp lvs cfg = true → ∀ lv ∈ lvs,
+      AffineCombiner.levelOK AffineCombiner.foldBudget lv = true ∧ lv.2.2.1 < lv.2.2.2.1
+  | [], _, _, h => by simp [chainChecks] at h
+  | [_], [], _, h => by simp [chainChecks] at h
+  | [_], _ :: _ :: _, _, h => by simp [chainChecks] at h
+  | _ :: _ :: _, [], _, h => by simp [chainChecks] at h
+  | _ :: _ :: _, [_], _, h => by simp [chainChecks] at h
+  | [lv], [c], κp, h => fun x hx ↦ by
+    have F := levelFacts_of (κprev := κp) (lv := lv) (cfg := c) h
+    rw [List.mem_singleton] at hx
+    subst hx
+    exact ⟨F.hlv, F.hkA⟩
+  | lv :: lv' :: rest, c :: c' :: crest, κp, h => fun x hx ↦ by
+    have h' := h
+    simp only [chainChecks, Bool.and_eq_true, decide_eq_true_eq] at h'
+    obtain ⟨⟨⟨⟨h1, -⟩, -⟩, -⟩, hrest⟩ := h'
+    rcases List.mem_cons.mp hx with rfl | hx
+    · have F := levelFacts_of h1
+      exact ⟨F.hlv, F.hkA⟩
+    · exact chain_mem (lv' :: rest) (c' :: crest) lv.1 hrest x hx
+
+/-! ## The shapes -/
+
+/-- What `shapeOK` checks. -/
+theorem shapeOK_facts {μ R : ℕ} (hok : shapeOK μ R = true) :
+    ∃ cfg lv rest, Whir.ladder μ R = some cfg ∧ levelsOf μ R = lv :: rest ∧
+      chainChecks μ (lv :: rest) cfg = true ∧ lv.2.1 = R ∧ lv.2.2.1 = 6 ∧
+      2 ^ lv.1 ≤ lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧ 513 * jlStart lv ≤ 2 ^ 17 ∧
+      (jlStart lv).choose 2 * μ ≤ 2 ^ 18 := by
+  unfold shapeOK at hok
+  rcases hc : Whir.ladder μ R with _ | cfg <;> rcases hl : levelsOf μ R with _ | ⟨lv, rest⟩ <;>
+    rw [hc, hl] at hok <;> simp only [Bool.false_eq_true] at hok
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
+  obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := hok
+  exact ⟨cfg, lv, rest, rfl, rfl, h1, h2, h3, h4, h5, h6, h7⟩
+
+theorem shapeOK_of_admissible {μ R : ℕ} (h : Whir.Admissible μ R) : shapeOK μ R = true :=
+  shapeOK_all μ (Nat.lt_succ_of_le h.2.1) R (Nat.lt_succ_of_le h.2.2.2) h
+
+/-- Each code's fold rounds. -/
+noncomputable def deployedBounds {μ R : ℕ} (hok : shapeOK μ R = true) (j : ℕ) :
+    RoundBounds (codesOf μ R j) εmsg :=
+  roundBoundsOf _ (facts j).1 (facts j).2
+where
+  facts (j : ℕ) : AffineCombiner.levelOK AffineCombiner.foldBudget ((levelsOf μ R).getD j junkLv) =
+      true ∧ ((levelsOf μ R).getD j junkLv).2.2.1 < ((levelsOf μ R).getD j junkLv).2.2.2.1 := by
+    obtain ⟨cfg, lv, rest, -, hl, hch, -⟩ := shapeOK_facts hok
+    rcases lt_or_ge j (levelsOf μ R).length with hj | hj
+    · rw [List.getD_eq_getElem _ _ hj]
+      exact chain_mem _ cfg μ (hl ▸ hch) _ (List.getElem_mem hj)
+    · rw [List.getD_eq_default _ _ hj]
+      exact ⟨by decide, by decide⟩
+
+/-- Level 0 of an admissible shape. -/
+structure Level0Facts (μ R : ℕ) (level : Whir.Level) (rest : List Whir.Level) : Prop where
+  hc : Whir.ladder μ R = some (level :: rest)
+  hℓ : level.fold = laneBits
+  hμ : laneBits ≤ μ
+  hκ₀ : (codesOf μ R 0).κ = μ - laneBits
+  hR₀ : (codesOf μ R 0).R = R
+  hthr : 2 ^ (codesOf μ R 0).κ ≤ (codesOf μ R 0).thr 0
+  hthr₀ : (codesOf μ R 0).thr 0 = thr0Of μ R
+  h64 : μ - laneBits + R ≤ 64
+  hgap : 2 ^ (μ - laneBits + R) * (2 ^ (μ - laneBits) - 1) < thr0Of μ R * thr0Of μ R
+  hL : listMax₀ μ R = jl (2 ^ (μ - laneBits + R)) (thr0Of μ R) (2 ^ (μ - laneBits) - 1)
+  hA : LadderOK (codesOf μ R) εmsg 0 (level :: rest)
+
+theorem level0Facts {μ R : ℕ} (hok : shapeOK μ R = true) :
+    ∃ level rest, Level0Facts μ R level rest := by
+  obtain ⟨cfg, lv, rest, hc, hl, hch, hR, hk, hthr, -⟩ := shapeOK_facts hok
+  obtain ⟨level, crest, rfl⟩ : ∃ level crest, cfg = level :: crest := by
+    rcases cfg with _ | ⟨level, crest⟩
+    · rcases rest <;> simp [chainChecks] at hch
+    · exact ⟨level, crest, rfl⟩
+  have F := levelFacts_of (levelChecks_of_chain hch)
+  have h0 : codesOf μ R 0 = mkCode lv := by simp [codesOf, hl]
+  have hκ : lv.1 = μ - laneBits := by show lv.1 = μ - 6; have := F.hκ; omega
+  have hthr0 : thr0Of μ R = lv.2.2.2.1 - lv.2.2.1 := by simp [thr0Of, thrStart, hl]
+  refine ⟨level, crest, ⟨hc, by rw [F.hfold, hk], by show 6 ≤ μ; have := F.hκ; omega, ?_, ?_, ?_,
+    ?_, ?_, ?_, ?_, ladderOK_of_chain _ (lv :: rest) _ μ 0 hch fun j hj ↦ by
+      simp only [codesOf, hl, Nat.zero_add, List.getD_eq_getElem _ _ hj]⟩⟩
+  · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]; exact hκ
+  · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]; exact hR
+  · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]; exact hthr
+  · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩, hthr0]; rfl
+  · have := F.h64; omega
+  · rw [hthr0, ← hκ, ← hR]; exact F.hgap
+  · rw [listMax₀, hl, hthr0, ← hκ, ← hR]; rfl
+
+/-! ## Level 0's list -/
+
+/-- **Level 0's list bound is at most `166`.** -/
+theorem listMax₀_le {μ R : ℕ} (h : Whir.Admissible μ R) : listMax₀ μ R ≤ 166 := by
+  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, h166, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
+  rw [listMax₀, hl]
+  exact h166
+
+/-- The commitment's out-of-domain row: `C(L₀, 2)·μ ≤ 2^18`. -/
+theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) : (listMax₀ μ R).choose 2 * μ ≤ 2 ^ 18 := by
+  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, -, ho⟩ := shapeOK_facts (shapeOK_of_admissible h)
+  rw [listMax₀, hl]
+  exact ho
+
+/-- The stacked opening's batching row with the ring's map: `513·L₀ ≤ 2^17`. -/
+theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) : 513 * listMax₀ μ R ≤ 2 ^ 17 := by
+  obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, hlam, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
+  rw [listMax₀, hl]
+  exact hlam
+
+/-- **The candidates at level 0's threshold** are finite, at most `listMax₀`. -/
+theorem candidates_facts {μ R : ℕ} (h : Whir.Admissible μ R) (W : Word) :
+    (Candidates μ R (thr0Of μ R) W).Finite ∧
+      (Candidates μ R (thr0Of μ R) W).ncard ≤ listMax₀ μ R := by
+  obtain ⟨_, _, F⟩ := level0Facts (shapeOK_of_admissible h)
+  have hc := candidates_ncard_le (A := thr0Of μ R) F.hμ F.h64 [(0, 0, W)]
+  refine ⟨hc.1, hc.2.trans ?_⟩
+  rw [F.hL]
+  exact card_tlist_le_jl _ _ _ _ F.hgap
+
+/-! ## The stacked opening -/
+
+/-- **The deployed stacked opening's specification**: from `StackedPre` at level 0's threshold,
+every group within `εmsg = 2^-125` after its grind, the batching challenge with lead
+`(J − 1)·L₀/|E|`. -/
+noncomputable def deployedStackedSpec {μ R : ℕ} (h : Whir.Admissible μ R)
+    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (T : ENNReal) :
+    Spec (verifyStackedOpening μ R claims)
+      (fun h ↦ StackedPre μ R (thr0Of μ R) claims (commits h)) (fun _ _ ↦ False) εmsg
+      (eBatch claims.length (listMax₀ μ R)) T :=
+  match hc : Whir.ladder μ R with
+  | some (level :: rest) =>
+    have F : Level0Facts μ R level rest := by
+      obtain ⟨level', rest', F⟩ := level0Facts (shapeOK_of_admissible h)
+      have heq := F.hc
+      rw [hc, Option.some.injEq, List.cons.injEq] at heq
+      obtain ⟨rfl, rfl⟩ := heq
+      exact F
+    (stackedSpec claims hcl F.hc F.hℓ F.hμ F.hκ₀ F.hR₀ F.hthr
+      (deployedBounds (shapeOK_of_admissible h)) F.hA (listMax₀ μ R)
+      (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).1)
+      (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).2) T).mono
+      (fun _ hp ↦ by rw [F.hthr₀]; exact hp) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+  | some [] => False.elim (by
+      obtain ⟨level', rest', F⟩ := level0Facts (shapeOK_of_admissible h)
+      have h' := F.hc
+      rw [hc] at h'
+      simp at h')
+  | none => False.elim (by
+      obtain ⟨level', rest', F⟩ := level0Facts (shapeOK_of_admissible h)
+      have h' := F.hc
+      rw [hc] at h'
+      simp at h')
 
 end
 end LeanVM.Protocol.Whir.Params
