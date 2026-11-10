@@ -214,7 +214,7 @@ theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
   set l := (osMatS c.plan osQbp lv.posOff (osMatS c.plan osQpos lv.posOff
     { st with k := st.k + 2 }).2.2).2.2.k with hl
   simp only [osLoopCall, allOk_cons, allOk_nil, and_true, holds_const, holds_add, osCst, osAdd,
-    StmtOk, List.map_cons, List.map_nil, List.nil_append] at hlp
+    StmtOk, List.map_cons, List.map_nil] at hlp
   obtain ⟨g1, gS, gsum, g3, g4, -, hcall⟩ := hlp
   have hg1 : gw 1 = gen ^ 1 := gw_eq (by decide)
   have hgS : gw lv.squeezes = gen ^ lv.squeezes := gw_eq (lt_trans (by omega) hS5)
@@ -233,7 +233,7 @@ theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     have := hle _ _ _ (hcall (by rw [gsum, g1, gS, hg1, hgS]; exact hne))
     rwa [g3, g4, hg1, hgS] at this
   obtain ⟨hrows, hdecs⟩ := sqChain cap rfl h0 hit
-  simp only [allOk_append, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_mul,
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_mul,
     holds_load, osCst, osMul, osLd, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, and_assoc] at hlast
   obtain ⟨e5, e6, m0, m1, m2, m3, m4⟩ := hlast
