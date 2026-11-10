@@ -74,33 +74,7 @@ theorem rswChain_load {rd : Reader} {zs ps : List E} {count b : ℕ}
 /-- `rs_eq_run`'s callees: `__loop5` and `rs_eq_rows__L{n}`, `n ≤ 8`. -/
 def rsPureNames : List String := ["rs_eq_run", "__loop5"] ++ rsEqRowsNames
 
-theorem rs_pure : coreProgram.PureIn rsPureNames := by
-  intro g hg fn hf
-  simp only [rsPureNames, rsEqRowsNames, List.cons_append, List.nil_append, List.mem_cons,
-    List.not_mem_nil, or_false] at hg
-  rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · rw [Program.find?_of_indexOf? (j := 6) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 80) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 82) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 83) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 84) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 85) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 86) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 87) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl, Option.some.injEq] at hf
-    subst hf; decide +kernel
+theorem rs_pure : coreProgram.PureIn rsPureNames := Tables.pureIn_of_pureInB (by decide +kernel)
 
 /-- `rs_eq_run`'s words: the chain, the coordinates, the point. -/
 def rsLin (bb bz bp count : ℕ) (zs ps : List E) : Main.Layout :=
@@ -136,7 +110,7 @@ theorem rsw_stores : storesOf 4 rswT =
 
 /-- `ring_switch_weight`'s statements before its `ret`. -/
 def rswPre : List Stmt :=
-  [.atom (.const (.n 4) (word 2 0 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
+  [.atom (.const (.n 4) (word 2 0)), .atom (.mul (.n 5) (.n 3) (.n 4)),
     .atom (.mul (.n 6) (.n 5) (.n 5)), .atom (.mul (.n 7) (.n 6) (.n 6)),
     .atom (.mul (.n 8) (.n 7) (.n 7)), .atom (.mul (.n 9) (.n 8) (.n 8)),
     .atom (.mul (.n 10) (.n 9) (.n 9)), .atom (.mul (.n 11) (.n 10) (.n 10)),
@@ -168,10 +142,6 @@ def rswLoadOk : Atom → Bool
 
 theorem rsw_loadOk : (rswPre.filterMap fun s => match s with
     | .atom a => some a | _ => none).all rswLoadOk = true := by decide +kernel
-
-theorem rsw_canon : canonChk [] ((rswPre.filterMap fun s => match s with
-    | .atom a => some a | _ => none).filter (fun a => decide (a ∉ storesOf 4 rswT))) = true := by
-  decide +kernel
 
 theorem rsw_needs : (rswPre.filterMap fun s => match s with
     | .atom a => some a | _ => none).all (fun a => decide (a ∈ storesOf 4 rswT) || !needsSide a ||
@@ -270,14 +240,14 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
     rwa [ite_pos' ⟨hu, hv⟩] at this
   have constE : ∀ d : ℕ, ∀ c : E, Stmt.atom (.const (.n d) c) ∈ rswPre → σ (.n d) = c :=
     fun d c h ↦ hg _ (rsw_atom_mem h)
-  have hmem : ∀ a, Stmt.atom a ∈ [Stmt.atom (.const (.n 4) (word 2 0 0)),
+  have hmem : ∀ a, Stmt.atom a ∈ [Stmt.atom (.const (.n 4) (word 2 0)),
       .atom (.mul (.n 5) (.n 3) (.n 4)), .atom (.mul (.n 6) (.n 5) (.n 5)),
       .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 7)),
       .atom (.mul (.n 9) (.n 8) (.n 8)), .atom (.mul (.n 10) (.n 9) (.n 9)),
       .atom (.mul (.n 11) (.n 10) (.n 10)), .atom (.hint (.allocDyn (.n 12) (.n 11)))] →
       Stmt.atom a ∈ rswPre := fun a h ↦ by
     simp only [rswPre, List.mem_append]; exact Or.inl (Or.inl (Or.inl (Or.inl h)))
-  have e4 := constE 4 (word 2 0 0) (hmem _ (by simp))
+  have e4 := constE 4 (word 2 0) (hmem _ (by simp))
   have e5 := mulE 5 3 4 (by omega) (by omega) (hmem _ (by simp))
   have e6 := mulE 6 5 5 (by omega) (by omega) (hmem _ (by simp))
   have e7 := mulE 7 6 6 (by omega) (by omega) (hmem _ (by simp))
@@ -376,20 +346,16 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
         · exact rt_side_of_load (hrowH off hld.1)
       | _ => simp at h
   have hat : ∀ a ∈ rswA, a.Holds rd σ := by
-    have hσv : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσdef]; rfl
-    refine atoms_holds_stores (S := S) (w := rswW bb (rswH count)) (A := [])
-      (dec := fun _ => inferInstance) hσv ?_ hg
-      (fun i hi => absurd hi (by simp)) hside ?_
-    · have := rsw_canon; rw [rsw_stores, ← hS] at this; exact this
-    · intro _ a _ haS
-      rw [hS] at haS
-      obtain ⟨k, hk, rfl⟩ := List.mem_map.mp haS
-      have hk' := List.mem_range.mp hk
-      have hc1 := constE (13 + k) (word 1 0 0) (rswInit_mem hk' _ (by simp [rswInit]))
-      show LoadHolds rd (σ (.n 12)) k (σ (.n (13 + k)))
-      rw [e12, hc1, word_one]
-      have := rswChain_load hch (t := k) (by unfold rswH; omega)
-      rwa [ite_pos' (by omega : k / 64 = 0)] at this
+    refine atoms_holds_stores (S := S) (w := rswW bb (rswH count)) hg hside ?_
+    intro _ a _ haS
+    rw [hS] at haS
+    obtain ⟨k, hk, rfl⟩ := List.mem_map.mp haS
+    have hk' := List.mem_range.mp hk
+    have hc1 := constE (13 + k) (word 1 0) (rswInit_mem hk' _ (by simp [rswInit]))
+    show LoadHolds rd (σ (.n 12)) k (σ (.n (13 + k)))
+    rw [e12, hc1, word_one]
+    have := rswChain_load hch (t := k) (by unfold rswH; omega)
+    rwa [ite_pos' (by omega : k / 64 = 0)] at this
   refine ⟨hat, h11, e12, e77, ?_⟩
   have hcopy : σ (.n 333) = σ (.n 332) :=
     hg _ (rsw_atom_mem (by simp [rswPre] : Stmt.atom (.copy (.n 333) (.n 332)) ∈ rswPre))
@@ -403,12 +369,6 @@ theorem rsw_block {rd : Reader} {bz bp bc bb count : ℕ} {zs ps cs : List E} (h
 
 theorem rsw_noDisp : rswPre.all (fun s => match s with | .dispatch .. => false | _ => true) = true := by
   decide +kernel
-
-/-- An atom or a call. -/
-def atomOrCall : Stmt → Bool
-  | .atom _ => true
-  | .call .. => true
-  | _ => false
 
 theorem rsw_kinds : rswPre.all atomOrCall = true := by decide +kernel
 
@@ -550,7 +510,7 @@ theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hc
       · show [σ (.n 77)] = o.1
         rw [ho1, e77]
     · intro q hq
-      obtain ⟨hoff, hp'⟩ := rsw_loads_ok (filterMap_of_loadsEv (by decide +kernel) hq)
+      obtain ⟨hoff, hp'⟩ := rsw_loads_ok (rt_filterMap_of_loadsEv (by decide +kernel) hq)
       rcases hp' with h | h | h <;> rw [h]
       · rw [e2, Main.addr_ofK]
         exact ⟨_, rfl, Or.inl ⟨(bc, cs), by simp, by simp [hc]; omega⟩⟩
