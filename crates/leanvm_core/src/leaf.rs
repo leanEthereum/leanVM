@@ -12,7 +12,7 @@
 use crate::gkr;
 use crate::transcript::ProverState;
 use primitives::field::{F64, F128, F128Unreduced, Weights8, dot_base, g_pow, index_mle, mul_by_g};
-use primitives::multilinear::{eq_eval, eq_table, mle_eval, mle_eval_par};
+use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval, mle_eval_par};
 use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::Arc;
@@ -795,8 +795,7 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut 
         let c1: F128 = pairs().map(|(a, p)| a[0] * (p[0] + p[1]) + (a[0] + a[1]) * p[0]).sum();
         ps.add_round_poly(&[c0, c1, c2], false);
         let r = ps.sample();
-        let fold =
-            |v: &[F128]| -> Vec<F128> { v.as_chunks::<2>().0.iter().map(|h| h[0] + r * (h[0] + h[1])).collect() };
+        let fold = |v: &[F128]| -> Vec<F128> { v.as_chunks::<2>().0.iter().map(|h| interp(h[0], h[1], r)).collect() };
         (weights, slots) = (fold(&weights), fold(&slots));
     }
     ps.add_scalar(slots[0]);
