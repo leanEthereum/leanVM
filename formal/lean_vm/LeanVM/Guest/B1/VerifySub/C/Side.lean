@@ -26,15 +26,15 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 @[expose] public section
 
 /-- Not a conditional call. -/
-def noCallIfB : Stmt → Bool
+def vsNoCallIfB : Stmt → Bool
   | .callIf .. => false
   | _ => true
 
 theorem vs_straight : vsCPre.all straightB = true := by decide +kernel
 
-theorem vs_noCallIf : vsCPre.all noCallIfB = true := by decide +kernel
+theorem vs_noCallIf : vsCPre.all vsNoCallIfB = true := by decide +kernel
 
-theorem side_of_not_needs {rd : Reader} {S : List Atom} {σ : Val} {a : Atom}
+theorem vs_side_of_not_needs {rd : Reader} {S : List Atom} {σ : Val} {a : Atom}
     (h : needsSide a = false) : Side rd S σ a := by
   cases a with
   | mul d x y =>
@@ -60,13 +60,13 @@ theorem vsCPre_holds_of (hl : args.length = 6)
   | atom a =>
     cases hns : needsSide a
     · have hg := vs_goodS (rd := rd) (w := w) hl hs
-      exact holds_of_good hg (side_of_not_needs hns)
+      exact holds_of_good hg (vs_side_of_not_needs hns)
     · exact hside a hs hns
   | call f as rs => trivial
   | dispatch x fs as rs =>
     obtain ⟨j, hj, hx⟩ := hdisp x fs as rs hs
     exact ⟨j, hj, hx, trivial⟩
-  | callIf c f as => simpa [noCallIfB] using List.all_eq_true.mp vs_noCallIf _ hs
+  | callIf c f as => simpa [vsNoCallIfB] using List.all_eq_true.mp vs_noCallIf _ hs
   | _ => simpa [straightB] using List.all_eq_true.mp vs_straight _ hs
 
 end

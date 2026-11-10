@@ -32,16 +32,16 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 @[expose] public section
 
 /-- A statement other than an `assertNe`. -/
-def noNeB : Stmt → Bool
+def vsNoNeB : Stmt → Bool
   | .atom (.assertNe _ _ _) => false
   | _ => true
 
-theorem fixNe_of_noNe {s : Stmt} (h : noNeB s = true) : fixNe s = s := by
+theorem vs_fixNe_of_noNe {s : Stmt} (h : vsNoNeB s = true) : fixNe s = s := by
   cases s with
-  | atom a => cases a <;> simp_all [noNeB, fixNe]
+  | atom a => cases a <;> simp_all [vsNoNeB, fixNe]
   | _ => rfl
 
-theorem vs_noNe : vsCPre.all noNeB = true := by decide +kernel
+theorem vs_noNe : vsCPre.all vsNoNeB = true := by decide +kernel
 
 theorem vs_notIte : vsCPre.all notIteB = true := by decide +kernel
 
@@ -89,7 +89,7 @@ theorem vs_goodS (hl : args.length = 6) {s : Stmt} (hs : s ∈ vsCPre) :
   have hi := List.all_eq_true.mp vs_notIte s hs
   have h := vs_good (rd := rd) (w := w) hl (fixNe s)
     (List.mem_map_of_mem (mem_flatIte_of (fun c z n e ↦ by subst e; simp [notIteB] at hi) hs))
-  rwa [fixNe_of_noNe hn] at h
+  rwa [vs_fixNe_of_noNe hn] at h
 
 /-- The equations of a slice of the body, by its position. -/
 theorem vs_goodL (hl : args.length = 6) {n : ℕ} {blk : List Stmt}
@@ -114,7 +114,7 @@ def vsWVars : List ℕ :=
 
 theorem vs_defW : vsCPre.flatMap vsDefW = vsWVars.map V.n := by decide +kernel
 
-theorem goodS_defW {s : Stmt} {σ : Val} (hg : GoodS rd vsSL w σ s) {v : V} (hv : v ∈ vsDefW s) :
+theorem vs_goodS_defW {s : Stmt} {σ : Val} (hg : GoodS rd vsSL w σ s) {v : V} (hv : v ∈ vsDefW s) :
     σ v = w v.idx := by
   cases s with
   | atom a =>
@@ -137,7 +137,7 @@ theorem goodS_defW {s : Stmt} {σ : Val} (hg : GoodS rd vsSL w σ s) {v : V} (hv
 theorem vs_w (hl : args.length = 6) {a : ℕ} (ha : a ∈ vsWVars) : vsσ rd w args (.n a) = w a := by
   have hm : V.n a ∈ vsCPre.flatMap vsDefW := by rw [vs_defW]; exact List.mem_map_of_mem ha
   obtain ⟨s, hs, hv⟩ := List.mem_flatMap.mp hm
-  exact goodS_defW (vs_goodS hl hs) hv
+  exact vs_goodS_defW (vs_goodS hl hs) hv
 
 end
 
