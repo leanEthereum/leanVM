@@ -46,7 +46,7 @@ def vtSelT (w b t : ℕ) (prev : Option ℕ) (es gs gw : ℕ) : List Stmt :=
     .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (30 + t))) (.heap (.n w) 0 9)))] ++
   (if t = 0 then [] else
     [.atom (.const (.n (w + 1)) vtW288), .atom (.mul (.n (w + 2)) (.n es) (.n (w + 1))),
-      .atom (.const (.n (w + 3)) (word gw 0 0)), .atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))]) ++
+      .atom (.const (.n (w + 3)) (word gw 0)), .atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))]) ++
   [.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (if t = 0 then 705 else w + 2),
       .n (if t = 0 then 706 else w + 4)] [.n (vtSelE w t), .n (vtSelE w t + 1)],
     .atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))] ++ vtSelTail w t prev

@@ -161,6 +161,8 @@ theorem of_moves {g : ℕ → Prop} {Q G : α → Prop} {p : VerifierProgram α}
   | commit ht w k ih => exact h.1.elim
   | query i ps k ih => exact fun rows ↦ ih rows (h rows)
 
+theorem fail : WidthsLE W (VerifierProgram.fail : VerifierProgram α) := trivial
+
 theorem commitP {ht w : ℕ} (hw : w ≤ W) : WidthsLE W (VerifierProgram.readCommitment ht w) := ⟨hw,
     trivial⟩
 
@@ -207,13 +209,13 @@ attribute [local irreducible] WidthsLE Moves
 theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState), (∀ l ∈ levels, l.fold ≤ 6) →
       WidthsLE maxWidth (whirLevels logN laneFolds evaluateBasis index levels s)
-  | [], _, _, _ => by unfold whirLevels; trivial
+  | [], _, _, _ => by unfold whirLevels; exact WidthsLE.fail
   | [level], index, s, _ => by
     refine WidthsLE.seq (WidthsLE.of_moves (moves_foldRounds level.fold s)) fun r ↦ ?_
     obtain ⟨s', rounds⟩ := r
-    exact WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)
+    exact WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
       (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ False)
+      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
         (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (moves_sampleQueriesAux _ _ _)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)
@@ -227,17 +229,17 @@ theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E
     have hn : next.fold ≤ 6 := hf next (by simp)
     refine WidthsLE.seq (WidthsLE.of_moves (moves_foldRounds level.fold s)) fun r ↦ ?_
     obtain ⟨s', rounds⟩ := r
-    exact WidthsLE.seq (WidthsLE.commitP (by simp only [levelShape]; exact two_pow_le hn))
+    exact WidthsLE.seq (WidthsLE.commitP (two_pow_le hn))
       fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)
+      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
         (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (moves_sampleOodPoints _ _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)
+      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
         (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ False)
+      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
         (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (moves_sampleQueriesAux _ _ _)) fun queries ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ False)
+      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
         (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
         Moves.sampleE) fun lam ↦
@@ -255,19 +257,24 @@ theorem widthsLE_commitStack (logN logInvRate : ℕ) :
     WidthsLE maxWidth (commitStack logN logInvRate) :=
   WidthsLE.liftOption_seq fun config hc ↦ by
     cases config with
-    | nil => trivial
+    | nil => exact WidthsLE.fail
     | cons level rest =>
       exact WidthsLE.commitP (pow_le (ladder_folds _ _ _ hc level (by simp)))
+
+/-- The commitment's out-of-domain sample commits nothing. -/
+theorem widthsLE_readOod (n : ℕ) : WidthsLE maxWidth (readOod n) :=
+  WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True) (G := fun _ ↦ True)
+    (Moves.grindP fun _ ↦ trivial)) fun _ ↦
+    WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
+      (Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+        Moves.pure (Q := fun _ ↦ True) trivial)
 
 theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
     WidthsLE maxWidth (verifyExecution computedBytecodeValue bytecode publicInput) := by
   refine WidthsLE.seq (WidthsLE.of_moves (moves_readSizes bytecode)) fun p ↦ ?_
   obtain ⟨layout, logInverseRate⟩ := p
   refine WidthsLE.seq (widthsLE_commitStack _ _) fun _ ↦
-    WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True) (G := fun _ ↦ False)
-      (Moves.seq (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)
-        (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-          Moves.pure trivial) fun _ _ _ ↦ trivial)) fun _ ↦
+    WidthsLE.seq (widthsLE_readOod _) fun _ ↦
     WidthsLE.seq (WidthsLE.of_moves (moves_verifyBusBalance moves_computedBytecodeValue layout))
       fun bus ↦
       WidthsLE.seq (WidthsLE.of_moves (moves_tablePhase layout bus)) fun _ ↦
@@ -679,14 +686,14 @@ theorem allQ_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : St
 -- does not cover it.
 set_option maxHeartbeats 1000000 in
 /-- The honest strategy of a witness commits well-shaped words. -/
-theorem shaped_of {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
+theorem shaped_of (hW : Whir.Complete.OpeningComplete) {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
     {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog t.logMemorySize)}
     (hw : Complete.HonestFor prog input t ρ w s) (chal : List Ev → E) :
     shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
       (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) chal := by
   obtain ⟨hρ', hw', hs', hadm', -⟩ := hw
   with_reducible exact
-    (Complete.runI_leanVmProgram (input := input) hadm' hρ' (LeanIsa.m3Honest_stackOf hw' hs') chal).2
+    (Complete.runI_leanVmProgram hW (input := input) hadm' hρ' (LeanIsa.m3Honest_stackOf hw' hs') chal).2
 
 -- As for `shaped_of`.
 
@@ -752,7 +759,7 @@ theorem isTotalQueryBound_romHonestComp (prog : LeanIsaProgram) (input : PublicI
 set_option maxHeartbeats 1000000 in
 /-- **The specification's honest prover at an honest witness, then the verifier, make at most
 `completenessPermCalls fuel` permutation calls.** -/
-theorem isWeightBound_romHonest {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
+theorem isWeightBound_romHonest (hW : Whir.Complete.OpeningComplete) {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
     {s : LeanIsa.Sizes} {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog t.logMemorySize)}
     (hw : Complete.HonestFor prog input t ρ w s) (fuel : ℕ) :
@@ -762,6 +769,6 @@ theorem isWeightBound_romHonest {prog : LeanIsaProgram} {input : PublicInput} {t
         (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
           verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
   isWeightBound_proverVerifier prog input (isTotalQueryBound_romHonestComp prog input _ fuel)
-    (allQ_romHonestComp prog input _ fuel (shaped_of hw))
+    (allQ_romHonestComp prog input _ fuel (shaped_of hW hw))
 
 end LeanVM.Rpm

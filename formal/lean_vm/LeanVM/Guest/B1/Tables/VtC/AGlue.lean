@@ -32,7 +32,7 @@ open LeanVM.Guest.B1.Fwd
 
 /-- **An honest `fs_pack`** packs the word's rate cells, canonical. -/
 theorem pack_good {σ : Val} {x : V} {b t : ℕ}
-    (hl : σ (.n (b + 2)) = limbAt (σ x) 2) (h3 : σ (.n (b + 3)) = word t 0 0)
+    (hl : σ (.n (b + 2)) = limbAt (σ x) 2) (h3 : σ (.n (b + 3)) = word t 0)
     (h4 : σ (.n (b + 4)) = word 0 0 1)
     (h5 : σ (.n (b + 5)) = σ (.n (b + 4)) * σ (.n (b + 2)))
     (h6 : σ (.n (b + 6)) = σ x + σ (.n (b + 5))) (h7 : σ (.n (b + 7)) = word 0 t 0)
@@ -226,7 +226,7 @@ theorem vt_xi_good (hl : args.length = 20) :
       vtσ rd w args (.n 2591) = vtσ rd w args (.n 2588) ^ 2 ∧
       vtσ rd w args (.n 2592) = vtσ rd w args (.n 2588) ^ 3 ∧
       vtσ rd w args (.n 2593) = vtσ rd w args (.n 2588) ^ 4 := by
-  have g := vt_goodL (rd := rd) (w := w) hl 2636 [.atom (.const (.n 2589) (word 1 0 0)),
+  have g := vt_goodL (rd := rd) (w := w) hl 2636 [.atom (.const (.n 2589) (word 1 0)),
     .atom (.mul (.n 2590) (.n 2589) (.n 2588)), .atom (.mul (.n 2591) (.n 2590) (.n 2588)),
     .atom (.mul (.n 2592) (.n 2591) (.n 2588)), .atom (.mul (.n 2593) (.n 2592) (.n 2588))]
     (by rw [vtPre_drop]; decide +kernel)

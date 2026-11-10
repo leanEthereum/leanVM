@@ -31,7 +31,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 def vtPadNames : List String := (List.range 29).map (lName "padding_weight")
 
 /-- `g^28`, as the data writes it. -/
-abbrev vtW28 : E := word 268435456 0 0
+abbrev vtW28 : E := word 268435456 0
 
 /-- Table `t`'s height statements, `t < 5`, values from `v`: `τ_g = kb[2 + t]` (variable
 `30 + t`) below `g^29`. -/
@@ -40,8 +40,8 @@ def vtPadT (v t : ℕ) : List Stmt :=
     .atom (.rangeCheck (.n (30 + t)) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
     .atom (.load (.n (v + 4)) (.n 11) t),
     .dispatch (.n (30 + t)) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
-    .atom (.const (.n (v + 8)) (word 1 0 0)), .atom (.assertEq (.n (v + 6)) (.n (v + 8))),
-    .atom (.const (.n (v + 9)) (word 0 0 0)), .atom (.add (.n (v + 10)) (.n (v + 7)) (.n (v + 9))),
+    .atom (.const (.n (v + 8)) (word 1 0)), .atom (.assertEq (.n (v + 6)) (.n (v + 8))),
+    .atom (.const (.n (v + 9)) (word 0 0)), .atom (.add (.n (v + 10)) (.n (v + 7)) (.n (v + 9))),
     .atom (.hint (.inverse (.n (v + 10)) (.n (v + 11)))),
     .atom (.assertNe (.n (v + 10)) (.n (v + 11)) (.n (v + 12)))]
 
@@ -51,12 +51,12 @@ def vtPad5T (v : ℕ) : List Stmt :=
     .atom (.rangeCheck (.n 35) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
     .atom (.load (.n (v + 4)) (.n 11) 5),
     .dispatch (.n 35) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
-    .atom (.const (.n (v + 8)) vtW28), .atom (.const (.n (v + 9)) (word 512 0 0)),
+    .atom (.const (.n (v + 8)) vtW28), .atom (.const (.n (v + 9)) (word 512 0)),
     .atom (.mul (.n 35) (.n (v + 10)) (.n (v + 9))),
     .atom (.rangeCheck (.n (v + 10)) (.n (v + 11)) (.n (v + 12)) (.n (v + 13)) (.n (v + 8))),
-    .atom (.const (.n (v + 14)) (word 512 0 0)), .atom (.add (.n (v + 15)) (.n 35) (.n (v + 14))),
-    .ite (.n (v + 15)) [] [.atom (.const (.n (v + 16)) (word 1 0 0)),
-      .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0 0)),
+    .atom (.const (.n (v + 14)) (word 512 0)), .atom (.add (.n (v + 15)) (.n 35) (.n (v + 14))),
+    .ite (.n (v + 15)) [] [.atom (.const (.n (v + 16)) (word 1 0)),
+      .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0)),
       .atom (.add (.n (v + 18)) (.n (v + 7)) (.n (v + 17))),
       .atom (.hint (.inverse (.n (v + 18)) (.n (v + 19)))),
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))]]
@@ -73,7 +73,7 @@ theorem vtPad5_check :
 /-- `kappa_base` in the frame (G:2130-2133): `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
 theorem vt_kb {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 28) = 1 ∧ ∀ i < 7, LoadHolds rd (σ (.n 10)) i (σ (.n (29 + i))) := by
-  have c := h.atomAt 8 (.const (.n 28) (word 1 0 0)) (by decide +kernel)
+  have c := h.atomAt 8 (.const (.n 28) (word 1 0)) (by decide +kernel)
   have hl : ∀ i < 7, Atom.Holds rd σ (.load (.n (29 + i)) (.n 10) i) := by
     intro i hi
     exact h.atomAt (9 + i) _ (by revert i; decide +kernel)

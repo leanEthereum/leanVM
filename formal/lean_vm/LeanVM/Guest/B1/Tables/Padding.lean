@@ -54,7 +54,7 @@ theorem tb_sum_bits_mod (N j : ℕ) (hj : j ≤ 64) :
 
 /-- The head: `W = rows + (2^τ - 1)` and its `τ + 1` hinted bits, at values `4 .. 4 + τ`. -/
 def pwHead (τ : ℕ) : List Stmt :=
-  [.atom (.const (.n 2) (word (2 ^ τ - 1) 0 0)), .atom (.add (.n 3) (.n 0) (.n 2)),
+  [.atom (.const (.n 2) (word (2 ^ τ - 1) 0)), .atom (.add (.n 3) (.n 0) (.n 2)),
     .atom (.hint (.bits (.n 3) 0 (τ + 1) (.stack ((List.range (τ + 1)).map fun k => .n (4 + k)))))]
 
 /-- The fold's first step, its `pad = 1` folded. -/
@@ -76,7 +76,7 @@ def pwBelow (τ j : ℕ) : ℕ := if j = 0 then τ + 2 else 6 * τ + 3 + 3 * j
 
 /-- Horner step `j`: `below = below·2 + bit (τ - 3 - j)`. -/
 def pwHorner (τ j : ℕ) : List Stmt :=
-  [.atom (.const (.n (6 * τ + 4 + 3 * j)) (word 2 0 0)),
+  [.atom (.const (.n (6 * τ + 4 + 3 * j)) (word 2 0)),
     .atom (.mul (.n (6 * τ + 5 + 3 * j)) (.n (pwBelow τ j)) (.n (6 * τ + 4 + 3 * j))),
     .atom (.add (.n (6 * τ + 6 + 3 * j)) (.n (6 * τ + 5 + 3 * j)) (.n (τ + 1 - j)))]
 
@@ -86,20 +86,20 @@ def pwTail (τ : ℕ) : List Stmt :=
   let top := 4 + τ
   let b1 := 3 + τ
   let bl := pwBelow τ (τ - 2)
-  [.atom (.const (.n L) (word (2 ^ (τ - 1)) 0 0)), .atom (.mul (.n (L + 1)) (.n b1) (.n L)),
+  [.atom (.const (.n L) (word (2 ^ (τ - 1)) 0)), .atom (.mul (.n (L + 1)) (.n b1) (.n L)),
     .atom (.add (.n (L + 2)) (.n bl) (.n (L + 1))),
-    .atom (.const (.n (L + 3)) (word 1 0 0)), .atom (.add (.n (L + 4)) (.n top) (.n (L + 3))),
+    .atom (.const (.n (L + 3)) (word 1 0)), .atom (.add (.n (L + 4)) (.n top) (.n (L + 3))),
     .atom (.add (.n (L + 5)) (.n (L + 4)) (.n b1)),
     .atom (.add (.n (L + 6)) (.n top) (.n bl)),
-    .atom (.const (.n (L + 7)) (word (2 ^ (τ - 1) - 1) 0 0)),
+    .atom (.const (.n (L + 7)) (word (2 ^ (τ - 1) - 1) 0)),
     .atom (.add (.n (L + 8)) (.n (L + 6)) (.n (L + 7))),
-    .atom (.const (.n (L + 9)) (word (2 ^ τ) 0 0)), .atom (.mul (.n (L + 10)) (.n top) (.n (L + 9))),
+    .atom (.const (.n (L + 9)) (word (2 ^ τ) 0)), .atom (.mul (.n (L + 10)) (.n top) (.n (L + 9))),
     .atom (.add (.n (L + 11)) (.n (L + 2)) (.n (L + 10))), .atom (.assertEq (.n (L + 11)) (.n 3)),
-    .atom (.const (.n (L + 12)) (word (2 ^ τ - 1) 0 0)),
+    .atom (.const (.n (L + 12)) (word (2 ^ τ - 1) 0)),
     .atom (.add (.n (L + 13)) (.n (L + 2)) (.n (L + 12))),
-    .atom (.mul (.n (L + 14)) (.n top) (.n (L + 13))), .atom (.const (.n (L + 15)) (word 0 0 0)),
+    .atom (.mul (.n (L + 14)) (.n top) (.n (L + 13))), .atom (.const (.n (L + 15)) (word 0 0)),
     .atom (.assertEq (.n (L + 14)) (.n (L + 15))),
-    .atom (.const (.n (L + 16)) (word 1 0 0)), .atom (.add (.n (L + 17)) (.n (L + 16)) (.n top)),
+    .atom (.const (.n (L + 16)) (word 1 0)), .atom (.add (.n (L + 17)) (.n (L + 16)) (.n top)),
     .atom (.mul (.n (L + 18)) (.n (L + 17)) (.n (6 * τ + 3))),
     .atom (.copy (.n (L + 19)) (.n (L + 5))), .atom (.copy (.n (L + 20)) (.n (L + 8))),
     .ret [.n (L + 18), .n (L + 19), .n (L + 20)]]
@@ -341,7 +341,7 @@ theorem holds_pwStep (τ k : ℕ) (kret : List E → Prop) :
 
 /-- What Horner step `j` asks of a valuation. -/
 def PwHornOk (σ : Val) (τ j : ℕ) : Prop :=
-  σ (.n (6 * τ + 4 + 3 * j)) = word 2 0 0 ∧
+  σ (.n (6 * τ + 4 + 3 * j)) = word 2 0 ∧
     σ (.n (6 * τ + 5 + 3 * j)) = σ (.n (pwBelow τ j)) * σ (.n (6 * τ + 4 + 3 * j)) ∧
     σ (.n (6 * τ + 6 + 3 * j)) = σ (.n (6 * τ + 5 + 3 * j)) + σ (.n (τ + 1 - j))
 
@@ -354,16 +354,16 @@ abbrev pwS (σ : Val) (τ i : ℕ) : E := σ (.n (9 * τ - 2 + i))
 
 /-- What the tail asks of a valuation, its returns `rets`. -/
 def PwTailOk (σ : Val) (τ : ℕ) (rets : List E) : Prop :=
-  pwS σ τ 0 = word (2 ^ (τ - 1)) 0 0 ∧ pwS σ τ 1 = σ (.n (3 + τ)) * pwS σ τ 0 ∧
-    pwS σ τ 2 = σ (.n (pwBelow τ (τ - 2))) + pwS σ τ 1 ∧ pwS σ τ 3 = word 1 0 0 ∧
+  pwS σ τ 0 = word (2 ^ (τ - 1)) 0 ∧ pwS σ τ 1 = σ (.n (3 + τ)) * pwS σ τ 0 ∧
+    pwS σ τ 2 = σ (.n (pwBelow τ (τ - 2))) + pwS σ τ 1 ∧ pwS σ τ 3 = word 1 0 ∧
     pwS σ τ 4 = σ (.n (4 + τ)) + pwS σ τ 3 ∧ pwS σ τ 5 = pwS σ τ 4 + σ (.n (3 + τ)) ∧
     pwS σ τ 6 = σ (.n (4 + τ)) + σ (.n (pwBelow τ (τ - 2))) ∧
-    pwS σ τ 7 = word (2 ^ (τ - 1) - 1) 0 0 ∧ pwS σ τ 8 = pwS σ τ 6 + pwS σ τ 7 ∧
-    pwS σ τ 9 = word (2 ^ τ) 0 0 ∧ pwS σ τ 10 = σ (.n (4 + τ)) * pwS σ τ 9 ∧
+    pwS σ τ 7 = word (2 ^ (τ - 1) - 1) 0 ∧ pwS σ τ 8 = pwS σ τ 6 + pwS σ τ 7 ∧
+    pwS σ τ 9 = word (2 ^ τ) 0 ∧ pwS σ τ 10 = σ (.n (4 + τ)) * pwS σ τ 9 ∧
     pwS σ τ 11 = pwS σ τ 2 + pwS σ τ 10 ∧ pwS σ τ 11 + σ (.n 3) = 0 ∧
-    pwS σ τ 12 = word (2 ^ τ - 1) 0 0 ∧ pwS σ τ 13 = pwS σ τ 2 + pwS σ τ 12 ∧
-    pwS σ τ 14 = σ (.n (4 + τ)) * pwS σ τ 13 ∧ pwS σ τ 15 = word 0 0 0 ∧
-    pwS σ τ 14 + pwS σ τ 15 = 0 ∧ pwS σ τ 16 = word 1 0 0 ∧
+    pwS σ τ 12 = word (2 ^ τ - 1) 0 ∧ pwS σ τ 13 = pwS σ τ 2 + pwS σ τ 12 ∧
+    pwS σ τ 14 = σ (.n (4 + τ)) * pwS σ τ 13 ∧ pwS σ τ 15 = word 0 0 ∧
+    pwS σ τ 14 + pwS σ τ 15 = 0 ∧ pwS σ τ 16 = word 1 0 ∧
     pwS σ τ 17 = pwS σ τ 16 + σ (.n (4 + τ)) ∧ pwS σ τ 18 = pwS σ τ 17 * σ (.n (6 * τ + 3)) ∧
     pwS σ τ 19 = pwS σ τ 5 ∧ pwS σ τ 20 = pwS σ τ 8 ∧ [pwS σ τ 18, pwS σ τ 19, pwS σ τ 20] = rets
 
@@ -377,7 +377,7 @@ theorem pw_unfold {name : String} {f : Fn} (τ : ℕ) (hfind : coreProgram.find?
     (hparams : f.params = [.n 0, .n 1]) (hbody : f.body = pwBody τ) (rd : Reader)
     (args rets : List E) :
     coreProgram.Rel rd name args rets ↔ ∃ σ : Val, [σ (.n 0), σ (.n 1)] = args ∧
-      σ (.n 2) = word (2 ^ τ - 1) 0 0 ∧ σ (.n 3) = σ (.n 0) + σ (.n 2) ∧
+      σ (.n 2) = word (2 ^ τ - 1) 0 ∧ σ (.n 3) = σ (.n 0) + σ (.n 2) ∧
       σ (.n 4) = σ (.n 4) * σ (.n 4) ∧ LoadHolds rd (σ (.n 1)) 0 (σ (.n (τ + 5))) ∧
       σ (.n (τ + 6)) = σ (.n 4) * σ (.n (τ + 5)) ∧ σ (.n (τ + 7)) = σ (.n 4) + σ (.n (τ + 5)) ∧
       σ (.n (τ + 8)) = σ (.n (τ + 6)) + σ (.n (τ + 7)) ∧
@@ -421,8 +421,8 @@ theorem pwBl_top (b : ℕ → E) {τ : ℕ} (hτ : 2 ≤ τ) :
 theorem pw_rets {τ n : ℕ} (h2 : 2 ≤ τ) (h28 : τ ≤ 28) {b z : ℕ → E}
     (hbits : ∀ k ≤ τ, b k = bitE ((pwW τ n).testBit k)) {zs : List E} (hlen : zs.length = τ)
     (hzs : ∀ k < τ, z k = zs.getD k 0) :
-    [(word 1 0 0 + b τ) * padFold b z τ, b τ + word 1 0 0 + b (τ - 1),
-        b τ + pwBl b τ (τ - 2) + word (2 ^ (τ - 1) - 1) 0 0] =
+    [(word 1 0 + b τ) * padFold b z τ, b τ + word 1 0 + b (τ - 1),
+        b τ + pwBl b τ (τ - 2) + word (2 ^ (τ - 1) - 1) 0] =
       [paddingWeight zs n, pwLead τ n, pwRest τ n] := by
   have hcomp : ∀ k < τ, b k = bitE (!n.testBit k) := fun k hk => by
     rw [hbits k (by omega), testBit_pwW]; simp [hk]
@@ -531,18 +531,18 @@ def pwTailVals (τ : ℕ) (b z : ℕ → E) : List E :=
   let top := b τ
   let b1 := b (τ - 1)
   let bl := pwBl b τ (τ - 2)
-  let low := bl + b1 * word (2 ^ (τ - 1)) 0 0
-  [word (2 ^ (τ - 1)) 0 0, b1 * word (2 ^ (τ - 1)) 0 0, low, word 1 0 0, top + word 1 0 0,
-    top + word 1 0 0 + b1, top + bl, word (2 ^ (τ - 1) - 1) 0 0,
-    top + bl + word (2 ^ (τ - 1) - 1) 0 0, word (2 ^ τ) 0 0, top * word (2 ^ τ) 0 0,
-    low + top * word (2 ^ τ) 0 0, word (2 ^ τ - 1) 0 0, low + word (2 ^ τ - 1) 0 0,
-    top * (low + word (2 ^ τ - 1) 0 0), word 0 0 0, word 1 0 0, word 1 0 0 + top,
-    (word 1 0 0 + top) * padFold b z τ, top + word 1 0 0 + b1,
-    top + bl + word (2 ^ (τ - 1) - 1) 0 0]
+  let low := bl + b1 * word (2 ^ (τ - 1)) 0
+  [word (2 ^ (τ - 1)) 0, b1 * word (2 ^ (τ - 1)) 0, low, word 1 0, top + word 1 0,
+    top + word 1 0 + b1, top + bl, word (2 ^ (τ - 1) - 1) 0,
+    top + bl + word (2 ^ (τ - 1) - 1) 0, word (2 ^ τ) 0, top * word (2 ^ τ) 0,
+    low + top * word (2 ^ τ) 0, word (2 ^ τ - 1) 0, low + word (2 ^ τ - 1) 0,
+    top * (low + word (2 ^ τ - 1) 0), word 0 0, word 1 0, word 1 0 + top,
+    (word 1 0 + top) * padFold b z τ, top + word 1 0 + b1,
+    top + bl + word (2 ^ (τ - 1) - 1) 0]
 
 /-- The honest value of value number `i`, at `τ ≥ 2`. -/
 def pwF (τ : ℕ) (rows zeta : E) (b z : ℕ → E) (i : ℕ) : E :=
-  if i < 4 then [rows, zeta, word (2 ^ τ - 1) 0 0, rows + word (2 ^ τ - 1) 0 0].getD i 0
+  if i < 4 then [rows, zeta, word (2 ^ τ - 1) 0, rows + word (2 ^ τ - 1) 0].getD i 0
   else if i < τ + 5 then b (i - 4)
   else if i < 6 * τ + 4 then
     let k := (i - (τ + 4)) / 5
@@ -551,14 +551,14 @@ def pwF (τ : ℕ) (rows zeta : E) (b z : ℕ → E) (i : ℕ) : E :=
       ((i - (τ + 4)) % 5) 0
   else if i < 9 * τ - 2 then
     let j := (i - (6 * τ + 4)) / 3
-    [word 2 0 0, pwBl b τ j * word 2 0 0, pwBl b τ (j + 1)].getD ((i - (6 * τ + 4)) % 3) 0
+    [word 2 0, pwBl b τ j * word 2 0, pwBl b τ (j + 1)].getD ((i - (6 * τ + 4)) % 3) 0
   else (pwTailVals τ b z).getD (i - (9 * τ - 2)) 0
 
 section
 variable {τ : ℕ} {rows zeta : E} {b z : ℕ → E}
 
 theorem pwF_lt4 {i : ℕ} (hi : i < 4) :
-    pwF τ rows zeta b z i = [rows, zeta, word (2 ^ τ - 1) 0 0, rows + word (2 ^ τ - 1) 0 0].getD i 0 := by
+    pwF τ rows zeta b z i = [rows, zeta, word (2 ^ τ - 1) 0, rows + word (2 ^ τ - 1) 0].getD i 0 := by
   rw [pwF, tb_ite_pos' hi]
 
 theorem pwF_bit {k : ℕ} (hk : k ≤ τ) : pwF τ rows zeta b z (4 + k) = b k := by
@@ -581,7 +581,7 @@ theorem pwF_step {k r : ℕ} (hk1 : 1 ≤ k) (hk : k < τ) (hr : r < 5) :
 
 theorem pwF_horn {j r : ℕ} (hj : j < τ - 2) (hr : r < 3) :
     pwF τ rows zeta b z (6 * τ + 4 + 3 * j + r) =
-      [word 2 0 0, pwBl b τ j * word 2 0 0, pwBl b τ (j + 1)].getD r 0 := by
+      [word 2 0, pwBl b τ j * word 2 0, pwBl b τ (j + 1)].getD r 0 := by
   rw [pwF, tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_pos' (by omega)]
   simp only
   rw [show (6 * τ + 4 + 3 * j + r - (6 * τ + 4)) / 3 = j by omega,
@@ -618,7 +618,7 @@ theorem pwF_step' {τ : ℕ} {rows zeta : E} {b z : ℕ → E} {i k r : ℕ}
 
 theorem pwF_horn' {τ : ℕ} {rows zeta : E} {b z : ℕ → E} {i j r : ℕ}
     (hi : i = 6 * τ + 4 + 3 * j + r) (hj : j < τ - 2) (hr : r < 3) :
-    pwF τ rows zeta b z i = [word 2 0 0, pwBl b τ j * word 2 0 0, pwBl b τ (j + 1)].getD r 0 := by
+    pwF τ rows zeta b z i = [word 2 0, pwBl b τ j * word 2 0, pwBl b τ (j + 1)].getD r 0 := by
   subst hi; exact pwF_horn hj hr
 
 theorem pwF_bit' {τ : ℕ} {rows zeta : E} {b z : ℕ → E} {i k : ℕ} (hi : i = 4 + k) (hk : k ≤ τ) :
@@ -640,14 +640,14 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : �
     have := hread k (by omega)
     simpa [z, List.getD_eq_getElem?_getD, show k < zs.length by omega] using this
   obtain ⟨hrec, htop⟩ := pw_bits_complete (show τ < 63 by omega) hn
-  have hlow : pwBl b τ (τ - 2) + b (τ - 1) * word (2 ^ (τ - 1)) 0 0 =
+  have hlow : pwBl b τ (τ - 2) + b (τ - 1) * word (2 ^ (τ - 1)) 0 =
       ∑ k ∈ Finset.range τ, b k * gen ^ k := by
     rw [pwBl_top b h2, tb_word_two_pow (by omega), show τ = τ - 1 + 1 by omega,
       Finset.sum_range_succ, show τ - 1 + 1 - 1 = τ - 1 by omega]
   have f0 : F 0 = rows := pwF_lt4 (by omega)
   have f1 : F 1 = zeta := pwF_lt4 (by omega)
-  have f2 : F 2 = word (2 ^ τ - 1) 0 0 := pwF_lt4 (by omega)
-  have f3 : F 3 = rows + word (2 ^ τ - 1) 0 0 := pwF_lt4 (by omega)
+  have f2 : F 2 = word (2 ^ τ - 1) 0 := pwF_lt4 (by omega)
+  have f3 : F 3 = rows + word (2 ^ τ - 1) 0 := pwF_lt4 (by omega)
   have fb : ∀ k ≤ τ, F (4 + k) = b k := fun k hk => pwF_bit hk
   have s1 : F (τ + 5) = z 0 := pwF_s0' (r := 1) (by omega) (by omega) (by omega) h2
   have s2 : F (τ + 6) = b 0 * z 0 := pwF_s0' (r := 2) (by omega) (by omega) (by omega) h2
@@ -696,8 +696,8 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : �
   · show F (4 + τ) = F (4 + τ) * F (4 + τ)
     rw [fb _ le_rfl]; exact hbool _
   · intro j hj
-    have q0 : F (6 * τ + 4 + 3 * j) = word 2 0 0 := pwF_horn' (r := 0) (by omega) hj (by omega)
-    have q1 : F (6 * τ + 5 + 3 * j) = pwBl b τ j * word 2 0 0 :=
+    have q0 : F (6 * τ + 4 + 3 * j) = word 2 0 := pwF_horn' (r := 0) (by omega) hj (by omega)
+    have q1 : F (6 * τ + 5 + 3 * j) = pwBl b τ j * word 2 0 :=
       pwF_horn' (r := 1) (by omega) hj (by omega)
     have q2 : F (6 * τ + 6 + 3 * j) = pwBl b τ (j + 1) := pwF_horn' (r := 2) (by omega) hj (by omega)
     have qb : F (τ + 1 - j) = b (τ - 3 - j) := pwF_bit' (k := τ - 3 - j) (by omega) (by omega)
@@ -730,25 +730,25 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : �
 /-- The expansion of `padding_weight` at `τ = 0`. -/
 def pwBody0 : List Stmt :=
   [.atom (.hint (.bits (.n 0) 0 1 (.stack [.n 2]))), .atom (.mul (.n 2) (.n 2) (.n 2)),
-    .atom (.assertEq (.n 2) (.n 0)), .atom (.const (.n 3) (word 0 0 0)),
-    .atom (.mul (.n 4) (.n 2) (.n 3)), .atom (.const (.n 5) (word 0 0 0)),
-    .atom (.assertEq (.n 4) (.n 5)), .atom (.const (.n 6) (word 1 0 0)),
-    .atom (.add (.n 7) (.n 6) (.n 2)), .atom (.const (.n 8) (word 1 0 0)),
-    .atom (.const (.n 9) (word 1 0 0)), .ret [.n 7, .n 8, .n 9]]
+    .atom (.assertEq (.n 2) (.n 0)), .atom (.const (.n 3) (word 0 0)),
+    .atom (.mul (.n 4) (.n 2) (.n 3)), .atom (.const (.n 5) (word 0 0)),
+    .atom (.assertEq (.n 4) (.n 5)), .atom (.const (.n 6) (word 1 0)),
+    .atom (.add (.n 7) (.n 6) (.n 2)), .atom (.const (.n 8) (word 1 0)),
+    .atom (.const (.n 9) (word 1 0)), .ret [.n 7, .n 8, .n 9]]
 
 /-- The expansion of `padding_weight` at `τ = 1`. -/
 def pwBody1 : List Stmt :=
-  [.atom (.const (.n 2) (word 1 0 0)), .atom (.add (.n 3) (.n 0) (.n 2)),
+  [.atom (.const (.n 2) (word 1 0)), .atom (.add (.n 3) (.n 0) (.n 2)),
     .atom (.hint (.bits (.n 3) 0 2 (.stack [.n 4, .n 5]))), .atom (.mul (.n 4) (.n 4) (.n 4)),
     .atom (.load (.n 6) (.n 1) 0), .atom (.mul (.n 7) (.n 4) (.n 6)),
     .atom (.add (.n 8) (.n 4) (.n 6)), .atom (.add (.n 9) (.n 7) (.n 8)),
-    .atom (.mul (.n 5) (.n 5) (.n 5)), .atom (.const (.n 10) (word 1 0 0)),
+    .atom (.mul (.n 5) (.n 5) (.n 5)), .atom (.const (.n 10) (word 1 0)),
     .atom (.add (.n 11) (.n 5) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 4)),
-    .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 5) (.n 13)),
+    .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 5) (.n 13)),
     .atom (.add (.n 15) (.n 4) (.n 14)), .atom (.assertEq (.n 15) (.n 3)),
-    .atom (.const (.n 16) (word 1 0 0)), .atom (.add (.n 17) (.n 4) (.n 16)),
-    .atom (.mul (.n 18) (.n 5) (.n 17)), .atom (.const (.n 19) (word 0 0 0)),
-    .atom (.assertEq (.n 18) (.n 19)), .atom (.const (.n 20) (word 1 0 0)),
+    .atom (.const (.n 16) (word 1 0)), .atom (.add (.n 17) (.n 4) (.n 16)),
+    .atom (.mul (.n 18) (.n 5) (.n 17)), .atom (.const (.n 19) (word 0 0)),
+    .atom (.assertEq (.n 18) (.n 19)), .atom (.const (.n 20) (word 1 0)),
     .atom (.add (.n 21) (.n 20) (.n 5)), .atom (.mul (.n 22) (.n 21) (.n 9)),
     .atom (.copy (.n 23) (.n 12)), .atom (.copy (.n 24) (.n 5)), .ret [.n 22, .n 23, .n 24]]
 

@@ -228,6 +228,8 @@ theorem lane_add (a b : K) : K.lane (a + b) = K.lane a ^^^ K.lane b := rfl
 
 @[simp] theorem lane_ofLane (w : UInt64) : K.lane (K.ofLane w) = w := rfl
 
+@[simp] theorem ofLane_lane (a : K) : K.ofLane (K.lane a) = a := rfl
+
 @[simp] theorem lane_zero : K.lane 0 = 0 := rfl
 
 @[simp] theorem ofLane_zero : K.ofLane 0 = 0 := rfl

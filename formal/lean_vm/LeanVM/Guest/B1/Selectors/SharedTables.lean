@@ -40,8 +40,8 @@ def lpPre : List Stmt :=
   nbEq 15 (.n 13) (.n 14) (.n 12) 4 ++
   [.atom (.mul (.n 51) (.n 5) (.n 10)), .atom (.mul (.n 52) (.n 6) (.n 8))] ++
   nbG 53 (.n 52) (.n 51) 4 ++
-  [.atom (.const (.n 72) (word 2 0 0)), .atom (.mul (.n 73) (.n 0) (.n 72)),
-    .atom (.add (.n 74) (.n 73) (.n 1)), .atom (.const (.n 75) (word 2 0 0)),
+  [.atom (.const (.n 72) (word 2 0)), .atom (.mul (.n 73) (.n 0) (.n 72)),
+    .atom (.add (.n 74) (.n 73) (.n 1)), .atom (.const (.n 75) (word 2 0)),
     .atom (.mul (.n 76) (.n 0) (.n 75))]
 
 /-- `__loop8`'s body. -/
@@ -64,26 +64,26 @@ def ssPre : List Stmt :=
     .atom (.mul (.n 6) (.n 6) (.n 6)), .atom (.mul (.n 7) (.n 7) (.n 7)),
     .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.mul (.n 9) (.n 9) (.n 9)),
     .atom (.mul (.n 10) (.n 10) (.n 10)), .atom (.mul (.n 11) (.n 11) (.n 11)),
-    .atom (.const (.n 12) (word 1 0 0)), .atom (.const (.n 13) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 12) (word 1 0)), .atom (.const (.n 13) (word (imFactor 0) 0)),
     .atom (.mul (.n 14) (.n 6) (.n 13)), .atom (.add (.n 15) (.n 12) (.n 14)),
-    .atom (.const (.n 16) (word 1 0 0)), .atom (.const (.n 17) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 16) (word 1 0)), .atom (.const (.n 17) (word (imFactor 1) 0)),
     .atom (.mul (.n 18) (.n 7) (.n 17)), .atom (.add (.n 19) (.n 16) (.n 18)),
     .atom (.mul (.n 20) (.n 15) (.n 19)),
-    .atom (.const (.n 21) (word 1 0 0)), .atom (.const (.n 22) (word (imFactor 0) 0 0)),
+    .atom (.const (.n 21) (word 1 0)), .atom (.const (.n 22) (word (imFactor 0) 0)),
     .atom (.mul (.n 23) (.n 8) (.n 22)), .atom (.add (.n 24) (.n 21) (.n 23)),
-    .atom (.const (.n 25) (word 1 0 0)), .atom (.const (.n 26) (word (imFactor 1) 0 0)),
+    .atom (.const (.n 25) (word 1 0)), .atom (.const (.n 26) (word (imFactor 1) 0)),
     .atom (.mul (.n 27) (.n 9) (.n 26)), .atom (.add (.n 28) (.n 25) (.n 27)),
     .atom (.mul (.n 29) (.n 24) (.n 28)),
-    .atom (.const (.n 30) (word 1 0 0)), .atom (.const (.n 31) (word (imFactor 2) 0 0)),
+    .atom (.const (.n 30) (word 1 0)), .atom (.const (.n 31) (word (imFactor 2) 0)),
     .atom (.mul (.n 32) (.n 10) (.n 31)), .atom (.add (.n 33) (.n 30) (.n 32)),
     .atom (.mul (.n 34) (.n 29) (.n 33)),
-    .atom (.const (.n 35) (word 1 0 0)), .atom (.const (.n 36) (word (imFactor 3) 0 0)),
+    .atom (.const (.n 35) (word 1 0)), .atom (.const (.n 36) (word (imFactor 3) 0)),
     .atom (.mul (.n 37) (.n 11) (.n 36)), .atom (.add (.n 38) (.n 35) (.n 37)),
     .atom (.mul (.n 39) (.n 34) (.n 38)),
     .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 40)),
     .atom (.mul (.n 42) (.n 41) (.n 20)), .atom (.assertEq (.n 42) (.n 5)),
-    .atom (.const (.n 43) (word 1 0 0)), .atom (.add (.n 44) (.n 43) (.n 39)),
-    .atom (.const (.n 45) (word 1 0 0)),
+    .atom (.const (.n 43) (word 1 0)), .atom (.add (.n 44) (.n 43) (.n 39)),
+    .atom (.const (.n 45) (word 1 0)),
     .callIf (.n 44) "__loop8" [.n 45, .n 39, .n 0, .n 2, .n 3, .n 1, .n 4],
     .atom (.mul (.n 46) (.n 41) (.n 41)), .atom (.mul (.n 47) (.n 46) (.n 46)),
     .atom (.mul (.n 48) (.n 0) (.n 47)), .atom (.mul (.n 49) (.n 48) (.n 47)),
@@ -198,7 +198,7 @@ theorem lName_sel_partial (j : ℕ) (hj : j < 4) :
 
 /-- `Π (1 + b_j·(1 + g^(2^j)))` over pinned bits, as the data writes the factors. -/
 theorem ss_prod {b : ℕ → E} {n : ℕ} (hn : n ≤ 4) (hb : ∀ j < n, b j * b j = b j) :
-    ∏ j ∈ Finset.range n, (1 + b j * word (imFactor j) 0 0) =
+    ∏ j ∈ Finset.range n, (1 + b j * word (imFactor j) 0) =
       gen ^ bitsVal (fun j ↦ decide (b j = 1)) n := by
   rw [← prod_gen_pow_of_bool hb]
   refine Finset.prod_congr rfl fun j hj => ?_

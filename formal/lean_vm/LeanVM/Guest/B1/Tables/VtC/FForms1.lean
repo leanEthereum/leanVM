@@ -24,7 +24,7 @@ theorem vtB01_0F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
       [[([], 1)], [([0], 2)], [([1], 1)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3163 [
     .atom (.load (.n 3220) (.n 13) 0),
-    .atom (.const (.n 3221) (word 2 0 0)),
+    .atom (.const (.n 3221) (word 2 0)),
     .atom (.mul (.n 3222) (.n 3221) (.n 3013)),
     .atom (.load (.n 3223) (.n 13) 1),
     .atom (.mul (.n 3224) (.n 3223) (.n 3222)),
@@ -58,18 +58,18 @@ theorem vtB01_1F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
       [[([], 4)], [([0], 1)], [([14], 2)], [([], 2)], [([2], 1)], [([3], 1)], [([4], 1)], [([], 0)], [([], 0)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3174 [
     .atom (.load (.n 3231) (.n 13) 0),
-    .atom (.const (.n 3232) (word 4 0 0)),
+    .atom (.const (.n 3232) (word 4 0)),
     .atom (.mul (.n 3233) (.n 3231) (.n 3232)),
     .atom (.load (.n 3234) (.n 13) 1),
     .atom (.mul (.n 3235) (.n 3234) (.n 3013)),
     .atom (.add (.n 3236) (.n 3233) (.n 3235)),
-    .atom (.const (.n 3237) (word 2 0 0)),
+    .atom (.const (.n 3237) (word 2 0)),
     .atom (.mul (.n 3238) (.n 3237) (.n 3219)),
     .atom (.load (.n 3239) (.n 13) 2),
     .atom (.mul (.n 3240) (.n 3239) (.n 3238)),
     .atom (.add (.n 3241) (.n 3236) (.n 3240)),
     .atom (.load (.n 3242) (.n 13) 3),
-    .atom (.const (.n 3243) (word 2 0 0)),
+    .atom (.const (.n 3243) (word 2 0)),
     .atom (.mul (.n 3244) (.n 3242) (.n 3243)),
     .atom (.add (.n 3245) (.n 3241) (.n 3244)),
     .atom (.load (.n 3246) (.n 13) 4),
@@ -82,11 +82,11 @@ theorem vtB01_1F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
     .atom (.mul (.n 3253) (.n 3252) (.n 3070)),
     .atom (.add (.n 3254) (.n 3251) (.n 3253)),
     .atom (.load (.n 3255) (.n 13) 7),
-    .atom (.const (.n 3256) (word 0 0 0)),
+    .atom (.const (.n 3256) (word 0 0)),
     .atom (.mul (.n 3257) (.n 3255) (.n 3256)),
     .atom (.add (.n 3258) (.n 3254) (.n 3257)),
     .atom (.load (.n 3259) (.n 13) 8),
-    .atom (.const (.n 3260) (word 0 0 0)),
+    .atom (.const (.n 3260) (word 0 0)),
     .atom (.mul (.n 3261) (.n 3259) (.n 3260)),
     .atom (.add (.n 3262) (.n 3258) (.n 3261)),
     .atom (.add (.n 3263) (.n 14) (.n 3262)),
@@ -133,13 +133,13 @@ theorem vtB01_2F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
       [[([], 2)], [([1, 2], 1)], [([11], 2)], [([5], 1)], [([6], 1)], [([7], 1)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3209 [
     .atom (.load (.n 3266) (.n 13) 0),
-    .atom (.const (.n 3267) (word 2 0 0)),
+    .atom (.const (.n 3267) (word 2 0)),
     .atom (.mul (.n 3268) (.n 3266) (.n 3267)),
     .atom (.mul (.n 3269) (.n 3037) (.n 3048)),
     .atom (.load (.n 3270) (.n 13) 1),
     .atom (.mul (.n 3271) (.n 3270) (.n 3269)),
     .atom (.add (.n 3272) (.n 3268) (.n 3271)),
-    .atom (.const (.n 3273) (word 2 0 0)),
+    .atom (.const (.n 3273) (word 2 0)),
     .atom (.mul (.n 3274) (.n 3273) (.n 3173)),
     .atom (.load (.n 3275) (.n 13) 2),
     .atom (.mul (.n 3276) (.n 3275) (.n 3274)),
@@ -194,13 +194,13 @@ theorem vtB01_3F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
       [[([], 2)], [([1, 3], 1)], [([12], 2)], [([8], 1)], [([9], 1)], [([10], 1)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3233 [
     .atom (.load (.n 3290) (.n 13) 0),
-    .atom (.const (.n 3291) (word 2 0 0)),
+    .atom (.const (.n 3291) (word 2 0)),
     .atom (.mul (.n 3292) (.n 3290) (.n 3291)),
     .atom (.mul (.n 3293) (.n 3037) (.n 3059)),
     .atom (.load (.n 3294) (.n 13) 1),
     .atom (.mul (.n 3295) (.n 3294) (.n 3293)),
     .atom (.add (.n 3296) (.n 3292) (.n 3295)),
-    .atom (.const (.n 3297) (word 2 0 0)),
+    .atom (.const (.n 3297) (word 2 0)),
     .atom (.mul (.n 3298) (.n 3297) (.n 3184)),
     .atom (.load (.n 3299) (.n 13) 2),
     .atom (.mul (.n 3300) (.n 3299) (.n 3298)),
@@ -255,13 +255,13 @@ theorem vtB01_4F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
       [[([], 2)], [([1, 4], 1)], [([13], 2)], [([5, 8], 1), ([6, 10], 1), ([7, 9], 1)], [([5, 9], 1), ([6, 8], 1), ([6, 10], 1), ([7, 9], 1), ([7, 10], 1)], [([5, 10], 1), ([6, 9], 1), ([7, 8], 1), ([7, 10], 1)]] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3257 [
     .atom (.load (.n 3314) (.n 13) 0),
-    .atom (.const (.n 3315) (word 2 0 0)),
+    .atom (.const (.n 3315) (word 2 0)),
     .atom (.mul (.n 3316) (.n 3314) (.n 3315)),
     .atom (.mul (.n 3317) (.n 3037) (.n 3070)),
     .atom (.load (.n 3318) (.n 13) 1),
     .atom (.mul (.n 3319) (.n 3318) (.n 3317)),
     .atom (.add (.n 3320) (.n 3316) (.n 3319)),
-    .atom (.const (.n 3321) (word 2 0 0)),
+    .atom (.const (.n 3321) (word 2 0)),
     .atom (.mul (.n 3322) (.n 3321) (.n 3208)),
     .atom (.load (.n 3323) (.n 13) 2),
     .atom (.mul (.n 3324) (.n 3323) (.n 3322)),
@@ -357,7 +357,7 @@ theorem vtD1_0F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
     σ (.n 3364) = σ (.n 1978) * vtSlots W ev 0
       [[], [([0], 3)], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3303 [
-    .atom (.const (.n 3360) (word 3 0 0)),
+    .atom (.const (.n 3360) (word 3 0)),
     .atom (.mul (.n 3361) (.n 3360) (.n 3013)),
     .atom (.load (.n 3362) (.n 13) 1),
     .atom (.mul (.n 3363) (.n 3362) (.n 3361)),
@@ -381,7 +381,7 @@ theorem vtD1_1F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
     σ (.n 3370) = σ (.n 3364) + σ (.n 1980) * vtSlots W ev 0
       [[], [], [([14], 3)], [], [], [], [], [], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3308 [
-    .atom (.const (.n 3365) (word 3 0 0)),
+    .atom (.const (.n 3365) (word 3 0)),
     .atom (.mul (.n 3366) (.n 3365) (.n 3219)),
     .atom (.load (.n 3367) (.n 13) 2),
     .atom (.mul (.n 3368) (.n 3367) (.n 3366)),
@@ -406,7 +406,7 @@ theorem vtD1_2F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
     σ (.n 3376) = σ (.n 3370) + σ (.n 1982) * vtSlots W ev 0
       [[], [], [([11], 3)], [], [], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3314 [
-    .atom (.const (.n 3371) (word 3 0 0)),
+    .atom (.const (.n 3371) (word 3 0)),
     .atom (.mul (.n 3372) (.n 3371) (.n 3173)),
     .atom (.load (.n 3373) (.n 13) 2),
     .atom (.mul (.n 3374) (.n 3373) (.n 3372)),
@@ -431,7 +431,7 @@ theorem vtD1_3F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
     σ (.n 3382) = σ (.n 3376) + σ (.n 1984) * vtSlots W ev 0
       [[], [], [([12], 3)], [], [], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3320 [
-    .atom (.const (.n 3377) (word 3 0 0)),
+    .atom (.const (.n 3377) (word 3 0)),
     .atom (.mul (.n 3378) (.n 3377) (.n 3184)),
     .atom (.load (.n 3379) (.n 13) 2),
     .atom (.mul (.n 3380) (.n 3379) (.n 3378)),
@@ -456,7 +456,7 @@ theorem vtD1_4F {rd : Reader} {σ : Val} (h : VtF rd σ) {W ev : ℕ → E}
     σ (.n 3388) = σ (.n 3382) + σ (.n 1986) * vtSlots W ev 0
       [[], [], [([13], 3)], [], [], []] := by
   obtain ⟨_, hs⟩ := h.sliceAt 3326 [
-    .atom (.const (.n 3383) (word 3 0 0)),
+    .atom (.const (.n 3383) (word 3 0)),
     .atom (.mul (.n 3384) (.n 3383) (.n 3208)),
     .atom (.load (.n 3385) (.n 13) 2),
     .atom (.mul (.n 3386) (.n 3385) (.n 3384)),

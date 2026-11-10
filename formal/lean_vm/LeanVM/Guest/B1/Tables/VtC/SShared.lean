@@ -30,7 +30,7 @@ open LeanVM.Guest.B1.Fwd
 def vtIdxcW : List E := (List.range 34).map fun t ↦ 1 + gen ^ 2 ^ t
 
 theorem vtIdxc_word {t : ℕ} (ht : t < 34) :
-    word (tbGSquaresBits.getD t 0 ^^^ 1) 0 0 = 1 + gen ^ 2 ^ t := by
+    word (tbGSquaresBits.getD t 0 ^^^ 1) 0 = 1 + gen ^ 2 ^ t := by
   rw [tb_word_eOfNat, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
 theorem vtIdxcT_length : vtIdxcT.length = 68 := by decide +kernel
@@ -46,7 +46,7 @@ theorem idxc_ok (hl : args.length = 20) (h : TbReadsAt rd (vtσ rd w args (.n 66
   obtain ⟨_, ⟨t, ht, rfl⟩, hm⟩ := hst'
   have hc : vtσ rd w args (.n (669 + t)) = 1 + gen ^ 2 ^ t := by
     have := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (vtPre_drop 629 ▸ vtIdxc_check)
-      (show Stmt.atom (.const (.n (669 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0 0)) ∈
+      (show Stmt.atom (.const (.n (669 + t)) (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)) ∈
         vtIdxcT by
           simp only [vtIdxcT, List.mem_flatten, List.mem_map, List.mem_range]
           exact ⟨_, ⟨t, ht, rfl⟩, List.mem_cons_self⟩))
