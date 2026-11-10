@@ -79,8 +79,9 @@ theorem busGrind_kidB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 
   bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦ ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
 
 theorem le_busGrindMax {d : ℕ} (hd : d < 18) :
-    fs (busGrindName d) + fs (grindCheckName (busGrindBits d)) ≤ busGrindMax fs :=
-  le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
+    fs (busGrindName d) + fs (grindCheckName (busGrindBits d)) ≤ busGrindMax fs := by
+  rw [busGrindBits_eq]
+  exact le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
 
 /-- **`squeeze_point_from__L{n}`** from a permutation's challenge and capacity. -/
 theorem spf_kidB {n : ℕ} (hn : n ∈ spfDeployed) (κ : ℕ) {B : ℕ}
