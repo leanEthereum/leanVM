@@ -77,6 +77,9 @@ def phaseH (s u : MachineState) : Word :=
   u.getMem (u.getMem (s.getReg .x10) + 32) +
     BitVec.ofNat 64 (24 * (u.getMem (s.getReg .x10 + 352)).toNat)
 
+/-- The registers the front keeps. -/
+def FR : List Reg := [.x8, .x9, .x18, .x19, .x20, .x21, .x23, .x24, .x25, .x26, .x27]
+
 /-- At `0x8000aa80`, the shape scan's start. -/
 structure Front (s u t : MachineState) (ℓ fc : ℕ) : Prop where
   pc : t.pc = 0x8000aa80
@@ -91,7 +94,7 @@ structure Front (s u t : MachineState) (ℓ fc : ℕ) : Prop where
   x16 : t.getReg .x16 = BitVec.ofNat 64 ℓ + 1
   x17 : t.getReg .x17 = phaseH s u
   x22 : t.getReg .x22 = u.getMem (phaseH s u + 8)
-  regs : ∀ r ∈ [Reg.x8, .x9, .x20, .x26], t.getReg r = u.getReg r
+  regs : ∀ r ∈ FR, t.getReg r = u.getReg r
   off : t.getMem (s.getReg .x10 + 352) = u.getMem (s.getReg .x10 + 352) + 1
   fr : DFrame u t (Within · (s.getReg .x10 + 352) 8)
   hdr : (u.getMem (s.getReg .x10 + 352)).toNat < (u.getMem (u.getMem (s.getReg .x10) + 40)).toNat
@@ -121,7 +124,8 @@ theorem front {s u : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (hf : FrontI
   -- the width factor
   obtain ⟨t2, r2, x10₂, k2, m2, pc2⟩ : ∃ t2, Reaches Image.code t1 t2 ∧
       t2.getReg .x10 = (if ℓ = 0 then 1 else 3 : Word) ∧
-      (∀ r ∈ [Reg.x2, .x8, .x9, .x15, .x20, .x22, .x26], t2.getReg r = t1.getReg r) ∧
+      (∀ r ∈ [Reg.x2, .x8, .x9, .x15, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27],
+        t2.getReg r = t1.getReg r) ∧
       (∀ a, t2.getMem a = t1.getMem a) ∧ t2.pc = 0x8000aa28 := by
     by_cases h0 : ℓ = 0
     · obtain ⟨t2, r2, h2⟩ := Sym.BlockSpec.reaches b8000aa24_spec
@@ -215,9 +219,8 @@ theorem front {s u : MachineState} {ℓ fc : ℕ} (hpre : VsoPre s) (hf : FrontI
     x17 := by rw [b8000aa38_x17 h4]; simp only [x11₃, x12₃, m3, eH]
     x22 := by rw [b8000aa38_x22 h4]; simp only [x11₃, x12₃, m3, eH]
     regs := fun r hr ↦ by
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
-      rcases hr with rfl | rfl | rfl | rfl <;>
-        rw [k4 _ (by decide), k3 _ (by decide), k2 _ (by simp), k1 _ (by decide)]
+      rw [k4 r (mem_of_mem hr _), k3 r (mem_of_mem hr _), k2 r (mem_of_mem hr _),
+        k1 r (mem_of_mem hr _)]
     off := by rw [off4]
     fr := (DFrame.of_same m3 _).trans fr4 fun _ h ↦ h
     hdr := hlt }⟩

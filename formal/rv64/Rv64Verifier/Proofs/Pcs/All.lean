@@ -13,7 +13,7 @@ import Rv64Verifier.Proofs.Pcs.VsoOpenings
 
 import Rv64Verifier.Proofs.Pcs.ExtendSpec
 import Rv64Verifier.Proofs.Pcs.VsoClimb
-import Rv64Verifier.Proofs.Pcs.VsoMerkleFront
+import Rv64Verifier.Proofs.Pcs.VsoLamPowers
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -133,3 +133,63 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.front' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.front
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.scans' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.scans
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.enterPaths' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.enterPaths
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.reload' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.reload
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.Clear.misses' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.Clear.misses
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.MW.inv' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.MW.inv
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.openingAt_keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.openingAt_keep
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.pathOk_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.pathOk_of
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkle_err' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkle_err
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkle_scans' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkle_scans
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkle_enter' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkle_enter
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.roots_keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.roots_keep
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkle_loop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkle_loop
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkle
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkleRust_out' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkleRust_out
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.phaseAt_keep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.phaseAt_keep
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkle_model' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkle_model
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.phaseOk_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.phaseOk_of
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.frontIn_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.frontIn_of
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.merkleIn_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.merkleIn_of
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.lamPowers' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.lamPowers

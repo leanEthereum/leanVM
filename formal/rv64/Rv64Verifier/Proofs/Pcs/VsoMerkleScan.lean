@@ -43,7 +43,9 @@ theorem addr8 (Q : Word) (j : ℕ) :
     show 8 * j + 8 = 8 * (j + 1) by ring]
 
 /-- The registers the first scan keeps. -/
-def KS1 : List Reg := [.x2, .x5, .x8, .x9, .x10, .x11, .x12, .x16, .x17, .x20, .x22, .x26]
+def KS1 : List Reg :=
+  [.x2, .x5, .x8, .x9, .x10, .x11, .x12, .x16, .x17, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25,
+    .x26, .x27]
 
 /-- **The leaves' and the siblings' shape**, from path `j` on. -/
 theorem scan1 {u : MachineState} {P : Word} {n : ℕ} (hPn : P.toNat + 56 * n < 2 ^ 64)
@@ -117,7 +119,8 @@ theorem scan1 {u : MachineState} {P : Word} {n : ℕ} (hPn : P.toNat + 56 * n < 
       · rw [← m2, ← x14₂, he', k2 .x8 (by decide), k1 .x8 (by decide)]
 
 /-- The registers the second scan keeps. -/
-def KS2 : List Reg := [.x2, .x5, .x9, .x16, .x17, .x20, .x22, .x26]
+def KS2 : List Reg :=
+  [.x2, .x5, .x9, .x16, .x17, .x18, .x19, .x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27]
 
 /-- **The leaf indices are the queries**, from path `j` on. -/
 theorem scan2 {u : MachineState} {P Q : Word} {n : ℕ} (hPn : P.toNat + 56 * n < 2 ^ 64)
