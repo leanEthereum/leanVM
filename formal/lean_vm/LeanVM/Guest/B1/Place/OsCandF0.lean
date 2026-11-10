@@ -15,7 +15,7 @@ open LeanVM.Guest.B1.Whir
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem placeOk_0 : PlaceOk (osCfg 0) := by decide +kernel
+theorem placeAll_0 : PlaceAll (osCfg 0) := by decide +kernel
 
 end
 end LeanVM.Guest.B1

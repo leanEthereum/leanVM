@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Place.OsCallV
 public import LeanVM.Guest.B1.Place.OsMean
+public import LeanVM.Guest.B1.Place.OsHonest
+public import LeanVM.Guest.B1.Bits.QueryWindowsAtAll
 
 /-!
 # The placed lift's facts, decided
@@ -51,6 +53,60 @@ def PlaceOk (c : OsCfg) : Prop :=
 
 instance (c : OsCfg) : Decidable (PlaceOk c) := by
   unfold PlaceOk; infer_instance
+
+/-- **A level's numeric facts** the lift uses: its squeezes, its decoder's and its
+`opening_queries`' shapes, its slices of the buffers. -/
+def LvStatic (c : OsCfg) (l : ℕ) : Prop :=
+  let lv := osLvAt c l
+  1 ≤ lv.squeezes ∧ lv.squeezes < ordG ∧ lv.squeezes ≤ c.maxSq ∧ 1 ≤ 128 / lv.depth ∧
+  digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧ lv.posOff < u128Bound ∧
+  (sqDecName lv, lv.depth, lv.capDepth) ∈ queryWindowsShapes ∧
+  (oqEntry (osQueriesName c l lv)).map (·.1) = some (osQueriesName c l lv) ∧
+  (oqS c l).pd + (oqS c l).cd = lv.depth ∧ (oqS c l).cd = lv.capDepth ∧ 1 ≤ (oqS c l).cd ∧
+  oqN c l + 1 < ordG ∧ oqQ c l ≤ lv.squeezes * (128 / lv.depth) ∧
+  lv.foldsOff + (oqS c l).folds ≤ c.nFolds ∧
+  (oqS c l).final = (if l = c.yrLevel then 1 else 0) ∧
+  (l = c.yrLevel → (oqS c l).nHs ≤ c.yrLen + lv.folds) ∧
+  4 * lv.capOff + 2 ^ (lv.capDepth + 2) ≤ 4 * c.capLen ∧ lv.capOff + 2 ^ lv.capDepth ≤ c.capLen ∧
+  lv.posOff + lv.squeezes * (128 / lv.depth) ≤ c.posLen
+
+instance (c : OsCfg) (l : ℕ) : Decidable (LvStatic c l) := by
+  unfold LvStatic; dsimp only; infer_instance
+
+/-- The buffers' indices and sizes the lift reads. -/
+def SizesOk (c : OsCfg) : Prop :=
+  let sz := osSizesF c
+  osIxPT c < sz.length ∧ osIxPT1 c < sz.length ∧ osIxHsF c < sz.length ∧
+  sz.getD 0 0 = 4 * c.capLen ∧ sz.getD 1 0 = c.capLen ∧ sz.getD 5 0 = 3 * c.nFolds ∧
+  sz.getD 11 0 = c.posLen ∧
+  sz.getD (osIxHsF c) 0 = c.yrLen + (osLvAt c c.yrLevel).folds ∧
+  ∀ l < c.levels.length, osIxSqz c l < sz.length ∧ osIxSqz c l ≠ osIxQbp ∧
+    sz.getD (osIxSqz c l) 0 = (c.maxSq + 1) * 5
+
+instance (c : OsCfg) : Decidable (SizesOk c) := by
+  unfold SizesOk; dsimp only; infer_instance
+
+/-- **The placed lift's facts at a candidate**: `PlaceOk`, the buffers' and every level's
+numeric ones. -/
+def PlaceAll (c : OsCfg) : Prop :=
+  PlaceOk c ∧ c.yrLevel < c.levels.length ∧ SizesOk c ∧ ∀ l < c.levels.length, LvStatic c l
+
+instance (c : OsCfg) : Decidable (PlaceAll c) := by
+  unfold PlaceAll; infer_instance
+
+/-- A specialization found in the table is an entry of it. -/
+theorem oqEntry_mem {name : String} (h : (oqEntry name).map (·.1) = some name) :
+    (name, oqLoopOf name, oqShapeOf name) ∈ openingQueriesLoops := by
+  obtain ⟨e, hE, he1⟩ : ∃ e, oqEntry name = some e ∧ e.1 = name := by
+    rcases hE : oqEntry name with _ | e
+    · rw [hE] at h; simp at h
+    · rw [hE] at h; simp at h; exact ⟨e, rfl, h⟩
+  have heq : e = (name, oqLoopOf name, oqShapeOf name) := by
+    obtain ⟨a, b, s⟩ := e
+    simp only at he1
+    simp [oqLoopOf, oqShapeOf, hE, he1]
+  rw [← heq]
+  exact List.mem_of_find?_eq_some hE
 
 end
 end LeanVM.Guest.B1
