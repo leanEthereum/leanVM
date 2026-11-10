@@ -57,8 +57,8 @@ theorem localRound_complete {cur loc vIn : V} {capV : List V} {i a : ℕ}
   have g3 : ∀ s ∈ fsNextT cur (3 * i + 2) (a + 20), GoodS rd S w σ s := fun s hs ↦ mem s
     (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_right _ hs))))
-  have gm : ∀ s ∈ [Stmt.atom (.const (.n (a + 30)) (word 0 0 0)),
-      .atom (.const (.n (a + 31)) (word 0 0 0)),
+  have gm : ∀ s ∈ [Stmt.atom (.const (.n (a + 30)) (word 0 0)),
+      .atom (.const (.n (a + 31)) (word 0 0)),
       keccakA ([.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19), .n (a + 27), .n (a + 29),
         .n (a + 30), .n (a + 31)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 32 + k))],
       GoodS rd S w σ s := fun s hs ↦ mem s
@@ -80,7 +80,7 @@ theorem localRound_complete {cur loc vIn : V} {capV : List V} {i a : ℕ}
     (fun s hs ↦ g2 s (List.mem_cons_of_mem _ hs)))
   have pk3 := fsPackOk_of_vals (fsPack_vals_of_good
     (fun s hs ↦ g3 s (List.mem_cons_of_mem _ hs)))
-  have zc : IsCanonical128 (word 0 0 0) := by
+  have zc : IsCanonical128 (word 0 0) := by
     rw [word_zero]; unfold IsCanonical128; exact limb_zero 2
   have hcanI : AllCanonical (([V.n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19), .n (a + 27),
       .n (a + 29), .n (a + 30), .n (a + 31)] ++ capV).map σ) := by

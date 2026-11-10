@@ -445,7 +445,7 @@ theorem cpFacts_succ {σ : Val} {r : ℕ} (h : CpRankOk Lm.read σ (r + 1)) :
   rw [m8, hy]
 
 /-- Group `gi`'s `κ`, key and size. -/
-theorem cp_group_meaning {σ : Val} {gi : ℕ} (hgi : gi < 9) {eb : ℕ} (heb : eb ≤ 32)
+theorem cp_group_meaning {σ : Val} {gi : ℕ} (hgi : gi < 9) {eb : ℕ} (heb : eb ≤ 33)
     (hkb : σ (.n (2 + cpSrc gi)) = gen ^ eb)
     (hsq : ∀ j < 34, LoadHolds Lm.read (σ (.n 1)) j (gen ^ 2 ^ j))
     (hrk : ∀ k < 34, LoadHolds Lm.read (σ (.n 1)) (178 + k) (gen ^ (k * rankStride)))
@@ -469,12 +469,22 @@ theorem cp_group_meaning {σ : Val} {gi : ℕ} (hgi : gi < 9) {eb : ℕ} (heb : 
   · rw [hch _ le_rfl, List.take_length, cpChainExp_eq gi hgi, e1, ← pow_mul, mul_comm] at hsz
     exact hsz
 
+/-- A group whose first column has no adjustment range-checks its `kappa_base` entry itself:
+`g^x`, `x < 34`. -/
+theorem cp_src_pow {σ : Val} {gi : ℕ} (h0 : cpAdj gi = 0) (h : CpGroupOk Lm.read σ gi) :
+    ∃ x < 34, σ (.n (2 + cpSrc gi)) = gen ^ x := by
+  obtain ⟨hkv, hq, hrc, -⟩ := h
+  obtain ⟨x, hx, ex⟩ := cp_rc34 hμ Lm hq hrc
+  refine ⟨x, hx, ?_⟩
+  rw [hkv, h0, tb_word_two_pow (by omega), pow_zero, mul_one] at ex
+  exact ex
+
 end
 
 /-- **`certify_placement` is sound** on every memory of at most `2^32` words. -/
 theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) :
     certify_placement_Spec Lm.read := by
-  intro logMem hs kb sq rets hlm hl hhs hkb hsq hrk h
+  intro logMem ds kb sq rets hlm hl hkb0 hsq hrk h
   obtain ⟨fn, hf, hp, hb⟩ := cpFound
   obtain ⟨σ, hpar, hpre, hret⟩ := (tb_rel_pre hf hb cpPre_noRet _ _).mp h
   rw [hp] at hpar
@@ -489,16 +499,44 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, true_and] at hpre
   obtain ⟨hloads, hgroups, l138, c139, rc138, m143, l144, c145, m146, l145, m147, l148, hranks,
     hcols, e406, e407⟩ := hpre
+  -- the table logs, from the groups' own range checks
+  have hds : ∀ t < 6, LoadHolds Lm.read kb (2 + t) (σ (.n (2 + (2 + t)))) := fun t ht ↦ by
+    rw [← h0]; exact hloads (2 + t) (by omega)
+  have hsrc : ∀ t < 6, ∃ x < 34, σ (.n (2 + (2 + t))) = gen ^ x := fun t ht ↦ by
+    obtain ⟨gi, hgi, hs2, ha0⟩ : ∃ gi < 9, cpSrc gi = 2 + t ∧ cpAdj gi = 0 :=
+      ⟨t + 3, by omega, by interval_cases t <;> decide, by interval_cases t <;> decide⟩
+    rw [← hs2]
+    exact cp_src_pow hμ Lm ha0 (holds_cpGroup hgi (hgroups gi hgi))
+  choose! xs hxs34 hxs using hsrc
+  set hs : List ℕ := (List.range 6).map xs with hhsdef
+  have hl' : hs.length = 6 := by simp [hs]
+  have hhs : ∀ h ∈ hs, h < 34 := fun h hh ↦ by
+    obtain ⟨t, ht, rfl⟩ := List.mem_map.1 hh
+    exact hxs34 t (List.mem_range.1 ht)
+  have hdsE : ds = hs.map (gen ^ ·) := by
+    refine List.ext_getElem (by simp [hs, hl]) fun t h1 h2 ↦ ?_
+    have ht : t < 6 := by omega
+    have hk : LoadHolds Lm.read kb (t + 1 + 1) ds[t] := by
+      have := hkb0 (t + 1 + 1) (by simp; omega)
+      simpa only [List.getElem_cons_succ] using this
+    have e := hds t ht
+    rw [show 2 + t = t + 1 + 1 by omega] at e
+    rw [tb_loadHolds_unique hk e, show t + 1 + 1 = 2 + t by omega, hxs t ht]
+    simp [hs]
+  have hkb : TbReadsAt Lm.read kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) := by
+    rw [← hdsE]; exact hkb0
+  refine ⟨hs, hl', hdsE, hhs, ?_⟩
+  have hl : hs.length = 6 := hl'
   -- the base `[0, log_mem, τ…]` and the tables
   set ebL : List ℕ := 0 :: logMem :: hs with hebL
   have hebLlen : ebL.length = 8 := by simp [ebL, hl]
   have hkb' : TbReadsAt Lm.read kb (ebL.map (gen ^ ·)) := by simpa [ebL] using hkb
-  have heb : ∀ i < 8, σ (.n (2 + i)) = gen ^ ebL.getD i 0 ∧ ebL.getD i 0 ≤ 32 := fun i hi ↦ by
+  have heb : ∀ i < 8, σ (.n (2 + i)) = gen ^ ebL.getD i 0 ∧ ebL.getD i 0 ≤ 33 := fun i hi ↦ by
     refine ⟨tb_loadHolds_unique (by rw [← h0]; exact hloads i hi)
       ((tbReadsAt_map_iff.mp hkb') i (by omega)), ?_⟩
     rcases i with _ | _ | i
     · simp [ebL]
-    · simpa [ebL] using hlm
+    · simp only [ebL, List.getD_cons_succ, List.getD_cons_zero]; omega
     · simp only [ebL, List.getD_cons_succ]
       rw [List.getD_eq_getElem _ _ (by omega)]
       have := hhs _ (List.getElem_mem (by omega : i < hs.length))

@@ -125,9 +125,9 @@ theorem in_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
       (by rw [h10]; exact msl')
   have gA : ∀ a, Stmt.atom a ∈ vkInT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
   have c4108 : σ (.n 1380) = Guest.word 0 0 0 :=
-    gA (.const (.n 1380) (Guest.word 0 0 0)) (by simp [vkInT])
+    gA (.const (.n 1380) (Guest.word 0 0)) (by simp [vkInT])
   have c4109 : σ (.n 1381) = Guest.word 0 0 0 :=
-    gA (.const (.n 1381) (Guest.word 0 0 0)) (by simp [vkInT])
+    gA (.const (.n 1381) (Guest.word 0 0)) (by simp [vkInT])
   refine ⟨by rw [e3976, h3699], e3977, by rw [e3979, h9], fun j hj ↦ (e3980 j hj).trans (w_i hj),
     e4104, by rw [e4107, h9, h6], by rw [c4108, word_zero], by rw [c4109, word_zero],
     fun j hj ↦ (e4110 j hj).trans (hw j hj), ?_, H⟩

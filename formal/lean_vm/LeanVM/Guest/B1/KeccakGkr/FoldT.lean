@@ -72,7 +72,7 @@ theorem foldLevelT_holds {src : ℕ → ℕ} {b : ℕ} {a : V} {t : ℕ} (ht : t
   have a2 := hall _ m2
   have a3 := hall _ m3
   have lB := hall (.load (.n (b + 195 * t)) a t) (by simp [foldLevelT])
-  have c1 := hall (.const (.n (b + 195 * t + 1)) (word 1 0 0)) (by simp [foldLevelT])
+  have c1 := hall (.const (.n (b + 195 * t + 1)) (word 1 0)) (by simp [foldLevelT])
   have e2 := hall (.add (.n (b + 195 * t + 2)) (.n (b + 195 * t + 1)) (.n (b + 195 * t)))
     (by simp [foldLevelT])
   simp only [Atom.Holds] at a1 a2 a3 lB c1 e2

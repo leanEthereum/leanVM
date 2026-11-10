@@ -40,7 +40,8 @@ the value).
   the bytecode of the guest's shape (`23` coordinates) and some proof `π`, the deferring verifier
   accepts `π` for the public input under the seed (`verifyDeferred`, V:2344), with
   `DeferredClaim.cells c` at `defer_out`;
-* `VerifySubPre`: `g_squares` holds the exponent table (`ExpTables`);
+* `VerifySubPre`: `g_squares` holds the exponent table and its window section (`ExpTables`,
+  `ExpWinTab`);
 * `verify_sub_Spec bytecode`: on a memory image of at most `2^32` words, under `VerifySubPre`, the
   relation gives the meaning, for the bytecode of `2^23` words (`bytecodeWords guest`).
 
@@ -71,10 +72,10 @@ def MeaningVerifySub (bytecode : List K) (rd : Reader) : List E → List E → P
         ReadsAt rd out (Node.DeferredClaim.cells c)
   | _, _ => False
 
-/-- What `verify_sub`'s callers establish: the exponent table at `g_squares` (`exponent_tables`,
-B1-a's `ExpTables`). -/
+/-- What `verify_sub`'s callers establish: the exponent table at `g_squares` with its window
+section (`exponent_tables`, B1-a's `ExpTables` and `ExpWinTab`). -/
 def VerifySubPre (rd : Reader) : List E → Prop
-  | [_, _, _, _, sq, _] => ExpTables rd sq
+  | [_, _, _, _, sq, _] => ExpTables rd sq ∧ ExpWinTab rd sq
   | _ => False
 
 /-- **`verify_sub` is sound** (G:3321-3513; TRIAGE #71): on a memory image of at most `2^32`
