@@ -42,7 +42,7 @@ noncomputable def osCallsF (c : ℕ) : List ℕ :=
 
 /-- Its frame and buffers. -/
 noncomputable def osHeadF (c : ℕ) : ℕ :=
-  fsFast ("open_stacked__L" ++ natStr c) + (B1.osSizesL (osCfg c)).sum
+  fsFast ("open_stacked__L" ++ natStr c) + (B1.osSizesF (osCfg c)).sum
 
 /-- Its calls `a` to `a + n - 1`. -/
 noncomputable def osPartF (c a n : ℕ) : ℕ := (((osCallsF c).drop a).take n).sum
