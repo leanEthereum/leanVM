@@ -313,7 +313,7 @@ theorem any136_ok : anyOk (coreProgram.getD 343 default) "__loop17" 136 22 15 21
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem any136_idx : coreProgram.indexOf? "__loop17" = some 349 := by decide +kernel
+theorem any136_idx : coreProgram.indexOf? "__loop17" = some 343 := by decide +kernel
 
 
 -- `__loop18`: 17 claims a frame, 8 blocks.
@@ -322,7 +322,7 @@ theorem any17_ok : anyOk (coreProgram.getD 344 default) "__loop18" 17 19 12 18 2
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_idx : coreProgram.indexOf? "__loop18" = some 350 := by decide +kernel
+theorem any17_idx : coreProgram.indexOf? "__loop18" = some 344 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 344 default))).nb = 8 := by

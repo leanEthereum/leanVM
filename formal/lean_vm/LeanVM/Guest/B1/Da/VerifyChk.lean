@@ -28,9 +28,9 @@ set_option maxRecDepth 100000 in
 theorem l20_ok : l20Ok (coreProgram.getD 384 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_idx : coreProgram.indexOf? "__loop21" = some 387 ∧
-    coreProgram.indexOf? "__loop22" = some 388 ∧ coreProgram.indexOf? "__loop23" = some 389 ∧
-    coreProgram.indexOf? "__loop24" = some 390 := by
+theorem dv_loops_idx : coreProgram.indexOf? "__loop21" = some 381 ∧
+    coreProgram.indexOf? "__loop22" = some 382 ∧ coreProgram.indexOf? "__loop23" = some 383 ∧
+    coreProgram.indexOf? "__loop24" = some 384 := by
   decide +kernel
 
 end

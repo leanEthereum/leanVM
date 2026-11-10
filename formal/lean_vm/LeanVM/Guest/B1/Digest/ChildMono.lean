@@ -370,7 +370,7 @@ theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st
 
 -- `__loop19`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
 set_option maxRecDepth 100000 in
-theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 368 := by decide +kernel
+theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 362 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 362 default))).nb = 64 := by
@@ -395,7 +395,7 @@ theorem mono136_ok :
 
 -- `__loop20`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 369 := by decide +kernel
+theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 363 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 363 default))).nb = 8 := by

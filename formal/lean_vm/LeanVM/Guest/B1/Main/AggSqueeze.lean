@@ -88,7 +88,7 @@ set_option maxRecDepth 100000 in
 theorem l26_ok : l26Ok (coreProgram.getD 409 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? "__loop34" = some 415 := by decide +kernel
+theorem l26_idx : coreProgram.indexOf? "__loop34" = some 409 := by decide +kernel
 
 /-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
 the next record holds the power times `λ²` and the running claim plus the power times
@@ -232,7 +232,7 @@ set_option maxRecDepth 100000 in
 theorem l27_ok : l27Ok (coreProgram.getD 411 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? "__loop35" = some 417 := by decide +kernel
+theorem l27_idx : coreProgram.indexOf? "__loop35" = some 411 := by decide +kernel
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
 power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r = 1 + r1`, `r1`

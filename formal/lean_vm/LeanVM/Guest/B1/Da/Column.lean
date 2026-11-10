@@ -40,7 +40,7 @@ variable {rd : Reader}
 variable {C : CallRel} {Vm : FrameMap}
 
 theorem l21_stepW (hVm : UnfoldsV rd C Vm) (hok : l21Ok (coreProgram.getD 397 default) = true)
-    (hidx : coreProgram.indexOf? "__loop25" = some 403) {x : E} {ps : List E}
+    (hidx : coreProgram.indexOf? "__loop25" = some 397) {x : E} {ps : List E}
     (h : C "__loop25" (x :: ps) []) :
     (∀ N lv rb xb xb2, ps = [N, lv, rb, xb, xb2] →
       CellStepW C rd (Vm "__loop25" (x :: ps) []) lv rb xb xb2 x) ∧
@@ -88,7 +88,7 @@ product with the dual codeword's entries `256 h + e` steps the region's running 
 `512 + h` to `513 + h`. -/
 theorem col_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd))
     (hcol : colOk = true) (h21 : l21Ok (coreProgram.getD 397 default) = true)
-    (hidx : coreProgram.indexOf? "__loop25" = some 403) {z zs tl cf off rb : E} {h r : ℕ}
+    (hidx : coreProgram.indexOf? "__loop25" = some 397) {z zs tl cf off rb : E} {h r : ℕ}
     (hh : h < 128) (hr : r < ordG) (hvec : MeaningDaVector rd [z] [zs, tl, cf, off])
     (hrel : C "da_verify_column" [gen ^ h, gen ^ r, rb, zs, tl, cf, off] []) :
     ∀ i < r, (colSyms Vm [gen ^ h, gen ^ r, rb, zs, tl, cf, off] i).length = 256 ∧

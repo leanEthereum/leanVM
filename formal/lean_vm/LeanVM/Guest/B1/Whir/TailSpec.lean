@@ -31,7 +31,7 @@ theorem tailRounds_eq : ∀ (k : ℕ) (t : E) (q : List E) (F : List E) (G : Lis
         VerifierProgram.sampleChallenge.bind fun c ↦ VerifierProgram.ret (p.2 ++ [c], polyEval
             p.1.quad c)
   | 0, t, q, F, G, lf => by
-    simp only [tailRoundsT, foldRoundsT, VerifierProgram.foldProofOfWork, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+    simp only [tailRoundsT, foldRoundsT, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
         VerifierProgram.bind_assoc, VerifierProgram.ret_bind,
       ↓reduceIte, VerifierProgram.sampleChallenge]
   | k + 1, t, q, F, G, lf => by

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Selectors.ColumnSelector
 
-  B1 for `column_selector`: its 29 specializations rebuild a column's offset from hinted
+  B1 for `column_selector`: its 33 specializations rebuild a column's offset from hinted
   base-16 digits below `2^28` and return the eq weight of its bits above `κ`, a nibble at a time
   off the opening point's tables.
 -/
@@ -25,7 +25,7 @@ digit's bits below `κ` are zero and the strided table holds it, and the selecto
 of `o`'s bits `κ .. 27`.
 
 The specialization `column_selector__L{κ}` is the template `csPre κ` (`csFound`, by kernel
-evaluation for all `κ < 29`): the hint, nibble `k` from value `csC κ k` (`csNibT`), the assertion
+evaluation for all `κ < 33`): the hint, nibble `k` from value `csC κ k` (`csNibT`), the assertion
 and the copy of the selector.
 -/
 
@@ -210,9 +210,9 @@ noncomputable def csCheck (κ : ℕ) : Bool :=
       tbStmtsEqb fn.body (csPre κ ++ [.ret [.n (csRet κ)]])
   | none => false
 
-theorem csCheck_all : (List.range 29).all csCheck = true := by decide +kernel
+theorem csCheck_all : (List.range 33).all csCheck = true := by decide +kernel
 
-theorem csFound {κ : ℕ} (hκ : κ < 29) : ∃ fn : Fn,
+theorem csFound {κ : ℕ} (hκ : κ < 33) : ∃ fn : Fn,
     coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n 0, .n 1, .n 2] ∧
       fn.body = csPre κ ++ [.ret [.n (csRet κ)]] := by
   have h := List.all_eq_true.mp csCheck_all κ (List.mem_range.mpr hκ)
@@ -378,7 +378,7 @@ theorem cs_sel_prod {p p1 : List E}
 end Math
 
 /-- **`column_selector` is sound**. -/
-theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
+theorem column_selector_sound {κ : ℕ} (hκ : κ < 33) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
     {args rets : List E} (h : coreProgram.Rel Lm.read (lName "column_selector" κ) args rets) :
     ColSelOut κ Lm.read args rets := by
   obtain ⟨fn, hf, hp, hb⟩ := csFound hκ

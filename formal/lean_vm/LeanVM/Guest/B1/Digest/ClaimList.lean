@@ -36,11 +36,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_last__L{k}` -/
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (332 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (326 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (332 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (326 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -54,7 +54,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (332 + k) default
+  set f := coreProgram.getD (326 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -136,7 +136,7 @@ theorem big_ok : grpOk (coreProgram.getD 324 default) "__loop15" 136 21 565 20 =
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem big_idx : coreProgram.indexOf? "__loop15" = some 330 := by decide +kernel
+theorem big_idx : coreProgram.indexOf? "__loop15" = some 324 := by decide +kernel
 
 
 -- The group frame loop `__loop16` (17 claims, 8 blocks).
@@ -145,7 +145,7 @@ theorem grp_ok : grpOk (coreProgram.getD 325 default) "__loop16" 17 18 86 17 = t
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_idx : coreProgram.indexOf? "__loop16" = some 331 := by decide +kernel
+theorem grp_idx : coreProgram.indexOf? "__loop16" = some 325 := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 325 default))).nb = 8 := by

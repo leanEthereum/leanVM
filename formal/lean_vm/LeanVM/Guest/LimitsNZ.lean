@@ -199,7 +199,7 @@ theorem whirLevelsNZ_refines (logN laneFolds : ℕ) (eb : List E → E) (levels 
   | cons level rest ih =>
     intro index s
     unfold whirLevelsNZ whirLevelsT
-    apply Refines.bind (foldRoundsNZ_refines _ _ _)
+    apply Refines.bind (foldRoundsNZ_refines _ _ _ _)
     intro p
     obtain ⟨s', lf⟩ := p
     dsimp only
