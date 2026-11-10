@@ -22,7 +22,7 @@ with the level's row `lv` of the tables matching the Spec's level: the capacity 
 `F3`), `λ` and the batching nonce's permutation, the out-of-domain points (`MidEqs`); the
 samples and the squeezes' capacities (`lvAt_words`); the rounds' challenges in memory
 (`roundsMem_of`); a non-final level's claim, the next level's less the deficit (`midClaim`,
-`hbat_of`); the final level's sponges (`FinEqs`), its terminal (`finEnd`) and closing rounds'
+`hbat_of`); the final level's sponges (`FinEqs`), its terminal (`finEnd_w`) and closing rounds'
 calls (`tailC_of`).
 -/
 
@@ -365,7 +365,7 @@ theorem tailRun_length : ∀ (pairs : List (E × E)) (cap : List E) (cl : E),
 
 /-- **The final level's end**: with `tr` the guest's closing rounds from its capacity and claim
 after the folds, the terminal's target, inner sum, residual and point. -/
-theorem finEnd {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinStep logN lane index L w)
+theorem finEnd_w {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinStep logN lane index L w)
     {lv : OsLv} (hfold : L.level.fold = lv.folds) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
     {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.gammas.length)
