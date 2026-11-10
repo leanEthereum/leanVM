@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- `idxc_tab`'s stores. -/
 def vtIdxcT : List Stmt :=
   ((List.range 34).map fun t ↦ [.atom (.const (.n (669 + t))
-    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0 0)), .atom (.load (.n (669 + t)) (.n 668) t)]).flatten
+    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n (669 + t)) (.n 668) t)]).flatten
 
 theorem vtIdxc_check : tbStmtsEqb vtIdxcT ((vtAt 629).take vtIdxcT.length) = true := by
   decide +kernel
@@ -58,7 +58,7 @@ theorem vt_idxc {rd : Reader} {σ : Val} (h : VtH rd σ) :
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this
   obtain ⟨e1, e2⟩ := this
   rw [e1] at e2
-  have e : word (tbGSquaresBits.getD t 0 ^^^ 1) 0 0 = 1 + gen ^ 2 ^ t := by
+  have e : word (tbGSquaresBits.getD t 0 ^^^ 1) 0 = 1 + gen ^ 2 ^ t := by
     rw [tb_word_eOfNat, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
   rw [← e]
   exact e2

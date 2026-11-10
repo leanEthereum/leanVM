@@ -26,7 +26,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- Block `t`'s factor word. -/
-def imFac (t : ℕ) : E := word (imFactor t) 0 0
+def imFac (t : ℕ) : E := word (imFactor t) 0
 
 /-- The running product after block `t`. -/
 def imAccV (zs : List E) : ℕ → E

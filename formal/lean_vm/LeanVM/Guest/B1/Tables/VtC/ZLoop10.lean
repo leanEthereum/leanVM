@@ -45,17 +45,17 @@ theorem l10_body {rd : Reader} {N rounds chi gn cprod x : E} (e : ℕ)
     x * x * x, x * x * x * (x * x * x), x * x * x * (x * x * x) * x,
     rounds * (x * x * x * (x * x * x) * x), cur, claim, ncur,
     nclaim, rk, vtWInvGen, gn * vtWInvGen, y, chi * y, cprod * x, cp, cp * rk, cprod * x,
-    word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0], ?_, ?_⟩
+    word 2 0, x * word 2 0, x * word 2 0 + N, word 2 0, x * word 2 0], ?_, ?_⟩
   · rw [hp]; rfl
   rw [hb]
   simp only [l10Body, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   refine ⟨rfl, rfl, rfl, rfl, rfl, l5, l6, hc, rfl, rfl, hy, rfl, lch, l12, l13, rfl, lc0, rfl, rfl,
     lc1, rfl, rfl, rfl, rfl, rfl, ?_, ?_, trivial⟩
-  · show IsInK (x * word 2 0 0 + N)
+  · show IsInK (x * word 2 0 + N)
     rw [tb_word_gen]; exact hK
   · intro h0
-    change x * word 2 0 0 + N ≠ 0 at h0
-    change coreProgram.relN rd e "__loop9" [x * word 2 0 0, N, rounds, chi, gn, cprod] []
+    change x * word 2 0 + N ≠ 0 at h0
+    change coreProgram.relN rd e "__loop9" [x * word 2 0, N, rounds, chi, gn, cprod] []
     rw [tb_word_gen] at h0 ⊢
     exact hnext h0
 

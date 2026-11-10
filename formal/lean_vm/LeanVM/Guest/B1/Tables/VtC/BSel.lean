@@ -128,7 +128,7 @@ theorem vtc_selblock (hl : args.length = 20) {w b t pos : ℕ} {prev : Option �
       ((vtAt pos).take (vtSelT w b t prev es gs gw).length) = true) (ht : t < 6)
     (hes : es < w + 2) (hgs : gs < w + 4)
     (hptr : 0 < t → σv (.n es) * vtW288 = σv (.n 705) * gen ^ (288 * t) ∧
-      σv (.n gs) * word gw 0 0 = σv (.n 706) * gen ^ (144 * t))
+      σv (.n gs) * word gw 0 = σv (.n 706) * gen ^ (144 * t))
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hml : point.length < 33)
     (hdv : σv (.n (vtShLen t)) = gen ^ d)
     (hrun : RunTables rd (σv (.n 705) * gen ^ (288 * t)) (σv (.n 706) * gen ^ (144 * t)) d
@@ -164,7 +164,7 @@ theorem vtc_selblock (hl : args.length = 20) {w b t pos : ℕ} {prev : Option �
     · have ht' : t ≠ 0 := by omega
       have c1 := hG (.atom (.const (.n (w + 1)) vtW288)) (by simp [vtSelT, ht'])
       have m2 := hG (.atom (.mul (.n (w + 2)) (.n es) (.n (w + 1)))) (by simp [vtSelT, ht'])
-      have c3 := hG (.atom (.const (.n (w + 3)) (word gw 0 0))) (by simp [vtSelT, ht'])
+      have c3 := hG (.atom (.const (.n (w + 3)) (word gw 0))) (by simp [vtSelT, ht'])
       have m4 := hG (.atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))) (by simp [vtSelT, ht'])
       simp only [fixNe, GoodS, Good, show es < w + 2 ∧ w + 1 < w + 2 from ⟨hes, by omega⟩,
         show gs < w + 4 ∧ w + 3 < w + 4 from ⟨hgs, by omega⟩] at c1 m2 c3 m4

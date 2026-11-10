@@ -65,7 +65,7 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
 theorem vt_xi_pow {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 2589) = 1 ∧ σ (.n 2590) = σ (.n 2588) ∧ σ (.n 2591) = σ (.n 2588) ^ 2 ∧
       σ (.n 2592) = σ (.n 2588) ^ 3 ∧ σ (.n 2593) = σ (.n 2588) ^ 4 := by
-  have a0 := h.atomAt 2636 (.const (.n 2589) (word 1 0 0)) (by decide +kernel)
+  have a0 := h.atomAt 2636 (.const (.n 2589) (word 1 0)) (by decide +kernel)
   have a1 := h.atomAt 2637 (.mul (.n 2590) (.n 2589) (.n 2588)) (by decide +kernel)
   have a2 := h.atomAt 2638 (.mul (.n 2591) (.n 2590) (.n 2588)) (by decide +kernel)
   have a3 := h.atomAt 2639 (.mul (.n 2592) (.n 2591) (.n 2588)) (by decide +kernel)

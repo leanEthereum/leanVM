@@ -53,7 +53,7 @@ theorem vtWFinalPc_eq : vtWFinalPc = Verifier.gpow (2 ^ 19 - 1) := by
     show K.ofBits 12261764870545049476 = Parameters.addressOfIndex (2 ^ 19 - 1) by decide +kernel]
 
 theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 783) = σ (.n 14) + 1 := by
-  have a1 := h.atomAt 770 (.const (.n 782) (word 1 0 0)) (by decide +kernel)
+  have a1 := h.atomAt 770 (.const (.n 782) (word 1 0)) (by decide +kernel)
   have a2 := h.atomAt 771 (.add (.n 783) (.n 14) (.n 782)) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
   rw [a2, a1, tb_word_one]
@@ -61,7 +61,7 @@ theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n 783) = σ (.n
 theorem vt_pushPad_var {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 1820) = σ (.n 955) + σ (.n 1815) + (1 + σ (.n 1393)) + σ (.n 25) := by
   have a1 := h.atomAt 1854 (.add (.n 1816) (.n 955) (.n 1815)) (by decide +kernel)
-  have a2 := h.atomAt 1855 (.const (.n 1817) (word 1 0 0)) (by decide +kernel)
+  have a2 := h.atomAt 1855 (.const (.n 1817) (word 1 0)) (by decide +kernel)
   have a3 := h.atomAt 1856 (.add (.n 1818) (.n 1817) (.n 1393)) (by decide +kernel)
   have a4 := h.atomAt 1857 (.add (.n 1819) (.n 1816) (.n 1818)) (by decide +kernel)
   have a5 := h.atomAt 1858 (.add (.n 1820) (.n 1819) (.n 25)) (by decide +kernel)

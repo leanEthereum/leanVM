@@ -85,7 +85,7 @@ def pfMul (F : List (ℕ × PF)) (x y : ℕ) : Option PF :=
 
 /-- The fact a constant gives: `word (2^k)` for `k ∈ ks`. -/
 def constFact (ks : List ℕ) (c : E) : Option PF :=
-  (ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0 0))).map PF.pw
+  (ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0))).map PF.pw
 
 /-- The fact a load gives: a word of a buffer whose words at `offs` are `g^` at most `c`. -/
 def loadFact (pws : List (ℕ × ℕ × List ℕ)) (p off : ℕ) : Option PF :=
@@ -152,7 +152,7 @@ theorem pfMul_sound {F : List (ℕ × PF)} (hF : ∀ q ∈ F, q.2.Holds σ q.1) 
 theorem constFact_sound {ks : List ℕ} {c : E} {d : ℕ} {f : PF} (hc : σ (.n d) = c)
     (h : constFact ks c = some f) : f.Holds σ d := by
   unfold constFact at h
-  cases hk : ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0 0)) with
+  cases hk : ks.find? (fun k ↦ decide (k < 64) && tbEEqb c (word (2 ^ k) 0)) with
   | none => rw [hk] at h; simp at h
   | some k =>
     rw [hk] at h
