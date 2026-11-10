@@ -20,5 +20,9 @@ set_option maxRecDepth 100000 in
 theorem kujstaticRange_18 : kujStaticRange 18 30 := by
   unfold kujStaticRange; decide +kernel
 
+set_option maxRecDepth 100000 in
+theorem kujstaticRange_48 : kujStaticRange 48 26 := by
+  unfold kujStaticRange; decide +kernel
+
 end
 end LeanVM.Guest

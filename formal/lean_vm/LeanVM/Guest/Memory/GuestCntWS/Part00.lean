@@ -20,5 +20,9 @@ set_option maxRecDepth 100000 in
 theorem kusstaticRange_18 : kusStaticRange 18 30 := by
   unfold kusStaticRange; decide +kernel
 
+set_option maxRecDepth 100000 in
+theorem kusstaticRange_48 : kusStaticRange 48 26 := by
+  unfold kusStaticRange; decide +kernel
+
 end
 end LeanVM.Guest

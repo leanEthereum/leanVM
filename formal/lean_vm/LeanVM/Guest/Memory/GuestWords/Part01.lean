@@ -9,11 +9,6 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem wsplit_19_96 : blockR (wlookJ 19) (womLookJ 19) true [] Data.core19.params Data.core19.name (Data.core19.body.drop 96)
-    ([], []) = some (⟨0, []⟩, []) := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
 theorem wstaticRange_20 : wStaticRange 20 16 := by
   unfold wStaticRange; decide +kernel
 

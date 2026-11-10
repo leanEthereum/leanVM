@@ -44,5 +44,9 @@ set_option maxRecDepth 100000 in
 theorem kwsstaticRange_277 : kwsStaticRange 277 30 := by
   unfold kwsStaticRange; decide +kernel
 
+set_option maxRecDepth 100000 in
+theorem kwsstaticRange_307 : kwsStaticRange 307 7 := by
+  unfold kwsStaticRange; decide +kernel
+
 end
 end LeanVM.Guest

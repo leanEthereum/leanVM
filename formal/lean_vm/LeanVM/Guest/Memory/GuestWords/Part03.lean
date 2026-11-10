@@ -21,15 +21,15 @@ theorem wstaticRange_86 : wStaticRange 86 24 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wstaticRange_110 : wStaticRange 110 25 := by
+theorem wstaticRange_110 : wStaticRange 110 24 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wstaticRange_135 : wStaticRange 135 27 := by
+theorem wstaticRange_134 : wStaticRange 134 27 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wstaticRange_162 : wStaticRange 162 24 := by
+theorem wstaticRange_161 : wStaticRange 161 25 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -41,11 +41,7 @@ theorem wstaticRange_211 : wStaticRange 211 26 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wstaticRange_237 : wStaticRange 237 26 := by
-  unfold wStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem wstaticRange_263 : wStaticRange 263 20 := by
+theorem wstaticRange_237 : wStaticRange 237 28 := by
   unfold wStaticRange; decide +kernel
 
 end

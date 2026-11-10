@@ -9,51 +9,31 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_448 : kwdStaticRange 448 30 := by
+theorem kwdstaticRange_412 : kwdStaticRange 412 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_478 : kwdStaticRange 478 30 := by
+theorem kwdstaticRange_442 : kwdStaticRange 442 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_508 : kwdStaticRange 508 30 := by
+theorem kwdstaticRange_472 : kwdStaticRange 472 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_538 : kwdStaticRange 538 30 := by
+theorem kwdstaticRange_502 : kwdStaticRange 502 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_568 : kwdStaticRange 568 30 := by
+theorem kwdstaticRange_532 : kwdStaticRange 532 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_598 : kwdStaticRange 598 30 := by
+theorem kwdstaticRange_562 : kwdStaticRange 562 30 := by
   unfold kwdStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwdstaticRange_628 : kwdStaticRange 628 30 := by
-  unfold kwdStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kwdstaticRange_658 : kwdStaticRange 658 30 := by
-  unfold kwdStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kwdstaticRange_688 : kwdStaticRange 688 30 := by
-  unfold kwdStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kwdstaticRange_718 : kwdStaticRange 718 30 := by
-  unfold kwdStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kwdstaticRange_748 : kwdStaticRange 748 30 := by
-  unfold kwdStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kwdstaticRange_778 : kwdStaticRange 778 30 := by
+theorem kwdstaticRange_592 : kwdStaticRange 592 30 := by
   unfold kwdStaticRange; decide +kernel
 
 end

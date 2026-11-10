@@ -43,7 +43,7 @@ theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (345 + k) de
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 360 + (k - 9) = 351 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 354 + (k - 9) = 345 + k by omega] at this
 
 theorem mem_ccA {st : List V} {o0 K i : ℕ} (h : i ∈ ccA st o0 K) :
     (∃ v ∈ st, i = v.idx) ∨ ∃ j < K, ∃ c < 4, i = ccCell o0 j c := by

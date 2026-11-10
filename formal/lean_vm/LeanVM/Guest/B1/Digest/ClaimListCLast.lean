@@ -35,7 +35,7 @@ theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (326 + k) de
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 341 + (k - 9) = 332 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 335 + (k - 9) = 326 + k by omega] at this
 
 /-- A load found in the atoms, not a store, reads memory. -/
 theorem load_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x p : V} {o : ℕ}
