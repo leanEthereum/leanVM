@@ -12,6 +12,10 @@ import Rv64Verifier.Proofs.Multilinear.SpecExtend
 import Rv64Verifier.Proofs.Multilinear.EqKernel
 import Rv64Verifier.Proofs.Multilinear.Concat
 import Rv64Verifier.Proofs.Multilinear.SliceConcat
+import Rv64Verifier.Proofs.Multilinear.MleEval
+import Rv64Verifier.Proofs.Multilinear.Bridges
+import Rv64Verifier.Proofs.Multilinear.OptFromElem
+import Rv64Verifier.Proofs.Multilinear.StackOffsets
 import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Proofs.Runtime.All
 
@@ -44,6 +48,23 @@ theorem eqKernel : EqKernelSpec := EqKernel.eq_kernel_spec fromElem scalerNew Fi
 theorem concat : Transcript.ConcatSpec := Concat.concat_spec tryAllocZeroed specExtend
 
 theorem sliceConcat : SliceConcatSpec := SliceConcat.slice_concat_spec tryAllocZeroed specExtend
+
+theorem mleEval : MleEvalSpec :=
+  MleEval.mle_eval_spec tryAllocZeroed Reserve.reserve_fast_80008a10 Runtime.memcpy scalerNew Field.mul
+
+/-- `Bus.Vbb.MleEvalSpec`, for slices ending below `0xc0000000` (`Bridges.lean`). -/
+theorem mleEvalVbb : FunSpec Image.code 0x8000d28c
+    (fun s ↦ Bus.Vbb.MleEvalPre s ∧ Bridges.MleEnds s) Bus.Vbb.MleEvalPost :=
+  Bridges.mleEval_vbb mleEval
+
+/-- `vec![x; n]` for `Option<E>`, as `Proofs/Bus/Contracts.lean` states it. -/
+theorem optFromElem : Bus.OptFromElemSpec :=
+  OptFromElem.opt_from_elem_spec tryAllocZeroed Reserve.reserve_fast_8001086c
+
+/-- As `Proofs/Gkr/Contracts.lean` states it. -/
+theorem optFromElemGkr : Gkr.OptFromElemSpec := Bridges.optFromElem_gkr optFromElem
+
+theorem stackOffsets : StackOffsetsSpec := StackOffsets.stack_offsets_spec tryAllocZeroed
 
 end Rv64Verifier.Proofs.Multilinear
 
@@ -87,3 +108,18 @@ end Rv64Verifier.Proofs.Multilinear
 
 /-- info: 'Rv64Verifier.Proofs.Multilinear.sliceConcat' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.sliceConcat
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.mleEval' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.mleEval
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.mleEvalVbb' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.mleEvalVbb
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.optFromElem' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.optFromElem
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.optFromElemGkr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.optFromElemGkr
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.stackOffsets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.stackOffsets
