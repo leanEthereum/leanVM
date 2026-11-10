@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.Complete
+public import LeanVM.Guest.B1.VerifySub.WordsB
 public import LeanVM.Guest.B1.VerifySub.H.TermCB
 public import LeanVM.Guest.B1.Terminal.KidsDepB
 public import LeanVM.Guest.B1.Ring.CompleteB
@@ -16,6 +17,7 @@ public import LeanVM.Guest.B1.Gkr.VbgB
 public import LeanVM.Guest.B1.Tables.VtC.ABound
 public import LeanVM.Guest.B1.Place.OsCandB
 public import LeanVM.Guest.Budget.Bounded
+public import LeanVM.Guest.B1.Placement.CertifyAt
 public import LeanVM.Guest.B1.Tables.VtC.AWeight
 public import LeanVM.Guest.B1.VerifySub.H.TermCBW
 public import LeanVM.Guest.B1.VerifySub.H.VtShape
@@ -24,11 +26,18 @@ public import LeanVM.Guest.B1.VerifySub.H.WhirLen
 /-!
 # `verify_sub` within a bound
 
-`VsWords fs`: the words facts of `verify_sub`'s callees' pure callees, at the frame sizes `fs`
-(`TotalLe`, `TotalLeOn`), with their constants. `vsBs W Bvk`: the thirteen callees' bounds, in
-call order — the maxima over the honest children's depths (`vbgMax`, `vtMax`, `osMax`) where a
-callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8675 + (vsBs W Bvk).sum`: the
-frame, the own buffers (at most `8644 + 29` words) and the callees.
+The callees' words facts are `VerifySub/WordsB`'s (`VsWords`), with `open_stacked`'s here
+(`VsWordsOs`). `vsBs W Bvk`: the sixteen callees' bounds, in call order (`Data.core18`): two
+`g_power_of_word`s, `log2_ceil_in_the_exponent__L0_L34`, `certify_placement`,
+`log2_ceil_in_the_exponent__L15_L34`, `grind_check__L15`, the `squeeze_point_from` dispatch,
+`opening_message__L1_L1`, the `bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`,
+`verify_keccak`, `grind_check__L14`, `ring_switch_target`, the `open_stacked` dispatch and the
+terminal; the maxima over the honest children's depths (`vbgMax`, `vtMax`, `osMax`) or a
+dispatch's arms (`armMax`) where a callee's bound depends on them. `vsBound W Bvk =
+fs "verify_sub" + 8706 + (vsBs W Bvk).sum`: the frame, the own buffers (`8677 + μ` words,
+`μ ≤ 29`) and the callees. `vsNames μ r d`, `vsTs`: the callees' names (the squeeze's arm at the
+stack log `μ`, the bus grind's at the depth `d`, `open_stacked`'s candidate) and trees, within
+their bounds, `verify_tables`' and the terminal's within their weights (`vsPs`).
 
 `verify_sub_completeB`: on every honest child, `verify_sub` is `CompleteAtDTB … (fun _ ↦ True)
 (vsBound W Bvk)`, by `completeAt_flatDepRB` with `vs_obligations` and the callees' bounded
@@ -44,15 +53,6 @@ open LeanVM.Node LeanVM.Guest.Memory
 @[expose] public section
 
 /-! ## The bounds -/
-
-/-- The largest of a list. -/
-def lmax (l : List ℕ) : ℕ := l.foldl max 0
-
-theorem le_lmax {l : List ℕ} {x : ℕ} (h : x ∈ l) : x ≤ lmax l := (Tables.foldl_max_ge l 0).2 x h
-
-theorem le_lmax2 (f : ℕ → ℕ → ℕ) {A B a b : ℕ} (ha : a < A) (hb : b < B) :
-    f a b ≤ lmax ((List.range A).flatMap fun a ↦ (List.range B).map (f a)) :=
-  le_lmax (List.mem_flatMap.2 ⟨a, List.mem_range.2 ha, List.mem_map.2 ⟨b, List.mem_range.2 hb, rfl⟩⟩)
 
 /-- `verify_bus_gkr`'s bound over the depths below `30`. -/
 @[irreducible] def vbgMax (fs : String → ℕ) (K29 R K8 : ℕ) : ℕ :=
@@ -71,105 +71,65 @@ noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n
 @[irreducible] noncomputable def osMax (fs Bnd Kr : String → ℕ) : ℕ :=
   lmax ((List.range 29).flatMap fun μ ↦ (List.range 5).map (osBosAt fs Bnd Kr μ))
 
-/-- **`verify_sub`'s callees' words facts**, at the frame sizes `fs`: `g_power_of_word`'s and
-`assert_canonical`'s (`Bg`, `Ba`), `verify_bus_gkr`'s loops and rounds (`K29`, `R`, `K8`),
-`verify_tables`' callees (`Kf`, `Ksh`, `K10`), `ring_switch_target`'s loop (`B14`),
-`open_stacked`'s leaves and residual loops (`Bnd`, `Kr`), the terminal's pure callees (`Beqc`,
-`K15`, `Bcs`, `Brs`) — a loop's words per iteration, its run's one phantom frame charged once by the
-`TotalLeOn … LoopPre` fact; and, at the weights `ωv op` (an opcode's instructions per frame), the weights
-of `verify_tables`' callees (`Kvw`, `Wss`, `Kw10`) and of the terminal's (`Weqc`, `W15`, `Wst`,
-`Wcs`, `Wrsw`), which bound those two callees' trees (`vtWB`, `termWB`). -/
-structure VsWords (fs : String → ℕ) : Type where
-  Bg : ℕ
-  hg : TotalLe coreProgram fs "g_power_of_word" fun _ ↦ Bg
-  Ba : ℕ
-  ha : TotalLe coreProgram fs "assert_canonical" fun _ ↦ Ba
-  K29 : ℕ
-  R : ℕ
-  K8 : ℕ
-  h29 : TotalLeOn coreProgram fs "__loop36" LoopPre
-    (fun a ↦ logG (a.getD 1 0) * K29 + fs "__loop36")
-  hR : ∀ n ∈ Tables.grCounts, TotalLe coreProgram fs (Tables.lName "gkr_rounds" n) (fun _ ↦ R)
-  h8 : TotalLeOn coreProgram fs "__loop7" LoopPre (fun a ↦ logG (a.getD 1 0) * K8 + fs "__loop7")
-  Kf : String → ℕ
-  Ksh : ℕ
-  K10 : ℕ
-  hKf : ∀ g ∈ Tables.vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
-    TotalLe coreProgram fs g (fun _ ↦ Kf g)
-  hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-    (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
-  h10 : TotalLeOn coreProgram fs "__loop9" LoopPre (fun a ↦ logG (a.getD 1 0) * K10 + fs "__loop9")
-  B14 : ℕ
-  hl14 : TotalLeOn coreProgram fs "__loop13" (fun a ↦ a.getD 0 0 = 1) fun _ ↦ B14
+/-- **`verify_sub`'s callees' words facts with `open_stacked`'s**: its leaves' and residual loops'
+(`Bnd`, `Kr`). -/
+structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
   Bnd : String → ℕ
   Kr : String → ℕ
   hleaf : OsLeafBounds fs Bnd
   hloop : ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     OsLoopBounds fs Kr (B1.Whir.osCfg (B1.Whir.candidate μ r))
-  Beqc : ℕ
-  K15 : ℕ
-  Bcs : ℕ
-  Brs : ℕ
-  hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ ↦ Beqc
-  hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
-    fun a ↦ logG (a.getD 1 0) * K15 + fs "__loop14"
-  hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs
-  hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
-    fun _ ↦ Brs
-  ωv : Opcode → String → ℕ
-  Kvw : Opcode → String → ℕ
-  Wss : Opcode → ℕ
-  Kw10 : Opcode → ℕ
-  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ "__loop9" → g ≠ "__loop8" → g ≠ "shared_selector_tables" →
-    WeightLe coreProgram (ωv op) g (fun _ ↦ Kvw op g)
-  hssw : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-    (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
-    t.BufsOk coreProgram → t.weight (ωv op) ≤ Wss op
-  h10w : ∀ op, Budget.LoopW (ωv op) "__loop9" (Kw10 op)
-  Weqc : Opcode → ℕ
-  W15 : Opcode → ℕ
-  Wst : Opcode → ℕ
-  Wcs : Opcode → ℕ
-  Wrsw : Opcode → ℕ
-  hEqcW : ∀ op, WeightLe coreProgram (ωv op) "eq_prefix_chain" fun _ ↦ Weqc op
-  hStW : ∀ op, WeightLe coreProgram (ωv op) "selector_tables" fun _ ↦ Wst op
-  hCsW : ∀ op, ∀ κ' < 29, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
-    fun _ ↦ Wcs op
-  h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
-    t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-    t.total fs ≤ (32 * K15 + fs "__loop14") → t.weight (ωv op) ≤ W15 op
-  hrswW : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
-    t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-    t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ωv op) ≤ Wrsw op
 
-/-- **`verify_tables`' weight bound** at `W.ωv op`: its frame's and its calls' (`vtBs`). -/
-noncomputable def vtWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
-  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (28 * W.Kw10 op)).sum
-
-/-- **The terminal's weight bound** at `W.ωv op`: its frame's and its calls' (`termWs`). -/
-noncomputable def termWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
-  W.ωv op "check_opening_terminal" + (termWs W.Weqc W.W15 W.Wst W.Wcs W.Wrsw op).sum
-
-/-- **The callees' bounds**, in call order (`vs_calls`). -/
-noncomputable def vsBs {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : List ℕ :=
+/-- **The callees' bounds**, in call order, `open_stacked`'s `os`. -/
+noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : ℕ) : List ℕ :=
   [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power",
-    W.Ba, W.Ba, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
-    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + Tables.cpSizes.sum,
+    fs "certify_placement" + Tables.cpSizes.sum,
     fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power",
-    osMax fs W.Bnd W.Kr, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
+    W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
+    armMax W.Kst busGrindNames, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
+    W.Kst "grind_check__L14", fs "ring_switch_target" + 72 + W.B14, os,
+    termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
-/-- **The callees' bounds at one candidate**: `vsBs` with `open_stacked`'s bound at the stack log
-`μ` and the rate `r`. -/
-noncomputable def vsBsAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : List ℕ :=
-  [W.Bg, W.Bg, fs "log2_ceil_in_the_exponent__L0_L34" + 34 + 2 * fs "assert_small_g_power",
-    W.Ba, W.Ba, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
-    fs "ring_switch_target" + 18 + W.B14, fs "certify_placement" + Tables.cpSizes.sum,
-    fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power",
-    osBosAt fs W.Bnd W.Kr μ r, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
+/-- **The callees' bounds at one candidate**: `open_stacked`'s at the stack log `μ` and the
+rate `r`. -/
+noncomputable def vsBsAt {fs : String → ℕ} (W : VsWordsOs fs) (Bvk μ r : ℕ) : List ℕ :=
+  vsBsWith W Bvk (osBosAt fs W.Bnd W.Kr μ r)
 
-/-- **`verify_sub`'s bound**: its frame, its own buffers (`8644 + μ`, `μ ≤ 29`), its callees. -/
-noncomputable def vsBound {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : ℕ :=
-  fs "verify_sub" + 8675 + (vsBs W Bvk).sum
+/-- **The callees' bounds**, `open_stacked`'s the largest over the candidates. -/
+noncomputable def vsBs {fs : String → ℕ} (W : VsWordsOs fs) (Bvk : ℕ) : List ℕ :=
+  vsBsWith W Bvk (osMax fs W.Bnd W.Kr)
+
+/-- **`verify_sub`'s bound**: its frame, its own buffers (`8677 + μ`, `μ ≤ 29`), its callees. -/
+noncomputable def vsBound {fs : String → ℕ} (W : VsWordsOs fs) (Bvk : ℕ) : ℕ :=
+  fs "verify_sub" + 8706 + (vsBs W Bvk).sum
+
+/-- **`verify_sub`'s bound at one candidate.** -/
+noncomputable def vsBoundAt {fs : String → ℕ} (W : VsWordsOs fs) (Bvk μ r : ℕ) : ℕ :=
+  fs "verify_sub" + 8706 + (vsBsAt W Bvk μ r).sum
+
+/-! ## The callees' trees -/
+
+/-- **`verify_sub`'s callees' names**, in call order: the squeeze's arm at the stack log `μ`, the
+bus grind's at the depth `d`, `open_stacked`'s candidate `openName μ r`. -/
+def vsNames (μ r d : ℕ) : List String :=
+  ["g_power_of_word", "g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "certify_placement",
+    "log2_ceil_in_the_exponent__L15_L34", "grind_check__L15", squeezeNames.getD (μ - 22) "",
+    "opening_message__L1_L1", busGrindNames.getD d "", "verify_bus_gkr", "verify_tables",
+    "verify_keccak", "grind_check__L14", "ring_switch_target", B1.Whir.openName μ r,
+    "check_opening_terminal"]
+
+/-- **`verify_sub`'s callees' predicates**: `verify_tables`' tree within `vtWB`, the terminal's
+within `termWB`, at each opcode's weights. -/
+noncomputable def vsPs {fs : String → ℕ} (W : VsWordsOs fs) : List (Tree → Prop) :=
+  List.replicate 10 (fun _ ↦ True) ++
+    [fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t] ++
+    List.replicate 4 (fun _ ↦ True) ++
+    [fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (termWB W.toVsWords op) t]
+
+/-- **`verify_sub`'s callees' trees**: callee `j` a call of its name within its bound satisfying
+its predicate. -/
+noncomputable def vsTs (fs : String → ℕ) (W : VsWordsOs fs) (Bvk μ r d : ℕ) : List (Tree → Prop) :=
+  namedP fs (vsNames μ r d) (vsBsAt W Bvk μ r) (vsPs W)
 
 /-- **`verify_keccak`, placed, within `Bvk` words** (`VkCompleteAt` bounded). -/
 def VkCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=
