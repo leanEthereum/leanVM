@@ -14,18 +14,15 @@ def leanvmRev : String := "40f877dc2c858f013c5974ab71ca594b31a7aec9"
 def logSize : Nat := 19
 
 /-- The compiled functions' instructions. -/
-def codeLen : Nat := 489730
+def codeLen : Nat := 452890
 
 /-- The compiled functions. -/
-def functionCount : Nat := 992
+def functionCount : Nat := 1750
 
 /-- The instructions of each opcode (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`), the padding included. -/
-def opcodeCounts : List Nat := [94977, 121013, 95078, 89311, 26415, 97494]
-
-/-- The smallest stacked witness the guest's proofs commit to, as a log (`min_log_committed`). -/
-def minLogCommitted : Nat := 0
+def opcodeCounts : List Nat := [84626, 110820, 131698, 100852, 26208, 70084]
 
 /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1, c2)` limbs. -/
-def fsSeed : List (Nat × Nat × Nat) := [(920231296818519083, 9225733802090617954, 0), (8136568859301435817, 5387405527245815745, 0)]
+def fsSeed : List (Nat × Nat × Nat) := [(6186926456275861343, 2966198763131875143, 0), (9376318017900765997, 64950324082993207, 0)]
 
 end LeanVMTests.Guest.Manifest

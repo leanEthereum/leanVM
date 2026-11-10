@@ -124,7 +124,8 @@ pub fn file() -> File {
         .zip(&carried)
         .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
         .collect();
-    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried_refs, bytecode_sums(&points));
+    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried_refs, bytecode_sums(&points))
+        .expect("honest children's deferred values are true");
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");
