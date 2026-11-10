@@ -127,7 +127,6 @@ theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) {m : ℕ} {r : OsCa
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hs, hn⟩, hl⟩, hw⟩, hN⟩, hdep⟩, hcd⟩, hra⟩, hrr⟩, ha⟩, hr⟩ := h
   subst hN hdep hcd hra hrr
   have hs' : oqShapeAt sh = oqShapeOf name := eq_of_shapeBEq hs
-  rw [← hs'] at hw
   simp only [levelOsN, osLevelW, OsCall.shape, oqsOfN_eq _ hw, map_vIdx ha, map_vIdx hr, hn, hl,
     hs']
 
