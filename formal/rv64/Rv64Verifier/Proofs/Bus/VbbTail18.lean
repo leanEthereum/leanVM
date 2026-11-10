@@ -31,7 +31,8 @@ theorem claim5 {s w z : MachineState} {state : GkrState} {mem : List E} {mf bf :
       (∀ r ∈ ([.x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27] : List Reg),
         t.getReg r = w.getReg r) ∧
       t.getReg .x1 = 0x80007070 ∧ t.getReg .x10 = s.getReg .x2 - 816 ∧
-      t.getReg .x11 = w.getReg .x27 ∧ t.getReg .x12 = w.getReg .x24 := by
+      t.getReg .x11 = w.getReg .x27 ∧ t.getReg .x12 = w.getReg .x24 ∧
+      t.getReg .x8 = w.getMem (s.getReg .x2 - 1128) := by
   obtain ⟨hb1, -, -, -⟩ := bounds hpre
   have hval : ValidMemRange (s.getReg .x2 - 4544) 568 := hpre.stack.valid
   have sp := A.inv.sp
@@ -151,7 +152,10 @@ theorem claim5 {s w z : MachineState} {state : GkrState} {mem : List E} {mf bf :
     fun r hr ↦ by rw [rz r (mem_of_mem hr _)]; exact A.regs r hr, b8000702c_x1 h₁,
     by rw [b8000702c_x10 h₁, sp]; apply BitVec.eq_of_toNat_eq; addr_omega [hb1],
     by rw [b8000702c_x11 h₁]; exact A.regs .x27 (by decide),
-    by rw [b8000702c_x12 h₁]; exact A.regs .x24 (by decide)⟩
+    by rw [b8000702c_x12 h₁]; exact A.regs .x24 (by decide), by
+      rw [b8000702c_x8 h₁, sp, show s.getReg .x2 - 1344 + 216 = s.getReg .x2 - 1128 by
+        apply BitVec.eq_of_toNat_eq; addr_omega [hb1]]
+      exact sz _ (Or.inl (by constructor <;> addr_omega [hb1]))⟩
 
 /-- At `index_mle(point[..log_memory])`'s entry (`0x80010cd4`, its result at `S - 816`): the
 claims' `Vec` at `S - 840` holds the mirror's five claims; the result's address in `s5`,
@@ -172,6 +176,8 @@ structure Claims (bev : MachineState → Word → List E → Option E) (s t : Ma
   x23 : t.getReg .x23 = logBc s
   x24 : t.getReg .x24 = logMem s
   x27 : t.getReg .x27 = t.getMem (s.getReg .x2 - 1256)
+  x8 : t.getReg .x8 = t.getMem (s.getReg .x2 - 1128)
+  memLen : 3 ≤ mem.length
   memory : NewVecE s t (s.getReg .x2 - 864) mem
   values : NewVecE s t (s.getReg .x2 - 176) state.values
   point : NewVecR s t (t.getMem (s.getReg .x2 - 1320)) (t.getMem (s.getReg .x2 - 1256))
@@ -198,7 +204,7 @@ theorem claimsStage (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 
   · exact ⟨y', hrw.trans hry, Or.inl hd⟩
   obtain ⟨z, hrz, hd | ⟨hpcz, Z⟩⟩ := to702c hG hpre D hpcy
   · exact ⟨z, hrw.trans (hry.trans hrz), Or.inl hd⟩
-  obtain ⟨t, hrt, hpct, I, st, CS, l5, rg, x1, x10, x11, x12⟩ :=
+  obtain ⟨t, hrt, hpct, I, st, CS, l5, rg, x1, x10, x11, x12, x8⟩ :=
     claim5 hpre Z hpcz C.bfEq C.x23
   have fT : FrameW s fun a ↦ Within a (s.getReg .x2 - 840) 24 ∨
       Within a (s.getReg .x2 - BitVec.ofNat 64 608) 24 := fun a ha ↦ by
@@ -232,6 +238,8 @@ theorem claimsStage (hA : AllocSpec) (hT : TryAllocZeroedSpec) (hM : MemcpySpec 
     x23 := by rw [rg .x23 (by decide)]; exact C.x23
     x24 := by rw [rg .x24 (by decide)]; exact C.x24
     x27 := by rw [rg .x27 (by decide), p1256]; exact C.x27
+    x8 := by rw [x8, K1 _ (by constructor <;> addr_omega [hb1])]
+    memLen := P.memLen
     memory := C.memory.keepR hpre st.toR fT (by addr_omega [hb1]) fun z hz h' ↦ by
       rcases h' with h' | h' <;> addr_omega [hz, h', hb1]
     values := C.values.keepR hpre st.toR fT (by addr_omega [hb1]) fun z hz h' ↦ by

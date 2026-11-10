@@ -112,6 +112,8 @@ structure Indexed (bev : MachineState → Word → List E → Option E) (s v : M
   x23 : v.getReg .x23 = logBc s
   x24 : v.getReg .x24 = logMem s
   x27 : v.getReg .x27 = v.getMem (s.getReg .x2 - 1256)
+  x8 : v.getReg .x8 = v.getMem (s.getReg .x2 - 1128)
+  memLen : 3 ≤ mem.length
   slice0 : v.getMem (s.getReg .x2 - 608) = v.getMem (s.getReg .x2 - 1256)
   slice0Len : v.getMem (s.getReg .x2 - 600) = logBc s
   slice1 : v.getMem (s.getReg .x2 - 592) = vecPtr v (s.getReg .x2 - 912)
@@ -200,7 +202,7 @@ theorem indexStage (hI : IndexMleSpec) {bev : MachineState → Word → List E �
       (by rcases hx with hx | hx | hx <;> constructor <;> addr_omega [hb1, hx])
   have K1 (x : Word) (hx : (s.getReg .x2 - 1344).toNat ≤ x.toNat ∧
       x.toNat + 8 ≤ (s.getReg .x2 - 816).toNat) : v.getMem x = t.getMem x := kT x (Or.inl hx)
-  have rg (r : Reg) (hr : r ∈ ([.x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27] : List Reg)) :
+  have rg (r : Reg) (hr : r ∈ ([.x8, .x20, .x21, .x22, .x23, .x24, .x25, .x26, .x27] : List Reg)) :
       v.getReg r = t.getReg r := by
     rw [k₄ r (mem_of_mem hr _), hp₂ r (by unfold calleeSaved; exact mem_of_mem hr _),
       k₂ r (mem_of_mem hr _), r₁ r (by unfold calleeSaved; exact mem_of_mem hr _)]
@@ -238,6 +240,8 @@ theorem indexStage (hI : IndexMleSpec) {bev : MachineState → Word → List E �
     x23 := by rw [rg .x23 (by decide)]; exact C.x23
     x24 := by rw [rg .x24 (by decide)]; exact C.x24
     x27 := by rw [rg .x27 (by decide), K1 _ (by constructor <;> addr_omega [hb1])]; exact C.x27
+    x8 := by rw [rg .x8 (by decide), K1 _ (by constructor <;> addr_omega [hb1])]; exact C.x8
+    memLen := C.memLen
     slice0 := by
       rw [show s.getReg .x2 - 608 = s.getReg .x2 - 1344 + 736 by
         apply BitVec.eq_of_toNat_eq; addr_omega [hb1], b736, K1 _ (by constructor <;> addr_omega [hb1]),

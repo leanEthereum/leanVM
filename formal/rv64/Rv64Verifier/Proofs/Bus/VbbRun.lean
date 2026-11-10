@@ -336,6 +336,7 @@ structure Start where
   beta2 : Word
   count0 : Word
   count1 : Word
+  alphasLen : alphas.length = 4
 
 def Start.beta (k : Start) : E := eOf3 k.beta0 k.beta1 k.beta2
 

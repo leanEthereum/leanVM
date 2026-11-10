@@ -207,7 +207,8 @@ theorem start (hBL : BusLayoutSpec) (hS : SamplesSpec) (hEK : Vbb.EqKernelSpec)
   have hx25 : (z.getReg .x25).toNat = pushDepth s := by
     rw [ru .x25 (by decide) (by decide) (by decide)]; exact H.x25
   let k : Start := ⟨al, u.getMem (s.getReg .x2 - 1192), u.getMem (s.getReg .x2 - 1200),
-    u.getMem (s.getReg .x2 - 1184), y.getMem (s.getReg .x2 - 1224), y.getMem (s.getReg .x2 - 1232)⟩
+    u.getMem (s.getReg .x2 - 1184), y.getMem (s.getReg .x2 - 1224), y.getMem (s.getReg .x2 - 1232),
+    H.len⟩
   have hk : k.beta = beta := H.betaEq.symm
   have wy (j : Nat) (hj1 : 8 ≤ j) (hj2 : j ≤ 1344)
       (hm : ∀ y', Within y' (s.getReg .x2 - BitVec.ofNat 64 j) 8 → ¬ (Within y' (s.getReg .x2 - 1312) 8 ∨
