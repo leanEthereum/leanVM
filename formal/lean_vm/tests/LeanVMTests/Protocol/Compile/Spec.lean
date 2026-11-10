@@ -8,7 +8,7 @@ A small verifier program: read a scalar `x`, sample `c`, check a three-bit proof
 `d`, and accept iff `c = x` or `d = x`. Its specification is assembled from the leaves and
 `Spec.bind` alone: doom is "`c ≠ x`", then "`c ≠ x ∧ d ≠ x`"; the first group escapes with
 probability `|E|⁻¹`, the second too, discounted by the proof of work. The doom certificate it
-gives has every discounted escape bound at most `|E|⁻¹ = 2^-192`, and its doom holds at the
+gives has every discounted escape bound at most `|E|⁻¹ = 2^-128`, and its doom holds at the
 start and after the prover's scalar.
 
 Then the load-bearing checks:
@@ -30,7 +30,7 @@ noncomputable section
 /-- The escape bound of one challenge. -/
 def ε0 : ENNReal := (Fintype.card E : ENNReal)⁻¹
 
-theorem ε0_eq : ε0 = (2 ^ 192 : ENNReal)⁻¹ := by
+theorem ε0_eq : ε0 = (2 ^ 128 : ENNReal)⁻¹ := by
   unfold ε0; rw [card_E]; norm_num
 
 /-- At most one challenge is bad. -/
@@ -50,8 +50,8 @@ example {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} 
   S.bind F
 
 example {Pre : List Ev → Prop} {Post : Unit → List Ev → Prop} {εmax T : ENNReal} (b : ℕ)
-    (h : ∀ h₀, Pre h₀ → Post () (h₀ ++ [Ev.grind b])) (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) :
-    Spec (grindProofOfWork b) Pre Post εmax 0 T :=
+    (h : ∀ h₀, Pre h₀ → Post () (h₀ ++ Spec.grindEvs b)) (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) :
+    Spec (grindProofOfWork b) Pre Post εmax (if b = 0 then T else 0) T :=
   Spec.grindP b h hT
 
 open Classical in
@@ -138,9 +138,9 @@ def spec : Spec prog (fun h ↦ h = []) Rej ε0 0 0 :=
 def cert : Cert prog := spec.toCertOfLead
 
 /-- Every escape bound of the certificate, discounted by the proof of work before its group, is
-at most `2^-192`. -/
+at most `2^-128`. -/
 theorem cert_bound (h : List Ev) :
-    (2 : ENNReal)⁻¹ ^ grindBits h * cert.ε h ≤ (2 ^ 192 : ENNReal)⁻¹ :=
+    (2 : ENNReal)⁻¹ ^ grindBits h * cert.ε h ≤ (2 ^ 128 : ENNReal)⁻¹ :=
   ε0_eq ▸ spec.toCertOfLead_bound zero_le h
 
 /-- The certificate's doom holds at the start. -/
@@ -156,11 +156,15 @@ theorem cert_D_read (x : E) : cert.D [Ev.read x] :=
 
 /-- A proof of work followed by a lead of `1` has no specification with `εmax = 0`. -/
 theorem no_grind_spec :
-    Spec (grindProofOfWork 0) (fun _ ↦ True) (fun _ _ ↦ True) 0 0 1 → False := by
+    Spec (.grind 0 (.ret ()) : VerifierProgram Unit) (fun _ ↦ True) (fun _ _ ↦ True) 0 0 1 →
+      False := by
   intro S
-  have ha0 : (grindProofOfWork 0).after [] = some (.grind 0 (.ret ())) := rfl
-  have hr : (grindProofOfWork 0).Reach [] ([] ++ [Ev.grind 0]) := .grind .nil ha0
-  have ha1 : (grindProofOfWork 0).after ([] ++ [Ev.grind 0]) = some (.ret ()) := by simp [grindProofOfWork, after]
+  have ha0 : (VerifierProgram.grind 0 (.ret ()) : VerifierProgram Unit).after [] =
+      some (.grind 0 (.ret ())) := rfl
+  have hr : (VerifierProgram.grind 0 (.ret ()) : VerifierProgram Unit).Reach [] ([] ++ [Ev.grind 0]) :=
+    .grind .nil ha0
+  have ha1 : (VerifierProgram.grind 0 (.ret ()) : VerifierProgram Unit).after ([] ++ [Ev.grind 0]) =
+      some (.ret ()) := by simp [after]
   have hD := S.grind .nil ha0 (S.start_D [] trivial)
   have hV := S.retDoom hr ha1 hD
   have hb := S.bound hr (by simp) (by simp [EndsMove]) hD

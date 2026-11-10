@@ -15,7 +15,7 @@ use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 use leanvm_core::cpu::{from_scalar, prove, public_input_bytes, scalar_proof};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use signatures::{lean_sphincs, lean_xmss};
@@ -174,8 +174,8 @@ pub fn aggregate_with_stats(
     hints.push("fs_seed", vec![fs_seed[0], fs_seed[1]]);
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared
     // claims, then its duplicates.
-    let lean_xmss_cells: Vec<[F192; 4]> = cover.xmss.signers.iter().map(lean_xmss_claim_cells).collect();
-    let lean_sphincs_cells: Vec<[F192; 4]> = cover
+    let lean_xmss_cells: Vec<[F128; 4]> = cover.xmss.signers.iter().map(lean_xmss_claim_cells).collect();
+    let lean_sphincs_cells: Vec<[F128; 4]> = cover
         .lean_sphincs
         .signers
         .iter()
@@ -218,7 +218,7 @@ pub fn aggregate_with_stats(
 
     // Both claims of each child, in the batch's order: the fresh one, then the one it carried. The fresh
     // claim's value is read off the sums the batch runs on.
-    let claim_points: Vec<Vec<F192>> = replayed
+    let claim_points: Vec<Vec<F128>> = replayed
         .iter()
         .zip(children)
         .flat_map(|((_, summary), child)| {
@@ -306,7 +306,7 @@ pub fn aggregate_with_stats(
                     "da_symbols",
                     witness.codewords[i * m + j * c..i * m + (j + 1) * c]
                         .iter()
-                        .map(|&w| F192::from(F64(w)))
+                        .map(|&w| F128::from(F64(w)))
                         .collect(),
                 );
             }

@@ -141,23 +141,22 @@ theorem aux_stackOf : (leanIsaInstance prog s).aux (stackOf prog s w) := by
 
 /-! ## Rows of the two blocks -/
 
-/-- The cells of a memory-block row: the limbs at `0, 1, 2`, the finalize count at `4`. -/
-private theorem memRow_cells (m : Vector K 3) (idx cnt : K) :
+/-- The cells of a memory-block row: the limbs at `0, 1`, the finalize count at `3`. -/
+private theorem memRow_cells (m : Vector K 2) (idx cnt : K) :
     (toElements (⟨m, idx, cnt⟩ : MemRow K)).toArray[0]?.getD 0 = m[0] ∧
     (toElements (⟨m, idx, cnt⟩ : MemRow K)).toArray[1]?.getD 0 = m[1] ∧
-    (toElements (⟨m, idx, cnt⟩ : MemRow K)).toArray[2]?.getD 0 = m[2] ∧
-    (toElements (⟨m, idx, cnt⟩ : MemRow K)).toArray[4]?.getD 0 = cnt := by
+    (toElements (⟨m, idx, cnt⟩ : MemRow K)).toArray[3]?.getD 0 = cnt := by
   simp [explicit_provable_type, ProvableStruct.componentsToElements, ProvableStruct.toComponents,
     toComponents, circuit_norm]
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> rw [Vector.getElem_append] <;> simp
+  refine ⟨?_, ?_, ?_⟩ <;> rw [Vector.getElem_append] <;> simp
 
 /-- Cell `memRowCell k` of a memory-block row is its column `k`: a limb, or the finalize count. -/
-private theorem memRow_cell (m : Vector K 3) (idx cnt : K) (k : Fin 4) :
+private theorem memRow_cell (m : Vector K 2) (idx cnt : K) (k : Fin 3) :
     (toElements (⟨m, idx, cnt⟩ : MemRow K)).toArray[memRowCell k]?.getD 0 =
-      ![m[0], m[1], m[2], cnt] k := by
-  obtain ⟨c0, c1, c2, c4⟩ := memRow_cells m idx cnt
+      ![m[0], m[1], cnt] k := by
+  obtain ⟨c0, c1, c3⟩ := memRow_cells m idx cnt
   fin_cases k
-  exacts [c0, c1, c2, c4]
+  exacts [c0, c1, c3]
 
 /-- The finalize count of a bytecode-block row is its cell `1`. -/
 private theorem bytecodeRow_cell (i : Fin (2 ^ prog.logSize)) (c : K) :
@@ -290,14 +289,14 @@ private theorem memRows_stackOf {input : PublicInput} (h : SatisfiedBy prog inpu
     rw [hrows, List.length_ofFn]
   have hrow : ∀ x : Fin (2 ^ (imageOf w.data).1),
       (memBlockRows w)[x.val]'(by rw [hlen]; exact x.isLt) =
-        (toElements (⟨#v[((imageOf w.data).2 x).limb 0, ((imageOf w.data).2 x).limb 1,
-          ((imageOf w.data).2 x).limb 2], idx x, cnt x⟩ : MemRow K)).toArray :=
+        (toElements (⟨#v[((imageOf w.data).2 x).limb 0, ((imageOf w.data).2 x).limb 1], idx x,
+          cnt x⟩ : MemRow K)).toArray :=
     fun x ↦ by simp only [hrows, List.getElem_ofFn]
   have hidx : ∀ x : Fin (2 ^ (imageOf w.data).1), idx x = addressOfIndex x := fun x ↦ by
     have := h.index_columns x.val (by rw [hlen]; exact x.isLt)
     rw [hrow, memRowAt_toElements] at this
     exact this
-  have hcell : ∀ (k : Fin 4) (x : Fin (2 ^ (imageOf w.data).1)),
+  have hcell : ∀ (k : Fin 3) (x : Fin (2 ^ (imageOf w.data).1)),
       cell prog (witnessSizes w hp) (stackOf prog (witnessSizes w hp) w) (memCol k) x =
         ((memBlockRows w)[x.val]'(by rw [hlen]; exact x.isLt))[memRowCell k]?.getD 0 :=
     fun k x ↦ (column_stackOf prog (witnessSizes w hp) w (memCol k) (fun hk ↦ by
@@ -340,7 +339,7 @@ theorem agrees_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
 /-- A limb column of the memory on the stack of a witness satisfying the constraint system is
 that limb of the image the data names. -/
 private theorem memLimb_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
-    (hp : 0 < (imageOf w.data).1) (k : Fin 3) (x : Fin (2 ^ (imageOf w.data).1)) :
+    (hp : 0 < (imageOf w.data).1) (k : Fin 2) (x : Fin (2 ^ (imageOf w.data).1)) :
     cell prog (witnessSizes w hp) (stackOf prog (witnessSizes w hp) w) (memCol k.castSucc) x =
       ((imageOf w.data).2 x).limb k := by
   obtain ⟨idx, cnt, hrows⟩ := h.seed_rows
@@ -350,8 +349,8 @@ private theorem memLimb_stackOf {input : PublicInput} (h : SatisfiedBy prog inpu
     have := congrArg Fin.val hk.1; simp [memCol, opIdx] at this) x).trans
       ((Vector.getElem_ofFn _).trans ((cellOf_eq _ (by rw [hlen]; exact x.isLt) _).trans ?_))
   have hrow : (memBlockRows w)[x.val]'(by rw [hlen]; exact x.isLt) =
-      (toElements (⟨#v[((imageOf w.data).2 x).limb 0, ((imageOf w.data).2 x).limb 1,
-        ((imageOf w.data).2 x).limb 2], idx x, cnt x⟩ : MemRow K)).toArray := by
+      (toElements (⟨#v[((imageOf w.data).2 x).limb 0, ((imageOf w.data).2 x).limb 1], idx x,
+        cnt x⟩ : MemRow K)).toArray := by
     simp only [hrows, List.getElem_ofFn]
   simp only [hrow, memRow_cell]
   fin_cases k <;> rfl
@@ -375,7 +374,7 @@ private theorem publicLinesHold_stackOf {input : PublicInput} (h : SatisfiedBy p
   have h0 : 0 < 2 ^ (imageOf w.data).1 := Nat.two_pow_pos _
   have h1 : 1 < 2 ^ (imageOf w.data).1 := Nat.one_lt_two_pow hp.ne'
   obtain ⟨w0, w1⟩ := image_words h h0 h1
-  have hl : ∀ k : Fin 3,
+  have hl : ∀ k : Fin 2,
       cell prog (witnessSizes w hp) (stackOf prog (witnessSizes w hp) w) (memCol k.castSucc)
         ⟨0, h0⟩ = input.word0.limb k ∧
       cell prog (witnessSizes w hp) (stackOf prog (witnessSizes w hp) w) (memCol k.castSucc)
@@ -385,17 +384,15 @@ private theorem publicLinesHold_stackOf {input : PublicInput} (h : SatisfiedBy p
   intro l hl'
   have hls : (publicLines prog (witnessSizes w hp) input).toList =
       [⟨memCol 0, input.lanes 0, input.lanes 2, false, hp⟩,
-        ⟨memCol 1, input.lanes 1, input.lanes 3, false, hp⟩, ⟨memCol 2, 0, 0, false, hp⟩] := rfl
+        ⟨memCol 1, input.lanes 1, input.lanes 3, false, hp⟩] := rfl
   change l ∈ (publicLines prog (witnessSizes w hp) input).toList at hl'
   rw [hls] at hl'
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hl'
-  rcases hl' with rfl | rfl | rfl
+  rcases hl' with rfl | rfl
   · exact ⟨(hl 0).1.trans (by simp [PublicInput.word0]),
       (hl 0).2.trans (by simp [PublicInput.word1])⟩
   · exact ⟨(hl 1).1.trans (by simp [PublicInput.word0]),
       (hl 1).2.trans (by simp [PublicInput.word1])⟩
-  · exact ⟨(hl 2).1.trans (by simp [PublicInput.word0]),
-      (hl 2).2.trans (by simp [PublicInput.word1])⟩
 
 /-! ## Honest padding -/
 
@@ -582,14 +579,14 @@ theorem witnessOf_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
   have hB := agrees_witnessOf prog s (stackOf prog s w) hκ hr
   refine ⟨fun j x i ↦ (hB.cells j x i).trans (hA.cells j x i).symm,
     hB.memRows.trans hA.memRows.symm, hB.bytecodeRows.trans hA.bytecodeRows.symm, ?_, ?_⟩
-  · obtain ⟨c00, c01, c10, c11, -, -⟩ := publicLines_cells prog s _ (publicLinesHold_stackOf h hs)
+  · obtain ⟨c00, c01, c10, c11⟩ := publicLines_cells prog s _ (publicLinesHold_stackOf h hs)
     show publicInputOf prog s (stackOf prog s w) = _
     rw [h.public_input_eq, publicInputOf, PublicIO.ofInput, c00, c01, c10, c11]
   · obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
     rw [imageOf_witnessOf prog _ _ h.caps.le_maxLogMem]
     refine image_sigma_eq rfl _ _ fun x ↦ ?_
-    exact (congr (congr (congrArg E.ofLimbs (memLimb_stackOf h hp 0 x))
-      (memLimb_stackOf h hp 1 x)) (memLimb_stackOf h hp 2 x)).trans (ofLimbs_limb _)
+    exact (congr (congrArg E.ofLimbs (memLimb_stackOf h hp 0 x))
+      (memLimb_stackOf h hp 1 x)).trans (ofLimbs_limb _)
 
 /-! ## The refinement -/
 

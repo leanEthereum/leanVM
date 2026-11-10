@@ -40,7 +40,7 @@ of the same type: every use names them). -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
-  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
+  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-125 +
   5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
   its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget N`, for
   `N` permutation queries: about `2^81` up to `2^50` queries, `O(N·log³N)`), and extracting nothing
@@ -51,7 +51,7 @@ structure Theorems
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
-  most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
+  most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^33` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
 
@@ -76,11 +76,11 @@ structure Theorems
   proof (`HonestChild`) (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
-  makes none, or the verifier refusing a zero challenge rejects it, with probability at most
-  `2^-126` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
+  makes none, or the verifier refusing a zero where the guest divides rejects it, with
+  probability at most `2^-100` in the random-permutation model (`LeanVmGuestCompleteness.lean`). Read for the deployed
   Keccak, it is what makes a child carrying the honest proof a `HonestChild`. -/
   honestProofRarelyRefused : LeanVM.Guest.Completeness.HonestProofRarelyRefused
-  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-191 +
+  /-- The batching run outside the circuit is sound: at most `(QA + QV + 1) · M · 2^-127 +
   5 (QA + QV)² · 2^-256` for fewer than `M` children, `QA ≤ 2^128`, `QV ≤ 2^96`; it does not
   compose with the in-circuit statements (`LeanVmGuestCompleteness.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound

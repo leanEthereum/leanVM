@@ -10,7 +10,7 @@ module
 public import LeanVM.Semantics.Lemmas
 public import Statement.LeanIsa
 public import LeanVM.Facts.IsaWith
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 
 /-!
@@ -42,10 +42,10 @@ def laneLimb (L : Fin 25 → K) (free : K) : Option ℕ → K
   | some l => if h : l < 25 then L ⟨l, h⟩ else 0
   | none => free
 
-/-- The thirteen cells holding the lanes `L` in the layout `odd`: two lanes to a cell in limbs `0`
-and `1`, the limb holding no lane `free`, the `y²` limb zero. -/
+/-- The thirteen cells holding the lanes `L` in the layout `odd`: two lanes to a cell, one per
+limb, the limb holding no lane `free`. -/
 def laneCells (L : Fin 25 → K) (odd : Bool) (free : K) (c : Fin 13) : E :=
-  E.ofLimbs (laneLimb L free (cellLanes odd c).1) (laneLimb L free (cellLanes odd c).2) 0
+  E.ofLimbs (laneLimb L free (cellLanes odd c).1) (laneLimb L free (cellLanes odd c).2)
 
 /-- The state of the lanes `L`, each as a 64-bit lane. -/
 def laneState (L : Fin 25 → K) : KeccakState := Vector.ofFn fun l ↦ (L l).lane
@@ -101,34 +101,30 @@ def freeLimb (cells : Fin 13 → E) (odd : Bool) : K :=
   if odd then (cells 0).limb 0 else (cells 8).limb 1
 
 set_option maxHeartbeats 4000000 in
-/-- **Canonical cells are the cells of the lanes they hold**, the limb holding no lane theirs. -/
-theorem laneCells_stateOfCells {cells : Fin 13 → E} (hc : ∀ c, IsCanonical128 (cells c))
-    (odd : Bool) :
+/-- **Cells are the cells of the lanes they hold**, the limb holding no lane theirs. -/
+theorem laneCells_stateOfCells (cells : Fin 13 → E) (odd : Bool) :
     laneCells (stateLanes (stateOfCells cells odd)) odd (freeLimb cells odd) = cells := by
   funext c
-  have h2 : (cells c).limb 2 = 0 := hc c
   apply E.ext
   intro i
   cases odd <;> fin_cases c <;> fin_cases i <;>
     simp [laneCells, cellLanes, laneLimb, stateLanes, stateOfCells, freeLimb, List.finRange,
-      List.ofFn, Fin.foldr, Fin.foldr.loop, Keccak.lane] at h2 ⊢ <;> exact h2.symm
+      List.ofFn, Fin.foldr, Fin.foldr.loop, Keccak.lane]
 
-/-- **The deployed check implies the reduction-blind one**: the cells Keccak-f writes are
-canonical with their free limb zero. -/
-theorem canonicalKeccak_of_keccakCells {input output : Fin 13 → E} {inOdd outOdd : Bool}
+/-- **The deployed check implies the reduction-blind one**: the cells Keccak-f writes have their
+free limb zero. -/
+theorem freeLimbZero_of_keccakCells {input output : Fin 13 → E} {inOdd outOdd : Bool}
     {outCells : KeccakOutputCells} (h : KeccakCellsRelation input inOdd output outOdd outCells) :
-    CanonicalKeccak input inOdd output outOdd outCells := by
+    FreeLimbZero output outOdd outCells := by
   have ho : ∀ c : Fin 13, c.val < outCells.cellCount →
       output c = laneCells (stateLanes (keccakF1600 (stateOfCells input inOdd))) outOdd 0 c := by
-    intro c hc; rw [h.2 c hc, cellsOfState_eq_laneCells]
+    intro c hc; rw [h c hc, cellsOfState_eq_laneCells]
   have h0 : 0 < outCells.cellCount := by cases outCells <;> decide
-  refine ⟨h.1, fun c hc ↦ ?_, ?_⟩
-  · rw [ho c hc]; show (E.ofLimbs _ _ 0).limb 2 = 0; rw [limb_ofLimbs]; rfl
-  · cases outOdd
-    · intro h8
-      rw [ho 8 h8]; simp [laneCells, cellLanes, laneLimb, limb_ofLimbs]
-    · show (output 0).limb 0 = 0
-      rw [ho 0 h0]; simp [laneCells, cellLanes, laneLimb, limb_ofLimbs]
+  cases outOdd
+  · intro h8
+    rw [ho 8 h8]; simp [laneCells, cellLanes, laneLimb, limb_ofLimbs]
+  · show (output 0).limb 0 = 0
+    rw [ho 0 h0]; simp [laneCells, cellLanes, laneLimb, limb_ofLimbs]
 
 /-! ## Segments of the permutation -/
 
@@ -326,7 +322,7 @@ theorem execute_keccak_eq_some_iff {κ : ℕ} (mem : MemoryImage κ) (r : Regist
   · rintro ⟨input, output, hin, hout, hc, rfl⟩
     let output' : Fin 13 → E := fun c ↦ if c.val < outCells.cellCount then output c else 0
     have hc' : KeccakCellsRelation input inOdd output' outOdd outCells :=
-      ⟨hc.1, fun c h ↦ by simp only [output', h, ↓reduceIte]; exact hc.2 c h⟩
+      fun c h ↦ by simp only [output', h, ↓reduceIte]; exact hc c h
     refine ⟨input, (readCells_eq_some_iff _ _ _ _).mpr hin, output',
       (readFirstCells_eq_some_iff _ _ _ _ _).mpr ⟨fun c h ↦ ?_, fun c h ↦ ?_⟩, (), ?_, rfl⟩
     · simp only [output', h, ↓reduceIte]; exact hout c h

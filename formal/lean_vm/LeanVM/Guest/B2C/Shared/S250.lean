@@ -16,45 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop295`, once. -/
-theorem st770 : shareStatic 770 = true := by decide +kernel
+/-- `__loop97`, window 2. -/
+theorem w631_2 : shareWin 631 (snapsOf 631) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop295`, window 0. -/
-theorem w770_0 : shareWin 770 (snapsOf 770) 0 = true := by decide +kernel
-
-theorem ok770 : ShareOk 770 := ⟨st770, fun i hi ↦ by
-  have h : (snapsOf 770).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w770_0⟩
+/-- `__loop98`, once. -/
+theorem st632 : shareStatic 632 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop296`, once. -/
-theorem st771 : shareStatic 771 = true := by decide +kernel
+/-- `__loop98`, window 0. -/
+theorem w632_0 : shareWin 632 (snapsOf 632) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop296`, window 0. -/
-theorem w771_0 : shareWin 771 (snapsOf 771) 0 = true := by decide +kernel
+/-- `__loop98`, window 1. -/
+theorem w632_1 : shareWin 632 (snapsOf 632) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop296`, window 1. -/
-theorem w771_1 : shareWin 771 (snapsOf 771) 1 = true := by decide +kernel
+/-- `__loop98`, window 2. -/
+theorem w632_2 : shareWin 632 (snapsOf 632) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop296`, window 2. -/
-theorem w771_2 : shareWin 771 (snapsOf 771) 2 = true := by decide +kernel
+/-- `__loop99`, once. -/
+theorem st633 : shareStatic 633 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop297`, once. -/
-theorem st772 : shareStatic 772 = true := by decide +kernel
+/-- `__loop99`, window 0. -/
+theorem w633_0 : shareWin 633 (snapsOf 633) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop297`, window 0. -/
-theorem w772_0 : shareWin 772 (snapsOf 772) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop297`, window 1. -/
-theorem w772_1 : shareWin 772 (snapsOf 772) 1 = true := by decide +kernel
+/-- `__loop99`, window 1. -/
+theorem w633_1 : shareWin 633 (snapsOf 633) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -74,7 +74,7 @@ theorem simulateQ_embH_postV (crs : Crs)
     verifyCellM_map (fun x ↦ simulateQ embH x) hp hb, simulateQ_embH_hH]
 
 /-- The challenges of the root, the duplex's. -/
-noncomputable abbrev chalR (root : Common.DigestBytes) : OracleComp Rom2 (List E) := chalP daDuplex root
+noncomputable abbrev chalR (root : Common.DigestBytes) : OracleComp Rom2 (List Draw) := chalP daDuplex root
 
 theorem all_cons_map_and (b v : Bool) (vs : List Bool) :
     ((b && v) :: vs.map (b && ·)).all id = ((v :: vs).all id && b) := by
@@ -82,7 +82,7 @@ theorem all_cons_map_and (b v : Bool) (vs : List Bool) :
 
 /-- Recomputed challenges, from a cache extending one where they were computed. -/
 theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
-    {c₀ : Cache2} {w : List E × Cache2}
+    {c₀ : Cache2} {w : List Draw × Cache2}
     (hw : w ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (chalR out.1.1)).run c₀))
     (l : List (Fin (r * 128) × Cell × CellOpening)) (c : Cache2) (hc : w.2 ≤ c) :
@@ -95,13 +95,13 @@ theorem run_mapM_rerun (crs : Crs) (out : (Common.DigestBytes × Proof) × List 
   | nil => simp only [List.mapM_nil, simulateQ_pure, StateT.run_pure, map_pure, List.map_nil]; exact EvalDistEq.rfl
   | cons o l ih =>
     simp only [List.mapM_cons, verifyRpm, simulateQ_bind, StateT.run_bind, simulateQ_pure,
-      StateT.run_pure, membershipChallengePairM_eq_chalP, bind_map_left]
+      StateT.run_pure, membershipChallengeVecM_eq_chalP, bind_map_left]
     rw [run_rerun _ (noCoins_chalP out.1.1) c₀ hw c hc, pure_bind]
     simp only [map_bind, bind_assoc, pure_bind, map_pure]
     refine EvalDistEq.bind_congr_of_support _ fun w₁ hw₁ ↦ ?_
     have hc1 := le_of_mem_support_run _ c hw₁
     have := ih w₁.2 (hc.trans hc1)
-    simp only [verifyRpm, membershipChallengePairM_eq_chalP, bind_map_left] at this
+    simp only [verifyRpm, membershipChallengeVecM_eq_chalP, bind_map_left] at this
     refine (EvalDistEq.bind_left this _).trans ?_
     rw [bind_map_left]
     simp only [List.map_cons]
@@ -136,14 +136,14 @@ theorem prob_codeBindingPost (crs : Crs)
       simp [consistent_nil]
   · refine EvalDistEq.prEvent_eq ?_ _
     simp only [codeBindingPost, List.mapM_cons, verifyRpm, simulateQ_bind, StateT.run'_eq,
-      StateT.run_bind, simulateQ_pure, StateT.run_pure, membershipChallengePairM_eq_chalP,
+      StateT.run_bind, simulateQ_pure, StateT.run_pure, membershipChallengeVecM_eq_chalP,
       bind_map_left,
       simulateQ_embH_postV, map_bind, bind_assoc, pure_bind, map_pure]
     refine EvalDistEq.bind_congr_of_support _ fun w hw ↦ ?_
     refine EvalDistEq.bind_congr_of_support _ fun w₁ hw₁ ↦ ?_
     have hc1 := le_of_mem_support_run _ _ hw₁
     have h := run_mapM_rerun r ps crs (com, o :: l) hw l w₁.2 hc1
-    simp only [verifyRpm, membershipChallengePairM_eq_chalP, bind_map_left] at h
+    simp only [verifyRpm, membershipChallengeVecM_eq_chalP, bind_map_left] at h
     refine (EvalDistEq.bind_left h _).trans ?_
     rw [bind_map_left]
     refine EvalDistEq.bind_right _ fun z ↦ ?_
@@ -226,7 +226,7 @@ random oracle `G` on `(root, j)`, the adversary's direct calls of `F` answered b
 lemma's simulator from `H` and `G` (`simImpl`), then the openings verified with `H` and the
 challenges `G (root, ·)`. -/
 noncomputable def cbIdealG (A : CodeBindingAdvB r Crs Proof) (crs : Crs) : ProbComp Bool :=
-  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes E 2).romImpl
+  (simulateQ (GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels).romImpl
     ((simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
         advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init >>= fun out ↦
       readVec (Msg := List UInt8) (Dg := DigestBytes) out.1.1 >>= fun l ↦
@@ -238,13 +238,13 @@ noncomputable def codeBindingExpG (A : CodeBindingAdvB r Crs Proof) : ProbComp B
 
 /-- **From the random-permutation model to the simulated world**: for an adversary whose game
 makes at most `Q` permutation calls, the RPM code-binding probability is at most the simulated
-one plus `Q² / 2^508` (the two-oracle transfer) plus `N · 2N / 2^576` with `N = Q + 3` (the
-duplex lemma: collisions of the 576-bit capacity among at most `Q + 3` calls of `F`). -/
+one plus `Q² / 2^508` (the two-oracle transfer) plus `N · 2N / 2^576` with `N = Q + 2^64 + 2` (the
+duplex lemma: collisions of the 576-bit capacity among at most `Q + 2^64 + 2` calls of `F`). -/
 theorem codeBindingExpRpm_le_G (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
     (hQ : QueryCostAtMost (codeBindingGame2 r ps A) permCalls2 Q) :
     Pr{let b ← codeBindingExpRpm r ps A}[b = true] ≤
       Pr{let b ← codeBindingExpG r ps A}[b = true] + (Q ^ 2 : ℝ≥0∞) / 2 ^ 508 +
-        ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 2 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
+        ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + nLabels + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) := by
   refine (leanDa_codeBinding_rpm r ps A Q hQ).1.trans ?_
   rw [add_right_comm]
   refine add_le_add ?_ le_rfl

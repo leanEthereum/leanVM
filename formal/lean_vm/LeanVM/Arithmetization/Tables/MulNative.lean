@@ -17,25 +17,25 @@ public import Clean.Utils.Tactics.CircuitProofStart
 /-!
 # The `MUL_NATIVE` table
 
-At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs:441-461` (`mod arith`, shared with `XOR`, in that order), the
-flushes `tables.rs:488-500` (`Arith::flushes` with `is_xor = false`), the result coordinates
-`tables.rs:45-49` and `:466-478` (`TOWER_LANES`, `arith_result`), all matching specification
-§7.2 (`doc/leanvm/body/07-instruction-tables.tex:28-50`). There is no constraint: the bus
+At `leanvm-rev` and Clean pin `b41c196b`. The columns
+are `crates/leanvm_core/src/tables.rs:460-478` (`mod arith`, shared with `XOR`, in that order), the
+flushes `tables.rs:504-516` (`Arith::flushes` with `is_xor = false`), the result coordinates
+`tables.rs:29-33` and `:483-494` (`TOWER_LANES`, `arith_result`; the verifier's
+`crates/verifier/src/layout.rs:221-225`), all matching specification §7.2
+(`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint: the bus
 balance is the assertion `[o_C] = [o_A] · [o_B]` (§5, "M3").
 
 **The row** `MulRow` is the column list: `pc, fp`; the operands `o_A, o_B, o_C`; the two read
-words `v_A, v_B` as three limbs each; the memory counts `r_A, r_B, r_C`; the bytecode count
-`r_bc`. The product is never a column: its limbs ride the third memory read as the twelve
-products over the nine limb pairs, folded by `y^3 = y + 1` into three lanes,
+words `v_A, v_B` as two limbs each; the memory counts `r_A, r_B, r_C`; the bytecode count
+`r_bc`. The product is never a column: its limbs ride the third memory read as the four
+products over the four limb pairs, `a₁b₁·y²` folded by `y^2 = x·y + 1` into both lanes,
 
 ```text
-c0 = a0·b0 + a1·b2 + a2·b1
-c1 = a0·b1 + a1·b0 + a1·b2 + a2·b1 + a2·b2
-c2 = a0·b2 + a1·b1 + a2·b0 + a2·b2
+c0 = a0·b0 + a1·b1
+c1 = a0·b1 + a1·b0 + g·(a1·b1)
 ```
 
-(`TOWER_LANES`; §7.2's `p_0 + p_3, p_1 + p_3 + p_4, p_2 + p_4`). `mul_limbs` is the
+(`TOWER_LANES`, each term `g^e·a_j·b_k` for `(j, k, e)`; §7.2's `p_0 + p_2, p_1 + g·p_2`). `mul_limbs` is the
 statement that these are the limbs of the product in `E`, and licenses the proofs to read the
 result coordinates as `v_A · v_B`.
 
@@ -49,7 +49,7 @@ the circuit's expanded polynomial is `main`'s coordinates alone, tied to it by `
 `MulSpec r next data` adapts the relation to Clean's prover data and is the table's `Spec`;
 `ProverAssumptions r data _ := ∃ next, MulSpec r next data` is the honest prover's row, proved
 of the row of any valid execution by `mulRowOf_refines` (`mul_exec_complete`); completeness
-discharges the pulls from it through `mul_refines_iff` and `mul_limbs`, the twelve products
+discharges the pulls from it through `mul_refines_iff` and `mul_limbs`, the four products
 `main` emits being the product's limbs. The table is program-free, as leanVM's is
 (`Arithmetization.Channels`).
 
@@ -63,9 +63,9 @@ statements for this table.
 
 ## Wrong readings excluded
 
-* A five-lane or unfolded product is not the tower product: `y · y · y = y + 1`, so the
-  `y^3` and `y^4` partial sums fold back into lanes `0, 1` and `1, 2` (`mul_limbs`,
-  whose proof is exactly the fold by `y_pow_three`).
+* A three-lane or unfolded product is not the tower product: `y · y = x·y + 1`, so the
+  `y^2` partial sum folds back into lane `0` and, times `g`, lane `1` (`mul_limbs`, whose proof
+  is exactly the fold by `y_sq`); a product without the `g` is that of `y^2 + y + 1`.
 * `MulRefines` names the operands and the operand words: a wrong input limb fails the bindings
   even where the result cell happens to hold the product of the image's words.
 * The successor is `(g·pc, fp)`; the spare bytecode slots are literal zeros (`decode` rejects
@@ -78,7 +78,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `MUL_NATIVE` columns, in the order of `tables.rs:441-461`. -/
+/-- The `MUL_NATIVE` columns, in the order of `tables.rs:460-478`. -/
 structure MulRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -91,9 +91,9 @@ structure MulRow (F : Type) where
   /-- The operand `o_C`. -/
   oC : F
   /-- The word read at `fp · o_A`, as limbs. -/
-  vA : Vector F 3
+  vA : Vector F 2
   /-- The word read at `fp · o_B`, as limbs. -/
-  vB : Vector F 3
+  vB : Vector F 2
   /-- The read count of the cell `fp · o_A`. -/
   rA : F
   /-- The read count of the cell `fp · o_B`. -/
@@ -109,9 +109,9 @@ structure MulRow (F : Type) where
 /-- The row's bindings to an image: the operand cells hold the row's words. -/
 structure MulBindings {κ : ℕ} (mem : MemoryImage κ) (r : MulRow K) : Prop where
   /-- The cell `fp · o_A` holds the row's word `v_A`. -/
-  readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2])
+  readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1])
   /-- The cell `fp · o_B` holds the row's word `v_B`. -/
-  readB_eq : mem.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
+  readB_eq : mem.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1])
 
 /-- The relation a `MUL_NATIVE` row refines: it is bound to the image, and from its registers
 the machine executes the instruction it names, `MUL_NATIVE o_A o_B o_C`, to `next`. -/
@@ -127,7 +127,7 @@ theorem mul_refines_iff {κ : ℕ} (mem : MemoryImage κ) (r : MulRow K) (next :
     MulRefines mem r next ↔
       MulBindings mem r ∧
         mem.read (r.fp * r.oC) =
-          some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] * E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
+          some (E.ofLimbs r.vA[0] r.vA[1] * E.ofLimbs r.vB[0] r.vB[1]) ∧
         next = Registers.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨⟨hA, hB⟩, hexec⟩
@@ -160,9 +160,9 @@ private theorem mulNative_entry (a b c : K) :
 
 /-! ## The table -/
 
-/-- The `MUL_NATIVE` table (specification §7.2; `tables.rs:441-526`): state step, bytecode read
+/-- The `MUL_NATIVE` table (specification §7.2; `tables.rs:456-532`): state step, bytecode read
 of `(MUL, o_A, o_B, o_C, 0, 0, 0, 0)`, the two operand reads, and the result read carrying the
-tower product's three lanes. Returns the pushed successor `(g·pc, fp)`. -/
+tower product's two lanes. Returns the pushed successor `(g·pc, fp)`. -/
 def mulTable : GeneralFormalCircuit K MulRow Registers where
   -- The table's name in leanVM (`TABLES`, `cpu/mod.rs:391`), unique in the ensemble (Clean keys
   -- the prover data by it).
@@ -175,12 +175,11 @@ def mulTable : GeneralFormalCircuit K MulRow Registers where
       #v[r.oA, r.oB, r.oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
-    -- `TOWER_LANES` (`tables.rs:45-49`), lane by lane, pair by pair.
+    -- `TOWER_LANES` (`tables.rs:29-33`), lane by lane, term by term, `(j, k, e)` as
+    -- `g^e · v_{A,j} · v_{B,k}`.
     memRead (r.fp * r.oC) r.rC
-      #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1],
-         r.vA[0] * r.vB[1] + r.vA[1] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1] +
-           r.vA[2] * r.vB[2],
-         r.vA[0] * r.vB[2] + r.vA[1] * r.vB[1] + r.vA[2] * r.vB[0] + r.vA[2] * r.vB[2]]
+      #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[1],
+         r.vA[0] * r.vB[1] + r.vA[1] * r.vB[0] + Expression.const g * (r.vA[1] * r.vB[1])]
     pure next
   -- The push channels: their requirements are vacuous, the obligation is `Spec`.
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
@@ -238,10 +237,10 @@ theorem mulRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} 
   obtain ⟨a, ha, b, hb, -⟩ := h
   refine ⟨⟨?_, ?_⟩, hexec⟩
   · show mem.read (fp * oA) = some (E.ofLimbs (mem.limbsAt (fp * oA))[0]
-      (mem.limbsAt (fp * oA))[1] (mem.limbsAt (fp * oA))[2])
+      (mem.limbsAt (fp * oA))[1])
     rw [MemoryImage.ofLimbs_limbsAt ha]; exact ha
   · show mem.read (fp * oB) = some (E.ofLimbs (mem.limbsAt (fp * oB))[0]
-      (mem.limbsAt (fp * oB))[1] (mem.limbsAt (fp * oB))[2])
+      (mem.limbsAt (fp * oB))[1])
     rw [MemoryImage.ofLimbs_limbsAt hb]; exact hb
 
 /-- Every valid `MUL_NATIVE` execution has a satisfying row, from the execution alone: the

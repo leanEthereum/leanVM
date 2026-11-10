@@ -88,7 +88,7 @@ set_option maxRecDepth 20000 in
 holding the states after each frame; it returns their cells' digest. -/
 theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -133,11 +133,11 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       [(a + 1) * fs "__loop17", (b + 1) * fs "__loop18", fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtB fs cert (j := 349)
+      refine anyLoop_completeAtB fs cert (j := 378)
         (find_of_idx any136_idx (by rw [coreProgram_length]; omega)) any136_ok any136c_head
-        any136c_canon any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
+        any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
         (chP := b0) (n0 := 0) (pre0 := []) (o := o) (cells := cells) rfl rfl rfl (by simp)
-        (by rw [hl]; omega) hc hlast hL33 hLκ (by omega) (by omega)
+        (by rw [hl]; omega) hlast hL33 hLκ (by omega) (by omega)
         (fun rd hm => ⟨fun q hq => ?_, fun j hj => hrec rd (memL_append.mp hm).1 j (by omega)⟩)
         (fun q hq c hc => ?_) (fun i hi => regionL_append_left (hR2 i (by omega)))
         (fun i hi c hc => regionL_append_left (hR3 i (by omega) c hc))
@@ -148,16 +148,16 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
         exact this
       · rw [Nat.add_assoc]; exact hOR _ (by omega)
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtB fs cert (j := 350)
+      refine anyLoop_completeAtB fs cert (j := 379)
         (find_of_idx any17_idx (by rw [coreProgram_length]; omega)) any17_ok any17c_parts.1
-        any17c_parts.2.1 any17c_parts.2.2.1 any17c_parts.2.2.2 any17_nb any17_unplaced
+        any17c_parts.2.1 any17c_parts.2.2 any17_nb any17_unplaced
         (by norm_num) (chP := b0 + 13 * a) (n0 := 64 * a)
         (pre0 := cellsBytes (cells.take (544 * a))) (o := fun i => o (136 * a + i))
         (cells := cells.drop (544 * a)) (by rw [hchain, ← pow_add]) rfl rfl
         (by
           rw [length_cellsBytes, List.length_take, Nat.min_eq_left (by omega)]
           show 16 * (544 * a) = 136 * (64 * a); ring)
-        (by rw [List.length_drop, hl]; omega) (canon_drop hc _) hlast hL33 hLκ (by omega)
+        (by rw [List.length_drop, hl]; omega) hlast hL33 hLκ (by omega)
         (by omega)
         (fun rd hm => ⟨fun q hq => ?_, ?_⟩) (fun q hq c hc => ?_)
         (fun i hi => regionL_append_left (hR2 _ (by omega)))
@@ -181,7 +181,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
         (os := fun j => o (136 * a + 17 * b + j)) (cells := cells.drop (68 * (8 * a + b)))
         (n := 8 * (8 * a + b)) (pre := cellsBytes (cells.take (68 * (8 * a + b))))
         (marks := base * gen ^ (136 * a + 17 * b)) (by rw [hchain, ← pow_add]) rfl rfl hpre
-        (by rw [List.length_drop, hl]; omega) (canon_drop hc _) hlast hL33 hLκ
+        (by rw [List.length_drop, hl]; omega) hlast hL33 hLκ
         (fun rd hm => ⟨by
             have := state_of_reads (hmOwn rd (memL_append.mp hm).2) (le_refl (a + b))
             rwa [clU_last] at this, by
@@ -350,7 +350,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape.** -/
 theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -358,12 +358,12 @@ theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String �
     CompleteAtDT fs cert κ "child_claim_list_any" Lin
       [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) (anyHonest n) :=
-  (child_claim_list_any_completeAtTB fs cert hn hl hc hL33 hLκ hrec hR2 hR3).toDT
+  (child_claim_list_any_completeAtTB fs cert hn hl hL33 hLκ hrec hR2 hR3).toDT
 
 /-- **`child_claim_list_any` is complete, placed.** -/
 theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -371,7 +371,7 @@ theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String →
     CompleteAtD fs cert κ "child_claim_list_any" Lin
       [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
-  (child_claim_list_any_completeAtT fs cert hn hl hc hL33 hLκ hrec hR2 hR3).toD
+  (child_claim_list_any_completeAtT fs cert hn hl hL33 hLκ hrec hR2 hR3).toD
 
 end
 end LeanVM.Guest.B1.Digest

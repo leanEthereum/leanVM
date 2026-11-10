@@ -26,7 +26,7 @@ matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the s
 §6.2 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:98`, the
 index column), and §8.6 (`08-end-to-end-protocol.tex:105`: "three blocks per side belong to no
 table"). The committed
-columns are `MEM_LO, MEM_HI, MEM_TOP, MFCNT` and `BFCNT` (`layout.rs:13-17`); the bytecode entry
+columns are `MEM_LO, MEM_HI, MFCNT` and `BFCNT` (`layout.rs:14-17` at `leanvm-rev`); the bytecode entry
 rides eight *public* columns (`bytecode_columns`, `layout.rs:228-289`, `Bytecode`'s `entry`); the
 sentinel counter `g^(N_prog - 1)` is derived from the public program's length and written into the
 state block as a constant (`layout.rs:334`, `final_pc`; `:356`, `Const(g_pow(final_pc))`).
@@ -39,7 +39,7 @@ the *bytecode block* does the same for each slot of the public program; the *ver
 the initial state `(1, 1)` and pulls the final state `(g^(N_prog - 1), 1)`. None has a
 constraint: each is its two flushes.
 
-**The rows.** `MemRow` is the memory block's row: the word's three limbs `m`, first, as the
+**The rows.** `MemRow` is the memory block's row: the word's two limbs `m`, first, as the
 committed columns are, so that the prover data Clean derives from the block is the image, the
 address `idx` (the index column of §6.5, which the verifier computes: a fixed column), and the
 finalize count `cntFin`; `BytecodeRow` is the bytecode block's: the counter `idx`, the finalize
@@ -59,7 +59,7 @@ coordinate, and the statement's ensemble is `leanIsaEnsemble prog κ`.
 
 **The specifications.** A block's `Spec` is what its pull guarantees (`Channels`): `MemSpec r
 data` says the row is bound to the image the data names, `MemBindings (imageOf data).2 r`, the
-cell at `idx` holding the row's word `E.ofLimbs m[0] m[1] m[2]`; `BytecodeDecodes r` says the
+cell at `idx` holding the row's word `E.ofLimbs m[0] m[1]`; `BytecodeDecodes r` says the
 row's entry decodes to an instruction (`decode`), the program-free guarantee of the bytecode
 pull, which reads no data. The program is not the circuit's to name: the block's rows are the
 public program's entries because its fixed columns are (§8.6, Bus 4; `Coord::Public`), which the
@@ -136,13 +136,13 @@ def PublicIO.ofInput (input : PublicInput) : PublicIO K :=
 
 /-! ## The memory block -/
 
-/-- A row of the memory block: the word's three limbs (`MEM_LO, MEM_HI, MEM_TOP`;
-`layout.rs:13-16`), the address `g^i` (the index column of §6.5, a fixed column), and the finalize
+/-- A row of the memory block: the word's two limbs (`MEM_LO, MEM_HI`;
+`layout.rs:14-15` at `leanvm-rev`), the address `g^i` (the index column of §6.5, a fixed column), and the finalize
 count `g^(A[i])` (`MFCNT`). The limbs come first, as the committed columns do, so that the prover
-data Clean derives from the block, its rows cut at three cells (`memRows`), is the image. -/
+data Clean derives from the block, its rows cut at two cells (`memRows`), is the image. -/
 structure MemRow (F : Type) where
   /-- The word at the address, as limbs. -/
-  m : Vector F 3
+  m : Vector F 2
   /-- The address, `g^i` for row `i`. -/
   idx : F
   /-- The finalize count, `g^(A[i])` for an address read `A[i]` times. -/
@@ -152,14 +152,14 @@ structure MemRow (F : Type) where
 /-- The row's binding to an image: the cell at its address holds its word. -/
 structure MemBindings {κ : ℕ} (mem : MemoryImage κ) (r : MemRow K) : Prop where
   /-- The cell `idx` holds the row's word `m`. -/
-  word_eq : mem.read r.idx = some (E.ofLimbs r.m[0] r.m[1] r.m[2])
+  word_eq : mem.read r.idx = some (E.ofLimbs r.m[0] r.m[1])
 
 /-- The memory block's `Spec`: the row is bound to the image the prover data names
 (`imageOf`). -/
 def MemSpec (r : MemRow K) (data : ProverData K) : Prop :=
   MemBindings (imageOf data).2 r
 
-/-- The memory block (specification §6.2, seed and finalize; `layout.rs:358-381`): push
+/-- The memory block (specification §6.2, seed and finalize; `layout.rs:431-440` at `leanvm-rev`): push
 `(idx, 1, m)`, pull `(idx, cntFin, m)`. -/
 def memTable : GeneralFormalCircuit K MemRow unit where
   -- Clean keys the prover data by component name: the block's rows are the `"mem"` table.
@@ -191,15 +191,14 @@ def memTable : GeneralFormalCircuit K MemRow unit where
 /-- The seed row of word `i` of the image `mem`, with finalize count `cntFin`: the address `g^i`
 and the word's limbs. -/
 def memRowOf {κ : ℕ} (mem : MemoryImage κ) (i : Fin (2 ^ κ)) (cntFin : K) : MemRow K :=
-  ⟨#v[(mem i).limb 0, (mem i).limb 1, (mem i).limb 2], addressOfIndex i, cntFin⟩
+  ⟨#v[(mem i).limb 0, (mem i).limb 1], addressOfIndex i, cntFin⟩
 
 /-- On an image within the address space `gLog?_spec` covers, `memRowOf` is bound, with any
 finalize count. -/
 theorem memRowOf_bindings {κ : ℕ} (hκ : κ < 64) (mem : MemoryImage κ) (i : Fin (2 ^ κ))
     (cntFin : K) : MemBindings mem (memRowOf mem i cntFin) :=
   ⟨by
-    show mem.read (addressOfIndex i) = some (E.ofLimbs ((mem i).limb 0) ((mem i).limb 1) ((mem
-        i).limb 2))
+    show mem.read (addressOfIndex i) = some (E.ofLimbs ((mem i).limb 0) ((mem i).limb 1))
     rw [MemoryImage.read_gpow hκ, ofLimbs_limb]⟩
 
 /-- Every word of the image named by the data has a satisfying seed row, from the image alone:
@@ -366,7 +365,7 @@ def memMode (κ : ℕ) : Air.Flat.WitnessGeneration.PreallocatedMode K MemRow wh
   channel := MemPull
   trigger := .pull
   height := UInt64.ofNat (2 ^ κ)
-  input _ := pure ⟨#v[committedCell, committedCell, committedCell],
+  input _ := pure ⟨#v[committedCell, committedCell],
     .fixed (fixedColumn (2 ^ κ) fun j ↦ addressOfIndex j), committedCell⟩
   rowOf _ := .const (UInt64.ofNat (2 ^ κ))
 
@@ -400,7 +399,7 @@ theorem memMode_fixedAt {κ : ℕ} {i : UInt64} (hi : i.toNat < 2 ^ κ) (r : Mem
     (memMode κ).FixedAt i r ↔ r.idx = addressOfIndex i.toNat := by
   obtain ⟨⟨⟨l⟩, hl⟩, idx, c⟩ := r
   match l, hl with
-  | [a, b, d], _ =>
+  | [a, b], _ =>
   simp only [Air.Flat.WitnessGeneration.PreallocatedMode.FixedAt, memMode, Witgen.M.pure_def]
   simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents, committedCell,
     Air.Flat.WitnessGeneration.Cell.FixedMatches]

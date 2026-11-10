@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.EndToEnd.Candidates
 public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
+public import LeanVM.Protocol.EndToEnd.Front.OodBind
 
 /-!
 # The commitment's doom
@@ -29,6 +30,11 @@ public input `input`.
 * `readSizesSpec`, `commitStackSpec`: the specifications of the two steps, from no doom; the
   second ends in `CommitDoom`. They compose with `Spec.bind` as the program does:
   `readSizesSpec.bind fun a ↦ (commitStackSpec a).bind fun _ ↦ …`.
+
+Right after the root comes the commitment's OOD sample (`readOod`, `commitOodSpec`): the
+grind, the point `z₀`, the answer `y₀`. Its doom keeps `CommitDoom`, read on the commitments
+(`CommitDoomC`), and adds that the root's candidates are separated at `z₀` (`OodBind`), so that
+the phases after it face the one candidate `oodCands` leaves.
 
 The doom quantifies over the candidates; it says nothing about which candidate the prover had
 in mind. Its negation, at the end of a run, is the knowledge statement: some candidate satisfies
@@ -76,6 +82,55 @@ theorem CommitDoom.append {prog : LeanIsaProgram} {input : PublicInput}
     (hD : CommitDoom prog input A a h) (l : List Ev) : CommitDoom prog input A a (h ++ l) := by
   obtain ⟨s, W₀, hs, hW, hq⟩ := hD
   exact ⟨s, W₀, hs, firstWord_append hW l, hq⟩
+
+/-! ## The OOD sample after the root -/
+
+/-- The first word of a list of commitments. -/
+def firstWordC (cs : List (ℕ × ℕ × Word)) : Option Word := cs.head?.map (·.2.2)
+
+theorem firstWord_eq (h : List Ev) : firstWord h = firstWordC (commits h) := rfl
+
+/-- **The commitment's doom on the commitments alone**: `CommitDoom` reads only them. -/
+def CommitDoomC (prog : LeanIsaProgram) (input : PublicInput) (A : ℕ → ℕ → ℕ)
+    (a : Verifier.Layout × ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  ∃ s W₀, a.1 = verifierLayout prog s ∧ firstWordC cs = some W₀ ∧
+    ∀ q ∈ Candidates (leanIsaμ prog s) a.2 (A (leanIsaμ prog s) a.2) W₀,
+      ¬ M3Holds (leanIsaInstance prog s) input q
+
+theorem commitDoom_iff {prog : LeanIsaProgram} {input : PublicInput} {A : ℕ → ℕ → ℕ}
+    {a : Verifier.Layout × ℕ} {h : List Ev} :
+    CommitDoom prog input A a h ↔ CommitDoomC prog input A a (commits h) := Iff.rfl
+
+/-- The candidates of the first commitment of a list, on `μ` variables at threshold `A`. -/
+def firstCands (μ R A : ℕ) (cs : List (ℕ × ℕ × Word)) : Set (Column μ) :=
+  {q | ∃ W, firstWordC cs = some W ∧ q ∈ Candidates μ R A W}
+
+theorem firstCands_eq {μ R A : ℕ} {cs : List (ℕ × ℕ × Word)} {W : Word}
+    (hW : firstWordC cs = some W) : firstCands μ R A cs = Candidates μ R A W := by
+  ext q
+  simp only [firstCands, hW, Option.some.injEq, exists_eq_left', Set.mem_ofPred_eq]
+
+theorem firstCands_bound {μ R A L : ℕ}
+    (hL : ∀ W, (Candidates μ R A W).Finite ∧ (Candidates μ R A W).ncard ≤ L)
+    (cs : List (ℕ × ℕ × Word)) : (firstCands μ R A cs).Finite ∧ (firstCands μ R A cs).ncard ≤ L := by
+  rcases hW : firstWordC cs with _ | W
+  · have : firstCands μ R A cs = ∅ := by ext q; simp [firstCands, hW]
+    rw [this]
+    exact ⟨Set.finite_empty, by simp⟩
+  · rw [firstCands_eq hW]
+    exact hL W
+
+/-- **The commitment's OOD sample**, from any doom `J` on the commitments: `readOod` at the
+stack's variable count `μ`, with the root's candidates at the threshold `A μ R`, of which there
+are at most `L` (`hL`, the level-0 list bound of the shape). Its group is charged
+`C(L, 2)·μ/|E|`, discounted by the `15`-bit grind (`hε`). -/
+noncomputable def commitOodSpec {εmax T : ENNReal} {μ R L : ℕ} (A : ℕ → ℕ → ℕ) (hμ : μ ≠ 0)
+    (hL : ∀ W, (Candidates μ R (A μ R) W).Finite ∧ (Candidates μ R (A μ R) W).ncard ≤ L)
+    (J : List (ℕ × ℕ × Word) → Prop) (he : oodError L μ < 1)
+    (hε : (2 : ENNReal)⁻¹ ^ Whir.oodGrindingBits * (oodError L μ + 0) ≤ εmax) (hT : T ≤ εmax) :
+    Spec (readOod μ) (fun h ↦ J (commits h)) (OodPost (firstCands μ R (A μ R)) J) εmax 0 T :=
+  oodSpec (firstCands μ R (A μ R)) J hμ (fun cs _ ↦ (firstCands_bound hL cs).1)
+    (fun cs _ ↦ (firstCands_bound hL cs).2) he hε hT
 
 variable {εmax T : ENNReal}
 

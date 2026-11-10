@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L18_L7`, window 1. -/
-theorem w894_1 : shareWin 894 (snapsOf 894) 1 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L19_L4_L4_L1464_L20_L5_L1`, window 1. -/
+theorem w767_1 : shareWin 767 (snapsOf 767) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop391`, once. -/
-theorem st895 : shareStatic 895 = true := by decide +kernel
+/-- `__loop200`, once. -/
+theorem st768 : shareStatic 768 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop391`, window 0. -/
-theorem w895_0 : shareWin 895 (snapsOf 895) 0 = true := by decide +kernel
+/-- `__loop200`, window 0. -/
+theorem w768_0 : shareWin 768 (snapsOf 768) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop391`, window 1. -/
-theorem w895_1 : shareWin 895 (snapsOf 895) 1 = true := by decide +kernel
+/-- `__loop200`, window 1. -/
+theorem w768_1 : shareWin 768 (snapsOf 768) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop391`, window 2. -/
-theorem w895_2 : shareWin 895 (snapsOf 895) 2 = true := by decide +kernel
+/-- `__loop200`, window 2. -/
+theorem w768_2 : shareWin 768 (snapsOf 768) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop391`, window 3. -/
-theorem w895_3 : shareWin 895 (snapsOf 895) 3 = true := by decide +kernel
+/-- `__loop201`, once. -/
+theorem st769 : shareStatic 769 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L19_L7`, once. -/
-theorem st896 : shareStatic 896 = true := by decide +kernel
+/-- `__loop201`, window 0. -/
+theorem w769_0 : shareWin 769 (snapsOf 769) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L19_L7`, window 0. -/
-theorem w896_0 : shareWin 896 (snapsOf 896) 0 = true := by decide +kernel
+/-- `__loop201`, window 1. -/
+theorem w769_1 : shareWin 769 (snapsOf 769) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

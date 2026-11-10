@@ -28,7 +28,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 namespace VkData
 
-variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE : ℕ} {ls : ℕ → ℕ}
+variable {D : VkData} {rd : Reader} {B curE chiE olE zvE slE tbE : ℕ} {ls : ℕ → ℕ}
 
 theorem stepCb_eq : ∀ s < 12, 2 ≤ s → stepCb s = stepPn (s - 1) := by decide
 
@@ -37,11 +37,11 @@ theorem stepPn_eq : ∀ s < 11,
 
 /-- **The claim records' pointers the steps pass on**: step `s ≥ 1` reads claim `s`'s at
 `stepCb s` and claim `s + 1`'s at `stepPn s`, as the step before computed them. -/
-theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE) (h17 : σ (.n 17) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 203) = ptr (B + D.o201)) (h274 : σ (.n 276) = ptr (B + D.o274)) :
-    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n 203) * gen ^ (22 * (s - 1)) ∧
-      σ (.n (stepPn s)) = σ (.n 203) * gen ^ (22 * s)
+theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h17 : σ (.n 18) = gen ^ (D.τ - 4))
+    (h201 : σ (.n 161) = ptr (B + D.o201)) (h274 : σ (.n 234) = ptr (B + D.o274)) :
+    ∀ s, s < 12 → 1 ≤ s → σ (.n (stepCb s)) = σ (.n 161) * gen ^ (22 * (s - 1)) ∧
+      σ (.n (stepPn s)) = σ (.n 161) * gen ^ (22 * s)
   | 0, _, h1 => absurd h1 (by norm_num)
   | 1, _, _ => by
     refine ⟨by simp [stepCb], ?_⟩
@@ -57,10 +57,10 @@ theorem steps_chain (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : 
       (fun _ ↦ IH.2)).2.2.1 (by omega)).2.2.2.2
 
 /-- **The twelve steps, on the layout.** -/
-theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE) (h17 : σ (.n 17) = gen ^ (D.τ - 4))
-    (h201 : σ (.n 203) = ptr (B + D.o201))
-    (h274 : σ (.n 276) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
+theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h17 : σ (.n 18) = gen ^ (D.τ - 4))
+    (h201 : σ (.n 161) = ptr (B + D.o201))
+    (h274 : σ (.n 234) = ptr (B + D.o274)) {next : Prop} {kret : List E → Prop} (hn : next) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkStepsT next kret := by
   have S : ∀ s, s < 12 → ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ
@@ -76,56 +76,52 @@ theorem steps_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : 
 
 set_option maxRecDepth 20000 in
 /-- **The body, on the layout.** -/
-theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE) {cap' : List E} {m0 : E}
-    (hfin : D.fin = (m0, ⟨cap', []⟩)) :
+theorem body_holds (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) :
     Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkT False
-      (fun r ↦ r = cap' ++ [ptr curE * gen ^ D.xs.length, D.word, m0]) := by
+      (fun r ↦ r = capOf D.sF.perm ++ [ptr curE * gen ^ D.xs.length, D.word]) := by
   obtain ⟨-, -, p6, -, -, p9, p10, h17, -, -, a58, -, -, -, -, -, -, -, -, -, a201, -,
     a274, -, HF⟩ := head_first h hm hσd
   obtain ⟨-, -, -, -, -, eO, e3701, -, -, -, -, HO⟩ := out_on h hm hσd p6 p9 h17 a58 a274
-  have e3699 : σ (.n 971) = ptr (curE + D.lcur 12 + 12) := by
+  have e3699 : σ (.n 929) = ptr (curE + D.lcur 12 + 12) := by
     have := eO 5 (by norm_num)
-    rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2.1]), (O_ok h).2.1]
+    rw [this, oRets, List.getD_append_right _ _ _ _ (by rw [(O_ok h).2]), (O_ok h).2]
     simp [cL, ptr_mul_gen]
-  obtain ⟨-, -, e1251, -, e4104, e4107, -, -, e4110, efin, HI⟩ :=
+  obtain ⟨-, -, e1251, -, e4104, e4107, -, -, e4110, -, hcp, HI⟩ :=
     in_on h hm hσd p6 p9 p10 a201 e3699
-  have e4115 : σ (.n 1387) = ptr (curE + D.lcur 12 + 33) := by
-    rw [show (1387 : ℕ) = 1382 + 5 from rfl, e4110 5 (by norm_num), sRets,
-      List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]), (S_ok h).2.1]
+  have e4115 : σ (.n 1338) = ptr (curE + D.lcur 12 + 33) := by
+    rw [show (1338 : ℕ) = 1333 + 5 from rfl, e4110 5 (by norm_num), sRets,
+      List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]), (S_ok h).2]
     simp only [Nat.sub_self, List.getD_cons_zero, cL, ptr_mul_gen, ptr_mul_gen1]
-  have e4116 : σ (.n 1388) = D.S.2.1 := by
-    rw [show (1388 : ℕ) = 1382 + 6 from rfl, e4110 6 (by norm_num), sRets,
-      List.getD_append_right _ _ _ _ (by rw [(S_ok h).2.1]; norm_num), (S_ok h).2.1]
+  have e4116 : σ (.n 1339) = D.S.2.1 := by
+    rw [show (1339 : ℕ) = 1333 + 6 from rfl, e4110 6 (by norm_num), sRets,
+      List.getD_append_right _ _ _ _ (by rw [(S_ok h).2]; norm_num), (S_ok h).2]
     rfl
   obtain ⟨-, -, -, -, HFn⟩ := fin_on h hm hσd p9 p10 h17 a201 e4104 e4107 e4116 e1251
-  rw [hfin] at efin
-  simp only [Prod.mk.injEq, Fs.mk.injEq, and_true] at efin
-  obtain ⟨rfl, rfl⟩ := efin
   rw [vkT, holdsList_append, holdsList_append, holdsList_append, holdsList_append]
   refine HF (steps_holds h hm hσd h17 a201 a274 (HO (HI (HFn ?_))))
-  rw [e4115, e3701, ptr_mul_gen, ptr_mul_gen, xs_length h,
+  rw [hcp, e4115, e3701, ptr_mul_gen, ptr_mul_gen, xs_length h,
     show curE + D.lcur 12 + 33 + 64 = curE + (D.lcur 12 + 97) by omega]
   rfl
 
-theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE)
-    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) : σ (.n 59) = gen ^ (D.τ - 3) := by
+theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE tbE)
+    (h17 : σ (.n 18) = gen ^ (D.τ - 4)) : σ (.n 60) = gen ^ (D.τ - 3) := by
   have hG : ∀ s ∈ vkT, pinB s = false → GoodS rd vkSt (D.w B curE) σ s := by
     subst hσd; exact (val_good h).2.1
   have gA : ∀ a, Stmt.atom a ∈ vkT → pinB (.atom a) = false → Good rd vkSt (D.w B curE) σ a :=
     fun a h hp ↦ hG _ h hp
-  have c56 : σ (.n 58) = Guest.word 2 0 0 :=
-    gA (.const (.n 58) (Guest.word 2 0 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
+  have c56 : σ (.n 59) = Guest.word 2 0 :=
+    gA (.const (.n 59) (Guest.word 2 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
   have m57 := mulG (by norm_num) (by norm_num)
-    (gA (.mul (.n 59) (.n 17) (.n 58)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
+    (gA (.mul (.n 60) (.n 18) (.n 59)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
   rw [m57, h17, c56, word_gen, ← pow_succ]
   congr 1
   have := h.1
   omega
 
 /-- **The buffers' sizes.** -/
-theorem body_sizes (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE)
-    (h17 : σ (.n 17) = gen ^ (D.τ - 4)) :
+theorem body_sizes (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE tbE)
+    (h17 : σ (.n 18) = gen ^ (D.τ - 4)) :
     (vkPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = D.sizes := by
   have hτ := h.2.1
   rw [vkPre_kernel.2.2.1]
@@ -133,7 +129,7 @@ theorem body_sizes (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE z
   rw [val_57 h hσd h17, gen_pow_eq_ofK, logG_spec (by omega)]
 
 /-- **The buffers' bases.** -/
-theorem body_bases (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE) :
+theorem body_bases (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) :
     ((vkPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
       (bases B D.sizes).map (fun b ↦ ofK (Parameters.addressOfIndex b)) := by
   have ha : ∀ x ∈ vkAllocs, σ x.1 = D.w B curE x.1.idx := by subst hσd; exact val_alloc h
@@ -149,11 +145,11 @@ theorem stepT0_lt : ∀ s < 12, 6 ≤ stepT0 s (stepB s) := by decide +kernel
 
 set_option maxRecDepth 20000 in
 /-- **Layer `s`'s call**: its name, arguments and returns, as the callee is placed. -/
-theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : Val}
-    (hσd : σ = D.val rd B curE chiE olE zvE slE) {s : ℕ} (hs : s < 12) (fs : String → ℕ)
+theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : Val}
+    (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) {s : ℕ} (hs : s < 12) (fs : String → ℕ)
     (ps : List ℕ) :
     (stepCall s).2.1 = D.lname s ∧
-      (stepCall s).2.2.1.map σ = (D.layKid fs B curE s).args ps ∧
+      (stepCall s).2.2.1.map σ = (D.layKid fs B curE tbE s).args ps ∧
       (stepCall s).2.2.2.map σ = (D.layer s).rets (firstOf s) (ptr (curE + D.lcur s)) := by
   have hτ1 := h.1
   obtain ⟨-, p5, -, -, -, -, -, h17, h33, h47, -, -, -, -, -, -, -, hcap0, -, ecells, a201, -,
@@ -162,6 +158,7 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     (fun h1 ↦ (steps_chain h hm hσd h17 a201 a274 s hs h1).1)
     (fun h1 ↦ (steps_chain h hm hσd h17 a201 a274 s hs h1).2)
   have hy := D.layer_y h hs.le
+  have p11 : σ (.n 11) = ptr tbE := by rw [hσd]; exact val_tabs h
   have hE := stepE_eq s hs
   have hT6 := stepT0_lt s hs
   set T := stepT0 s (stepB s) with hT
@@ -186,7 +183,7 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
       simp only [List.cons.injEq, and_true]
       refine ⟨(Prod.ext_iff.1 ecells).1, (Prod.ext_iff.1 ecells).2,
         by rw [e1, p5, ptr_mul_gen1]; simp [lcur], by rw [e3, hy], by rw [h33, hy],
-        by rw [h47, hy], by rw [a201]; rfl, by rw [e5, a201, ptr_mul_gen], hio⟩
+        by rw [h47, hy], by rw [a201]; rfl, by rw [e5, a201, ptr_mul_gen], hio, p11⟩
     · simp only [stepCall, ↓reduceIte, List.map_map, Function.comp_def]
       apply List.ext_getElem (by simp [hRL])
       intro j h1 h2
@@ -205,7 +202,7 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
     · simp only [stepCall, hk0, ↓reduceIte, layKid, List.map_append, List.map_map, List.map_cons,
         List.map_nil, cells, Function.comp_def]
       congr 1
-      · apply List.ext_getElem (by simp [stepCap]; rw [(D.layer_cap h (by omega)).1])
+      · apply List.ext_getElem (by simp [stepCap]; rw [D.layer_cap h (by omega)])
         intro j h1 h2
         simp only [stepCap, hk0, ↓reduceIte, List.length_map, List.length_range] at h1
         simp only [stepCap, hk0, ↓reduceIte, List.map_map, Function.comp_def, List.getElem_map,
@@ -214,7 +211,7 @@ theorem layer_call (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE ls) {σ : V
         rfl
       · simp only [List.cons.injEq, and_true]
         refine ⟨e0, e1, ?_, by rw [e3, hy], by rw [h33, hy], by rw [h47, hy],
-          by rw [e5, a201, ptr_mul_gen], by rw [e7, a201, ptr_mul_gen], hio⟩
+          by rw [e5, a201, ptr_mul_gen], by rw [e7, a201, ptr_mul_gen], hio, p11⟩
         have := hprev 5 (by norm_num)
         rw [rets_cur h hk] at this
         simp only [stepCur, hk0, ↓reduceIte]

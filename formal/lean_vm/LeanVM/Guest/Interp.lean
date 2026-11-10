@@ -19,7 +19,7 @@ public import Std.Data.HashMap
 is the witness generation of `leanvm_core::cpu::execute` on the core IR: an atom whose inputs are
 known computes its output, and one whose output is known back-solves its single unknown input
 (`a / b` as `mul a q b`, the range check's complement, `a + b` with the sum known), and a
-`KECCAK` computes Keccak-f[1600] of its canonical input cells (`Statement/Fast/Keccak`'s `@[csimp]`
+`KECCAK` computes Keccak-f[1600] of its input cells (`Statement/Fast/Keccak`'s `@[csimp]`
 lemmas make it fast); a word read
 through a pointer and the memory cell it names are unified, so a load before the store sees the
 stored word. A second write of a value or a cell is the write-once check.
@@ -136,7 +136,7 @@ def setV (fr : Nat) (v : V) (x : E) : IM Unit := assign (.val fr v) x
 
 /-- A word in `K`, required. -/
 def needK (x : E) (what : String) : IM K := do
-  if x.limb 1 = 0 ∧ x.limb 2 = 0 then return x.limb 0 else throw s!"{what} is not in K"
+  if x.limb 1 = 0 then return x.limb 0 else throw s!"{what} is not in K"
 
 /-- The memory node of `p·g^off`. -/
 def memAt (p : E) (off : Nat) : IM Node := do
@@ -211,7 +211,7 @@ def execHint (fr : Nat) : Hint → IM Unit
   | .limbs value dest => do
       let x ← needV fr value
       ((List.range dest.length).zip dest).forM fun (j, v) =>
-        setV fr v (ofK (x.limb ⟨j % 3, Nat.mod_lt _ (by decide)⟩))
+        setV fr v (ofK (x.limb ⟨j % 2, Nat.mod_lt _ (by decide)⟩))
   | .log2Ceil bits nbits floor dst => do
       let nodes ← destNodes fr bits
       let mut word := 0
@@ -270,8 +270,6 @@ def execAtom (fr : Nat) : Atom → IM Unit
       if ins.length != 13 || !(outs.length == 1 || outs.length == 2 || outs.length == 13) then
         throw "a KECCAK atom not of thirteen cells read and one, two or thirteen written"
       let xs ← ins.mapM (needV fr)
-      if !(xs.all fun x => decide (IsCanonical128 x)) then
-        throw "a KECCAK input cell is not canonical"
       let out := keccakF1600 (stateOfCells (fun c => xs.getD c.val 0) inOdd)
       ((List.finRange 13).zip outs).forM fun (c, v) => setV fr v (cellsOfState out outOdd c)
   | .frameAddr p run => do
@@ -400,10 +398,10 @@ def run (cfg : Cfg) (f : String) (args : List E) (fuel : Nat := 1000000000) :
 
 /-! ## Printing -/
 
-/-- A word: its low limb in decimal when the others are zero, else its three limbs. -/
+/-- A word: its low limb in decimal when the other is zero, else its two limbs. -/
 def showE (x : E) : String :=
-  let (c0, c1, c2) := limbsOf x
-  if c1 = 0 && c2 = 0 then s!"{c0}" else s!"({c0}, {c1}, {c2})"
+  let (c0, c1) := limbsOf x
+  if c1 = 0 then s!"{c0}" else s!"({c0}, {c1})"
 
 /-- A position step. -/
 def showSeg : Seg → String

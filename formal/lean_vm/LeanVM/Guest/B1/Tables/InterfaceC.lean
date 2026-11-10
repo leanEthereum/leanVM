@@ -41,12 +41,13 @@ def verify_tables_SpecC (bytecode : List K) (rd : Reader) (C : CallRel) : Prop :
 
 /-- `certify_placement_Spec` on `C`-calls. -/
 def certify_placement_SpecC (rd : Reader) (C : CallRel) : Prop :=
-  ∀ (logMem : ℕ) (hs : List ℕ) (kb sq : E) (rets : List E), logMem ≤ 32 → hs.length = 6 →
-    (∀ h ∈ hs, h < 29) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
+  ∀ (logMem : ℕ) (ds : List E) (kb sq : E) (rets : List E), logMem ≤ 32 → ds.length = 6 →
+    TbReadsAt rd kb (1 :: gen ^ logMem :: ds) →
     TbReadsAt rd sq gSquaresList → TbReadsAt rd (sq * gen ^ 178) rankKeysList →
     C "certify_placement" [kb, sq] rets →
-      ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
-        PCtx rd (columnKappas logMem guestLogBytecode hs) off
+      ∃ hs : List ℕ, hs.length = 6 ∧ ds = hs.map (gen ^ ·) ∧ (∀ h ∈ hs, h < 34) ∧
+        ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
+          PCtx rd (columnKappas logMem guestLogBytecode hs) off
 
 theorem verify_bus_gkr_SpecC_of {rd : Reader} {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
     (h : verify_bus_gkr_Spec rd) : verify_bus_gkr_SpecC rd C :=
@@ -61,7 +62,7 @@ theorem verify_tables_SpecC_of {bytecode : List K} {rd : Reader} {C : CallRel}
 theorem certify_placement_SpecC_of {rd : Reader} {C : CallRel}
     (hle : CallRel.Le C (coreProgram.Rel rd)) (h : certify_placement_Spec rd) :
     certify_placement_SpecC rd C :=
-  fun logMem hs kb sq rets h1 h2 h3 h4 h5 h6 hc ↦ h logMem hs kb sq rets h1 h2 h3 h4 h5 h6 (hle _ _ _ hc)
+  fun logMem ds kb sq rets h1 h2 h3 h4 h5 hc ↦ h logMem ds kb sq rets h1 h2 h3 h4 h5 (hle _ _ _ hc)
 
 end
 end LeanVM.Guest.B1.Tables

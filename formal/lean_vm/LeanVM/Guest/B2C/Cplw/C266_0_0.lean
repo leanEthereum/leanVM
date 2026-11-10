@@ -16,39 +16,44 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `keccak_plain_rounds__L6_L0`, window 0, part 0. -/
+/-- `keccak_layer__L0`, window 0, part 0. -/
 theorem cw266_0_0 : cplWin 266 0 0 = true := by decide +kernel
 
-/-- `__loop11`, window 0, part 0. -/
+/-- `keccak_layer__L0`, window 1, part 0. -/
+theorem cw266_1_0 : cplWin 266 1 0 = true := by decide +kernel
+
+/-- `keccak_layer__L0`, window 2, part 0. -/
+theorem cw266_2_0 : cplWin 266 2 0 = true := by decide +kernel
+
+/-- `keccak_plain_rounds__L6_L0`, window 0, part 0. -/
 theorem cw267_0_0 : cplWin 267 0 0 = true := by decide +kernel
 
-/-- `keccak_plain_rounds__L4_L1`, window 0, part 0. -/
+/-- `__loop11`, window 0, part 0. -/
 theorem cw268_0_0 : cplWin 268 0 0 = true := by decide +kernel
 
-/-- `__loop12`, window 0, part 0. -/
+/-- `keccak_plain_rounds__L4_L1`, window 0, part 0. -/
 theorem cw269_0_0 : cplWin 269 0 0 = true := by decide +kernel
 
-/-- `__loop13`, window 0, part 0. -/
+/-- `__loop12`, window 0, part 0. -/
 theorem cw270_0_0 : cplWin 270 0 0 = true := by decide +kernel
-
-/-- `__loop14`, window 0, part 0. -/
-theorem cw271_0_0 : cplWin 271 0 0 = true := by decide +kernel
-
-/-- `column_selector__L0`, window 0, part 0. -/
-theorem cw272_0_0 : cplWin 272 0 0 = true := by decide +kernel
-
-/-- `column_selector__L1`, window 0, part 0. -/
-theorem cw273_0_0 : cplWin 273 0 0 = true := by decide +kernel
 
 theorem ok266 : CplOk 266 := by
   intro i hi k hk
-  have hc : (certOf 266).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 266).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 266 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw266_0_0
+  · have hn : nParts 266 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw266_1_0
+  · have hn : nParts 266 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw266_2_0
 
 theorem ok267 : CplOk 267 := by
   intro i hi k hk
@@ -89,36 +94,6 @@ theorem ok270 : CplOk 270 := by
     rw [hn] at hk
     interval_cases k
     · exact cw270_0_0
-
-theorem ok271 : CplOk 271 := by
-  intro i hi k hk
-  have hc : (certOf 271).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 271 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw271_0_0
-
-theorem ok272 : CplOk 272 := by
-  intro i hi k hk
-  have hc : (certOf 272).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 272 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw272_0_0
-
-theorem ok273 : CplOk 273 := by
-  intro i hi k hk
-  have hc : (certOf 273).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 273 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw273_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

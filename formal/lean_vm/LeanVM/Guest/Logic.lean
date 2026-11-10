@@ -65,7 +65,7 @@ def Holds (pc : ℕ) (fp : K) : OffsetInstruction → Prop
       L.read (fp * addressOfIndex c) = some (vA + vB)
   | .mul a b c => ∃ vA vB, L.read (fp * addressOfIndex a) = some vA ∧ L.read (fp * addressOfIndex b) = some vB ∧
       L.read (fp * addressOfIndex c) = some (vA * vB)
-  | .set o k0 k1 k2 => L.read (fp * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1 k2)
+  | .set o k0 k1 => L.read (fp * addressOfIndex o) = some (OffsetInstruction.immediateWord k0 k1)
   | .deref o1 o2 o3 mode => ∃ p v3, L.read (fp * addressOfIndex o1) = some p ∧ IsInK p ∧
       L.read (fp * addressOfIndex o3) = some v3 ∧
       L.read (p.limb 0 * addressOfIndex o2) = some (derefSource mode ⟨addressOfIndex pc, fp⟩ v3)
@@ -148,7 +148,7 @@ theorem execute_iff_holds {pc : ℕ} {fp : K} {ins : OffsetInstruction} (hj : in
       exact ⟨⟨vA, vB, hA, hB, hC⟩, rfl⟩
     · rintro ⟨⟨vA, vB, hA, hB, hC⟩, rfl⟩
       exact ⟨vA, hA, vB, hB, _, hC, rfl, rfl⟩
-  | set o k0 k1 k2 =>
+  | set o k0 k1 =>
     simp only [execute, executeWith, OffsetInstruction.toLeanIsaInstruction, Holds,
         Option.bind_eq_bind,
       Option.bind_eq_some_iff, guard_eq_some_iff, exists_const, Option.pure_def, Option.some.injEq, hnext]

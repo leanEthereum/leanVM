@@ -1,6 +1,6 @@
 //! The ISA and the `DEREF` store modes.
 
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F128};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
@@ -16,10 +16,10 @@ pub enum Op {
     },
     Set {
         o: u32,
-        /// The immediate stored into `mem[fp·o]`. A full 192-bit machine word
-        /// (`E = F192`); K-valued constants (addresses, small ints) ride the
-        /// low lane with `c1 = c2 = 0`.
-        k: F192,
+        /// The immediate stored into `mem[fp·o]`. A full 128-bit machine word
+        /// (`E = F128`); K-valued constants (addresses, small ints) ride the
+        /// low lane with `c1 = 0`.
+        k: F128,
     },
     Deref {
         o1: u32,
@@ -37,8 +37,7 @@ pub enum Op {
     /// `out_odd` names ([`crate::keccak::cell_lanes`]): the first `out_cells` of the thirteen output
     /// cells, the others left untouched. The cells read are four
     /// independently addressed cells `m`, four consecutive cells from `tail`, the cell `b8`, and
-    /// four consecutive cells from `cap` (the capacity lanes 17..25), each canonical (top limb
-    /// zero).
+    /// four consecutive cells from `cap` (the capacity lanes 17..25).
     ///
     /// A program absorbs a 136-byte block by XORing its nine message cells into the previous
     /// output: block `k` of a message laid out in cells starts at cell `17k / 2`, halfway

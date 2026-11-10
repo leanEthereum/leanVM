@@ -99,7 +99,7 @@ theorem low_read {rd : Reader} (hl : LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16) :
   rw [gen_pow_eq_ofK]; exact B1.loadHolds_low hl he
 
 theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
-    decide (gen ^ i * word 2 0 0 + gen ^ n ≠ 0) = decide (i + 1 ≠ n) := by
+    decide (gen ^ i * word 2 0 + gen ^ n ≠ 0) = decide (i + 1 ≠ n) := by
   rw [word_gen, gen_pow_mul_gen]
   refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
     fun h he => h ?_⟩
@@ -124,8 +124,8 @@ noncomputable def l2σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val := fun v =>
       gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
       gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s))].getD (v.idx - 56) 0
   else if 120764 ≤ v.idx then
-    [word 2 0 0, gen ^ i * word 2 0 0, gen ^ i * word 2 0 0 + gen ^ nrx, word 2 0 0,
-      gen ^ i * word 2 0 0].getD (v.idx - 120764) 0
+    [word 2 0, gen ^ i * word 2 0, gen ^ i * word 2 0 + gen ^ nrx, word 2 0,
+      gen ^ i * word 2 0].getD (v.idx - 120764) 0
   else 0
 
 theorem lxTagWords_length : lxTagWords.length = 51 := by
@@ -161,7 +161,7 @@ theorem lxTagWords_hold : Sig.LxTagsHold (fun j => lxTagWords.getD j 0) := by
       lxTagVals.getD (Sig.lxTagSlot i - 1) 0 = i ∧ Sig.lxTagSlot i - 1 < lxTagVals.length := by
     decide
   obtain ⟨e, hlt⟩ := hv i hi hc
-  show (lxTagVals.map fun i => word i 0 0).getD (Sig.lxTagSlot i - 1) 0 = _
+  show (lxTagVals.map fun i => word i 0).getD (Sig.lxTagSlot i - 1) 0 = _
   rw [List.getD_eq_getElem?_getD, List.getElem?_map,
     List.getElem?_eq_getElem hlt, Option.map_some, Option.getD_some, word_eOfNat,
     ← List.getD_eq_getElem _ 0 hlt, e]
@@ -386,8 +386,8 @@ noncomputable def l4σ (rd : Reader) (j nrs Y cv X nrx tb bb s : ℕ) : Val :=
     gen ^ s, ginvW, gen ^ Y * ginvW, gen ^ (Y - 1 - s), (rd (addressOfIndex s)).getD 0,
     (rd (addressOfIndex (Y - 1 - s))).getD 0, gen ^ nrx * gen ^ j,
     gen ^ (cv + X) * gen ^ s, gen ^ s * gen ^ s, gen ^ s * gen ^ s * (gen ^ s * gen ^ s),
-    gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), word 2 0 0, gen ^ j * word 2 0 0,
-    gen ^ j * word 2 0 0 + gen ^ nrs, word 2 0 0, gen ^ j * word 2 0 0]
+    gen ^ tb * (gen ^ s * gen ^ s * (gen ^ s * gen ^ s)), word 2 0, gen ^ j * word 2 0,
+    gen ^ j * word 2 0 + gen ^ nrs, word 2 0, gen ^ j * word 2 0]
 
 set_option maxRecDepth 20000 in
 /-- **`__loop3` loads from the caller's words**, from every counter below the count. -/
@@ -447,11 +447,11 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
             (fun k hk => ⟨tb + 4 * s + k, limb0_gen_pow_mul _ _, D.regClaim j (by omega) k hk⟩)
             (fun v hv => ⟨bb + v, limb0_gen_pow_mul _ _, D.regBytes v hv⟩)
         · simp only [decide_eq_true_eq] at ht
-          change gen ^ j * word 2 0 0 + gen ^ nrs ≠ 0 at ht
+          change gen ^ j * word 2 0 + gen ^ nrs ≠ 0 at ht
           have ht' := of_decide_eq_true ((guard_taken hnrs (by omega)).symm.trans
             (decide_eq_true ht))
           show coreProgram.RelIn rd (RegionL Lin) "__loop3"
-            [gen ^ j * word 2 0 0, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb,
+            [gen ^ j * word 2 0, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb,
               gen ^ bb] []
           rw [word_gen, gen_pow_mul_gen]
           first

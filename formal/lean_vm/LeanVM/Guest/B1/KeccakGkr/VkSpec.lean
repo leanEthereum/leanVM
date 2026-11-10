@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Keccak.SlotWeights
 
 * `runsTo_sumcheck3`: `sumcheck v 3 (replicate n none)` is `plainRun` (`keccak_plain_rounds`);
 * `runsTo_keccakLayers`: the layers, one after the other;
-* `vk_runsTo`: `keccakSeg` runs, reading the committed outputs' value, the layers' words, the
+* `vk_runsTo`: `verifyKeccak` runs, reading the committed outputs' value, the layers' words, the
   three openings' rounds, the word and the slices, once its two checks hold.
 -/
 
@@ -43,7 +43,8 @@ theorem runsTo_sumcheck3 :
         (runsTo_ret _ _)
       have h3 := h0.bind (f := fun constant ↦ VerifierProgram.readScalars 1 >>= fun tail ↦
         (pure (constant :: (v + sumE tail) :: tail) : VerifierProgram (List E))) h2
-      simpa [sumcheckRoundPoly, Fs.absorbAll] using h3
+      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, grindingBits_le_eight,
+        VerifierProgram.grindProofOfWork] using h3
     set q := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze with hq
     have hs := runsTo_sampleE ((s.absorb c0 dsObserve).absorb c2 dsObserve)
     rw [← hq] at hs
@@ -77,8 +78,8 @@ theorem runsTo_keccakLayers_cons {L a : ℕ} {rest : List ℕ} {c c' c'' : Kecca
 theorem runsTo_keccakLayers_nil (L : ℕ) (c : KeccakClaim) (s : Fs) :
     RunsTo (keccakLayers L [] c) s [] c s := runsTo_ret _ _
 
-/-- The first claim (V:2068-2072): the committed outputs' part and the last segment's, the
-instance weights at the low coordinates, the point, a word's position weights. -/
+/-- The first claim (V:2068-2072, `keccakFirstClaim`): the committed outputs' part and the last
+segment's, the instance weights at the low coordinates, the point, a word's position weights. -/
 def vkFirst (inst outs : List E) (committed : E) (seg rl : List E) : KeccakClaim :=
   ⟨committed + (eqKernel seg).getD (keccakSegments - 1) 0 * dot ((eqKernel rl).take 25) outs,
     eqKernel (inst.take 4), inst.drop 4 ++ seg,
@@ -88,7 +89,7 @@ theorem keccakSegments_eq : keccakSegments = 2 := rfl
 theorem keccakSegmentBits_eq : keccakSegmentBits = 1 := by decide
 theorem qkeccakSlotBits_eq' : qkeccakSlotBits = 6 := by decide
 
-/-- `verifyKeccak` with its two segments' branches taken. -/
+/-- `verifyKeccak` with its `0`-bit grind and its two segments' branches taken. -/
 theorem verifyKeccak_eq (τ : ℕ) (inst outs : List E) :
     verifyKeccak τ inst outs =
       (VerifierProgram.sampleChallenges keccakSegmentBits >>= fun seg ↦ VerifierProgram.sampleChallenges keccakLaneBits >>= fun rl ↦
@@ -104,9 +105,10 @@ theorem verifyKeccak_eq (τ : ℕ) (inst outs : List E) :
         (pure ([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ o.1, word⟩], x.1 ++ claim.point.take (τ - 4) ++ y.1,
           slices) : VerifierProgram (List ColumnClaim × List E × List E))) := rfl
 
-/-- **`keccakSeg` on the carried sponge** (V:2061-2087, then the ring map's first challenge). -/
-theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 s7 : Fs} {seg rl : List E}
-    {committed word m0 valO valL valI : E} {claim : KeccakClaim} {xsL slotO low slotI slices : List E}
+/-- **`verifyKeccak` on the carried sponge** (V:2061-2087): it ends with the 64 slices absorbed,
+a full queue. -/
+theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 : Fs} {seg rl : List E}
+    {committed word valO valL valI : E} {claim : KeccakClaim} {xsL slotO low slotI slices : List E}
     {mO mI mS : List (E × E)}
     (h1 : s0.squeezeN keccakSegmentBits = (seg, s1)) (h2 : s1.squeezeN keccakLaneBits = (rl, s2))
     (hL : RunsTo (keccakLayers τ (List.range keccakDepth) (vkFirst inst outs committed seg rl))
@@ -118,13 +120,12 @@ theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 s7 : Fs}
     (hmS : mS.length = 6) (hS : plainRun mS valL s5 = (slotI, valI, s6))
     (hsl : slices.length = 64)
     (hfin : multilinearEval claim.mu low *
-      dot ((foldAll slotI (keccakSlotWeights τ claim 0 2)).headD []) slices = valI)
-    (hm : (s6.absorbAll slices dsObserve).squeeze = (m0, s7)) :
-    RunsTo (keccakSeg τ inst outs) s0
+      dot ((foldAll slotI (keccakSlotWeights τ claim 0 2)).headD []) slices = valI) :
+    RunsTo (verifyKeccak τ inst outs) s0
       ([committed] ++ xsL ++ mO.flatMap (fun m ↦ [m.1, m.2]) ++ [word] ++
         mI.flatMap (fun m ↦ [m.1, m.2]) ++ mS.flatMap (fun m ↦ [m.1, m.2]) ++ slices)
-      (([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ slotO, word⟩], low ++ claim.point.take (τ - 4) ++
-        slotI, slices), m0) s7 := by
+      ([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ slotO, word⟩], low ++ claim.point.take (τ - 4) ++
+        slotI, slices) (s6.absorbAll slices dsObserve) := by
   have r1 := runsTo_sampleN keccakSegmentBits s0
   rw [h1] at r1
   have r2 := runsTo_sampleN keccakLaneBits s1
@@ -139,9 +140,6 @@ theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 s7 : Fs}
   rw [hmS, hS] at rS
   have rsl := runsTo_readN s6 slices
   rw [hsl] at rsl
-  have rm := runsTo_sampleE (s6.absorbAll slices dsObserve)
-  rw [hm] at rm
-  simp only [List.append_assoc, List.singleton_append]
   have rO' : RunsTo (keccakOpen τ (vkFirst inst outs committed seg rl) 1 1 committed) s3
       (mO.flatMap fun m ↦ [m.1, m.2])
       (slotO, (foldAll slotO (keccakSlotWeights τ (vkFirst inst outs committed seg rl) 1 1)).headD [],
@@ -157,40 +155,24 @@ theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 s7 : Fs}
     refine (rS.bind (f := fun x ↦ VerifierProgram.ret (x.1, (foldAll x.1
       (keccakSlotWeights τ claim 0 2)).headD [], x.2)) (runsTo_ret _ _)).of_eq rfl ?_ rfl rfl
     simp
-
-  have hV : RunsTo (verifyKeccak τ inst outs) s0
-      (committed :: (xsL ++ (mO.flatMap (fun m ↦ [m.1, m.2]) ++ (word ::
-        (mI.flatMap (fun m ↦ [m.1, m.2]) ++ (mS.flatMap (fun m ↦ [m.1, m.2]) ++ slices))))))
-      ([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ slotO, word⟩], low ++ claim.point.take (τ - 4) ++
-        slotI, slices) (s6.absorbAll slices dsObserve) := by
-    rw [verifyKeccak_eq]
-    refine RunsTo.of_eq (xs := [committed] ++ (xsL ++ (mO.flatMap (fun m ↦ [m.1, m.2]) ++ ([word] ++
-      (mI.flatMap (fun m ↦ [m.1, m.2]) ++ (mS.flatMap (fun m ↦ [m.1, m.2]) ++ (slices ++ [])))))))
-      ?main rfl ?hx rfl rfl
-    case main =>
-      refine RunsTo.bind_nil r1 ?_
-      refine RunsTo.bind_nil r2 ?_
-      refine RunsTo.bind r3 ?_
-      refine RunsTo.bind hL ?_
-      refine RunsTo.bind rO' ?_
-      refine RunsTo.bind rw' ?_
-      refine RunsTo.bind_nil (runsTo_require hw _) ?_
-      refine RunsTo.bind rI ?_
-      refine RunsTo.bind rS' ?_
-      refine RunsTo.bind rsl ?_
-      refine RunsTo.bind_nil (runsTo_require hfin _) ?_
-      exact runsTo_ret _ _
-    case hx => simp
-  unfold keccakSeg
-  refine (hV.bind (f := fun r ↦ VerifierProgram.sampleChallenge >>= fun m ↦ (pure (r, m) :
-      VerifierProgram _))
-    (rm.bind (f := fun m ↦ (pure (([(⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ slotO, word⟩ : ColumnClaim)],
-      low ++ claim.point.take (τ - 4) ++ slotI, slices), m) : VerifierProgram _)) (runsTo_ret _
-          _))).of_eq
-    rfl ?_ ?_ ?_
-  · simp
-  · simp [← List.append_assoc]
-  · rfl
+  rw [verifyKeccak_eq]
+  refine RunsTo.of_eq (xs := [committed] ++ (xsL ++ (mO.flatMap (fun m ↦ [m.1, m.2]) ++ ([word] ++
+    (mI.flatMap (fun m ↦ [m.1, m.2]) ++ (mS.flatMap (fun m ↦ [m.1, m.2]) ++ (slices ++ [])))))))
+    ?main rfl ?hx rfl rfl
+  case main =>
+    refine RunsTo.bind_nil r1 ?_
+    refine RunsTo.bind_nil r2 ?_
+    refine RunsTo.bind r3 ?_
+    refine RunsTo.bind hL ?_
+    refine RunsTo.bind rO' ?_
+    refine RunsTo.bind rw' ?_
+    refine RunsTo.bind_nil (runsTo_require hw _) ?_
+    refine RunsTo.bind rI ?_
+    refine RunsTo.bind rS' ?_
+    refine RunsTo.bind rsl ?_
+    refine RunsTo.bind_nil (runsTo_require hfin _) ?_
+    exact runsTo_ret _ _
+  case hx => simp
 
 end
 end LeanVM.Guest.B1.VerifySub

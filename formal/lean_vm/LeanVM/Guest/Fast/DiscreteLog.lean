@@ -57,33 +57,31 @@ theorem gLog_eq_discreteLog : B1.Main.gLog = gLogWith discreteLog :=
 /-- `q / p` on the first nonzero limb of `p` (`0` when `p = 0`): `g^n` when `q = p · gen^n`. -/
 def limbQuot (p q : E) : K :=
   if p.limb 0 ≠ 0 then q.limb 0 * (p.limb 0)⁻¹
-  else if p.limb 1 ≠ 0 then q.limb 1 * (p.limb 1)⁻¹ else q.limb 2 * (p.limb 2)⁻¹
+  else q.limb 1 * (p.limb 1)⁻¹
 
 /-- **`cursorLen` by a logarithm `dl`**: the logarithm `n` of `a = q / p` (`limbQuot`), kept when
 `n ≤ 2^32` and `q = p · a` limb by limb; `0` otherwise. -/
 def cursorLenWith (dl : K → Option ℕ) (p q : E) : ℕ :=
   let a := limbQuot p q
   ((dl a).filter fun n ↦
-    n ≤ 2 ^ 32 ∧ q = E.ofLimbs (p.limb 0 * a) (p.limb 1 * a) (p.limb 2 * a)).getD 0
+    n ≤ 2 ^ 32 ∧ q = E.ofLimbs (p.limb 0 * a) (p.limb 1 * a)).getD 0
 
 theorem mul_gen_pow_eq (p : E) (n : ℕ) :
-    p * gen ^ n = E.ofLimbs (p.limb 0 * Parameters.g ^ n) (p.limb 1 * Parameters.g ^ n)
-      (p.limb 2 * Parameters.g ^ n) := by
+    p * gen ^ n = E.ofLimbs (p.limb 0 * Parameters.g ^ n) (p.limb 1 * Parameters.g ^ n) := by
   rw [gen_pow_eq_ofK, eq_ofLimbs p, ofLimbs_mul_ofK]
-  simp only [ofLimbs_limb0, ofLimbs_limb1, ofLimbs_limb2]
+  simp only [ofLimbs_limb0, ofLimbs_limb1]
 
 theorem limbQuot_mul_gen_pow {p : E} (hp : p ≠ 0) (n : ℕ) :
     limbQuot p (p * gen ^ n) = Parameters.g ^ n := by
   unfold limbQuot
   rw [mul_gen_pow_eq]
-  simp only [ofLimbs_limb0, ofLimbs_limb1, ofLimbs_limb2]
-  split_ifs with h0 h1
+  simp only [ofLimbs_limb0, ofLimbs_limb1]
+  split_ifs with h0
   · field_simp
-  · field_simp
-  · have h2 : p.limb 2 ≠ 0 := fun h2 ↦ hp (by
+  · have h1 : p.limb 1 ≠ 0 := fun h1 ↦ hp (by
       rw [eq_ofLimbs p, eq_ofLimbs (0 : E), ofLimbs_inj]
       simp only [limb_zero]
-      exact ⟨not_not.1 h0, not_not.1 h1, h2⟩)
+      exact ⟨not_not.1 h0, h1⟩)
     field_simp
 
 theorem limbQuot_zero (q : E) : limbQuot 0 q = 0 := by
@@ -116,7 +114,6 @@ theorem cursorLenWith_eq {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) :
     have hx := hsound h
     rw [Option.filter_some]
     by_cases hc : n ≤ 2 ^ 32 ∧ q = E.ofLimbs (p.limb 0 * limbQuot p q) (p.limb 1 * limbQuot p q)
-        (p.limb 2 * limbQuot p q)
     · simp only [decide_eq_true hc, ↓reduceIte, Option.getD_some]
       obtain ⟨hn32, hq⟩ := hc
       rw [← hx, ← mul_gen_pow_eq] at hq

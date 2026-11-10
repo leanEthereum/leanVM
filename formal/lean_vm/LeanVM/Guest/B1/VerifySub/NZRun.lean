@@ -1,29 +1,27 @@
 /-
   LeanVM.Guest.B1.VerifySub.NZRun
 
-  Carried runs of the Spec's programs, for the completeness direction: B1-b's `runF` is B1-c's
-  `runT`, so a carried run that reads all it is given is a `RunsWith`; the deployed query steps are
-  the carried ones.
+  Deployed runs of the Spec's programs, for the completeness direction: a sequence's run splits,
+  a run refusing zero challenges is a run, a run's query steps split, and a deployed run that
+  reads all it is given is a `RunsWith`.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Whir.SpecNZ
+public import LeanVM.Guest.B1.Whir.Interface
 public import LeanVM.Guest.B1.Tables.RunF
-public import LeanVM.Guest.Limits
-public import LeanVM.Protocol.WithHashBridge
-public import LeanVM.Guest.WithHashBridge
-public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Protocol.WithHashBridge
 
 /-!
-# Carried runs, for completeness
+# Deployed runs, for completeness
 
-* `runF_eq_runT`: B1-b's carried run (`Whir.runF`) is B1-c's (`Tables.runT`), field for field.
-* `runsWith_of_runF`: a carried run that consumes all the words and openings it is given is a
-  `RunsWith` (`Tables.runT_frame` for any rest, `Tables.runId_of_runT` for every sponge carried).
-* `queriesOf_eq_steps`: the deployed run's query steps (`Limits.queryStepsOf`) are the carried run's
-  (`Whir.queryStepsOf`); `batchAgrees_of` turns G7's `Limits.OpeningsAgree` into B1-b's.
+* `runId_bind_some`: a run of `p.bind f` is a run of `p`, then of `f`.
+* `runId_of_rz`: a run of `p.refusingZeroChallenge` is a run of `p`.
+* `queryStepsOf_bind`: the query steps of `p.bind f` are `p`'s, then `f a`'s, past a run of `p`
+  to `a`.
+* `runsWith_of_runId`: a run that reads all the words and openings it is given, from a carried
+  sponge to one with no ground challenge, is a `RunsWith`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -33,185 +31,207 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## B1-b's carried run is B1-c's -/
+variable {α β : Type}
 
-/-- A `Whir.FSt` as a `Tables.TSt`. -/
-def toT (st : Whir.FSt) : Tables.TSt := ⟨st.sponge, st.stream, st.openings, st.roots⟩
+/-- **A sequence's run splits.** -/
+theorem runId_bind_some {p : VerifierProgram α} {f : α → VerifierProgram β}
+    {st : VerifierProgramState} {r : β × VerifierProgramState}
+    (h : runId (p.bind f) st = some r) :
+    ∃ a st', runId p st = some (a, st') ∧ runId (f a) st' = some r := by
+  rw [run_bind] at h
+  obtain ⟨⟨a, st'⟩, h1, h2⟩ := Option.bind_eq_some_iff.1 h
+  exact ⟨a, st', h1, h2⟩
 
-/-- A `Tables.TSt` as a `Whir.FSt`. -/
-def ofT (st : Tables.TSt) : Whir.FSt := ⟨st.sponge, st.stream, st.openings, st.roots⟩
+/-- A query's run, past its root and phase. -/
+theorem runId_query (i : ℕ) (ps : List ℕ) (k : List (List K) → VerifierProgram α) (sp : Sponge)
+    (stream : List E) (phase : List Opening) (rest : List (List Opening))
+    (R : List (Digest × ℕ × ℕ)) {root : Digest} {height width : ℕ}
+    (hR : R[i]? = some (root, height, width)) :
+    runId (VerifierProgram.query i ps k) ⟨sp, stream, phase :: rest, R⟩ =
+      match Id.run (openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+      | some rows => runId (k rows) ⟨sp, stream, rest, R⟩
+      | none => none := by
+  simp only [runId, Compile.runWithHash, hR]
+  rfl
 
-theorem runF_eq_runT {α : Type} (p : VerifierProgram α) : ∀ st : Whir.FSt,
-    Whir.runF p st = (Tables.runT p (toT st)).map fun r ↦ (r.1, ofT r.2) := by
-  induction p with
-  | ret a => intro st; rfl
-  | fail => intro st; rfl
-  | read k ih =>
-    intro st
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => rfl
-    | cons x xs =>
-      simp only [Whir.runF, Tables.runT]
-      exact ih x _
-  | sample k ih =>
-    intro st
-    simp only [Whir.runF, Tables.runT]
-    exact ih _ _
-  | grind b k ih =>
-    intro st
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => rfl
-    | cons n xs =>
-      simp only [Whir.runF, Tables.runT, toT]
-      split
+/-- A query's run fails without its root or a phase. -/
+theorem runId_query_none (i : ℕ) (ps : List ℕ) (k : List (List K) → VerifierProgram α)
+    (st : VerifierProgramState)
+    (h : st.roots[i]? = none ∨ st.openings = []) :
+    runId (VerifierProgram.query i ps k) st = none := by
+  obtain ⟨sp, stream, os, R⟩ := st
+  simp only at h
+  rcases h with h | rfl
+  · simp only [runId, Compile.runWithHash, h]
+    rfl
+  · simp only [runId, Compile.runWithHash]
+    rcases R[i]? with _ | ⟨root, height, width⟩ <;> rfl
+
+/-- **A run refusing zero challenges is a run.** -/
+theorem runId_of_rz : ∀ (p : VerifierProgram α) (st : VerifierProgramState)
+    (r : α × VerifierProgramState), runId p.refusingZeroChallenge st = some r → runId p st = some r
+  | .ret _, _, _, h => h
+  | .fail, _, _, h => h
+  | .read k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, r, h => by
+    match stream, g, h with
+    | [], _, h => exact absurd h (by rintro ⟨⟩)
+    | _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
+    | x :: xs, none, h => exact runId_of_rz (k x) _ r h
+  | .sample k, st, r, h => by
+    have e1 : runId (VerifierProgram.sample k).refusingZeroChallenge st =
+        runId (if (Id.run (squeeze keccakF1600 st.sponge)).1 = 0 then VerifierProgram.fail
+          else (k (Id.run (squeeze keccakF1600 st.sponge)).1).refusingZeroChallenge)
+          { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } := rfl
+    have e2 : runId (VerifierProgram.sample k) st =
+        runId (k (Id.run (squeeze keccakF1600 st.sponge)).1)
+          { st with sponge := (Id.run (squeeze keccakF1600 st.sponge)).2 } := rfl
+    rw [e1] at h
+    rw [e2]
+    split at h
+    · exact absurd h (by rintro ⟨⟩)
+    · exact runId_of_rz _ _ r h
+  | .grind bits k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, r, h => by
+    match stream, g, h with
+    | [], _, h => exact absurd h (by rintro ⟨⟩)
+    | _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
+    | n :: xs, none, h =>
+      simp only [VerifierProgram.refusingZeroChallenge, runId, Compile.runWithHash] at h ⊢
+      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ n = N at h ⊢
+      obtain ⟨pw, sp'⟩ := N
+      change (if powOk bits pw = true then _ else _) = _ at h
+      change (if powOk bits pw = true then _ else _) = _
+      split at h
       · rename_i hp
         simp only [hp, ↓reduceIte]
-        exact ih _
+        exact runId_of_rz k _ r h
+      · exact absurd h (by rintro ⟨⟩)
+  | .commit hh ww k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, r, h => by
+    match stream, g, h with
+    | [], _, h => exact absurd h (by rintro ⟨⟩)
+    | [_], _, h => exact absurd h (by rintro ⟨⟩)
+    | _ :: _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
+    | x0 :: x1 :: xs, none, h => exact runId_of_rz k _ r h
+  | .query i ps k, ⟨sp, stream, os, R⟩, r, h => by
+    cases hR : R[i]? with
+    | none =>
+      rw [show (VerifierProgram.query i ps k).refusingZeroChallenge =
+        VerifierProgram.query i ps fun rows ↦ (k rows).refusingZeroChallenge from rfl,
+        runId_query_none _ _ _ _ (Or.inl hR)] at h
+      exact absurd h (by rintro ⟨⟩)
+    | some v =>
+      obtain ⟨root, height, width⟩ := v
+      cases os with
+      | nil =>
+        rw [show (VerifierProgram.query i ps k).refusingZeroChallenge =
+          VerifierProgram.query i ps fun rows ↦ (k rows).refusingZeroChallenge from rfl,
+          runId_query_none _ _ _ _ (Or.inr rfl)] at h
+        exact absurd h (by rintro ⟨⟩)
+      | cons phase rest =>
+        rw [show (VerifierProgram.query i ps k).refusingZeroChallenge =
+          VerifierProgram.query i ps fun rows ↦ (k rows).refusingZeroChallenge from rfl,
+          runId_query _ _ _ _ _ _ _ _ hR] at h
+        rw [runId_query _ _ _ _ _ _ _ _ hR]
+        split at h
+        · rename_i rows hrows
+          exact runId_of_rz (k rows) _ r h
+        · exact absurd h (by rintro ⟨⟩)
+
+/-- The query steps' openings are the deployed run's. -/
+theorem openPhase_keccak (root : Digest) (height width : ℕ) (ps : List ℕ) (phase : List Opening) :
+    Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) =
+      Id.run (openPhaseWithHash (m := Id) keccak256 root height width ps phase) := by
+  rw [openPhase_eq_withHash, keccak256With_keccakF1600]
+
+/-- A query's steps, past its root and phase. -/
+theorem queryStepsOf_query (i : ℕ) (ps : List ℕ) (k : List (List K) → VerifierProgram α)
+    (sp : Sponge) (stream : List E) (phase : List Opening) (rest : List (List Opening))
+    (R : List (Digest × ℕ × ℕ)) {root : Digest} {height width : ℕ}
+    (hR : R[i]? = some (root, height, width)) :
+    Limits.queryStepsOf (VerifierProgram.query i ps k) ⟨sp, stream, phase :: rest, R⟩ =
+      match Id.run (openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
+      | some rows => (height, ps.zip phase) :: Limits.queryStepsOf (k rows) ⟨sp, stream, rest, R⟩
+      | none => [] := by
+  simp only [Limits.queryStepsOf, hR, openPhase_keccak]
+  rfl
+
+/-- **A sequence's query steps split** past a run of its first part. -/
+theorem queryStepsOf_bind (f : α → VerifierProgram β) : ∀ (p : VerifierProgram α)
+    (st : VerifierProgramState) (a : α) (st' : VerifierProgramState), runId p st = some (a, st') →
+      Limits.queryStepsOf (p.bind f) st = Limits.queryStepsOf p st ++ Limits.queryStepsOf (f a) st'
+  | .ret b, st, a, st', h => by
+    have e : runId (VerifierProgram.ret b) st = some (b, st) := rfl
+    rw [e, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    rfl
+  | .fail, _, _, _, h => absurd h (by rintro ⟨⟩)
+  | .read k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, a, st', h => by
+    match stream, g, h with
+    | [], _, h => exact absurd h (by rintro ⟨⟩)
+    | _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
+    | x :: xs, none, h => exact queryStepsOf_bind f (k x) _ a st' h
+  | .sample k, st, a, st', h => queryStepsOf_bind f (k _) _ a st' h
+  | .grind bits k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, a, st', h => by
+    match stream, g, h with
+    | [], _, h => exact absurd h (by rintro ⟨⟩)
+    | _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
+    | n :: xs, none, h =>
+      simp only [runId, Compile.runWithHash] at h
+      simp only [VerifierProgram.bind, Limits.queryStepsOf]
+      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ n = N at h ⊢
+      obtain ⟨pw, sp'⟩ := N
+      change (if powOk bits pw = true then _ else _) = _ at h
+      split at h
       · rename_i hp
-        simp only [hp, Bool.false_eq_true, ↓reduceIte, Option.map_none]
-  | commit h w k ih =>
-    intro st
-    obtain ⟨s, stream, os, R⟩ := st
-    match stream with
-    | [] => rfl
-    | [_] => rfl
-    | x0 :: x1 :: xs =>
-      simp only [Whir.runF, Tables.runT, toT]
-      split
-      · rename_i root hr
-        simp only [hr]
-        exact ih _
-      · rename_i hr
-        simp only [hr, Option.map_none]
-  | query i ps k ih =>
-    intro st
-    obtain ⟨s, stream, os, R⟩ := st
-    simp only [Whir.runF, Tables.runT, toT]
-    cases hr : R[i]? with
-    | none => rfl
+        change (if powOk bits pw = true then _ else _) =
+          (if powOk bits pw = true then _ else _) ++ _
+        simp only [hp, ↓reduceIte]
+        exact queryStepsOf_bind f k _ a st' h
+      · exact absurd h (by rintro ⟨⟩)
+  | .commit hh ww k, ⟨⟨S0, P0, g⟩, stream, os, R⟩, a, st', h => by
+    match stream, g, h with
+    | [], _, h => exact absurd h (by rintro ⟨⟩)
+    | [_], _, h => exact absurd h (by rintro ⟨⟩)
+    | _ :: _ :: _, some _, h => exact absurd h (by rintro ⟨⟩)
+    | x0 :: x1 :: xs, none, h => exact queryStepsOf_bind f k _ a st' h
+  | .query i ps k, ⟨sp, stream, os, R⟩, a, st', h => by
+    cases hR : R[i]? with
+    | none =>
+      rw [runId_query_none _ _ _ _ (Or.inl hR)] at h
+      exact absurd h (by rintro ⟨⟩)
     | some v =>
       obtain ⟨root, height, width⟩ := v
       cases os with
-      | nil => rfl
+      | nil =>
+        rw [runId_query_none _ _ _ _ (Or.inr rfl)] at h
+        exact absurd h (by rintro ⟨⟩)
       | cons phase rest =>
-        simp only
-        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
-            phase) with
-        | none =>
-          simp only [Option.map_none]
-        | some rows =>
-          simp only
-          exact ih rows _
+        rw [runId_query _ _ _ _ _ _ _ _ hR] at h
+        rw [show (VerifierProgram.query i ps k).bind f =
+          VerifierProgram.query i ps fun rows ↦ (k rows).bind f from rfl,
+          queryStepsOf_query _ _ _ _ _ _ _ _ hR, queryStepsOf_query _ _ _ _ _ _ _ _ hR]
+        split at h
+        · rename_i rows hrows
+          simp only [List.cons_append]
+          exact congrArg _ (queryStepsOf_bind f (k rows) _ a st' h)
+        · exact absurd h (by rintro ⟨⟩)
 
-/-- **A carried run consuming all it is given is a `RunsWith`.** -/
-theorem runsWith_of_runF {α : Type} {p : VerifierProgram α} {s : Fs} {xs : List E} {os : List (List Opening)}
-    {R : List (Digest × ℕ × ℕ)} {a : α} {s' : Fs} {R' : List (Digest × ℕ × ℕ)}
-    (h : Whir.runF p ⟨s, xs, os, R⟩ = some (a, ⟨s', [], [], R'⟩)) :
-    Whir.RunsWith p s xs os R a s' R' := by
-  intro sp hs rest orest
-  rw [runF_eq_runT] at h
-  obtain ⟨⟨a', t⟩, ht, he⟩ := Option.map_eq_some_iff.1 h
-  obtain ⟨ts, tstream, tos, tR⟩ := t
-  simp only [ofT, Prod.mk.injEq, Whir.FSt.mk.injEq] at he
-  obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := he
-  obtain ⟨pre, opre, hs1, ho1, hf⟩ := Tables.runT_frame p _ _ _ ht
-  simp only [toT, List.append_nil] at hs1 ho1
+/-- **A run reading all it is given is a `RunsWith`**: from a sponge the guest carries to one with
+no ground challenge. -/
+theorem runsWith_of_runId {p : VerifierProgram α} {s : Fs} {sp : Sponge} (hs : s.Carries sp)
+    {xs : List E} {os : List (List Opening)} {R : List (Digest × ℕ × ℕ)} {a : α}
+    {t : VerifierProgramState} (h : runId p ⟨sp, xs, os, R⟩ = some (a, t))
+    (hst : t.stream = []) (hos : t.openings = []) (hg : t.sponge.ground = none) :
+    Whir.RunsWith p s xs os R a (Tables.fsOfT t.sponge) t.roots := by
+  have hT := Tables.runT_of_runId p ⟨s, none, xs, os, R⟩ sp hs a t h
+  obtain ⟨pre, opre, hs1, ho1, hf⟩ := Tables.runT_frame p _ a _ hT
+  simp only [hst, hos, List.append_nil] at hs1 ho1
   subst hs1 ho1
+  intro sp2 hs2 rest orest
   have e := hf rest orest
-  obtain ⟨sp', hc, hr⟩ := Tables.runId_of_runT p _ sp hs _ _ e
-  exact ⟨sp', hc, hr⟩
-
-/-! ## Query steps -/
-
-/-- **The deployed run's query steps are the carried run's.** -/
-theorem queriesOf_eq_steps {α : Type} (p : VerifierProgram α) : ∀ (st : Whir.FSt) (sp : Sponge),
-    st.sponge.Carries sp →
-      Limits.queryStepsOf p ⟨sp, st.stream, st.openings, st.roots⟩ = Whir.queryStepsOf p st := by
-  induction p with
-  | ret a => intro st sp hs; rfl
-  | fail => intro st sp hs; rfl
-  | read k ih =>
-    intro st sp hs
-    obtain ⟨s, stream, os, roots⟩ := st
-    cases stream with
-    | nil => rfl
-    | cons x xs =>
-      exact ih x ⟨s.absorb x dsObserve, xs, os, roots⟩ _ (carries_absorb hs x dsObserve)
-  | sample k ih =>
-    intro st sp hs
-    obtain ⟨e1, e2⟩ := carries_squeeze hs
-    have := ih ((Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).1)
-      ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ _ e2
-    simpa [Limits.queryStepsOf, Whir.queryStepsOf, e1] using this
-  | grind b k ih =>
-    intro st sp hs
-    obtain ⟨s, stream, os, roots⟩ := st
-    cases stream with
-    | nil => rfl
-    | cons n xs =>
-      have ha := carries_absorb hs n dsPowNonce
-      obtain ⟨e1, e2⟩ := carries_squeeze ha
-      have key : Limits.queryStepsOf (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
-              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
-            Limits.queryStepsOf k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
-              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩
-          else []) := rfl
-      rw [key, e1]
-      simp only [Whir.queryStepsOf]
-      split
-      · exact ih ⟨(s.absorb n dsPowNonce).squeeze.2, xs, os, roots⟩ _ e2
-      · rfl
-  | commit hh ww k ih =>
-    intro st sp hs
-    obtain ⟨s, stream, os, roots⟩ := st
-    match stream with
-    | [] => rfl
-    | [_] => rfl
-    | x0 :: x1 :: xs =>
-      have h1 := carries_absorb hs x0 dsObserve
-      have h2 := carries_absorb h1 x1 dsObserve
-      have key : Limits.queryStepsOf (VerifierProgram.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os,
-          roots⟩ =
-          (match digestFromHalves (x0, x1) with
-            | some root => Limits.queryStepsOf k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
-                (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
-                roots ++ [(root, hh, ww)]⟩
-            | none => []) := rfl
-      rw [key]
-      simp only [Whir.queryStepsOf]
-      split
-      · rename_i root hr
-        simp only [hr]
-        exact ih ⟨(s.absorb x0 dsObserve).absorb x1 dsObserve, xs, os, roots ++ [(root, hh, ww)]⟩
-          _ h2
-      · rename_i hr
-        simp only [hr]
-  | query i ps k ih =>
-    intro st sp hs
-    obtain ⟨s, stream, os, roots⟩ := st
-    simp only [Limits.queryStepsOf, Whir.queryStepsOf]
-    cases hr : roots[i]? with
-    | none => rfl
-    | some v =>
-      obtain ⟨root, height, width⟩ := v
-      cases os with
-      | nil => rfl
-      | cons phase rest =>
-        simp only [Compile.openPhase_eq_withHash, keccak256With_keccakF1600]
-        cases ho : Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps
-            phase) with
-        | none => rfl
-        | some rows =>
-          exact congrArg _ (ih rows ⟨s, stream, rest, roots⟩ sp hs)
-
-/-- G7's agreement of a query step's openings is B1-b's. -/
-theorem batchAgrees_of {d : ℕ} {qs : List (ℕ × Opening)} (h : Limits.OpeningsAgree d qs) :
-    Whir.BatchAgrees d qs := by
-  simp only [Limits.OpeningsAgree, Limits.OpeningGivesNode, Guest.Limits.climbTo_eq_withHash] at h
-  exact h
+  obtain ⟨sp', hc, hr⟩ := Tables.runId_of_runT p ⟨s, none, xs ++ rest, os ++ orest, R⟩ sp2 hs2 a _ e
+  refine ⟨sp', ?_, hr⟩
+  obtain ⟨h1, h2, h3⟩ := hc
+  exact ⟨h1, h2, h3.trans hg⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

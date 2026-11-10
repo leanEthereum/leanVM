@@ -1,15 +1,15 @@
 # usage: python3 -I gensel.py  — writes Tables/Vt/SelBlocks.lean (verify_tables' table blocks'
-# selectors, G:2251-2266 at 40f877dc: hinted g-power digits of the block's offset, the
+# selectors, G:2409-2422 at the commit in leanvm-rev: hinted g-power digits of the block's offset, the
 # `block_selector_tab` arm on its table's shared tables) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
 
 GSTART = [0, 1, 2, 3, 8, 13, 16, 21, 26, 54, 55, 56, 57, 62, 67, 70, 75, 80, 108, 112, 116, 118, 122, 126, 153]
-BOFF0 = {0: 289, 1: 292, 2: 295, 3: 298, 4: 305, 5: 312, 6: 317, 7: 324, 8: 331,
-         18: 526, 19: 532, 20: 538, 21: 542, 22: 548, 23: 554}
+BOFF0 = {0: 286, 1: 289, 2: 292, 3: 295, 4: 302, 5: 309, 6: 314, 7: 321, 8: 328,
+         18: 523, 19: 529, 20: 535, 21: 539, 22: 545, 23: 551}
 W288, W144 = 299140177199104, 21299200
-SHLEN = [708, 717, 730, 743, 756, 769]
+SHLEN = [704, 713, 726, 739, 752, 765]
 
 def boffvar():
     m = {}
@@ -22,24 +22,24 @@ def nums(s): return [int(x) for x in re.findall(r'\.n (\d+)', s)]
 def main():
     bv = boffvar()
     rows = []
-    for p in range(770, 2600):
+    for p in range(765, 1913):
         s = IR.get(p, '')
         m = re.match(r'\.atom \(\.hint \(\.digitsExp \(\.n (\d+)\) 34 9 4 0 \(some \(\.n (\d+)\)\) \(\.heap \(\.n (\d+)\) 0 9\)\)\)', s)
         if not m: continue
         off, kv, w = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        b = bv[off]; t = kv - 30
+        b = bv[off]; t = kv - 27
         assert IR[p - 1] == f'.atom (.hint (.alloc (.n {w}) 9))', (p, IR[p - 1])
         q = p + 1
         es = gs = gw = 0
         if t > 0:
             a = [parse_atom(IR[q + i]) for i in range(4)]
-            assert a[0] == ('const', [w + 1, (W288, 0, 0)]) and a[1][0] == 'mul' and a[1][1][0] == w + 2 and a[1][1][2] == w + 1
+            assert a[0] == ('const', [w + 1, (W288, 0)]) and a[1][0] == 'mul' and a[1][1][0] == w + 2 and a[1][1][2] == w + 1
             assert a[2][0] == 'const' and a[2][1][0] == w + 3 and a[3][1][0] == w + 4 and a[3][1][2] == w + 3
             es = a[1][1][1]; gs = a[3][1][1]; gw = a[2][1][1][0]
             q += 4
         E = w + 1 if t == 0 else w + 5
         d = IR[q]; assert d.startswith('.dispatch (.n %d)' % SHLEN[t]), (q, d)
-        assert nums(d)[-5:] == [w, 705 if t == 0 else w + 2, 706 if t == 0 else w + 4, E, E + 1], (q, nums(d))
+        assert nums(d)[-5:] == [w, 701 if t == 0 else w + 2, 702 if t == 0 else w + 4, E, E + 1], (q, nums(d))
         assert parse_atom(IR[q + 1]) == ('assertEq', '(.n %d) (.n %d)' % (E + 1, off)), IR[q + 1]
         a = parse_atom(IR[q + 2])
         if a[0] == 'add':
@@ -77,7 +77,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SelMath
 
 /-!
-# The table blocks' selectors (G:2234-2249)
+# The table blocks' selectors (G:2409-2422)
 
 A table block `b` of table `t` (`vtSelT`): the hinted `g`-power digits of its certified offset
 `block_off[b]` (`vtBoffV b`) above `τ_t`, the `block_selector_tab` arm `μ - τ_t` (dispatched on
@@ -110,12 +110,12 @@ def vtSelTail (w t : ℕ) : Option ℕ → List Stmt
 /-- A table block's statements. -/
 def vtSelT (w b t : ℕ) (prev : Option ℕ) (es gs gw : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n w) 9)),
-    .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (30 + t))) (.heap (.n w) 0 9)))] ++
+    .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (27 + t))) (.heap (.n w) 0 9)))] ++
   (if t = 0 then [] else
     [.atom (.const (.n (w + 1)) vtW288), .atom (.mul (.n (w + 2)) (.n es) (.n (w + 1))),
-      .atom (.const (.n (w + 3)) (word gw 0 0)), .atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))]) ++
-  [.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (if t = 0 then 705 else w + 2),
-      .n (if t = 0 then 706 else w + 4)] [.n (vtSelE w t), .n (vtSelE w t + 1)],
+      .atom (.const (.n (w + 3)) (word gw 0)), .atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))]) ++
+  [.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (if t = 0 then 701 else w + 2),
+      .n (if t = 0 then 702 else w + 4)] [.n (vtSelE w t), .n (vtSelE w t + 1)],
     .atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))] ++ vtSelTail w t prev
 '''
 

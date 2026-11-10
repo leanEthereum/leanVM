@@ -37,11 +37,13 @@ open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.Whir.Complete Finset
 /-! ## The pack and segment rounds -/
 
 /-- The honest equality-mode rounds of `keccakPackRounds` for the family `F`: per round, the
-round polynomial `x ↦ scale·F(acc ++ [x])` on the wire. Returns the scale and the challenges. -/
+round polynomial `x ↦ scale·F(acc ++ [x])` on the wire and the round's grind. Returns the scale
+and the challenges. -/
 noncomputable def hPack (F : List E → E) : List E → List E → E → Script (E × List E)
   | [], _, scale => Script.ret (scale, [])
   | rk :: rs, acc, scale =>
-    (Script.sendList (wire (some rk) (coeffsOf 2 fun x ↦ scale * F (acc ++ [x])))).bind fun _ ↦
+    ((Script.sendList (wire (some rk) (coeffsOf 2 fun x ↦ scale * F (acc ++ [x])))).bind fun _ ↦
+      Script.grindBits (roundBits 3 (some rk))).bind fun _ ↦
       Script.sampleE.bind fun c ↦
         (hPack F rs (acc ++ [c]) (scale * (1 + rk + c))).bind fun r ↦ Script.ret (r.1, c :: r.2)
 
@@ -99,12 +101,14 @@ theorem follows_pack (F : List E → E) (r : List E) (hF : EqFamily (fun (_ : Un
 noncomputable def hLayer (T : States) (P : ℕ) (claim : KeccakClaim) : Script KeccakClaim :=
   Script.sendList (gList (Gpoly T P claim.point claim.weights)) >>= fun _ ↦
   Script.ret () >>= fun _ ↦
+  Script.grindBits (grindingBits (productBits - 1)) >>= fun _ ↦
   Script.sampleE >>= fun s ↦
   hPack (FP T P s claim.weights claim.point) claim.point [] 1 >>= fun pk ↦
   hSumcheck 4 (FX T P s claim.weights pk.2 pk.1) (List.replicate keccakLocalBits none) [] >>=
     fun ps ↦
   Script.sendList [Tk T P s pk.2 0 ps.1, Tk T P s pk.2 1 ps.1, Tk T P s pk.2 2 ps.1] >>= fun _ ↦
   Script.ret () >>= fun _ ↦
+  Script.grindBits (grindingBits 2) >>= fun _ ↦
   Script.sampleE >>= fun b ↦
   Script.ret ⟨Tk T P s pk.2 0 ps.1 + b * (Tk T P s pk.2 1 ps.1 + b * Tk T P s pk.2 2 ps.1),
     keccakInstanceWeights s, pk.2, keccakLinearTranspose (batchW ps.1 b)⟩
@@ -129,7 +133,10 @@ theorem follows_layer (T : States) (step P : ℕ) (claim : KeccakClaim) (hshape 
   refine Follows.bind_of (Follows.ret_require (R := fun cs' _ _ ↦ cs' = cs₁) hcheck rfl)
     fun cs₂ _ _ h₂ ↦ ?_
   subst h₂
-  refine Follows.bind_of (Follows.sampleE_sampleE cs₂) fun cs₃ s s' h₃ ↦ ?_
+  rw [gList_length G]
+  refine Follows.bind_of (Follows.grindBits_grindP _ cs₂) fun cs₂' _ _ h₂' ↦ ?_
+  subst h₂'
+  refine Follows.bind_of (Follows.sampleE_sampleE _) fun cs₃ s s' h₃ ↦ ?_
   obtain ⟨rfl, rfl⟩ := h₃
   -- the pack rounds
   have hpack := follows_pack (FP T P s claim.weights claim.point) claim.point
@@ -173,7 +180,9 @@ theorem follows_layer (T : States) (step P : ℕ) (claim : KeccakClaim) (hshape 
   · simp only [List.getD_cons_zero, List.getD_cons_succ]
     exact hfinal
   subst h₇
-  refine Follows.bind_of (Follows.sampleE_sampleE cs₇) fun cs₈ b b' h₈ ↦ ?_
+  refine Follows.bind_of (Follows.grindBits_grindP _ cs₇) fun cs₇' _ _ h₇' ↦ ?_
+  subst h₇'
+  refine Follows.bind_of (Follows.sampleE_sampleE _) fun cs₈ b b' h₈ ↦ ?_
   obtain ⟨rfl, rfl⟩ := h₈
   simp only [Follows, List.getD_cons_zero, List.getD_cons_succ]
   refine ⟨trivial, by rw [hpt], ⟨keccakInstanceWeights_length s, ?_,

@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L16_L4`, window 1. -/
-theorem w900_1 : shareWin 900 (snapsOf 900) 1 = true := by decide +kernel
+/-- `__loop209`, window 1. -/
+theorem w778_1 : shareWin 778 (snapsOf 778) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop394`, once. -/
-theorem st901 : shareStatic 901 = true := by decide +kernel
+/-- `__loop209`, window 2. -/
+theorem w778_2 : shareWin 778 (snapsOf 778) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop394`, window 0. -/
-theorem w901_0 : shareWin 901 (snapsOf 901) 0 = true := by decide +kernel
+/-- `__loop210`, once. -/
+theorem st779 : shareStatic 779 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop394`, window 1. -/
-theorem w901_1 : shareWin 901 (snapsOf 901) 1 = true := by decide +kernel
+/-- `__loop210`, window 0. -/
+theorem w779_0 : shareWin 779 (snapsOf 779) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop394`, window 2. -/
-theorem w901_2 : shareWin 901 (snapsOf 901) 2 = true := by decide +kernel
+/-- `__loop210`, window 1. -/
+theorem w779_1 : shareWin 779 (snapsOf 779) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L21_L7`, once. -/
-theorem st902 : shareStatic 902 = true := by decide +kernel
+/-- `__loop210`, window 2. -/
+theorem w779_2 : shareWin 779 (snapsOf 779) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L21_L7`, window 0. -/
-theorem w902_0 : shareWin 902 (snapsOf 902) 0 = true := by decide +kernel
+/-- `__loop211`, once. -/
+theorem st780 : shareStatic 780 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L21_L7`, window 1. -/
-theorem w902_1 : shareWin 902 (snapsOf 902) 1 = true := by decide +kernel
+/-- `__loop211`, window 0. -/
+theorem w780_0 : shareWin 780 (snapsOf 780) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

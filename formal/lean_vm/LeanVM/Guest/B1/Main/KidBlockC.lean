@@ -113,12 +113,11 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   unfold l5COk at hok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, decide_eq_true_eq, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true'] at hok
-  obtain ⟨⟨⟨⟨⟨c', hchk⟩, hst⟩, hcanA⟩, hneeds⟩, hcalls⟩ := hok
+  obtain ⟨⟨⟨⟨c', hchk⟩, hst⟩, hneeds⟩, hcalls⟩ := hok
   set args : List E := [gen ^ c, N, written, lxt, cover, lxs, lst, spc, lss, carried, dadig,
     s0, s1, cpi, gsq, cfresh] with hargs
   set w := l5W ex es cx0 cx1 cs0 cs1 p0 p1 with hw
   set σ := l5σ rd args w with hσ
-  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => rfl
   obtain ⟨-, -, hgs⟩ := ev_spec rd w l5Body args hchk
   rw [show args.length = 16 from rfl, show l5Body = l5Pre ++ [l5Tail, .ret []] from rfl, hst] at hgs
   have hg : ∀ a ∈ atomsIn l5Pre, Good rd l5S w σ a := fun a ha =>
@@ -183,8 +182,8 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
   have v56' := mul' (d := 56) (x := 2) (y := 0) (by omega) (by omega) (by decide +kernel)
   have v58 := mul' (d := 58) (x := 0) (y := 57) (by omega) (by omega) (by decide +kernel)
   have v61' := mul' (d := 61) (x := 0) (y := 60) (by omega) (by omega) (by decide +kernel)
-  have v57 : σ (.n 57) = word 2 0 0 := gconst (k := 39) (by decide)
-  have v60 : σ (.n 60) = word 2 0 0 := gconst (k := 42) (by decide)
+  have v57 : σ (.n 57) = word 2 0 := gconst (k := 39) (by decide)
+  have v60 : σ (.n 60) = word 2 0 := gconst (k := 42) (by decide)
   have v59 : σ (.n 59) = σ (.n 58) + σ (.n 1) := hmem (.add (.n 59) (.n 58) (.n 1)) (by decide +kernel)
   have h24 : σ (.n 38) = gen ^ (24 * c) := by
     rw [v38, v37, v36, v35, v34, e0, mul_comm 24 c, pow_mul]; ring
@@ -213,9 +212,8 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
     · rw [hk, hx, hy, ← pow_add, show e + (K - e) = K by omega]
     · rw [g2, hy]; exact low_load hlow (by omega)
   -- the atoms but the stores, then the stores
-  have hA : ∀ i ∈ ([] : List ℕ), IsCanonical128 (σ (.n i)) := by simp
   have hat : ∀ a ∈ atomsIn l5Pre, a.Holds rd σ := by
-    refine atoms_holds_stores (S := l5S) (w := w) hidx hcanA hg hA
+    refine atoms_holds_stores (S := l5S) (w := w) hg
       (fun a ha hnS hns => Or.inl ?_) (fun _ a ha haS => ?_)
     · have := hneeds a ha
       simp only [hns, Bool.true_eq_false, false_or] at this
@@ -241,10 +239,10 @@ theorem l5_core {rd : Reader} (hlow : LowDef 16 rd) {c : ℕ}
           simpa using hm
         rcases hrcs with e | e <;> rw [e] at hmemA ⊢
         · exact hrc (by omega) hex (by norm_num) hmemA v18
-            (by rw [show σ (.n 20) = word 9272771591053052074 0 0 from
+            (by rw [show σ (.n 20) = word 9272771591053052074 0 from
               gconst (k := 3) (by decide), word_gmax])
         · exact hrc (by omega) hes (by norm_num) hmemA v19
-            (by rw [show σ (.n 24) = word 9272771591053052074 0 0 from
+            (by rw [show σ (.n 24) = word 9272771591053052074 0 from
               gconst (k := 5) (by decide), word_gmax])
     · simp only [l5S, List.mem_cons, List.not_mem_nil, or_false] at haS
       rcases haS with rfl | rfl | rfl

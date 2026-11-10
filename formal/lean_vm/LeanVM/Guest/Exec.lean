@@ -140,32 +140,32 @@ theorem ofK_zero : ofK 0 = 0 := map_zero (algebraMap K E)
 
 theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
 
-theorem imm_zero : OffsetInstruction.immediateWord 0 0 0 = 0 := by
+theorem imm_zero : OffsetInstruction.immediateWord 0 0 = 0 := by
   rw [OffsetInstruction.immediateWord]
   exact (ofLimbs_eq_zero_iff _).mpr rfl
 
-theorem imm_of_ofBits {k : ℕ} {a : K} (h : K.ofBits k = a) : OffsetInstruction.immediateWord k 0 0 =
+theorem imm_of_ofBits {k : ℕ} {a : K} (h : K.ofBits k = a) : OffsetInstruction.immediateWord k 0 =
     ofK a := by
   rw [OffsetInstruction.immediateWord, h, ofK_eq_ofLimbs]
   rfl
 
 theorem gpow_zero' : addressOfIndex 0 = 1 := pow_zero g
 
-theorem symOf_val {F : Facts} (hp : F.pows.Ok) {k0 k1 k2 : ℕ} {v : Sym}
-    (h : F.symOf k0 k1 k2 = some v) (fp : K) : OffsetInstruction.immediateWord k0 k1 k2 = v.val
+theorem symOf_val {F : Facts} (hp : F.pows.Ok) {k0 k1 : ℕ} {v : Sym}
+    (h : F.symOf k0 k1 = some v) (fp : K) : OffsetInstruction.immediateWord k0 k1 = v.val
         fp := by
-  simp only [Facts.symOf, Bool.cond_eq_ite, Bool.and_eq_true, beq_iff_eq] at h
+  simp only [Facts.symOf, Bool.cond_eq_ite, beq_iff_eq] at h
   split_ifs at h with h12 h0 h1
-  · obtain ⟨rfl, rfl⟩ := h12
+  · subst h12
     subst h0
     obtain rfl := Option.some.inj h
     exact imm_zero
-  · obtain ⟨rfl, rfl⟩ := h12
+  · subst h12
     subst h1
     obtain rfl := Option.some.inj h
     rw [Sym.val, gpow_zero']
     exact imm_of_ofBits rfl
-  · obtain ⟨rfl, rfl⟩ := h12
+  · subst h12
     obtain ⟨e, he, rfl⟩ := Option.map_eq_some_iff.mp h
     exact imm_of_ofBits (PowTree.find_ok hp he)
 
@@ -382,10 +382,10 @@ theorem mulEnv_holds {a b c pc : ℕ} {env : Trie Sym} (he : EnvHolds L fp env)
     · exact he
 
 theorem neFacts_holds {o pc : ℕ} {prev : List (ℕ × OffsetInstruction)}
-    (hprev : ∀ x ∈ prev, Guest.Holds L x.1 fp x.2) (hh : Guest.Holds L pc fp (.set o 1 0 0)) :
+    (hprev : ∀ x ∈ prev, Guest.Holds L x.1 fp x.2) (hh : Guest.Holds L pc fp (.set o 1 0)) :
     ∀ x ∈ neFacts o prev, x.Holds L fp := by
   have h1 : L.read (fp * addressOfIndex o) = some 1 := by
-    rw [show (1 : E) = OffsetInstruction.immediateWord 1 0 0 from (imm_of_ofBits rfl).trans ofK_one
+    rw [show (1 : E) = OffsetInstruction.immediateWord 1 0 from (imm_of_ofBits rfl).trans ofK_one
         |>.symm]
     exact hh
   unfold neFacts
@@ -511,11 +511,11 @@ theorem nonJump_holds (hκ : κ ≤ 32) (hp : F.pows.Ok) {pc : ℕ} {st : St} {i
     · intro x hx
       simp at hx
   | mul a b c => exact ⟨mulFacts_holds hst.1 hh, mulEnv_holds hst.1 hh, hst.2.1⟩
-  | set o k0 k1 k2 =>
+  | set o k0 k1 =>
     refine ⟨?_, ?_, hst.2.1⟩
     · simp only [nonJump]
       split_ifs with hk
-      · obtain ⟨rfl, rfl, rfl⟩ := hk
+      · obtain ⟨rfl, rfl⟩ := hk
         exact neFacts_holds hst.2.2 hh
       · intro x hx
         simp at hx

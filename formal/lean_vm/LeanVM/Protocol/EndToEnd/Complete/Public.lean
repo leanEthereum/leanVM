@@ -15,15 +15,15 @@ public import LeanVM.Protocol.KeccakHash
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Semantics.Lemmas
 
 /-!
 # The public input
 
-Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:268-281` at
-leanVM `40f877dc`): sample `r`, and claim of memory column `ℓ` at
+Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:303-316` at
+leanVM `f128`): sample `r`, and claim of memory column `ℓ` at
 `(r, 0, …, 0)` the line through limb `ℓ` of the halves `(h₀, h₁)` of the public-input digest,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ`. The prover sends nothing.
 
@@ -32,10 +32,10 @@ leanVM `40f877dc`): sample `r`, and claim of memory column `ℓ` at
   (`digestScalars_publicDigest`); the inverse of the soundness side's reading
   `PublicInput.ofDigest`.
 * `hPub`: the honest prover receives `r` and sends nothing; it returns the claims at the
-  extensions of the three memory limbs at `(r, 0, …, 0)`, the lines through their cells `0, 1`
+  extensions of the two memory limbs at `(r, 0, …, 0)`, the lines through their cells `0, 1`
   (`PublicInput.eval₂Mle_linePoint`).
 * `follows_publicInputPhase`: on a stack satisfying `M3Holds`, its public lines (`MEM_LO` holds
-  `input₀, input₂`, `MEM_HI` holds `input₁, input₃`, `MEM_TOP` holds `0, 0`) make the verifier's
+  `input₀, input₂`, `MEM_HI` holds `input₁, input₃`) make the verifier's
   claims those values, so they are true claims (`TrueClaim`).
 -/
 
@@ -76,24 +76,24 @@ theorem digestScalars_publicDigest (input : PublicInput) :
 def publicPoint (layout : Verifier.Layout) (r : E) : List E :=
   r :: List.replicate ((layout.placement memory0).variableCount - 1) 0
 
-/-- Claims of the three memory columns at the public point after the challenge `r`, at the given
+/-- Claims of the two memory columns at the public point after the challenge `r`, at the given
 values. -/
 def publicClaims (layout : Verifier.Layout) (r : E) (limbs : List E) : List Verifier.ColumnClaim :=
   List.zipWith (fun column value ↦ ⟨column, publicPoint layout r, value⟩)
-    [memory0, memory1, memory2] limbs
+    [memory0, memory1] limbs
 
 /-- The true value of memory limb `i` on the line through its cells `0, 1`. -/
-def memLine (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (i : Fin 4) (r :
+def memLine (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (i : Fin 3) (r :
     E) : E :=
   colEval prog s q (memCol i) (linePoint s.logMem_pos r)
 
 /-- **The honest prover of the public input**: receive `r` and send nothing; return the claims
-at the true values of the three memory limbs on their lines, which are the program's. -/
+at the true values of the two memory limbs on their lines, which are the program's. -/
 def hPub (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Script (List Verifier.ColumnClaim) :=
   Script.sampleE.bind fun r ↦
     .ret (publicClaims (verifierLayout prog s) r
-      [memLine prog s q 0 r, memLine prog s q 1 r, memLine prog s q 2 r])
+      [memLine prog s q 0 r, memLine prog s q 1 r])
 
 /-! ## Completeness -/
 
@@ -103,13 +103,13 @@ theorem publicPoint_eq (prog : LeanIsaProgram) (s : Sizes) (r : E) :
   have hp := placement_committed prog s (memCol 0) (by decide)
   rw [refCol_memCol] at hp
   have hv : ((verifierLayout prog s).placement memory0).variableCount = s.logMem := by
-    rw [show memory0 = ((0 : Fin 4) : ℕ) from rfl, hp]
+    rw [show memory0 = ((0 : Fin 3) : ℕ) from rfl, hp]
     rfl
   rw [publicPoint, hv]
   simp [linePoint, Vector.toList_cast, Vector.toList_append]
 
 /-- A memory limb's line value, from its cells `0, 1`. -/
-theorem memLine_eq (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (i : Fin 4)
+theorem memLine_eq (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (i : Fin 3)
     (r : E) :
     memLine prog s q i r =
       (1 + r) * ofK (((inst prog s).column q (memCol i)).values.get ⟨0, Nat.two_pow_pos _⟩) +
@@ -122,7 +122,7 @@ theorem memLine_eq (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ pr
 /-- The program's claim on memory limb `i` at the public point is a true claim, when its value
 is the limb's line value. -/
 theorem trueClaim_memLine (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s)) (i
-    : Fin 4)
+    : Fin 3)
     (r v : E) (hv : v = memLine prog s q i r) :
     TrueClaim prog s q ⟨i, publicPoint (verifierLayout prog s) r, v⟩ :=
   ⟨memCol i, linePoint s.logMem_pos r, by rw [refCol_memCol, publicPoint_eq, hv]; rfl⟩
@@ -131,7 +131,7 @@ theorem trueClaim_memLine (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanI
 computed from the public input's digest, are the honest ones, and they are true. -/
 theorem follows_publicInputPhase {prog : LeanIsaProgram} {s : Sizes} {input : PublicInput}
     {q : Column (leanIsaμ prog s)} (hq : M3Holds (inst prog s) input q) (cs : Commits) :
-    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b) (hPub prog s q)
+    Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ TrueClaims prog s q b ∧ b.length = 2) (hPub prog s q)
       (Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)) cs := by
   have hlines := hq.2.2.2.1
   have hl : ∀ l ∈ ((inst prog s).publicLines input).toList,
@@ -142,26 +142,23 @@ theorem follows_publicInputPhase {prog : LeanIsaProgram} {s : Sizes} {input : Pu
     input.lanes 2, false, s.logMem_pos⟩ : PublicLine (shape prog s)) ∈ _)
   have h1 := hl _ (by simp [inst, leanIsaInstance, publicLines] : (⟨memCol 1, input.lanes 1,
     input.lanes 3, false, s.logMem_pos⟩ : PublicLine (shape prog s)) ∈ _)
-  have h2 := hl _ (by simp [inst, leanIsaInstance, publicLines] : (⟨memCol 2, 0, 0, false,
-    s.logMem_pos⟩ : PublicLine (shape prog s)) ∈ _)
-  simp only at h0 h1 h2
+  simp only at h0 h1
   unfold Verifier.publicInputPhase hPub
   simp only [VerifierProgram.bind_eq]
   refine Follows.bind (fun cs₁ r r' hr ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
   obtain ⟨rfl, rfl⟩ := hr
-  have hz : ofK (0 : K) = 0 := map_zero (algebraMap K E)
-  have hlimbs : (([0, 1, 2] : List (Fin 3)).map fun limb ↦
+  have hlimbs : (([0, 1] : List (Fin 2)).map fun limb ↦
       multilinearEval [ofK ((digestHalves (publicInputDigest input)).1.limb limb),
         ofK ((digestHalves (publicInputDigest input)).2.limb limb)] [r]) =
-      [memLine prog s q 0 r, memLine prog s q 1 r, memLine prog s q 2 r] := by
+      [memLine prog s q 0 r, memLine prog s q 1 r] := by
     simp only [List.map_cons, List.map_nil, digestScalars_publicDigest, PublicInput.word0,
-      PublicInput.word1, limb_ofLimbs, memLine_eq, h0.1, h0.2, h1.1, h1.2, h2.1, h2.2]
+      PublicInput.word1, limb_ofLimbs, memLine_eq, h0.1, h0.2, h1.1, h1.2]
     simp only [multilinearEval, List.foldl, foldPairs, List.headD]
-    refine List.cons_eq_cons.mpr ⟨?_, List.cons_eq_cons.mpr ⟨?_, List.cons_eq_cons.mpr ⟨?_, rfl⟩⟩⟩
-    all_goals (try simp [hz])
+    refine List.cons_eq_cons.mpr ⟨?_, List.cons_eq_cons.mpr ⟨?_, rfl⟩⟩
+    all_goals (try simp)
     all_goals ring
   simp only [VerifierProgram.pure_eq]
-  refine ⟨rfl, ?_, ?_⟩
+  refine ⟨rfl, ?_, ?_, ?_⟩
   · show publicClaims (verifierLayout prog s) r _ = List.zipWith _ _ _
     rw [hlimbs]
     rfl
@@ -169,10 +166,11 @@ theorem follows_publicInputPhase {prog : LeanIsaProgram} {s : Sizes} {input : Pu
     rw [hlimbs] at hcl
     simp only [List.zipWith_cons_cons, List.zipWith_nil_right, List.mem_cons, List.not_mem_nil,
       or_false] at hcl
-    rcases hcl with rfl | rfl | rfl
+    rcases hcl with rfl | rfl
     · exact trueClaim_memLine prog s q 0 r _ rfl
     · exact trueClaim_memLine prog s q 1 r _ rfl
-    · exact trueClaim_memLine prog s q 2 r _ rfl
+  · rw [hlimbs]
+    rfl
 
 end
 end LeanVM.Protocol.EndToEnd.Complete

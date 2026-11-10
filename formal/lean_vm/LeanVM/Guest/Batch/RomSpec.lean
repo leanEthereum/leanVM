@@ -20,7 +20,8 @@ public import LeanVM.Guest.AcceptableChild
 For children `cs` of the bytecode's shapes with some nonzero gap (`SomeGap`), `restSpec` is a
 specification (`LeanVM.Protocol.Compile.Spec`) of `batchingAfterChildren bytecode cs` from the empty history,
 with doom at the start, rejection at the end, and every challenge escaping doom with
-probability at most `batchε M = 2 max(M, 1)/|E|`, for `n < M` children:
+probability at most `batchε M = 2 max(M, 1)/|E|`, for `n < M` children (the proof of work before
+`λ` keeps doom):
 
 * **the challenge `λ`**: the gaps' combination by the lambdas, the powers `λ^0, …, λ^(2n-1)`, is
   the gaps' polynomial at `λ`, nonzero of degree below `2n` (`card_false_batch_le`): `λ` escapes
@@ -250,14 +251,17 @@ noncomputable def endSpec (M : ℕ) (φ : Prop) (C : E → Prop) {_ : ∀ a, Dec
     (Spec.require (Post := fun _ _ ↦ False) fun _ hφ hc ↦ h a hφ hc).bind' fun _ ↦
       Spec.dead
 
-/-- **The batching's doom specification** after `n < M` children with a nonzero gap: the
-challenge `λ` and the rounds tracked, then a fixed fact. -/
+/-- **The batching's doom specification** after `n < M` children with a nonzero gap: the proof of
+work, the challenge `λ` (the grind's discount unused) and the rounds tracked, then a fixed fact. -/
 noncomputable def restSpec {M : ℕ} {bytecode : List K}
     (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) {cs : List ChildClaims}
     (hn : cs.length < M) (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (hg : SomeGap bytecode cs) :
     Spec (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) (fun h ↦ h = [])
       (fun b _ ↦ b = false) (batchε M) (batchε M) 0 :=
-  ((lamSpec (gapsB bytecode cs) (length_gapsB bytecode cs) hn).bind' fun lam ↦
+  ((Spec.grindPos (Post := fun _ _ ↦ ∃ g ∈ gapsB bytecode cs, g ≠ 0) (by decide) (fun _ h ↦ h)
+      (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (ENNReal.inv_le_one.2 one_le_two)))).bind'
+    fun _ ↦
+  (lamSpec (gapsB bytecode cs) (length_gapsB bytecode cs) hn).bind' fun lam ↦
     ((roundsSpec M (bytecode_quadraticIn hb (bytecodePoints hs) (lambdaPowers lam cs.length)) _
         (batchedClaim cs (lambdaPowers lam cs.length)) [] (by simp)).mono
         (fun _ h ↦ claimB_ne hb hs (length_lambdaPowers _ _) h) (fun _ _ h ↦ h) le_rfl le_rfl
@@ -266,7 +270,7 @@ noncomputable def restSpec {M : ℕ} {bytecode : List K}
         obtain ⟨-, -, hv⟩ := hc.2
         apply hφ
         rw [hc.1, List.nil_append, bytecodePoly, hv]).mono
-    (fun _ _ ↦ hg) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+    (fun _ _ ↦ hg) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
 
 end
 end LeanVM.Guest.Batch

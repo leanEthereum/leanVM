@@ -7,10 +7,10 @@ meta import CompPoly.Fields.Binary.BF64
 /-!
 # Tests: fields and limbs
 
-Executable checks (`#guard`, compiled) of the limb view, the defining relation, and the two
-predicates on concrete words, with one mutated word per predicate; and kernel checks
+Executable checks (`#guard`, compiled) of the limb view, the defining relation, and `IsInK` on
+concrete words, with mutated words; and kernel checks
 (`decide +kernel`) of what the kernel can reduce from a `module` file: literal words and the
-predicates on them.
+predicate on them.
 -/
 
 namespace LeanVMTests.Parameters
@@ -21,27 +21,24 @@ public section
 
 /-! ## Limbs and the defining relation -/
 
-#guard (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)).limb 0 = 1
-#guard (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)).limb 1 = K.ofBits 2
-#guard (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)).limb 2 = K.ofBits 3
-#guard E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3) = ofK 1 + ofK (K.ofBits 2) * y + ofK (K.ofBits 3) * y ^ 2
-#guard y ^ 3 = E.ofLimbs 1 1 0
-#guard toString (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) = "E(0x000000000000000300000000000000020000000000000001)"
+#guard (E.ofLimbs 1 (K.ofBits 2)).limb 0 = 1
+#guard (E.ofLimbs 1 (K.ofBits 2)).limb 1 = K.ofBits 2
+#guard E.ofLimbs 1 (K.ofBits 3) = ofK 1 + ofK (K.ofBits 3) * y
+#guard y ^ 2 = E.ofLimbs 1 g
+-- Mutation: the modulus `y^2 + y + 1` would give `(1, 1)`.
+#guard y ^ 2 ≠ E.ofLimbs 1 1
+#guard toString (E.ofLimbs 1 (K.ofBits 2)) = "E(0x00000000000000020000000000000001)"
 
-/-! ## `IsInK` and `IsCanonical128` -/
+/-! ## `IsInK` -/
 
 #guard IsInK (ofK (K.ofBits 5))
-#guard IsInK (E.ofLimbs (K.ofBits 7) 0 0)
--- Mutations: a `y` limb, then a `y²` limb.
-#guard ¬ IsInK (E.ofLimbs (K.ofBits 7) 1 0)
-#guard ¬ IsInK (E.ofLimbs (K.ofBits 7) 0 1)
-#guard IsCanonical128 (E.ofLimbs 1 (K.ofBits 2) 0)
-#guard ¬ IsCanonical128 (E.ofLimbs 0 0 1)
-#guard ¬ IsCanonical128 (y ^ 2)
+#guard IsInK (E.ofLimbs (K.ofBits 7) 0)
+-- Mutation: a `y` limb.
+#guard ¬ IsInK (E.ofLimbs (K.ofBits 7) 1)
+#guard ¬ IsInK y
 
-/-- The predicates decide in the kernel on literal words. -/
-example : IsInK (E.ofLimbs (K.ofBits 7) 0 0) ∧ ¬ IsInK (E.ofLimbs (K.ofBits 7) 1 0) ∧
-    IsCanonical128 (E.ofLimbs 1 (K.ofBits 2) 0) ∧ ¬ IsCanonical128 (E.ofLimbs 0 0 1) := by
+/-- The predicate decides in the kernel on literal words. -/
+example : IsInK (E.ofLimbs (K.ofBits 7) 0) ∧ ¬ IsInK (E.ofLimbs (K.ofBits 7) 1) := by
   decide +kernel
 
 /-! ## Field structure -/

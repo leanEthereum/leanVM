@@ -8,7 +8,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 
 `logG x bound` (`B1/Sig/Codeword.lean`), the first `k < bound` with `x = g^k`, decides equality
 classically and computes `g^k` for each candidate. `logGT x bound` reads the lanes of `g^k` off the
-literal table `gLanes` instead and compares `x`'s low lane with them, its other limbs zero:
+literal table `gLanes` instead and compares `x`'s low lane with them, its other limb zero:
 `logG_eq_logGT` for `bound ≤ 256`.
 -/
 
@@ -26,11 +26,11 @@ def idxBelow (w : ℕ) : List ℕ → ℕ → ℕ → ℕ
 
 /-- **The exponent `k < bound` with `x = g^k`** (`0` if none), off the lanes `gLanes`. -/
 def logGT (x : E) (bound : ℕ) : ℕ :=
-  if x.limb 1 = 0 ∧ x.limb 2 = 0 then idxBelow (x.limb 0).lane.toNat gLanes 0 bound else 0
+  if x.limb 1 = 0 then idxBelow (x.limb 0).lane.toNat gLanes 0 bound else 0
 
 /-- **`logGT` off lanes given**: `gLanes`, built once by the caller (`logGTWith_gLanes`). -/
 def logGTWith (lanes : List ℕ) (x : E) (bound : ℕ) : ℕ :=
-  if x.limb 1 = 0 ∧ x.limb 2 = 0 then idxBelow (x.limb 0).lane.toNat lanes 0 bound else 0
+  if x.limb 1 = 0 then idxBelow (x.limb 0).lane.toNat lanes 0 bound else 0
 
 theorem logGTWith_gLanes : logGTWith gLanes = logGT := rfl
 
@@ -44,13 +44,13 @@ theorem lane_toNat_inj {a b : K} : a.lane.toNat = b.lane.toNat ↔ a = b := by
   · rintro rfl; rfl
 
 theorem eq_ofK_iff (x : E) (a : K) :
-    x = ofK a ↔ (x.limb 1 = 0 ∧ x.limb 2 = 0) ∧ (x.limb 0).lane.toNat = a.lane.toNat := by
+    x = ofK a ↔ x.limb 1 = 0 ∧ (x.limb 0).lane.toNat = a.lane.toNat := by
   rw [lane_toNat_inj]
   constructor
   · rintro rfl; simp
-  · rintro ⟨⟨h1, h2⟩, h0⟩
+  · rintro ⟨h1, h0⟩
     apply E.ext; intro i
-    fin_cases i <;> simp [h0, h1, h2]
+    fin_cases i <;> simp [h0, h1]
 
 theorem idxBelow_range' (w : ℕ) (f : ℕ → ℕ) :
     ∀ (n s : ℕ), idxBelow w ((List.range' s n).map f) s n =
@@ -83,12 +83,12 @@ theorem logG_eq_logGT (x : E) {bound : ℕ} (hb : bound ≤ 256) : logG x bound 
     rw [List.mem_range'_1] at hk
     rw [gpowK_eq (by unfold u128Bound; omega)]
   unfold logG logGT
-  by_cases hx : x.limb 1 = 0 ∧ x.limb 2 = 0
-  · simp only [hx, and_self, ↓reduceIte]
+  by_cases hx : x.limb 1 = 0
+  · simp only [hx, ↓reduceIte]
     rw [idxBelow_take, htab, idxBelow_range', List.range_eq_range']
     congr 2
     funext k
-    simp only [eq_ofK_iff, hx, and_self, true_and]
+    simp only [eq_ofK_iff, hx, true_and]
   · simp only [hx, ↓reduceIte]
     have : (List.range bound).find? (fun k ↦ decide (x = ofK (addressOfIndex k))) = none := by
       rw [List.find?_eq_none]

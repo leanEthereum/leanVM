@@ -39,7 +39,8 @@ public import LeanVM.Guest.B1.Whir.Facts27
 # The 28 candidates' facts
 
 `candB_all`: for every stack log `22 ≤ μ ≤ 28` and rate `1 ≤ r ≤ 4`, the candidate
-`candidate μ r` has its facts (`Whir/Facts{m}.lean`).
+`candidate μ r` has its facts; `qcallsB_all`: every candidate's `opening_queries` calls are its
+levels' (`Whir/Facts{m}.lean`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -77,6 +78,37 @@ theorem candB_all (μ r : ℕ) (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) 
   · exact candB_13
   · exact candB_20
   · exact candB_27
+
+theorem qcallsB_all (m : ℕ) (h : m < 28) : qcallsB m = true := by
+  interval_cases m
+  · exact qcallsB_0
+  · exact qcallsB_1
+  · exact qcallsB_2
+  · exact qcallsB_3
+  · exact qcallsB_4
+  · exact qcallsB_5
+  · exact qcallsB_6
+  · exact qcallsB_7
+  · exact qcallsB_8
+  · exact qcallsB_9
+  · exact qcallsB_10
+  · exact qcallsB_11
+  · exact qcallsB_12
+  · exact qcallsB_13
+  · exact qcallsB_14
+  · exact qcallsB_15
+  · exact qcallsB_16
+  · exact qcallsB_17
+  · exact qcallsB_18
+  · exact qcallsB_19
+  · exact qcallsB_20
+  · exact qcallsB_21
+  · exact qcallsB_22
+  · exact qcallsB_23
+  · exact qcallsB_24
+  · exact qcallsB_25
+  · exact qcallsB_26
+  · exact qcallsB_27
 
 end
 end LeanVM.Guest.B1.Whir

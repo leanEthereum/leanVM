@@ -115,6 +115,48 @@ theorem johnson_count_of_le (L : Finset β) (T : β → Finset ι) (a r : ℕ)
   exact (Finset.card_le_card (Finset.inter_subset_inter (hS b hb).1 (hS b' hb').1)).trans
     (hr b hb b' hb' hne)
 
+/-- **The Johnson count** `⌊n (a - r) / (a² - n r)⌋` (`johnson_list(n, a, r)`,
+`crates/pcs/src/whir_config/affine_mca.rs`): at most this many sets of at least `a` points of an
+`n`-set meet pairwise in at most `r` points, when `a² > n r` (`card_le_jl`). -/
+def jl (n a r : ℕ) : ℕ := n * (a - r) / (a * a - n * r)
+
+/-- **Johnson bound, integer form** (Annex B, `thm:johnson-interleaved`): a family of sets of at
+least `a` points of an `n`-set, meeting pairwise in at most `r` points, has at most `jl n a r`
+members when `a² > n r`. -/
+theorem card_le_jl (L : Finset β) (T : β → Finset ι) (a r : ℕ)
+    (ha : ∀ b ∈ L, a ≤ (T b).card)
+    (hr : ∀ b ∈ L, ∀ b' ∈ L, b ≠ b' → (T b ∩ T b').card ≤ r)
+    (hgap : Fintype.card ι * r < a * a) :
+    L.card ≤ jl (Fintype.card ι) a r := by
+  set n := Fintype.card ι
+  rcases L.eq_empty_or_nonempty with rfl | ⟨b₀, hb₀⟩
+  · simp
+  have han : a ≤ n := (ha b₀ hb₀).trans (Finset.card_le_univ _)
+  have hra : r ≤ a := by
+    by_contra h
+    have : a * a ≤ n * r := Nat.mul_le_mul han (not_le.mp h).le
+    omega
+  have hN : 1 ≤ L.card := Finset.card_pos.mpr ⟨b₀, hb₀⟩
+  have hcount := johnson_count_of_le L T a r ha hr
+  unfold jl
+  rw [Nat.le_div_iff_mul_le (by omega)]
+  set N := L.card
+  have hz : ((N : ℤ) * a) ^ 2 ≤ n * (N * a + N * (N - 1) * r) := by
+    have := (Nat.cast_le (α := ℤ)).mpr hcount
+    push_cast [Nat.cast_sub hN] at this
+    linarith
+  have hNpos : (0 : ℤ) < N := by exact_mod_cast hN
+  have hdiv : (N : ℤ) * (a * a - n * r) ≤ n * (a - r) := by
+    have h₁ : (N : ℤ) * ((N : ℤ) * (a * a - n * r)) ≤ N * (n * (a - r)) := by nlinarith
+    exact le_of_mul_le_mul_left h₁ hNpos
+  have hsub1 : ((a * a - n * r : ℕ) : ℤ) = a * a - n * r := by
+    rw [Nat.cast_sub (by omega)]; push_cast; ring
+  have hsub2 : ((a - r : ℕ) : ℤ) = a - r := by rw [Nat.cast_sub hra]
+  have : ((N * (a * a - n * r) : ℕ) : ℤ) ≤ ((n * (a - r) : ℕ) : ℤ) := by
+    push_cast [hsub1, hsub2]
+    linarith
+  exact_mod_cast this
+
 /-- **Johnson bound, real form, nonempty family.** If each of the sets in a nonempty family
 `L` has at least `(√r + η) n` points and two distinct ones meet in at most `r n` points, then
 `|L| (2 η √r + η²) ≤ 1 - r`. -/

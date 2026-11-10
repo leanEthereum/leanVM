@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Fs
 
 /-!
-# The final point's copy (`__loop7`, G:1929-1931)
+# The final point's copy (`__loop7`, G:2092-2094)
 
 `__loop7(x, g^depth, zeta, row)` asserts `zeta[x] = row[x]` and runs on to `x·g` below the bound:
 from `x = 1`, the point of `depth` coordinates at `row` is at `zeta` (`l8_loop`).
@@ -26,8 +26,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 def l8Body : List Stmt :=
   [.atom (.mul (.n 4) (.n 3) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.mul (.n 6) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 6) 0),
-    .atom (.const (.n 7) (word 2 0 0)), .atom (.mul (.n 8) (.n 0) (.n 7)),
-    .atom (.add (.n 9) (.n 8) (.n 1)), .atom (.const (.n 10) (word 2 0 0)),
+    .atom (.const (.n 7) (word 2 0)), .atom (.mul (.n 8) (.n 0) (.n 7)),
+    .atom (.add (.n 9) (.n 8) (.n 1)), .atom (.const (.n 10) (word 2 0)),
     .atom (.mul (.n 11) (.n 0) (.n 10)),
     .callIf (.n 9) "__loop7" [.n 11, .n 1, .n 2, .n 3], .ret []]
 

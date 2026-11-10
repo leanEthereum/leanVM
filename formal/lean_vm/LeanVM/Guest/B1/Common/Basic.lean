@@ -12,6 +12,7 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.CoreLemmas
 public import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits
+public import LeanVM.Guest.ExpTables
 
 /-!
 # B1: shared vocabulary
@@ -21,8 +22,8 @@ Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the du
 
 * `rel_iff_sem`, `relN_succ_iff`: a function's relation is its body's (`Program.Rel` is a fixed
   point, `rel_iff`), and at a finite depth its calls are one level shallower.
-* `word_*`: the constants the data writes as `word c0 c1 c2`, as the Spec's words (`y`, `y²`,
-  `y⁻¹`, `E(n)`, `g^a`).
+* `word_*`: the constants the data writes as `word c0 c1`, as the Spec's words (`y`, `y⁻¹`,
+  `y·E(t)`, `E(n)`, `g^a`).
 * `ReadsAt rd p xs`: the words `xs` lie in memory from the pointer `p`, word `k` at `p·g^k`;
   `loadHolds_mul_gen_pow`: a load through `p·g^j` at offset `k` is the load at offset `j + k`;
   `loadHolds_unique`.
@@ -34,6 +35,9 @@ Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the du
 * `stmtsEqb_sound`: a template equal to a function's body by `decide +kernel`.
 * `RangeChecked rd x k`: what a range-check atom asks of memory (`rangeCheck_iff` gives its
   meaning on a memory image).
+* `WinTabs rd tabs` (`ExpTables.lean`): the bit-window table `exponent_tables` writes
+  (`[g^n] = E(n)`, `n < 2^11`), what `grind_check` and `query_window` read;
+  `winTabs_of_expWinTab` reads it through `tabs = q·g^236`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -65,36 +69,29 @@ theorem relN_succ_iff {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
 
 /-! ## Compile-time words -/
 
-theorem word_eOfNat (n : ℕ) : word n 0 0 = eOfNat n := by
+theorem word_eOfNat (n : ℕ) : word n 0 = eOfNat n := by
   rw [word, eOfNat_eq_ofLimbs]
   rfl
 
-theorem word_zero : word 0 0 0 = 0 := by rw [word_eOfNat, eOfNat_zero]
+theorem word_zero : word 0 0 = 0 := by rw [word_eOfNat, eOfNat_zero]
 
-theorem word_one : word 1 0 0 = 1 := by rw [word_eOfNat, eOfNat_one]
+theorem word_one : word 1 0 = 1 := by rw [word_eOfNat, eOfNat_one]
 
-theorem word_gen : word 2 0 0 = gen := by rw [word_eOfNat]; rfl
+theorem word_gen : word 2 0 = gen := by rw [word_eOfNat]; rfl
 
 /-- `E(2^a)` is `g^a` below the first reduction. -/
-theorem word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := by
+theorem word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := by
   rw [word_eOfNat, gen_pow_eq_eOfNat h]
 
-theorem word_y : word 0 1 0 = y := by rw [y_eq]; rfl
+theorem word_y : word 0 1 = y := by rw [y_eq]; rfl
 
-theorem word_yy : word 0 0 1 = y * y := by
-  rw [y_eq, mul_limbs]
-  simp only [word, ofLimbs_inj]
-  refine ⟨?_, ?_, ?_⟩ <;> ring_nf <;> rfl
+/-- `Y_INV = x + y`, the data's `word 2 1`. -/
+theorem word_y_inv : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 
-theorem word_y_inv : word 1 0 1 = y⁻¹ := by rw [y_inv]; rfl
-
-/-- `y · E(t)`, the data's `word 0 t 0`. -/
-theorem word_y_mul (t : ℕ) : word 0 t 0 = y * eOfNat t := by
-  rw [eOfNat_eq_ofLimbs, y_eq, mul_limbs]
-  simp only [word, ofLimbs_inj]
-  refine ⟨?_, ?_, ?_⟩ <;> ring_nf <;> rfl
-
-
+/-- `y · E(t)`, the data's `word 0 t` (`Y_TOWER * tag`). -/
+theorem word_y_mul (t : ℕ) : word 0 t = y * eOfNat t := by
+  rw [eOfNat, y_mul_ofK]
+  rfl
 
 /-! ## Words in `K` -/
 
@@ -115,9 +112,9 @@ theorem isInK_mul_ofK {p : E} {c : K} (hc : c ≠ 0) : IsInK (p * ofK c) ↔ IsI
   rw [eq_ofLimbs p, ofLimbs_mul_ofK, isInK_ofLimbs_iff, isInK_ofLimbs_iff]
   simp [hc]
 
-theorem limb0_mul_ofK {p : E} (hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
-  rw [eq_ofLimbs p, ofLimbs_mul_ofK, hp.1, hp.2]
-  rfl
+theorem limb0_mul_ofK (p : E) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
+  rw [eq_ofLimbs p, ofLimbs_mul_ofK]
+  simp
 
 /-! ## Memory runs -/
 
@@ -136,12 +133,12 @@ theorem loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
   rw [isInK_mul_ofK hg]
   constructor
   · rintro ⟨hp, h⟩
-    rw [limb0_mul_ofK hp, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
+    rw [limb0_mul_ofK, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
         pow_add] at h
     exact ⟨hp, h⟩
   · rintro ⟨hp, h⟩
     refine ⟨hp, ?_⟩
-    rw [limb0_mul_ofK hp, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
+    rw [limb0_mul_ofK, mul_assoc, Parameters.addressOfIndex, Parameters.addressOfIndex, ←
         pow_add]
     exact h
 
@@ -177,6 +174,35 @@ words: `x` and `k / x` are readable addresses (`rangeCheck_iff` makes it `x = g^
 memory image of at most `2^32` words). -/
 def RangeChecked (rd : Reader) (x k : E) : Prop :=
   ∃ y t1 t2 : E, LoadHolds rd x 0 t1 ∧ k = x * y ∧ LoadHolds rd y 0 t2
+
+/-- The specialization of `grind_check` to `bits`, `grind_check__L{bits}`, for the deployed
+grinds (a table, not `toString`, whose body a `module`'s kernel cannot unfold). -/
+def grindCheckName : ℕ → String
+  | 2 => "grind_check__L2"
+  | 3 => "grind_check__L3"
+  | 9 => "grind_check__L9"
+  | 13 => "grind_check__L13"
+  | 14 => "grind_check__L14"
+  | 15 => "grind_check__L15"
+  | 16 => "grind_check__L16"
+  | 17 => "grind_check__L17"
+  | 18 => "grind_check__L18"
+  | 19 => "grind_check__L19"
+  | 20 => "grind_check__L20"
+  | 21 => "grind_check__L21"
+  | 22 => "grind_check__L22"
+  | 23 => "grind_check__L23"
+  | 24 => "grind_check__L24"
+  | 25 => "grind_check__L25"
+  | 26 => "grind_check__L26"
+  | 27 => "grind_check__L27"
+  | 28 => "grind_check__L28"
+  | 29 => "grind_check__L29"
+  | 30 => "grind_check__L30"
+  | _ => "grind_check"
+
+theorem WinTabs.lt {rd : Reader} {tabs : E} (h : WinTabs rd tabs) {n : ℕ} (hn : n < 2 ^ 11) :
+    LoadHolds rd tabs n (eOfNat n) := h n hn
 
 /-! ## Building valuations -/
 
@@ -303,12 +329,11 @@ equal to a function's body by `decide +kernel` on `stmtsEqb`, where `rfl` would 
 sides in the elaborator. -/
 
 /-- Words compared limb by limb. -/
-def eEqb (a b : E) : Bool :=
-  decide (a.limb 0 = b.limb 0) && decide (a.limb 1 = b.limb 1) && decide (a.limb 2 = b.limb 2)
+def eEqb (a b : E) : Bool := decide (a.limb 0 = b.limb 0) && decide (a.limb 1 = b.limb 1)
 
 theorem eEqb_sound {a b : E} (h : eEqb a b = true) : a = b := by
   simp only [eEqb, Bool.and_eq_true, decide_eq_true_eq] at h
-  rw [← ofLimbs_limb a, ← ofLimbs_limb b, h.1.1, h.1.2, h.2]
+  rw [← ofLimbs_limb a, ← ofLimbs_limb b, h.1, h.2]
 
 /-- Atoms compared, words limb by limb. -/
 def atomEqb : Atom → Atom → Bool
@@ -395,6 +420,11 @@ theorem armsEqb_sound : ∀ {s t : List (List Stmt)}, armsEqb s t = true → s =
     rw [stmtsEqb_sound h.1, armsEqb_sound h.2]
   | [], _ :: _, h | _ :: _, [], h => by simp [armsEqb] at h
 end
+
+/-- The table's window section, read through `tabs = q·g^236`, is `WinTabs`. -/
+theorem winTabs_of_expWinTab {rd : Reader} {q : E} (h : ExpWinTab rd q) :
+    WinTabs rd (q * gen ^ winTabAt) := fun n hn =>
+  (loadHolds_mul_gen_pow rd q winTabAt n _).mpr (h n hn)
 
 theorem gen_pow_ordG : gen ^ ordG = 1 := by
   rw [gen_pow_eq_ofK, Parameters.addressOfIndex, show ordG = orderOf g from orderOf_g.symm,

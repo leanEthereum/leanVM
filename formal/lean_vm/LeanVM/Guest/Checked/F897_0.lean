@@ -17,31 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop392`, window 0. -/
+/-- `__loop297`, window 0. -/
 theorem w897_0 : WinOk 897 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop392`, window 1. -/
-theorem w897_1 : WinOk 897 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop392`, window 2. -/
-theorem w897_2 : WinOk 897 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop392`, window 3. -/
-theorem w897_3 : WinOk 897 3 := winOk_of_C (by decide +kernel)
-
-/-- `decode_query_windows__L20_L7`, window 0. -/
+/-- `__loop298`, window 0. -/
 theorem w898_0 : WinOk 898 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop393`, window 0. -/
+/-- `__loop299`, window 0. -/
 theorem w899_0 : WinOk 899 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop393`, window 1. -/
-theorem w899_1 : WinOk 899 1 := winOk_of_C (by decide +kernel)
+/-- `__loop300`, window 0. -/
+theorem w900_0 : WinOk 900 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop393`, window 2. -/
-theorem w899_2 : WinOk 899 2 := winOk_of_C (by decide +kernel)
+/-- `__loop301`, window 0. -/
+theorem w901_0 : WinOk 901 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop302`, window 0. -/
+theorem w902_0 : WinOk 902 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop303`, window 0. -/
+theorem w903_0 : WinOk 903 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop304`, window 0. -/
+theorem w904_0 : WinOk 904 0 := winOk_of_C (by decide +kernel)
+
+theorem ok897 : CheckOk 897 := checkOk_one (by decide +kernel) w897_0
 
 theorem ok898 : CheckOk 898 := checkOk_one (by decide +kernel) w898_0
+
+theorem ok899 : CheckOk 899 := checkOk_one (by decide +kernel) w899_0
+
+theorem ok900 : CheckOk 900 := checkOk_one (by decide +kernel) w900_0
+
+theorem ok901 : CheckOk 901 := checkOk_one (by decide +kernel) w901_0
+
+theorem ok902 : CheckOk 902 := checkOk_one (by decide +kernel) w902_0
+
+theorem ok903 : CheckOk 903 := checkOk_one (by decide +kernel) w903_0
+
+theorem ok904 : CheckOk 904 := checkOk_one (by decide +kernel) w904_0
 
 end
 end LeanVM.Guest.Checked

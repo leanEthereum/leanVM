@@ -6,7 +6,7 @@ public import LeanDa.ReedSolomon
 # The membership test
 
 Proposition prop:rs-membership of `doc/leanvm/body/d-novel-basis.tex` for the crate's code, with
-one challenge (`membership.rs:7-14` at leanVM `40f877dc`). The dual codeword of challenges
+one challenge (`membership.rs:7-15` at the leanVM commit `formal/leanvm-rev` names). The dual codeword of challenges
 `z_0 … z_13` is the encoding of the tensor `⊗_j (1, z_j)` (`dual_eq_sum`); the deployed one takes
 `z_j = z^(2^j)` (`dualCodewordAt_eq`), whose tensor is `(z^u)_u` (`tensor_powers`). So the inner
 product with a row `w` is the polynomial `Σ_u ⟨Xᵤ, w⟩ z^u` in `z` (`eval_membershipPoly`), of

@@ -15,7 +15,7 @@ public import Statement.LeanSphincs
 public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.CubicExt
+public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.B1.Main.Frames
@@ -38,8 +38,8 @@ indices other than `0` and the powers of two are `__loop2`'s parameters `.n 5` t
 stated under a call relation that unfolds at a frame map (`UnfoldsV`), the signature read off its
 valuation and the frames of its calls.
 
-**The decoding of a claim.** A cell `c` is the 128-bit value of its two low limbs, limb `0` the
-low (`cellVal`; the `KECCAK` instructions that read the cells make them canonical); the message is
+**The decoding of a claim.** A cell `c` is the 128-bit value of its two limbs, limb `0` the
+low (`cellVal`); the message is
 the two cells, the first low (`cellPairVal`). `xmssClaimOf a b c d`, `sphincsClaimOf a b c d` are
 the claims of the four cells, as `Node.XmssClaim`, `Node.SphincsClaim`.
 
@@ -59,7 +59,7 @@ words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`
   `sp_from_bytes` are bounded discrete logarithms there, `rangeCheck_iff`), when its `byte_bits`
   argument holds the table `main` writes (`ByteBits`: `byte_bits[g^v] = v`): the counters are then
   32-bit integers, so the encodings' bytes are the scheme's.
-* `verify_lean_xmss_complete_Spec`: for a claim held at the pointer in its canonical cells and a
+* `verify_lean_xmss_complete_Spec`: for a claim held at the pointer in its cells and a
   signature that verifies it, the carried chain indices held, on a memory of at least `256` words, so
   that every range check has its witnesses, the check holds of a valuation changing only its own
   values (`Completes`), under any call relation.
@@ -78,12 +78,12 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 /-! ## Cells as the schemes' values -/
 
-/-- A cell's 128-bit value: limb `0` the low 64 bits, limb `1` the high (limb `2` dropped). -/
+/-- A cell's 128-bit value: limb `0` the low 64 bits, limb `1` the high. -/
 def cellVal (c : E) : BitVec 128 := (c.limb 1).toBitVec ++ (c.limb 0).toBitVec
 
-/-- The canonical cell of a 128-bit value. -/
+/-- The cell of a 128-bit value. -/
 def cellOf128 (v : BitVec 128) : E :=
-  E.ofLimbs (BF64.ofBitVec (v.extractLsb' 0 64)) (BF64.ofBitVec (v.extractLsb' 64 64)) 0
+  E.ofLimbs (BF64.ofBitVec (v.extractLsb' 0 64)) (BF64.ofBitVec (v.extractLsb' 64 64))
 
 /-- The 256-bit value of two cells, the first low. -/
 def cellPairVal (lo hi : E) : BitVec 256 := cellVal hi ++ cellVal lo
@@ -122,7 +122,7 @@ def SphincsSigned (rd : Reader) (p : E) : Prop := ∃ sig, SphincsOut rd p sig
 
 /-- **The byte table** `main` writes (`lean_ethereum.py:4573-4575`): `byte_bits[g^v] = v` for every
 byte `v`, the word whose bits spell `v`. -/
-def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0 0)
+def ByteBits (rd : Reader) (bb : E) : Prop := ∀ v < 256, LoadHolds rd bb v (word v 0)
 
 /-- The memory holds a word at each of the first `n` addresses `g^i`: a range check below `n` has
 its witnesses. -/
@@ -152,7 +152,7 @@ def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Sig
         rets = [] ∧ (ByteBits L.read (σ (.n 1)) → SphincsOut L.read (σ (.n 0)) (sigOf σ V))
 
 /-- **`verify_lean_xmss` is complete, inline in `__loop2`**: for a claim held at the pointer
-`σ (.n 65)` in its canonical cells and a signature that verifies it, the carried chain indices
+`σ (.n 65)` in its cells and a signature that verifies it, the carried chain indices
 holding their indices, on a memory of at least `256` words (the windows and the digit words are
 range-checked below `g^255`), the check `xSeg` holds of a valuation
 changing `σ` only on its own values `66 ..< 120764`, under any call relation. -/

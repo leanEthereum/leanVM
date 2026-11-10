@@ -9,9 +9,9 @@ module
 
 public import LeanVM.Guest.B1.Main.Callees
 public import LeanVM.Guest.B1.Main.Aggregate
-public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.B1.Sig.SphincsSound
+public import LeanVM.Guest.B1.VerifySub.Interface
 
 /-!
 # `main`, its witness decoded from the frame map, the leanXMSS reader a parameter
@@ -89,9 +89,9 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     obtain ⟨-, ho⟩ := hv hbl L hκ C V hV hle _ _ hbv (by rw [hp]; exact hexp)
     rw [hp] at ho
     exact ho
-  · intro ncg cpi cfresh ccarried dst h m hm1 hm16 hN
+  · intro ncg cpi cfresh ccarried dst tabs h hw m hm1 hm16 hN
     obtain ⟨hp, hba⟩ := body_ofV hV find_aggregate_claims h
-    exact (aggregate_claims_val hle hp hba m hm1 hm16 hN).2
+    exact (aggregate_claims_val hm hle hp hba hw m hm1 hm16 hN).2
 
 end
 end LeanVM.Guest.B1.Main

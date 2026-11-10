@@ -55,16 +55,16 @@ theorem ne_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x : V}
   exact zero_ne_one h2
 
 set_option maxRecDepth 100000 in
-theorem word_g1024 : word 281474976776218 0 0 = gen ^ 1024 := by
+theorem word_g1024 : word 281474976776218 0 = gen ^ 1024 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
 set_option maxRecDepth 100000 in
-theorem word_g1023 : word 140737488388109 0 0 = gen ^ 1023 := by
+theorem word_g1023 : word 140737488388109 0 = gen ^ 1023 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
-theorem word_g10 : word 1024 0 0 = gen ^ 10 := word_two_pow (a := 10) (by decide)
+theorem word_g10 : word 1024 0 = gen ^ 10 := word_two_pow (a := 10) (by decide)
 
 /-- **`da_row_shape`'s body, checked.** -/
 def rsOk (fn : Fn) : Bool :=

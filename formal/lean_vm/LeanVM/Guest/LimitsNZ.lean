@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.Limits
+public import LeanVM.Guest.NZProgram
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.WithHash
 
@@ -95,11 +96,9 @@ theorem run_refines {α : Type} {P' P : VerifierProgram α} (h : Refines P' P) :
   | read _ ih =>
     intro s r hr
     unfold Compile.runWithHash at hr ⊢
-    cases hs : s.stream with
-    | nil => simp [hs] at hr
-    | cons x xs =>
-      simp only [hs] at hr ⊢
-      exact ih _ _ _ hr
+    split at hr
+    · exact ih _ _ _ hr
+    · simp at hr
   | sample _ ih =>
     intro s r hr
     unfold Compile.runWithHash at hr ⊢
@@ -107,27 +106,20 @@ theorem run_refines {α : Type} {P' P : VerifierProgram α} (h : Refines P' P) :
   | grind _ ih =>
     intro s r hr
     unfold Compile.runWithHash at hr ⊢
-    cases hs : s.stream with
-    | nil => simp [hs] at hr
-    | cons x xs =>
-      simp only [hs, Id.run_bind] at hr ⊢
+    split at hr
+    · simp only [Id.run_bind] at hr ⊢
       split at hr
       · rename_i hp
         simp only [hp, ↓reduceIte]
         exact ih _ _ hr
       · simp at hr
+    · simp at hr
   | commit _ ih =>
     intro s r hr
     unfold Compile.runWithHash at hr ⊢
-    rcases hs : s.stream with _ | ⟨x0, _ | ⟨x1, xs⟩⟩
-    · simp [hs] at hr
-    · simp [hs] at hr
-    · simp only [hs, Id.run_bind] at hr ⊢
-      cases hd : digestFromHalves (x0, x1) with
-      | none => simp [hd] at hr
-      | some root =>
-        simp only [hd] at hr ⊢
-        exact ih _ _ hr
+    split at hr
+    · exact ih _ _ hr
+    · simp at hr
   | @query i ps k k' _ ih =>
     intro s r hr
     obtain ⟨root, height, width, phase, rest, rows, hroot, hos, ho, hr⟩ :=
@@ -141,7 +133,7 @@ theorem runProof_refines {P' P : VerifierProgram Bool} (h : Refines P' P) (seed 
     (hacc : Id.run (runProofWithHash H F P' seed π) = true) : Id.run (runProofWithHash H F P seed π) = true := by
   unfold runProofWithHash at hacc ⊢
   simp only [Id.run_bind] at hacc ⊢
-  cases hr : Id.run (Compile.runWithHash H F P' ⟨⟨seed, []⟩, π.stream, π.openings, []⟩) with
+  cases hr : Id.run (Compile.runWithHash H F P' ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩) with
   | none => rw [hr] at hacc; exact absurd hacc (by simp)
   | some r =>
     rw [run_refines (H := H) (F := F) h _ _ hr]
@@ -152,53 +144,53 @@ end Run
 
 /-! ## The deferring program refusing a zero challenge -/
 
-theorem foldRoundsNZ_refines : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    Refines (foldRoundsNZ n s lf) (foldRoundsT n s lf)
-  | 0, s, lf => Refines.refl _
-  | n + 1, s, lf => by
-    unfold foldRoundsNZ foldRoundsT
-    refine Refines.bind (Refines.refl _) fun c ↦ ?_
-    refine Refines.require_bind ?_
-    refine Refines.bind (Refines.refl _) fun quad ↦ ?_
-    exact foldRoundsNZ_refines n _ _
+theorem foldRoundNZ_refines (s : WhirState) : Refines (foldRoundNZ s) (foldRound s) := by
+  unfold foldRoundNZ foldRound
+  repeat refine Refines.bind (Refines.refl _) fun _ ↦ ?_
+  exact Refines.require_bind (Refines.refl _)
 
-theorem tailRoundsNZ_refines : ∀ (n : ℕ) (t : E) (quad : List E),
-    Refines (tailRoundsNZ n t quad) (tailRoundsT n t quad)
-  | 0, t, quad => Refines.refl _
-  | n + 1, t, quad => by
-    unfold tailRoundsNZ tailRoundsT
+theorem foldRoundsNZ_refines : ∀ (n : ℕ) (s : WhirState),
+    Refines (foldRoundsNZ n s) (foldRounds n s)
+  | 0, s => Refines.refl _
+  | n + 1, s => by
+    unfold foldRoundsNZ foldRounds
+    exact Refines.bind (foldRoundNZ_refines s) fun p ↦
+      Refines.bind (foldRoundsNZ_refines n _) fun _ ↦ Refines.refl _
+
+theorem sumcheckNZ_refines (count : ℕ) : ∀ (eqs : List (Option E)) (claim : E),
+    Refines (sumcheckNZ claim count eqs) (sumcheck claim count eqs)
+  | [], claim => Refines.refl _
+  | e :: eqs, claim => by
+    unfold sumcheckNZ sumcheck
+    refine Refines.bind (Refines.refl _) fun m ↦ ?_
     refine Refines.bind (Refines.refl _) fun c ↦ ?_
-    refine Refines.require_bind ?_
-    split
-    · exact Refines.refl _
-    · refine Refines.bind (Refines.refl _) fun quad ↦ ?_
-      exact Refines.bind (tailRoundsNZ_refines n _ _) fun p ↦ Refines.refl _
+    exact Refines.require_bind (Refines.bind (sumcheckNZ_refines count eqs _) fun _ ↦ Refines.refl _)
 
 /-- The first program of a bind: the same, or a refining one. -/
 local macro "refines_head" : tactic => `(tactic| first
   | with_reducible exact Refines.refl _
-  | exact foldRoundsNZ_refines _ _ _
-  | exact tailRoundsNZ_refines _ _ _)
+  | exact foldRoundsNZ_refines _ _
+  | exact sumcheckNZ_refines _ _ _)
 
 /-- One step of a refinement proof between two programs written alike. -/
 local macro "refines_step" : tactic => `(tactic| first
   | with_reducible exact Refines.refl _
-  | apply Refines.require_bind
   | (refine Refines.bind ?h fun _ ↦ ?k; case h => refines_head)
+  | apply Refines.require_bind
   | split
   | dsimp only
   | exact Refines.refl _)
 
 theorem whirLevelsNZ_refines (logN laneFolds : ℕ) (eb : List E → E) (levels : List Whir.Level) :
-    ∀ (index : ℕ) (s : WhirStateT),
+    ∀ (index : ℕ) (s : WhirState),
       Refines (whirLevelsNZ logN laneFolds eb index levels s)
-        (whirLevelsT logN laneFolds eb index levels s) := by
+        (whirLevels logN laneFolds eb index levels s) := by
   induction levels with
   | nil => intro index s; exact Refines.refl _
   | cons level rest ih =>
     intro index s
-    unfold whirLevelsNZ whirLevelsT
-    apply Refines.bind (foldRoundsNZ_refines _ _ _)
+    unfold whirLevelsNZ whirLevels
+    apply Refines.bind (foldRoundsNZ_refines _ _)
     intro p
     obtain ⟨s', lf⟩ := p
     dsimp only
@@ -211,23 +203,21 @@ theorem whirLevelsNZ_refines (logN laneFolds : ℕ) (eb : List E → E) (levels 
       repeat (first | exact ih _ _ | refines_step)
 
 theorem verifyWhirNZ_refines (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
-    Refines (verifyWhirNZ logN logInvRate target eb) (verifyWhirT logN logInvRate target eb) := by
-  unfold verifyWhirNZ verifyWhirT
+    Refines (verifyWhirNZ logN logInvRate target eb) (verifyWhir logN logInvRate target eb) := by
+  unfold verifyWhirNZ verifyWhir
   repeat (first | exact whirLevelsNZ_refines _ _ _ _ _ _ | refines_step)
 
 theorem verifyStackedOpeningNZ_refines (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     Refines (verifyStackedOpeningNZ stackLog logInvRate claims)
       (verifyStackedOpening stackLog logInvRate claims) := by
   unfold verifyStackedOpeningNZ verifyStackedOpening
-  simp only [verifyWhir_eq_target]
   repeat (first | exact verifyWhirNZ_refines _ _ _ _ | refines_step)
 
 theorem deferredProgramNZ_refines (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
     Refines (deferredProgramNZ c bytecode publicInput) (deferringVerifierProgram c bytecode publicInput) := by
-  unfold deferredProgramNZ
-  rw [deferredProgram_eq]
+  unfold deferredProgramNZ deferringVerifierProgram
   refine Refines.bind ?_ fun _ ↦ Refines.refl _
-  unfold verifyExecutionNZ verifyExecutionClaims
+  unfold verifyExecutionNZ verifyExecution
   repeat (first | exact verifyStackedOpeningNZ_refines _ _ _ | refines_step)
 
 /-- **The zero-challenge refusal only restricts**: the deferring verifier refusing a zero challenge

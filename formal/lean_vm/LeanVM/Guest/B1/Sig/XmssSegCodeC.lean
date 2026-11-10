@@ -331,16 +331,16 @@ theorem sgState_in (W : WotsT) (v0 : Nat) : ∀ p, p ≤ 15 →
 
 section groups
 
-variable {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B) (hc : StepCanon W B good)
+variable {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B) (hc : GoodStable B good)
   (hWa : StepAtoms W) {dg v0 : Nat} (hB : B ≤ v0 + 6) (hdg : dg + 15 ≤ v0 + 6) (hpw : ∀ j, NBv B (W.power j))
-  (K : Nat → Nat) (hK : ∀ p < 15, K p < 4 ^ lxN p) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i))
-include hW hc hWa hB hdg hpw hK hv
+  (K : Nat → Nat) (hK : ∀ p < 15, K p < 4 ^ lxN p) (vals : Nat → E)
+include hW hc hWa hB hdg hpw hK
 
 /-- Chain `4q + t`'s start, in the arm of group `q`'s digits. -/
 def sgPos (W : WotsT) (v0 : Nat) (K : Nat → Nat) (q t : Nat) : V :=
   grpPos W (4 * q) (lxN q) (q == 0) (sgState W v0 q).1 (sgState W v0 q).2.1 (sgState W v0 q).2.2 (K q) t
 
-omit hW hc hWa hB hdg hpw hK hv in
+omit hW hc hWa hB hdg hpw hK in
 theorem sgPos_lt {W : WotsT} {v0 : Nat} {K : Nat → Nat} {q t : Nat} (hq : q ≤ 14) (hk : K q < 4 ^ lxN q)
     (ht : t < lxN q) : ∃ j, sgPos W v0 K q t = .n j ∧ (sgState W v0 q).2.2 + 6 ≤ j ∧
       j < (sgState W v0 (q + 1)).2.2 + 6 := by
@@ -350,7 +350,7 @@ theorem sgPos_lt {W : WotsT} {v0 : Nat} {K : Nat → Nat} {q t : Nat} (hq : q �
   rw [← sgState_succ_end] at this
   exact ⟨j, e, h1, by omega⟩
 
-omit hW hc hWa hB hdg hpw hK hv in
+omit hW hc hWa hB hdg hpw hK in
 theorem sgTip_lt (W : WotsT) (v0 : Nat) {q t : Nat} (hq : q ≤ 14) (ht : t < lxN q) :
     (sgState W v0 q).2.2 + 6 ≤ slotsT W (q == 0) (sgState W v0 q).2.2 t 2 ∧
       slotsT W (q == 0) (sgState W v0 q).2.2 t 2 < (sgState W v0 (q + 1)).2.2 + 6 := by
@@ -360,13 +360,11 @@ theorem sgTip_lt (W : WotsT) (v0 : Nat) {q t : Nat} (hq : q ≤ 14) (ht : t < lx
   rw [groupStart_eq] at hs
   constructor <;> split at hs <;> simp_all <;> omega
 
-/-- What the dispatches `p ..< p + m` establish: the step's reads, and per group its tips canonical
-and its chains' starts loaded. -/
+/-- What the dispatches `p ..< p + m` establish: the step's reads, and per group its chains' starts
+loaded. -/
 def SgPost (W : WotsT) (good : Val → Prop) (v0 : Nat) (K : Nat → Nat) (vals : Nat → E) (p m : Nat) (σ : Val) :
     Prop :=
-  good σ ∧ ∀ q, p ≤ q → q < p + m →
-    (∀ t < lxN q, IsCanonical128 (σ (.n (slotsT W (q == 0) (sgState W v0 q).2.2 t 2)))) ∧
-      ∀ t < lxN q, σ (sgPos W v0 K q t) = vals (4 * q + t)
+  good σ ∧ ∀ q, p ≤ q → q < p + m → ∀ t < lxN q, σ (sgPos W v0 K q t) = vals (4 * q + t)
 
 /-- **The dispatches `p ..< p + m` complete**, each by the arm of its digits `K q`, the digit words
 loaded. -/
@@ -389,7 +387,7 @@ theorem sGroups_complete : ∀ m p, p + m ≤ 15 → ∀ σ, good σ →
         (sgState W v0 p).2.2
       have hhead := matchArm_complete (C := C) (rd := rd) (hW.mono hBp) (hc.mono hBp) hWa
         (first := 4 * p) (Ee := (sgState W v0 (p + 1)).2.2 + 6) (d := dg + p) hkp le_rfl hpi hei (hpwp _) hkl harm
-        (by rw [hend]; exact hE) (by omega) (fun t => vals (4 * p + t)) (fun t _ => hv _) σ hg (hx p (by omega))
+        (by rw [hend]; exact hE) (by omega) (fun t => vals (4 * p + t)) σ hg (hx p (by omega))
       have hnb := sGroupMatch_numBelow hW (p := p) (d := dg + p) (by omega) hBp (by omega) hpi hei hpwp
       rw [← hend] at hnb
       have hl : (List.range (m + 1)).map (fun q => sgMatch W dg v0 (p + q)) =
@@ -406,23 +404,19 @@ theorem sGroups_complete : ∀ m p, p + m ≤ 15 → ∀ σ, good σ →
       have hx1 : ∀ q < 15, σ1 (.n (dg + q)) = ofK (addressOfIndex (K q)) := fun q hq => by
         rw [he1.apply (Or.inl (by omega))]; exact hx q hq
       have ih := sGroups_complete m (p + 1) (by omega) σ1 hq1.1 hx1
-      refine (ih.keep (Q := fun σ => (∀ t < lxN p, IsCanonical128 (σ (.n (slotsT W (p == 0) (sgState W v0 p).2.2 t 2)))) ∧
-          ∀ t < lxN p, σ (sgPos W v0 K p t) = vals (4 * p + t))
-        (Q' := fun σ => (∀ t < lxN p, IsCanonical128 (σ (.n (slotsT W (p == 0) (sgState W v0 p).2.2 t 2)))) ∧
-          ∀ t < lxN p, σ (sgPos W v0 K p t) = vals (4 * p + t))
-        ⟨hq1.2.1, hq1.2.2.1⟩ (fun σ' he' hq => ⟨fun t ht => ?_, fun t ht => ?_⟩)).mono le_rfl le_rfl
+      refine (ih.keep (Q := fun σ => ∀ t < lxN p, σ (sgPos W v0 K p t) = vals (4 * p + t))
+        (Q' := fun σ => ∀ t < lxN p, σ (sgPos W v0 K p t) = vals (4 * p + t))
+        hq1.2.1 (fun σ' he' hq t ht => ?_)).mono le_rfl le_rfl
         (fun σ' ⟨⟨hg', hr⟩, hq'⟩ => ⟨hg', fun q h1 h2 => ?_⟩)
-      · rw [he'.apply (Or.inl (sgTip_lt W v0 (q := p) (by omega) ht).2)]
-        exact hq.1 t ht
       · obtain ⟨j, ej, -, hj⟩ := sgPos_lt (W := W) (v0 := v0) (K := K) (q := p) (by omega) hkp ht
         rw [ej, he'.apply (Or.inl hj), ← ej]
-        exact hq.2 t ht
+        exact hq t ht
       · rcases Nat.lt_or_ge q (p + 1) with hq | hq
         · obtain rfl : q = p := by omega
           exact hq'
         · exact hr q hq (by omega)
 
-omit hc hWa hK hv in
+omit hc hWa hK in
 theorem sGroups_numBelow : ∀ m p, p + m ≤ 15 →
     NumBelow ((sgState W v0 (p + m)).2.2 + 6)
       (Stmt.valsList ((List.range m).map fun q => sgMatch W dg v0 (p + q)))
@@ -452,7 +446,7 @@ end groups
 
 theorem digitChecks_numBelow {dg : Nat} : ∀ m, NumBelow (dg + 15 + 4 * m)
     (Stmt.valsList ((List.range m).flatMap fun p =>
-      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0 0) (dg + 15 + 4 * p)))
+      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0) (dg + 15 + 4 * p)))
   | 0 => NumBelow.nil _
   | m + 1 => by
       rw [List.range_succ, List.flatMap_append, List.flatMap_singleton, valsList_append]
@@ -466,7 +460,7 @@ theorem digitChecks_numBelow {dg : Nat} : ∀ m, NumBelow (dg + 15 + 4 * m)
 theorem digitChecks_complete {dg : Nat} {K : Nat → Nat} (hm : MemOK rd 256) (hK : ∀ p < 15, K p < 4 ^ lxN p) :
     ∀ m, m ≤ 15 → ∀ σ : Val, (∀ q < 15, σ (.n (dg + q)) = ofK (addressOfIndex (K q))) →
     Completes C rd (dg + 15) (dg + 15 + 4 * m) ((List.range m).flatMap fun p =>
-      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0 0) (dg + 15 + 4 * p)) σ
+      rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0) (dg + 15 + 4 * p)) σ
       (fun _ => True)
   | 0, _, σ, _ => ⟨σ, Ext.refl _ _ _, trivial, fun _ _ hn => hn⟩
   | m + 1, hm15, σ, hx => by
@@ -604,17 +598,16 @@ theorem sCodewordT_snd (W : WotsT) (target : E) (d0 : V) (dg : Nat) :
 dispatches taking their arms, the chains' starts `vals` loaded, the digest's first cell `d0` the
 digits' base-4 number and the target `g` to their sum. -/
 theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : StepCanon W B good) (hWa : StepAtoms W) {F : Val → Nat → Nat → E → E}
+    (hc : GoodStable B good) (hWa : StepAtoms W) {F : Val → Nat → Nat → E → E}
     (hss : ∀ σ, good σ → StepSound rd σ W (F σ)) (hpow : ∀ σ, good σ → ∀ s < 13, σ (W.power s) = gen ^ s)
     {target : E} {d0 : V} {dg : Nat} (hB : B ≤ dg) (hpw : ∀ j, NBv B (W.power j)) (hm : MemOK rd 256)
-    (K : Nat → Nat) (hK : ∀ p < 15, K p < 4 ^ lxN p) (vals : Nat → E) (hv : ∀ i, IsCanonical128 (vals i))
-    (hd0 : NBv dg d0) (σ : Val) (hg : good σ)
+    (K : Nat → Nat) (hK : ∀ p < 15, K p < 4 ^ lxN p) (vals : Nat → E) (hd0 : NBv dg d0) (σ : Val) (hg : good σ)
     (hsum : gen ^ (∑ i ∈ Finset.range 58, lxDigit K i) = target)
     (hd0v : σ d0 = lit (∑ i ∈ Finset.range 58, lxDigit K i * 4 ^ i))
     (hE : ∀ first n k, W.enc first n k = k * 4 ^ first := by intros; rfl) :
     Completes C rd dg (sCodewordT W target d0 dg).2.1 (sCodewordT W target d0 dg).1 σ
       (fun σ' => good σ' ∧ (∀ q < 15, σ' (.n (dg + q)) = ofK (addressOfIndex (K q))) ∧
-        ∀ i < 58, IsCanonical128 (σ' (sTip W (dg + 70) i)) ∧ σ' (sStart W σ' dg (dg + 70) i) = vals i) := by
+        ∀ i < 58, σ' (sStart W σ' dg (dg + 70) i) = vals i) := by
   rw [sCodewordT_fst, sCodewordT_snd]
   have h15 : dg + 70 ≤ (sgState W (dg + 70) 15).2.2 := sgState_mono W (dg + 70) 0 15 (by omega)
   rw [← sgState_eq_sSt]
@@ -622,7 +615,7 @@ theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : St
   set σr := updRun σ dg 15 (fun p => ofK (addressOfIndex (K p))) with hσr
   have her : Ext dg (dg + 15) σ σr := updRun_ext σ dg 15 _
   have hxr : ∀ q < 15, σr (.n (dg + q)) = ofK (addressOfIndex (K q)) := fun q hq => updRun_at σ dg 15 _ hq
-  have hgr : good σr := hc.1 σ σr (fun j hj => (her.agree j (by omega))) hg
+  have hgr : good σr := hc σ σr (fun j hj => (her.agree j (by omega))) hg
   have hd0r : σr d0 = σ d0 := by obtain ⟨j, hj, rfl⟩ := hd0; exact her.apply (Or.inl hj)
   refine Completes.reload (her.mono le_rfl (by omega)) ?_
   -- the hint
@@ -639,7 +632,7 @@ theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : St
     (digitChecks_complete (C := C) hm hK 15 le_rfl σr hxr) (fun σ2 he2 _ => ?_)
   have hx2 : ∀ q < 15, σ2 (.n (dg + q)) = ofK (addressOfIndex (K q)) := fun q hq => by
     rw [he2.apply (Or.inl (by omega))]; exact hxr q hq
-  have hg2 : good σ2 := hc.1 σr σ2 (fun j hj => he2.agree j (by omega)) hgr
+  have hg2 : good σ2 := hc σr σ2 (fun j hj => he2.agree j (by omega)) hgr
   have hd02 : σ2 d0 = σ d0 := by
     obtain ⟨j, hj, rfl⟩ := hd0; rw [he2.apply (Or.inl (by omega))]; exact hd0r
   -- the hoisted constant
@@ -649,13 +642,13 @@ theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : St
     (cst_complete σ2 (dg + 75) closeLane) (fun σ3 he3 _ => ?_)
   have hx3 : ∀ q < 15, σ3 (.n (dg + q)) = ofK (addressOfIndex (K q)) := fun q hq => by
     rw [he3.apply (Or.inl (by omega))]; exact hx2 q hq
-  have hg3 : good σ3 := hc.1 σ2 σ3 (fun j hj => he3.agree j (by omega)) hg2
+  have hg3 : good σ3 := hc σ2 σ3 (fun j hj => he3.agree j (by omega)) hg2
   have hd03 : σ3 d0 = σ d0 := by
     obtain ⟨j, hj, rfl⟩ := hd0; rw [he3.apply (Or.inl (by omega))]; exact hd02
   -- the dispatches
   have hgc : Completes C rd (dg + 76) c ((List.range 15).map fun q => sgMatch W dg (dg + 70) q) σ3 _ :=
     (sGroups_complete (C := C) (rd := rd) hW hc hWa (dg := dg) (v0 := dg + 70) (by omega) (by omega)
-      hpw K hK vals hv 15 0 (by omega) σ3 hg3 hx3).withHolds
+      hpw K hK vals 15 0 (by omega) σ3 hg3 hx3).withHolds
   have hnbg : NumBelow c (Stmt.valsList ((List.range 15).map fun q => sgMatch W dg (dg + 70) q)) :=
     sGroups_numBelow hW (dg := dg) (v0 := dg + 70) (by omega) (by omega) hpw 15 0 (by omega)
   refine Completes.append (m := c) (by omega) (by omega) hnbg hgc (fun σ4 he4 hp4 => ?_)
@@ -688,20 +681,16 @@ theorem sCodewordT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : St
     obtain ⟨j, hj, rfl⟩ := hd0; exact hext.apply (Or.inl (by omega))
   have hx5 : ∀ q < 15, upds σ4 [(c, target)] (.n (dg + q)) = ofK (addressOfIndex (K q)) := fun q hq => by
     rw [hext.apply (Or.inl (by omega))]; exact hx4 q hq
-  refine completes_atoms rfl hext ⟨hc.1 _ _ (fun j hj => hext.agree j (by omega)) hg4,
+  refine completes_atoms rfl hext ⟨hc _ _ (fun j hj => hext.agree j (by omega)) hg4,
     hx5, fun i hi => ?_⟩ (fun a ha => ?_)
   · have hq : i / 4 ≤ 14 := by omega
     have ht : i % 4 < lxN (i / 4) := by unfold lxN; split <;> omega
     have hle := sgState_mono W (dg + 70) (i / 4 + 1) (15 - (i / 4 + 1)) (by omega)
     rw [show i / 4 + 1 + (15 - (i / 4 + 1)) = 15 by omega] at hle
-    obtain ⟨htc, hst⟩ := hpost (i / 4) (by omega) (by omega)
-    refine ⟨?_, ?_⟩
-    · unfold sTip
-      rw [← sgState_eq_sSt, hext.apply (Or.inl (by have := (sgTip_lt W (dg + 70) hq ht).2; omega))]
-      exact htc _ ht
-    · rw [sStart_eq_sgPos W _ hK hx5 hi]
-      obtain ⟨j, ej, -, hj⟩ := sgPos_lt (W := W) (v0 := dg + 70) (K := K) hq (hK _ (by omega)) ht
-      rw [ej, hext.apply (Or.inl (by omega)), ← ej, hst _ ht, show 4 * (i / 4) + i % 4 = i by omega]
+    have hst := hpost (i / 4) (by omega) (by omega)
+    rw [sStart_eq_sgPos W _ hK hx5 hi]
+    obtain ⟨j, ej, -, hj⟩ := sgPos_lt (W := W) (v0 := dg + 70) (K := K) hq (hK _ (by omega)) ht
+    rw [ej, hext.apply (Or.inl (by omega)), ← ej, hst _ ht, show 4 * (i / 4) + i % 4 = i by omega]
   · simp only [copyS, cst, List.mem_cons, Stmt.atom.injEq, List.not_mem_nil, or_false] at ha
     rcases ha with rfl | rfl | rfl
     · show upds σ4 [(c, target)] d0 = upds σ4 [(c, target)] (sgState W (dg + 70) 15).2.1

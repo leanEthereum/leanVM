@@ -72,12 +72,12 @@ theorem xPrologue_sound {rd : Reader} {σ : Val} (h : AtomsHold rd σ xPrologue)
     rw [xNode, hs]
     congr 2
     omega
-  · have e := h.atom (a := .const (.n (128 + s)) (word (2 ^ s) 0 0)) (by
+  · have e := h.atom (a := .const (.n (128 + s)) (word (2 ^ s) 0)) (by
       simp only [xPrologue, List.mem_append, List.mem_map, List.mem_range]
       exact Or.inl (Or.inr ⟨s, hs, rfl⟩))
     simp only [Atom.Holds] at e
     rw [xPower, e, word_eq_eOfNat, Value.gen_pow_eq_eOfNat (by omega)]
-  · have e := h.atom (a := .const (.n (138 + i)) (word i 0 0)) (by
+  · have e := h.atom (a := .const (.n (138 + i)) (word i 0)) (by
       simp only [xPrologue, List.mem_append, List.mem_map, List.mem_range]
       exact Or.inr ⟨i, hi, rfl⟩)
     simp only [Atom.Holds] at e
@@ -93,12 +93,12 @@ theorem two_pow_mul_xor_mul (s a b : Nat) : 2 ^ s * a ^^^ 2 ^ s * b = 2 ^ s * (a
 
 /-- An address cell: the index's word plus a constant above bit 32. -/
 theorem idx_add_word {q1 q2 key : Nat} (hkey : key < 2 ^ 32) :
-    eOfNat (2 ^ 32 * q1 + key) + word (2 ^ 32 * q2) 0 0 = eOfNat (2 ^ 32 * (q1 ^^^ q2) + key) := by
+    eOfNat (2 ^ 32 * q1 + key) + word (2 ^ 32 * q2) 0 = eOfNat (2 ^ 32 * (q1 ^^^ q2) + key) := by
   rw [word_eq_eOfNat, ← Value.eOfNat_add_of_lt hkey, ← Value.eOfNat_add_of_lt hkey, add_right_comm,
     ← Value.eOfNat_xor, two_pow_mul_xor_mul]
 
 theorem word_add_eOfNat {q lo : Nat} (hlo : lo < 2 ^ 32) :
-    word (2 ^ 32 * q) 0 0 + eOfNat lo = eOfNat (2 ^ 32 * q + lo) := by
+    word (2 ^ 32 * q) 0 + eOfNat lo = eOfNat (2 ^ 32 * q + lo) := by
   rw [word_eq_eOfNat, Value.eOfNat_add_of_lt hlo]
 
 /-- The index of layer `layer`: the leaf index's key, the top layer's bit `55` set. -/
@@ -110,7 +110,7 @@ theorem key_lt (L layer : Nat) (hL : L < 2 ^ 32) : L >>> (16 * layer) < 2 ^ 32 :
 theorem xIdxNat_zero (L : Nat) : xIdxNat 0 L = L := by simp [xIdxNat]
 
 theorem xIdxNat_one {L : Nat} (hL : L < 2 ^ 32) :
-    eOfNat (L >>> 16) + word lxTop 0 0 = eOfNat (xIdxNat 1 L) := by
+    eOfNat (L >>> 16) + word lxTop 0 = eOfNat (xIdxNat 1 L) := by
   rw [add_comm, show lxTop = 2 ^ 32 * 2 ^ 23 by simp [lxTop], word_add_eOfNat (key_lt L 1 hL)]
   simp [xIdxNat]
 
@@ -163,9 +163,9 @@ theorem xStep_sound (hpad : PadOK σ xPad) (layer b : Nat) :
 theorem xW_atoms (layer b : Nat) : StepAtoms (xW layer b) := fun _ _ _ _ _ => rfl
 
 theorem xStepAddrs_sound {idx : V} {a : Nat} (h : AtomsHold rd σ (xStepAddrs idx a)) :
-    ∀ s < 3, σ (.n (a + 2 * s + 1)) = σ idx + word (tw 1 + s * stepMul) 0 0 := by
+    ∀ s < 3, σ (.n (a + 2 * s + 1)) = σ idx + word (tw 1 + s * stepMul) 0 := by
   intro s hs
-  have e1 := h.atom (a := .const (.n (a + 2 * s)) (word (tw 1 + s * stepMul) 0 0)) (by
+  have e1 := h.atom (a := .const (.n (a + 2 * s)) (word (tw 1 + s * stepMul) 0)) (by
     simp only [xStepAddrs, List.mem_flatMap, List.mem_range]
     exact ⟨s, hs, List.mem_cons_self ..⟩)
   have e2 := h.atom (a := .add (.n (a + 2 * s + 1)) idx (.n (a + 2 * s))) (by
@@ -212,7 +212,7 @@ theorem chainT_eq_xChain' {f : Nat → Nat → E → E} {pp : E} {adr : Nat → 
 
 /-- **The chain step addresses.** -/
 theorem xStepAdr_bytes {L layer s : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hs : s < 3) :
-    cellBytes (eOfNat (xIdxNat layer L) + word (tw 1 + s * stepMul) 0 0) =
+    cellBytes (eOfNat (xIdxNat layer L) + word (tw 1 + s * stepMul) 0) =
       LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩) ⟨s, by
         simp [HashSig.chainLength, HashSig.winternitzBits]; omega⟩) := by
   have hk := key_lt L layer hL
@@ -229,7 +229,7 @@ theorem xStepAdr_bytes {L layer s : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hs 
 
 /-- **The leaf address.** -/
 theorem xLeafAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
-    cellBytes (eOfNat (xIdxNat layer L) + word (tw 2) 0 0) =
+    cellBytes (eOfNat (xIdxNat layer L) + word (tw 2) 0) =
       LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) := by
   have hk := key_lt L layer hL
   rw [show LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) =
@@ -243,7 +243,7 @@ theorem xLeafAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
 
 /-- **The message address.** -/
 theorem xMsgAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
-    cellBytes (eOfNat (xIdxNat layer L) + word (tw 12) 0 0) =
+    cellBytes (eOfNat (xIdxNat layer L) + word (tw 12) 0) =
       LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer,
           hl⟩)) := by
   have hk := key_lt L layer hL
@@ -259,7 +259,7 @@ theorem xMsgAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
 
 /-- **The node addresses**: level `l`'s, the parent's index added unless it is the root. -/
 theorem xNodeAdr_bytes {L layer l : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hl16 : l < 16) :
-    cellBytes (word (xAddrOf layer l) 0 0 + (if 16 * layer + l + 1 = 32 then 0 else
+    cellBytes (word (xAddrOf layer l) 0 + (if 16 * layer + l + 1 = 32 then 0 else
         eOfNat (L >>> (16 * layer + l + 1)))) =
       LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1)
         ((LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) := by
@@ -301,7 +301,7 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
     (hd0 : σ (xD0 layer b) = (hcell (σ (.n 1) :: aMsg :: msgCells ++ [σ (xRho layer b)])).1)
     {rest : List Stmt} {next : Prop}
     (h : Stmt.HoldsList C rd σ (xStepAddrs (xIdx layer b) (xA layer b) ++ ((xCw layer b).1 ++
-      ([cst (xCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b)
+      ([cst (xCw layer b).2.1 (word (tw 2) 0), addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b)
         (.n (xCw layer b).2.1)] ++ ((xLeafK layer b).1 ++ ((xMk layer b).1 ++ rest))))) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧
       @LeanXmss.Verification.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ (.n 1))) ⟨layer, hl⟩
@@ -310,17 +310,17 @@ theorem xLayerCore_sound (hpre : XPre σ) (hpad : PadOK σ xPad) {layer b : Nat}
   have s1 := holdsList_split_atoms (xs := xStepAddrs (xIdx layer b) (xA layer b))
     (xStepAddrs_atoms _ _) h
   have hsteps := xStepAddrs_sound (atomsHold_of_holdsList (xStepAddrs_atoms _ _) s1.1)
-  have s2 := xCw_sound (rest := [cst (xCw layer b).2.1 (word (tw 2) 0 0),
+  have s2 := xCw_sound (rest := [cst (xCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b) (.n (xCw layer b).2.1)] ++
       ((xLeafK layer b).1 ++ ((xMk layer b).1 ++ rest))) hpre hpad s1.2
   have hcw := s2.2.1
   have hsum := s2.2.2.1
   have hd := s2.2.2.2
-  have s3 := holdsList_split_atoms (xs := [cst (xCw layer b).2.1 (word (tw 2) 0 0),
+  have s3 := holdsList_split_atoms (xs := [cst (xCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b) (.n (xCw layer b).2.1)])
     (atomsOnly_cst_addS _ _ _ _ _) s2.1
   have hla := atomsHold_of_holdsList (atomsOnly_cst_addS _ _ _ _ _) s3.1
-  have e1 : σ (.n (xCw layer b).2.1) = word (tw 2) 0 0 := hla.atom (List.mem_cons_self ..)
+  have e1 : σ (.n (xCw layer b).2.1) = word (tw 2) 0 := hla.atom (List.mem_cons_self ..)
   have e2 : σ (.n ((xCw layer b).2.1 + 1)) = σ (xIdx layer b) + σ (.n (xCw layer b).2.1) :=
     hla.atom (List.mem_cons_of_mem _ (List.mem_singleton_self _))
   have s4 := holdsList_split_atoms (xs := (xLeafK layer b).1) (xLeafK_atoms layer b) s3.2

@@ -3,7 +3,7 @@
 
 use lean_compiler::{compile, parse_with_replacements};
 use leanvm_core::cpu::{Program, prove, public_input_bytes, verify};
-use primitives::field::{F192, g_pow};
+use primitives::field::{F128, g_pow};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use verifier::Bytecode;
@@ -39,13 +39,13 @@ const LOOP_STEPS: usize = 16_384;
 
 /// The program above at `loop_steps` loop steps, and the public input it computes. Also the chain cases of
 /// `formal/lean_vm/scripts/export-rust.sh`, which includes this file.
-pub(crate) fn chain(loop_steps: usize) -> (Program, [F192; 2]) {
+pub(crate) fn chain(loop_steps: usize) -> (Program, [F128; 2]) {
     let replacements = BTreeMap::from([("LOOP_STEPS_PLACEHOLDER".to_string(), loop_steps.to_string())]);
     let ast = parse_with_replacements(SOURCE, &replacements).expect("parse zkDSL program");
     (compile(&ast), public_input(loop_steps))
 }
 
-fn public_input(loop_steps: usize) -> [F192; 2] {
+fn public_input(loop_steps: usize) -> [F128; 2] {
     let message: Vec<u8> = [5u64, 7]
         .repeat(5)
         .into_iter()
@@ -54,14 +54,14 @@ fn public_input(loop_steps: usize) -> [F192; 2] {
         .collect();
     let digest = primitives::hash::hash(&message);
     let word = |i: usize| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap());
-    let digest = [F192::new(word(0), word(1), 0), F192::new(word(2), word(3), 0)];
+    let digest = [F128::new(word(0), word(1)), F128::new(word(2), word(3))];
     let mut value = digest[0];
-    let mut index = F192::ONE;
-    let generator = F192::from(g_pow(1));
+    let mut index = F128::ONE;
+    let generator = F128::from(g_pow(1));
     for _ in 0..loop_steps {
         let candidate = value + index;
         let product = candidate * generator;
-        value = (if product == F192::ZERO {
+        value = (if product == F128::ZERO {
             candidate
         } else {
             product + candidate
@@ -74,7 +74,7 @@ fn public_input(loop_steps: usize) -> [F192; 2] {
 /// One honest proof of the program above.
 pub(crate) struct Fixture {
     pub program: Program,
-    pub public_input: [F192; 2],
+    pub public_input: [F128; 2],
     pub proof: leanvm_core::cpu::Proof,
     /// What verifying it leaves.
     pub summary: verifier::Summary,

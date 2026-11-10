@@ -73,7 +73,7 @@ def MainIn.total (m : MainIn) : ℕ := m.nlx + m.nxd + (m.nls + m.nsd)
 
 /-- The own DA digest's cells: the checked claim's digest, or zeros. -/
 noncomputable def MainIn.ownDa (m : MainIn) : List E :=
-  if m.nd = 1 then digestCells (keccak256 (cellsBytes m.daR)) else [0, 0]
+  if m.nd = 1 then digestCells (keccak256 (cellsBytes (m.daR ++ [0]))) else [0, 0]
 
 /-- **`main`'s oracle**: hints, `HeapBuf`s, calls' returns. -/
 noncomputable def mOrc (m : MainIn) (j : ℕ) : E :=
@@ -84,11 +84,11 @@ noncomputable def mOrc (m : MainIn) (j : ℕ) : E :=
   else if j = 56 then (digestHalves m.xd).1 else if j = 57 then (digestHalves m.xd).2
   else if j = 58 then (digestHalves m.sd).1 else if j = 59 then (digestHalves m.sd).2
   else if j = 66 then m.a117 else if j = 68 then m.a119 else if j = 385 then m.aDa
-  else if 390 ≤ j ∧ j < 394 then m.daR.getD (j - 390) 0
-  else if j = 405 then m.a394 else if j = 411 then m.a400 else if j = 417 then m.a406
-  else if j = 420 then m.a409 else if j = 427 then gen ^ m.pick else if j = 438 then m.a417
-  else if j = 441 then m.leaf
-  else if j = 467 then (digestHalves m.sdg).1 else if j = 468 then (digestHalves m.sdg).2
+  else if 390 ≤ j ∧ j < 393 then m.daR.getD (j - 390) 0
+  else if j = 404 then m.a394 else if j = 410 then m.a400 else if j = 416 then m.a406
+  else if j = 419 then m.a409 else if j = 426 then gen ^ m.pick else if j = 437 then m.a417
+  else if j = 440 then m.leaf
+  else if j = 468 then (digestHalves m.sdg).1 else if j = 469 then (digestHalves m.sdg).2
   else 0
 
 /-- **`main`'s honest valuation.** -/
@@ -107,11 +107,11 @@ structure MainBounds (m : MainIn) : Prop where
   total : m.total ≤ 65535
   pick : m.pick ≤ m.nc
   pickD : m.nd = 1 → m.pick = m.nc
-  daR : m.nd = 1 → m.daR.length = 4 ∧ AllCanonical m.daR
+  daR : m.nd = 1 → m.daR.length = 3
 
 /-- **The words `main` stores or reads in its buffers and its header.** -/
 structure MainMem (rd : Reader) (m : MainIn) : Prop where
-  bytes : ReadsAt rd m.a119 ((List.range 256).map fun v => word v 0 0)
+  bytes : ReadsAt rd m.a119 ((List.range 256).map fun v => word v 0)
   w0 : LoadHolds rd m.a409 0 (gen ^ (m.nrx + m.nrs))
   wN : LoadHolds rd (m.a409 * gen ^ m.nc) 0 (gen ^ m.total)
   own : ReadsAt rd (m.aDa * gen ^ (2 * m.nc)) m.ownDa
@@ -128,8 +128,9 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   da : m.nd = 1 → ∀ a ∈ atomsIn mDa, a.Holds rd σ
   daZ : m.nd ≠ 1 → ∀ a ∈ atomsIn mDaZ, a.Holds rd σ
   leaf : m.nc = 0 → ∀ a ∈ atomsIn mLeaf, a.Holds rd σ
+  agg : ∀ a ∈ atomsIn mAgg, a.Holds rd σ
   orc : ∀ j ∈ [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 385, 390,
-    391, 392, 393, 405, 411, 417, 420, 427, 438, 441, 467, 468], σ (.n j) = mOrc m j
+    391, 392, 404, 410, 416, 419, 426, 437, 440, 468, 469], σ (.n j) = mOrc m j
   v40 : σ (.n 40) = gen ^ (m.nlx + m.nxd)
   v41 : σ (.n 41) = gen ^ (m.nls + m.nsd)
   v42 : σ (.n 42) = gen ^ m.total
@@ -147,20 +148,21 @@ structure MVals (rd : Reader) (σ : Val) (m : MainIn) : Prop where
   v384 : σ (.n 384) = gen ^ (2 * (m.nc + 1))
   v387 : σ (.n 387) = m.aDa * gen ^ (2 * m.nc)
   v389 : σ (.n 389) = gen ^ m.nd + gen
-  v415 : σ (.n 404) = gen ^ (2 * m.nc)
-  v421 : σ (.n 410) = gen ^ (24 * m.nc)
-  v427 : σ (.n 416) = gen ^ (24 * m.nc)
-  v430 : σ (.n 419) = gen ^ (m.nc + 1)
-  v432 : σ (.n 421) = gen ^ (m.nrx + m.nrs)
-  g434 : σ (.n 423) = 1 + gen ^ m.nc
-  g435 : σ (.n 424) = 1
-  v436 : σ (.n 425) = m.a409 * gen ^ m.nc
-  v448 : σ (.n 437) = m.aDa * gen ^ (2 * m.pick)
-  v451 : σ (.n 440) = gen ^ m.nc + 1
-  r476 : σ (.n 465) = (digestHalves m.dap).1
-  r477 : σ (.n 466) = (digestHalves m.dap).2
-  v480 : σ (.n 469) = 1
-  v484 : σ (.n 473) = gen
+  v415 : σ (.n 403) = gen ^ (2 * m.nc)
+  v421 : σ (.n 409) = gen ^ (24 * m.nc)
+  v427 : σ (.n 415) = gen ^ (24 * m.nc)
+  v430 : σ (.n 418) = gen ^ (m.nc + 1)
+  v432 : σ (.n 420) = gen ^ (m.nrx + m.nrs)
+  g434 : σ (.n 422) = 1 + gen ^ m.nc
+  g435 : σ (.n 423) = 1
+  v436 : σ (.n 424) = m.a409 * gen ^ m.nc
+  v448 : σ (.n 436) = m.aDa * gen ^ (2 * m.pick)
+  v451 : σ (.n 439) = gen ^ m.nc + 1
+  v465 : σ (.n 465) = m.et * word 133823759239872512 0
+  r476 : σ (.n 466) = (digestHalves m.dap).1
+  r477 : σ (.n 467) = (digestHalves m.dap).2
+  v480 : σ (.n 470) = 1
+  v484 : σ (.n 474) = gen
   tags : lxTagsV.map σ = lxTagWords
 
 /-! ## Helpers -/
@@ -236,7 +238,7 @@ theorem goodS_defs {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {s :
 
 /-- The oracle's values, as `MVals.orc` lists them. -/
 def mOrcIdx : List ℕ := [0, 1, 2, 3, 4, 5, 6, 7, 47, 48, 49, 52, 55, 56, 57, 58, 59, 66, 68, 385,
-  390, 391, 392, 393, 405, 411, 417, 420, 427, 438, 441, 467, 468]
+  390, 391, 392, 404, 410, 416, 419, 426, 437, 440, 468, 469]
 
 set_option maxRecDepth 100000 in
 theorem mOrcIdx_defs : ∀ j ∈ mOrcIdx, ∃ s ∈ mOrcStmts, V.n j ∈ defsOf s := by decide +kernel

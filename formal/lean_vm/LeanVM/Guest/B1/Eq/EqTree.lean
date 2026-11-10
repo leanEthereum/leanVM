@@ -44,13 +44,13 @@ def eqtreeWordT (o : V) (S t i : ℕ) : List Stmt :=
 
 /-- Level `t ≥ 1`. -/
 def eqtreeLevelT (p o : V) (po b t : ℕ) : List Stmt :=
-  [.atom (.load (.n (eqtreeS b t)) p (po + t)), .atom (.const (.n (eqtreeS b t + 1)) (word 1 0 0)),
+  [.atom (.load (.n (eqtreeS b t)) p (po + t)), .atom (.const (.n (eqtreeS b t + 1)) (word 1 0)),
     .atom (.add (.n (eqtreeS b t + 2)) (.n (eqtreeS b t + 1)) (.n (eqtreeS b t)))] ++
     ((List.range (2 ^ t)).map (eqtreeWordT o (eqtreeS b t) t)).flatten
 
 /-- **`eqtree(point, out, n)`** from the value `b`. -/
 def eqtreeT (p o : V) (po b n : ℕ) : List Stmt :=
-  [.atom (.load (.n b) p po), .atom (.const (.n (b + 1)) (word 1 0 0)),
+  [.atom (.load (.n b) p po), .atom (.const (.n (b + 1)) (word 1 0)),
     .atom (.add (.n (b + 2)) (.n (b + 1)) (.n b)), .atom (.load (.n (b + 2)) o 0),
     .atom (.load (.n b) o 1)] ++
     ((List.range (n - 1)).map fun t ↦ eqtreeLevelT p o po b (t + 1)).flatten
@@ -96,7 +96,7 @@ theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
     rcases Nat.eq_zero_or_pos t with rfl | ht
     · -- level 1: `1 + r0`, `r0`
       have a0 := hA _ (by simp [eqtreeT] : Stmt.atom (.load (.n b) p po) ∈ _)
-      have a1 := hA _ (by simp [eqtreeT] : Stmt.atom (.const (.n (b + 1)) (word 1 0 0)) ∈ _)
+      have a1 := hA _ (by simp [eqtreeT] : Stmt.atom (.const (.n (b + 1)) (word 1 0)) ∈ _)
       have a2 := hA _ (by simp [eqtreeT] : Stmt.atom (.add (.n (b + 2)) (.n (b + 1)) (.n b)) ∈ _)
       have a3 := hA _ (by simp [eqtreeT] : Stmt.atom (.load (.n (b + 2)) o 0) ∈ _)
       have a4 := hA _ (by simp [eqtreeT] : Stmt.atom (.load (.n b) o 1) ∈ _)
@@ -122,7 +122,7 @@ theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
           rw [Nat.sub_add_cancel (by omega)])
       set S := eqtreeS b t with hS
       have l0 := memL _ (by simp [eqtreeLevelT, ← hS] : Stmt.atom (.load (.n S) p (po + t)) ∈ _)
-      have l1 := memL _ (by simp [eqtreeLevelT, ← hS] : Stmt.atom (.const (.n (S + 1)) (word 1 0 0)) ∈ _)
+      have l1 := memL _ (by simp [eqtreeLevelT, ← hS] : Stmt.atom (.const (.n (S + 1)) (word 1 0)) ∈ _)
       have l2 := memL _ (by simp [eqtreeLevelT, ← hS] :
         Stmt.atom (.add (.n (S + 2)) (.n (S + 1)) (.n S)) ∈ _)
       simp only [Atom.Holds] at l1 l2
@@ -220,7 +220,7 @@ theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (
   rcases ha with (h | h | h | h | h) | ⟨blk, ⟨t', ht', rfl⟩, hb⟩
   all_goals try (obtain rfl := Stmt.atom.inj h)
   · show LoadHolds rd (σ p) po (σ (.n b)); rw [h0]; simpa using hpt 0 (by omega)
-  · show σ (.n (b + 1)) = word 1 0 0; rw [h1, word_one]
+  · show σ (.n (b + 1)) = word 1 0; rw [h1, word_one]
   · show σ (.n (b + 2)) = σ (.n (b + 1)) + σ (.n b); rw [h2, h1, h0]
   · show LoadHolds rd (σ o) 0 (σ (.n (b + 2)))
     have := hout 1 le_rfl hn 0 (by norm_num)
@@ -250,7 +250,7 @@ theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (
     rcases hb with (h | h | h) | ⟨w, ⟨i, hi, rfl⟩, hw⟩
     all_goals try (obtain rfl := Stmt.atom.inj h)
     · show LoadHolds rd (σ p) (po + t) (σ (.n S)); rw [vr]; exact hpt t htn
-    · show σ (.n (S + 1)) = word 1 0 0; rw [v1, word_one]
+    · show σ (.n (S + 1)) = word 1 0; rw [v1, word_one]
     · show σ (.n (S + 2)) = σ (.n (S + 1)) + σ (.n S); rw [v2, v1, vr]
     · have wv : ∀ j < 3, σ (.n (S + 3 + 3 * i + j)) = [(eqKernel (rs.take t)).getD i 0,
           (eqKernel (rs.take t)).getD i 0 * (1 + rs.getD t 0),

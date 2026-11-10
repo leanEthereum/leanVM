@@ -69,8 +69,8 @@
 //! Every step loses at most a polynomial's degree over the field size: 46 for step 2, three per
 //! round of steps 3 and 4, two for step 5. The first claim's challenges add one per variable, the
 //! openings two per round. With `n` instances, `S` segment variables and `L` slot variables,
-//! that is at most `depth (69 + 3 S + 3 log n) + log n + S + 4 L + 13` over `2^192`, next to the
-//! commitment scheme's own error. At the VM's depth of 12 it is the `(37 log n + 902) / 2^192`
+//! that is at most `depth (69 + 3 S + 3 log n) + log n + S + 4 L + 13` over `2^128`, next to the
+//! commitment scheme's own error. At the VM's depth of 12 it is the `(37 log n + 902) / 2^128`
 //! derived in `doc/leanvm` Annex C (`keccak:soundness`).
 //!
 //! # Prover
@@ -88,7 +88,7 @@
 
 use fiat_shamir::transcript::ProverState;
 use keccak::LANE_VARS;
-use primitives::field::{F64, F192, F192Unreduced};
+use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
 use protocol::{Claim, dot, first_claim};
 
@@ -128,15 +128,15 @@ pub use witness::{Shape, Witness};
 /// runs, the point being a challenge drawn after the commitment.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
-    pub instance: Vec<F192>,
-    pub lanes: [F192; keccak::LANES],
+    pub instance: Vec<F128>,
+    pub lanes: [F128; keccak::LANES],
 }
 
 impl OutputClaim {
     /// The true claim at `instance` on the batch of `inputs`, padded with all-zero inputs, by
     /// running the permutation: what a caller without a claim of its own (a test, a benchmark)
     /// binds and passes.
-    pub fn of_inputs(shape: Shape, inputs: &[[u64; keccak::LANES]], instance: Vec<F192>) -> Self {
+    pub fn of_inputs(shape: Shape, inputs: &[[u64; keccak::LANES]], instance: Vec<F128>) -> Self {
         let permute = |mut state: [u64; keccak::LANES]| {
             primitives::hash::keccak_f(&mut state);
             state
@@ -145,7 +145,7 @@ impl OutputClaim {
         let eq = eq_table(&instance);
         let lanes = parallel::fold_reduce(
             shape.n(),
-            || [F192Unreduced::ZERO; keccak::LANES],
+            || [F128Unreduced::ZERO; keccak::LANES],
             |acc, i| {
                 let output = inputs.get(i).map_or(padding, |&x| permute(x));
                 for (acc, word) in acc.iter_mut().zip(output) {
@@ -161,14 +161,14 @@ impl OutputClaim {
         );
         Self {
             instance,
-            lanes: lanes.map(F192Unreduced::reduce),
+            lanes: lanes.map(F128Unreduced::reduce),
         }
     }
 }
 
 /// The first claim, valued at the last segment's part only: the caller's lanes, at the claim's
 /// segment and lane weights.
-fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]) -> Claim {
+fn first(shape: Shape, output: &OutputClaim, segment: Vec<F128>, r_lane: &[F128]) -> Claim {
     assert_eq!(output.instance.len(), shape.n_log);
     let point = [&output.instance[4..], &segment[..]].concat();
     let mut claim = first_claim(shape, &output.instance[..4], point, r_lane);
@@ -189,6 +189,8 @@ impl Witness {
             1 << shape.stack_log(),
             "the openings are claims on the whole committed block"
         );
+        // One message: the first claim is multilinear in the segment and lane coordinates.
+        ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_VARS) as u128));
         let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
         let mut first = first(shape, output, segment, &r_lane);
         let instance = &output.instance;

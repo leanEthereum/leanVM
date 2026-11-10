@@ -11,10 +11,10 @@ public import LeanVM.Guest.B1.Opening.QueriesPlaced7
 /-!
 # The function, placed
 
-`oqMain_relAtIn`: `opening_queries` at its honest values (`oqMainF`), placed at `fp`: its chain
-buffer (`HeapBuf(g^(N+1))`, `allocDyn`) at `fp + fs name`, its loop right after the buffer
-(`relAtIn_of_walk`), loading from the caller's region `R` or its chain buffer, the loop from `R`
-and the chain buffer. `oqMainA_ok`: its start's statements by kind (no `frameAddr`).
+`oqMainA_ok`: the start of `opening_queries` by kind: its chain buffer (`HeapBuf(g^(N+1))`,
+`allocDyn`), its loads (its odd first query's, its point and window pointer, the chain's first
+word), no `frameAddr`; `oqMainA_allocSz`, `oqMainA_callS`: its one `HeapBuf` and its one call
+(the odd first query's walk).
 -/
 
 namespace LeanVM.Guest.B1
@@ -24,29 +24,30 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The loads of the function's own body: its odd first query's, the window pointer `qptrs[0]`,
-the chain's first word and its end. -/
+/-- The loads of the function's own body: its odd first query's, its point `positions[0]`, its
+window pointer `qptrs[0]`, the chain's first word. -/
 def OqMainL (s : Oq) (odd : ℕ) (p : V) (off : ℕ) : Prop :=
-  (odd = 1 ∧ OqQLoad s (.n 5) p off) ∨ (odd = 1 ∧ p = .n 4 ∧ off = 0) ∨
-    (p = .n 11 ∧ off = 0) ∨ (p = .n (oqMK s odd + 3) ∧ off = 0)
+  (odd = 1 ∧ OqQLoad s (.n 3) (.n 4) p off) ∨ (odd = 1 ∧ p = .n 5 ∧ off = 0) ∨
+    (odd = 1 ∧ p = .n 6 ∧ off = 0) ∨ (p = .n 10 ∧ off = 0)
 
 /-- The chain's `HeapBuf`. -/
-def oqAlloc : Atom := .hint (.allocDyn (.n 11) (.n 10))
+def oqAlloc : Atom := .hint (.allocDyn (.n 10) (.n 9))
 
 theorem oqMainA_ok (s : Oq) (odd : ℕ) (walk : String) :
     AtomsOk (fun a ↦ AtomKind (OqMainL s odd) (fun _ _ ↦ False) a ∨ a = oqAlloc)
       (oqMainA s odd walk) := by
   unfold oqMainA
   refine atomsOk_append (atomsOk_append ?_ ?_) ?_
-  · exact atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl trivial)
-      (atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inr rfl) atomsOk_nil))))
+  · exact atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inr rfl)
+      atomsOk_nil))
   · split_ifs with h1
     · refine atomsOk_append (atomsOk_append (atomsOk_cons (Or.inl (Or.inr (Or.inl ⟨h1, rfl, rfl⟩)))
-        atomsOk_nil) ?_) (atomsOk_cons (Or.inl trivial)
-        (atomsOk_cons (Or.inl (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩)))) atomsOk_nil))
-      exact (oqQuery_atoms_ok _ (.n 0) (.n 1) _ _ _ _ _).mono fun a ha ↦
+        (atomsOk_cons (Or.inl (Or.inr (Or.inr (Or.inl ⟨h1, rfl, rfl⟩)))) atomsOk_nil)) ?_)
+        (atomsOk_cons (Or.inl trivial)
+        (atomsOk_cons (Or.inl (Or.inr (Or.inr (Or.inr ⟨rfl, rfl⟩)))) atomsOk_nil))
+      exact (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _ _).mono fun a ha ↦
         Or.inl (AtomKind.mono (fun p off h ↦ Or.inl ⟨h1, h⟩) (fun p run h ↦ h) ha)
-    · exact atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))))
+    · exact atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl (Or.inr (Or.inr (Or.inr ⟨rfl, rfl⟩))))
         atomsOk_nil)
   · exact atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl trivial) (atomsOk_cons (Or.inl trivial)
       atomsOk_nil))
@@ -84,18 +85,18 @@ theorem AtomsOk.addrS' {L : V → ℕ → Prop} {b : Atom} (hb : ∀ p run, b �
   · rfl
 
 theorem oqMainA_allocSz (s : Oq) (odd : ℕ) (walk : String) :
-    (oqMainA s odd walk).filterMap Stmt.allocSz = [(.n 11, .inr (.n 10))] := by
+    (oqMainA s odd walk).filterMap Stmt.allocSz = [(.n 10, .inr (.n 9))] := by
   unfold oqMainA
   rw [List.filterMap_append, List.filterMap_append]
-  have h2 : (if odd = 1 then [Stmt.atom (.load (.n 12) (.n 4) 0)] ++
-      oqQueryT s (.n 12) (.n 0) (.n 1) (.n 5) 13 true 0 walk ++
-      [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqDot s 13)) (.n 8)),
-        .atom (.load (.n (oqMK s odd - 1)) (.n 11) 0)]
-      else [.atom (.const (.n 12) (word 0 0 0)), .atom (.load (.n 12) (.n 11) 0)]).filterMap
+  have h2 : (if odd = 1 then [Stmt.atom (.load (.n 11) (.n 5) 0), .atom (.load (.n 12) (.n 6) 0)] ++
+      oqQueryT s (.n 11) (.n 12) (.n 0) (.n 1) (.n 3) (.n 4) 13 true 0 walk ++
+      [.atom (.mul (.n (oqMK s odd - 1)) (.n (oqRes s 13 true)) (.n 2)),
+        .atom (.load (.n (oqMK s odd - 1)) (.n 10) 0)]
+      else [.atom (.const (.n 11) (word 0 0)), .atom (.load (.n 11) (.n 10) 0)]).filterMap
         Stmt.allocSz = [] := by
     split_ifs
     · rw [List.filterMap_append, List.filterMap_append,
-        AtomsOk.allocSz (oqQuery_atoms_ok _ (.n 0) (.n 1) _ _ _ _ _)]
+        AtomsOk.allocSz (oqQuery_atoms_ok _ _ _ _ _ _ _ _ _ _)]
       rfl
     · rfl
   rw [h2]

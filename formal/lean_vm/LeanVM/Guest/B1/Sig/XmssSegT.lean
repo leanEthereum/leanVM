@@ -60,7 +60,7 @@ def sTag (i : Nat) : V :=
   else sPower (lxTagLog i)
 
 /-- The range bound `g^255` of an `8`-bit dispatch, a reduced word. -/
-def bound255 : E := word 9223372036854810629 0 0
+def bound255 : E := word 9223372036854810629 0
 
 /-- leanXMSS's chain step: `keccak([P, steps s], [v, tag i], walks[o:o + 1])` (`walk`,
 `lean_ethereum.py:3563-3567`), its constant at `c`. -/
@@ -72,7 +72,7 @@ def sWots (steps : Nat → V) : WotsT where
 /-- The prologue (`lean_ethereum.py:3660-3680`). -/
 def sPrologue : List Stmt :=
   [loadS sLxPP sSigner 1, hintW "lx_index" (runV 67 4), hintW "lx_windows" (runV 71 4)] ++
-    (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0 0))
+    (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0))
 
 /-! ## The codeword -/
 
@@ -83,7 +83,7 @@ def armM (W : WotsT) (slots : Nat → Nat → Nat) (first n : Nat) (fold : Bool)
   let ws := walksT W slots first k (if k = 0 then W.size + 1 else W.size) n 0
     (if fold then b + 1 else b)
   let enc0 := if fold then V.n b else encIn
-  let pre := if fold then [cst b (word 0 0 0)] else []
+  let pre := if fold then [cst b (word 0 0)] else []
   let prod := if fold then copyS prodOut (W.power (digitSum k n))
     else mulS prodOut prodIn (W.power (digitSum k n))
   if k % 4 ^ n = 0 then (pre ++ ws.1 ++ [prod, copyS encOut enc0], ws.2)
@@ -121,7 +121,7 @@ def sGroupsT (W : WotsT) (dg : Nat) : Nat → Nat → V → V → Nat → List S
 /-- The range checks of the `15` digit words from `dg`, the last below `4^2`. -/
 def sDigitChecks (dg : Nat) : List Stmt :=
   (List.range 15).flatMap fun p =>
-    rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0 0) (dg + 15 + 4 * p)
+    rangeS (.n (dg + p)) (if p < 14 then bound255 else word (2 ^ 15) 0) (dg + 15 + 4 * p)
 
 /-- The codeword of `58` chains, its digit words from `dg` (`lean_ethereum.py:3696-3711`): the
 hint, the range checks, the hoisted `2^63`, the `15` dispatches, the digits stored where the
@@ -141,7 +141,7 @@ plus it at `r = 7`, the constant alone in the top window), the hinted sibling an
 the pair in the order of `k`'s bit `r`. The last level writes `out`, numbered in arm `0`
 (`outO = none`). The statements, the next base and the parent. -/
 def lxLevelT (w k r : Nat) (cur : V) (outO : Option Nat) (b : Nat) : List Stmt × Nat × V :=
-  let c := word (lxNodeConst w r + k / 2 ^ (r + 1)) 0 0
+  let c := word (lxNodeConst w r + k / 2 ^ (r + 1)) 0
   let ord := fun (sib : V) => if k / 2 ^ r % 2 = 0 then (cur, sib) else (sib, cur)
   if w + 1 = 4 then
     let o := if r + 1 = 8 then outO.getD (b + 3) else b + 3
@@ -171,9 +171,9 @@ def lxLevelsT (w k : Nat) (outO : Option Nat) : Nat → Nat → V → Nat → Li
 pin `his[w] = his[w + 1] · g^8 + k` (`k` alone at the top). -/
 def lxArmT (w k : Nat) (cur : V) (outO : Option Nat) (b : Nat) : List Stmt × Nat :=
   let lv := lxLevelsT w k outO 8 0 cur b
-  if w + 1 = 4 then (lv.1 ++ [cst (67 + w) (word k 0 0)], lv.2.1)
+  if w + 1 = 4 then (lv.1 ++ [cst (67 + w) (word k 0)], lv.2.1)
   else if k = 0 then (lv.1 ++ [mulS (sHis w) (sHis (w + 1)) (sPower 8)], lv.2.1)
-  else (lv.1 ++ [mulS (.n lv.2.1) (sHis (w + 1)) (sPower 8), cst (lv.2.1 + 1) (word k 0 0),
+  else (lv.1 ++ [mulS (.n lv.2.1) (sHis (w + 1)) (sPower 8), cst (lv.2.1 + 1) (word k 0),
     addS (sHis w) (.n lv.2.1) (.n (lv.2.1 + 1))], lv.2.1 + 2)
 
 /-- Arms `k ..< k + m` of window `w`, `out` at `o` once arm `0` has numbered it. -/
@@ -199,18 +199,18 @@ def lxWindowT (w : Nat) (cur : V) (b : Nat) : List Stmt × Nat × Nat :=
 /-- The bottom layer's message digest from base `b`: `D = Th(P, A_msg, M | ρ)`, 80 bytes, one
 block; it sets the padding run at `b + 10`. -/
 def sDigest0 (b : Nat) : List Stmt :=
-  [hintW "randomizer" [.n b], cst (b + 1) (word (tw 12) 0 0), addS (.n (b + 2)) (sHis 0) (.n (b + 1)),
+  [hintW "randomizer" [.n b], cst (b + 1) (word (tw 12) 0), addS (.n (b + 2)) (sHis 0) (.n (b + 1)),
     loadS (.n (b + 3)) sSigner 2, loadS (.n (b + 4)) sSigner 3, copyS (.n (b + 5)) (.n b),
-    cst (b + 6) (word 1 0 0), cst (b + 7) (word 0 0 0), cst (b + 8) (word 0 0 0),
-    cst (b + 9) (word (2 ^ 63) 0 0)] ++
-  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0 0)) ++
+    cst (b + 6) (word 1 0), cst (b + 7) (word 0 0), cst (b + 8) (word 0 0),
+    cst (b + 9) (word (2 ^ 63) 0)] ++
+  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0)) ++
   [kecS [sLxPP, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
     .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 1) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def sDigest1 (b : Nat) (root : V) : List Stmt :=
-  [cst b (word lxTop 0 0), addS (.n (b + 1)) (sHis 2) (.n b), hintW "randomizer" [.n (b + 2)],
-    cst (b + 3) (word (tw 12) 0 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
+  [cst b (word lxTop 0), addS (.n (b + 1)) (sHis 2) (.n b), hintW "randomizer" [.n (b + 2)],
+    cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
   k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
 
 def sA (layer b : Nat) : Nat := if layer = 0 then b + 16 else b + 7
@@ -233,7 +233,7 @@ step addresses, its codeword, its one-time leaf and its two windows; the stateme
 and its root. -/
 def sLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
   ((if layer = 0 then sDigest0 b else sDigest1 b root) ++ xStepAddrs (sLxIdx layer b) (sA layer b) ++
-    (sCw layer b).1 ++ [cst (sCw layer b).2.1 (word (tw 2) 0 0),
+    (sCw layer b).1 ++ [cst (sCw layer b).2.1 (word (tw 2) 0),
       addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b) (.n (sCw layer b).2.1)] ++
     (sLeafK layer b).1 ++ (sWin0 layer b).1 ++ (sWin1 layer b).1, (sWin1 layer b).2.1,
     .n (sWin1 layer b).2.2)
@@ -248,7 +248,7 @@ def xSeg : List Stmt :=
 /-- `__loop2`'s statements before the check (`lean_ethereum.py:4582-4590`): the raw index, its range
 check, the cover word, the claim's pointer `lx_table · idx^4`. -/
 def l2Pre : List Stmt :=
-  [hintW "raw_index" [.n 56], cst 57 (word 9223372036854775821 0 0), mulS (.n 58) (.n 2) (.n 57),
+  [hintW "raw_index" [.n 56], cst 57 (word 9223372036854775821 0), mulS (.n 58) (.n 2) (.n 57),
     .atom (.rangeCheck (.n 56) (.n 59) (.n 60) (.n 61) (.n 58)), mulS (.n 62) (.n 3) (.n 56),
     loadS (.n 0) (.n 62) 0, mulS (.n 63) (.n 56) (.n 56), mulS (.n 64) (.n 63) (.n 63),
     mulS (.n 65) (.n 4) (.n 64)]
@@ -256,8 +256,8 @@ def l2Pre : List Stmt :=
 /-- `__loop2`'s statements after the check: the next counter and the self-call, the carried tags
 passed on unchanged. -/
 def l2Post : List Stmt :=
-  [cst 120764 (word 2 0 0), mulS (.n 120765) (.n 0) (.n 120764),
-    addS (.n 120766) (.n 120765) (.n 1), cst 120767 (word 2 0 0),
+  [cst 120764 (word 2 0), mulS (.n 120765) (.n 0) (.n 120764),
+    addS (.n 120766) (.n 120765) (.n 1), cst 120767 (word 2 0),
     mulS (.n 120768) (.n 0) (.n 120767),
     .callIf (.n 120766) "__loop2" (.n 120768 :: (List.range 55).map fun j => V.n (j + 1)), .ret []]
 

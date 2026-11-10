@@ -8,15 +8,19 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Front.BusGkr
+public import LeanVM.Protocol.EndToEnd.Front.BusShare
+public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanVM.Protocol.BusSecurity
 
 /-!
 # The bus phase on doom
 
-`verifyBusBalance layout` (`crates/verifier/src/bus.rs:106-213`) is the oracle protocol's `busPhase`
-(`LeanVM.Protocol.Bus`) on the wire. This module specifies its parts on the protocol's
-relations, in the calculus of verifier programs:
+`verifyBusBalance layout` (`crates/verifier/src/bus.rs:130-247`) is the oracle protocol's `busPhase`
+(`LeanVM.Protocol.Bus`) on the wire, with two parts the protocol does not have: the grind before
+the fingerprint challenges (`busGrindingBits`, the challenges' error `2^{μ_bus}/|E|` discounted by
+it) and the bytecode share's sumcheck (`BusShare`), which returns only the true share, the
+fingerprint's part the protocol computes from the public bytecode. This module specifies its parts
+on the protocol's relations, in the calculus of verifier programs:
 
 * `alwaysSpec`: a sub-program from a fact that already decides its postcondition (the count root
   `0`, which the later `require` rejects);
@@ -149,18 +153,29 @@ theorem SampleOnly.not_isMove {α : Type} {q : VerifierProgram α} (hq : SampleO
     q.IsMove := by
   cases hq <;> simp [VerifierProgram.IsMove]
 
-/-- The fingerprint challenges `(α, β)` as the wire draws them: four, then one. -/
+/-- The fingerprint challenges `(α, β)` as the wire draws them: sixteen slot weights, then
+`β`. -/
 def abProg : VerifierProgram (List E × E) :=
-  (VerifierProgram.sampleChallenges 4).bind fun as ↦ VerifierProgram.sampleChallenge.bind fun b ↦
-      VerifierProgram.ret (as, b)
+  (VerifierProgram.sampleChallenges (2 ^ busBits)).bind fun as ↦
+    VerifierProgram.sampleChallenge.bind fun b ↦ VerifierProgram.ret (as, b)
 
-/-- The wire's four `α` as the protocol's. -/
-def toAlpha (as : List E) : Fin 4 → E := fun i ↦ as.getD i 0
+/-- The wire's sixteen weights as the protocol's. -/
+def toAlpha (as : List E) : Fin 16 → E := fun i ↦ as.getD i 0
+
+/-- Challenges, then a program of challenges, make a program of challenges. -/
+theorem sampleOnly_sampleN_bind {β : Type} :
+    ∀ (n : ℕ) (k : List E → VerifierProgram β), (∀ xs, SampleOnly (k xs)) →
+      SampleOnly ((VerifierProgram.sampleChallenges n).bind k)
+  | 0, k, hk => hk []
+  | n + 1, k, hk => .sample fun x ↦ by
+    have h := sampleOnly_sampleN_bind n (fun xs ↦ k (x :: xs)) fun xs ↦ hk (x :: xs)
+    simpa only [VerifierProgram.ret_bind, VerifierProgram.bind_assoc, VerifierProgram.pure_eq,
+      VerifierProgram.bind_eq] using h
 
 theorem sampleOnly_abProg : SampleOnly abProg :=
-  .sample fun _ ↦ .sample fun _ ↦ .sample fun _ ↦ .sample fun _ ↦ .sample fun _ ↦ .ret _
+  sampleOnly_sampleN_bind _ _ fun _ ↦ .sample fun _ ↦ .ret _
 
-theorem toAlpha_ofFn (v : Fin 4 → E) : toAlpha (List.ofFn v) = v := by
+theorem toAlpha_ofFn (v : Fin 16 → E) : toAlpha (List.ofFn v) = v := by
   funext i
   fin_cases i <;> rfl
 
@@ -200,21 +215,21 @@ section Challenges
 variable (I : M3Instance) (cands : Word → Set (∀ i, TheOracle I i)) (input : I.Stmt)
 
 /-- The error of the fingerprint challenges over at most `L₀` candidates:
-`L₀ · 4 · 2^{μ_bus} / |E|` (Theorem 5.1). -/
-noncomputable def abError (L₀ : ℕ) : ℝ≥0∞ := L₀ * (overE (4 * 2 ^ I.μBus) : ℝ≥0∞)
+`L₀ · 2^{μ_bus} / |E|` (Theorem 5.1). -/
+noncomputable def abError (L₀ : ℕ) : ℝ≥0∞ := L₀ * (overE (2 ^ I.μBus) : ℝ≥0∞)
 
 open Classical in
 /-- From a stack outside `M3Holds`, the fingerprint challenges that satisfy the relation after
-them are at most a fraction `4 · 2^{μ_bus} / |E|` (`Bus.challengeSecurity`). -/
+them are at most a fraction `2^{μ_bus} / |E|` (`Bus.challengeSecurity`). -/
 theorem ab_card_le (hI : Bus.Conditions I) (o : ∀ i, TheOracle I i)
     (ho : ((input, o), ()) ∉ Seam.commit I) :
-    (Fintype.card ((Fin 4 → E) × E) : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun ab ↦
+    (Fintype.card ((Fin 16 → E) × E) : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun ab ↦
       (((input, ab), o), ()) ∈ Bus.afterChallenge I).card : ℝ≥0∞) ≤
-        (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) := by
+        (overE (2 ^ I.μBus) : ℝ≥0∞) := by
   have h := Typed.sample_escape (Bus.challengeSecurity hI) input o
     (fun w hw ↦ by cases w; exact ho hw) rfl
-  have h : Pr{let c ← $ᵗ ((Fin 4 → E) × E)}[(((input, c), o), ()) ∈ Bus.afterChallenge I] ≤
-      (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) :=
+  have h : Pr{let c ← $ᵗ ((Fin 16 → E) × E)}[(((input, c), o), ()) ∈ Bus.afterChallenge I] ≤
+      (overE (2 ^ I.μBus) : ℝ≥0∞) :=
     le_trans (prEvent_mono _ _ _ fun c hc ↦ ⟨(), hc⟩) h
   rw [SampleableType.prEvent_uniformSample, div_eq_mul_inv, mul_comm] at h
   exact h
@@ -222,9 +237,9 @@ theorem ab_card_le (hI : Bus.Conditions I) (o : ∀ i, TheOracle I i)
 variable {εmax : ℝ≥0∞}
 
 open Classical in
-/-- **The fingerprint challenges** (`alphas = samples(BUS_BITS)`, `beta = sample()`,
-`bus.rs:112-114`): one group of five challenges, the protocol's one challenge `(α, β)`,
-escaping the commitment's doom with probability at most `L₀ · 4 · 2^{μ_bus} / |E|`. -/
+/-- **The fingerprint challenges** (`weights = samples(2^BUS_BITS)`, `beta = sample()`,
+`bus.rs:139-142`): one group of seventeen challenges, the protocol's one challenge `(α, β)`,
+escaping the commitment's doom with probability at most `L₀ · 2^{μ_bus} / |E|`. -/
 noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError I L₀ < 1) {T : ℝ≥0∞} :
     Spec abProg (HDoom cands (Seam.commit I) input)
@@ -232,10 +247,10 @@ noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (ca
       (abError I L₀ + T) T :=
   Spec.ofNoMove (fun _ ha ↦ (sampleOnly_abProg.after ha).not_isMove) hlt fun h₀ hp ↦ by
     obtain ⟨W, hW, hR⟩ := hp
-    let bad : (Fin 4 → E) × E → Prop := fun ab ↦
+    let bad : (Fin 16 → E) × E → Prop := fun ab ↦
       ∃ o ∈ cands W, (((input, ab), o), ()) ∈ Bus.afterChallenge I
     unfold VerifierProgram.escRet abProg
-    refine le_trans (retExp_sampleN_bind_le _ h₀ 4 _
+    refine le_trans (retExp_sampleN_bind_le _ h₀ 16 _
       (fun as ↦ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ b : E, if bad (toAlpha as, b) then 1 else 0)
       (fun as l ↦ ?_) []) ?_
     · show (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ b : E, (if HDoom cands (Bus.afterChallenge I)
@@ -249,18 +264,18 @@ noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (ca
           exact h1 ⟨W, firstWord_append hW _, fun o ho hin ↦ h2 ⟨o, ho, hin⟩⟩
         simp [h1, h2]
     · simp only [toAlpha_ofFn]
-      have hcardT : (Fintype.card ((Fin 4 → E) × E) : ℝ≥0∞) =
-          (Fintype.card E : ℝ≥0∞) ^ 4 * Fintype.card E := by
+      have hcardT : (Fintype.card ((Fin 16 → E) × E) : ℝ≥0∞) =
+          (Fintype.card E : ℝ≥0∞) ^ 16 * Fintype.card E := by
         rw [Fintype.card_prod, Fintype.card_fun, Fintype.card_fin]
         push_cast
         ring
-      calc ((Fintype.card E : ℝ≥0∞) ^ 4)⁻¹ * ∑ v : Fin 4 → E, (Fintype.card E : ℝ≥0∞)⁻¹ *
+      calc ((Fintype.card E : ℝ≥0∞) ^ 16)⁻¹ * ∑ v : Fin 16 → E, (Fintype.card E : ℝ≥0∞)⁻¹ *
             ∑ b : E, (if bad (v, b) then 1 else 0)
-          = (Fintype.card ((Fin 4 → E) × E) : ℝ≥0∞)⁻¹ *
+          = (Fintype.card ((Fin 16 → E) × E) : ℝ≥0∞)⁻¹ *
               ((Finset.univ.filter fun ab ↦ bad ab).card : ℝ≥0∞) := by
             rw [← Finset.mul_sum, ← mul_assoc, ← ENNReal.mul_inv (by simp) (by simp), ← hcardT,
               ← Fintype.sum_prod_type', Finset.sum_boole]
-        _ ≤ L₀ * (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) :=
+        _ ≤ L₀ * (overE (2 ^ I.μBus) : ℝ≥0∞) :=
             card_exists_le_of (hfin W) (hcard W)
               (fun o ab ↦ (((input, ab), o), ()) ∈ Bus.afterChallenge I)
               fun o ho ↦ ab_card_le I input hI o (hR o ho)
@@ -345,38 +360,10 @@ end Gkr
 
 section Phase
 
-/-- The pure part of `verify_bus_balance` after the reads (`bus.rs:127-212`): the claims, the
-fingerprints, and the leaf decomposition of the three sides. -/
-def refBusResult (layout : Verifier.Layout) (alphas : List E) (beta : E)
-    (point treeValues memory : List E) (memoryFinal bytecodeFinal : E) : BusResult :=
-  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
-  let pushLayout := busLayout frameworkLogRows layout.push
-  let pullLayout := busLayout frameworkLogRows layout.pull
-  let countLayout := busLayout [] layout.count
-  let weights := eqKernel alphas
-  let memoryLow := point.take layout.logMemory
-  let bytecodeLow := point.take layout.logBytecode
-  let claims : List Verifier.ColumnClaim :=
-    (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1, memory2]
-      memory) ++
-    [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
-      bytecodeFinal⟩]
-  let fp := fingerprints weights memory memoryLow bytecodeLow
-    (multilinearEval (layout.bytecode.map ofK) (bytecodeLow ++ alphas))
-  let pcFinal := Verifier.gpow (2 ^ layout.logBytecode - 1)
-  let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
-  let (forms1, total0) := accumulateSide forms0 0 layout.push pushLayout (fp (Verifier.gpow 0) 1 1)
-    weights beta point (treeValues.getD 0 0)
-  let (forms2, total1) := accumulateSide forms1 1 layout.pull pullLayout
-    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
-  let (forms3, total2) := accumulateSide forms2 2 layout.count countLayout [] [1] 0 point
-    (treeValues.getD 2 0)
-  ⟨claims, point, forms3, [total0, total1, total2]⟩
-
-/-- What the bus phase reads after the fingerprint challenges: the challenges, the grand
-product's point and values, and the boundary values. -/
+/-- What the bus phase reads after the fingerprint challenges: the sixteen slot weights and `β`,
+the grand product's point and values, the boundary values, and the bytecode's share and point. -/
 structure BusWit where
-  /-- The four `α`. -/
+  /-- The sixteen slot weights. -/
   alphas : List E
   /-- `β`. -/
   beta : E
@@ -390,38 +377,102 @@ structure BusWit where
   mf : E
   /-- `BYTECODE_FINAL_COUNTERS`' value. -/
   bf : E
+  /-- The bytecode's share of a bytecode leaf. -/
+  share : E
+  /-- The point the share's sumcheck leaves the bytecode at. -/
+  bytecodePoint : List E
 
-/-- The bus phase's result on what it read. -/
+/-- The bus phase's result on what it read (`Complete.busOut`). -/
 def BusWit.result (layout : Verifier.Layout) (w : BusWit) : BusResult :=
-  refBusResult layout w.alphas w.beta w.point w.values w.memory w.mf w.bf
+  Complete.busOut layout w.alphas w.beta w.point w.values w.memory w.mf w.bf w.share
+    w.bytecodePoint
 
 /-- The bus phase after the grand product, followed by `k`: the count root's check, the boundary
-values, and `k` of what was read. -/
-def busTailK {β : Type} (k : BusWit → VerifierProgram β) (alphas : List E) (beta : E)
-    (r : E × List E × List E) : VerifierProgram β :=
-  match r with
-  | (countRoot, point, values) => do
-    VerifierProgram.require (countRoot ≠ 0)
-    let memory ← VerifierProgram.readScalars 3
-    let mf ← VerifierProgram.readScalar
-    let bf ← VerifierProgram.readScalar
-    k ⟨alphas, beta, point, values, memory, mf, bf⟩
+values, the bytecode's share and its evaluation (`shareProg`), and `k` of what was read. -/
+def busTailK {β : Type} (layout : Verifier.Layout) (k : BusWit → VerifierProgram β)
+    (alphas : List E) (beta : E) (r : E × List E × List E) : VerifierProgram β := do
+  VerifierProgram.require (r.1 ≠ 0)
+  let memory ← VerifierProgram.readScalars 2
+  let mf ← VerifierProgram.readScalar
+  let bf ← VerifierProgram.readScalar
+  let (share, bytecodePoint, value) ← bytecodeShare alphas (r.2.1.take layout.logBytecode)
+  computedBytecodeValue layout.bytecode bytecodePoint value
+  k ⟨alphas, beta, r.2.1, r.2.2, memory, mf, bf, share, bytecodePoint⟩
 
-/-- **The bus phase followed by `f`** is the fingerprint challenges, the grand product at the push
-side's depth, and the tail followed by `f` of the result. -/
+/-- The share and its evaluation, the share's triple taken apart, are `shareProg`. -/
+theorem shareProg_bind {β : Type} (weights low : List E) (words : List K)
+    (k : E → List E → VerifierProgram β) :
+    (bytecodeShare weights low >>= fun x ↦ match x with
+      | (share, bytecodePoint, value) =>
+        computedBytecodeValue words bytecodePoint value >>= fun _ ↦ k share bytecodePoint) =
+      shareProg weights low words >>= fun r ↦ k r.1 r.2.1 := by
+  unfold shareProg
+  simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
+  congr 1
+
+/-- **The bus phase followed by `f`** is the depth's check, the grind, the fingerprint
+challenges, the grand product at the push side's depth, and the tail followed by `f` of the
+result. -/
 theorem verifyBusBalance_bind_eq {β : Type} (layout : Verifier.Layout) (f : BusResult →
     VerifierProgram β) :
     (verifyBusBalance computedBytecodeValue layout).bind f =
+      (VerifierProgram.require
+        ((busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth < 64)).bind
+        fun _ ↦ (VerifierProgram.grindProofOfWork
+          (busGrindingBits (busLayout [0, layout.logMemory, layout.logBytecode]
+            layout.push).depth)).bind fun _ ↦
       abProg.bind fun ab ↦ (verifyGkrGrandProducts
         (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
-        (busTailK (fun w ↦ f (w.result layout)) ab.1 ab.2) := by
-  unfold verifyBusBalance computedBytecodeValue abProg busTailK BusWit.result
-  simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind,
-      VerifierProgram.pure_eq]
-  rfl
+        fun r ↦ busTailK layout (fun w ↦ f (w.result layout)) ab.1 ab.2 r := by
+  rw [Complete.verifyBusBalance_eq]
+  simp only [abProg, busTailK, BusWit.result, VerifierProgram.bind_eq,
+    VerifierProgram.bind_assoc, VerifierProgram.ret_bind, VerifierProgram.pure_eq]
 
 variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
   (input : I.Stmt) (layout : Verifier.Layout)
+
+/-- `n` challenges are a list of `n`: continuations that agree on such lists give one program. -/
+theorem sampleN_bind_congr {β : Type} : ∀ (n : ℕ) (k k' : List E → VerifierProgram β),
+    (∀ as, as.length = n → k as = k' as) →
+      (VerifierProgram.sampleChallenges n).bind k = (VerifierProgram.sampleChallenges n).bind k'
+  | 0, k, k', h => h [] rfl
+  | n + 1, k, k', h => by
+    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq,
+        VerifierProgram.bind_assoc]
+    exact congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun x ↦
+      sampleN_bind_congr n _ _ fun as has ↦ h (x :: as) (by simp [has]))
+
+/-- The guard that the slot weights are sixteen. -/
+def abGuard (ab : List E × E) : VerifierProgram (List E × E) :=
+  if ab.1.length = 2 ^ busBits then VerifierProgram.ret ab else VerifierProgram.fail
+
+/-- The wire's slot weights are sixteen: guarding them changes nothing. -/
+theorem abProg_bind_guard : abProg.bind abGuard = abProg := by
+  unfold abProg
+  rw [VerifierProgram.bind_assoc]
+  refine sampleN_bind_congr _ _ _ fun as has ↦ ?_
+  rw [VerifierProgram.bind_assoc]
+  refine congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun b ↦ ?_)
+  simp [abGuard, has]
+
+/-- **The fingerprint challenges, with the slot weights' count**: `abSpec` with the length of the
+weights recorded. -/
+noncomputable def abSpec16 {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
+    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError I L₀ < 1) :
+    Spec abProg (HDoom cands (Seam.commit I) input)
+      (fun ab h ↦ ab.1.length = 2 ^ busBits ∧
+        HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) εmax
+      (abError I L₀ + 0) 0 :=
+  let P : List E × E → List Ev → Prop := fun ab h ↦ ab.1.length = 2 ^ busBits ∧
+    HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h
+  let G : ∀ ab : List E × E, Spec (abGuard ab)
+      (fun h ↦ HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) P εmax 0 0 :=
+    fun ab ↦ if h : ab.1.length = 2 ^ busBits then
+      Spec.congr (p := VerifierProgram.ret ab) (by simp [abGuard, h])
+        ((Spec.ret (Post := P) ab).mono (fun _ hp ↦ ⟨h, hp⟩) (fun _ _ hq ↦ hq) le_rfl le_rfl
+          le_rfl)
+    else Spec.congr (p := VerifierProgram.fail) (by simp [abGuard, h]) Spec.fail
+  Spec.congr abProg_bind_guard ((abSpec I cands input hI hfin hcard hlt (T := 0)).bind' G)
 
 /-- The boundary values keep doom: from doom on the grand product's output relation, the values
 sent make doom on the bus seam at the protocol's output. -/
@@ -438,82 +489,137 @@ def BusWit.layer (w : BusWit) : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus :=
 /-- The boundary values as the protocol's message. -/
 def BusWit.vals (w : BusWit) : Vector E I.busClaims := vecOf I.busClaims (w.memory ++ [w.mf, w.bf])
 
-/-- **The bus seam on the wire, at what was read**: no candidate puts the protocol's output on
-those values in the bus seam. -/
+/-- **The bus seam on the wire, at what was read**: the share is the bytecode's true share, and
+no candidate puts the protocol's output on the values read in the bus seam. -/
 def BusAt (w : BusWit) (h : List Ev) : Prop :=
-  w.point.length = I.μBus ∧ w.values.length = 3 ∧ w.memory.length = 3 ∧
+  w.point.length = I.μBus ∧ w.values.length = 3 ∧ w.memory.length = 2 ∧
+    w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues layout.bytecode (w.point.take layout.logBytecode)) ∧
     HDoom cands (Seam.bus I) (input, Bus.busOut hI (w.layer I input) (w.vals I)) h
+
+/-- `BusAt` from its parts. -/
+theorem busAt_of {alphas : List E} {beta : E} {point values memory : List E} {mf bf share : E}
+    {bytecodePoint : List E} {h : List Ev} (h1 : point.length = I.μBus) (h2 : values.length = 3)
+    (h3 : memory.length = 2)
+    (h4 : share = shareTotal (vecOf (2 ^ 4) alphas)
+      (slotValues layout.bytecode (point.take layout.logBytecode)))
+    (h5 : HDoom cands (Seam.bus I) (input, Bus.busOut hI
+      (layerStmtOf (input, (toAlpha alphas, beta)) I.μBus ⟨values, point⟩)
+      (vecOf I.busClaims (memory ++ [mf, bf]))) h) :
+    BusAt I hI cands input layout ⟨alphas, beta, point, values, memory, mf, bf, share,
+      bytecodePoint⟩ h :=
+  ⟨h1, h2, h3, h4, h5⟩
 
 /-- **The bus seam on the wire**: the bus phase returns the verifier's leaf decomposition of what it
 read, and the bus seam holds of no candidate at the protocol's output on it. -/
 def BusPost (bus : BusResult) (h : List Ev) : Prop :=
-  ∃ w : BusWit, bus = w.result layout ∧ BusAt I hI cands input w h
+  ∃ w : BusWit, bus = w.result layout ∧ BusAt I hI cands input layout w h
 
 variable {εmax : ℝ≥0∞}
 
+open Classical in
 /-- **The bus phase's tail, then a continuation** specified from the bus seam at what was read:
 the count root's check (which rejects the root `0`), the boundary values (the protocol's last
-message), then `k`. -/
-noncomputable def busTailSpec {β : Type} {k : BusWit → VerifierProgram β} {Q : β → List Ev → Prop}
-    {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax) (K : ∀ w, Spec (k w) (BusAt I hI cands input w) Q εmax Lk T)
-    (alphas : List E) (beta : E) (r : E × List E × List E) :
-    Spec (busTailK k alphas beta r) (GkrPost I cands (input, (toAlpha alphas, beta)) r) Q
+message), the bytecode's share (`shareCheckSpec`, through one candidate oracle `o₀`; each of its
+rounds' challenges at `2/|E|`), then `k`. The bytecode has `2 ^ (logBytecode + busBits)` words and
+its log-size is within the push side's depth, as `build_layout` makes them. -/
+noncomputable def busTailSpec {β : Type} {k : BusWit → VerifierProgram β}
+    {Q : β → List Ev → Prop} {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax) (o₀ : ∀ i, TheOracle I i)
+    (he : roundError 1 2 + 0 ≤ εmax)
+    (hbc : layout.bytecode.length = 2 ^ (layout.logBytecode + busBits))
+    (hlb : layout.logBytecode ≤ I.μBus)
+    (K : ∀ w : BusWit, w.alphas.length = 2 ^ busBits →
+      Spec (k w) (BusAt I hI cands input layout w) Q εmax Lk T)
+    (alphas : List E) (halpha : alphas.length = 2 ^ busBits) (beta : E)
+    (r : E × List E × List E) :
+    Spec (busTailK layout k alphas beta r) (GkrPost I cands (input, (toAlpha alphas, beta)) r) Q
       εmax 0 T :=
-  match r with
-  | (countRoot, point, values) =>
-    let P : List Ev → Prop := fun h ↦ point.length = I.μBus ∧ values.length = 3 ∧
-      HDoom cands (Gkr.relOut 3 I.μBus (Bus.leaves I) (Bus.riders I))
-        (layerStmtOf (input, (toAlpha alphas, beta)) I.μBus ⟨values, point⟩) h
-    have hP : ∀ h x, P h → P (h ++ [Ev.read x]) := fun _ _ hp ↦ ⟨hp.1, hp.2.1, hp.2.2.append _⟩
-    (Spec.require (Post := fun _ h ↦ P h) fun _ hp hc ↦ hp.resolve_left hc).bind' fun _ ↦
-    (readNSuccSpec P hP zero_le 2).bind' fun memory ↦
-    (Spec.readE (Post := fun _ h ↦ memory.length = 3 ∧ P h)
-      (fun _ _ hp ↦ ⟨hp.1, hP _ _ hp.2⟩) zero_le).bind' fun mf ↦
-    (Spec.readE (Post := fun bf h ↦ BusAt I hI cands input ⟨alphas, beta, point, values, memory,
-        mf, bf⟩ h)
-      (fun _ bf hp ↦ by
-        obtain ⟨hm, hl, hv, W, hW, hR⟩ := hp
-        exact ⟨hl, hv, hm, W, firstWord_append hW _, values_keep I hI hR _⟩) hLk).bind'
-      fun bf ↦ K ⟨alphas, beta, point, values, memory, mf, bf⟩
+  let P : List Ev → Prop := fun h ↦ r.2.1.length = I.μBus ∧ r.2.2.length = 3 ∧
+    HDoom cands (Gkr.relOut 3 I.μBus (Bus.leaves I) (Bus.riders I))
+      (layerStmtOf (input, (toAlpha alphas, beta)) I.μBus ⟨r.2.2, r.2.1⟩) h
+  have hP : ∀ h x, P h → P (h ++ [Ev.read x]) := fun _ _ hp ↦ ⟨hp.1, hp.2.1, hp.2.2.append _⟩
+  (Spec.require (Post := fun _ h ↦ P h) fun _ hp hc ↦ hp.resolve_left hc).bind' fun _ ↦
+  (readNSuccSpec P hP zero_le 1).bind' fun memory ↦
+  (Spec.readE (Post := fun _ h ↦ memory.length = 2 ∧ P h)
+    (fun _ _ hp ↦ ⟨hp.1, hP _ _ hp.2⟩) zero_le).bind' fun mf ↦
+  let P' : E → List Ev → Prop := fun bf h ↦ r.2.1.length = I.μBus ∧ r.2.2.length = 3 ∧
+    memory.length = 2 ∧
+    HDoom cands (Seam.bus I) (input, Bus.busOut hI
+      (layerStmtOf (input, (toAlpha alphas, beta)) I.μBus ⟨r.2.2, r.2.1⟩)
+      (vecOf I.busClaims (memory ++ [mf, bf]))) h
+  (Spec.readE (Post := P')
+    (fun _ bf hp ↦ by
+      obtain ⟨hm, hl, hv, W, hW, hR⟩ := hp
+      exact ⟨hl, hv, hm, W, firstWord_append hW _, values_keep I hI hR _⟩) zero_le).bind'
+    fun bf ↦
+  if hl : r.2.1.length = I.μBus then
+    Spec.congr (shareProg_bind alphas (r.2.1.take layout.logBytecode) layout.bytecode
+      fun share bytecodePoint ↦
+        k ⟨alphas, beta, r.2.1, r.2.2, memory, mf, bf, share, bytecodePoint⟩).symm <|
+    ((shareCheckSpec (T := Lk) I o₀
+      (by rw [hbc, List.length_take, hl, Nat.min_eq_left hlb]; rfl) (P' bf)
+      (fun _ l hp ↦ ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.append l⟩)
+      (fun _ hp ↦ by obtain ⟨W, hW, -⟩ := hp.2.2.2; exact ⟨W, hW⟩) hLk he).bind' fun s ↦
+      (K ⟨alphas, beta, r.2.1, r.2.2, memory, mf, bf, s.1, s.2.1⟩ halpha).mono
+        (fun _ hp ↦ busAt_of I hI cands input layout hp.1.1 hp.1.2.1 hp.1.2.2.1 hp.2 hp.1.2.2.2)
+        (fun _ _ h ↦ h) le_rfl
+        le_rfl le_rfl).mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl zero_le le_rfl
+  else specOfFalse fun _ hp ↦ hl hp.1
 
-/-- **The bus phase, then a continuation** (`verify_bus_balance`, `bus.rs:106-213`): from
-the commitment's doom (no candidate satisfies `M3Holds`, `Seam.commit`) to the bus seam at what
-was read, then `f` of the result, specified from there by `K`, at the depth `μ_bus` of the push
-side. The fingerprint challenges are charged `L₀ · 4 · 2^{μ_bus} / |E|`; every later group of
-challenges (a sumcheck round's, the descendants' combination challenges with the next combiner)
-at most `L₀ · 4 / |E|`. -/
-noncomputable def busThenSpec {β : Type} {f : BusResult → VerifierProgram β} {Q : β → List Ev
-    → Prop}
-    {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
-    (K : ∀ w : BusWit, Spec (f (w.result layout)) (BusAt I hI cands input w) Q εmax Lk T)
+/-- **The bus phase, then a continuation** (`verify_bus_balance`, `bus.rs:130-247`): from the
+commitment's doom (no candidate satisfies `M3Holds`, `Seam.commit`) to the bus seam at what was
+read, then `f` of the result, specified from there by `K`, at the depth `μ_bus` of the push side.
+The fingerprint challenges are charged `L₀ · 2^{μ_bus} / |E|`, after the grind of
+`busGrindingBits μ_bus` bits (`hab`, the discounted bound); every later group of challenges (a
+sumcheck round's, the descendants' combination challenges with the next combiner, the bytecode
+share's rounds) at most `L₀ · 4 / |E|`. -/
+noncomputable def busThenSpec {β : Type} {f : BusResult → VerifierProgram β}
+    {Q : β → List Ev → Prop} {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
+    (K : ∀ w : BusWit, w.alphas.length = 2 ^ busBits →
+      Spec (f (w.result layout)) (BusAt I hI cands input layout w) Q εmax Lk T)
     {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hμ : I.μBus ≠ 0)
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
-    (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
-    (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec ((verifyBusBalance computedBytecodeValue layout).bind f) (HDoom cands (Seam.commit I)
-        input) Q εmax
-      (abError I L₀ + 0) T :=
-  Spec.congr (verifyBusBalance_bind_eq layout f).symm
-    ((abSpec I cands input hI hfin hcard hab (T := 0)).bind' fun ab ↦
-      (Spec.congr (by rw [hdepth])
-        (gkrSpec I cands (input, (toAlpha ab.1, ab.2)) hI hfin hcard hμ he hT hlam)).bind'
-        fun r ↦ busTailSpec I hI cands input hLk K ab.1 ab.2 r)
+    (hbc : layout.bytecode.length = 2 ^ (layout.logBytecode + busBits))
+    (hlb : layout.logBytecode ≤ I.μBus) (o₀ : ∀ i, TheOracle I i)
+    (hlt : abError I L₀ < 1)
+    (hab : (2 : ℝ≥0∞)⁻¹ ^ busGrindingBits I.μBus * (abError I L₀ + 0) ≤ εmax)
+    (he : roundError L₀ 4 ≤ εmax) (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax)
+    (hlam : lambdaError L₀ + 0 ≤ εmax) (hs : roundError 1 2 + 0 ≤ εmax) :
+    Spec ((verifyBusBalance computedBytecodeValue layout).bind f)
+      (HDoom cands (Seam.commit I) input) Q εmax
+      (if busGrindingBits I.μBus = 0 then abError I L₀ + 0 else 0) T :=
+  Spec.congr (by rw [verifyBusBalance_bind_eq, hdepth]; rfl) <|
+    (Spec.require (c := I.μBus < 64) (Post := fun _ h ↦ HDoom cands (Seam.commit I) input h)
+      fun _ hp _ ↦ hp).bind' fun _ ↦
+    (Spec.grindP (Post := fun _ h ↦ HDoom cands (Seam.commit I) input h)
+      (busGrindingBits I.μBus) (fun _ hp ↦ hp.append _) hab).bind' fun _ ↦
+    (abSpec16 I hI cands input hfin hcard hlt).bind' fun ab ↦
+      if h : ab.1.length = 2 ^ busBits then
+        ((gkrSpec I cands (input, (toAlpha ab.1, ab.2)) hI hfin hcard hμ he hT hlam).bind'
+          fun r ↦ busTailSpec I hI cands input layout hLk o₀ hs hbc hlb K ab.1 h ab.2 r).mono
+          (fun _ hp ↦ hp.2) (fun _ _ hq ↦ hq) le_rfl le_rfl le_rfl
+      else specOfFalse fun _ hp ↦ h hp.1
 
 /-- **The bus phase** alone: from the commitment's doom to the bus seam on the wire. -/
 noncomputable def busPhaseSpec {T : ℝ≥0∞} (hTf : T ≤ εmax) {L₀ : ℕ}
     (hfin : ∀ W, (cands W).Finite)
     (hcard : ∀ W, (cands W).ncard ≤ L₀) (hμ : I.μBus ≠ 0)
     (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
-    (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
-    (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
+    (hbc : layout.bytecode.length = 2 ^ (layout.logBytecode + busBits))
+    (hlb : layout.logBytecode ≤ I.μBus) (o₀ : ∀ i, TheOracle I i)
+    (hlt : abError I L₀ < 1)
+    (hab : (2 : ℝ≥0∞)⁻¹ ^ busGrindingBits I.μBus * (abError I L₀ + 0) ≤ εmax)
+    (he : roundError L₀ 4 ≤ εmax) (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax)
+    (hlam : lambdaError L₀ + 0 ≤ εmax) (hs : roundError 1 2 + 0 ≤ εmax) :
     Spec (verifyBusBalance computedBytecodeValue layout) (HDoom cands (Seam.commit I) input)
-      (BusPost I hI cands input layout) εmax (abError I L₀ + 0) T :=
+      (BusPost I hI cands input layout) εmax
+      (if busGrindingBits I.μBus = 0 then abError I L₀ + 0 else 0) T :=
   Spec.congr (VerifierProgram.bind_ret _)
     (busThenSpec I hI cands input layout hTf
-      (fun w ↦ (Spec.ret (Post := BusPost I hI cands input layout) (w.result layout)).mono
+      (fun w _ ↦ (Spec.ret (Post := BusPost I hI cands input layout) (w.result layout)).mono
         (fun _ hp ↦ ⟨w, rfl, hp⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl)
-      hfin hcard hμ hdepth hab he hT hlam)
+      hfin hcard hμ hdepth hbc hlb o₀ hlt hab he hT hlam hs)
 
 end Phase
 

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.ToArkLib.Whir.Counting
+public import LeanVM.Protocol.Field
 
 /-!
 # Weighted claims and the sumcheck step
