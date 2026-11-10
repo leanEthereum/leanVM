@@ -8,9 +8,11 @@ public import Qrom.Sphincs.Bound.Cover
 # The cover probability
 
 When the FORS leaves fit the first digest call (`mdBytes ≤ 32`), a coverable first call output has
-leaves that the signatures at one index open, so `λ_cov` is at most the expected number of
-`k`-tuples of signatures at one index over `2^(k a)`, which is at most
-`2^h ∏_{j<k} (N / 2^h + j) / 2^(k a)` for `N` signatures (`Qrom.Sphincs.lamCov_le`).
+leaves that the signatures at one index open, and when the index bits from `lo` up are read from the
+first call too (`IdxCall0`), that index agrees with the output on those bits. So `λ_cov` is at most
+`2^lo / 2^h` times the expected number of `k`-tuples of signatures at one index over `2^(k a)`, and
+that expectation is the `k`-th moment of a binomial count, at most `∑_j S(k, j) (N / 2^h)^j` for `N`
+signatures (`Qrom.Sphincs.lamCov_le`).
 -/
 
 open OracleComp OracleSpec FORS FORS.Security Concrete Quantum
@@ -116,105 +118,197 @@ theorem leaves_call0 (hmd : mdBytes ≤ 32) {ys ys' : DigV} (h : ys firstCall = 
   rw [getLsbD_truncateMessageDigest _ hq, getLsbD_truncateMessageDigest _ hq,
     outputBit_call0 _ (digestSource_fors_lt hmd hlow hq), outputBit_call0 _ (digestSource_fors_lt hmd hlow hq), h]
 
-/-- The fraction of first call outputs whose leaves lie in given sets is the product of the sets'
-fractions. -/
-theorem card_leaves (hmd : mdBytes ≤ 32) (L : FTree → Finset FLeaf) :
-    (Finset.univ.filter fun y : HashOutput ↦
+/-- The index bits from `lo` up, as a number. -/
+def hiIdx (lo : ℕ) (v : DigV) : ℕ := (digestIndex (truncateMessageDigest v)).val / 2 ^ lo
+
+/-- The index bits from `lo` up are read from the first call. -/
+def IdxCall0 (lo : ℕ) : Prop := ∀ q < totalHeight, lo ≤ q → digestSource q < 256
+
+theorem hiIdx_call0 {lo : ℕ} (hlo : IdxCall0 lo) {ys ys' : DigV} (h : ys firstCall = ys' firstCall) :
+    hiIdx lo ys = hiIdx lo ys' := by
+  show ((truncateMessageDigest ys).extractLsb' 0 totalHeight).toNat / 2 ^ lo =
+    ((truncateMessageDigest ys').extractLsb' 0 totalHeight).toNat / 2 ^ lo
+  apply Nat.eq_of_testBit_eq
+  intro i
+  rw [Nat.testBit_div_two_pow, Nat.testBit_div_two_pow, BitVec.testBit_toNat, BitVec.testBit_toNat,
+    BitVec.getLsbD_extractLsb', BitVec.getLsbD_extractLsb', Nat.zero_add]
+  by_cases hq : i + lo < totalHeight
+  · have hq' : i + lo < messageDigestBits := by unfold messageDigestBits; omega
+    have hs := hlo _ hq (by omega)
+    rw [getLsbD_truncateMessageDigest _ hq', getLsbD_truncateMessageDigest _ hq', outputBit_call0 _ hs,
+      outputBit_call0 _ hs, h]
+  · simp [hq]
+
+/-- The index values with given bits from `lo` up. -/
+theorem card_index_hi_le (lo c : ℕ) : (Finset.univ.filter fun t : Index ↦ t.val / 2 ^ lo = c).card ≤ 2 ^ lo := by
+  calc _ ≤ (Finset.range (2 ^ lo)).card := by
+        refine Finset.card_le_card_of_injOn (fun t ↦ t.val % 2 ^ lo)
+          (fun t _ ↦ Finset.mem_coe.mpr (Finset.mem_range.mpr (Nat.mod_lt _ (by positivity)))) ?_
+        intro a ha b hb hab
+        replace ha := (Finset.mem_filter.mp (Finset.mem_coe.mp ha)).2
+        replace hb := (Finset.mem_filter.mp (Finset.mem_coe.mp hb)).2
+        have hab' : a.val % 2 ^ lo = b.val % 2 ^ lo := hab
+        exact Fin.ext (by rw [← Nat.div_add_mod a.val (2 ^ lo), ← Nat.div_add_mod b.val (2 ^ lo), ha, hb, hab'])
+    _ = 2 ^ lo := Finset.card_range _
+
+/-- The fraction of first call outputs whose index bits from `lo` up are `c` and whose leaves lie in
+given sets is at most `2^lo / 2^h` times the product of the sets' fractions. -/
+theorem card_leaves (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) (c : ℕ) (L : FTree → Finset FLeaf) :
+    (Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = c ∧
         ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ).card *
-      Fintype.card (FTree → FLeaf) = Fintype.card HashOutput * ∏ κ, (L κ).card := by
-  set S := Finset.univ.filter fun y : HashOutput ↦
+      (Fintype.card Index * Fintype.card (FTree → FLeaf)) ≤
+      Fintype.card HashOutput * (2 ^ lo * ∏ κ, (L κ).card) := by
+  set S := Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = c ∧
     ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ
   let e := Equiv.piSplitAt firstCall fun _ : DigestCall ↦ HashOutput
-  -- the digest calls whose leaves lie in `L` are those whose first call lies in `S`
+  -- the digest calls with these bits and leaves are those whose first call lies in `S`
   have ha : (Finset.univ.filter fun ys : DigV ↦
-      ∀ κ, (fullDigestView (truncateMessageDigest ys)).2 κ ∈ L κ).card =
+      (fullDigestView (truncateMessageDigest ys)).1.val / 2 ^ lo = c ∧
+        ∀ κ, (fullDigestView (truncateMessageDigest ys)).2 κ ∈ L κ).card =
       S.card * Fintype.card ({j // j ≠ firstCall} → HashOutput) := by
     rw [Finset.card_filter, Finset.card_filter]
-    have hf : ∀ ys : DigV, (if ∀ κ, (fullDigestView (truncateMessageDigest ys)).2 κ ∈ L κ then 1 else 0) =
+    have hf : ∀ ys : DigV, (if (fullDigestView (truncateMessageDigest ys)).1.val / 2 ^ lo = c ∧
+          ∀ κ, (fullDigestView (truncateMessageDigest ys)).2 κ ∈ L κ then 1 else 0) =
         (fun p : HashOutput × ({j // j ≠ firstCall} → HashOutput) ↦
-          if ∀ κ, digestLeaves (truncateMessageDigest (ext0 p.1)) κ ∈ L κ then 1 else 0) (e ys) := by
+          if hiIdx lo (ext0 p.1) = c ∧ ∀ κ, digestLeaves (truncateMessageDigest (ext0 p.1)) κ ∈ L κ
+          then 1 else 0) (e ys) := by
       intro ys
       have hl : digestLeaves (truncateMessageDigest ys) =
           digestLeaves (truncateMessageDigest (ext0 (ys firstCall))) :=
         leaves_call0 hmd (ext0_first _).symm
+      have hh : (digestIndex (truncateMessageDigest ys)).val / 2 ^ lo = hiIdx lo (ext0 (ys firstCall)) :=
+        hiIdx_call0 hlo (ext0_first _).symm
       have he : (e ys).1 = ys firstCall := rfl
-      simp only [fullDigestView, hl, he]
+      simp only [fullDigestView, hl, hh, he]
     rw [Fintype.sum_equiv e _ (fun p : HashOutput × ({j // j ≠ firstCall} → HashOutput) ↦
-          if ∀ κ, digestLeaves (truncateMessageDigest (ext0 p.1)) κ ∈ L κ then 1 else 0) hf,
+          if hiIdx lo (ext0 p.1) = c ∧ ∀ κ, digestLeaves (truncateMessageDigest (ext0 p.1)) κ ∈ L κ
+          then 1 else 0) hf,
       Fintype.sum_prod_type, Finset.sum_mul]
     refine Finset.sum_congr rfl fun y _ ↦ ?_
     show (∑ _r : {j // j ≠ firstCall} → HashOutput,
-      if ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ then 1 else 0) = _
+      if hiIdx lo (ext0 y) = c ∧ ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ L κ then 1 else 0) = _
     rw [Finset.sum_const, Finset.card_univ, smul_eq_mul, mul_comm]
-  have hb := card_view_filter (fun w ↦ ∀ κ, w.2 κ ∈ L κ)
-  have hc : (Finset.univ.filter fun w : FullDigestView ↦ ∀ κ, w.2 κ ∈ L κ).card =
-      Fintype.card Index * ∏ κ, (L κ).card := by
-    rw [Finset.card_filter, Fintype.sum_prod_type]
-    show ∑ _x : Index, ∑ y : FTree → FLeaf, (if ∀ κ, y κ ∈ L κ then 1 else 0) = _
-    rw [Finset.sum_const, Finset.card_univ, smul_eq_mul]
-    congr 1
-    rw [← Finset.card_filter, ← Fintype.card_piFinset]
-    congr 1
-    ext ℓ
-    simp [Fintype.mem_piFinset]
+  have hb := card_view_filter (fun w ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ)
+  have hc : (Finset.univ.filter fun w : FullDigestView ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ).card ≤
+      2 ^ lo * ∏ κ, (L κ).card := by
+    have hsub : (Finset.univ.filter fun w : FullDigestView ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ) ⊆
+        (Finset.univ.filter fun t : Index ↦ t.val / 2 ^ lo = c) ×ˢ Fintype.piFinset L := by
+      intro w hw
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hw
+      simpa only [Finset.mem_product, Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset]
+        using hw
+    refine (Finset.card_le_card hsub).trans ?_
+    rw [Finset.card_product, Fintype.card_piFinset]
+    exact Nat.mul_le_mul_right _ (card_index_hi_le lo c)
   have hd : Fintype.card DigV = Fintype.card HashOutput * Fintype.card ({j // j ≠ firstCall} → HashOutput) := by
     rw [Fintype.card_congr e, Fintype.card_prod]
-  rw [ha, hc, hd, Fintype.card_prod] at hb
-  have hpos : 0 < Fintype.card ({j // j ≠ firstCall} → HashOutput) * Fintype.card Index :=
-    Nat.mul_pos Fintype.card_pos Fintype.card_pos
-  refine Nat.eq_of_mul_eq_mul_right hpos ?_
-  calc S.card * Fintype.card (FTree → FLeaf) *
-        (Fintype.card ({j // j ≠ firstCall} → HashOutput) * Fintype.card Index) =
-      S.card * Fintype.card ({j // j ≠ firstCall} → HashOutput) *
-        (Fintype.card Index * Fintype.card (FTree → FLeaf)) := by ring
-    _ = _ := by rw [hb]; ring
+  rw [ha, hd, Fintype.card_prod] at hb
+  have hpos : 0 < Fintype.card ({j // j ≠ firstCall} → HashOutput) := Fintype.card_pos
+  refine Nat.le_of_mul_le_mul_right ?_ hpos
+  calc S.card * (Fintype.card Index * Fintype.card (FTree → FLeaf)) *
+        Fintype.card ({j // j ≠ firstCall} → HashOutput) =
+      Fintype.card HashOutput * Fintype.card ({j // j ≠ firstCall} → HashOutput) *
+        (Finset.univ.filter fun w : FullDigestView ↦ w.1.val / 2 ^ lo = c ∧ ∀ κ, w.2 κ ∈ L κ).card := by
+        rw [← hb]; ring
+    _ ≤ Fintype.card HashOutput * Fintype.card ({j // j ≠ firstCall} → HashOutput) *
+        (2 ^ lo * ∏ κ, (L κ).card) := Nat.mul_le_mul_left _ hc
+    _ = _ := by ring
 
 /-! ## Tuples with few distinct entries -/
 
-theorem sum_pow_card_image (q : ℕ) {x : ℝ} (hx : 0 ≤ x) :
-    ∀ k : ℕ, ∑ f : Fin k → Fin q, x ^ (Finset.univ.image f).card ≤ ∏ j ∈ Finset.range k, (j + q * x)
-  | 0 => by simp
-  | k + 1 => by
-    rw [← Equiv.sum_comp (Fin.consEquiv fun _ : Fin (k + 1) ↦ Fin q), Fintype.sum_prod_type,
-      Finset.prod_range_succ]
+/-- The tuples with `j` distinct entries number at most `S(k, j) q^j`. -/
+theorem card_image_eq_le (q : ℕ) : ∀ k j : ℕ,
+    (Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card = j).card ≤
+      Nat.stirlingSecond k j * q ^ j
+  | 0, j => by
+    cases j with
+    | zero => simp
+    | succ j => simp
+  | k + 1, j => by
+    rw [Finset.card_filter, ← Equiv.sum_comp (Fin.consEquiv fun _ : Fin (k + 1) ↦ Fin q),
+      Fintype.sum_prod_type, Finset.sum_comm]
     have himg : ∀ (v : Fin q) (f : Fin k → Fin q), Finset.univ.image (Fin.cons v f : Fin (k + 1) → Fin q) =
         insert v (Finset.univ.image f) := by
       intro v f
       ext w
       simp [Fin.exists_fin_succ, eq_comm]
-    have hstep : ∀ f : Fin k → Fin q, ∑ v : Fin q,
-        x ^ (insert v (Finset.univ.image f)).card ≤ (k + q * x) * x ^ (Finset.univ.image f).card := by
-      intro f
-      set S := Finset.univ.image f
-      have hS : (S.card : ℝ) ≤ k := by
-        have := Finset.card_image_le (s := Finset.univ) (f := f)
-        rw [Finset.card_univ, Fintype.card_fin] at this
-        exact_mod_cast this
-      have hpt : ∀ v, x ^ (insert v S).card ≤ (if v ∈ S then 1 else 0) * x ^ S.card + x * x ^ S.card := by
-        intro v
-        have hp : 0 ≤ x ^ S.card := pow_nonneg hx _
-        by_cases hv : v ∈ S
-        · simp only [Finset.insert_eq_of_mem hv, hv, ite_true]
-          nlinarith
-        · simp only [Finset.card_insert_of_notMem hv, hv, ite_false, pow_succ]
-          nlinarith
-      refine (Finset.sum_le_sum fun v _ ↦ hpt v).trans ?_
-      rw [Finset.sum_add_distrib, ← Finset.sum_mul, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-        Finset.sum_boole]
-      have hfS : (Finset.univ.filter fun v ↦ v ∈ S) = S := by ext; simp
-      rw [hfS, nsmul_eq_mul]
-      have hp : 0 ≤ x ^ S.card := pow_nonneg hx _
-      nlinarith
-    rw [Finset.sum_comm]
     have hc : ∀ v f, (Fin.consEquiv (fun _ : Fin (k + 1) ↦ Fin q)) (v, f) = Fin.cons v f := fun _ _ ↦ rfl
     simp only [hc, himg]
-    calc ∑ f : Fin k → Fin q, ∑ v : Fin q, x ^ (insert v (Finset.univ.image f)).card
-        ≤ ∑ f : Fin k → Fin q, (k + q * x) * x ^ (Finset.univ.image f).card :=
-          Finset.sum_le_sum fun f _ ↦ hstep f
-      _ = (k + q * x) * ∑ f : Fin k → Fin q, x ^ (Finset.univ.image f).card := by rw [Finset.mul_sum]
-      _ ≤ (k + q * x) * ∏ j ∈ Finset.range k, (j + q * x) :=
-          mul_le_mul_of_nonneg_left (sum_pow_card_image q hx k) (by positivity)
-      _ = _ := by ring
+    have hstep : ∀ S : Finset (Fin q), ∑ v : Fin q, (if (insert v S).card = j then 1 else 0) ≤
+        j * (if S.card = j then 1 else 0) + q * (if S.card + 1 = j then 1 else 0) := by
+      intro S
+      have hpt : ∀ v, (if (insert v S).card = j then 1 else 0) =
+          if v ∈ S then (if S.card = j then 1 else 0) else (if S.card + 1 = j then 1 else 0) := by
+        intro v
+        by_cases hv : v ∈ S
+        · simp [hv]
+        · simp [hv, Finset.card_insert_of_notMem hv]
+      rw [Finset.sum_congr rfl fun v _ ↦ hpt v, Finset.sum_ite, Finset.sum_const, Finset.sum_const,
+        smul_eq_mul, smul_eq_mul]
+      have h1 : (Finset.univ.filter fun v ↦ v ∈ S) = S := by ext; simp
+      have h2 : (Finset.univ.filter fun v ↦ v ∉ S).card ≤ q :=
+        (Finset.card_filter_le _ _).trans (by rw [Finset.card_univ, Fintype.card_fin])
+      have h3 : S.card * (if S.card = j then 1 else 0) = j * (if S.card = j then 1 else 0) := by
+        split_ifs with h <;> simp [h]
+      rw [h1, h3]
+      exact Nat.add_le_add_left (Nat.mul_le_mul_right _ h2) _
+    calc ∑ f : Fin k → Fin q, ∑ v : Fin q, (if (insert v (Finset.univ.image f)).card = j then 1 else 0)
+        ≤ ∑ f : Fin k → Fin q, (j * (if (Finset.univ.image f).card = j then 1 else 0) +
+            q * (if (Finset.univ.image f).card + 1 = j then 1 else 0)) :=
+          Finset.sum_le_sum fun f _ ↦ hstep _
+      _ = j * (Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card = j).card +
+            q * (Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card + 1 = j).card := by
+          rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum, Finset.card_filter,
+            Finset.card_filter]
+      _ ≤ _ := by
+          cases j with
+          | zero => simp
+          | succ j =>
+            have he : (Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card + 1 = j + 1) =
+                Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card = j := by
+              ext f; simp
+            rw [he, Nat.stirlingSecond_succ_succ]
+            calc (j + 1) * (Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card = j + 1).card +
+                  q * (Finset.univ.filter fun f : Fin k → Fin q ↦ (Finset.univ.image f).card = j).card ≤
+                (j + 1) * (Nat.stirlingSecond k (j + 1) * q ^ (j + 1)) + q * (Nat.stirlingSecond k j * q ^ j) :=
+                  Nat.add_le_add (Nat.mul_le_mul_left _ (card_image_eq_le q k (j + 1)))
+                    (Nat.mul_le_mul_left _ (card_image_eq_le q k j))
+              _ = _ := by ring
+
+/-- The `k`-th moment of the number of hits: `∑_f x^|im f| ≤ ∑_j S(k, j) (q x)^j`. -/
+theorem sum_pow_card_image (q : ℕ) {x : ℝ} (hx : 0 ≤ x) (k : ℕ) :
+    ∑ f : Fin k → Fin q, x ^ (Finset.univ.image f).card ≤
+      ∑ j ∈ Finset.range (k + 1), ((Nat.stirlingSecond k j * q ^ j : ℕ) : ℝ) * x ^ j := by
+  have hmap : ∀ f ∈ (Finset.univ : Finset (Fin k → Fin q)), (Finset.univ.image f).card ∈ Finset.range (k + 1) := by
+    intro f _
+    have := Finset.card_image_le (s := Finset.univ) (f := f)
+    rw [Finset.card_univ, Fintype.card_fin] at this
+    exact Finset.mem_range.mpr (Nat.lt_succ_of_le this)
+  rw [← Finset.sum_fiberwise_of_maps_to hmap]
+  refine Finset.sum_le_sum fun j _ ↦ ?_
+  rw [Finset.sum_congr rfl fun f hf ↦ by rw [(Finset.mem_filter.mp hf).2], Finset.sum_const, nsmul_eq_mul]
+  exact mul_le_mul_of_nonneg_right (by exact_mod_cast card_image_eq_le q k j) (pow_nonneg hx _)
+
+/-- Row `k` of the Stirling numbers of the second kind, computed row by row. -/
+def stirRow : ℕ → List ℕ
+  | 0 => [1]
+  | k + 1 => let r := stirRow k
+    (List.range (k + 2)).map fun j ↦ j * r.getD j 0 + if j = 0 then 0 else r.getD (j - 1) 0
+
+theorem stirRow_getD : ∀ k j : ℕ, (stirRow k).getD j 0 = Nat.stirlingSecond k j
+  | 0, j => by cases j <;> simp [stirRow]
+  | k + 1, j => by
+    by_cases hj : j < k + 2
+    · rw [stirRow, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hj]
+      cases j with
+      | zero => simp
+      | succ j =>
+        show (j + 1) * (stirRow k).getD (j + 1) 0 +
+          (if j + 1 = 0 then 0 else (stirRow k).getD (j + 1 - 1) 0) = _
+        rw [stirRow_getD, ite_eq_right (Nat.succ_ne_zero j), Nat.add_sub_cancel, stirRow_getD,
+          Nat.stirlingSecond_succ_succ]
+    · rw [Nat.stirlingSecond_eq_zero_of_lt (by omega),
+        List.getD_eq_default _ _ (by rw [stirRow, List.length_map, List.length_range]; omega)]
 
 /-! ## The bound -/
 
@@ -225,10 +319,11 @@ abbrev idxD (v : DigV) : Index := digestIndex (truncateMessageDigest v)
 def cnt (δ : Fin signatureLimit → DigV) (t : Index) : ℕ :=
   (Finset.univ.filter fun i ↦ idxD (δ i) = t).card
 
-/-- **The cover bound**: `2^h ∏_{j<k} (j + N / 2^h) / 2^(k a)`. -/
-def lamB : ℝ := (Fintype.card Index : ℝ) *
-  (∏ j ∈ Finset.range forsTrees, ((j : ℝ) + signatureLimit * (Fintype.card Index : ℝ)⁻¹)) /
-    Fintype.card (FTree → FLeaf)
+/-- **The cover bound**: `2^lo ∑_j S(k, j) (N / 2^h)^j / 2^(k a)`, as a quotient of naturals. -/
+def lamS (lo : ℕ) : ℝ :=
+  ((2 ^ lo * ∑ j ∈ Finset.range (forsTrees + 1),
+      Nat.stirlingSecond forsTrees j * signatureLimit ^ j * Fintype.card Index ^ (forsTrees - j) : ℕ) : ℝ) /
+    ((Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees : ℕ) : ℝ)
 
 theorem card_leavesAll_le (δ : Fin signatureLimit → DigV) (t : Index) (κ : FTree) :
     (leavesAll δ t κ).card ≤ cnt δ t := by
@@ -241,40 +336,45 @@ theorem card_leavesAll_le (δ : Fin signatureLimit → DigV) (t : Index) (κ : F
   exact Finset.mem_image.mpr ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, hi⟩, hk⟩
 
 open Classical in
-/-- Per presampled digests: the coverable fraction is at most the `k`-th powers of the counts. -/
-theorem sbC_le (hmd : mdBytes ≤ 32) (δ : Fin signatureLimit → DigV) :
+/-- Per presampled digests: the coverable fraction is at most `2^lo / 2^h` times the `k`-th powers of
+the counts. -/
+theorem sbC_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) (δ : Fin signatureLimit → DigV) :
     (sbC δ : ℝ) / Fintype.card HashOutput ≤
-      ∑ t, (cnt δ t : ℝ) ^ forsTrees / Fintype.card (FTree → FLeaf) := by
-  have hsub : Finset.univ.filter (Coverable δ) ⊆ Finset.univ.biUnion fun t ↦
-      Finset.univ.filter fun y : HashOutput ↦
+      ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees / (Fintype.card Index * Fintype.card (FTree → FLeaf)) := by
+  have hsub : Finset.univ.filter (Coverable δ) ⊆ Finset.univ.biUnion fun t : Index ↦
+      Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = t.val / 2 ^ lo ∧
         ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ leavesAll δ t κ := by
     intro y hy
     simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hy
     obtain ⟨ys, hys, hcov⟩ := hy
     simp only [Finset.mem_biUnion, Finset.mem_univ, true_and, Finset.mem_filter]
-    refine ⟨digestIndex (truncateMessageDigest ys), fun κ ↦ ?_⟩
-    have hl := leaves_call0 hmd (ys := ys) (ys' := ext0 y) (by rw [hys, ext0_first])
-    rw [← hl]
+    have h0 : ys firstCall = ext0 y firstCall := by rw [hys, ext0_first]
+    refine ⟨digestIndex (truncateMessageDigest ys), (hiIdx_call0 hlo h0).symm, fun κ ↦ ?_⟩
+    rw [← leaves_call0 hmd h0]
     exact hcov κ
   have hc := (Finset.card_le_card hsub).trans Finset.card_biUnion_le
   have hY : (0 : ℝ) < Fintype.card HashOutput := by exact_mod_cast Fintype.card_pos
+  have hI : (0 : ℝ) < Fintype.card Index := by exact_mod_cast Fintype.card_pos
   have hF : (0 : ℝ) < Fintype.card (FTree → FLeaf) := by exact_mod_cast Fintype.card_pos
+  have hIF := mul_pos hI hF
   rw [div_le_iff₀ hY, Finset.sum_mul]
   refine (Nat.cast_le.mpr hc).trans ?_
   push_cast
   refine Finset.sum_le_sum fun t _ ↦ ?_
-  have hl := card_leaves hmd (leavesAll δ t)
+  have hl := card_leaves hmd hlo (t.val / 2 ^ lo) (leavesAll δ t)
   have hle : (∏ κ, (leavesAll δ t κ).card : ℝ) ≤ (cnt δ t : ℝ) ^ forsTrees := by
     calc (∏ κ, (leavesAll δ t κ).card : ℝ) ≤ ∏ _κ : FTree, (cnt δ t : ℝ) :=
           Finset.prod_le_prod₀ (fun _ _ ↦ by positivity) fun κ _ ↦ by
             exact_mod_cast card_leavesAll_le δ t κ
       _ = _ := by rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
-  have hl' : ((Finset.univ.filter fun y : HashOutput ↦
+  have hl' : ((Finset.univ.filter fun y : HashOutput ↦ hiIdx lo (ext0 y) = t.val / 2 ^ lo ∧
       ∀ κ, digestLeaves (truncateMessageDigest (ext0 y)) κ ∈ leavesAll δ t κ).card : ℝ) *
-      Fintype.card (FTree → FLeaf) = Fintype.card HashOutput * ∏ κ, ((leavesAll δ t κ).card : ℝ) := by
+      (Fintype.card Index * Fintype.card (FTree → FLeaf)) ≤
+      Fintype.card HashOutput * (2 ^ lo * ∏ κ, ((leavesAll δ t κ).card : ℝ)) := by
     exact_mod_cast hl
-  rw [div_mul_eq_mul_div, le_div_iff₀ hF, hl', mul_comm ((cnt δ t : ℝ) ^ forsTrees)]
-  exact mul_le_mul_of_nonneg_left hle hY.le
+  rw [div_mul_eq_mul_div, le_div_iff₀ hIF]
+  refine hl'.trans (le_of_le_of_eq (mul_le_mul_of_nonneg_left
+    (mul_le_mul_of_nonneg_left hle (by positivity)) hY.le) (by ring))
 
 /-- The presampled digests that put the digests of a tuple's signatures at `t`. -/
 theorem card_tuple_at (f : FTree → Fin signatureLimit) (t : Index) :
@@ -316,8 +416,8 @@ theorem card_tuple_at (f : FTree → Fin signatureLimit) (t : Index) :
   rw [Finset.prod_congr rfl fun i _ ↦ hS i, Finset.prod_mul_distrib, Finset.prod_const, Finset.card_univ,
     Fintype.card_fin, Finset.prod_ite_mem, Finset.univ_inter, Finset.prod_const]
 
-/-- **The cover probability is at most `lamB`.** -/
-theorem lamCov_le (hmd : mdBytes ≤ 32) : lamCov ≤ ENNReal.ofReal lamB := by
+/-- **The cover probability is at most `lamS`.** -/
+theorem lamCov_le (hmd : mdBytes ≤ 32) {lo : ℕ} (hlo : IdxCall0 lo) : lamCov ≤ ENNReal.ofReal (lamS lo) := by
   set cΔ := (Fintype.card (Fin signatureLimit → DigV) : ℝ)
   set r : (Fin signatureLimit → DigV) → ℝ := fun δ ↦ (sbC δ : ℝ) / Fintype.card HashOutput
   have hΔ : 0 < cΔ := Nat.cast_pos.mpr Fintype.card_pos
@@ -354,21 +454,46 @@ theorem lamCov_le (hmd : mdBytes ≤ 32) : lamCov ≤ ENNReal.ofReal lamB := by
     rw [Finset.card_filter] at h
     push_cast at h
     rw [h, hcΔ]
-  calc cΔ⁻¹ * ∑ δ, r δ ≤ cΔ⁻¹ * ∑ δ, ∑ t, (cnt δ t : ℝ) ^ forsTrees / F :=
-        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun δ _ ↦ sbC_le hmd δ) (inv_nonneg.mpr hΔ.le)
-    _ = F⁻¹ * ∑ t : Index, (cΔ⁻¹ * ∑ δ, (cnt δ t : ℝ) ^ forsTrees) := by
+  set C : ℝ := 2 ^ lo / (I * F)
+  have hC : 0 ≤ C := by positivity
+  calc cΔ⁻¹ * ∑ δ, r δ ≤ cΔ⁻¹ * ∑ δ, ∑ t, 2 ^ lo * (cnt δ t : ℝ) ^ forsTrees / (I * F) :=
+        mul_le_mul_of_nonneg_left (Finset.sum_le_sum fun δ _ ↦ sbC_le hmd hlo δ) (inv_nonneg.mpr hΔ.le)
+    _ = C * ∑ t : Index, (cΔ⁻¹ * ∑ δ, (cnt δ t : ℝ) ^ forsTrees) := by
         rw [Finset.sum_comm, Finset.mul_sum, Finset.mul_sum]
         refine Finset.sum_congr rfl fun t _ ↦ ?_
         rw [Finset.mul_sum, Finset.mul_sum, Finset.mul_sum]
         refine Finset.sum_congr rfl fun δ _ ↦ ?_
-        rw [div_eq_mul_inv]; ring
-    _ = F⁻¹ * (I * ∑ f : FTree → Fin signatureLimit, I⁻¹ ^ (Finset.univ.image f).card) := by
+        simp only [C]
+        ring
+    _ = C * (I * ∑ f : FTree → Fin signatureLimit, I⁻¹ ^ (Finset.univ.image f).card) := by
         simp only [hswap]
         rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, ← Finset.mul_sum, ← mul_assoc cΔ⁻¹,
           inv_mul_cancel₀ hΔ.ne', one_mul]
-    _ ≤ F⁻¹ * (I * ∏ j ∈ Finset.range forsTrees, ((j : ℝ) + signatureLimit * I⁻¹)) := by
-        refine mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left ?_ hI.le) (inv_nonneg.mpr hF.le)
+    _ ≤ C * (I * ∑ j ∈ Finset.range (forsTrees + 1),
+          ((Nat.stirlingSecond forsTrees j * signatureLimit ^ j : ℕ) : ℝ) * I⁻¹ ^ j) := by
+        refine mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left ?_ hI.le) hC
         exact sum_pow_card_image signatureLimit (inv_nonneg.mpr hI.le) forsTrees
-    _ = lamB := by rw [lamB]; ring
+    _ = lamS lo := by
+        rw [lamS]
+        push_cast
+        have hterm : ∀ j ∈ Finset.range (forsTrees + 1),
+            (Nat.stirlingSecond forsTrees j : ℝ) * (signatureLimit : ℝ) ^ j * I ^ (forsTrees - j) =
+              I ^ forsTrees * ((Nat.stirlingSecond forsTrees j : ℝ) * (signatureLimit : ℝ) ^ j * I⁻¹ ^ j) := by
+          intro j hj
+          rw [pow_sub₀ _ hI.ne' (Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)), inv_pow]
+          ring
+        rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum]
+        simp only [C, F, I]
+        field_simp
+
+/-- `lamS` is at most `2^-b` when the naturals say so. -/
+theorem lamS_le {lo b : ℕ} (hn : (2 ^ lo * ∑ j ∈ Finset.range (forsTrees + 1),
+      Nat.stirlingSecond forsTrees j * signatureLimit ^ j * Fintype.card Index ^ (forsTrees - j)) * 2 ^ b ≤
+      Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees) : lamS lo ≤ (2 : ℝ)⁻¹ ^ b := by
+  have hd : (0 : ℝ) < ((Fintype.card (FTree → FLeaf) * Fintype.card Index ^ forsTrees : ℕ) : ℝ) :=
+    Nat.cast_pos.mpr (Nat.mul_pos Fintype.card_pos (Nat.pow_pos Fintype.card_pos))
+  unfold lamS
+  rw [div_le_iff₀ hd, inv_pow, inv_mul_eq_div, le_div_iff₀ (by positivity)]
+  exact_mod_cast hn
 
 end Qrom.Sphincs
