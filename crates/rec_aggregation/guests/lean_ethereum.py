@@ -29,8 +29,8 @@ INV_GEN = INV_GEN_PLACEHOLDER
 FIELD_BITS = 192
 # A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
 # squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
-QW = 6
-QUERY_WINDOWS_CAP = 56
+QW = QW_PLACEHOLDER
+QUERY_WINDOWS_CAP = QUERY_WINDOWS_CAP_PLACEHOLDER
 BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
@@ -44,13 +44,14 @@ RES_BATCH = 8  # residual queries per loop iteration
 RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
-# structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
+# structural size (sums of 2^kappa, packing offsets: a stack of at most 2^40) fits
+# SIZE_BITS bits; and a
 # structural LOG (log_mem, log_inv_rate), announced as an integer word and
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
 # are enough and the reconstruction IS the bound (a larger announced log cannot
 # reproduce itself from this many bits).
 COUNT_BITS = 33
-SIZE_BITS = 34
+SIZE_BITS = SIZE_BITS_PLACEHOLDER
 LOG_WORD_BITS = 6
 
 # ------------------------------------------------------------------- Fiat-Shamir
@@ -101,6 +102,7 @@ COUNT_SIDE = 2
 N_GKR_SIDES = 3
 GKR_ROUNDS_CAP = GKR_ROUNDS_CAP_PLACEHOLDER
 MU_CAP = MU_CAP_PLACEHOLDER
+BUS_DEPTH_BOUND = MU_CAP + 1  # a bus depth is at most MU_CAP
 GKR_POINTS_CAP = GKR_POINTS_CAP_PLACEHOLDER
 # Bus blocks, flattened across the 3 sides (side s covers blocks
 # [SIDE_BLOCK_START[s], SIDE_BLOCK_START[s+1])). The block STRUCTURE is
@@ -256,12 +258,11 @@ KR_STEP = 2 ** KR_STEP_LOG
 KR_CAP = 16
 
 # ------------------------------------------------- the stacked WHIR opening
-# The opening is dispatched by the certified committed log-size m through `match`.
-# The LIG_* tables carry one row per (rate, m), emitted from the same
-# derive_profile/level_shapes the prover uses: scalars index as TBL[m_idx],
-# per-level values as TBL[m_idx * LIG_MAX_LEVELS + lvl] where m_idx is the
-# flattened rate-major configuration index, and the subspace vanishing constants
-# with the LIG_MAX_VANISH_LEN stride.
+# The opening is dispatched by the certified committed log-size m through `match`,
+# one arm per m, and by the announced rate inside it. The LIG_* tables carry one row
+# per (rate, m), emitted from the same level_shapes the prover uses: scalars index as
+# TBL[m_idx], per-level values as TBL[m_idx * LIG_MAX_LEVELS + lvl], where m_idx is
+# the rate-major candidate index rate * LIG_N_LOG_SIZES + m - LIG_MIN_LOG_SIZE.
 LIG_MIN_LOG_SIZE = LIG_MIN_LOG_SIZE_PLACEHOLDER
 LIG_N_LOG_SIZES = LIG_N_LOG_SIZES_PLACEHOLDER
 LIG_N_RATES = LIG_N_RATES_PLACEHOLDER
@@ -276,7 +277,6 @@ COL_GROUP_START = COL_GROUP_START_PLACEHOLDER  # a column group's first column, 
 PCS_MIN_MU = PCS_MIN_MU_PLACEHOLDER
 # Global maxima; StackBuf frame sizes are parse-time, so they must be baked.
 LIG_MAX_LEVELS = LIG_MAX_LEVELS_PLACEHOLDER
-LIG_MAX_VANISH_LEN = LIG_MAX_VANISH_LEN_PLACEHOLDER
 LIG_MAX_OOD_SAMPLES = LIG_MAX_OOD_SAMPLES_PLACEHOLDER
 LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
@@ -295,13 +295,14 @@ LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
 LIG_YR_LEN = LIG_YR_LEN_PLACEHOLDER
 LIG_TOTAL_FOLDS = LIG_TOTAL_FOLDS_PLACEHOLDER
-LIG_MAX_SQUEEZES = LIG_MAX_SQUEEZES_PLACEHOLDER
 LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
-LIG_POSITIONS_LEN = LIG_POSITIONS_LEN_PLACEHOLDER
 LIG_CAP_DEPTH = LIG_CAP_DEPTH_PLACEHOLDER
-LIG_CAP_OFF = LIG_CAP_OFF_PLACEHOLDER
-LIG_CAP_LEN = LIG_CAP_LEN_PLACEHOLDER
 LIG_QUERY_GRIND_BITS = LIG_QUERY_GRIND_BITS_PLACEHOLDER
+LIG_FOLD_GRIND_BITS = LIG_FOLD_GRIND_BITS_PLACEHOLDER
+LIG_FOLD_GRIND_ANY = LIG_FOLD_GRIND_ANY_PLACEHOLDER  # per size row: 1 where some rate grinds the level's folds
+LIG_LEVEL_POSITIONS_CAP = LIG_LEVEL_POSITIONS_CAP_PLACEHOLDER
+VANISH_BY_COLS = VANISH_BY_COLS_PLACEHOLDER  # the subspace-vanishing values of n columns at n(n+1)/2
+VANISH_INVS_BY_COLS = VANISH_INVS_BY_COLS_PLACEHOLDER  # and their inverses
 LIG_OOD_SAMPLES = LIG_OOD_SAMPLES_PLACEHOLDER
 LIG_QUERIES = LIG_QUERIES_PLACEHOLDER
 LIG_FOLDS = LIG_FOLDS_PLACEHOLDER
@@ -312,15 +313,10 @@ LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
 LIG_PATH_CAP = LIG_PATH_CAP_PLACEHOLDER
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
 LIG_SQUEEZES = LIG_SQUEEZES_PLACEHOLDER
-LIG_POSITIONS_OFF = LIG_POSITIONS_OFF_PLACEHOLDER
 LIG_LOG_MSG_COLS = LIG_LOG_MSG_COLS_PLACEHOLDER
 LIG_RESIDUAL_FOLD_OFF = LIG_RESIDUAL_FOLD_OFF_PLACEHOLDER
 LIG_RESIDUAL_PREFIX_LEN = LIG_RESIDUAL_PREFIX_LEN_PLACEHOLDER
 LIG_FOLDS_OFF = LIG_FOLDS_OFF_PLACEHOLDER
-LIG_VANISH_OFF = LIG_VANISH_OFF_PLACEHOLDER
-LIG_VANISH_VALS = LIG_VANISH_VALS_PLACEHOLDER
-LIG_VANISH_INVS = LIG_VANISH_INVS_PLACEHOLDER
-LIG_N_CANDIDATES = LIG_N_CANDIDATES_PLACEHOLDER
 LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
 # eval_b claim descriptors. CLAIM_POINT_BUF says which point buffer a pooled
 # claim's x-part lives in, CLAIM_COMMITTED_COL maps it to the compact index of the
@@ -855,8 +851,7 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
     # the polynomial basis shifting a run as a whole only inside one limb.
     per_word = FIELD_BITS // depth
     path = depth - cap_depth
-    n_pw = (path + QW - 1) // QW
-    n_win = n_pw + 2
+    n_win = path // QW + 2
     wins = StackBuf(QUERY_WINDOWS_CAP)
     wins_ptr = addr(wins)
     reconstructed = 0
@@ -868,16 +863,13 @@ def decode_query_windows(squeezed_word, positions_out, win_ptrs_out, tabs, depth
         p_lo = 0
         p_hi = 0
         for i in unroll(0, n_win):
-            # window i: QW path bits, the last path window's remainder, the cap child bit, the cap index
+            # window i: QW path bits (a path is whole windows), the cap child bit, the cap index
             if const(i + 2 == n_win):
                 off = path
                 width = 1
             elif const(i + 1 == n_win):
                 off = path + 1
                 width = cap_depth - 1
-            elif const(i + 3 == n_win):
-                off = QW * i
-                width = path - QW * i
             else:
                 off = QW * i
                 width = QW
@@ -1229,6 +1221,34 @@ def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2):
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor * GEN ** 2, claim, c0, c2, r
 
 
+def opening_fold_round(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2, nbits: Const):
+    # A fold round after a proof of work of nbits bits, none at 0: the nonce waits after
+    # w0 and w1, the challenge of the permutation taking all three must pass grind_check,
+    # and the fold challenge is the next permutation, nothing waiting. The round's
+    # coefficients follow the nonce.
+    if const(nbits == 0):
+        f0, f1, f2, f3, f4, cursor, claim, c0, c2, r = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2)
+    else:
+        cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
+        rate = StackBuf(8)
+        fs_pack(rate, 0, w0, DS_OBSERVE)
+        fs_pack(rate, 1, w1, DS_OBSERVE)
+        pow_sp = fs_absorb_nonce(cap, rate, 2, cursor[GEN ** 0])
+        grind_check(pow_sp[0], nbits)
+        no_rate = StackBuf(8)
+        sp, r = squeeze(pow_sp, no_rate, 0)
+        claim = (c2 * r + c1) * r + c0
+        c0 = cursor[GEN ** 1]
+        c2 = cursor[GEN ** 2]
+        f0 = sp[8]
+        f1 = sp[9]
+        f2 = sp[10]
+        f3 = sp[11]
+        f4 = sp[12]
+        cursor = cursor * GEN ** 3
+    return f0, f1, f2, f3, f4, cursor, claim, c0, c2, r
+
+
 def opening_ood_point(fs0, fs1, fs2, fs3, fs4, r0, r1, r2, r3, r4, r5, r6, r7, point, n: Const):
     # One specialization per point dimension. The first coordinate's permutation takes
     # the rate r0..r7, the scalars waiting in the sponge and zero past them.
@@ -1305,35 +1325,26 @@ def walk_window(n0, n1, path, lvl0: Const, width: Const, k: Const):
     return n0, n1
 
 
-def walk_path(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
+def walk_path(n0, n1, wins, path_depth: Const):
     # The path, a window of QW levels a dispatch (`decode_query_windows`): each arm knows its
     # levels' order bits, so it hashes the running node against the sibling its hinted pair holds.
+    # A path is whole windows (`merkle_cap_depth`), so a walk depends on its length alone.
     path = StackBuf(LIG_PATH_CAP)
     hint_witness(path[0:4 * path_depth], "merkle_children")
-    for i in unroll(0, (path_depth + QW - 1) // QW):
-        if const(QW * i + QW == QW * ((path_depth + QW - 1) // QW)):
-            width = path_depth - QW * i
-        else:
-            width = QW
+    for i in unroll(0, path_depth // QW):
         w = wins[GEN ** i]
-        if const(width == 6):
-            n0, n1 = match(log(w), range(0, 64), lambda k: walk_window(n0, n1, path, QW * i, 6, k))
-        elif const(width == 5):
-            n0, n1 = match(log(w), range(0, 32), lambda k: walk_window(n0, n1, path, QW * i, 5, k))
-        elif const(width == 4):
-            n0, n1 = match(log(w), range(0, 16), lambda k: walk_window(n0, n1, path, QW * i, 4, k))
-        elif const(width == 3):
-            n0, n1 = match(log(w), range(0, 8), lambda k: walk_window(n0, n1, path, QW * i, 3, k))
-        elif const(width == 2):
-            n0, n1 = match(log(w), range(0, 4), lambda k: walk_window(n0, n1, path, QW * i, 2, k))
-        else:
-            n0, n1 = match(log(w), range(0, 2), lambda k: walk_window(n0, n1, path, QW * i, 1, k))
+        n0, n1 = match(log(w), range(0, 64), lambda k: walk_window(n0, n1, path, QW * i, QW, k))
+    return n0, n1
+
+
+@inline
+def place_cap_leaf(n0, n1, wins, cap, flags, path_depth: Const, cap_depth: Const):
     # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1, where
     # parent = 2^(cap_depth-1) + q: the child bit and q are the last two windows, g^bit
     # and g^q, the constant parts folded into the address immediates. Every cap is at
     # least two levels deep (`decode_query_windows` gives q cap_depth - 1 bits).
-    wb = wins[GEN ** ((path_depth + QW - 1) // QW)]
-    q = wins[GEN ** ((path_depth + QW - 1) // QW + 1)]
+    wb = wins[GEN ** (path_depth // QW)]
+    q = wins[GEN ** (path_depth // QW + 1)]
     flags_q = flags * q
     flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
     q2 = q * q
@@ -1386,7 +1397,8 @@ def opening_query(cap, flags, row_eq_weights, wins, base: Const, interleave: Con
     # Hash the packed row.
     leaf_hash_state = StackBuf(2)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
-    walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
+    n0, n1 = walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, depth - cap_depth)
+    place_cap_leaf(n0, n1, wins, cap, flags, depth - cap_depth, cap_depth)
     return row_dot
 
 
@@ -1416,21 +1428,92 @@ def opening_queries(cap, flags, lam, lam_n, query_win_ptrs, row_eq_weights, n_it
 
 
 @inline
-def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
+def residual_query(basis_chain, row_d, n_cols: Const):
     # prod_t (d_t + chain_t) over one query's message-column coordinates, chain_0
     # being the query position.
     prefix_eq = row_d[GEN ** 0] + basis_chain
     for t in unroll(1, n_cols):
-        # subspace-vanishing recurrence for the novel-basis point
-        basis_chain *= basis_chain + LIG_VANISH_VALS[vanish + t - 1]
+        # subspace-vanishing recurrence for the novel-basis point, a function of n_cols alone
+        basis_chain *= basis_chain + VANISH_BY_COLS[n_cols * (n_cols + 1) // 2 + t - 1]
         prefix_eq *= row_d[GEN ** t] + basis_chain
     return prefix_eq
 
 
-def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
-    # The stacked WHIR opening, one specialization per (rate, committed log-size)
-    # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
-    # opening proof data is hinted here, so only the executed arm pops its streams.
+def level_residual(positions, row_d, mu, n_batches, n_rest, n_cols: Const):
+    # A level's residual weights at the terminal point: RES_BATCH queries an iteration,
+    # sharing the row's reads and constants, then the rest one at a time. Query q is
+    # weighted lam^q: the chain runs h <- (h + eq_q) * mu with mu = 1/lam, ending at
+    # lam^-n * sum_q lam^q eq_q.
+    chain = HeapBuf(n_batches * GEN)
+    chain[GEN ** 0] = 0
+    for xr in mul_range(1, n_batches):
+        batch = positions * xr ** RES_BATCH
+        h = chain[xr]
+        for k in unroll(0, RES_BATCH):
+            h = (h + residual_query(batch[GEN ** k], row_d, n_cols)) * mu
+        chain[xr * GEN] = h
+    rest = HeapBuf(n_rest * GEN)
+    rest[GEN ** 0] = chain[n_batches]
+    tail = positions * n_batches ** RES_BATCH
+    for xq in mul_range(1, n_rest):
+        rest[xq * GEN] = (rest[xq] + residual_query(tail[xq], row_d, n_cols)) * mu
+    return rest[n_rest]
+
+
+@inline
+def query_counts(n_queries: Const):
+    # A level's queries as g-powers: whole residual batches, and the rest.
+    return GEN ** (n_queries // RES_BATCH), GEN ** (n_queries % RES_BATCH)
+
+
+def level_positions(fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, win_tabs, squeezes: Const, depth: Const, cap_depth: Const):
+    # A level's query positions, squeezed from the sponge and decoded, one squeeze per
+    # FIELD_BITS // depth positions; shared by every stack size with the level's shape.
+    sqz = HeapBuf((GEN ** (squeezes + 1)) ** FS_CELLS)
+    sqz[GEN ** 0] = fs0
+    sqz[GEN ** 1] = fs1
+    sqz[GEN ** 2] = fs2
+    sqz[GEN ** 3] = fs3
+    sqz[GEN ** 4] = fs4
+    for xs in mul_range(1, GEN ** squeezes):
+        row = sqz * xs ** FS_CELLS
+        row_cap = fs_load(row, 0, 1)
+        no_rate = StackBuf(8)
+        row_sp, packed_word = squeeze(row_cap, no_rate, 0)
+        fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
+        query_ptr = xs ** (FIELD_BITS // depth)
+        decode_query_windows(packed_word, positions * query_ptr, win_ptrs * query_ptr, win_tabs, depth, cap_depth)
+    sp = fs_load(sqz * (GEN ** squeezes) ** FS_CELLS, 0, 1)
+    return sp[0], sp[1], sp[2], sp[3], sp[4]
+
+
+def level_queries(lam, win_ptrs, row_eq_weights, n_queries: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+    # A level's Merkle cap, hinted and checked up to its root, and the level's query batch
+    # walked into it. Returns the root, the batch's sum, and lam^n_queries.
+    cap = HeapBuf(GEN ** (4 * 2 ** cap_depth))
+    hint_witness(cap[0:4 * 2 ** cap_depth], "merkle_caps")
+    flags = HeapBuf(GEN ** (2 ** cap_depth))
+    hint_witness(flags[0:2 ** cap_depth], "merkle_cap_active")
+    root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
+    lam_n = lam ** n_queries
+    if const(base == 1):
+        n_iters = n_queries // 2
+        odd = n_queries % 2
+    else:
+        n_iters = n_queries
+        odd = 0
+    total = opening_queries(cap, flags, lam, lam_n, win_ptrs, row_eq_weights, GEN ** n_iters, odd, base, interleave, leaf_cells, depth, cap_depth)
+    return root_0, root_1, total, lam_n
+
+
+def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
+    # The stacked WHIR opening, one specialization per committed log-size, the rate
+    # g^rate_sel at runtime. The LIG_* tables hold a row per (rate, size) candidate,
+    # rate-major, so row m_idx is the size's at the first rate, and a level's row `ml`
+    # is its (`opening_placeholders` checks that only the shapes below vary by rate).
+    # What a rate changes, its query counts and Merkle shapes and fold grinding, each
+    # level reads through a `match` on the rate into a helper specialized on them, and
+    # shared by every size. Only the executed arm pops the opening's hint streams.
     #
     # The returned point is in witness order. Round-order challenges stay local
     # for the induced weights, OOD claims, and residual evaluation.
@@ -1456,11 +1539,6 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     round_quad_b = target + round_quad_a
     sumcheck_target = target
 
-    # Caps are shared across queries; rows and paths are hinted in each query's frame.
-    merkle_caps = HeapBuf(GEN ** (4 * LIG_CAP_LEN[m_idx]))
-    hint_witness(merkle_caps[0:4 * LIG_CAP_LEN[m_idx]], "merkle_caps")
-    cap_flags = HeapBuf(GEN ** LIG_CAP_LEN[m_idx])
-    hint_witness(cap_flags[0:LIG_CAP_LEN[m_idx]], "merkle_cap_active")
     final_msg = HeapBuf(GEN ** yr_len)  # filled from the stream at the last level
     # Each cap root is checked against its transcript-bound level root.
     level_roots = HeapBuf(GEN ** (2 * n_levels))
@@ -1470,8 +1548,10 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     fold_challenges = HeapBuf(GEN ** n_folds)
     level_betas = HeapBuf(GEN ** n_levels)
     level_mus = HeapBuf(GEN ** n_levels)
-    query_positions = HeapBuf(GEN ** (LIG_POSITIONS_LEN[m_idx]))
-    query_win_ptrs = HeapBuf(GEN ** (LIG_POSITIONS_LEN[m_idx]))
+    # A level's query positions, at most LIG_LEVEL_POSITIONS_CAP at any rate, start at
+    # lvl * LIG_LEVEL_POSITIONS_CAP.
+    query_positions = HeapBuf(GEN ** (n_levels * LIG_LEVEL_POSITIONS_CAP))
+    query_win_ptrs = HeapBuf(GEN ** (n_levels * LIG_LEVEL_POSITIONS_CAP))
     # A query window's bit pattern by its g-power (`decode_query_windows`): win_tabs[g^n] = n.
     win_tabs = HeapBuf(GEN ** 128)
     for n in unroll(0, 128):
@@ -1485,13 +1565,16 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
 
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
-        n_queries = LIG_QUERIES[ml]
-        depth = LIG_TREE_DEPTH[ml]
         interleave = LIG_INTERLEAVE[ml]
         folds_off = LIG_FOLDS_OFF[ml]
-        pos_off = LIG_POSITIONS_OFF[ml]
+        pos_off = lvl * LIG_LEVEL_POSITIONS_CAP
         for j in unroll(0, LIG_FOLDS[ml]):
-            fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+            # A level whose proximity gap reaches the target alone at every rate grinds
+            # nothing and reads no nonce; otherwise the rate says how many bits it grinds.
+            if const(LIG_FOLD_GRIND_ANY[ml] == 0):
+                fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+            else:
+                fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: opening_fold_round(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a, LIG_FOLD_GRIND_BITS[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
             w0 = round_quad_c
             w1 = round_quad_a
             fold_challenges[GEN ** (folds_off + j)] = fold_challenge
@@ -1553,27 +1636,8 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         else:
             assert q_nonce == 0
 
-        sqz = HeapBuf((GEN ** (LIG_MAX_SQUEEZES[m_idx] + 1)) ** FS_CELLS)
-        sqz[GEN ** 0] = fs0
-        sqz[GEN ** 1] = fs1
-        sqz[GEN ** 2] = fs2
-        sqz[GEN ** 3] = fs3
-        sqz[GEN ** 4] = fs4
-        for xs in mul_range(1, GEN ** LIG_SQUEEZES[ml]):
-            # a loop body captures free names BY VALUE, so the compile-time aliases
-            # are rebound here (m_idx and lvl are substituted literals)
-            depth = LIG_TREE_DEPTH[m_idx * LIG_MAX_LEVELS + lvl]
-            pos_off = LIG_POSITIONS_OFF[m_idx * LIG_MAX_LEVELS + lvl]
-            row = sqz * xs ** FS_CELLS
-            row_cap = fs_load(row, 0, 1)
-            no_rate = StackBuf(8)
-            row_sp, packed_word = squeeze(row_cap, no_rate, 0)
-            fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
-            query_ptr = xs ** (FIELD_BITS // depth)
-            cap_depth = LIG_CAP_DEPTH[m_idx * LIG_MAX_LEVELS + lvl]
-            decode_query_windows(packed_word, query_positions * GEN ** pos_off * query_ptr, query_win_ptrs * GEN ** pos_off * query_ptr, win_tabs, depth, cap_depth)
-        sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** FS_CELLS
-        sp = fs_load(sqz_end, 0, 1)
+        fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(fs0, fs1, fs2, fs3, fs4, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, win_tabs, LIG_SQUEEZES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_TREE_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_CAP_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
+        sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
 
         # One batching challenge for the level, drawn once every claim it batches is
         # fixed: its OOD claims above and these query positions. Claim tau of the
@@ -1582,7 +1646,6 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         # into lam^i here and the level scalar lam^(n_ood+1) below.
         no_rate = StackBuf(8)
         sp, lam = squeeze(sp, no_rate, 0)
-        lam_pow = lam ** n_queries
         level_mus[GEN ** lvl] = 1 / lam
         # At level 0, slot i of a leaf image is interleaving index n-1-i: the image
         # reads its lanes from the top down, so the lanes a padding-free commitment
@@ -1592,14 +1655,9 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
         opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
 
-        cap_depth = LIG_CAP_DEPTH[ml]
-        cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
-        flags = cap_flags * GEN ** LIG_CAP_OFF[ml]
-        root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
+        root_0, root_1, level_query_sum, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, query_win_ptrs * GEN ** pos_off, row_eq_weights, LIG_QUERIES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_CAP_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
-
-        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_win_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
@@ -1701,16 +1759,16 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         prefix_len = LIG_RESIDUAL_PREFIX_LEN[ml]
-        vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
+        vanish = LIG_LOG_MSG_COLS[ml] * (LIG_LOG_MSG_COLS[ml] + 1) // 2
         scale = level_betas[GEN ** lvl]
         for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
-            coef_b = fold_c * LIG_VANISH_INVS[vanish + t]
+            coef_b = fold_c * VANISH_INVS_BY_COLS[vanish + t]
             basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / coef_b
             scale *= coef_b
         for j in unroll(0, yr_log):
             tail_c = tail_challenges[GEN ** j]
-            coef_b = tail_c * LIG_VANISH_INVS[vanish + prefix_len + j]
+            coef_b = tail_c * VANISH_INVS_BY_COLS[vanish + prefix_len + j]
             basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / coef_b
             scale *= coef_b
         level_scale[GEN ** lvl] = scale
@@ -1718,28 +1776,9 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     inner_chain[GEN ** 0] = 0
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
-        n_queries = LIG_QUERIES[ml]
-        vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
-        basis_row = lvl * LIG_LOG_MSG_COLS_CAP
-        # Query q is weighted lam^q: the chain runs h <- (h + eq_q) * mu with mu = 1/lam,
-        # ending at lam^-n * sum_q lam^q eq_q, and level_betas carries lam^n.
-        mu = level_mus[GEN ** lvl]
-        residual_chain = HeapBuf(GEN ** (n_queries // RES_BATCH + 1))
-        residual_chain[GEN ** 0] = 0
-        # RES_BATCH queries an iteration share the row's reads and constants.
-        for xr in mul_range(1, GEN ** (LIG_QUERIES[ml] // RES_BATCH)):
-            ml = m_idx * LIG_MAX_LEVELS + lvl  # rebound: the body captures by value
-            vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
-            basis_row = lvl * LIG_LOG_MSG_COLS_CAP
-            positions = query_positions * GEN ** LIG_POSITIONS_OFF[ml] * xr ** RES_BATCH
-            row_d = basis_d * GEN ** basis_row
-            h = residual_chain[xr]
-            for k in unroll(0, RES_BATCH):
-                h = (h + residual_query(positions[GEN ** k], row_d, vanish, LIG_LOG_MSG_COLS[ml])) * mu
-            residual_chain[xr * GEN] = h
-        h = residual_chain[GEN ** (n_queries // RES_BATCH)]
-        for q in unroll(n_queries - n_queries % RES_BATCH, n_queries):
-            h = (h + residual_query(query_positions[GEN ** (LIG_POSITIONS_OFF[ml] + q)], basis_d * GEN ** basis_row, vanish, LIG_LOG_MSG_COLS[ml])) * mu
+        # level_betas carries the lam^n that the residual chain's 1/lam steps leave out.
+        n_batches, n_rest = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: query_counts(LIG_QUERIES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
+        h = level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_mus[GEN ** lvl], n_batches, n_rest, LIG_LOG_MSG_COLS[ml])
         # accumulate beta_lvl * lam^n * prod_t b_t * (per-level residual chain) into the grand residual
         inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * h
 
@@ -1776,7 +1815,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
     layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)  # mu + 2 layers
     rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
     gkr_pts = HeapBuf(GKR_POINTS_CAP)
-    assert log(g_bus_mu) < COUNT_BITS
+    assert log(g_bus_mu) < BUS_DEPTH_BOUND
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
     root_push, cursor = fs_next(rate, 0, cursor)
@@ -1806,9 +1845,9 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
     # Contract two binary product levels at a time. pair_bounds[g^d] = g^(d//2) is
     # the radix-four layer count, and shift is g exactly when the depth is odd, in
     # which case the root-most BINARY layer runs first.
-    pair_bounds = HeapBuf(COUNT_BITS)
-    depth_shift = HeapBuf(COUNT_BITS)
-    for depth in unroll(0, COUNT_BITS):
+    pair_bounds = HeapBuf(BUS_DEPTH_BOUND)
+    depth_shift = HeapBuf(BUS_DEPTH_BOUND)
+    for depth in unroll(0, BUS_DEPTH_BOUND):
         pair_bounds[GEN ** depth] = GEN ** (depth // 2)
         depth_shift[GEN ** depth] = GEN ** (depth % 2)
 
@@ -3491,12 +3530,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     gmv = log2_ceil_in_the_exponent(g_total, g_squares, PCS_MIN_MU, SIZE_BITS)  # g^m
     size_sel = gmv * LIG_MIN_SHIFT_INV  # g^(m - MIN)
     assert log(size_sel) < LIG_N_LOG_SIZES
-    # Flatten (rate-1, m-MIN) in rate-major order. Both coordinates are
-    # transcript-bound and range-checked above, so a single compiled guest can
-    # dispatch independently for every inner proof in a mixed-rate batch.
-    config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
-    assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor))
+    # One arm per size, the rate passed on. Both are transcript-bound and range-checked
+    # above, so a single compiled guest dispatches independently for every inner proof
+    # in a mixed-rate batch.
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(size_sel), range(0, LIG_N_LOG_SIZES), lambda m_idx: open_stacked(m_idx, rate_sel, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.

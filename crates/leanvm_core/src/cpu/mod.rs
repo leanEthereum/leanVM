@@ -122,16 +122,6 @@ pub struct Program {
     /// check reports a line rather than a pc to disassemble around. Empty for a
     /// hand-assembled program, and shorter than `prog`, which is padded.
     pub src_lines: Vec<u32>,
-    /// The smallest stacked witness this program's proofs may commit to, as a
-    /// log2. Zero (the default) asks for nothing.
-    ///
-    /// A consumer can need a proof to be no smaller than some size even when the
-    /// run is: the recursion guest holds one WHIR opening arm per committed size
-    /// it was compiled for, and has none below the first. A run that falls short
-    /// buys the difference in unused memory cells rather than in a padded commitment,
-    /// which keeps the committed size a function of the announced sizes, so neither
-    /// the verifier nor the guest needs a new parameter to certify. Prover-side only.
-    pub min_log_committed: usize,
 }
 
 /// The IV reinterprets the stacked bytecode table as bytes, which is its
@@ -173,7 +163,6 @@ impl Program {
             witness: HashMap::new(),
             fn_ranges: Vec::new(),
             src_lines: Vec::new(),
-            min_log_committed: 0,
         }
     }
 

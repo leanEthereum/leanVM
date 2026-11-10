@@ -1066,16 +1066,9 @@ impl Program {
             counts,
         };
         // Pad memory to a power of two (the boundary tables read a dense image), at
-        // least 2^MIN_LOG_MEM cells (doc §Memory), doubled until the stacked witness
-        // reaches `min_log_committed`.
+        // least 2^MIN_LOG_MEM cells (doc §Memory).
         let mem_used = m.used;
-        let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
-        let taus = super::layout::table_logs(trace.row_counts());
-        let log_bytecode = crate::log2_strict_usize(self.prog.len());
-        while super::layout::committed_log(crate::log2_strict_usize(cells), log_bytecode, taus) < self.min_log_committed
-        {
-            cells *= 2;
-        }
+        let cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
         Ok(Execution {
             mem: Memory {

@@ -85,7 +85,10 @@ pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at leas
 
 pub const MAX_TABLE_LOG: usize = 32;
 pub const MIN_STACKED_LOG: usize = 15;
-pub const MAX_STACKED_LOG: usize = 28;
+/// The stack of the largest instance the caps admit, every table, the memory and the bytecode at `2^32`.
+pub const MAX_STACKED_LOG: usize = 40;
+/// The stack of the smallest execution: the memory's four columns at `2^16` cells already fill `2^18`.
+pub const MIN_EXECUTION_STACKED_LOG: usize = 19;
 
 pub struct Layout<'a> {
     pub log_memory: usize,
@@ -489,6 +492,37 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK.
 const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
 
+/// Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
+fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table_log_heights: &[usize]) -> Vec<usize> {
+    let keccak = KeccakShape {
+        log_steps: table_log_heights[OP_KECCAK],
+        depth: KECCAK_DEPTH,
+    };
+    let mut kappas = vec![
+        log_memory,
+        log_memory,
+        log_memory,
+        log_memory,
+        log_bytecode,
+        keccak.log_steps + keccak.slot_bits(),
+    ];
+    for table in tables {
+        kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
+    }
+    kappas
+}
+
+/// The columns with a block of their own in the stack, out of `columns`. A column q_keccak carries gets none: it is
+/// one of its slots, 2^height words, whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An
+/// output lane is not committed at all, nothing ever opening it.
+fn stacked_blocks(columns: usize) -> Vec<usize> {
+    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
+    let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
+    (0..columns)
+        .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
+        .collect()
+}
+
 pub fn build_layout<'a>(
     bytecode: &'a Bytecode,
     log_memory: u64,
@@ -526,32 +560,12 @@ pub fn build_layout<'a>(
         count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
     }
 
-    // Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
     let keccak = KeccakShape {
         log_steps: table_log_heights[OP_KECCAK],
         depth: KECCAK_DEPTH,
     };
-    let qkeccak_kappa = keccak.log_steps + keccak.slot_bits();
-    let mut kappas = vec![
-        log_memory,
-        log_memory,
-        log_memory,
-        log_memory,
-        log_bytecode,
-        qkeccak_kappa,
-    ];
-    for table in &tables {
-        kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
-    }
-
-    // A column q_keccak carries gets no block of its own: it is one of its slots, 2^height words,
-    // whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An output
-    // lane is not committed at all, nothing ever opening it.
-    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
-    let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
-    let blocks: Vec<usize> = (0..kappas.len())
-        .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
-        .collect();
+    let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
+    let blocks = stacked_blocks(kappas.len());
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
     let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
@@ -580,4 +594,26 @@ pub fn build_layout<'a>(
         table_log_heights,
         keccak,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The stack's log size at these sizes, the PCS floor aside.
+    fn stack_log(log_memory: usize, log_bytecode: usize, table_log: usize) -> usize {
+        let heights: Vec<usize> = TABLE_LOG_FLOORS.iter().map(|&floor| table_log.max(floor)).collect();
+        let kappas = column_kappas(&tables(), log_memory, log_bytecode, &heights);
+        let blocks: Vec<usize> = stacked_blocks(kappas.len())
+            .iter()
+            .map(|&column| kappas[column])
+            .collect();
+        stack_offsets(&blocks).1
+    }
+
+    #[test]
+    fn stacked_log_bounds_are_the_caps() {
+        assert_eq!(stack_log(32, 32, MAX_TABLE_LOG), MAX_STACKED_LOG);
+        assert_eq!(stack_log(16, 0, 0), MIN_EXECUTION_STACKED_LOG);
+    }
 }

@@ -159,18 +159,19 @@ def roundA (claim : E) (W g : Array E) : Script (List E) := do
   Script.sendList [c2]
   return [c0, claim + sumE [c2], c2]
 
-/-- A level's fold rounds: receive the challenge, fold both tables in place, send the next round
-polynomial. -/
-def foldRoundsA : ℕ → WhirState → List E → Array E → Array E →
+/-- A level's fold rounds: a proof of work unless the level grinds `0` bits, receive the
+challenge, fold both tables in place, send the next round polynomial. -/
+def foldRoundsA (grinding : ℕ) : ℕ → WhirState → List E → Array E → Array E →
     Script (WhirState × List E × Array E × Array E)
   | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
   | n + 1, s, levelFolds, W, g => do
+    if grinding ≠ 0 then Script.grindS
     let challenge ← Script.sampleE
     let W' := foldPairsA challenge W
     let g' := foldPairsA challenge g
     let quad ← roundA (polyEval s.runningQuad challenge) W' g'
-    foldRoundsA n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds ++
-        [challenge]) W' g'
+    foldRoundsA grinding n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
+      (levelFolds ++ [challenge]) W' g'
 
 /-- The final level's tail rounds. -/
 def tailRoundsA : ℕ → List E → Array E → Array E → Script Unit
@@ -201,7 +202,7 @@ the folded stack `g`. -/
 def levelsA (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → Array E → Script Unit
   | _, [], _, _, _ => return ()
   | index, level :: rest, s, W, g => do
-    let (s, levelFolds, W, g) ← foldRoundsA level.fold s [] W g
+    let (s, levelFolds, W, g) ← foldRoundsA level.foldGrinding level.fold s [] W g
     let messageLog := μ - s.folds.length
     let (residual, pending, tables) ← match rest with
       | [] => do

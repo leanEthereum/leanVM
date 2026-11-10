@@ -275,14 +275,6 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
         .collect()
 }
 
-/// `log2` of the stacked witness the announced sizes imply. The one part of
-/// [`layout`] a size floor needs, and far cheaper than the rest of it.
-pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> usize {
-    crate::witness::placements_of(&col_kappas(log_mem, log_bytecode, taus))
-        .1
-        .mu
-}
-
 /// Operand slots of a bytecode tuple, after the opcode.
 pub(crate) const BYTECODE_OPERANDS: usize = 12;
 

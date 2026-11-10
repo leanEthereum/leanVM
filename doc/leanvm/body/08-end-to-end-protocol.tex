@@ -88,7 +88,9 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves). The caps bound the committed stack $q$ at $2^{40}$ elements, and the PCS is parametrized for every size up to it.
+
+A prover may refuse executions within the caps, e.g.\ by bounding addresses or steps; the verifier is unaffected.
 
 \paragraph{Commitment.}
 

@@ -24,6 +24,7 @@ $\fc_j$        & $s_j$        & sumcheck fold challenge\\
 $\rc{j}$       & $\sigma_j$   & running sumcheck claim after round $j$\\
 $J_i$          & $T_i$        & number of claims, as in \S\ref{sec:e2e-unrolled}\\
 $\nq_i$        & $t_i$        & query count\\
+$\fgrind_i$    & (none)       & proof-of-work bits before each fold challenge\\
 $\qset_i$      & $J_i$        & the sampled columns\\
 $\blen$        & $n$          & code block length\\
 $\dom$         & $S$          & evaluation domain\\
@@ -99,7 +100,7 @@ The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc} evaluates $2^\kapp
 
 \begin{protocol}[Whir/Ligerito]\label{fig:protocol}
 \ \par\smallskip
-\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$ plus a plaintext final level $\nlev$: variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$ with fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$); per level, a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$); and a query count $\nq_i$. (The proximity radii $\rad_i \in (0, 1 - \sqrt{\rate_i})$ appear only in the analysis.)
+\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$ plus a plaintext final level $\nlev$: variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$ with fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$); per level, a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$); a query count $\nq_i$; and a number $\fgrind_i \ge 0$ of proof-of-work bits before each fold challenge. (The proximity radii $\rad_i \in (0, 1 - \sqrt{\rate_i})$ appear only in the analysis.)
 
 \smallskip
 \textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. No OOD sample is taken.
@@ -108,7 +109,7 @@ The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc} evaluates $2^\kapp
 \textbf{Open}$\bigl(\{(W_t, c_t)\}_{t = 1, \dots, J_0}\bigr)$, $J_0 \ge 1$ weighted claims about $f$: set $f^{(0)} := f$. For $i = 0, 1, \dots, \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=2pt]
 \item \emph{(batch)} $\mathbf{V}$ sends $\lambda \leftarrow \E$; the \emph{batched claim} is $(W, \rc{0}) := \bigl(\sum_{t = 1}^{J_i} \lambda^{t-1} W_t,\; \sum_{t} \lambda^{t-1} c_t\bigr)$.
-\item \emph{(sumcheck~\cite{LFKN92})} For $j = 1, \dots, \ell_i$: $\mathbf{P}$ sends $h_j \in \E[X]$ with $\deg h_j \le 2$, honestly $h_j(X) = \sum_{x} \mle{W}(\fc^{<j}, X, x)\, \mle{f^{(i)}}(\fc^{<j}, X, x)$ where $\fc^{<j} := (\fc_1, \dots, \fc_{j-1})$; $\mathbf{V}$ checks $h_j(0) + h_j(1) \qeq \rc{j-1}$, samples $\fc_j \leftarrow \E$ and sends it to the prover; both set $\rc{j} := h_j(\fc_j)$.\\
+\item \emph{(sumcheck~\cite{LFKN92})} For $j = 1, \dots, \ell_i$: $\mathbf{P}$ sends $h_j \in \E[X]$ with $\deg h_j \le 2$, honestly $h_j(X) = \sum_{x} \mle{W}(\fc^{<j}, X, x)\, \mle{f^{(i)}}(\fc^{<j}, X, x)$ where $\fc^{<j} := (\fc_1, \dots, \fc_{j-1})$; $\mathbf{V}$ checks $h_j(0) + h_j(1) \qeq \rc{j-1}$; if $\fgrind_i > 0$, $\mathbf{P}$ sends a proof of work of $\fgrind_i$ bits (\S\ref{sec:e2e-fiat-shamir}), which $\mathbf{V}$ checks; $\mathbf{V}$ samples $\fc_j \leftarrow \E$ and sends it to the prover; both set $\rc{j} := h_j(\fc_j)$.\\
 Set $\fc := (\fc_1, \dots, \fc_{\ell_i})$, $c' := \rc{\ell_i}$, and, for $x \in \cube{\nv_{i+1}}$: \ $f^{(i+1)}(x) := \mle{f^{(i)}}(\fc, x)$, \ $W'(x) := \mle{W}(\fc, x)$. The \emph{residual claim} $(W', c')$ is a weighted claim about the folded multilinear $f^{(i+1)} : \cube{\nv_{i+1}} \to \E$.
 \item If $i < \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
@@ -148,7 +149,7 @@ Suppose that for every level $i$: $\rad_i = 1 - \sqrt{\rate_i} - \slack_i$ with 
 \textnormal{each of the } \nv_\nlev \textnormal{ closing rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
 \end{array}
 \]
-Here $J_0$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. The \emph{RBR error}, which governs the Fiat--Shamir compilation (\S\ref{sec:iopcs}), is the maximum of these entries over all rounds.
+Here $J_0$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. The \emph{RBR error}, which governs the Fiat--Shamir compilation (\S\ref{sec:iopcs}), is the maximum of these entries over all rounds, each divided by $2^b$ where a proof of work of $b$ bits precedes its message: a prover then pays $2^b$ permutations, in expectation, for every challenge it tries. The parameters take $\fgrind_i = 0$ wherever some slack $\slack_i$ meets every target with $\varepsilon^{\mathrm{fold}}_{i,j}$ unground, and otherwise the fewest bits for which some slack meets them all; the query messages are preceded by a proof of work too.
 \end{theorem}
 
 The remainder of this section proves the theorem: \S\ref{sec:tools} states the coding-theoretic tools, \S\ref{pcs:proof} the invariant and the round-by-round argument.

@@ -36,8 +36,18 @@ pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     }
 }
 
+/// The path bits a query's Merkle walk dispatches on at a time (`walk_path`).
+pub(super) const QUERY_WINDOW_BITS: usize = 6;
+
+/// The depth of the cap a level's paths are walked into: the guest's own split of a path, which leaves the walked
+/// part whole windows of [`QUERY_WINDOW_BITS`] bits, so walks share code across depths. The cap is at least two levels
+/// deep, and from `log2(queries) - 5` to five levels below that.
 pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
-    (queries.next_power_of_two().ilog2() as usize).min(depth)
+    let near = (queries.next_power_of_two().ilog2() as usize)
+        .saturating_sub(QUERY_WINDOW_BITS - 1)
+        .max(2)
+        .min(depth);
+    depth - (depth - near) / QUERY_WINDOW_BITS * QUERY_WINDOW_BITS
 }
 
 /// The first column of each column group: a maximal run of committed columns, in compact
@@ -75,12 +85,10 @@ pub(super) fn gen_verify(
     );
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
     let side_layouts = sides.map(leanvm_core::leaf::layout);
-    // The guest holds one opening arm per candidate committed size, so a child
-    // outside that window has no arm to dispatch to. `min_log_committed` keeps
-    // every aggregate above the low end, leaving only the ceiling reachable.
-    // Fixed capacities: every buffer/stride placeholder is a global cap so
-    // the placeholder map is SHAPE-INDEPENDENT (the definition of generic). A
-    // child that verifies and has an arm fits them; one that does not need not.
+    // The guest holds one opening arm per committed size an execution can have, so
+    // a child the native verifier accepts always has one. Fixed capacities: every
+    // buffer/stride placeholder is a global cap so the placeholder map is
+    // SHAPE-INDEPENDENT (the definition of generic). A child that verifies fits them.
     let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) || !fits {
         return Err(AggregationError::ChildOutOfRange {
@@ -177,10 +185,9 @@ pub(super) fn gen_verify(
     );
 
     // ---- Hints for the stacked WHIR opening ----
-    // Share the upper Merkle tree across queries. Unknown, unused subtrees stay
-    // opaque; the guest authenticates every cap leaf a query reaches.
+    // Share the upper Merkle tree across a level's queries, one cap entry a level. Unknown,
+    // unused subtrees stay opaque; the guest authenticates every cap leaf a query reaches.
     let mut query_hints = Vec::new();
-    let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
     let levels = stack.config.queries.iter().zip(&stack.depth);
     for ((&queries, &depth), phase) in levels.zip(&proof.merkle) {
         let cap_depth = merkle_cap_depth(queries, depth);
@@ -217,8 +224,8 @@ pub(super) fn gen_verify(
             nodes[1] = node;
             query_hints.push(("merkle_children", path_children));
         }
-        caps.extend(nodes.iter().flat_map(hash_to_scalars));
-        cap_active.extend(active);
+        query_hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
+        query_hints.push(("merkle_cap_active", active));
     }
     let deferred = DeferredSubproof {
         public_input,
@@ -240,8 +247,6 @@ pub(super) fn gen_verify(
             stream
         }),
         ("bytecode_val", bcv),
-        ("merkle_caps", caps),
-        ("merkle_cap_active", cap_active),
         // the table sumcheck's round count: max_t tau_t, certified in-guest as a
         // maximum (one of the taus, and dominating them all).
         ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
@@ -254,15 +259,17 @@ pub(super) fn gen_verify(
     Ok((hints, deferred))
 }
 
-/// The stacked sizes `2^mu` a child may commit, `mu` in `MU_MIN..=MU_MAX`: the guest
-/// carries one set of opening tables per size and rate.
-pub(super) const MU_MIN: usize = 22;
-pub(super) const MU_MAX: usize = leanvm_core::pcs::MAX_MU;
+/// The stacked sizes `2^mu` a child may commit, `mu` in `MU_MIN..=MU_MAX`: every size an execution proof the
+/// native verifier accepts can have. The guest carries one set of opening tables per size and rate.
+pub(super) const MU_MIN: usize = verifier::MIN_EXECUTION_STACKED_LOG;
+pub(super) const MU_MAX: usize = verifier::MAX_STACKED_LOG;
 
-const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU);
+const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU && MU_MAX == leanvm_core::pcs::MAX_MU);
 
 /// The guest's baked buffer caps, which `placeholder_map` compiles in and
 /// `gen_verify` admits against: one definition, so a hinted shape can never
 /// outgrow the buffer the guest was compiled with.
 pub(super) const MU_CAP: usize = 40;
+/// Bits every structural size fits: a sum of `2^kappa` is at most a stack, `2^MU_MAX`.
+pub(super) const SIZE_BITS: usize = MU_MAX + 1;
 pub(super) const STREAM_CAP: usize = 8192;

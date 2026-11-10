@@ -1,7 +1,7 @@
 //! The entry points that prove one node of an aggregation tree.
 
 use super::cells::count;
-use super::child::{MU_MIN, gen_verify};
+use super::child::gen_verify;
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value, scalar_bytecode};
 use super::error::{AggregateVerifyError, AggregationError, SnarkProveError, SnarkVerifyError};
@@ -322,10 +322,6 @@ pub fn aggregate_with_stats(
 
     let public_input = statement_digest(&cover.xmss.signers, &cover.lean_sphincs.signers, da, &defer);
     let mut program = guest.clone();
-    // Every aggregate is a potential child, and the guest has no opening arm below
-    // `2^MU_MIN`. A run smaller than that (a leaf of a few dozen signatures) grows
-    // its SET table until it clears the floor.
-    program.min_log_committed = MU_MIN;
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);
