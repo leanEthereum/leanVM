@@ -137,30 +137,35 @@ theorem call_blk {σ : Val} {r n : ℕ} {f : String} {args : List ℕ} (rets : L
 
 /-! ## The running state -/
 
-/-- **The running state's invariants**: five capacity cells, the carried values and
-materializations below the next free value and holding, the cursor's offset a word, the zero run's
-cells zero, the fixed buffers' values below it. -/
-structure OsSt.Ok (σ : Val) (st : OsSt) : Prop where
+/-- **The running state's static facts**: five capacity cells, the carried values and
+materializations below the next free value, the cursor's offset a word, the zero run below it,
+the fixed buffers' values below it. -/
+structure OsSt.Sf (st : OsSt) : Prop where
   fs : st.fs.length = 5
   below : st.Below
-  mats : MatsOk σ st.mats
   co : st.co < u128Bound
-  pad : PadOk σ st.pad
   padB : ∀ p, st.pad = some p → p + 4 < st.k
   k : 36 ≤ st.k
+
+/-- **The running state's invariants**: its static facts, the materializations holding, the zero
+run's cells zero. -/
+structure OsSt.Ok (σ : Val) (st : OsSt) : Prop where
+  sf : st.Sf
+  mats : MatsOk σ st.mats
+  pad : PadOk σ st.pad
 
 /-- The state's invariants on a valuation agreeing below its next free value. -/
 theorem OsSt.Ok.agree {σ σ' : Val} {st : OsSt} (h : st.Ok σ) (ha : AgreeBelow st.k σ σ') :
     st.Ok σ' := by
-  refine ⟨h.fs, h.below, matsOk_agree h.mats h.below.mats fun i hi ↦ ha i hi, h.co, ?_, h.padB, h.k⟩
+  refine ⟨h.sf, matsOk_agree h.mats h.sf.below.mats fun i hi ↦ ha i hi, ?_⟩
   intro p hp
-  have hb := h.padB p hp
+  have hb := h.sf.padB p hp
   obtain ⟨a, b, c, d⟩ := h.pad p hp
   rw [ha _ (by omega), ha _ (by omega), ha _ (by omega), ha _ (by omega)]
   exact ⟨a, b, c, d⟩
 
 /-- The sponge, cursor and claim on a valuation agreeing below the next free value. -/
-theorem OsSt.Ok.vals {σ σ' : Val} {st : OsSt} (h : st.Ok σ) (ha : AgreeBelow st.k σ σ') :
+theorem OsSt.Sf.vals {σ σ' : Val} {st : OsSt} (h : st.Sf) (ha : AgreeBelow st.k σ σ') :
     st.F σ' = st.F σ ∧ st.cur σ' = st.cur σ ∧ σ' (.n st.claim) = σ (.n st.claim) := by
   obtain ⟨-, e2, e3, e4⟩ := OsSt.agree h.below ha
   exact ⟨e2, e4, e3⟩

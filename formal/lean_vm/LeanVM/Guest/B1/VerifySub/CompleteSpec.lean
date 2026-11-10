@@ -13,6 +13,7 @@ public import LeanVM.Guest.Hints
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.B1.Bits.Log2Placed
+public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -20,10 +21,11 @@ public import LeanVM.Guest.AcceptableChild
 
 `verify_sub_complete_Spec bytecode`: for every honest child `c` of a node under the seed `seed` —
 its deferred claim shaped for the bytecode, its stack at least `2^minChildStackLog`, its stream at most
-`childStreamCap` words, the deferring verifier accepting it while refusing a zero challenge where the
-guest divides (`Limits.verifyDeferredNZ`), and its openings agreeing per batch over the run's query
+`childStreamCap` words, the deferring verifier accepting it while refusing a zero challenge
+(`Limits.verifyDeferredRefusingZero`) and while refusing what makes the guest divide by zero
+(`Limits.verifyDeferredNZ`), and its openings agreeing per batch over the run's query
 steps (`Limits.queryStepsOf`) — and every caller's words `Lin` holding the exponent table at
-`g^sqE` (`log2Lin`) and the child's fixed cells at `out = g^outE` (write-once:
+`g^sqE` (`vsExpLin`) and the child's fixed cells at `out = g^outE` (write-once:
 `verify_sub` writes them there), `verify_sub` on the statement's and the seed's cells, `g^sqE`,
 `out` is complete at every frame pointer (`CompleteAtD`), returning nothing, for
 certificates whose runs fit their frames with consecutive cells (`Lift.RunsFit`,
@@ -38,6 +40,9 @@ open LeanVM.Node LeanVM.Guest.B1.Main
 
 @[expose] public section
 
+/-- The caller's exponent tables at `g^sqE`: the exponent table and its window section. -/
+def vsExpLin (sqE : ℕ) : Main.Layout := [(sqE, expTabAllWords)]
+
 /-- **`verify_sub` is complete on every honest child** (G7's target). -/
 def verify_sub_complete_Spec (bytecode : List K) : Prop :=
   ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert → RunsConsec cert →
@@ -46,10 +51,12 @@ def verify_sub_complete_Spec (bytecode : List K) : Prop :=
     (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog) →
     c.proof.stream.length ≤ Coverage.childStreamCap →
+    Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
+      c.proof = true →
     Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true →
     (∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode (statementDigest seed c.statement))
       (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) →
-    (∀ q ∈ log2Lin sqE, q ∈ Lin) →
+    (∀ q ∈ vsExpLin sqE, q ∈ Lin) →
     (outE, DeferredClaim.cells c.freshClaim) ∈ Lin →
     CompleteAtD fs cert κ "verify_sub" Lin
       [(digestHalves (statementDigest seed c.statement)).1,

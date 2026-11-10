@@ -35,7 +35,7 @@ namespace LeanVM.Wire
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.MerkleTree
 open LeanVM.Prover (Tree buildTreeWithHash leafDigestsWithHash parentsWithHash levelsWithHash
-  powStepM searchM findNonceM)
+  searchM findNonceM)
 
 /-- The shapes (height, width) of a list of commitments. -/
 def shapesOf (cs : List (ℕ × ℕ × Word)) : List (ℕ × ℕ) := cs.map fun c ↦ (c.1, c.2.1)
