@@ -69,30 +69,30 @@ theorem vkBits_complete {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28)
       ∀ {next : Prop} {kret : List E → Prop}, next → Stmt.HoldsList C rd σ vkBitsT next kret := by
   have gd : ∀ a, Stmt.atom a ∈ vkBitsT → pinB (.atom a) = false → Good rd S w σ a :=
     fun a h hp ↦ hg _ h hp
-  have c16 := gd (.const (.n 16) (word 8070450532247928836 0 0)) (by simp [vkBitsT]) rfl
+  have c16 := gd (.const (.n 16) (word 8070450532247928836 0)) (by simp [vkBitsT]) rfl
   have m17 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 17) (.n 6) (.n 16)) (by simp [vkBitsT]) rfl)
-  have c18 := gd (.const (.n 18) (word 2 0 0)) (by simp [vkBitsT]) rfl
+  have c18 := gd (.const (.n 18) (word 2 0)) (by simp [vkBitsT]) rfl
   have m19 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 19) (.n 17) (.n 18)) (by simp [vkBitsT]) rfl)
-  have c25 := gd (.const (.n 25) (word 1 0 0)) (by simp [vkBitsT]) rfl
-  have c26 := gd (.const (.n 26) (word 3 0 0)) (by simp [vkBitsT]) rfl
+  have c25 := gd (.const (.n 25) (word 1 0)) (by simp [vkBitsT]) rfl
+  have c26 := gd (.const (.n 26) (word 3 0)) (by simp [vkBitsT]) rfl
   have m27 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 27) (.n 23) (.n 26)) (by simp [vkBitsT]) rfl)
   have a28 := gd (.add (.n 28) (.n 25) (.n 27)) (by simp [vkBitsT]) rfl
-  have c29 := gd (.const (.n 29) (word 1 0 0)) (by simp [vkBitsT]) rfl
-  have c30 := gd (.const (.n 30) (word 5 0 0)) (by simp [vkBitsT]) rfl
+  have c29 := gd (.const (.n 29) (word 1 0)) (by simp [vkBitsT]) rfl
+  have c30 := gd (.const (.n 30) (word 5 0)) (by simp [vkBitsT]) rfl
   have m31 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 31) (.n 24) (.n 30)) (by simp [vkBitsT]) rfl)
   have a32 := gd (.add (.n 32) (.n 29) (.n 31)) (by simp [vkBitsT]) rfl
   have m33 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 33) (.n 28) (.n 32)) (by simp [vkBitsT]) rfl)
-  have c34 := gd (.const (.n 34) (word 1 0 0)) (by simp [vkBitsT]) rfl
-  have c35 := gd (.const (.n 35) (word 3 0 0)) (by simp [vkBitsT]) rfl
+  have c34 := gd (.const (.n 34) (word 1 0)) (by simp [vkBitsT]) rfl
+  have c35 := gd (.const (.n 35) (word 3 0)) (by simp [vkBitsT]) rfl
   have m36 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 36) (.n 20) (.n 35)) (by simp [vkBitsT]) rfl)
   have a37 := gd (.add (.n 37) (.n 34) (.n 36)) (by simp [vkBitsT]) rfl
-  have c38 := gd (.const (.n 38) (word 1 0 0)) (by simp [vkBitsT]) rfl
-  have c39 := gd (.const (.n 39) (word 5 0 0)) (by simp [vkBitsT]) rfl
+  have c38 := gd (.const (.n 38) (word 1 0)) (by simp [vkBitsT]) rfl
+  have c39 := gd (.const (.n 39) (word 5 0)) (by simp [vkBitsT]) rfl
   have m40 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 40) (.n 21) (.n 39)) (by simp [vkBitsT]) rfl)
   have a41 := gd (.add (.n 41) (.n 38) (.n 40)) (by simp [vkBitsT]) rfl
   have m42 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 42) (.n 37) (.n 41)) (by simp [vkBitsT]) rfl)
-  have c43 := gd (.const (.n 43) (word 1 0 0)) (by simp [vkBitsT]) rfl
-  have c44 := gd (.const (.n 44) (word 17 0 0)) (by simp [vkBitsT]) rfl
+  have c43 := gd (.const (.n 43) (word 1 0)) (by simp [vkBitsT]) rfl
+  have c44 := gd (.const (.n 44) (word 17 0)) (by simp [vkBitsT]) rfl
   have m45 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 45) (.n 22) (.n 44)) (by simp [vkBitsT]) rfl)
   have a46 := gd (.add (.n 46) (.n 43) (.n 45)) (by simp [vkBitsT]) rfl
   have m47 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 47) (.n 42) (.n 46)) (by simp [vkBitsT]) rfl)
@@ -100,7 +100,7 @@ theorem vkBits_complete {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28)
   have m49 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 49) (.n 48) (.n 48)) (by simp [vkBitsT]) rfl)
   have m50 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 50) (.n 49) (.n 49)) (by simp [vkBitsT]) rfl)
   have m51 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 51) (.n 50) (.n 47)) (by simp [vkBitsT]) rfl)
-  have c52 := gd (.const (.n 52) (word 2 0 0)) (by simp [vkBitsT]) rfl
+  have c52 := gd (.const (.n 52) (word 2 0)) (by simp [vkBitsT]) rfl
   have m53 := mulG (by norm_num) (by norm_num) (gd (.mul (.n 53) (.n 17) (.n 52)) (by simp [vkBitsT]) rfl)
   simp only [Good] at c16 c18 c25 c26 a28 c29 c30 a32 c34 c35 a37 c38 c39 a41 c43 c44 a46 c52
   set y := τ - 3 with hy
