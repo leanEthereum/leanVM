@@ -37,7 +37,7 @@ theorem mBlocks_straight : mPre.all Main.Stmt.straight = true ∧ mDa.all Main.S
 
 set_option maxRecDepth 100000 in
 theorem mBlocks_kind : mPre.all (mKind [61, 64, 377, 380]) = true ∧ mDa.all (mKind []) = true ∧
-    mDaZ.all (mKind []) = true ∧ mMid.all (mKind [423]) = true ∧ mLeaf.all (mKind []) = true ∧
+    mDaZ.all (mKind []) = true ∧ mMid.all (mKind [422]) = true ∧ mLeaf.all (mKind []) = true ∧
     mAgg.all (mKind []) = true ∧ mPost.all (mKind []) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -45,8 +45,8 @@ theorem mBlocks_allocs : mPre.filterMap Main.Stmt.allocSz = [(.n 52, .inr (.n 51
       (.n 55, .inr (.n 54)), (.n 66, .inr (.n 42)), (.n 68, .inl 256),
       (.n 385, .inr (.n 384))] ∧ mDa.filterMap Main.Stmt.allocSz = [] ∧
     mDaZ.filterMap Main.Stmt.allocSz = [] ∧
-    mMid.filterMap Main.Stmt.allocSz = [(.n 405, .inr (.n 404)), (.n 411, .inr (.n 410)),
-      (.n 417, .inr (.n 416)), (.n 420, .inr (.n 419)), (.n 438, .inl 24)] ∧
+    mMid.filterMap Main.Stmt.allocSz = [(.n 404, .inr (.n 403)), (.n 410, .inr (.n 409)),
+      (.n 416, .inr (.n 415)), (.n 419, .inr (.n 418)), (.n 437, .inl 24)] ∧
     mLeaf.filterMap Main.Stmt.allocSz = [] ∧ mAgg.filterMap Main.Stmt.allocSz = [] ∧
     mPost.filterMap Main.Stmt.allocSz = [] := by decide +kernel
 
@@ -69,7 +69,7 @@ theorem mPre_calls : mPre.filterMap Main.Stmt.callS =
 
 set_option maxRecDepth 100000 in
 theorem mDa_calls : mDa.filterMap Main.Stmt.callS =
-    [(none, "da_verify", [.n 49], [.n 390, .n 391, .n 392, .n 393])] := by
+    [(none, "da_verify", [.n 49], [.n 390, .n 391, .n 392])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -77,20 +77,20 @@ theorem mDaZ_calls : mDaZ.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mMid_calls : mMid.filterMap Main.Stmt.callS =
-    [(some (.n 423), "__loop4", [.n 424, .n 6, .n 420, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41,
-      .n 417, .n 385, .n 47, .n 48, .n 405, .n 49, .n 411], [])] := by decide +kernel
+    [(some (.n 422), "__loop4", [.n 423, .n 6, .n 419, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41,
+      .n 416, .n 385, .n 47, .n 48, .n 404, .n 49, .n 410], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mLeaf_calls : mLeaf.filterMap Main.Stmt.callS = [] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mAgg_calls : mAgg.filterMap Main.Stmt.callS =
-    [(none, "aggregate_claims", [.n 6, .n 405, .n 411, .n 417, .n 438], [])] := by decide +kernel
+    [(none, "aggregate_claims", [.n 6, .n 404, .n 410, .n 416, .n 437, .n 465], [])] := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mPost_calls : mPost.filterMap Main.Stmt.callS =
-    [(none, "statement_digest", [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 465, .n 466, .n 438],
-      [.n 467, .n 468])] := by
+    [(none, "statement_digest", [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 466, .n 467, .n 437],
+      [.n 468, .n 469])] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -98,14 +98,16 @@ theorem mBlocks_loads : mPre.filterMap B1.Stmt.loadS =
       (List.range 256).map (fun v => (.n 68, v)) ∧
     mDa.filterMap B1.Stmt.loadS = [(.n 387, 0), (.n 387, 1)] ∧
     mDaZ.filterMap B1.Stmt.loadS = [(.n 387, 0), (.n 387, 1)] ∧
-    mMid.filterMap B1.Stmt.loadS = [(.n 420, 0), (.n 425, 0)] ∧
-    mLeaf.filterMap B1.Stmt.loadS = (List.range 24).map (fun k => (.n 438, k)) ∧
+    mMid.filterMap B1.Stmt.loadS = [(.n 419, 0), (.n 424, 0)] ∧
+    mLeaf.filterMap B1.Stmt.loadS = (List.range 24).map (fun k => (.n 437, k)) ∧
     mAgg.filterMap B1.Stmt.loadS = [] ∧
-    mPost.filterMap B1.Stmt.loadS = [(.n 437, 0), (.n 437, 1), (.n 469, 0), (.n 473, 0)] := by
+    mPost.filterMap B1.Stmt.loadS = [(.n 436, 0), (.n 436, 1), (.n 470, 0), (.n 474, 0)] := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mAgg_atoms : atomsIn mAgg = [] := by decide +kernel
+theorem mAgg_atoms : atomsIn mAgg =
+    [.const (.n 464) (word 133823759239872512 0), .mul (.n 465) (.n 49) (.n 464)] := by
+  decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem main_loop : coreProgram.loop "main" = false := by
