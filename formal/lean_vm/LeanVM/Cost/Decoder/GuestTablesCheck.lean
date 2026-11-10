@@ -50,14 +50,13 @@ public import LeanVM.Cost.Decoder.GuestTablesCheck.C42
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C43
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C44
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C45
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C46
 
 /-!
 # The guest decoder's tables, checked
 
 The literal tables of `GuestTables.lean` are the guest's: for every function `j < nFns`, its entry pc,
 its numbers of arguments and of return words (`(glob.sig j).entry`, `nargs`, `nret`), and its
-certificate's frame cells (`(certOf j).locs`), from the checks of `47` chunks of functions
+certificate's frame cells (`(certOf j).locs`), from the checks of `46` chunks of functions
 (`GuestTablesCheck/C*.lean`, each evaluation in a module of its own, under the memory a module
 may take).
 -/
@@ -254,12 +253,8 @@ theorem guestSig_eq : ∀ j < nFns,
   · have := guestSig_eq_44 (j - 1760) (by omega)
     rw [show 1760 + (j - 1760) = j by omega] at this
     exact this
-  by_cases h45 : j < 1840
-  · have := guestSig_eq_45 (j - 1800) (by omega)
-    rw [show 1800 + (j - 1800) = j by omega] at this
-    exact this
-  have := guestSig_eq_46 (j - 1840) (by omega)
-  rw [show 1840 + (j - 1840) = j by omega] at this
+  have := guestSig_eq_45 (j - 1800) (by omega)
+  rw [show 1800 + (j - 1800) = j by omega] at this
   exact this
 
 theorem guestEntries_eq : ∀ j < nFns, guestEntries.getD j 0 = (glob.sig j).entry :=
@@ -456,12 +451,8 @@ theorem guestLocsList_eq : ∀ j < nFns, guestLocsList.getD j [] = (certOf j).lo
   · have := guestLocsList_eq_44 (j - 1760) (by omega)
     rw [show 1760 + (j - 1760) = j by omega] at this
     exact this
-  by_cases h45 : j < 1840
-  · have := guestLocsList_eq_45 (j - 1800) (by omega)
-    rw [show 1800 + (j - 1800) = j by omega] at this
-    exact this
-  have := guestLocsList_eq_46 (j - 1840) (by omega)
-  rw [show 1840 + (j - 1840) = j by omega] at this
+  have := guestLocsList_eq_45 (j - 1800) (by omega)
+  rw [show 1800 + (j - 1800) = j by omega] at this
   exact this
 
 set_option maxRecDepth 100000 in
