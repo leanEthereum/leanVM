@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.Vt.Base
 
-  `verify_tables`' body as facts of a valuation: its 16 chunks, read by position.
+  `verify_tables`' body as facts of a valuation: its 15 chunks, read by position.
 -/
 
 module
@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.Tables.Basic
 /-!
 # `verify_tables`' body (TRIAGE G #52)
 
-`verify_tables` (G:2109-2535) is one function of 6399 statements, stored as 17 chunks
-(`Data.core11.c0 .. c16`, the last ending in its `ret`). Its soundness reads each fact it needs off
+`verify_tables` (G:2267-2744) is one function of 5560 statements, stored as 15 chunks
+(`Data.core11.c0 .. c14`, the last ending in its `ret`). Its soundness reads each fact it needs off
 a chunk, by position (`VtH.atom`, `VtH.slice`, …), the kernel checking each statement read against
 the chunk: a valuation satisfying every chunk is what `vt_unfold` gives.
 -/
@@ -39,29 +39,27 @@ noncomputable def vtChunk : ℕ → List Stmt
   | 11 => Data.core11.c11
   | 12 => Data.core11.c12
   | 13 => Data.core11.c13
-  | 14 => Data.core11.c14
-  | 15 => Data.core11.c15
-  | _ => Data.core11.c16.take 35
+  | _ => Data.core11.c14.take 156
 
 /-- `verify_tables`' returned values. -/
-def vtRets : List V := [.n 6961, .n 6962, .n 6963, .n 6964, .n 6965, .n 6968, .n 6969,
-  .n 6970, .n 6971, .n 6972]
+def vtRets : List V := [.n 5978, .n 5979, .n 5980, .n 5981, .n 5982, .n 5985, .n 5986,
+  .n 5987, .n 5988, .n 5989]
 
-theorem vtChunk_noRet' : ∀ i < 17, Stmt.noRetList (vtChunk i) = true := by decide +kernel
+theorem vtChunk_noRet' : ∀ i < 15, Stmt.noRetList (vtChunk i) = true := by decide +kernel
 
 theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
-  rcases Nat.lt_or_ge i 17 with hi | hi
+  rcases Nat.lt_or_ge i 15 with hi | hi
   · exact vtChunk_noRet' i hi
-  · have : vtChunk i = vtChunk 16 := by
+  · have : vtChunk i = vtChunk 14 := by
       match i, hi with
-      | n + 17, _ => rfl
-    rw [this]; exact vtChunk_noRet' 16 (by omega)
+      | n + 15, _ => rfl
+    rw [this]; exact vtChunk_noRet' 14 (by omega)
 
 theorem core11_body :
-    Data.core11.body = ((List.range 17).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h16 : Data.core11.c16 = Data.core11.c16.take 35 ++ [.ret vtRets] :=
+    Data.core11.body = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
+  have h14 : Data.core11.c14 = Data.core11.c14.take 156 ++ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
-  conv_lhs => rw [Data.core11.body, h16]
+  conv_lhs => rw [Data.core11.body, h14]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
     List.map_nil, List.flatten_append, List.flatten_cons, List.flatten_nil, List.nil_append,
     List.append_nil, vtChunk, List.append_assoc]
@@ -76,7 +74,7 @@ theorem vtCheck_eq : vtCheck = true := by decide +kernel
 
 theorem vtFound : ∃ fn : Fn, coreProgram.find? "verify_tables" = some fn ∧
     fn.params = (List.range 20).map V.n ∧
-    fn.body = ((List.range 17).map vtChunk).flatten ++ [.ret vtRets] := by
+    fn.body = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
   have h := vtCheck_eq
   unfold vtCheck at h
   split at h
@@ -86,21 +84,21 @@ theorem vtFound : ∃ fn : Fn, coreProgram.find? "verify_tables" = some fn ∧
   · exact absurd h (by simp)
 
 /-- `verify_tables`' statements before its `ret`. -/
-noncomputable def vtPre : List Stmt := ((List.range 17).map vtChunk).flatten
+noncomputable def vtPre : List Stmt := ((List.range 15).map vtChunk).flatten
 
 theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
-  tb_noRetList_flatten_range 17 vtChunk vtChunk_noRet
+  tb_noRetList_flatten_range 15 vtChunk vtChunk_noRet
 
 /-- The lengths of `verify_tables`' chunks. -/
 def vtLens : List ℕ :=
-  [580, 365, 154, 160, 160, 529, 261, 160, 160, 525, 547, 560, 520, 515, 589, 578, 35]
+  [576, 286, 159, 167, 211, 209, 160, 189, 587, 569, 568, 530, 592, 600, 156]
 
-theorem vtLens_eq : ((List.range 17).map vtChunk).map List.length = vtLens := by decide +kernel
+theorem vtLens_eq : ((List.range 15).map vtChunk).map List.length = vtLens := by decide +kernel
 
 /-- `vtPre` from position `n` (`vtPre_drop`), as the kernel reads it fast: the chunks before `n`
 passed by their lengths, not walked statement by statement. Every kernel check of a statement of
 `verify_tables` at a position reads it so. -/
-noncomputable def vtAt (n : ℕ) : List Stmt := dropFlatL vtLens ((List.range 17).map vtChunk) n
+noncomputable def vtAt (n : ℕ) : List Stmt := dropFlatL vtLens ((List.range 15).map vtChunk) n
 
 theorem vtPre_drop (n : ℕ) : vtPre.drop n = vtAt n := by
   rw [vtAt, ← vtLens_eq, dropFlatL_eq]

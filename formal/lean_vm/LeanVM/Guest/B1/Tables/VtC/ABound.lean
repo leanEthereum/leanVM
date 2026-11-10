@@ -76,13 +76,13 @@ def vtCallKindB : Stmt → Bool
       (f != "shared_selector_tables" || (a.length == 6 && r.isEmpty))
   | .dispatch _ fs' _ _ => fs'.all fun g ↦ g != "__loop9" && g != "__loop8" &&
       g != "shared_selector_tables"
-  | .callIf c f a => f == "__loop9" && c == .n 2613 &&
-      a == [.n 2614, .n 2516, .n 2605, .n 16, .n 2516, .n 2608]
+  | .callIf c f a => f == "__loop9" && c == .n 2635 &&
+      a == [.n 2636, .n 2544, .n 2627, .n 18, .n 16, .n 2544, .n 2630]
   | _ => true
 
 theorem vt_callKinds : vtPre.all vtCallKindB = true := by decide +kernel
 
-theorem vt_ncalls : (vtPre.filter callB).length = 116 := by decide +kernel
+theorem vt_ncalls : (vtPre.filter callB).length = 119 := by decide +kernel
 
 theorem le_foldr_max {l : List ℕ} {a : ℕ} (h : a ∈ l) : a ≤ l.foldr max 0 := by
   induction l with
