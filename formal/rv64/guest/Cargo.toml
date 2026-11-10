@@ -15,7 +15,8 @@ verifier = { path = "../../../crates/verifier" }
 
 [profile.release]
 opt-level = 2
-lto = false
+# Whole-program, so that `dealloc`, a no-op here, is seen to be one and the loops that only drop disappear.
+lto = "fat"
 codegen-units = 1
 # A panic traps where it happens: no formatting code in the image, and a trap never accepts.
 panic = "immediate-abort"
