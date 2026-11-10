@@ -224,15 +224,17 @@ def MeaningKeccakLayer (first : ℕ) (rd : Reader) : List E → List E → Prop
           ClaimRec rd false out c' y ∧ rets = cap' ++ [cur * gen ^ xs.length]
   | _, _ => False
 
-/-- `keccak_layer`'s two specializations compute their meanings. -/
-def keccak_layer_Spec : Prop :=
-  ∀ first < 2, ∀ (rd : Reader) (args rets : List E),
+/-- `keccak_layer`'s two specializations compute their meanings on the reader `rd` (proved on a
+memory image, where `grind_check` has its meaning). -/
+def keccak_layer_Spec (rd : Reader) : Prop :=
+  ∀ first < 2, ∀ (args rets : List E),
     coreProgram.Rel rd (layerName first) args rets → MeaningKeccakLayer first rd args rets
 
 /-! ## `verify_keccak` -/
 
 /-- **`verify_keccak(fs0..fs4, cursor, tau_g, chi, output_lanes, z_vals, slices, tabs)`**
-(G:3131-3302): for the `KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`, which
+(G:3131-3302): on the window table `tabs` (`WinTabs`, which the layers' grinds read), for the
+`KECCAK` table's log-height `τ` (`tau_g = g^τ`, `9 ≤ τ ≤ 28`, which
 `verify_tables` certifies), the table sumcheck's point `chis` at `chi` (at least `τ`
 coordinates) and the table's twenty-five output lane values `outs` at `output_lanes`: from the
 carried capacity, the stream words `xs` at the cursor run `verifyKeccak τ (chis.take τ) outs` to
@@ -241,8 +243,8 @@ the sponge `s'` with a full queue, the last four slices; `op` is at `z_vals`, th
 `z_vals·g^39`, the slices at `slices`; the function returns the capacity after that queue's
 permutation (which the next grind's `absorb` makes), the cursor past `xs` and `word`. -/
 def MeaningVerifyKeccak (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, cur, tg, chi, ol, zv, sl, _tabs], rets =>
-      ∀ (τ : ℕ) (chis outs : List E), 9 ≤ τ → τ ≤ 28 → tg = gen ^ τ → τ ≤ chis.length →
+  | [f0, f1, f2, f3, f4, cur, tg, chi, ol, zv, sl, tabs], rets =>
+      WinTabs rd tabs → ∀ (τ : ℕ) (chis outs : List E), 9 ≤ τ → τ ≤ 28 → tg = gen ^ τ → τ ≤ chis.length →
         ReadsAt rd chi chis → outs.length = 25 → ReadsAt rd ol outs →
         ∃ (xs op point slices : List E) (word : E) (s' : Fs), ReadsAt rd cur xs ∧
           RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨[f0, f1, f2, f3, f4], []⟩ xs
@@ -252,9 +254,9 @@ def MeaningVerifyKeccak (rd : Reader) : List E → List E → Prop
           slices.length = 64 ∧ rets = capOf s'.perm ++ [cur * gen ^ xs.length, word]
   | _, _ => False
 
-/-- `verify_keccak`'s core IR computes its meaning. -/
-def verify_keccak_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
+/-- `verify_keccak`'s core IR computes its meaning on the reader `rd` (proved on a memory image). -/
+def verify_keccak_Spec (rd : Reader) : Prop :=
+  ∀ (args rets : List E),
     coreProgram.Rel rd "verify_keccak" args rets → MeaningVerifyKeccak rd args rets
 
 end
