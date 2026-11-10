@@ -18,7 +18,7 @@ public import LeanVM.Guest.Renumber
 # The template of `open_stacked` (TRIAGE G #42)
 
 `osBody c` is the body of `open_stacked__L{c.m}` (`lean_ethereum.py:1530-1856` at leanVM
-`98ceacf2`, G below) at the configuration `c = osCfg m`, value by value as the expansion numbers
+`afe891a7`, G below) at the configuration `c = osCfg m`, value by value as the expansion numbers
 it: every block takes the state `OsSt` (the first free value `k`, the sponge's capacity cells, the
 cursor as a base value and a word offset, the running claim, the shifted pointers materialized so
 far) and returns the next, with the values later blocks read (`OsSt`'s transient fields).

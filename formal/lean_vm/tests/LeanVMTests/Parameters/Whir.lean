@@ -4,7 +4,7 @@ import LeanVM.Parameters.Whir
 # WHIR parameter tests
 
 The ladder against the deployed verifier's (`WHIR_QUERIES` and `derive_config`,
-`crates/verifier/src/whir.rs:25-71` at leanVM's `f128`, `98ceacf2c`): the smallest stack at rate 1/2, the
+`crates/verifier/src/whir.rs:25-71` at leanVM's `f128`, `afe891a73`): the smallest stack at rate 1/2, the
 largest at rate 1/16, and one three-level case, each with its residual; the window's four edges
 rejected; the table's shape; the block lengths of the first ladder; and a nearby false statement,
 the rate exponent of level 1 under a wrong domain reduction.

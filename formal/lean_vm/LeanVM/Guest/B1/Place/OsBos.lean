@@ -28,7 +28,7 @@ open LeanVM.Protocol.Verifier hiding Layout
 @[expose] public section
 
 /-- **`open_stacked`'s heap buffers' sizes**, in allocation order (`Whir.osHead`, `osLevel`,
-`osFinish`; `lean_ethereum.py`'s `open_stacked` at 98ceacf2c): the head's thirteen (`merkle_caps`,
+`osFinish`; `lean_ethereum.py`'s `open_stacked` at afe891a73): the head's thirteen (`merkle_caps`,
 `merkle_cap_active`, `final_msg`, `level_roots`, `fold_challenges`, `round_coefs`, `level_betas`,
 `level_mus`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`, `query_win_ptrs`); per level
 the message `sent` (a non-final one), the squeeze run `sqz`, the normalized lane `hs` (the final

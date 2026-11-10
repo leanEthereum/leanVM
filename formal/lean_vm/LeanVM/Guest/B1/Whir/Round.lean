@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.Flat
 public import LeanVM.Guest.CoreData
 
 /-!
-# `opening_round` (`lean_ethereum.py:1231-1255` at leanVM `98ceacf2`, G below)
+# `opening_round` (`lean_ethereum.py:1231-1255` at leanVM `afe891a7`, G below)
 
 One fold round of CYWZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifier.lean`): a grind
 and `θ`, the five scalars `u0, v0, c0, v1, c1`, a grind and `γ`, then `α`, `β`; `γ` stored for

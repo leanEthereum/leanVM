@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # `verifyWhir`, split at its terminal
 
-`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1530-1856` at leanVM `98ceacf2`)
+`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1530-1856` at leanVM `afe891a7`)
 runs `verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:222-345`) up to
 its last `require`, the terminal's check, which `check_opening_terminal` makes (G:3460).
 
