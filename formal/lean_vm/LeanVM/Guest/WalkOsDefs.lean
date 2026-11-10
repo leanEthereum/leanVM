@@ -2,7 +2,8 @@
   LeanVM.Guest.WalkOsDefs
 
   `open_stacked`'s body up to a level's window pointers (`osPre`), and the check that its
-  certificate's cuts ask, at each level's `opening_queries` call, the walk's obligation there.
+  certificate assumes its window table and asks, at each level's `opening_queries` call, the walk's
+  obligation there.
 -/
 
 module
@@ -26,75 +27,44 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 
 /-! ## A level up to its window pointers -/
 
-/-- A level's queries block before its call's constant (`osQueries`): the weights' buffer, the row
-weights, the cap's root, the window pointers' materialization. -/
-def osQueriesA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
-  let k := s.k
-  let P := c.plan
-  let m0 := s.mats
-  let fp := osMatP P m0 osFch lv.foldsOff (k + 2)
-  let m1 := osMatsAfter P m0 osFch lv.foldsOff (k + 2)
-  let cp := osMatP P m1 osCaps (4 * lv.capOff) fp.2.2
-  let m2 := osMatsAfter P m1 osCaps (4 * lv.capOff) fp.2.2
-  let flp := osMatP P m2 osFlags lv.capOff cp.2.2
-  let m3 := osMatsAfter P m2 osFlags lv.capOff cp.2.2
-  let r := flp.2.2
-  let cp2 := osMatP P m3 osCaps (4 * lv.capOff) (r + 2)
-  let flp2 := osMatP P m3 osFlags lv.capOff cp2.2.2
-  let bp := osMatP P m3 osQbp lv.posOff flp2.2.2
-  osHeap c.maxIl k ++ fp.1 ++
-    [.call ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
-      [.n fp.2.1, .n (k + 1)] []] ++
-    cp.1 ++ flp.1 ++
-    [.call ("verify_merkle_cap__L" ++ natStr lv.capDepth) [.n cp.2.1, .n flp.2.1] [.n r, .n (r + 1)],
-      .atom (.load (.n r) (.n osRoots) (2 * lvl)), .atom (.load (.n (r + 1)) (.n osRoots) (2 * lvl + 1))] ++
-    cp2.1 ++ flp2.1 ++ bp.1
+/-- A level's queries block before its call's constant (`osQueries`): the cap, its flags, `1/λ`,
+the round coefficients, the high part, the positions, the window pointers. -/
+def osQueriesA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × ℕ :=
+  let fin := lvl = c.yrLevel
+  let cp := osMatS c.plan osCaps (4 * lv.capOff) s
+  let fl := osMatS c.plan osFlags lv.capOff cp.2.2
+  let li : List Stmt × ℕ × OsSt :=
+    if fin then ([osCst fl.2.2.k (word 0 0)], fl.2.2.k, { fl.2.2 with k := fl.2.2.k + 1 })
+    else ([], s.lamInv, fl.2.2)
+  let cf := osMatS c.plan osCoefs (3 * lv.foldsOff) li.2.2
+  let hp : List Stmt × ℕ × OsSt :=
+    if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
+  let qp := osMatS c.plan osQpos lv.posOff hp.2.2
+  let wp := osMatS c.plan osQbp lv.posOff qp.2.2
+  (cp.1 ++ fl.1 ++ li.1 ++ cf.1 ++ hp.1 ++ qp.1 ++ wp.1, wp.2.1)
 
-/-- The materializations before the window pointers' (`osQueries`' `m3`). -/
-def osQueriesM3 (c : OsCfg) (lv : OsLv) (s : OsSt) : List OsMat :=
-  let k := s.k
-  let P := c.plan
-  let fp := osMatP P s.mats osFch lv.foldsOff (k + 2)
-  let m1 := osMatsAfter P s.mats osFch lv.foldsOff (k + 2)
-  let cp := osMatP P m1 osCaps (4 * lv.capOff) fp.2.2
-  let m2 := osMatsAfter P m1 osCaps (4 * lv.capOff) fp.2.2
-  osMatsAfter P m2 osFlags lv.capOff cp.2.2
+/-- A level's state entering its queries block (`Level.osPreQ`). -/
+def osQState (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : OsSt :=
+  let fin := lvl = c.yrLevel
+  let f := osRounds c.plan lv.foldsOff lv.folds s
+  let m := if fin then osFinalMsg c lv f.2 else osCommit c lvl lv f.2
+  let sq := osSqueezes c lvl lv m.2
+  let la := if fin then (([] : List Stmt), sq.2) else osLam sq.2
+  let cp := osCap c lvl lv la.2
+  let h := if fin then osHsFinal c lv cp.2 else osHsMid lvl lv cp.2
+  h.2
 
-/-- The window pointers' materialization (`osQueries`' `bp`). -/
-def osQueriesBpS (c : OsCfg) (lv : OsLv) (s : OsSt) : List Stmt × ℕ × ℕ :=
-  let k := s.k
-  let P := c.plan
-  let fp := osMatP P s.mats osFch lv.foldsOff (k + 2)
-  let m1 := osMatsAfter P s.mats osFch lv.foldsOff (k + 2)
-  let cp := osMatP P m1 osCaps (4 * lv.capOff) fp.2.2
-  let m2 := osMatsAfter P m1 osCaps (4 * lv.capOff) fp.2.2
-  let flp := osMatP P m2 osFlags lv.capOff cp.2.2
-  let m3 := osMatsAfter P m2 osFlags lv.capOff cp.2.2
-  let r := flp.2.2
-  let cp2 := osMatP P m3 osCaps (4 * lv.capOff) (r + 2)
-  let flp2 := osMatP P m3 osFlags lv.capOff cp2.2.2
-  osMatP P m3 osQbp lv.posOff flp2.2.2
-
-/-- A level's commitment (or final message). -/
-def osLevelM (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt × ℕ :=
-  if lvl = c.yrLevel then osFinal c (osFolds osFch lv.foldsOff lv.folds s).2
-  else osCommit c.plan lvl lv (osFolds osFch lv.foldsOff lv.folds s).2
-
-/-- A level's state entering its queries block. -/
-def osLevelQ (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : OsSt :=
-  { (osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2 with
-    k := (osLamPow lvl ((osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k - 1) lv.queries
-      (osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k).2.2 }
-
-/-- **A level up to its window pointers**: its folds, commitment (or final message), grinding,
-squeezes, `lam^q`, and its queries block before the call's constant. -/
+/-- **A level up to its window pointers** (`osLevel`'s blocks before the queries' constant). -/
 def osLevelPre (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
-  (osFolds osFch lv.foldsOff lv.folds s).1 ++ (osLevelM c lvl lv s).1 ++
-    [.call ("grind_check__L" ++ natStr lv.grind) [.n (osLevelM c lvl lv s).2.2] []] ++
-    (osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).1 ++
-    (osLamPow lvl ((osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k - 1) lv.queries
-      (osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k).1 ++
-    osQueriesA c lvl lv (osLevelQ c lvl lv s)
+  let fin := lvl = c.yrLevel
+  let f := osRounds c.plan lv.foldsOff lv.folds s
+  let m := if fin then osFinalMsg c lv f.2 else osCommit c lvl lv f.2
+  let gr : List Stmt := [.call ("grind_check__L" ++ natStr queryGrind) [.n m.2.pow0, .n osTabs] []]
+  let sq := osSqueezes c lvl lv m.2
+  let la := if fin then (([] : List Stmt), sq.2) else osLam sq.2
+  let cp := osCap c lvl lv la.2
+  let h := if fin then osHsFinal c lv cp.2 else osHsMid lvl lv cp.2
+  f.1 ++ m.1 ++ gr ++ sq.1 ++ la.1 ++ cp.1 ++ h.1 ++ (osQueriesA c lvl lv h.2).1
 
 /-! ## The body up to a level's window pointers -/
 
@@ -108,13 +78,14 @@ def osPre (c : OsCfg) (ℓ : ℕ) : List Stmt :=
 
 /-- Level `ℓ`'s window pointers' value. -/
 def osPreBp (c : OsCfg) (ℓ : ℕ) : ℕ :=
-  (osQueriesBpS c (c.levels.getD ℓ default)
-    (osLevelQ c ℓ (c.levels.getD ℓ default) (osStAt c ℓ))).2.1
+  (osQueriesA c ℓ (c.levels.getD ℓ default)
+    (osQState c ℓ (c.levels.getD ℓ default) (osStAt c ℓ))).2
 
 /-- The bounds a level's materializations need. -/
 def LvMatB (lvl : ℕ) (lv : OsLv) : Prop :=
-  (lvl + 1) * ligColsCap < u128Bound ∧ lv.foldsOff < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
-    lv.capOff < u128Bound ∧ lv.posOff < u128Bound
+  3 * (lv.foldsOff + lv.folds) < u128Bound ∧
+    (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
+    lvl * hsStride < u128Bound ∧ lv.posOff < u128Bound
 
 instance (lvl : ℕ) (lv : OsLv) : Decidable (LvMatB lvl lv) := by unfold LvMatB; infer_instance
 
@@ -124,9 +95,10 @@ decode's shape. -/
 def osLvB (c : OsCfg) : Bool :=
   (List.range c.levels.length).all fun ℓ ↦
     let lv := c.levels.getD ℓ default
-    decide (digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth) &&
-    decide (1 ≤ 192 / lv.depth) && decide (lv.queries ≤ lv.squeezes * (192 / lv.depth)) &&
-    decide (0 < lv.squeezes) && decide (lv.squeezes < ordG) && decide (LvMatB ℓ lv) &&
+    decide (digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth) &&
+    decide (1 ≤ 128 / lv.depth) && decide (lv.queries ≤ lv.squeezes * (128 / lv.depth)) &&
+    decide (1 ≤ lv.squeezes) && decide (lv.squeezes < ordG) &&
+    decide (lv.squeezes * 5 < u128Bound) && decide (LvMatB ℓ lv) &&
     decide (("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth, lv.depth,
       lv.capDepth) ∈ queryWindowsShapes)
 
@@ -159,9 +131,11 @@ def osSemOk (C : Cert) (c : OsCfg) (start : ℕ) (t : ℕ × List ℕ) : Bool :=
 def osCutOk (C : Cert) (c : OsCfg) (cut : Cut) : Bool :=
   cut.known.isEmpty && cut.knownIf.isEmpty && cut.sems.all (osSemOk C c cut.start)
 
-/-- **`open_stacked`'s certificate** (function `j`, candidate configuration `c`): every cut an
-`osCutOk`. -/
-noncomputable def osOk (j : ℕ) (c : OsCfg) : Bool := (certOf j).cuts.all (osCutOk (certOf j) c)
+/-- **`open_stacked`'s certificate** (function `j`, candidate configuration `c`): the window table
+`tabs` (value `9`) assumed (`tagTabs`), every cut an `osCutOk`. -/
+noncomputable def osOk (j : ℕ) (c : OsCfg) : Bool :=
+  (certOf j).sem == [(tagTabs, [(certOf j).locs.getD osTabs 0])] &&
+    (certOf j).cuts.all (osCutOk (certOf j) c)
 
 end
 end LeanVM.Guest.End

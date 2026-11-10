@@ -13,6 +13,7 @@ public import LeanVM.Guest.Sound
 public import LeanVM.Guest.B1.Bits.Tables
 public import LeanVM.Guest.B1.VerifySub.Proof
 public import LeanVM.Guest.B1.VerifySub.KnownAll
+public import LeanVM.Guest.VsTabs
 
 /-!
 # B2, proved, and the end theorems from B1's statements
@@ -22,7 +23,8 @@ public import LeanVM.Guest.B1.VerifySub.KnownAll
 * `vsDimsKnown_proved`: `verify_sub`'s `dims_g[g^0]` below `g^34`, an arm `verify_tables`
   dispatches on (B1-d's `VerifySub.vsDimsKnown0_holds`).
 * `vsKnown_proved`: `verify_sub`'s `kappa_base` entries below `vsKbBound`, the arms
-  `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`).
+  `check_opening_terminal` dispatches on (B1-d's `VerifySub.vsKnown_holds`), and the window table
+  it hands `open_stacked` (`vsTabsKnown_proved`, `VsTabs.lean`).
 * `EndPending`: what the end theorems take until B1's ports to the f128 guest land:
   `verify_sub`'s statement with the proof `VerifySub.vsPiOf`, and the walks' cut obligations
   (`WalkKnown`; `walkKnown_proved`, `WalkKnownAll.lean`: whir's `QueriesWalk` and ostack's
@@ -45,12 +47,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- **`exponent_tables`' relation is the exponent tables** (B1-a's `exponent_tables_holds`). -/
 theorem expTablesSound : ExpTablesSound := fun rd q h ↦
-  ((exponent_tables_holds rd [] [q]).mp h).1
+  (exponent_tables_holds rd [] [q]).mp h
 
 /-- **`verify_sub`'s `kappa_base`** below `vsKbBound` (B1-d's `VerifySub.vsKnown_holds`;
-`coreOf 19` is `Data.core18`). -/
-theorem vsKnown_proved : VsKnown := fun L h16 h32 σ hexp h ↦
-  VerifySub.vsKnown_holds L h16 h32 σ hexp h
+`coreOf 19` is `Data.core18`), and its window table at `tabs`. -/
+theorem vsKnown_proved : VsKnown :=
+  ⟨fun L h16 h32 σ hexp h ↦ VerifySub.vsKnown_holds L h16 h32 σ hexp h, vsTabsKnown_proved⟩
 
 /-- **`verify_sub`'s `dims_g[g^0]`** below `g^34`, an arm `verify_tables` dispatches on (B1-d's
 `VerifySub.vsDimsKnown0_holds`). -/

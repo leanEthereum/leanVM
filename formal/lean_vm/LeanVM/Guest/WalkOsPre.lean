@@ -3,14 +3,14 @@
 
   `open_stacked`'s window pointers name windows on every prefix of its body that reaches a level's
   `opening_queries` call: the walk's obligation at that call (`OqMainWins`), from the decodes
-  before it.
+  before it and the window table `tabs` the function assumes.
 -/
 
 module
 
 public import LeanVM.Guest.WalkOsDefs
 public import LeanVM.Guest.B1.Whir.Flatness
-public import LeanVM.Guest.B1.Whir.Head
+public import LeanVM.Guest.B1.Whir.Squeezes
 public import LeanVM.Guest.B1.Opening.QueriesWalk
 
 /-!
@@ -26,8 +26,8 @@ statements before the cut, the callee's precondition `OqMainWins` on the call's 
   the body at least as long (`allOk_osPre`).
 * `osPre_queryWinsOk`: from those statements, the level's window pointers
   `σ (osPreBp c ℓ) = query_win_ptrs·g^posOff` (the materializations, `osLevels_mats`) name, for
-  each of the level's queries, a frame run of its windows (the squeeze loop's decodes,
-  `osSqueezes_wins`, reading the window table the head writes, `osHead_winTabs`).
+  each of the level's queries, a frame run of its windows (the squeezes' decodes,
+  `osSqueezes_sound`, reading the window table at `tabs`, which the function assumes).
 * `osPre_oqMainWins`: hence `OqMainWins` at `n_iters_g = g^(queries / (1 + base))`.
 -/
 
@@ -51,18 +51,14 @@ theorem flat_of_prefix {ss ts : List Stmt} (h : ss <+: ts) (hf : Flat ts) : Flat
   simp only [Flat, List.all_append, Bool.and_eq_true] at hf
   exact hf.1
 
-theorem osQueriesA_prefix (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
-    osQueriesA c lvl lv s <+: (osQueries c lvl lv lam lamN s).1 :=
+theorem osQueriesA_prefix (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    (osQueriesA c lvl lv s).1 <+: (osQueries c lvl lv s).1 :=
   ⟨_, rfl⟩
 
 theorem osLevelPre_prefix (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    osLevelPre c lvl lv s <+: (osLevel c lvl lv s).1 := by
-  have h1 := osQueriesA_prefix c lvl lv
-    ((osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k - 1)
-    (osLamPow lvl ((osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k - 1) lv.queries
-      (osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k).2.1 (osLevelQ c lvl lv s)
-  refine List.IsPrefix.trans ((List.prefix_append_right_inj _).mpr h1) ?_
-  exact ((List.prefix_append _ _).trans (List.prefix_append _ _)).trans (List.prefix_append _ _)
+    osLevelPre c lvl lv s <+: (osLevel c lvl lv s).1 :=
+  ((List.prefix_append_right_inj _).mpr (osQueriesA_prefix c lvl lv (osQState c lvl lv s))).trans
+    (List.prefix_append _ _)
 
 /-- The levels before `ℓ` and level `ℓ` up to its window pointers. -/
 theorem osLevels_pre (c : OsCfg) : ∀ (ℓ lvl : ℕ) (lvs : List OsLv) (s : OsSt) (h : ℓ < lvs.length),
@@ -86,7 +82,7 @@ theorem osPre_prefixA {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) : osPr
   exact (List.prefix_append _ _).trans (List.prefix_append _ _)
 
 theorem osPre_prefix {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) : osPre c ℓ <+: osBody c := by
-  rw [osBody_split]
+  rw [osBody_eq]
   exact (osPre_prefixA h).trans (List.prefix_append _ _)
 
 /-- **Every statement up to level `ℓ`'s window pointers holds**, on a prefix of the body at least
@@ -99,61 +95,116 @@ theorem allOk_osPre {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) {n : ℕ
     holdsList_flat _ (flat_of_prefix (osPre_prefixA h) (osBodyA_flat c))] at hl
   exact hl.1
 
-/-! ## The window table -/
-
-theorem osHead_winTabs {c : OsCfg} (h : AllOk C rd σ (osHead c).1) : WinTabs rd (σ (.n osWin)) := by
-  apply osWinTabs_sound (C := C)
-  intro x hx
-  refine h x ?_
-  simp only [osHead, List.mem_append]
-  simp [hx]
-
 /-! ## The materializations -/
 
-theorem osLevelM_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
-    (hb : (lvl + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
-    (h : AllOk C rd σ (osLevelM c lvl lv s).1) : MatsOk σ (osLevelM c lvl lv s).2.1.mats := by
-  unfold osLevelM at h ⊢
-  split
-  · show MatsOk σ (osFolds osFch lv.foldsOff lv.folds s).2.mats
-    rw [osFolds_mats]; exact hm
-  · rename_i hne
-    simp only [hne, ↓reduceIte] at h
-    have hm' : MatsOk σ (osFolds osFch lv.foldsOff lv.folds s).2.mats := by
-      rw [osFolds_mats]; exact hm
-    refine osMatsAfter_ok hm' hb fun x hx ↦ h x ?_
-    simp only [osCommit, List.mem_append]
-    simp [hx]
+theorem osRound_mats {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {s : OsSt} (hb : 3 * i < u128Bound)
+    (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osRound P i s).1) :
+    MatsOk σ (osRound P i s).2.mats := by
+  unfold osRound at h ⊢
+  simp only [allOk_append] at h
+  obtain ⟨⟨⟨-, hf⟩, hc⟩, -⟩ := h
+  exact (osMatS_val' hc (osMatS_val' hf hm (by omega)).2 hb).2
+
+theorem osRounds_mats {P : List (ℕ × ℕ × ℕ)} : ∀ (i n : ℕ) (s : OsSt), 3 * (i + n) < u128Bound →
+    MatsOk σ s.mats → AllOk C rd σ (osRounds P i n s).1 → MatsOk σ (osRounds P i n s).2.mats
+  | _, 0, _, _, hm, _ => hm
+  | i, n + 1, s, hb, hm, h => by
+    simp only [osRounds, allOk_append] at h ⊢
+    exact osRounds_mats (i + 1) n _ (by omega) (osRound_mats (by omega) hm h.1) h.2
+
+theorem osCommit_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
+    (hb : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
+    (h : AllOk C rd σ (osCommit c lvl lv s).1) : MatsOk σ (osCommit c lvl lv s).2.mats := by
+  have hb0 : oodSamples * (lvl + 1) * ligColsCap < u128Bound :=
+    lt_of_le_of_lt (Nat.mul_le_mul_right _ (Nat.le_succ _)) hb
+  unfold osCommit at h ⊢
+  simp only [allOk_append, and_assoc] at h
+  obtain ⟨-, -, -, h0, -, h1, -⟩ := h
+  exact (osMatS_val' h1 (osMatS_val' h0 hm hb0).2 hb).2
+
+theorem osMsg_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
+    (hb : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
+    (h : AllOk C rd σ (if lvl = c.yrLevel then osFinalMsg c lv s else osCommit c lvl lv s).1) :
+    MatsOk σ (if lvl = c.yrLevel then osFinalMsg c lv s else osCommit c lvl lv s).2.mats := by
+  split_ifs at h ⊢
+  · exact hm
+  · exact osCommit_mats hb hm h
+
+theorem osMsg_fs (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    (if lvl = c.yrLevel then osFinalMsg c lv s else osCommit c lvl lv s).2.fs.length = 5 := by
+  split_ifs <;> rfl
+
+theorem osSqueezes_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : lv.posOff < u128Bound)
+    (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osSqueezes c lvl lv s).1) :
+    MatsOk σ (osSqueezes c lvl lv s).2.mats := by
+  unfold osSqueezes at h ⊢
+  simp only [allOk_append, and_assoc] at h
+  obtain ⟨-, -, hq, hw, -⟩ := h
+  exact (osMatS_val' hw (osMatS_val' hq hm hb).2 hb).2
+
+theorem osLa_mats (c : OsCfg) (lvl : ℕ) (s : OsSt) :
+    (if lvl = c.yrLevel then (([] : List Stmt), s) else osLam s).2.mats = s.mats := by
+  split_ifs <;> rfl
+
+theorem osCap_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : 4 * lv.capOff < u128Bound)
+    (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osCap c lvl lv s).1) :
+    MatsOk σ (osCap c lvl lv s).2.mats := by
+  unfold osCap at h ⊢
+  simp only [allOk_append, and_assoc] at h
+  obtain ⟨hc, hf, -⟩ := h
+  exact (osMatS_val' hf (osMatS_val' hc hm hb).2 (by omega)).2
+
+theorem osHs_mats (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    (if lvl = c.yrLevel then osHsFinal c lv s else osHsMid lvl lv s).2.mats = s.mats := by
+  split_ifs <;> rfl
+
+/-- **A level's queries block up to its window pointers**: the pointers are
+`query_win_ptrs·g^posOff`, and the materializations hold after the block. -/
+theorem osQueriesA_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB lvl lv)
+    (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osQueriesA c lvl lv s).1) :
+    σ (.n (osQueriesA c lvl lv s).2) = σ (.n osQbp) * gen ^ lv.posOff ∧
+      MatsOk σ (osQueries c lvl lv s).2.mats := by
+  obtain ⟨hb0, -, hb2, hb3, hb4⟩ := hb
+  unfold osQueriesA osQueries at *
+  simp only [allOk_append] at h
+  obtain ⟨⟨⟨⟨⟨⟨hcp, hfl⟩, hli⟩, hcf⟩, hhp⟩, hqp⟩, hwp⟩ := h
+  obtain ⟨-, hm1⟩ := osMatS_val' hcp hm hb2
+  obtain ⟨-, hm2⟩ := osMatS_val' hfl hm1 (by omega)
+  by_cases hfin : lvl = c.yrLevel
+  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp ⊢
+    obtain ⟨-, hm3⟩ := osMatS_val' hcf hm2 (by omega)
+    obtain ⟨-, hm4⟩ := osMatS_val' hqp hm3 hb4
+    exact osMatS_val' hwp hm4 hb4
+  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp ⊢
+    obtain ⟨-, hm3⟩ := osMatS_val' hcf hm2 (by omega)
+    obtain ⟨-, hm4⟩ := osMatS_val' hhp hm3 hb3
+    obtain ⟨-, hm5⟩ := osMatS_val' hqp hm4 hb4
+    exact osMatS_val' hwp hm5 hb4
 
 /-- **A level's materializations hold** up to its window pointers, and the pointers are
 `query_win_ptrs·g^posOff`. -/
 theorem osLevelPre_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB lvl lv)
     (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osLevelPre c lvl lv s)) :
-    MatsOk σ (osQueriesM3 c lv (osLevelQ c lvl lv s)) ∧
-      σ (.n (osQueriesBpS c lv (osLevelQ c lvl lv s)).2.1) = σ (.n osQbp) * gen ^ lv.posOff ∧
-      MatsOk σ (osQueriesMats c lv (osLevelQ c lvl lv s)) := by
-  obtain ⟨hb0, hb1, hb2, hb3, hb4⟩ := hb
+    σ (.n (osQueriesA c lvl lv (osQState c lvl lv s)).2) = σ (.n osQbp) * gen ^ lv.posOff ∧
+      MatsOk σ (osQueries c lvl lv (osQState c lvl lv s)).2.mats := by
+  have hb' := hb
+  obtain ⟨hb0, hb1, hb2, -, hb4⟩ := hb'
   unfold osLevelPre at h
   simp only [allOk_append] at h
-  obtain ⟨⟨⟨⟨⟨-, hM⟩, -⟩, -⟩, -⟩, hQ⟩ := h
-  have hq0 : MatsOk σ (osLevelQ c lvl lv s).mats := by
-    show MatsOk σ (osLevelM c lvl lv s).2.1.mats
-    exact osLevelM_mats hb0 hm hM
-  unfold osQueriesA at hQ
-  simp only [allOk_append] at hQ
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, hfp⟩, -⟩, hcp⟩, hflp⟩, -⟩, -⟩, -⟩, hbp⟩ := hQ
-  have k1 := osMatsAfter_ok hq0 hb1 hfp
-  have k2 := osMatsAfter_ok k1 hb2 hcp
-  have k3 := osMatsAfter_ok k2 hb3 hflp
-  exact ⟨k3, osMatP_val k3 hb4 hbp, osMatsAfter_ok k3 hb4 hbp⟩
+  obtain ⟨⟨⟨⟨⟨⟨⟨hf, hM⟩, -⟩, hS⟩, -⟩, hC⟩, -⟩, hA⟩ := h
+  have k1 := osRounds_mats (P := c.plan) lv.foldsOff lv.folds s (by omega) hm hf
+  have k2 := osMsg_mats hb1 k1 hM
+  have k3 := osSqueezes_mats hb4 k2 hS
+  rw [← osLa_mats c lvl] at k3
+  have k4 := osCap_mats hb2 k3 hC
+  rw [← osHs_mats c lvl lv] at k4
+  exact osQueriesA_mats hb k4 hA
 
 theorem osLevel_mats_eq (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    (osLevel c lvl lv s).2.mats = osQueriesMats c lv (osLevelQ c lvl lv s) := by
-  unfold osLevel osLevelQ osLevelM
+    (osLevel c lvl lv s).2.mats = (osQueries c lvl lv (osQState c lvl lv s)).2.mats := by
   by_cases h : lvl = c.yrLevel
-  · simp only [h, ↓reduceIte]
-    rfl
-  · simp only [h, ↓reduceIte]
+  · simp only [osLevel, osQState, h, ↓reduceIte]
+  · simp only [osLevel, osQState, h, ↓reduceIte]
     rfl
 
 /-- **A level's materializations hold** after it. -/
@@ -161,7 +212,7 @@ theorem osLevel_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB
     (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osLevel c lvl lv s).1) :
     MatsOk σ (osLevel c lvl lv s).2.mats := by
   rw [osLevel_mats_eq]
-  exact (osLevelPre_mats hb hm (allOk_of_prefix (osLevelPre_prefix c lvl lv s) h)).2.2
+  exact (osLevelPre_mats hb hm (allOk_of_prefix (osLevelPre_prefix c lvl lv s) h)).2
 
 theorem osLevels_mats {c : OsCfg} : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt),
     (∀ i (hi : i < lvs.length), LvMatB (lvl + i) lvs[i]) → MatsOk σ s.mats →
@@ -176,57 +227,15 @@ theorem osLevels_mats {c : OsCfg} : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt)
 
 /-! ## The squeezes' decodes -/
 
-/-- **A level's squeeze loop decodes** every squeeze's positions and windows at
-`query_win_ptrs·g^(posOff + jj·(192/depth))`. -/
-theorem osSqueezes_wins {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osSqueezes c lvl lv st).1)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
-    (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
-    (hwt : WinTabs rd (σ (.n osWin)))
-    (hn0 : 0 < lv.squeezes) (hn : lv.squeezes < ordG) :
-    ∀ jj < lv.squeezes, ∃ w, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
-      [w, σ (.n osQpos) * gen ^ (lv.posOff + jj * (192 / lv.depth)),
-        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth)), σ (.n osWin)] [] := by
-  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
-  set k := st.k
-  have hstm : (osSqueezes c lvl lv st).1 = osHeap ((c.maxSq + 1) * 5) k ++
-      (st.fs.zipIdx.map fun (f, i) ↦ .atom (.load (.n f) (.n (k + 1)) i)) ++
-      osLoopCall (c.sqLoop lvl) lv.squeezes [k + 1, osQpos, osQbp, osWin] (k + 2) ++
-      [.atom (.const (.n (k + 7)) (gw (lv.squeezes * 5))),
-        .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7)))] ++
-      ((List.range 5).map fun i ↦ .atom (.load (.n (k + 9 + i)) (.n (k + 8)) i)) ++
-      (osPad st.pad (k + 14)).1 ++ osSqueeze0 (osPad st.pad (k + 14)).2.1
-        [k + 9, k + 10, k + 11, k + 12, k + 13] (osPad st.pad (k + 14)).2.2 := rfl
-  rw [hstm] at hok
-  simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨-, -⟩, hL⟩, -⟩, -⟩, -⟩, -⟩ := hok
-  simp only [osLoopCall, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons,
-    List.map_nil] at hL
-  obtain ⟨c2, c3, a4, c5, c6, -, hcall⟩ := hL
-  have hgn : gw lv.squeezes = gen ^ lv.squeezes := gw_eq (by
-    have : ordG < u128Bound := by unfold ordG u128Bound; norm_num
-    omega)
-  have hit := sqLoop_sound hfind lv hps hbody hpw hpo hdec hn0 hn (σ (.n (k + 1))) (σ (.n osQpos))
-    (σ (.n osQbp)) (σ (.n osWin)) hwt (by
-      rw [a4, c2, c3, c5, c6, hgn, word_one] at hcall
-      exact hcall)
-  intro jj hjj
-  obtain ⟨cap, -, -, -, h3⟩ := sqIter_at (hit jj hjj)
-  exact ⟨_, h3⟩
-
 /-- **The window pointers name windows**: every decoded query's pointer, at `qbp·g^po`, a frame
 run of its windows at a position below `2^d`. -/
-theorem queryWinsOk_of_decodes {d cd po q nsq : ℕ} (hd : 1 ≤ 192 / d) (hq : q ≤ nsq * (192 / d))
+theorem queryWinsOk_of_decodes {d cd po q nsq : ℕ} (hd : 1 ≤ 128 / d) (hq : q ≤ nsq * (128 / d))
     {qpos qbp tabs : E}
     (hdec : ∀ jj < nsq, ∃ w, MeaningDecodeQueryWindows d cd rd [w,
-      qpos * gen ^ (po + jj * (192 / d)), qbp * gen ^ (po + jj * (192 / d)), tabs] []) :
+      qpos * gen ^ (po + jj * (128 / d)), qbp * gen ^ (po + jj * (128 / d)), tabs] []) :
     QueryWinsOk rd (qbp * gen ^ po) q d cd := by
   intro k hk bp hbp
-  set per := 192 / d
+  set per := 128 / d
   have hjj : k / per < nsq := by
     rw [Nat.div_lt_iff_lt_mul (by omega)]; exact lt_of_lt_of_le hk hq
   have ht : k % per < per := Nat.mod_lt _ (by omega)
@@ -246,57 +255,84 @@ theorem queryWinsOk_of_decodes {d cd po q nsq : ℕ} (hd : 1 ≤ 192 / d) (hq : 
 specification, the numbers the loop and the materializations need. -/
 structure OsWalkLv (rd : Reader) (c : OsCfg) (ℓ : ℕ) : Prop where
   loop : FnIs (c.sqLoop ℓ) (osParams 6) (sqLoopBody (c.levels.getD ℓ default) (c.sqLoop ℓ))
-  pw : digitsVal (osPowDigits (192 / (c.levels.getD ℓ default).depth)) 1 =
-    192 / (c.levels.getD ℓ default).depth
-  per : 1 ≤ 192 / (c.levels.getD ℓ default).depth
+  pw : digitsVal (osPowDigits (128 / (c.levels.getD ℓ default).depth)) 1 =
+    128 / (c.levels.getD ℓ default).depth
+  per : 1 ≤ 128 / (c.levels.getD ℓ default).depth
   q : (c.levels.getD ℓ default).queries ≤
-    (c.levels.getD ℓ default).squeezes * (192 / (c.levels.getD ℓ default).depth)
-  sq0 : 0 < (c.levels.getD ℓ default).squeezes
+    (c.levels.getD ℓ default).squeezes * (128 / (c.levels.getD ℓ default).depth)
+  sq1 : 1 ≤ (c.levels.getD ℓ default).squeezes
   sqOrd : (c.levels.getD ℓ default).squeezes < ordG
+  sq5 : (c.levels.getD ℓ default).squeezes * 5 < u128Bound
   mats : ∀ i ≤ ℓ, i < c.levels.length → LvMatB i (c.levels.getD i default)
   dec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-    coreProgram.Rel rd ("decode_query_windows__L" ++ natStr (c.levels.getD ℓ default).depth ++ "_L" ++
-      natStr (c.levels.getD ℓ default).capDepth) args rets →
+    coreProgram.Rel rd (decName (c.levels.getD ℓ default)) args rets →
     MeaningDecodeQueryWindows (c.levels.getD ℓ default).depth (c.levels.getD ℓ default).capDepth
       rd args rets
 
+/-- **A level's window pointers name windows**, from its statements up to them. -/
+theorem osLevelPre_wins {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB lvl lv)
+    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
+    (hpw : digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth) (hper : 1 ≤ 128 / lv.depth)
+    (hq : lv.queries ≤ lv.squeezes * (128 / lv.depth)) (hS : 1 ≤ lv.squeezes)
+    (hSo : lv.squeezes < ordG) (hS5 : lv.squeezes * 5 < u128Bound)
+    (hdec : ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd (decName lv) a r →
+      MeaningDecodeQueryWindows lv.depth lv.capDepth rd a r)
+    (hwt : WinTabs rd (σ (.n osTabs))) (hm : MatsOk σ s.mats)
+    (h : AllOk (coreProgram.Rel rd) rd σ (osLevelPre c lvl lv s)) :
+    QueryWinsOk rd (σ (.n (osQueriesA c lvl lv (osQState c lvl lv s)).2)) lv.queries lv.depth
+      lv.capDepth := by
+  have hb' := hb
+  obtain ⟨hb0, hb1, -, -, hb4⟩ := hb'
+  rw [(osLevelPre_mats hb hm h).1]
+  unfold osLevelPre at h
+  simp only [allOk_append] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨hf, hM⟩, -⟩, hS'⟩, -⟩, -⟩, -⟩, -⟩ := h
+  have k1 := osRounds_mats (P := c.plan) lv.foldsOff lv.folds s (by omega) hm hf
+  have k2 := osMsg_mats hb1 k1 hM
+  have out := osSqueezes_sound (fun _ _ _ h ↦ h) hdec hloop hpw hb4 hS hSo hS5 hwt k2
+    (osMsg_fs c lvl lv _) rfl rfl hS'
+  exact queryWinsOk_of_decodes hper hq fun jj hjj ↦ ⟨_, out.dec jj hjj⟩
+
 /-- **Level `ℓ`'s window pointers name windows**, on any prefix of `open_stacked`'s body reaching
-them. -/
+them, the window table at `tabs`. -/
 theorem osPre_queryWinsOk {c : OsCfg} {ℓ : ℕ} (hℓ : ℓ < c.levels.length) (hF : OsWalkLv rd c ℓ)
-    {n : ℕ} (hn : (osPre c ℓ).length ≤ n) {next : Prop} {kret : List E → Prop}
+    (hwt : WinTabs rd (σ (.n osTabs))) {n : ℕ} (hn : (osPre c ℓ).length ≤ n) {next : Prop}
+    {kret : List E → Prop}
     (hl : Stmt.HoldsList (coreProgram.Rel rd) rd σ ((osBody c).take n) next kret) :
     QueryWinsOk rd (σ (.n (osPreBp c ℓ))) (c.levels.getD ℓ default).queries
       (c.levels.getD ℓ default).depth (c.levels.getD ℓ default).capDepth := by
   have hok := allOk_osPre hℓ hn hl
   unfold osPre at hok
   simp only [allOk_append] at hok
-  obtain ⟨hH, hLs, hP⟩ := hok
-  have hwt := osHead_winTabs hH
+  obtain ⟨-, hLs, hP⟩ := hok
   have hm0 : MatsOk σ (osStAt c ℓ).mats := by
     refine osLevels_mats 0 _ _ (fun i hi ↦ ?_) (matsOk_nil σ) hLs
     simp only [List.length_take] at hi
     simp only [Nat.zero_add, List.getElem_take]
     rw [← List.getD_eq_getElem _ default (by omega)]
     exact hF.mats i (by omega) (by omega)
-  obtain ⟨-, hbp, -⟩ := osLevelPre_mats (hF.mats ℓ le_rfl hℓ) hm0 hP
-  unfold osPreBp
-  rw [hbp]
-  unfold osLevelPre at hP
-  simp only [allOk_append] at hP
-  obtain ⟨⟨⟨-, hS⟩, -⟩, -⟩ := hP
-  exact queryWinsOk_of_decodes hF.per hF.q (osSqueezes_wins hS hF.loop hF.pw
-    (hF.mats ℓ le_rfl hℓ).2.2.2.2 hF.dec hwt hF.sq0 hF.sqOrd)
+  exact osLevelPre_wins (hF.mats ℓ le_rfl hℓ) hF.loop hF.pw hF.per hF.q hF.sq1 hF.sqOrd hF.sq5
+    hF.dec hwt hm0 hP
+
+/-- A level's queries are `oqCount` of its call's `odd`, `base` and iterations. -/
+theorem oqCount_q (q ℓ : ℕ) : oqCount (q % 2 * (if ℓ = 0 then 1 else 0)) (if ℓ = 0 then 1 else 0)
+    (q / (1 + if ℓ = 0 then 1 else 0)) = q := by
+  by_cases h : ℓ = 0
+  · simp [oqCount, h]
+    omega
+  · simp [oqCount, h]
 
 /-- **`opening_queries`' obligation at level `ℓ`'s call** (`OqMainWins` at `n_iters_g =
 g^(queries / (1 + base))`), on any prefix of `open_stacked`'s body reaching the window pointers. -/
 theorem osPre_oqMainWins {c : OsCfg} {ℓ : ℕ} (hℓ : ℓ < c.levels.length) (hF : OsWalkLv rd c ℓ)
-    {n : ℕ} (hn : (osPre c ℓ).length ≤ n) {next : Prop} {kret : List E → Prop}
+    (hwt : WinTabs rd (σ (.n osTabs))) {n : ℕ} (hn : (osPre c ℓ).length ≤ n) {next : Prop}
+    {kret : List E → Prop}
     (hl : Stmt.HoldsList (coreProgram.Rel rd) rd σ ((osBody c).take n) next kret) :
     OqMainWins rd (c.levels.getD ℓ default).depth (c.levels.getD ℓ default).capDepth
       ((c.levels.getD ℓ default).queries % 2 * (if ℓ = 0 then 1 else 0)) (if ℓ = 0 then 1 else 0)
       (σ (.n (osPreBp c ℓ)))
       (gen ^ ((c.levels.getD ℓ default).queries / (1 + if ℓ = 0 then 1 else 0))) := by
-  have h := osPre_queryWinsOk hℓ hF hn hl
+  have h := osPre_queryWinsOk hℓ hF hwt hn hl
   rw [← oqCount_q (c.levels.getD ℓ default).queries ℓ] at h
   refine oqMainWins_of_queryWinsOk (fun h1 ↦ ?_) h
   by_cases h0 : ℓ = 0
