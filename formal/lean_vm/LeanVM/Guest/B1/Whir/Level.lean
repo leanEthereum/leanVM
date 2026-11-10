@@ -338,7 +338,7 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
 /-- A non-final level's callees, by their meanings. -/
 structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     Prop where
-  round : ∀ a r, C "opening_round" a r → MeaningOpeningRound rd a r
+  round : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r
   msg : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L0") a r →
     MeaningOpeningMessage (2 + lv.folds) 0 rd a r
   spf : ∀ a r, C ("squeeze_point_from__L" ++ natStr lv.logCols) a r →
