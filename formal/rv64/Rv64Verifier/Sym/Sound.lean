@@ -142,6 +142,30 @@ theorem memEval_writeMem (s : MachineState) (k : Addr) (v : E) (ws : SymMem) :
         rw [memEval_cons, ite_eq_right, ih]
         rw [← isSame_eval hs' s]; exact hne
 
+theorem spanOf_idx {a : Addr} : ∀ {As : List Span} {i j x : Nat} {A : Span},
+    spanOf a As i = some (j, A, x) → A.idx a = some x
+  | [], _, _, _, _, h => by cases h
+  | B :: As, i, j, x, A, h => by
+    simp only [spanOf] at h
+    split at h
+    · rename_i y hy
+      simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨-, rfl, rfl⟩ := h
+      exact hy
+    · exact spanOf_idx h
+
+theorem spanPair_sound {spans : List Span} {k k' : Addr} {A B : Span}
+    (h : spanPair spans k k' = some (A, B)) : ∃ x y, A.idx k = some x ∧ B.idx k' = some y := by
+  simp only [spanPair] at h
+  split at h
+  · rename_i i A' x j B' y h1 h2
+    split at h
+    · cases h
+    · simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨x, y, spanOf_idx h1, spanOf_idx h2⟩
+  · cases h
+
 theorem readMem_sound {cfg : Config} {k : Addr} {ws : SymMem} {e : E} {os : List Oblig}
     (h : readMem cfg k ws = some (e, os)) (s : MachineState) (hos : ∀ o ∈ os, o.holds s) :
     memEval s ws (k.eval s) = e.eval s := by
@@ -163,16 +187,26 @@ theorem readMem_sound {cfg : Config} {k : Addr} {ws : SymMem} {e : E} {os : List
       rw [ite_eq_right (Addr.alias_diff hd s)]
       exact ih h hos
     · split at h
-      · split at h
+      · rename_i A B hsp
+        split at h
         · cases h
         · rename_i e' os' hr
           simp only [Option.some.injEq, Prod.mk.injEq] at h
           obtain ⟨rfl, rfl⟩ := h
-          have hne := hos _ (List.mem_cons_self ..)
-          simp only [Oblig.holds] at hne
-          rw [ite_eq_right hne]
+          obtain ⟨x, y, hx, hy⟩ := spanPair_sound hsp
+          rw [ite_eq_right (Span.ne_of_apart hx hy (hos _ (List.mem_cons_self ..)))]
           exact ih hr (fun o ho => hos o (List.mem_cons_of_mem _ ho))
-      · cases h
+      · split at h
+        · split at h
+          · cases h
+          · rename_i e' os' hr
+            simp only [Option.some.injEq, Prod.mk.injEq] at h
+            obtain ⟨rfl, rfl⟩ := h
+            have hne := hos _ (List.mem_cons_self ..)
+            simp only [Oblig.holds] at hne
+            rw [ite_eq_right hne]
+            exact ih hr (fun o ho => hos o (List.mem_cons_of_mem _ ho))
+        · cases h
 
 /-! ## Side conditions -/
 

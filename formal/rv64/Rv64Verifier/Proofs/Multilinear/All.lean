@@ -9,6 +9,9 @@ import Rv64Verifier.Proofs.Multilinear.Powers
 import Rv64Verifier.Proofs.Multilinear.ScalerNew
 import Rv64Verifier.Proofs.Multilinear.Frames
 import Rv64Verifier.Proofs.Multilinear.SpecExtend
+import Rv64Verifier.Proofs.Multilinear.EqKernel
+import Rv64Verifier.Proofs.Multilinear.Concat
+import Rv64Verifier.Proofs.Multilinear.SliceConcat
 import Rv64Verifier.Proofs.Field.All
 import Rv64Verifier.Proofs.Runtime.All
 
@@ -34,6 +37,13 @@ theorem clone : CloneSpec := Clone.clone_spec tryAllocZeroed Runtime.memcpy
 
 /-- `spec_extend` with room enough. -/
 theorem specExtend : ExtendSpec := SpecExtend.extend_spec Runtime.memcpy
+
+theorem eqKernel : EqKernelSpec := EqKernel.eq_kernel_spec fromElem scalerNew Field.mul
+
+/-- `[Vec<E>; 2]::concat`, as `Proofs/Transcript/Contracts.lean` states it. -/
+theorem concat : Transcript.ConcatSpec := Concat.concat_spec tryAllocZeroed specExtend
+
+theorem sliceConcat : SliceConcatSpec := SliceConcat.slice_concat_spec tryAllocZeroed specExtend
 
 end Rv64Verifier.Proofs.Multilinear
 
@@ -68,3 +78,12 @@ end Rv64Verifier.Proofs.Multilinear
 
 /-- info: 'Rv64Verifier.Proofs.Multilinear.specExtend' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.specExtend
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.eqKernel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.eqKernel
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.concat' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.concat
+
+/-- info: 'Rv64Verifier.Proofs.Multilinear.sliceConcat' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Multilinear.sliceConcat

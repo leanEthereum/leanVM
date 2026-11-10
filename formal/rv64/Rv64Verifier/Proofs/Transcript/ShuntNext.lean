@@ -166,10 +166,15 @@ theorem shunt_next_spec (hN : NextScalarSpec) : ShuntNextSpec := by
         have : streamLen s (s.getMem (s.getReg .x11)) = 0 := h0
         simp only [Within] at hy; omega
       · exact miss' _ _ (by addr_omega [hpo]) (by addr_omega [hps]) (by addr_omega [hB])
-    refine ⟨t, (hr₁.trans hr₂).trans hr₃, Or.inl ⟨pc, pres, fun T hT ↦ ?_, F⟩⟩
+    have htag : t.getMem (s.getReg .x10) = 0 := by rw [m0, b80011f58_x10 h₂]
+    have hres : t.getMem (s.getMem (s.getReg .x11 + 24)) = s.getMem (s.getMem (s.getReg .x11 + 24)) :=
+      F' _ fun i hi hw ↦ by rcases hw with hw | hw <;> addr_omega [hw, hi, hpre.outResidual, hR, hrs, hb, ho]
+    refine ⟨t, (hr₁.trans hr₂).trans hr₃, Or.inl ⟨pc, pres, ⟨?_, fun _ ↦ htag, fun _ ↦ hres,
+      fun T hT ↦ ?_, F⟩⟩⟩
+    · simp only [shuntStart, shuntEnd, hlt, ↓reduceIte]
+      exact F' _ (fun i hi hw ↦ by
+        rcases hw with hw | hw <;> addr_omega [hw, hi, hpre.outShunt, hsh, hshs, hb, ho])
     simp only [shuntP, shuntStart, shuntEnd, hlt, ↓reduceIte]
-    refine ⟨by rw [m0, b80011f58_x10 h₂], F' _ (fun i hi hw ↦ by
-      rcases hw with hw | hw <;> addr_omega [hw, hi, hpre.outShunt, hsh, hshs, hb, ho]), ?_⟩
     exact F'.transcriptAt hT hself (miss' _ _ (by addr_omega [hpre.outSelf]) (by addr_omega [hss])
         (by addr_omega [hS]))
       (miss' _ _ (by addr_omega [hpo]) (by addr_omega [hps]) (by addr_omega [hP])) mB'
@@ -300,15 +305,17 @@ theorem shunt_next_spec (hN : NextScalarSpec) : ShuntNextSpec := by
       (((Fw.trans (DFrame.of_same hm₄ _) fun _ h ↦ h).trans (DFrame.of_memFrame f₅) fun a h ↦ by
         simp only [W]; exact Or.inr (Or.inr (Or.inl h))).trans (DFrame.of_memFrame f) fun a h ↦ by
         simp only [W]; exact Or.inl (by addr_omega [h, ho]))
-    refine ⟨t, ((hr₃.trans hr₄).trans hr₅).trans hr₆, Or.inl ⟨pc, pres, fun T hT ↦ ?_, F⟩⟩
-    simp only [shuntP, shuntStart, shuntEnd, shuntR, hlt, ↓reduceIte]
-    refine ⟨by
+    have htag0 : t.getMem (s.getReg .x10) = 0 := by rw [m0', b80011f48_x10 h₅]
+    refine ⟨t, ((hr₃.trans hr₄).trans hr₅).trans hr₆, Or.inl ⟨pc, pres, ⟨?_, fun h ↦ absurd hlt h,
+      fun h ↦ by rcases h with h | h; exact absurd htag0 h; exact absurd hlt h, fun T hT ↦ ?_, F⟩⟩⟩
+    · simp only [shuntStart, shuntEnd, hlt, ↓reduceIte]
       rw [f _ (by addr_omega [hpre.outShunt, ho, hsh]), kp _ (by addr_omega [hpre.shuntResidual, hR, hsh]),
-        hm₄, startw], ?_⟩
+        hm₄, startw]
+    simp only [shuntP, shuntStart, shuntEnd, shuntR, hlt, ↓reduceIte]
     have hv' := hv T (F₂.transcriptAt hT hself mP₂ mQ₂ mB₂ mM₂)
     generalize TM.nextScalar.run T = o at hv' ⊢
     rcases o with _ | ⟨x, T'⟩
-    · refine ⟨by rw [m0', b80011f48_x10 h₅], ?_⟩
+    · refine ⟨htag0, ?_⟩
       rw [f _ (by addr_omega [hpre.outResidual, ho, hR]), m0, ← a16]
       exact hv'.2
     · exact absurd (hv'.1.symm.trans htag) (by decide)
@@ -341,9 +348,16 @@ theorem shunt_next_spec (hN : NextScalarSpec) : ShuntNextSpec := by
         (DFrame.of_memFrame f) fun a h ↦ by addr_omega [h, ho])
     have F : DFrame s t (W s) :=
       Fw.trans Fwt fun a h ↦ by simp only [W]; exact Or.inl h
-    refine ⟨t, ((hr₃.trans hr₄).trans hr₅).trans hr₆, Or.inl ⟨pc, pres, fun T hT ↦ ?_, F⟩⟩
+    have htag1 : t.getMem (s.getReg .x10) = 1 := by rw [m0', k₅ .x10 (by decide), b80011f34_x10 h₄]
+    have hres : t.getMem (s.getMem (s.getReg .x11 + 24)) = s.getMem (s.getMem (s.getReg .x11 + 24)) := by
+      rw [Fwt _ fun i hi h ↦ by addr_omega [h, hi, hpre.outResidual, ho, hR], G₃ _ fun i hi h ↦ by
+        rcases h with h | h | h <;> addr_omega [h, hi, hb, hrs, hR, hpre.residualSelf, hS],
+        F₂ _ fun i hi h ↦ by rcases h with h | h <;> addr_omega [h, hi, hb, hrs, hR, hpre.shuntResidual, hsh]]
+    refine ⟨t, ((hr₃.trans hr₄).trans hr₅).trans hr₆, Or.inl ⟨pc, pres, ⟨?_, fun h ↦ absurd hlt h,
+      fun _ ↦ hres, fun T hT ↦ ?_, F⟩⟩⟩
+    · simp only [shuntStart, shuntEnd, hlt, ↓reduceIte]
+      rw [Fwt _ fun i hi h ↦ by addr_omega [h, hi, hpre.outShunt, ho, hsh], startw]
     simp only [shuntP, shuntStart, shuntEnd, shuntR, hlt, ↓reduceIte]
-    refine ⟨by rw [Fwt _ fun i hi h ↦ by addr_omega [h, hi, hpre.outShunt, ho, hsh], startw], ?_⟩
     have hv' := hv T (F₂.transcriptAt hT hself mP₂ mQ₂ mB₂ mM₂)
     generalize TM.nextScalar.run T = o at hv' ⊢
     rcases o with _ | ⟨x, T'⟩
@@ -351,7 +365,7 @@ theorem shunt_next_spec (hN : NextScalarSpec) : ShuntNextSpec := by
     · obtain ⟨-, hx, hT'⟩ := hv'
       have o16 : s.getReg .x10 + 8 + 8 = s.getReg .x10 + 16 := by rw [BitVec.add_assoc]; rfl
       have o24 : s.getReg .x10 + 8 + 16 = s.getReg .x10 + 24 := by rw [BitVec.add_assoc]; rfl
-      refine ⟨by rw [m0', k₅ .x10 (by decide), b80011f34_x10 h₄], ?_, ?_⟩
+      refine ⟨htag1, ?_, ?_⟩
       · rw [← hx]
         unfold Rv64Verifier.eAt
         have b24 : s.getReg .x2 - 64 + 16 + 8 = s.getReg .x2 - 64 + 24 := by

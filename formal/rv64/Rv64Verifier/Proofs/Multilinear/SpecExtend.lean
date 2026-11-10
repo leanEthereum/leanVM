@@ -249,6 +249,7 @@ theorem extend_spec (hC : MemcpySpec 0x800126e4) : ExtendSpec := by
     rcases hQr with h | h
     · omega
     · exact h
+  replace hS := hS.resolve_left h0
   have hne : s.getReg .x12 ≠ s.getReg .x11 := by
     intro heq; rw [heq, BitVec.sub_self] at hbytes; simp at hbytes; omega
   obtain ⟨t₄, hr₄, h₄⟩ := Sym.BlockSpec.reaches b8000e580_spec
@@ -301,7 +302,8 @@ theorem extend_spec (hC : MemcpySpec 0x800126e4) : ExtendSpec := by
         rcases ha with ha | ha
         · exact Or.inl ha
         · exact Or.inr (by addr_omega [ha, hb])) fun _ h ↦ h) ?_
-  refine eListAt_eq_of_bytesAt ?_ (by addr_omega [hraw.1, hQr']) hpre.srcAlign
+  refine eListAt_eq_of_bytesAt ?_ (by addr_omega [hraw.1, hQr'])
+    (hpre.srcAlign.resolve_left (by rw [← hn]; exact h0))
   rw [hby]
   refine ((ByteFrame.of_same (fun a ↦ (hm₄ a).trans (hm31 a)) fun _ ↦ False).bytesAt
     fun _ _ h ↦ h).trans (bf₁.bytesAt fun i hi hw ↦ ?_)

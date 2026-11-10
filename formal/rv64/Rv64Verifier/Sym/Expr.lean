@@ -378,6 +378,57 @@ theorem Addr.alias_diff {a b : Addr} (h : a.alias b = .diff) (s : MachineState) 
         simp [this]
     · cases h
 
+/-! ## Spans -/
+
+/-- `n` doublewords from register `reg` plus `lo`, as a configuration declares them
+(`Config.spans`): two addresses in different spans are told apart by one side condition on the
+spans (`Oblig.apart`), not one per pair of addresses. -/
+structure Span where
+  reg : Reg
+  lo : Word
+  n : Nat
+  deriving Repr
+
+def Span.start (s : MachineState) (A : Span) : Word := s.getReg A.reg + A.lo
+
+/-- The byte index in `A` of an address `A.reg + off`. -/
+def Span.idx (A : Span) (a : Addr) : Option Nat :=
+  match a.base with
+  | some (.reg r) =>
+    if Reg.beqN r A.reg && decide ((a.off - A.lo).toNat < 8 * A.n) then
+      some (a.off - A.lo).toNat
+    else none
+  | _ => none
+
+theorem Span.idx_eval {A : Span} {a : Addr} {i : Nat} (h : A.idx a = some i)
+    (s : MachineState) : a.eval s = A.start s + BitVec.ofNat 64 i ∧ i < 8 * A.n := by
+  rcases a with ⟨_ | b, off⟩
+  · simp [Span.idx] at h
+  · cases b with
+    | reg r =>
+      simp only [Span.idx, Bool.and_eq_true, decide_eq_true_eq] at h
+      split at h
+      · rename_i hc
+        obtain ⟨hr, hlt⟩ := hc
+        cases h
+        have hr' := Reg.beqN_eq hr
+        subst hr'
+        refine ⟨?_, hlt⟩
+        simp only [Addr.eval, E.eval, Span.start, BitVec.ofNat_toNat, BitVec.setWidth_eq]
+        rw [BitVec.add_assoc, BitVec.add_comm A.lo, BitVec.sub_add_cancel]
+      · cases h
+    | _ => simp [Span.idx] at h
+
+def Span.beq (A B : Span) : Bool :=
+  Reg.beqN A.reg B.reg && A.lo.toNat == B.lo.toNat && A.n == B.n
+
+theorem Span.beq_eq {A B : Span} (h : Span.beq A B = true) : A = B := by
+  rcases A with ⟨r, lo, n⟩
+  rcases B with ⟨r', lo', n'⟩
+  simp only [Span.beq, Bool.and_eq_true, beq_iff_eq] at h
+  obtain ⟨⟨h1, h2⟩, h3⟩ := h
+  rw [Reg.beqN_eq h1, BitVec.eq_of_toNat_eq h2, h3]
+
 /-! ## Side conditions -/
 
 /-- Side conditions emitted by the symbolic executor. -/
@@ -388,17 +439,23 @@ inductive Oblig where
   | align8 (b : E)
   /-- `a.eval s ≠ b.eval s` (only emitted in `noAlias` mode) -/
   | ne (a b : Addr)
+  /-- the spans `A` and `B` do not overlap, the one above the other ending by `2^64` -/
+  | apart (A B : Span)
   deriving Repr
 
 def Oblig.holds (s : MachineState) : Oblig → Prop
   | .valid a w => validAccess w (a.eval s) = true
   | .align8 b => (b.eval s).toNat % 8 = 0
   | .ne a b => a.eval s ≠ b.eval s
+  | .apart A B => (A.start s).toNat + 8 * A.n ≤ (B.start s).toNat ∧
+      (B.start s).toNat + 8 * B.n ≤ 2 ^ 64 ∨
+      (B.start s).toNat + 8 * B.n ≤ (A.start s).toNat ∧ (A.start s).toNat + 8 * A.n ≤ 2 ^ 64
 
 def Oblig.beq : Oblig → Oblig → Bool
   | .valid a w, .valid b w' => Addr.beq a b && w == w'
   | .align8 a, .align8 b => E.beq a b
   | .ne a b, .ne a' b' => Addr.beq a a' && Addr.beq b b'
+  | .apart A B, .apart A' B' => Span.beq A A' && Span.beq B B'
   | _, _ => false
 
 theorem Oblig.beq_eq {a b : Oblig} (h : Oblig.beq a b = true) : a = b := by
@@ -406,6 +463,28 @@ theorem Oblig.beq_eq {a b : Oblig} (h : Oblig.beq a b = true) : a = b := by
   · rw [Addr.beq_eq h.1, h.2]
   · rw [E.beq_eq h]
   · rw [Addr.beq_eq h.1, Addr.beq_eq h.2]
+  · rw [Span.beq_eq h.1, Span.beq_eq h.2]
+
+/-- Addresses in apart spans differ. -/
+theorem Span.ne_of_apart {A B : Span} {a b : Addr} {i j : Nat} (ha : A.idx a = some i)
+    (hb : B.idx b = some j) {s : MachineState} (h : (Oblig.apart A B).holds s) :
+    a.eval s ≠ b.eval s := by
+  obtain ⟨ha', hi⟩ := Span.idx_eval ha s
+  obtain ⟨hb', hj⟩ := Span.idx_eval hb s
+  rw [ha', hb']
+  intro heq
+  have he := congrArg BitVec.toNat heq
+  simp only [Oblig.holds] at h
+  rw [BitVec.toNat_add, BitVec.toNat_add, BitVec.toNat_ofNat, BitVec.toNat_ofNat] at he
+  have := (A.start s).isLt
+  have := (B.start s).isLt
+  rcases h with h | h
+  · rw [Nat.mod_eq_of_lt (by omega : i < 2 ^ 64), Nat.mod_eq_of_lt (by omega : j < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)] at he
+    omega
+  · rw [Nat.mod_eq_of_lt (by omega : i < 2 ^ 64), Nat.mod_eq_of_lt (by omega : j < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)] at he
+    omega
 
 /-- All side conditions hold (a right-nested conjunction, simp-friendly). -/
 def Oblig.all (s : MachineState) : List Oblig → Prop

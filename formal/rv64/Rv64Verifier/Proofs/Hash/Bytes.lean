@@ -32,6 +32,39 @@ theorem bytesValid_ram {a : Word} {n : Nat} (h1 : 0xa0000000 ≤ a.toNat)
     BitVec.toNat_ofNat]
   omega
 
+/-- A range in one data window has valid bytes. -/
+theorem _root_.Rv64Verifier.Runtime.Mapped.bytesValid {a : Word} {n : Nat} (h : Runtime.Mapped a n) :
+    BytesValid a n := by
+  simp only [Runtime.Mapped] at h
+  refine ⟨by omega, fun i hi ↦ ?_⟩
+  simp only [isValidMemAddr, MEM_START, MEM_END, INPUT_MEM_START, INPUT_MEM_END, RAM_MEM_START,
+    RAM_MEM_END, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, BitVec.toNat_add,
+    BitVec.toNat_ofNat]
+  omega
+
+theorem _root_.Rv64Verifier.Runtime.Mapped.sub {a : Word} {n k m : Nat} (h : Runtime.Mapped a n)
+    (hk : k + m ≤ n) : Runtime.Mapped (a + BitVec.ofNat 64 k) m := by
+  simp only [Runtime.Mapped] at h ⊢
+  rw [BitVec.toNat_add, BitVec.toNat_ofNat]
+  omega
+
+/-- The bytes of `n` valid doublewords followed by a valid one lie in one data window: no valid
+doubleword starts between the windows. -/
+theorem mapped_of_range {a : Word} {n : Nat} (h : ValidMemRange a (n + 1)) :
+    Runtime.Mapped a (8 * n) := by
+  have hb := ValidMemRange.bounds h (by omega)
+  have h0 := (Sym.validAccess_eight _).mp (validAccess_of_dword (h 0 (by omega)))
+  have hn := (Sym.validAccess_eight _).mp (validAccess_of_dword (h n (by omega)))
+  simp only [Nat.mul_zero, BitVec.add_zero] at h0
+  rw [BitVec.toNat_add, BitVec.toNat_ofNat] at hn
+  simp only [Runtime.Mapped]
+  by_cases hgap : a.toNat ≤ 0x78000000 ∧ 0xa0000000 ≤ (a.toNat + 8 * n) % 2 ^ 64
+  · have hi := (Sym.validAccess_eight _).mp (validAccess_of_dword
+      (h ((0x78000008 - a.toNat) / 8) (by omega)))
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat] at hi
+    omega
+  · omega
+
 theorem getByte_of_bytesAt {t : MachineState} {a : Word} {n : Nat} {l : List (BitVec 8)}
     (h : bytesAt t a n = l) {i : Nat} (hi : i < n) :
     t.getByte (a + BitVec.ofNat 64 i) = l.getD i 0 := by

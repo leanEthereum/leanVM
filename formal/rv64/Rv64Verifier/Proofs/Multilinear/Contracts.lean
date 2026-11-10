@@ -2,6 +2,7 @@ import Rv64Verifier.Proofs.Contracts
 import Rv64Verifier.Proofs.Field.Contracts
 import Rv64Verifier.Model.Multilinear
 import Rv64Verifier.Proofs.Runtime.Contracts
+import Rv64Verifier.Proofs.Transcript.Repr
 
 /-!
 # Contracts of the multilinear helpers
@@ -331,8 +332,8 @@ def extendLen (s : MachineState) : Nat := ((s.getReg .x12).toNat - (s.getReg .x1
 def extendDst (s : MachineState) : Word :=
   Runtime.vecPtr s (s.getReg .x10) + BitVec.ofNat 64 (24 * (Runtime.vecLen s (s.getReg .x10)).toNat)
 
-/-- `a0` = the `Vec` (with room for the slice), `a1`..`a2` = the slice: mapped and aligned, the
-slice, the `Vec` and its free capacity apart from each other and from the stack. -/
+/-- `a0` = the `Vec` (with room for the slice), `a1`..`a2` = the slice: aligned, mapped unless
+empty, the slice, the `Vec` and its free capacity apart from each other and from the stack. -/
 structure ExtendPre (s : MachineState) : Prop where
   heap : Runtime.HeapOk s
   vec : ValidMemRange (s.getReg .x10) 3
@@ -341,8 +342,8 @@ structure ExtendPre (s : MachineState) : Prop where
     (Runtime.vecCap s (s.getReg .x10)).toNat
   bounds : (s.getReg .x11).toNat ≤ (s.getReg .x12).toNat
   whole : ((s.getReg .x12).toNat - (s.getReg .x11).toNat) % 24 = 0
-  src : Runtime.Mapped (s.getReg .x11) (24 * extendLen s)
-  srcAlign : (s.getReg .x11).toNat % 8 = 0
+  src : extendLen s = 0 ∨ Runtime.Mapped (s.getReg .x11) (24 * extendLen s)
+  srcAlign : extendLen s = 0 ∨ (s.getReg .x11).toNat % 8 = 0
   stack : Runtime.RtStack s extendStack
   vecStack : Apart (s.getReg .x10) 24 (stackLo s extendStack) extendStack
   vecHeap : Runtime.Outside s (s.getReg .x10) 24
@@ -364,5 +365,136 @@ structure ExtendPost (s t : MachineState) : Prop where
     Within a (extendDst s) (24 * extendLen s) ∨ Within a (stackLo s extendStack) extendStack
 
 abbrev ExtendSpec : Prop := FunSpec Image.code 0x8000e520 ExtendPre ExtendPost
+
+/-! ## `eq_kernel`, at `0x8000cb38`
+
+Stated as `Proofs/Gkr/Contracts.lean` states it, field for field. -/
+
+/-- `eq_kernel`'s 208-byte frame and `mul`'s stack below it (`Scaler::new`'s and `from_elem`'s are
+smaller). -/
+@[rv_addr] def eqKernelStack : Nat := 208 + mulStack
+
+/-- `a0` = where the `Vec` goes, `a1`/`a2` = the point (its pointer arbitrary when empty). -/
+structure EqKernelPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : Transcript.Region (s.getReg .x10) 24
+  point : (s.getReg .x12).toNat = 0 ∨ Transcript.Region (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  stack : Runtime.RtStack s eqKernelStack
+  outFree : Runtime.Outside s (s.getReg .x10) 24
+  pointFree : (s.getReg .x12).toNat = 0 ∨
+    Runtime.Outside s (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  outStack : Apart (s.getReg .x10) 24 (stackLo s eqKernelStack) eqKernelStack
+  pointStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s eqKernelStack)
+    eqKernelStack
+  pointOut : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (s.getReg .x10) 24
+  rodata : RodataOk s
+  outRodata : Apart (s.getReg .x10) 24 rodataBase rodataSize
+
+/-- A new `Vec` of `eqKernelRust` of the point; memory changes only in the `Vec`, the stack,
+`NEXT` and the new allocation. -/
+structure EqKernelPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  value : Transcript.NewVecE s t (s.getReg .x10)
+    (Model.eqKernelRust (eListAt s (s.getReg .x11) (s.getReg .x12).toNat))
+  frame : Transcript.DFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
+    Within a (stackLo s eqKernelStack) eqKernelStack ∨ Within a Runtime.nextAddr 8 ∨
+      Runtime.Fresh s t a
+
+abbrev EqKernelSpec : Prop := FunSpec Image.code 0x8000cb38 EqKernelPre EqKernelPost
+
+/-! ## `multilinear_eval::<E>`, at `0x8000d28c` -/
+
+/-- `multilinear_eval`'s 208-byte frame and `mul`'s stack below it (`Scaler::new`'s,
+`try_allocate_in`'s and `memcpy`'s are smaller). -/
+@[rv_addr] def mleEvalStack : Nat := 208 + mulStack
+
+/-- `a0` = the `Result<E, VerifierError>` (32 bytes), `a1`/`a2` = the table, `a3`/`a4` = the
+point, either slice's pointer arbitrary when empty. -/
+structure MleEvalPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : Transcript.Region (s.getReg .x10) 32
+  mle : (s.getReg .x12).toNat = 0 ∨ Transcript.Region (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  point : (s.getReg .x14).toNat = 0 ∨
+    Transcript.Region (s.getReg .x13) (24 * (s.getReg .x14).toNat)
+  stack : Runtime.RtStack s mleEvalStack
+  outFree : Runtime.Outside s (s.getReg .x10) 32
+  mleFree : (s.getReg .x12).toNat = 0 ∨
+    Runtime.Outside s (s.getReg .x11) (24 * (s.getReg .x12).toNat)
+  pointFree : (s.getReg .x14).toNat = 0 ∨
+    Runtime.Outside s (s.getReg .x13) (24 * (s.getReg .x14).toNat)
+  outStack : Apart (s.getReg .x10) 32 (stackLo s mleEvalStack) mleEvalStack
+  mleStack : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (stackLo s mleEvalStack)
+    mleEvalStack
+  pointStack : Apart (s.getReg .x13) (24 * (s.getReg .x14).toNat) (stackLo s mleEvalStack)
+    mleEvalStack
+  mleOut : Apart (s.getReg .x11) (24 * (s.getReg .x12).toNat) (s.getReg .x10) 32
+  pointOut : Apart (s.getReg .x13) (24 * (s.getReg .x14).toNat) (s.getReg .x10) 32
+  rodata : RodataOk s
+  outRodata : Apart (s.getReg .x10) 32 rodataBase rodataSize
+
+/-- `Ok(multilinearEvalRust mle point)` (tag `0`, the value at `a0 + 8`) when the sizes match,
+`Err` (tag `1`) otherwise; memory changes only in the result, the stack, `NEXT` and what it
+allocates. -/
+structure MleEvalPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  value : match Model.multilinearEvalRust (eListAt s (s.getReg .x11) (s.getReg .x12).toNat)
+      (eListAt s (s.getReg .x13) (s.getReg .x14).toNat) with
+    | some v => t.getMem (s.getReg .x10) = 0 ∧ eAt t (s.getReg .x10 + 8) = v
+    | none => t.getMem (s.getReg .x10) = 1
+  frame : Transcript.DFrame s t fun a ↦ Within a (s.getReg .x10) 32 ∨
+    Within a (stackLo s mleEvalStack) mleEvalStack ∨ Within a Runtime.nextAddr 8 ∨
+      Runtime.Fresh s t a
+
+abbrev MleEvalSpec : Prop := FunSpec Image.code 0x8000d28c MleEvalPre MleEvalPost
+
+/-! ## `<[&[E]] as Concat<E>>::concat`, at `0x8000cfc4` -/
+
+/-- Its 64-byte frame and the deepest callee's stack below it, as `Proofs/Pcs/Contracts.lean`
+bounds it. -/
+@[rv_addr] def sliceConcatStack : Nat := 64 + Runtime.reserveStack
+
+/-- The `i`-th slice's pointer and length. -/
+@[rv_addr] def partPtr (s : MachineState) (i : Nat) : Word :=
+  s.getMem (s.getReg .x11 + BitVec.ofNat 64 (16 * i))
+@[rv_addr] def partLen (s : MachineState) (i : Nat) : Nat :=
+  (s.getMem (s.getReg .x11 + BitVec.ofNat 64 (16 * i) + 8)).toNat
+
+/-- The slices' elements, in order. -/
+def parts (s : MachineState) : List (List E) :=
+  (List.range (s.getReg .x12).toNat).map fun i ↦ eListAt s (partPtr s i) (partLen s i)
+
+/-- `a0` = where the `Vec` goes, `a1`/`a2` = the slices (at least one: the compiled length loop
+runs once before its test), each one's pointer arbitrary when empty. -/
+structure SliceConcatPre (s : MachineState) : Prop where
+  heap : Runtime.HeapOk s
+  out : Transcript.Region (s.getReg .x10) 24
+  count : 0 < (s.getReg .x12).toNat
+  slices : Transcript.Region (s.getReg .x11) (16 * (s.getReg .x12).toNat)
+  stack : Runtime.RtStack s sliceConcatStack
+  outFree : Runtime.Outside s (s.getReg .x10) 24
+  outStack : Apart (s.getReg .x10) 24 (stackLo s sliceConcatStack) sliceConcatStack
+  slicesFree : Runtime.Outside s (s.getReg .x11) (16 * (s.getReg .x12).toNat)
+  slicesStack : Apart (s.getReg .x11) (16 * (s.getReg .x12).toNat) (stackLo s sliceConcatStack)
+    sliceConcatStack
+  slicesOut : Apart (s.getReg .x11) (16 * (s.getReg .x12).toNat) (s.getReg .x10) 24
+  part : ∀ i < (s.getReg .x12).toNat, partLen s i = 0 ∨
+    (Transcript.Region (partPtr s i) (24 * partLen s i) ∧
+      Runtime.Outside s (partPtr s i) (24 * partLen s i) ∧
+      Apart (partPtr s i) (24 * partLen s i) (stackLo s sliceConcatStack) sliceConcatStack ∧
+      Apart (partPtr s i) (24 * partLen s i) (s.getReg .x10) 24)
+
+/-- A new `Vec` of the slices' elements; memory changes only in the `Vec`, the stack, `NEXT` and
+the new allocation. -/
+structure SliceConcatPost (s t : MachineState) : Prop where
+  heap : Runtime.HeapOk t
+  mono : Runtime.heapNext s ≤ Runtime.heapNext t
+  value : Transcript.NewVecE s t (s.getReg .x10) (parts s).flatten
+  frame : Transcript.DFrame s t fun a ↦ Within a (s.getReg .x10) 24 ∨
+    Within a (stackLo s sliceConcatStack) sliceConcatStack ∨ Within a Runtime.nextAddr 8 ∨
+      Runtime.Fresh s t a
+
+abbrev SliceConcatSpec : Prop := FunSpec Image.code 0x8000cfc4 SliceConcatPre SliceConcatPost
 
 end Rv64Verifier.MultilinearContracts

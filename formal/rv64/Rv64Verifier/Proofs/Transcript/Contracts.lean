@@ -147,18 +147,21 @@ structure ShuntNextPre (s : MachineState) : Prop where
   selfRodata : Apart (shuntP s) transcriptSize rodataBase rodataSize
 
 /-- Past the end, `None` and nothing changes; before it, `start` advances and `next_scalar` runs:
-`Some` with its scalar, or `None` with its error (`3`) in the residual. Memory changes only in
-the result, `start`, the residual, the sponge and offsets, and the stack. -/
+`Some` with its scalar, or `None` with its error (`3`) in the residual, which nothing else writes.
+Memory changes only in the result, `start`, the residual, the sponge and offsets, and the stack. -/
 structure ShuntNextPost (s t : MachineState) : Prop where
+  start : t.getMem (s.getReg .x11 + 8) =
+    if (shuntStart s).toNat < (shuntEnd s).toNat then shuntStart s + 1 else shuntStart s
+  past : ¬ (shuntStart s).toNat < (shuntEnd s).toNat → t.getMem (s.getReg .x10) = 0
+  kept : t.getMem (s.getReg .x10) ≠ 0 ∨ ¬ (shuntStart s).toNat < (shuntEnd s).toNat →
+    t.getMem (shuntR s) = s.getMem (shuntR s)
   value : ∀ T, TranscriptAt s (shuntP s) T →
     if (shuntStart s).toNat < (shuntEnd s).toNat then
-      t.getMem (s.getReg .x11 + 8) = shuntStart s + 1 ∧
       match TM.nextScalar.run T with
       | some (x, T') => t.getMem (s.getReg .x10) = 1 ∧ eAt t (s.getReg .x10 + 8) = x ∧
           TranscriptAt t (shuntP s) T'
       | none => t.getMem (s.getReg .x10) = 0 ∧ t.getMem (shuntR s) = 3
-    else t.getMem (s.getReg .x10) = 0 ∧ t.getMem (s.getReg .x11 + 8) = shuntStart s ∧
-      TranscriptAt t (shuntP s) T
+    else TranscriptAt t (shuntP s) T
   frame : DFrame s t fun a ↦ Within a (s.getReg .x10) 32 ∨ Within a (s.getReg .x11 + 8) 8 ∨
     Within a (shuntR s) 16 ∨ Within a (shuntP s + 8) 344 ∨
     Within a (stackLo s shuntNextStack) shuntNextStack
@@ -196,19 +199,10 @@ def TFrame (n k : Nat) (s t : MachineState) : Prop :=
   DFrame s t fun a ↦ Within a (s.getReg .x10) n ∨ Within a (s.getReg .x11 + 8) 344 ∨
     Within a (stackLo s k) k ∨ Within a nextAddr 8 ∨ Fresh s t a
 
-/-- `Vec::reserve` (`Runtime.ReserveSpec`) whose buffer afterwards is the same one, or a new one: a
-`Vec` filled after the call writes only memory allocated since. The runtime's contract does not say
-so yet; this is what the transcript's proofs assume. -/
-def ReserveFreshSpec (entry : Word) (size align : Nat) : Prop :=
-  FunSpec Image.code entry (ReservePre size align) fun s t ↦ ReservePost size align s t ∧
-    ((vecPtr t (s.getReg .x10) = vecPtr s (s.getReg .x10) ∧
-      vecCap t (s.getReg .x10) = vecCap s (s.getReg .x10)) ∨
-     NewBuf s t (vecPtr t (s.getReg .x10)) ((vecCap t (s.getReg .x10)).toNat * size) align)
-
-/-- `RawVec::grow_one` (`Runtime.GrowOneSpec`) whose new buffer is new. -/
-def GrowOneFreshSpec (entry : Word) (size align : Nat) : Prop :=
-  FunSpec Image.code entry (GrowOnePre size align) fun s t ↦ GrowOnePost size align s t ∧
-    NewBuf s t (vecPtr t (s.getReg .x10)) ((vecCap t (s.getReg .x10)).toNat * size) align
+/-- The `Vec<E>` at `a` is well formed in a buffer allocated from `s` on to `t`, unless its
+capacity is `-1` (`Err`): what a caller may use without the mirror. -/
+def VecResult (s t : MachineState) (a : Word) : Prop :=
+  vecCap t a ≠ errNiche → VecOk t a 24 8 ∧ NewBuf s t (vecPtr t a) ((vecCap t a).toNat * 24) 8
 
 /-! ### `Transcript::next_scalars`, at `0x80004818` -/
 
@@ -228,6 +222,7 @@ structure NextScalarsPost (s t : MachineState) : Prop where
         TranscriptAt t (s.getReg .x11) T'
     | none => vecCap t (s.getReg .x10) = errNiche
   frame : TFrame 24 nextScalarsStack s t
+  ok : VecResult s t (s.getReg .x10)
 
 abbrev NextScalarsSpec : Prop := FunSpec Image.code 0x80004818 NextScalarsPre NextScalarsPost
 
@@ -304,6 +299,7 @@ structure RoundPolyPost (s t : MachineState) : Prop where
         TranscriptAt t (s.getReg .x11) T'
     | none => vecCap t (s.getReg .x10) = errNiche
   frame : TFrame 24 roundPolyStack s t
+  ok : VecResult s t (s.getReg .x10)
 
 abbrev RoundPolySpec : Prop := FunSpec Image.code 0x8000c334 RoundPolyPre RoundPolyPost
 
@@ -372,6 +368,7 @@ structure SumcheckPost (s t : MachineState) : Prop where
   frame : DFrame s t fun a ↦ Within a (s.getReg .x10) 48 ∨ Within a (s.getReg .x12) 24 ∨
     Within a (s.getReg .x11 + 8) 344 ∨ Within a (stackLo s sumcheckStack) sumcheckStack ∨
     Within a nextAddr 8 ∨ Fresh s t a
+  ok : VecResult s t (s.getReg .x10)
 
 abbrev SumcheckSpec : Prop := FunSpec Image.code 0x80010538 SumcheckPre SumcheckPost
 

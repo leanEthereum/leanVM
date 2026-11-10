@@ -137,6 +137,7 @@ def oblOk (rs : List Region) (bs : List BRegion) : Oblig → Bool
   | .valid a w => validOk rs a w || validB bs a w
   | .ne a b => neOk rs a b
   | .align8 _ => false
+  | .apart .. => false
 
 theorem region_bounds {s : MachineState} {R : Region} (h : ValidMemRange (R.start s) R.n)
     (hn : 0 < R.n) : 0x20 ≤ (R.start s).toNat ∧ (R.start s).toNat % 8 = 0 ∧
@@ -197,6 +198,7 @@ theorem oblOk_sound {s : MachineState} {rs : List Region} {bs : List BRegion}
     · exact validB_sound hbok h
   | ne a b => exact neOk_sound hok hap h
   | align8 _ => cases h
+  | apart _ _ => cases h
 
 /-- The check of a side condition: the regions discharge it, or it is listed. -/
 def oblCheck (rs : List Region) (bs : List BRegion) (extra : List Oblig) (o : Oblig) : Bool :=

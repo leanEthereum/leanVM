@@ -237,8 +237,6 @@ theorem call (hF : FinishGrowSpec) {s u : MachineState} (hpre : GrowPre s)
       inv₃.fits fun r hr ↦ k₄ r (mem_of_mem hr _)
     obtain ⟨t, hr, hpc', hpres, hx10, hmt⟩ := exit hpre (b8000c200_pc h₄) inv₄
     obtain ⟨hnt, hheap', hmono, hframe⟩ := finish hpre inv₄ (ByteFrame.of_same hmt _)
-    refine ⟨t, hr₂.trans (hr₃.trans (hr₄.trans hr)), Or.inl ⟨hpc', hpres,
-      hheap', hmono, fun _ ↦ ?_, hframe⟩⟩
     have hok := hpost.ok (by rw [hout]; exact htag)
     rw [hout] at hok
     obtain ⟨hnew, hbytes⟩ := hok
@@ -254,6 +252,12 @@ theorem call (hF : FinishGrowSpec) {s u : MachineState} (hpre : GrowPre s)
     rw [b8000c1d8_x13 h₁, k₁ .x15 (by decide), hsz, k₁ .x14 (by decide), hal] at hnew
     rw [k₁ .x11 (by decide), hcap, k₁ .x15 (by decide), hsz, hptr] at hbytes
     have hbuf := hnew.buf ⟨hn₁ ▸ hlo, hn₁ ▸ hhi⟩
+    have hfresh : NewBuf s t (vecPtr t (s.getReg .x10))
+        ((vecCap t (s.getReg .x10)).toNat * (s.getReg .x14).toNat) (s.getReg .x13).toNat := by
+      simp only [NewBuf, hc, hp, hbt, hn₁] at hnew ⊢
+      exact hnew
+    refine ⟨t, hr₂.trans (hr₃.trans (hr₄.trans hr)), Or.inl ⟨hpc', hpres,
+      hheap', hmono, fun _ ↦ ?_, hframe, fun _ ↦ hfresh⟩⟩
     refine ⟨by rw [hc]; exact hnc, ?_, ?_⟩
     · simp only [RawVecOk, Buf, hc, hp, hbt] at hbuf ⊢
       exact hbuf
@@ -284,8 +288,10 @@ theorem call (hF : FinishGrowSpec) {s u : MachineState} (hpre : GrowPre s)
     have inv₄ := inv₃.same hpre (b8000c1f8_mem_same h₄) k₄
     obtain ⟨t, hr, hpc', hpres, hx10, hmt⟩ := exit hpre (b8000c1f8_pc h₄) inv₄
     obtain ⟨-, hheap', hmono, hframe⟩ := finish hpre inv₄ (ByteFrame.of_same hmt _)
-    refine ⟨t, hr₂.trans (hr₃.trans (hr₄.trans hr)), Or.inl ⟨hpc', hpres,
-      hheap', hmono, fun h1 ↦ ?_, hframe⟩⟩
+    suffices hne : t.getReg .x10 ≠ 0xffffffffffffffff from
+      ⟨t, hr₂.trans (hr₃.trans (hr₄.trans hr)), Or.inl ⟨hpc', hpres,
+        hheap', hmono, fun h1 ↦ absurd h1 hne, hframe, fun h1 ↦ absurd h1 hne⟩⟩
+    intro h1
     have herr := hpost.err (by rw [hout]; exact htag)
     rw [hout] at herr
     have := b8000c1f8_x10 h₄
@@ -418,9 +424,9 @@ theorem grow_spec (hF : FinishGrowSpec) : GrowSpec := by
     refine ⟨t₂, hr₁.trans hr₂, Or.inl ⟨by rw [b8000c194_pc h₂, k₁ .x1 (by decide)]; rfl,
       fun r hr ↦ (k₂ r (mem_of_mem hr _)).trans (k₁ r (mem_of_mem hr _)),
       ⟨hn ▸ hpre.heap.lo, hn ▸ hpre.heap.hi⟩, hn.ge, fun h0 ↦ ?_,
-      ByteFrame.of_same hm _⟩⟩
-    rw [b8000c194_x10 h₂] at h0
-    cases h0
+      ByteFrame.of_same hm _, fun h0 ↦ ?_⟩⟩ <;>
+    · rw [b8000c194_x10 h₂] at h0
+      cases h0
   have hreq : (s.getReg .x12 + s.getReg .x11).toNat = (s.getReg .x12).toNat + (s.getReg .x11).toNat := by
     rw [BitVec.toNat_add] at hov ⊢
     have := (s.getReg .x11).isLt

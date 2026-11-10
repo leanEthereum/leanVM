@@ -75,15 +75,15 @@ theorem _root_.Rv64Verifier.Runtime.ReservePre.bounds {size align : Nat} {s : Ma
   rw [this.2.2.2] at ha
   omega
 
-/-- **Every copy of `reserve` meets its contract**, given `grow_amortized`'s, from its four
-blocks. -/
+/-- **Every copy of `reserve` meets its contract**, its buffer the same or a new one, given
+`grow_amortized`'s, from its four blocks. -/
 theorem reserve_of (hG : GrowSpec) {e : Word} {size align : Nat}
     (hal : 0 < align ∧ align ≤ 2 ^ 32) (hsz : 0 < size ∧ size < 2 ^ 32)
     (hA : Spec e (resA e)) (hB : Spec (e + 16) resB)
     (hC : Spec (e + 20) (resC e (BitVec.ofNat 64 align) (BitVec.ofNat 64 size)))
     (hD : Spec (e + 52) (resD e))
     (hret : (e + 52) &&& 0xfffffffffffffffe = e + 52)
-    (htrap : Image.code.fetch (e + 68) = none) : ReserveSpec e size align := by
+    (htrap : Image.code.fetch (e + 68) = none) : ReserveFreshSpec e size align := by
   intro s hpc hpre
   have hb := hpre.bounds
   have hst := hpre.stack
@@ -118,7 +118,8 @@ theorem reserve_of (hG : GrowSpec) {e : Word} {size align : Nat}
     have hn : heapNext t = heapNext s := by simp only [heapNext, hm]
     simp only [BitVec.ult, decide_eq_true_eq, Nat.not_lt, hroom] at hge
     refine ⟨t, hr₀.trans hr, Or.inl ⟨pc.trans (returnAddress_eq s).symm, fun r hr' ↦ ?_,
-      ⟨hn ▸ hpre.heap.lo, hn ▸ hpre.heap.hi⟩, hn.ge, ?_, ?_, ?_, ?_, ByteFrame.of_same hm _⟩⟩
+      ⟨⟨hn ▸ hpre.heap.lo, hn ▸ hpre.heap.hi⟩, hn.ge, ?_, ?_, ?_, ?_, ByteFrame.of_same hm _⟩,
+      Or.inl ⟨by simp only [vecPtr, hm], by simp only [vecCap, hm]⟩⟩⟩
     · rw [k r (mem_of_mem hr' _), k₀ r (mem_of_mem hr' _)]
     · simp only [vecLen, vecCap, hm]; omega
     · exact ⟨by simp only [RawVecOk, Buf, vecPtr, vecCap, hm, hn]; exact hraw,
@@ -237,7 +238,7 @@ theorem reserve_of (hG : GrowSpec) {e : Word} {size align : Nat}
       (vecCap t₄ (s.getReg .x10)).toNat := by
     simp only [vecLen, vecCap, hmt]; exact hcap
   refine ⟨t₄, hr₀.trans (hr₂.trans (hr₃.trans hr₄)), Or.inl ⟨pc₄.trans (returnAddress_eq s).symm,
-    ?_, ⟨hn₄ ▸ hheap₂.lo, hn₄ ▸ hheap₂.hi⟩, ?_, hcap', ⟨?_, ?_⟩, ?_, ?_, ?_⟩⟩
+    ?_, ⟨⟨hn₄ ▸ hheap₂.lo, hn₄ ▸ hheap₂.hi⟩, ?_, hcap', ⟨?_, ?_⟩, ?_, ?_, ?_⟩, Or.inr ?_⟩⟩
   · have kC := h₁.keeps (rs := saved) rfl
     have kD := h₃.keeps (rs := saved) rfl
     have kB := h₄.keeps (rs := saved) rfl
@@ -270,11 +271,43 @@ theorem reserve_of (hG : GrowSpec) {e : Word} {size align : Nat}
     · exact Or.inr (Or.inl (by addr_omega [ha, hb]))
     · exact Or.inr (Or.inr (Or.inl ha))
     · exact Or.inr (Or.inr (Or.inr (by simp only [Fresh, hn₁', hn₄] at ha ⊢; exact ha)))
+  · have hf := hpost.fresh hok'
+    rw [x10, x13, x14, hsz', hal'] at hf
+    simp only [NewBuf, vecCap, vecPtr, hmt, hn₄, hn₁'] at hf ⊢
+    exact hf
+
+/-- **`reserve` with room enough** returns at once, writing nothing, from its first two blocks. -/
+theorem reserve_fast_of {e : Word} (hA : Spec e (resA e)) (hB : Spec (e + 16) resB) :
+    ReserveFastSpec e := by
+  intro u hpc ⟨hval, hroom⟩
+  simp only [vecLen, vecCap] at hroom
+  have hb := ValidMemRange.bounds hval (by decide)
+  obtain ⟨t₀, hr₀, h₀⟩ := hA.reaches hpc (by
+    rv_eval []
+    and_intros <;> valid_access hval [hb])
+  have pc₀ := h₀.pc
+  have k₀ := h₀.keeps (rs := [.x1, .x2, .x10, .x11] ++ saved) rfl
+  have hm₀ (a : Word) : t₀.getMem a = u.getMem a := h₀.frame a (by simp [resA])
+  rv_eval [room] at pc₀
+  have hroom' : (u.getMem (u.getReg .x10) - u.getMem (u.getReg .x10 + 16)).toNat =
+      (u.getMem (u.getReg .x10)).toNat - (u.getMem (u.getReg .x10 + 16)).toNat := by
+    rw [BitVec.toNat_sub]; omega
+  rcases eq_ite_cases pc₀ with ⟨hlt, -⟩ | ⟨-, pc₀⟩
+  · simp only [BitVec.ult, decide_eq_true_eq, hroom'] at hlt
+    omega
+  obtain ⟨t, hr, h⟩ := hB.reaches pc₀ trivial
+  have pc := h.pc
+  rv_eval [k₀ .x1 (by decide)] at pc
+  have k := h.keeps (rs := [.x2, .x10] ++ saved) rfl
+  refine ⟨t, hr₀.trans hr, Or.inl ⟨pc.trans (returnAddress_eq u).symm, fun r hr' ↦ ?_,
+    (k .x10 (by decide)).trans (k₀ .x10 (by decide)),
+    fun a ↦ (h.frame a (by simp [resB])).trans (hm₀ a)⟩⟩
+  rw [k r (mem_of_mem hr' _), k₀ r (mem_of_mem hr' _)]
 
 /-! ## The copies -/
 
 /-- `Vec<Form>::reserve`. -/
-theorem reserve_80004aec (hG : GrowSpec) : ReserveSpec 0x80004aec 24 8 :=
+theorem reserve_80004aec (hG : GrowSpec) : ReserveFreshSpec 0x80004aec 24 8 :=
   reserve_of hG (by decide) (by decide)
     (spec_of 4795 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 4799 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -283,7 +316,7 @@ theorem reserve_80004aec (hG : GrowSpec) : ReserveSpec 0x80004aec 24 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `Vec<BusBlock>::reserve`. -/
-theorem reserve_800060bc (hG : GrowSpec) : ReserveSpec 0x800060bc 48 8 :=
+theorem reserve_800060bc (hG : GrowSpec) : ReserveFreshSpec 0x800060bc 48 8 :=
   reserve_of hG (by decide) (by decide)
     (spec_of 6191 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 6195 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -292,7 +325,7 @@ theorem reserve_800060bc (hG : GrowSpec) : ReserveSpec 0x800060bc 48 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `Vec<E>::reserve`. -/
-theorem reserve_80008a10 (hG : GrowSpec) : ReserveSpec 0x80008a10 24 8 :=
+theorem reserve_80008a10 (hG : GrowSpec) : ReserveFreshSpec 0x80008a10 24 8 :=
   reserve_of hG (by decide) (by decide)
     (spec_of 8836 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 8840 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -301,7 +334,7 @@ theorem reserve_80008a10 (hG : GrowSpec) : ReserveSpec 0x80008a10 24 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `Vec<u8>::reserve`. -/
-theorem reserve_8000c898 (hG : GrowSpec) : ReserveSpec 0x8000c898 1 1 :=
+theorem reserve_8000c898 (hG : GrowSpec) : ReserveFreshSpec 0x8000c898 1 1 :=
   reserve_of hG (by decide) (by decide)
     (spec_of 12838 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 12842 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -310,7 +343,7 @@ theorem reserve_8000c898 (hG : GrowSpec) : ReserveSpec 0x8000c898 1 1 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `Vec<K>::reserve`. -/
-theorem reserve_8000d628 (hG : GrowSpec) : ReserveSpec 0x8000d628 8 8 :=
+theorem reserve_8000d628 (hG : GrowSpec) : ReserveFreshSpec 0x8000d628 8 8 :=
   reserve_of hG (by decide) (by decide)
     (spec_of 13706 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 13710 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -319,12 +352,42 @@ theorem reserve_8000d628 (hG : GrowSpec) : ReserveSpec 0x8000d628 8 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `Vec<Option<E>>::reserve`. -/
-theorem reserve_8001086c (hG : GrowSpec) : ReserveSpec 0x8001086c 32 8 :=
+theorem reserve_8001086c (hG : GrowSpec) : ReserveFreshSpec 0x8001086c 32 8 :=
   reserve_of hG (by decide) (by decide)
     (spec_of 16923 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 16927 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 16928 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 16936 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (by decide) (trap (by decide +kernel))
+
+theorem reserve_fast_80004aec : ReserveFastSpec 0x80004aec :=
+  reserve_fast_of
+    (spec_of 4795 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+    (spec_of 4799 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+
+theorem reserve_fast_800060bc : ReserveFastSpec 0x800060bc :=
+  reserve_fast_of
+    (spec_of 6191 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+    (spec_of 6195 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+
+theorem reserve_fast_80008a10 : ReserveFastSpec 0x80008a10 :=
+  reserve_fast_of
+    (spec_of 8836 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+    (spec_of 8840 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+
+theorem reserve_fast_8000c898 : ReserveFastSpec 0x8000c898 :=
+  reserve_fast_of
+    (spec_of 12838 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+    (spec_of 12842 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+
+theorem reserve_fast_8000d628 : ReserveFastSpec 0x8000d628 :=
+  reserve_fast_of
+    (spec_of 13706 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+    (spec_of 13710 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+
+theorem reserve_fast_8001086c : ReserveFastSpec 0x8001086c :=
+  reserve_fast_of
+    (spec_of 16923 4 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
+    (spec_of 16927 1 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
 
 end Rv64Verifier.Runtime.Reserve

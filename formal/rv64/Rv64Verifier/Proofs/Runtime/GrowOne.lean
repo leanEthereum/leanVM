@@ -63,14 +63,14 @@ theorem _root_.Rv64Verifier.Runtime.GrowOnePre.bounds {size align : Nat} {s : Ma
   rw [this.2.2.2] at ha
   omega
 
-/-- **Every copy of `grow_one` meets its contract**, given `grow_amortized`'s, from its three
-blocks. -/
+/-- **Every copy of `grow_one` meets its contract**, its new buffer a new one, given
+`grow_amortized`'s, from its three blocks. -/
 theorem grow_one_of (hG : GrowSpec) {e : Word} {size align : Nat}
     (hal : 0 < align ∧ align ≤ 2 ^ 32) (hsz : 0 < size ∧ size < 2 ^ 32)
     (hA : Spec e (callA e (BitVec.ofNat 64 align) (BitVec.ofNat 64 size)))
     (hB : Spec (e + 32) (checkB e)) (hC : Spec (e + 40) retC)
     (hret : (e + 32) &&& 0xfffffffffffffffe = e + 32)
-    (htrap : Image.code.fetch (e + 52) = none) : GrowOneSpec e size align := by
+    (htrap : Image.code.fetch (e + 52) = none) : GrowOneFreshSpec e size align := by
   intro s hpc hpre
   have hb := hpre.bounds
   have hst := hpre.stack
@@ -173,7 +173,7 @@ theorem grow_one_of (hG : GrowSpec) {e : Word} {size align : Nat}
   have hn₄ : heapNext t₄ = heapNext t₂ := by simp only [heapNext, hmt]
   have hn₁' : heapNext t₁ = heapNext s := by simp only [heapNext, hn₁]
   refine ⟨t₄, hr₂.trans (hr₃.trans hr₄), Or.inl ⟨pc₄.trans (returnAddress_eq s).symm, ?_,
-    ⟨hn₄ ▸ hheap₂.lo, hn₄ ▸ hheap₂.hi⟩, ?_, ?_, ?_, ?_, ?_⟩⟩
+    ⟨⟨hn₄ ▸ hheap₂.lo, hn₄ ▸ hheap₂.hi⟩, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩⟩
   · have kA := h₁.keeps (rs := saved) rfl
     have kC := h₄.keeps (rs := saved) rfl
     intro r hr
@@ -210,6 +210,10 @@ theorem grow_one_of (hG : GrowSpec) {e : Word} {size align : Nat}
     · exact Or.inr (Or.inl (by addr_omega [ha, hb]))
     · exact Or.inr (Or.inr (Or.inl ha))
     · exact Or.inr (Or.inr (Or.inr (by simp only [Fresh, hn₁', hn₄] at ha ⊢; exact ha)))
+  · have hf := hpost.fresh hok'
+    rw [x10, x13, x14, hsz', hal'] at hf
+    simp only [NewBuf, vecCap, vecPtr, hmt, hn₄, hn₁'] at hf ⊢
+    exact hf
 
 /-! ## The copies -/
 
@@ -217,7 +221,7 @@ theorem trap {e : Word} (h : (Image.code.fetch e).isNone = true) : Image.code.fe
   Option.isNone_iff_eq_none.mp h
 
 /-- `RawVec<ColumnClaim>::grow_one`. -/
-theorem grow_one_8000c0a4 (hG : GrowSpec) : GrowOneSpec 0x8000c0a4 56 8 :=
+theorem grow_one_8000c0a4 (hG : GrowSpec) : GrowOneFreshSpec 0x8000c0a4 56 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 12329 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 12337 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -225,7 +229,7 @@ theorem grow_one_8000c0a4 (hG : GrowSpec) : GrowOneSpec 0x8000c0a4 56 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<(Vec<E>, GluedWeight)>::grow_one`. -/
-theorem grow_one_8000c7d0 (hG : GrowSpec) : GrowOneSpec 0x8000c7d0 80 8 :=
+theorem grow_one_8000c7d0 (hG : GrowSpec) : GrowOneFreshSpec 0x8000c7d0 80 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 12788 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 12796 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -233,7 +237,7 @@ theorem grow_one_8000c7d0 (hG : GrowSpec) : GrowOneSpec 0x8000c7d0 80 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<K>::grow_one`. -/
-theorem grow_one_8000d7bc (hG : GrowSpec) : GrowOneSpec 0x8000d7bc 8 8 :=
+theorem grow_one_8000d7bc (hG : GrowSpec) : GrowOneFreshSpec 0x8000d7bc 8 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 13807 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 13815 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -241,7 +245,7 @@ theorem grow_one_8000d7bc (hG : GrowSpec) : GrowOneSpec 0x8000d7bc 8 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<GluedClaim>::grow_one`. -/
-theorem grow_one_8000db78 (hG : GrowSpec) : GrowOneSpec 0x8000db78 88 8 :=
+theorem grow_one_8000db78 (hG : GrowSpec) : GrowOneFreshSpec 0x8000db78 88 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 14046 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 14054 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -249,7 +253,7 @@ theorem grow_one_8000db78 (hG : GrowSpec) : GrowOneSpec 0x8000db78 88 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<(Vec<E>, Vec<E>)>::grow_one`. -/
-theorem grow_one_80010a94 (hG : GrowSpec) : GrowOneSpec 0x80010a94 48 8 :=
+theorem grow_one_80010a94 (hG : GrowSpec) : GrowOneFreshSpec 0x80010a94 48 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 17061 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 17069 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -257,7 +261,7 @@ theorem grow_one_80010a94 (hG : GrowSpec) : GrowOneSpec 0x80010a94 48 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<Vec<Form>>::grow_one`. -/
-theorem grow_one_80011c78 (hG : GrowSpec) : GrowOneSpec 0x80011c78 24 8 :=
+theorem grow_one_80011c78 (hG : GrowSpec) : GrowOneFreshSpec 0x80011c78 24 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 18206 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 18214 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -265,7 +269,7 @@ theorem grow_one_80011c78 (hG : GrowSpec) : GrowOneSpec 0x80011c78 24 8 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<u16>::grow_one`. -/
-theorem grow_one_80011f88 (hG : GrowSpec) : GrowOneSpec 0x80011f88 2 2 :=
+theorem grow_one_80011f88 (hG : GrowSpec) : GrowOneFreshSpec 0x80011f88 2 2 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 18402 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 18410 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
@@ -273,7 +277,7 @@ theorem grow_one_80011f88 (hG : GrowSpec) : GrowOneSpec 0x80011f88 2 2 :=
     (by decide) (trap (by decide +kernel))
 
 /-- `RawVec<(u64, usize)>::grow_one`. -/
-theorem grow_one_80011fc0 (hG : GrowSpec) : GrowOneSpec 0x80011fc0 16 8 :=
+theorem grow_one_80011fc0 (hG : GrowSpec) : GrowOneFreshSpec 0x80011fc0 16 8 :=
   grow_one_of hG (by decide) (by decide)
     (spec_of 18416 8 (by decide +kernel) (by decide +kernel) (by decide) (by decide))
     (spec_of 18424 2 (by decide +kernel) (by decide +kernel) (by decide) (by decide))

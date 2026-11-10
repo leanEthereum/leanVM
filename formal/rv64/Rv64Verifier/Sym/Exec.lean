@@ -146,7 +146,24 @@ structure Config where
   (`anyKey`); the access's own alignment is part of `Oblig.valid`. Otherwise `b` must be 8-aligned
   (`Oblig.align8`, `subKey`), which keeps the doubleword `b + (off &&& ~~~7)`. -/
   anyAlign : Bool := false
+  /-- Declared spans: a read at an address of one span past a write at an address of another is
+  resolved with the side condition `Oblig.apart` on the two spans. -/
+  spans : List Span := []
   deriving Repr
+
+/-- The first span of `As` (counted from `i`) that holds `a`: its index, it, `a`'s byte index. -/
+def spanOf (a : Addr) : List Span → Nat → Option (Nat × Span × Nat)
+  | [], _ => none
+  | A :: As, i =>
+    match A.idx a with
+    | some x => some (i, A, x)
+    | none => spanOf a As (i + 1)
+
+/-- Two addresses in different declared spans: the spans. -/
+def spanPair (spans : List Span) (k k' : Addr) : Option (Span × Span) :=
+  match spanOf k spans 0, spanOf k' spans 0 with
+  | some (i, A, _), some (j, B, _) => if i == j then none else some (A, B)
+  | _, _ => none
 
 /-- Resolve a doubleword read at key `k`: the value and extra side conditions. -/
 def readMem (cfg : Config) (k : Addr) : SymMem → Option (E × List Oblig)
@@ -156,11 +173,17 @@ def readMem (cfg : Config) (k : Addr) : SymMem → Option (E × List Oblig)
     | .same => some (v, [])
     | .diff => readMem cfg k ws
     | .unknown =>
-      if cfg.noAlias then
+      match spanPair cfg.spans k k' with
+      | some (A, B) =>
         match readMem cfg k ws with
         | none => none
-        | some (e, os) => some (e, .ne k k' :: os)
-      else none
+        | some (e, os) => some (e, .apart A B :: os)
+      | none =>
+        if cfg.noAlias then
+          match readMem cfg k ws with
+          | none => none
+          | some (e, os) => some (e, .ne k k' :: os)
+        else none
 
 def isSame (k k' : Addr) : Bool :=
   match k.alias k' with

@@ -195,6 +195,7 @@ def lemmas (name : String) (pc : Word) (x : Expect) : String := Id.run do
       | .valid k w => s!"valid{w} {shortE (addrE k)}"
       | .align8 b => s!"aligned8 {shortE b}"
       | .ne a b => s!"{shortE (addrE a)} ≠ {shortE (addrE b)}"
+      | .apart A B => s!"apart x{A.reg.toNat}+{lit A.lo.toNat}[{A.n}] x{B.reg.toNat}+{lit B.lo.toNat}[{B.n}]"
     sum := sum ++ s!"     needs {clip (", ".intercalate os)}\n"
   let mut out := sum ++ "-/\n\n"
   -- registers

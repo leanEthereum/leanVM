@@ -1,14 +1,18 @@
 import Rv64Verifier.Proofs.Pcs.RingEvalSpec
 import Rv64Verifier.Proofs.Pcs.BasisSpec
+import Rv64Verifier.Proofs.Pcs.RingSwitchSpec
 import Rv64Verifier.Proofs.Multilinear.All
 import Rv64Verifier.Proofs.Pcs.VsoBatch
 import Rv64Verifier.Proofs.Pcs.VsoConfig
 import Rv64Verifier.Proofs.Pcs.VsoMerkle
+import Rv64Verifier.Proofs.Transcript.All
+import Rv64Verifier.Proofs.Field.All
 
 /-!
 # The opening's contracts, their callees' discharged
 
-`RingWeight::evaluate` and `StackBasis::evaluate` with their callees' contracts proved.
+`RingWeight::evaluate`, `StackBasis::evaluate` and `ring_switch` with their callees' contracts
+proved.
 -/
 
 namespace Rv64Verifier.Proofs.Pcs
@@ -20,6 +24,10 @@ theorem ringEval : RingEvalSpec :=
 theorem basis : BasisSpec :=
   Basis.basis_spec tryAllocZeroed EqEval.eq_eval_proved ringEval Multilinear.eqAbove
     Field.mul Multilinear.dot
+
+theorem ringSwitch : RingSwitchSpec :=
+  RingSwitch.ring_switch_spec Transcript.samples Runtime.alloc_spec
+    tryAllocZeroed Field.ePow Field.mul Multilinear.polyEval
 
 end Rv64Verifier.Proofs.Pcs
 
@@ -42,3 +50,6 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Model.Pcs.configLoop_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Model.Pcs.configLoop_eq
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.ringSwitch' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.ringSwitch

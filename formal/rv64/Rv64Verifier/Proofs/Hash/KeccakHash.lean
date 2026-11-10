@@ -64,12 +64,12 @@ theorem _root_.Rv64Verifier.Contracts.KeccakHashPre.bounds {s : MachineState}
   have hd := h.dataStack
   have ht := h.tablesStack
   simp only [stackLo, keccakHashStack, keccakFStack, memStack] at hs ho hd ht
-  refine ⟨by omega, ⟨h.outAligned, h.out.1⟩, h.data.1, ho, hd, ht, ?_⟩
+  refine ⟨by omega, ⟨h.outAligned, h.out.1⟩, h.data.bytesValid.1, ho, hd, ht, ?_⟩
   by_cases h0 : len s = 0
   · exact Or.inl h0
   · right
-    have hv := h.data.2 (len s - 1) (by simp only [len] at h0 ⊢; omega)
-    have hw := h.data.1
+    have hv := h.data.bytesValid.2 (len s - 1) (by simp only [len] at h0 ⊢; omega)
+    have hw := h.data.bytesValid.1
     simp only [isValidMemAddr, MEM_START, MEM_END, INPUT_MEM_START, INPUT_MEM_END, RAM_MEM_START,
       RAM_MEM_END, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, BitVec.toNat_add,
       BitVec.toNat_ofNat] at hv
@@ -178,7 +178,7 @@ theorem setup (hMemset : MemsetSpec) {s : MachineState} (hpc : s.pc = 0x8000c8e0
   have hmpre : MemsetPre t₁ := {
     dst := by
       rw [h200, b8000c8e0_x10 h₁]
-      exact bytesValid_of_range (n := 25) (by
+      exact mapped_of_range (n := 25) (by
         refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp])
     stack := ⟨by
         simp only [stackLo, memStack, ht₁2]
@@ -288,7 +288,7 @@ theorem body (hXor : XorBlockSpec) (hKf : KeccakFSpec) {s t : MachineState}
   have hc₁ : Common s u₁ := Common.of_scratch hb ht.toCommon fun a _ ↦ hm₁ a
   have hxpre : XorBlockPre u₁ := {
     state := by rw [hu₁10]; refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp]
-    block := by rw [hu₁11]; exact bytesValid_sub hpre.data hjl
+    block := by rw [hu₁11]; exact bytesValid_sub hpre.data.bytesValid hjl
     stack := ⟨by
         simp only [stackLo, xorBlockStack, hu₁2]
         refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp],
@@ -612,7 +612,7 @@ theorem tail (hXor : XorBlockSpec) (hKf : KeccakFSpec) (hMemcpy : MemcpySpec)
   have hu₁10 : u₁.getReg .x10 = s.getReg .x2 - 240 := by
     rw [b8000c998_x10 h₁, ht.sp]; addr_omega [hb.sp]
   have h136 : (u₁.getReg .x12).toNat = 136 := by rw [b8000c998_x12 h₁]; rfl
-  have hbuf : BytesValid (s.getReg .x2 - 240) 136 := bytesValid_of_range (n := 17) (by
+  have hbuf : Runtime.Mapped (s.getReg .x2 - 240) 136 := mapped_of_range (n := 17) (by
     refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp])
   have hc₁ : Common s u₁ := Common.of_scratch hb ht.toCommon fun a _ ↦ hm₁ a
   obtain ⟨v₁, hr₂, ⟨hv₁pc, hpres₁, hpost₁⟩ | hdead⟩ := hMemset.call hr₁ (b8000c998_pc h₁) {
@@ -651,11 +651,13 @@ theorem tail (hXor : XorBlockSpec) (hKf : KeccakFSpec) (hMemcpy : MemcpySpec)
   obtain ⟨v₂, hr₄, ⟨hv₂pc, hpres₂, hpost₂⟩ | hdead⟩ := hMemcpy.call hr₃ (b8000c9b0_pc h₃) {
     dst := by
       rw [hu₂12, hu₂10]
-      refine ⟨by have := hbuf.1; omega, fun i hi ↦ hbuf.2 i ?_⟩
+      have := hbuf
+      simp only [Runtime.Mapped] at this ⊢
+      have : len s % 136 < 136 := Nat.mod_lt _ (by decide)
       omega
     src := by
       rw [hu₂12, hu₂11]
-      exact bytesValid_sub (k := 136 * nb s) (m := len s % 136) hpre.data htl1.le
+      exact hpre.data.sub (k := 136 * nb s) (m := len s % 136) htl1.le
     apart := by
       rw [hu₂12, hu₂10, hu₂11]; addr_omega [hb.sp, hb.dataStack, hb.data, htl1]
     stack := ⟨by
@@ -709,12 +711,12 @@ theorem tail (hXor : XorBlockSpec) (hKf : KeccakFSpec) (hMemcpy : MemcpySpec)
       · show isValidMemAddr _ = true
         rw [show s.getReg .x2 - 448 + BitVec.ofNat 64 343 =
           s.getReg .x2 - 240 + BitVec.ofNat 64 135 by addr_omega [hb.sp]]
-        exact hbuf.2 135 (by decide)
+        exact hbuf.bytesValid.2 135 (by decide)
       · addr_omega [hb.sp]
       · show isValidMemAddr _ = true
         rw [show s.getReg .x2 - 448 + BitVec.ofNat 64 (208 + len s % 136) =
           s.getReg .x2 - 240 + BitVec.ofNat 64 (len s % 136) by addr_omega [hb.sp, htl2]]
-        exact hbuf.2 _ htl2)
+        exact hbuf.bytesValid.2 _ htl2)
   have hr₅ : Reaches Image.code v₂ w := ⟨_, hst₅⟩
   have hwr (r : Reg) (e : E) (hm : (r, e) ∈ (padX (len s % 136)).regs) : w.getReg r = e.eval v₂ :=
     hw.2.1 _ hm
@@ -764,7 +766,7 @@ theorem tail (hXor : XorBlockSpec) (hKf : KeccakFSpec) (hMemcpy : MemcpySpec)
   have hwpc : w.pc = 0x8000e5c8 := hw.1
   obtain ⟨v₃, hr₆, ⟨hv₃pc, hpres₃, hpost₃⟩ | hdead⟩ := hXor.call (Reaches.refl w) hwpc {
     state := by rw [hw10]; refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp]
-    block := by rw [hw11]; exact hbuf
+    block := by rw [hw11]; exact hbuf.bytesValid
     stack := ⟨by
         simp only [stackLo, xorBlockStack, hw2]
         refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp],

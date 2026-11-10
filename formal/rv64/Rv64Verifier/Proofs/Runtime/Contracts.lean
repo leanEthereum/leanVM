@@ -135,6 +135,10 @@ structure GrowPost (s t : MachineState) : Prop where
       bytesAt s (vecPtr s (s.getReg .x10)) ((vecCap s (s.getReg .x10)).toNat * (s.getReg .x14).toNat)
   frame : ByteFrame s t fun a ↦ Within a (s.getReg .x10) 16 ∨
     Within a (stackLo s growStack) growStack ∨ Within a nextAddr 8 ∨ Fresh s t a
+  /-- On `Ok`, the buffer is a new one. -/
+  fresh : t.getReg .x10 = 0xffffffffffffffff →
+    NewBuf s t (vecPtr t (s.getReg .x10))
+      ((vecCap t (s.getReg .x10)).toNat * (s.getReg .x14).toNat) (s.getReg .x13).toNat
 
 def GrowSpec : Prop := FunSpec Image.code 0x8000c184 GrowPre GrowPost
 
@@ -171,6 +175,11 @@ structure GrowOnePost (size align : Nat) (s t : MachineState) : Prop where
 def GrowOneSpec (entry : Word) (size align : Nat) : Prop :=
   FunSpec Image.code entry (GrowOnePre size align) (GrowOnePost size align)
 
+/-- `grow_one` whose new buffer is new. -/
+def GrowOneFreshSpec (entry : Word) (size align : Nat) : Prop :=
+  FunSpec Image.code entry (GrowOnePre size align) fun s t ↦ GrowOnePost size align s t ∧
+    NewBuf s t (vecPtr t (s.getReg .x10)) ((vecCap t (s.getReg .x10)).toNat * size) align
+
 /-! ## `Vec<T>::reserve`
 
 At `0x80004aec` (`Form`, 24 bytes), `0x800060bc` (`BusBlock`, 48), `0x80008a10` (`E`, 24),
@@ -202,6 +211,26 @@ structure ReservePost (size align : Nat) (s t : MachineState) : Prop where
 
 def ReserveSpec (entry : Word) (size align : Nat) : Prop :=
   FunSpec Image.code entry (ReservePre size align) (ReservePost size align)
+
+/-- `reserve` whose buffer afterwards is the same one, or a new one: a `Vec` filled after the call
+writes only memory allocated since. -/
+def ReserveFreshSpec (entry : Word) (size align : Nat) : Prop :=
+  FunSpec Image.code entry (ReservePre size align) fun s t ↦ ReservePost size align s t ∧
+    ((vecPtr t (s.getReg .x10) = vecPtr s (s.getReg .x10) ∧
+      vecCap t (s.getReg .x10) = vecCap s (s.getReg .x10)) ∨
+     NewBuf s t (vecPtr t (s.getReg .x10)) ((vecCap t (s.getReg .x10)).toNat * size) align)
+
+/-- `reserve` with room enough: it returns at once, writing nothing. -/
+def ReserveFastSpec (entry : Word) : Prop :=
+  FunSpec Image.code entry (fun s ↦ ValidMemRange (s.getReg .x10) 3 ∧
+    (vecLen s (s.getReg .x10)).toNat + (s.getReg .x11).toNat ≤ (vecCap s (s.getReg .x10)).toNat)
+    fun s t ↦ t.getReg .x10 = s.getReg .x10 ∧ ∀ a, t.getMem a = s.getMem a
+
+/-- A weaker postcondition. -/
+theorem _root_.Rv64Verifier.FunSpec.weaken {code : Code} {entry : Word}
+    {P : MachineState → Prop} {Q Q' : MachineState → MachineState → Prop}
+    (h : FunSpec code entry P Q) (hq : ∀ s t, Q s t → Q' s t) : FunSpec code entry P Q' :=
+  fun s hpc hp ↦ (h s hpc hp).imp fun t ⟨hr, ht⟩ ↦ ⟨hr, ht.imp_left fun ⟨a, b, c⟩ ↦ ⟨a, b, hq s t c⟩⟩
 
 /-! ## `compiler_builtins`: `memcpy` (`0x80011ff8`, called through `0x800126e4`), `memset`
 (`0x800121f4`, through `0x800126f4`), `memmove` (`0x8001228c`, through `0x800126ec`), `memcmp`

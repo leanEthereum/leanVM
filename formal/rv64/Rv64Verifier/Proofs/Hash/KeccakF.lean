@@ -455,7 +455,7 @@ theorem memset_step (hMemset : MemsetSpec) {s u : MachineState} (hpre : KeccakFP
   have hmpre : MemsetPre u := {
     dst := by
       rw [h200, hu.x10]
-      exact bytesValid_of_range (n := 25) (by
+      exact mapped_of_range (n := 25) (by
         refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp, hb.st, hb.apart])
     stack := ⟨by
         simp only [stackLo, memStack, hu.sp]
@@ -680,9 +680,9 @@ theorem setup (hMemcpy : MemcpySpec) {s : MachineState} (hpc : s.pc = 0x80004210
   have hmpre : MemcpyPre t₁ := {
     dst := by
       rw [h192, ht₁10]
-      exact bytesValid_of_range (n := 24) (by
+      exact mapped_of_range (n := 24) (by
         refine stack_sub hpre ?_ ?_ ?_ <;> addr_omega [hb.sp, hb.st, hb.apart])
-    src := by rw [h192, ht₁11]; exact bytesValid_ram (by decide) (by decide)
+    src := by rw [h192, ht₁11]; simp only [Runtime.Mapped]; decide
     apart := by rw [h192, ht₁10, ht₁11]; addr_omega [hb.sp, hb.tables]
     stack := ⟨by
         simp only [stackLo, memStack, ht₁2]

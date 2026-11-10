@@ -1,4 +1,5 @@
 import Rv64Verifier.Proofs.Hash.Mem
+import Rv64Verifier.Proofs.Runtime.Memory
 import Rv64Verifier.Image
 import Rv64Verifier.Model.Hash
 
@@ -7,10 +8,11 @@ import Rv64Verifier.Model.Hash
 
 What a caller of these functions assumes, stated once here: `KeccakFSpec`, `XorBlockSpec` and
 `KeccakHashSpec` are proved in `Proofs/Hash/` from the contracts of their callees, taken as
-hypotheses; `MemcpySpec` and `MemsetSpec` are the runtime's.
+hypotheses; `MemcpySpec` and `MemsetSpec` follow from the runtime's (`Hash/All.lean`).
 
 Bytes are what `lbu`/`sb` read and write (`MachineState.getByte`), in byte ranges whose bytes are
-valid addresses (`BytesValid`); a contract's frame is stated on doublewords: memory changes only
+valid addresses (`BytesValid`), or that lie in one data window (the runtime's `Mapped`, what
+`memcpy`, `memset` and `keccak_hash`'s data need); a contract's frame is stated on doublewords: memory changes only
 in the doublewords meeting the ranges it names.
 -/
 
@@ -35,11 +37,11 @@ def Frame2 (s t : MachineState) (lo : Word) (n : Nat) (lo' : Word) (m : Nat) : P
 /-- The stack bytes below `sp` that `memcpy` and `memset` may use. -/
 @[rv_addr] def memStack : Nat := 16
 
-/-- `a0` = `dst`, `a1` = `src`, `a2` = `n`: valid byte ranges, apart from each other and from the
-stack. -/
+/-- `a0` = `dst`, `a1` = `src`, `a2` = `n`: byte ranges in a data window, apart from each other
+and from the stack. -/
 structure MemcpyPre (s : MachineState) : Prop where
-  dst : BytesValid (s.getReg .x10) (s.getReg .x12).toNat
-  src : BytesValid (s.getReg .x11) (s.getReg .x12).toNat
+  dst : Runtime.Mapped (s.getReg .x10) (s.getReg .x12).toNat
+  src : Runtime.Mapped (s.getReg .x11) (s.getReg .x12).toNat
   apart : Apart (s.getReg .x10) (s.getReg .x12).toNat (s.getReg .x11) (s.getReg .x12).toNat
   stack : StackOk s memStack
   dstStack : Apart (s.getReg .x10) (s.getReg .x12).toNat (stackLo s memStack) memStack
@@ -56,9 +58,10 @@ structure MemcpyPost (s t : MachineState) : Prop where
 
 abbrev MemcpySpec : Prop := FunSpec Image.code 0x800126e4 MemcpyPre MemcpyPost
 
-/-- `a0` = `dst`, `a1` = the byte, `a2` = `n`: a valid byte range apart from the stack. -/
+/-- `a0` = `dst`, `a1` = the byte, `a2` = `n`: a byte range in a data window, apart from the
+stack. -/
 structure MemsetPre (s : MachineState) : Prop where
-  dst : BytesValid (s.getReg .x10) (s.getReg .x12).toNat
+  dst : Runtime.Mapped (s.getReg .x10) (s.getReg .x12).toNat
   stack : StackOk s memStack
   dstStack : Apart (s.getReg .x10) (s.getReg .x12).toNat (stackLo s memStack) memStack
 
@@ -161,12 +164,12 @@ abbrev XorBlockSpec : Prop := FunSpec Image.code 0x8000e5c8 XorBlockPre XorBlock
 /-- `keccak_hash`'s frame and `keccak_f`'s stack below it, the deepest of its callees'. -/
 @[rv_addr] def keccakHashStack : Nat := 448 + keccakFStack
 
-/-- `a0` = where the digest goes (32 bytes, aligned), `a1`/`a2` = the data: valid, apart from the
-stack; the tables in memory, apart from the stack. -/
+/-- `a0` = where the digest goes (32 bytes, aligned), `a1`/`a2` = the data: in a data window,
+apart from the stack; the tables in memory, apart from the stack. -/
 structure KeccakHashPre (s : MachineState) : Prop where
   out : BytesValid (s.getReg .x10) 32
   outAligned : (s.getReg .x10).toNat % 8 = 0
-  data : BytesValid (s.getReg .x11) (s.getReg .x12).toNat
+  data : Runtime.Mapped (s.getReg .x11) (s.getReg .x12).toNat
   stack : StackOk s keccakHashStack
   outStack : Apart (s.getReg .x10) 32 (stackLo s keccakHashStack) keccakHashStack
   dataStack : Apart (s.getReg .x11) (s.getReg .x12).toNat (stackLo s keccakHashStack)
