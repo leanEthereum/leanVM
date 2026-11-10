@@ -195,7 +195,7 @@ theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
       ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n 52)) ((K c).ox j),
         (List.range (K c).es).map fun j => sphincsAt rd (σ (.n 55)) ((K c).os j),
         daDigestAt rd σ c⟩,
-       deferOfCells (readCells rd (σ (.n 417) * gen ^ (24 * c)) 24)⟩ := by
+       deferOfCells (readCells rd (σ (.n 416) * gen ^ (24 * c)) 24)⟩ := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl

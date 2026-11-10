@@ -65,7 +65,7 @@ theorem a_le (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K 
 
 /-- **The running counts**: `written[c] = g^(a c)`. -/
 theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
-    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 420)) c (gen ^ (segsOf σ K).a c) := by
+    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 419)) c (gen ^ (segsOf σ K).a c) := by
   intro c
   induction c with
   | zero => intro _; rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]; exact MF.written0
