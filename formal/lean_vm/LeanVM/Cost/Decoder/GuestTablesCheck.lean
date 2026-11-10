@@ -35,13 +35,29 @@ public import LeanVM.Cost.Decoder.GuestTablesCheck.C27
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C28
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C29
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C30
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C31
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C32
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C33
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C34
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C35
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C36
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C37
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C38
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C39
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C40
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C41
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C42
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C43
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C44
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C45
+public import LeanVM.Cost.Decoder.GuestTablesCheck.C46
 
 /-!
 # The guest decoder's tables, checked
 
 The literal tables of `GuestTables.lean` are the guest's: for every function `j < nFns`, its entry pc,
 its numbers of arguments and of return words (`(glob.sig j).entry`, `nargs`, `nret`), and its
-certificate's frame cells (`(certOf j).locs`), from the checks of `31` chunks of functions
+certificate's frame cells (`(certOf j).locs`), from the checks of `47` chunks of functions
 (`GuestTablesCheck/C*.lean`, each evaluation in a module of its own, under the memory a module
 may take).
 -/
@@ -178,8 +194,72 @@ theorem guestSig_eq : ∀ j < nFns,
   · have := guestSig_eq_29 (j - 1160) (by omega)
     rw [show 1160 + (j - 1160) = j by omega] at this
     exact this
-  have := guestSig_eq_30 (j - 1200) (by omega)
-  rw [show 1200 + (j - 1200) = j by omega] at this
+  by_cases h30 : j < 1240
+  · have := guestSig_eq_30 (j - 1200) (by omega)
+    rw [show 1200 + (j - 1200) = j by omega] at this
+    exact this
+  by_cases h31 : j < 1280
+  · have := guestSig_eq_31 (j - 1240) (by omega)
+    rw [show 1240 + (j - 1240) = j by omega] at this
+    exact this
+  by_cases h32 : j < 1320
+  · have := guestSig_eq_32 (j - 1280) (by omega)
+    rw [show 1280 + (j - 1280) = j by omega] at this
+    exact this
+  by_cases h33 : j < 1360
+  · have := guestSig_eq_33 (j - 1320) (by omega)
+    rw [show 1320 + (j - 1320) = j by omega] at this
+    exact this
+  by_cases h34 : j < 1400
+  · have := guestSig_eq_34 (j - 1360) (by omega)
+    rw [show 1360 + (j - 1360) = j by omega] at this
+    exact this
+  by_cases h35 : j < 1440
+  · have := guestSig_eq_35 (j - 1400) (by omega)
+    rw [show 1400 + (j - 1400) = j by omega] at this
+    exact this
+  by_cases h36 : j < 1480
+  · have := guestSig_eq_36 (j - 1440) (by omega)
+    rw [show 1440 + (j - 1440) = j by omega] at this
+    exact this
+  by_cases h37 : j < 1520
+  · have := guestSig_eq_37 (j - 1480) (by omega)
+    rw [show 1480 + (j - 1480) = j by omega] at this
+    exact this
+  by_cases h38 : j < 1560
+  · have := guestSig_eq_38 (j - 1520) (by omega)
+    rw [show 1520 + (j - 1520) = j by omega] at this
+    exact this
+  by_cases h39 : j < 1600
+  · have := guestSig_eq_39 (j - 1560) (by omega)
+    rw [show 1560 + (j - 1560) = j by omega] at this
+    exact this
+  by_cases h40 : j < 1640
+  · have := guestSig_eq_40 (j - 1600) (by omega)
+    rw [show 1600 + (j - 1600) = j by omega] at this
+    exact this
+  by_cases h41 : j < 1680
+  · have := guestSig_eq_41 (j - 1640) (by omega)
+    rw [show 1640 + (j - 1640) = j by omega] at this
+    exact this
+  by_cases h42 : j < 1720
+  · have := guestSig_eq_42 (j - 1680) (by omega)
+    rw [show 1680 + (j - 1680) = j by omega] at this
+    exact this
+  by_cases h43 : j < 1760
+  · have := guestSig_eq_43 (j - 1720) (by omega)
+    rw [show 1720 + (j - 1720) = j by omega] at this
+    exact this
+  by_cases h44 : j < 1800
+  · have := guestSig_eq_44 (j - 1760) (by omega)
+    rw [show 1760 + (j - 1760) = j by omega] at this
+    exact this
+  by_cases h45 : j < 1840
+  · have := guestSig_eq_45 (j - 1800) (by omega)
+    rw [show 1800 + (j - 1800) = j by omega] at this
+    exact this
+  have := guestSig_eq_46 (j - 1840) (by omega)
+  rw [show 1840 + (j - 1840) = j by omega] at this
   exact this
 
 theorem guestEntries_eq : ∀ j < nFns, guestEntries.getD j 0 = (glob.sig j).entry :=
@@ -316,8 +396,72 @@ theorem guestLocsList_eq : ∀ j < nFns, guestLocsList.getD j [] = (certOf j).lo
   · have := guestLocsList_eq_29 (j - 1160) (by omega)
     rw [show 1160 + (j - 1160) = j by omega] at this
     exact this
-  have := guestLocsList_eq_30 (j - 1200) (by omega)
-  rw [show 1200 + (j - 1200) = j by omega] at this
+  by_cases h30 : j < 1240
+  · have := guestLocsList_eq_30 (j - 1200) (by omega)
+    rw [show 1200 + (j - 1200) = j by omega] at this
+    exact this
+  by_cases h31 : j < 1280
+  · have := guestLocsList_eq_31 (j - 1240) (by omega)
+    rw [show 1240 + (j - 1240) = j by omega] at this
+    exact this
+  by_cases h32 : j < 1320
+  · have := guestLocsList_eq_32 (j - 1280) (by omega)
+    rw [show 1280 + (j - 1280) = j by omega] at this
+    exact this
+  by_cases h33 : j < 1360
+  · have := guestLocsList_eq_33 (j - 1320) (by omega)
+    rw [show 1320 + (j - 1320) = j by omega] at this
+    exact this
+  by_cases h34 : j < 1400
+  · have := guestLocsList_eq_34 (j - 1360) (by omega)
+    rw [show 1360 + (j - 1360) = j by omega] at this
+    exact this
+  by_cases h35 : j < 1440
+  · have := guestLocsList_eq_35 (j - 1400) (by omega)
+    rw [show 1400 + (j - 1400) = j by omega] at this
+    exact this
+  by_cases h36 : j < 1480
+  · have := guestLocsList_eq_36 (j - 1440) (by omega)
+    rw [show 1440 + (j - 1440) = j by omega] at this
+    exact this
+  by_cases h37 : j < 1520
+  · have := guestLocsList_eq_37 (j - 1480) (by omega)
+    rw [show 1480 + (j - 1480) = j by omega] at this
+    exact this
+  by_cases h38 : j < 1560
+  · have := guestLocsList_eq_38 (j - 1520) (by omega)
+    rw [show 1520 + (j - 1520) = j by omega] at this
+    exact this
+  by_cases h39 : j < 1600
+  · have := guestLocsList_eq_39 (j - 1560) (by omega)
+    rw [show 1560 + (j - 1560) = j by omega] at this
+    exact this
+  by_cases h40 : j < 1640
+  · have := guestLocsList_eq_40 (j - 1600) (by omega)
+    rw [show 1600 + (j - 1600) = j by omega] at this
+    exact this
+  by_cases h41 : j < 1680
+  · have := guestLocsList_eq_41 (j - 1640) (by omega)
+    rw [show 1640 + (j - 1640) = j by omega] at this
+    exact this
+  by_cases h42 : j < 1720
+  · have := guestLocsList_eq_42 (j - 1680) (by omega)
+    rw [show 1680 + (j - 1680) = j by omega] at this
+    exact this
+  by_cases h43 : j < 1760
+  · have := guestLocsList_eq_43 (j - 1720) (by omega)
+    rw [show 1720 + (j - 1720) = j by omega] at this
+    exact this
+  by_cases h44 : j < 1800
+  · have := guestLocsList_eq_44 (j - 1760) (by omega)
+    rw [show 1760 + (j - 1760) = j by omega] at this
+    exact this
+  by_cases h45 : j < 1840
+  · have := guestLocsList_eq_45 (j - 1800) (by omega)
+    rw [show 1800 + (j - 1800) = j by omega] at this
+    exact this
+  have := guestLocsList_eq_46 (j - 1840) (by omega)
+  rw [show 1840 + (j - 1840) = j by omega] at this
   exact this
 
 set_option maxRecDepth 100000 in

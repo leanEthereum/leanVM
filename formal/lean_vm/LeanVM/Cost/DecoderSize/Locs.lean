@@ -10,6 +10,7 @@ public import LeanVM.Cost.DecoderSize.Rows1
 public import LeanVM.Cost.DecoderSize.Rows2
 public import LeanVM.Cost.DecoderSize.Rows3
 public import LeanVM.Cost.DecoderSize.Rows4
+public import LeanVM.Cost.DecoderSize.Rows5
 public import LeanVM.Cost.DecoderSize.Names0
 public import LeanVM.Cost.DecoderSize.Names1
 
@@ -23,22 +24,24 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 439348 := by
-  have hl : guestLocsList.length = 1232 := by decide +kernel
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 464959 := by
+  have hl : guestLocsList.length = 1857 := by decide +kernel
   have hn : guestLocsRow37.length = 41 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
-  have s0 := rowsSize_split 0 37 1195 37 1232 rfl rfl
+  have s0 := rowsSize_split 0 37 1820 37 1857 rfl rfl
   have c0 := rowsSize_0_37
-  have s1 := rowsSize_split 37 1 1194 38 1195 rfl rfl
-  have s2 := rowsSize_split 38 287 907 325 1194 rfl rfl
-  have c2 := rowsSize_38_287
-  have s3 := rowsSize_split 325 701 206 1026 907 rfl rfl
-  have c3 := rowsSize_325_701
-  have s4 := rowsSize_split 1026 164 42 1190 206 rfl rfl
-  have c4 := rowsSize_1026_164
-  have s5 := rowsSize_split 1190 42 0 1232 42 rfl rfl
-  have c5 := rowsSize_1190_42
-  have e := rowsSize_zero 1232
+  have s1 := rowsSize_split 37 1 1819 38 1820 rfl rfl
+  have s2 := rowsSize_split 38 288 1531 326 1819 rfl rfl
+  have c2 := rowsSize_38_288
+  have s3 := rowsSize_split 326 1017 514 1343 1531 rfl rfl
+  have c3 := rowsSize_326_1017
+  have s4 := rowsSize_split 1343 451 63 1794 514 rfl rfl
+  have c4 := rowsSize_1343_451
+  have s5 := rowsSize_split 1794 54 9 1848 63 rfl rfl
+  have c5 := rowsSize_1794_54
+  have s6 := rowsSize_split 1848 9 0 1857 9 rfl rfl
+  have c6 := rowsSize_1848_9
+  have e := rowsSize_zero 1857
   have g : guestLocsList.getD 37 [] = guestLocsRow37.flatten := rfl
   have r := rowsSize_one (a := 37) (by omega)
   rw [g] at r
