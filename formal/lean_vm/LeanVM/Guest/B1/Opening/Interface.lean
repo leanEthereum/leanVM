@@ -105,19 +105,26 @@ def WordsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
 
 /-! ## One query -/
 
-/-- **One query** at the position `q`: the hinted row of `rowLen base folds` words of `K` hashed
-(`merkleLeafDigest`, the leaf of `openOne`) and climbed `depth - cd` levels by hinted siblings
-(`climbD`, the position's low bits); the node reached is written at the cap's cells of node
-`2^cd + q / 2^(depth - cd)` and its parent flagged. -/
+/-- A query's witness: its position, its row and its siblings below the cap. -/
+abbrev QW : Type := ℕ × List K × List Digest
+
+/-- **One query opens** at the position `q`, with the siblings `sibs`: the row of
+`rowLen base folds` words of `K`, hashed (`merkleLeafDigest`, the leaf of `openOne`) and climbed
+`depth - cd` levels by the siblings (`climbD`, the position's low bits); the node reached is
+written at the cap's cells of node `2^cd + q / 2^(depth - cd)` and its parent flagged. -/
+def QueryOpensS (rd : Reader) (base folds depth cd : ℕ) (cap flags : E) (q : ℕ) (row : List K)
+    (sibs : List Digest) : Prop :=
+  row.length = rowLen base folds ∧ sibs.length = depth - cd ∧
+    LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
+      (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
+    LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
+      (digestHalves (climbD (merkleLeafDigest row) q sibs)).2 ∧
+    LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1
+
+/-- `QueryOpensS` for some siblings. -/
 def QueryOpens (rd : Reader) (base folds depth cd : ℕ) (cap flags : E) (q : ℕ) (row : List K) :
     Prop :=
-  row.length = rowLen base folds ∧
-    ∃ sibs : List Digest, sibs.length = depth - cd ∧
-      LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
-        (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
-      LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
-        (digestHalves (climbD (merkleLeafDigest row) q sibs)).2 ∧
-      LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1
+  ∃ sibs, QueryOpensS rd base folds depth cd cap flags q row sibs
 
 /-! ## `opening_queries` -/
 
@@ -155,31 +162,47 @@ def QueryPosOk (rd : Reader) (positions qptrs : E) (Q depth cd : ℕ) : Prop :=
   ∀ k < Q, ∀ x bp, LoadHolds rd positions k x → LoadHolds rd qptrs k bp →
     ∃ q < 2 ^ depth, x = eOfNat q ∧ FrameRun rd bp (qwN depth cd) fun i ↦ gen ^ qwVal depth cd q i
 
-/-- **`opening_queries`** of shape `sh` on `[cap, flags, lam_inv, coefs, hs, positions, qptrs,
-n_iters_g]`: `n_iters_g = g^N`; for some rounds at `coefs` (`folds` of them) and some final
-coefficients at `hs` (`n_hs`, read at the final level only), query `k < Q` (`oqCount`) reads its
-position `q_k < 2^depth` and its windows, opens a row (`QueryOpens`), whose fold at `q_k` has no
-vanishing combiner; at a non-final level the chain of the folds is in a heap run and returned, at
-the final level each fold is the final polynomial at `q_k` and `0` is returned. -/
-def MeaningOpeningQueries (sh : OqShape) (rd : Reader) : List E → List E → Prop
+/-- **Query `k` of `opening_queries`** of shape `sh`, its witness `w = (q, row, sibs)`, the rounds
+at `coefs` and the final coefficients at `hs` (`n_hs`, read at the final level only): the query
+reads the rounds, its position `positions[k] = eOfNat q`, `q < 2^depth`, and its windows through
+its window pointer; it opens the row (`QueryOpensS`), whose fold at `q` has no vanishing combiner
+and is, at the final level, the final polynomial at `q`. -/
+def QueryHolds (sh : OqShape) (rd : Reader) (cap flags coefs hs positions qptrs : E)
+    (rounds : List FoldRound) (hsv : List E) (k : ℕ) (w : QW) : Prop :=
+  RoundsAt rd coefs rounds ∧ (sh.final = 1 → WordsAt rd hs hsv) ∧
+    LoadHolds rd positions k (eOfNat w.1) ∧ w.1 < 2 ^ sh.depth ∧
+    (∃ bp, LoadHolds rd qptrs k bp ∧
+      ∀ i < qwN sh.depth sh.cd, LoadHolds rd bp i (gen ^ qwVal sh.depth sh.cd w.1 i)) ∧
+    QueryOpensS rd sh.base sh.folds sh.depth sh.cd cap flags w.1 w.2.1 w.2.2 ∧
+    FoldsNonzero rounds (K.ofBits w.1) ∧
+    (sh.final = 1 → foldRow (lanesOf sh.base w.2.1) (K.ofBits w.1) rounds =
+      novelSum hsv (wsChain (sh.vs.map K.ofBits) (eOfNat w.1)) sh.nHs sh.hsBits)
+
+/-- A query's value: its row's fold at its position. -/
+def qwFold (base : ℕ) (rounds : List FoldRound) (w : QW) : E :=
+  foldRow (lanesOf base w.2.1) (K.ofBits w.1) rounds
+
+/-- **`opening_queries`, its queries those of `ws`**, of shape `sh` on `[cap, flags, lam_inv,
+coefs, hs, positions, qptrs, n_iters_g]`: `n_iters_g = g^N`; for some rounds (`folds` of them)
+and final coefficients (`n_hs`), query `k < Q` (`oqCount`) holds (`QueryHolds`) with the witness
+`ws[k]`; at a non-final level the chain of the folds is in a heap run and returned (the caller
+scales it by `λ^Q`), at the final level `0` is returned. -/
+def MeaningOpeningQueriesW (sh : OqShape) (rd : Reader) (ws : List QW) : List E → List E → Prop
   | [cap, flags, lamInv, coefs, hs, positions, qptrs, nG], rets =>
-      ∃ N < ordG, nG = gen ^ N ∧
-        ∃ (rounds : List FoldRound) (hsv : List E) (qs : ℕ → ℕ) (rows : ℕ → List K),
-          rounds.length = sh.folds ∧ hsv.length = sh.nHs ∧
+      ∃ N < ordG, nG = gen ^ N ∧ ws.length = oqCount sh.odd sh.base N ∧
+        ∃ (rounds : List FoldRound) (hsv : List E), rounds.length = sh.folds ∧ hsv.length = sh.nHs ∧
           (∀ k < oqCount sh.odd sh.base N,
-            RoundsAt rd coefs rounds ∧ (sh.final = 1 → WordsAt rd hs hsv) ∧
-            LoadHolds rd positions k (eOfNat (qs k)) ∧ qs k < 2 ^ sh.depth ∧
-            (∃ bp, LoadHolds rd qptrs k bp ∧
-              ∀ i < qwN sh.depth sh.cd, LoadHolds rd bp i (gen ^ qwVal sh.depth sh.cd (qs k) i)) ∧
-            QueryOpens rd sh.base sh.folds sh.depth sh.cd cap flags (qs k) (rows k) ∧
-            FoldsNonzero rounds (K.ofBits (qs k)) ∧
-            (sh.final = 1 → foldRow (lanesOf sh.base (rows k)) (K.ofBits (qs k)) rounds =
-              novelSum hsv (wsChain (sh.vs.map K.ofBits) (eOfNat (qs k))) sh.nHs sh.hsBits)) ∧
-          let ds : ℕ → E := fun k ↦ foldRow (lanesOf sh.base (rows k)) (K.ofBits (qs k)) rounds
+            QueryHolds sh rd cap flags coefs hs positions qptrs rounds hsv k (ws.getD k default)) ∧
           if sh.final = 1 then rets = [0]
-          else ∃ ch : E, (∀ i ≤ N, LoadHolds rd ch i (oqChain sh.odd sh.base lamInv ds i)) ∧
-            rets = [oqChain sh.odd sh.base lamInv ds N]
+          else ∃ ch : E,
+            (∀ i ≤ N, LoadHolds rd ch i
+              (oqChain sh.odd sh.base lamInv (fun k ↦ qwFold sh.base rounds (ws.getD k default)) i)) ∧
+            rets = [oqChain sh.odd sh.base lamInv (fun k ↦ qwFold sh.base rounds (ws.getD k default)) N]
   | _, _ => False
+
+/-- **`opening_queries`** of shape `sh`: its meaning for some queries. -/
+def MeaningOpeningQueries (sh : OqShape) (rd : Reader) (args rets : List E) : Prop :=
+  ∃ ws, MeaningOpeningQueriesW sh rd ws args rets
 
 /-- `opening_queries`' core IR (the function named `name`, of shape `sh`) is its meaning, when
 the positions and window pointers name positions. -/
