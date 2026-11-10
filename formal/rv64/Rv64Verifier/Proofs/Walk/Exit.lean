@@ -48,7 +48,7 @@ theorem exit {OI : MachineState → Word → List (List Opening) → Prop} {s u 
     rw [hk]; exact saved' hpre h hi
   have hn : heapNext t = heapNext u := by simp only [heapNext, hm]
   refine ⟨t, hr, ?_, ?_, ⟨⟨hn ▸ h.heap.lo, hn ▸ h.heap.hi⟩, hn ▸ h.mono, fun hne ↦ hok (by rwa [← hm]),
-    (h.frame.trans (DFrame.of_same hm _) fun _ h ↦ h).mono fun _ ha ↦ WalkW.mono hn.ge ha⟩⟩
+    fun a ha hw8 ↦ (hm a).trans (h.frame a (fun x hx hwx ↦ ha x hx (WalkW.mono hn.ge hwx)) hw8)⟩⟩
   · rw [b800012e4_pc h₁, r 0 (by decide) 2648 rfl, returnAddress_eq]
     rfl
   · refine preserves_of ?_ ?_ ?_ ?_ ?_ fun x hx ↦ ?_

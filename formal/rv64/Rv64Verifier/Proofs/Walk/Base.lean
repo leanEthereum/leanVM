@@ -53,20 +53,49 @@ structure Inv (s u : MachineState) : Prop where
   sp : u.getReg .x2 = s.getReg .x2 - 2656
   heap : HeapOk u
   mono : heapNext s ≤ heapNext u
-  frame : DFrame s u (WalkW s u)
+  frame : Rv64Verifier.Layout.DFrame s u (WalkW s u)
   saved : ∀ i < 13, u.getMem (s.getReg .x2 - BitVec.ofNat 64 (8 * i + 8)) =
     s.getReg (savedRegs.getD i .x0)
 
+/-- A frame of all doublewords is one of those that do not wrap. -/
+theorem dframe_l {s t : MachineState} {w : Word → Prop} (h : DFrame s t w) :
+    Rv64Verifier.Layout.DFrame s t w := fun a ha hw ↦
+  h a fun i hi hwi ↦ ha _ (by simp only [Within]; addr_omega [hw, hi]) hwi
+
+/-- A frame of the doublewords that do not wrap is one of all doublewords that also counts the
+eight lowest bytes as written. -/
+theorem lframe_d {s t : MachineState} {w : Word → Prop} (h : Rv64Verifier.Layout.DFrame s t w) :
+    DFrame s t fun x ↦ w x ∨ x.toNat < 8 := fun a ha ↦ by
+  by_cases hw : a.toNat + 8 ≤ 2 ^ 64
+  · refine h a (fun x hx hwx ↦ ha (x.toNat - a.toNat) ?_ (Or.inl ?_)) hw
+    · simp only [Within] at hx; omega
+    · have e : a + BitVec.ofNat 64 (x.toNat - a.toNat) = x := by
+        apply BitVec.eq_of_toNat_eq; simp only [Within] at hx; addr_omega [hx, hw]
+      rw [e]; exact hwx
+  · exfalso
+    refine ha (2 ^ 64 - a.toNat) (by omega) (Or.inr ?_)
+    have := a.isLt
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega : 2 ^ 64 - a.toNat < 2 ^ 64)]
+    omega
+
 /-- A step that writes what the function may, but not the saved registers, keeps `Inv`. -/
-theorem Inv.step {s u v : MachineState} {w : Word → Prop} (hpre : WalkPre s)
-    (h : Inv s u) (hf : DFrame u v w)
+theorem Inv.stepL {s u v : MachineState} {w : Word → Prop} (hpre : WalkPre s)
+    (h : Inv s u) (hf : Rv64Verifier.Layout.DFrame u v w)
     (hw : ∀ a, w a → WalkW s v a ∧ ¬ Within a (s.getReg .x2 - 104) 104) (heap : HeapOk v)
     (mono : heapNext u ≤ heapNext v) (sp : v.getReg .x2 = u.getReg .x2) : Inv s v := by
   obtain ⟨hb1, hb2, -, -⟩ := bounds hpre
   refine ⟨sp.trans h.sp, heap, h.mono.trans mono,
-    (h.frame.mono fun a ha ↦ WalkW.mono mono ha).trans hf fun a ha ↦ (hw a ha).1, fun i hi ↦ ?_⟩
-  rw [hf _ fun j hj hw' ↦ (hw _ hw').2 (by addr_omega [hb1, hb2, hi, hj])]
+    fun a ha hw8 ↦ (hf a (fun x hx hwx ↦ ha x hx (hw x hwx).1) hw8).trans
+      (h.frame a (fun x hx hwx ↦ ha x hx (WalkW.mono mono hwx)) hw8), fun i hi ↦ ?_⟩
+  rw [hf _ (fun x hx hw' ↦ (hw _ hw').2 (by simp only [Within] at hx ⊢; addr_omega [hb1, hb2, hi, hx]))
+    (by addr_omega [hb1, hb2, hi])]
   exact h.saved i hi
+
+theorem Inv.step {s u v : MachineState} {w : Word → Prop} (hpre : WalkPre s)
+    (h : Inv s u) (hf : DFrame u v w)
+    (hw : ∀ a, w a → WalkW s v a ∧ ¬ Within a (s.getReg .x2 - 104) 104) (heap : HeapOk v)
+    (mono : heapNext u ≤ heapNext v) (sp : v.getReg .x2 = u.getReg .x2) : Inv s v :=
+  h.stepL hpre (dframe_l hf) hw heap mono sp
 
 /-- The local writes: the stack below the saved registers, `NEXT`, the heap allocated. -/
 def Loc (s u v : MachineState) (a : Word) : Prop :=
@@ -94,7 +123,7 @@ theorem Inv.same {s u v : MachineState} (h : Inv s u) (hm : ∀ a, v.getMem a = 
     (sp : v.getReg .x2 = u.getReg .x2) : Inv s v := by
   have hn : heapNext v = heapNext u := by simp only [heapNext, hm]
   exact ⟨sp.trans h.sp, ⟨hn ▸ h.heap.lo, hn ▸ h.heap.hi⟩, hn ▸ h.mono,
-    (h.frame.trans (DFrame.of_same hm _) fun _ h ↦ h).mono fun _ ha ↦ WalkW.mono hn.ge ha,
+    fun a ha hw8 ↦ (hm a).trans (h.frame a (fun x hx hwx ↦ ha x hx (WalkW.mono hn.ge hwx)) hw8),
     fun i hi ↦ (hm _).trans (h.saved i hi)⟩
 
 /-! ## Steps in the frame -/
@@ -176,13 +205,14 @@ theorem Inv.rodata {s u : MachineState} (hpre : WalkPre s) (h : Inv s u) : Rodat
   have hrb : rodataBase.toNat = 2684354560 := rfl
   have hrs : rodataStart.toNat = 2684354560 := rfl
   rw [stackLo_eq, stack_eq] at r4
-  refine hpre.rodata.dframe h.frame fun a ha hw ↦ ?_
+  refine hpre.rodata.dframe (lframe_d h.frame) fun a ha hw ↦ ?_
   simp only [WalkW, Fresh, heapNext, heapEnd, stackLo_eq] at hw hn
-  rcases hw with hw | hw | hw | hw
+  rcases hw with (hw | hw | hw | hw) | hw
   · addr_omega [ha, hw, r1, hrb]
   · addr_omega [ha, hw, r4, hrb, hrs]
   · addr_omega [ha, hw, hrb]
   · addr_omega [ha, hw, hn, hrb]
+  · addr_omega [ha, hw, hrb]
 
 /-! ## What is only read -/
 
@@ -218,7 +248,7 @@ theorem Inv.missLoc {s u v : MachineState} (h : Inv s u) (hv : HeapOk v) {a : Wo
 theorem Inv.word {s u : MachineState} (h : Inv s u) {a : Word} {n : Nat} (hr : ReadOnly s a n)
     (hn : a.toNat + n ≤ 2 ^ 64) {x : Word} (h1 : a.toNat ≤ x.toNat)
     (h2 : x.toNat + 8 ≤ a.toNat + n) : u.getMem x = s.getMem x :=
-  h.frame x ((h.miss hr hn).bytes h1 h2 hn)
+  h.frame x (fun y hy ↦ h.miss hr hn y (by simp only [Within] at hy ⊢; omega)) (by omega)
 
 /-! ## The transcript -/
 

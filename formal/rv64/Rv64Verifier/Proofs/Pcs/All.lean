@@ -13,6 +13,7 @@ import Rv64Verifier.Proofs.Pcs.VsoOpenings
 
 import Rv64Verifier.Proofs.Pcs.ExtendSpec
 import Rv64Verifier.Proofs.Pcs.VsoClimb
+import Rv64Verifier.Proofs.Pcs.VsoMerkleFront
 /-!
 # The opening's contracts, their callees' discharged
 
@@ -111,3 +112,24 @@ end Rv64Verifier.Proofs.Pcs
 
 /-- info: 'Rv64Verifier.Proofs.Pcs.Vso.climb_loop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.climb_loop
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.cmp_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.cmp_eq
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.pathTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.pathTail
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.paths_loop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.paths_loop
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.scan1' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.scan1
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.scan2' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.scan2
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.errTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.errTail
+
+/-- info: 'Rv64Verifier.Proofs.Pcs.Vso.front' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms Rv64Verifier.Proofs.Pcs.Vso.front

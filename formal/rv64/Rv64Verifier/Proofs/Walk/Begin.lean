@@ -127,10 +127,12 @@ theorem transcriptAt_init {OI : MachineState → Word → List (List Opening) �
   refine ⟨?_, ?_, ?_, ?_⟩
   · show eListAt u (vecPtr u (u.getMem (tp s))) (vecLen u (u.getMem (tp s))).toNat = proof.stream
     rw [hptr, vecPtr, vecLen, e8, e16, ← hp.stream]
-    refine I.frame.eListAt fun i hi ↦ ?_
+    refine (lframe_d I.frame).eListAt fun i hi ↦ ?_
     rcases hR with h0 | hR
     · omega
-    · exact (I.miss hRO (by addr_omega [hR])) _ (by addr_omega [hR, hi])
+    · rintro (hw | hw)
+      · exact (I.miss hRO (by addr_omega [hR])) _ (by addr_omega [hR, hi]) hw
+      · addr_omega [hR, hi, hw]
   · rw [spongeAt_of_empty hnp, hst]
     exact (seedState_eq hpre).symm
   · rw [hso]; rfl

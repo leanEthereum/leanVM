@@ -96,7 +96,7 @@ theorem prologue (hMS : MemsetSpec 0x800126f4) {s : MachineState} (hpc : s.pc = 
     sp := sp₁
     heap := ⟨hn₁ ▸ hpre.heap.lo, hn₁ ▸ hpre.heap.hi⟩
     mono := hn₁.ge
-    frame := hm₁.mono fun a ha ↦ Or.inr (Or.inl (by rw [stackLo_eq]; addr_omega [ha, hb1]))
+    frame := dframe_l (hm₁.mono fun a ha ↦ Or.inr (Or.inl (by rw [stackLo_eq]; addr_omega [ha, hb1])))
     saved := fun i hi ↦ by
       interval_cases i
       exacts [b80000ef8_m_x2_n8 h₁, b80000ef8_m_x2_n16 h₁, b80000ef8_m_x2_n24 h₁,

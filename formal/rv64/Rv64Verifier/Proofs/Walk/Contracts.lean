@@ -1,6 +1,7 @@
 import Rv64Verifier.Proofs.Bytecode.Contracts
 import Rv64Verifier.Proofs.Gkr.Contracts
 import Rv64Verifier.Model.Walk
+import Rv64Verifier.Proofs.Layout.Repr
 
 /-!
 # The contract of `walk`, at `0x80000ef8`
@@ -73,7 +74,8 @@ structure WalkPre (s : MachineState) : Prop where
     Fresh s t a
 
 /-- `Ok` only when `verifyExecutionRust` returns on the `Bytecode`, the public input's bytes and
-every proof the memory holds. -/
+every proof the memory holds. Memory is kept doubleword by doubleword, for the doublewords that do
+not wrap past `2 ^ 64` (`Layout.DFrame`, what the layout functions' contracts give). -/
 structure WalkPost (OpeningsIn : MachineState → Word → List (List Opening) → Prop)
     (s t : MachineState) : Prop where
   heap : HeapOk t
@@ -81,7 +83,7 @@ structure WalkPost (OpeningsIn : MachineState → Word → List (List Opening) �
   ok : t.getMem (s.getReg .x10) ≠ errNiche → ∀ proof, ProofIn OpeningsIn s (s.getReg .x13) proof →
     ∃ summary, verifyExecutionRust (Proofs.Bytecode.readBytecode s (s.getReg .x11))
       (bytesAt s (s.getReg .x12) 32) proof = some summary
-  frame : DFrame s t (WalkW s t)
+  frame : Rv64Verifier.Layout.DFrame s t (WalkW s t)
 
 abbrev WalkSpec (OpeningsIn : MachineState → Word → List (List Opening) → Prop) : Prop :=
   FunSpec Image.code 0x80000ef8 WalkPre (WalkPost OpeningsIn)
