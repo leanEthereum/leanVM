@@ -8,21 +8,24 @@
 module
 
 public import LeanVM.Guest.B1.Main.AggBody
-public import LeanVM.Guest.B1.Sumcheck.Batch
 public import LeanVM.Guest.Batch.Def
 
 /-!
 # `aggregate_claims` (TRIAGE G #97)
 
-`aggregate_claims_holds : aggregate_claims_sound_Spec`. For `n_children_g = g^m`, the hints are
-the rounds at `bc_sumcheck_msgs` (`batch_sumcheck`'s statement, B1-a) and `bc_star_hint`, and the
-claim written at `defer_stmt` is the sumcheck's point and the hint. For `m` children whose words
-the memory holds (`ChildWordsAt`), `batch_fs` reads `Node.batch` on the carried sponge:
+`aggregate_claims_holds : aggregate_claims_sound_Spec`, given `batch_sumcheck__L23`'s meaning
+(`agg_batch_sumcheck_Spec`, `MeaningAggBatchSumcheck`) and `grind_check__L2`'s soundness
+(`agg_grind_check_Spec`), both hypotheses until their families are ported. For
+`n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
+`bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
+the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch_fs` reads
+`Node.batch` on the carried sponge:
 
 * the absorbing rows (`__loop33`, `l25_step`) carry the sponge after the count and the first `c`
   children's words (`absorb_rows`);
-* the last absorbing row is permuted and `λ` is its challenge (`sqLF`), the permutation's
-  capacity the sponge `batch_sumcheck__L23` starts from;
+* the last absorbing row is permuted, the nonce absorbed with the tag `4` and permuted
+  (`aggN`, `nonce_ins`), `grind_check__L2` on that permutation's cell `1` is its proof of work,
+  `λ` its cell `0`, and its capacity the sponge `batch_sumcheck__L23` starts from (`aggLam`);
 * the records of `bc_chain` (`__loop34`, `l26_step`) hold `λ^(2c)` and the lambdas' combination
   of the first `c` children's values (`chain_rows`); the last one's feeds `batch_sumcheck__L23`;
 * the weights (`__loop35`, `l27_step`) are the lambdas' combination of the claims' equality
@@ -74,11 +77,6 @@ theorem zip_prefix {α : Type} (F : α → E × E → E) (cs : List α) (L : ℕ
   rw [List.take_succ_eq_append_getElem hc, List.range_succ, List.map_append,
     List.zipWith_append (by simp; omega)]
   simp [sumE, List.foldl_append]
-
-theorem bsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
-    (bsRun rounds claim s).1.1.length = rounds.length
-  | [], _, _ => rfl
-  | (_, _) :: rest, _, _ => by simp [bsRun, bsRun_len rest]
 
 theorem memAt_of_reads {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk : k < xs.length) :
     memAt rd p k = xs.getD k 0 := by
@@ -261,11 +259,12 @@ theorem absorb_head (m : ℕ) : aggS0.absorbAll (Batch.childCountCells m) dsObse
 
 /-- The sumcheck's rounds `aggregate_claims` hints, read off the memory at `bc_sumcheck_msgs`. -/
 noncomputable def aggRounds (rd : Reader) (σ : Val) : List (E × E) :=
-  (List.range 23).map fun k => (memAt rd (σ (.n 5)) (2 * k), memAt rd (σ (.n 5)) (2 * k + 1))
+  (List.range 23).map fun k => (memAt rd (σ (.n 6)) (1 + 2 * k), memAt rd (σ (.n 6)) (2 + 2 * k))
 
-/-- **`aggregate_claims`' hints**, read off its valuation and the memory: the rounds at
-`bc_sumcheck_msgs`, the bytecode's value `bc_star_hint`. -/
-noncomputable def aggHints (rd : Reader) (σ : Val) : BatchingHints := ⟨aggRounds rd σ, σ (.n 6)⟩
+/-- **`aggregate_claims`' hints**, read off its valuation and the memory: the proof of work's nonce,
+`bc_sumcheck_msgs`' first word, the rounds after it, the bytecode's value `bc_star_hint`. -/
+noncomputable def aggHints (rd : Reader) (σ : Val) : BatchingHints :=
+  ⟨memAt rd (σ (.n 6)) 0, aggRounds rd σ, σ (.n 7)⟩
 
 theorem pairs_getD : ∀ (l : List (E × E)) (i : ℕ),
     (l.flatMap fun g => [g.1, g.2]).getD (2 * i) 0 = (l.getD i 0).1 ∧
@@ -279,10 +278,10 @@ theorem pairs_getD : ∀ (l : List (E × E)) (i : ℕ),
       List.getD_cons_succ, List.getD_cons_succ, List.getD_cons_succ]
     exact ih
 
-/-- Rounds read from memory are the memory's. -/
+/-- Rounds read from memory one word past `p` are the memory's at `1 + 2k`, `2 + 2k`. -/
 theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
-    (hl : rounds.length = n) (h : ReadsAt rd p (rounds.flatMap fun g => [g.1, g.2])) :
-    rounds = (List.range n).map fun k => (memAt rd p (2 * k), memAt rd p (2 * k + 1)) := by
+    (hl : rounds.length = n) (h : ReadsAt rd (p * gen) (rounds.flatMap fun g => [g.1, g.2])) :
+    rounds = (List.range n).map fun k => (memAt rd p (1 + 2 * k), memAt rd p (2 + 2 * k)) := by
   have hlen : (rounds.flatMap fun g => [g.1, g.2]).length = 2 * n := by
     simp [List.length_flatMap, hl, mul_comm]
   refine List.ext_getElem (by simp [hl]) fun k h1 h2 => ?_
@@ -290,15 +289,45 @@ theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
   obtain ⟨e0, e1⟩ := pairs_getD rounds k
   have l0 := h (2 * k) (by omega)
   have l1 := h (2 * k + 1) (by omega)
-  rw [← List.getD_eq_getElem _ 0, e0] at l0
-  rw [← List.getD_eq_getElem _ 0, e1] at l1
+  rw [← List.getD_eq_getElem _ 0, e0, ← pow_one gen, loadHolds_mul_gen_pow] at l0
+  rw [← List.getD_eq_getElem _ 0, e1, ← pow_one gen, loadHolds_mul_gen_pow,
+    show 1 + (2 * k + 1) = 2 + 2 * k by omega] at l1
   simp only [List.getElem_map, List.getElem_range]
   rw [memAt_of_load l0, memAt_of_load l1, List.getD_eq_getElem _ _ h1]
+
+/-! ## The callees' meanings this proof takes -/
+
+/-- **`batch_sumcheck(fs0..fs4, msgs, running, point, tabs, n)`** (`ROUND2_GRIND_BITS = 0`, so
+`tabs` is not read): from the carried capacity (nothing waiting), the `n` rounds' words at `msgs`
+(`g(1)`, `g(∞)` per round, `BC_ROUND_WORDS = 2`) are `Node.batchRounds running rounds`
+(`aggBsRun`), its challenges stored at `point`; the function returns the final sponge's capacity
+and the final claim. -/
+def MeaningAggBatchSumcheck (n : ℕ) (rd : Reader) : List E → List E → Prop
+  | [f0, f1, f2, f3, f4, msgs, running, point, _], rets =>
+      ∃ rounds : List (E × E), rounds.length = n ∧
+        ReadsAt rd msgs (rounds.flatMap fun g ↦ [g.1, g.2]) ∧
+        let res := aggBsRun rounds running ⟨[f0, f1, f2, f3, f4], []⟩
+        ReadsAt rd point res.1.1 ∧ rets = res.2.cap ++ [res.1.2]
+  | _, _ => False
+
+/-- `batch_sumcheck__L23`'s core IR is its meaning (a hypothesis of `aggregate_claims`' proofs
+until `B1/Sumcheck` is ported). -/
+def agg_batch_sumcheck_Spec : Prop :=
+  ∀ (rd : Reader) (args rets : List E),
+    coreProgram.Rel rd "batch_sumcheck__L23" args rets ↔ MeaningAggBatchSumcheck 23 rd args rets
+
+/-- `grind_check__L2`'s core IR gives its meaning on any memory whose `tabs` holds the bit windows
+(a hypothesis of `aggregate_claims_holds` until `B1/Bits/Grind` is ported; the name is a literal,
+since the kernel does not reduce `grindCheckName 2`'s `toString`). -/
+def agg_grind_check_Spec : Prop :=
+  ∀ (rd : Reader) (w tabs : E) (rets : List E), WinTabs rd tabs →
+    coreProgram.Rel rd "grind_check__L2" [w, tabs] rets → MeaningGrindCheck 2 [w, tabs] rets
 
 /-- **`aggregate_claims`, its hints named**: on a valuation of its body (its calls under a
 relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd σ`. -/
 def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List E → Prop
-  | [ncg, cpi, cfresh, ccarried, dst], rets => ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
+  | [ncg, cpi, cfresh, ccarried, dst, tabs], rets => WinTabs rd tabs →
+      ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
       rets = [] ∧ ∃ out : DeferredClaim,
         out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
@@ -306,19 +335,29 @@ def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List 
           batch cs h = some out
   | _, _ => False
 
+/-- The cells of a nonce's permutation: the nonce's two cells, six zeros, the capacity of the
+permutation of four waiting scalars. -/
+theorem nonce_ins {s : Fs} (hs : s.pend.length = 4) (n : E) :
+    s.nonceState n = permOf ([n, word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++ capOf s.perm) := by
+  have e : s.absorb n dsPowNonce = ⟨capOf s.perm, [(n, dsPowNonce)]⟩ := by
+    simp [Fs.absorb, hs, rateScalars]
+  rw [Fs.nonceState, e, perm_eq_cells _ (by simp)]
+  rfl
+
 /-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
 the children whose words the memory holds. -/
-theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
+theorem aggregate_claims_val (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_check_Spec)
+    {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
     {σ : Val} {args rets : List E} (hpar : Data.core33.params.map σ = args)
     (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core33) False (fun rs => rs = rets)) :
     MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
   have hb := holdsList_mono hle _ id (fun _ h => h) hbC
   have hok := agg_ok
   simp only [aggOk, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hflat, hparams⟩, hseed⟩, hp0⟩, hc23⟩, hp23⟩, hc33⟩,
-    hp33⟩, hc43⟩, hp43⟩, hrate⟩, hg25⟩, hm69⟩, hk⟩, hrin⟩, hch⟩, hm107⟩, hc112⟩, hl112⟩, hc113⟩,
-    hl113⟩, hg26⟩, hm118⟩, hl119⟩, hbs⟩, hpt1⟩, hc200⟩, hl200⟩, hg27⟩, hm204⟩, hl205⟩, hm206⟩,
-    hae⟩, hout⟩, hl6⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hflat, hparams⟩, hseed⟩, hp0⟩, hz3⟩, hrate⟩,
+    hg33⟩, hm42⟩, hk⟩, hrin⟩, hnA⟩, hkn⟩, hgr⟩, hm94⟩, hc99⟩, hl99⟩, hc100⟩, hl100⟩, hg34⟩,
+    hm105⟩, hl106⟩, hg109⟩, hbs⟩, hpt1⟩, hc189⟩, hl189⟩, hg35⟩, hm193⟩, hl194⟩, hm195⟩, hae⟩,
+    hout⟩, hl7⟩ := hok
   rw [hparams] at hpar
   subst hpar
   rw [agg_shape, holdsList_append] at hb
@@ -329,39 +368,40 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
   subst hr
   have hat := atoms_of_flat hall
   simp only [List.map_cons, List.map_nil, MeaningAggregateClaimsW]
-  intro m hm1 hm16 hN
+  intro hW m hm1 hm16 hN
   refine ⟨trivial, ?_⟩
-  simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hrate hpt1 hout
+  simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hz3 hrate hpt1 hout
   -- the absorbing loop
-  have L25 : ∀ c < m, L25Step rd (σ (.n 60)) (σ (.n 2)) (σ (.n 7)) (σ (.n 3)) (σ (.n 8))
+  have L25 : ∀ c < m, L25Step rd (σ (.n 33)) (σ (.n 2)) (σ (.n 8)) (σ (.n 3)) (σ (.n 9))
       (σ (.n 1)) (gen ^ c) :=
     loop_sound (f := "__loop33")
-      (ps := [σ (.n 0), σ (.n 60), σ (.n 2), σ (.n 7), σ (.n 3), σ (.n 8), σ (.n 1)])
+      (ps := [σ (.n 0), σ (.n 33), σ (.n 2), σ (.n 8), σ (.n 3), σ (.n 9), σ (.n 1)])
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l25_step hy
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
-      (fun hne => by simpa using guard_sound hg25 hall hne)
+      (fun hne => by simpa using guard_sound hg33 hall hne)
   -- the sumcheck
-  have hbsm := (batch_sumcheck_holds rd _ _).mp (call_of_flat hall hbs)
-  simp only [List.map_cons, List.map_nil] at hbsm
-  obtain ⟨-, rounds, hrl, hrd, hpt, hrets⟩ := hbsm
+  have hbsm := (hBS rd _ _).mp (call_of_flat hall hbs)
+  simp only [List.map_cons, List.map_nil, MeaningAggBatchSumcheck] at hbsm
+  obtain ⟨rounds, hrl, hrd, hpt, hrets⟩ := hbsm
+  rw [genMul_sound hg109 hat] at hrd
   have hrnd : rounds = aggRounds rd σ := rounds_of_reads hrl hrd
-  have h126 : σ (.n 126) = (bsRun rounds (σ (.n 119)) ⟨[σ (.n 95), σ (.n 96), σ (.n 97),
-      σ (.n 98), σ (.n 99)], []⟩).1.2 := by
+  have h115 : σ (.n 115) = (aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
+      σ (.n 92), σ (.n 93)], []⟩).1.2 := by
     have := congrArg List.getLast? hrets
     simpa using this
-  have hptl : (bsRun rounds (σ (.n 119)) ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98),
-      σ (.n 99)], []⟩).1.1.length = 23 := by rw [bsRun_len, hrl]
-  refine ⟨⟨(bsRun rounds (σ (.n 119)) ⟨[σ (.n 95), σ (.n 96), σ (.n 97),
-    σ (.n 98), σ (.n 99)], []⟩).1.1, σ (.n 6)⟩, hptl, ?_, ?_⟩
+  have hptl : (aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92),
+      σ (.n 93)], []⟩).1.1.length = 23 := by rw [aggBsRun_len, hrl]
+  refine ⟨⟨(aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90), σ (.n 91),
+    σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩, hptl, ?_, ?_⟩
   · -- the claim written
     intro k hk
     simp only [DeferredClaim.cells, List.length_append, List.length_cons, List.length_nil,
       hptl] at hk
     by_cases hk23 : k < 23
-    · rw [show (DeferredClaim.cells ⟨(bsRun rounds (σ (.n 119)) ⟨[σ (.n 95), σ (.n 96),
-        σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1, σ (.n 6)⟩)[k] = _ from
+    · rw [show (DeferredClaim.cells ⟨(aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
+        σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[k] = _ from
         List.getElem_append_left (by rw [hptl]; exact hk23)]
       obtain ⟨h1, h2⟩ := hout k hk23
       have e := loadHolds_unique (load_sound h1 hat) (hpt k (by rw [hptl]; exact hk23))
@@ -369,143 +409,169 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (co
       exact load_sound h2 hat
     · have hk' : k = 23 := by omega
       subst hk'
-      rw [show (DeferredClaim.cells ⟨(bsRun rounds (σ (.n 119)) ⟨[σ (.n 95), σ (.n 96),
-        σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1, σ (.n 6)⟩)[23] = σ (.n 6) by
+      rw [show (DeferredClaim.cells ⟨(aggBsRun rounds (σ (.n 106)) ⟨[σ (.n 89), σ (.n 90),
+        σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1, σ (.n 7)⟩)[23] = σ (.n 7) by
           simp [DeferredClaim.cells, List.getElem_append_right, hptl]]
-      exact load_sound hl6 hat
+      exact load_sound hl7 hat
   -- the batching
   intro cs hcl hcw
-  have hp60 := hp0
   -- row 0
-  have hcap0 : rowCap rd (σ (.n 60)) = capOf batchSeed := by
+  have hcap0 : rowCap rd (σ (.n 33)) = capOf batchSeed := by
     refine list_eq_of_getD (n := 5) (by simp [rowCap]) (by simp [capOf]) fun i hi => ?_
     obtain ⟨hcst, hld⟩ := hseed i hi
     rw [← seed_cells i hi, ← const_sound hcst hat, ← memAt_of_load (load_sound hld hat)]
     simp [rowCap, List.getD_eq_getElem?_getD, hi]
-  have hrow0 : RowRel rd (σ (.n 60)) (aggS0.absorbAll (Batch.childCountCells m) dsObserve) := by
+  have hrow0 : RowRel rd (σ (.n 33)) (aggS0.absorbAll (Batch.childCountCells m) dsObserve) := by
     rw [absorb_head, ← hcap0]
     refine rowRel_full (by simp) fun j hj => ?_
     obtain ⟨r1, r2⟩ := hrate j hj
     rw [memAt_of_load (load_sound r1 hat), memAt_of_load (load_sound r2 hat)]
     rcases (show j = 0 ∨ j = 1 ∨ j = 2 ∨ j = 3 by omega) with rfl | rfl | rfl | rfl
-    · have := packOf_of (packIn_sound hp60 hat)
+    · have := packOf_of (packIn_sound hp0 hat)
       rw [hN] at this
       exact this
-    · have := packOf_of (packIn_sound hp23 hat)
-      rw [const_sound hc23 hat, word_zero] at this
+    · obtain ⟨hc, hp⟩ := hz3 0 (by omega)
+      have := packOf_of (packIn_sound hp hat)
+      rw [const_sound hc hat, word_zero] at this
       exact this
-    · have := packOf_of (packIn_sound hp33 hat)
-      rw [const_sound hc33 hat, word_zero] at this
+    · obtain ⟨hc, hp⟩ := hz3 1 (by omega)
+      have := packOf_of (packIn_sound hp hat)
+      rw [const_sound hc hat, word_zero] at this
       exact this
-    · have := packOf_of (packIn_sound hp43 hat)
-      rw [const_sound hc43 hat, word_zero] at this
+    · obtain ⟨hc, hp⟩ := hz3 2 (by omega)
+      have := packOf_of (packIn_sound hp hat)
+      rw [const_sound hc hat, word_zero] at this
       exact this
   have hpend0 : (aggS0.absorbAll (Batch.childCountCells m) dsObserve).pend.length = 4 := by
     rw [absorb_head]; rfl
   -- the absorbing rows
-  obtain ⟨hrowm, -⟩ := absorb_rows hcl hcw L25 hrow0 hpend0 m le_rfl
+  obtain ⟨hrowm, hpendm⟩ := absorb_rows hcl hcw L25 hrow0 hpend0 m le_rfl
   rw [List.take_of_length_le (by omega), show Batch.childCountCells m ++ cs.flatMap Batch.childCells =
-    Batch.cellsBeforeChallenge cs by rw [Batch.cellsBeforeChallenge, hcl]] at hrowm
-  have hrow69 : RowRel rd (σ (.n 69)) (aggAbs cs) := by
-    rw [monoIs_sound hm69 hat, hN]
+    Batch.cellsBeforeChallenge cs by rw [Batch.cellsBeforeChallenge, hcl]] at hrowm hpendm
+  have hrow42 : RowRel rd (σ (.n 42)) (aggAbs cs) := by
+    rw [monoIs_sound hm42 hat, hN]
     exact hrowm
-  -- the permutation and `λ`
+  -- the last row's permutation
   have hin := rowIn_sound hrin hat
-  obtain ⟨hcan, hout1⟩ := DupSpec.keccak_facts (keccak_sound hk hat)
-  rw [hin] at hcan hout1
-  have hperm := rowRel_perm hrow69 (fun c hc => hcan c (List.mem_append_left _ hc))
-  rw [← hperm] at hout1
-  have o : ∀ c (hc : c < 13), σ (.n (87 + c)) = cellsOfState (aggAbs cs).perm false ⟨c, hc⟩ :=
+  have hout1 := DupSpec.keccak_facts (keccak_sound hk hat)
+  rw [hin, ← rowRel_perm hrow42] at hout1
+  have o : ∀ c (hc : c < 13), σ (.n (60 + c)) = cellsOfState (aggAbs cs).perm false ⟨c, hc⟩ :=
     fun c hc => by
       have := hout1 c hc
-      rwa [show aggKo.getD c default = .n (87 + c) by
+      rwa [show aggKo.getD c default = .n (60 + c) by
         simp [aggKo, List.getD_eq_getElem?_getD, hc]] at this
-  have hlam : σ (.n 106) = (aggAbs cs).squeeze.1 :=
-    challengeT_value (chal_sound hch hat) (o 0 (by omega)) (o 1 (by omega))
-  have hsq : (aggAbs cs).squeeze.2 =
-      ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩ := by
-    have o8 : σ (.n 95) = cellsOfState (aggAbs cs).perm false 8 := o 8 (by omega)
-    have o9 : σ (.n 96) = cellsOfState (aggAbs cs).perm false 9 := o 9 (by omega)
-    have o10 : σ (.n 97) = cellsOfState (aggAbs cs).perm false 10 := o 10 (by omega)
-    have o11 : σ (.n 98) = cellsOfState (aggAbs cs).perm false 11 := o 11 (by omega)
-    have o12 : σ (.n 99) = cellsOfState (aggAbs cs).perm false 12 := o 12 (by omega)
-    show (⟨capOf (aggAbs cs).perm, []⟩ : Fs) = _
-    rw [o8, o9, o10, o11, o12]
+  -- the nonce's permutation
+  have hnh := allIn_holds hnA hat C (fun _ => True)
+  rw [aggNonceA_eq, holdsList_append, holds_fsNonceT, holds_padRunT] at hnh
+  obtain ⟨⟨hl73, hpk⟩, ⟨-, h77, h78, h79, h80⟩, -⟩ := hnh
+  obtain ⟨h74, h75⟩ := hpk
+  have h73 : σ (.n 73) = (aggHints rd σ).lambdaGrindNonce := (memAt_of_load hl73).symm
+  have hnin : aggNi.map σ = [σ (.n 73), word 0 dsPowNonce, 0, 0, 0, 0, 0, 0] ++
+      capOf (aggAbs cs).perm := by
+    simp only [aggNi, permIns, List.take, List.cons_append, List.nil_append, List.map_cons,
+      List.map_nil, h74, h75, h77, h78, h79, h80, capOf, o 8 (by omega), o 9 (by omega),
+      o 10 (by omega), o 11 (by omega), o 12 (by omega)]
     rfl
-  have hagg : aggLam cs = (Batch.lambdaPowers (σ (.n 106)) m,
-      ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩) := by
-    simp only [aggLam, sqLF, hcl, hlam, hsq]
+  have hnout := DupSpec.keccak_facts (keccak_sound hkn hat)
+  rw [hnin, ← nonce_ins (s := aggAbs cs) hpendm, h73, ← aggN] at hnout
+  have q : ∀ c (hc : c < 13), σ (.n (81 + c)) =
+      cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false ⟨c, hc⟩ :=
+    fun c hc => by
+      have := hnout c hc
+      rwa [show aggNo.getD c default = .n (81 + c) by
+        simp [aggNo, List.getD_eq_getElem?_getD, hc]] at this
+  -- the proof of work and `λ`
+  have hg := hGr rd _ _ _ hW (by simpa using call_of_flat hall hgr)
+  obtain ⟨-, hpow⟩ := hg
+  have q1 : σ (.n 82) = cellsOfState (aggN cs (aggHints rd σ).lambdaGrindNonce) false 1 :=
+    q 1 (by omega)
+  have hpowOk : powOk Batch.batchLambdaGrindBits
+      (Keccak.lane (aggN cs (aggHints rd σ).lambdaGrindNonce) 2) = true := by
+    have := (grindOk_iff (s := aggAbs cs) (bits := 2) (by omega)
+      (aggHints rd σ).lambdaGrindNonce).mpr (by rw [← aggN, ← q1]; exact hpow)
+    exact this.resolve_left (by omega)
+  have hlam : σ (.n 81) = challengeOf (aggN cs (aggHints rd σ).lambdaGrindNonce) := by
+    rw [q 0 (by omega), Keccak.challengeOf_cells]
+    rfl
+  have hcapN : (⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩ : Fs) =
+      (aggLam cs (aggHints rd σ).lambdaGrindNonce).2 := by
+    simp only [aggLam, capOf, Fs.mk.injEq, and_true]
+    rw [q 8 (by omega), q 9 (by omega), q 10 (by omega), q 11 (by omega), q 12 (by omega)]
+    rfl
+  have hagg : (aggLam cs (aggHints rd σ).lambdaGrindNonce).1 = Batch.lambdaPowers (σ (.n 81)) m := by
+    simp only [aggLam, hcl, hlam]
   -- the records
-  have L26 : ∀ c < m, L26Step rd (σ (.n 111)) (σ (.n 7)) (σ (.n 8)) (σ (.n 106) * σ (.n 106))
-      (σ (.n 106)) (gen ^ c) := by
+  have L26 : ∀ c < m, L26Step rd (σ (.n 98)) (σ (.n 8)) (σ (.n 9)) (σ (.n 81) * σ (.n 81))
+      (σ (.n 81)) (gen ^ c) := by
     have h := loop_sound (f := "__loop34")
-      (ps := [σ (.n 0), σ (.n 111), σ (.n 7), σ (.n 8), σ (.n 107), σ (.n 106)])
-      (B := fun x => L26Step rd (σ (.n 111)) (σ (.n 7)) (σ (.n 8)) (σ (.n 107)) (σ (.n 106)) x)
+      (ps := [σ (.n 0), σ (.n 98), σ (.n 8), σ (.n 9), σ (.n 94), σ (.n 81)])
+      (B := fun x => L26Step rd (σ (.n 98)) (σ (.n 8)) (σ (.n 9)) (σ (.n 94)) (σ (.n 81)) x)
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l26_step hy
         exact ⟨h1 _ _ _ _ _ _ rfl, h2⟩)
-      (fun hne => by simpa using guard_sound hg26 hall hne)
-    rwa [isMul_sound hm107 hat] at h
-  have h111 : memAt rd (σ (.n 111)) 0 = 1 := by
-    rw [memAt_of_load (load_sound hl112 hat), const_sound hc112 hat, word_one]
-  have h111z : memAt rd (σ (.n 111)) 1 = 0 := by
-    rw [memAt_of_load (load_sound hl113 hat), const_sound hc113 hat, word_zero]
-  have CH := chain_rows hcl hcw L25 L26 h111 h111z
-  have p118 : σ (.n 118) = σ (.n 111) * (gen ^ m) ^ 2 := by
-    rw [monoIs_sound hm118 hat, hN]
-  have hclaim : Batch.batchedClaim cs (aggLam cs).1 = σ (.n 119) := by
+      (fun hne => by simpa using guard_sound hg34 hall hne)
+    rwa [isMul_sound hm94 hat] at h
+  have h98 : memAt rd (σ (.n 98)) 0 = 1 := by
+    rw [memAt_of_load (load_sound hl99 hat), const_sound hc99 hat, word_one]
+  have h98z : memAt rd (σ (.n 98)) 1 = 0 := by
+    rw [memAt_of_load (load_sound hl100 hat), const_sound hc100 hat, word_zero]
+  have CH := chain_rows hcl hcw L25 L26 h98 h98z
+  have p105 : σ (.n 105) = σ (.n 98) * (gen ^ m) ^ 2 := by
+    rw [monoIs_sound hm105 hat, hN]
+  have hclaim : Batch.batchedClaim cs (aggLam cs (aggHints rd σ).lambdaGrindNonce).1 = σ (.n 106) := by
     obtain ⟨-, hacc⟩ := CH m le_rfl
     rw [List.take_of_length_le (by omega)] at hacc
-    rw [hagg, ← memAt_of_load (load_sound hl119 hat), p118, hacc]
+    rw [hagg, ← memAt_of_load (load_sound hl106 hat), p105, hacc]
     rfl
-  have hrun : aggRun cs ⟨rounds, σ (.n 6)⟩ = bsRun rounds (σ (.n 119))
-      ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩ := by
-    rw [aggRun, hclaim, hagg]
+  have hrun : aggRun cs (aggHints rd σ) = aggBsRun rounds (σ (.n 106))
+      ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩ := by
+    rw [aggRun, hclaim, ← hcapN, hrnd]
+    rfl
   -- the weight
-  have L27 : ∀ c < m, L27Step rd (σ (.n 7)) (σ (.n 8)) (σ (.n 127)) (σ (.n 111)) (σ (.n 199))
-      (σ (.n 106)) (gen ^ c) :=
+  have L27 : ∀ c < m, L27Step rd (σ (.n 8)) (σ (.n 9)) (σ (.n 116)) (σ (.n 98)) (σ (.n 188))
+      (σ (.n 81)) (gen ^ c) :=
     loop_sound (f := "__loop35")
-      (ps := [σ (.n 0), σ (.n 7), σ (.n 8), σ (.n 127), σ (.n 111), σ (.n 199), σ (.n 106)])
+      (ps := [σ (.n 0), σ (.n 8), σ (.n 9), σ (.n 116), σ (.n 98), σ (.n 188), σ (.n 81)])
       (by unfold ordG; omega) hN
       (fun y hy => by
         obtain ⟨h1, h2⟩ := l27_step hy
         exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
-      (fun hne => by simpa using guard_sound hg27 hall hne)
-  have hptr : (memRun rd (σ (.n 127)) 23).map (1 + ·) = (bsRun rounds (σ (.n 119))
-      ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1 := by
+      (fun hne => by simpa using guard_sound hg35 hall hne)
+  have hptr : (memRun rd (σ (.n 116)) 23).map (1 + ·) = (aggBsRun rounds (σ (.n 106))
+      ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1 := by
     rw [readsAt_memRun hpt, hptl]
     refine map_one_add_memRun fun k hk => ?_
     obtain ⟨⟨⟨c1, l1⟩, a1⟩, s1⟩ := hpt1 k hk
     rw [memAt_of_load (load_sound s1 hat), add_sound a1 hat, const_sound c1 hat, word_one,
       memAt_of_load (load_sound l1 hat)]
-  have hz199 : memAt rd (σ (.n 199)) 0 = 0 := by
-    rw [memAt_of_load (load_sound hl200 hat), const_sound hc200 hat, word_zero]
-  have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz199 m le_rfl
+  have hz188 : memAt rd (σ (.n 188)) 0 = 0 := by
+    rw [memAt_of_load (load_sound hl189 hat), const_sound hc189 hat, word_zero]
+  have W := weight_rows hcl hcw L25 L27 (fun c hc => (CH c hc.le).1) hptr hz188 m le_rfl
   rw [List.take_of_length_le (by omega)] at W
-  have hw : Batch.batchedBytecodeWeight cs (aggLam cs).1 (bsRun rounds (σ (.n 119))
-      ⟨[σ (.n 95), σ (.n 96), σ (.n 97), σ (.n 98), σ (.n 99)], []⟩).1.1 =
-      σ (.n 205) := by
-    rw [hagg, ← memAt_of_load (load_sound hl205 hat), isMul_sound hm204 hat, hN, W]
+  have hw : Batch.batchedBytecodeWeight cs (aggLam cs (aggHints rd σ).lambdaGrindNonce).1
+      (aggBsRun rounds (σ (.n 106))
+      ⟨[σ (.n 89), σ (.n 90), σ (.n 91), σ (.n 92), σ (.n 93)], []⟩).1.1 = σ (.n 194) := by
+    rw [hagg, ← memAt_of_load (load_sound hl194 hat), isMul_sound hm193 hat, hN, W]
     rfl
   -- the check
-  rw [show aggHints rd σ = ⟨rounds, σ (.n 6)⟩ by rw [hrnd]; rfl, batch_fs, hrun, hw, ← h126,
-    assertEq_sound hae hat, isMul_sound hm206 hat]
+  rw [batch_fs, ite_pos' hpowOk, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm195 hat]
   exact ite_pos' rfl
 
 /-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
-holds.** -/
-theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
+holds**, given `batch_sumcheck`'s and `grind_check__L2`'s meanings. -/
+theorem aggregate_claims_holds (hBS : agg_batch_sumcheck_Spec) (hGr : agg_grind_check_Spec) :
+    aggregate_claims_sound_Spec := by
   intro rd args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
-  have h := aggregate_claims_val (fun _ _ _ h => h) hpar hb
+  have h := aggregate_claims_val hBS hGr (fun _ _ _ h => h) hpar hb
   match args, h with
-  | [ncg, cpi, cfresh, ccarried, dst], h =>
-    intro m hm1 hm16 hN
-    obtain ⟨hr, out, hl, hrd, hb⟩ := h m hm1 hm16 hN
+  | [ncg, cpi, cfresh, ccarried, dst, tabs], h =>
+    intro hW m hm1 hm16 hN
+    obtain ⟨hr, out, hl, hrd, hb⟩ := h hW m hm1 hm16 hN
     exact ⟨hr, aggHints rd σ, out, hl, hrd, hb⟩
-  | [], h | [_], h | [_, _], h | [_, _, _], h | [_, _, _, _], h => exact h.elim
-  | _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
+  | [], h | [_], h | [_, _], h | [_, _, _], h | [_, _, _, _], h | [_, _, _, _, _], h => exact h.elim
+  | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
 
 end
 end LeanVM.Guest.B1.Main

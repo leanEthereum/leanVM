@@ -34,7 +34,7 @@ variable {rd : Reader} {σ : Val} {atoms : List Atom}
 
 /-- `c` is the constant `g^k` (its word evaluated in `K`). -/
 def isConstPowAt (c : V) (k : ℕ) : Atom → Bool
-  | .const d w => decide (d = c) && eEqb w (word (gpowK k).toBitVec.toNat 0 0)
+  | .const d w => decide (d = c) && eEqb w (word (gpowK k).toBitVec.toNat 0)
   | _ => false
 
 theorem ofBits_toNat' (a : K) : K.ofBits a.toBitVec.toNat = a := by
@@ -89,11 +89,10 @@ def lvlOk (fn : Fn) (f : String) (offA offB : ℕ) : Bool :=
   ptrOk A (.n pa) (.n 2) (.n 0) offA 4 && ptrOk A (.n pb) (.n 2) (.n 0) offB 2 &&
   pairHashOk A (.n c0) (.n (c0 + 1)) (.n (c0 + 2)) (.n (c0 + 3)) (.n pb)
 
-/-- **One node of the next level**: the four cells at `tree·g^offA·x^4` read, canonical, and
+/-- **One node of the next level**: the four cells at `tree·g^offA·x^4` read, and
 their digest's cells at `tree·g^offB·x^2`. -/
 def LvlStep (rd : Reader) (tree : E) (offA offB : ℕ) (x : E) : Prop :=
   (∀ i < 4, LoadHolds rd (tree * gen ^ offA * x ^ 4) i (memAt rd (tree * gen ^ offA * x ^ 4) i)) ∧
-  AllCanonical ((List.range 4).map (memAt rd (tree * gen ^ offA * x ^ 4))) ∧
   LoadHolds rd (tree * gen ^ offB * x ^ 2) 0
     (nodeCells (memAt rd (tree * gen ^ offA * x ^ 4) 0, memAt rd (tree * gen ^ offA * x ^ 4) 1)
       (memAt rd (tree * gen ^ offA * x ^ 4) 2, memAt rd (tree * gen ^ offA * x ^ 4) 3)).1 ∧
@@ -123,7 +122,7 @@ theorem lvl_step {f : String} {j offA offB : ℕ} (hidx : coreProgram.indexOf? f
   have ea := ptr_sound hpa hat hA
   have eb := ptr_sound hpb hat hB
   rw [h2, hx] at ea eb
-  obtain ⟨hcan, h0, h1⟩ := pairHash_sound hph hat
+  obtain ⟨h0, h1⟩ := pairHash_sound hph hat
   have hl : ∀ i < 4, LoadHolds rd (tree * gen ^ offA * x ^ 4) i
       (σ (.n ((if offA = 0 then 10 else 12) + i))) := fun i hi => by
     have := load_sound (hld i hi) hat
@@ -131,11 +130,7 @@ theorem lvl_step {f : String} {j offA offB : ℕ} (hidx : coreProgram.indexOf? f
   have hm : ∀ i < 4, memAt rd (tree * gen ^ offA * x ^ 4) i =
       σ (.n ((if offA = 0 then 10 else 12) + i)) := fun i hi => memAt_of_load (hl i hi)
   rw [eb] at h0 h1
-  refine ⟨fun i hi => by rw [hm i hi]; exact hl i hi, ?_, ?_, ?_⟩
-  · simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons, List.map_nil,
-      List.cons_append]
-    rw [hm 0 (by omega), hm 1 (by omega), hm 2 (by omega), hm 3 (by omega)]
-    exact hcan
+  refine ⟨fun i hi => by rw [hm i hi]; exact hl i hi, ?_, ?_⟩
   · rw [hm 0 (by omega), hm 1 (by omega), hm 2 (by omega), hm 3 (by omega)]
     exact h0
   · rw [hm 0 (by omega), hm 1 (by omega), hm 2 (by omega), hm 3 (by omega)]

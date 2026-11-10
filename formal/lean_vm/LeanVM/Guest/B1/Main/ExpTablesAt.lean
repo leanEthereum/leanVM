@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Da.AtBase
 /-!
 # `exponent_tables`, placed
 
-`exponent_tables` allocates one `HeapBuf(2284)` from `b = fp + fs "exponent_tables"` and writes the
-table there (`expTableWords`, then the bit windows). `et_at`: on a memory holding it, it holds at
-`fp` by its frame and its buffer, returning `g^b` and claiming the buffer.
+`exponent_tables` allocates one `HeapBuf(236 + 2^11)` from `b = fp + fs "exponent_tables"` and
+writes the table and its bit windows there (`expTabAllWords`). `et_at`: on a memory holding them,
+it holds at `fp` by its frame and its buffer, returning `g^b` and claiming the buffer.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -31,9 +31,17 @@ def etAs : List Atom :=
     [.const (.n (t + 1)) (word (etWord t) 0), .load (.n (t + 1)) (.n 0) (etOff t)]) ++
   [.copy (.n 2285) (.n 0)]
 
-set_option maxRecDepth 100000 in
+theorem etBlks_eq : ∀ l : List ℕ, (l.map etBlk).flatten = (l.flatMap fun t =>
+    [Atom.const (.n (t + 1)) (word (etWord t) 0), .load (.n (t + 1)) (.n 0) (etOff t)]).map Stmt.atom
+  | [] => rfl
+  | t :: l => by
+    simp only [List.map_cons, List.flatten_cons, List.flatMap_cons, etBlks_eq l, etBlk,
+      List.cons_append, List.nil_append]
+
 theorem et_split : Fn.body Data.core1 = etAs.map Stmt.atom ++ [.ret [.n 2285]] := by
-  rw [core1_body]; exact stmtsEqb_sound (by decide +kernel)
+  rw [core1_body, etBody, etBlks_eq, etAs]
+  simp only [List.map_append, List.map_cons, List.map_nil, List.append_assoc, List.cons_append,
+    List.nil_append]
 
 theorem et_straight : (etAs.map Stmt.atom).all Main.Stmt.straight = true := by
   simp [Main.Stmt.straight]
@@ -47,17 +55,23 @@ theorem expTableWords_sq {j : ℕ} (hj : j < 34) :
   rw [← List.getD_eq_getElem _ 0, expTableWords_getD j (by omega), etListK_sq j hj, ofK_pow,
     ← gen_eq_ofK]
 
-theorem etOff_lt {t : ℕ} (ht : t < 2284) : etOff t < 2284 := by
-  simp only [etOff]; split_ifs <;> omega
+/-- The whole table's first `34` words are the squares `g^(2^j)`. -/
+theorem expTabAllWords_sq {j : ℕ} (hj : j < 34) :
+    expTabAllWords[j]'(by rw [length_expTabAllWords]; omega) = gen ^ 2 ^ j := by
+  rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_pos' (by omega), expTabWord,
+    ite_pos' (by omega), List.getD_eq_getElem _ _ (by rw [length_expTableWords]; omega),
+    expTableWords_sq hj]
 
 /-- The table's first word at `fp`. -/
 abbrev etB (fs : String → ℕ) (fp : ℕ) : ℕ := fp + fs "exponent_tables"
 
-theorem expTables_of_reads {rd : Reader} {b : ℕ} (h : ReadsAt rd (gen ^ b) expTableWords) :
-    ExpTables rd (gen ^ b) :=
-  (expTables_iff_words rd _).2 fun o ho => by
-    have := h o (by rw [length_expTableWords]; exact ho)
-    rwa [List.getD_eq_getElem _ _ (by rw [length_expTableWords]; exact ho)]
+theorem expTables_of_reads {rd : Reader} {b : ℕ} (h : ReadsAt rd (gen ^ b) expTabAllWords) :
+    ExpTables rd (gen ^ b) ∧ ExpWinTab rd (gen ^ b) :=
+  (expTabAll_iff rd _).2 fun o ho => by
+    have := h o (by rw [length_expTabAllWords]; exact ho)
+    have e : expTabAllWords[o]'(by rw [length_expTabAllWords]; exact ho) = expTabWord o := by
+      rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_pos' ho]
+    rwa [e] at this
 
 set_option maxRecDepth 20000 in
 /-- **`exponent_tables` at `fp`**, on a memory holding its table. -/

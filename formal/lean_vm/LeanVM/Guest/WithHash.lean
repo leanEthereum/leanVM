@@ -108,7 +108,7 @@ def GuestChildCompleteWithHash : Prop :=
   (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
-        match ← LeanVM.proverWithHash prog input t ρ (2 ^ 25) with
+        match ← LeanVM.proverWithHash prog input t ρ (2 ^ 33) with
         | none => pure false
         | some proof =>
           verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
@@ -118,7 +118,7 @@ def GuestChildCompleteWithHash : Prop :=
     s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
     ∀ proof,
-      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guestProgram input t ρ (2 ^ 25) =
+      honestProofWithDeployedKeccakWithHash LeanVM.proverWithHash guestProgram input t ρ (2 ^ 33) =
         some proof →
     verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧
@@ -134,7 +134,7 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
-`(QA + QV + 1) · M · 2^-191 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query
+`(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)² · 2^-256`, for `QA ≤ 2^128` and the program's query
 bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free. The
 factor `M` is the batching's one challenge `λ`: the children's `2n` claims, `n < M`, are combined
 with its powers, and a nonzero combination of degree below `2M` vanishes at fewer than `2M`
@@ -151,7 +151,7 @@ def BatchingSoundWithHash : Prop :=
     Pr{let z ← runAdversaryThen A fun z ↦
          runBatchingWithHash callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2}[
       z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * M * (2 : ℝ≥0∞)⁻¹ ^ 127 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

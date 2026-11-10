@@ -210,7 +210,7 @@ def GuestChildComplete : Prop :=
     statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
     ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
-        (2 ^ 25) =
+        (2 ^ 33) =
       some proof →
     verifierRefusingZero (m := Id) keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧

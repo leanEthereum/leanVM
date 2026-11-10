@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Fs.Templates
-public import LeanVM.Guest.B1.Sumcheck.Run
 public import LeanVM.Guest.Batch.Run
 public import LeanVM.Guest.B1.Common.Atoms
 
@@ -17,12 +16,13 @@ public import LeanVM.Guest.B1.Common.Atoms
 # The batching's sponge
 
 * `batch_fs`: `Node.batch` (N:268) on the carried sponge (`Fs`): the seed's capacity absorbs the
-  batching's words (`aggAbs`), one squeeze's powers give the lambdas (`sqLF`, `aggLam`), and
-  `bsRun` (B1-a) runs the sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried
-  sponge's operations (`carries_absorb`, `carries_squeeze`, `batchRounds_run`).
+  batching's words (`aggAbs`), the hinted nonce's permutation (`aggN`, `Fs.nonceState`) passes the
+  proof of work and draws `λ`, whose powers are the lambdas (`aggLam`), and `aggBsRun` runs the
+  sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried sponge's operations
+  (`carries_absorb`, `carries_squeeze`, `powStep_carried`, `aggBsRun_run`).
 * `RowRel rd p s`: thirteen words at `p` carry the sponge `s`, its capacity cells, then each
   waiting scalar's two rate cells (as `fs_pack` writes them, `PackOf`), zeros past them;
-  `rowRel_perm`: a `KECCAK` reading them (canonical) permutes `s`.
+  `rowRel_perm`: a `KECCAK` reading them permutes `s`.
 * `DupSpec`: a straight-line chain of `KECCAK`s, block `k + 1` reading the packed cells of the
   words `4k .. 4k + 3` and block `k`'s capacity outputs; `DupSpec.check` is evaluated by the
   kernel, and `DupSpec.chain`: from a sponge with four waiting scalars that the first block
@@ -39,51 +39,115 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## The batching on the carried sponge -/
 
+/-- `Node.batchRounds` on the carried sponge (`batch_sumcheck`, `ROUND2_GRIND_BITS = 0`): per round
+`g(1)`, `g(∞)` absorbed, the challenge squeezed, the degree-2 round folded. The challenges, the
+final claim, the final sponge. -/
+def aggBsRun : List (E × E) → E → Fs → (List E × E) × Fs
+  | [], claim, s => (([], claim), s)
+  | (g1, gInf) :: rest, claim, s =>
+    let r := ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze
+    let g0 := claim + g1
+    let res := aggBsRun rest ((gInf * r.1 + (g0 + g1 + gInf)) * r.1 + g0) r.2
+    ((r.1 :: res.1.1, res.1.2), res.2)
+
+/-- **`aggBsRun` is `Node.batchRounds`** on a sponge the guest carries. -/
+theorem aggBsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Sponge),
+    s.Carries sp → ∃ sp', (aggBsRun rounds claim s).2.Carries sp' ∧
+      (Node.batchRounds claim rounds).run sp = ((aggBsRun rounds claim s).1, sp')
+  | [], claim, s, sp, h => ⟨sp, h, rfl⟩
+  | (g1, gInf) :: rest, claim, s, sp, h => by
+    have ha := carries_absorb (carries_absorb h g1 dsObserve) gInf dsObserve
+    obtain ⟨e1, e2⟩ := carries_squeeze ha
+    obtain ⟨sp', h', hrun⟩ := aggBsRun_run rest
+      ((gInf * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
+        (claim + g1 + g1 + gInf)) * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
+        (claim + g1)) _ _ e2
+    refine ⟨sp', h', ?_⟩
+    set X := Id.run (Compile.absorb (m := Id) keccakF1600
+      (Id.run (Compile.absorb (m := Id) keccakF1600 sp g1 dsObserve)) gInf dsObserve) with hX
+    set c := (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).1 with hc
+    have key : (Node.batchRounds claim ((g1, gInf) :: rest)).run sp =
+        ((c :: ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
+          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.1,
+          ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
+          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.2),
+          ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
+          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).2) := rfl
+    rw [key, e1, hrun]
+    rfl
+
+theorem aggBsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
+    (aggBsRun rounds claim s).1.1.length = rounds.length
+  | [], _, _ => rfl
+  | (_, _) :: rest, _, _ => by simp [aggBsRun, aggBsRun_len rest]
+
 /-- The batching's initial sponge, carried: the seed's capacity, nothing waiting. -/
 def aggS0 : Fs := ⟨capOf batchSeed, []⟩
 
-theorem carries_aggS0 : aggS0.Carries ⟨batchSeed, [], none⟩ := ⟨rfl, rfl⟩
+theorem carries_aggS0 : aggS0.Carries ⟨batchSeed, [], none⟩ := ⟨rfl, rfl, rfl⟩
 
 theorem carries_obsAll : ∀ (xs : List E) {s : Fs} {sp : Sponge}, s.Carries sp →
     (s.absorbAll xs dsObserve).Carries (Batch.obsAll sp xs)
   | [], _, _, h => h
   | x :: xs, _, _, h => carries_obsAll xs (carries_absorb h x dsObserve)
 
-/-- One squeeze on the carried sponge, its powers the lambdas of `n` children: the lambdas and the
-sponge after the squeeze. -/
-def sqLF (n : ℕ) (s : Fs) : List (E × E) × Fs := (Batch.lambdaPowers s.squeeze.1 n, s.squeeze.2)
-
-theorem carries_sqL (n : ℕ) {s : Fs} {sp : Sponge} (h : s.Carries sp) :
-    (Batch.sqL n sp).1 = (sqLF n s).1 ∧ (sqLF n s).2.Carries (Batch.sqL n sp).2 := by
-  obtain ⟨e1, h1⟩ := carries_squeeze h
-  have e1' : (Batch.sq sp).1 = s.squeeze.1 := e1
-  exact ⟨by simp only [Batch.sqL, sqLF, e1'], h1⟩
-
 /-- The sponge after the batching's words. -/
 def aggAbs (cs : List ChildClaims) : Fs := aggS0.absorbAll (Batch.cellsBeforeChallenge cs) dsObserve
 
-/-- The lambdas and the sponge after them. -/
-def aggLam (cs : List ChildClaims) : List (E × E) × Fs := sqLF cs.length (aggAbs cs)
+/-- The permutation that absorbs the batching's grinding nonce `n`. -/
+def aggN (cs : List ChildClaims) (n : E) : KeccakState := (aggAbs cs).nonceState n
+
+/-- The lambdas (the powers of the challenge the nonce's permutation draws) and the sponge after
+them. -/
+def aggLam (cs : List ChildClaims) (n : E) : List (E × E) × Fs :=
+  (Batch.lambdaPowers (challengeOf (aggN cs n)) cs.length, ⟨capOf (aggN cs n), []⟩)
 
 /-- The sumcheck's run: its challenges and final claim, and the sponge after it. -/
 def aggRun (cs : List ChildClaims) (h : BatchingHints) : (List E × E) × Fs :=
-  bsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1) (aggLam cs).2
+  aggBsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)
+    (aggLam cs h.lambdaGrindNonce).2
+
+/-- The proof of work at any permutation `F` (a variable, so that `rfl` cannot unfold
+Keccak-f): the nonce absorbed, the permutation, its lane `2`, its challenge ground. -/
+theorem powStep_eq (F : KeccakState → KeccakState) (sp : Sponge) (n : E) :
+    powStep F sp n = (Keccak.lane (F (duplexInput (Id.run (Compile.absorb (m := Id) F sp n dsPowNonce)))) 2,
+      ⟨F (duplexInput (Id.run (Compile.absorb (m := Id) F sp n dsPowNonce))), [],
+        some (challengeOf (F (duplexInput (Id.run (Compile.absorb (m := Id) F sp n dsPowNonce)))))⟩) :=
+  rfl
+
+/-- The proof of work at a carried sponge: the nonce's permutation's lane `2`, and the sponge it
+leaves, its challenge ground. -/
+theorem powStep_carried {s : Fs} {sp : Sponge} (hs : s.Carries sp) (n : E) :
+    powStep keccakF1600 sp n = (Keccak.lane (s.nonceState n) 2,
+      ⟨s.nonceState n, [], some (challengeOf (s.nonceState n))⟩) := by
+  rw [powStep_eq, perm_eq (carries_absorb hs n dsPowNonce)]
+  rfl
 
 /-- **`Node.batch` on the carried sponge.** -/
 theorem batch_fs (cs : List ChildClaims) (h : BatchingHints) :
     batch cs h =
-      if (aggRun cs h).1.2 = h.finalBytecodeValue * Batch.batchedBytecodeWeight cs (aggLam cs).1 (aggRun cs h).1.1
-      then some ⟨(aggRun cs h).1.1, h.finalBytecodeValue⟩ else none := by
+      if powOk Batch.batchLambdaGrindBits (Keccak.lane (aggN cs h.lambdaGrindNonce) 2) then
+        if (aggRun cs h).1.2 = h.finalBytecodeValue *
+            Batch.batchedBytecodeWeight cs (aggLam cs h.lambdaGrindNonce).1 (aggRun cs h).1.1
+        then some ⟨(aggRun cs h).1.1, h.finalBytecodeValue⟩ else none
+      else none := by
   rw [Batch.batch_eq]
   have hc := carries_obsAll (Batch.cellsBeforeChallenge cs) carries_aggS0
-  obtain ⟨e1, h1⟩ := carries_sqL cs.length hc
-  obtain ⟨sp', -, hr⟩ := B1.batchRounds_run h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1)
-    (aggLam cs).2 _ h1
-  rw [Batch.batchRounds_run] at hr
-  have e1' : (Batch.sqL cs.length (Batch.batchSponge cs)).1 = (aggLam cs).1 := e1
-  have hr' : (Batch.rsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs).1)
-      (Batch.sqL cs.length (Batch.batchSponge cs)).2).1 = (aggRun cs h).1 := congrArg Prod.fst hr
-  simp only [e1', hr']
+  have hpow : Batch.powB cs h = (Keccak.lane (aggN cs h.lambdaGrindNonce) 2,
+      ⟨aggN cs h.lambdaGrindNonce, [], some (challengeOf (aggN cs h.lambdaGrindNonce))⟩) :=
+    powStep_carried hc h.lambdaGrindNonce
+  have hsq : Batch.sqL cs.length ⟨aggN cs h.lambdaGrindNonce, [],
+      some (challengeOf (aggN cs h.lambdaGrindNonce))⟩ = ((aggLam cs h.lambdaGrindNonce).1,
+      ⟨aggN cs h.lambdaGrindNonce, [], none⟩) := rfl
+  have h1 : (aggLam cs h.lambdaGrindNonce).2.Carries ⟨aggN cs h.lambdaGrindNonce, [], none⟩ :=
+    ⟨rfl, rfl, rfl⟩
+  obtain ⟨sp', -, hr⟩ := aggBsRun_run h.sumcheckMessages
+    (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1) (aggLam cs h.lambdaGrindNonce).2 _ h1
+  rw [Batch.batchRounds_run _ _ rfl] at hr
+  have hr' : (Batch.rsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)
+      ⟨aggN cs h.lambdaGrindNonce, [], none⟩).1 = (aggRun cs h).1 := congrArg Prod.fst hr
+  rw [hpow]
+  simp only [hsq, hr']
 
 /-! ## Absorbing a block of four -/
 
@@ -101,12 +165,12 @@ theorem absorbAll_append (s : Fs) (xs ys : List E) (t : ℕ) :
 
 /-! ## Rows -/
 
-/-- `c1`, `c2` are the rate cells of the scalar `x` with tag `1`, once `c1` is canonical (as
-`fs_pack` writes them, `fsPackT_cells`). -/
-def PackOf (x c1 c2 : E) : Prop := IsCanonical128 c1 → (c1, c2) = Keccak.scalarCells x dsObserve
+/-- `c1`, `c2` are the rate cells of the scalar `x` with tag `1` (as `fs_pack` writes them,
+`fsPackT_cells`). -/
+def PackOf (x c1 c2 : E) : Prop := (c1, c2) = Keccak.scalarCells x dsObserve
 
 theorem packOf_of {σ : Val} {x : V} {b : ℕ} (h : FsPackOk σ x b dsObserve) :
-    PackOf (σ x) (σ (.n (b + 6))) (σ (.n (b + 8))) := fun hc => fsPackT_cells h hc
+    PackOf (σ x) (σ (.n b)) (σ (.n (b + 1))) := fsPackT_cells h
 
 /-- The row's eight rate cells, words `5 .. 12`. -/
 noncomputable def rowRate (rd : Reader) (p : E) : List E := (List.range 8).map fun c => memAt rd p (5 + c)
@@ -131,10 +195,9 @@ theorem list_eq_of_getD {l1 l2 : List E} {n : ℕ} (h1 : l1.length = n) (h2 : l2
     have := h c (by omega)
     rwa [List.getD_eq_getElem _ _ hc1, List.getD_eq_getElem _ _ hc2] at this
 
-/-- The rate cells of waiting scalars of tag `1` whose cells are the packed `cells`
-(canonical). -/
+/-- The rate cells of waiting scalars of tag `1` whose cells are the packed `cells`. -/
 theorem rateOf_of_packs {pend : List (E × ℕ)} {cells : List E}
-    (hc : cells.length = 8) (hcan : AllCanonical cells)
+    (hc : cells.length = 8)
     (h : ∀ k < 4, if h : k < pend.length then
       pend[k].2 = dsObserve ∧ PackOf pend[k].1 (cells.getD (2 * k) 0) (cells.getD (2 * k + 1) 0)
     else cells.getD (2 * k) 0 = 0 ∧ cells.getD (2 * k + 1) 0 = 0) :
@@ -148,7 +211,7 @@ theorem rateOf_of_packs {pend : List (E × ℕ)} {cells : List E}
   split at hk
   · rename_i hjl
     obtain ⟨ht, hp⟩ := hk
-    have e := hp (hcan _ (getD_mem (show 2 * j < cells.length by omega)))
+    have e := hp
     have e' := Keccak.rateCell_scalar pend j hjl
     rw [ht] at e'
     rcases hcj with rfl | rfl
@@ -163,12 +226,12 @@ theorem rowRate_getD (rd : Reader) (p : E) (c : ℕ) (hc : c < 8) :
     (rowRate rd p).getD c 0 = memAt rd p (5 + c) := by
   simp [rowRate, List.getD_eq_getElem?_getD, hc]
 
-/-- **A row's permutation**: a `KECCAK` reading the row's rate cells (canonical) and capacity
-cells permutes the sponge the row carries. -/
-theorem rowRel_perm {rd : Reader} {p : E} {s : Fs} (h : RowRel rd p s)
-    (hc : AllCanonical (rowRate rd p)) : s.perm = permOf (rowRate rd p ++ rowCap rd p) := by
+/-- **A row's permutation**: a `KECCAK` reading the row's rate cells and capacity cells permutes
+the sponge the row carries. -/
+theorem rowRel_perm {rd : Reader} {p : E} {s : Fs} (h : RowRel rd p s) :
+    s.perm = permOf (rowRate rd p ++ rowCap rd p) := by
   obtain ⟨hcap, -, hk⟩ := h
-  rw [Fs.perm, hcap, rateOf_of_packs (by simp [rowRate]) hc]
+  rw [Fs.perm, hcap, rateOf_of_packs (cells := rowRate rd p) (by simp [rowRate])]
   intro k hk4
   have := hk k hk4
   rw [rowRate_getD rd p (2 * k) (by omega), rowRate_getD rd p (2 * k + 1) (by omega),
@@ -178,15 +241,7 @@ theorem rowRel_perm {rd : Reader} {p : E} {s : Fs} (h : RowRel rd p s)
 /-! ## `fs_pack`'s atoms -/
 
 /-- `fsPackT`'s atoms. -/
-def fsPackA (x : V) (b t : ℕ) : List Atom :=
-  [.hint (.limbs x [.n b, .n (b + 1), .n (b + 2)]),
-    .const (.n (b + 3)) (word t 0 0),
-    .assertInK (.n (b + 2)) (.n (b + 3)),
-    .const (.n (b + 4)) (word 0 0 1),
-    .mul (.n (b + 5)) (.n (b + 4)) (.n (b + 2)),
-    .add (.n (b + 6)) x (.n (b + 5)),
-    .const (.n (b + 7)) (word 0 t 0),
-    .add (.n (b + 8)) (.n (b + 2)) (.n (b + 7))]
+def fsPackA (x : V) (b t : ℕ) : List Atom := [.copy (.n b) x, .const (.n (b + 1)) (word 0 t)]
 
 theorem fsPackT_eq_map (x : V) (b t : ℕ) : fsPackT x b t = (fsPackA x b t).map Stmt.atom := rfl
 
@@ -246,7 +301,7 @@ def wB (w : ℕ) : ℕ := (s.words.getD w default).2
 
 /-- **The chain's check**: every block a `KECCAK` atom of thirteen cells in the even layouts,
 every word packed by its `fs_pack` atoms, block `k + 1`'s inputs the packed cells of words
-`4k .. 4k + 3`, then block `k`'s capacity outputs. -/
+`4k .. 4k + 3` (`b`, `b + 1` from the word's base `b`), then block `k`'s capacity outputs. -/
 def check (atoms : List Atom) : Bool :=
   decide (1 ≤ s.nb) && decide (s.words.length = 4 * s.nb) &&
   s.ks.all (fun p => decide (p.1.length = 13) && decide (p.2.length = 13) &&
@@ -254,8 +309,8 @@ def check (atoms : List Atom) : Bool :=
   s.words.all (fun w => packIn atoms w.1 w.2) &&
   (List.range (s.nb - 1)).all fun k =>
     ((List.range 4).all fun j => decide ((s.ins (k + 1)).getD (2 * j) default =
-      .n (s.wB (4 * k + j) + 6)) && decide ((s.ins (k + 1)).getD (2 * j + 1) default =
-      .n (s.wB (4 * k + j) + 8))) &&
+      .n (s.wB (4 * k + j))) && decide ((s.ins (k + 1)).getD (2 * j + 1) default =
+      .n (s.wB (4 * k + j) + 1))) &&
     (List.range 5).all fun i => decide ((s.ins (k + 1)).getD (8 + i) default =
       (s.outs k).getD (8 + i) default)
 
@@ -277,8 +332,8 @@ theorem check_facts (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds r
     (∀ k < s.nb, (s.ins k).length = 13 ∧ (s.outs k).length = 13 ∧
       (Atom.keccak (s.ins k) (s.outs k) false false).Holds rd σ) ∧
     (∀ w < s.words.length, FsPackOk σ (s.wV w) (s.wB w) dsObserve) ∧
-    ∀ k, k + 1 < s.nb → (∀ j < 4, (s.ins (k + 1)).getD (2 * j) default = .n (s.wB (4 * k + j) + 6) ∧
-      (s.ins (k + 1)).getD (2 * j + 1) default = .n (s.wB (4 * k + j) + 8)) ∧
+    ∀ k, k + 1 < s.nb → (∀ j < 4, (s.ins (k + 1)).getD (2 * j) default = .n (s.wB (4 * k + j)) ∧
+      (s.ins (k + 1)).getD (2 * j + 1) default = .n (s.wB (4 * k + j) + 1)) ∧
       ∀ i < 5, (s.ins (k + 1)).getD (8 + i) default = (s.outs k).getD (8 + i) default := by
   simp only [check, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at h
   obtain ⟨⟨⟨⟨h1, h2⟩, hk⟩, hw⟩, hl⟩ := h
@@ -288,13 +343,13 @@ theorem check_facts (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds r
     exact ⟨a1, a2, keccak_sound a3 hat⟩
   · exact packIn_sound (hw _ (getD_mem (d := default) hw')) hat
 
-/-- A `KECCAK` atom's facts: its inputs canonical, its outputs the permutation's cells. -/
+/-- A `KECCAK` atom's facts: its outputs are the permutation's cells. -/
 theorem keccak_facts {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)
     (ho : outs.length = 13 := by first | rfl | simp) :
-    AllCanonical (ins.map σ) ∧ ∀ c (hc : c < 13), σ (outs.getD c default) =
+    ∀ c (hc : c < 13), σ (outs.getD c default) =
       cellsOfState (permOf (ins.map σ)) false ⟨c, hc⟩ := by
-  obtain ⟨-, -, hcan, hc⟩ := keccakA_perm hk ho
-  refine ⟨hcan, fun c hc13 => ?_⟩
+  obtain ⟨-, -, hc⟩ := keccakA_perm hk ho
+  intro c hc13
   rw [List.getD_eq_getElem outs default (by omega : c < outs.length)]
   exact outs_eq hc ⟨c, hc13⟩ (by rw [ho]; exact hc13)
 
@@ -310,10 +365,9 @@ theorem step_ins (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd �
     rateOf ((s.blk σ k).map (·, dsObserve)) ++ capOf (permOf ((s.ins k).map σ)) =
       (s.ins (k + 1)).map σ := by
   obtain ⟨-, hwl, hK, hP, hL⟩ := check_facts h hat
-  obtain ⟨hl1, ho1, hk1⟩ := hK (k + 1) hk
+  obtain ⟨hl1, -, -⟩ := hK (k + 1) hk
   obtain ⟨-, ho0, hk0⟩ := hK k (by omega)
-  obtain ⟨hcan, -⟩ := keccak_facts hk1 ho1
-  have hout := (keccak_facts hk0 ho0).2
+  have hout := keccak_facts hk0 ho0
   obtain ⟨hr, hc⟩ := hL k hk
   have hR : (rateOf ((s.blk σ k).map (·, dsObserve))).length = 8 := by simp [rateOf]
   refine list_eq_of_getD (n := 13) (by simp [hR, capOf]) (by simp [hl1]) fun c hc13 => ?_
@@ -332,11 +386,7 @@ theorem step_ins (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd �
     rw [hpj] at e'
     obtain ⟨hr0, hr1⟩ := hr j hj
     have hpk := hP (4 * k + j) (by omega)
-    have hcan0 : IsCanonical128 (σ (.n (s.wB (4 * k + j) + 6))) := by
-      have := hcan _ (getD_mem (d := 0)
-        (show 2 * j < ((s.ins (k + 1)).map σ).length by simp [hl1]; omega))
-      rwa [getD_map_val (s.ins (k + 1)) (2 * j) (by rw [hl1]; omega), hr0] at this
-    have e := fsPackT_cells hpk hcan0
+    have e := fsPackT_cells hpk
     rcases hcj with rfl | rfl
     · rw [hr0]; exact congrArg Prod.fst (e'.trans e.symm)
     · rw [hr1]; exact congrArg Prod.snd (e'.trans e.symm)
@@ -372,7 +422,7 @@ theorem chain (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) 
       rfl
   obtain ⟨n, hn⟩ : ∃ n, s.nb = n + 1 := ⟨s.nb - 1, by omega⟩
   obtain ⟨ip, iperm⟩ := key n (by omega)
-  have hout := (keccak_facts (hK n (by omega)).2.2 (hK n (by omega)).2.1).2
+  have hout := keccak_facts (hK n (by omega)).2.2 (hK n (by omega)).2.1
   have hcap : (List.range 5).map (fun i => σ ((s.outs n).getD (8 + i) default)) =
       capOf (permOf ((s.ins n).map σ)) := by
     rw [show (List.range 5).map (fun i => σ ((s.outs n).getD (8 + i) default)) =

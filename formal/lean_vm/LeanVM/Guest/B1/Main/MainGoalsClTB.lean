@@ -79,10 +79,8 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
     (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.xmss
-  have hc := mf_canon_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_canon c.1.root c.1.parameter c.2) s.claims.xmss
   have key := claim_list_digest_completeAtTB fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 0) hn hl hc
+    (eP := mfB fs fp seed s w 0) hn hl
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 0) (by omega)
       rw [e] at h1
@@ -117,10 +115,8 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
     rw [← List.flatMap_append]; rfl
   have hl := mf_length_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
     (fun c => mf_claimCells_length c.1.publicSeed c.1.root c.2) s.claims.sphincs
-  have hc := mf_canon_flatMap (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2)
-    (fun c => mf_claimCells_canon c.1.publicSeed c.1.root c.2) s.claims.sphincs
   have key := claim_list_digest_completeAtTB fs cert (Lin := hLmain fs fp seed s w)
-    (eP := mfB fs fp seed s w 1) hn hl hc
+    (eP := mfB fs fp seed s w 1) hn hl
     (fun rd h => by
       have h1 := mf_reads fs fp seed s w h (i := 1) (by omega)
       rw [e] at h1

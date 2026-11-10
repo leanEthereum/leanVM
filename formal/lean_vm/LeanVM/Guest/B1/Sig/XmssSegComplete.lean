@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader}
 /-- A layer after its digest. -/
 def sCore (layer b : Nat) : List Stmt :=
   xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
-    ([cst (sCw layer b).2.1 (word (tw 2) 0 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
+    ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
       (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))
 
 theorem xSeg_split : xSeg = sPrologue ++ (sDigest0 88 ++ (sCore 0 88 ++ (sDigest1 62605 (.n 50364) ++
@@ -78,9 +78,8 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   -- the bottom layer's digest
   refine Completes.append (m := 104) (by norm_num) (by norm_num) sDigest0_nb
     (sDigest0_complete (C := C) (rd := rd) σ1 (rho := cellOf128 part0.randomizer)
-      (c := cellOf128 (m.extractLsb' 0 128)) (d := cellOf128 (m.extractLsb' 128 128)) (isCanonical128_cellOf128 _)
-      (isCanonical128_cellOf128 _) (isCanonical128_cellOf128 _) (by rw [hs1]; exact hldLo) (by rw [hs1]; exact hldHi)
-      (by rw [hP1]; exact isCanonical128_cellOf128 _) (by rw [hhis1 0 (by norm_num)]; exact canon_eOfNat _)).withHolds
+      (c := cellOf128 (m.extractLsb' 0 128)) (d := cellOf128 (m.extractLsb' 128 128))
+      (by rw [hs1]; exact hldLo) (by rw [hs1]; exact hldHi)).withHolds
     (fun σ2 he2 ⟨⟨h88, h91, h92⟩, hh2⟩ => ?_)
   obtain ⟨-, -, hpad2, h90, h103⟩ := sDigest0_sound (atomsHold_of_holdsList (sDigest0_atoms 88) hh2)
   have t2 : ∀ k < 88, σ2 (.n k) = σ1 (.n k) := fun k hk => he2.apply (Or.inl hk)
@@ -117,20 +116,17 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
       [cellOf128 part0.randomizer])).1 := by
     rw [h103, hP2, h88]; rfl
   rw [← hD0] at hdec0'
-  obtain ⟨hN0, hs0⟩ := digest_digits (by rw [hD0]; exact canon_hcell _) hdec0'
+  obtain ⟨hN0, hs0⟩ := digest_digits hdec0'
   -- the bottom layer
   obtain ⟨hnb0, -, hc0⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 0) (b := 88) (by norm_num)
-    (by decide) hm σ2 hpad2 (by rw [hP2]; exact isCanonical128_cellOf128 _)
-    (fun i hi => by rw [htag2 i hi]; exact canon_eOfNat _) hpow2 hL hhis2 hwin2 ⟨67, by decide, rfl⟩
-    (by show IsCanonical128 (σ2 (sHis 0)); rw [hidx0]; exact canon_eOfNat _) ⟨103, by decide, rfl⟩ hN0 hs0
-    (xVals part0) (xVals_canon _) (xSibs part0) (fun l _ => xSibs_canon _ l)
+    (by decide) hm σ2 hpad2 hpow2 hL hhis2 hwin2 ⟨67, by decide, rfl⟩ ⟨103, by decide, rfl⟩ hN0 hs0
+    (xVals part0) (xSibs part0)
   have e0 : (sWin1 0 88).2.1 = 62605 := congrArg (·.1) sWin1_0
   have e0' : (sWin1 0 88).2.2 = 50364 := congrArg (·.2) sWin1_0
   rw [show sCore 0 88 = _ from rfl]
   rw [e0] at hnb0 hc0
   refine Completes.append (m := 62605) (by norm_num) (by norm_num) hnb0 hc0.withHolds
-    (fun σ3 he3 ⟨⟨hc3, hk3⟩, hh3⟩ => ?_)
-  rw [e0'] at hc3
+    (fun σ3 he3 ⟨hk3, hh3⟩ => ?_)
   have t3 : ∀ k < 104, σ3 (.n k) = σ2 (.n k) := fun k hk => he3.apply (Or.inl hk)
   have hpad3 : PadOK σ3 sLxPad := hpad2.congr (b := 104) (by simp [sLxPad]) he3.agree
   have hP3 : σ3 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t3 66 (by norm_num)]; exact hP2
@@ -163,9 +159,8 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   -- the top layer's digest
   have hroot3 : NBv 62605 (.n 50364) := ⟨50364, by norm_num, rfl⟩
   refine Completes.append (m := 62605 + 5 + 2) (by norm_num) (by norm_num) (sDigest1_nb (by norm_num) hroot3)
-    (sDigest1_complete (C := C) (rd := rd) σ3 (rho := cellOf128 part1.randomizer) (by norm_num) hroot3 hc3
-      (isCanonical128_cellOf128 _) (by rw [hP3]; exact isCanonical128_cellOf128 _)
-      (by rw [hhis3 2 (by norm_num)]; exact canon_eOfNat _) hpad3).withHolds
+    (sDigest1_complete (C := C) (rd := rd) σ3 (rho := cellOf128 part1.randomizer) (by norm_num) hroot3
+      hpad3).withHolds
     (fun σ4 he4 ⟨h4r, hh4⟩ => ?_)
   have t4 : ∀ k < 62605, σ4 (.n k) = σ3 (.n k) := fun k hk => he4.apply (Or.inl hk)
   have hpad4 : PadOK σ4 sLxPad := hpad3.congr (b := 62605) (by simp [sLxPad]) he4.agree
@@ -205,20 +200,17 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
       [σ4 (.n 50364)] ++ [cellOf128 part1.randomizer])).1 := by
     rw [e46, hP4, h4r]; rfl
   rw [← hD1] at hdec1'
-  obtain ⟨hN1, hs1'⟩ := digest_digits (by rw [hD1]; exact canon_hcell _) hdec1'
+  obtain ⟨hN1, hs1'⟩ := digest_digits hdec1'
   -- the top layer
   obtain ⟨hnb1, -, hc1⟩ := sCore_complete (C := C) (rd := rd) hW (layer := 1) (b := 62605) (by norm_num)
-    (by decide) hm σ4 hpad4 (by rw [hP4]; exact isCanonical128_cellOf128 _)
-    (fun i hi => by rw [htag4 i hi]; exact canon_eOfNat _) hpow4 hL hhis4 hwin4 ⟨62606, by decide, rfl⟩
-    (by show IsCanonical128 (σ4 (.n (62605 + 1))); rw [hidx1]; exact canon_eOfNat _) ⟨62611, by decide, rfl⟩
-    hN1 hs1' (xVals part1) (xVals_canon _) (xSibs part1) (fun l _ => xSibs_canon _ l)
+    (by decide) hm σ4 hpad4 hpow4 hL hhis4 hwin4 ⟨62606, by decide, rfl⟩ ⟨62611, by decide, rfl⟩
+    hN1 hs1' (xVals part1) (xSibs part1)
   have e1 : (sWin1 1 62605).2.1 = 120763 := congrArg (·.1) sWin1_1
   have e1' : (sWin1 1 62605).2.2 = 112857 := congrArg (·.2) sWin1_1
   rw [show sCore 1 62605 = _ from rfl]
   rw [e1] at hnb1 hc1
   refine Completes.append (m := 120763) (by norm_num) (by norm_num) hnb1 hc1.withHolds
-    (fun σ5 he5 ⟨⟨hc5, hk5⟩, hh5⟩ => ?_)
-  rw [e1'] at hc5
+    (fun σ5 he5 ⟨hk5, hh5⟩ => ?_)
   have t5 : ∀ k < 62612, σ5 (.n k) = σ4 (.n k) := fun k hk => he5.apply (Or.inl hk)
   have hpad5 : PadOK σ5 sLxPad := hpad4.congr (b := 62612) (by simp [sLxPad]) he5.agree
   have hP5 : σ5 sLxPP = cellOf128 pk.parameter := by rw [show sLxPP = V.n 66 from rfl, t5 66 (by norm_num)]; exact hP4
@@ -249,7 +241,7 @@ theorem verify_lean_xmss_complete_holds_of (hW : LxWindowsC) : verify_lean_xmss_
   rw [hP5, hxpp, hpart1, e1'] at r1'
   have hr1 : xv (σ5 (.n 112857)) = pk.root := Option.some.inj (r1'.symm.trans (by rw [← hli]; exact h1))
   have hR5 : σ5 (.n 112857) = cellOf128 pk.root :=
-    cellVal_inj hc5 (isCanonical128_cellOf128 _) (by
+    cellVal_inj (by
       show xv (σ5 (.n 112857)) = _
       rw [hr1]; exact (cellVal_cellOf128 _).symm)
   -- the key's root

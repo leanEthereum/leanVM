@@ -67,7 +67,7 @@ theorem otsLeaf_of_valid {P : PublicParameter} {layer : Layer} {tree : TreeIndex
 /-- A path node's address cell is the statement's (type `TREE`, no key pair). -/
 theorem pathAdr_eq {h i : Nat} (hh : h < 256) (hi : i < 2 ^ 16) : pathAdr h i = adrsCell1 2 0 h i := by
   have ha : a1Hi h i < 2 ^ 64 := by unfold a1Hi; omega
-  rw [pathAdr, word_eq192 (by norm_num) ha, adrsCell1_eq]
+  rw [pathAdr, word_eq128 (by norm_num), adrsCell1_eq]
   congr 1
   simp only [adrsNat1, beWordAt, a1Hi]
   omega

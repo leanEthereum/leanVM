@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.Sig.CompleteBasic
 `aOuts`, `aReads`: the values an atom defines and reads (a constant, a sum, a product, a
 copy, a `KECCAK`, a witness hint; a hint defines its values by keeping them). `fwd`: the atoms
 evaluated in order. `SSA`: each atom defines values it does not read and that no earlier atom
-names. `fwd_holds`: in single-assignment form, the evaluated block holds, its `KECCAK`s on
-canonical inputs; `fwd_of_not_mem`: values no atom defines keep their words.
+names. `fwd_holds`: in single-assignment form, the evaluated block holds; `fwd_of_not_mem`: values no atom defines keep their words.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -106,11 +105,6 @@ def SSA : List Stmt → Prop
   | .atom a :: ss => DefOK a ∧ (∀ v ∈ aOuts a, v ∉ aReads a) ∧ (∀ v ∈ outsList ss, v ∉ a.vals) ∧ SSA ss
   | _ :: _ => False
 
-/-- The `KECCAK`s of a block read canonical inputs. -/
-def KCanon (σ : Val) (ss : List Stmt) : Prop :=
-  ∀ ins outs inOdd outOdd, Stmt.atom (.keccak ins outs inOdd outOdd) ∈ ss →
-    ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c)
-
 theorem fwdA_of_not_mem (σ : Val) (a : Atom) {v : V} (hv : v ∉ aOuts a) : fwdA σ a v = σ v := by
   cases a with
   | const d c => exact Function.update_of_ne (by simpa [aOuts] using hv) _ _
@@ -130,9 +124,7 @@ theorem fwd_of_not_mem : ∀ (ss : List Stmt) (σ : Val) {v : V}, v ∉ outsList
   | .callIf .. :: ss, σ, _, hv | .dispatch .. :: ss, σ, _, hv | .ret _ :: ss, σ, _, hv =>
       fwd_of_not_mem ss σ hv
 
-theorem fwdA_holds {σ : Val} {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a, v ∉ aReads a)
-    (hc : ∀ ins outs inOdd outOdd, a = .keccak ins outs inOdd outOdd →
-      ∀ c : Fin 13, IsCanonical128 (cells13 (ins.map σ) c)) :
+theorem fwdA_holds {σ : Val} {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a, v ∉ aReads a) :
     a.Holds rd (fwdA σ a) := by
   cases a
   case const d c => simp [fwdA, Atom.Holds]
@@ -159,7 +151,7 @@ theorem fwdA_holds {σ : Val} {a : Atom} (hd : DefOK a) (hr : ∀ v ∈ aOuts a,
       show KeccakCellsRelation (cells13 (ins.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) inOdd
         (cells13 (outs.map (updL σ outs (kOut (ins.map σ) inOdd outOdd)))) outOdd oc
       rw [hins]
-      refine ⟨hc ins outs inOdd outOdd rfl, fun c hco => ?_⟩
+      intro c hco
       simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map]
       rw [List.getElem?_eq_getElem (by omega), Option.map_some, Option.getD_some,
         updL_at σ outs _ hn c (by omega), kOut]
@@ -185,31 +177,21 @@ theorem outs_sub_vals (a : Atom) : ∀ v ∈ aOuts a, v ∈ a.vals := by
       all_goals simp [aOuts] at hv
   all_goals simp_all [aOuts, Atom.vals]
 
-/-- **A block in single-assignment form, evaluated, holds**, its `KECCAK`s on canonical inputs. -/
-theorem fwd_holds : ∀ (ss : List Stmt) (σ : Val), SSA ss → KCanon (fwd ss σ) ss →
-    AtomsHold rd (fwd ss σ) ss
-  | [], _, _, _ => fun _ h => absurd h (by simp)
-  | .atom a :: ss, σ, h, hk => by
+/-- **A block in single-assignment form, evaluated, holds.** -/
+theorem fwd_holds : ∀ (ss : List Stmt) (σ : Val), SSA ss → AtomsHold rd (fwd ss σ) ss
+  | [], _, _ => fun _ h => absurd h (by simp)
+  | .atom a :: ss, σ, h => by
       obtain ⟨hd, hr, hl, hs⟩ := h
       have hag : ∀ v ∈ a.vals, fwd ss (fwdA σ a) v = fwdA σ a v := fun v hv =>
         fwd_of_not_mem ss _ fun h => hl v h hv
-      have ih := fwd_holds ss (fwdA σ a) hs (fun ins outs i o hm => hk ins outs i o (List.mem_cons_of_mem _ hm))
+      have ih := fwd_holds ss (fwdA σ a) hs
       intro b hb
       rcases List.mem_cons.mp hb with e | hb
       · cases e
-        have h1 : a.Holds rd (fwdA σ a) := fwdA_holds hd hr (fun ins outs i o e c => by
-          subst e
-          have := hk ins outs i o (List.mem_cons_self ..) c
-          simp only [fwd] at this
-          rw [show (ins.map (fwd ss (fwdA σ (.keccak ins outs i o)))) = ins.map σ from
-            List.map_congr_left fun v hv => by
-              rw [hag v (by simp [Atom.vals, hv])]
-              exact fwdA_of_not_mem σ _ fun h => hr v h hv] at this
-          exact this)
-        exact (atom_congr a fun v hv => (hag v hv).symm).mp h1
+        exact (atom_congr a fun v hv => (hag v hv).symm).mp (fwdA_holds hd hr)
       · exact ih b hb
-  | .ite .. :: _, _, h, _ | .match_ .. :: _, _, h, _ | .call .. :: _, _, h, _
-  | .callIf .. :: _, _, h, _ | .dispatch .. :: _, _, h, _ | .ret _ :: _, _, h, _ => h.elim
+  | .ite .. :: _, _, h | .match_ .. :: _, _, h | .call .. :: _, _, h
+  | .callIf .. :: _, _, h | .dispatch .. :: _, _, h | .ret _ :: _, _, h => h.elim
 
 theorem outsList_append : ∀ (xs ys : List Stmt), outsList (xs ++ ys) = outsList xs ++ outsList ys
   | [], _ => rfl
@@ -239,36 +221,17 @@ theorem SSA.atoms : ∀ {ss : List Stmt}, SSA ss → atomsOnly ss = true
 
 /-- **A block in single-assignment form completes**, defining values in `lo ..< hi`. -/
 theorem fwd_completes {C : CallRel} {lo hi : Nat} {ss : List Stmt} (h : SSA ss)
-    (hout : ∀ v ∈ outsList ss, ∃ k, lo ≤ k ∧ k < hi ∧ v = .n k) (σ : Val)
-    (hk : KCanon (fwd ss σ) ss) :
+    (hout : ∀ v ∈ outsList ss, ∃ k, lo ≤ k ∧ k < hi ∧ v = .n k) (σ : Val) :
     Completes C rd lo hi ss σ (fun σ' => σ' = fwd ss σ) :=
   completes_atoms h.atoms (fun v hv => fwd_of_not_mem ss σ fun hm => by
       obtain ⟨k, h1, h2, rfl⟩ := hout v hm
-      exact hv k h1 h2 rfl) rfl (fwd_holds ss σ h hk)
+      exact hv k h1 h2 rfl) rfl (fwd_holds ss σ h)
 
 theorem fwd_append : ∀ (xs ys : List Stmt) (σ : Val), fwd (xs ++ ys) σ = fwd ys (fwd xs σ)
   | [], _, _ => rfl
   | .atom a :: xs, ys, σ => fwd_append xs ys (fwdA σ a)
   | .ite .. :: xs, ys, σ | .match_ .. :: xs, ys, σ | .call .. :: xs, ys, σ | .callIf .. :: xs, ys, σ
   | .dispatch .. :: xs, ys, σ | .ret _ :: xs, ys, σ => fwd_append xs ys σ
-
-theorem keccak_ins_sub {ss : List Stmt} {ins outs : List V} {i o : Bool}
-    (h : Stmt.atom (.keccak ins outs i o) ∈ ss) : ∀ v ∈ ins, v ∈ Stmt.valsList ss := by
-  intro v hv
-  exact mem_valsList_of_mem h (by simp [Stmt.vals, Atom.vals, hv])
-
-/-- `KECCAK` inputs in sequence: a later block's definitions miss an earlier block's values. -/
-theorem KCanon.append {xs ys : List Stmt} {σ : Val} (h1 : KCanon (fwd xs σ) xs)
-    (h2 : KCanon (fwd ys (fwd xs σ)) ys) (hd : ∀ v ∈ outsList ys, v ∉ Stmt.valsList xs) :
-    KCanon (fwd (xs ++ ys) σ) (xs ++ ys) := by
-  rw [fwd_append]
-  intro ins outs i o hm c
-  rcases List.mem_append.mp hm with hm | hm
-  · have e : ins.map (fwd ys (fwd xs σ)) = ins.map (fwd xs σ) :=
-      List.map_congr_left fun v hv => fwd_of_not_mem ys _ fun h => hd v h (keccak_ins_sub hm v hv)
-    rw [e]
-    exact h1 ins outs i o hm c
-  · exact h2 ins outs i o hm c
 
 theorem SSA.disj : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → ∀ v ∈ outsList ys, v ∉ Stmt.valsList xs
   | [], _, _, _, _, h => by simp at h

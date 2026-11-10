@@ -101,13 +101,9 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRelation bytecode seed s w)
     simp [DeferredClaim.cells, h1, bytecodeVars]
   refine statement_completeAtB fs cert _ hT fun rd h => ?_
   have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
-  refine ⟨s.deferredClaim.cells, hlen, h9, ?_, ?_⟩
-  · intro c hc
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    all_goals first | exact (digestScalars_canonical _).1 | exact (digestScalars_canonical _).2
-  · exact congrArg digestCells (statementDigest_of_parts (digestBytes_eq_cells _)
-      (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
+  exact ⟨s.deferredClaim.cells, hlen, h9, congrArg digestCells (statementDigest_of_parts
+    (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _)
+    (digestBytes_eq_cells _) rfl)⟩
 
 /-- **`__loop2` on an honest run.** -/
 theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)

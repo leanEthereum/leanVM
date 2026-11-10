@@ -116,7 +116,7 @@ theorem levels_root_of {tree c0 c1 : E} {k L : ℕ} (hk : k < 11) (hL : L ≤ 10
     rw [← gen_pow_eq_ofK] at hkL
     exact gen_pow_inj (by omega) (by omega) hkL
   subst hkl
-  obtain ⟨leaves, hl, hr, -, hrets⟩ := da_levels_holds k (by omega) rd _ _ hrel
+  obtain ⟨leaves, hl, hr, hrets⟩ := da_levels_holds k (by omega) rd _ _ hrel
   have := leaves_of_reads (f := fun i => digestHalves (g i)) hl hr hf
   simp only [List.cons.injEq, and_true] at hrets
   rw [hrets.1, hrets.2, this, cellRoot_mRoot]
@@ -141,12 +141,12 @@ theorem guardK_sound {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V
   · exact absurd ha (by simp)
 
 set_option maxRecDepth 100000 in
-theorem word_g64 : word 27 0 0 = gen ^ 64 := by
+theorem word_g64 : word 27 0 = gen ^ 64 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
 set_option maxRecDepth 100000 in
-theorem word_g128 : word 325 0 0 = gen ^ 128 := by
+theorem word_g128 : word 325 0 = gen ^ 128 := by
   rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 

@@ -76,21 +76,23 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
   {w : NodeWitness} {bytecode : List K}
 
 /-- **`main`'s non-static callees on the honest run within their bounds, by trees of honest
-shape.** -/
+shape**, given `batch_sumcheck__L23`'s meaning and `grind_check__L2`'s completeness. -/
 theorem mainGoalsTB_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ}
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
-    (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK)
+    (hrf : Lift.RunsFit fs cert) (hS : MainStatics fs SB SK) (hBS : agg_batch_sumcheck_Spec)
+    (hGr : CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     MainGoalsTB fs cert fp seed s w (mainPredsH s w (hDvNH w) Pvs) (mainBsH fs SB SK Bv s w) :=
   ⟨mainGoalClXTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalClSTB fs cert fp seed s w hl hS.ls hS.l15 hS.l16 hS.cl,
     mainGoalDvTB fs cert fp hr hrf hS.dv,
-    mainGoalAgTB fs fp cert SB SK hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
+    mainGoalAgTB fs fp cert SB SK hBS hGr hS.l25 hS.l26 hS.l27 hS.bs hbl hr hl,
     mainGoalL5TB fs cert SB hS.main.st hbl hr hl hV (childListGoalsTB_honest cert hl hS.ls)⟩
 
 /-- **`main`'s completeness on the honest run within its words**: for `NodeRelation` within `Limits`
 and a bytecode of `2^23` words, from the signature schemes' completeness (B1-e), the frame runs'
-certificate facts, the static bounds (`MainStatics`) and child `c`'s `verify_sub` within `Bv c` by a
+certificate facts, the static bounds (`MainStatics`), `batch_sumcheck__L23`'s meaning and
+`grind_check__L2`'s completeness within its bound, and child `c`'s `verify_sub` within `Bv c` by a
 tree satisfying `Pvs c` (B1-d): a size `n ≤ Bmain` and a layout `L` within `[fp, fp + n)`, above
 `main`'s frame, pairwise disjoint, containing `main`'s honest words; on every memory holding `L`
 and the statement's digest at words `0`, `1`, `main` holds at `fp` by its node at its honest
@@ -100,7 +102,9 @@ theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Pro
     (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs) (hrf : Lift.RunsFit fs cert)
-    (hS : MainStatics fs SB SK) (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
+    (hS : MainStatics fs SB SK) (hBS : agg_batch_sumcheck_Spec)
+    (hGr : CompleteRelB fs cert 16 "grind_check__L2" aggGrindPre (SB "grind_check__L2"))
+    (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv) :
     ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bmain fs SB SK Bv fp seed s w ∧
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
@@ -114,7 +118,7 @@ theorem main_honest_budgetB {SB SK : String → ℕ} {Pvs : ℕ → Tree → Pro
                 ((mainPredsH s w (hDvNH w) Pvs).withTotal fs (mainBsH fs SB SK Bv s w))) ks ∧
             calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
   main_honest_relAtInTB hbl hr hl (mainStaticGoalsB_of hbl hr hl hxc hsc hS.main)
-    (mainGoalsTB_honest hbl hr hl hrf hS hV).withTotal
+    (mainGoalsTB_honest hbl hr hl hrf hS hBS hGr hV).withTotal
 
 end
 end LeanVM.Guest.B1.Main

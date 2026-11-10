@@ -213,21 +213,22 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
   sphincs : ∀ p, C "verify_sig_lean_sphincs" [p, bb0] [] →
     Sig.ByteBits rd bb0 → Sig.SphincsOut rd p (wS p)
   /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim,
-  the root's cells and the challenge's rate cells (`Da.MeaningDaVerify`). -/
+  the root's cells and the challenge (`Da.MeaningDaVerify`). -/
   da : ∀ gsq rets, C "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
-    ∃ (root : Digest) (z c2 : E), (wD [gsq] rets).Opens root z ∧ IsInK c2 ∧
-      rets = digestCells root ++ [z + y * y * c2, c2 + y * eOfNat 0]
+    ∃ (root : Digest) (z : E), (wD [gsq] rets).Opens root z ∧ rets = digestCells root ++ [z]
   /-- A child proof's check with the exponent table: the proof `wV args`. -/
   sub : ∀ pi0 pi1 s0 s1 gsq out,
     C "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq →
     VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] (wV [pi0, pi1, s0, s1, gsq, out])
-  /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the hints `wA args`. -/
-  agg : ∀ ncg cpi cfresh ccarried dst, C "aggregate_claims"
-    [ncg, cpi, cfresh, ccarried, dst] [] → ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
+  /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`,
+  with the hints `wA args`. -/
+  agg : ∀ ncg cpi cfresh ccarried dst tabs, C "aggregate_claims"
+    [ncg, cpi, cfresh, ccarried, dst, tabs] [] → WinTabs rd tabs → ∀ m, 1 ≤ m → m ≤ 16 →
+      ncg = gen ^ m →
       ∃ out : DeferredClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs (wA [ncg, cpi, cfresh, ccarried, dst]) = some out
+          batch cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out
 
 /-! ## The iterations -/
 

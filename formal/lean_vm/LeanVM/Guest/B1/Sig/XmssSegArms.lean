@@ -78,7 +78,7 @@ theorem armM_sound {W : WotsT} {f : Nat → Nat → E → E} (hs : StepSound rd 
       simpa [copyS, Atom.Holds] using this
   · have hz : fold = true → σ (.n b) = 0 := by
       intro hf
-      have hc : AtomsHold rd σ [cst b (word 0 0 0)] := by
+      have hc : AtomsHold rd σ [cst b (word 0 0)] := by
         refine h.sub fun x hx => ?_
         unfold armM
         simp only [List.mem_singleton] at hx

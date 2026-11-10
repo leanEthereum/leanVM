@@ -11,16 +11,17 @@ public import LeanVM.Guest.B1.Bits.Meaning
 /-!
 # `exponent_tables`
 
-`exponent_tables()` fills a fresh `HeapBuf(2284)` with constants the compiler folds: `2284`
-pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and the groups' sides
-`178 .. 235`, then the nibble shares `34 .. 177`, then the bit windows `236 .. 2283` (`etOff`).
-The first `236` words (`etWordsN`, by offset) are the honest values in `K`, decided by the kernel
-over `etListK`, which computes them as the source does, one product a word: `squares`, `nibRuns`
-(`powRun` sixteen at a time), `powRun (g^247)`; window `n`'s word is `E(n)`.
+`exponent_tables()` (`lean_ethereum.py`) fills a fresh `HeapBuf(236 + 2^11)` with constants the
+compiler folds: `2284` pairs `const`, `load`, the squares `0 .. 33` first, then the rank keys and
+the groups' sides `178 .. 235`, then the nibble shares `34 .. 177`, then the bit windows
+`236 + n` (`etOff`). The first `236` words (`etWordsN`, by offset) are the honest values in `K`,
+decided by the kernel over `etListK`, which computes them as the source does, one product a word:
+`squares`, `nibRuns` (`powRun` sixteen at a time), `powRun (g^247)`; window `n`'s word is `n`.
 
 * `exponent_tables_holds`: its core IR is its meaning (`ExpTables` and `ExpWinTab`,
   `Guest/ExpTables.lean`).
-* `expTables_iff_words`: `ExpTables` is the `236` words `expTableWords` at the pointer.
+* `expTables_iff_words`: `ExpTables` is the `236` words `expTableWords` at the pointer;
+  `expTabAll_iff`: with `ExpWinTab`, the `2284` words `expTabAllWords`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -111,7 +112,7 @@ def groupSide (gi : ℕ) : ℕ := if gi < 9 then 0 else if gi < 18 then 1 else 2
 
 /-- The table's honest words in `K`, by offset, computed as the source does. -/
 def etListK : List K :=
-  squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 247) 34 1 ++
+  squares 34 g ++ nibRuns g 9 ++ powRun (g ^ rankStride) 34 1 ++
     (List.range 24).map fun gi ↦ K.ofBits (groupSide gi)
 
 /-- The table's words, by offset, as the compiler folds them. -/
@@ -121,8 +122,8 @@ def etWordsN : List ℕ := [
   0x1aad43011ba1e5, 0x11cefef6be466, 0x5455145e48670f13, 0xbaf1bebe1ae4ad02, 0xb0ef530df44bb042,
   0xe2170b43ee771735, 0x48380fd207a3b527, 0xb6d535c542116f62, 0xa6df6baa62f965f5,
   0xb9df3947cea0ffe7, 0xe1882807248fe588, 0x180d86953ed141c6, 0x1894566cd1db8abf,
-  0x4cc78bf4ea999e25, 0xe333308087e402ba, 0x5c62236777028505, 0xb964dc682c67ddcd, 1, 2, 4, 8, 0x10,
-  0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 1, 0x10000,
+  0x4cc78bf4ea999e25, 0xe333308087e402ba, 0x5c62236777028505, 0xb964dc682c67ddcd, 1, 2, 4, 8,
+  0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 1, 0x10000,
   0x100000000, 0x1000000000000, 0x1b, 0x1b0000, 0x1b00000000, 0x1b000000000000, 0x145, 0x1450000,
   0x14500000000, 0x145000000000000, 0x1db7, 0x1db70000, 0x1db700000000, 0x1db7000000000000, 1,
   0x11011, 0x101000101, 0x1110110110111, 0x100000001001a, 0x10110001100aa1a1, 0x100011a1b1a011a,
@@ -154,10 +155,11 @@ def etWordsN : List ℕ := [
   0x6e39776e39757769, 0x79b6db6db7c71c75, 0x88aa000086d30000, 0x145105475b6df740,
   0xeaa2293ff4e2c3aa, 0x58259658b62aab0d, 0x388aa0e74dea9d0f, 0xde5d64cbd3d3cf46,
   0x63c486234c0eabc1, 0x84c8e6ce6ce6ce61, 0xdd0720000000000, 0x86d2fba90000005a,
-  0x689ff7689c802951, 0xbf4bf4a54bfa1c7, 0x72000dd0da24f1f, 0x4fbaf8683ade3402, 0x15f1fde3cc203cb2,
-  0xe8d469e99e98ad8a, 0xa572f800a82454, 0x619792eeed561d92, 0x8b49975fc1a23c89, 0x3d18fd6f8de266e2,
-  0x824f172f5589a535, 0xcc2071e285993c6d, 0x8ebc6de10539d53c, 0xd5e722d34d8f6347,
-  0x38edb5bb58000002, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
+  0x689ff7689c802951, 0xbf4bf4a54bfa1c7, 0x72000dd0da24f1f, 0x4fbaf8683ade3402,
+  0x15f1fde3cc203cb2, 0xe8d469e99e98ad8a, 0xa572f800a82454, 0x619792eeed561d92,
+  0x8b49975fc1a23c89, 0x3d18fd6f8de266e2, 0x824f172f5589a535, 0xcc2071e285993c6d,
+  0x8ebc6de10539d53c, 0xd5e722d34d8f6347, 0x38edb5bb58000002, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
 
 theorem length_etWordsN : etWordsN.length = 236 := by decide +kernel
 
@@ -186,7 +188,8 @@ theorem getElem_idx {α : Type} {l : List α} {i j : ℕ} (h : i = j) (hi : i < 
 theorem length_etA : (squares 34 g ++ nibRuns g 9).length = 178 := by
   simp [length_squares, length_nibRuns]
 
-theorem length_etB : (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 247) 34 1).length = 212 := by
+theorem length_etB :
+    (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ rankStride) 34 1).length = 212 := by
   simp [length_squares, length_nibRuns, length_powRun]
 
 theorem etListK_sq (j : ℕ) (hj : j < 34) : etListK[j]'(by rw [length_etListK]; omega) =
@@ -207,7 +210,7 @@ theorem etListK_nib (j u : ℕ) (hj : j < 9) (hu : u < 16) :
   exact getElem_nibRuns g _ j u hj hu _
 
 theorem etListK_rank (k : ℕ) (hk : k < 34) :
-    etListK[178 + k]'(by rw [length_etListK]; omega) = g ^ (k * 247) := by
+    etListK[178 + k]'(by rw [length_etListK]; omega) = g ^ (k * rankStride) := by
   simp only [etListK]
   rw [List.getElem_append_left (by rw [length_etB]; omega),
     List.getElem_append_right (by rw [length_etA]; omega),
@@ -219,8 +222,9 @@ theorem etListK_side (gi : ℕ) (hg : gi < 24) :
     etListK[212 + gi]'(by rw [length_etListK]; omega) = K.ofBits (groupSide gi) := by
   simp only [etListK]
   rw [List.getElem_append_right (by rw [length_etB]; omega),
-    getElem_idx (show 212 + gi - (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ 247) 34 1).length =
-      gi by rw [length_etB]; omega), List.getElem_map, List.getElem_range]
+    getElem_idx (show 212 + gi -
+      (squares 34 g ++ nibRuns g 9 ++ powRun (g ^ rankStride) 34 1).length = gi by
+        rw [length_etB]; omega), List.getElem_map, List.getElem_range]
 
 /-- **The exponent table is its `236` words.** -/
 theorem expTables_iff_words (rd : Reader) (q : E) :
@@ -261,14 +265,46 @@ theorem expTables_iff_words (rd : Reader) (q : E) :
       unfold groupSide
       interval_cases s <;> simp [sideGroupStart] at h1 h2 <;> split_ifs <;> omega
 
+/-! ## The bit windows -/
+
+/-- The table's honest word at offset `o`: `expTableWords` below `236`, then window `o - 236`. -/
+def expTabWord (o : ℕ) : E := if o < 236 then expTableWords.getD o 0 else eOfNat (o - 236)
+
+/-- The whole table's `2284` honest words. -/
+def expTabAllWords : List E := (List.range 2284).map expTabWord
+
+theorem length_expTabAllWords : expTabAllWords.length = 2284 := by simp [expTabAllWords]
+
+theorem expTabAllWords_getD (o : ℕ) :
+    expTabAllWords.getD o 0 = if o < 2284 then expTabWord o else 0 := by
+  by_cases h : o < 2284 <;> simp [expTabAllWords, h]
+
+/-- **The exponent table and its bit windows are its `2284` words.** -/
+theorem expTabAll_iff (rd : Reader) (q : E) :
+    ExpTables rd q ∧ ExpWinTab rd q ↔ ∀ o < 2284, LoadHolds rd q o (expTabWord o) := by
+  rw [expTables_iff_words]
+  constructor
+  · rintro ⟨h1, h2⟩ o ho
+    by_cases a : o < 236
+    · rw [expTabWord, ite_pos' a]; exact h1 o a
+    · rw [expTabWord, ite_neg' a]
+      have := h2 (o - 236) (by simp only [winTabBits]; omega)
+      rwa [winTabAt, Nat.add_sub_cancel' (by omega)] at this
+  · intro h
+    refine ⟨fun o ho ↦ ?_, fun n hn ↦ ?_⟩
+    · have := h o (by omega); rwa [expTabWord, ite_pos' ho] at this
+    · simp only [winTabBits] at hn
+      have := h (236 + n) (by omega)
+      rwa [expTabWord, ite_neg' (show ¬236 + n < 236 by omega), Nat.add_sub_cancel_left] at this
+
 /-! ## The function -/
 
 /-- Body position `t`'s offset: the squares, then the rank keys and sides, then the shares, then
 the windows. -/
-def etOff (t : ℕ) : ℕ := if t < 34 then t else if t < 92 then t + 144 else if t < 236 then t - 58
-  else t
+def etOff (t : ℕ) : ℕ :=
+  if t < 34 then t else if t < 92 then t + 144 else if t < 236 then t - 58 else t
 
-/-- Body position `t`'s word, as an integer. -/
+/-- The word body position `t` writes, folded. -/
 def etWord (t : ℕ) : ℕ := if t < 236 then etWordsN.getD (etOff t) 0 else t - 236
 
 /-- `g_squares[g^o] = w`, folded: the word at offset `etOff t`. -/
@@ -280,58 +316,42 @@ def etBody : List Stmt :=
   [.atom (.hint (.alloc (.n 0) 2284))] ++ ((List.range 2284).map etBlk).flatten ++
   [.atom (.copy (.n 2285) (.n 0)), .ret [.n 2285]]
 
-set_option maxRecDepth 100000 in
 theorem core1_body : Fn.body Data.core1 = etBody := stmtsEqb_sound (by decide +kernel)
 
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some Data.core1 :=
   Program.find?_of_indexOf? (j := 1) (by decide +kernel) rfl
 
-/-- The offsets the body writes below `236` are every offset below `236`, once. -/
+theorem etOff_lt {t : ℕ} (ht : t < 2284) : etOff t < 2284 := by
+  simp only [etOff]; split_ifs <;> omega
+
+/-- The word body position `t` writes is the honest word at its offset. -/
+theorem word_etWord (t : ℕ) : word (etWord t) 0 = expTabWord (etOff t) := by
+  rw [word_eOfNat, etWord, expTabWord]
+  by_cases a : t < 236
+  · have e : etOff t < 236 := by simp only [etOff]; split_ifs <;> omega
+    rw [ite_pos' a, ite_pos' e, expTableWords, List.getD_eq_getElem?_getD,
+      List.getD_eq_getElem?_getD, List.getElem?_map]
+    cases etWordsN[etOff t]? <;> simp [eOfNat_zero]
+  · have e : etOff t = t := by simp only [etOff]; split_ifs <;> omega
+    rw [ite_neg' a, e, ite_neg' a]
+
+/-- The offsets the body writes are every offset below `2284`, once. -/
 theorem etOff_iff (rd : Reader) (q : E) :
-    (∀ t < 236, LoadHolds rd q (etOff t) (expTableWords.getD (etOff t) 0)) ↔
-      ∀ o < 236, LoadHolds rd q o (expTableWords.getD o 0) := by
+    (∀ t < 2284, LoadHolds rd q (etOff t) (expTabWord (etOff t))) ↔
+      ∀ o < 2284, LoadHolds rd q o (expTabWord o) := by
   constructor
   · intro h o ho
-    obtain ⟨t, ht, rfl⟩ : ∃ t < 236, etOff t = o := by
+    obtain ⟨t, ht, rfl⟩ : ∃ t < 2284, etOff t = o := by
       by_cases a : o < 34
       · exact ⟨o, by omega, by simp [etOff, a]⟩
       by_cases b : o < 178
       · exact ⟨o + 58, by omega, by simp only [etOff]; split_ifs <;> omega⟩
+      by_cases c : o < 236
       · exact ⟨o - 144, by omega, by simp only [etOff]; split_ifs <;> omega⟩
+      · exact ⟨o, ho, by simp only [etOff]; split_ifs <;> omega⟩
     exact h t ht
   · intro h t ht
-    exact h _ (by simp only [etOff]; split_ifs <;> omega)
-
-/-- Body position `t`'s word. -/
-def etVal (t : ℕ) : E := if t < 236 then expTableWords.getD (etOff t) 0 else eOfNat (t - 236)
-
-theorem word_etWord (t : ℕ) : word (etWord t) 0 = etVal t := by
-  rw [word_eOfNat, etWord, etVal]
-  split_ifs
-  · rw [expTableWords, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
-    cases etWordsN[etOff t]? <;> simp [eOfNat_zero]
-  · rfl
-
-/-- **The body's writes are the table**: its squares, shares, rank keys and sides, and its bit
-windows. -/
-theorem etWrites_iff (rd : Reader) (q : E) :
-    (∀ t < 2284, LoadHolds rd q (etOff t) (etVal t)) ↔ ExpTables rd q ∧ ExpWinTab rd q := by
-  rw [expTables_iff_words, ← etOff_iff]
-  constructor
-  · intro h
-    refine ⟨fun t ht ↦ ?_, fun n hn ↦ ?_⟩
-    · have := h t (by omega)
-      rwa [etVal, ite_eq_left ht] at this
-    · have := h (236 + n) (by simp only [winTabBits] at hn; omega)
-      rwa [etVal, ite_eq_right (by omega), show etOff (236 + n) = 236 + n by simp only [etOff]; split_ifs <;> omega,
-        show 236 + n - 236 = n by omega] at this
-  · rintro ⟨h1, h2⟩ t ht
-    by_cases h : t < 236
-    · rw [etVal, ite_eq_left h]; exact h1 t h
-    · obtain ⟨n, rfl⟩ : ∃ n, t = 236 + n := ⟨t - 236, by omega⟩
-      rw [etVal, ite_eq_right h, show etOff (236 + n) = 236 + n by simp only [etOff]; split_ifs <;> omega,
-        show 236 + n - 236 = n by omega]
-      exact h2 n (by simp only [winTabBits]; omega)
+    exact h _ (etOff_lt ht)
 
 /-- **`exponent_tables`' core IR is its meaning.** -/
 theorem exponent_tables_holds : exponent_tables_Spec := by
@@ -346,16 +366,17 @@ theorem exponent_tables_holds : exponent_tables_Spec := by
   · rintro ⟨σ, hp, ht, h2285, hret⟩
     subst hp hret
     rw [h2285]
-    exact (etWrites_iff rd _).1 fun t h ↦ by
+    exact (expTabAll_iff rd _).2 ((etOff_iff rd _).1 fun t h ↦ by
       obtain ⟨c, l⟩ := ht t h
-      rwa [c] at l
+      rwa [c] at l)
   · intro hm
-    obtain ⟨rfl, q, rfl, ht⟩ : args = [] ∧ ∃ q, rets = [q] ∧ (ExpTables rd q ∧ ExpWinTab rd q) := by
+    obtain ⟨rfl, q, rfl, ht⟩ :
+        args = [] ∧ ∃ q, rets = [q] ∧ ExpTables rd q ∧ ExpWinTab rd q := by
       match args, rets, hm with
       | [], [q], h => exact ⟨rfl, q, rfl, h⟩
-    have hl := (etWrites_iff rd q).2 ht
-    refine ⟨setl (setv (setl (Val.ofArgs []) 0 [q]) 1 2284 fun t ↦ etVal t) 2285 [q], rfl,
-      fun t ht ↦ ?_, ?_, ?_⟩
+    have hl := (etOff_iff rd q).2 ((expTabAll_iff rd q).1 ht)
+    refine ⟨setl (setv (setl (Val.ofArgs []) 0 [q]) 1 2284 fun t ↦ expTabWord (etOff t))
+      2285 [q], rfl, fun t ht ↦ ?_, ?_, ?_⟩
     all_goals (try b1_look)
     · exact ⟨by rw [Nat.add_sub_cancel], hl t ht⟩
 
