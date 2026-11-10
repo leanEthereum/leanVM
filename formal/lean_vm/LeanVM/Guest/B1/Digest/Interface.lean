@@ -31,15 +31,13 @@ family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `statement_digest` | 3934-3973 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, three limbs each (`statementDigest`, N:197) |
+| `statement_digest` | 4302-4326 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
 | `list_split` | 3982-3997 | `core22` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^16`, `groups < 8`, `rest < 17` |
-| `claim_list_digest` | 4000-4043 | `core23` | Keccak-256 of the `4n` canonical cells of the list (`claimListDigest`, `claimListDigest`, N:172-180) |
+| `claim_list_digest` | 4000-4043 | `core23` | Keccak-256 of the `4n` cells of the list (`claimListDigest`, N:172-180) |
 | `child_claim_list_digest` | 4062-4197 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
 
-**Cells and bytes.** A cell holds sixteen bytes, limbs `0` and `1` (`Value.Keccak.cellsBytes`;
-the `KECCAK` instruction makes every cell it reads canonical, `AllCanonical`). A digest's two
-cells are `digestHalves` (`digestCells`); a deferred cell is a full field element, hashed as its
-three limbs (`E.toBytes`, `pack_pair`).
+**Cells and bytes.** A cell holds sixteen bytes, its two limbs (`Value.Keccak.cellsBytes`, the
+cell's `E.toBytes`). A digest's two cells are `digestHalves` (`digestCells`).
 
 **The memory.** A range check (`assert log x < log b`) is an exact relation on the memory read
 (`RangeChecked`); on a memory image of `2^κ` words, `16 ≤ κ ≤ 32` (`MemOk`, as every valid
@@ -75,17 +73,15 @@ coordinates and the value. -/
 abbrev deferStmtCells : ℕ := 24
 
 /-- The bytes `statement_digest` hashes: the header cells (the seed, the two claim lists' digests,
-the DA digest), then the deferred cells, three limbs each. `24` is even: no zero partner. -/
+the DA digest), then the deferred cells, two limbs each. -/
 def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap E.toBytes
 
 /-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 24
-deferred cells at `defer`; the eight header cells are canonical (the `KECCAK` reads them), and the
-function returns the two cells of the Keccak-256 digest of the header cells and the deferred
-cells' limbs. -/
+deferred cells at `defer`; the function returns the two cells of the Keccak-256 digest of the
+header cells and the deferred cells. -/
 def MeaningStatementDigest (rd : Reader) : List E → List E → Prop
   | [s0, s1, x0, x1, y0, y1, a0, a1, dp], rets => ∃ cells : List E,
       cells.length = deferStmtCells ∧ ReadsAt rd dp cells ∧
-      AllCanonical [s0, s1, x0, x1, y0, y1, a0, a1] ∧
       rets = digestCells (keccak256 (stmtBytes [s0, s1, x0, x1, y0, y1, a0, a1] cells))
   | _, _ => False
 
@@ -132,10 +128,10 @@ def list_split_complete_Spec : Prop :=
 
 /-! ## `claim_list_digest` (G:4124-4167, TRIAGE #88) -/
 
-/-- The `4n` cells of `n` claims at `entries` are canonical, and `rets` is the two cells of their
-Keccak-256 digest (an empty list: the empty string's). -/
+/-- `rets` is the two cells of the Keccak-256 digest of the `4n` cells of `n` claims at `entries`
+(an empty list: the empty string's). -/
 def ClaimListOut (rd : Reader) (entries : E) (n : ℕ) (rets : List E) : Prop :=
-  ∃ cells : List E, cells.length = 4 * n ∧ ReadsAt rd entries cells ∧ AllCanonical cells ∧
+  ∃ cells : List E, cells.length = 4 * n ∧ ReadsAt rd entries cells ∧
     rets = digestCells (keccak256 (cellsBytes cells))
 
 /-- **`claim_list_digest(entries, n_g)`**: `n_g = g^n` for a count `n < 136 · 2^16`, and the
@@ -159,9 +155,9 @@ the table at `entries` (its four cells at `entries · g^(4 o j)`), the slot belo
 `limit` and marked in the region's coverage slot `region · g^(o j)`. The walk by hinted indices
 (`child_claim_list_any`) marks claim `j` with `base · g^j`; the walk by hinted gaps
 (`child_claim_list_mono`, `mono`) marks every claim with `base`, its slots strictly increasing.
-The `4n` cells are canonical and `rets` is the two cells of their Keccak-256 digest. -/
+`rets` is the two cells of the Keccak-256 digest of the `4n` cells. -/
 def ChildListOut (rd : Reader) (entries region base limit : E) (n : ℕ) (rets : List E) : Prop :=
-  ∃ (mono : Bool) (o : ℕ → ℕ) (cells : List E), cells.length = 4 * n ∧ AllCanonical cells ∧
+  ∃ (mono : Bool) (o : ℕ → ℕ) (cells : List E), cells.length = 4 * n ∧
     (mono = true → ∀ i j, i < j → j < n → o i < o j) ∧
     (∀ j < n, SlotBelow limit (o j) ∧
       LoadHolds rd region (o j) (base * gen ^ (if mono then 0 else j)) ∧
