@@ -148,7 +148,7 @@ theorem keyHolds_keccak {rd : Reader} {out : E} {ins : List E} {k : Fin 13} {inO
 theorem keccakCells_output {input output output' : Fin 13 → E} {inOdd outOdd : Bool}
     (h : KeccakCellsRelation input inOdd output outOdd .all)
     (h' : KeccakCellsRelation input inOdd output' outOdd .all) :
-    output = output' := funext fun c ↦ (h.2 c c.isLt).trans (h'.2 c c.isLt).symm
+    output = output' := funext fun c ↦ (h c c.isLt).trans (h' c c.isLt).symm
 
 /-- **A key's output is a function of its inputs.** -/
 theorem KeyHolds.unique {rd : Reader} {x y : E} {op : ℕ} {ins : List E}

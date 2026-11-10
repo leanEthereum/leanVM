@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Main.AggMainCChk
 public import LeanVM.Guest.B1.Main.AggL25Complete
 public import LeanVM.Guest.B1.Main.AggL26Complete
+public import LeanVM.Guest.B1.Sumcheck.Batch
 
 /-!
 # `aggregate_claims`, completely
@@ -22,7 +23,7 @@ which `batch cs h = some out` is), its stores find the first record, weight and 
 permutations are the last absorbing row's and the nonce's, whose cell `0` is `λ` (`lamA`) and
 cell `1` passes the proof of work (`agg_pow`); its calls hold by their completeness: the absorbing
 rows (`l25_block`), the records (`l26_block`), the sumcheck (`agg_bs`, from
-`agg_batch_sumcheck_Spec`), the weights (`l27_block`) and `grind_check__L2` (its arguments
+`batch_sumcheck_holds`), the weights (`l27_block`) and `grind_check__L2` (its arguments
 `AggVals.grArgs`, for the caller's hypothesis).
 
 `agg_core` is pointer-parametric (any `AggPtrs` holding `AggMem`).
@@ -153,7 +154,7 @@ theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
       (gen ^ cs.length) [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs h] := by
   intro c hc
   have hptl : ((aggRun cs h).1.1.map (1 + ·)).length = 23 := by
-    rw [List.length_map, aggRun, aggBsRun_len, hrl]
+    rw [List.length_map, aggRun, bsRun_len, hrl]
   obtain ⟨hpl, hql, hpf, hpc, -, -, -, -, -⟩ := kid_reads (hcw c hc)
   have hw1 := hmem.w (c + 1) hc
   rw [weightAt_succ hc, show P.w * gen ^ (c + 1) = P.w * gen ^ c * gen ^ 1 by ring,
@@ -163,21 +164,21 @@ theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 
 /-- The sumcheck (`batch_sumcheck__L23`), from the nonce's permutation's capacity and the last
 record's claim. -/
-theorem agg_bs (hBS : agg_batch_sumcheck_Spec) (tabs : E) (hrl : h.sumcheckMessages.length = 23)
+theorem agg_bs (tabs : E) (hrl : h.sumcheckMessages.length = 23)
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
     coreProgram.Rel rd "batch_sumcheck__L23"
       (capOf (aggN cs h.lambdaGrindNonce) ++ [P.msgs * gen, claimAt cs h cs.length, P.pt, tabs])
       ((aggRun cs h).2.cap ++ [(aggRun cs h).1.2]) := by
-  have hrun : aggBsRun h.sumcheckMessages (claimAt cs h cs.length)
+  have hrun : bsRun h.sumcheckMessages (claimAt cs h cs.length)
       ⟨capOf (aggN cs h.lambdaGrindNonce), []⟩ = aggRun cs h := by
     rw [aggRun, claimAt_last rfl, aggLam_snd]
-  refine (hBS rd _ _).mpr ⟨h.sumcheckMessages, hrl, readsAt_tail hmem.msgs, ?_, ?_⟩
-  · show ReadsAt rd P.pt (aggBsRun h.sumcheckMessages (claimAt cs h cs.length)
+  refine (batch_sumcheck_holds rd _ _).mpr ⟨h.sumcheckMessages, hrl, readsAt_tail hmem.msgs, ?_, ?_⟩
+  · show ReadsAt rd P.pt (bsRun h.sumcheckMessages (claimAt cs h cs.length)
       ⟨capOf (aggN cs h.lambdaGrindNonce), []⟩).1.1
     rw [hrun]; exact hmem.pt
-  · show _ = (aggBsRun h.sumcheckMessages (claimAt cs h cs.length)
+  · show _ = (bsRun h.sumcheckMessages (claimAt cs h cs.length)
       ⟨capOf (aggN cs h.lambdaGrindNonce), []⟩).2.cap ++
-      [(aggBsRun h.sumcheckMessages (claimAt cs h cs.length)
+      [(bsRun h.sumcheckMessages (claimAt cs h cs.length)
         ⟨capOf (aggN cs h.lambdaGrindNonce), []⟩).1.2]
     rw [hrun]
 
@@ -261,7 +262,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1) (aggLam cs h.lambdaGrindNonce).2
     (by intro h0; rw [h0] at hrl; simp at hrl)
   have hres2 : (aggRun cs h).2 = ⟨capOf SF, []⟩ := hSF
-  have hptl : (aggRun cs h).1.1.length = 23 := by rw [aggRun, aggBsRun_len, hrl]
+  have hptl : (aggRun cs h).1.1.length = 23 := by rw [aggRun, bsRun_len, hrl]
   -- the valuation
   let w : ℕ → E := aggOrc P h (aggRun cs h)
   let args : List E := [gen ^ cs.length, cpi, cfresh, ccarried, dst, tabs]

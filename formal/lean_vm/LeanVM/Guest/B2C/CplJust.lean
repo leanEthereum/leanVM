@@ -208,7 +208,7 @@ theorem statAt_sound (hX : CXOk L fp X) {o : ℕ} {p : PC} (h : statAt X o = som
     rdc L fp o = some (p.word fp) := hX.stat o p h
 
 theorem gpE_sound (hX : CXOk L fp X) {k0 e : ℕ} (h : gpE X k0 = some e) :
-    OffsetInstruction.immediateWord k0 0 0 = ofK (addressOfIndex e) := by
+    OffsetInstruction.immediateWord k0 0 = ofK (addressOfIndex e) := by
   unfold gpE at h
   cases hb : Nat.beq k0 1
   · rw [hb] at h
