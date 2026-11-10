@@ -9,11 +9,11 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kvkstaticRange_821 : kvkStaticRange 821 17 := by
+theorem kvkstaticRange_815 : kvkStaticRange 815 16 := by
   unfold kvkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvkstaticRange_838 : kvkStaticRange 838 16 := by
+theorem kvkstaticRange_831 : kvkStaticRange 831 17 := by
   unfold kvkStaticRange; decide +kernel
 
 end

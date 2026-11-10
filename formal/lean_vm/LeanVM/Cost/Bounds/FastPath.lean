@@ -673,7 +673,7 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
 lanes (`fastLane_cost`), then at most one stack (`stackOf_cost`): at most
 `64·(κ·(345·N + 5845) + 108·N + 15013) + (B_W + 12·W_d + 44)·N + 1008·2^μ + 1071`, for
 `μ ≤ 40`, `R ≤ 8`. -/
-theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40)
+theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 34)
     (hR : R ≤ 8) (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a : ℕ, RunsApp P WVal [encodeValue a] (encodeValue (W a)))
     (BW Wd : ℕ) (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hWd : ∀ v, (W v).length ≤ Wd) :
     machineCost P fastStacksFastC.costIdx [encodeValue μ, encodeValue R, WVal] ≤

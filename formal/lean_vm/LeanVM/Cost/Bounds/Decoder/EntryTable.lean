@@ -110,10 +110,10 @@ theorem loc_lt (j i : ℕ) : (guestLocs.getD j #[]).getD i 0 < 2 ^ 20 := by
 
 /-! ## A state's key -/
 
-/-- A word's code (`wordCodeC`): `12`. -/
+/-- A word's code (`wordCodeC`): at most `12`. -/
 theorem wordCode_cost (hP : Includes P wordCodeC.costDeps) (x : E) :
-    machineCost P wordCodeC.costIdx [encodeValue x] = 12 := by
-  rw [wordCodeC.costEq P hP]
+    machineCost P wordCodeC.costIdx [encodeValue x] ≤ 12 := by
+  rw [wordCodeC.costEq P hP]; omega
 
 /-- A call's key (`callKeyC`): `27` per word, `19`. -/
 theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : List E) :
@@ -122,8 +122,9 @@ theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : 
   rw [callKeyC.costEq P hP]
   have hlam : ∀ x : E, appCost P (.closure callKeyC.lam0.costIdx []) [encodeValue x] ≤ 14 := by
     intro x
-    rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P (by includes),
-      wordCode_cost P (by includes), List.length_nil]
+    rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P (by includes), List.length_nil]
+    have := wordCode_cost P (by includes) x
+    omega
   have h1 := map_cost P (by includes) _ (.closure callKeyC.lam0.costIdx [])
     (fun x ↦ RunsApp.of_spec (callKeyC.lam0.costSpec P (by includes) x)) 14 args
     (fun x _ ↦ hlam x)
@@ -133,8 +134,8 @@ theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : 
   omega
 
 /-- The code of a word: word-sized. -/
-theorem wordCode_ok (x : E) : TripleOK (wordCode x) :=
-  ⟨UInt64.toNat_lt _, UInt64.toNat_lt _, UInt64.toNat_lt _⟩
+theorem wordCode_ok (x : E) : PairOK (wordCode x) :=
+  ⟨UInt64.toNat_lt _, UInt64.toNat_lt _⟩
 
 /-- A call's key, its callee word-sized, its lists at most `L`: of at most `L` codes. -/
 theorem callKey_ok {L j : ℕ} {args rets : List E} (hj : j < 2 ^ 64) (ha : args.length ≤ L)
