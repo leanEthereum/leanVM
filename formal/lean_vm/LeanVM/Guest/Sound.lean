@@ -51,7 +51,7 @@ open LeanVM.Guest.Exec
 /-! ## B1's obligations -/
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `1600` statements, up to its call of
+`verify_sub`'s argument `4` (`g_squares`), its first `1600` statements, which include its call of
 `check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `139`) among the powers
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKnown : Prop :=
