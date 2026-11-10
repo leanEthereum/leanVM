@@ -112,7 +112,6 @@ def rules : List (Name × Name) := [
   (``Vector.toArray, ``Rule.vecToArray),
   (``CompPoly.Extension.Ext.coeff, ``Rule.eLimb0),
   (``CompPoly.Extension.Ext.coeff, ``Rule.eLimb1),
-  (``CompPoly.Extension.Ext.coeff, ``Rule.eLimb2),
   (``LeanVM.Parameters.E.ofLimbs, ``Rule.eOfLimbs),
   (``Decidable.decide, ``Rule.u8Lt),
   (``LeanVM.Parameters.K.ofLane, ``Rule.kOfLane),
