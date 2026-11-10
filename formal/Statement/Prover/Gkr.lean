@@ -6,19 +6,20 @@ public import Statement.Prover.Mle
 /-!
 # The batched GKR over three product trees, executable
 
-The prover of `verifyGkrGrandProducts` (`crates/verifier/src/bus.rs:14-51`) over three trees of
-`2^D` leaves, the first two of the same product, every layer built once (`treeLayers`). In a step of
-`h` levels the three child layers are folded in place, one coordinate per round (`foldStride`), and
-each round's polynomial is computed row by row from the folded layers (`gkrRound`); after the rounds
-the folded layers are the children sent. The walk is the verifier's: one level first when the depth
-is odd, two at a time after.
+The prover of `verifyGkrGrandProducts` (`crates/verifier/src/bus.rs:29-75`; the Rust's
+`prove_products`, `crates/leanvm_core/src/gkr.rs`) over three trees of `2^D` leaves, the first two
+of the same product, every layer built once (`treeLayers`). In a step of `h` levels the three child
+layers are folded in place, one coordinate per round (`foldStride`), and each round's polynomial is
+computed row by row from the folded layers (`gkrRound`); after the rounds the folded layers are the
+children sent. The walk is the verifier's: one level first when the depth is odd, two at a time
+after, each step with its grinds.
 -/
 
 @[expose] public section
 
 namespace LeanVM.Prover
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-! ## Coefficient lists -/
 
@@ -84,15 +85,18 @@ def gkrRound (h : ℕ) (c : E) (st : GkrFold) : List E :=
 def gkrFold (h : ℕ) (st : GkrFold) (r : E) : GkrFold :=
   ⟨foldStride h r st.t₀, foldStride h r st.t₁, foldStride h r st.t₂, st.rest.tail⟩
 
-/-- **One step of `h` levels** from the state `s`, the child layers `t₀, t₁, t₂`: the combiner,
-the sumcheck on the folded layers, the children (the folded layers), the fresh coordinates; the
-next state. -/
-def gkrStepA (t₀ t₁ t₂ : Array E) (h : ℕ) (s : GkrState) : Script GkrState :=
+/-- **One step of `h` levels** from the state `s`, the child layers `t₀, t₁, t₂`: a grind and the
+combiner, the sumcheck on the folded layers, the children (the folded layers), a grind for their
+degree in the fresh coordinates (doubled on the `last` step), the fresh coordinates; the next
+state. -/
+def gkrStepA (t₀ t₁ t₂ : Array E) (h : ℕ) (last : Bool) (s : GkrState) : Script GkrState :=
+  (Script.grindBits (grindingBits (nTrees - 1))).bind fun _ ↦
   Script.sampleE.bind fun c ↦
   (sumcheckBy (gkrRound h c) (gkrFold h) (s.point.map some) ⟨t₀, t₁, t₂, s.point⟩).bind fun r ↦
     (Script.sendList r.2.t₀.toList).bind fun _ ↦
     (Script.sendList r.2.t₁.toList).bind fun _ ↦
     (Script.sendList r.2.t₂.toList).bind fun _ ↦
+    (Script.grindBits (grindingBits (if last then 2 * h else h))).bind fun _ ↦
     (Script.sampleN h).bind fun y ↦
     .ret ⟨[multilinearEval r.2.t₀.toList y, multilinearEval r.2.t₁.toList y,
       multilinearEval r.2.t₂.toList y], y ++ r.1⟩
@@ -100,17 +104,19 @@ def gkrStepA (t₀ t₁ t₂ : Array E) (h : ℕ) (s : GkrState) : Script GkrSta
 /-! ## The walk -/
 
 /-- The walk from the layers `n` levels above the leaves, `Aᵢ` the trees' layers: one level first
-when `n` is odd, two at a time after. -/
+when `n` is odd, two at a time after; the step that reaches the leaves is the last. -/
 def gkrLayersA (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Script GkrState
   | 0, s => .ret s
   | 1, s =>
-    (gkrStepA (A₀.getD 0 #[]) (A₁.getD 0 #[]) (A₂.getD 0 #[]) 1 s).bind (gkrLayersA A₀ A₁ A₂ 0)
+    (gkrStepA (A₀.getD 0 #[]) (A₁.getD 0 #[]) (A₂.getD 0 #[]) 1 true s).bind
+      (gkrLayersA A₀ A₁ A₂ 0)
   | n + 2, s =>
     if n % 2 = 1 then
-      (gkrStepA (A₀.getD (n + 1) #[]) (A₁.getD (n + 1) #[]) (A₂.getD (n + 1) #[]) 1 s).bind
+      (gkrStepA (A₀.getD (n + 1) #[]) (A₁.getD (n + 1) #[]) (A₂.getD (n + 1) #[]) 1 false
+        s).bind
         (gkrLayersA A₀ A₁ A₂ (n + 1))
     else
-      (gkrStepA (A₀.getD n #[]) (A₁.getD n #[]) (A₂.getD n #[]) 2 s).bind
+      (gkrStepA (A₀.getD n #[]) (A₁.getD n #[]) (A₂.getD n #[]) 2 (n = 0) s).bind
         (gkrLayersA A₀ A₁ A₂ n)
 
 /-- **The batched GKR** over trees of depth `D` whose layers are `A₀, A₁, A₂`: the shared root (the

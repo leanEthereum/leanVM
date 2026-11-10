@@ -34,7 +34,7 @@ namespace core36
 /-- `__loop2`: statements 0 to 83 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.hint (.witness "raw_index" (.stack [.n 56]))) ::
-  .atom (.const (.n 57) (word 9223372036854775821 0 0)) ::
+  .atom (.const (.n 57) (word 9223372036854775821 0)) ::
   .atom (.mul (.n 58) (.n 2) (.n 57)) ::
   .atom (.rangeCheck (.n 56) (.n 59) (.n 60) (.n 61) (.n 58)) ::
   .atom (.mul (.n 62) (.n 3) (.n 56)) ::
@@ -45,73 +45,73 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.load (.n 66) (.n 65) 1) ::
   .atom (.hint (.witness "lx_index" (.stack [.n 67, .n 68, .n 69, .n 70]))) ::
   .atom (.hint (.witness "lx_windows" (.stack [.n 71, .n 72, .n 73, .n 74]))) ::
-  .atom (.const (.n 75) (word 1 0 0)) ::
-  .atom (.const (.n 76) (word 2 0 0)) ::
-  .atom (.const (.n 77) (word 4 0 0)) ::
-  .atom (.const (.n 78) (word 8 0 0)) ::
-  .atom (.const (.n 79) (word 16 0 0)) ::
-  .atom (.const (.n 80) (word 32 0 0)) ::
-  .atom (.const (.n 81) (word 64 0 0)) ::
-  .atom (.const (.n 82) (word 128 0 0)) ::
-  .atom (.const (.n 83) (word 256 0 0)) ::
-  .atom (.const (.n 84) (word 512 0 0)) ::
-  .atom (.const (.n 85) (word 1024 0 0)) ::
-  .atom (.const (.n 86) (word 2048 0 0)) ::
-  .atom (.const (.n 87) (word 4096 0 0)) ::
+  .atom (.const (.n 75) (word 1 0)) ::
+  .atom (.const (.n 76) (word 2 0)) ::
+  .atom (.const (.n 77) (word 4 0)) ::
+  .atom (.const (.n 78) (word 8 0)) ::
+  .atom (.const (.n 79) (word 16 0)) ::
+  .atom (.const (.n 80) (word 32 0)) ::
+  .atom (.const (.n 81) (word 64 0)) ::
+  .atom (.const (.n 82) (word 128 0)) ::
+  .atom (.const (.n 83) (word 256 0)) ::
+  .atom (.const (.n 84) (word 512 0)) ::
+  .atom (.const (.n 85) (word 1024 0)) ::
+  .atom (.const (.n 86) (word 2048 0)) ::
+  .atom (.const (.n 87) (word 4096 0)) ::
   .atom (.hint (.witness "randomizer" (.stack [.n 88]))) ::
-  .atom (.const (.n 89) (word 864691128455135232 0 0)) ::
+  .atom (.const (.n 89) (word 864691128455135232 0)) ::
   .atom (.add (.n 90) (.n 67) (.n 89)) ::
   .atom (.load (.n 91) (.n 65) 2) ::
   .atom (.load (.n 92) (.n 65) 3) ::
   .atom (.copy (.n 93) (.n 88)) ::
-  .atom (.const (.n 94) (word 1 0 0)) ::
-  .atom (.const (.n 95) (word 0 0 0)) ::
-  .atom (.const (.n 96) (word 0 0 0)) ::
-  .atom (.const (.n 97) (word 9223372036854775808 0 0)) ::
-  .atom (.const (.n 98) (word 1 0 0)) ::
-  .atom (.const (.n 99) (word 0 0 0)) ::
-  .atom (.const (.n 100) (word 0 0 0)) ::
-  .atom (.const (.n 101) (word 0 0 0)) ::
-  .atom (.const (.n 102) (word 0 0 0)) ::
+  .atom (.const (.n 94) (word 1 0)) ::
+  .atom (.const (.n 95) (word 0 0)) ::
+  .atom (.const (.n 96) (word 0 0)) ::
+  .atom (.const (.n 97) (word 9223372036854775808 0)) ::
+  .atom (.const (.n 98) (word 1 0)) ::
+  .atom (.const (.n 99) (word 0 0)) ::
+  .atom (.const (.n 100) (word 0 0)) ::
+  .atom (.const (.n 101) (word 0 0)) ::
+  .atom (.const (.n 102) (word 0 0)) ::
   .atom (.keccak [.n 66, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97, .n 99, .n 100, .n 101, .n 102] [.n 103] false false) ::
-  .atom (.const (.n 104) (word 72057594037927936 0 0)) ::
+  .atom (.const (.n 104) (word 72057594037927936 0)) ::
   .atom (.add (.n 105) (.n 67) (.n 104)) ::
-  .atom (.const (.n 106) (word 2377900603251621888 0 0)) ::
+  .atom (.const (.n 106) (word 2377900603251621888 0)) ::
   .atom (.add (.n 107) (.n 67) (.n 106)) ::
-  .atom (.const (.n 108) (word 4683743612465315840 0 0)) ::
+  .atom (.const (.n 108) (word 4683743612465315840 0)) ::
   .atom (.add (.n 109) (.n 67) (.n 108)) ::
   .atom (.hint (.witness "lx_digits" (.stack [.n 110, .n 111, .n 112, .n 113, .n 114, .n 115, .n 116, .n 117, .n 118, .n 119, .n 120, .n 121, .n 122, .n 123, .n 124]))) ::
-  .atom (.const (.n 125) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 125) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 110) (.n 126) (.n 127) (.n 128) (.n 125)) ::
-  .atom (.const (.n 129) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 129) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 111) (.n 130) (.n 131) (.n 132) (.n 129)) ::
-  .atom (.const (.n 133) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 133) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 112) (.n 134) (.n 135) (.n 136) (.n 133)) ::
-  .atom (.const (.n 137) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 137) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 113) (.n 138) (.n 139) (.n 140) (.n 137)) ::
-  .atom (.const (.n 141) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 141) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 114) (.n 142) (.n 143) (.n 144) (.n 141)) ::
-  .atom (.const (.n 145) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 145) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 115) (.n 146) (.n 147) (.n 148) (.n 145)) ::
-  .atom (.const (.n 149) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 149) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 116) (.n 150) (.n 151) (.n 152) (.n 149)) ::
-  .atom (.const (.n 153) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 153) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 117) (.n 154) (.n 155) (.n 156) (.n 153)) ::
-  .atom (.const (.n 157) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 157) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 118) (.n 158) (.n 159) (.n 160) (.n 157)) ::
-  .atom (.const (.n 161) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 161) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 119) (.n 162) (.n 163) (.n 164) (.n 161)) ::
-  .atom (.const (.n 165) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 165) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 120) (.n 166) (.n 167) (.n 168) (.n 165)) ::
-  .atom (.const (.n 169) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 169) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 121) (.n 170) (.n 171) (.n 172) (.n 169)) ::
-  .atom (.const (.n 173) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 173) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 122) (.n 174) (.n 175) (.n 176) (.n 173)) ::
-  .atom (.const (.n 177) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 177) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 123) (.n 178) (.n 179) (.n 180) (.n 177)) ::
-  .atom (.const (.n 181) (word 32768 0 0)) ::
+  .atom (.const (.n 181) (word 32768 0)) ::
   .atom (.rangeCheck (.n 124) (.n 182) (.n 183) (.n 184) (.n 181)) ::
-  .atom (.const (.n 185) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 185) (word 9223372036854775808 0)) ::
   .match_ (.n 110) (
     s79_a0 ::
     s79_a1 ::
@@ -3990,9 +3990,9 @@ noncomputable def c2 : List Core.Stmt := (
     s93_a255 ::
     []) ::
   .atom (.copy (.n 103) (.n 36479)) ::
-  .atom (.const (.n 37864) (word 118747255799808 0 0)) ::
+  .atom (.const (.n 37864) (word 118747255799808 0)) ::
   .atom (.assertEq (.n 36478) (.n 37864)) ::
-  .atom (.const (.n 37865) (word 144115188075855872 0 0)) ::
+  .atom (.const (.n 37865) (word 144115188075855872 0)) ::
   .atom (.add (.n 37866) (.n 67) (.n 37865)) ::
   .atom (.copy (.n 37867) (.n 207)) ::
   .atom (.copy (.n 37868) (.n 214)) ::
@@ -4061,12 +4061,12 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.keccak [.n 37994, .n 37995, .n 37996, .n 37997, .n 37998, .n 37999, .n 38000, .n 38001, .n 38002, .n 37990, .n 37991, .n 37992, .n 37993] [.n 38003, .n 38004, .n 38005, .n 38006, .n 38007, .n 38008, .n 38009, .n 38010, .n 38011, .n 38012, .n 38013, .n 38014, .n 38015] false true) ::
   .atom (.add (.n 38016) (.n 38003) (.n 36477)) ::
   .atom (.add (.n 38017) (.n 38004) (.n 98)) ::
-  .atom (.const (.n 38018) (word 0 9223372036854775808 0)) ::
+  .atom (.const (.n 38018) (word 0 9223372036854775808)) ::
   .atom (.add (.n 38019) (.n 38011) (.n 38018)) ::
   .atom (.keccak [.n 38016, .n 38017, .n 38005, .n 38006, .n 38007, .n 38008, .n 38009, .n 38010, .n 38019, .n 38012, .n 38013, .n 38014, .n 38015] [.n 38020] true false) ::
-  .atom (.const (.n 38021) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 38021) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 71) (.n 38022) (.n 38023) (.n 38024) (.n 38021)) ::
-  .atom (.const (.n 38025) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 38025) (word 9223372036854775808 0)) ::
   .match_ (.n 71) (
     s172_a0 ::
     s172_a1 ::
@@ -4325,9 +4325,9 @@ noncomputable def c2 : List Core.Stmt := (
     s172_a254 ::
     s172_a255 ::
     []) ::
-  .atom (.const (.n 50313) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 50313) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 72) (.n 50314) (.n 50315) (.n 50316) (.n 50313)) ::
-  .atom (.const (.n 50317) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 50317) (word 9223372036854775808 0)) ::
   [])
 
 /-- `__loop2`: statements 176 to 225 of the body. -/
@@ -4590,51 +4590,51 @@ noncomputable def c3 : List Core.Stmt := (
     s176_a254 ::
     s176_a255 ::
     []) ::
-  .atom (.const (.n 62605) (word 36028797018963968 0 0)) ::
+  .atom (.const (.n 62605) (word 36028797018963968 0)) ::
   .atom (.add (.n 62606) (.n 69) (.n 62605)) ::
   .atom (.hint (.witness "randomizer" (.stack [.n 62607]))) ::
-  .atom (.const (.n 62608) (word 864691128455135232 0 0)) ::
+  .atom (.const (.n 62608) (word 864691128455135232 0)) ::
   .atom (.add (.n 62609) (.n 62606) (.n 62608)) ::
-  .atom (.const (.n 62610) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 62610) (word 9223372036854775808 0)) ::
   .atom (.keccak [.n 66, .n 62609, .n 50364, .n 62607, .n 98, .n 99, .n 100, .n 101, .n 62610, .n 99, .n 100, .n 101, .n 102] [.n 62611] false false) ::
-  .atom (.const (.n 62612) (word 72057594037927936 0 0)) ::
+  .atom (.const (.n 62612) (word 72057594037927936 0)) ::
   .atom (.add (.n 62613) (.n 62606) (.n 62612)) ::
-  .atom (.const (.n 62614) (word 2377900603251621888 0 0)) ::
+  .atom (.const (.n 62614) (word 2377900603251621888 0)) ::
   .atom (.add (.n 62615) (.n 62606) (.n 62614)) ::
-  .atom (.const (.n 62616) (word 4683743612465315840 0 0)) ::
+  .atom (.const (.n 62616) (word 4683743612465315840 0)) ::
   .atom (.add (.n 62617) (.n 62606) (.n 62616)) ::
   .atom (.hint (.witness "lx_digits" (.stack [.n 62618, .n 62619, .n 62620, .n 62621, .n 62622, .n 62623, .n 62624, .n 62625, .n 62626, .n 62627, .n 62628, .n 62629, .n 62630, .n 62631, .n 62632]))) ::
-  .atom (.const (.n 62633) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62633) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62618) (.n 62634) (.n 62635) (.n 62636) (.n 62633)) ::
-  .atom (.const (.n 62637) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62637) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62619) (.n 62638) (.n 62639) (.n 62640) (.n 62637)) ::
-  .atom (.const (.n 62641) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62641) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62620) (.n 62642) (.n 62643) (.n 62644) (.n 62641)) ::
-  .atom (.const (.n 62645) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62645) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62621) (.n 62646) (.n 62647) (.n 62648) (.n 62645)) ::
-  .atom (.const (.n 62649) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62649) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62622) (.n 62650) (.n 62651) (.n 62652) (.n 62649)) ::
-  .atom (.const (.n 62653) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62653) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62623) (.n 62654) (.n 62655) (.n 62656) (.n 62653)) ::
-  .atom (.const (.n 62657) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62657) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62624) (.n 62658) (.n 62659) (.n 62660) (.n 62657)) ::
-  .atom (.const (.n 62661) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62661) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62625) (.n 62662) (.n 62663) (.n 62664) (.n 62661)) ::
-  .atom (.const (.n 62665) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62665) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62626) (.n 62666) (.n 62667) (.n 62668) (.n 62665)) ::
-  .atom (.const (.n 62669) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62669) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62627) (.n 62670) (.n 62671) (.n 62672) (.n 62669)) ::
-  .atom (.const (.n 62673) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62673) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62628) (.n 62674) (.n 62675) (.n 62676) (.n 62673)) ::
-  .atom (.const (.n 62677) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62677) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62629) (.n 62678) (.n 62679) (.n 62680) (.n 62677)) ::
-  .atom (.const (.n 62681) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62681) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62630) (.n 62682) (.n 62683) (.n 62684) (.n 62681)) ::
-  .atom (.const (.n 62685) (word 9223372036854810629 0 0)) ::
+  .atom (.const (.n 62685) (word 9223372036854810629 0)) ::
   .atom (.rangeCheck (.n 62631) (.n 62686) (.n 62687) (.n 62688) (.n 62685)) ::
-  .atom (.const (.n 62689) (word 32768 0 0)) ::
+  .atom (.const (.n 62689) (word 32768 0)) ::
   .atom (.rangeCheck (.n 62632) (.n 62690) (.n 62691) (.n 62692) (.n 62689)) ::
-  .atom (.const (.n 62693) (word 9223372036854775808 0 0)) ::
+  .atom (.const (.n 62693) (word 9223372036854775808 0)) ::
   .match_ (.n 62618) (
     s222_a0 ::
     s222_a1 ::
@@ -8513,9 +8513,9 @@ noncomputable def c5 : List Core.Stmt := (
     s236_a255 ::
     []) ::
   .atom (.copy (.n 62611) (.n 98987)) ::
-  .atom (.const (.n 100372) (word 118747255799808 0 0)) ::
+  .atom (.const (.n 100372) (word 118747255799808 0)) ::
   .atom (.assertEq (.n 98986) (.n 100372)) ::
-  .atom (.const (.n 100373) (word 144115188075855872 0 0)) ::
+  .atom (.const (.n 100373) (word 144115188075855872 0)) ::
   .atom (.add (.n 100374) (.n 62606) (.n 100373)) ::
   .atom (.copy (.n 100375) (.n 62715)) ::
   .atom (.copy (.n 100376) (.n 62722)) ::
@@ -8588,12 +8588,12 @@ noncomputable def c5 : List Core.Stmt := (
 /-- `__loop2`: statements 308 to 328 of the body. -/
 noncomputable def c6 : List Core.Stmt := [
   .atom (.add (.n 100525) (.n 100512) (.n 98)),
-  .atom (.const (.n 100526) (word 0 9223372036854775808 0)),
+  .atom (.const (.n 100526) (word 0 9223372036854775808)),
   .atom (.add (.n 100527) (.n 100519) (.n 100526)),
   .atom (.keccak [.n 100524, .n 100525, .n 100513, .n 100514, .n 100515, .n 100516, .n 100517, .n 100518, .n 100527, .n 100520, .n 100521, .n 100522, .n 100523] [.n 100528] true false),
-  .atom (.const (.n 100529) (word 9223372036854810629 0 0)),
+  .atom (.const (.n 100529) (word 9223372036854810629 0)),
   .atom (.rangeCheck (.n 73) (.n 100530) (.n 100531) (.n 100532) (.n 100529)),
-  .atom (.const (.n 100533) (word 9223372036854775808 0 0)),
+  .atom (.const (.n 100533) (word 9223372036854775808 0)),
   .match_ (.n 73) (
     s315_a0 ::
     s315_a1 ::
@@ -8852,9 +8852,9 @@ noncomputable def c6 : List Core.Stmt := [
     s315_a254 ::
     s315_a255 ::
     []),
-  .atom (.const (.n 112821) (word 9223372036854810629 0 0)),
+  .atom (.const (.n 112821) (word 9223372036854810629 0)),
   .atom (.rangeCheck (.n 74) (.n 112822) (.n 112823) (.n 112824) (.n 112821)),
-  .atom (.const (.n 112825) (word 9223372036854775808 0 0)),
+  .atom (.const (.n 112825) (word 9223372036854775808 0)),
   .match_ (.n 74) (
     s319_a0 ::
     s319_a1 ::
@@ -9115,10 +9115,10 @@ noncomputable def c6 : List Core.Stmt := [
     []),
   .atom (.load (.n 120763) (.n 65) 0),
   .atom (.assertEq (.n 112857) (.n 120763)),
-  .atom (.const (.n 120764) (word 2 0 0)),
+  .atom (.const (.n 120764) (word 2 0)),
   .atom (.mul (.n 120765) (.n 0) (.n 120764)),
   .atom (.add (.n 120766) (.n 120765) (.n 1)),
-  .atom (.const (.n 120767) (word 2 0 0)),
+  .atom (.const (.n 120767) (word 2 0)),
   .atom (.mul (.n 120768) (.n 0) (.n 120767)),
   .callIf (.n 120766) "__loop2" (.n 120768 :: .n 1 :: .n 2 :: .n 3 :: .n 4 :: .n 5 :: .n 6 :: .n 7 :: .n 8 :: .n 9 :: .n 10 :: .n 11 :: .n 12 :: .n 13 :: .n 14 :: .n 15 :: .n 16 :: .n 17 :: .n 18 :: .n 19 :: .n 20 :: .n 21 :: .n 22 :: .n 23 :: .n 24 :: .n 25 :: .n 26 :: .n 27 :: .n 28 :: .n 29 :: .n 30 :: .n 31 :: .n 32 :: .n 33 :: .n 34 :: .n 35 :: .n 36 :: .n 37 :: .n 38 :: .n 39 :: .n 40 :: .n 41 :: .n 42 :: .n 43 :: .n 44 :: .n 45 :: .n 46 :: .n 47 :: .n 48 :: .n 49 :: .n 50 :: .n 51 :: .n 52 :: .n 53 :: .n 54 :: .n 55 :: []),
   .ret []]

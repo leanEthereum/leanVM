@@ -17,7 +17,7 @@ The deployed verifier (`LeanVM.Protocol.Verifier`, leanVM `40f877dc`,
 `crates/verifier/src/whir.rs:197-211`, `multilinear.rs:6-19, 45-59`)
 reduces an opened row of `2^ℓ` lanes with the equality kernel of the level's fold challenges,
 `dot(row, eq_kernel(folds))`, and evaluates the final residual table with `multilinear_eval`.
-Both are the integer-indexed fold `foldsN` of `LeanVM.Protocol.Whir.Sound.Code`, the first
+Both are the integer-indexed fold `foldsN`, the first
 challenge binding the low bit:
 
 * `foldsN_eq_sum`: `foldsN s O i = Σ_{j < 2^|s|} eq(s, j)·O(i·2^|s| + j)`, with `eqB s j` the
@@ -36,6 +36,16 @@ namespace LeanVM.Protocol.Whir.Sound
 open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir Finset
 
 @[expose] public section
+
+/-! ## Integer-indexed folds -/
+
+/-- One fold of an integer-indexed lane oracle on the low lane bit. -/
+def foldN {ι : Type*} (s : E) (O : ℕ → ι → E) : ℕ → ι → E :=
+  fun j x ↦ (1 - s) * O (2 * j) x + s * O (2 * j + 1) x
+
+/-- The folds of a list of challenges, first challenge first. -/
+def foldsN {ι : Type*} (s : List E) (O : ℕ → ι → E) : ℕ → ι → E :=
+  s.foldl (fun O c ↦ foldN c O) O
 
 /-! ## Equality weights of integer indices -/
 

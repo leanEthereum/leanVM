@@ -87,7 +87,7 @@ pub fn dot(left: &[E], right: &[E]) -> E {
 
 /// `pad_n(point)`, the multilinear extension of `[z >= n]`, `n <= 2^len(point)` (lemma lem:suffix).
 pub fn padding_weight(point: &[E], n: u64) -> E {
-    let bit = |k: usize| E::new(n >> k & 1, 0, 0);
+    let bit = |k: usize| E::new(n >> k & 1, 0);
     let low = point
         .iter()
         .enumerate()
@@ -144,5 +144,5 @@ pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
 }
 
 fn selector_point(selector: u64, length: usize) -> Vec<E> {
-    (0..length).map(|bit| E::new(selector >> bit & 1, 0, 0)).collect()
+    (0..length).map(|bit| E::new(selector >> bit & 1, 0)).collect()
 }

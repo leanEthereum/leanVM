@@ -102,7 +102,7 @@ def trackE : ℕ := 2 ^ 20
 
 /-- A constant word is `g^e`: the word `2^e` below the first reduction, by digits above. -/
 def constOk (w : E) (e : ℕ) : Bool :=
-  decide (e < 2 ^ 20) && decide (w.limb 1 = 0) && decide (w.limb 2 = 0) &&
+  decide (e < 2 ^ 20) && decide (w.limb 1 = 0) &&
     (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = Pow.gpowW e))
 
 /-- A value's entry, its index compared first. -/

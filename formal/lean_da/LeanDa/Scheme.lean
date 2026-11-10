@@ -8,8 +8,8 @@ public import LeanDa.WithHash
 /-!
 # LeanDA
 
-The erasure code commitment of `crates/lean_da` at leanVM
-main `40f877dc2c858f013c5974ab71ca594b31a7aec9`, specified in `doc/leanvm/body/10-ethereum.tex`
+The erasure code commitment of `crates/lean_da` at the leanVM commit `formal/leanvm-rev` names,
+specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:13-37`). A row's payload is `2^14` symbols of `K`, the evaluations on
@@ -85,7 +85,7 @@ variable (H : List UInt8 → Common.DigestBytes)
   (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
 
 /-- **The challenge of a root** with a pure hash and permutation (`membership_challenge`). -/
-def membershipChallenge (root : Common.DigestBytes) : E :=
+def membershipChallenge (root : Common.DigestBytes) : Option E :=
   Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
 /-! ## The dual codeword as the guest builds it (`membership.rs:22-56`) -/

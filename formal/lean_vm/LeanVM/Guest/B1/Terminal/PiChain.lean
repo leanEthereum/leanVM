@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.PiChain
 
-  The public input's chain of `check_opening_terminal` (G:3245-3250): `__loop14` and the products
+  The public input's chain of `check_opening_terminal` (G:3471-3476): `__loop14` and the products
   it writes.
 -/
 
@@ -33,9 +33,9 @@ def loop15T : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.mul (.n 6) (.n 3) (.n 0)), .atom (.load (.n 7) (.n 6) 0),
     .atom (.mul (.n 8) (.n 5) (.n 7)), .atom (.mul (.n 9) (.n 2) (.n 0)),
-    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0 0)),
+    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0)),
     .atom (.mul (.n 11) (.n 0) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 1)),
-    .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
+    .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
     .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3], .ret []]
 
 /-- `__loop14`, found by name, has four parameters and the body `loop15T`. -/

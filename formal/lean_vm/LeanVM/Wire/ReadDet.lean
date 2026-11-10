@@ -57,7 +57,7 @@ def encodePhase (ph : PrunedPhase) : Bytes :=
     ph.carried.flatMap fun level ↦ level.flatMap fun carried ↦ digestBytes carried.2
 
 /-- The bytes of a pruned proof, as `Proof.toBytes` writes them: the stream's length, then each
-element as its three words; the number of phases, then each phase (`encodePhase`). -/
+element as its two words; the number of phases, then each phase (`encodePhase`). -/
 def encodePruned (x : List E × List PrunedPhase) : Bytes :=
   Prover.u32Bytes x.1.length ++ x.1.flatMap E.toBytes ++
     Prover.u32Bytes x.2.length ++ x.2.flatMap encodePhase
@@ -171,11 +171,11 @@ theorem drop_paddedLeaf (row : List K) (leafWords : ℕ) :
     (paddedLeaf row leafWords).drop (leafWords - row.length) = row :=
   List.drop_left' (by simp)
 
-/-- The stream's words, regrouped by three into elements as `readProof` does, are written back as
+/-- The stream's words, regrouped by two into elements as `readProof` does, are written back as
 the same words (as `LeanVM.Wire.flatMap_toBytes_regroup`, rtglue's). -/
-theorem stream_flatMap_toBytes (count : ℕ) (words : List K) (hlength : words.length = 3 * count) :
-    ((List.range count).map fun i ↦ E.ofLimbs (words.getD (3 * i) 0) (words.getD (3 * i + 1) 0)
-        (words.getD (3 * i + 2) 0)).flatMap E.toBytes = words.flatMap K.toBytes := by
+theorem stream_flatMap_toBytes (count : ℕ) (words : List K) (hlength : words.length = 2 * count) :
+    ((List.range count).map fun i ↦ E.ofLimbs (words.getD (2 * i) 0)
+        (words.getD (2 * i + 1) 0)).flatMap E.toBytes = words.flatMap K.toBytes := by
   induction count generalizing words with
   | zero =>
     cases words with
@@ -183,14 +183,14 @@ theorem stream_flatMap_toBytes (count : ℕ) (words : List K) (hlength : words.l
     | cons => simp at hlength
   | succ count ih =>
     match words, hlength with
-    | c0 :: c1 :: c2 :: rest, hlength =>
-      have hrest : rest.length = 3 * count := by simp at hlength; omega
+    | c0 :: c1 :: rest, hlength =>
+      have hrest : rest.length = 2 * count := by simp at hlength; omega
       rw [List.range_succ_eq_map, List.map_cons, List.map_map]
       simp only [List.flatMap_cons]
       rw [← ih rest hrest]
-      have hshift : ∀ i j, (c0 :: c1 :: c2 :: rest).getD (3 * (i + 1) + j) 0 =
-          rest.getD (3 * i + j) 0 := fun i j ↦ by
-        rw [show 3 * (i + 1) + j = (3 * i + j) + 1 + 1 + 1 by omega]
+      have hshift : ∀ i j, (c0 :: c1 :: rest).getD (2 * (i + 1) + j) 0 =
+          rest.getD (2 * i + j) 0 := fun i j ↦ by
+        rw [show 2 * (i + 1) + j = (2 * i + j) + 1 + 1 by omega]
         simp only [List.getD_cons_succ]
       have hshift0 := fun i ↦ hshift i 0
       simp only [Nat.add_zero] at hshift0

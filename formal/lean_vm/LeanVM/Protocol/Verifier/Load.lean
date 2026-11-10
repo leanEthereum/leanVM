@@ -26,8 +26,8 @@ open LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile.Rom
 
 /-! ## The serializers -/
 
-/-- The 24 bytes of a scalar (`E.to_bytes`). -/
-def eBytes (x : E) : Bytes := K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1) ++ K.toBytes (x.limb 2)
+/-- The 16 bytes of a scalar (`E.to_bytes`): its two limbs'. -/
+def eBytes (x : E) : Bytes := K.toBytes (x.limb 0) ++ K.toBytes (x.limb 1)
 
 /-- The stream's bytes. -/
 def encodeScalars (xs : List E) : Bytes := xs.flatMap eBytes

@@ -26,26 +26,28 @@ pub use field::{E, K};
 pub use layout::TAG;
 pub use merkle::MerklePath;
 pub use transcript::Proof;
-pub use whir::whir_queries;
+pub use transcript::SECURITY_BITS;
+pub use whir::{
+    BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, OOD_SAMPLES, QUERY_GRINDING_BITS, whir_queries,
+};
 
-use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
+use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
 use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{
-    GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES,
-    OP_KECCAK, QKECCAK, build_layout,
+    GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MIN_STACKED_LOG, N_TABLES, OP_KECCAK,
+    QKECCAK, build_layout,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
-use transcript::Transcript;
+use transcript::{Transcript, grinding_bits};
 use whir::verify_whir;
 
 /// Why a proof was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VerifierError {
-    DigestHalf,
     MultilinearSize,
     NotPowerOfTwo,
     StreamExhausted,
@@ -59,11 +61,14 @@ pub enum VerifierError {
     /// The GKR layer whose children do not match its sumcheck.
     GkrLayer(usize),
     BusCountZero,
+    BytecodeShare,
+    BytecodeValue,
     TableSumcheckTerminal,
     AnnouncedTableSizes,
     WhirShape,
     QueryCountLadder,
     InducedBasisDimensions,
+    WhirFinalQuery,
     WhirTerminal,
     WhirNoTerminalLevel,
     KeccakProduct,
@@ -73,12 +78,12 @@ pub enum VerifierError {
     AnnouncedHighLimb,
     PcsInverseRate,
     CommittedSize,
+    StackedClaims,
 }
 
 impl std::fmt::Display for VerifierError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            Self::DigestHalf => "a digest half is 128-bit",
             Self::MultilinearSize => "multilinear table has the wrong size",
             Self::NotPowerOfTwo => "expected a power of two",
             Self::StreamExhausted => "proof stream exhausted",
@@ -91,11 +96,14 @@ impl std::fmt::Display for VerifierError {
             Self::MerkleNotConsumed => "Merkle openings not fully consumed",
             Self::GkrLayer(layer) => return write!(f, "GKR layer {layer}: children do not match the sumcheck"),
             Self::BusCountZero => "a bus count is zero",
+            Self::BytecodeShare => "bytecode sumcheck terminal mismatch",
+            Self::BytecodeValue => "bytecode evaluation mismatch",
             Self::TableSumcheckTerminal => "table sumcheck terminal mismatch",
             Self::AnnouncedTableSizes => "invalid announced table sizes",
             Self::WhirShape => "invalid WHIR shape",
             Self::QueryCountLadder => "tabulated query count does not match the ladder",
             Self::InducedBasisDimensions => "bad induced-basis dimensions",
+            Self::WhirFinalQuery => "WHIR final query does not match the final polynomial",
             Self::WhirTerminal => "WHIR terminal check failed",
             Self::WhirNoTerminalLevel => "WHIR verification ended without a terminal level",
             Self::KeccakProduct => "Keccak product polynomial does not carry the claim",
@@ -105,6 +113,7 @@ impl std::fmt::Display for VerifierError {
             Self::AnnouncedHighLimb => "announced size has a nonzero high limb",
             Self::PcsInverseRate => "invalid PCS inverse rate",
             Self::CommittedSize => "committed size outside the PCS window",
+            Self::StackedClaims => "too many stacked claims",
         };
         f.write_str(message)
     }
@@ -116,11 +125,18 @@ fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
     if condition { Ok(()) } else { Err(error) }
 }
 
+/// The stacked opening's batching is accounted for up to this many claims, the ring-switched one included. The count
+/// follows from the announced shape, so a replay checks it too, like the committed size.
+const MAX_STACKED_CLAIMS: usize = 512;
+
 /// The weight a claim puts on the stack, and the value it claims for it.
 type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
 
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
+///
+/// The challenge is drawn right after the ring switch's map challenges, one verifier message under their one grind
+/// (`BATCH_GRINDING_BITS`), so it takes no grind of its own.
 fn verify_stacked_opening(
     transcript: &mut Transcript,
     root: Digest,
@@ -129,6 +145,7 @@ fn verify_stacked_opening(
     claims: &[StackClaim],
 ) -> Result<(), VerifierError> {
     let values: Vec<E> = claims.iter().map(|(_, value)| *value).collect();
+    require(claims.len() <= MAX_STACKED_CLAIMS, VerifierError::StackedClaims)?;
     let scales = powers(transcript.sample(), claims.len());
     let evaluate_basis = |point: &[E]| {
         let weights: Vec<E> = claims.iter().map(|(weight, _)| weight(point)).collect();
@@ -138,6 +155,15 @@ fn verify_stacked_opening(
     verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
 }
 
+/// The level-0 OOD sample, read right after the commitment root: a grind, a point `z` of the stack's variables, then
+/// the stack's multilinear at `z`. Its claim follows every other.
+fn read_ood(transcript: &mut Transcript, stack_log: usize) -> Result<StackClaim<'static>, VerifierError> {
+    transcript.grind_check(OOD_GRINDING_BITS)?;
+    let z = transcript.samples(stack_log);
+    let value = transcript.next_scalar()?;
+    Ok((Box::new(move |x| eq_eval(&z, x)), value))
+}
+
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Summary {
@@ -145,7 +171,7 @@ pub struct Summary {
     pub log_memory: usize,
     pub table_rows: Vec<u64>,
     pub log_inv_rate: usize,
-    /// Where the bus reads the stacked bytecode. Its value there is the claim an aggregate defers.
+    /// Where the bus's bytecode sumcheck leaves the stacked bytecode, `(zeta_low, r)`. Its value there is the claim an aggregate defers.
     pub bytecode_point: Vec<E>,
     /// The stream positions the Keccak reduction reads.
     pub keccak_scalars: Range<usize>,
@@ -166,7 +192,7 @@ pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 /// Exposed for the Keccak reduction's benchmark and tests: a batch of `2^log_steps` permutations proved alone, a state
 /// committed every `depth` rounds, the committed states the whole stack.
 ///
-/// The proof is the commitment root, the output lanes claimed at a challenge point, the reduction, then the ring
+/// The proof is the commitment root and its OOD sample, the output lanes claimed at a challenge point, the reduction, then the ring
 /// switch and its opening, as in an execution proof. Its public input is the shape, the words `log_steps`, `depth`,
 /// `log_inv_rate` and zero, so a proof of one shape verifies for no other.
 pub fn verify_keccak_batch(
@@ -197,16 +223,20 @@ pub fn verify_keccak_batch(
     }
     let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
     let halves = transcript.next_scalars(2)?;
-    let root = Digest::from_halves(halves[0], halves[1])?;
+    let root = Digest::from_halves(halves[0], halves[1]);
+    let ood = read_ood(&mut transcript, stack_log)?;
+    // The instance pins the committed middle states, a multilinear identity of degree `log_steps` in it.
+    transcript.grind_check(grinding_bits(log_steps as u128))?;
     let instance = transcript.samples(log_steps);
     let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
-    let (target, weight) = ring_switch(point, &slices, &mut transcript);
+    let (target, weight) = ring_switch(point, &slices, &mut transcript)?;
     let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
     }
+    claims.push(ood);
     verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
     Ok(())
@@ -219,7 +249,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // 1] memory log-size, table row counts, and log-inv-rate in WHIR
     let announced = transcript.next_scalars(2 + N_TABLES)?;
     require(
-        announced.iter().all(|value| value.c1 == 0 && value.c2 == 0),
+        announced.iter().all(|value| value.c1 == 0),
         VerifierError::AnnouncedHighLimb,
     )?;
     let log_memory = announced[0].c0;
@@ -232,18 +262,23 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         VerifierError::CommittedSize,
     )?;
 
-    // 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).
+    // 2] parse WHIR commitment: one Merkle root (its OOD sample follows, outside the PCS).
     let halves = transcript.next_scalars(2)?;
-    let root = Digest::from_halves(halves[0], halves[1])?;
+    let root = Digest::from_halves(halves[0], halves[1]);
+    let ood = read_ood(&mut transcript, layout.stack_log)?;
 
-    // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table a degree-2 claim.
+    // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table
+    // a degree-2 claim per tree.
     let bus = verify_bus_balance(&layout, &mut transcript)?;
 
-    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the three
-    // leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
-    let xi = transcript.sample();
+    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the
+    // trees' leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its
+    // constraints, then one power per bus tree, shared by every table. The batch is degree n_powers - 1 in xi.
     let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
-    let xi_powers = powers(xi, n_constraints + 3); // one power per constraint, then one per bus side, shared by every table
+    let n_powers = n_constraints + N_TREES;
+    transcript.grind_check(grinding_bits(n_powers as u128 - 1))?;
+    let xi = transcript.sample();
+    let xi_powers = powers(xi, n_powers);
     let (constraint_powers, form_powers) = xi_powers.split_at(n_constraints);
     let target = dot(form_powers, &bus.totals);
     let evaluations = table_sumcheck(
@@ -266,13 +301,13 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     }
 
     // 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
-    // evaluates itself, so the prover sends nothing. Both public words are 128-bit, so the top limb's claim is zero.
+    // evaluates itself, so the prover sends nothing. A line: numerator one, no grind.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
     let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
     public_point[0] = public_challenge;
-    let public_pairs = [(first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)];
-    for (column, (low, high)) in [MEMORY_0, MEMORY_1, MEMORY_2].into_iter().zip(public_pairs) {
+    let public_pairs = [(first.c0, second.c0), (first.c1, second.c1)];
+    for (column, (low, high)) in [MEMORY_0, MEMORY_1].into_iter().zip(public_pairs) {
         claims.push(ColumnClaim {
             column,
             point: public_point.clone(),
@@ -301,7 +336,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
 
     // 7] Ring-switching
     let (point, slices) = openings.inputs;
-    let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript);
+    let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript)?;
     // That claim is supported on q_keccak's region of the stack, so its weight carries the
     // placement's selector, and it leads the batch, taking the first power.
     let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
@@ -311,6 +346,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     );
     let mut stack_claims = vec![ringswitch];
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
+    stack_claims.push(ood);
     verify_stacked_opening(
         &mut transcript,
         root,

@@ -3,7 +3,7 @@
 //! Position `j = z + 64 * (x + 5 * y)` is bit `z` of lane `x + 5 * y`. A round is the linear map
 //! `theta, rho, pi`, then `chi`, then `iota`.
 
-use primitives::field::F192;
+use primitives::field::F128;
 pub use primitives::hash::STATE_LANES as LANES;
 use primitives::hash::{PI, RC, RHO, ROUNDS};
 
@@ -56,17 +56,17 @@ pub fn linear<T: Copy + Default>(a: &[T], out: &mut [T], xor: impl Fn(T, T) -> T
 }
 
 /// The transpose of [`linear`] on weight vectors: `<w, linear(a)> = <linear_transpose(w), a>`.
-pub fn linear_transpose(w: &[F192]) -> Vec<F192> {
+pub fn linear_transpose(w: &[F128]) -> Vec<F128> {
     assert_eq!(w.len(), BITS);
     // The weight each position of `theta`'s output carries.
-    let mut g = vec![F192::ZERO; BITS];
+    let mut g = vec![F128::ZERO; BITS];
     for lane in 0..LANES {
         let rot = RHO[lane] as usize;
         for z in 0..64 {
             g[64 * lane + z] = w[64 * PI[lane] + (z + rot) % 64];
         }
     }
-    let mut columns = vec![F192::ZERO; 320];
+    let mut columns = vec![F128::ZERO; 320];
     for lane in 0..LANES {
         for z in 0..64 {
             columns[64 * (lane % 5) + z] += g[64 * lane + z];
@@ -113,7 +113,7 @@ mod tests {
         let w = rng.ext_vec(BITS);
         let mut u = vec![false; BITS];
         linear(&a, &mut u, |a, b| a ^ b);
-        let dot = |w: &[F192], a: &[bool]| w.iter().zip(a).filter(|&(_, &a)| a).map(|(&w, _)| w).sum::<F192>();
+        let dot = |w: &[F128], a: &[bool]| w.iter().zip(a).filter(|&(_, &a)| a).map(|(&w, _)| w).sum::<F128>();
         assert_eq!(dot(&w, &u), dot(&linear_transpose(&w), &a));
     }
 }

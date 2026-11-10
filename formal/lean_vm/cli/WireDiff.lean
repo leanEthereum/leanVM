@@ -31,7 +31,7 @@ line is printed for it, in order.
 
 The plain rendering of a proof is the Rust's (`scripts/wire-diff/src/main.rs`): every count a
 little-endian 32-bit word, every word and position a little-endian 64-bit word; the stream's
-length and its elements, each three words `c0, c1, c2`; the number of phases, and for each its
+length and its elements, each two words `c0, c1`; the number of phases, and for each its
 number of paths, and for each path its position, its leaf's length and words, its siblings' count
 and their 32 bytes each. Two proofs are equal exactly when their plain renderings are.
 -/
@@ -49,12 +49,11 @@ def plain (proof : Proof) : List UInt8 :=
   LeanVM.Prover.u32Bytes proof.stream.length ++ proof.stream.flatMap E.toBytes ++
     phasesBytes proof.openings
 
-/-- An `E` word, its limbs `c0, c1, c2`. -/
+/-- An `E` word, its limbs `c0, c1`. -/
 def readE : Read E := fun bytes offset ↦ do
   let (c0, offset) ← readK bytes offset
   let (c1, offset) ← readK bytes offset
-  let (c2, offset) ← readK bytes offset
-  some (E.ofLimbs c0 c1 c2, offset)
+  some (E.ofLimbs c0 c1, offset)
 
 /-- The proof whose plain rendering the bytes are, if they are one. -/
 def fromPlain (bytes : ByteArray) : Option Proof := do
@@ -88,7 +87,7 @@ def encode (input output : String) : IO String := do
       else "encoded roundtrip-differs"
 
 /-- The proof of wire.rs's test `proof_round_trips_through_its_one_encoding`: the stream
-`[F192::new(1, 2, 3)]`, and one phase, `open(4, &[3, 1, 3], 3, node, row)` on the rows
+`[F128::new(1, 2)]`, and one phase, `open(4, &[3, 1, 3], 3, node, row)` on the rows
 `[0, 0, 1], [0, 2, 3], [0, 0, 4], [0, 5, 0]`: each query's position, its row (three words, so
 unpadded), and its siblings, the leaf `q ^ 1` and the node `(q >> 1) ^ 1` above. -/
 def vectorProof : Proof :=
@@ -101,14 +100,14 @@ def vectorProof : Proof :=
     | _, i => keccak256 (digestBytes (leaf (2 * i)) ++ digestBytes (leaf (2 * i + 1)))
   let path (q : ℕ) : Opening :=
     ⟨q, row q, (List.range 2).map fun level ↦ node level ((q >>> level) ^^^ 1)⟩
-  ⟨[E.ofLimbs (K.ofLane 1) (K.ofLane 2) (K.ofLane 3)], [[3, 1, 3].map path]⟩
+  ⟨[E.ofLimbs (K.ofLane 1) (K.ofLane 2)], [[3, 1, 3].map path]⟩
 
 /-- `vector`: the test's assertions on `Proof.toBytes vectorProof`, then its bytes. -/
 def vector (output : String) : IO String := do
   let bytes := vectorProof.toBytes
   let decoded := (Proof.fromBytes (m := Id) permutation bytes).map plain
   let longer := Proof.fromBytes (m := Id) permutation (bytes ++ [0])
-  if bytes.length ≠ (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32 then
+  if bytes.length ≠ (4 + 16) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32 then
     return s!"vector-fails length {bytes.length}"
   if decoded ≠ some (plain vectorProof) then return "vector-fails round trip"
   if longer.isSome then return "vector-fails a byte more decodes"

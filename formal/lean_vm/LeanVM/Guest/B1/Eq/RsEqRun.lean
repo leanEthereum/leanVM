@@ -34,27 +34,27 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The expansion of `rs_eq_run`. -/
 def rsBody : List Stmt :=
   [.atom (.hint (.bitsExp (.n 3) 6 (.stack [.n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))),
-    .atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.const (.n 10) (word 1 0 0)),
-    .atom (.const (.n 11) (word 3 0 0)), .atom (.mul (.n 12) (.n 4) (.n 11)),
+    .atom (.mul (.n 4) (.n 4) (.n 4)), .atom (.const (.n 10) (word 1 0)),
+    .atom (.const (.n 11) (word 3 0)), .atom (.mul (.n 12) (.n 4) (.n 11)),
     .atom (.add (.n 13) (.n 10) (.n 12)), .atom (.mul (.n 5) (.n 5) (.n 5)),
-    .atom (.const (.n 14) (word 1 0 0)), .atom (.const (.n 15) (word 5 0 0)),
+    .atom (.const (.n 14) (word 1 0)), .atom (.const (.n 15) (word 5 0)),
     .atom (.mul (.n 16) (.n 5) (.n 15)), .atom (.add (.n 17) (.n 14) (.n 16)),
     .atom (.mul (.n 18) (.n 13) (.n 17)), .atom (.mul (.n 6) (.n 6) (.n 6)),
-    .atom (.const (.n 19) (word 1 0 0)), .atom (.const (.n 20) (word 17 0 0)),
+    .atom (.const (.n 19) (word 1 0)), .atom (.const (.n 20) (word 17 0)),
     .atom (.mul (.n 21) (.n 6) (.n 20)), .atom (.add (.n 22) (.n 19) (.n 21)),
     .atom (.mul (.n 23) (.n 18) (.n 22)), .atom (.mul (.n 7) (.n 7) (.n 7)),
-    .atom (.const (.n 24) (word 1 0 0)), .atom (.const (.n 25) (word 3 0 0)),
+    .atom (.const (.n 24) (word 1 0)), .atom (.const (.n 25) (word 3 0)),
     .atom (.mul (.n 26) (.n 7) (.n 25)), .atom (.add (.n 27) (.n 24) (.n 26)),
-    .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.const (.n 28) (word 1 0 0)),
-    .atom (.const (.n 29) (word 5 0 0)), .atom (.mul (.n 30) (.n 8) (.n 29)),
+    .atom (.mul (.n 8) (.n 8) (.n 8)), .atom (.const (.n 28) (word 1 0)),
+    .atom (.const (.n 29) (word 5 0)), .atom (.mul (.n 30) (.n 8) (.n 29)),
     .atom (.add (.n 31) (.n 28) (.n 30)), .atom (.mul (.n 32) (.n 27) (.n 31)),
-    .atom (.mul (.n 9) (.n 9) (.n 9)), .atom (.const (.n 33) (word 1 0 0)),
-    .atom (.const (.n 34) (word 17 0 0)), .atom (.mul (.n 35) (.n 9) (.n 34)),
+    .atom (.mul (.n 9) (.n 9) (.n 9)), .atom (.const (.n 33) (word 1 0)),
+    .atom (.const (.n 34) (word 17 0)), .atom (.mul (.n 35) (.n 9) (.n 34)),
     .atom (.add (.n 36) (.n 33) (.n 35)), .atom (.mul (.n 37) (.n 32) (.n 36)),
     .atom (.mul (.n 38) (.n 37) (.n 37)), .atom (.mul (.n 39) (.n 38) (.n 38)),
     .atom (.mul (.n 40) (.n 39) (.n 39)), .atom (.mul (.n 41) (.n 40) (.n 23)),
-    .atom (.assertEq (.n 41) (.n 3)), .atom (.const (.n 42) (word 1 0 0)),
-    .atom (.add (.n 43) (.n 42) (.n 37)), .atom (.const (.n 44) (word 1 0 0)),
+    .atom (.assertEq (.n 41) (.n 3)), .atom (.const (.n 42) (word 1 0)),
+    .atom (.add (.n 43) (.n 42) (.n 37)), .atom (.const (.n 44) (word 1 0)),
     .callIf (.n 43) "__loop5" [.n 44, .n 37, .n 0, .n 1, .n 2],
     .atom (.mul (.n 45) (.n 37) (.n 37)), .atom (.mul (.n 46) (.n 45) (.n 45)),
     .atom (.mul (.n 47) (.n 46) (.n 46)), .atom (.mul (.n 48) (.n 37) (.n 37)),
@@ -67,13 +67,13 @@ def rsBody : List Stmt :=
       [.n 57],
     .atom (.copy (.n 58) (.n 57)), .ret [.n 58]]
 
-theorem core6_body : Fn.body Data.core6 = rsBody := stmtsEqb_sound (by decide +kernel)
+theorem core5_body : Fn.body Data.core5 = rsBody := stmtsEqb_sound (by decide +kernel)
 
-theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some Data.core6 :=
-  Program.find?_of_indexOf? (j := 6) (by decide +kernel) rfl
+theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some Data.core5 :=
+  Program.find?_of_indexOf? (j := 5) (by decide +kernel) rfl
 
-theorem rs_consts : word 3 0 0 = gen ^ 2 ^ 0 + 1 ∧ word 5 0 0 = gen ^ 2 ^ 1 + 1 ∧
-    word 17 0 0 = gen ^ 2 ^ 2 + 1 :=
+theorem rs_consts : word 3 0 = gen ^ 2 ^ 0 + 1 ∧ word 5 0 = gen ^ 2 ^ 1 + 1 ∧
+    word 17 0 = gen ^ 2 ^ 2 + 1 :=
   ⟨word_gpow_one 0 (by norm_num) 3 (by decide), word_gpow_one 1 (by norm_num) 5 (by decide),
     word_gpow_one 2 (by norm_num) 17 (by decide)⟩
 
@@ -292,8 +292,8 @@ theorem chunk_of_meaning {rd : Reader} {chain z p ret : E} {n t : ℕ} (hn : 0 <
 theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "rs_eq_run" args rets) : MeaningRsEqRun rd args rets := by
   obtain ⟨w3, w5, w17⟩ := rs_consts
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core6 = [.n 0, .n 1, .n 2, .n 3] from rfl,
-    core6_body, rsBody] at h
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3] from rfl,
+    core5_body, rsBody] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and] at h
   obtain ⟨σ, hp, b0, h10, h11, h12, h13, b1, h14, h15, h16, h17, h18, b2, h19, h20, h21, h22, h23,
     b3, h24, h25, h26, h27, b4, h28, h29, h30, h31, h32, b5, h33, h34, h35, h36, h37, h38, h39,
@@ -431,13 +431,13 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   -- the valuation
   let b : ℕ → E := fun j ↦ bitE (r.testBit j)
   let b' : ℕ → E := fun j ↦ bitE (q.testBit j)
-  let u13 := word 1 0 0 + b 0 * word 3 0 0
-  let u17 := word 1 0 0 + b 1 * word 5 0 0
-  let u22 := word 1 0 0 + b 2 * word 17 0 0
+  let u13 := word 1 0 + b 0 * word 3 0
+  let u17 := word 1 0 + b 1 * word 5 0
+  let u22 := word 1 0 + b 2 * word 17 0
   let u23 := u13 * u17 * u22
-  let u27 := word 1 0 0 + b' 0 * word 3 0 0
-  let u31 := word 1 0 0 + b' 1 * word 5 0 0
-  let u36 := word 1 0 0 + b' 2 * word 17 0 0
+  let u27 := word 1 0 + b' 0 * word 3 0
+  let u31 := word 1 0 + b' 1 * word 5 0
+  let u36 := word 1 0 + b' 2 * word 17 0
   let u37 := u27 * u31 * u36
   let s40 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
   let t47 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
@@ -445,11 +445,11 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   let t53 := t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50))
   let res := chain * gen ^ (64 * ((count + 7) / 8))
   let w : List E := [chain, z, p, gen ^ count, b 0, b 1, b 2, b' 0, b' 1, b' 2,
-    word 1 0 0, word 3 0 0, b 0 * word 3 0 0, u13, word 1 0 0, word 5 0 0, b 1 * word 5 0 0, u17,
-    u13 * u17, word 1 0 0, word 17 0 0, b 2 * word 17 0 0, u22, u23,
-    word 1 0 0, word 3 0 0, b' 0 * word 3 0 0, u27, word 1 0 0, word 5 0 0, b' 1 * word 5 0 0, u31,
-    u27 * u31, word 1 0 0, word 17 0 0, b' 2 * word 17 0 0, u36, u37,
-    u37 * u37, u37 * u37 * (u37 * u37), s40, s40 * u23, word 1 0 0, word 1 0 0 + u37, word 1 0 0,
+    word 1 0, word 3 0, b 0 * word 3 0, u13, word 1 0, word 5 0, b 1 * word 5 0, u17,
+    u13 * u17, word 1 0, word 17 0, b 2 * word 17 0, u22, u23,
+    word 1 0, word 3 0, b' 0 * word 3 0, u27, word 1 0, word 5 0, b' 1 * word 5 0, u31,
+    u27 * u31, word 1 0, word 17 0, b' 2 * word 17 0, u36, u37,
+    u37 * u37, u37 * u37 * (u37 * u37), s40, s40 * u23, word 1 0, word 1 0 + u37, word 1 0,
     u37 * u37, u37 * u37 * (u37 * u37), t47, u37 * u37, u37 * u37 * (u37 * u37), t50, t50 * t50,
     t50 * t50 * (t50 * t50), t53, chain * t53, z * t47, p * t47, res, res]
   have e23 : u23 = gen ^ r := by
@@ -465,8 +465,8 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   have e53 : t53 = gen ^ (64 * q) := by
     show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
     rw [e50]; ring
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core6 = [.n 0, .n 1, .n 2, .n 3] from rfl,
-    core6_body, rsBody]
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params Data.core5 = [.n 0, .n 1, .n 2, .n 3] from rfl,
+    core5_body, rsBody]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
   refine ⟨Val.ofArgs w, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm,
     rfl, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
@@ -477,9 +477,9 @@ theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqR
   · show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) * u23 + gen ^ count = 0
     rw [e_add_eq_zero_iff, e23, e37, show count = 8 * q + r by omega]
     ring
-  · show IsInK (word 1 0 0 + u37)
+  · show IsInK (word 1 0 + u37)
     rw [word_one, e37]; exact hloop.1
-  · show word 1 0 0 + u37 ≠ 0 → coreProgram.Rel rd "__loop5" [word 1 0 0, u37, chain, z, p] []
+  · show word 1 0 + u37 ≠ 0 → coreProgram.Rel rd "__loop5" [word 1 0, u37, chain, z, p] []
     rw [word_one, e37]; exact hloop.2
   · show u23 = _
     rw [e23, gen_pow_eq_ofK]

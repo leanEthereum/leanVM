@@ -38,7 +38,8 @@ def mulk(a, b):
 GWINV = {}
 for d in range(6000):
     GWINV.setdefault(str(gpow(d)), d)
-BASES = {13: "caps", 15: "flags", 21: "fold_challenges", 29: "query_win_ptrs", 161: "ood_z"}
+BASES = {11: "caps", 13: "flags", 19: "fold_challenges", 21: "round_coefs", 27: "level_hs", 29: "ood_z",
+         33: "query_positions", 35: "query_win_ptrs"}
 MUL = re.compile(r"\s*%#0(?:\[(\d+)\])? = %#0(?:\[(\d+)\])? \* %#0(?:\[(\d+)\])?$")
 CST = re.compile(r"\s*%#0(?:\[(\d+)\])? = (\d+)$")
 
@@ -87,8 +88,9 @@ module
 # The shifted pointers `open_stacked` materializes from earlier ones
 
 `osMatPlan m`: the triples `(base, exp, src)` of candidate `m`: the compiler materializes the
-pointer `base·g^exp` (the value `base` one of `merkle_caps` 13, `merkle_cap_active` 15,
-`fold_challenges` 21, `query_win_ptrs` 29, `ood_z` 161) from its materialization `base·g^src`
+pointer `base·g^exp` (the value `base` one of `merkle_caps` 11, `merkle_cap_active` 13,
+`fold_challenges` 19, `round_coefs` 21, `level_hs` 27, `ood_z` 29, `query_positions` 33,
+`query_win_ptrs` 35) from its materialization `base·g^src`
 (`materialize`, `Guest/Expand.lean`: from the nearest earlier one whose distance is a constant
 already set). The template (`osMatP`) follows it; `Whir/Data*.lean` check the result.
 -/

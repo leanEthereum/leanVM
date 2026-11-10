@@ -30,7 +30,7 @@ Keccak-f[1600] random oracles, accepts while the proof's stream begins with the 
 cells of fewer than `M` children of the bytecode's shapes one of whose claims is false
 (`SomeChildClaimFalse`) is at most `(QA + QV) · (2/|E| + 5 (QA + QV) / 2^256)`, `QV` the program's
 query bound (`batchingQueryBound`). `batch_rom_bits`: for `QA + QV ≤ 2^64` that is at most
-`(QA + QV) · 2^-189`.
+`(QA + QV) · max(M, 1) · 2^-126`.
 
 With `runProof_batchAny`, the program is `Node.batch` with its final check that the deferred
 claim holds; so the bound is that of the batching itself, Keccak-256 and Keccak-f[1600] modelled
@@ -176,24 +176,30 @@ theorem eq_of_flatMap_childCells {bytecode : List K} :
     rw [Option.some.inj hc, eq_of_flatMap_childCells (fun x hx ↦ hs x (List.mem_cons_of_mem _ hx))
       (fun x hx ↦ hs' x (List.mem_cons_of_mem _ hx)) h2]
 
-/-! ## The batching after its children: no proof of work -/
+/-! ## The batching after its children: one proof of work, before `λ` -/
 
-theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), MovesOK (· ≤ 64) False (sumcheckRoundsProgram claim k)
+/-- The moves a batching's part allows: no commitment, every proof of work of at most `64` bits
+and followed by a challenge, no return right after one. -/
+abbrev BMoves {α : Type} (p : VerifierProgram α) : Prop :=
+  Moves (· ≤ 64) False (fun _ ↦ True) (fun _ ↦ False) p
+
+theorem movesOK_roundsProg : ∀ (k : ℕ) (claim : E), BMoves (sumcheckRoundsProgram claim k)
   | 0, _ => trivial
-  | k + 1, _ => MovesOK.seq MovesOK.readE fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
-      MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_roundsProg k _) fun _ ↦ trivial
+  | k + 1, _ => Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+      Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' (movesOK_roundsProg k _) fun _ _ ↦ trivial
 
-theorem movesOK_require (q : Prop) (inst : Decidable q) :
-    MovesOK (· ≤ 64) False (@VerifierProgram.require q inst) :=
-  MovesOK.require q
+theorem movesOK_require (q : Prop) (inst : Decidable q) : BMoves (@VerifierProgram.require q inst) :=
+  (Moves.require q).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
 
 theorem movesOK_batchRest (bytecode : List K) (cs : List ChildClaims) :
-    MovesOK (· ≤ 64) False (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) := by
+    BMoves (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs) := by
   unfold batchingAfterChildren
-  refine MovesOK.seq MovesOK.sampleE fun _ ↦ ?_
-  refine MovesOK.seq (movesOK_roundsProg _ _) fun _ ↦ ?_
-  refine MovesOK.seq MovesOK.readE fun _ ↦ ?_
-  exact MovesOK.seq (movesOK_require _ _) fun _ ↦ trivial
+  refine Moves.seq (Moves.grindP fun _ ↦ by decide) (fun _ _ ↦ ?_)
+    (fun _ _ _ ↦ Moves.startsSample_sampleChallenge _)
+  refine Moves.seq' Moves.sampleE fun _ _ ↦ ?_
+  refine Moves.seq' (movesOK_roundsProg _ _) fun _ _ ↦ ?_
+  refine Moves.seq' Moves.readE fun _ _ ↦ ?_
+  exact Moves.seq' (movesOK_require _ _) fun _ _ ↦ trivial
 
 /-! ## The certificate -/
 
@@ -405,12 +411,13 @@ theorem costs_roundsProg : ∀ (k : ℕ) (claim : E), Costs 0 (sumcheckRoundsPro
     refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)
     exact Costs.seq (costs_roundsProg k _) (fun _ _ ↦ trivial) (by omega)
 
-/-- The batching after its children costs `4` for the challenge, `6` per round, and the final
-read. -/
+/-- The batching after its children costs `5` for the proof of work, `4` for the challenge, `6`
+per round, and the final read. -/
 theorem costs_batchRest (bytecode : List K) (cs : List ChildClaims) :
     CostLE 0 (batchingAfterChildren (DeferredClaim.HoldsWithShape bytecode) bytecode cs)
-      (4 + 6 * Nat.log2 bytecode.length + 1) := by
+      (5 + 4 + 6 * Nat.log2 bytecode.length + 1) := by
   unfold batchingAfterChildren
+  refine Costs.seq (Costs.grindP _) (fun _ _ ↦ ?_) (by omega)
   refine Costs.seq Costs.sampleE (fun _ _ ↦ ?_) (by omega)
   refine Costs.seq (costs_roundsProg _ _) (fun _ _ ↦ ?_) (by omega)
   refine Costs.seq Costs.readE (fun _ _ ↦ ?_) (by omega)
@@ -421,7 +428,8 @@ and the rest. -/
 theorem costs_batchAny (M : ℕ) (bytecode : List K) :
     CostLE 0 (boundedBatchingProgram M bytecode)
       (rateScalars + (M * (childWordCount (Nat.log2 bytecode.length) +
-        zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 4 + 6 * Nat.log2 bytecode.length + 1)) :=
+        zerosToWholeRate (childWordCount (Nat.log2 bytecode.length))) + 5 + 4 + 6 * Nat.log2 bytecode.length +
+          1)) :=
   Costs.bind (costs_readCount M) fun n hn ↦
     (Costs.bind (costs_readChildren _ n) fun cs _ ↦ costs_batchRest bytecode cs).mono
       (by nlinarith) fun _ h ↦ h
@@ -448,10 +456,14 @@ theorem xrun_reads (H : Bytes → Option Digest) (F : KeccakState → Option Kec
     case read k =>
       obtain ⟨t, ht⟩ := hl
       simp only [xrun, ← ht, List.cons_append] at hx
-      obtain ⟨sp, -, hx⟩ := Option.bind_eq_some_iff.mp hx
-      have := xrun_reads H F l (k x) _ _ (by simpa [VerifierProgram.after] using ha)
-        (List.prefix_append l t) hx
-      simpa using this
+      split at hx
+      · rename_i x' xs' heq _
+        obtain ⟨rfl, rfl⟩ := List.cons.inj heq
+        obtain ⟨sp, -, hx⟩ := Option.bind_eq_some_iff.mp hx
+        have := xrun_reads H F l (k _) _ _ (by simpa [VerifierProgram.after] using ha)
+          (List.prefix_append l t) hx
+        simpa using this
+      · simp at hx
     all_goals simp [VerifierProgram.after] at ha
 
 /-- **False children leave a nonzero gap**, `bytecode` of length a power of two. -/
@@ -502,11 +514,11 @@ theorem batch_rom (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M 
 
 /-! ## The bound in bits -/
 
-/-- `2 max(M, 1)/|E| = max(M, 1) · 2^-191`. -/
-theorem batchε_eq_pow (M : ℕ) : batchε M = (max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 191 := by
-  have hc : ∀ inst : Fintype E, @Fintype.card E inst = 2 ^ 192 := fun inst ↦ by
+/-- `2 max(M, 1)/|E| = max(M, 1) · 2^-127`. -/
+theorem batchε_eq_pow (M : ℕ) : batchε M = (max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
+  have hc : ∀ inst : Fintype E, @Fintype.card E inst = 2 ^ 128 := fun inst ↦ by
     convert card_E
-  rw [batchε, hc, inv_pow_eq_div 191 192 (by norm_num), show 192 - 191 = 1 from rfl, pow_one,
+  rw [batchε, hc, inv_pow_eq_div 127 128 (by norm_num), show 128 - 127 = 1 from rfl, pow_one,
     mul_div_assoc']
   push_cast
   ring_nf
@@ -516,48 +528,48 @@ theorem failBound_batchSeeds (N : ℕ) :
     failBound batchSeeds N = ((5 * N : ℕ) : ℝ≥0∞) / 2 ^ 256 := by
   simp [failBound, batchSeeds]
 
-/-- **The batching's error**, explicit: `Q · (max(M, 1) · 2^-191 + 5Q/2^256)` for `Q = QA + QV`
+/-- **The batching's error**, explicit: `Q · (max(M, 1) · 2^-127 + 5Q/2^256)` for `Q = QA + QV`
 queries. -/
 theorem batch_rom_explicit (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
       z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
-      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 191 +
+      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 127 +
         ((5 * (QA + batchingQueryBound bytecode M) : ℕ) : ℝ≥0∞) / 2 ^ 256) := by
   rw [← batchε_eq_pow, ← failBound_batchSeeds]
   exact batch_rom hb hM A QA hA
 
-/-- `m · 2^-191 + 5N/2^256 ≤ m · 2^-189` for `m ≥ 1` and `N ≤ 2^64`. -/
-theorem bits_189 {m N : ℕ} (hm : 1 ≤ m) (hN : N ≤ 2 ^ 64) :
-    (m : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 191 + ((5 * N : ℕ) : ℝ≥0∞) / 2 ^ 256 ≤
-      (m : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 189 := by
+/-- `m · 2^-127 + 5N/2^256 ≤ m · 2^-126` for `m ≥ 1` and `N ≤ 2^64`. -/
+theorem bits_126 {m N : ℕ} (hm : 1 ≤ m) (hN : N ≤ 2 ^ 64) :
+    (m : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 + ((5 * N : ℕ) : ℝ≥0∞) / 2 ^ 256 ≤
+      (m : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 126 := by
   have h2 : (2 : ℝ≥0∞) ^ 256 = ((2 ^ 256 : ℕ) : ℝ≥0∞) := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  rw [h2, inv_pow_eq_div 191 256 (by norm_num), inv_pow_eq_div 189 256 (by norm_num),
+  rw [h2, inv_pow_eq_div 127 256 (by norm_num), inv_pow_eq_div 126 256 (by norm_num),
     ← mul_div_assoc, ← mul_div_assoc, ← Nat.cast_mul, ← Nat.cast_mul,
     ENNReal.div_add_div_same, ← Nat.cast_add]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show 256 - 191 = 65 from rfl, show 256 - 189 = 67 from rfl]
-  have : 5 * N ≤ 3 * m * 2 ^ 65 := by
+  rw [show 256 - 127 = 129 from rfl, show 256 - 126 = 130 from rfl]
+  have : 5 * N ≤ m * 2 ^ 129 := by
     calc 5 * N ≤ 5 * 2 ^ 64 := by omega
-      _ ≤ 3 * 1 * 2 ^ 65 := by norm_num
-      _ ≤ 3 * m * 2 ^ 65 := by gcongr
-  calc m * 2 ^ 65 + 5 * N ≤ m * 2 ^ 65 + 3 * m * 2 ^ 65 := by omega
-    _ = m * 2 ^ 67 := by ring
+      _ ≤ 1 * 2 ^ 129 := by norm_num
+      _ ≤ m * 2 ^ 129 := by gcongr
+  calc m * 2 ^ 129 + 5 * N ≤ m * 2 ^ 129 + m * 2 ^ 129 := by omega
+    _ = m * 2 ^ 130 := by ring
 
 /-- **The batching in the random-oracle model, in bits**: for `Q = QA + QV ≤ 2^64` queries to
 Keccak-256 and Keccak-f[1600] together, the adversary and the batching program's, the program
 accepts fewer than `M` children with a false claim with probability at most
-`Q · max(M, 1) · 2^-189`. -/
+`Q · max(M, 1) · 2^-126`. -/
 theorem batch_rom_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) (hQ : QA + batchingQueryBound bytecode M ≤ 2 ^ 64) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
       z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
-      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 189) := by
+      ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) * ((max M 1 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 126) := by
   refine (batch_rom_explicit hb hM A QA hA).trans ?_
   gcongr
-  exact bits_189 (by omega) hQ
+  exact bits_126 (by omega) hQ
 
 end
 end LeanVM.Guest.Batch

@@ -45,7 +45,8 @@ def minChildStackLog : ℕ := 22
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
 def childVerifierStart (seed : Digest) (child : Child) : VerifierProgramState :=
-  ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), []⟩, child.proof.stream,
+  ⟨⟨keccakF1600 (seedInput seed (statementDigest seed child.statement)), [], none⟩,
+    child.proof.stream,
     child.proof.openings, []⟩
 
 end Coverage
@@ -61,6 +62,17 @@ def verifyDeferredRefusingZero (bytecode : List K) (iv publicInput : Digest)
     (deferringVerifierProgram claim bytecode publicInput).refusingZeroChallenge
     (keccakF1600 (seedInput iv publicInput)) proof)
 
+/-- **The deployed deferring verifier refusing a zero where the guest divides**: the deferring
+verifier with the statement's check that no fold combiner vanishes at a queried point
+(`verifyExecutionRefusingZeroCombiner`) and every sampled challenge `0` a failure. -/
+def verifyDeferredRefusingZeroCombiner (bytecode : List K) (iv publicInput : Digest)
+    (claim : BytecodeClaim) (proof : Proof) : Bool :=
+  Id.run (runProof (m := Id) keccakF1600
+    (do
+      Completeness.verifyExecutionRefusingZeroCombiner (claimedBytecodeValue claim) bytecode publicInput
+      return true : VerifierProgram Bool).refusingZeroChallenge
+    (keccakF1600 (seedInput iv publicInput)) proof)
+
 /-- **The query steps of a run** of the compiled verifier (Keccak-256, Keccak-f[1600]): each
 `query` step as its tree's height and its positions, each with its opening in the phase it
 consumes. -/
@@ -68,32 +80,28 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
     Opening))
   | .ret _, _ => []
   | .fail, _ => []
-  | .read k, state => match state.stream with
-    | [] => []
-    | x :: xs =>
+  | .read k, state => match state.stream, state.sponge.ground with
+    | x :: xs, none =>
       queryStepsOf (k x) { state with
         sponge := Id.run (absorb keccakF1600 state.sponge x dsObserve), stream := xs }
+    | _, _ => []
   | .sample k, state =>
     let (c, sponge) := Id.run (squeeze keccakF1600 state.sponge)
     queryStepsOf (k c) { state with sponge := sponge }
-  | .grind bits k, state => match state.stream with
-    | [] => []
-    | n :: xs =>
-      let (c, sponge) :=
-        Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 state.sponge n dsPowNonce)))
-      if powOk bits n c then queryStepsOf k { state with sponge := sponge, stream := xs } else []
-  | .commit height width k, state => match state.stream with
-    | x0 :: x1 :: xs =>
-      match digestFromHalves (x0, x1) with
-      | some root =>
-        queryStepsOf k { state with
-          sponge :=
-            Id.run (absorb keccakF1600
-              (Id.run (absorb keccakF1600 state.sponge x0 dsObserve)) x1 dsObserve)
-          stream := xs
-          roots := state.roots ++ [(root, height, width)] }
-      | none => []
-    | _ => []
+  | .grind bits k, state => match state.stream, state.sponge.ground with
+    | n :: xs, none =>
+      let (pow, sponge) := Id.run (absorbNonce keccakF1600 state.sponge n)
+      if powOk bits pow then queryStepsOf k { state with sponge := sponge, stream := xs } else []
+    | _, _ => []
+  | .commit height width k, state => match state.stream, state.sponge.ground with
+    | x0 :: x1 :: xs, none =>
+      queryStepsOf k { state with
+        sponge :=
+          Id.run (absorb keccakF1600
+            (Id.run (absorb keccakF1600 state.sponge x0 dsObserve)) x1 dsObserve)
+        stream := xs
+        roots := state.roots ++ [(digestFromHalves (x0, x1), height, width)] }
+    | _, _ => []
   | .query i ps k, state => match state.roots[i]?, state.openings with
     | some (root, height, width), phase :: rest =>
       match Id.run (openPhase (m := Id) keccakF1600 root height width ps phase) with
@@ -147,7 +155,10 @@ each child, `ChildrenProven`'s two conditions and the deployed ones:
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1400, 1709, 1714). -/
+  challenges and each level's batching challenge `λ`, G:1644, 1781, 1787);
+* no vanishing combiner: so does the one also refusing a fold combiner `α + β·x` vanishing at a
+  queried point (`verifyDeferredRefusingZeroCombiner`), by which `opening_query` divides
+  (G:1447-1449). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode
@@ -167,6 +178,10 @@ structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : 
     Limits.OpeningsAgree step.1 step.2
   /-- The deferring verifier refusing a zero challenge accepts its proof. -/
   noZeroChallenge : Limits.verifyDeferredRefusingZero bytecode seed
+    (statementDigest seed child.statement) child.freshClaim child.proof = true
+  /-- The deferring verifier refusing a zero challenge and a vanishing combiner accepts its
+  proof. -/
+  noZeroCombiner : Limits.verifyDeferredRefusingZeroCombiner bytecode seed
     (statementDigest seed child.statement) child.freshClaim child.proof = true
 
 namespace Completeness
@@ -213,7 +228,7 @@ def GuestChildComplete : Prop :=
     statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
     ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
-        (2 ^ 25) =
+        (2 ^ 33) =
       some proof →
     verifierRefusingZero (m := Id) keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧

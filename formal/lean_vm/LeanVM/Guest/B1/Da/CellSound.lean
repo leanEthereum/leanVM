@@ -45,7 +45,7 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
       rw [← atomsEqb_sound htm] at ha
       exact hat a (List.mem_of_mem_drop (List.mem_of_mem_take ha))
     have hC : ∀ a ∈ A.drop 1280, a.Holds rd σ := fun a ha => hat a (List.mem_of_mem_drop ha)
-    obtain ⟨hd, -⟩ := straight_digest hchk rfl rfl hret hC
+    have hd := straight_digest hchk rfl rfl hret hC
     have hsym : ∀ j < 256, IsInK (σ (.n (j + 1))) := by
       intro j hj
       obtain ⟨h1, h2, -⟩ := blk_sound (show j / 2 < 128 by omega) htmpl

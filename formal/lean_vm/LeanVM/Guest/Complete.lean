@@ -27,8 +27,8 @@ the guest divides, ...) and the node within the budget (`budget s w ≤ 2^28`),
 there is a valid execution of the guest on the statement's digest whose committed size is at least
 `2^22` and at most `2^28`: at most the most the verifier admits, and at least `2^MU_MIN`, so the
 honest proof of it has a stack log the guest's opening arms take (an argument in prose, not proved
-here: the memory's four committed columns alone stack `2^22` cells, `placementsOf`), and
-completeness chains (the memory padded to `2^20` words at least, `padLog`, `Guest/Pad.lean`;
+here: the memory's three committed columns alone stack `2^22` cells, `placementsOf`), and
+completeness chains (the memory padded to `2^21` words at least, `padLog`, `Guest/Pad.lean`;
 leanVM grows the `SET` table instead, `aggregation/node.rs:321-325`). The three hypotheses are `Guest/Limits.lean`'s; the budget
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is
 linear in the node's work (`Budget`: the words a run allocates and the instructions of each
@@ -101,17 +101,17 @@ structure Budget where
   /-- The instructions of each opcode executed. -/
   instrs : Opcode → Linear
 
-/-- The memory's log-size for a run allocating `words` words, padded to at least `2^20` words so
+/-- The memory's log-size for a run allocating `words` words, padded to at least `2^21` words so
 that the committed size is at least `2^22` (`Guest/Pad.lean`). -/
-def padLog (words : ℕ) : ℕ := max (Memory.logMem words) 20
+def padLog (words : ℕ) : ℕ := max (Memory.logMem words) 21
 
 /-- `Execution.committedSize`'s formula for a run of the guest allocating `words` words, on
 `2^padLog words` of memory, and executing `instrs op` instructions of each opcode `op`. -/
 def sizeOf (words : ℕ) (instrs : Opcode → ℕ) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (instrs op)
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (instrs .keccak)) 9
-  4 * 2 ^ padLog words + 2 ^ guestProgram.logSize +
-    15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
+  3 * 2 ^ padLog words + 2 ^ guestProgram.logSize +
+    13 * height .xor + 13 * height .mulNative + 7 * height .setConstant + 14 * height .deref +
     14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- The committed size of a run within the budget at the work `u`. -/
@@ -133,14 +133,17 @@ theorem sizeOf_mono {w w' : ℕ} {i i' : Opcode → ℕ} (hw : w ≤ w') (hi : �
   have := hh .jump
   omega
 
-/-- **A budget's words within its size**: the memory alone commits `4` words per word. -/
+/-- **A budget's words within its size**: the memory alone commits `3` words per word. -/
 theorem words_le_of_size {b : Budget} {u : Work} (h : b.size u ≤ 2 ^ 28) :
     b.words.eval u ≤ 2 ^ 26 := by
   have hm := Memory.le_two_pow_logMem (b.words.eval u)
   have hp : 2 ^ Memory.logMem (b.words.eval u) ≤ 2 ^ padLog (b.words.eval u) :=
     Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
-  have : 4 * 2 ^ padLog (b.words.eval u) ≤ b.size u := by
+  have : 3 * 2 ^ padLog (b.words.eval u) ≤ b.size u := by
     unfold Budget.size; dsimp only [sizeOf]; simp only [Nat.add_assoc]; exact Nat.le_add_right _ _
+  have hlt : 2 ^ padLog (b.words.eval u) < 2 ^ 27 := by omega
+  have hle : 2 ^ padLog (b.words.eval u) ≤ 2 ^ 26 :=
+    Nat.pow_le_pow_right (by norm_num) (Nat.lt_succ_iff.mp ((Nat.pow_lt_pow_iff_right (by norm_num)).mp hlt))
   omega
 
 /-- The committed size of a run on `2^logMem n` words, padded to `2^padLog n`, is `sizeOf n` at
@@ -151,8 +154,8 @@ theorem committedSize_pad_eq {n : ℕ} (L : MemoryImage (Memory.logMem n)) (step
     ((⟨_, L, steps⟩ : Execution guestProgram).pad (padLog n)).committedSize =
       sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).opcodeCount := by
   have h := committedSize_pad (⟨_, L, steps⟩ : Execution guestProgram) (padLog n) hc
-  have h2 : (⟨_, L, steps⟩ : Execution guestProgram).committedSize + 4 * 2 ^ padLog n =
-      sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).opcodeCount + 4 * 2 ^ Memory.logMem n := by
+  have h2 : (⟨_, L, steps⟩ : Execution guestProgram).committedSize + 3 * 2 ^ padLog n =
+      sizeOf n (⟨_, L, steps⟩ : Execution guestProgram).opcodeCount + 3 * 2 ^ Memory.logMem n := by
     unfold Semantics.Execution.committedSize sizeOf
     simp only
     omega
@@ -237,7 +240,7 @@ theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → �
   b2 := h.b2
   size hdr rd T hname hH n hrun := by
     have h32 := hH.toHonest.logMem_le
-    have hc := (run_ext (readExt_padImage (le_max_left _ 20)
+    have hc := (run_ext (readExt_padImage (le_max_left _ 21)
       (show padLog (T.total fs) < 64 from
         max_lt (lt_of_le_of_lt h32 (by unfold maxLogMem; omega)) (by omega))
       (Memory.honest coreProgram fs H C hdr T)) n _ _ hrun).2
@@ -274,12 +277,12 @@ theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
     (h.b2 _ rd T hname hH)
   obtain ⟨n, hv⟩ := validExecution_of_reach hb hreach
   have h32 := hH.toHonest.logMem_le
-  obtain ⟨hv', -⟩ := validExecution_pad hv (le_max_left _ 20)
+  obtain ⟨hv', -⟩ := validExecution_pad hv (le_max_left _ 21)
     (show padLog (T.total fs) ≤ maxLogMem from max_le h32 (by unfold maxLogMem; omega))
   refine ⟨_, hv', ?_, (h.size _ rd T hname hH n hv.2).trans (hcost.trans hbudget)⟩
-  have h20 : 2 ^ 20 ≤ 2 ^ padLog (T.total fs) := Nat.pow_le_pow_right (by norm_num) (le_max_right _ _)
-  refine le_trans ?_ (four_mul_le_committedSize _)
-  show 2 ^ 22 ≤ 4 * 2 ^ padLog (T.total fs)
+  have h21 : 2 ^ 21 ≤ 2 ^ padLog (T.total fs) := Nat.pow_le_pow_right (by norm_num) (le_max_right _ _)
+  refine le_trans ?_ (three_mul_le_committedSize _)
+  show 2 ^ 22 ≤ 3 * 2 ^ padLog (T.total fs)
   omega
 
 /-- **Completeness within the budget `b`, from its pieces.** -/

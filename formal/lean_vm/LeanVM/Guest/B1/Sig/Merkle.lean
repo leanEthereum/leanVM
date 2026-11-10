@@ -192,7 +192,7 @@ unless it is a root. -/
 theorem merkleT_adr {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → Option V}
     {addrOf : Nat → Nat} : ∀ (m l : Nat) (cur : V) (b : Nat),
     AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m l cur b).1 → ∀ j < m,
-      σ (mAdr nodeOf (l + j) (mBase nodeOf l j b)) = word (addrOf (l + j)) 0 0 +
+      σ (mAdr nodeOf (l + j) (mBase nodeOf l j b)) = word (addrOf (l + j)) 0 +
         (match nodeOf (l + j) with
           | none => 0
           | some nd => σ nd)
@@ -204,12 +204,12 @@ theorem merkleT_adr {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → O
         cases hn : nodeOf l with
         | none =>
             simp only [hn] at h
-            have e := h.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+            have e := h.atom (a := .const (.n (b + 4)) (word (addrOf l) 0)) (by simp [cst])
             simp only [Atom.Holds] at e
             simp [mAdr, hn, e]
         | some nd =>
             simp only [hn] at h
-            have e1 := h.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+            have e1 := h.atom (a := .const (.n (b + 4)) (word (addrOf l) 0)) (by simp [cst])
             have e2 := h.atom (a := .add (.n (b + 5)) (.n (b + 4)) nd) (by simp [addS])
             simp only [Atom.Holds] at e1 e2
             simp [mAdr, hn, e1, e2]

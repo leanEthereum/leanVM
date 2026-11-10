@@ -13,7 +13,7 @@ argument; the compiler specializes the function per distinct constant."""
 
 
 class _Elt:
-    """A 192-bit machine word in E = GF(2^192), represented as a cubic tower
+    """A 128-bit machine word in E = GF(2^128), represented as a quadratic tower
     over K = GF(2^64). Indices and addresses are K-valued powers of GEN, i.e.
     "in the exponent": `GEN ** k` is the k-th index and `x * GEN` its successor.
     A heap pointer is K-valued too; `buf[i]` is the write-once cell at `buf * i`."""
@@ -46,12 +46,6 @@ class _Elt:
 
     def __setitem__(self, idx, value):  # heap store m[self · idx] (write-once)
         _ = idx, value
-
-
-def f192(c0: int, c1: int, c2: int) -> _Elt:
-    """Construct a field constant from its three little-endian GF(2^64) limbs."""
-    _ = c0, c1, c2
-    return _Elt()
 
 
 GEN = _Elt()
@@ -213,9 +207,9 @@ def assert_gpow(x) -> None:
     _ = x
 
 
-def hint_f192_limbs(dest, value) -> None:
+def hint_f128_limbs(dest, value) -> None:
     """Computed advice: write the first `len(dest)` GF(2^64) coordinate limbs
-    of `value` into a 1-to-3-cell StackBuf. UNCONSTRAINED; callers bind the
+    of `value` into a 1-to-2-cell StackBuf. UNCONSTRAINED; callers bind the
     result with `assert_in_k` and field reconstruction."""
     _ = dest, value
 

@@ -16,15 +16,16 @@ public import Statement.Field
 Defined here, apart from B1's proofs, so that the check context, and with it the kernel-checked
 certificates of the compiled functions (`B2C`), do not import them.
 
-`exponent_tables()` (`lean_ethereum.py:717-742` at leanVM `40f877dc`) fills one read-only
-`HeapBuf(SIDE_TAB_AT + N_BLOCK_GROUPS)`, `236` words, indexed by g-powers, in four sections:
+`exponent_tables()` (`lean_ethereum.py`) fills one read-only `HeapBuf(WIN_TAB_AT + WIN_TAB_LEN)`,
+`236 + 2048` words, indexed by g-powers, in five sections:
 
 | offsets | words | readers |
 | --- | --- | --- |
 | `j < 34` | `g^(2^j)` | `log2_ceil_in_the_exponent`, `verify_sub`, `certify_placement`, `da_row_shape` |
 | `34 + 16 j + u`, `j < 9`, `u < 16` | `g^(u·16^j)`, the nibble shares | `assert_small_g_power`, `check_opening_terminal` |
-| `178 + k`, `k < 34` | `g^(k·254)`, the rank keys | `verify_tables`, `certify_placement` |
+| `178 + k`, `k < 34` | `g^(k·247)`, the rank keys | `verify_tables`, `certify_placement` |
 | `212 + gi`, `gi < 24` | `E(s)`, block group `gi`'s side `s` | `verify_tables` |
+| `236 + n`, `n < 2^11` | `E(n)`, a bit window's pattern | `grind_check`, `query_window` (`WinTabs`, at `q·g^236`) |
 -/
 
 namespace LeanVM.Guest.B1
@@ -42,8 +43,8 @@ abbrev selTabNibbles : ℕ := 9
 /-- `RANK_KEYS_AT = SIZE_BITS + 16 SEL_TAB_NIBBLES` (`lean_ethereum.py:289`). -/
 abbrev rankKeysAt : ℕ := 178
 
-/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 101` (`lean_ethereum.py:290`, deployed). -/
-abbrev rankStride : ℕ := 254
+/-- `RANK_STRIDE = N_BLOCKS + N_COMMITTED_COLS = 153 + 94` (`lean_ethereum.py:290`, deployed). -/
+abbrev rankStride : ℕ := 247
 
 /-- `SIDE_TAB_AT = RANK_KEYS_AT + SIZE_BITS` (`lean_ethereum.py:292`). -/
 abbrev sideTabAt : ℕ := 212
@@ -59,7 +60,7 @@ abbrev nBlockGroups : ℕ := 24
 
 /-- **The exponent table at `q`** (`exponent_tables`, `lean_ethereum.py:717-742`): the squares
 `q[g^j] = g^(2^j)`, `j < 34`; the nibble shares `q[g^(34 + 16j + u)] = g^(u·16^j)`, `j < 9`,
-`u < 16`; the rank keys `q[g^(178 + k)] = g^(k·254)`, `k < 34`; and each bus block group's side,
+`u < 16`; the rank keys `q[g^(178 + k)] = g^(k·247)`, `k < 34`; and each bus block group's side,
 `q[g^(212 + gi)] = E(s)` for the groups `gi` of side `s`. -/
 def ExpTables (rd : Reader) (q : E) : Prop :=
   (∀ j < sizeBits, LoadHolds rd q j (gen ^ 2 ^ j)) ∧
@@ -67,6 +68,22 @@ def ExpTables (rd : Reader) (q : E) : Prop :=
     (∀ k < sizeBits, LoadHolds rd q (rankKeysAt + k) (gen ^ (k * rankStride))) ∧
     (∀ s < nGkrSides, ∀ gi, sideGroupStart.getD s 0 ≤ gi → gi < sideGroupStart.getD (s + 1) 0 →
       LoadHolds rd q (sideTabAt + gi) (eOfNat s))
+
+/-- `WIN_TAB_BITS`: the width of a bit window the table covers. -/
+abbrev winTabBits : ℕ := 11
+
+/-- `WIN_TAB_AT = SIDE_TAB_AT + N_BLOCK_GROUPS`: where the bit-window table starts. -/
+abbrev winTabAt : ℕ := 236
+
+/-- **The bit-window table at `tabs`** (`exponent_tables`' last section, read as `tabs[w]` with
+`tabs = g_squares * GEN ** WIN_TAB_AT`): the word at `tabs·g^n` is the integer `n`, for every
+`n < 2^11`. `grind_check` and `query_window` take it as a hypothesis on their `tabs`. -/
+def WinTabs (rd : Reader) (tabs : E) : Prop :=
+  ∀ n < 2 ^ winTabBits, LoadHolds rd tabs n (eOfNat n)
+
+/-- The window section of the exponent table at `q`. -/
+def ExpWinTab (rd : Reader) (q : E) : Prop :=
+  ∀ n < 2 ^ winTabBits, LoadHolds rd q (winTabAt + n) (eOfNat n)
 
 end
 end LeanVM.Guest.B1

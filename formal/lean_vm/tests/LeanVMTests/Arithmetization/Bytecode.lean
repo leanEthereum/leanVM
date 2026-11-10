@@ -9,7 +9,7 @@ meta import LeanVM.Arithmetization.Bytecode
 One instruction per constructor, `DEREF` in each of its three modes, laid out by `entry` and read
 back by `decode` under compiled evaluation. The slot positions are
 pinned against the table of specification §8.1 (`08-end-to-end-protocol.tex:12-23`):
-`SET_CONSTANT`'s `k₂` at slot 7 and `KECCAK`'s ten operands at slots 4 to 13 (`o_{m₀..m₃}, o_tail,
+`SET_CONSTANT`'s `k₁` at slot 6, slot 7 spare, and `KECCAK`'s ten operands at slots 4 to 13 (`o_{m₀..m₃}, o_tail,
 o_b8, o_cap, o_out` and the two layout flags). The flag pairs and the opcode words are pinned
 against `cpu/isa.rs` and `tables.rs:99-104` (leanVM `4af2cddd`).
 The mutations at the end reject the flag pair `(1, 1)`, a non-Boolean flag (`DEREF`'s and
@@ -31,7 +31,7 @@ public section
 def xorI : LeanIsaInstruction := .xor (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
 def mulI : LeanIsaInstruction := .mulNative (addressOfIndex 2) (addressOfIndex 3) (addressOfIndex 4)
 def setI : LeanIsaInstruction := .setConstant (addressOfIndex 2) (E.ofLimbs (K.ofBits 7) (K.ofBits
-    8) (K.ofBits 9))
+    8))
 def derefCellI : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex 5) .cell
 def derefPcI : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex 5) .pc
 def derefFpI : LeanIsaInstruction := .deref (addressOfIndex 4) 1 (addressOfIndex 5) .fp
@@ -67,7 +67,7 @@ def keccakI : LeanIsaInstruction := .keccak ![addressOfIndex 6, addressOfIndex 7
 #guard (busEntry mulI).toList = [Opcode.mulNative.busCode, addressOfIndex 2, addressOfIndex 3,
     addressOfIndex 4, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (busEntry setI).toList =
-  [Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0,
+  [Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, 0, 0, 0, 0,
       0, 0, 0, 0, 0]
 #guard (busEntry derefCellI).toList = [Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5,
     0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -83,7 +83,7 @@ def keccakI : LeanIsaInstruction := .keccak ![addressOfIndex 6, addressOfIndex 7
 
 -- The sixteen slots: the opcode at 3, the operands at 4 to 15, zero at 0 to 2.
 #guard (instructionSlots setI).toList =
-  [0, 0, 0, Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0, 0, 0]
+  [0, 0, 0, Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (instructionSlots keccakI).toList =
   [0, 0, 0, Opcode.keccak.busCode, addressOfIndex 6, addressOfIndex 7, addressOfIndex 6,
       addressOfIndex 7, addressOfIndex 8, addressOfIndex 12, addressOfIndex 13, addressOfIndex 17,
@@ -93,8 +93,9 @@ def keccakI : LeanIsaInstruction := .keccak ![addressOfIndex 6, addressOfIndex 7
 example : (instructionSlots setI)[3] = Opcode.setConstant.busCode := by
   simp [encodeSlots_getElem, entry_getElem_zero, setI, LeanIsaInstruction.opcode]
 
-/-- `k₂` rides slot 7, checked in the kernel. -/
-example : (instructionSlots setI)[7] = K.ofBits 9 := by decide +kernel
+/-- `k₁` rides slot 6 and slot 7 is a spare zero, checked in the kernel. -/
+example : (instructionSlots setI)[6] = K.ofBits 8 ∧ (instructionSlots setI)[7] = 0 := by
+  decide +kernel
 
 /-! ## Round trips -/
 
@@ -111,7 +112,7 @@ example : (instructionSlots setI)[7] = K.ofBits 9 := by decide +kernel
       (addressOfIndex 9) (addressOfIndex 13) true false .all)
 
 /-- The literal entry of `SET_CONSTANT` decodes to it: `decode` is exact. -/
-example : decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0, 0, 0] =
+example : decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, 0, 0, 0, 0, 0, 0, 0, 0, 0] =
     some setI :=
   decode_eq_some_iff.mpr rfl
 
@@ -134,7 +135,8 @@ example : derefPcI ≠ derefFpI := fun h ↦ by cases h
 -- A nonzero spare entry coordinate is outside the canonical typed-program encoding.
 #guard decode #v[Opcode.xor.busCode, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 1, 0, 0,
     0, 0, 0, 0, 0, 0] = none
-#guard decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 1, 0, 0, 0, 0, 0, 0, 0] = none
+#guard decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, 1, 0, 0, 0, 0, 0, 0, 0, 0] = none
+#guard decode #v[Opcode.setConstant.busCode, addressOfIndex 2, K.ofBits 7, K.ofBits 8, 0, 1, 0, 0, 0, 0, 0, 0, 0] = none
 #guard decode #v[Opcode.deref.busCode, addressOfIndex 4, 1, addressOfIndex 5, 1, 0, 0, 1, 0, 0,
     0, 0, 0] = none
 #guard decode #v[Opcode.jump.busCode, addressOfIndex 2, addressOfIndex 3, addressOfIndex 4, 0, 0, 0,

@@ -17,45 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `claim_list_last__L2`, window 0. -/
+/-- `open_stacked__L3`, window 0. -/
 theorem w335_0 : WinOk 335 0 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L3`, window 0. -/
-theorem w336_0 : WinOk 336 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L3`, window 1. -/
+theorem w335_1 : WinOk 335 1 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L4`, window 0. -/
-theorem w337_0 : WinOk 337 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L3`, window 2. -/
+theorem w335_2 : WinOk 335 2 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L5`, window 0. -/
-theorem w338_0 : WinOk 338 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L3`, window 3. -/
+theorem w335_3 : WinOk 335 3 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L6`, window 0. -/
-theorem w339_0 : WinOk 339 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L3`, window 4. -/
+theorem w335_4 : WinOk 335 4 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L7`, window 0. -/
-theorem w340_0 : WinOk 340 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L3`, window 5. -/
+theorem w335_5 : WinOk 335 5 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L8`, window 0. -/
-theorem w341_0 : WinOk 341 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L3`, window 6. -/
+theorem w335_6 : WinOk 335 6 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L9`, window 0. -/
-theorem w342_0 : WinOk 342 0 := winOk_of_C (by decide +kernel)
-
-theorem ok335 : CheckOk 335 := checkOk_one (by decide +kernel) w335_0
-
-theorem ok336 : CheckOk 336 := checkOk_one (by decide +kernel) w336_0
-
-theorem ok337 : CheckOk 337 := checkOk_one (by decide +kernel) w337_0
-
-theorem ok338 : CheckOk 338 := checkOk_one (by decide +kernel) w338_0
-
-theorem ok339 : CheckOk 339 := checkOk_one (by decide +kernel) w339_0
-
-theorem ok340 : CheckOk 340 := checkOk_one (by decide +kernel) w340_0
-
-theorem ok341 : CheckOk 341 := checkOk_one (by decide +kernel) w341_0
-
-theorem ok342 : CheckOk 342 := checkOk_one (by decide +kernel) w342_0
+/-- `open_stacked__L3`, window 7. -/
+theorem w335_7 : WinOk 335 7 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

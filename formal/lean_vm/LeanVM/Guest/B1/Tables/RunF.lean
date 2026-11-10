@@ -14,12 +14,14 @@ public import LeanVM.Protocol.WithHash
 # Runs on the carried sponge, split
 
 `runT p st`: `Compile.run` (Keccak-256, Keccak-f) with the sponge replaced by the `Fs` the guest
-carries (B1-b's `Whir.runF`, here for B1-c). It splits at a `bind` (`runT_bind`), keeps any
-stream and openings past what it reads (`runT_frame`), and is the deployed run on every sponge
-the state carries (`runT_of_runId`, `runId_of_runT`).
+carries and the ground challenge a grind leaves (`TCar`). It splits at a `bind` (`runT_bind`),
+keeps any stream and openings past what it reads (`runT_frame`), and is the deployed run on every
+sponge the state carries (`runT_of_runId`, `runId_of_runT`).
 
-`RunsTo.unbind`: an accepting run of `p >>= f` from a state some sponge carries is a run of `p`
-on a prefix of the words and of `f a` on the rest.
+`RunsTo.unbindX`: an accepting run of `p >>= f` from a state some sponge carries is a run of `p`
+on a prefix of the words, to a sponge carried with a ground challenge `g` (`RunsToX`), and of
+`f a` on the rest from there (`RunsFromX`). `runsToX_det`: against a known run of `p`, `g` is
+`none`; `RunsTo.unbind_at` splits so where a run of `p` is known.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -29,36 +31,47 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The state of a carried run: the carried sponge, the words and openings left, the roots. -/
+/-- The state of a carried run: the carried sponge, the ground challenge a grind left (the next
+sample returns it), the words and openings left, the roots. -/
 structure TSt where
   sponge : Fs
+  ground : Option E
   stream : List E
   openings : List (List Opening)
   roots : List (Digest × ℕ × ℕ)
+
+/-- The Spec's sponge `sp` is the one the guest carries as `s`, with the ground challenge `g`. -/
+def TCar (s : Fs) (g : Option E) (sp : Sponge) : Prop :=
+  capOf sp.state = s.cap ∧ sp.pending = s.pend ∧ sp.ground = g
+
+theorem tcar_none {s : Fs} {sp : Sponge} : TCar s none sp ↔ s.Carries sp := Iff.rfl
 
 /-- **A run on the carried sponge.** -/
 def runT {α : Type} : VerifierProgram α → TSt → Option (α × TSt)
   | .ret a, s => some (a, s)
   | .fail, _ => none
-  | .read k, s => match s.stream with
-    | [] => none
-    | x :: xs => runT (k x) { s with sponge := s.sponge.absorb x dsObserve, stream := xs }
-  | .sample k, s => runT (k s.sponge.squeeze.1) { s with sponge := s.sponge.squeeze.2 }
-  | .grind bits k, s => match s.stream with
-    | [] => none
-    | n :: xs =>
-      let sq := (s.sponge.absorb n dsPowNonce).squeeze
-      if powOk bits n sq.1 then runT k { s with sponge := sq.2, stream := xs } else none
-  | .commit height width k, s => match s.stream with
-    | x0 :: x1 :: xs =>
-      match digestFromHalves (x0, x1) with
-      | some root =>
+  | .read k, s => match s.stream, s.ground with
+    | x :: xs, none => runT (k x) { s with sponge := s.sponge.absorb x dsObserve, stream := xs }
+    | _, _ => none
+  | .sample k, s => match s.ground with
+    | some c => runT (k c) { s with ground := none }
+    | none => runT (k s.sponge.squeeze.1) { s with sponge := s.sponge.squeeze.2 }
+  | .grind bits k, s => match s.stream, s.ground with
+    | n :: xs, none =>
+      if powOk bits (Keccak.lane (s.sponge.nonceState n) 2) then
         runT k { s with
-          sponge := (s.sponge.absorb x0 dsObserve).absorb x1 dsObserve
-          stream := xs
-          roots := s.roots ++ [(root, height, width)] }
-      | none => none
-    | _ => none
+          sponge := Fs.mk (capOf (s.sponge.nonceState n)) []
+          ground := some (challengeOf (s.sponge.nonceState n))
+          stream := xs }
+      else none
+    | _, _ => none
+  | .commit height width k, s => match s.stream, s.ground with
+    | x0 :: x1 :: xs, none =>
+      runT k { s with
+        sponge := (s.sponge.absorb x0 dsObserve).absorb x1 dsObserve
+        stream := xs
+        roots := s.roots ++ [(digestFromHalves (x0, x1), height, width)] }
+    | _, _ => none
   | .query i ps k, s => match s.roots[i]?, s.openings with
     | some (root, height, width), phase :: rest =>
       match Id.run (Compile.openPhaseWithHash (m := Id) keccak256 root height width ps phase) with
@@ -72,25 +85,32 @@ theorem runT_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierPr
   | ret a => rfl
   | fail => rfl
   | read k ih =>
-    simp only [VerifierProgram.bind, runT]
-    split
+    obtain ⟨s, g, _ | ⟨x, xs⟩, os, R⟩ := st
     · rfl
+    · cases g
+      · exact ih _ _
+      · rfl
+  | sample k ih =>
+    obtain ⟨s, g, stream, os, R⟩ := st
+    cases g
     · exact ih _ _
-  | sample k ih => exact ih _ _
+    · exact ih _ _
   | grind b k ih =>
-    simp only [VerifierProgram.bind, runT]
-    split
+    obtain ⟨s, g, _ | ⟨n, xs⟩, os, R⟩ := st
     · rfl
-    · split
-      · exact ih _
+    · cases g
+      · simp only [VerifierProgram.bind, runT]
+        split
+        · exact ih _
+        · rfl
       · rfl
   | commit h w k ih =>
-    simp only [VerifierProgram.bind, runT]
-    split
-    · split
-      · exact ih _
-      · rfl
-    · rfl
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g with
+    | [], _ => rfl
+    | [_], _ => rfl
+    | _ :: _ :: _, none => exact ih _
+    | _ :: _ :: _, some _ => rfl
   | query i ps k ih =>
     simp only [VerifierProgram.bind, runT]
     split
@@ -114,24 +134,32 @@ theorem runT_frame {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
   | fail => intro st a st' h; simp [runT] at h
   | read k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons x xs =>
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | x :: xs, none, h =>
       obtain ⟨pre, opre, h1, h2, hf⟩ := ih x _ a st' h
       refine ⟨x :: pre, opre, by simp only [List.cons_append] at h1 ⊢; rw [h1], h2,
         fun zs orest => ?_⟩
       exact hf zs orest
   | sample k ih =>
     intro st a st' h
-    obtain ⟨pre, opre, h1, h2, hf⟩ := ih _ _ a st' h
-    exact ⟨pre, opre, h1, h2, fun zs orest => hf zs orest⟩
+    obtain ⟨s, g, stream, os, R⟩ := st
+    cases g with
+    | none =>
+      obtain ⟨pre, opre, h1, h2, hf⟩ := ih _ _ a st' h
+      exact ⟨pre, opre, h1, h2, fun zs orest => hf zs orest⟩
+    | some c =>
+      obtain ⟨pre, opre, h1, h2, hf⟩ := ih _ _ a st' h
+      exact ⟨pre, opre, h1, h2, fun zs orest => hf zs orest⟩
   | grind b k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons n xs =>
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | n :: xs, none, h =>
       simp only [runT] at h
       split at h
       · rename_i hp
@@ -143,23 +171,19 @@ theorem runT_frame {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
       · simp at h
   | commit hh ww k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    match stream, h with
-    | [], h => simp [runT] at h
-    | [_], h => simp [runT] at h
-    | x0 :: x1 :: xs, h =>
-      simp only [runT] at h
-      split at h
-      · rename_i root hr
-        obtain ⟨pre, opre, h1, h2, hf⟩ := ih _ a st' h
-        refine ⟨x0 :: x1 :: pre, opre, by simp only [List.cons_append] at h1 ⊢; rw [h1], h2,
-          fun zs orest => ?_⟩
-        simp only [runT, List.cons_append, hr]
-        exact hf zs orest
-      · simp at h
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | [_], _, h => simp [runT] at h
+    | _ :: _ :: _, some _, h => simp [runT] at h
+    | x0 :: x1 :: xs, none, h =>
+      obtain ⟨pre, opre, h1, h2, hf⟩ := ih _ a st' h
+      refine ⟨x0 :: x1 :: pre, opre, by simp only [List.cons_append] at h1 ⊢; rw [h1], h2,
+        fun zs orest => ?_⟩
+      exact hf zs orest
   | query i ps k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
+    obtain ⟨s, g, stream, os, R⟩ := st
     cases hR : R[i]? with
     | none => simp [runT, hR] at h
     | some v =>
@@ -181,18 +205,20 @@ theorem runT_frame {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
 /-- The `Fs` a sponge's carrier is. -/
 def fsOfT (sp : Sponge) : Fs := ⟨capOf sp.state, sp.pending⟩
 
-theorem eq_fsOfT {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = fsOfT sp := by
-  obtain ⟨h1, h2⟩ := h
+theorem eq_fsOfT {s : Fs} {g : Option E} {sp : Sponge} (h : TCar s g sp) :
+    s = fsOfT sp ∧ g = sp.ground := by
+  obtain ⟨h1, h2, h3⟩ := h
   cases s
   simp only [fsOfT, Fs.mk.injEq]
-  exact ⟨h1.symm, h2.symm⟩
+  exact ⟨⟨h1.symm, h2.symm⟩, h3.symm⟩
 
 /-- **The carried run is the deployed run** on every sponge the state carries. -/
 theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp : Sponge),
-    st.sponge.Carries sp →
+    TCar st.sponge st.ground sp →
     ∀ (a : α) (st' : TSt), runT p st = some (a, st') →
-      ∃ sp', st'.sponge.Carries sp' ∧
-        runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some (a, ⟨sp', st'.stream, st'.openings, st'.roots⟩) := by
+      ∃ sp', TCar st'.sponge st'.ground sp' ∧
+        runId p ⟨sp, st.stream, st.openings, st.roots⟩ =
+          some (a, ⟨sp', st'.stream, st'.openings, st'.roots⟩) := by
   induction p with
   | ret b =>
     intro st sp hs a st' h
@@ -202,64 +228,70 @@ theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
   | fail => intro st sp hs a st' h; simp [runT] at h
   | read k ih =>
     intro st sp hs a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons x xs =>
-      exact ih x ⟨s.absorb x dsObserve, xs, os, R⟩ _ (carries_absorb hs x dsObserve) a st' h
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | x :: xs, none, h =>
+      obtain ⟨S, P, G⟩ := sp
+      obtain ⟨h1, h2, h3⟩ := hs
+      simp only at h1 h2 h3
+      subst G
+      exact ih x ⟨s.absorb x dsObserve, none, xs, os, R⟩ _
+        (carries_absorb (s := s) (sp := ⟨S, P, none⟩) ⟨h1, h2, rfl⟩ x dsObserve) a st' h
   | sample k ih =>
     intro st sp hs a st' h
-    obtain ⟨e1, e2⟩ := carries_squeeze hs
-    have := ih (st.sponge.squeeze.1) ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ _ e2 a st' h
-    obtain ⟨sp', h1, h2⟩ := this
-    refine ⟨sp', h1, ?_⟩
-    show runId (k (Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).1)
-      ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).2, st.stream, st.openings, st.roots⟩ = _
-    rw [e1]; exact h2
+    obtain ⟨s, g, stream, os, R⟩ := st
+    obtain ⟨S, P, G⟩ := sp
+    obtain ⟨h1, h2, h3⟩ := hs
+    simp only at h1 h2 h3
+    subst G
+    cases g with
+    | some c =>
+      exact ih c ⟨s, none, stream, os, R⟩ ⟨S, P, none⟩ ⟨h1, h2, rfl⟩ a st' h
+    | none =>
+      have hs' : s.Carries ⟨S, P, none⟩ := ⟨h1, h2, rfl⟩
+      obtain ⟨e1, e2⟩ := carries_squeeze hs'
+      obtain ⟨sp', c1, c2⟩ := ih (s.squeeze.1) ⟨s.squeeze.2, none, stream, os, R⟩ _ e2 a st' h
+      refine ⟨sp', c1, ?_⟩
+      show runId (k (Id.run (Compile.squeeze (m := Id) keccakF1600 ⟨S, P, none⟩)).1)
+        ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600 ⟨S, P, none⟩)).2, stream, os, R⟩ = _
+      rw [e1]; exact c2
   | grind b k ih =>
     intro st sp hs a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons n xs =>
-      have ha := carries_absorb hs n dsPowNonce
-      obtain ⟨e1, e2⟩ := carries_squeeze ha
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | n :: xs, none, h =>
       simp only [runT] at h
       split at h
       · rename_i hp
-        obtain ⟨sp', h1, h2⟩ := ih ⟨(s.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ _ e2 a st' h
-        refine ⟨sp', h1, ?_⟩
-        show (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
-              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
-            runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
-              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, R⟩
-          else none) = _
-        rw [e1]; simp only [hp, ↓reduceIte]; exact h2
+        obtain ⟨sp', c1, c2⟩ := ih _ ⟨s.nonceState n, [], some (challengeOf (s.nonceState n))⟩
+          ⟨rfl, rfl, rfl⟩ a st' h
+        refine ⟨sp', c1, ?_⟩
+        rw [run_grind_carried b k (s := s) hs n xs os R, ite_eq_left hp]
+        exact c2
       · simp at h
   | commit hh ww k ih =>
     intro st sp hs a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    match stream, h with
-    | [], h => simp [runT] at h
-    | [_], h => simp [runT] at h
-    | x0 :: x1 :: xs, h =>
-      have h1 := carries_absorb hs x0 dsObserve
-      have h2 := carries_absorb h1 x1 dsObserve
-      simp only [runT] at h
-      split at h
-      · rename_i root hr
-        obtain ⟨sp', c1, c2⟩ := ih _ _ h2 a st' h
-        refine ⟨sp', c1, ?_⟩
-        show (match digestFromHalves (x0, x1) with
-            | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
-                (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
-                R ++ [(root, hh, ww)]⟩
-            | none => none) = _
-        rw [hr]; exact c2
-      · simp at h
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | [_], _, h => simp [runT] at h
+    | _ :: _ :: _, some _, h => simp [runT] at h
+    | x0 :: x1 :: xs, none, h =>
+      obtain ⟨S, P, G⟩ := sp
+      obtain ⟨h1, h2, h3⟩ := hs
+      simp only at h1 h2 h3
+      subst G
+      have c1 := carries_absorb (s := s) (sp := ⟨S, P, none⟩) ⟨h1, h2, rfl⟩ x0 dsObserve
+      have c2 := carries_absorb c1 x1 dsObserve
+      exact ih ⟨(s.absorb x0 dsObserve).absorb x1 dsObserve, none, xs, os,
+        R ++ [(digestFromHalves (x0, x1), hh, ww)]⟩ _ c2 a st' h
   | query i ps k ih =>
     intro st sp hs a st' h
-    obtain ⟨s, stream, os, R⟩ := st
+    obtain ⟨s, g, stream, os, R⟩ := st
     cases hR : R[i]? with
     | none => simp [runT, hR] at h
     | some v =>
@@ -273,7 +305,7 @@ theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
         | none => simp [hop] at h
         | some rows =>
           simp only [hop] at h
-          obtain ⟨sp', c1, c2⟩ := ih rows ⟨s, stream, rest, R⟩ sp hs a st' h
+          obtain ⟨sp', c1, c2⟩ := ih rows ⟨s, g, stream, rest, R⟩ sp hs a st' h
           refine ⟨sp', c1, ?_⟩
           simp only [Id.run] at hop
           simp only [runId, Compile.runWithHash, bind, hR, hop]
@@ -281,79 +313,94 @@ theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
 
 /-- **The deployed run is the carried run.** -/
 theorem runT_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp : Sponge),
-    st.sponge.Carries sp →
+    TCar st.sponge st.ground sp →
     ∀ (a : α) (t : VerifierProgramState), runId p ⟨sp, st.stream, st.openings, st.roots⟩ = some
         (a, t) →
-      runT p st = some (a, ⟨fsOfT t.sponge, t.stream, t.openings, t.roots⟩) := by
+      runT p st = some (a, ⟨fsOfT t.sponge, t.sponge.ground, t.stream, t.openings, t.roots⟩) := by
   induction p with
   | ret a =>
     intro st sp hs a' t h
     simp only [runId, Compile.runWithHash, pure, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    rw [← eq_fsOfT hs]
+    obtain ⟨e1, e2⟩ := eq_fsOfT hs
+    obtain ⟨s, g, stream, os, R⟩ := st
+    simp only at e1 e2
+    subst e1 e2
     rfl
   | fail =>
     intro st sp hs a t h
     simp [runId, Compile.runWithHash, pure] at h
   | read k ih =>
     intro st sp hs a t h
-    obtain ⟨s, stream, os, roots⟩ := st
-    cases stream with
-    | nil => simp [runId, Compile.runWithHash, pure] at h
-    | cons x xs =>
-      exact ih x ⟨s.absorb x dsObserve, xs, os, roots⟩ _ (carries_absorb hs x dsObserve) a t h
+    obtain ⟨s, g, stream, os, roots⟩ := st
+    obtain ⟨S, P, G⟩ := sp
+    obtain ⟨h1, h2, h3⟩ := hs
+    simp only at h1 h2 h3
+    subst G
+    match stream, g, h with
+    | [], _, h => simp [runId, Compile.runWithHash, pure] at h
+    | _ :: _, some _, h => simp [runId, Compile.runWithHash, pure] at h
+    | x :: xs, none, h =>
+      exact ih x ⟨s.absorb x dsObserve, none, xs, os, roots⟩ _
+        (carries_absorb (s := s) (sp := ⟨S, P, none⟩) ⟨h1, h2, rfl⟩ x dsObserve) a t h
   | sample k ih =>
     intro st sp hs a t h
-    obtain ⟨e1, e2⟩ := carries_squeeze hs
-    have := ih ((Id.run (Compile.squeeze (m := Id) keccakF1600 sp)).1)
-      ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ _ e2 a t h
-    simpa [runT, e1] using this
+    obtain ⟨s, g, stream, os, R⟩ := st
+    obtain ⟨S, P, G⟩ := sp
+    obtain ⟨h1, h2, h3⟩ := hs
+    simp only at h1 h2 h3
+    subst G
+    cases g with
+    | some c =>
+      exact ih c ⟨s, none, stream, os, R⟩ ⟨S, P, none⟩ ⟨h1, h2, rfl⟩ a t h
+    | none =>
+      have hs' : s.Carries ⟨S, P, none⟩ := ⟨h1, h2, rfl⟩
+      obtain ⟨e1, e2⟩ := carries_squeeze hs'
+      have := ih ((Id.run (Compile.squeeze (m := Id) keccakF1600 ⟨S, P, none⟩)).1)
+        ⟨s.squeeze.2, none, stream, os, R⟩ _ e2 a t h
+      simpa [runT, e1] using this
   | grind b k ih =>
     intro st sp hs a t h
-    obtain ⟨s, stream, os, roots⟩ := st
-    cases stream with
-    | nil => simp [runId, Compile.runWithHash, pure] at h
-    | cons n xs =>
-      have ha := carries_absorb hs n dsPowNonce
-      obtain ⟨e1, e2⟩ := carries_squeeze ha
-      have key : runId (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
-              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
-            runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
-              (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩
-          else none) := rfl
-      rw [key, e1] at h
-      simp only [runT]
-      split at h
-      · rename_i hp
+    obtain ⟨s, g, stream, os, roots⟩ := st
+    obtain ⟨S, P, G⟩ := sp
+    obtain ⟨h1, h2, h3⟩ := hs
+    simp only at h1 h2 h3
+    subst G
+    match stream, g, h with
+    | [], _, h => simp [runId, Compile.runWithHash, pure] at h
+    | _ :: _, some _, h => simp [runId, Compile.runWithHash, pure] at h
+    | n :: xs, none, h =>
+      have hs' : s.Carries ⟨S, P, none⟩ := ⟨h1, h2, rfl⟩
+      rw [run_grind_carried b k hs' n xs os roots] at h
+      by_cases hp : powOk b (Keccak.lane (s.nonceState n) 2) = true
+      · simp only [hp, ↓reduceIte] at h
+        have e := ih ⟨Fs.mk (capOf (s.nonceState n)) [], some (challengeOf (s.nonceState n)), xs, os,
+          roots⟩ ⟨s.nonceState n, [], some (challengeOf (s.nonceState n))⟩ ⟨rfl, rfl, rfl⟩ a t h
+        show (if powOk b (Keccak.lane (s.nonceState n) 2) = true then
+          runT k ⟨Fs.mk (capOf (s.nonceState n)) [], some (challengeOf (s.nonceState n)), xs, os,
+            roots⟩ else none) = _
         simp only [hp, ↓reduceIte]
-        exact ih ⟨(s.absorb n dsPowNonce).squeeze.2, xs, os, roots⟩ _ e2 a t h
-      · simp at h
+        exact e
+      · simp [hp] at h
   | commit hh ww k ih =>
     intro st sp hs a t h
-    obtain ⟨s, stream, os, roots⟩ := st
-    match stream with
-    | [] => simp [runId, Compile.runWithHash, pure] at h
-    | [_] => simp [runId, Compile.runWithHash, pure] at h
-    | x0 :: x1 :: xs =>
-      have h1 := carries_absorb hs x0 dsObserve
-      have h2 := carries_absorb h1 x1 dsObserve
-      have key : runId (VerifierProgram.commit hh ww k) ⟨sp, x0 :: x1 :: xs, os, roots⟩ =
-          (match digestFromHalves (x0, x1) with
-            | some root => runId k ⟨Id.run (Compile.absorb (m := Id) keccakF1600
-                (Id.run (Compile.absorb (m := Id) keccakF1600 sp x0 dsObserve)) x1 dsObserve), xs, os,
-                roots ++ [(root, hh, ww)]⟩
-            | none => none) := rfl
-      rw [key] at h
-      split at h
-      · rename_i root hr
-        simp only [runT, hr]
-        exact ih ⟨(s.absorb x0 dsObserve).absorb x1 dsObserve, xs, os, roots ++ [(root, hh, ww)]⟩
-          _ h2 a t h
-      · simp at h
+    obtain ⟨s, g, stream, os, roots⟩ := st
+    obtain ⟨S, P, G⟩ := sp
+    obtain ⟨h1, h2, h3⟩ := hs
+    simp only at h1 h2 h3
+    subst G
+    match stream, g, h with
+    | [], _, h => simp [runId, Compile.runWithHash, pure] at h
+    | [_], _, h => simp [runId, Compile.runWithHash, pure] at h
+    | _ :: _ :: _, some _, h => simp [runId, Compile.runWithHash, pure] at h
+    | x0 :: x1 :: xs, none, h =>
+      have c1 := carries_absorb (s := s) (sp := ⟨S, P, none⟩) ⟨h1, h2, rfl⟩ x0 dsObserve
+      have c2 := carries_absorb c1 x1 dsObserve
+      exact ih ⟨(s.absorb x0 dsObserve).absorb x1 dsObserve, none, xs, os,
+        roots ++ [(digestFromHalves (x0, x1), hh, ww)]⟩ _ c2 a t h
   | query i ps k ih =>
     intro st sp hs a t h
-    obtain ⟨s, stream, os, roots⟩ := st
+    obtain ⟨s, g, stream, os, roots⟩ := st
     simp only [runId, Compile.runWithHash, bind] at h
     simp only [runT]
     cases hr : roots[i]? with
@@ -372,8 +419,7 @@ theorem runT_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
         | some rows =>
           simp only [Id.run] at ho
           simp only [ho] at h
-          exact ih rows ⟨s, stream, rest, roots⟩ sp hs a t h
-
+          exact ih rows ⟨s, g, stream, rest, roots⟩ sp hs a t h
 
 /-- The roots only grow. -/
 theorem runT_roots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),
@@ -387,39 +433,42 @@ theorem runT_roots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
   | fail => intro st a st' h; simp [runT] at h
   | read k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons x xs => simp only [runT] at h; exact ih x ⟨s.absorb x dsObserve, xs, os, R⟩ a st' h
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | x :: xs, none, h => exact ih x ⟨s.absorb x dsObserve, none, xs, os, R⟩ a st' h
   | sample k ih =>
-    intro st a st' h; simp only [runT] at h
-    exact ih _ ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ a st' h
+    intro st a st' h
+    obtain ⟨s, g, stream, os, R⟩ := st
+    cases g with
+    | none => exact ih _ ⟨s.squeeze.2, none, stream, os, R⟩ a st' h
+    | some c => exact ih c ⟨s, none, stream, os, R⟩ a st' h
   | grind b k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons n xs =>
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | n :: xs, none, h =>
       simp only [runT] at h
       split at h
-      · exact ih ⟨(s.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ a st' h
+      · exact ih ⟨Fs.mk (capOf (s.nonceState n)) [], some (challengeOf (s.nonceState n)), xs, os, R⟩ a st' h
       · simp at h
   | commit hh ww k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
-    match stream, h with
-    | [], h => simp [runT] at h
-    | [_], h => simp [runT] at h
-    | x0 :: x1 :: xs, h =>
-      simp only [runT] at h
-      split at h
-      · rename_i root _
-        obtain ⟨C, hC⟩ := ih _ a st' h
-        exact ⟨[(root, hh, ww)] ++ C, by simp only at hC ⊢; rw [hC, List.append_assoc]⟩
-      · simp at h
+    obtain ⟨s, g, stream, os, R⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | [_], _, h => simp [runT] at h
+    | _ :: _ :: _, some _, h => simp [runT] at h
+    | x0 :: x1 :: xs, none, h =>
+      obtain ⟨C, hC⟩ := ih ⟨(s.absorb x0 dsObserve).absorb x1 dsObserve, none, xs, os, R ++ [(digestFromHalves (x0, x1), hh, ww)]⟩ a st' h
+      exact ⟨[(digestFromHalves (x0, x1), hh, ww)] ++ C, by
+        simp only at hC ⊢; rw [hC, List.append_assoc]⟩
   | query i ps k ih =>
     intro st a st' h
-    obtain ⟨s, stream, os, R⟩ := st
+    obtain ⟨s, g, stream, os, R⟩ := st
     cases hR : R[i]? with
     | none => simp [runT, hR] at h
     | some v =>
@@ -433,7 +482,7 @@ theorem runT_roots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α
         | none => simp [hop] at h
         | some rows =>
           simp only [hop] at h
-          exact ih rows ⟨s, stream, rest, R⟩ a st' h
+          exact ih rows ⟨s, g, stream, rest, R⟩ a st' h
 
 /-- A run from no roots to no roots runs from any roots. -/
 theorem runT_noRoots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : α) (st' : TSt),
@@ -448,46 +497,82 @@ theorem runT_noRoots {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (a : 
   | fail => intro st a st' _ _ h; simp [runT] at h
   | read k ih =>
     intro st a st' h0 h1 h R
-    obtain ⟨s, stream, os, R0⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons x xs =>
-      simp only [runT] at h ⊢; exact ih x ⟨s.absorb x dsObserve, xs, os, R0⟩ a st' h0 h1 h R
+    obtain ⟨s, g, stream, os, R0⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | x :: xs, none, h => exact ih x ⟨s.absorb x dsObserve, none, xs, os, R0⟩ a st' h0 h1 h R
   | sample k ih =>
-    intro st a st' h0 h1 h R; simp only [runT] at h ⊢
-    exact ih _ ⟨st.sponge.squeeze.2, st.stream, st.openings, st.roots⟩ a st' h0 h1 h R
+    intro st a st' h0 h1 h R
+    obtain ⟨s, g, stream, os, R0⟩ := st
+    cases g with
+    | none => exact ih _ ⟨s.squeeze.2, none, stream, os, R0⟩ a st' h0 h1 h R
+    | some c => exact ih c ⟨s, none, stream, os, R0⟩ a st' h0 h1 h R
   | grind b k ih =>
     intro st a st' h0 h1 h R
-    obtain ⟨s, stream, os, R0⟩ := st
-    cases stream with
-    | nil => simp [runT] at h
-    | cons n xs =>
+    obtain ⟨s, g, stream, os, R0⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | _ :: _, some _, h => simp [runT] at h
+    | n :: xs, none, h =>
       simp only [runT] at h ⊢
       split at h
       · rename_i hp
         simp only [hp, ↓reduceIte]
-        exact ih ⟨(s.absorb n dsPowNonce).squeeze.2, xs, os, R0⟩ a st' h0 h1 h R
+        exact ih ⟨Fs.mk (capOf (s.nonceState n)) [], some (challengeOf (s.nonceState n)), xs, os, R0⟩ a st' h0 h1 h R
       · simp at h
   | commit hh ww k ih =>
     intro st a st' h0 h1 h R
-    obtain ⟨s, stream, os, R0⟩ := st
-    match stream, h with
-    | [], h => simp [runT] at h
-    | [_], h => simp [runT] at h
-    | x0 :: x1 :: xs, h =>
-      simp only [runT] at h
-      split at h
-      · obtain ⟨C, hC⟩ := runT_roots _ _ a st' h
-        simp only at h0 hC
-        rw [h1, h0] at hC
-        simp at hC
-      · simp at h
+    obtain ⟨s, g, stream, os, R0⟩ := st
+    match stream, g, h with
+    | [], _, h => simp [runT] at h
+    | [_], _, h => simp [runT] at h
+    | _ :: _ :: _, some _, h => simp [runT] at h
+    | x0 :: x1 :: xs, none, h =>
+      have h' : runT k ⟨(s.absorb x0 dsObserve).absorb x1 dsObserve, none, xs, os,
+          R0 ++ [(digestFromHalves (x0, x1), hh, ww)]⟩ = some (a, st') := h
+      obtain ⟨C, hC⟩ := runT_roots _ _ a st' h'
+      simp only at h0 hC
+      rw [h1, h0] at hC
+      simp at hC
   | query i ps k ih =>
     intro st a st' h0 h1 h R
-    obtain ⟨s, stream, os, R0⟩ := st
+    obtain ⟨s, g, stream, os, R0⟩ := st
     simp only at h0
     subst h0
     simp [runT] at h
+
+/-- **A run between grounds**: from any Spec sponge the guest carries as `s` with the ground
+challenge `g`, `p` reads exactly `xs` and returns `a`, leaving a sponge carried as `s'` with the
+ground challenge `g'`, on any rest of the stream, openings and roots. `RunsTo` is the case
+`g = g' = none`. -/
+def RunsG {α : Type} (p : VerifierProgram α) (s : Fs) (g : Option E) (xs : List E) (a : α)
+    (s' : Fs) (g' : Option E) : Prop :=
+  ∀ sp : Sponge, TCar s g sp → ∀ (rest : List E) (os : List (List Opening))
+    (roots : List (Digest × ℕ × ℕ)), ∃ sp' : Sponge, TCar s' g' sp' ∧
+      runId p ⟨sp, xs ++ rest, os, roots⟩ = some (a, ⟨sp', rest, os, roots⟩)
+
+/-- `RunsTo` from a carried sponge to a sponge carried with the ground challenge `g`. -/
+abbrev RunsToX {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (a : α) (s' : Fs)
+    (g : Option E) : Prop :=
+  RunsG p s none xs a s' g
+
+/-- `RunsTo` from a sponge carried with the ground challenge `g`. -/
+abbrev RunsFromX {α : Type} (p : VerifierProgram α) (s : Fs) (g : Option E) (xs : List E) (a : α)
+    (s' : Fs) : Prop :=
+  RunsG p s g xs a s' none
+
+theorem RunsTo.toG {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsTo p s xs a s') : RunsG p s none xs a s' none := h
+
+theorem RunsG.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsG p s none xs a s' none) : RunsTo p s xs a s' := h
+
+theorem RunsToX.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsToX p s xs a s' none) : RunsTo p s xs a s' := h
+
+theorem RunsFromX.toRunsTo {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
+    (h : RunsFromX p s none xs a s') : RunsTo p s xs a s' := h
 
 /-- The sponge after a run from a carried one is carried. -/
 theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E} {a : α}
@@ -496,16 +581,24 @@ theorem RunsTo.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : Li
   obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
   exact ⟨sp', hc'⟩
 
-/-- **An accepting run of a sequence splits.** -/
-theorem RunsTo.unbind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s'' : Fs}
-    {xs : List E} {b : β}
-    (h : RunsTo (p >>= f) s xs b s'') (hc : ∃ sp, s.Carries sp) :
-    ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs), xs = xs1 ++ xs2 ∧ RunsTo p s xs1 a s1 ∧
-      RunsTo (f a) s1 xs2 b s'' := by
+/-- The sponge after a run between grounds is carried. -/
+theorem RunsG.carries {α : Type} {p : VerifierProgram α} {s s' : Fs} {g g' : Option E}
+    {xs : List E} {a : α} (h : RunsG p s g xs a s' g') (hc : ∃ sp, TCar s g sp) :
+    ∃ sp, TCar s' g' sp := by
+  obtain ⟨sp, hsp⟩ := hc
+  obtain ⟨sp', hc', -⟩ := h sp hsp [] [] []
+  exact ⟨sp', hc'⟩
+
+/-- **An accepting run of a sequence splits**, at a sponge carried with some ground challenge. -/
+theorem RunsG.unbind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    {s s'' : Fs} {g g'' : Option E} {xs : List E} {b : β}
+    (h : RunsG (p >>= f) s g xs b s'' g'') (hc : ∃ sp, TCar s g sp) :
+    ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs) (g1 : Option E), xs = xs1 ++ xs2 ∧
+      RunsG p s g xs1 a s1 g1 ∧ RunsG (f a) s1 g1 xs2 b s'' g'' := by
   obtain ⟨sp, hsp⟩ := hc
   obtain ⟨sp'', hc'', he⟩ := h sp hsp [] [] []
   simp only [List.append_nil] at he
-  have hT := runT_of_runId (p >>= f) ⟨s, xs, [], []⟩ sp hsp b _ he
+  have hT := runT_of_runId (p >>= f) ⟨s, g, xs, [], []⟩ sp hsp b _ he
   rw [prog_bind_eq, runT_bind] at hT
   obtain ⟨⟨a, st1⟩, h1, h2⟩ := Option.bind_eq_some_iff.mp hT
   obtain ⟨C1, hC1⟩ := runT_roots _ _ a st1 h1
@@ -519,24 +612,90 @@ theorem RunsTo.unbind {α β : Type} {p : VerifierProgram α} {f : α → Verifi
   have ho1' : opre1 = [] ∧ st1.openings = [] := List.append_eq_nil_iff.mp ho1.symm
   have ho2' : opre2 = [] := by rw [List.append_nil] at ho2; rw [← ho2, ho1'.2]
   rw [List.append_nil] at hs2
-  refine ⟨a, pre1, st1.stream, st1.sponge, by rw [hs1], ?_, ?_⟩
+  refine ⟨a, pre1, st1.stream, st1.sponge, st1.ground, by rw [hs1], ?_, ?_⟩
   · intro sp0 hs0 rest os R
     have e := hf1 rest os
     rw [ho1'.1, List.nil_append] at e
     have e2 := runT_noRoots p _ a _ rfl (by simp [hr1]) e R
-    obtain ⟨sp1, c1, c2⟩ := runId_of_runT p _ sp0 hs0 a _ e2
+    obtain ⟨sp1, c1, c2⟩ := runId_of_runT p _ sp0 (by exact hs0) a _ e2
     exact ⟨sp1, c1, c2⟩
   · intro sp0 hs0 rest os R
     have e := hf2 rest os
     rw [ho2', List.nil_append, ← hs2] at e
-    have e' : runT (f a) ⟨st1.sponge, st1.stream ++ rest, os, []⟩ =
-        some (b, ⟨fsOfT sp'', rest, os, []⟩) := by
+    have e' : runT (f a) ⟨st1.sponge, st1.ground, st1.stream ++ rest, os, []⟩ =
+        some (b, ⟨fsOfT sp'', sp''.ground, rest, os, []⟩) := by
       simp only [hr1] at e; exact e
     have e2 := runT_noRoots (f a) _ b _ rfl rfl e' R
-    obtain ⟨sp1, c1, c2⟩ := runId_of_runT (f a) ⟨st1.sponge, st1.stream ++ rest, os, R⟩ sp0 hs0 b
-      ⟨fsOfT sp'', rest, os, R⟩ e2
+    obtain ⟨sp1, c1, c2⟩ := runId_of_runT (f a) ⟨st1.sponge, st1.ground, st1.stream ++ rest, os, R⟩
+      sp0 hs0 b ⟨fsOfT sp'', sp''.ground, rest, os, R⟩ e2
     refine ⟨sp1, ?_, c2⟩
-    rw [eq_fsOfT hc'']; exact c1
+    obtain ⟨e3, e4⟩ := eq_fsOfT hc''
+    rw [e3, e4]
+    exact c1
+
+/-- **Runs of one program from one sponge on one stream agree.** -/
+theorem RunsG.det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {g g1 g2 : Option E}
+    {xs1 xs2 r1 r2 : List E} {a b : α}
+    (h1 : RunsG p s g xs1 a t1 g1) (h2 : RunsG p s g xs2 b t2 g2) (hc : ∃ sp, TCar s g sp)
+    (he : xs1 ++ r1 = xs2 ++ r2) : a = b ∧ t1 = t2 ∧ g1 = g2 ∧ r1 = r2 := by
+  obtain ⟨sp, hsp⟩ := hc
+  obtain ⟨sp1, c1, e1⟩ := h1 sp hsp r1 [] []
+  obtain ⟨sp2, c2, e2⟩ := h2 sp hsp r2 [] []
+  rw [he, e2] at e1
+  simp only [Option.some.injEq, Prod.mk.injEq, VerifierProgramState.mk.injEq] at e1
+  obtain ⟨rfl, rfl, rfl, -⟩ := e1
+  obtain ⟨c1a, c1b, c1c⟩ := c1
+  obtain ⟨c2a, c2b, c2c⟩ := c2
+  refine ⟨rfl, ?_, c1c.symm.trans c2c, rfl⟩
+  cases t1; cases t2
+  simp only [Fs.mk.injEq]
+  exact ⟨c1a.symm.trans c2a, c1b.symm.trans c2b⟩
+
+/-- An accepting run of a requirement checked it. -/
+theorem RunsG.require_inv {c : Prop} [Decidable c] {s t : Fs} {g g' : Option E} {xs : List E}
+    {u : Unit} (h : RunsG (VerifierProgram.require c) s g xs u t g') (hc : ∃ sp, TCar s g sp) :
+    c := by
+  by_contra hn
+  obtain ⟨sp, hsp⟩ := hc
+  obtain ⟨sp1, -, e⟩ := h sp hsp [] [] []
+  simp only [VerifierProgram.require, hn, ↓reduceIte] at e
+  exact absurd e (by simp [runId, Compile.runWithHash])
+
+/-- A run of a return returns its word, reading nothing, the sponge kept. -/
+theorem RunsG.ret_inv {α : Type} {x a : α} {s t : Fs} {g g' : Option E} {xs : List E}
+    (h : RunsG (VerifierProgram.ret x) s g xs a t g') (hc : ∃ sp, TCar s g sp) :
+    a = x ∧ t = s ∧ g' = g ∧ xs = [] := by
+  have hr : RunsG (VerifierProgram.ret x) s g [] x s g := fun sp hs rest os R ↦ ⟨sp, hs, rfl⟩
+  obtain ⟨e1, e2, e3, e4⟩ := RunsG.det h hr hc (r1 := []) (r2 := xs) (by simp)
+  exact ⟨e1, e2, e3, by simpa using e4.symm⟩
+
+/-- **An accepting run of a sequence splits**, at a sponge carried with a ground challenge `g`
+(`none` unless `p` ends right after a grind). -/
+theorem RunsTo.unbindX {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    {s s'' : Fs} {xs : List E} {b : β}
+    (h : RunsTo (p >>= f) s xs b s'') (hc : ∃ sp, s.Carries sp) :
+    ∃ (a : α) (xs1 xs2 : List E) (s1 : Fs) (g : Option E), xs = xs1 ++ xs2 ∧
+      RunsToX p s xs1 a s1 g ∧ RunsFromX (f a) s1 g xs2 b s'' :=
+  RunsG.unbind (RunsTo.toG h) hc
+
+/-- **Runs of one program from one sponge on one stream agree**, the first ending at a ground
+challenge `g`: it is the second's, so `g = none`. -/
+theorem runsToX_det {α : Type} {p : VerifierProgram α} {s t1 t2 : Fs} {g : Option E}
+    {xs1 xs2 r1 r2 : List E} {a b : α}
+    (h1 : RunsToX p s xs1 a t1 g) (h2 : RunsTo p s xs2 b t2) (hc : ∃ sp, s.Carries sp)
+    (he : xs1 ++ r1 = xs2 ++ r2) : a = b ∧ t1 = t2 ∧ g = none ∧ r1 = r2 :=
+  RunsG.det h1 (RunsTo.toG h2) hc he
+
+/-- **An accepting run of a sequence splits** where a run of its first part is known. -/
+theorem RunsTo.unbind_at {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
+    {s s'' t : Fs} {xs ys : List E} {a : α} {b : β}
+    (h : RunsTo (p >>= f) s xs b s'') (hc : ∃ sp, s.Carries sp) (hp : RunsTo p s ys a t)
+    (hpre : ∃ r, xs = ys ++ r) : ∃ xs2, xs = ys ++ xs2 ∧ RunsTo (f a) t xs2 b s'' := by
+  obtain ⟨a1, xs1, xs2, s1, g, he, r1, k1⟩ := RunsTo.unbindX h hc
+  obtain ⟨r, hr⟩ := hpre
+  obtain ⟨ea, es, eg, er⟩ := runsToX_det r1 hp hc (r1 := xs2) (r2 := r) (by rw [← he, hr])
+  subst ea es eg er
+  exact ⟨xs2, hr, k1⟩
 
 end
 end LeanVM.Guest.B1.Tables

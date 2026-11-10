@@ -281,19 +281,10 @@ theorem storesOf_load : ∀ {c : ℕ} {ss : List Stmt} {a : Atom}, a ∈ storesO
       · simp at h
     · exact storesOf_load h
 
-theorem canonChk_filter_stores {Ac : List ℕ} {A : List Atom} {c : ℕ} {ss : List Stmt} :
-    canonChk Ac (A.filter fun a => decide (a ∉ storesOf c ss)) = canonChk Ac A := by
-  unfold canonChk
-  refine canonGo_filter _ A Ac fun a _ hp => ?_
-  simp only [decide_eq_false_iff_not, not_not] at hp
-  obtain ⟨d, p, o, rfl⟩ := storesOf_load hp
-  rfl
-
-/-- **A block of records holds**: its canonical inputs, the records' side atoms, the state's
+/-- **A block of records holds**: the records' side atoms, the state's
 loads and the next state's stores (those a store given the rest), by `edgeOk`. -/
-theorem blockW_holds {c : ℕ} {ss : List Stmt} {p0 stp : ℕ} {outs : List V} {Ac : List ℕ}
-    (hσ : ∀ v, σ v = σ (.n v.idx)) (hcan : canonChk Ac A = true)
-    (hg : ∀ a ∈ A, Good rd (storesOf c ss) w σ a) (hA : ∀ i ∈ Ac, IsCanonical128 (σ (.n i)))
+theorem blockW_holds {c : ℕ} {ss : List Stmt} {p0 stp : ℕ} {outs : List V}
+    (hg : ∀ a ∈ A, Good rd (storesOf c ss) w σ a)
     (hedge : edgeOk A (storesOf c ss) o0 p0 K stp outs = true)
     (hside : ∀ j < K, ∀ a ∈ ccOwn A p0 j, needsSide a = true → a.Holds rd σ)
     (hstl : ∀ a ∈ A, isStLd stp a = true → a ∉ storesOf c ss → a.Holds rd σ)
@@ -310,8 +301,7 @@ theorem blockW_holds {c : ℕ} {ss : List Stmt} {p0 stp : ℕ} {outs : List V} {
       decide_eq_true_eq] at h
     obtain ⟨hp, ho⟩ := h
     exact notS_of_ptr hSt (by rw [hp]; exact hstp) ho
-  refine atoms_holds_stores (dec := fun _ => inferInstance) hσ
-    (by rw [canonChk_filter_stores]; exact hcan) hg hA
+  refine atoms_holds_stores hg
     (fun a ha haS hns => Or.inl ?_) (fun h1 a ha haS => ?_)
   · rcases mem_parts (p0 := p0) (K := K) ha with h | ⟨j, hj, h⟩ | h
     · rw [hhd a h] at hns; exact absurd hns (by simp)

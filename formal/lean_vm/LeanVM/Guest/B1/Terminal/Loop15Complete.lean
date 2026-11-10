@@ -34,15 +34,15 @@ def l15Pre : List Stmt :=
   [.atom (.mul (.n 4) (.n 2) (.n 0)), .atom (.load (.n 5) (.n 4) 0),
     .atom (.mul (.n 6) (.n 3) (.n 0)), .atom (.load (.n 7) (.n 6) 0),
     .atom (.mul (.n 8) (.n 5) (.n 7)), .atom (.mul (.n 9) (.n 2) (.n 0)),
-    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0 0)),
+    .atom (.load (.n 8) (.n 9) 1), .atom (.const (.n 10) (word 2 0)),
     .atom (.mul (.n 11) (.n 0) (.n 10)), .atom (.add (.n 12) (.n 11) (.n 1)),
-    .atom (.const (.n 13) (word 2 0 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
+    .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
     .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3]]
 
-theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core270 :=
-  Program.find?_of_indexOf? (j := 270) (by decide +kernel) rfl
+theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core271 :=
+  Program.find?_of_indexOf? (j := 271) (by decide +kernel) rfl
 
-theorem l15_body : Fn.body Data.core270 = l15Pre ++ [.ret []] := by
+theorem l15_body : Fn.body Data.core271 = l15Pre ++ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := loop15Found
   rw [find_loop15, Option.some.injEq] at hf
   subst hf
@@ -58,8 +58,8 @@ theorem l15_callS : l15Pre.filterMap Main.Stmt.callS =
 
 /-- `__loop14`'s evident valuation at `x`, the chain's word `a` and the point's `b`. -/
 noncomputable def l15σ (x N ch p a b : E) : Val :=
-  B1.Val.ofArgs [x, N, ch, p, ch * x, a, p * x, b, a * b, ch * x, word 2 0 0, x * word 2 0 0,
-    x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0]
+  B1.Val.ofArgs [x, N, ch, p, ch * x, a, p * x, b, a * b, ch * x, word 2 0, x * word 2 0,
+    x * word 2 0 + N, word 2 0, x * word 2 0]
 
 theorem l15_addr (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
     addressOfIndex (b + c + k) := by
@@ -90,7 +90,7 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
   have lp : LoadHolds rd (ofK (addressOfIndex bp)) k (ps.getD k 0) := by
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact hp k (by omega)
-  have hw2 : word 2 0 0 = gen := word_gen
+  have hw2 : word 2 0 = gen := word_gen
   refine relIn_of_walk coreProgram_wf find_loop15 rfl hw rfl ?_ ?_ ?_
   · intro e he
     obtain ⟨st, hst, he⟩ := List.mem_flatMap.mp he
@@ -114,7 +114,7 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
     · rfl
     · rfl
     · rcases he with rfl | he
-      · show IsInK (gen ^ k * word 2 0 0 + gen ^ m)
+      · show IsInK (gen ^ k * word 2 0 + gen ^ m)
         rw [hw2]
         exact isInK_add (isInK_mul (gen_pow_isInK k) (by simpa using gen_pow_isInK 1))
           (gen_pow_isInK m)
@@ -136,10 +136,10 @@ theorem l15_iter {rd : Reader} {bc bp m : ℕ} {cs ps : List E} (hcl : cs.length
       have : k + 1 = m := by omega
       subst this
       apply htaken
-      show gen ^ k * word 2 0 0 + gen ^ (k + 1) = 0
+      show gen ^ k * word 2 0 + gen ^ (k + 1) = 0
       rw [hw2, gen_pow_mul_gen]; exact e_add_self _
     show coreProgram.RelIn rd R "__loop14"
-      [gen ^ k * word 2 0 0, gen ^ m, ofK (addressOfIndex bc), ofK (addressOfIndex bp)] []
+      [gen ^ k * word 2 0, gen ^ m, ofK (addressOfIndex bc), ofK (addressOfIndex bp)] []
     rw [hw2, gen_pow_mul_gen]
     exact hnext hk'
 

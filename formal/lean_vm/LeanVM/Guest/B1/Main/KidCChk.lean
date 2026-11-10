@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.Uniform
 
 `l5Pre`: `__loop4`'s statements before its tail call (`l5_body`). `l5COk`: the evaluator's pattern
 (`chk`), the stores (`l5S`: the statement's digest's two cells into `child_pi_table`, the next
-running count), no `KECCAK` of its own, every side condition a load of `written[x]` or of the
+running count), every side condition a load of `written[x]` or of the
 child's DA digest's two hinted cells, a store or a range check.
 -/
 
@@ -30,9 +30,9 @@ def l5Pre : List Stmt := [
     .atom (.mul (.n 16) (.n 2) (.n 0)),
     .atom (.load (.n 17) (.n 16) 0),
     .atom (.hint (.witness "child_meta" (.stack [.n 18, .n 19]))),
-    .atom (.const (.n 20) (word 9272771591053052074 0 0)),
+    .atom (.const (.n 20) (word 9272771591053052074 0)),
     .atom (.rangeCheck (.n 18) (.n 21) (.n 22) (.n 23) (.n 20)),
-    .atom (.const (.n 24) (word 9272771591053052074 0 0)),
+    .atom (.const (.n 24) (word 9272771591053052074 0)),
     .atom (.rangeCheck (.n 19) (.n 25) (.n 26) (.n 27) (.n 24)),
     .atom (.mul (.n 28) (.n 18) (.n 19)),
     .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 29, .n 30],
@@ -67,10 +67,10 @@ def l5Pre : List Stmt := [
     .atom (.mul (.n 55) (.n 17) (.n 28)),
     .atom (.mul (.n 56) (.n 2) (.n 0)),
     .atom (.load (.n 55) (.n 56) 1),
-    .atom (.const (.n 57) (word 2 0 0)),
+    .atom (.const (.n 57) (word 2 0)),
     .atom (.mul (.n 58) (.n 0) (.n 57)),
     .atom (.add (.n 59) (.n 58) (.n 1)),
-    .atom (.const (.n 60) (word 2 0 0)),
+    .atom (.const (.n 60) (word 2 0)),
     .atom (.mul (.n 61) (.n 0) (.n 60))]
 
 /-- `__loop4`'s tail call. -/
@@ -109,7 +109,6 @@ def l5Calls : List Stmt :=
 def l5COk : Bool :=
   (chk 16 (l5Pre ++ [l5Tail, .ret []])).isSome &&
   decide (storesOf 16 (l5Pre ++ [l5Tail, .ret []]) = l5S) &&
-  canonChk [] l5A' &&
   (atomsIn l5Pre).all (fun a => !needsSide a || decide (a ∈ l5S) ||
     decide (a = .load (.n 17) (.n 16) 0) || decide (a = .load (.n 42) (.n 41) 0) ||
     decide (a = .load (.n 43) (.n 41) 1) || isRcB a) &&

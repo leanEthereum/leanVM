@@ -22,7 +22,7 @@ the powers of `ξ`, expanded as a quadratic in `X` (`formQuad`).
 
 namespace LeanVM.Prover
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 
 /-! ## The high fold -/
 
@@ -66,7 +66,7 @@ def Cubic.add (a b : Cubic) : Cubic :=
 /-! ## A table's polynomial -/
 
 /-- `JUMP`'s constraints batched by `cp`, as monomials: `cp₀·(b + cond·w) + cp₁·cond·(b + 1)`
-(`jump_constraints`, `crates/verifier/src/layout.rs:294-297`; `jumpConstraints`). -/
+(`jump_constraints`, `crates/verifier/src/layout.rs:289-292`; `jumpConstraints`). -/
 def jumpTerms (cp : List E) : List (List ℕ × E) :=
   let c := columnIndexByName jumpColumns
   [([c "b"], cp.getD 0 0), ([c "v_cond", c "w"], cp.getD 0 0),
@@ -161,11 +161,15 @@ def finalEvals (F : Array (Array E)) : List E :=
 def tableEvals (st : TableState) : List E :=
   (List.range 6).flatMap fun t ↦ finalEvals (st.cols.getD t #[])
 
+/-- The number of powers of `ξ`: the constraints' and one per side (`n_xi_powers`,
+`crates/leanvm_core/src/cpu/mod.rs`; `crates/verifier/src/lib.rs:274-282`). -/
+def xiCount : ℕ := (tables.map Table.nConstraints).sum + nTrees
+
 /-- The constraint powers of `ξ` and its form powers, one per side
-(`crates/verifier/src/lib.rs:244-247`). -/
+(`crates/verifier/src/lib.rs:280-282`). -/
 def xiPowers (xi : E) : List E × List E :=
   let nc := (tables.map Table.nConstraints).sum
-  ((powers xi (nc + 3)).take nc, (powers xi (nc + 3)).drop nc)
+  ((powers xi xiCount).take nc, (powers xi xiCount).drop nc)
 
 /-- Every table's polynomial, batched by the powers of `ξ`. -/
 def tableTermsOf (xi : E) (bus : BusResult) : Array (List (List ℕ × E)) :=
@@ -183,10 +187,11 @@ def tableSigmas (e : List E) (logs : List ℕ) (terms : Array (List (List ℕ ×
     tableSigma e (logs.foldl max 0) (logs.getD t 0) (terms.getD t []) (F0.getD t #[])
 
 /-- **The table phase, executable.** From the instance's columns `cols` (indexed by global
-column), the tables' log-heights `logs` and the bus's result: receive `ξ`, run the rounds, send
-every table's evaluations. -/
+column), the tables' log-heights `logs` and the bus's result: a grind for the batch's degree in
+`ξ`, receive `ξ`, run the rounds, send every table's evaluations. -/
 def tableFast (cols : Array (Array K)) (logs : List ℕ) (bus : BusResult) : Script Unit :=
   let F0 := tableInit cols
+  (Script.grindBits (grindingBits (xiCount - 1))).bind fun _ ↦
   Script.sampleE.bind fun xi ↦
     let terms := tableTermsOf xi bus
     let sigma := tableSigmas bus.point logs terms F0

@@ -33,8 +33,9 @@ open Classical in
 /-- **The layers from depth `d`**: lead `T` (`0` when a layer is left, as it starts with a
 read); each layer's groups as in `layerSpec`. -/
 noncomputable def layersSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀) (R : β → Prop)
-    (qk : β → ℕ → K) (P : ℕ) (h46 : (L₀ : ℝ≥0∞) * errE 46 ≤ εmax)
-    (hβ : (L₀ : ℝ≥0∞) * errE 2 + T ≤ εmax) :
+    (qk : β → ℕ → K) (P : ℕ)
+    (h46 : (2 : ℝ≥0∞)⁻¹ ^ grindingBits (productBits - 1) * ((L₀ : ℝ≥0∞) * errE 46) ≤ εmax)
+    (h3 : (L₀ : ℝ≥0∞) * errE 3 ≤ εmax) (hβ : (L₀ : ℝ≥0∞) * errE 2 + T ≤ εmax) :
     (n d : ℕ) → d + n = 12 → (claim : KeccakClaim) → ClaimShape P claim →
       Spec (keccakLayers (P + 4) (List.range' d n) claim)
         (Doomed C (fun q ↦ ClaimTrue (statesAt (P + 4) (qk q) d) P claim ∧ R q))
@@ -47,11 +48,11 @@ noncomputable def layersSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L�
       le_rfl le_rfl le_rfl
   | n + 1, d, hd, claim, hs =>
     ((layerSpec (T := T) hst hcard R (fun q ↦ statesAt (P + 4) (qk q) (d + 1)) d P claim hs h46
-      hβ).mono (fun _ h' ↦ Doomed.mono h' fun q ⟨hc, hR⟩ ↦
+      h3 hβ).mono (fun _ h' ↦ Doomed.mono h' fun q ⟨hc, hR⟩ ↦
         ⟨(claimTrue_round (P + 4) (qk q) (by omega) P claim).2 hc, hR⟩)
       (fun _ _ h' ↦ h') le_rfl zero_le le_rfl).bind' fun c ↦
     if hc : ClaimShape P c then
-      (layersSpec hst hcard R qk P h46 hβ n (d + 1) (by omega) c hc).mono
+      (layersSpec hst hcard R qk P h46 h3 hβ n (d + 1) (by omega) c hc).mono
         (fun _ h' ↦ h'.2) (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
     else Spec.dead.mono (fun _ h' ↦ hc h'.1) (fun _ _ h' ↦ h') le_rfl le_rfl le_rfl
 

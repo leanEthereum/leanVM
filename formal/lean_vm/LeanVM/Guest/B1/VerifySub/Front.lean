@@ -1,25 +1,29 @@
 /-
   LeanVM.Guest.B1.VerifySub.Front
 
-  `verify_sub`'s front sections: the seed, the announced words, the root, the bus challenges.
+  `verify_sub`'s front sections: the seed, the announced words, the root's words, squeezes, and
+  the lemmas every section uses.
 -/
 
 module
 
 public import LeanVM.Guest.B1.VerifySub.Template
-public import LeanVM.Protocol.KeccakHash
+public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.Value.KeccakSponge
+public import LeanVM.Guest.Word
+public import LeanVM.Protocol.KeccakHash
 
 /-!
 # The front of `verify_sub`
 
 * `vs_seed`: the seed's `KECCAK` (`keccak_cells([seed_0, seed_1, pi_0, pi_1], sp, final=0)`):
-  the two pairs of cells are digests' and its capacity is `keccakF (seedInput seed pi)`'s;
-* `vsReadsT_holds`, `vs_absorb8`: the eight announced words read from the stream and, from the
-  seed's capacity, absorbed (the first four permuted in);
-* `vsRootsT_holds`, `vs_absorbRoot`: the root's two words read, the last four announced words
-  permuted in;
-* `vsSqzT_holds`, `vsAlphasT_holds`: squeezes, the four bus challenges.
+  its capacity is `keccakF (seedInput seed pi)`'s, the digests read off the four cells;
+* `vsReadsT_holds`, `vs_absorb8`: the eight announced words read from the stream and absorbed from
+  the seed's capacity (the first four permuted in);
+* `vsRootsT_holds`, `vs_absorbRoot`: the last four announced words permuted in, the root's two
+  words read and waiting;
+* `vsSqzT_holds`: a squeeze with nothing waiting; `vsTabsT_holds`: `tabs = g_squares·g^236`;
+* `mem_size`, `mem_size_le`: a memory image holding `n` words at one pointer has at least `n`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -31,14 +35,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E → Prop}
 
-/-! ## A `KECCAK` atom's capacity -/
+/-! ## Atoms -/
 
 /-- **The capacity a `KECCAK` atom writes**: outputs `8 .. 12`, the capacity of the permutation
 of the cells it reads. -/
 theorem keccak_cap {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)
     (ho13 : outs.length = 13 := by first | rfl | simp) :
     (outs.drop 8).map σ = capOf (permOf (ins.map σ)) := by
-  obtain ⟨-, ho, -, hout⟩ := keccak_outs hk ho13
+  obtain ⟨-, ho, hout⟩ := keccak_outs hk ho13
   apply List.ext_getElem (by simp [ho, capOf])
   intro k h1 h2
   simp only [List.length_map, List.length_drop, ho] at h1
@@ -59,6 +63,25 @@ theorem holds_ld1 {d p off : ℕ} {X : Prop} :
 theorem holds_atom1 {a : Atom} {X : Prop} :
     Stmt.HoldsList C rd σ [.atom a] X kret ↔ a.Holds rd σ ∧ X := Iff.rfl
 
+theorem readsAt_ext {p : E} {xs ys : List E} (hl : xs.length = ys.length)
+    (hx : ReadsAt rd p xs) (hy : ReadsAt rd p ys) : xs = ys :=
+  List.ext_getElem hl fun k h1 h2 ↦ loadHolds_unique (hx k h1) (hy k h2)
+
+/-! ## The window table -/
+
+set_option maxRecDepth 100000 in
+/-- `tabs = g_squares · g^236`'s word. -/
+theorem vsWinWord_eq : vsWinWord = gen ^ winTabAt := by
+  rw [vsWinWord, word_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound winTabAt; omega)]
+  congr 1
+
+/-- `tabs` into `d`: `g_squares · g^236`. -/
+theorem vsTabsT_holds {c d : ℕ} {X : Prop}
+    (h : Stmt.HoldsList C rd σ (vsTabsT c d) X kret) : σ (.n d) = σ (.n 4) * gen ^ winTabAt ∧ X := by
+  simp only [vsTabsT, vsConst, vsMul, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨hc, hm, hX⟩ := h
+  exact ⟨by rw [hm, hc, vsWinWord_eq], hX⟩
+
 /-! ## The seed -/
 
 /-- The seed's `KECCAK` atom. -/
@@ -74,14 +97,7 @@ theorem vsHeadT_holds (h : Stmt.HoldsList C rd σ vsHeadT next kret) :
   simp only [Atom.Holds, word_zero] at h10 h11 h12 h13
   exact ⟨h10, h11, h12, h13, hk, hn⟩
 
-/-- A digest of two canonical cells. -/
-theorem digest_of_canonical {a b : E} (ha : IsCanonical128 a) (hb : IsCanonical128 b) :
-    ∃ d : Digest, (a, b) = digestHalves d := by
-  obtain ⟨d, hd⟩ : ∃ d, digestFromHalves (a, b) = some d :=
-    ⟨_, by simp only [digestFromHalves, ha, hb, and_self, ↓reduceIte]; exact rfl⟩
-  exact ⟨d, (digestScalars_digestOfScalars hd).symm⟩
-
-/-- **The seed** (G:3331-3332; V:2338): the four cells are two digests' cells, and the capacity
+/-- **The seed** (G:3566-3570; V:2346): the four cells are two digests' halves, and the capacity
 the atom writes is the seed state's. -/
 theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
     (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0) :
@@ -89,13 +105,11 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.
       (σ (.n 0), σ (.n 1)) = digestHalves pi ∧
       [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
         capOf (keccakF1600 (seedInput seed pi)) := by
-  obtain ⟨-, -, hc, -⟩ := keccakA_perm hk
-  obtain ⟨seed, es⟩ := digest_of_canonical (hc (σ (.n 2)) (by simp)) (hc (σ (.n 3)) (by simp))
-  obtain ⟨pi, ep⟩ := digest_of_canonical (hc (σ (.n 0)) (by simp)) (hc (σ (.n 1)) (by simp))
-  refine ⟨seed, pi, es, ep, ?_⟩
+  refine ⟨digestFromHalves (σ (.n 2), σ (.n 3)), digestFromHalves (σ (.n 0), σ (.n 1)),
+    (digestScalars_digestOfScalars _).symm, (digestScalars_digestOfScalars _).symm, ?_⟩
   obtain ⟨-, -, hK⟩ := (keccak_holds_13 (outs := vsRun 12 13) (by simp [vsRun])).mp hk
-  have hch := Keccak.keccak_chain (P := [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)]) (S0 := Keccak.zeroState)
-    (B := 1)
+  have hch := Keccak.keccak_chain (P := [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)])
+    (S0 := Keccak.zeroState) (B := 1)
     (I := fun _ ↦ cells13 ([.n 2, .n 3, .n 0, .n 1, .n 8, .n 9, .n 10, .n 11, .n 8, .n 8,
       .n 9, .n 10, .n 11].map σ))
     (O := fun k ↦ if k = 0 then cellsOfState Keccak.zeroState false else cells13 ((vsRun 12 13).map σ))
@@ -110,8 +124,12 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.
       obtain rfl : k = 0 := by omega
       exact hK)
   simp only [one_ne_zero, ↓reduceIte] at hch
-  rw [show [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)] = [(digestHalves seed).1,
-    (digestHalves seed).2, (digestHalves pi).1, (digestHalves pi).2] by rw [← es, ← ep],
+  rw [show [σ (.n 2), σ (.n 3), σ (.n 0), σ (.n 1)] =
+      [(digestHalves (digestFromHalves (σ (.n 2), σ (.n 3)))).1,
+        (digestHalves (digestFromHalves (σ (.n 2), σ (.n 3)))).2,
+        (digestHalves (digestFromHalves (σ (.n 0), σ (.n 1)))).1,
+        (digestHalves (digestFromHalves (σ (.n 0), σ (.n 1)))).2] by
+      simp only [digestScalars_digestOfScalars],
     Keccak.absorbChunks_seed] at hch
   simp only [capOf]
   rw [← congrFun hch 8, ← congrFun hch 9, ← congrFun hch 10, ← congrFun hch 11, ← congrFun hch 12]
@@ -120,20 +138,20 @@ theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.
 /-! ## The announced words -/
 
 /-- The values of the eight announced words. -/
-def vsX (i : ℕ) : ℕ := [27, 37, 47, 57, 80, 90, 100, 110].getD i 0
+def vsX (i : ℕ) : ℕ := [27, 30, 33, 36, 52, 55, 58, 61].getD i 0
 
-/-- Word `i` read at stream offset `off` into `x`, packed (`fs_next`). -/
+/-- The stream word at offset `off` read into `x`, packed (`fs_next`). -/
 def WordAt (rd : Reader) (σ : Val) (off x : ℕ) : Prop :=
   LoadHolds rd (σ (.n 25)) off (σ (.n x)) ∧ FsPackOk σ (.n x) (x + 1) dsObserve
 
-/-- The announced words' perm atom. -/
-abbrev vsAtom50 : Atom :=
-  .keccak [.n 34, .n 36, .n 44, .n 46, .n 54, .n 56, .n 64, .n 66, .n 20, .n 21, .n 22, .n 23, .n 24]
-    (vsRun 67 13) false false
+/-- The first four announced words' permutation. -/
+abbrev vsAtom39 : Atom :=
+  .keccak [.n 28, .n 29, .n 31, .n 32, .n 34, .n 35, .n 37, .n 38, .n 20, .n 21, .n 22, .n 23, .n 24]
+    (vsRun 39 13) false false
 
 theorem vsReadsT_holds (h : Stmt.HoldsList C rd σ vsReadsT next kret) :
     (∀ i < 8, WordAt rd σ i (vsX i)) ∧
-      (∀ i < 6, LoadHolds rd (σ (.n 26)) i (σ (.n (vsX (i + 1))))) ∧ vsAtom50.Holds rd σ ∧ next := by
+      (∀ i < 6, LoadHolds rd (σ (.n 26)) i (σ (.n (vsX (i + 1))))) ∧ vsAtom39.Holds rd σ ∧ next := by
   rw [vsReadsT] at h
   simp only [holdsList_append] at h
   obtain ⟨w0, h⟩ := (holds_fsNextT _ _ _ _ _).1 h
@@ -171,12 +189,12 @@ theorem vsReadsT_holds (h : Stmt.HoldsList C rd σ vsReadsT next kret) :
 
 /-- The eight announced words' values. -/
 def vsWords (σ : Val) : List E :=
-  [σ (.n 27), σ (.n 37), σ (.n 47), σ (.n 57), σ (.n 80), σ (.n 90), σ (.n 100), σ (.n 110)]
+  [σ (.n 27), σ (.n 30), σ (.n 33), σ (.n 36), σ (.n 52), σ (.n 55), σ (.n 58), σ (.n 61)]
 
-/-- A word's two packed cells, once the first is canonical. -/
-theorem wordAt_cells {off x : ℕ} (h : WordAt rd σ off x) (hc : IsCanonical128 (σ (.n (x + 7)))) :
-    (σ (.n (x + 7)), σ (.n (x + 9))) = Keccak.scalarCells (σ (.n x)) dsObserve :=
-  fsPackT_cells h.2 hc
+/-- A word's two packed cells. -/
+theorem wordAt_cells {off x : ℕ} (h : WordAt rd σ off x) :
+    (σ (.n (x + 1)), σ (.n (x + 2))) = Keccak.scalarCells (σ (.n x)) dsObserve :=
+  fsPackT_cells h.2
 
 theorem absorb8_shape (cap : List E) (a0 a1 a2 a3 a4 a5 a6 a7 : E) :
     (⟨cap, []⟩ : Fs).absorbAll [a0, a1, a2, a3, a4, a5, a6, a7] dsObserve =
@@ -193,70 +211,65 @@ theorem absorb2_shape (cap : List E) (a4 a5 a6 a7 b0 b1 : E) :
 
 /-- **The announced words absorbed** from the seed's capacity: the first four permuted in by the
 atom, the last four waiting. -/
-theorem vs_absorb8 (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom50.Holds rd σ) :
+theorem vs_absorb8 (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom39.Holds rd σ) :
     (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs).absorbAll (vsWords σ)
         dsObserve =
-      ⟨[σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)],
-        [(σ (.n 80), dsObserve), (σ (.n 90), dsObserve), (σ (.n 100), dsObserve),
-          (σ (.n 110), dsObserve)]⟩ := by
+      ⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)],
+        [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
+          (σ (.n 61), dsObserve)]⟩ := by
   have hcap := keccak_cap hk
   rw [vsRun_drop8] at hcap
-  obtain ⟨-, -, hc, -⟩ := keccakA_perm hk
-  have c0 := wordAt_cells (hw 0 (by omega)) (hc (σ (.n 34)) (List.mem_map_of_mem (by simp)))
-  have c1 := wordAt_cells (hw 1 (by omega)) (hc (σ (.n 44)) (List.mem_map_of_mem (by simp)))
-  have c2 := wordAt_cells (hw 2 (by omega)) (hc (σ (.n 54)) (List.mem_map_of_mem (by simp)))
-  have c3 := wordAt_cells (hw 3 (by omega)) (hc (σ (.n 64)) (List.mem_map_of_mem (by simp)))
+  have c0 := wordAt_cells (hw 0 (by omega))
+  have c1 := wordAt_cells (hw 1 (by omega))
+  have c2 := wordAt_cells (hw 2 (by omega))
+  have c3 := wordAt_cells (hw 3 (by omega))
   simp only [vsX, List.getD_cons_zero, List.getD_cons_succ] at c0 c1 c2 c3
   have e := absorb8_shape [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] (σ (.n 27))
-    (σ (.n 37)) (σ (.n 47)) (σ (.n 57)) (σ (.n 80)) (σ (.n 90)) (σ (.n 100)) (σ (.n 110))
-  have hl : rateOf [(σ (.n 27), dsObserve), (σ (.n 37), dsObserve), (σ (.n 47), dsObserve),
-      (σ (.n 57), dsObserve)] ++ [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
-      List.map σ [.n 34, .n 36, .n 44, .n 46, .n 54, .n 56, .n 64, .n 66, .n 20, .n 21, .n 22,
+    (σ (.n 30)) (σ (.n 33)) (σ (.n 36)) (σ (.n 52)) (σ (.n 55)) (σ (.n 58)) (σ (.n 61))
+  have hl : rateOf [(σ (.n 27), dsObserve), (σ (.n 30), dsObserve), (σ (.n 33), dsObserve),
+      (σ (.n 36), dsObserve)] ++ [σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)] =
+      List.map σ [.n 28, .n 29, .n 31, .n 32, .n 34, .n 35, .n 37, .n 38, .n 20, .n 21, .n 22,
         .n 23, .n 24] := by
     rw [rateOf_four, ← c0, ← c1, ← c2, ← c3]; rfl
   rw [vsWords, e, Fs.perm, hl, ← hcap]
 
 /-! ## The root -/
 
-/-- The root's perm atom: the last four announced words. -/
-abbrev vsAtom649 : Atom :=
-  .keccak [.n 87, .n 89, .n 97, .n 99, .n 107, .n 109, .n 117, .n 119, .n 75, .n 76, .n 77, .n 78,
-    .n 79] (vsRun 311 13) false false
+/-- The last four announced words' permutation. -/
+abbrev vsAtom255 : Atom :=
+  .keccak [.n 53, .n 54, .n 56, .n 57, .n 59, .n 60, .n 62, .n 63, .n 47, .n 48, .n 49, .n 50,
+    .n 51] (vsRun 255 13) false false
 
 theorem vsRootsT_holds (h : Stmt.HoldsList C rd σ vsRootsT next kret) :
-    vsAtom649.Holds rd σ ∧ WordAt rd σ 8 324 ∧ WordAt rd σ 9 334 ∧
-      C "assert_canonical" [σ (.n 324)] [σ (.n 344)] ∧
-      C "assert_canonical" [σ (.n 334)] [σ (.n 345)] ∧ next := by
+    vsAtom255.Holds rd σ ∧ WordAt rd σ 8 268 ∧ WordAt rd σ 9 271 ∧ next := by
   rw [vsRootsT] at h
   simp only [holdsList_append] at h
   obtain ⟨hk, h⟩ := holds_atom1.1 h
   obtain ⟨w8, h⟩ := (holds_fsNextT _ _ _ _ _).1 h
-  obtain ⟨w9, h⟩ := (holds_fsNextT _ _ _ _ _).1 h
-  obtain ⟨c1, c2, -, hn⟩ := h
-  exact ⟨hk, w8, w9, c1, c2, hn⟩
+  obtain ⟨w9, hn⟩ := (holds_fsNextT _ _ _ _ _).1 h
+  exact ⟨hk, w8, w9, hn⟩
 
 /-- **The root's words absorbed** after the announced ones: the last four permuted in. -/
-theorem vs_absorbRoot (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom649.Holds rd σ) :
-    (((⟨[σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)],
-        [(σ (.n 80), dsObserve), (σ (.n 90), dsObserve), (σ (.n 100), dsObserve),
-          (σ (.n 110), dsObserve)]⟩ : Fs).absorb (σ (.n 324)) dsObserve).absorb (σ (.n 334))
+theorem vs_absorbRoot (hw : ∀ i < 8, WordAt rd σ i (vsX i)) (hk : vsAtom255.Holds rd σ) :
+    (((⟨[σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)],
+        [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
+          (σ (.n 61), dsObserve)]⟩ : Fs).absorb (σ (.n 268)) dsObserve).absorb (σ (.n 271))
         dsObserve) =
-      ⟨[σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323)],
-        [(σ (.n 324), dsObserve), (σ (.n 334), dsObserve)]⟩ := by
+      ⟨[σ (.n 263), σ (.n 264), σ (.n 265), σ (.n 266), σ (.n 267)],
+        [(σ (.n 268), dsObserve), (σ (.n 271), dsObserve)]⟩ := by
   have hcap := keccak_cap hk
   rw [vsRun_drop8] at hcap
-  obtain ⟨-, -, hc, -⟩ := keccakA_perm hk
-  have c4 := wordAt_cells (hw 4 (by omega)) (hc (σ (.n 87)) (List.mem_map_of_mem (by simp)))
-  have c5 := wordAt_cells (hw 5 (by omega)) (hc (σ (.n 97)) (List.mem_map_of_mem (by simp)))
-  have c6 := wordAt_cells (hw 6 (by omega)) (hc (σ (.n 107)) (List.mem_map_of_mem (by simp)))
-  have c7 := wordAt_cells (hw 7 (by omega)) (hc (σ (.n 117)) (List.mem_map_of_mem (by simp)))
+  have c4 := wordAt_cells (hw 4 (by omega))
+  have c5 := wordAt_cells (hw 5 (by omega))
+  have c6 := wordAt_cells (hw 6 (by omega))
+  have c7 := wordAt_cells (hw 7 (by omega))
   simp only [vsX, List.getD_cons_zero, List.getD_cons_succ] at c4 c5 c6 c7
-  have e := absorb2_shape [σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)] (σ (.n 80))
-    (σ (.n 90)) (σ (.n 100)) (σ (.n 110)) (σ (.n 324)) (σ (.n 334))
-  have hl : rateOf [(σ (.n 80), dsObserve), (σ (.n 90), dsObserve), (σ (.n 100), dsObserve),
-      (σ (.n 110), dsObserve)] ++ [σ (.n 75), σ (.n 76), σ (.n 77), σ (.n 78), σ (.n 79)] =
-      List.map σ [.n 87, .n 89, .n 97, .n 99, .n 107, .n 109, .n 117, .n 119, .n 75, .n 76, .n 77,
-        .n 78, .n 79] := by
+  have e := absorb2_shape [σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)] (σ (.n 52))
+    (σ (.n 55)) (σ (.n 58)) (σ (.n 61)) (σ (.n 268)) (σ (.n 271))
+  have hl : rateOf [(σ (.n 52), dsObserve), (σ (.n 55), dsObserve), (σ (.n 58), dsObserve),
+      (σ (.n 61), dsObserve)] ++ [σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)] =
+      List.map σ [.n 53, .n 54, .n 56, .n 57, .n 59, .n 60, .n 62, .n 63, .n 47, .n 48, .n 49,
+        .n 50, .n 51] := by
     rw [rateOf_four, ← c4, ← c5, ← c6, ← c7]; rfl
   rw [e, Fs.perm, hl, ← hcap]
 
@@ -267,11 +280,11 @@ theorem vsSqzT_holds {capb o : ℕ} (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
     (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0)
     (h : Stmt.HoldsList C rd σ (vsSqzT capb o) next kret) :
     (⟨(vsRun capb 5).map σ, []⟩ : Fs).squeeze =
-        (σ (.n (o + 19)), ⟨[σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)),
+        (σ (.n (o + 13)), ⟨[σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)),
           σ (.n (o + 12))], []⟩) ∧ next := by
   simp only [vsSqzT, Stmt.HoldsList, Stmt.Holds, keccakA] at h
   obtain ⟨hk, h⟩ := h
-  obtain ⟨hch, hn⟩ := (holds_challengeT _ _ _ _ _).1 h
+  obtain ⟨hch, hn⟩ := (holds_challengeT _ _ _ _).1 h
   have hs := squeeze_atom (s := ⟨(vsRun capb 5).map σ, []⟩) (b := o + 13) hk
     (by simp only [List.map_append, List.map_cons, List.map_nil, h10, h11, h12, h13, rateOf_nil])
     hch
@@ -281,52 +294,55 @@ theorem vsSqzT_holds {capb o : ℕ} (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
   rw [← e1, ← e2]
   exact ⟨rfl, hn⟩
 
-/-- The second root word's perm atom: the root waiting, the bus's first challenge. -/
-abbrev vsAtom671 : Atom :=
-  .keccak [.n 331, .n 333, .n 341, .n 343, .n 8, .n 9, .n 10, .n 11, .n 319, .n 320, .n 321,
-    .n 322, .n 323] (vsRun 347 13) false false
+/-! ## The memory's size -/
 
-/-- **The four bus challenges** (G:3226-3232). -/
-theorem vsAlphasT_holds (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 0)
-    (h13 : σ (.n 11) = 0) (w8 : WordAt rd σ 8 324) (w9 : WordAt rd σ 9 334)
-    (h : Stmt.HoldsList C rd σ vsAlphasT next kret) :
-    (⟨[σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323)],
-        [(σ (.n 324), dsObserve), (σ (.n 334), dsObserve)]⟩ : Fs).squeezeN 4 =
-      ([σ (.n 366), σ (.n 386), σ (.n 406), σ (.n 426)],
-        ⟨[σ (.n 415), σ (.n 416), σ (.n 417), σ (.n 418), σ (.n 419)], []⟩) ∧
-      ReadsAt rd (σ (.n 346)) [σ (.n 366), σ (.n 386), σ (.n 406), σ (.n 426)] ∧ next := by
-  simp only [vsAlphasT, holdsList_append, Stmt.HoldsList, Stmt.Holds, vsLd] at h
-  obtain ⟨hk, h⟩ := h
-  obtain ⟨hch, l0, h⟩ := (holds_challengeT _ _ _ _ _).1 h
-  obtain ⟨s1, l1, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨s2, l2, h⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨s3, l3, hn⟩ := vsSqzT_holds h10 h11 h12 h13 h
-  obtain ⟨-, -, hc, -⟩ := keccakA_perm hk
-  have c8 := wordAt_cells w8 (hc (σ (.n 331)) (List.mem_map_of_mem (by simp)))
-  have c9 := wordAt_cells w9 (hc (σ (.n 341)) (List.mem_map_of_mem (by simp)))
-  have hs := squeeze_atom (s := ⟨[σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323)],
-    [(σ (.n 324), dsObserve), (σ (.n 334), dsObserve)]⟩) (b := 360) hk
-    (by simp only [List.map_cons, List.map_nil, h10, h11, h12, h13, rateOf_two, ← c8, ← c9]; rfl)
-    hch
-  rw [vsRun_drop8] at hs
-  refine ⟨?_, fun k hk ↦ ?_, hn⟩
-  · have e0 : (⟨[σ (.n 319), σ (.n 320), σ (.n 321), σ (.n 322), σ (.n 323)],
-        [(σ (.n 324), dsObserve), (σ (.n 334), dsObserve)]⟩ : Fs).squeeze =
-        (σ (.n 366), ⟨[σ (.n 355), σ (.n 356), σ (.n 357), σ (.n 358), σ (.n 359)], []⟩) :=
-      Prod.ext hs.1.symm (congrArg (Fs.mk · []) hs.2.symm)
-    have e1 : (⟨[σ (.n 355), σ (.n 356), σ (.n 357), σ (.n 358), σ (.n 359)], []⟩ : Fs).squeeze =
-        (σ (.n 386), ⟨[σ (.n 375), σ (.n 376), σ (.n 377), σ (.n 378), σ (.n 379)], []⟩) := s1
-    have e2 : (⟨[σ (.n 375), σ (.n 376), σ (.n 377), σ (.n 378), σ (.n 379)], []⟩ : Fs).squeeze =
-        (σ (.n 406), ⟨[σ (.n 395), σ (.n 396), σ (.n 397), σ (.n 398), σ (.n 399)], []⟩) := s2
-    have e3 : (⟨[σ (.n 395), σ (.n 396), σ (.n 397), σ (.n 398), σ (.n 399)], []⟩ : Fs).squeeze =
-        (σ (.n 426), ⟨[σ (.n 415), σ (.n 416), σ (.n 417), σ (.n 418), σ (.n 419)], []⟩) := s3
-    simp only [Fs.squeezeN, e0, e1, e2, e3]
-  · simp only [List.length_cons, List.length_nil] at hk
-    interval_cases k
-    · exact l0
-    · exact l1
-    · exact l2
-    · exact l3
+/-- **A memory image holding `n` words at one pointer has at least `n` words.** -/
+theorem mem_size_big {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 33)
+    (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
+  have hκ64 : κ < 64 := by omega
+  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.addressOfIndex j =
+      Parameters.addressOfIndex i := by
+    intro j
+    obtain ⟨v, -, hv⟩ := h j j.isLt
+    obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp hv
+    exact ⟨i, hi⟩
+  choose f hf using hidx
+  have hinj : Function.Injective f := by
+    intro a b hab
+    have ea := hf a
+    have eb := hf b
+    rw [hab, ← eb] at ea
+    have hp : p.limb 0 ≠ 0 := by
+      intro h0
+      have := hf a
+      rw [h0, zero_mul] at this
+      exact Parameters.gpow_ne_zero _ this.symm
+    have := mul_left_cancel₀ hp ea
+    have hlt : ∀ x : Fin n, (x : ℕ) < 2 ^ 64 - 1 := fun x ↦ by have := x.isLt; omega
+    exact Fin.ext (gpow_injOn (hlt a) (hlt b) this)
+  simpa using Fintype.card_le_of_injective f hinj
+
+theorem mem_size {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 32)
+    (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ :=
+  mem_size_big hκ L (by omega) h
+
+/-- A run of words read at one pointer is at most `2^32` long. -/
+theorem mem_size_le {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {xs : List E}
+    (h : ReadsAt L.read p xs) : xs.length ≤ 2 ^ 32 := by
+  by_contra hlt
+  have hb := mem_size_big hκ L (n := 2 ^ 32 + 1) (by norm_num)
+    (fun j hj ↦ ⟨xs[j]'(by omega), h j (by omega)⟩)
+  have : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hκ
+  omega
+
+/-- The window table at `g_squares·g^236` gives the memory at least `2^11` words. -/
+theorem winTab_kappa {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {q : E} (h : ExpWinTab L.read q) :
+    winTabBits ≤ κ := by
+  have hs := mem_size hκ L (p := q * gen ^ winTabAt) (n := 2 ^ winTabBits) (by norm_num)
+    (fun j hj ↦ ⟨_, by rw [loadHolds_mul_gen_pow]; exact h j hj⟩)
+  by_contra hlt
+  have : 2 ^ κ < 2 ^ winTabBits := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  omega
 
 end
 end LeanVM.Guest.B1.VerifySub

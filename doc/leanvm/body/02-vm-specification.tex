@@ -5,14 +5,14 @@ Define the following two finite fields:
 \[
   \K=\F_{2^{64}}=\F_2[x]/(x^{64}+x^4+x^3+x+1),
   \qquad
-  \E=\K[y]/(y^3+y+1),
-  \qquad |\E|=2^{192}.
+  \E=\K[y]/(y^2+xy+1),
+  \qquad |\E|=2^{128}.
 \]
 
 We use $\gen = x$, a generator of $\K^{\times}$ (of order $2^{64}-1$).
 
-An element of $\K$ is a polynomial in $x$ of degree below $64$, written in hexadecimal with the coefficient of $x^{i}$ in bit $i$, so $\mathtt{2}$ is $x$ and $\mathtt{3}$ is $x+1$. An element of $\E$ is three of those, its coefficients on $1,y,y^{2}$.
- 
+An element of $\K$ is a polynomial in $x$ of degree below $64$, written in hexadecimal with the coefficient of $x^{i}$ in bit $i$, so $\mathtt{2}$ is $x$ and $\mathtt{3}$ is $x+1$. An element of $\E$ is two of those, its \emph{limbs}, the coefficients on $1$ and $y$. The product is $(a_0+a_1y)(b_0+b_1y)=(a_0b_0+a_1b_1)+(a_0b_1+a_1b_0+x\,a_1b_1)\,y$, since $y^2=xy+1$.
+
 \vspace{5mm}
 
 LeanVM ISA, also known as leanISA, is inspired by Cairo \cite{cairo}. The Virtual Machine takes as input a bytecode (of $2^{\kbc}$ instructions) and some public input $\textsf{input} \in \cube{256} \simeq (\textsf{input}_0, \dots, \textsf{input}_3) \in \K^4$. The Virtual Machine then initializes its two $\K$-valued registers:
@@ -21,7 +21,7 @@ LeanVM ISA, also known as leanISA, is inspired by Cairo \cite{cairo}. The Virtua
   \item the frame pointer $\fp \xleftarrow{} \fp_{\mathrm{initial}} = \one_\K$
 \end{itemize}
 
-The Virtual Machine also takes a \textit{memory witness} $\mem$: a buffer of $2^{\kmem}$ \textit{memory words}, each in $\E$ (192 bits), fixed for the whole execution. The memory is indexed \textit{in the exponent} of $\gen$. The first word is $\mem[\gen^0]$, the second is $\mem[\gen^1]$, and so on. The bytecode addressing follows the same convention. Each memory access beyond $\gen^{2^{\kmem}-1}$ (resp. $\gen^{2^{\kbc}-1}$ for the bytecode) is invalid.
+The Virtual Machine also takes a \textit{memory witness} $\mem$: a buffer of $2^{\kmem}$ \textit{memory words}, each in $\E$ (128 bits), fixed for the whole execution. The memory is indexed \textit{in the exponent} of $\gen$. The first word is $\mem[\gen^0]$, the second is $\mem[\gen^1]$, and so on. The bytecode addressing follows the same convention. Each memory access beyond $\gen^{2^{\kmem}-1}$ (resp. $\gen^{2^{\kbc}-1}$ for the bytecode) is invalid.
 
 The public input fixes the first two memory words: $\mem[\gen^0] = \textsf{input}_0 + \textsf{input}_1 \cdot y \in \E$ and $\mem[\gen^1] = \textsf{input}_2 + \textsf{input}_3 \cdot y \in \E$.
 
@@ -51,7 +51,7 @@ For a given pair of bytecode and public input, there is in general more than one
 \paragraph{Operands.} An instruction is an opcode followed by a list of $\K$-valued operands. An operand is either:
 \begin{itemize}
   \item an \emph{fp-relative reference} $o=\gen^{\,j}$, which names the word $\mem[\fp\cdot o]$, at offset $j$ in the current frame;
-  \item one $\K$-lane of an \emph{immediate} ($k_0,k_1,k_2$ in \texttt{SET\_CONSTANT}).
+  \item one $\K$-limb of an \emph{immediate} ($k_0,k_1$ in \texttt{SET\_CONSTANT}).
 \end{itemize}
 
 \paragraph{Instruction set.} The machine implements six instructions.
@@ -62,7 +62,7 @@ Instruction & Operands & Semantics\\
 \hline
 \texttt{XOR}           & $[o_A,o_B,o_C]$ & $\loc{o_C}=\loc{o_A}+\loc{o_B}$ (addition in $\E$)\\
 \texttt{MUL\_NATIVE}   & $[o_A,o_B,o_C]$ & $\loc{o_C}=\loc{o_A}\cdot\loc{o_B}$ (multiplication in $\E$)\\
-\texttt{SET\_CONSTANT} & $[o,k_0,k_1,k_2]$ & $\loc{o}=k_0+k_1y+k_2y^{2}$\\
+\texttt{SET\_CONSTANT} & $[o,k_0,k_1]$ & $\loc{o}=k_0+k_1y$\\
 \texttt{DEREF}         & $[o_1,o_2,o_3;\,\dmode]$ & $\mem[\loc{o_1}\cdot o_2]=\srcsel{\dmode}$ (see below)\\
 \texttt{JUMP}          & $[o_c,o_d,o_f]$ & conditional jump (see below)\\
 \texttt{KECCAK}           & $\begin{array}[t]{@{}l@{}}[o_{m_0},o_{m_1},o_{m_2},o_{m_3},\\ \;\:o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\\ \;\:\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}},\\ \;\:\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}]\end{array}$ & one Keccak permutation (see below)\\
@@ -90,12 +90,12 @@ Additionally, it asserts $\loc{o_1} \in \K$.
 
 \vspace{5mm}
 
-\texttt{KECCAK} applies the Keccak-$f[1600]$ permutation~\cite{keccak} to a state of $25$ lanes of $64$ bits held in thirteen cells, two lanes per cell, top limb zero. It reads the cells $\loc{o_{m_0}},\dots,\loc{o_{m_3}}$, $\loc{\gen^k\cdot o_{\mathit{tail}}}$ ($k<4$), $\loc{o_{\mathit{b8}}}$ and $\loc{\gen^k\cdot o_{\mathit{cap}}}$ ($k<4$), in this order, and writes the result to the cells $\loc{\gen^k\cdot o_{\mathit{out}}}$ the flags $\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}\in\{0,1\}$ select: $k=0$ always, $k=1$ when $\mathit{out}_{\mathit{two}}=1$, and $2\le k<13$ when $\mathit{out}_{\mathit{all}}=1$, leaving the others untouched. Cells are read in the layout $\mathit{odd}_{\mathit{in}}\in\{0,1\}$ and written in the layout $\mathit{odd}_{\mathit{out}}$:
+\texttt{KECCAK} applies the Keccak-$f[1600]$ permutation~\cite{keccak} to a state of $25$ lanes of $64$ bits held in thirteen cells, two lanes per cell, one per limb. It reads the cells $\loc{o_{m_0}},\dots,\loc{o_{m_3}}$, $\loc{\gen^k\cdot o_{\mathit{tail}}}$ ($k<4$), $\loc{o_{\mathit{b8}}}$ and $\loc{\gen^k\cdot o_{\mathit{cap}}}$ ($k<4$), in this order, and writes the result to the cells $\loc{\gen^k\cdot o_{\mathit{out}}}$ the flags $\mathit{out}_{\mathit{two}},\mathit{out}_{\mathit{all}}\in\{0,1\}$ select: $k=0$ always, $k=1$ when $\mathit{out}_{\mathit{two}}=1$, and $2\le k<13$ when $\mathit{out}_{\mathit{all}}=1$, leaving the others untouched. Cells are read in the layout $\mathit{odd}_{\mathit{in}}\in\{0,1\}$ and written in the layout $\mathit{odd}_{\mathit{out}}$:
 \begin{itemize}
 \item even ($0$): cell $c<8$ holds lanes $(2c,2c+1)$, cell $8$ holds $(16,\cdot)$;
 \item odd ($1$): cell $0$ holds $(\cdot,0)$, cell $1\le c\le8$ holds $(2c-1,2c)$;
 \item both: cell $9\le c<13$ holds $(2c-1,2c)$.
 \end{itemize}
-The 64-bit of the cell 8 (even) or 0 (odd) (denoted $\cdot$ above) is ignored for the input and set to zero for the output.
+The \emph{free} limb, marked $\cdot$ above (cell $8$ even, cell $0$ odd), is ignored on input and set to zero on output.
 
 

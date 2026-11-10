@@ -104,7 +104,7 @@ theorem asg_shares {rd : Reader} {q : E} (ht : ExpTables rd q) (e : ℕ) :
 /-- A digit's range check against `g^15` on a memory defined below `2^κ`, `4 ≤ κ`. -/
 theorem asg_rc_low {κ : ℕ} (hκ4 : 4 ≤ κ) {rd : Reader} (hlow : LowDef κ rd) {n : ℕ}
     (hn : n < 16) : ∃ y t1 t2 : E, LoadHolds rd (gen ^ n) 0 t1 ∧
-      word (2 ^ (16 - 1)) 0 0 = gen ^ n * y ∧ LoadHolds rd y 0 t2 := by
+      word (2 ^ (16 - 1)) 0 = gen ^ n * y ∧ LoadHolds rd y 0 t2 := by
   obtain ⟨a, b, c⟩ := rc_complete_low hlow (K := 16)
     (le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ4)) hn
   refine ⟨_, _, _, by rw [gen_pow_eq_ofK]; exact a, ?_, c⟩
@@ -139,12 +139,12 @@ theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^
   have ht := expTables_of_memL hLin
   obtain ⟨σ, e0, e1, ep, hh⟩ := asg_holds_of (C := fun _ _ _ ↦ True) (rd := rd)
     (by simpa using he) (fun _ ↦ asg_rc_low hκ4 hlow (Nat.mod_lt _ (by decide))) (asg_shares ht e)
-  have hh' : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body Data.core4) False
-      (fun rs ↦ rs = []) := by rw [core4_body]; exact hh
+  have hh' : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (Fn.body Data.core3) False
+      (fun rs ↦ rs = []) := by rw [core3_body]; exact hh
   have hsat := walk_sat (P := coreProgram) _
     (coreProgram_wf _ (List.mem_of_find?_eq_some find_assert_small_g_power)) hh'
-  have hw : walk σ (Fn.body Data.core4) = .ret (asgPre.flatMap (Main.slEvs σ)) [] := by
-    rw [core4_body, asgBody_split, Main.walk_straight σ _ _ asgPre_straight]
+  have hw : walk σ (Fn.body Data.core3) = .ret (asgPre.flatMap (Main.slEvs σ)) [] := by
+    rw [core3_body, asgBody_split, Main.walk_straight σ _ _ asgPre_straight]
   rw [hw] at hsat
   obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ asgPre asgPre_straight
   have ha : asgPre.filterMap Main.Stmt.allocSz = [] := by decide +kernel
@@ -154,7 +154,7 @@ theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^
   rw [hd] at i3
   rw [hc] at i4
   refine ⟨σ, asgPre.flatMap (Main.slEvs σ), [], by
-      rw [show Fn.params Data.core4 = [.n 0, .n 1] from rfl]; simp [e0, e1], hw, rfl,
+      rw [show Fn.params Data.core3 = [.n 0, .n 1] from rfl]; simp [e0, e1], hw, rfl,
     fun e he ↦ (hsat.1 e he).1, i4, i3, i2, by rw [i1]; rfl, fun A hA ↦ ?_⟩
   rw [loadAddrs_straight σ _ asgPre_straight, asgPre_loads] at hA
   simp only [List.map_map, List.mem_map, List.mem_range, Function.comp_apply] at hA
@@ -246,17 +246,17 @@ theorem lcEvs_parts (fl : ℕ) (σ : Val) :
 /-- `log2_ceil_in_the_exponent`'s body under any call relation, valuation and continuation. -/
 theorem lc_holds_iff (fl : ℕ) (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → Prop) :
     Stmt.HoldsList C rd σ (lcBody fl) False kret ↔
-      σ (.n 2) = word (2 ^ 34) 0 0 ∧ σ (.n 5) = word (2 ^ 33) 0 0 ∧
+      σ (.n 2) = word (2 ^ 34) 0 ∧ σ (.n 5) = word (2 ^ 33) 0 ∧
       (LoadHolds rd (σ (.n 4)) 0 (σ (.n 7)) ∧ σ (.n 5) = σ (.n 4) * σ (.n 6) ∧
         LoadHolds rd (σ (.n 6)) 0 (σ (.n 8))) ∧
-      σ (.n 9) = word (2 ^ 33) 0 0 ∧ σ (.n 10) = word (2 ^ fl) 0 0 ∧
+      σ (.n 9) = word (2 ^ 33) 0 ∧ σ (.n 10) = word (2 ^ fl) 0 ∧
       σ (.n 4) = σ (.n 11) * σ (.n 10) ∧
       (LoadHolds rd (σ (.n 11)) 0 (σ (.n 13)) ∧ σ (.n 9) = σ (.n 11) * σ (.n 12) ∧
         LoadHolds rd (σ (.n 12)) 0 (σ (.n 14))) ∧
       σ (.n 15) = σ (.n 1) * σ (.n 4) ∧ LoadHolds rd (σ (.n 15)) 0 (σ (.n 16)) ∧
       σ (.n 16) = σ (.n 17) * σ (.n 0) ∧
       C "assert_small_g_power" [σ (.n 17), σ (.n 1)] [] ∧
-      σ (.n 18) = word (2 ^ fl) 0 0 ∧ σ (.n 19) = σ (.n 4) + σ (.n 18) ∧
+      σ (.n 18) = word (2 ^ fl) 0 ∧ σ (.n 19) = σ (.n 4) + σ (.n 18) ∧
       (IsInK (σ (.n 19)) ∧ (σ (.n 19) ≠ 0 →
         σ (.n 20) = invGenWord ∧ σ (.n 21) = σ (.n 0) * σ (.n 20) ∧ σ (.n 22) = invGenWord ∧
         σ (.n 23) = σ (.n 4) * σ (.n 22) ∧ σ (.n 24) = σ (.n 1) * σ (.n 23) ∧
@@ -337,20 +337,20 @@ theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
   have hK34 : 34 ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
   obtain ⟨r1a, r1b, r1c⟩ := rc_complete_low hlowd (K := 34) hK34 hL
   obtain ⟨r2a, r2b, r2c⟩ := rc_complete_low hlowd (K := 34) hK34 (show L - fl < 34 by omega)
-  have w33 : word (2 ^ 33) 0 0 = ofK (addressOfIndex (34 - 1)) := by
+  have w33 : word (2 ^ 33) 0 = ofK (addressOfIndex (34 - 1)) := by
     rw [word_two_pow (by norm_num), gen_pow_eq_ofK]
-  have wfl : word (2 ^ fl) 0 0 = gen ^ fl := word_two_pow (by omega)
+  have wfl : word (2 ^ fl) 0 = gen ^ fl := word_two_pow (by omega)
   -- the valuation
-  let w : List E := [gen ^ N, q, word (2 ^ 34) 0 0, ofK (Parameters.addressOfIndex b), gen ^ L,
-    word (2 ^ 33) 0 0, (rcLow rd L 34).1, (rcLow rd L 34).2.1, (rcLow rd L 34).2.2,
-    word (2 ^ 33) 0 0, word (2 ^ fl) 0 0, gen ^ (L - fl), (rcLow rd (L - fl) 34).1,
+  let w : List E := [gen ^ N, q, word (2 ^ 34) 0, ofK (Parameters.addressOfIndex b), gen ^ L,
+    word (2 ^ 33) 0, (rcLow rd L 34).1, (rcLow rd L 34).2.1, (rcLow rd L 34).2.2,
+    word (2 ^ 33) 0, word (2 ^ fl) 0, gen ^ (L - fl), (rcLow rd (L - fl) 34).1,
     (rcLow rd (L - fl) 34).2.1, (rcLow rd (L - fl) 34).2.2, q * gen ^ L, gen ^ 2 ^ L,
-    gen ^ (2 ^ L - N), word (2 ^ fl) 0 0, gen ^ L + word (2 ^ fl) 0 0, invGenWord,
+    gen ^ (2 ^ L - N), word (2 ^ fl) 0, gen ^ L + word (2 ^ fl) 0, invGenWord,
     gen ^ N * invGenWord, invGenWord, gen ^ L * invGenWord, q * (gen ^ L * invGenWord),
     gen ^ 2 ^ (L - 1), gen ^ (N - (2 ^ (L - 1) + 1)), gen ^ L]
   let σ : Val := Val.ofArgs w
   have h19 : σ (.n 19) = 0 ↔ L = fl := by
-    show gen ^ L + word (2 ^ fl) 0 0 = 0 ↔ _
+    show gen ^ L + word (2 ^ fl) 0 = 0 ↔ _
     rw [wfl, e_add_eq_zero_iff]
     exact ⟨fun h ↦ gen_pow_inj (by omega) (by omega) h, fun h ↦ by rw [h]⟩
   have hh : Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (lcBody fl) False (fun r ↦ r = [gen ^ L]) := by
@@ -358,19 +358,19 @@ theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
       ?_, ?_, trivial, rfl, rfl, ⟨?_, fun hne ↦ ?_⟩, rfl, rfl⟩
     · show LoadHolds rd (gen ^ L) 0 _
       rw [gen_pow_eq_ofK]; exact r1a
-    · show word (2 ^ 33) 0 0 = gen ^ L * _
+    · show word (2 ^ 33) 0 = gen ^ L * _
       rw [w33, gen_pow_eq_ofK]; exact r1b
-    · show gen ^ L = gen ^ (L - fl) * word (2 ^ fl) 0 0
+    · show gen ^ L = gen ^ (L - fl) * word (2 ^ fl) 0
       rw [wfl, ← pow_add]; congr 1; omega
     · show LoadHolds rd (gen ^ (L - fl)) 0 _
       rw [gen_pow_eq_ofK]; exact r2a
-    · show word (2 ^ 33) 0 0 = gen ^ (L - fl) * _
+    · show word (2 ^ 33) 0 = gen ^ (L - fl) * _
       rw [w33, gen_pow_eq_ofK]; exact r2b
     · show LoadHolds rd (q * gen ^ L) 0 (gen ^ 2 ^ L)
       rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact ht.1 L hL
     · show gen ^ 2 ^ L = gen ^ (2 ^ L - N) * gen ^ N
       rw [← pow_add]; congr 1; omega
-    · show IsInK (gen ^ L + word (2 ^ fl) 0 0)
+    · show IsInK (gen ^ L + word (2 ^ fl) 0)
       rw [wfl]; exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)
     · have hLf : L ≠ fl := fun h ↦ hne (h19.2 h)
       have hlo := hlow hLf
@@ -395,7 +395,7 @@ theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
   set es := lcEvs fl σ with hes
   have hal : allocs σ es = [34] := by
     rw [p2]
-    show [logG (word (2 ^ 34) 0 0)] = [34]
+    show [logG (word (2 ^ 34) 0)] = [34]
     rw [word_two_pow (by norm_num), logG_gen_pow (by norm_num)]
   have hown' : ∀ i, RegionL (bufL b [34] [bitWords N]) i →
       ownData cert fp (fp + fs name) name (allocs σ es) es i :=

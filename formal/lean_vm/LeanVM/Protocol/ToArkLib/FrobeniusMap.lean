@@ -1,10 +1,10 @@
 /-
   LeanVM.Protocol.ToArkLib.FrobeniusMap
 
-  The staged additive map of Frobenius-map ring switching: a composition of stages
-  `a ↦ a + f · a ^ 2 ^ s`, its expansion as a sum of Frobenius powers, its additivity, and the
-  stage-by-stage bound that one challenge cancels a nonzero family at one value at most.
-  Candidate for ArkLib.
+  The two-stage additive map of Frobenius-map ring switching: an inner stage
+  `Ψ(a) = Σ_b g_b · a^(2^b)` and an outer stage `Φ(a) = Σ_p f_p · Ψ(a)^(2^(s·p))`, its expansion
+  as a sum of Frobenius powers, its additivity, and the count of the challenges `(f, g)` at which it
+  cancels a family whose Frobenius pairings are not all zero. Candidate for ArkLib.
 -/
 
 module
@@ -12,152 +12,227 @@ module
 public import Mathlib.Algebra.CharP.Lemmas
 public import Mathlib.Algebra.CharP.Reduced
 public import Mathlib.Algebra.Field.Basic
-public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.BigOperators
+public import ArkLib.Data.MvPolynomial.SchwartzZippelCounting
 
 /-!
-# The staged Frobenius map
+# The two-stage Frobenius map
 
-In a commutative ring of characteristic two, `a ↦ a + f · a ^ 2 ^ s` is additive, and so is any
-composition of such stages. `frobMap st a` applies the stages of the list `st`, a stage being a
-shift `s` and a coefficient `f`, in order. Ring switching from `GF(2)` to a field `E` draws the
-coefficients as challenges: the composed map is a random `GF(2)`-linear map cheap to apply.
+In a commutative ring of characteristic two, `a ↦ a^(2^k)` is additive, so for coefficients
+`g : Fin m → R` and `f : Fin n → R` and a shift `s`, the maps
 
-* `frobMap_eq_sum`: the map is the Frobenius sum `Σ_{(c, e)} c · a ^ 2 ^ e` over the terms
-  `frobTerms st`, two terms per term of the later stages; with `m` stages there are `2 ^ m`.
-* `frobMapHom`: the map as an additive homomorphism, so it commutes with sums and differences.
-* `frobPair_stage`, `card_stage_zero_le_one`: for weights `w` and a family `b`, write
-  `π_k(b) = Σ_i w_i · b_i ^ 2 ^ k`. One stage with shift `M` sends `π_k` to
-  `π_k + f ^ 2 ^ k · π_{M + k}`, so a family with some `π_k ≠ 0`, `k < 2M`, keeps some
-  `π_k ≠ 0`, `k < M`, for every coefficient `f` but at most one: `a + f ^ 2 ^ k · b = 0` with
-  `(a, b) ≠ (0, 0)` has at most one root, the Frobenius being injective.
+```text
+Ψ(a) = Σ_{b < m} g_b · a^(2^b)                         frobPsi
+Φ(a) = Σ_{p < n} f_p · Ψ(a)^(2^(s·p))                  frobPhi
+```
 
-The declarations live in `LeanVM.Protocol.Ring`; ring switching on `q_keccak`
-(`EndToEnd/Front/RingSwitch.lean`) uses them. Nothing here transcribes a source.
+are additive (`frobPhiHom`), and `Φ` is the Frobenius sum
+`Φ(a) = Σ_{p, b} f_p g_b^(2^(s·p)) · a^(2^(s·p + b))` (`frobPhi_eq_sum`). Ring switching draws
+`f` and `g` as challenges: with `s = m` the exponents `s·p + b` run once over `[0, n·m)`.
+
+**Soundness, by stage.** For weights `w` and a family `δ`, write `π_k(δ) = Σ_i w_i · δ_i^(2^k)`
+(`frobPair`). Then `Σ_i w_i Φ(δ_i) = Σ_p f_p · M_p(g)` with
+`M_p(g) = Σ_b g_b^(2^(s·p)) · π_{s·p + b}(δ)` (`sum_frobPhi`). Over a finite field `F` of
+characteristic two:
+
+* if `π_{s·p + b} ≠ 0` for some `p, b`, then `M_p(g)` is a nonzero linear form in
+  `(g_b^(2^(s·p)))_b`, and the Frobenius permutes `F`, so it vanishes at `|F|^(m-1)` of the `g` at
+  most (`card_frob_linear_zero_le`);
+* when `M(g) ≠ 0`, `Σ_p f_p M_p(g)` is a nonzero linear form in `f`, which vanishes at
+  `|F|^(n-1)` of the `f` at most (`card_linear_zero_le`).
+
+So `Σ_i w_i Φ(δ_i) = 0` at no more than `2·|F|^(n+m-1)` of the `|F|^(n+m)` challenges `(f, g)`
+(`card_frobPhi_zero_le`), an error `2/|F|`, though the `g_b` enter `Φ` with degree up to
+`2^(s·(n-1))`: each stage is linear in its own challenges. Nothing here transcribes a source.
 -/
 
 namespace LeanVM.Protocol.Ring
+
+open Finset
 
 @[expose] public section
 
 variable {R : Type*} [CommRing R]
 
-/-! ## The map and its terms -/
+/-! ## The map -/
 
-/-- The staged map: each stage `(s, f)` sends `a` to `a + f · a ^ 2 ^ s`, in order. -/
-def frobMap : List (ℕ × R) → R → R
-  | [], a => a
-  | (s, f) :: st, a => frobMap st (a + f * a ^ 2 ^ s)
+/-- The inner stage, `Ψ(a) = Σ_{b < m} g_b · a^(2^b)`. -/
+def frobPsi {m : ℕ} (g : Fin m → R) (a : R) : R := ∑ b : Fin m, g b * a ^ 2 ^ (b : ℕ)
 
-/-- The terms `(c, e)` of the staged map as a sum of Frobenius powers `c · a ^ 2 ^ e`. -/
-def frobTerms : List (ℕ × R) → List (R × ℕ)
-  | [] => [(1, 0)]
-  | (s, f) :: st => (frobTerms st).flatMap fun t ↦ [(t.1, t.2), (t.1 * f ^ 2 ^ t.2, s + t.2)]
+/-- The two-stage map, `Φ(a) = Σ_{p < n} f_p · Ψ(a)^(2^(s·p))`. -/
+def frobPhi (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) (a : R) : R :=
+  ∑ p : Fin n, f p * frobPsi g a ^ 2 ^ (s * p)
+
+/-- The Frobenius pairing `π_k(δ) = Σ_{i ∈ S} w_i · δ_i^(2^k)`. -/
+def frobPair {ι : Type*} (S : Finset ι) (w δ : ι → R) (k : ℕ) : R :=
+  ∑ i ∈ S, w i * δ i ^ 2 ^ k
 
 variable [CharP R 2]
 
-/-- The staged map is the sum of its terms: `frobMap st a = Σ_{(c, e)} c · a ^ 2 ^ e`. -/
-theorem frobMap_eq_sum (st : List (ℕ × R)) (a : R) :
-    frobMap st a = ((frobTerms st).map fun t ↦ t.1 * a ^ 2 ^ t.2).sum := by
-  induction st generalizing a with
-  | nil => simp [frobMap, frobTerms]
-  | cons p st ih =>
-    obtain ⟨s, f⟩ := p
-    rw [frobMap, ih, frobTerms]
-    generalize frobTerms st = L
-    induction L with
-    | nil => simp
-    | cons t L ihL =>
-      simp only [List.flatMap_cons, List.map_append, List.sum_append, List.map_cons,
-        List.sum_cons, List.map_nil, List.sum_nil, add_zero, ihL]
-      rw [add_pow_char_pow, mul_pow, ← pow_mul, ← pow_add]
-      ring
+/-- The inner stage is additive. -/
+theorem frobPsi_add {m : ℕ} (g : Fin m → R) (a b : R) :
+    frobPsi g (a + b) = frobPsi g a + frobPsi g b := by
+  simp only [frobPsi, add_pow_char_pow, mul_add, Finset.sum_add_distrib]
 
-omit [CharP R 2] in
-/-- Stages in sequence: the later list applies after the earlier. -/
-theorem frobMap_append (st₁ st₂ : List (ℕ × R)) (a : R) :
-    frobMap (st₁ ++ st₂) a = frobMap st₂ (frobMap st₁ a) := by
-  induction st₁ generalizing a with
-  | nil => rfl
-  | cons p st ih =>
-    obtain ⟨s, f⟩ := p
-    exact ih _
+/-- The two-stage map is additive. -/
+theorem frobPhi_add (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) (a b : R) :
+    frobPhi s f g (a + b) = frobPhi s f g a + frobPhi s f g b := by
+  simp only [frobPhi, frobPsi_add, add_pow_char_pow, mul_add, Finset.sum_add_distrib]
 
-/-- The staged map is additive. -/
-theorem frobMap_add (st : List (ℕ × R)) (a b : R) :
-    frobMap st (a + b) = frobMap st a + frobMap st b := by
-  induction st generalizing a b with
-  | nil => rfl
-  | cons p st ih =>
-    obtain ⟨s, f⟩ := p
-    simp only [frobMap]
-    rw [← ih, add_pow_char_pow]
-    congr 1
-    ring
+/-- The two-stage map sends `0` to `0`. -/
+theorem frobPhi_zero (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) :
+    frobPhi s f g 0 = 0 := by
+  have h := frobPhi_add s f g 0 0
+  rw [add_zero] at h
+  exact left_eq_add.mp h
 
-omit [CharP R 2] in
-/-- The staged map sends `0` to `0`. -/
-theorem frobMap_zero (st : List (ℕ × R)) : frobMap st 0 = 0 := by
-  induction st with
-  | nil => rfl
-  | cons p st ih =>
-    obtain ⟨s, f⟩ := p
-    simp only [frobMap]
-    rw [zero_pow (pow_ne_zero _ two_ne_zero), mul_zero, add_zero, ih]
+/-- The two-stage map as an additive homomorphism. -/
+def frobPhiHom (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) : R →+ R where
+  toFun := frobPhi s f g
+  map_zero' := frobPhi_zero s f g
+  map_add' := frobPhi_add s f g
 
-/-- The staged map as an additive homomorphism. -/
-def frobMapHom (st : List (ℕ × R)) : R →+ R where
-  toFun := frobMap st
-  map_zero' := frobMap_zero st
-  map_add' := frobMap_add st
+/-- The two-stage map sends differences to differences. -/
+theorem frobPhi_sub (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) (a b : R) :
+    frobPhi s f g (a - b) = frobPhi s f g a - frobPhi s f g b :=
+  map_sub (frobPhiHom s f g) a b
 
-/-! ## One stage on a family -/
+/-- The two-stage map commutes with finite sums. -/
+theorem frobPhi_sum (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) {ι : Type*}
+    (S : Finset ι) (a : ι → R) :
+    frobPhi s f g (∑ i ∈ S, a i) = ∑ i ∈ S, frobPhi s f g (a i) :=
+  map_sum (frobPhiHom s f g) a S
 
-/-- `π_k(b) = Σ_i w_i · b_i ^ 2 ^ k`. -/
-def frobPair {ι : Type*} (s : Finset ι) (w b : ι → R) (k : ℕ) : R :=
-  ∑ i ∈ s, w i * b i ^ 2 ^ k
+/-- A Frobenius power of the inner stage: `Ψ(a)^(2^t) = Σ_b g_b^(2^t) · a^(2^(t + b))`. -/
+theorem frobPsi_pow {m : ℕ} (g : Fin m → R) (a : R) (t : ℕ) :
+    frobPsi g a ^ 2 ^ t = ∑ b : Fin m, g b ^ 2 ^ t * a ^ 2 ^ (t + (b : ℕ)) := by
+  rw [frobPsi, sum_pow_char_pow]
+  refine Finset.sum_congr rfl fun b _ ↦ ?_
+  rw [mul_pow, ← pow_mul, ← pow_add, Nat.add_comm (b : ℕ) t]
 
-/-- One stage with shift `M` and coefficient `f` sends `π_k` to `π_k + f ^ 2 ^ k · π_{M + k}`. -/
-theorem frobPair_stage {ι : Type*} (s : Finset ι) (w b : ι → R) (M : ℕ) (f : R) (k : ℕ) :
-    frobPair s w (fun i ↦ b i + f * b i ^ 2 ^ M) k =
-      frobPair s w b k + f ^ 2 ^ k * frobPair s w b (M + k) := by
-  simp only [frobPair, Finset.mul_sum, ← Finset.sum_add_distrib]
+/-- **The Frobenius sum**: `Φ(a) = Σ_{p, b} f_p g_b^(2^(s·p)) · a^(2^(s·p + b))`. -/
+theorem frobPhi_eq_sum (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) (a : R) :
+    frobPhi s f g a =
+      ∑ p : Fin n, ∑ b : Fin m, f p * g b ^ 2 ^ (s * p) * a ^ 2 ^ (s * p + (b : ℕ)) := by
+  simp only [frobPhi, frobPsi_pow, Finset.mul_sum, mul_assoc]
+
+/-- **The map through a family**: `Σ_i w_i Φ(δ_i) = Σ_p f_p Σ_b g_b^(2^(s·p)) π_{s·p + b}(δ)`. -/
+theorem sum_frobPhi (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) {ι : Type*}
+    (S : Finset ι) (w δ : ι → R) :
+    ∑ i ∈ S, w i * frobPhi s f g (δ i) =
+      ∑ p : Fin n, f p * ∑ b : Fin m, g b ^ 2 ^ (s * p) * frobPair S w δ (s * p + b) := by
+  simp only [frobPhi_eq_sum, frobPair, Finset.mul_sum]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun p _ ↦ ?_
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun b _ ↦ ?_
   refine Finset.sum_congr rfl fun i _ ↦ ?_
-  rw [add_pow_char_pow, mul_pow, ← pow_mul, ← pow_add]
   ring
 
-/-- `a + f ^ 2 ^ k · b = 0` with `(a, b) ≠ (0, 0)` has one root `f` at most, in a field of
-characteristic two. -/
-theorem card_frob_root_le_one {F : Type*} [Field F] [CharP F 2] [Fintype F] [DecidableEq F]
-    (k : ℕ) {a b : F} (hab : a ≠ 0 ∨ b ≠ 0) :
-    (Finset.univ.filter fun f : F ↦ a + f ^ 2 ^ k * b = 0).card ≤ 1 := by
-  refine Finset.card_le_one.mpr fun f₁ h₁ f₂ h₂ ↦ ?_
-  rw [Finset.mem_filter] at h₁ h₂
-  have hb : b ≠ 0 := by
-    rintro rfl
-    simp only [mul_zero, add_zero] at h₁
-    exact hab.elim (· h₁.2) (· rfl)
-  have heq : f₁ ^ 2 ^ k = f₂ ^ 2 ^ k :=
-    mul_right_cancel₀ hb (add_left_cancel (h₁.2.trans h₂.2.symm))
-  exact iterateFrobenius_inj F 2 k heq
+/-! ## Counting the bad challenges -/
 
-/-- **One bad coefficient at most.** If some `π_k`, `k < 2M`, of the family is nonzero, then after
-one stage with shift `M` every `π_k`, `k < M`, vanishes for one coefficient at most. -/
-theorem card_stage_zero_le_one {F : Type*} [Field F] [CharP F 2] [Fintype F] [DecidableEq F]
-    {ι : Type*} (s : Finset ι) (w b : ι → F) (M : ℕ) (h : ∃ k < 2 * M, frobPair s w b k ≠ 0) :
-    (Finset.univ.filter fun f : F ↦
-      ∀ k < M, frobPair s w (fun i ↦ b i + f * b i ^ 2 ^ M) k = 0).card ≤ 1 := by
-  obtain ⟨k₀, hk₀, hne⟩ := h
-  -- The index below `M` whose pair of values is nonzero.
-  obtain ⟨k, hk, hab⟩ : ∃ k < M, frobPair s w b k ≠ 0 ∨ frobPair s w b (M + k) ≠ 0 := by
-    by_cases hlt : k₀ < M
-    · exact ⟨k₀, hlt, Or.inl hne⟩
-    · refine ⟨k₀ - M, by omega, Or.inr ?_⟩
-      rwa [show M + (k₀ - M) = k₀ by omega]
-  refine (Finset.card_le_card fun f hf ↦ ?_).trans (card_frob_root_le_one k hab)
-  rw [Finset.mem_filter] at hf ⊢
-  refine ⟨Finset.mem_univ _, ?_⟩
-  rw [← frobPair_stage]
-  exact hf.2 k hk
+section Count
+
+variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
+
+/-- **A nonzero linear form vanishes on `|F|^(m-1)` points at most.** -/
+theorem card_linear_zero_le {m : ℕ} {c : Fin m → F} (hc : c ≠ 0) :
+    #{h : Fin m → F | ∑ b, h b * c b = 0} ≤ Fintype.card F ^ (m - 1) := by
+  classical
+  obtain ⟨b₀, hb₀⟩ := Function.ne_iff.mp hc
+  let P : MvPolynomial (Fin m) F := ∑ b, MvPolynomial.X b * MvPolynomial.C (c b)
+  have hev : ∀ h : Fin m → F, MvPolynomial.eval h P = ∑ b, h b * c b := fun h ↦ by
+    simp [P]
+  have hP : P ≠ 0 := by
+    intro h0
+    have h1 := hev (Pi.single b₀ 1)
+    rw [h0, map_zero] at h1
+    have h2 : ∑ b, (Pi.single b₀ (1 : F) : Fin m → F) b * c b = c b₀ := by
+      rw [Finset.sum_eq_single b₀ (fun b _ hb ↦ by simp [hb])
+        (fun h ↦ absurd (Finset.mem_univ _) h)]
+      simp
+    exact hb₀ (by rw [← h2, ← h1]; rfl)
+  have hdeg : P.totalDegree ≤ 1 := by
+    refine (MvPolynomial.totalDegree_finsetSum _ _).trans (Finset.sup_le fun b _ ↦ ?_)
+    refine (MvPolynomial.totalDegree_mul _ _).trans ?_
+    rw [MvPolynomial.totalDegree_C, add_zero]
+    exact (MvPolynomial.totalDegree_X b).le
+  have h := MvPolynomial.card_zeros_le_of_totalDegree_le_fin P hP hdeg
+  simp only [hev, one_mul] at h
+  exact h
+
+/-- **Twisted by a Frobenius power**: `Σ_b g_b^(2^t) · c_b`, `c ≠ 0`, vanishes on `|F|^(m-1)` of
+the `g` at most, the Frobenius permuting `F`. -/
+theorem card_frob_linear_zero_le [CharP F 2] {m : ℕ} (t : ℕ) {c : Fin m → F} (hc : c ≠ 0) :
+    #{g : Fin m → F | ∑ b, g b ^ 2 ^ t * c b = 0} ≤ Fintype.card F ^ (m - 1) := by
+  refine (Finset.card_le_card_of_injOn (fun g b ↦ g b ^ 2 ^ t) ?_ ?_).trans
+    (card_linear_zero_le hc)
+  · intro g hg
+    simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq] at hg ⊢
+    exact hg
+  · intro g₁ _ g₂ _ h
+    funext b
+    exact iterateFrobenius_inj F 2 t (congrFun h b)
+
+/-- The challenges of a product split by the second coordinate. -/
+private theorem card_filter_prod {α β : Type*} [Fintype α] [Fintype β] (P : α → β → Prop)
+    [∀ a b, Decidable (P a b)] :
+    #{x : α × β | P x.1 x.2} = ∑ b : β, #{a : α | P a b} := by
+  rw [Finset.card_filter, Fintype.sum_prod_type_right]
+  refine Finset.sum_congr rfl fun b _ ↦ ?_
+  rw [Finset.card_filter]
+
+/-- **The two-stage map cancels a family at few challenges.** If some pairing `π_{s·p + b}(δ)`,
+`p < n`, `b < m`, is nonzero, then `Σ_i w_i Φ(δ_i) = 0` at no more than `2·|F|^(n+m-1)` of the
+challenges `(f, g)`. -/
+theorem card_frobPhi_zero_le [CharP F 2] {ι : Type*} (S : Finset ι) (w δ : ι → F) (s : ℕ)
+    {n m : ℕ} (h : ∃ p : Fin n, ∃ b : Fin m, frobPair S w δ (s * p + b) ≠ 0) :
+    #{fg : (Fin n → F) × (Fin m → F) | ∑ i ∈ S, w i * frobPhi s fg.1 fg.2 (δ i) = 0} ≤
+      2 * Fintype.card F ^ (n + m - 1) := by
+  obtain ⟨p₀, b₀, hne⟩ := h
+  let M : (Fin m → F) → Fin n → F := fun g p ↦
+    ∑ b : Fin m, g b ^ 2 ^ (s * p) * frobPair S w δ (s * p + b)
+  have hn : 1 ≤ n := Nat.one_le_iff_ne_zero.mpr fun h ↦ by subst h; exact p₀.elim0
+  have hm : 1 ≤ m := Nat.one_le_iff_ne_zero.mpr fun h ↦ by subst h; exact b₀.elim0
+  -- The outer stage at a fixed `g`.
+  have hf : ∀ g : Fin m → F, #{f : Fin n → F | ∑ p, f p * M g p = 0} ≤
+      Fintype.card F ^ (n - 1) + (if M g p₀ = 0 then Fintype.card F ^ n else 0) := by
+    intro g
+    by_cases h0 : M g p₀ = 0
+    · simp only [h0, ↓reduceIte]
+      refine (Finset.card_le_univ _).trans ?_
+      rw [Fintype.card_fun, Fintype.card_fin]
+      exact Nat.le_add_left _ _
+    · simp only [h0, ↓reduceIte, add_zero]
+      exact card_linear_zero_le fun hM ↦ h0 (congrFun hM p₀)
+  -- The inner stage at `p₀`.
+  have hg : #{g : Fin m → F | M g p₀ = 0} ≤ Fintype.card F ^ (m - 1) :=
+    card_frob_linear_zero_le (s * p₀) fun hc ↦ hne (congrFun hc b₀)
+  have hset : (Finset.univ.filter fun fg : (Fin n → F) × (Fin m → F) ↦
+      ∑ i ∈ S, w i * frobPhi s fg.1 fg.2 (δ i) = 0) =
+      Finset.univ.filter fun fg : (Fin n → F) × (Fin m → F) ↦ ∑ p, fg.1 p * M fg.2 p = 0 :=
+    Finset.filter_congr fun fg _ ↦ by rw [sum_frobPhi s fg.1 fg.2 S w δ]
+  have hsplit : #{fg : (Fin n → F) × (Fin m → F) | ∑ p, fg.1 p * M fg.2 p = 0} =
+      ∑ g : Fin m → F, #{f : Fin n → F | ∑ p, f p * M g p = 0} :=
+    card_filter_prod (fun (f : Fin n → F) (g : Fin m → F) ↦ ∑ p, f p * M g p = 0)
+  have hite : ∑ g : Fin m → F, (if M g p₀ = 0 then Fintype.card F ^ n else 0) =
+      #{g : Fin m → F | M g p₀ = 0} * Fintype.card F ^ n := by
+    rw [← Finset.sum_filter, Finset.sum_const, smul_eq_mul]
+  have hconst : ∑ _g : Fin m → F, Fintype.card F ^ (n - 1) =
+      Fintype.card F ^ m * Fintype.card F ^ (n - 1) := by
+    rw [Finset.sum_const, Finset.card_univ, Fintype.card_fun, Fintype.card_fin, smul_eq_mul]
+  rw [hset, hsplit]
+  refine (Finset.sum_le_sum fun g _ ↦ hf g).trans ?_
+  rw [Finset.sum_add_distrib, hite, hconst]
+  calc Fintype.card F ^ m * Fintype.card F ^ (n - 1) + #{g : Fin m → F | M g p₀ = 0} *
+        Fintype.card F ^ n
+      ≤ Fintype.card F ^ m * Fintype.card F ^ (n - 1) + Fintype.card F ^ (m - 1) *
+        Fintype.card F ^ n := Nat.add_le_add_left (Nat.mul_le_mul_right _ hg) _
+    _ = 2 * Fintype.card F ^ (n + m - 1) := by
+        rw [← pow_add, ← pow_add, two_mul]
+        congr 2 <;> omega
+
+end Count
 
 end
 end LeanVM.Protocol.Ring

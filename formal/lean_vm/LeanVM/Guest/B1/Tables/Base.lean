@@ -25,8 +25,8 @@ shared `B1/Common` has them.
   copied as `RunsTo` in `B1/Gkr/Fs`: from any sponge the guest carries as five capacity cells
   and waiting scalars, a program reads exactly the stream words given and returns its value,
   leaving a sponge the guest carries as the cells after.
-* `BytecodeAt ev words point value`: the evaluations `ev` take `value` for the fixed polynomial
-  at `point`, consuming nothing.
+* `BytecodeAt ev words point value`: the check `ev` of the fixed polynomial accepts `value` at
+  `point`, consuming nothing.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -45,9 +45,12 @@ abbrev tbRun {α : Type} (p : VerifierProgram α) (s : VerifierProgramState) : O
     VerifierProgramState) :=
   Compile.runWithHash (m := Id) keccak256 keccakF1600 p s
 
-/-- `ev` takes `value` for the fixed polynomial of `words` at `point`, consuming nothing. -/
-def BytecodeAt (ev : (List K → List E → VerifierProgram E)) (words : List K) (point : List E) (value : E) : Prop :=
-  ∀ s, tbRun (ev words point) s = some (value, s)
+/-- The check `ev` of the fixed polynomial of `words` accepts `value` at `point`, consuming
+nothing (`computedBytecodeValue` where the value is the polynomial's, `claimedBytecodeValue` where
+the point and the value are the claim's). -/
+def BytecodeAt (ev : List K → List E → E → VerifierProgram Unit) (words : List K) (point : List E)
+    (value : E) : Prop :=
+  ∀ s, tbRun (ev words point value) s = some ((), s)
 
 /-- The order of `g`. -/
 abbrev tbOrdG : ℕ := 2 ^ 64 - 1

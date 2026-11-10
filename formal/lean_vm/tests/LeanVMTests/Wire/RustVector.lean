@@ -5,11 +5,11 @@ import Statement.Fast.Keccak
 # The wire encoding on the Rust test's vector
 
 The vector of `proof_round_trips_through_its_one_encoding` (`crates/fiat_shamir/src/wire.rs`,
-leanVM main `40f877dc`): a tree of four rows `[0, 0, 1]`, `[0, 2, 3]`, `[0, 0, 4]`,
+leanVM `f128`): a tree of four rows `[0, 0, 1]`, `[0, 2, 3]`, `[0, 0, 4]`,
 `[0, 5, 0]`, opened at the queries `3, 1, 3` with leaves of `3` words (`open`,
 `crates/fiat_shamir/src/merkle.rs:53-68`: the sibling at level `l` of query `q` is the node
-`(q >> l) ^ 1`), and the stream `[F192::new(1, 2, 3)]`. As the Rust asserts: the encoding is
-`(4 + 24) + 4 + (4 + 3·4) + 3·4 + 2·2·8 + 2·32 = 156` bytes (the stream; the phase count; the
+`(q >> l) ^ 1`), and the stream `[F128::new(1, 2)]`. As the Rust asserts: the encoding is
+`(4 + 16) + 4 + (4 + 3·4) + 3·4 + 2·2·8 + 2·32 = 148` bytes (the stream; the phase count; the
 queries; three sizes; two rows of two words, the common zero word dropped; two siblings); it
 decodes, with Keccak-256 over Keccak-f[1600], to the proof, whose encoding is the bytes; and one
 more byte is refused.
@@ -47,7 +47,7 @@ def opening (q : ℕ) : Opening :=
 
 /-- The test's proof. -/
 def proof : Proof :=
-  ⟨[E.ofLimbs (K.ofBits 1) (K.ofBits 2) (K.ofBits 3)], [[3, 1, 3].map opening]⟩
+  ⟨[E.ofLimbs (K.ofBits 1) (K.ofBits 2)], [[3, 1, 3].map opening]⟩
 
 /-- A proof's fields, comparable. -/
 def fields (p : Proof) : List (List UInt8) × List (List (ℕ × List K × List Digest)) :=
@@ -57,7 +57,7 @@ def fields (p : Proof) : List (List UInt8) × List (List (ℕ × List K × List 
 def decode (bytes : Bytes) : Option Proof :=
   Proof.fromBytes (m := Id) (fun s ↦ pure (keccakF1600 s)) bytes
 
-#guard proof.toBytes.length = (4 + 24) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32
+#guard proof.toBytes.length = (4 + 16) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32
 
 #guard (decode proof.toBytes).map fields == some (fields proof)
 

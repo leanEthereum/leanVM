@@ -66,13 +66,13 @@ def prog0 : LeanVM.Semantics.LeanIsaProgram := ⟨0, by decide, fun _ ↦ .jump 
 def components : List (Component K) := (leanIsaEnsemble prog0 2).tables
 
 -- The widths are the Rust's committed column counts, and the blocks' row widths.
-example : components.map Component.width = [15, 15, 8, 15, 14, 92, 5, 15] := by decide +kernel
+example : components.map Component.width = [13, 13, 7, 14, 14, 92, 4, 15] := by decide +kernel
 
 -- The count columns are `count_columns()`, in its order; the memory block's finalize count is its
--- column `4` (after the word's three limbs and the address), the bytecode block's its column `1`.
+-- column `3` (after the word's two limbs and the address), the bytecode block's its column `1`.
 example : components.map (fun c ↦ (c.toM3 channelSep channelDir counted).count.map (·.val)) =
-    [[11, 12, 13, 14], [11, 12, 13, 14], [6, 7], [11, 12, 13, 14], [8, 9, 10, 11],
-      (List.range 27).map (65 + ·), [4], [1]] := by
+    [[9, 10, 11, 12], [9, 10, 11, 12], [5, 6], [10, 11, 12, 13], [8, 9, 10, 11],
+      (List.range 27).map (65 + ·), [3], [1]] := by
   decide +kernel
 
 -- Only `JUMP` has constraints: two, of degree two. No component has a lookup.

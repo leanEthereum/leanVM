@@ -34,7 +34,7 @@ variable {C : CallRel} {rd : Reader}
 
 /-- The byte table's word at `g^v`. -/
 theorem byte_load {bb : E} (hbb : ByteBits rd bb) {v : Nat} (hv : v < 256) :
-    LoadHolds rd (bb * ofK (addressOfIndex v)) 0 (word v 0 0) := by
+    LoadHolds rd (bb * ofK (addressOfIndex v)) 0 (word v 0) := by
   obtain ⟨hK, hl⟩ := hbb v hv
   have e : bb * ofK (addressOfIndex v) = ofK (bb.limb 0 * addressOfIndex v) := by
     rw [ofK_mul, ← eq_ofK_limb hK]
@@ -91,7 +91,7 @@ theorem sByte_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd bb) {v : 
     (hv : v < 256) (σ : Val) (h1 : σ (.n 1) = bb) {mark : V} {b : Nat} (hb : 2 ≤ b) (hmk : NBv b mark)
     (hmv : σ mark = ofK (addressOfIndex v)) :
     Completes C rd b (b + 6) (sByte mark b) σ
-      (fun σ' => σ' (.n (b + 5)) = word v 0 0 ∧ BytePtr bb (σ' (.n (b + 4)))) := by
+      (fun σ' => σ' (.n (b + 5)) = word v 0 ∧ BytePtr bb (σ' (.n (b + 4)))) := by
   rw [sByte, g255W_k]
   refine Completes.append (m := b + 4) (by omega) (by omega) (rangeS_nb mark _ b hmk)
     (rangeS_complete hm (le_refl 256) hv σ mark hmk hmv) (fun σ1 he1 _ => ?_)
@@ -133,7 +133,7 @@ theorem sFromBytesRest_shape : ∀ (ms : List V) (b : Nat) (val : V), (∀ m ∈
       refine ⟨by rw [r1]; ring, by rw [show b + 9 * (ms.length + 1) = b + 9 + 9 * ms.length by ring]; exact r2, ?_⟩
       rw [show b + 9 * (ms.length + 1) = b + 9 + 9 * ms.length by ring, valsList_append, valsList_append]
       refine (((sByte_nb hm).mono (by omega)).append ?_).append r3
-      show NumBelow _ (Stmt.valsList ([cst (b + 6) (word 256 0 0)] ++ [mulS (.n (b + 7)) val (.n (b + 6))] ++
+      show NumBelow _ (Stmt.valsList ([cst (b + 6) (word 256 0)] ++ [mulS (.n (b + 7)) val (.n (b + 6))] ++
         [addS (.n (b + 8)) (.n (b + 5)) (.n (b + 7))]))
       rw [valsList_append, valsList_append]
       exact ((((nb_cst (b + 6) _).mono (by omega)).append
@@ -157,7 +157,7 @@ theorem sFromBytesRest_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd 
       exact ⟨hv, fun k hk => absurd hk (by simp)⟩
   | _ :: _, [], _, _, _, _, _, _, hf, _, _, _, _, _ => nomatch hf
   | m :: ms, v :: vs, b, val, N, M, σ, hb, .cons ⟨hmb, hmv, hv256⟩ hf', hval, h1, hv, hN, hM => by
-      have e : sFromBytesRest (m :: ms) b val = (sByte m b ++ ([cst (b + 6) (word 256 0 0)] ++
+      have e : sFromBytesRest (m :: ms) b val = (sByte m b ++ ([cst (b + 6) (word 256 0)] ++
           ([mulS (.n (b + 7)) val (.n (b + 6))] ++ ([addS (.n (b + 8)) (.n (b + 5)) (.n (b + 7))] ++
             (sFromBytesRest ms (b + 9) (.n (b + 8))).1))),
           (sFromBytesRest ms (b + 9) (.n (b + 8))).2.1, (sFromBytesRest ms (b + 9) (.n (b + 8))).2.2) := by
@@ -169,7 +169,7 @@ theorem sFromBytesRest_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd 
       have hM1 : 1 ≤ 256 ^ ms.length := Nat.one_le_pow _ _ (by norm_num)
       have hM256 : M * 256 ≤ 2 ^ 64 := by rw [hpow] at hM; nlinarith
       refine Completes.append (m := b + 6)
-        (P := fun σ' => σ' (.n (b + 5)) = word v 0 0 ∧ BytePtr bb (σ' (.n (b + 4)))) (by omega) (by omega)
+        (P := fun σ' => σ' (.n (b + 5)) = word v 0 ∧ BytePtr bb (σ' (.n (b + 4)))) (by omega) (by omega)
         (sByte_nb hmb) (sByte_complete hm hbb hv256 σ h1 hb hmb hmv)
         (fun σ1 he1 ⟨hp1, hq1⟩ => ?_)
       refine Completes.append (m := b + 7) (by omega) (by omega) (nb_cst (b + 6) _)
@@ -183,7 +183,7 @@ theorem sFromBytesRest_complete (hm : MemOK rd 256) {bb : E} (hbb : ByteBits rd 
       have tr : ∀ k < b, σ4 (.n k) = σ (.n k) := fun k hk => by
         rw [he4.apply (Or.inl (by omega)), he3.apply (Or.inl (by omega)), he2.apply (Or.inl (by omega)),
           he1.apply (Or.inl (by omega))]
-      have v5 : σ3 (.n (b + 5)) = word v 0 0 := by
+      have v5 : σ3 (.n (b + 5)) = word v 0 := by
         rw [he3.apply (Or.inl (by omega)), he2.apply (Or.inl (by omega))]; exact hp1
       have p4 : BytePtr bb (σ4 (.n (b + 4))) := by
         rw [he4.apply (Or.inl (by omega)), he3.apply (Or.inl (by omega)), he2.apply (Or.inl (by omega))]

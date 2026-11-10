@@ -16,7 +16,7 @@
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Ftwo}{\mathbb{F}_2}
 \newcommand{\K}{K}            % F_{2^64}:  addresses, counters, committed lanes
-\newcommand{\E}{E}            % F_{2^192} = K[y]/(y^3+y+1): words and challenges
+\newcommand{\E}{E}            % F_{2^128} = K[y]/(y^2+xy+1): words and challenges
 \newcommand{\gen}{\mathsf{g}} % generator of K^*, order 2^64 - 1
 \newcommand{\one}{\mathds{1}}       % the unit of K
 
@@ -113,10 +113,7 @@
 \newcommand{\nlev}{\Lambda}              % number of levels            (was r)
 \newcommand{\rate}{\rho}                 % code rate, the convention
 \newcommand{\rexp}{\nu}                  % rate exponent, rate = 2^-nu  (was R)
-\newcommand{\rad}{\gamma}                % proximity radius, the convention
 \newcommand{\slack}{\eta}                % Johnson slack, the convention
-\newcommand{\mcapar}{\theta}            % MCA parameter, the convention
-\newcommand{\dmin}{\delta_{\min}}        % relative minimum distance   (was delta)
 \newcommand{\rc}[1]{c^{(#1)}}            % round-#1 running claim      (was sigma_j)
 \newcommand{\nq}{\omega}                 % query count                 (was t_i)
 \newcommand{\qset}{\mathcal{Q}}          % sampled column indices      (was J_i)
@@ -125,14 +122,26 @@
 \newcommand{\orc}{Z}                     % oracle / interleaved word   (was C)
 \newcommand{\nrows}{N_{\mathrm{rows}}}    % committed rows of the level-0 oracle (R is the bus root)
 \newcommand{\nstack}{N_{\mathrm{stack}}}  % field elements placed in the stack, before the zero padding
-\newcommand{\lst}{\mathcal{L}}           % list of nearby codewords    (was Lambda)
-\newcommand{\ffinal}{f^{\ast}}           % final plaintext table       (was p)
-\newcommand{\cood}{c_{\mathrm{ood}}}     % out-of-domain answer        (was y)
-\newcommand{\mcanum}{A_{\mathrm{mca}}}   % MCA error numerator         (was a)
-\newcommand{\mcanumi}[1]{A_{\mathrm{mca},#1}}  % ... at level #1
+\newcommand{\lst}{\mathcal{L}}           % list of nearby polynomial tuples
+\newcommand{\cood}[1]{c_{\mathrm{ood},#1}} % out-of-domain answer at point #1 (was y)
 \newcommand{\polyset}{\mathcal{G}}       % polynomials bound by a commitment
 \newcommand{\relopen}{\mathsf{R}_{\mathrm{open}}}
-\newcommand{\aset}{\mathcal{A}}          % Johnson agreement set       (was A_j)
+\newcommand{\aset}{\mathcal{A}}          % an agreement set
+\newcommand{\agr}{\mathsf{A}}            % an agreement threshold, a number of coordinates (A in CYWZ26)
+\newcommand{\dgr}{\mathsf{d}}            % a degree bound of a fold round (d in CYWZ26)
+\newcommand{\jl}{\mathsf{L}}             % the Johnson count L(A, d) of Theorem thm:johnson-general
+\newcommand{\premix}{\theta}             % the premix challenge of a fold round (theta in CYWZ26)
+\newcommand{\wch}{\gamma}                % the weight challenge of a fold round (gamma in CYWZ26)
+\newcommand{\afa}{\mathsf{a}}            % the affine combiner's constant coefficient (alpha in CYWZ26)
+\newcommand{\afb}{\mathsf{b}}            % its coefficient of X (beta in CYWZ26)
+\newcommand{\tabx}[1]{v^{X}_{#1}}        % a table value on X times the premixed lane
+\newcommand{\phigh}{\mathbf{p}}          % the high coefficients of a folded lane, sent in the clear
+\newcommand{\epsaff}{\varepsilon_{\mathrm{aff}}}  % the affine MCA error
+\newcommand{\imul}{\mathsf{m}}           % interpolation multiplicity  (m in CYWZ26)
+\newcommand{\iyz}{\mathsf{D}}            % its (Y,Z)-degree bound      (D in CYWZ26)
+\newcommand{\iz}{\mathsf{M}}             % its Z-degree bound          (M in CYWZ26)
+\newcommand{\ithr}{\mathsf{B}}           % the persistence threshold   (B in CYWZ26)
+\newcommand{\grind}[1]{b_{\mathrm{#1}}}  % grinding bits before a verifier message
 
 % ---------- novel basis and additive NTT (Annex D) ----------
 \newcommand{\subsp}{\mathcal{U}}         % F_2-subspace                (was U_i)
@@ -142,6 +151,7 @@
 \newcommand{\ntmap}{\psi}                % linearized NTT map          (was q_d)
 \newcommand{\bfarr}{\mathsf{B}}          % NTT butterfly array         (was B)
 \newcommand{\mpoly}{\mathcal{P}}         % message polynomial          (was P_u)
+\newcommand{\nbc}{\varpi}                % the constant of Wn_i^2 = Wn_i + varpi_i Wn_{i+1}  (a_i in the code)
 
 % ---------- data availability (\S\ref{sec:leanda}) ----------
 % The code itself reuses the PCS letters: k = message dimension, n = block
@@ -158,4 +168,3 @@
 \newcommand{\pair}{\Omega}               % error pairing values        (was V_k)
 \newcommand{\supp}{\mathcal{S}}          % support of \Phimap          (was S)
 \newcommand{\nkeccak}{\kappa_{\keccak}}     % variables of the packed bit witness \qkeccak (was m, L)
-\newcommand{\fcoord}{\mathsf{a}}          % an F_2 coordinate function  (was A_w)

@@ -17,15 +17,13 @@ public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 # The table phase's identities at leanISA
 
 The bus/table bridge (`busTableSpec`, `LeanVM.Protocol.EndToEnd.Front.BusTable`) specifies the
-verifier program's bus phase and table sumcheck (`crates/verifier/src/bus.rs:106-259` at leanVM
-`40f877dc`) on the oracle protocol's relations, given three facts
+verifier program's bus phase and table sumcheck (`crates/verifier/src/bus.rs:130-297`) on the oracle protocol's relations, given three facts
 about the instance and the layout. This module proves them at the leanISA instance
 `leanIsaWith prog s fl` and the verifier's layout `verifierLayout prog s`, for every program
 `prog` and size vector `s`:
 
 * `tableFid_leanIsa`: the table phase's identities (`TableFid`, with the global column numbering
-  `refCol`) for every read of the bus phase of the right shape whose fingerprint challenges are
-  four: the rounds are `τ_max` (`rounds_leanIsa`); the target `Σ_s ξ^(2+s) · totals[s]` is the
+  `refCol`) for every read of the bus phase of the right shape whose slot weights are sixteen: the rounds are `τ_max` (`rounds_leanIsa`); the target `Σ_s ξ^(2+s) · totals[s]` is the
   protocol's batched claim (`target_leanIsa`); the final check's value is the protocol's formula
   at the reversed challenges and the values read (`formula_leanIsa`: weights `prodWeight_eq`,
   values `tableValues_eq`, constraints and forms `rowValue_eq`); every claim of the protocol's
@@ -35,15 +33,11 @@ about the instance and the layout. This module proves them at the leanISA instan
 * `busTableSpec_leanIsa`: the bus phase, then the table sumcheck, at leanISA, with no fidelity
   hypothesis left, only the error hypotheses.
 
-**The fingerprint challenges are four.** `TableFid` is false for a read with five or more
-challenges: the verifier weighs coordinate `i` of a flush by entry `i` of `eq_kernel(alphas)`, the
-protocol by `lagrangeBasis` of the first four, and with a fifth challenge `1` the verifier's first
-sixteen weights vanish (`tests/LeanVMTests/Protocol/EndToEnd/Front/TableFid.lean`). The wire
-always draws four (`samples(BUS_BITS)`), but `BusWit.Shaped` does not record it, so
-`busTableSpec` asks for `TableFid` at reads `tableFid_leanIsa` cannot cover. The leanISA spec is
-therefore assembled from `busThenSpec4`, the bus phase with the length of the challenges recorded
-(`abSpec4`, from `abProg_bind_guard`: guarding the wire's challenges by their length changes
-nothing), which asks for the continuation only at reads with four challenges.
+**The slot weights are sixteen.** The boundary blocks' fingerprints are read sixteen weights at a
+time (`bnd_push`), so `TableFid` is proved at reads with sixteen; the wire always draws sixteen
+(`samples(2^BUS_BITS)`), and `busThenSpec` asks for the continuation only at such reads
+(`abSpec16`, from `abProg_bind_guard`: guarding the wire's weights by their count changes
+nothing). The share is the bytecode's (`BusWit.Shaped`, from the bus phase's `BusAt`).
 
 **At every Keccak region.** The identities, the depth conditions and `busTableSpec_leanIsa` are
 stated at `leanIsaWith prog s fl` (`Front.InstanceWith`, the region implicit), which the bus and
@@ -79,11 +73,11 @@ theorem nCons_eq : nCons = 2 := by
 
 /-- The constraint powers: `1, ξ`. -/
 theorem cpsOf_eq (ξ : E) : cpsOf ξ = [1, ξ] := by
-  simp [cpsOf, nCons_eq, powers, powersFrom_eq, List.range_succ]
+  simp [cpsOf, nCons_eq, nTrees, powers, powersFrom_eq, List.range_succ]
 
 /-- The form powers: `ξ², ξ³, ξ⁴`. -/
 theorem fpsOf_eq (ξ : E) : fpsOf ξ = [ξ ^ 2, ξ ^ 3, ξ ^ 4] := by
-  simp [fpsOf, nCons_eq, powers, powersFrom_eq, List.range_succ]
+  simp [fpsOf, nCons_eq, nTrees, powers, powersFrom_eq, List.range_succ]
 
 variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
   (input : PublicInput)
@@ -98,7 +92,9 @@ theorem rounds_leanIsa :
 /-- **The target**: the form powers against the verifier's totals are the protocol's batched
 claim. -/
 theorem target_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl).μBus)
-    (ha : w.alphas.length = 4) (hm : w.memory.length = 3) (ξ : E) :
+    (ha : w.alphas.length = 16) (hm : w.memory.length = 2)
+    (hsh : w.share = shareTotal (vecOf (2 ^ 4) w.alphas)
+      (slotValues (verifierLayout prog s).bytecode (w.point.take prog.logSize))) (ξ : E) :
     dot (fpsOf ξ) (w.result (verifierLayout prog s)).totals =
       powerBatch (claimed (leanIsaWith prog s fl)
         (busStmt (leanIsaWith prog s fl) (leanIsaWith_conditions prog s fl) input w)) ξ := by
@@ -108,7 +104,7 @@ theorem target_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaWith prog s f
   rw [sumcheckB_leanIsa prog s, Whir.Complete.dot_eq_sum _ _ (by rw [fpsOf_eq]; rfl), fpsOf_eq,
     ← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
-  rw [busStmt, busOut_totals prog s input w hp ha hm i, mul_comm]
+  rw [busStmt, busOut_totals prog s input w hp ha hm hsh i, mul_comm]
   fin_cases i <;> rfl
 
 /-! ## The verifier's final value, table by table -/
@@ -124,10 +120,10 @@ theorem result_forms_shape (w : BusWit) :
     (w.result (verifierLayout prog s)).forms.length = 6 ∧
       ∀ t < 6, ((w.result (verifierLayout prog s)).forms.getD t []).length = 3 := by
   rw [result_forms]
-  obtain ⟨a1, a2, -, -⟩ := Complete.accFold_spec 0 (by norm_num) (eqKernel w.alphas) w.beta
+  obtain ⟨a1, a2, -, -⟩ := Complete.accFold_spec 0 (by norm_num) (w.alphas) w.beta
     _ _ Complete.forms0_length Complete.forms0_row
     (Complete.owner_lt_six s (Complete.pushBlocks_owned s) _)
-  obtain ⟨b1, b2, -, -⟩ := Complete.accFold_spec 1 (by norm_num) (eqKernel w.alphas) w.beta
+  obtain ⟨b1, b2, -, -⟩ := Complete.accFold_spec 1 (by norm_num) (w.alphas) w.beta
     _ _ a1 a2 (Complete.owner_lt_six s (Complete.pullBlocks_owned s) _)
   obtain ⟨c1, c2, -, -⟩ := Complete.accFold_spec 2 (by norm_num) [1] 0
     _ _ b1 b2 (Complete.owner_lt_six s (Complete.countBlocks_owned s) _)
@@ -378,7 +374,7 @@ theorem consPart_eq (ξ : E) (t : Fin 6)
 /-- **What a table owes is the verifier's**: at values `e` of opcode table `t`'s columns, read as
 `ev`, the protocol's constraints and forms batched by `ξ` are the verifier's. -/
 theorem rowValue_eq (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl).μBus)
-    (ha : w.alphas.length = 4) (ξ : E) (t : Fin 6)
+    (ha : w.alphas.length = 16) (ξ : E) (t : Fin 6)
     (e : Fin ((leanIsaWith prog s fl).width (stEquiv prog s fl t).1) → E) (ev : List E)
     (hev : ∀ i, ev.getD i 0 = rowE e i) :
     rowValue (leanIsaWith prog s fl)
@@ -417,7 +413,7 @@ theorem readShape_facts (w : BusWit) (pt : List E) (evs : List (List E))
 /-- **The final check's value is the protocol's formula**: at the reversed challenges and the
 values read, the verifier's final value is the table sumcheck's formula. -/
 theorem formula_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl).μBus)
-    (ha : w.alphas.length = 4) (ξ : E) (ch : List E) (evs : List (List E))
+    (ha : w.alphas.length = 16) (ξ : E) (ch : List E) (evs : List (List E))
     (hch : ch.length = (leanIsaWith prog s fl).τmax)
     (hs : ReadShape (rowsOf (verifierLayout prog s) (w.result (verifierLayout prog s)) ch.reverse)
       evs) :
@@ -458,15 +454,14 @@ theorem refTableTerms_snd (cps fps pt : List E) :
     rw [refTableTerms, refTableTerms_snd cps fps pt rest evs]
     simp
 
-/-- The bus phase's claims, listed: the three memory columns, `MFCNT` and `BFCNT`. -/
-theorem result_claims (w : BusWit) (hm : w.memory.length = 3) :
+/-- The bus phase's claims, listed: the two memory limbs, `MFCNT` and `BFCNT`. -/
+theorem result_claims (w : BusWit) (hm : w.memory.length = 2) :
     (w.result (verifierLayout prog s)).claims =
       [⟨0, w.point.take s.logMem, w.memory.getD 0 0⟩, ⟨1, w.point.take s.logMem, w.memory.getD 1 0⟩,
-        ⟨2, w.point.take s.logMem, w.memory.getD 2 0⟩, ⟨3, w.point.take s.logMem, w.mf⟩,
-        ⟨4, w.point.take prog.logSize, w.bf⟩] := by
-  obtain ⟨a, b, c, habc⟩ : ∃ a b c, w.memory = [a, b, c] := by
+        ⟨2, w.point.take s.logMem, w.mf⟩, ⟨3, w.point.take prog.logSize, w.bf⟩] := by
+  obtain ⟨a, b, habc⟩ : ∃ a b, w.memory = [a, b] := by
     match h : w.memory, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
+    | [a, b], _ => exact ⟨a, b, rfl⟩
   rw [result_eq_busOut, habc]
   rfl
 
@@ -489,7 +484,7 @@ theorem busWit_layer_point (I : M3Instance) (input : I.Stmt) (w : BusWit) :
 
 /-- **The protocol's bus claims are the program's.** -/
 theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl).μBus)
-    (hm : w.memory.length = 3)
+    (hm : w.memory.length = 2)
     (c : ColumnClaim (leanIsaWith prog s fl))
     (hc : c ∈ (Bus.busOut (leanIsaWith_conditions prog s fl)
       (w.layer (leanIsaWith prog s fl) input)
@@ -498,11 +493,11 @@ theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaWith prog
       (w.result (verifierLayout prog s)).claims := by
   simp only [Bus.busOut, Vector.toList_ofFn, List.mem_ofFn] at hc
   obtain ⟨⟨i, hi⟩, rfl⟩ := hc
-  have h5 : (leanIsaWith prog s fl).busClaims = 5 := by
-    show (leanIsaWith prog s fl).boundaryColumns.length = 5
+  have h5 : (leanIsaWith prog s fl).busClaims = 4 := by
+    show (leanIsaWith prog s fl).boundaryColumns.length = 4
     rw [boundaryColumns_leanIsa]
     rfl
-  have hi5 : i < 5 := h5 ▸ hi
+  have hi5 : i < 4 := h5 ▸ hi
   have hiL : i < (leanIsaWith prog s fl).boundaryColumns.length := by
     rw [boundaryColumns_leanIsa]; exact hi5
   have hbc := List.getElem_of_eq (boundaryColumns_leanIsa prog s) hiL
@@ -514,9 +509,9 @@ theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaWith prog
   simp only [busWit_layer_point]
   rw [ofFn_vecOf w.point hκ hp]
   simp only [hbc]
-  obtain ⟨a, b, c, habc⟩ : ∃ a b c, w.memory = [a, b, c] := by
+  obtain ⟨a, b, habc⟩ : ∃ a b, w.memory = [a, b] := by
     match h : w.memory, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
+    | [a, b], _ => exact ⟨a, b, rfl⟩
   rw [habc]
   interval_cases i
   · exact List.mem_cons_self
@@ -524,8 +519,6 @@ theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaWith prog
   · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)
   · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       List.mem_cons_self))
-  · exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-      (List.mem_cons_of_mem _ List.mem_cons_self)))
 
 /-- **The protocol's final claims are among the program's**: the claim on column `i` of opcode table
 `t` at the final point is the program's claim on the same column. -/
@@ -576,19 +569,27 @@ theorem finalClaims_mem (ξ : E) (w : BusWit) (ch : List E) (evs : List (List E)
 /-! ## The table phase's identities -/
 
 /-- **The table phase's identities hold at leanISA**, at the verifier's layout and the global
-column numbering `refCol`, for every read of the bus phase of the right shape whose fingerprint
-challenges are four. -/
+column numbering `refCol`, for every read of the bus phase of the right shape whose slot weights
+are sixteen. -/
 theorem tableFid_leanIsa (hI : Bus.Conditions (leanIsaWith prog s fl)) (w : BusWit)
-    (hw : w.Shaped (leanIsaWith prog s fl)) (ha : w.alphas.length = 4) :
+    (hw : w.Shaped (leanIsaWith prog s fl) (verifierLayout prog s)) (ha : w.alphas.length = 16) :
     TableFid (leanIsaWith prog s fl) hI input (verifierLayout prog s) refCol w where
   rounds := rounds_leanIsa prog s
-  target ξ := target_leanIsa prog s input w hw.1 ha hw.2.2 ξ
+  target ξ := target_leanIsa prog s input w hw.1 ha hw.2.2.1 hw.2.2.2 ξ
   formula ξ ch evs hch hs := formula_leanIsa prog s input w hw.1 ha ξ ch evs hch hs
   claims ξ ch claim evs hch hs c hc := by
     simp only [tableOut, tableStmt, Vector.toList_append, List.mem_append] at hc
     rcases hc with hc | hc
-    · exact List.mem_append_left _ (busOut_columns_mem prog s input w hw.1 hw.2.2 c hc)
+    · exact List.mem_append_left _ (busOut_columns_mem prog s input w hw.1 hw.2.2.1 c hc)
     · exact List.mem_append_right _ (finalClaims_mem prog s ξ w ch evs hch hs c hc)
+  rows pt := by
+    apply List.ne_nil_of_length_pos
+    have hh : (verifierLayout prog s).tableLogHeights.length = 6 := by
+      rw [show (verifierLayout prog s).tableLogHeights = tableLogs s from rfl]
+      simp [tableLogs]
+    simp only [rowsOf, List.length_zip, Complete.length_tableWeights, (result_forms_shape prog s w).1,
+      hh, show tables.length = 6 from rfl]
+    norm_num
 
 /-! ## The bus phase's depth -/
 
@@ -635,143 +636,57 @@ theorem μBus_ne_zero : (leanIsaWith prog s fl).μBus ≠ 0 := by
   rw [add_assoc]
   exact Nat.lt_add_of_pos_right (by positivity)
 
-/-! ## The fingerprint challenges are four -/
-
-section Spec
-
-open LeanVM.Protocol.Compile
-
-variable {εmax : ℝ≥0∞}
-
-/-- `n` challenges are a list of `n`: continuations that agree on such lists give one program. -/
-theorem sampleN_bind_congr {β : Type} : ∀ (n : ℕ) (k k' : List E → VerifierProgram β),
-    (∀ as, as.length = n → k as = k' as) → (VerifierProgram.sampleChallenges n).bind k = (VerifierProgram.sampleChallenges n).bind k'
-  | 0, k, k', h => h [] rfl
-  | n + 1, k, k', h => by
-    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq,
-        VerifierProgram.bind_assoc]
-    exact congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun x ↦
-      sampleN_bind_congr n _ _ fun as has ↦ h (x :: as) (by simp [has]))
-
-/-- The guard that the fingerprint challenges are four. -/
-def abGuard (ab : List E × E) : VerifierProgram (List E × E) :=
-  if ab.1.length = 4 then VerifierProgram.ret ab else VerifierProgram.fail
-
-/-- The wire's fingerprint challenges are four: guarding it changes nothing. -/
-theorem abProg_bind_guard : abProg.bind abGuard = abProg := by
-  unfold abProg
-  rw [VerifierProgram.bind_assoc]
-  refine sampleN_bind_congr 4 _ _ fun as has ↦ ?_
-  rw [VerifierProgram.bind_assoc]
-  refine congrArg (VerifierProgram.sampleChallenge.bind ·) (funext fun b ↦ ?_)
-  simp [abGuard, has]
-
-variable (I : M3Instance) (hI : Bus.Conditions I) (cands : Word → Set (∀ i, TheOracle I i))
-  (input : I.Stmt) (layout : Verifier.Layout)
-
-/-- **The fingerprint challenges, four of them**: `abSpec` with the length of the challenges
-recorded. -/
-noncomputable def abSpec4 {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
-    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError I L₀ < 1) :
-    Spec abProg (HDoom cands (Seam.commit I) input)
-      (fun ab h ↦ ab.1.length = 4 ∧
-        HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) εmax
-      (abError I L₀ + 0) 0 :=
-  let P4 : List E × E → List Ev → Prop := fun ab h ↦ ab.1.length = 4 ∧
-    HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h
-  let G : ∀ ab : List E × E, Spec (abGuard ab)
-      (fun h ↦ HDoom cands (Bus.afterChallenge I) (input, (toAlpha ab.1, ab.2)) h) P4 εmax 0 0 :=
-    fun ab ↦ if h : ab.1.length = 4 then
-      Spec.congr (p := VerifierProgram.ret ab) (by simp [abGuard, h])
-        ((Spec.ret (Post := P4) ab).mono (fun _ hp ↦ ⟨h, hp⟩) (fun _ _ hq ↦ hq) le_rfl le_rfl
-          le_rfl)
-    else Spec.congr (p := VerifierProgram.fail) (by simp [abGuard, h]) Spec.fail
-  Spec.congr abProg_bind_guard ((abSpec I cands input hI hfin hcard hlt (T := 0)).bind' G)
-
-/-- **The bus phase's tail, then a continuation**, `busTailSpec` for continuations specified at
-reads whose fingerprint challenges are four. -/
-noncomputable def busTailSpec4 {β : Type} {k : BusWit → VerifierProgram β} {Q : β → List Ev → Prop}
-    {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
-    (K : ∀ w : BusWit, w.alphas.length = 4 → Spec (k w) (BusAt I hI cands input w) Q εmax Lk T)
-    (alphas : List E) (halpha : alphas.length = 4) (beta : E) (r : E × List E × List E) :
-    Spec (busTailK k alphas beta r) (GkrPost I cands (input, (toAlpha alphas, beta)) r) Q
-      εmax 0 T :=
-  match r with
-  | (countRoot, point, values) =>
-    let P : List Ev → Prop := fun h ↦ point.length = I.μBus ∧ values.length = 3 ∧
-      HDoom cands (Gkr.relOut 3 I.μBus (Bus.leaves I) (Bus.riders I))
-        (layerStmtOf (input, (toAlpha alphas, beta)) I.μBus ⟨values, point⟩) h
-    have hP : ∀ h x, P h → P (h ++ [Ev.read x]) := fun _ _ hp ↦ ⟨hp.1, hp.2.1, hp.2.2.append _⟩
-    (Spec.require (Post := fun _ h ↦ P h) fun _ hp hc ↦ hp.resolve_left hc).bind' fun _ ↦
-    (readNSuccSpec P hP zero_le 2).bind' fun memory ↦
-    (Spec.readE (Post := fun _ h ↦ memory.length = 3 ∧ P h)
-      (fun _ _ hp ↦ ⟨hp.1, hP _ _ hp.2⟩) zero_le).bind' fun mf ↦
-    (Spec.readE (Post := fun bf h ↦ BusAt I hI cands input ⟨alphas, beta, point, values, memory,
-        mf, bf⟩ h)
-      (fun _ bf hp ↦ by
-        obtain ⟨hm, hl, hv, W, hW, hR⟩ := hp
-        exact ⟨hl, hv, hm, W, firstWord_append hW _, values_keep I hI hR _⟩) hLk).bind'
-      fun bf ↦ K ⟨alphas, beta, point, values, memory, mf, bf⟩ halpha
-
-/-- **The bus phase, then a continuation**, `busThenSpec` for continuations specified at reads
-whose fingerprint challenges are four. -/
-noncomputable def busThenSpec4 {β : Type} {f : BusResult → VerifierProgram β} {Q : β → List Ev
-    → Prop}
-    {Lk T : ℝ≥0∞} (hLk : Lk ≤ εmax)
-    (K : ∀ w : BusWit, w.alphas.length = 4 →
-      Spec (f (w.result layout)) (BusAt I hI cands input w) Q εmax Lk T)
-    {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
-    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hμ : I.μBus ≠ 0)
-    (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
-    (hab : abError I L₀ < 1) (he : roundError L₀ 4 ≤ εmax)
-    (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax) (hlam : lambdaError L₀ + 0 ≤ εmax) :
-    Spec ((verifyBusBalance computedBytecodeValue layout).bind f) (HDoom cands (Seam.commit I)
-        input) Q εmax
-      (abError I L₀ + 0) T :=
-  Spec.congr (verifyBusBalance_bind_eq layout f).symm
-    ((abSpec4 I hI cands input hfin hcard hab).bind' fun ab ↦
-      if h : ab.1.length = 4 then
-        ((Spec.congr (by rw [hdepth])
-          (gkrSpec I cands (input, (toAlpha ab.1, ab.2)) hI hfin hcard hμ he hT hlam)).bind'
-          fun r ↦ busTailSpec4 I hI cands input hLk K ab.1 h ab.2 r).mono (fun _ hp ↦ hp.2)
-          (fun _ _ hq ↦ hq) le_rfl le_rfl le_rfl
-      else specOfFalse fun _ hp ↦ h hp.1)
-
-end Spec
-
 /-! ## The bus phase and the table sumcheck at leanISA -/
 
 section LeanIsaSpec
 
 open LeanVM.Protocol.Compile
 
+/-- **The bytecode's length**: `2 ^ (logBytecode + busBits)` words. -/
+theorem bytecode_length_leanIsa :
+    (verifierLayout prog s).bytecode.length =
+      2 ^ ((verifierLayout prog s).logBytecode + busBits) :=
+  length_bytecodeWords prog
+
+/-- **The bytecode's log-size is within the bus's depth.** -/
+theorem logBytecode_le_μBus :
+    (verifierLayout prog s).logBytecode ≤ (leanIsaWith prog s fl).μBus := by
+  rw [← busDepth_leanIsa prog s, Complete.busLayout_depth_verifier]
+  exact Complete.logSize_le_busDepth prog s
+
+/-- An oracle of the instance: the zero stack. -/
+def zeroOracle : ∀ i, TheOracle (leanIsaWith prog s fl) i :=
+  fun _ ↦ ⟨Vector.replicate _ 0⟩
+
 variable {εmax : ℝ≥0∞} (cands : Word → Set (∀ i, TheOracle (leanIsaWith prog s fl) i))
 
 /-- **The bus phase, then the table sumcheck, at leanISA**: `busTableSpec` at the leanISA
 instance and the verifier's layout, with every fidelity hypothesis discharged (`TableFid` by
-`tableFid_leanIsa`, `μ_bus ≠ 0` by `μBus_ne_zero`, the push layout's depth by `busDepth_leanIsa`).
-Only the error hypotheses remain. -/
+`tableFid_leanIsa`, `μ_bus ≠ 0` by `μBus_ne_zero`, the push layout's depth by `busDepth_leanIsa`,
+the bytecode's shape by `bytecode_length_leanIsa` and `logBytecode_le_μBus`). Only the error
+hypotheses remain: the fingerprint challenges' after their grind (`hab`), the GKR's, the
+bytecode share's (`hs`), `ξ`'s after its grind (`hxi`) and the table rounds'. -/
 noncomputable def busTableSpec_leanIsa {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
-    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hab : abError (leanIsaWith prog s fl) L₀ < 1)
+    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hlt : abError (leanIsaWith prog s fl) L₀ < 1)
+    (hab : (2 : ℝ≥0∞)⁻¹ ^ busGrindingBits (leanIsaWith prog s fl).μBus *
+      (abError (leanIsaWith prog s fl) L₀ + 0) ≤ εmax)
     (he4 : roundError L₀ 4 ≤ εmax) (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax)
-    (hlam : lambdaError L₀ + 0 ≤ εmax) {T : ℝ≥0∞} (he3 : roundError L₀ 3 + T ≤ εmax)
-    (hTf : T ≤ εmax)
-    (hxi : xiError (leanIsaWith prog s fl) L₀ + sumcheckLead
-      (List.replicate ((verifierLayout prog s).tableLogHeights.foldl max 0) none) T ≤ εmax) :
-    Spec ((verifyBusBalance computedBytecodeValue (verifierLayout prog s)).bind (tablePhaseClaims (verifierLayout prog s)))
+    (hlam : lambdaError L₀ + 0 ≤ εmax) (hs : roundError 1 2 + 0 ≤ εmax) {T : ℝ≥0∞}
+    (he3 : roundError L₀ 3 ≤ εmax) (hTf : T ≤ εmax)
+    (hxi : (2 : ℝ≥0∞)⁻¹ ^ xiGrindBits * (xiError (leanIsaWith prog s fl) L₀ + sumcheckLead
+      (List.replicate ((verifierLayout prog s).tableLogHeights.foldl max 0) none) T) ≤ εmax) :
+    Spec ((verifyBusBalance computedBytecodeValue (verifierLayout prog s)).bind
+        (tablePhaseClaims (verifierLayout prog s)))
       (HDoom cands (Seam.commit (leanIsaWith prog s fl)) input)
       (TablePost (leanIsaWith prog s fl) cands input refCol) εmax
-      (abError (leanIsaWith prog s fl) L₀ + 0) T :=
-  busThenSpec4 (leanIsaWith prog s fl) (leanIsaWith_conditions prog s fl) cands input
-    (verifierLayout prog s) hxi
-    (fun w h4 ↦ if hw : w.Shaped (leanIsaWith prog s fl) then
-      tablePhaseSpec (leanIsaWith prog s fl) (leanIsaWith_conditions prog s fl) cands input
-        (verifierLayout prog s) refCol w
-        (tableFid_leanIsa prog s input (leanIsaWith_conditions prog s fl) w hw h4) le_rfl hfin
-        hcard
-        he3 hTf
-    else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1⟩)
-    hfin hcard (μBus_ne_zero prog s) (busDepth_leanIsa prog s) hab he4 hT hlam
+      (if busGrindingBits (leanIsaWith prog s fl).μBus = 0 then
+        abError (leanIsaWith prog s fl) L₀ + 0 else 0) T :=
+  busTableSpec (leanIsaWith prog s fl) (leanIsaWith_conditions prog s fl) cands input
+    (verifierLayout prog s) refCol
+    (fun w hw h16 ↦ tableFid_leanIsa prog s input (leanIsaWith_conditions prog s fl) w hw h16)
+    le_rfl hfin hcard (μBus_ne_zero prog s) (busDepth_leanIsa prog s)
+    (bytecode_length_leanIsa prog s) (logBytecode_le_μBus prog s) (zeroOracle prog s) hlt hab
+    he4 hT hlam hs he3 hTf hxi
 
 end LeanIsaSpec
 

@@ -28,7 +28,7 @@ def parse_atom(s):
     if op=='copy':
         a=re.findall(r'\(\.n (\d+)\)',rest); return (op,[int(x) for x in a])
     if op=='const':
-        m2=re.match(r'\(\.n (\d+)\) \(word (\d+) (\d+) (\d+)\)',rest); return ('const',[int(m2.group(1)),(int(m2.group(2)),int(m2.group(3)),int(m2.group(4)))])
+        m2=re.match(r'\(\.n (\d+)\) \(word (\d+) (\d+)\)',rest); return ('const',[int(m2.group(1)),(int(m2.group(2)),int(m2.group(3)))])
     if op=='load':
         m2=re.match(r'\(\.n (\d+)\) \(\.n (\d+)\) (\d+)',rest); return ('load',[int(m2.group(1)),int(m2.group(2)),int(m2.group(3))])
     return (op,rest)
@@ -53,8 +53,8 @@ def expr(v,d,leafmap,used,top=True):
     p,op,args=d[v]
     used.add(p)
     if op=='const':
-        a,b,c=args
-        return f'word {a} {b} {c}'
+        a,b=args
+        return f'word {a} {b}'
     if op=='load':
         base,off=args
         return f'L[{base},{off}]'

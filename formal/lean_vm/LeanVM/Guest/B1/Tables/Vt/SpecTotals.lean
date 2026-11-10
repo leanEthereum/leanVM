@@ -64,7 +64,7 @@ theorem vt_foldl_add (l : List E) (c : E) : l.foldl (· + ·) c = c + l.sum := b
   | cons x l ih => rw [List.foldl_cons, ih, List.sum_cons]; ring
 
 /-- **The push side's total.** -/
-theorem vt_total0 (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memory : List E)
+theorem vt_total0 (hbc : bc.length = 2 ^ 23) (weights : List E) (β : E) (p memory : List E)
     (bv tv : E) (a0 a1 a2 : E) (S pw : ℕ → E)
     (h0 : blockSel (vtSizesP lm (vtHt rows)) p.length 0 p = a0)
     (h1 : blockSel (vtSizesP lm (vtHt rows)) p.length 1 p = a1)
@@ -73,12 +73,12 @@ theorem vt_total0 (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memor
       blockSel (vtSizesP lm (vtHt rows)) p.length (3 + i) p)
     (hpw : ∀ t < 6, paddingWeight (p.take (vtHt rows t)) (vtRw rows t) = pw t)
     (hr : rows.length = 6) :
-    (vtAcc0 (layoutOf bc lm rows) alphas β p memory bv tv).2 =
-      tv + (a0 * (β + (vtFpPush (layoutOf bc lm rows) alphas p memory bv).getD 0 0) +
-        a1 * (β + (vtFpPush (layoutOf bc lm rows) alphas p memory bv).getD 1 0) +
-        a2 * (β + (vtFpPush (layoutOf bc lm rows) alphas p memory bv).getD 2 0)) +
+    (vtAcc0 (layoutOf bc lm rows) weights β p memory bv tv).2 =
+      tv + (a0 * (β + (vtFpPush (layoutOf bc lm rows) weights p memory bv).getD 0 0) +
+        a1 * (β + (vtFpPush (layoutOf bc lm rows) weights p memory bv).getD 1 0) +
+        a2 * (β + (vtFpPush (layoutOf bc lm rows) weights p memory bv).getD 2 0)) +
       (a0 + a1 + a2 + (vtPushPadData.map fun x ↦ S x.2.2.1).sum + 1) +
-      vtPadSum S pw ((eqKernel alphas).getD · 0) (β + 1) vtPushPadData := by
+      vtPadSum S pw (weights.getD · 0) (β + 1) vtPushPadData := by
   have hL := (vt_layout_blocks bc lm hr).1
   rw [vtAcc0, hL, vt_layout_logBytecode bc lm rows hbc, vt_layout_logMemory,
     accumulateSide_snd]
@@ -98,7 +98,7 @@ theorem vt_total0 (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memor
   ring
 
 /-- **The pull side's total.** -/
-theorem vt_total1 (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memory : List E)
+theorem vt_total1 (hbc : bc.length = 2 ^ 23) (weights : List E) (β : E) (p memory : List E)
     (mf bf bv tv0 tv : E) (a0 a1 a2 : E) (S pw : ℕ → E)
     (h0 : blockSel (vtSizesP lm (vtHt rows)) p.length 0 p = a0)
     (h1 : blockSel (vtSizesP lm (vtHt rows)) p.length 1 p = a1)
@@ -107,12 +107,12 @@ theorem vt_total1 (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memor
       blockSel (vtSizesP lm (vtHt rows)) p.length (3 + i) p)
     (hpw : ∀ t < 6, paddingWeight (p.take (vtHt rows t)) (vtRw rows t) = pw t)
     (hr : rows.length = 6) :
-    (vtAcc1 (layoutOf bc lm rows) alphas β p memory mf bf bv tv0 tv).2 =
-      tv + (a0 * (β + (vtFpPull (layoutOf bc lm rows) alphas p memory mf bf bv).getD 0 0) +
-        a1 * (β + (vtFpPull (layoutOf bc lm rows) alphas p memory mf bf bv).getD 1 0) +
-        a2 * (β + (vtFpPull (layoutOf bc lm rows) alphas p memory mf bf bv).getD 2 0)) +
+    (vtAcc1 (layoutOf bc lm rows) weights β p memory mf bf bv tv0 tv).2 =
+      tv + (a0 * (β + (vtFpPull (layoutOf bc lm rows) weights p memory mf bf bv).getD 0 0) +
+        a1 * (β + (vtFpPull (layoutOf bc lm rows) weights p memory mf bf bv).getD 1 0) +
+        a2 * (β + (vtFpPull (layoutOf bc lm rows) weights p memory mf bf bv).getD 2 0)) +
       (a0 + a1 + a2 + (vtPushPadData.map fun x ↦ S x.2.2.1).sum + 1) +
-      vtPadSum S pw ((eqKernel alphas).getD · 0) (β + 1) vtPushPadData := by
+      vtPadSum S pw (weights.getD · 0) (β + 1) vtPushPadData := by
   have hL := (vt_layout_blocks bc lm hr).2.1
   rw [vtAcc1, hL, vt_layout_logBytecode bc lm rows hbc, vt_layout_logMemory,
     accumulateSide_snd]
@@ -132,13 +132,13 @@ theorem vt_total1 (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memor
   ring
 
 /-- **The count side's total.** -/
-theorem vt_total2 (alphas : List E) (β : E) (p memory : List E)
+theorem vt_total2 (weights : List E) (β : E) (p memory : List E)
     (mf bf bv tv0 tv1 tv : E) (S pw W : ℕ → E)
     (hS : ∀ i < 45, S (vtCountPadData.getD i default).2.2.1 =
       blockSel (vtSizesC (vtHt rows)) p.length i p)
     (hpw : ∀ t < 6, paddingWeight (p.take (vtHt rows t)) (vtRw rows t) = pw t)
     (hr : rows.length = 6) :
-    (vtAcc2 (layoutOf bc lm rows) alphas β p memory mf bf bv tv0 tv1 tv).2 =
+    (vtAcc2 (layoutOf bc lm rows) weights β p memory mf bf bv tv0 tv1 tv).2 =
       tv + ((vtCountPadData.map fun x ↦ S x.2.2.1).sum + 1) +
       vtPadSum S pw W 1 vtCountPadData := by
   have hL := (vt_layout_blocks bc lm hr).2.2
@@ -183,22 +183,22 @@ theorem vt_push_count : ∀ t : Fin 6,
   decide
 
 /-- **Table `t`'s forms** on the three sides, at any row. -/
-theorem vt_forms (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memory : List E)
+theorem vt_forms (hbc : bc.length = 2 ^ 23) (weights : List E) (β : E) (p memory : List E)
     (mf bf bv tv0 tv1 tv2 : E) (S : ℕ → E)
     (hS : ∀ i < 51, S (vtPushPadData.getD i default).2.2.1 =
       blockSel (vtSizesP lm (vtHt rows)) p.length (3 + i) p)
     (hSC : ∀ i < 45, S (vtCountPadData.getD i default).2.2.1 =
       blockSel (vtSizesC (vtHt rows)) p.length i p)
     (hr : rows.length = 6) (t : Fin 6) (col : ℕ → E) :
-    (((vtAcc2 (layoutOf bc lm rows) alphas β p memory mf bf bv tv0 tv1 tv2).1.getD t []).getD 0
+    (((vtAcc2 (layoutOf bc lm rows) weights β p memory mf bf bv tv0 tv1 tv2).1.getD t []).getD 0
         {}).evaluate col =
       vtSideVal ((vtPushPadData.filter fun x ↦ x.2.1 = (t : ℕ)).map fun x ↦ S x.2.2.1) β
-        ((eqKernel alphas).getD · 0) col (vtBT 0 t) ∧
-    (((vtAcc2 (layoutOf bc lm rows) alphas β p memory mf bf bv tv0 tv1 tv2).1.getD t []).getD 1
+        (weights.getD · 0) col (vtBT 0 t) ∧
+    (((vtAcc2 (layoutOf bc lm rows) weights β p memory mf bf bv tv0 tv1 tv2).1.getD t []).getD 1
         {}).evaluate col =
       vtSideVal ((vtPushPadData.filter fun x ↦ x.2.1 = (t : ℕ)).map fun x ↦ S x.2.2.1) β
-        ((eqKernel alphas).getD · 0) col (vtBT 1 t) ∧
-    (((vtAcc2 (layoutOf bc lm rows) alphas β p memory mf bf bv tv0 tv1 tv2).1.getD t []).getD 2
+        (weights.getD · 0) col (vtBT 1 t) ∧
+    (((vtAcc2 (layoutOf bc lm rows) weights β p memory mf bf bv tv0 tv1 tv2).1.getD t []).getD 2
         {}).evaluate col =
       vtSideVal ((vtCountPadData.filter fun x ↦ x.2.1 = (t : ℕ)).map fun x ↦ S x.2.2.1) 0
         (fun _ ↦ 1) col (vtBT 2 t) := by
@@ -224,8 +224,8 @@ theorem vt_forms (hbc : bc.length = 2 ^ 23) (alphas : List E) (β : E) (p memory
     fun x hx ↦ own.2.1 _ (List.of_mem_zip hx).2
   have oC : ∀ x ∈ (vtCountPadData.map fun x ↦ S x.2.2.1).zip (vtCountBlocks rows), x.2.owner < 6 :=
     fun x hx ↦ own.2.2 _ (List.of_mem_zip hx).2
-  obtain ⟨l1, r1, o1, e1⟩ := accFold_spec 0 (by norm_num) (eqKernel alphas) β _ _ h6 h3 oP
-  obtain ⟨l2, r2, o2, e2⟩ := accFold_spec 1 (by norm_num) (eqKernel alphas) β _ _ l1 r1 oQ
+  obtain ⟨l1, r1, o1, e1⟩ := accFold_spec 0 (by norm_num) weights β _ _ h6 h3 oP
+  obtain ⟨l2, r2, o2, e2⟩ := accFold_spec 1 (by norm_num) weights β _ _ l1 r1 oQ
   obtain ⟨-, -, o3, e3⟩ := accFold_spec 2 (by norm_num) [1] 0 _ _ l2 r2 oC
   obtain ⟨c0, c1, c2⟩ := vt_push_count t
   refine ⟨?_, ?_, ?_⟩

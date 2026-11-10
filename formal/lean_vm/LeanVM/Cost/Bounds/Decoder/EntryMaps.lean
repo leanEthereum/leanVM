@@ -17,7 +17,7 @@ search per level, a merge per entry, an insertion amortized by the potential
 (`Bounds/SortedMap.lean`).
 
 * a call key's comparison: the index, then the two lists of codes lexicographically
-  (`compareCodes_cost`, `tripleCmp_cost`: `64` per code of the second list), at most
+  (`compareCodes_cost`, `pairCmp_cost`: `64` per code of the second list), at most
   `keyCmpPrice k = 64·(|args| + |rets|) + 41` against the key `k` searched;
 * `searchInKey_cost`: a binary search of `k`, `(keyCmpPrice k + 37 + 9W)` per halving;
 * the pc table's map (`searchInPc_cost`, `getPc_cost`, `carryPc_amortized`): a lookup at most
@@ -42,13 +42,13 @@ variable (P : MachineProgram)
 
 /-! ## Keys -/
 
-/-- A code triple of words. -/
-@[expose] def TripleOK (x : ℕ × ℕ × ℕ) : Prop := x.1 < 2 ^ 64 ∧ x.2.1 < 2 ^ 64 ∧ x.2.2 < 2 ^ 64
+/-- A code pair of words. -/
+@[expose] def PairOK (x : ℕ × ℕ) : Prop := x.1 < 2 ^ 64 ∧ x.2 < 2 ^ 64
 
 /-- **A call key of at most `L` codes per list**, every number word-sized. -/
 @[expose] def KeyOK (L : ℕ) (k : CallKey) : Prop :=
-  k.1 < 2 ^ 64 ∧ k.2.1.length ≤ L ∧ k.2.2.length ≤ L ∧ (∀ x ∈ k.2.1, TripleOK x) ∧
-    ∀ x ∈ k.2.2, TripleOK x
+  k.1 < 2 ^ 64 ∧ k.2.1.length ≤ L ∧ k.2.2.length ≤ L ∧ (∀ x ∈ k.2.1, PairOK x) ∧
+    ∀ x ∈ k.2.2, PairOK x
 
 /-- A word-sized key of the pc table. -/
 @[expose] def NatKey (k : ℕ) : Prop := k < 2 ^ 64
@@ -63,28 +63,27 @@ theorem limbs_le_wl' {D x : ℕ} (h : x ≤ 2 * 2 ^ D) : limbCount x ≤ wl D :=
 /-- The price of comparing a key with the key `k` searched: `64` per code of `k`, `41`. -/
 @[expose] def keyCmpPrice (k : CallKey) : ℕ := 64 * (k.2.1.length + k.2.2.length) + 41
 
-/-- Two code triples compared (`searchInKeyC.lam0`): at most `47`. -/
-theorem tripleCmp_cost (hP : Includes P searchInKeyC.lam0.costDeps) (a b : ℕ × ℕ × ℕ)
-    (ha : TripleOK a) (hb : TripleOK b) :
+/-- Two code pairs compared (`searchInKeyC.lam0`): at most `47`. -/
+theorem pairCmp_cost (hP : Includes P searchInKeyC.lam0.costDeps) (a b : ℕ × ℕ)
+    (ha : PairOK a) (hb : PairOK b) :
     machineCost P searchInKeyC.lam0.costIdx [encodeValue a, encodeValue b] ≤ 47 := by
-  obtain ⟨a1, a2, a3⟩ := ha
-  obtain ⟨b1, b2, b3⟩ := hb
+  obtain ⟨a1, a2⟩ := ha
+  obtain ⟨b1, b2⟩ := hb
   rw [searchInKeyC.lam0.costEq P hP, limbs_of_lt a1, limbs_of_lt b1, limbs_of_lt a2,
-    limbs_of_lt b2, limbs_of_lt a3, limbs_of_lt b3]
+    limbs_of_lt b2]
   simp only [max_self]
   generalize compareOn (fun x ↦ x.1) a b = o1
-  generalize compareOn (fun x ↦ x.1) a.2 b.2 = o2
-  cases o1 <;> cases o2 <;> dsimp only <;> split_ifs <;> omega
+  cases o1 <;> dsimp only <;> split_ifs <;> omega
 
-/-- Two lists of code triples compared (`compareLex` with `searchInKeyC.lam0`): `64` per triple of
+/-- Two lists of code pairs compared (`compareLex` with `searchInKeyC.lam0`): `64` per pair of
 the second, `7`. -/
 theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c112.costDeps)
     (hP' : Includes P searchInKeyC.lam0.costDeps) :
-    ∀ (a b : List (ℕ × ℕ × ℕ)), (∀ x ∈ a, TripleOK x) → (∀ x ∈ b, TripleOK x) →
+    ∀ (a b : List (ℕ × ℕ)), (∀ x ∈ a, PairOK x) → (∀ x ∈ b, PairOK x) →
       machineCost P Auto.List.compareLex.c112.costIdx
           [.closure searchInKeyC.lam0.costIdx [], encodeValue a, encodeValue b] ≤
         64 * b.length + 7 := by
-  have hc : ∀ x y : ℕ × ℕ × ℕ, RunsApp P (.closure searchInKeyC.lam0.costIdx [])
+  have hc : ∀ x y : ℕ × ℕ, RunsApp P (.closure searchInKeyC.lam0.costIdx [])
       [encodeValue x, encodeValue y] (encodeValue (compare x y)) :=
     fun x y ↦ RunsApp.of_spec (searchInKeyC.lam0.costSpec P hP' x y)
   intro a
@@ -103,7 +102,7 @@ theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c112.costDeps)
       have h2 : appCost P (.closure searchInKeyC.lam0.costIdx []) [encodeValue x, encodeValue y] ≤
           47 := by
         rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero]
-        exact tripleCmp_cost P hP' x y (ha x (by simp)) (hb y (by simp))
+        exact pairCmp_cost P hP' x y (ha x (by simp)) (hb y (by simp))
       simp only [List.length_cons]
       generalize compare x y = o
       cases o <;> dsimp only <;> omega

@@ -117,22 +117,21 @@ theorem hCover_takerS {k : ℕ} (hk : k < (slotsOf (sPlan s w)).length) :
 
 /-! ## A claim's cells -/
 
-theorem cellOfBytes_cellBytes {x : E} (hx : IsCanonical128 x) (rest : List UInt8) :
+theorem cellOfBytes_cellBytes (x : E) (rest : List UInt8) :
     cellOfBytes (cellBytes x ++ rest) = x := by
-  conv_rhs => rw [eq_ofLimbs_of_canonical hx]
+  conv_rhs => rw [eq_ofLimbs x]
   rw [cellOfBytes, cellBytes, List.append_assoc, kOfBytes_kBytes_append,
     List.drop_left' (length_kBytes _), kOfBytes_kBytes_append]
 
-theorem cellsOfBytes_cellsBytes : ∀ (l : List E), (∀ x ∈ l, IsCanonical128 x) →
-    cellsOfBytes (cellsBytes l) = l
-  | [], _ => by simp [cellsOfBytes, cellsBytes]
-  | x :: l, h => by
-    have ih := cellsOfBytes_cellsBytes l fun y hy => h y (List.mem_cons_of_mem _ hy)
+theorem cellsOfBytes_cellsBytes : ∀ (l : List E), cellsOfBytes (cellsBytes l) = l
+  | [] => by simp [cellsOfBytes, cellsBytes]
+  | x :: l => by
+    have ih := cellsOfBytes_cellsBytes l
     have hlen : (cellBytes x).length = 16 := by simp [cellBytes, length_kBytes]
     rw [cellsOfBytes, cellsBytes, List.flatMap_cons, List.length_append, hlen,
       show (16 + (l.flatMap cellBytes).length) / 16 = (l.flatMap cellBytes).length / 16 + 1 by omega,
       List.range_succ_eq_map, List.map_cons, List.map_map]
-    simp only [Nat.mul_zero, List.drop_zero, cellOfBytes_cellBytes (h x List.mem_cons_self)]
+    simp only [Nat.mul_zero, List.drop_zero, cellOfBytes_cellBytes x]
     congr 1
 
 theorem msg_split (m : BitVec 256) :
@@ -152,7 +151,7 @@ theorem claimCells_eq (root parameter : BitVec 128) (message : BitVec 256) :
       Sig.cellOf128 (message.extractLsb' 0 128), Sig.cellOf128 (message.extractLsb' 128 128)] := by
   conv_lhs => rw [claimCells, ← Sig.cellVal_cellOf128 root, ← Sig.cellVal_cellOf128 parameter,
     ← msg_split message, claimBytes_cells]
-  exact cellsOfBytes_cellsBytes _ (by simp [Sig.isCanonical128_cellOf128])
+  exact cellsOfBytes_cellsBytes _
 
 theorem claimCells_length (root parameter : BitVec 128) (message : BitVec 256) :
     (claimCells root parameter message).length = 4 := by

@@ -465,9 +465,9 @@ theorem ceilSqrt_cost (hP : Includes P Auto.LeanVM.Extraction.ceilSqrt.c220.cost
 theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 14 := by
   rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
 
-theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 22794 := by
+theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 14292205 := by
   unfold johnsonSlackOf
-  have hrow : ∀ i, ∀ x ∈ johnsonSlack.getD i [], x ≤ 22794 := by
+  have hrow : ∀ i, ∀ x ∈ johnsonSlack.getD i [], x ≤ 14292205 := by
     intro i
     rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
   rw [List.getD_eq_getElem?_getD]
@@ -493,29 +493,29 @@ theorem johnsonSlackOf_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonSlack
 
 /-- **The Johnson threshold** (`johnsonThreshold.c219`): two `⌈√·⌉`s' worth of `Nat.sqrt` on a
 number below `2^126`, the slack table and a few two-limb operations: at most `14075`, for
-`2κ + R ≤ 80` (`κ = μ − 6`). -/
+`2κ + R ≤ 64` (`κ = μ − 6`). -/
 theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThreshold.c219.costDeps)
-    (μ R : ℕ) (hμ : μ < 2 ^ 64) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 80) :
+    (μ R : ℕ) (hμ : μ < 2 ^ 64) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 64) :
     machineCost P Auto.LeanVM.Extraction.johnsonThreshold.c219.costIdx [encodeValue μ, encodeValue R] ≤ 14075 := by
   rw [Auto.LeanVM.Extraction.johnsonThreshold.c219.costEq P hP]
   have hf : Whir.initialFold = 6 := rfl
   set κ := μ - Whir.initialFold with hκ
   have hL : ∀ x, x < 2 ^ 128 → limbCount x ≤ 2 := fun x h ↦ limbs_le_two h
-  have hN : 2 ^ (κ + R) ≤ 2 ^ 80 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  have hK : 2 ^ κ ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  have hX : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) < 2 ^ 126 := by
-    have : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) ≤ 2 ^ 44 * 2 ^ κ * 2 ^ (κ + R) :=
+  have hN : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hK : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hX : 2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) < 2 ^ 126 := by
+    have : 2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) ≤ 2 ^ 60 * 2 ^ κ * 2 ^ (κ + R) :=
       Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ (Nat.sub_le _ _))
-    have e : 2 ^ 44 * 2 ^ κ * 2 ^ (κ + R) = 2 ^ (44 + κ + (κ + R)) := by rw [← pow_add, ← pow_add]
-    have : 2 ^ (44 + κ + (κ + R)) < 2 ^ 126 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+    have e : 2 ^ 60 * 2 ^ κ * 2 ^ (κ + R) = 2 ^ (60 + κ + (κ + R)) := by rw [← pow_add, ← pow_add]
+    have : 2 ^ (60 + κ + (κ + R)) < 2 ^ 126 := Nat.pow_lt_pow_right (by norm_num) (by omega)
     omega
-  set X := 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) with hXdef
+  set X := 2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) with hXdef
   have hcs := ceilSqrt_cost P (by includes) X (by omega)
   have hsl := johnsonSlackOf_cost P (by includes) μ R hμ (by omega)
   have hsl' := johnsonSlackOf_le μ R
   have hcsv : ceilSqrt X ≤ X + 1 := by
     unfold ceilSqrt; have := Nat.sqrt_le_self X; split_ifs <;> omega
-  have hslN : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 22794 * 2 ^ 80 :=
+  have hslN : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 14292205 * 2 ^ 64 :=
     Nat.mul_le_mul hsl' hN
   have l1 := hL μ (by omega)
   have l2 := hL κ (by omega)
@@ -525,34 +525,34 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
   have l6 := hL (1 <<< κ) (by rw [Nat.one_shiftLeft]; omega)
   have l7 := hL (2 ^ κ) (by omega)
   have l8 := hL (2 ^ κ - 1) (by omega)
-  have l9 := hL (2 ^ 44 * (2 ^ κ - 1)) (by
-    have : 2 ^ 44 * (2 ^ κ - 1) ≤ 2 ^ 44 * 2 ^ 40 := Nat.mul_le_mul_left _ (by omega)
+  have l9 := hL (2 ^ 60 * (2 ^ κ - 1)) (by
+    have : 2 ^ 60 * (2 ^ κ - 1) ≤ 2 ^ 60 * 2 ^ 32 := Nat.mul_le_mul_left _ (by omega)
     omega)
   have l10 := hL (2 ^ (κ + R)) (by omega)
   have l11 := hL (johnsonSlackOf μ R) (by omega)
   have l12 := hL (ceilSqrt X) (by omega)
   have l13 := hL (johnsonSlackOf μ R * 2 ^ (κ + R)) (by omega)
   have l14 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R)) (by omega)
-  have l15 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22) (by omega)
-  have l16 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22 - 1) (by omega)
+  have l15 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 30) (by omega)
+  have l16 := hL (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 30 - 1) (by omega)
   have l17 := hL (Whir.initialFold) (by omega)
   have l18 := hL X (by omega)
-  have p1 : limbCount (2 ^ 44) * limbCount (2 ^ κ - 1) ≤ 4 := by
+  have p1 : limbCount (2 ^ 60) * limbCount (2 ^ κ - 1) ≤ 4 := by
     rw [limbs_two_pow (by norm_num)]; omega
-  have p2 : limbCount (2 ^ 44 * (2 ^ κ - 1)) * limbCount (2 ^ (κ + R)) ≤ 4 := by nlinarith
+  have p2 : limbCount (2 ^ 60 * (2 ^ κ - 1)) * limbCount (2 ^ (κ + R)) ≤ 4 := by nlinarith
   have p3 : limbCount (johnsonSlackOf μ R) * limbCount (2 ^ (κ + R)) ≤ 4 := by nlinarith
-  have p4 : limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22 - 1) * limbCount (2 ^ 22) ≤ 4 := by
+  have p4 : limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 30 - 1) * limbCount (2 ^ 30) ≤ 4 := by
     rw [limbs_two_pow (by norm_num)]; omega
-  rw [limbs_shift (by norm_num : 44 < 64), limbs_shift (by norm_num : 22 < 64),
-    limbs_two_pow (by norm_num : 22 < 64), limbs_two_pow (by norm_num : 44 < 64)]
+  rw [limbs_shift (by norm_num : 60 < 64), limbs_shift (by norm_num : 30 < 64),
+    limbs_two_pow (by norm_num : 30 < 64), limbs_two_pow (by norm_num : 60 < 64)]
   -- every `max` bounded, so that `linarith` reads them as atoms (`omega` would split on each)
   have M1 : max (limbCount μ) (limbCount Whir.initialFold) ≤ 2 := max_le l1 l17
   have M2 : max (limbCount (κ + R)) (max (limbCount κ) (limbCount R)) ≤ 2 := max_le l5 (max_le l2 l3)
   have M3 : max (limbCount (1 <<< (κ + R))) (limbCount (κ + R)) ≤ 2 := max_le l4 l5
   have M4 : max (limbCount (1 <<< κ)) (limbCount κ) ≤ 2 := max_le l6 l2
-  have M5 : max (limbCount (2 ^ 44 * (2 ^ κ - 1))) (1 * limbCount (2 ^ κ - 1)) ≤ 2 :=
+  have M5 : max (limbCount (2 ^ 60 * (2 ^ κ - 1))) (1 * limbCount (2 ^ κ - 1)) ≤ 2 :=
     max_le l9 (by omega)
-  have M6 : max (limbCount X) (limbCount (2 ^ 44 * (2 ^ κ - 1)) * limbCount (2 ^ (κ + R))) ≤ 4 :=
+  have M6 : max (limbCount X) (limbCount (2 ^ 60 * (2 ^ κ - 1)) * limbCount (2 ^ (κ + R))) ≤ 4 :=
     max_le (by omega) p2
   have M7 : max (limbCount (johnsonSlackOf μ R * 2 ^ (κ + R)))
       (limbCount (johnsonSlackOf μ R) * limbCount (2 ^ (κ + R))) ≤ 2 :=
@@ -560,7 +560,7 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
   have M8 : max (limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R)))
       (max (limbCount (ceilSqrt X)) (limbCount (johnsonSlackOf μ R * 2 ^ (κ + R)))) ≤ 2 :=
     max_le l14 (max_le l12 l13)
-  have M9 : max (limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 22))
+  have M9 : max (limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R) + 2 ^ 30))
       (max (limbCount (ceilSqrt X + johnsonSlackOf μ R * 2 ^ (κ + R))) 1) ≤ 2 :=
     max_le l15 (max_le l14 (by norm_num))
   linarith
@@ -568,27 +568,27 @@ theorem johnsonThreshold_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonThr
 theorem le_one_mul (a X : ℕ) (h : a ≤ 1) : a * X ≤ X := by
   simpa using Nat.mul_le_mul_right X h
 
-theorem johnsonThreshold_lt (μ R : ℕ) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 80) :
+theorem johnsonThreshold_lt (μ R : ℕ) (hκR : 2 * (μ - Whir.initialFold) + R ≤ 64) :
     johnsonThreshold μ R < 2 ^ 128 := by
   unfold johnsonThreshold
   dsimp only
   set κ := μ - Whir.initialFold
-  have hN : 2 ^ (κ + R) ≤ 2 ^ 80 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  have hK : 2 ^ κ ≤ 2 ^ 40 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  have hX : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) < 2 ^ 126 := by
-    have : 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) ≤ 2 ^ 44 * 2 ^ κ * 2 ^ (κ + R) :=
+  have hN : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hK : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hX : 2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) < 2 ^ 126 := by
+    have : 2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) ≤ 2 ^ 60 * 2 ^ κ * 2 ^ (κ + R) :=
       Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ (Nat.sub_le _ _))
-    have e : 2 ^ 44 * 2 ^ κ * 2 ^ (κ + R) = 2 ^ (44 + κ + (κ + R)) := by rw [← pow_add, ← pow_add]
-    have : 2 ^ (44 + κ + (κ + R)) < 2 ^ 126 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+    have e : 2 ^ 60 * 2 ^ κ * 2 ^ (κ + R) = 2 ^ (60 + κ + (κ + R)) := by rw [← pow_add, ← pow_add]
+    have : 2 ^ (60 + κ + (κ + R)) < 2 ^ 126 := Nat.pow_lt_pow_right (by norm_num) (by omega)
     omega
-  have hcs : ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) ≤
-      2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) + 1 := by
-    unfold ceilSqrt; have := Nat.sqrt_le_self (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)); split_ifs <;> omega
-  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 22794 * 2 ^ 80 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
+  have hcs : ceilSqrt (2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R)) ≤
+      2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) + 1 := by
+    unfold ceilSqrt; have := Nat.sqrt_le_self (2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R)); split_ifs <;> omega
+  have hsl : johnsonSlackOf μ R * 2 ^ (κ + R) ≤ 14292205 * 2 ^ 64 := Nat.mul_le_mul (johnsonSlackOf_le μ R) hN
   refine lt_of_le_of_lt (Nat.div_le_self _ _) ?_
-  generalize ceilSqrt (2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R)) = cs at hcs ⊢
+  generalize ceilSqrt (2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R)) = cs at hcs ⊢
   generalize johnsonSlackOf μ R * 2 ^ (κ + R) = y at hsl ⊢
-  generalize 2 ^ 44 * (2 ^ κ - 1) * 2 ^ (κ + R) = X at hX hcs
+  generalize 2 ^ 60 * (2 ^ κ - 1) * 2 ^ (κ + R) = X at hX hcs
   refine lt_of_le_of_lt (Nat.sub_le _ _) ?_
   norm_num at hX hsl ⊢
   omega
@@ -629,7 +629,7 @@ inverse transform, the threshold, the forward transform over `N = 2^(κ+R)`, one
 against at most one survivor. -/
 theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ : ℕ)
     (T : Array (Array K)) (st : List (List (Array K) × List ℕ)) (u r : ℕ) (hμ : μ < 2 ^ 64)
-    (hJ : 2 * (μ - Whir.initialFold) + R ≤ 80) (hκR : κ + R ≤ 62)
+    (hJ : 2 * (μ - Whir.initialFold) + R ≤ 64) (hκR : κ + R ≤ 62)
     (hst : FastInv (2 ^ (κ + R)) st (r + 1)) :
     machineCost P fastStacksFastC.lam1.costIdx [encodeValue μ, encodeValue R, encodeValue T, encodeValue κ, encodeValue st, encodeValue u] ≤
       κ * (345 * 2 ^ (κ + R) + 5845) + 108 * 2 ^ (κ + R) + 14998 := by
@@ -673,7 +673,7 @@ theorem fastLane_cost (hP : Includes P fastStacksFastC.lam1.costDeps) (μ R κ :
 lanes (`fastLane_cost`), then at most one stack (`stackOf_cost`): at most
 `64·(κ·(345·N + 5845) + 108·N + 15013) + (B_W + 12·W_d + 44)·N + 1008·2^μ + 1071`, for
 `μ ≤ 40`, `R ≤ 8`. -/
-theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 40)
+theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : ℕ) (hμ : μ ≤ 34)
     (hR : R ≤ 8) (W : ℕ → List K) (WVal : MachineValue) (hW : ∀ a : ℕ, RunsApp P WVal [encodeValue a] (encodeValue (W a)))
     (BW Wd : ℕ) (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hWd : ∀ v, (W v).length ≤ Wd) :
     machineCost P fastStacksFastC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
@@ -729,7 +729,7 @@ theorem fastStacksFast_cost (hP : Includes P fastStacksFastC.costDeps) (μ R : �
     (fun st r hst u hu ↦ ⟨hstep st r hst u hu, by
       simp only [appCost_fn, List.cons_append, List.nil_append, Nat.add_zero, Nat.zero_add]
       have h1 : μ < 2 ^ 64 := by omega
-      have h2 : 2 * (μ - Whir.initialFold) + R ≤ 80 := by omega
+      have h2 : 2 * (μ - Whir.initialFold) + R ≤ 64 := by omega
       have h3 : κ + R ≤ 62 := by omega
       have hl := fastLane_cost P hI μ R κ (Fast.laneTable N W) st u r h1 h2 h3 hst
       rw [← hNdef] at hl

@@ -29,14 +29,14 @@ open LeanVM.Guest.B1.Digest
 /-- `__loop3`'s statements before its `ret []`. -/
 def l4Pre : List Stmt :=
   [.atom (.hint (.witness "sp_raw_index" (.stack [.n 7]))),
-    .atom (.const (.n 8) (word 9223372036854775821 0 0)), .atom (.mul (.n 9) (.n 2) (.n 8)),
+    .atom (.const (.n 8) (word 9223372036854775821 0)), .atom (.mul (.n 9) (.n 2) (.n 8)),
     .atom (.rangeCheck (.n 7) (.n 10) (.n 11) (.n 12) (.n 9)), .atom (.mul (.n 13) (.n 4) (.n 0)),
     .atom (.mul (.n 14) (.n 3) (.n 7)), .atom (.load (.n 13) (.n 14) 0),
     .atom (.mul (.n 15) (.n 7) (.n 7)), .atom (.mul (.n 16) (.n 15) (.n 15)),
     .atom (.mul (.n 17) (.n 5) (.n 16)),
-    .call "verify_sig_lean_sphincs" [.n 17, .n 6] [], .atom (.const (.n 18) (word 2 0 0)),
+    .call "verify_sig_lean_sphincs" [.n 17, .n 6] [], .atom (.const (.n 18) (word 2 0)),
     .atom (.mul (.n 19) (.n 0) (.n 18)), .atom (.add (.n 20) (.n 19) (.n 1)),
-    .atom (.const (.n 21) (word 2 0 0)), .atom (.mul (.n 22) (.n 0) (.n 21)),
+    .atom (.const (.n 21) (word 2 0)), .atom (.mul (.n 22) (.n 0) (.n 21)),
     .callIf (.n 20) "__loop3" [.n 22, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
 
 set_option maxRecDepth 100000 in

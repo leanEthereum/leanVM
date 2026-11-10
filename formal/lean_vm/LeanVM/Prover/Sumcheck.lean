@@ -57,7 +57,7 @@ theorem natDegree_polyOfList (l : List E) : (polyOfList l).natDegree ≤ l.lengt
 
 /-- **The specification's round message is any coefficient list of the right length** that
 evaluates as the round's claim. -/
-theorem coeffsOf_eq {d : ℕ} {l : List E} (hl : l.length = d + 1) (hd : d < 2 ^ 192) {f : E → E}
+theorem coeffsOf_eq {d : ℕ} {l : List E} (hl : l.length = d + 1) (hd : d < 2 ^ 128) {f : E → E}
     (hf : ∀ x, polyEval l x = f x) : coeffsOf d f = l := by
   classical
   have hP : PolyLE d f :=

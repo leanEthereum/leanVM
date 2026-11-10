@@ -65,10 +65,6 @@ theorem sLayerM_ptrs : ∀ q ∈ loadPtrs sLayerM.1, q < 5556 := by decide +kern
 theorem sBody_loads : listLoadsB (loadPtrs sPre) Data.core20.body = true := by
   rw [sBody_eq]; decide +kernel
 
-theorem canon_forsKeyCell (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) :
-    IsCanonical128 (forsKeyCell pk m sig) := by
-  simp [forsKeyCell, IsCanonical128, hcell, digestHalves]
-
 /-! ## The stages, complete -/
 
 /-- **The statements before the root's check complete**, for a claim of `pk` and `m` at `n0`
@@ -89,7 +85,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
     (sBottom_complete hB hm hbb pk m sig σ h1 hat) (fun σA heA hA => ?_)
   have hA1 : σA (.n 1) = bb := by rw [heA.apply (Or.inl (by norm_num))]; exact h1
   -- the bottom layer
-  obtain ⟨hr0, hL0⟩ := layer_stage hB hC hm hbb (l := 0) (by norm_num) h0 (canon_forsKeyCell pk m sig)
+  obtain ⟨hr0, hL0⟩ := layer_stage hB hC hm hbb (l := 0) (by norm_num) h0
     σA hA1 hA hA.2.2.2.2.2.1 hA.2.2.2.2.2.2.1 hA.2.2.2.2.2.2.2
   set R0 := layerRootCell pk (digestIdx pk m sig) sig ⟨0, by decide⟩ (forsKeyCell pk m sig)
     with hR0d
@@ -109,7 +105,7 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   -- the middle layer
   rw [hr0] at h1'
   obtain ⟨hr1, hL1⟩ := layer_stage hB hC hm hbb (l := 1) (by norm_num) h1'
-    (canon_layerRootCell ..) σC (by rw [tCA 1 (by norm_num)]; exact hA1) hAC ha0C ha1C hsC
+    σC (by rw [tCA 1 (by norm_num)]; exact hA1) hAC ha0C ha1C hsC
   set R1 := layerRootCell pk (digestIdx pk m sig) sig ⟨1, by decide⟩ R0 with hR1d
   refine Completes.append (m := 5556) (by norm_num) (by omega) sLayerM_nb hL1
     (fun σD heD ⟨hD1, hDp⟩ => ?_)
@@ -128,9 +124,9 @@ theorem sPre_complete (hB : SphincsBlocksComplete) (hC : SpWotsCalls C) (hm : Me
   -- the top layer
   rw [hr1] at h2
   obtain ⟨hr2, hL2⟩ := layer_stage hB hC hm hbb (l := 2) (by norm_num) h2
-    (canon_layerRootCell ..) σE (by rw [tEA 1 (by norm_num)]; exact hA1) hAE ha0E ha1E hsE
+    σE (by rw [tEA 1 (by norm_num)]; exact hA1) hAE ha0E ha1E hsE
   have hR2 : layerRootCell pk (digestIdx pk m sig) sig ⟨2, by decide⟩ R1 = cellOf128 pk.root := by
-    rw [hr2, cellOf128_cellVal (canon_layerRootCell ..)]
+    rw [hr2, cellOf128_cellVal]
   obtain ⟨σF, heF, ⟨hF2, hFp⟩, hhF⟩ := hL2
   have tF : ∀ k < 5562, σF (.n k) = σE (.n k) := fun k hk => heF.apply (Or.inl hk)
   have tFA : ∀ k < 5249, σF (.n k) = σA (.n k) := fun k hk => by rw [tF k (by omega), tEA k hk]
