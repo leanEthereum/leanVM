@@ -34,11 +34,11 @@ instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Protocol/Ext
 the proof and the oracle's answers to the adversary's Keccak-256 queries only, the halting run of
 the memory image of a stack in the Johnson list of the word the proof commits to) does not return
 a valid execution of the program on the public input is at most
-`soundnessError Q = (Q + 18538) · (2^-128 + 5·(Q + 18538)/2^256) + 18538/2^256`, which is at most
+`soundnessError Q = (Q + 14026) · (2^-128 + 5·(Q + 14026)/2^256) + 14026/2^256`, which is at most
 `2^-63` for `Q ≤ 2^64` (`soundnessError_le`). The `2^-128` is per oracle query: every group of the
 protocol's challenges, discounted by the proof of work before it, escapes with probability at
 most `2^-128`, certified for every admissible size and rate (`Whir.Params.Deployed`). The
-`18538` bounds the verifier's queries on every statement and proof
+`14026` bounds the verifier's queries on every statement and proof
 (`Verifier.leanVmQueryBound_eq`).
 
 The proof (`knowledgeSoundnessRom`) runs the experiment over the ordered log of fresh queries, the
@@ -51,7 +51,7 @@ predicts a digest or a sponge state's capacity the log refers to: `5 + 2` per ea
 adversary's part of the log only, returns a valid execution (`Sound.extractor_of_extracted`):
 without failure, every climb to the announced root through the log runs through the adversary's
 queries, unless a fresh Keccak-256 answer of the verifier is the root itself, which has
-probability at most `18538/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
+probability at most `14026/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
 
 **Scope and trust.**
 
@@ -177,16 +177,16 @@ theorem candidates_ncard_le {μ R : ℕ} (h : Parameters.Whir.Admissible μ R) (
 /-- **The numbers**: against `2^64` queries, the soundness error is at most `2^-63`. -/
 theorem soundnessError_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ℝ≥0∞)⁻¹ ^ 63 := by
   have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((18538 : ℕ) : ℝ≥0∞) := rfl
-  rw [soundnessError, hV, show verifierQueries = 18538 from rfl,
+  have hV : (verifierQueries : ℝ≥0∞) = ((14026 : ℕ) : ℝ≥0∞) := rfl
+  rw [soundnessError, hV, show verifierQueries = 14026 from rfl,
     Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
     ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
     ENNReal.div_add_div_same, ← Nat.cast_add, Sound.inv_pow_eq_div 63 256 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   rw [show 256 - 128 = 128 from rfl, show 256 - 63 = 193 from rfl]
-  have hN : Q + 18538 ≤ 2 ^ 64 + 18538 := by omega
-  calc (Q + 18538) * (2 ^ 128 + 5 * (Q + 18538)) + 18538
-      ≤ (2 ^ 64 + 18538) * (2 ^ 128 + 5 * (2 ^ 64 + 18538)) + 18538 :=
+  have hN : Q + 14026 ≤ 2 ^ 64 + 14026 := by omega
+  calc (Q + 14026) * (2 ^ 128 + 5 * (Q + 14026)) + 14026
+      ≤ (2 ^ 64 + 14026) * (2 ^ 128 + 5 * (2 ^ 64 + 14026)) + 14026 :=
         Nat.add_le_add_right (Nat.mul_le_mul hN (Nat.add_le_add_left
           (Nat.mul_le_mul_left 5 hN) _)) _
     _ ≤ 2 ^ 193 := by norm_num

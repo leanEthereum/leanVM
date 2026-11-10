@@ -3,7 +3,7 @@
 
   Completeness of the leanVM verifier in the random-oracle model: the honest prover of a valid
   execution within the budget, run against the random oracles, makes the verifier reject with
-  probability at most `completenessError fuel`, below `2^-257` at a fuel of `2^26` nonces per
+  probability at most `completenessError fuel`, below `2^-257` at a fuel of `2^25` nonces per
   proof of work.
 -/
 
@@ -25,16 +25,16 @@ hash a query to the random oracle for Keccak-256 and every permutation one to th
 for Keccak-f[1600]. In the experiment of the knowledge-soundness theorem with this prover as the
 adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
-  `completenessError fuel = Q · (1 - 2^-18)^fuel`,
+  `completenessError fuel = Q · (1 - 2^-17)^fuel`,
 
-`Q = (1 + 1) + 74145 · (2^39 + 2·fuel + 2) + 18538` the queries of the prover and the verifier
-together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 74145`
+`Q = (1 + 1) + 56097 · (2^31 + 2·fuel + 2) + 14026` the queries of the prover and the verifier
+together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 56097`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
-2^39 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 18538`
-(`romComplete_leanVm`); every proof of work asks for at most `maxGrindingBits = 18` bits, the
-query grinding's `17` or a level's fold grinding (`Sound.grind_bits_ok`). At `fuel = 2^26`, it is
-below `2^-257` (`completenessError_le`): `Q ≤ 2^56`, and a proof of work of at most eighteen bits
-fails with probability at most `(1 - 2^-18)^(2^26) ≤ e^-256 < 2^-320`.
+2^31 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 14026`
+(`romComplete_leanVm`); every proof of work asks for at most `maxGrindingBits = 17` bits, the
+query grinding's `17` or a level's fold grinding (`Sound.grind_bits_ok`). At `fuel = 2^25`, it is
+below `2^-257` (`completenessError_le`): `Q ≤ 2^47`, and a proof of work of at most seventeen bits
+fails with probability at most `(1 - 2^-17)^(2^25) ≤ e^-256 < 2^-320`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -114,20 +114,20 @@ theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
   simp only [hex, ↓reduceDIte]
   exact romComplete_at hex.choose_spec.choose_spec hfuel
 
-/-- **The numbers**: at a fuel of `2^26` nonces per proof of work, the completeness error is
-below `2^-257`: at most `2^56` queries, each missing with probability `(1 - 2^-18)^(2^26) ≤ 2^-320`
+/-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is
+below `2^-257`: at most `2^47` queries, each missing with probability `(1 - 2^-17)^(2^25) ≤ 2^-320`
 (`missProb_pow_four_le`). -/
-theorem completenessError_le : completenessError (2 ^ 26) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
-  have hQ : completenessQueries (2 ^ 26) ≤ 2 ^ 56 := by decide
-  have hmiss : missProb Sound.maxGrindingBits ^ (2 ^ 26) ≤ (2 : ℝ≥0∞)⁻¹ ^ (56 + 264) := by
+theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
+  have hQ : completenessQueries (2 ^ 25) ≤ 2 ^ 47 := by decide
+  have hmiss : missProb Sound.maxGrindingBits ^ (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ (47 + 273) := by
     have := missProb_pow_four_le Sound.maxGrindingBits 64
-    rwa [show 2 ^ Sound.maxGrindingBits * 4 * 64 = 2 ^ 26 by decide] at this
+    rwa [show 2 ^ Sound.maxGrindingBits * 4 * 64 = 2 ^ 25 by decide] at this
   unfold completenessError
-  calc (completenessQueries (2 ^ 26) : ℝ≥0∞) * missProb Sound.maxGrindingBits ^ 2 ^ 26
-      ≤ (2 : ℝ≥0∞) ^ 56 * (2 : ℝ≥0∞)⁻¹ ^ (56 + 264) := by
+  calc (completenessQueries (2 ^ 25) : ℝ≥0∞) * missProb Sound.maxGrindingBits ^ 2 ^ 25
+      ≤ (2 : ℝ≥0∞) ^ 47 * (2 : ℝ≥0∞)⁻¹ ^ (47 + 273) := by
         gcongr
         exact_mod_cast hQ
-    _ = (2 : ℝ≥0∞)⁻¹ ^ 264 := by
+    _ = (2 : ℝ≥0∞)⁻¹ ^ 273 := by
         rw [pow_add, ← mul_assoc, ← mul_pow,
           ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow, one_mul]
     _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=

@@ -99,7 +99,7 @@ theorem romChild_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution
   have h := romCompleteNZ (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
     (rzProgram (bytecodeWords prog) (publicInputDigest input)) (nz_rzProgram _ _) _
     (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := Whir.queryGrindingBits)
-    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ EndToEnd.Sound.grind_bits_eq _ _ hg)
+    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ EndToEnd.Sound.grind_bits_ok _ _ hg)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
     (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input))
     (costLE_rzProgram (bytecodeWords prog) (publicInputDigest input))
@@ -174,7 +174,7 @@ theorem allQ_childComp (prog : LeanIsaProgram) (input : PublicInput) (t : Execut
 theorem isTotalQueryBound_childComp (prog : LeanIsaProgram) (input : PublicInput) (t :
     Execution prog)
     (ρ fuel : ℕ) :
-    IsTotalQueryBound (childComp prog input t ρ fuel) (2 + 74145 * (2 ^ 39 + 2 * fuel + 2)) := by
+    IsTotalQueryBound (childComp prog input t ρ fuel) (2 + 56097 * (2 ^ 31 + 2 * fuel + 2)) := by
   unfold childComp
   split
   · rename_i hex
@@ -182,21 +182,21 @@ theorem isTotalQueryBound_childComp (prog : LeanIsaProgram) (input : PublicInput
       (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) (leanVmProver
         prog hex.choose_spec.choose ρ (LeanIsa.stackOf prog hex.choose_spec.choose hex.choose))
       fuel (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-    have hc : leanVmCost = 74145 := by decide
+    have hc : leanVmCost = 56097 := by decide
     rw [hc] at h
     exact h
   · trivial
 
-/-- **A prover of at most `2 + 74145 · (2^39 + 2·fuel + 2)` short queries and the verifier
+/-- **A prover of at most `2 + 56097 · (2^31 + 2·fuel + 2)` short queries and the verifier
 refusing a zero challenge make at most `completenessPermCalls fuel` permutation calls.** -/
 theorem isWeightBound_proverNZ {X : OracleComp KeccakCalls Proof} (prog : LeanIsaProgram)
     (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (2 + 74145 * (2 ^ 39 + 2 * fuel + 2)))
+    (hX : IsTotalQueryBound X (2 + 56097 * (2 ^ 31 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
     Common.QueryCostAtMost (X >>= fun proof ↦ Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)
       hashBlocks (completenessPermCalls fuel) := by
   have hN : IsTotalQueryBound (X >>= fun proof ↦ Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)
-      (18540 + 74145 * (2 ^ 39 + 2 * fuel + 2)) := by
+      (14028 + 56097 * (2 ^ 31 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX
       fun proof ↦ by
         have := isTotalQueryBound_verifierComp

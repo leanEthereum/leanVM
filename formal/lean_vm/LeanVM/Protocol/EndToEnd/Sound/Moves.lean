@@ -31,9 +31,11 @@ unfoldings and inductions of `LeanVM.Protocol.Verifier.Cost`: the sizes, the bus
 sumcheck, the public input, the Keccak reduction and ring switching make no prover move other than
 reads; the
 stack's root is the one commitment outside WHIR; the stacked opening commits WHIR's levels and
-checks WHIR's query proofs of work, of `Whir.queryGrindingBits = 17` bits. Hence
-`grind_bits_eq`: every proof of work of the leanVM verifier has exactly `17` bits (the
-completeness theorem's one condition on the hash: its `17`-bit search succeeds), and
+checks WHIR's proofs of work, of `Whir.queryGrindingBits = 17` bits before the queries and of a
+level's `Whir.Level.foldGrinding` bits, when nonzero, before its fold challenges. Hence
+`grind_bits_ok`: every proof of work of the leanVM verifier has between `1` and
+`maxGrindingBits = 17` bits (the completeness theorem's one condition on the hash: a search of
+at most `17` bits succeeds), and
 `grindBits_le_of_reachable`: every reachable history ends with a proof of work of at most `64`
 bits, the cap at which the random-oracle theorem discounts a group's escape
 (`LeanVM.Protocol.Compile.Rom.Step`).
@@ -420,9 +422,9 @@ theorem movesOK_ringSwitch (point s : List E) :
 
 /-! ## WHIR -/
 
-/-- The most bits a proof of work of the verifier asks for: the query grinding's `17`, and the
-fold grinding of the tables (`Whir.foldGrindingTable`), at most `18`. -/
-def maxGrindingBits : ℕ := 18
+/-- The most bits a proof of work of the verifier asks for: the query grinding's `17`, the fold
+grinding of the tables (`Whir.foldGrindingTable`) being at most that. -/
+def maxGrindingBits : ℕ := 17
 
 /-- A proof of work's bits, between `1` and `maxGrindingBits`. -/
 def GrindOK (b : ℕ) : Prop := b ≠ 0 ∧ b ≤ maxGrindingBits
@@ -430,7 +432,7 @@ def GrindOK (b : ℕ) : Prop := b ≠ 0 ∧ b ≤ maxGrindingBits
 theorem queryGrindingBits_ok : GrindOK Whir.queryGrindingBits := ⟨by decide, by decide⟩
 
 /-- Every level of every ladder grinds at most `maxGrindingBits` before a fold challenge; decided
-over the `104` admissible pairs. -/
+over the `72` admissible pairs. -/
 theorem ladder_foldGrinding_le (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     ∀ level ∈ levels, level.foldGrinding ≤ maxGrindingBits := by
@@ -594,7 +596,7 @@ theorem grindBits_le_of_reachable (bytecode : List K) (publicInput : Digest) {h 
   ((movesOK_leanVmProgram bytecode publicInput).mono
     (fun _ hb ↦ hb.2.trans (by decide)) id).grindBits_le hh
 
-/-- **Every proof of work of the leanVM verifier has between `1` and `maxGrindingBits = 18`
+/-- **Every proof of work of the leanVM verifier has between `1` and `maxGrindingBits = 17`
 bits**, along any history. -/
 theorem grind_bits_ok (bytecode : List K) (publicInput : Digest) {h : List Ev} {bits : ℕ}
     {k : VerifierProgram Bool} (hg : (leanVmVerifierProgram bytecode publicInput).after h = some

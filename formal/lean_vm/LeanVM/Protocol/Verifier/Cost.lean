@@ -24,7 +24,7 @@ of
 work `5`, a commitment `2`, and an opening of `k` positions `4 · k · (1 + height)` (one hash per
 leaf and per level). A run's shape depends on the sizes the proof announces, but a run that is
 not rejected has sizes inside the window the program checks: memory and table log-heights at most
-`32`, a bytecode of at most `2^36` words, a stack of `15 ≤ μ ≤ 40` variables, a rate exponent
+`32`, a bytecode of at most `2^36` words, a stack of `15 ≤ μ ≤ 32` variables, a rate exponent
 `1 ≤ R ≤ 4`, and the WHIR ladder `Parameters.Whir.ladder μ R`. The cost is maximised over that
 window:
 
@@ -39,14 +39,14 @@ window:
   `keccakCost 29`, `12` layers of `135 + 6 · 29`;
 * ring switching: `6` challenges, `24`;
 * the stacked opening: `6` plus the WHIR levels (`whirCost`, each fold round charged `11`, a
-  proof of work's `5` included whether or not the level grinds), at most `whirBound` over the 104
+  proof of work's `5` included whether or not the level grinds), at most `whirBound` over the 72
   admissible ladders (`ladder_cost`, decided), every commitment of height at most
-  `costHeight = 38`.
+  `costHeight = 30`.
 
-In total `leanVmCost = 74145` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
+In total `leanVmCost = 56097` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one
 hash and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at
 most
-`leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 18538` queries on every proof
+`leanVmQueryBound = 1 + 1 + leanVmCost / 4 = 14026` queries on every proof
 (`isTotalQueryBound_leanVm`). The bound is crude where a tight one would cost proof without
 changing the soundness bound, in which it enters linearly: the bus depth, the table heights and
 the Keccak point are bounded by the announced sizes' window (`32`), not by the stack's size, and
@@ -125,10 +125,10 @@ def queryDepthsLE : ℕ → List Whir.Level → Bool
       queryDepthsLE (μ - level.fold) rest
 
 /-- The bound on every commitment's height. -/
-def costHeight : ℕ := 38
+def costHeight : ℕ := 30
 
 /-- The bound on the WHIR levels' cost over every admissible ladder (`ladder_cost`). -/
-def whirBound : ℕ := 66601
+def whirBound : ℕ := 48553
 
 /-- The bound on the GKR walk: the push side's depth is at most `38`. -/
 def gkrBound : ℕ := gkrCost 38 0
@@ -868,7 +868,7 @@ end Whir
 
 /-- Over every ladder `Parameters.Whir.ladder` returns, the commitments have height at most
 `costHeight`, the query positions at most `64` bits, and the WHIR levels cost at most
-`whirBound`; decided over the 104 admissible pairs. -/
+`whirBound`; decided over the 72 admissible pairs. -/
 theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     whirHeightsLE costHeight μ levels = true ∧ stackHeightLE costHeight μ levels = true ∧
@@ -953,9 +953,9 @@ program's cost in quarters. -/
 def leanVmQueryBound : ℕ := 1 + 1 + leanVmCost / 4
 
 /-- The bound, evaluated. -/
-theorem leanVmQueryBound_eq : leanVmQueryBound = 18538 := by decide
+theorem leanVmQueryBound_eq : leanVmQueryBound = 14026 := by decide
 
-/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 18538` queries** to the random
+/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 14026` queries** to the random
 oracles on every proof, for every bytecode and public input: the hypothesis `hV` of `romSound`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :

@@ -21,7 +21,7 @@ shaped (`Strategy.AcceptsFrom`), and the verifier program's openings are within 
 `proveFrom_stream_le`):
 
 * `proveWithHash_wireDecodable`: a proof of `Prover.proveWithHash (m := Id) h F` is
-  `WireDecodable h`: its stream is at most `leanVmCost = 74145` elements, at most
+  `WireDecodable h`: its stream is at most `leanVmCost = 56097` elements, at most
   `wireMaxPhases` phases, each the openings of one tree over `h` within the bounds.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
@@ -142,7 +142,7 @@ theorem prove_wireDecodable (h1 : ∀ chal, runI P S chal = some true)
   obtain ⟨hlen, hph⟩ := proveFrom_phases h F S fuel _ _ [] wireMaxPhases hacc
     (by simp [commits]) hw hpf
   have hxs := proveFrom_stream_le h F S fuel _ _ [] _ hc hpf
-  have hcost : leanVmCost = 74145 := by decide
+  have hcost : leanVmCost = 56097 := by decide
   refine ⟨lt_of_le_of_lt (hcost ▸ hxs) (by norm_num), hlen, fun phase hphase ↦ ?_⟩
   obtain ⟨ht, w, word, ps, rfl, hws, hne, hql, hht, hwl, hps⟩ := hph phase hphase
   exact ⟨ht, w, phaseDecodable_openingAt hws hne hql hht hwl hps⟩

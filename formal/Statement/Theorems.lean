@@ -40,8 +40,8 @@ of the same type: every use names them). -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
-  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^15) · 2^-128 +
-  5 (Q + 2^15)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
+  `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-128 +
+  5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
   its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget N`, for
   `N` permutation queries: about `2^81` up to `2^50` queries, `O(N·log³N)`), and extracting nothing
   from an accepted proof is a break; so, but with that probability, the program extracts a valid
@@ -51,7 +51,7 @@ structure Theorems
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
-  most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^26` nonces per proof of work, is
+  most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
 

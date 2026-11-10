@@ -493,15 +493,15 @@ def BreaksKnowledgeSoundnessWithHash (z : ExperimentOutcomeWithHash) : Prop :=
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor
 `transcriptExtractor`: an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free)
-breaks soundness with probability at most `(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256`, the `2^14`
-covering the verifier's own `18538` oracle calls and two terms of `2^-128` (a guessed stack root,
+breaks soundness with probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14`
+covering the verifier's own `14026` oracle calls and two terms of `2^-128` (a guessed stack root,
 the transfer from two random oracles to one permutation). -/
 def KnowledgeSoundnessWithHash : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
     Pr{let z ← soundnessExperimentWithHash A}[BreaksKnowledgeSoundnessWithHash z] ≤
-      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 /-! ### Completeness -/
 
@@ -516,14 +516,14 @@ noncomputable def verifierCompletenessExperimentWithHash (proverWithHash : Hones
     | none => pure false
     | some proof => verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []
 
-/-- **Completeness in the random-permutation model**: trying `2^26` nonces per proof of work, the
+/-- **Completeness in the random-permutation model**: trying `2^25` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
 probability at most `2^-256`. -/
 def CompletenessWithHash : Prop :=
   ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← verifierCompletenessExperimentWithHash proverWithHash prog input t ρ
-          (2 ^ 26)}[v = false] ≤
+          (2 ^ 25)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM

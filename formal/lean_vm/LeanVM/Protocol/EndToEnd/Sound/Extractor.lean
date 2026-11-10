@@ -394,7 +394,7 @@ theorem commitment_eq {c : KeccakCalls.QueryCache} {π : Proof}
 
 /-- Level 0's certified slack is the specification's `johnsonSlack`, for every admissible
 shape (kernel evaluation). -/
-theorem certOf_e_eq : ∀ μ < 41, ∀ R < 5, Whir.Admissible μ R →
+theorem certOf_e_eq : ∀ μ < 33, ∀ R < 5, Whir.Admissible μ R →
     (Whir.Params.certOf μ R 0).e =
       (Extraction.johnsonSlack.getD (R - 1) []).getD (μ - Whir.minLogStack) 0 := by
   decide +kernel
@@ -406,7 +406,7 @@ theorem thrOf_eq_johnsonThreshold {μ R : ℕ} (h : Whir.Admissible μ R) {level
     thrOf μ R = Extraction.johnsonThreshold μ R := by
   rw [← Extraction.johnsonThreshold_eq_real]
   have hc' : Whir.ladder μ R = some (level :: rest) := hc
-  have hμ : μ < 41 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
+  have hμ : μ < 33 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
   have hR : R < 5 := by have := h.2.2.2; omega
   have hok := Whir.Params.shapeOK_all μ hμ R hR h
   rw [Whir.Params.shapeOK, hc'] at hok
@@ -473,7 +473,7 @@ theorem candidates_of_values {μ R A : ℕ} {W : Word} {q : Vector K (2 ^ μ)}
 /-- An admissible shape has a ladder. -/
 theorem exists_ladder {μ R : ℕ} (h : Whir.Admissible μ R) :
     ∃ level rest, Whir.ladder μ R = some (level :: rest) := by
-  have hμ : μ < 41 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
+  have hμ : μ < 33 := by have := h.2.1; unfold Whir.maxLogStack at this; omega
   have hR : R < 5 := by have := h.2.2.2; omega
   have hok := Whir.Params.shapeOK_all μ hμ R hR h
   rw [Whir.Params.shapeOK] at hok

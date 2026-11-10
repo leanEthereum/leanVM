@@ -42,7 +42,7 @@ execution is extracted, or the decoder program `guestWitnessDecoder`, run on it 
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
 `StatementDigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^15) · 2^-128 + 5 (Q + 2^15)² · 2^-256`, for `Q ≤ 2^128` queries to `π`, `π⁻¹`.
+`(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128` queries to `π`, `π⁻¹`.
 
 Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`, so the verifier
 seeds its transcript with the IV over `π`; the statement's digest, its seed (`deployedSeed`, the IV
@@ -65,8 +65,8 @@ def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.M
           (Cost.encodeGuestWitnessDecoderInput outcome.program execution) =
             some (Cost.encodeValue decoding) ∧
         ExplainsStatement guest statement decoding] ≤
-      (Q + 2 ^ 15 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
-        5 * (Q + 2 ^ 15 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128 +
+        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM.Node
 
