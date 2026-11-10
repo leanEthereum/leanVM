@@ -30,8 +30,8 @@ value lanes, `101` of the `165` (`committedCols`), in global order. `columnKappa
 * `PCtx rd kappas off`: `off` holds `g^offset` per committed column;
 * `certify_placement_Spec`: under its precondition the function's relation gives `PCtx` and the
   total;
-* `HypKappa`: once the stack is at most `2^28`, every committed column's `κ` is below `29` (the
-  range of `column_selector`'s 29 specializations, which `check_opening_terminal` dispatches on).
+* `HypKappa`: once the stack is at most `2^32`, every committed column's `κ` is below `33` (the
+  range of `column_selector`'s 33 specializations, which `check_opening_terminal` dispatches on).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -90,19 +90,19 @@ table and the rank keys, it returns `g^(Σ 2^κ)` over the committed columns of
 `columnKappas log_mem 19 τ` and a buffer of which `PCtx` holds. -/
 def certify_placement_Spec (rd : Reader) : Prop :=
   ∀ (logMem : ℕ) (hs : List ℕ) (kb sq : E) (rets : List E), logMem ≤ 32 → hs.length = 6 →
-    (∀ h ∈ hs, h < 29) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
+    (∀ h ∈ hs, h < 33) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
     TbReadsAt rd sq gSquaresList → TbReadsAt rd (sq * gen ^ 178) rankKeysList →
     coreProgram.Rel rd "certify_placement" [kb, sq] rets →
       ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
         PCtx rd (columnKappas logMem guestLogBytecode hs) off
 
-/-- Every committed column's log is below `N_COLUMN_LOGS = 29`. -/
+/-- Every committed column's log is below `N_COLUMN_LOGS = 33`. -/
 def KappasBelow (kappas : List ℕ) : Prop :=
-  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 29
+  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 33
 
-/-- **The columns' logs are in range** once the stack is at most `2^28`. -/
+/-- **The columns' logs are in range** once the stack is at most `2^32`. -/
 def HypKappa : Prop :=
-  ∀ kappas : List ℕ, kappas.length = 165 → log2Ceil (stackTotal kappas) ≤ 28 → KappasBelow kappas
+  ∀ kappas : List ℕ, kappas.length = 165 → log2Ceil (stackTotal kappas) ≤ 32 → KappasBelow kappas
 
 end
 end LeanVM.Guest.B1.Tables

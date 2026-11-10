@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Placement.Kappas
 
   The committed columns, their sizes over the guest's sources, and every committed column's log
-  size below `29` once the stack is at most `2^28` (`HypKappa`).
+  size below `33` once the stack is at most `2^32` (`HypKappa`).
 -/
 
 module
@@ -20,7 +20,7 @@ free column (global `87`) and its twenty-seven read counts (global `138 .. 164`)
 (`committedKappas_columnKappas`).
 
 `hypKappa`: every committed column's `κ` is at most `log2Ceil (stackTotal kappas)`, since `2^κ` is
-one of its summands; so `≤ 28` once the stack is at most `2^28`.
+one of its summands; so `≤ 32` once the stack is at most `2^32`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -92,9 +92,9 @@ theorem tb_single_le_sum_map (l : List ℕ) (c : ℕ) (hc : c < l.length) :
   rw [List.getD_eq_getElem _ _ hc]
   exact List.le_sum_of_mem (List.mem_map.mpr ⟨_, List.getElem_mem hc, rfl⟩)
 
-/-- **Every committed column's `κ` is below 29** once the stack is at most `2^28`. -/
+/-- **Every committed column's `κ` is below 33** once the stack is at most `2^32`. -/
 theorem hypKappa_holds : HypKappa := by
-  intro kappas hl h28 c hc
+  intro kappas hl h32 c hc
   have hcl : c < (committedKappas kappas).length := by
     rw [committedKappas_length _ hl]; exact hc
   have := tb_le_log2Ceil_of_two_pow_le (tb_single_le_sum_map _ c hcl)
