@@ -102,7 +102,7 @@ theorem sBottom_complete (hB : SphincsBlocksComplete) (hm : MemOK rd 256) {bb : 
     (fun σA heA hA => ?_)
   obtain ⟨hppA, hrA, -, hpA, hdA, hqA⟩ := hA
   replace hdA : DigestAt σA T := by
-    have e : (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk
+    have e : (Id.run (Sphincs.Verification.messageDigest (m := Id) (HashSig.OverPermutation.keccakHash LeanVM.Semantics.keccakF1600) pk
       sig.randomizer m)).toNat = T := rfl
     rw [e] at hdA; exact hdA
   replace hqA := tablePtrs_of_digestPtrs hqA

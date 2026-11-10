@@ -75,7 +75,7 @@ theorem valid_spX {d : Nat → Nat} (hd : ∀ j, d j < 4) (hs : ∑ i ∈ Finset
 on a cell's value is `spStepCell`'s. -/
 theorem spChainStep_cells (pp y : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (lf : Sphincs.TreeLeafIndex) (i : Sphincs.ChainIndex) (t : ChainStep) :
-    Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (.chain layer tree lf i t) (littleEndianBytes 16 (cellVal y)) =
       cellVal (spStepCell pp (adrsCell0 layer.val tree.val) (adrsCell1 0 lf.val 0 0) i.val t.val y) := by
   have hi : i.val < 256 := lt_of_lt_of_le i.isLt (by decide)
@@ -87,7 +87,7 @@ theorem spChainStep_cells (pp y : E) (layer : Sphincs.Layer) (tree : Sphincs.Tre
 theorem chainWalk_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (lf : Sphincs.TreeLeafIndex) (i : Sphincs.ChainIndex) (s : Nat) (x : E) :
     ∀ m, s + m ≤ 3 →
-      Id.run (Sphincs.Verification.chainWalk (m := Id) keccakF1600 (cellVal pp) layer tree lf i s m
+      Id.run (Sphincs.Verification.chainWalk (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree lf i s m
           (cellVal x)) =
         cellVal (chainT (spStepCell pp (adrsCell0 layer.val tree.val) (adrsCell1 0 lf.val 0 0)) i.val
           m s x)
@@ -109,7 +109,7 @@ theorem wotsLeafOf_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIn
     wotsLeafOf (cellVal pp) layer tree lf enc (fun i => cellVal (starts i.val)) =
       cellVal (spLeafCell pp (adrsCell0 layer.val tree.val) (adrsCell1 0 lf.val 0 0) d starts) := by
   have hc : ∀ i : Sphincs.ChainIndex,
-      Sphincs.Verification.recoverChain (m := Id) keccakF1600 (cellVal pp) layer tree lf i
+      Sphincs.Verification.recoverChain (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree lf i
           (Sphincs.TargetSum.base2bDigits enc i) (cellVal (starts i.val)) =
         cellVal (chainT (spStepCell pp (adrsCell0 layer.val tree.val) (adrsCell1 0 lf.val 0 0)) i.val
           (3 - d i.val) (d i.val) (starts i.val)) := by
@@ -117,7 +117,7 @@ theorem wotsLeafOf_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIn
     have h4 := (Sphincs.TargetSum.base2bDigits enc i).isLt
     simp only [chainLength, winternitzBits] at h4
     unfold Sphincs.Verification.recoverChain
-    rw [hd i] at h4 ⊢
+    (HashSig.OverPermutation.keccakHash rw) [hd i] at h4 ⊢
     rw [show chainLength - 1 - d i.val = 3 - d i.val by simp [chainLength, winternitzBits]]
     exact chainWalk_cells pp layer tree lf i (d i.val) (starts i.val) (3 - d i.val) (by omega)
   unfold wotsLeafOf
@@ -125,9 +125,9 @@ theorem wotsLeafOf_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIn
   have e := digestsPayload_cells fun i : Sphincs.ChainIndex =>
     chainT (spStepCell pp (adrsCell0 layer.val tree.val) (adrsCell1 0 lf.val 0 0)) i.val
       (3 - d i.val) (d i.val) (starts i.val)
-  rw [show (fun i => Sphincs.Verification.recoverChain (m := Id) keccakF1600 (cellVal pp) layer tree lf
+  rw [show (fun i => Sphincs.Verification.recoverChain (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree lf
       i (Sphincs.TargetSum.base2bDigits enc i) (cellVal (starts i.val))) = _ from funext hc]
-  change Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp) (.leaf layer tree lf)
+  change Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) (.leaf layer tree lf)
     (digestsPayload fun i : Sphincs.ChainIndex => cellVal (chainT (spStepCell pp
       (adrsCell0 layer.val tree.val) (adrsCell1 0 lf.val 0 0)) i.val (3 - d i.val) (d i.val)
         (starts i.val))) = _

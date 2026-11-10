@@ -83,6 +83,34 @@ theorem crateScheme_romBoundAdv {c : ℕ} (h : AdvBound c) (maxRequests : ℕ) :
 
 local notation "σ" => schemeHashOverPermutation
 
+/-- Key generation, its queries answered by Keccak-256 over `π`. -/
+theorem simulateQ_crateKeygen_rpm' (seed : FORS.MasterSeed) :
+    (fun keys ↦ (ofModelPublicKey keys.1, keys.2)) <$>
+      simulateQ σ (FORS.Crate.keygen seed : OracleComp FORS.HashSpec _) =
+      KeyGenerationAndSigning.keygenFromSeed (HashSig.OverPermutation.keccakHash queryPermutation)
+        seed := by
+  rw [schemeHashOverPermutation_eq]
+  exact simulateQ_crateKeygen seed
+
+/-- The signer, its queries answered by Keccak-256 over `π`. -/
+theorem simulateQ_crateSign_rpm (seed : FORS.MasterSeed) (message : FORS.Message) :
+    Option.map ofModelSignature <$>
+      simulateQ σ (FORS.Crate.sign seed message : OracleComp FORS.HashSpec _) =
+      KeyGenerationAndSigning.sign (HashSig.OverPermutation.keccakHash queryPermutation) seed
+        message := by
+  rw [schemeHashOverPermutation_eq]
+  exact simulateQ_crateSign seed message
+
+/-- The verifier, its queries answered by Keccak-256 over `π`. -/
+theorem simulateQ_verify_rpm (publicKey : PublicKey) (message : FORS.Message)
+    (signature : Signature) :
+    simulateQ σ (FORS.Concrete.verify (m := OracleComp FORS.HashSpec) (toModelPublicKey publicKey)
+      message (toModelSignature signature)) =
+      Verification.verify (HashSig.OverPermutation.keccakHash queryPermutation) publicKey message
+        signature := by
+  rw [schemeHashOverPermutation_eq]
+  exact simulateQ_verify publicKey message signature
+
 theorem crate_keygen_cost (seed : FORS.MasterSeed) :
     QueryCostAtMost (crateScheme.overPermutation.generateKeys seed) permutationCallCost
       SphincsCost.KeyGenerationAndSigning.keygenCost := by
@@ -90,7 +118,7 @@ theorem crate_keygen_cost (seed : FORS.MasterSeed) :
   have heq : RandomPermutationModel.sufCmaScheme.generateKeys seed =
       (fun keys ↦ (ofModelPublicKey keys.1, keys.2)) <$>
         crateScheme.overPermutation.generateKeys seed :=
-    (simulateQ_crateKeygen seed).symm
+    (simulateQ_crateKeygen_rpm' seed).symm
   rw [heq] at h
   exact (isQueryBound_map_iff _ _ _ _ _).1 h
 
@@ -100,7 +128,7 @@ theorem crate_sign_cost (seed : FORS.MasterSeed) (message : FORS.Message) :
   have h := SphincsCost.sufCmaScheme_sign_cost seed message
   have heq : RandomPermutationModel.sufCmaScheme.sign seed message =
       Option.map ofModelSignature <$> crateScheme.overPermutation.sign seed message :=
-    (simulateQ_crateSign seed message).symm
+    (simulateQ_crateSign_rpm seed message).symm
   rw [heq] at h
   exact (isQueryBound_map_iff _ _ _ _ _).1 h
 
@@ -112,7 +140,7 @@ theorem crate_verify_cost (publicKey : FORS.PublicKey) (forgery : FORS.Forgery) 
   have heq : RandomPermutationModel.sufCmaScheme.verify (ofModelPublicKey publicKey)
       ⟨forgery.message, ofModelSignature forgery.signature⟩ =
       crateScheme.overPermutation.verify publicKey forgery := by
-    have hv := (simulateQ_verify (ofModelPublicKey publicKey) forgery.message
+    have hv := (simulateQ_verify_rpm (ofModelPublicKey publicKey) forgery.message
       (ofModelSignature forgery.signature)).symm
     have hs : toModelSignature (ofModelSignature forgery.signature) = forgery.signature :=
       signatureEquiv.left_inv forgery.signature
@@ -154,9 +182,9 @@ theorem stronglyUnforgeableAdv_of_model {c : ℕ} (h : AdvBound c) :
   intro q main hq hn
   have hgame := Transport.forgeryGame_eq crateScheme RandomPermutationModel.sufCmaScheme
     ofModelPublicKey id (Option.map ofModelSignature) toModelForgery rfl
-    (fun seed ↦ (simulateQ_crateKeygen seed).symm)
-    (fun seed message ↦ (simulateQ_crateSign seed message).symm)
-    (fun publicKey forgery ↦ (simulateQ_verify (ofModelPublicKey publicKey) forgery.message
+    (fun seed ↦ (simulateQ_crateKeygen_rpm' seed).symm)
+    (fun seed message ↦ (simulateQ_crateSign_rpm seed message).symm)
+    (fun publicKey forgery ↦ (simulateQ_verify_rpm (ofModelPublicKey publicKey) forgery.message
       forgery.signature).symm) win_eq main
   have key := crateScheme_stronglyUnforgeableAdv h q
     (Transport.mapAdversary ofModelPublicKey (Option.map ofModelSignature) toModelForgery main)

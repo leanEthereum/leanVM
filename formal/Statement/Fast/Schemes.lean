@@ -135,18 +135,16 @@ end Xmss
 namespace Sphincs
 
 open HashSig HashSig.OverPermutation _root_.Sphincs _root_.Sphincs.Verification
-open LeanVM.Semantics (KeccakState)
-
-variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (hash : HashInput → m HashOutput)
 
 /-- `Sphincs.Verification.otsLeaf`. -/
 def otsLeaf (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (message : Digest) (counter : EncodingCounter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
-  let some encoding ← encode π publicSeed layer tree leaf message counter | return none
+  let some encoding ← encode hash publicSeed layer tree leaf message counter | return none
   let endpoints ← HashSig.OverPermutation.sequenceFin fun chainIndex =>
-    recoverChain π publicSeed layer tree leaf chainIndex (encoding chainIndex) (values chainIndex)
-  let value ← leafHash π publicSeed layer tree leaf endpoints
+    recoverChain hash publicSeed layer tree leaf chainIndex (encoding chainIndex) (values chainIndex)
+  let value ← leafHash hash publicSeed layer tree leaf endpoints
   return some value
 
 /-- `Sphincs.Verification.otsLeaf` compiles as its restatement. -/
@@ -157,8 +155,8 @@ def forsRecover (publicSeed : PublicParameter) (index : Index)
     (leaves : ForsTreeIndex → ForsLeafIndex) (opening : ForsTreeIndex → ForsTreeOpening) :
     m Digest := do
   let roots ← HashSig.OverPermutation.sequenceFin fun forsTree =>
-    forsTreeRecover π publicSeed index forsTree (leaves forsTree) (opening forsTree)
-  forsPublicKey π publicSeed index roots
+    forsTreeRecover hash publicSeed index forsTree (leaves forsTree) (opening forsTree)
+  forsPublicKey hash publicSeed index roots
 
 /-- `Sphincs.Verification.forsRecover` compiles as its restatement. -/
 @[csimp] theorem forsRecover_eq : @_root_.Sphincs.Verification.forsRecover = @forsRecover := rfl
@@ -167,7 +165,7 @@ def forsRecover (publicSeed : PublicParameter) (index : Index)
 def messageDigest (publicKey : _root_.Sphincs.PublicKey) (randomizer : Randomizer)
     (message : Message) : m MessageDigest := do
   let outputs ← HashSig.OverPermutation.sequenceFin fun call =>
-    messageDigestCall π randomizer publicKey.publicSeed publicKey.root message call
+    messageDigestCall hash randomizer publicKey.publicSeed publicKey.root message call
   return truncateMessageDigest outputs
 
 /-- `Sphincs.Verification.messageDigest` compiles as its restatement. -/
@@ -183,10 +181,10 @@ def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Sig
         let layer : Layer := ⟨layerCount - 1 - layersLeft, by omega⟩
         let tree := treeOfIndex layer index
         let leaf := leafOfIndex layer index
-        let some value ← _root_.Sphincs.Verification.otsLeaf π publicSeed layer tree leaf message
+        let some value ← _root_.Sphincs.Verification.otsLeaf hash publicSeed layer tree leaf message
             (signature.layers layer).counter (signature.layers layer).chainValues
           | return none
-        let root ← treeFold π publicSeed layer tree leaf (layerPath signature layer)
+        let root ← treeFold hash publicSeed layer tree leaf (layerPath signature layer)
           (layerHeight layer) value
         if layersLeft = 0 then
           return some root
@@ -198,7 +196,7 @@ def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Sig
 /-- `Sphincs.Verification.verifyLayers` compiles as its restatement. -/
 @[csimp] theorem verifyLayers_eq :
     @_root_.Sphincs.Verification.verifyLayers = @verifyLayers := by
-  funext m _ π publicSeed index signature layersLeft message
+  funext m _ hash publicSeed index signature layersLeft message
   induction layersLeft generalizing message with
   | zero => rfl
   | succ layersLeft ih =>
@@ -208,11 +206,11 @@ def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Sig
 /-- `Sphincs.Verification.verify`, with `messageDigest`, `forsRecover` and `verifyLayers`. -/
 def verify (publicKey : _root_.Sphincs.PublicKey) (message : Message) (signature : Signature) :
     m Bool := do
-  let digest ← _root_.Sphincs.Verification.messageDigest π publicKey signature.randomizer message
+  let digest ← _root_.Sphincs.Verification.messageDigest hash publicKey signature.randomizer message
   let index := digestIndex digest
-  let forsKey ← _root_.Sphincs.Verification.forsRecover π publicKey.publicSeed index
+  let forsKey ← _root_.Sphincs.Verification.forsRecover hash publicKey.publicSeed index
     (digestForsLeaves digest) signature.forsOpening
-  let some root ← _root_.Sphincs.Verification.verifyLayers π publicKey.publicSeed index signature
+  let some root ← _root_.Sphincs.Verification.verifyLayers hash publicKey.publicSeed index signature
       layerCount forsKey
     | return false
   return decide (root = publicKey.root)
@@ -225,8 +223,8 @@ def verify (publicKey : _root_.Sphincs.PublicKey) (message : Message) (signature
 /-- `Sphincs.verifyWithKeccak`, restated, so that it compiles with `verify` above. -/
 def verifyWithKeccak (publicKey : _root_.Sphincs.PublicKey) (message : HashSig.Message)
     (signature : _root_.Sphincs.Signature) : Bool :=
-  Id.run (_root_.Sphincs.Verification.verify (m := Id) LeanVM.Semantics.keccakF1600 publicKey
-    message signature)
+  Id.run (_root_.Sphincs.Verification.verify (m := Id) (keccakHash LeanVM.Semantics.keccakF1600)
+    publicKey message signature)
 
 /-- `Sphincs.verifyWithKeccak` compiles as its restatement. -/
 @[csimp] theorem verifyWithKeccak_eq : @_root_.Sphincs.verifyWithKeccak = @verifyWithKeccak := rfl

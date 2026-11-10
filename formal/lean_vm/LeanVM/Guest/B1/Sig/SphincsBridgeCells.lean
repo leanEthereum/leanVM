@@ -71,7 +71,7 @@ theorem foldPath_cells (pp a0 : E) (dom : Nat → Nat → Sphincs.HashDomain) (a
     ∀ (n : Nat), (∀ l < n, hashDomainCells (dom l (e / 2 ^ (l + 1))) = (a0, adr l)) →
       (∀ l < n, cellVal (sib l) = path l) → ∀ x : E,
       Id.run (foldPath (m := Id) (fun level q =>
-          Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp) (dom level q))
+          Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) (dom level q))
         e path n (cellVal x)) =
         cellVal (pFold (fun l v => (hcell [pp, a0, adr l, (mPair (e.testBit l) v (sib l)).1,
           (mPair (e.testBit l) v (sib l)).2]).1) n x)
@@ -79,13 +79,13 @@ theorem foldPath_cells (pp a0 : E) (dom : Nat → Nat → Sphincs.HashDomain) (a
   | n + 1, hd, hs, x => by
       have ih := foldPath_cells pp a0 dom adr e n (fun l hl => hd l (by omega))
         (fun l hl => hs l (by omega)) x
-      show Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp)
+      show Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (dom n (e / 2 ^ (n + 1)))
         (if e.testBit n then nodePayload (path n) (Id.run (foldPath (m := Id) (fun level q =>
-            Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp) (dom level q))
+            Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) (dom level q))
             e path n (cellVal x)))
           else nodePayload (Id.run (foldPath (m := Id) (fun level q =>
-            Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp) (dom level q))
+            Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) (dom level q))
             e path n (cellVal x))) (path n)) = _
       rw [ih, ← hs n (by omega), nodePayload_mPair, tweakableHash_sphincsCells, hd n (by omega)]
       rfl
@@ -96,7 +96,7 @@ of tree `tree` of layer `layer` from leaf `leaf` is the value of `pFold` of `pNo
 theorem htFold_cells (pp : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (leaf : Sphincs.TreeLeafIndex) {sib : Nat → E} {path : Nat → HashSig.Digest} {h : Nat} (hh : h ≤ 10)
     (hsib : ∀ l < h, cellVal (sib l) = path l) (x : E) :
-    Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 (cellVal pp) layer tree leaf path h
+    Id.run (Sphincs.Verification.treeFold (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree leaf path h
         (cellVal x)) =
       cellVal (pFold (pNodeE pp (adrsCell0 layer.val tree.val) leaf.val sib) h x) := by
   have hl' : leaf.val < 2 ^ 10 := leaf.isLt
@@ -135,23 +135,23 @@ theorem forsTreeRecover_cellsC (pp : E) (idx : Sphincs.Index) (c : Sphincs.ForsT
     (s : Sphincs.ForsLeafIndex) (op : Sphincs.ForsTreeOpening) {secret : E} {sib : Nat → E}
     (hsec : cellVal secret = op.secret)
     (hsib : ∀ z (hz : z < 10), cellVal (sib z) = op.path ⟨z, hz⟩) :
-    Id.run (Sphincs.Verification.forsTreeRecover (m := Id) keccakF1600 (cellVal pp) idx c s op) =
+    Id.run (Sphincs.Verification.forsTreeRecover (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) idx c s op) =
       cellVal (forsRootCell pp (adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val)
         (Sphincs.leafOfIndex 0 idx).val c.val s.val secret sib) := by
-  have hleaf : Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600 (cellVal pp) idx c s
+  have hleaf : Id.run (Sphincs.Verification.forsLeafHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) idx c s
       op.secret) = cellVal (forsLeafCell pp (adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val)
         (Sphincs.leafOfIndex 0 idx).val c.val s.val secret) := by
     rw [← hsec]
-    show Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp)
+    show Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
       (.forsLeaf idx c s) (littleEndianBytes 16 (cellVal secret)) = _
     rw [digest_cells, tweakableHash_sphincsCells]
     simp only [forsLeafCell, forsAdrCell, hashDomainCells, Sphincs.forsTreeIndex,
       Sphincs.forsTreeHeight, Nat.shiftRight_zero]
     rfl
   show Id.run (foldPath (m := Id) (fun level node => Sphincs.Verification.tweakableHash (m := Id)
-      keccakF1600 (cellVal pp) (.forsNode idx c (level + 1) node)) s.val
+      (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) (.forsNode idx c (level + 1) node)) s.val
       (fun level => if h : level < Sphincs.forsTreeHeight then op.path ⟨level, h⟩ else 0)
-      Sphincs.forsTreeHeight (Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600
+      Sphincs.forsTreeHeight (Id.run (Sphincs.Verification.forsLeafHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600)
         (cellVal pp) idx c s op.secret))) = _
   rw [hleaf]
   refine (foldPath_cells pp (adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val)
@@ -172,23 +172,23 @@ theorem forsRecover_cells (pp : E) (idx : Sphincs.Index)
     (op : Sphincs.ForsTreeIndex → Sphincs.ForsTreeOpening) {secret : Nat → E} {sib : Nat → Nat → E}
     (hsec : ∀ c : Sphincs.ForsTreeIndex, cellVal (secret c.val) = (op c).secret)
     (hsib : ∀ (c : Sphincs.ForsTreeIndex) z (hz : z < 10), cellVal (sib c.val z) = (op c).path ⟨z, hz⟩) :
-    Id.run (Sphincs.Verification.forsRecover (m := Id) keccakF1600 (cellVal pp) idx leaves op) =
+    Id.run (Sphincs.Verification.forsRecover (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) idx leaves op) =
       cellVal (hcell ([pp, adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val,
         adrsCell1 4 (Sphincs.leafOfIndex 0 idx).val 0 0] ++
         List.ofFn fun c : Sphincs.ForsTreeIndex =>
           forsRootCell pp (adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val)
             (Sphincs.leafOfIndex 0 idx).val c.val (leaves c).val (secret c.val) (sib c.val))).1 := by
   have hr : (fun c : Sphincs.ForsTreeIndex => Id.run (Sphincs.Verification.forsTreeRecover (m := Id)
-      keccakF1600 (cellVal pp) idx c (leaves c) (op c))) = fun c =>
+      (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) idx c (leaves c) (op c))) = fun c =>
       cellVal (forsRootCell pp (adrsCell0 0 (Sphincs.treeOfIndex 0 idx).val)
         (Sphincs.leafOfIndex 0 idx).val c.val (leaves c).val (secret c.val) (sib c.val)) :=
     funext fun c => forsTreeRecover_cellsC pp idx c (leaves c) (op c) (hsec c) (hsib c)
-  show Sphincs.Verification.forsPublicKey (m := Id) keccakF1600 (cellVal pp) idx
-    (sequenceFin (m := Id) fun c => Sphincs.Verification.forsTreeRecover (m := Id) keccakF1600
+  show Sphincs.Verification.forsPublicKey (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) idx
+    (sequenceFin (m := Id) fun c => Sphincs.Verification.forsTreeRecover (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600)
       (cellVal pp) idx c (leaves c) (op c)) = _
   rw [sequenceFin_id]
-  show Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp) (.forsRoots idx)
-    (digestsPayload fun c => Id.run (Sphincs.Verification.forsTreeRecover (m := Id) keccakF1600
+  show Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) (.forsRoots idx)
+    (digestsPayload fun c => Id.run (Sphincs.Verification.forsTreeRecover (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600)
       (cellVal pp) idx c (leaves c) (op c))) = _
   rw [hr, digestsPayload_cells, tweakableHash_sphincsCells]
   rfl
@@ -203,7 +203,7 @@ def encDigestCell (pp a0 a1 msg ctr : E) : E :=
 /-- **The encoding over cells**: the counter's cell holds `BE_32(c)` reversed. -/
 theorem encode_cells (pp msg : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (leaf : Sphincs.TreeLeafIndex) (ctr : Sphincs.EncodingCounter) :
-    Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 (cellVal pp) layer tree leaf
+    Id.run (Sphincs.Verification.encode (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree leaf
         (cellVal msg) ctr) =
       Sphincs.TargetSum.decodeDigest (cellVal (encDigestCell pp (adrsCell0 layer.val tree.val)
         (adrsCell1 7 leaf.val 0 0) msg (eOfNat (beWordAt 0 ctr.toNat)))) := by
@@ -216,7 +216,7 @@ encoding's digits reach the target sum, nothing otherwise. -/
 theorem otsLeaf_cells (pp msg : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeIndex)
     (leaf : Sphincs.TreeLeafIndex) (ctr : Sphincs.EncodingCounter)
     (values : Sphincs.ChainIndex → HashSig.Digest) :
-    Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 (cellVal pp) layer tree leaf
+    Id.run (Sphincs.Verification.otsLeaf (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree leaf
         (cellVal msg) ctr values) =
       if Sphincs.TargetSum.Valid (Sphincs.TargetSum.base2bDigits (cellVal (encDigestCell pp
           (adrsCell0 layer.val tree.val) (adrsCell1 7 leaf.val 0 0) msg
@@ -225,12 +225,12 @@ theorem otsLeaf_cells (pp msg : E) (layer : Sphincs.Layer) (tree : Sphincs.TreeI
           (adrsCell0 layer.val tree.val) (adrsCell1 7 leaf.val 0 0) msg
           (eOfNat (beWordAt 0 ctr.toNat)))) values)
       else none := by
-  have he : Sphincs.Verification.encode (m := Id) keccakF1600 (cellVal pp) layer tree leaf
+  have he : Sphincs.Verification.encode (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) layer tree leaf
       (cellVal msg) ctr = Sphincs.TargetSum.decodeDigest (cellVal (encDigestCell pp
         (adrsCell0 layer.val tree.val) (adrsCell1 7 leaf.val 0 0) msg
         (eOfNat (beWordAt 0 ctr.toNat)))) := encode_cells pp msg layer tree leaf ctr
   unfold Sphincs.Verification.otsLeaf
-  rw [he]
+  (HashSig.OverPermutation.keccakHash rw) [he]
   unfold Sphincs.TargetSum.decodeDigest
   split_ifs <;> rfl
 

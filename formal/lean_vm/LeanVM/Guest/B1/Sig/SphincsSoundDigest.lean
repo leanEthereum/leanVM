@@ -532,7 +532,7 @@ theorem hmsgBytes_eq (R seed root : E) (msg : HashSig.Message) (call : Sphincs.D
 /-- **The statement's message digest, from cells**: `H_msg` of the randomizer, the key and the
 message is the number `hmsgNat` of `H_msg`'s two calls on `hmsgBytes`. -/
 theorem hmsgDigest_cells (R seed root : E) (msg : HashSig.Message) :
-    Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600
+    Id.run (Sphincs.Verification.messageDigest (m := Id) (HashSig.OverPermutation.keccakHash LeanVM.Semantics.keccakF1600)
         ⟨cellVal seed, cellVal root⟩ (cellVal R) msg) =
       BitVec.ofNat (8 * Sphincs.digestByteCount)
         (hmsgNat (digestHalves (keccak256 (hmsgBytes R seed root msg.toNat 0)))
@@ -686,7 +686,7 @@ the block holds. -/
 theorem sDigestBlock_sound_stmt {κ : Nat} (hκ : κ ≤ 32) {L : MemoryImage κ}
     (hbb : ByteBits L.read (σ (.n 1))) (h : AtomsHold L.read σ sDigestBlock) :
     PadOK σ sPad ∧ ∃ c d, ClaimAt L.read (σ (.n 0)) (σ sPP) (σ sRoot) c d ∧ ∃ T, DigestAt σ T ∧
-        Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600
+        Id.run (Sphincs.Verification.messageDigest (m := Id) (HashSig.OverPermutation.keccakHash LeanVM.Semantics.keccakF1600)
           (sphincsClaimOf (σ sPP) (σ sRoot) c d).1 (cellVal (σ sRand))
           (sphincsClaimOf (σ sPP) (σ sRoot) c d).2) = digestOf T := by
   obtain ⟨hp, lP, lR, l2, l3, T, hD, hT⟩ := sDigestBlock_sound hκ hbb h

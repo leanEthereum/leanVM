@@ -51,9 +51,9 @@ def wotsLeafOf (publicSeed : PublicParameter) (layer : Sphincs.Layer) (tree : Sp
     Digest :=
   Id.run do
     let ends ← sequenceFin fun chainIndex =>
-      Sphincs.Verification.recoverChain (m := Id) keccakF1600 publicSeed layer tree leaf chainIndex
+      Sphincs.Verification.recoverChain (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed layer tree leaf chainIndex
         (Sphincs.TargetSum.base2bDigits digest chainIndex) (values chainIndex)
-    Sphincs.Verification.leafHash (m := Id) keccakF1600 publicSeed layer tree leaf ends
+    Sphincs.Verification.leafHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed layer tree leaf ends
 
 /-! ## The functions, found -/
 

@@ -23,7 +23,7 @@ import Sphincs.Security
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Model.simulateQ_verify
 
-/-- info: 'Sphincs.Model.simulateQ_crateKeygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Model.simulateQ_crateKeygen' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Model.simulateQ_crateKeygen
 

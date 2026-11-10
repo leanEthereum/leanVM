@@ -441,25 +441,28 @@ def decodeDigest (digest : Digest) : Option Encoding :=
 
 end TargetSum
 
-/-! ### The algorithms, over a permutation `π` of the Keccak state in any monad -/
+/-! ### The algorithms, over a hash `H` in any monad
+
+Every hash the scheme computes is a call of `hash : HashInput → m HashOutput`; as deployed, `hash`
+is Keccak-256 over Keccak-f[1600] (`keccakHash`), in the random-permutation model Keccak-256 over
+the model's permutation, and in the quantum random-oracle model a random function. -/
 
 namespace Verification
 
-open LeanVM.Semantics (KeccakState)
 open HashSig.OverPermutation
 
-variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (hash : HashInput → m HashOutput)
 
 /-- `Trunc_16(H(PK.seed ‖ ADRS ‖ M))` at an address (`th`, `hash.rs:85-88`; `truncate`,
 `lib.rs:46-49`). -/
 def addressedHash (publicSeed : PublicParameter) (address : Address) (payload : HashInput) :
     m Digest := do
-  return truncateHash (← keccakHash π (addressedHashInput publicSeed address payload))
+  return truncateHash (← hash (addressedHashInput publicSeed address payload))
 
 /-- `F`, `H` and `T_l` at a hash domain's address (`th`, `th_digests`, `hash.rs:85-93`). -/
 abbrev tweakableHash (publicSeed : PublicParameter) (domain : HashDomain) (payload : HashInput) :
     m Digest :=
-  addressedHash π publicSeed (hashDomainFields domain) payload
+  addressedHash hash publicSeed (hashDomainFields domain) payload
 
 /-! #### The one-time signature -/
 
@@ -468,25 +471,25 @@ step `t` (`chain`, `wots.rs:53-61`: a step carries the position it leaves). -/
 def chainWalk (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (chainIndex : ChainIndex) : Nat → Nat → Digest → m Digest :=
   walkChain fun step value ↦
-    tweakableHash π publicSeed (.chain layer tree leaf chainIndex step) (littleEndianBytes 16 value)
+    tweakableHash hash publicSeed (.chain layer tree leaf chainIndex step) (littleEndianBytes 16 value)
 
 /-- The verifier's half of a chain: walk the remaining `3 - x_i` steps. -/
 def recoverChain (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (chainIndex : ChainIndex) (digit : WinternitzDigit) (value : Digest) :
     m Digest :=
-  chainWalk π publicSeed layer tree leaf chainIndex digit.val (chainLength - 1 - digit.val) value
+  chainWalk hash publicSeed layer tree leaf chainIndex digit.val (chainLength - 1 - digit.val) value
 
 /-- The one-time leaf: `T_v` of the `v` chain ends (`wots_leaf_hash`, `wots.rs:63-66`). -/
 def leafHash (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (endpoints : ChainIndex → Digest) : m Digest :=
-  tweakableHash π publicSeed (.leaf layer tree leaf) (digestsPayload endpoints)
+  tweakableHash hash publicSeed (.leaf layer tree leaf) (digestsPayload endpoints)
 
 /-- `Enc(K, M, c)` (`encoder`, `encode`, `wots.rs:68-79`): `Trunc_16(H(PK.seed ‖ ADRS_enc(K) ‖ M ‖
 BE_32(c)))`, 68 bytes, decoded. -/
 def encode (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (message : Digest) (counter : EncodingCounter) :
     m (Option Encoding) := do
-  let digest ← tweakableHash π publicSeed (.encoding layer tree leaf)
+  let digest ← tweakableHash hash publicSeed (.encoding layer tree leaf)
     (littleEndianBytes 16 message ++ bigEndianBytes 4 counter)
   return TargetSum.decodeDigest digest
 
@@ -495,10 +498,10 @@ recovers, or nothing if the counter does not encode `M`. -/
 def otsLeaf (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (message : Digest) (counter : EncodingCounter)
     (values : ChainIndex → Digest) : m (Option Digest) := do
-  let some encoding ← encode π publicSeed layer tree leaf message counter | return none
+  let some encoding ← encode hash publicSeed layer tree leaf message counter | return none
   let endpoints ← sequenceFin fun chainIndex =>
-    recoverChain π publicSeed layer tree leaf chainIndex (encoding chainIndex) (values chainIndex)
-  let value ← leafHash π publicSeed layer tree leaf endpoints
+    recoverChain hash publicSeed layer tree leaf chainIndex (encoding chainIndex) (values chainIndex)
+  let value ← leafHash hash publicSeed layer tree leaf endpoints
   return some value
 
 /-! #### The hypertree -/
@@ -509,7 +512,7 @@ order. -/
 def treeFold (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (path : Nat → Digest) : Nat → Digest → m Digest :=
   foldPath
-    (fun level nodeIndex ↦ tweakableHash π publicSeed (.node layer tree (level + 1) nodeIndex))
+    (fun level nodeIndex ↦ tweakableHash hash publicSeed (.node layer tree (level + 1) nodeIndex))
     leaf.val path
 
 /-! #### FORS -/
@@ -517,23 +520,23 @@ def treeFold (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
 /-- A FORS leaf: `F` of its secret (`fors_leaf`, `fors.rs:46-49`). -/
 def forsLeafHash (publicSeed : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
     (leaf : ForsLeafIndex) (secret : Digest) : m Digest :=
-  tweakableHash π publicSeed (.forsLeaf index forsTree leaf) (littleEndianBytes 16 secret)
+  tweakableHash hash publicSeed (.forsLeaf index forsTree leaf) (littleEndianBytes 16 secret)
 
 /-- The root of a FORS tree an opening reaches: the leaf hashed, then folded up its `a` path
 nodes, the node at height `z + 1` hashing its children in index order (`fors_recover`,
 `fors.rs:86-103`; `path_fold`, `lib.rs:25-44`). -/
 def forsTreeRecover (publicSeed : PublicParameter) (index : Index) (forsTree : ForsTreeIndex)
     (leaf : ForsLeafIndex) (opening : ForsTreeOpening) : m Digest := do
-  let value ← forsLeafHash π publicSeed index forsTree leaf opening.secret
+  let value ← forsLeafHash hash publicSeed index forsTree leaf opening.secret
   foldPath
-    (fun level node ↦ tweakableHash π publicSeed (.forsNode index forsTree (level + 1) node))
+    (fun level node ↦ tweakableHash hash publicSeed (.forsNode index forsTree (level + 1) node))
     leaf.val (fun level ↦ if h : level < forsTreeHeight then opening.path ⟨level, h⟩ else 0)
     forsTreeHeight value
 
 /-- `T_k` of the roots: the FORS public key (`fors_key`, `fors.rs:56-59`). -/
 def forsPublicKey (publicSeed : PublicParameter) (index : Index)
     (roots : ForsTreeIndex → Digest) : m Digest :=
-  tweakableHash π publicSeed (.forsRoots index) (digestsPayload roots)
+  tweakableHash hash publicSeed (.forsRoots index) (digestsPayload roots)
 
 /-- `fors_pkFromSig` (`fors_recover`, `fors.rs:86-103`): the FORS public key an opening reaches at
 the digest's leaves, `T_k` of the roots its trees reach. -/
@@ -541,8 +544,8 @@ def forsRecover (publicSeed : PublicParameter) (index : Index)
     (leaves : ForsTreeIndex → ForsLeafIndex) (opening : ForsTreeIndex → ForsTreeOpening) :
     m Digest := do
   let roots ← sequenceFin fun forsTree =>
-    forsTreeRecover π publicSeed index forsTree (leaves forsTree) (opening forsTree)
-  forsPublicKey π publicSeed index roots
+    forsTreeRecover hash publicSeed index forsTree (leaves forsTree) (opening forsTree)
+  forsPublicKey hash publicSeed index roots
 
 /-! #### The message digest -/
 
@@ -550,7 +553,7 @@ def forsRecover (publicSeed : PublicParameter) (index : Index)
 32-byte message unframed (`h_msg`, `hash.rs:128-140`). -/
 def messageDigestCall (randomizer : Randomizer) (publicSeed : PublicParameter) (root : Digest)
     (message : Message) (call : DigestCall) : m HashOutput :=
-  keccakHash π (littleEndianBytes 16 randomizer ++ littleEndianBytes 16 publicSeed ++
+  hash (littleEndianBytes 16 randomizer ++ littleEndianBytes 16 publicSeed ++
     littleEndianBytes 16 root ++ littleEndianBytes 32 message ++
     bigEndianBytes 4 (BitVec.ofNat 32 call.val))
 
@@ -558,7 +561,7 @@ def messageDigestCall (randomizer : Randomizer) (publicSeed : PublicParameter) (
 def messageDigest (publicKey : PublicKey) (randomizer : Randomizer) (message : Message) :
     m MessageDigest := do
   let outputs ← sequenceFin fun call =>
-    messageDigestCall π randomizer publicKey.publicSeed publicKey.root message call
+    messageDigestCall hash randomizer publicKey.publicSeed publicKey.root message call
   return truncateMessageDigest outputs
 
 /-! #### Verification -/
@@ -580,10 +583,10 @@ def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Sig
         let layer : Layer := ⟨layerCount - 1 - layersLeft, by omega⟩
         let tree := treeOfIndex layer index
         let leaf := leafOfIndex layer index
-        let some value ← otsLeaf π publicSeed layer tree leaf message
+        let some value ← otsLeaf hash publicSeed layer tree leaf message
             (signature.layers layer).counter (signature.layers layer).chainValues
           | return none
-        let root ← treeFold π publicSeed layer tree leaf (layerPath signature layer)
+        let root ← treeFold hash publicSeed layer tree leaf (layerPath signature layer)
           (layerHeight layer) value
         if layersLeft = 0 then
           return some root
@@ -595,11 +598,11 @@ def verifyLayers (publicSeed : PublicParameter) (index : Index) (signature : Sig
 /-- `Ver(pk, m, σ)` (`verify`, `scheme.rs:344-364`): compute the digest, recover the FORS public
 key, walk the layers up (the one-time leaf, the path) and compare with `PK.root`. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
-  let digest ← messageDigest π publicKey signature.randomizer message
+  let digest ← messageDigest hash publicKey signature.randomizer message
   let index := digestIndex digest
-  let forsKey ← forsRecover π publicKey.publicSeed index (digestForsLeaves digest)
+  let forsKey ← forsRecover hash publicKey.publicSeed index (digestForsLeaves digest)
     signature.forsOpening
-  let some root ← verifyLayers π publicKey.publicSeed index signature layerCount forsKey
+  let some root ← verifyLayers hash publicKey.publicSeed index signature layerCount forsKey
     | return false
   return decide (root = publicKey.root)
 
@@ -607,14 +610,14 @@ end Verification
 
 /-- **leanSPHINCS verification as deployed**: over Keccak-f[1600], the hash Keccak-256. -/
 def verifyWithKeccak (publicKey : PublicKey) (message : Message) (signature : Signature) : Bool :=
-  Id.run (Verification.verify (m := Id) LeanVM.Semantics.keccakF1600 publicKey message signature)
+  Id.run (Verification.verify (m := Id)
+    (HashSig.OverPermutation.keccakHash LeanVM.Semantics.keccakF1600) publicKey message signature)
 
 namespace KeyGenerationAndSigning
 
 open Verification HashSig.OverPermutation
-open LeanVM.Semantics (KeccakState)
 
-variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (hash : HashInput → m HashOutput)
 
 /-! #### The key -/
 
@@ -635,20 +638,20 @@ def keyDerivationInput (secretSeed : MasterSeed) (domain : UInt8) : HashInput :=
 `PK.seed = Trunc_16(H(leanSPHINCS ‖ SK.seed ‖ 0))`, in the order the crate's struct literal
 computes them. -/
 def expandKey (secretSeed : SecretKey) : m ExpandedKey := do
-  let secretPrfKey ← keccakHash π (keyDerivationInput secretSeed 1)
-  let publicSeedOutput ← keccakHash π (keyDerivationInput secretSeed 0)
+  let secretPrfKey ← hash (keyDerivationInput secretSeed 1)
+  let publicSeedOutput ← hash (keyDerivationInput secretSeed 0)
   return ⟨secretSeed, secretPrfKey, truncateHash publicSeedOutput⟩
 
 /-- `PRF(PK.seed, SK.seed, ADRS) = Trunc_16(H(PK.seed ‖ ADRS ‖ SK.seed))` at a secret's address
 (`prf`, `hash.rs:95-98`). -/
 def prf (key : ExpandedKey) (domain : KeygenDomain) : m Digest :=
-  addressedHash π key.publicSeed (keygenDomainFields domain) (littleEndianBytes 32 key.secretSeed)
+  addressedHash hash key.publicSeed (keygenDomainFields domain) (littleEndianBytes 32 key.secretSeed)
 
 /-- `PRF_msg(SK.prf, opt_rand, M') = Trunc_16(H(SK.prf ‖ opt_rand ‖ M'))`, 93 bytes (`prf_msg`,
 `hash.rs:117-126`). -/
 def prfMessage (secretPrfKey : HashOutput) (optionalRandomness : Digest) (message : Message) :
     m Randomizer := do
-  return truncateHash (← keccakHash π (littleEndianBytes 32 secretPrfKey ++
+  return truncateHash (← hash (littleEndianBytes 32 secretPrfKey ++
     littleEndianBytes 16 optionalRandomness ++ framedMessage message))
 
 /-! #### Trees -/
@@ -679,16 +682,16 @@ def merkleLevels (node : Nat → Nat → HashInput → m Digest) (leaves : List 
 `(layer, tree, leaf)`, one `PRF` each. -/
 def otsSecrets (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) :
     m (ChainIndex → Digest) :=
-  sequenceFin fun chainIndex ↦ prf π key (.oneTimeChain layer tree leaf chainIndex)
+  sequenceFin fun chainIndex ↦ prf hash key (.oneTimeChain layer tree leaf chainIndex)
 
 /-- `wots_public_leaf` (`wots.rs:119-125`): the leaf of a one-time key from its secrets, the chains
 walked to their ends and hashed. -/
 def otsPublicLeaf (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) :
     m Digest := do
-  let secrets ← otsSecrets π key layer tree leaf
+  let secrets ← otsSecrets hash key layer tree leaf
   let endpoints ← sequenceFin fun chainIndex =>
-    chainWalk π key.publicSeed layer tree leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
-  leafHash π key.publicSeed layer tree leaf endpoints
+    chainWalk hash key.publicSeed layer tree leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
+  leafHash hash key.publicSeed layer tree leaf endpoints
 
 /-- The encoding counters `counter, counter + 1, ...`, at most `attempts` of them, stopping at the
 first that encodes the message; then the chain starts and the chains opened to its digits. -/
@@ -696,12 +699,12 @@ def otsSignFrom (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : T
     (message : Digest) : Nat → Nat → m (Option (EncodingCounter × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, counter => do
-      match ← encode π key.publicSeed layer tree leaf message
+      match ← encode hash key.publicSeed layer tree leaf message
           (BitVec.ofNat counterBits counter) with
       | some encoding => do
-          let secrets ← otsSecrets π key layer tree leaf
+          let secrets ← otsSecrets hash key layer tree leaf
           let values ← sequenceFin fun chainIndex =>
-            chainWalk π key.publicSeed layer tree leaf chainIndex 0 (encoding chainIndex).val
+            chainWalk hash key.publicSeed layer tree leaf chainIndex 0 (encoding chainIndex).val
               (secrets chainIndex)
           return some (BitVec.ofNat counterBits counter, values)
       | none => otsSignFrom key layer tree leaf message attempts (counter + 1)
@@ -710,7 +713,7 @@ def otsSignFrom (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : T
 the opened chain values. -/
 def otsSign (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
     (message : Digest) : m (Option (EncodingCounter × (ChainIndex → Digest))) :=
-  otsSignFrom π key layer tree leaf message encodingAttemptLimit 0
+  otsSignFrom hash key layer tree leaf message encodingAttemptLimit 0
 
 /-- `tree_levels` (`scheme.rs:255-268`): the levels of tree `tree` of layer `layer`, its leaves
 first (each a one-time key's leaf; the crate computes them in parallel, here in leaf order) and
@@ -718,9 +721,9 @@ its root last. -/
 def treeLevels (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
     m (List (List Digest)) := do
   let leaves ← (List.range (2 ^ layerHeight layer)).mapM fun leaf ↦
-    otsPublicLeaf π key layer tree (leafOfNat leaf)
+    otsPublicLeaf hash key layer tree (leafOfNat leaf)
   merkleLevels
-    (fun height nodeIndex ↦ tweakableHash π key.publicSeed (.node layer tree height nodeIndex))
+    (fun height nodeIndex ↦ tweakableHash hash key.publicSeed (.node layer tree height nodeIndex))
     leaves (layerHeight layer)
 
 /-! #### FORS -/
@@ -729,18 +732,18 @@ def treeLevels (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
 -/
 def forsSecret (key : ExpandedKey) (index : Index) (forsTree : ForsTreeIndex)
     (leaf : ForsLeafIndex) : m Digest :=
-  prf π key (.forsSecret index forsTree leaf)
+  prf hash key (.forsSecret index forsTree leaf)
 
 /-- FORS tree `forsTree` of instance `index`, built once (the closure of `fors_open`,
 `fors.rs:65-81`): its secrets, its leaves, its levels; its root, and its opening at `leaf`. -/
 def forsTreeOpen (key : ExpandedKey) (index : Index) (forsTree : ForsTreeIndex)
     (leaf : ForsLeafIndex) : m (Digest × ForsTreeOpening) := do
   let secrets ← (List.range (2 ^ forsTreeHeight)).mapM fun s ↦
-    forsSecret π key index forsTree (forsLeafOfNat s)
+    forsSecret hash key index forsTree (forsLeafOfNat s)
   let leafHashes ← (List.range (2 ^ forsTreeHeight)).mapM fun s ↦
-    forsLeafHash π key.publicSeed index forsTree (forsLeafOfNat s) (secrets.getD s 0)
+    forsLeafHash hash key.publicSeed index forsTree (forsLeafOfNat s) (secrets.getD s 0)
   let levels ← merkleLevels
-    (fun height node ↦ tweakableHash π key.publicSeed (.forsNode index forsTree height node))
+    (fun height node ↦ tweakableHash hash key.publicSeed (.forsNode index forsTree height node))
     leafHashes forsTreeHeight
   return (levelNode levels forsTreeHeight 0,
     ⟨secrets.getD leaf.val 0, fun z ↦ levelNode levels z.val ((leaf.val >>> z.val) ^^^ 1)⟩)
@@ -750,8 +753,8 @@ def forsTreeOpen (key : ExpandedKey) (index : Index) (forsTree : ForsTreeIndex)
 roots; the key and the opening at the digest's leaves. -/
 def forsOpen (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → ForsLeafIndex) :
     m (Digest × (ForsTreeIndex → ForsTreeOpening)) := do
-  let trees ← sequenceFin fun forsTree => forsTreeOpen π key index forsTree (leaves forsTree)
-  let forsKey ← forsPublicKey π key.publicSeed index fun forsTree => (trees forsTree).1
+  let trees ← sequenceFin fun forsTree => forsTreeOpen hash key index forsTree (leaves forsTree)
+  let forsKey ← forsPublicKey hash key.publicSeed index fun forsTree => (trees forsTree).1
   return (forsKey, fun forsTree => (trees forsTree).2)
 
 /-! #### Key generation and signing -/
@@ -760,14 +763,14 @@ def forsOpen (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → For
 of the top tree (tree `0` of the top layer, `OtsKey::of_index(LAYERS - 1, 0)`), with the top tree's
 levels, which signing reuses. -/
 def keygenInternal (key : ExpandedKey) : m (PublicKey × List (List Digest)) := do
-  let top ← treeLevels π key topLayer 0
+  let top ← treeLevels hash key topLayer 0
   return (⟨key.publicSeed, levelNode top (layerHeight topLayer) 0⟩, top)
 
 /-- `Gen` (`key_gen_from_seed`, `scheme.rs:270-274`): the secret key is `SK.seed`, the public key
 that of its expansion. -/
 def keygenFromSeed (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
-  let key ← expandKey π secretSeed
-  let (publicKey, _) ← keygenInternal π key
+  let key ← expandKey hash secretSeed
+  let (publicKey, _) ← keygenInternal hash key
   return (publicKey, secretSeed)
 
 /-- Layer `l`'s one-time signature of `message` with `K_l(idx)` (`wots_sign`), then the key's
@@ -778,8 +781,8 @@ def signLayer (key : ExpandedKey) (top : List (List Digest)) (index : Index) (la
     (message : Digest) : m (Option (LayerSignature layer × Digest)) := do
   let tree := treeOfIndex layer index
   let leaf := leafOfIndex layer index
-  let some (counter, values) ← otsSign π key layer tree leaf message | return none
-  let levels ← if layer = topLayer then pure top else treeLevels π key layer tree
+  let some (counter, values) ← otsSign hash key layer tree leaf message | return none
+  let levels ← if layer = topLayer then pure top else treeLevels hash key layer tree
   return some (⟨counter, values, fun z ↦ levelNode levels z.val ((leaf.val >>> z.val) ^^^ 1)⟩,
     levelNode levels (layerHeight layer) 0)
 
@@ -797,20 +800,20 @@ digest's index and leaves, the FORS instance built once (its key and its opening
 from the bottom up, each signing what the layer below gives: the FORS public key at the bottom,
 the root of the tree below above it. -/
 def signWithExpandedKey (key : ExpandedKey) (message : Message) : m (Option Signature) := do
-  let (publicKey, top) ← keygenInternal π key
-  let randomizer ← prfMessage π key.secretPrfKey key.publicSeed message
-  let digest ← messageDigest π publicKey randomizer message
+  let (publicKey, top) ← keygenInternal hash key
+  let randomizer ← prfMessage hash key.secretPrfKey key.publicSeed message
+  let digest ← messageDigest hash publicKey randomizer message
   let index := digestIndex digest
-  let (forsKey, forsOpening) ← forsOpen π key index (digestForsLeaves digest)
-  let some (bottom, bottomRoot) ← signLayer π key top index 0 forsKey | return none
-  let some (middle, middleRoot) ← signLayer π key top index 1 bottomRoot | return none
-  let some (topSignature, _) ← signLayer π key top index 2 middleRoot | return none
+  let (forsKey, forsOpening) ← forsOpen hash key index (digestForsLeaves digest)
+  let some (bottom, bottomRoot) ← signLayer hash key top index 0 forsKey | return none
+  let some (middle, middleRoot) ← signLayer hash key top index 1 bottomRoot | return none
+  let some (topSignature, _) ← signLayer hash key top index 2 middleRoot | return none
   return some ⟨randomizer, forsOpening, layerSignatures bottom middle topSignature⟩
 
 /-- `Sign` (`sign`, `scheme.rs:292-298`): the key's expansion (`expand_key`), then `sign_with`. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let key ← expandKey π secretKey
-  signWithExpandedKey π key message
+  let key ← expandKey hash secretKey
+  signWithExpandedKey hash key message
 
 end KeyGenerationAndSigning
 
@@ -839,7 +842,7 @@ end SigningTranscript
 
 namespace RandomPermutationModel
 
-open Common Common.SufCma
+open Common Common.SufCma HashSig.OverPermutation
 
 /-- leanSPHINCS in the generic SUF-CMA game, over `π` (`queryPermutation`): the seed `SK.seed`, key
 generation, the deterministic signer, the verifier, and the winning condition: a valid transcript
@@ -847,9 +850,10 @@ without the forgery (`SignerReturnedForgery`). -/
 noncomputable def sufCmaScheme :
     Scheme MasterSeed PublicKey SecretKey Message (Option Signature) Forgery where
   sampleSeed := sampleMasterSeed
-  generateKeys := KeyGenerationAndSigning.keygenFromSeed queryPermutation
-  sign sk message := KeyGenerationAndSigning.sign queryPermutation sk message
-  verify pk forgery := Verification.verify queryPermutation pk forgery.message forgery.signature
+  generateKeys := KeyGenerationAndSigning.keygenFromSeed (keccakHash queryPermutation)
+  sign sk message := KeyGenerationAndSigning.sign (keccakHash queryPermutation) sk message
+  verify pk forgery :=
+    Verification.verify (keccakHash queryPermutation) pk forgery.message forgery.signature
   winningCondition log forgery :=
     decide (SigningTranscript.WithinSignatureLimit log ∧ ¬SignerReturnedForgery id log
         forgery.message forgery.signature)

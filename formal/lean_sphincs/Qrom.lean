@@ -9,6 +9,7 @@ public import Qrom.Verify
 public import Qrom.Assembly
 public import Qrom.Cells
 public import Qrom.Sphincs.Numeric
+public import Qrom.Sphincs.EndStatement
 
 /-! # leanSPHINCS in the quantum random-oracle model
 
@@ -108,3 +109,10 @@ The build fails if the axiom footprints below grow beyond Lean's three. -/
 /-- info: 'Qrom.Sphincs.winProb_le_h26' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Qrom.Sphincs.winProb_le_h26
+
+example : Sphincs.QuantumRandomOracleModel.LeanSphincsQromStronglyUnforgeable :=
+  Qrom.Sphincs.leanSphincsQrom
+
+/-- info: 'Qrom.Sphincs.leanSphincsQrom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Qrom.Sphincs.leanSphincsQrom

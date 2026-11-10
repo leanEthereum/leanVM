@@ -118,7 +118,7 @@ theorem verifyLayers_some (P : PublicParameter) (idx : Index) (sig : Sphincs.Sig
 key's root. -/
 theorem verify_id_eq_true (π : KeccakState → KeccakState) (pk : Sphincs.PublicKey) (m : Message)
     (sig : Sphincs.Signature) :
-    Id.run (Verification.verify (m := Id) π pk m sig) = true ↔
+    Id.run (Verification.verify (m := Id) (HashSig.OverPermutation.keccakHash π) pk m sig) = true ↔
       Id.run (verifyLayers (m := Id) π pk.publicSeed
           (digestIndex (Id.run (messageDigest (m := Id) π pk sig.randomizer m))) sig layerCount
           (Id.run (forsRecover (m := Id) π pk.publicSeed
@@ -126,7 +126,7 @@ theorem verify_id_eq_true (π : KeccakState → KeccakState) (pk : Sphincs.Publi
             (digestForsLeaves (Id.run (messageDigest (m := Id) π pk sig.randomizer m)))
             sig.forsOpening))) = some pk.root := by
   unfold Verification.verify
-  simp only [Id.run_bind]
+  (HashSig.OverPermutation.keccakHash simp) only [Id.run_bind]
   split <;> simp_all
 
 /-- **leanSPHINCS verification by stages**: a signature verifies exactly when, from the FORS key

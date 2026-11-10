@@ -30,7 +30,7 @@ leanVM at commit \texttt{40f877dc} of its \texttt{main} branch, with pull reques
 (\texttt{KECCAK} writes only the output cells its bytecode requests, one, two or all thirteen, and
 the guest program writes each digest as one or two cells).
 
-\paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
+\paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: eighteen files
 of definitions and end statements, which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}; it is proved to make the specification's
@@ -77,6 +77,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{SufCma.lean}: the single-key SUF-CMA game and \lean{StronglyUnforgeable}.
 \item \lean{HashSignatures.lean}: the tweakable hash, chain, path fold and tree both schemes share.
 \item \lean{LeanXmss.lean}, \lean{LeanSphincs.lean}: the two schemes and their end statements.
+\item \lean{LeanSphincsQrom.lean}: leanSPHINCS's game in the quantum random-oracle model and its end statement.
 \item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{192})$ and the Fiat--Shamir duplex sponge.
 \item \lean{LeanDa.lean}: LeanDA, its argument and games, and its three end statements.
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
@@ -322,6 +323,24 @@ hash, whose collisions are outside the bounds. Both schemes are stated through o
 \lean{Common.SufCma.StronglyUnforgeable},
 and share the shape of one tweakable hash (\texttt{hasher}, \texttt{truncate} of
 \texttt{crates/signatures/src/lib.rs}), hash chain and path fold.
+
+\paragraph{leanSPHINCS against quantum adversaries.} \lean{Statement/LeanSphincsQrom.lean} states
+leanSPHINCS's game in the quantum random-oracle model, the one end statement outside the
+random-permutation model: Keccak-256 is a uniform random function $H$ on the byte strings of at most
+$2048$ bytes (every input the scheme hashes is shorter), which the adversary queries in
+superposition, as VCVio's quantum random oracle; key generation, the signer and the verifier are
+those of \lean{Statement/LeanSphincs.lean}, whose algorithms take the hash as a parameter, with $H$
+as the hash. Beside the oracle the game offers two classical ports on a signing log: the public key,
+and the signer, which signs and logs while the log holds fewer than $N = 1\,182\,000\,000$ entries.
+The adversary starts from any state of its register and wins when its forgery verifies on $H$ and the
+log does not hold it. An adversary making at most $n$ calls in all, hash queries (quantum or
+classical) and signing requests, forges with probability at most
+\[
+\boxed{\ \left(\frac{n + 2048}{2^{61}}\right)^2\ }
+\]
+(\lean{Sphincs.QuantumRandomOracleModel.LeanSphincsQromStronglyUnforgeable}, proved by
+\lean{Qrom.Sphincs.leanSphincsQrom}): about $2^{60.5}$ calls for probability $1/2$. Key generation's
+hashing, the signer's and the forgery's verification are not charged to $n$.
 
 \subsection*{LeanDA}
 
@@ -827,8 +846,9 @@ holds only through \lean{HonestProofRarelyRefused}.
 \item That the cost machine's prices are honest (Section~\ref{sec:zkvm}): trusted, as the
 statement's model of computation (a one-limb operation, the carry-less product included, at one
 unit: a few instructions of a 64-bit CPU).
-\item Security against quantum adversaries (a quantum random-permutation model), for the
-signature schemes and for leanVM's Fiat--Shamir: every statement is about classical adversaries.
+\item Security against quantum adversaries in a quantum random-permutation model, for the
+signature schemes and for leanVM's Fiat--Shamir; and for leanXMSS in the quantum random-oracle
+model. Only leanSPHINCS is stated against quantum adversaries, in the quantum random-oracle model.
 \item LeanDA's code binding for an argument whose relation uses the deployed Keccak-f[1600] rather than $\pi$ (leanVM's in-circuit DA check), and the link from the guest
 program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's derivation of the challenge to
 LeanDA's code binding.

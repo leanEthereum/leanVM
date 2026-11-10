@@ -94,7 +94,7 @@ lean_sphincs() {
   # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
   build lean_sphincs '(Sphincs|FORS|Qrom)/'
   axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
-  axioms lean_sphincs Qrom Qrom.Sphincs.winProb_le_h26
+  axioms lean_sphincs Qrom Qrom.Sphincs.winProb_le_h26 Qrom.Sphincs.leanSphincsQrom
 }
 
 # LeanDA's security: Benedikt Wagner's framework, theorems and proofs (b-wagn/fv-pq-da), ported

@@ -169,7 +169,7 @@ theorem adrs_toBytes_cells (layer tree : Nat) (ty : Sphincs.AddressType) (kp w2 
 of the bytes of cells is the first cell of the `hcell` of `PK.seed`, the address and the cells. -/
 theorem addressedHash_of_cells {pp a0 a1 : E} {address : Sphincs.Address}
     (ha : address.toBytes = cellBytes a0 ++ cellBytes a1) (vs : List E) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp) address
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) address
         (vs.flatMap cellBytes) = cellVal (hcell ([pp, a0, a1] ++ vs)).1 := by
   show truncateHash (keccakHash (m := Id) keccakF1600
     (Sphincs.addressedHashInput (cellVal pp) address (vs.flatMap cellBytes))) = _
@@ -182,7 +182,7 @@ theorem addressedHash_of_cells {pp a0 a1 : E} {address : Sphincs.Address}
 /-- **The addressed hash of cells at `makeAddress`.** -/
 theorem addressedHash_cells (pp : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) (vs : List E) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (Sphincs.makeAddress layer tree ty kp w2 w3) (vs.flatMap cellBytes) =
       cellVal (hcell ([pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3] ++ vs)).1 :=
   addressedHash_of_cells (adrs_toBytes_cells layer tree ty kp w2 w3) vs
@@ -229,7 +229,7 @@ theorem keccakBits_cells (I : List UInt8) :
 
 theorem addressedHash_digest (pp x : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (Sphincs.makeAddress layer tree ty kp w2 w3) (littleEndianBytes 16 (cellVal x)) =
       cellVal (hcell [pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3, x]).1 := by
   rw [digest_cells, addressedHash_cells]
@@ -237,7 +237,7 @@ theorem addressedHash_digest (pp x : E) (layer tree : Nat) (ty : Sphincs.Address
 
 theorem addressedHash_node (pp l r : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (Sphincs.makeAddress layer tree ty kp w2 w3) (nodePayload (cellVal l) (cellVal r)) =
       cellVal (hcell [pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3, l, r]).1 := by
   rw [nodePayload_cellVal, addressedHash_cells]
@@ -245,7 +245,7 @@ theorem addressedHash_node (pp l r : E) (layer tree : Nat) (ty : Sphincs.Address
 
 theorem addressedHash_digests (pp : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) {n : Nat} (c : Fin n → E) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (Sphincs.makeAddress layer tree ty kp w2 w3) (digestsPayload fun i => cellVal (c i)) =
       cellVal (hcell ([pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3] ++ List.ofFn c)).1 := by
   rw [digestsPayload_cells, addressedHash_cells]
@@ -284,7 +284,7 @@ theorem take_cellsBytes_append (cs : List E) (x : E) (k : Nat) (hk : k ≤ 16) :
 the counter's cell, which holds `c`'s byte reversal. -/
 theorem addressedHash_encoding (pp : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) (vs : List E) (ctr : Sphincs.EncodingCounter) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (Sphincs.makeAddress layer tree ty kp w2 w3)
         (vs.flatMap cellBytes ++ Sphincs.bigEndianBytes 4 ctr) =
       cellVal (digestHalves (keccak256 ((cellsBytes ([pp, adrsCell0 layer tree,
@@ -307,7 +307,7 @@ theorem addressedHash_encoding (pp : E) (layer tree : Nat) (ty : Sphincs.Address
 `KECCAK` of `[P, A0, A1 + WOTS_ENC, M, counter]` cut at 68 bytes. -/
 theorem addressedHash_encodingDigest (pp m : E) (layer tree : Nat) (ty : Sphincs.AddressType)
     (kp w2 w3 : Nat) (ctr : Sphincs.EncodingCounter) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
+    Sphincs.Verification.addressedHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp)
         (Sphincs.makeAddress layer tree ty kp w2 w3)
         (littleEndianBytes 16 (cellVal m) ++ Sphincs.bigEndianBytes 4 ctr) =
       cellVal (digestHalves (keccak256 ((cellsBytes [pp, adrsCell0 layer tree,
@@ -481,7 +481,7 @@ theorem hashDomain_cells (d : Sphincs.HashDomain) :
 
 /-- **The tweakable hash of cells at a hash domain.** -/
 theorem tweakableHash_sphincsCells (pp : E) (d : Sphincs.HashDomain) (vs : List E) :
-    Sphincs.Verification.tweakableHash (m := Id) keccakF1600 (cellVal pp) d (vs.flatMap cellBytes) =
+    Sphincs.Verification.tweakableHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) (cellVal pp) d (vs.flatMap cellBytes) =
       cellVal (hcell ([pp, (hashDomainCells d).1, (hashDomainCells d).2] ++ vs)).1 :=
   addressedHash_of_cells (hashDomain_cells d) vs
 

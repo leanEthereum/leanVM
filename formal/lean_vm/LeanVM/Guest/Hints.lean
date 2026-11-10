@@ -219,10 +219,10 @@ def sphincsForsNodes (publicSeed : HashSig.PublicParameter) (index : Sphincs.Ind
     (opening : Sphincs.ForsTreeOpening) : List (String × Entry) :=
   let path := fun level ↦
     if h : level < Sphincs.forsTreeHeight then opening.path ⟨level, h⟩ else 0
-  let value := Id.run (Sphincs.Verification.forsLeafHash (m := Id) keccakF1600 publicSeed index
+  let value := Id.run (Sphincs.Verification.forsLeafHash (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed index
     tree leaf opening.secret)
   let fold := fun levels ↦ Id.run (HashSig.OverPermutation.foldPath (m := Id)
-    (fun level node ↦ Sphincs.Verification.tweakableHash keccakF1600 publicSeed
+    (fun level node ↦ Sphincs.Verification.tweakableHash (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed
       (.forsNode index tree (level + 1) node))
     leaf.val path levels value)
   (List.range Sphincs.forsTreeHeight).map fun l ↦
@@ -237,14 +237,14 @@ def sphincsLayer (publicSeed : HashSig.PublicParameter) (index : Sphincs.Index)
   let tree := Sphincs.treeOfIndex layer index
   let leaf := Sphincs.leafOfIndex layer index
   let part := σ.layers layer
-  let encoding := Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 publicSeed layer tree
+  let encoding := Id.run (Sphincs.Verification.encode (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed layer tree
     leaf signed part.counter)
   let digits := (List.finRange Sphincs.chainCount).map fun i ↦ (encoding.map (· i |>.val)).getD 0
   let starts := (List.finRange Sphincs.chainCount).map fun i ↦
     ("chain_starts", [cell128 (part.chainValues i)])
-  let value := (Id.run (Sphincs.Verification.otsLeaf (m := Id) keccakF1600 publicSeed layer tree
+  let value := (Id.run (Sphincs.Verification.otsLeaf (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed layer tree
     leaf signed part.counter part.chainValues)).getD 0
-  let fold := fun levels ↦ Id.run (Sphincs.Verification.treeFold (m := Id) keccakF1600 publicSeed
+  let fold := fun levels ↦ Id.run (Sphincs.Verification.treeFold (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed
     layer tree leaf (Sphincs.Verification.layerPath σ layer) levels value)
   let siblings := (List.range (Sphincs.layerHeight layer)).map fun l ↦
     ("siblings", ordered (leaf.val.testBit l) (fold l) (Sphincs.Verification.layerPath σ layer l))
@@ -258,7 +258,7 @@ each above the root below. -/
 def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphincs.Signature) :
     List (String × Entry) :=
   let publicSeed := pk.publicSeed
-  let outputs := fun call ↦ Id.run (Sphincs.Verification.messageDigestCall (m := Id) keccakF1600
+  let outputs := fun call ↦ Id.run (Sphincs.Verification.messageDigestCall (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600)
     σ.randomizer publicSeed pk.root message call)
   let digest := Sphincs.truncateMessageDigest outputs
   let index := Sphincs.digestIndex digest
@@ -267,7 +267,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
   let secrets := trees.map fun c ↦ ("sp_fors_secrets", [cell128 (σ.forsOpening c).secret])
   let climbs := trees.flatMap fun c ↦
     sphincsForsNodes publicSeed index c (leaves c) (σ.forsOpening c)
-  let forsKey := Id.run (Sphincs.Verification.forsRecover (m := Id) keccakF1600 publicSeed index
+  let forsKey := Id.run (Sphincs.Verification.forsRecover (m := Id) (HashSig.OverPermutation.keccakHash keccakF1600) publicSeed index
     leaves σ.forsOpening)
   let (bottom, rootB) := sphincsLayer publicSeed index σ 0 forsKey
   let (middle, rootM) := sphincsLayer publicSeed index σ 1 rootB

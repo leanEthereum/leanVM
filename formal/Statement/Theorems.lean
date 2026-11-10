@@ -3,6 +3,7 @@ module
 public import Statement.LeanVmGuestCompleteness
 public import Statement.LeanXmss
 public import Statement.LeanSphincs
+public import Statement.LeanSphincsQrom
 public import Statement.LeanDa
 
 /-!
@@ -19,7 +20,8 @@ use names them: `leanVmKnowledgeExtractor`, the extractor leanVM's knowledge sou
 (`LeanVM.extractorComputedBy`), and `guestWitnessDecoder`, the decoder that names the guest
 program's witness (`GuestKnowledgeSoundness`, `LeanVmGuest.lean`). The statement constrains them
 only by their size bounds and budgets, whose docstrings say what those exclude and what they do
-not. Every statement with an adversary is in the random-permutation model (`statement.tex`).
+not. Every statement with an adversary is in the random-permutation model (`statement.tex`), but
+`leanSphincsQromStronglyUnforgeable`, in the quantum random-oracle model.
 
 What no field states: security with many keys (each signature game has one key); anything about a
 claim an aggregate holds through a child (the guest statements cover one node, `LeanVmGuest.lean`);
@@ -94,6 +96,13 @@ structure Theorems
   adversary making `q` calls of `π` and `π⁻¹` itself and at most `1,182,000,000` signing requests
   (`LeanSphincs.lean`); the honest parties' hashing is not charged to `q`. -/
   leanSphincsStronglyUnforgeable : Sphincs.LeanSphincsStronglyUnforgeable
+  /-- leanSPHINCS is strongly unforgeable against quantum adversaries, for one key, Keccak-256 a
+  random function queried in superposition: at most `((n + 2048) / 2^61)²` for an adversary making
+  `n` calls in all, hash queries (quantum or classical) and signing requests, the signer refusing
+  past `1,182,000,000` signatures (`LeanSphincsQrom.lean`); the honest parties' hashing is not
+  charged to `n`. -/
+  leanSphincsQromStronglyUnforgeable :
+    Sphincs.QuantumRandomOracleModel.LeanSphincsQromStronglyUnforgeable
 
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.LeanDaPerfectlyComplete

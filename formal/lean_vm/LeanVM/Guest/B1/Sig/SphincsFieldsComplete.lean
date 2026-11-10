@@ -277,7 +277,7 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
     (σ : Val) (h0 : σ (.n 0) = p) (h1 : σ (.n 1) = bb) :
     Completes C rd 2 1372 sDigestBlock σ (fun σ' => σ' sPP = cellOf128 pk.publicSeed ∧
       σ' sRoot = cellOf128 pk.root ∧ σ' sRand = cellOf128 R ∧ PadOK σ' sPad ∧
-      DigestAt σ' (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk R
+      DigestAt σ' (Id.run (Sphincs.Verification.messageDigest (m := Id) (HashSig.OverPermutation.keccakHash LeanVM.Semantics.keccakF1600) pk R
         msg)).toNat ∧ DigestPtrs σ' bb) := by
   set M := msg.toNat with hMdef
   have hM : M < 2 ^ 256 := msg.isLt
@@ -311,7 +311,7 @@ theorem sDigestBlock_complete (hm : MemOK rd 256) {bb p : E} (hbb : ByteBits rd 
   rw [hcells, hcellLen, hmsg_take (by norm_num), hmn] at d0
   rw [hcells, hcellLen, hmsg_take (by norm_num), hmn] at d1
   have hT : digestNatOf (σ2 sHm0) (σ2 sHm0b) (σ2 sHm1) =
-      (Id.run (Sphincs.Verification.messageDigest (m := Id) LeanVM.Semantics.keccakF1600 pk R msg)).toNat := by
+      (Id.run (Sphincs.Verification.messageDigest (m := Id) (HashSig.OverPermutation.keccakHash LeanVM.Semantics.keccakF1600) pk R msg)).toNat := by
     have hpk : (⟨cellVal (cellOf128 pk.publicSeed), cellVal (cellOf128 pk.root)⟩ : Sphincs.PublicKey) = pk := by
       have e1 : cellVal (cellOf128 pk.publicSeed) = pk.publicSeed := cellVal_cellOf128 _
       have e2 : cellVal (cellOf128 pk.root) = pk.root := cellVal_cellOf128 _
