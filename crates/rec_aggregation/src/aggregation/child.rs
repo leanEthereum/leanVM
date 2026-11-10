@@ -270,6 +270,6 @@ const _: () = assert!(MU_MIN >= leanvm_core::pcs::MIN_MU && MU_MAX == leanvm_cor
 /// `gen_verify` admits against: one definition, so a hinted shape can never
 /// outgrow the buffer the guest was compiled with.
 pub(super) const MU_CAP: usize = 40;
-/// Bits every structural size fits: a sum of `2^kappa` is at most a stack, `2^MU_MAX`.
+/// Bits every structural size fits: a sum of `2^kappa`, a stack's or a bus side's, is at most a stack, `2^MU_MAX`.
 pub(super) const SIZE_BITS: usize = MU_MAX + 1;
 pub(super) const STREAM_CAP: usize = 8192;

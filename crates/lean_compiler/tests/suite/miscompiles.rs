@@ -71,8 +71,8 @@ fn ill_formed_calls_are_rejected_when_lowered() {
             "is a StackBuf(2), got a StackBuf(3)",
         ),
         (
-            "def main():\n    b = StackBuf(45)\n    hint_decompose_bits_exponent(b, GEN, 45)\n    return\n",
-            "at most 44 bits",
+            "def main():\n    b = StackBuf(41)\n    hint_decompose_bits_exponent(b, GEN, 41)\n    return\n",
+            "at most 40 bits",
         ),
     ] {
         let ast = parse(src).unwrap();

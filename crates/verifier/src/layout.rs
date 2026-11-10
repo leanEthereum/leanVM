@@ -85,8 +85,9 @@ pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at leas
 
 pub const MAX_TABLE_LOG: usize = 32;
 pub const MIN_STACKED_LOG: usize = 15;
-/// The stack of the largest instance the caps admit, every table, the memory and the bytecode at `2^32`.
-pub const MAX_STACKED_LOG: usize = 40;
+/// The largest stack the verifier admits, below the `2^40` the caps alone would: past `2^32` the knowledge extractor's
+/// decoder outgrows the sizes its proof covers (`formal/`).
+pub const MAX_STACKED_LOG: usize = 32;
 /// The stack of the smallest execution: the memory's four columns at `2^16` cells already fill `2^18`.
 pub const MIN_EXECUTION_STACKED_LOG: usize = 19;
 
@@ -612,8 +613,9 @@ mod tests {
     }
 
     #[test]
-    fn stacked_log_bounds_are_the_caps() {
-        assert_eq!(stack_log(32, 32, MAX_TABLE_LOG), MAX_STACKED_LOG);
+    fn stacked_log_bounds() {
         assert_eq!(stack_log(16, 0, 0), MIN_EXECUTION_STACKED_LOG);
+        // The caps alone admit larger stacks, so the stack's own bound is a check of the verifier's.
+        assert!(stack_log(32, 32, MAX_TABLE_LOG) > MAX_STACKED_LOG);
     }
 }

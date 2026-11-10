@@ -44,7 +44,7 @@ RES_BATCH = 8  # residual queries per loop iteration
 RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
-# structural size (sums of 2^kappa, packing offsets: a stack of at most 2^40) fits
+# structural size (sums of 2^kappa, packing offsets: at most a stack, 2^MU_MAX) fits
 # SIZE_BITS bits; and a
 # structural LOG (log_mem, log_inv_rate), announced as an integer word and
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits

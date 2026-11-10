@@ -699,7 +699,7 @@ const BLOCK_CELLS: u32 = leanvm_core::keccak::RATE_CELLS as u32;
 const RATE: usize = primitives::hash::RATE;
 /// The largest `nbits` a `hint_decompose_*_exponent` accepts. The prover finds the exponent by a baby-step giant-step
 /// search, whose giant steps double with every bit past its table's, so this bounds the witness generation.
-const MAX_EXPONENT_BITS: u32 = 44;
+const MAX_EXPONENT_BITS: u32 = 40;
 
 /// The last rate lane of a 64-byte message's one block: the padding's closing `0x80` byte.
 pub(super) fn two_to_one_close() -> F192 {
