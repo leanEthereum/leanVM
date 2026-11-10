@@ -311,7 +311,7 @@ theorem blockW_holds {c : ℕ} {ss : List Stmt} {p0 stp : ℕ} {outs : List V} {
     obtain ⟨hp, ho⟩ := h
     exact notS_of_ptr hSt (by rw [hp]; exact hstp) ho
   refine atoms_holds_stores (dec := fun _ => inferInstance) hσ
-    (by rw [canonChk_filter_stores]; exact hcan) hg hA
+    (by rw [canonChk_filter_stores]; exact) hg hA
     (fun a ha haS hns => Or.inl ?_) (fun h1 a ha haS => ?_)
   · rcases mem_parts (p0 := p0) (K := K) ha with h | ⟨j, hj, h⟩ | h
     · rw [hhd a h] at hns; exact absurd hns (by simp)

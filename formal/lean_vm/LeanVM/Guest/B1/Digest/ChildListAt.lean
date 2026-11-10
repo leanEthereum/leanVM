@@ -88,7 +88,7 @@ set_option maxRecDepth 20000 in
 holding the states after each frame; it returns their cells' digest. -/
 theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -350,7 +350,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape.** -/
 theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -363,7 +363,7 @@ theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String �
 /-- **`child_claim_list_any` is complete, placed.** -/
 theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))

@@ -44,12 +44,12 @@ theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (36
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
-returns the digest of `pre ++` the `4k` canonical cells at its second. -/
+returns the digest of `pre ++` the `4k` cells at its second. -/
 theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List E}
     (h : coreProgram.Rel rd (clNames.getD k "") args rets) :
     ∃ sp blk, args = [sp, blk] ∧ ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
       StateAt rd sp 0 (absorbChunks n zeroState pre) →
-      ∃ cells : List E, cells.length = 4 * k ∧ ReadsAt rd blk cells ∧ AllCanonical cells ∧
+      ∃ cells : List E, cells.length = 4 * k ∧ ReadsAt rd blk cells ∧
         rets = digestCells (keccak256 (pre ++ cellsBytes cells)) := by
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
@@ -65,15 +65,15 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
     obtain ⟨⟨⟨hc, hr⟩, hl⟩, hst⟩ := hok
     rw [splitBody_eq hsb, holdsList_atoms_ret] at hb
     obtain ⟨hat, hret⟩ := hb
-    obtain ⟨hreads, hcan, hd⟩ := chain_final_mem hc rfl rfl hst hl hr hat hpre hS
+    obtain ⟨hreads, hd⟩ := chain_final_mem hc rfl rfl hst hl hr hat hpre hS
     have hlen : ((clSpec k atoms).vals σ).length = 4 * k := by
       simp [ChainSpec.vals, clSpec]
     have htake : ((clSpec k atoms).vals σ).take ((clSpec k atoms).len / 16) =
         (clSpec k atoms).vals σ := by
       rw [List.take_of_length_le]
       rw [hlen]; simp only [clSpec]; omega
-    rw [htake] at hd hcan
-    refine ⟨(clSpec k atoms).vals σ, hlen, hreads, hcan, ?_⟩
+    rw [htake] at hd
+    refine ⟨(clSpec k atoms).vals σ, hlen, hreads, ?_⟩
     rw [← hret, ← hd]
     rfl
   · exact absurd hok (by simp)
@@ -81,13 +81,12 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
 /-! ## The frame loops: `m` claims a frame -/
 
 /-- **One frame of `m` claims, `nb` blocks**: from the state at `chain · x^13` after whole blocks
-`pre`, the `4m` canonical cells at `entries · x^(4m)` absorbed, the state written at
+`pre`, the `4m` cells at `entries · x^(4m)` absorbed, the state written at
 `chain · x^13 · g^13`. -/
 def GroupStep (rd : Reader) (m nb : ℕ) (chain entries x : E) : Prop :=
   ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
     StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre) →
     ∃ cells : List E, cells.length = 4 * m ∧ ReadsAt rd (entries * x ^ (4 * m)) cells ∧
-      AllCanonical cells ∧
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
@@ -111,9 +110,10 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
   have h9 : σ (V.n 9) = chain * x ^ 13 := by rw [monoIs_sound hm9 hat, hchain, hx]
   have hE : σ (V.n ep) = entries * x ^ (4 * m) := by rw [monoIs_sound hmE hat, hentries, hx]
   rw [← h9] at hS
-  obtain ⟨hreads, hcan, hS', -⟩ := chain_whole_mem hc rfl rfl hst hl hout hat hpre hS
+  obtain ⟨hreads, hS', -⟩ := chain_whole_mem hc rfl rfl hst hl hout hat hpre hS
   rw [hnb] at hS'
-  refine ⟨_, by simp [ChainSpec.vals, grpSpec], by rwa [← hE], hcan, by rwa [← h9]⟩
+  refine ⟨(grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).vals σ,
+    by simp [ChainSpec.vals, grpSpec], by rwa [← hE], by rwa [← h9]⟩
 
 set_option maxRecDepth 100000 in
 theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 359 default))).nb = 64 := by
@@ -162,39 +162,34 @@ theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' 
 theorem gen_pow_pow (q e : ℕ) : (gen ^ q) ^ e = gen ^ (e * q) := by rw [← pow_mul, mul_comm]
 
 /-- **The frames**: after `q ≤ a` frames of `m` claims (`nb` blocks each, `64 m = 136 nb`), the
-state at `chain · g^(13q)` is the sponge after the `4mq` canonical cells at `entries`. -/
+state at `chain · g^(13q)` is the sponge after the `4mq` cells at `entries`. -/
 theorem groups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb) {chain entries : E}
     {a n0 : ℕ} {pre : List UInt8} (hpre0 : pre.length = rate * n0)
     (h0 : StateAt rd chain 0 (absorbChunks n0 zeroState pre))
     (hstep : ∀ q < a, GroupStep rd m nb chain entries (gen ^ q)) :
     ∀ q ≤ a, ∃ cells : List E, cells.length = 4 * m * q ∧ ReadsAt rd entries cells ∧
-      AllCanonical cells ∧
       StateAt rd (chain * gen ^ (13 * q)) 0
         (absorbChunks (n0 + nb * q) zeroState (pre ++ cellsBytes cells)) := by
   intro q
   induction q with
   | zero =>
     intro _
-    refine ⟨[], rfl, readsAt_nil _ _, fun _ h => absurd h (by simp), ?_⟩
+    refine ⟨[], rfl, readsAt_nil _ _, ?_⟩
     simpa using h0
   | succ q ih =>
     intro hq
-    obtain ⟨cells, hlen, hreads, hcan, hS⟩ := ih (by omega)
+    obtain ⟨cells, hlen, hreads, hS⟩ := ih (by omega)
     have hpre : (pre ++ cellsBytes cells).length = rate * (n0 + nb * q) := by
       rw [List.length_append, length_cellsBytes, hlen, hpre0]
       show 136 * n0 + 16 * (4 * m * q) = 136 * (n0 + nb * q)
       have : 16 * (4 * m * q) = (64 * m) * q := by ring
       rw [this, hmn]; ring
     rw [show chain * gen ^ (13 * q) = chain * (gen ^ q) ^ 13 by rw [gen_pow_pow]] at hS
-    obtain ⟨c2, hl2, hr2, hcan2, hS2⟩ := hstep q (by omega) _ _ hpre hS
-    refine ⟨cells ++ c2, by rw [List.length_append, hlen, hl2]; ring, ?_, ?_, ?_⟩
+    obtain ⟨c2, hl2, hr2, hS2⟩ := hstep q (by omega) _ _ hpre hS
+    refine ⟨cells ++ c2, by rw [List.length_append, hlen, hl2]; ring, ?_, ?_⟩
     · rw [readsAt_append, hlen]
       refine ⟨hreads, ?_⟩
       rwa [gen_pow_pow] at hr2
-    · intro c hc
-      rcases List.mem_append.mp hc with hc | hc
-      · exact hcan c hc
-      · exact hcan2 c hc
     · intro c
       have := hS2 c
       rw [gen_pow_pow, loadHolds_mul_gen_pow] at this
@@ -308,12 +303,11 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
       rw [a3, c2, word_one] at h3; exact e_add_eq_zero_iff.mp h3
     obtain ⟨hall, h65, h66, hr⟩ := holdsList_flat _ hzf _ _ (hz h3)
     have hat := atoms_of_flat hall
-    obtain ⟨hd, -⟩ := chain_final hzc rfl hat (pre := []) (n := 0) rfl
+    have hd := chain_final hzc rfl hat (pre := []) (n := 0) rfl
       (fun c => (cellsOfState_zero false c).symm)
     rw [hz10, hz11, show List.take (czSpec.len / 16) (czSpec.vals σ) = [] by simp [czSpec],
       List.nil_append] at hd
-    refine ⟨0, by norm_num, by rw [hn1, pow_zero], [], rfl, readsAt_nil _ _,
-      fun _ h => absurd h (by simp), ?_⟩
+    refine ⟨0, by norm_num, by rw [hn1, pow_zero], [], rfl, readsAt_nil _ _, ?_⟩
     rw [← hr, h65, h66, digestCells, ← hd]
   · -- a nonempty list
     obtain ⟨hall, h65, h66, hr⟩ := holdsList_flat _ (List.all_eq_true.mpr hef) _ _ (hnz h3)
@@ -336,7 +330,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
         have := (callIf_of_flat hall hlp).2
           (by rw [add_sound h49 hat, const_sound h48 hat, word_one]; exact hne)
         simpa [const_sound h50 hat, word_one] using this)
-    obtain ⟨ca, hla, hra, hcana, hSa⟩ := groups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
+    obtain ⟨ca, hla, hra, hSa⟩ := groups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
       hbig a le_rfl
     -- the groups
     have h56 : σ (.n 45) = σ (.n 23) * gen ^ (13 * a) := by
@@ -351,7 +345,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
     have hpa : ([] ++ cellsBytes ca).length = rate * (0 + 64 * a) := by
       rw [List.nil_append, length_cellsBytes, hla]; show 16 * (4 * 136 * a) = 136 * (0 + 64 * a)
       ring
-    obtain ⟨cb, hlb, hrb, hcanb, hSb⟩ := groups_sound (by norm_num) hpa
+    obtain ⟨cb, hlb, hrb, hSb⟩ := groups_sound (by norm_num) hpa
       (by rw [h56]; exact hSa) hgrp b le_rfl
     -- the rest
     obtain ⟨j, hj, hsel, hcall⟩ := dispatch_of_flat hall hdis
@@ -374,21 +368,15 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
       rw [List.length_append, List.nil_append, length_cellsBytes, length_cellsBytes, hla, hlb]
       show 16 * (4 * 136 * a) + 16 * (4 * 17 * b) = 136 * (0 + 64 * a + 8 * b)
       ring
-    obtain ⟨cc, hlc, hrc, hcanc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h76]; exact hSb)
+    obtain ⟨cc, hlc, hrc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h76]; exact hSb)
     refine ⟨136 * a + 17 * b + j, by simp only [claimBig, maxKeys]; omega,
       by rw [hn], ca ++ cb ++ cc, by rw [List.length_append, List.length_append, hla, hlb, hlc]; ring,
-      ?_, ?_, ?_⟩
+      ?_, ?_⟩
     · rw [readsAt_append, readsAt_append, List.length_append, hla, hlb]
       refine ⟨⟨hra, ?_⟩, ?_⟩
       · rw [show 4 * 136 * a = 544 * a by ring, ← h67]; exact hrb
       · rw [← hblk, h84, h67, mul_assoc, ← pow_add] at hrc
         rwa [show 4 * 136 * a + 4 * 17 * b = 544 * a + 68 * b by ring]
-    · intro x hx
-      rcases List.mem_append.mp hx with hx | hx
-      · rcases List.mem_append.mp hx with hx | hx
-        · exact hcana x hx
-        · exact hcanb x hx
-      · exact hcanc x hx
     · rw [← hr, h65, h66, copy_sound hc10 hat, copy_sound hc11 hat, cellsBytes_append,
         cellsBytes_append]
       simpa using hd

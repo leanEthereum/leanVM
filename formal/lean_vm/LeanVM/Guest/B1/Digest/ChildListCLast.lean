@@ -66,7 +66,7 @@ theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length =
 
 /-- The canonical inputs: the state's cells and the records'. -/
 theorem ccA_canon {σ : Val} (hidx : ∀ v, σ v = σ (.n v.idx)) {st : List V} {S : KeccakState}
-    {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K) (hc : AllCanonical cells)
+    {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K)
     (hlen : st.length = 13) (vst : ∀ c : Fin 13, σ (st.getD c default) = cellsOfState S false c)
     (vc : ∀ j < K, ∀ c < 4, σ (.n (ccCell o0 j c)) = cells.getD (4 * j + c) 0) :
     ∀ i ∈ ccA st o0 K, IsCanonical128 (σ (.n i)) := by
@@ -132,7 +132,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     (hx : x = gen ^ xj) (hch : chain = gen ^ chP) (hen : entries = gen ^ eP)
     (hrg : region = gen ^ rg) {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
     (hS : StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre))
-    {os : ℕ → ℕ} {cells : List E} (hl : cells.length = 4 * m) (hc : AllCanonical cells)
+    {os : ℕ → ℕ} {cells : List E} (hl : cells.length = 4 * m)
     (hrec : RecMem rd region (gen ^ L) entries (base * x ^ m) m os cells)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
     (hS' : StateAt rd (chain * x ^ 13) 13
@@ -231,7 +231,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
         simp [isLoadB] at ha'
       have hchk' : (anySpec m o0 st0 A).check (A.filter (fun a => decide (a ∉ S))) = true := by
         rw [check_filter hq]; exact hck
-      obtain ⟨hw, -, -⟩ := chain_whole hchk' rfl hG hpre (fun c => vst c)
+      obtain ⟨hw, -⟩ := chain_whole hchk' rfl hG hpre (fun c => vst c)
       have hv : (anySpec m o0 st0 A).vals σ = cells := ccMsg_vals hl vc
       have hwc := hw ⟨c, hc13⟩
       rw [hv, hnb, show ((⟨c, hc13⟩ : Fin 13) : ℕ) = c from rfl] at hwc

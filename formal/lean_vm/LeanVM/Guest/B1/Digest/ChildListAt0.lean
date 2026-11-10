@@ -171,7 +171,7 @@ theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Di
       [entries, region, base, limit, gen ^ a, gen ^ b, gen ^ c] a b chain D := by
   have hk := anyc_ok
   simp only [anyCOk, Bool.and_eq_true] at hk
-  obtain ⟨⟨⟨hchk1, hst⟩, hside⟩, hcan⟩ := hk
+  obtain ⟨⟨⟨hchk1, hst⟩, hside⟩⟩ := hk
   have hb := anyBody_ok
   simp only [anyBodyOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hb
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, hdis⟩, -⟩, h33⟩, h32⟩, h31⟩, h51⟩, h50⟩, h49⟩,
@@ -320,7 +320,7 @@ theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k :
     {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
     {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
     (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k) (hc : AllCanonical cells)
+    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
       RecMem rd region (gen ^ L) entries marks k os cells)
@@ -349,7 +349,7 @@ theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : 
     {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
     {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
     (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k) (hc : AllCanonical cells)
+    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
       RecMem rd region (gen ^ L) entries marks k os cells)

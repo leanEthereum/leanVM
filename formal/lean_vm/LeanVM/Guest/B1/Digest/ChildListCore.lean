@@ -68,7 +68,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
     {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
     (hS : StateAt rd sp 0 (absorbChunks n zeroState pre)) {os : ℕ → ℕ} {cells : List E}
-    (hl : cells.length = 4 * k) (hc : AllCanonical cells)
+    (hl : cells.length = 4 * k)
     (hrec : RecMem rd region (gen ^ L) entries marks k os cells)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
@@ -97,7 +97,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     rw [hatoms]
     simp only [Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok hcok
     obtain ⟨⟨⟨hck, hret⟩, -⟩, hst⟩ := hok
-    obtain ⟨⟨⟨hcan, hedge⟩, hrecs⟩, -⟩ := hcok
+    obtain ⟨⟨⟨hedge⟩, hrecs⟩, -⟩ := hcok
     obtain ⟨hSt, hst0, -, htl⟩ := edge_parts hedge
     set S := storesOf 5 fn.body with hSdef
     let args : List E := [sp, entries, region, marks, last]
@@ -132,7 +132,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     have hA := ccA_canon (o0 := 5) hidx hl hc (by simp [cclSt]) vst vc
     have hat : ∀ a ∈ atoms, a.Holds rd σ := by
       refine blockW_holds (c := 5) (ss := fn.body) (p0 := 0) (stp := 0) (outs := [])
-        hidx (canonChk_of_canonGoB hcan) hg hA hedge hside ?_
+        hidx (canonChk_of_canonGoB) hg hA hedge hside ?_
         (fun a _ h => (isStSt_nil h).elim) (fun _ a _ h => (isStSt_nil h).elim)
       intro a ha h haS
       cases a <;> simp only [isStLd, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
@@ -141,7 +141,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
       have hv := hS ⟨off, h.2⟩
       rw [Nat.zero_add, ← hpv h.1] at hv
       exact load_holds_of haS (hg _ ha) hv
-    obtain ⟨hd, -⟩ := chain_final hck rfl hat hpre
+    have hd := chain_final hck rfl hat hpre
       (initCell_of_loads rfl hst hat (by rw [e0]; exact hS))
     have hv : ((cclSpec k atoms).vals σ).take ((cclSpec k atoms).len / 16) = cells := by
       have : (cclSpec k atoms).vals σ = cells := ccMsg_vals hl vc

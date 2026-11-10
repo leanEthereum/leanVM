@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Digest.Basic
 seed's two cells, the two claim lists' digests' two each, the DA digest's two, then the 24
 deferred cells (read at `defer`), each cell its two limbs: `512` bytes in four `KECCAK` blocks,
 the padding's `0x01` (byte `512`, cell `32`) and `0x80` (byte `543`, cell `33`) in the last. Its
-core IR (`Data.core21`) is the template `sdAtoms` (`core21_body`, by kernel evaluation);
+core IR (`Data.core21`) is the template `sdAtoms` (`sd_body`, by kernel evaluation);
 `keccak_final_digest` makes the chain Keccak-256 of the cells' bytes.
 -/
 
@@ -84,10 +84,10 @@ def sdAtoms : List Atom :=
     sdBlk3 ++ [.copy (.n 115) (.n 113), .copy (.n 116) (.n 114)]
 
 set_option maxRecDepth 100000 in
-theorem core21_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 115, .n 116]] :=
+theorem sd_body : Fn.body Data.core21 = sdAtoms.map Stmt.atom ++ [.ret [.n 115, .n 116]] :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem core21_params : Fn.params Data.core21 =
+theorem sd_params : Fn.params Data.core21 =
     [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8] := rfl
 
 /-! ## The cells -/
@@ -133,7 +133,7 @@ set_option maxRecDepth 100000 in
 theorem statement_digest_sound : statement_digest_sound_Spec := by
   intro rd args rets h
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_statement_digest args rets).mp h
-  rw [core21_body, holdsList_atoms_ret] at hb
+  rw [sd_body, holdsList_atoms_ret] at hb
   obtain ⟨hat, hr⟩ := hb
   simp only [sdAtoms, List.forall_mem_append, List.forall_mem_cons, List.not_mem_nil,
     IsEmpty.forall_iff, implies_true, and_true] at hat
@@ -255,7 +255,7 @@ theorem statement_digest_sound : statement_digest_sound_Spec := by
     rw [hsplit, e1, cellsBytes_append, stmtBytes]
     rfl
   -- the meaning
-  simp only [core21_params, List.map_cons, List.map_nil] at hp
+  simp only [sd_params, List.map_cons, List.map_nil] at hp
   subst hp
   refine ⟨cells, by simp [cells], fun k hk => ?_, ?_⟩
   · have hk' : k < 24 := by simpa [cells] using hk

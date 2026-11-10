@@ -174,7 +174,7 @@ theorem ccz_core (entries region base limit : E) :
   have v6' : σ (.n 6) = gen ^ 0 + gen ^ 0 := by
     rw [v6, v5, par 4 (by omega), word_one, pow_zero]; rfl
   have h60 : σ (.n 6) = 0 := by rw [v6']; exact e_add_eq_zero_iff.mpr rfl
-  obtain ⟨hd, -⟩ := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
+  have hd := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
     (fun c => (cellsOfState_zero false c).symm)
   rw [hz13, hz14, show List.take (cc25ZSpec.len / 16) (cc25ZSpec.vals σ) = [] by
     simp [cc25ZSpec], List.nil_append] at hd
@@ -447,7 +447,7 @@ honest records among the caller's words (marks `base · g^j` at `g^(rg + o j)`, 
 `g^(eP + 4 o j)`, slots below `L ≤ 2^κ`); it returns their cells' digest. -/
 theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -471,7 +471,7 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
 /-- **`child_claim_list_digest` is complete, placed.** -/
 theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))

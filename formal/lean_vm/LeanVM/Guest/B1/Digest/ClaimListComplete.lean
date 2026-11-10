@@ -54,10 +54,10 @@ theorem memRun_take {p : E} {cells : List E} (hr : ReadsAt rd p cells) {k : ℕ}
     (hk : k ≤ cells.length) : memRun rd p k = cells.take k := by
   rw [readsAt_memRun (readsAt_take' hr k), List.length_take, Nat.min_eq_left hk]
 
-theorem canon_take {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCanonical (cells.take k) :=
+theorem canon_take {cells : List E} (k : ℕ) : AllCanonical (cells.take k) :=
   fun c h => hc c (List.mem_of_mem_take h)
 
-theorem canon_drop {cells : List E} (hc : AllCanonical cells) (k : ℕ) : AllCanonical (cells.drop k) :=
+theorem canon_drop {cells : List E} (k : ℕ) : AllCanonical (cells.drop k) :=
   fun c h => hc c (List.mem_of_mem_drop h)
 
 theorem grpc_shapeF {j : ℕ} {f : String} {m c0 st0 ep : ℕ}
@@ -73,7 +73,7 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
     (hcok : grpcOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb) (hep : ep ≠ 9)
     (hm : 4 * m = 68 * d) (hnbd : nb = 8 * d) {N chain' entries' entries x : E} {u : ℕ}
-    {cells : List E} (hr : ReadsAt rd entries cells) (hc : AllCanonical cells)
+    {cells : List E} (hr : ReadsAt rd entries cells)
     (hu : 68 * (u + d) ≤ cells.length)
     (hS : StateAt rd (chain' * x ^ 13) 0
       (absorbChunks (8 * u) zeroState (cellsBytes (cells.take (68 * u)))))
@@ -93,7 +93,7 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
 
 /-- The big frames: `__loop15`'s block at every big frame below `a = n / 136`. -/
 theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
-    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
+    (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
     ∀ q < n / 136, LoopBlock rd (coreProgram.getD 359 default) (gen ^ q) (gen ^ (n / 136))
       [chain, entries] := by
   intro q hq
@@ -114,7 +114,7 @@ theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
 /-- The groups: `__loop16`'s block at every group below `b = n % 136 / 17`, from
 `chain · g^(13a)` and `entries · g^(544a)`. -/
 theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
-    (hr : ReadsAt rd entries cells) (hc : AllCanonical cells) (hmem : ClaimChainMem rd chain entries n) :
+    (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
     ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD 360 default) (gen ^ q) (gen ^ (n % 136 / 17))
       [chain * gen ^ (13 * (n / 136)), entries * gen ^ (544 * (n / 136))] := by
   intro q hq

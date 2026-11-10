@@ -69,7 +69,7 @@ canonical claims' cells at `g^eP` among the caller's words, its chain buffer aft
 holding the states after each frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
-    (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
+    (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre

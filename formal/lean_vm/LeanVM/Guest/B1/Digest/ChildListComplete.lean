@@ -76,7 +76,7 @@ theorem anyLoop_blocks {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     (h64 : 64 * m = 136 * nb) {κ : ℕ} {Lin : Main.Layout} {chain entries region base last : E}
     {chP eP rg L M n0 : ℕ} {pre0 : List UInt8} {o : ℕ → ℕ} {cells : List E}
     (hch : chain = gen ^ chP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length) (hc : AllCanonical cells)
+    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hmem : ∀ rd, MemL rd Lin → (∀ q ≤ M, StateAt rd (chain * gen ^ (13 * q)) 0
         (absorbChunks (n0 + nb * q) zeroState (pre0 ++ cellsBytes (cells.take (4 * m * q))))) ∧
@@ -135,7 +135,7 @@ theorem anyLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     (h64 : 64 * m = 136 * nb) {κ : ℕ} {Lin : Main.Layout} {chain entries region base last : E}
     {chP eP rg L M n0 : ℕ} {pre0 : List UInt8} {o : ℕ → ℕ} {cells : List E}
     (hch : chain = gen ^ chP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length) (hc : AllCanonical cells)
+    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ) (hM : M < 2 ^ 34)
     (hM0 : 0 < M)
     (hmem : ∀ rd, MemL rd Lin → (∀ q ≤ M, StateAt rd (chain * gen ^ (13 * q)) 0
@@ -173,7 +173,7 @@ theorem anyLoop_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {
     (h64 : 64 * m = 136 * nb) {κ : ℕ} {Lin : Main.Layout} {chain entries region base last : E}
     {chP eP rg L M n0 : ℕ} {pre0 : List UInt8} {o : ℕ → ℕ} {cells : List E}
     (hch : chain = gen ^ chP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length) (hc : AllCanonical cells)
+    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ) (hM : M < 2 ^ 34)
     (hM0 : 0 < M)
     (hmem : ∀ rd, MemL rd Lin → (∀ q ≤ M, StateAt rd (chain * gen ^ (13 * q)) 0

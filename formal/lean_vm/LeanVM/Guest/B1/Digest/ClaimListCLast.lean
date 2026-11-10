@@ -68,7 +68,7 @@ set_option maxRecDepth 20000 in
 theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre : List UInt8}
     (hpre : pre.length = rate * n) (hS : StateAt rd sp 0 (absorbChunks n zeroState pre))
     {cells : List E} (hl : cells.length = 4 * k) (hr : ReadsAt rd blk cells)
-    (hc : AllCanonical cells) :
+    :
     coreProgram.Rel rd (clNames.getD k "") [sp, blk]
       (digestCells (keccak256 (pre ++ cellsBytes cells))) := by
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
@@ -84,7 +84,7 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
     rw [hsb] at hcok
     simp only [Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hok hcok
     obtain ⟨⟨⟨-, -⟩, hl1⟩, hst⟩ := hok
-    obtain ⟨hcan, hneeds⟩ := hcok
+    obtain ⟨hneeds⟩ := hcok
     let args : List E := [sp, blk]
     obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
     have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
@@ -187,7 +187,7 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
     {x N chain entries : E} {n : ℕ} {pre : List UInt8}
     (hpre : pre.length = rate * n) (hS : StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre))
     {cells : List E} (hl : cells.length = 4 * m) (hr : ReadsAt rd (entries * x ^ (4 * m)) cells)
-    (hc : AllCanonical cells)
+   
     (hS' : StateAt rd (chain * x ^ 13) 13
       (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))) :
     LoopBlock rd (coreProgram.getD j default) x N [chain, entries] := by
@@ -198,7 +198,7 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
   obtain ⟨⟨⟨⟨⟨⟨⟨-, hlen4⟩, hck⟩, hst⟩, hl1⟩, -⟩, -⟩, -⟩ := hok
   simp only [grpcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
     Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hcok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩, hcan⟩, hneeds⟩, hstF⟩, hm9⟩, hmE⟩ :=
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩⟩, hneeds⟩, hstF⟩, hm9⟩, hmE⟩ :=
     hcok
   have heqA' := atomsEqbL_sound heqA
   let args : List E := [x, N, chain, entries]
@@ -297,7 +297,7 @@ theorem grp_block {j : ℕ} {f : String} {m c0 st0 ep nb : ℕ}
         rw [check_filter hq]; exact hck
       have h0 := initCell_of_loads (s := grpSpec m c0 st0 A) rfl hstF hF
         (S := absorbChunks n zeroState pre) (by rw [v9]; exact hS)
-      obtain ⟨hw, -, -⟩ := chain_whole hchk' rfl hF hpre h0
+      obtain ⟨hw, -⟩ := chain_whole hchk' rfl hF hpre h0
       have hv : (grpSpec m c0 st0 A).vals σ = cells := by
         refine List.ext_getElem (by simp [grpSpec, ChainSpec.vals, hl]) fun i h1 h2 => ?_
         have hi : i < 4 * m := by omega

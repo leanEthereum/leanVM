@@ -67,7 +67,7 @@ theorem statement_digest_complete : statement_digest_complete_Spec := by
       obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hf
       have hi' := List.mem_range.mp hi
       have g := hg _ ha
-      have hl := hreads i (by omega)
+      have hl := hreads i (by rw [hlen]; exact hi')
       simp only [Good] at g
       show LoadHolds rd (σ (.n 8)) i (σ (.n (17 + i)))
       rcases g with g | g
@@ -77,13 +77,13 @@ theorem statement_digest_complete : statement_digest_complete_Spec := by
     -- the relation, and its returns
     have hrel : coreProgram.Rel rd "statement_digest" args [σ (.n 115), σ (.n 116)] := by
       refine (rel_iff_sem find_statement_digest _ _).mpr ⟨σ, ?_, ?_⟩
-      · rw [core21_params]
+      · rw [sd_params]
         simp only [List.map_cons, List.map_nil]
         rw [hpar 0 (by omega), hpar 1 (by omega), hpar 2 (by omega), hpar 3 (by omega),
           hpar 4 (by omega), hpar 5 (by omega), hpar 6 (by omega), hpar 7 (by omega),
           hpar 8 (by omega)]
         rfl
-      · rw [core21_body, holdsList_atoms_ret]
+      · rw [sd_body, holdsList_atoms_ret]
         exact ⟨hat, rfl⟩
     rw [statement_digest_unique hM (statement_digest_sound rd _ _ hrel)]
     exact hrel

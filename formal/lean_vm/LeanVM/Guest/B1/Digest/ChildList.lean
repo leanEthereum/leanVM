@@ -259,7 +259,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
       ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
       StateAt rd sp 0 (absorbChunks n zeroState pre) →
       ∃ (os : List ℕ) (cells : List E), ClaimsAt rd region (last * gen) entries marks k os cells ∧
-        AllCanonical cells ∧ rets = digestCells (keccak256 (pre ++ cellsBytes cells)) := by
+        rets = digestCells (keccak256 (pre ++ cellsBytes cells)) := by
   have hf := find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ccl_all k hk
@@ -275,7 +275,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
     obtain ⟨⟨⟨hc, hr⟩, hrec⟩, hst⟩ := hok
     rw [splitBody_eq hsb, holdsList_atoms_ret] at hb
     obtain ⟨hat, hret⟩ := hb
-    obtain ⟨hd, hcan⟩ := chain_final hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
+    have hd := chain_final hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
     obtain ⟨os, hos, hcl⟩ := records_sound hm hrec hat
     have hlen : ((cclSpec k atoms).vals σ).length = 4 * k := by
       simp [ChainSpec.vals, cclSpec, length_ccMsg]
@@ -283,9 +283,9 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
         (cclSpec k atoms).vals σ := by
       rw [List.take_of_length_le]
       rw [hlen]; simp only [cclSpec]; omega
-    rw [htake] at hd hcan
+    rw [htake] at hd
     simp only [retOk, Bool.and_eq_true] at hr
-    refine ⟨os, (cclSpec k atoms).vals σ, ⟨hos, hlen, hcl⟩, hcan, ?_⟩
+    refine ⟨os, (cclSpec k atoms).vals σ, ⟨hos, hlen, hcl⟩, ?_⟩
     rw [← hret, List.map_cons, List.map_cons, List.map_nil, copy_sound hr.1 hat,
       copy_sound hr.2 hat, digestCells, ← hd]
   · exact absurd hok (by simp)
@@ -335,7 +335,7 @@ def ChildGroupStep (rd : Reader) (m nb : ℕ) (chain entries region base limit x
   ∀ (n : ℕ) (pre : List UInt8), pre.length = rate * n →
     StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre) →
     ∃ (os : List ℕ) (cells : List E),
-      ClaimsAt rd region limit entries (base * x ^ m) m os cells ∧ AllCanonical cells ∧
+      ClaimsAt rd region limit entries (base * x ^ m) m os cells ∧
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
@@ -362,12 +362,12 @@ theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb
   have h12 : σ (V.n 12) = chain * x ^ 13 := by rw [monoIs_sound hm12 hat, hchain, hx]
   have hmkv : σ (V.n mk) = base * x ^ m := by rw [monoIs_sound hmk hat, hbase, hx]
   rw [← h12] at hS
-  obtain ⟨hw, -, hcan⟩ := chain_whole hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
+  obtain ⟨hw, -⟩ := chain_whole hc rfl hat hpre (initCell_of_loads rfl hst hat hS)
   obtain ⟨os, hos, hcl⟩ := records_sound hm hrec hat
   have hlen : ((anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).vals σ).length =
       4 * m := by
     simp [ChainSpec.vals, anySpec, length_ccMsg]
-  refine ⟨os, _, ⟨hos, hlen, ?_⟩, hcan, fun c => ?_⟩
+  refine ⟨os, _, ⟨hos, hlen, ?_⟩, fun c => ?_⟩
   · intro i hi
     have := hcl i hi
     simp only [anyP] at this
@@ -397,33 +397,29 @@ theorem childGroups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
     (hpre0 : pre.length = rate * n0) (h0 : StateAt rd chain 0 (absorbChunks n0 zeroState pre))
     (hstep : ∀ q < a, ChildGroupStep rd m nb chain entries region base limit (gen ^ q)) :
     ∀ q ≤ a, ∃ (os : List ℕ) (cells : List E),
-      ClaimsAt rd region limit entries base (m * q) os cells ∧ AllCanonical cells ∧
+      ClaimsAt rd region limit entries base (m * q) os cells ∧
       StateAt rd (chain * gen ^ (13 * q)) 0
         (absorbChunks (n0 + nb * q) zeroState (pre ++ cellsBytes cells)) := by
   intro q
   induction q with
   | zero =>
     intro _
-    refine ⟨[], [], ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩, fun _ h => absurd h (by simp), ?_⟩
+    refine ⟨[], [], ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩, ?_⟩
     simpa using h0
   | succ q ih =>
     intro hq
-    obtain ⟨os, cells, hcl, hcan, hS⟩ := ih (by omega)
+    obtain ⟨os, cells, hcl, hS⟩ := ih (by omega)
     have hpre : (pre ++ cellsBytes cells).length = rate * (n0 + nb * q) := by
       rw [List.length_append, length_cellsBytes, hcl.2.1, hpre0]
       show 136 * n0 + 16 * (4 * (m * q)) = 136 * (n0 + nb * q)
       have : 16 * (4 * (m * q)) = (64 * m) * q := by ring
       rw [this, hmn]; ring
     rw [show chain * gen ^ (13 * q) = chain * (gen ^ q) ^ 13 by rw [gen_pow_pow]] at hS
-    obtain ⟨os2, c2, hcl2, hcan2, hS2⟩ := hstep q (by omega) _ _ hpre hS
+    obtain ⟨os2, c2, hcl2, hS2⟩ := hstep q (by omega) _ _ hpre hS
     rw [gen_pow_pow] at hcl2
-    refine ⟨os ++ os2, cells ++ c2, ?_, ?_, ?_⟩
+    refine ⟨os ++ os2, cells ++ c2, ?_, ?_⟩
     · rw [show m * (q + 1) = m * q + m by ring]
       exact claimsAt_append hcl (by rwa [show m * q = m * q from rfl])
-    · intro c hc
-      rcases List.mem_append.mp hc with hc | hc
-      · exact hcan c hc
-      · exact hcan2 c hc
     · intro c
       have := hS2 c
       rw [gen_pow_pow, loadHolds_mul_gen_pow] at this
@@ -498,7 +494,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
       ∀ a b c, a < 2 ^ 16 → b < 8 → c < 17 → bigs = gen ^ a → groups = gen ^ b → rest = gen ^ c →
         ∃ (os : List ℕ) (cells : List E),
           ClaimsAt rd region limit entries base (136 * a + 17 * b + c) os cells ∧
-          AllCanonical cells ∧ rets = digestCells (keccak256 (cellsBytes cells)) := by
+          rets = digestCells (keccak256 (cellsBytes cells)) := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_any args rets).mp h
   refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6),
     by rw [← hp]; rfl, fun a b c ha hb' hc h4 h5 h6 => ?_⟩
@@ -525,7 +521,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
       have := (callIf_of_flat hall hl17).2
         (by rw [add_sound h32 hat, const_sound h31 hat, word_one]; exact hne)
       simpa [const_sound h33 hat, word_one] using this)
-  obtain ⟨osa, ca, hcla, hcana, hSa⟩ := childGroups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
+  obtain ⟨osa, ca, hcla, hSa⟩ := childGroups_sound (by norm_num) (n0 := 0) (pre := []) rfl h0
     hbig a le_rfl
   -- the groups
   have h39 : σ (.n 39) = σ (.n 17) * gen ^ (13 * a) := by
@@ -541,7 +537,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
   have hpa : ([] ++ cellsBytes ca).length = rate * (0 + 64 * a) := by
     rw [List.nil_append, length_cellsBytes, hcla.2.1]; show 16 * (4 * (136 * a)) = 136 * (0 + 64 * a)
     ring
-  obtain ⟨osb, cb, hclb, hcanb, hSb⟩ := childGroups_sound (by norm_num) hpa
+  obtain ⟨osb, cb, hclb, hSb⟩ := childGroups_sound (by norm_num) hpa
     (by rw [h39]; exact hSa) hgrp b le_rfl
   -- the rest
   obtain ⟨j, hj, hsel, hcall⟩ := dispatch_of_flat hall hdis
@@ -565,18 +561,12 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
       hclb.2.1]
     show 16 * (4 * (136 * a)) + 16 * (4 * (17 * b)) = 136 * (0 + 64 * a + 8 * b)
     ring
-  obtain ⟨osc, cc, hclc, hcanc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h57]; exact hSb)
+  obtain ⟨osc, cc, hclc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h57]; exact hSb)
   rw [← hent, ← hreg, ← hmk, ← hlst, h63, h48, mul_assoc, ← pow_add] at hclc
   rw [h48] at hclb
   rw [← hlim] at hcla hclb hclc
-  refine ⟨osa ++ osb ++ osc, ca ++ cb ++ cc, ?_, ?_, ?_⟩
+  refine ⟨osa ++ osb ++ osc, ca ++ cb ++ cc, ?_, ?_⟩
   · exact claimsAt_append (claimsAt_append hcla hclb) hclc
-  · intro x hx
-    rcases List.mem_append.mp hx with hx | hx
-    · rcases List.mem_append.mp hx with hx | hx
-      · exact hcana x hx
-      · exact hcanb x hx
-    · exact hcanc x hx
   · simp only [List.map_cons, List.map_nil] at hd
     rw [← hret, copy_sound hc66 hat, copy_sound hc67 hat, hd, cellsBytes_append,
       cellsBytes_append]

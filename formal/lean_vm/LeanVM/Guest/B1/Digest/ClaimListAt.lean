@@ -162,7 +162,7 @@ theorem clz_core (entries : E) :
   have v88 : σ (.n 77) = σ (.n 11) := hat _ (cl_mem_atoms (mT _ t88))
   have h30 : σ (.n 3) = 0 := by
     rw [v3, v2, e1, word_one, pow_zero]; exact e_add_eq_zero_iff.mpr rfl
-  obtain ⟨hd, -⟩ := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
+  have hd := chain_final hzc rfl hatZ (pre := []) (n := 0) rfl
     (fun c => (cellsOfState_zero false c).symm)
   rw [hz10, hz11, show List.take (czSpec.len / 16) (czSpec.vals σ) = [] by simp [czSpec],
     List.nil_append] at hd
@@ -472,7 +472,7 @@ canonical claims' cells at `g^eP` among the caller's words, its chain buffer aft
 holding the states after each frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
-    (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
+    (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) :
     CompleteAtDT fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells))))
@@ -803,7 +803,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
 among the caller's words, its chain buffer after its frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
     {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
-    (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
+    (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) :
     CompleteAtD fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
