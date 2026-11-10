@@ -48,7 +48,7 @@ theorem formVal_congr {F F' L S S' : ℕ → E} (hF : ∀ l < 25, F l = F' l)
 theorem rho_used : ∀ l < 25, kRho l ∈ shiftUsed ∧ (kRho l + 1) % 64 ∈ shiftUsed := by decide
 
 /-- **A later claim's weight section** (G:2833-2836). -/
-theorem weightOk_zero : WeightOk 0 := by
+theorem weightOk_zero (o : ℕ) : WeightOk 0 o := by
   intro C rd σ c y locPt next kret hcr hlocL hloc hf h
   obtain ⟨-, -, -, -, -, -, lp, lanes, hlp, hlen, hlanes, lc, sl, loc, hlc, hlocL', hlocR, -, -, hw⟩ :=
     hcr
@@ -61,13 +61,13 @@ theorem weightOk_zero : WeightOk 0 := by
   obtain ⟨hld, hsh, h⟩ := shiftsT_holds h
   obtain ⟨hv, hn⟩ := formAll_holds hlanes hlen h
   refine ⟨?_, hn⟩
-  have ha : ((List.range 6).map fun t ↦ σ (.n (1843 + 11 * t))) = loc.take 6 := by
+  have ha : ((List.range 6).map fun t ↦ σ (.n (o + 1192 + 11 * t))) = loc.take 6 := by
     apply List.ext_getElem (by simp [hlocL'])
     intro t h1 h2
     simp only [List.length_map, List.length_range] at h1
     rw [List.getElem_map, List.getElem_range, List.getElem_take]
     exact loadHolds_unique (hld t h1).1 (hlocR t (by omega))
-  have hb : ((List.range 6).map fun t ↦ σ (.n (1843 + 11 * t + 1))) = locPt.take 6 := by
+  have hb : ((List.range 6).map fun t ↦ σ (.n (o + 1192 + 11 * t + 1))) = locPt.take 6 := by
     apply List.ext_getElem (by simp [hlocL])
     intro t h1 h2
     simp only [List.length_map, List.length_range] at h1
