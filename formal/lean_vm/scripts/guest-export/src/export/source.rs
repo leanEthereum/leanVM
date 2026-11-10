@@ -280,13 +280,13 @@ fn render_programs() -> String {
 
 /// `Source.lean` and `Programs.lean`.
 pub fn files() -> Vec<File> {
-    let kbc = guest().prog.len().trailing_zeros() as usize;
+    let kbc = guest().prog().len().trailing_zeros() as usize;
     let ast = parse_with_replacements(GUEST_SOURCE, &placeholder_map(kbc))
         .expect("the repository aggregation guest must parse");
     // The AST is the one the deployed bytecode was compiled from.
     let recompiled = compile(&ast);
     assert!(
-        recompiled.prog.iter().map(bytecode::lean_op).eq(guest().prog.iter().map(bytecode::lean_op)),
+        recompiled.prog().iter().map(bytecode::lean_op).eq(guest().prog().iter().map(bytecode::lean_op)),
         "the exported AST does not compile to the deployed guest"
     );
     vec![

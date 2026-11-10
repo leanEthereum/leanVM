@@ -142,7 +142,7 @@ pub enum Fault {
     /// The advice does not fit the program: a witness stream is missing or
     /// exhausted, or an entry has the wrong length.
     Witness(String),
-    /// The program allocates past the address space.
+    /// The program allocates or accesses a cell past the address space.
     OutOfMemory,
     /// The halt `pc` reached in a frame other than `main`'s.
     HaltOutsideMain { fp: u32 },
@@ -156,6 +156,7 @@ const MAX_STEPS: usize = 100_000_000;
 const _: () = assert!(crate::keccak::ROW_CELLS * MAX_STEPS < u32::MAX as usize);
 
 impl ExecError {
+    #[cold]
     fn new(program: &Program, pc: u32, fault: Fault) -> Self {
         Self {
             pc,
@@ -202,7 +203,7 @@ impl std::fmt::Display for Fault {
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
-            Self::OutOfMemory => write!(f, "the program allocates past 2^{} cells", MAX_CELLS.ilog2()),
+            Self::OutOfMemory => write!(f, "the program reaches past 2^{} cells", MAX_CELLS.ilog2()),
             Self::HaltOutsideMain { fp } => write!(f, "the halt pc reached in frame {fp}, not main's"),
             Self::StepLimit => write!(f, "step limit of {MAX_STEPS} exceeded (runaway recursion?)"),
         }
@@ -550,6 +551,15 @@ impl Program {
             }
             m.dbg_pc = pc;
             let fail = move |fault| ExecError::new(self, pc, fault);
+            // Cell `base + offset`, if it lies in the address space.
+            let at = move |base: u32, offset: u32| {
+                let cell = u64::from(base) + u64::from(offset);
+                if cell < u64::from(MAX_CELLS) {
+                    Ok(cell as u32)
+                } else {
+                    Err(fail(Fault::OutOfMemory))
+                }
+            };
             if let Some(p) = prof.as_mut() {
                 p[pc as usize] += 1;
             }
@@ -598,7 +608,12 @@ impl Program {
                                             value: span,
                                         }));
                                     }
-                                    let n = count(&mut g, span).ok_or_else(|| fail(Fault::OutOfMemory))?;
+                                    let n = count(&mut g, span).ok_or_else(|| {
+                                        fail(Fault::NotAGPower {
+                                            what: "loop bound",
+                                            value: span,
+                                        })
+                                    })?;
                                     let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
                                     (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
                                 }
@@ -619,11 +634,8 @@ impl Program {
                             let cell = fp + ptr;
                             if !m.written(cell) {
                                 let base = next_free;
-                                next_free = base
-                                    .checked_add(size)
-                                    .filter(|&end| end < MAX_CELLS)
-                                    .ok_or_else(|| fail(Fault::OutOfMemory))?;
-                                g.grow_to((base + size) as usize);
+                                next_free = at(base, size)?;
+                                g.grow_to(next_free as usize);
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
                                 m.ensure(next_free as usize);
@@ -799,7 +811,7 @@ impl Program {
             match op {
                 Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
                     let is_xor = matches!(op, Op::Xor { .. });
-                    let (aa, ab, ac) = (fp + a, fp + b, fp + c);
+                    let (aa, ab, ac) = (at(fp, a)?, at(fp, b)?, at(fp, c)?);
                     // The row is the equality `m[c] = m[a] op m[b]` over write-once
                     // memory. Normally the operands are known and the result is
                     // computed forward; for a `MUL` whose result is already written
@@ -846,7 +858,7 @@ impl Program {
                     pc += 1;
                 }
                 Op::Set { o, k } => {
-                    let a = fp + o;
+                    let a = at(fp, o)?;
                     m.put(a, k)?;
                     let r = m.bump_access_count(a);
                     set.push(Srow {
@@ -858,12 +870,12 @@ impl Program {
                     pc += 1;
                 }
                 Op::Deref { o1, o2, o3, mode } => {
-                    let a1 = fp + o1;
+                    let a1 = at(fp, o1)?;
                     let p = m.read(a1);
                     let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                    let a2 = base + o2;
-                    let a3 = fp + o3;
+                    let a2 = at(base, o2)?;
+                    let a3 = at(fp, o3)?;
                     match mode {
                         // Equality m[a2] == m[a3]: carry a written side to the other
                         // (`put` checks it when both are), or link two unwritten sides
@@ -905,7 +917,7 @@ impl Program {
                     pc += 1;
                 }
                 Op::Jump { oc, od, of } => {
-                    let (ac, ad, af) = (fp + oc, fp + od, fp + of);
+                    let (ac, ad, af) = (at(fp, oc)?, at(fp, od)?, at(fp, of)?);
                     // All three cells are K-valued on EVERY row, taken or not: the
                     // table commits one lane each and their memory flushes carry
                     // literal zeros above it (§sec:tab-jump), which the bus would
@@ -951,7 +963,11 @@ impl Program {
                 Op::Keccak { .. } => {
                     use crate::keccak::{ROW_CELLS, STATE_CELLS};
                     let k = crate::tables::KeccakOp::of(&op);
-                    let cells: [u32; ROW_CELLS] = std::array::from_fn(|c| k.cell(fp, c));
+                    let mut cells = [0; ROW_CELLS];
+                    for (c, cell) in cells.iter_mut().enumerate() {
+                        let (offset, step) = k.cell_parts(c);
+                        *cell = at(at(fp, offset)?, step)?;
+                    }
                     let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // No table constraint covers the output (the relation is proven
                     // by the Keccak reduction, §keccak); the interpreter still computes it so

@@ -90,7 +90,7 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N
 
 #[derive(Clone)]
 pub struct Program {
-    pub prog: Vec<Op>, // bytecode (size B, power of two)
+    pub(crate) prog: Vec<Op>, // bytecode (size B, power of two)
     /// The Fiat-Shamir IV ([`fs_seed`]), computed once at assembly so proofs of
     /// the same program do not rehash the stacked bytecode multilinear (that
     /// table is 16·2^kbc words). Trusted
@@ -140,7 +140,16 @@ impl Program {
     /// Assemble a [`Program`], computing its Fiat-Shamir IV
     /// from `prog`. The single funnel for construction, so the digest is always
     /// consistent with the bytecode.
+    ///
+    /// # Panics
+    ///
+    /// If `prog` is not a power of two long.
     pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<hints::RHint>>, main_frame: u32) -> Self {
+        assert!(
+            prog.len().is_power_of_two(),
+            "the bytecode must be a power of two long, not {}",
+            prog.len()
+        );
         let bytecode_columns = layout::bytecode_columns(&prog);
         let fiat_shamir_iv = {
             let table = layout::stack_columns(&bytecode_columns);
@@ -164,6 +173,11 @@ impl Program {
             src_lines: Vec::new(),
             min_log_committed: 0,
         }
+    }
+
+    /// The bytecode, a power of two long.
+    pub fn prog(&self) -> &[Op] {
+        &self.prog
     }
 
     /// The [`layout()`] of this program.
@@ -267,8 +281,6 @@ impl std::error::Error for ProveError {}
 /// Why [`verify`] rejected a proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CpuError {
-    /// The statement is malformed: the bytecode's length is not a power of two.
-    PublicInput,
     /// The `verifier` crate rejected the proof.
     Verifier(verifier::VerifierError),
 }
@@ -625,10 +637,6 @@ pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
 /// The stacked bytecode is rebuilt and rehashed on every call. A caller verifying many proofs of one program prepares a [`verifier::Bytecode`] once instead.
 #[tracing::instrument(name = "Verify", skip_all)]
 pub fn verify(program: &Program, public_input: &[F128; 2], proof: &Proof) -> Result<verifier::Summary, CpuError> {
-    // `Program::prog` is public, and the stacked table below is only defined for a power-of-two bytecode.
-    if !program.prog.len().is_power_of_two() {
-        return Err(CpuError::PublicInput);
-    }
     let table: Vec<u64> = layout::bytecode_table(&program.prog)
         .iter()
         .map(|word| word.0)

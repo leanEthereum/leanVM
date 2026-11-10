@@ -1,7 +1,7 @@
 //! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
 
 use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{CpuError, Proof, ProveError, prove, verify};
+use leanvm_core::cpu::{Proof, ProveError, prove, verify};
 use leanvm_core::vmhash::compress;
 use primitives::field::{F64, F128};
 
@@ -33,14 +33,6 @@ fn hashing_proof() -> (leanvm_core::cpu::Program, [F128; 2], Proof) {
     let (proof, _) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &pi, &proof).expect("honest proof verifies");
     (program, pi, proof)
-}
-
-/// A program whose bytecode is not a power of two long is an error, not a panic.
-#[test]
-fn a_bytecode_that_is_not_a_power_of_two_is_an_error() {
-    let (mut program, pi, proof) = hashing_proof();
-    program.prog.pop();
-    assert!(matches!(verify(&program, &pi, &proof), Err(CpuError::PublicInput)));
 }
 
 /// Out-of-process verification: everything travels in the two channels, so a proof

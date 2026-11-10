@@ -383,3 +383,12 @@ impl FnLower<'_> {
         (u128::from(j) <= FOLD_MAX && k.field? == F64::G.pow(u128::from(j)).into()).then_some(j)
     }
 }
+
+/// The `k <= FOLD_MAX` with `g^k == c`, if there is one.
+pub(super) fn small_gpow(c: F128) -> Option<u128> {
+    let c = c.as_base()?;
+    std::iter::successors(Some(F64::ONE), |&p| Some(p * F64::G))
+        .take(FOLD_MAX as usize + 1)
+        .position(|p| p == c)
+        .map(|k| k as u128)
+}

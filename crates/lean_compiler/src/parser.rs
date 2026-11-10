@@ -144,8 +144,15 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
                 if p.is_empty() {
                     continue; // tolerate a trailing comma
                 }
-                let n = eval_const_int(p).map_err(|e| at(format!("global constant array `{name}`: {e}")))?;
-                elems.push(crate::lit_field(n));
+                let err = |e: String| at(format!("global constant array `{name}`: {e}"));
+                let elem = if let Ok(n) = eval_const_int(p) {
+                    crate::lit_field(n)
+                } else if parse_expr(p).is_ok_and(|e| is_int_arith(&e)) {
+                    return Err(err(format!("`{p}` overflows a u128, goes negative or divides by zero")));
+                } else {
+                    parse_const(p).map_err(err)?
+                };
+                elems.push(elem);
             }
             const_arrays.push((name, elems));
         } else {

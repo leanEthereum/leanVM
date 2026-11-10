@@ -627,8 +627,8 @@ fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize,
 
 /// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).reduce(identity,
 /// reduce)`. Each worker folds its claimed indices into one local partial; the
-/// partials combine on the dispatcher. `reduce` must be associative with
-/// `identity()` a neutral element.
+/// partials combine on the dispatcher. Which indices a worker claims varies, so
+/// `reduce` must be associative and commutative, with `identity()` neutral.
 pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
 where
     T: Send,
@@ -650,7 +650,8 @@ where
 
 /// Parallel fold-then-reduce: each worker builds one accumulator with `init`,
 /// folds every index it claims into it, and the accumulators `combine` on the
-/// dispatcher. `combine` must be associative with `init()` a neutral element.
+/// dispatcher. Which indices a worker claims varies, so `combine` must be
+/// associative and commutative, with `init()` neutral.
 ///
 /// This is the shape for a reduction whose accumulator is itself a buffer (a
 /// 64-slot bit-fold, say): the buffer is allocated once per worker rather than
@@ -668,8 +669,8 @@ where
 /// Parallel reduce where each worker keeps reusable scratch beside its
 /// accumulator, so the per-item body need not allocate. `(scratch, acc)` are
 /// created once per worker and threaded through its claims; the accumulators
-/// combine on the dispatcher. `combine` must be associative with `init_acc()` a
-/// neutral element.
+/// combine on the dispatcher. Which indices a worker claims varies, so `combine`
+/// must be associative and commutative, with `init_acc()` neutral.
 pub fn map_reduce_with_state<S, A, IS, IA, F, C>(n_tasks: usize, init_state: IS, init_acc: IA, fold: F, combine: C) -> A
 where
     S: Send,

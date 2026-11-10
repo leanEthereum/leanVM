@@ -8,7 +8,7 @@ use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 pub enum AggregateVerifyError {
     /// The signer set is unsorted, holds a duplicate, or has [`MAX_KEYS`](super::MAX_KEYS) claims or more.
     MalformedSignerSet,
-    /// A deferred claim's point has the wrong number of coordinates.
+    /// A deferred claim's point has the wrong number of coordinates, or its value is not the bytecode's evaluation there.
     MalformedClaim,
     /// The bytes are not a valid encoding of an aggregate.
     MalformedEncoding,

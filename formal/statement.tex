@@ -424,9 +424,6 @@ one, so it is a single fresh try, $(2^{14}-1)/2^{128} < 2^{11}\cdot 2^{-125}$.
 has a collision, each opened cell is $c^*$'s cell, and the codeword $c^*$ agrees with all of them:
 the adversary loses. Collisions and other bad hash events give the third term.
 \end{enumerate}
-This proof needs no rewinding. Wagner's original proof, with a forking lemma, is also formalized
-(\lean{LeanDa.leanDa_codeBinding_core}, \lean{lean_da}, for arguments that do not query the oracles); it gives
-the weaker $(Q + c + 2^{65})\cdot 2^{-k} + (Q + 2^{20})\cdot 2^{-56} + (Q + 2^{22})^2\cdot 2^{-158}$.
 
 \emph{What is open.} The assumption can be met: the argument whose proof is simply all the cells
 is complete and knowledge sound, though its proof is as large as the matrix (an observation, not

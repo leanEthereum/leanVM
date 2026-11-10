@@ -70,7 +70,7 @@ fn tampers_fail_their_check() {
     // high part, the two OOD values, the query nonce and the batching nonce.
     let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
     let stack_log = leanvm_core::cpu::layout::layout(
-        &fixture.program.prog,
+        fixture.program.prog(),
         fixture.summary.log_memory,
         rows.try_into().expect("one row count a table"),
         fixture.public_input,

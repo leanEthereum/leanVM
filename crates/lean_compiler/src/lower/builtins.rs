@@ -442,9 +442,8 @@ impl FnLower<'_> {
                     ))
                 };
                 let nbits = self.const_index(&args[2]);
-                // An exponent of `g` is below its order, 2^64 - 1.
-                if !plain && nbits > 64 {
-                    self.fail(format!("{f} writes at most 64 bits, got {nbits}"))
+                if !plain && nbits > MAX_EXPONENT_BITS {
+                    self.fail(format!("{f} writes at most {MAX_EXPONENT_BITS} bits, got {nbits}"))
                 }
                 let bits = self.bits_dest(&args[0], nbits, f);
                 let value = self.expr(&args[1]);
@@ -495,8 +494,8 @@ impl FnLower<'_> {
                 let nbits = self.const_index(&args[2]);
                 let ndigits = self.const_index(&args[3]);
                 let digit_bits = self.const_index(&args[4]);
-                if nbits > 64 || !(1..=16).contains(&digit_bits) {
-                    self.fail(format!("{f}: nbits <= 64 and 1 <= digit_bits <= 16"))
+                if nbits > MAX_EXPONENT_BITS || !(1..=16).contains(&digit_bits) {
+                    self.fail(format!("{f}: nbits <= {MAX_EXPONENT_BITS} and 1 <= digit_bits <= 16"))
                 }
                 let dst = self.bits_dest(&args[0], ndigits, f);
                 let value = self.expr(&args[1]);
@@ -694,6 +693,9 @@ const STATE_CELLS: u32 = leanvm_core::keccak::STATE_CELLS as u32;
 const BLOCK_CELLS: u32 = leanvm_core::keccak::RATE_CELLS as u32;
 /// Bytes a block absorbs.
 const RATE: usize = primitives::hash::RATE;
+/// The largest `nbits` a `hint_decompose_*_exponent` accepts. The prover finds the exponent by a baby-step giant-step
+/// search, whose giant steps double with every bit past its table's, so this bounds the witness generation.
+const MAX_EXPONENT_BITS: u32 = 40;
 
 /// The last rate lane of a 64-byte message's one block: the padding's closing `0x80` byte.
 pub(super) fn two_to_one_close() -> F128 {

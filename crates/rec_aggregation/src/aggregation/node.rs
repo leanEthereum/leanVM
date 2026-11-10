@@ -44,8 +44,9 @@ use signatures::{lean_sphincs, lean_xmss};
 ///   [`AggregationError::MalformedRawSignature`], and any other invalid one fails the guest's run,
 ///   [`AggregationError::ProofError`].
 /// - Children are assumed verified by the caller ([`EthereumProof::verify`]): a child the replay
-///   cannot walk returns [`AggregationError::InvalidChild`], and any other invalid child fails the
-///   guest's run, [`AggregationError::ProofError`] (TODO return the index of invalid proof).
+///   cannot walk, or one carrying a false deferred value, returns [`AggregationError::InvalidChild`],
+///   and any other invalid child fails the guest's run, [`AggregationError::ProofError`] (TODO
+///   return the index of invalid proof).
 pub fn aggregate(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
@@ -119,7 +120,8 @@ pub fn aggregate_with_stats(
     // verify fails in the guest instead, which verifies every child in the VM,
     // so `prove` below returns the error. Its deferred claim is likewise not
     // recomputed: the batching sumcheck below forces every batched value to be
-    // the true evaluation, and the root discharges the one claim they reduce to.
+    // the true evaluation, refusing a false one, and the root discharges the one
+    // claim they reduce to.
     let _span = tracing::info_span!("Replay children").entered();
     let mut public_inputs = Vec::with_capacity(children.len());
     let child_da: Vec<[u8; 32]> = children
@@ -278,7 +280,8 @@ pub fn aggregate_with_stats(
         leaf
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
-        let (agg_hints, reduced) = aggregate_deferred_claims(&subs, &carried, sums);
+        let (agg_hints, reduced) =
+            aggregate_deferred_claims(&subs, &carried, sums).map_err(AggregationError::InvalidChild)?;
         for (name, entry) in agg_hints {
             hints.push(name, entry);
         }

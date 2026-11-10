@@ -123,6 +123,14 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         && s.ends_with(')')
     {
         let name = s[..open].trim().to_string();
+        // Before its arguments: a `lambda` arm is no expression, and failing on it would name the wrong problem.
+        if name == "match" {
+            return Err(
+                "`match(...)` is only the whole right-hand side of an assignment, `r = match(...)`: bind its \
+                 results, then return or store them"
+                    .into(),
+            );
+        }
         let args_str = s[open + 1..s.len() - 1].trim();
         let mut args = if args_str.is_empty() {
             vec![]

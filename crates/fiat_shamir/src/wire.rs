@@ -23,6 +23,11 @@ impl Proof {
     ///   siblings no other path's node gives, bottom level first and left to right within a level.
     ///
     /// The row width is the least that drops only zeros, and the sibling count follows from the positions.
+    ///
+    /// # Panics
+    ///
+    /// On a proof no prover makes, such as one with an empty phase, or with more phases, queries, leaf words or tree
+    /// levels than decoding accepts.
     pub fn to_bytes(&self) -> Vec<u8> {
         assert!(self.merkle.len() <= MAX_PHASES);
         let mut out = Vec::new();
@@ -57,6 +62,7 @@ impl Proof {
 /// Prune a phase into its octopus: the fewest siblings that authenticate all its paths together, a sibling being left
 /// out where another path's node gives it. No hashing.
 fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
+    assert!(!paths.is_empty(), "a Merkle phase opens at least one path");
     let (height, leaf_words) = (paths[0].siblings.len(), paths[0].leaf.len());
     assert!(paths.len() <= MAX_QUERIES && leaf_words <= MAX_LEAF_WORDS && height <= MAX_HEIGHT);
     let mut distinct: Vec<&MerklePath> = paths.iter().collect();

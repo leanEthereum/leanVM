@@ -193,7 +193,7 @@ pub fn run_recursion(
         "aggregation bytecode: {} instructions (2^{} padded), compiled in {} s",
         pretty_integer(guest_instructions),
         rec_aggregation::aggregation::unified_guest()
-            .prog
+            .prog()
             .len()
             .trailing_zeros(),
         pretty_f64(compile_time.as_secs_f64())

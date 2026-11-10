@@ -26,7 +26,7 @@ mod call;
 mod eval;
 mod mem;
 use call::ret_binding;
-use eval::field_pow;
+use eval::{field_pow, small_gpow};
 
 /// A value equal to `pointer(base)·g^exp`, or the pure constant `g^exp` when
 /// `base` is `None`. Heap-address arithmetic (`ptr·gᵏ`, and constant g-power
@@ -520,9 +520,10 @@ impl FnLower<'_> {
                 // scalar it was a HeapBuf.
                 Expr::Index(arr, idx) => match self.frame_cell(arr, idx) {
                     Some(c) => cells.push(c),
-                    None => self.fail(format!(
-                        "a multi-value target must be a name or a StackBuf element, got `{t:?}`"
-                    )),
+                    None => self.fail(
+                        "a `match` or tuple-call target must be a name or a StackBuf element, not a heap \
+                         cell: bind a name and store it",
+                    ),
                 },
                 Expr::Var(n) => {
                     let c = self.fresh();
@@ -530,7 +531,7 @@ impl FnLower<'_> {
                     binds.push((n.as_str(), c));
                 }
                 other => self.fail(format!(
-                    "a multi-value target must be a name or a StackBuf element, got `{other:?}`"
+                    "a `match` or tuple-call target must be a name or a StackBuf element, got `{other:?}`"
                 )),
             }
         }
@@ -1117,9 +1118,10 @@ impl FnLower<'_> {
     /// `base ** e` (non-`GEN` base, compile-time exponent `e`): a fully-constant
     /// base folds to one `SET`; a runtime base is raised by square-and-multiply.
     fn pow_expr(&mut self, b: &Expr, e: &Expr) -> Off {
-        let k = self
-            .try_const_index(e)
-            .unwrap_or_else(|| self.fail(format!("`**` exponent must be a compile-time integer, got `{e:?}`")));
+        let k = self.try_const_index(e).unwrap_or_else(|| match self.eval(e).int {
+            Some(n) => self.fail(format!("`**` exponent {n} does not fit in 32 bits")),
+            None => self.fail(format!("`**` exponent must be a compile-time integer, got `{e:?}`")),
+        });
         // Fully constant: evaluate in the field and emit a single `SET`.
         if let Some(bc) = self.try_field_const(b) {
             return self.const_cell(field_pow(bc, k));

@@ -49,7 +49,7 @@ const GOLDEN: &[(&str, &str)] = &[
 ];
 
 fn digest(p: &Program) -> String {
-    primitives::hash::hash(format!("{:?}", p.prog).as_bytes())
+    primitives::hash::hash(format!("{:?}", p.prog()).as_bytes())
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()

@@ -499,7 +499,6 @@ pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_T
 impl Program {
     /// `keccak_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
     pub(crate) fn build(&self, exec: &Execution, keccak_blocks: crate::keccak::Blocks) -> Witness {
-        assert!(self.prog.len().is_power_of_two());
         assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
         let tr = &exec.trace;

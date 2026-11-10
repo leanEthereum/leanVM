@@ -27,7 +27,7 @@ pub fn unified_guest() -> &'static Program {
         let mut guess = 19;
         for _ in 0..8 {
             let guest = compile_guest(guess);
-            let actual = guest.prog.len().trailing_zeros() as usize;
+            let actual = guest.prog().len().trailing_zeros() as usize;
             if actual == guess {
                 return guest;
             }
@@ -60,7 +60,7 @@ pub(super) fn compile_guest(kbc: usize) -> Program {
         for (name, entry, len) in ranges {
             dump += &format!("# fn {entry:>7}..{:<7} {name}\n", entry + len);
         }
-        dump += &lean_compiler::disassemble(&guest.prog);
+        dump += &lean_compiler::disassemble(guest.prog());
         std::fs::write(&path, dump).expect("write DBG_DISASM");
     }
     guest

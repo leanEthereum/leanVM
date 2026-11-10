@@ -67,7 +67,7 @@ const FOOTER: &str = "end\nend LeanVM.Guest.Data\n";
 
 /// The data modules.
 pub fn files(guest: &Program) -> Vec<File> {
-    let prog = &guest.prog;
+    let prog = guest.prog();
     let log_size = prog.len().trailing_zeros();
     assert_eq!(prog.len(), 1 << log_size);
     let mut pc = 0;

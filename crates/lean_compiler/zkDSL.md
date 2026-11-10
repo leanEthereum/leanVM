@@ -27,7 +27,7 @@ Machine **words** (the contents of a memory cell, an immediate, a hashed value) 
 - constant arithmetic means different things in the two positions, and this is a silent trap: `a + b` on two constants is **integer** addition in an index, a bound or a keyword (`buf[GEN ** (i + 1)]`, `unroll(0, n + 1)`, `len=16 * (q + 1)`), and **XOR** in a value, where `1 + 1` is `0`. So a literal built in a value position must not add overlapping integers: `tweak = base + (level + 1) * SHIFT` drops the whole term on odd levels. Products are safe (an integer times a power of two below `2^64` is that shift, as long as no bit leaves its limb; times `y` it is a shift only of a `K`-valued word, since `y^2 = x*y + 1`); to add, name the regime with `const(...)`: `tweak = base + const((level + 1) * SHIFT)`.
 - a **global constant** and a **`Const` parameter** are integer-arithmetic throughout, which is deliberate (it is what makes a derived size right) but means the same text means different things in the two places: `STEP = 3 + 1` is the integer `4` everywhere it appears, while the identical `x = 3 + 1` written inside a function is the field element `2`. Neither is wrong; they are two regimes, and a name crossing between them is where the trap bites.
 - a **compile-time `if`** must say which regime it means when the two disagree. The fold decides on the integer reading while the runtime test of the same condition compares field values, so `if 3 + 1 == 4` is true one way and false the other. Such a condition is **rejected**; write `if const(3 + 1 == 4):` to decide it with integer arithmetic, or spell the operands so the two readings agree (a product or a shift rather than a sum of overlapping integers). A condition whose readings already agree needs no wrapper.
-- `base ** e` with a **non-`GEN`** base and a compile-time exponent `e` is square-and-multiply: integer arithmetic in an index/bound position (`2 ** c`), or field arithmetic in a value position (`x ** k`, e.g. a loop counter `g^i` raised to a stride to reach cell `i·stride`). The base may be runtime.
+- `base ** e` with a **non-`GEN`** base and a compile-time exponent `e` below `2^32` is square-and-multiply: integer arithmetic in an index/bound position (`2 ** c`), or field arithmetic in a value position (`x ** k`, e.g. a loop counter `g^i` raised to a stride to reach cell `i·stride`). The base may be runtime.
 
 A logical **index** `i` is carried as `g^i` in the 64-bit subfield (order `2^64 − 1`): incrementing is one multiplication by `GEN`, and memory/bytecode addresses are g-powers. This is the design idiom of the whole VM: loops, heap addressing, and range checks below all live in the exponent, in `K`.
 
@@ -129,7 +129,7 @@ z = f(p, q)               # expression position: first return
 f(p, q)                   # statement: returns discarded
 ```
 
-Functions may recurse. Each call gets a **fresh frame**: the frame pointer is prover-hinted (write-once memory makes an unconstrained cell prover-chosen), arguments and the return address/frame are stored with `DEREF`s, and control transfers with one `JUMP`. Cost: about `n_args + n_returns + 4` instructions per call. Every non-`main` function must end in an explicit `return`; in `main`, `return` is a no-op (main halts at a sentinel automatically).
+Functions may recurse. Each call gets a **fresh frame**: the frame pointer is prover-hinted (write-once memory makes an unconstrained cell prover-chosen), arguments and the return address/frame are stored with `DEREF`s, and control transfers with one `JUMP`. Cost: about `n_args + n_returns + 4` instructions per call. A function's result count is that of its top-level `return`, so one that returns values must end in an explicit `return`; one that returns nothing may leave it out, the compiler closing it with a bare `return`. In `main`, `return` is a no-op (main halts at a sentinel automatically).
 
 ### `StackBuf` parameters
 
@@ -496,8 +496,8 @@ The prover supplies streams with `program.set_witness("name", entries)` (`Vec<Ve
 Five builtins have the prover compute the values at witness generation instead of popping a stream entry. Like `hint_witness`, the results are completely unconstrained: the program must re-verify them in-circuit.
 
 - `hint_decompose_bits(bits, value, nbits)`: writes the low `nbits` bits of `value` into the buffer `bits`, one field element (`0`/`1`) per bit.
-- `hint_decompose_bits_exponent(bits, x, nbits)`: writes the `nbits` bits of the exponent `n` where `x = GEN ** n` into `bits` (a bounded dlog at witness generation).
-- `hint_decompose_digits_exponent(dest, x, nbits, ndigits, digit_bits, start)`: writes `GEN ** d_j` for the `ndigits` base-`2^digit_bits` digits `d_j` of `n >> start` into `dest`, where `x = GEN ** n` and `n < 2^nbits`; `start` is an integer or a runtime g-power.
+- `hint_decompose_bits_exponent(bits, x, nbits)`: writes the `nbits` bits of the exponent `n` where `x = GEN ** n` into `bits` (a bounded dlog at witness generation). `nbits` is at most 40, which bounds that search.
+- `hint_decompose_digits_exponent(dest, x, nbits, ndigits, digit_bits, start)`: writes `GEN ** d_j` for the `ndigits` base-`2^digit_bits` digits `d_j` of `n >> start` into `dest`, where `x = GEN ** n` and `n < 2^nbits`, `nbits` at most 40; `start` is an integer or a runtime g-power.
 - `hint_windows_exponent(dest, value, start, width, count[, at])`: writes `count` windows of `width` bits of `value`, from bit `start` on, into `dest` from cell `at` (default `0`), each as `GEN ** n` for `n` the integer its bits spell. Each window wants a range check before it is used.
 - `g = hint_log2_ceil(bits, nbits, floor)`: returns `GEN ** log2_ceil(v)` for the value `v` held bitwise in the `nbits`-bit buffer `bits`, floored at `floor`.
 
