@@ -119,7 +119,7 @@ def second (x c : E) : Spec (secondP x c) (fun _ ↦ c ≠ x) Rej ε0 ε0 0 :=
 
 /-- The proof of work and the second group. -/
 def afterC (x c : E) : Spec (afterP x c) (fun _ ↦ c ≠ x) Rej ε0 0 0 :=
-  (Spec.grindP (Post := fun _ _ ↦ c ≠ x) (b := 3) (by decide) (fun _ h ↦ h)
+  (Spec.grindP (Post := fun _ _ ↦ c ≠ x) 3 (fun _ h ↦ h)
       (mul_le_of_le_one_left zero_le (pow_le_one₀ zero_le (by norm_num)))).bind'
     fun _ ↦ second x c
 
@@ -154,7 +154,7 @@ theorem cert_D_read (x : E) : cert.D [Ev.read x] :=
 
 /-! ## The follower's allowance is charged at returns in doom -/
 
-/-- A zero-bit `grind` followed by a lead of `1` has no specification with `εmax = 0`. -/
+/-- A proof of work followed by a lead of `1` has no specification with `εmax = 0`. -/
 theorem no_grind_spec :
     Spec (.grind 0 (.ret ()) : VerifierProgram Unit) (fun _ ↦ True) (fun _ _ ↦ True) 0 0 1 →
       False := by
