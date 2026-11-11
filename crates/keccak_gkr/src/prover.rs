@@ -357,12 +357,12 @@ impl Layer<'_> {
         let (nb, written) = (self.witness.shape.n_blocks(), self.witness.written());
         let mixed = parallel::map_reduce_with_state(
             self.rounds.len() * written,
-            SkipBlock::new,
+            || SkipBlock::new(&weights),
             || vec![[0u64; 7]; MIXED],
             |skip, total, task| {
                 let (segment, g) = (task / written, task % written);
                 let (row, block) = (g + nb * segment, self.witness.layer(self.rounds[segment], g));
-                skip.run(block, &weights);
+                skip.run(block);
                 for half in 0..2 {
                     for (i, total) in total.iter_mut().enumerate() {
                         add_mul(total, &carry::<3, 4>(&skip.get(slot(half, i))), &groups[2 * row + half]);
