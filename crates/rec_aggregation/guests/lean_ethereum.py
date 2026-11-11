@@ -17,6 +17,7 @@ from snark_lib import *
 # the shape dictates); binding always comes from the per-word absorbs.
 STREAM_CAP = STREAM_CAP_PLACEHOLDER
 MIN_LOG_MEM = MIN_LOG_MEM_PLACEHOLDER
+MAX_LOG_MEM = MAX_LOG_MEM_PLACEHOLDER
 INV_GEN = INV_GEN_PLACEHOLDER
 
 # ------------------------------------------------------------- the field, GF(2^192)
@@ -298,8 +299,6 @@ LIG_TOTAL_FOLDS = LIG_TOTAL_FOLDS_PLACEHOLDER
 LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
 LIG_CAP_DEPTH = LIG_CAP_DEPTH_PLACEHOLDER
 LIG_QUERY_GRIND_BITS = LIG_QUERY_GRIND_BITS_PLACEHOLDER
-LIG_FOLD_GRIND_BITS = LIG_FOLD_GRIND_BITS_PLACEHOLDER
-LIG_FOLD_GRIND_ANY = LIG_FOLD_GRIND_ANY_PLACEHOLDER  # per size row: 1 where some rate grinds the level's folds
 LIG_LEVEL_POSITIONS_CAP = LIG_LEVEL_POSITIONS_CAP_PLACEHOLDER
 VANISH_BY_COLS = VANISH_BY_COLS_PLACEHOLDER  # the subspace-vanishing values of n columns at n(n+1)/2
 VANISH_INVS_BY_COLS = VANISH_INVS_BY_COLS_PLACEHOLDER  # and their inverses
@@ -509,7 +508,7 @@ SP_UNUSED_BYTES = 8 - SP_TAIL_BYTES
 # --------------------------------------------------------------- node capacities
 # The coverage table's slots, both schemes' declared claims and their duplicates, are
 # bounded by the memory itself: each count is a g-power address (`assert_gpow`), so its
-# log is below the announced memory size, at most 2^32, and sums of a few never wrap.
+# log is below the announced memory size, at most 2^30, and sums of a few never wrap.
 # MAX_RECURSIONS is the arity of an aggregation tree.
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
@@ -1225,34 +1224,6 @@ def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2):
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor * GEN ** 2, claim, c0, c2, r
 
 
-def opening_fold_round(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2, nbits: Const):
-    # A fold round after a proof of work of nbits bits, none at 0: the nonce waits after
-    # w0 and w1, the challenge of the permutation taking all three must pass grind_check,
-    # and the fold challenge is the next permutation, nothing waiting. The round's
-    # coefficients follow the nonce.
-    if const(nbits == 0):
-        f0, f1, f2, f3, f4, cursor, claim, c0, c2, r = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2)
-    else:
-        cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
-        rate = StackBuf(8)
-        fs_pack(rate, 0, w0, DS_OBSERVE)
-        fs_pack(rate, 1, w1, DS_OBSERVE)
-        pow_sp = fs_absorb_nonce(cap, rate, 2, cursor[GEN ** 0])
-        grind_check(pow_sp[0], nbits)
-        no_rate = StackBuf(8)
-        sp, r = squeeze(pow_sp, no_rate, 0)
-        claim = (c2 * r + c1) * r + c0
-        c0 = cursor[GEN ** 1]
-        c2 = cursor[GEN ** 2]
-        f0 = sp[8]
-        f1 = sp[9]
-        f2 = sp[10]
-        f3 = sp[11]
-        f4 = sp[12]
-        cursor = cursor * GEN ** 3
-    return f0, f1, f2, f3, f4, cursor, claim, c0, c2, r
-
-
 def opening_ood_point(fs0, fs1, fs2, fs3, fs4, r0, r1, r2, r3, r4, r5, r6, r7, point, n: Const):
     # One specialization per point dimension. The first coordinate's permutation takes
     # the rate r0..r7, the scalars waiting in the sponge and zero past them.
@@ -1580,12 +1551,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         folds_off = LIG_FOLDS_OFF[ml]
         pos_off = lvl * LIG_LEVEL_POSITIONS_CAP
         for j in unroll(0, LIG_FOLDS[ml]):
-            # A level whose proximity gap reaches the target alone at every rate grinds
-            # nothing and reads no nonce; otherwise the rate says how many bits it grinds.
-            if const(LIG_FOLD_GRIND_ANY[ml] == 0):
-                fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
-            else:
-                fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: opening_fold_round(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a, LIG_FOLD_GRIND_BITS[ml + r * LIG_RATE_STRIDE]))
+            fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
             w0 = round_quad_c
             w1 = round_quad_a
             fold_challenges[GEN ** (folds_off + j)] = fold_challenge
@@ -3193,7 +3159,7 @@ def certify_placement(kappa_base, g_squares):
         c0 = COL_GROUP_START[gi]
         kappa_g = kb[COL_KAPPA_SRC[c0]] * GEN ** COL_KAPPA_ADJ[c0]
         # g_squares spans SIZE_BITS, and every kappa is under it: a certified log
-        # <= 32 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QKECCAK_SLOT_LOG.
+        # <= 30 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QKECCAK_SLOT_LOG.
         assert log(kappa_g) < SIZE_BITS
         # Descending kappa, then the group's first (compact, native-order) index ascending.
         group_key[GEN ** gi] = rank_keys[kappa_g] * INV_GEN ** c0
@@ -3411,7 +3377,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
     g_log_mem = g_power_of_word(log_mem_word)
-    assert log(g_log_mem) < COUNT_BITS
+    assert log(g_log_mem) < MAX_LOG_MEM + 1  # native log_mem <= MAX_LOG_MEM
     assert log(g_log_mem / GEN ** MIN_LOG_MEM) < COUNT_BITS  # native MIN_LOG_MEM <= log_mem
     dims_g[GEN ** 0] = g_log_mem
     hint_witness(dims_g[1:1 + N_TABLES], "table_logs")  # certified in verify_tables
@@ -4299,7 +4265,7 @@ def child_claims_mono(cov, ent, mark, blk, out, n: Const):
 def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest):
     # The walk of a list at strictly increasing offsets o_j = e_0 + ... + e_j + j, every
     # e_j in [0, 2^h): its first offset is at least zero, and the count of claims, a
-    # memory address (`assert_gpow`, below 2^32), keeps the sum below 2^64 - 2^32, short
+    # memory address (`assert_gpow`, below 2^30), keeps the sum below 2^60, short
     # of wrapping, so bounding its last offset below the region's size
     # (child_claim_list_mono_last) bounds them all. A record carries the sponge state,
     # then the walk's coverage slot and table entry.
@@ -4571,7 +4537,7 @@ def main():
     lx_slots_g = n_lx_g * n_xdup_g
     lean_sphincs_slots_g = n_lean_sphincs_g * n_sdup_g
     # The sum of both regions bounds the coverage indices, so it is what has to be a
-    # memory address: its log is then below 2^32 and the runtime bounds below mean
+    # memory address: its log is then below 2^30 and the runtime bounds below mean
     # what they say. An honest node holds its coverage table in memory, so it fits.
     n_total_g = lx_slots_g * lean_sphincs_slots_g
     assert_gpow(n_total_g)

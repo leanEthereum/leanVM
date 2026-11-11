@@ -43,7 +43,7 @@ pub const MAX_LOG_MEM: usize = verifier::MAX_LOG_MEMORY;
 /// the memory-soundness and count-non-wrap counting arguments are theorems only
 /// for instances whose total read-flush count stays far below `2^64`, so the
 /// verifier rejects any announcement exceeding them before running a reduction.
-const MAX_LOG_ROWS: usize = 32;
+const MAX_LOG_ROWS: usize = verifier::MAX_TABLE_LOG;
 
 /// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
 /// everything fixed about the proving environment.

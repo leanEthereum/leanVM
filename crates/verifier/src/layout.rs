@@ -83,15 +83,16 @@ pub const K_BITS: usize = 64;
 pub const KECCAK_DEPTH: usize = 12;
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
-pub const MAX_TABLE_LOG: usize = 32;
+/// Every size a proof announces or commits is at most `2^30`: a table's rows, the memory, the bytecode and the stack.
+pub const MAX_TABLE_LOG: usize = 30;
 /// The least memory a proof announces, as a log: the public input's two cells.
 pub const MIN_LOG_MEMORY: usize = 1;
-/// The largest memory a proof announces, as a log.
-pub const MAX_LOG_MEMORY: usize = 32;
+pub const MAX_LOG_MEMORY: usize = 30;
+/// The largest bytecode, as a log of its instructions.
+pub const MAX_LOG_BYTECODE: usize = 30;
+/// The PCS's least stack, as a log.
 pub const MIN_STACKED_LOG: usize = 16;
-/// The largest stack the verifier admits, below the `2^40` the caps alone would: past `2^32` the knowledge extractor's
-/// decoder outgrows the sizes its proof covers (`formal/`).
-pub const MAX_STACKED_LOG: usize = 32;
+pub const MAX_STACKED_LOG: usize = 30;
 
 pub struct Layout<'a> {
     pub log_memory: usize,
@@ -562,7 +563,7 @@ pub fn build_layout<'a>(
     require(
         (MIN_LOG_MEMORY as u64..=MAX_LOG_MEMORY as u64).contains(&log_memory)
             && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
-            && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
+            && (BUS_BITS..=MAX_LOG_BYTECODE + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
     )?;
     let log_bytecode = log_bytecode - BUS_BITS;
@@ -635,6 +636,6 @@ mod tests {
         // Every size and table only grows the stack.
         assert!(stack_log(16, 19, 4) >= min_execution_stacked_log(19));
         // The caps alone admit larger stacks, so the stack's own bound is a check of the verifier's.
-        assert!(stack_log(MAX_LOG_MEMORY, 32, MAX_TABLE_LOG) > MAX_STACKED_LOG);
+        assert!(stack_log(MAX_LOG_MEMORY, MAX_LOG_BYTECODE, MAX_TABLE_LOG) > MAX_STACKED_LOG);
     }
 }

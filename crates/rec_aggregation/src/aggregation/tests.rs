@@ -320,10 +320,13 @@ fn guest_column_selectors_match_native_eq() {
     let source = format!(
         r#"{helpers}
 def main():
-    point = HeapBuf(MAX_STACK_LOG)
+    # The selector tables read whole nibbles of coordinates, zero past the stack.
+    point = HeapBuf(4 * SEL_NIBBLES)
     hint_witness(point[0:MAX_STACK_LOG], "point")
-    point1 = HeapBuf(MAX_STACK_LOG)
-    for k in unroll(0, MAX_STACK_LOG):
+    for k in unroll(MAX_STACK_LOG, 4 * SEL_NIBBLES):
+        point[GEN ** k] = 0
+    point1 = HeapBuf(4 * SEL_NIBBLES)
+    for k in unroll(0, 4 * SEL_NIBBLES):
         point1[GEN ** k] = 1 + point[GEN ** k]
     sel_eq = selector_tables(point, point1)
     g_squares = exponent_tables()

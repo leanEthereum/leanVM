@@ -1,17 +1,10 @@
-//! Pins both verifiers' `WHIR_QUERIES` and `WHIR_FOLD_GRINDING`, the Rust ones and the Lean ones
-//! (`formal/Statement/LeanVmVerifier.lean`), against the prover's query search. They tabulate rather than repeat that
-//! search, which would make cross-language float identity part of the protocol.
+//! Pins both verifiers' `WHIR_QUERIES`, the Rust one's and the Lean one's (`formal/Statement/LeanVmVerifier.lean`),
+//! against the prover's query search. They tabulate rather than repeat that search, which would make cross-language
+//! float identity part of the protocol.
 
 use leanvm_core::pcs::{MAX_LOG_INV_RATE, MAX_MU, MIN_LOG_INV_RATE, MIN_MU};
 use pcs::LOG_PACKING;
 use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
-
-/// The two tables, by their Rust and Lean names.
-type Tabulated = fn(usize, usize) -> Option<&'static [usize]>;
-const TABLES: [(&str, &str, Tabulated); 2] = [
-    ("WHIR_QUERIES", "queryTable", verifier::whir_queries),
-    ("WHIR_FOLD_GRINDING", "foldGrindingTable", verifier::whir_fold_grinding),
-];
 
 /// The prover's query search at a packed size and rate.
 fn search(log_n: usize, rate: usize) -> ProverConfig {
@@ -55,26 +48,19 @@ fn lean_query_table_matches_rust() {
             "set {name} in formal/Statement/LeanVmVerifier.lean to {value}"
         );
     }
-    let table = |name: &str| -> String {
-        let head = format!("def {name} : List (List (List ℕ)) :=");
-        let body = &source[source
-            .find(&head)
-            .unwrap_or_else(|| panic!("`{name}` in the Lean verifier"))
-            + head.len()..];
-        body[..body.find("\n\n").unwrap_or(body.len())]
-            .chars()
-            .filter(|c| !c.is_whitespace())
-            .collect()
-    };
-    for (rust, lean, tabulated) in TABLES {
-        assert_eq!(
-            table(lean),
-            lean_literal(&entries(|log_n, rate| tabulated(log_n, rate)
-                .expect("in the window")
-                .to_vec())),
-            "the Lean verifier's {lean} differs from crates/verifier's {rust}: regenerate both with print_whir_query_table"
-        );
-    }
+    let head = "def queryTable : List (List (List ℕ)) :=";
+    let body = &source[source.find(head).expect("`queryTable` in the Lean verifier") + head.len()..];
+    let lean: String = body[..body.find("\n\n").unwrap_or(body.len())]
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+    let rust = lean_literal(&entries(|log_n, rate| {
+        verifier::whir_queries(log_n, rate).expect("in the window").to_vec()
+    }));
+    assert_eq!(
+        lean, rust,
+        "the Lean verifier's queryTable differs from crates/verifier's WHIR_QUERIES: regenerate both with print_whir_query_table"
+    );
 }
 
 /// Every admitted shape's proof fits the wire format: its Merkle phases, their queries, leaf widths and tree heights.
@@ -108,15 +94,11 @@ fn whir_query_table_matches_the_search() {
     for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
         for log_n in MIN_MU..=MAX_MU {
             let config = search(log_n, rate);
-            for ((rust, _, tabulated), searched) in
-                TABLES.into_iter().zip([&config.queries, &config.fold_grinding_bits])
-            {
-                assert_eq!(
-                    tabulated(log_n, rate),
-                    Some(&searched[..]),
-                    "rate {rate}, log_n {log_n}: crates/verifier's {rust} is stale, regenerate it with print_whir_query_table"
-                );
-            }
+            assert_eq!(
+                verifier::whir_queries(log_n, rate),
+                Some(&config.queries[..]),
+                "rate {rate}, log_n {log_n}: crates/verifier's WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
+            );
             // Hardcoded in the verifiers, so it must hold wherever the table does.
             let expected_ood: Vec<usize> = std::iter::once(0)
                 .chain(std::iter::repeat_n(1, config.queries.len() - 1))
@@ -130,24 +112,18 @@ fn whir_query_table_matches_the_search() {
     // The verifier admits exactly the prover's committed-size window, which `pcs::MAX_MU` sets.
     assert_eq!(verifier::whir_queries(MIN_MU - 1, 1), None);
     assert_eq!(verifier::whir_queries(MAX_MU + 1, 1), None);
-    assert_eq!(verifier::whir_fold_grinding(MAX_MU + 1, 1), None);
 }
 
-/// Regenerates the literals the pins above check: per table, the rows go over `WHIR_QUERIES`, then
-/// `WHIR_FOLD_GRINDING`, in `crates/verifier/src/whir.rs`, the line after them over `queryTable`, then
-/// `foldGrindingTable`, in `formal/Statement/LeanVmVerifier.lean`.
+/// Regenerates the literals the pins above check: the rows go over `WHIR_QUERIES` in `crates/verifier/src/whir.rs`,
+/// the last line over `queryTable` in `formal/Statement/LeanVmVerifier.lean`.
 /// `cargo test --release -p leanvm_core --test verifiers print_whir_query_table -- --ignored --nocapture`
 #[test]
 #[ignore = "manual table regeneration"]
 fn print_whir_query_table() {
-    for rows in [
-        entries(|log_n, rate| search(log_n, rate).queries),
-        entries(|log_n, rate| search(log_n, rate).fold_grinding_bits),
-    ] {
-        for row in &rows {
-            let row: Vec<String> = row.iter().map(|entry| format!("&{entry}")).collect();
-            println!("    [{}],", row.join(", "));
-        }
-        println!("{}", lean_literal(&rows));
+    let rows = entries(|log_n, rate| search(log_n, rate).queries);
+    for row in &rows {
+        let row: Vec<String> = row.iter().map(|entry| format!("&{entry}")).collect();
+        println!("    [{}],", row.join(", "));
     }
+    println!("{}", lean_literal(&rows));
 }

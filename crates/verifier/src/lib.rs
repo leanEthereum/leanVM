@@ -23,10 +23,13 @@ mod whir;
 
 pub use bytecode::Bytecode;
 pub use field::{E, K};
-pub use layout::{MAX_LOG_MEMORY, MAX_STACKED_LOG, MIN_LOG_MEMORY, MIN_STACKED_LOG, TAG, min_execution_stacked_log};
+pub use layout::{
+    MAX_LOG_BYTECODE, MAX_LOG_MEMORY, MAX_STACKED_LOG, MAX_TABLE_LOG, MIN_LOG_MEMORY, MIN_STACKED_LOG, TAG,
+    min_execution_stacked_log,
+};
 pub use merkle::MerklePath;
 pub use transcript::Proof;
-pub use whir::{whir_fold_grinding, whir_queries};
+pub use whir::whir_queries;
 
 use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};

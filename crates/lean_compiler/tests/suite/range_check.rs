@@ -149,12 +149,12 @@ def main():
     verify(&program, &want, &proof).expect("hinted g-power range checks verify");
 }
 
-/// Bounds beyond `2^32`, the largest memory, could never be complete: rejected at
+/// Bounds beyond `2^30`, the largest memory, could never be complete: rejected at
 /// compile time.
 #[test]
-#[should_panic(expected = "exceeds 2^32")]
+#[should_panic(expected = "exceeds 2^30")]
 fn range_check_bound_too_big_rejected() {
-    let src = "def main():\n    x = 1\n    assert log x < 4294967297\n    return\n";
+    let src = "def main():\n    x = 1\n    assert log x < 1073741825\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 

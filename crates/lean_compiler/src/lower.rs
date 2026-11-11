@@ -904,7 +904,7 @@ impl FnLower<'_> {
     ///    so the runner back-solves the one unknown operand;
     /// 3. `DEREF` through `y`, proving `y = g^f` with `f < 2^h`.
     ///
-    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^32`, and a negative
+    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^30`, and a negative
     /// `k-1-e` wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size.
     /// The check is complete at the memory an honest prover announces, which holds
     /// every cell the run touches, the complement included. Both `DEREF` destinations are unconstrained

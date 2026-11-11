@@ -17,8 +17,8 @@
 //! - batching challenges -> `johnson_algebraic_bits` (one challenge per level,
 //!   powers of it over the level's claim list, as in the doc),
 //! - fold challenge `s_j` -> `2 L/|F| + eps`: the MCA part via
-//!   `paper_thm_ca_johnson_log_a`, plus the level's fold grinding bits, the
-//!   `2 L/|F|` part under `johnson_algebraic_bits`,
+//!   `paper_thm_ca_johnson_log_a`, the `2 L/|F|` part under
+//!   `johnson_algebraic_bits`,
 //! - OOD challenge -> `paper_ood_bits`,
 //! - query message -> `(1 - gamma)^t`, plus [`QUERY_GRINDING_BITS`].
 //!
@@ -58,13 +58,6 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
 /// level commitment and before its query positions are sampled, so the query
 /// count only needs to close the remaining `SECURITY_BITS - 17` bits.
 pub const QUERY_GRINDING_BITS: usize = 17;
-
-/// The most fold grinding bits the derivation may assign a level. A level grinds
-/// before each of its fold challenges only where the proximity gap alone falls
-/// short of the target, which happens only at large stacks. No more than the
-/// query phase's, the largest proof of work the formal completeness bound covers
-/// (`maxGrindingBits` in `formal/`).
-const MAX_FOLD_GRINDING_BITS: usize = QUERY_GRINDING_BITS;
 
 /// Maximum BCHKS25 integer parameter considered by the per-level eta search.
 /// Production configurations hit the proximity-gap boundary far below this;
@@ -114,10 +107,6 @@ pub struct ProverConfig {
     /// post-commit/pre-queries. Length = level_steps + 1. Each bit here
     /// substitutes for ~1/log₂(1/(1−γ)) queries at that level.
     pub grinding_bits: Vec<usize>,
-    /// Per-level **fold** PoW grinding bits (L0, L1, ..., L_r), ground before
-    /// each of the level's fold challenges; 0 grinds nothing and sends no nonce.
-    /// Length = level_steps + 1.
-    pub fold_grinding_bits: Vec<usize>,
     /// Per-commit-level out-of-domain samples (L0, ..., L_r), taken right
     /// after the level's Merkle root enters the transcript. `[0]` must be 0:
     /// L0 is bound by the opening's own (post-commit, random-point)
@@ -227,7 +216,6 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
         initial_k,
         level_ks: shape.k_levels[1..].to_vec(),
         grinding_bits: vec![0usize; n_levels],
-        fold_grinding_bits: vec![0usize; n_levels],
         ood_samples: vec![0usize; n_levels],
     })
 }
@@ -361,10 +349,6 @@ pub struct WhirLevelConfig {
     /// **Query-phase** PoW grinding bits, ground post-commit/pre-queries.
     /// Each bit substitutes for ~1/log₂(1/(1−γ)) queries at this level.
     pub grinding_bits: usize,
-    /// **Fold** PoW grinding bits, ground before each of this level's fold
-    /// challenges: what the proximity gap leaves of the target, 0 where it
-    /// reaches it alone.
-    pub fold_grinding_bits: usize,
     /// Out-of-domain samples taken right after this level's commit enters
     /// the transcript. Each binds the prover to a single codeword of the
     /// interleaved list via a multilinear evaluation claim.
@@ -390,8 +374,7 @@ pub struct FinalBlockConfig {
 ///
 /// **Validation invariants** (checked by [`Self::validate`]):
 /// 1. `initial_k + Σ levels[1..].k + final_block.yr_log_n == log_n`.
-/// 2. Each level's proximity-gap bits reach `target_security_bits −
-///    fold_grinding_bits`.
+/// 2. Each level's proximity-gap bits reach `target_security_bits`.
 /// 3. Each level's query soundness reaches `target_security_bits −
 ///    grinding_bits` (queries cover what grinding doesn't).
 /// 4. `eta` is finite and inside the Johnson range for the level's rate.
@@ -615,8 +598,7 @@ fn johnson_eta_for_m(log_inv_rate: usize, log_msg_cols: usize, m: usize) -> f64 
 /// Choose eta independently for one recursive level, following leanVM's
 /// discrete `m` search but using this implementation's exact reduced rate and
 /// corrected BCHKS25 parameter. Candidates must satisfy every non-grindable
-/// 128-bit term, and the proximity-gap target less `fold_grinding_bits`.
-#[allow(clippy::too_many_arguments)]
+/// 128-bit term and the proximity-gap target without fold grinding.
 fn optimize_johnson_level(
     level: usize,
     log_inv_rate: usize,
@@ -624,11 +606,9 @@ fn optimize_johnson_level(
     log_num_interleaved: usize,
     target_bits: usize,
     query_grinding_bits: usize,
-    fold_grinding_bits: usize,
     prev_queries: usize,
 ) -> Result<OptimizedJohnsonLevel, String> {
     let target = target_bits as f64;
-    let pg_target = target - fold_grinding_bits as f64;
     let query_target = target_bits.saturating_sub(query_grinding_bits).max(1) as f64;
     let mu = log_msg_cols + log_num_interleaved;
     let block_len = 1usize << (log_msg_cols + log_inv_rate);
@@ -644,7 +624,7 @@ fn optimize_johnson_level(
         let eps_pg = ANALYSIS_LOG_Q - paper_thm_ca_johnson_log_a(log_inv_rate, eta, log_msg_cols);
         // At the theorem-parameter boundaries a grows monotonically with m;
         // no later candidate can recover once the proximity-gap target fails.
-        if eps_pg + 1e-12 < pg_target {
+        if eps_pg + 1e-12 < target {
             break;
         }
 
@@ -843,12 +823,13 @@ impl WhirSecurityConfig {
                 ));
             }
 
-            // The proximity gap's bad event lives on the fold challenges, so only
-            // the fold grind, not the query-phase one, covers what it leaves.
-            if pg_pred + lv.fold_grinding_bits as f64 + 1e-12 < lv.target_security_bits as f64 {
+            // The proximity gap must reach target on its own: its bad event
+            // lives on the fold challenges, which nothing grinds, and the
+            // query-phase grind does not cover them.
+            if pg_pred + 1e-12 < lv.target_security_bits as f64 {
                 return Err(format!(
-                    "L{i}: proximity-gap soundness ({pg_pred:.2} bits) + fold grinding ({}) < target ({})",
-                    lv.fold_grinding_bits, lv.target_security_bits
+                    "L{i}: proximity-gap soundness ({pg_pred:.2} bits) < target ({})",
+                    lv.target_security_bits
                 ));
             }
 
@@ -920,17 +901,7 @@ impl WhirSecurityConfig {
             let cols = shape.log_msg_cols[i];
             let ilv = shape.k_levels[i];
             let prev_queries = prev_queries_at(&levels, i);
-            // The fewest fold grinding bits that admit a candidate: none wherever the
-            // proximity gap reaches the target alone, which keeps those shapes unchanged.
-            let (fold_grind, optimized) = (0..=MAX_FOLD_GRINDING_BITS)
-                .find_map(|bits| {
-                    optimize_johnson_level(i, rate, cols, ilv, target_bits, query_grind, bits, prev_queries)
-                        .ok()
-                        .map(|optimized| (bits, optimized))
-                })
-                .ok_or_else(|| {
-                    format!("L{i}: no eta candidate satisfies {target_bits}-bit soundness at rate 1/2^{rate}")
-                })?;
+            let optimized = optimize_johnson_level(i, rate, cols, ilv, target_bits, query_grind, prev_queries)?;
 
             levels.push(WhirLevelConfig {
                 log_inv_rate: rate,
@@ -940,7 +911,6 @@ impl WhirSecurityConfig {
                 eta: optimized.eta,
                 queries: optimized.queries,
                 grinding_bits: query_grind,
-                fold_grinding_bits: fold_grind,
                 ood_samples: optimized.ood_samples,
                 target_security_bits: target_bits,
             });
@@ -970,7 +940,6 @@ impl WhirSecurityConfig {
             level_ks: self.levels.iter().skip(1).map(|lv| lv.k).collect(),
             queries: self.levels.iter().map(|lv| lv.queries).collect(),
             grinding_bits: self.levels.iter().map(|lv| lv.grinding_bits).collect(),
-            fold_grinding_bits: self.levels.iter().map(|lv| lv.fold_grinding_bits).collect(),
             ood_samples: self.levels.iter().map(|lv| lv.ood_samples).collect(),
         })
     }
@@ -999,7 +968,7 @@ mod tests {
         let mut min_pg_bits = f64::INFINITY;
         for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
             // The stacking window, `leanvm_core::pcs::{MIN_MU, MAX_MU}`.
-            for m in 16 + crate::LOG_PACKING..=32 + crate::LOG_PACKING {
+            for m in 16 + crate::LOG_PACKING..=30 + crate::LOG_PACKING {
                 let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
                 assert_eq!(cfg.target_security_bits, 128);
                 assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
@@ -1008,15 +977,10 @@ mod tests {
                     let (pg_bits, query_bits) = level.paper_predicted_bits();
                     let ood_bits = level.paper_predicted_ood_bits();
                     let algebraic_bits = johnson_algebraic_bits(level, prev_queries_at(&cfg.levels, i));
+                    min_pg_bits = min_pg_bits.min(pg_bits);
                     assert_eq!(level.grinding_bits, QUERY_GRINDING_BITS);
                     assert!(query_bits + level.grinding_bits as f64 >= 128.0);
-                    assert!(pg_bits + level.fold_grinding_bits as f64 >= 128.0);
-                    // A level grinds its fold challenges only where the proximity gap falls short.
-                    if level.fold_grinding_bits == 0 {
-                        min_pg_bits = min_pg_bits.min(pg_bits);
-                    } else {
-                        assert!(pg_bits + level.fold_grinding_bits as f64 - 1.0 < 128.0);
-                    }
+                    assert!(pg_bits >= 128.0);
                     assert!(ood_bits >= 128.0);
                     assert!(algebraic_bits >= 128.0);
                     if i > 0 {
@@ -1055,11 +1019,10 @@ mod tests {
         for (level, params) in cfg.levels.iter().enumerate() {
             let eta = params.eta;
             println!(
-                "L{}: rate=1/{}, queries={}, fold grinding={}, eta={eta:.12e}, m={}",
+                "L{}: rate=1/{}, queries={}, eta={eta:.12e}, m={}",
                 pretty_integer(level),
                 pretty_integer(1usize << params.log_inv_rate),
                 pretty_integer(params.queries),
-                params.fold_grinding_bits,
                 pretty_integer(johnson_m_param(params.log_inv_rate, params.log_msg_cols, eta) as usize),
             );
         }

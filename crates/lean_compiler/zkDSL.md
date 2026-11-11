@@ -372,7 +372,7 @@ A proof-enforced inequality, in **3 instructions and no branch**: `XOR` for `x =
 
 ### Range checks: `assert log x < log Y` and `assert log x < k`
 
-The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^32` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included. `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
+The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^30` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included. `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
 
 ```python
 assert log(x) < log(GEN ** 8)
@@ -380,7 +380,7 @@ assert log(x) < 8               # the same check
 assert log(x) < log(n)          # n = g^k runtime: same gadget, +1 cycle
 ```
 
-A **runtime** bound costs one extra `MUL` for `g^{k-1} = n·g⁻¹` and is otherwise identical, except that a small `k` becomes the program's to show: check the bound itself first, for example with `assert_gpow(n)`, which puts its log below the memory size, at most `2^32`. That check is not optional: without it `n` may be any field element and the check bounds nothing.
+A **runtime** bound costs one extra `MUL` for `g^{k-1} = n·g⁻¹` and is otherwise identical, except that a small `k` becomes the program's to show: check the bound itself first, for example with `assert_gpow(n)`, which puts its log below the memory size, at most `2^30`. That check is not optional: without it `n` may be any field element and the check bounds nothing.
 
 Cost: **3 cycles** (leanVM's DEREF range-check trick, in the exponent) plus one amortized `SET` per distinct bound per frame:
 

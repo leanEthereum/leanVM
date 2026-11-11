@@ -1066,7 +1066,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 
     let mut r_lane_fold = Vec::with_capacity(initial_k);
     for j in 0..initial_k {
-        ps.grind(config.fold_grinding_bits[0] as u32);
         let r_j = ps.sample();
         let msg = sumcheck_span.in_scope(|| sc_prover.fold_lane(r_j, j + 1 == initial_k));
         send_msg(ps, msg);
@@ -1150,7 +1149,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let mut level_rs = Vec::with_capacity(k_i);
         let sumcheck_span = tracing::info_span!("Sumcheck");
         for _ in 0..k_i {
-            ps.grind(config.fold_grinding_bits[i + 1] as u32);
             let ri = ps.sample();
             let msg = sumcheck_span.in_scope(|| sc_prover.fold(ri));
             send_msg(ps, msg);

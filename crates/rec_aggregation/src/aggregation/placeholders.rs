@@ -155,7 +155,6 @@ struct OpeningShape {
     squeezes: Vec<usize>,
     interleaving: Vec<usize>,
     query_grinding_bits: Vec<usize>,
-    fold_grinding_bits: Vec<usize>,
     cap_depths: Vec<usize>,
     fold_offsets: Vec<usize>,
     residual_fold_offsets: Vec<usize>,
@@ -178,6 +177,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("QW", QUERY_WINDOW_BITS.to_string());
     ps("QUERY_WINDOWS_CAP", QUERY_WINDOWS_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
+    ps("MAX_LOG_MEM", leanvm_core::cpu::MAX_LOG_MEM.to_string());
     ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
@@ -636,7 +636,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             squeezes: cs,
             interleaving: cni,
             query_grinding_bits: shape.config.grinding_bits,
-            fold_grinding_bits: shape.config.fold_grinding_bits,
             cap_depths,
             fold_offsets: c_foldbase,
             residual_fold_offsets: c_risstart,
@@ -745,7 +744,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             "a query phase grinds no bits"
         );
         ps("LIG_QUERY_GRIND_BITS", flat(&|c| c.query_grinding_bits.clone()));
-        ps("LIG_FOLD_GRIND_BITS", flat(&|c| c.fold_grinding_bits.clone()));
         ps("LIG_OOD_SAMPLES", flat(&|c| c.ood_samples.clone()));
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
@@ -804,15 +802,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         .iter()
         .flat_map(|c| (0..c.n_levels).map(|lv| c.squeezes[lv] * c.positions_per_squeeze[lv]));
     ps("LIG_LEVEL_POSITIONS_CAP", level_positions.max().unwrap().to_string());
-    // Per size row and level: whether some rate grinds that level's fold challenges.
-    let grind_any: Vec<usize> = (0..n_log_sizes)
-        .flat_map(|size| (0..maxlev).map(move |lv| (size, lv)))
-        .map(|(size, lv)| {
-            let ground = |rate: usize| cands[rate * n_log_sizes + size].fold_grinding_bits.get(lv) > Some(&0);
-            usize::from((0..n_rates).any(ground))
-        })
-        .collect();
-    ps("LIG_FOLD_GRIND_ANY", literals(grind_any));
     // The subspace-vanishing values of a level's message columns and their inverses, by the column count: block `n`
     // at n(n+1)/2.
     let max_cols = cands
