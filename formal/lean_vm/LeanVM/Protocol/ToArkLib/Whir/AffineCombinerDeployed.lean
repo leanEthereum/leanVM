@@ -14,8 +14,8 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerParams
 # Checking a fold round
 
 Round `j` (`1 ≤ j ≤ k`) of a level with `κ` message variables, rate exponent `R`, `k` fold rounds
-and final threshold `Aend` is analysed (Annex B, `thm:rbr`) on `n = 2^(κ+R)` points at degree
-`d = 2^κ - 1 + j` and threshold `A = Aend - (k - j)` (`roundN`, `roundD`, `roundA`).
+and final threshold `Aend` is analysed (Annex B, `thm:rbr`) on `n = 2^(κ+R)` points at the level's
+final degree `d = 2^κ - 1 + k` and threshold `A = Aend - (k - j)` (`roundN`, `roundD`, `roundA`).
 `foldRoundOK κ R k Aend j m D B budget` checks, in natural numbers:
 
 * `Admissible n d A m D B` and `n d < (A - 1)²`;
@@ -24,8 +24,7 @@ and final threshold `Aend` is analysed (Annex B, `thm:rbr`) on `n = 2^(κ+R)` po
 * `D² (A - B)² + 4 d² M² D³ n² ≤ (budget - jl n B (d + 1) - 2 jl n (A - 1) d) q (A - B)²`,
   `crates/pcs/src/whir_config/affine_mca.rs`, `combiner_within`, exactly.
 
-`foldRoundOK_sound`: a passing round has `Admissible`, `n d < (A - 1)²`, the premix row
-`jl n (A - 1) d ≤ budget`, and the fold row `q · nAff + 2 jl n (A - 1) d q² ≤ budget q²`
+`foldRoundOK_sound`: a passing round has `Admissible`, `n d < (A - 1)²`, and the fold row `q · nAff + 2 jl n (A - 1) d q² ≤ budget q²`
 (in `ℚ`), which with `card_foldBad_le_nAff_of_lemma43` bounds the round's escapes by
 `budget · q²`, a probability of `budget / q`.
 -/
@@ -42,8 +41,8 @@ abbrev qE : ℕ := 2 ^ 128
 /-- The block length `2^(κ + R)`. -/
 def roundN (κ R : ℕ) : ℕ := 2 ^ (κ + R)
 
-/-- Round `j`'s degree bound `2^κ - 1 + j`. -/
-def roundD (κ j : ℕ) : ℕ := 2 ^ κ - 1 + j
+/-- The degree bound of every round of a level of `k` folds, `2^κ - 1 + k`. -/
+def roundD (κ k : ℕ) : ℕ := 2 ^ κ - 1 + k
 
 /-- Round `j`'s threshold `Aend - (k - j)`. -/
 def roundA (k Aend j : ℕ) : ℕ := Aend - (k - j)
@@ -113,7 +112,7 @@ theorem admissible_of_fast {n d A m D B : ℕ} (h : admissibleFast n d A m D B =
 /-- **The check of one fold round**, as the Rust's `check_fold_round`. -/
 def foldRoundOK (κ R k Aend j m D B budget : ℕ) : Bool :=
   let n := roundN κ R
-  let d := roundD κ j
+  let d := roundD κ k
   let A := roundA k Aend j
   admissibleFast n d A m D B && decide (n * d < (A - 1) * (A - 1)) &&
     decide (n * (n - 1) / 2 ≤ qE) &&
@@ -121,26 +120,25 @@ def foldRoundOK (κ R k Aend j m D B budget : ℕ) : Bool :=
     decide (D ^ 2 * (A - B) ^ 2 + 4 * d ^ 2 * bigM d A m D ^ 2 * D ^ 3 * n ^ 2 ≤
       (budget - jl n B (d + 1) - 2 * jl n (A - 1) d) * qE * (A - B) ^ 2)
 
-/-- **Soundness of the round check**: admissibility, the Johnson hypothesis, the premix row
-`jl n (A - 1) d ≤ budget`, and the fold row `q · nAff + 2 jl n (A - 1) d q² ≤ budget q²`. -/
+/-- **Soundness of the round check**: admissibility, the Johnson hypothesis, and the fold row
+`q · nAff + 2 jl n (A - 1) d q² ≤ budget q²`. -/
 theorem foldRoundOK_sound {κ R k Aend j m D B budget : ℕ}
     (h : foldRoundOK κ R k Aend j m D B budget = true) :
-    Admissible (roundN κ R) (roundD κ j) (roundA k Aend j) m D B ∧
-      roundN κ R * roundD κ j < (roundA k Aend j - 1) * (roundA k Aend j - 1) ∧
-      jl (roundN κ R) (roundA k Aend j - 1) (roundD κ j) ≤ budget ∧
-      (qE : ℚ) * nAff qE (roundN κ R) (roundD κ j) (roundA k Aend j) m D B +
-          2 * jl (roundN κ R) (roundA k Aend j - 1) (roundD κ j) * (qE : ℚ) ^ 2 ≤
+    Admissible (roundN κ R) (roundD κ k) (roundA k Aend j) m D B ∧
+      roundN κ R * roundD κ k < (roundA k Aend j - 1) * (roundA k Aend j - 1) ∧
+      (qE : ℚ) * nAff qE (roundN κ R) (roundD κ k) (roundA k Aend j) m D B +
+          2 * jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ) ^ 2 ≤
         budget * (qE : ℚ) ^ 2 := by
   simp only [foldRoundOK, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨hfast, hgap⟩, hchoose⟩, hbud⟩, hcomb⟩ := h
   have hadm := admissible_of_fast hfast
   set n := roundN κ R
-  set d := roundD κ j
+  set d := roundD κ k
   set A := roundA k Aend j
   set M := bigM d A m D
   set lB := jl n B (d + 1)
   set lA := jl n (A - 1) d
-  refine ⟨hadm, hgap, by omega, ?_⟩
+  refine ⟨hadm, hgap, ?_⟩
   have hBA : B < A := hadm.2.2.2.2.2.2.1
   have hmax : max qE (n.choose 2) = qE := by
     rw [Nat.choose_two_right]; exact max_eq_left hchoose

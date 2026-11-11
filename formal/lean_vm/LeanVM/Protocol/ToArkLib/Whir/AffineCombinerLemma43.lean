@@ -201,17 +201,16 @@ theorem card_excSet_le_nAff' (p : ℕ) [Fact p.Prime] [CharP F p] (dom : ι ↪ 
     ((excSet dom f g d A).card : ℚ) ≤ nAff (Fintype.card F) (Fintype.card ι) d A m D B :=
   card_excSet_le_nAff_of_lemma43 dom hadm (lemma43 (p := p) D _) f g
 
-/-- **One affine fold round, unconditional** (Annex B, `lem:fold-list` (ii), counting form). -/
+/-- **One affine fold round, unconditional** (Annex B, `lem:fold-list`, counting form). -/
 theorem card_foldBad_le_nAff' [DecidableEq F] (p : ℕ) [Fact p.Prime] [CharP F p] (dom : ι ↪ F) (f g : ρ → ι → F) {d A m D B : ℕ}
     (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
     (hadm : Admissible (Fintype.card ι) d A m D B)
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ q ∈ pairList dom f g (A - 1) (d - 1), Λ₀ q.1 + Λ₁ q.2 ≠ c)
-    (θ : F) (hθ : IsGood dom f g A d θ) (u₀ v₀ c₀ v₁ c₁ : F) :
-    ((foldBad dom f g A d Λ₀ Λ₁ c θ u₀ v₀ c₀ v₁ c₁).card : ℚ) ≤
+    (hviol : ∀ q ∈ pairList dom f g (A - 1) d, Λ₀ q.1 + Λ₁ q.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
+    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card : ℚ) ≤
       Fintype.card F * nAff (Fintype.card F) (Fintype.card ι) d A m D B +
         2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) ^ 2 :=
-  card_foldBad_le_nAff_of_lemma43 dom f g hgap hadm (lemma43 (p := p) D _) Λ₀ Λ₁ c hviol θ hθ
+  card_foldBad_le_nAff_of_lemma43 dom f g hgap hadm (lemma43 (p := p) D _) Λ₀ Λ₁ c hviol
     u₀ v₀ c₀ v₁ c₁
 
 end Final

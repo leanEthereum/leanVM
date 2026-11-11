@@ -1,8 +1,8 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFold
 
-  One affine fold round with the premix `θ` and the weight challenge `γ`: Annex B's
-  `lem:fold-list`, from any bound on the exceptional pairs of the affine combiner.
+  One affine fold round with the weight challenge `γ`: Annex B's `lem:fold-list`, from any bound
+  on the exceptional pairs of the affine combiner.
   Candidate for ArkLib.
 -/
 
@@ -15,26 +15,30 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDefs
 
 Annex B of the leanVM specification (branch `f128`,
 `doc/leanvm/body/b-polynomial-commitment-scheme.tex`), `lem:fold-list`, after [CYWZ26, preprint],
-Thm. 5.1 and Cor. 5.2. Fix an interleaved word with halves `f g : ρ → ι → F` (the lanes whose
+Thm. 1.1 (Lemma 4.1). Fix an interleaved word with halves `f g : ρ → ι → F` (the lanes whose
 folded bit is `0` and `1`), a degree `1 ≤ d`, a threshold `A` with `(A - 1)² > n d`, and
 `L := jl n (A - 1) d`. The round's claim is `Λ₀ F + Λ₁ G = c` on pairs `(F, G)` of tuples, for
 `F`-linear functionals `Λ₀ Λ₁` (the Annex's `⟨W₀, ·⟩` and `⟨W₁, ·⟩`; that coefficients of index
 `2^κ` and above carry no weight is irrelevant here, only linearity is used).
 
-* `foldW dom f g θ α β = g + (α + β x)(f + θ g)`, the affine fold (`def:affine-fold`).
-* `IsGood dom f g A d θ`: no pair of `lst(f, g; A - 1, d)` has a nonzero coefficient of `X^d` in
-  some lane of `G` while `F + θ G` has none in any lane.
-* `card_badPremix_le` (part (i)): at most `L` premixes `θ` are not good.
-* `card_foldBad_le` (part (ii)): if every pair of `lst(f, g; A - 1, d - 1)` violates the claim and
-  `θ` is good, then for every table `u₀ v₀ c₀ v₁ c₁` and `u₁ := c - v₀ + θ u₀`, at most
-  `|F| · N + 2 L |F|²` challenges `(γ, α, β)` let some tuple of `lst(fold; A, d)` satisfy the new
-  claim `(1 - γ) Λ₀ P + γ Λ₁ P = (1 - γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁)`, where `N` is
-  the number of exceptional pairs of the combiner for the words `g` and `f + θ g`. Divided by
-  `|F|³`, this is the Annex's `ε_aff + 2L/|E|` when `N ≤ |F|² ε_aff`.
+* `foldW dom f g α β = g + (α + β x) f`, the affine fold (`def:affine-fold`).
+* `card_foldBad_le`: if every pair of `lst(f, g; A - 1, d)` violates the claim, then for every
+  table `u₀ v₀ c₀ v₁ c₁` and `u₁ := c - v₀`, at most `|F| · N + 2 L |F|²` challenges `(γ, α, β)`
+  let some tuple of `lst(fold; A, d)` satisfy the new claim
+  `(1 - γ) Λ₀ P + γ Λ₁ P = (1 - γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁)`, where `N` is the
+  number of exceptional pairs of the combiner for the words `g` and `f`. Divided by `|F|³`, this
+  is the Annex's `ε_aff + 2L/|E|` when `N ≤ |F|² ε_aff`.
 
-The Annex writes `u₁ := c + v₀ + θ u₀`, which is `c - v₀ + θ u₀` in characteristic `2`; the form
-here is the one valid in every characteristic. The weight `mle W (γ, ·)` of the Annex is
-`(1 - γ) W₀ + γ W₁`, so its claim is the one above.
+Outside the exceptional pairs, a tuple `P` of the fold's list is `U + (α + β X) V` with
+`deg U ≤ d`, `deg V ≤ d - 1`, `U = g` and `V = f` off at most one agreement point, so `(V, U)` is
+in `lst(f, g; A - 1, d)` at the same degree `d`: no premix is needed to keep `U` below the degree.
+Its discrepancy from the table is an affine form in `(α, β)` for each `γ`, zero for at most one
+`γ` (else all six entries would be right and `v₀ + u₁ = Λ₀ V + Λ₁ U ≠ c`), and otherwise zero at
+most `|F|` times.
+
+The Annex writes `u₁ := c + v₀`, which is `c - v₀` in characteristic `2`; the form here is the one
+valid in every characteristic. The weight `mle W (γ, ·)` of the Annex is `(1 - γ) W₀ + γ W₁`, so
+its claim is the one above.
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
@@ -143,22 +147,9 @@ end Affine
 
 /-! ## The fold -/
 
-/-- **The affine fold** (Annex B, `def:affine-fold`): `g + (α + β x)(f + θ g)`, lane by lane. -/
-def foldW (dom : ι ↪ F) (f g : ρ → ι → F) (θ α β : F) : ρ → ι → F :=
-  comb dom g (fun r x ↦ f r x + θ * g r x) α β
-
-/-- A premix `θ` is **good** (Annex B, `lem:fold-list`) if no pair `(F, G)` of
-`lst(f, g; A - 1, d)` has a nonzero coefficient of `X^d` in some lane of `G` while `F + θ G` has
-none in any lane. -/
-def IsGood [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ) (θ : F) : Prop :=
-  ∀ p ∈ pairList dom f g (A - 1) d, (∃ r, (p.2 r).coeff d ≠ 0) →
-    ∃ r, (p.1 r + C θ * p.2 r).coeff d ≠ 0
-
-open Classical in
-/-- The premixes that are not good. -/
-noncomputable def badPremix [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ) :
-    Finset F :=
-  univ.filter fun θ ↦ ¬ IsGood dom f g A d θ
+/-- **The affine fold** (Annex B, `def:affine-fold`): `g + (α + β x) f`, lane by lane. -/
+def foldW (dom : ι ↪ F) (f g : ρ → ι → F) (α β : F) : ρ → ι → F :=
+  comb dom g f α β
 
 omit [Fintype F] [DecidableEq ι] [Fintype ρ] in
 /-- The fold of a tuple is linear in the affine combiner: `Λ (G + (α + β X) H) =
@@ -179,138 +170,88 @@ def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (γ α β u₀ v₀ c�
 open Classical in
 /-- **The fold round's escapes**: the challenges `(γ, α, β)` after which some tuple of
 `lst(fold; A, d)` satisfies the new claim, for the table `u₀ v₀ c₀ v₁ c₁` and the verifier's
-`u₁ = c - v₀ + θ u₀`. -/
+`u₁ = c - v₀`. -/
 noncomputable def foldBad (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ)
-    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c θ u₀ v₀ c₀ v₁ c₁ : F) : Finset (F × F × F) :=
-  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g θ t.2.1 t.2.2) A d,
-    ClaimHolds Λ₀ Λ₁ t.1 t.2.1 t.2.2 u₀ v₀ c₀ (c - v₀ + θ * u₀) v₁ c₁ P
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v₀ c₀ v₁ c₁ : F) : Finset (F × F × F) :=
+  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.2.1 t.2.2) A d,
+    ClaimHolds Λ₀ Λ₁ t.1 t.2.1 t.2.2 u₀ v₀ c₀ (c - v₀) v₁ c₁ P
 
 variable [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) {A d : ℕ}
 
-/-- **Part (i) of `lem:fold-list`**: at most `|lst(f, g; A - 1, d)|` premixes are not good, hence
-at most `jl n (A - 1) d` when `(A - 1)² > n d`. -/
-theorem card_badPremix_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1)) :
-    (badPremix dom f g A d).card ≤ jl (Fintype.card ι) (A - 1) d := by
-  classical
-  let θof : (ρ → F[X]) × (ρ → F[X]) → F := fun p ↦
-    if h : ∃ r, (p.2 r).coeff d ≠ 0 then -(p.1 h.choose).coeff d / (p.2 h.choose).coeff d else 0
-  refine le_trans (card_le_card (t := (pairList dom f g (A - 1) d).image θof) ?_)
-    (card_image_le.trans (card_pairList_le_jl dom f g (A - 1) d hgap))
-  intro θ hθ
-  have hθ : ¬ IsGood dom f g A d θ := by
-    simpa [badPremix] using hθ
-  simp only [IsGood, not_forall, not_exists, not_not, exists_prop] at hθ
-  obtain ⟨p, hp, hG, hF⟩ := hθ
-  refine mem_image.mpr ⟨p, hp, ?_⟩
-  simp only [θof]
-  split
-  · next hG' =>
-    have h0 := hF hG'.choose
-    rw [coeff_add, coeff_C_mul] at h0
-    field_simp [hG'.choose_spec]
-    linear_combination -h0
-  · next hG' => exact absurd hG hG'
-
-/-- **Part (ii) of `lem:fold-list`**, counting form. Let every pair of `lst(f, g; A - 1, d - 1)`
-violate the claim `Λ₀ F + Λ₁ G = c` and let `θ` be good. For every table `u₀ v₀ c₀ v₁ c₁`, at most
-`|F| · |excSet(g, f + θ g)| + 2 jl n (A - 1) d |F|²` challenges `(γ, α, β)` let a tuple of
+/-- **`lem:fold-list`**, counting form. Let every pair of `lst(f, g; A - 1, d)` violate the claim
+`Λ₀ F + Λ₁ G = c`. For every table `u₀ v₀ c₀ v₁ c₁`, at most
+`|F| · |excSet(g, f)| + 2 jl n (A - 1) d |F|²` challenges `(γ, α, β)` let a tuple of
 `lst(fold; A, d)` satisfy the new claim. -/
-theorem card_foldBad_le (hd : 1 ≤ d) (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
+theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ p ∈ pairList dom f g (A - 1) (d - 1), Λ₀ p.1 + Λ₁ p.2 ≠ c)
-    (θ : F) (hθ : IsGood dom f g A d θ) (u₀ v₀ c₀ v₁ c₁ : F) :
-    (foldBad dom f g A d Λ₀ Λ₁ c θ u₀ v₀ c₀ v₁ c₁).card ≤
-      Fintype.card F * (excSet dom g (fun r x ↦ f r x + θ * g r x) d A).card +
+    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
+    (foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card ≤
+      Fintype.card F * (excSet dom g f d A).card +
         2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F ^ 2 := by
   classical
-  set f' : ρ → ι → F := fun r x ↦ f r x + θ * g r x with hf'
-  set u₁ := c - v₀ + θ * u₀ with hu₁
-  set pairs := pairList dom f g (A - 1) (d - 1)
-  -- The candidate fold of a pair, and its escapes.
-  let Hp : (ρ → F[X]) × (ρ → F[X]) → ρ → F[X] := fun p r ↦ p.1 r + C θ * p.2 r
+  set u₁ := c - v₀ with hu₁
+  set pairs := pairList dom f g (A - 1) d
+  -- The fold of a pair, and its escapes.
   let B2 : (ρ → F[X]) × (ρ → F[X]) → Finset (F × F × F) := fun p ↦ univ.filter fun t ↦
-    ClaimHolds Λ₀ Λ₁ t.1 t.2.1 t.2.2 u₀ v₀ c₀ u₁ v₁ c₁ fun r ↦ p.2 r + lin t.2.1 t.2.2 * Hp p r
+    ClaimHolds Λ₀ Λ₁ t.1 t.2.1 t.2.2 u₀ v₀ c₀ u₁ v₁ c₁ fun r ↦ p.2 r + lin t.2.1 t.2.2 * p.1 r
   have hB2 : ∀ p ∈ pairs, (B2 p).card ≤ 2 * Fintype.card F ^ 2 := by
     intro p hp
-    refine le_trans (card_le_card ?_) (card_pencil_le (Λ₀ p.2 - u₀) (Λ₀ (Hp p) - v₀)
-      (Λ₀ (fun r ↦ X * Hp p r) - c₀) (Λ₁ p.2 - u₁) (Λ₁ (Hp p) - v₁)
-      (Λ₁ (fun r ↦ X * Hp p r) - c₁) ?_)
+    refine le_trans (card_le_card ?_) (card_pencil_le (Λ₀ p.2 - u₀) (Λ₀ p.1 - v₀)
+      (Λ₀ (fun r ↦ X * p.1 r) - c₀) (Λ₁ p.2 - u₁) (Λ₁ p.1 - v₁)
+      (Λ₁ (fun r ↦ X * p.1 r) - c₁) ?_)
     · intro t ht
       have ht := (mem_filter.mp ht).2
       simp only [ClaimHolds, map_fold] at ht
       exact mem_filter.mpr ⟨mem_univ _, by linear_combination ht⟩
-    · rintro ⟨ha₀, hb₀, -, ha₁, -, -⟩
+    · rintro ⟨-, hb₀, -, ha₁, -, -⟩
       apply hviol p hp
-      have hH : Λ₀ (Hp p) = Λ₀ p.1 + θ * Λ₀ p.2 := by
-        have : Hp p = p.1 + θ • p.2 := by
-          funext r; simp [Hp, smul_eq_C_mul]
-        rw [this, map_add, map_smul, smul_eq_mul]
-      linear_combination hb₀ + ha₁ - hH - θ * ha₀ + hu₁
-  have hsub : foldBad dom f g A d Λ₀ Λ₁ c θ u₀ v₀ c₀ v₁ c₁ ⊆
-      (univ ×ˢ excSet dom g f' d A) ∪ pairs.biUnion B2 := by
+      linear_combination hb₀ + ha₁ + hu₁
+  have hsub : foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁ ⊆
+      (univ ×ˢ excSet dom g f d A) ∪ pairs.biUnion B2 := by
     intro t ht
     obtain ⟨P, hP, hclaim⟩ := (mem_filter.mp ht).2
     rw [mem_tupleList] at hP
-    by_cases hE : IsExceptional dom g f' d A t.2.1 t.2.2
+    by_cases hE : IsExceptional dom g f d A t.2.1 t.2.2
     · exact mem_union_left _ (mem_product.mpr ⟨mem_univ _, (mem_excSet _ _ _ _ _ _).mpr hE⟩)
-    obtain ⟨U, V, hU, hV, hPUV, hloss⟩ : ∃ U V, IsWitness dom g f' d t.2.1 t.2.2 P U V := by
+    obtain ⟨U, V, hU, hV, hPUV, hloss⟩ : ∃ U V, IsWitness dom g f d t.2.1 t.2.2 P U V := by
       by_contra hw
       exact hE ⟨P, hP.1, hP.2, hw⟩
-    let p : (ρ → F[X]) × (ρ → F[X]) := (fun r ↦ V r - C θ * U r, U)
-    have hHp : Hp p = V := by funext r; simp [Hp, p]
-    -- `(F, G) = (V - θ U, U)` agrees with `(f, g)` wherever the witness does.
-    set S := agree dom P (comb dom g f' t.2.1 t.2.2) with hS
+    let p : (ρ → F[X]) × (ρ → F[X]) := (V, U)
+    -- `(F, G) = (V, U)` agrees with `(f, g)` wherever the witness does.
+    set S := agree dom P (comb dom g f t.2.1 t.2.2) with hS
     have hagr : S.filter (fun x ↦ ¬ ∃ r, (U r).eval (dom x) ≠ g r x ∨
-        (V r).eval (dom x) ≠ f' r x) ⊆ agree dom p.1 f ∩ agree dom p.2 g := by
+        (V r).eval (dom x) ≠ f r x) ⊆ agree dom p.1 f ∩ agree dom p.2 g := by
       intro x hx
       obtain ⟨-, hx⟩ := mem_filter.mp hx
       simp only [not_exists, not_or, not_not] at hx
-      refine mem_inter.mpr ⟨(mem_agree _ _ _ _).mpr fun r ↦ ?_, (mem_agree _ _ _ _).mpr
-        fun r ↦ (hx r).1⟩
-      simp only [p, eval_sub, eval_mul, eval_C, (hx r).1, (hx r).2, hf']
-      ring
+      exact mem_inter.mpr ⟨(mem_agree _ _ _ _).mpr fun r ↦ (hx r).2,
+        (mem_agree _ _ _ _).mpr fun r ↦ (hx r).1⟩
     have hcardS : A ≤ S.card := hP.2
     have hsplit := card_filter_add_card_filter_not (s := S) (fun x ↦ ∃ r,
-      (U r).eval (dom x) ≠ g r x ∨ (V r).eval (dom x) ≠ f' r x)
+      (U r).eval (dom x) ≠ g r x ∨ (V r).eval (dom x) ≠ f r x)
     have hloss' : (S.filter fun x ↦ ∃ r, (U r).eval (dom x) ≠ g r x ∨
-        (V r).eval (dom x) ≠ f' r x).card ≤ 1 := by
+        (V r).eval (dom x) ≠ f r x).card ≤ 1 := by
       convert hloss
     have hA1 : A - 1 ≤ (agree dom p.1 f ∩ agree dom p.2 g).card :=
       le_trans (by omega) (card_le_card hagr)
-    have hpd : p ∈ pairList dom f g (A - 1) d := by
-      refine (mem_pairList _ _ _ _ _ _).mpr ⟨fun r ↦ ?_, hU, hA1⟩
-      exact (natDegree_sub_le _ _).trans (max_le ((hV r).trans (Nat.sub_le _ _))
-        ((natDegree_C_mul_le _ _).trans (hU r)))
-    -- The good premix gives `deg U ≤ d - 1`.
-    have hcoeff : ∀ r, (U r).coeff d = 0 := by
-      by_contra hc
-      push Not at hc
-      obtain ⟨r, hr⟩ := hθ p hpd hc
-      apply hr
-      have : p.1 r + C θ * p.2 r = V r := by simp [p]
-      rw [this]
-      exact coeff_eq_zero_of_natDegree_lt (lt_of_le_of_lt (hV r) (by omega))
-    have hU' : DegLE (d - 1) U := fun r ↦ natDegree_le_pred (hU r) (hcoeff r)
-    have hp : p ∈ pairs := by
-      refine (mem_pairList _ _ _ _ _ _).mpr ⟨fun r ↦ ?_, hU', hA1⟩
-      exact (natDegree_sub_le _ _).trans (max_le (hV r) ((natDegree_C_mul_le _ _).trans (hU' r)))
+    have hp : p ∈ pairs :=
+      (mem_pairList _ _ _ _ _ _).mpr ⟨fun r ↦ (hV r).trans (Nat.sub_le _ _), hU, hA1⟩
     refine mem_union_right _ (mem_biUnion.mpr ⟨p, hp, mem_filter.mpr ⟨mem_univ _, ?_⟩⟩)
-    have hPeq : (fun r ↦ p.2 r + lin t.2.1 t.2.2 * Hp p r) = P := by
-      rw [hHp]; funext r; exact (hPUV r).symm
+    have hPeq : (fun r ↦ p.2 r + lin t.2.1 t.2.2 * p.1 r) = P := by
+      funext r; exact (hPUV r).symm
     rw [hPeq]
     exact hclaim
-  calc (foldBad dom f g A d Λ₀ Λ₁ c θ u₀ v₀ c₀ v₁ c₁).card
-      ≤ (univ ×ˢ excSet dom g f' d A).card + (pairs.biUnion B2).card :=
+  calc (foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card
+      ≤ (univ ×ˢ excSet dom g f d A).card + (pairs.biUnion B2).card :=
         (card_le_card hsub).trans (card_union_le _ _)
-    _ ≤ Fintype.card F * (excSet dom g f' d A).card + pairs.card * (2 * Fintype.card F ^ 2) := by
+    _ ≤ Fintype.card F * (excSet dom g f d A).card + pairs.card * (2 * Fintype.card F ^ 2) := by
         rw [card_product, card_univ]
         gcongr
         exact card_biUnion_le_card_mul _ _ _ hB2
-    _ ≤ Fintype.card F * (excSet dom g f' d A).card +
+    _ ≤ Fintype.card F * (excSet dom g f d A).card +
           jl (Fintype.card ι) (A - 1) d * (2 * Fintype.card F ^ 2) := by
         gcongr
-        exact (card_le_card (pairList_mono dom f g le_rfl (Nat.sub_le d 1))).trans
-          (card_pairList_le_jl dom f g (A - 1) d hgap)
+        exact card_pairList_le_jl dom f g (A - 1) d hgap
     _ = _ := by ring
 
 end
