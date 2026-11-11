@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- The stream words level `lvl` reads. -/
 def lvWords (c : OsCfg) (lvl : ℕ) (lv : OsLv) : ℕ :=
-  6 * lv.folds + if lvl = c.yrLevel then c.yrLen + lv.folds + 1 else lv.folds + 6
+  5 * lv.folds + if lvl = c.yrLevel then c.yrLen + lv.folds + 1 else lv.folds + 5
 
 /-- The stream words candidate `c` reads. -/
 def osWordsLen (c : OsCfg) : ℕ :=

@@ -137,14 +137,14 @@ end Limits
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
 * its stack log is at least `MU_MIN = 22`: the guest program has one opening arm per stack log in
-  `[22, 28]` (G:3491-3493); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3338-3339);
+  `[22, 28]` (G:3477-3479); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3324-3325);
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1635, 1772, 1778). -/
+  challenges and each level's batching challenge `λ`, G:1626, 1759, 1765). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode

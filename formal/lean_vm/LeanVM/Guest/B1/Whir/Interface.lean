@@ -17,16 +17,16 @@ public import LeanVM.Protocol.Compile.Prog
 # `open_stacked` (TRIAGE G #42): the interface
 
 `open_stacked(m_idx, fs0..fs4, target, commit_root_0, commit_root_1, cursor, tabs)`
-(`crates/rec_aggregation/guests/lean_ethereum.py:1520-1847` at leanVM `914612b6`, G below) runs
+(`crates/rec_aggregation/guests/lean_ethereum.py:1516-1833` at leanVM `71205cca`, G below) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`;
-`crates/verifier/src/whir.rs:213-333`) from `verifyStackedOpening`, up to its terminal: the
+`crates/verifier/src/whir.rs:214-331`) from `verifyStackedOpening`, up to its terminal: the
 fold rounds of CYWZ26's affine combiner (`foldRound`), each non-final level's commitment, high
 part, out-of-domain points and values, query grind, batching grind and `λ`, the final level's
 lane and its query checks, and the closing sumcheck. The terminal's check
-`(inner + evaluateBasis point) · residual = claim` is `check_opening_terminal`'s (G:3451), which
+`(inner + evaluateBasis point) · residual = claim` is `check_opening_terminal`'s (G:3437), which
 evaluates the transparent weight `evaluateBasis`. It has 28 specializations `open_stacked__L{m}`,
 one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 28` and the rate
-`1 ≤ r ≤ 4` (G:3732-3734, rate-major), each reading its row of the `LIG_*` tables at compile time.
+`1 ≤ r ≤ 4` (G:3718-3720, rate-major), each reading its row of the `LIG_*` tables at compile time.
 
 * `WhirEnd`, `whirLevelsOpen`, `whirOpen`: `whirLevels` and `verifyWhir` without the final
   `require`, returning what the terminal reads; `WhirEnd.Accepts` the terminal's check;
@@ -46,8 +46,8 @@ one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 2
   window tables are at `tabs` (`WinTabs`: the grinds' and the query windows' lookups).
 
 The guest's claim differs from the Spec's between a non-final level and the end by the high
-part's share of the level's queries times the challenges drawn after it (G:1705-1717): the guest
-adds it back in its residual pass (G:1814-1817), so the returned claim is the Spec's.
+part's share of the level's queries times the challenges drawn after it (G:1693-1704): the guest
+adds it back in its residual pass (G:1801-1804), so the returned claim is the Spec's.
 
 The guest's completeness statement (an honest run with no zero fold, tail or batching challenge,
 on a memory holding the hinted caps and rows, gives the call relation; DESIGN §5.2.1) follows the
@@ -75,8 +75,8 @@ def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : L
 /-! ## What a call establishes -/
 
 /-- **`open_stacked__L{candidate μ r}(fs0..fs4, target, root_0, root_1, cursor, tabs)`**
-(G:1520-1847; TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing
-waiting (the batching challenge of `verifyStackedOpening` was just squeezed, G:3713), the stack's
+(G:1516-1833; TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing
+waiting (the batching challenge of `verifyStackedOpening` was just squeezed, G:3699), the stack's
 root `root` committed with its shape and nothing else, the words `xs` at the cursor and some
 openings `os` run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer
 holding its point (`μ` coordinates, zero-padded to `pointCap`), a buffer holding one plus each of
