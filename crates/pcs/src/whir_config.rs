@@ -19,7 +19,7 @@
 //! - OOD points entering a later level: [`OOD_SAMPLES`] independent points, `C(ell, 2) (mu / q)^2`, with no grind;
 //! - the level-0 OOD sample after the commitment (`crate::ood`): one point, `C(ell, 2) mu / q` with `mu = log_n`, after
 //!   [`OOD_GRINDING_BITS`];
-//! - queries: `((A_end - 1) / n)^t`, after [`QUERY_GRINDING_BITS`];
+//! - queries: `((t_end - 1) / n)^omega`, after [`QUERY_GRINDING_BITS`];
 //! - tail sumcheck rounds: `2 / q`, after the grind of a degree-2 round (`fiat_shamir::grinding_bits(2)`).
 //!
 //! Round-by-round soundness means every entry individually clears [`SECURITY_BITS`]: the Fiat-Shamir error per
@@ -318,10 +318,10 @@ fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> R
 // ===================================================================
 //
 // Per level: block length `n`, honest lane degree `d_0 = 2^log_msg_cols - 1`, `k` fold rounds. Round `j = 1..=k` is
-// analysed against degree `d_j = d_0 + j` at threshold `A_j = A_end - (k - j)` (one coordinate of agreement lost per
-// round), and the level starts at `A_0 = A_end - k`. `A_end` is the integer the search picks per level, the smallest
-// that clears every term below, which minimises the queries `((A_end - 1) / n)^t`. `ell(A, d)` is the Johnson list of
-// Lemma 3.11 [CYWZ26, preprint] (`affine_mca::johnson_list(n, A, d)`).
+// analysed against degree `d_j = d_0 + j` at agreement `t_j = t_end - (k - j)` (one coordinate of agreement lost per
+// round), and the level starts at `t_0 = t_end - k`. `t_end` is the integer the search picks per level, the smallest
+// that clears every term below, which minimises the queries `((t_end - 1) / n)^omega`. `ell(t, d)` is the Johnson list
+// of Lemma 3.11 [CYWZ26, preprint] (`affine_mca::johnson_list(n, t, d)`).
 
 /// `log2 |E|` for the soundness analysis.
 pub const ANALYSIS_LOG_Q: f64 = LOG_Q_BITS as f64;
@@ -360,11 +360,11 @@ pub struct WhirLevelConfig {
     pub log_msg_cols: usize,
     /// Fold rounds at this level, the log of the lanes per Merkle leaf.
     pub k: usize,
-    /// The agreement threshold `A_end` at the level's last fold round.
+    /// The agreement `t_end` at the level's last fold round.
     pub(crate) agreement: u128,
     /// Lemma 4.1's witness for each fold round `j = 1..=k`.
     pub(crate) rounds: Vec<affine_mca::AffineWitness>,
-    /// Query count `t`, with `((A_end - 1) / n)^t <= 2^-(target - query grind)`.
+    /// Query count `omega`, with `((t_end - 1) / n)^omega <= 2^-(target - query grind)`.
     pub queries: usize,
 }
 
@@ -377,13 +377,13 @@ impl WhirLevelConfig {
         (1 << self.log_msg_cols) - 1
     }
 
-    /// Slack above the Johnson radius at the level's last round, `A_end / n - sqrt(d_k / n)`.
+    /// Slack above the Johnson radius at the level's last round, `t_end / n - sqrt(d_k / n)`.
     pub fn eta(&self) -> f64 {
         let n = self.block_len() as f64;
         self.agreement as f64 / n - ((self.honest_degree() + self.k as u128) as f64 / n).sqrt()
     }
 
-    /// `ell(A_0, d_0)`, the list the level's batching and OOD terms union over.
+    /// `ell(t_0, d_0)`, the list the level's batching and OOD terms union over.
     pub fn list_bound(&self) -> Option<u128> {
         let start = self.agreement.checked_sub(self.k as u128)?;
         affine_mca::johnson_list(self.block_len(), start, self.honest_degree())
@@ -450,7 +450,7 @@ enum Position {
     After { prev_queries: usize },
 }
 
-/// The terms that depend only on `ell(A_0, d_0)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
+/// The terms that depend only on `ell(t_0, d_0)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
 /// [`OOD_SAMPLES`] independent points' (`C(ell, 2) (mu / q)^2`, Lemma lem:ood per point). At L0 it is the
 /// commitment's OOD sample's (`crate::ood`, `C(ell, 2) mu / q`): its point has `mu` coordinates, and after it every
 /// outer challenge faces a single list member.
@@ -504,18 +504,18 @@ fn check_fold_round(
     }
 }
 
-/// A witness for every fold round of a level ending at `a_end`, when every round clears the target.
+/// A witness for every fold round of a level ending at `t_end`, when every round clears the target.
 fn fold_witnesses(
     n: u128,
     d0: u128,
     k: usize,
-    a_end: u128,
+    t_end: u128,
     g: &Grinding,
     target: usize,
 ) -> Option<Vec<affine_mca::AffineWitness>> {
     let mut rounds = Vec::with_capacity(k);
     for j in 1..=k as u128 {
-        let (d, a) = (d0 + j, a_end.checked_sub(k as u128 - j)?);
+        let (d, a) = (d0 + j, t_end.checked_sub(k as u128 - j)?);
         // The cheap `theta` term first: it already rules out thresholds below the Johnson radius.
         let ell = affine_mca::johnson_list(n, a - 1, d)?;
         require_count(Some(ell), g.fold, target, String::new).ok()?;
@@ -526,10 +526,10 @@ fn fold_witnesses(
     Some(rounds)
 }
 
-/// Queries closing `target - grind` bits when a query passes with probability `(a_end - 1) / n`: a word whose
-/// candidate's encoding left the list agrees with it on at most `a_end - 1` positions.
-fn query_count(n: u128, a_end: u128, grind: usize, target: usize) -> usize {
-    let per_query = -((a_end - 1) as f64 / n as f64).log2();
+/// Queries closing `target - grind` bits when a query passes with probability `(t_end - 1) / n`: a word whose
+/// candidate's encoding left the list agrees with it on at most `t_end - 1` positions.
+fn query_count(n: u128, t_end: u128, grind: usize, target: usize) -> usize {
+    let per_query = -((t_end - 1) as f64 / n as f64).log2();
     let bits = target.saturating_sub(grind) as f64;
     let mut queries = (bits / per_query).ceil() as usize;
     while (queries as f64) * per_query < bits {
@@ -538,7 +538,7 @@ fn query_count(n: u128, a_end: u128, grind: usize, target: usize) -> usize {
     queries
 }
 
-/// The smallest `A_end` (hence the fewest queries) for which every term of the level clears the target.
+/// The smallest `t_end` (hence the fewest queries) for which every term of the level clears the target.
 fn search_level(
     log_msg_cols: usize,
     log_inv_rate: usize,
@@ -550,9 +550,9 @@ fn search_level(
     let n: u128 = 1 << (log_msg_cols + log_inv_rate);
     let d0: u128 = (1 << log_msg_cols) - 1;
     let mu = log_msg_cols + k;
-    let feasible = |a_end: u128| {
-        check_list_terms(n, d0, a_end - k as u128, mu, position, g, target).ok()?;
-        fold_witnesses(n, d0, k, a_end, g, target)
+    let feasible = |t_end: u128| {
+        check_list_terms(n, d0, t_end - k as u128, mu, position, g, target).ok()?;
+        fold_witnesses(n, d0, k, t_end, g, target)
     };
     let (mut lo, mut hi) = ((n * (d0 + k as u128)).isqrt() + 1, n);
     if feasible(hi).is_none() {
