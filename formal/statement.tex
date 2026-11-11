@@ -156,14 +156,14 @@ program $P$, of size at most $14159$ (\lean{leanVmKnowledgeExtractorSizeBound}: 
 extractor's $13899$ and a slack of $260$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
-$2^{\max(82,\,2\mu + 22)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
+$2^{\max(80,\,2\mu + 25)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
 elements (\lean{announcedStackLog}) and $N$ permutation queries, $D = \log_2(N + 2) + 1$, above the
 price \lean{lean_vm} proves of the compiled extractor at every shape of that size; polylogarithmic
-per query: for $N \le 2^{50}$ about $2^{81}$ up to $\mu = 29$ and $2^{82}$ at $\mu = 30$, the list
+per query: for $N \le 2^{50}$ about $2^{80}$ up to $\mu = 27$, then $2^{81}$, $2^{83}$ and $2^{85}$ at $\mu = 28, 29, 30$ (the list decoder's price about $2^{80.93}$, $2^{82.91}$ and $2^{84.91}$ there), the list
 decoder dominating, and $2^{157.08}$ at $N = 2^{128}$, the transcript's index dominating), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The budget
 passes $2^{128}$ at about $N = 2^{100}$, where the soundness bound is still $2^{-28}$, and its first
-term, at most $2^{82}$, would pay for a search of about $2^{71}$ Keccak-f[1600] evaluations: knowledge
+term, at most $2^{85}$, would pay for a search of about $2^{74}$ Keccak-f[1600] evaluations: knowledge
 of a witness such a search finds
 (of low entropy) is not what the statement certifies. The
 statement takes $P$ as a parameter (\texttt{leanVmKnowledgeExtractor := P}) and constrains it only
@@ -811,7 +811,7 @@ written differently could pack the guest's frame-cell table about three times ti
 room for about $900$ signatures' encodings, or compute it from its input, freeing room for about $1340$).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
-\item A tight extractor budget: it is $2^{\max(82,\,2\mu + 22)} + O(N\log^3 N)$, priced at the worst shape of each stack size.
+\item A tight extractor budget: it is $2^{\max(80,\,2\mu + 25)} + O(N\log^3 N)$, priced at the worst shape of each stack size.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the wire differential (the Lean decoding against the Rust
 \texttt{Proof::from\_bytes} on honest wire proofs and their mutations); the prover differential (the Lean prover's proofs byte-identical to the

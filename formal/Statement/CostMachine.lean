@@ -414,19 +414,20 @@ def decodeExecution (program : Semantics.LeanIsaProgram) : MachineValue → Opti
 /-- **The extractor's budget**, for a proof announcing a stack of `2^μ` elements
 (`stackLog = μ`) and a transcript of `N = permutationQueryCount` permutation queries: the most the
 extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
-so also the most steps it may execute), `2^max(82, 2μ + 22) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
+so also the most steps it may execute), `2^max(80, 2μ + 25) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
 with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
 (stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program log-sizes at most `30`):
 the first term bounds the list decoder (its `64` lanes' Guruswami–Sudan decoding at the stack's
-worst rate, each lane interpolated by an approximant basis) and the runs of the candidate
-executions; the second term bounds the transcript's index (per query and level squared, a level's
-positions growing by a limb per `64` levels) and the committed leaves (`2^30` at most). Past
-`2^128` from about `2^100` queries, where the soundness bound is still `2^-28` (`statement.tex`,
-*What is not proved*, says what the regime leaves out). A proof announcing no layout is given the
-budget of `μ = 0`. -/
+worst rate, each lane interpolated by an approximant basis: about `2^78.96` at `μ = 27`, `2^80.93`
+at `28`, `2^82.91` at `29` and `2^84.91` at `30`, so the term is `2^80` up to `μ = 27`, then
+`2^81`, `2^83`, `2^85`) and the runs of the candidate executions; the second term bounds the
+transcript's index (per query and level squared, a level's positions growing by a limb per `64`
+levels) and the committed leaves (`2^30` at most). Past `2^128` from about `2^100` queries, where
+the soundness bound is still `2^-28` (`statement.tex`, *What is not proved*, says what the regime
+leaves out). A proof announcing no layout is given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
-  2 ^ max 82 (2 * stackLog + 22) +
+  2 ^ max 80 (2 * stackLog + 25) +
     (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
       (2 ^ 15 + 2 * (Nat.log2 (permutationQueryCount + 2) + 1))
 

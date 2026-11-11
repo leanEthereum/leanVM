@@ -2277,7 +2277,7 @@ open LeanVM.Parameters LeanVM.Protocol.Compile
 /-- The announced layout and rate exponent of a stream, read by the program's own
 `readAnnouncedSizes` (reads only absorb: no hash or permutation is consulted for a value). -/
 def announcedLayoutAndRate (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
-  (runPure (readAnnouncedSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩).map (·.1)
+  (runPure (readAnnouncedSizes bytecode) ⟨⟨default, [], none⟩, stream, [], []⟩).map (·.1)
 
 end LeanVM.Protocol.Verifier
 
