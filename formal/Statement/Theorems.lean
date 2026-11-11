@@ -51,7 +51,7 @@ structure Theorems
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
-  most `2^32`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
+  most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^25` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
 

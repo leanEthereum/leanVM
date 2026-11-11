@@ -38,7 +38,7 @@ def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ 
   | none => none
 
 /-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^minLogMem`
-and `2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
+and `2^maxLogMem` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
 def boundaryOK {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog) : Bool :=
   if h : minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem then
     decide (t.memory ⟨0, Nat.two_pow_pos t.logMemorySize⟩ = input.word0) &&
@@ -111,8 +111,9 @@ def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
     14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
 
-/-- The greatest committed size the verifier admits, `2^32` (`MAX_MU`, `pcs.rs:51`). -/
-def maxCommitted : ℕ := 2 ^ 32
+/-- The greatest committed size the verifier admits, `2^30` (`MAX_STACKED_LOG`,
+`crates/verifier/src/layout.rs`). -/
+def maxCommitted : ℕ := 2 ^ 30
 
 /-! ## The rows -/
 

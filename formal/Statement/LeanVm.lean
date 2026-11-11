@@ -81,7 +81,7 @@ abbrev HonestProver : Type 1 :=
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). From the
 execution it computes the witness (`witness?`, no proof unless the execution is valid and within
-`2^32` committed cells), and, at a valid rate, runs the honest script against the verifier's own
+`2^30` committed cells), and, at a valid rate, runs the honest script against the verifier's own
 program `leanVmVerifierProgram`, trying `nonceAttemptsPerProofOfWork` nonces per proof of work. -/
 def leanVmHonestProver : HonestProver :=
   fun π program input execution ρ nonceAttemptsPerProofOfWork ↦
@@ -167,8 +167,8 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (outcome : Expe
 adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
 probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The `2^14` covers the verifier's
 own Keccak-256 evaluations and duplex permutations, at most `14026` (the `Q + 14026` of `lean_vm`'s
-`soundnessError`; as calls of `π` they are up to `14026 · 2^32`, the IV hashing a bytecode of up to
-`2^32` instructions, which the transfer below pays), its `14026 · 2^-256` for a fresh hash answer
+`soundnessError`; as calls of `π` they are up to `14026 · 2^30`, the IV hashing a bytecode of up to
+`2^30` instructions, which the transfer below pays), its `14026 · 2^-256` for a fresh hash answer
 equal to a stack root the adversary announced without computing it, and the transfer from two
 random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget
@@ -202,7 +202,7 @@ honest prover's (`leanVmHonestProver`) proof of an execution within the verifier
 rejected with probability at most `2^-256`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 32 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 25)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

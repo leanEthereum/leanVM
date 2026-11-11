@@ -126,7 +126,7 @@ def buildWitness {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (layout : Layout
   ⟨acc.tabs.toList.map (·.size), layout, cols, stackArray layout cols⟩
 
 /-- **The prover's data of an execution**: `none` unless the trace has the public boundary of
-`input`, its run ends in the final state, its committed size is at most `2^32`, and its sizes pass
+`input`, its run ends in the final state, its committed size is at most `2^30`, and its sizes pass
 `build_layout`. -/
 def witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Option Witness :=
   if boundaryOK input t then

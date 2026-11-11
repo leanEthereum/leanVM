@@ -28,34 +28,30 @@ have, takes it from a claim, as an aggregate's in-circuit verifier of its childr
 
 ### The WHIR parameters
 
-The constants are transcribed from `crates/pcs/src/whir_config.rs:38-91`, the ladder geometry from
-its `derive_ladder` and `derive_ladder_shape` (`:262-311`), the stacking window from
-`crates/leanvm_core/src/pcs.rs:49-51`, and the query counts and fold grinding from the Rust
-verifier's `WHIR_QUERIES`, `WHIR_FOLD_GRINDING` and `derive_config`
-(`crates/verifier/src/whir.rs:10-87`), which carry them verbatim. The specification describes the
-protocol these parameters instantiate (Annex B, Protocol B.1,
+The constants are transcribed from `crates/pcs/src/whir_config.rs`, the ladder geometry from its
+`derive_ladder` and `derive_ladder_shape`, the stacking window from `crates/verifier/src/layout.rs`
+(`MIN_STACKED_LOG`, `MAX_STACKED_LOG`), and the query counts from the Rust verifier's
+`WHIR_QUERIES` and `derive_config` (`crates/verifier/src/whir.rs`), which carry them verbatim. The
+specification describes the protocol these parameters instantiate (Annex B, Protocol B.1,
 `doc/leanvm/body/b-polynomial-commitment-scheme.tex`) and gives no numbers.
 
 An opening of a stack of `2^μ` elements of `K` at rate `2^-R` runs a *ladder* of levels. Level 0
 folds `initialFold = 6` variables; every later level folds `subsequentFold = 4`, or what remains,
 until at most `residualMaxLog = 5` variables remain, which are sent in the clear. The rate
 exponent of a level is the previous one plus the previous fold minus a domain reduction,
-`initialReduction = 3` after level 0 and `subsequentReduction = 1` after every later level. A
-level grinds `foldGrinding` bits before each of its fold challenges, and
-opens `queries` positions after `queryGrindingBits = 17` bits of grinding; from level 1 on, one
-out-of-domain sample binds the level's commitment (`whir_config.rs:111-128`; `whir.rs:183-214`).
+`initialReduction = 3` after level 0 and `subsequentReduction = 1` after every later level. Each
+level opens `queries` positions after `queryGrindingBits = 17` bits of grinding; from level 1 on,
+one out-of-domain sample binds the level's commitment (`whir_config.rs`, `whir.rs`).
 
-The query counts and fold grinding are the Rust's *output*, not its derivation:
-`optimize_johnson_level` (`whir_config.rs:618-688`) minimises the queries of each level, and the
-fold grinding that admits a candidate, subject to the 128-bit round-by-round targets of Annex B's
-Theorem B.2 under a floating-point MCA formula (`paper_thm_ca_johnson_log_a`,
-`whir_config.rs:444-457`), and this module does not restate that search. The tables are the Rust
-verifier's `WHIR_QUERIES` and `WHIR_FOLD_GRINDING` (`whir.rs:17-32`), indexed by rate exponent
-`1..4` and stack size `16..32`; outside that window `ladder` is `none`, as the verifier rejects
-(`whir_queries`, `whir_fold_grinding`, `whir.rs:41-57`; the prover's `validate_log_inv_rate`,
-`whir_config.rs:48-55`). `ladder` takes the stack size `μ`, as the verifier's `derive_config`
-does (the PCS crate's API takes `m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`), and the rate
-exponent is announced with the sizes.
+The query counts are the Rust's *output*, not its derivation: `optimize_johnson_level`
+(`whir_config.rs`) minimises the queries of each level subject to the 128-bit round-by-round
+targets of Annex B's Theorem B.2 under a floating-point MCA formula
+(`paper_thm_ca_johnson_log_a`), and this module does not restate that search. The table is the
+Rust verifier's `WHIR_QUERIES`, indexed by rate exponent `1..4` and stack size `16..30`; outside
+that window `ladder` is `none`, as the verifier rejects (`whir_queries`; the prover's
+`validate_log_inv_rate`, `whir_config.rs`). `ladder` takes the stack size `μ`, as the verifier's
+`derive_config` does (the PCS crate's API takes `m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`),
+and the rate exponent is announced with the sizes.
 -/
 
 namespace LeanVM.Parameters.Whir
@@ -86,13 +82,13 @@ def queryGrindingBits : ℕ := 17
 (`pcs.rs:49`; `MIN_STACKED_LOG`, `crates/verifier/src/layout.rs:87`). -/
 def minLogStack : ℕ := 16
 
-/-- The largest stack the PCS commits, the largest the caps admit: `MAX_MU` (`pcs.rs:51`;
-`MAX_STACKED_LOG`, `layout.rs:89`). -/
-def maxLogStack : ℕ := 32
+/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`), the
+cap every size shares. -/
+def maxLogStack : ℕ := 30
 
 /-- One level of an opening: the number of sumcheck rounds it folds (`ℓ_i`), the rate exponent
-of the code its commitment is in (`R_i`), the number of positions queried (`t_i`), and the
-proof-of-work bits before each of its fold challenges (`ϖ_i`), in the notation of Annex B. -/
+of the code its commitment is in (`R_i`), and the number of positions queried (`t_i`), in the
+notation of Annex B. -/
 structure Level where
   /-- `ℓ_i`: the sumcheck rounds it folds. -/
   fold : ℕ
@@ -100,8 +96,6 @@ structure Level where
   logInvRate : ℕ
   /-- `t_i`: the positions queried. -/
   queries : ℕ
-  /-- `ϖ_i`: the bits ground before each fold challenge, `0` for no proof of work. -/
-  foldGrinding : ℕ
   deriving DecidableEq
 
 /-- The levels after the first, as pairs (fold, rate exponent): while more than `residualMaxLog`
@@ -124,47 +118,25 @@ def ladderShape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
   (initialFold, logInvRate) ::
     levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
 
-/-- The query counts `WHIR_QUERIES` of `whir.rs:17-23`, verbatim: row `R - 1` for the rate
-exponent `R`, entry `μ - 16` for the stack size `μ`, one count per level. -/
+/-- The query counts `WHIR_QUERIES` of `whir.rs`, verbatim: row `R - 1` for the rate exponent
+`R`, entry `μ - 16` for the stack size `μ`, one count per level. -/
 def queryTable : List (List (List ℕ)) := [
   [[223, 56, 30], [223, 56, 31], [223, 56, 32], [223, 56, 32], [223, 56, 32, 22], [223, 56, 32, 22],
    [224, 56, 32, 23], [224, 56, 32, 23], [224, 56, 32, 23, 17], [224, 56, 32, 23, 17],
    [224, 56, 32, 23, 18], [225, 56, 32, 23, 18], [225, 56, 32, 23, 18, 14],
-   [225, 56, 32, 23, 18, 14], [226, 56, 32, 23, 18, 14], [226, 56, 32, 23, 18, 15],
-   [227, 56, 32, 23, 18, 15, 12]],
+   [225, 56, 32, 23, 18, 14], [226, 56, 32, 23, 18, 14]],
   [[112, 45, 27], [112, 45, 28], [112, 45, 28], [112, 45, 28], [112, 45, 28, 20], [112, 45, 28, 20],
    [112, 45, 28, 21], [112, 45, 28, 21], [112, 45, 28, 21, 16], [112, 45, 28, 21, 16],
    [112, 45, 28, 21, 16], [112, 45, 28, 21, 16], [112, 45, 28, 21, 16, 13],
-   [113, 45, 28, 21, 16, 14], [113, 45, 28, 21, 17, 14], [113, 45, 28, 21, 17, 14],
-   [113, 45, 29, 21, 17, 14, 12]],
+   [113, 45, 28, 21, 16, 14], [113, 45, 28, 21, 17, 14]],
   [[75, 37, 24], [75, 37, 25], [75, 38, 25], [75, 38, 25], [75, 38, 25, 18], [75, 38, 25, 19],
    [75, 38, 25, 19], [75, 38, 25, 19], [75, 38, 25, 19, 15], [75, 38, 25, 19, 15],
    [75, 38, 25, 19, 15], [75, 38, 25, 19, 15], [75, 38, 25, 19, 15, 13], [75, 38, 25, 19, 15, 13],
-   [75, 38, 25, 19, 16, 13], [75, 38, 25, 19, 16, 13], [75, 38, 25, 19, 16, 13, 11]],
+   [75, 38, 25, 19, 16, 13]],
   [[56, 32, 22], [56, 32, 22], [56, 32, 23], [56, 32, 23], [56, 32, 23, 17], [56, 32, 23, 17],
    [56, 32, 23, 18], [56, 32, 23, 18], [56, 32, 23, 18, 14], [56, 32, 23, 18, 14],
    [56, 32, 23, 18, 14], [56, 32, 23, 18, 15], [56, 32, 23, 18, 15, 12], [57, 32, 23, 18, 15, 12],
-   [57, 33, 23, 18, 15, 12], [57, 33, 23, 18, 15, 13], [57, 33, 23, 18, 15, 13, 11]]]
-
-/-- The fold grinding bits `WHIR_FOLD_GRINDING` of `whir.rs:25-32`, verbatim, indexed as
-`queryTable`: the proof-of-work bits before each fold challenge of a level, `0` for none. -/
-def foldGrindingTable : List (List (List ℕ)) := [
-  [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-   [0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0, 0]],
-  [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-   [0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0, 0]],
-  [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-   [0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0, 0]],
-  [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-   [0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],
-   [0, 0, 0, 0, 0, 0, 3]]]
+   [57, 33, 23, 18, 15, 12]]]
 
 /-- The window the parameters are defined on: the stacking window and the rate range `1..4`
 (`whir_queries`, `whir.rs:41-57`; the rate also `crates/verifier/src/lib.rs:228` and
@@ -176,17 +148,15 @@ instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _))
 
 /-- The ladder of an admissible stack size and rate (`derive_config(log_n, log_inv_rate)`,
-`whir.rs:59-87`): the geometry of `ladderShape` paired with the
-tabulated query counts and fold grinding, level by level. `none` outside the window, and `none`
-if a table did not have one entry per level (`whir.rs:77-80`), so that no level is silently
-dropped. -/
+`whir.rs`): the geometry of `ladderShape` paired with the tabulated query counts, level by
+level. `none` outside the window, and `none` if the table did not have one count per level, so
+that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
   if Admissible μ logInvRate then
     let geometry := ladderShape μ logInvRate
     let queries := (queryTable.getD (logInvRate - 1) []).getD (μ - minLogStack) []
-    let grinding := (foldGrindingTable.getD (logInvRate - 1) []).getD (μ - minLogStack) []
-    if geometry.length = queries.length ∧ geometry.length = grinding.length then
-      some (List.zipWith3 (fun (g : ℕ × ℕ) q b ↦ ⟨g.1, g.2, q, b⟩) geometry queries grinding)
+    if geometry.length = queries.length then
+      some (List.zipWith (fun (g : ℕ × ℕ) q ↦ ⟨g.1, g.2, q⟩) geometry queries)
     else none
   else none
 
@@ -1134,7 +1104,7 @@ def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
 
 /-- `build_layout(bytecode, log_memory, table_rows)` (`layout.rs:492-583`); `none` exactly where
 the Rust returns an error: a bytecode whose length is not a power of two (`log2_strict`) or whose
-log-length is outside `BUS_BITS ..= 32 + BUS_BITS`, and sizes outside the window. It is also `none`
+log-length is outside `BUS_BITS ..= 30 + BUS_BITS`, and sizes outside the window. It is also `none`
 on row counts not one per table, which the verifier never passes (it reads `N_TABLES` of them). A
 table's log-height is the least `h` with `rows ≤ 2^h` (`log2Ceil`), and at least its floor
 (`tableLogFloors`). -/
@@ -1142,8 +1112,8 @@ def buildLayout (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : O
   match log2Strict bytecode.length with
   | none => none
   | some logLength =>
-    if busBits ≤ logLength ∧ 1 ≤ logMemory ∧ logMemory ≤ 32 ∧
-        tableRows.all (· ≤ 2 ^ 32) ∧ logLength - busBits ≤ 32 ∧
+    if busBits ≤ logLength ∧ 1 ≤ logMemory ∧ logMemory ≤ 30 ∧
+        tableRows.all (· ≤ 2 ^ 30) ∧ logLength - busBits ≤ 30 ∧
         tableRows.length = tables.length then
       let logBytecode := logLength - busBits
       let tableLogHeights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
@@ -1490,16 +1460,14 @@ structure WhirState where
   /-- The glued claims so far. -/
   glued : List GluedClaim
 
-/-- A level's fold rounds: a proof of work of `grinding` bits, sample, fold
-the running claim, read the next quadratic (`whir.rs:183-194`). Returns the state and the level's
-own challenges. -/
-def foldRounds (grinding : ℕ) : ℕ → WhirState → List E → VerifierProgram (WhirState × List E)
+/-- A level's fold rounds: sample, fold the running claim, read the next quadratic (`whir.rs`).
+Returns the state and the level's own challenges. -/
+def foldRounds : ℕ → WhirState → List E → VerifierProgram (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    VerifierProgram.grindProofOfWork grinding
     let challenge ← VerifierProgram.sampleChallenge
     let quad ← sumcheckRoundPoly 3 (polyEval s.runningQuad challenge) none
-    foldRounds grinding n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
+    foldRounds n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge])
 
 /-- The final level's tail rounds: sample, fold, and read the next quadratic unless it is the
@@ -1539,7 +1507,7 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ℕ → List Whir.Level → WhirState → VerifierProgram Unit
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRounds level.foldGrinding level.fold s []
+    let (s, levelFolds) ← foldRounds level.fold s []
     let messageLog := logN - s.folds.length
     -- The level's claims: the residual on the final level; otherwise the next commitment and
     -- its out-of-domain claim.

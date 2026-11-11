@@ -52,12 +52,13 @@ def Opcode.busCode : Opcode → K
 `MIN_LOG_MEM`; `crates/verifier/src/layout.rs`, `MIN_LOG_MEMORY`). -/
 def minLogMem : ℕ := 1
 
-/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:41`,
-`MAX_LOG_MEM`). -/
-def maxLogMem : ℕ := 32
+/-- The greatest memory log-size, `2^30` cells (`crates/verifier/src/layout.rs`,
+`MAX_LOG_MEMORY`). -/
+def maxLogMem : ℕ := 30
 
-/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:501`). -/
-def maxLogBytecode : ℕ := 32
+/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs`,
+`MAX_LOG_BYTECODE`). -/
+def maxLogBytecode : ℕ := 30
 
 end LeanVM.Parameters
 
@@ -155,11 +156,11 @@ def LeanIsaInstruction.opcode : LeanIsaInstruction → Opcode
   | .jump .. => .jump
   | .keccak .. => .keccak
 
-/-- A program: `2^logSize ≤ 2^32` instructions, instruction `i` at address `g^i`. -/
+/-- A program: `2^logSize ≤ 2^30` instructions, instruction `i` at address `g^i`. -/
 structure LeanIsaProgram where
   /-- The log-size: `2^logSize` instructions. -/
   logSize : ℕ
-  /-- At most `2^32` instructions. -/
+  /-- At most `2^30` instructions. -/
   logSize_le : logSize ≤ maxLogBytecode
   /-- Instruction `i`, at address `g^i`. -/
   instructions : Fin (2 ^ logSize) → LeanIsaInstruction
@@ -376,7 +377,8 @@ structure Execution (program : LeanIsaProgram) where
   /-- The number of steps the run takes. -/
   stepCount : ℕ
 
-/-- The memory has between `2^minLogMem` and `2^32` words and holds the public input in words `0`, `1`. -/
+/-- The memory has between `2^minLogMem` and `2^maxLogMem` words and holds the public input in words
+`0`, `1`. -/
 def HoldsPublicInput {program : LeanIsaProgram} (input : PublicInput)
     (execution : Execution program) : Prop :=
   minLogMem ≤ execution.logMemorySize ∧ execution.logMemorySize ≤ maxLogMem ∧

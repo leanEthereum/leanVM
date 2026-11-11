@@ -36,9 +36,9 @@ def coverageSlots (witness : NodeWitness) : ℕ :=
 
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
-stack log at most `32` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
+stack log at most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
 directly (`NodeWitness.daMatrix`), every count of `meta` and of a child's lists below `2^20` (each at
-most `coverageSlots`), the bus depth at most `32`, the tables' heights at most `32`. -/
+most `coverageSlots`), the bus depth at most `32`, the tables' heights at most `30`. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
@@ -122,10 +122,10 @@ open OracleComp OracleSpec in
 /-- **The honest proof is rarely refused**: in the random-permutation model, at `2^25` nonces per
 proof of work, the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover.prove`)
 makes no proof, or `verifierRefusingZero` rejects its proof, of a valid execution of committed size
-at most `2^32`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
+at most `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`. -/
 def HonestProofRarelyRefused : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 32 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
     1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let accepted ← Common.runWithRandomPermutation (do
         match ← LeanVM.leanVmHonestProver Common.queryPermutation program input execution ρ (2 ^
@@ -140,9 +140,9 @@ is the honest prover's, with the deployed Keccak, of an execution of the guest p
 statement's digest under the deployed seed, and the leanVM verifier refusing a zero challenge
 accepts it. No size is asked: the guest program has an opening arm for every stack log the
 verifier admits of an execution of its bytecode, from `20` (`min_execution_stacked_log`,
-`crates/verifier`'s `layout.rs`: the bytecode's `2^19` instructions alone fill `2^19` words) to `32`
+`crates/verifier`'s `layout.rs`: the bytecode's `2^19` instructions alone fill `2^19` words) to `30`
 (`MAX_STACKED_LOG`), and the
-honest prover makes no proof past `2^32` committed words (`maxCommitted`). `lean_vm` proves that
+honest prover makes no proof past `2^30` committed words (`maxCommitted`). `lean_vm` proves that
 such a child meets what the guest program checks of a child (`guest_child_complete`). -/
 def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
@@ -156,7 +156,7 @@ def HonestChild (child : Child) : Prop :=
 program**: for every statement and witness with `NodeRelation` under the deployed seed, within the
 deployed limits, in one of the families `CoveredNode` lists, every child carrying an honest proof
 (`HonestChild`), there is a valid execution of the guest program on the statement's digest of
-committed size at most `2^32`, the sizes the honest prover proves and `HonestProofRarelyRefused`
+committed size at most `2^30`, the sizes the honest prover proves and `HonestProofRarelyRefused`
 covers. Reading `HonestProofRarelyRefused` for the deployed Keccak,
 so that the honest proof is a `HonestChild`, is the heuristic that the deployed Keccak-f[1600]
 behaves as a random permutation, applied to this prover. Proved by
@@ -169,7 +169,7 @@ def GuestCompleteOnHonestChildren : Prop :=
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
-      execution.committedSize ≤ 2 ^ 32
+      execution.committedSize ≤ 2 ^ 30
 
 end Completeness
 
