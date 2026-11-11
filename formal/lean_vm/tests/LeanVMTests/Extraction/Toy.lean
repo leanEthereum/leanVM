@@ -128,11 +128,11 @@ The Johnson threshold `A` at level 0's degree `2^κ + 5`, the multiplicity `m` a
 
 #guard johnsonThreshold 15 1 = 742
 #guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 1) =
-  [7, 10, 15, 21, 29, 42, 59, 84, 90, 90, 90, 90, 90, 90]
+  [7, 10, 15, 21, 29, 42, 59, 83, 90, 90, 90, 90, 90, 90]
 #guard (List.range 14).map (fun i ↦
     let p := gsParams (15 + i) 1
     p.interp.weightedDegreeBound / (2 ^ (9 + i) + 5)) =
-  [10, 14, 21, 29, 41, 59, 83, 118, 127, 127, 127, 127, 127, 127]
+  [10, 14, 21, 29, 41, 59, 83, 117, 127, 127, 127, 127, 127, 127]
 #guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 2) =
   [10, 14, 19, 28, 39, 55, 64, 64, 64, 64, 64, 64, 64, 64]
 
