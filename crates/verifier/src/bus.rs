@@ -6,10 +6,10 @@ use crate::layout::{
     SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
 };
 use crate::multilinear::{
-    Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
+    Placement, dot, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
 };
 use crate::transcript::{Transcript, sumcheck};
-use crate::{StackClaim, VerifierError, require};
+use crate::{StackClaim, StackWeight, VerifierError, require};
 
 fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
     let (shared, count) = (transcript.next_scalar()?, transcript.next_scalar()?);
@@ -86,9 +86,14 @@ pub struct ColumnClaim {
 
 impl ColumnClaim {
     /// `None` for a column nothing commits, whose claim never reaches the stack.
-    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'static>> {
-        let point = layout.placements[self.column]?.stack_point(&self.point, layout.stack_log);
-        Some((Box::new(move |x| eq_eval(&point, x)), self.value))
+    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'_>> {
+        let placement = layout.placements[self.column]?;
+        assert_eq!(
+            self.point.len(),
+            placement.variables,
+            "a claim's point fills its window"
+        );
+        Some((StackWeight::Placed(&self.point, placement), self.value))
     }
 }
 
