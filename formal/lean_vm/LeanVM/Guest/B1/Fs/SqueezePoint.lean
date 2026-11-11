@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Fs.SqueezePoint
 
-  B1 for `squeeze_point` and `squeeze_point_from`: runs of challenges, nothing waiting, one
-  generic argument over the run.
+  B1 for `squeeze_point_from`: a run of challenges after a given first, nothing waiting.
 -/
 
 module
@@ -10,17 +9,14 @@ module
 public import LeanVM.Guest.B1.Fs.Message
 
 /-!
-# `squeeze_point`, `squeeze_point_from`
+# `squeeze_point_from`
 
-Both are a run of `m` plain squeezes from a carried capacity (`sqBlk`: the permutation of the
-zero rate and the previous capacity, its challenge copied out and stored at the point), after the
-capacity copied in and the pad run, and before the last capacity copied out twice:
-
-* `squeeze_point__L{n}` (`spBody n`): the capacity into `6 .. 10`, the pad run `11 .. 15`, `n`
-  squeezes from `16` (block `x` writes from `16 + 14 x`, its challenge at `16 + 14 x + 13`,
-  stored at `point[x]`);
-* `squeeze_point_from__L{n}` (`spfBody n`): `point[0] = first`, the capacity into `7 .. 11`, the
-  pad run `12 .. 16`, `n - 1` squeezes from `17`, stored at `point[x + 1]`.
+A run of `m` plain squeezes from a carried capacity (`sqBlk`: the permutation of the zero rate and
+the previous capacity, its challenge copied out and stored at the point), after the capacity
+copied in and the pad run, and before the last capacity copied out twice:
+`squeeze_point_from__L{n}` (`spfBody n`): `point[0] = first`, the capacity into `7 .. 11`, the
+pad run `12 .. 16`, `n - 1` squeezes from `17` (block `x` writes from `17 + 14 x`, its challenge
+at `17 + 14 x + 13`), stored at `point[x + 1]`.
 
 `sq_sound`, `sq_complete`: the run is `Fs.squeezeN` (`sqSt`, the sponge after `x` squeezes).
 -/
@@ -189,40 +185,10 @@ theorem holds_sqChain (z b cap0 : ℕ) (pt : V) (off m : ℕ) (next : Prop) (kre
   rw [holdsList_range_flatten m _ (fun _ => rfl)]
   simp only [holds_sqBlk]
 
-/-! ## `squeeze_point` -/
-
-/-- The expansion of `squeeze_point__L{n}`, `n ≥ 1`. -/
-def spBody (n : ℕ) : List Stmt :=
-  [.atom (.copy (.n 6) (.n 0)), .atom (.copy (.n 7) (.n 1)), .atom (.copy (.n 8) (.n 2)),
-    .atom (.copy (.n 9) (.n 3)), .atom (.copy (.n 10) (.n 4))] ++ padRunT 11 ++
-  ((List.range n).map (sqBlk 12 16 6 (.n 5) 0)).flatten ++
-  [.atom (.copy (.n (16 + 14 * n)) (.n (16 + 14 * (n - 1) + 8))),
-    .atom (.copy (.n (17 + 14 * n)) (.n (16 + 14 * (n - 1) + 9))),
-    .atom (.copy (.n (18 + 14 * n)) (.n (16 + 14 * (n - 1) + 10))),
-    .atom (.copy (.n (19 + 14 * n)) (.n (16 + 14 * (n - 1) + 11))),
-    .atom (.copy (.n (20 + 14 * n)) (.n (16 + 14 * (n - 1) + 12))),
-    .atom (.copy (.n (21 + 14 * n)) (.n (16 + 14 * n))),
-    .atom (.copy (.n (22 + 14 * n)) (.n (17 + 14 * n))),
-    .atom (.copy (.n (23 + 14 * n)) (.n (18 + 14 * n))),
-    .atom (.copy (.n (24 + 14 * n)) (.n (19 + 14 * n))),
-    .atom (.copy (.n (25 + 14 * n)) (.n (20 + 14 * n))),
-    .ret [.n (21 + 14 * n), .n (22 + 14 * n), .n (23 + 14 * n), .n (24 + 14 * n),
-      .n (25 + 14 * n)]]
+/-! ## Cells -/
 
 /-- A cell index, reduced. -/
 def fin13 (x : ℕ) : Fin 13 := ⟨x % 13, Nat.mod_lt _ (by decide)⟩
-
-/-- The honest values of `squeeze_point__L{n}` on its arguments `as`, `s` its sponge. -/
-def spVals (as : List E) (s : Fs) (n k : ℕ) : E :=
-  if k < 6 then as.getD k 0
-  else if k < 11 then as.getD (k - 6) 0
-  else if k = 11 then word 1 0
-  else if k < 16 then 0
-  else if (k - 16) / 14 < n then
-    (if (k - 16) % 14 < 13 then cellsOfState (sqSt s ((k - 16) / 14)).perm false (fin13 ((k - 16) % 14))
-    else challengeOf (sqSt s ((k - 16) / 14)).perm)
-  else if k < 21 + 14 * n then cellsOfState (sqSt s (n - 1)).perm false (fin13 (8 + (k - (16 + 14 * n))))
-  else cellsOfState (sqSt s (n - 1)).perm false (fin13 (8 + (k - (21 + 14 * n))))
 
 /-- Decide the next `if` of an unfolded index function by `omega`. -/
 macro "sp_if" : tactic => `(tactic| first
@@ -248,155 +214,6 @@ theorem sp_copies {b m : ℕ} {S : KeccakState}
   rw [show σ (.n (b + 5 + 14 * (m + 1))) = _ from (by simpa using e 0 (by omega)), e 1 (by omega),
     e 2 (by omega), e 3 (by omega), e 4 (by omega)]
   rfl
-
-theorem sp_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
-    (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5])
-    (hbody : f.body = spBody n) (rd : Reader) (args rets : List E)
-    (h : coreProgram.Rel rd name args rets) : MeaningSqueezePoint n rd args rets := by
-  rw [rel_iff_sem hfind, hbody, hparams, spBody] at h
-  simp only [holdsList_append, holds_padRunT, holds_sqChain, Stmt.HoldsList, Stmt.Holds,
-    Atom.Holds, List.map_cons, List.map_nil] at h
-  obtain ⟨σ, hp, h6, h7, h8, h9, h10, ⟨-, z12, z13, z14, z15⟩, hchain, c0, c1, c2, c3, c4, d0, d1,
-    d2, d3, d4, hret⟩ := h
-  subst hp
-  set s : Fs := ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ with hsd
-  have hz : ZeroRun σ 12 := ⟨z12, z13, z14, z15⟩
-  have hcap : (run5 6).map σ = s.cap := by
-    simp only [run5, List.map_cons, List.map_nil]
-    rw [show σ (.n 6) = σ (.n 0) from h6, show σ (.n (6 + 1)) = σ (.n 1) from h7,
-      show σ (.n (6 + 2)) = σ (.n 2) from h8, show σ (.n (6 + 3)) = σ (.n 3) from h9,
-      show σ (.n (6 + 4)) = σ (.n 4) from h10]
-  have hs := sq_sound (s := s) rfl hz hcap hchain
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  obtain ⟨hB, -⟩ := hs m (by omega)
-  simp only [MeaningSqueezePoint]
-  rw [squeezeN_eq]
-  refine ⟨fun k hk ↦ ?_, ?_⟩
-  · simp only [List.length_map, List.length_range] at hk
-    simp only [List.getElem_map, List.getElem_range, sqSt_squeeze1]
-    simpa using (hs k hk).2
-  · rw [← hret, sqSt_cap_succ, ← sp_copies (b := 16) hB (fun i hi ↦ ?_) (fun i hi ↦ ?_)]
-    · simp only [List.cons.injEq, and_true]
-      refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> first | trivial | exact congrArg σ (congrArg V.n (by ring))
-    · simp only [show m + 1 - 1 = m by omega] at c0 c1 c2 c3 c4
-      interval_cases i
-      · exact c0
-      · exact (show σ (.n (16 + 14 * (m + 1) + 1)) = σ (.n (17 + 14 * (m + 1))) by
-          rw [show 16 + 14 * (m + 1) + 1 = 17 + 14 * (m + 1) by ring]).trans c1
-      · exact (show σ (.n (16 + 14 * (m + 1) + 2)) = σ (.n (18 + 14 * (m + 1))) by
-          rw [show 16 + 14 * (m + 1) + 2 = 18 + 14 * (m + 1) by ring]).trans
-            (c2.trans (by rw [show 16 + 14 * m + 10 = 16 + 14 * m + 8 + 2 by ring]))
-      · exact (show σ (.n (16 + 14 * (m + 1) + 3)) = σ (.n (19 + 14 * (m + 1))) by
-          rw [show 16 + 14 * (m + 1) + 3 = 19 + 14 * (m + 1) by ring]).trans
-            (c3.trans (by rw [show 16 + 14 * m + 11 = 16 + 14 * m + 8 + 3 by ring]))
-      · exact (show σ (.n (16 + 14 * (m + 1) + 4)) = σ (.n (20 + 14 * (m + 1))) by
-          rw [show 16 + 14 * (m + 1) + 4 = 20 + 14 * (m + 1) by ring]).trans
-            (c4.trans (by rw [show 16 + 14 * m + 12 = 16 + 14 * m + 8 + 4 by ring]))
-    · interval_cases i
-      · exact d0.trans (by rw [show 16 + 14 * (m + 1) + 0 = 16 + 14 * (m + 1) by ring])
-      · exact (show σ (.n (16 + 5 + 14 * (m + 1) + 1)) = σ (.n (22 + 14 * (m + 1))) by
-          rw [show 16 + 5 + 14 * (m + 1) + 1 = 22 + 14 * (m + 1) by ring]).trans
-            (d1.trans (by rw [show 17 + 14 * (m + 1) = 16 + 14 * (m + 1) + 1 by ring]))
-      · exact (show σ (.n (16 + 5 + 14 * (m + 1) + 2)) = σ (.n (23 + 14 * (m + 1))) by
-          rw [show 16 + 5 + 14 * (m + 1) + 2 = 23 + 14 * (m + 1) by ring]).trans
-            (d2.trans (by rw [show 18 + 14 * (m + 1) = 16 + 14 * (m + 1) + 2 by ring]))
-      · exact (show σ (.n (16 + 5 + 14 * (m + 1) + 3)) = σ (.n (24 + 14 * (m + 1))) by
-          rw [show 16 + 5 + 14 * (m + 1) + 3 = 24 + 14 * (m + 1) by ring]).trans
-            (d3.trans (by rw [show 19 + 14 * (m + 1) = 16 + 14 * (m + 1) + 3 by ring]))
-      · exact (show σ (.n (16 + 5 + 14 * (m + 1) + 4)) = σ (.n (25 + 14 * (m + 1))) by
-          rw [show 16 + 5 + 14 * (m + 1) + 4 = 25 + 14 * (m + 1) by ring]).trans
-            (d4.trans (by rw [show 20 + 14 * (m + 1) = 16 + 14 * (m + 1) + 4 by ring]))
-
-
-theorem sp_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
-    (hfind : coreProgram.find? name = some f)
-    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5])
-    (hbody : f.body = spBody n) (rd : Reader) (args rets : List E)
-    (h : MeaningSqueezePoint n rd args rets) : coreProgram.Rel rd name args rets := by
-  obtain ⟨f0, f1, f2, f3, f4, point, rfl⟩ : ∃ f0 f1 f2 f3 f4 point,
-      args = [f0, f1, f2, f3, f4, point] := by
-    match args, h with
-    | [a, b, c, d, e, g], _ => exact ⟨a, b, c, d, e, g, rfl⟩
-  obtain ⟨hpt, hret⟩ := h
-  set s : Fs := ⟨[f0, f1, f2, f3, f4], []⟩ with hsd
-  rw [squeezeN_eq] at hpt hret
-  let as := [f0, f1, f2, f3, f4, point]
-  let σ : Val := fun v ↦ spVals as s n v.idx
-  have ev : ∀ k, σ (.n k) = spVals as s n k := fun _ ↦ rfl
-  have hz : ZeroRun σ 12 := by refine ⟨?_, ?_, ?_, ?_⟩ <;> simp [ev, spVals]
-  have hcap : (run5 6).map σ = s.cap := by simp [run5, ev, spVals, as, hsd]
-  have hv : ∀ x < n, ∀ c : Fin 13,
-      σ (.n (16 + 14 * x + c.val)) = cellsOfState (sqSt s x).perm false c := by
-    intro x hx c
-    have := c.isLt
-    rw [ev, spVals, show (16 + 14 * x + c.val - 16) / 14 = x by omega,
-      show (16 + 14 * x + c.val - 16) % 14 = c.val by omega]
-    repeat sp_if
-    congr 1; apply fin13_eq; omega
-  have hch : ∀ x < n, σ (.n (16 + 14 * x + 13)) = challengeOf (sqSt s x).perm := by
-    intro x hx
-    rw [ev, spVals, show (16 + 14 * x + 13 - 16) / 14 = x by omega,
-      show (16 + 14 * x + 13 - 16) % 14 = 13 by omega]
-    repeat sp_if
-  have hp : ∀ x < n, LoadHolds rd point (0 + x) (challengeOf (sqSt s x).perm) := by
-    intro x hx
-    have := hpt x (by simp; omega)
-    simpa [sqSt_squeeze1] using this
-  have e5 : σ (.n 5) = point := by simp [ev, spVals, as]
-  rw [rel_iff_sem hfind, hbody, hparams, spBody]
-  simp only [holdsList_append, holds_padRunT, holds_sqChain, Stmt.HoldsList, Stmt.Holds,
-    Atom.Holds, List.map_cons, List.map_nil]
-  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-  have cA : ∀ i < 5, σ (.n (16 + 14 * (m + 1) + i)) =
-      cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
-    intro i hi
-    rw [ev, spVals]
-    repeat sp_if
-    rw [show m + 1 - 1 = m by omega, show 16 + 14 * (m + 1) + i - (16 + 14 * (m + 1)) = i by omega]
-  have cB : ∀ i < 5, σ (.n (21 + 14 * (m + 1) + i)) =
-      cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
-    intro i hi
-    rw [ev, spVals]
-    repeat sp_if
-    rw [show m + 1 - 1 = m by omega, show 21 + 14 * (m + 1) + i - (21 + 14 * (m + 1)) = i by omega]
-  have cC : ∀ i < 5, σ (.n (16 + 14 * m + 8 + i)) =
-      cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
-    intro i hi
-    rw [show 16 + 14 * m + 8 + i = 16 + 14 * m + (fin13 (8 + i)).val by simp [fin13]; omega]
-    exact hv m (by omega) _
-  refine ⟨σ, by simp [ev, spVals, as], ?_, ?_, ?_, ?_, ?_, ⟨?_, hz⟩,
-    ⟨sq_complete (s := s) rfl hz hcap hv hch (fun x hx ↦ by rw [e5]; exact hp x hx), ?_⟩⟩
-  all_goals try (simp [ev, spVals, as]; done)
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [show m + 1 - 1 = m by omega, show 16 + 14 * (m + 1) = 16 + 14 * (m + 1) + 0 by ring,
-      cA 0 (by omega), show 16 + 14 * m + 8 = 16 + 14 * m + 8 + 0 by ring, cC 0 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 17 + 14 * (m + 1) = 16 + 14 * (m + 1) + 1 by ring,
-      cA 1 (by omega), show 16 + 14 * m + 9 = 16 + 14 * m + 8 + 1 by ring, cC 1 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 18 + 14 * (m + 1) = 16 + 14 * (m + 1) + 2 by ring,
-      cA 2 (by omega), show 16 + 14 * m + 10 = 16 + 14 * m + 8 + 2 by ring, cC 2 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 19 + 14 * (m + 1) = 16 + 14 * (m + 1) + 3 by ring,
-      cA 3 (by omega), show 16 + 14 * m + 11 = 16 + 14 * m + 8 + 3 by ring, cC 3 (by omega)]
-  · rw [show m + 1 - 1 = m by omega, show 20 + 14 * (m + 1) = 16 + 14 * (m + 1) + 4 by ring,
-      cA 4 (by omega), show 16 + 14 * m + 12 = 16 + 14 * m + 8 + 4 by ring, cC 4 (by omega)]
-  · rw [show 21 + 14 * (m + 1) = 21 + 14 * (m + 1) + 0 by ring, cB 0 (by omega),
-      show 16 + 14 * (m + 1) = 16 + 14 * (m + 1) + 0 by ring, cA 0 (by omega)]
-  · rw [show 22 + 14 * (m + 1) = 21 + 14 * (m + 1) + 1 by ring, cB 1 (by omega),
-      show 17 + 14 * (m + 1) = 16 + 14 * (m + 1) + 1 by ring, cA 1 (by omega)]
-  · rw [show 23 + 14 * (m + 1) = 21 + 14 * (m + 1) + 2 by ring, cB 2 (by omega),
-      show 18 + 14 * (m + 1) = 16 + 14 * (m + 1) + 2 by ring, cA 2 (by omega)]
-  · rw [show 24 + 14 * (m + 1) = 21 + 14 * (m + 1) + 3 by ring, cB 3 (by omega),
-      show 19 + 14 * (m + 1) = 16 + 14 * (m + 1) + 3 by ring, cA 3 (by omega)]
-  · rw [show 25 + 14 * (m + 1) = 21 + 14 * (m + 1) + 4 by ring, cB 4 (by omega),
-      show 20 + 14 * (m + 1) = 16 + 14 * (m + 1) + 4 by ring, cA 4 (by omega)]
-  · rw [hret, sqSt_cap_succ, show 21 + 14 * (m + 1) = 21 + 14 * (m + 1) + 0 by ring,
-      show 22 + 14 * (m + 1) = 21 + 14 * (m + 1) + 1 by ring,
-      show 23 + 14 * (m + 1) = 21 + 14 * (m + 1) + 2 by ring,
-      show 24 + 14 * (m + 1) = 21 + 14 * (m + 1) + 3 by ring,
-      show 25 + 14 * (m + 1) = 21 + 14 * (m + 1) + 4 by ring, cB 0 (by omega), cB 1 (by omega),
-      cB 2 (by omega), cB 3 (by omega), cB 4 (by omega)]
-    rfl
-
 
 /-! ## `squeeze_point_from` -/
 
@@ -588,175 +405,73 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     rfl
 
 set_option maxRecDepth 100000 in
-theorem sp_found_6 : coreProgram.find? (spName 6) = some Data.core542 ∧
-    Data.core542.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core542.body = spBody 6 :=
-  ⟨Program.find?_of_indexOf? (j := 542) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_7 : coreProgram.find? (spName 7) = some Data.core568 ∧
-    Data.core568.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core568.body = spBody 7 :=
-  ⟨Program.find?_of_indexOf? (j := 568) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_8 : coreProgram.find? (spName 8) = some Data.core491 ∧
-    Data.core491.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core491.body = spBody 8 :=
-  ⟨Program.find?_of_indexOf? (j := 491) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_9 : coreProgram.find? (spName 9) = some Data.core515 ∧
-    Data.core515.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core515.body = spBody 9 :=
-  ⟨Program.find?_of_indexOf? (j := 515) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_10 : coreProgram.find? (spName 10) = some Data.core537 ∧
-    Data.core537.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core537.body = spBody 10 :=
-  ⟨Program.find?_of_indexOf? (j := 537) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_11 : coreProgram.find? (spName 11) = some Data.core563 ∧
-    Data.core563.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core563.body = spBody 11 :=
-  ⟨Program.find?_of_indexOf? (j := 563) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_12 : coreProgram.find? (spName 12) = some Data.core485 ∧
-    Data.core485.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core485.body = spBody 12 :=
-  ⟨Program.find?_of_indexOf? (j := 485) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_13 : coreProgram.find? (spName 13) = some Data.core510 ∧
-    Data.core510.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core510.body = spBody 13 :=
-  ⟨Program.find?_of_indexOf? (j := 510) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_14 : coreProgram.find? (spName 14) = some Data.core532 ∧
-    Data.core532.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core532.body = spBody 14 :=
+theorem spf_found_6 : coreProgram.find? (spfName 6) = some Data.core532 ∧
+    Data.core532.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core532.body = spfBody 5 :=
   ⟨Program.find?_of_indexOf? (j := 532) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem sp_found_15 : coreProgram.find? (spName 15) = some Data.core558 ∧
-    Data.core558.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core558.body = spBody 15 :=
-  ⟨Program.find?_of_indexOf? (j := 558) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_16 : coreProgram.find? (spName 16) = some Data.core478 ∧
-    Data.core478.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core478.body = spBody 16 :=
-  ⟨Program.find?_of_indexOf? (j := 478) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_17 : coreProgram.find? (spName 17) = some Data.core505 ∧
-    Data.core505.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core505.body = spBody 17 :=
-  ⟨Program.find?_of_indexOf? (j := 505) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_18 : coreProgram.find? (spName 18) = some Data.core527 ∧
-    Data.core527.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core527.body = spBody 18 :=
-  ⟨Program.find?_of_indexOf? (j := 527) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_19 : coreProgram.find? (spName 19) = some Data.core553 ∧
-    Data.core553.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core553.body = spBody 19 :=
+theorem spf_found_7 : coreProgram.find? (spfName 7) = some Data.core553 ∧
+    Data.core553.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core553.body = spfBody 6 :=
   ⟨Program.find?_of_indexOf? (j := 553) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem sp_found_20 : coreProgram.find? (spName 20) = some Data.core579 ∧
-    Data.core579.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core579.body = spBody 20 :=
-  ⟨Program.find?_of_indexOf? (j := 579) (by decide +kernel) rfl, rfl,
+theorem spf_found_8 : coreProgram.find? (spfName 8) = some Data.core488 ∧
+    Data.core488.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core488.body = spfBody 7 :=
+  ⟨Program.find?_of_indexOf? (j := 488) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem sp_found_21 : coreProgram.find? (spName 21) = some Data.core597 ∧
-    Data.core597.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core597.body = spBody 21 :=
-  ⟨Program.find?_of_indexOf? (j := 597) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem sp_found_22 : coreProgram.find? (spName 22) = some Data.core614 ∧
-    Data.core614.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ Data.core614.body = spBody 22 :=
-  ⟨Program.find?_of_indexOf? (j := 614) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_6 : coreProgram.find? (spfName 6) = some Data.core541 ∧
-    Data.core541.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core541.body = spfBody 5 :=
-  ⟨Program.find?_of_indexOf? (j := 541) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_7 : coreProgram.find? (spfName 7) = some Data.core567 ∧
-    Data.core567.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core567.body = spfBody 6 :=
-  ⟨Program.find?_of_indexOf? (j := 567) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_8 : coreProgram.find? (spfName 8) = some Data.core490 ∧
-    Data.core490.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core490.body = spfBody 7 :=
-  ⟨Program.find?_of_indexOf? (j := 490) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_9 : coreProgram.find? (spfName 9) = some Data.core514 ∧
-    Data.core514.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core514.body = spfBody 8 :=
-  ⟨Program.find?_of_indexOf? (j := 514) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_10 : coreProgram.find? (spfName 10) = some Data.core536 ∧
-    Data.core536.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core536.body = spfBody 9 :=
-  ⟨Program.find?_of_indexOf? (j := 536) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_11 : coreProgram.find? (spfName 11) = some Data.core562 ∧
-    Data.core562.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core562.body = spfBody 10 :=
-  ⟨Program.find?_of_indexOf? (j := 562) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_12 : coreProgram.find? (spfName 12) = some Data.core484 ∧
-    Data.core484.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core484.body = spfBody 11 :=
-  ⟨Program.find?_of_indexOf? (j := 484) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_13 : coreProgram.find? (spfName 13) = some Data.core509 ∧
+theorem spf_found_9 : coreProgram.find? (spfName 9) = some Data.core509 ∧
     Data.core509.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core509.body = spfBody 12 :=
+      Data.core509.body = spfBody 8 :=
   ⟨Program.find?_of_indexOf? (j := 509) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_14 : coreProgram.find? (spfName 14) = some Data.core531 ∧
-    Data.core531.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core531.body = spfBody 13 :=
-  ⟨Program.find?_of_indexOf? (j := 531) (by decide +kernel) rfl, rfl,
+theorem spf_found_10 : coreProgram.find? (spfName 10) = some Data.core528 ∧
+    Data.core528.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core528.body = spfBody 9 :=
+  ⟨Program.find?_of_indexOf? (j := 528) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_15 : coreProgram.find? (spfName 15) = some Data.core557 ∧
-    Data.core557.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core557.body = spfBody 14 :=
-  ⟨Program.find?_of_indexOf? (j := 557) (by decide +kernel) rfl, rfl,
+theorem spf_found_11 : coreProgram.find? (spfName 11) = some Data.core549 ∧
+    Data.core549.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core549.body = spfBody 10 :=
+  ⟨Program.find?_of_indexOf? (j := 549) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem spf_found_12 : coreProgram.find? (spfName 12) = some Data.core483 ∧
+    Data.core483.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core483.body = spfBody 11 :=
+  ⟨Program.find?_of_indexOf? (j := 483) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem spf_found_13 : coreProgram.find? (spfName 13) = some Data.core505 ∧
+    Data.core505.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core505.body = spfBody 12 :=
+  ⟨Program.find?_of_indexOf? (j := 505) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem spf_found_14 : coreProgram.find? (spfName 14) = some Data.core524 ∧
+    Data.core524.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core524.body = spfBody 13 :=
+  ⟨Program.find?_of_indexOf? (j := 524) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem spf_found_15 : coreProgram.find? (spfName 15) = some Data.core545 ∧
+    Data.core545.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core545.body = spfBody 14 :=
+  ⟨Program.find?_of_indexOf? (j := 545) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -767,38 +482,38 @@ theorem spf_found_16 : coreProgram.find? (spfName 16) = some Data.core477 ∧
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_17 : coreProgram.find? (spfName 17) = some Data.core504 ∧
-    Data.core504.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core504.body = spfBody 16 :=
-  ⟨Program.find?_of_indexOf? (j := 504) (by decide +kernel) rfl, rfl,
+theorem spf_found_17 : coreProgram.find? (spfName 17) = some Data.core501 ∧
+    Data.core501.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core501.body = spfBody 16 :=
+  ⟨Program.find?_of_indexOf? (j := 501) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_18 : coreProgram.find? (spfName 18) = some Data.core526 ∧
-    Data.core526.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core526.body = spfBody 17 :=
-  ⟨Program.find?_of_indexOf? (j := 526) (by decide +kernel) rfl, rfl,
+theorem spf_found_18 : coreProgram.find? (spfName 18) = some Data.core520 ∧
+    Data.core520.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core520.body = spfBody 17 :=
+  ⟨Program.find?_of_indexOf? (j := 520) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_19 : coreProgram.find? (spfName 19) = some Data.core552 ∧
-    Data.core552.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core552.body = spfBody 18 :=
-  ⟨Program.find?_of_indexOf? (j := 552) (by decide +kernel) rfl, rfl,
+theorem spf_found_19 : coreProgram.find? (spfName 19) = some Data.core541 ∧
+    Data.core541.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core541.body = spfBody 18 :=
+  ⟨Program.find?_of_indexOf? (j := 541) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_20 : coreProgram.find? (spfName 20) = some Data.core578 ∧
-    Data.core578.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core578.body = spfBody 19 :=
-  ⟨Program.find?_of_indexOf? (j := 578) (by decide +kernel) rfl, rfl,
+theorem spf_found_20 : coreProgram.find? (spfName 20) = some Data.core563 ∧
+    Data.core563.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core563.body = spfBody 19 :=
+  ⟨Program.find?_of_indexOf? (j := 563) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem spf_found_21 : coreProgram.find? (spfName 21) = some Data.core596 ∧
-    Data.core596.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core596.body = spfBody 20 :=
-  ⟨Program.find?_of_indexOf? (j := 596) (by decide +kernel) rfl, rfl,
+theorem spf_found_21 : coreProgram.find? (spfName 21) = some Data.core580 ∧
+    Data.core580.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core580.body = spfBody 20 :=
+  ⟨Program.find?_of_indexOf? (j := 580) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -849,35 +564,6 @@ theorem spf_found_28 : coreProgram.find? (spfName 28) = some Data.core310 ∧
       Data.core310.body = spfBody 27 :=
   ⟨Program.find?_of_indexOf? (j := 310) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
-
-/-- **`squeeze_point`'s core IR is its meaning**, at every deployed `n`. -/
-theorem squeeze_point_holds : squeeze_point_Spec := by
-  intro n hn rd args rets
-  simp only [spDeployed, List.mem_map, List.mem_range] at hn
-  obtain ⟨i, hi, rfl⟩ := hn
-  have go : ∀ {m c : ℕ} {fn : Fn}, 1 ≤ m → coreProgram.find? (spName c) = some fn ∧
-      fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5] ∧ fn.body = spBody m → c = m →
-      (coreProgram.Rel rd (spName c) args rets ↔ MeaningSqueezePoint c rd args rets) := by
-    rintro m c fn hm ⟨h1, h2, h3⟩ rfl
-    exact ⟨sp_sound c hm h1 h2 h3 rd args rets, sp_complete c hm h1 h2 h3 rd args rets⟩
-  interval_cases i
-  · exact go (by decide) sp_found_6 rfl
-  · exact go (by decide) sp_found_7 rfl
-  · exact go (by decide) sp_found_8 rfl
-  · exact go (by decide) sp_found_9 rfl
-  · exact go (by decide) sp_found_10 rfl
-  · exact go (by decide) sp_found_11 rfl
-  · exact go (by decide) sp_found_12 rfl
-  · exact go (by decide) sp_found_13 rfl
-  · exact go (by decide) sp_found_14 rfl
-  · exact go (by decide) sp_found_15 rfl
-  · exact go (by decide) sp_found_16 rfl
-  · exact go (by decide) sp_found_17 rfl
-  · exact go (by decide) sp_found_18 rfl
-  · exact go (by decide) sp_found_19 rfl
-  · exact go (by decide) sp_found_20 rfl
-  · exact go (by decide) sp_found_21 rfl
-  · exact go (by decide) sp_found_22 rfl
 
 /-- **`squeeze_point_from`'s core IR is its meaning**, at every deployed `n`. -/
 theorem squeeze_point_from_holds : squeeze_point_from_Spec := by

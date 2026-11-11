@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Bits.Meaning
 
 /-!
-# Messages and challenge runs (TRIAGE G, `opening_message`, `squeeze_point`, `squeeze_point_from`)
+# Messages and challenge runs (TRIAGE G, `opening_message`, `squeeze_point_from`)
 
 The functions of `crates/rec_aggregation/guests/lean_ethereum.py` (G below) that WHIR's levels and
 the level-0 OOD sample call:
@@ -20,7 +20,6 @@ the level-0 OOD sample call:
 | function | meaning |
 | --- | --- |
 | `opening_message__L{n}_L{nonce}` | `n` stream words read, absorbed and stored at `out`, then (`nonce = 1`) a grinding nonce, then the permutation; it returns that permutation's cells `0` (the next challenge) and `1` (its proof of work), its capacity and the cursor (`MeaningOpeningMessage`) |
-| `squeeze_point__L{n}` | `n` challenges, nothing waiting, stored at `point` (`MeaningSqueezePoint`) |
 | `squeeze_point_from__L{n}` | the first challenge given (a message's permutation drew it), `n - 1` more (`MeaningSqueezePointFrom`) |
 
 The Spec runs (`omRun`, `omGrind_run`, `squeezePoint_run`): a message without a nonce, then a
@@ -62,13 +61,12 @@ def MeaningOpeningMessage (n nonce : ℕ) (rd : Reader) : List E → List E → 
   | _, _ => False
 
 /-- The deployed messages: `(n, nonce)` of every `opening_message__L{n}_L{nonce}`. -/
-def omDeployed : List (ℕ × ℕ) := [(1, 1), (6, 0), (8, 0), (8, 1), (12, 1), (20, 1), (36, 1)]
+def omDeployed : List (ℕ × ℕ) := [(1, 1), (6, 1), (8, 1), (12, 1), (20, 1), (36, 1)]
 
 /-- `opening_message__L{n}_L{nonce}`. -/
 def omName : ℕ × ℕ → String
   | (1, 1) => "opening_message__L1_L1"
-  | (6, 0) => "opening_message__L6_L0"
-  | (8, 0) => "opening_message__L8_L0"
+  | (6, 1) => "opening_message__L6_L1"
   | (8, 1) => "opening_message__L8_L1"
   | (12, 1) => "opening_message__L12_L1"
   | (20, 1) => "opening_message__L20_L1"
@@ -80,15 +78,7 @@ def opening_message_Spec : Prop :=
   ∀ p ∈ omDeployed, ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd (omName p) args rets ↔ MeaningOpeningMessage p.1 p.2 rd args rets
 
-/-! ## `squeeze_point`, `squeeze_point_from` -/
-
-/-- **`squeeze_point(fs0..fs4, point, n)`**: from the carried capacity, nothing waiting, `n`
-challenges (`Fs.squeezeN`), stored at `point`; it returns the capacity after them. -/
-def MeaningSqueezePoint (n : ℕ) (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, point], rets =>
-      ReadsAt rd point ((⟨[f0, f1, f2, f3, f4], []⟩ : Fs).squeezeN n).1 ∧
-        rets = ((⟨[f0, f1, f2, f3, f4], []⟩ : Fs).squeezeN n).2.cap
-  | _, _ => False
+/-! ## `squeeze_point_from` -/
 
 /-- **`squeeze_point_from(fs0..fs4, first, point, n)`**: the challenge `first`, which a
 permutation already drew, then `n - 1` more from the carried capacity, stored at `point`; it
@@ -99,20 +89,8 @@ def MeaningSqueezePointFrom (n : ℕ) (rd : Reader) : List E → List E → Prop
         rets = ((⟨[f0, f1, f2, f3, f4], []⟩ : Fs).squeezeN (n - 1)).2.cap
   | _, _ => False
 
-/-- The deployed `squeeze_point__L{n}`. -/
-def spDeployed : List ℕ := (List.range 17).map (· + 6)
-
 /-- The deployed `squeeze_point_from__L{n}`. -/
 def spfDeployed : List ℕ := (List.range 23).map (· + 6)
-
-/-- `squeeze_point__L{n}`, from `n = 6` (a table: `toString`'s body is not exposed to a
-`module`'s kernel). -/
-def spName (n : ℕ) : String :=
-  ["squeeze_point__L6", "squeeze_point__L7", "squeeze_point__L8", "squeeze_point__L9",
-    "squeeze_point__L10", "squeeze_point__L11", "squeeze_point__L12", "squeeze_point__L13",
-    "squeeze_point__L14", "squeeze_point__L15", "squeeze_point__L16", "squeeze_point__L17",
-    "squeeze_point__L18", "squeeze_point__L19", "squeeze_point__L20", "squeeze_point__L21",
-    "squeeze_point__L22"].getD (n - 6) ""
 
 /-- `squeeze_point_from__L{n}`, from `n = 6`. -/
 def spfName (n : ℕ) : String :=
@@ -124,11 +102,6 @@ def spfName (n : ℕ) : String :=
     "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23",
     "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26",
     "squeeze_point_from__L27", "squeeze_point_from__L28"].getD (n - 6) ""
-
-/-- `squeeze_point__L{n}`'s core IR is its meaning, for every deployed `n`. -/
-def squeeze_point_Spec : Prop :=
-  ∀ n ∈ spDeployed, ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd (spName n) args rets ↔ MeaningSqueezePoint n rd args rets
 
 /-- `squeeze_point_from__L{n}`'s core IR is its meaning, for every deployed `n`. -/
 def squeeze_point_from_Spec : Prop :=
@@ -171,7 +144,7 @@ theorem omGrind_run (cap xs : List E) (nn : E) {bits : ℕ} (hb : bits ≠ 0)
       rfl)
   exact h
 
-/-- **`n` samples** from a carried sponge (`runsTo_sampleN`), the run `squeeze_point` mirrors. -/
+/-- **`n` samples** from a carried sponge (`runsTo_sampleN`), the run `squeeze_point_from`'s squeezes mirror. -/
 theorem squeezePoint_run (n : ℕ) (s : Fs) :
     RunsTo (VerifierProgram.sampleChallenges n) s [] (s.squeezeN n).1 (s.squeezeN n).2 :=
   runsTo_sampleN n s
