@@ -88,18 +88,18 @@ theorem escRet_queryCheck_le (Post : List (ℕ × ℕ × Word) → Prop) (i dept
 /-- The final level after its fold rounds. -/
 def finalTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level : Whir.Level)
     (s : WhirState) (rounds : List FoldRound) : VerifierProgram Unit :=
-  readScalars (2 ^ (logN - s.gammas.length) + level.fold) >>= fun folded ↦
+  readScalars (2 ^ (logN - s.alphas.length) + level.fold) >>= fun folded ↦
   grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
-  (sampleQueries (logN - s.gammas.length + level.logInvRate) level.queries >>= fun qs ↦
+  (sampleQueries (logN - s.alphas.length + level.logInvRate) level.queries >>= fun qs ↦
     queryOpenings index qs >>= fun words ↦
     VerifierProgram.require ((List.zip qs words).all fun (qq, row) ↦
       foldRow (lanesOf index row) (K.ofBits qq) rounds =
-        novelEval folded (subspaceAt (logN - s.gammas.length) (K.ofBits qq)))) >>= fun _ ↦
-  sumcheck s.claim 3 (List.replicate (logN - s.gammas.length) none) >>= fun r ↦
+        novelEval folded (subspaceAt (logN - s.alphas.length) (K.ofBits qq)))) >>= fun _ ↦
+  sumcheck s.claim 3 (List.replicate (logN - s.alphas.length) none) >>= fun r ↦
   VerifierProgram.require (s.glued.foldl
-      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.gammas ++ r.1).drop glued.foldStart))
-      (eb ((s.gammas ++ r.1).drop laneFolds ++ (s.gammas ++ r.1).take laneFolds)) *
-    multilinearEval (folded.take (2 ^ (logN - s.gammas.length))) r.1 = r.2)
+      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.alphas ++ r.1).drop glued.foldStart))
+      (eb ((s.alphas ++ r.1).drop laneFolds ++ (s.alphas ++ r.1).take laneFolds)) *
+    multilinearEval (folded.take (2 ^ (logN - s.alphas.length))) r.1 = r.2)
 
 theorem whirLevels_final (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
     (level : Whir.Level) (s : WhirState) :
@@ -112,10 +112,10 @@ theorem whirLevels_final (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ
 
 /-- The verifier's terminal weight is the running weight at the tail point. -/
 theorem terminal_weight (eb : List E → E) (laneFolds : ℕ) (s : WhirState)
-    (hg : ∀ g ∈ s.glued, g.foldStart ≤ s.gammas.length) (tail : List E) :
+    (hg : ∀ g ∈ s.glued, g.foldStart ≤ s.alphas.length) (tail : List E) :
     s.glued.foldl
-      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.gammas ++ tail).drop glued.foldStart))
-      (eb ((s.gammas ++ tail).drop laneFolds ++ (s.gammas ++ tail).take laneFolds)) =
+      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.alphas ++ tail).drop glued.foldStart))
+      (eb ((s.alphas ++ tail).drop laneFolds ++ (s.alphas ++ tail).take laneFolds)) =
     runW eb laneFolds s tail := by
   rw [runW_eq, foldl_add_map]
   refine congrArg₂ (· + ·) rfl (congrArg List.sum (List.map_congr_left fun g hgm ↦ ?_))
@@ -203,18 +203,18 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
       (fun h ↦ (RoundInv μ ℓ₀ w i P pre s rounds (commits h) ∧
         (ShapeOK i P (commits h) ∧ (commits h).length = i + 1)) ∧ rounds.length = P.ℓ)
       (fun _ _ ↦ False) εmax 0 0 :=
-  if hmu : μ - s.gammas.length = P.κ ∧ rounds.length = P.ℓ ∧ GluedOK μ s ∧
-      s.gammas.length ≤ μ then
+  if hmu : μ - s.alphas.length = P.κ ∧ rounds.length = P.ℓ ∧ GluedOK μ s ∧
+      s.alphas.length ≤ μ then
   let I : CInv := fun cs ↦ (RoundInv μ ℓ₀ w i P pre s rounds cs ∧
     (ShapeOK i P cs ∧ cs.length = i + 1)) ∧ rounds.length = P.ℓ
-  let res := fun folded : List E ↦ folded.take (2 ^ (μ - s.gammas.length))
-  (readNInv I (T := 0) zero_le (2 ^ (μ - s.gammas.length) + level.fold)).bind' fun folded ↦
-  (grindInv (fun cs ↦ folded.length = 2 ^ (μ - s.gammas.length) + level.fold ∧ I cs)
+  let res := fun folded : List E ↦ folded.take (2 ^ (μ - s.alphas.length))
+  (readNInv I (T := 0) zero_le (2 ^ (μ - s.alphas.length) + level.fold)).bind' fun folded ↦
+  (grindInv (fun cs ↦ folded.length = 2 ^ (μ - s.alphas.length) + level.fold ∧ I cs)
     (b := Whir.queryGrindingBits) (by decide) (T := eQuery P level.queries + 0)
     (by simpa using F.eQ)).bind' fun _ ↦
-  (Spec.ofNoMove (Pre := fun h ↦ folded.length = 2 ^ (μ - s.gammas.length) + level.fold ∧
+  (Spec.ofNoMove (Pre := fun h ↦ folded.length = 2 ^ (μ - s.alphas.length) + level.fold ∧
       I (commits h))
-    (Post := fun _ _ ↦ TailInv (runW w ℓ₀ s) (res folded) [] (μ - s.gammas.length) s.claim)
+    (Post := fun _ _ ↦ TailInv (runW w ℓ₀ s) (res folded) [] (μ - s.alphas.length) s.claim)
     (T := 0)
     ((noMoves_sampleQueriesAux _ _ _).bind fun _ ↦ (noMoves_queryP _ _).bind fun _ ↦ by
       unfold VerifierProgram.require; split
@@ -222,9 +222,9 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
       · exact NoMoves.fail).noMove F.eQ1 fun h₀ hp ↦ by
       obtain ⟨hfl, ⟨hR, ⟨W, hW, hWl⟩, hlen⟩, hr⟩ := hp
       have hκ := hmu.1
-      have hres : (res folded).length = 2 ^ (([] : List E).length + (μ - s.gammas.length)) := by
+      have hres : (res folded).length = 2 ^ (([] : List E).length + (μ - s.alphas.length)) := by
         simp only [res, List.length_take, hfl, List.length_nil, zero_add]; omega
-      have hma : IsMultiaffine (([] : List E).length + (μ - s.gammas.length)) (runW w ℓ₀ s) := by
+      have hma : IsMultiaffine (([] : List E).length + (μ - s.alphas.length)) (runW w ℓ₀ s) := by
         simpa using isMultiaffine_runW hw hℓ₀ s hmu.2.2.2 hmu.2.2.1
       set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
       have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim
@@ -273,7 +273,7 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
           obtain ⟨-, h, hjS⟩ := mem_filter.mp hj
           exact hjS
         exact_mod_cast this).bind' fun _ ↦
-  (tailSpec (runW w ℓ₀ s) (res folded) F.eT (μ - s.gammas.length) [] s.claim).bind' fun x ↦
+  (tailSpec (runW w ℓ₀ s) (res folded) F.eT (μ - s.alphas.length) [] s.claim).bind' fun x ↦
   Spec.require fun _ hp hc ↦ by
     rw [terminal_weight w ℓ₀ s (fun g hg ↦ (hmu.2.2.1 g hg).1)] at hc
     exact tailDone_ne _ _ hp (by simpa using hc)

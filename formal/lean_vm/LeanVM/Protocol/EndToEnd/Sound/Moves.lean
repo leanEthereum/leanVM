@@ -34,7 +34,7 @@ The instances follow `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`, l
 phase by phase. Every grind is followed by a challenge: the sumcheck rounds' grinds by the round's
 challenge, the bus's by the slot weights, a GKR step's by its combiner and its `y`, the table
 phase's by `ξ`, the Keccak reduction's by its segment, `s` and `β`, ring switching's by its map,
-WHIR's fold grinds by `(γ, α, β)`, its query grinds by the first query sample (every
+WHIR's fold grinds by `(α, β)`, its query grinds by the first query sample (every
 deployed level queries, `ladder_queries_pos`) and its batching grinds by `λ`, and the commitment's
 OOD grind by its point, which has at least `minLogStack` coordinates (`readAnnouncedSizes`
 checks it). Every grind has at most `64` bits (`grindingBits_le_sixtyFour`): the theorem
@@ -553,7 +553,7 @@ theorem moves_foldRound_le (hB : 17 ≤ B) (s : WhirState) :
       Moves.seq' Moves.readE fun _ _ ↦
         Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
           (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
-            Moves.seq' Moves.sampleE fun _ _ ↦ Moves.pure trivial)
+            Moves.pure trivial)
           fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
 theorem moves_foldRounds_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : WhirState),

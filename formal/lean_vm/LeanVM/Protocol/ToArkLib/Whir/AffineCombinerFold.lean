@@ -1,8 +1,8 @@
 /-
   LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFold
 
-  One affine fold round with the weight challenge `γ`: Annex B's `lem:fold-list`, from any bound
-  on the exceptional pairs of the affine combiner.
+  One affine fold round whose weight is folded at the combiner's own `α`: Annex B's
+  `lem:fold-list`, from any bound on the exceptional pairs of the affine combiner.
   Candidate for ArkLib.
 -/
 
@@ -23,21 +23,23 @@ folded bit is `0` and `1`), a degree `1 ≤ d`, a threshold `A` with `(A - 1)² 
 
 * `foldW dom f g α β = g + (α + β x) f`, the affine fold (`def:affine-fold`).
 * `card_foldBad_le`: if every pair of `lst(f, g; A - 1, d)` violates the claim, then for every
-  table `u₀ v₀ c₀ v₁ c₁` and `u₁ := c - v₀`, at most `|F| · N + 2 L |F|²` challenges `(γ, α, β)`
-  let some tuple of `lst(fold; A, d)` satisfy the new claim
-  `(1 - γ) Λ₀ P + γ Λ₁ P = (1 - γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁)`, where `N` is the
-  number of exceptional pairs of the combiner for the words `g` and `f`. Divided by `|F|³`, this
+  table `u₀ v₀ c₀ v₁ c₁` and `u₁ := c - v₀`, at most `N + 2 L |F|` challenges `(α, β)` let some
+  tuple of `lst(fold; A, d)` satisfy the new claim
+  `(1 - α) Λ₀ P + α Λ₁ P = (1 - α)(u₀ + α v₀ + β c₀) + α (u₁ + α v₁ + β c₁)`, where `N` is the
+  number of exceptional pairs of the combiner for the words `g` and `f`. Divided by `|F|²`, this
   is the Annex's `ε_aff + 2L/|E|` when `N ≤ |F|² ε_aff`.
 
 Outside the exceptional pairs, a tuple `P` of the fold's list is `U + (α + β X) V` with
 `deg U ≤ d`, `deg V ≤ d - 1`, `U = g` and `V = f` off at most one agreement point, so `(V, U)` is
-in `lst(f, g; A - 1, d)` at the same degree `d`: no premix is needed to keep `U` below the degree.
-Its discrepancy from the table is an affine form in `(α, β)` for each `γ`, zero for at most one
-`γ` (else all six entries would be right and `v₀ + u₁ = Λ₀ V + Λ₁ U ≠ c`), and otherwise zero at
-most `|F|` times.
+in `lst(f, g; A - 1, d)` at the same degree `d`. Its discrepancy from the table,
+`(1 - α) Δ₀ + α Δ₁` with `Δ_ι = A_ι + α B_ι + β C_ι` the entries' errors, is the polynomial
+`A₀ + α (B₀ − A₀ + A₁) + α² (B₁ − B₀) + β (C₀ + α (C₁ − C₀))` of degree at most two, nonzero:
+were `A₀` and `B₀ − A₀ + A₁` zero, `v₀ + u₁ = Λ₀ V + Λ₁ U ≠ c` would fail. It vanishes at most at
+`2 |F|` pairs (`card_quad_zero_le`). The two events are counted over the same pairs; no
+independence of the weight's point from the combiner is needed.
 
 The Annex writes `u₁ := c + v₀`, which is `c - v₀` in characteristic `2`; the form here is the one
-valid in every characteristic. The weight `mle W (γ, ·)` of the Annex is `(1 - γ) W₀ + γ W₁`, so
+valid in every characteristic. The weight `mle W (α, ·)` of the Annex is `(1 - α) W₀ + α W₁`, so
 its claim is the one above.
 -/
 
@@ -49,101 +51,106 @@ open Finset Polynomial
 
 variable {F : Type*} [Field F] [Fintype F] {ι ρ : Type*} [Fintype ι] [DecidableEq ι] [Fintype ρ]
 
-/-! ## Counting zeros of affine forms -/
+/-! ## Counting zeros of a quadratic in two variables -/
 
-section Affine
+section Quadratic
 
 variable [DecidableEq F]
 
-/-- A nonzero affine form `a + α b + β c` vanishes at no more than `|F|` pairs `(α, β)`. -/
-theorem card_affine_zero_le (a b c : F) (h : ¬ (a = 0 ∧ b = 0 ∧ c = 0)) :
-    (univ.filter fun p : F × F ↦ a + p.1 * b + p.2 * c = 0).card ≤ Fintype.card F := by
+/-- A nonzero quadratic `a₀ + α a₁ + α² a₂` has at most two roots. -/
+theorem card_quad_roots_le (a₀ a₁ a₂ : F) (h : ¬ (a₀ = 0 ∧ a₁ = 0 ∧ a₂ = 0)) :
+    (univ.filter fun α : F ↦ a₀ + α * a₁ + α ^ 2 * a₂ = 0).card ≤ 2 := by
   classical
-  by_cases hb : b = 0
-  · by_cases hc : c = 0
-    · have ha : a ≠ 0 := fun ha ↦ h ⟨ha, hb, hc⟩
-      have : (univ.filter fun p : F × F ↦ a + p.1 * b + p.2 * c = 0) = ∅ :=
-        filter_eq_empty_iff.mpr fun p _ h' ↦ ha (by simpa [hb, hc] using h')
-      rw [this, card_empty]
-      exact Nat.zero_le _
-    · refine (card_le_card_of_injOn (fun p : F × F ↦ p.1) (fun _ _ ↦ mem_coe.mpr (mem_univ _))
-        fun p hp p' hp' heq ↦ ?_).trans card_univ.le
-      have h1 := (mem_filter.mp hp).2
-      have h2 := (mem_filter.mp hp').2
-      simp only at heq
-      refine Prod.ext heq (mul_right_cancel₀ hc ?_)
-      rw [heq] at h1
-      linear_combination h1 - h2
-  · refine (card_le_card_of_injOn (fun p : F × F ↦ p.2) (fun _ _ ↦ mem_coe.mpr (mem_univ _))
-      fun p hp p' hp' heq ↦ ?_).trans card_univ.le
-    have h1 := (mem_filter.mp hp).2
-    have h2 := (mem_filter.mp hp').2
-    simp only at heq
-    refine Prod.ext (mul_right_cancel₀ hb ?_) heq
-    rw [heq] at h1
-    linear_combination h1 - h2
+  set p : F[X] := C a₀ + C a₁ * X + C a₂ * X ^ 2 with hp
+  have hp0 : p ≠ 0 := by
+    intro h0
+    apply h
+    have e := fun n ↦ congrArg (fun q : F[X] ↦ q.coeff n) h0
+    have e0 := e 0
+    have e1 := e 1
+    have e2 := e 2
+    simp [hp, coeff_X, coeff_C, coeff_X_pow] at e0 e1 e2
+    exact ⟨e0, e1, e2⟩
+  have hdeg : p.natDegree ≤ 2 := by
+    rw [hp]
+    compute_degree!
+  calc (univ.filter fun α : F ↦ a₀ + α * a₁ + α ^ 2 * a₂ = 0).card
+      ≤ p.roots.toFinset.card := card_le_card fun α hα ↦ by
+        rw [Multiset.mem_toFinset, mem_roots hp0, IsRoot, hp]
+        have := (mem_filter.mp hα).2
+        simp only [eval_add, eval_mul, eval_C, eval_X, eval_pow]
+        linear_combination this
+    _ ≤ p.roots.card := Multiset.toFinset_card_le _
+    _ ≤ p.natDegree := card_roots' p
+    _ ≤ 2 := hdeg
 
-/-- **A pencil of affine forms.** If the affine forms `Δ₀ = a₀ + α b₀ + β c₀` and
-`Δ₁ = a₁ + α b₁ + β c₁` are not both zero, then `(1 - γ) Δ₀ + γ Δ₁` vanishes at no more than
-`2 |F|²` triples `(γ, α, β)`: it is the zero form for at most one `γ`, and otherwise vanishes at
-no more than `|F|` pairs. -/
-theorem card_pencil_le (a₀ b₀ c₀ a₁ b₁ c₁ : F)
-    (h : ¬ (a₀ = 0 ∧ b₀ = 0 ∧ c₀ = 0 ∧ a₁ = 0 ∧ b₁ = 0 ∧ c₁ = 0)) :
-    (univ.filter fun t : F × F × F ↦ (1 - t.1) * (a₀ + t.2.1 * b₀ + t.2.2 * c₀) +
-      t.1 * (a₁ + t.2.1 * b₁ + t.2.2 * c₁) = 0).card ≤ 2 * Fintype.card F ^ 2 := by
+/-- **A quadratic in two variables.** If `a₀ + α a₁ + α² a₂ + β (b₀ + α b₁)` is not the zero
+polynomial, it vanishes at no more than `2 |F|` pairs `(α, β)`: for each `α` it is affine in `β`,
+and either `b₀ + α b₁` vanishes for at most one `α`, or the coefficient of `β` is zero and the
+quadratic in `α` has at most two roots. -/
+theorem card_quad_zero_le (a₀ a₁ a₂ b₀ b₁ : F)
+    (h : ¬ (a₀ = 0 ∧ a₁ = 0 ∧ a₂ = 0 ∧ b₀ = 0 ∧ b₁ = 0)) :
+    (univ.filter fun t : F × F ↦
+      a₀ + t.1 * a₁ + t.1 ^ 2 * a₂ + t.2 * (b₀ + t.1 * b₁) = 0).card ≤
+      2 * Fintype.card F := by
   classical
   set q := Fintype.card F
-  -- The form at `γ` is `va γ + α vb γ + β vc γ`.
-  let va : F → F := fun γ ↦ a₀ + γ * (a₁ - a₀)
-  let vb : F → F := fun γ ↦ b₀ + γ * (b₁ - b₀)
-  let vc : F → F := fun γ ↦ c₀ + γ * (c₁ - c₀)
-  let fib : F → Finset (F × F) := fun γ ↦ univ.filter fun p ↦ va γ + p.1 * vb γ + p.2 * vc γ = 0
-  have hsub : (univ.filter fun t : F × F × F ↦ (1 - t.1) * (a₀ + t.2.1 * b₀ + t.2.2 * c₀) +
-      t.1 * (a₁ + t.2.1 * b₁ + t.2.2 * c₁) = 0) ⊆
-      univ.biUnion fun γ ↦ (fib γ).map ⟨fun p ↦ (γ, p), fun p p' h ↦ (Prod.mk.inj h).2⟩ := by
+  let cα : F → F := fun α ↦ a₀ + α * a₁ + α ^ 2 * a₂
+  let eα : F → F := fun α ↦ b₀ + α * b₁
+  let fib : F → Finset F := fun α ↦ univ.filter fun β ↦ cα α + β * eα α = 0
+  have hsub : (univ.filter fun t : F × F ↦
+      a₀ + t.1 * a₁ + t.1 ^ 2 * a₂ + t.2 * (b₀ + t.1 * b₁) = 0) ⊆
+      univ.biUnion fun α ↦ (fib α).map ⟨fun β ↦ (α, β), fun β β' h ↦ (Prod.mk.inj h).2⟩ := by
     intro t ht
     have ht := (mem_filter.mp ht).2
-    refine mem_biUnion.mpr ⟨t.1, mem_univ _, mem_map.mpr ⟨t.2, mem_filter.mpr ⟨mem_univ _, ?_⟩,
+    exact mem_biUnion.mpr ⟨t.1, mem_univ _, mem_map.mpr ⟨t.2, mem_filter.mpr ⟨mem_univ _, ht⟩,
       rfl⟩⟩
-    simp only [va, vb, vc]
-    linear_combination ht
-  -- The forms that vanish identically: at most one `γ`.
-  let Z : Finset F := univ.filter fun γ ↦ va γ = 0 ∧ vb γ = 0 ∧ vc γ = 0
-  have hZ : Z.card ≤ 1 := by
-    refine card_le_one.mpr fun γ hγ γ' hγ' ↦ ?_
-    by_contra hne
-    have hγ := (mem_filter.mp hγ).2
-    have hγ' := (mem_filter.mp hγ').2
-    have hsub' : γ - γ' ≠ 0 := sub_ne_zero.mpr hne
-    have e (x₀ x₁ : F) (h₀ : x₀ + γ * (x₁ - x₀) = 0) (h₁ : x₀ + γ' * (x₁ - x₀) = 0) :
-        x₀ = 0 ∧ x₁ = 0 := by
-      have hd : (γ - γ') * (x₁ - x₀) = 0 := by linear_combination h₀ - h₁
-      have hx : x₁ - x₀ = 0 := (mul_eq_zero.mp hd).resolve_left hsub'
-      have hx₀ : x₀ = 0 := by rw [hx, mul_zero, add_zero] at h₀; exact h₀
-      exact ⟨hx₀, by linear_combination hx + hx₀⟩
-    obtain ⟨ha₀, ha₁⟩ := e a₀ a₁ hγ.1 hγ'.1
-    obtain ⟨hb₀, hb₁⟩ := e b₀ b₁ hγ.2.1 hγ'.2.1
-    obtain ⟨hc₀, hc₁⟩ := e c₀ c₁ hγ.2.2 hγ'.2.2
-    exact h ⟨ha₀, hb₀, hc₀, ha₁, hb₁, hc₁⟩
-  have hfib (γ : F) : (fib γ).card ≤ q + if γ ∈ Z then q ^ 2 else 0 := by
-    by_cases hγ : γ ∈ Z
-    · simp only [hγ, ↓reduceIte]
-      refine (card_le_univ _).trans ?_
-      simp [Fintype.card_prod, q, sq]
-    · simp only [hγ, ↓reduceIte, add_zero]
-      exact card_affine_zero_le _ _ _ fun h' ↦ hγ (mem_filter.mpr ⟨mem_univ _, h'⟩)
-  calc _ ≤ _ := card_le_card hsub
-    _ ≤ ∑ γ, ((fib γ).map ⟨fun p ↦ (γ, p), fun p p' h ↦ (Prod.mk.inj h).2⟩).card :=
-        card_biUnion_le
-    _ = ∑ γ, (fib γ).card := by simp
-    _ ≤ ∑ γ, (q + if γ ∈ Z then q ^ 2 else 0) := sum_le_sum fun γ _ ↦ hfib γ
-    _ = q * q + Z.card * q ^ 2 := by
-        rw [sum_add_distrib, sum_const, card_univ, smul_eq_mul, ← sum_filter, sum_const,
-          smul_eq_mul, filter_mem_eq_inter, univ_inter]
-    _ ≤ q * q + 1 * q ^ 2 := by gcongr
-    _ = 2 * q ^ 2 := by ring
+  -- A fiber with a nonzero `β` coefficient has at most one point.
+  have hone : ∀ α, eα α ≠ 0 → (fib α).card ≤ 1 := fun α he ↦ card_le_one.mpr fun β hβ β' hβ' ↦ by
+    have h1 := (mem_filter.mp hβ).2
+    have h2 := (mem_filter.mp hβ').2
+    exact mul_right_cancel₀ he (by linear_combination h1 - h2)
+  -- A fiber with a zero `β` coefficient is empty or everything.
+  have hzero : ∀ α, eα α = 0 → (fib α).card ≤ if cα α = 0 then q else 0 := fun α he ↦ by
+    split_ifs with hc
+    · exact (card_le_univ _)
+    · refine le_of_eq (card_eq_zero.mpr (filter_eq_empty_iff.mpr fun β _ hβ ↦ hc ?_))
+      simpa [he] using hβ
+  have hsum : (univ.filter fun t : F × F ↦
+      a₀ + t.1 * a₁ + t.1 ^ 2 * a₂ + t.2 * (b₀ + t.1 * b₁) = 0).card ≤ ∑ α, (fib α).card :=
+    (card_le_card hsub).trans (card_biUnion_le.trans (by simp))
+  by_cases hb : b₀ = 0 ∧ b₁ = 0
+  · -- The `β` coefficient vanishes everywhere: the quadratic's roots, each a full fiber.
+    have ha : ¬ (a₀ = 0 ∧ a₁ = 0 ∧ a₂ = 0) := fun ha ↦ h ⟨ha.1, ha.2.1, ha.2.2, hb.1, hb.2⟩
+    have he : ∀ α, eα α = 0 := fun α ↦ by simp [eα, hb.1, hb.2]
+    calc _ ≤ ∑ α, (fib α).card := hsum
+      _ ≤ ∑ α, (if cα α = 0 then q else 0) := sum_le_sum fun α _ ↦ hzero α (he α)
+      _ = (univ.filter fun α ↦ cα α = 0).card * q := by rw [← sum_filter, sum_const, smul_eq_mul]
+      _ ≤ 2 * q := Nat.mul_le_mul_right _ (card_quad_roots_le a₀ a₁ a₂ ha)
+  · -- The `β` coefficient vanishes for at most one `α`; elsewhere a fiber has one point.
+    have hZ : (univ.filter fun α ↦ eα α = 0).card ≤ 1 := card_le_one.mpr fun α hα α' hα' ↦ by
+      by_contra hne
+      have h1 := (mem_filter.mp hα).2
+      have h2 := (mem_filter.mp hα').2
+      have hd : (α - α') * b₁ = 0 := by simp only [eα] at h1 h2; linear_combination h1 - h2
+      have hb₁ : b₁ = 0 := (mul_eq_zero.mp hd).resolve_left (sub_ne_zero.mpr hne)
+      have hb₀ : b₀ = 0 := by simp only [eα, hb₁, mul_zero, add_zero] at h1; exact h1
+      exact hb ⟨hb₀, hb₁⟩
+    have hfib : ∀ α, (fib α).card ≤ 1 + if eα α = 0 then q else 0 := fun α ↦ by
+      by_cases he : eα α = 0
+      · simp only [he, ↓reduceIte]
+        exact (card_le_univ _).trans (Nat.le_add_left _ _)
+      · simp only [he, ↓reduceIte, add_zero]
+        exact hone α he
+    calc _ ≤ ∑ α, (fib α).card := hsum
+      _ ≤ ∑ α, (1 + if eα α = 0 then q else 0) := sum_le_sum fun α _ ↦ hfib α
+      _ = q + (univ.filter fun α ↦ eα α = 0).card * q := by
+        rw [sum_add_distrib, ← sum_filter, sum_const, sum_const, smul_eq_mul, smul_eq_mul,
+          card_univ, mul_one]
+      _ ≤ q + 1 * q := by gcongr
+      _ = 2 * q := by ring
 
-end Affine
+end Quadratic
 
 /-! ## The fold -/
 
@@ -162,63 +169,63 @@ theorem map_fold (Λ : (ρ → F[X]) →ₗ[F] F) (G H : ρ → F[X]) (α β : F
     ring
   rw [this, map_add, map_add, map_smul, map_smul, smul_eq_mul, smul_eq_mul]
 
-/-- The claim after a fold round: `(1 - γ) Λ₀ P + γ Λ₁ P = Σ_ι eq(γ, ι) (u_ι + α v_ι + β c_ι)`. -/
-def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (γ α β u₀ v₀ c₀ u₁ v₁ c₁ : F) (P : ρ → F[X]) :
-    Prop :=
-  (1 - γ) * Λ₀ P + γ * Λ₁ P = (1 - γ) * (u₀ + α * v₀ + β * c₀) + γ * (u₁ + α * v₁ + β * c₁)
+/-- The claim after a fold round, the weight folded at `α`:
+`(1 - α) Λ₀ P + α Λ₁ P = Σ_ι eq(α, ι) (u_ι + α v_ι + β c_ι)`. -/
+def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (α β u₀ v₀ c₀ u₁ v₁ c₁ : F) (P : ρ → F[X]) : Prop :=
+  (1 - α) * Λ₀ P + α * Λ₁ P = (1 - α) * (u₀ + α * v₀ + β * c₀) + α * (u₁ + α * v₁ + β * c₁)
 
 open Classical in
-/-- **The fold round's escapes**: the challenges `(γ, α, β)` after which some tuple of
+/-- **The fold round's escapes**: the challenges `(α, β)` after which some tuple of
 `lst(fold; A, d)` satisfies the new claim, for the table `u₀ v₀ c₀ v₁ c₁` and the verifier's
 `u₁ = c - v₀`. -/
 noncomputable def foldBad (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ)
-    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v₀ c₀ v₁ c₁ : F) : Finset (F × F × F) :=
-  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.2.1 t.2.2) A d,
-    ClaimHolds Λ₀ Λ₁ t.1 t.2.1 t.2.2 u₀ v₀ c₀ (c - v₀) v₁ c₁ P
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v₀ c₀ v₁ c₁ : F) : Finset (F × F) :=
+  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.1 t.2) A d,
+    ClaimHolds Λ₀ Λ₁ t.1 t.2 u₀ v₀ c₀ (c - v₀) v₁ c₁ P
 
 variable [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) {A d : ℕ}
 
 /-- **`lem:fold-list`**, counting form. Let every pair of `lst(f, g; A - 1, d)` violate the claim
 `Λ₀ F + Λ₁ G = c`. For every table `u₀ v₀ c₀ v₁ c₁`, at most
-`|F| · |excSet(g, f)| + 2 jl n (A - 1) d |F|²` challenges `(γ, α, β)` let a tuple of
-`lst(fold; A, d)` satisfy the new claim. -/
+`|excSet(g, f)| + 2 jl n (A - 1) d |F|` challenges `(α, β)` let a tuple of `lst(fold; A, d)`
+satisfy the new claim. -/
 theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
     (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
     (foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card ≤
-      Fintype.card F * (excSet dom g f d A).card +
-        2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F ^ 2 := by
+      (excSet dom g f d A).card + 2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F := by
   classical
   set u₁ := c - v₀ with hu₁
   set pairs := pairList dom f g (A - 1) d
   -- The fold of a pair, and its escapes.
-  let B2 : (ρ → F[X]) × (ρ → F[X]) → Finset (F × F × F) := fun p ↦ univ.filter fun t ↦
-    ClaimHolds Λ₀ Λ₁ t.1 t.2.1 t.2.2 u₀ v₀ c₀ u₁ v₁ c₁ fun r ↦ p.2 r + lin t.2.1 t.2.2 * p.1 r
-  have hB2 : ∀ p ∈ pairs, (B2 p).card ≤ 2 * Fintype.card F ^ 2 := by
+  let B2 : (ρ → F[X]) × (ρ → F[X]) → Finset (F × F) := fun p ↦ univ.filter fun t ↦
+    ClaimHolds Λ₀ Λ₁ t.1 t.2 u₀ v₀ c₀ u₁ v₁ c₁ fun r ↦ p.2 r + lin t.1 t.2 * p.1 r
+  have hB2 : ∀ p ∈ pairs, (B2 p).card ≤ 2 * Fintype.card F := by
     intro p hp
-    refine le_trans (card_le_card ?_) (card_pencil_le (Λ₀ p.2 - u₀) (Λ₀ p.1 - v₀)
-      (Λ₀ (fun r ↦ X * p.1 r) - c₀) (Λ₁ p.2 - u₁) (Λ₁ p.1 - v₁)
-      (Λ₁ (fun r ↦ X * p.1 r) - c₁) ?_)
+    refine le_trans (card_le_card ?_) (card_quad_zero_le (Λ₀ p.2 - u₀)
+      ((Λ₀ p.1 - v₀) - (Λ₀ p.2 - u₀) + (Λ₁ p.2 - u₁)) ((Λ₁ p.1 - v₁) - (Λ₀ p.1 - v₀))
+      (Λ₀ (fun r ↦ X * p.1 r) - c₀)
+      ((Λ₁ (fun r ↦ X * p.1 r) - c₁) - (Λ₀ (fun r ↦ X * p.1 r) - c₀)) ?_)
     · intro t ht
       have ht := (mem_filter.mp ht).2
       simp only [ClaimHolds, map_fold] at ht
       exact mem_filter.mpr ⟨mem_univ _, by linear_combination ht⟩
-    · rintro ⟨-, hb₀, -, ha₁, -, -⟩
+    · rintro ⟨ha₀, ha₁, -, -, -⟩
       apply hviol p hp
-      linear_combination hb₀ + ha₁ + hu₁
+      linear_combination ha₁ + ha₀ + hu₁
   have hsub : foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁ ⊆
-      (univ ×ˢ excSet dom g f d A) ∪ pairs.biUnion B2 := by
+      excSet dom g f d A ∪ pairs.biUnion B2 := by
     intro t ht
     obtain ⟨P, hP, hclaim⟩ := (mem_filter.mp ht).2
     rw [mem_tupleList] at hP
-    by_cases hE : IsExceptional dom g f d A t.2.1 t.2.2
-    · exact mem_union_left _ (mem_product.mpr ⟨mem_univ _, (mem_excSet _ _ _ _ _ _).mpr hE⟩)
-    obtain ⟨U, V, hU, hV, hPUV, hloss⟩ : ∃ U V, IsWitness dom g f d t.2.1 t.2.2 P U V := by
+    by_cases hE : IsExceptional dom g f d A t.1 t.2
+    · exact mem_union_left _ ((mem_excSet _ _ _ _ _ _).mpr hE)
+    obtain ⟨U, V, hU, hV, hPUV, hloss⟩ : ∃ U V, IsWitness dom g f d t.1 t.2 P U V := by
       by_contra hw
       exact hE ⟨P, hP.1, hP.2, hw⟩
     let p : (ρ → F[X]) × (ρ → F[X]) := (V, U)
     -- `(F, G) = (V, U)` agrees with `(f, g)` wherever the witness does.
-    set S := agree dom P (comb dom g f t.2.1 t.2.2) with hS
+    set S := agree dom P (comb dom g f t.1 t.2) with hS
     have hagr : S.filter (fun x ↦ ¬ ∃ r, (U r).eval (dom x) ≠ g r x ∨
         (V r).eval (dom x) ≠ f r x) ⊆ agree dom p.1 f ∩ agree dom p.2 g := by
       intro x hx
@@ -237,19 +244,17 @@ theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
     have hp : p ∈ pairs :=
       (mem_pairList _ _ _ _ _ _).mpr ⟨fun r ↦ (hV r).trans (Nat.sub_le _ _), hU, hA1⟩
     refine mem_union_right _ (mem_biUnion.mpr ⟨p, hp, mem_filter.mpr ⟨mem_univ _, ?_⟩⟩)
-    have hPeq : (fun r ↦ p.2 r + lin t.2.1 t.2.2 * p.1 r) = P := by
+    have hPeq : (fun r ↦ p.2 r + lin t.1 t.2 * p.1 r) = P := by
       funext r; exact (hPUV r).symm
     rw [hPeq]
     exact hclaim
   calc (foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card
-      ≤ (univ ×ˢ excSet dom g f d A).card + (pairs.biUnion B2).card :=
+      ≤ (excSet dom g f d A).card + (pairs.biUnion B2).card :=
         (card_le_card hsub).trans (card_union_le _ _)
-    _ ≤ Fintype.card F * (excSet dom g f d A).card + pairs.card * (2 * Fintype.card F ^ 2) := by
-        rw [card_product, card_univ]
+    _ ≤ (excSet dom g f d A).card + pairs.card * (2 * Fintype.card F) := by
         gcongr
         exact card_biUnion_le_card_mul _ _ _ hB2
-    _ ≤ Fintype.card F * (excSet dom g f d A).card +
-          jl (Fintype.card ι) (A - 1) d * (2 * Fintype.card F ^ 2) := by
+    _ ≤ (excSet dom g f d A).card + jl (Fintype.card ι) (A - 1) d * (2 * Fintype.card F) := by
         gcongr
         exact card_pairList_le_jl dom f g (A - 1) d hgap
     _ = _ := by ring

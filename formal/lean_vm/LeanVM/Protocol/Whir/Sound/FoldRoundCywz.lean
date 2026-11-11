@@ -17,9 +17,9 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployed
 counting form. `foldRoundBound_of_admissible` proves it from the affine-combiner formalization
 (`LeanVM.Protocol.ToArkLib.Whir.AffineCombiner*`): `card_foldBad_le_nAff'` at admissible
 interpolation parameters `(m, D, B)`, under `(A − 1)² > n d`, `N` any integer above
-`|E| · nAff + 2 jl n (A − 1) d |E|²` (`ε_aff + 2L/|E|`, times `|E|³`). `foldRoundBound_of_ok`: a
-round that passes the deployed check `foldRoundOK` (the Rust's `check_fold_round`) satisfies it
-at the level's degree with `N = budget · |E|²`.
+`nAff + 2 jl n (A − 1) d |E|` (`ε_aff + 2L/|E|`, times `|E|²`). `foldRoundBound_of_ok`: a round
+that passes the deployed check `foldRoundOK` (the Rust's `check_fold_round`) satisfies it at the
+level's degree with `N = budget · |E|`.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -32,8 +32,8 @@ open LeanVM.Parameters LeanVM.Protocol.Whir LeanVM.Protocol.Whir.AffineCombiner 
 /-- **The fold-round lemma at admissible parameters.** -/
 theorem foldRoundBound_of_admissible {n : ℕ} (dom : Fin n ↪ E) {d A m D B N : ℕ}
     (hgap : n * d < (A - 1) * (A - 1)) (hadm : Admissible n d A m D B)
-    (hN : (Fintype.card E : ℚ) * nAff (Fintype.card E) n d A m D B +
-      2 * AffineCombiner.jl n (A - 1) d * (Fintype.card E : ℚ) ^ 2 ≤ N) :
+    (hN : nAff (Fintype.card E) n d A m D B +
+      2 * AffineCombiner.jl n (A - 1) d * (Fintype.card E : ℚ) ≤ N) :
     FoldRoundBound dom d A N := by
   classical
   intro ρ _ f g Λ₀ Λ₁ c hviol u₀ v₀ c₀ v₁ c₁
@@ -45,10 +45,10 @@ theorem foldRoundBound_of_admissible {n : ℕ} (dom : Fin n ↪ E) {d A m D B N 
       rw [mem_pairList] at hq
       exact hviol q.1 q.2 hq.1 hq.2.1 (by rw [hagree, hagree]; exact hq.2.2)) u₀ v₀ c₀ v₁ c₁
   rw [hn] at hb
-  have heq : (univ.filter fun t : E × E × E ↦ ∃ P : ρ → E[X], Sound.DegLE d P ∧
-      A ≤ (agreeT dom P fun r x ↦ g r x + (t.2.1 + t.2.2 * dom x) * f r x).card ∧
-      (1 - t.1) * Λ₀ P + t.1 * Λ₁ P = (1 - t.1) * (u₀ + t.2.1 * v₀ + t.2.2 * c₀) +
-        t.1 * ((c - v₀) + t.2.1 * v₁ + t.2.2 * c₁)) =
+  have heq : (univ.filter fun t : E × E ↦ ∃ P : ρ → E[X], Sound.DegLE d P ∧
+      A ≤ (agreeT dom P fun r x ↦ g r x + (t.1 + t.2 * dom x) * f r x).card ∧
+      (1 - t.1) * Λ₀ P + t.1 * Λ₁ P = (1 - t.1) * (u₀ + t.1 * v₀ + t.2 * c₀) +
+        t.1 * ((c - v₀) + t.1 * v₁ + t.2 * c₁)) =
       foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁ := by
     refine Finset.filter_congr fun t _ ↦ ?_
     refine exists_congr fun P ↦ ?_
@@ -58,16 +58,22 @@ theorem foldRoundBound_of_admissible {n : ℕ} (dom : Fin n ↪ E) {d A m D B N 
   exact Nat.cast_le.mp (hb.trans hN)
 
 /-- **A deployed fold round**: passing `foldRoundOK` gives the fold-round lemma at the level's
-degree with `N = budget · |E|²`. -/
+degree with `N = budget · |E|`. -/
 theorem foldRoundBound_of_ok {κ R k Aend j m D B budget : ℕ} (h64 : κ + R ≤ 64)
     (h : foldRoundOK κ R k Aend j m D B budget = true) :
-    FoldRoundBound (domain κ R h64) (roundD κ k) (roundA k Aend j)
-      (budget * Fintype.card E ^ 2) := by
+    FoldRoundBound (domain κ R h64) (roundD κ k) (roundA k Aend j) (budget * Fintype.card E) := by
   obtain ⟨hadm, hgap, hrow⟩ := foldRoundOK_sound h
   refine foldRoundBound_of_admissible (domain κ R h64) hgap hadm ?_
-  rw [LeanVM.Protocol.card_E]
-  push_cast
-  exact hrow
+  rw [show Fintype.card E = qE from LeanVM.Protocol.card_E, Nat.cast_mul]
+  have hq : (0 : ℚ) < (qE : ℚ) := by positivity
+  refine le_of_mul_le_mul_left ?_ hq
+  calc (qE : ℚ) * (nAff qE (roundN κ R) (roundD κ k) (roundA k Aend j) m D B +
+        2 * AffineCombiner.jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ))
+      = (qE : ℚ) * nAff qE (roundN κ R) (roundD κ k) (roundA k Aend j) m D B +
+        2 * AffineCombiner.jl (roundN κ R) (roundA k Aend j - 1) (roundD κ k) * (qE : ℚ) ^ 2 := by
+        ring
+    _ ≤ budget * (qE : ℚ) ^ 2 := hrow
+    _ = (qE : ℚ) * (budget * (qE : ℚ)) := by ring
 
 end
 end LeanVM.Protocol.Whir.Sound

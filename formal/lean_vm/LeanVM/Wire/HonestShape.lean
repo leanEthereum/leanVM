@@ -448,14 +448,14 @@ theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
 /-! ## The WHIR levels -/
 
 theorem foldRound_returns (s : WhirState) {r : WhirState × FoldRound}
-    (h : VerifierProgram.Returns (foldRound s) r) : r.1.gammas.length = s.gammas.length + 1 := by
+    (h : VerifierProgram.Returns (foldRound s) r) : r.1.alphas.length = s.alphas.length + 1 := by
   unfold foldRound at h
   repeat obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
   rw [VerifierProgram.returns_ret h]
   simp
 
 theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirState) {r : WhirState × List FoldRound},
-    VerifierProgram.Returns (foldRounds n s) r → r.1.gammas.length = s.gammas.length + n
+    VerifierProgram.Returns (foldRounds n s) r → r.1.alphas.length = s.alphas.length + n
   | 0, s, r, h => by
     have := VerifierProgram.returns_ret h
     subst this
@@ -543,14 +543,14 @@ theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs 
         omega
 
 /-- **The WHIR levels are wired**: at level `index`, the shapes so far end with the current
-level's commitment, of height `logN − |γ| − fold + rate` and width at most `wireMaxLeafWords`, and
+level's commitment, of height `logN − |α| − fold + rate` and width at most `wireMaxLeafWords`, and
 as many openings are left as levels. -/
 theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (shapes : List (ℕ × ℕ)) (n : ℕ),
       shapes.length = index + 1 → levels.length ≤ n →
-      levelsWired (logN - s.gammas.length) levels = true →
+      levelsWired (logN - s.alphas.length) levels = true →
       (∀ level ∈ levels.head?,
-        (shapes.getD index (0, 0)).1 = logN - s.gammas.length - level.fold + level.logInvRate ∧
+        (shapes.getD index (0, 0)).1 = logN - s.alphas.length - level.fold + level.logInvRate ∧
           (shapes.getD index (0, 0)).2 ≤ wireMaxLeafWords) →
       Wired (whirLevels logN laneFolds evaluateBasis index levels s) shapes n
         fun _ _ _ ↦ True
@@ -564,11 +564,11 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     obtain ⟨s', rounds⟩ := r
     have hf := foldRounds_returns _ _ hr
     simp only at hf
-    have hdepth : logN - s'.gammas.length + level.logInvRate = (shapes.getD index (0, 0)).1 := by
+    have hdepth : logN - s'.alphas.length + level.logInvRate = (shapes.getD index (0, 0)).1 := by
       rw [hh1, hf]; omega
     have hn1 : 0 < n := by simp only [List.length_cons] at hn; omega
     have hq : ∀ queries, VerifierProgram.Returns
-        (sampleQueries (logN - s'.gammas.length + level.logInvRate) level.queries) queries →
+        (sampleQueries (logN - s'.alphas.length + level.logInvRate) level.queries) queries →
         QueryShape (shapes.getD index (0, 0)) queries := by
       intro queries hqs
       obtain ⟨hlen, hlt, hne⟩ := sampleQueriesAux_returns _ _ _ hqs
@@ -591,14 +591,14 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     | cons next rest' =>
       simp only [levelShape]
       simp only [decide_eq_true_eq] at hnext
-      have hc : Wired (VerifierProgram.readCommitment (logN - s'.gammas.length - next.fold +
+      have hc : Wired (VerifierProgram.readCommitment (logN - s'.alphas.length - next.fold +
           next.logInvRate) (2 * 2 ^ next.fold)) shapes n
-          (fun _ shapes' n' ↦ shapes' = shapes ++ [(logN - s'.gammas.length - next.fold +
+          (fun _ shapes' n' ↦ shapes' = shapes ++ [(logN - s'.alphas.length - next.fold +
             next.logInvRate, 2 * 2 ^ next.fold)] ∧ n' = n) :=
         ⟨rfl, rfl⟩
       refine Wired.bind hc fun _ _ _ e ↦ ?_
       obtain ⟨rfl, rfl⟩ := e
-      have hgi : (shapes ++ [(logN - s'.gammas.length - next.fold + next.logInvRate,
+      have hgi : (shapes ++ [(logN - s'.alphas.length - next.fold + next.logInvRate,
           2 * 2 ^ next.fold)]).getD index (0, 0) = shapes.getD index (0, 0) := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
@@ -615,13 +615,13 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
       refine ⟨hn1, by rw [hgi]; exact hq queries hqs, fun words ↦ ?_⟩
       refine wired_whirLevels logN laneFolds evaluateBasis (next :: rest') (index + 1) _ _ _
         (by simp [hl]) (by simp only [List.length_cons] at hn ⊢; omega) ?_ fun lv hlv ↦ ?_
-      · rw [glueLevel_gammas, hf]
-        rw [show logN - (s.gammas.length + level.fold) = logN - s.gammas.length - level.fold by
+      · rw [glueLevel_alphas, hf]
+        rw [show logN - (s.alphas.length + level.fold) = logN - s.alphas.length - level.fold by
           omega]
         exact hrest
       · simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
         subst hlv
-        rw [glueLevel_gammas]
+        rw [glueLevel_alphas]
         simp [List.getD_eq_getElem?_getD, hl, hnext]
 
 /-- The stack's commitment: the shape of the ladder's first level. -/

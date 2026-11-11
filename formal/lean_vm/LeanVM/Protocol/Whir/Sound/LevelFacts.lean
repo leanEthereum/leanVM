@@ -129,13 +129,13 @@ theorem nextInv_of (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List 
     rcases hc with hc | rfl | rfl | rfl
     · exact hg c hc
     · refine ⟨le_rfl, ?_⟩
-      rw [show μ - s.gammas.length = z₁.length by omega]
+      rw [show μ - s.alphas.length = z₁.length by omega]
       exact isMultiaffine_eqEval z₁
     · refine ⟨le_rfl, ?_⟩
-      rw [show μ - s.gammas.length = z₂.length by omega]
+      rw [show μ - s.alphas.length = z₂.length by omega]
       exact isMultiaffine_eqEval z₂
     · refine ⟨le_rfl, ?_⟩
-      rw [show μ - s.gammas.length = P.κ by omega]
+      rw [show μ - s.alphas.length = P.κ by omega]
       exact isMultiaffine_inducedWeight P.κ qs _ (length_powers _ _)
   · intro U hU hag heq
     refine hlam ⟨U, (mem_tlist _ _ _ _ _).mpr ⟨hU, by simpa [foldsA_nil] using hag⟩, ?_⟩

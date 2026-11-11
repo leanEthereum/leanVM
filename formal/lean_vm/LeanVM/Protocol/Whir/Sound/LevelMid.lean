@@ -36,18 +36,18 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-- The rest of a level with a next one, after its fold rounds. -/
 def midTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level next : Whir.Level)
     (rest : List Whir.Level) (s : WhirState) (rounds : List FoldRound) : VerifierProgram Unit :=
-  readCommitment (logN - s.gammas.length - next.fold + next.logInvRate) (2 * 2 ^ next.fold) >>=
+  readCommitment (logN - s.alphas.length - next.fold + next.logInvRate) (2 * 2 ^ next.fold) >>=
     fun _ ↦ readScalars level.fold >>= fun high ↦
-  sampleOodPoints (logN - s.gammas.length) Whir.oodSamples >>= fun pts ↦
+  sampleOodPoints (logN - s.alphas.length) Whir.oodSamples >>= fun pts ↦
   readScalars Whir.oodSamples >>= fun ys ↦
   grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
-  sampleQueries (logN - s.gammas.length + level.logInvRate) level.queries >>= fun qs ↦
+  sampleQueries (logN - s.alphas.length + level.logInvRate) level.queries >>= fun qs ↦
   grindProofOfWork Whir.batchGrindingBits >>= fun _ ↦
   sampleChallenge >>= fun lam ↦
   queryOpenings index qs >>= fun words ↦
   whirLevels logN laneFolds eb (index + 1) (next :: rest)
-    (glueLevel s lam (logN - s.gammas.length) pts ys qs (powers lam qs.length)
-      (batchedOf index (logN - s.gammas.length) rounds high qs (powers lam qs.length) words))
+    (glueLevel s lam (logN - s.alphas.length) pts ys qs (powers lam qs.length)
+      (batchedOf index (logN - s.alphas.length) rounds high qs (powers lam qs.length) words))
 
 theorem whirLevels_mid (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
     (level next : Whir.Level) (rest : List Whir.Level) (s : WhirState) :
@@ -101,14 +101,14 @@ theorem mid_commit {logN : ℕ} {next : Whir.Level} (hκ : P.κ = P'.ℓ + P'.κ
     (hnext : next.fold = P'.ℓ ∧ next.logInvRate = P'.R) (s : WhirState)
     (rounds : List FoldRound) (cs : List (ℕ × ℕ × Word))
     (hI : RoundInv μ ℓ₀ w i P pre s rounds cs) (hS : ShapeOK i P cs) (hlen : cs.length = i + 1)
-    (hmu : logN - s.gammas.length = P.κ) (W : Word) (hW : WellShaped (2 * 2 ^ next.fold) W) :
+    (hmu : logN - s.alphas.length = P.κ) (W : Word) (hW : WellShaped (2 * 2 ^ next.fold) W) :
     RoundInv μ ℓ₀ w i P pre s rounds
-        (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
+        (cs ++ [(logN - s.alphas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
       ShapeOK i P
-        (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
+        (cs ++ [(logN - s.alphas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
       ShapeOK (i + 1) P'
-        (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
-      (cs ++ [(logN - s.gammas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]).length =
+        (cs ++ [(logN - s.alphas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]) ∧
+      (cs ++ [(logN - s.alphas.length - next.fold + next.logInvRate, 2 * 2 ^ next.fold, W)]).length =
         i + 2 := by
   have hi : i < cs.length := by omega
   refine ⟨?_, ?_, ?_, by simp [hlen]⟩
@@ -283,7 +283,7 @@ noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : L
       (fun h ↦ (RoundInv μ ℓ₀ w i P pre s rounds (commits h) ∧
         (ShapeOK i P (commits h) ∧ (commits h).length = i + 1)) ∧ rounds.length = P.ℓ)
       (fun _ _ ↦ False) εmax 0 T :=
-  if hmu : logN - s.gammas.length = P.κ ∧ rounds.length = P.ℓ then
+  if hmu : logN - s.alphas.length = P.κ ∧ rounds.length = P.ℓ then
   (commitInv (T := eOod P P' + 0)
       (fun cs ↦ (RoundInv μ ℓ₀ w i P pre s rounds cs ∧ (ShapeOK i P cs ∧ cs.length = i + 1)) ∧
         rounds.length = P.ℓ)
@@ -318,8 +318,8 @@ noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : L
   (Spec.sampleE (Pre := fun h ↦ MidI3 μ ℓ₀ w i P P' pre M.hκ s rounds high pts ys qs (commits h) ∧
       qs.length = level.queries)
     (Post := fun lam h ↦ (LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam (logN - s.gammas.length) pts ys qs (powers lam qs.length)
-        (batchedOf i (logN - s.gammas.length) rounds high qs (powers lam qs.length)
+      (glueLevel s lam (logN - s.alphas.length) pts ys qs (powers lam qs.length)
+        (batchedOf i (logN - s.alphas.length) rounds high qs (powers lam qs.length)
           (qs.map (wordOf (commits h) i)))) (commits h)) ∧
       ShapeOK i P (commits h) ∧ ∀ q ∈ qs, q < P.n) (T := 0) (eLam P' level.queries)
     fun h₀ hp ↦ by
@@ -330,13 +330,13 @@ noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : L
       simp only [mem_filter, mem_univ, true_and, commits_sample, hmu.1, not_and] at hlam ⊢
       exact fun h ↦ hlam h hp.1.1.1.2.1 hp.1.2.2.1).bind' fun lam ↦
   (Spec.queryP (Pre := fun h ↦ (LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam (logN - s.gammas.length) pts ys qs (powers lam qs.length)
-        (batchedOf i (logN - s.gammas.length) rounds high qs (powers lam qs.length)
+      (glueLevel s lam (logN - s.alphas.length) pts ys qs (powers lam qs.length)
+        (batchedOf i (logN - s.alphas.length) rounds high qs (powers lam qs.length)
           (qs.map (wordOf (commits h) i)))) (commits h)) ∧
       ShapeOK i P (commits h) ∧ ∀ q ∈ qs, q < P.n)
     (Post := fun words h ↦ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)
-      (glueLevel s lam (logN - s.gammas.length) pts ys qs (powers lam qs.length)
-        (batchedOf i (logN - s.gammas.length) rounds high qs (powers lam qs.length) words))
+      (glueLevel s lam (logN - s.alphas.length) pts ys qs (powers lam qs.length)
+        (batchedOf i (logN - s.alphas.length) rounds high qs (powers lam qs.length) words))
         (commits h)) (T := 0) i qs fun h₀ rows hp hans ↦ by
       obtain ⟨hpre, ⟨W, hW, -⟩, hq⟩ := hp
       have hrows : rows = qs.map (wordOf (commits h₀) i) := by

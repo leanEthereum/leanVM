@@ -16,13 +16,13 @@ public import LeanVM.Protocol.Whir.Sound.Weights
 # The running state of `verify_whir`
 
 `LeanVM.Protocol.Verifier.WhirState` (`verify_whir`'s locals, `crates/verifier/src/whir.rs:222-345`)
-holds the running claim, every fold round's `γ`, and the glued claims, whose weights are only
+holds the running claim, every fold round's `α`, and the glued claims, whose weights are only
 evaluated at the terminal point. This module reads it as a weighted claim:
 
 * `runW w ℓ₀ s x`: the running weight at the point `x` of the remaining variables, the terminal
   check's `weight` at `x = tail`: the opening weight `w` at the rotated point
-  `(γs ++ x)[ℓ₀:] ++ (γs ++ x)[:ℓ₀]`, plus each glued claim's scalar times its weight at
-  `γs[fold_start:] ++ x`. `runW_fold`: a round's `γ` binds the first remaining variable;
+  `(αs ++ x)[ℓ₀:] ++ (αs ++ x)[:ℓ₀]`, plus each glued claim's scalar times its weight at
+  `αs[fold_start:] ++ x`. `runW_fold`: a round's `α` binds the first remaining variable;
   `isMultiaffine_runW`: the running weight is multiaffine in the remaining variables.
 * `glueLevel_eq`: gluing a level's claims adds `λ`, `λ²` times the out-of-domain values and `λ³`
   times the query batch to the claim, and the matching weights to the glued claims
@@ -48,8 +48,8 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-- The running weight of the state `s` at the point `x` of the remaining variables. -/
 def runW (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (x : List E) : E :=
   s.glued.foldl (fun weight claim ↦
-      weight + claim.scalar * claim.weightAt (s.gammas.drop claim.foldStart ++ x))
-    (w (rotL ℓ₀ (s.gammas ++ x)))
+      weight + claim.scalar * claim.weightAt (s.alphas.drop claim.foldStart ++ x))
+    (w (rotL ℓ₀ (s.alphas ++ x)))
 
 /-- `foldl` of a sum is the initial value plus the sum. -/
 theorem foldl_add_map {γ : Type*} (f : γ → E) (a : E) (l : List γ) :
@@ -59,19 +59,19 @@ theorem foldl_add_map {γ : Type*} (f : γ → E) (a : E) (l : List γ) :
   | cons c l ih => rw [List.foldl_cons, ih, List.map_cons, List.sum_cons, add_assoc]
 
 theorem runW_eq (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (x : List E) :
-    runW w ℓ₀ s x = w (rotL ℓ₀ (s.gammas ++ x)) +
-      (s.glued.map fun c ↦ c.scalar * c.weightAt (s.gammas.drop c.foldStart ++ x)).sum :=
+    runW w ℓ₀ s x = w (rotL ℓ₀ (s.alphas ++ x)) +
+      (s.glued.map fun c ↦ c.scalar * c.weightAt (s.alphas.drop c.foldStart ++ x)).sum :=
   foldl_add_map _ _ _
 
 /-- Every glued claim started at or before the current fold and owes a multiaffine weight on the
 variables left when it was glued. -/
 def GluedOK (μ : ℕ) (s : WhirState) : Prop :=
-  ∀ c ∈ s.glued, c.foldStart ≤ s.gammas.length ∧ IsMultiaffine (μ - c.foldStart) c.weightAt
+  ∀ c ∈ s.glued, c.foldStart ≤ s.alphas.length ∧ IsMultiaffine (μ - c.foldStart) c.weightAt
 
-/-- **A fold round's `γ` binds the first remaining variable.** -/
+/-- **A fold round's `α` binds the first remaining variable.** -/
 theorem runW_fold (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (c γ : E)
-    (hg : ∀ g ∈ s.glued, g.foldStart ≤ s.gammas.length) (x : List E) :
-    runW w ℓ₀ { s with claim := c, gammas := s.gammas ++ [γ] } x = runW w ℓ₀ s (γ :: x) := by
+    (hg : ∀ g ∈ s.glued, g.foldStart ≤ s.alphas.length) (x : List E) :
+    runW w ℓ₀ { s with claim := c, alphas := s.alphas ++ [γ] } x = runW w ℓ₀ s (γ :: x) := by
   rw [runW_eq, runW_eq]
   dsimp only
   rw [List.append_assoc, List.singleton_append]
@@ -90,26 +90,26 @@ theorem isMultiaffine_listSum_mem {n : ℕ} {γ : Type*} (xs : List γ) (F : γ 
 
 /-- **The running weight is multiaffine** in the remaining variables. -/
 theorem isMultiaffine_runW {μ : ℕ} {w : List E → E} (hw : IsMultiaffine μ w) {ℓ₀ : ℕ}
-    (hℓ₀ : ℓ₀ ≤ μ) (s : WhirState) (hs : s.gammas.length ≤ μ) (hg : GluedOK μ s) :
-    IsMultiaffine (μ - s.gammas.length) (runW w ℓ₀ s) := by
-  have hrot : IsMultiaffine (s.gammas.length + (μ - s.gammas.length))
+    (hℓ₀ : ℓ₀ ≤ μ) (s : WhirState) (hs : s.alphas.length ≤ μ) (hg : GluedOK μ s) :
+    IsMultiaffine (μ - s.alphas.length) (runW w ℓ₀ s) := by
+  have hrot : IsMultiaffine (s.alphas.length + (μ - s.alphas.length))
       fun l ↦ w (rotL ℓ₀ l) := by
     rw [Nat.add_sub_cancel' hs]; exact isMultiaffine_rotL hw hℓ₀
-  have h1 := hrot.append s.gammas rfl
-  have key : ∀ c ∈ s.glued, IsMultiaffine (μ - s.gammas.length)
-      (fun x ↦ c.scalar * c.weightAt (s.gammas.drop c.foldStart ++ x)) := by
+  have h1 := hrot.append s.alphas rfl
+  have key : ∀ c ∈ s.glued, IsMultiaffine (μ - s.alphas.length)
+      (fun x ↦ c.scalar * c.weightAt (s.alphas.drop c.foldStart ++ x)) := by
     intro c hc
     obtain ⟨hfs, hma⟩ := hg c hc
-    have heq : (s.gammas.drop c.foldStart).length + (μ - s.gammas.length) = μ - c.foldStart := by
+    have heq : (s.alphas.drop c.foldStart).length + (μ - s.alphas.length) = μ - c.foldStart := by
       rw [List.length_drop]; omega
-    have h' : IsMultiaffine ((s.gammas.drop c.foldStart).length + (μ - s.gammas.length))
+    have h' : IsMultiaffine ((s.alphas.drop c.foldStart).length + (μ - s.alphas.length))
         c.weightAt := by
       rw [heq]; exact hma
     exact (h'.append _ rfl).const_mul c.scalar
-  have h2 : IsMultiaffine (μ - s.gammas.length) fun x ↦
-      (s.glued.map fun c ↦ c.scalar * c.weightAt (s.gammas.drop c.foldStart ++ x)).sum :=
+  have h2 : IsMultiaffine (μ - s.alphas.length) fun x ↦
+      (s.glued.map fun c ↦ c.scalar * c.weightAt (s.alphas.drop c.foldStart ++ x)).sum :=
     isMultiaffine_listSum_mem s.glued
-      (fun c x ↦ c.scalar * c.weightAt (s.gammas.drop c.foldStart ++ x)) key
+      (fun c x ↦ c.scalar * c.weightAt (s.alphas.drop c.foldStart ++ x)) key
   have := h1.add h2
   intro l hl k hk X
   simp only [runW_eq]
@@ -123,15 +123,15 @@ theorem glueLevel_eq (s : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) (
     (queries : List ℕ) (queryWeights : List E) (batched : E) :
     glueLevel s lam mu [z₁, z₂] [y₁, y₂] queries queryWeights batched =
       { claim := s.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * batched
-        gammas := s.gammas
-        glued := s.glued ++ [⟨1 * lam, s.gammas.length, fun x ↦ eqEval z₁ x⟩,
-          ⟨1 * lam * lam, s.gammas.length, fun x ↦ eqEval z₂ x⟩,
-          ⟨1 * lam * lam * lam, s.gammas.length, Verifier.inducedWeight mu queries queryWeights⟩] } := by
+        alphas := s.alphas
+        glued := s.glued ++ [⟨1 * lam, s.alphas.length, fun x ↦ eqEval z₁ x⟩,
+          ⟨1 * lam * lam, s.alphas.length, fun x ↦ eqEval z₂ x⟩,
+          ⟨1 * lam * lam * lam, s.alphas.length, Verifier.inducedWeight mu queries queryWeights⟩] } := by
   simp [glueLevel, powers, powersFrom, Whir.oodSamples]
 
 /-- Glued claims at the current fold add their weights. -/
 theorem runW_glue (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (new : List GluedClaim) (c : E)
-    (hnew : ∀ g ∈ new, g.foldStart = s.gammas.length) (x : List E) :
+    (hnew : ∀ g ∈ new, g.foldStart = s.alphas.length) (x : List E) :
     runW w ℓ₀ { s with claim := c, glued := s.glued ++ new } x =
       runW w ℓ₀ s x + (new.map fun g ↦ g.scalar * g.weightAt x).sum := by
   rw [runW_eq, runW_eq]

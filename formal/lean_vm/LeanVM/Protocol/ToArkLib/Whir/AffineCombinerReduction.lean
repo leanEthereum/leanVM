@@ -233,8 +233,8 @@ theorem card_excSet_le_nAff_of_lemma43 {p : ℕ} [Fact p.Prime] [CharP F p] {ρ 
   exact card_excSet_le_nAff dom hadm (interpolantCount_of_factorization dom hadm h43) f g
 
 /-- **One affine fold round from Lemma 4.3** (Annex B, `lem:fold-list`, counting form): the
-escapes number at most `q · nAff + 2 jl n (A - 1) d q²`, the Annex's `ε_aff + 2L/|E|` times `q³`.
--/
+escapes `(α, β)` number at most `nAff + 2 jl n (A - 1) d q`, the Annex's `ε_aff + 2L/|E|` times
+`q²`. -/
 theorem card_foldBad_le_nAff_of_lemma43 [DecidableEq F] {p : ℕ} [Fact p.Prime] [CharP F p]
     {ρ : Type*} [Fintype ρ] (dom : ι ↪ F) (f g : ρ → ι → F) {d A m D B : ℕ}
     (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
@@ -242,8 +242,8 @@ theorem card_foldBad_le_nAff_of_lemma43 [DecidableEq F] {p : ℕ} [Fact p.Prime]
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
     (hviol : ∀ q ∈ pairList dom f g (A - 1) d, Λ₀ q.1 + Λ₁ q.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
     ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card : ℚ) ≤
-      Fintype.card F * nAff (Fintype.card F) (Fintype.card ι) d A m D B +
-        2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) ^ 2 := by
+      nAff (Fintype.card F) (Fintype.card ι) d A m D B +
+        2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by
   have : CharP (AlgebraicClosure F) p :=
     charP_of_injective_algebraMap (algebraMap F (AlgebraicClosure F)).injective p
   exact card_foldBad_le_nAff dom f g hgap hadm (interpolantCount_of_factorization dom hadm h43)

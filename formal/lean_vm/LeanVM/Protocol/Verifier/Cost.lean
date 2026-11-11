@@ -109,8 +109,8 @@ def tableCost : ℕ := 5 + 4 + (32 * roundCost 4 + tableWidthSum)
 def queryRounds (depth count : ℕ) : ℕ :=
   if 128 / depth = 0 then count else (count + 128 / depth - 1) / (128 / depth)
 
-/-- The cost of one fold round: five reads, a proof of work and `γ, α, β`. -/
-def foldRoundCost : ℕ := 5 + 5 + 3 * 4
+/-- The cost of one fold round: five reads, a proof of work and `α, β`. -/
+def foldRoundCost : ℕ := 5 + 5 + 2 * 4
 
 /-- The cost of the WHIR levels from a message of `μ` variables, following `whirLevels`: per
 level its fold rounds; on a non-final level the commitment, its high part, two out-of-domain
@@ -731,10 +731,10 @@ section Whir
 
 variable {height : ℕ}
 
-/-- A fold round: five reads, a proof of work, three challenges; it appends one `γ`. -/
+/-- A fold round: five reads, a proof of work, two challenges; it appends one `α`. -/
 theorem costs_foldRound (s : WhirState) :
     VerifierProgram.Costs height (foldRound s) foldRoundCost
-      fun r ↦ r.1.gammas.length = s.gammas.length + 1 := by
+      fun r ↦ r.1.alphas.length = s.alphas.length + 1 := by
   refine VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
@@ -742,24 +742,23 @@ theorem costs_foldRound (s : WhirState) :
     VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦
-    VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦ ?_)
-      ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_
-  · show (s.gammas ++ [_]).length = s.gammas.length + 1
+      ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_
+  · show (s.alphas ++ [_]).length = s.alphas.length + 1
     simp
   all_goals simp only [foldRoundCost]; omega
 
-/-- A level's fold rounds; they append one `γ` each. -/
+/-- A level's fold rounds; they append one `α` each. -/
 theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirState),
     VerifierProgram.Costs height (foldRounds n s) (foldRoundCost * n)
-      fun r ↦ r.1.gammas.length = s.gammas.length + n
+      fun r ↦ r.1.alphas.length = s.alphas.length + n
   | 0, _ => rfl
   | n + 1, s => by
     refine VerifierProgram.Costs.seq (costs_foldRound s) (fun r hr ↦ ?_) ?_
     · obtain ⟨s', round⟩ := r
       refine VerifierProgram.Costs.seq (costs_foldRounds n s') (fun r' hr' ↦ ?_) ?_
       · obtain ⟨s'', rounds⟩ := r'
-        show s''.gammas.length = s.gammas.length + (n + 1)
+        show s''.alphas.length = s.alphas.length + (n + 1)
         simp only at hr hr'
         omega
       · rw [Nat.mul_succ]; omega
@@ -817,17 +816,17 @@ theorem costs_sampleQueries (depth count : ℕ) (hd : 1 ≤ depth ∧ depth ≤ 
       fun qs ↦ qs.length ≤ count :=
   costs_sampleQueriesAux depth hd.1 hd.2 count count
 
-/-- Gluing a level's claims keeps the `γ`s. -/
-theorem glueLevel_gammas (s : WhirState) (lam : E) (mu : ℕ) (oodPoints : List (List E))
+/-- Gluing a level's claims keeps the `α`s. -/
+theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (oodPoints : List (List E))
     (oodValues : List E) (queries : List ℕ) (queryWeights : List E) (batched : E) :
-    (glueLevel s lam mu oodPoints oodValues queries queryWeights batched).gammas = s.gammas := by
+    (glueLevel s lam mu oodPoints oodValues queries queryWeights batched).alphas = s.alphas := by
   unfold glueLevel
   dsimp only
   generalize List.zip (List.zip oodPoints oodValues) _ = l
   suffices h : ∀ (t : WhirState), (l.foldl (fun s (x : (List E × E) × E) ↦
       { s with claim := s.claim + x.2 * x.1.2,
-               glued := s.glued ++ [⟨x.2, s.gammas.length, fun y ↦ eqEval x.1.1 y⟩] }) t).gammas =
-      t.gammas by
+               glued := s.glued ++ [⟨x.2, s.alphas.length, fun y ↦ eqEval x.1.1 y⟩] }) t).alphas =
+      t.alphas by
     exact h s
   induction l with
   | nil => intro t; rfl
@@ -841,7 +840,7 @@ theorem openCost_mono {height : ℕ} {k k' : ℕ} (h : k ≤ k') :
 have height at most `height` and their query positions at most `64` bits. -/
 theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (μ : ℕ),
-      logN - s.gammas.length = μ → whirHeightsLE height μ levels = true →
+      logN - s.alphas.length = μ → whirHeightsLE height μ levels = true →
       queryDepthsLE μ levels = true →
       VerifierProgram.Costs height (whirLevels logN laneFolds evaluateBasis index levels s)
         (whirCost height μ levels) fun _ ↦ True
@@ -854,7 +853,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     refine VerifierProgram.Costs.seq (costs_foldRounds level.fold s) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', rounds⟩ := r
     simp only at hr
-    have hm : logN - s'.gammas.length = μ - level.fold := by rw [hr]; omega
+    have hm : logN - s'.alphas.length = μ - level.fold := by rw [hr]; omega
     refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦
       VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
           VerifierProgram.Costs.seq
@@ -877,7 +876,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     refine VerifierProgram.Costs.seq (costs_foldRounds level.fold s) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', rounds⟩ := r
     simp only at hr
-    have hm : logN - s'.gammas.length = μ - level.fold := by rw [hr]; omega
+    have hm : logN - s'.alphas.length = μ - level.fold := by rw [hr]; omega
     refine VerifierProgram.Costs.seq (VerifierProgram.Costs.commitP _
         (by rw [hm]; exact hH.1)) (fun _ _ ↦
       VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦
@@ -892,7 +891,7 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
         VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun lam _ ↦
         VerifierProgram.Costs.seq (VerifierProgram.Costs.queryP index queries) (fun words _ ↦
           (costs_whirLevels logN laneFolds evaluateBasis (next :: rest) (index + 1) _
-            (μ - level.fold) (by rw [glueLevel_gammas]; exact hm) hH.2 hD.2).mono ?_
+            (μ - level.fold) (by rw [glueLevel_alphas]; exact hm) hH.2 hD.2).mono ?_
             fun _ h ↦ h) ?_) ?_) ?_
       all_goals (try simp only [hm])
       all_goals omega

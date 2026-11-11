@@ -21,29 +21,29 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 /-- **One fold round follows the verifier's.** -/
 theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : Commits) :
     Follows (fun cs' (a : Array E × Array E) (b : WhirState × FoldRound) ↦ cs' = cs ∧
-        ∃ γ α β u₀ v₀ c₀ v₁ c₁,
+        ∃ α β u₀ v₀ c₀ v₁ c₁,
           roundTableA f w s (halfA f s) (mulXA (halfA f s) (s / 2)) = [u₀, v₀, c₀, v₁, c₁] ∧
           b.2 = ⟨α, β⟩ ∧
-          b.1 = { sv with claim := (1 + γ) * (u₀ + α * v₀ + β * c₀) +
-              γ * ((sv.claim + v₀) + α * v₁ + β * c₁), gammas := sv.gammas ++ [γ] } ∧
+          b.1 = { sv with claim := (1 + α) * (u₀ + α * v₀ + β * c₀) +
+              α * ((sv.claim + v₀) + α * v₁ + β * c₁), alphas := sv.alphas ++ [α] } ∧
           a = (foldLanesA f s (halfA f s) (mulXA (halfA f s) (s / 2)) α β,
-            foldPairsA γ w))
+            foldPairsA α w))
       (foldRoundA f w s) (foldRound sv) cs := by
   simp only [foldRoundA, foldRound, Script.grindBits, VerifierProgram.grindProofOfWork,
     Whir.foldGrindingBits, roundTableA, Script.bind_eq, VerifierProgram.bind_eq, Script.pure_eq,
     VerifierProgram.pure_eq, Script.grindS, Script.sampleE, Script.sendList,
     VerifierProgram.readScalar, VerifierProgram.sampleChallenge, Script.bind, VerifierProgram.bind]
-  intro γ α β
-  exact ⟨rfl, γ, α, β, _, _, _, _, _, rfl, rfl, rfl, rfl⟩
+  intro α β
+  exact ⟨rfl, α, β, _, _, _, _, _, rfl, rfl, rfl, rfl⟩
 
 /-! ## The invariant of a level's fold rounds -/
 
 /-- The verifier's weight at the remaining point `x`, the terminal check's `weight` at
-`point = gammas ++ x`. -/
+`point = alphas ++ x`. -/
 def runW (B : List E → E) (lf : ℕ) (sv : WhirState) (x : List E) : E :=
   sv.glued.foldl (fun weight glued ↦ weight + glued.scalar * glued.weightAt
-      ((sv.gammas ++ x).drop glued.foldStart))
-    (B ((sv.gammas ++ x).drop lf ++ (sv.gammas ++ x).take lf))
+      ((sv.alphas ++ x).drop glued.foldStart))
+    (B ((sv.alphas ++ x).drop lf ++ (sv.alphas ++ x).take lf))
 
 /-- The verifier's fold of an opened row by the rounds so far. -/
 def vfold (rounds : List FoldRound) (x : K) (v : List E) : List E :=
@@ -57,13 +57,13 @@ def FoldInv (μ lf : ℕ) (B : List E → E) (κ P : ℕ) (rowOf : ℕ → List 
     (f w : Array E) (rounds : List FoldRound) : Prop :=
   w.size = 2 ^ κ * 2 ^ m ∧ f.size = (2 ^ κ + j) * 2 ^ m ∧ 2 ^ κ + j + m ≤ 2 ^ 61 ∧
   sv.claim = ∑ i ∈ range w.size, w.getD i 0 * f.getD i 0 ∧
-  sv.gammas.length + κ + m = μ ∧
+  sv.alphas.length + κ + m = μ ∧
   (∀ x, x.length = κ + m → runW B lf sv x = multilinearEval w.toList x) ∧
   ∀ p < P, (vfold rounds (K.ofBits p) (rowOf p)).length = 2 ^ m ∧
     ∀ l < 2 ^ m, (vfold rounds (K.ofBits p) (rowOf p)).getD l 0 = laneVal f m l (K.ofBits p)
 
 theorem runW_fold (B : List E → E) (lf : ℕ) (sv : WhirState) (c γ : E) (x : List E) :
-    runW B lf { sv with claim := c, gammas := sv.gammas ++ [γ] } x = runW B lf sv (γ :: x) := by
+    runW B lf { sv with claim := c, alphas := sv.alphas ++ [γ] } x = runW B lf sv (γ :: x) := by
   simp [runW]
 
 /-- **A round keeps the invariant.** -/
@@ -74,7 +74,7 @@ theorem FoldInv.step {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ 
       (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
     FoldInv μ lf B κ P rowOf (j + 1) m
       { sv with claim := (1 + γ) * (u₀ + α * v₀ + β * c₀) +
-          γ * ((sv.claim + v₀) + α * v₁ + β * c₁), gammas := sv.gammas ++ [γ] }
+          γ * ((sv.claim + v₀) + α * v₁ + β * c₁), alphas := sv.alphas ++ [γ] }
       (foldLanesA f (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
         (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β) (foldPairsA γ w)
       (rounds ++ [⟨α, β⟩]) := by
@@ -114,12 +114,12 @@ theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf
   | n + 1, j, sv, f, w, pre, hI => by
     simp only [foldRoundsA, foldRounds, Script.bind_eq, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (follows_foldRoundA f w (2 ^ (n + 1)) sv cs)
-    obtain ⟨hcs, γ, α, β, u₀, v₀, c₀, v₁, c₁, ht, hb2, hb1, rfl⟩ := h
+    obtain ⟨hcs, α, β, u₀, v₀, c₀, v₁, c₁, ht, hb2, hb1, rfl⟩ := h
     obtain ⟨sv', r⟩ := b
     simp only at hb2 hb1
     subst hb2 hb1
     rw [two_pow_succ_div_two] at ht ⊢
-    have hI' := hI.step γ α β u₀ v₀ c₀ v₁ c₁ ht
+    have hI' := hI.step α α β u₀ v₀ c₀ v₁ c₁ ht
     simp only
     rw [← Script.bind_ret (foldRoundsA n (2 ^ n) _ _)]
     refine Follows.bind (fun cs₂ a' b' h' ↦ ?_) _ _ _
@@ -310,10 +310,10 @@ theorem glueLevel_eq (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) 
     (qs : List ℕ) (ws : List E) (b : E) :
     glueLevel sv lam mu [z₁, z₂] [y₁, y₂] qs ws b =
       { claim := sv.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * b,
-        gammas := sv.gammas,
-        glued := sv.glued ++ [⟨1 * lam, sv.gammas.length, fun x ↦ eqEval z₁ x⟩,
-          ⟨1 * lam * lam, sv.gammas.length, fun x ↦ eqEval z₂ x⟩,
-          ⟨1 * lam * lam * lam, sv.gammas.length, Verifier.inducedWeight mu qs ws⟩] } := by
+        alphas := sv.alphas,
+        glued := sv.glued ++ [⟨1 * lam, sv.alphas.length, fun x ↦ eqEval z₁ x⟩,
+          ⟨1 * lam * lam, sv.alphas.length, fun x ↦ eqEval z₂ x⟩,
+          ⟨1 * lam * lam * lam, sv.alphas.length, Verifier.inducedWeight mu qs ws⟩] } := by
   simp [glueLevel, powers, powersFrom, Whir.oodSamples, List.append_assoc]
 
 theorem runW_glue (B : List E → E) (lf : ℕ) (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E)
@@ -517,7 +517,7 @@ theorem getD_extract_low (p : Array E) {n i : ℕ} (hn : n ≤ p.size) (hi : i <
 theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (hℓ' : ℓ' ≤ κ) (hκ : κ ≤ 28)
     {sv' : WhirState} {p w' : Array E} (hp' : p.size = 2 ^ κ + ℓ) (hw' : w'.size = 2 ^ κ)
     (hclaim : sv'.claim = ∑ i ∈ range w'.size, w'.getD i 0 * p.getD i 0)
-    (hlen : sv'.gammas.length + κ = μ)
+    (hlen : sv'.alphas.length + κ = μ)
     (hW : ∀ x, x.length = κ → runW B lf sv' x = multilinearEval w'.toList x)
     (z₁ z₂ : List E) (hz₁ : z₁.length = κ) (hz₂ : z₂.length = κ) (lam : E) (qs : List ℕ) (b : E)
     (hb : b = dot (queryTableA κ qs (powers lam qs.length)).toList (p.extract 0 (2 ^ κ)).toList)
@@ -589,7 +589,7 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
     simp only [Nat.zero_add, List.nil_append] at hrl hI' ⊢
     set κ := mu - level.fold with hκ
     obtain ⟨hw', hp', hcols, hclaim, hlen, hW, hrows⟩ := hI'
-    have hmu : μ - sv'.gammas.length = κ := by omega
+    have hmu : μ - sv'.alphas.length = κ := by omega
     rw [hmu]
     have hrow0 : ∀ q < 2 ^ (κ + level.logInvRate),
         foldRow (lanesOfV index (word q)) (K.ofBits q) rounds = laneVal p 0 0 (K.ofBits q) := by

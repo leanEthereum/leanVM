@@ -20,8 +20,8 @@ Level `i` of a shape's fold certificate `(κ, R, k, Aend, rounds)` is the code `
 (`codesOf μ R i`). From `shapeOK μ R = true` (`shapeOK_all`, every admissible shape):
 
 * `roundBoundsOf`: each level's fold rounds, from their certificate (`foldRoundBound_of_ok`),
-  at the level's degree, with `(γ, α, β)`'s count at most `2^12 |E|²` (the fold budget `2^12`
-  times `|E|²`), `2^-125` after the `9`-bit grind;
+  at the level's degree, with `(α, β)`'s count at most `2^12 |E|` (the fold budget `2^12`
+  times `|E|`), `2^-125` after the `9`-bit grind;
 * `ladderOK_of_chain`: the ladder's groups (`MidOK`, `FinalOK`) within `εmsg = 2^-125` after
   their grinds;
 * `listMax₀ μ R`, level 0's list bound, at most `166` (`listMax₀_le`), with the out-of-domain and
@@ -62,14 +62,14 @@ theorem natMul_inv_pow_le {N b k : ℕ} (h : N * 2 ^ k ≤ 2 ^ b) :
 theorem div_card (N : ℕ) : (N : ENNReal) / Fintype.card E = N * 2⁻¹ ^ 128 := by
   rw [card_E, Nat.cast_pow, Nat.cast_ofNat, div_eq_mul_inv, ENNReal.inv_pow]
 
-/-- The fold group's count `2^12 |E|²` over `|E|³` is `2^12/|E|`. -/
-theorem budget_div_card_cube :
-    (((AffineCombiner.foldBudget * Fintype.card E ^ 2 : ℕ) : ENNReal) / Fintype.card E ^ 3) =
+/-- The fold group's count `2^12 |E|` over `|E|²` is `2^12/|E|`. -/
+theorem budget_div_card_sq :
+    (((AffineCombiner.foldBudget * Fintype.card E : ℕ) : ENNReal) / Fintype.card E ^ 2) =
       ((2 ^ 12 : ℕ) : ENNReal) / Fintype.card E := by
-  have hq0 : ((Fintype.card E : ℕ) : ENNReal) ^ 2 ≠ 0 := by simp [Fintype.card_ne_zero]
-  have hqt : ((Fintype.card E : ℕ) : ENNReal) ^ 2 ≠ ⊤ := by simp
-  rw [show (Fintype.card E : ENNReal) ^ 3 = (Fintype.card E : ENNReal) * (Fintype.card E) ^ 2 by
-    ring, Nat.cast_mul, Nat.cast_pow (Fintype.card E), ENNReal.mul_div_mul_right _ _ hq0 hqt]
+  have hq0 : ((Fintype.card E : ℕ) : ENNReal) ≠ 0 := by simp [Fintype.card_ne_zero]
+  have hqt : ((Fintype.card E : ℕ) : ENNReal) ≠ ⊤ := by simp
+  rw [show (Fintype.card E : ENNReal) ^ 2 = (Fintype.card E : ENNReal) * (Fintype.card E) by
+    ring, Nat.cast_mul, ENNReal.mul_div_mul_right _ _ hq0 hqt]
 
 /-- A group of error `N/|E|` ground by `g` bits is within `2^-125` when `N · 2^125 ≤ 2^(g+128)`. -/
 theorem grind_div_card_le {g N : ℕ} (h : N * 2 ^ 125 ≤ 2 ^ (g + 128)) :
@@ -167,7 +167,7 @@ def listMax₀ (μ R : ℕ) : ℕ := jlStart ((levelsOf μ R).headD junkLv)
 noncomputable def roundBoundsMk {κ R k A : ℕ} (h64 : κ + R ≤ 64) (hR : 1 ≤ R) {rs : List (ℕ × ℕ × ℕ)}
     (hlv : AffineCombiner.levelOK AffineCombiner.foldBudget (κ, R, k, A, rs) = true)
     (hkA : k < A) : RoundBounds ⟨κ, R, k, A, h64, hR⟩ εmsg where
-  N _ := AffineCombiner.foldBudget * Fintype.card E ^ 2
+  N _ := AffineCombiner.foldBudget * Fintype.card E
   hA := hkA
   bound j hj := by
     have hlen : rs.length = k := by
@@ -177,10 +177,10 @@ noncomputable def roundBoundsMk {κ R k A : ℕ} (h64 : κ + R ≤ 64) (hR : 1 �
     have hj' : j < k := hj
     exact Sound.foldRoundBound_of_ok h64 (AffineCombiner.levelOK_round hlv j (by omega)).2
   eF j _ := by
-    rw [budget_div_card_cube]
+    rw [budget_div_card_sq]
     exact grind_div_card_le (by unfold Whir.foldGrindingBits; norm_num)
   eF1 j _ := by
-    rw [budget_div_card_cube, div_card]
+    rw [budget_div_card_sq, div_card]
     exact lt_of_le_of_lt (natMul_inv_pow_le (k := 1) (by norm_num))
       (by rw [pow_one, ENNReal.inv_lt_one]; norm_num)
 
