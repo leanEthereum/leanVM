@@ -274,8 +274,8 @@ LIG_MAX_LEVELS = LIG_MAX_LEVELS_PLACEHOLDER
 LIG_MAX_VANISH_LEN = LIG_MAX_VANISH_LEN_PLACEHOLDER
 LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
-# The opening's grinding (pcs::whir_config): before each round's theta and again before its
-# (gamma, alpha, beta), before every level's queries, before each batching challenge, the
+# The opening's grinding (pcs::whir_config): before each fold round's (gamma, alpha,
+# beta), before every level's queries, before each batching challenge, the
 # ring switch's map included, and before the level-0 OOD sample. A non-final level draws
 # OOD_SAMPLES points with no grind.
 FOLD_GRIND_BITS = FOLD_GRIND_BITS_PLACEHOLDER
@@ -1219,8 +1219,8 @@ def verify_merkle_cap(cap, flags, depth: Const):
 
 
 # ============================== the stacked WHIR opening ============================
-# A level's rounds fold its lanes by the affine combiner G + (alpha + beta X)(F + theta G)
-# of [CYWZ26, preprint], the claim carried by five scalars a round and the weight folded
+# A level's rounds fold its lanes by the affine combiner G + (alpha + beta X) F of
+# [CYWZ26, preprint], the claim carried by five scalars a round and the weight folded
 # by gamma, so the gammas are the weight's point (verifier::whir::verify_whir). A
 # non-final level then commits the folded lane's low part, sends its high part, and glues
 # its OOD claims and its queries, each opened row folded as the lanes were and corrected by
@@ -1229,12 +1229,11 @@ def verify_merkle_cap(cap, flags, depth: Const):
 
 
 def opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, gammas, coefs):
-    # One fold round: grind, theta, the five scalars [u0, v0, c0, v1, c1], grind, then
-    # gamma, alpha, beta. The G lanes' share u1 = claim + v0 + theta u0 is derived. The
-    # row folds read alpha, beta, theta at coefs[0..3]; gamma is the point's coordinate.
+    # One fold round: the five scalars [u0, v0, c0, v1, c1], grind, then gamma, alpha,
+    # beta. The G lanes' share u1 = claim + v0 is derived. The row folds read alpha, beta
+    # at coefs[0..2]; gamma is the point's coordinate.
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     rate = StackBuf(8)
-    sp, theta, cursor = fs_grind_squeeze(sp, rate, 0, cursor, tabs, FOLD_GRIND_BITS)
     msg = StackBuf(8)
     u0, cursor = fs_next(msg, 0, cursor)
     v0, cursor = fs_next(msg, 1, cursor)
@@ -1249,9 +1248,8 @@ def opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, gammas, coefs):
     gammas[GEN ** 0] = gamma
     coefs[GEN ** 0] = alpha
     coefs[GEN ** 1] = beta
-    coefs[GEN ** 2] = theta
     side0 = u0 + alpha * v0 + beta * c0
-    side1 = claim + v0 + theta * u0 + alpha * v1 + beta * c1
+    side1 = claim + v0 + alpha * v1 + beta * c1
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, side0 + gamma * (side0 + side1)
 
 
@@ -1441,27 +1439,20 @@ def opening_query(cap, flags, coefs, hs, x, wins, base: Const, folds: Const, lea
     else:
         keccak_cells(row[0:leaf_cells], leaf_hash_state)
     walk_path(leaf_hash_state[0], leaf_hash_state[1], wins, cap, flags, depth - cap_depth, cap_depth)
-    # Round j takes the lane pairs (F, G) to t F + s G, t = alpha + beta x and
-    # s = 1 + theta t. As t (F + (s / t) G) every output of a round shares the factor
-    # t, so the pairs fold by r = theta + 1 / t and the t's multiply back once.
+    # Round j takes the lane pairs (F, G) to G + t F, t = alpha + beta x.
     for j in unroll(0, folds):
-        t = coefs[GEN ** (3 * j)] + coefs[GEN ** (3 * j + 1)] * x
-        r = coefs[GEN ** (3 * j + 2)] + 1 / t
-        if const(j == 0):
-            scale = t
-        else:
-            scale = scale * t
+        t = coefs[GEN ** (2 * j)] + coefs[GEN ** (2 * j + 1)] * x
         n_out = const(2 ** (folds - 1 - j))
         for m in unroll(0, n_out):
             if const(j == 0):
                 if const(base == 1):
-                    acc[m] = row[interleave - 1 - 2 * m] + r * row[interleave - 2 - 2 * m]
+                    acc[m] = row[interleave - 2 - 2 * m] + t * row[interleave - 1 - 2 * m]
                 else:
-                    acc[m] = row[2 * m] + r * row[2 * m + 1]
+                    acc[m] = row[2 * m + 1] + t * row[2 * m]
             else:
                 src = const(interleave - 4 * n_out)
-                acc[interleave - 2 * n_out + m] = acc[src + 2 * m] + r * acc[src + 2 * m + 1]
-    value = scale * acc[interleave - 2]
+                acc[interleave - 2 * n_out + m] = acc[src + 2 * m + 1] + t * acc[src + 2 * m]
+    value = acc[interleave - 2]
     if const(final == 1):
         # The unnormalized W_i(x) for i <= mu, W_(i+1) = W_i (W_i + W_i(beta_i)).
         ws = StackBuf(YR_LOG_CAP + 1)
@@ -1554,9 +1545,9 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     level_roots = HeapBuf(GEN ** (2 * n_levels))
     level_roots[GEN ** 0] = commit_root_0
     level_roots[GEN ** 1] = commit_root_1
-    # The gammas in round order, and each round's alpha, beta, theta.
+    # The gammas in round order, and each round's alpha, beta.
     fold_challenges = HeapBuf(GEN ** n_folds)
-    round_coefs = HeapBuf(GEN ** (3 * n_folds))
+    round_coefs = HeapBuf(GEN ** (2 * n_folds))
     # Per non-final level: its glued query batch's scalar lam^(OOD_SAMPLES + 1) times
     # lam^n (the inverse chains' correction), 1/lam, and its OOD claims' points and
     # scalars lam^(s + 1), claim s at row OOD_SAMPLES (lvl + 1) + s.
@@ -1579,7 +1570,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         pos_off = LIG_POSITIONS_OFF[ml]
         vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
         for j in unroll(0, folds):
-            fs0, fs1, fs2, fs3, fs4, cursor, claim = opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, fold_challenges * GEN ** (folds_off + j), round_coefs * GEN ** (3 * (folds_off + j)))
+            fs0, fs1, fs2, fs3, fs4, cursor, claim = opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, fold_challenges * GEN ** (folds_off + j), round_coefs * GEN ** (2 * (folds_off + j)))
 
         if const(lvl == last):
             word0, pow0, fs0, fs1, fs2, fs3, fs4, cursor = opening_message(fs0, fs1, fs2, fs3, fs4, cursor, final_msg, const(yr_len + folds), 1)
@@ -1697,9 +1688,9 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             pairs = n_queries
             odd = 0
         if const(lvl == last):
-            batched = opening_queries(cap, flags, lam_inv, round_coefs * GEN ** (3 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, GEN ** pairs, odd, 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], depth, cap_depth, mu, vanish, n_hs, hs_bits, 1)
+            batched = opening_queries(cap, flags, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, GEN ** pairs, odd, 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], depth, cap_depth, mu, vanish, n_hs, hs_bits, 1)
         else:
-            batched = opening_queries(cap, flags, lam_inv, round_coefs * GEN ** (3 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, GEN ** pairs, odd, 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], depth, cap_depth, 0, 0, 0, 0, 0)
+            batched = opening_queries(cap, flags, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, GEN ** pairs, odd, 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], depth, cap_depth, 0, 0, 0, 0, 0)
 
         if const(lvl != last):
             # OOD claim s takes lam^(s + 1), the query batch lam^(OOD_SAMPLES + 1) times
