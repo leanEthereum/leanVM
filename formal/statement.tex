@@ -154,8 +154,8 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
-program $P$, of size at most $15972$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $15697$ and a slack of $275$, less than one leanXMSS signature's encoding), run on the encoded
+program $P$, of size at most $14640$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
+extractor's $14365$ and a slack of $275$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
 $2^{\max(81,\,2\mu + 22)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
