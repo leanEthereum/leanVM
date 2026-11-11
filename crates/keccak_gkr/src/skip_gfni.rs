@@ -1,5 +1,6 @@
-//! The first four rounds' sums over a block by GFNI byte products (x86-64 with AVX-512F and
-//! GFNI): per [`slot`], the polynomial the five-term row of [`crate::kernels`] sums.
+//! The first four rounds' sums over a block by GFNI byte products (x86-64 with AVX2 and GFNI, on
+//! 512-bit registers with AVX-512F): per [`slot`], the polynomial the five-term row of
+//! [`crate::kernels`] sums.
 //!
 //! A term `w[x] e[x + 1] e[x + 2]` of a row is a binary polynomial of at most
 //! `192 + 24 + 24 - 2 = 238` coefficients, and so is a sum of terms. A binary polynomial of at most
@@ -21,7 +22,8 @@ use crate::rmfe::{EMBED_BITS, RMFE};
 use crate::witness::BLOCK_WORDS;
 
 /// A register of quadwords and the kernel's operations on it, each of them quadword by quadword
-/// or byte by byte.
+/// or byte by byte, so the kernel is written once for both widths.
+#[cfg(target_feature = "avx512f")]
 mod register {
     use core::arch::x86_64::*;
 
@@ -72,6 +74,57 @@ mod register {
         // SAFETY: AVX-512F and GFNI are enabled at compile time (`skip_gfni`'s cfg); a register
         // operation.
         unsafe { _mm512_gf2p8mul_epi8(a, b) }
+    }
+}
+
+/// [`register`] at 256 bits, without AVX-512F.
+#[cfg(not(target_feature = "avx512f"))]
+mod register {
+    use core::arch::x86_64::*;
+
+    pub type R = __m256i;
+    pub const LANES: usize = 4;
+
+    #[inline(always)]
+    pub fn splat(x: i64) -> R {
+        // SAFETY: AVX2 is enabled at compile time (`skip_gfni`'s cfg); a register operation.
+        unsafe { _mm256_set1_epi64x(x) }
+    }
+
+    #[inline(always)]
+    pub fn load(words: &[i64; LANES]) -> R {
+        // SAFETY: AVX2 is enabled at compile time (`skip_gfni`'s cfg); the load is of the four
+        // words.
+        unsafe { _mm256_loadu_si256(words.as_ptr().cast()) }
+    }
+
+    #[inline(always)]
+    pub fn store(v: R) -> [i64; LANES] {
+        let mut words = [0; LANES];
+        // SAFETY: AVX2 is enabled at compile time (`skip_gfni`'s cfg); the store is of the four
+        // words.
+        unsafe { _mm256_storeu_si256(words.as_mut_ptr().cast(), v) };
+        words
+    }
+
+    #[inline(always)]
+    pub fn xor(a: R, b: R) -> R {
+        // SAFETY: AVX2 is enabled at compile time (`skip_gfni`'s cfg); a register operation.
+        unsafe { _mm256_xor_si256(a, b) }
+    }
+
+    #[inline(always)]
+    pub fn map(bytes: R, matrices: R) -> R {
+        // SAFETY: AVX2 and GFNI are enabled at compile time (`skip_gfni`'s cfg); a register
+        // operation.
+        unsafe { _mm256_gf2p8affine_epi64_epi8(bytes, matrices, 0) }
+    }
+
+    #[inline(always)]
+    pub fn mul(a: R, b: R) -> R {
+        // SAFETY: AVX2 and GFNI are enabled at compile time (`skip_gfni`'s cfg); a register
+        // operation.
+        unsafe { _mm256_gf2p8mul_epi8(a, b) }
     }
 }
 

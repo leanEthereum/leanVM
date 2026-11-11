@@ -3,7 +3,7 @@
 //!
 //! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an AVX2 one
 //! (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit. The
-//! vector forms are compiled only where their features are. With AVX-512 and GFNI a block's
+//! vector forms are compiled only where their features are. With AVX2 and GFNI a block's
 //! [`skip_row`]s are summed on residues instead (`skip_gfni`).
 
 use primitives::field::gf2_64::mul_wide;
@@ -251,7 +251,7 @@ fn skip_block_portable(block: &[u64], weights: &[[u64; 3]]) -> Vec<[u128; 3]> {
 }
 
 cfg_select! {
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "gfni") => {
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
         pub(crate) use crate::skip_gfni::SkipBlock;
     }
     _ => {

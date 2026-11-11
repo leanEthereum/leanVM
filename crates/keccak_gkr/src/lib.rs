@@ -86,8 +86,8 @@
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 //!
-//! The four rounds' sums are of polynomials of fewer than 240 binary coefficients. With AVX-512
-//! and GFNI they are taken on residues: a polynomial is its values at one root of each of the 30
+//! The four rounds' sums are of polynomials of fewer than 240 binary coefficients. With GFNI
+//! (x86-64) they are taken on residues: a polynomial is its values at one root of each of the 30
 //! irreducible polynomials of degree 8, a byte each, and a product is a byte product (`skip_gfni`).
 
 use fiat_shamir::transcript::ProverState;
@@ -110,7 +110,7 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "gfni"))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
 #[cfg(all(
     target_arch = "x86_64",
