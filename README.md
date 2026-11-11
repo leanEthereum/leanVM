@@ -70,12 +70,12 @@ cargo leanvm aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
 
 ```
 aggregation, 1,400 leanXMSS signatures
-  cycles (VM steps)           : 1,146,537 = 2^20.129
-    details                   : XOR 2^18 (22.9%)  KECCAK 2^17.994 (22.8%)  MUL 2^17.856 (20.7%)  SET 2^17.37 (14.8%)  DEREF 2^17.281 (13.9%)  JUMP 2^15.811 (5.0%)  MEMORY 2^21.081  BYTECODE 2^18.902  TOTAL_COMMITTED 2^25.745
-  proof size                  : 247.6 KiB
-  proving time                : 0.949 s ± 4.6%      peak memory 5.487 GiB
-  per signature               : 1,475.048 signatures/s
-  verifying                   : 6.275 ms
+  cycles (VM steps)           : 1,143,916 = 2^20.126
+    details                   : XOR 2^18 (22.9%)  KECCAK 2^17.994 (22.8%)  MUL 2^17.856 (20.7%)  SET 2^17.348 (14.6%)  DEREF 2^17.281 (13.9%)  JUMP 2^15.811 (5.0%)  MEMORY 2^21.079  BYTECODE 2^18.513  TOTAL_COMMITTED 2^25.745
+  proof size                  : 246.8 KiB
+  proving time                : 0.964 s ± 4.5%      peak memory 5.42 GiB
+  per signature               : 1,452.435 signatures/s
+  verifying                   : 5.872 ms
 ```
 
 ### leanSPHINCS aggregation
@@ -120,11 +120,11 @@ cargo leanvm recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-in
 
 ```
 recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recursion rate = 1/2
-    cycles (VM steps)           : 459,768 = 2^18.811
-    details                   : MUL 2^17.264 (34.2%)  XOR 2^16.962 (27.8%)  DEREF 2^16.554 (20.9%)  SET 2^15.259 (8.5%)  JUMP 2^14.676 (5.7%)  KECCAK 2^13.682 (2.9%)  MEMORY 2^19.445  BYTECODE2^18.902  TOTAL_COMMITTED 2^23.845
-  proof size                  : 321.3 KiB
-  proving time                : 0.159 s ± 0.6%      peak memory 1.117 GiB
-  verifying                   : 9.379 ms
+  cycles (VM steps)           : 460,415 = 2^18.813
+    details                   : MUL 2^17.272 (34.4%)  XOR 2^16.961 (27.7%)  DEREF 2^16.57 (21.1%)  SET 2^15.18 (8.1%)  JUMP 2^14.683 (5.7%)  KECCAK 2^13.761 (3.0%)  MEMORY 2^19.476  BYTECODE 2^18.513  TOTAL_COMMITTED 2^23.845
+  proof size                  : 321.5 KiB
+  proving time                : 0.154 s ± 3.2%      peak memory 1.119 GiB
+  verifying                   : 8.684 ms
 ```
 
 ### Proving KECCAK
