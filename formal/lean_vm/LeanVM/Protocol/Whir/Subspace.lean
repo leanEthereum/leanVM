@@ -220,7 +220,7 @@ theorem vanishing_succ (i : ℕ) :
   (vanishing_comp_add_and_succ i).2
 
 /-- The recurrence (i), evaluated: `W_{i+1}(a) = W_i(a)^2 + W_i(e_i)·W_i(a)`, the update of the
-verifier's `subspace_roots` (`crates/verifier/src/whir.rs:92-104`) and of the prover's `next_s`. -/
+verifier's `subspace_roots` (`crates/verifier/src/whir.rs:93-105`) and of the prover's `next_s`. -/
 theorem vanishingAt_succ (i : ℕ) (a : K) :
     vanishingAt (i + 1) a = vanishingAt i a ^ 2 + vanishingAt i (basisVec i) * vanishingAt i a := by
   rw [← eval_vanishing, vanishing_succ, eval_mul, eval_add, eval_C, eval_vanishing]

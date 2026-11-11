@@ -30,7 +30,7 @@ statement itself is written from the specification, as what the M3 model means b
 accepted instance (specification §5, `doc/leanvm/body/05-arithmetization.tex:4`: "an instance
 is accepted exactly when every table's constraints hold and the bus balances", the balance
 being the multiset equality of `:14`), and what the verifier checks of an announced instance
-is transcribed: the caps (`crates/verifier/src/lib.rs:229-247` and
+is transcribed: the caps (`crates/verifier/src/lib.rs:230-248` and
 `crates/verifier/src/layout.rs:478-489`, the
 announcement checks of `walk` and `build_layout`, which replace `read_public` of `a386121f`;
 §6.2 "Instance caps", `06-bus-interactions.tex:80`), the nonzero count product (§6.2 "The count
@@ -84,9 +84,9 @@ bytecode tuple (§6.2 "The count product"; `layout.rs:136` and `:463-479`, the c
 stacks the read-count columns of the six tables and nothing else, so the finalize counts of
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
 the M3 part of the announcement checks (`read_public` at `a386121f`; at `leanvm-rev`, `walk` and
-`build_layout`, `verifier/src/lib.rs:245-263` and `verifier/src/layout.rs:483-494`, behind the
+`build_layout`, `verifier/src/lib.rs:246-264` and `verifier/src/layout.rs:483-494`, behind the
 wrapper `crates/leanvm_core/src/cpu/mod.rs:627-639`), which make eight checks: (1) the
-announced sizes have zero upper limbs (`verifier/src/lib.rs:250-254`, the transcript format) and
+announced sizes have zero upper limbs (`verifier/src/lib.rs:251-255`, the transcript format) and
 (2) the two public words are two-limb words (`cpu/mod.rs:627`, `[F128; 2]`), both by type here
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
 (`cpu/mod.rs:629`, `verifier/src/layout.rs:488` and `:492`), `Program`'s by type
@@ -96,8 +96,8 @@ announced sizes have zero upper limbs (`verifier/src/lib.rs:250-254`, the transc
 past it in the table's height being padding rows, which the bus never sees, so the witness's tables
 are the executed rows only); (6) the `KECCAK` table's height floor (`TABLE_LOG_FLOORS`) is the
 protocol layer's, its padding rows being outside the bus; (7) the WHIR rate
-(`verifier/src/lib.rs:258`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
-(`verifier/src/lib.rs:260-263`) are parameters of the commitment, left to the protocol layer, which
+(`verifier/src/lib.rs:259`) and (8) the stacked size `mu ∈ [MIN_MU, MAX_MU]`
+(`verifier/src/lib.rs:261-264`) are parameters of the commitment, left to the protocol layer, which
 reads them off the same announcement. `Caps` transcribes (4), on the announced `κ`, and (5). That
 the prover data is well shaped (`WellShapedData`, so that `imageOf` drops no row) is no longer a
 hypothesis: the data is the memory block's `2^κ` rows (`Caps.well_shaped`). These caps are what

@@ -162,11 +162,11 @@ def tableEvals (st : TableState) : List E :=
   (List.range 6).flatMap fun t ↦ finalEvals (st.cols.getD t #[])
 
 /-- The number of powers of `ξ`: the constraints' and one per side (`n_xi_powers`,
-`crates/leanvm_core/src/cpu/mod.rs`; `crates/verifier/src/lib.rs:274-282`). -/
+`crates/leanvm_core/src/cpu/mod.rs`; `crates/verifier/src/lib.rs:275-283`). -/
 def xiCount : ℕ := (tables.map Table.nConstraints).sum + nTrees
 
 /-- The constraint powers of `ξ` and its form powers, one per side
-(`crates/verifier/src/lib.rs:280-282`). -/
+(`crates/verifier/src/lib.rs:281-283`). -/
 def xiPowers (xi : E) : List E × List E :=
   let nc := (tables.map Table.nConstraints).sum
   ((powers xi xiCount).take nc, (powers xi xiCount).drop nc)

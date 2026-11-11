@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Whir.Sound.Prob
 /-!
 # The commitment's OOD binding
 
-`readOod μ` (`crates/verifier/src/lib.rs:158-165` at leanVM `f128`; Annex B, the Commit step) grinds
+`readOod μ` (`crates/verifier/src/lib.rs:159-166` at leanVM `f128`; Annex B, the Commit step) grinds
 `oodGrindingBits = 15` bits, draws `z₀ ∈ E^μ`, reads `y₀` and returns the claim
 `(eq(z₀, ·), y₀)` (`oodClaim`), which joins the stacked opening's claims last. Annex B: "The
 commitment's list is `Lst(f^(0); a_0, d_0)`, of size at most `L_0`. Its members' multilinears are

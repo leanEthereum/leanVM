@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Complete.Opening
 # The announced sizes and the commitment
 
 Steps 1 and 2 of `verify_execution` (`readAnnouncedSizes`, `commitStack`;
-`crates/verifier/src/lib.rs:249-267` at leanVM `f128`). The honest prover sends the eight
+`crates/verifier/src/lib.rs:250-268` at leanVM `f128`). The honest prover sends the eight
 scalars `announce s ρ` (`Front.announce`: the memory's log-size, the six tables' row counts, then
 the WHIR rate, each the scalar `E::new(n, 0)`), then the stack's level-0 word.
 

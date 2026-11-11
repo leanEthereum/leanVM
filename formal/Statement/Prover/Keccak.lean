@@ -112,7 +112,7 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit
   let word := (x.2.pairs.headD (#[], #[])).2.getD 0 0
   (Script.sendE word).bind fun _ ↦ inputProve col P claim
 
-/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs:318-335`):
+/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs:319-336`):
 the reduction on `q_keccak`'s words (the column `qkeccak` of `cols`), the `KECCAK` table of
 log-height `τ`, at its point and output lanes (`evaluations`). -/
 def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (evaluations : List (List E × List E)) :

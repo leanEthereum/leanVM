@@ -15,7 +15,7 @@ public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
 /-!
 # The ring claim on the stack
 
-The program's claim on the stack (`ringSwitchClaim`, `crates/verifier/src/lib.rs:340-346` at
+The program's claim on the stack (`ringSwitchClaim`, `crates/verifier/src/lib.rs:341-347` at
 leanVM `f128`) with the weight `ring_weight` of the drawn map (`ring_switch.rs:53-68`); the map,
 its coefficients and target are `RingMap`'s (`Ring.ringSwitch_eq`):
 

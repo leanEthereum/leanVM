@@ -19,7 +19,7 @@ public import LeanVM.Protocol.Whir.Complete.OpeningProof
 /-!
 # Assembling the honest run
 
-`verifyExecution` (`LeanVM.Protocol.Verifier`, `crates/verifier/src/lib.rs:245-365` at leanVM
+`verifyExecution` (`LeanVM.Protocol.Verifier`, `crates/verifier/src/lib.rs:246-366` at leanVM
 `f128`) is a sequence of phases. Its honest prover is the
 sequence of the phases' honest scripts (`honestRun`), and the simulation composes along `bind`
 (`Follows.bind`), each phase handing the next the facts it needs:

@@ -17,7 +17,7 @@ public import Statement.Prover.Whir
 # Completeness of the WHIR opening
 
 The verifier is `LeanVM.Protocol.Verifier.verifyStackedOpening` / `verifyWhir`
-(`crates/verifier/src/lib.rs:135-156`, `whir.rs:222-345`), with the commitment `commitStack`.
+(`crates/verifier/src/lib.rs:136-157`, `whir.rs:223-343`), with the commitment `commitStack`.
 The honest prover is the statement's (`LeanVM.Prover.levelsA`, `Statement/Prover/Whir.lean`) run
 on the stack's table and the batched claims' weight table in the WHIR variable order
 (`stackTable`, `basisTable`): the affine fold rounds on novel-basis coefficient tables, the next
