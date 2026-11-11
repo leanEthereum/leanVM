@@ -75,7 +75,7 @@ Let $\orc$ have $\ell\ge1$ lane variables, and split a lane index as $(\iota,u')
 The same formula, with the indeterminate $X$ for $x$, folds a polynomial tuple $U$ into $U_{\afa,\afb}$, of degree at most one more. Evaluation commutes with the fold, so a tuple agreeing with $\orc$ on $\aset$ folds to one agreeing with $\orc_{\afa,\afb}$ on $\aset$.
 \end{definition}
 
-In a fold round, $F:=U_{(0,\cdot)}$ and $G:=U_{(1,\cdot)}$ are the halves whose folded bit is $0$ and $1$, and the fold is $G+(\afa+\afb X)F$. The analysis uses one degree bound $\dgr$ for every round of a level, the degree the honest lanes reach after its last round. Theorem~\ref{thm:mca-affine} splits a fold of degree at most $\dgr$ as $U+(\afa+\afb X)V$ with $\deg U\le\dgr$ and $\deg V\le\dgr-1$, so the halves it recovers, $G=U$ and $F=V$, again have degree at most $\dgr$ (Lemma~\ref{lem:fold-list}).
+In a fold round, $F:=U_{(0,\cdot)}$ and $G:=U_{(1,\cdot)}$ are the halves whose folded bit is $0$ and $1$, and the fold is $G+(\afa+\afb X)F$. Each fold raises the lanes' degree by one. The analysis uses a single degree bound for all rounds of a level: the degree the lanes reach after its last round (\S\ref{sec:soundness}).
 
 \begin{theorem}[Johnson bound]\label{thm:johnson-interleaved}
 For every interleaved word $\orc$ over a domain of size $\blen$, every degree bound $\dgr<\blen$ and every agreement $\agr$ with $\agr^2>\blen\dgr$: $\ |\lst(\orc;\agr,\dgr)| \le \jl(\agr,\dgr) := \bigl\lfloor \blen(\agr-\dgr)/(\agr^2-\blen\dgr) \bigr\rfloor$. If $\agr\ge(\sqrt{\rate}+\slack)\blen$ with $\rate:=\dgr/\blen$, this is at most $\frac{1}{2\slack\sqrt{\rate}}$. (Proof in \S\ref{app:johnson}.)
