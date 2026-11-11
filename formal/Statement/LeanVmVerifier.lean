@@ -41,7 +41,7 @@ folds `initialFold = 6` variables; every later level folds `subsequentFold = 4`,
 until at most `residualMaxLog = 5` variables remain, which are sent in the clear. The rate
 exponent of a level is the previous one plus the previous fold minus a domain reduction,
 `initialReduction = 3` after level 0 and `subsequentReduction = 1` after every later level. A
-level grinds `foldGrinding` bits before each of its fold challenges, none when that is `0`, and
+level grinds `foldGrinding` bits before each of its fold challenges, and
 opens `queries` positions after `queryGrindingBits = 17` bits of grinding; from level 1 on, one
 out-of-domain sample binds the level's commitment (`whir_config.rs:111-128`; `whir.rs:183-214`).
 
@@ -277,13 +277,10 @@ def sampleChallenges : ℕ → VerifierProgram (List E)
     let xs ← sampleChallenges n
     return x :: xs
 
-/-- Check a proof of work of `bits` bits. -/
-def grindProofOfWork (bits : ℕ) : VerifierProgram Unit := grind bits (ret ())
-
-/-- The proof of work before a fold challenge: `bits` bits, and none at `0`, where no nonce is
-read (`crates/verifier/src/whir.rs:185-189`). -/
-def foldProofOfWork (bits : ℕ) : VerifierProgram Unit :=
-  if bits = 0 then ret () else grindProofOfWork bits
+/-- Check a proof of work of `bits` bits; one of no bits is nothing, no nonce read
+(`Transcript::grind_check`). -/
+def grindProofOfWork (bits : ℕ) : VerifierProgram Unit :=
+  if bits = 0 then ret () else grind bits (ret ())
 
 /-- Read a commitment to a matrix of `2^height` rows of `width` words. -/
 def readCommitment (height width : ℕ) : VerifierProgram Unit := commit height width (ret ())
@@ -302,12 +299,10 @@ abbrev Bytes : Type := List UInt8
 
 /-! ## Proofs and the run -/
 
-/-- The proof-of-work predicate on the challenge sampled after the nonce: at `bits = 0` the nonce
-is `0`; otherwise the low `bits` bits of the challenge's first limb are zero
-(`Transcript::grind_check`, `transcript.rs:135-151`). -/
-def powOk (bits : ℕ) (nonce challenge : E) : Bool :=
-  if bits = 0 then decide (nonce.limb 0 = 0 ∧ nonce.limb 1 = 0 ∧ nonce.limb 2 = 0)
-  else decide ((challenge.limb 0).lane.toNat % 2 ^ bits = 0)
+/-- The proof-of-work predicate on the challenge sampled after the nonce: the low `bits` bits of
+its first limb are zero (`Transcript::grind_check`). -/
+def powOk (bits : ℕ) (challenge : E) : Bool :=
+  decide ((challenge.limb 0).lane.toNat % 2 ^ bits = 0)
 
 /-- One Merkle opening (`MerklePath`, `crates/verifier/src/merkle.rs:17-25`): the position it
 opens, the leaf's words and the siblings from the leaf up. -/
@@ -407,7 +402,7 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
     | n :: xs => do
       let sponge ← absorb π s.sponge n dsPowNonce
       let (c, sponge) ← squeeze π sponge
-      if powOk bits n c then run k { s with sponge := sponge, stream := xs } else pure none
+      if powOk bits c then run k { s with sponge := sponge, stream := xs } else pure none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs => do
       let sponge ← absorb π s.sponge x0 dsObserve
@@ -1495,13 +1490,13 @@ structure WhirState where
   /-- The glued claims so far. -/
   glued : List GluedClaim
 
-/-- A level's fold rounds: a proof of work of `grinding` bits unless `grinding = 0`, sample, fold
+/-- A level's fold rounds: a proof of work of `grinding` bits, sample, fold
 the running claim, read the next quadratic (`whir.rs:183-194`). Returns the state and the level's
 own challenges. -/
 def foldRounds (grinding : ℕ) : ℕ → WhirState → List E → VerifierProgram (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    VerifierProgram.foldProofOfWork grinding
+    VerifierProgram.grindProofOfWork grinding
     let challenge ← VerifierProgram.sampleChallenge
     let quad ← sumcheckRoundPoly 3 (polyEval s.runningQuad challenge) none
     foldRounds grinding n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
