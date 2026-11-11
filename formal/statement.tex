@@ -528,7 +528,7 @@ with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 \paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
-(sorted, no repeats, fewer than $2^{20}$ signature claims). Of these, \lean{AggregateSound} below
+(sorted, no repeats). Of these, \lean{AggregateSound} below
 assumes only that the deferred claim holds (\lean{DeferredClaim.HoldsWithShape}); no end statement
 models the DA digest's derivation or the lists' form. Without the derivation, the DA condition says
 nothing of the blob: \lean{MatrixWitness.Opens} accepts any challenge the digest binds, $z = 0$
@@ -699,8 +699,8 @@ $\mathrm{NodeRel}(B, iv_G, s, w)$, under the deployed seed:
 \item \lean{DeployedLimits}, the limits the guest program enforces on the node: each declared list
 is a sub-multiset of the raw signatures' claims and the children's lists (a claim declared $n$ times
 is held $n$ times, each raw signature or child's entry used once); at most $16$ children; the
-coverage table, one slot per raw signature and per entry of a child's lists
-(\lean{coverageSlots}), shorter than $2^{20}$.
+coverage table has one slot per raw signature and per entry of a child's lists
+(\lean{coverageSlots}), which \lean{CoveredNode} below bounds.
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak

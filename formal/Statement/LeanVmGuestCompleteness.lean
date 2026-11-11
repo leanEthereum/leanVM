@@ -37,8 +37,8 @@ def coverageSlots (witness : NodeWitness) : ℕ :=
 /-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run.
 Implied by these, with `NodeRelation` and honest children, and so not limits of their own: a child's
 stack log at most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
-directly (`NodeWitness.daMatrix`), every count of `meta` and of a child's lists below `2^20` (each at
-most `coverageSlots`), the bus depth at most `32`, the tables' heights at most `30`. -/
+directly (`NodeWitness.daMatrix`), the bus depth at most `32`, the tables' heights at most `30`. The
+counts of `meta` and of a child's lists are at most `coverageSlots`, which `CoveredNode` bounds. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
@@ -53,9 +53,6 @@ structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : P
       (witness.children.map (·.statement.claims.sphincs)).flatten)
   /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4535`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
-  /-- The coverage table below `2^20` (`MAX_KEYS`, `crates/rec_aggregation/src/aggregation/mod.rs`, the
-  host's cap; the guest program bounds it by its memory, every count being a memory address). -/
-  coverageSlotsBelow2Pow20 : coverageSlots witness < 2 ^ 20
 
 /-! ## The guest program's completeness on the covered nodes -/
 
