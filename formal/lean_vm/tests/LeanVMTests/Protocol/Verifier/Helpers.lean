@@ -8,7 +8,8 @@ Every expected value below is the Rust verifier's (`crates/verifier`) at leanVM'
 driver is the verifier crate's sources with their items made crate-visible and a module printing
 each probe, kept in the port's scratch, not in the repository. Values that no change of the
 protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)
-are those of the earlier pins (`4af2cdddd`, `990b93526`). The line citations are to
+are those of the earlier pins (`4af2cdddd`, `990b93526`); `fold_row` and `derive_config`'s query
+counts are at `bcc8cde74`, the fold without its premix. The line citations are to
 `crates/verifier/src/` at the pin. Compiled checks (`#guard`): `E` multiplication does not reduce
 in the kernel from module files.
 
@@ -671,8 +672,8 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
-  [(15, 1, [6, 4], [1, 4], [234, 62]), (16, 1, [6, 4, 4], [1, 4, 7], [228, 59, 41]),
-   (17, 1, [6, 4, 4], [1, 4, 7], [224, 58, 37]), (18, 1, [6, 4, 4], [1, 4, 7], [221, 57, 35]),
+  [(15, 1, [6, 4], [1, 4], [238, 63]), (16, 1, [6, 4, 4], [1, 4, 7], [230, 60, 42]),
+   (17, 1, [6, 4, 4], [1, 4, 7], [225, 58, 38]), (18, 1, [6, 4, 4], [1, 4, 7], [222, 57, 35]),
    (19, 1, [6, 4, 4], [1, 4, 7], [220, 56, 34]),
    (20, 1, [6, 4, 4, 4], [1, 4, 7, 10], [219, 55, 33, 27]),
    (21, 1, [6, 4, 4, 4], [1, 4, 7, 10], [218, 55, 32, 25]),
@@ -683,11 +684,11 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (26, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [217, 55, 32, 22, 18]),
    (27, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [217, 55, 31, 22, 18]),
    (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [217, 55, 31, 22, 18, 16]),
-   (15, 2, [6, 4], [2, 5], [114, 48]), (16, 2, [6, 4, 4], [2, 5, 8], [112, 47, 35]),
-   (17, 2, [6, 4, 4], [2, 5, 8], [111, 46, 32]), (18, 2, [6, 4, 4], [2, 5, 8], [110, 45, 30]),
+   (15, 2, [6, 4], [2, 5], [114, 49]), (16, 2, [6, 4, 4], [2, 5, 8], [112, 47, 35]),
+   (17, 2, [6, 4, 4], [2, 5, 8], [111, 46, 32]), (18, 2, [6, 4, 4], [2, 5, 8], [110, 45, 31]),
    (19, 2, [6, 4, 4], [2, 5, 8], [110, 45, 29]),
    (20, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 29, 24]),
-   (21, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 22]),
+   (21, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 23]),
    (22, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 22]),
    (23, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 21]),
    (24, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 18]),
@@ -707,7 +708,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (26, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
    (27, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 15]),
    (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [73, 37, 25, 19, 15, 14]),
-   (15, 4, [6, 4], [4, 7], [56, 34]), (16, 4, [6, 4, 4], [4, 7, 10], [55, 33, 27]),
+   (15, 4, [6, 4], [4, 7], [56, 34]), (16, 4, [6, 4, 4], [4, 7, 10], [56, 33, 27]),
    (17, 4, [6, 4, 4], [4, 7, 10], [55, 32, 25]), (18, 4, [6, 4, 4], [4, 7, 10], [55, 32, 24]),
    (19, 4, [6, 4, 4], [4, 7, 10], [55, 32, 23]),
    (20, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 20]),

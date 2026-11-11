@@ -41,7 +41,7 @@ def smallCode : LevelCode := ⟨1, 1, 1, 4, by norm_num, le_rfl⟩
 
 example : smallCode.n = 4 := rfl
 example : smallCode.thr 0 = 3 := rfl
-example : smallCode.n * smallCode.deg 0 < smallCode.thr 0 * smallCode.thr 0 := by decide
+example : smallCode.n * smallCode.deg < smallCode.thr 0 * smallCode.thr 0 := by decide
 
 /-! ## Lane order -/
 
@@ -106,7 +106,7 @@ noncomputable example {μ R : ℕ} {codes : ℕ → LevelCode} {εmax : ENNReal}
     (hℓ : level.fold = LeanVM.Protocol.EndToEnd.laneBits)
     (hμ : LeanVM.Protocol.EndToEnd.laneBits ≤ μ)
     (hκ₀ : (codes 0).κ = μ - LeanVM.Protocol.EndToEnd.laneBits) (hR₀ : (codes 0).R = R)
-    (hthr : 2 ^ (codes 0).κ ≤ (codes 0).thr 0) (hw : IsMultiaffine μ w)
+    (hthr : (codes 0).deg < (codes 0).thr 0) (hw : IsMultiaffine μ w)
     (B : ∀ j, RoundBounds (codes j) εmax) (hA : LadderOK codes εmax 0 (level :: rest)) :
     Spec (verifyWhir μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h)) (fun _ _ ↦ False)
       εmax 0 0 :=
