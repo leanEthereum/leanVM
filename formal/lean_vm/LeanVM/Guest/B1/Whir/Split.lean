@@ -13,8 +13,8 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # `verifyWhir`, split at its terminal
 
-`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1520-1847` at leanVM `914612b6`)
-runs `verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:213-333`) up to
+`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1516-1833` at leanVM `71205cca`)
+runs `verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:214-331`) up to
 its last `require`, the terminal's check, which `check_opening_terminal` makes (G:3451).
 
 * `WhirEnd`, `whirLevelsOpen`, `whirOpen`: `whirLevels` and `verifyWhir` without the final
@@ -77,11 +77,11 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
       let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
       VerifierProgram.readCommitment height width
       let high ← VerifierProgram.readScalars level.fold
-      let oodPoints ← sampleOodPoints mu Whir.oodSamples
-      let oodValues ← VerifierProgram.readScalars Whir.oodSamples
+      VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits
+      let oodPoint ← VerifierProgram.sampleChallenges mu
+      let oodValue ← VerifierProgram.readScalar
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits
       let queries ← sampleQueries depth level.queries
-      VerifierProgram.grindProofOfWork Whir.batchGrindingBits
       let lam ← VerifierProgram.sampleChallenge
       let queryWeights := powers lam queries.length
       let words ← VerifierProgram.queryOpenings index queries
@@ -89,7 +89,7 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
         let what := subspaceAt mu (K.ofBits query)
         queryWeight * (foldRow (lanesOf row) (K.ofBits query) rounds +
           novelEval high what * ofK (what.getD mu 0))) (List.zip queries words) queryWeights)
-      let s := glueLevel s lam mu oodPoints oodValues queries queryWeights batched
+      let s := glueLevel s lam mu oodPoint oodValue queries queryWeights batched
       whirLevelsOpen logN laneFolds (index + 1) rest s
 
 /-- `verifyWhir` up to its terminal: what `open_stacked` runs. -/

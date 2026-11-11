@@ -120,7 +120,7 @@ def grind_check_Spec (bits : ℕ) : Prop :=
 
 /-- The grinds the deployed guest checks (`grind_check__L{bits}` in the core IR). -/
 def grindBitsDeployed : List ℕ :=
-  [2, 3, 9, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+  [2, 3, 8, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
 /-- Every deployed `grind_check` is its meaning. -/
 def grind_check_all_Spec : Prop := ∀ bits ∈ grindBitsDeployed, grind_check_Spec bits

@@ -103,21 +103,21 @@ theorem grind_check_found_3 : coreProgram.find? (grindCheckName 3) = some Data.c
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_9 : coreProgram.find? (grindCheckName 9) = some Data.core89 ∧
-    Data.core89.params = [.n 0, .n 1] ∧ Data.core89.body = gcBodyT 9 :=
+theorem grind_check_found_8 : coreProgram.find? (grindCheckName 8) = some Data.core89 ∧
+    Data.core89.params = [.n 0, .n 1] ∧ Data.core89.body = gcBodyT 8 :=
   ⟨Program.find?_of_indexOf? (j := 89) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_13 : coreProgram.find? (grindCheckName 13) = some Data.core460 ∧
-    Data.core460.params = [.n 0, .n 1] ∧ Data.core460.body = gcBodyT 13 :=
-  ⟨Program.find?_of_indexOf? (j := 460) (by decide +kernel) rfl, rfl,
+theorem grind_check_found_13 : coreProgram.find? (grindCheckName 13) = some Data.core330 ∧
+    Data.core330.params = [.n 0, .n 1] ∧ Data.core330.body = gcBodyT 13 :=
+  ⟨Program.find?_of_indexOf? (j := 330) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_14 : coreProgram.find? (grindCheckName 14) = some Data.core330 ∧
-    Data.core330.params = [.n 0, .n 1] ∧ Data.core330.body = gcBodyT 14 :=
-  ⟨Program.find?_of_indexOf? (j := 330) (by decide +kernel) rfl, rfl,
+theorem grind_check_found_14 : coreProgram.find? (grindCheckName 14) = some Data.core460 ∧
+    Data.core460.params = [.n 0, .n 1] ∧ Data.core460.body = gcBodyT 14 :=
+  ⟨Program.find?_of_indexOf? (j := 460) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -226,7 +226,7 @@ theorem grind_check_found : ∀ b ∈ grindBitsDeployed, ∃ fn : Fn,
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact ⟨_, grind_check_found_2⟩
   · exact ⟨_, grind_check_found_3⟩
-  · exact ⟨_, grind_check_found_9⟩
+  · exact ⟨_, grind_check_found_8⟩
   · exact ⟨_, grind_check_found_13⟩
   · exact ⟨_, grind_check_found_14⟩
   · exact ⟨_, grind_check_found_15⟩
