@@ -11,6 +11,10 @@ pub type Off = u32;
 /// cells already fills the `2^30` stack with its four columns, so no larger one can be committed.
 pub(crate) const MAX_CELLS: u32 = 1 << (verifier::MAX_STACKED_LOG - 2);
 
+/// The exponents the [`GPow`] table can cover: an address below [`MAX_CELLS`] or a `pc` below the
+/// largest bytecode.
+const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
+
 /// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
 /// (recursion depth, and so the address range, is unbounded).
 ///
@@ -33,7 +37,7 @@ pub(crate) const MAX_CELLS: u32 = 1 << (verifier::MAX_STACKED_LOG - 2);
 /// of every `STRIDE`th exponent, then announces the result, so an address the
 /// interpreter could not label, a jump target or a pointer into a buffer, costs at
 /// most `STRIDE` probes once. One past the table, a hinted g-power or a range
-/// check's complement, is found by `bounded_dlog` below `MAX_CELLS`, and the
+/// check's complement, is found by `bounded_dlog` below the caller's bound, and the
 /// table grows to cover it.
 pub struct GPow {
     pow: Vec<F64>,
@@ -93,14 +97,14 @@ impl GPow {
 
     #[cold]
     fn extend(&mut self, upto: usize) {
-        assert!(upto < MAX_CELLS as usize, "address space overflow (program too large)");
+        assert!(upto < MAX_INDEX, "address space overflow (program too large)");
         // At least double, and a quarter more than a large jump asks: the small
         // extends that follow fill spare capacity instead of copying the table.
         let n = self.pow.len();
         if upto >= self.pow.capacity() {
             let target = (2 * self.pow.capacity())
                 .max(upto + 1 + (upto + 1) / 4)
-                .min(MAX_CELLS as usize);
+                .min((MAX_CELLS as usize).max(upto + 1));
             self.pow.reserve_exact(target - n);
         }
         // ×g is ×x = `mul_by_g` (shift+fold), not a PMULL.
@@ -140,7 +144,30 @@ impl GPow {
     /// The discrete log of `x`, if it is a g-power below `MAX_CELLS`, covering it.
     #[inline]
     pub fn log(&mut self, x: F64) -> Option<u32> {
-        self.lookup(x).or_else(|| self.resolve(x)).or_else(|| self.discover(x))
+        self.log_below(x, MAX_CELLS as usize)
+    }
+
+    /// The discrete log of `x`, if it is a g-power below `bound` (at most `MAX_INDEX`), covering it.
+    #[inline]
+    pub fn log_below(&mut self, x: F64, bound: usize) -> Option<u32> {
+        match self.lookup(x) {
+            Some(k) => ((k as usize) < bound).then_some(k),
+            None => self.log_miss(x, bound),
+        }
+    }
+
+    /// `log_below` for an exponent not announced: the coarse index, else a bounded discrete
+    /// log, then cover and announce it.
+    #[cold]
+    #[inline(never)]
+    fn log_miss(&mut self, x: F64, bound: usize) -> Option<u32> {
+        let k = self
+            .resolve(x)
+            .or_else(|| bounded_dlog(x, crate::log2_ceil_usize(bound) as u32).map(|k| k as usize))?;
+        (k < bound).then(|| {
+            self.note(k);
+            k as u32
+        })
     }
 
     /// The exponent of `x` if announced: any covered one, for a table built by [`Self::dense`].
@@ -149,32 +176,18 @@ impl GPow {
         find(&self.index, &self.pow, x)
     }
 
-    /// `log` for an address that is not announced: divide by `g` down to a
-    /// multiple of `STRIDE`, then announce the exponent.
-    #[cold]
-    fn resolve(&mut self, x: F64) -> Option<u32> {
+    /// The exponent of `x` if it is not announced: divide by `g` down to a multiple of
+    /// `STRIDE`. Past the table by fewer than `STRIDE` too, so that a run of addresses
+    /// climbing past the table stays off the discrete log.
+    fn resolve(&self, x: F64) -> Option<usize> {
         let mut y = x;
         for j in 0..STRIDE {
             if let Some(k) = find(&self.coarse, &self.pow, y) {
-                // Past the table by fewer than `STRIDE` too: covering it keeps a run of
-                // addresses climbing past the table off the discrete log.
-                let k = k as usize + j;
-                return (k < MAX_CELLS as usize).then(|| {
-                    self.note(k);
-                    k as u32
-                });
+                return Some(k as usize + j);
             }
             y = div_by_g(y);
         }
         None
-    }
-
-    /// `log` past the covered range: a bounded discrete log, then cover and announce it.
-    #[cold]
-    fn discover(&mut self, x: F64) -> Option<u32> {
-        let k = bounded_dlog(x, MAX_CELLS.ilog2())? as usize;
-        self.note(k);
-        Some(k as u32)
     }
 }
 

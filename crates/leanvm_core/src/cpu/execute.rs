@@ -150,8 +150,9 @@ pub enum Fault {
     StepLimit,
 }
 
-/// The longest run the interpreter executes.
-const MAX_STEPS: usize = 100_000_000;
+/// The longest run the interpreter executes, the longest a stack can commit: every step is a row
+/// of at least `SET`'s eight committed columns, so `2^30 / 8` steps fill the `2^30` stack.
+const MAX_STEPS: usize = 1 << (verifier::MAX_STACKED_LOG - 3);
 // A row touches at most a `KECCAK` row's cells, so every access count fits the `u32` exponent.
 const _: () = assert!(crate::keccak::ROW_CELLS * MAX_STEPS < u32::MAX as usize);
 
@@ -558,7 +559,7 @@ impl Program {
                     });
                     match h {
                         RHint::FrameAddress { offset } => {
-                            g.note((fp + offset) as usize);
+                            g.note(at(fp, *offset)? as usize);
                         }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
@@ -919,7 +920,7 @@ impl Program {
                         bytecode_read,
                     });
                     if taken {
-                        pc = g.log(d).filter(|&t| (t as usize) < self.prog.len()).ok_or_else(|| {
+                        pc = g.log_below(d, self.prog.len()).ok_or_else(|| {
                             fail(Fault::NotAGPower {
                                 what: "JUMP target",
                                 value: d,
