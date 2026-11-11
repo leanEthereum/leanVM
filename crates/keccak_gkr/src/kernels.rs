@@ -3,11 +3,11 @@
 //!
 //! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an AVX2 one
 //! (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit. The
-//! vector forms are compiled only where their features are.
+//! vector forms are compiled only where their features are. With AVX2 and GFNI a block's
+//! [`skip_row`]s are summed on residues instead (`skip_gfni`).
 
 use primitives::field::gf2_64::mul_wide;
 
-use crate::keccak::row_positions;
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
@@ -87,7 +87,7 @@ impl SkipAcc {
 
 /// The points of `{0, 1, infinity}^2` of the high two variables, with infinity as 2, in the
 /// order [`extend_group`] builds their values: the four binary points, then the mixed ones.
-const HIGH: [(usize, usize); 9] = [(0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
+pub(crate) const HIGH: [(usize, usize); 9] = [(0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
 /// The mixed points of the low two variables, in the order their values fill a vector.
 const LOW_MIXED: [(usize, usize); 4] = [(2, 0), (2, 1), (0, 2), (1, 2)];
 
@@ -240,7 +240,7 @@ fn skip_block_portable(block: &[u64], weights: &[[u64; 3]]) -> Vec<[u128; 3]> {
     let mut extended = [[0u32; SLOTS]; 5];
     for r in 0..5 {
         for z in 0..64 {
-            let js = row_positions(r, z);
+            let js = crate::keccak::row_positions(r, z);
             for x in 0..5 {
                 extend(&embed_portable(crate::witness::words(block, js[x])), &mut extended[x]);
             }
@@ -251,40 +251,37 @@ fn skip_block_portable(block: &[u64], weights: &[[u64; 3]]) -> Vec<[u128; 3]> {
 }
 
 cfg_select! {
-    all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
-    ) => {
-        pub(crate) use x86::SkipBlock;
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
+        pub(crate) use crate::skip_gfni::SkipBlock;
     }
     _ => {
         /// [`skip_row`] over every row and slice of a block, a position at a time.
-        pub(crate) struct SkipBlock {
+        pub(crate) struct SkipBlock<'a> {
             acc: Box<SkipAcc>,
             extended: [[u32; SLOTS]; 5],
+            weights: &'a [[u64; 3]],
         }
 
-        impl SkipBlock {
-            pub fn new() -> Box<Self> {
+        impl<'a> SkipBlock<'a> {
+            /// For blocks summed at the position weights `weights`, as elements.
+            pub fn new(weights: &'a [[u64; 3]]) -> Box<Self> {
                 Box::new(Self {
                     acc: SkipAcc::new(),
                     extended: [[0; SLOTS]; 5],
+                    weights,
                 })
             }
 
-            /// Sum a block, the position weights as elements.
-            pub fn run(&mut self, block: &[u64], weights: &[[u64; 3]]) {
+            /// Sum a block.
+            pub fn run(&mut self, block: &[u64]) {
                 self.acc.clear();
                 for r in 0..5 {
                     for z in 0..64 {
-                        let js = row_positions(r, z);
+                        let js = crate::keccak::row_positions(r, z);
                         for x in 0..5 {
                             embed_extend(crate::witness::words(block, js[x]), &mut self.extended[x]);
                         }
-                        skip_row(&mut self.acc, &self.extended, std::array::from_fn(|x| &weights[js[x]]));
+                        skip_row(&mut self.acc, &self.extended, std::array::from_fn(|x| &self.weights[js[x]]));
                     }
                 }
             }
@@ -335,7 +332,6 @@ mod x86 {
 
     use super::*;
     pub use super::{embed_extend_portable as embed_extend, products_clmul as products, skip_row_portable as skip_row};
-    use crate::keccak::BITS;
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
     /// byte map reads output bit `t` off matrix byte `7 - t`.
@@ -414,163 +410,6 @@ mod x86 {
                 _mm512_xor_si512(lo, _mm512_srli_epi16(hi, 8)),
                 _mm512_set1_epi16(0x00ff),
             )
-        }
-    }
-
-    /// The packs of eight consecutive positions, embedded: `out[q]` holds pack `q` of position
-    /// `i` in word `i`. The positions' words are transposed first, so a register holds one word
-    /// of each, and a pack is then a field of every word alike.
-    #[inline(always)]
-    unsafe fn embed8(positions: *const u64, out: &mut [__m512i; PACKS]) {
-        unsafe {
-            let a: [__m512i; 8] = std::array::from_fn(|i| _mm512_loadu_si512(positions.add(BLOCK_WORDS * i).cast()));
-            let b: [__m512i; 8] = std::array::from_fn(|i| {
-                if i % 2 == 0 {
-                    _mm512_unpacklo_epi64(a[i], a[i + 1])
-                } else {
-                    _mm512_unpackhi_epi64(a[i - 1], a[i])
-                }
-            });
-            let (low, high) = (
-                |x, y| _mm512_shuffle_i64x2::<0b10_00_10_00>(x, y),
-                |x, y| _mm512_shuffle_i64x2::<0b11_01_11_01>(x, y),
-            );
-            // Words `t` and `t + 4` of positions `4m ..`, pairs of positions to a lane.
-            let c: [__m512i; 8] = std::array::from_fn(|i| {
-                let (m, t) = (i / 4, i % 4);
-                let (x, y) = (b[4 * m + t % 2], b[4 * m + 2 + t % 2]);
-                if t < 2 { low(x, y) } else { high(x, y) }
-            });
-            let words = [
-                low(c[0], c[4]),
-                low(c[1], c[5]),
-                low(c[2], c[6]),
-                low(c[3], c[7]),
-                high(c[0], c[4]),
-                high(c[1], c[5]),
-                high(c[2], c[6]),
-                high(c[3], c[7]),
-            ];
-            let zero = _mm512_setzero_si512();
-            for (w, &v) in words.iter().enumerate() {
-                let low = _mm512_or_si512(embedding_byte(v, 0), _mm512_slli_epi16(embedding_byte(v, 1), 8));
-                let high = embedding_byte(v, 2);
-                // Per lane, the four packs of its even word, then of its odd one.
-                let (even, odd) = (_mm512_unpacklo_epi16(low, high), _mm512_unpackhi_epi16(low, high));
-                let (first, second) = (_mm512_unpacklo_epi32(even, odd), _mm512_unpackhi_epi32(even, odd));
-                out[4 * w] = _mm512_unpacklo_epi32(first, zero);
-                out[4 * w + 1] = _mm512_unpackhi_epi32(first, zero);
-                out[4 * w + 2] = _mm512_unpacklo_epi32(second, zero);
-                out[4 * w + 3] = _mm512_unpackhi_epi32(second, zero);
-            }
-        }
-    }
-
-    /// [`extend_group`] on registers, each of eight positions' values.
-    #[inline(always)]
-    unsafe fn extend8(v: &[__m512i], out: &mut [__m512i; MIXED]) {
-        unsafe {
-            let x = |a: [__m512i; 4], b: [__m512i; 4]| -> [__m512i; 4] {
-                std::array::from_fn(|l| _mm512_xor_si512(a[l], b[l]))
-            };
-            let q = |k: usize| -> [__m512i; 4] { std::array::from_fn(|l| v[4 * k + l]) };
-            let (w4, w5) = (x(q(0), q(1)), x(q(2), q(3)));
-            let w = [q(0), q(1), q(2), q(3), w4, w5, x(q(0), q(2)), x(q(1), q(3)), x(w4, w5)];
-            for (k, w) in w[4..].iter().enumerate() {
-                out[4 * k..][..4].copy_from_slice(w);
-            }
-            for (k, w) in w.iter().enumerate() {
-                let low = x([w[0], w[2], w[0], w[1]], [w[1], w[3], w[2], w[3]]);
-                out[20 + 4 * k..][..4].copy_from_slice(&low);
-                out[56 + k] = _mm512_xor_si512(low[0], low[1]);
-            }
-        }
-    }
-
-    /// [`skip_row`] over every row and slice of a block, eight slices at a time: each register
-    /// holds one value of eight positions, so the extension is a sum of registers and each slot's
-    /// products are a register's lanes, weighted by eight positions' weights at once.
-    pub struct SkipBlock {
-        /// Per slot, the even and odd positions' sums of each partial product.
-        acc: Vec<[__m512i; 6]>,
-        packs: [[__m512i; PACKS]; 5],
-        extended: [[__m512i; MIXED]; 5],
-        /// The weights by word: word `k` of position `j` at `k * BITS + j`.
-        weights: Vec<u64>,
-    }
-
-    impl SkipBlock {
-        pub fn new() -> Box<Self> {
-            let zero = unsafe { _mm512_setzero_si512() };
-            Box::new(Self {
-                acc: vec![[zero; 6]; 2 * MIXED],
-                packs: [[zero; PACKS]; 5],
-                extended: [[zero; MIXED]; 5],
-                weights: vec![0; 3 * BITS],
-            })
-        }
-
-        /// Sum a block, the position weights as elements.
-        pub fn run(&mut self, block: &[u64], weights: &[[u64; 3]]) {
-            assert!(block.len() >= BITS * BLOCK_WORDS && weights.len() >= BITS);
-            for (j, w) in weights[..BITS].iter().enumerate() {
-                for (k, &w) in w.iter().enumerate() {
-                    self.weights[k * BITS + j] = w;
-                }
-            }
-            // SAFETY: the features are enabled at compile time, and every position read is in
-            // the block, every weight in the table.
-            unsafe {
-                self.acc.fill([_mm512_setzero_si512(); 6]);
-                for r in 0..5 {
-                    for z in (0..64).step_by(8) {
-                        let js = row_positions(r, z);
-                        for (packs, &j) in self.packs.iter_mut().zip(&js) {
-                            embed8(block.as_ptr().add(BLOCK_WORDS * j), packs);
-                        }
-                        let w: [[__m512i; 3]; 5] = std::array::from_fn(|x| {
-                            std::array::from_fn(|k| {
-                                _mm512_loadu_si512(self.weights.as_ptr().add(k * BITS + js[x]).cast())
-                            })
-                        });
-                        for half in 0..2 {
-                            for (extended, packs) in self.extended.iter_mut().zip(&self.packs) {
-                                extend8(&packs[GROUP * half..][..GROUP], extended);
-                            }
-                            for i in 0..MIXED {
-                                let e: [__m512i; 5] = std::array::from_fn(|x| self.extended[x][i]);
-                                let mut sums = [_mm512_setzero_si512(); 6];
-                                for x in 0..5 {
-                                    let (b, c) = (e[(x + 1) % 5], e[(x + 2) % 5]);
-                                    let even = _mm512_clmulepi64_epi128(b, c, 0x00);
-                                    let odd = _mm512_clmulepi64_epi128(b, c, 0x11);
-                                    for k in 0..3 {
-                                        let (s, w) = (&mut sums[2 * k..], w[x][k]);
-                                        s[0] = _mm512_xor_si512(s[0], _mm512_clmulepi64_epi128(even, w, 0x00));
-                                        s[1] = _mm512_xor_si512(s[1], _mm512_clmulepi64_epi128(odd, w, 0x10));
-                                    }
-                                }
-                                let acc = &mut self.acc[slot(half, i)];
-                                for (acc, sum) in acc.iter_mut().zip(sums) {
-                                    *acc = _mm512_xor_si512(*acc, sum);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /// The three partial products of slot `i`.
-        pub fn get(&self, i: usize) -> [u128; 3] {
-            std::array::from_fn(|k| {
-                let mut lanes = [[0u128; 4]; 2];
-                for (lanes, &acc) in lanes.iter_mut().zip(&self.acc[i][2 * k..2 * k + 2]) {
-                    // SAFETY: four 128-bit lanes to a register.
-                    unsafe { _mm512_storeu_si512(lanes.as_mut_ptr().cast(), acc) };
-                }
-                lanes.as_flattened().iter().fold(0, |a, &b| a ^ b)
-            })
         }
     }
 
@@ -994,7 +833,8 @@ mod neon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keccak::BITS;
+    use crate::keccak::{BITS, LANES};
+    use crate::witness::{BLOCK_LEN, Shape, Witness};
     use primitives::test_rng::Rng;
 
     #[test]
@@ -1053,13 +893,33 @@ mod tests {
             let fold: [[u64; GROUP]; 3] = std::array::from_fn(|_| std::array::from_fn(|_| rng.next_u64()));
             assert_eq!(fold_groups(&e, &fold), fold_groups_portable(&e, &fold));
         }
-        let block: Vec<u64> = (0..crate::witness::BLOCK_LEN).map(|_| rng.next_u64()).collect();
-        let weights: Vec<[u64; 3]> = (0..BITS).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
-        let mut skip = SkipBlock::new();
-        skip.run(&block, &weights);
-        let expected = skip_block_portable(&block, &weights);
-        for (i, expected) in expected.iter().enumerate() {
-            assert_eq!(&skip.get(i), expected, "slot {i}");
+        // Two random blocks, then a witness's: the first and last layers of each segment, at a
+        // full block, a partly filled one and the padding block.
+        let (n, depth) = (1100, 12);
+        let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let shape = Shape::new(n, depth);
+        let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+        let witness = Witness::generate(shape, &inputs, &mut committed);
+        let written = witness.written();
+        assert!(written < shape.n_blocks(), "a padding block");
+        let random: [Vec<u64>; 2] = std::array::from_fn(|_| (0..BLOCK_LEN).map(|_| rng.next_u64()).collect());
+        let layers = (0..shape.segments())
+            .flat_map(|segment| [0, depth - 1].map(|step| shape.round(segment, step)))
+            .flat_map(|round| [0, written - 1, written].map(|g| witness.layer(round, g)));
+        let blocks: Vec<&[u64]> = random.iter().map(Vec::as_slice).chain(layers).collect();
+        // Random weights, then those of every coefficient, each over a block after another.
+        for dense in [false, true] {
+            let weight = |rng: &mut Rng| if dense { u64::MAX } else { rng.next_u64() };
+            let weights: Vec<[u64; 3]> = (0..BITS).map(|_| std::array::from_fn(|_| weight(&mut rng))).collect();
+            let mut skip = SkipBlock::new(&weights);
+            for (b, block) in blocks.iter().enumerate() {
+                skip.run(block);
+                let expected = skip_block_portable(block, &weights);
+                for (i, expected) in expected.iter().enumerate() {
+                    let sums: [[u64; 4]; 2] = [&skip.get(i), expected].map(crate::basis::carry);
+                    assert_eq!(sums[0], sums[1], "block {b} slot {i}");
+                }
+            }
         }
     }
 }
