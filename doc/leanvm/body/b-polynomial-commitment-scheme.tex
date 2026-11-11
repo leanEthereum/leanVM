@@ -185,7 +185,7 @@ Fix a commitment $\mathsf{cm} = \orc^{(0)}$ and input claims $\{(W_k, c_k)\}_k$,
 \[
 \relopen \;:=\; \Bigl\{ \bigl(\orc^{(0)}, \{(W_k, c_k)\}_k\bigr) \;:\; \exists\, U \in \lst\bigl(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)}\bigr) \text{ with } \inner{W_k}{g_U} = c_k \text{ for all } k \Bigr\}.
 \]
-The commitment's list is $\lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$, of size at most $L_0$, so its members decode to at most $L_0$ messages. Their multilinears are pairwise distinct at $z_0$ except with probability at most $\binom{L_0}{2}\nv/|\E|$ (Lemma~\ref{lem:sz}), which the grind before $z_0$ brings below $2^{-125}$. Then at most one message answers the OOD claim, so the commitment is binding, and every challenge drawn after it and before the opening faces a single candidate.
+The commitment's list is $\lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$, of size at most $L_0$, so its members decode to at most $L_0$ messages. Their multilinears are pairwise distinct at $z_0$ except with probability at most $\binom{L_0}{2}\nv/|\E|$ (Lemma~\ref{lem:sz}), which the grind before $z_0$ brings below $2^{-125}$. Then at most one message answers the OOD claim, so the commitment is binding.
 
 \begin{theorem}[RBR soundness]\label{thm:rbr}
 Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that the Johnson counts below are defined (as $\agr^{(i)}_j-1\ge\agr^{(i)}_0$ for $j\ge1$), and let $\epsaff$ be the affine MCA error of Definition~\ref{def:epsaff}. Then the opening phase of Protocol~\ref{fig:protocol} for $\relopen$ has the following RBR soundness error at each verifier message, with $\blen:=\blen_i$, $\agr_j:=\agr^{(i)}_j$, $\dgr:=\dgr^{(i)}$:
