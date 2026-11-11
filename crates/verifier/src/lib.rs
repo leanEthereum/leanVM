@@ -242,12 +242,12 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the three
     // leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its constraints
     let xi = transcript.sample();
-    let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
+    let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints).sum();
     let xi_powers = powers(xi, n_constraints + 3); // one power per constraint, then one per bus side, shared by every table
     let (constraint_powers, form_powers) = xi_powers.split_at(n_constraints);
     let target = dot(form_powers, &bus.totals);
     let evaluations = table_sumcheck(
-        &layout.tables,
+        layout.tables,
         &layout.table_log_heights,
         &bus.forms,
         constraint_powers,
