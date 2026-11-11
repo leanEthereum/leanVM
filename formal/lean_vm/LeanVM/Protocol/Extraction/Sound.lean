@@ -29,8 +29,6 @@ public import LeanVM.Protocol.Extraction.Extract
   `ExtractProofs.keysCover_supportKeys`);
 * so the extractor, which decodes every candidate (`ExtractProofs.extract_of_candidate`), returns
   a valid execution.
-
-`decodeStacks_length_le`: the stacks the list decoder returns are at most level 0's list bound.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
@@ -111,18 +109,6 @@ theorem extractor_of_extracted (O : OpeningIface) {X : Type} (σ : Seeds X) {ℓ
         (stackLog_verifierLayout prog s) hμ hR hcand hct
     · simp at hx
   · simp at hx
-
-/-- **The extractor's list is short**: at every admissible shape, the stacks the list decoder
-returns are distinct candidates of the word, so at most level 0's list bound
-(`spec_candidates_ncard_le`). -/
-theorem decodeStacks_length_le (O : OpeningIface) {μ R : ℕ} (h : Whir.Admissible μ R)
-    (W : ℕ → List K) : (Extraction.decodeStacks μ R W).length ≤ O.listMax₀ μ R := by
-  have h1 := h.1
-  have h2 := h.2.1
-  unfold Whir.minLogStack at h1
-  unfold Whir.maxLogStack at h2
-  exact (Extraction.PruneProofs.length_decodeStacksAt_le (by show 6 ≤ μ; omega)
-    (by show μ - 6 ≤ 64; omega) W).trans (spec_candidates_ncard_le O h W)
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

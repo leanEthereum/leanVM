@@ -155,7 +155,7 @@ def laneCoeffs {μ : ℕ} (q : Vector K (2 ^ μ)) (u : ℕ) : Array K :=
 /-- **The per-lane decoder's parameters** for a stack of `2^μ` words at rate `2^-R`:
 message length `k = 2^κ`, `n = 2^(κ+R)` points, agreement `A = johnsonThreshold μ R`. -/
 def gsParams (μ R : ℕ) : CompPoly.GuruswamiSudan.GSExecParams :=
-  gsParamsFor (2 ^ (μ - initialFold)) (2 ^ (μ - initialFold + R)) (johnsonThreshold μ R)
+  gsParamsFor (2 ^ (μ - initialFold) + initialFold) (2 ^ (μ - initialFold + R)) (johnsonThreshold μ R)
 
 /-- The multiplicity of `gsParams μ R`. -/
 def gsMultiplicity (μ R : ℕ) : ℕ := (gsParams μ R).interp.multiplicity

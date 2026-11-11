@@ -270,19 +270,19 @@ instead (`decodeStacksDistinctPM`, `Fast/LanePM.lean`: the certified solve on a 
 products by the additive FFT). What the lane lists hold does not depend on the interpolation
 (`mem_gsRunNoCheck`). -/
 @[expose] def gsLaneAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : Array (CPolynomial K) :=
-  let params := gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A
+  let params := gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A
   let points := lanePointsS (2 ^ (κ + R)) S u
   if checkRedundant κ R params then gsRunDistinct points params.interp params.radius
   else GuruswamiSudan.decodeWithParams gsContextFast params ⟨points⟩
 
 /-- `laneListAt`, fast. -/
 @[expose] def laneListAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) : List (Array K) :=
-  (((gsLaneAtFast κ R A S u).toList.map (toNovelFast κ)).dedup).mergeSort coeffsLE
+  (((gsLaneAtFast κ R A S u).toList.map (toNovelFast (κ + 1))).dedup).mergeSort coeffsLE
 
 /-- `laneEncodedAt`, fast. -/
 @[expose] def laneEncodedAtFast (κ R A : ℕ) (S : ℕ → ℕ → K) (u : ℕ) :
     List (Array K × Array K) :=
-  (laneListAtFast κ R A S u).map fun c ↦ (c, novelFwd κ R c)
+  (laneListAtFast κ R A S u).map fun c ↦ (c, novelFwd (κ + 1) (R - 1) c)
 
 /-- `pruneUpTo`, fast: the symbols from the word's table. -/
 @[expose] def pruneUpToFast (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
@@ -334,9 +334,9 @@ theorem mem_gsLaneAtFast {κ R A u : ℕ} {S : ℕ → ℕ → K} {W : ℕ → L
   · rename_i h
     simp only [checkRedundant, Bool.and_eq_true, decide_eq_true_eq] at h
     have hd := distinct_lanePoints _ (Nat.pow_le_pow_right (by norm_num) h.1) W u
-    have hW : (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.weightedDegreeBound <
-        (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp.multiplicity *
-          ((lanePoints (2 ^ (κ + R)) W u).size - (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).radius) := by
+    have hW : (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A).interp.weightedDegreeBound <
+        (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A).interp.multiplicity *
+          ((lanePoints (2 ^ (κ + R)) W u).size - (gsParamsFor (2 ^ κ + initialFold) (2 ^ (κ + R)) A).radius) := by
       simpa [lanePoints] using h.2
     have hctx : gsContext = filteredCoreContextOfInterpRootContexts interpContext
         (rothRuckensteinRootContext K fieldRootCtx) := by

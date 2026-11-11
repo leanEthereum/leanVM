@@ -7,7 +7,8 @@ public import LeanVM.Protocol.Extraction.Lane
 # The pruning across lanes is complete; its survivors are distinct and few (proofs)
 
 With `n = 2^(κ+R)` columns and `commonCols κ R W cs U` the columns `v < n` at which the
-encodings of `cs[0], …, cs[U−1]` agree with the word's lanes `0, …, U − 1`:
+encodings of `cs[0], …, cs[U−1]` (each array's `2^(κ+1)` coefficients at rate `2^-(R−1)`,
+`novelFwd (κ+1) (R−1)`) agree with the word's lanes `0, …, U − 1`:
 
 * `pruneUpTo_succ`: lane `U` is one `pruneStep` (the emptiness guard only skips work);
 * `mem_pruneUpTo`: every survivor `(cs, S)` after `U` lanes has `U` arrays, `cs[u]` in lane `u`'s
@@ -15,35 +16,32 @@ encodings of `cs[0], …, cs[U−1]` agree with the word's lanes `0, …, U − 
 * **`prefix_mem_pruneUpTo`** (completeness): if `cs*` has each `cs*[u]` in lane `u`'s list and
   `A ≤ |commonCols cs* 64|`, then `(cs*[0..U), commonCols cs* U)` survives every lane `U ≤ 64`:
   its common columns only shrink, and contain those of all `64` lanes;
-* **`mem_decodeStacksAt`**: every candidate (`Candidates μ R A W`: the encoding agrees with the
-  word on at least `A` columns) is a decoded stack, for `κ = μ − 6 ≥ 1`, `κ + R ≤ 64`, `A ≤ n`
-  and `(2^κ − 1)·n < A²`; `candidates_subset_decodeStacks` at the deployed shapes and the
-  Johnson threshold. Its lanes are in the lane lists (`laneCoeffs_mem_laneListAt`), its common
-  columns are its agreement (`commonCols_laneCoeffs`), and `stackOf` reassembles it
-  (`stackOf_laneCoeffs`).
+* **`mem_decodeStacksAt`**: every candidate (`Candidates μ R A W`: for some high parts `H_u` of
+  degree `< 6`, level 0's polynomials `fullLanePoly q H_u u` agree with the word on at least `A`
+  columns) is a decoded stack, for `κ = μ − 6 ≥ 3`, `1 ≤ R`, `κ + R ≤ 64`, `A ≤ n` and
+  `(2^κ + 5)·n < A²`; `candidates_subset_decodeStacks` at the deployed shapes and the Johnson
+  threshold. Each lane's list holds an array with the candidate's lane as low part and the
+  polynomial's values as encoding (`exists_mem_laneListAt`), the candidate's columns are common
+  columns of these arrays, and `stackOf` reassembles the candidate from their low parts
+  (`stackOf_of_low`).
 
 For the running time (not needed for soundness):
-* `decodeStacksAt_sound`, `nodup_decodeStacksAt`: the decoded stacks are candidates
-  (`lanesOf_stackOf`: a stack's lanes are its survivor's arrays) and pairwise distinct, so their
-  number is at most the number of candidates (`2^12` at the deployed shapes,
-  `Sound.decodeStacks_length_le`);
-
 * `nodup_pruneUpTo`: the survivors' prefixes are pairwise distinct (the lane lists are
   deduplicated, and children of distinct prefixes are distinct);
 * `injOn_evalTuple`: a survivor is determined by its encodings on the `n` columns (`novelInv`
-  inverts `novelFwd` on arrays of size `2^κ`);
+  inverts `novelFwd` on arrays of size `2^(κ+1)`);
 * **`length_pruneUpTo_le`**: for `U ≥ 1`, the number of survivors after `U` lanes is at most the
   size of any finite set `T` of `U`-tuples of words containing the encodings of every `U`-tuple of
-  coefficient arrays (of size `2^κ`) whose encodings agree with the word's first `U` lanes on at
-  least `A` common columns. Such encodings are interleaved Reed–Solomon codewords close to the
-  word, so `T` can be lean_vm's `iList` and the Johnson bound
-  `card_iList_johnsonAgreement_le_floor` caps the survivors by `listMax ≤ 2^12`.
-* `length_laneListAt_le`: the same for each lane's list (one lane, `ρ = Unit`), from the
-  decoder's soundness (`laneListAt_sound`);
-* `encoding_mem_code`, `evalTuple_mem_code`: every encoding is a codeword of ArkLib's
-  `ReedSolomon.code (domainEmb n) (2^κ)`, so the survivors' tuples are interleaved codewords and
-  lean_vm can take `T = iList (ReedSolomon.code …) A (lanes of W)`; what remains there is the
-  closeness, the common columns as `agreeSet`.
+  arrays of the lanes' lists whose encodings agree with the word's first `U` lanes on at least `A`
+  common columns. Such encodings are interleaved Reed–Solomon codewords at level 0's degree close
+  to the word, so `T` can be lean_vm's `iList` and the Johnson bound caps the survivors by level
+  0's list bound (`Cost/Bounds/Sizes/Pruning.lean`); the decoded stacks, one per survivor of the
+  `64` lanes, too.
+* `encoding_mem_code`, `evalTuple_mem_code`: the encoding of an element of a lane's list is a
+  codeword of ArkLib's `ReedSolomon.code (domainEmb n) (2^κ + 6)` (`laneListAt_sound`), so the
+  survivors' tuples are interleaved codewords and lean_vm can take
+  `T = iList (ReedSolomon.code …) A (lanes of W)`; what remains there is the closeness, the
+  common columns as `agreeSet`.
 
 Credits: `ReedSolomon.code` and `mem_code_of_polynomial_of_degree_lt_of_eval` are ArkLib's
 (github.com/Verified-zkEVM/ArkLib at `4dae3acff846125521b7b3998010885071746f16`, Apache-2.0;
@@ -67,7 +65,7 @@ attribute [local simp] LeanVM.Extraction.Words.ofBits_zero
 lanes `0, …, U − 1`. -/
 @[expose] def commonCols (κ R : ℕ) (W : ℕ → List K) (cs : List (Array K)) (U : ℕ) : List ℕ :=
   (List.range (2 ^ (κ + R))).filter fun v ↦
-    decide (∀ u < U, (novelFwd κ R (cs.getD u #[])).getD v 0 = laneSymbol W u v)
+    decide (∀ u < U, (novelFwd (κ + 1) (R - 1) (cs.getD u #[])).getD v 0 = laneSymbol W u v)
 
 theorem commonCols_zero (κ R : ℕ) (W : ℕ → List K) (cs : List (Array K)) :
     commonCols κ R W cs 0 = List.range (2 ^ (κ + R)) := by
@@ -76,7 +74,7 @@ theorem commonCols_zero (κ R : ℕ) (W : ℕ → List K) (cs : List (Array K)) 
 /-- One more lane filters the common columns by that lane's agreement. -/
 theorem commonCols_succ (κ R : ℕ) (W : ℕ → List K) (cs : List (Array K)) (U : ℕ) :
     commonCols κ R W cs (U + 1) = (commonCols κ R W cs U).filter fun v ↦
-      decide ((novelFwd κ R (cs.getD U #[])).getD v 0 = laneSymbol W U v) := by
+      decide ((novelFwd (κ + 1) (R - 1) (cs.getD U #[])).getD v 0 = laneSymbol W U v) := by
   rw [commonCols, commonCols, List.filter_filter]
   refine List.filter_congr fun v _ ↦ ?_
   rw [Bool.eq_iff_iff, Bool.and_eq_true, decide_eq_true_eq, decide_eq_true_eq, decide_eq_true_eq]
@@ -144,9 +142,9 @@ theorem pruneUpTo_succ (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
 
 /-! ## What survives -/
 
-/-- The elements of a lane list have size `2^κ`. -/
+/-- The elements of a lane list have size `2^(κ+1)`. -/
 theorem size_of_mem_laneListAt {κ R A : ℕ} {W : ℕ → List K} {u : ℕ} {c : Array K}
-    (hc : c ∈ laneListAt κ R A W u) : c.size = 2 ^ κ := by
+    (hc : c ∈ laneListAt κ R A W u) : c.size = 2 ^ (κ + 1) := by
   rw [laneListAt, List.mem_mergeSort, List.mem_dedup, List.mem_map] at hc
   obtain ⟨p, _, rfl⟩ := hc
   exact size_novelInv _ Array.size_ofFn
@@ -194,7 +192,7 @@ theorem prefix_mem_pruneUpTo {κ R A : ℕ} {W : ℕ → List K} {cs : List (Arr
   | zero => rw [pruneUpTo_zero, commonCols_zero]; simp
   | succ U ih =>
     rw [pruneUpTo_succ, mem_pruneStep]
-    refine ⟨_, ih (by omega), (cs.getD U #[], novelFwd κ R (cs.getD U #[])), ?_, ?_, ?_⟩
+    refine ⟨_, ih (by omega), (cs.getD U #[], novelFwd (κ + 1) (R - 1) (cs.getD U #[])), ?_, ?_, ?_⟩
     · rw [laneEncodedAt, List.mem_map]
       exact ⟨_, hlist U (by omega), rfl⟩
     · rw [← commonCols_succ]
@@ -204,38 +202,11 @@ theorem prefix_mem_pruneUpTo {κ R A : ℕ} {W : ℕ → List K} {cs : List (Arr
 
 /-! ## Candidates are decoded -/
 
-/-- The lanes of a stack. -/
-@[expose] def lanesOf {μ : ℕ} (q : Vector K (2 ^ μ)) : List (Array K) :=
-  (List.range (2 ^ initialFold)).map (laneCoeffs q)
-
-theorem getD_lanesOf {μ : ℕ} (q : Vector K (2 ^ μ)) {u : ℕ} (hu : u < 2 ^ initialFold) :
-    (lanesOf q).getD u #[] = laneCoeffs q u := by
-  simp [lanesOf, List.getD_eq_getElem?_getD, List.getElem?_range hu]
-
-theorem length_lanesOf {μ : ℕ} (q : Vector K (2 ^ μ)) : (lanesOf q).length = 2 ^ initialFold := by
-  simp [lanesOf]
-
-/-- A stack's common columns over all lanes are its agreement with the word. -/
-theorem commonCols_laneCoeffs {μ R : ℕ} (hκ : μ - initialFold ≤ 64) (W : ℕ → List K)
-    (q : Vector K (2 ^ μ)) :
-    (commonCols (μ - initialFold) R W (lanesOf q) (2 ^ initialFold)).length =
-      (agreement R W q).card := by
-  rw [← List.toFinset_card_of_nodup (nodup_commonCols ..)]
-  congr 1
-  ext v
-  simp only [List.mem_toFinset, commonCols, List.mem_filter, List.mem_range, decide_eq_true_eq,
-    agreement, Finset.mem_filter, Finset.mem_range]
-  refine and_congr_right fun hv ↦ ?_
-  constructor
-  · intro h u
-    rw [encode_eq_novelFwd hκ q u hv, ← getD_lanesOf q u.isLt, h u u.isLt, laneSymbol]
-  · intro h u hu
-    rw [getD_lanesOf q hu, ← encode_eq_novelFwd hκ q u hv, laneSymbol]
-    exact (h ⟨u, hu⟩).symm
-
-/-- `stackOf` reassembles a stack from its lanes. -/
-theorem stackOf_laneCoeffs {μ : ℕ} (hμ : initialFold ≤ μ) (q : Vector K (2 ^ μ)) :
-    stackOf μ (lanesOf q) = q := by
+/-- `stackOf` reassembles a stack from arrays whose low parts are its lanes. -/
+theorem stackOf_of_low {μ : ℕ} (hμ : initialFold ≤ μ) (q : Vector K (2 ^ μ)) {cs : List (Array K)}
+    (hlow : ∀ u < 2 ^ initialFold, ∀ j < 2 ^ (μ - initialFold),
+      (cs.getD u #[]).getD j 0 = (laneCoeffs q u).getD j 0) :
+    stackOf μ cs = q := by
   have hsplit : 2 ^ μ = 2 ^ (μ - initialFold) * 2 ^ initialFold := by
     rw [← pow_add, Nat.sub_add_cancel hμ]
   apply Vector.ext
@@ -243,24 +214,58 @@ theorem stackOf_laneCoeffs {μ : ℕ} (hμ : initialFold ≤ μ) (q : Vector K (
   have hpos : 0 < 2 ^ (μ - initialFold) := Nat.two_pow_pos _
   have hdiv : i / 2 ^ (μ - initialFold) < 2 ^ initialFold := by
     rw [Nat.div_lt_iff_lt_mul hpos, Nat.mul_comm, ← hsplit]; exact hi
-  rw [stackOf, Vector.getElem_ofFn, getD_lanesOf q hdiv, laneCoeffs,
-    getD_ofFn _ (Nat.mod_lt _ hpos), Nat.mod_add_div]
+  have hmod := Nat.mod_lt i hpos
+  rw [stackOf, Vector.getElem_ofFn, hlow _ hdiv _ hmod, laneCoeffs, getD_ofFn _ hmod,
+    Nat.mod_add_div]
   simp [Vector.getD, Array.getD_eq_getD_getElem?, hi]
 
-/-- **Every candidate is a decoded stack**, for `κ = μ − 6 ≥ 1`, `κ + R ≤ 64`, `A ≤ 2^(κ+R)` and
-`(2^κ − 1)·2^(κ+R) < A²`. -/
-theorem mem_decodeStacksAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - initialFold + R ≤ 64)
+/-- **Every candidate is a decoded stack**, for `κ = μ − 6 ≥ 3`, `1 ≤ R`, `κ + R ≤ 64`,
+`A ≤ 2^(κ+R)` and `(2^κ + 5)·2^(κ+R) < A²`: for each lane, the lane's list holds an array with
+the candidate's lane as low part and level 0's polynomial's values as encoding
+(`exists_mem_laneListAt`); the `64` arrays agree with the word on the candidate's columns, so
+they survive the pruning, and `stackOf` reassembles the candidate from their low parts. -/
+theorem mem_decodeStacksAt {μ R A : ℕ} (hμ : 9 ≤ μ) (hR : 1 ≤ R) (hn : μ - initialFold + R ≤ 64)
     (hA : A ≤ 2 ^ (μ - initialFold + R))
-    (hcap : (2 ^ (μ - initialFold) - 1) * 2 ^ (μ - initialFold + R) < A * A)
+    (hcap : (2 ^ (μ - initialFold) + initialFold - 1) * 2 ^ (μ - initialFold + R) < A * A)
     (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ Candidates μ R A W) :
     q ∈ decodeStacksAt μ R A W := by
-  have hκ : μ - initialFold ≤ 64 := by omega
-  have hmem := prefix_mem_pruneUpTo (U := 2 ^ initialFold) (length_lanesOf q)
-    (fun u hu ↦ by rw [getD_lanesOf q hu]; exact laneCoeffs_mem_laneListAt hμ hn hA hcap W hq hu)
-    (by rw [commonCols_laneCoeffs hκ]; exact hq) le_rfl
-  rw [List.take_of_length_le (length_lanesOf q).le] at hmem
+  classical
+  obtain ⟨H, hH, hagr⟩ := hq
+  set κ := μ - initialFold with hκ
+  -- each lane's array
+  have hlane : ∀ u : Fin (2 ^ initialFold), ∃ c ∈ laneListAt κ R A W u,
+      (∀ j < 2 ^ κ, c.getD j 0 = (laneCoeffs q u).getD j 0) ∧
+      ∀ v < 2 ^ (κ + R), (novelFwd (κ + 1) (R - 1) c).getD v 0 =
+        (fullLanePoly q (H u) u).eval (K.ofBits v) := by
+    intro u
+    refine exists_mem_laneListAt hμ hR hn hA hcap W q (hH u) u (hagr.trans ?_)
+    refine Finset.card_le_card fun v hv ↦ ?_
+    simp only [agreementWith, Finset.mem_filter] at hv ⊢
+    refine ⟨hv.1, ?_⟩
+    rw [eval_fullLanePoly, laneSymbol]
+    exact (hv.2 u).symm
+  choose c hcL hclow hcenc using hlane
+  let cs : List (Array K) := List.ofFn c
+  have hlen : cs.length = 2 ^ initialFold := List.length_ofFn
+  have hget : ∀ u (hu : u < 2 ^ initialFold), cs.getD u #[] = c ⟨u, hu⟩ := fun u hu ↦ by
+    simp [cs, List.getD_eq_getElem?_getD, hu]
+  -- the candidate's columns are common columns
+  have hcols : A ≤ (commonCols κ R W cs (2 ^ initialFold)).length := by
+    refine hagr.trans ?_
+    rw [← List.toFinset_card_of_nodup (nodup_commonCols ..)]
+    refine Finset.card_le_card fun v hv ↦ ?_
+    simp only [agreementWith, Finset.mem_filter, Finset.mem_range] at hv
+    simp only [List.mem_toFinset, commonCols, List.mem_filter, List.mem_range, decide_eq_true_eq]
+    refine ⟨hv.1, fun u hu ↦ ?_⟩
+    rw [hget u hu, hcenc ⟨u, hu⟩ v hv.1, eval_fullLanePoly, laneSymbol]
+    exact (hv.2 ⟨u, hu⟩).symm
+  have hmem := prefix_mem_pruneUpTo (U := 2 ^ initialFold) hlen
+    (fun u hu ↦ by rw [hget u hu]; exact hcL ⟨u, hu⟩) hcols le_rfl
+  rw [List.take_of_length_le hlen.le] at hmem
   rw [decodeStacksAt, List.mem_map]
-  exact ⟨_, hmem, stackOf_laneCoeffs (by simp only [initialFold]; omega) q⟩
+  refine ⟨_, hmem, stackOf_of_low (by simp only [initialFold]; omega) q fun u hu j hj ↦ ?_⟩
+  rw [hget u hu]
+  exact hclow ⟨u, hu⟩ j hj
 
 /-- **At the deployed shapes, the candidates at the Johnson threshold are decoded**:
 `Candidates μ R (johnsonThreshold μ R) W ⊆ decodeStacks μ R W`. -/
@@ -269,7 +274,7 @@ theorem candidates_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 
     Candidates μ R (johnsonThreshold μ R) W ⊆ {q | q ∈ decodeStacks μ R W} := fun q hq ↦ by
   obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
   change q ∈ decodeStacksAt μ R (johnsonThreshold μ R) W
-  exact mem_decodeStacksAt (by omega) (by simp only [initialFold]; omega) hA hcap W hq
+  exact mem_decodeStacksAt (by omega) hR.1 (by simp only [initialFold]; omega) hA hcap W hq
 
 /-- The same, at the statement's real-valued threshold (`johnsonThreshold_eq_real`). -/
 theorem candidates_real_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28)
@@ -311,7 +316,7 @@ theorem nodup_pruneUpTo (κ R A : ℕ) (W : ℕ → List K) (U : ℕ) :
 
 /-- The encodings of `U` arrays on the `2^(κ+R)` columns. -/
 @[expose] def evalTuple (κ R U : ℕ) (cs : List (Array K)) : Fin U → Fin (2 ^ (κ + R)) → K :=
-  fun u v ↦ (novelFwd κ R (cs.getD u #[])).getD v 0
+  fun u v ↦ (novelFwd (κ + 1) (R - 1) (cs.getD u #[])).getD v 0
 
 /-- An array of size `2^κ` is determined by its encoding. -/
 theorem eq_of_novelFwd_eq {κ R : ℕ} (hκ : κ ≤ 64) {c c' : Array K} (hc : c.size = 2 ^ κ)
@@ -331,7 +336,7 @@ theorem eq_of_novelFwd_eq {κ R : ℕ} (hκ : κ ≤ 64) {c c' : Array K} (hc : 
   exact congrArg (novelInv κ) (congrArg Array.ofFn (funext fun v ↦ h v.val (by omega)))
 
 /-- Survivors with the same encodings are the same. -/
-theorem injOn_evalTuple {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K) (U : ℕ) :
+theorem injOn_evalTuple {κ R A : ℕ} (hR : 1 ≤ R) (hκ : κ + 1 ≤ 64) (W : ℕ → List K) (U : ℕ) :
     Set.InjOn (evalTuple κ R U) {cs | ∃ S, (cs, S) ∈ pruneUpTo κ R A W U} := by
   rintro cs ⟨S, hS⟩ cs' ⟨S', hS'⟩ h
   obtain ⟨hlen, hlist, -⟩ := mem_pruneUpTo hS
@@ -339,18 +344,19 @@ theorem injOn_evalTuple {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K) (U
   apply List.ext_getElem (by simp [hlen, hlen'])
   intro u hu hu'
   have hu0 : u < U := by simpa [hlen] using hu
-  have e := eq_of_novelFwd_eq (R := R) hκ (size_of_mem_laneListAt (hlist u hu0))
+  have e := eq_of_novelFwd_eq (R := R - 1) hκ (size_of_mem_laneListAt (hlist u hu0))
     (size_of_mem_laneListAt (hlist' u hu0)) fun v hv ↦
-      congrFun (congrFun h ⟨u, hu0⟩) ⟨v, hv⟩
+      congrFun (congrFun h ⟨u, hu0⟩) ⟨v, by rwa [show κ + 1 + (R - 1) = κ + R by omega] at hv⟩
   simpa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hu,
     List.getElem?_eq_getElem hu'] using e
 
 /-- **The number of survivors after `U ≥ 1` lanes** is at most the size of any set of `U`-tuples
-of words that contains the encodings of every `U` arrays of size `2^κ` whose encodings agree with
-the word's first `U` lanes on at least `A` common columns. -/
-theorem length_pruneUpTo_le {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K) {U : ℕ} (hU : 0 < U)
-    (T : Finset (Fin U → Fin (2 ^ (κ + R)) → K))
-    (hT : ∀ cs : List (Array K), cs.length = U → (∀ u < U, (cs.getD u #[]).size = 2 ^ κ) →
+of words that contains the encodings of every `U` arrays of the lanes' lists whose encodings
+agree with the word's first `U` lanes on at least `A` common columns. -/
+theorem length_pruneUpTo_le {κ R A : ℕ} (hR : 1 ≤ R) (hκ : κ + 1 ≤ 64) (W : ℕ → List K) {U : ℕ}
+    (hU : 0 < U) (T : Finset (Fin U → Fin (2 ^ (κ + R)) → K))
+    (hT : ∀ cs : List (Array K), cs.length = U →
+      (∀ u < U, cs.getD u #[] ∈ laneListAt κ R A W u) →
       A ≤ (commonCols κ R W cs U).length → evalTuple κ R U cs ∈ T) :
     (pruneUpTo κ R A W U).length ≤ T.card := by
   classical
@@ -361,7 +367,7 @@ theorem length_pruneUpTo_le {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K
     simp only [List.mem_map] at hx hy
     obtain ⟨⟨x1, x2⟩, hx, rfl⟩ := hx
     obtain ⟨⟨y1, y2⟩, hy, rfl⟩ := hy
-    exact injOn_evalTuple hκ W U ⟨x2, hx⟩ ⟨y2, hy⟩ hxy
+    exact injOn_evalTuple hR hκ W U ⟨x2, hx⟩ ⟨y2, hy⟩ hxy
   have hnd' := hnd.map_on hinj
   rw [← List.length_map (f := Prod.fst), ← List.length_map (f := evalTuple κ R U),
     ← List.toFinset_card_of_nodup hnd']
@@ -369,129 +375,34 @@ theorem length_pruneUpTo_le {κ R A : ℕ} (hκ : κ ≤ 64) (W : ℕ → List K
   simp only [List.mem_toFinset, List.mem_map] at ht
   obtain ⟨cs, ⟨⟨cs', S⟩, hx, rfl⟩, rfl⟩ := ht
   obtain ⟨hlen, hlist, hcols, hA⟩ := mem_pruneUpTo hx
-  exact hT cs' hlen (fun u hu ↦ size_of_mem_laneListAt (hlist u hu)) (hcols ▸ hA hU)
-
-/-- **The size of a lane's list** is at most the size of any set of words that contains the
-encodings of every array of size `2^κ` whose encoding agrees with lane `u` on at least `A`
-columns (with lean_vm's `iList` at `ρ = Unit`, the Johnson bound). -/
-theorem length_laneListAt_le {κ R A : ℕ} (hκ : 1 ≤ κ) (hn : κ + R ≤ 64) (hA : A ≤ 2 ^ (κ + R))
-    (hcap : (2 ^ κ - 1) * 2 ^ (κ + R) < A * A) (W : ℕ → List K) (u : ℕ)
-    (T : Finset (Fin (2 ^ (κ + R)) → K))
-    (hT : ∀ c : Array K, c.size = 2 ^ κ → A ≤ ((Finset.range (2 ^ (κ + R))).filter fun v ↦
-      (novelFwd κ R c).getD v 0 = laneSymbol W u v).card →
-        (fun v : Fin (2 ^ (κ + R)) ↦ (novelFwd κ R c).getD v.val 0) ∈ T) :
-    (laneListAt κ R A W u).length ≤ T.card := by
-  classical
-  let e : Array K → Fin (2 ^ (κ + R)) → K := fun c v ↦ (novelFwd κ R c).getD v.val 0
-  have hnd : (laneListAt κ R A W u).Nodup := (List.mergeSort_perm _ _).nodup_iff.2 (List.nodup_dedup _)
-  have hinj : ∀ x ∈ laneListAt κ R A W u, ∀ y ∈ laneListAt κ R A W u, e x = e y → x = y :=
-    fun x hx y hy hxy ↦ eq_of_novelFwd_eq (R := R) (by omega)
-      (laneListAt_sound hκ hn hA hcap W u hx).1 (laneListAt_sound hκ hn hA hcap W u hy).1
-      fun v hv ↦ congrFun hxy ⟨v, hv⟩
-  rw [← List.length_map (f := e), ← List.toFinset_card_of_nodup (hnd.map_on hinj)]
-  refine Finset.card_le_card fun t ht ↦ ?_
-  simp only [List.mem_toFinset, List.mem_map] at ht
-  obtain ⟨c, hc, rfl⟩ := ht
-  obtain ⟨hsize, hagree⟩ := laneListAt_sound hκ hn hA hcap W u hc
-  exact hT c hsize hagree
+  exact hT cs' hlen hlist (hcols ▸ hA hU)
 
 /-! ## Encodings are Reed–Solomon codewords -/
 
-/-- **The encoding of any array is a Reed–Solomon codeword** of message length `2^κ` on the
-points `x_v`, `v < 2^(κ+R)` (ArkLib's `ReedSolomon.code`): it is the evaluation of
-`Σ_{j<2^κ} c_j·X_j`, of degree `< 2^κ`. With this, the tuples `evalTuple` of the survivors are
-interleaved codewords, as `iList` requires. -/
-theorem encoding_mem_code {κ R : ℕ} (hn : κ + R ≤ 64) (c : Array K) :
-    (fun v : Fin (2 ^ (κ + R)) ↦ (novelFwd κ R c).getD v.val 0) ∈
-      ReedSolomon.code (domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn)) (2 ^ κ) := by
-  refine ReedSolomon.mem_code_of_polynomial_of_degree_lt_of_eval
-    (∑ j ∈ Finset.range (2 ^ κ), Polynomial.C (c.getD j 0) * novelPoly j)
-    (degree_novelSum_lt (by omega) _) fun v ↦ ?_
-  rw [novelFwd_getD (by omega) _ v.isLt]
-  simp [Polynomial.eval_finsetSum, eval_novelPoly]
+/-- **The encoding of an element of a lane's list is a Reed–Solomon codeword** of message length
+`2^κ + 6` on the points `x_v`, `v < 2^(κ+R)` (ArkLib's `ReedSolomon.code`): it is the values of
+the decoded polynomial (`laneListAt_sound`). With this, the tuples `evalTuple` of the survivors
+are interleaved codewords at level 0's degree, as `iList` requires. -/
+theorem encoding_mem_code {κ R A : ℕ} (hκ : 3 ≤ κ) (hR : 1 ≤ R) (hn : κ + R ≤ 64)
+    (hA : A ≤ 2 ^ (κ + R)) (hcap : (2 ^ κ + initialFold - 1) * 2 ^ (κ + R) < A * A)
+    (W : ℕ → List K) (u : ℕ) {c : Array K} (hc : c ∈ laneListAt κ R A W u) :
+    (fun v : Fin (2 ^ (κ + R)) ↦ (novelFwd (κ + 1) (R - 1) c).getD v.val 0) ∈
+      ReedSolomon.code (domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn))
+        (2 ^ κ + initialFold) := by
+  obtain ⟨-, p, hp, hev, -⟩ := laneListAt_sound hκ hR hn hA hcap W u hc
+  refine ReedSolomon.mem_code_of_polynomial_of_degree_lt_of_eval p hp fun v ↦ ?_
+  rw [hev v v.isLt]
   rfl
 
-/-- Every row of `evalTuple` is a Reed–Solomon codeword. -/
-theorem evalTuple_mem_code {κ R U : ℕ} (hn : κ + R ≤ 64) (cs : List (Array K)) (u : Fin U) :
+/-- Every row of `evalTuple` of arrays of the lanes' lists is a Reed–Solomon codeword. -/
+theorem evalTuple_mem_code {κ R A U : ℕ} (hκ : 3 ≤ κ) (hR : 1 ≤ R) (hn : κ + R ≤ 64)
+    (hA : A ≤ 2 ^ (κ + R)) (hcap : (2 ^ κ + initialFold - 1) * 2 ^ (κ + R) < A * A)
+    (W : ℕ → List K) {cs : List (Array K)} (hcs : ∀ u < U, cs.getD u #[] ∈ laneListAt κ R A W u)
+    (u : Fin U) :
     evalTuple κ R U cs u ∈
-      ReedSolomon.code (domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn)) (2 ^ κ) :=
-  encoding_mem_code hn _
-
-/-! ## The decoded stacks are distinct candidates -/
-
-/-- The lanes of the stack of `2^6` arrays of size `2^κ` are the arrays. -/
-theorem lanesOf_stackOf {μ : ℕ} (hμ : initialFold ≤ μ) {cs : List (Array K)}
-    (hlen : cs.length = 2 ^ initialFold)
-    (hsize : ∀ u < 2 ^ initialFold, (cs.getD u #[]).size = 2 ^ (μ - initialFold)) :
-    lanesOf (stackOf μ cs) = cs := by
-  have hsplit : 2 ^ μ = 2 ^ (μ - initialFold) * 2 ^ initialFold := by
-    rw [← pow_add, Nat.sub_add_cancel hμ]
-  have hpos : 0 < 2 ^ (μ - initialFold) := Nat.two_pow_pos _
-  suffices key : ∀ u < 2 ^ initialFold, (lanesOf (stackOf μ cs)).getD u #[] = cs.getD u #[] by
-    refine List.ext_getElem (by rw [length_lanesOf, hlen]) fun u h1 h2 ↦ ?_
-    rw [← List.getD_eq_getElem _ #[] h1, ← List.getD_eq_getElem _ #[] h2]
-    exact key u (by rwa [length_lanesOf] at h1)
-  intro u hu
-  rw [getD_lanesOf _ hu]
-  refine array_ext_getD (by rw [laneCoeffs, Array.size_ofFn, hsize u hu]) fun j hj ↦ ?_
-  rw [laneCoeffs, Array.size_ofFn] at hj
-  rw [laneCoeffs, getD_ofFn _ hj]
-  have hlt : j + 2 ^ (μ - initialFold) * u < 2 ^ μ := by
-    rw [hsplit]
-    have : 2 ^ (μ - initialFold) * u + 2 ^ (μ - initialFold) ≤ 2 ^ (μ - initialFold) * 2 ^ initialFold := by
-      rw [← Nat.mul_succ]; exact Nat.mul_le_mul_left _ hu
-    omega
-  have hdiv : (j + 2 ^ (μ - initialFold) * u) / 2 ^ (μ - initialFold) = u := by
-    rw [Nat.add_mul_div_left _ _ hpos, Nat.div_eq_of_lt hj, Nat.zero_add]
-  have hmod : (j + 2 ^ (μ - initialFold) * u) % 2 ^ (μ - initialFold) = j := by
-    rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hj]
-  simp only [Vector.getD, stackOf]
-  simp [hlt, hdiv, hmod]
-
-
-/-- **Every decoded stack is a candidate**: its lanes are the survivor's arrays, whose common
-columns over all `2^6` lanes, at least `A` of them, are its agreement with the word. -/
-theorem decodeStacksAt_sound {μ R A : ℕ} (hμ : initialFold ≤ μ) (hκ : μ - initialFold ≤ 64)
-    (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ decodeStacksAt μ R A W) :
-    q ∈ Candidates μ R A W := by
-  rw [decodeStacksAt, List.mem_map] at hq
-  obtain ⟨s, hs, rfl⟩ := hq
-  obtain ⟨hlen, hlist, hcols, hA⟩ := mem_pruneUpTo hs
-  have hl : lanesOf (stackOf μ s.1) = s.1 :=
-    lanesOf_stackOf hμ hlen fun u hu ↦ size_of_mem_laneListAt (hlist u hu)
-  show A ≤ (agreement R W (stackOf μ s.1)).card
-  rw [← commonCols_laneCoeffs hκ, hl, ← hcols]
-  exact hA (Nat.two_pow_pos _)
-
-/-- **The decoded stacks are pairwise distinct**: distinct survivors have distinct arrays, and a
-stack's lanes are its survivor's arrays. -/
-theorem nodup_decodeStacksAt {μ R A : ℕ} (hμ : initialFold ≤ μ) (W : ℕ → List K) :
-    (decodeStacksAt μ R A W).Nodup := by
-  rw [decodeStacksAt]
-  refine List.Nodup.map_on (fun s hs s' hs' he ↦ ?_)
-    (List.Nodup.of_map _ (nodup_pruneUpTo (μ - initialFold) R A W (2 ^ initialFold)))
-  obtain ⟨hlen, hlist, hcols, -⟩ := mem_pruneUpTo hs
-  obtain ⟨hlen', hlist', hcols', -⟩ := mem_pruneUpTo hs'
-  have e1 : s.1 = s'.1 := calc
-    s.1 = lanesOf (stackOf μ s.1) :=
-      (lanesOf_stackOf hμ hlen fun u hu ↦ size_of_mem_laneListAt (hlist u hu)).symm
-    _ = lanesOf (stackOf μ s'.1) := congrArg lanesOf he
-    _ = s'.1 := lanesOf_stackOf hμ hlen' fun u hu ↦ size_of_mem_laneListAt (hlist' u hu)
-  exact Prod.ext e1 (by rw [hcols, hcols', e1])
-
-/-- Stacks of `n` words of `K` are finitely many. -/
-theorem finite_vector_K (n : ℕ) : Finite (Vector K n) :=
-  Finite.of_injective (fun v : Vector K n ↦ fun i : Fin n ↦ v[i]) fun _ _ h ↦
-    Vector.ext fun i hi ↦ congrFun h ⟨i, hi⟩
-
-/-- **The decoded stacks are at most the candidates.** -/
-theorem length_decodeStacksAt_le {μ R A : ℕ} (hμ : initialFold ≤ μ) (hκ : μ - initialFold ≤ 64)
-    (W : ℕ → List K) : (decodeStacksAt μ R A W).length ≤ (Candidates μ R A W).ncard := by
-  have hnd := nodup_decodeStacksAt (R := R) (A := A) hμ W
-  rw [← List.toFinset_card_of_nodup hnd, ← Set.ncard_coe_finset]
-  have := finite_vector_K (2 ^ μ)
-  exact Set.ncard_le_ncard (fun q hq ↦ decodeStacksAt_sound hμ hκ W (List.mem_toFinset.mp hq))
-    (Set.toFinite _)
+      ReedSolomon.code (domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn))
+        (2 ^ κ + initialFold) :=
+  encoding_mem_code hκ hR hn hA hcap W u (hcs u u.isLt)
 
 end
 end LeanVM.Extraction.PruneProofs

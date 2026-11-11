@@ -17,7 +17,8 @@ public import Mathlib.Algebra.Order.Floor.Ring
 * `gsParamCert_gsParamsFor`: for message length `k > 1`, agreement `A ≤ n` with `A² > (k−1)·n`,
   the parameters `gsParamsFor k n A` are certified at radius `n − A`.
 * `johnsonThreshold_bounds`: at every admissible shape (`15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`) the threshold
-  is at most `n` and its square exceeds `D·n`, so the decoder's parameters are certified.
+  is at most `n` and its square exceeds `D·n`, `D = 2^κ − 1 + 6` level 0's degree, so the
+  decoder's parameters at message length `2^κ + 6` are certified.
 
 Credits: ArkLib (github.com/Verified-zkEVM/ArkLib at `4dae3acff846125521b7b3998010885071746f16`,
 Apache-2.0): `GSParamCert`, `paramsPassIntegerChecks_iff` (`GuruswamiSudan/{Executable,
@@ -75,11 +76,12 @@ theorem ceil_sqrt_eq_ceilSqrt (x : ℕ) : ⌈√(x : ℝ)⌉₊ = ceilSqrt x := 
 /-! ## The threshold, real and natural -/
 
 /-- The real-valued threshold, the statement's form before the extractor became computable
-(`Statement/Extractor.lean:157-162` at `8e8e4d2f`) with the slack's denominator `2^30`. -/
+(`Statement/Extractor.lean:157-162` at `8e8e4d2f`) with the slack's denominator `2^30`, at level
+0's degree `D = 2^κ − 1 + 6`. -/
 @[expose] noncomputable def johnsonThresholdReal (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n : ℕ := 2 ^ (κ + R)
-  let D : ℕ := 2 ^ κ - 1
+  let D : ℕ := 2 ^ κ - 1 + initialFold
   let η : ℝ := ((johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0 : ℝ) / (2 ^ 30 : ℕ)
   ⌈(√((D : ℝ) / n) + η) * n⌉₊
 
@@ -219,15 +221,15 @@ theorem gsParamCert_gsParamsFor {k n A : ℕ} (hk : 1 < k) (hA : A ≤ n)
 
 /-! ## The admissible shapes -/
 
-/-- At an admissible shape the threshold is at most `n` and its square exceeds `D·n`, by kernel
-evaluation. -/
+/-- At an admissible shape the threshold is at most `n` and its square exceeds `D·n`, `D` level
+0's degree `2^κ − 1 + 6`, by kernel evaluation. -/
 theorem johnsonThreshold_bounds {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR : 1 ≤ R ∧ R ≤ 4) :
     johnsonThreshold μ R ≤ 2 ^ (μ - initialFold + R) ∧
-      (2 ^ (μ - initialFold) - 1) * 2 ^ (μ - initialFold + R) <
+      (2 ^ (μ - initialFold) + initialFold - 1) * 2 ^ (μ - initialFold + R) <
         johnsonThreshold μ R * johnsonThreshold μ R := by
   have h : ∀ R < 5, ∀ μ < 29, 1 ≤ R → 15 ≤ μ →
       johnsonThreshold μ R ≤ 2 ^ (μ - initialFold + R) ∧
-        (2 ^ (μ - initialFold) - 1) * 2 ^ (μ - initialFold + R) <
+        (2 ^ (μ - initialFold) + initialFold - 1) * 2 ^ (μ - initialFold + R) <
           johnsonThreshold μ R * johnsonThreshold μ R := by
     decide +kernel
   exact h R (by omega) μ (by omega) hR.1 hμ.1
