@@ -9,8 +9,8 @@ public import Statement.Prover.Mle
 The honest prover of ring switching (`ringSwitch`: `ring_switch`,
 `crates/verifier/src/ring_switch.rs:70-87`) and of the stacked opening (`verifyStackedOpening`:
 `verify_stacked_opening`, `crates/verifier/src/lib.rs:135-156`, then `verify_whir`,
-`crates/verifier/src/whir.rs:213-334`), the prover's side being `recursive_prover_with_prepared_basis`
-(`crates/pcs/src/whir.rs:758-960`) at leanVM `f128`, on arrays.
+`crates/verifier/src/whir.rs:213-333`), the prover's side being `recursive_prover_with_prepared_basis`
+(`crates/pcs/src/whir.rs:757-959`) at leanVM `f128`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built
@@ -18,7 +18,7 @@ by scatter, a column claim's equality kernel on its block of the stack and the r
 the equality kernel on `q_keccak`'s block (`basisTableA`). The lanes are tables of novel-basis
 coefficients, coefficient `c` of lane `l` at `c·stride + l` (the Rust's `Dense`): a fold round
 sends the table of the half `F` and of `X F` against the weight (`mulXA`, `roundTableA`) and folds
-the lanes to `G + α F + β X F`, one coefficient longer, and the weight by `γ`. A level's
+the lanes to `G + α F + β X F`, one coefficient longer, and the weight by the same `α`. A level's
 word is the additive NTT of the folded lane's low part (`levelWordFast`), its query table the
 queries' tensor products `∏_c (1, Ŵ_c(x_q))` summed (`queryTableA`). The prover's messages do not
 depend on the running claim, which it does not track.
@@ -211,7 +211,7 @@ def mulXA (h : Array E) (stride : ℕ) : Array E :=
 def dotA (a b : Array E) : E := sumRange (min a.size b.size) fun i ↦ a.getD i 0 * b.getD i 0
 
 /-- The half `F` of a table `f` of `s` lanes, coefficient by coefficient (`Dense::table`,
-`crates/pcs/src/whir.rs:592-627`): `F`, `G` the lanes `2m`, `2m + 1`. -/
+`crates/pcs/src/whir.rs:591-626`): `F`, `G` the lanes `2m`, `2m + 1`. -/
 def halfA (f : Array E) (s : ℕ) : Array E :=
   Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
     f.getD (i.val / (s / 2) * s + 2 * (i.val % (s / 2))) 0
@@ -229,24 +229,23 @@ def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
    sumRange n fun i ↦ w.getD (at_ i + 1) 0 * XH.getD i 0]
 
 /-- The folded lanes `P = G + α F + β X F`, one coefficient longer (`Dense::fold`,
-`crates/pcs/src/whir.rs:629-667`). -/
+`crates/pcs/src/whir.rs:628-666`). -/
 def foldLanesA (f : Array E) (s : ℕ) (H XH : Array E) (α β : E) : Array E :=
   Array.ofFn (n := XH.size) fun i ↦
     let c := i.val / (s / 2)
     let m := i.val % (s / 2)
     f.getD (c * s + 2 * m + 1) 0 + α * H.getD i.val 0 + β * XH.getD i.val 0
 
-/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs:551-556`): the table, a grind and
-`(γ, α, β)`; the folded lanes and the weight folded by `γ`. -/
+/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs:550-555`): the table, a grind and
+`(α, β)`; the folded lanes and the weight folded by `α`. -/
 def foldRoundA (f w : Array E) (s : ℕ) : Script (Array E × Array E) := do
   let H := halfA f s
   let XH := mulXA H (s / 2)
   Script.sendList (roundTableA f w s H XH)
   Script.grindBits Whir.foldGrindingBits
-  let γ ← Script.sampleE
   let α ← Script.sampleE
   let β ← Script.sampleE
-  return (foldLanesA f s H XH α β, foldPairsA γ w)
+  return (foldLanesA f s H XH α β, foldPairsA α w)
 
 /-- A level's fold rounds, the lanes halving each round. -/
 def foldRoundsA : ℕ → ℕ → Array E → Array E → Script (Array E × Array E)
@@ -271,13 +270,13 @@ def sampleQueriesS (depth : ℕ) : ℕ → ℕ → Script (List ℕ)
 
 /-- The tail sumcheck on the final level's low part: per round the constant and quadratic
 coefficients, then the challenge, both tables folded (`tail_sumcheck`,
-`crates/pcs/src/whir.rs:723-741`). -/
+`crates/pcs/src/whir.rs:722-740`). -/
 def tailA (mu : ℕ) (w g : Array E) : Script Unit :=
   (sumcheckBy (fun st : Array E × Array E ↦ [roundC0A st.1 st.2, 0, roundC2A st.1 st.2])
     (fun st r ↦ (foldPairsA r st.1, foldPairsA r st.2)) (List.replicate mu none) (w, g)).bind
     fun _ ↦ .ret ()
 
-/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:758-960`)
+/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:757-959`)
 from a level whose lanes and weight are the tables `f` and `w`, `mu` the variables before its
 folds: its fold rounds; then on the final level the folded lane, the queries and the tail; on
 another the next level's commitment to the folded lane's low part, its high part, the two

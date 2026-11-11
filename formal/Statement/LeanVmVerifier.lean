@@ -87,7 +87,7 @@ def residualMaxLog : ℕ := 5
 `whir.rs:15`). -/
 def queryGrindingBits : ℕ := 17
 
-/-- Grinding bits before each fold round's `(γ, α, β)` (`FOLD_GRINDING_BITS`, `whir.rs:16-17`). -/
+/-- Grinding bits before each fold round's `(α, β)` (`FOLD_GRINDING_BITS`, `whir.rs:16-17`). -/
 def foldGrindingBits : ℕ := 9
 
 /-- Grinding bits before every batching challenge: each non-final level's `λ`, and the stacked
@@ -1430,14 +1430,14 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 
 The opening of [CYWZ26, preprint]'s affine folds (Annex B, Protocol B.1): a level's rounds fold its
 lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by five scalars a round
-and the weight folded by `γ`, so the `γ`s are the weight's point. A non-final level then commits
+and the weight folded by the same `α`, so the `α`s are the weight's point. A non-final level then commits
 the folded lane's low part, sends its high part, and glues its out-of-domain claims and its queries,
 each opened row folded as the lanes were and corrected by the high part. The final level sends the
 whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
 
 **Commitments.** The Rust reads a Merkle root as two scalars (`Digest::from_halves` of
-`next_scalars(2)`, `whir.rs:293-294`) and opens it a level later with
-`transcript.merkle(current_root, block_length, &queries, leaf_words)` (`whir.rs:266, 315`). The
+`next_scalars(2)`, `whir.rs:292-293`) and opens it a level later with
+`transcript.merkle(current_root, block_length, &queries, leaf_words)` (`whir.rs:265, 303`). The
 language's `commit height width` fixes the matrix shape when the root is read, so the shape is
 computed from the ladder there:
 
@@ -1453,9 +1453,9 @@ program's.
 
 `derive_config` is `LeanVM.Parameters.Whir.ladder`. `induced_weight` requires
 `point.len() == message_log` (`InducedBasisDimensions`, `whir.rs:179`); every glued claim is
-evaluated at `point[fold_start..]`, the `γ`s from `fold_start` on and then the tail's, of length
+evaluated at `point[fold_start..]`, the `α`s from `fold_start` on and then the tail's, of length
 `log_n − fold_start = μ` of its level, so the check always holds and is not repeated. The error
-after the level loop (`WhirNoTerminalLevel`, `whir.rs:333`) is `VerifierProgram.fail` on an empty
+after the level loop (`WhirNoTerminalLevel`, `whir.rs:332`) is `VerifierProgram.fail` on an empty
 ladder, which `derive_config` never returns. `novel_basis` asserts it has a basis element for every
 coefficient (`whir.rs:141-144`): on the final level `2^μ + fold` coefficients against `2^(μ+1)`
 elements, which holds as the ladder leaves the final level `μ ≥ 2` variables and folds at most `4`;
@@ -1559,25 +1559,26 @@ def inducedWeight (messageLog : ℕ) (queries : List ℕ) (queryWeights point : 
 structure GluedClaim where
   /-- The power of the level's `λ` it was glued with. -/
   scalar : E
-  /-- How many `γ`s preceded the level. -/
+  /-- How many fold rounds preceded the level. -/
   foldStart : ℕ
   /-- Its weight at the terminal point, restricted to the level's message coordinates. -/
   weightAt : List E → E
 
-/-! ### The level loop (`whir.rs:229-333`) -/
+/-! ### The level loop (`whir.rs:229-332`) -/
 
-/-- The running state of `verify_whir`: the running `claim`, every `γ` so far, and the glued
-claims so far. -/
+/-- The running state of `verify_whir`: the running `claim`, every fold round's `α` so far, and
+the glued claims so far. -/
 structure WhirState where
   /-- `claim`: the running claim. -/
   claim : E
-  /-- `gammas`: every fold round's `γ` so far. -/
-  gammas : List E
+  /-- `alphas`: every fold round's `α` so far, the coordinates the weight is folded at. -/
+  alphas : List E
   /-- `glued`: the glued claims so far. -/
   glued : List GluedClaim
 
-/-- One fold round (`whir.rs:231-243`): the five scalars `u0, v0, c0, v1, c1`, the `G` lanes'
-share `u1` derived from the claim; a grind and `γ, α, β`; the claim folded. -/
+/-- One fold round (`whir.rs:231-242`): the five scalars `u0, v0, c0, v1, c1`, the `G` lanes'
+share `u1` derived from the claim; a grind and `α, β`; the claim folded at `α`,
+`Σ_ι eq(α, ι)(u_ι + α v_ι + β c_ι)`. -/
 def foldRound (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   let u0 ← VerifierProgram.readScalar
   let v0 ← VerifierProgram.readScalar
@@ -1586,11 +1587,10 @@ def foldRound (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   let c1 ← VerifierProgram.readScalar
   let u1 := s.claim + v0
   VerifierProgram.grindProofOfWork Whir.foldGrindingBits
-  let gamma ← VerifierProgram.sampleChallenge
   let alpha ← VerifierProgram.sampleChallenge
   let beta ← VerifierProgram.sampleChallenge
-  let claim := (1 + gamma) * (u0 + alpha * v0 + beta * c0) + gamma * (u1 + alpha * v1 + beta * c1)
-  return ({ s with claim := claim, gammas := s.gammas ++ [gamma] }, ⟨alpha, beta⟩)
+  let claim := (1 + alpha) * (u0 + alpha * v0 + beta * c0) + alpha * (u1 + alpha * v1 + beta * c1)
+  return ({ s with claim := claim, alphas := s.alphas ++ [alpha] }, ⟨alpha, beta⟩)
 
 /-- A level's fold rounds, in order. -/
 def foldRounds : ℕ → WhirState → VerifierProgram (WhirState × List FoldRound)
@@ -1601,7 +1601,7 @@ def foldRounds : ℕ → WhirState → VerifierProgram (WhirState × List FoldRo
     return (s, round :: rounds)
 
 /-- The out-of-domain points of a non-final level: `count` points of `mu` coordinates, one
-message with no grind (`whir.rs:296-297`). -/
+message with no grind (`whir.rs:295-296`). -/
 def sampleOodPoints (mu : ℕ) : ℕ → VerifierProgram (List (List E))
   | 0 => return []
   | count + 1 => do
@@ -1614,7 +1614,7 @@ variables left after the level's folds. -/
 def levelShape (messageLogBefore : ℕ) (level : Whir.Level) (width : ℕ) : ℕ × ℕ :=
   (messageLogBefore - level.fold + level.logInvRate, width)
 
-/-- Glue a non-final level's claims into the running claim (`whir.rs:314-329`): out-of-domain
+/-- Glue a non-final level's claims into the running claim (`whir.rs:313-328`): out-of-domain
 claim `s` with `λ^(s + 1)`, its weight `eq(point, ·)`, then the query batch with
 `λ^(oodSamples + 1)`, its weight the induced one. -/
 def glueLevel (s : WhirState) (lam : E) (mu : ℕ) (oodPoints : List (List E)) (oodValues : List E)
@@ -1623,12 +1623,12 @@ def glueLevel (s : WhirState) (lam : E) (mu : ℕ) (oodPoints : List (List E)) (
   let s := (List.zip (List.zip oodPoints oodValues) (scalars.drop 1)).foldl
     (fun s ((point, value), scalar) ↦
       { s with claim := s.claim + scalar * value,
-               glued := s.glued ++ [⟨scalar, s.gammas.length, fun x ↦ eqEval point x⟩] }) s
+               glued := s.glued ++ [⟨scalar, s.alphas.length, fun x ↦ eqEval point x⟩] }) s
   let scalar := scalars.getD (Whir.oodSamples + 1) 0
   { s with claim := s.claim + scalar * batched,
-           glued := s.glued ++ [⟨scalar, s.gammas.length, inducedWeight mu queries queryWeights⟩] }
+           glued := s.glued ++ [⟨scalar, s.alphas.length, inducedWeight mu queries queryWeights⟩] }
 
-/-- One level of `verify_whir` and every level after it (`whir.rs:229-331`). `index` is the
+/-- One level of `verify_whir` and every level after it (`whir.rs:229-330`). `index` is the
 level's index, which is also the index of the commitment it opens; `laneFolds` is
 `config.folds[0]`. -/
 def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
@@ -1636,15 +1636,15 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
     let (s, rounds) ← foldRounds level.fold s
-    let mu := logN - s.gammas.length
+    let mu := logN - s.alphas.length
     let depth := mu + level.logInvRate
     -- The opened rows' lanes in `eq_kernel` order: level 0's leaf image reversed, a deeper
-    -- level's regrouped (`whir.rs:253-260`).
+    -- level's regrouped (`whir.rs:252-259`).
     let lanesOf : List K → List E := fun row ↦
       if index = 0 then row.reverse.map ofK else extRow row
     match rest with
     | [] => do
-      -- The final level (`whir.rs:262-290`).
+      -- The final level (`whir.rs:261-289`).
       let folded ← VerifierProgram.readScalars (2 ^ mu + level.fold)
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits
       let queries ← sampleQueries depth level.queries
@@ -1653,13 +1653,13 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
         foldRow (lanesOf row) (K.ofBits query) rounds =
           novelEval folded (subspaceAt mu (K.ofBits query)))
       let (tail, claim) ← sumcheck s.claim 3 (List.replicate mu none)
-      let point := s.gammas ++ tail
+      let point := s.alphas ++ tail
       let weight := s.glued.foldl
         (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart))
         (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
       VerifierProgram.require (weight * multilinearEval (folded.take (2 ^ mu)) tail = claim)
     | next :: _ => do
-      -- A non-final level (`whir.rs:293-330`).
+      -- A non-final level (`whir.rs:292-329`).
       let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
       VerifierProgram.readCommitment height width
       let high ← VerifierProgram.readScalars level.fold
@@ -1681,7 +1681,7 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
       whirLevels logN laneFolds evaluateBasis (index + 1) rest s
 
 /-- `verify_whir(transcript, log_n, log_inv_rate, target, root, evaluate_basis)`, the root being
-commitment `0` (`whir.rs:213-334`). -/
+commitment `0` (`whir.rs:213-333`). -/
 def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : VerifierProgram
     Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)

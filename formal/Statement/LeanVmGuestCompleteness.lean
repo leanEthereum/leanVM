@@ -131,7 +131,7 @@ def whirLevelsRefusingZeroCombiner (logN laneFolds : ℕ) (evaluateBasis : List 
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
     let (s, rounds) ← foldRounds level.fold s
-    let mu := logN - s.gammas.length
+    let mu := logN - s.alphas.length
     let depth := mu + level.logInvRate
     -- The opened rows' lanes in `eq_kernel` order: level 0's leaf image reversed, a deeper
     -- level's regrouped (`whir.rs:253-260`).
@@ -149,7 +149,7 @@ def whirLevelsRefusingZeroCombiner (logN laneFolds : ℕ) (evaluateBasis : List 
         foldRow (lanesOf row) (K.ofBits query) rounds =
           novelEval folded (subspaceAt mu (K.ofBits query)))
       let (tail, claim) ← sumcheck s.claim 3 (List.replicate mu none)
-      let point := s.gammas ++ tail
+      let point := s.alphas ++ tail
       let weight := s.glued.foldl
         (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart))
         (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
