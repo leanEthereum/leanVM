@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Whir.Subspace
 /-!
 # The verifier's subspace polynomials
 
-`subspace_roots(n)` and `Subspace::at(x)` (`crates/verifier/src/whir.rs:96-132`,
+`subspace_roots(n)` and `Subspace::at(x)` (`crates/verifier/src/whir.rs:94-130`,
 `LeanVM.Protocol.Verifier.subspaceRoots` and `subspaceAt`) compute the normalizers
 `W_i(β_i)` and the normalized subspace polynomials `Ŵ_i(x)` by the recursion
 `W_(i+1) = W_i^2 + W_i(β_i) W_i` (`LeanVM.Protocol.Whir.vanishingAt_succ`):

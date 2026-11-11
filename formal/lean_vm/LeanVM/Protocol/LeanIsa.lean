@@ -27,7 +27,7 @@ row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the progra
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
 (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:231-234`): the memory window `[16, 32]`, the
+`crates/verifier/src/layout.rs:497-503`, and `lib.rs:228-231`): the memory window `[16, 32]`, the
 row cap `2^32`, and the stacked size `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`;
 its floor `15` holds by construction). `validRate` is the WHIR rate check, read off the same
 announcement and used by the commitment, not by the instance.
@@ -614,7 +614,7 @@ namespace LeanIsa
 /-! ## Admissible sizes -/
 
 /-- The checks the verifier makes of the announced sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:231-234`): the memory window, the row cap,
+`crates/verifier/src/layout.rs:497-503`, and `lib.rs:228-231`): the memory window, the row cap,
 and the stacked size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor
 holds by construction (`leanIsaμ`). -/
 def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=
@@ -624,7 +624,7 @@ def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=
 instance (prog : LeanIsaProgram) (s : Sizes) : Decidable (s.Admissible prog) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
-/-- The WHIR rate check (`pcs/src/whir_config.rs:45-57`): the inverse rate's logarithm is in
+/-- The WHIR rate check (`pcs/src/whir_config.rs:44-56`): the inverse rate's logarithm is in
 `[1, 4]`. A parameter of the commitment, read off the same announcement. -/
 def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4
 

@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Whir.Sound.Tail
 /-!
 # The final level
 
-`whirLevels` on `[level]` (`crates/verifier/src/whir.rs:272-301`): the level's fold rounds, then
+`whirLevels` on `[level]` (`crates/verifier/src/whir.rs:273-299`): the level's fold rounds, then
 `finalTail`: the folded lane's `2^μ + ℓ` coefficients, a `17`-bit grind, the positions, their
 rows and the check that each row folds to the lane's value at its point (one group, `eQuery`),
 the tail sumcheck on the lane's low part (`tailSpec`), and the terminal check, which fails.

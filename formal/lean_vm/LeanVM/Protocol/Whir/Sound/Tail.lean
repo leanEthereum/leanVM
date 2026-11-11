@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Whir.Sound.Lanes
 
 On the final level the prover sends the folded lane's coefficients, so no list is involved: after
 the query group the verifier holds a claim about its low part `res` itself, and the tail
-(`sumcheck s.claim 3 (List.replicate mu none)`, `crates/verifier/src/whir.rs:275`) is a plain
+(`sumcheck s.claim 3 (List.replicate mu none)`, `crates/verifier/src/whir.rs:276`) is a plain
 sumcheck on it, each round's degree-two polynomial with a `0`-bit grind.
 
 * `tailMsg τ res n`: the low part folded by the tail challenges `τ` so far, as a message on `n`

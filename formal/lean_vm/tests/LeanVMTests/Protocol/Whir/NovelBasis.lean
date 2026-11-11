@@ -179,7 +179,7 @@ def naive (p : Vector E 3) : E :=
 -- With the factor `1 + p(1 + Ŵ)` read as `1 + p·Ŵ` the sum would differ.
 #guard (naive point) ≠ ((weights.zip queries).map fun wq ↦ wq.1 * ∏ i : Fin 3,
   (1 + point[i] * ofK (normVanishingAt i (K.ofBits wq.2)))).sum
--- The `require` on the point's length (`whir.rs:113`), and weights not one per query.
+-- The `require` on the point's length (`whir.rs:111`), and weights not one per query.
 #guard inducedWeight 2 queries weights point.toList = none
 #guard inducedWeight 3 queries weights.tail point.toList = none
 -- The evaluator of `colWeightE` is CompPoly's extension of its cube values.

@@ -19,7 +19,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.Counting
 
 Annex B (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), proof of Theorem `thm:rbr`, "The
 level interface", "OOD points", "Query message", "Batching challenge", for the deployed order of
-messages (`verify_whir`, `crates/verifier/src/whir.rs:291-327`): the next oracle `Q'` and the
+messages (`verify_whir`, `crates/verifier/src/whir.rs:292-325`): the next oracle `Q'` and the
 folded lane's high part, a grind, the out-of-domain point `z` and answer `y`, a grind, the queries
 and `λ`, the openings. The level's claims are glued with powers of `λ`: the running claim with
 `λ⁰`, the out-of-domain claim with `λ`, the `t` consistency claims with `λ^(2+q)`.

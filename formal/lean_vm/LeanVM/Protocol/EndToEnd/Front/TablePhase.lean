@@ -16,7 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Front.TableTerms
 /-!
 # The table sumcheck on doom
 
-`tablePhase layout bus` (`crates/verifier/src/lib.rs:275-294` and `bus.rs:249-297`) is the oracle
+`tablePhase layout bus` (`crates/verifier/src/lib.rs:272-291` and `bus.rs:249-297`) is the oracle
 protocol's `tableSumcheck` (`LeanVM.Protocol.TableSumcheck`) on the wire: a grind for the batch's
 degree, which the protocol does not have, the batching challenge `ξ`, the plain sumcheck of four coefficients per round (one left out on the wire), the evaluations
 of every table's columns, and the final check. Its doom is stated on the protocol's relations at the
@@ -188,10 +188,10 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
 
 open Classical in
 /-- The grind before `ξ`: for the batch's degree in `ξ`, its `n_constraints + N_TREES` powers less
-one (`lib.rs:282-285`). -/
+one (`lib.rs:279-282`). -/
 def xiGrindBits : ℕ := grindingBits (nCons + nTrees - 1)
 
-/-- **The table sumcheck** (`tablePhase`, `lib.rs:275-294`, `bus.rs:249-297`) after the bus phase
+/-- **The table sumcheck** (`tablePhase`, `lib.rs:272-291`, `bus.rs:249-297`) after the bus phase
 read `w`: from the bus seam at `w` to the table seam on the wire. `ξ`, after a grind of
 `xiGrindBits` bits (`hxi`, the discounted bound), is charged `L₀ · (B + 2) / |E|`, each round
 `L₀ · 3 / |E|`. -/

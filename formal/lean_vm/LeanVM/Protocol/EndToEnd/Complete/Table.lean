@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The table phase
 
-Step 4 of `verify_execution` (`tablePhase`, `crates/verifier/src/lib.rs:275-302`, and
+Step 4 of `verify_execution` (`tablePhase`, `crates/verifier/src/lib.rs:272-299`, and
 `table_sumcheck`, `bus.rs:256-297`, at leanVM `f128`). The verifier
 samples `ξ`, splits its powers into the constraint powers and the three form powers, and runs one
 plain sumcheck of four coefficients per round over `n = max_t τ_t` coordinates against the target
@@ -438,7 +438,7 @@ section Prover
 
 variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
-/-- The constraint powers of `ξ` (`lib.rs:281-283`). -/
+/-- The constraint powers of `ξ` (`lib.rs:278-280`). -/
 def cpOf (xi : E) : List E :=
   (powers xi ((tables.map Table.nConstraints).sum + nTrees)).take (tables.map Table.nConstraints).sum
 

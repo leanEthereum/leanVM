@@ -19,7 +19,7 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 /-!
 # The public-input phase as a specification
 
-Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:304-317`): sample `r`, and claim for each memory column `ℓ`
+Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:301-314`): sample `r`, and claim for each memory column `ℓ`
 the line through limb `ℓ` of the public-input digest's two halves `(h₀, h₁)` at `r`,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ` (`pubLimb`), at `(r, 0, …, 0)`. The prover sends nothing. It is a sample
 followed by a return (`publicInputPhase_eq`).
@@ -71,18 +71,18 @@ open scoped ENNReal NNReal
 /-! ## The program -/
 
 /-- The point of the public claims, `(r, 0, …, 0)` on the memory's variables
-(`lib.rs:313-314`). -/
+(`lib.rs:310-311`). -/
 def pubPoint (layout : Verifier.Layout) (r : E) : List E :=
   r :: List.replicate ((layout.placement memory0).variableCount - 1) 0
 
 /-- The program's value of memory limb `ℓ` at the challenge: the line through limb `ℓ` of the
-digest's two halves, `multilinear_eval([first.c_ℓ, second.c_ℓ], [r])` (`lib.rs:310-312`). -/
+digest's two halves, `multilinear_eval([first.c_ℓ, second.c_ℓ], [r])` (`lib.rs:307-309`). -/
 def pubLimb (publicInput : Digest) (r : E) (ℓ : Fin 2) : E :=
   multilinearEval [ofK ((digestHalves publicInput).1.limb ℓ),
     ofK ((digestHalves publicInput).2.limb ℓ)] [r]
 
 /-- The program's claims: the two limbs on the two memory columns at the public point
-(`lib.rs:315-317`). -/
+(`lib.rs:312-314`). -/
 def pubClaims (layout : Verifier.Layout) (publicInput : Digest) (r : E) :
     List Verifier.ColumnClaim :=
   List.zipWith (fun column value ↦ ⟨column, pubPoint layout r, value⟩)

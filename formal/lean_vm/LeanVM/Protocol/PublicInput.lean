@@ -43,7 +43,7 @@ reads the transcript and never the stack: it is a front verifier, `verifierWith`
 and the pool, a shape the tests reuse for the verifiers that omit or weaken the check.
 
 The leanISA instance (`LeanVM.Protocol.LeanIsa`) sends no line, as the deployed verifiers do
-(`crates/verifier/src/lib.rs:269-282`): its message is
+(`crates/verifier/src/lib.rs:267-279`): its message is
 empty, the check is that it is, and every pooled claim is a value the verifier computes. The
 specification and the deployed verifiers coincide; an earlier deployed check of one equation on
 the two public words, with the two low limbs sent, is gone upstream.

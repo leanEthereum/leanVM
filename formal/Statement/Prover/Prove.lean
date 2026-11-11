@@ -39,7 +39,7 @@ def oodFast (μ : ℕ) (stack : Array K) : Script (List E × E) :=
   (Script.sendE value).bind fun _ ↦ .ret (z, value)
 
 /-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
-`publicInput`: the moves of `verify_execution` (its `walk`, `crates/verifier/src/lib.rs:246-366`),
+`publicInput`: the moves of `verify_execution` (its `walk`, `crates/verifier/src/lib.rs:243-363`),
 each phase's executable prover beside the verifier's phase (`Script.alongside`), which hands the
 next phase its result. The public-input phase sends nothing; the output lanes' claims, on no
 committed column, do not reach the stack (`ColumnClaim.onStack`); the commitment's out-of-domain

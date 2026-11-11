@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Sound.Weights
 /-!
 # The running state of `verify_whir`
 
-`LeanVM.Protocol.Verifier.WhirState` (`verify_whir`'s locals, `crates/verifier/src/whir.rs:223-343`)
+`LeanVM.Protocol.Verifier.WhirState` (`verify_whir`'s locals, `crates/verifier/src/whir.rs:224-341`)
 holds the running claim, every fold round's `α`, and the glued claims, whose weights are only
 evaluated at the terminal point. This module reads it as a weighted claim:
 

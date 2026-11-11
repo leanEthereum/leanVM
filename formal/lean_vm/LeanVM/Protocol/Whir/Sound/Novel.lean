@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.SubspaceAt
 /-!
 # The novel basis in the verifier
 
-`novel_basis` and `novel_eval` (`crates/verifier/src/whir.rs:135-157`,
+`novel_basis` and `novel_eval` (`crates/verifier/src/whir.rs:133-155`,
 `LeanVM.Protocol.Verifier.novelBasis`, `novelEval`) evaluate a polynomial given by its
 novel-basis coefficients at a domain point from the values `Ŵ_i(x)` (`subspaceAt`):
 
