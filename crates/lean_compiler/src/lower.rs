@@ -60,15 +60,27 @@ impl Abi {
     const RET_FP: Off = 1;
     /// Argument `i`, after the two return slots and the preceding arguments.
     fn arg(shapes: impl Iterator<Item = Shape>, i: usize) -> Off {
-        2 + shapes.take(i).map(Shape::cells).sum::<u32>()
+        Self::fit(2 + Self::width(shapes.take(i)))
     }
     /// Total width of the argument area.
     fn arg_cells(shapes: impl Iterator<Item = Shape>) -> u32 {
-        shapes.map(Shape::cells).sum()
+        Self::fit(Self::width(shapes))
     }
     /// Return cell `i` of a callee whose arguments occupy `arg_cells` cells.
     fn ret(arg_cells: u32, i: u32) -> Off {
-        2 + arg_cells + i
+        Self::fit(2 + u64::from(arg_cells) + u64::from(i))
+    }
+    /// The cells `shapes` occupy, summed where a `StackBuf(n)` of up to `2^32 - 1` cells cannot overflow it.
+    fn width(shapes: impl Iterator<Item = Shape>) -> u64 {
+        shapes.map(|s| u64::from(s.cells())).sum()
+    }
+    /// A call-area offset or width as an [`Off`], refusing one that does not fit rather than wrapping it into a
+    /// small offset that aliases another cell. `Off::MAX` is refused too, so a caller may add one.
+    fn fit(cells: u64) -> Off {
+        match Off::try_from(cells) {
+            Ok(off) if off < Off::MAX => off,
+            _ => panic!("a call's arguments and returns outgrow 2^32 frame cells"),
+        }
     }
     /// One past the last cell the CALLER touches, so the first local cell.
     fn end(arg_cells: u32, n_ret_cells: u32) -> Off {
@@ -1673,7 +1685,7 @@ pub(crate) fn lower_func(
     }
     // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
     // locals. A StackBuf(n) return occupies n consecutive physical slots.
-    let n_ret_cells: u32 = f.return_shapes.iter().map(|s| s.cells()).sum();
+    let n_ret_cells = Abi::fit(Abi::width(f.return_shapes.iter().copied()));
     let arg_cells = Abi::arg_cells(f.param_shapes());
     let abi_end = Abi::end(arg_cells, n_ret_cells);
     // Loop callers write the callee's own fp just past its arguments. That
