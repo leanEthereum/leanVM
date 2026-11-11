@@ -32,7 +32,7 @@ use primitives::field::{
 };
 use primitives::multilinear::{eq_table, interp};
 
-use super::whir_config::{FOLD_GRINDING_BITS, LEVEL_OOD_GRINDING_BITS};
+use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
 pub use super::whir_config::{
     INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
     QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
@@ -870,7 +870,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 
         // Bind the next level's list before drawing this level's queries: grind, one OOD point, then its value. The
         // claim stays pending until the level's batching challenge, which the query message draws last.
-        ps.grind(LEVEL_OOD_GRINDING_BITS);
+        ps.grind(OOD_GRINDING_BITS);
         let eq = eq_table(&ps.sample_vec(mu));
         let y = parallel::map_reduce(
             p.len().div_ceil(ROUND_CHUNK),

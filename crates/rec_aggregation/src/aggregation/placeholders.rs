@@ -16,9 +16,7 @@ use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::tables::N_TABLES;
 use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use pcs::whir_config::{
-    BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, LEVEL_OOD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS,
-};
+use pcs::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 use primitives::field::{F64, F128, g_pow};
 use signatures::{lean_sphincs, lean_xmss};
 use std::collections::BTreeMap;
@@ -721,7 +719,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     };
     ps("FOLD_GRIND_BITS", FOLD_GRINDING_BITS.to_string());
     ps("OOD_GRIND_BITS", OOD_GRINDING_BITS.to_string());
-    ps("LEVEL_OOD_GRIND_BITS", LEVEL_OOD_GRINDING_BITS.to_string());
     ps("QUERY_GRIND_BITS", QUERY_GRINDING_BITS.to_string());
     ps("BATCH_GRIND_BITS", BATCH_GRINDING_BITS.to_string());
     let (minm, maxm) = (MU_MIN, MU_MAX);

@@ -121,7 +121,6 @@ fn grinding_constants_match_the_prover() {
         verifier::FOLD_GRINDING_BITS,
         verifier::BATCH_GRINDING_BITS,
         verifier::OOD_GRINDING_BITS,
-        verifier::LEVEL_OOD_GRINDING_BITS,
     ];
     let expected = [
         leanvm_core::SECURITY_BITS,
@@ -129,7 +128,6 @@ fn grinding_constants_match_the_prover() {
         prover::FOLD_GRINDING_BITS,
         prover::BATCH_GRINDING_BITS,
         prover::OOD_GRINDING_BITS,
-        prover::LEVEL_OOD_GRINDING_BITS,
     ];
     assert_eq!(rust, expected, "crates/verifier's grinding constants");
     assert_lean_constants(
@@ -140,7 +138,6 @@ fn grinding_constants_match_the_prover() {
             ("foldGrindingBits", prover::FOLD_GRINDING_BITS as usize),
             ("batchGrindingBits", prover::BATCH_GRINDING_BITS as usize),
             ("oodGrindingBits", prover::OOD_GRINDING_BITS as usize),
-            ("levelOodGrindingBits", prover::LEVEL_OOD_GRINDING_BITS as usize),
             ("maxStackedClaims", prover::MAX_STACKED_CLAIMS),
         ],
     );

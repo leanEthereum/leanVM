@@ -275,12 +275,10 @@ LIG_MAX_VANISH_LEN = LIG_MAX_VANISH_LEN_PLACEHOLDER
 LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
 # The opening's grinding (pcs::whir_config): before each fold round's (alpha, beta),
-# before every commitment's OOD point (level 0's OOD_GRIND_BITS, every later level's
-# LEVEL_OOD_GRIND_BITS), before every level's queries (a non-final level's lambda rides
-# that message), and before level 0's batching, the ring switch's map.
+# before every commitment's OOD point, before every level's queries (a non-final level's
+# lambda rides that message), and before level 0's batching, the ring switch's map.
 FOLD_GRIND_BITS = FOLD_GRIND_BITS_PLACEHOLDER
 OOD_GRIND_BITS = OOD_GRIND_BITS_PLACEHOLDER
-LEVEL_OOD_GRIND_BITS = LEVEL_OOD_GRIND_BITS_PLACEHOLDER
 QUERY_GRIND_BITS = QUERY_GRIND_BITS_PLACEHOLDER
 BATCH_GRIND_BITS = BATCH_GRIND_BITS_PLACEHOLDER
 # Every other challenge grinds for its numerator (fiat_shamir::grinding_bits), zero
@@ -1575,7 +1573,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             # and the query nonce.
             sent = HeapBuf(GEN ** (2 + folds))
             z_first, pow_ood, fs0, fs1, fs2, fs3, fs4, cursor = opening_message(fs0, fs1, fs2, fs3, fs4, cursor, sent, 2 + folds, 1)
-            grind_check(pow_ood, tabs, LEVEL_OOD_GRIND_BITS)
+            grind_check(pow_ood, tabs, OOD_GRIND_BITS)
             level_roots[GEN ** (2 * lvl + 2)] = sent[GEN ** 0]
             level_roots[GEN ** (2 * lvl + 3)] = sent[GEN ** 1]
             ood_row = ood_z * GEN ** ((lvl + 1) * LIG_LOG_MSG_COLS_CAP)

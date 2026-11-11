@@ -14,21 +14,19 @@ const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
 pub const QUERY_GRINDING_BITS: u32 = 17;
 /// Before each fold round's `(alpha, beta)`.
-pub const FOLD_GRINDING_BITS: u32 = 8;
+pub const FOLD_GRINDING_BITS: u32 = 7;
 /// Before level 0's batching challenges: the stacked opening's map challenges and lambda. Later levels' lambda rides
 /// the query message.
 pub const BATCH_GRINDING_BITS: u32 = 13;
-/// Before the level-0 OOD sample.
+/// Before every commitment's OOD point.
 pub const OOD_GRINDING_BITS: u32 = 15;
-/// Before every later commitment's OOD point.
-pub const LEVEL_OOD_GRINDING_BITS: u32 = 17;
 
 #[rustfmt::skip]
 const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
-    [&[238,63], &[230,60,42], &[225,58,38], &[222,57,35], &[220,56,34], &[219,55,33,27], &[218,55,32,25], &[218,55,32,24], &[218,55,32,23], &[218,55,32,23,20], &[218,55,32,23,19], &[218,55,32,22,18], &[218,55,32,22,18], &[218,55,32,22,18,16]],
-    [&[114,49], &[112,47,35], &[111,46,32], &[110,45,31], &[110,45,29], &[109,44,29,24], &[109,44,28,23], &[109,44,28,22], &[109,44,28,21], &[109,44,28,21,18], &[109,44,28,21,17], &[109,44,28,20,17], &[109,44,28,20,17], &[109,44,28,20,16,15]],
-    [&[75,40], &[74,39,30], &[74,38,28], &[73,37,27], &[73,37,26], &[73,37,25,22], &[73,37,25,20], &[73,37,25,20], &[73,37,25,19], &[73,37,25,19,17], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16,14]],
-    [&[56,34], &[56,33,27], &[55,32,25], &[55,32,24], &[55,32,23], &[55,32,23,20], &[55,32,23,19], &[55,32,22,18], &[55,32,22,18], &[55,32,22,18,16], &[55,32,22,18,15], &[55,32,22,18,15], &[55,32,22,18,15], &[55,32,22,18,15,13]],
+    [&[238,63], &[230,60,42], &[225,58,38], &[222,57,35], &[220,56,34], &[219,55,33,27], &[218,55,32,25], &[218,55,32,24], &[218,55,32,23], &[218,55,32,23,20], &[218,55,32,23,19], &[218,55,32,23,18], &[218,55,32,23,18], &[218,55,32,23,18,16]],
+    [&[114,49], &[112,47,35], &[111,46,32], &[110,45,31], &[110,45,29], &[109,44,29,24], &[109,44,28,23], &[109,44,28,22], &[109,44,28,21], &[109,44,28,21,18], &[109,44,28,21,17], &[109,44,28,21,17], &[109,44,28,21,17], &[109,44,28,21,17,15]],
+    [&[75,40], &[74,39,30], &[74,38,28], &[73,37,27], &[73,37,26], &[73,37,25,22], &[73,37,25,20], &[73,37,25,20], &[73,37,25,19], &[73,37,25,19,17], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16,15]],
+    [&[56,34], &[56,33,27], &[55,32,25], &[55,32,24], &[55,32,23], &[55,32,23,20], &[55,32,23,19], &[55,32,23,18], &[55,32,23,18], &[55,32,23,18,16], &[55,32,23,18,15], &[55,32,23,18,15], &[55,32,23,18,15], &[55,32,23,18,15,14]],
 ];
 
 struct WhirConfig {
@@ -294,7 +292,7 @@ pub fn verify_whir(
         let halves = transcript.next_scalars(2)?;
         let next_root = Digest::from_halves(halves[0], halves[1]);
         let high = transcript.next_scalars(fold_count)?;
-        let (ood_weight, ood_value) = crate::read_ood(transcript, mu, LEVEL_OOD_GRINDING_BITS)?;
+        let (ood_weight, ood_value) = crate::read_ood(transcript, mu, OOD_GRINDING_BITS)?;
         // The queries and lambda, one message.
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let queries = sample_queries(transcript, block_length, config.queries[level])?;

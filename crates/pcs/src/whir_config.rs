@@ -16,8 +16,8 @@
 //!
 //! - `(alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - level 0's batching `lambda`: `(J_0 - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
-//! - the OOD point after each commitment: `C(ell, 2) mu / q`, after [`OOD_GRINDING_BITS`] at level 0 (`crate::ood`)
-//!   and [`LEVEL_OOD_GRINDING_BITS`] at the later levels;
+//! - the OOD point after each commitment, level 0's (`crate::ood`) included: `C(ell, 2) mu / q`, after
+//!   [`OOD_GRINDING_BITS`];
 //! - a level's queries, with the next level's batching `lambda` in the same message: `((t_end - 1) / n)^omega +
 //!   (J - 1) ell' / q` with `J = omega + 2` claims (the running one, the OOD one, the queries), `ell'` the next level's
 //!   list and zero at the final level, after [`QUERY_GRINDING_BITS`];
@@ -57,19 +57,17 @@ pub const QUERY_GRINDING_BITS: u32 = 17;
 
 /// Grinding before each fold round's `(alpha, beta)`: the least for which the fold
 /// rounds never cost a query.
-pub const FOLD_GRINDING_BITS: u32 = 8;
+pub const FOLD_GRINDING_BITS: u32 = 7;
 
-/// Grinding before level 0's batching challenge `lambda`, the stacked opening's outer batching challenge: the least
-/// for which its term never costs a query. Later levels' `lambda` rides the query message.
+/// Grinding before level 0's batching challenge `lambda`, the stacked opening's outer batching challenge. Later
+/// levels' `lambda` rides the query message. Chosen, not derived: one bit less costs queries, and more would let the
+/// search lower level 0's threshold, its list toward [`MAX_LIST_0`].
 pub const BATCH_GRINDING_BITS: u32 = 13;
 
-/// Grinding before the level-0 OOD sample (`crate::ood`). Chosen, not derived: a larger grind would let the search
-/// lower level 0's threshold past [`MAX_LIST_0`].
+/// Grinding before every commitment's OOD point, level 0's (`crate::ood`) included. A budget chosen, not derived: a
+/// larger grind would let the search lower level 0's threshold past [`MAX_LIST_0`], and it bounds the prover's
+/// grinding at the later levels, below the least grind for which their term never costs a query.
 pub const OOD_GRINDING_BITS: u32 = 15;
-
-/// Grinding before the OOD point of every commitment past level 0. A cap chosen to bound the prover's grinding, below
-/// the least grind for which its term never costs a query.
-pub const LEVEL_OOD_GRINDING_BITS: u32 = 17;
 
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
 pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
@@ -330,10 +328,8 @@ pub const MAX_LIST_0: u128 = 166;
 pub(crate) struct Grinding {
     pub fold: usize,
     pub batch: usize,
-    /// Before the level-0 OOD sample.
+    /// Before every commitment's OOD point.
     pub ood: usize,
-    /// Before every later commitment's OOD point.
-    pub level_ood: usize,
     pub query: usize,
 }
 
@@ -341,7 +337,6 @@ const PRODUCTION_GRINDING: Grinding = Grinding {
     fold: FOLD_GRINDING_BITS as usize,
     batch: BATCH_GRINDING_BITS as usize,
     ood: OOD_GRINDING_BITS as usize,
-    level_ood: LEVEL_OOD_GRINDING_BITS as usize,
     query: QUERY_GRINDING_BITS as usize,
 };
 
@@ -438,11 +433,9 @@ fn degree(log_msg_cols: usize, k: usize) -> u128 {
 /// Where a level sits in the opening, for the terms that depend on it.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Position {
-    /// L0: the outer batching over the stacked claims and the ring-switch map, after its own grind, and the
-    /// commitment's OOD sample after [`OOD_GRINDING_BITS`].
+    /// L0: the outer batching over the stacked claims and the ring-switch map, after its own grind.
     First,
-    /// A later level: its batching rides the previous level's query message, and its OOD point takes
-    /// [`LEVEL_OOD_GRINDING_BITS`].
+    /// A later level: its batching rides the previous level's query message.
     After,
 }
 
@@ -465,22 +458,18 @@ fn check_list_terms(
     target: usize,
 ) -> Result<u128, String> {
     let ell = affine_mca::johnson_list(n, a0, d).ok_or("level-start threshold below the Johnson radius")?;
-    let grind = match position {
-        Position::First => {
-            if ell > MAX_LIST_0 {
-                return Err(format!("level-0 list {ell} over {MAX_LIST_0}"));
-            }
-            let claims = (MAX_STACKED_CLAIMS + crate::ring_switch::RING_SWITCH_ERROR_NUMERATOR) as u128;
-            require_count(batching_count(claims, ell), g.batch, target, || {
-                format!("batching ({claims} claims, list {ell})")
-            })?;
-            g.ood
+    if position == Position::First {
+        if ell > MAX_LIST_0 {
+            return Err(format!("level-0 list {ell} over {MAX_LIST_0}"));
         }
-        Position::After => g.level_ood,
-    };
+        let claims = (MAX_STACKED_CLAIMS + crate::ring_switch::RING_SWITCH_ERROR_NUMERATOR) as u128;
+        require_count(batching_count(claims, ell), g.batch, target, || {
+            format!("batching ({claims} claims, list {ell})")
+        })?;
+    }
     let pairs = ell.checked_mul(ell.saturating_sub(1)).map(|p| p / 2);
     let mu = mu as u128;
-    require_count(pairs.and_then(|p| p.checked_mul(mu)), grind, target, || {
+    require_count(pairs.and_then(|p| p.checked_mul(mu)), g.ood, target, || {
         format!("OOD (list {ell}, {mu} variables)")
     })?;
     Ok(ell)
@@ -829,15 +818,14 @@ mod tests {
         }
     }
 
-    /// The fold and batching grinding are the least that leave every query count where unlimited fold and batching
-    /// grinding would. The OOD grinding is chosen, not derived (see [`OOD_GRINDING_BITS`] and
-    /// [`LEVEL_OOD_GRINDING_BITS`]).
+    /// The fold grinding is the least that leaves every query count where unlimited fold grinding would, and one bit
+    /// less of batching grinding costs queries. The batching and OOD grinding are chosen, not derived (see
+    /// [`BATCH_GRINDING_BITS`] and [`OOD_GRINDING_BITS`]).
     #[test]
-    fn fold_and_batch_grinding_are_the_least_that_cost_no_queries() {
+    fn fold_grinding_is_the_least_that_costs_no_queries() {
         let best = queries_with(PRODUCTION_GRINDING);
         let unlimited = Grinding {
             fold: SECURITY_BITS,
-            batch: SECURITY_BITS,
             ..PRODUCTION_GRINDING
         };
         assert_eq!(queries_with(unlimited), best);

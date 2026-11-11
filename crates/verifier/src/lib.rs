@@ -27,10 +27,7 @@ pub use layout::TAG;
 pub use merkle::MerklePath;
 pub use transcript::Proof;
 pub use transcript::SECURITY_BITS;
-pub use whir::{
-    BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, LEVEL_OOD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS,
-    whir_queries,
-};
+pub use whir::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, whir_queries};
 
 use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
