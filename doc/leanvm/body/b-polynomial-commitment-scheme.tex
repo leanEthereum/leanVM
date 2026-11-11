@@ -22,7 +22,6 @@ $\dgr$         & $d$          & a degree bound\\
 $\agr$, $\aset$ & $A$, $S$    & agreement (a number of points), agreement set\\
 $\jl(\agr,\dgr)$ & $\ell$, $\ell_0$ & Johnson count of Theorem~\ref{thm:johnson-general}\\
 $\afa_j,\afb_j$ & $\alpha,\beta$ & affine combiner of fold round $j$\\
-$\wch_j$       & $\gamma$     & weight challenge of fold round $j$\\
 $u_\iota,v_\iota,\tabx{\iota}$ & $u_\iota,v_\iota,c_\iota$ & claimed values of a fold round\\
 $\epsaff$      & $\varepsilon_{\mathrm{aff}}$ & affine MCA error\\
 $\imul,\iyz,\iz,\ithr$ & $m,D,M,B$ & interpolation parameters of $\epsaff$\\
@@ -130,8 +129,8 @@ its low part $P_{\mathrm{low}}$ is a message of the code, and its high part cost
 \item \emph{(fold rounds)} For $j = 1, \dots, \ell_i$, with running claim $(W, \rc{j-1})$, $W:\cube{\ell_i-j+1}\times\cube{\kappa}\to\E$, and lanes $P$ with $\ell_i-j+1$ lane variables, split as $F$, $G$ by the first:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
 \item $\mathbf{P}$ sends $u_0, v_0, \tabx{0}, v_1, \tabx{1} \in \E$, honestly $u_\iota = \inner{W_\iota}{G}$, $v_\iota=\inner{W_\iota}{F}$, $\tabx{\iota}=\inner{W_\iota}{XF}$, with $W_\iota:=W(\iota,\cdot)$. $\mathbf{V}$ sets $u_1 := \rc{j-1} + v_0$: the check $v_0+u_1\qeq\rc{j-1}$, solved for $u_1$.
-\item $\mathbf{V}$ sends $\wch_j, \afa_j, \afb_j \leftarrow \E$, in this order.
-\item Both set $\rc{j} := \sum_{\iota\in\{0,1\}} \eq(\wch_j,\iota)\,\bigl(u_\iota+\afa_jv_\iota+\afb_j\tabx{\iota}\bigr)$ and $W \gets \mle{W}(\wch_j,\cdot)$; $\mathbf{P}$ sets $P \gets P_{\afa_j,\afb_j} = G+(\afa_j+\afb_jX)F$.
+\item $\mathbf{V}$ sends $\afa_j, \afb_j \leftarrow \E$.
+\item Both set $\rc{j} := \sum_{\iota\in\{0,1\}} \eq(\afa_j,\iota)\,\bigl(u_\iota+\afa_jv_\iota+\afb_j\tabx{\iota}\bigr)$ and $W \gets \mle{W}(\afa_j,\cdot)$; $\mathbf{P}$ sets $P \gets P_{\afa_j,\afb_j} = G+(\afa_j+\afb_jX)F$.
 \end{enumerate}
 After the rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$. Its low $2^\kappa$ coefficients are a message $f^{(i+1)}:\cube{\nv_{i+1}}\to\E$ and its high ones are $\phigh\in\E^{\ell_i}$: $P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\sum_{j<\ell_i}\phigh_j\novel_j$. The running claim $(W,\rc{\ell_i})$ is a weighted claim about $f^{(i+1)}$.
 \item If $i < \nlev - 1$:
@@ -151,12 +150,12 @@ where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:binary-rs}).
 \end{enumerate}
 \item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(e) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
 \end{enumerate}
-$\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\wch,\fc)$ of all weight and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
+$\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\afa,\fc)$ of all rounds' $\afa_j$ and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
 \end{protocol}
 
 At level $0$ the lanes are $\K$-valued, so a table entry pairs an $\E$-valued weight with $\K$-valued coefficients; from the first fold on everything is in $\E$. The verifier never forms the weight of $XH$: the prover sends its value $\tabx{\iota}$, and the analysis binds it (Lemma~\ref{lem:fold-list}).
 
-Completeness is perfect. In characteristic $2$ the honest table has $v_0+u_1=\inner{W_0}{F}+\inner{W_1}{G}=\rc{j-1}$, and by linearity $\inner{\mle{W}(\wch_j,\cdot)}{G+(\afa_j+\afb_jX)F}=\sum_\iota\eq(\wch_j,\iota)(u_\iota+\afa_jv_\iota+\afb_j\tabx{\iota})$. The folded column is $P(x_q)$, as evaluation commutes with the fold, and the correction leaves $P_{\mathrm{low}}(x_q)=\inner{W^{(i)}_{x_q}}{f^{(i+1)}}$ (Lemma~\ref{lem:colweight}). The final checks are identities.
+Completeness is perfect. In characteristic $2$ the honest table has $v_0+u_1=\inner{W_0}{F}+\inner{W_1}{G}=\rc{j-1}$, and by linearity $\inner{\mle{W}(\afa_j,\cdot)}{G+(\afa_j+\afb_jX)F}=\sum_\iota\eq(\afa_j,\iota)(u_\iota+\afa_jv_\iota+\afb_j\tabx{\iota})$. The folded column is $P(x_q)$, as evaluation commutes with the fold, and the correction leaves $P_{\mathrm{low}}(x_q)=\inner{W^{(i)}_{x_q}}{f^{(i+1)}}$ (Lemma~\ref{lem:colweight}). The final checks are identities.
 
 %=====================================================================
 \subsection{Why an affine fold}\label{sec:affine-intuition}
@@ -194,7 +193,7 @@ Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that t
 \[
 \begin{array}{llcl}
 \textnormal{batching } \lambda \textnormal{ entering level } i: & \varepsilon^{\mathrm{batch}}_i &=& \dfrac{(J_i - 1)\, L_i}{|\E|} , \\[2ex]
-\textnormal{fold } (\wch_j,\afa_j,\afb_j), \textnormal{ level } i: & \varepsilon^{\mathrm{fold}}_{i,j} &=& \epsaff(\blen,\dgr,\agr_j) + \dfrac{2\,\jl(\agr_j-1,\dgr)}{|\E|} , \\[2ex]
+\textnormal{fold } (\afa_j,\afb_j), \textnormal{ level } i: & \varepsilon^{\mathrm{fold}}_{i,j} &=& \epsaff(\blen,\dgr,\agr_j) + \dfrac{2\,\jl(\agr_j-1,\dgr)}{|\E|} , \\[2ex]
 \textnormal{OOD points entering level } i\ge1: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \cdot \Bigl(\dfrac{\nv_i}{|\E|}\Bigr)^{2} , \\[2ex]
 \textnormal{query message } \qset_i: & \varepsilon^{\mathrm{query}}_i &=& \Bigl(\dfrac{\agr^{(i)}_{\ell_i}-1}{\blen_i}\Bigr)^{\nq_i} , \\[2ex]
 \textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
@@ -238,17 +237,21 @@ Let $\dom\subseteq\K$ have size $\blen$, let $1\le\dgr<\agr\le\blen$, $h\ge1$, a
 For $h=1$ this is \cite[Thm.~1.1]{CYWZ26}, with the finite count of its Lemma~4.1 in place of its closed form. The count holds for every admissible triple, as the proofs of \cite[Lemmas~4.2 to 4.7]{CYWZ26} use the specific $\imul$, $\iyz$ and $\ithr$ only through (i) to (iii). For $h>1$, \cite[\S5.1, Interleaving and shared agreement]{CYWZ26} packs the $h$ lanes into one word over the degree-$h$ extension of $\E$, with $(\afa,\afb)$ still drawn from $\E$ and acting lane by lane. Interpolation and the degree bounds are unchanged over the extension, a nonzero affine constraint on $(\afa,\afb)$ still has at most $|\E|$ solutions, and the Johnson count depends only on agreement sets, so the same error bounds simultaneous agreement of all lanes, with no union over lanes.
 
 \begin{lemma}[An affine fold round]\label{lem:fold-list}
-Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain of size $\blen$, $f:=\orc[(0,\cdot),\cdot]$ and $g:=\orc[(1,\cdot),\cdot]$ its two halves, of $h=2^{\ell-1}$ lanes each. Let $1\le\dgr<\agr\le\blen$ with $(\agr-1)^2>\blen\dgr$, and $L:=\jl(\agr-1,\dgr)$. Let $W:\cube{\ell}\times\cube{\kappa}\to\E$ be a weight, $W_\iota:=W(\iota,\cdot)$, $c\in\E$, and suppose every tuple of $\lst(\orc;\agr-1,\dgr)$, as a pair $(F,G)$ of halves, has $\inner{W_0}{F}+\inner{W_1}{G}\neq c$. Let $u_0,v_0,\tabx{0},v_1,\tabx{1}\in\E$ be arbitrary, with $u_1:=c+v_0$. Except with probability at most $\epsaff(\blen,\dgr,\agr)+2L/|\E|$ over uniform $(\wch,\afa,\afb)$, every $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$ has $\inner{\mle{W}(\wch,\cdot)}{P}\neq\sum_\iota\eq(\wch,\iota)(u_\iota+\afa v_\iota+\afb\tabx{\iota})$.
+Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain of size $\blen$, $f:=\orc[(0,\cdot),\cdot]$ and $g:=\orc[(1,\cdot),\cdot]$ its two halves, of $h=2^{\ell-1}$ lanes each. Let $1\le\dgr<\agr\le\blen$ with $(\agr-1)^2>\blen\dgr$, and $L:=\jl(\agr-1,\dgr)$. Let $W:\cube{\ell}\times\cube{\kappa}\to\E$ be a weight, $W_\iota:=W(\iota,\cdot)$, $c\in\E$, and suppose every tuple of $\lst(\orc;\agr-1,\dgr)$, as a pair $(F,G)$ of halves, has $\inner{W_0}{F}+\inner{W_1}{G}\neq c$. Let $u_0,v_0,\tabx{0},v_1,\tabx{1}\in\E$ be arbitrary, with $u_1:=c+v_0$. Except with probability at most $\epsaff(\blen,\dgr,\agr)+2L/|\E|$ over uniform $(\afa,\afb)$, every $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$ has $\inner{\mle{W}(\afa,\cdot)}{P}\neq\sum_\iota\eq(\afa,\iota)(u_\iota+\afa v_\iota+\afb\tabx{\iota})$.
 \end{lemma}
 
-This is \cite[Thm.~5.1, Cor.~5.2]{CYWZ26} adapted to the protocol: one claim on the sum $\inner{W_0}{F}+\inner{W_1}{G}$ instead of two, the weight challenge entering as $\eq(\wch,\cdot)$, and no premix. \cite{CYWZ26} analyses round $j$ of a level at degree $\dgr_0+j$ and premixes the halves with an extra challenge, so that both come back at degree $\dgr_0+j-1$. At a degree fixed for the whole level, Theorem~\ref{thm:mca-affine} already returns both halves within it.
+This is \cite[Thm.~5.1, Cor.~5.2]{CYWZ26} adapted to the protocol: one claim on the sum $\inner{W_0}{F}+\inner{W_1}{G}$ instead of two, the weight folded at $\afa$ instead of a challenge of its own, and no premix. \cite{CYWZ26} analyses round $j$ of a level at degree $\dgr_0+j$ and premixes the halves with an extra challenge, so that both come back at degree $\dgr_0+j-1$. At a degree fixed for the whole level, Theorem~\ref{thm:mca-affine} already returns both halves within it.
 
 \begin{proof}
-The list $\lst(\orc;\agr-1,\dgr)$ has at most $L$ members (Theorem~\ref{thm:johnson-interleaved}) and does not depend on any challenge. There are two bad events over $(\wch,\afa,\afb)$. $B_1$: the event of Theorem~\ref{thm:mca-affine} for the words $g$ and $f$, at degree $\dgr$ and agreement $\agr$, so $\Pr[B_1]\le\epsaff(\blen,\dgr,\agr)$. $B_2$: some $(F,G)\in\lst(\orc;\agr-1,\dgr)$ has $\inner{\mle{W}(\wch,\cdot)}{P_{F,G}}=\sum_\iota\eq(\wch,\iota)(u_\iota+\afa v_\iota+\afb\tabx{\iota})$ for $P_{F,G}:=G+(\afa+\afb X)F$. Fix such a pair and put
+The list $\lst(\orc;\agr-1,\dgr)$ has at most $L$ members (Theorem~\ref{thm:johnson-interleaved}) and does not depend on any challenge. There are two bad events over $(\afa,\afb)$. $B_1$: the event of Theorem~\ref{thm:mca-affine} for the words $g$ and $f$, at degree $\dgr$ and agreement $\agr$, so $\Pr[B_1]\le\epsaff(\blen,\dgr,\agr)$. $B_2$: some $(F,G)\in\lst(\orc;\agr-1,\dgr)$ has $\inner{\mle{W}(\afa,\cdot)}{P_{F,G}}=\sum_\iota\eq(\afa,\iota)(u_\iota+\afa v_\iota+\afb\tabx{\iota})$ for $P_{F,G}:=G+(\afa+\afb X)F$. Fix such a pair and put
 \[
 \Delta_\iota(\afa,\afb)\;:=\;\bigl(\inner{W_\iota}{G}-u_\iota\bigr)+\afa\bigl(\inner{W_\iota}{F}-v_\iota\bigr)+\afb\bigl(\inner{W_\iota}{XF}-\tabx{\iota}\bigr).
 \]
-By linearity, the pair's discrepancy is $\sum_\iota\eq(\wch,\iota)\Delta_\iota=\Delta_0+\wch(\Delta_0+\Delta_1)$ (characteristic $2$). If all six table entries were right for the pair, then $v_0+u_1=\inner{W_0}{F}+\inner{W_1}{G}\neq c$, contradicting the definition of $u_1$; so $\Delta_0,\Delta_1$ are not both the zero polynomial, and neither are $\Delta_0$ and $\Delta_0+\Delta_1$. Hence at most one $\wch$ makes the discrepancy the zero polynomial in $(\afa,\afb)$, and for every other $\wch$ it is a nonzero affine polynomial, zero with probability at most $1/|\E|$. A union bound over at most $L$ pairs gives $\Pr[B_2]\le2L/|\E|$.
+Write $\Delta_\iota=A_\iota+\afa B_\iota+\afb C_\iota$. By linearity, the pair's discrepancy is, in characteristic $2$,
+\[
+\textstyle\sum_\iota\eq(\afa,\iota)\Delta_\iota=(1+\afa)\Delta_0+\afa\Delta_1=A_0+\afa(A_0+B_0+A_1)+\afa^2(B_0+B_1)+\afb C_0+\afa\afb(C_0+C_1).
+\]
+By the definition of $u_1$, $A_1+B_0=\inner{W_0}{F}+\inner{W_1}{G}-c\neq0$. If the discrepancy were the zero polynomial, then $A_0=B_0+A_1=0$ by its first two coefficients, a contradiction. So it is a nonzero polynomial of degree at most $2$, zero with probability at most $2/|\E|$ (Lemma~\ref{lem:sz}). A union bound over at most $L$ pairs gives $\Pr[B_2]\le2L/|\E|$.
 
 Suppose neither occurs, and let $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$, agreeing with the fold on $\aset$, $|\aset|\ge\agr$. As $B_1$ failed, $P=U+(\afa+\afb X)V$ with $\deg U\le\dgr$, $\deg V\le\dgr-1$, $U=g$ and $V=f$ on all but one point of $\aset$. Put $F:=V$ and $G:=U$: then $(F,G)\in\lst(\orc;\agr-1,\dgr)$ and $P=P_{F,G}$. As $B_2$ failed, $P$ violates the new claim.
 \end{proof}
@@ -268,7 +271,7 @@ At level $i$, write $\orc^{(i)}_{j}$ for the oracle folded by the first $j$ roun
 We now define the invariant required by Definition~\ref{def:rbr}, a condition on the partial transcripts of the opening. In one phrase: \emph{every polynomial tuple close to the current fold violates the current claim}. Precisely, the list below gives the condition just after each verifier message; a transcript ending with prover messages inherits the condition of its last verifier message. Every condition also includes one implicit disjunct, the \emph{escape clause}: \emph{``some verifier check has already failed''} (such transcripts are rejected no matter what follows).
 \begin{itemize}[itemsep=1pt]
 \item \emph{Start of level $i$} (before any opening message for $i = 0$, after the query message $\qset_{i-1}$ otherwise): every $U \in \lst(\orc^{(i)};\agr_0,\dgr)$ violates at least one of the level's $J_i$ claims (the input claims for $i = 0$, the claims of step 2(f) of Protocol~\ref{fig:protocol} otherwise).
-\item \emph{After the batching challenge $\lambda$ of level $i$, and after each fold message $(\wch_j,\afa_j,\afb_j)$:} every $P \in \lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violates the round-$j$ claim ($\lambda$ being the case $j = 0$).
+\item \emph{After the batching challenge $\lambda$ of level $i$, and after each fold message $(\afa_j,\afb_j)$:} every $P \in \lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violates the round-$j$ claim ($\lambda$ being the case $j = 0$).
 \item \emph{After the OOD points $(z_1,z_2)$ entering level $i+1$:} the round-$\ell_i$ condition holds, and no two distinct messages decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$ have multilinear extensions agreeing at both $z_1$ and $z_2$.
 \item \emph{After the final query message $\qset_{\nlev-1}$:} the low part $f^{(\nlev)}$ of the sent $P$ violates the running claim $(W,\rc{\ell_{\nlev-1}})$.
 \item \emph{After each of the $\nv_\nlev$ tail rounds (complete transcript):} $f^{(\nlev)}$ violates the running sumcheck claim. The terminal one $\mathbf{V}$ checks against $\mle{f^{(\nlev)}}$ itself, so it rejects.
@@ -281,8 +284,8 @@ If the statement lies outside $\relopen$, then before any opening message is sen
 \medskip\noindent\emph{Batching challenge $\lambda$.}
 Assume that every $U \in \lst(\orc^{(i)};\agr_0,\dgr)$ violates at least one of the $J_i$ claims $(W_k, c_k)$. Fix such a $U$. Its discrepancy against the batched claim is $\sum_{k} \lambda^{k - 1} d_k$ with $d_k := \inner{W_k}{g_U} - c_k$, a polynomial in $\lambda$ of degree less than $J_i$, nonzero because the $d_k$ are not all zero. By Lemma~\ref{lem:sz} it vanishes with probability at most $(J_i - 1)/|\E|$, so a union bound over the at most $L_i$ list members leaves every $U$ violating the round-$0$ claim except with probability $(J_i - 1) L_i / |\E|$.
 
-\medskip\noindent\emph{Fold message $(\wch_j,\afa_j,\afb_j)$.}
-Assume that every $P \in \lst(\orc^{(i)}_{j-1};\agr_{j-1},\dgr)$ violates the round-$(j{-}1)$ claim. As $\agr_{j-1}=\agr_j-1$, this is the hypothesis of Lemma~\ref{lem:fold-list} for the word $\orc^{(i)}_{j-1}$, the weight $W^{(j-1)}$ and $c=\rc{j-1}$, at degree $\dgr$ and agreement $\agr_j$. Whatever table the prover sends, the lemma makes every $P\in\lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violate the round-$j$ claim, $W^{(j)}=\mle{W^{(j-1)}}(\wch_j,\cdot)$ and $\rc{j}$ as in step 1(c), except with probability $\epsaff(\blen,\dgr,\agr_j)+2\jl(\agr_j-1,\dgr)/|\E|$.
+\medskip\noindent\emph{Fold message $(\afa_j,\afb_j)$.}
+Assume that every $P \in \lst(\orc^{(i)}_{j-1};\agr_{j-1},\dgr)$ violates the round-$(j{-}1)$ claim. As $\agr_{j-1}=\agr_j-1$, this is the hypothesis of Lemma~\ref{lem:fold-list} for the word $\orc^{(i)}_{j-1}$, the weight $W^{(j-1)}$ and $c=\rc{j-1}$, at degree $\dgr$ and agreement $\agr_j$. Whatever table the prover sends, the lemma makes every $P\in\lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violate the round-$j$ claim, $W^{(j)}=\mle{W^{(j-1)}}(\afa_j,\cdot)$ and $\rc{j}$ as in step 1(c), except with probability $\epsaff(\blen,\dgr,\agr_j)+2\jl(\agr_j-1,\dgr)/|\E|$.
 
 \medskip\noindent\emph{The level interface.}
 After the last fold round of level $i < \nlev - 1$, every polynomial $P$ of degree at most $\dgr$ agreeing with the single word $w := \orc^{(i)}_{\ell_i} \in \E^{\dom_i}$ on at least $\agr_{\ell_i}$ coordinates violates the residual claim $(W,\rc{\ell_i})$. The prover now sends the new oracle $\orc^{(i+1)}$ and $\phigh$.
