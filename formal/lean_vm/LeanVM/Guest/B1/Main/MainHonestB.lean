@@ -83,7 +83,7 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
         (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa b.Ba
   l5 : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 20 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -104,27 +104,27 @@ theorem MainGoalsTB.withTotal {p : MainPreds} {b : MainBs} (h : MainGoalsTB fs c
 /-- **`main`'s callees within their bounds.** -/
 theorem mainKidsDTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
-    KidsDTB fs cert 20 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
+    KidsDTB fs cert 23 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
       (mTs (hm fs fp seed s w) p) (mBs fs SB SK (hm fs fp seed s w) b) := by
   unfold mKids mTs mBs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
     simp only [hnd, hnc, ↓reduceIte]
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
-      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd,
-      fun ht => by simp at ht, fun _ => hg.st, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
-      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => hT.dv hnd,
-      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
+      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => (hT.dv hnd).lowMono (by norm_num),
+      fun ht => by simp at ht, fun _ => hg.st.lowMono (by norm_num), trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
+      fun ht => hg.l4 (of_decide_eq_true ht), fun _ => (hT.dv hnd).lowMono (by norm_num),
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => (hT.ag hnc).lowMono (by norm_num), fun _ => hg.st.lowMono (by norm_num), trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
       fun ht => hg.l4 (of_decide_eq_true ht),
-      fun ht => by simp at ht, fun _ => hg.st, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => hg.l1 (of_decide_eq_true ht),
-      fun ht => hg.l2 (of_decide_eq_true ht), fun ht => hg.l3 (of_decide_eq_true ht),
+      fun ht => by simp at ht, fun _ => hg.st.lowMono (by norm_num), trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num),
+      fun ht => (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num), fun ht => hg.l3 (of_decide_eq_true ht),
       fun ht => hg.l4 (of_decide_eq_true ht),
-      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st, trivial⟩
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => (hT.ag hnc).lowMono (by norm_num), fun _ => hg.st.lowMono (by norm_num), trivial⟩
 
 variable {bytecode : List K}
 
@@ -137,7 +137,7 @@ theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : Main
       n ≤ mainBH fs SB SK (hData seed s w) (hm fs fp seed s w) (hLmain fs fp seed s w) b ∧
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
@@ -167,7 +167,7 @@ theorem mainStaticGoalsB_of {SB SK : String → ℕ} (hbl : bytecode.length = 2 
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs) (hS : MainStaticsMain fs SB SK) :
     MainStaticGoalsB fs cert fp seed s w SB SK := by
-  have hb : MainBounds (2 ^ 20) (hm fs fp seed s w) := hData_bounds hl fs fp
+  have hb : MainBounds (2 ^ 23) (hm fs fp seed s w) := hData_bounds hl fs fp
   exact ⟨mainGoalL1B hS.l1 (by have := hb.xd; omega), mainGoalL2B hS.l2 (by have := hb.sd; omega),
     mainGoalL3B hr hl hxc hS.l3, mainGoalL4B hr hl hsc hS.l4, mainGoalStB hr hbl hS.st⟩
 

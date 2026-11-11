@@ -6,9 +6,8 @@
   children the guest program accepts and the honest proof being such a child.
 -/
 
-import LeanVM.Guest.Child.Covered
 import LeanVM.Guest.Child.FreshUnique
-import LeanVM.Guest.Budget.Covered
+import LeanVM.Guest.Budget.Fits
 import LeanVM.Prover.End
 
 /-!
@@ -20,7 +19,7 @@ the honest proof is an acceptable child, and `NodeRelation`'s `ChildrenProven` h
 verifier accept the proof with the witness's fresh claim, which is true; the deferring verifier
 accepts a proof with at most one true claim (`Child.freshClaim_unique`), so the two claims are one
 (`acceptableChild_of_honestChild`). The completeness on acceptable children
-(`guest_complete_covered`, every seed) then gives `GuestCompleteOnHonestChildren`.
+(`guest_complete_on_acceptable_children`, every seed) then gives `GuestCompleteOnHonestChildren`.
 -/
 
 namespace LeanVM.Guest.Completeness
@@ -62,13 +61,13 @@ theorem acceptableChildren_of_honest {statement : NodeStatement} {witness : Node
   fun child hc ↦ acceptableChild_of_honestChild (childrenProven_of_nodeRelation hRelation) hc
     (hHonest child hc)
 
-/-- **Every covered node whose children carry honest proofs has a valid execution of the guest
-program** (`GuestCompleteOnHonestChildren`): `guest_complete_covered`'s execution, of committed
-size at most `2^30`. -/
+/-- **Every node within the deployed limits whose children carry honest proofs has a valid execution of the
+guest program** (`GuestCompleteOnHonestChildren`): `guest_complete_on_acceptable_children`'s
+execution, of committed size at most `2^30`. -/
 theorem guest_complete_on_honest_children : GuestCompleteOnHonestChildren := by
-  intro statement witness hRelation hLimits hCovered hHonest
-  exact Budget.guest_complete_covered (deployedSeed guestProgram) statement witness hRelation
-    hLimits (acceptableChildren_of_honest hRelation hHonest) hCovered
+  intro statement witness hRelation hLimits hHonest
+  exact Budget.guest_complete_on_acceptable_children (deployedSeed guestProgram) statement witness
+    hRelation hLimits (acceptableChildren_of_honest hRelation hHonest)
 
 /-- **The honest proof is rarely refused** (`HonestProofRarelyRefused`): `guest_child_complete`'s
 first part. -/

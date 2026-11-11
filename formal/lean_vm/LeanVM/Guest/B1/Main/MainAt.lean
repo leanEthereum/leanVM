@@ -159,13 +159,13 @@ loading outside its own data only its header (words `0`, `1`); the tree is `main
 valuation with `main`'s honest values (`MVals`). -/
 theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 20) (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : List (Tree → Prop)) (Nk : ℕ) (Lk : B1.Main.Layout) (outs : List (List E × B1.Main.Layout))
     (hoo : OutsOk (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs)
     (hW : Within Lk (etB fs (mK0 d fs fp) + 236) Nk) (hD : DisjL Lk)
     (hKids : ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
       CallsMatch σ cs (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
-      LowDef 20 rd → B1.Main.MemL rd Lk →
+      LowDef 23 rd → B1.Main.MemL rd Lk →
       B1.Main.MemL rd (Kid.lins (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp))) →
       RegionsOk R Dacc (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
       KidsFromInT coreProgram fs cert rd σ R Dacc cs Ts (etB fs (mK0 d fs fp) + 236) Nk
@@ -177,7 +177,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     ∃ (L : B1.Main.Layout),
       Within L fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 236 + Nk)) ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 236 + Nk)) "main"
           [] []
@@ -285,9 +285,9 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     split <;> simp_all
   have aBr : (if m.nc = 0 then mLeaf else mAgg).filterMap Main.Stmt.allocSz = [] := by
     split <;> simp_all
-  have hX : m.nlx + m.nxd < 2 ^ 20 := by have := hb.total; simp only [MainIn.total] at this; omega
-  have hY : m.nls + m.nsd < 2 ^ 20 := by have := hb.total; simp only [MainIn.total] at this; omega
-  have hT : m.total < 2 ^ 20 := hb.total
+  have hX : m.nlx + m.nxd < 2 ^ 23 := by have := hb.total; simp only [MainIn.total] at this; omega
+  have hY : m.nls + m.nsd < 2 ^ 23 := by have := hb.total; simp only [MainIn.total] at this; omega
+  have hT : m.total < 2 ^ 23 := hb.total
   have hal : allocs σ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 419) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
@@ -597,22 +597,22 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
 /-- **`main` at `fp`, its callees' trees satisfying `Ts`.** -/
 theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 20) (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : List (Tree → Prop))
-    (hok : KidsDT fs cert 20 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
+    (hok : KidsDT fs cert 23 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 20 _ Ts hok (etB fs (mK0 d fs fp) + 236)
+    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 _ Ts hok (etB fs (mK0 d fs fp) + 236)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb Ts Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, h⟩
 
@@ -625,23 +625,23 @@ def mainB (fs : String → ℕ) (d : MainData) (ks : List Kid) (Bs : List ℕ) :
 size at most `mainB`. -/
 theorem main_relAtInTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 20) (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : List (Tree → Prop)) (Bs : List ℕ)
-    (hok : KidsDTB fs cert 20 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
+    (hok : KidsDTB fs cert 23 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ mainB fs d (mKids (d.toIn fs fp)
         (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Bs ∧ Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 20 _ Ts Bs hok (etB fs (mK0 d fs fp) + 236)
+    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + 236)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb Ts Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, by unfold mainB; omega, h⟩
 
@@ -653,15 +653,15 @@ theorem kidsDT_nil {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ
 /-- **`main` at `fp`**, its node at a valuation with `main`'s honest values (`MVals`). -/
 theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 20) (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
-      k.taken = true → CompleteAtD fs cert 20 k.f k.Lin k.args k.Out)
+      k.taken = true → CompleteAtD fs cert 23 k.f k.Lin k.args k.Out)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun σ => MVals rd σ (d.toIn fs fp)) :=

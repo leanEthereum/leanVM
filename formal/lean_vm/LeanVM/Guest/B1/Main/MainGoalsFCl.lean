@@ -32,7 +32,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims.** -/
 theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
-    have := hL.planSlotsBelow2Pow20
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
     simp only [claimBig, bigFramesCap]
     omega
@@ -61,7 +61,7 @@ theorem mainGoalClX (hL : GuestLimits s w) : MainGoalClX fs cert fp seed s w := 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims.** -/
 theorem mainGoalClS (hL : GuestLimits s w) : MainGoalClS fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
-    have := hL.planSlotsBelow2Pow20
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
     simp only [claimBig, bigFramesCap]
     omega

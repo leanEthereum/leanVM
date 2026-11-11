@@ -68,8 +68,8 @@ the deferred cells at `g^(Cr + 24c)`) and their addresses in `Lin`, and its call
 `child_claim_list_digest` (twice) and `verify_sub` complete reading `Lin`. -/
 structure KidOkC (Lin : Layout) (W D Pi Cr : ℕ) (lxt cover lxs lst spc lss s0 s1 gsq cfresh : E)
     (c : ℕ) (k : KidH) : Prop where
-  ex_lt : k.ex < 2 ^ 20
-  es_lt : k.es < 2 ^ 20
+  ex_lt : k.ex < 2 ^ 23
+  es_lt : k.es < 2 ^ 23
   can : AllCanonical [k.cx.1, k.cx.2, k.cs.1, k.cs.2, k.da.1, k.da.2]
   defer_len : k.defer.length = 24
   mem : ∀ rd, MemL rd Lin →
@@ -82,9 +82,9 @@ structure KidOkC (Lin : Layout) (W D Pi Cr : ℕ) (lxt cover lxs lst spc lss s0 
     ReadsAt rd (gen ^ (Cr + 24 * c)) k.defer
   reg : RegionL Lin (W + c) ∧ RegionL Lin (W + c + 1) ∧ RegionL Lin (D + 2 * c) ∧
     RegionL Lin (D + 2 * c + 1) ∧ RegionL Lin (Pi + 2 * c) ∧ RegionL Lin (Pi + 2 * c + 1)
-  hX : CompleteAtD fs cert 20 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
+  hX : CompleteAtD fs cert 23 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
     (Returns [k.cx.1, k.cx.2])
-  hS : CompleteAtD fs cert 20 "child_claim_list_digest" Lin
+  hS : CompleteAtD fs cert 23 "child_claim_list_digest" Lin
     [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2])
   hV : CompleteAtD fs cert 20 "verify_sub" Lin
     [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)] (Returns [])
@@ -118,16 +118,16 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH}
     (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtD fs cert 20 "__loop4" Lin
+    (htail : c + 1 < nk → CompleteAtD fs cert 23 "__loop4" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])) :
-    CompleteAtD fs cert 20 "__loop4" Lin
+    CompleteAtD fs cert 23 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) := by
   intro fp
   -- the rest of the loop
   obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs "__loop4") nt ∧ DisjL Lt ∧
-      ∀ rd, LowDef 20 rd → MemL rd (Lt ++ Lin) →
+      ∀ rd, LowDef 23 rd → MemL rd (Lt ++ Lin) →
         if decide (c + 1 ≠ nk) = true then
           RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop4") nt "__loop4"
             [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -151,7 +151,7 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
         gen ^ Cr * gen ^ (24 * c)], Lin, Returns [(k.pi s0 s1).1, (k.pi s0 s1).2]⟩,
       ⟨"verify_sub", true, [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq,
         cfresh * gen ^ (24 * c)], Lin, Returns []⟩]
-  have hok : ∀ kd ∈ ks, kd.taken = true → CompleteAtD fs cert 20 kd.f kd.Lin kd.args kd.Out := by
+  have hok : ∀ kd ∈ ks, kd.taken = true → CompleteAtD fs cert 23 kd.f kd.Lin kd.args kd.Out := by
     intro kd hkd _
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hkd
     rcases hkd with rfl | rfl | rfl | rfl
@@ -166,9 +166,9 @@ theorem l5_stepAt {Lin : Layout} {W D Pi Cr nk c : ℕ}
       · exact hs01 _ (by simp)
       · exact hs01 _ (by simp)
       all_goals exact hk.can _ (by simp)
-    · exact hk.hV
+    · exact LeanVM.Guest.B1.CompleteAtD.mono hk.hV (by norm_num)
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromIn_of_kidsD (fs := fs) (cert := cert) 20 ks hok P1
+    kidsFromIn_of_kidsD (fs := fs) (cert := cert) 23 ks hok P1
   have hl0 : outs.length = 4 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
   obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -342,10 +342,10 @@ theorem l5_completeAt {Lin : Layout} {W D Pi Cr nk : ℕ}
     (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
     (hk : ∀ c < nk, KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c
       (kid c)) :
-    ∀ c < nk, CompleteAtD fs cert 20 "__loop4" Lin
+    ∀ c < nk, CompleteAtD fs cert 23 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtD fs cert 20 "__loop4" Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtD fs cert 23 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) := by
     intro t

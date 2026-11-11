@@ -2,7 +2,7 @@
   LeanVM.Guest.AcceptableChild
 
   What the guest program checks of a child (`AcceptableChild`), and the guest program's
-  completeness stated with it (`GuestCompleteCovered`, `GuestChildComplete`): the statement's
+  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): the statement's
   completeness on honest children (`GuestCompleteOnHonestChildren`) follows from them.
 -/
 
@@ -19,8 +19,8 @@ public import LeanVM.Guest.Coverage
 carrying honest proofs (`HonestChild`). The proofs go through what the guest program checks of a
 child, defined here: `ChildrenProven`'s two conditions, a stack log at least `20`, a proof
 stream of at most `STREAM_CAP = 8192` scalars, its openings agreeing in the guest program's Merkle
-caps, and no zero challenge (`AcceptableChild`). `GuestCompleteCovered` is the guest program's
-completeness on covered nodes whose children are acceptable, for every seed, and
+caps, and no zero challenge (`AcceptableChild`). `GuestCompleteOnAcceptableChildren` is the guest
+program's completeness on nodes within the deployed limits whose children are acceptable, for every seed, and
 `GuestChildComplete` says that an honest proof is an acceptable child (`G:N` is line `N` of
 `crates/rec_aggregation/guests/lean_ethereum.py`, `aggregation/<module>.rs:N` of
 `crates/rec_aggregation/src/aggregation/<module>.rs`, at the pin).
@@ -173,18 +173,17 @@ namespace Completeness
 
 open Coverage
 
-/-- **Every covered node has a valid execution of the leanISA guest program**: for every seed,
-statement and witness with `NodeRelation`, within the deployed limits (so at most `16` children),
-every child one the guest program accepts (`AcceptableChild`: at one of its opening arms, its
-openings agreeing in the caps, no zero challenge), and in one of the families `CoveredNode` lists,
-there is a valid execution of the guest program on the statement's digest of committed size at
-most `2^30`. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
-abbrev GuestCompleteCovered : Prop :=
+/-- **Every node within the deployed limits has a valid execution of the leanISA guest program**:
+for every seed, statement and witness with `NodeRelation`, within the deployed limits
+(`DeployedLimits`), every child one the guest program accepts
+(`AcceptableChild`: at one of its opening arms, its openings agreeing in the caps, no zero
+challenge), there is a valid execution of the guest program on the statement's digest of committed
+size at most `2^30`. Proved by `LeanVM.Guest.Budget.guest_complete_on_acceptable_children`. -/
+abbrev GuestCompleteOnAcceptableChildren : Prop :=
   ∀ (seed : Digest) (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) seed statement witness →
     DeployedLimits statement witness →
     (∀ child ∈ witness.children, AcceptableChild (bytecodeWords guestProgram) seed child) →
-    CoveredNode witness →
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed statement))
         execution ∧

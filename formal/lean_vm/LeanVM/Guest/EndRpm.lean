@@ -176,7 +176,7 @@ an execution of the guest on the statement's digest whose honest proof, at an in
 theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
     (h : GuestComplete budget) {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hrel : NodeRelation bytecode seed s w) (hlim : GuestLimits s w)
-    (hok : ChildrenOk bytecode seed w) (hbudget : budget s w ≤ 2 ^ 28) :
+    (hok : ChildrenOk bytecode seed w) (hbudget : budget s w ≤ 2 ^ 30) :
     ∃ t : Execution guestProgram, ValidExecution guestProgram (publicInputOf (statementDigest seed s)) t ∧
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
         Pr{let v ← verifierCompletenessExperimentWithHash

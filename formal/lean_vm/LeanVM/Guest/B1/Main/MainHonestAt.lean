@@ -49,28 +49,28 @@ variable {fs cert fp seed s w}
 /-- **The callees `main_relAtInW` asks for.** -/
 theorem mainKids_ok (hg : MainGoals fs cert fp seed s w) :
     ∀ k ∈ mKids (hm fs fp seed s w) (hLmain fs fp seed s w), k.taken = true →
-      CompleteAtD fs cert 20 k.f k.Lin k.args k.Out := by
+      CompleteAtD fs cert 23 k.f k.Lin k.args k.Out := by
   intro k hk ht
   simp only [mKids, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hk
   rcases hk with ((((hk | hk | hk | hk | hk | hk) | hk) | hk) | hk) | hk
-  · subst hk; exact hg.clx
-  · subst hk; exact hg.cls
-  · subst hk; exact hg.l1 (of_decide_eq_true ht)
-  · subst hk; exact hg.l2 (of_decide_eq_true ht)
+  · subst hk; exact hg.clx.lowMono (by norm_num)
+  · subst hk; exact hg.cls.lowMono (by norm_num)
+  · subst hk; exact (hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num)
+  · subst hk; exact (hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num)
   · subst hk; exact hg.l3 (of_decide_eq_true ht)
   · subst hk; exact hg.l4 (of_decide_eq_true ht)
   · split at hk
     · rename_i hnd
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
-      subst hk; exact hg.dv hnd
+      subst hk; exact (hg.dv hnd).lowMono (by norm_num)
     · simp at hk
   · subst hk; exact hg.l5 (of_decide_eq_true ht)
   · split at hk
     · simp at hk
     · rename_i hnc
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
-      subst hk; exact hg.ag hnc
-  · subst hk; exact hg.st
+      subst hk; exact (hg.ag hnc).lowMono (by norm_num)
+  · subst hk; exact hg.st.lowMono (by norm_num)
 
 variable {bytecode : List K}
 
@@ -83,7 +83,7 @@ theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRe
     (hl : GuestLimits s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []

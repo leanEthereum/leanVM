@@ -44,7 +44,7 @@ theorem verifySubGoals_deployed {seed : LeanVM.Protocol.Digest} {s : NodeStateme
 
 /-- **The aggregation guest is complete within the deployed budget**: for every seed, statement
 and witness with `NodeRelation`, within the deployed limits, the caps agreeing, no zero challenge where
-the guest divides, and the node's committed size at the budget at most `2^28`, there is a valid
+the guest divides, and the node's committed size at the budget at most `2^30`, there is a valid
 execution of the guest on the statement's digest within the verifier's size cap; each child's
 `verify_sub` charged `vsBoundAt Count.vsWords vkBound` words at its announced stack log and
 rate, and `vsCnt op` instructions of each opcode `op` there (`vs_weight_le_deployed`). -/

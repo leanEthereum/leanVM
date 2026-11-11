@@ -51,8 +51,8 @@ every equation (`Honest.read_eqn`); the evaluation and every instance in it are 
 image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
 callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
-`Execution.committedSize ≤ 2^28` is the end theorem's: `logMem_le_iff` and `two_pow_logMem_le`
-bound `2^κ` by the words allocated.
+`Execution.committedSize ≤ 2^30` is the end theorem's: `logMem_le_iff` bounds `2^κ` by the words
+allocated.
 -/
 
 namespace LeanVM.Guest.Memory

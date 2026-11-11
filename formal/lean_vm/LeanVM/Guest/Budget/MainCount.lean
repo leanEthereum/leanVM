@@ -149,7 +149,7 @@ theorem main_weight_count (H : MainCounts ω fs) {bufs : List ℕ} {ks : List Tr
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram → p.T5 t → t.weight ω ≤ K5)
     (hv : (Memory.Tree.node "main" σ bufs ks).Valid coreProgram rd [] [])
     (hb : (Memory.Tree.node "main" σ bufs ks).BufsOk coreProgram)
-    (hc : calls (mEvs σ) = mCalls σ m) (hMV : MVals rd σ m) (hB : MainBounds (2 ^ 20) m)
+    (hc : calls (mEvs σ) = mCalls σ m) (hMV : MVals rd σ m) (hB : MainBounds (2 ^ 23) m)
     (hT : KidsT (mCalls σ m) ((fun _ => True) :: mTs m (p.withTotal fs b)) ks) :
     (Memory.Tree.node "main" σ bufs ks).weight ω ≤ mainCount H m Kx Ks Kd K5 := by
   have hl : (mCalls σ m).length ≤ ((fun _ => True) :: mTs m (p.withTotal fs b)).length := by

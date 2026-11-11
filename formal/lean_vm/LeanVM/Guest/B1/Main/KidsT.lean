@@ -352,6 +352,11 @@ def KidsDT (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : List
       (Ts.headD fun _ => True)) ∧ KidsDT fs cert κ ks Ts.tail
   | [], _ => True
 
+theorem KidsDT.lowMono {κ κ' : ℕ} (hk : κ ≤ κ') : ∀ {ks : List Kid} {Ts : List (Tree → Prop)},
+    KidsDT fs cert κ ks Ts → KidsDT fs cert κ' ks Ts
+  | [], _, _ => trivial
+  | _ :: _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).lowMono hk, hs.lowMono hk⟩
+
 theorem kidsFromInT_dend {rd : Reader} {σ : Val} {R : ℕ → Prop} :
     ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Dacc : ℕ → Prop) (b n : ℕ) {D D' : ℕ → Prop},
       (∀ i, D' i → D i) →

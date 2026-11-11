@@ -288,20 +288,20 @@ theorem iterSum_getD : ∀ (l : List ℕ) (c : ℕ) (f : ℕ → ℕ),
       simpa using this]
 
 theorem hEx_lt {s : NodeStatement} {w : NodeWitness}
-    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 20 := by
+    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 23 := by
   unfold B1.Main.hEx
   by_cases hc : c < w.children.length
   · rw [B1.Main.getD_map_lt _ _ _ hc]
-    exact (hl.childClaimListsBelow2Pow20 _ (List.getElem_mem hc)).1
+    exact (hl.childClaimListsBelow2Pow23 _ (List.getElem_mem hc)).1
   · rw [List.getD_eq_default _ _ (by simpa using hc)]
     norm_num
 
 theorem hEs_lt {s : NodeStatement} {w : NodeWitness}
-    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 20 := by
+    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 23 := by
   unfold B1.Main.hEs
   by_cases hc : c < w.children.length
   · rw [B1.Main.getD_map_lt _ _ _ hc]
-    exact (hl.childClaimListsBelow2Pow20 _ (List.getElem_mem hc)).2
+    exact (hl.childClaimListsBelow2Pow23 _ (List.getElem_mem hc)).2
   · rw [List.getD_eq_default _ _ (by simpa using hc)]
     norm_num
 

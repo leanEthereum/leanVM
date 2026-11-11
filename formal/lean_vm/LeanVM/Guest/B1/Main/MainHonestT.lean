@@ -50,7 +50,7 @@ variable {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness} {bytec
 def MainGoalL5T (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (T5 : Tree → Prop) : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDT fs cert 20 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDT fs cert 23 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -85,27 +85,27 @@ structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
 /-- **`main`'s callees, by trees satisfying `p`.** -/
 theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
     (hT : MainGoalsT fs cert fp seed s w p) :
-    KidsDT fs cert 20 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
+    KidsDT fs cert 23 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
       (mTs (hm fs fp seed s w) p) := by
   unfold mKids mTs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
     simp only [hnd, hnc, ↓reduceIte]
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
-      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
-      fun ht => (hg.l4 (of_decide_eq_true ht)).toT, fun _ => hT.dv hnd,
-      fun ht => by simp at ht, fun _ => hg.st.toT, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
-      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
-      fun ht => (hg.l4 (of_decide_eq_true ht)).toT, fun _ => hT.dv hnd,
-      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st.toT, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
-      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => ((hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num)).toT,
+      fun ht => ((hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l4 (of_decide_eq_true ht)).toT, fun _ => (hT.dv hnd).lowMono (by norm_num),
+      fun ht => by simp at ht, fun _ => (hg.st.lowMono (by norm_num)).toT, trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => ((hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num)).toT,
+      fun ht => ((hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => (hg.l4 (of_decide_eq_true ht)).toT, fun _ => (hT.dv hnd).lowMono (by norm_num),
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => (hT.ag hnc).lowMono (by norm_num), fun _ => (hg.st.lowMono (by norm_num)).toT, trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => ((hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num)).toT,
+      fun ht => ((hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
       fun ht => (hg.l4 (of_decide_eq_true ht)).toT,
-      fun ht => by simp at ht, fun _ => hg.st.toT, trivial⟩
-  · exact ⟨fun _ => hT.clx, fun _ => hT.cls, fun ht => (hg.l1 (of_decide_eq_true ht)).toT,
-      fun ht => (hg.l2 (of_decide_eq_true ht)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
+      fun ht => by simp at ht, fun _ => (hg.st.lowMono (by norm_num)).toT, trivial⟩
+  · exact ⟨fun _ => hT.clx.lowMono (by norm_num), fun _ => hT.cls.lowMono (by norm_num), fun ht => ((hg.l1 (of_decide_eq_true ht)).lowMono (by norm_num)).toT,
+      fun ht => ((hg.l2 (of_decide_eq_true ht)).lowMono (by norm_num)).toT, fun ht => (hg.l3 (of_decide_eq_true ht)).toT,
       fun ht => (hg.l4 (of_decide_eq_true ht)).toT,
-      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => hT.ag hnc, fun _ => hg.st.toT, trivial⟩
+      fun ht => hT.l5 (of_decide_eq_true ht), fun _ => (hT.ag hnc).lowMono (by norm_num), fun _ => (hg.st.lowMono (by norm_num)).toT, trivial⟩
 
 /-- **`main` at `fp` on the honest run, its callees' trees satisfying `p`.** -/
 theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
@@ -115,7 +115,7 @@ theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
     (hT : MainGoalsT fs cert fp seed s w p) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []

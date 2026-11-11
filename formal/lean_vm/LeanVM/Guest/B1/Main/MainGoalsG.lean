@@ -45,9 +45,9 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 
 /-! ## Bounds -/
 
-/-- The coverage table is below `2^20`. -/
-theorem regions_lt (hl : GuestLimits s w) : rX s w + rY s w < 2 ^ 20 := by
-  have := hl.planSlotsBelow2Pow20
+/-- The coverage table is below `2^23`. -/
+theorem regions_lt (hl : GuestLimits s w) : rX s w + rY s w < 2 ^ 23 := by
+  have := hl.planSlotsBelow2Pow23
   rw [coverage_eq] at this
   simp only [List.length_append] at this
   simp only [rX, rY]

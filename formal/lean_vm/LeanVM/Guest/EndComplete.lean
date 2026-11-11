@@ -39,13 +39,12 @@ variable (fs : String → ℕ) (H : Inst → ℕ → E × E) (C : Inst → List 
   (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget)
 
 /-- **`main`'s completeness within the budget** (B1, `main` last): for `NodeRelation` within the
-limits, the caps and no zero challenge, the budget's size within `2^28`, a consistent layout of `N` words, `N` within the budget,
-on every memory of `2^logMem N` words holding which with the statement's digest as its header
-`main` holds by a tree
-placed at `0`, of `N` words, loading from its own data or its header, within the budget's
-instruction counts. -/
+limits, the caps and no zero challenge, the budget's size within `2^30`, a consistent layout of
+`N` words, `N` within the budget, on every memory of `2^logMem N` words holding which with the
+statement's digest as its header `main` holds by a tree placed at `0`, of `N` words, loading from
+its own data or its header, within the budget's instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 30 ∧ N ≤ b.words.eval (work s w) ∧
       ∀ rd, LowDef (logMem N) rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
@@ -90,7 +89,7 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by
@@ -103,7 +102,7 @@ theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C 
     rw [MemoryImage.read_gpow h64 M ⟨i, hi⟩]; rfl
   have hL := B1.Main.memL_imageOf h64 hcons (fun q hq => ⟨(hin q hq).1,
     le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
-  obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (le_trans (by decide) (twenty_le_logMem N)) L hdr
+  obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (le_trans (by decide) (twentyThree_le_logMem N)) L hdr
   have e0 : (1 : K) = Parameters.addressOfIndex 0 := by simp [Parameters.addressOfIndex]
   have e1 : Parameters.g = Parameters.addressOfIndex 1 := by simp [Parameters.addressOfIndex]
   obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)

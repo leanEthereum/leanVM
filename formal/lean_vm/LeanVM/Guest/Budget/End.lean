@@ -56,7 +56,7 @@ theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → �
     (hfs : 2 ≤ fs "main")
     (hmain : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bm seed s w ∧ Within L 0 n ∧ (∀ q ∈ L, fs "main" ≤ q.1) ∧
-        DisjL L ∧ ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
+        DisjL L ∧ ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
           LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
           LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
           RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 n "main" [] []
@@ -70,14 +70,14 @@ theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → �
   intro seed s w hrel hlim hok hbs
   obtain ⟨n, L, hnB, hW, hab, hD, hR⟩ := hmain seed s w hrel hlim hok
   have hw := hwords seed s w hrel hlim
-  have h26 := words_le_of_size hbs
+  have h28 := words_le_of_size hbs
   refine ⟨n, L, B1.Main.lConsistent_of_pairwise hD, fun q hq => ?_, by omega, by omega,
     fun rd hl hL h0 h1 => ?_⟩
   · have := hW q hq
     have := hab q hq
     omega
   · obtain ⟨t, ⟨hn, hv, hb, hp, ht, hli, -⟩, hT⟩ :=
-      hR rd (hl.mono (Memory.twenty_le_logMem n)) hL (loadHolds_one h0) (loadHolds_gen h1)
+      hR rd (hl.mono (Memory.twentyThree_le_logMem n)) hL (loadHolds_one h0) (loadHolds_gen h1)
     exact ⟨t, hn, hv, hb, hp, ht, hli, hcnt seed s w hrel hlim rd t hT hv hb⟩
 
 end

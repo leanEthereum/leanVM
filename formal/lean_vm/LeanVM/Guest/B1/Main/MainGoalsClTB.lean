@@ -69,7 +69,7 @@ theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
   have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
-    have := hL.planSlotsBelow2Pow20
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
     simp only [claimBig, bigFramesCap]
     omega
@@ -107,7 +107,7 @@ theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
   have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
-    have := hL.planSlotsBelow2Pow20
+    have := hL.planSlotsBelow2Pow23
     simp only [Coverage.planSlots] at this
     simp only [claimBig, bigFramesCap]
     omega

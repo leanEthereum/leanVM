@@ -119,6 +119,11 @@ def kidsBoundL (fs : String → ℕ) : List Kid → List ℕ → ℕ
   | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs k.f) + kidsBoundL fs ks Bs.tail
   | [], _ => 0
 
+theorem KidsDTB.lowMono {κ κ' : ℕ} (hk : κ ≤ κ') : ∀ {ks : List Kid} {Ts : List (Tree → Prop)}
+    {Bs : List ℕ}, KidsDTB fs cert κ ks Ts Bs → KidsDTB fs cert κ' ks Ts Bs
+  | [], _, _, _ => trivial
+  | _ :: _, _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).lowMono hk, hs.lowMono hk⟩
+
 theorem KidsDTB.toDT {κ : ℕ} : ∀ {ks : List Kid} {Ts : List (Tree → Prop)} {Bs : List ℕ},
     KidsDTB fs cert κ ks Ts Bs → KidsDT fs cert κ ks Ts
   | [], _, _, _ => trivial

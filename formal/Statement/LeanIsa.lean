@@ -215,7 +215,7 @@ def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
 /-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the first
 `outCells.cellCount` cells written are those cells, in the layout `outOdd`, of Keccak-f[1600] of
 the state the cells read hold in the layout `inOdd`; nothing is asked of a cell past them, which
-the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:938-978`). -/
+the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:942-982`). -/
 def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
     (outCells : KeccakOutputCells) : Prop :=
   (∀ c, IsCanonical128 (input c)) ∧
@@ -281,11 +281,11 @@ def derefSource : DerefMode → Registers K → E → E
 /-- Execute an instruction with the memory reader `read`: read its words, check its relation, and
 return the next registers; `none` if a read or a check fails. A taken `JUMP` moves to any elements
 `(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
-be powers `g^k` with `k < 2^28`, the target inside the bytecode: it finds `k` in its table of powers
-or by a discrete logarithm bounded below `MAX_CELLS = 2^28`, its own address space
-(`crates/leanvm_core/src/cpu/execute.rs:894-937`, `cpu/hints.rs:12, 140-144, 181-206`), and stops
-after `MAX_STEPS` (`10^8`, `execute.rs:154`) steps, which nothing here bounds: those are the
-executor's limits, not the statement's. -/
+be powers `g^k`, the target's `k` inside the bytecode and the frame's below `MAX_CELLS = 2^28`, its
+own address space: it finds `k` in its table of powers or by a discrete logarithm bounded below the
+bound (`crates/leanvm_core/src/cpu/execute.rs:898-941`, `cpu/hints.rs:12, 144-172, 195-220`), and
+stops after `MAX_STEPS` (`2^27`, the most steps a committed size of `2^30` holds, `execute.rs:155`)
+steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
@@ -356,7 +356,7 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:509-520`): the last slot reached in
+the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:513-524`): the last slot reached in
 another frame executes like any other slot, and a step that falls through it, to
 `g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the

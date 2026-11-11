@@ -49,13 +49,13 @@ def MainGoalL2B : Prop :=
 
 def MainGoalL3B : Prop :=
   (hm fs fp seed s w).nrx ≠ 0 →
-    CompleteAtDTB fs cert 20 "__loop2" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 "__loop2" (hLmain fs fp seed s w)
       ([1, gen ^ (hm fs fp seed s w).nrx, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), (hm fs fp seed s w).a117, (hm fs fp seed s w).a77] ++ lxTagWords) (Returns []) (fun _ => True)
       ((hm fs fp seed s w).nrx * iterK fs SK "__loop2" + fs "__loop2")
 
 def MainGoalL4B : Prop :=
   (hm fs fp seed s w).nrs ≠ 0 →
-    CompleteAtDTB fs cert 20 "__loop3" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 23 "__loop3" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nrs, gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd),
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns [])

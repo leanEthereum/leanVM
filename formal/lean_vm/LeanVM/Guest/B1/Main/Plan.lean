@@ -561,10 +561,10 @@ theorem planSlots_eq (hl : DeployedLimits s w) : planSlots s w = coverageSlots w
   simp only [Function.comp_def]
   omega
 
-/-- The honest run's coverage table below `2^20`. -/
-theorem _root_.LeanVM.Guest.GuestLimits.planSlotsBelow2Pow20 (hl : GuestLimits s w) :
-    planSlots s w < 2 ^ 20 := by
-  rw [planSlots_eq hl.toDeployedLimits]; exact hl.coverageSlotsBelow2Pow20
+/-- The honest run's coverage table below `2^23`. -/
+theorem _root_.LeanVM.Guest.GuestLimits.planSlotsBelow2Pow23 (hl : GuestLimits s w) :
+    planSlots s w < 2 ^ 23 := by
+  rw [planSlots_eq hl.toDeployedLimits]; exact hl.coverageSlotsBelow2Pow23
 
 /-- **The raw leanXMSS signatures are at most the leanXMSS region's slots.** -/
 theorem xRaw_le (hl : DeployedLimits s w) :

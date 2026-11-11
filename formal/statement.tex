@@ -9,8 +9,6 @@
 \newcommand{\Cx}{C_{\mathrm{xmss}}}
 \newcommand{\Cs}{C_{\mathrm{sphincs}}}
 \newcommand{\enc}{\mathrm{enc}}
-% the counts of a node's work (Section~\ref{sec:guest}, the budget)
-\newcommand{\cnt}[1]{n_{\mathrm{#1}}}
 \emergencystretch=3em
 \setlength{\parskip}{0.35em}
 \title{What is proved about leanVM}
@@ -696,11 +694,9 @@ across recursion levels does not follow from it.
 \paragraph{The hypotheses,} on a statement $s$ and a witness $w$ with
 $\mathrm{NodeRel}(B, iv_G, s, w)$, under the deployed seed:
 \begin{enumerate}
-\item \lean{DeployedLimits}, the limits the guest program enforces on the node: each declared list
+\item \lean{DeployedLimits}, the node's limits: each declared list
 is a sub-multiset of the raw signatures' claims and the children's lists (a claim declared $n$ times
-is held $n$ times, each raw signature or child's entry used once); at most $16$ children; the
-coverage table has one slot per raw signature and per entry of a child's lists
-(\lean{coverageSlots}), which \lean{CoveredNode} below bounds.
+is held $n$ times, each raw signature or child's entry used once); and the node's fixed capacities: at most $16$ children holding at most $2^{17}$ claims in their lists in all, at most $2048$ leanXMSS and $512$ leanSPHINCS signatures held directly, and a blob matrix held directly of at most $32$ rows. Every node of a tree aggregating $2^{17}$ signatures of one scheme is within them: $64$ leaves of $2048$ leanXMSS signatures (or $256$ of $512$ leanSPHINCS), nodes of $16$ leaves each, and a root over those. The guest program enforces the sub-multisets and the $16$ children, not the other capacities: a node past one of them is still accepted, and the prover may still prove it, but the theorems below do not cover it.
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
@@ -714,7 +710,6 @@ challenges and by the batching coefficient $\lambda$ at the stacked opening; ref
 challenge is slightly stronger, each challenge being zero with probability $2^{-192}$. An honest
 proof is refused with probability at most $2^{-126}$ in the RPM (\lean{HonestProofRarelyRefused}
 below).
-\item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
 statement's deferring-verifier conditions; a stack log of $20$ to $30$ announced (the guest program
@@ -725,72 +720,14 @@ challenge in its deferring verifier. \lean{lean_vm} proves that honest children 
 (\lean{guest_child_complete}, with \lean{freshClaim_unique}: the deferring verifier accepts a proof
 with at most one true claim, so the child's fresh claim is the one its run evaluates).
 
-\paragraph{The budget} (\lean{lean_vm}). The node's \emph{work} (\lean{work}) consists of $\cnt{decl}$
-declared claims (both signature lists), $\cnt{cover}$ coverage slots, $\cnt{xmss}$ and $\cnt{sphincs}$
-signatures held directly, $\cnt{da} \le 1$ DA matrix held directly with $\cnt{rows}$ rows, padded to
-$\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{child}$ children
-with $\cnt{childclaims}$ claims in all,
-and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
-\begin{multline*}
-W = 28821 + 33\cnt{decl} + 41\cnt{cover} + 1551\cnt{xmss} + 8582\cnt{sphincs} + 186063\cnt{da}
-  + 215776\cnt{rows} \\ + 82\cnt{pad} + 25375\cnt{child} + 51\cnt{childclaims}
-  + \sum_{\text{children}} \beta(\mu)
-\end{multline*}
-words, where $\beta(\mu)$, the words of verifying one child, is the same at every rate (one opening
-arm per stack log serves the four):
-\begin{center}\small
-\begin{tabular}{l|rrrrrr}
-$\mu$ & 20 & 21 & 22 & 23 & 24 & 25\\\hline
-$\beta$ & 413983 & 414545 & 416763 & 419477 & 432523 & 437771\\\hline\hline
-$\mu$ & 26 & 27 & 28 & 29 & 30 &\\\hline
-$\beta$ & 446135 & 450466 & 461748 & 463457 & 468272 &
-\end{tabular}
-\end{center}
-The instructions of each opcode are bounded by linear forms of the same shape
-(\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 899\cnt{sphincs} +
-2175\cnt{rows} + \cnt{pad} + 173\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu)$ with
-$\gamma$ between $7323$ and $10497$). The
-budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
-$2^{\lceil\log_2 W\rceil}$ and each table's height the least power of two at least its
-bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
-counted from its code, not measurements.
+\paragraph{The capacities.} \lean{lean_vm} bounds the words a run of $G$ allocates and the instructions of each opcode it executes by linear forms in the node's counts (its declared claims, coverage slots, raw signatures, blob rows and padded rows, children and their claims), counted from $G$'s code, not measured, each child at its own opening arm. At the capacities, each child charged at $G$'s largest opening arm, $\mu = 30$, a run allocates at most $2^{26}$ words and executes at most $2^{23}$ \texttt{XOR}, $2^{24}$ \texttt{MUL}, $2^{22}$ \texttt{SET}, $2^{23}$ \texttt{DEREF}, $2^{21}$ \texttt{JUMP} and $2^{21}$ \texttt{KECCAK} instructions, so its committed size (Section~\ref{sec:zkvm}) is at most $2^{28} + 2^{19} + 15 \cdot 2^{23} + 15 \cdot 2^{24} + 8 \cdot 2^{22} + 15 \cdot 2^{23} + 14 \cdot 2^{21} + 92 \cdot 2^{21} \approx 2^{29.94}$, and the coverage table, at most $2048 + 512 + 2^{17}$ slots, is below $2^{23}$, below the memory the execution has. Doubling any one capacity leaves $2^{30}$.
 
 \paragraph{The theorems.} Each concludes that $G$ has a valid execution $t$ on public input
 $\mathrm{dig}_{iv_G}(s)$ with $\mathrm{size}(t) \le 2^{30}$ (committed size), so that its honest
 proof is a child \lean{HonestChild} admits.
 \begin{itemize}
-\item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
-the proof), for every node in one of seven families (\lean{CoveredNode}), by its $\cnt{child}$
-children, $\cnt{xmss} + 3\cnt{sphincs}$ raw signatures (a leanSPHINCS signature counted as three: its
-check costs $G$ about three leanXMSS ones, $899$ \texttt{KECCAK}s against $398$, $8582$ words against $1551$), $\cnt{rows}$ blobs held directly (the rows of
-at most one matrix), and its coverage slots $\cnt{cover} = \cnt{xmss} + \cnt{sphincs} +
-\cnt{childclaims}$ (under \lean{DeployedLimits} at least $\cnt{decl}$) at most the family's cap
-(a node of no child and no raw signature, so of no claim, with a matrix of up to $32$ rows is of
-the fifth):
-\begin{center}\small
-\begin{tabular}{lrrrr}
-\toprule
-Family & $\cnt{child}$ & $\cnt{xmss} + 3\cnt{sphincs}$ & $\cnt{rows}$ & slots\\\midrule
-recursion & any & $0$ & $0$ & $2048$\\
-leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
-& $\le 8$ & $0$ & $0$ & $2^{15}$\\
-& $\le 4$ & $\le 1024$ & $0$ & $8192$\\
-& $\le 4$ & $0$ & $\le 32$ & $8192$\\
-& $\le 2$ & $\le 256$ & $\le 32$ & $8192$\\
-& $\le 2$ & $0$ & $\le 32$ & $2^{14}$\\
-\bottomrule
-\end{tabular}
-\end{center}
-\lean{DeployedLimits} caps a recursion node at $16$ children, each at
-any $\mu \in [20,30]$ and $r \in [1,4]$.
-\item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
-for every child, at any seed,
-whenever the budget's size is at most $2^{28}$, not the $2^{30}$ the verifier admits: no theorem here covers a node whose budget lies between the two. Evaluating the budget also places under $2^{28}$ a leaf of up to
-$2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA
-matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
-budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
-\texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{5e3ade21}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$, and at \texttt{40f877dc}, whose \texttt{KECCAK} table commits two more columns, $2^{26.496}$ and $2^{27.484}$ (not re-evaluated in this tree, where every size is capped at $2^{30}$, the opening arms changed and the constant term fell to $28821$ words).
+\item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2, for every node within \lean{DeployedLimits}, each child at any $\mu \in [20,30]$ and $r \in [1,4]$.
+\item \lean{guest_complete_on_acceptable_children} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild} for every child, at any seed.
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
@@ -834,6 +771,7 @@ that batching true claims gives a true deferred claim, and that the deployed out
 \item Completeness for children whose proofs are not \lean{LeanVM.leanVmHonestProver}'s with the
 deployed Keccak (the Rust prover's, say), or under another seed than the deployed one:
 \lean{HonestChild} names the proof.
+\item Completeness for a node beyond a capacity whose run still fits $2^{30}$ (one holding more raw signatures and fewer children, say): the capacities are a box under $2^{30}$, each child charged at the largest opening arm.
 \item Which programs $P$ and $D$ are: the statement takes them as parameters within their size
 bounds and budgets; the end theorem holds at \lean{lean_vm}'s compiled \lean{transcriptExtractor}
 and \lean{LeanVM.Guest.End.decode} (\lean{LeanVM.Cost.compiledKnowledgeExtractor},

@@ -165,8 +165,8 @@ theorem belowLog_of {o L : ℕ} (h : o < L) (hL : L < 2 ^ 32) : B1.Digest.BelowL
 
 theorem cover_bound (hl : GuestLimits s w) :
     s.claims.xmss.length + (xPlan s w).duplicates.length +
-      (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 20 := by
-  have hcov := hl.planSlotsBelow2Pow20
+      (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 23 := by
+  have hcov := hl.planSlotsBelow2Pow23
   rw [coverage_eq] at hcov
   simp only [List.length_append] at hcov
   omega
@@ -192,11 +192,11 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
         (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,
         (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []))
     {c : ℕ}
-    (hX : CompleteAtD fs cert 20 "child_claim_list_digest" (hLmain fs fp seed s w)
+    (hX : CompleteAtD fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]))
-    (hS : CompleteAtD fs cert 20 "child_claim_list_digest" (hLmain fs fp seed s w)
+    (hS : CompleteAtD fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80,
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hKid s w c).base * gen ^ (hKid s w c).ex,
@@ -221,8 +221,8 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     simp only [hW]
   refine ⟨?_, ?_, ?_, by rw [hKid_defer hc]; exact hdl, fun rd hM => ?_, ?_, hX, hS,
     by rw [hpi]; exact hV c hc⟩
-  · rw [hKid_ex hc]; have := (hl.childClaimListsBelow2Pow20 _ hmem).1; omega
-  · rw [hKid_es hc]; have := (hl.childClaimListsBelow2Pow20 _ hmem).2; omega
+  · rw [hKid_ex hc]; have := (hl.childClaimListsBelow2Pow23 _ hmem).1; omega
+  · rw [hKid_es hc]; have := (hl.childClaimListsBelow2Pow23 _ hmem).2; omega
   · rw [hKid_cx hc, hKid_cs hc, hKid_da hc]
     intro x hx
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hx

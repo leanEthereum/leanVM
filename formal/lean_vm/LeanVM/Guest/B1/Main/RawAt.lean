@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Digest.CoverComplete
 
 `RawXData nrx X cv tb Lin`: per raw leanXMSS signature `i < nrx`, its slot below `X` (the
 leanXMSS region's size), the public key, message and signature (verifying), and on every memory
-defined below `2^20` holding the caller's words `Lin`: the coverage word at `cv + slot i` is
+defined below `2^23` holding the caller's words `Lin`: the coverage word at `cv + slot i` is
 `g^i`, the claim's four cells at `tb + 4·slot i`; those words are among `Lin`'s.
 `RawSData nrs Y X nrx cv tb bb Lin`: per raw leanSPHINCS signature `j < nrs`, its slot below `Y`,
 the coverage word at `cv + X + slot j` is `g^(nrx + j)`, the claim at `tb + 4·slot j`, the byte
@@ -60,8 +60,8 @@ structure RawXData (nrx X cv tb : ℕ) (Lin : Layout) where
   sig : ℕ → LeanXmss.Signature
   slot_lt : ∀ i < nrx, slot i < X
   verify : ∀ i < nrx, LeanXmss.verifyWithKeccak (pk i) (msg i) (sig i) = true
-  cover : ∀ rd, LowDef 20 rd → MemL rd Lin → ∀ i < nrx, LoadHolds rd (gen ^ cv) (slot i) (gen ^ i)
-  claim : ∀ rd, LowDef 20 rd → MemL rd Lin → ∀ i < nrx,
+  cover : ∀ rd, LowDef 23 rd → MemL rd Lin → ∀ i < nrx, LoadHolds rd (gen ^ cv) (slot i) (gen ^ i)
+  claim : ∀ rd, LowDef 23 rd → MemL rd Lin → ∀ i < nrx,
     Sig.ClaimAt rd (gen ^ (tb + 4 * slot i)) (Sig.cellOf128 (pk i).root)
       (Sig.cellOf128 (pk i).parameter) (Sig.cellOf128 ((msg i).extractLsb' 0 128))
       (Sig.cellOf128 ((msg i).extractLsb' 128 128))
@@ -76,13 +76,13 @@ structure RawSData (nrs Y X nrx cv tb bb : ℕ) (Lin : Layout) where
   sig : ℕ → Sphincs.Signature
   slot_lt : ∀ j < nrs, slot j < Y
   verify : ∀ j < nrs, Sphincs.verifyWithKeccak (pk j) (msg j) (sig j) = true
-  cover : ∀ rd, LowDef 20 rd → MemL rd Lin → ∀ j < nrs,
+  cover : ∀ rd, LowDef 23 rd → MemL rd Lin → ∀ j < nrs,
     LoadHolds rd (gen ^ cv) (X + slot j) (gen ^ (nrx + j))
-  claim : ∀ rd, LowDef 20 rd → MemL rd Lin → ∀ j < nrs,
+  claim : ∀ rd, LowDef 23 rd → MemL rd Lin → ∀ j < nrs,
     Sig.ClaimAt rd (gen ^ (tb + 4 * slot j)) (Sig.cellOf128 (pk j).publicSeed)
       (Sig.cellOf128 (pk j).root) (Sig.cellOf128 ((msg j).extractLsb' 0 128))
       (Sig.cellOf128 ((msg j).extractLsb' 128 128))
-  bytes : ∀ rd, LowDef 20 rd → MemL rd Lin → Sig.ByteBits rd (gen ^ bb)
+  bytes : ∀ rd, LowDef 23 rd → MemL rd Lin → Sig.ByteBits rd (gen ^ bb)
   regCover : ∀ j < nrs, RegionL Lin (cv + (X + slot j))
   regClaim : ∀ j < nrs, ∀ k < 4, RegionL Lin (tb + 4 * slot j + k)
   regBytes : ∀ v < 256, RegionL Lin (bb + v)
@@ -94,7 +94,7 @@ theorem l4Pre_straight : l4Pre.all Main.Stmt.straight = true := rfl
 theorem gen4 (s : ℕ) : gen ^ s * gen ^ s * (gen ^ s * gen ^ s) = gen ^ (4 * s) := by
   simp only [← pow_add]; congr 1; ring
 
-theorem low_read {rd : Reader} (hl : LowDef 20 rd) {e : ℕ} (he : e < 2 ^ 20) :
+theorem low_read {rd : Reader} (hl : LowDef 23 rd) {e : ℕ} (he : e < 2 ^ 23) :
     LoadHolds rd (gen ^ e) 0 ((rd (addressOfIndex e)).getD 0) := by
   rw [gen_pow_eq_ofK]; exact B1.loadHolds_low hl he
 
@@ -203,7 +203,7 @@ theorem l2Post_holds {C : CallRel} {rd : Reader} {i nrx X cv tb s : ℕ} (hnrx :
 
 /-- `__loop2`'s prelude holds at `l2σ`: the slot's range check, the cover word. -/
 theorem l2Pre_holds {C : CallRel} {nrx X cv tb : ℕ} {Lin : Layout} (D : RawXData nrx X cv tb Lin)
-    (hX : X ≤ 2 ^ 20) {rd : Reader} (hl : LowDef 20 rd) (hL : MemL rd Lin) {i : ℕ} (hi : i < nrx)
+    (hX : X ≤ 2 ^ 23) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) {i : ℕ} (hi : i < nrx)
     {next : Prop} (hn : next) :
     Stmt.HoldsList C rd (l2σ rd i nrx X cv tb (D.slot i)) Sig.l2Pre next (fun rs => rs = []) := by
   have hs := D.slot_lt i hi
@@ -279,8 +279,8 @@ theorem l2_relIn_of_body {rd : Reader} {R : ℕ → Prop} {σ : Val} {args : Lis
 
 /-- **One iteration of `__loop2` loads from the caller's words**, given the next one's. -/
 theorem rawX_step (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
-    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 20) (hnrx : nrx < 2 ^ 34) {rd : Reader}
-    (hl : LowDef 20 rd) (hL : MemL rd Lin) {i : ℕ} (hi : i < nrx)
+    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 23) (hnrx : nrx < 2 ^ 34) {rd : Reader}
+    (hl : LowDef 23 rd) (hL : MemL rd Lin) {i : ℕ} (hi : i < nrx)
     (hnext : i + 1 < nrx →
       coreProgram.RelIn rd (RegionL Lin) "__loop2" (l2ArgsAt (i + 1) nrx X cv tb) []) :
     coreProgram.RelIn rd (RegionL Lin) "__loop2" (l2ArgsAt i nrx X cv tb) [] := by
@@ -339,8 +339,8 @@ theorem rawX_step (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} 
 set_option maxRecDepth 20000 in
 /-- **`__loop2` loads from the caller's words**, from every counter below the count. -/
 theorem rawX_relIn (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
-    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 20) (hnrx : nrx < 2 ^ 34) {rd : Reader}
-    (hl : LowDef 20 rd) (hL : MemL rd Lin) :
+    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 23) (hnrx : nrx < 2 ^ 34) {rd : Reader}
+    (hl : LowDef 23 rd) (hL : MemL rd Lin) :
     ∀ i < nrx, coreProgram.RelIn rd (RegionL Lin) "__loop2"
       ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) [] := by
   have key : ∀ t i, i + 1 + t = nrx →
@@ -373,8 +373,8 @@ theorem raw3_pure : coreProgram.PureIn ["__loop2"] := by
 /-- **`__loop2` is complete, placed**, from every counter below the count. -/
 theorem rawX_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
-    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 20) (hnrx : nrx < 2 ^ 34) :
-    ∀ i < nrx, CompleteAtD fs cert 20 "__loop2" Lin
+    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 23) (hnrx : nrx < 2 ^ 34) :
+    ∀ i < nrx, CompleteAtD fs cert 23 "__loop2" Lin
       ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns []) := fun i hi =>
   Lift.completeAtD_of_relIn raw3_pure (by simp) fun rd hl hL => rawX_relIn hc D hX hnrx hl hL i hi
 
@@ -393,7 +393,7 @@ set_option maxRecDepth 20000 in
 /-- **`__loop3` loads from the caller's words**, from every counter below the count. -/
 theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
-    (hY : Y ≤ 2 ^ 20) (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 20 rd) (hL : MemL rd Lin) :
+    (hY : Y ≤ 2 ^ 23) (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) :
     ∀ j < nrs, coreProgram.RelIn rd (RegionL Lin) "__loop3"
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] := by
   have key : ∀ t j, j + 1 + t = nrs → coreProgram.RelIn rd (RegionL Lin) "__loop3"
@@ -463,8 +463,8 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
 /-- **`__loop3` is complete, placed**, from every counter below the count. -/
 theorem rawS_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
     (hc : Sig.SphincsCompleteSpecs) {nrs Y X nrx cv tb bb : ℕ}
-    {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 20) (hnrs : nrs < 2 ^ 34) :
-    ∀ j < nrs, CompleteAtD fs cert 20 "__loop3" Lin
+    {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23) (hnrs : nrs < 2 ^ 34) :
+    ∀ j < nrs, CompleteAtD fs cert 23 "__loop3" Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb]
       (Returns []) := fun j hj =>
   Lift.completeAtD_of_relIn raw4_pure (by simp) fun rd hl hL =>

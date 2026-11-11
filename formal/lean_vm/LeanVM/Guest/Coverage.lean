@@ -18,12 +18,12 @@ writes every claim a node makes, its raw signatures' then its children's, into a
 scheme's region of the coverage table: the declared claims' slots, then duplicate slots
 (G:4234-4240, 4258-4272, 4589-4590, 4594-4595). An honest run takes, for each claim in order, its declared
 slot if free, else the next duplicate slot (`takeSlot`, `coveragePlan`); the table's slots are
-`planSlots`. `DeployedLimits` states the table's size as the number of claims made
-(`coverageSlots`); `B1/Main/Plan.lean` proves the two equal under it (`planSlots_eq`).
+`planSlots`, under `DeployedLimits` the number of claims made (`coverageSlots`, `B1/Main/Plan.lean`'s
+`planSlots_eq`).
 
 What `DeployedLimits` gives here: each declared claim's count at most its count among the claims
 made (`DeployedLimits.xmssClaimsHeldWithMultiplicity`, `sphincsClaimsHeldWithMultiplicity`, of
-the sub-multiset). Every child's lists below `2^20` is `GuestLimits.childClaimListsBelow2Pow20`
+the sub-multiset). Every child's lists below `2^23` is `GuestLimits.childClaimListsBelow2Pow23`
 (`Limits.lean`), under the coverage table's bound.
 -/
 
@@ -32,6 +32,14 @@ the sub-multiset). Every child's lists below `2^20` is `GuestLimits.childClaimLi
 namespace LeanVM.Guest
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Node
+
+/-- **The coverage table's slots** (`n_total`, G:4539): one for each raw signature and each entry
+of a child's signature lists, every slot written once (G:4573-4578: the writes G:4598, 4603, 4186,
+4254, counted by `written`, G:4622-4623, 4648-4649). -/
+def coverageSlots (witness : NodeWitness) : ℕ :=
+  witness.xmssSignatures.length + witness.sphincsSignatures.length +
+    (witness.children.map fun child ↦
+      child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum
 
 namespace Coverage
 
@@ -79,7 +87,7 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
   let (children, slotState) := takeSlotsAll declared slotState children
   ⟨slotState.2, raw, children⟩
 
-/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4530): each
+/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4539): each
 region's declared claims and its duplicates, as `coveragePlan` assigns them. Under
 `DeployedLimits`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
 def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=

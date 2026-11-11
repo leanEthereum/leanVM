@@ -114,22 +114,22 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
     (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtDT fs cert 20 "__loop4" Lin
+    (htail : c + 1 < nk → CompleteAtDT fs cert 23 "__loop4" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt)
     (hVT : CompleteAtDT fs cert 20 "verify_sub" Lin
       [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)] (Returns []) Pv)
-    (hXT : CompleteAtDT fs cert 20 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
+    (hXT : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
       (Returns [k.cx.1, k.cx.2]) Px)
-    (hST : CompleteAtDT fs cert 20 "child_claim_list_digest" Lin
+    (hST : CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps) :
-    CompleteAtDT fs cert 20 "__loop4" Lin
+    CompleteAtDT fs cert 23 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt) := by
   intro fp
   -- the rest of the loop
   obtain ⟨nt, Lt, hWt, hDt, hRt⟩ : ∃ nt Lt, Within Lt (fp + fs "__loop4") nt ∧ DisjL Lt ∧
-      ∀ rd, LowDef 20 rd → MemL rd (Lt ++ Lin) →
+      ∀ rd, LowDef 23 rd → MemL rd (Lt ++ Lin) →
         if decide (c + 1 ≠ nk) = true then
           RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop4") nt "__loop4"
             [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -153,7 +153,7 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
         gen ^ Cr * gen ^ (24 * c)], Lin, Returns [(k.pi s0 s1).1, (k.pi s0 s1).2]⟩,
       ⟨"verify_sub", true, [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq,
         cfresh * gen ^ (24 * c)], Lin, Returns []⟩]
-  have hok : ∀ kd ∈ ks, kd.taken = true → CompleteAtD fs cert 20 kd.f kd.Lin kd.args kd.Out := by
+  have hok : ∀ kd ∈ ks, kd.taken = true → CompleteAtD fs cert 23 kd.f kd.Lin kd.args kd.Out := by
     intro kd hkd _
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hkd
     rcases hkd with rfl | rfl | rfl | rfl
@@ -168,13 +168,13 @@ theorem l5_stepAtT {Lin : Layout} {W D Pi Cr nk c : ℕ}
       · exact hs01 _ (by simp)
       · exact hs01 _ (by simp)
       all_goals exact hk.can _ (by simp)
-    · exact hk.hV
-  have hokT : B1.KidsDT fs cert 20 ks (l5Ts4 Px Ps Pv) :=
+    · exact LeanVM.Guest.B1.CompleteAtD.mono hk.hV (by norm_num)
+  have hokT : B1.KidsDT fs cert 23 ks (l5Ts4 Px Ps Pv) :=
     ⟨fun _ => hXT, fun _ => hST,
       fun ht => (hok _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)) ht).toT,
-      fun _ => hVT, trivial⟩
+      fun _ => hVT.lowMono (by norm_num), trivial⟩
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 20 ks (l5Ts4 Px Ps Pv) hokT P1
+    B1.kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 ks (l5Ts4 Px Ps Pv) hokT P1
   have hl0 : outs.length = 4 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
   obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -355,16 +355,16 @@ theorem l5_completeAtT {Lin : Layout} {W D Pi Cr nk : ℕ}
     (hVT : ∀ c < nk, CompleteAtDT fs cert 20 "verify_sub" Lin
       [((kid c).pi s0 s1).1, ((kid c).pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)]
       (Returns []) (Pvs c))
-    (hXT : ∀ c < nk, CompleteAtDT fs cert 20 "child_claim_list_digest" Lin
+    (hXT : ∀ c < nk, CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lxt, cover, (kid c).base, lxs, gen ^ (kid c).ex] (Returns [(kid c).cx.1, (kid c).cx.2]) (Pxs c))
-    (hST : ∀ c < nk, CompleteAtDT fs cert 20 "child_claim_list_digest" Lin
+    (hST : ∀ c < nk, CompleteAtDT fs cert 23 "child_claim_list_digest" Lin
       [lst, spc, (kid c).base * gen ^ (kid c).ex, lss, gen ^ (kid c).es]
       (Returns [(kid c).cs.1, (kid c).cs.2]) (Pss c)) :
-    ∀ c < nk, CompleteAtDT fs cert 20 "__loop4" Lin
+    ∀ c < nk, CompleteAtDT fs cert 23 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (nk - c) c) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 20 "__loop4" Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtDT fs cert 23 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c) := by
@@ -410,11 +410,11 @@ words `main`'s children loop passes them. -/
 def ChildListGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (Pxs Pss : ℕ → Tree → Prop) : Prop :=
   ∀ c, c < w.children.length →
-    CompleteAtDT fs cert 20 "child_claim_list_digest" (hLmain fs fp seed s w)
+    CompleteAtDT fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) (Pxs c) ∧
-    CompleteAtDT fs cert 20 "child_claim_list_digest" (hLmain fs fp seed s w)
+    CompleteAtDT fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80,
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hKid s w c).base * gen ^ (hKid s w c).ex,

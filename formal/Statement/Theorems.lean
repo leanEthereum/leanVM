@@ -71,9 +71,11 @@ structure Theorems
   candidates (`LeanVmGuest.lean`). With `leanVmKnowledgeSoundness` and `guestKnowledgeSoundness` it
   gives what an accepted proof establishes, `Statement.Corollaries`' `aggregateSound`. -/
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
-  /-- The leanISA guest program is complete on the seven families of `CoveredNode`, under the
-  deployed seed and within the deployed limits, wherever every child carries the honest prover's
-  proof (`HonestChild`) (`LeanVmGuestCompleteness.lean`). -/
+  /-- The leanISA guest program is complete, in at most `2^30` committed words, on every node within
+  the deployed limits (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048`
+  leanXMSS and `512` leanSPHINCS signatures, a blob matrix of `32` rows), under the deployed seed,
+  wherever every child carries the honest prover's proof (`HonestChild`)
+  (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
   makes none, or the verifier refusing a zero challenge rejects it, with probability at most

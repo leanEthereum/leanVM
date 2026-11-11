@@ -111,12 +111,12 @@ def mainBudget (fs : String → ℕ) (SB SK : String → ℕ) (Bvf : ℕ → ℕ
   ⟨B1.Main.mainWords fs SB SK Bvf, fun op => mainInstrs (H op) (c5 op) (s5 op) (v5 op) (jt op)⟩
 
 /-- The declared claims of each scheme are held by the raw signatures and the children's claims
-(`GuestLimits`), so are fewer than the coverage slots, below `2^20`. -/
+(`GuestLimits`), so are fewer than the coverage slots, below `2^23`. -/
 theorem claims_lt {s : NodeStatement} {w : NodeWitness} (hl : GuestLimits s w) :
-    s.claims.xmss.length < 2 ^ 20 ∧ s.claims.sphincs.length < 2 ^ 20 := by
+    s.claims.xmss.length < 2 ^ 23 ∧ s.claims.sphincs.length < 2 ^ 23 := by
   have hx := hl.claimsHeldWithMultiplicity.1.length_le
   have hs := hl.claimsHeldWithMultiplicity.2.length_le
-  have hc := hl.coverageSlotsBelow2Pow20
+  have hc := hl.coverageSlotsBelow2Pow23
   have hx' := List.sum_le_sum (l := w.children)
     (f := fun ch ↦ ch.statement.claims.xmss.length)
     (g := fun ch ↦ ch.statement.claims.xmss.length + ch.statement.claims.sphincs.length)
@@ -131,7 +131,7 @@ theorem claims_lt {s : NodeStatement} {w : NodeWitness} (hl : GuestLimits s w) :
   omega
 
 /-- **`main`'s claim lists' instructions** on their honest trees: `clA + clS · n` on `n` claims. -/
-theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ} (hn : n < 2 ^ 20) (rd : Reader) (t : Tree)
+theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ} (hn : n < 2 ^ 23) (rd : Reader) (t : Tree)
     (args rets : List E) (hnm : t.name = "claim_list_digest") (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) (hT : B1.Main.clHonest n t) : t.weight ω ≤ H.clA + H.clS * n :=
   H.cl rd t args rets n hnm hv hb hT (by omega)

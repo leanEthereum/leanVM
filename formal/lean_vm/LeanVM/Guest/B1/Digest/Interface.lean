@@ -110,9 +110,9 @@ abbrev bigGroups : ℕ := 8
 /-- `CLAIM_BIG = CLAIM_GROUP · BIG_GROUPS`: claims hashed a loop frame of a list's bulk. -/
 abbrev claimBig : ℕ := 136
 
-/-- A bound on an honest count's big frames in `list_split`, the coverage table's `2^20`
-(`GuestLimits.coverageSlotsBelow2Pow20`): `assert_gpow` accepts `g^a` in any memory of at least
-`2^20` cells, the floor of `main`'s chain these completeness proofs assume (`20 ≤ κ`). -/
+/-- A bound on an honest count's big frames in `list_split`, above the `2^23 / 136` of a count
+below the coverage table's `2^23` (`GuestLimits.coverageSlotsBelow2Pow23`): `assert_gpow` accepts
+`g^a` in any memory of at least `2^20` cells, which these completeness proofs assume (`20 ≤ κ`). -/
 abbrev bigFramesCap : ℕ := 1048576
 
 /-- **`list_split(n_g)`**: `n_g = g^(136 a + 17 b + c)` with `a < 2^32` (`assert_gpow`: `g^a` an
