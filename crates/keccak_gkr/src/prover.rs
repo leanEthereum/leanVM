@@ -672,8 +672,8 @@ impl PassSums {
     }
 }
 
-/// What a round needs of the claim, by word as a table row is: the position weights, and each
-/// position's constant `kappa * weights[j + 2]`.
+/// What a round needs of the claim, by word as a table row is: the position weights, as the
+/// split constants a row is multiplied by, and each position's constant `kappa * weights[j + 2]`.
 struct Round<'a> {
     field: &'a PowerField,
     eval: PolyEval,
@@ -698,7 +698,7 @@ impl<'a> Round<'a> {
             field,
             eval: PolyEval::new(s, 72),
             kappa: field.to_poly(kappa),
-            weights,
+            weights: field.split_row(&weights, BITS),
             constant,
         }
     }
