@@ -650,9 +650,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 ($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
-\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $649734$)
-limits any program; it is the compiled decoder's size, $649304$ (proved
-at most that, measured exactly; the guest's frame-cell table is $606765$ of it), and a slack of
+\paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $624254$)
+limits any program; it is the compiled decoder's size, $623824$ (proved
+at most that, measured exactly; the guest's frame-cell table is $581383$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
