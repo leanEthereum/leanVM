@@ -16,8 +16,9 @@
 //!    registers (eight at a time on AVX2, all 24 with AVX-512), then one byte transpose back to
 //!    field elements.
 //!
-//! The 8x8 byte transpose without VPERMB ([`transpose_bytes8x8`]) leaves the positions in a fixed
-//! order ([`TRANSPOSED_ORDER`]), which the matrices absorb ([`COLUMN_BIT_POSITION`]).
+//! The 8x8 byte transpose without VPERMB (`transpose_bytes8x8`) leaves the positions in a fixed
+//! order ([`TRANSPOSED_ORDER`]), which the matrices absorb ([`COLUMN_BIT_POSITION`]). With AVX-512
+//! VBMI two-source byte permutes gather each pair of staged registers at once, in the same order.
 //!
 //! The two-phase outer-product scheme follows hashmancer-keccak's GFNI kernels; the code here is
 //! written for this crate's layout (16-instance packs, 192-bit weights).
@@ -27,7 +28,7 @@ use core::arch::x86_64::*;
 use primitives::field::F192;
 
 use crate::keccak::BITS;
-use crate::kernels::{PACKS, embed, products};
+use crate::kernels::{PACKS, embed};
 use crate::prover::PAYLOAD_BITS;
 use crate::witness::words;
 
@@ -56,6 +57,11 @@ const COLUMN_BIT_POSITION: [usize; 8] = {
 };
 
 /// In-lane byte interleave of the lane's two qwords (16-bit element `d` = byte `d` of both).
+#[cfg(not(all(
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 const INTERLEAVE: [u8; 32] = {
     let mut t = [0u8; 32];
     let mut i = 0;
@@ -73,6 +79,11 @@ const INTERLEAVE: [u8; 32] = {
 ///
 /// # Safety
 /// AVX2 (the module's build).
+#[cfg(not(all(
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 #[inline(always)]
 unsafe fn transpose_bytes8x8(p: V, q: V) -> [V; 2] {
     unsafe {
@@ -89,6 +100,11 @@ unsafe fn transpose_bytes8x8(p: V, q: V) -> [V; 2] {
 ///
 /// # Safety
 /// AVX2.
+#[cfg(not(all(
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)))]
 #[inline(always)]
 unsafe fn transpose_qwords4x4(r: [V; 4]) -> [V; 4] {
     unsafe {
@@ -114,6 +130,37 @@ const fn staged_index(r: usize, a: usize, n_active: usize) -> usize {
         2 * ((r / 2) * n_active + a) + r % 2
     } else {
         r * n_active + a
+    }
+}
+
+/// [`crate::kernels::products`] of packs widened to a word each, as the carry-less products read
+/// them: a lane byte's packs are embedded once and multiplied in up to three products.
+#[inline(always)]
+fn products(a: &[u64; PACKS], b: &[u64; PACKS], c: &[u64; PACKS]) -> [u64; PACKS] {
+    cfg_select! {
+        target_feature = "pclmulqdq" => {
+            use crate::clmul::{V, Vector};
+            use crate::rmfe::RMFE;
+            let ones = V::splat(RMFE.ones as u64);
+            let mut out = [0u64; PACKS];
+            for q in (0..PACKS).step_by(2 * V::N) {
+                // SAFETY: `2 * N` words at `q`.
+                unsafe {
+                    let (za, zb, zc) = (
+                        V::load(a.as_ptr().add(q)),
+                        V::load(b.as_ptr().add(q)),
+                        V::load(c.as_ptr().add(q)),
+                    );
+                    let linear = za.xor(zc);
+                    let even = zb.clmul::<0x00>(zc).xor(linear.clmul::<0x00>(ones));
+                    let odd = zb.clmul::<0x11>(zc).xor(linear.clmul::<0x11>(ones));
+                    V::store(out.as_mut_ptr().add(q), even.unpacklo(odd));
+                }
+            }
+            out
+        }
+        // The packs are embedded `u32`s, so narrowing them back loses nothing.
+        _ => { crate::kernels::products(&a.map(|w| w as u32), &b.map(|w| w as u32), &c.map(|w| w as u32)) }
     }
 }
 
@@ -200,14 +247,14 @@ impl ProductSums {
     /// Phase 1: every active lane byte's column bytes into `staged[staged_index(r, a, n_active)]`.
     fn stage(&self, block: &[u64], staged: &mut [V], n_active: usize) {
         assert!(staged.len() >= STAGED * n_active);
-        let mut embedded = [[[0u32; PACKS]; 8]; 5];
+        let mut embedded = [[[0u64; PACKS]; 8]; 5];
         let mut prod = [[0u64; PACKS]; 8];
         let mut a = 0;
         for &(y, zb, mask) in &self.row_bytes {
             let (y, zb) = (y as usize, zb as usize);
             for (x, lane) in embedded.iter_mut().enumerate() {
                 for (k, e) in lane.iter_mut().enumerate() {
-                    *e = embed(words(block, 64 * (x + 5 * y) + 8 * zb + k));
+                    *e = embed(words(block, 64 * (x + 5 * y) + 8 * zb + k)).map(u64::from);
                 }
             }
             for x in (0..5).filter(|x| mask >> x & 1 == 1) {
@@ -216,10 +263,17 @@ impl ProductSums {
                     *p = products(&e0[k], &e1[k], &e2[k]);
                 }
                 assert!(a < n_active, "one staged column per active lane byte");
-                // SAFETY: AVX2 and GFNI are enabled at compile time; `a < n_active` (asserted) and
-                // `stage_lane_byte` writes registers `r < STAGED` only (`3 * 15 + 2`), so every store
-                // is inside `staged` (asserted size).
-                unsafe { Self::stage_lane_byte(&prod, staged.as_mut_ptr(), a, n_active) };
+                // SAFETY: AVX2 and GFNI (and VBMI where it is called) are enabled at compile time;
+                // `a < n_active` (asserted) and the staging writes registers `r < STAGED` only
+                // (`3 * 15 + 2`), so every store is inside `staged` (asserted size).
+                unsafe {
+                    cfg_select! {
+                        all(target_feature = "avx512f", target_feature = "avx512bw", target_feature = "avx512vbmi") => {
+                            Self::stage_lane_byte_vbmi(&prod, staged.as_mut_ptr(), a, n_active)
+                        }
+                        _ => { Self::stage_lane_byte(&prod, staged.as_mut_ptr(), a, n_active) }
+                    }
+                };
                 a += 1;
             }
         }
@@ -233,6 +287,11 @@ impl ProductSums {
     ///
     /// # Safety
     /// AVX2 and GFNI; `staged + staged_index(r, a, n_active)` writable for `r < STAGED`.
+    #[cfg(not(all(
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    )))]
     #[inline(always)]
     unsafe fn stage_lane_byte(prod: &[[u64; PACKS]; 8], staged: *mut V, a: usize, n_active: usize) {
         unsafe {
@@ -259,6 +318,73 @@ impl ProductSums {
                     *staged.add(staged_index(r, a, n_active)) = c0[0];
                     *staged.add(staged_index(r + 1, a, n_active)) = _mm256_permute2x128_si256(c0[1], c1[0], 0x20);
                     *staged.add(staged_index(r + 2, a, n_active)) = _mm256_permute2x128_si256(c1[0], c1[1], 0x21);
+                }
+            }
+        }
+    }
+
+    /// [`Self::stage_lane_byte`] by byte permutes (AVX-512 VBMI): each pair of staged registers,
+    /// 64 column bytes, is two two-source byte permutes of the products of the eight positions and
+    /// four packs it reads, and one 512-bit bit transpose.
+    ///
+    /// # Safety
+    /// AVX-512F/BW/VBMI and GFNI; `staged + staged_index(r, a, n_active)` writable for `r < STAGED`.
+    #[cfg(all(
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))]
+    #[inline(always)]
+    unsafe fn stage_lane_byte_vbmi(prod: &[[u64; PACKS]; 8], staged: *mut V, a: usize, n_active: usize) {
+        /// Byte `8 u + n` of pair `j` is byte `d` of pack `q`'s product at position
+        /// `TRANSPOSED_ORDER[n]`, where `8 j + u = 6 q + d`: in the 128 bytes of the four positions
+        /// one permute reads, position `k` starts at `32 (k % 4)` and the pack's word at `8 q`.
+        const INDEX: [[u8; 64]; 3] = {
+            let mut index = [[0u8; 64]; 3];
+            let mut j = 0;
+            while j < 3 {
+                let mut i = 0;
+                while i < 64 {
+                    let (t, n) = (8 * j + i / 8, i % 8);
+                    index[j][i] = (32 * (TRANSPOSED_ORDER[n] % 4) + 8 * (t / 6) + t % 6) as u8;
+                    i += 1;
+                }
+                j += 1;
+            }
+            index
+        };
+        /// The bytes of positions 4 to 7.
+        const HIGH: u64 = {
+            let mut mask = 0u64;
+            let mut i = 0;
+            while i < 64 {
+                if TRANSPOSED_ORDER[i % 8] >= 4 {
+                    mask |= 1 << i;
+                }
+                i += 1;
+            }
+            mask
+        };
+        unsafe {
+            let bit_transpose = _mm512_set1_epi64(BIT_TRANSPOSE);
+            for qq in (0..PACKS).step_by(4) {
+                // Positions `2 h` and `2 h + 1`, packs `qq ..`, a half each.
+                let z: [__m512i; 4] = std::array::from_fn(|h| {
+                    let ld = |k: usize| _mm256_loadu_si256(prod[k].as_ptr().add(qq).cast());
+                    _mm512_inserti64x4::<1>(_mm512_castsi256_si512(ld(2 * h)), ld(2 * h + 1))
+                });
+                for (j, index) in INDEX.iter().enumerate() {
+                    let index = _mm512_loadu_si512(index.as_ptr().cast());
+                    let columns = _mm512_mask_blend_epi8(
+                        HIGH,
+                        _mm512_permutex2var_epi8(z[0], index, z[1]),
+                        _mm512_permutex2var_epi8(z[2], index, z[3]),
+                    );
+                    let r = 3 * qq / 2 + 2 * j;
+                    _mm512_storeu_si512(
+                        staged.add(staged_index(r, a, n_active)).cast(),
+                        _mm512_gf2p8affine_epi64_epi8(bit_transpose, columns, 0),
+                    );
                 }
             }
         }

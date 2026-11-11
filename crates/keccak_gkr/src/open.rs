@@ -109,42 +109,58 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let tables: Vec<[F192; 256]> = (0..4 << run_vars)
         .map(|t| byte_sums(&std::array::from_fn(|w| low[t % 4 + 4 * w + 32 * (t / 4)])))
         .collect();
-    // A task per position of a committed lane: a task per lane would leave threads idle.
-    let positions: Vec<[F192; 16]> = parallel::map_collect(64 * shape.slots(), |task| {
-        let (lane, z) = (task / 64, task % 64);
+    // Its length hidden, the lookups keep bounds checks, which stop the compiler turning them into
+    // AVX-512 gathers that lose to scalar loads.
+    let flat: &[F192] = std::hint::black_box(tables.as_flattened());
+    // A task per run of a committed lane's positions, which lie side by side in every block: a
+    // task per lane would leave threads idle.
+    let tasks_per_lane = 64 / TASK_POSITIONS;
+    let positions: Vec<[[F192; 16]; TASK_POSITIONS]> = parallel::map_collect(tasks_per_lane * shape.slots(), |task| {
+        let (lane, z) = (task / tasks_per_lane, TASK_POSITIONS * (task % tasks_per_lane));
         let round = shape.depth * (lane / LANES);
         let j = 64 * (lane % LANES) + z;
-        let mut acc = [F192Unreduced::ZERO; 16];
+        let mut acc = [[F192Unreduced::ZERO; 16]; TASK_POSITIONS];
         for (run, &scale) in runs.iter().enumerate().take(written.div_ceil(1 << run_vars)) {
-            let mut sums = [F192::ZERO; 16];
+            let mut sums = [[F192::ZERO; 16]; TASK_POSITIONS];
             for block in 0..(1 << run_vars).min(written - (run << run_vars)) {
-                let words = state_words(witness, round, (run << run_vars) + block, j);
-                // Byte `8 * b + t` gathers bit `t` of byte `b` of each word: instance
-                // `8 * (b % 2) + t` of pack `b / 2`, across the eight words.
-                let mut gathered = [0u8; 64];
-                primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
-                for (i, sum) in sums.iter_mut().enumerate() {
-                    for p in 0..4 {
-                        *sum += tables[4 * block + p][gathered[8 * (2 * p + i / 8) + i % 8] as usize];
+                for (n, sums) in sums.iter_mut().enumerate() {
+                    let words = state_words(witness, round, (run << run_vars) + block, j + n);
+                    // Byte `8 * b + t` gathers bit `t` of byte `b` of each word: instance
+                    // `8 * (b % 2) + t` of pack `b / 2`, across the eight words.
+                    let mut gathered = [0u8; 64];
+                    primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
+                    for (i, sum) in sums.iter_mut().enumerate() {
+                        for p in 0..4 {
+                            *sum += flat[256 * (4 * block + p) + gathered[8 * (2 * p + i / 8) + i % 8] as usize];
+                        }
                     }
                 }
             }
-            for (acc, sum) in acc.iter_mut().zip(sums) {
-                *acc ^= scale.mul_unreduced(sum);
+            for (acc, sums) in acc.iter_mut().zip(sums) {
+                for (acc, sum) in acc.iter_mut().zip(sums) {
+                    *acc ^= scale.mul_unreduced(sum);
+                }
             }
         }
-        let pad = written < shape.n_blocks() && state_words(witness, round, written, j)[0] & 1 == 1;
-        acc.map(|acc| if pad { acc.reduce() + padding } else { acc.reduce() })
+        std::array::from_fn(|n| {
+            let pad = written < shape.n_blocks() && state_words(witness, round, written, j + n)[0] & 1 == 1;
+            acc[n].map(|acc| if pad { acc.reduce() + padding } else { acc.reduce() })
+        })
     });
     let mut out = vec![F192::ZERO; (16 * 64) << shape.slot_log()];
     for (task, sums) in positions.iter().enumerate() {
-        let (lane, z) = (task / 64, task % 64);
-        for (i, &sum) in sums.iter().enumerate() {
-            out[(i + 16 * lane) * 64 + z] = sum;
+        let (lane, z) = (task / tasks_per_lane, TASK_POSITIONS * (task % tasks_per_lane));
+        for (n, sums) in sums.iter().enumerate() {
+            for (i, &sum) in sums.iter().enumerate() {
+                out[(i + 16 * lane) * 64 + z + n] = sum;
+            }
         }
     }
     out
 }
+
+/// The positions of a [`fold_packs`] task.
+const TASK_POSITIONS: usize = 16;
 
 /// Byte `b` of word `x` at `8 * x + b`.
 fn le_bytes(words: &[u64; BLOCK_WORDS]) -> [u8; 64] {
@@ -260,6 +276,8 @@ fn spare_slices(shape: Shape, committed: &[F64], instance: &[F192]) -> Vec<[F192
         || vec![[F192::ZERO; 64]; spare],
         |acc, group| {
             let table = byte_sums(&groups[group]);
+            // Hidden, as in `fold_packs`, so the lookups are not gathers.
+            let table: &[F192] = std::hint::black_box(&table);
             for (slot, acc) in acc.iter_mut().enumerate() {
                 let words = std::array::from_fn(|w| slots[slot * n + 8 * group + w].0);
                 let mut gathered = [0u8; 64];

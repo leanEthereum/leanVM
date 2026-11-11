@@ -11,12 +11,11 @@
 
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F192, F192Unreduced};
-use primitives::multilinear::{eq_table, poly_eval};
+use primitives::multilinear::{eq_table, interp, poly_eval};
 
-use crate::basis::{PolyEval, add_mul, carry};
+use crate::basis::{PolyEval, add_mul};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
-use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::rmfe::PROD_BITS;
@@ -348,8 +347,14 @@ impl Layer<'_> {
     /// A point at infinity in some variable keeps only the product `u[j + 1] * u[j + 2]`, summed
     /// here. A binary one is a pack, whose sum `binary` already holds. The packs of the padding
     /// block are all equal, so their extension vanishes there.
-    fn skip_sums(&self, claim: &Claim, field: &PowerField, s: F192, binary: &[F192; GROUP]) -> Vec<F192> {
-        let weights: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
+    fn skip_sums(
+        &self,
+        claim: &Claim,
+        weights: &[Element],
+        field: &PowerField,
+        s: F192,
+        binary: &[F192; GROUP],
+    ) -> Vec<F192> {
         let groups: Vec<Element> = eq_table(&claim.point[SKIP..])
             .iter()
             .map(|&e| field.to_poly(e))
@@ -362,10 +367,10 @@ impl Layer<'_> {
             |skip, total, task| {
                 let (segment, g) = (task / written, task % written);
                 let (row, block) = (g + nb * segment, self.witness.layer(self.rounds[segment], g));
-                skip.run(block, &weights);
+                skip.run(block, weights);
                 for half in 0..2 {
                     for (i, total) in total.iter_mut().enumerate() {
-                        add_mul(total, &carry::<3, 4>(&skip.get(slot(half, i))), &groups[2 * row + half]);
+                        add_mul(total, &skip.get(slot(half, i)), &groups[2 * row + half]);
                     }
                 }
             },
@@ -460,7 +465,7 @@ impl Layer<'_> {
                         for j in 0..BITS {
                             let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
                             for (wide, sum) in wide.as_chunks_mut::<{ 4 * BITS }>().0[..halves].iter_mut().zip(&sums) {
-                                let sum: [u64; 4] = carry(sum);
+                                let sum: [u64; 4] = crate::basis::carry(sum);
                                 for (k, &word) in sum.iter().enumerate() {
                                     wide[k * BITS + j] = word;
                                 }
@@ -496,68 +501,45 @@ impl RoundSums {
 }
 
 /// What a round needs of the claim, by word as a table row is: the position weights, and each
-/// position's constant `kappa * weights[j + 2]`.
+/// position's constant `kappa * (weights[j] + weights[j + 2])`.
 struct Round<'a> {
     field: &'a PowerField,
     eval: PolyEval,
-    kappa: Element,
     weights: Vec<u64>,
     constant: Vec<u64>,
 }
 
 impl<'a> Round<'a> {
-    fn new(field: &'a PowerField, claim: &Claim, s: F192, kappa: F192) -> Self {
+    /// `poly` holds the claim's weights in the power basis.
+    fn new(field: &'a PowerField, claim: &Claim, poly: &[Element], s: F192, kappa: F192) -> Self {
         let (mut weights, mut constant) = (vec![0u64; ROW], vec![0u64; ROW]);
         for j in 0..BITS {
-            set(&mut weights, BITS, j, &field.to_poly(claim.weights[j]));
+            set(&mut weights, BITS, j, &poly[j]);
             set(
                 &mut constant,
                 BITS,
                 j,
-                &field.to_poly(kappa * claim.weights[along(j, 2)]),
+                &field.to_poly(kappa * (claim.weights[j] + claim.weights[along(j, 2)])),
             );
         }
         Self {
             field,
             eval: PolyEval::new(s, 72),
-            kappa: field.to_poly(kappa),
             weights,
             constant,
         }
     }
 
-    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]` and `T[j + 2]`, for a
-    /// row `T`.
-    fn factors(&self, t: &[u64], b: &mut [u64], shifted: &mut [u64]) {
-        // `T[j + 1] + kappa`, then `T[j + 2]`: a lane is 64 positions, five lanes to a row.
-        for k in 0..3 {
-            let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                let at = along(64 * lane, 1);
-                for z in 0..64 {
-                    next[64 * lane + z] = src[at + z] ^ self.kappa[k];
-                }
-            }
-        }
-        self.field.mul_row(b, &self.weights, shifted, &self.constant, BITS);
-        for k in 0..3 {
-            let (src, dst) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
-            for lane in 0..BITS / 64 {
-                dst[64 * lane..][..64].copy_from_slice(&src[along(64 * lane, 2)..][..64]);
-            }
-        }
-    }
-
     /// Add one pair of rows to a round's sums: the values at `0` and at infinity of
-    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`.
+    /// `sum over positions of B[j] * T[j + 2]`, weighted by `eq`, where
+    /// `B[j] = weights[j] * (kappa + T[j + 1]) + kappa * weights[j + 2]`, which is
+    /// `weights[j] * T[j + 1] + constant[j]`.
     fn add_pair(&self, sums: &mut RoundSums, scratch: &mut [u64], low: &[u64], high: &[u64], eq: F192) {
-        let (b, shifted) = scratch.split_at_mut(2 * ROW);
-        for (half, t) in [low, high].into_iter().enumerate() {
-            self.factors(t, &mut b[half * ROW..][..ROW], &mut shifted[half * ROW..][..ROW]);
-        }
-        let (zero, infinity) = self
-            .field
-            .dot_pair([&b[..ROW], &b[ROW..]], [&shifted[..ROW], &shifted[ROW..]], BITS);
+        // A lane is 64 positions, five lanes to a row.
+        let shifted = |j: usize| (along(j, 1), along(j, 2));
+        let (zero, infinity) =
+            self.field
+                .pair_sums(&self.weights, &self.constant, [low, high], BITS, 64, shifted, scratch);
         let weight = self.field.to_poly(eq);
         add_mul(&mut sums.0, &zero, &weight);
         add_mul(&mut sums.1, &infinity, &weight);
@@ -690,13 +672,13 @@ impl Rows {
     }
 }
 
-/// A round of the sumcheck over bit positions, on small tables in the standard basis: the
-/// coefficients of `sum_j w (kappa t0 + (kappa + t1) t2)` in the variable being bound.
-fn local_round(w: &[F192], t: &[Vec<F192>; 3], kappa: F192) -> [F192; 4] {
+/// A round of the sumcheck over bit positions, on small tables in the standard basis, entry `j`
+/// holding `w, t0, t1, t2` there: the coefficients of `sum_j w (kappa t0 + (kappa + t1) t2)` in
+/// the variable being bound.
+fn local_round(tables: &[[F192; 4]], kappa: F192) -> [F192; 4] {
     let mut h = [F192::ZERO; 4];
-    for i in 0..w.len() / 2 {
-        let line = |v: &[F192]| (v[2 * i], v[2 * i] + v[2 * i + 1]);
-        let (w, t0, t1, t2) = (line(w), line(&t[0]), line(&t[1]), line(&t[2]));
+    for pair in tables.as_chunks::<2>().0 {
+        let [w, t0, t1, t2] = std::array::from_fn(|k| (pair[0][k], pair[0][k] + pair[1][k]));
         let u = (kappa + t1.0, t1.1);
         let a = [
             kappa * t0.0 + u.0 * t2.0,
@@ -762,7 +744,8 @@ pub fn prove_layer(
         let half = claim.point[SKIP];
         (F192::ONE + half) * poly_eval(&per_pack[q], s) + half * poly_eval(&per_pack[GROUP + q], s)
     });
-    let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &field, s, &binary));
+    let weights: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
+    let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &weights, &field, s, &binary));
     let mut scale = F192::ONE;
     let mut point = Vec::with_capacity(claim.point.len());
     for i in 0..SKIP {
@@ -785,7 +768,7 @@ pub fn prove_layer(
 
     // The groups, blocks and segments, on a table in the power basis. Each pass over it writes
     // the rows of one round and sums that round's values over them.
-    let round = Round::new(&field, claim, s, kappa);
+    let round = Round::new(&field, claim, &weights, s, kappa);
     let mut layout = Rows {
         m: 2 * shape.n_blocks(),
         live: 2 * witness.written(),
@@ -809,33 +792,30 @@ pub fn prove_layer(
     let table = &src[..ROW];
     drop(tail);
 
-    // The bit positions, in the standard basis.
-    let cube = 1usize << LOCAL_VARS;
-    let standard = |row: &[u64]| -> Vec<F192> {
-        let mut out: Vec<F192> = (0..BITS).map(|j| field.to_field(&get(row, BITS, j))).collect();
-        out.resize(cube, F192::ZERO);
-        out
-    };
-    let t0 = standard(table);
-    let shift = |k: usize| -> Vec<F192> {
-        (0..cube)
-            .map(|j| if j < BITS { t0[along(j, k)] } else { F192::ZERO })
-            .collect()
-    };
-    let (t1, t2) = (shift(1), shift(2));
-    let mut t = [t0, t1, t2];
-    let mut w = claim.weights.clone();
-    w.resize(cube, F192::ZERO);
+    // The bit positions, in the standard basis. The cube's entries past the positions are zero,
+    // so the tables hold only the positions, and a zero where a round's last pair needs one.
+    let t0: Vec<F192> = (0..BITS).map(|j| field.to_field(&get(table, BITS, j))).collect();
+    let mut tables: Vec<[F192; 4]> = (0..BITS)
+        .map(|j| [claim.weights[j], t0[j], t0[along(j, 1)], t0[along(j, 2)]])
+        .collect();
     let mut local = Vec::with_capacity(LOCAL_VARS);
     for _ in 0..LOCAL_VARS {
-        let coeffs = local_round(&w, &t, kappa).map(|c| scale * c);
+        if tables.len() % 2 == 1 {
+            tables.push([F192::ZERO; 4]);
+        }
+        let coeffs = local_round(&tables, kappa).map(|c| scale * c);
         ps.add_round_poly(&coeffs, false);
         let challenge = ps.sample();
         local.push(challenge);
-        w = fold(&w, 1, challenge);
-        t = t.map(|v| fold(&v, 1, challenge));
+        tables = tables
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|[lo, hi]| std::array::from_fn(|k| interp(lo[k], hi[k], challenge)))
+            .collect();
     }
-    let t = [t[0][0], t[1][0], t[2][0]];
+    let [t0, t1, t2] = [1, 2, 3].map(|k| tables[0][k]);
+    let t = [t0, t1, t2];
     ps.add_scalars(&t);
     let beta = ps.sample();
     Claim {

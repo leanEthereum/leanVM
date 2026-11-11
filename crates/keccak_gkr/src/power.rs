@@ -77,8 +77,12 @@ impl PowerField {
                     barrett[shift / 64] |= 1 << (shift % 64);
                 }
                 dividend[bit / 64] ^= 1 << (bit % 64);
-                for b in (0..192).filter(|b| modulus[b / 64] >> (b % 64) & 1 == 1) {
-                    dividend[(b + shift) / 64] ^= 1 << ((b + shift) % 64);
+                let (words, bits) = (shift / 64, shift % 64);
+                for (i, &m) in modulus.iter().enumerate() {
+                    dividend[words + i] ^= m << bits;
+                    if bits > 0 {
+                        dividend[words + i + 1] ^= m >> (64 - bits);
+                    }
                 }
             }
         }
@@ -119,6 +123,67 @@ impl PowerField {
     pub fn dot_pair(&self, a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 6], [u64; 6]) {
         assert!(a.iter().chain(&b).all(|row| row.len() >= 3 * width));
         row_kernel!(width, dot_pair(a, b, width), dot_pair_portable(a, b, width))
+    }
+
+    /// [`Self::dot_pair`] of `B = a t1 + c`, reduced, and `t2`, for a pair of rows `t` and the rows
+    /// `t1`, `t2` they give when read through `source`: `source(r)` says where `t1` and `t2` read
+    /// the run of `run` entries from `r`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn pair_sums(
+        &self,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        source: impl Fn(usize) -> (usize, usize),
+        scratch: &mut [u64],
+    ) -> ([u64; 6], [u64; 6]) {
+        assert!([a, c, t[0], t[1]].iter().all(|row| row.len() >= 3 * width) && width.is_multiple_of(run));
+        cfg_select! {
+            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+                if run.is_multiple_of(x86::STEP) {
+                    // SAFETY: the features are enabled at compile time, and every row is bounded
+                    // (asserted), as is every run `source` gives.
+                    unsafe { x86::pair_sums(self, a, c, t, width, run, source) }
+                } else {
+                    self.pair_sums_portable(a, c, t, width, run, source, scratch)
+                }
+            }
+            _ => self.pair_sums_portable(a, c, t, width, run, source, scratch),
+        }
+    }
+
+    /// [`Self::pair_sums`] by rows: `t1` and `t2` copied into `scratch`, `B` by [`Self::mul_row`].
+    #[allow(clippy::too_many_arguments)]
+    pub fn pair_sums_portable(
+        &self,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        source: impl Fn(usize) -> (usize, usize),
+        scratch: &mut [u64],
+    ) -> ([u64; 6], [u64; 6]) {
+        let row = 3 * width;
+        let (b, shifted) = scratch[..4 * row].split_at_mut(2 * row);
+        for (half, t) in t.into_iter().enumerate() {
+            let (b, shifted) = (&mut b[half * row..][..row], &mut shifted[half * row..][..row]);
+            for pick in 0..2 {
+                for k in 0..3 {
+                    let (src, dst) = (&t[k * width..][..width], &mut shifted[k * width..][..width]);
+                    for r in (0..width).step_by(run) {
+                        let from = if pick == 0 { source(r).0 } else { source(r).1 };
+                        dst[r..r + run].copy_from_slice(&src[from..from + run]);
+                    }
+                }
+                if pick == 0 {
+                    self.mul_row(b, a, shifted, c, width);
+                }
+            }
+        }
+        self.dot_pair([&b[..row], &b[row..]], [&shifted[..row], &shifted[row..]], width)
     }
 
     /// `dst[j] = lo[j] + challenge * (lo[j] + hi[j])`.
@@ -264,6 +329,60 @@ mod x86 {
     #[inline(always)]
     fn partial(a: &[V; 3], b: &[V; 3]) -> [[V; 5]; 2] {
         karatsuba(a, &sums(a), b, &sums(b))
+    }
+
+    /// [`PowerField::pair_sums`], a run of entries at a time: `B` is built in registers, where it
+    /// is next read.
+    pub unsafe fn pair_sums(
+        field: &PowerField,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        source: impl Fn(usize) -> (usize, usize),
+    ) -> ([u64; 6], [u64; 6]) {
+        let (mut zero, mut infinity) = ([V::zero(); 5], [V::zero(); 5]);
+        for r in (0..width).step_by(run) {
+            let (s1, s2) = source(r);
+            assert!(s1 + run <= width && s2 + run <= width);
+            for o in (0..run).step_by(STEP) {
+                let j = r + o;
+                // SAFETY: entries `j`, `s1 + o` and `s2 + o` and the `STEP` after them lie in their rows.
+                let (w, c, x0, x1, y0, y1) = unsafe {
+                    (
+                        load3(a, width, j),
+                        load3(c, width, j),
+                        load3(t[0], width, s1 + o),
+                        load3(t[1], width, s1 + o),
+                        load3(t[0], width, s2 + o),
+                        load3(t[1], width, s2 + o),
+                    )
+                };
+                let sw = sums(&w);
+                let product = |x: &[V; 3]| reduce_pair(field, &karatsuba(&w, &sw, x, &sums(x)));
+                let (b0, b1) = (product(&x0), product(&x1));
+                // `c` is in both rows' `B`, so not in their sum.
+                for (acc, p) in [
+                    (&mut zero, partial(&xor3(&b0, &c), &y0)),
+                    (&mut infinity, partial(&xor3(&b0, &b1), &xor3(&y0, &y1))),
+                ] {
+                    for s in 0..5 {
+                        acc[s] = acc[s].xor(p[0][s].xor(p[1][s]));
+                    }
+                }
+            }
+        }
+        let finish = |acc: &[V; 5]| {
+            let mut out = [0u64; 6];
+            for (s, sum) in acc.iter().enumerate() {
+                let sum = sum.sum();
+                out[s] ^= sum as u64;
+                out[s + 1] ^= (sum >> 64) as u64;
+            }
+            out
+        };
+        (finish(&zero), finish(&infinity))
     }
 
     /// Word `w` of a product from its partial sums by offset, in the low word of each lane.
@@ -568,6 +687,14 @@ mod tests {
         assert_eq!(field.to_field(&field.reduce(&zero)), expected);
         let expected = (0..width).map(|j| (a0[j] + a1[j]) * (b0[j] + b1[j])).sum();
         assert_eq!(field.to_field(&field.reduce(&infinity)), expected);
+
+        // Runs of eight, the second row's read from the first run and the first from the second.
+        let source = |r: usize| ((r + 8) % width, r);
+        let mut scratch = vec![0u64; 12 * width];
+        assert_eq!(
+            field.pair_sums(&ra0, &ra1, [&rb0, &rb1], width, 8, source, &mut scratch),
+            field.pair_sums_portable(&ra0, &ra1, [&rb0, &rb1], width, 8, source, &mut scratch)
+        );
 
         let challenge = rng.ext();
         let (mut fast, mut slow) = (vec![0u64; 3 * width], vec![0u64; 3 * width]);
