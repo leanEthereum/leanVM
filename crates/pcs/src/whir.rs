@@ -537,7 +537,7 @@ impl FoldChallenges {
     pub(crate) fn next_claim(&self, claim: F128, table: &FoldTable) -> F128 {
         let [u0, w, c0, c1] = *table;
         let (alpha, beta) = (self.alpha, self.beta);
-        u0 + alpha * (u0 + claim) + alpha * alpha * w + beta * c0 + alpha * beta * (c0 + c1)
+        u0 + beta * c0 + alpha * (u0 + claim + alpha * w + beta * (c0 + c1))
     }
 
     /// `G + (alpha + beta x) F`: the folded lane at the domain point `x`, from the two it folds.
@@ -560,12 +560,11 @@ pub(crate) fn fold_row(row: impl IntoIterator<Item = F128>, rounds: &[FoldChalle
     let mut vals: Vec<F128> = row.into_iter().collect();
     assert_eq!(vals.len(), 1 << rounds.len(), "a row holds one value per lane");
     for ch in rounds {
-        vals = vals
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|&[f, g]| ch.fold_at(f, g, x))
-            .collect();
+        let half = vals.len() / 2;
+        for i in 0..half {
+            vals[i] = ch.fold_at(vals[2 * i], vals[2 * i + 1], x);
+        }
+        vals.truncate(half);
     }
     vals[0]
 }
@@ -599,7 +598,8 @@ impl Dense {
             || [F128Unreduced::ZERO; 4],
             |t| {
                 let cols = t * per..((t + 1) * per).min(low);
-                let mut xf = vec![F128::ZERO; cols.len() * pairs];
+                // SAFETY: `mul_x` writes every element.
+                let mut xf = unsafe { primitives::uninit_vec(cols.len() * pairs) };
                 crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
                 let mut acc = [F128Unreduced::ZERO; 4];
                 for (i, xf) in xf.chunks_exact(pairs).enumerate() {
@@ -701,8 +701,8 @@ fn fetched_row<'a>(group: &[usize], rows: &'a [F64], row_words: usize, q: usize)
 
 /// One level's claims batched into the running one with powers of the level's challenge `lambda`, the running claim
 /// keeping `lambda^0 = 1`: claim `tau` (counting from 1) adds `lambda^tau` times its weight and its value.
-fn glue(w: &mut [F128], claim: &mut F128, pending: Vec<(Vec<F128>, F128)>, lambda: F128) {
-    let scalars = &powers(lambda, pending.len() + 1)[1..];
+fn glue<const N: usize>(w: &mut [F128], claim: &mut F128, pending: [(Vec<F128>, F128); N], lambda: F128) {
+    let scalars = &powers(lambda, N + 1)[1..];
     for ((b_new, value), &scalar) in pending.iter().zip(scalars) {
         assert_eq!(b_new.len(), w.len());
         *claim += scalar * *value;
@@ -747,7 +747,7 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
 /// project only those, while `b_initial` keeps the weight over every lane.
 ///
 /// Every level folds its lanes with [`FoldChallenges`], commits the low part of the folded lane (the next level's
-/// message) and sends its high part, binds the next level with OOD samples, then opens its own oracle at its
+/// message) and sends its high part, binds the next level with one OOD point, then opens its own oracle at its
 /// queries, whose folded values (corrected by the high part) and column weights are glued into the running claim.
 /// The final level sends its folded lane whole and closes with a sumcheck over its low part.
 ///
@@ -838,7 +838,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         if level == r {
             let _span = tracing::info_span!("Final level").entered();
             ps.add_scalars(&p);
-            ps.grind(config.grinding_bits[level]);
+            ps.grind(QUERY_GRINDING_BITS);
             let queries = sample_queries_ordered(ps, block_len, config.queries[level]);
             let wtns = wtns_prev.as_ref().expect("the final level is not level 0");
             let (rows, paths) = wtns.open(&queries);
@@ -882,9 +882,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             |a, b| a + b,
         );
         ps.add_scalar(y);
-        let mut pending = vec![(eq, y)];
 
-        ps.grind(config.grinding_bits[level]);
+        ps.grind(QUERY_GRINDING_BITS);
         let queries = sample_queries_ordered(ps, block_len, config.queries[level]);
         let lambda = ps.sample();
         let weights = powers(lambda, queries.len());
@@ -937,7 +936,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let enforced = values.iter().zip(&weights).map(|(&v, &wt)| v * wt).sum();
         let basis = induce_basis_auto(mu, block_len.ilog2() as usize - mu, &queries, &weights);
         drop(span);
-        pending.push((basis, enforced));
+        let pending = [(eq, y), (basis, enforced)];
         tracing::info_span!("Glue", level).in_scope(|| glue(&mut w, &mut claim, pending, lambda));
         if cfg!(test) {
             assert_eq!(
@@ -956,7 +955,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 mod tests {
     use super::*;
     use crate::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-    use crate::whir::QUERY_GRINDING_BITS;
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
@@ -967,7 +965,6 @@ mod tests {
         let pc = config_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
         assert_eq!(pc.initial_k, 6);
         assert!(pc.level_steps >= 1);
-        assert!(pc.grinding_bits.iter().all(|&b| b == QUERY_GRINDING_BITS));
         // And log_n = 12 is below the production ladder's feasibility floor, so
         // the tests there use the default_config fallback.
         assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());

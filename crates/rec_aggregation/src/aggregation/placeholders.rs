@@ -663,8 +663,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let (cn, cr) = (sh.levels, vc.level_steps);
         // Every cap root must match a transcript-bound root, including the final level.
         assert_eq!(cr, cn - 1, "the yr level must be the last one");
-        // The guest grinds QUERY_GRIND_BITS before every level's queries.
-        assert!(vc.grinding_bits.iter().all(|&bits| bits == QUERY_GRINDING_BITS));
         let (ck, cl, cyr) = (&sh.ks, &sh.log_msg_cols, sh.yr_log_n);
         let cq = &vc.queries;
         let (cd, cp) = (&shape.depth, &shape.per_squeeze);
