@@ -162,7 +162,7 @@ fn mul_wide(a: u128, b: u128) -> (u128, u128) {
     (hi, lo)
 }
 
-/// Whether one fold round's `(gamma, alpha, beta)` error `eps_aff + 2 ell(A - 1, d) / q` is at most `budget / q`,
+/// Whether one fold round's `(alpha, beta)` error `eps_aff + 2 ell(A - 1, d) / q` is at most `budget / q`,
 /// exactly. `C(n, 2) < q` since `n < 2^64`, so `q eps_aff = ell_B + (D^2 + I) / q` with
 /// `I = 4 d^2 M^2 D^3 (n / (A - B))^2`, and the check is `(D^2 + I)(A - B)^2 <= s q (A - B)^2` for the integer slack
 /// `s = budget - ell_B - 2 ell`. `None` when a hypothesis fails; an intermediate overflow counts as a miss.

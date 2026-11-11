@@ -13,7 +13,7 @@ const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
 const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
 pub const QUERY_GRINDING_BITS: u32 = 17;
-/// Before each fold round's `(gamma, alpha, beta)`.
+/// Before each fold round's `(alpha, beta)`.
 pub const FOLD_GRINDING_BITS: u32 = 9;
 /// Before every batching challenge: each level's lambda, and the stacked opening's map challenges and lambda.
 pub const BATCH_GRINDING_BITS: u32 = 14;
@@ -199,14 +199,14 @@ type WeightAt = Box<dyn Fn(&[E]) -> Result<E, VerifierError>>;
 /// terminal point, restricted to the level's own message coordinates.
 struct GluedClaim {
     scalar: E,         // the power of lambda it was glued with
-    fold_start: usize, // how many gammas preceded the level
+    fold_start: usize, // how many fold rounds preceded the level
     weight_at: WeightAt,
 }
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
 ///
 /// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of [CYWZ26, preprint],
-/// the claim carried by five scalars a round and the weight folded by `gamma`, so the gammas are the weight's
+/// the claim carried by five scalars a round and the weight folded at `alpha`, so the alphas are the weight's
 /// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claims
 /// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends
 /// the whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
@@ -222,7 +222,7 @@ pub fn verify_whir(
     let levels = config.folds.len();
 
     let mut claim = target;
-    let mut gammas: Vec<E> = Vec::new();
+    let mut alphas: Vec<E> = Vec::new();
     let mut glued: Vec<GluedClaim> = Vec::new();
     let mut current_root = root;
 
@@ -234,15 +234,14 @@ pub fn verify_whir(
             // The F lanes' share `v0` and the G lanes' `u1` make up the claim.
             let u1 = claim + v0;
             transcript.grind_check(FOLD_GRINDING_BITS)?;
-            let gamma = transcript.sample();
             let alpha = transcript.sample();
             let beta = transcript.sample();
-            claim = (ONE + gamma) * (u0 + alpha * v0 + beta * c0) + gamma * (u1 + alpha * v1 + beta * c1);
-            gammas.push(gamma);
+            claim = (ONE + alpha) * (u0 + alpha * v0 + beta * c0) + alpha * (u1 + alpha * v1 + beta * c1);
+            alphas.push(alpha);
             rounds.push(FoldRound { alpha, beta });
         }
 
-        let mu = log_n - gammas.len();
+        let mu = log_n - alphas.len();
         let final_level = level == levels - 1;
         let subspace = Subspace::new(mu);
         let block_length = 1 << (mu + level_rate);
@@ -278,9 +277,9 @@ pub fn verify_whir(
             if !transcript.checked() {
                 return Ok(());
             }
-            // Each glued claim is rebound at the terminal point: the gammas its
+            // Each glued claim is rebound at the terminal point: the alphas its
             // level drew after it was made, then the tail.
-            let point = [&gammas[..], &tail].concat();
+            let point = [&alphas[..], &tail].concat();
             let lane_folds = config.folds[0];
             let mut weight = evaluate_basis(&[&point[lane_folds..], &point[..lane_folds]].concat());
             for glued_claim in &glued {
@@ -317,14 +316,14 @@ pub fn verify_whir(
             claim += scalar * value;
             glued.push(GluedClaim {
                 scalar,
-                fold_start: gammas.len(),
+                fold_start: alphas.len(),
                 weight_at: Box::new(move |x| Ok(eq_eval(&point, x))),
             });
         }
         claim += scalars[OOD_SAMPLES + 1] * batched;
         glued.push(GluedClaim {
             scalar: scalars[OOD_SAMPLES + 1],
-            fold_start: gammas.len(),
+            fold_start: alphas.len(),
             weight_at: Box::new(move |x| induced_weight(mu, &queries, &query_weights, x)),
         });
         current_root = next_root;

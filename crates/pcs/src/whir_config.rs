@@ -14,7 +14,7 @@
 //! degree `d = d_0 + k`, so a fold's two halves both stay within it and no premix is needed. Per verifier message, with
 //! `q = |E|` and `ell` a Johnson list at degree `d` and the agreement the message is analysed at:
 //!
-//! - `(gamma, alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
+//! - `(alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - batching `lambda` entering a level: `(J - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
 //! - OOD points entering a later level: [`OOD_SAMPLES`] independent points, `C(ell, 2) (mu / q)^2`, with no grind;
 //! - the level-0 OOD sample after the commitment (`crate::ood`): one point, `C(ell, 2) mu / q` with `mu = log_n`, after
@@ -54,7 +54,7 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
 /// count only needs to close the remaining `SECURITY_BITS - 17` bits.
 pub const QUERY_GRINDING_BITS: u32 = 17;
 
-/// Grinding before each fold round's `(gamma, alpha, beta)`: the least for which the fold
+/// Grinding before each fold round's `(alpha, beta)`: the least for which the fold
 /// rounds never cost a query.
 pub const FOLD_GRINDING_BITS: u32 = 9;
 
@@ -491,7 +491,7 @@ fn check_list_terms(
     }
 }
 
-/// The `(gamma, alpha, beta)` error of a fold round at agreement `a` against its witness.
+/// The `(alpha, beta)` error of a fold round at agreement `a` against its witness.
 fn check_fold_round(
     n: u128,
     d: u128,
@@ -502,7 +502,7 @@ fn check_fold_round(
 ) -> Result<(), String> {
     match affine_mca::combiner_within(n, d, a, w, budget(g.fold, target)) {
         Some(true) => Ok(()),
-        Some(false) => Err("(gamma, alpha, beta) over its budget".into()),
+        Some(false) => Err("(alpha, beta) over its budget".into()),
         None => Err("the fold round's witness does not hold".into()),
     }
 }

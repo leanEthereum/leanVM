@@ -361,7 +361,6 @@ mod tests {
                 };
                 for round in 0..LANE_ROUNDS {
                     let ch = FoldChallenges {
-                        gamma: rng.ext(),
                         alpha: rng.ext(),
                         beta: rng.ext(),
                     };

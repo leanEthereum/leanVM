@@ -356,18 +356,18 @@ impl LaneRounds {
         table
     }
 
-    /// The round's fold: `A`'s rows by `gamma`, and the projections of the lanes `P = G + alpha F + beta X F`, which
+    /// The round's fold: `A`'s rows at `alpha`, and the projections of the lanes `P = G + alpha F + beta X F`, which
     /// the next table writes out.
     pub(crate) fn fold(&mut self, ch: &FoldChallenges) {
         let Pending { pxf, pairs } = self.pending.take().expect("a table before its fold");
         let (nt, n_pairs) = (self.n_terms, self.n_lanes.div_ceil(2));
-        let FoldChallenges { gamma, alpha, beta } = *ch;
+        let FoldChallenges { alpha, beta } = *ch;
         self.a = (0..(self.a.len() / nt).div_ceil(2) * nt)
             .map(|i| {
                 let (m, t) = (i / nt, i % nt);
                 let a0 = self.a[2 * m * nt + t];
                 let a1 = self.a.get((2 * m + 1) * nt + t).copied().unwrap_or(F128::ZERO);
-                a0 + gamma * (a0 + a1)
+                a0 + alpha * (a0 + a1)
             })
             .collect();
         let p = &self.p;

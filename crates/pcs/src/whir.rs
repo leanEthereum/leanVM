@@ -517,14 +517,13 @@ fn add_scaled(acc: &mut [F128], v: &[F128], s: F128) {
 //
 //     [u0, v0, c0, v1, c1] = [<W_0, G>, <W_0, F>, <W_0, X F>, <W_1, F>, <W_1, X F>],
 //
-// and after `(gamma, alpha, beta)` the lanes become `P = G + alpha F + beta X F`, one coefficient longer, and the
-// weight `W_0 + gamma (W_0 + W_1)`. The weight covers a lane's low `2^mu` coefficients only, and so do the inner
+// and after `(alpha, beta)` the lanes become `P = G + alpha F + beta X F`, one coefficient longer, and the
+// weight `W_0 + alpha (W_0 + W_1)`. The weight covers a lane's low `2^mu` coefficients only, and so do the inner
 // products; the high coefficients the folds add matter only where the lane is evaluated.
 
 /// The challenges of one fold round.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct FoldChallenges {
-    pub(crate) gamma: F128,
     pub(crate) alpha: F128,
     pub(crate) beta: F128,
 }
@@ -537,8 +536,8 @@ impl FoldChallenges {
     pub(crate) fn next_claim(&self, claim: F128, table: &FoldTable) -> F128 {
         let [u0, v0, c0, v1, c1] = *table;
         let u1 = claim + v0;
-        (F128::ONE + self.gamma) * (u0 + self.alpha * v0 + self.beta * c0)
-            + self.gamma * (u1 + self.alpha * v1 + self.beta * c1)
+        (F128::ONE + self.alpha) * (u0 + self.alpha * v0 + self.beta * c0)
+            + self.alpha * (u1 + self.alpha * v1 + self.beta * c1)
     }
 
     /// `G + (alpha + beta x) F`: the folded lane at the domain point `x`, from the two it folds.
@@ -548,12 +547,12 @@ impl FoldChallenges {
     }
 }
 
-/// One fold round's transcript: the table, then `(gamma, alpha, beta)` after a grind.
+/// One fold round's transcript: the table, then `(alpha, beta)` after a grind.
 fn fold_round(ps: &mut ProverState, table: &FoldTable) -> FoldChallenges {
     ps.add_scalars(table);
     ps.grind(FOLD_GRINDING_BITS);
-    let (gamma, alpha, beta) = (ps.sample(), ps.sample(), ps.sample());
-    FoldChallenges { gamma, alpha, beta }
+    let (alpha, beta) = (ps.sample(), ps.sample());
+    FoldChallenges { alpha, beta }
 }
 
 /// An opened row's lanes, in fold order, folded by the level's rounds at the row's domain point `x`.
@@ -625,12 +624,12 @@ impl Dense {
         sums.map(F128Unreduced::reduce)
     }
 
-    /// The round's fold: lanes `P = G + alpha F + beta X F`, one column longer, and the weight by `gamma`.
+    /// The round's fold: lanes `P = G + alpha F + beta X F`, one column longer, and the weight at `alpha`.
     pub(crate) fn fold(&mut self, ch: &FoldChallenges) {
         let (s, pairs) = (self.stride, self.stride / 2);
         let n_cols = self.f.len() / s;
         let per = self.cols_per_task();
-        let FoldChallenges { gamma, alpha, beta } = *ch;
+        let FoldChallenges { alpha, beta } = *ch;
         let f = &self.f;
         // SAFETY: the fill writes every element before it reads any.
         let next = unsafe {
@@ -658,7 +657,7 @@ impl Dense {
             primitives::filled_vec(w.len() / 2, |out| {
                 parallel::chunks_mut(out, ROUND_CHUNK, |i, out| {
                     let at = 2 * i * ROUND_CHUNK..2 * (i * ROUND_CHUNK + out.len());
-                    fold_adjacent(out, &w[at], gamma);
+                    fold_adjacent(out, &w[at], alpha);
                 })
             })
         };
@@ -1086,14 +1085,13 @@ mod tests {
 
     fn challenges(rng: &mut Rng) -> FoldChallenges {
         FoldChallenges {
-            gamma: rng.ext(),
             alpha: rng.ext(),
             beta: rng.ext(),
         }
     }
 
     /// A dense round's table is the five inner products over the low columns, written out lane by lane, and its fold
-    /// is `G + alpha F + beta X F` over every column and the weight's interpolation by `gamma`.
+    /// is `G + alpha F + beta X F` over every column and the weight's interpolation at `alpha`.
     #[test]
     fn dense_round_matches_the_direct_inner_products() {
         let mut rng = Rng::new(0xF01D);
@@ -1140,7 +1138,7 @@ mod tests {
                 .as_chunks::<2>()
                 .0
                 .iter()
-                .map(|&[a, b]| interp(a, b, ch.gamma))
+                .map(|&[a, b]| interp(a, b, ch.alpha))
                 .collect();
             assert_eq!(dense.table(), want, "table, stride {s}, mu {mu}, high {high}");
             dense.fold(&ch);
