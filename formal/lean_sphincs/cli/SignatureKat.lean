@@ -32,22 +32,21 @@ in this module. (`scripts/signature-kat-fast.py` writes this section from the st
 namespace Sphincs.KeyGenerationAndSigning
 
 open Verification HashSig HashSig.OverPermutation
-open LeanVM.Semantics (KeccakState)
 
-variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (hash : HashInput → m HashOutput)
 
 def otsSecretsFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) :
     m (ChainIndex → Digest) :=
-  sequenceFin fun chainIndex ↦ prf π key (.oneTimeChain layer tree leaf chainIndex)
+  sequenceFin fun chainIndex ↦ prf hash key (.oneTimeChain layer tree leaf chainIndex)
 
 @[csimp] theorem otsSecrets_eq_fast : @otsSecrets = @otsSecretsFast := rfl
 
 def otsPublicLeafFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex) :
     m Digest := do
-  let secrets ← otsSecrets π key layer tree leaf
+  let secrets ← otsSecrets hash key layer tree leaf
   let endpoints ← sequenceFin fun chainIndex =>
-    chainWalk π key.publicSeed layer tree leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
-  leafHash π key.publicSeed layer tree leaf endpoints
+    chainWalk hash key.publicSeed layer tree leaf chainIndex 0 (chainLength - 1) (secrets chainIndex)
+  leafHash hash key.publicSeed layer tree leaf endpoints
 
 @[csimp] theorem otsPublicLeaf_eq_fast : @otsPublicLeaf = @otsPublicLeafFast := rfl
 
@@ -55,18 +54,18 @@ def otsSignFromFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf
     (message : Digest) : Nat → Nat → m (Option (EncodingCounter × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, counter => do
-      match ← encode π key.publicSeed layer tree leaf message
+      match ← encode hash key.publicSeed layer tree leaf message
           (BitVec.ofNat counterBits counter) with
       | some encoding => do
-          let secrets ← otsSecrets π key layer tree leaf
+          let secrets ← otsSecrets hash key layer tree leaf
           let values ← sequenceFin fun chainIndex =>
-            chainWalk π key.publicSeed layer tree leaf chainIndex 0 (encoding chainIndex).val
+            chainWalk hash key.publicSeed layer tree leaf chainIndex 0 (encoding chainIndex).val
               (secrets chainIndex)
           return some (BitVec.ofNat counterBits counter, values)
       | none => otsSignFromFast key layer tree leaf message attempts (counter + 1)
 
 @[csimp] theorem otsSignFrom_eq_fast : @otsSignFrom = @otsSignFromFast := by
-  funext m _ π key layer tree leaf message attempts start
+  funext m _ hash key layer tree leaf message attempts start
   induction attempts generalizing start with
   | zero => rfl
   | succ attempts ih =>
@@ -77,37 +76,37 @@ def otsSignFromFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf
 
 def otsSignFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
     (message : Digest) : m (Option (EncodingCounter × (ChainIndex → Digest))) :=
-  otsSignFrom π key layer tree leaf message encodingAttemptLimit 0
+  otsSignFrom hash key layer tree leaf message encodingAttemptLimit 0
 
 @[csimp] theorem otsSign_eq_fast : @otsSign = @otsSignFast := rfl
 
 def treeLevelsFast (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
     m (List (List Digest)) := do
   let leaves ← (List.range (2 ^ layerHeight layer)).mapM fun leaf ↦
-    otsPublicLeaf π key layer tree (leafOfNat leaf)
+    otsPublicLeaf hash key layer tree (leafOfNat leaf)
   merkleLevels
-    (fun height nodeIndex ↦ tweakableHash π key.publicSeed (.node layer tree height nodeIndex))
+    (fun height nodeIndex ↦ tweakableHash hash key.publicSeed (.node layer tree height nodeIndex))
     leaves (layerHeight layer)
 
 @[csimp] theorem treeLevels_eq_fast : @treeLevels = @treeLevelsFast := rfl
 
 def forsOpenFast (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → ForsLeafIndex) :
     m (Digest × (ForsTreeIndex → ForsTreeOpening)) := do
-  let trees ← sequenceFin fun forsTree => forsTreeOpen π key index forsTree (leaves forsTree)
-  let forsKey ← forsPublicKey π key.publicSeed index fun forsTree => (trees forsTree).1
+  let trees ← sequenceFin fun forsTree => forsTreeOpen hash key index forsTree (leaves forsTree)
+  let forsKey ← forsPublicKey hash key.publicSeed index fun forsTree => (trees forsTree).1
   return (forsKey, fun forsTree => (trees forsTree).2)
 
 @[csimp] theorem forsOpen_eq_fast : @forsOpen = @forsOpenFast := rfl
 
 def keygenInternalFast (key : ExpandedKey) : m (PublicKey × List (List Digest)) := do
-  let top ← treeLevels π key topLayer 0
+  let top ← treeLevels hash key topLayer 0
   return (⟨key.publicSeed, levelNode top (layerHeight topLayer) 0⟩, top)
 
 @[csimp] theorem keygenInternal_eq_fast : @keygenInternal = @keygenInternalFast := rfl
 
 def keygenFromSeedFast (secretSeed : SecretKey) : m (PublicKey × SecretKey) := do
-  let key ← expandKey π secretSeed
-  let (publicKey, _) ← keygenInternal π key
+  let key ← expandKey hash secretSeed
+  let (publicKey, _) ← keygenInternal hash key
   return (publicKey, secretSeed)
 
 @[csimp] theorem keygenFromSeed_eq_fast : @keygenFromSeed = @keygenFromSeedFast := rfl
@@ -116,29 +115,29 @@ def signLayerFast (key : ExpandedKey) (top : List (List Digest)) (index : Index)
     (message : Digest) : m (Option (LayerSignature layer × Digest)) := do
   let tree := treeOfIndex layer index
   let leaf := leafOfIndex layer index
-  let some (counter, values) ← otsSign π key layer tree leaf message | return none
-  let levels ← if layer = topLayer then pure top else treeLevels π key layer tree
+  let some (counter, values) ← otsSign hash key layer tree leaf message | return none
+  let levels ← if layer = topLayer then pure top else treeLevels hash key layer tree
   return some (⟨counter, values, fun z ↦ levelNode levels z.val ((leaf.val >>> z.val) ^^^ 1)⟩,
     levelNode levels (layerHeight layer) 0)
 
 @[csimp] theorem signLayer_eq_fast : @signLayer = @signLayerFast := rfl
 
 def signWithExpandedKeyFast (key : ExpandedKey) (message : Message) : m (Option Signature) := do
-  let (publicKey, top) ← keygenInternal π key
-  let randomizer ← prfMessage π key.secretPrfKey key.publicSeed message
-  let digest ← messageDigest π publicKey randomizer message
+  let (publicKey, top) ← keygenInternal hash key
+  let randomizer ← prfMessage hash key.secretPrfKey key.publicSeed message
+  let digest ← messageDigest hash publicKey randomizer message
   let index := digestIndex digest
-  let (forsKey, forsOpening) ← forsOpen π key index (digestForsLeaves digest)
-  let some (bottom, bottomRoot) ← signLayer π key top index 0 forsKey | return none
-  let some (middle, middleRoot) ← signLayer π key top index 1 bottomRoot | return none
-  let some (topSignature, _) ← signLayer π key top index 2 middleRoot | return none
+  let (forsKey, forsOpening) ← forsOpen hash key index (digestForsLeaves digest)
+  let some (bottom, bottomRoot) ← signLayer hash key top index 0 forsKey | return none
+  let some (middle, middleRoot) ← signLayer hash key top index 1 bottomRoot | return none
+  let some (topSignature, _) ← signLayer hash key top index 2 middleRoot | return none
   return some ⟨randomizer, forsOpening, layerSignatures bottom middle topSignature⟩
 
 @[csimp] theorem signWithExpandedKey_eq_fast : @signWithExpandedKey = @signWithExpandedKeyFast := rfl
 
 def signFast (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
-  let key ← expandKey π secretKey
-  signWithExpandedKey π key message
+  let key ← expandKey hash secretKey
+  signWithExpandedKey hash key message
 
 @[csimp] theorem sign_eq_fast : @sign = @signFast := rfl
 
@@ -370,14 +369,17 @@ def publicKeyOf (bytes : List UInt8) : Option _root_.Sphincs.PublicKey :=
   else none
 
 def keygen (seed : MasterSeed) : _root_.Sphincs.PublicKey :=
-  ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) keccak seed).run' ()).1
+  ((KeyGenerationAndSigning.keygenFromSeed (m := StateM Unit) (OverPermutation.keccakHash keccak)
+    seed).run' ()).1
 
 def sign (seed : MasterSeed) (message : Message) : Option Signature :=
-  (KeyGenerationAndSigning.sign (m := StateM Unit) keccak seed message).run' ()
+  (KeyGenerationAndSigning.sign (m := StateM Unit) (OverPermutation.keccakHash keccak) seed
+    message).run' ()
 
 def verify (publicKey : _root_.Sphincs.PublicKey) (message : Message) (signature : Signature) :
     Bool :=
-  (Verification.verify (m := StateM Unit) keccak publicKey message signature).run' ()
+  (Verification.verify (m := StateM Unit) (OverPermutation.keccakHash keccak) publicKey message
+    signature).run' ()
 
 end Sphincs
 
@@ -503,12 +505,14 @@ def knownAnswer (path : System.FilePath) : IO Bool := do
   let seed : MasterSeed := BitVec.ofNat 256 (leNat seedBytes)
   let message : Message := BitVec.ofNat 256 (leNat messageBytes)
   let (publicKey, signature) := (do
-      let key ← _root_.Sphincs.KeyGenerationAndSigning.expandKey (m := StateM Unit) keccak seed
+      let key ← _root_.Sphincs.KeyGenerationAndSigning.expandKey (m := StateM Unit)
+        (HashSig.OverPermutation.keccakHash keccak) seed
       let (publicKey, _) ←
-        _root_.Sphincs.KeyGenerationAndSigning.keygenInternal (m := StateM Unit) keccak key
+        _root_.Sphincs.KeyGenerationAndSigning.keygenInternal (m := StateM Unit)
+          (HashSig.OverPermutation.keccakHash keccak) key
       let signature ←
-        _root_.Sphincs.KeyGenerationAndSigning.signWithExpandedKey (m := StateM Unit) keccak key
-          message
+        _root_.Sphincs.KeyGenerationAndSigning.signWithExpandedKey (m := StateM Unit)
+          (HashSig.OverPermutation.keccakHash keccak) key message
       return (publicKey, signature) : StateM Unit _).run' ()
   let publicKeyOk := hexOf (Sphincs.publicKeyBytes publicKey) == "0x" ++ lines[0]!
   let signatureOk :=

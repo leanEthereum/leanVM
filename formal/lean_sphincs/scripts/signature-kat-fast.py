@@ -13,7 +13,7 @@ def blocks(path, names):
             body.append(l)
         out[n]='\n'.join(body).rstrip()+'\n'
     return out
-def gen(path, names, recursive, xmss, binders):
+def gen(path, names, recursive, xmss, binders, var):
     b=blocks(path,names)
     res=[]
     for n in names:
@@ -24,7 +24,7 @@ def gen(path, names, recursive, xmss, binders):
         if n in recursive:
             last='cases Codeword.decode result <;> simp [ih]' if xmss else 'cases result <;> simp [ih]'
             res.append(f'''@[csimp] theorem {n}_eq_fast : @{n} = @{n}Fast := by
-  funext m _ π {binders} attempts start
+  funext m _ {var} {binders} attempts start
   induction attempts generalizing start with
   | zero => rfl
   | succ attempts ih =>
@@ -39,10 +39,10 @@ def gen(path, names, recursive, xmss, binders):
 sph=gen(root+'/Statement/LeanSphincs.lean',
   ['otsSecrets','otsPublicLeaf','otsSignFrom','otsSign','treeLevels','forsOpen','keygenInternal',
    'keygenFromSeed','signLayer','signWithExpandedKey','sign'],{'otsSignFrom'},False,
-  'key layer tree leaf message')
+  'key layer tree leaf message', 'hash')
 xm=gen(root+'/Statement/LeanXmss.lean',
   ['otsSecrets','oneTimePublicKey','otsSignFrom','otsSign','treeNode','treePath','keygenFromSeed','signLayer','signWithSchemeSeed','sign'],{'otsSignFrom'},True,
-  'parameter layer a b c d')
+  'parameter layer a b c d', 'π')
 fast='''/-!
 # The signers, compiled fast
 
@@ -56,9 +56,8 @@ in this module. (`scripts/signature-kat-fast.py` writes this section from the st
 namespace Sphincs.KeyGenerationAndSigning
 
 open Verification HashSig HashSig.OverPermutation
-open LeanVM.Semantics (KeccakState)
 
-variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+variable {m : Type → Type} [Monad m] (hash : HashInput → m HashOutput)
 
 '''+sph+'''
 end Sphincs.KeyGenerationAndSigning

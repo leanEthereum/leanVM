@@ -10,6 +10,7 @@ import LeanVM.Guest.Child.Covered
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
 import Sphincs.Security
+import Qrom.Sphincs.EndStatement
 import LeanDa
 import Statement.Theorems
 import Statement.Corollaries
@@ -300,6 +301,7 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
   leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
+  leanSphincsQromStronglyUnforgeable := Qrom.Sphincs.leanSphincsQrom
   leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
   leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
   leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound

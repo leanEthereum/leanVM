@@ -38,6 +38,7 @@ rev = "v4.35.0"
 name = "Statement"
 srcDir = ".."
 globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", "Statement.HashSignatures", "Statement.LeanXmss", "Statement.LeanSphincs",
+  "Statement.LeanSphincsQrom",
   "Statement.Field", "Statement.LeanDa", "Statement.LeanIsa", "Statement.LeanVmVerifier",
   "Statement.LeanVm", "Statement.LeanVmGuestBatching", "Statement.LeanVmGuest",
   "Statement.LeanVmGuestCompleteness", "Statement.CostMachine",

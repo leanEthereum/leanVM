@@ -25,7 +25,7 @@ open OracleComp OracleSpec
 namespace Sphincs.CrateSim
 
 open HashSig HashSig.OverPermutation Common Common.SufCma
-open Sphincs.Model (params toLayer toLeaf toDomain InRange simulateQ_oracleHash
+open Sphincs.Model (params toLayer toLeaf toDomain InRange simulateQ_oracleHash hashImpl
   fieldBytes_tweakFields layerHeight_toLayer sim_bind sim_pure bind_eq_of simulateQ_tweakableHash
   simulateQ_sequenceFin simulateQ_chainWalk simulateQ_leafHash simulateQ_encode toModelPublicKey
   toModelTreeOpening toModelSignature simulateQ_messageDigestCall digestIndex_eq digestLeaves_eq
@@ -33,7 +33,9 @@ open Sphincs.Model (params toLayer toLeaf toDomain InRange simulateQ_oracleHash
 
 attribute [local instance] params
 
-local notation "σ" => schemeHashOverPermutation
+variable {m : Type → Type} [Monad m] [LawfulMonad m] {hash : HashInput → m HashOutput}
+
+local notation "σ" => hashImpl hash
 
 /-! ## Binds, lists and sequences -/
 
@@ -118,7 +120,7 @@ theorem toExpandedKey_ofExpandedKey (key : KeyGenerationAndSigning.ExpandedKey) 
 
 theorem simulateQ_expandKey (seed : FORS.MasterSeed) :
     simulateQ σ (FORS.Crate.expandKey (m := OracleComp FORS.HashSpec) seed) =
-      ofExpandedKey <$> KeyGenerationAndSigning.expandKey queryPermutation seed := by
+      ofExpandedKey <$> KeyGenerationAndSigning.expandKey hash seed := by
   simp only [FORS.Crate.expandKey, KeyGenerationAndSigning.expandKey, sim_bind, sim_pure,
     simulateQ_oracleHash, map_bind, map_pure]
   rfl
@@ -126,7 +128,7 @@ theorem simulateQ_expandKey (seed : FORS.MasterSeed) :
 theorem simulateQ_prf_ots (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
     (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex) (chain : FORS.ChainIndex) :
     simulateQ σ (FORS.Crate.prf (m := OracleComp FORS.HashSpec) key (.ots lay tree leaf chain)) =
-      KeyGenerationAndSigning.prf queryPermutation (toExpandedKey key)
+      KeyGenerationAndSigning.prf hash (toExpandedKey key)
         (.oneTimeChain (toLayer lay) tree (toLeaf leaf) chain) := by
   simp only [FORS.Crate.prf, FORS.deriveKey, KeyGenerationAndSigning.prf,
     Verification.addressedHash, sim_bind, sim_pure, simulateQ_oracleHash, keygenHashInput_ots]
@@ -135,7 +137,7 @@ theorem simulateQ_prf_ots (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
 theorem simulateQ_prf_fors (key : FORS.Crate.ExpandedKey) (index : FORS.Index) (κ : FORS.FTree)
     (leaf : FORS.FLeaf) :
     simulateQ σ (FORS.Crate.prf (m := OracleComp FORS.HashSpec) key (.fors index κ leaf)) =
-      KeyGenerationAndSigning.forsSecret queryPermutation (toExpandedKey key) index κ leaf := by
+      KeyGenerationAndSigning.forsSecret hash (toExpandedKey key) index κ leaf := by
   simp only [FORS.Crate.prf, FORS.deriveKey, KeyGenerationAndSigning.forsSecret,
     KeyGenerationAndSigning.prf, Verification.addressedHash, sim_bind, sim_pure,
     simulateQ_oracleHash, keygenHashInput_fors]
@@ -145,7 +147,7 @@ theorem simulateQ_prfMessage (secretPrfKey : FORS.HashOutput) (publicSeed : FORS
     (message : FORS.Message) :
     simulateQ σ (FORS.Crate.prfMessage (m := OracleComp FORS.HashSpec) secretPrfKey publicSeed
       message) =
-      KeyGenerationAndSigning.prfMessage queryPermutation secretPrfKey publicSeed message := by
+      KeyGenerationAndSigning.prfMessage hash secretPrfKey publicSeed message := by
   simp only [FORS.Crate.prfMessage, KeyGenerationAndSigning.prfMessage, sim_bind, sim_pure,
     simulateQ_oracleHash]
   rfl
@@ -156,7 +158,7 @@ theorem simulateQ_otsSecrets (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
     (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex) :
     simulateQ σ (FORS.Seeded.otsSecrets (m := OracleComp FORS.HashSpec) key.publicSeed lay tree
       leaf key.secretSeed) =
-      KeyGenerationAndSigning.otsSecrets queryPermutation (toExpandedKey key) (toLayer lay) tree
+      KeyGenerationAndSigning.otsSecrets hash (toExpandedKey key) (toLayer lay) tree
         (toLeaf leaf) := by
   simp only [FORS.Seeded.otsSecrets, KeyGenerationAndSigning.otsSecrets, simulateQ_sequenceFin]
   exact congrArg sequenceFin (funext fun chain ↦ simulateQ_prf_ots key lay tree leaf chain)
@@ -164,7 +166,7 @@ theorem simulateQ_otsSecrets (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
 theorem simulateQ_otsPublicLeaf (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
     (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex) :
     simulateQ σ (FORS.Crate.otsPublicLeaf (m := OracleComp FORS.HashSpec) key lay tree leaf) =
-      KeyGenerationAndSigning.otsPublicLeaf queryPermutation (toExpandedKey key) (toLayer lay)
+      KeyGenerationAndSigning.otsPublicLeaf hash (toExpandedKey key) (toLayer lay)
         tree (toLeaf leaf) := by
   simp only [FORS.Crate.otsPublicLeaf, FORS.Seeded.oneTimePublicKey,
     KeyGenerationAndSigning.otsPublicLeaf, sim_bind, bind_assoc, simulateQ_otsSecrets,
@@ -176,7 +178,7 @@ theorem simulateQ_otsSignFrom (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
     ∀ (attempts counter : ℕ),
       simulateQ σ (FORS.Seeded.otsSignFrom (m := OracleComp FORS.HashSpec) key.publicSeed lay tree
         leaf key.secretSeed (FORS.Concrete.rootPayload message) attempts counter) =
-        KeyGenerationAndSigning.otsSignFrom queryPermutation (toExpandedKey key) (toLayer lay) tree
+        KeyGenerationAndSigning.otsSignFrom hash (toExpandedKey key) (toLayer lay) tree
           (toLeaf leaf) message attempts counter
   | 0, _ => by
     simp only [FORS.Seeded.otsSignFrom, KeyGenerationAndSigning.otsSignFrom]
@@ -194,7 +196,7 @@ theorem simulateQ_otsSignFrom (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
 theorem simulateQ_otsSign (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
     (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex) (message : FORS.Digest) :
     simulateQ σ (FORS.Crate.otsSign (m := OracleComp FORS.HashSpec) key lay tree leaf message) =
-      KeyGenerationAndSigning.otsSign queryPermutation (toExpandedKey key) (toLayer lay) tree
+      KeyGenerationAndSigning.otsSign hash (toExpandedKey key) (toLayer lay) tree
         (toLeaf leaf) message :=
   simulateQ_otsSignFrom key lay tree leaf message _ _
 
@@ -205,7 +207,7 @@ theorem simulateQ_otsSign (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
 `j < |below| / 2^(k + 1)`. -/
 theorem simulateQ_merkleLevelsFrom
     (node : ℕ → ℕ → FORS.HashInput → OracleComp FORS.HashSpec FORS.Digest)
-    (node' : ℕ → ℕ → HashInput → OracleComp RandomPermutationOracles Digest)
+    (node' : ℕ → ℕ → HashInput → m Digest)
     (P : ℕ → ℕ → Prop)
     (hnode : ∀ h j payload, P h j → simulateQ σ (node h j payload) = node' h j payload) :
     ∀ (remaining height : ℕ) (below : List FORS.Digest),
@@ -236,7 +238,7 @@ theorem toLeaf_leafOfNat (value : ℕ) :
 theorem simulateQ_treeLevels (key : FORS.Crate.ExpandedKey) (lay : FORS.Layer)
     (tree : FORS.TreeIndex) :
     simulateQ σ (FORS.Crate.treeLevels (m := OracleComp FORS.HashSpec) key lay tree) =
-      KeyGenerationAndSigning.treeLevels queryPermutation (toExpandedKey key) (toLayer lay)
+      KeyGenerationAndSigning.treeLevels hash (toExpandedKey key) (toLayer lay)
         tree := by
   simp only [FORS.Crate.treeLevels, KeyGenerationAndSigning.treeLevels, sim_bind,
     simulateQ_mapM, simulateQ_otsPublicLeaf, toLeaf_leafOfNat, layerHeight_toLayer,
@@ -257,7 +259,7 @@ theorem simulateQ_forsNodeHash (parameter : FORS.PublicParameter) (index : FORS.
     (h : ForsNodeInRange height node) :
     simulateQ σ (FORS.Crate.forsNodeHash (m := OracleComp FORS.HashSpec) parameter index κ height
       node payload) =
-      Verification.tweakableHash queryPermutation parameter (.forsNode index κ height node)
+      Verification.tweakableHash hash parameter (.forsNode index κ height node)
         payload := by
   obtain ⟨h1, h2, h3⟩ := h
   have hlt : height - 1 < FORS.forsHeight := by show height - 1 < 10; omega
@@ -277,7 +279,7 @@ theorem simulateQ_forsTreeOpen (key : FORS.Crate.ExpandedKey) (index : FORS.Inde
     (κ : FORS.FTree) (leaf : FORS.FLeaf) :
     simulateQ σ (FORS.Crate.forsTreeOpen (m := OracleComp FORS.HashSpec) key index κ leaf) =
       Prod.map id toModelTreeOpening <$>
-        KeyGenerationAndSigning.forsTreeOpen queryPermutation (toExpandedKey key) index κ leaf := by
+        KeyGenerationAndSigning.forsTreeOpen hash (toExpandedKey key) index κ leaf := by
   simp only [FORS.Crate.forsTreeOpen, KeyGenerationAndSigning.forsTreeOpen, sim_bind, sim_pure,
     simulateQ_mapM, simulateQ_prf_fors, map_bind, map_pure, FORS.Crate.merkleLevels,
     KeyGenerationAndSigning.merkleLevels]
@@ -315,14 +317,14 @@ theorem sequenceFin_map {m : Type → Type} [Monad m] [LawfulMonad m] {α β : T
 theorem simulateQ_forsPublicKey (parameter : FORS.PublicParameter) (index : FORS.Index)
     (roots : FORS.FTree → FORS.Digest) :
     simulateQ σ (FORS.Concrete.forsPublicKey (m := OracleComp FORS.HashSpec) parameter index
-      roots) = Verification.forsPublicKey queryPermutation parameter index roots :=
+      roots) = Verification.forsPublicKey hash parameter index roots :=
   simulateQ_tweakableHash _ (.forsRoots _) trivial _
 
 theorem simulateQ_forsOpen (key : FORS.Crate.ExpandedKey) (index : FORS.Index)
     (leaves : FORS.FTree → FORS.FLeaf) :
     simulateQ σ (FORS.Crate.forsOpen (m := OracleComp FORS.HashSpec) key index leaves) =
       Prod.map id (fun opening forsTree ↦ toModelTreeOpening (opening forsTree)) <$>
-        KeyGenerationAndSigning.forsOpen queryPermutation (toExpandedKey key) index leaves := by
+        KeyGenerationAndSigning.forsOpen hash (toExpandedKey key) index leaves := by
   simp only [FORS.Crate.forsOpen, KeyGenerationAndSigning.forsOpen, sim_bind, sim_pure,
     simulateQ_sequenceFin, simulateQ_forsTreeOpen, map_bind,
     map_pure, simulateQ_forsPublicKey]
@@ -334,7 +336,7 @@ theorem simulateQ_forsOpen (key : FORS.Crate.ExpandedKey) (index : FORS.Index)
 theorem simulateQ_keygenInternal (key : FORS.Crate.ExpandedKey) :
     simulateQ σ (FORS.Crate.keygenInternal (m := OracleComp FORS.HashSpec) key) =
       Prod.map toModelPublicKey id <$>
-        KeyGenerationAndSigning.keygenInternal queryPermutation (toExpandedKey key) := by
+        KeyGenerationAndSigning.keygenInternal hash (toExpandedKey key) := by
   simp only [FORS.Crate.keygenInternal, KeyGenerationAndSigning.keygenInternal, sim_bind,
     sim_pure, simulateQ_treeLevels, map_bind, map_pure]
   rfl
@@ -343,12 +345,12 @@ theorem simulateQ_keygenInternal (key : FORS.Crate.ExpandedKey) :
 theorem simulateQ_keygen (seed : FORS.MasterSeed) :
     simulateQ σ (FORS.Crate.keygen (m := OracleComp FORS.HashSpec) seed) =
       Prod.map toModelPublicKey id <$>
-        KeyGenerationAndSigning.keygenFromSeed queryPermutation seed := by
+        KeyGenerationAndSigning.keygenFromSeed hash seed := by
   simp only [FORS.Crate.keygen, KeyGenerationAndSigning.keygenFromSeed, sim_bind, sim_pure,
     simulateQ_expandKey, bind_map_left, map_bind, simulateQ_keygenInternal,
     toExpandedKey_ofExpandedKey]
   refine bind_congr fun key ↦ ?_
-  exact (bind_map_left _ _ _).trans (bind_congr fun keys ↦ rfl)
+  exact (bind_map_left _ _ _).trans (bind_congr fun keys ↦ by rw [map_pure]; rfl)
 
 /-! ## Signing -/
 
@@ -365,7 +367,7 @@ theorem simulateQ_signLayer (key : FORS.Crate.ExpandedKey) (top : List (List FOR
     (index : FORS.Index) (lay : FORS.Layer) (message : FORS.Digest) :
     simulateQ σ (FORS.Crate.signLayer (m := OracleComp FORS.HashSpec) key top index lay message) =
       Option.map (Prod.map (toModelLayer lay) toModelDigest) <$>
-        KeyGenerationAndSigning.signLayer queryPermutation (toExpandedKey key) top index
+        KeyGenerationAndSigning.signLayer hash (toExpandedKey key) top index
           (toLayer lay) message := by
   have htree := Model.treeIndexAt_eq index lay
   have hleaf := Model.leafIndexAt_eq index lay
@@ -392,8 +394,8 @@ theorem simulateQ_signLayer (key : FORS.Crate.ExpandedKey) (top : List (List FOR
   · have htop' : toLayer lay = topLayer := by rw [htop]; rfl
     simp only [sim_bind, sim_ite]
     rw [ite_eq_left htop, ite_eq_left htop']
-    simp only [sim_pure, pure_bind]
-    exact congrArg pure (hpair top)
+    simp only [sim_pure, map_bind, map_pure]
+    exact bind_congr fun levels ↦ congrArg pure (hpair levels)
   · have htop' : ¬toLayer lay = topLayer := fun h ↦ htop (by
       rw [← Model.ofLayer_toLayer lay, h]; rfl)
     simp only [sim_bind, sim_ite]
@@ -408,7 +410,7 @@ theorem sim_signLayer_bind {β : Type} (key : FORS.Crate.ExpandedKey)
     (k : Option (FORS.LayerSignature lay × FORS.Digest) → OracleComp FORS.HashSpec β) :
     simulateQ σ (@Bind.bind (OracleComp FORS.HashSpec) _ _ _
       (FORS.Crate.signLayer key top index lay message) k) =
-      KeyGenerationAndSigning.signLayer queryPermutation (toExpandedKey key) top index
+      KeyGenerationAndSigning.signLayer hash (toExpandedKey key) top index
         (toLayer lay) message >>= fun r ↦
           simulateQ σ (k (Option.map (Prod.map (toModelLayer lay) toModelDigest) r)) := by
   rw [sim_bind, simulateQ_signLayer]
@@ -436,11 +438,11 @@ theorem simulateQ_signLayers (key : FORS.Crate.ExpandedKey) (top : List (List FO
     (index : FORS.Index) (forsKey : FORS.Digest) :
     simulateQ σ (FORS.Concrete.sequenceThread (m := OracleComp FORS.HashSpec)
       (fun lay below ↦ FORS.Crate.signLayer key top index lay below) forsKey) = (do
-      let some (bottom, bottomRoot) ← KeyGenerationAndSigning.signLayer queryPermutation
+      let some (bottom, bottomRoot) ← KeyGenerationAndSigning.signLayer hash
           (toExpandedKey key) top index 0 forsKey | return none
-      let some (middle, middleRoot) ← KeyGenerationAndSigning.signLayer queryPermutation
+      let some (middle, middleRoot) ← KeyGenerationAndSigning.signLayer hash
           (toExpandedKey key) top index 1 bottomRoot | return none
-      let some (topSignature, _) ← KeyGenerationAndSigning.signLayer queryPermutation
+      let some (topSignature, _) ← KeyGenerationAndSigning.signLayer hash
           (toExpandedKey key) top index 2 middleRoot | return none
       return some (toModelLayers
         (KeyGenerationAndSigning.layerSignatures bottom middle topSignature))) := by
@@ -468,7 +470,7 @@ theorem simulateQ_signLayers (key : FORS.Crate.ExpandedKey) (top : List (List FO
 theorem simulateQ_signWithExpandedKey (key : FORS.Crate.ExpandedKey) (message : FORS.Message) :
     simulateQ σ (FORS.Crate.signWithExpandedKey (m := OracleComp FORS.HashSpec) key message) =
       Option.map toModelSignature <$>
-        KeyGenerationAndSigning.signWithExpandedKey queryPermutation (toExpandedKey key)
+        KeyGenerationAndSigning.signWithExpandedKey hash (toExpandedKey key)
           message := by
   simp only [FORS.Crate.signWithExpandedKey, KeyGenerationAndSigning.signWithExpandedKey, sim_bind,
     map_bind]
@@ -514,7 +516,7 @@ theorem simulateQ_signWithExpandedKey (key : FORS.Crate.ExpandedKey) (message : 
 theorem simulateQ_sign (seed : FORS.MasterSeed) (message : FORS.Message) :
     simulateQ σ (FORS.Crate.sign (m := OracleComp FORS.HashSpec) seed message) =
       Option.map toModelSignature <$>
-        KeyGenerationAndSigning.sign queryPermutation seed message := by
+        KeyGenerationAndSigning.sign hash seed message := by
   simp only [FORS.Crate.sign, KeyGenerationAndSigning.sign, sim_bind, simulateQ_expandKey,
     map_bind]
   exact (bind_map_left _ _ _).trans (bind_eq_of rfl fun key ↦
@@ -528,14 +530,16 @@ open HashSig HashSig.OverPermutation Common Common.SufCma
 
 attribute [local instance] params
 
-local notation "σ" => schemeHashOverPermutation
+variable {m : Type → Type} [Monad m] [LawfulMonad m] {hash : HashInput → m HashOutput}
+
+local notation "σ" => hashImpl hash
 
 /-- **The crate's key generation** (`key_gen_from_seed`, FORS's copy `FORS.Crate.keygen`), its
 queries answered by Keccak-256 over `π`, is the statement's, through the map of public keys. -/
 theorem simulateQ_crateKeygen (seed : FORS.MasterSeed) :
     (fun keys ↦ (ofModelPublicKey keys.1, keys.2)) <$>
       simulateQ σ (FORS.Crate.keygen seed : OracleComp FORS.HashSpec _) =
-    KeyGenerationAndSigning.keygenFromSeed queryPermutation seed := by
+    KeyGenerationAndSigning.keygenFromSeed hash seed := by
   rw [CrateSim.simulateQ_keygen, Functor.map_map]
   exact (congrArg (· <$> _) (funext fun _ ↦ rfl)).trans (id_map _)
 
@@ -544,7 +548,7 @@ Keccak-256 over `π`, is the statement's, through the map of signatures. -/
 theorem simulateQ_crateSign (seed : FORS.MasterSeed) (message : FORS.Message) :
     Option.map ofModelSignature <$>
       simulateQ σ (FORS.Crate.sign seed message : OracleComp FORS.HashSpec _) =
-    KeyGenerationAndSigning.sign queryPermutation seed message := by
+    KeyGenerationAndSigning.sign hash seed message := by
   rw [CrateSim.simulateQ_sign, Functor.map_map]
   refine (congrArg (· <$> _) (funext fun signature ↦ ?_)).trans (id_map _)
   rcases signature with _ | signature

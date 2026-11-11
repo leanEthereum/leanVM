@@ -58,7 +58,7 @@ open Sphincs.Verification
 
 theorem addressedHash_cost (publicSeed : PublicParameter) (address : Address) (payload : HashInput)
     (h : payload.length ≤ 1024) :
-    QueryCostAtMost (addressedHash queryPermutation publicSeed address payload) permutationCallCost
+    QueryCostAtMost (addressedHash (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed address payload) permutationCallCost
       thCost := by
   unfold addressedHash
   exact ((keccakHash_cost_le _ (k := 7) (by rw [addressedHashInput_length]; omega)).bind fun _ ↦
@@ -66,27 +66,27 @@ theorem addressedHash_cost (publicSeed : PublicParameter) (address : Address) (p
 
 theorem chainWalk_cost (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (chainIndex : ChainIndex) (start steps : ℕ) (v : Digest) :
-    QueryCostAtMost (chainWalk queryPermutation publicSeed layer tree leaf chainIndex start steps v)
+    QueryCostAtMost (chainWalk (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed layer tree leaf chainIndex start steps v)
       permutationCallCost (steps * thCost) :=
   walkChain_cost _ thCost (fun _ _ ↦ addressedHash_cost _ _ _ (by simp [littleEndianBytes]))
     start steps v
 
 theorem recoverChain_cost (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (chainIndex : ChainIndex) (digit : WinternitzDigit) (v : Digest) :
-    QueryCostAtMost (recoverChain queryPermutation publicSeed layer tree leaf chainIndex digit v)
+    QueryCostAtMost (recoverChain (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed layer tree leaf chainIndex digit v)
       permutationCallCost (3 * thCost) :=
   (chainWalk_cost _ _ _ _ _ _ _ _).mono
     (Nat.mul_le_mul_right _ (by simp [chainLength, winternitzBits]))
 
 theorem leafHash_cost (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (endpoints : ChainIndex → Digest) :
-    QueryCostAtMost (leafHash queryPermutation publicSeed layer tree leaf endpoints)
+    QueryCostAtMost (leafHash (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed layer tree leaf endpoints)
       permutationCallCost thCost :=
   addressedHash_cost _ _ _ (by rw [digestsPayload_length]; simp [chainCount])
 
 theorem encode_cost (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (message : Digest) (counter : EncodingCounter) :
-    QueryCostAtMost (encode queryPermutation publicSeed layer tree leaf message counter)
+    QueryCostAtMost (encode (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed layer tree leaf message counter)
       permutationCallCost thCost := by
   unfold encode
   exact ((addressedHash_cost _ _ _ (by simp [littleEndianBytes, bigEndianBytes])).bind fun _ ↦
@@ -98,7 +98,7 @@ def otsLeafCost : ℕ := thCost + (chainCount * (3 * thCost) + thCost)
 theorem otsLeaf_cost (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (message : Digest) (counter : EncodingCounter)
     (values : ChainIndex → Digest) :
-    QueryCostAtMost (otsLeaf queryPermutation publicSeed layer tree leaf message counter values)
+    QueryCostAtMost (otsLeaf (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed layer tree leaf message counter values)
       permutationCallCost otsLeafCost := by
   unfold otsLeaf
   refine ((encode_cost _ _ _ _ _ _).bind fun e ↦ ?_).mono le_rfl
@@ -111,7 +111,7 @@ theorem otsLeaf_cost (publicSeed : PublicParameter) (layer : Layer) (tree : Tree
 
 theorem treeFold_cost (publicSeed : PublicParameter) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (path : ℕ → Digest) (levels : ℕ) (v : Digest) :
-    QueryCostAtMost (treeFold queryPermutation publicSeed layer tree leaf path levels v)
+    QueryCostAtMost (treeFold (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed layer tree leaf path levels v)
       permutationCallCost (levels * thCost) :=
   foldPath_cost _ thCost (fun _ _ _ _ ↦ addressedHash_cost _ _ _ (by
     simp [nodePayload, littleEndianBytes])) _ _ levels v
@@ -125,7 +125,7 @@ def forsTreeRecoverCost : ℕ := thCost + forsTreeHeight * thCost
 
 theorem forsTreeRecover_cost (publicSeed : PublicParameter) (index : Index)
     (forsTree : ForsTreeIndex) (leaf : ForsLeafIndex) (opening : ForsTreeOpening) :
-    QueryCostAtMost (forsTreeRecover queryPermutation publicSeed index forsTree leaf opening)
+    QueryCostAtMost (forsTreeRecover (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed index forsTree leaf opening)
       permutationCallCost forsTreeRecoverCost := by
   unfold forsTreeRecover forsLeafHash
   exact (addressedHash_cost _ _ _ (by simp [littleEndianBytes])).bind fun _ ↦
@@ -137,14 +137,14 @@ def forsRecoverCost : ℕ := forsTreeCount * forsTreeRecoverCost + thCost
 
 theorem forsRecover_cost (publicSeed : PublicParameter) (index : Index)
     (leaves : ForsTreeIndex → ForsLeafIndex) (opening : ForsTreeIndex → ForsTreeOpening) :
-    QueryCostAtMost (forsRecover queryPermutation publicSeed index leaves opening)
+    QueryCostAtMost (forsRecover (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed index leaves opening)
       permutationCallCost forsRecoverCost := by
   unfold forsRecover forsPublicKey
   exact (sequenceFin_cost _ _ fun _ ↦ forsTreeRecover_cost _ _ _ _ _).bind fun _ ↦
     addressedHash_cost _ _ _ (by rw [digestsPayload_length]; simp [forsTreeCount])
 
 theorem messageDigest_cost (publicKey : Sphincs.PublicKey) (randomizer : Randomizer) (message : Message) :
-    QueryCostAtMost (messageDigest queryPermutation publicKey randomizer message)
+    QueryCostAtMost (messageDigest (HashSig.OverPermutation.keccakHash queryPermutation) publicKey randomizer message)
       permutationCallCost 2 := by
   unfold messageDigest messageDigestCall
   exact (QueryCostAtMost.bind (sequenceFin_cost 1 _ fun _ ↦ keccakHash_cost_le _ (k := 0)
@@ -155,7 +155,7 @@ theorem messageDigest_cost (publicKey : Sphincs.PublicKey) (randomizer : Randomi
 def layerCost : ℕ := otsLeafCost + 10 * thCost
 
 theorem verifyLayers_cost (publicSeed : PublicParameter) (index : Index) (signature : Signature) :
-    ∀ n message, QueryCostAtMost (verifyLayers queryPermutation publicSeed index signature n message)
+    ∀ n message, QueryCostAtMost (verifyLayers (HashSig.OverPermutation.keccakHash queryPermutation) publicSeed index signature n message)
       permutationCallCost (n * layerCost)
   | 0, _ => by
     simp only [verifyLayers]
@@ -180,7 +180,7 @@ theorem verifyLayers_cost (publicSeed : PublicParameter) (index : Index) (signat
 def verifyCost : ℕ := 2 + (forsRecoverCost + layerCount * layerCost)
 
 theorem verify_cost (publicKey : Sphincs.PublicKey) (message : Message) (signature : Signature) :
-    QueryCostAtMost (verify queryPermutation publicKey message signature) permutationCallCost
+    QueryCostAtMost (verify (HashSig.OverPermutation.keccakHash queryPermutation) publicKey message signature) permutationCallCost
       verifyCost := by
   unfold verify
   refine (messageDigest_cost _ _ _).bind fun _ ↦ (forsRecover_cost _ _ _ _).bind fun _ ↦ ?_
@@ -195,7 +195,7 @@ namespace KeyGenerationAndSigning
 open Sphincs.Verification Sphincs.KeyGenerationAndSigning Verification
 
 theorem expandKey_cost (secretSeed : SecretKey) :
-    QueryCostAtMost (expandKey queryPermutation secretSeed) permutationCallCost 2 := by
+    QueryCostAtMost (expandKey (HashSig.OverPermutation.keccakHash queryPermutation) secretSeed) permutationCallCost 2 := by
   unfold expandKey
   exact (QueryCostAtMost.bind (keccakHash_cost_le _ (k := 0) (by
     simp [keyDerivationInput, seedTag, littleEndianBytes])) fun _ ↦
@@ -204,11 +204,11 @@ theorem expandKey_cost (secretSeed : SecretKey) :
     (by simp)
 
 theorem prf_cost (key : ExpandedKey) (domain : KeygenDomain) :
-    QueryCostAtMost (prf queryPermutation key domain) permutationCallCost thCost :=
+    QueryCostAtMost (prf (HashSig.OverPermutation.keccakHash queryPermutation) key domain) permutationCallCost thCost :=
   addressedHash_cost _ _ _ (by simp [littleEndianBytes])
 
 theorem prfMessage_cost (secretPrfKey : HashOutput) (optionalRandomness : Digest) (message : Message) :
-    QueryCostAtMost (prfMessage queryPermutation secretPrfKey optionalRandomness message)
+    QueryCostAtMost (prfMessage (HashSig.OverPermutation.keccakHash queryPermutation) secretPrfKey optionalRandomness message)
       permutationCallCost 1 := by
   unfold prfMessage
   exact ((keccakHash_cost_le _ (k := 0) (by
@@ -242,7 +242,7 @@ def otsSecretsCost : ℕ := chainCount * thCost
 
 theorem otsSecrets_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) :
-    QueryCostAtMost (otsSecrets queryPermutation key layer tree leaf) permutationCallCost
+    QueryCostAtMost (otsSecrets (HashSig.OverPermutation.keccakHash queryPermutation) key layer tree leaf) permutationCallCost
       otsSecretsCost :=
   sequenceFin_cost _ _ fun _ ↦ prf_cost _ _
 
@@ -251,7 +251,7 @@ def otsPublicLeafCost : ℕ := otsSecretsCost + (chainCount * (3 * thCost) + thC
 
 theorem otsPublicLeaf_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) :
-    QueryCostAtMost (otsPublicLeaf queryPermutation key layer tree leaf) permutationCallCost
+    QueryCostAtMost (otsPublicLeaf (HashSig.OverPermutation.keccakHash queryPermutation) key layer tree leaf) permutationCallCost
       otsPublicLeafCost := by
   unfold otsPublicLeaf
   exact (otsSecrets_cost _ _ _ _).bind fun _ ↦
@@ -265,7 +265,7 @@ def openCost : ℕ := otsSecretsCost + chainCount * (3 * thCost)
 theorem otsSignFrom_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex)
     (leaf : TreeLeafIndex) (message : Digest) :
     ∀ attempts counter, QueryCostAtMost
-      (otsSignFrom queryPermutation key layer tree leaf message attempts counter)
+      (otsSignFrom (HashSig.OverPermutation.keccakHash queryPermutation) key layer tree leaf message attempts counter)
       permutationCallCost (attempts * thCost + openCost)
   | 0, _ => by
     simp only [otsSignFrom]
@@ -290,7 +290,7 @@ def otsSignCost : ℕ := encodingAttemptLimit * thCost + openCost
 
 theorem otsSign_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (leaf : TreeLeafIndex)
     (message : Digest) :
-    QueryCostAtMost (otsSign queryPermutation key layer tree leaf message) permutationCallCost
+    QueryCostAtMost (otsSign (HashSig.OverPermutation.keccakHash queryPermutation) key layer tree leaf message) permutationCallCost
       otsSignCost :=
   otsSignFrom_cost _ _ _ _ _ _ _
 
@@ -298,7 +298,7 @@ theorem otsSign_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) (lea
 def treeLevelsCost : ℕ := 2 ^ 10 * otsPublicLeafCost + 10 * (2 ^ 10 * thCost)
 
 theorem treeLevels_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
-    QueryCostAtMost (treeLevels queryPermutation key layer tree) permutationCallCost
+    QueryCostAtMost (treeLevels (HashSig.OverPermutation.keccakHash queryPermutation) key layer tree) permutationCallCost
       treeLevelsCost := by
   unfold treeLevels merkleLevels
   have hh := layerHeight_le layer
@@ -318,7 +318,7 @@ def forsTreeOpenCost : ℕ := 2 ^ forsTreeHeight * thCost +
 
 theorem forsTreeOpen_cost (key : ExpandedKey) (index : Index) (forsTree : ForsTreeIndex)
     (leaf : ForsLeafIndex) :
-    QueryCostAtMost (forsTreeOpen queryPermutation key index forsTree leaf) permutationCallCost
+    QueryCostAtMost (forsTreeOpen (HashSig.OverPermutation.keccakHash queryPermutation) key index forsTree leaf) permutationCallCost
       forsTreeOpenCost := by
   unfold forsTreeOpen merkleLevels
   refine ((mapM_cost _ _ (fun _ ↦ prf_cost _ _) _).bind fun secrets ↦ ?_).mono
@@ -335,7 +335,7 @@ theorem forsTreeOpen_cost (key : ExpandedKey) (index : Index) (forsTree : ForsTr
 def forsOpenCost : ℕ := forsTreeCount * forsTreeOpenCost + thCost
 
 theorem forsOpen_cost (key : ExpandedKey) (index : Index) (leaves : ForsTreeIndex → ForsLeafIndex) :
-    QueryCostAtMost (forsOpen queryPermutation key index leaves) permutationCallCost
+    QueryCostAtMost (forsOpen (HashSig.OverPermutation.keccakHash queryPermutation) key index leaves) permutationCallCost
       forsOpenCost := by
   unfold forsOpen forsPublicKey
   exact (QueryCostAtMost.bind (sequenceFin_cost _ _ fun _ ↦ forsTreeOpen_cost _ _ _ _) fun _ ↦
@@ -347,12 +347,12 @@ theorem forsOpen_cost (key : ExpandedKey) (index : Index) (leaves : ForsTreeInde
 def keygenCost : ℕ := 2 + treeLevelsCost
 
 theorem keygenInternal_cost (key : ExpandedKey) :
-    QueryCostAtMost (keygenInternal queryPermutation key) permutationCallCost treeLevelsCost := by
+    QueryCostAtMost (keygenInternal (HashSig.OverPermutation.keccakHash queryPermutation) key) permutationCallCost treeLevelsCost := by
   unfold keygenInternal
   exact ((treeLevels_cost _ _ _).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by simp)
 
 theorem keygenFromSeed_cost (secretSeed : SecretKey) :
-    QueryCostAtMost (keygenFromSeed queryPermutation secretSeed) permutationCallCost keygenCost := by
+    QueryCostAtMost (keygenFromSeed (HashSig.OverPermutation.keccakHash queryPermutation) secretSeed) permutationCallCost keygenCost := by
   unfold keygenFromSeed
   refine (expandKey_cost _).bind fun _ ↦ ((keygenInternal_cost _).bind fun p ↦ ?_).mono
     (Q := treeLevelsCost + 0) (by simp)
@@ -364,7 +364,7 @@ def signLayerCost : ℕ := otsSignCost + treeLevelsCost
 
 theorem signLayer_cost (key : ExpandedKey) (top : List (List Digest)) (index : Index)
     (layer : Layer) (message : Digest) :
-    QueryCostAtMost (signLayer queryPermutation key top index layer message) permutationCallCost
+    QueryCostAtMost (signLayer (HashSig.OverPermutation.keccakHash queryPermutation) key top index layer message) permutationCallCost
       signLayerCost := by
   unfold signLayer
   refine ((otsSign_cost _ _ _ _ _).bind fun o ↦ ?_).mono
@@ -381,7 +381,7 @@ theorem signLayer_cost (key : ExpandedKey) (top : List (List Digest)) (index : I
 def signCost : ℕ := 2 + (treeLevelsCost + (1 + (2 + (forsOpenCost + 3 * signLayerCost))))
 
 theorem sign_cost (secretKey : SecretKey) (message : Message) :
-    QueryCostAtMost (sign queryPermutation secretKey message) permutationCallCost signCost := by
+    QueryCostAtMost (sign (HashSig.OverPermutation.keccakHash queryPermutation) secretKey message) permutationCallCost signCost := by
   unfold sign signWithExpandedKey
   refine (expandKey_cost _).bind fun _ ↦ (keygenInternal_cost _).bind fun p ↦ ?_
   obtain ⟨_, _⟩ := p
