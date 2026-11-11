@@ -152,7 +152,7 @@ where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:binary-rs}).
 $\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\afa,\fc)$ of all rounds' $\afa_j$ and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
 \end{protocol}
 
-At level $0$ the lanes are $\K$-valued, so a table entry pairs an $\E$-valued weight with $\K$-valued coefficients; from the first fold on everything is in $\E$. The verifier never forms the weight of $XF$: the prover sends its values $\tabx{\iota}$, and the analysis binds it (Lemma~\ref{lem:fold-list}).
+The verifier never forms the weight of $XF$: the prover sends its values $\tabx{\iota}$, and the analysis binds it (Lemma~\ref{lem:fold-list}).
 
 Completeness is perfect. In characteristic $2$, $\inner{\mle{W}(\afa_j,\cdot)}{H}=\inner{W_0}{H}+\afa_j\inner{W_0+W_1}{H}$ for every $H$, and applied to $G+\afa_jF+\afb_jXF$ this is the formula of step 1(c), as honestly $\inner{W_0}{F}+\inner{W_1}{G}=\rc{j-1}$. The folded column is $P(x_q)$, as evaluation commutes with the fold, and the correction leaves $P_{\mathrm{low}}(x_q)=\inner{W^{(i)}_{x_q}}{f^{(i+1)}}$ (Lemma~\ref{lem:colweight}). The final checks are identities.
 
