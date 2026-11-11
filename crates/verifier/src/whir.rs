@@ -3,7 +3,7 @@
 use crate::field::{E, K, ONE, ZERO, powers};
 use crate::hash::Digest;
 use crate::layout::{MAX_STACKED_LOG, MIN_STACKED_LOG};
-use crate::multilinear::{eq_eval, log2_strict, multilinear_eval};
+use crate::multilinear::{log2_strict, multilinear_eval};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{VerifierError, require};
 
@@ -164,8 +164,11 @@ struct FoldRound {
 /// the lanes, `F` and `G` the lanes `2m` and `2m + 1` ([CYWZ26, preprint], Corollary 5.2).
 fn fold_row(mut values: Vec<E>, x: K, rounds: &[FoldRound]) -> E {
     for round in rounds {
-        let affine = round.alpha + round.beta * x;
-        values = values.as_chunks::<2>().0.iter().map(|&[f, g]| g + affine * f).collect();
+        let (affine, half) = (round.alpha + round.beta * x, values.len() / 2);
+        for i in 0..half {
+            values[i] = values[2 * i + 1] + affine * values[2 * i];
+        }
+        values.truncate(half);
     }
     assert_eq!(values.len(), 1, "one round per lane variable");
     values[0]
@@ -235,7 +238,7 @@ pub fn verify_whir(
             transcript.grind_check(FOLD_GRINDING_BITS)?;
             let alpha = transcript.sample();
             let beta = transcript.sample();
-            claim = u0 + alpha * (u0 + claim) + alpha * alpha * w + beta * c0 + alpha * beta * (c0 + c1);
+            claim = u0 + beta * c0 + alpha * (u0 + claim + alpha * w + beta * (c0 + c1));
             alphas.push(alpha);
             rounds.push(FoldRound { alpha, beta });
         }
@@ -291,10 +294,7 @@ pub fn verify_whir(
         let halves = transcript.next_scalars(2)?;
         let next_root = Digest::from_halves(halves[0], halves[1]);
         let high = transcript.next_scalars(fold_count)?;
-        // The OOD point after its grind, then its value.
-        transcript.grind_check(LEVEL_OOD_GRINDING_BITS)?;
-        let ood_point = transcript.samples(mu);
-        let ood_value = transcript.next_scalar()?;
+        let (ood_weight, ood_value) = crate::read_ood(transcript, mu, LEVEL_OOD_GRINDING_BITS)?;
         // The queries and lambda, one message.
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let queries = sample_queries(transcript, block_length, config.queries[level])?;
@@ -315,7 +315,7 @@ pub fn verify_whir(
         glued.push(GluedClaim {
             scalar: lambda,
             fold_start: alphas.len(),
-            weight_at: Box::new(move |x| Ok(eq_eval(&ood_point, x))),
+            weight_at: Box::new(move |x| Ok(ood_weight(x))),
         });
         let lambda2 = lambda * lambda;
         claim += lambda2 * batched;

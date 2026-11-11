@@ -156,11 +156,11 @@ fn verify_stacked_opening(
     verify_whir(transcript, stack_log, log_inv_rate, target, root, &evaluate_basis)
 }
 
-/// The level-0 OOD sample, read right after the commitment root: a grind, a point `z` of the stack's variables, then
-/// the stack's multilinear at `z`. Its claim follows every other.
-fn read_ood(transcript: &mut Transcript, stack_log: usize) -> Result<StackClaim<'static>, VerifierError> {
-    transcript.grind_check(OOD_GRINDING_BITS)?;
-    let z = transcript.samples(stack_log);
+/// An OOD sample, read right after its commitment: a grind of `bits`, a point `z` of the committed variables, then the
+/// committed multilinear at `z`. Level 0's claim follows every other stacked claim.
+fn read_ood(transcript: &mut Transcript, vars: usize, bits: u32) -> Result<StackClaim<'static>, VerifierError> {
+    transcript.grind_check(bits)?;
+    let z = transcript.samples(vars);
     let value = transcript.next_scalar()?;
     Ok((Box::new(move |x| eq_eval(&z, x)), value))
 }
@@ -225,7 +225,7 @@ pub fn verify_keccak_batch(
     let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
-    let ood = read_ood(&mut transcript, stack_log)?;
+    let ood = read_ood(&mut transcript, stack_log, OOD_GRINDING_BITS)?;
     // The instance pins the committed middle states, a multilinear identity of degree `log_steps` in it.
     transcript.grind_check(grinding_bits(log_steps as u128))?;
     let instance = transcript.samples(log_steps);
@@ -266,7 +266,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     // 2] parse WHIR commitment: one Merkle root (its OOD sample follows, outside the PCS).
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1]);
-    let ood = read_ood(&mut transcript, layout.stack_log)?;
+    let ood = read_ood(&mut transcript, layout.stack_log, OOD_GRINDING_BITS)?;
 
     // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table
     // a degree-2 claim per tree.

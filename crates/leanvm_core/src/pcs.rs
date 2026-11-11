@@ -21,7 +21,7 @@
 //! Security: every supported rate ([`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]) uses
 //! Johnson list decoding with OOD binding and round-by-round soundness
 //! ([`::pcs::whir::SECURITY_BITS`]). L0 takes its OOD sample right after its root
-//! ([`::pcs::ood`]); each deeper commitment takes one the same way. The base-field
+//! ([`::pcs::ood`]); each deeper commitment takes one inside the opening, after its own grind. The base-field
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E`.
 
