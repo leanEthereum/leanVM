@@ -8,9 +8,9 @@ public import Statement.Prover.Mle
 
 The honest prover of ring switching (`ringSwitch`: `ring_switch`,
 `crates/verifier/src/ring_switch.rs:70-87`) and of the stacked opening (`verifyStackedOpening`:
-`verify_stacked_opening`, `crates/verifier/src/lib.rs:136-157`, then `verify_whir`,
-`crates/verifier/src/whir.rs:214-331`), the prover's side being `recursive_prover_with_prepared_basis`
-(`crates/pcs/src/whir.rs:756-953`) at leanVM `f128`, on arrays.
+`verify_stacked_opening`, `crates/verifier/src/lib.rs:133-154`, then `verify_whir`,
+`crates/verifier/src/whir.rs:215-329`), the prover's side being `recursive_prover_with_prepared_basis`
+(`crates/pcs/src/whir.rs:756-952`) at leanVM `f128`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built
@@ -211,7 +211,7 @@ def mulXA (h : Array E) (stride : ℕ) : Array E :=
 def dotA (a b : Array E) : E := sumRange (min a.size b.size) fun i ↦ a.getD i 0 * b.getD i 0
 
 /-- The half `F` of a table `f` of `s` lanes, coefficient by coefficient (`Dense::table`,
-`crates/pcs/src/whir.rs:591-625`): `F`, `G` the lanes `2m`, `2m + 1`. -/
+`crates/pcs/src/whir.rs:590-625`): `F`, `G` the lanes `2m`, `2m + 1`. -/
 def halfA (f : Array E) (s : ℕ) : Array E :=
   Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
     f.getD (i.val / (s / 2) * s + 2 * (i.val % (s / 2))) 0
@@ -275,7 +275,7 @@ def tailA (mu : ℕ) (w g : Array E) : Script Unit :=
     (fun st r ↦ (foldPairsA r st.1, foldPairsA r st.2)) (List.replicate mu none) (w, g)).bind
     fun _ ↦ .ret ()
 
-/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:756-953`)
+/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:756-952`)
 from a level whose lanes and weight are the tables `f` and `w`, `mu` the variables before its
 folds: its fold rounds; then on the final level the folded lane, the queries and the tail; on
 another the next level's commitment to the folded lane's low part, its high part, a grind, the
@@ -298,7 +298,7 @@ def levelsA : ℕ → List Whir.Level → Array E → Array E → Script Unit
       let low := p.extract 0 (2 ^ mu)
       Script.commitS (levelWordFast (mu - next.fold) next.fold next.logInvRate low)
       Script.sendList (p.extract (2 ^ mu) p.size).toList
-      Script.grindBits Whir.levelOodGrindingBits
+      Script.grindBits Whir.oodGrindingBits
       let z ← Script.sampleN mu
       let e := eqTable z
       Script.sendE (dotA low e)

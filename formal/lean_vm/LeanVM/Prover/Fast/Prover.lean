@@ -91,7 +91,7 @@ def levelsA.fast : ℕ → List Whir.Level → Array E → Array E → Script Un
       let low := p.extract 0 (2 ^ mu)
       Script.commitS (levelWordFast (mu - next.fold) next.fold next.logInvRate low)
       Script.sendList (p.extract (2 ^ mu) p.size).toList
-      Script.grindBits Whir.levelOodGrindingBits
+      Script.grindBits Whir.oodGrindingBits
       let z ← Script.sampleN mu
       let e := eqTable z
       Script.sendE (dotA low e)

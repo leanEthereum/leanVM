@@ -14,7 +14,7 @@ sizes (memory `2^16`, the row counts `4, 2, 2, 4, 4, 8`, the rate exponent), two
 * The seed and the sponge: the first two steps of the program (`readAnnouncedSizes`, `commitStack`)
   and five challenges, in the compiled reading, give the challenges and the sponge state the
   verifier's `Transcript` gives on the same stream after `next_scalars(8)`, `Digest::from_halves`
-  of `next_scalars(2)` and `samples(5)` (the verifier at leanVM's `f128` branch, `71205cca4`; a
+  of `next_scalars(2)` and `samples(5)` (the verifier at leanVM's `f128` branch, `010cfb186`; a
   driver of the port's scratch ran it at `afe891a73`, and nothing these steps read changed since). This binds the IV's preimage (the version tag, then the
   bytecode), the seed permutation of the IV and the public input, the duplex absorbs with their
   domain tags, the squeezes, the order of the reads, and the stack root's shape.

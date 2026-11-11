@@ -27,7 +27,7 @@ fold rounds' own check (`AffineCombiner.levelOK`, which it includes):
 * each level with a next one: its query message, which also draws the next level's batching `λ`,
   `((Aend − 1)/n)^t + (t + 1) L'/|E| ≤ 2^-108`, as
   `(Aend − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^20` (`2^-125` after the `17`-bit grind), and the
-  next level's out-of-domain point, `C(L', 2) κ ≤ 2^20` (`2^-125` after its `17`-bit grind), with
+  next level's out-of-domain point, `C(L', 2) κ ≤ 2^18` (`2^-125` after its `15`-bit grind), with
   `1 ≤ κ`;
 * level `0`: its rate is the shape's and it folds the `2^6` lanes (`k₀ = 6`), the threshold exceeds the degree (`d₀ < A₀`),
   its list bound is at most `166`, the stacked opening's batching with the ring's map,
@@ -82,7 +82,7 @@ def chainChecks : ℕ → List Lv → List Whir.Level → Bool
       decide ((lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 128 +
           (cfg.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries ≤
         (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries * 2 ^ 20) &&
-      decide ((jlStart lv').choose 2 * lv.1 ≤ 2 ^ 20) && decide (1 ≤ lv.1) &&
+      decide ((jlStart lv').choose 2 * lv.1 ≤ 2 ^ 18) && decide (1 ≤ lv.1) &&
       chainChecks lv.1 (lv' :: rest) (cfg' :: crest)
   | _, _, _ => false
 

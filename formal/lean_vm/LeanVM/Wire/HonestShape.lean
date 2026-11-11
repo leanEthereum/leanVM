@@ -595,7 +595,7 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
       refine Wired.no_bind (noOpen_readN _) fun _ _ ↦ ?_
-      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits)
+      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.oodGrindingBits)
         (noOpen_grind _) fun _ _ ↦ ?_
       refine Wired.no_bind (noOpen_sampleN _) fun _ _ ↦ ?_
       refine Wired.no_bind noOpen_readE fun _ _ ↦ ?_

@@ -4,13 +4,13 @@ import LeanVM.Protocol.Verifier
 # Verifier helper tests: differential against the verifier at its pin
 
 Every expected value below is the Rust verifier's (`crates/verifier`) at leanVM's `f128` branch
-(`71205cca4`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
+(`010cfb186`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
 driver is the verifier crate's sources with their items made crate-visible and a module printing
 each probe, kept in the port's scratch, not in the repository. Values that no change of the
 protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)
 are those of the earlier pins (`4af2cdddd`, `990b93526`), the others the driver's at `afe891a73`
-but `fold_row` and `derive_config`'s query counts, which are at the pin: nothing else they read
-changed since. The line citations are to
+but `fold_row` (at `71205cca4`) and `derive_config`'s query counts (at the pin): nothing else they
+read changed since. The line citations are to
 `crates/verifier/src/` at the pin. Compiled checks (`#guard`): `E` multiplication does not reduce
 in the kernel from module files.
 
@@ -184,7 +184,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
   some [2, 1, 1, 2, 2, 9]
 #guard ((buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 600]).map (·.tableLogHeights)) =
   some [2, 1, 1, 2, 2, 10]
-/- Not one row count per table (the Rust verifier reads exactly `N_TABLES`, `lib.rs:251`). -/
+/- Not one row count per table (the Rust verifier reads exactly `N_TABLES`, `lib.rs:248`). -/
 #guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 5, 0]).isNone
 #guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3]).isNone
 
@@ -248,7 +248,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard ([0, 1, 2, 8, 9, 31, 46, 64, 65, 2 ^ 20].map grindingBits) =
     [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
 
-/-! ## WHIR helpers (`whir.rs:74-201`) -/
+/-! ## WHIR helpers (`whir.rs:72-202`) -/
 
 #guard ((subspaceRoots 12).map kToNat) =
     [0x1, 0x6, 0x168, 0x1166880, 0x11616686880801b, 0x726b6e3c6e39234e, 0x796adf34d64462c2,
@@ -669,7 +669,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
       (9, 6144), (9, 6656), (9, 7168), (9, 7680), (9, 8192), (9, 8704), (9, 9216), (9, 9728),
       (9, 10240), (9, 10752), (9, 11264), (9, 11776), (9, 12288), (9, 12800), (9, 13312)])
 
-/-! ## `derive_config` (`whir.rs:26-72`) -/
+/-! ## `derive_config` (`whir.rs:24-70`) -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
@@ -682,9 +682,9 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (23, 1, [6, 4, 4, 4], [1, 4, 7, 10], [218, 55, 32, 23]),
    (24, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 20]),
    (25, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 19]),
-   (26, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 22, 18]),
-   (27, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 22, 18]),
-   (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [218, 55, 32, 22, 18, 16]),
+   (26, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 18]),
+   (27, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [218, 55, 32, 23, 18]),
+   (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [218, 55, 32, 23, 18, 16]),
    (15, 2, [6, 4], [2, 5], [114, 49]), (16, 2, [6, 4, 4], [2, 5, 8], [112, 47, 35]),
    (17, 2, [6, 4, 4], [2, 5, 8], [111, 46, 32]), (18, 2, [6, 4, 4], [2, 5, 8], [110, 45, 31]),
    (19, 2, [6, 4, 4], [2, 5, 8], [110, 45, 29]),
@@ -694,9 +694,9 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (23, 2, [6, 4, 4, 4], [2, 5, 8, 11], [109, 44, 28, 21]),
    (24, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 18]),
    (25, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 17]),
-   (26, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 20, 17]),
-   (27, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 20, 17]),
-   (28, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [109, 44, 28, 20, 16, 15]),
+   (26, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 17]),
+   (27, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [109, 44, 28, 21, 17]),
+   (28, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [109, 44, 28, 21, 17, 15]),
    (15, 3, [6, 4], [3, 6], [75, 40]), (16, 3, [6, 4, 4], [3, 6, 9], [74, 39, 30]),
    (17, 3, [6, 4, 4], [3, 6, 9], [74, 38, 28]), (18, 3, [6, 4, 4], [3, 6, 9], [73, 37, 27]),
    (19, 3, [6, 4, 4], [3, 6, 9], [73, 37, 26]),
@@ -708,19 +708,19 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (25, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
    (26, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
    (27, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [73, 37, 25, 19, 16]),
-   (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [73, 37, 25, 19, 16, 14]),
+   (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [73, 37, 25, 19, 16, 15]),
    (15, 4, [6, 4], [4, 7], [56, 34]), (16, 4, [6, 4, 4], [4, 7, 10], [56, 33, 27]),
    (17, 4, [6, 4, 4], [4, 7, 10], [55, 32, 25]), (18, 4, [6, 4, 4], [4, 7, 10], [55, 32, 24]),
    (19, 4, [6, 4, 4], [4, 7, 10], [55, 32, 23]),
    (20, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 20]),
    (21, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 19]),
-   (22, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 22, 18]),
-   (23, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 22, 18]),
-   (24, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 22, 18, 16]),
-   (25, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 22, 18, 15]),
-   (26, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 22, 18, 15]),
-   (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 22, 18, 15]),
-   (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [55, 32, 22, 18, 15, 13])]
+   (22, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 18]),
+   (23, 4, [6, 4, 4, 4], [4, 7, 10, 13], [55, 32, 23, 18]),
+   (24, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 16]),
+   (25, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
+   (26, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
+   (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
+   (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [55, 32, 23, 18, 15, 14])]
 
 #guard refConfigs.length = 56
 #guard refConfigs.all fun (n, r, folds, rates, queries) ↦

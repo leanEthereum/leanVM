@@ -4,7 +4,7 @@ import LeanVM.Parameters.Whir
 # WHIR parameter tests
 
 The ladder against the deployed verifier's (`WHIR_QUERIES` and `derive_config`,
-`crates/verifier/src/whir.rs:26-72` at leanVM's `f128`, `71205cca4`): the smallest stack at rate 1/2, the
+`crates/verifier/src/whir.rs:24-70` at leanVM's `f128`, `010cfb186`): the smallest stack at rate 1/2, the
 largest at rate 1/16, and one three-level case, each with its residual; the window's four edges
 rejected; the table's shape; the block lengths of the first ladder; and a nearby false statement,
 the rate exponent of level 1 under a wrong domain reduction.
@@ -20,10 +20,10 @@ example : ladder 15 1 = some [⟨6, 1, 238⟩, ⟨4, 4, 63⟩] := by decide
 
 example : residualLog 15 1 = 5 := by decide
 
-/-- `(55, 32, 22, 18, 15, 13)` at `μ = 28`, rate 1/16: six levels, the exponent rising by three
+/-- `(55, 32, 23, 18, 15, 14)` at `μ = 28`, rate 1/16: six levels, the exponent rising by three
 once and then by one per level, and two variables remain. -/
 example : ladder 28 4 =
-    some [⟨6, 4, 55⟩, ⟨4, 7, 32⟩, ⟨4, 10, 22⟩, ⟨4, 13, 18⟩, ⟨4, 16, 15⟩, ⟨4, 19, 13⟩] := by
+    some [⟨6, 4, 55⟩, ⟨4, 7, 32⟩, ⟨4, 10, 23⟩, ⟨4, 13, 18⟩, ⟨4, 16, 15⟩, ⟨4, 19, 14⟩] := by
   decide
 
 example : residualLog 28 4 = 2 := by decide

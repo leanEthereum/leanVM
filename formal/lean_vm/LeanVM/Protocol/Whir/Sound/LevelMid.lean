@@ -14,8 +14,8 @@ public import LeanVM.Protocol.Whir.Sound.LevelFacts
 /-!
 # A level with a next one
 
-`whirLevels` on `level :: next :: rest` (`crates/verifier/src/whir.rs:230-327`): the level's fold
-rounds (`foldRoundsSpec`), then `midTail`: the next commitment, the high part, a `17`-bit grind and
+`whirLevels` on `level :: next :: rest` (`crates/verifier/src/whir.rs:231-325`): the level's fold
+rounds (`foldRoundsSpec`), then `midTail`: the next commitment, the high part, a `15`-bit grind and
 the out-of-domain point (`eOod`), its value, a `17`-bit grind, then the positions (`eQuery`) and
 `λ` (`eLam`) in one message after that grind, the openings, the glued claim, and the next level.
 
@@ -38,7 +38,7 @@ def midTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level next
     (rest : List Whir.Level) (s : WhirState) (rounds : List FoldRound) : VerifierProgram Unit :=
   readCommitment (logN - s.alphas.length - next.fold + next.logInvRate) (2 * 2 ^ next.fold) >>=
     fun _ ↦ readScalars level.fold >>= fun high ↦
-  grindProofOfWork Whir.levelOodGrindingBits >>= fun _ ↦
+  grindProofOfWork Whir.oodGrindingBits >>= fun _ ↦
   sampleChallenges (logN - s.alphas.length) >>= fun z ↦
   readScalar >>= fun y ↦
   grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
@@ -85,7 +85,7 @@ structure MidOK (P P' : LevelCode) (t : ℕ) (εmax : ENNReal) : Prop where
   hℓκ : P.ℓ ≤ 2 ^ P.κ
   hA : 1 ≤ P.A
   gap : P'.n * P'.deg < P'.thr 0 * P'.thr 0
-  eO : (2 : ENNReal)⁻¹ ^ Whir.levelOodGrindingBits * eOod P P' ≤ εmax
+  eO : (2 : ENNReal)⁻¹ ^ Whir.oodGrindingBits * eOod P P' ≤ εmax
   eO1 : eOod P P' < 1
   eQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * (eQuery P t + eLam P' t) ≤ εmax
   eQ1 : eQuery P t < 1
@@ -277,7 +277,7 @@ noncomputable def midTailSpec {εmax T : ENNReal} (logN laneFolds : ℕ) (eb : L
         exact ⟨h1, h2, h3, h4, hI.2⟩) zero_le).bind' fun _ ↦
   (readNInv (MidI1 μ ℓ₀ w i P P' pre s rounds) (T := 0) zero_le level.fold).bind' fun high ↦
   (grindInv (fun cs ↦ high.length = level.fold ∧ MidI1 μ ℓ₀ w i P P' pre s rounds cs)
-    (b := Whir.levelOodGrindingBits) (by decide) (T := eOod P P' + 0)
+    (b := Whir.oodGrindingBits) (by decide) (T := eOod P P' + 0)
     (by simpa using M.eO)).bind' fun _ ↦
   (Spec.ofNoMove (Pre := fun h ↦ high.length = level.fold ∧
       MidI1 μ ℓ₀ w i P P' pre s rounds (commits h))
