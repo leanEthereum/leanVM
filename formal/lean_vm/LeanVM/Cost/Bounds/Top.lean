@@ -37,12 +37,14 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   `D = log₂(N + 2) + 1`), so the price grows like `N·D²·(D/64 + 1)`; the closed forms
   (`extractorPrice`, `afterRootStagePrice`, …) are `Cost/Prices.lean`'s;
 * **`extractorC_within`**: the price and the entry's `14` within the statement's
-  `leanVmKnowledgeExtractorBudget` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
-  through `extractorPrice_le_worst` (the worst admissible shape) and `extractorPrice_worst_le`;
-* **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `2300086857126839845167101 ≈ 2^80.93`, the decoder (`listDecoderWorstPrice ≈ 2^80.93`) all
-  but `≈ 2^66.6` of it (the `1 + 2^12` runs `≈ 2^65.60`, the transcript's index `≈ 2^65.61`);
-  **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.86`, the transcript's index
+  `leanVmKnowledgeExtractorBudget` at the announced stack size wherever `afterRoot` announces a
+  shape (`hcost` of `extractorTop_output`), through `extractorPrice_le_budget`: the decoder's part
+  (`listDecoderWorstPrice μ`) and `2^75` are the budget's first term, and the rest is at most the
+  worst admissible shape's, `(30, 4)` (`extractorRest_le_worst`, `extractorRest_worst_le`);
+* **`extractorPrice_30_4`**: at `(30, 4)`, `κ = ℓ = 30`, at most `2^40` queries:
+  `38647959101683261111353215 ≈ 2^85.00`, the decoder's part (`listDecoderWorstPrice 30`) all
+  but `≈ 2^66.6` of it;
+  **`extractorPrice_30_4_2_128`**: at most `2^128` queries, `≈ 2^156.86`, the transcript's index
   dominating.
 
 The `includes` between the top functions' lists of about `500` bodies takes seconds each: those
@@ -429,8 +431,8 @@ theorem runBothC_cost (hP : Includes P runBothC.costDeps) (prog : Semantics.Lean
   cases o <;> dsimp only <;> nlinarith
 
 /-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape: the
-lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most `pmDecoderWorstPrice
-≈ 2^80.93` beyond the word's reads), `listDecoderWorstPrice`. -/
+lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most
+`pmDecoderBudget μ` beyond the word's reads), `listDecoderWorstPrice μ`. -/
 theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
@@ -538,7 +540,7 @@ theorem afterRootStageC_cost (hP : Includes P afterRootStageC.costDeps) (prog :
 /-! ## The extractor -/
 
 /-- The price where the replay fails: the bytecode's words and the replay. -/
-@[expose] def replayPrice (ℓ : ℕ) : ℕ := bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128341) + 15
+@[expose] def replayPrice (ℓ : ℕ) : ℕ := bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128636) + 15
 
 /-- **The compiled extractor's price** (`extractorC`), on every input: at most `extractorPrice` at the shape `afterRootLite` announces, or
 `replayPrice` when the replay fails. -/
@@ -567,12 +569,12 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
     (afterRootLite (bytecodeWords prog) π) (afterRootStage prog input qs) _ hk]
   cases har : afterRootLite (bytecodeWords prog) π with
   | none =>
-    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128341) + 15
+    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128636) + 15
     dsimp only
     omega
   | some r =>
     obtain ⟨⟨L, R⟩, st⟩ := r
-    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128341) +
+    show _ ≤ bytecodeWordsPrice prog.logSize + (128 * 2 ^ prog.logSize + 977128636) +
       afterRootStagePrice L.stackLog R L.logMemory prog.logSize (Nat.log2 (qs.length + 2) + 1) qs.length
         (L.stackLog - 6 + R) (limbsBelowTwoPow (Nat.log2 (qs.length + 2) + 1 + 1)) + 69
     simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
@@ -587,7 +589,7 @@ theorem extractorC_cost (hP : Includes P extractorC.costDeps) (prog : Semantics.
 /-- The extractor's price but its list decoder's part (`listDecoderWorstPrice`), the part the
 statement's budget pays for with its constant `2^75`. -/
 def extractorRest (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128522) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128636) +
     (transcriptIndexPrice (extractorSortedMapLevels N) 512 N
         (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) +
       committedLeavesPrice (extractorSortedMapLevels N) (μ - 6 + R)
@@ -629,9 +631,9 @@ theorem extractorRest_worst_le (N : ℕ) : extractorRest 30 4 30 30 N + 14 ≤
 
 /-- The decoder's part and `2^75` are the budget's first term. -/
 theorem listDecoderWorstPrice_add (μ : ℕ) :
-    listDecoderWorstPrice μ + 2 ^ 75 = 2 ^ max 81 (2 * μ + 22) := by
+    listDecoderWorstPrice μ + 2 ^ 75 = 2 ^ max 80 (2 * μ + 25) := by
   unfold listDecoderWorstPrice
-  have : 2 ^ 75 ≤ 2 ^ max 81 (2 * μ + 22) :=
+  have : 2 ^ 75 ≤ 2 ^ max 80 (2 * μ + 25) :=
     Nat.pow_le_pow_right (by norm_num) (le_trans (by norm_num) (le_max_left _ _))
   omega
 
@@ -683,10 +685,10 @@ theorem stageBound_mono {μ R κ ℓ D D' N N' h W W' : ℕ} (hD : D ≤ D') (hN
   unfold afterRootStagePrice transcriptIndexPrice committedLeavesPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
   gcongr
 
-/-- **The extractor's price at `(μ, R) = (28, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
-most `2300086857126839845167101 ≈ 2^80.93`, the decoder's `2^80.93` dominating. -/
-theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
-    extractorPrice 28 4 32 32 N ≤ 2300086857126839845167101 := by
+/-- **The extractor's price at `(μ, R) = (30, 4)`**, `κ = ℓ = 30`, at most `2^40` queries: at
+most `38647959101683261111353215 ≈ 2^85.00`, the decoder's part dominating. -/
+theorem extractorPrice_30_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
+    extractorPrice 30 4 30 30 N ≤ 38647959101683261111353215 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 41 := by
     have := (Nat.log2_lt (n := N + 2) (k := 41) (by omega)).2 (by omega)
     omega
@@ -698,11 +700,11 @@ theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
     fastPathPrice runnerTablesPrice stackRunPrice runnerStepPrice listDecoderPrice listDecoderWorstPrice bytecodeWordsPrice
   norm_num
 
-/-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
-adversaries), `κ = ℓ = 32`: at most `165504966199035608965494167729411649177110730135 ≈ 2^156.86`,
+/-- **The extractor's price at `(30, 4)` for up to `2^128` queries** (the soundness statement's
+adversaries), `κ = ℓ = 30`: at most `165504966199035608965530515601657370956416742681 ≈ 2^156.86`,
 the transcript's index dominating (`D = 129` levels of binary searches, positions of `3` limbs). -/
-theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
-    extractorPrice 28 4 32 32 N ≤ 165504966199035608965494167729411649177110730135 := by
+theorem extractorPrice_30_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
+    extractorPrice 30 4 30 30 N ≤ 165504966199035608965530515601657370956416742681 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 129 := by
     have := (Nat.log2_lt (n := N + 2) (k := 129) (by omega)).2 (by omega)
     omega

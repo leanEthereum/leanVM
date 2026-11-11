@@ -118,7 +118,7 @@ def rejects (s : Sizes) (ρ : ℕ) : Bool :=
 #guard readsTo s₂ 4 23
 #guard readsTo s₃ 4 23
 #guard readsTo ⟨16, by decide, ![65536, 8, 65536, 16, 65536, 2]⟩ 2 22
-#guard readsTo ⟨1, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2 24
+#guard readsTo ⟨1, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2 23
 #guard rejects ⟨31, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2
 #guard rejects ⟨16, by decide, ![65536, 8, 2 ^ 30 + 1, 16, 65536, 65536]⟩ 2
 #guard rejects s₁ 5

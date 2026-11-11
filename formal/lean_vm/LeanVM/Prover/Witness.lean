@@ -70,7 +70,7 @@ theorem ofWitness_traceWitness (hv : ValidExecution prog input t) (hb : TraceBou
 /-- **The specification witness is a child's witness** (`ChildFor`, unfolded), for a valid
 execution within the cap and a valid rate: `exists_childFor`, for the concrete witness. -/
 theorem childFor_trace (hv : ValidExecution prog input t)
-    (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ} (hρ : validRate ρ) :
+    (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : validRate ρ) :
     HonestFor prog input t ρ (traceWitness prog input t) (traceSizes prog input t) ∧
       (LeanIsa.blocks prog (traceSizes prog input t)).total = t.committedSize := by
   have hb : TraceBounds t := traceBounds_of hv hbudget

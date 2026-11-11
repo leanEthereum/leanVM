@@ -47,7 +47,7 @@ open LeanVM.Parameters LeanVM.Protocol.Whir.AffineCombiner
 abbrev Lv : Type := ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)
 
 /-- The levels of a shape. -/
-def levelsOf (μ R : ℕ) : List Lv := (foldTable.getD (R - 1) []).getD (μ - 15) []
+def levelsOf (μ R : ℕ) : List Lv := (foldTable.getD (R - 1) []).getD (μ - 16) []
 
 /-- The threshold a level starts on, `A₀ = Aend − k`. -/
 def thrStart (lv : Lv) : ℕ := lv.2.2.2.1 - lv.2.2.1

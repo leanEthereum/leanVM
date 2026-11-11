@@ -13,16 +13,16 @@ public import Common.Linear
 # The errors in bits
 
 `LeanVM.Protocol.Errors` defines the errors the proofs establish; the end statements bound them
-in bits. With `V = verifierQueries = 13261`:
+in bits. With `V = verifierQueries = 13708`:
 
 * `soundnessRpm_le_statement`: for `Q ≤ 2^128`, `soundnessError Q` plus the transfer's
-  `rpmError (Q + V · 2^32)` is at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, the bound of
+  `rpmError (Q + V · 2^30)` is at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, the bound of
   `KnowledgeSoundness`: the verifier's `V / 2^256` and the transfer's error are each at most
   `2^-125`, and `Q + V + 2 ≤ Q + 2^14`;
 * `soundnessRpm_le_bits`: for `Q ≤ 2^120`, at most `(Q + 2^14) · 2^-124`;
 * `soundnessRpm_le`: for `Q ≤ 2^64`, at most `2^-60`, as `soundnessError Q` alone
   (`soundnessError_le`);
-* `rpmError_completenessPermCalls_le`: at a fuel of `2^33` nonces per proof of work, the
+* `rpmError_completenessPermCalls_le`: at a fuel of `2^35` nonces per proof of work, the
   completeness transfer's error is at most `2^-257`.
 -/
 
@@ -40,13 +40,13 @@ theorem inv_two_pow_eq_div (k n : ℕ) (h : k ≤ n) :
     Nat.cast_ofNat, pow_add, ENNReal.mul_inv (by simp) (by simp), mul_assoc,
     ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
 
-theorem verifierQueries_eq : verifierQueries = 13261 := rfl
+theorem verifierQueries_eq : verifierQueries = 13708 := rfl
 
 theorem soundnessError_eq (Q : ℕ) :
-    soundnessError Q = (((Q + 13261) * (2 ^ 131 + 5 * (Q + 13261)) + 13261 : ℕ) : ℝ≥0∞) /
+    soundnessError Q = (((Q + 13708) * (2 ^ 131 + 5 * (Q + 13708)) + 13708 : ℕ) : ℝ≥0∞) /
       ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
   have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((13261 : ℕ) : ℝ≥0∞) := rfl
+  have hV : (verifierQueries : ℝ≥0∞) = ((13708 : ℕ) : ℝ≥0∞) := rfl
   rw [soundnessError, hV, verifierQueries_eq, inv_two_pow_eq_div 125 256 (by norm_num), ← h2,
     ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
     ENNReal.div_add_div_same, ← Nat.cast_add]
@@ -55,15 +55,15 @@ theorem rpmError_eq (q : ℕ) :
     rpmError q = ((q ^ 2 : ℕ) : ℝ≥0∞) / ((2 ^ 508 : ℕ) : ℝ≥0∞) := by
   rw [rpmError, Nat.cast_pow, Nat.cast_pow, Nat.cast_ofNat]
 
-theorem verifierPermCalls_eq : verifierPermCalls = 13261 * 2 ^ 32 := rfl
+theorem verifierPermCalls_eq : verifierPermCalls = 13708 * 2 ^ 30 := rfl
 
 /-- **The random-oracle soundness error against `2^64` queries**: at most `2^-60`. -/
 theorem soundnessError_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ℝ≥0∞)⁻¹ ^ 60 := by
   rw [soundnessError_eq, inv_two_pow_eq_div 60 256 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  have hN : Q + 13261 ≤ 2 ^ 64 + 13261 := by omega
-  calc (Q + 13261) * (2 ^ 131 + 5 * (Q + 13261)) + 13261
-      ≤ (2 ^ 64 + 13261) * (2 ^ 131 + 5 * (2 ^ 64 + 13261)) + 13261 :=
+  have hN : Q + 13708 ≤ 2 ^ 64 + 13708 := by omega
+  calc (Q + 13708) * (2 ^ 131 + 5 * (Q + 13708)) + 13708
+      ≤ (2 ^ 64 + 13708) * (2 ^ 131 + 5 * (2 ^ 64 + 13708)) + 13708 :=
         Nat.add_le_add_right (Nat.mul_le_mul hN (Nat.add_le_add_left
           (Nat.mul_le_mul_left 5 hN) _)) _
     _ ≤ 2 ^ (256 - 60) := by norm_num
@@ -78,10 +78,10 @@ theorem soundnessRpm_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) :
     ← pow_add, ENNReal.div_add_div_same, ← Nat.cast_add, show 256 + 252 = 508 from rfl]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   rw [verifierPermCalls_eq]
-  calc ((Q + 13261) * (2 ^ 131 + 5 * (Q + 13261)) + 13261) * 2 ^ 252 +
-        (Q + 13261 * 2 ^ 32) ^ 2
-      ≤ ((2 ^ 64 + 13261) * (2 ^ 131 + 5 * (2 ^ 64 + 13261)) + 13261) * 2 ^ 252 +
-        (2 ^ 64 + 13261 * 2 ^ 32) ^ 2 := by gcongr
+  calc ((Q + 13708) * (2 ^ 131 + 5 * (Q + 13708)) + 13708) * 2 ^ 252 +
+        (Q + 13708 * 2 ^ 30) ^ 2
+      ≤ ((2 ^ 64 + 13708) * (2 ^ 131 + 5 * (2 ^ 64 + 13708)) + 13708) * 2 ^ 252 +
+        (2 ^ 64 + 13708 * 2 ^ 30) ^ 2 := by gcongr
     _ ≤ 2 ^ 196 * 2 ^ 252 := by norm_num
     _ = 2 ^ (508 - 60) := by rw [← pow_add]
 
@@ -99,21 +99,21 @@ theorem soundnessRpm_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
     inv_two_pow_eq_div 124 508 (by norm_num), hQ', ← mul_div_assoc, ← Nat.cast_mul]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   rw [verifierPermCalls_eq, show 508 - 124 = 384 from rfl]
-  have h5 : 5 * (Q + 13261) ≤ 2 ^ 131 :=
-    calc 5 * (Q + 13261) ≤ 5 * (2 ^ 120 + 13261) := by gcongr
+  have h5 : 5 * (Q + 13708) ≤ 2 ^ 131 :=
+    calc 5 * (Q + 13708) ≤ 5 * (2 ^ 120 + 13708) := by gcongr
       _ ≤ 2 ^ 131 := by norm_num
-  have hP : Q + 13261 * 2 ^ 32 ≤ 2 ^ 121 :=
-    calc Q + 13261 * 2 ^ 32 ≤ 2 ^ 120 + 13261 * 2 ^ 32 := by gcongr
+  have hP : Q + 13708 * 2 ^ 30 ≤ 2 ^ 121 :=
+    calc Q + 13708 * 2 ^ 30 ≤ 2 ^ 120 + 13708 * 2 ^ 30 := by gcongr
       _ ≤ 2 ^ 121 := by norm_num
-  calc ((Q + 13261) * (2 ^ 131 + 5 * (Q + 13261)) + 13261) * 2 ^ 252 + (Q + 13261 * 2 ^ 32) ^ 2
-      ≤ ((Q + 13261) * (2 ^ 131 + 2 ^ 131) + 13261) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
-    _ ≤ ((Q + 13261) * (2 ^ 131 + 2 ^ 131) + 13261) * 2 ^ 252 + 2 ^ 252 :=
+  calc ((Q + 13708) * (2 ^ 131 + 5 * (Q + 13708)) + 13708) * 2 ^ 252 + (Q + 13708 * 2 ^ 30) ^ 2
+      ≤ ((Q + 13708) * (2 ^ 131 + 2 ^ 131) + 13708) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
+    _ ≤ ((Q + 13708) * (2 ^ 131 + 2 ^ 131) + 13708) * 2 ^ 252 + 2 ^ 252 :=
         Nat.add_le_add_left (by norm_num) _
-    _ = ((Q + 13261) * (2 ^ 131 + 2 ^ 131) + 13261 + 1) * 2 ^ 252 := by ring
+    _ = ((Q + 13708) * (2 ^ 131 + 2 ^ 131) + 13708 + 1) * 2 ^ 252 := by ring
     _ ≤ (Q + 2 ^ 14) * 2 ^ 132 * 2 ^ 252 := by
         gcongr
-        calc (Q + 13261) * (2 ^ 131 + 2 ^ 131) + 13261 + 1
-            = Q * 2 ^ 132 + (13261 * 2 ^ 132 + 13262) := by ring
+        calc (Q + 13708) * (2 ^ 131 + 2 ^ 131) + 13708 + 1
+            = Q * 2 ^ 132 + (13708 * 2 ^ 132 + 13709) := by ring
           _ ≤ Q * 2 ^ 132 + 2 ^ 14 * 2 ^ 132 := Nat.add_le_add_left (by norm_num) _
           _ = (Q + 2 ^ 14) * 2 ^ 132 := by ring
     _ = (Q + 2 ^ 14) * 2 ^ 384 := by rw [mul_assoc, ← pow_add]
@@ -171,9 +171,9 @@ theorem soundnessRpm_le_statement {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
         have hA : ((Q + verifierQueries : ℕ) : ℝ≥0∞) ≤ (Q + 2 ^ 14 : ℝ≥0∞) := le_self_add.trans hA2
         gcongr
 
-/-- The completeness transfer's error at a fuel of `2^33` nonces per proof of work. -/
+/-- The completeness transfer's error at a fuel of `2^35` nonces per proof of work. -/
 theorem rpmError_completenessPermCalls_le :
-    rpmError (completenessPermCalls (2 ^ 33)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
+    rpmError (completenessPermCalls (2 ^ 35)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
   rw [rpmError_eq, inv_two_pow_eq_div 257 508 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
   rw [completenessPermCalls, completenessQueries]

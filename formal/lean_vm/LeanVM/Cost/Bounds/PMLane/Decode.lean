@@ -23,8 +23,8 @@ The price of `decodeStacksDistinctPM μ R W` (`Fast/LanePM.lean`, compiled in
   lists, and the pruning's states, are the extractor's: `laneListWith_eq`, `pruneUpToWith_eq`);
 * **`decodeStacksPMC_cost`** `≤ decoderBoundPM p μ R BW Lw` at an admissible shape whose lanes
   are word-sized, and **`decodeStacksPMC_cost_worst`**: at every admissible shape, at the model's
-  prices with their margin, at most `(BW + 12·Lw)·2^26 + pmDecoderWorstPrice`
-  (`decoderShapePM_ok`, `pmDecoderWorstPrice ≈ 2^80.93`).
+  prices with their margin, at most `(BW + 12·Lw)·2^28 + pmDecoderBudget μ`
+  (`decoderShapePM_ok`, `pmDecoderBudget μ = 2^max(80, 2μ + 25) - 2^75`).
 
 Each lane's interpolation is priced by `interpolatePMC_cost_price` (`Bounds/PMSolve/Final.lean`),
 at prices fitting the proved transforms (`FFTPricesOK p`) and where its per-shape conditions hold
@@ -431,8 +431,8 @@ theorem decoderBoundPM_eq (p : PMPrices) (μ R BW Lw : ℕ) :
 /-! ## At every admissible shape -/
 
 /-- **The decoder on `pmSolver` at every admissible shape**, at the model's prices with
-their margin: at most `(BW + 12·Lw)·2^26 + pmDecoderWorstPrice` (`decoderShapePM_ok`,
-`pmDecoderWorstPrice = 2299974777205791875060563 ≈ 2^80.93`): no hypothesis but the word's
+their margin: at most `(BW + 12·Lw)·2^28 + pmDecoderBudget μ` (`decoderShapePM_ok`, the stack size's
+budget less `2^75`): no hypothesis but the word's
 prices, each lane's interpolation priced by `interpolatePMC_cost_price` at the shape's
 decided conditions (`LaneInterpOKPM marginPrices`) and `FFTPricesOK marginPrices`
 (`PMSolve.fftPricesOK_margin`). -/

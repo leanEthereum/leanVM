@@ -147,7 +147,7 @@ word's table, `BW` per column and `Lw` symbols per column; a lane `decoderLaneBo
       (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold) + Whir.initialFold)
         (2 ^ (μ - Whir.initialFold + R)) (johnsonThreshold μ R)).interp))
       (2 ^ 12) +
-    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 + 14101
+    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 + 14132
 
 end
 

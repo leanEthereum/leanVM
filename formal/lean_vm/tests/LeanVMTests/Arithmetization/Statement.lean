@@ -258,7 +258,7 @@ def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) : Array K :
   rawRow (memRowOf (walkImage L) i (cnt i))
 
 /-- The memory row's four cells, without evaluating the block's row list. -/
-theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
+theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) :
     memRowArr L cnt i =
       #[(walkImage L i).limb 0, (walkImage L i).limb 1, addressOfIndex i, cnt i] := by
   with_unfolding_all rfl
@@ -582,11 +582,11 @@ theorem memT_table (L : Vector K 25) (cnt : ℕ → K) :
   dsimp only [memT, ownTable]
 
 /-- The seed message of cell `i`: `(g^i, 1, mem[i])`. -/
-def seedMsg (L : Vector K 25) (i : Fin (2 ^ minLogMem)) : Array K :=
+def seedMsg (L : Vector K 25) (i : Fin (2 ^ 16)) : Array K :=
   #[addressOfIndex i, 1, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- The finalize message of cell `i`: `(g^i, cnt i, mem[i])`. -/
-def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
+def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) : Array K :=
   #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- Row `i` of the memory block pushes its seed and pulls its finalize message, over any data. -/
@@ -1120,7 +1120,7 @@ theorem wrong_lane_witness :
     walk_word0 wrongLout 1 g memCnt, walk_word1 wrongLout 1 g memCnt, wrong_lane_not_valid⟩
 
 /-- The memory block with its index column shifted by one row. -/
-def memRowArrShift (i : Fin (2 ^ minLogMem)) : Array K :=
+def memRowArrShift (i : Fin (2 ^ 16)) : Array K :=
   rawRow (⟨#v[(walkImage kLout i).limb 0, (walkImage kLout i).limb 1],
     addressOfIndex (i + 1), memCnt i⟩ : MemRow K)
 

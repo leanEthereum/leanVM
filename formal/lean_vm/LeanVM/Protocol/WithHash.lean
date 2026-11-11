@@ -267,7 +267,7 @@ def BreaksKnowledgeSoundnessWithHash (z : ExperimentOutcomeWithHash) : Prop :=
 /-- **Knowledge soundness in the random-permutation model**, for the extractor
 `transcriptExtractor`: an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free)
 breaks soundness with probability at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, the `2^14`
-covering the verifier's own `13261` oracle calls and two terms of `2^-125` (a guessed stack root,
+covering the verifier's own `13708` oracle calls and two terms of `2^-125` (a guessed stack root,
 the transfer from two random oracles to one permutation). -/
 def KnowledgeSoundnessWithHash : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
@@ -289,14 +289,14 @@ noncomputable def verifierCompletenessExperimentWithHash (proverWithHash : Hones
     | none => pure false
     | some proof => verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []
 
-/-- **Completeness in the random-permutation model**: trying `2^33` nonces per proof of work, the
+/-- **Completeness in the random-permutation model**: trying `2^35` nonces per proof of work, the
 honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
 probability at most `2^-256`. -/
 def CompletenessWithHash : Prop :=
   ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
     ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← verifierCompletenessExperimentWithHash proverWithHash prog input t ρ
-          (2 ^ 33)}[v = false] ≤
+          (2 ^ 35)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end LeanVM

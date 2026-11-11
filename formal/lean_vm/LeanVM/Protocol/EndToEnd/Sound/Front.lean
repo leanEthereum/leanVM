@@ -93,21 +93,21 @@ theorem pubLead_eq : pubLead = ((7 : ℕ) : ℝ≥0∞) / Fintype.card E := by
 /-! ## The bus's depth -/
 
 /-- **The bus's depth at admissible sizes is at most `41`**: the push side's leaves are the three
-framework seeds and every opcode table's push flushes, each at most `2^32` rows. -/
+framework seeds and every opcode table's push flushes, each at most `2^30` rows. -/
 theorem μBus_le_of_admissible {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible prog) :
     (leanIsaInstance prog s).μBus ≤ 41 := by
-  have hτ : ∀ t, s.τ t ≤ 32 := fun t ↦
+  have hτ : ∀ t, s.τ t ≤ 30 := fun t ↦
     max_le (Nat.clog_le_of_le_pow (hs.2.2.1 t))
       (by fin_cases t <;> decide +kernel)
   have hc : ∀ t : Fin 6,
       ((LeanIsa.flushes (opIdx t)).filter fun f ↦ decide (f.1 = Side.push)).length ≤ 64 := by
     decide +kernel
   have hsum : ∑ t : Fin 6, ((LeanIsa.flushes (opIdx t)).filter fun f ↦
-      decide (f.1 = Side.push)).length * 2 ^ s.τ t ≤ ∑ _t : Fin 6, 64 * 2 ^ 32 :=
+      decide (f.1 = Side.push)).length * 2 ^ s.τ t ≤ ∑ _t : Fin 6, 64 * 2 ^ 30 :=
     Finset.sum_le_sum fun t _ ↦
       Nat.mul_le_mul (hc t) (Nat.pow_le_pow_right (by norm_num) (hτ t))
-  have hm : 2 ^ s.logMem ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hs.2.1
-  have hb : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) prog.logSize_le
+  have hm : 2 ^ s.logMem ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hs.2.1
+  have hb : 2 ^ prog.logSize ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) prog.logSize_le
   have hp : (leanIsaInstance prog s).pushLeaves ≤ 2 ^ 41 := by
     rw [pushLeaves_leanIsa]
     simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul] at hsum

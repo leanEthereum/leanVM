@@ -602,15 +602,6 @@ theorem isTotalQueryBound_honestComp {σ : Seed} {P : VerifierProgram Bool} {hei
     exact isTotalQueryBound_bind (isTotalQueryBound_proveM hP S seed fuel) fun _ ↦
       isTotalQueryBound_pure' _ 0
 
-/-- A challenge that fails a proof of work of `b` bits fails one of `B ≥ b` bits. -/
-theorem powOk_false_mono {b B : ℕ} {c : E} (hbB : b ≤ B) (h : powOk b c = false) :
-    powOk B c = false := by
-  unfold powOk at h ⊢
-  simp only [decide_eq_false_iff_not] at h ⊢
-  intro hc
-  exact h (Nat.mod_eq_zero_of_dvd
-    (Nat.dvd_trans (Nat.pow_dvd_pow 2 hbB) (Nat.dvd_of_mod_eq_zero hc)))
-
 /-- **The final inequality.** On every reachable outcome of the logged experiment in which the
 verifier rejects the honest prover's proof, the potential of the final log is at least `1`. -/
 theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bits fuel : ℕ}
@@ -698,14 +689,14 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
         obtain ⟨rfl, v', hv', rfl⟩ := hif
         rw [hv] at hv'
         cases hv'
-        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'le hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact hp⟩
       · refine ⟨(capOf sp.state, sp.pending), ⟨by dsimp only; have := hsp.1; omega, hsp.2⟩,
           fun n hn ↦ ?_⟩
         obtain ⟨r, hr, hp⟩ := hall n hn
         obtain ⟨c, ps, u, hu, hru, -, hif⟩ := absorbNonce_option' hr
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨rfl, rfl⟩ := hif
-        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'le hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact hp⟩
     -- Its term is `1`.
     have hS : ¬ Solved bits fuel ℓ κ := by
       rintro ⟨n, hn, d, hd, hp⟩

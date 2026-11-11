@@ -38,7 +38,7 @@ example (O : OpeningIface) (A : OracleComp KeccakCalls (Statement × Proof)) (QA
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted O z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + 13261 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13261)) :=
+      ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) :=
   leanVm_knowledge O A QA hA
 
 example (O : OpeningIface) (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
@@ -49,11 +49,11 @@ example (O : OpeningIface) (A : OracleComp KeccakCalls (Statement × Proof)) (QA
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + 13261 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13261)) :=
+      ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) :=
   leanVm_execution O A QA hA
 
 example (QA : ℕ) (hQ : QA ≤ 2 ^ 64) :
-    ((QA + 13261 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13261)) ≤
+    ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 60 :=
   leanVm_bound_le hQ
 

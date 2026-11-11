@@ -16,11 +16,11 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 
 /-! ## The extractor's price
 
-About `2^80.93 + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N` grows) at the
-worst shape (`(μ, R) = (28, 4)`, the list decoder's and the rest's) with `κ = ℓ = 32`: about
-`2^80.93` for at most `2^40` queries (the list decoder dominating), `2^86.76` for `2^60`, `2^90.91`
-for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128`
-queries (the transcript's index dominating). -/
+About `2^max(80, 2μ + 25) + 2^14.85·N·log²N` for `N` permutation queries (`O(N·log³N)` as `N`
+grows) at a stack of `2^μ`, the list decoder's part priced at the statement's budget term less
+`2^75` and the rest at the worst shape (`(μ, R) = (30, 4)`, `κ = ℓ = 30`, about `2^66.6` for at
+most `2^40` queries); at `(30, 4)` about `2^85.00` for at most `2^40` queries (the list decoder
+dominating) and `2^156.86` for `2^128` queries (the transcript's index dominating). -/
 
 namespace LeanVM.Cost
 
@@ -44,7 +44,7 @@ def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
 `15·w + cW`. -/
 def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15016) +
+  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15047) +
     (15 * w + cW + 12 * w + 44) * 2 ^ (μ - 6 + R) + 1008 * 2 ^ μ + 1071
 
 /-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among
@@ -79,11 +79,11 @@ def committedLeavesPrice (D h W : ℕ) : ℕ :=
 
 /-- The list decoder's part (the extractor's Guruswami–Sudan decoder over the `64` lanes, each
 interpolated by the approximant basis on `pmSolver`, and the pruning), beyond the word's reads, at
-the worst admissible shape `(28, 4)`: about `2^80.93`. It is `lean_vm`'s `pmDecoderWorstPrice`
-(`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 4 0 0`), evaluated
-(`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
-(`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
-def listDecoderWorstPrice : ℕ := 2299974777205791875060563
+a stack of `2^μ`: the statement's budget term `2^max(80, 2μ + 25)` less `2^75`. It is `lean_vm`'s
+`pmDecoderBudget` (`Cost/Bounds/PMLane/ShapeDefs.lean`), and bounds the decoder at every admissible
+shape of that size (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`): about
+`2^80.93` at `μ = 28`, `2^82.91` at `29`, `2^84.91` at `30`, rate `4` the worst. -/
+def listDecoderWorstPrice (μ : ℕ) : ℕ := 2 ^ max 80 (2 * μ + 25) - 2 ^ 75
 
 /-- The list decoder's part, at every admissible shape of a stack of `2^μ`: its word's reads and
 `listDecoderWorstPrice μ`. -/
@@ -107,7 +107,7 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128341) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128636) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
       (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 

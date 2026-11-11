@@ -3,7 +3,7 @@
 
   The bus's push tree is no deeper than the stack: every table pushes at most as many tuples per
   row as it commits columns, and the framework pushes fewer leaves than it commits cells. So the
-  bus phase's grind, `busGrindingBits` of the push tree's depth, is at most `25` bits on the
+  bus phase's grind, `busGrindingBits` of the push tree's depth, is at most `27` bits on the
   admissible sizes.
 -/
 
@@ -24,7 +24,7 @@ The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs:130-247` at lea
   most the stack's committed cells, `3·2^κ + 2^ℓ + 2^(τ_5 + 6) + Σ_t (committed columns of t)·2^τ_t`:
   each table pushes at most as many tuples per row as it commits columns (`pushes_le_committed`).
 * `busDepth_le_leanIsaμ`: so the depth is at most the stack's number of variables, and on
-  admissible sizes at most `28` (`busDepth_le`), the grind at most `25` bits
+  admissible sizes at most `30` (`busDepth_le`), the grind at most `27` bits
   (`busGrindingBits_le`).
 -/
 
@@ -93,14 +93,14 @@ theorem busDepth_le_leanIsaμ (prog : LeanIsaProgram) (s : Sizes) :
   rw [busDepth, log2Ceil_eq_clog]
   exact Nat.clog_le_of_le_pow ((pushTotal_le_blocks prog s).trans (blocks_fits prog s))
 
-/-- On admissible sizes the push tree has depth at most `28`. -/
+/-- On admissible sizes the push tree has depth at most `30`. -/
 theorem busDepth_le {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible prog) :
-    busDepth prog s ≤ 28 :=
+    busDepth prog s ≤ 30 :=
   (busDepth_le_leanIsaμ prog s).trans hs.2.2.2
 
-/-- **On admissible sizes the bus grinds at most `25` bits.** -/
+/-- **On admissible sizes the bus grinds at most `27` bits.** -/
 theorem busGrindingBits_le {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible prog) :
-    busGrindingBits (busDepth prog s) ≤ 25 := by
+    busGrindingBits (busDepth prog s) ≤ 27 := by
   have hD := busDepth_le hs
   unfold busGrindingBits grindingBits securityBits
   split_ifs with h

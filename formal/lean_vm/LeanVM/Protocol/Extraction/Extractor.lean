@@ -236,7 +236,7 @@ def leafAt (leaves : Array (List K)) (height width v : ℕ) : List K :=
 exactly on `U_i = {x_v | v < 2^i}`. -/
 def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
 
-/-- Level 0's Johnson slacks, `η = e / 2^30`: entry `[R − 1][μ − 15]` for the stack size `μ` and
+/-- Level 0's Johnson slacks, `η = e / 2^30`: entry `[R − 1][μ − 16]` for the stack size `μ` and
 the rate exponent `R`, above the Johnson radius at level 0's degree `2^(μ−6) − 1 + 6`. Each is the
 smallest slack whose threshold is the deployed level 0's,
 `A₀ = A_end − k` of the WHIR parameters' certificate (`AffineCombiner.foldTable`, exported from
@@ -244,14 +244,14 @@ smallest slack whose threshold is the deployed level 0's,
 by `2^-125` after its grind. The table is copied from that certificate, and the proof checks the
 copy against it for every admissible shape (`Whir.Params.johnsonThreshold_eq_thr₀`). -/
 def johnsonSlack : List (List ℕ) := [
-  [14046423, 10126143, 7119110, 5091727, 3684926, 2588336, 1843440,
-    1323537, 1231522, 1232619, 1234191, 1233953, 1234090, 1234287],
-  [13113569, 9438781, 6816144, 4784228, 3407897, 2424839, 2105346,
-    2105345, 2109441, 2109441, 2109441, 2109441, 2109441, 2109441],
-  [10955372, 7815584, 5525635, 3889352, 2759967, 2727768, 2728056,
-    2730249, 2731345, 2731382, 2731656, 2731665, 2731733, 2731736],
-  [8391793, 5964575, 4194504, 3162162, 3170317, 3174404, 3176449,
-    3176449, 3176449, 3176449, 3176449, 3176513, 3176545, 3176561]]
+  [10126143, 7119110, 5091727, 3684926, 2588336, 1843440, 1323537, 1231522,
+    1232619, 1234191, 1233953, 1234090, 1234287, 1234257, 1234274],
+  [9438781, 6816144, 4784228, 3407897, 2424839, 2105346, 2105345, 2109441,
+    2109441, 2109441, 2109441, 2109441, 2109441, 2109473, 2109473],
+  [7815584, 5525635, 3889352, 2759967, 2727768, 2728056, 2730249, 2731345,
+    2731382, 2731656, 2731665, 2731733, 2731736, 2731737, 2731745],
+  [5964575, 4194504, 3162162, 3170317, 3174404, 3176449, 3176449, 3176449,
+    3176449, 3176449, 3176513, 3176545, 3176561, 3176561, 3176565]]
 
 /-- Level 0's slack `e` (`η = e/2^30`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0
@@ -266,7 +266,7 @@ agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the sla
 `X = 2^60·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
 extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
-and `15 ≤ μ ≤ 28`, the table's range. -/
+and `16 ≤ μ ≤ 30`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n := 2 ^ (κ + R)

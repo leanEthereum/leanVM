@@ -153,7 +153,7 @@ verifier's state bus checks for, so knowledge soundness needs no condition on th
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
 program $P$, of size at most $14159$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $13899$ and a slack of $260$, less than one leanXMSS signature's encoding), run on the encoded
+extractor's $14039$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
 $2^{\max(80,\,2\mu + 25)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
@@ -228,10 +228,10 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 \]
 (\lean{LeanVM.knowledgeSoundness_holds}). Each call may complete a verifier message, whose
 round-by-round error after its proof of work is at most $2^{-125}$. The constant $2^{14}$ absorbs
-the verifier's $13261$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
-$13261\cdot 2^{30}$, the IV hashing a bytecode of up to $2^{30}$ instructions) and two further terms
+the verifier's $13708$ Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to
+$13708\cdot 2^{30}$, the IV hashing a bytecode of up to $2^{30}$ instructions) and two further terms
 of at most $2^{-128}$ each: the transfer to the RPM, which pays for those calls, and the verifier's own
-$13261/2^{256}$.
+$13708/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
@@ -253,8 +253,8 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-25})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
-Q_f = 13263 + 53036\,(2^{27} + 2f + 2)
+\delta(f) = Q_f\,(1-2^{-27})^{f} + (Q_f\cdot 2^{30})^2/2^{508}, \qquad
+Q_f = 13710 + 54825\,(2^{29} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is

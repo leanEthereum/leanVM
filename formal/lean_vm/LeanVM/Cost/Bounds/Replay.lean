@@ -14,13 +14,13 @@ layout's fields the extractor reads (`158` columns: their log-sizes, their place
 stack, sorted by size) and reads the stack's root at the ladder's first level. Its price depends on
 the proof only through those ten scalars, and on the bytecode only through its length:
 
-* **`afterRootLite_cost`**: at most `8·|bytecode| + 977128341` (`≈ 2^29.87` plus `8` per bytecode
+* **`afterRootLite_cost`**: at most `8·|bytecode| + 977128636` (`≈ 2^29.87` plus `8` per bytecode
   word), for a bytecode of fewer than `2^63` words;
 * `readSizesLite_cost`: `8·|bytecode| + 977124710`; `buildLayoutLite_cost`:
   `8·|bytecode| + 977122709`; `placementsOf_cost`: `977100324` for at most `200` columns of
   log-size at most `40` (`stackOffsets_cost`: `973716067`, its quadratic merge sort of the blocks
   (run twice) dominating, each comparison reading the sizes by `getD`); `commitStackPure_cost`:
-  `11·|roots| + 3543` (`ladder_cost`: `3201`; `commitPure_cost`: `11·|roots| + 320`);
+  `11·|roots| + 3838` (`ladder_cost`: `3496`; `commitPure_cost`: `11·|roots| + 320`);
   `readPure_cost`: `158` per scalar; `absorbPure_cost`: `100`; `keccakSlot_cost`: `2522`;
   `log2Strict_cost`: `789`; `bitLength_cost`: `771`.
 * The list functions compiled only here, on word-sized lengths (`W = 2^64`): `elem_cost`,
@@ -321,10 +321,10 @@ theorem ladder_head {μ R : ℕ} {lv : Level} {rest : List Level}
 
 open LeanVM.Protocol.Compile in
 /-- **Reading the stack's root**: the ladder, then the root at its first level: at most
-`3543 + 11·|roots|`. -/
+`3838 + 11·|roots|`. -/
 theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R : ℕ) (s : VerifierProgramState)
     (hN : logN < 2 ^ 63) (hR : R < 2 ^ 60) (hs : s.sponge.pending.length ≤ 4) :
-    machineCost P commitStackPureC.costIdx [encodeValue logN, encodeValue R, encodeValue s] ≤ 11 * s.roots.length + 3543 := by
+    machineCost P commitStackPureC.costIdx [encodeValue logN, encodeValue R, encodeValue s] ≤ 11 * s.roots.length + 3838 := by
   rw [commitStackPureC.costEq P hP]
   have hl := ladder_cost P (by includes) logN R (by omega) (by omega)
   cases hla : LeanVM.Parameters.Whir.ladder logN R with
@@ -808,8 +808,8 @@ theorem heights_facts (rows : List ℕ) (hr : ∀ r ∈ rows, r ≤ 2 ^ 30) :
     rw [tableLogFloors_eq]; intro f hf; simp at hf; omega)⟩
 
 open LeanVM.Protocol.Verifier in
-theorem columnKappas_facts (logMemory logBytecode : ℕ) (heights : List ℕ) (hm : logMemory ≤ 32)
-    (hb : logBytecode ≤ 32) (hh : ∀ i, heights.getD i 0 ≤ 32) :
+theorem columnKappas_facts (logMemory logBytecode : ℕ) (heights : List ℕ) (hm : logMemory ≤ 30)
+    (hb : logBytecode ≤ 30) (hh : ∀ i, heights.getD i 0 ≤ 30) :
     (columnKappas logMemory logBytecode heights).length = 158 ∧
       ∀ x ∈ columnKappas logMemory logBytecode heights, x ≤ 40 := by
   rw [FastLib.columnKappasLit, qkeccakSlotBits_eq]
@@ -1086,11 +1086,11 @@ theorem readSizesLite_some {bytecode : List K} {s s' : VerifierProgramState} {L 
   exact ⟨h2.2, h3.2, hroots, hpend⟩
 
 /-- **The replay up to the stack's root** (`afterRootLite bytecode π`): at most
-`8·|bytecode| + 977128341`, whatever the proof (it reads ten scalars of it). -/
+`8·|bytecode| + 977128636`, whatever the proof (it reads ten scalars of it). -/
 theorem afterRootLite_cost (hP : Includes P afterRootLiteC.costDeps) (bytecode : List K)
     (π : LeanVM.Protocol.Compile.Proof) (hb : bytecode.length < 2 ^ 63) :
     machineCost P afterRootLiteC.costIdx [encodeValue bytecode, encodeValue π] ≤
-      8 * bytecode.length + 977128341 := by
+      8 * bytecode.length + 977128636 := by
   rw [afterRootLiteC.costEq P hP, initialStateC.costEq P (by includes)]
   have hrs := readSizesLite_cost P (by includes) bytecode (initialState π) hb (by simp [initialState])
   rw [Auto.Option.bind.c154.costEq P (by includes) _ _ _

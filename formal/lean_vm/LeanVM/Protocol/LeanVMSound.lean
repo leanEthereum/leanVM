@@ -35,12 +35,12 @@ instruction is not a `JUMP` and the extractor (`extractor`, `LeanVM/Protocol/Ext
 the proof and the oracle's answers to the adversary's Keccak-256 queries only, the halting run of
 the memory image of a stack in the Johnson list of the word the proof commits to) does not return
 a valid execution of the program on the public input is at most
-`soundnessError Q = (Q + 13261) · (2^-125 + 5·(Q + 13261)/2^256) + 13261/2^256`, which is at most
+`soundnessError Q = (Q + 13708) · (2^-125 + 5·(Q + 13708)/2^256) + 13708/2^256`, which is at most
 `2^-60` for `Q ≤ 2^64` (`soundnessError_le`, `LeanVM.Protocol.ErrorBounds`). The `2^-125` is per
 oracle query: every group of the protocol's challenges, discounted by the proof of work before it,
 escapes with probability at most `2^-125`, the round-by-round error every verifier message is held
 to after its grind (`SECURITY_BITS`), certified for every admissible size and rate. The
-`13261` bounds the verifier's queries on every statement and proof
+`13708` bounds the verifier's queries on every statement and proof
 (`Verifier.leanVmQueryBound_eq`).
 
 The proof (`knowledgeSoundnessRom`) runs the experiment over the ordered log of fresh queries, the
@@ -53,7 +53,7 @@ predicts a digest or a sponge state's capacity the log refers to: `5 + 2` per ea
 adversary's part of the log only, returns a valid execution (`Sound.extractor_of_extracted`):
 without failure, every climb to the announced root through the log runs through the adversary's
 queries, unless a fresh Keccak-256 answer of the verifier is the root itself, which has
-probability at most `13261/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
+probability at most `13708/2^256` (`Sound.prEvent_logged2_root_le`, the second term).
 
 **Scope and trust.**
 

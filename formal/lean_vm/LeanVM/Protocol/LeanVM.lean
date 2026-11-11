@@ -25,7 +25,7 @@ this page proves completeness, `completenessRom_holds`, with an explicit honest 
 (`Execution.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
 most `2^30`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
-`completenessError fuel`, which is below `2^-257` at a fuel of `2^33` nonces per proof of work
+`completenessError fuel`, which is below `2^-257` at a fuel of `2^35` nonces per proof of work
 (`completenessError_le`). The honest prover is a specification, not an implementation.
 
 **Scope and trust.**
@@ -67,7 +67,7 @@ noncomputable def honestProver (prog : LeanIsaProgram) (input : PublicInput) (t 
   Complete.honestProverRom prog input t ρ fuel
 
 /-- The statement's completeness error is the random-oracle theorem's,
-`(13263 + 53036 · (2^27 + 2·fuel + 2)) · (1 - 2^-25)^fuel`. -/
+`(13710 + 54825 · (2^27 + 2·fuel + 2)) · (1 - 2^-25)^fuel`. -/
 theorem completenessError_eq (fuel : ℕ) :
     completenessError fuel = Complete.completenessError fuel :=
   Complete.completenessError_eq fuel
@@ -82,9 +82,9 @@ theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
       completenessError fuel :=
   Complete.completeness_le hv hbudget hρ hfuel
 
-/-- **The numbers**: at a fuel of `2^33` nonces per proof of work, the completeness error is
+/-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the completeness error is
 below `2^-257`. -/
-theorem completenessError_le : completenessError (2 ^ 33) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
+theorem completenessError_le : completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
   Complete.statement_completenessError_le
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/

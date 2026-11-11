@@ -35,12 +35,12 @@ example (prog : LeanIsaProgram) (input : PublicInput)
       soundnessError Q :=
   knowledgeSoundnessRom ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
 
-/-- The numbers: `13261` verifier queries, `2^-125` per message, a collision term of `5` per pair
+/-- The numbers: `13708` verifier queries, `2^-125` per message, a collision term of `5` per pair
 of queries. -/
 example (Q : ℕ) : soundnessError Q =
-    ((Q + 13261 : ℕ) : ENNReal) *
-        ((2 : ENNReal)⁻¹ ^ 125 + ((5 * (Q + 13261) : ℕ) : ENNReal) / 2 ^ 256) +
-      ((13261 : ℕ) : ENNReal) / 2 ^ 256 := rfl
+    ((Q + 13708 : ℕ) : ENNReal) *
+        ((2 : ENNReal)⁻¹ ^ 125 + ((5 * (Q + 13708) : ℕ) : ENNReal) / 2 ^ 256) +
+      ((13708 : ℕ) : ENNReal) / 2 ^ 256 := rfl
 
 example {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ENNReal)⁻¹ ^ 60 :=
   soundnessError_le hQ

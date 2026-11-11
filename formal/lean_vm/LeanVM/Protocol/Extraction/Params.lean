@@ -16,7 +16,7 @@ public import Mathlib.Algebra.Order.Floor.Ring
   `numVars`, `numConstraints`, and the check is `GSParamCert`.
 * `gsParamCert_gsParamsFor`: for message length `k > 1`, agreement `A ≤ n` with `A² > (k−1)·n`,
   the parameters `gsParamsFor k n A` are certified at radius `n − A`.
-* `johnsonThreshold_bounds`: at every admissible shape (`15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`) the threshold
+* `johnsonThreshold_bounds`: at every admissible shape (`16 ≤ μ ≤ 30`, `1 ≤ R ≤ 4`) the threshold
   is at most `n` and its square exceeds `D·n`, `D = 2^κ − 1 + 6` level 0's degree, so the
   decoder's parameters at message length `2^κ + 6` are certified.
 
@@ -223,11 +223,11 @@ theorem gsParamCert_gsParamsFor {k n A : ℕ} (hk : 1 < k) (hA : A ≤ n)
 
 /-- At an admissible shape the threshold is at most `n` and its square exceeds `D·n`, `D` level
 0's degree `2^κ − 1 + 6`, by kernel evaluation. -/
-theorem johnsonThreshold_bounds {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR : 1 ≤ R ∧ R ≤ 4) :
+theorem johnsonThreshold_bounds {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 30) (hR : 1 ≤ R ∧ R ≤ 4) :
     johnsonThreshold μ R ≤ 2 ^ (μ - initialFold + R) ∧
       (2 ^ (μ - initialFold) + initialFold - 1) * 2 ^ (μ - initialFold + R) <
         johnsonThreshold μ R * johnsonThreshold μ R := by
-  have h : ∀ R < 5, ∀ μ < 29, 1 ≤ R → 15 ≤ μ →
+  have h : ∀ R < 5, ∀ μ < 31, 1 ≤ R → 16 ≤ μ →
       johnsonThreshold μ R ≤ 2 ^ (μ - initialFold + R) ∧
         (2 ^ (μ - initialFold) + initialFold - 1) * 2 ^ (μ - initialFold + R) <
           johnsonThreshold μ R * johnsonThreshold μ R := by

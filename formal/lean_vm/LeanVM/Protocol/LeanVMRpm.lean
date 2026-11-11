@@ -28,7 +28,7 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 **Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
 to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `transcriptExtractor` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
-`soundnessError Q + (Q + 13261 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-124` for
+`soundnessError Q + (Q + 13708 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-124` for
 `Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_statement`, the end statement `KnowledgeSoundness`) and at most
 `2^-60` for `Q ≤ 2^64` (`soundnessRpm_le`), all in `LeanVM.Protocol.ErrorBounds`. The proof:
@@ -56,7 +56,7 @@ to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts
 prover of `CompletenessRom` followed by the verifier, both following the duplex discipline
 (`duplexVm_honest`), of at most `completenessPermCalls fuel` permutation calls
 (`isWeightBound_honest`): the rejection probability is at most
-`completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-256` at a fuel of `2^33`
+`completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-256` at a fuel of `2^35`
 (`completenessRpm_le`).
 
 Every theorem depends only on `propext`, `Classical.choice` and `Quot.sound` (`LeanVM.lean`).
@@ -360,13 +360,13 @@ theorem completenessRpm {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
 
 /-! ## The numbers -/
 
-/-- **The completeness bound in the random-permutation model**: at a fuel of `2^33` nonces per
+/-- **The completeness bound in the random-permutation model**: at a fuel of `2^35` nonces per
 proof of work, at most `2^-256`: the random-oracle error and the transfer's are each below
 `2^-257`. -/
 theorem completenessRpm_le :
-    completenessError (2 ^ 33) + rpmError (completenessPermCalls (2 ^ 33)) ≤
+    completenessError (2 ^ 35) + rpmError (completenessPermCalls (2 ^ 35)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-  calc completenessError (2 ^ 33) + rpmError (completenessPermCalls (2 ^ 33))
+  calc completenessError (2 ^ 35) + rpmError (completenessPermCalls (2 ^ 35))
       ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 + (2 : ℝ≥0∞)⁻¹ ^ 257 :=
         add_le_add completenessError_le rpmError_completenessPermCalls_le
     _ = (2 : ℝ≥0∞)⁻¹ ^ 256 := by

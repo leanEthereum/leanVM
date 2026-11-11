@@ -33,7 +33,7 @@ theorem openingComplete : OpeningComplete := by
   intro μ R hadm q claims hlen hholds hml
   obtain ⟨q₀, rest, hc, -⟩ := exists_ladder hadm
   have hμ6 : laneBits ≤ μ := le_trans (by decide) hadm.1
-  have hμ28 : μ ≤ 28 := hadm.2.1
+  have hμ28 : μ ≤ 30 := hadm.2.1
   rw [verifyStackedOpening_eq, require_bind_of hlen]
   unfold honestOpening
   simp only [Script.bind_eq]
@@ -52,8 +52,8 @@ theorem openingComplete : OpeningComplete := by
   simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hl
   subst hl
   refine ⟨rfl, hbs, hst, ?_, ?_, ?_, ?_, ?_⟩
-  · have : 2 ^ (μ - laneBits) ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) (by omega)
-    have : (2 : ℕ) ^ 28 + 6 ≤ 2 ^ 61 := by norm_num
+  · have : 2 ^ (μ - laneBits) ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    have : (2 : ℕ) ^ 30 + 6 ≤ 2 ^ 61 := by norm_num
     simp only [laneBits] at *
     omega
   · rw [dot_values_eq_dot hμ6 q scales claims hholds,

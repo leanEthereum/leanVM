@@ -32,7 +32,7 @@ def afterRootRun (s : List LeanVM.Parameters.E) : Option (MachineValue × ℕ) :
 #guard (afterRootLite sampleBytecode ⟨stream 5 0, []⟩).isNone
 #guard (afterRootRun []).map (·.1) == some (MachineEncoding.encodeValue (afterRootLite sampleBytecode ⟨[], []⟩))
 
-/-- info: some 3366225 -/
+/-- info: some 3366386 -/
 #guard_msgs in
 #eval (afterRootRun (stream 4 0)).map (·.2)
 

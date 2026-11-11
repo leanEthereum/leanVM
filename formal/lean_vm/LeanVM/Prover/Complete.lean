@@ -105,10 +105,10 @@ def SpecOnValid (A : HonestProverWithHash)
 theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A HonestFor) :
     ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
       ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 33)}[v = false] ≤
+      Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 35)}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   intro prog input t ρ hv hbudget hρ
-  obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 33) hv hbudget hρ
+  obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 35) hv hbudget hρ
   refine le_of_eq_of_le ((noProof_evalDistEq keccakCallsOverRandomPermutation _ _ _
     (verifierWithHash_empty _ _ prog input) []).prEvent_eq (· = false)) ?_
   rw [hAw, ← honestComp_eq_getD]

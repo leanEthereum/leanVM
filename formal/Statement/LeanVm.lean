@@ -168,9 +168,9 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (outcome : Expe
 adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
 probability at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, `2^-125` the round-by-round
 error every verifier message is held to after its proof of work. The `2^14` covers the verifier's
-own Keccak-256 evaluations and duplex permutations, at most `13261` (the `Q + 13261` of `lean_vm`'s
-`soundnessError`; as calls of `π` they are up to `13261 · 2^30`, the IV hashing a bytecode of up to
-`2^30` instructions, which the transfer below pays), its `13261 · 2^-256` for a fresh hash answer
+own Keccak-256 evaluations and duplex permutations, at most `13708` (the `Q + 13708` of `lean_vm`'s
+`soundnessError`; as calls of `π` they are up to `13708 · 2^30`, the IV hashing a bytecode of up to
+`2^30` instructions, which the transfer below pays), its `13708 · 2^-256` for a fresh hash answer
 equal to a stack root the adversary announced without computing it, and the transfer from two
 random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget

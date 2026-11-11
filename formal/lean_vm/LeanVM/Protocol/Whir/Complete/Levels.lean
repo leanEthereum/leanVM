@@ -449,13 +449,13 @@ theorem batched_eq (L : List K → List E) (word : Word) (rounds : List FoldRoun
 /-! ## The levels -/
 
 /-- The ladder's arithmetic the honest levels use: each level folds at most its variables and at
-most `2^κ` rounds (its high part fits below `X_(2^(κ+1))`), on stacks of at most `28` variables. -/
+most `2^κ` rounds (its high part fits below `X_(2^(κ+1))`), on stacks of at most `30` variables. -/
 def ladderOK : ℕ → List Whir.Level → Bool
   | _, [] => false
   | mu, [level] => decide (level.fold ≤ mu) && decide (level.fold ≤ 2 ^ (mu - level.fold)) &&
-      decide (mu ≤ 28)
+      decide (mu ≤ 30)
   | mu, level :: next :: rest => decide (level.fold ≤ mu) &&
-      decide (level.fold ≤ 2 ^ (mu - level.fold)) && decide (mu ≤ 28) &&
+      decide (level.fold ≤ 2 ^ (mu - level.fold)) && decide (mu ≤ 30) &&
       ladderOK (mu - level.fold) (next :: rest)
 
 /-- Every admissible ladder satisfies `ladderOK`. -/
@@ -478,7 +478,7 @@ def lanesOfV (index : ℕ) (row : List K) : List E :=
   if index = 0 then row.reverse.map ofK else extRow row
 
 theorem ladderOK_cons {mu : ℕ} {l : Whir.Level} {r : List Whir.Level} (h : ladderOK mu (l :: r) = true) :
-    l.fold ≤ mu ∧ l.fold ≤ 2 ^ (mu - l.fold) ∧ mu ≤ 28 := by
+    l.fold ≤ mu ∧ l.fold ≤ 2 ^ (mu - l.fold) ∧ mu ≤ 30 := by
   cases r with
   | nil => simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h; exact ⟨h.1.1, h.1.2, h.2⟩
   | cons n r =>
@@ -497,7 +497,7 @@ theorem getD_extract_low (p : Array E) {n i : ℕ} (hn : n ≤ p.size) (hi : i <
   simp [Array.getD_eq_getD_getElem?, show i < p.size by omega]
 
 /-- **The next level's invariant** after gluing the level's claims. -/
-theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (hℓ' : ℓ' ≤ κ) (hκ : κ ≤ 28)
+theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (hℓ' : ℓ' ≤ κ) (hκ : κ ≤ 30)
     {sv' : WhirState} {p w' : Array E} (hp' : p.size = 2 ^ κ + ℓ) (hw' : w'.size = 2 ^ κ)
     (hclaim : sv'.claim = ∑ i ∈ range w'.size, w'.getD i 0 * p.getD i 0)
     (hlen : sv'.alphas.length + κ = μ)
@@ -522,8 +522,8 @@ theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (h�
     rw [dot_eq_sum _ _ (by simp [hTs, hlowsz])]
     exact sum_congr rfl fun i _ ↦ by rw [Enc.array_getD_toList, Enc.array_getD_toList]
   refine ⟨by rw [hgsz, hw', hsplit], by rw [hlowsz, hsplit]; ring, ?_, ?_, ?_, ?_, ?_⟩
-  · have : 2 ^ (κ - ℓ') ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) (by omega)
-    have : (2 : ℕ) ^ 28 + 28 ≤ 2 ^ 61 := by norm_num
+  · have : 2 ^ (κ - ℓ') ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    have : (2 : ℕ) ^ 30 + 30 ≤ 2 ^ 61 := by norm_num
     omega
   · rw [glueLevel_eq, hdot _ (by rw [hgsz, hw']),
       dot_glued lam w' _ _ (by rw [hw', he₁]) (by rw [hw', hT]), hclaim, hb]
@@ -630,7 +630,7 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
         obtain ⟨q, hq', rfl⟩ := List.mem_map.mp hx
         refine decide_eq_true ?_
         have h2 : level.fold ≤ 2 ^ κ := hl.1.2
-        have h3 : mu ≤ 28 := hl.2
+        have h3 : mu ≤ 30 := hl.2
         rw [hrow0 q (hq q hq'), novelEval_subspaceAt (by omega) _ (by
             rw [hplen, pow_succ]; omega), laneVal_zero]
         simp only [hplen, Enc.array_getD_toList]

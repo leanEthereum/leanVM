@@ -23,32 +23,32 @@ of `LeanVM.Protocol.Compile.Cost`, phase by phase, in quarters of a query: a sca
 work `5` (charged even where it grinds nothing), a commitment `2`, and an opening of `k` positions
 `4 · k · (1 + height)` (one hash per leaf and per level). A run's shape depends on the sizes the
 proof announces, but a run that is not rejected has sizes inside the window the program checks:
-memory and table log-heights at most `32`, a bytecode of at most `2^32` tuples, a stack of
-`15 ≤ μ ≤ 28` variables, a rate exponent `1 ≤ R ≤ 4`, and the WHIR ladder
+memory and table log-heights at most `30`, a bytecode of at most `2^30` tuples, a stack of
+`16 ≤ μ ≤ 30` variables, a rate exponent `1 ≤ R ≤ 4`, and the WHIR ladder
 `Parameters.Whir.ladder μ R`. The cost is maximised over that window:
 
 * the sizes (`readAnnouncedSizes`): `8` reads;
 * the stack's root (`commitStack`): one commitment, `2`, and its out-of-domain sample
-  (`readOod`): a proof of work, at most `28` challenges and a read;
+  (`readOod`): a proof of work, at most `30` challenges and a read;
 * the bus (`verifyBusBalance`): the proof of work, the `16` slot weights and `β`, the GKR walk over
-  the push side's depth, at most `38` (`3 + 51` blocks of at most `2^32` rows), `gkrCost 38 0 =
+  the push side's depth, at most `36` (`3 + 51` blocks of at most `2^30` rows), `gkrCost 36 0 =
   gkrBound`, the framework's reads and the bytecode's sumcheck;
-* the table sumcheck (`tablePhase`): a proof of work and `ξ`, at most `32` rounds, the tables'
+* the table sumcheck (`tablePhase`): a proof of work and `ξ`, at most `30` rounds, the tables'
   columns read once;
 * the public input: one challenge (the prover sends nothing);
-* `KECCAK`'s reduction (`keccakPhase`, `verifyKeccak`) at a point of at most `29` coordinates:
-  `keccakCost 29`;
+* `KECCAK`'s reduction (`keccakPhase`, `verifyKeccak`) at a point of at most `27` coordinates:
+  `keccakCost 27`;
 * ring switching: a proof of work and `16` challenges;
 * the stacked opening: the batching challenge and the WHIR levels (`whirCost`), at most
-  `whirBound` over the 56 admissible ladders (`ladder_cost`, decided), every commitment of height
-  at most `costHeight = 26`.
+  `whirBound` over the 60 admissible ladders (`ladder_cost`, decided), every commitment of height
+  at most `costHeight = 28`.
 
 In total `leanVmCost` quarters (`costLE_leanVmProgram`). The seed of `spongeSeedWith` is one hash
 and one permutation (`leanVmSeed`, `seedRun_leanVmSeed`), so the compiled verifier makes at most
 `leanVmQueryBound = 1 + 1 + leanVmCost / 4` queries on every proof (`isTotalQueryBound_leanVm`),
 evaluated in `leanVmQueryBound_eq`. The bound is crude where a tight one would cost proof without
 changing the soundness bound, in which it enters linearly: the bus depth, the table heights and
-the Keccak point are bounded by the announced sizes' window (`32`), not by the stack's size, the
+the Keccak point are bounded by the announced sizes' window (`30`), not by the stack's size, the
 WHIR query positions are charged at the largest height rather than at their level's, and a sample
 right after a proof of work, which permutes nothing, is charged a permutation.
 
@@ -89,8 +89,8 @@ def gkrCost : ℕ → ℕ → ℕ
     if n % 2 = 1 then gkrStepCost 1 L + gkrCost (n + 1) (1 + L)
     else gkrStepCost 2 L + gkrCost n (2 + L)
 
-/-- The bound on the GKR walk: the push side's depth is at most `38`. -/
-def gkrBound : ℕ := gkrCost 38 0
+/-- The bound on the GKR walk: the push side's depth is at most `36`. -/
+def gkrBound : ℕ := gkrCost 36 0
 
 /-- The cost of the bus phase: the proof of work, the slot weights and `β`, the roots and the GKR
 walk, the framework's four reads, and the bytecode's share, sumcheck and value. -/
@@ -100,9 +100,9 @@ def busCost : ℕ :=
 /-- The tables' columns. -/
 def tableWidthSum : ℕ := (tables.map Table.width).sum
 
-/-- The cost of the table phase: a proof of work and `ξ`, at most `32` rounds of four
+/-- The cost of the table phase: a proof of work and `ξ`, at most `30` rounds of four
 coefficients, every table's columns. -/
-def tableCost : ℕ := 5 + 4 + (32 * roundCost 4 + tableWidthSum)
+def tableCost : ℕ := 5 + 4 + (30 * roundCost 4 + tableWidthSum)
 
 /-- The rounds of `sample_queries` for `count` positions of `depth` bits: one challenge yields
 `128 / depth` positions. -/
@@ -154,7 +154,7 @@ def queryDepthsLE : ℕ → List Whir.Level → Bool
 def costHeight : ℕ := 28
 
 /-- The bound on the WHIR levels' cost over every admissible ladder (`ladder_cost`). -/
-def whirBound : ℕ := 40569
+def whirBound : ℕ := 43140
 
 /-- The cost of one layer of the Keccak reduction at a point of `L` coordinates: the product
 polynomial, its proof of work and point, the pack rounds, the bit-position sumcheck, the three
@@ -167,7 +167,7 @@ def keccakCost (L : ℕ) : ℕ :=
   5 + 4 * keccakSegmentBits + 4 * keccakLaneBits + 1 + keccakDepth * keccakLayerCost L +
     (qkeccakSlotBits * roundCost 3 + 1) + 4 * roundCost 3 + qkeccakSlotBits * roundCost 3 + kBits
 
-/-- The cost of the stack's out-of-domain sample: a proof of work, at most `28` challenges and a
+/-- The cost of the stack's out-of-domain sample: a proof of work, at most `30` challenges and a
 read. -/
 def oodCost : ℕ := 5 + 4 * Whir.maxLogStack + 1
 
@@ -176,7 +176,7 @@ def ringCost : ℕ := 5 + 4 * (2 * ringMapWidth)
 
 /-- **The cost of the leanVM verifier program**, phase by phase, in quarters of a query. -/
 def leanVmCost : ℕ :=
-  8 + 2 + oodCost + busCost + tableCost + 4 + keccakCost 29 + ringCost + (4 + whirBound)
+  8 + 2 + oodCost + busCost + tableCost + 4 + keccakCost 27 + ringCost + (4 + whirBound)
 
 /-! ## Sumcheck rounds -/
 
@@ -281,7 +281,7 @@ theorem costs_bytecodeShare (weights bytecodeLow : List E) :
         (Nat.zero_le _)) (by rw [List.length_replicate]; omega)
   all_goals (try simp only [List.length_replicate]); omega
 
-/-- The claims on `KECCAK` output lanes are at points of at most `32` coordinates. -/
+/-- The claims on `KECCAK` output lanes are at points of at most `30` coordinates. -/
 def ClaimsShort (claims : List ColumnClaim) : Prop :=
   ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point.length ≤ 30
 
@@ -289,7 +289,7 @@ def ClaimsShort (claims : List ColumnClaim) : Prop :=
 costs nothing. -/
 theorem costs_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit)
     (hev : ∀ w p v, VerifierProgram.Costs height (ev w p v) 0 fun _ ↦ True) (layout : Layout)
-    (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32) :
+    (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30) :
     VerifierProgram.Costs height (verifyBusBalance ev layout)
       (5 + 4 * 2 ^ busBits + 4 + (2 + gkrCost (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0) + 4 + (1 + busBits * roundCost 3 + 1))
@@ -478,7 +478,7 @@ variable {height : ℕ}
 the rows' heights. -/
 theorem costs_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 32) →
+      (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 30) →
       VerifierProgram.Costs height
         (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
@@ -521,8 +521,8 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (hh : ∀ h ∈ heights, h ≤ 30) :
     VerifierProgram.Costs height
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
-      (32 * roundCost 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le 32 heights 0 (Nat.zero_le _) hh
+      (30 * roundCost 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
+  have hmax := foldl_max_le 30 heights 0 (Nat.zero_le _) hh
   have hr4 : roundCost 4 = 12 := rfl
   refine VerifierProgram.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
@@ -659,7 +659,7 @@ theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
     (VerifierProgram.Costs.sampleN _) (fun _ _ ↦ VerifierProgram.Costs.seq
         VerifierProgram.Costs.readE (fun committed _ ↦ ?_) ?_)
     ?_) ?_) ?_
-  · have hpl : (inst.drop 4 ++ segment).length ≤ 29 := by
+  · have hpl : (inst.drop 4 ++ segment).length ≤ 27 := by
       rw [List.length_append, hseg]; exact hL
     have hlay : keccakDepth * keccakLayerCost (inst.drop 4 ++ segment).length ≤
         keccakDepth * keccakLayerCost 27 := by
@@ -715,7 +715,7 @@ theorem costs_ringSwitch (point s : List E) :
     VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦ trivial)
       (by simp [ringCost])) (by simp [ringCost])
 
-/-- **The stack's out-of-domain sample**, on a stack of at most `28` variables. -/
+/-- **The stack's out-of-domain sample**, on a stack of at most `30` variables. -/
 theorem costs_readOod (stackLog : ℕ) (h : stackLog ≤ Whir.maxLogStack) :
     VerifierProgram.Costs height (readOod stackLog) oodCost fun _ ↦ True :=
   VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
@@ -1026,9 +1026,9 @@ program's cost in quarters. -/
 def leanVmQueryBound : ℕ := 1 + 1 + leanVmCost / 4
 
 /-- The bound, evaluated. -/
-theorem leanVmQueryBound_eq : leanVmQueryBound = 13261 := by decide
+theorem leanVmQueryBound_eq : leanVmQueryBound = 13708 := by decide
 
-/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 13261` queries** to the random
+/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 13708` queries** to the random
 oracles on every proof, for every bytecode and public input: the hypothesis `hV` of `romSound`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :

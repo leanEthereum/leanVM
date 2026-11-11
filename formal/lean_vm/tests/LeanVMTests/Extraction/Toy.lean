@@ -123,18 +123,18 @@ def fastDecodes {μ : ℕ} (R : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List K)
 /-! ## The parameters at the deployed shapes
 
 The Johnson threshold `A` at level 0's degree `2^κ + 5`, the multiplicity `m` and the `Y`-degree
-`ℓ = ⌊(m·A − 1)/(2^κ + 5)⌋` at `R = 1`, `μ = 15, …, 28`, and the multiplicities at `R = 2`
+`ℓ = ⌊(m·A − 1)/(2^κ + 5)⌋` at `R = 1`, `μ = 16, …, 30`, and the multiplicities at `R = 2`
 (computed offline with exact integers). -/
 
-#guard johnsonThreshold 15 1 = 742
-#guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 1) =
-  [7, 10, 15, 21, 29, 42, 59, 83, 90, 90, 90, 90, 90, 90]
-#guard (List.range 14).map (fun i ↦
-    let p := gsParams (15 + i) 1
-    p.interp.weightedDegreeBound / (2 ^ (9 + i) + 5)) =
-  [10, 14, 21, 29, 41, 59, 83, 117, 127, 127, 127, 127, 127, 127]
-#guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 2) =
-  [10, 14, 19, 28, 39, 55, 64, 64, 64, 64, 64, 64, 64, 64]
+#guard johnsonThreshold 16 1 = 1472
+#guard (List.range 15).map (fun i ↦ gsMultiplicity (16 + i) 1) =
+  [10, 15, 21, 29, 42, 59, 83, 90, 90, 90, 90, 90, 90, 90, 90]
+#guard (List.range 15).map (fun i ↦
+    let p := gsParams (16 + i) 1
+    p.interp.weightedDegreeBound / (2 ^ (10 + i) + 5)) =
+  [14, 21, 29, 41, 59, 83, 117, 127, 127, 127, 127, 127, 127, 127, 127]
+#guard (List.range 15).map (fun i ↦ gsMultiplicity (16 + i) 2) =
+  [14, 19, 28, 39, 55, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64]
 
 /-! ## Merkle inversion -/
 

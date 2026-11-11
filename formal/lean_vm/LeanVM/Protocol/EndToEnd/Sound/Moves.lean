@@ -43,7 +43,7 @@ checks it). Every grind has at most `64` bits (`grindingBits_le_sixtyFour`): the
 
 The instances hold at every bound `B ≥ 17` (`moves_*_le`), the bus's grind bounded at the layout
 (`BusGrindLE`); the `G64` forms are those at `B = 64`. On a program's own bytecode the bus's grind
-has at most `25` bits, and so has every grind (`Complete.moves_leanVm_twentyFive`).
+has at most `27` bits, and so has every grind (`Complete.moves_leanVm_twentySeven`).
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Sound
