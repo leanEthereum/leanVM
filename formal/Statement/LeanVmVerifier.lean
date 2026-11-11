@@ -1429,7 +1429,7 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 ## The WHIR opening (`whir.rs`, `lib.rs:128-165`)
 
 The opening of [CYWZ26, preprint]'s affine folds (Annex B, Protocol B.1): a level's rounds fold its
-lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by five scalars a round
+lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by four scalars a round
 and the weight folded by the same `α`, so the `α`s are the weight's point. A non-final level then commits
 the folded lane's low part, sends its high part, and glues its out-of-domain claims and its queries,
 each opened row folded as the lanes were and corrected by the high part. The final level sends the
@@ -1576,20 +1576,19 @@ structure WhirState where
   /-- `glued`: the glued claims so far. -/
   glued : List GluedClaim
 
-/-- One fold round (`whir.rs:231-242`): the five scalars `u0, v0, c0, v1, c1`, the `G` lanes'
-share `u1` derived from the claim; a grind and `α, β`; the claim folded at `α`,
-`Σ_ι eq(α, ι)(u_ι + α v_ι + β c_ι)`. -/
+/-- One fold round (`whir.rs:231-242`): the four scalars `u0, w, c0, c1`
+(`⟨W₀, G⟩, ⟨W₀ + W₁, F⟩, ⟨W₀, XF⟩, ⟨W₁, XF⟩`); a grind and `α, β`; the claim folded at `α`,
+`u0 + α (u0 + claim) + α² w + β c0 + α β (c0 + c1)`. -/
 def foldRound (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   let u0 ← VerifierProgram.readScalar
-  let v0 ← VerifierProgram.readScalar
+  let w ← VerifierProgram.readScalar
   let c0 ← VerifierProgram.readScalar
-  let v1 ← VerifierProgram.readScalar
   let c1 ← VerifierProgram.readScalar
-  let u1 := s.claim + v0
   VerifierProgram.grindProofOfWork Whir.foldGrindingBits
   let alpha ← VerifierProgram.sampleChallenge
   let beta ← VerifierProgram.sampleChallenge
-  let claim := (1 + alpha) * (u0 + alpha * v0 + beta * c0) + alpha * (u1 + alpha * v1 + beta * c1)
+  let claim := u0 + alpha * (u0 + s.claim) + alpha * alpha * w + beta * c0 +
+    alpha * beta * (c0 + c1)
   return ({ s with claim := claim, alphas := s.alphas ++ [alpha] }, ⟨alpha, beta⟩)
 
 /-- A level's fold rounds, in order. -/

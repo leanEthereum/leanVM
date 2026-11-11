@@ -23,24 +23,25 @@ folded bit is `0` and `1`), a degree `1 ≤ d`, a threshold `A` with `(A - 1)² 
 
 * `foldW dom f g α β = g + (α + β x) f`, the affine fold (`def:affine-fold`).
 * `card_foldBad_le`: if every pair of `lst(f, g; A - 1, d)` violates the claim, then for every
-  table `u₀ v₀ c₀ v₁ c₁` and `u₁ := c - v₀`, at most `N + 2 L |F|` challenges `(α, β)` let some
-  tuple of `lst(fold; A, d)` satisfy the new claim
-  `(1 - α) Λ₀ P + α Λ₁ P = (1 - α)(u₀ + α v₀ + β c₀) + α (u₁ + α v₁ + β c₁)`, where `N` is the
+  table `u₀ v c₀ c₁` (the claimed `⟨W₀, G⟩`, `⟨W₁ − W₀, F⟩`, `⟨W₀, XF⟩`, `⟨W₁, XF⟩`), at most
+  `N + 2 L |F|` challenges `(α, β)` let some tuple of `lst(fold; A, d)` satisfy the new claim
+  `(1 - α) Λ₀ P + α Λ₁ P = u₀ + α (c - u₀) + α² v + β c₀ + α β (c₁ - c₀)`, where `N` is the
   number of exceptional pairs of the combiner for the words `g` and `f`. Divided by `|F|²`, this
   is the Annex's `ε_aff + 2L/|E|` when `N ≤ |F|² ε_aff`.
 
 Outside the exceptional pairs, a tuple `P` of the fold's list is `U + (α + β X) V` with
 `deg U ≤ d`, `deg V ≤ d - 1`, `U = g` and `V = f` off at most one agreement point, so `(V, U)` is
-in `lst(f, g; A - 1, d)` at the same degree `d`. Its discrepancy from the table,
-`(1 - α) Δ₀ + α Δ₁` with `Δ_ι = A_ι + α B_ι + β C_ι` the entries' errors, is the polynomial
-`A₀ + α (B₀ − A₀ + A₁) + α² (B₁ − B₀) + β (C₀ + α (C₁ − C₀))` of degree at most two, nonzero:
-were `A₀` and `B₀ − A₀ + A₁` zero, `v₀ + u₁ = Λ₀ V + Λ₁ U ≠ c` would fail. It vanishes at most at
-`2 |F|` pairs (`card_quad_zero_le`). The two events are counted over the same pairs; no
-independence of the weight's point from the combiner is needed.
+in `lst(f, g; A - 1, d)` at the same degree `d`. Its true value and the claimed one have the
+same shape `a + α (c − a) + α² b + β d + α β e` (true: `a = Λ₀ U`, `c = Λ₀ V + Λ₁ U`,
+`b = Λ₁ V − Λ₀ V`, `d = Λ₀ (X V)`, `e = Λ₁ (X V) − Λ₀ (X V)`), so their difference is a
+polynomial of degree at most two in `(α, β)`; it is nonzero, for its constant coefficient would
+force `a = u₀` and then its `α` coefficient `Λ₀ V + Λ₁ U = c`, which the pair violates. It
+vanishes at most at `2 |F|` pairs (`card_quad_zero_le`). The two events are counted over the same
+pairs; no independence of the weight's point from the combiner is needed.
 
-The Annex writes `u₁ := c + v₀`, which is `c - v₀` in characteristic `2`; the form here is the one
-valid in every characteristic. The weight `mle W (α, ·)` of the Annex is `(1 - α) W₀ + α W₁`, so
-its claim is the one above.
+In characteristic `2` the claim is the Annex's `u₀ + α (u₀ + c) + α² w + β c₀ + α β (c₀ + c₁)`,
+`w = ⟨W₀ + W₁, F⟩`; the form here is the one valid in every characteristic. The weight
+`mle W (α, ·)` of the Annex is `(1 - α) W₀ + α W₁`.
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
@@ -171,49 +172,48 @@ theorem map_fold (Λ : (ρ → F[X]) →ₗ[F] F) (G H : ρ → F[X]) (α β : F
 
 /-- The claim after a fold round, the weight folded at `α`:
 `(1 - α) Λ₀ P + α Λ₁ P = Σ_ι eq(α, ι) (u_ι + α v_ι + β c_ι)`. -/
-def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (α β u₀ v₀ c₀ u₁ v₁ c₁ : F) (P : ρ → F[X]) : Prop :=
-  (1 - α) * Λ₀ P + α * Λ₁ P = (1 - α) * (u₀ + α * v₀ + β * c₀) + α * (u₁ + α * v₁ + β * c₁)
+def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (α β c u₀ v c₀ c₁ : F) (P : ρ → F[X]) : Prop :=
+  (1 - α) * Λ₀ P + α * Λ₁ P = u₀ + α * (c - u₀) + α ^ 2 * v + β * c₀ + α * β * (c₁ - c₀)
 
 open Classical in
 /-- **The fold round's escapes**: the challenges `(α, β)` after which some tuple of
-`lst(fold; A, d)` satisfies the new claim, for the table `u₀ v₀ c₀ v₁ c₁` and the verifier's
-`u₁ = c - v₀`. -/
+`lst(fold; A, d)` satisfies the new claim, for the table `u₀ v c₀ c₁` and the running claim
+`c`. -/
 noncomputable def foldBad (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ)
-    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v₀ c₀ v₁ c₁ : F) : Finset (F × F) :=
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v c₀ c₁ : F) : Finset (F × F) :=
   univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.1 t.2) A d,
-    ClaimHolds Λ₀ Λ₁ t.1 t.2 u₀ v₀ c₀ (c - v₀) v₁ c₁ P
+    ClaimHolds Λ₀ Λ₁ t.1 t.2 c u₀ v c₀ c₁ P
 
 variable [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) {A d : ℕ}
 
 /-- **`lem:fold-list`**, counting form. Let every pair of `lst(f, g; A - 1, d)` violate the claim
-`Λ₀ F + Λ₁ G = c`. For every table `u₀ v₀ c₀ v₁ c₁`, at most
+`Λ₀ F + Λ₁ G = c`. For every table `u₀ v c₀ c₁`, at most
 `|excSet(g, f)| + 2 jl n (A - 1) d |F|` challenges `(α, β)` let a tuple of `lst(fold; A, d)`
 satisfy the new claim. -/
 theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
-    (foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card ≤
+    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    (foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card ≤
       (excSet dom g f d A).card + 2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F := by
   classical
-  set u₁ := c - v₀ with hu₁
   set pairs := pairList dom f g (A - 1) d
   -- The fold of a pair, and its escapes.
   let B2 : (ρ → F[X]) × (ρ → F[X]) → Finset (F × F) := fun p ↦ univ.filter fun t ↦
-    ClaimHolds Λ₀ Λ₁ t.1 t.2 u₀ v₀ c₀ u₁ v₁ c₁ fun r ↦ p.2 r + lin t.1 t.2 * p.1 r
+    ClaimHolds Λ₀ Λ₁ t.1 t.2 c u₀ v c₀ c₁ fun r ↦ p.2 r + lin t.1 t.2 * p.1 r
   have hB2 : ∀ p ∈ pairs, (B2 p).card ≤ 2 * Fintype.card F := by
     intro p hp
     refine le_trans (card_le_card ?_) (card_quad_zero_le (Λ₀ p.2 - u₀)
-      ((Λ₀ p.1 - v₀) - (Λ₀ p.2 - u₀) + (Λ₁ p.2 - u₁)) ((Λ₁ p.1 - v₁) - (Λ₀ p.1 - v₀))
+      ((Λ₀ p.1 + Λ₁ p.2 - Λ₀ p.2) - (c - u₀)) ((Λ₁ p.1 - Λ₀ p.1) - v)
       (Λ₀ (fun r ↦ X * p.1 r) - c₀)
-      ((Λ₁ (fun r ↦ X * p.1 r) - c₁) - (Λ₀ (fun r ↦ X * p.1 r) - c₀)) ?_)
+      ((Λ₁ (fun r ↦ X * p.1 r) - Λ₀ (fun r ↦ X * p.1 r)) - (c₁ - c₀)) ?_)
     · intro t ht
       have ht := (mem_filter.mp ht).2
       simp only [ClaimHolds, map_fold] at ht
       exact mem_filter.mpr ⟨mem_univ _, by linear_combination ht⟩
     · rintro ⟨ha₀, ha₁, -, -, -⟩
       apply hviol p hp
-      linear_combination ha₁ + ha₀ + hu₁
-  have hsub : foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁ ⊆
+      linear_combination ha₁ + ha₀
+  have hsub : foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ ⊆
       excSet dom g f d A ∪ pairs.biUnion B2 := by
     intro t ht
     obtain ⟨P, hP, hclaim⟩ := (mem_filter.mp ht).2
@@ -248,7 +248,7 @@ theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
       funext r; exact (hPUV r).symm
     rw [hPeq]
     exact hclaim
-  calc (foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card
+  calc (foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card
       ≤ (excSet dom g f d A).card + (pairs.biUnion B2).card :=
         (card_le_card hsub).trans (card_union_le _ _)
     _ ≤ (excSet dom g f d A).card + pairs.card * (2 * Fintype.card F) := by

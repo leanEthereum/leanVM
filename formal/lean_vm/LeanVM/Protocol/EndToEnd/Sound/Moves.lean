@@ -550,7 +550,6 @@ theorem moves_foldRound_le (hB : 17 ≤ B) (s : WhirState) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (foldRound s) :=
   Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
     Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-      Moves.seq' Moves.readE fun _ _ ↦
         Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
           (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
             Moves.pure trivial)

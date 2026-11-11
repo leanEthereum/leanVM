@@ -23,8 +23,8 @@ halves, every read is at an adjacent pair: the half `H[i] = f[2i]` (`getD_halfA`
   X_c(x)`. `laneVal_fold`: the folded lane is `G(x) + (α + β x) F(x)`, by `lem:mulx`
   (`sum_mxE`), which is how the verifier folds an opened row (`getD_foldLanes`).
 * `claim_fold`: if the running claim is `Σ w·f` over the weight's coefficients, the verifier's
-  next claim from the round's table, `(1 + γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁)` with
-  `u₁ = claim + v₀`, is `Σ w'·f'` for the folded tables.
+  next claim from the round's table `[u₀, w, c₀, c₁]`,
+  `u₀ + α (u₀ + claim) + α² w + β c₀ + α β (c₀ + c₁)`, is `Σ w'·f'` for the tables folded at `α`.
 -/
 
 namespace LeanVM.Protocol.Whir.Complete
@@ -185,14 +185,16 @@ theorem getD_foldLanes (x : K) (r : FoldRound) : ∀ (v : List E) (l : ℕ), 2 *
 
 /-! ## The claim -/
 
-/-- **The running claim through a round.** -/
+/-- **The running claim through a round**: from the table `[u₀, w, c₀, c₁]`, the verifier's next
+claim `u₀ + α (u₀ + claim) + α² w + β c₀ + α β (c₀ + c₁)` is `Σ w'·f'` for the tables folded at
+`α`. -/
 theorem claim_fold (f w : Array E) {m cols k : ℕ} (hf : f.size = cols * 2 ^ (m + 1))
-    (hw : w.size = 2 ^ k * 2 ^ (m + 1)) (hk : 2 ^ k ≤ cols) (γ α β claim : E)
-    (hclaim : claim = ∑ i ∈ range w.size, w.getD i 0 * f.getD i 0) (u₀ v₀ c₀ v₁ c₁ : E)
+    (hw : w.size = 2 ^ k * 2 ^ (m + 1)) (hk : 2 ^ k ≤ cols) (α β claim : E)
+    (hclaim : claim = ∑ i ∈ range w.size, w.getD i 0 * f.getD i 0) (u₀ w₁ c₀ c₁ : E)
     (ht : roundTableA f w (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
-      (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
-    (1 + γ) * (u₀ + α * v₀ + β * c₀) + γ * ((claim + v₀) + α * v₁ + β * c₁) =
-      ∑ i ∈ range (foldPairsA γ w).size, (foldPairsA γ w).getD i 0 *
+      (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, w₁, c₀, c₁]) :
+    u₀ + α * (u₀ + claim) + α * α * w₁ + β * c₀ + α * β * (c₀ + c₁) =
+      ∑ i ∈ range (foldPairsA α w).size, (foldPairsA α w).getD i 0 *
         (foldLanesA f (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
           (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β).getD i 0 := by
   set H := halfA f (2 ^ (m + 1))
@@ -205,27 +207,27 @@ theorem claim_fold (f w : Array E) {m cols k : ℕ} (hf : f.size = cols * 2 ^ (m
   have hw2 : w.size = 2 * n := by rw [hw, hn, pow_succ]; ring
   have hnw : w.size / 2 ^ (m + 1) * 2 ^ m = n := by
     rw [hw, Nat.mul_div_cancel _ (Nat.two_pow_pos _)]
-  have hwsz : (foldPairsA γ w).size = n := by simp [foldPairsA, hw2]
+  have hwsz : (foldPairsA α w).size = n := by simp [foldPairsA, hw2]
   simp only [roundTableA, two_pow_succ_div_two, idx_two, sumRange_eq, List.cons.injEq,
     and_true, hnw] at ht
-  obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := ht
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := ht
   have hin : ∀ i ∈ range n, i < XH.size := fun i hi ↦ by
     rw [hXH]; have := mem_range.mp hi
     calc i < 2 ^ k * 2 ^ m := this
       _ ≤ (cols + 1) * 2 ^ m := Nat.mul_le_mul_right _ (by omega)
   rw [hclaim, hw2, sum_range_two_mul, hwsz]
-  have key : ∀ i ∈ range n, (foldPairsA γ w).getD i 0 *
+  have key : ∀ i ∈ range n, (foldPairsA α w).getD i 0 *
       (foldLanesA f (2 ^ (m + 1)) H XH α β).getD i 0 =
-      (1 + γ) * (w.getD (2 * i) 0 * f.getD (2 * i + 1) 0 + α * (w.getD (2 * i) 0 * H.getD i 0) +
-          β * (w.getD (2 * i) 0 * XH.getD i 0)) +
-        γ * (((w.getD (2 * i) 0 * f.getD (2 * i) 0 + w.getD (2 * i + 1) 0 * f.getD (2 * i + 1) 0) +
-          w.getD (2 * i) 0 * H.getD i 0) +
-          α * (w.getD (2 * i + 1) 0 * H.getD i 0) + β * (w.getD (2 * i + 1) 0 * XH.getD i 0)) := by
+      w.getD (2 * i) 0 * f.getD (2 * i + 1) 0 +
+        α * (w.getD (2 * i) 0 * f.getD (2 * i + 1) 0 +
+          (w.getD (2 * i) 0 * f.getD (2 * i) 0 + w.getD (2 * i + 1) 0 * f.getD (2 * i + 1) 0)) +
+        α * α * ((w.getD (2 * i) 0 + w.getD (2 * i + 1) 0) * H.getD i 0) +
+        β * (w.getD (2 * i) 0 * XH.getD i 0) +
+        α * β * (w.getD (2 * i) 0 * XH.getD i 0 + w.getD (2 * i + 1) 0 * XH.getD i 0) := by
     intro i hi
-    rw [getD_foldPairsA γ w (by rw [hw2]; simpa using mem_range.mp hi),
+    rw [getD_foldPairsA α w (by rw [hw2]; simpa using mem_range.mp hi),
       getD_foldLanesA f m H XH α β (hin i hi), getD_halfA f hf]
-    have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
-    linear_combination (-(γ * w.getD (2 * i) 0 * f.getD (2 * i) 0)) * h2
+    ring
   rw [sum_congr rfl key]
   simp only [sum_add_distrib, ← mul_sum]
 

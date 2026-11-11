@@ -109,8 +109,8 @@ def tableCost : ℕ := 5 + 4 + (32 * roundCost 4 + tableWidthSum)
 def queryRounds (depth count : ℕ) : ℕ :=
   if 128 / depth = 0 then count else (count + 128 / depth - 1) / (128 / depth)
 
-/-- The cost of one fold round: five reads, a proof of work and `α, β`. -/
-def foldRoundCost : ℕ := 5 + 5 + 2 * 4
+/-- The cost of one fold round: four reads, a proof of work and `α, β`. -/
+def foldRoundCost : ℕ := 4 + 5 + 2 * 4
 
 /-- The cost of the WHIR levels from a message of `μ` variables, following `whirLevels`: per
 level its fold rounds; on a non-final level the commitment, its high part, two out-of-domain
@@ -731,7 +731,7 @@ section Whir
 
 variable {height : ℕ}
 
-/-- A fold round: five reads, a proof of work, two challenges; it appends one `α`. -/
+/-- A fold round: four reads, a proof of work, two challenges; it appends one `α`. -/
 theorem costs_foldRound (s : WhirState) :
     VerifierProgram.Costs height (foldRound s) foldRoundCost
       fun r ↦ r.1.alphas.length = s.alphas.length + 1 := by
@@ -739,11 +739,10 @@ theorem costs_foldRound (s : WhirState) :
     VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
-    VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦
     VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun _ _ ↦ ?_)
-      ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_
+      ?_) ?_) ?_) ?_) ?_) ?_) ?_
   · show (s.alphas ++ [_]).length = s.alphas.length + 1
     simp
   all_goals simp only [foldRoundCost]; omega

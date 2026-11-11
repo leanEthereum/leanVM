@@ -108,13 +108,13 @@ theorem card_foldBad_le_nAff [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι �
     (hadm : Admissible (Fintype.card ι) d A m D B)
     (hN : InterpolantCount (AlgebraicClosure F) dom d A m D B)
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
-    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card : ℚ) ≤
+    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card : ℚ) ≤
       nAff (Fintype.card F) (Fintype.card ι) d A m D B +
         2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by
-  have h := card_foldBad_le dom f g hgap Λ₀ Λ₁ c hviol u₀ v₀ c₀ v₁ c₁
+  have h := card_foldBad_le dom f g hgap Λ₀ Λ₁ c hviol u₀ v c₀ c₁
   have hmca := card_excSet_le_nAff dom hadm hN g f
-  calc ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card : ℚ)
+  calc ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card : ℚ)
       ≤ ((excSet dom g f d A).card : ℚ) +
           2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by exact_mod_cast h
     _ ≤ _ := by gcongr

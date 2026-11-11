@@ -21,11 +21,11 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 /-- **One fold round follows the verifier's.** -/
 theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : Commits) :
     Follows (fun cs' (a : Array E × Array E) (b : WhirState × FoldRound) ↦ cs' = cs ∧
-        ∃ α β u₀ v₀ c₀ v₁ c₁,
-          roundTableA f w s (halfA f s) (mulXA (halfA f s) (s / 2)) = [u₀, v₀, c₀, v₁, c₁] ∧
+        ∃ α β u₀ w₁ c₀ c₁,
+          roundTableA f w s (halfA f s) (mulXA (halfA f s) (s / 2)) = [u₀, w₁, c₀, c₁] ∧
           b.2 = ⟨α, β⟩ ∧
-          b.1 = { sv with claim := (1 + α) * (u₀ + α * v₀ + β * c₀) +
-              α * ((sv.claim + v₀) + α * v₁ + β * c₁), alphas := sv.alphas ++ [α] } ∧
+          b.1 = { sv with claim := u₀ + α * (u₀ + sv.claim) + α * α * w₁ + β * c₀ +
+              α * β * (c₀ + c₁), alphas := sv.alphas ++ [α] } ∧
           a = (foldLanesA f s (halfA f s) (mulXA (halfA f s) (s / 2)) α β,
             foldPairsA α w))
       (foldRoundA f w s) (foldRound sv) cs := by
@@ -34,7 +34,7 @@ theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : Comm
     VerifierProgram.pure_eq, Script.grindS, Script.sampleE, Script.sendList,
     VerifierProgram.readScalar, VerifierProgram.sampleChallenge, Script.bind, VerifierProgram.bind]
   intro α β
-  exact ⟨rfl, α, β, _, _, _, _, _, rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, α, β, _, _, _, _, rfl, rfl, rfl, rfl⟩
 
 /-! ## The invariant of a level's fold rounds -/
 
@@ -69,14 +69,14 @@ theorem runW_fold (B : List E → E) (lf : ℕ) (sv : WhirState) (c γ : E) (x :
 /-- **A round keeps the invariant.** -/
 theorem FoldInv.step {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ → List E} {j m : ℕ}
     {sv : WhirState} {f w : Array E} {rounds : List FoldRound}
-    (hI : FoldInv μ lf B κ P rowOf j (m + 1) sv f w rounds) (γ α β u₀ v₀ c₀ v₁ c₁ : E)
+    (hI : FoldInv μ lf B κ P rowOf j (m + 1) sv f w rounds) (α β u₀ w₁ c₀ c₁ : E)
     (ht : roundTableA f w (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
-      (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
+      (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, w₁, c₀, c₁]) :
     FoldInv μ lf B κ P rowOf (j + 1) m
-      { sv with claim := (1 + γ) * (u₀ + α * v₀ + β * c₀) +
-          γ * ((sv.claim + v₀) + α * v₁ + β * c₁), alphas := sv.alphas ++ [γ] }
+      { sv with claim := u₀ + α * (u₀ + sv.claim) + α * α * w₁ + β * c₀ +
+          α * β * (c₀ + c₁), alphas := sv.alphas ++ [α] }
       (foldLanesA f (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
-        (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β) (foldPairsA γ w)
+        (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β) (foldPairsA α w)
       (rounds ++ [⟨α, β⟩]) := by
   obtain ⟨hw, hf, hcols, hclaim, hlen, hW, hrows⟩ := hI
   have hpos := Nat.two_pow_pos m
@@ -86,10 +86,10 @@ theorem FoldInv.step {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ 
   refine ⟨?_, ?_, by omega, ?_, ?_, ?_, ?_⟩
   · simp [foldPairsA, hw, pow_succ, ← mul_assoc]
   · simp [foldLanesA, hXH]; ring
-  · exact claim_fold f w hf (k := κ) hw (by omega) γ α β _ hclaim u₀ v₀ c₀ v₁ c₁ ht
+  · exact claim_fold f w hf (k := κ) hw (by omega) α β _ hclaim u₀ w₁ c₀ c₁ ht
   · simp only [List.length_append, List.length_singleton]; omega
   · intro x hx
-    rw [runW_fold, hW (γ :: x) (by simp [hx]; omega), toList_foldPairsA, multilinearEval_cons]
+    rw [runW_fold, hW (α :: x) (by simp [hx]; omega), toList_foldPairsA, multilinearEval_cons]
   · intro p hp
     obtain ⟨hl, hv⟩ := hrows p hp
     have hfold : vfold (rounds ++ [⟨α, β⟩]) (K.ofBits p) (rowOf p) =
@@ -114,12 +114,12 @@ theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf
   | n + 1, j, sv, f, w, pre, hI => by
     simp only [foldRoundsA, foldRounds, Script.bind_eq, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (follows_foldRoundA f w (2 ^ (n + 1)) sv cs)
-    obtain ⟨hcs, α, β, u₀, v₀, c₀, v₁, c₁, ht, hb2, hb1, rfl⟩ := h
+    obtain ⟨hcs, α, β, u₀, w₁, c₀, c₁, ht, hb2, hb1, rfl⟩ := h
     obtain ⟨sv', r⟩ := b
     simp only at hb2 hb1
     subst hb2 hb1
     rw [two_pow_succ_div_two] at ht ⊢
-    have hI' := hI.step α α β u₀ v₀ c₀ v₁ c₁ ht
+    have hI' := hI.step α β u₀ w₁ c₀ c₁ ht
     simp only
     rw [← Script.bind_ret (foldRoundsA n (2 ^ n) _ _)]
     refine Follows.bind (fun cs₂ a' b' h' ↦ ?_) _ _ _

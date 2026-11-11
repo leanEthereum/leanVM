@@ -15,8 +15,8 @@ public import LeanVM.Protocol.Whir.Sound.Tuple
 
 Annex B (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), `lem:fold-list`, and Protocol
 `fig:protocol`, step 1: a round of a level with running claim `(Φ, σ)` on a word of `m + 1` lane
-variables reads `u₀, v₀, c₀, v₁, c₁`, sets `u₁ := σ + v₀`, draws `(α, β)` (after a grind), and
-continues with the claim `(Φ(α, ·), (1 + α)(u₀ + α v₀ + β c₀) + α (u₁ + α v₁ + β c₁))`
+variables reads `u₀, w, c₀, c₁`, draws `(α, β)` (after a grind), and continues with the claim
+`(Φ(α, ·), u₀ + α (u₀ + σ) + α² w + β c₀ + α β (c₀ + c₁))`
 (`foldClaim`) on the affine fold `foldQ dom α β Q` (`foldRound`, `Statement/LeanVmVerifier.lean`):
 the weight is folded at the combiner's own `α`.
 Every round of a level is analysed at the level's one degree `d`.
@@ -46,26 +46,26 @@ def FoldRoundBound {n : ℕ} (dom : Fin n ↪ E) (d A N : ℕ) : Prop :=
   ∀ (ρ : Type) [Fintype ρ] (f g : ρ → Fin n → E) (Λ₀ Λ₁ : (ρ → E[X]) →ₗ[E] E) (c : E),
     (∀ F G : ρ → E[X], DegLE d F → DegLE d G →
       A - 1 ≤ (agreeT dom F f ∩ agreeT dom G g).card → Λ₀ F + Λ₁ G ≠ c) →
-    ∀ u₀ v₀ c₀ v₁ c₁ : E, (univ.filter fun t : E × E ↦
+    ∀ u₀ v c₀ c₁ : E, (univ.filter fun t : E × E ↦
       ∃ P : ρ → E[X], DegLE d P ∧
         A ≤ (agreeT dom P fun r x ↦ g r x + (t.1 + t.2 * dom x) * f r x).card ∧
-        (1 - t.1) * Λ₀ P + t.1 * Λ₁ P = (1 - t.1) * (u₀ + t.1 * v₀ + t.2 * c₀) +
-          t.1 * ((c - v₀) + t.1 * v₁ + t.2 * c₁)).card ≤ N
+        (1 - t.1) * Λ₀ P + t.1 * Λ₁ P =
+          u₀ + t.1 * (c - u₀) + t.1 ^ 2 * v + t.2 * c₀ + t.1 * t.2 * (c₁ - c₀)).card ≤ N
 
-/-- The verifier's claim after a fold round (`foldRound`): `u₁ = σ + v₀`, then
-`(1 + α)(u₀ + α v₀ + β c₀) + α (u₁ + α v₁ + β c₁)`. -/
-def foldClaim (σ α β u₀ v₀ c₀ v₁ c₁ : E) : E :=
-  (1 + α) * (u₀ + α * v₀ + β * c₀) + α * ((σ + v₀) + α * v₁ + β * c₁)
+/-- The verifier's claim after a fold round (`foldRound`):
+`u₀ + α (u₀ + σ) + α² w + β c₀ + α β (c₀ + c₁)`. -/
+def foldClaim (σ α β u₀ w c₀ c₁ : E) : E :=
+  u₀ + α * (u₀ + σ) + α * α * w + β * c₀ + α * β * (c₀ + c₁)
 
 variable {n : ℕ} (κ : ℕ) (dom : Fin n ↪ E) {m : ℕ} (Q : (Fin (m + 1) → Bool) → Fin n → E)
   (Φ : List E → E) (σ : E) (A d : ℕ)
 
 open Classical in
 /-- The pairs `(α, β)` after which the fold escapes the invariant at `(A, d)`, for the table
-`u₀ v₀ c₀ v₁ c₁`. -/
-noncomputable def foldEsc (u₀ v₀ c₀ v₁ c₁ : E) : Finset (E × E) :=
+`u₀ w c₀ c₁`. -/
+noncomputable def foldEsc (u₀ w c₀ c₁ : E) : Finset (E × E) :=
   univ.filter fun t ↦ ¬ TViol κ dom (foldQ dom t.1 t.2 Q) (fun r ↦ Φ (t.1 :: r))
-    (foldClaim σ t.1 t.2 u₀ v₀ c₀ v₁ c₁) A d
+    (foldClaim σ t.1 t.2 u₀ w c₀ c₁) A d
 
 /-! ## The weight against one half -/
 
@@ -131,10 +131,11 @@ theorem tclaim_head (hΦ : IsMultiaffine (m + 1 + κ) Φ) (γ : E) (P : (Fin m �
   ring
 
 /-- In characteristic two the verifier's claim is the Annex's. -/
-theorem foldClaim_eq (α β u₀ v₀ c₀ v₁ c₁ : E) :
-    foldClaim σ α β u₀ v₀ c₀ v₁ c₁ = (1 - α) * (u₀ + α * v₀ + β * c₀) +
-      α * ((σ - v₀) + α * v₁ + β * c₁) := by
+theorem foldClaim_eq (α β u₀ w c₀ c₁ : E) :
+    foldClaim σ α β u₀ w c₀ c₁ =
+      u₀ + α * (σ - u₀) + α ^ 2 * w + β * c₀ + α * β * (c₁ - c₀) := by
   rw [foldClaim, CharTwo.sub_eq_add, CharTwo.sub_eq_add]
+  ring
 
 /-! ## The round -/
 
@@ -142,12 +143,12 @@ theorem foldClaim_eq (α β u₀ v₀ c₀ v₁ c₁ : E) :
 escaping pairs. -/
 theorem card_foldEsc_le {N : ℕ} (hB : FoldRoundBound dom d A N)
     (hΦ : IsMultiaffine (m + 1 + κ) Φ) (hv : TViol κ dom Q Φ σ (A - 1) d)
-    (u₀ v₀ c₀ v₁ c₁ : E) : (foldEsc κ dom Q Φ σ A d u₀ v₀ c₀ v₁ c₁).card ≤ N := by
+    (u₀ w c₀ c₁ : E) : (foldEsc κ dom Q Φ σ A d u₀ w c₀ c₁).card ≤ N := by
   classical
   have h := hB (Fin m → Bool) (fun u ↦ Q (Fin.cons false u)) (fun u ↦ Q (Fin.cons true u))
     (wlin κ fun r ↦ Φ (0 :: r)) (wlin κ fun r ↦ Φ (1 :: r)) σ (fun F G hF hG hag ↦ by
       rw [← tclaim_joinT]
-      exact hv _ (degLE_joinT hF hG) (by rwa [agreeT_joinT])) u₀ v₀ c₀ v₁ c₁
+      exact hv _ (degLE_joinT hF hG) (by rwa [agreeT_joinT])) u₀ w c₀ c₁
   refine (Finset.card_le_card fun t ht ↦ ?_).trans h
   rw [foldEsc, Finset.mem_filter] at ht
   rw [Finset.mem_filter]

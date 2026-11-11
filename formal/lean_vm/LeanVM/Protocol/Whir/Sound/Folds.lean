@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Whir.Sound.Group
 # The fold rounds
 
 `foldRounds ℓ s` (`LeanVM.Protocol.Verifier.foldRounds`, `crates/verifier/src/whir.rs:231-242`)
-runs the level's affine fold rounds (`foldRound`): five scalars, a grind and `(α, β)`, the claim
+runs the level's affine fold rounds (`foldRound`): four scalars, a grind and `(α, β)`, the claim
 folded at `α` (`foldClaim`).
 
 * `RoundInv`: the doom of Annex B's round-by-round argument after `j` rounds of level `i`
@@ -111,10 +111,10 @@ after which the invariant fails with one more round. -/
 theorem card_foldEsc_round_le (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ) {N : ℕ} (s : WhirState)
     (rounds : List FoldRound) (hj : rounds.length < P.ℓ) (cs : List (ℕ × ℕ × Word))
     (hB : FoldRoundBound P.dom P.deg (P.thr (rounds.length + 1)) N)
-    (hI : RoundInv μ ℓ₀ w i P pre s rounds cs) (u₀ v₀ c₀ v₁ c₁ : E) :
+    (hI : RoundInv μ ℓ₀ w i P pre s rounds cs) (u₀ w₁ c₀ c₁ : E) :
     (foldEsc P.κ P.dom (rowsOf (P.ℓ - (rounds.length + 1) + 1)
       (foldsA P.dom rounds (laneO i cs P.n))) (runW w ℓ₀ s) s.claim
-      (P.thr (rounds.length + 1)) P.deg u₀ v₀ c₀ v₁ c₁).card ≤ N := by
+      (P.thr (rounds.length + 1)) P.deg u₀ w₁ c₀ c₁).card ≤ N := by
   obtain ⟨hlen, -, hκ, hg, hv⟩ := hI
   set m := P.ℓ - (rounds.length + 1) with hm
   have hma : IsMultiaffine (m + 1 + P.κ) (runW w ℓ₀ s) := by
@@ -126,39 +126,39 @@ theorem card_foldEsc_round_le (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ
       simp only [LevelCode.thr]; omega
     rw [ha, ← tviol_rowsOf_congr (show P.ℓ - rounds.length = m + 1 by omega)]
     exact hv
-  exact card_foldEsc_le P.κ P.dom _ _ s.claim _ _ hB hma hv' u₀ v₀ c₀ v₁ c₁
+  exact card_foldEsc_le P.κ P.dom _ _ s.claim _ _ hB hma hv' u₀ w₁ c₀ c₁
 
 /-! ## The rounds -/
 
 /-- The state and the round after a round's challenges. -/
-def roundOut (s : WhirState) (u₀ v₀ c₀ v₁ c₁ α b : E) : WhirState × FoldRound :=
-  ({ s with claim := foldClaim s.claim α b u₀ v₀ c₀ v₁ c₁, alphas := s.alphas ++ [α] },
+def roundOut (s : WhirState) (u₀ w₁ c₀ c₁ α b : E) : WhirState × FoldRound :=
+  ({ s with claim := foldClaim s.claim α b u₀ w₁ c₀ c₁, alphas := s.alphas ++ [α] },
     ⟨α, b⟩)
 
 /-- `foldRound` as the moves the specification composes. -/
 theorem foldRound_eq (s : WhirState) :
-    foldRound s = readScalar >>= fun u₀ ↦ readScalar >>= fun v₀ ↦
-      readScalar >>= fun c₀ ↦ readScalar >>= fun v₁ ↦ readScalar >>= fun c₁ ↦
+    foldRound s = readScalar >>= fun u₀ ↦ readScalar >>= fun w₁ ↦
+      readScalar >>= fun c₀ ↦ readScalar >>= fun c₁ ↦
       grindProofOfWork Whir.foldGrindingBits >>= fun _ ↦
-      pairP fun α b ↦ roundOut s u₀ v₀ c₀ v₁ c₁ α b :=
+      pairP fun α b ↦ roundOut s u₀ w₁ c₀ c₁ α b :=
   rfl
 
 /-- After an escaping-free pair, the invariant with one more round. -/
-theorem roundInv_step (s : WhirState) (rounds : List FoldRound) (u₀ v₀ c₀ v₁ c₁ α b : E)
+theorem roundInv_step (s : WhirState) (rounds : List FoldRound) (u₀ w₁ c₀ c₁ α b : E)
     (t : E × E) (cs : List (ℕ × ℕ × Word)) (hlen : s.alphas.length = pre + rounds.length)
     (hj : rounds.length < P.ℓ) (hκ : P.κ + pre + P.ℓ = μ) (hg : GluedOK μ s)
     (hT : t ∉ foldEsc P.κ P.dom (rowsOf (P.ℓ - (rounds.length + 1) + 1)
       (foldsA P.dom rounds (laneO i cs P.n))) (runW w ℓ₀ s) s.claim
-      (P.thr (rounds.length + 1)) P.deg u₀ v₀ c₀ v₁ c₁)
+      (P.thr (rounds.length + 1)) P.deg u₀ w₁ c₀ c₁)
     (ht : t = (α, b)) :
-    RoundInv μ ℓ₀ w i P pre (roundOut s u₀ v₀ c₀ v₁ c₁ α b).1
-      (rounds ++ [(roundOut s u₀ v₀ c₀ v₁ c₁ α b).2]) cs := by
+    RoundInv μ ℓ₀ w i P pre (roundOut s u₀ w₁ c₀ c₁ α b).1
+      (rounds ++ [(roundOut s u₀ w₁ c₀ c₁ α b).2]) cs := by
   subst ht
   simp only [foldEsc, mem_filter, mem_univ, true_and, not_not] at hT
   refine ⟨by simp [roundOut, hlen]; omega, by simp; omega, hκ, fun g hgm ↦ ?_, ?_⟩
   · obtain ⟨h1, h2⟩ := hg g hgm
     exact ⟨by simp [roundOut]; omega, h2⟩
-  · have hfun : runW w ℓ₀ (roundOut s u₀ v₀ c₀ v₁ c₁ α b).1 = fun r ↦ runW w ℓ₀ s (α :: r) :=
+  · have hfun : runW w ℓ₀ (roundOut s u₀ w₁ c₀ c₁ α b).1 = fun r ↦ runW w ℓ₀ s (α :: r) :=
       funext (runW_fold w ℓ₀ s _ α fun g hgm ↦ (hg g hgm).1)
     rw [hfun, List.length_append, List.length_singleton, rowsOf_foldsA_concat]
     exact hT
@@ -178,22 +178,21 @@ noncomputable def foldRoundSpec {εmax : ENNReal} (X : CInv) (hw : IsMultiaffine
   let N := B.N j
   let I : CInv := fun cs ↦ RoundInv μ ℓ₀ w i P pre s rounds cs ∧ X cs
   Spec.congr (foldRound_eq s).symm <|
-  (readInv I (T := 0) zero_le).bind' fun u₀ ↦ (readInv I (T := 0) zero_le).bind' fun v₀ ↦
-  (readInv I (T := 0) zero_le).bind' fun c₀ ↦ (readInv I (T := 0) zero_le).bind' fun v₁ ↦
-  (readInv I (T := 0) zero_le).bind' fun c₁ ↦
+  (readInv I (T := 0) zero_le).bind' fun u₀ ↦ (readInv I (T := 0) zero_le).bind' fun w₁ ↦
+  (readInv I (T := 0) zero_le).bind' fun c₀ ↦ (readInv I (T := 0) zero_le).bind' fun c₁ ↦
   (grindInv I (b := Whir.foldGrindingBits) (by decide)
       (T := (N : ENNReal) / Fintype.card E ^ 2 + 0) (by simpa using B.eF j hj)).bind' fun _ ↦
   Spec.ofNoMove (noMoves_pairP _).noMove (B.eF1 j hj) fun h₀ hp ↦ by
-    have h := escRet_pairP (fun α b ↦ roundOut s u₀ v₀ c₀ v₁ c₁ α b)
+    have h := escRet_pairP (fun α b ↦ roundOut s u₀ w₁ c₀ c₁ α b)
       (fun r cs ↦ RoundInv μ ℓ₀ w i P pre r.1 (rounds ++ [r.2]) cs ∧ X cs) h₀
     refine h.le.trans ?_
     rw [ENNReal.div_eq_inv_mul, ENNReal.inv_pow]
     refine mul_le_mul' le_rfl (Nat.cast_le.mpr ((card_le_card fun t ht ↦ ?_).trans
-      (card_foldEsc_round_le hw hℓ₀ s rounds hj _ (B.bound j hj) hp.1 u₀ v₀ c₀ v₁ c₁)))
+      (card_foldEsc_round_le hw hℓ₀ s rounds hj _ (B.bound j hj) hp.1 u₀ w₁ c₀ c₁)))
     obtain ⟨⟨hlen, hj', hκ, hg, -⟩, hX⟩ := hp
     simp only [mem_filter, mem_univ, true_and] at ht
     by_contra hT
-    exact ht ⟨roundInv_step s rounds u₀ v₀ c₀ v₁ c₁ t.1 t.2 t _ hlen (by omega) hκ hg hT rfl, hX⟩
+    exact ht ⟨roundInv_step s rounds u₀ w₁ c₀ c₁ t.1 t.2 t _ hlen (by omega) hκ hg hT rfl, hX⟩
 
 theorem foldRounds_succ (n : ℕ) (s : WhirState) :
     foldRounds (n + 1) s = foldRound s >>= fun r ↦ foldRounds n r.1 >>= fun rr ↦

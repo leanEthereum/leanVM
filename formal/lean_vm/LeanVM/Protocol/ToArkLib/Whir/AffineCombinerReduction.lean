@@ -240,14 +240,14 @@ theorem card_foldBad_le_nAff_of_lemma43 [DecidableEq F] {p : ℕ} [Fact p.Prime]
     (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
     (hadm : Admissible (Fintype.card ι) d A m D B) (h43 : Lemma43 F p D (bigM d A m D))
     (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ q ∈ pairList dom f g (A - 1) d, Λ₀ q.1 + Λ₁ q.2 ≠ c) (u₀ v₀ c₀ v₁ c₁ : F) :
-    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁).card : ℚ) ≤
+    (hviol : ∀ q ∈ pairList dom f g (A - 1) d, Λ₀ q.1 + Λ₁ q.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card : ℚ) ≤
       nAff (Fintype.card F) (Fintype.card ι) d A m D B +
         2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by
   have : CharP (AlgebraicClosure F) p :=
     charP_of_injective_algebraMap (algebraMap F (AlgebraicClosure F)).injective p
   exact card_foldBad_le_nAff dom f g hgap hadm (interpolantCount_of_factorization dom hadm h43)
-    Λ₀ Λ₁ c hviol u₀ v₀ c₀ v₁ c₁
+    Λ₀ Λ₁ c hviol u₀ v c₀ c₁
 
 end
 

@@ -216,16 +216,15 @@ def halfA (f : Array E) (s : ℕ) : Array E :=
   Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
     f.getD (i.val / (s / 2) * s + 2 * (i.val % (s / 2))) 0
 
-/-- **A fold round's table** `[u₀, v₀, c₀, v₁, c₁] = [⟨W₀, G⟩, ⟨W₀, F⟩, ⟨W₀, XF⟩, ⟨W₁, F⟩, ⟨W₁, XF⟩]`
+/-- **A fold round's table** `[u₀, w, c₀, c₁] = [⟨W₀, G⟩, ⟨W₀ + W₁, F⟩, ⟨W₀, XF⟩, ⟨W₁, XF⟩]`
 over the low coefficients the weight `w` covers, from the halves' table `f`, `H = F` and
 `XH = X F`. -/
 def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
   let n := w.size / s * (s / 2)
   let at_ := fun i ↦ (i / (s / 2)) * s + 2 * (i % (s / 2))
   [sumRange n fun i ↦ w.getD (at_ i) 0 * f.getD (at_ i + 1) 0,
-   sumRange n fun i ↦ w.getD (at_ i) 0 * H.getD i 0,
+   sumRange n fun i ↦ (w.getD (at_ i) 0 + w.getD (at_ i + 1) 0) * H.getD i 0,
    sumRange n fun i ↦ w.getD (at_ i) 0 * XH.getD i 0,
-   sumRange n fun i ↦ w.getD (at_ i + 1) 0 * H.getD i 0,
    sumRange n fun i ↦ w.getD (at_ i + 1) 0 * XH.getD i 0]
 
 /-- The folded lanes `P = G + α F + β X F`, one coefficient longer (`Dense::fold`,

@@ -36,20 +36,20 @@ theorem foldRoundBound_of_admissible {n : ℕ} (dom : Fin n ↪ E) {d A m D B N 
       2 * AffineCombiner.jl n (A - 1) d * (Fintype.card E : ℚ) ≤ N) :
     FoldRoundBound dom d A N := by
   classical
-  intro ρ _ f g Λ₀ Λ₁ c hviol u₀ v₀ c₀ v₁ c₁
+  intro ρ _ f g Λ₀ Λ₁ c hviol u₀ v c₀ c₁
   have hn : Fintype.card (Fin n) = n := Fintype.card_fin n
   have hagree : ∀ (P : ρ → E[X]) (w : ρ → Fin n → E), agreeT dom P w = agree dom P w :=
     fun P w ↦ by ext x; simp [agreeT, agree]
   have hb := card_foldBad_le_nAff' 2 dom f g (by rwa [hn]) (by rwa [hn])
     Λ₀ Λ₁ c (fun q hq ↦ by
       rw [mem_pairList] at hq
-      exact hviol q.1 q.2 hq.1 hq.2.1 (by rw [hagree, hagree]; exact hq.2.2)) u₀ v₀ c₀ v₁ c₁
+      exact hviol q.1 q.2 hq.1 hq.2.1 (by rw [hagree, hagree]; exact hq.2.2)) u₀ v c₀ c₁
   rw [hn] at hb
   have heq : (univ.filter fun t : E × E ↦ ∃ P : ρ → E[X], Sound.DegLE d P ∧
       A ≤ (agreeT dom P fun r x ↦ g r x + (t.1 + t.2 * dom x) * f r x).card ∧
-      (1 - t.1) * Λ₀ P + t.1 * Λ₁ P = (1 - t.1) * (u₀ + t.1 * v₀ + t.2 * c₀) +
-        t.1 * ((c - v₀) + t.1 * v₁ + t.2 * c₁)) =
-      foldBad dom f g A d Λ₀ Λ₁ c u₀ v₀ c₀ v₁ c₁ := by
+      (1 - t.1) * Λ₀ P + t.1 * Λ₁ P =
+        u₀ + t.1 * (c - u₀) + t.1 ^ 2 * v + t.2 * c₀ + t.1 * t.2 * (c₁ - c₀)) =
+      foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ := by
     refine Finset.filter_congr fun t _ ↦ ?_
     refine exists_congr fun P ↦ ?_
     rw [mem_tupleList, hagree]
