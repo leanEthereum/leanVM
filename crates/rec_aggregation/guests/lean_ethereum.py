@@ -1493,7 +1493,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     # g^rate_sel at runtime. The LIG_* tables hold a row per (rate, size) candidate,
     # rate-major, so row m_idx is the size's at the first rate, and a level's row `ml`
     # is its (`opening_placeholders` checks that only the shapes below vary by rate).
-    # What a rate changes, its query counts and Merkle shapes and fold grinding, each
+    # What a rate changes, its query counts and Merkle shapes, each
     # level reads through a `match` on the rate into a helper specialized on them, and
     # shared by every size. Only the executed arm pops the opening's hint streams.
     #
