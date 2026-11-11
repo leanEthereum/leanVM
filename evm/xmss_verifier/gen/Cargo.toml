@@ -1,0 +1,12 @@
+[package]
+name = "xmss-verifier-gen"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Outside the leanVM workspace.
+[workspace]
+
+[dependencies]
+primitives = { path = "../../../crates/primitives" }
+signatures = { path = "../../../crates/signatures" }
