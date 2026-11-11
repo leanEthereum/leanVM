@@ -53,7 +53,7 @@ def outStates (R : Array (Array K)) (mids : Array KeccakState) : Array KeccakSta
 /-- `QKECCAK` of the `KECCAK` table at the height `2^h`: slot `l < 25` of step `x` is input lane
 `l` of row `x`, slot `25 + l` lane `l` of its state after twelve rounds, slot `50 + k` its cell of
 the column `k`, `pc` through `out_all` (`spare_local` and `qkeccak_slot`,
-`crates/verifier/src/layout.rs:399-432`). -/
+`crates/verifier/src/layout.rs:406-439`). -/
 def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : Array K :=
   let p := 2 ^ h
   Array.ofFn (n := 2 ^ (h + 6)) fun i ↦

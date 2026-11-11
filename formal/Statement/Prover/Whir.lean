@@ -9,7 +9,7 @@ public import Statement.Prover.Mle
 The honest prover of ring switching (`ringSwitch`: `ring_switch`,
 `crates/verifier/src/ring_switch.rs:40-54`, with `ring_map` and `ring_weight`, `:12-34`) and of the
 stacked opening (`verifyStackedOpening`: `verify_stacked_opening`,
-`crates/verifier/src/lib.rs:124-139`, then `verify_whir`, `crates/verifier/src/whir.rs:142-265`), at
+`crates/verifier/src/lib.rs:126-141`, then `verify_whir`, `crates/verifier/src/whir.rs:142-265`), at
 leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their

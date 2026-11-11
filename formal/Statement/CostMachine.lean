@@ -425,7 +425,8 @@ term `2^81` up to `μ = 29`, then `2^82`) and the runs of the
 candidate executions (about `2^65.6`); the second term bounds the transcript's index (about
 `2^14.85` per query and level squared, a level's positions growing by a limb per `64` levels) and
 the committed leaves (`2^30` at most). So, at a stack of `2^29` or less, about `2^81` for at most
-`2^50` queries, `2^87.56` for `2^60`, `2^107.76` for `2^80` and `2^157.08` for `2^128`: past
+`2^50` queries, `2^86.98` for `2^60`, `2^107.76` for `2^80` and `2^157.08` for `2^128` (at a
+stack of `2^30`, about `2^82` for at most `2^50` queries and `2^87.01` for `2^60`): past
 `2^128` from about `2^100` queries, where the soundness bound is still `2^-28` (`statement.tex`,
 *What is not proved*, says what the regime leaves out). A proof announcing no layout is given the
 budget of `μ = 0`. -/

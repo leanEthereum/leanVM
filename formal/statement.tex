@@ -28,7 +28,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
 leanVM as of this document's tree: commit \texttt{40f877dc} of its \texttt{main} branch, with pull request \#724 squash-merged
 (\texttt{KECCAK} writes only the output cells its bytecode requests, one, two or all thirteen, and
-the guest program writes each digest as one or two cells), then the committed stack raised to $2^{32}$ with WHIR fold grinding, no memory floor, and the guest's announced counts bounded by its memory.
+the guest program writes each digest as one or two cells), then every size (memory, bytecode, tables and the committed stack) capped at $2^{30}$, no fold grinding, no memory floor, and the guest's announced counts bounded by its memory.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
 of definitions and end statements, which import Mathlib,
@@ -145,7 +145,7 @@ costs are included in the bounds below.
 
 \paragraph{What a proof claims.} A proof claims that a program $\mathit{prog}$ (leanVM bytecode) runs to
 completion on a public input $x$. A \emph{valid execution} of $\mathit{prog}$ on $x$ (\lean{ValidExecution},
-\lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2 \le 2^\kappa \le 2^{32}$,
+\lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2 \le 2^\kappa \le 2^{30}$,
 holding $x$ in words $0$ and $1$, together with a number of steps that run $\mathit{prog}$ on it from
 $(\mathit{pc}, \mathit{fp}) = (1, 1)$ to the final state $(g^{N_{\mathit{prog}}-1}, 1)$, where $N_{\mathit{prog}}$ is the
 bytecode's size: the last bytecode slot, in \texttt{main}'s frame. The machine halts when both
@@ -161,11 +161,11 @@ run may cost in the machine's price, so also the most steps it may execute,
 $2^{\max(81,\,2\mu + 22)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
 elements (\lean{announcedStackLog}) and $N$ permutation queries, $D = \log_2(N + 2) + 1$, above the
 price \lean{lean_vm} proves of the compiled extractor at every shape of that size; polylogarithmic
-per query: for $N \le 2^{50}$ about $2^{81}$ up to $\mu = 29$ and $2^{86}$ at $\mu = 32$, the list
+per query: for $N \le 2^{50}$ about $2^{81}$ up to $\mu = 29$ and $2^{82}$ at $\mu = 30$, the list
 decoder dominating, and $2^{157.08}$ at $N = 2^{128}$, the transcript's index dominating), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The budget
 passes $2^{128}$ at about $N = 2^{100}$, where the soundness bound is still $2^{-28}$, and its first
-term, at most $2^{86}$, would pay for a search of about $2^{75}$ Keccak-f[1600] evaluations: knowledge
+term, at most $2^{82}$, would pay for a search of about $2^{71}$ Keccak-f[1600] evaluations: knowledge
 of a witness such a search finds
 (of low entropy) is not what the statement certifies. The
 statement takes $P$ as a parameter (\texttt{leanVmKnowledgeExtractor := P}) and constrains it only
@@ -224,10 +224,10 @@ adversary making at most $Q \le 2^{128}$ queries to $\pi$ and $\pi^{-1}$ on ever
 \text{extractor outputs no valid execution of } \mathit{prog} \text{ on } x\end{array}\right]
 \le (Q+2^{14})\cdot 2^{-128} + 5\,(Q+2^{14})^2\cdot 2^{-256}\ }
 \]
-(\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $14026$
-Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to $14026\cdot 2^{32}$, the IV
-hashing a bytecode of up to $2^{32}$ instructions) and two further terms of at most $2^{-128}$ each:
-the transfer to the RPM, which pays for those calls, and the verifier's own $14026/2^{256}$.
+(\lean{LeanVM.knowledgeSoundness_holds}). The constant $2^{14}$ absorbs the verifier's $12674$
+Keccak-256 evaluations and duplex permutations (as calls of $\pi$ up to $12674\cdot 2^{30}$, the IV
+hashing a bytecode of up to $2^{30}$ instructions) and two further terms of at most $2^{-128}$ each:
+the transfer to the RPM, which pays for those calls, and the verifier's own $12674/2^{256}$.
 
 \paragraph{Completeness} (\lean{LeanVM.Completeness}). The statement names its honest prover,
 \lean{LeanVM.leanVmHonestProver}: the executable \lean{LeanVM.Prover.prove}
@@ -239,7 +239,7 @@ verifier samples. On the test corpus ($17$ programs at $4$ rates) its proofs are
 the Rust prover's, and both verifiers reject every mutation of them.
 
 For every program $\mathit{prog}$, public input $x$ and valid execution of $\mathit{prog}$ on $x$ of committed size at
-most $2^{32}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
+most $2^{30}$ cells, at every inverse rate $2^\rho$ with $1 \le \rho \le 4$, trying $2^{25}$ nonces
 per proof of work,
 \[
 \boxed{\ \Pr[\text{the verifier rejects the honest proof}] \le 2^{-256}\ }
@@ -249,8 +249,8 @@ specification's honest prover at the execution's witness). Completeness is not p
 because the proof of work is bounded: for any fuel $f \le 2^{64}$ the rejection probability is at
 most
 \[
-\delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{32})^2/2^{508}, \qquad
-Q_f = 14028 + 56097\,(2^{31} + 2f + 2)
+\delta(f) = Q_f\,(1-2^{-17})^{f} + (Q_f\cdot 2^{30})^2/2^{508}, \qquad
+Q_f = 12676 + 50689\,(2^{29} + 2f + 2)
 \]
 (\lean{LeanVM.Rpm.completenessRpm}, \lean{lean_vm}). The \emph{committed size} (\lean{Execution.committedSize}) of an
 execution is
@@ -501,7 +501,7 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4643-4647}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4655-4659}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
@@ -618,16 +618,16 @@ each child's cursor is at most $8192$ words, as the stream of its proof is, whic
 verifier accepts on a valid execution (\lean{valid_cursor}, from
 \lean{stream_le_of_verifyDeferred}), and the decoder clamps the DA matrix's row count at $1024$. The
 budget is $2^{43.90}$ at $\kappa = 20$ and $2^{20}$ steps, $2^{47.44}$ at $\kappa = 24$ and
-$2^{24}$, $2^{51.42}$ at $\kappa = 28$ and $2^{28}$, $2^{55.17}$ at $\kappa = 32$ and $2^{30}$,
-$2^{72.26}$ at $\kappa = 32$ and $2^{51}$, and $2^{81.30}$ at $\kappa = 32$ and $2^{60}$ (the price
-there, at counts up to the memory's size: $2^{43.19}$, $2^{47.02}$, $2^{51.02}$, $2^{54.78}$,
-$2^{71.93}$, $2^{80.98}$). The budget prices the witness at the bounds above, not at the run's, so
+$2^{24}$, $2^{51.42}$ at $\kappa = 28$ and $2^{28}$, $2^{53.42}$ at $\kappa = 30$ and $2^{30}$,
+$2^{70.25}$ at $\kappa = 30$ and $2^{49}$, and $2^{81.30}$ at $\kappa = 30$ and $2^{60}$ (the price
+there, at counts up to the memory's size: $2^{43.19}$, $2^{47.02}$, $2^{51.02}$, $2^{53.03}$,
+$2^{69.92}$, $2^{80.98}$). The budget prices the witness at the bounds above, not at the run's, so
 with fewer children and claims it is several times the compiled decoder's price. There is no cap on the steps in the budget. A valid execution of $G$ (\lean{ValidExecution})
-has fewer than $2^{51}$ steps: the memory is fixed and every instruction reads a cell at
+has fewer than $2^{49}$ steps: the memory is fixed and every instruction reads a cell at
 $\mathit{fp}\cdot o$ for an offset $o$ fixed by $\mathit{pc}$, so at each $\mathit{pc}$ at most
 $2^\kappa$ values of $\mathit{fp}$ let a step succeed; the run is determined by
 $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
-($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 32$; argued, not a Lean theorem;
+($2^\ell\cdot 2^\kappa$ states, $\ell = 19$, $\kappa \le 30$; argued, not a Lean theorem;
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $463560$)
@@ -705,8 +705,8 @@ coverage table, one slot per raw signature and per entry of a child's lists
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
 ($2^{25}$ nonces per proof of work) of an execution of $G$ on $\mathrm{dig}_{iv_G}(s_i)$ (the
-prover makes none past $2^{32}$ committed words, and $G$ opens every stack the verifier admits of an
-execution of its bytecode, of log $20$ to $32$); and the verifier that also refuses
+prover makes none past $2^{30}$ committed words, and $G$ opens every stack the verifier admits of an
+execution of its bytecode, of log $20$ to $30$); and the verifier that also refuses
 every zero challenge (\lean{verifierRefusingZero}, through
 \lean{VerifierProgram.refusingZeroChallenge}, which fails on every zero challenge the verifier
 program samples) accepts it with the deployed Keccak. The guest program divides by the fold and tail
@@ -717,8 +717,8 @@ below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
 What the guest program checks of a child is in \lean{lean_vm} (\lean{AcceptableChild}): the
-statement's deferring-verifier conditions; a stack log of $20$ to $32$ announced (the guest program
-has one opening arm per stack log, the rate dispatched inside it) and a proof stream of at most $8192$ field
+statement's deferring-verifier conditions; a stack log of $20$ to $30$ announced (the guest program
+has one opening arm per stack log, eleven in all, the rate dispatched inside it) and a proof stream of at most $8192$ field
 elements; at each query step of its deferring verifier, the Merkle openings agreeing wherever they
 share a node of the tree (an honest prover's openings, all from one tree, agree); and no zero
 challenge in its deferring verifier. \lean{lean_vm} proves that honest children meet it
@@ -732,31 +732,31 @@ $\cnt{pad}$ rows ($2^{\lceil\log_2 m\rceil}$ for a matrix of $m$ rows), $\cnt{ch
 with $\cnt{childclaims}$ claims in all,
 and each child's announced stack log $\mu$ and rate exponent $r$. A run allocates at most
 \begin{multline*}
-W = 29683 + 33\cnt{decl} + 41\cnt{cover} + 1551\cnt{xmss} + 8582\cnt{sphincs} + 186063\cnt{da}
+W = 28821 + 33\cnt{decl} + 41\cnt{cover} + 1551\cnt{xmss} + 8582\cnt{sphincs} + 186063\cnt{da}
   + 215776\cnt{rows} \\ + 82\cnt{pad} + 25375\cnt{child} + 51\cnt{childclaims}
   + \sum_{\text{children}} \beta(\mu)
 \end{multline*}
 words, where $\beta(\mu)$, the words of verifying one child, is the same at every rate (one opening
 arm per stack log serves the four):
 \begin{center}\small
-\begin{tabular}{l|rrrrrrr}
-$\mu$ & 20 & 21 & 22 & 23 & 24 & 25 & 26\\\hline
-$\beta$ & 409571 & 410133 & 412351 & 415065 & 428115 & 433363 & 441727\\\hline\hline
-$\mu$ & 27 & 28 & 29 & 30 & 31 & 32 &\\\hline
-$\beta$ & 446058 & 457344 & 459053 & 463868 & 468386 & 487022 &
+\begin{tabular}{l|rrrrrr}
+$\mu$ & 20 & 21 & 22 & 23 & 24 & 25\\\hline
+$\beta$ & 413983 & 414545 & 416763 & 419477 & 432523 & 437771\\\hline\hline
+$\mu$ & 26 & 27 & 28 & 29 & 30 &\\\hline
+$\beta$ & 446135 & 450466 & 461748 & 463457 & 468272 &
 \end{tabular}
 \end{center}
 The instructions of each opcode are bounded by linear forms of the same shape
 (\lean{Count.deployedInstrs}; for \texttt{KECCAK}, $137 + \cnt{decl} + 398\cnt{xmss} + 899\cnt{sphincs} +
 2175\cnt{rows} + \cnt{pad} + 173\cnt{child} + \cnt{childclaims} + \sum \gamma(\mu)$ with
-$\gamma$ between $7264$ and $12633$). The
+$\gamma$ between $7323$ and $10497$). The
 budget's size is the committed size of Section~\ref{sec:zkvm} at these bounds: memory
 $2^{\lceil\log_2 W\rceil}$ and each table's height the least power of two at least its
 bound (at least $2^9$ for \texttt{KECCAK}). These are proved bounds on the guest program's runs,
 counted from its code, not measurements.
 
 \paragraph{The theorems.} Each concludes that $G$ has a valid execution $t$ on public input
-$\mathrm{dig}_{iv_G}(s)$ with $\mathrm{size}(t) \le 2^{32}$ (committed size), so that its honest
+$\mathrm{dig}_{iv_G}(s)$ with $\mathrm{size}(t) \le 2^{30}$ (committed size), so that its honest
 proof is a child \lean{HonestChild} admits.
 \begin{itemize}
 \item \lean{GuestCompleteOnHonestChildren}: under hypotheses 1 and 2 (the budget is discharged in
@@ -782,14 +782,17 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 \end{tabular}
 \end{center}
 \lean{DeployedLimits} caps a recursion node at $16$ children, each at
-any $\mu \in [20,32]$ and $r \in [1,4]$.
+any $\mu \in [20,30]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
-for every child, at any seed, whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
+for every child, at any seed,
+% STALE: the bound 2^28 below (guest_complete_numeric's hypothesis, and the leaf capacities it places under it) is not yet recomputed at the 2^30 caps
+whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
+% STALE: 2752 leanXMSS, 1002 leanSPHINCS and 58 DA rows were evaluated before the 2^30 caps and the 11-arm guest; not yet recomputed
 $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{5e3ade21}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$, and at \texttt{40f877dc}, whose \texttt{KECCAK} table commits two more columns, $2^{26.496}$ and $2^{27.484}$ (not re-evaluated in this tree, where the opening arms changed and the constant term fell to $29683$ words).
+\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{5e3ade21}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$, and at \texttt{40f877dc}, whose \texttt{KECCAK} table commits two more columns, $2^{26.496}$ and $2^{27.484}$ (not re-evaluated in this tree, where every size is capped at $2^{30}$, the opening arms changed and the constant term fell to $28821$ words).
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
@@ -798,7 +801,7 @@ probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
 \paragraph{Honest proofs are rarely refused} (\lean{HonestProofRarelyRefused}). For the same named
 prover \lean{LeanVM.leanVmHonestProver}: in the RPM, with $2^{25}$ nonces per proof of work, it
 makes no proof, or the verifier that also refuses every zero challenge (\lean{verifierRefusingZero})
-rejects its proof, of any valid execution of committed size at most $2^{32}$, at $1 \le \rho \le 4$,
+rejects its proof, of any valid execution of committed size at most $2^{30}$, at $1 \le \rho \le 4$,
 with probability at most $2^{-126}$. The guest program checks a child with the deployed Keccak, so
 the bad events (a proof of work with no nonce within its fuel, a zero challenge) are bounded in the
 RPM for the same prover and check, and their absence at the deployed Keccak is what
@@ -839,7 +842,7 @@ and \lean{LeanVM.Guest.End.decode} (\lean{LeanVM.Cost.compiledKnowledgeExtractor
 \lean{LeanVM.Cost.compiledGuestWitnessDecoder}).
 \item That the extracted execution is the one the proof commits to: \lean{KnowledgeSoundness}
 asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{AggregateSound} decodes that one.
-\item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}): argued,
+\item That a valid execution of $G$ has fewer than $2^{49}$ steps (Section~\ref{sec:guest}): argued,
 not a Lean theorem (\lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}); the
 decoder's budget has no cap on the steps, and it prices the witness at the bounds a valid
 execution's asserts and its children's accepted proofs give ($16$ children, claims of each scheme
@@ -847,7 +850,7 @@ below the memory's size, a cursor of $8192$ words each), not at the run's.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
 size, and the bounds are tight only for programs written like the compiled ones (a decoder
 written differently could pack the guest's frame-cell table about three times tighter, freeing
-room for about $1270$ signatures' encodings, or compute it from its input, freeing room for about $1900$).
+room for about $900$ signatures' encodings, or compute it from its input, freeing room for about $1340$).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
 \item A tight extractor budget: it is $2^{\max(81,\,2\mu + 22)} + O(N\log^3 N)$, priced at the worst shape of each stack size.

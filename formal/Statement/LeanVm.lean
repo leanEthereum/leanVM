@@ -90,12 +90,12 @@ def leanVmHonestProver : HonestProver :=
 /-- **The committed size of an execution**: the number of cells the honest prover commits to, every
 committed column at its table's height, the least power of two holding the table's rows (`1` for no
 row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
-`crates/verifier/src/layout.rs:490`). The memory has four columns of `2^κ` rows, and the bytecode's
+`crates/verifier/src/layout.rs:497`). The memory has four columns of `2^κ` rows, and the bytecode's
 counts (`BFCNT`) one of `2^logSize` rows. Each opcode has a table of one row per instruction of that
 opcode the execution executes (`Execution.opcodeCount`), with `15, 15, 8, 15, 14, 28` committed
 columns for `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's
 `92` columns, the `25` input lanes and `14` more ride `q_keccak`'s slots and the `25` output lanes
-are not committed, `layout.rs:388-432`); and `q_keccak` has `2^6` rows per row of the `KECCAK`
+are not committed, `layout.rs:395-439`); and `q_keccak` has `2^6` rows per row of the `KECCAK`
 table. -/
 noncomputable def Semantics.Execution.committedSize {program : LeanIsaProgram}
     (execution : Execution program) : ℕ :=
