@@ -1,0 +1,7 @@
+# The axioms each claim may depend on, one entry per claim.
+# tools/check-claims.py requires each claim's `#print axioms` to equal its entry exactly.
+# `tools/check-claims.py --print` prints the entries:
+#
+# [[claim]]
+# name   = "Refinement.Claims.<name>"
+# axioms = ["Classical.choice", "Quot.sound", "propext"]

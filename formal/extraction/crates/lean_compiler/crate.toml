@@ -1,0 +1,11 @@
+# The `lean_compiler` crate.
+# The zkDSL compiler.
+# No claim planned: the guest's bytecode enters the statement as generated data.
+
+lean_lib = "LeanCompiler"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = []

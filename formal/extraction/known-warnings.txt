@@ -1,0 +1,3 @@
+# The warnings `lake build` may print, one per line, as `<file>: <message>`.
+# tools/extract/extract.sh fails on an unlisted warning, and on a listed one no longer printed.
+# Empty while every library builds with warnings as errors.

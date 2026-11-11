@@ -1,0 +1,17 @@
+# The `leanvm_core` crate.
+# Arithmetization: tables, bus, constraints, the prover.
+
+lean_lib = "LeanvmCore"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = [
+  "Statement.LeanIsa",
+  "Statement.Prover.Bus",
+  "Statement.Prover.Run",
+  "Statement.Prover.Table",
+  "Statement.Prover.Witness",
+  "Statement.Prover.Prove",
+]

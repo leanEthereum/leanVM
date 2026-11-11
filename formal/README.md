@@ -4,6 +4,8 @@ Lean 4 proofs that leanVM is knowledge sound and complete, that its aggregation 
 
 Key file: [Theorems.lean](./Statement/Theorems.lean)
 
+[extraction/](./extraction/README.md) sets up the Lean model of the crates, to prove that the Rust refines the statement.
+
 ```sh
 cd formal
 ./check-all.sh lean      # build and kernel-check every Lean project: no sorry, axioms Lean's three

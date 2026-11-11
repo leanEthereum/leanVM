@@ -1,0 +1,10 @@
+# The `lean_da` crate.
+# LeanDA: additive Reed-Solomon blob encoding, commitments, membership vectors.
+
+lean_lib = "LeanDa"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.LeanDa"]

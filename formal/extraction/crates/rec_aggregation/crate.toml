@@ -1,0 +1,10 @@
+# The `rec_aggregation` crate.
+# Recursive signature and DA aggregation: the guest and its entry points.
+
+lean_lib = "RecAggregation"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.LeanVmGuest"]

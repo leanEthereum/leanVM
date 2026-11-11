@@ -1,0 +1,11 @@
+# The `primitives` crate.
+# Field kernels, Keccak-256, bit transposes, multilinear helpers.
+# Only the portable arms are extracted (toolchain.toml's target).
+
+lean_lib = "Primitives"
+state = "stub"
+
+features = []
+
+# The statement modules its claims are stated against.
+spec = ["Statement.Field", "Statement.Keccak"]

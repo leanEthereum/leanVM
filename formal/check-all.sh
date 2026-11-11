@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Builds and checks the statement package and the five proof projects as .github/workflows/lean.yml
-# does, one after another, each in its own directory with its own manifest, then lean_vm against
+# Builds and checks the statement package, the five proof projects and the extraction project as
+# .github/workflows/lean.yml does, one after another, each in its own directory with its own manifest, then lean_vm against
 # this repository's Rust (`leanvm`, which needs cargo). `lake build` at the root runs it.
 #
-#   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
-#   (default: all seven; `lean` is the first six, `vectors` is `leanvm`)
+#   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm]
+#                  [extraction] [leanvm]
+#   (default: all eight; `lean` is the first seven, `vectors` is `leanvm`)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job: every build runs in
@@ -109,6 +110,18 @@ lean_da() {
     LeanDa.leanDa_codeBinding_rpm_bound
 }
 
+# The Lean model of the crates (stubbed until extracted) and the refinement claims about it: its
+# layout agrees with Cargo's, and each claim has exactly the axioms claims.toml allows.
+extraction() {
+  no_escapes extraction
+  step "extraction: crates/, lakefile.toml and Cargo agree"
+  python3 -I extraction/tools/check-layout.py
+  (cd extraction && lake exe cache get)
+  build extraction '(Refinement|HaxExt)'
+  step "extraction: each claim's axioms"
+  (cd extraction && capped python3 -I tools/check-claims.py)
+}
+
 # Every lean_vm executable, in one build.
 executables() {
   step "lean_vm: the executables"
@@ -179,19 +192,19 @@ leanvm() {
   rm -rf "$pd"
 }
 
-# `lean`: the six Lean projects; `vectors`: the checks against leanVM's Rust.
+# `lean`: the seven Lean projects; `vectors`: the checks against leanVM's Rust.
 projects=()
 for p in "$@"; do
   case $p in
-    lean) projects+=(statement common lean_xmss lean_sphincs lean_da lean_vm) ;;
+    lean) projects+=(statement common lean_xmss lean_sphincs lean_da lean_vm extraction) ;;
     vectors) projects+=(leanvm) ;;
     *) projects+=("$p") ;;
   esac
 done
-[ ${#projects[@]} -gt 0 ] || projects=(statement common lean_xmss lean_sphincs lean_da lean_vm leanvm)
+[ ${#projects[@]} -gt 0 ] || projects=(statement common lean_xmss lean_sphincs lean_da lean_vm extraction leanvm)
 for p in "${projects[@]}"; do
   case $p in
-    statement | common | lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
+    statement | common | lean_xmss | lean_sphincs | lean_da | lean_vm | extraction | leanvm) "$p" ;;
     *) fail "unknown project $p" ;;
   esac
 done

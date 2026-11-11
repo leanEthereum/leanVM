@@ -250,6 +250,47 @@ jobs:
           name: lean-da-axioms
           path: ${{ runner.temp }}/axioms.txt
 
+  # The Lean model of the crates (`formal/extraction/crates/`, stubbed until hax extracts them) and the
+  # refinement claims about it. Runs on every change: a new crate or Cargo dependency must reach the model's
+  # layout. Aeneas and CoreModels build from source, so `main` saves the Lake build, without Mathlib's.
+  extraction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I formal/tools/escape-scan.py formal/extraction
+      - name: Check that crates/, lakefile.toml and Cargo agree
+        run: |
+          python3 -I formal/extraction/tools/check-layout.py
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/extraction/.lake
+            !formal/extraction/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: lake-extraction-${{ runner.os }}-${{ hashFiles('formal/extraction/lean-toolchain', 'formal/extraction/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/extraction/**/*.lean', 'formal/Statement/**/*.lean') }}
+          restore-keys: lake-extraction-${{ runner.os }}-${{ hashFiles('formal/extraction/lean-toolchain', 'formal/extraction/lake-manifest.json', 'formal/*/lakefile.*') }}-
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/extraction
+          use-github-cache: false
+      - name: Check each claim's axioms
+        working-directory: formal/extraction
+        run: |
+          python3 -I tools/check-claims.py
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/extraction/.lake
+            !formal/extraction/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+
   # `lean_vm` models the verifier and the prover's proofs of this repository, and imports the statement (`Statement/`), what is left of the two signature
   # schemes' and LeanDA's Scheme modules, and `common`, so a change to any of them re-checks it. It also holds the checks
   # against the Rust it transcribes (`guest-export --check`, the differentials), so a change to those
