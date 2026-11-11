@@ -60,43 +60,22 @@ def main():
     verify(&program, &want, &proof).expect("unwritten touches verify");
 }
 
-/// A bound of `2^16`, the memory this prover pads to, end to end: the complement
-/// cell is `g^65535`, the last cell of that memory, so an off-by-one in the bound
-/// check or in the memory size shows up here.
+/// The complement read sizes the memory: with `x = g^0`, a bound `k` touches `g^{k-1}`,
+/// so the run announces the least power of two above `k - 1` cells, exactly `2^16` at
+/// `k = 2^16` and `2^17` one past it. An off-by-one in the bound or in the memory size
+/// shows up here.
 #[test]
-fn range_check_max_bound() {
-    let src = "\
-def main():
-    x = GEN ** 5
-    assert log x < 65536
-    p = 1
-    p[1] = x
-    p[GEN] = x
-    return
-";
-    let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(5)); 2];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("max-bound range check verifies");
-}
-
-/// A bound past the prover's padding: the code at pc 0 touches `g^{k-1}`, so the
-/// memory the run needs holds every complement and the check is complete.
-#[test]
-fn range_check_bound_past_the_pad() {
-    let src = "\
-def main():
-    x = GEN ** 5
-    assert log x < 131072
-    p = 1
-    p[1] = x
-    p[GEN] = x
-    return
-";
-    let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(5)); 2];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("a range check past the pad verifies");
+fn range_check_complement_sizes_the_memory() {
+    for (k, log_mem) in [(65536, 16), (65537, 17)] {
+        let src = format!(
+            "def main():\n    x = GEN ** 0\n    assert log x < {k}\n    p = 1\n    p[1] = x\n    p[GEN] = x\n    return\n"
+        );
+        let program = compile(&parse(&src).expect("parse"));
+        let want = [F192::from(g_pow(0)); 2];
+        let (proof, stats) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert_eq!(stats.log_mem, log_mem, "bound {k}");
+        verify(&program, &want, &proof).unwrap_or_else(|e| panic!("bound {k}: {e:?}"));
+    }
 }
 
 /// Range checks inside a `mul_range` body: the check runs once per iteration in

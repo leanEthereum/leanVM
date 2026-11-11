@@ -584,21 +584,24 @@ impl Program {
             const _: () = assert!(N_SHARED == 6, "a new shared column needs a fill here");
             // One pass over the image fills all four of its columns, streamed out a
             // cache line of each at a time: nothing reads them before the commitment.
+            // A memory smaller than a block or a line is one block of it.
             const LINE: usize = 8;
             const BLOCK: usize = 1 << 10;
+            let block = BLOCK.min(cells);
+            let line_len = LINE.min(block);
             let page_log = Memory::page_log();
             let image = [MEM_LO, MEM_HI, MEM_TOP, MFCNT].map(|c| {
                 assert_eq!(windows[c].len(), cells, "a memory column spans the image");
                 parallel::SendPtr(windows[c].as_mut_ptr())
             });
-            parallel::for_each_chunk(cells / BLOCK, |first, end| {
+            parallel::for_each_chunk(cells / block, |first, end| {
                 let stream = primitives::stream::Stream::new();
                 for b in first..end {
-                    let at = b * BLOCK;
+                    let at = b * block;
                     let page = exec.mem.page(at >> page_log);
-                    for line in (at..at + BLOCK).step_by(LINE) {
+                    for line in (at..at + block).step_by(line_len) {
                         let mut buf = [[F64::ZERO; LINE]; 4];
-                        for j in 0..LINE {
+                        for j in 0..line_len {
                             let i = line + j;
                             let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
                             // counts ended at g^{A[i]}
@@ -609,9 +612,9 @@ impl Program {
                             buf[3][j] = gpow[cell.count as usize];
                         }
                         for (column, values) in image.iter().zip(&buf) {
-                            // SAFETY: block `b` owns cells `b·BLOCK..(b+1)·BLOCK` of every
+                            // SAFETY: block `b` owns cells `b·block..(b+1)·block` of every
                             // column, in bounds as `cells` is a whole number of blocks.
-                            unsafe { stream.copy_uninit(column.add(line), values) };
+                            unsafe { stream.copy_uninit(column.add(line), &values[..line_len]) };
                         }
                     }
                 }

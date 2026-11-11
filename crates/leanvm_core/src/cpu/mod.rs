@@ -33,8 +33,7 @@ pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
 /// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
 /// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`; the verifier rejects any announced `h`
-/// outside the range. The floor is the public input's two cells. The prover
-/// pads further, to `PAD_LOG_MEM` (`execute.rs`), a choice of its own.
+/// outside the range. The floor is the public input's two cells.
 pub const MIN_LOG_MEM: usize = verifier::MIN_LOG_MEMORY;
 const MAX_LOG_MEM: usize = 32;
 

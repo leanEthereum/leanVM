@@ -42,10 +42,6 @@ impl Execution {
 /// `log2` of the cells a [`Memory`] page holds.
 const PAGE_LOG: usize = 16;
 const PAGE: usize = 1 << PAGE_LOG;
-/// The least memory this prover announces, as a log: a whole number of pages, and of
-/// the memory columns' fill blocks. The protocol's floor is lower (`MIN_LOG_MEM`).
-const PAD_LOG_MEM: usize = 16;
-const _: () = assert!(PAGE_LOG <= PAD_LOG_MEM && MIN_LOG_MEM <= PAD_LOG_MEM);
 
 /// A cell's write state. A cell not `Written` holds ZERO; a `DEREF` between two
 /// unwritten cells links them, and a write to either reaches the other at once.
@@ -146,7 +142,8 @@ pub enum Fault {
     /// The advice does not fit the program: a witness stream is missing or
     /// exhausted, or an entry has the wrong length.
     Witness(String),
-    /// The program allocates or accesses a cell past the address space.
+    /// The program allocates or accesses a cell past this prover's address space
+    /// (`MAX_CELLS`), an implementation limit below the protocol's.
     OutOfMemory,
     /// The halt `pc` reached in a frame other than `main`'s.
     HaltOutsideMain { fp: u32 },
@@ -212,7 +209,11 @@ impl std::fmt::Display for Fault {
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
-            Self::OutOfMemory => write!(f, "the program reaches past 2^{} cells", MAX_CELLS.ilog2()),
+            Self::OutOfMemory => write!(
+                f,
+                "the program reaches past 2^{} cells, this prover's limit (the protocol admits 2^32)",
+                MAX_CELLS.ilog2()
+            ),
             Self::HaltOutsideMain { fp } => write!(f, "the halt pc reached in frame {fp}, not main's"),
             Self::StepLimit => write!(f, "step limit of {MAX_STEPS} exceeded (runaway recursion?)"),
         }
@@ -286,10 +287,7 @@ impl Program {
         }
         // g^j, covering the pcs and return targets, the main frame and the range checks'
         // complements, then grown by each reservation, and its reverse index g^j ↦ j.
-        let seed = (self.prog.len() + 2)
-            .max(self.main_frame as usize)
-            .max(1 << PAD_LOG_MEM)
-            .max(range_top);
+        let seed = (self.prog.len() + 2).max(self.main_frame as usize).max(range_top);
         let mut g = GPow::new(seed);
 
         // The write-once data memory, each cell's access count and write state with its word.
@@ -1074,10 +1072,10 @@ impl Program {
             bytecode_count,
             counts,
         };
-        // Pad memory to a power of two (the boundary tables read a dense image), at
-        // least 2^PAD_LOG_MEM cells, this prover's floor (doc §Memory has the protocol's).
+        // The memory announced: the least power of two covering every cell the run touched
+        // (the boundary tables read a dense image).
         let mem_used = m.used;
-        let cells = mem_used.next_power_of_two().max(1 << PAD_LOG_MEM);
+        let cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
         Ok(Execution {
             mem: Memory {

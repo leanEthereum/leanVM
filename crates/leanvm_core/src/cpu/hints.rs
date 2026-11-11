@@ -7,7 +7,9 @@ use primitives::field::{F64, div_by_g, mul_by_g};
 /// Frame-relative offset operand (matches the compiler's `ir::Off`).
 pub type Off = u32;
 
-/// Cells a program can address: [`GPow`] covers no more.
+/// The cells THIS PROVER can address, a limit of its implementation only: its [`GPow`]
+/// index covers no more. The protocol admits memories up to `2^32` cells
+/// (`verifier::build_layout`); a run reaching past this one is refused here, not by the spec.
 pub(crate) const MAX_CELLS: u32 = 1 << 28;
 
 /// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
