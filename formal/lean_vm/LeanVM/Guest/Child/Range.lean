@@ -215,14 +215,6 @@ theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirState), NoCommit (foldRound
     obtain ⟨s'', rs⟩ := q
     exact noCommit_ret _
 
-theorem noCommit_sampleOodPoints (mu : ℕ) : ∀ n, NoCommit (sampleOodPoints mu n)
-  | 0 => noCommit_ret _
-  | n + 1 => by
-    unfold sampleOodPoints
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    exact NoCommit.bind (noCommit_sampleN _) fun _ ↦
-      NoCommit.bind (noCommit_sampleOodPoints mu n) fun _ ↦ noCommit_ret _
-
 theorem noCommit_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
     NoCommit (sampleQueriesAux depth fuel remaining)
   | 0, _ => noCommit_ret _
@@ -304,12 +296,12 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
       refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (noCommit_sampleOodPoints _ _) fun _ _ ↦ ?_
-      refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_grind _) fun _ _ ↦ ?_
+      refine InRange.nc_bind (noCommit_sampleN _) fun _ _ ↦ ?_
+      refine InRange.nc_bind noCommit_readE fun _ _ ↦ ?_
       refine InRange.nc_bind (noCommit_grind _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
-      refine InRange.nc_bind (noCommit_grind _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
       refine ⟨fun q hqq ↦ ?_, fun words ↦ ?_⟩
       · rw [hgi, ← hdepth]

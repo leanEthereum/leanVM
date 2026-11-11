@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Whir.HsScale
 
 /-!
-# The finish (G:1746-1847)
+# The finish (G:1733-1833)
 
 `osFinish_sound`: from the levels' records in memory (`RecStored`), every `α` in
 `fold_challenges`, the tail challenges at `tch`, the final lane at `final_msg` and the guest's
@@ -144,28 +144,26 @@ challenges after the level, and the out-of-domain weights are `λ·eqEval`, `λ�
 theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} {G T : List E}
     (hG : G.length = c.nFolds) (hT : T.length = c.yrLog) (hrF : r.F = lv.foldsOff + lv.folds)
     (hrmu : r.mu = lv.logCols) (hql : r.qs.length = lv.queries) (hhl : r.high.length = lv.folds)
-    (hz0 : r.z0.length = lv.logCols) (hz1 : r.z1.length = lv.logCols)
+    (hz0 : r.z0.length = lv.logCols)
     {li : E} (hli : r.lam * li = 1)
     (hne : ∀ t < lv.logCols, (ptFrom G T r.F).getD t 0 * invW lv t ≠ 0) :
-    r.lam ^ 3 * r.lam ^ lv.queries *
+    r.lam ^ 2 * r.lam ^ lv.queries *
         (∏ t ∈ Finset.range lv.logCols, ((ptFrom G T r.F).getD t 0 * invW lv t)) *
         (resAll lv (dOf lv fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
           (fun k ↦ eOfNat (r.qs.getD k 0)) li).1 =
-      1 * r.lam * r.lam * r.lam * inducedWeight r.mu r.qs (powers r.lam r.qs.length) (ptFrom G T r.F) ∧
-    r.lam ^ 3 * r.lam ^ lv.queries * (∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0) *
+      r.lam * r.lam * inducedWeight r.mu r.qs (powers r.lam r.qs.length) (ptFrom G T r.F) ∧
+    r.lam ^ 2 * r.lam ^ lv.queries * (∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0) *
         (resAll lv (dOf lv fun t ↦ (ptFrom G T r.F).getD t 0) (hsvOf lv r)
           (fun k ↦ eOfNat (r.qs.getD k 0)) li).2 =
-      T.prod * (r.lam ^ 3 * recH r * (G.drop r.F).prod) ∧
+      T.prod * (r.lam ^ 2 * recH r * (G.drop r.F).prod) ∧
     r.lam * ∏ t ∈ Finset.range lv.logCols, (1 + r.z0.getD t 0 + (ptFrom G T r.F).getD t 0) =
-      1 * r.lam * eqEval r.z0 (ptFrom G T r.F) ∧
-    r.lam ^ 2 * ∏ t ∈ Finset.range lv.logCols, (1 + r.z1.getD t 0 + (ptFrom G T r.F).getD t 0) =
-      1 * r.lam * r.lam * eqEval r.z1 (ptFrom G T r.F) := by
+      r.lam * eqEval r.z0 (ptFrom G T r.F) := by
   have hPl : (ptFrom G T r.F).length = lv.logCols := by
     simp only [ptFrom, List.length_drop, List.length_append, hG, hT, hrF]
     have := hF.cols; have := hF.le; omega
   have hpos : (List.range lv.queries).map (fun k ↦ eOfNat (r.qs.getD k 0)) = r.qs.map eOfNat := by
     rw [← hql]; exact range_map_pos r.qs
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · unfold resAll
     rw [resFold_fst, hpos]
     have h := level_inner hli r.qs (ptFrom G T r.F) hPl (osVals_ofK hF.val) (invW_ofK hF.inv) hne
@@ -193,14 +191,13 @@ theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} 
       have := h
       rw [hhl] at this
       rw [← hql, this, recH, hrmu]
-    calc r.lam ^ 3 * r.lam ^ lv.queries * ((G.drop r.F).prod * T.prod) *
+    calc r.lam ^ 2 * r.lam ^ lv.queries * ((G.drop r.F).prod * T.prod) *
           (r.qs.map eOfNat).foldl (fun a p ↦ (a + resH lv (hsvOf lv r) p) * li) 0
-        = r.lam ^ 3 * (r.lam ^ lv.queries *
+        = r.lam ^ 2 * (r.lam ^ lv.queries *
             (r.qs.map eOfNat).foldl (fun a p ↦ (a + resH lv (hsvOf lv r) p) * li) 0) *
             ((G.drop r.F).prod * T.prod) := by ring
       _ = _ := by rw [e]; ring
-  · rw [eqEval_prod, hz0, hPl, min_self]; ring
-  · rw [eqEval_prod, hz1, hPl, min_self]; ring
+  · rw [eqEval_prod, hz0, hPl, min_self]
 
 /-! ## The point -/
 

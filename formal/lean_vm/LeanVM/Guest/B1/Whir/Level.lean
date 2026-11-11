@@ -11,11 +11,11 @@ public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Opening.QueriesAllW
 
 /-!
-# A non-final level (G:1567-1735)
+# A non-final level (G:1558-1696)
 
 `LvIn` is the guest's state at a level's start against the Spec's: the sponge it carries, the
 claim the guest's plus the deficit `recsDeficit` of the levels so far (each level's high-part
-share of its queries, `λ³ Σ_k λ^k novelEval(high, Ŵ(x_k))·Ŵ_μ(x_k)`, scaled by the `α`s drawn
+share of its queries, `λ² Σ_k λ^k novelEval(high, Ŵ(x_k))·Ŵ_μ(x_k)`, scaled by the `α`s drawn
 after it), the `α`s stored in `fold_challenges`, the commitments so far and the level's root in
 `level_roots`, the glued claims those of the records (`recGlued`).
 
@@ -149,20 +149,19 @@ theorem sq_positions {d cd po S Q : ℕ} {w : ℕ → E} {qpos qbp tabs : E} (hP
 /-! ## Records and the deficit -/
 
 /-- What a non-final level glues, for the finish: its `λ`, the folds before its claims, its
-message log, its out-of-domain points, its positions and its high part. -/
+message log, its out-of-domain point, its positions and its high part. -/
 structure OsRec where
   lam : E
   F : ℕ
   mu : ℕ
   z0 : List E
-  z1 : List E
   qs : List ℕ
   high : List E
 
 /-- The claims a non-final level glues (`glueLevel`). -/
 def recGlued (r : OsRec) : List GluedClaim :=
-  [⟨1 * r.lam, r.F, fun x ↦ eqEval r.z0 x⟩, ⟨1 * r.lam * r.lam, r.F, fun x ↦ eqEval r.z1 x⟩,
-    ⟨1 * r.lam * r.lam * r.lam, r.F, inducedWeight r.mu r.qs (powers r.lam r.qs.length)⟩]
+  [⟨r.lam, r.F, fun x ↦ eqEval r.z0 x⟩,
+    ⟨r.lam * r.lam, r.F, inducedWeight r.mu r.qs (powers r.lam r.qs.length)⟩]
 
 /-- A query's share of the high part: `novelEval(high, Ŵ(x))·Ŵ_μ(x)`. -/
 def highTerm (mu : ℕ) (high : List E) (q : ℕ) : E :=
@@ -172,10 +171,10 @@ def highTerm (mu : ℕ) (high : List E) (q : ℕ) : E :=
 def recH (r : OsRec) : E :=
   ∑ k ∈ Finset.range r.qs.length, r.lam ^ k * highTerm r.mu r.high (r.qs.getD k 0)
 
-/-- **The deficit**: the Spec's claim less the guest's, each level's `λ³·recH` times the `α`s
+/-- **The deficit**: the Spec's claim less the guest's, each level's `λ²·recH` times the `α`s
 drawn after it. -/
 def recsDeficit (recs : List OsRec) (alphas : List E) : E :=
-  (recs.map fun r ↦ r.lam ^ 3 * recH r * (alphas.drop r.F).prod).sum
+  (recs.map fun r ↦ r.lam ^ 2 * recH r * (alphas.drop r.F).prod).sum
 
 theorem recsDeficit_append_alphas (recs : List OsRec) (alphas gs : List E)
     (h : ∀ r ∈ recs, r.F ≤ alphas.length) :
@@ -188,19 +187,8 @@ theorem recsDeficit_append_alphas (recs : List OsRec) (alphas gs : List E)
 
 theorem recsDeficit_snoc (recs : List OsRec) (r : OsRec) (alphas : List E)
     (h : r.F = alphas.length) :
-    recsDeficit (recs ++ [r]) alphas = recsDeficit recs alphas + r.lam ^ 3 * recH r := by
+    recsDeficit (recs ++ [r]) alphas = recsDeficit recs alphas + r.lam ^ 2 * recH r := by
   simp [recsDeficit, h]
-
-/-- `glueLevel` at two out-of-domain samples. -/
-theorem glueLevel_two (s : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) (y₁ y₂ : E)
-    (queries : List ℕ) (queryWeights : List E) (batched : E) :
-    glueLevel s lam mu [z₁, z₂] [y₁, y₂] queries queryWeights batched =
-      { claim := s.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * batched
-        alphas := s.alphas
-        glued := s.glued ++ [⟨1 * lam, s.alphas.length, fun x ↦ eqEval z₁ x⟩,
-          ⟨1 * lam * lam, s.alphas.length, fun x ↦ eqEval z₂ x⟩,
-          ⟨1 * lam * lam * lam, s.alphas.length, inducedWeight mu queries queryWeights⟩] } := by
-  simp [glueLevel, powers, powersFrom, Parameters.Whir.oodSamples]
 
 /-! ## The batch -/
 
@@ -284,13 +272,10 @@ structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec)
   mu : r.mu = lv.logCols
   qlen : r.qs.length = lv.queries
   hlen : r.high.length = lv.folds
-  lam1 : LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1)) r.lam
-  lam2 : LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1) + 1) (r.lam ^ 2)
+  lam1 : LoadHolds rd (σ (.n osOodSc)) (lvl + 1) r.lam
   z0len : r.z0.length = lv.logCols
-  z0 : ReadsAt rd (σ (.n osOodz) * gen ^ (oodSamples * (lvl + 1) * ligColsCap)) r.z0
-  z1len : r.z1.length = lv.logCols
-  z1 : ReadsAt rd (σ (.n osOodz) * gen ^ ((oodSamples * (lvl + 1) + 1) * ligColsCap)) r.z1
-  beta : LoadHolds rd (σ (.n osBetas)) lvl (r.lam ^ 3 * r.lam ^ lv.queries)
+  z0 : ReadsAt rd (σ (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap)) r.z0
+  beta : LoadHolds rd (σ (.n osBetas)) lvl (r.lam ^ 2 * r.lam ^ lv.queries)
   mus : ∃ li, LoadHolds rd (σ (.n osMus)) lvl li ∧ r.lam * li = 1
   hs : ∀ c < lv.folds, LoadHolds rd (σ (.n osHs)) (lvl * hsStride + c)
     (r.high.getD c 0 * word (hsScale lv.vanish lv.highBits c (vanishInv (lv.vanish + lv.logCols))) 0)
@@ -327,7 +312,7 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
   r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
-  ood : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound
+  ood : (lvl + 1) * ligColsCap < u128Bound
   cap4 : 4 * lv.capOff < u128Bound
   hs8 : lvl * hsStride < u128Bound
   shape : levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv')
@@ -339,15 +324,12 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
 structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
     Prop where
   round : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r
-  msg : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L0") a r →
-    MeaningOpeningMessage (2 + lv.folds) 0 rd a r
+  msg : ∀ a r, C ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1") a r →
+    MeaningOpeningMessage (2 + lv.folds) 1 rd a r
   spf : ∀ a r, C ("squeeze_point_from__L" ++ natStr lv.logCols) a r →
     MeaningSqueezePointFrom lv.logCols rd a r
-  sp : ∀ a r, C ("squeeze_point__L" ++ natStr lv.logCols) a r → MeaningSqueezePoint lv.logCols rd a r
   g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
     (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
-  g14 : ∀ w, C ("grind_check__L" ++ natStr batchGrind) [w, σ (.n osTabs)] [] →
-    (w.limb 0).lane.toNat % 2 ^ batchGrind = 0
   dec : ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd (decName lv) a r →
     MeaningDecodeQueryWindows lv.depth lv.capDepth rd a r
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →

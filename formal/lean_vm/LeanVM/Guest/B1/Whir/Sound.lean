@@ -56,12 +56,11 @@ image whose window tables are at `σ tabs`. -/
 theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : MemoryImage κ) {C : CallRel}
     (hle : CallRel.Le C (coreProgram.Rel L.read)) {σ : Val} (hwt : WinTabs L.read (σ (.n osTabs))) :
     Callees L.read C σ := by
-  refine ⟨fun a r ha hc ↦ opening_round_sound (grind_check_holds 9 (by decide)) hκ hw L a r ha
+  refine ⟨fun a r ha hc ↦ opening_round_sound (grind_check_holds 8 (by decide)) hκ hw L a r ha
       (hle _ _ _ hc),
     fun p hp a r hc ↦ (opening_message_holds p hp L.read a r).mp (hle _ _ _ hc),
-    fun n hn a r hc ↦ (squeeze_point_holds n hn L.read a r).mp (hle _ _ _ hc),
     fun n hn a r hc ↦ (squeeze_point_from_holds n hn L.read a r).mp (hle _ _ _ hc),
-    fun w hc ↦ ?_, fun w hc ↦ ?_,
+    fun w hc ↦ ?_,
     fun p hp a r ha hc ↦ decode_query_windows_all_holds p hp hκ L a r ha hc,
     fun p hp a r hc ↦ (verify_merkle_cap_holds p hp L.read a r).mp (hle _ _ _ hc),
     fun a r hc ↦ (opening_tail_round_holds L.read a r).mp (hle _ _ _ hc),
@@ -69,9 +68,6 @@ theorem callees_of {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ) (L : Me
   · have hn : "grind_check__L" ++ natStr queryGrind = grindCheckName 17 := by decide
     rw [hn] at hc
     exact ((grind_check_holds 17 (by decide) hκ hw L w _ hwt []).mp (hle _ _ _ hc)).2
-  · have hn : "grind_check__L" ++ natStr batchGrind = grindCheckName 14 := by decide
-    rw [hn] at hc
-    exact ((grind_check_holds 14 (by decide) hκ hw L w _ hwt []).mp (hle _ _ _ hc)).2
 
 /-- Candidate `m`'s semantic facts. -/
 theorem semOk_of {m : ℕ} (hm : m < 28) (hd : OsData m) {μ r : ℕ} {cfg : List Whir.Level}

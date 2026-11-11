@@ -32,12 +32,9 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 structure Callees (rd : Reader) (C : CallRel) (σ : Val) : Prop where
   round : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r
   msg : ∀ p ∈ omDeployed, ∀ a r, C (omName p) a r → MeaningOpeningMessage p.1 p.2 rd a r
-  sp : ∀ n ∈ spDeployed, ∀ a r, C (spName n) a r → MeaningSqueezePoint n rd a r
   spf : ∀ n ∈ spfDeployed, ∀ a r, C (spfName n) a r → MeaningSqueezePointFrom n rd a r
   g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
     (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
-  g14 : ∀ w, C ("grind_check__L" ++ natStr batchGrind) [w, σ (.n osTabs)] [] →
-    (w.limb 0).lane.toNat % 2 ^ batchGrind = 0
   dec : ∀ p ∈ queryWindowsShapes, ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd p.1 a r →
     MeaningDecodeQueryWindows p.2.1 p.2.2 rd a r
   cap : ∀ p ∈ merkleCapNames, ∀ a r, C p.1 a r → MeaningVerifyMerkleCap p.2 rd a r
@@ -80,7 +77,7 @@ theorem lvFin_of {c : OsCfg} {logN lvl : ℕ} {lv lv' : OsLv} {level next : Whir
       ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c') :
     LvFin c lv lv' := by
   obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -,
-    -, -, -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := h
+    -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := h
   exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, h14, vanish_val hv,
     vanish_inv hv, hs⟩
 
@@ -118,14 +115,13 @@ theorem levelsOk_of {rd : Reader} {C : CallRel} {σ : Val} {c : OsCfg} {logN : �
         h20, h21, h22, hq, h23, -⟩ := hm
       exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
         h20, h21, h22, ⟨_, _, qshOk_sound hq⟩, h23⟩
-    · obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hom, homn, hsp,
-        hspn, hspf, hspfn, hdec, hcap, -⟩ := hm
-      refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, fun a r hc ↦ ?_, fun a r hc ↦ ?_,
-        hcal.g17, hcal.g14, fun a r ha hc ↦ hcal.dec _ hdec a r ha hc,
+    · obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hom, homn,
+        hspf, hspfn, hdec, hcap, -⟩ := hm
+      refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, fun a r hc ↦ ?_,
+        hcal.g17, fun a r ha hc ↦ hcal.dec _ hdec a r ha hc,
         fun a r hc ↦ hcal.cap _ hcap a r hc, ?_⟩
       · rw [← homn] at hc; exact hcal.msg _ hom a r hc
       · rw [← hspfn] at hc; exact hcal.spf _ hspf a r hc
-      · rw [← hspn] at hc; exact hcal.sp _ hsp a r hc
       · have := hsem.sq lvl hk; rwa [hlv] at this
   | _, [], _, _, hb => by simp [levelsB] at hb
   | _, [_], [], _, hb => by simp [levelsB] at hb

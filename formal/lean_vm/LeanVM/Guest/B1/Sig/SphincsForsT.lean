@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsForsT
 
   The FORS trees, their key `T_k`, the hypertree's paths and a layer of `verify_sig_lean_sphincs`
-  as templates (`lean_ethereum.py:3804-3939, 4022-4027` at leanVM main 40f877dc), with the values
+  as templates (`lean_ethereum.py:3790-3925, 4008-4013` at leanVM main 40f877dc), with the values
   numbered as the renumbered expansion numbers them, over the values the body sets before.
 -/
 
@@ -26,14 +26,14 @@ type's low byte at bit `24` of limb `0`, the key pair's two low bytes at bits `4
 `0`, the height (or chain index) at bit `24` of limb `1`, the index's two low bytes at bits `48`,
 `56` of limb `1` (`SP_*_MUL`, `G:486-496`).
 
-* `sBe16` (`sp_be16`, `G:3804-3812`): an `n`-bit value as an `A1` index, its low byte masked by its
+* `sBe16` (`sp_be16`, `G:3790-3798`): an `n`-bit value as an `A1` index, its low byte masked by its
   shift by eight;
-* `sForsAt` (`sp_fors_at`, `G:3815-3830`): the `A1` of tree `c`'s node at height `z` on the path;
-* `sForsLevel(s)`, `sForsTree(s)` (`sp_fors_tree`, `G:3833-3854`): a tree's leaf hashed from its
+* `sForsAt` (`sp_fors_at`, `G:3801-3816`): the `A1` of tree `c`'s node at height `z` on the path;
+* `sForsLevel(s)`, `sForsTree(s)` (`sp_fors_tree`, `G:3819-3840`): a tree's leaf hashed from its
   hinted secret and climbed up the hinted ordered pairs to its root;
-* `sForsBlock` (`G:4022-4027`): `fors_at`, the 24 trees, then `T_k` over the roots (432 bytes);
-* `sPath` (`sp_path`, `G:3904-3924`): a path up a tree of the hypertree;
-* `sHtLayer` (`sp_layer`, `G:3927-3939`, after its counter): the encoding of `signed`, the key's
+* `sForsBlock` (`G:4008-4013`): `fors_at`, the 24 trees, then `T_k` over the roots (432 bytes);
+* `sPath` (`sp_path`, `G:3890-3910`): a path up a tree of the hypertree;
+* `sHtLayer` (`sp_layer`, `G:3913-3925`, after its counter): the encoding of `signed`, the key's
   leaf by `sp_wots`, the path.
 -/
 
@@ -46,7 +46,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 /-! ## Addresses -/
 
 /-- The multiplier of `sp_be16`'s shift by eight, `g^8 · SP_WORD3_MUL_0 + SP_WORD3_MUL_1` folded:
-`2^128 + 2^112`, the `y` limb's `g^64` reduced to `27` (`G:3809`). -/
+`2^128 + 2^112`, the `y` limb's `g^64` reduced to `27` (`G:3795`). -/
 def be16HiW : E := word 0 (2 ^ 48 + 27)
 
 /-- `sp_be16(vals, pos, n)`: the `n`-bit value `val pos` as the index of an `A1` from base `x`,
@@ -72,7 +72,7 @@ none for `k = 0`. -/
 def sAddK (a : V) (k : Nat) (w : E) (x : Nat) : List Stmt × Nat × V :=
   if k = 0 then ([], x, a) else ([cst x w, addS (.n (x + 1)) a (.n x)], x + 2, .n (x + 1))
 
-/-- `sp_fors_at(a1, vals, c, z)` from base `x` (`G:3816-3830`): `a1` plus the height `z`
+/-- `sp_fors_at(a1, vals, c, z)` from base `x` (`G:3802-3816`): `a1` plus the height `z`
 (`z · SP_WORD2_MUL`), then the node's tree index across the trees in the word's last two bytes:
 at the root `c` (`c · SP_WORD3_MUL_0`); below `2` the index `val (10 c + z)` (`sBe16`, two bytes);
 else its high byte, `c / 2^(z - 2)`, a constant, then its low byte (`sBe16`, one byte). The
@@ -166,7 +166,7 @@ def sForsTrees : Nat → Nat → Nat → List Stmt × Nat × List V
 
 end Fors
 
-/-- **The FORS block** from base `b0` (`G:4022-4027`), the key pair's cell `key`: `fors_at = key +
+/-- **The FORS block** from base `b0` (`G:4008-4013`), the key pair's cell `key`: `fors_at = key +
 FORS_TREE` at `b0 + 1`, the 24 trees, `roots_at = key + FORS_ROOTS`, then `T_k`: `keccak_cells` of
 `P`, `A0`, `roots_at` and the roots (432 bytes). The statements, the next base and the FORS key's
 output run's base. -/

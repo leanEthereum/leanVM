@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.Ctab
 
   `verify_sub`'s ring map: its grind and sixteen challenges, and their Frobenius coefficients
-  `c_table` (G:3677-3704).
+  `c_table` (G:3663-3690).
 -/
 
 module
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Run
 # The ring map's challenges and `c_table`
 
 * `vsMapsT_holds`: the ring grind's nonce absorbed over the full queue `verify_keccak` leaves,
-  `grind_check__L14` on the permutation's cell `1`, the ground challenge and fifteen squeezes,
+  `grind_check__L13` on the permutation's cell `1`, the ground challenge and fifteen squeezes,
   stored in `map_challenges`: from the sponge `s`, `ringSwitch` reads the nonce and returns the
   target and weight of these sixteen challenges.
 * `vsCtabT_holds`: `c_table[8p + b] = f_p · g_b^(2^(8p))`, by eight squarings per block, is
@@ -96,7 +96,7 @@ theorem runsFromG_sample16 (cap : List E) (c : E) :
     ((runsTo_sampleN 15 _).bind (f := fun xs ↦ (pure (c :: xs) : VerifierProgram (List E)))
       (runsTo_ret _ _))
 
-/-- **The ring map's challenges** (G:3677-3694): from the sponge `s` with a full queue, the
+/-- **The ring map's challenges** (G:3663-3680): from the sponge `s` with a full queue, the
 nonce at the cursor `σ 595`, `ringSwitch` returns the target and weight of the sixteen challenges
 stored at `map_challenges`. -/
 theorem vsMapsT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
@@ -147,7 +147,7 @@ theorem vsMapsT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L
   -- the grind
   simp only [List.map_cons, List.map_nil] at hg
   have hW : WinTabs L.read (σ (.n 619)) := maps_winTabs_of hwin h619
-  have hgm := (grind_check_holds 14 (by decide) hκ hκw L _ _ hW []).1 (hC _ _ _ hg)
+  have hgm := (grind_check_holds 13 (by decide) hκ hκw L _ _ hW []).1 (hC _ _ _ hg)
   simp only [MeaningGrindCheck] at hgm
   have hb : _root_.LeanVM.Parameters.Whir.batchGrindingBits ≠ 0 := by decide
   have hok : s.GrindOk _root_.LeanVM.Parameters.Whir.batchGrindingBits (σ (.n 602)) := by
@@ -314,7 +314,7 @@ theorem readsAt_flatMap8 {p : E} {F : ℕ → List E} (hF : ∀ q, (F q).length 
     have := h n (by omega) b (by rw [hF] at hb; exact hb)
     rwa [List.getD_eq_getElem _ _ hb] at this
 
-/-- **`c_table`** (G:3696-3704): the Frobenius coefficients of the sixteen challenges, then the
+/-- **`c_table`** (G:3682-3690): the Frobenius coefficients of the sixteen challenges, then the
 call of `ring_switch_target`. -/
 theorem vsCtabT_holds {chs : List E} (hl : chs.length = 16)
     (hch : ∀ i < 16, σ (.n (vsCh i)) = chs.getD i 0)

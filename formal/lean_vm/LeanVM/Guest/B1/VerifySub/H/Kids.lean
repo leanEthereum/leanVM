@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Fs.Message
 On the own buffers' first words `bs` (allocation order, `vb bs i`: `claim_pool`, the stream,
 `table_rows`, `dims_g`, `kappa_base`, `zeta`, `ood_z`, `ood_value`, `fp_w`, `chi`, `bc_point`,
 `z_vals`, `slices`, the ring map's challenges, `c_table`) and the exponent tables at `sqE`
-(`vsExpLin`, the window tables at `sqE + winTabAt`), the callees in call order (G:3591-3740):
+(`vsExpLin`, the window tables at `sqE + winTabAt`), the callees in call order (G:3577-3726):
 
 0, 1. `g_power_of_word` on the rate's and the memory's log's words;
 2. `log2_ceil_in_the_exponent__L0_L34` on the push blocks' total `g^pushT`: the bus depth;
@@ -39,7 +39,7 @@ On the own buffers' first words `bs` (allocation order, `vb bs i`: `claim_pool`,
     (`leavesB`);
 11. `verify_keccak` on the stream past the tables, `chi`, the output lanes (in the stream, at the
     tables' evaluations), `z_vals`, `slices`;
-12. `grind_check__L14` on the ring map's grind's permutation (`ringSt`);
+12. `grind_check__L13` on the ring map's grind's permutation (`ringSt`);
 13. `ring_switch_target` on `slices` and the ring map's challenges;
 14. `open_stacked`'s candidate on the stream past the ring switch's nonce;
 15. `check_opening_terminal`, on `certify_placement`'s offsets and `open_stacked`'s point buffers
@@ -247,7 +247,7 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
         (vb bs 11 + qkeccakVarsCap, S.kc.2.1), (vb bs 12, S.kc.2.2),
         (sqE + winTabAt, winTabWords)],
       Returns (capOf S.s6.perm ++ [ptr (S.cK bs) * gen ^ S.xsK.length, S.kOut.value])⟩,
-    fun _ ↦ ⟨"grind_check__L14", true, [cellsOfState S.ringSt false 1, ptr sqE * gen ^ winTabAt],
+    fun _ ↦ ⟨"grind_check__L13", true, [cellsOfState S.ringSt false 1, ptr sqE * gen ^ winTabAt],
       vsExpLin sqE, Returns []⟩,
     fun _ ↦ ⟨"ring_switch_target", true, [ptr (vb bs 12), ptr (vb bs 13)],
       [(vb bs 12, S.kc.2.2), (vb bs 13, S.rchs)],

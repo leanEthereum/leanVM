@@ -90,11 +90,8 @@ theorem foldl_alphas {X : Type} (f : WhirState → X → WhirState)
   | [], _ => rfl
   | x :: l, s => (foldl_alphas f hf l (f s x)).trans (hf s x)
 
-theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (ps : List (List E)) (vs : List E)
-    (qs : List ℕ) (ws : List E) (b : E) : (glueLevel s lam mu ps vs qs ws b).alphas = s.alphas := by
-  unfold glueLevel
-  dsimp only
-  exact foldl_alphas _ (fun s x ↦ by obtain ⟨⟨_, _⟩, _⟩ := x; rfl) _ _
+theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (p : List E) (v : E)
+    (qs : List ℕ) (ws : List E) (b : E) : (glueLevel s lam mu p v qs ws b).alphas = s.alphas := rfl
 
 theorem length_rot (l : List E) (k : ℕ) : (l.drop k ++ l.take k).length = l.length := by
   simp only [List.length_append, List.length_drop, List.length_take]

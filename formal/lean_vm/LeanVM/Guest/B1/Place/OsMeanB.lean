@@ -17,8 +17,8 @@ public import LeanVM.Guest.Budget.Bounded
 `OsLeafBounds fs Bnd` (`Place/OsSpec`): each named callee `f`'s valid trees total at most `Bnd f`
 words. **`kindDB`**: a named callee is complete placed on its meaning and regions within that
 bound: the leaves by `completeRelRegDB_of_iff`, `grind_check` by `grind_check_completeB_of`, and
-`opening_round`, which calls `grind_check__L9`, as a pure function (`completeAtDTB_of_relIn`: it
-and `grind_check__L9` place nothing, `round_pureIn`) from its relation loading only the caller's
+`opening_round`, which calls `grind_check__L8`, as a pure function (`completeAtDTB_of_relIn`: it
+and `grind_check__L8` place nothing, `round_pureIn`) from its relation loading only the caller's
 words on every memory holding them (`round_relIn`, its grinds' by `grind_relIn`).
 **`os_kid_namedB`**: a named call of a body proved at `osCR` on every memory holding `Lk` is
 `CompleteAtB` on `Lk` within its bound.
@@ -135,8 +135,8 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
       Whir.MeaningOpeningRound rd args rets ∧ WinTabs rd (args.getD 7 0)) {rd : Reader}
     (hlow : LowDef κ rd) (hLin : MemL rd Lin) :
     coreProgram.RelIn rd (RegionL Lin) "opening_round" args rets := by
-  have h9 : (9 : ℕ) ∈ grindBitsDeployed := by decide
-  have hname : grindCheckName 9 = "grind_check__L9" := rfl
+  have h9 : (8 : ℕ) ∈ grindBitsDeployed := by decide
+  have hname : grindCheckName 8 = "grind_check__L8" := rfl
   obtain ⟨hm, -⟩ := hpre rd hlow hLin
   obtain ⟨xs, -, -, -, hpar, hh⟩ := Whir.round_complete
     (C := coreProgram.RelIn rd (RegionL Lin)) hm (fun w hw ↦ by
@@ -146,7 +146,7 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
   have hst : roundPre.all Main.Stmt.straight = true := straight_of_flat _ roundPre_flat
   have hbody := Whir.core7_body.trans roundBody_eq
-  have hw := Main.walk_straight σ [.n 88, .n 89, .n 90, .n 91, .n 92, .n 95, .n 98] roundPre hst
+  have hw := Main.walk_straight σ [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94] roundPre hst
   rw [← hbody] at hw
   rw [← Whir.core7_body] at hh
   have hsat := walk_sat (P := coreProgram) _
@@ -157,33 +157,32 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   refine relIn_of_walk (P := coreProgram) coreProgram_wf Whir.find_opening_round hpar hw hsat.2
     (fun e he ↦ (hsat.1 e he).1) (fun A hA ↦ ?_) (fun c hc ht ↦ calls_ok hsat.1 hc ht)
   rw [loadAddrs_straight σ _ hst, roundPre_loadsS] at hA
-  have r5 := hreg (5, 6) (by simp [roundSpec])
+  have r5 := hreg (5, 5) (by simp [roundSpec])
   have r8 := hreg (8, 1) (by simp [roundSpec])
   have r9 := hreg (9, 2) (by simp [roundSpec])
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
   have e5 : σ (.n 5) = args.getD 5 0 := hv 5 (by decide)
   have e8 : σ (.n 8) = args.getD 8 0 := hv 8 (by decide)
   have e9 : σ (.n 9) = args.getD 9 0 := hv 9 (by decide)
-  rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+  rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     simp only [e5, e8, e9]
   · obtain ⟨i, h, r⟩ := r5 0 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 1 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 2 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 3 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 4 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r5 5 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r8 0 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r9 0 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r9 1 (by decide); exact ⟨i, h, r⟩
 
-theorem round_pure_body : Stmt.pureList ["opening_round", "grind_check__L9"] Whir.roundBody = true := by
+theorem round_pure_body : Stmt.pureList ["opening_round", "grind_check__L8"] Whir.roundBody = true := by
   decide +kernel
 
-theorem grind9_pure_body : Stmt.pureList ["opening_round", "grind_check__L9"] (gcBodyT 9) = true := by
+theorem grind8_pure_body : Stmt.pureList ["opening_round", "grind_check__L8"] (gcBodyT 8) = true := by
   decide +kernel
 
-/-- **`opening_round` and `grind_check__L9` place nothing.** -/
-theorem round_pureIn : coreProgram.PureIn ["opening_round", "grind_check__L9"] := by
+/-- **`opening_round` and `grind_check__L8` place nothing.** -/
+theorem round_pureIn : coreProgram.PureIn ["opening_round", "grind_check__L8"] := by
   intro g hg fn hf
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
   rcases hg with rfl | rfl
@@ -191,11 +190,11 @@ theorem round_pureIn : coreProgram.PureIn ["opening_round", "grind_check__L9"] :
     cases hf
     rw [Whir.core7_body]
     exact round_pure_body
-  · obtain ⟨fn', hf', -, hb'⟩ := grind_check_found 9 (by decide)
-    rw [show grindCheckName 9 = "grind_check__L9" from rfl, hf] at hf'
+  · obtain ⟨fn', hf', -, hb'⟩ := grind_check_found 8 (by decide)
+    rw [show grindCheckName 8 = "grind_check__L8" from rfl, hf] at hf'
     cases hf'
     rw [hb']
-    exact grind9_pure_body
+    exact grind8_pure_body
 
 /-! ## The named callees within their bounds -/
 
@@ -220,11 +219,6 @@ theorem kindDB (hκ : 11 ≤ κ) {Bnd : String → ℕ} (hT : OsLeafBounds fs Bn
     simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
     obtain ⟨hm, rfl⟩ := he
     exact completeRelRegDB_of_iff (leafSpecOk_allP msg_leafSpec _ hm) (opening_message_holds _ hm)
-      κ hb
-  | sp n =>
-    simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
-    obtain ⟨hm, rfl⟩ := he
-    exact completeRelRegDB_of_iff (leafSpecOk_allP sp_leafSpec _ hm) (squeeze_point_holds _ hm)
       κ hb
   | spf n =>
     simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he

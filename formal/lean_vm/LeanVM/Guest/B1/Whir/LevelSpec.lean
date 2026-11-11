@@ -14,9 +14,8 @@ public import LeanVM.Guest.B1.Opening.Interface
 /-!
 # A level of `whirLevelsOpen` (V: `whirLevels`)
 
-* `levelNext`: a non-final level after its folds: the next commitment, the high part, the
-  out-of-domain points and values, the query grind, the positions, the batching grind and `λ`, the
-  openings, the glue; `levelLast`: the final level after its folds.
+* `levelNext`: a non-final level after its folds: the next commitment, the high part, the OOD
+  grind, point and value, the query grind, the positions and `λ`, the openings, the glue; `levelLast`: the final level after its folds.
 * `whirLevelsOpen_next`, `whirLevelsOpen_last`: a level is its folds, then `levelNext` and the
   next level, or `levelLast`.
 * `oqChain_mul_pow`: the guest's chain of the queries' folds `h ← (h + d)·μ` (`oqChain`), times
@@ -52,14 +51,14 @@ def levelNext (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
   VerifierProgram.readCommitment (levelShape mu next (2 * 2 ^ next.fold)).1
     (levelShape mu next (2 * 2 ^ next.fold)).2
   let high ← VerifierProgram.readScalars level.fold
-  let oodPoints ← sampleOodPoints mu Whir.oodSamples
-  let oodValues ← VerifierProgram.readScalars Whir.oodSamples
+  VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits
+  let oodPoint ← VerifierProgram.sampleChallenges mu
+  let oodValue ← VerifierProgram.readScalar
   VerifierProgram.grindProofOfWork Whir.queryGrindingBits
   let queries ← sampleQueries depth level.queries
-  VerifierProgram.grindProofOfWork Whir.batchGrindingBits
   let lam ← VerifierProgram.sampleChallenge
   let words ← VerifierProgram.queryOpenings index queries
-  return glueLevel s lam mu oodPoints oodValues queries (powers lam queries.length)
+  return glueLevel s lam mu oodPoint oodValue queries (powers lam queries.length)
     (levelBatched mu index rounds high queries words lam)
 
 /-- The final level after its folds (V: `whirLevels`, the `[]` arm), up to the terminal. -/

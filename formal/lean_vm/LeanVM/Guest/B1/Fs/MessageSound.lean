@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Fs.MessageT
 * `absorbAll_groups`: `n ≥ 1` words absorbed on a capacity leave the last group's words waiting
   on `stCap`, the capacity after the full groups before it (`stF … (omK n)`).
 * `om_sound`: on a valuation meeting `omBody n nonce`, the meaning `MeaningOpeningMessage`, for
-  each of the four tails the deployed messages have (`OmCase`).
+  each of the five tails a message can have (`OmCase`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -254,11 +254,12 @@ theorem om_group {n g : ℕ} (hw : ∀ p < n, σ (.n (omW p + 1)) = σ (.n (omW 
 
 /-! ## The tails -/
 
-/-- The four tails of the deployed messages: the words left after the full groups but the last,
+/-- The five tails of the messages: the words left after the full groups but the last,
 and the nonce. -/
 def OmCase (n nonce : ℕ) : Prop :=
   (nonce = 0 ∧ n - 4 * omK n = 4) ∨ (nonce = 0 ∧ n - 4 * omK n = 2) ∨
-    (nonce = 1 ∧ n - 4 * omK n = 4) ∨ (nonce = 1 ∧ n - 4 * omK n = 1)
+    (nonce = 1 ∧ n - 4 * omK n = 4) ∨ (nonce = 1 ∧ n - 4 * omK n = 2) ∨
+    (nonce = 1 ∧ n - 4 * omK n = 1)
 
 theorem omCase_deployed : ∀ p ∈ omDeployed, OmCase p.1 p.2 ∧ 1 ≤ p.1 ∧ p.1 + p.2 < 64 := by
   unfold OmCase omK
@@ -294,7 +295,7 @@ theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
   have hK := (om_mid hall (omK n) le_rfl).1
   have ht : ∀ a ∈ (omTail n nonce).1, a.Holds rd σ := fun a ha ↦ hall a (mem_omTail ha)
   have hxs : 1 ≤ (omXs σ n).length := by rw [omXs_length]; exact hn
-  rcases hcase with ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h4⟩ | ⟨rfl, h1⟩
+  rcases hcase with ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h1⟩
   · -- the last group full, no nonce
     refine ⟨0, by simp, fun c ↦ ?_⟩
     simp only [omTail, h4, ↓reduceIte] at ht ⊢
@@ -344,8 +345,36 @@ theorem om_tail {n nonce : ℕ} (hcase : OmCase n nonce) (hn : 1 ≤ n)
         rfl)
       (by simp [run13])
     rw [habs, ← cells13_run13 σ _ c, hout]
+  · -- two words left, then the nonce
+    simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide] at ht ⊢
+    have l0 : LoadHolds rd (σ (.n 5)) n (σ (.n (omE n))) := ht (.load (.n (omE n)) (.n 5) n) (by simp)
+    have c1 : σ (.n (omE n + 1)) = σ (.n (omE n)) := ht (.copy (.n (omE n + 1)) (.n (omE n))) (by simp)
+    have c2 : σ (.n (omE n + 2)) = word 0 dsPowNonce := ht (.const (.n (omE n + 2)) (word 0 dsPowNonce)) (by simp)
+    have z3 : σ (.n (omE n + 3)) = 0 := (ht (.const (.n (omE n + 3)) (word 0 0)) (by simp)).trans word_zero
+    have z4 : σ (.n (omE n + 4)) = 0 := (ht (.const (.n (omE n + 4)) (word 0 0)) (by simp)).trans word_zero
+    refine ⟨σ (.n (omE n)), fun _ ↦ l0, fun c ↦ ?_⟩
+    rw [omState_some _ _ hxs, omXs_length]
+    have hg : grp (omXs σ n) (omK n) = [σ (.n (omW (4 * omK n))), σ (.n (omW (4 * omK n + 1)))] := by
+      rw [omXs, grp_map_range_last _ (by omega) (by omega), h2]
+      rfl
+    have habs : (stF (omCap0 σ) (omXs σ n) (omK n)).absorb (σ (.n (omE n))) dsPowNonce =
+        ⟨stCap (omCap0 σ) (omXs σ n) (omK n), [(σ (.n (omW (4 * omK n))), dsObserve),
+          (σ (.n (omW (4 * omK n + 1))), dsObserve), (σ (.n (omE n)), dsPowNonce)]⟩ := by
+      simp [Fs.absorb, stF, hg, rateScalars]
+    have hk := ht _ (List.mem_append_right _ (List.mem_singleton_self _))
+    have hout := keccakA_fs (s := ⟨stCap (omCap0 σ) (omXs σ n) (omK n),
+      [(σ (.n (omW (4 * omK n))), dsObserve), (σ (.n (omW (4 * omK n + 1))), dsObserve),
+        (σ (.n (omE n)), dsPowNonce)]⟩) hk (by simp) (by
+        rw [List.map_append, hK]
+        simp only [List.map_cons, List.map_nil, List.length_cons, List.length_nil]
+        rw [(hw _ (by omega)).1, (hw _ (by omega)).2, (hw (4 * omK n + 1) (by omega)).1,
+          (hw (4 * omK n + 1) (by omega)).2, c1, c2, z3, z4]
+        rfl)
+      (by simp [run13])
+    rw [habs, ← cells13_run13 σ _ c, hout]
   · -- one word left, then the nonce
-    simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide] at ht ⊢
+    simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide,
+      show (1 : ℕ) ≠ 2 by decide] at ht ⊢
     have l0 : LoadHolds rd (σ (.n 5)) n (σ (.n (omE n))) := ht (.load (.n (omE n)) (.n 5) n) (by simp)
     have c1 : σ (.n (omE n + 1)) = σ (.n (omE n)) := ht (.copy (.n (omE n + 1)) (.n (omE n))) (by simp)
     have c2 : σ (.n (omE n + 2)) = word 0 dsPowNonce := ht (.const (.n (omE n + 2)) (word 0 dsPowNonce)) (by simp)

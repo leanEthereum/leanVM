@@ -67,8 +67,8 @@ theorem osFinalMsg_flat (c : OsCfg) (lv : OsLv) (s : OsSt) : Flat (osFinalMsg c 
 theorem osCommit_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osCommit c lvl lv s).1 := by
   unfold osCommit
   simp only [Flat, List.all_append, List.all_cons, List.all_nil, List.all_map, Stmt.flat,
-    osHeap_flat _ _, osCurS_flat _, osMatS_flat _ _ _ _, Bool.and_true, Bool.true_and]
-  simp [Stmt.flat, osOodNext, osKeccak]
+    osHeap_flat _ _, osCurS_flat _, osMatS_flat _ _ _ _, osPad_flat _ _, Bool.and_true, Bool.true_and]
+  simp [Stmt.flat, osKeccak]
 
 theorem osSqueezes_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     Flat (osSqueezes c lvl lv s).1 := by
@@ -79,7 +79,7 @@ theorem osSqueezes_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
 
 theorem osLam_flat (s : OsSt) : Flat (osLam s).1 := by
   unfold osLam
-  simp only [Flat, List.all_append, osPad_flat _ _, Bool.and_true]
+  simp only [Flat, List.all_append, osPad_flat _ _]
   simp [Stmt.flat, osKeccak]
 
 theorem osCap_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osCap c lvl lv s).1 := by
@@ -185,8 +185,8 @@ theorem osOodFacs_flat (sc : ℕ) : ∀ cs k, Flat (osOodFacs sc cs k).1
   | [], _ => rfl
   | (_, _) :: rest, k => flat_append rfl (osOodFacs_flat (k + 5) rest _)
 
-theorem osOodWeight_flat (c : OsCfg) (tch prevCols ol s : ℕ) (lv : OsLv) (k : ℕ) :
-    Flat (osOodWeight c tch prevCols ol s lv k).1 := flat_cons rfl (osOodFacs_flat _ _ _)
+theorem osOodWeight_flat (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) :
+    Flat (osOodWeight c tch prevCols ol lv k).1 := flat_cons rfl (osOodFacs_flat _ _ _)
 
 theorem osAcc_flat (acc : Option ℕ) (w k : ℕ) : Flat (osAcc acc w k).1 := by
   cases acc <;> rfl
@@ -194,8 +194,7 @@ theorem osAcc_flat (acc : Option ℕ) (w k : ℕ) : Flat (osAcc acc w k).1 := by
 theorem osOodWeights_flat (c : OsCfg) (tch : ℕ) :
     ∀ prevCols ol lvs acc k, Flat (osOodWeights c tch prevCols ol lvs acc k).1
   | _, _, [], _, _ => rfl
-  | _, _, _ :: rest, _, _ => flat_append (flat_append (flat_append (flat_append
-      (osOodWeight_flat _ _ _ _ _ _ _) (osAcc_flat _ _ _)) (osOodWeight_flat _ _ _ _ _ _ _))
+  | _, _, _ :: rest, _, _ => flat_append (flat_append (osOodWeight_flat _ _ _ _ _ _)
       (osAcc_flat _ _ _)) (osOodWeights_flat c tch _ _ rest _ _)
 
 theorem osFinishA_flat (c : OsCfg) (st : OsSt) (tch : ℕ) : Flat (osFinishA c st tch).1 := by

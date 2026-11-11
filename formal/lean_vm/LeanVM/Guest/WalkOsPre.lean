@@ -113,17 +113,15 @@ theorem osRounds_mats {P : List (ℕ × ℕ × ℕ)} : ∀ (i n : ℕ) (s : OsSt
     exact osRounds_mats (i + 1) n _ (by omega) (osRound_mats (by omega) hm h.1) h.2
 
 theorem osCommit_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
-    (hb : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
+    (hb : (lvl + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
     (h : AllOk C rd σ (osCommit c lvl lv s).1) : MatsOk σ (osCommit c lvl lv s).2.mats := by
-  have hb0 : oodSamples * (lvl + 1) * ligColsCap < u128Bound :=
-    lt_of_le_of_lt (Nat.mul_le_mul_right _ (Nat.le_succ _)) hb
   unfold osCommit at h ⊢
   simp only [allOk_append, and_assoc] at h
-  obtain ⟨-, -, -, h0, -, h1, -⟩ := h
-  exact (osMatS_val' h1 (osMatS_val' h0 hm hb0).2 hb).2
+  obtain ⟨-, -, -, h0, -⟩ := h
+  exact (osMatS_val' h0 hm hb).2
 
 theorem osMsg_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
-    (hb : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
+    (hb : (lvl + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
     (h : AllOk C rd σ (if lvl = c.yrLevel then osFinalMsg c lv s else osCommit c lvl lv s).1) :
     MatsOk σ (if lvl = c.yrLevel then osFinalMsg c lv s else osCommit c lvl lv s).2.mats := by
   split_ifs at h ⊢

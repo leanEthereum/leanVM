@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.Lam
 public import LeanVM.Guest.B1.Whir.QOpen
 
 /-!
-# A level's cap, high part, queries and glue (G:1643-1735)
+# A level's cap, high part, queries and glue (G:1634-1722)
 
 * `osCap_sound`: `verify_merkle_cap` on the level's cap and flags, its root's cells stored in
   `level_roots` (`2·lvl`, `2·lvl + 1`).
@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The cap -/
 
-/-- **The level's cap** (G:1649-1653): `verify_merkle_cap`'s meaning on the cap and the flags,
+/-- **The level's cap** (G:1640-1644): `verify_merkle_cap`'s meaning on the cap and the flags,
 the root's cells stored in `level_roots`. -/
 theorem osCap_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hcap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →
@@ -87,7 +87,7 @@ theorem osHsCoefs_val (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
         exact ⟨_, l, by rw [m, cs] at st; exact st⟩
     · exact osHsCoefs_val src dst sc si di n (i + 1) _ hok.2 c (by omega) (by omega)
 
-/-- **A non-final level's high part, normalized** (G:1695-1703): coefficient `c` of the high part
+/-- **A non-final level's high part, normalized** (G:1686-1693): coefficient `c` of the high part
 read from `sent` past the root, stored in `level_hs` times its normalizer. -/
 theorem osHsMid_sound {lvl : ℕ} {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (osHsMid lvl lv st).1) :
     (∀ c < lv.folds, ∃ v, LoadHolds rd (σ (.n st.sent)) (2 + c) v ∧
@@ -96,7 +96,7 @@ theorem osHsMid_sound {lvl : ℕ} {lv : OsLv} {st : OsSt} (hok : AllOk C rd σ (
       (osHsMid lvl lv st).2 = { st with k := (osHsMid lvl lv st).2.k } :=
   ⟨fun c hc ↦ osHsCoefs_val _ _ _ _ _ _ _ _ hok c (Nat.zero_le _) (by omega), rfl⟩
 
-/-- **The final lane, normalized** (G:1684-1694): coefficient `c` read from `final_msg`, stored in
+/-- **The final lane, normalized** (G:1675-1685): coefficient `c` read from `final_msg`, stored in
 a fresh `hs` times its normalizer. -/
 theorem osHsFinal_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
     (hok : AllOk C rd σ (osHsFinal c lv st).1) :
@@ -114,15 +114,13 @@ theorem osHsFinal_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
 
 /-! ## The glue -/
 
-/-- **A non-final level's claims glued** (G:1719-1735). -/
+/-- **A non-final level's claims glued** (G:1706-1722). -/
 theorem osGlue_sound {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hpwQ : digitsVal (osPowDigits lv.queries) 1 = lv.queries) (hok : AllOk C rd σ (osGlue lvl lv st).1) :
     σ (.n (osGlue lvl lv st).2.claim) = σ (.n st.claim) + σ (.n st.lam) * σ (.n (st.ys.getD 0 0)) +
-        σ (.n st.lam) ^ 2 * σ (.n (st.ys.getD 1 0)) +
-        σ (.n st.lam) ^ 3 * σ (.n st.lam) ^ lv.queries * σ (.n st.batched) ∧
-      LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1)) (σ (.n st.lam)) ∧
-      LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1) + 1) (σ (.n st.lam) ^ 2) ∧
-      LoadHolds rd (σ (.n osBetas)) lvl (σ (.n st.lam) ^ 3 * σ (.n st.lam) ^ lv.queries) ∧
+        σ (.n st.lam) ^ 2 * σ (.n st.lam) ^ lv.queries * σ (.n st.batched) ∧
+      LoadHolds rd (σ (.n osOodSc)) (lvl + 1) (σ (.n st.lam)) ∧
+      LoadHolds rd (σ (.n osBetas)) lvl (σ (.n st.lam) ^ 2 * σ (.n st.lam) ^ lv.queries) ∧
       LoadHolds rd (σ (.n osMus)) lvl (σ (.n st.lamInv)) ∧
       (osGlue lvl lv st).2 = { st with
         k := (osGlue lvl lv st).2.k
@@ -132,21 +130,20 @@ theorem osGlue_sound {lvl : ℕ} {lv : OsLv} {st : OsSt}
   obtain ⟨⟨h1, hpw⟩, h2⟩ := hok
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_mul, holds_add, osLd,
     osMul, osAdd] at h1 h2
-  obtain ⟨l0, m0, a1, m2, l2, m3, a4, m5⟩ := h1
+  obtain ⟨l0, m0, a1, m2⟩ := h1
   obtain ⟨m6, m7, a8, l9, l10⟩ := h2
   have hpv := osPowSteps_val (C := C) (rd := rd) (σ := σ) st.lam (osPowDigits lv.queries) st.lam
-    (st.k + 6) 1 (by rw [pow_one]) hpw
+    (st.k + 3) 1 (by rw [pow_one]) hpw
   rw [hpwQ] at hpv
-  refine ⟨?_, l0, ?_, ?_, l10, rfl⟩
-  · rw [a8, m7, m6, hpv, a4, a1, m0, m3, m5, m2]; ring
-  · rw [← show σ (.n (st.k + 2)) = σ (.n st.lam) ^ 2 by rw [m2]; ring]; exact l2
-  · rw [← show σ (.n (st.k + 6 + osPowLen lv.queries)) = σ (.n st.lam) ^ 3 * σ (.n st.lam) ^ lv.queries
-      by rw [m6, hpv, m5, m2]; ring]
+  refine ⟨?_, l0, ?_, l10, rfl⟩
+  · rw [a8, m7, m6, hpv, a1, m0, m2]; ring
+  · rw [← show σ (.n (st.k + 3 + osPowLen lv.queries)) = σ (.n st.lam) ^ 2 * σ (.n st.lam) ^ lv.queries
+      by rw [m6, hpv, m2]; ring]
     exact l9
 
 /-! ## The queries -/
 
-/-- The `opening_queries` call's arguments (G:1710-1717). -/
+/-- The `opening_queries` call's arguments (G:1697-1704). -/
 def osQArgs (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E :=
   [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
     if lvl = c.yrLevel then 0 else σ (.n st.lamInv), σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
@@ -154,7 +151,7 @@ def osQArgs (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E 
     σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff,
     gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)]
 
-/-- **The level's queries** (G:1710-1717): the `opening_queries` call on its arguments. -/
+/-- **The level's queries** (G:1697-1704): the `opening_queries` call on its arguments. -/
 theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hm : MatsOk σ st.mats) (hb : 4 * lv.capOff < u128Bound) (hf : 2 * lv.foldsOff < u128Bound)
     (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)

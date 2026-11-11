@@ -36,6 +36,9 @@ def omTailVal (n nonce : ℕ) (S0 S1 : KeccakState) (nn : E) (d : ℕ) : E :=
     (if d < 13 then cellsOfState S0 false (fin13 d) else if d < 15 then nn
       else if d = 15 then word 0 dsPowNonce else if d = 16 then word 1 0 else if d < 21 then 0
       else cellsOfState S1 false (fin13 (d - 21)))
+  else if n - 4 * omK n = 2 then
+    (if d < 2 then nn else if d = 2 then word 0 dsPowNonce else if d < 5 then 0
+      else cellsOfState S1 false (fin13 (d - 5)))
   else if d < 2 then nn else if d = 2 then word 0 dsPowNonce else if d = 3 then word 1 0
     else if d < 8 then 0 else cellsOfState S1 false (fin13 (d - 8))
 
@@ -278,7 +281,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
       cellsOfState (if nonce = 1 then S1 else S0) false c := by
     intro c
     have hc := c.isLt
-    rcases hcase with ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h4⟩ | ⟨rfl, h1⟩
+    rcases hcase with ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h1⟩
     · have he : omO (omK n) = omE n := by simp only [omE, omO, omK] at h4 ⊢; omega
       simp only [omTail, h4, ↓reduceIte]
       rw [he, vT c.val (by simp only [omTail, h4, ↓reduceIte]; omega)]
@@ -298,11 +301,20 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
         show 21 + c.val ≠ 15 by omega, show 21 + c.val ≠ 16 by omega,
         show ¬ (21 + c.val < 21) by omega]
       exact congrArg _ (fin13_eq (by omega))
-    · simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide]
+    · simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide]
+      rw [show omE n + 5 + c.val = omE n + (5 + c.val) by ring,
+        vT (5 + c.val) (by simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
+          show (2 : ℕ) ≠ 4 by decide]; omega)]
+      simp only [omTailVal, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide,
+        show ¬ (5 + c.val < 2) by omega, show 5 + c.val ≠ 2 by omega, show ¬ (5 + c.val < 5) by omega]
+      exact congrArg _ (fin13_eq (by omega))
+    · simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide,
+        show (1 : ℕ) ≠ 2 by decide]
       rw [show omE n + 8 + c.val = omE n + (8 + c.val) by ring,
         vT (8 + c.val) (by simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
-          show (1 : ℕ) ≠ 4 by decide]; omega)]
+          show (1 : ℕ) ≠ 4 by decide, show (1 : ℕ) ≠ 2 by decide]; omega)]
       simp only [omTailVal, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide,
+        show (1 : ℕ) ≠ 2 by decide,
         show ¬ (8 + c.val < 2) by omega, show 8 + c.val ≠ 2 by omega, show 8 + c.val ≠ 3 by omega,
         show ¬ (8 + c.val < 8) by omega]
       exact congrArg _ (fin13_eq (by omega))
@@ -313,7 +325,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
       intro b d hd hb hv
       rw [hb, vT d hd, hv, word_zero]
     have hKn : omK n ≤ omK n := le_rfl
-    rcases hcase with ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h4⟩ | ⟨rfl, h1⟩
+    rcases hcase with ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h4⟩ | ⟨rfl, h2⟩ | ⟨rfl, h1⟩
     · intro a ha
       simp only [omTail, h4, ↓reduceIte, List.mem_singleton] at ha
       subst ha
@@ -399,16 +411,57 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
         · have := hOS c
           simp only [omTail, h4, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide] at this
           rw [this, ← habs]
+    · have hf : (omTail n 1).2.2 = omE n + 18 := by
+        simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide]
+      have vnn : ∀ d, d < 2 → σ (.n (omE n + d)) = nn := fun d hd ↦ by
+        rw [vT d (by omega)]
+        simp only [omTailVal, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
+          show (2 : ℕ) ≠ 4 by decide, hd]
+      have v2 : σ (.n (omE n + 2)) = word 0 dsPowNonce := by
+        rw [vT 2 (by omega)]; simp [omTailVal, h2]
+      intro a ha
+      simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 4 by decide,
+        List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at ha
+      rcases ha with (rfl | rfl | rfl | rfl | rfl) | rfl
+      · show LoadHolds rd (σ (.n 5)) n (σ (.n (omE n)))
+        rw [e5, show omE n = omE n + 0 by ring, vnn 0 (by omega)]; exact hnn rfl
+      · show σ (.n (omE n + 1)) = σ (.n (omE n))
+        rw [vnn 1 (by omega), show omE n = omE n + 0 by ring, vnn 0 (by omega)]
+      · exact v2
+      · exact hpad _ 3 (by omega) (by ring) (by simp [omTailVal, h2])
+      · exact hpad _ 4 (by omega) (by ring) (by simp [omTailVal, h2])
+      · have hg := grp_getD2 (xs := xs) (g := omK n) (by omega)
+        have habs : (stF cap xs (omK n)).absorb nn dsPowNonce =
+            ⟨stCap cap xs (omK n), [(xs.getD (4 * omK n) 0, dsObserve),
+              (xs.getD (4 * omK n + 1) 0, dsObserve), (nn, dsPowNonce)]⟩ := by
+          simp [Fs.absorb, stF, hg, rateScalars]
+        refine keccak_of_fs (s := ⟨stCap cap xs (omK n), [(xs.getD (4 * omK n) 0, dsObserve),
+          (xs.getD (4 * omK n + 1) 0, dsObserve), (nn, dsPowNonce)]⟩) (by simp)
+          (stCap_length cap xs rfl _) ?_ fun c ↦ ?_
+        · rw [List.map_append, capK _ hKn]
+          simp only [List.map_cons, List.map_nil, List.length_cons, List.length_nil]
+          rw [vW _ (by omega) 1 (by omega), vW _ (by omega) 2 (by omega),
+            vW (4 * omK n + 1) (by omega) 1 (by omega), vW (4 * omK n + 1) (by omega) 2 (by omega),
+            vnn 1 (by omega), v2,
+            hpad _ 3 (by omega) (by ring) (by simp [omTailVal, h2]),
+            hpad _ 4 (by omega) (by ring) (by simp [omTailVal, h2]), word_zero]
+          rfl
+        · have := hOS c
+          simp only [omTail, h2, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
+            show (2 : ℕ) ≠ 4 by decide] at this
+          rw [this, ← habs]
     · have hf : (omTail n 1).2.2 = omE n + 21 := by
-        simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide]
+        simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide,
+          show (1 : ℕ) ≠ 2 by decide]
       have vnn : ∀ d, d < 2 → σ (.n (omE n + d)) = nn := fun d h2 ↦ by
         rw [vT d (by omega)]
         simp only [omTailVal, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
-          show (1 : ℕ) ≠ 4 by decide, h2]
+          show (1 : ℕ) ≠ 4 by decide, show (1 : ℕ) ≠ 2 by decide, h2]
       have v2 : σ (.n (omE n + 2)) = word 0 dsPowNonce := by
         rw [vT 2 (by omega)]; simp [omTailVal, h1]
       intro a ha
       simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide, show (1 : ℕ) ≠ 4 by decide,
+        show (1 : ℕ) ≠ 2 by decide,
         padAs, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at ha
       rcases ha with ((rfl | rfl | rfl) | (rfl | rfl | rfl | rfl | rfl)) | rfl
       · show LoadHolds rd (σ (.n 5)) n (σ (.n (omE n)))
@@ -438,7 +491,7 @@ theorem om_complete {name : String} {f : Fn} (n nonce : ℕ) (hcase : OmCase n n
           rfl
         · have := hOS c
           simp only [omTail, h1, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
-            show (1 : ℕ) ≠ 4 by decide] at this
+            show (1 : ℕ) ≠ 4 by decide, show (1 : ℕ) ≠ 2 by decide] at this
           rw [this, ← habs]
   -- the copies out and the cursor
   have hfin : ∀ a ∈ omFinal n nonce (omTail n nonce).2.1 (omTail n nonce).2.2, a.Holds rd σ := by
@@ -540,10 +593,9 @@ theorem opening_message_holds : opening_message_Spec := by
     fun ⟨h1, h2, h3⟩ ↦ ⟨om_sound _ _ hc hn h64 h1 h2 h3 rd args rets,
       om_complete _ _ hc hn h64 h1 h2 h3 rd args rets⟩
   simp only [omDeployed, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl
   · exact go om_found_1_1
-  · exact go om_found_6_0
-  · exact go om_found_8_0
+  · exact go om_found_6_1
   · exact go om_found_8_1
   · exact go om_found_12_1
   · exact go om_found_20_1

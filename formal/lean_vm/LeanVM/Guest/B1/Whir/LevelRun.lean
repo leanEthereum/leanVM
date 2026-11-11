@@ -15,10 +15,11 @@ public import LeanVM.Guest.B1.Whir.Squeezes
 # A non-final level's run (V: `whirLevels`, the `next :: _` arm)
 
 `levelNext_run`: from a sponge with nothing waiting, the next root's two cells `x0, x1` and the
-high part read and absorbed (the commitment appended), the two out-of-domain points squeezed, their
-values and the query nonce read, the query grind passing, the positions sampled from its challenge
-(`sampleQueries_runG`), the batching nonce read, its grind passing and `λ` drawn, and one phase of
-openings at the positions passing `openOne`: `levelNext` returns the glued state.
+high part read and absorbed (the commitment appended), the OOD nonce read and its grind passing,
+the OOD point drawn from its challenge (`oodPt`), its value and the query nonce read, the query
+grind passing, the positions sampled from its challenge (`sampleQueries_runG`), `λ` the next
+squeeze, and one phase of openings at the positions passing `openOne`: `levelNext` returns the
+glued state.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -27,22 +28,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- The out-of-domain points of a non-final level, `mu` coordinates each, from the sponge `F`. -/
-theorem sampleOodPoints_two (mu : ℕ) (F : Fs) :
-    RunsTo (sampleOodPoints mu 2) F [] [(F.squeezeN mu).1, ((F.squeezeN mu).2.squeezeN mu).1]
-      ((F.squeezeN mu).2.squeezeN mu).2 := by
-  have h := (runsTo_sampleN mu F).bind (f := fun p ↦ do
-      let points ← sampleOodPoints mu 1
-      return p :: points)
-    (((runsTo_sampleN mu (F.squeezeN mu).2).bind (f := fun p ↦ do
-        let points ← sampleOodPoints mu 0
-        return p :: points)
-      ((runsTo_ret [] _).bind (f := fun points ↦
-        (pure (((F.squeezeN mu).2.squeezeN mu).1 :: points) : VerifierProgram (List (List E))))
-        (runsTo_ret _ _))).bind (f := fun points ↦
-          (pure ((F.squeezeN mu).1 :: points) : VerifierProgram (List (List E)))) (runsTo_ret _ _))
-  exact h
 
 /-! ## Runs between any sponges -/
 
@@ -98,48 +83,60 @@ theorem RunsW.toWith {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List
 
 /-! ## The level -/
 
+theorem levelOodGrind_eq : levelOodGrind = Whir.levelOodGrindingBits := rfl
+
+/-- The OOD point, from the OOD grind's ground challenge. -/
+theorem oodPt_eq (F : Fs) (xs : List E) (n1 : E) (mu : ℕ) :
+    oodPt F xs n1 mu =
+      (challengeOf ((F.absorbAll xs dsObserve).nonceState n1) ::
+          ((⟨capOf ((F.absorbAll xs dsObserve).nonceState n1), []⟩ : Fs).squeezeN (mu - 1)).1,
+        ((⟨capOf ((F.absorbAll xs dsObserve).nonceState n1), []⟩ : Fs).squeezeN (mu - 1)).2) := by
+  simp only [oodPt, oodG, Fs.grindSqueeze_pos _ (show levelOodGrind ≠ 0 by decide)]
+
+/-- `n + 1` challenges from a ground challenge `c`: `c`, then `n` squeezes. -/
+theorem runsFromG_sampleN (n : ℕ) (cap : List E) (c : E) :
+    RunsFromG (VerifierProgram.sampleChallenges (n + 1)) cap c [] (c :: ((⟨cap, []⟩ : Fs).squeezeN n).1)
+      ((⟨cap, []⟩ : Fs).squeezeN n).2 :=
+  (runsFromG_sample cap c).bind (f := fun x ↦ do
+      let xs ← VerifierProgram.sampleChallenges n
+      return x :: xs)
+    ((runsTo_sampleN n _).bind (f := fun xs ↦ (pure (c :: xs) : VerifierProgram (List E)))
+      (runsTo_ret _ _))
+
 /-- **A non-final level after its folds runs** (`levelNext`): the words `x0, x1` (the next root's
-cells), the high part, `y0, y1` (the out-of-domain values), the query nonce `nn` and the batching
-nonce `n2`; the two grinds passing; one phase of openings at the positions, each passing `openOne`
-against commitment `index`'s root. It returns the glued state. -/
+cells), the high part, the OOD nonce `n1`, the OOD value `y0` and the query nonce `nn`; the two
+grinds passing; the positions sampled from the query grind's challenge and `λ` the next squeeze;
+one phase of openings at the positions, each passing `openOne` against commitment `index`'s root.
+It returns the glued state. -/
 theorem levelNext_run (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
     (rounds : List FoldRound) (F : Fs) (R : List (Digest × ℕ × ℕ)) {root : Digest}
     {height width : ℕ} (hi : R[index]? = some (root, height, width))
-    (x0 x1 : E) (high : List E) (hhl : high.length = level.fold) (y0 y1 nn n2 : E)
-    (hb1 : Whir.queryGrindingBits ≠ 0) (hb2 : Whir.batchGrindingBits ≠ 0)
+    (x0 x1 : E) (high : List E) (hhl : high.length = level.fold) (n1 y0 nn : E)
+    (hmu : 1 ≤ logN - s.alphas.length)
     (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
-    (hok1 : powOk Whir.queryGrindingBits (Keccak.lane
-      (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.alphas.length)).2.squeezeN
-        (logN - s.alphas.length)).2.absorbAll [y0, y1] dsObserve).nonceState nn) 2) = true)
+    (hok0 : (F.absorbAll (x0 :: x1 :: high) dsObserve).GrindOk levelOodGrind n1)
+    (hok1 : powOk Whir.queryGrindingBits
+      (Keccak.lane (oodQ F (x0 :: x1 :: high) n1 (logN - s.alphas.length) y0 nn) 2) = true)
     (qs : List ℕ) (hqs : qs = sqPositions (logN - s.alphas.length + level.logInvRate)
-      (sqSample (challengeOf (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
-        (logN - s.alphas.length)).2.squeezeN (logN - s.alphas.length)).2.absorbAll [y0, y1]
-          dsObserve).nonceState nn))
-        (capOf (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
-        (logN - s.alphas.length)).2.squeezeN (logN - s.alphas.length)).2.absorbAll [y0, y1]
-          dsObserve).nonceState nn))) level.queries)
-    (F3 : Fs) (hF3 : F3 = ((⟨capOf (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
-        (logN - s.alphas.length)).2.squeezeN (logN - s.alphas.length)).2.absorbAll [y0, y1]
-          dsObserve).nonceState nn), []⟩ : Fs).squeezeN
-        (sqCount (128 / (logN - s.alphas.length + level.logInvRate)) level.queries - 1)).2)
-    (hok2 : powOk Whir.batchGrindingBits (Keccak.lane (F3.nonceState n2) 2) = true)
+      (sqSample (challengeOf (oodQ F (x0 :: x1 :: high) n1 (logN - s.alphas.length) y0 nn))
+        (capOf (oodQ F (x0 :: x1 :: high) n1 (logN - s.alphas.length) y0 nn))) level.queries)
+    (F3 : Fs) (hF3 : F3 = ((⟨capOf (oodQ F (x0 :: x1 :: high) n1 (logN - s.alphas.length) y0 nn),
+        []⟩ : Fs).squeezeN (sqCount (128 / (logN - s.alphas.length + level.logInvRate))
+          level.queries - 1)).2)
     (os : List Opening) (hl : os.length = qs.length)
     (hopen : ∀ k (hk : k < qs.length) (ho : k < os.length),
       Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width qs[k] os[k]) = true)
     (hidx : os.map Opening.leafIndex = qs) :
     RunsWith (levelNext logN index level next s rounds) F
-      (x0 :: x1 :: high ++ [y0, y1, nn, n2]) [os] R
-      (glueLevel s (challengeOf (F3.nonceState n2)) (logN - s.alphas.length)
-        [((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.alphas.length)).1,
-          (((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.alphas.length)).2.squeezeN
-            (logN - s.alphas.length)).1] [y0, y1] qs
-        (powers (challengeOf (F3.nonceState n2)) qs.length)
-        (levelBatched (logN - s.alphas.length) index rounds high qs (os.map (·.leaf))
-          (challengeOf (F3.nonceState n2))))
-      ⟨capOf (F3.nonceState n2), []⟩
+      (x0 :: x1 :: high ++ [n1, y0, nn]) [os] R
+      (glueLevel s F3.squeeze.1 (logN - s.alphas.length)
+        (oodPt F (x0 :: x1 :: high) n1 (logN - s.alphas.length)).1 y0 qs
+        (powers F3.squeeze.1 qs.length)
+        (levelBatched (logN - s.alphas.length) index rounds high qs (os.map (·.leaf)) F3.squeeze.1))
+      F3.squeeze.2
       (R ++ [(digestFromHalves (x0, x1), levelShape (logN - s.alphas.length) next
         (2 * 2 ^ next.fold))]) := by
-  set mu := logN - s.alphas.length with hmu
+  set mu := logN - s.alphas.length with hmud
   set R' := R ++ [(digestFromHalves (x0, x1), levelShape mu next (2 * 2 ^ next.fold))] with hR'
   have hi' : R'[index]? = some (root, height, width) := by
     rw [hR', List.getElem?_append_left (List.getElem?_eq_some_iff.mp hi).1]; exact hi
@@ -150,24 +147,32 @@ theorem levelNext_run (logN index : ℕ) (level next : Whir.Level) (s : WhirStat
   set F1 := F.absorbAll (x0 :: x1 :: high) dsObserve with hF1
   have hF1' : ((F.absorb x0 dsObserve).absorb x1 dsObserve).absorbAll high dsObserve = F1 := rfl
   rw [hF1'] at h2
-  have h3 := RunsTo.toW (sampleOodPoints_two mu F1) R'
-  have h4 := RunsTo.toW (runsTo_readN ((F1.squeezeN mu).2.squeezeN mu).2 [y0, y1]) R'
-  have h5 := RunsToG.toW (runsToG_grind hb1 _ nn hok1) R'
-  set S := ((((F1.squeezeN mu).2.squeezeN mu).2.absorbAll [y0, y1] dsObserve).nonceState nn) with hS
-  have h6 : RunsW (Fs.CarriesGround (capOf S) (challengeOf S))
+  have hb0 : Whir.levelOodGrindingBits ≠ 0 := by decide
+  have hb1 : Whir.queryGrindingBits ≠ 0 := by decide
+  have h3 := RunsToG.toW (runsToG_grind hb0 F1 n1 (hok0.resolve_left hb0)) R'
+  set S1 := F1.nonceState n1 with hS1
+  obtain ⟨m, hm⟩ : ∃ m, mu = m + 1 := ⟨mu - 1, by omega⟩
+  have h4 : RunsW (Fs.CarriesGround (capOf S1) (challengeOf S1))
+      (VerifierProgram.sampleChallenges mu) [] [] R'
+      (oodPt F (x0 :: x1 :: high) n1 mu).1 (oodPt F (x0 :: x1 :: high) n1 mu).2.Carries R' := by
+    rw [oodPt_eq, hm, Nat.add_sub_cancel]
+    exact RunsFromG.toW (runsFromG_sampleN m (capOf S1) (challengeOf S1)) R'
+  set G := (oodPt F (x0 :: x1 :: high) n1 mu).2 with hG
+  have h5 := RunsTo.toW (runsTo_readE G y0) R'
+  have h6 := RunsToG.toW (runsToG_grind hb1 (G.absorb y0 dsObserve) nn hok1) R'
+  set S := oodQ F (x0 :: x1 :: high) n1 mu y0 nn with hS
+  have hSe : (G.absorb y0 dsObserve).nonceState nn = S := rfl
+  rw [hSe] at h6
+  have h7 : RunsW (Fs.CarriesGround (capOf S) (challengeOf S))
       (sampleQueries (mu + level.logInvRate) level.queries) [] [] R' qs F3.Carries R' := by
     rw [hqs, hF3]
     exact RunsFromG.toW (sampleQueries_runG (mu + level.logInvRate) level.queries hP hQ
       (capOf S) (challengeOf S)) R'
-  have h7 := RunsToG.toW (runsToG_grind hb2 F3 n2 hok2) R'
-  have h8 := RunsFromG.toW (runsFromG_sample (capOf (F3.nonceState n2))
-    (challengeOf (F3.nonceState n2))) R'
-  have h9 := RunsWith.toW (runsWith_queryP ⟨capOf (F3.nonceState n2), []⟩ R' hi' qs os hl hopen hidx)
-  have h10 := RunsWith.toW (runsWith_ret (glueLevel s (challengeOf (F3.nonceState n2)) mu
-    [(F1.squeezeN mu).1, ((F1.squeezeN mu).2.squeezeN mu).1] [y0, y1] qs
-    (powers (challengeOf (F3.nonceState n2)) qs.length)
-    (levelBatched mu index rounds high qs (os.map (·.leaf)) (challengeOf (F3.nonceState n2))))
-    (⟨capOf (F3.nonceState n2), []⟩ : Fs) R')
+  have h8 := RunsTo.toW (runsTo_sampleE F3) R'
+  have h9 := RunsWith.toW (runsWith_queryP F3.squeeze.2 R' hi' qs os hl hopen hidx)
+  have h10 := RunsWith.toW (runsWith_ret (glueLevel s F3.squeeze.1 mu
+    (oodPt F (x0 :: x1 :: high) n1 mu).1 y0 qs (powers F3.squeeze.1 qs.length)
+    (levelBatched mu index rounds high qs (os.map (·.leaf)) F3.squeeze.1)) F3.squeeze.2 R')
   refine RunsW.toWith (RunsW.of_eq (h1.bind (h2.bind (h3.bind (h4.bind (h5.bind (h6.bind
     (h7.bind (h8.bind (h9.bind h10))))))))) ?_ ?_ rfl rfl rfl)
   · simp

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Finish
 
 /-!
-# The finish, soundly (G:1746-1847)
+# The finish, soundly (G:1733-1833)
 
 `osFinish_sound`: from `FinishIn` (the non-final levels' records in memory, every `α` in
 `fold_challenges`, the tail challenges, the final lane, the static facts), the statements of
@@ -27,7 +27,7 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-instance : Inhabited OsRec := ⟨⟨0, 0, 0, [], [], [], []⟩⟩
+instance : Inhabited OsRec := ⟨⟨0, 0, 0, [], [], []⟩⟩
 
 /-- What the finish reads. -/
 structure FinishIn (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (tch : ℕ)
@@ -78,17 +78,14 @@ theorem sum_flatMap' {α : Type} (g : α → List E) :
 theorem inner_sum (recs : List OsRec) (P : List E) :
     (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt (P.drop g.foldStart)) 0 =
       ∑ i ∈ Finset.range recs.length,
-        (1 * (recs.getD i default).lam * eqEval (recs.getD i default).z0 (P.drop (recs.getD i default).F) +
-          1 * (recs.getD i default).lam * (recs.getD i default).lam *
-            eqEval (recs.getD i default).z1 (P.drop (recs.getD i default).F) +
-          1 * (recs.getD i default).lam * (recs.getD i default).lam * (recs.getD i default).lam *
+        ((recs.getD i default).lam * eqEval (recs.getD i default).z0 (P.drop (recs.getD i default).F) +
+          (recs.getD i default).lam * (recs.getD i default).lam *
             inducedWeight (recs.getD i default).mu (recs.getD i default).qs
               (powers (recs.getD i default).lam (recs.getD i default).qs.length)
               (P.drop (recs.getD i default).F)) := by
   rw [foldl_add_map, zero_add, List.map_flatMap, sum_flatMap', sum_list_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   simp [recGlued]
-  ring
 
 /-- **The finish, soundly.** -/
 theorem osFinish_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {st : OsSt} {tch : ℕ}
@@ -178,7 +175,7 @@ theorem osFinish_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {st
       simpa using this)
   simp only [List.map_id, id, add_zero] at hrd1 hrd2
   -- the basis rows
-  set β : ℕ → E := fun i ↦ (r i).lam ^ 3 * (r i).lam ^ (lvA i).queries with hβ
+  set β : ℕ → E := fun i ↦ (r i).lam ^ 2 * (r i).lam ^ (lvA i).queries with hβ
   have hBin : ∀ i (hi : i < (c.levels.take c.yrLevel).length), BasisIn rd σ c tch (0 + i)
       (c.levels.take c.yrLevel)[i] (β (0 + i)) (X (0 + i)) := by
     intro i hi
@@ -242,43 +239,32 @@ theorem osFinish_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {st
   have htl : c.levels.tail.length = y := by simp [hy, hF.yr]
   have htail : ∀ i, c.levels.tail.getD i default = lvA (i + 1) := fun i ↦ by
     simp only [lvA, List.getD_eq_getElem?_getD, List.getElem?_tail]
-  set zs : ℕ → ℕ → List E := fun i s ↦ if s = 0 then (r i).z0 else (r i).z1 with hzs
-  set W : ℕ → ℕ → E := fun i s ↦ (r i).lam ^ (s + 1) *
-    ∏ t ∈ Finset.range (lvA i).logCols, (1 + (zs i s).getD t 0 + X i t) with hW
+  set W : ℕ → E := fun i ↦ (r i).lam *
+    ∏ t ∈ Finset.range (lvA i).logCols, (1 + (r i).z0.getD t 0 + X i t) with hW
   have hhead : (c.levels.headD default).logCols = (fun i ↦ (lvA i).logCols) 0 := by
     simp only [lvA, List.headD_eq_head?_getD, List.head?_eq_getElem?, List.getD_eq_getElem?_getD]
   have hodd : od = osOodWeights c tch ((fun i ↦ (lvA i).logCols) 0) 1 c.levels.tail none rs.2 := by
     rw [hod, hhead]
   rw [hodd] at hO
   have hOd := osOodWeights_val (C := C) (rd := rd) (σ := σ) (c := c) (tch := tch) c.levels.tail
-    (fun i ↦ (lvA i).logCols) 1 none rs.2 W (fun i hi s hs k hok' ↦ by
+    (fun i ↦ (lvA i).logCols) 1 none rs.2 W (fun i hi k hok' ↦ by
       rw [htl] at hi
       have hL := hLF i hi
       have hS := hRS i hi
       rw [htail] at hok' ⊢
       have hcl : (lvA i).logCols - c.yrLog + c.yrLog = (lvA i).logCols := by
         have := hL.pre; omega
-      have hv := osOodWeight_val (lam := (r i).lam ^ (s + 1)) (z := fun t ↦ (zs i s).getD t 0)
+      have hv := osOodWeight_val (lam := (r i).lam) (z := fun t ↦ (r i).z0.getD t 0)
         (p := X i) (C := C) ?_ ?_ ?_ hok'
       · rw [hv, hcl]
-      · obtain rfl | rfl : s = 0 ∨ s = 1 := by omega
-        · simpa [add_comm 1 i] using hS.lam1
-        · simpa [add_comm 1 i] using hS.lam2
+      · simpa [add_comm 1 i] using hS.lam1
       · intro t ht
         rw [hcl] at ht
-        obtain rfl | rfl : s = 0 ∨ s = 1 := by omega
-        · have := hS.z0 t (by rw [hS.z0len]; exact ht)
-          rw [loadHolds_mul_gen_pow] at this
-          simp only [zs, ↓reduceIte, List.getD_eq_getElem _ _ (show t < (r i).z0.length by
-            rw [hS.z0len]; exact ht)]
-          convert this using 2
-          simp [oodSamples]; ring
-        · have := hS.z1 t (by rw [hS.z1len]; exact ht)
-          rw [loadHolds_mul_gen_pow] at this
-          simp only [zs, one_ne_zero, ↓reduceIte, List.getD_eq_getElem _ _ (show t < (r i).z1.length by
-            rw [hS.z1len]; exact ht)]
-          convert this using 2
-          simp [oodSamples]; ring
+        have := hS.z0 t (by rw [hS.z0len]; exact ht)
+        rw [loadHolds_mul_gen_pow] at this
+        simp only [List.getD_eq_getElem _ _ (show t < (r i).z0.length by rw [hS.z0len]; exact ht)]
+        convert this using 2
+        ring
       · intro t ht
         rw [hcl] at ht
         have hx := hXsrc i hi t (by rw [hL.pre]; exact ht)
@@ -294,7 +280,7 @@ theorem osFinish_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {st
   obtain ⟨e0, e1, e2, e3, e4, e5⟩ := hE
   obtain ⟨x, hx⟩ := osOodWeights_some (c := c) (tch := tch) c.levels.tail ((fun i ↦ (lvA i).logCols) 0) 1
     none rs.2 (by intro h; rw [h] at htl; have := hF.n2; rw [hy, hF.yr] at htl; simp at htl; omega)
-  have hacc : σ (.n (od.2.1.getD 0)) = ∑ i ∈ Finset.range y, (W i 0 + W i 1) := by
+  have hacc : σ (.n (od.2.1.getD 0)) = ∑ i ∈ Finset.range y, W i := by
     have := hOd
     rw [hodd, hx]
     rw [hx] at this
@@ -304,22 +290,19 @@ theorem osFinish_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {st
   have hterms : ∀ i < y,
       β i * (∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), (X i t * invW (lvA i) t)) *
           (resAll (lvA i) (D i) (hsv i) (Pos i) (li i)).1 =
-        1 * (r i).lam * (r i).lam * (r i).lam *
+        (r i).lam * (r i).lam *
           inducedWeight (r i).mu (r i).qs (powers (r i).lam (r i).qs.length) (ptFrom G T (r i).F) ∧
       β i * (∏ t ∈ Finset.range ((lvA i).prefixLen + c.yrLog), X i t) *
           (resAll (lvA i) (D i) (hsv i) (Pos i) (li i)).2 =
-        T.prod * ((r i).lam ^ 3 * recH (r i) * (G.drop (r i).F).prod) ∧
-      W i 0 = 1 * (r i).lam * eqEval (r i).z0 (ptFrom G T (r i).F) ∧
-      W i 1 = 1 * (r i).lam * (r i).lam * eqEval (r i).z1 (ptFrom G T (r i).F) := by
+        T.prod * ((r i).lam ^ 2 * recH (r i) * (G.drop (r i).F).prod) ∧
+      W i = (r i).lam * eqEval (r i).z0 (ptFrom G T (r i).F) := by
     intro i hi
     have hL := hLF i hi
     have hS := hRS i hi
-    have h := lvl_terms hL hF.Gl hF.Tl hS.F hS.mu hS.qlen hS.hlen hS.z0len hS.z1len (hli2 i hi)
+    have h := lvl_terms hL hF.Gl hF.Tl hS.F hS.mu hS.qlen hS.hlen hS.z0len (hli2 i hi)
       (fun t ht ↦ ((hBo i hi).1 t (by rw [hL.pre]; exact ht)).1)
     rw [hL.pre]
-    refine ⟨h.1, h.2.1, ?_, ?_⟩
-    · simp only [W, zs, ↓reduceIte, zero_add, pow_one]; exact h.2.2.1
-    · simp only [W, zs, one_ne_zero, ↓reduceIte]; exact h.2.2.2
+    exact ⟨h.1, h.2.1, h.2.2⟩
   have hrl : recs.length = y := hF.recl
   refine ⟨σ (.n (st.k + 1)), σ (.n (st.k + 1 + 1)), ?_, hrd1, hrd2⟩
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true]
@@ -328,8 +311,8 @@ theorem osFinish_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg} {st
     exact congrArg (_ + ·) (Finset.sum_congr rfl fun i hi ↦ (hterms i (Finset.mem_range.mp hi)).2.1)
   · rw [e4, loadHolds_unique e3 hc0, hacc, inner_sum, hrl, ← Finset.sum_add_distrib]
     refine Finset.sum_congr rfl fun i hi ↦ ?_
-    obtain ⟨t1, -, t3, t4⟩ := hterms i (Finset.mem_range.mp hi)
-    rw [t1, t3, t4]
+    obtain ⟨t1, -, t3⟩ := hterms i (Finset.mem_range.mp hi)
+    rw [t1, t3]
     ring
   · rw [e5]
     have := hyat

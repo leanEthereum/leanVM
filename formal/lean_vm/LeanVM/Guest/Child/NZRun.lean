@@ -83,7 +83,7 @@ end NZ
 
 theorem nz_foldRound (s : WhirState) : NZ (Limits.foldRoundNZ s) (foldRound s) := by
   unfold Limits.foldRoundNZ foldRound
-  iterate 6 refine NZ.bind (NZ.refl _) fun _ ↦ ?_
+  iterate 5 refine NZ.bind (NZ.refl _) fun _ ↦ ?_
   refine NZ.sample_bind fun c hc ↦ ?_
   exact NZ.require_bind_of hc (NZ.refl _)
 

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# A non-final level, soundly (G:1567-1735)
+# A non-final level, soundly (G:1558-1696)
 
 `osLevelMid_sound`: from `LvIn`, a non-final level's template runs `foldRounds` then
 `levelNext`, reading `lvWords` words at the cursor and one phase of openings (the witness's,
@@ -110,10 +110,10 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     osRounds_sound hcal.round hwt c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
       hin.claim hoF
   -- the message
-  obtain ⟨x0, x1, high, y0, y1, nn, hC⟩ :=
-    osCommit_sound hcal.msg hcal.spf hcal.sp hF.cols1 hfs0 hm0 hco0 hF.ood hoM
-  set S := ((((f.2.F σ).absorbAll (x0 :: x1 :: high) dsObserve).squeezeN lv.logCols).2.squeezeN
-    lv.logCols).2.absorbAll [y0, y1] dsObserve with hS
+  obtain ⟨x0, x1, high, n1, y0, nn, hC⟩ :=
+    osCommit_sound hcal.msg hcal.g17 hcal.spf hfs0 hm0 (by rw [hpad0]; exact hin.pad) hco0
+      hF.ood hoM
+  set S := (oodPt (f.2.F σ) (x0 :: x1 :: high) n1 lv.logCols).2.absorbAll [y0] dsObserve with hS
   -- the query grind
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, List.map_cons, List.map_nil] at hoG
   obtain ⟨gok, hch, -⟩ := grindSqueeze_cells (s := S) (bits := queryGrind) (by decide) nn _ _
@@ -124,8 +124,8 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hSq := osSqueezes_sound (c := c) (lvl := lvl) hle hcal.dec hcal.sqLoop hF.pw hF.posOff hF.sq1
     hF.sqo hF.sq5 hwt hC.mats hC.fs hC.F rfl hoS
   -- λ
-  have hpadS : PadOk σ sq.2.pad := by rw [hSq.pad, hC.pad, hpad0]; exact hin.pad
-  obtain ⟨n2, hL⟩ := osLam_sound hcal.g14 hSq.fs hpadS hoL
+  have hpadS : PadOk σ sq.2.pad := by rw [hSq.pad]; exact hC.pad
+  have hL := osLam_sound hSq.fs hpadS hoL
   -- the cap
   have hmL : MatsOk σ la.2.mats := by rw [hL.mats]; exact hSq.mats
   obtain ⟨r0, r1, hcapM, lr0, lr1, hmc, hcpe⟩ := osCap_sound hcal.cap hmL hF.cap4 hoC
@@ -137,7 +137,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   obtain ⟨hqC, hmq, hqe⟩ := osQueries_sound hmh hF.cap4 hf3 hF.hs8 hF.posOff hF.qu hoQ
   obtain ⟨hn1, hargs, hrets⟩ := osQCallOf_val hmh hF.cap4 hf3 hF.hs8 hF.posOff hF.qu hoQ
   -- the glue
-  obtain ⟨hcl, lsc0, lsc1, lbeta, lmu, hge⟩ := osGlue_sound hF.pwQ hoGl
+  obtain ⟨hcl, lsc0, lbeta, lmu, hge⟩ := osGlue_sound hF.pwQ hoGl
   -- the states' fields
   have eq_q : q.2.lam = la.2.lam ∧ q.2.lamInv = la.2.lamInv ∧ q.2.ys = m.2.ys ∧
       q.2.claim = f.2.claim ∧ q.2.fs = la.2.fs ∧ q.2.pad = la.2.pad ∧ q.2.cb = la.2.cb ∧
@@ -145,7 +145,6 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     rw [hqe, hhse, hcpe]
     exact ⟨rfl, rfl, rfl, by rw [hL.claim, hSq.claim]; rfl, rfl, rfl, rfl, rfl⟩
   obtain ⟨eql, eqli, eqys, eqcl, eqfs, eqpad, eqcb, eqco⟩ := eq_q
-  have eq_h_sent : h.2.sent = m.2.sent := by rw [hhse, hcpe]; rfl
   have eq_g : g.2.fs = la.2.fs ∧ g.2.pad = la.2.pad ∧ g.2.mats = q.2.mats ∧ g.2.cb = la.2.cb ∧
       g.2.co = la.2.co := by
     rw [hge]; exact ⟨eqfs, eqpad, rfl, eqcb, eqco⟩
@@ -159,7 +158,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   -- the positions
   set P := 128 / lv.depth with hP
   set S' := S.nonceState nn with hS'
-  have hw0 : σ (.n m.2.word0) = challengeOf S' := by rw [hC.word0, Keccak.challengeOf_cells]
+  have hw0 : σ (.n m.2.word0) = challengeOf S' := by rw [hC.word0, Keccak.challengeOf_cells]; rfl
   set qs := sqPositions lv.depth (sqSample (challengeOf S') (capOf S')) lv.queries with hqs
   have hqsl : qs.length = lv.queries := by simp [qs, sqPositions]
   have hpos := sq_positions (rd := rd) (d := lv.depth) (cd := lv.capDepth) (po := lv.posOff)
@@ -217,31 +216,25 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hg1 : ws1.alphas.length = lv.foldsOff + lv.folds := by simp [ws1, hin.glen, hgl]
   have hmu : logN - ws1.alphas.length = lv.logCols := by rw [hg1]; exact hF.cols
   set F3 : Fs := ((⟨capOf S', []⟩ : Fs).squeezeN (sqCount P lv.queries - 1)).2 with hF3
-  have hsqF : sq.2.F σ = F3 := by rw [hSq.F, hF.sq]
-  have hpow2 : powOk batchGrind (Keccak.lane (F3.nonceState n2) 2) = true := by
-    have := hL.ok; rw [hsqF] at this; exact this.resolve_left (by decide)
-  have hlam : σ (.n la.2.lam) = challengeOf (F3.nonceState n2) := by
-    rw [hL.lam, hsqF, Fs.grindSqueeze_pos _ (by decide)]
-  have hlaF : la.2.F σ = ⟨capOf (F3.nonceState n2), []⟩ := by
-    rw [hL.F, hsqF, Fs.grindSqueeze_pos _ (by decide)]
-  set lam := challengeOf (F3.nonceState n2) with hlamd
+  have hsqF : sq.2.F σ = F3 := by rw [hSq.F, hF.sq]; rfl
+  have hlam : σ (.n la.2.lam) = F3.squeeze.1 := by rw [hL.lam, hsqF]
+  have hlaF : la.2.F σ = F3.squeeze.2 := by rw [hL.F, hsqF]
+  set lam := F3.squeeze.1 with hlamd
   have hwlen : (os.map (·.leaf)).length = qs.length := by rw [List.length_map, hosl, hqsl]
   have hrun1 := levelNext_run logN lvl level next ws1 rounds' (f.2.F σ) R hin.R x0 x1 high
-    (by rw [hC.high_len, hF.fold]) y0 y1 nn n2 (by decide) (by decide)
-    (by rw [hmu, ← hF.depth]; exact hF.P1) (by rw [hF.queries]; exact hF.q0)
-    (by rw [hmu]; exact hpow1) qs (by rw [hmu, ← hF.depth, hF.queries])
-    F3 (by rw [hmu, ← hF.depth, hF.queries]) hpow2 os (by rw [hosl, hqsl])
+    (by rw [hC.high_len, hF.fold]) n1 y0 nn (by rw [hmu]; exact hF.cols1)
+    (by rw [hmu, ← hF.depth]; exact hF.P1) (by rw [hF.queries]; exact hF.q0) hC.oodOk
+    (by rw [hmu]; exact hpow1) qs (by rw [hmu, ← hF.depth, hF.queries]; rfl)
+    F3 (by rw [hmu, ← hF.depth, hF.queries]; rfl) os (by rw [hosl, hqsl])
     (fun k hk ho ↦ by
       have := hopen k hk ho
       rw [hsd, hbase, hsf] at this
       exact this) hidx
   rw [hmu] at hrun1
   -- the record
-  set Z0 := (((f.2.F σ).absorbAll (x0 :: x1 :: high) dsObserve).squeezeN lv.logCols).1 with hZ0
-  set Z1 := ((((f.2.F σ).absorbAll (x0 :: x1 :: high) dsObserve).squeezeN lv.logCols).2.squeezeN
-    lv.logCols).1 with hZ1
-  set r : OsRec := ⟨lam, lv.foldsOff + lv.folds, lv.logCols, Z0, Z1, qs, high⟩ with hr
-  set ws' := glueLevel ws1 lam lv.logCols [Z0, Z1] [y0, y1] qs (powers lam qs.length)
+  set Z0 := (oodPt (f.2.F σ) (x0 :: x1 :: high) n1 lv.logCols).1 with hZ0
+  set r : OsRec := ⟨lam, lv.foldsOff + lv.folds, lv.logCols, Z0, qs, high⟩ with hr
+  set ws' := glueLevel ws1 lam lv.logCols Z0 y0 qs (powers lam qs.length)
     (levelBatched lv.logCols lvl rounds' high qs (os.map (·.leaf)) lam) with hws'
   set root' := digestFromHalves (x0, x1) with hroot'
   -- the batch
@@ -270,26 +263,20 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   rw [hfoldsum] at hB
   -- the claim
   have hclaim : ws'.claim = σ (.n g.2.claim) + recsDeficit (recs ++ [r]) (ws.alphas ++ gs) := by
-    rw [hws', glueLevel_two, hB, recsDeficit_snoc _ _ _ (by simp [r, hin.glen, hgl]),
+    show ws1.claim + lam * y0 + lam * lam *
+      levelBatched lv.logCols lvl rounds' high qs (os.map (·.leaf)) lam = _
+    rw [hB, recsDeficit_snoc _ _ _ (by simp [r, hin.glen, hgl]),
       recsDeficit_append_alphas _ _ _ hin.recF, hcl]
     have e1 : σ (.n q.2.lam) = lam := by rw [eql, hlam]
-    have e2 : σ (.n (q.2.ys.getD 0 0)) = y0 := by rw [eqys]; exact hC.ys.2.1
-    have e3 : σ (.n (q.2.ys.getD 1 0)) = y1 := by rw [eqys]; exact hC.ys.2.2
-    rw [e1, e2, e3, eqcl]
+    have e2 : σ (.n (q.2.ys.getD 0 0)) = y0 := by rw [eqys]; exact hC.ys.2
+    rw [e1, e2, eqcl]
     simp only [ws1, recH, r, hqsl]
     ring
   -- the reads
-  have hxs1 : ReadsAt rd (st.cur σ) (xs0 ++ (x0 :: x1 :: high ++ [y0, y1, nn, n2])) := by
-    have e : x0 :: x1 :: high ++ [y0, y1, nn, n2] = (x0 :: x1 :: high ++ [y0, y1, nn]) ++ [n2] := by
-      simp
-    rw [e]
-    refine readsAt_append hrd0 (readsAt_snoc ?_ ?_)
-    · rw [hx0, ← hcur0]; exact hC.reads
-    · rw [hx0, ← hcur0, show (x0 :: x1 :: high ++ [y0, y1, nn]).length = lv.folds + 5 by
-        simp [hC.high_len], ← hC.cur, ← hSq.cur]
-      exact hL.reads
-  refine ⟨xs0 ++ (x0 :: x1 :: high ++ [y0, y1, nn, n2]), ws', r, root', ?_, hxs1, ?_, ?_, ?_, ?_,
-    gs, by simp [ws', glueLevel_two, ws1], hgl⟩
+  have hxs1 : ReadsAt rd (st.cur σ) (xs0 ++ (x0 :: x1 :: high ++ [n1, y0, nn])) :=
+    readsAt_append hrd0 (by rw [hx0, ← hcur0]; exact hC.reads)
+  refine ⟨xs0 ++ (x0 :: x1 :: high ++ [n1, y0, nn]), ws', r, root', ?_, hxs1, ?_, ?_, ?_, ?_,
+    gs, by simp [ws', glueLevel, ws1], hgl⟩
   · simp [lvWords, hnf, hx0, hC.high_len]
   · -- the run
     have h0 := RunsTo.withRoots hrun0 R
@@ -308,9 +295,9 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     · rw [egco, hL.co, hSq.co, hC.co]; unfold u128Bound; norm_num
     · rw [egpad]; exact hL.pad
     · rw [egmats]; exact hmq
-    · simp [ws', glueLevel_two, ws1, hin.glen, hgl, hF.off']
+    · simp [ws', glueLevel, ws1, hin.glen, hgl, hF.off']
     · intro j hj
-      simp only [ws', glueLevel_two, ws1] at hj ⊢
+      simp only [ws', glueLevel, ws1] at hj ⊢
       by_cases hj0 : j < ws.alphas.length
       · rw [List.getElem_append_left hj0]; exact hin.fch j hj0
       · rw [List.getElem_append_right (by omega)]
@@ -323,21 +310,22 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     · rw [show 2 * (lvl + 1) = 2 * lvl + 2 by ring, digestScalars_digestOfScalars]; exact hC.root0
     · rw [show 2 * (lvl + 1) + 1 = 2 * lvl + 3 by ring, digestScalars_digestOfScalars]
       exact hC.root1
-    · simp only [ws', glueLevel_two, ws1, hin.glued, List.flatMap_append, List.flatMap_cons,
+    · simp only [ws', glueLevel, ws1, hin.glued, List.flatMap_append, List.flatMap_cons,
         List.flatMap_nil, List.append_nil, recGlued, r, List.length_append, hin.glen, hgl]
     · intro r' hr'
-      simp only [ws', glueLevel_two, ws1, List.length_append, hgl]
+      simp only [ws', glueLevel, ws1, List.length_append, hgl]
       rcases List.mem_append.mp hr' with h1 | h1
       · have := hin.recF r' h1; omega
       · simp only [List.mem_singleton] at h1; subst h1; simp [r, hin.glen]
   · -- the record
     have e1 : σ (.n q.2.lam) = r.lam := by rw [eql, hlam]
-    refine ⟨rfl, rfl, hqsl, ?_, ?_, ?_, ?_, hC.ood0, ?_, hC.ood1, ?_, ?_, ?_, ?_⟩
+    refine ⟨rfl, rfl, hqsl, ?_, ?_, ?_, hC.ood, ?_, ?_, ?_, ?_⟩
     · exact hC.high_len
     · rw [← e1]; exact lsc0
-    · rw [← e1]; exact lsc1
-    · exact squeezeN_length _ _
-    · exact squeezeN_length _ _
+    · show Z0.length = lv.logCols
+      rw [hZ0, oodPt_eq]
+      simp only [List.length_cons, squeezeN_length]
+      have := hF.cols1; omega
     · rw [← e1]; exact lbeta
     · refine ⟨σ (.n q.2.lamInv), lmu, ?_⟩
       rw [← e1, eql, eqli]; exact hL.inv

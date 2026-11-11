@@ -22,11 +22,11 @@ public import LeanVM.Guest.B1.Whir.Round
 The form `CompleteRelRegD` and its lift `completeRelRegD_of_iff` are in `Lift/RegD.lean`.
 
 **The leaves** (`OsCalleesRegD`, `osCalleesRegD_holds`): `opening_message__L{n}_L{nonce}`,
-`squeeze_point__L{n}`, `squeeze_point_from__L{n}`, `opening_tail_round`,
+`squeeze_point_from__L{n}`, `opening_tail_round`,
 `verify_merkle_cap__L{D}`, `fold_final_msg__L{n}`, with their meanings (B1's `*_holds`) and the
 loads a kernel check of each body bounds (`*Spec`); `grind_check__L{bits}` by its own placed
 form (`grind_check_completeD`, its table reads forced into the caller's words).
-`opening_round` calls `grind_check__L9`, so it is not a leaf: its placed form is a field of its
+`opening_round` calls `grind_check__L8`, so it is not a leaf: its placed form is a field of its
 own (`OsRoundRegD`). `decode_query_windows`, which writes its own frame run, has its own form
 (`QwDecodeAtD`, `B1/Bits/QueryWindowsAt.lean`).
 -/
@@ -47,18 +47,15 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 `out` (6). -/
 def msgSpec (n nonce : ℕ) : List (ℕ × ℕ) := [(5, n + nonce), (6, n)]
 
-/-- `squeeze_point__L{n}`'s: the `n` coordinates at `point` (argument 5). -/
-def spSpec (n : ℕ) : List (ℕ × ℕ) := [(5, n)]
-
 /-- `squeeze_point_from__L{n}`'s: the `n` coordinates at `point` (argument 6). -/
 def spfSpec (n : ℕ) : List (ℕ × ℕ) := [(6, n)]
 
 /-- `opening_tail_round`'s: the two words at the cursor (argument 5). -/
 def tailSpec : List (ℕ × ℕ) := [(5, 2)]
 
-/-- `opening_round`'s: the six words at the cursor (argument 5), `α` at `alphas` (8), `α, β` at
+/-- `opening_round`'s: the five words at the cursor (argument 5), `α` at `alphas` (8), `α, β` at
 `coefs` (9). -/
-def roundSpec : List (ℕ × ℕ) := [(5, 6), (8, 1), (9, 2)]
+def roundSpec : List (ℕ × ℕ) := [(5, 5), (8, 1), (9, 2)]
 
 /-- `verify_merkle_cap__L{D}`'s: the cap's `2^(D+2)` cells (0), the `2^D` flags (1). -/
 def merkleCapSpec (D : ℕ) : List (ℕ × ℕ) := [(0, 2 ^ (D + 2)), (1, 2 ^ D)]
@@ -77,8 +74,6 @@ def OsRoundRegD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : 
 structure OsCalleesRegD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop where
   msg : ∀ p ∈ omDeployed, CompleteRelRegD fs cert k (omName p) (MeaningOpeningMessage p.1 p.2)
     (RegPtrs (msgSpec p.1 p.2))
-  sp : ∀ n ∈ spDeployed, CompleteRelRegD fs cert k (spName n) (MeaningSqueezePoint n)
-    (RegPtrs (spSpec n))
   spf : ∀ n ∈ spfDeployed, CompleteRelRegD fs cert k (spfName n) (MeaningSqueezePointFrom n)
     (RegPtrs (spfSpec n))
   tail : CompleteRelRegD fs cert k "opening_tail_round" MeaningOpeningTailRound (RegPtrs tailSpec)
@@ -93,10 +88,6 @@ structure OsCalleesRegD (fs : String → ℕ) (cert : String → V → ℕ) (k :
 
 set_option maxRecDepth 100000 in
 theorem msg_leafSpec : (omDeployed.all fun p => leafSpecB (omName p) (msgSpec p.1 p.2)) = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem sp_leafSpec : (spDeployed.all fun n => leafSpecB (spName n) (spSpec n)) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -132,7 +123,6 @@ and certificate, on memories defined below `2^k`, `11 ≤ k` (the grinds' range 
 theorem osCalleesRegD_holds {k : ℕ} (hk : 11 ≤ k) : OsCalleesRegD fs cert k where
   msg p hp := completeRelRegD_of_iff (leafSpecOk_allP msg_leafSpec p hp)
     (opening_message_holds p hp) k
-  sp n hn := completeRelRegD_of_iff (leafSpecOk_allP sp_leafSpec n hn) (squeeze_point_holds n hn) k
   spf n hn := completeRelRegD_of_iff (leafSpecOk_allP spf_leafSpec n hn)
     (squeeze_point_from_holds n hn) k
   tail := completeRelRegD_of_iff (leafSpecOk_of tail_leafSpec) opening_tail_round_holds k

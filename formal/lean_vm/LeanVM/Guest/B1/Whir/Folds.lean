@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.Round
 public import LeanVM.Guest.B1.Whir.Loops
 
 /-!
-# The fold rounds (TRIAGE G #35, #42; G:1570-1573)
+# The fold rounds (TRIAGE G #35, #42; G:1565-1568)
 
 The guest's running values, read through a valuation `σ` (`OsSt.F`, `OsSt.cur`): the sponge it
 carries (its five capacity cells, nothing waiting), the cursor `cb·g^co`. `osRound_sound`: one
@@ -62,9 +62,9 @@ theorem osCurS_val {s : OsSt} (h : s.co < u128Bound) (hok : AllOk C rd σ (osCur
 /-! ## One round -/
 
 /-- The claim enters a round linearly, with the factor `α`. -/
-theorem roundClaim_add (claim D alpha beta u0 v0 c0 v1 c1 : E) :
-    roundClaim (claim + D) alpha beta u0 v0 c0 v1 c1 =
-      roundClaim claim alpha beta u0 v0 c0 v1 c1 + alpha * D := by
+theorem roundClaim_add (claim D alpha beta u0 w c0 c1 : E) :
+    roundClaim (claim + D) alpha beta u0 w c0 c1 =
+      roundClaim claim alpha beta u0 w c0 c1 + alpha * D := by
   unfold roundClaim; ring
 
 theorem fs_five (st : OsSt) (hfs : st.fs.length = 5) :
@@ -72,8 +72,8 @@ theorem fs_five (st : OsSt) (hfs : st.fs.length = 5) :
   match h : st.fs, hfs with
   | [f0, f1, f2, f3, f4], _ => exact ⟨f0, f1, f2, f3, f4, rfl⟩
 
-/-- **One `opening_round` call** (G:1572-1573) runs `foldRound` from a Spec state whose claim is
-the guest's plus `D`: the six words at the cursor; the new claim the guest's plus `α·D`; `α`
+/-- **One `opening_round` call** (G:1567-1568) runs `foldRound` from a Spec state whose claim is
+the guest's plus `D`: the five words at the cursor; the new claim the guest's plus `α·D`; `α`
 stored at `fold_challenges·g^i`, `α, β` at `round_coefs·g^(2i)`. -/
 theorem osRound_sound
     (hR : ∀ a r, WinTabs rd (a.getD 7 0) → C "opening_round" a r → MeaningOpeningRound rd a r)
@@ -81,12 +81,12 @@ theorem osRound_sound
     {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {st : OsSt} (ws : WhirState) (D : E) (hfs : st.fs.length = 5)
     (hm : MatsOk σ st.mats) (hco : st.co < u128Bound) (hi : 2 * i < u128Bound)
     (hc : ws.claim = σ (.n st.claim) + D) (hok : AllOk C rd σ (osRound P i st).1) :
-    ∃ (xs : List E) (alpha : E) (round : FoldRound), xs.length = 6 ∧ ReadsAt rd (st.cur σ) xs ∧
+    ∃ (xs : List E) (alpha : E) (round : FoldRound), xs.length = 5 ∧ ReadsAt rd (st.cur σ) xs ∧
       RunsTo (foldRound ws) (st.F σ) xs
         ({ ws with
             claim := σ (.n (osRound P i st).2.claim) + alpha * D
             alphas := ws.alphas ++ [alpha] }, round) ((osRound P i st).2.F σ) ∧
-      (osRound P i st).2.cur σ = st.cur σ * gen ^ 6 ∧ (osRound P i st).2.fs.length = 5 ∧
+      (osRound P i st).2.cur σ = st.cur σ * gen ^ 5 ∧ (osRound P i st).2.fs.length = 5 ∧
       MatsOk σ (osRound P i st).2.mats ∧ (osRound P i st).2.co = 0 ∧
       (osRound P i st).2.pad = st.pad ∧
       LoadHolds rd (σ (.n osFch)) i alpha ∧ LoadHolds rd (σ (.n osCoefs)) (2 * i) round.alpha ∧
@@ -104,7 +104,7 @@ theorem osRound_sound
   simp only [hf, List.cons_append, List.nil_append, List.map_cons, List.map_nil, osRun,
     List.range_succ, List.range_zero, Nat.add_zero] at hM
   simp only [MeaningOpeningRound] at hM
-  obtain ⟨u0, v0, c0, v1, c1, n2, hrd, g2, lg, la, lb, hret⟩ := hM
+  obtain ⟨u0, w, c0, c1, n2, hrd, g2, lg, la, lb, hret⟩ := hM
   rw [ecu] at hrd hret
   rw [efp] at lg
   rw [ecp] at la lb
@@ -112,12 +112,12 @@ theorem osRound_sound
   rw [loadHolds_mul_gen_pow] at lb
   set fs := [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] with hfsv
   have hF : st.F σ = ⟨fs, []⟩ := by simp [OsSt.F, hf, fs]
-  have hrun := opening_round_run ws fs u0 v0 c0 v1 c1 n2 g2
+  have hrun := opening_round_run ws fs u0 w c0 c1 n2 g2
   simp only [Fs.squeeze, capOf, List.cons_append, List.nil_append, List.cons.injEq] at hret
   obtain ⟨e0, e1, e2, e3, e4, e5, e6, -⟩ := hret
-  refine ⟨[u0, v0, c0, v1, c1, n2], (rdG2 fs [u0, v0, c0, v1, c1] n2).1,
-    ⟨(rdG2 fs [u0, v0, c0, v1, c1] n2).1,
-      (rdG2 fs [u0, v0, c0, v1, c1] n2).2.squeeze.1⟩, rfl, hrd, ?_, ?_, rfl, ?_, rfl,
+  refine ⟨[u0, w, c0, c1, n2], (rdG2 fs [u0, w, c0, c1] n2).1,
+    ⟨(rdG2 fs [u0, w, c0, c1] n2).1,
+      (rdG2 fs [u0, w, c0, c1] n2).2.squeeze.1⟩, rfl, hrd, ?_, ?_, rfl, ?_, rfl,
     rfl, lg, la, lb⟩
   · rw [hF]
     refine RunsTo.of_eq hrun rfl rfl ?_ ?_
@@ -133,7 +133,7 @@ theorem osRound_sound
 instance : Inhabited FoldRound := ⟨⟨0, 0⟩⟩
 
 /-- **The template's `n` rounds run `foldRounds n`** from a Spec state whose claim is the guest's
-plus `D`: the `6n` words at the cursor; the Spec's claim after them the guest's plus `D` times the
+plus `D`: the `5n` words at the cursor; the Spec's claim after them the guest's plus `D` times the
 `α`s; the `α`s stored from `fold_challenges·g^i`, the rounds' `α, β` from
 `round_coefs·g^(2i)`. -/
 theorem osRounds_sound
@@ -141,13 +141,13 @@ theorem osRounds_sound
     (hwt : WinTabs rd (σ (.n osTabs))) (P : List (ℕ × ℕ × ℕ)) : ∀ (n i : ℕ) (st : OsSt) (ws : WhirState) (D : E),
       st.fs.length = 5 → MatsOk σ st.mats → st.co < u128Bound → 2 * (i + n) < u128Bound →
       ws.claim = σ (.n st.claim) + D → AllOk C rd σ (osRounds P i n st).1 →
-      ∃ (xs gs : List E) (rounds : List FoldRound), xs.length = 6 * n ∧ gs.length = n ∧
+      ∃ (xs gs : List E) (rounds : List FoldRound), xs.length = 5 * n ∧ gs.length = n ∧
         rounds.length = n ∧ ReadsAt rd (st.cur σ) xs ∧
         RunsTo (foldRounds n ws) (st.F σ) xs
           ({ ws with
               claim := σ (.n (osRounds P i n st).2.claim) + gs.prod * D
               alphas := ws.alphas ++ gs }, rounds) ((osRounds P i n st).2.F σ) ∧
-        (osRounds P i n st).2.cur σ = st.cur σ * gen ^ (6 * n) ∧
+        (osRounds P i n st).2.cur σ = st.cur σ * gen ^ (5 * n) ∧
         (osRounds P i n st).2.fs.length = 5 ∧ MatsOk σ (osRounds P i n st).2.mats ∧
         (osRounds P i n st).2.co < u128Bound ∧ (osRounds P i n st).2.pad = st.pad ∧
         (∀ j < n, LoadHolds rd (σ (.n osFch)) (i + j) gs[j]!) ∧

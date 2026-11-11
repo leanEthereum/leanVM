@@ -24,7 +24,7 @@ proof's imports, for the budget (`Budget/VsCount`).
 sixteen callees' bounds, in call order (`Data.core18`): two `g_power_of_word`s,
 `log2_ceil_in_the_exponent__L0_L34`, `certify_placement`, `log2_ceil_in_the_exponent__L15_L34`,
 `grind_check__L15`, the `squeeze_point_from` dispatch, `opening_message__L1_L1`, the
-`bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`, `grind_check__L14`,
+`bus_grind_check` dispatch, `verify_bus_gkr`, `verify_tables`, `verify_keccak`, `grind_check__L13`,
 `ring_switch_target`, the `open_stacked` dispatch and the terminal; the maxima over the honest
 children's depths (`vbgMax`, `vtMax`, `osMax`) or a dispatch's arms (`armMax`, `busGrindMax`: an
 arm's frame and its `grind_check`'s) where a callee's bound depends on them. `vsBound W Bvk = fs "verify_sub" + 8706 + (vsBs W Bvk).sum`: the frame,
@@ -82,7 +82,7 @@ noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : �
     fs "log2_ceil_in_the_exponent__L15_L34" + 34 + 2 * fs "assert_small_g_power",
     W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
     busGrindMax fs, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
-    W.Kst "grind_check__L14", fs "ring_switch_target" + 72 + W.B14, os,
+    W.Kst "grind_check__L13", fs "ring_switch_target" + 72 + W.B14, os,
     termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
 /-- **The callees' bounds at one candidate**: `open_stacked`'s at the stack log `μ` and the
@@ -110,7 +110,7 @@ def vsNames (μ r d : ℕ) : List String :=
   ["g_power_of_word", "g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "certify_placement",
     "log2_ceil_in_the_exponent__L15_L34", "grind_check__L15", squeezeNames.getD (μ - 22) "",
     "opening_message__L1_L1", busGrindNames.getD d "", "verify_bus_gkr", "verify_tables",
-    "verify_keccak", "grind_check__L14", "ring_switch_target", B1.Whir.openName μ r,
+    "verify_keccak", "grind_check__L13", "ring_switch_target", B1.Whir.openName μ r,
     "check_opening_terminal"]
 
 /-- **`verify_sub`'s callees' predicates**: `verify_tables`' tree within `vtWB`, the terminal's

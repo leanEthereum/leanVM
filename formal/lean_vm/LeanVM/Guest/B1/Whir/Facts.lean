@@ -75,15 +75,14 @@ def MidOk (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.Level) (lv
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧
   digitsVal (osPowDigits lv.queries) 1 = lv.queries ∧ lv.posOff < u128Bound ∧ 1 ≤ lv.squeezes ∧
   lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧ 2 * (lv.foldsOff + lv.folds) < u128Bound ∧
-  (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
+  (lvl + 1) * ligColsCap < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
   lvl * hsStride < u128Bound ∧
   levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv') ∧
   lv'.foldsOff = lv.foldsOff + lv.folds ∧ QshOk c lvl lv 0 ∧
   lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧
   -- the callees' names
-  (2 + lv.folds, 0) ∈ omDeployed ∧
-  omName (2 + lv.folds, 0) = "opening_message__L" ++ natStr (2 + lv.folds) ++ "_L0" ∧
-  lv.logCols ∈ spDeployed ∧ spName lv.logCols = "squeeze_point__L" ++ natStr lv.logCols ∧
+  (2 + lv.folds, 1) ∈ omDeployed ∧
+  omName (2 + lv.folds, 1) = "opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1" ∧
   lv.logCols ∈ spfDeployed ∧ spfName lv.logCols = "squeeze_point_from__L" ++ natStr lv.logCols ∧
   (decName lv, lv.depth, lv.capDepth) ∈ queryWindowsShapes ∧
   ("verify_merkle_cap__L" ++ natStr lv.capDepth, lv.capDepth) ∈ merkleCapNames ∧

@@ -71,8 +71,8 @@ def osBos(m):
     nl = nlev(m); capLen = lig('LIG_CAP_LEN', m); yrLen = lig('LIG_YR_LEN', m); nF = lig('LIG_TOTAL_FOLDS', m)
     posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m); last = lig('LIG_YR_LEVEL', m)
     folds = lambda l: lig('LIG_FOLDS', m * 6 + l)
-    # `B1.osSizesF` (hsStride 8, oodSamples 2, ligColsCap 22, yrLogCap 5, pointCap 40, resBatch 8)
-    sizes = ([4 * capLen, capLen, yrLen + folds(last), 2 * nl, nF, 2 * nF, nl, nl, nl * 8, 2 * nl * 22, 2 * nl,
+    # `B1.osSizesF` (hsStride 8, ligColsCap 22, yrLogCap 5, pointCap 40, resBatch 8)
+    sizes = ([4 * capLen, capLen, yrLen + folds(last), 2 * nl, nF, 2 * nF, nl, nl, nl * 8, nl * 22, nl,
               posLen, posLen]
              + [x for l in range(nl) for x in ([] if l == last else [2 + folds(l)]) + [(maxSq + 1) * 5]
                 + ([yrLen + folds(l)] if l == last else [])]

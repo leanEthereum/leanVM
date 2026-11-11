@@ -34,7 +34,7 @@ set_option maxRecDepth 100000 in
 /-- The statically bounded callees' words: the grind checks, the opening message, the squeeze
 dispatch's largest arm. -/
 theorem vs_static : wSB "grind_check__L15" = 53 ∧ wSB "opening_message__L1_L1" = 58 ∧
-    wSB "grind_check__L14" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 498 := by
+    wSB "grind_check__L13" = 53 ∧ B1.VerifySub.armMax wSB B1.VerifySub.squeezeNames = 498 := by
   rw [← wSBFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in

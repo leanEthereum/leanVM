@@ -84,7 +84,7 @@ def osPreBp (c : OsCfg) (ℓ : ℕ) : ℕ :=
 /-- The bounds a level's materializations need. -/
 def LvMatB (lvl : ℕ) (lv : OsLv) : Prop :=
   2 * (lv.foldsOff + lv.folds) < u128Bound ∧
-    (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
+    (lvl + 1) * ligColsCap < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
     lvl * hsStride < u128Bound ∧ lv.posOff < u128Bound
 
 instance (lvl : ℕ) (lv : OsLv) : Decidable (LvMatB lvl lv) := by unfold LvMatB; infer_instance

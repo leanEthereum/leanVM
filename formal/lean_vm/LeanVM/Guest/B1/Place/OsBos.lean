@@ -28,7 +28,7 @@ open LeanVM.Protocol.Verifier hiding Layout
 @[expose] public section
 
 /-- **`open_stacked`'s heap buffers' sizes**, in allocation order (`Whir.osHead`, `osLevel`,
-`osFinish`; `lean_ethereum.py`'s `open_stacked` at 914612b6b): the head's thirteen (`merkle_caps`,
+`osFinish`; `lean_ethereum.py`'s `open_stacked` at 71205cca4): the head's thirteen (`merkle_caps`,
 `merkle_cap_active`, `final_msg`, `level_roots`, `fold_challenges`, `round_coefs`, `level_betas`,
 `level_mus`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`, `query_win_ptrs`); per level
 the message `sent` (a non-final one), the squeeze run `sqz`, the normalized lane `hs` (the final
@@ -37,7 +37,7 @@ one); `tail_challenges`, `point`, `point1`, `basis_d`, `level_scale`, `level_aft
 def osSizesF (c : OsCfg) : List ℕ :=
   let n := c.levels.length
   [4 * c.capLen, c.capLen, c.yrLen + (c.levels.getD c.yrLevel default).folds, 2 * n, c.nFolds,
-    2 * c.nFolds, n, n, n * hsStride, oodSamples * n * ligColsCap, oodSamples * n, c.posLen,
+    2 * c.nFolds, n, n, n * hsStride, n * ligColsCap, n, c.posLen,
     c.posLen] ++
   (List.range n).flatMap (fun i ↦
     (if i = c.yrLevel then [] else [2 + (c.levels.getD i default).folds]) ++ [(c.maxSq + 1) * 5] ++

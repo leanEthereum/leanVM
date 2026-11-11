@@ -229,7 +229,7 @@ theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤
 
 /-- `verify_sub`'s statically bounded callees (`vsStaticS`), with their core indices. -/
 def stPairs : List (String × ℕ) :=
-  [("grind_check__L15", 303), ("opening_message__L1_L1", 311), ("grind_check__L14", 330),
+  [("grind_check__L15", 303), ("opening_message__L1_L1", 311), ("grind_check__L13", 330),
     ("squeeze_point_from__L22", 304), ("squeeze_point_from__L23", 305),
     ("squeeze_point_from__L24", 306), ("squeeze_point_from__L25", 307),
     ("squeeze_point_from__L26", 308), ("squeeze_point_from__L27", 309),

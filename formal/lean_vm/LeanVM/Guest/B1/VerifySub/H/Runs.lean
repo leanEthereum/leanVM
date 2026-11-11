@@ -431,8 +431,8 @@ theorem ring_inv : S.xsR = [S.ringN] ∧ S.s6.GrindOk Whir.batchGrindingBits S.r
   refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [e1, hC], by rw [hS]; exact e3,
     by rw [e1, hC]⟩
 
-/-- The ring map's grind's proof of work, as `grind_check__L14` reads it. -/
-theorem ringPow : ((cellsOfState S.ringSt false 1).limb 0).lane.toNat % 2 ^ 14 = 0 :=
+/-- The ring map's grind's proof of work, as `grind_check__L13` reads it. -/
+theorem ringPow : ((cellsOfState S.ringSt false 1).limb 0).lane.toNat % 2 ^ 13 = 0 :=
   (grindOk_iff (s := S.s6) (bits := Whir.batchGrindingBits) (by decide) S.ringN).1 S.ring_inv.2.1
 
 theorem rchs_length : S.rchs.length = 16 := by

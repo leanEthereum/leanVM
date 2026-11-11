@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.OsRound
 
 `osKindOf f`: the kind of callee `f` names, read from `osKindTable` (the named callees of
 `open_stacked__L{m}` at f128: `opening_round`, `opening_tail_round`, `opening_message`,
-`squeeze_point`, `squeeze_point_from`, `grind_check`, `verify_merkle_cap`, `fold_final_msg`; each
+`squeeze_point_from`, `grind_check`, `verify_merkle_cap`, `fold_final_msg`; each
 with its meaning `OsKind.Pre` and its loads `OsKind.spec`). `decode_query_windows`, the
 `opening_queries` specializations and the loop helpers are the other callees, placed apart.
 `osKindTable_ok`: every entry names a deployed specialization of its kind (a kernel check), so
@@ -47,7 +47,6 @@ inductive OsKind where
   | round
   | tail
   | msg (n nonce : ℕ)
-  | sp (n : ℕ)
   | spf (n : ℕ)
   | grind (b : ℕ)
   | cap (d : ℕ)
@@ -59,7 +58,6 @@ def OsKind.Pre : OsKind → Reader → List E → List E → Prop
   | .round => fun rd a r => Whir.MeaningOpeningRound rd a r ∧ WinTabs rd (a.getD 7 0)
   | .tail => MeaningOpeningTailRound
   | .msg n nonce => MeaningOpeningMessage n nonce
-  | .sp n => MeaningSqueezePoint n
   | .spf n => MeaningSqueezePointFrom n
   | .grind b => grindPre b
   | .cap d => MeaningVerifyMerkleCap d
@@ -70,7 +68,6 @@ def OsKind.spec : OsKind → List (ℕ × ℕ)
   | .round => roundSpec
   | .tail => tailSpec
   | .msg n nonce => msgSpec n nonce
-  | .sp n => spSpec n
   | .spf n => spfSpec n
   | .grind _ => []
   | .cap d => merkleCapSpec d
@@ -79,15 +76,8 @@ def OsKind.spec : OsKind → List (ℕ × ℕ)
 /-- The named callees and their kinds. -/
 def osKindTable : List (String × OsKind) :=
   [("opening_round", .round), ("opening_tail_round", .tail),
-    ("opening_message__L6_L0", .msg 6 0), ("opening_message__L8_L0", .msg 8 0),
-    ("opening_message__L8_L1", .msg 8 1), ("opening_message__L12_L1", .msg 12 1),
+    ("opening_message__L6_L1", .msg 6 1), ("opening_message__L8_L1", .msg 8 1), ("opening_message__L12_L1", .msg 12 1),
     ("opening_message__L20_L1", .msg 20 1), ("opening_message__L36_L1", .msg 36 1),
-    ("squeeze_point__L6", .sp 6), ("squeeze_point__L7", .sp 7), ("squeeze_point__L8", .sp 8),
-    ("squeeze_point__L9", .sp 9), ("squeeze_point__L10", .sp 10), ("squeeze_point__L11", .sp 11),
-    ("squeeze_point__L12", .sp 12), ("squeeze_point__L13", .sp 13), ("squeeze_point__L14", .sp 14),
-    ("squeeze_point__L15", .sp 15), ("squeeze_point__L16", .sp 16), ("squeeze_point__L17", .sp 17),
-    ("squeeze_point__L18", .sp 18), ("squeeze_point__L19", .sp 19), ("squeeze_point__L20", .sp 20),
-    ("squeeze_point__L21", .sp 21), ("squeeze_point__L22", .sp 22),
     ("squeeze_point_from__L6", .spf 6), ("squeeze_point_from__L7", .spf 7),
     ("squeeze_point_from__L8", .spf 8), ("squeeze_point_from__L9", .spf 9),
     ("squeeze_point_from__L10", .spf 10), ("squeeze_point_from__L11", .spf 11),
@@ -97,7 +87,7 @@ def osKindTable : List (String × OsKind) :=
     ("squeeze_point_from__L18", .spf 18), ("squeeze_point_from__L19", .spf 19),
     ("squeeze_point_from__L20", .spf 20), ("squeeze_point_from__L21", .spf 21),
     ("squeeze_point_from__L22", .spf 22),
-    ("grind_check__L14", .grind 14), ("grind_check__L17", .grind 17)] ++
+    ("grind_check__L17", .grind 17)] ++
   merkleCapNames.map (fun p ↦ (p.1, .cap p.2)) ++
   foldFinalMsgNames.map (fun p ↦ (p.1, .ffm p.2))
 
@@ -123,7 +113,6 @@ def osKindEntryOk : String × OsKind → Bool
   | (f, .round) => f == "opening_round"
   | (f, .tail) => f == "opening_tail_round"
   | (f, .msg n nonce) => decide ((n, nonce) ∈ omDeployed) && f == omName (n, nonce)
-  | (f, .sp n) => decide (n ∈ spDeployed) && f == spName n
   | (f, .spf n) => decide (n ∈ spfDeployed) && f == spfName n
   | (f, .grind b) => decide (b ∈ grindBitsDeployed) && f == grindCheckName b
   | (f, .cap d) => decide ((f, d) ∈ merkleCapNames)
@@ -152,10 +141,6 @@ theorem kindD (h : OsCalleesRegD fs cert κ) (hr : OsRoundRegD fs cert κ) {f : 
     simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
     obtain ⟨hm, rfl⟩ := he
     exact h.msg _ hm
-  | sp n =>
-    simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
-    obtain ⟨hm, rfl⟩ := he
-    exact h.sp _ hm
   | spf n =>
     simp only [osKindEntryOk, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at he
     obtain ⟨hm, rfl⟩ := he
