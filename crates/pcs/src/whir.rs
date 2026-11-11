@@ -32,7 +32,7 @@ use primitives::field::{
 };
 use primitives::multilinear::{eq_table, interp};
 
-use super::whir_config::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS};
+use super::whir_config::{FOLD_GRINDING_BITS, LEVEL_OOD_GRINDING_BITS};
 pub use super::whir_config::{
     INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
     QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
@@ -515,7 +515,7 @@ fn add_scaled(acc: &mut [F128], v: &[F128], s: F128) {
 // A round pairs the lanes `F` (folded bit 0) and `G` (folded bit 1) of a level. It sends, with `W_i` the weight on
 // the lanes with folded bit `i`,
 //
-//     [u0, v0, c0, v1, c1] = [<W_0, G>, <W_0, F>, <W_0, X F>, <W_1, F>, <W_1, X F>],
+//     [u0, w, c0, c1] = [<W_0, G>, <W_0 + W_1, F>, <W_0, X F>, <W_1, X F>],
 //
 // and after `(alpha, beta)` the lanes become `P = G + alpha F + beta X F`, one coefficient longer, and the
 // weight `W_0 + alpha (W_0 + W_1)`. The weight covers a lane's low `2^mu` coefficients only, and so do the inner
@@ -528,16 +528,16 @@ pub(crate) struct FoldChallenges {
     pub(crate) beta: F128,
 }
 
-/// What a fold round sends: `[u0, v0, c0, v1, c1]`.
-pub(crate) type FoldTable = [F128; 5];
+/// What a fold round sends: `[u0, w, c0, c1]`.
+pub(crate) type FoldTable = [F128; 4];
 
 impl FoldChallenges {
-    /// The claim after the round, from the claim before it and the round's table: `u1 = claim + v0`.
+    /// The claim after the round, from the claim before it and the round's table:
+    /// `u0 + alpha (u0 + claim) + alpha^2 w + beta c0 + alpha beta (c0 + c1)`.
     pub(crate) fn next_claim(&self, claim: F128, table: &FoldTable) -> F128 {
-        let [u0, v0, c0, v1, c1] = *table;
-        let u1 = claim + v0;
-        (F128::ONE + self.alpha) * (u0 + self.alpha * v0 + self.beta * c0)
-            + self.alpha * (u1 + self.alpha * v1 + self.beta * c1)
+        let [u0, w, c0, c1] = *table;
+        let (alpha, beta) = (self.alpha, self.beta);
+        u0 + alpha * (u0 + claim) + alpha * alpha * w + beta * c0 + alpha * beta * (c0 + c1)
     }
 
     /// `G + (alpha + beta x) F`: the folded lane at the domain point `x`, from the two it folds.
@@ -596,22 +596,21 @@ impl Dense {
         let per = self.cols_per_task();
         let sums = parallel::map_reduce(
             low.div_ceil(per),
-            || [F128Unreduced::ZERO; 5],
+            || [F128Unreduced::ZERO; 4],
             |t| {
                 let cols = t * per..((t + 1) * per).min(low);
                 let mut xf = vec![F128::ZERO; cols.len() * pairs];
                 crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
-                let mut acc = [F128Unreduced::ZERO; 5];
+                let mut acc = [F128Unreduced::ZERO; 4];
                 for (i, xf) in xf.chunks_exact(pairs).enumerate() {
                     let c = cols.start + i;
                     let (lanes, w) = (&f[c * s..][..s], &w[c * s..][..s]);
                     for m in 0..pairs {
                         let (w0, w1, f, g, xf) = (w[2 * m], w[2 * m + 1], lanes[2 * m], lanes[2 * m + 1], xf[m]);
                         acc[0] ^= w0.mul_unreduced(g);
-                        acc[1] ^= w0.mul_unreduced(f);
+                        acc[1] ^= (w0 + w1).mul_unreduced(f);
                         acc[2] ^= w0.mul_unreduced(xf);
-                        acc[3] ^= w1.mul_unreduced(f);
-                        acc[4] ^= w1.mul_unreduced(xf);
+                        acc[3] ^= w1.mul_unreduced(xf);
                     }
                 }
                 acc
@@ -770,8 +769,6 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     assert_eq!(config.log_inv_rates.len(), r + 1);
     assert!(r >= 1);
     assert!(initial_k >= 1);
-    // L0 takes no OOD points here: the caller's OOD sample, right after the root, binds it.
-    assert_eq!(config.ood_samples.first().copied().unwrap_or(0), 0);
 
     let log_msg_cols_0 = log_n - initial_k;
     let block_len_0 = 1usize << (log_msg_cols_0 + config.log_inv_rates[0]);
@@ -871,27 +868,24 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         ps.add_root(&wtns_next.root());
         ps.add_scalars(&p_high);
 
-        // Bind the next level's list before drawing this level's queries: the OOD points, one verifier message with
-        // no grind, then their values, all in one pass. The claims stay pending until the level's batching challenge.
-        let n_ood = config.ood_samples[level + 1];
-        let eqs: Vec<Vec<F128>> = (0..n_ood).map(|_| eq_table(&ps.sample_vec(mu))).collect();
-        let ys = parallel::map_reduce(
+        // Bind the next level's list before drawing this level's queries: grind, one OOD point, then its value. The
+        // claim stays pending until the level's batching challenge, which the query message draws last.
+        ps.grind(LEVEL_OOD_GRINDING_BITS);
+        let eq = eq_table(&ps.sample_vec(mu));
+        let y = parallel::map_reduce(
             p.len().div_ceil(ROUND_CHUNK),
-            || vec![F128::ZERO; n_ood],
+            || F128::ZERO,
             |t| {
                 let at = t * ROUND_CHUNK..((t + 1) * ROUND_CHUNK).min(p.len());
-                eqs.iter()
-                    .map(|eq| p[at.clone()].iter().zip(&eq[at.clone()]).map(|(&a, &b)| a * b).sum())
-                    .collect()
+                p[at.clone()].iter().zip(&eq[at]).map(|(&a, &b)| a * b).sum()
             },
-            |a, b| a.iter().zip(&b).map(|(&a, &b)| a + b).collect(),
+            |a, b| a + b,
         );
-        ps.add_scalars(&ys);
-        let mut pending: Vec<(Vec<F128>, F128)> = eqs.into_iter().zip(ys).collect();
+        ps.add_scalar(y);
+        let mut pending = vec![(eq, y)];
 
         ps.grind(config.grinding_bits[level]);
         let queries = sample_queries_ordered(ps, block_len, config.queries[level]);
-        ps.grind(BATCH_GRINDING_BITS);
         let lambda = ps.sample();
         let weights = powers(lambda, queries.len());
 
@@ -973,8 +967,6 @@ mod tests {
         let pc = config_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
         assert_eq!(pc.initial_k, 6);
         assert!(pc.level_steps >= 1);
-        assert_eq!(pc.ood_samples[0], 0);
-        assert!(pc.ood_samples.iter().skip(1).all(|&s| s >= 1));
         assert!(pc.grinding_bits.iter().all(|&b| b == QUERY_GRINDING_BITS));
         // And log_n = 12 is below the production ladder's feasibility floor, so
         // the tests there use the default_config fallback.
@@ -1090,7 +1082,7 @@ mod tests {
         }
     }
 
-    /// A dense round's table is the five inner products over the low columns, written out lane by lane, and its fold
+    /// A dense round's table is the four inner products over the low columns, written out lane by lane, and its fold
     /// is `G + alpha F + beta X F` over every column and the weight's interpolation at `alpha`.
     #[test]
     fn dense_round_matches_the_direct_inner_products() {
@@ -1112,7 +1104,7 @@ mod tests {
             };
             let ch = challenges(&mut rng);
             let lane = |v: &[F128], l: usize, cols: usize| (0..cols).map(|c| v[c * s + l]).collect::<Vec<_>>();
-            let mut want = [F128::ZERO; 5];
+            let mut want = [F128::ZERO; 4];
             let mut folded = Vec::new();
             for m in 0..s / 2 {
                 let (f, g) = (lane(&dense.f, 2 * m, n_cols), lane(&dense.f, 2 * m + 1, n_cols));
@@ -1122,7 +1114,7 @@ mod tests {
                 let ip = |w: &[F128], v: &[F128]| w.iter().zip(v).map(|(&a, &b)| a * b).sum::<F128>();
                 for (s, v) in want
                     .iter_mut()
-                    .zip([ip(&w0, &g), ip(&w0, &f), ip(&w0, &xf), ip(&w1, &f), ip(&w1, &xf)])
+                    .zip([ip(&w0, &g), ip(&w0, &f) + ip(&w1, &f), ip(&w0, &xf), ip(&w1, &xf)])
                 {
                     *s += v;
                 }

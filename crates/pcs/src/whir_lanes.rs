@@ -338,7 +338,7 @@ impl LaneRounds {
         };
 
         let zero = vec![F128::ZERO; nt];
-        let mut table = [F128::ZERO; 5];
+        let mut table = [F128::ZERO; 4];
         for m in 0..n_pairs {
             let f = self.row(&self.p, 2 * m).expect("a pair's first lane is present");
             let g = self.row(&self.p, 2 * m + 1).unwrap_or(&zero);
@@ -347,7 +347,7 @@ impl LaneRounds {
             let xf = &pxf[m * nt..][..nt];
             for (s, v) in table
                 .iter_mut()
-                .zip([dot(a0, g), dot(a0, f), dot(a0, xf), dot(a1, f), dot(a1, xf)])
+                .zip([dot(a0, g), dot(a0, f) + dot(a1, f), dot(a0, xf), dot(a1, xf)])
             {
                 *s += v;
             }

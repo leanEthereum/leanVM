@@ -15,16 +15,18 @@
 //! `q = |E|` and `ell` a Johnson list at degree `d` and the agreement the message is analysed at:
 //!
 //! - `(alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
-//! - batching `lambda` entering a level: `(J - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
-//! - OOD points entering a later level: [`OOD_SAMPLES`] independent points, `C(ell, 2) (mu / q)^2`, with no grind;
-//! - the level-0 OOD sample after the commitment (`crate::ood`): one point, `C(ell, 2) mu / q` with `mu = log_n`, after
-//!   [`OOD_GRINDING_BITS`];
-//! - queries: `((t_end - 1) / n)^omega`, after [`QUERY_GRINDING_BITS`];
+//! - level 0's batching `lambda`: `(J_0 - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
+//! - the OOD point after each commitment: `C(ell, 2) mu / q`, after [`OOD_GRINDING_BITS`] at level 0 (`crate::ood`)
+//!   and [`LEVEL_OOD_GRINDING_BITS`] at the later levels;
+//! - a non-final level's queries and the next level's batching `lambda`, one message: `((t_end - 1) / n)^omega +
+//!   (J - 1) ell' / q` with `J = omega + 2` claims (the running one, the OOD one, the queries) and `ell'` the next
+//!   level's list, after [`QUERY_GRINDING_BITS`];
+//! - the final level's queries: `((t_end - 1) / n)^omega`, after [`QUERY_GRINDING_BITS`];
 //! - tail sumcheck rounds: `2 / q`, after the grind of a degree-2 round (`fiat_shamir::grinding_bits(2)`).
 //!
 //! Round-by-round soundness means every entry individually clears [`SECURITY_BITS`]: the Fiat-Shamir error per
 //! random-oracle query is the maximum of the entries, not their sum. Every entry but the queries' is compared with
-//! its budget exactly, as an integer count of `1 / q` (of `1 / q^2` for the OOD points).
+//! its budget exactly, as an integer count of `1 / q`; the query messages are compared in floating point.
 
 mod affine_mca;
 
@@ -56,18 +58,19 @@ pub const QUERY_GRINDING_BITS: u32 = 17;
 
 /// Grinding before each fold round's `(alpha, beta)`: the least for which the fold
 /// rounds never cost a query.
-pub const FOLD_GRINDING_BITS: u32 = 9;
+pub const FOLD_GRINDING_BITS: u32 = 8;
 
-/// Grinding before each level's batching challenge `lambda` and the stacked opening's outer batching challenge: the
-/// least for which the batching terms never cost a query.
-pub const BATCH_GRINDING_BITS: u32 = 14;
+/// Grinding before level 0's batching challenge `lambda`, the stacked opening's outer batching challenge: the least
+/// for which its term never costs a query. Later levels' `lambda` rides the query message.
+pub const BATCH_GRINDING_BITS: u32 = 13;
 
-/// Grinding before the level-0 OOD sample: the least for which its term never costs a query.
+/// Grinding before the level-0 OOD sample (`crate::ood`). Chosen, not derived: it keeps level 0's list at most 166,
+/// within the extractor's price budget, where a smaller grind would let the search lower level 0's threshold.
 pub const OOD_GRINDING_BITS: u32 = 15;
 
-/// Out-of-domain points after each commitment past level 0, drawn as one verifier message: two independent points
-/// square the OOD term, which then needs no grind.
-pub const OOD_SAMPLES: usize = 2;
+/// Grinding before the OOD point of every commitment past level 0. Capped at 17 bits by choice: 19 would be the least
+/// for which its term never costs a query, and 17 costs one more query at a few deep levels of large stacks.
+pub const LEVEL_OOD_GRINDING_BITS: u32 = 17;
 
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
 pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
@@ -112,11 +115,6 @@ pub struct ProverConfig {
     /// post-commit/pre-queries. Length = level_steps + 1. Each bit here
     /// substitutes for ~1/log₂(1/(1−γ)) queries at that level.
     pub grinding_bits: Vec<u32>,
-    /// Per-commit-level out-of-domain points (L0, ..., L_r), drawn together right
-    /// after the level's Merkle root and high part enter the transcript. `[0]` must be 0:
-    /// L0's OOD sample is the caller's, right after its root (`crate::ood`).
-    /// Length = level_steps + 1.
-    pub ood_samples: Vec<usize>,
 }
 
 /// The per-level shape table a [`ProverConfig`] implies for a
@@ -229,7 +227,6 @@ pub fn default_config(log_n: usize, log_batch_size: usize, log_inv_rate: usize) 
         initial_k,
         level_ks: shape.k_levels[1..].to_vec(),
         grinding_bits: vec![0; n_levels],
-        ood_samples: vec![0usize; n_levels],
     })
 }
 
@@ -336,8 +333,10 @@ pub const MAX_STACKED_CLAIMS: usize = 1 << 9;
 pub(crate) struct Grinding {
     pub fold: usize,
     pub batch: usize,
-    /// Before the level-0 OOD sample; later levels' OOD points take none.
+    /// Before the level-0 OOD sample.
     pub ood: usize,
+    /// Before every later commitment's OOD point.
+    pub level_ood: usize,
     pub query: usize,
 }
 
@@ -345,6 +344,7 @@ const PRODUCTION_GRINDING: Grinding = Grinding {
     fold: FOLD_GRINDING_BITS as usize,
     batch: BATCH_GRINDING_BITS as usize,
     ood: OOD_GRINDING_BITS as usize,
+    level_ood: LEVEL_OOD_GRINDING_BITS as usize,
     query: QUERY_GRINDING_BITS as usize,
 };
 
@@ -364,13 +364,21 @@ pub struct WhirLevelConfig {
     pub(crate) agreement: u128,
     /// Lemma 4.1's witness for each fold round `j = 1..=k`.
     pub(crate) rounds: Vec<affine_mca::AffineWitness>,
-    /// Query count `omega`, with `((t_end - 1) / n)^omega <= 2^-(target - query grind)`.
+    /// Query count `omega`, the least that clears the query message: alone at the final level, with the next level's
+    /// batching otherwise.
     pub queries: usize,
 }
 
 impl WhirLevelConfig {
     fn block_len(&self) -> u128 {
         1 << (self.log_msg_cols + self.log_inv_rate)
+    }
+
+    fn query_message(&self) -> PrevQueries {
+        PrevQueries {
+            n: self.block_len(),
+            agreement: self.agreement,
+        }
     }
 
     fn honest_degree(&self) -> u128 {
@@ -423,15 +431,6 @@ fn budget(grind: usize, target: usize) -> u128 {
     if bits >= 128 { u128::MAX } else { 1 << bits }
 }
 
-/// Fails unless the error `count / q^2` is at most `2^-target`, exactly; `None` is a count past `u128`.
-fn require_count_squared(count: Option<u128>, target: usize, what: impl FnOnce() -> String) -> Result<(), String> {
-    let bits = (2 * LOG_Q_BITS).saturating_sub(target);
-    match count {
-        Some(count) if bits >= 128 || count <= 1 << bits => Ok(()),
-        _ => Err(format!("{}: {count:?} / q^2 > 2^{bits} / q^2", what())),
-    }
-}
-
 /// Fails unless the error `count / q` is at most `2^-(target - grind)`, exactly; `None` is a count past `u128`.
 fn require_count(
     count: Option<u128>,
@@ -449,16 +448,22 @@ fn require_count(
 /// Where a level sits in the opening, for the terms that depend on it.
 #[derive(Clone, Copy)]
 enum Position {
-    /// L0: the outer batching over the stacked claims and the ring-switch map; the caller's OOD sample.
+    /// L0: the outer batching over the stacked claims and the ring-switch map, after its own grind.
     First,
-    /// A later level, batching the previous level's `queries` claims, the OOD claims and the running claim.
-    After { prev_queries: usize },
+    /// A later level, whose batching rides the previous level's query message: its query count and threshold.
+    After { prev: PrevQueries },
 }
 
-/// The terms that depend only on `ell(t_0, d)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
-/// [`OOD_SAMPLES`] independent points' (`C(ell, 2) (mu / q)^2`, Lemma lem:ood per point). At L0 it is the
-/// commitment's OOD sample's (`crate::ood`, `C(ell, 2) mu / q`): its point has `mu` coordinates, and after it every
-/// outer challenge faces a single list member.
+/// The previous level's query message, which also draws the next level's `lambda`.
+#[derive(Clone, Copy)]
+struct PrevQueries {
+    n: u128,
+    agreement: u128,
+}
+
+/// The terms that depend only on `ell(t_0, d)`: at L0 the outer batching (`(J_0 - 1) ell / q`), and at every level
+/// the commitment's OOD point (`C(ell, 2) mu / q`, Lemma lem:ood: its point has `mu` coordinates, and after it every
+/// later challenge faces a single list member). Returns `ell`.
 fn check_list_terms(
     n: u128,
     d: u128,
@@ -467,28 +472,45 @@ fn check_list_terms(
     position: Position,
     g: &Grinding,
     target: usize,
-) -> Result<(), String> {
+) -> Result<u128, String> {
     let ell = affine_mca::johnson_list(n, a0, d).ok_or("level-start threshold below the Johnson radius")?;
-    let degree = match position {
-        Position::First => MAX_STACKED_CLAIMS - 1 + crate::ring_switch::RING_SWITCH_ERROR_NUMERATOR,
-        Position::After { prev_queries } => prev_queries + OOD_SAMPLES,
-    };
-    require_count((degree as u128).checked_mul(ell), g.batch, target, || {
-        format!("batching (degree {degree}, list {ell})")
-    })?;
+    if let Position::First = position {
+        let degree = MAX_STACKED_CLAIMS - 1 + crate::ring_switch::RING_SWITCH_ERROR_NUMERATOR;
+        require_count((degree as u128).checked_mul(ell), g.batch, target, || {
+            format!("batching (degree {degree}, list {ell})")
+        })?;
+    }
     let pairs = ell.checked_mul(ell.saturating_sub(1)).map(|p| p / 2);
     let mu = mu as u128;
-    match position {
-        Position::First => require_count(pairs.and_then(|p| p.checked_mul(mu)), g.ood, target, || {
-            format!("level-0 OOD (list {ell}, {mu} variables)")
-        }),
-        Position::After { .. } => {
-            const _: () = assert!(OOD_SAMPLES == 2, "the OOD term is checked for two points");
-            require_count_squared(pairs.and_then(|p| p.checked_mul(mu * mu)), target, || {
-                format!("OOD (list {ell}, {mu} variables)")
-            })
-        }
-    }
+    let grind = match position {
+        Position::First => g.ood,
+        Position::After { .. } => g.level_ood,
+    };
+    require_count(pairs.and_then(|p| p.checked_mul(mu)), grind, target, || {
+        format!("OOD (list {ell}, {mu} variables)")
+    })?;
+    Ok(ell)
+}
+
+/// The batching error `(J - 1) ell / q` a query message adds when it also draws the next level's `lambda`, over
+/// `J = omega + 2` claims (the running one, the OOD one, the queries).
+fn batching_error(omega: usize, next_list: Option<u128>) -> f64 {
+    next_list.map_or(0.0, |ell| (omega + 1) as f64 * ell as f64 * (-ANALYSIS_LOG_Q).exp2())
+}
+
+/// Whether a query message clears `target - grind` bits: `omega` queries passing with probability `(t_end - 1) / n`
+/// each, plus the next level's batching error when it draws that `lambda` too.
+fn query_message_holds(
+    n: u128,
+    t_end: u128,
+    omega: usize,
+    next_list: Option<u128>,
+    grind: usize,
+    target: usize,
+) -> bool {
+    let bound = (-(target.saturating_sub(grind) as f64)).exp2();
+    let queries = (omega as f64 * ((t_end - 1) as f64 / n as f64).log2()).exp2();
+    queries + batching_error(omega, next_list) <= bound
 }
 
 /// The `(alpha, beta)` error of a fold round at agreement `a` against its witness.
@@ -526,16 +548,18 @@ fn fold_witnesses(
     Some(rounds)
 }
 
-/// Queries closing `target - grind` bits when a query passes with probability `(t_end - 1) / n`: a word whose
-/// candidate's encoding left the list agrees with it on at most `t_end - 1` positions.
-fn query_count(n: u128, t_end: u128, grind: usize, target: usize) -> usize {
+/// The fewest queries for which a query message clears `target - grind` bits ([`query_message_holds`]), when some
+/// count does: a query passes with probability `(t_end - 1) / n`, since a word whose candidate's encoding left the
+/// list agrees with it on at most `t_end - 1` positions.
+fn query_count(n: u128, t_end: u128, next_list: Option<u128>, grind: usize, target: usize) -> Option<usize> {
     let per_query = -((t_end - 1) as f64 / n as f64).log2();
     let bits = target.saturating_sub(grind) as f64;
-    let mut queries = (bits / per_query).ceil() as usize;
-    while (queries as f64) * per_query < bits {
-        queries += 1;
-    }
-    queries
+    let first = (bits / per_query).ceil() as usize;
+    // The batching error grows with the count: once it alone is over the budget, no count clears it.
+    let bound = (-(target.saturating_sub(grind) as f64)).exp2();
+    (first..=n as usize)
+        .take_while(|&omega| batching_error(omega, next_list) <= bound)
+        .find(|&omega| query_message_holds(n, t_end, omega, next_list, grind, target))
 }
 
 /// The smallest `t_end` (hence the fewest queries) for which every term of the level clears the target.
@@ -551,7 +575,10 @@ fn search_level(
     let d: u128 = (1 << log_msg_cols) - 1 + k as u128;
     let mu = log_msg_cols + k;
     let feasible = |t_end: u128| {
-        check_list_terms(n, d, t_end - k as u128, mu, position, g, target).ok()?;
+        let ell = check_list_terms(n, d, t_end - k as u128, mu, position, g, target).ok()?;
+        if let Position::After { prev } = position {
+            query_count(prev.n, prev.agreement, Some(ell), g.query, target)?;
+        }
         fold_witnesses(n, d, k, t_end, g, target)
     };
     let (mut lo, mut hi) = ((n * d).isqrt() + 1, n);
@@ -614,21 +641,32 @@ impl WhirSecurityConfig {
             if lv.rounds.len() != lv.k || lv.agreement > n || lv.agreement <= k {
                 return Err(at("malformed thresholds".into()));
             }
-            let position = if i == 0 {
-                Position::First
-            } else {
-                Position::After {
-                    prev_queries: self.levels[i - 1].queries,
-                }
+            let position = match i.checked_sub(1) {
+                None => Position::First,
+                Some(p) => Position::After {
+                    prev: self.levels[p].query_message(),
+                },
             };
-            check_list_terms(n, d, lv.agreement - k, dim_in, position, g, target).map_err(at)?;
+            let ell = check_list_terms(n, d, lv.agreement - k, dim_in, position, g, target).map_err(at)?;
             for (j, w) in (1..=k).zip(&lv.rounds) {
                 check_fold_round(n, d, lv.agreement - (k - j), w, g, target)
                     .map_err(|e| at(format!("round {j}: {e}")))?;
             }
-            let queries_log2 = lv.queries as f64 * ((lv.agreement - 1) as f64 / n as f64).log2();
-            if queries_log2 > -(target.saturating_sub(g.query) as f64) {
-                return Err(at(format!("queries: 2^{queries_log2:.2}")));
+            // The previous level's queries with this level's batching, then the final level's queries alone.
+            if let Some(prev) = i.checked_sub(1).map(|p| &self.levels[p])
+                && !query_message_holds(
+                    prev.block_len(),
+                    prev.agreement,
+                    prev.queries,
+                    Some(ell),
+                    g.query,
+                    target,
+                )
+            {
+                return Err(at("the previous level's queries and this level's batching".into()));
+            }
+            if i + 1 == self.levels.len() && !query_message_holds(n, lv.agreement, lv.queries, None, g.query, target) {
+                return Err(at("queries".into()));
             }
             if lv.queries as u128 > n {
                 return Err(at("more queries than positions".into()));
@@ -665,20 +703,30 @@ impl WhirSecurityConfig {
             let position = match levels.last() {
                 None => Position::First,
                 Some(prev) => Position::After {
-                    prev_queries: prev.queries,
+                    prev: prev.query_message(),
                 },
             };
             let (agreement, rounds) =
                 search_level(cols, rate, k, position, &grinding, target).map_err(|e| format!("L{i}: {e}"))?;
-            levels.push(WhirLevelConfig {
+            let level = WhirLevelConfig {
                 log_inv_rate: rate,
                 log_msg_cols: cols,
                 k,
                 agreement,
                 rounds,
-                queries: query_count(1 << (cols + rate), agreement, grinding.query, target),
-            });
+                queries: 0,
+            };
+            // The previous level's queries share their message with this level's batching.
+            if let Some(prev) = levels.last_mut() {
+                let ell = level.list_bound().expect("a searched level is past the Johnson radius");
+                prev.queries = query_count(prev.block_len(), prev.agreement, Some(ell), grinding.query, target)
+                    .expect("the search kept a feasible query message");
+            }
+            levels.push(level);
         }
+        let last = levels.last_mut().expect("at least two levels");
+        last.queries = query_count(last.block_len(), last.agreement, None, grinding.query, target)
+            .ok_or("the final level's queries")?;
         let cfg = Self {
             m,
             log_n,
@@ -708,9 +756,6 @@ impl WhirSecurityConfig {
             level_ks: self.levels.iter().skip(1).map(|lv| lv.k).collect(),
             queries: self.levels.iter().map(|lv| lv.queries).collect(),
             grinding_bits: vec![QUERY_GRINDING_BITS; self.levels.len()],
-            ood_samples: (0..self.levels.len())
-                .map(|i| if i == 0 { 0 } else { OOD_SAMPLES })
-                .collect(),
         })
     }
 }
@@ -748,24 +793,30 @@ mod tests {
         }
     }
 
-    /// The fold, batching and OOD grinding are the least that leave every query count where unlimited grinding would.
+    /// The fold and batching grinding are the least that leave every query count where unlimited fold and batching
+    /// grinding would. The OOD grinding is chosen, not derived: level 0's keeps its list within the extractor's price
+    /// budget, and the later levels' is a cap that costs queries against unlimited OOD grinding.
     #[test]
-    fn fold_batch_and_ood_grinding_are_the_least_that_cost_no_queries() {
-        let unlimited = Grinding {
-            fold: SECURITY_BITS,
-            batch: SECURITY_BITS,
-            ood: SECURITY_BITS,
+    fn fold_and_batch_grinding_are_the_least_that_cost_no_queries() {
+        assert_eq!(
+            (OOD_GRINDING_BITS, LEVEL_OOD_GRINDING_BITS),
+            (15, 17),
+            "the chosen OOD grinds"
+        );
+        let unlimited_ood = Grinding {
+            level_ood: SECURITY_BITS,
             ..PRODUCTION_GRINDING
         };
-        let best = queries_with(unlimited);
+        assert_ne!(queries_with(unlimited_ood), queries_with(PRODUCTION_GRINDING));
+        let best = queries_with(Grinding {
+            fold: SECURITY_BITS,
+            batch: SECURITY_BITS,
+            ..PRODUCTION_GRINDING
+        });
         assert_eq!(queries_with(PRODUCTION_GRINDING), best);
         for less in [
             Grinding {
                 batch: PRODUCTION_GRINDING.batch - 1,
-                ..PRODUCTION_GRINDING
-            },
-            Grinding {
-                ood: PRODUCTION_GRINDING.ood - 1,
                 ..PRODUCTION_GRINDING
             },
             Grinding {

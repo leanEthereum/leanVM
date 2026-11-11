@@ -65,9 +65,9 @@ fn tampers_fail_their_check() {
     let input_opening = round * (PACK_BITS + SLOT_BITS) + SLICES;
     let output_opening = round * SLOT_BITS + 1;
     let last_layer = keccak.end - input_opening - output_opening - nonce(2);
-    // The WHIR opening ends the stream. Its final level, after its `k` rounds of a nonce, five scalars and a nonce:
-    // the `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
-    // high part, the two OOD values, the query nonce and the batching nonce.
+    // The WHIR opening ends the stream. Its final level, after its `k` rounds of four scalars and a nonce: the
+    // `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
+    // high part, the OOD nonce, the OOD value and the query nonce.
     let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
     let stack_log = leanvm_core::cpu::layout::layout(
         fixture.program.prog(),
@@ -86,7 +86,7 @@ fn tampers_fail_their_check() {
     let end = stream.len();
     let tail = round * mu;
     let final_coefficients = (1 << mu) + k;
-    let final_level = 7 * k + final_coefficients + 1 + tail;
+    let final_level = 5 * k + final_coefficients + 1 + tail;
     // After the announced sizes (the memory, six tables and the rate), the root and the OOD sample's nonce: its value,
     // which the transcript binds, so the first grind after it, the bus's, already fails.
     let ood_value = 1 + 6 + 1 + 2 + 1;
@@ -101,7 +101,7 @@ fn tampers_fail_their_check() {
         (bytecode_share, VerifierError::BytecodeShare),
         (bytecode_value, VerifierError::BytecodeShare),
         (end - tail - final_coefficients - 3, VerifierError::GrindingNonce),
-        (end - final_level - 5, VerifierError::GrindingNonce),
+        (end - final_level - 2, VerifierError::GrindingNonce),
         (end - tail - 1, VerifierError::GrindingNonce),
         (end - nonce(2) - 1, VerifierError::WhirTerminal),
         (

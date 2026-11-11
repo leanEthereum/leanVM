@@ -14,20 +14,21 @@ const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
 pub const QUERY_GRINDING_BITS: u32 = 17;
 /// Before each fold round's `(alpha, beta)`.
-pub const FOLD_GRINDING_BITS: u32 = 9;
-/// Before every batching challenge: each level's lambda, and the stacked opening's map challenges and lambda.
-pub const BATCH_GRINDING_BITS: u32 = 14;
+pub const FOLD_GRINDING_BITS: u32 = 8;
+/// Before level 0's batching challenges: the stacked opening's map challenges and lambda. Later levels' lambda rides
+/// the query message.
+pub const BATCH_GRINDING_BITS: u32 = 13;
 /// Before the level-0 OOD sample.
 pub const OOD_GRINDING_BITS: u32 = 15;
-/// Out-of-domain points after each non-final level's commitment, drawn together with no grind.
-pub const OOD_SAMPLES: usize = 2;
+/// Before every later commitment's OOD point.
+pub const LEVEL_OOD_GRINDING_BITS: u32 = 17;
 
 #[rustfmt::skip]
 const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
-    [&[238,63], &[230,60,42], &[225,58,38], &[222,57,35], &[220,56,34], &[219,55,33,27], &[218,55,32,25], &[218,55,32,24], &[217,55,32,23], &[217,55,32,23,20], &[217,55,32,23,19], &[217,55,32,22,18], &[217,55,31,22,18], &[217,55,31,22,18,16]],
+    [&[238,63], &[230,60,42], &[225,58,38], &[222,57,35], &[220,56,34], &[219,55,33,27], &[218,55,32,25], &[218,55,32,24], &[218,55,32,23], &[218,55,32,23,20], &[218,55,32,23,19], &[218,55,32,22,18], &[218,55,32,22,18], &[218,55,32,22,18,16]],
     [&[114,49], &[112,47,35], &[111,46,32], &[110,45,31], &[110,45,29], &[109,44,29,24], &[109,44,28,23], &[109,44,28,22], &[109,44,28,21], &[109,44,28,21,18], &[109,44,28,21,17], &[109,44,28,20,17], &[109,44,28,20,17], &[109,44,28,20,16,15]],
-    [&[75,40], &[74,39,30], &[74,38,28], &[73,37,27], &[73,37,26], &[73,37,25,22], &[73,37,25,20], &[73,37,25,20], &[73,37,25,19], &[73,37,25,19,17], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,15], &[73,37,25,19,15,14]],
-    [&[56,34], &[56,33,27], &[55,32,25], &[55,32,24], &[55,32,23], &[55,32,23,20], &[55,32,23,19], &[55,32,22,18], &[55,31,22,18], &[55,31,22,18,16], &[55,31,22,17,15], &[55,31,22,17,15], &[55,31,22,17,14], &[55,31,22,17,14,13]],
+    [&[75,40], &[74,39,30], &[74,38,28], &[73,37,27], &[73,37,26], &[73,37,25,22], &[73,37,25,20], &[73,37,25,20], &[73,37,25,19], &[73,37,25,19,17], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16,14]],
+    [&[56,34], &[56,33,27], &[55,32,25], &[55,32,24], &[55,32,23], &[55,32,23,20], &[55,32,23,19], &[55,32,22,18], &[55,32,22,18], &[55,32,22,18,16], &[55,32,22,18,15], &[55,32,22,18,15], &[55,32,22,18,15], &[55,32,22,18,15,13]],
 ];
 
 struct WhirConfig {
@@ -206,8 +207,8 @@ struct GluedClaim {
 /// Verify the base-field multilevel opening with a one-point terminal check.
 ///
 /// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of [CYWZ26, preprint],
-/// the claim carried by five scalars a round and the weight folded at `alpha`, so the alphas are the weight's
-/// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claims
+/// the claim carried by four scalars a round and the weight folded at `alpha`, so the alphas are the weight's
+/// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claim
 /// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends
 /// the whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
 pub fn verify_whir(
@@ -229,14 +230,12 @@ pub fn verify_whir(
     for (level, (&fold_count, &level_rate)) in config.folds.iter().zip(&config.log_inv_rates).enumerate() {
         let mut rounds = Vec::with_capacity(fold_count);
         for _ in 0..fold_count {
-            let table = transcript.next_scalars(5)?;
-            let (u0, v0, c0, v1, c1) = (table[0], table[1], table[2], table[3], table[4]);
-            // The F lanes' share `v0` and the G lanes' `u1` make up the claim.
-            let u1 = claim + v0;
+            let table = transcript.next_scalars(4)?;
+            let (u0, w, c0, c1) = (table[0], table[1], table[2], table[3]);
             transcript.grind_check(FOLD_GRINDING_BITS)?;
             let alpha = transcript.sample();
             let beta = transcript.sample();
-            claim = (ONE + alpha) * (u0 + alpha * v0 + beta * c0) + alpha * (u1 + alpha * v1 + beta * c1);
+            claim = u0 + alpha * (u0 + claim) + alpha * alpha * w + beta * c0 + alpha * beta * (c0 + c1);
             alphas.push(alpha);
             rounds.push(FoldRound { alpha, beta });
         }
@@ -292,12 +291,13 @@ pub fn verify_whir(
         let halves = transcript.next_scalars(2)?;
         let next_root = Digest::from_halves(halves[0], halves[1]);
         let high = transcript.next_scalars(fold_count)?;
-        // The OOD points, one message with no grind, then their values.
-        let ood_points: Vec<Vec<E>> = (0..OOD_SAMPLES).map(|_| transcript.samples(mu)).collect();
-        let ood_values = transcript.next_scalars(OOD_SAMPLES)?;
+        // The OOD point after its grind, then its value.
+        transcript.grind_check(LEVEL_OOD_GRINDING_BITS)?;
+        let ood_point = transcript.samples(mu);
+        let ood_value = transcript.next_scalar()?;
+        // The queries and lambda, one message.
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let queries = sample_queries(transcript, block_length, config.queries[level])?;
-        transcript.grind_check(BATCH_GRINDING_BITS)?;
         let lambda = transcript.sample();
         let query_weights = powers(lambda, queries.len());
         let words = transcript.merkle(current_root, block_length, &queries, leaf_words)?;
@@ -310,19 +310,17 @@ pub fn verify_whir(
             let correction = novel_eval(&high, &what) * what[mu];
             batched += query_weight * (fold_row(lanes_of(row), x, &rounds) + correction);
         }
-        // OOD claim `s` takes lambda^(s + 1), the query batch lambda^(OOD_SAMPLES + 1) times its own powers of lambda.
-        let scalars = powers(lambda, OOD_SAMPLES + 2);
-        for ((point, value), &scalar) in ood_points.into_iter().zip(ood_values).zip(&scalars[1..]) {
-            claim += scalar * value;
-            glued.push(GluedClaim {
-                scalar,
-                fold_start: alphas.len(),
-                weight_at: Box::new(move |x| Ok(eq_eval(&point, x))),
-            });
-        }
-        claim += scalars[OOD_SAMPLES + 1] * batched;
+        // The OOD claim takes lambda, the query batch lambda^2 times its own powers of lambda.
+        claim += lambda * ood_value;
         glued.push(GluedClaim {
-            scalar: scalars[OOD_SAMPLES + 1],
+            scalar: lambda,
+            fold_start: alphas.len(),
+            weight_at: Box::new(move |x| Ok(eq_eval(&ood_point, x))),
+        });
+        let lambda2 = lambda * lambda;
+        claim += lambda2 * batched;
+        glued.push(GluedClaim {
+            scalar: lambda2,
             fold_start: alphas.len(),
             weight_at: Box::new(move |x| induced_weight(mu, &queries, &query_weights, x)),
         });
