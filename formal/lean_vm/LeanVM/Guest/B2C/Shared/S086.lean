@@ -28,11 +28,11 @@ set_option maxRecDepth 100000 in
 theorem w89_4 : shareWin 89 (snapsOf 89) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L9`, once. -/
+/-- `grind_check__L8`, once. -/
 theorem st90 : shareStatic 90 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L9`, window 0. -/
+/-- `grind_check__L8`, window 0. -/
 theorem w90_0 : shareWin 90 (snapsOf 90) 0 = true := by decide +kernel
 
 theorem ok90 : ShareOk 90 := ⟨st90, fun i hi ↦ by

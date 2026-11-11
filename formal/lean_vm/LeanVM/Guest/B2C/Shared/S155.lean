@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L14`, window 3. -/
-theorem w346_3 : shareWin 346 (snapsOf 346) 3 = true := by decide +kernel
+/-- `open_stacked__L23`, window 2. -/
+theorem w355_2 : shareWin 355 (snapsOf 355) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L14`, window 4. -/
-theorem w346_4 : shareWin 346 (snapsOf 346) 4 = true := by decide +kernel
+/-- `open_stacked__L23`, window 3. -/
+theorem w355_3 : shareWin 355 (snapsOf 355) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L14`, window 5. -/
-theorem w346_5 : shareWin 346 (snapsOf 346) 5 = true := by decide +kernel
+/-- `open_stacked__L23`, window 4. -/
+theorem w355_4 : shareWin 355 (snapsOf 355) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L14`, window 6. -/
-theorem w346_6 : shareWin 346 (snapsOf 346) 6 = true := by decide +kernel
+/-- `open_stacked__L23`, window 5. -/
+theorem w355_5 : shareWin 355 (snapsOf 355) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L14`, window 7. -/
-theorem w346_7 : shareWin 346 (snapsOf 346) 7 = true := by decide +kernel
+/-- `open_stacked__L23`, window 6. -/
+theorem w355_6 : shareWin 355 (snapsOf 355) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L15`, once. -/
-theorem st347 : shareStatic 347 = true := by decide +kernel
+/-- `open_stacked__L23`, window 7. -/
+theorem w355_7 : shareWin 355 (snapsOf 355) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L15`, window 0. -/
-theorem w347_0 : shareWin 347 (snapsOf 347) 0 = true := by decide +kernel
+/-- `open_stacked__L23`, window 8. -/
+theorem w355_8 : shareWin 355 (snapsOf 355) 8 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L15`, window 1. -/
-theorem w347_1 : shareWin 347 (snapsOf 347) 1 = true := by decide +kernel
+/-- `open_stacked__L23`, window 9. -/
+theorem w355_9 : shareWin 355 (snapsOf 355) 9 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

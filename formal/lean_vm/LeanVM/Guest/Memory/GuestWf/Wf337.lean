@@ -12,7 +12,6 @@ public import LeanVM.Guest.Memory.GuestWf.Big337_1
 public import LeanVM.Guest.Memory.GuestWf.Big337_2
 public import LeanVM.Guest.Memory.GuestWf.Big337_3
 public import LeanVM.Guest.Memory.GuestWf.Big337_4
-public import LeanVM.Guest.Memory.GuestWf.Big337_5
 
 namespace LeanVM.Guest
 
@@ -23,24 +22,10 @@ open Core Memory
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L6` is well formed. -/
 theorem core337_wf : Stmt.wfList coreProgram Data.core337.body = true := by
-  have h5011 : Stmt.wfList coreProgram (Data.core337.body.drop 5011) = true :=
+  have h3948 : Stmt.wfList coreProgram (Data.core337.body.drop 3948) = true :=
     wfStmts_end (by decide +kernel)
-  have h4950 : Stmt.wfList coreProgram (Data.core337.body.drop 4950) = true :=
-    wfStmts_drop (a := 4950) (n := 61) wf337_4950 h5011
-  have h4800 : Stmt.wfList coreProgram (Data.core337.body.drop 4800) = true :=
-    wfStmts_drop (a := 4800) (n := 150) wf337_4800 h4950
-  have h4650 : Stmt.wfList coreProgram (Data.core337.body.drop 4650) = true :=
-    wfStmts_drop (a := 4650) (n := 150) wf337_4650 h4800
-  have h4500 : Stmt.wfList coreProgram (Data.core337.body.drop 4500) = true :=
-    wfStmts_drop (a := 4500) (n := 150) wf337_4500 h4650
-  have h4350 : Stmt.wfList coreProgram (Data.core337.body.drop 4350) = true :=
-    wfStmts_drop (a := 4350) (n := 150) wf337_4350 h4500
-  have h4200 : Stmt.wfList coreProgram (Data.core337.body.drop 4200) = true :=
-    wfStmts_drop (a := 4200) (n := 150) wf337_4200 h4350
-  have h4050 : Stmt.wfList coreProgram (Data.core337.body.drop 4050) = true :=
-    wfStmts_drop (a := 4050) (n := 150) wf337_4050 h4200
   have h3900 : Stmt.wfList coreProgram (Data.core337.body.drop 3900) = true :=
-    wfStmts_drop (a := 3900) (n := 150) wf337_3900 h4050
+    wfStmts_drop (a := 3900) (n := 48) wf337_3900 h3948
   have h3750 : Stmt.wfList coreProgram (Data.core337.body.drop 3750) = true :=
     wfStmts_drop (a := 3750) (n := 150) wf337_3750 h3900
   have h3600 : Stmt.wfList coreProgram (Data.core337.body.drop 3600) = true :=

@@ -17,41 +17,39 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `squeeze_point_from__L8`, window 0. -/
+/-- `__loop43`, window 0. -/
 theorem w491_0 : WinOk 491 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point__L8`, window 0. -/
+/-- `verify_merkle_cap__L5`, window 0. -/
 theorem w492_0 : WinOk 492 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L15_L5`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L0_L0_L0_L0_L0`, window 0. -/
 theorem w493_0 : WinOk 493 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop43`, window 0. -/
-theorem w494_0 : WinOk 494 0 := winOk_of_C (by decide +kernel)
-
-/-- `verify_merkle_cap__L5`, window 0. -/
-theorem w495_0 : WinOk 495 0 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L0_L0_L4_L16_L15_L5_L0_L0_L0_L0_L0`, window 0. -/
-theorem w496_0 : WinOk 496 0 := winOk_of_C (by decide +kernel)
-
 /-- `opening_queries__L0_L0_L4_L16_L15_L5_L0_L0_L0_L0_L0`, window 1. -/
-theorem w496_1 : WinOk 496 1 := winOk_of_C (by decide +kernel)
+theorem w493_1 : WinOk 493 1 := winOk_of_C (by decide +kernel)
 
 /-- `opening_message__L20_L1`, window 0. -/
+theorem w494_0 : WinOk 494 0 := winOk_of_C (by decide +kernel)
+
+/-- `decode_query_windows__L14_L5`, window 0. -/
+theorem w495_0 : WinOk 495 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop44`, window 0. -/
+theorem w496_0 : WinOk 496 0 := winOk_of_C (by decide +kernel)
+
+/-- `opening_queries__L0_L0_L4_L16_L14_L5_L4_L39_L20_L5_L1`, window 0. -/
 theorem w497_0 : WinOk 497 0 := winOk_of_C (by decide +kernel)
 
 theorem ok491 : CheckOk 491 := checkOk_one (by decide +kernel) w491_0
 
 theorem ok492 : CheckOk 492 := checkOk_one (by decide +kernel) w492_0
 
-theorem ok493 : CheckOk 493 := checkOk_one (by decide +kernel) w493_0
-
 theorem ok494 : CheckOk 494 := checkOk_one (by decide +kernel) w494_0
 
 theorem ok495 : CheckOk 495 := checkOk_one (by decide +kernel) w495_0
 
-theorem ok497 : CheckOk 497 := checkOk_one (by decide +kernel) w497_0
+theorem ok496 : CheckOk 496 := checkOk_one (by decide +kernel) w496_0
 
 end
 end LeanVM.Guest.Checked

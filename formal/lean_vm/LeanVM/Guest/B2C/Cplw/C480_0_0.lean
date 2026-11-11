@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `decode_query_windows__L17_L8`, window 0, part 0. -/
+/-- `__loop41`, window 0, part 0. -/
 theorem cw480_0_0 : cplWin 480 0 0 = true := by decide +kernel
 
-/-- `__loop41`, window 0, part 0. -/
+/-- `verify_merkle_cap__L8`, window 0, part 0. -/
 theorem cw481_0_0 : cplWin 481 0 0 = true := by decide +kernel
 
-/-- `verify_merkle_cap__L8`, window 0, part 0. -/
-theorem cw482_0_0 : cplWin 482 0 0 = true := by decide +kernel
-
 /-- `verify_merkle_cap__L8`, window 1, part 0. -/
-theorem cw482_1_0 : cplWin 482 1 0 = true := by decide +kernel
+theorem cw481_1_0 : cplWin 481 1 0 = true := by decide +kernel
 
 /-- `verify_merkle_cap__L8`, window 2, part 0. -/
-theorem cw482_2_0 : cplWin 482 2 0 = true := by decide +kernel
+theorem cw481_2_0 : cplWin 481 2 0 = true := by decide +kernel
 
 /-- `verify_merkle_cap__L8`, window 3, part 0. -/
-theorem cw482_3_0 : cplWin 482 3 0 = true := by decide +kernel
+theorem cw481_3_0 : cplWin 481 3 0 = true := by decide +kernel
 
 /-- `verify_merkle_cap__L8`, window 4, part 0. -/
-theorem cw482_4_0 : cplWin 482 4 0 = true := by decide +kernel
+theorem cw481_4_0 : cplWin 481 4 0 = true := by decide +kernel
 
 /-- `verify_merkle_cap__L8`, window 5, part 0. -/
-theorem cw482_5_0 : cplWin 482 5 0 = true := by decide +kernel
+theorem cw481_5_0 : cplWin 481 5 0 = true := by decide +kernel
+
+/-- `verify_merkle_cap__L8`, window 6, part 0. -/
+theorem cw481_6_0 : cplWin 481 6 0 = true := by decide +kernel
 
 theorem ok480 : CplOk 480 := by
   intro i hi k hk
@@ -49,16 +49,6 @@ theorem ok480 : CplOk 480 := by
     rw [hn] at hk
     interval_cases k
     · exact cw480_0_0
-
-theorem ok481 : CplOk 481 := by
-  intro i hi k hk
-  have hc : (certOf 481).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 481 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw481_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

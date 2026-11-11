@@ -28,13 +28,10 @@ public import LeanVM.Guest.Memory.GuestWf.Part17
 public import LeanVM.Guest.Memory.GuestWf.Part18
 public import LeanVM.Guest.Memory.GuestWf.Part19
 public import LeanVM.Guest.Memory.GuestWf.Part20
-public import LeanVM.Guest.Memory.GuestWf.Part21
-public import LeanVM.Guest.Memory.GuestWf.Part22
 public import LeanVM.Guest.Memory.GuestWf.Wf19
 public import LeanVM.Guest.Memory.GuestWf.Wf36
 public import LeanVM.Guest.Memory.GuestWf.Wf337
 public import LeanVM.Guest.Memory.GuestWf.Wf344
-public import LeanVM.Guest.Memory.GuestWf.Wf351
 public import LeanVM.Guest.Memory.GuestWf.Wf358
 
 /-!
@@ -121,7 +118,7 @@ theorem coreProgram_wf : coreProgram.Wf := by
   have h31 : WfOn 0 351 :=
     h30.append' (wfRange_350.on) rfl rfl
   have h32 : WfOn 0 352 :=
-    h31.append' (wfOn_one (j := 351) rfl core351_wf) rfl rfl
+    h31.append' (wfRange_351.on) rfl rfl
   have h33 : WfOn 0 353 :=
     h32.append' (wfRange_352.on) rfl rfl
   have h34 : WfOn 0 354 :=
@@ -152,107 +149,105 @@ theorem coreProgram_wf : coreProgram.Wf := by
     h45.append' (wfRange_430.on) rfl rfl
   have h47 : WfOn 0 449 :=
     h46.append' (wfRange_435.on) rfl rfl
-  have h48 : WfOn 0 489 :=
+  have h48 : WfOn 0 487 :=
     h47.append' (wfRange_449.on) rfl rfl
-  have h49 : WfOn 0 510 :=
-    h48.append' (wfRange_489.on) rfl rfl
-  have h50 : WfOn 0 530 :=
-    h49.append' (wfRange_510.on) rfl rfl
-  have h51 : WfOn 0 550 :=
-    h50.append' (wfRange_530.on) rfl rfl
-  have h52 : WfOn 0 574 :=
-    h51.append' (wfRange_550.on) rfl rfl
-  have h53 : WfOn 0 588 :=
-    h52.append' (wfRange_574.on) rfl rfl
-  have h54 : WfOn 0 601 :=
-    h53.append' (wfRange_588.on) rfl rfl
-  have h55 : WfOn 0 613 :=
-    h54.append' (wfRange_601.on) rfl rfl
-  have h56 : WfOn 0 630 :=
-    h55.append' (wfRange_613.on) rfl rfl
-  have h57 : WfOn 0 640 :=
-    h56.append' (wfRange_630.on) rfl rfl
-  have h58 : WfOn 0 652 :=
-    h57.append' (wfRange_640.on) rfl rfl
-  have h59 : WfOn 0 664 :=
-    h58.append' (wfRange_652.on) rfl rfl
-  have h60 : WfOn 0 675 :=
-    h59.append' (wfRange_664.on) rfl rfl
-  have h61 : WfOn 0 686 :=
-    h60.append' (wfRange_675.on) rfl rfl
-  have h62 : WfOn 0 697 :=
-    h61.append' (wfRange_686.on) rfl rfl
-  have h63 : WfOn 0 708 :=
-    h62.append' (wfRange_697.on) rfl rfl
-  have h64 : WfOn 0 722 :=
-    h63.append' (wfRange_708.on) rfl rfl
-  have h65 : WfOn 0 732 :=
-    h64.append' (wfRange_722.on) rfl rfl
-  have h66 : WfOn 0 743 :=
-    h65.append' (wfRange_732.on) rfl rfl
-  have h67 : WfOn 0 754 :=
-    h66.append' (wfRange_743.on) rfl rfl
-  have h68 : WfOn 0 765 :=
-    h67.append' (wfRange_754.on) rfl rfl
-  have h69 : WfOn 0 775 :=
-    h68.append' (wfRange_765.on) rfl rfl
-  have h70 : WfOn 0 786 :=
-    h69.append' (wfRange_775.on) rfl rfl
-  have h71 : WfOn 0 798 :=
-    h70.append' (wfRange_786.on) rfl rfl
-  have h72 : WfOn 0 808 :=
-    h71.append' (wfRange_798.on) rfl rfl
-  have h73 : WfOn 0 818 :=
-    h72.append' (wfRange_808.on) rfl rfl
-  have h74 : WfOn 0 828 :=
-    h73.append' (wfRange_818.on) rfl rfl
-  have h75 : WfOn 0 838 :=
-    h74.append' (wfRange_828.on) rfl rfl
-  have h76 : WfOn 0 848 :=
-    h75.append' (wfRange_838.on) rfl rfl
-  have h77 : WfOn 0 860 :=
-    h76.append' (wfRange_848.on) rfl rfl
-  have h78 : WfOn 0 871 :=
-    h77.append' (wfRange_860.on) rfl rfl
-  have h79 : WfOn 0 882 :=
-    h78.append' (wfRange_871.on) rfl rfl
-  have h80 : WfOn 0 894 :=
-    h79.append' (wfRange_882.on) rfl rfl
-  have h81 : WfOn 0 907 :=
-    h80.append' (wfRange_894.on) rfl rfl
-  have h82 : WfOn 0 920 :=
-    h81.append' (wfRange_907.on) rfl rfl
-  have h83 : WfOn 0 933 :=
-    h82.append' (wfRange_920.on) rfl rfl
-  have h84 : WfOn 0 945 :=
-    h83.append' (wfRange_933.on) rfl rfl
-  have h85 : WfOn 0 956 :=
-    h84.append' (wfRange_945.on) rfl rfl
-  have h86 : WfOn 0 966 :=
-    h85.append' (wfRange_956.on) rfl rfl
-  have h87 : WfOn 0 976 :=
-    h86.append' (wfRange_966.on) rfl rfl
-  have h88 : WfOn 0 985 :=
-    h87.append' (wfRange_976.on) rfl rfl
-  have h89 : WfOn 0 993 :=
-    h88.append' (wfRange_985.on) rfl rfl
-  have h90 : WfOn 0 1004 :=
-    h89.append' (wfRange_993.on) rfl rfl
-  have h91 : WfOn 0 1014 :=
-    h90.append' (wfRange_1004.on) rfl rfl
-  have h92 : WfOn 0 1022 :=
-    h91.append' (wfRange_1014.on) rfl rfl
-  have h93 : WfOn 0 1030 :=
-    h92.append' (wfRange_1022.on) rfl rfl
-  have h94 : WfOn 0 1041 :=
-    h93.append' (wfRange_1030.on) rfl rfl
-  have h95 : WfOn 0 1048 :=
-    h94.append' (wfRange_1041.on) rfl rfl
-  have h96 : WfOn 0 1054 :=
-    h95.append' (wfRange_1048.on) rfl rfl
-  have h97 : WfOn 0 1055 :=
-    h96.append' (wfRange_1054.on) rfl rfl
-  exact wf_of_wfOn (coreProgram_length ▸ h97)
+  have h49 : WfOn 0 507 :=
+    h48.append' (wfRange_487.on) rfl rfl
+  have h50 : WfOn 0 525 :=
+    h49.append' (wfRange_507.on) rfl rfl
+  have h51 : WfOn 0 540 :=
+    h50.append' (wfRange_525.on) rfl rfl
+  have h52 : WfOn 0 560 :=
+    h51.append' (wfRange_540.on) rfl rfl
+  have h53 : WfOn 0 575 :=
+    h52.append' (wfRange_560.on) rfl rfl
+  have h54 : WfOn 0 589 :=
+    h53.append' (wfRange_575.on) rfl rfl
+  have h55 : WfOn 0 601 :=
+    h54.append' (wfRange_589.on) rfl rfl
+  have h56 : WfOn 0 614 :=
+    h55.append' (wfRange_601.on) rfl rfl
+  have h57 : WfOn 0 625 :=
+    h56.append' (wfRange_614.on) rfl rfl
+  have h58 : WfOn 0 636 :=
+    h57.append' (wfRange_625.on) rfl rfl
+  have h59 : WfOn 0 647 :=
+    h58.append' (wfRange_636.on) rfl rfl
+  have h60 : WfOn 0 658 :=
+    h59.append' (wfRange_647.on) rfl rfl
+  have h61 : WfOn 0 669 :=
+    h60.append' (wfRange_658.on) rfl rfl
+  have h62 : WfOn 0 680 :=
+    h61.append' (wfRange_669.on) rfl rfl
+  have h63 : WfOn 0 692 :=
+    h62.append' (wfRange_680.on) rfl rfl
+  have h64 : WfOn 0 705 :=
+    h63.append' (wfRange_692.on) rfl rfl
+  have h65 : WfOn 0 716 :=
+    h64.append' (wfRange_705.on) rfl rfl
+  have h66 : WfOn 0 727 :=
+    h65.append' (wfRange_716.on) rfl rfl
+  have h67 : WfOn 0 738 :=
+    h66.append' (wfRange_727.on) rfl rfl
+  have h68 : WfOn 0 749 :=
+    h67.append' (wfRange_738.on) rfl rfl
+  have h69 : WfOn 0 759 :=
+    h68.append' (wfRange_749.on) rfl rfl
+  have h70 : WfOn 0 771 :=
+    h69.append' (wfRange_759.on) rfl rfl
+  have h71 : WfOn 0 782 :=
+    h70.append' (wfRange_771.on) rfl rfl
+  have h72 : WfOn 0 793 :=
+    h71.append' (wfRange_782.on) rfl rfl
+  have h73 : WfOn 0 804 :=
+    h72.append' (wfRange_793.on) rfl rfl
+  have h74 : WfOn 0 815 :=
+    h73.append' (wfRange_804.on) rfl rfl
+  have h75 : WfOn 0 825 :=
+    h74.append' (wfRange_815.on) rfl rfl
+  have h76 : WfOn 0 836 :=
+    h75.append' (wfRange_825.on) rfl rfl
+  have h77 : WfOn 0 847 :=
+    h76.append' (wfRange_836.on) rfl rfl
+  have h78 : WfOn 0 861 :=
+    h77.append' (wfRange_847.on) rfl rfl
+  have h79 : WfOn 0 871 :=
+    h78.append' (wfRange_861.on) rfl rfl
+  have h80 : WfOn 0 885 :=
+    h79.append' (wfRange_871.on) rfl rfl
+  have h81 : WfOn 0 899 :=
+    h80.append' (wfRange_885.on) rfl rfl
+  have h82 : WfOn 0 913 :=
+    h81.append' (wfRange_899.on) rfl rfl
+  have h83 : WfOn 0 925 :=
+    h82.append' (wfRange_913.on) rfl rfl
+  have h84 : WfOn 0 936 :=
+    h83.append' (wfRange_925.on) rfl rfl
+  have h85 : WfOn 0 947 :=
+    h84.append' (wfRange_936.on) rfl rfl
+  have h86 : WfOn 0 957 :=
+    h85.append' (wfRange_947.on) rfl rfl
+  have h87 : WfOn 0 966 :=
+    h86.append' (wfRange_957.on) rfl rfl
+  have h88 : WfOn 0 977 :=
+    h87.append' (wfRange_966.on) rfl rfl
+  have h89 : WfOn 0 987 :=
+    h88.append' (wfRange_977.on) rfl rfl
+  have h90 : WfOn 0 996 :=
+    h89.append' (wfRange_987.on) rfl rfl
+  have h91 : WfOn 0 1004 :=
+    h90.append' (wfRange_996.on) rfl rfl
+  have h92 : WfOn 0 1015 :=
+    h91.append' (wfRange_1004.on) rfl rfl
+  have h93 : WfOn 0 1023 :=
+    h92.append' (wfRange_1015.on) rfl rfl
+  have h94 : WfOn 0 1030 :=
+    h93.append' (wfRange_1023.on) rfl rfl
+  have h95 : WfOn 0 1036 :=
+    h94.append' (wfRange_1030.on) rfl rfl
+  have h96 : WfOn 0 1037 :=
+    h95.append' (wfRange_1036.on) rfl rfl
+  exact wf_of_wfOn (coreProgram_length ▸ h96)
 
 end
 end LeanVM.Guest

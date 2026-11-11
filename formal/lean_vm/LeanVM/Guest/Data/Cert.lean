@@ -102,8 +102,7 @@ noncomputable def certs : List Check.Cert :=
   cert976 :: cert977 :: cert978 :: cert979 :: cert980 :: cert981 :: cert982 :: cert983 :: cert984 :: cert985 :: cert986 :: cert987 :: cert988 :: cert989 :: cert990 :: cert991 ::
   cert992 :: cert993 :: cert994 :: cert995 :: cert996 :: cert997 :: cert998 :: cert999 :: cert1000 :: cert1001 :: cert1002 :: cert1003 :: cert1004 :: cert1005 :: cert1006 :: cert1007 ::
   cert1008 :: cert1009 :: cert1010 :: cert1011 :: cert1012 :: cert1013 :: cert1014 :: cert1015 :: cert1016 :: cert1017 :: cert1018 :: cert1019 :: cert1020 :: cert1021 :: cert1022 :: cert1023 ::
-  cert1024 :: cert1025 :: cert1026 :: cert1027 :: cert1028 :: cert1029 :: cert1030 :: cert1031 :: cert1032 :: cert1033 :: cert1034 :: cert1035 :: cert1036 :: cert1037 :: cert1038 :: cert1039 ::
-  cert1040 :: cert1041 :: cert1042 :: cert1043 :: cert1044 :: cert1045 :: cert1046 :: cert1047 :: cert1048 :: cert1049 :: cert1050 :: cert1051 :: cert1052 :: cert1053 :: cert1054 :: cert1055 :: []
+  cert1024 :: cert1025 :: cert1026 :: cert1027 :: cert1028 :: cert1029 :: cert1030 :: cert1031 :: cert1032 :: cert1033 :: cert1034 :: cert1035 :: cert1036 :: cert1037 :: []
 
 end
 end LeanVM.Guest.Data

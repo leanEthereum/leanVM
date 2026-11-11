@@ -31,13 +31,13 @@ theorem cw475_0_0 : cplWin 475 0 0 = true := by decide +kernel
 /-- `grind_check__L30`, window 0, part 0. -/
 theorem cw476_0_0 : cplWin 476 0 0 = true := by decide +kernel
 
-/-- `opening_message__L8_L0`, window 0, part 0. -/
+/-- `opening_message__L8_L1`, window 0, part 0. -/
 theorem cw477_0_0 : cplWin 477 0 0 = true := by decide +kernel
 
 /-- `squeeze_point_from__L16`, window 0, part 0. -/
 theorem cw478_0_0 : cplWin 478 0 0 = true := by decide +kernel
 
-/-- `squeeze_point__L16`, window 0, part 0. -/
+/-- `decode_query_windows__L17_L8`, window 0, part 0. -/
 theorem cw479_0_0 : cplWin 479 0 0 = true := by decide +kernel
 
 theorem ok472 : CplOk 472 := by

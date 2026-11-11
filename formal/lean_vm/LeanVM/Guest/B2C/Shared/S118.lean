@@ -42,11 +42,11 @@ theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
   exact w330_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L14`, once. -/
+/-- `grind_check__L13`, once. -/
 theorem st331 : shareStatic 331 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L14`, window 0. -/
+/-- `grind_check__L13`, window 0. -/
 theorem w331_0 : shareWin 331 (snapsOf 331) 0 = true := by decide +kernel
 
 theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by

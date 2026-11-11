@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop386`, window 0. -/
+/-- `__loop404`, window 0. -/
 theorem w999_0 : WinOk 999 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop386`, window 1. -/
+/-- `__loop404`, window 1. -/
 theorem w999_1 : WinOk 999 1 := winOk_of_C (by decide +kernel)
 
-/-- `__loop386`, window 2. -/
+/-- `__loop404`, window 2. -/
 theorem w999_2 : WinOk 999 2 := winOk_of_C (by decide +kernel)
 
-/-- `__loop387`, window 0. -/
+/-- `__loop404`, window 3. -/
+theorem w999_3 : WinOk 999 3 := winOk_of_C (by decide +kernel)
+
+/-- `__loop405`, window 0. -/
 theorem w1000_0 : WinOk 1000 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop387`, window 1. -/
+/-- `__loop405`, window 1. -/
 theorem w1000_1 : WinOk 1000 1 := winOk_of_C (by decide +kernel)
 
-/-- `__loop387`, window 2. -/
+/-- `__loop405`, window 2. -/
 theorem w1000_2 : WinOk 1000 2 := winOk_of_C (by decide +kernel)
 
-/-- `__loop388`, window 0. -/
+/-- `walk_path__L19_L6`, window 0. -/
 theorem w1001_0 : WinOk 1001 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop388`, window 1. -/
-theorem w1001_1 : WinOk 1001 1 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

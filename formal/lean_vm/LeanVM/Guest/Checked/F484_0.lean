@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `opening_message__L6_L0`, window 0. -/
+/-- `squeeze_point_from__L12`, window 0. -/
 theorem w484_0 : WinOk 484 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L12`, window 0. -/
+/-- `decode_query_windows__L16_L6`, window 0. -/
 theorem w485_0 : WinOk 485 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point__L12`, window 0. -/
+/-- `__loop42`, window 0. -/
 theorem w486_0 : WinOk 486 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L16_L6`, window 0. -/
+/-- `verify_merkle_cap__L6`, window 0. -/
 theorem w487_0 : WinOk 487 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop42`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L16_L6_L0_L0_L0_L0_L0`, window 0. -/
 theorem w488_0 : WinOk 488 0 := winOk_of_C (by decide +kernel)
 
-/-- `verify_merkle_cap__L6`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L16_L6_L0_L0_L0_L0_L0`, window 1. -/
+theorem w488_1 : WinOk 488 1 := winOk_of_C (by decide +kernel)
+
+/-- `squeeze_point_from__L8`, window 0. -/
 theorem w489_0 : WinOk 489 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L16_L6_L0_L0_L0_L0_L0`, window 0. -/
+/-- `decode_query_windows__L15_L5`, window 0. -/
 theorem w490_0 : WinOk 490 0 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L0_L0_L4_L16_L16_L6_L0_L0_L0_L0_L0`, window 1. -/
-theorem w490_1 : WinOk 490 1 := winOk_of_C (by decide +kernel)
 
 theorem ok484 : CheckOk 484 := checkOk_one (by decide +kernel) w484_0
 
@@ -49,9 +49,9 @@ theorem ok486 : CheckOk 486 := checkOk_one (by decide +kernel) w486_0
 
 theorem ok487 : CheckOk 487 := checkOk_one (by decide +kernel) w487_0
 
-theorem ok488 : CheckOk 488 := checkOk_one (by decide +kernel) w488_0
-
 theorem ok489 : CheckOk 489 := checkOk_one (by decide +kernel) w489_0
+
+theorem ok490 : CheckOk 490 := checkOk_one (by decide +kernel) w490_0
 
 end
 end LeanVM.Guest.Checked

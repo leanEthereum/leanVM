@@ -8,25 +8,22 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F350_1
-public import LeanVM.Guest.Checked.F351_1
-public import LeanVM.Guest.Checked.F351_1
-public import LeanVM.Guest.Checked.F352_1
-public import LeanVM.Guest.Checked.F352_9
-public import LeanVM.Guest.Checked.F352_9
+public import LeanVM.Guest.Checked.F351_0
+public import LeanVM.Guest.Checked.F352_0
+public import LeanVM.Guest.Checked.F352_8
+public import LeanVM.Guest.Checked.F352_8
 public import LeanVM.Guest.Checked.F354_0
-public import LeanVM.Guest.Checked.F355_0
-public import LeanVM.Guest.Checked.F355_8
-public import LeanVM.Guest.Checked.F355_8
-public import LeanVM.Guest.Checked.F356_7
-public import LeanVM.Guest.Checked.F356_7
-public import LeanVM.Guest.Checked.F357_5
-public import LeanVM.Guest.Checked.F357_5
-public import LeanVM.Guest.Checked.F358_3
-public import LeanVM.Guest.Checked.F358_3
-public import LeanVM.Guest.Checked.F359_1
-public import LeanVM.Guest.Checked.F359_9
-public import LeanVM.Guest.Checked.F359_9
+public import LeanVM.Guest.Checked.F354_0
+public import LeanVM.Guest.Checked.F355_1
+public import LeanVM.Guest.Checked.F355_1
+public import LeanVM.Guest.Checked.F356_1
+public import LeanVM.Guest.Checked.F356_1
+public import LeanVM.Guest.Checked.F357_1
+public import LeanVM.Guest.Checked.F358_0
+public import LeanVM.Guest.Checked.F358_8
+public import LeanVM.Guest.Checked.F358_8
+public import LeanVM.Guest.Checked.F359_7
+public import LeanVM.Guest.Checked.F359_7
 public import LeanVM.Guest.Checked.F372_0
 public import LeanVM.Guest.Checked.F379_1
 public import LeanVM.Guest.Checked.F393_0
@@ -50,7 +47,7 @@ theorem ok351 : CheckOk 351 := fun i hi ↦ by
   · exact w351_7
 
 theorem ok352 : CheckOk 352 := fun i hi ↦ by
-  have h : (certOf 352).cuts.length = 9 := by decide +kernel
+  have h : (certOf 352).cuts.length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w352_0
@@ -62,7 +59,6 @@ theorem ok352 : CheckOk 352 := fun i hi ↦ by
   · exact w352_6
   · exact w352_7
   · exact w352_8
-  · exact w352_9
 
 theorem ok353 : CheckOk 353 := fun i hi ↦ by
   have h : (certOf 353).cuts.length = 6 := by decide +kernel
@@ -77,7 +73,7 @@ theorem ok353 : CheckOk 353 := fun i hi ↦ by
   · exact w353_6
 
 theorem ok354 : CheckOk 354 := fun i hi ↦ by
-  have h : (certOf 354).cuts.length = 7 := by decide +kernel
+  have h : (certOf 354).cuts.length = 6 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w354_0
@@ -87,10 +83,9 @@ theorem ok354 : CheckOk 354 := fun i hi ↦ by
   · exact w354_4
   · exact w354_5
   · exact w354_6
-  · exact w354_7
 
 theorem ok355 : CheckOk 355 := fun i hi ↦ by
-  have h : (certOf 355).cuts.length = 8 := by decide +kernel
+  have h : (certOf 355).cuts.length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w355_0
@@ -101,10 +96,9 @@ theorem ok355 : CheckOk 355 := fun i hi ↦ by
   · exact w355_5
   · exact w355_6
   · exact w355_7
-  · exact w355_8
 
 theorem ok356 : CheckOk 356 := fun i hi ↦ by
-  have h : (certOf 356).cuts.length = 9 := by decide +kernel
+  have h : (certOf 356).cuts.length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w356_0
@@ -115,11 +109,9 @@ theorem ok356 : CheckOk 356 := fun i hi ↦ by
   · exact w356_5
   · exact w356_6
   · exact w356_7
-  · exact w356_8
-  · exact w356_9
 
 theorem ok357 : CheckOk 357 := fun i hi ↦ by
-  have h : (certOf 357).cuts.length = 9 := by decide +kernel
+  have h : (certOf 357).cuts.length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w357_0
@@ -131,10 +123,9 @@ theorem ok357 : CheckOk 357 := fun i hi ↦ by
   · exact w357_6
   · exact w357_7
   · exact w357_8
-  · exact w357_9
 
 theorem ok358 : CheckOk 358 := fun i hi ↦ by
-  have h : (certOf 358).cuts.length = 9 := by decide +kernel
+  have h : (certOf 358).cuts.length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w358_0
@@ -146,10 +137,9 @@ theorem ok358 : CheckOk 358 := fun i hi ↦ by
   · exact w358_6
   · exact w358_7
   · exact w358_8
-  · exact w358_9
 
 theorem ok359 : CheckOk 359 := fun i hi ↦ by
-  have h : (certOf 359).cuts.length = 11 := by decide +kernel
+  have h : (certOf 359).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w359_0
@@ -162,8 +152,6 @@ theorem ok359 : CheckOk 359 := fun i hi ↦ by
   · exact w359_7
   · exact w359_8
   · exact w359_9
-  · exact w359_10
-  · exact w359_11
 
 theorem ok360 : CheckOk 360 := fun i hi ↦ by
   have h : (certOf 360).cuts.length = 1 := by decide +kernel

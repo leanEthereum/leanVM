@@ -9,39 +9,36 @@ module
 
 public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.Checked.F330_0
-public import LeanVM.Guest.Checked.F332_6
-public import LeanVM.Guest.Checked.F332_6
-public import LeanVM.Guest.Checked.F334_0
-public import LeanVM.Guest.Checked.F335_0
-public import LeanVM.Guest.Checked.F336_0
-public import LeanVM.Guest.Checked.F336_8
-public import LeanVM.Guest.Checked.F336_8
-public import LeanVM.Guest.Checked.F337_7
-public import LeanVM.Guest.Checked.F337_7
-public import LeanVM.Guest.Checked.F338_5
-public import LeanVM.Guest.Checked.F338_5
-public import LeanVM.Guest.Checked.F339_2
-public import LeanVM.Guest.Checked.F339_2
-public import LeanVM.Guest.Checked.F340_3
-public import LeanVM.Guest.Checked.F340_3
-public import LeanVM.Guest.Checked.F341_4
-public import LeanVM.Guest.Checked.F341_4
-public import LeanVM.Guest.Checked.F342_3
-public import LeanVM.Guest.Checked.F342_3
-public import LeanVM.Guest.Checked.F343_2
-public import LeanVM.Guest.Checked.F343_2
-public import LeanVM.Guest.Checked.F344_1
-public import LeanVM.Guest.Checked.F345_0
-public import LeanVM.Guest.Checked.F345_8
-public import LeanVM.Guest.Checked.F345_8
-public import LeanVM.Guest.Checked.F346_5
-public import LeanVM.Guest.Checked.F346_5
-public import LeanVM.Guest.Checked.F346_5
-public import LeanVM.Guest.Checked.F348_1
-public import LeanVM.Guest.Checked.F348_1
-public import LeanVM.Guest.Checked.F349_1
-public import LeanVM.Guest.Checked.F349_1
-public import LeanVM.Guest.Checked.F350_1
+public import LeanVM.Guest.Checked.F333_0
+public import LeanVM.Guest.Checked.F333_0
+public import LeanVM.Guest.Checked.F334_2
+public import LeanVM.Guest.Checked.F334_2
+public import LeanVM.Guest.Checked.F335_2
+public import LeanVM.Guest.Checked.F335_2
+public import LeanVM.Guest.Checked.F336_2
+public import LeanVM.Guest.Checked.F336_2
+public import LeanVM.Guest.Checked.F337_2
+public import LeanVM.Guest.Checked.F337_2
+public import LeanVM.Guest.Checked.F338_1
+public import LeanVM.Guest.Checked.F338_9
+public import LeanVM.Guest.Checked.F338_9
+public import LeanVM.Guest.Checked.F340_0
+public import LeanVM.Guest.Checked.F340_0
+public import LeanVM.Guest.Checked.F341_1
+public import LeanVM.Guest.Checked.F341_1
+public import LeanVM.Guest.Checked.F342_1
+public import LeanVM.Guest.Checked.F343_0
+public import LeanVM.Guest.Checked.F343_8
+public import LeanVM.Guest.Checked.F343_8
+public import LeanVM.Guest.Checked.F344_7
+public import LeanVM.Guest.Checked.F344_7
+public import LeanVM.Guest.Checked.F345_6
+public import LeanVM.Guest.Checked.F345_6
+public import LeanVM.Guest.Checked.F346_4
+public import LeanVM.Guest.Checked.F346_4
+public import LeanVM.Guest.Checked.F348_0
+public import LeanVM.Guest.Checked.F349_0
+public import LeanVM.Guest.Checked.F350_0
 
 namespace LeanVM.Guest.Checked
 
@@ -110,7 +107,7 @@ theorem plain330 : Plain 330 := plain_of_nil (by decide +kernel)
 theorem plain331 : Plain 331 := plain_of_nil (by decide +kernel)
 
 theorem ok332 : CheckOk 332 := fun i hi ↦ by
-  have h : (certOf 332).cuts.length = 6 := by decide +kernel
+  have h : (certOf 332).cuts.length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w332_0
@@ -119,10 +116,9 @@ theorem ok332 : CheckOk 332 := fun i hi ↦ by
   · exact w332_3
   · exact w332_4
   · exact w332_5
-  · exact w332_6
 
 theorem ok333 : CheckOk 333 := fun i hi ↦ by
-  have h : (certOf 333).cuts.length = 6 := by decide +kernel
+  have h : (certOf 333).cuts.length = 5 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w333_0
@@ -131,7 +127,6 @@ theorem ok333 : CheckOk 333 := fun i hi ↦ by
   · exact w333_3
   · exact w333_4
   · exact w333_5
-  · exact w333_6
 
 theorem ok334 : CheckOk 334 := fun i hi ↦ by
   have h : (certOf 334).cuts.length = 7 := by decide +kernel
@@ -160,7 +155,7 @@ theorem ok335 : CheckOk 335 := fun i hi ↦ by
   · exact w335_7
 
 theorem ok336 : CheckOk 336 := fun i hi ↦ by
-  have h : (certOf 336).cuts.length = 8 := by decide +kernel
+  have h : (certOf 336).cuts.length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w336_0
@@ -171,10 +166,9 @@ theorem ok336 : CheckOk 336 := fun i hi ↦ by
   · exact w336_5
   · exact w336_6
   · exact w336_7
-  · exact w336_8
 
 theorem ok337 : CheckOk 337 := fun i hi ↦ by
-  have h : (certOf 337).cuts.length = 9 := by decide +kernel
+  have h : (certOf 337).cuts.length = 8 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w337_0
@@ -186,10 +180,9 @@ theorem ok337 : CheckOk 337 := fun i hi ↦ by
   · exact w337_6
   · exact w337_7
   · exact w337_8
-  · exact w337_9
 
 theorem ok338 : CheckOk 338 := fun i hi ↦ by
-  have h : (certOf 338).cuts.length = 10 := by decide +kernel
+  have h : (certOf 338).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w338_0
@@ -202,7 +195,6 @@ theorem ok338 : CheckOk 338 := fun i hi ↦ by
   · exact w338_7
   · exact w338_8
   · exact w338_9
-  · exact w338_10
 
 theorem ok339 : CheckOk 339 := fun i hi ↦ by
   have h : (certOf 339).cuts.length = 6 := by decide +kernel
@@ -229,7 +221,7 @@ theorem ok340 : CheckOk 340 := fun i hi ↦ by
   · exact w340_6
 
 theorem ok341 : CheckOk 341 := fun i hi ↦ by
-  have h : (certOf 341).cuts.length = 8 := by decide +kernel
+  have h : (certOf 341).cuts.length = 7 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w341_0
@@ -240,7 +232,6 @@ theorem ok341 : CheckOk 341 := fun i hi ↦ by
   · exact w341_5
   · exact w341_6
   · exact w341_7
-  · exact w341_8
 
 theorem ok342 : CheckOk 342 := fun i hi ↦ by
   have h : (certOf 342).cuts.length = 8 := by decide +kernel
@@ -285,7 +276,7 @@ theorem ok344 : CheckOk 344 := fun i hi ↦ by
   · exact w344_8
 
 theorem ok345 : CheckOk 345 := fun i hi ↦ by
-  have h : (certOf 345).cuts.length = 10 := by decide +kernel
+  have h : (certOf 345).cuts.length = 9 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w345_0
@@ -298,7 +289,6 @@ theorem ok345 : CheckOk 345 := fun i hi ↦ by
   · exact w345_7
   · exact w345_8
   · exact w345_9
-  · exact w345_10
 
 theorem ok346 : CheckOk 346 := fun i hi ↦ by
   have h : (certOf 346).cuts.length = 5 := by decide +kernel

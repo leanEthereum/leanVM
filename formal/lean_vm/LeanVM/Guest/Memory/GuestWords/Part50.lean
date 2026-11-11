@@ -9,11 +9,11 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem wstaticRange_590 : wStaticRange 590 19 := by
+theorem wstaticRange_790 : wStaticRange 790 18 := by
   unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wstaticRange_609 : wStaticRange 609 19 := by
+theorem wstaticRange_808 : wStaticRange 808 13 := by
   unfold wStaticRange; decide +kernel
 
 end

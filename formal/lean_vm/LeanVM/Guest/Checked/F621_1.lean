@@ -17,39 +17,37 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `opening_queries__L0_L0_L4_L16_L22_L6_L0_L0_L0_L0_L0`, window 1. -/
+/-- `opening_queries__L1_L1_L6_L32_L18_L7_L0_L0_L0_L0_L0`, window 1. -/
 theorem w621_1 : WinOk 621 1 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L21_L5`, window 0. -/
+/-- `opening_queries__L1_L1_L6_L32_L18_L7_L0_L0_L0_L0_L0`, window 2. -/
+theorem w621_2 : WinOk 621 2 := winOk_of_C (by decide +kernel)
+
+/-- `__loop103`, window 0. -/
 theorem w622_0 : WinOk 622 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop93`, window 0. -/
+/-- `__loop104`, window 0. -/
 theorem w623_0 : WinOk 623 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L21_L5_L0_L0_L0_L0_L0`, window 0. -/
+/-- `__loop105`, window 0. -/
 theorem w624_0 : WinOk 624 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L21_L5_L0_L0_L0_L0_L0`, window 1. -/
-theorem w624_1 : WinOk 624 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop94`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L4_L585_L20_L5_L1`, window 0. -/
 theorem w625_0 : WinOk 625 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop95`, window 0. -/
-theorem w626_0 : WinOk 626 0 := winOk_of_C (by decide +kernel)
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L4_L585_L20_L5_L1`, window 1. -/
+theorem w625_1 : WinOk 625 1 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L18_L4`, window 0. -/
-theorem w627_0 : WinOk 627 0 := winOk_of_C (by decide +kernel)
+/-- `__loop106`, window 0. -/
+theorem w626_0 : WinOk 626 0 := winOk_of_C (by decide +kernel)
 
 theorem ok622 : CheckOk 622 := checkOk_one (by decide +kernel) w622_0
 
 theorem ok623 : CheckOk 623 := checkOk_one (by decide +kernel) w623_0
 
-theorem ok625 : CheckOk 625 := checkOk_one (by decide +kernel) w625_0
+theorem ok624 : CheckOk 624 := checkOk_one (by decide +kernel) w624_0
 
 theorem ok626 : CheckOk 626 := checkOk_one (by decide +kernel) w626_0
-
-theorem ok627 : CheckOk 627 := checkOk_one (by decide +kernel) w627_0
 
 end
 end LeanVM.Guest.Checked

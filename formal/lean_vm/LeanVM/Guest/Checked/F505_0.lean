@@ -17,31 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `squeeze_point_from__L17`, window 0. -/
+/-- `opening_queries__L0_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 0. -/
 theorem w505_0 : WinOk 505 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point__L17`, window 0. -/
-theorem w506_0 : WinOk 506 0 := winOk_of_C (by decide +kernel)
-
-/-- `decode_query_windows__L18_L8`, window 0. -/
-theorem w507_0 : WinOk 507 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop48`, window 0. -/
-theorem w508_0 : WinOk 508 0 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L1_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 0. -/
-theorem w509_0 : WinOk 509 0 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L1_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 1. -/
-theorem w509_1 : WinOk 509 1 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L1_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 2. -/
-theorem w509_2 : WinOk 509 2 := winOk_of_C (by decide +kernel)
+/-- `opening_queries__L0_L1_L6_L32_L18_L8_L0_L0_L0_L0_L0`, window 1. -/
+theorem w505_1 : WinOk 505 1 := winOk_of_C (by decide +kernel)
 
 /-- `squeeze_point_from__L13`, window 0. -/
-theorem w510_0 : WinOk 510 0 := winOk_of_C (by decide +kernel)
+theorem w506_0 : WinOk 506 0 := winOk_of_C (by decide +kernel)
 
-theorem ok505 : CheckOk 505 := checkOk_one (by decide +kernel) w505_0
+/-- `decode_query_windows__L17_L6`, window 0. -/
+theorem w507_0 : WinOk 507 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop49`, window 0. -/
+theorem w508_0 : WinOk 508 0 := winOk_of_C (by decide +kernel)
+
+/-- `opening_queries__L0_L0_L4_L16_L17_L6_L0_L0_L0_L0_L0`, window 0. -/
+theorem w509_0 : WinOk 509 0 := winOk_of_C (by decide +kernel)
+
+/-- `opening_queries__L0_L0_L4_L16_L17_L6_L0_L0_L0_L0_L0`, window 1. -/
+theorem w509_1 : WinOk 509 1 := winOk_of_C (by decide +kernel)
+
+/-- `squeeze_point_from__L9`, window 0. -/
+theorem w510_0 : WinOk 510 0 := winOk_of_C (by decide +kernel)
 
 theorem ok506 : CheckOk 506 := checkOk_one (by decide +kernel) w506_0
 

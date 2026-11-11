@@ -16,65 +16,49 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `verify_merkle_cap__L7`, window 0, part 0. -/
+/-- `__loop115`, window 0, part 0. -/
 theorem cw638_0_0 : cplWin 638 0 0 = true := by decide +kernel
 
-/-- `verify_merkle_cap__L7`, window 1, part 0. -/
-theorem cw638_1_0 : cplWin 638 1 0 = true := by decide +kernel
-
-/-- `verify_merkle_cap__L7`, window 2, part 0. -/
-theorem cw638_2_0 : cplWin 638 2 0 = true := by decide +kernel
-
-/-- `opening_queries__L1_L1_L6_L32_L18_L7_L0_L0_L0_L0_L0`, window 0, part 0. -/
+/-- `decode_query_windows__L20_L7`, window 0, part 0. -/
 theorem cw639_0_0 : cplWin 639 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L1_L1_L6_L32_L18_L7_L0_L0_L0_L0_L0`, window 1, part 0. -/
-theorem cw639_1_0 : cplWin 639 1 0 = true := by decide +kernel
-
-/-- `opening_queries__L1_L1_L6_L32_L18_L7_L0_L0_L0_L0_L0`, window 2, part 0. -/
-theorem cw639_2_0 : cplWin 639 2 0 = true := by decide +kernel
-
-/-- `__loop103`, window 0, part 0. -/
+/-- `__loop116`, window 0, part 0. -/
 theorem cw640_0_0 : cplWin 640 0 0 = true := by decide +kernel
 
-/-- `__loop104`, window 0, part 0. -/
+/-- `opening_queries__L1_L1_L6_L32_L20_L7_L0_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw641_0_0 : cplWin 641 0 0 = true := by decide +kernel
+
+/-- `opening_queries__L1_L1_L6_L32_L20_L7_L0_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw641_1_0 : cplWin 641 1 0 = true := by decide +kernel
+
+/-- `opening_queries__L1_L1_L6_L32_L20_L7_L0_L0_L0_L0_L0`, window 2, part 0. -/
+theorem cw641_2_0 : cplWin 641 2 0 = true := by decide +kernel
+
+/-- `__loop117`, window 0, part 0. -/
+theorem cw642_0_0 : cplWin 642 0 0 = true := by decide +kernel
+
+/-- `__loop118`, window 0, part 0. -/
+theorem cw643_0_0 : cplWin 643 0 0 = true := by decide +kernel
 
 theorem ok638 : CplOk 638 := by
   intro i hi k hk
-  have hc : (certOf 638).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 638).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 638 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw638_0_0
-  · have hn : nParts 638 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw638_1_0
-  · have hn : nParts 638 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw638_2_0
 
 theorem ok639 : CplOk 639 := by
   intro i hi k hk
-  have hc : (certOf 639).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 639).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 639 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw639_0_0
-  · have hn : nParts 639 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw639_1_0
-  · have hn : nParts 639 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw639_2_0
 
 theorem ok640 : CplOk 640 := by
   intro i hi k hk
@@ -88,13 +72,41 @@ theorem ok640 : CplOk 640 := by
 
 theorem ok641 : CplOk 641 := by
   intro i hi k hk
-  have hc : (certOf 641).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 641).cuts.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 641 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw641_0_0
+  · have hn : nParts 641 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw641_1_0
+  · have hn : nParts 641 2 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw641_2_0
+
+theorem ok642 : CplOk 642 := by
+  intro i hi k hk
+  have hc : (certOf 642).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 642 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw642_0_0
+
+theorem ok643 : CplOk 643 := by
+  intro i hi k hk
+  have hc : (certOf 643).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 643 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw643_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

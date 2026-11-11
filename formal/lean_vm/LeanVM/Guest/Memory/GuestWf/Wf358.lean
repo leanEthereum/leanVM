@@ -12,8 +12,6 @@ public import LeanVM.Guest.Memory.GuestWf.Big358_1
 public import LeanVM.Guest.Memory.GuestWf.Big358_2
 public import LeanVM.Guest.Memory.GuestWf.Big358_3
 public import LeanVM.Guest.Memory.GuestWf.Big358_4
-public import LeanVM.Guest.Memory.GuestWf.Big358_5
-public import LeanVM.Guest.Memory.GuestWf.Big358_6
 
 namespace LeanVM.Guest
 
@@ -24,26 +22,10 @@ open Core Memory
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L27` is well formed. -/
 theorem core358_wf : Stmt.wfList coreProgram Data.core358.body = true := by
-  have h5663 : Stmt.wfList coreProgram (Data.core358.body.drop 5663) = true :=
+  have h4406 : Stmt.wfList coreProgram (Data.core358.body.drop 4406) = true :=
     wfStmts_end (by decide +kernel)
-  have h5550 : Stmt.wfList coreProgram (Data.core358.body.drop 5550) = true :=
-    wfStmts_drop (a := 5550) (n := 113) wf358_5550 h5663
-  have h5400 : Stmt.wfList coreProgram (Data.core358.body.drop 5400) = true :=
-    wfStmts_drop (a := 5400) (n := 150) wf358_5400 h5550
-  have h5250 : Stmt.wfList coreProgram (Data.core358.body.drop 5250) = true :=
-    wfStmts_drop (a := 5250) (n := 150) wf358_5250 h5400
-  have h5100 : Stmt.wfList coreProgram (Data.core358.body.drop 5100) = true :=
-    wfStmts_drop (a := 5100) (n := 150) wf358_5100 h5250
-  have h4950 : Stmt.wfList coreProgram (Data.core358.body.drop 4950) = true :=
-    wfStmts_drop (a := 4950) (n := 150) wf358_4950 h5100
-  have h4800 : Stmt.wfList coreProgram (Data.core358.body.drop 4800) = true :=
-    wfStmts_drop (a := 4800) (n := 150) wf358_4800 h4950
-  have h4650 : Stmt.wfList coreProgram (Data.core358.body.drop 4650) = true :=
-    wfStmts_drop (a := 4650) (n := 150) wf358_4650 h4800
-  have h4500 : Stmt.wfList coreProgram (Data.core358.body.drop 4500) = true :=
-    wfStmts_drop (a := 4500) (n := 150) wf358_4500 h4650
   have h4350 : Stmt.wfList coreProgram (Data.core358.body.drop 4350) = true :=
-    wfStmts_drop (a := 4350) (n := 150) wf358_4350 h4500
+    wfStmts_drop (a := 4350) (n := 56) wf358_4350 h4406
   have h4200 : Stmt.wfList coreProgram (Data.core358.body.drop 4200) = true :=
     wfStmts_drop (a := 4200) (n := 150) wf358_4200 h4350
   have h4050 : Stmt.wfList coreProgram (Data.core358.body.drop 4050) = true :=

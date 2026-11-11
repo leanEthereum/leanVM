@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop160`, window 0, part 0. -/
+/-- `__loop176`, window 0, part 0. -/
 theorem cw723_0_0 : cplWin 723 0 0 = true := by decide +kernel
 
-/-- `__loop161`, window 0, part 0. -/
+/-- `__loop177`, window 0, part 0. -/
 theorem cw724_0_0 : cplWin 724 0 0 = true := by decide +kernel
 
-/-- `__loop162`, window 0, part 0. -/
+/-- `__loop178`, window 0, part 0. -/
 theorem cw725_0_0 : cplWin 725 0 0 = true := by decide +kernel
 
-/-- `__loop163`, window 0, part 0. -/
+/-- `__loop179`, window 0, part 0. -/
 theorem cw726_0_0 : cplWin 726 0 0 = true := by decide +kernel
 
-/-- `__loop164`, window 0, part 0. -/
+/-- `__loop180`, window 0, part 0. -/
 theorem cw727_0_0 : cplWin 727 0 0 = true := by decide +kernel
 
-/-- `__loop165`, window 0, part 0. -/
+/-- `__loop181`, window 0, part 0. -/
 theorem cw728_0_0 : cplWin 728 0 0 = true := by decide +kernel
 
-/-- `__loop166`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L1300_L8_L3_L1`, window 0, part 0. -/
 theorem cw729_0_0 : cplWin 729 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L16_L5_L4_L1131_L20_L5_L1`, window 0, part 0. -/
-theorem cw730_0_0 : cplWin 730 0 0 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L1300_L8_L3_L1`, window 1, part 0. -/
+theorem cw729_1_0 : cplWin 729 1 0 = true := by decide +kernel
 
 theorem ok723 : CplOk 723 := by
   intro i hi k hk
@@ -102,13 +102,17 @@ theorem ok728 : CplOk 728 := by
 
 theorem ok729 : CplOk 729 := by
   intro i hi k hk
-  have hc : (certOf 729).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 729).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 729 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw729_0_0
+  · have hn : nParts 729 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw729_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

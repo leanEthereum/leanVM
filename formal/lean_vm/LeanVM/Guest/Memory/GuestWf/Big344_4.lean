@@ -28,15 +28,7 @@ theorem wf344_3900 : WfStmts Data.core344.body 3900 150 := by
   unfold WfStmts; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wf344_4050 : WfStmts Data.core344.body 4050 150 := by
-  unfold WfStmts; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem wf344_4200 : WfStmts Data.core344.body 4200 150 := by
-  unfold WfStmts; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem wf344_4350 : WfStmts Data.core344.body 4350 150 := by
+theorem wf344_4050 : WfStmts Data.core344.body 4050 131 := by
   unfold WfStmts; decide +kernel
 
 end

@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `squeeze_point_from__L10`, window 0. -/
+/-- `fold_final_msg__L2`, window 0. -/
 theorem w537_0 : WinOk 537 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point__L10`, window 0. -/
+/-- `__loop60`, window 0. -/
 theorem w538_0 : WinOk 538 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L17_L5`, window 0. -/
+/-- `__loop61`, window 0. -/
 theorem w539_0 : WinOk 539 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop57`, window 0. -/
+/-- `__loop62`, window 0. -/
 theorem w540_0 : WinOk 540 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0`, window 0. -/
+/-- `__loop63`, window 0. -/
 theorem w541_0 : WinOk 541 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0`, window 1. -/
-theorem w541_1 : WinOk 541 1 := winOk_of_C (by decide +kernel)
-
-/-- `squeeze_point_from__L6`, window 0. -/
+/-- `squeeze_point_from__L19`, window 0. -/
 theorem w542_0 : WinOk 542 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point__L6`, window 0. -/
+/-- `decode_query_windows__L20_L8`, window 0. -/
 theorem w543_0 : WinOk 543 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop64`, window 0. -/
+theorem w544_0 : WinOk 544 0 := winOk_of_C (by decide +kernel)
 
 theorem ok537 : CheckOk 537 := checkOk_one (by decide +kernel) w537_0
 
@@ -49,9 +49,13 @@ theorem ok539 : CheckOk 539 := checkOk_one (by decide +kernel) w539_0
 
 theorem ok540 : CheckOk 540 := checkOk_one (by decide +kernel) w540_0
 
+theorem ok541 : CheckOk 541 := checkOk_one (by decide +kernel) w541_0
+
 theorem ok542 : CheckOk 542 := checkOk_one (by decide +kernel) w542_0
 
 theorem ok543 : CheckOk 543 := checkOk_one (by decide +kernel) w543_0
+
+theorem ok544 : CheckOk 544 := checkOk_one (by decide +kernel) w544_0
 
 end
 end LeanVM.Guest.Checked

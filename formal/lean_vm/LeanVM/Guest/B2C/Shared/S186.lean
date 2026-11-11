@@ -16,24 +16,54 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L26`, window 10. -/
-theorem w358_10 : shareWin 358 (snapsOf 358) 10 = true := by decide +kernel
+/-- `decode_query_windows__L17_L8`, once. -/
+theorem st479 : shareStatic 479 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L26`, window 11. -/
-theorem w358_11 : shareWin 358 (snapsOf 358) 11 = true := by decide +kernel
+/-- `decode_query_windows__L17_L8`, window 0. -/
+theorem w479_0 : shareWin 479 (snapsOf 479) 0 = true := by decide +kernel
+
+theorem ok479 : ShareOk 479 := ⟨st479, fun i hi ↦ by
+  have h : (snapsOf 479).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w479_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L26`, window 12. -/
-theorem w358_12 : shareWin 358 (snapsOf 358) 12 = true := by decide +kernel
+/-- `__loop41`, once. -/
+theorem st480 : shareStatic 480 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L26`, window 13. -/
-theorem w358_13 : shareWin 358 (snapsOf 358) 13 = true := by decide +kernel
+/-- `__loop41`, window 0. -/
+theorem w480_0 : shareWin 480 (snapsOf 480) 0 = true := by decide +kernel
+
+theorem ok480 : ShareOk 480 := ⟨st480, fun i hi ↦ by
+  have h : (snapsOf 480).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w480_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L26`, window 14. -/
-theorem w358_14 : shareWin 358 (snapsOf 358) 14 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, once. -/
+theorem st481 : shareStatic 481 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 0. -/
+theorem w481_0 : shareWin 481 (snapsOf 481) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 1. -/
+theorem w481_1 : shareWin 481 (snapsOf 481) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 2. -/
+theorem w481_2 : shareWin 481 (snapsOf 481) 2 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 3. -/
+theorem w481_3 : shareWin 481 (snapsOf 481) 3 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `verify_merkle_cap__L8`, window 4. -/
+theorem w481_4 : shareWin 481 (snapsOf 481) 4 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

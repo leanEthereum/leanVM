@@ -16,19 +16,25 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop99`, window 0, part 0. -/
+/-- `__loop111`, window 0, part 0. -/
 theorem cw633_0_0 : cplWin 633 0 0 = true := by decide +kernel
 
-/-- `__loop100`, window 0, part 0. -/
+/-- `__loop112`, window 0, part 0. -/
 theorem cw634_0_0 : cplWin 634 0 0 = true := by decide +kernel
 
-/-- `__loop101`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L16_L5_L5_L666_L36_L6_L1`, window 0, part 0. -/
 theorem cw635_0_0 : cplWin 635 0 0 = true := by decide +kernel
 
-/-- `decode_query_windows__L18_L7`, window 0, part 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L16_L5_L5_L666_L36_L6_L1`, window 1, part 0. -/
+theorem cw635_1_0 : cplWin 635 1 0 = true := by decide +kernel
+
+/-- `__loop113`, window 0, part 0. -/
 theorem cw636_0_0 : cplWin 636 0 0 = true := by decide +kernel
 
-/-- `__loop102`, window 0, part 0. -/
+/-- `__loop113`, window 0, part 1. -/
+theorem cw636_0_1 : cplWin 636 0 1 = true := by decide +kernel
+
+/-- `__loop114`, window 0, part 0. -/
 theorem cw637_0_0 : cplWin 637 0 0 = true := by decide +kernel
 
 theorem ok633 : CplOk 633 := by
@@ -53,23 +59,28 @@ theorem ok634 : CplOk 634 := by
 
 theorem ok635 : CplOk 635 := by
   intro i hi k hk
-  have hc : (certOf 635).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 635).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 635 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw635_0_0
+  · have hn : nParts 635 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw635_1_0
 
 theorem ok636 : CplOk 636 := by
   intro i hi k hk
   have hc : (certOf 636).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 636 0 = 1 := by decide +kernel
+  · have hn : nParts 636 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw636_0_0
+    · exact cw636_0_1
 
 theorem ok637 : CplOk 637 := by
   intro i hi k hk

@@ -31,5 +31,8 @@ theorem cw341_1_0 : cplWin 341 1 0 = true := by decide +kernel
 /-- `open_stacked__L9`, window 2, part 0. -/
 theorem cw341_2_0 : cplWin 341 2 0 = true := by decide +kernel
 
+/-- `open_stacked__L9`, window 3, part 0. -/
+theorem cw341_3_0 : cplWin 341 3 0 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Cplw

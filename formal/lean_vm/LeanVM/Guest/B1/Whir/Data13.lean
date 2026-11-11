@@ -40,73 +40,69 @@ theorem os_run_13_3 : stmtsEqb ((Data.core344.body.drop 3300).take 1100)
     (((osBody (osCfg 13)).drop 3300).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_13_4 : stmtsEqb ((Data.core344.body.drop 4400).take 1100)
-    (((osBody (osCfg 13)).drop 4400).take 1100) = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
 theorem osSq_13_0 : FnIs ((osCfg 13).sqLoop 0) (osParams 6)
     (sqLoopBody (osLv 13 0) ((osCfg 13).sqLoop 0)) :=
-  ⟨Data.core705, Program.find?_of_indexOf? (j := 705) (by decide +kernel) rfl,
+  ⟨Data.core687, Program.find?_of_indexOf? (j := 687) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osSq_13_1 : FnIs ((osCfg 13).sqLoop 1) (osParams 6)
     (sqLoopBody (osLv 13 1) ((osCfg 13).sqLoop 1)) :=
-  ⟨Data.core708, Program.find?_of_indexOf? (j := 708) (by decide +kernel) rfl,
+  ⟨Data.core690, Program.find?_of_indexOf? (j := 690) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osSq_13_2 : FnIs ((osCfg 13).sqLoop 2) (osParams 6)
     (sqLoopBody (osLv 13 2) ((osCfg 13).sqLoop 2)) :=
-  ⟨Data.core711, Program.find?_of_indexOf? (j := 711) (by decide +kernel) rfl,
+  ⟨Data.core693, Program.find?_of_indexOf? (j := 693) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osSq_13_3 : FnIs ((osCfg 13).sqLoop 3) (osParams 6)
     (sqLoopBody (osLv 13 3) ((osCfg 13).sqLoop 3)) :=
-  ⟨Data.core713, Program.find?_of_indexOf? (j := 713) (by decide +kernel) rfl,
+  ⟨Data.core695, Program.find?_of_indexOf? (j := 695) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osSq_13_4 : FnIs ((osCfg 13).sqLoop 4) (osParams 6)
     (sqLoopBody (osLv 13 4) ((osCfg 13).sqLoop 4)) :=
-  ⟨Data.core715, Program.find?_of_indexOf? (j := 715) (by decide +kernel) rfl,
+  ⟨Data.core697, Program.find?_of_indexOf? (j := 697) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osSq_13_5 : FnIs ((osCfg 13).sqLoop 5) (osParams 6)
     (sqLoopBody (osLv 13 5) ((osCfg 13).sqLoop 5)) :=
-  ⟨Data.core718, Program.find?_of_indexOf? (j := 718) (by decide +kernel) rfl,
+  ⟨Data.core700, Program.find?_of_indexOf? (j := 700) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osRes_13_0 : FnIs ((osCfg 13).resLoop 0) (osParams 7)
     (resLoopBody 0 (osLv 13 0) ((osCfg 13).resLoop 0)) :=
-  ⟨Data.core720, Program.find?_of_indexOf? (j := 720) (by decide +kernel) rfl,
+  ⟨Data.core702, Program.find?_of_indexOf? (j := 702) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osRes_13_1 : FnIs ((osCfg 13).resLoop 1) (osParams 7)
     (resLoopBody 1 (osLv 13 1) ((osCfg 13).resLoop 1)) :=
-  ⟨Data.core721, Program.find?_of_indexOf? (j := 721) (by decide +kernel) rfl,
+  ⟨Data.core703, Program.find?_of_indexOf? (j := 703) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osRes_13_2 : FnIs ((osCfg 13).resLoop 2) (osParams 7)
     (resLoopBody 2 (osLv 13 2) ((osCfg 13).resLoop 2)) :=
-  ⟨Data.core722, Program.find?_of_indexOf? (j := 722) (by decide +kernel) rfl,
+  ⟨Data.core704, Program.find?_of_indexOf? (j := 704) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osRes_13_3 : FnIs ((osCfg 13).resLoop 3) (osParams 7)
     (resLoopBody 3 (osLv 13 3) ((osCfg 13).resLoop 3)) :=
-  ⟨Data.core723, Program.find?_of_indexOf? (j := 723) (by decide +kernel) rfl,
+  ⟨Data.core705, Program.find?_of_indexOf? (j := 705) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem osRes_13_4 : FnIs ((osCfg 13).resLoop 4) (osParams 7)
     (resLoopBody 4 (osLv 13 4) ((osCfg 13).resLoop 4)) :=
-  ⟨Data.core724, Program.find?_of_indexOf? (j := 724) (by decide +kernel) rfl,
+  ⟨Data.core706, Program.find?_of_indexOf? (j := 706) (by decide +kernel) rfl,
     by decide +kernel, stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
@@ -118,8 +114,7 @@ theorem osData_13 : OsData 13 := by
     run_step 1100 1100 os_run_13_1 <|
     run_step 1100 2200 os_run_13_2 <|
     run_step 1100 3300 os_run_13_3 <|
-    run_step 1100 4400 os_run_13_4 <|
-    drop_end (o := 5500) (by decide +kernel) (by decide +kernel)
+    drop_end (o := 4400) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
   refine ⟨⟨Data.core344, Program.find?_of_indexOf? (j := 344) (by decide +kernel) rfl,
     by decide +kernel, hb⟩, fun lvl h => ?_, fun lvl h => ?_⟩

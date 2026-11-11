@@ -17,41 +17,37 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `squeeze_point__L13`, window 0. -/
+/-- `decode_query_windows__L16_L5`, window 0. -/
 theorem w511_0 : WinOk 511 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L17_L6`, window 0. -/
+/-- `__loop50`, window 0. -/
 theorem w512_0 : WinOk 512 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop49`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L16_L5_L0_L0_L0_L0_L0`, window 0. -/
 theorem w513_0 : WinOk 513 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L17_L6_L0_L0_L0_L0_L0`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L16_L5_L0_L0_L0_L0_L0`, window 1. -/
+theorem w513_1 : WinOk 513 1 := winOk_of_C (by decide +kernel)
+
+/-- `opening_message__L36_L1`, window 0. -/
 theorem w514_0 : WinOk 514 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L4_L16_L17_L6_L0_L0_L0_L0_L0`, window 1. -/
-theorem w514_1 : WinOk 514 1 := winOk_of_C (by decide +kernel)
-
-/-- `squeeze_point_from__L9`, window 0. -/
+/-- `__loop51`, window 0. -/
 theorem w515_0 : WinOk 515 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point__L9`, window 0. -/
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L5_L120_L36_L6_L1`, window 0. -/
 theorem w516_0 : WinOk 516 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L16_L5`, window 0. -/
-theorem w517_0 : WinOk 517 0 := winOk_of_C (by decide +kernel)
+/-- `opening_queries__L0_L0_L4_L16_L15_L5_L5_L120_L36_L6_L1`, window 1. -/
+theorem w516_1 : WinOk 516 1 := winOk_of_C (by decide +kernel)
 
 theorem ok511 : CheckOk 511 := checkOk_one (by decide +kernel) w511_0
 
 theorem ok512 : CheckOk 512 := checkOk_one (by decide +kernel) w512_0
 
-theorem ok513 : CheckOk 513 := checkOk_one (by decide +kernel) w513_0
+theorem ok514 : CheckOk 514 := checkOk_one (by decide +kernel) w514_0
 
 theorem ok515 : CheckOk 515 := checkOk_one (by decide +kernel) w515_0
-
-theorem ok516 : CheckOk 516 := checkOk_one (by decide +kernel) w516_0
-
-theorem ok517 : CheckOk 517 := checkOk_one (by decide +kernel) w517_0
 
 end
 end LeanVM.Guest.Checked

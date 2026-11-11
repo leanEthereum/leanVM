@@ -26,7 +26,7 @@ theorem w459_0 : WinOk 459 0 := winOk_of_C (by decide +kernel)
 /-- `__loop40`, window 0. -/
 theorem w460_0 : WinOk 460 0 := winOk_of_C (by decide +kernel)
 
-/-- `grind_check__L13`, window 0. -/
+/-- `grind_check__L14`, window 0. -/
 theorem w461_0 : WinOk 461 0 := winOk_of_C (by decide +kernel)
 
 /-- `grind_check__L16`, window 0. -/

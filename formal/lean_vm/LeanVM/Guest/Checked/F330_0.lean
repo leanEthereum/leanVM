@@ -20,7 +20,7 @@ open LeanVM.Guest.Check
 /-- `bus_grind_check__L17`, window 0. -/
 theorem w330_0 : WinOk 330 0 := winOk_of_C (by decide +kernel)
 
-/-- `grind_check__L14`, window 0. -/
+/-- `grind_check__L13`, window 0. -/
 theorem w331_0 : WinOk 331 0 := winOk_of_C (by decide +kernel)
 
 /-- `open_stacked__L0`, window 0. -/

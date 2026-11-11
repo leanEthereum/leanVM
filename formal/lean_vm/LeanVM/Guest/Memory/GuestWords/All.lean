@@ -62,13 +62,6 @@ public import LeanVM.Guest.Memory.GuestWords.Part52
 public import LeanVM.Guest.Memory.GuestWords.Part53
 public import LeanVM.Guest.Memory.GuestWords.Part54
 public import LeanVM.Guest.Memory.GuestWords.Part55
-public import LeanVM.Guest.Memory.GuestWords.Part56
-public import LeanVM.Guest.Memory.GuestWords.Part57
-public import LeanVM.Guest.Memory.GuestWords.Part58
-public import LeanVM.Guest.Memory.GuestWords.Part59
-public import LeanVM.Guest.Memory.GuestWords.Part60
-public import LeanVM.Guest.Memory.GuestWords.Part61
-public import LeanVM.Guest.Memory.GuestWords.Part62
 
 namespace LeanVM.Guest
 
@@ -88,7 +81,7 @@ theorem wchkIdx_19 : wchkIdx 19 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_331 : wchkIdx 331 = true := by
-  have hb : blockB (wlookJ 331) (womLookJ 331) true [(.n 10, 1536), (.n 12, 384), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 339), (.n 34, 339), (.n 98, 8), (.n 155, 165), (.n 160, 1), (.n 161, 32), (.n 213, 109), (.n 281, 6), (.n 338, 165), (.n 347, 1), (.n 348, 7), (.n 405, 55), (.n 471, 6), (.n 528, 165), (.n 537, 1), (.n 538, 4), (.n 595, 32), (.n 665, 165), (.n 674, 1), (.n 675, 3), (.n 689, 20), (.n 758, 24), (.n 760, 5), (.n 922, 88), (.n 924, 4), (.n 926, 4), (.n 1210, 8), (.n 1214, 56), (.n 1221, 0), (.n 1222, 27), (.n 1474, 14), (.n 1481, 0), (.n 1482, 6), (.n 2112, 10), (.n 2119, 0), (.n 2120, 4)] Data.core331.params Data.core331.name ([], []) Data.core331.body = some (⟨211659, []⟩, []) := by
+  have hb : blockB (wlookJ 331) (womLookJ 331) true [(.n 10, 1536), (.n 12, 384), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 339), (.n 34, 339), (.n 98, 8), (.n 146, 165), (.n 151, 1), (.n 152, 32), (.n 196, 109), (.n 261, 6), (.n 304, 165), (.n 313, 1), (.n 314, 7), (.n 368, 55), (.n 431, 6), (.n 474, 165), (.n 483, 1), (.n 484, 4), (.n 538, 32), (.n 605, 165), (.n 614, 1), (.n 615, 3), (.n 629, 20), (.n 698, 24), (.n 700, 5), (.n 862, 88), (.n 864, 4), (.n 866, 4), (.n 1150, 8), (.n 1154, 56), (.n 1161, 0), (.n 1162, 27), (.n 1414, 14), (.n 1421, 0), (.n 1422, 6), (.n 2052, 10), (.n 2059, 0), (.n 2060, 4)] Data.core331.params Data.core331.name ([], []) Data.core331.body = some (⟨202728, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core331.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_331_0.1 rfl wsplit_331_0.2.2,
       ← blockR_eq ((Data.core331.body.drop 0).take 721), wsplit_331_0.2.1]
@@ -102,7 +95,7 @@ theorem wchkIdx_331 : wchkIdx 331 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_332 : wchkIdx 332 = true := by
-  have hb : blockB (wlookJ 332) (womLookJ 332) true [(.n 10, 1536), (.n 12, 384), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 329), (.n 34, 329), (.n 98, 8), (.n 155, 160), (.n 160, 1), (.n 161, 31), (.n 213, 108), (.n 281, 6), (.n 338, 160), (.n 347, 1), (.n 348, 8), (.n 405, 55), (.n 471, 6), (.n 528, 160), (.n 537, 1), (.n 538, 4), (.n 595, 32), (.n 665, 160), (.n 674, 1), (.n 675, 3), (.n 689, 36), (.n 806, 23), (.n 808, 5), (.n 979, 88), (.n 981, 4), (.n 983, 4), (.n 1291, 8), (.n 1295, 56), (.n 1302, 0), (.n 1303, 27), (.n 1442, 14), (.n 1449, 0), (.n 1450, 6), (.n 2122, 10), (.n 2129, 0), (.n 2130, 4)] Data.core332.params Data.core332.name ([], []) Data.core332.body = some (⟨214813, []⟩, []) := by
+  have hb : blockB (wlookJ 332) (womLookJ 332) true [(.n 10, 1536), (.n 12, 384), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 336), (.n 34, 336), (.n 98, 8), (.n 146, 165), (.n 151, 1), (.n 152, 32), (.n 196, 109), (.n 261, 6), (.n 304, 165), (.n 313, 1), (.n 314, 8), (.n 368, 55), (.n 431, 6), (.n 474, 165), (.n 483, 1), (.n 484, 4), (.n 538, 32), (.n 605, 165), (.n 614, 1), (.n 615, 3), (.n 629, 36), (.n 746, 23), (.n 748, 5), (.n 919, 88), (.n 921, 4), (.n 923, 4), (.n 1231, 8), (.n 1235, 56), (.n 1242, 0), (.n 1243, 27), (.n 1507, 14), (.n 1514, 0), (.n 1515, 6), (.n 2187, 10), (.n 2194, 0), (.n 2195, 4)] Data.core332.params Data.core332.name ([], []) Data.core332.body = some (⟨206744, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core332.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_332_0.1 rfl wsplit_332_0.2.2,
       ← blockR_eq ((Data.core332.body.drop 0).take 721), wsplit_332_0.2.1]
@@ -116,7 +109,7 @@ theorem wchkIdx_332 : wchkIdx 332 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_333 : wchkIdx 333 = true := by
-  have hb : blockB (wlookJ 333) (womLookJ 333) true [(.n 10, 1664), (.n 12, 416), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 361), (.n 34, 361), (.n 98, 8), (.n 155, 190), (.n 160, 1), (.n 161, 37), (.n 213, 108), (.n 281, 6), (.n 338, 190), (.n 347, 1), (.n 348, 8), (.n 405, 55), (.n 471, 6), (.n 528, 190), (.n 537, 1), (.n 538, 5), (.n 595, 32), (.n 657, 6), (.n 714, 190), (.n 723, 1), (.n 724, 3), (.n 781, 23), (.n 853, 190), (.n 862, 1), (.n 863, 3), (.n 877, 8), (.n 910, 20), (.n 912, 5), (.n 1064, 110), (.n 1066, 5), (.n 1068, 5), (.n 1446, 10), (.n 1450, 56), (.n 1457, 0), (.n 1458, 27), (.n 1603, 14), (.n 1610, 0), (.n 1611, 6), (.n 2325, 10), (.n 2332, 0), (.n 2333, 4), (.n 2347, 6), (.n 2354, 0), (.n 2355, 2)] Data.core333.params Data.core333.name ([], []) Data.core333.body = some (⟨224917, []⟩, []) := by
+  have hb : blockB (wlookJ 333) (womLookJ 333) true [(.n 10, 1664), (.n 12, 416), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 361), (.n 34, 361), (.n 98, 8), (.n 146, 190), (.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 261, 6), (.n 304, 190), (.n 313, 1), (.n 314, 8), (.n 368, 55), (.n 431, 6), (.n 474, 190), (.n 483, 1), (.n 484, 5), (.n 538, 32), (.n 597, 6), (.n 640, 190), (.n 649, 1), (.n 650, 3), (.n 704, 23), (.n 773, 190), (.n 782, 1), (.n 783, 3), (.n 797, 8), (.n 830, 20), (.n 832, 5), (.n 984, 110), (.n 986, 5), (.n 988, 5), (.n 1366, 10), (.n 1370, 56), (.n 1377, 0), (.n 1378, 27), (.n 1654, 14), (.n 1661, 0), (.n 1662, 6), (.n 2376, 10), (.n 2383, 0), (.n 2384, 4), (.n 2398, 6), (.n 2405, 0), (.n 2406, 2)] Data.core333.params Data.core333.name ([], []) Data.core333.body = some (⟨215550, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core333.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_333_0.1 rfl wsplit_333_0.2.2,
       ← blockR_eq ((Data.core333.body.drop 0).take 619), wsplit_333_0.2.1]
@@ -126,15 +119,13 @@ theorem wchkIdx_333 : wchkIdx 333 = true := by
       ← blockR_eq ((Data.core333.body.drop 1238).take 619), wsplit_333_1238.2.1]
     rw [blockB_dropE _ _ _ 1857 619 2476 wsplit_333_1857.1 rfl wsplit_333_1857.2.2,
       ← blockR_eq ((Data.core333.body.drop 1857).take 619), wsplit_333_1857.2.1]
-    rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_333_2476.1 rfl wsplit_333_2476.2.2,
-      ← blockR_eq ((Data.core333.body.drop 2476).take 619), wsplit_333_2476.2.1]
-    rw [← blockR_eq (Data.core333.body.drop 3095), wsplit_333_3095]
+    rw [← blockR_eq (Data.core333.body.drop 2476), wsplit_333_2476]
     rfl
   exact wchkIdx_of_split (fn := Data.core333) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_334 : wchkIdx 334 = true := by
-  have hb : blockB (wlookJ 334) (womLookJ 334) true [(.n 10, 1664), (.n 12, 416), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 369), (.n 34, 369), (.n 98, 8), (.n 155, 190), (.n 160, 1), (.n 161, 37), (.n 213, 108), (.n 281, 6), (.n 338, 190), (.n 347, 1), (.n 348, 10), (.n 405, 55), (.n 471, 6), (.n 528, 190), (.n 537, 1), (.n 538, 5), (.n 595, 32), (.n 657, 6), (.n 714, 190), (.n 723, 1), (.n 724, 4), (.n 781, 23), (.n 853, 190), (.n 862, 1), (.n 863, 3), (.n 877, 12), (.n 922, 19), (.n 924, 5), (.n 1085, 110), (.n 1087, 5), (.n 1089, 5), (.n 1499, 10), (.n 1503, 56), (.n 1510, 0), (.n 1511, 27), (.n 1662, 14), (.n 1669, 0), (.n 1670, 6), (.n 2426, 10), (.n 2433, 0), (.n 2434, 4), (.n 2448, 6), (.n 2455, 0), (.n 2456, 2)] Data.core334.params Data.core334.name ([], []) Data.core334.body = some (⟨229721, []⟩, []) := by
+  have hb : blockB (wlookJ 334) (womLookJ 334) true [(.n 10, 1664), (.n 12, 416), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 369), (.n 34, 369), (.n 98, 8), (.n 146, 190), (.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 261, 6), (.n 304, 190), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 431, 6), (.n 474, 190), (.n 483, 1), (.n 484, 5), (.n 538, 32), (.n 597, 6), (.n 640, 190), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 773, 190), (.n 782, 1), (.n 783, 3), (.n 797, 12), (.n 842, 19), (.n 844, 5), (.n 1005, 110), (.n 1007, 5), (.n 1009, 5), (.n 1419, 10), (.n 1423, 56), (.n 1430, 0), (.n 1431, 27), (.n 1719, 14), (.n 1726, 0), (.n 1727, 6), (.n 2483, 10), (.n 2490, 0), (.n 2491, 4), (.n 2505, 6), (.n 2512, 0), (.n 2513, 2)] Data.core334.params Data.core334.name ([], []) Data.core334.body = some (⟨220304, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core334.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_334_0.1 rfl wsplit_334_0.2.2,
       ← blockR_eq ((Data.core334.body.drop 0).take 619), wsplit_334_0.2.1]
@@ -152,7 +143,7 @@ theorem wchkIdx_334 : wchkIdx 334 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_335 : wchkIdx 335 = true := by
-  have hb : blockB (wlookJ 335) (womLookJ 335) true [(.n 10, 1664), (.n 12, 416), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 367), (.n 34, 367), (.n 98, 8), (.n 155, 190), (.n 160, 1), (.n 161, 37), (.n 213, 108), (.n 281, 6), (.n 338, 190), (.n 347, 1), (.n 348, 10), (.n 405, 55), (.n 471, 6), (.n 528, 190), (.n 537, 1), (.n 538, 6), (.n 595, 32), (.n 657, 6), (.n 714, 190), (.n 723, 1), (.n 724, 4), (.n 781, 22), (.n 852, 190), (.n 861, 1), (.n 862, 3), (.n 876, 20), (.n 945, 18), (.n 947, 5), (.n 1117, 110), (.n 1119, 5), (.n 1121, 5), (.n 1563, 10), (.n 1567, 56), (.n 1574, 0), (.n 1575, 27), (.n 1732, 14), (.n 1739, 0), (.n 1740, 6), (.n 2538, 10), (.n 2545, 0), (.n 2546, 4), (.n 2560, 6), (.n 2567, 0), (.n 2568, 2)] Data.core335.params Data.core335.name ([], []) Data.core335.body = some (⟨235443, []⟩, []) := by
+  have hb : blockB (wlookJ 335) (womLookJ 335) true [(.n 10, 1664), (.n 12, 416), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 367), (.n 34, 367), (.n 98, 8), (.n 146, 190), (.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 261, 6), (.n 304, 190), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 431, 6), (.n 474, 190), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 597, 6), (.n 640, 190), (.n 649, 1), (.n 650, 4), (.n 704, 22), (.n 772, 190), (.n 781, 1), (.n 782, 3), (.n 796, 20), (.n 865, 18), (.n 867, 5), (.n 1037, 110), (.n 1039, 5), (.n 1041, 5), (.n 1483, 10), (.n 1487, 56), (.n 1494, 0), (.n 1495, 27), (.n 1795, 14), (.n 1802, 0), (.n 1803, 6), (.n 2601, 10), (.n 2608, 0), (.n 2609, 4), (.n 2623, 6), (.n 2630, 0), (.n 2631, 2)] Data.core335.params Data.core335.name ([], []) Data.core335.body = some (⟨225997, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core335.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_335_0.1 rfl wsplit_335_0.2.2,
       ← blockR_eq ((Data.core335.body.drop 0).take 619), wsplit_335_0.2.1]
@@ -170,7 +161,7 @@ theorem wchkIdx_335 : wchkIdx 335 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_336 : wchkIdx 336 = true := by
-  have hb : blockB (wlookJ 336) (womLookJ 336) true [(.n 10, 1664), (.n 12, 416), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 361), (.n 34, 361), (.n 98, 8), (.n 155, 225), (.n 160, 1), (.n 161, 44), (.n 213, 108), (.n 281, 6), (.n 338, 225), (.n 347, 1), (.n 348, 10), (.n 405, 55), (.n 471, 6), (.n 528, 225), (.n 537, 1), (.n 538, 6), (.n 595, 31), (.n 660, 6), (.n 717, 225), (.n 726, 1), (.n 727, 4), (.n 784, 22), (.n 855, 225), (.n 864, 1), (.n 865, 3), (.n 879, 36), (.n 996, 18), (.n 998, 5), (.n 1177, 110), (.n 1179, 5), (.n 1181, 5), (.n 1655, 10), (.n 1659, 56), (.n 1666, 0), (.n 1667, 27), (.n 1830, 14), (.n 1837, 0), (.n 1838, 6), (.n 2678, 8), (.n 2685, 0), (.n 2686, 3), (.n 3358, 6), (.n 3365, 0), (.n 3366, 2)] Data.core336.params Data.core336.name ([], []) Data.core336.body = some (⟨241053, []⟩, []) := by
+  have hb : blockB (wlookJ 336) (womLookJ 336) true [(.n 10, 1664), (.n 12, 416), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 361), (.n 34, 361), (.n 98, 8), (.n 146, 225), (.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 261, 6), (.n 304, 225), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 431, 6), (.n 474, 225), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 597, 6), (.n 640, 225), (.n 649, 1), (.n 650, 4), (.n 704, 22), (.n 772, 225), (.n 781, 1), (.n 782, 3), (.n 796, 36), (.n 913, 18), (.n 915, 5), (.n 1094, 110), (.n 1096, 5), (.n 1098, 5), (.n 1572, 10), (.n 1576, 56), (.n 1583, 0), (.n 1584, 27), (.n 1896, 14), (.n 1903, 0), (.n 1904, 6), (.n 2744, 10), (.n 2751, 0), (.n 2752, 4), (.n 2766, 6), (.n 2773, 0), (.n 2774, 2)] Data.core336.params Data.core336.name ([], []) Data.core336.body = some (⟨232519, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core336.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_336_0.1 rfl wsplit_336_0.2.2,
       ← blockR_eq ((Data.core336.body.drop 0).take 619), wsplit_336_0.2.1]
@@ -182,17 +173,13 @@ theorem wchkIdx_336 : wchkIdx 336 = true := by
       ← blockR_eq ((Data.core336.body.drop 1857).take 619), wsplit_336_1857.2.1]
     rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_336_2476.1 rfl wsplit_336_2476.2.2,
       ← blockR_eq ((Data.core336.body.drop 2476).take 619), wsplit_336_2476.2.1]
-    rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_336_3095.1 rfl wsplit_336_3095.2.2,
-      ← blockR_eq ((Data.core336.body.drop 3095).take 619), wsplit_336_3095.2.1]
-    rw [blockB_dropE _ _ _ 3714 619 4333 wsplit_336_3714.1 rfl wsplit_336_3714.2.2,
-      ← blockR_eq ((Data.core336.body.drop 3714).take 619), wsplit_336_3714.2.1]
-    rw [← blockR_eq (Data.core336.body.drop 4333), wsplit_336_4333]
+    rw [← blockR_eq (Data.core336.body.drop 3095), wsplit_336_3095]
     rfl
   exact wchkIdx_of_split (fn := Data.core336) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_337 : wchkIdx 337 = true := by
-  have hb : blockB (wlookJ 337) (womLookJ 337) true [(.n 10, 1728), (.n 12, 432), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 78), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 264), (.n 30, 12), (.n 32, 374), (.n 34, 374), (.n 98, 8), (.n 155, 225), (.n 160, 1), (.n 161, 44), (.n 213, 108), (.n 281, 6), (.n 338, 225), (.n 347, 1), (.n 348, 11), (.n 405, 55), (.n 471, 6), (.n 528, 225), (.n 537, 1), (.n 538, 6), (.n 595, 31), (.n 660, 6), (.n 717, 225), (.n 726, 1), (.n 727, 4), (.n 784, 22), (.n 847, 6), (.n 904, 225), (.n 913, 1), (.n 914, 3), (.n 971, 18), (.n 1041, 225), (.n 1050, 1), (.n 1051, 3), (.n 1065, 8), (.n 1098, 16), (.n 1100, 5), (.n 1260, 132), (.n 1262, 6), (.n 1264, 6), (.n 1816, 12), (.n 1820, 56), (.n 1827, 0), (.n 1828, 27), (.n 1997, 14), (.n 2004, 0), (.n 2005, 6), (.n 2887, 8), (.n 2894, 0), (.n 2895, 3), (.n 3609, 6), (.n 3616, 0), (.n 3617, 2), (.n 4087, 6), (.n 4094, 0), (.n 4095, 2)] Data.core337.params Data.core337.name ([], []) Data.core337.body = some (⟨248808, []⟩, []) := by
+  have hb : blockB (wlookJ 337) (womLookJ 337) true [(.n 10, 1728), (.n 12, 432), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 52), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 132), (.n 30, 6), (.n 32, 374), (.n 34, 374), (.n 98, 8), (.n 146, 225), (.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 261, 6), (.n 304, 225), (.n 313, 1), (.n 314, 11), (.n 368, 55), (.n 431, 6), (.n 474, 225), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 597, 6), (.n 640, 225), (.n 649, 1), (.n 650, 4), (.n 704, 22), (.n 764, 6), (.n 807, 225), (.n 816, 1), (.n 817, 3), (.n 871, 18), (.n 938, 225), (.n 947, 1), (.n 948, 3), (.n 962, 8), (.n 995, 16), (.n 997, 5), (.n 1157, 132), (.n 1159, 6), (.n 1161, 6), (.n 1713, 12), (.n 1717, 56), (.n 1724, 0), (.n 1725, 27), (.n 2049, 14), (.n 2056, 0), (.n 2057, 6), (.n 2939, 10), (.n 2946, 0), (.n 2947, 4), (.n 2961, 6), (.n 2968, 0), (.n 2969, 2), (.n 3439, 6), (.n 3446, 0), (.n 3447, 2)] Data.core337.params Data.core337.name ([], []) Data.core337.body = some (⟨239434, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core337.body)]
     rw [blockB_dropE _ _ _ 0 542 542 wsplit_337_0.1 rfl wsplit_337_0.2.2,
       ← blockR_eq ((Data.core337.body.drop 0).take 542), wsplit_337_0.2.1]
@@ -208,17 +195,13 @@ theorem wchkIdx_337 : wchkIdx 337 = true := by
       ← blockR_eq ((Data.core337.body.drop 2710).take 542), wsplit_337_2710.2.1]
     rw [blockB_dropE _ _ _ 3252 542 3794 wsplit_337_3252.1 rfl wsplit_337_3252.2.2,
       ← blockR_eq ((Data.core337.body.drop 3252).take 542), wsplit_337_3252.2.1]
-    rw [blockB_dropE _ _ _ 3794 542 4336 wsplit_337_3794.1 rfl wsplit_337_3794.2.2,
-      ← blockR_eq ((Data.core337.body.drop 3794).take 542), wsplit_337_3794.2.1]
-    rw [blockB_dropE _ _ _ 4336 542 4878 wsplit_337_4336.1 rfl wsplit_337_4336.2.2,
-      ← blockR_eq ((Data.core337.body.drop 4336).take 542), wsplit_337_4336.2.1]
-    rw [← blockR_eq (Data.core337.body.drop 4878), wsplit_337_4878]
+    rw [← blockR_eq (Data.core337.body.drop 3794), wsplit_337_3794]
     rfl
   exact wchkIdx_of_split (fn := Data.core337) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_338 : wchkIdx 338 = true := by
-  have hb : blockB (wlookJ 338) (womLookJ 338) true [(.n 10, 1024), (.n 12, 256), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 217), (.n 34, 217), (.n 98, 8), (.n 155, 85), (.n 160, 1), (.n 161, 16), (.n 213, 54), (.n 280, 6), (.n 337, 85), (.n 346, 1), (.n 347, 7), (.n 404, 44), (.n 468, 6), (.n 525, 85), (.n 534, 1), (.n 535, 4), (.n 592, 28), (.n 663, 85), (.n 672, 1), (.n 673, 3), (.n 687, 20), (.n 756, 22), (.n 758, 5), (.n 920, 88), (.n 922, 4), (.n 924, 4), (.n 1208, 8), (.n 1212, 28), (.n 1219, 0), (.n 1220, 13), (.n 1829, 12), (.n 1836, 0), (.n 1837, 5), (.n 2203, 8), (.n 2210, 0), (.n 2211, 3)] Data.core338.params Data.core338.name ([], []) Data.core338.body = some (⟨130305, []⟩, []) := by
+  have hb : blockB (wlookJ 338) (womLookJ 338) true [(.n 10, 1024), (.n 12, 256), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 217), (.n 34, 217), (.n 98, 8), (.n 146, 85), (.n 151, 1), (.n 152, 16), (.n 196, 54), (.n 260, 6), (.n 303, 85), (.n 312, 1), (.n 313, 7), (.n 367, 44), (.n 428, 6), (.n 471, 85), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 603, 85), (.n 612, 1), (.n 613, 3), (.n 627, 20), (.n 696, 22), (.n 698, 5), (.n 860, 88), (.n 862, 4), (.n 864, 4), (.n 1148, 8), (.n 1152, 28), (.n 1159, 0), (.n 1160, 13), (.n 1769, 12), (.n 1776, 0), (.n 1777, 5), (.n 2143, 8), (.n 2150, 0), (.n 2151, 3)] Data.core338.params Data.core338.name ([], []) Data.core338.body = some (⟨123932, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core338.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_338_0.1 rfl wsplit_338_0.2.2,
       ← blockR_eq ((Data.core338.body.drop 0).take 721), wsplit_338_0.2.1]
@@ -226,15 +209,13 @@ theorem wchkIdx_338 : wchkIdx 338 = true := by
       ← blockR_eq ((Data.core338.body.drop 721).take 721), wsplit_338_721.2.1]
     rw [blockB_dropE _ _ _ 1442 721 2163 wsplit_338_1442.1 rfl wsplit_338_1442.2.2,
       ← blockR_eq ((Data.core338.body.drop 1442).take 721), wsplit_338_1442.2.1]
-    rw [blockB_dropE _ _ _ 2163 721 2884 wsplit_338_2163.1 rfl wsplit_338_2163.2.2,
-      ← blockR_eq ((Data.core338.body.drop 2163).take 721), wsplit_338_2163.2.1]
-    rw [← blockR_eq (Data.core338.body.drop 2884), wsplit_338_2884]
+    rw [← blockR_eq (Data.core338.body.drop 2163), wsplit_338_2163]
     rfl
   exact wchkIdx_of_split (fn := Data.core338) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_339 : wchkIdx 339 = true := by
-  have hb : blockB (wlookJ 339) (womLookJ 339) true [(.n 10, 1024), (.n 12, 256), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 215), (.n 34, 215), (.n 98, 8), (.n 155, 100), (.n 160, 1), (.n 161, 19), (.n 213, 54), (.n 280, 6), (.n 337, 100), (.n 346, 1), (.n 347, 7), (.n 404, 44), (.n 468, 6), (.n 525, 100), (.n 534, 1), (.n 535, 4), (.n 592, 28), (.n 663, 100), (.n 672, 1), (.n 673, 3), (.n 687, 36), (.n 804, 21), (.n 806, 5), (.n 977, 88), (.n 979, 4), (.n 981, 4), (.n 1289, 8), (.n 1293, 28), (.n 1300, 0), (.n 1301, 13), (.n 1940, 12), (.n 1947, 0), (.n 1948, 5), (.n 2338, 8), (.n 2345, 0), (.n 2346, 3)] Data.core339.params Data.core339.name ([], []) Data.core339.body = some (⟨134356, []⟩, []) := by
+  have hb : blockB (wlookJ 339) (womLookJ 339) true [(.n 10, 1024), (.n 12, 256), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 215), (.n 34, 215), (.n 98, 8), (.n 146, 100), (.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 260, 6), (.n 303, 100), (.n 312, 1), (.n 313, 7), (.n 367, 44), (.n 428, 6), (.n 471, 100), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 603, 100), (.n 612, 1), (.n 613, 3), (.n 627, 36), (.n 744, 21), (.n 746, 5), (.n 917, 88), (.n 919, 4), (.n 921, 4), (.n 1229, 8), (.n 1233, 28), (.n 1240, 0), (.n 1241, 13), (.n 1880, 12), (.n 1887, 0), (.n 1888, 5), (.n 2278, 8), (.n 2285, 0), (.n 2286, 3)] Data.core339.params Data.core339.name ([], []) Data.core339.body = some (⟨127948, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core339.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_339_0.1 rfl wsplit_339_0.2.2,
       ← blockR_eq ((Data.core339.body.drop 0).take 721), wsplit_339_0.2.1]
@@ -242,15 +223,13 @@ theorem wchkIdx_339 : wchkIdx 339 = true := by
       ← blockR_eq ((Data.core339.body.drop 721).take 721), wsplit_339_721.2.1]
     rw [blockB_dropE _ _ _ 1442 721 2163 wsplit_339_1442.1 rfl wsplit_339_1442.2.2,
       ← blockR_eq ((Data.core339.body.drop 1442).take 721), wsplit_339_1442.2.1]
-    rw [blockB_dropE _ _ _ 2163 721 2884 wsplit_339_2163.1 rfl wsplit_339_2163.2.2,
-      ← blockR_eq ((Data.core339.body.drop 2163).take 721), wsplit_339_2163.2.1]
-    rw [← blockR_eq (Data.core339.body.drop 2884), wsplit_339_2884]
+    rw [← blockR_eq (Data.core339.body.drop 2163), wsplit_339_2163]
     rfl
   exact wchkIdx_of_split (fn := Data.core339) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_340 : wchkIdx 340 = true := by
-  have hb : blockB (wlookJ 340) (womLookJ 340) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 235), (.n 34, 235), (.n 98, 8), (.n 155, 100), (.n 160, 1), (.n 161, 19), (.n 213, 54), (.n 280, 6), (.n 337, 100), (.n 346, 1), (.n 347, 8), (.n 404, 44), (.n 468, 6), (.n 525, 100), (.n 534, 1), (.n 535, 4), (.n 592, 28), (.n 655, 6), (.n 712, 100), (.n 721, 1), (.n 722, 3), (.n 779, 21), (.n 850, 100), (.n 859, 1), (.n 860, 3), (.n 874, 8), (.n 907, 18), (.n 909, 5), (.n 1061, 110), (.n 1063, 5), (.n 1065, 5), (.n 1443, 10), (.n 1447, 28), (.n 1454, 0), (.n 1455, 13), (.n 2124, 12), (.n 2131, 0), (.n 2132, 5), (.n 2546, 8), (.n 2553, 0), (.n 2554, 3), (.n 2872, 6), (.n 2879, 0), (.n 2880, 2)] Data.core340.params Data.core340.name ([], []) Data.core340.body = some (⟨143949, []⟩, []) := by
+  have hb : blockB (wlookJ 340) (womLookJ 340) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 235), (.n 34, 235), (.n 98, 8), (.n 146, 100), (.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 260, 6), (.n 303, 100), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 428, 6), (.n 471, 100), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 595, 6), (.n 638, 100), (.n 647, 1), (.n 648, 3), (.n 702, 21), (.n 770, 100), (.n 779, 1), (.n 780, 3), (.n 794, 8), (.n 827, 18), (.n 829, 5), (.n 981, 110), (.n 983, 5), (.n 985, 5), (.n 1363, 10), (.n 1367, 28), (.n 1374, 0), (.n 1375, 13), (.n 2044, 12), (.n 2051, 0), (.n 2052, 5), (.n 2466, 8), (.n 2473, 0), (.n 2474, 3), (.n 2792, 6), (.n 2799, 0), (.n 2800, 2)] Data.core340.params Data.core340.name ([], []) Data.core340.body = some (⟨136648, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core340.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_340_0.1 rfl wsplit_340_0.2.2,
       ← blockR_eq ((Data.core340.body.drop 0).take 619), wsplit_340_0.2.1]
@@ -268,7 +247,7 @@ theorem wchkIdx_340 : wchkIdx 340 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_341 : wchkIdx 341 = true := by
-  have hb : blockB (wlookJ 341) (womLookJ 341) true [(.n 10, 1152), (.n 12, 288), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 234), (.n 34, 234), (.n 98, 8), (.n 155, 100), (.n 160, 1), (.n 161, 19), (.n 213, 54), (.n 280, 6), (.n 337, 100), (.n 346, 1), (.n 347, 8), (.n 404, 44), (.n 468, 6), (.n 525, 100), (.n 534, 1), (.n 535, 5), (.n 592, 28), (.n 655, 6), (.n 712, 100), (.n 721, 1), (.n 722, 3), (.n 779, 21), (.n 850, 100), (.n 859, 1), (.n 860, 3), (.n 874, 12), (.n 919, 17), (.n 921, 5), (.n 1082, 110), (.n 1084, 5), (.n 1086, 5), (.n 1496, 10), (.n 1500, 28), (.n 1507, 0), (.n 1508, 13), (.n 2207, 12), (.n 2214, 0), (.n 2215, 5), (.n 2653, 8), (.n 2660, 0), (.n 2661, 3), (.n 3003, 6), (.n 3010, 0), (.n 3011, 2)] Data.core341.params Data.core341.name ([], []) Data.core341.body = some (⟨146155, []⟩, []) := by
+  have hb : blockB (wlookJ 341) (womLookJ 341) true [(.n 10, 1152), (.n 12, 288), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 234), (.n 34, 234), (.n 98, 8), (.n 146, 100), (.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 260, 6), (.n 303, 100), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 428, 6), (.n 471, 100), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 595, 6), (.n 638, 100), (.n 647, 1), (.n 648, 3), (.n 702, 21), (.n 770, 100), (.n 779, 1), (.n 780, 3), (.n 794, 12), (.n 839, 17), (.n 841, 5), (.n 1002, 110), (.n 1004, 5), (.n 1006, 5), (.n 1416, 10), (.n 1420, 28), (.n 1427, 0), (.n 1428, 13), (.n 2127, 12), (.n 2134, 0), (.n 2135, 5), (.n 2573, 8), (.n 2580, 0), (.n 2581, 3), (.n 2923, 6), (.n 2930, 0), (.n 2931, 2)] Data.core341.params Data.core341.name ([], []) Data.core341.body = some (⟨138802, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core341.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_341_0.1 rfl wsplit_341_0.2.2,
       ← blockR_eq ((Data.core341.body.drop 0).take 619), wsplit_341_0.2.1]
@@ -280,15 +259,13 @@ theorem wchkIdx_341 : wchkIdx 341 = true := by
       ← blockR_eq ((Data.core341.body.drop 1857).take 619), wsplit_341_1857.2.1]
     rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_341_2476.1 rfl wsplit_341_2476.2.2,
       ← blockR_eq ((Data.core341.body.drop 2476).take 619), wsplit_341_2476.2.1]
-    rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_341_3095.1 rfl wsplit_341_3095.2.2,
-      ← blockR_eq ((Data.core341.body.drop 3095).take 619), wsplit_341_3095.2.1]
-    rw [← blockR_eq (Data.core341.body.drop 3714), wsplit_341_3714]
+    rw [← blockR_eq (Data.core341.body.drop 3095), wsplit_341_3095]
     rfl
   exact wchkIdx_of_split (fn := Data.core341) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_342 : wchkIdx 342 = true := by
-  have hb : blockB (wlookJ 342) (womLookJ 342) true [(.n 10, 1152), (.n 12, 288), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 233), (.n 34, 233), (.n 98, 8), (.n 155, 115), (.n 160, 1), (.n 161, 22), (.n 213, 54), (.n 280, 6), (.n 337, 115), (.n 346, 1), (.n 347, 8), (.n 404, 44), (.n 468, 6), (.n 525, 115), (.n 534, 1), (.n 535, 5), (.n 592, 28), (.n 655, 6), (.n 712, 115), (.n 721, 1), (.n 722, 4), (.n 779, 20), (.n 849, 115), (.n 858, 1), (.n 859, 3), (.n 873, 20), (.n 942, 17), (.n 944, 5), (.n 1114, 110), (.n 1116, 5), (.n 1118, 5), (.n 1560, 10), (.n 1564, 28), (.n 1571, 0), (.n 1572, 13), (.n 2301, 12), (.n 2308, 0), (.n 2309, 5), (.n 2771, 8), (.n 2778, 0), (.n 2779, 3), (.n 3145, 6), (.n 3152, 0), (.n 3153, 2)] Data.core342.params Data.core342.name ([], []) Data.core342.body = some (⟨149793, []⟩, []) := by
+  have hb : blockB (wlookJ 342) (womLookJ 342) true [(.n 10, 1152), (.n 12, 288), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 233), (.n 34, 233), (.n 98, 8), (.n 146, 115), (.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 260, 6), (.n 303, 115), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 428, 6), (.n 471, 115), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 595, 6), (.n 638, 115), (.n 647, 1), (.n 648, 4), (.n 702, 20), (.n 769, 115), (.n 778, 1), (.n 779, 3), (.n 793, 20), (.n 862, 17), (.n 864, 5), (.n 1034, 110), (.n 1036, 5), (.n 1038, 5), (.n 1480, 10), (.n 1484, 28), (.n 1491, 0), (.n 1492, 13), (.n 2221, 12), (.n 2228, 0), (.n 2229, 5), (.n 2691, 8), (.n 2698, 0), (.n 2699, 3), (.n 3065, 6), (.n 3072, 0), (.n 3073, 2)] Data.core342.params Data.core342.name ([], []) Data.core342.body = some (⟨142388, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core342.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_342_0.1 rfl wsplit_342_0.2.2,
       ← blockR_eq ((Data.core342.body.drop 0).take 619), wsplit_342_0.2.1]
@@ -300,15 +277,13 @@ theorem wchkIdx_342 : wchkIdx 342 = true := by
       ← blockR_eq ((Data.core342.body.drop 1857).take 619), wsplit_342_1857.2.1]
     rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_342_2476.1 rfl wsplit_342_2476.2.2,
       ← blockR_eq ((Data.core342.body.drop 2476).take 619), wsplit_342_2476.2.1]
-    rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_342_3095.1 rfl wsplit_342_3095.2.2,
-      ← blockR_eq ((Data.core342.body.drop 3095).take 619), wsplit_342_3095.2.1]
-    rw [← blockR_eq (Data.core342.body.drop 3714), wsplit_342_3714]
+    rw [← blockR_eq (Data.core342.body.drop 3095), wsplit_342_3095]
     rfl
   exact wchkIdx_of_split (fn := Data.core342) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_343 : wchkIdx 343 = true := by
-  have hb : blockB (wlookJ 343) (womLookJ 343) true [(.n 10, 1152), (.n 12, 288), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 227), (.n 34, 227), (.n 98, 8), (.n 155, 115), (.n 160, 1), (.n 161, 22), (.n 213, 54), (.n 280, 6), (.n 337, 115), (.n 346, 1), (.n 347, 9), (.n 404, 44), (.n 468, 6), (.n 525, 115), (.n 534, 1), (.n 535, 5), (.n 592, 28), (.n 655, 6), (.n 712, 115), (.n 721, 1), (.n 722, 4), (.n 779, 20), (.n 849, 115), (.n 858, 1), (.n 859, 3), (.n 873, 36), (.n 990, 17), (.n 992, 5), (.n 1171, 110), (.n 1173, 5), (.n 1175, 5), (.n 1649, 10), (.n 1653, 28), (.n 1660, 0), (.n 1661, 13), (.n 2420, 12), (.n 2427, 0), (.n 2428, 5), (.n 2914, 8), (.n 2921, 0), (.n 2922, 3), (.n 3312, 6), (.n 3319, 0), (.n 3320, 2)] Data.core343.params Data.core343.name ([], []) Data.core343.body = some (⟨153375, []⟩, []) := by
+  have hb : blockB (wlookJ 343) (womLookJ 343) true [(.n 10, 1152), (.n 12, 288), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 227), (.n 34, 227), (.n 98, 8), (.n 146, 115), (.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 260, 6), (.n 303, 115), (.n 312, 1), (.n 313, 9), (.n 367, 44), (.n 428, 6), (.n 471, 115), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 595, 6), (.n 638, 115), (.n 647, 1), (.n 648, 4), (.n 702, 20), (.n 769, 115), (.n 778, 1), (.n 779, 3), (.n 793, 36), (.n 910, 17), (.n 912, 5), (.n 1091, 110), (.n 1093, 5), (.n 1095, 5), (.n 1569, 10), (.n 1573, 28), (.n 1580, 0), (.n 1581, 13), (.n 2340, 12), (.n 2347, 0), (.n 2348, 5), (.n 2834, 8), (.n 2841, 0), (.n 2842, 3), (.n 3232, 6), (.n 3239, 0), (.n 3240, 2)] Data.core343.params Data.core343.name ([], []) Data.core343.body = some (⟨145902, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core343.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_343_0.1 rfl wsplit_343_0.2.2,
       ← blockR_eq ((Data.core343.body.drop 0).take 619), wsplit_343_0.2.1]
@@ -328,7 +303,7 @@ theorem wchkIdx_343 : wchkIdx 343 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_344 : wchkIdx 344 = true := by
-  have hb : blockB (wlookJ 344) (womLookJ 344) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 78), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 264), (.n 30, 12), (.n 32, 245), (.n 34, 245), (.n 98, 8), (.n 155, 115), (.n 160, 1), (.n 161, 22), (.n 213, 54), (.n 280, 6), (.n 337, 115), (.n 346, 1), (.n 347, 9), (.n 404, 44), (.n 468, 6), (.n 525, 115), (.n 534, 1), (.n 535, 6), (.n 592, 28), (.n 655, 6), (.n 712, 115), (.n 721, 1), (.n 722, 4), (.n 779, 20), (.n 841, 6), (.n 898, 115), (.n 907, 1), (.n 908, 3), (.n 965, 16), (.n 1034, 115), (.n 1043, 1), (.n 1044, 3), (.n 1058, 8), (.n 1091, 15), (.n 1093, 5), (.n 1253, 132), (.n 1255, 6), (.n 1257, 6), (.n 1809, 12), (.n 1813, 28), (.n 1820, 0), (.n 1821, 13), (.n 2610, 12), (.n 2617, 0), (.n 2618, 5), (.n 3128, 8), (.n 3135, 0), (.n 3136, 3), (.n 3550, 6), (.n 3557, 0), (.n 3558, 2), (.n 3876, 6), (.n 3883, 0), (.n 3884, 2)] Data.core344.params Data.core344.name ([], []) Data.core344.body = some (⟨160243, []⟩, []) := by
+  have hb : blockB (wlookJ 344) (womLookJ 344) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 52), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 132), (.n 30, 6), (.n 32, 245), (.n 34, 245), (.n 98, 8), (.n 146, 115), (.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 260, 6), (.n 303, 115), (.n 312, 1), (.n 313, 9), (.n 367, 44), (.n 428, 6), (.n 471, 115), (.n 480, 1), (.n 481, 6), (.n 535, 28), (.n 595, 6), (.n 638, 115), (.n 647, 1), (.n 648, 4), (.n 702, 20), (.n 761, 6), (.n 804, 115), (.n 813, 1), (.n 814, 3), (.n 868, 16), (.n 934, 115), (.n 943, 1), (.n 944, 3), (.n 958, 8), (.n 991, 15), (.n 993, 5), (.n 1153, 132), (.n 1155, 6), (.n 1157, 6), (.n 1709, 12), (.n 1713, 28), (.n 1720, 0), (.n 1721, 13), (.n 2510, 12), (.n 2517, 0), (.n 2518, 5), (.n 3028, 8), (.n 3035, 0), (.n 3036, 3), (.n 3450, 6), (.n 3457, 0), (.n 3458, 2), (.n 3776, 6), (.n 3783, 0), (.n 3784, 2)] Data.core344.params Data.core344.name ([], []) Data.core344.body = some (⟨151924, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core344.body)]
     rw [blockB_dropE _ _ _ 0 542 542 wsplit_344_0.1 rfl wsplit_344_0.2.2,
       ← blockR_eq ((Data.core344.body.drop 0).take 542), wsplit_344_0.2.1]
@@ -344,29 +319,25 @@ theorem wchkIdx_344 : wchkIdx 344 = true := by
       ← blockR_eq ((Data.core344.body.drop 2710).take 542), wsplit_344_2710.2.1]
     rw [blockB_dropE _ _ _ 3252 542 3794 wsplit_344_3252.1 rfl wsplit_344_3252.2.2,
       ← blockR_eq ((Data.core344.body.drop 3252).take 542), wsplit_344_3252.2.1]
-    rw [blockB_dropE _ _ _ 3794 542 4336 wsplit_344_3794.1 rfl wsplit_344_3794.2.2,
-      ← blockR_eq ((Data.core344.body.drop 3794).take 542), wsplit_344_3794.2.1]
-    rw [← blockR_eq (Data.core344.body.drop 4336), wsplit_344_4336]
+    rw [← blockR_eq (Data.core344.body.drop 3794), wsplit_344_3794]
     rfl
   exact wchkIdx_of_split (fn := Data.core344) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_345 : wchkIdx 345 = true := by
-  have hb : blockB (wlookJ 345) (womLookJ 345) true [(.n 10, 1024), (.n 12, 256), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 172), (.n 34, 172), (.n 98, 8), (.n 155, 70), (.n 160, 1), (.n 161, 13), (.n 213, 36), (.n 278, 6), (.n 335, 70), (.n 344, 1), (.n 345, 6), (.n 402, 37), (.n 466, 6), (.n 523, 70), (.n 532, 1), (.n 533, 4), (.n 590, 25), (.n 661, 70), (.n 670, 1), (.n 671, 3), (.n 685, 20), (.n 754, 20), (.n 756, 5), (.n 918, 88), (.n 920, 4), (.n 922, 4), (.n 1206, 8), (.n 1210, 20), (.n 1217, 0), (.n 1218, 9), (.n 1351, 10), (.n 1358, 0), (.n 1359, 4), (.n 1813, 8), (.n 1820, 0), (.n 1821, 3)] Data.core345.params Data.core345.name ([], []) Data.core345.body = some (⟨102368, []⟩, []) := by
+  have hb : blockB (wlookJ 345) (womLookJ 345) true [(.n 10, 1024), (.n 12, 256), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 172), (.n 34, 172), (.n 98, 8), (.n 146, 70), (.n 151, 1), (.n 152, 13), (.n 196, 36), (.n 258, 6), (.n 301, 70), (.n 310, 1), (.n 311, 6), (.n 365, 37), (.n 426, 6), (.n 469, 70), (.n 478, 1), (.n 479, 4), (.n 533, 25), (.n 601, 70), (.n 610, 1), (.n 611, 3), (.n 625, 20), (.n 694, 20), (.n 696, 5), (.n 858, 88), (.n 860, 4), (.n 862, 4), (.n 1146, 8), (.n 1150, 20), (.n 1157, 0), (.n 1158, 9), (.n 1291, 10), (.n 1298, 0), (.n 1299, 4), (.n 1753, 8), (.n 1760, 0), (.n 1761, 3)] Data.core345.params Data.core345.name ([], []) Data.core345.body = some (⟨96943, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core345.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_345_0.1 rfl wsplit_345_0.2.2,
       ← blockR_eq ((Data.core345.body.drop 0).take 721), wsplit_345_0.2.1]
     rw [blockB_dropE _ _ _ 721 721 1442 wsplit_345_721.1 rfl wsplit_345_721.2.2,
       ← blockR_eq ((Data.core345.body.drop 721).take 721), wsplit_345_721.2.1]
-    rw [blockB_dropE _ _ _ 1442 721 2163 wsplit_345_1442.1 rfl wsplit_345_1442.2.2,
-      ← blockR_eq ((Data.core345.body.drop 1442).take 721), wsplit_345_1442.2.1]
-    rw [← blockR_eq (Data.core345.body.drop 2163), wsplit_345_2163]
+    rw [← blockR_eq (Data.core345.body.drop 1442), wsplit_345_1442]
     rfl
   exact wchkIdx_of_split (fn := Data.core345) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_346 : wchkIdx 346 = true := by
-  have hb : blockB (wlookJ 346) (womLookJ 346) true [(.n 10, 1024), (.n 12, 256), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 169), (.n 34, 169), (.n 98, 8), (.n 155, 70), (.n 160, 1), (.n 161, 13), (.n 213, 36), (.n 278, 6), (.n 335, 70), (.n 344, 1), (.n 345, 7), (.n 402, 37), (.n 466, 6), (.n 523, 70), (.n 532, 1), (.n 533, 4), (.n 590, 25), (.n 661, 70), (.n 670, 1), (.n 671, 3), (.n 685, 36), (.n 802, 19), (.n 804, 5), (.n 975, 88), (.n 977, 4), (.n 979, 4), (.n 1287, 8), (.n 1291, 20), (.n 1298, 0), (.n 1299, 9), (.n 1438, 10), (.n 1445, 0), (.n 1446, 4), (.n 1930, 8), (.n 1937, 0), (.n 1938, 3)] Data.core346.params Data.core346.name ([], []) Data.core346.body = some (⟨107511, []⟩, []) := by
+  have hb : blockB (wlookJ 346) (womLookJ 346) true [(.n 10, 1024), (.n 12, 256), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 169), (.n 34, 169), (.n 98, 8), (.n 146, 70), (.n 151, 1), (.n 152, 13), (.n 196, 36), (.n 258, 6), (.n 301, 70), (.n 310, 1), (.n 311, 7), (.n 365, 37), (.n 426, 6), (.n 469, 70), (.n 478, 1), (.n 479, 4), (.n 533, 25), (.n 601, 70), (.n 610, 1), (.n 611, 3), (.n 625, 36), (.n 742, 19), (.n 744, 5), (.n 915, 88), (.n 917, 4), (.n 919, 4), (.n 1227, 8), (.n 1231, 20), (.n 1238, 0), (.n 1239, 9), (.n 1378, 10), (.n 1385, 0), (.n 1386, 4), (.n 1870, 8), (.n 1877, 0), (.n 1878, 3)] Data.core346.params Data.core346.name ([], []) Data.core346.body = some (⟨102051, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core346.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_346_0.1 rfl wsplit_346_0.2.2,
       ← blockR_eq ((Data.core346.body.drop 0).take 721), wsplit_346_0.2.1]
@@ -380,7 +351,7 @@ theorem wchkIdx_346 : wchkIdx 346 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_347 : wchkIdx 347 = true := by
-  have hb : blockB (wlookJ 347) (womLookJ 347) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 192), (.n 34, 192), (.n 98, 8), (.n 155, 70), (.n 160, 1), (.n 161, 13), (.n 213, 36), (.n 278, 6), (.n 335, 70), (.n 344, 1), (.n 345, 7), (.n 402, 37), (.n 466, 6), (.n 523, 70), (.n 532, 1), (.n 533, 5), (.n 590, 25), (.n 653, 6), (.n 710, 70), (.n 719, 1), (.n 720, 3), (.n 777, 19), (.n 848, 70), (.n 857, 1), (.n 858, 3), (.n 872, 8), (.n 905, 17), (.n 907, 5), (.n 1059, 110), (.n 1061, 5), (.n 1063, 5), (.n 1441, 10), (.n 1445, 20), (.n 1452, 0), (.n 1453, 9), (.n 1598, 10), (.n 1605, 0), (.n 1606, 4), (.n 2120, 8), (.n 2127, 0), (.n 2128, 3), (.n 2218, 6), (.n 2225, 0), (.n 2226, 2)] Data.core347.params Data.core347.name ([], []) Data.core347.body = some (⟨114730, []⟩, []) := by
+  have hb : blockB (wlookJ 347) (womLookJ 347) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 192), (.n 34, 192), (.n 98, 8), (.n 146, 70), (.n 151, 1), (.n 152, 13), (.n 196, 36), (.n 258, 6), (.n 301, 70), (.n 310, 1), (.n 311, 7), (.n 365, 37), (.n 426, 6), (.n 469, 70), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 593, 6), (.n 636, 70), (.n 645, 1), (.n 646, 3), (.n 700, 19), (.n 768, 70), (.n 777, 1), (.n 778, 3), (.n 792, 8), (.n 825, 17), (.n 827, 5), (.n 979, 110), (.n 981, 5), (.n 983, 5), (.n 1361, 10), (.n 1365, 20), (.n 1372, 0), (.n 1373, 9), (.n 1518, 10), (.n 1525, 0), (.n 1526, 4), (.n 2040, 8), (.n 2047, 0), (.n 2048, 3), (.n 2138, 6), (.n 2145, 0), (.n 2146, 2)] Data.core347.params Data.core347.name ([], []) Data.core347.body = some (⟨108393, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core347.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_347_0.1 rfl wsplit_347_0.2.2,
       ← blockR_eq ((Data.core347.body.drop 0).take 619), wsplit_347_0.2.1]
@@ -396,7 +367,7 @@ theorem wchkIdx_347 : wchkIdx 347 = true := by
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_348 : wchkIdx 348 = true := by
-  have hb : blockB (wlookJ 348) (womLookJ 348) true [(.n 10, 1088), (.n 12, 272), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 192), (.n 34, 192), (.n 98, 8), (.n 155, 80), (.n 160, 1), (.n 161, 15), (.n 213, 36), (.n 278, 6), (.n 335, 80), (.n 344, 1), (.n 345, 7), (.n 402, 37), (.n 466, 6), (.n 523, 80), (.n 532, 1), (.n 533, 5), (.n 590, 25), (.n 653, 6), (.n 710, 80), (.n 719, 1), (.n 720, 4), (.n 777, 19), (.n 848, 80), (.n 857, 1), (.n 858, 3), (.n 872, 12), (.n 917, 16), (.n 919, 5), (.n 1080, 110), (.n 1082, 5), (.n 1084, 5), (.n 1494, 10), (.n 1498, 20), (.n 1505, 0), (.n 1506, 9), (.n 1657, 10), (.n 1664, 0), (.n 1665, 4), (.n 2209, 8), (.n 2216, 0), (.n 2217, 3), (.n 2313, 6), (.n 2320, 0), (.n 2321, 2)] Data.core348.params Data.core348.name ([], []) Data.core348.body = some (⟨117145, []⟩, []) := by
+  have hb : blockB (wlookJ 348) (womLookJ 348) true [(.n 10, 1088), (.n 12, 272), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 192), (.n 34, 192), (.n 98, 8), (.n 146, 80), (.n 151, 1), (.n 152, 15), (.n 196, 36), (.n 258, 6), (.n 301, 80), (.n 310, 1), (.n 311, 7), (.n 365, 37), (.n 426, 6), (.n 469, 80), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 593, 6), (.n 636, 80), (.n 645, 1), (.n 646, 4), (.n 700, 19), (.n 768, 80), (.n 777, 1), (.n 778, 3), (.n 792, 12), (.n 837, 16), (.n 839, 5), (.n 1000, 110), (.n 1002, 5), (.n 1004, 5), (.n 1414, 10), (.n 1418, 20), (.n 1425, 0), (.n 1426, 9), (.n 1577, 10), (.n 1584, 0), (.n 1585, 4), (.n 2129, 8), (.n 2136, 0), (.n 2137, 3), (.n 2233, 6), (.n 2240, 0), (.n 2241, 2)] Data.core348.params Data.core348.name ([], []) Data.core348.body = some (⟨110756, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core348.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_348_0.1 rfl wsplit_348_0.2.2,
       ← blockR_eq ((Data.core348.body.drop 0).take 619), wsplit_348_0.2.1]
@@ -406,15 +377,13 @@ theorem wchkIdx_348 : wchkIdx 348 = true := by
       ← blockR_eq ((Data.core348.body.drop 1238).take 619), wsplit_348_1238.2.1]
     rw [blockB_dropE _ _ _ 1857 619 2476 wsplit_348_1857.1 rfl wsplit_348_1857.2.2,
       ← blockR_eq ((Data.core348.body.drop 1857).take 619), wsplit_348_1857.2.1]
-    rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_348_2476.1 rfl wsplit_348_2476.2.2,
-      ← blockR_eq ((Data.core348.body.drop 2476).take 619), wsplit_348_2476.2.1]
-    rw [← blockR_eq (Data.core348.body.drop 3095), wsplit_348_3095]
+    rw [← blockR_eq (Data.core348.body.drop 2476), wsplit_348_2476]
     rfl
   exact wchkIdx_of_split (fn := Data.core348) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_349 : wchkIdx 349 = true := by
-  have hb : blockB (wlookJ 349) (womLookJ 349) true [(.n 10, 1088), (.n 12, 272), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 187), (.n 34, 187), (.n 98, 8), (.n 155, 80), (.n 160, 1), (.n 161, 15), (.n 213, 36), (.n 278, 6), (.n 335, 80), (.n 344, 1), (.n 345, 8), (.n 402, 37), (.n 466, 6), (.n 523, 80), (.n 532, 1), (.n 533, 5), (.n 590, 25), (.n 653, 6), (.n 710, 80), (.n 719, 1), (.n 720, 4), (.n 777, 19), (.n 848, 80), (.n 857, 1), (.n 858, 3), (.n 872, 20), (.n 941, 16), (.n 943, 5), (.n 1113, 110), (.n 1115, 5), (.n 1117, 5), (.n 1559, 10), (.n 1563, 20), (.n 1570, 0), (.n 1571, 9), (.n 1728, 10), (.n 1735, 0), (.n 1736, 4), (.n 2310, 8), (.n 2317, 0), (.n 2318, 3), (.n 2420, 6), (.n 2427, 0), (.n 2428, 2)] Data.core349.params Data.core349.name ([], []) Data.core349.body = some (⟨119483, []⟩, []) := by
+  have hb : blockB (wlookJ 349) (womLookJ 349) true [(.n 10, 1088), (.n 12, 272), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 187), (.n 34, 187), (.n 98, 8), (.n 146, 80), (.n 151, 1), (.n 152, 15), (.n 196, 36), (.n 258, 6), (.n 301, 80), (.n 310, 1), (.n 311, 8), (.n 365, 37), (.n 426, 6), (.n 469, 80), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 593, 6), (.n 636, 80), (.n 645, 1), (.n 646, 4), (.n 700, 19), (.n 768, 80), (.n 777, 1), (.n 778, 3), (.n 792, 20), (.n 861, 16), (.n 863, 5), (.n 1033, 110), (.n 1035, 5), (.n 1037, 5), (.n 1479, 10), (.n 1483, 20), (.n 1490, 0), (.n 1491, 9), (.n 1648, 10), (.n 1655, 0), (.n 1656, 4), (.n 2230, 8), (.n 2237, 0), (.n 2238, 3), (.n 2340, 6), (.n 2347, 0), (.n 2348, 2)] Data.core349.params Data.core349.name ([], []) Data.core349.body = some (⟨113026, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core349.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_349_0.1 rfl wsplit_349_0.2.2,
       ← blockR_eq ((Data.core349.body.drop 0).take 619), wsplit_349_0.2.1]
@@ -424,15 +393,13 @@ theorem wchkIdx_349 : wchkIdx 349 = true := by
       ← blockR_eq ((Data.core349.body.drop 1238).take 619), wsplit_349_1238.2.1]
     rw [blockB_dropE _ _ _ 1857 619 2476 wsplit_349_1857.1 rfl wsplit_349_1857.2.2,
       ← blockR_eq ((Data.core349.body.drop 1857).take 619), wsplit_349_1857.2.1]
-    rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_349_2476.1 rfl wsplit_349_2476.2.2,
-      ← blockR_eq ((Data.core349.body.drop 2476).take 619), wsplit_349_2476.2.1]
-    rw [← blockR_eq (Data.core349.body.drop 3095), wsplit_349_3095]
+    rw [← blockR_eq (Data.core349.body.drop 2476), wsplit_349_2476]
     rfl
   exact wchkIdx_of_split (fn := Data.core349) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_350 : wchkIdx 350 = true := by
-  have hb : blockB (wlookJ 350) (womLookJ 350) true [(.n 10, 1088), (.n 12, 272), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 182), (.n 34, 182), (.n 98, 8), (.n 155, 80), (.n 160, 1), (.n 161, 15), (.n 213, 36), (.n 278, 6), (.n 335, 80), (.n 344, 1), (.n 345, 8), (.n 402, 37), (.n 466, 6), (.n 523, 80), (.n 532, 1), (.n 533, 5), (.n 590, 25), (.n 653, 6), (.n 710, 80), (.n 719, 1), (.n 720, 4), (.n 777, 19), (.n 848, 80), (.n 857, 1), (.n 858, 3), (.n 872, 36), (.n 989, 15), (.n 991, 5), (.n 1170, 110), (.n 1172, 5), (.n 1174, 5), (.n 1648, 10), (.n 1652, 20), (.n 1659, 0), (.n 1660, 9), (.n 1823, 10), (.n 1830, 0), (.n 1831, 4), (.n 2435, 8), (.n 2442, 0), (.n 2443, 3), (.n 2551, 6), (.n 2558, 0), (.n 2559, 2)] Data.core350.params Data.core350.name ([], []) Data.core350.body = some (⟨122166, []⟩, []) := by
+  have hb : blockB (wlookJ 350) (womLookJ 350) true [(.n 10, 1088), (.n 12, 272), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 182), (.n 34, 182), (.n 98, 8), (.n 146, 80), (.n 151, 1), (.n 152, 15), (.n 196, 36), (.n 258, 6), (.n 301, 80), (.n 310, 1), (.n 311, 8), (.n 365, 37), (.n 426, 6), (.n 469, 80), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 593, 6), (.n 636, 80), (.n 645, 1), (.n 646, 4), (.n 700, 19), (.n 768, 80), (.n 777, 1), (.n 778, 3), (.n 792, 36), (.n 909, 16), (.n 911, 5), (.n 1090, 110), (.n 1092, 5), (.n 1094, 5), (.n 1568, 10), (.n 1572, 20), (.n 1579, 0), (.n 1580, 9), (.n 1743, 10), (.n 1750, 0), (.n 1751, 4), (.n 2355, 8), (.n 2362, 0), (.n 2363, 3), (.n 2471, 6), (.n 2478, 0), (.n 2479, 2)] Data.core350.params Data.core350.name ([], []) Data.core350.body = some (⟨116142, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core350.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_350_0.1 rfl wsplit_350_0.2.2,
       ← blockR_eq ((Data.core350.body.drop 0).take 619), wsplit_350_0.2.1]
@@ -442,15 +409,13 @@ theorem wchkIdx_350 : wchkIdx 350 = true := by
       ← blockR_eq ((Data.core350.body.drop 1238).take 619), wsplit_350_1238.2.1]
     rw [blockB_dropE _ _ _ 1857 619 2476 wsplit_350_1857.1 rfl wsplit_350_1857.2.2,
       ← blockR_eq ((Data.core350.body.drop 1857).take 619), wsplit_350_1857.2.1]
-    rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_350_2476.1 rfl wsplit_350_2476.2.2,
-      ← blockR_eq ((Data.core350.body.drop 2476).take 619), wsplit_350_2476.2.1]
-    rw [← blockR_eq (Data.core350.body.drop 3095), wsplit_350_3095]
+    rw [← blockR_eq (Data.core350.body.drop 2476), wsplit_350_2476]
     rfl
   exact wchkIdx_of_split (fn := Data.core350) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_351 : wchkIdx 351 = true := by
-  have hb : blockB (wlookJ 351) (womLookJ 351) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 78), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 264), (.n 30, 12), (.n 32, 196), (.n 34, 196), (.n 98, 8), (.n 155, 80), (.n 160, 1), (.n 161, 15), (.n 213, 36), (.n 278, 6), (.n 335, 80), (.n 344, 1), (.n 345, 8), (.n 402, 37), (.n 466, 6), (.n 523, 80), (.n 532, 1), (.n 533, 5), (.n 590, 25), (.n 653, 6), (.n 710, 80), (.n 719, 1), (.n 720, 4), (.n 777, 19), (.n 840, 6), (.n 897, 80), (.n 906, 1), (.n 907, 3), (.n 964, 15), (.n 1035, 80), (.n 1044, 1), (.n 1045, 3), (.n 1059, 8), (.n 1092, 14), (.n 1094, 5), (.n 1254, 132), (.n 1256, 6), (.n 1258, 6), (.n 1810, 12), (.n 1814, 20), (.n 1821, 0), (.n 1822, 9), (.n 1991, 10), (.n 1998, 0), (.n 1999, 4), (.n 2633, 8), (.n 2640, 0), (.n 2641, 3), (.n 2755, 6), (.n 2762, 0), (.n 2763, 2), (.n 3005, 4), (.n 3012, 0), (.n 3013, 1)] Data.core351.params Data.core351.name ([], []) Data.core351.body = some (⟨128501, []⟩, []) := by
+  have hb : blockB (wlookJ 351) (womLookJ 351) true [(.n 10, 1152), (.n 12, 288), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 52), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 132), (.n 30, 6), (.n 32, 196), (.n 34, 196), (.n 98, 8), (.n 146, 80), (.n 151, 1), (.n 152, 15), (.n 196, 36), (.n 258, 6), (.n 301, 80), (.n 310, 1), (.n 311, 8), (.n 365, 37), (.n 426, 6), (.n 469, 80), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 593, 6), (.n 636, 80), (.n 645, 1), (.n 646, 4), (.n 700, 19), (.n 760, 6), (.n 803, 80), (.n 812, 1), (.n 813, 3), (.n 867, 16), (.n 933, 80), (.n 942, 1), (.n 943, 3), (.n 957, 8), (.n 990, 14), (.n 992, 5), (.n 1152, 132), (.n 1154, 6), (.n 1156, 6), (.n 1708, 12), (.n 1712, 20), (.n 1719, 0), (.n 1720, 9), (.n 1889, 10), (.n 1896, 0), (.n 1897, 4), (.n 2531, 8), (.n 2538, 0), (.n 2539, 3), (.n 2653, 6), (.n 2660, 0), (.n 2661, 2), (.n 2903, 6), (.n 2910, 0), (.n 2911, 2)] Data.core351.params Data.core351.name ([], []) Data.core351.body = some (⟨121874, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core351.body)]
     rw [blockB_dropE _ _ _ 0 542 542 wsplit_351_0.1 rfl wsplit_351_0.2.2,
       ← blockR_eq ((Data.core351.body.drop 0).take 542), wsplit_351_0.2.1]
@@ -464,15 +429,13 @@ theorem wchkIdx_351 : wchkIdx 351 = true := by
       ← blockR_eq ((Data.core351.body.drop 2168).take 542), wsplit_351_2168.2.1]
     rw [blockB_dropE _ _ _ 2710 542 3252 wsplit_351_2710.1 rfl wsplit_351_2710.2.2,
       ← blockR_eq ((Data.core351.body.drop 2710).take 542), wsplit_351_2710.2.1]
-    rw [blockB_dropE _ _ _ 3252 542 3794 wsplit_351_3252.1 rfl wsplit_351_3252.2.2,
-      ← blockR_eq ((Data.core351.body.drop 3252).take 542), wsplit_351_3252.2.1]
-    rw [← blockR_eq (Data.core351.body.drop 3794), wsplit_351_3794]
+    rw [← blockR_eq (Data.core351.body.drop 3252), wsplit_351_3252]
     rfl
   exact wchkIdx_of_split (fn := Data.core351) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_352 : wchkIdx 352 = true := by
-  have hb : blockB (wlookJ 352) (womLookJ 352) true [(.n 10, 640), (.n 12, 160), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 145), (.n 34, 145), (.n 98, 8), (.n 155, 55), (.n 160, 1), (.n 161, 10), (.n 213, 27), (.n 279, 6), (.n 336, 55), (.n 345, 1), (.n 346, 6), (.n 403, 32), (.n 465, 6), (.n 522, 55), (.n 531, 1), (.n 532, 4), (.n 589, 22), (.n 660, 55), (.n 669, 1), (.n 670, 3), (.n 684, 20), (.n 753, 18), (.n 755, 5), (.n 917, 88), (.n 919, 4), (.n 921, 4), (.n 1205, 8), (.n 1209, 14), (.n 1216, 0), (.n 1217, 6), (.n 2064, 10), (.n 2071, 0), (.n 2072, 4), (.n 2086, 6), (.n 2093, 0), (.n 2094, 2)] Data.core352.params Data.core352.name ([], []) Data.core352.body = some (⟨86553, []⟩, []) := by
+  have hb : blockB (wlookJ 352) (womLookJ 352) true [(.n 10, 640), (.n 12, 160), (.n 14, 20), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 145), (.n 34, 145), (.n 98, 8), (.n 146, 55), (.n 151, 1), (.n 152, 10), (.n 196, 27), (.n 259, 6), (.n 302, 55), (.n 311, 1), (.n 312, 6), (.n 366, 32), (.n 425, 6), (.n 468, 55), (.n 477, 1), (.n 478, 4), (.n 532, 22), (.n 600, 55), (.n 609, 1), (.n 610, 3), (.n 624, 20), (.n 693, 18), (.n 695, 5), (.n 857, 88), (.n 859, 4), (.n 861, 4), (.n 1145, 8), (.n 1149, 14), (.n 1156, 0), (.n 1157, 6), (.n 2004, 10), (.n 2011, 0), (.n 2012, 4), (.n 2026, 6), (.n 2033, 0), (.n 2034, 2)] Data.core352.params Data.core352.name ([], []) Data.core352.body = some (⟨81666, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core352.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_352_0.1 rfl wsplit_352_0.2.2,
       ← blockR_eq ((Data.core352.body.drop 0).take 721), wsplit_352_0.2.1]
@@ -480,15 +443,13 @@ theorem wchkIdx_352 : wchkIdx 352 = true := by
       ← blockR_eq ((Data.core352.body.drop 721).take 721), wsplit_352_721.2.1]
     rw [blockB_dropE _ _ _ 1442 721 2163 wsplit_352_1442.1 rfl wsplit_352_1442.2.2,
       ← blockR_eq ((Data.core352.body.drop 1442).take 721), wsplit_352_1442.2.1]
-    rw [blockB_dropE _ _ _ 2163 721 2884 wsplit_352_2163.1 rfl wsplit_352_2163.2.2,
-      ← blockR_eq ((Data.core352.body.drop 2163).take 721), wsplit_352_2163.2.1]
-    rw [← blockR_eq (Data.core352.body.drop 2884), wsplit_352_2884]
+    rw [← blockR_eq (Data.core352.body.drop 2163), wsplit_352_2163]
     rfl
   exact wchkIdx_of_split (fn := Data.core352) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_353 : wchkIdx 353 = true := by
-  have hb : blockB (wlookJ 353) (womLookJ 353) true [(.n 10, 640), (.n 12, 160), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 54), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 176), (.n 30, 8), (.n 32, 141), (.n 34, 141), (.n 98, 8), (.n 155, 55), (.n 160, 1), (.n 161, 10), (.n 213, 27), (.n 279, 6), (.n 336, 55), (.n 345, 1), (.n 346, 6), (.n 403, 31), (.n 468, 6), (.n 525, 55), (.n 534, 1), (.n 535, 4), (.n 592, 22), (.n 663, 55), (.n 672, 1), (.n 673, 3), (.n 687, 36), (.n 804, 18), (.n 806, 5), (.n 977, 88), (.n 979, 4), (.n 981, 4), (.n 1289, 8), (.n 1293, 14), (.n 1300, 0), (.n 1301, 6), (.n 2190, 8), (.n 2197, 0), (.n 2198, 3), (.n 2870, 6), (.n 2877, 0), (.n 2878, 2)] Data.core353.params Data.core353.name ([], []) Data.core353.body = some (⟨88805, []⟩, []) := by
+  have hb : blockB (wlookJ 353) (womLookJ 353) true [(.n 10, 640), (.n 12, 160), (.n 14, 36), (.n 16, 8), (.n 18, 18), (.n 20, 36), (.n 22, 4), (.n 24, 4), (.n 26, 32), (.n 28, 88), (.n 30, 4), (.n 32, 141), (.n 34, 141), (.n 98, 8), (.n 146, 55), (.n 151, 1), (.n 152, 10), (.n 196, 27), (.n 259, 6), (.n 302, 55), (.n 311, 1), (.n 312, 6), (.n 366, 32), (.n 425, 6), (.n 468, 55), (.n 477, 1), (.n 478, 4), (.n 532, 22), (.n 600, 55), (.n 609, 1), (.n 610, 3), (.n 624, 36), (.n 741, 18), (.n 743, 5), (.n 914, 88), (.n 916, 4), (.n 918, 4), (.n 1226, 8), (.n 1230, 14), (.n 1237, 0), (.n 1238, 6), (.n 2127, 10), (.n 2134, 0), (.n 2135, 4), (.n 2149, 6), (.n 2156, 0), (.n 2157, 2)] Data.core353.params Data.core353.name ([], []) Data.core353.body = some (⟨84845, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core353.body)]
     rw [blockB_dropE _ _ _ 0 721 721 wsplit_353_0.1 rfl wsplit_353_0.2.2,
       ← blockR_eq ((Data.core353.body.drop 0).take 721), wsplit_353_0.2.1]
@@ -496,17 +457,13 @@ theorem wchkIdx_353 : wchkIdx 353 = true := by
       ← blockR_eq ((Data.core353.body.drop 721).take 721), wsplit_353_721.2.1]
     rw [blockB_dropE _ _ _ 1442 721 2163 wsplit_353_1442.1 rfl wsplit_353_1442.2.2,
       ← blockR_eq ((Data.core353.body.drop 1442).take 721), wsplit_353_1442.2.1]
-    rw [blockB_dropE _ _ _ 2163 721 2884 wsplit_353_2163.1 rfl wsplit_353_2163.2.2,
-      ← blockR_eq ((Data.core353.body.drop 2163).take 721), wsplit_353_2163.2.1]
-    rw [blockB_dropE _ _ _ 2884 721 3605 wsplit_353_2884.1 rfl wsplit_353_2884.2.2,
-      ← blockR_eq ((Data.core353.body.drop 2884).take 721), wsplit_353_2884.2.1]
-    rw [← blockR_eq (Data.core353.body.drop 3605), wsplit_353_3605]
+    rw [← blockR_eq (Data.core353.body.drop 2163), wsplit_353_2163]
     rfl
   exact wchkIdx_of_split (fn := Data.core353) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_354 : wchkIdx 354 = true := by
-  have hb : blockB (wlookJ 354) (womLookJ 354) true [(.n 10, 704), (.n 12, 176), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 154), (.n 34, 154), (.n 98, 8), (.n 155, 60), (.n 160, 1), (.n 161, 11), (.n 213, 27), (.n 279, 6), (.n 336, 60), (.n 345, 1), (.n 346, 6), (.n 403, 31), (.n 468, 6), (.n 525, 60), (.n 534, 1), (.n 535, 4), (.n 592, 22), (.n 655, 6), (.n 712, 60), (.n 721, 1), (.n 722, 3), (.n 779, 18), (.n 849, 60), (.n 858, 1), (.n 859, 3), (.n 873, 8), (.n 906, 16), (.n 908, 5), (.n 1060, 110), (.n 1062, 5), (.n 1064, 5), (.n 1442, 10), (.n 1446, 14), (.n 1453, 0), (.n 1454, 6), (.n 2385, 8), (.n 2392, 0), (.n 2393, 3), (.n 3107, 6), (.n 3114, 0), (.n 3115, 2), (.n 3585, 6), (.n 3592, 0), (.n 3593, 2)] Data.core354.params Data.core354.name ([], []) Data.core354.body = some (⟨95442, []⟩, []) := by
+  have hb : blockB (wlookJ 354) (womLookJ 354) true [(.n 10, 704), (.n 12, 176), (.n 14, 8), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 154), (.n 34, 154), (.n 98, 8), (.n 146, 60), (.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 259, 6), (.n 302, 60), (.n 311, 1), (.n 312, 6), (.n 366, 32), (.n 425, 6), (.n 468, 60), (.n 477, 1), (.n 478, 4), (.n 532, 22), (.n 592, 6), (.n 635, 60), (.n 644, 1), (.n 645, 3), (.n 699, 18), (.n 766, 60), (.n 775, 1), (.n 776, 3), (.n 790, 8), (.n 823, 16), (.n 825, 5), (.n 977, 110), (.n 979, 5), (.n 981, 5), (.n 1359, 10), (.n 1363, 14), (.n 1370, 0), (.n 1371, 6), (.n 2302, 10), (.n 2309, 0), (.n 2310, 4), (.n 2324, 6), (.n 2331, 0), (.n 2332, 2), (.n 2802, 6), (.n 2809, 0), (.n 2810, 2)] Data.core354.params Data.core354.name ([], []) Data.core354.body = some (⟨90657, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core354.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_354_0.1 rfl wsplit_354_0.2.2,
       ← blockR_eq ((Data.core354.body.drop 0).take 619), wsplit_354_0.2.1]
@@ -518,15 +475,13 @@ theorem wchkIdx_354 : wchkIdx 354 = true := by
       ← blockR_eq ((Data.core354.body.drop 1857).take 619), wsplit_354_1857.2.1]
     rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_354_2476.1 rfl wsplit_354_2476.2.2,
       ← blockR_eq ((Data.core354.body.drop 2476).take 619), wsplit_354_2476.2.1]
-    rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_354_3095.1 rfl wsplit_354_3095.2.2,
-      ← blockR_eq ((Data.core354.body.drop 3095).take 619), wsplit_354_3095.2.1]
-    rw [← blockR_eq (Data.core354.body.drop 3714), wsplit_354_3714]
+    rw [← blockR_eq (Data.core354.body.drop 3095), wsplit_354_3095]
     rfl
   exact wchkIdx_of_split (fn := Data.core354) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_355 : wchkIdx 355 = true := by
-  have hb : blockB (wlookJ 355) (womLookJ 355) true [(.n 10, 704), (.n 12, 176), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 150), (.n 34, 150), (.n 98, 8), (.n 155, 60), (.n 160, 1), (.n 161, 11), (.n 213, 27), (.n 279, 6), (.n 336, 60), (.n 345, 1), (.n 346, 7), (.n 403, 31), (.n 468, 6), (.n 525, 60), (.n 534, 1), (.n 535, 4), (.n 592, 22), (.n 655, 6), (.n 712, 60), (.n 721, 1), (.n 722, 3), (.n 779, 17), (.n 849, 60), (.n 858, 1), (.n 859, 3), (.n 873, 12), (.n 918, 15), (.n 920, 5), (.n 1081, 110), (.n 1083, 5), (.n 1085, 5), (.n 1495, 10), (.n 1499, 14), (.n 1506, 0), (.n 1507, 6), (.n 2480, 8), (.n 2487, 0), (.n 2488, 3), (.n 3244, 6), (.n 3251, 0), (.n 3252, 2), (.n 3758, 6), (.n 3765, 0), (.n 3766, 2)] Data.core355.params Data.core355.name ([], []) Data.core355.body = some (⟨96395, []⟩, []) := by
+  have hb : blockB (wlookJ 355) (womLookJ 355) true [(.n 10, 704), (.n 12, 176), (.n 14, 12), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 150), (.n 34, 150), (.n 98, 8), (.n 146, 60), (.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 259, 6), (.n 302, 60), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 425, 6), (.n 468, 60), (.n 477, 1), (.n 478, 4), (.n 532, 22), (.n 592, 6), (.n 635, 60), (.n 644, 1), (.n 645, 3), (.n 699, 18), (.n 766, 60), (.n 775, 1), (.n 776, 3), (.n 790, 12), (.n 835, 15), (.n 837, 5), (.n 998, 110), (.n 1000, 5), (.n 1002, 5), (.n 1412, 10), (.n 1416, 14), (.n 1423, 0), (.n 1424, 6), (.n 2397, 10), (.n 2404, 0), (.n 2405, 4), (.n 2419, 6), (.n 2426, 0), (.n 2427, 2), (.n 2933, 6), (.n 2940, 0), (.n 2941, 2)] Data.core355.params Data.core355.name ([], []) Data.core355.body = some (⟨91882, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core355.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_355_0.1 rfl wsplit_355_0.2.2,
       ← blockR_eq ((Data.core355.body.drop 0).take 619), wsplit_355_0.2.1]
@@ -538,17 +493,13 @@ theorem wchkIdx_355 : wchkIdx 355 = true := by
       ← blockR_eq ((Data.core355.body.drop 1857).take 619), wsplit_355_1857.2.1]
     rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_355_2476.1 rfl wsplit_355_2476.2.2,
       ← blockR_eq ((Data.core355.body.drop 2476).take 619), wsplit_355_2476.2.1]
-    rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_355_3095.1 rfl wsplit_355_3095.2.2,
-      ← blockR_eq ((Data.core355.body.drop 3095).take 619), wsplit_355_3095.2.1]
-    rw [blockB_dropE _ _ _ 3714 619 4333 wsplit_355_3714.1 rfl wsplit_355_3714.2.2,
-      ← blockR_eq ((Data.core355.body.drop 3714).take 619), wsplit_355_3714.2.1]
-    rw [← blockR_eq (Data.core355.body.drop 4333), wsplit_355_4333]
+    rw [← blockR_eq (Data.core355.body.drop 3095), wsplit_355_3095]
     rfl
   exact wchkIdx_of_split (fn := Data.core355) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_356 : wchkIdx 356 = true := by
-  have hb : blockB (wlookJ 356) (womLookJ 356) true [(.n 10, 704), (.n 12, 176), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 151), (.n 34, 151), (.n 98, 8), (.n 155, 60), (.n 160, 1), (.n 161, 11), (.n 213, 27), (.n 279, 6), (.n 336, 60), (.n 345, 1), (.n 346, 7), (.n 403, 31), (.n 468, 6), (.n 525, 60), (.n 534, 1), (.n 535, 5), (.n 592, 22), (.n 655, 6), (.n 712, 60), (.n 721, 1), (.n 722, 3), (.n 779, 17), (.n 849, 60), (.n 858, 1), (.n 859, 3), (.n 873, 20), (.n 942, 15), (.n 944, 5), (.n 1114, 110), (.n 1116, 5), (.n 1118, 5), (.n 1560, 10), (.n 1564, 14), (.n 1571, 0), (.n 1572, 6), (.n 2587, 8), (.n 2594, 0), (.n 2595, 3), (.n 3393, 6), (.n 3400, 0), (.n 3401, 2), (.n 3943, 6), (.n 3950, 0), (.n 3951, 2)] Data.core356.params Data.core356.name ([], []) Data.core356.body = some (⟨98824, []⟩, []) := by
+  have hb : blockB (wlookJ 356) (womLookJ 356) true [(.n 10, 704), (.n 12, 176), (.n 14, 20), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 151), (.n 34, 151), (.n 98, 8), (.n 146, 60), (.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 259, 6), (.n 302, 60), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 425, 6), (.n 468, 60), (.n 477, 1), (.n 478, 5), (.n 532, 22), (.n 592, 6), (.n 635, 60), (.n 644, 1), (.n 645, 3), (.n 699, 18), (.n 766, 60), (.n 775, 1), (.n 776, 3), (.n 790, 20), (.n 859, 15), (.n 861, 5), (.n 1031, 110), (.n 1033, 5), (.n 1035, 5), (.n 1477, 10), (.n 1481, 14), (.n 1488, 0), (.n 1489, 6), (.n 2504, 10), (.n 2511, 0), (.n 2512, 4), (.n 2526, 6), (.n 2533, 0), (.n 2534, 2), (.n 3076, 6), (.n 3083, 0), (.n 3084, 2)] Data.core356.params Data.core356.name ([], []) Data.core356.body = some (⟨94281, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core356.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_356_0.1 rfl wsplit_356_0.2.2,
       ← blockR_eq ((Data.core356.body.drop 0).take 619), wsplit_356_0.2.1]
@@ -560,17 +511,13 @@ theorem wchkIdx_356 : wchkIdx 356 = true := by
       ← blockR_eq ((Data.core356.body.drop 1857).take 619), wsplit_356_1857.2.1]
     rw [blockB_dropE _ _ _ 2476 619 3095 wsplit_356_2476.1 rfl wsplit_356_2476.2.2,
       ← blockR_eq ((Data.core356.body.drop 2476).take 619), wsplit_356_2476.2.1]
-    rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_356_3095.1 rfl wsplit_356_3095.2.2,
-      ← blockR_eq ((Data.core356.body.drop 3095).take 619), wsplit_356_3095.2.1]
-    rw [blockB_dropE _ _ _ 3714 619 4333 wsplit_356_3714.1 rfl wsplit_356_3714.2.2,
-      ← blockR_eq ((Data.core356.body.drop 3714).take 619), wsplit_356_3714.2.1]
-    rw [← blockR_eq (Data.core356.body.drop 4333), wsplit_356_4333]
+    rw [← blockR_eq (Data.core356.body.drop 3095), wsplit_356_3095]
     rfl
   exact wchkIdx_of_split (fn := Data.core356) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_357 : wchkIdx 357 = true := by
-  have hb : blockB (wlookJ 357) (womLookJ 357) true [(.n 10, 704), (.n 12, 176), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 66), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 220), (.n 30, 10), (.n 32, 153), (.n 34, 153), (.n 98, 8), (.n 155, 60), (.n 160, 1), (.n 161, 11), (.n 213, 27), (.n 279, 6), (.n 336, 60), (.n 345, 1), (.n 346, 7), (.n 403, 31), (.n 468, 6), (.n 525, 60), (.n 534, 1), (.n 535, 5), (.n 592, 22), (.n 655, 6), (.n 712, 60), (.n 721, 1), (.n 722, 4), (.n 779, 17), (.n 849, 60), (.n 858, 1), (.n 859, 3), (.n 873, 36), (.n 990, 14), (.n 992, 5), (.n 1171, 110), (.n 1173, 5), (.n 1175, 5), (.n 1649, 10), (.n 1653, 14), (.n 1660, 0), (.n 1661, 6), (.n 2718, 8), (.n 2725, 0), (.n 2726, 3), (.n 3566, 6), (.n 3573, 0), (.n 3574, 2), (.n 4152, 6), (.n 4159, 0), (.n 4160, 2)] Data.core357.params Data.core357.name ([], []) Data.core357.body = some (⟨102640, []⟩, []) := by
+  have hb : blockB (wlookJ 357) (womLookJ 357) true [(.n 10, 704), (.n 12, 176), (.n 14, 36), (.n 16, 10), (.n 18, 22), (.n 20, 44), (.n 22, 5), (.n 24, 5), (.n 26, 40), (.n 28, 110), (.n 30, 5), (.n 32, 153), (.n 34, 153), (.n 98, 8), (.n 146, 60), (.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 259, 6), (.n 302, 60), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 425, 6), (.n 468, 60), (.n 477, 1), (.n 478, 5), (.n 532, 22), (.n 592, 6), (.n 635, 60), (.n 644, 1), (.n 645, 4), (.n 699, 18), (.n 766, 60), (.n 775, 1), (.n 776, 3), (.n 790, 36), (.n 907, 15), (.n 909, 5), (.n 1088, 110), (.n 1090, 5), (.n 1092, 5), (.n 1566, 10), (.n 1570, 14), (.n 1577, 0), (.n 1578, 6), (.n 2635, 10), (.n 2642, 0), (.n 2643, 4), (.n 2657, 6), (.n 2664, 0), (.n 2665, 2), (.n 3243, 6), (.n 3250, 0), (.n 3251, 2)] Data.core357.params Data.core357.name ([], []) Data.core357.body = some (⟨98575, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core357.body)]
     rw [blockB_dropE _ _ _ 0 619 619 wsplit_357_0.1 rfl wsplit_357_0.2.2,
       ← blockR_eq ((Data.core357.body.drop 0).take 619), wsplit_357_0.2.1]
@@ -584,15 +531,13 @@ theorem wchkIdx_357 : wchkIdx 357 = true := by
       ← blockR_eq ((Data.core357.body.drop 2476).take 619), wsplit_357_2476.2.1]
     rw [blockB_dropE _ _ _ 3095 619 3714 wsplit_357_3095.1 rfl wsplit_357_3095.2.2,
       ← blockR_eq ((Data.core357.body.drop 3095).take 619), wsplit_357_3095.2.1]
-    rw [blockB_dropE _ _ _ 3714 619 4333 wsplit_357_3714.1 rfl wsplit_357_3714.2.2,
-      ← blockR_eq ((Data.core357.body.drop 3714).take 619), wsplit_357_3714.2.1]
-    rw [← blockR_eq (Data.core357.body.drop 4333), wsplit_357_4333]
+    rw [← blockR_eq (Data.core357.body.drop 3714), wsplit_357_3714]
     rfl
   exact wchkIdx_of_split (fn := Data.core357) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem wchkIdx_358 : wchkIdx 358 = true := by
-  have hb : blockB (wlookJ 358) (womLookJ 358) true [(.n 10, 768), (.n 12, 192), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 78), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 264), (.n 30, 12), (.n 32, 169), (.n 34, 169), (.n 98, 8), (.n 155, 75), (.n 160, 1), (.n 161, 14), (.n 213, 27), (.n 279, 6), (.n 336, 75), (.n 345, 1), (.n 346, 7), (.n 403, 31), (.n 468, 6), (.n 525, 75), (.n 534, 1), (.n 535, 5), (.n 592, 22), (.n 655, 6), (.n 712, 75), (.n 721, 1), (.n 722, 4), (.n 779, 17), (.n 841, 6), (.n 898, 75), (.n 907, 1), (.n 908, 3), (.n 965, 14), (.n 1035, 75), (.n 1044, 1), (.n 1045, 3), (.n 1059, 8), (.n 1092, 13), (.n 1094, 5), (.n 1254, 132), (.n 1256, 6), (.n 1258, 6), (.n 1810, 12), (.n 1814, 14), (.n 1821, 0), (.n 1822, 6), (.n 2921, 8), (.n 2928, 0), (.n 2929, 3), (.n 3811, 6), (.n 3818, 0), (.n 3819, 2), (.n 4433, 6), (.n 4440, 0), (.n 4441, 2), (.n 4531, 4), (.n 4538, 0), (.n 4539, 1)] Data.core358.params Data.core358.name ([], []) Data.core358.body = some (⟨109713, []⟩, []) := by
+  have hb : blockB (wlookJ 358) (womLookJ 358) true [(.n 10, 768), (.n 12, 192), (.n 14, 8), (.n 16, 12), (.n 18, 26), (.n 20, 52), (.n 22, 6), (.n 24, 6), (.n 26, 48), (.n 28, 132), (.n 30, 6), (.n 32, 169), (.n 34, 169), (.n 98, 8), (.n 146, 75), (.n 151, 1), (.n 152, 14), (.n 196, 27), (.n 259, 6), (.n 302, 75), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 425, 6), (.n 468, 75), (.n 477, 1), (.n 478, 5), (.n 532, 22), (.n 592, 6), (.n 635, 75), (.n 644, 1), (.n 645, 4), (.n 699, 18), (.n 758, 6), (.n 801, 75), (.n 810, 1), (.n 811, 3), (.n 865, 15), (.n 933, 75), (.n 942, 1), (.n 943, 3), (.n 957, 8), (.n 990, 13), (.n 992, 5), (.n 1152, 132), (.n 1154, 6), (.n 1156, 6), (.n 1708, 12), (.n 1712, 14), (.n 1719, 0), (.n 1720, 6), (.n 2819, 10), (.n 2826, 0), (.n 2827, 4), (.n 2841, 6), (.n 2848, 0), (.n 2849, 2), (.n 3463, 6), (.n 3470, 0), (.n 3471, 2), (.n 3637, 4), (.n 3644, 0), (.n 3645, 1)] Data.core358.params Data.core358.name ([], []) Data.core358.body = some (⟨104647, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core358.body)]
     rw [blockB_dropE _ _ _ 0 542 542 wsplit_358_0.1 rfl wsplit_358_0.2.2,
       ← blockR_eq ((Data.core358.body.drop 0).take 542), wsplit_358_0.2.1]
@@ -610,15 +555,11 @@ theorem wchkIdx_358 : wchkIdx 358 = true := by
       ← blockR_eq ((Data.core358.body.drop 3252).take 542), wsplit_358_3252.2.1]
     rw [blockB_dropE _ _ _ 3794 542 4336 wsplit_358_3794.1 rfl wsplit_358_3794.2.2,
       ← blockR_eq ((Data.core358.body.drop 3794).take 542), wsplit_358_3794.2.1]
-    rw [blockB_dropE _ _ _ 4336 542 4878 wsplit_358_4336.1 rfl wsplit_358_4336.2.2,
-      ← blockR_eq ((Data.core358.body.drop 4336).take 542), wsplit_358_4336.2.1]
-    rw [blockB_dropE _ _ _ 4878 542 5420 wsplit_358_4878.1 rfl wsplit_358_4878.2.2,
-      ← blockR_eq ((Data.core358.body.drop 4878).take 542), wsplit_358_4878.2.1]
-    rw [← blockR_eq (Data.core358.body.drop 5420), wsplit_358_5420]
+    rw [← blockR_eq (Data.core358.body.drop 4336), wsplit_358_4336]
     rfl
   exact wchkIdx_of_split (fn := Data.core358) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
-theorem wchkIdx_all : ∀ j < 1055, wchkIdx j = true := by
+theorem wchkIdx_all : ∀ j < 1037, wchkIdx j = true := by
   intro j hj
   by_cases h1000 : j = 19
   · subst h1000; exact wchkIdx_19
@@ -728,71 +669,69 @@ theorem wchkIdx_all : ∀ j < 1055, wchkIdx j = true := by
   · exact wstaticRange_485.get (by omega) (by omega)
   by_cases h24 : j < 527
   · exact wstaticRange_506.get (by omega) (by omega)
-  by_cases h25 : j < 549
+  by_cases h25 : j < 548
   · exact wstaticRange_527.get (by omega) (by omega)
-  by_cases h26 : j < 571
-  · exact wstaticRange_549.get (by omega) (by omega)
-  by_cases h27 : j < 590
-  · exact wstaticRange_571.get (by omega) (by omega)
-  by_cases h28 : j < 609
-  · exact wstaticRange_590.get (by omega) (by omega)
-  by_cases h29 : j < 628
-  · exact wstaticRange_609.get (by omega) (by omega)
-  by_cases h30 : j < 644
-  · exact wstaticRange_628.get (by omega) (by omega)
-  by_cases h31 : j < 662
-  · exact wstaticRange_644.get (by omega) (by omega)
-  by_cases h32 : j < 678
-  · exact wstaticRange_662.get (by omega) (by omega)
-  by_cases h33 : j < 695
-  · exact wstaticRange_678.get (by omega) (by omega)
-  by_cases h34 : j < 713
-  · exact wstaticRange_695.get (by omega) (by omega)
-  by_cases h35 : j < 730
-  · exact wstaticRange_713.get (by omega) (by omega)
-  by_cases h36 : j < 747
-  · exact wstaticRange_730.get (by omega) (by omega)
-  by_cases h37 : j < 760
-  · exact wstaticRange_747.get (by omega) (by omega)
-  by_cases h38 : j < 777
-  · exact wstaticRange_760.get (by omega) (by omega)
-  by_cases h39 : j < 796
-  · exact wstaticRange_777.get (by omega) (by omega)
+  by_cases h26 : j < 568
+  · exact wstaticRange_548.get (by omega) (by omega)
+  by_cases h27 : j < 587
+  · exact wstaticRange_568.get (by omega) (by omega)
+  by_cases h28 : j < 606
+  · exact wstaticRange_587.get (by omega) (by omega)
+  by_cases h29 : j < 623
+  · exact wstaticRange_606.get (by omega) (by omega)
+  by_cases h30 : j < 640
+  · exact wstaticRange_623.get (by omega) (by omega)
+  by_cases h31 : j < 658
+  · exact wstaticRange_640.get (by omega) (by omega)
+  by_cases h32 : j < 672
+  · exact wstaticRange_658.get (by omega) (by omega)
+  by_cases h33 : j < 689
+  · exact wstaticRange_672.get (by omega) (by omega)
+  by_cases h34 : j < 707
+  · exact wstaticRange_689.get (by omega) (by omega)
+  by_cases h35 : j < 725
+  · exact wstaticRange_707.get (by omega) (by omega)
+  by_cases h36 : j < 741
+  · exact wstaticRange_725.get (by omega) (by omega)
+  by_cases h37 : j < 759
+  · exact wstaticRange_741.get (by omega) (by omega)
+  by_cases h38 : j < 778
+  · exact wstaticRange_759.get (by omega) (by omega)
+  by_cases h39 : j < 790
+  · exact wstaticRange_778.get (by omega) (by omega)
   by_cases h40 : j < 808
-  · exact wstaticRange_796.get (by omega) (by omega)
-  by_cases h41 : j < 826
+  · exact wstaticRange_790.get (by omega) (by omega)
+  by_cases h41 : j < 821
   · exact wstaticRange_808.get (by omega) (by omega)
-  by_cases h42 : j < 839
-  · exact wstaticRange_826.get (by omega) (by omega)
+  by_cases h42 : j < 838
+  · exact wstaticRange_821.get (by omega) (by omega)
   by_cases h43 : j < 856
-  · exact wstaticRange_839.get (by omega) (by omega)
-  by_cases h44 : j < 874
+  · exact wstaticRange_838.get (by omega) (by omega)
+  by_cases h44 : j < 875
   · exact wstaticRange_856.get (by omega) (by omega)
-  by_cases h45 : j < 893
-  · exact wstaticRange_874.get (by omega) (by omega)
-  by_cases h46 : j < 917
-  · exact wstaticRange_893.get (by omega) (by omega)
-  by_cases h47 : j < 940
-  · exact wstaticRange_917.get (by omega) (by omega)
-  by_cases h48 : j < 955
-  · exact wstaticRange_940.get (by omega) (by omega)
-  by_cases h49 : j < 969
-  · exact wstaticRange_955.get (by omega) (by omega)
-  by_cases h50 : j < 982
-  · exact wstaticRange_969.get (by omega) (by omega)
+  by_cases h45 : j < 899
+  · exact wstaticRange_875.get (by omega) (by omega)
+  by_cases h46 : j < 922
+  · exact wstaticRange_899.get (by omega) (by omega)
+  by_cases h47 : j < 939
+  · exact wstaticRange_922.get (by omega) (by omega)
+  by_cases h48 : j < 954
+  · exact wstaticRange_939.get (by omega) (by omega)
+  by_cases h49 : j < 966
+  · exact wstaticRange_954.get (by omega) (by omega)
+  by_cases h50 : j < 980
+  · exact wstaticRange_966.get (by omega) (by omega)
   by_cases h51 : j < 993
-  · exact wstaticRange_982.get (by omega) (by omega)
-  by_cases h52 : j < 1009
+  · exact wstaticRange_980.get (by omega) (by omega)
+  by_cases h52 : j < 1004
   · exact wstaticRange_993.get (by omega) (by omega)
-  by_cases h53 : j < 1020
-  · exact wstaticRange_1009.get (by omega) (by omega)
-  by_cases h54 : j < 1031
-  · exact wstaticRange_1020.get (by omega) (by omega)
-  by_cases h55 : j < 1042
-  · exact wstaticRange_1031.get (by omega) (by omega)
-  by_cases h56 : j < 1050
-  · exact wstaticRange_1042.get (by omega) (by omega)
-  exact wstaticRange_1050.get (by omega) (by omega)
+  by_cases h53 : j < 1016
+  · exact wstaticRange_1004.get (by omega) (by omega)
+  by_cases h54 : j < 1025
+  · exact wstaticRange_1016.get (by omega) (by omega)
+  by_cases h55 : j < 1033
+  · exact wstaticRange_1025.get (by omega) (by omega)
+  exact wstaticRange_1033.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

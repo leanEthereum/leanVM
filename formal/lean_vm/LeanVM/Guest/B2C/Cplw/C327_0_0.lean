@@ -28,7 +28,7 @@ theorem cw329_0_0 : cplWin 329 0 0 = true := by decide +kernel
 /-- `bus_grind_check__L17`, window 0, part 0. -/
 theorem cw330_0_0 : cplWin 330 0 0 = true := by decide +kernel
 
-/-- `grind_check__L14`, window 0, part 0. -/
+/-- `grind_check__L13`, window 0, part 0. -/
 theorem cw331_0_0 : cplWin 331 0 0 = true := by decide +kernel
 
 /-- `open_stacked__L0`, window 0, part 0. -/

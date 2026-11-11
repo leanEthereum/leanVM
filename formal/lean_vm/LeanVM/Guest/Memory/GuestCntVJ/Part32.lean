@@ -9,19 +9,15 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kvjstaticRange_881 : kvjStaticRange 881 22 := by
+theorem kvjstaticRange_1016 : kvjStaticRange 1016 9 := by
   unfold kvjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvjstaticRange_903 : kvjStaticRange 903 24 := by
+theorem kvjstaticRange_1025 : kvjStaticRange 1025 8 := by
   unfold kvjStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvjstaticRange_927 : kvjStaticRange 927 20 := by
-  unfold kvjStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kvjstaticRange_947 : kvjStaticRange 947 14 := by
+theorem kvjstaticRange_1033 : kvjStaticRange 1033 4 := by
   unfold kvjStaticRange; decide +kernel
 
 end
