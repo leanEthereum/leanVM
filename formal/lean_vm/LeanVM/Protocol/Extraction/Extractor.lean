@@ -69,7 +69,7 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
 given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ + 6` the message length,
 `L` the list size (at most
 `2^12` candidates, `LeanVM.candidates_ncard_le`, and at most `2^12` prefixes kept after any number
-of lanes, `pruneUpTo_length_le`), `m ≤ 107` the decoder's multiplicity, `ℓ ≤ 169` its
+of lanes, `pruneUpTo_length_le`), `m ≤ 90` the decoder's multiplicity, `ℓ ≤ 129` its
 `Y`-degree, `w = m·A − 1` its weighted degree and `|Q| ≈ n·m(m+1)/2` its coefficients
 (`gsMultiplicityAt`), `M = 2^logMemory`, `B = 2^logBytecode`. The figures are at the worst shape
 over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, not a proof):
@@ -79,16 +79,16 @@ over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, n
 | sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length | |
 | the evaluations (`keccakEvaluationsOfTranscript`, `lookupEvaluation`) | linear lookups on byte strings: a chain of `N` padded blocks makes `136·N³/6` byte comparisons | in `N` |
 | Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs | `2^27·N` |
-| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^89.5` |
-| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^104.6` to `2^111.8` |
-| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^80.5` |
-| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `(κ+1)·2^(κ+R)` butterflies | `2^61.1` |
+| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^89.1` |
+| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^104.1` to `2^111.1` |
+| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^80.1` |
+| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `(κ+1)·2^(κ+R)` butterflies | `2^61.0` |
 | pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons | `2^56` |
 | a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads | `2^52` for all |
 
 The whole is dominated by Roth–Ruckenstein's substitution as implemented, then the interpolation,
 and, in `N`, by the lookups, cubic. Polynomial, but not a meaningful concrete bound: an extractor
-of `2^112` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
+of `2^111` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
 generic search.
 
 **The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):
@@ -246,13 +246,13 @@ by `2^-125` after its grind. The table is copied from that certificate, and the 
 copy against it for every admissible shape (`Whir.Params.johnsonThreshold_eq_thr₀`). -/
 def johnsonSlack : List (List ℕ) := [
   [14046423, 10126143, 7119110, 5091727, 3684926, 2588336, 1843440,
-    1315345, 1034914, 1058539, 1080591, 1103905, 1127850, 1144431],
-  [13113569, 9438781, 6816144, 4784228, 3407897, 2424839, 1720322,
-    1736705, 1773569, 1810433, 1847809, 1886977, 1927681, 1955777],
-  [10955372, 7815584, 5525635, 3889352, 2759967, 2137944, 2195576,
-    2251017, 2297169, 2343798, 2392712, 2443153, 2495957, 2532408],
-  [8391793, 5964575, 4194504, 2981938, 2424845, 2486276, 2551809,
-    2618369, 2670593, 2724865, 2781569, 2840449, 2901857, 2944289]]
+    1315345, 1231522, 1232619, 1234191, 1233953, 1234090, 1234287],
+  [13113569, 9438781, 6816144, 4784228, 3407897, 2424839, 2105346,
+    2105345, 2109441, 2109441, 2109441, 2109441, 2109441, 2109441],
+  [10955372, 7815584, 5525635, 3889352, 2759967, 2727768, 2728056,
+    2730249, 2731345, 2731382, 2731656, 2731665, 2731733, 2731736],
+  [8391793, 5964575, 4194504, 3162162, 3170317, 3174404, 3176449,
+    3176449, 3176449, 3176449, 3176449, 3176513, 3176545, 3176561]]
 
 /-- Level 0's slack `e` (`η = e/2^30`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0

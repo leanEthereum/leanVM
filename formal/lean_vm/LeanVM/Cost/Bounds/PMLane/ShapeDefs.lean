@@ -22,9 +22,9 @@ open LeanVM.Parameters LeanVM.Extraction LeanVM.Cost.Bounds.Decoder LeanVM.Cost.
 
 public section
 
-/-- **The decoder's worst price beyond the word's**: `decoderBoundPM` at `(28, 3)`, the
+/-- **The decoder's worst price beyond the word's**: `decoderBoundPM` at `(28, 4)`, the
 model's prices with their margin. -/
-@[expose] def pmDecoderWorstPrice : ℕ := decoderBoundPM marginPrices 28 3 0 0
+@[expose] def pmDecoderWorstPrice : ℕ := decoderBoundPM marginPrices 28 4 0 0
 
 /-- **The lanes' interpolation within the model's price**, at prices `p`, a lane of `2^κ`
 symbols, `2^(κ+R)` points, threshold `A`: the interpolation bound's per-shape conditions

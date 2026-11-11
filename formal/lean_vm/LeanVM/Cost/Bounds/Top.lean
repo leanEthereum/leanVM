@@ -40,7 +40,7 @@ decoder's stacks (`decOfC`) and a run per decoded stack. Bounded from their pric
   `leanVmKnowledgeExtractorBudget` wherever `afterRoot` announces a shape (`hcost` of `extractorTop_output`),
   through `extractorPrice_le_worst` (the worst admissible shape) and `extractorPrice_worst_le`;
 * **`extractorPrice_28_4`**: at `(28, 4)`, `κ = ℓ = 32`, at most `2^40` queries:
-  `2878685542643453679832573 ≈ 2^81.25`, the decoder (`listDecoderWorstPrice ≈ 2^81.25`) all
+  `2300086857126839845167101 ≈ 2^80.93`, the decoder (`listDecoderWorstPrice ≈ 2^80.93`) all
   but `≈ 2^66.6` of it (the `1 + 2^12` runs `≈ 2^65.60`, the transcript's index `≈ 2^65.61`);
   **`extractorPrice_28_4_2_128`**: at most `2^128` queries, `≈ 2^156.86`, the transcript's index
   dominating.
@@ -430,7 +430,7 @@ theorem runBothC_cost (hP : Includes P runBothC.costDeps) (prog : Semantics.Lean
 
 /-- **The decoder** on the committed leaves (`decOfC`, width `64`), at every admissible shape: the
 lanes interpolated on `pmSolver` (`PMLane.decodeStacksPMC_cost_worst`, at most `pmDecoderWorstPrice
-≈ 2^81.25` beyond the word's reads), `listDecoderWorstPrice`. -/
+≈ 2^80.93` beyond the word's reads), `listDecoderWorstPrice`. -/
 theorem decOfC_cost (hP : Includes P decOfC.costDeps) {μ R : ℕ} (hadm : Whir.Admissible μ R)
     (leaves : Array (List K)) (h : ℕ) (hh : h < 64) (hl : ∀ l ∈ leaves, l.length ≤ 64) :
     machineCost P decOfC.costIdx [encodeValue μ, encodeValue R, encodeValue leaves, encodeValue h, encodeValue 64] ≤
@@ -639,9 +639,9 @@ theorem stageBound_mono {μ R κ ℓ D D' N N' h W W' : ℕ} (hD : D ≤ D') (hN
   gcongr
 
 /-- **The extractor's price at `(μ, R) = (28, 4)`**, `κ = ℓ = 32`, at most `2^40` queries: at
-most `2878685542643453679832573 ≈ 2^81.25`, the decoder's `2^81.25` dominating. -/
+most `2300086857126839845167101 ≈ 2^80.93`, the decoder's `2^80.93` dominating. -/
 theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
-    extractorPrice 28 4 32 32 N ≤ 2878685542643453679832573 := by
+    extractorPrice 28 4 32 32 N ≤ 2300086857126839845167101 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 41 := by
     have := (Nat.log2_lt (n := N + 2) (k := 41) (by omega)).2 (by omega)
     omega
@@ -654,10 +654,10 @@ theorem extractorPrice_28_4 (N : ℕ) (hN : N ≤ 2 ^ 40) :
   norm_num
 
 /-- **The extractor's price at `(28, 4)` for up to `2^128` queries** (the soundness statement's
-adversaries), `κ = ℓ = 32`: at most `165504966199035608965494746328097165790945395607 ≈ 2^156.86`,
+adversaries), `κ = ℓ = 32`: at most `165504966199035608965494167729411649177110730135 ≈ 2^156.86`,
 the transcript's index dominating (`D = 129` levels of binary searches, positions of `3` limbs). -/
 theorem extractorPrice_28_4_2_128 (N : ℕ) (hN : N ≤ 2 ^ 128) :
-    extractorPrice 28 4 32 32 N ≤ 165504966199035608965494746328097165790945395607 := by
+    extractorPrice 28 4 32 32 N ≤ 165504966199035608965494167729411649177110730135 := by
   have hD : Nat.log2 (N + 2) + 1 ≤ 129 := by
     have := (Nat.log2_lt (n := N + 2) (k := 129) (by omega)).2 (by omega)
     omega

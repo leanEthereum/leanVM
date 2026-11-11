@@ -29,7 +29,7 @@ interpolation's part `interpPMPrice`, the rest the bounds of `Bounds/Decoder/Sha
   - the least row (`leastShiftedDegreeChoice?`) and the normalization (`normBound`, existing, and
     the row as a bivariate polynomial);
 * **the rest of the lane's run** (`gsRunBoundPM`): the truncation, Roth–Ruckenstein's search
-  (`rrBound`, `≈ 2^75.16` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
+  (`rrBound`, `≈ 2^74.91` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
 * **the lane and the decoder** (`decoderLaneRunBoundPM`, `decoderLaneBoundPM`, `decoderBoundPM`),
   on `gsRunBoundPM`: the parameter search, the lane's points, its candidates encoded (`laneExtraBound`), the `64` lanes pruned
   (`pruneBound`), a stack per survivor.
