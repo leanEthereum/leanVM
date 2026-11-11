@@ -81,7 +81,7 @@ In a fold round, $F:=U_{(0,\cdot)}$ and $G:=U_{(1,\cdot)}$ are the halves whose 
 For every interleaved word $\orc$ over a domain of size $\blen$, every degree bound $\dgr<\blen$ and every agreement $\agr$ with $\agr^2>\blen\dgr$: $\ |\lst(\orc;\agr,\dgr)| \le \jl(\agr,\dgr) := \bigl\lfloor \blen(\agr-\dgr)/(\agr^2-\blen\dgr) \bigr\rfloor$. If $\agr\ge(\sqrt{\rate}+\slack)\blen$ with $\rate:=\dgr/\blen$, this is at most $\frac{1}{2\slack\sqrt{\rate}}$. (Proof in \S\ref{app:johnson}.)
 \end{theorem}
 
-\subsubsection{PCS, round-by-round soundness, and grinding}\label{sec:iopcs}
+\subsubsection{Round-by-round soundness, and grinding}\label{sec:iopcs}
 
 \begin{definition}[RBR soundness, informal; cf.~\cite{CCHLRR19,ACFY25}]\label{def:rbr}
 A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varepsilon_1, \varepsilon_2, \dots)$, one per verifier message, if there is an \emph{invariant} on partial transcripts (not necessarily efficiently computable) marking the positions where a cheating prover has already lost:
@@ -125,7 +125,7 @@ its low part $P_{\mathrm{low}}$ is a message of the code, and its high part cost
 \textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. $\mathbf{V}$ sends $z_0\leftarrow\E^{\nv}$; $\mathbf{P}$ sends $\cood{0}\in\E$ (honestly $\mle{f}(z_0)$). The \emph{OOD claim} $(\eq(z_0,\cdot),\cood{0})$ joins the claims the opening proves.
 
 \smallskip
-\textbf{Open}$\bigl(\{(W_k, c_k)\}_{k = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: $\mathbf{V}$ sends $\lambda \leftarrow \E$ (in the stacked opening, with the ring-switching challenges, \S\ref{sec:soundness-outer}). The running claim is $(W, \rc{0}) := \bigl(\sum_{k} \lambda^{k-1} W_k,\; \sum_{k} \lambda^{k-1} c_k\bigr)$, on the lanes $P_u:=\mpoly_{f(u,\cdot)}$, $u\in\cube{\ell_0}$. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
+\textbf{Open}$\bigl(\{(W_k, c_k)\}_{k = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: $\mathbf{V}$ sends $\lambda \leftarrow \E$. The running claim is $(W, \rc{0}) := \bigl(\sum_{k} \lambda^{k-1} W_k,\; \sum_{k} \lambda^{k-1} c_k\bigr)$, on the lanes $P_u:=\mpoly_{f(u,\cdot)}$, $u\in\cube{\ell_0}$. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
 \begin{enumerate}[itemsep=0.5pt,topsep=2pt]
 \item \emph{(fold rounds)} For $j = 1, \dots, \ell_i$, with running claim $(W, \rc{j-1})$, $W:\cube{\ell_i-j+1}\times\cube{\kappa}\to\E$, and lanes $P$ with $\ell_i-j+1$ lane variables, split as $F$, $G$ by the first:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
