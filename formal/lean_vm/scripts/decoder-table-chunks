@@ -286,9 +286,9 @@ def main():
     check_mods = [p.stem for p in files if p.parent == CHECK_DIR]
     files[FIREWALL] = firewall(size_mods, check_mods)
     stale = [str(p) for p, t in files.items() if not p.exists() or p.read_text() != t]
-    # The chunks of an earlier table: `C*.lean`, `Rows<k>.lean`, `Names<k>.lean` not written here.
+    # The chunks of an earlier table: `C*.lean`, `Rows<k>.lean`, `Names<k>.lean`, `Chunk<k>.lean` not written here.
     extra = sorted(p for d, pat in ((CHECK_DIR, "C*.lean"), (SIZE_DIR, "Rows[0-9]*.lean"),
-                                    (SIZE_DIR, "Names[0-9]*.lean"))
+                                    (SIZE_DIR, "Names[0-9]*.lean"), (BOUND_DIR, "Chunk[0-9]*.lean"))
                    for p in d.glob(pat) if p not in files)
     if a.check:
         if stale or extra:

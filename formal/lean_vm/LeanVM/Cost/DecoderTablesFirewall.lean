@@ -9,7 +9,6 @@ import LeanVM.Cost.DecoderSize.Rows3
 import LeanVM.Cost.DecoderSize.Rows4
 import LeanVM.Cost.DecoderSize.Rows5
 import LeanVM.Cost.DecoderSize.Rows6
-import LeanVM.Cost.DecoderSize.Rows7
 import LeanVM.Cost.DecoderSize.Names0
 import LeanVM.Cost.DecoderSize.Names1
 import LeanVM.Cost.Decoder.GuestTablesCheck.C0
@@ -38,7 +37,6 @@ import LeanVM.Cost.Decoder.GuestTablesCheck.C22
 import LeanVM.Cost.Decoder.GuestTablesCheck.C23
 import LeanVM.Cost.Decoder.GuestTablesCheck.C24
 import LeanVM.Cost.Decoder.GuestTablesCheck.C25
-import LeanVM.Cost.Decoder.GuestTablesCheck.C26
 
 /-! **The decoder's table checks read the tables alone.** The kernel evaluations of the guest
 decoder's tables (their size, `DecoderSize/Rows*.lean`, `Names*.lean`; their equality with the
