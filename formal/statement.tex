@@ -785,9 +785,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [20,30]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed,
-% STALE: the bound 2^28 below (guest_complete_numeric's hypothesis, and the leaf capacities it places under it) is not yet recomputed at the 2^30 caps
 whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
-% STALE: 2752 leanXMSS, 1002 leanSPHINCS and 58 DA rows were evaluated before the 2^30 caps and the 11-arm guest; not yet recomputed
 $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
