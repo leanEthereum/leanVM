@@ -101,9 +101,9 @@ theorem whirTabs_cost (hP : Includes P Decoder.whirTabsC.costDeps) :
   norm_num
 
 /-- A call's shape's price: the table of shapes built, its entry looked up. -/
-@[expose] def shapePrice : ℕ := 2475 + 25 + (15 * 73 + 9) + 5
+@[expose] def shapePrice : ℕ := 2447 + 25 + (15 * 72 + 9) + 5
 
-theorem oqShapeTab_length : Decoder.oqShapeTab.length = 73 := rfl
+theorem oqShapeTab_length : Decoder.oqShapeTab.length = 72 := rfl
 
 /-- **A call's shape** (`OsCallShapeC`): at most `shapePrice`. -/
 theorem osCallShape_cost (hP : Includes P Decoder.OsCallShapeC.costDeps) (c : OsCall)
