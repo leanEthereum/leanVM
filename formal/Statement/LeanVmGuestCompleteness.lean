@@ -94,13 +94,13 @@ nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each non-final level's batching challenge `λ`, `lean_ethereum.py:1644, 1781, 1787`) and, at
-each queried point `x` of a level, by each of its rounds' fold combiners `α + β·x`
-(`opening_query`, `lean_ethereum.py:1447-1449`), so a zero there makes it reject a child the
-verifier accepts. The honest child's hypothesis refuses a zero challenge anywhere
-(`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each challenge being zero with
-probability `2^-128`) and a combiner vanishing at a queried point
-(`verifyExecutionRefusingZeroCombiner`). -/
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1635, 1772, 1778`), so a zero
+there makes it reject a child the verifier accepts. The honest child's hypothesis refuses a zero
+challenge anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each
+challenge being zero with probability `2^-128`) and a fold combiner `α + β·x` vanishing at a
+queried point (`verifyExecutionRefusingZeroCombiner`), which the guest program, folding each
+opened row as `G + (α + β·x)·F` (`opening_query`, `lean_ethereum.py:1442-1454`), no longer
+divides by: a stronger hypothesis than it needs. -/
 
 /-- **`program` refusing a zero challenge**: every sampled challenge `0` fails. -/
 def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : Type} :
@@ -115,7 +115,7 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
 
 /-- **No fold combiner vanishes at a queried point**: `α + β·x ≠ 0` for every round of the level
 and every queried position, `x` the position's domain point (`opening_query`,
-`lean_ethereum.py:1447-1449`). -/
+`lean_ethereum.py:1442-1454`). -/
 def CombinersNonzero (queries : List ℕ) (rounds : List FoldRound) : Prop :=
   ∀ q ∈ queries, ∀ round ∈ rounds, round.alpha + round.beta * ofK (K.ofBits q) ≠ 0
 
@@ -134,12 +134,12 @@ def whirLevelsRefusingZeroCombiner (logN laneFolds : ℕ) (evaluateBasis : List 
     let mu := logN - s.gammas.length
     let depth := mu + level.logInvRate
     -- The opened rows' lanes in `eq_kernel` order: level 0's leaf image reversed, a deeper
-    -- level's regrouped (`whir.rs:264-271`).
+    -- level's regrouped (`whir.rs:253-260`).
     let lanesOf : List K → List E := fun row ↦
       if index = 0 then row.reverse.map ofK else extRow row
     match rest with
     | [] => do
-      -- The final level (`whir.rs:273-301`).
+      -- The final level (`whir.rs:262-290`).
       let folded ← VerifierProgram.readScalars (2 ^ mu + level.fold)
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits
       let queries ← sampleQueries depth level.queries
@@ -155,7 +155,7 @@ def whirLevelsRefusingZeroCombiner (logN laneFolds : ℕ) (evaluateBasis : List 
         (evaluateBasis (point.drop laneFolds ++ point.take laneFolds))
       VerifierProgram.require (weight * multilinearEval (folded.take (2 ^ mu)) tail = claim)
     | next :: _ => do
-      -- A non-final level (`whir.rs:304-341`).
+      -- A non-final level (`whir.rs:293-330`).
       let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
       VerifierProgram.readCommitment height width
       let high ← VerifierProgram.readScalars level.fold

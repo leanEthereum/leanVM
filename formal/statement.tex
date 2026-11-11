@@ -734,10 +734,11 @@ every zero challenge and every fold combiner $\alpha + \beta x$ vanishing at a q
 zero challenge the verifier program samples, of \lean{verifyExecutionRefusingZeroCombiner}, the
 verifier program with \lean{CombinersNonzero} required after each level's queries) accepts it with
 the deployed Keccak. The guest program divides by the fold and tail challenges and by the batching
-coefficient $\lambda$ at the stacked opening, and folds each opened row by $1/(\alpha +
-\beta x)$; refusing every zero challenge is slightly stronger, each challenge being zero with
-probability $2^{-128}$, and a combiner vanishes at a queried point with probability $2^{-128}$ for
-each round and query, the point being drawn after $\alpha$ and $\beta$. An honest proof is refused
+coefficient $\lambda$ at the stacked opening; refusing every zero challenge is slightly stronger,
+each challenge being zero with probability $2^{-128}$. It no longer divides by a fold combiner,
+so refusing a vanishing one is stronger than needed; a combiner vanishes at a queried point with
+probability $2^{-128}$ for each round and query, the point being drawn after $\alpha$ and
+$\beta$. An honest proof is refused
 with probability at most $2^{-100}$ in the RPM (\lean{HonestProofRarelyRefused} below).
 \item The budget: a bound on the run's size, below.
 \end{enumerate}
