@@ -38,8 +38,8 @@ theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : ℕ)
   exact ⟨h1, h2⟩
 
 set_option maxRecDepth 100000 in
-/-- The table of frame cells ends after `1038` functions. -/
-theorem guestLocsList_drop_end : guestLocsList.drop 1038 = [] := rfl
+/-- The table of frame cells ends after `1036` functions. -/
+theorem guestLocsList_drop_end : guestLocsList.drop 1036 = [] := rfl
 
 /-- Every frame cell is below `2^20`: the chunks' evaluations combined. -/
 theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = true := by
@@ -48,17 +48,17 @@ theorem guestLocsList_lt : guestLocsList.all (fun l ↦ l.all (· < 2 ^ 20)) = t
   refine all_of_drop _ _ 20 17 guestLocsChunk1_lt ?_
   refine all_of_drop _ _ 37 1 guestLocsChunk2_lt ?_
   refine all_of_drop _ _ 38 295 guestLocsChunk3_lt ?_
-  refine all_of_drop _ _ 333 12 guestLocsChunk4_lt ?_
-  refine all_of_drop _ _ 345 13 guestLocsChunk5_lt ?_
-  refine all_of_drop _ _ 358 129 guestLocsChunk6_lt ?_
-  refine all_of_drop _ _ 487 144 guestLocsChunk7_lt ?_
-  refine all_of_drop _ _ 631 120 guestLocsChunk8_lt ?_
-  refine all_of_drop _ _ 751 115 guestLocsChunk9_lt ?_
-  refine all_of_drop _ _ 866 116 guestLocsChunk10_lt ?_
-  refine all_of_drop _ _ 982 35 guestLocsChunk11_lt ?_
-  refine all_of_drop _ _ 1017 16 guestLocsChunk12_lt ?_
-  refine all_of_drop _ _ 1033 5 guestLocsChunk13_lt ?_
-  show (guestLocsList.drop 1038).all _ = true
+  refine all_of_drop _ _ 333 11 guestLocsChunk4_lt ?_
+  refine all_of_drop _ _ 344 13 guestLocsChunk5_lt ?_
+  refine all_of_drop _ _ 357 109 guestLocsChunk6_lt ?_
+  refine all_of_drop _ _ 466 154 guestLocsChunk7_lt ?_
+  refine all_of_drop _ _ 620 119 guestLocsChunk8_lt ?_
+  refine all_of_drop _ _ 739 122 guestLocsChunk9_lt ?_
+  refine all_of_drop _ _ 861 117 guestLocsChunk10_lt ?_
+  refine all_of_drop _ _ 978 35 guestLocsChunk11_lt ?_
+  refine all_of_drop _ _ 1013 17 guestLocsChunk12_lt ?_
+  refine all_of_drop _ _ 1030 6 guestLocsChunk13_lt ?_
+  show (guestLocsList.drop 1036).all _ = true
   rw [guestLocsList_drop_end]
   rfl
 
