@@ -5,6 +5,8 @@ out = "out"
 libs = ["dependencies"]
 solc_version = "0.8.38"
 evm_version = "osaka"
+# The gas schedule forge test runs; solc 0.8.38 compiles for amsterdam only in experimental mode.
+hardfork = "amsterdam"
 optimizer = true
 optimizer_runs = 200
 fs_permissions = [{ access = "read", path = "../../crates/signatures/tests/signatures/ethlib/xmss" }]
