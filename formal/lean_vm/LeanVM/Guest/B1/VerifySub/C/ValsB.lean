@@ -58,13 +58,13 @@ theorem vsMapsT_split : vsMapsT =
     (List.range 5).map (fun i ↦ vsCopy (597 + i) (590 + i)) ++ fsNonceT (.n 595) 0 602 ++
     [keccakA [.n 603, .n 604, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 597, .n 598, .n 599,
       .n 600, .n 601] (vsRun 605 13)] ++ vsTabsT 618 619 ++
-    [grindCallT 14 (.n 606) (.n 619), vsCopy 620 605, vsCopy 621 620] ++
+    [grindCallT 13 (.n 606) (.n 619), vsCopy 620 605, vsCopy 621 620] ++
     (List.range' 0 15).flatMap vsMapSqz ++
     (vsAlloc 847 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 847 i)) := by
   rw [vsMapsT, ← List.range_eq_range']
   rfl
 
-/-- **The ring map's challenges** (G:3677-3694): the nonce `n` at `verify_keccak`'s cursor,
+/-- **The ring map's challenges** (G:3663-3680): the nonce `n` at `verify_keccak`'s cursor,
 the grind's permutation `vsMapSt`, its cell `1` for `grind_check`, `tabs`, the sixteen
 challenges `vsRchs` at `vsCh i`, and the capacity after them at `840 .. 844`. -/
 theorem vs_maps (hl : args.length = 6) {n : E} (hn : LoadHolds rd (w 595) 0 n) :
@@ -156,7 +156,7 @@ theorem vsCtabBlock_mem {b : ℕ} (hb : b < 8) {s : Stmt} (hs : s ∈ vsCtabBloc
   rw [vsCtabT]
   exact List.mem_append_left _ (List.mem_cons_of_mem _ (List.mem_flatMap.2 ⟨b, List.mem_range.2 hb, hs⟩))
 
-/-- **`c_table`'s products** (G:3696-3704): `c[8 p + b] = f_p · g_b^(2^(8 p))`, the challenges
+/-- **`c_table`'s products** (G:3682-3690): `c[8 p + b] = f_p · g_b^(2^(8 p))`, the challenges
 `f = vsCh 0 .. 7`, `g = vsCh 8 .. 15`. -/
 theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
     ∀ p < 8, ς (.n (vsCtabD b p)) = ς (.n (vsCh p)) * ς (.n (vsCh (8 + b))) ^ 2 ^ (8 * p) := by
@@ -207,7 +207,7 @@ theorem vs_ctabV (hl : args.length = 6) {b : ℕ} (hb : b < 8) :
 theorem vs_word_gen1 : word 2 0 = gen := by
   rw [show (2 : ℕ) = 2 ^ 1 from rfl, word_two_pow (by norm_num), pow_one]
 
-/-- `rate_sel = g^(rate - 1)` (G:3591-3593). -/
+/-- `rate_sel = g^(rate - 1)` (G:3577-3579). -/
 theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : w 64 = gen ^ rate) :
     ς (.n 66) = gen ^ (rate - 1) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
@@ -218,7 +218,7 @@ theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : 
   rw [h66, h65, vs_w hl (by decide), h64, show gen⁻¹ = (gen ^ 1)⁻¹ by rw [pow_one],
     ← pow_sub₀ _ gen_ne_zero hr]
 
-/-- **The sizes** (G:3591-3610): `g^(rate - 1)` and its bound `g^3`, `g^logMem` and its bound
+/-- **The sizes** (G:3577-3596): `g^(rate - 1)` and its bound `g^3`, `g^logMem` and its bound
 `g^32`, `g^(logMem - 16)`, and `kb` in the frame: `1`, `g^logMem`, `dims_g[1 .. 6]`. -/
 theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (hm : 16 ≤ logMem)
     (h64 : w 64 = gen ^ rate) (h72 : w 72 = gen ^ logMem) :
@@ -256,7 +256,7 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
         (List.mem_map.2 ⟨t, List.mem_range.2 ht, rfl⟩)))) (by interval_cases t <;> decide +kernel),
       vs_w hl (by decide)]
 
-/-- **The stack's log's selector** (G:3632-3635): `g^(m - 22)` and its bound `g^6`. -/
+/-- **The stack's log's selector** (G:3618-3621): `g^(m - 22)` and its bound `g^6`. -/
 theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 22 ≤ m) (h276 : w 276 = gen ^ m) :
     ς (.n 278) = gen ^ (m - 22) ∧ ς (.n 279) = gen ^ 6 := by
   have hG := vsPlaceT_good (rd := rd) (w := w) hl
@@ -284,7 +284,7 @@ theorem vsPushStep_ld (b : ℕ) :
   unfold vsPushStep vsPushP vsPushD
   split <;> simp_all
 
-/-- **The push blocks' pointers** (G:3613-3617): `g_squares · kb[src]`. -/
+/-- **The push blocks' pointers** (G:3599-3603): `g_squares · kb[src]`. -/
 theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
     ς (.n (vsPushP b)) = ς (.n 4) * ς (.n (84 + Tables.blockKappaSrc.getD b 0)) := by
   have hm : vsMul (vsPushP b) 4 (84 + Tables.blockKappaSrc.getD b 0) ∈ vsPushT := by
@@ -296,7 +296,7 @@ theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
 
 /-! ## The tail -/
 
-/-- **The tail's values** (G:3732-3740): the candidate `g^(m - 22 + 7 (rate - 1))` and its bound
+/-- **The tail's values** (G:3718-3726): the candidate `g^(m - 22 + 7 (rate - 1))` and its bound
 `g^27`, the stream's pointer past `verify_keccak`'s cursor, `tabs`. -/
 theorem vs_tailV (hl : args.length = 6) {rate m : ℕ} (hr : 1 ≤ rate) (hm : 22 ≤ m)
     (h64 : w 64 = gen ^ rate) (h276 : w 276 = gen ^ m) :
@@ -373,7 +373,7 @@ theorem vsLamT_loads {d p : V} {off : ℕ} (h : Stmt.atom (.load d p off) ∈ vs
   · exact Or.inl ⟨i, hi, h.1, h.2.1, h.2.2⟩
   · exact Or.inr h
 
-/-- **`λ` and the target** (G:3713-3728): `λ` squeezed from the ring map's capacity, and the
+/-- **`λ` and the target** (G:3699-3714): `λ` squeezed from the ring map's capacity, and the
 target `dot (powers λ 137)` of `ring_switch_target`'s value, the claims kept (not an output
 lane's), the Keccak reduction's word and the out-of-domain value. -/
 theorem vs_lam (hl : args.length = 6) {claims : List ColumnClaim} (hcl : claims.length = 159)

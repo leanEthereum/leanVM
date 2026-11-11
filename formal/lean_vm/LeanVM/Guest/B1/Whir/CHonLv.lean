@@ -38,7 +38,7 @@ def cap1 : List E := roundsCap L.level.fold L.cap L.rw
 /-- The non-final level's reads (dummy at the final one). -/
 def nw : NextW := match L.d with
   | .next _ W => W
-  | .fin _ _ => ⟨0, 0, [], 0, 0, 0, 0, []⟩
+  | .fin _ _ => ⟨0, 0, [], 0, 0, 0, []⟩
 
 /-- The final level's reads (dummy at a non-final one). -/
 def fw : FinW := match L.d with
@@ -79,7 +79,7 @@ def osRec : OsRec := match L.d with
 /-- **The guest's data of a non-final level**, given the cap's root cells, the batch and the
 pointers of `sent` and the squeeze run. -/
 def midW (r0 r1 batched pS pZ : E) : MidW :=
-  ⟨L.rw, L.nw.x0, L.nw.x1, L.nw.high, L.nw.y0, L.nw.y1, L.nw.nn, L.nw.n2, r0, r1, batched, pS, pZ⟩
+  ⟨L.rw, L.nw.x0, L.nw.x1, L.nw.high, L.nw.n1, L.nw.y0, L.nw.nn, r0, r1, batched, pS, pZ⟩
 
 /-- **The guest's data of the final level**, given the cap's root cells, the batch and the
 pointers of the squeeze run and the normalized lane. -/

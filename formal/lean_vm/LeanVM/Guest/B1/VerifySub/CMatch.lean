@@ -66,7 +66,7 @@ def vsCallSkL : List (Option V × (String ⊕ (V × List String)) × List V × L
       335, 559, 6, 569, 568, 572, 570], vsNs [573, 574, 575, 576, 577, 578, 579, 580, 581, 582]),
     (none, .inl "verify_keccak", vsNs [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589],
       vsNs [590, 591, 592, 593, 594, 595, 596]),
-    (none, .inl "grind_check__L14", vsNs [606, 619], []),
+    (none, .inl "grind_check__L13", vsNs [606, 619], []),
     (none, .inl "ring_switch_target", vsNs [585, 847], vsNs [1361]),
     (none, .inr (.n 1922, vsOpenNames), vsNs [1370, 1371, 1372, 1373, 1374, 1917, 268, 271, 1928,
       1930], vsNs [1931, 1932, 1933, 1934, 1935]),
@@ -569,7 +569,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
           simp only [ChildSegs.cK]; rw [hxl]; show _ = _ + 13 + 1 + 3 * S.nT + 153; omega,
           vs_ptr_add, vs_ptr_add, vs_ptr_add, vs_ptr_add, pow_one]]
     rfl
-  · -- `grind_check__L14`
+  · -- `grind_check__L13`
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 12) (rs := []) (by norm_num) rfl
       (by rw [O.o12]; simp)⟩⟩
     show [σ (.n 606), σ (.n 619)] = [cellsOfState S.ringSt false 1, ptr sqE * gen ^ winTabAt]

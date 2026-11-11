@@ -43,10 +43,10 @@ theorem alphas_nz : ∀ (n : ℕ) (s : WhirState) (fs xs : List E), RoundsOk n f
     (∀ x ∈ s.alphas, x ≠ 0) → ∀ x ∈ (roundsSpec n s fs xs).1.alphas, x ≠ 0
   | 0, _, _, _, _, h => h
   | n + 1, s, fs, xs, ⟨_, hnz, hok⟩, h => by
-    show ∀ x ∈ (roundsSpec n (roundSpec s fs (xs.take 6)).1 (roundSponge fs (xs.take 6)).cap
-      (xs.drop 6)).1.alphas, x ≠ 0
+    show ∀ x ∈ (roundsSpec n (roundSpec s fs (xs.take 5)).1 (roundSponge fs (xs.take 5)).cap
+      (xs.drop 5)).1.alphas, x ≠ 0
     refine alphas_nz n _ _ _ hok fun x hx ↦ ?_
-    rw [show (roundSpec s fs (xs.take 6)).1.alphas = s.alphas ++ [(roundChs fs (xs.take 6)).1] from rfl]
+    rw [show (roundSpec s fs (xs.take 5)).1.alphas = s.alphas ++ [(roundChs fs (xs.take 5)).1] from rfl]
       at hx
     rcases List.mem_append.mp hx with h1 | h1
     · exact h x h1
@@ -126,7 +126,7 @@ theorem lvFin {i : ℕ} (hi : i < (osCfg (candidate μ r)).yrLevel) :
   have hs := fun c' (hc : c' < (osLv (candidate μ r) i).folds) ↦ hsScale_mid hR.m28 hn hc
   have e : finLv (osCfg (candidate μ r)) i = osLv (candidate μ r) i := osLvAt_osCfg hn
   obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -,
-    -, -, -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := hR.mid hi
+    -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := hR.mid hi
   rw [← e] at hv hs
   exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, h14, vanish_val hv, vanish_inv hv, hs⟩
 
@@ -185,7 +185,7 @@ theorem recRun_run : ∀ i < (osCfg (candidate μ r)).yrLevel, RecRun (hdOf μ r
   have hmu := hR.rec_mu hi
   have hdep' : (osLvAt (osCfg (candidate μ r)) i).depth = (Ls.getD i default).dp μ := by
     rw [hdep]; show _ = μ - (Ls.getD i default).s1.alphas.length + _; rw [hmu]
-  refine ⟨hR.rec_F hi, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hR.rec_F hi, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · show ((Ls.getD i default).osRec μ).mu = _
     rw [he]; exact hmu
   · show ((Ls.getD i default).osRec μ).qs.length = _
@@ -194,14 +194,11 @@ theorem recRun_run : ∀ i < (osCfg (candidate μ r)).yrLevel, RecRun (hdOf μ r
     rw [he]; show W.high.length = _; rw [hok.hlen, hf]; rfl
   · show ((Ls.getD i default).osRec μ).z0.length = _
     rw [he]
-    show ((W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.alphas.length)).getD 0 []).length =
+    show (W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.alphas.length)).length =
       (osLvAt (osCfg (candidate μ r)) i).logCols
-    rw [NextW.ood, List.getD_cons_zero, squeezeN_length, hmu]
-  · show ((Ls.getD i default).osRec μ).z1.length = _
-    rw [he]
-    show ((W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.alphas.length)).getD 1 []).length =
-      (osLvAt (osCfg (candidate μ r)) i).logCols
-    rw [NextW.ood, List.getD_cons_succ, List.getD_cons_zero, squeezeN_length, hmu]
+    rw [NextW.ood, oodPt_eq, List.length_cons, squeezeN_length, hmu]
+    have := hok.mu1
+    omega
   · show (Ls.getD i default).lam μ ≠ 0
     unfold LvAt.lam; rw [hd]; exact hok.lam
   · show (osLvAt (osCfg (candidate μ r)) i).queries ≤

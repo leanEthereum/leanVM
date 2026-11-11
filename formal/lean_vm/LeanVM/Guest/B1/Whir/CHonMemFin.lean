@@ -43,42 +43,29 @@ namespace OsHD
 
 variable (h : OsHD) {rd : Reader} {b : ℕ}
 
-/-- **A non-final level's out-of-domain points** in `ood_z`. -/
+/-- **A non-final level's out-of-domain point** in `ood_z`. -/
 theorem ood_rows (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {i : ℕ} (hi : i < h.c.yrLevel)
-    (hz0 : ((h.L i).osRec h.logN).z0.length = (osLvAt h.c i).logCols)
-    (hz1 : ((h.L i).osRec h.logN).z1.length = (osLvAt h.c i).logCols) :
-    ReadsAt rd (osPtrF h.c b 9 * gen ^ (oodSamples * (i + 1) * ligColsCap)) ((h.L i).osRec h.logN).z0 ∧
-      ReadsAt rd (osPtrF h.c b 9 * gen ^ ((oodSamples * (i + 1) + 1) * ligColsCap))
-        ((h.L i).osRec h.logN).z1 := by
+    (hz0 : ((h.L i).osRec h.logN).z0.length = (osLvAt h.c i).logCols) :
+    ReadsAt rd (osPtrF h.c b 9 * gen ^ ((i + 1) * ligColsCap)) ((h.L i).osRec h.logN).z0 := by
   have hyr := hS.yr
   have hc := (hS.mid hi).1
-  have h9 : (osSizesF h.c).getD 9 0 = 2 * h.c.levels.length * 22 := by
+  have h9 : (osSizesF h.c).getD 9 0 = h.c.levels.length * 22 := by
     rw [hS.head (j := 9) (by omega)]; rfl
   have hc' : (osLvAt h.c i).logCols ≤ 22 := hc
-  unfold oodSamples ligColsCap
-  have hn : (2 * (i + 1) + 1) * 22 + 22 ≤ 2 * h.c.levels.length * 22 := by
-    have : 2 * (i + 1) + 1 + 1 ≤ 2 * h.c.levels.length := by omega
+  unfold ligColsCap
+  have hn : (i + 1) * 22 + 22 ≤ h.c.levels.length * 22 := by
+    have : i + 1 + 1 ≤ h.c.levels.length := by omega
     have := Nat.mul_le_mul_right 22 this
     rw [Nat.add_mul] at this; omega
-  refine ⟨fun t ht ↦ ?_, fun t ht ↦ ?_⟩
-  · rw [← List.getD_eq_getElem _ 0 ht, loadHolds_mul_gen_pow]
-    have a := h.load hm (hS.headLt (j := 9) (by omega)) (by unfold osIxQbp; omega)
-      (e := 2 * (i + 1) * 22 + t) (by rw [h9]; omega)
-    rw [ownW_oodz, oodzC, getD_mapRange _ (by show _ < 2 * h.c.levels.length * 22; omega)] at a
-    have e1 : (2 * (i + 1) * 22 + t) / 22 = 2 * (i + 1) := by omega
-    have e2 : (2 * (i + 1) * 22 + t) % 22 = t := by omega
-    simp only [e1, e2, show 2 * (i + 1) / 2 - 1 = i by omega, show 2 ≤ 2 * (i + 1) by omega, hi, and_self,
-      show 2 * (i + 1) % 2 = 0 by omega, ↓reduceIte] at a
-    exact a
-  · rw [← List.getD_eq_getElem _ 0 ht, loadHolds_mul_gen_pow]
-    have a := h.load hm (hS.headLt (j := 9) (by omega)) (by unfold osIxQbp; omega)
-      (e := (2 * (i + 1) + 1) * 22 + t) (by rw [h9]; omega)
-    rw [ownW_oodz, oodzC, getD_mapRange _ (by show _ < 2 * h.c.levels.length * 22; omega)] at a
-    have e1 : ((2 * (i + 1) + 1) * 22 + t) / 22 = 2 * (i + 1) + 1 := by omega
-    have e2 : ((2 * (i + 1) + 1) * 22 + t) % 22 = t := by omega
-    simp only [e1, e2, show (2 * (i + 1) + 1) / 2 - 1 = i by omega, show 2 ≤ 2 * (i + 1) + 1 by omega, hi,
-      and_self, show (2 * (i + 1) + 1) % 2 = 1 by omega, one_ne_zero, ↓reduceIte] at a
-    exact a
+  intro t ht
+  rw [← List.getD_eq_getElem _ 0 ht, loadHolds_mul_gen_pow]
+  have a := h.load hm (hS.headLt (j := 9) (by omega)) (by unfold osIxQbp; omega)
+    (e := (i + 1) * 22 + t) (by rw [h9]; omega)
+  rw [ownW_oodz, oodzC, getD_mapRange _ (by show _ < h.c.levels.length * 22; omega)] at a
+  have e1 : ((i + 1) * 22 + t) / 22 = i + 1 := by omega
+  have e2 : ((i + 1) * 22 + t) % 22 = t := by omega
+  simp only [e1, e2, Nat.add_sub_cancel, show 1 ≤ i + 1 by omega, hi, and_self, ↓reduceIte] at a
+  exact a
 
 /-- **A non-final level's record in memory** (`RecStored`), at a valuation holding the head's
 pointers. -/
@@ -92,24 +79,21 @@ theorem recStored_of (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {σ : Val
     (hql : ((h.L i).osRec h.logN).qs.length = (osLvAt h.c i).queries)
     (hhl : ((h.L i).osRec h.logN).high.length = (osLvAt h.c i).folds)
     (hz0 : ((h.L i).osRec h.logN).z0.length = (osLvAt h.c i).logCols)
-    (hz1 : ((h.L i).osRec h.logN).z1.length = (osLvAt h.c i).logCols)
     (hlam0 : (h.L i).lam h.logN ≠ 0)
     (hQ : (osLvAt h.c i).queries ≤ (osLvAt h.c i).squeezes * sqPer (osLvAt h.c i))
     (hqs : ∀ k < (osLvAt h.c i).queries, ((h.L i).osRec h.logN).qs.getD k 0 =
       qwPosOf (osLvAt h.c i).depth ((h.L i).word h.logN (k / sqPer (osLvAt h.c i))) (k % sqPer (osLvAt h.c i))) :
     RecStored rd σ i (osLvAt h.c i) ((h.L i).osRec h.logN) := by
   have hyr := hS.yr
-  obtain ⟨g1, g2, g3, g4⟩ := h.mid_glue hS hm hi
-  obtain ⟨z0, z1⟩ := h.ood_rows hS hm hi hz0 hz1
+  obtain ⟨g1, g3, g4⟩ := h.mid_glue hS hm hi
+  have z0 := h.ood_rows hS hm hi hz0
   have el := (h.L i).osRec_lam h.logN
-  refine ⟨hF, hmu, hql, hhl, ?_, ?_, hz0, ?_, hz1, ?_, ?_, ?_, fun c hc ↦ ?_, fun k hk ↦ ?_⟩
+  refine ⟨hF, hmu, hql, hhl, ?_, hz0, ?_, ?_, ?_, fun c hc ↦ ?_, fun k hk ↦ ?_⟩
   · rw [h10, el]; exact g1
-  · rw [h10, el, sq]; exact g2
   · rw [h9]; exact z0
-  · rw [h9]; exact z1
-  · have e3 : (h.L i).lam h.logN ^ 3 * (h.L i).lam h.logN ^ (osLvAt h.c i).queries =
-        (h.L i).lam h.logN * (h.L i).lam h.logN * (h.L i).lam h.logN *
-          (h.L i).lam h.logN ^ (osLvAt h.c i).queries := by ring
+  · have e3 : (h.L i).lam h.logN ^ 2 * (h.L i).lam h.logN ^ (osLvAt h.c i).queries =
+        (h.L i).lam h.logN * (h.L i).lam h.logN * (h.L i).lam h.logN ^ (osLvAt h.c i).queries := by
+      ring
     rw [h6, el, e3]; exact g3
   · refine ⟨((h.L i).lam h.logN)⁻¹, ?_, ?_⟩
     · rw [h7]; exact g4

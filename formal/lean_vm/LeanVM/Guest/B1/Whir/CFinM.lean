@@ -204,33 +204,23 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
     have hL := hS.lv (ol - 1) hi
     rw [show ol - 1 + 1 = ol by omega] at hL
     simp only [OodLoads] at h
-    rcases h with ⟨s, hs, hh⟩ | h
-    · rcases hh with ⟨rfl, rfl⟩ | ⟨rfl, x, hx, rfl⟩ | ⟨x, hx, he⟩
-      · refine ⟨by show 31 < k; omega, if s = 0 then (recs.getD (ol - 1) default).lam else
-          (recs.getD (ol - 1) default).lam ^ 2, fun C rd hH ↦ ?_⟩
+    rcases h with hh | h
+    · rcases hh with ⟨rfl, ho⟩ | ⟨rfl, x, hx, rfl⟩ | ⟨x, hx, he⟩
+      · refine ⟨by show 31 < k; omega, (recs.getD (ol - 1) default).lam, fun C rd hH ↦ ?_⟩
         have hR := (hm C rd hH).stored (ol - 1) hi
-        rcases (show s = 0 ∨ s = 1 by omega) with rfl | rfl
-        · simpa [show oodSamples * (ol - 1 + 1) = oodSamples * ol + 0 by rw [show ol - 1 + 1 = ol by omega]; ring] using hR.lam1
-        · simpa [show oodSamples * (ol - 1 + 1) + 1 = oodSamples * ol + 1 by rw [show ol - 1 + 1 = ol by omega]] using hR.lam2
+        rw [ho]
+        simpa [show ol - 1 + 1 = ol by omega] using hR.lam1
       · simp only [oodCoords, List.mem_map, List.mem_range] at hx
         obtain ⟨t, ht, rfl⟩ := hx
         have hcl : (finLv c (ol - 1)).logCols - c.yrLog + c.yrLog = (finLv c (ol - 1)).logCols := by
           have := hL.pre; omega
         rw [hcl] at ht
-        refine ⟨by show 29 < k; omega, if s = 0 then (recs.getD (ol - 1) default).z0.getD t 0 else
-          (recs.getD (ol - 1) default).z1.getD t 0, fun C rd hH ↦ ?_⟩
+        refine ⟨by show 29 < k; omega, (recs.getD (ol - 1) default).z0.getD t 0, fun C rd hH ↦ ?_⟩
         have hR := (hm C rd hH).stored (ol - 1) hi
-        rcases (show s = 0 ∨ s = 1 by omega) with rfl | rfl
-        · have := readsAt_getD' hR.z0 (by rw [hR.z0len]; exact ht)
-          rw [loadHolds_mul_gen_pow] at this
-          simp only [↓reduceIte]
-          convert this using 2
-          rw [show ol - 1 + 1 = ol by omega]; simp [oodSamples]
-        · have := readsAt_getD' hR.z1 (by rw [hR.z1len]; exact ht)
-          rw [loadHolds_mul_gen_pow] at this
-          simp only [one_ne_zero, ↓reduceIte]
-          convert this using 2
-          rw [show ol - 1 + 1 = ol by omega]
+        have := readsAt_getD' hR.z0 (by rw [hR.z0len]; exact ht)
+        rw [loadHolds_mul_gen_pow] at this
+        convert this using 2
+        rw [show ol - 1 + 1 = ol by omega]
       · simp only [oodCoords, List.mem_map, List.mem_range] at hx
         obtain ⟨t, ht, rfl⟩ := hx
         have hcl : (finLv c (ol - 1)).logCols - c.yrLog + c.yrLog = (finLv c (ol - 1)).logCols := by
@@ -525,44 +515,33 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
     have htl : c.levels.tail.length = y := by simp [hy, hS.yr]
     have htail : ∀ i, c.levels.tail.getD i default = finLv c (i + 1) := fun i ↦ by
       simp only [finLv, List.getD_eq_getElem?_getD, List.getElem?_tail]
-    set zs : ℕ → ℕ → List E := fun i s ↦ if s = 0 then (r i).z0 else (r i).z1 with hzs
-    set W : ℕ → ℕ → E := fun i s ↦ (r i).lam ^ (s + 1) *
-      ∏ t ∈ Finset.range (finLv c i).logCols, (1 + (zs i s).getD t 0 + finX G T recs i t) with hW
+    set W : ℕ → E := fun i ↦ (r i).lam *
+      ∏ t ∈ Finset.range (finLv c i).logCols, (1 + (r i).z0.getD t 0 + finX G T recs i t) with hW
     have hhead : (c.levels.headD default).logCols = (fun i ↦ (finLv c i).logCols) 0 := by
       simp only [finLv, List.headD_eq_head?_getD, List.head?_eq_getElem?, List.getD_eq_getElem?_getD]
     have hok' : AllOk C rd σ' (osOodWeights c tch ((fun i ↦ (finLv c i).logCols) 0) 1 c.levels.tail none
         rs.2).1 := by rw [← hhead]; exact hok
     have hOd := osOodWeights_val (C := C) (rd := rd) (σ := σ') (c := c) (tch := tch) c.levels.tail
-      (fun i ↦ (finLv c i).logCols) 1 none rs.2 W (fun i hi s hs k hok'' ↦ by
+      (fun i ↦ (finLv c i).logCols) 1 none rs.2 W (fun i hi k hok'' ↦ by
         rw [htl] at hi
         have hL := hLF i hi
         have hR := hRS i hi
         rw [htail] at hok'' ⊢
         have hcl : (finLv c i).logCols - c.yrLog + c.yrLog = (finLv c i).logCols := by
           have := hL.pre; omega
-        have hv := osOodWeight_val (lam := (r i).lam ^ (s + 1)) (z := fun t ↦ (zs i s).getD t 0)
+        have hv := osOodWeight_val (lam := (r i).lam) (z := fun t ↦ (r i).z0.getD t 0)
           (p := finX G T recs i) (C := C) ?_ ?_ ?_ hok''
         · rw [hv, hcl]
         · rw [ha osOodSc (by show 31 < k0; omega)]
-          obtain rfl | rfl : s = 0 ∨ s = 1 := by omega
-          · simpa [add_comm 1 i] using hR.lam1
-          · simpa [add_comm 1 i] using hR.lam2
+          simpa [add_comm 1 i] using hR.lam1
         · intro t ht
           rw [hcl] at ht
           rw [ha osOodz (by show 29 < k0; omega)]
-          obtain rfl | rfl : s = 0 ∨ s = 1 := by omega
-          · have := hR.z0 t (by rw [hR.z0len]; exact ht)
-            rw [loadHolds_mul_gen_pow] at this
-            simp only [zs, ↓reduceIte, List.getD_eq_getElem _ _ (show t < (r i).z0.length by
-              rw [hR.z0len]; exact ht)]
-            convert this using 2
-            simp [oodSamples]; ring
-          · have := hR.z1 t (by rw [hR.z1len]; exact ht)
-            rw [loadHolds_mul_gen_pow] at this
-            simp only [zs, one_ne_zero, ↓reduceIte, List.getD_eq_getElem _ _ (show t < (r i).z1.length by
-              rw [hR.z1len]; exact ht)]
-            convert this using 2
-            simp [oodSamples]; ring
+          have := hR.z0 t (by rw [hR.z0len]; exact ht)
+          rw [loadHolds_mul_gen_pow] at this
+          simp only [List.getD_eq_getElem _ _ (show t < (r i).z0.length by rw [hR.z0len]; exact ht)]
+          convert this using 2
+          ring
         · intro t ht
           rw [hcl] at ht
           have hx := finX_src hS hM.fch hM.tchs hi (hS.recF i hi) t (by rw [hL.pre]; exact ht)
@@ -575,7 +554,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       (fun i hi ↦ by rw [htail]) hok'
     obtain ⟨x, hx⟩ := osOodWeights_some (c := c) (tch := tch) c.levels.tail ((fun i ↦ (finLv c i).logCols) 0) 1
       none rs.2 (by intro h; rw [h] at htl; simp at htl; omega)
-    have hacc : σ' (.n (od.2.1.getD 0)) = ∑ i ∈ Finset.range y, (W i 0 + W i 1) := by
+    have hacc : σ' (.n (od.2.1.getD 0)) = ∑ i ∈ Finset.range y, W i := by
       have := hOd
       have hodd : od = osOodWeights c tch ((fun i ↦ (finLv c i).logCols) 0) 1 c.levels.tail none rs.2 := by
         rw [hod, hhead]
@@ -585,27 +564,23 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       exact this
     -- each level's terms
     have hterms : ∀ i < y,
-        (finLsC c G T recs).getD i 0 * (finRes c G T recs li i).1 + W i 0 + W i 1 =
-          1 * (r i).lam * eqEval (r i).z0 ((G ++ T).drop (r i).F) +
-          1 * (r i).lam * (r i).lam * eqEval (r i).z1 ((G ++ T).drop (r i).F) +
-          1 * (r i).lam * (r i).lam * (r i).lam *
+        (finLsC c G T recs).getD i 0 * (finRes c G T recs li i).1 + W i =
+          (r i).lam * eqEval (r i).z0 ((G ++ T).drop (r i).F) +
+          (r i).lam * (r i).lam *
             inducedWeight (r i).mu (r i).qs (powers (r i).lam (r i).qs.length) ((G ++ T).drop (r i).F) ∧
         finBeta c recs i * (finLaC c G T recs).getD i 0 * (finRes c G T recs li i).2 =
-          T.prod * ((r i).lam ^ 3 * recH (r i) * (G.drop (r i).F).prod) := by
+          T.prod * ((r i).lam ^ 2 * recH (r i) * (G.drop (r i).F).prod) := by
       intro i hi
       have hL := hLF i hi
       have hR := hRS i hi
-      have h := lvl_terms hL hS.Gl hS.Tl hR.F hR.mu hR.qlen hR.hlen hR.z0len hR.z1len (hli i hi)
+      have h := lvl_terms hL hS.Gl hS.Tl hR.F hR.mu hR.qlen hR.hlen hR.z0len (hli i hi)
         (fun t ht ↦ finX_ne hS hi (hS.recF i hi) t (by rw [hL.pre]; exact ht))
       obtain ⟨-, el⟩ := finLsC_get (G := G) (T := T) (recs := recs) hi (by omega)
       obtain ⟨-, ea⟩ := finLaC_get (G := G) (T := T) (recs := recs) hi (by omega)
       rw [el, ea, hL.pre]
-      have w0 : W i 0 = 1 * (r i).lam * eqEval (r i).z0 ((G ++ T).drop (r i).F) := by
-        simp only [W, zs, ↓reduceIte, zero_add, pow_one]; exact h.2.2.1
-      have w1 : W i 1 = 1 * (r i).lam * (r i).lam * eqEval (r i).z1 ((G ++ T).drop (r i).F) := by
-        simp only [W, zs, one_ne_zero, ↓reduceIte]; exact h.2.2.2
+      have w0 : W i = (r i).lam * eqEval (r i).z0 ((G ++ T).drop (r i).F) := h.2.2
       refine ⟨?_, h.2.1⟩
-      rw [w0, w1]
+      rw [w0]
       have h1 := h.1
       delta finX finBeta finRes finD
       simp only [hr] at h1 ⊢
@@ -623,7 +598,6 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       simp only [finIch]
       rw [← Finset.sum_add_distrib]
       refine Finset.sum_congr rfl fun i hi ↦ ?_
-      rw [← add_assoc]
       exact (hterms i (Finset.mem_range.mp hi)).1
   · obtain ⟨⟨⟨⟨⟨⟨-, eBD, -⟩, -⟩, -⟩, -, hcalls⟩, -⟩, -⟩ := hσ'
     refine ⟨eBD, ha osQpos (by show 33 < k0; omega), ha osHs (by show 27 < k0; omega), fun l hl ↦ ?_⟩

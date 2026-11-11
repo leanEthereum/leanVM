@@ -47,7 +47,7 @@ theorem rT_liftOption {β : Type} {o : Option α} {f : α → VerifierProgram β
 /-! ## The fold rounds -/
 
 /-- **The fold rounds forward**, every round passing. -/
-theorem foldRounds_run : ∀ (n : ℕ) (s : WhirState) (fs ws : List E), ws.length = 6 * n →
+theorem foldRounds_run : ∀ (n : ℕ) (s : WhirState) (fs ws : List E), ws.length = 5 * n →
     RoundsOk n fs ws →
     RunsTo (foldRounds n s) ⟨fs, []⟩ ws (roundsSpec n s fs ws) ⟨roundsCap n fs ws, []⟩
   | 0, s, fs, ws, hl, _ => by
@@ -55,22 +55,22 @@ theorem foldRounds_run : ∀ (n : ℕ) (s : WhirState) (fs ws : List E), ws.leng
     exact runsTo_ret _ _
   | n + 1, s, fs, ws, hl, hok => by
     obtain ⟨hg, -, hok'⟩ := hok
-    obtain ⟨u0, v0, c0, v1, c1, n2, he⟩ : ∃ u0 v0 c0 v1 c1 n2,
-        ws.take 6 = [u0, v0, c0, v1, c1, n2] := by
-      have : (ws.take 6).length = 6 := by simp; omega
-      match ws.take 6, this with
-      | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
+    obtain ⟨u0, w, c0, c1, n2, he⟩ : ∃ u0 w c0 c1 n2,
+        ws.take 5 = [u0, w, c0, c1, n2] := by
+      have : (ws.take 5).length = 5 := by simp; omega
+      match ws.take 5, this with
+      | [a, b, c, d, e], _ => exact ⟨a, b, c, d, e, rfl⟩
     rw [he] at hg
-    have h1 := opening_round_run s fs u0 v0 c0 v1 c1 n2 hg
-    have ih := foldRounds_run n (roundSpec s fs (ws.take 6)).1 (roundSponge fs (ws.take 6)).cap
-      (ws.drop 6) (by simp; omega) hok'
+    have h1 := opening_round_run s fs u0 w c0 c1 n2 hg
+    have ih := foldRounds_run n (roundSpec s fs (ws.take 5)).1 (roundSponge fs (ws.take 5)).cap
+      (ws.drop 5) (by simp; omega) hok'
     rw [he] at ih
     have h := h1.bind (f := fun x ↦ match x with
         | (s, round) => do
           let (s, rounds) ← foldRounds n s
           return (s, round :: rounds))
       (ih.bind (f := fun x ↦ match x with
-        | (s', rounds) => (pure (s', (roundSpec s fs [u0, v0, c0, v1, c1, n2]).2 :: rounds) :
+        | (s', rounds) => (pure (s', (roundSpec s fs [u0, w, c0, c1, n2]).2 :: rounds) :
           VerifierProgram (WhirState × List FoldRound))) (runsTo_ret _ _))
     refine RunsTo.of_eq h rfl ?_ ?_ ?_
     · rw [← he, List.append_nil, List.take_append_drop]

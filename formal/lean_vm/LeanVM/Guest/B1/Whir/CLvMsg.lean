@@ -17,9 +17,9 @@ public import LeanVM.Guest.B1.Whir.Commit
   `ms`, the nonce and the cursor (its meaning's formula).
 * `OsStep σ σ' st st'`: a block's state moved on: its invariants, its next free value, the
   agreement below the old one.
-* `osFinalMsg_complete`: the final level's message (G:1575-1576) at its values.
+* `osFinalMsg_complete`: the final level's message (G:1570-1571) at its values.
 * `osCommit_complete`: a non-final level's message, out-of-domain points and values and query
-  nonce (G:1577-1603) at its values.
+  nonce (G:1572-1594) at its values.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -52,7 +52,7 @@ theorem osCurS_blkA {st : OsSt} (σ : Val) (hb : st.cb < st.k) (hco : st.co < u1
       (fun σ' ↦ σ' (.n (osCurS st).2.1) = σ (.n st.cb) * gen ^ st.co) :=
   BlkA.ofF _ fun _ _ _ ↦ osCurS_blk σ hb hco
 
-/-- **The final level's message, honestly** (G:1575-1576): `opening_message` with a nonce, its
+/-- **The final level's message, honestly** (G:1570-1571): `opening_message` with a nonce, its
 returns `omRets` on the carried capacity, the lane `ms` and the nonce `nn`. -/
 theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ)
@@ -118,6 +118,63 @@ theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf 
   · simp only [OsSt.cur, show (osFinalMsg c lv st).2.cb = r + 7 from rfl,
       show (osFinalMsg c lv st).2.co = 0 from rfl, pow_zero, mul_one]
     rw [e0 7 (by omega)]; simp [hrets, omRets, capOf, OsSt.cur]
+
+/-- **A call returning nothing.** -/
+theorem call0_blk {σ : Val} {k : ℕ} {f : String} {args : List ℕ} (hargs : ∀ i ∈ args, i < k)
+    (hC : ∀ C rd, H C rd → C f (args.map fun i ↦ σ (.n i)) []) :
+    BlkA H σ k k [.call f (args.map V.n) []] (fun σ' ↦ (args.map V.n).map σ' =
+      args.map fun i ↦ σ (.n i)) := by
+  refine ⟨fun _ ↦ 0, fun C rd hH σ' ha _ ↦ ?_⟩
+  have e1 : (args.map V.n).map σ' = args.map fun i ↦ σ (.n i) := by
+    simp only [List.map_map]
+    exact List.map_congr_left fun i hi ↦ ha i (hargs i hi)
+  refine ⟨?_, e1⟩
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, e1, List.map_nil]
+  exact hC C rd hH
+
+
+/-- The zero run's values. -/
+def padVals : List E := [word 1 0, word 0 0, word 0 0, word 0 0, word 0 0]
+
+/-- **The zero run**, allocated if it was not: its cells after the first zero. -/
+theorem osPad_blk (σ : Val) (pad : Option ℕ) (k : ℕ) (hp : ∀ C rd, H C rd → PadOk σ pad)
+    (hpb : ∀ p, pad = some p → p + 4 < k) :
+    BlkA H σ k (osPad pad k).2.2 (osPad pad k).1 (fun σ' ↦ PadOk σ' (some (osPad pad k).2.1)) := by
+  cases pad with
+  | some q =>
+    refine ⟨fun _ ↦ 0, fun C rd hH σ' ha _ ↦ ⟨allOk_nil, fun p hp ↦ ?_⟩⟩
+    simp only [osPad, Option.some.injEq] at hp
+    subst hp
+    have hb := hpb q rfl
+    obtain ⟨z1, z2, z3, z4⟩ := hp C rd hH q rfl
+    rw [ha _ (by omega), ha _ (by omega), ha _ (by omega), ha _ (by omega)]
+    exact ⟨z1, z2, z3, z4⟩
+  | none =>
+    refine ⟨lstF k padVals, fun C rd hH σ' ha hr ↦ ?_⟩
+    have v : ∀ j < 5, σ' (.n (k + j)) = padVals.getD j 0 := fun j hj ↦
+      lstF_at hr (by simp [osPad, padVals]) j (by simp [padVals]; omega)
+    have v0 := v 0 (by omega)
+    have v1 := v 1 (by omega)
+    have v2 := v 2 (by omega)
+    have v3 := v 3 (by omega)
+    have v4 := v 4 (by omega)
+    simp only [padVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero,
+      word_zero] at v0 v1 v2 v3 v4
+    refine ⟨?_, fun p hp ↦ ?_⟩
+    · simp only [osPad, allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, osCst, v0, v1, v2,
+        v3, v4, word_zero]
+    · simp only [osPad, Option.some.injEq] at hp
+      subst hp
+      exact ⟨v1, v2, v3, v4⟩
+
+theorem osPad_next (pad : Option ℕ) (k : ℕ) : k ≤ (osPad pad k).2.2 := by
+  cases pad <;> simp [osPad]
+
+theorem osPad_ptr (pad : Option ℕ) (k : ℕ) (hpb : ∀ p, pad = some p → p + 4 < k) :
+    (osPad pad k).2.1 + 4 < (osPad pad k).2.2 ∨ ((osPad pad k).2.1 + 4 < k) := by
+  cases pad with
+  | some q => right; exact hpb q rfl
+  | none => left; simp [osPad]
 
 end
 end LeanVM.Guest.B1.Whir

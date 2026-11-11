@@ -30,9 +30,9 @@ def RoundsC (C : CallRel) (fch coefs tabs : E) : ℕ → ℕ → List E → E �
   | 0, _, _, _, _, _ => True
   | n + 1, i, fs, cl, cur, xs =>
     C "opening_round" (fs ++ [cur, cl, tabs, fch * gen ^ i, coefs * gen ^ (2 * i)])
-        (roundRets fs cur cl (xs.take 6)) ∧
-      RoundsC C fch coefs tabs n (i + 1) ((roundRets fs 0 cl (xs.take 6)).take 5)
-        ((roundRets fs 0 cl (xs.take 6)).getD 6 0) (cur * gen ^ 6) (xs.drop 6)
+        (roundRets fs cur cl (xs.take 5)) ∧
+      RoundsC C fch coefs tabs n (i + 1) ((roundRets fs 0 cl (xs.take 5)).take 5)
+        ((roundRets fs 0 cl (xs.take 5)).getD 6 0) (cur * gen ^ 5) (xs.drop 5)
 
 /-- The state after a round lies below its next free value. -/
 theorem osRound_below (P : List (ℕ × ℕ × ℕ)) (i : ℕ) (st : OsSt) (hb : st.Below) (hk : 36 ≤ st.k) :
@@ -77,7 +77,7 @@ theorem osRounds_completeA {P : List (ℕ × ℕ × ℕ)} :
       matsOk_agree (hm C rd hH) hb.mats fun i hi ↦ ha i hi, rfl, le_rfl⟩
   | succ n ih =>
     intro i st σ xs hco hi hb hm hk hfs hR
-    set w := xs.take 6 with hw
+    set w := xs.take 5 with hw
     have hA : BlkA H σ st.k (osRound P i st).2.k (osRound P i st).1
         (fun σ' ↦ RoundOut σ σ' st (osRound P i st).2 w ∧ AgreeBelow st.k σ σ') :=
       BlkA.ofF (osRoundF P i st w σ) fun C rd hH ↦
@@ -93,11 +93,11 @@ theorem osRounds_completeA {P : List (ℕ × ℕ × ℕ)} :
     set fsv := st.fsv σ with hfsv
     set cl := σ (.n st.claim) with hcl
     have hRt : roundsTr (n + 1) fsv cl xs =
-        roundsTr n ((roundRets fsv 0 cl w).take 5) ((roundRets fsv 0 cl w).getD 6 0) (xs.drop 6) :=
+        roundsTr n ((roundRets fsv 0 cl w).take 5) ((roundRets fsv 0 cl w).getD 6 0) (xs.drop 5) :=
       rfl
     refine BlkA.mono (BlkA.seq hk1 hk2 hA fun σ1 ha1 ho1 ↦ ?_) fun σ' ⟨⟨_, ha'⟩, ho⟩ ↦ ⟨ho, ha'⟩
     have sb : st1.Below := osRound_below P i st hb hk
-    have hih := ih (i + 1) st1 σ1 (xs.drop 6) (by show 0 < u128Bound; unfold u128Bound; positivity)
+    have hih := ih (i + 1) st1 σ1 (xs.drop 5) (by show 0 < u128Bound; unfold u128Bound; positivity)
       (by omega) sb (fun C rd hH ↦ (ho1 C rd hH).1.mats) (le_trans hk hk1) rfl fun C rd hH ↦ by
         obtain ⟨ro, ha1'⟩ := ho1 C rd hH
         have ef : st1.fsv σ1 = (roundRets fsv 0 cl w).take 5 := by

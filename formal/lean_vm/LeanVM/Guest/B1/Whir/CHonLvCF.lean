@@ -77,25 +77,25 @@ theorem finC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {lane : ℕ} {
   have p4 : σ (.n osFch) = osPtrF h.c b 4 := hp 4 (by norm_num)
   have p5 : σ (.n osCoefs) = osPtrF h.c b 5 := hp 5 (by norm_num)
   -- the level's words
-  have hrwl : rw.length = 6 * (osLvAt h.c h.c.yrLevel).folds := by rw [hrl7, hfold]
+  have hrwl : rw.length = 5 * (osLvAt h.c h.c.yrLevel).folds := by rw [hrl7, hfold]
   have hfl : W'.fold.length = h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds := by rw [← hLfw]; exact hlane
   have hxs' : h.Lf.xs = rw ++ (W'.fold ++ ([W'.nn] ++ tailWords W'.pairs)) := by
     rw [hxsL]; simp [FinW.words]
-  have hlen : h.Lf.xs.length = 6 * (osLvAt h.c h.c.yrLevel).folds +
+  have hlen : h.Lf.xs.length = 5 * (osLvAt h.c h.c.yrLevel).folds +
       (h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds) + 1 + (tailWords W'.pairs).length := by
     rw [hxs']; simp [hrwl, hfl]; omega
   have e0 : ((h.Lf.xs.drop 0).take rw.length) = rw := by
     rw [hxs', List.drop_zero, List.take_left' rfl]
-  have e1 : ((h.Lf.xs.drop (6 * (osLvAt h.c h.c.yrLevel).folds)).take W'.fold.length) = W'.fold := by
+  have e1 : ((h.Lf.xs.drop (5 * (osLvAt h.c h.c.yrLevel).folds)).take W'.fold.length) = W'.fold := by
     rw [hxs']; exact seg_eq hrwl.symm
-  have e2 : ((h.Lf.xs.drop (6 * (osLvAt h.c h.c.yrLevel).folds + W'.fold.length)).take 1) = [W'.nn] := by
+  have e2 : ((h.Lf.xs.drop (5 * (osLvAt h.c h.c.yrLevel).folds + W'.fold.length)).take 1) = [W'.nn] := by
     rw [hxs', ← List.append_assoc]
     exact seg_eq (B := [W'.nn]) (by simp [hrwl])
   have r0 := segR hrdx hsuf (k := 0) (m := rw.length) (by omega)
   rw [e0, Nat.add_zero] at r0
-  have r1 := segR hrdx hsuf (k := 6 * (osLvAt h.c h.c.yrLevel).folds) (m := W'.fold.length) (by omega)
+  have r1 := segR hrdx hsuf (k := 5 * (osLvAt h.c h.c.yrLevel).folds) (m := W'.fold.length) (by omega)
   rw [e1] at r1
-  have r2 := segR hrdx hsuf (k := 6 * (osLvAt h.c h.c.yrLevel).folds + W'.fold.length) (m := 1) (by omega)
+  have r2 := segR hrdx hsuf (k := 5 * (osLvAt h.c h.c.yrLevel).folds + W'.fold.length) (m := 1) (by omega)
   rw [e2] at r2
   have hqS : h.Lf.qS h.logN = W'.qS (rsF h.Lf.level h.Lf.cap rw) := by
     simp only [LvAt.qS, hd, LvAt.F, hLrw]

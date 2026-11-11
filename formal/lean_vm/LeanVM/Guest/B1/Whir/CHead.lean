@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.CBlk
 
 /-!
-# The head, honestly (G:1530-1565)
+# The head, honestly (G:1526-1560)
 
 `headSizes c`: the fixed buffers' sizes in allocation order (`osSizesF c`'s first thirteen);
 `headVals c P`: the values `10 .. 35`, each buffer's size `g^size` then its pointer `P i`.
@@ -31,14 +31,14 @@ variable {H : CallRel → Reader → Prop}
 def headSizes (c : OsCfg) : List ℕ :=
   [4 * c.capLen, c.capLen, c.yrLen + (c.levels.getD c.yrLevel default).folds, 2 * c.levels.length,
     c.nFolds, 2 * c.nFolds, c.levels.length, c.levels.length, c.levels.length * hsStride,
-    oodSamples * c.levels.length * ligColsCap, oodSamples * c.levels.length, c.posLen, c.posLen]
+    c.levels.length * ligColsCap, c.levels.length, c.posLen, c.posLen]
 
 /-- The head's values from `10`: each buffer's size word, then its pointer. -/
 def headVals (c : OsCfg) (P : ℕ → E) : List E :=
   [gw (4 * c.capLen), P 0, gw c.capLen, P 1, gw (c.yrLen + (c.levels.getD c.yrLevel default).folds), P 2,
     gw (2 * c.levels.length), P 3, gw c.nFolds, P 4, gw (2 * c.nFolds), P 5, gw c.levels.length, P 6,
     gw c.levels.length, P 7, gw (c.levels.length * hsStride), P 8,
-    gw (oodSamples * c.levels.length * ligColsCap), P 9, gw (oodSamples * c.levels.length), P 10,
+    gw (c.levels.length * ligColsCap), P 9, gw c.levels.length, P 10,
     gw c.posLen, P 11, gw c.posLen, P 12]
 
 theorem headVals_length (c : OsCfg) (P : ℕ → E) : (headVals c P).length = 26 := rfl
@@ -55,7 +55,7 @@ theorem osHead_sf (c : OsCfg) : (osHead c).2.Sf := by
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hf'
   omega
 
-/-- **The head, honestly** (G:1530-1565): the fixed buffers at the pointers `P i`, the root's two
+/-- **The head, honestly** (G:1526-1560): the fixed buffers at the pointers `P i`, the root's two
 cells stored in `level_roots` (`P 3`). -/
 theorem osHead_complete (c : OsCfg) (σ : Val) (P : ℕ → E)
     (hr : ∀ C rd, H C rd → LoadHolds rd (P 3) 0 (σ (.n 6)) ∧ LoadHolds rd (P 3) 1 (σ (.n 7))) :

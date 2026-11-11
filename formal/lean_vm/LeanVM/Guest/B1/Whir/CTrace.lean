@@ -32,19 +32,19 @@ inductive LvD where
 def LvsRunD (logN lane : ℕ) : ℕ → List Whir.Level → WhirState → List E → List (Digest × ℕ × ℕ) →
     List E → List (List Opening) → WhirEnd → List LvD → Prop
   | index, [level], s, cap, R, xs, os, w, [LvD.fin rw W] =>
-    rw.length = 6 * level.fold ∧ RoundsOk level.fold cap rw ∧
+    rw.length = 5 * level.fold ∧ RoundsOk level.fold cap rw ∧
       xs = rw ++ W.words ∧ os = [W.phase] ∧
       FinOk logN index level (rsSt level s cap rw) (rsRounds level s cap rw) (rsF level cap rw) R W ∧
       w = W.wend logN lane level (rsSt level s cap rw) (rsF level cap rw)
   | index, level :: next :: rest, s, cap, R, xs, os, w, LvD.next rw W :: ds =>
     ∃ (xs' : List E) (os' : List (List Opening)),
-      rw.length = 6 * level.fold ∧ RoundsOk level.fold cap rw ∧
+      rw.length = 5 * level.fold ∧ RoundsOk level.fold cap rw ∧
       xs = rw ++ W.words ++ xs' ∧ os = W.phase :: os' ∧
       NextOk logN index level (rsSt level s cap rw) (rsF level cap rw) R W ∧
       LvsRunD logN lane (index + 1) (next :: rest)
         (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-        (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
-          (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+        (W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+          (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).squeeze.2.cap
         (W.roots (logN - (rsSt level s cap rw).alphas.length) next R) xs' os' w ds
   | _, _, _, _, _, _, _, _, _ => False
 

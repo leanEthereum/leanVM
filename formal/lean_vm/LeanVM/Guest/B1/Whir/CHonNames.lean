@@ -29,14 +29,13 @@ def HonNames (c : OsCfg) : Prop :=
   let lv := osLvAt c
   osKindOf "opening_round" = some .round ∧ osKindOf "opening_tail_round" = some .tail ∧
   osKindOf ("grind_check__L" ++ natStr queryGrind) = some (.grind queryGrind) ∧
-  osKindOf ("grind_check__L" ++ natStr batchGrind) = some (.grind batchGrind) ∧
+  osKindOf ("grind_check__L" ++ natStr levelOodGrind) = some (.grind levelOodGrind) ∧
   osKindOf ("fold_final_msg__L" ++ natStr c.yrLog) = some (.ffm c.yrLog) ∧
   osKindOf ("opening_message__L" ++ natStr (c.yrLen + (lv c.yrLevel).folds) ++ "_L1") =
     some (.msg (c.yrLen + (lv c.yrLevel).folds) 1) ∧
   (∀ l < c.yrLevel,
-    osKindOf ("opening_message__L" ++ natStr (2 + (lv l).folds) ++ "_L0") = some (.msg (2 + (lv l).folds) 0) ∧
-    osKindOf ("squeeze_point_from__L" ++ natStr (lv l).logCols) = some (.spf (lv l).logCols) ∧
-    osKindOf ("squeeze_point__L" ++ natStr (lv l).logCols) = some (.sp (lv l).logCols)) ∧
+    osKindOf ("opening_message__L" ++ natStr (2 + (lv l).folds) ++ "_L1") = some (.msg (2 + (lv l).folds) 1) ∧
+    osKindOf ("squeeze_point_from__L" ++ natStr (lv l).logCols) = some (.spf (lv l).logCols)) ∧
   (∀ l < c.yrLevel, osKindOf (c.resLoop l) = none) ∧
   ∀ l < c.levels.length,
     osKindOf ("verify_merkle_cap__L" ++ natStr (lv l).capDepth) = some (.cap (lv l).capDepth) ∧

@@ -146,9 +146,9 @@ def coefsC : List E := (List.range (2 * h.c.nFolds)).map fun e ↦
   let r := h.allRounds.getD (e / 2) ⟨0, 0⟩
   if e % 2 = 0 then r.alpha else r.beta
 
-/-- `level_betas`: `λ³·λ^Q`. -/
+/-- `level_betas`: `λ²·λ^Q`. -/
 def betasC : List E := (List.range h.c.levels.length).map fun i ↦
-  if i < h.c.yrLevel then ((h.L i).lam h.logN) ^ 3 * ((h.L i).lam h.logN) ^ (h.lv i).queries else 0
+  if i < h.c.yrLevel then ((h.L i).lam h.logN) ^ 2 * ((h.L i).lam h.logN) ^ (h.lv i).queries else 0
 
 /-- `level_mus`: `λ⁻¹`. -/
 def musC : List E := (List.range h.c.levels.length).map fun i ↦
@@ -162,19 +162,16 @@ def hsC : List E := (List.range (h.c.levels.length * hsStride)).map fun e ↦
         (vanishInv ((h.lv (e / hsStride)).vanish + (h.lv (e / hsStride)).logCols))) 0
   else 0
 
-/-- `ood_z`: row `2(i + 1)` level `i`'s first out-of-domain point, row `2(i + 1) + 1` its second. -/
-def oodzC : List E := (List.range (oodSamples * h.c.levels.length * ligColsCap)).map fun e ↦
+/-- `ood_z`: row `i + 1` level `i`'s out-of-domain point. -/
+def oodzC : List E := (List.range (h.c.levels.length * ligColsCap)).map fun e ↦
   let row := e / ligColsCap
-  let i := row / 2 - 1
-  if 2 ≤ row ∧ i < h.c.yrLevel then
-    (if row % 2 = 0 then ((h.L i).osRec h.logN).z0 else ((h.L i).osRec h.logN).z1).getD (e % ligColsCap) 0
+  if 1 ≤ row ∧ row - 1 < h.c.yrLevel then
+    ((h.L (row - 1)).osRec h.logN).z0.getD (e % ligColsCap) 0
   else 0
 
-/-- `ood_scalars`: `λ`, `λ²` at `2(i + 1)`, `2(i + 1) + 1`. -/
-def oodC : List E := (List.range (oodSamples * h.c.levels.length)).map fun e ↦
-  if 2 ≤ e ∧ e / 2 - 1 < h.c.yrLevel then
-    (if e % 2 = 0 then (h.L (e / 2 - 1)).lam h.logN else ((h.L (e / 2 - 1)).lam h.logN) ^ 2)
-  else 0
+/-- `ood_scalars`: `λ` at `i + 1`. -/
+def oodC : List E := (List.range h.c.levels.length).map fun e ↦
+  if 1 ≤ e ∧ e - 1 < h.c.yrLevel then (h.L (e - 1)).lam h.logN else 0
 
 /-- `query_positions`: each level's positions from its offset. -/
 def qposC : List E :=

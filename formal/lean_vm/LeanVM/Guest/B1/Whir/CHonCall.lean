@@ -19,7 +19,7 @@ are fixed (`OsFixedF`): `FixedAt p m`, the `m` words at `p` the same on every me
 caller's words, from the cursor's words (`fixedAt_cur`) or a buffer's (`fixedAt_buf`).
 
 Per kind, its meaning at the guest's honest arguments and returns: `om_pre` (`opening_message`),
-`spf_pre`, `sp_pre`, `grind_pre`, `tail_pre`, `ffm_pre`.
+`spf_pre`, `grind_pre`, `tail_pre`, `ffm_pre`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -116,13 +116,6 @@ theorem spf_pre {cap : List E} {first p : E} {n : ℕ} (hc : cap.length = 5)
   obtain ⟨f0, f1, f2, f3, f4, rfl⟩ := five_of hc
   exact ⟨hr, rfl⟩
 
-/-- `squeeze_point`. -/
-theorem sp_pre {cap : List E} {p : E} {n : ℕ} (hc : cap.length = 5)
-    (hr : ReadsAt rd p ((⟨cap, []⟩ : Fs).squeezeN n).1) :
-    MeaningSqueezePoint n rd (cap ++ [p]) ((⟨cap, []⟩ : Fs).squeezeN n).2.cap := by
-  obtain ⟨f0, f1, f2, f3, f4, rfl⟩ := five_of hc
-  exact ⟨hr, rfl⟩
-
 /-- `grind_check`. -/
 theorem grind_pre {bits : ℕ} {w : E} (ht : WinTabs rd tabs) (hw : (w.limb 0).lane.toNat % 2 ^ bits = 0) :
     grindPre bits rd [w, tabs] [] :=
@@ -155,9 +148,9 @@ theorem roundsC_of {cur0 : E} {xs0 : List E} {fch coefs : E}
     (hR : ∀ a r, MeaningOpeningRound rd a r → WinTabs rd (a.getD 7 0) →
       (∀ q ∈ OsKind.round.spec, FixedAt c b own cur0 tabs xs0 (a.getD q.1 0) q.2) →
       C "opening_round" a r) (ht : WinTabs rd tabs) :
-    ∀ (n i : ℕ) (fs : List E) (cl cur : E) (ws : List E), fs.length = 5 → ws.length = 6 * n →
+    ∀ (n i : ℕ) (fs : List E) (cl cur : E) (ws : List E), fs.length = 5 → ws.length = 5 * n →
       ReadsAt rd cur ws → RoundsMem rd fch coefs n i fs cl ws →
-      (∀ j < n, FixedAt c b own cur0 tabs xs0 (cur * gen ^ (6 * j)) 6 ∧
+      (∀ j < n, FixedAt c b own cur0 tabs xs0 (cur * gen ^ (5 * j)) 5 ∧
         FixedAt c b own cur0 tabs xs0 (fch * gen ^ (i + j)) 1 ∧
         FixedAt c b own cur0 tabs xs0 (coefs * gen ^ (2 * (i + j))) 2) →
       RoundsC C fch coefs tabs n i fs cl cur ws
@@ -165,18 +158,18 @@ theorem roundsC_of {cur0 : E} {xs0 : List E} {fch coefs : E}
   | n + 1, i, fs, cl, cur, ws, hfs, hwl, hrd, hm, hfx => by
     obtain ⟨hg, lg, la, lb, hm'⟩ := hm
     obtain ⟨f0, f1, f2, f3, f4, rfl⟩ := five_of hfs
-    have hx7 : (ws.take 6).length = 6 := by simp [hwl]
-    have hrd0 : ReadsAt rd cur (ws.take 6) := fun j hj ↦ by
+    have hx7 : (ws.take 5).length = 5 := by simp [hwl]
+    have hrd0 : ReadsAt rd cur (ws.take 5) := fun j hj ↦ by
       have := hrd j (by simp at hj; omega)
       simpa [List.getElem_take] using this
-    have hrd1 : ReadsAt rd (cur * gen ^ 6) (ws.drop 6) := by
-      have := readsAt_shift hrd 6 (ws.length - 6) (by omega)
+    have hrd1 : ReadsAt rd (cur * gen ^ 5) (ws.drop 5) := by
+      have := readsAt_shift hrd 5 (ws.length - 5) (by omega)
       rwa [List.take_of_length_le (by simp)] at this
     refine ⟨hR _ _ (round_meaning hx7 hrd0 hg lg la lb) ht ?_, ?_⟩
     · obtain ⟨f1', f2', f3'⟩ := hfx 0 (by omega)
       simp only [Nat.mul_zero, pow_zero, mul_one, Nat.add_zero] at f1' f2' f3'
       intro q hq
-      rw [show OsKind.round.spec = [(5, 6), (8, 1), (9, 2)] from rfl] at hq
+      rw [show OsKind.round.spec = [(5, 5), (8, 1), (9, 2)] from rfl] at hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       rcases hq with rfl | rfl | rfl
       · exact f1'
@@ -186,7 +179,7 @@ theorem roundsC_of {cur0 : E} {xs0 : List E} {fch coefs : E}
         fun j hj ↦ ?_
       obtain ⟨a1, a2, a3⟩ := hfx (j + 1) (by omega)
       refine ⟨?_, ?_, ?_⟩
-      · rw [mul_gen_pow_add, show 6 + 6 * j = 6 * (j + 1) by ring]; exact a1
+      · rw [mul_gen_pow_add, show 5 + 5 * j = 5 * (j + 1) by ring]; exact a1
       · rw [show i + 1 + j = i + (j + 1) by ring]; exact a2
       · rw [show 2 * (i + 1 + j) = 2 * (i + (j + 1)) by ring]; exact a3
 

@@ -123,39 +123,39 @@ theorem osMatS_k (P : List (ℕ × ℕ × ℕ)) (base off : ℕ) (s : OsSt) :
 
 /-! ## One round -/
 
-/-- `opening_round`'s returns on the capacity `fs`, the cursor, the claim and its six words. -/
+/-- `opening_round`'s returns on the capacity `fs`, the cursor, the claim and its five words. -/
 def roundRets (fs : List E) (cur claim : E) (xs : List E) : List E :=
-  let m := [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0, xs.getD 4 0]
-  let n2 := xs.getD 5 0
+  let m := [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0]
+  let n2 := xs.getD 4 0
   let ga := rdG2 fs m n2
   let gb := ga.2.squeeze
-  gb.2.cap ++ [cur * gen ^ 6, roundClaim claim ga.1 gb.1
-    (xs.getD 0 0) (xs.getD 1 0) (xs.getD 2 0) (xs.getD 3 0) (xs.getD 4 0)]
+  gb.2.cap ++ [cur * gen ^ 5, roundClaim claim ga.1 gb.1
+    (xs.getD 0 0) (xs.getD 1 0) (xs.getD 2 0) (xs.getD 3 0)]
 
 /-- The round's point coordinate `α`, then its `α`, `β`. -/
 def roundChs (fs xs : List E) : E × E × E :=
-  let m := [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0, xs.getD 4 0]
-  let n2 := xs.getD 5 0
+  let m := [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0]
+  let n2 := xs.getD 4 0
   ((rdG2 fs m n2).1, (rdG2 fs m n2).1, (rdG2 fs m n2).2.squeeze.1)
 
 /-- The round's grind passes. -/
 def RoundGrinds (fs xs : List E) : Prop :=
-  (rdS2 fs [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0, xs.getD 4 0]).GrindOk
-    _root_.LeanVM.Parameters.Whir.foldGrindingBits (xs.getD 5 0)
+  (rdS2 fs [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0]).GrindOk
+    _root_.LeanVM.Parameters.Whir.foldGrindingBits (xs.getD 4 0)
 
 /-- **`opening_round`'s meaning at its returns**, on memory holding its words, its challenges'
 slots and its grind passing. -/
-theorem round_meaning {f0 f1 f2 f3 f4 cur claim tabs gp cp : E} {xs : List E} (hxl : xs.length = 6)
+theorem round_meaning {f0 f1 f2 f3 f4 cur claim tabs gp cp : E} {xs : List E} (hxl : xs.length = 5)
     (hrd : ReadsAt rd cur xs) (hg : RoundGrinds [f0, f1, f2, f3, f4] xs)
     (hγ : LoadHolds rd gp 0 (roundChs [f0, f1, f2, f3, f4] xs).1)
     (hα : LoadHolds rd cp 0 (roundChs [f0, f1, f2, f3, f4] xs).2.1)
     (hβ : LoadHolds rd cp 1 (roundChs [f0, f1, f2, f3, f4] xs).2.2) :
     MeaningOpeningRound rd [f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp]
       (roundRets [f0, f1, f2, f3, f4] cur claim xs) := by
-  obtain ⟨u0, v0, c0, v1, c1, n2, rfl⟩ : ∃ u0 v0 c0 v1 c1 n2, xs = [u0, v0, c0, v1, c1, n2] := by
+  obtain ⟨u0, w, c0, c1, n2, rfl⟩ : ∃ u0 w c0 c1 n2, xs = [u0, w, c0, c1, n2] := by
     match xs, hxl with
-    | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
-  exact ⟨u0, v0, c0, v1, c1, n2, hrd, hg, hγ, hα, hβ, rfl⟩
+    | [a, b, c, d, e], _ => exact ⟨a, b, c, d, e, rfl⟩
+  exact ⟨u0, w, c0, c1, n2, hrd, hg, hγ, hα, hβ, rfl⟩
 
 theorem osMat_ptr_lt (base off k : ℕ) (hb : base < k) : (osMat base off k).2.1 < (osMat base off k).2.2 := by
   unfold osMat; split_ifs <;> dsimp only <;> omega
@@ -170,7 +170,7 @@ def roundF (fs : List E) (cur claim : E) (xs : List E) : Fs := ⟨(roundRets fs 
 /-- What a round leaves. -/
 structure RoundOut (σ σ' : Val) (st st' : OsSt) (xs : List E) : Prop where
   F : st'.F σ' = roundF (st.fsv σ) (st.cur σ) (σ (.n st.claim)) xs
-  cur : st'.cur σ' = st.cur σ * gen ^ 6
+  cur : st'.cur σ' = st.cur σ * gen ^ 5
   claim : σ' (.n st'.claim) = (roundRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) xs).getD 6 0
   fs : st'.fs.length = 5
   co : st'.co = 0
@@ -303,20 +303,20 @@ rounds' capacity and claim. -/
 def roundsTr : ℕ → List E → E → List E → List E × E
   | 0, fs, cl, _ => (fs, cl)
   | n + 1, fs, cl, xs =>
-    roundsTr n ((roundRets fs 0 cl (xs.take 6)).take 5) ((roundRets fs 0 cl (xs.take 6)).getD 6 0)
-      (xs.drop 6)
+    roundsTr n ((roundRets fs 0 cl (xs.take 5)).take 5) ((roundRets fs 0 cl (xs.take 5)).getD 6 0)
+      (xs.drop 5)
 
 /-- What the memory holds for `n` rounds from `i`: each round's grind passes, its `α` at
 `fch·g^i`, its `α, β` at `coefs·g^(2i)`. -/
 def RoundsMem (rd : Reader) (fch coefs : E) : ℕ → ℕ → List E → E → List E → Prop
   | 0, _, _, _, _ => True
   | n + 1, i, fs, cl, xs =>
-    RoundGrinds fs (xs.take 6) ∧
-      LoadHolds rd (fch * gen ^ i) 0 (roundChs fs (xs.take 6)).1 ∧
-      LoadHolds rd (coefs * gen ^ (2 * i)) 0 (roundChs fs (xs.take 6)).2.1 ∧
-      LoadHolds rd (coefs * gen ^ (2 * i)) 1 (roundChs fs (xs.take 6)).2.2 ∧
-      RoundsMem rd fch coefs n (i + 1) ((roundRets fs 0 cl (xs.take 6)).take 5)
-        ((roundRets fs 0 cl (xs.take 6)).getD 6 0) (xs.drop 6)
+    RoundGrinds fs (xs.take 5) ∧
+      LoadHolds rd (fch * gen ^ i) 0 (roundChs fs (xs.take 5)).1 ∧
+      LoadHolds rd (coefs * gen ^ (2 * i)) 0 (roundChs fs (xs.take 5)).2.1 ∧
+      LoadHolds rd (coefs * gen ^ (2 * i)) 1 (roundChs fs (xs.take 5)).2.2 ∧
+      RoundsMem rd fch coefs n (i + 1) ((roundRets fs 0 cl (xs.take 5)).take 5)
+        ((roundRets fs 0 cl (xs.take 5)).getD 6 0) (xs.drop 5)
 
 theorem roundRets_take (fs : List E) (cur cur' cl : E) (xs : List E) :
     (roundRets fs cur cl xs).take 5 = (roundRets fs cur' cl xs).take 5 := by
@@ -329,7 +329,7 @@ theorem roundRets_claim (fs : List E) (cur cur' cl : E) (xs : List E) :
 /-- What the rounds leave. -/
 structure RoundsOut (σ σ' : Val) (st st' : OsSt) (r : List E × E) (n : ℕ) : Prop where
   F : st'.F σ' = ⟨r.1, []⟩
-  cur : st'.cur σ' = st.cur σ * gen ^ (6 * n)
+  cur : st'.cur σ' = st.cur σ * gen ^ (5 * n)
   claim : σ' (.n st'.claim) = r.2
   fs : st'.fs.length = 5
   co : st'.co < u128Bound
@@ -353,14 +353,14 @@ theorem osRounds_k (P : List (ℕ × ℕ × ℕ)) : ∀ (n i : ℕ) (st : OsSt),
 def roundsF (P : List (ℕ × ℕ × ℕ)) : ℕ → ℕ → OsSt → List E → Val → ℕ → E
   | 0, _, _, _, _ => fun _ ↦ 0
   | n + 1, i, st, xs, σ =>
-    seqF σ st.k (osRound P i st).2.k (osRoundF P i st (xs.take 6) σ)
-      (fun σ1 ↦ roundsF P n (i + 1) (osRound P i st).2 (xs.drop 6) σ1)
+    seqF σ st.k (osRound P i st).2.k (osRoundF P i st (xs.take 5) σ)
+      (fun σ1 ↦ roundsF P n (i + 1) (osRound P i st).2 (xs.drop 5) σ1)
 
 /-- **`n` rounds, honestly.** -/
 theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
     (hC : ∀ a r, MeaningOpeningRound rd a r → C "opening_round" a r) :
     ∀ (n i : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.co < u128Bound → 2 * (i + n) < u128Bound →
-      st.Below → MatsOk σ st.mats → 36 ≤ st.k → st.fs.length = 5 → xs.length = 6 * n →
+      st.Below → MatsOk σ st.mats → 36 ≤ st.k → st.fs.length = 5 → xs.length = 5 * n →
       ReadsAt rd (st.cur σ) xs →
       RoundsMem rd (σ (.n osFch)) (σ (.n osCoefs)) n i (st.fsv σ) (σ (.n st.claim)) xs →
       BlkF C rd σ st.k (osRounds P i n st).2.k (roundsF P n i st xs σ) (osRounds P i n st).1
@@ -378,13 +378,13 @@ theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
   | succ n ih =>
     intro i st σ xs hco hi hb hm hk hfs hxl hrd hmem
     obtain ⟨hg, lg, la, lb, hmem'⟩ := hmem
-    have hx7 : (xs.take 6).length = 6 := by simp [hxl]
-    have hrd0 : ReadsAt rd (st.cur σ) (xs.take 6) := fun j hj ↦ by
+    have hx7 : (xs.take 5).length = 5 := by simp [hxl]
+    have hrd0 : ReadsAt rd (st.cur σ) (xs.take 5) := fun j hj ↦ by
       have := hrd j (by simp at hj; omega)
       simpa [List.getElem_take] using this
-    have hrd1 : ReadsAt rd (st.cur σ * gen ^ 6) (xs.drop 6) := fun j hj ↦ by
-      have := hrd (j + 6) (by simp at hj; omega)
-      rw [loadHolds_mul_gen_pow, show 6 + j = j + 6 by ring]
+    have hrd1 : ReadsAt rd (st.cur σ * gen ^ 5) (xs.drop 5) := fun j hj ↦ by
+      have := hrd (j + 5) (by simp at hj; omega)
+      rw [loadHolds_mul_gen_pow, show 5 + j = j + 5 by ring]
       simpa [Nat.add_comm] using this
     obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
     have hfsv : st.fsv σ = [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] := by
@@ -392,7 +392,7 @@ theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
     rw [hfsv] at hg lg la lb
     rw [loadHolds_mul_gen_pow, Nat.add_zero] at lg la
     rw [loadHolds_mul_gen_pow] at lb
-    have hA := osRound_complete (C := C) (rd := rd) (P := P) (i := i) σ (xs.take 6) hco
+    have hA := osRound_complete (C := C) (rd := rd) (P := P) (i := i) σ (xs.take 5) hco
       (by omega) hb hm hk (by
         rw [hfsv]
         refine hC _ _ (round_meaning hx7 hrd0 hg ?_ ?_ ?_)
@@ -405,14 +405,14 @@ theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
     have e : osRounds P i (n + 1) st = ((osRound P i st).1 ++ (osRounds P (i + 1) n st1).1,
         (osRounds P (i + 1) n st1).2) := rfl
     rw [e]
-    set w := xs.take 6 with hw
+    set w := xs.take 5 with hw
     set fsv := st.fsv σ with hfsv'
     set cl := σ (.n st.claim) with hcl
     have hR : roundsTr (n + 1) fsv cl xs =
-        roundsTr n ((roundRets fsv 0 cl w).take 5) ((roundRets fsv 0 cl w).getD 6 0) (xs.drop 6) :=
+        roundsTr n ((roundRets fsv 0 cl w).take 5) ((roundRets fsv 0 cl w).getD 6 0) (xs.drop 5) :=
       rfl
     have hB : ∀ σ1, AgreeBelow st.k σ σ1 → (RoundOut σ σ1 st st1 w ∧ AgreeBelow st.k σ σ1) →
-        BlkF C rd σ1 st1.k (osRounds P (i + 1) n st1).2.k (roundsF P n (i + 1) st1 (xs.drop 6) σ1)
+        BlkF C rd σ1 st1.k (osRounds P (i + 1) n st1).2.k (roundsF P n (i + 1) st1 (xs.drop 5) σ1)
           (osRounds P (i + 1) n st1).1
           (fun σ' ↦ RoundsOut σ σ' st (osRounds P (i + 1) n st1).2
             (roundsTr (n + 1) fsv cl xs) (n + 1)) := by
@@ -424,7 +424,7 @@ theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
         exact this
       have ec : σ1 (.n st1.claim) = (roundRets fsv 0 cl w).getD 6 0 := by
         rw [ro.claim, roundRets_claim _ _ 0]
-      have hih := ih (i + 1) st1 σ1 (xs.drop 6) (by rw [ro.co]; unfold u128Bound; positivity)
+      have hih := ih (i + 1) st1 σ1 (xs.drop 5) (by rw [ro.co]; unfold u128Bound; positivity)
         (by omega) ro.below ro.mats (le_trans hk hk1) ro.fs (by simp [hxl]; omega)
         (by rw [ro.cur]; exact hrd1) (by
           rw [ef, ec, ha1 osFch (by show 19 < st.k; omega), ha1 osCoefs (by show 21 < st.k; omega)]

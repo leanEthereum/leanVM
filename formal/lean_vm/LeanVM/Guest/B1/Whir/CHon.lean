@@ -75,27 +75,27 @@ def lvsAt (logN : ℕ) : ℕ → List Whir.Level → WhirState → List E → Li
     ⟨level, s, cap, R, xs, os, .next rw W⟩ ::
       lvsAt logN (index + 1) (next :: rest)
         (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-        (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
-          (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+        (W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+          (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).squeeze.2.cap
         (W.roots (logN - (rsSt level s cap rw).alphas.length) next R)
         (xs.drop (rw.length + W.words.length)) os.tail ds
   | _, _, _, _, _, _, _, _ => []
 
 /-- **A non-final level's step**: its reads and checks, and the next level's start. -/
 def LvAt.NextStep (logN index : ℕ) (L L' : LvAt) : Prop :=
-  ∃ (rw : List E) (W : NextW), L.d = .next rw W ∧ rw.length = 6 * L.level.fold ∧
+  ∃ (rw : List E) (W : NextW), L.d = .next rw W ∧ rw.length = 5 * L.level.fold ∧
     RoundsOk L.level.fold L.cap rw ∧ L.xs = rw ++ W.words ++ L'.xs ∧ L.os = W.phase :: L'.os ∧
     NextOk logN index L.level (rsSt L.level L.s L.cap rw) (rsF L.level L.cap rw) L.R W ∧
     L'.s = W.glued logN index L.level (rsSt L.level L.s L.cap rw) (rsF L.level L.cap rw)
       (rsRounds L.level L.s L.cap rw) ∧
-    L'.cap = capOf ((W.F3 (rsF L.level L.cap rw) (logN - (rsSt L.level L.s L.cap rw).alphas.length)
+    L'.cap = (W.F3 (rsF L.level L.cap rw) (logN - (rsSt L.level L.s L.cap rw).alphas.length)
       (logN - (rsSt L.level L.s L.cap rw).alphas.length + L.level.logInvRate)
-      L.level.queries).nonceState W.n2) ∧
+      L.level.queries).squeeze.2.cap ∧
     L'.R = W.roots (logN - (rsSt L.level L.s L.cap rw).alphas.length) L'.level L.R
 
 /-- **The final level's end.** -/
 def LvAt.FinStep (logN lane index : ℕ) (L : LvAt) (w : WhirEnd) : Prop :=
-  ∃ (rw : List E) (W : FinW), L.d = .fin rw W ∧ rw.length = 6 * L.level.fold ∧
+  ∃ (rw : List E) (W : FinW), L.d = .fin rw W ∧ rw.length = 5 * L.level.fold ∧
     RoundsOk L.level.fold L.cap rw ∧ L.xs = rw ++ W.words ∧ L.os = [W.phase] ∧
     FinOk logN index L.level (rsSt L.level L.s L.cap rw) (rsRounds L.level L.s L.cap rw)
       (rsF L.level L.cap rw) L.R W ∧
@@ -135,8 +135,8 @@ theorem lvsAt_run (logN lane : ℕ) :
     rw [← hxs', ← hos'] at ih
     set L' := lvsAt logN (index + 1) (next :: rest)
       (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-      (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
-        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+      (W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).squeeze.2.cap
       (W.roots (logN - (rsSt level s cap rw).alphas.length) next R)
       (xs.drop (rw.length + W.words.length)) os.tail ds with hL'
     have e : lvsAt logN index (level :: next :: rest) s cap R xs os (LvD.next rw W :: ds) =

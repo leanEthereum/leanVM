@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Whir.CInvLast
 On a level `L : LvAt` of the honest run and the guest's data of it (`LvAt.midW`, `LvAt.finWD`),
 with the level's row `lv` of the tables matching the Spec's level: the capacity after the folds
 (`cap1`), the query grind's permutation (`S2` = `qS`), the capacity after the squeezes (`cap3` =
-`F3`), `λ` and the batching nonce's permutation, the out-of-domain points (`MidEqs`); the
+`F3`), `λ` and its squeeze's permutation, the out-of-domain point (`MidEqs`); the
 samples and the squeezes' capacities (`lvAt_words`); the rounds' challenges in memory
 (`roundsMem_of`); a non-final level's claim, the next level's less the deficit (`midClaim`,
 `hbat_of`); the final level's sponges (`FinEqs`), its terminal (`finEnd_w`) and closing rounds'
@@ -51,18 +51,18 @@ structure MidEqs (logN : ℕ) (L L' : LvAt) (lv : OsLv) (cl : E) (M : MidW) : Pr
   S2 : M.S2 lv L.cap cl = L.qS logN
   cap3 : M.cap3 lv L.cap cl = (L.F3 logN).cap
   F3pend : (L.F3 logN).pend = []
-  SL : M.SL lv L.cap cl = (L.F3 logN).nonceState M.n2
+  SL : M.SL lv L.cap cl = (L.F3 logN).perm
   lam : M.lam lv L.cap cl = L.lam logN
   cap' : L'.cap = capOf (M.SL lv L.cap cl)
-  z0 : cellsOfState (omState L.cap1 M.msg none) false 0 ::
-      ((⟨capOf (omState L.cap1 M.msg none), []⟩ : Fs).squeezeN (lv.logCols - 1)).1 = (L.osRec logN).z0
-  z1 : ((⟨spfRets L.cap1 M.msg lv.logCols, []⟩ : Fs).squeezeN lv.logCols).1 = (L.osRec logN).z1
+  z0 : cellsOfState (omState L.cap1 M.msg (some M.n1)) false 0 ::
+      ((⟨capOf (omState L.cap1 M.msg (some M.n1)), []⟩ : Fs).squeezeN (lv.logCols - 1)).1 =
+        (L.osRec logN).z0
 
 /-- **A non-final level: the guest's sponges are the Spec's.** -/
 theorem midEqs {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index L L') {lv : OsLv}
     (hfold : L.level.fold = lv.folds) (hmu : L.mu logN = lv.logCols) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
-    (hcols : 1 ≤ lv.logCols) (r0 r1 batched pS pZ cl : E) :
+    (_hcols : 1 ≤ lv.logCols) (r0 r1 batched pS pZ cl : E) :
     MidEqs logN L L' lv cl (L.midW r0 r1 batched pS pZ) := by
   obtain ⟨rw, W, hd, -, -, -, -, -, -, hcap', -⟩ := hN
   have hrw : L.rw = rw := by simp [LvAt.rw, hd]
@@ -72,53 +72,40 @@ theorem midEqs {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index L
     simp only [hM, MidW.cap1, LvAt.midW, LvAt.cap1, roundsTr_cap, hfold]
   have hF : L.F = ⟨L.cap1, []⟩ := by simp [LvAt.F, LvAt.cap1]
   have hmsg : M.msg = W.x0 :: W.x1 :: W.high := by simp [hM, MidW.msg, LvAt.midW, hnw]
-  -- the message's permutation and the out-of-domain points
-  have hF1 : W.F1 L.F = (⟨L.cap1, []⟩ : Fs).absorbAll M.msg dsObserve := by
-    rw [hF, hmsg]; rfl
-  have hsq1 : ((W.F1 L.F).squeezeN (L.mu logN)) =
-      (challengeOf (omState L.cap1 M.msg none) ::
-        ((⟨capOf (omState L.cap1 M.msg none), []⟩ : Fs).squeezeN (lv.logCols - 1)).1,
-        ⟨spfRets L.cap1 M.msg lv.logCols, []⟩) := by
-    rw [hF1, hmu]
-    obtain ⟨m, hm⟩ : ∃ m, lv.logCols = m + 1 := ⟨lv.logCols - 1, by omega⟩
-    rw [hm, Nat.add_sub_cancel]
-    simp only [Fs.squeezeN, Fs.squeeze, spfRets, omState, Nat.add_sub_cancel, Prod.mk.injEq, true_and]
-    exact squeezeN_mk _ _
-  have hsq2 : (((W.F1 L.F).squeezeN (L.mu logN)).2.squeezeN (L.mu logN)) =
-      (((⟨spfRets L.cap1 M.msg lv.logCols, []⟩ : Fs).squeezeN lv.logCols).1,
-        ⟨spRets L.cap1 M.msg lv.logCols, []⟩) := by
-    rw [hsq1, hmu]
-    rw [Prod.mk.injEq]
+  have hn1 : M.n1 = W.n1 := by simp [hM, LvAt.midW, hnw]
+  -- the message's permutation and the out-of-domain point
+  have hF1 : L.F.absorbAll (W.x0 :: W.x1 :: W.high) dsObserve =
+      (⟨L.cap1, []⟩ : Fs).absorbAll M.msg dsObserve := by
+    rw [hF, hmsg]
+  have hpt : oodPt L.F (W.x0 :: W.x1 :: W.high) W.n1 (L.mu logN) =
+      (cellsOfState (omState L.cap1 M.msg (some M.n1)) false 0 ::
+        ((⟨capOf (omState L.cap1 M.msg (some M.n1)), []⟩ : Fs).squeezeN (lv.logCols - 1)).1,
+        ⟨spfRets L.cap1 M.msg M.n1 lv.logCols, []⟩) := by
+    rw [oodPt_eq, hmu, hF1, ← hn1, Keccak.challengeOf_cells, Prod.mk.injEq]
     exact ⟨rfl, squeezeN_mk _ _⟩
   have hS2 : M.S2 lv L.cap cl = L.qS logN := by
-    simp only [MidW.S2, hc1, commitS, LvAt.qS, hd, NextW.qS]
-    rw [hsq2]
+    simp only [MidW.S2, hc1, commitS, LvAt.qS, hd, NextW.qS, oodQ]
+    rw [hpt]
     simp [hM, LvAt.midW, hnw]
   have hqS : L.qS logN = W.qS L.F (L.mu logN) := by simp [LvAt.qS, hd]
   have hF3 : L.F3 logN = ⟨M.cap3 lv L.cap cl, []⟩ := by
     simp only [LvAt.F3, hd, NextW.F3, MidW.cap3, sqCap]
     rw [← hqS, ← hS2, hsq, hdep, hq]
     exact squeezeN_mk _ _
-  have hSL : M.SL lv L.cap cl = (L.F3 logN).nonceState M.n2 := by
+  have hSL : M.SL lv L.cap cl = (L.F3 logN).perm := by
     rw [hF3]; rfl
   have hF3' : L.F3 logN = W.F3 L.F (L.mu logN) (L.dp logN) L.level.queries := by simp [LvAt.F3, hd]
-  have hn2 : M.n2 = W.n2 := by simp [hM, LvAt.midW, hnw]
-  have hood : W.ood L.F (L.mu logN) = [((W.F1 L.F).squeezeN (L.mu logN)).1,
-      (((W.F1 L.F).squeezeN (L.mu logN)).2.squeezeN (L.mu logN)).1] := rfl
   have hrec : L.osRec logN = W.osRec logN L.level L.s1 L.F := by simp [LvAt.osRec, hd]
-  refine ⟨hc1, hS2, by rw [hF3], by rw [hF3], hSL, ?_, ?_, ?_, ?_⟩
+  refine ⟨hc1, hS2, by rw [hF3], by rw [hF3], hSL, ?_, ?_, ?_⟩
   · simp only [MidW.lam, LvAt.lam, hd, NextW.lam]
-    rw [rdCell_zero, hSL, hF3', hn2]
-  · rw [hcap', hSL, hF3', hn2]
+    rw [rdCell_zero, hSL, hF3']
+    rfl
+  · rw [hcap', hSL, hF3']
     simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
+    rfl
   · rw [hrec]
-    simp only [NextW.osRec]
-    rw [hood, hsq1]
-    simp only [List.getD_cons_zero, Keccak.challengeOf_cells]
-  · rw [hrec]
-    simp only [NextW.osRec]
-    rw [hood, hsq2]
-    simp only [List.getD_cons_succ, List.getD_cons_zero]
+    simp only [NextW.osRec, NextW.ood]
+    rw [hpt]
 
 /-- **A level's samples and the squeezes' capacities**: sample `0` is the query grind's
 challenge, sample `j ≥ 1` the next squeeze from `capSq j`; `capSq 1` is the grind's capacity and
@@ -139,24 +126,6 @@ theorem lvAt_words (L : LvAt) (logN : ℕ) {lv : OsLv} (hdep : lv.depth = L.dp l
 
 /-! ## The rounds' challenges -/
 
-/-- The rounds only append their `α`s. -/
-theorem roundsSpec_alphas : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
-    ∃ gs : List E, (roundsSpec n s fs xs).1.alphas = s.alphas ++ gs ∧ gs.length = n
-  | 0, s, _, _ => ⟨[], by simp [roundsSpec], rfl⟩
-  | n + 1, s, fs, xs => by
-    obtain ⟨gs, h1, h2⟩ := roundsSpec_alphas n (roundSpec s fs (xs.take 6)).1
-      (roundSponge fs (xs.take 6)).cap (xs.drop 6)
-    refine ⟨(roundChs fs (xs.take 6)).1 :: gs, ?_, by simp [h2]⟩
-    show (roundsSpec n _ _ _).1.alphas = _
-    rw [h1, show (roundSpec s fs (List.take 6 xs)).1.alphas = s.alphas ++ [(roundChs fs (List.take 6 xs)).1]
-      from rfl, List.append_assoc]
-    rfl
-
-theorem roundsSpec_alphas_length (n : ℕ) (s : WhirState) (fs xs : List E) :
-    (roundsSpec n s fs xs).1.alphas.length = s.alphas.length + n := by
-  obtain ⟨gs, h1, h2⟩ := roundsSpec_alphas n s fs xs
-  rw [h1, List.length_append, h2]
-
 theorem roundsSpec_rounds_length : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
     (roundsSpec n s fs xs).2.length = n
   | 0, _, _, _ => rfl
@@ -174,16 +143,16 @@ theorem roundsMem_of {rd : Reader} {fch coefs : E} : ∀ (n i : ℕ) (s : WhirSt
   | 0, _, _, _, _, _, _, _, _ => trivial
   | n + 1, i, s, fs, cl, xs, hok, hg, hc => by
     obtain ⟨hgr, -, hok'⟩ := hok
-    set w := xs.take 6 with hw
+    set w := xs.take 5 with hw
     set s1 := (roundSpec s fs w).1 with hs1
-    obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 6)
+    obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 5)
     have hspec : roundsSpec (n + 1) s fs xs =
-        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1,
-          (roundSpec s fs w).2 :: (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).2) := rfl
+        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 5)).1,
+          (roundSpec s fs w).2 :: (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 5)).2) := rfl
     have hs1g : s1.alphas = s.alphas ++ [(roundChs fs w).1] := rfl
     have hG : (roundsSpec (n + 1) s fs xs).1.alphas = s.alphas ++ (roundChs fs w).1 :: gs := by
       rw [hspec]
-      show (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1.alphas = _
+      show (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 5)).1.alphas = _
       rw [hgs, hs1g, List.append_assoc]
       rfl
     have g0 := hg 0 (by omega)
@@ -224,18 +193,18 @@ theorem roundsTr_claim : ∀ (n : ℕ) (s : WhirState) (fs xs : List E) (D : E),
       ((roundsSpec n s fs xs).1.alphas.drop s.alphas.length).prod * D
   | 0, s, _, _, D => by simp [roundsTr, roundsSpec]
   | n + 1, s, fs, xs, D => by
-    set w := xs.take 6 with hw
+    set w := xs.take 5 with hw
     set s1 := (roundSpec s fs w).1 with hs1
     have hcl : (roundRets fs 0 (s.claim + D) w).getD 6 0 = s1.claim + (roundChs fs w).1 * D := by
       simp only [roundRets, hs1, roundSpec, roundChs, List.cons_append, List.nil_append,
         List.getD_cons_succ, List.getD_cons_zero, Fs.squeeze, capOf]
       rw [roundClaim_add]
-    have ih := roundsTr_claim n s1 (roundSponge fs w).cap (xs.drop 6) ((roundChs fs w).1 * D)
-    obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 6)
+    have ih := roundsTr_claim n s1 (roundSponge fs w).cap (xs.drop 5) ((roundChs fs w).1 * D)
+    obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 5)
     have hs1g : s1.alphas = s.alphas ++ [(roundChs fs w).1] := rfl
     show (roundsTr n ((roundRets fs 0 (s.claim + D) w).take 5) ((roundRets fs 0 (s.claim + D) w).getD 6 0)
-      (xs.drop 6)).2 = (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1.claim +
-        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1.alphas.drop s.alphas.length).prod * D
+      (xs.drop 5)).2 = (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 5)).1.claim +
+        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 5)).1.alphas.drop s.alphas.length).prod * D
     rw [roundRets_take5, hcl, ih, hgs, hs1g]
     simp only [List.append_assoc, List.cons_append, List.nil_append,
       List.length_append, List.length_singleton, List.drop_append_of_le_length le_rfl, List.drop_length,
@@ -272,22 +241,17 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
   have hrd : L.rounds = rsRounds L.level L.s L.cap rw := by simp only [LvAt.rounds, hrw]
   -- the next state
   have hs'' : L'.s = W.glued logN index L.level L.s1 L.F L.rounds := by rw [hs', hs1, hF, hrd]
-  have hglue := glueLevel_two L.s1 (L.lam logN) (L.mu logN)
-    ((W.ood L.F (L.mu logN)).getD 0 []) ((W.ood L.F (L.mu logN)).getD 1 []) W.y0 W.y1
-    (L.qs logN) (powers (L.lam logN) (L.qs logN).length)
-    (levelBatched (L.mu logN) index L.rounds W.high (L.qs logN) (W.phase.map (·.leaf)) (L.lam logN))
   have hgl : W.glued logN index L.level L.s1 L.F L.rounds = glueLevel L.s1 (L.lam logN) (L.mu logN)
-      [(W.ood L.F (L.mu logN)).getD 0 [], (W.ood L.F (L.mu logN)).getD 1 []] [W.y0, W.y1] (L.qs logN)
+      (W.ood L.F (L.mu logN)) W.y0 (L.qs logN)
       (powers (L.lam logN) (L.qs logN).length)
       (levelBatched (L.mu logN) index L.rounds W.high (L.qs logN) (W.phase.map (·.leaf)) (L.lam logN)) := by
     rw [hlam, hqs]; rfl
-  rw [hgl, hglue] at hs''
+  rw [hgl, glueLevel] at hs''
   have hrecF' : (L.osRec logN).F = L.s1.alphas.length := by rw [hrec]; rfl
   have hrlam : (L.osRec logN).lam = L.lam logN := by rw [hrec, hlam]; rfl
-  have hrecGl : recGlued (L.osRec logN) = [⟨1 * L.lam logN, L.s1.alphas.length,
-      fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 0 []) x⟩,
-      ⟨1 * L.lam logN * L.lam logN, L.s1.alphas.length, fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 1 []) x⟩,
-      ⟨1 * L.lam logN * L.lam logN * L.lam logN, L.s1.alphas.length,
+  have hrecGl : recGlued (L.osRec logN) = [⟨L.lam logN, L.s1.alphas.length,
+      fun x ↦ eqEval (W.ood L.F (L.mu logN)) x⟩,
+      ⟨L.lam logN * L.lam logN, L.s1.alphas.length,
         inducedWeight (L.mu logN) (L.qs logN) (powers (L.lam logN) (L.qs logN).length)⟩] := by
     rw [hrec, hlam, hqs]; rfl
   have hgam : L'.s.alphas = L.s1.alphas := by rw [hs'']
@@ -308,7 +272,7 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
       L.lam logN ^ k * highTerm (L.mu logN) W.high ((L.qs logN).getD k 0) := by
     rw [recH, hrlam, hrec, hqs]; rfl
   have hdef : recsDeficit (recs ++ [L.osRec logN]) L'.s.alphas =
-      gs.prod * recsDeficit recs L.s.alphas + L.lam logN ^ 3 * recH (L.osRec logN) := by
+      gs.prod * recsDeficit recs L.s.alphas + L.lam logN ^ 2 * recH (L.osRec logN) := by
     rw [hgam, recsDeficit_snoc _ _ _ hrecF', hs1g, recsDeficit_append_alphas _ _ _ hrecF, hrlam]
   show _ = L'.s.claim + recsDeficit (recs ++ [L.osRec logN]) L'.s.alphas
   rw [hdef, hs'']
@@ -316,7 +280,7 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
   simp only [LvAt.midW, hnw]
   rw [hB, ← hph, ← hbat, ← hH, ← hq]
   have h2 : ∀ x : E, x + x = 0 := fun x ↦ CharTwo.add_self_eq_zero x
-  linear_combination -(L.lam logN ^ 3) * h2 (recH (L.osRec logN))
+  linear_combination -(L.lam logN ^ 2) * h2 (recH (L.osRec logN))
 
 /-- **The guest's queries' chain** times `λ^Q` is the batched sum `hbat` asks for. -/
 theorem hbat_of {lam : E} (hlam : lam ≠ 0) {odd base N Q : ℕ} (hodd : odd ≤ 1) (hob : base = 1 ∨ odd = 0)

@@ -121,9 +121,8 @@ theorem mid_hs (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {l : ℕ} (hl :
   exact ⟨s, t⟩
 
 theorem mid_glue (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {l : ℕ} (hl : l < h.c.yrLevel) :
-    LoadHolds rd (osPtrF h.c b 10) (oodSamples * (l + 1)) ((h.L l).lam h.logN) ∧
-      LoadHolds rd (osPtrF h.c b 10) (oodSamples * (l + 1) + 1) ((h.L l).lam h.logN * (h.L l).lam h.logN) ∧
-      LoadHolds rd (osPtrF h.c b 6) l ((h.L l).lam h.logN * (h.L l).lam h.logN * (h.L l).lam h.logN *
+    LoadHolds rd (osPtrF h.c b 10) (l + 1) ((h.L l).lam h.logN) ∧
+      LoadHolds rd (osPtrF h.c b 6) l ((h.L l).lam h.logN * (h.L l).lam h.logN *
         (h.L l).lam h.logN ^ (osLvAt h.c l).queries) ∧
       LoadHolds rd (osPtrF h.c b 7) l ((h.L l).lam h.logN)⁻¹ := by
   have hyr := hS.yr
@@ -131,22 +130,16 @@ theorem mid_glue (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {l : ℕ} (hl
   have h6 := hS.head (j := 6) (by omega)
   have h7 := hS.head (j := 7) (by omega)
   simp only [headSizes, List.getD_cons_succ, List.getD_cons_zero] at h10 h6 h7
-  have a := h.load hm (hS.headLt (j := 10) (by omega)) (by unfold osIxQbp; omega) (e := oodSamples * (l + 1))
-    (by rw [h10]; unfold oodSamples; omega)
-  have a1 := h.load hm (hS.headLt (j := 10) (by omega)) (by unfold osIxQbp; omega)
-    (e := oodSamples * (l + 1) + 1) (by rw [h10]; unfold oodSamples; omega)
+  have a := h.load hm (hS.headLt (j := 10) (by omega)) (by unfold osIxQbp; omega) (e := l + 1)
+    (by rw [h10]; omega)
   have bt := h.load hm (hS.headLt (j := 6) (by omega)) (by unfold osIxQbp; omega) (e := l) (by rw [h6]; omega)
   have mu := h.load hm (hS.headLt (j := 7) (by omega)) (by unfold osIxQbp; omega) (e := l) (by rw [h7]; omega)
-  rw [ownW_ood, oodC, getD_mapRange _ (by unfold oodSamples; omega)] at a a1
+  rw [ownW_ood, oodC, getD_mapRange _ (by omega)] at a
   rw [ownW_betas, betasC, getD_mapRange _ (by omega)] at bt
   rw [ownW_mus, musC, getD_mapRange _ (by omega)] at mu
-  unfold oodSamples at a a1 ⊢
-  simp only [show 2 ≤ 2 * (l + 1) by omega, show 2 ≤ 2 * (l + 1) + 1 by omega,
-    show 2 * (l + 1) / 2 - 1 = l by omega, show (2 * (l + 1) + 1) / 2 - 1 = l by omega, hl, and_self,
-    ↓reduceIte, show 2 * (l + 1) % 2 = 0 by omega, show (2 * (l + 1) + 1) % 2 = 1 by omega,
-    one_ne_zero] at a a1
+  simp only [show 1 ≤ l + 1 by omega, Nat.add_sub_cancel, hl, and_self, ↓reduceIte] at a
   simp only [hl, ↓reduceIte, li] at bt mu
-  refine ⟨a, by rw [← sq]; exact a1, by convert bt using 1; ring, mu⟩
+  refine ⟨a, by convert bt using 1; ring, mu⟩
 
 /-! ## The squeeze runs -/
 

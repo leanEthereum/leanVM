@@ -82,7 +82,6 @@ structure RecRun (h : OsHD) (i : ℕ) : Prop where
   ql : ((h.L i).osRec h.logN).qs.length = (osLvAt h.c i).queries
   hl : ((h.L i).osRec h.logN).high.length = (osLvAt h.c i).folds
   z0 : ((h.L i).osRec h.logN).z0.length = (osLvAt h.c i).logCols
-  z1 : ((h.L i).osRec h.logN).z1.length = (osLvAt h.c i).logCols
   lam : (h.L i).lam h.logN ≠ 0
   Q : (osLvAt h.c i).queries ≤ (osLvAt h.c i).squeezes * sqPer (osLvAt h.c i)
   qs : ∀ k < (osLvAt h.c i).queries, ((h.L i).osRec h.logN).qs.getD k 0 =
@@ -184,8 +183,8 @@ theorem fin_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} (hHS : HonStati
         fun i hi _ ↦ osH_special hH (hres i hi) _ _⟩
       · have r := hrun i hi
         rw [h.recs_getD hL hyr hi]
-        exact h.recStored_of hHS hm p9 p10 p6 p7 p8 p11 hi r.F r.mu r.ql r.hl r.z0 r.z1 r.lam r.Q r.qs
-      · rw [p7]; exact (h.mid_glue hHS hm hi).2.2.2
+        exact h.recStored_of hHS hm p9 p10 p6 p7 p8 p11 hi r.F r.mu r.ql r.hl r.z0 r.lam r.Q r.qs
+      · rw [p7]; exact (h.mid_glue hHS hm hi).2.2
       · rw [p4]; exact h.fch_all hHS hm hF.Gl
       · rw [htch]; exact h.tail_reads hHS hm hTl
       · have := h.pt_reads hHS hm (by rw [finPtC_length _ hF])

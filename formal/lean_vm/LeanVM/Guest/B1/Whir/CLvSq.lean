@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.CAtoms
 public import LeanVM.Guest.B1.Place.OsCallV
 
 /-!
-# A level's squeezes, honestly (G:1605-1631)
+# A level's squeezes, honestly (G:1596-1622)
 
 * `call0_blk`: a call returning nothing, holding where its relation does.
 * `osSqueezes_complete`: the squeeze run allocated at a given pointer, the carried capacity stored
@@ -29,19 +29,6 @@ open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.
 
 variable {H : CallRel → Reader → Prop}
 
-/-- **A call returning nothing.** -/
-theorem call0_blk {σ : Val} {k : ℕ} {f : String} {args : List ℕ} (hargs : ∀ i ∈ args, i < k)
-    (hC : ∀ C rd, H C rd → C f (args.map fun i ↦ σ (.n i)) []) :
-    BlkA H σ k k [.call f (args.map V.n) []] (fun σ' ↦ (args.map V.n).map σ' =
-      args.map fun i ↦ σ (.n i)) := by
-  refine ⟨fun _ ↦ 0, fun C rd hH σ' ha _ ↦ ?_⟩
-  have e1 : (args.map V.n).map σ' = args.map fun i ↦ σ (.n i) := by
-    simp only [List.map_map]
-    exact List.map_congr_left fun i hi ↦ ha i (hargs i hi)
-  refine ⟨?_, e1⟩
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, e1, List.map_nil]
-  exact hC C rd hH
-
 /-- The capacity after `n` squeezes from `cap`. -/
 def sqCap (cap : List E) (n : ℕ) : List E := ((⟨cap, []⟩ : Fs).squeezeN n).2.cap
 
@@ -55,7 +42,7 @@ def sqEntryVals (S : ℕ) : List E := [gw 1, gw S, gw 1 + gw S, gw 1, gw S]
 def sqTailVals (S : ℕ) (sqz : E) (capS : List E) : List E :=
   [gw (S * 5), sqz * gw (S * 5)] ++ capS
 
-/-- **A level's squeezes, honestly** (G:1605-1631). -/
+/-- **A level's squeezes, honestly** (G:1596-1622). -/
 theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hw0 : st.word0 < st.k) (pZ : E)
     (hpo : lv.posOff < u128Bound) (hS5 : lv.squeezes * 5 < u128Bound) (hS : lv.squeezes < u128Bound)

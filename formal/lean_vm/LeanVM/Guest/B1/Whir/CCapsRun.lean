@@ -395,21 +395,22 @@ theorem rq_sampleChallenges {f : List E → VerifierProgram α} :
     obtain ⟨h1, hq1⟩ := rq_sampleE_none h hq hg
     exact rq_sampleChallenges n _ r rfl h1 hq1
 
-theorem rq_sampleOod2 {mu : ℕ} {f : List (List E) → VerifierProgram α} {st : TSt}
-    {r : α × TSt} (hg : st.ground = none)
-    (h : runT ((sampleOodPoints mu 2).bind f) st = some r)
-    (hq : AllQ ((sampleOodPoints mu 2).bind f) st) :
-    runT (f [(st.sponge.squeezeN mu).1, ((st.sponge.squeezeN mu).2.squeezeN mu).1])
-      ⟨((st.sponge.squeezeN mu).2.squeezeN mu).2, none, st.stream, st.openings, st.roots⟩ = some r ∧
-    AllQ (f [(st.sponge.squeezeN mu).1, ((st.sponge.squeezeN mu).2.squeezeN mu).1])
-      ⟨((st.sponge.squeezeN mu).2.squeezeN mu).2, none, st.stream, st.openings, st.roots⟩ := by
-  have e : (sampleOodPoints mu 2).bind f = (VerifierProgram.sampleChallenges mu).bind fun p1 ↦
-      (VerifierProgram.sampleChallenges mu).bind fun p2 ↦ f [p1, p2] := by
-    simp only [sampleOodPoints, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
+theorem rq_sampleChallengesG {f : List E → VerifierProgram α} (m : ℕ) {st : TSt} {r : α × TSt}
+    {c : E} (hg : st.ground = some c)
+    (h : runT ((VerifierProgram.sampleChallenges (m + 1)).bind f) st = some r)
+    (hq : AllQ ((VerifierProgram.sampleChallenges (m + 1)).bind f) st) :
+    runT (f (c :: (st.sponge.squeezeN m).1))
+      ⟨(st.sponge.squeezeN m).2, none, st.stream, st.openings, st.roots⟩ = some r ∧
+    AllQ (f (c :: (st.sponge.squeezeN m).1))
+      ⟨(st.sponge.squeezeN m).2, none, st.stream, st.openings, st.roots⟩ := by
+  have e : (VerifierProgram.sampleChallenges (m + 1)).bind f =
+      VerifierProgram.sampleChallenge.bind fun x ↦
+        (VerifierProgram.sampleChallenges m).bind fun xs ↦ f (x :: xs) := by
+    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
       VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
   rw [e] at h hq
-  obtain ⟨h1, hq1⟩ := rq_sampleChallenges mu st r hg h hq
-  exact rq_sampleChallenges mu _ r rfl h1 hq1
+  obtain ⟨h1, hq1⟩ := rq_sampleE_some h hq hg
+  exact rq_sampleChallenges m _ r rfl h1 hq1
 
 /-! ## The levels -/
 
@@ -428,15 +429,15 @@ def LvsAgree (logN : ℕ) : ℕ → List Whir.Level → WhirState → List E →
         (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).zip W.phase)) ∧
     LvsAgree logN (index + 1) (next :: rest)
       (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-      (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
-        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+      (W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).squeeze.2.cap
       (W.roots (logN - (rsSt level s cap rw).alphas.length) next R) ds
   | _, _, _, _, _, _ => True
 
 /-- The fold rounds of a level of the honest run, carried. -/
 theorem rounds_plain {n : ℕ} {s : WhirState} {cap rw rest : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {p : WhirState × List FoldRound} {st1 : TSt}
-    (hc : ∃ sp, (⟨cap, []⟩ : Fs).Carries sp) (hrl : rw.length = 6 * n) (hok : RoundsOk n cap rw)
+    (hc : ∃ sp, (⟨cap, []⟩ : Fs).Carries sp) (hrl : rw.length = 5 * n) (hok : RoundsOk n cap rw)
     (h : runT (foldRounds n s) ⟨⟨cap, []⟩, none, rw ++ rest, os, R⟩ = some (p, st1)) :
     p = roundsSpec n s cap rw ∧ st1 = ⟨⟨roundsCap n cap rw, []⟩, none, rest, os, R⟩ := by
   rw [runT_of_runsTo (foldRounds_run n s cap rw hrl hok) hc rest os R] at h
@@ -503,17 +504,18 @@ theorem lvsAgree_of_run (logN lane : ℕ) :
     set d := mu + level.logInvRate with hd
     obtain ⟨x0, x1, xs1, hs1, -, h, hq⟩ := rq_commitB h2 hq2
     obtain ⟨high, xs2, hhl, hs2, h, hq⟩ := rq_readScalars level.fold _ _ rfl h hq
-    obtain ⟨h, hq⟩ := rq_sampleOod2 rfl h hq
-    obtain ⟨ys, xs3, hyl, hs3, h, hq⟩ := rq_readScalars Whir.oodSamples _ _ rfl h hq
-    obtain ⟨y0, y1, rfl⟩ : ∃ y0 y1, ys = [y0, y1] := by
-      match ys, hyl with
-      | [y0, y1], _ => exact ⟨y0, y1, rfl⟩
-    obtain ⟨nn, xs4, hs4, -, h, hq⟩ := rq_grindPoW (by decide) h hq
+    obtain ⟨n1, xs3, hs3, -, h, hq⟩ := rq_grindPoW (by decide) h hq
+    obtain ⟨m, hm⟩ : ∃ m, mu = m + 1 := ⟨mu - 1, by have := hnext.mu1; omega⟩
+    rw [← hmu, hm] at h hq
+    obtain ⟨h, hq⟩ := rq_sampleChallengesG m rfl h hq
+    rw [← hm] at h hq
+    obtain ⟨y0, xs4, hs4, -, h, hq⟩ := rq_readE h hq
+    obtain ⟨nn, xs5, hs5, -, h, hq⟩ := rq_grindPoW (by decide) h hq
     obtain ⟨qs', st2, hq1, h⟩ := rT_bind_some h
     have hq := allQ_bind hq1 hq
-    simp only at hs1 hs2 hs3 hs4
+    simp only at hs1 hs2 hs3 hs4 hs5
     have hw := hs1
-    rw [hs2, hs3, hs4] at hw
+    rw [hs2, hs3, hs4, hs5] at hw
     simp only [NextW.words, List.cons_append, List.append_assoc, List.cons.injEq,
       List.nil_append] at hw
     obtain ⟨rfl, rfl, hw⟩ := hw
@@ -522,25 +524,41 @@ theorem lvsAgree_of_run (logN lane : ℕ) :
     simp only [List.cons.injEq] at e2
     obtain ⟨rfl, rfl, rfl, e3⟩ := e2
     subst e3
+    have hPt := oodPt_eq (rsF level cap rw) (W.x0 :: W.x1 :: W.high) W.n1 mu
+    rw [hm, Nat.add_sub_cancel] at hPt
+    have eS2 : (((⟨capOf (((((rsF level cap rw).absorb W.x0 dsObserve).absorb W.x1
+        dsObserve).absorbAll W.high dsObserve).nonceState W.n1), []⟩ : Fs).squeezeN m).2.absorb W.y0
+        dsObserve).nonceState W.nn = W.qS (rsF level cap rw) mu := by
+      show _ = ((oodPt (rsF level cap rw) (W.x0 :: W.x1 :: W.high) W.n1 mu).2.absorbAll [W.y0]
+        dsObserve).nonceState W.nn
+      rw [hm, hPt]
+      rfl
+    rw [eS2] at hq1
     have hcq : ∃ sp, Fs.CarriesGround (capOf (W.qS (rsF level cap rw) mu))
         (challengeOf (W.qS (rsF level cap rw) mu)) sp :=
       ⟨⟨W.qS (rsF level cap rw) mu, [], some (challengeOf (W.qS (rsF level cap rw) mu))⟩, rfl, rfl, rfl⟩
     have hfq := runT_of_runsFromG (sampleQueries_runG d level.queries hl.hP hl.2.2
       (capOf (W.qS (rsF level cap rw) mu)) (challengeOf (W.qS (rsF level cap rw) mu))) hcq
-      (W.n2 :: xs') os (R ++ [(digestFromHalves (W.x0, W.x1), levelShape mu next (2 * 2 ^ next.fold))])
+      xs' os (R ++ [(digestFromHalves (W.x0, W.x1), levelShape mu next (2 * 2 ^ next.fold))])
     have e := hq1.symm.trans hfq
     simp only [Option.some.injEq, Prod.mk.injEq] at e
     obtain ⟨rfl, rfl⟩ := e
-    obtain ⟨n2, xs5, hs5, -, h, hq⟩ := rq_grindPoW (by decide) h hq
-    simp only [List.cons.injEq] at hs5
-    obtain ⟨rfl, rfl⟩ := hs5
-    obtain ⟨h, hq⟩ := rq_sampleE_some h hq rfl
+    obtain ⟨h, hq⟩ := rq_sampleE_none h hq rfl
     obtain ⟨root', height', width', phase, orest, rows, hR', hos', hop, h, hag, hq⟩ := rq_queryB h hq
     simp only at hos' hR'
     rw [hos] at hos'
     simp only [List.cons.injEq] at hos'
     obtain ⟨rfl, rfl⟩ := hos'
     obtain ⟨-, -, -, rfl⟩ := phase_of_some hop
+    have hood : challengeOf (((((rsF level cap rw).absorb W.x0 dsObserve).absorb W.x1
+        dsObserve).absorbAll W.high dsObserve).nonceState W.n1) ::
+        ((⟨capOf (((((rsF level cap rw).absorb W.x0 dsObserve).absorb W.x1
+        dsObserve).absorbAll W.high dsObserve).nonceState W.n1), []⟩ : Fs).squeezeN m).1 =
+          W.ood (rsF level cap rw) mu := by
+      show _ = (oodPt (rsF level cap rw) (W.x0 :: W.x1 :: W.high) W.n1 mu).1
+      rw [hm, hPt]
+      rfl
+    rw [hood] at h hq
     refine ⟨fun root height width hR ↦ ?_, lvsAgree_of_run logN lane (next :: rest) (index + 1) _ _ _
       xs' os' w ds r (carries_capOf _) (fun l hl' ↦ hlv l (List.mem_cons_of_mem _ hl')) hD' h hq⟩
     rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp hR).1, hR] at hR'

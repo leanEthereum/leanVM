@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.CFinO
 public import LeanVM.Guest.B1.Whir.FinishSound
 
 /-!
-# The finish, honestly (G:1746-1847)
+# The finish, honestly (G:1733-1833)
 
 The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
 non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded
@@ -45,9 +45,9 @@ abbrev finLv (c : OsCfg) (i : ℕ) : OsLv := c.levels.getD i default
 /-- Non-final level `i`'s coordinates: the terminal point from its folds on. -/
 def finX (G T : List E) (recs : List OsRec) (i t : ℕ) : E := (ptFrom G T (recs.getD i default).F).getD t 0
 
-/-- Non-final level `i`'s batching scalar `λ³·λ^Q`. -/
+/-- Non-final level `i`'s batching scalar `λ²·λ^Q`. -/
 def finBeta (c : OsCfg) (recs : List OsRec) (i : ℕ) : E :=
-  (recs.getD i default).lam ^ 3 * (recs.getD i default).lam ^ (finLv c i).queries
+  (recs.getD i default).lam ^ 2 * (recs.getD i default).lam ^ (finLv c i).queries
 
 /-- Non-final level `i`'s basis row. -/
 def finD (c : OsCfg) (G T : List E) (recs : List OsRec) (i : ℕ) : ℕ → E :=

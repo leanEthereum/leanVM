@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.OodW
 
 /-!
-# The out-of-domain weights, in order (G:1854-1864)
+# The out-of-domain weights, in order (G:1840-1850)
 
 `osOodWeights_ssa`: the weights of the levels `ol ..` define their values in order, reading only
 `ood_scalars`, `ood_z` and the coordinates' sources (`fold_challenges`, `tail_challenges`).
@@ -45,16 +45,16 @@ theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 36 ≤
       · exact Or.inl ⟨hp, x, List.mem_cons_of_mem _ hx, ho⟩
       · exact Or.inr ⟨x, List.mem_cons_of_mem _ hx, he⟩
 
-theorem osOodWeight_ssa (c : OsCfg) (tch prevCols ol s : ℕ) (lv : OsLv) (k : ℕ) (htch : tch < k)
+theorem osOodWeight_ssa (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) (htch : tch < k)
     (hk : 36 ≤ k) :
-    SsaP k (osOodWeight c tch prevCols ol s lv k).1 (osOodWeight c tch prevCols ol s lv k).2.2 ∧
-      (osOodWeight c tch prevCols ol s lv k).2.1 < (osOodWeight c tch prevCols ol s lv k).2.2 ∧
-      (∀ p o, (p, o) ∈ loadsOf (osOodWeight c tch prevCols ol s lv k).1 →
-        (p = osOodSc ∧ o = oodSamples * ol + s) ∨
-        (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols ol s lv, o = x.1) ∨
-        (∃ x ∈ oodCoords c tch prevCols ol s lv, (p, o) = x.2)) := by
+    SsaP k (osOodWeight c tch prevCols ol lv k).1 (osOodWeight c tch prevCols ol lv k).2.2 ∧
+      (osOodWeight c tch prevCols ol lv k).2.1 < (osOodWeight c tch prevCols ol lv k).2.2 ∧
+      (∀ p o, (p, o) ∈ loadsOf (osOodWeight c tch prevCols ol lv k).1 →
+        (p = osOodSc ∧ o = ol) ∨
+        (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols ol lv, o = x.1) ∨
+        (∃ x ∈ oodCoords c tch prevCols ol lv, (p, o) = x.2)) := by
   rw [osOodWeight_eq]
-  obtain ⟨r1, r2, r3⟩ := osOodFacs_ssa (oodCoords c tch prevCols ol s lv) k (k + 1) (by omega)
+  obtain ⟨r1, r2, r3⟩ := osOodFacs_ssa (oodCoords c tch prevCols ol lv) k (k + 1) (by omega)
     (by omega) (fun x hx ↦ by
       simp only [oodCoords, List.mem_map, List.mem_range] at hx
       obtain ⟨t, -, rfl⟩ := hx
@@ -75,14 +75,14 @@ theorem osAcc_ssa (acc : Option ℕ) (w k : ℕ) (hw : w < k) (hacc : ∀ x, acc
   · refine ⟨.add le_rfl (hacc x rfl) hw .nil, fun y hy ↦ ?_, rfl⟩
     simp only [osAcc, Option.some.injEq] at hy ⊢; omega
 
-/-- What the weights of the levels `ol ..` read: the scalars and points of each, and their
+/-- What the weights of the levels `ol ..` read: the scalar and point of each, and their
 coordinates' sources. -/
 def OodLoads (c : OsCfg) (tch : ℕ) : ℕ → ℕ → List OsLv → ℕ → ℕ → Prop
   | _, _, [], _, _ => False
   | prevCols, ol, lv :: rest, p, o =>
-    (∃ s < 2, (p = osOodSc ∧ o = oodSamples * ol + s) ∨
-      (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols ol s lv, o = x.1) ∨
-      (∃ x ∈ oodCoords c tch prevCols ol s lv, (p, o) = x.2)) ∨
+    ((p = osOodSc ∧ o = ol) ∨
+      (p = osOodz ∧ ∃ x ∈ oodCoords c tch prevCols ol lv, o = x.1) ∨
+      (∃ x ∈ oodCoords c tch prevCols ol lv, (p, o) = x.2)) ∨
     OodLoads c tch lv.logCols (ol + 1) rest p o
 
 theorem osOodWeights_ssa (c : OsCfg) (tch : ℕ) :
@@ -95,32 +95,25 @@ theorem osOodWeights_ssa (c : OsCfg) (tch : ℕ) :
           OodLoads c tch prevCols ol lvs p o)
   | _, _, [], acc, k, _, _, hacc => ⟨.nil, hacc, by simp [osOodWeights, loadsOf]⟩
   | prevCols, ol, lv :: rest, acc, k, htch, hk, hacc => by
-    obtain ⟨w1, w2, w3⟩ := osOodWeight_ssa c tch prevCols ol 0 lv k htch hk
-    set W0 := osOodWeight c tch prevCols ol 0 lv k with hW0
+    obtain ⟨w1, w2, w3⟩ := osOodWeight_ssa c tch prevCols ol lv k htch hk
+    set W0 := osOodWeight c tch prevCols ol lv k with hW0
     have hw0 := w1.le
     obtain ⟨a1, a2, a3⟩ := osAcc_ssa acc W0.2.1 W0.2.2 w2 (fun x hx ↦ lt_of_lt_of_le (hacc x hx) hw0)
     set A0 := osAcc acc W0.2.1 W0.2.2 with hA0
     have ha0 := a1.le
-    obtain ⟨v1, v2, v3⟩ := osOodWeight_ssa c tch prevCols ol 1 lv A0.2.2 (by omega) (by omega)
-    set W1 := osOodWeight c tch prevCols ol 1 lv A0.2.2 with hW1
-    have hw1 := v1.le
-    obtain ⟨b1, b2, b3⟩ := osAcc_ssa A0.2.1 W1.2.1 W1.2.2 v2 (fun x hx ↦ lt_of_lt_of_le (a2 x hx) hw1)
-    set A1 := osAcc A0.2.1 W1.2.1 W1.2.2 with hA1
-    have ha1 := b1.le
-    obtain ⟨r1, r2, r3⟩ := osOodWeights_ssa c tch lv.logCols (ol + 1) rest A1.2.1 A1.2.2 (by omega)
-      (by omega) b2
+    obtain ⟨r1, r2, r3⟩ := osOodWeights_ssa c tch lv.logCols (ol + 1) rest A0.2.1 A0.2.2 (by omega)
+      (by omega) a2
     refine ⟨?_, ?_, fun p o hm ↦ ?_⟩
-    · have h := ((w1.append a1).append (v1.append b1)).append r1
-      simp only [osOodWeights, ← hW0, ← hA0, ← hW1, ← hA1]
+    · have h := (w1.append a1).append r1
+      simp only [osOodWeights, ← hW0, ← hA0]
       simpa only [List.append_assoc] using h
-    · simp only [osOodWeights, ← hW0, ← hA0, ← hW1, ← hA1]
+    · simp only [osOodWeights, ← hW0, ← hA0]
       exact r2
-    · simp only [osOodWeights, ← hW0, ← hA0, ← hW1, ← hA1, loadsOf_append, List.mem_append, a3, b3,
+    · simp only [osOodWeights, ← hW0, ← hA0, loadsOf_append, List.mem_append, a3,
         List.not_mem_nil, or_false] at hm
       simp only [OodLoads]
-      rcases hm with (hm | hm) | hm
-      · exact Or.inl ⟨0, by omega, w3 p o hm⟩
-      · exact Or.inl ⟨1, by omega, v3 p o hm⟩
+      rcases hm with hm | hm
+      · exact Or.inl (w3 p o hm)
       · exact Or.inr (r3 p o hm)
 
 end

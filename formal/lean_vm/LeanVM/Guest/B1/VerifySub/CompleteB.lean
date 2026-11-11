@@ -66,7 +66,7 @@ theorem squeezeN_cap_length : ∀ (n : ℕ) (s : Fs), s.cap.length = 5 → (s.sq
   | n + 1, s, _ => squeezeN_cap_length n s.squeeze.2 (by simp [Fs.squeeze, capOf])
 
 theorem mem_st15 : "grind_check__L15" ∈ vsStaticS := by simp [vsStaticS]
-theorem mem_st14 : "grind_check__L14" ∈ vsStaticS := by simp [vsStaticS]
+theorem mem_st13 : "grind_check__L13" ∈ vsStaticS := by simp [vsStaticS]
 theorem mem_stOm : "opening_message__L1_L1" ∈ vsStaticS := by simp [vsStaticS]
 
 namespace ChildSegs
@@ -158,8 +158,8 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
   · exact ⟨fun _ ↦ S.vbg_kidB hbl (by omega) W bs sqE, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ hvt pv, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ hvk, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ grind_kidB (bits := 14) (κ := κ) (by decide) (by omega)
-      (hstat _ mem_st14) sqE S.ringPow, fun h ↦ by cases h⟩
+  · exact ⟨fun _ ↦ grind_kidB (bits := 13) (κ := κ) (by decide) (by omega)
+      (hstat _ mem_st13) sqE S.ringPow, fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ rst_completeAtB κ hsl S.rchs_length W.hl14,
       fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ S.os_kidB hos (by omega) hrf hcons W bs sqE, fun h ↦ by cases h⟩

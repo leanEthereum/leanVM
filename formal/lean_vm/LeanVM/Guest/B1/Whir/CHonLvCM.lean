@@ -56,7 +56,6 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     (hL : h.Ls.length = h.c.levels.length)
     (hrl : ∀ i < h.c.levels.length, (h.L i).rounds.length = (osLvAt h.c i).folds)
     (hz0 : ((h.L l).osRec h.logN).z0.length = (osLvAt h.c l).logCols)
-    (hz1 : ((h.L l).osRec h.logN).z1.length = (osLvAt h.c l).logCols)
     (hht : ((h.L l).R.getD l default).2.1 = (osLvAt h.c l).depth)
     (hcv : h.cv l = capCellH (osLvAt h.c l).depth ((h.L l).qs h.logN) (h.L l).phase)
     (hfv : h.fv l = capFlH (osLvAt h.c l).depth (osLvAt h.c l).capDepth ((h.L l).qs h.logN) (h.L l).phase)
@@ -97,40 +96,40 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have p9 : σ (.n osOodz) = osPtrF h.c b 9 := hp 9 (by norm_num)
   have p10 : σ (.n osOodSc) = osPtrF h.c b 10 := hp 10 (by norm_num)
   -- the level's words
-  have hrwl : rw.length = 6 * (osLvAt h.c l).folds := by rw [hrl7, hfold]
+  have hrwl : rw.length = 5 * (osLvAt h.c l).folds := by rw [hrl7, hfold]
   have hhl : W'.high.length = (osLvAt h.c l).folds := by rw [hnext.hlen, hfold]
   have hxs' : (h.L l).xs = rw ++ ((W'.x0 :: W'.x1 :: W'.high) ++
-      ([W'.y0, W'.y1, W'.nn] ++ (W'.n2 :: (h.L (l + 1)).xs))) := by
+      ([W'.n1] ++ ([W'.y0, W'.nn] ++ (h.L (l + 1)).xs))) := by
     rw [hxsL]; simp [NextW.words]
-  have hlen : (h.L l).xs.length = 6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3 + 1 +
+  have hlen : (h.L l).xs.length = 5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 1 + 2 +
       (h.L (l + 1)).xs.length := by
     rw [hxs']; simp [hrwl, hhl]; omega
   have e0 : (((h.L l).xs.drop 0).take rw.length) = rw := by
     rw [hxs', List.drop_zero, List.take_left' rfl]
-  have e1 : (((h.L l).xs.drop (6 * (osLvAt h.c l).folds)).take (W'.x0 :: W'.x1 :: W'.high).length) =
+  have e1 : (((h.L l).xs.drop (5 * (osLvAt h.c l).folds)).take (W'.x0 :: W'.x1 :: W'.high).length) =
       W'.x0 :: W'.x1 :: W'.high := by
     rw [hxs']; exact seg_eq hrwl.symm
-  have e2 : (((h.L l).xs.drop (6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds))).take 3) =
-      [W'.y0, W'.y1, W'.nn] := by
+  have e1n : (((h.L l).xs.drop (5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds))).take 1) =
+      [W'.n1] := by
     rw [hxs', ← List.append_assoc]
-    exact seg_eq (B := [W'.y0, W'.y1, W'.nn]) (by simp [hrwl, hhl]; omega)
-  have e3 : (((h.L l).xs.drop (6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3)).take 1) =
-      [W'.n2] := by
-    rw [hxs', ← List.append_assoc, ← List.append_assoc, show W'.n2 :: (h.L (l + 1)).xs =
-      [W'.n2] ++ (h.L (l + 1)).xs from rfl]
-    exact seg_eq (B := [W'.n2]) (by simp [hrwl, hhl]; omega)
+    exact seg_eq (B := [W'.n1]) (by simp [hrwl, hhl]; omega)
+  have e2 : (((h.L l).xs.drop (5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 1)).take 2) =
+      [W'.y0, W'.nn] := by
+    rw [hxs', ← List.append_assoc, ← List.append_assoc]
+    exact seg_eq (B := [W'.y0, W'.nn]) (by simp [hrwl, hhl]; omega)
   have hml : (W'.x0 :: W'.x1 :: W'.high).length = 2 + (osLvAt h.c l).folds := by simp [hhl]; omega
   -- the reads at the cursor
   have r0 := segR hrdx hsuf (k := 0) (m := rw.length) (by omega)
   rw [e0, Nat.add_zero] at r0
-  have r1 := segR hrdx hsuf (k := 6 * (osLvAt h.c l).folds) (m := (W'.x0 :: W'.x1 :: W'.high).length)
+  have r1 := segR hrdx hsuf (k := 5 * (osLvAt h.c l).folds) (m := (W'.x0 :: W'.x1 :: W'.high).length)
     (by rw [hml]; omega)
   rw [e1] at r1
-  have r2 := segR hrdx hsuf (k := 6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds)) (m := 3) (by omega)
-  rw [e2] at r2
-  have r3 := segR hrdx hsuf (k := 6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3) (m := 1)
+  have r1n := segR hrdx hsuf (k := 5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds)) (m := 1)
     (by omega)
-  rw [e3] at r3
+  rw [e1n] at r1n
+  have r2 := segR hrdx hsuf (k := 5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 1) (m := 2)
+    (by omega)
+  rw [e2] at r2
   -- the level's Spec values
   have hqS : (h.L l).qS h.logN = W'.qS (rsF (h.L l).level (h.L l).cap rw)
       (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length) := by
@@ -155,7 +154,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have hplen : (h.L l).phase.length = ((h.L l).qs h.logN).length := by rw [hph, hqs]; exact hnext.plen
   have hcd := (hNm.2.2.2.2.2.2.2.2 l hln)
   -- sizes
-  have h9 : (osSizesF h.c).getD 9 0 = 2 * h.c.levels.length * 22 := by
+  have h9 : (osSizesF h.c).getD 9 0 = h.c.levels.length * 22 := by
     rw [hS.head (j := 9) (by omega)]; rfl
   have hmid := hS.mid hl
   have hsz0 := hS.lv0 hln
@@ -163,7 +162,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have hfe := h.foldsEnd_le hS hln
   have h4 : (osSizesF h.c).getD 4 0 = h.c.nFolds := by rw [hS.head (j := 4) (by omega)]; rfl
   have h5 : (osSizesF h.c).getD 5 0 = 2 * h.c.nFolds := by rw [hS.head (j := 5) (by omega)]; rfl
-  refine ⟨?f_rounds, ?f_om, ?f_sent, ?f_spf, ?f_sp, ?f_ys, ?f_g17, ?f_rows, ?f_dec, ?f_loop, ?f_nb, ?f_g14, ?f_mcap, ?f_roots, ?f_hs, ?f_q, ?f_glue⟩
+  refine ⟨?f_rounds, ?f_om, ?f_g0, ?f_sent, ?f_spf, ?f_ys, ?f_g17, ?f_rows, ?f_dec, ?f_loop, ?f_mcap, ?f_roots, ?f_hs, ?f_q, ?f_glue⟩
   case f_rounds =>
     rw [p4, p5, ht]
     change RoundsC C (osPtrF h.c b 4) (osPtrF h.c b 5) tabs _ _ _ _ _ (h.L l).rw
@@ -197,9 +196,16 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
       (by rw [hw0, hsz0]; simp only [OsHD.sentC, hLnw, List.length_cons, hhl]; omega)
     rw [hw0] at hrd
     refine osH_named hH hk ?_ ?_
-    · refine om_pre hc5 ?_ ?_ ?_
+    · refine omN_pre hc5 ?_ ?_ ?_ ?_
       · simp only [MidW.msg, LvAt.midW, hLnw]; exact hml
       · simp only [MidW.msg, LvAt.midW, hLnw, MidW.cur1, mul_gen_pow_add]; exact r1
+      · simp only [LvAt.midW, hLnw, MidW.cur1, mul_gen_pow_add]
+        have := r1n 0 (by simp)
+        rw [loadHolds_mul_gen_pow] at this ⊢
+        rw [show xs.length - (h.L l).xs.length + 5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) =
+          xs.length - (h.L l).xs.length + (5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds)) + 0 by
+          omega]
+        exact this
       · exact hrd
     · intro q hq
       simp only [OsKind.spec, msgSpec, List.mem_cons, List.not_mem_nil, or_false] at hq
@@ -211,14 +217,24 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
       · dsimp only
         rw [(getD_five2 hc5 _ _).2]
         exact h.fixedAt_own0 (hS.lvLt hln).1 (by unfold osIxQbp; omega) (by rw [hsz0])
+  case f_g0 =>
+    rw [ht]
+    refine osH_named hH hNm.2.2.2.1 (grind_pre hwt ?_) (fun q hq ↦ by simp [OsKind.spec] at hq)
+    have hlane := grind_lane (by decide) (hnext.ok0.resolve_left (by decide))
+    simp only [NextW.F1] at hlane
+    rw [hE.cap1]
+    simp only [LvAt.midW, hLnw, MidW.msg]
+    unfold LvAt.cap1
+    rw [hLrw]
+    exact hlane
   case f_sent =>
     rw [p3]
     exact h.mid_sent hS hm hl hR
   case f_spf =>
-    have hk := (hNm.2.2.2.2.2.2.1 l hl).2.1
+    have hk := (hNm.2.2.2.2.2.2.1 l hl).2
     rw [hE.cap1, p9]
     refine osH_named hH hk (spf_pre (capOf_length _) ?_) ?_
-    · rw [hE.z0]; exact (h.ood_rows hS hm hl hz0 hz1).1
+    · rw [hE.z0]; exact h.ood_rows hS hm hl hz0
     · intro q hq
       simp only [OsKind.spec, spfSpec, List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
@@ -226,22 +242,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
       rw [(getD_five2 (capOf_length _) _ _).2]
       have hc22 : (osLvAt h.c l).logCols ≤ 22 := hmid.1
       exact h.fixedAt_own (hS.headLt (j := 9) (by omega)) (by unfold osIxQbp; omega)
-        (by rw [h9]; show 2 * (l + 1) * 22 + _ ≤ _; omega)
-  case f_sp =>
-    have hk := (hNm.2.2.2.2.2.2.1 l hl).2.2
-    rw [hE.cap1, p9]
-    have hc5 : (spfRets (h.L l).cap1 ((h.L l).midW (digestHalves (h.root l)).1 (digestHalves (h.root l)).2 batched (osPtrF h.c b (13 + 2 * l)) (osPtrF h.c b (14 + 2 * l))).msg (osLvAt h.c l).logCols).length = 5 :=
-      squeezeN_cap_length _ _ (capOf_length _)
-    refine osH_named hH hk (sp_pre hc5 ?_) ?_
-    · rw [hE.z1]; exact (h.ood_rows hS hm hl hz0 hz1).2
-    · intro q hq
-      simp only [OsKind.spec, spSpec, List.mem_cons, List.not_mem_nil, or_false] at hq
-      subst hq
-      dsimp only
-      rw [getD_five1 hc5]
-      have hc22 : (osLvAt h.c l).logCols ≤ 22 := hmid.1
-      exact h.fixedAt_own (hS.headLt (j := 9) (by omega)) (by unfold osIxQbp; omega)
-        (by rw [h9]; show (2 * (l + 1) + 1) * 22 + _ ≤ _; omega)
+        (by rw [h9]; show (l + 1) * 22 + _ ≤ _; omega)
   case f_ys =>
     simp only [LvAt.midW, hLnw, MidW.cur1, mul_gen_pow_add, Nat.add_assoc]
     exact r2
@@ -249,7 +250,11 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     rw [ht]
     refine osH_named hH hNm.2.2.1 (grind_pre hwt ?_) (fun q hq ↦ by simp [OsKind.spec] at hq)
     rw [hE.S2, rdCell_one, hqS]
-    exact grind_lane (by decide) hnext.ok1
+    have hg := grind_lane (bits := Whir.queryGrindingBits) (n := W'.nn)
+      (s := (oodPt (rsF (h.L l).level (h.L l).cap rw) (W'.x0 :: W'.x1 :: W'.high) W'.n1
+        (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length)).2.absorbAll [W'.y0]
+          dsObserve) (by decide) hnext.ok1
+    exact hg
   case f_rows =>
     have hix : osIxSqz h.c l = 14 + 2 * l := by
       simp only [osIxSqz, show l ≠ h.c.yrLevel by omega, ↓reduceIte]; ring
@@ -259,15 +264,6 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     exact ⟨ra, rb⟩
   case f_dec => exact osH_special hH hcd.2.1 _ _
   case f_loop => exact fun _ ↦ osH_special hH hcd.2.2.1 _ _
-  case f_nb =>
-    simp only [LvAt.midW, hLnw, MidW.cur1, mul_gen_pow_add, Nat.add_assoc]
-    exact r3 0 (by simp)
-  case f_g14 =>
-    rw [ht]
-    refine osH_named hH hNm.2.2.2.1 (grind_pre hwt ?_) (fun q hq ↦ by simp [OsKind.spec] at hq)
-    rw [hE.SL, rdCell_one, hF3]
-    simp only [LvAt.midW, hLnw]
-    exact grind_lane (by decide) hnext.ok2
   case f_mcap =>
     rw [p0, p1]
     subst hheight

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Place.OsCallV
 public import LeanVM.Guest.B1.Whir.CSqLoop
 
 /-!
-# A level after its squeezes, honestly (G:1649-1735)
+# A level after its squeezes, honestly (G:1640-1722)
 
 * `osStep_of`: a block's state moved on, from its fields.
 * `osCap_complete`: `verify_merkle_cap` on the level's cap and flags, its returns stored in
@@ -50,7 +50,7 @@ theorem osStep_of {σ σ' : Val} {st st' : OsSt} (hsf : st.Sf) (hok : st.Ok σ)
 
 /-! ## The cap -/
 
-/-- **The level's cap, honestly** (G:1649-1653): `verify_merkle_cap` returning the root's cells
+/-- **The level's cap, honestly** (G:1640-1644): `verify_merkle_cap` returning the root's cells
 `r0, r1`, stored in `level_roots`. -/
 theorem osCap_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (r0 r1 : E) (hc4 : 4 * lv.capOff < u128Bound)
@@ -168,7 +168,7 @@ theorem osHsCoefs_complete (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) (xs 
           exact hmem C rd hH j (by omega) (by omega)
     exact h.mono fun _ _ ↦ trivial
 
-/-- **A non-final level's high part, honestly** (G:1695-1703): word `2 + j` of `sent`, scaled,
+/-- **A non-final level's high part, honestly** (G:1686-1693): word `2 + j` of `sent`, scaled,
 into `level_hs[lvl·8 + j]`. -/
 theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hsent : st.sent < st.k) (high : ℕ → E)
@@ -198,7 +198,7 @@ theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : s
       by show m.src < K; omega,
       by show m.base < K; omega⟩
 
-/-- **The final level's lane, honestly** (G:1684-1694): a fresh buffer at `pH`, word `j` of
+/-- **The final level's lane, honestly** (G:1675-1685): a fresh buffer at `pH`, word `j` of
 `final_msg`, scaled, into its word `j`. -/
 theorem osHsFinal_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (pH : E) (lane : ℕ → E)
@@ -246,7 +246,7 @@ def osQArgsV (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E
     σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff,
     gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)]
 
-/-- **The level's queries, honestly** (G:1710-1717): `opening_queries` at its honest arguments
+/-- **The level's queries, honestly** (G:1697-1704): `opening_queries` at its honest arguments
 (`osQArgsV`), returning `batched`. -/
 theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (batched : E) (hc4 : 4 * lv.capOff < u128Bound)
@@ -440,110 +440,100 @@ theorem osPowSteps_res_lt (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ), acc < 
     simp only [osPowSteps, Bool.false_eq_true, ↓reduceIte, powLen_false]
     omega
 
-/-- The glue's first values: `λ·y0`, the claim plus it, `λ²`, `λ²·y1`, the sum, `λ³`. -/
-def glueVals (cl lam y0 y1 : E) : List E :=
-  [lam * y0, cl + lam * y0, lam * lam, lam * lam * y1, cl + lam * y0 + lam * lam * y1, lam * lam * lam]
+/-- The glue's first values: `λ·y0`, the claim plus it, `λ²`. -/
+def glueVals (cl lam y0 : E) : List E :=
+  [lam * y0, cl + lam * y0, lam * lam]
 
-/-- The glue's last values: `λ³·λ^Q`, times the batch, the new claim. -/
-def glueEnd (cl lam y0 y1 lq b : E) : List E :=
-  [lam * lam * lam * lq, lam * lam * lam * lq * b, cl + lam * y0 + lam * lam * y1 + lam * lam * lam * lq * b]
+/-- The glue's last values: `λ²·λ^Q`, times the batch, the new claim. -/
+def glueEnd (cl lam y0 lq b : E) : List E :=
+  [lam * lam * lq, lam * lam * lq * b, cl + lam * y0 + lam * lam * lq * b]
 
-/-- **A non-final level's claims glued, honestly** (G:1719-1735): `λ` and `λ²` into `ood_scalars`,
-`λ³·λ^Q` into `level_betas`, `1/λ` into `level_mus`; the new claim the old plus
-`λ·y0 + λ²·y1 + λ³·λ^Q·batched`. -/
+/-- **A non-final level's claims glued, honestly** (G:1686-1696): `λ` into `ood_scalars`,
+`λ²·λ^Q` into `level_betas`, `1/λ` into `level_mus`; the new claim the old plus
+`λ·y0 + λ²·λ^Q·batched`. -/
 theorem osGlue_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hlam : st.lam < st.k) (hy0 : st.ys.getD 0 0 < st.k)
-    (hy1 : st.ys.getD 1 0 < st.k) (hbat : st.batched < st.k) (hli : st.lamInv < st.k)
+    (hbat : st.batched < st.k) (hli : st.lamInv < st.k)
     (hpw : digitsVal (osPowDigits lv.queries) 1 = lv.queries)
     (hmem : ∀ C rd, H C rd →
-      LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1)) (σ (.n st.lam)) ∧
-      LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1) + 1) (σ (.n st.lam) * σ (.n st.lam)) ∧
+      LoadHolds rd (σ (.n osOodSc)) (lvl + 1) (σ (.n st.lam)) ∧
       LoadHolds rd (σ (.n osBetas)) lvl
-        (σ (.n st.lam) * σ (.n st.lam) * σ (.n st.lam) * σ (.n st.lam) ^ lv.queries) ∧
+        (σ (.n st.lam) * σ (.n st.lam) * σ (.n st.lam) ^ lv.queries) ∧
       LoadHolds rd (σ (.n osMus)) lvl (σ (.n st.lamInv))) :
     BlkA H σ st.k (osGlue lvl lv st).2.k (osGlue lvl lv st).1 (fun σ' ↦
       OsStep σ σ' st (osGlue lvl lv st).2 ∧
       σ' (.n (osGlue lvl lv st).2.claim) = σ (.n st.claim) + σ (.n st.lam) * σ (.n (st.ys.getD 0 0)) +
-        σ (.n st.lam) * σ (.n st.lam) * σ (.n (st.ys.getD 1 0)) +
-        σ (.n st.lam) * σ (.n st.lam) * σ (.n st.lam) * σ (.n st.lam) ^ lv.queries *
-          σ (.n st.batched)) := by
+        σ (.n st.lam) * σ (.n st.lam) * σ (.n st.lam) ^ lv.queries * σ (.n st.batched)) := by
   set k := st.k with hk
   set lam := st.lam with hlamD
   set y0 := st.ys.getD 0 0 with hy0D
-  set y1 := st.ys.getD 1 0 with hy1D
   set ds := osPowDigits lv.queries with hds
-  set pw := osPowSteps lam ds lam (k + 6) with hpwD
-  set k' := k + 6 + powLen ds with hk'
+  set pw := osPowSteps lam ds lam (k + 3) with hpwD
+  set k' := k + 3 + powLen ds with hk'
   set L := σ (.n lam) with hL
   set Y0 := σ (.n y0) with hY0
-  set Y1 := σ (.n y1) with hY1
   set cl := σ (.n st.claim) with hcl
   set B := σ (.n st.batched) with hB
   have k36 : 36 ≤ k := hsf.k
   have hclk : st.claim < k := hsf.below.claim
-  have hres : pw.2 < k' := osPowSteps_res_lt lam ds lam (k + 6) (by omega)
+  have hres : pw.2 < k' := osPowSteps_res_lt lam ds lam (k + 3) (by omega)
   have hLQ : powRes L ds L = L ^ lv.queries := by
     rw [← hpw, ← powRes_eq L ds 1, pow_one]
-  -- the first values and the two stores
-  have b1 : BlkA H σ k (k + 6) [osLd lam osOodSc (oodSamples * (lvl + 1)), osMul k lam y0,
-      osAdd (k + 1) st.claim k, osMul (k + 2) lam lam, osLd (k + 2) osOodSc (oodSamples * (lvl + 1) + 1),
-      osMul (k + 3) (k + 2) y1, osAdd (k + 4) (k + 1) (k + 3), osMul (k + 5) (k + 2) lam]
-      (fun σ' ↦ ∀ j < 6, σ' (.n (k + j)) = (glueVals cl L Y0 Y1).getD j 0) := by
-    refine ⟨lstF k (glueVals cl L Y0 Y1), fun C rd hH σ' ha hr ↦ ?_⟩
-    have v : ∀ j < 6, σ' (.n (k + j)) = (glueVals cl L Y0 Y1).getD j 0 := fun j hj ↦
+  -- the first values and the store
+  have b1 : BlkA H σ k (k + 3) [osLd lam osOodSc (lvl + 1), osMul k lam y0,
+      osAdd (k + 1) st.claim k, osMul (k + 2) lam lam]
+      (fun σ' ↦ ∀ j < 3, σ' (.n (k + j)) = (glueVals cl L Y0).getD j 0) := by
+    refine ⟨lstF k (glueVals cl L Y0), fun C rd hH σ' ha hr ↦ ?_⟩
+    have v : ∀ j < 3, σ' (.n (k + j)) = (glueVals cl L Y0).getD j 0 := fun j hj ↦
       lstF_at hr (by simp [glueVals]) j (by simp [glueVals]; omega)
     refine ⟨?_, v⟩
     have v0 := v 0 (by omega)
     have v1 := v 1 (by omega)
     have v2 := v 2 (by omega)
-    have v3 := v 3 (by omega)
-    have v4 := v 4 (by omega)
-    have v5 := v 5 (by omega)
-    simp only [glueVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2 v3 v4 v5
-    obtain ⟨l0, l1, -, -⟩ := hmem C rd hH
+    simp only [glueVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2
+    obtain ⟨l0, -, -⟩ := hmem C rd hH
     simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_mul, holds_add, osLd,
-      osMul, osAdd, v0, v1, v2, v3, v4, v5, ha _ hlam, ha _ hy0, ha _ hy1, ha _ hclk,
-      ha _ (show 31 < k by omega), and_true, true_and]
-    exact ⟨l0, rfl, rfl, rfl, l1, rfl, rfl⟩
+      osMul, osAdd, v0, v1, v2, ha _ hlam, ha _ hy0, ha _ hclk,
+      ha _ (show 31 < k by omega), and_true]
+    exact ⟨l0, by and_intros <;> rfl⟩
   -- `λ^Q`
-  have b2 := BlkA.seq (H := H) (show k ≤ k + 6 by omega) (show k + 6 ≤ k' by omega) b1 (B := pw.1)
+  have b2 := BlkA.seq (H := H) (show k ≤ k + 3 by omega) (show k + 3 ≤ k' by omega) b1 (B := pw.1)
     (OutB := fun σ' ↦ σ' (.n pw.2) = L ^ lv.queries) fun σ1 ha1 _ ↦ by
-      refine ⟨powVals L ds L (k + 6), fun C rd hH σ' ha hr ↦ ?_⟩
-      have h := powSteps_ok (C := C) (rd := rd) lam ds lam (k + 6) L σ' (by omega) (by omega)
+      refine ⟨powVals L ds L (k + 3), fun C rd hH σ' ha hr ↦ ?_⟩
+      have h := powSteps_ok (C := C) (rd := rd) lam ds lam (k + 3) L σ' (by omega) (by omega)
         (by rw [ha _ (by omega), ha1 _ hlam]) fun i h1 h2 ↦ by
-          rw [hr i h1 (by omega), ha _ (show lam < k + 6 by omega), ha1 _ hlam]
+          rw [hr i h1 (by omega), ha _ (show lam < k + 3 by omega), ha1 _ hlam]
       refine ⟨h.1, ?_⟩
-      show σ' (.n (osPowSteps lam ds lam (k + 6)).2) = _
-      rw [h.2, ha _ (show lam < k + 6 by omega), ha1 _ hlam, hLQ]
-  -- the batch glued, `λ³·λ^Q` and `1/λ` stored
+      show σ' (.n (osPowSteps lam ds lam (k + 3)).2) = _
+      rw [h.2, ha _ (show lam < k + 3 by omega), ha1 _ hlam, hLQ]
+  -- the batch glued, `λ²·λ^Q` and `1/λ` stored
   have b3 := BlkA.seq (H := H) (show k ≤ k' by omega) (show k' ≤ k' + 3 by omega) b2
-    (B := [osMul k' (k + 5) pw.2, osMul (k' + 1) k' st.batched, osAdd (k' + 2) (k + 4) (k' + 1),
+    (B := [osMul k' (k + 2) pw.2, osMul (k' + 1) k' st.batched, osAdd (k' + 2) (k + 1) (k' + 1),
       osLd k' osBetas lvl, osLd st.lamInv osMus lvl])
-    (OutB := fun σ' ↦ σ' (.n (k' + 2)) = cl + L * Y0 + L * L * Y1 + L * L * L * L ^ lv.queries * B)
+    (OutB := fun σ' ↦ σ' (.n (k' + 2)) = cl + L * Y0 + L * L * L ^ lv.queries * B)
     fun σ1 ha1 ho1 ↦ by
-      refine ⟨lstF k' (glueEnd cl L Y0 Y1 (L ^ lv.queries) B), fun C rd hH σ' ha hr ↦ ?_⟩
+      refine ⟨lstF k' (glueEnd cl L Y0 (L ^ lv.queries) B), fun C rd hH σ' ha hr ↦ ?_⟩
       have v0 := lstF_at hr (by simp [glueEnd]) 0 (by simp [glueEnd])
       have v1 := lstF_at hr (by simp [glueEnd]) 1 (by simp [glueEnd])
       have v2 := lstF_at hr (by simp [glueEnd]) 2 (by simp [glueEnd])
       simp only [glueEnd, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v1 v2
       obtain ⟨w1, w2⟩ := ho1 C rd hH
-      have u4 : σ' (.n (k + 4)) = cl + L * Y0 + L * L * Y1 := by
-        rw [ha _ (by omega), w1 4 (by omega)]; rfl
-      have u5 : σ' (.n (k + 5)) = L * L * L := by rw [ha _ (by omega), w1 5 (by omega)]; rfl
+      have u1 : σ' (.n (k + 1)) = cl + L * Y0 := by
+        rw [ha _ (by omega), w1 1 (by omega)]; rfl
+      have u2 : σ' (.n (k + 2)) = L * L := by rw [ha _ (by omega), w1 2 (by omega)]; rfl
       have upw : σ' (.n pw.2) = L ^ lv.queries := by rw [ha _ hres, w2]
-      obtain ⟨-, -, l2, l3⟩ := hmem C rd hH
+      obtain ⟨-, l2, l3⟩ := hmem C rd hH
       refine ⟨?_, v2⟩
       simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_mul, holds_add, osLd,
-        osMul, osAdd, v0, v1, v2, u4, u5, upw, ha _ (show st.batched < k' by omega),
+        osMul, osAdd, v0, v1, v2, u1, u2, upw, ha _ (show st.batched < k' by omega),
         ha1 _ hbat, ha _ (show st.lamInv < k' by omega), ha1 _ hli, ha _ (show 23 < k' by omega),
         ha1 _ (show 23 < k by omega), ha _ (show 25 < k' by omega), ha1 _ (show 25 < k by omega)]
       refine ⟨?_, ?_, ?_, l2, l3⟩ <;> trivial
   have ek : (osGlue lvl lv st).2.k = k' + 3 := rfl
   have ecl : (osGlue lvl lv st).2.claim = k' + 2 := rfl
-  have el : (osGlue lvl lv st).1 = [osLd lam osOodSc (oodSamples * (lvl + 1)), osMul k lam y0,
-      osAdd (k + 1) st.claim k, osMul (k + 2) lam lam, osLd (k + 2) osOodSc (oodSamples * (lvl + 1) + 1),
-      osMul (k + 3) (k + 2) y1, osAdd (k + 4) (k + 1) (k + 3), osMul (k + 5) (k + 2) lam] ++ pw.1 ++
-      [osMul k' (k + 5) pw.2, osMul (k' + 1) k' st.batched, osAdd (k' + 2) (k + 4) (k' + 1),
+  have el : (osGlue lvl lv st).1 = [osLd lam osOodSc (lvl + 1), osMul k lam y0,
+      osAdd (k + 1) st.claim k, osMul (k + 2) lam lam] ++ pw.1 ++
+      [osMul k' (k + 2) pw.2, osMul (k' + 1) k' st.batched, osAdd (k' + 2) (k + 1) (k' + 1),
         osLd k' osBetas lvl, osLd st.lamInv osMus lvl] := rfl
   rw [ek, el, ecl]
   refine BlkA.monoH b3.agree fun C rd hH σ' _ ⟨⟨_, ev⟩, hag⟩ ↦ ⟨?_, ev⟩

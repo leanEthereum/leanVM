@@ -117,7 +117,7 @@ theorem lv {b : ℕ} {cur tabs : E} :
     exact lvMid_gen F.bs hl' hy (by rw [F.len]; omega) (F.step l hl') (F.mid l hl') (F.gam l hl)
       (F.recF l hl) (F.suf l hl) hq fun C rd hH ↦
       midC_of F.hs F.nm hl' hq.ptr hq.tabs (h.bat l) (F.step l hl') hfold hmu hdep hqueries hsq hcols1
-        (F.cap5 l hl) hsfx (F.rootN l hl') (F.G l hl) F.len F.rl (F.rrun l hl').z0 (F.rrun l hl').z1
+        (F.cap5 l hl) hsfx (F.rootN l hl') (F.G l hl) F.len F.rl (F.rrun l hl').z0
         (F.ht l hl) (F.cv l hl) (F.fv l hl) (F.ag l hl) (F.ps l hl) (F.q0 l hl) hsq1 C rd hH
 
 end BodyFacts

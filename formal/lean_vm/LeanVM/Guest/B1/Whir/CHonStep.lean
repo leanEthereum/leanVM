@@ -119,7 +119,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
     (hl : l < h.c.yrLevel) {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (W : MidW)
     (hpS : W.pS = osPtrF h.c b (13 + 2 * l)) (hpZ : W.pZ = osPtrF h.c b (14 + 2 * l))
     (hr3 : 2 * ((osLvAt h.c l).foldsOff + (osLvAt h.c l).folds) < u128Bound)
-    (hoff : (oodSamples * (l + 1) + 1) * ligColsCap < u128Bound)
+    (hoff : (l + 1) * ligColsCap < u128Bound)
     (hpo : (osLvAt h.c l).posOff < u128Bound) (hS5 : (osLvAt h.c l).squeezes * 5 < u128Bound)
     (hc4 : 4 * (osLvAt h.c l).capOff < u128Bound) (hh8 : l * hsStride < u128Bound)
     (hqu : (osLvAt h.c l).queries < u128Bound)
@@ -129,7 +129,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
       (cur * gen ^ (xs.length - (h.xsAt l).length)) W)
     (hcap' : capOf (W.SL (osLvAt h.c l) (h.capAt l) (h.claimAt l)) = h.capAt (l + 1))
     (hcl' : W.claimOut (osLvAt h.c l) (h.capAt l) (h.claimAt l) = h.claimAt (l + 1))
-    (hcur' : xs.length - (h.xsAt l).length + (6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3 + 1) =
+    (hcur' : xs.length - (h.xsAt l).length + (5 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3) =
       xs.length - (h.xsAt (l + 1)).length)
     (hw0 : rdCell (W.S2 (osLvAt h.c l) (h.capAt l) (h.claimAt l)) 0 = h.word l 0)
     (hli : (W.lam (osLvAt h.c l) (h.capAt l) (h.claimAt l))⁻¹ = h.lamInv l) :
@@ -215,7 +215,7 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
     (hcl' : W.cl1 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) =
       h.claimAt (h.c.yrLevel + 1))
     (hcur' : xs.length - (h.xsAt h.c.yrLevel).length +
-        (6 * (osLvAt h.c h.c.yrLevel).folds + (h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds + 1)) =
+        (5 * (osLvAt h.c h.c.yrLevel).folds + (h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds + 1)) =
       xs.length - (h.xsAt (h.c.yrLevel + 1)).length)
     (hw0 : cellsOfState (W.S2 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel))
       false 0 = h.word h.c.yrLevel 0) :
