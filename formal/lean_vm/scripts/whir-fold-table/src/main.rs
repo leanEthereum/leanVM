@@ -1,5 +1,5 @@
 //! Writes the deployed fold rounds into `AffineCombinerDeployedTable.lean`: for every rate exponent `1..=4` and stack
-//! size `15..=28`, each level's `(κ, R, k, Aend, [(m, D, B)])` of the prover's search
+//! size `16..=30`, each level's `(κ, R, k, Aend, [(m, D, B)])` of the prover's search
 //! (`WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, R)`), between the file's first shape and
 //! `foldTable`, and the pin `../../../leanvm-rev` in its header.
 //!
@@ -8,7 +8,7 @@
 use pcs::LOG_PACKING;
 use pcs::whir_config::WhirSecurityConfig;
 
-const FIRST: &str = "/-- Rate exponent 1, stack size 15. -/";
+const FIRST: &str = "/-- Rate exponent 1, stack size 16. -/";
 const AFTER: &str = "/-- The deployed levels";
 const PIN: &str = "at leanVM `";
 
@@ -66,7 +66,7 @@ fn main() {
     let rev = &rev.trim()[..9];
 
     let data: String = (1..=4)
-        .flat_map(|rate| (15..=28).map(move |log_n| shape(log_n, rate)))
+        .flat_map(|rate| (16..=30).map(move |log_n| shape(log_n, rate)))
         .collect();
     let first = old.find(FIRST).expect("the first shape");
     let after = old.find(AFTER).expect("`foldTable`");
