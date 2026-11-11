@@ -68,23 +68,24 @@ pub(crate) fn coeff(c: usize) -> F64 {
     constants()[c.trailing_zeros() as usize]
 }
 
-/// `out[i * stride + l] = (X h_l)[first + i]` for each lane `l < stride` of `h`, stored column by column (coefficient
-/// `c` of lane `l` at `c * stride + l`), over the columns `out` covers.
-pub(crate) fn mul_x<T: Coef>(h: &[T], stride: usize, first: usize, out: &mut [T]) {
-    debug_assert!(h.len().is_multiple_of(stride) && out.len().is_multiple_of(stride));
-    let get = |c: usize, l: usize| h.get(c * stride + l).copied().unwrap_or(T::ZERO);
-    for (i, col) in out.chunks_exact_mut(stride).enumerate() {
+/// `out[i * (stride / step) + m] = (X h_(m step))[first + i]` for every `step`-th lane of `h`, stored column by column
+/// (coefficient `c` of lane `l` at `c * stride + l`), over the columns `out` covers.
+pub(crate) fn mul_x<T: Coef>(h: &[T], stride: usize, step: usize, first: usize, out: &mut [T]) {
+    let width = stride / step;
+    debug_assert!(h.len().is_multiple_of(stride) && out.len().is_multiple_of(width));
+    let get = |c: usize, m: usize| h.get(c * stride + m * step).copied().unwrap_or(T::ZERO);
+    for (i, col) in out.chunks_exact_mut(width).enumerate() {
         let c = first + i;
         if c == 0 {
             col.fill(T::ZERO);
         } else if c & 1 == 1 {
-            for (l, o) in col.iter_mut().enumerate() {
-                *o = get(c - 1, l) + get(c, l);
+            for (m, o) in col.iter_mut().enumerate() {
+                *o = get(c - 1, m) + get(c, m);
             }
         } else {
             let (a, far) = (coeff(c), c + (1 << c.trailing_zeros()) - 1);
-            for (l, o) in col.iter_mut().enumerate() {
-                *o = (get(c - 1, l) + get(far, l)).scale(a);
+            for (m, o) in col.iter_mut().enumerate() {
+                *o = (get(c - 1, m) + get(far, m)).scale(a);
             }
         }
     }
@@ -211,11 +212,11 @@ mod tests {
                 let want = by_evaluation(&h, mu + 1);
                 assert!(want[n + 1..].iter().all(|v| v.is_zero()), "mu={mu}, high={high}");
                 let mut got = vec![F64(7); n + 1];
-                mul_x(&h, 1, 0, &mut got);
+                mul_x(&h, 1, 1, 0, &mut got);
                 assert_eq!(got, want[..n + 1], "strided, mu={mu}, high={high}");
                 for (first, len) in [(0, 1), (1, n), (2, n - 1), (n / 2, n + 1 - n / 2), (n, 1)] {
                     let mut got = vec![F64(7); len];
-                    mul_x(&h, 1, first, &mut got);
+                    mul_x(&h, 1, 1, first, &mut got);
                     assert_eq!(
                         got,
                         want[first..first + len],
@@ -245,7 +246,7 @@ mod tests {
                     })
                     .collect();
                 let mut got = vec![F128::ONE; (n + 1) * stride];
-                mul_x(&h, stride, 0, &mut got);
+                mul_x(&h, stride, 1, 0, &mut got);
                 for (l, [lo, hi]) in lanes.iter().enumerate() {
                     let (lo, hi) = (by_evaluation(lo, mu + 1), by_evaluation(hi, mu + 1));
                     for c in 0..=n {
@@ -258,7 +259,7 @@ mod tests {
                 }
                 let first = n / 2;
                 let mut part = vec![F128::ONE; (n + 1 - first) * stride];
-                mul_x(&h, stride, first, &mut part);
+                mul_x(&h, stride, 1, first, &mut part);
                 assert_eq!(part, got[first * stride..], "E range, mu={mu}, high={high}");
             }
         }

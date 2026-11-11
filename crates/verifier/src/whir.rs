@@ -13,7 +13,7 @@ const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
 const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
 pub const QUERY_GRINDING_BITS: u32 = 17;
-/// Before each round's `theta`, and again before its `(gamma, alpha, beta)`.
+/// Before each fold round's `(gamma, alpha, beta)`.
 pub const FOLD_GRINDING_BITS: u32 = 9;
 /// Before every batching challenge: each level's lambda, and the stacked opening's map challenges and lambda.
 pub const BATCH_GRINDING_BITS: u32 = 14;
@@ -152,10 +152,9 @@ fn novel_eval(coefficients: &[E], what: &[K]) -> E {
     E::sum(coefficients.iter().zip(basis).map(|(&p, b)| p * b))
 }
 
-/// The challenges of one fold round that act on the oracle: `P = G + (alpha + beta X)(F + theta G)`.
+/// The challenges of one fold round that act on the oracle: `P = G + (alpha + beta X) F`.
 #[derive(Clone, Copy)]
 struct FoldRound {
-    theta: E,
     alpha: E,
     beta: E,
 }
@@ -165,12 +164,7 @@ struct FoldRound {
 fn fold_row(mut values: Vec<E>, x: K, rounds: &[FoldRound]) -> E {
     for round in rounds {
         let affine = round.alpha + round.beta * x;
-        values = values
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|&[f, g]| g + affine * (f + round.theta * g))
-            .collect();
+        values = values.as_chunks::<2>().0.iter().map(|&[f, g]| g + affine * f).collect();
     }
     assert_eq!(values.len(), 1, "one round per lane variable");
     values[0]
@@ -211,7 +205,7 @@ struct GluedClaim {
 
 /// Verify the base-field multilevel opening with a one-point terminal check.
 ///
-/// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X)(F + theta G)` of [CYWZ26, preprint],
+/// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of [CYWZ26, preprint],
 /// the claim carried by five scalars a round and the weight folded by `gamma`, so the gammas are the weight's
 /// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claims
 /// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends
@@ -235,19 +229,17 @@ pub fn verify_whir(
     for (level, (&fold_count, &level_rate)) in config.folds.iter().zip(&config.log_inv_rates).enumerate() {
         let mut rounds = Vec::with_capacity(fold_count);
         for _ in 0..fold_count {
-            transcript.grind_check(FOLD_GRINDING_BITS)?;
-            let theta = transcript.sample();
             let table = transcript.next_scalars(5)?;
             let (u0, v0, c0, v1, c1) = (table[0], table[1], table[2], table[3], table[4]);
-            // The F lanes' share `v0 + theta u0` and the G lanes' `u1` make up the claim.
-            let u1 = claim + v0 + theta * u0;
+            // The F lanes' share `v0` and the G lanes' `u1` make up the claim.
+            let u1 = claim + v0;
             transcript.grind_check(FOLD_GRINDING_BITS)?;
             let gamma = transcript.sample();
             let alpha = transcript.sample();
             let beta = transcript.sample();
             claim = (ONE + gamma) * (u0 + alpha * v0 + beta * c0) + gamma * (u1 + alpha * v1 + beta * c1);
             gammas.push(gamma);
-            rounds.push(FoldRound { theta, alpha, beta });
+            rounds.push(FoldRound { alpha, beta });
         }
 
         let mu = log_n - gammas.len();
@@ -436,7 +428,6 @@ mod tests {
         let mut lanes: Vec<Vec<E>> = (0..1 << k).map(|_| (0..1 << mu).map(|_| next()).collect()).collect();
         let rounds: Vec<FoldRound> = (0..k)
             .map(|_| FoldRound {
-                theta: next(),
                 alpha: next(),
                 beta: next(),
             })
@@ -452,10 +443,9 @@ mod tests {
                 .0
                 .iter()
                 .map(|[f, g]| {
-                    let h: Vec<E> = padded_sum(f, &g.iter().map(|&v| round.theta * v).collect::<Vec<_>>());
-                    let xh = times_x(&h, &subspace.roots);
+                    let xf = times_x(f, &subspace.roots);
                     let scaled = |values: &[E], s: E| values.iter().map(|&v| s * v).collect::<Vec<_>>();
-                    padded_sum(&padded_sum(g, &scaled(&h, round.alpha)), &scaled(&xh, round.beta))
+                    padded_sum(&padded_sum(g, &scaled(f, round.alpha)), &scaled(&xf, round.beta))
                 })
                 .collect();
         }

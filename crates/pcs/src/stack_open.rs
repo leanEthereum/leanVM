@@ -361,14 +361,12 @@ mod tests {
                 };
                 for round in 0..LANE_ROUNDS {
                     let ch = FoldChallenges {
-                        theta: rng.ext(),
                         gamma: rng.ext(),
                         alpha: rng.ext(),
                         beta: rng.ext(),
                     };
-                    let (want, h) = reference.table(ch.theta);
-                    assert_eq!(lanes.table(ch.theta), want, "{context}, round {round}");
-                    reference.fold(&h, &ch);
+                    assert_eq!(lanes.table(), reference.table(), "{context}, round {round}");
+                    reference.fold(&ch);
                     lanes.fold(&ch);
                 }
                 let (p, w, _) = lanes.finish();

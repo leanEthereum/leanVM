@@ -512,19 +512,18 @@ fn add_scaled(acc: &mut [F128], v: &[F128], s: F128) {
 // Affine fold rounds [CYWZ26, preprint]
 // ===================================================================
 //
-// A round pairs the lanes `F` (folded bit 0) and `G` (folded bit 1) of a level. After `theta` it sends, with
-// `H = F + theta G` and `W_i` the weight on the lanes with folded bit `i`,
+// A round pairs the lanes `F` (folded bit 0) and `G` (folded bit 1) of a level. It sends, with `W_i` the weight on
+// the lanes with folded bit `i`,
 //
-//     [u0, v0, c0, v1, c1] = [<W_0, G>, <W_0, H>, <W_0, X H>, <W_1, H>, <W_1, X H>],
+//     [u0, v0, c0, v1, c1] = [<W_0, G>, <W_0, F>, <W_0, X F>, <W_1, F>, <W_1, X F>],
 //
-// and after `(gamma, alpha, beta)` the lanes become `P = G + alpha H + beta X H`, one coefficient longer, and the
+// and after `(gamma, alpha, beta)` the lanes become `P = G + alpha F + beta X F`, one coefficient longer, and the
 // weight `W_0 + gamma (W_0 + W_1)`. The weight covers a lane's low `2^mu` coefficients only, and so do the inner
 // products; the high coefficients the folds add matter only where the lane is evaluated.
 
 /// The challenges of one fold round.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct FoldChallenges {
-    pub(crate) theta: F128,
     pub(crate) gamma: F128,
     pub(crate) alpha: F128,
     pub(crate) beta: F128,
@@ -534,39 +533,27 @@ pub(crate) struct FoldChallenges {
 pub(crate) type FoldTable = [F128; 5];
 
 impl FoldChallenges {
-    /// The claim after the round, from the claim before it and the round's table: `u1 = claim + v0 + theta u0`.
+    /// The claim after the round, from the claim before it and the round's table: `u1 = claim + v0`.
     pub(crate) fn next_claim(&self, claim: F128, table: &FoldTable) -> F128 {
         let [u0, v0, c0, v1, c1] = *table;
-        let u1 = claim + v0 + self.theta * u0;
+        let u1 = claim + v0;
         (F128::ONE + self.gamma) * (u0 + self.alpha * v0 + self.beta * c0)
             + self.gamma * (u1 + self.alpha * v1 + self.beta * c1)
     }
 
-    /// `G + (alpha + beta x)(F + theta G)`: the folded lane at the domain point `x`, from the two it folds.
+    /// `G + (alpha + beta x) F`: the folded lane at the domain point `x`, from the two it folds.
     #[inline]
     pub(crate) fn fold_at(&self, f: F128, g: F128, x: F64) -> F128 {
-        g + (self.alpha + self.beta.mul_base(x)) * (f + self.theta * g)
+        g + (self.alpha + self.beta.mul_base(x)) * f
     }
 }
 
-/// One fold round's transcript: `theta`, the table the prover builds from it, then `(gamma, alpha, beta)`, each
-/// sample after its grind.
-fn fold_round(ps: &mut ProverState, table: impl FnOnce(F128) -> FoldTable) -> (FoldChallenges, FoldTable) {
-    ps.grind(FOLD_GRINDING_BITS);
-    let theta = ps.sample();
-    let t = table(theta);
-    ps.add_scalars(&t);
+/// One fold round's transcript: the table, then `(gamma, alpha, beta)` after a grind.
+fn fold_round(ps: &mut ProverState, table: &FoldTable) -> FoldChallenges {
+    ps.add_scalars(table);
     ps.grind(FOLD_GRINDING_BITS);
     let (gamma, alpha, beta) = (ps.sample(), ps.sample(), ps.sample());
-    (
-        FoldChallenges {
-            theta,
-            gamma,
-            alpha,
-            beta,
-        },
-        t,
-    )
+    FoldChallenges { gamma, alpha, beta }
 }
 
 /// An opened row's lanes, in fold order, folded by the level's rounds at the row's domain point `x`.
@@ -601,42 +588,31 @@ impl Dense {
         (DENSE_CHUNK / self.stride).max(1)
     }
 
-    /// `H = F + theta G` over every column, and the round's table.
-    pub(crate) fn table(&self, theta: F128) -> (FoldTable, Vec<F128>) {
+    /// The round's table.
+    pub(crate) fn table(&self) -> FoldTable {
         let (s, pairs) = (self.stride, self.stride / 2);
         assert!(s >= 2 && s.is_power_of_two());
         let (f, w) = (&self.f, &self.w);
-        let (n_cols, low) = (f.len() / s, w.len() / s);
-        // SAFETY: the fill writes every element before it reads any.
-        let h = unsafe {
-            primitives::filled_vec(n_cols * pairs, |h| {
-                parallel::chunks_mut(h, DENSE_CHUNK, |i, out| {
-                    let at = 2 * i * DENSE_CHUNK..2 * (i * DENSE_CHUNK + out.len());
-                    for (o, p) in out.iter_mut().zip(f[at].as_chunks::<2>().0) {
-                        *o = p[0] + theta * p[1];
-                    }
-                })
-            })
-        };
+        let low = w.len() / s;
         let per = self.cols_per_task();
         let sums = parallel::map_reduce(
             low.div_ceil(per),
             || [F128Unreduced::ZERO; 5],
             |t| {
                 let cols = t * per..((t + 1) * per).min(low);
-                let mut xh = vec![F128::ZERO; cols.len() * pairs];
-                crate::xmul::mul_x(&h, pairs, cols.start, &mut xh);
+                let mut xf = vec![F128::ZERO; cols.len() * pairs];
+                crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
                 let mut acc = [F128Unreduced::ZERO; 5];
-                for (i, xh) in xh.chunks_exact(pairs).enumerate() {
+                for (i, xf) in xf.chunks_exact(pairs).enumerate() {
                     let c = cols.start + i;
-                    let (f, w, h) = (&f[c * s..][..s], &w[c * s..][..s], &h[c * pairs..][..pairs]);
+                    let (lanes, w) = (&f[c * s..][..s], &w[c * s..][..s]);
                     for m in 0..pairs {
-                        let (w0, w1, g, h, xh) = (w[2 * m], w[2 * m + 1], f[2 * m + 1], h[m], xh[m]);
+                        let (w0, w1, f, g, xf) = (w[2 * m], w[2 * m + 1], lanes[2 * m], lanes[2 * m + 1], xf[m]);
                         acc[0] ^= w0.mul_unreduced(g);
-                        acc[1] ^= w0.mul_unreduced(h);
-                        acc[2] ^= w0.mul_unreduced(xh);
-                        acc[3] ^= w1.mul_unreduced(h);
-                        acc[4] ^= w1.mul_unreduced(xh);
+                        acc[1] ^= w0.mul_unreduced(f);
+                        acc[2] ^= w0.mul_unreduced(xf);
+                        acc[3] ^= w1.mul_unreduced(f);
+                        acc[4] ^= w1.mul_unreduced(xf);
                     }
                 }
                 acc
@@ -646,31 +622,31 @@ impl Dense {
                 a
             },
         );
-        (sums.map(F128Unreduced::reduce), h)
+        sums.map(F128Unreduced::reduce)
     }
 
-    /// The round's fold, given its `H`: lanes `P = G + alpha H + beta X H`, one column longer, and the weight by `gamma`.
-    pub(crate) fn fold(&mut self, h: &[F128], ch: &FoldChallenges) {
+    /// The round's fold: lanes `P = G + alpha F + beta X F`, one column longer, and the weight by `gamma`.
+    pub(crate) fn fold(&mut self, ch: &FoldChallenges) {
         let (s, pairs) = (self.stride, self.stride / 2);
         let n_cols = self.f.len() / s;
         let per = self.cols_per_task();
-        let FoldChallenges { gamma, alpha, beta, .. } = *ch;
+        let FoldChallenges { gamma, alpha, beta } = *ch;
         let f = &self.f;
         // SAFETY: the fill writes every element before it reads any.
         let next = unsafe {
             primitives::filled_vec((n_cols + 1) * pairs, |out| {
                 parallel::chunks_mut(out, per * pairs, |t, out| {
                     let first = t * per;
-                    crate::xmul::mul_x(h, pairs, first, out);
+                    crate::xmul::mul_x(f, s, 2, first, out);
                     for (i, out) in out.chunks_exact_mut(pairs).enumerate() {
                         let c = first + i;
                         if c == n_cols {
                             out.iter_mut().for_each(|o| *o = beta * *o);
                             continue;
                         }
-                        let (f, h) = (&f[c * s..][..s], &h[c * pairs..][..pairs]);
+                        let lanes = &f[c * s..][..s];
                         for (m, o) in out.iter_mut().enumerate() {
-                            *o = f[2 * m + 1] + alpha * h[m] + beta * *o;
+                            *o = lanes[2 * m + 1] + alpha * lanes[2 * m] + beta * *o;
                         }
                     }
                 })
@@ -830,7 +806,8 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let mut rounds = Vec::with_capacity(initial_k);
     for j in 0..initial_k {
         let _span = tracing::info_span!("Fold round", level = 0, round = j).entered();
-        let (ch, table) = fold_round(ps, |theta| lanes.table(theta));
+        let table = lanes.table();
+        let ch = fold_round(ps, &table);
         claim = ch.next_claim(claim, &table);
         lanes.fold(&ch);
         rounds.push(ch);
@@ -850,14 +827,10 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             rounds.clear();
             for j in 0..config.level_ks[level - 1] {
                 let _span = tracing::info_span!("Fold round", level, round = j).entered();
-                let mut h = Vec::new();
-                let (ch, table) = fold_round(ps, |theta| {
-                    let (table, hh) = dense.table(theta);
-                    h = hh;
-                    table
-                });
+                let table = dense.table();
+                let ch = fold_round(ps, &table);
                 claim = ch.next_claim(claim, &table);
-                dense.fold(&h, &ch);
+                dense.fold(&ch);
                 rounds.push(ch);
             }
             (p, w) = (dense.f, dense.w);
@@ -1113,7 +1086,6 @@ mod tests {
 
     fn challenges(rng: &mut Rng) -> FoldChallenges {
         FoldChallenges {
-            theta: rng.ext(),
             gamma: rng.ext(),
             alpha: rng.ext(),
             beta: rng.ext(),
@@ -1121,7 +1093,7 @@ mod tests {
     }
 
     /// A dense round's table is the five inner products over the low columns, written out lane by lane, and its fold
-    /// is `G + alpha H + beta X H` over every column and the weight's interpolation by `gamma`.
+    /// is `G + alpha F + beta X F` over every column and the weight's interpolation by `gamma`.
     #[test]
     fn dense_round_matches_the_direct_inner_products() {
         let mut rng = Rng::new(0xF01D);
@@ -1147,20 +1119,19 @@ mod tests {
             for m in 0..s / 2 {
                 let (f, g) = (lane(&dense.f, 2 * m, n_cols), lane(&dense.f, 2 * m + 1, n_cols));
                 let (w0, w1) = (lane(&dense.w, 2 * m, low), lane(&dense.w, 2 * m + 1, low));
-                let h: Vec<F128> = f.iter().zip(&g).map(|(&f, &g)| f + ch.theta * g).collect();
-                let mut xh = vec![F128::ZERO; n_cols + 1];
-                crate::xmul::mul_x(&h, 1, 0, &mut xh);
+                let mut xf = vec![F128::ZERO; n_cols + 1];
+                crate::xmul::mul_x(&f, 1, 1, 0, &mut xf);
                 let ip = |w: &[F128], v: &[F128]| w.iter().zip(v).map(|(&a, &b)| a * b).sum::<F128>();
                 for (s, v) in want
                     .iter_mut()
-                    .zip([ip(&w0, &g), ip(&w0, &h), ip(&w0, &xh), ip(&w1, &h), ip(&w1, &xh)])
+                    .zip([ip(&w0, &g), ip(&w0, &f), ip(&w0, &xf), ip(&w1, &f), ip(&w1, &xf)])
                 {
                     *s += v;
                 }
                 let at = |v: &[F128], c: usize| v.get(c).copied().unwrap_or(F128::ZERO);
                 folded.push(
                     (0..=n_cols)
-                        .map(|c| at(&g, c) + ch.alpha * at(&h, c) + ch.beta * xh[c])
+                        .map(|c| at(&g, c) + ch.alpha * at(&f, c) + ch.beta * xf[c])
                         .collect::<Vec<_>>(),
                 );
             }
@@ -1171,9 +1142,8 @@ mod tests {
                 .iter()
                 .map(|&[a, b]| interp(a, b, ch.gamma))
                 .collect();
-            let (table, h) = dense.table(ch.theta);
-            assert_eq!(table, want, "table, stride {s}, mu {mu}, high {high}");
-            dense.fold(&h, &ch);
+            assert_eq!(dense.table(), want, "table, stride {s}, mu {mu}, high {high}");
+            dense.fold(&ch);
             let f_want: Vec<F128> = (0..(n_cols + 1) * s / 2)
                 .map(|i| folded[i % (s / 2)][i / (s / 2)])
                 .collect();
@@ -1204,8 +1174,7 @@ mod tests {
             };
             let rounds: Vec<_> = (0..k).map(|_| challenges(&mut rng)).collect();
             for ch in &rounds {
-                let (_, h) = dense.table(ch.theta);
-                dense.fold(&h, ch);
+                dense.fold(ch);
             }
             let p = dense.f;
             assert_eq!(p.len(), (1 << mu) + k);
