@@ -37,8 +37,8 @@ def gLogIn (idx : Std.HashMap UInt64 ℕ) (κ : ℕ) (a : K) : Option (Fin (2 ^ 
   | some i => if h : i < 2 ^ κ then some ⟨i, h⟩ else none
   | none => none
 
-/-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^16` and
-`2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
+/-- **The public boundary** (`HoldsPublicInput`), decided: the memory has between `2^minLogMem`
+and `2^32` words, and words `0` and `1` (at the addresses `g^0`, `g^1`) hold the public input. -/
 def boundaryOK {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog) : Bool :=
   if h : minLogMem ≤ t.logMemorySize ∧ t.logMemorySize ≤ maxLogMem then
     decide (t.memory ⟨0, Nat.two_pow_pos t.logMemorySize⟩ = input.word0) &&

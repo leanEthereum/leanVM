@@ -376,7 +376,7 @@ structure Execution (program : LeanIsaProgram) where
   /-- The number of steps the run takes. -/
   stepCount : ℕ
 
-/-- The memory has between `2^16` and `2^32` words and holds the public input in words `0`, `1`. -/
+/-- The memory has between `2^minLogMem` and `2^32` words and holds the public input in words `0`, `1`. -/
 def HoldsPublicInput {program : LeanIsaProgram} (input : PublicInput)
     (execution : Execution program) : Prop :=
   minLogMem ≤ execution.logMemorySize ∧ execution.logMemorySize ≤ maxLogMem ∧
