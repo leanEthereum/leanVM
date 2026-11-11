@@ -51,7 +51,7 @@ noncomputable def sphincsAtFp (R : ReaderTabs) (table : Array (CallKey × K)) (r
 (`21`) one binary search (`frameFpA`), then `sphincsAtFp`. -/
 noncomputable def sphincsAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) (p : E) : Sphincs.Signature :=
-  sphincsAtFp R table rd (frameFpA table 21 [p, σ (.n 68)] [])
+  sphincsAtFp R table rd (frameFpA table 21 [p, σ (.n 47)] [])
 
 theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) : sphincsAtFrameT R table rd σ = sphincsAtFrame R σ (frameAtA table rd) := by

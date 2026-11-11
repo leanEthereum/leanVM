@@ -17,37 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `opening_ood_point__L20`, window 0. -/
+/-- `level_residual__L45_L11`, window 0. -/
 theorem w507_0 : WinOk 507 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop77`, window 0. -/
+/-- `level_residual__L38_L11`, window 0. -/
 theorem w508_0 : WinOk 508 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L1_L64_L32_L21_L8`, window 0. -/
+/-- `level_residual__L32_L11`, window 0. -/
 theorem w509_0 : WinOk 509 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L1_L64_L32_L21_L8`, window 1. -/
-theorem w509_1 : WinOk 509 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop78`, window 0. -/
+/-- `level_residual__L32_L7`, window 0. -/
 theorem w510_0 : WinOk 510 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L20_L6`, window 0. -/
+/-- `level_residual__L28_L7`, window 0. -/
 theorem w511_0 : WinOk 511 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_queries__L0_L0_L16_L24_L20_L6`, window 1. -/
-theorem w511_1 : WinOk 511 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop79`, window 0. -/
+/-- `level_residual__L25_L7`, window 0. -/
 theorem w512_0 : WinOk 512 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L23_L7`, window 0. -/
+theorem w513_0 : WinOk 513 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L22_L3`, window 0. -/
+theorem w514_0 : WinOk 514 0 := winOk_of_C (by decide +kernel)
 
 theorem ok507 : CheckOk 507 := checkOk_one (by decide +kernel) w507_0
 
 theorem ok508 : CheckOk 508 := checkOk_one (by decide +kernel) w508_0
 
+theorem ok509 : CheckOk 509 := checkOk_one (by decide +kernel) w509_0
+
 theorem ok510 : CheckOk 510 := checkOk_one (by decide +kernel) w510_0
 
+theorem ok511 : CheckOk 511 := checkOk_one (by decide +kernel) w511_0
+
 theorem ok512 : CheckOk 512 := checkOk_one (by decide +kernel) w512_0
+
+theorem ok513 : CheckOk 513 := checkOk_one (by decide +kernel) w513_0
+
+theorem ok514 : CheckOk 514 := checkOk_one (by decide +kernel) w514_0
 
 end
 end LeanVM.Guest.Checked

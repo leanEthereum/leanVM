@@ -399,7 +399,7 @@ theorem kidsBoundL_mKids (m : MainIn) (L : Layout) (b : MainBs) :
 /-- **`main`'s words on the honest run within the budget**, child `c`'s `verify_sub` within
 `childBv Bvf w c`. -/
 theorem Bmain_le (Bvf : ℕ → ℕ → ℕ) {bytecode : List K} {seed : Digest} {s : NodeStatement}
-    {w : NodeWitness} (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w) :
+    {w : NodeWitness} (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w) :
     Bmain fs SB SK (childBv Bvf w) 0 seed s w ≤ (mainWords fs SB SK Bvf).eval (End.work s w) := by
   have hmsz := mSizes_sum seed s w
   have hX := clB_le fs SB SK s.claims.xmss.length

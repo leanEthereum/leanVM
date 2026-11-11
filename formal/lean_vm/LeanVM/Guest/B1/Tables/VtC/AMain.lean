@@ -46,7 +46,7 @@ structure VtShape (H : VtHonest) : Prop where
   h19 : 19 ≤ H.point.length
   hμ33 : H.point.length < 33
   hr : H.rows.length = 6
-  hτ29 : ∀ t < 6, vtHt H.rows t < 29
+  hτ31 : ∀ t < 6, vtHt H.rows t < 31
   hτμ : ∀ t < 6, vtHt H.rows t ≤ H.point.length
   hal : H.alphas.length = 4
   hf : H.f.length = 5
@@ -54,6 +54,10 @@ structure VtShape (H : VtHonest) : Prop where
   hfitP : ((vtSizesP H.lm (vtHt H.rows)).map (2 ^ ·)).sum ≤ 2 ^ H.point.length
   hfitC : ((vtSizesC (vtHt H.rows)).map (2 ^ ·)).sum ≤ 2 ^ H.point.length
   hbc : H.bc.length = 2 ^ 23
+
+/-- The heights below `33` (`hτ31` weakened). -/
+theorem VtShape.hτ33 {H : VtHonest} (hs : VtShape H) : ∀ t < 6, vtHt H.rows t < 33 :=
+  fun t ht ↦ by have := hs.hτ31 t ht; omega
 
 /-! ## Facts of the data -/
 
@@ -376,7 +380,8 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map (vtσ rd w (H.args B)) =
         (H.ownB B).map (fun b ↦ ofK (addressOfIndex b)) ∧
       vtRets.map (vtσ rd w (H.args B)) = H.retsH B) ∧ VtKbSh H (vtσ rd w (H.args B)) := by
-  obtain ⟨hlm, hlmμ, h19, hμ33, hr, hτ29, hτμ, hal, hf, hfcan, hfitP, hfitC, hbc⟩ := hs
+  obtain ⟨hlm, hlmμ, h19, hμ33, hr, hτ31, hτμ, hal, hf, hfcan, hfitP, hfitC, hbc⟩ := hs
+  have hτ33 : ∀ t < 6, vtHt H.rows t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   have hl : (H.args B).length = 20 := rfl
   have p : ∀ i < 20, (vtσ rd w (H.args B)) (.n i) = (H.args B).getD i 0 := fun i hi ↦ vt_param hl hi
   -- the caller's buffers
@@ -437,7 +442,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   -- statements `0 ..< 769`
   obtain ⟨sV, s20, s25, skb, s36, sP, sC, sPad, sSh, s581, s668, s703, s705, s706⟩ :=
     vtS_complete (rd := rd) (w := w) (args := H.args B) hl hlow hlm H.point hμ33 H.τ (vtRw H.rows)
-      (fun t ht ↦ vtHt_eq hr ht) hτ29 hτμ (by rw [p 8 (by norm_num)]; exact mZeta)
+      (fun t ht ↦ vtHt_eq hr ht) hτ31 hτμ (by rw [p 8 (by norm_num)]; exact mZeta)
       (p 9 (by norm_num)) (by rw [p 10 (by norm_num)]; exact mDims) hrows
       (by rw [p 12 (by norm_num)]; exact vt_expTablesAt mSq) o36 o37 o38 o39 o668 o703 hrun
       hw.pads hw.w704
@@ -716,7 +721,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
         · exact gb 1 (by norm_num)
         · exact gb 2 (by norm_num)
         · exact gb 3 (by norm_num)
-        · exact g668) hlm hτ29 (by rw [p 10 (by norm_num)]; exact mDims)
+        · exact g668) hlm hτ33 (by rw [p 10 (by norm_num)]; exact mDims)
       (by rw [show (39 : ℕ) = 36 + 3 from rfl, s36 3 (by norm_num)]; exact o39)
     have LB : LoadsInBuf (vtσ rd w (H.args B)) (H.bufs B) ((vtPre.drop 769).take 1820) := by
       refine loadsInBuf_mono (fun q hq ↦ ?_) bLd

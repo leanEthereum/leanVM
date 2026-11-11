@@ -7,12 +7,15 @@ public import LeanVM.Guest.B1.Whir.InterfaceW
 /-!
 # `open_stacked`'s tables, checked
 
-* `callMatch r c`: the `OsCall` `r` is the `opening_queries` call `c` of the template
+* `callMatch r c`: the `OsCall` `r` is the `level_queries` dispatch `c` of the template
   (`osQCalls`) in numbers: its shape, its odd query and iterations, its depth, its arguments' and
-  returns' cells (cells all), its callee, its loop and its queries' `walk_path` the functions of
-  `r`'s indices (`decoderFunctionName`, `Fast/FunctionNames.lean`);
-* `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's,
-  by kernel evaluation, a candidate at a time (`callsOK_m`).
+  returns' cells (cells all), its callee the `level_queries` specialization of `r.lq`, whose
+  `opening_queries` call (`lqCall`) is `r.fn`'s on the cells `r.qargs` returning `r.pw + 2`, its loop
+  and its queries' `walk_path` the functions of `r`'s indices (`decoderFunctionName`,
+  `Fast/FunctionNames.lean`);
+* `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's at
+  every size and rate, by kernel evaluation, a size and rate at a time (`callsOK_j`, at the index
+  `j = (r - 1) * 11 + m`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -27,27 +30,32 @@ def vIdx (v : V) : ℕ := v.idx
 /-- Whether a value is the cell of its number. -/
 def isN (v : V) : Bool := v == .n v.idx
 
-/-- **The table's call `r` is the template's call `c`.** -/
+/-- **The table's call `r` is the template's dispatch `c`.** -/
 noncomputable def callMatch (r : OsCall) : ℕ × OsLv × String × List V × List V → Bool
-  | (lvl, lv, name, args, rets) =>
+  | (lvl, lv, _, args, rets) =>
     r.base == (lvOq lvl lv).base && r.I == (lvOq lvl lv).I && r.pd == (lvOq lvl lv).pd &&
       r.cd == (lvOq lvl lv).cd && r.odd == lv.queries % 2 * (if lvl = 0 then 1 else 0) &&
       r.N == lv.queries / (1 + if lvl = 0 then 1 else 0) && r.depth == lv.depth &&
-      r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN &&
-      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name &&
+      r.cd == lv.capDepth && r.args == args.map vIdx && r.rets == rets.map vIdx &&
+      args.all isN && rets.all isN && decoderFunctionName r.lq == osQueriesName lvl lv &&
+      decide (lqCall lvl lv = (decoderFunctionName r.fn, r.qargs.map V.n, [V.n (r.pw + 2)])) &&
+      decoderFunctionName r.loop == oqLoopOf (oqNameOf lvl lv) &&
       decoderFunctionName r.walk == oqWalkOf (lvOq lvl lv)
 
-/-- Candidate `m`'s `opening_queries` calls. -/
-def osCallsOf (m : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
-  osQCalls (osCfg m) 0 (osCfg m).levels (osHead (osCfg m)).2
+/-- The configuration at the index `j = (r - 1) * 11 + m`. -/
+def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)
 
-theorem osWordsTab_eq : osWordsTab = (List.range 28).map fun m ↦ osWordsLen (osCfg m) := by
+/-- The `level_queries` dispatches at the index `j`. -/
+def osCallsOf (j : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
+  osQCalls (osCfgAt j) 0 (osCfgAt j).levels (osHead (osCfgAt j)).2
+
+theorem osWordsTab_eq : osWordsTab = (List.range 44).map fun j ↦ osWordsLen (osCfgAt j) := by
   decide +kernel
 
-/-- Candidate `m`'s calls are the table's. -/
-def CallsOK (m : ℕ) : Prop :=
-  (osCallsTab.getD m []).length = (osCallsOf m).length ∧
-    ((osCallsTab.getD m []).zip (osCallsOf m)).all (fun p ↦ callMatch p.1 p.2) = true
+/-- The calls at the index `j` are the table's. -/
+def CallsOK (j : ℕ) : Prop :=
+  (osCallsTab.getD j []).length = (osCallsOf j).length ∧
+    ((osCallsTab.getD j []).zip (osCallsOf j)).all (fun p ↦ callMatch p.1 p.2) = true
 
 theorem callsOK_0 : CallsOK 0 := by unfold CallsOK; decide +kernel
 
@@ -105,8 +113,40 @@ theorem callsOK_26 : CallsOK 26 := by unfold CallsOK; decide +kernel
 
 theorem callsOK_27 : CallsOK 27 := by unfold CallsOK; decide +kernel
 
-/-- **Every candidate's calls are the table's.** -/
-theorem callsOK : ∀ m < 28, CallsOK m
+theorem callsOK_28 : CallsOK 28 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_29 : CallsOK 29 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_30 : CallsOK 30 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_31 : CallsOK 31 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_32 : CallsOK 32 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_33 : CallsOK 33 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_34 : CallsOK 34 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_35 : CallsOK 35 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_36 : CallsOK 36 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_37 : CallsOK 37 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_38 : CallsOK 38 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_39 : CallsOK 39 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_40 : CallsOK 40 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_41 : CallsOK 41 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_42 : CallsOK 42 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_43 : CallsOK 43 := by unfold CallsOK; decide +kernel
+
+/-- **Every size and rate's calls are the table's.** -/
+theorem callsOK : ∀ j < 44, CallsOK j
   | 0, _ => callsOK_0
   | 1, _ => callsOK_1
   | 2, _ => callsOK_2
@@ -135,7 +175,23 @@ theorem callsOK : ∀ m < 28, CallsOK m
   | 25, _ => callsOK_25
   | 26, _ => callsOK_26
   | 27, _ => callsOK_27
-  | _ + 28, h => absurd h (by omega)
+  | 28, _ => callsOK_28
+  | 29, _ => callsOK_29
+  | 30, _ => callsOK_30
+  | 31, _ => callsOK_31
+  | 32, _ => callsOK_32
+  | 33, _ => callsOK_33
+  | 34, _ => callsOK_34
+  | 35, _ => callsOK_35
+  | 36, _ => callsOK_36
+  | 37, _ => callsOK_37
+  | 38, _ => callsOK_38
+  | 39, _ => callsOK_39
+  | 40, _ => callsOK_40
+  | 41, _ => callsOK_41
+  | 42, _ => callsOK_42
+  | 43, _ => callsOK_43
+  | _ + 44, h => absurd h (by omega)
 
 end
 end LeanVM.Guest.Fast

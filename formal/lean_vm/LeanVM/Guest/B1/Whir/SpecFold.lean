@@ -116,11 +116,12 @@ theorem foldsNZ_inv {β : Type} {K : WhirStateT × List E → VerifierProgram β
     simpa [foldRoundsNZ] using h
   | n + 1, ws, lf, F, xs, os, R, r, h => by
     have e : (foldRoundsNZ (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
-        (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦ VerifierProgram.readScalar.bind fun d2 ↦
-          (foldRoundsNZ n { ws with
-            target := polyEval ws.quad c
-            quad := [d0, polyEval ws.quad c + d2, d2]
-            folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
+        (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦
+          VerifierProgram.readScalar.bind fun d2 ↦
+            (foldRoundsNZ n { ws with
+              target := polyEval ws.quad c
+              quad := [d0, polyEval ws.quad c + d2, d2]
+              folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
       simp only [foldRoundsNZ, VerifierProgram.bind_eq, VerifierProgram.bind_assoc, sumcheck3_bind]
     rw [e, runF_sampleE_bind] at h
     obtain ⟨hc, h⟩ := runF_require_bind h

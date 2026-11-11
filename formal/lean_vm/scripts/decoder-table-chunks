@@ -29,7 +29,7 @@ length and one. Run after `scripts/decoder-tables`, from any directory (the path
 import argparse, os, re, sys, textwrap
 from pathlib import Path
 
-N = 992
+N = None  # the number of compiled functions: the rows' count
 SPLIT = 37  # `__loop2`, leanXMSS's check inline (its 41 windows' cells)
 SIZE_DIR = Path("LeanVM/Cost/DecoderSize")
 CHECK_DIR = Path("LeanVM/Cost/Decoder/GuestTablesCheck")
@@ -276,17 +276,20 @@ def main():
     ap.add_argument("--bound-limit", type=int, default=40000)
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args()
+    global N
     rows, names = nums(a.row_lengths), nums(a.split_lengths)
+    N = len(rows)
     os.chdir(Path(__file__).resolve().parent.parent)
-    assert len(rows) == N and sum(names) == rows[SPLIT], (len(rows), sum(names), rows[SPLIT])
+    assert sum(names) == rows[SPLIT], (sum(names), rows[SPLIT])
     files = {**size_files(rows, names, a.limit), **check_files(a.functions), **bound_files(rows, a.bound_limit)}
     size_mods = [p.stem for p in files if p.parent == SIZE_DIR and p.stem != "Locs"]
     check_mods = [p.stem for p in files if p.parent == CHECK_DIR]
     files[FIREWALL] = firewall(size_mods, check_mods)
     stale = [str(p) for p, t in files.items() if not p.exists() or p.read_text() != t]
-    # The chunks of an earlier table: `C*.lean`, `Rows<k>.lean`, `Names<k>.lean` not written here.
+    # The chunks of an earlier table: `C*.lean`, `Rows<k>.lean`, `Names<k>.lean`, `Chunk<k>.lean` not
+    # written here.
     extra = sorted(p for d, pat in ((CHECK_DIR, "C*.lean"), (SIZE_DIR, "Rows[0-9]*.lean"),
-                                    (SIZE_DIR, "Names[0-9]*.lean"))
+                                    (SIZE_DIR, "Names[0-9]*.lean"), (BOUND_DIR, "Chunk[0-9]*.lean"))
                    for p in d.glob(pat) if p not in files)
     if a.check:
         if stale or extra:

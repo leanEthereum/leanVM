@@ -16,26 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop31`, window 0, part 0. -/
+/-- `__loop37`, window 0, part 0. -/
 theorem cw413_0_0 : cplWin 413 0 0 = true := by decide +kernel
 
-/-- `__loop32`, window 0, part 0. -/
+/-- `__loop38`, window 0, part 0. -/
 theorem cw414_0_0 : cplWin 414 0 0 = true := by decide +kernel
 
-/-- `__loop33`, window 0, part 0. -/
+/-- `__loop39`, window 0, part 0. -/
 theorem cw415_0_0 : cplWin 415 0 0 = true := by decide +kernel
 
-/-- `__loop34`, window 0, part 0. -/
+/-- `__loop40`, window 0, part 0. -/
 theorem cw416_0_0 : cplWin 416 0 0 = true := by decide +kernel
 
-/-- `batch_sumcheck__L23`, window 0, part 0. -/
+/-- `opening_ood_point__L14`, window 0, part 0. -/
 theorem cw417_0_0 : cplWin 417 0 0 = true := by decide +kernel
 
-/-- `__loop35`, window 0, part 0. -/
+/-- `grind_check__L17`, window 0, part 0. -/
 theorem cw418_0_0 : cplWin 418 0 0 = true := by decide +kernel
 
-/-- `rs_eq_rows__L8`, window 0, part 0. -/
+/-- `level_positions__L19_L15_L3`, window 0, part 0. -/
 theorem cw419_0_0 : cplWin 419 0 0 = true := by decide +kernel
+
+/-- `level_positions__L10_L16_L4`, window 0, part 0. -/
+theorem cw420_0_0 : cplWin 420 0 0 = true := by decide +kernel
 
 theorem ok413 : CplOk 413 := by
   intro i hi k hk
@@ -96,6 +99,26 @@ theorem ok418 : CplOk 418 := by
     rw [hn] at hk
     interval_cases k
     · exact cw418_0_0
+
+theorem ok419 : CplOk 419 := by
+  intro i hi k hk
+  have hc : (certOf 419).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 419 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw419_0_0
+
+theorem ok420 : CplOk 420 := by
+  intro i hi k hk
+  have hc : (certOf 420).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 420 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw420_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

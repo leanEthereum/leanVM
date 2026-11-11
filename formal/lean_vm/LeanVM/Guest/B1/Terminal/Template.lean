@@ -64,8 +64,8 @@ theorem claimKappa_source :
         claimKappaAdj j == (Data.arr_CLAIM_KAPPA_ADJ.getD j (0, 0, 0)).1) = true := by
   decide +kernel
 
-/-- The selectors' specializations, `column_selector__L{κ}`, `κ < 29`. -/
-def colSelNames : List String := (List.range 29).map (Tables.lName "column_selector")
+/-- The selectors' specializations, `column_selector__L{κ}`, `κ < 31`. -/
+def colSelNames : List String := (List.range 31).map (Tables.lName "column_selector")
 
 /-- The value holding `kappa_base[i]`, read in the head (G:3254-3256). -/
 abbrev kbV (i : ℕ) : ℕ := 33 + i

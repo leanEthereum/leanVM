@@ -50,11 +50,11 @@ def gcBody : List Stmt :=
   [.atom (.const (.n 207) (word (2 ^ 17) 0 0)), .atom (.mul (.n 208) (.n 206) (.n 207)),
     .atom (.assertEq (.n 208) (.n 1)), .ret []]
 
-theorem grind_check_body : Fn.body Data.core430 = gcBody := stmtsEqb_sound (by decide +kernel)
+theorem grind_check_body : Fn.body Data.core417 = gcBody := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core430 :=
-  Program.find?_of_indexOf? (j := 430) (by decide +kernel) rfl
+theorem find_grind_check : coreProgram.find? "grind_check__L17" = some Data.core417 :=
+  Program.find?_of_indexOf? (j := 417) (by decide +kernel) rfl
 
 /-- What Horner step `j` asks of a valuation. -/
 def GcOk (σ : Val) : ℕ → Prop
@@ -144,7 +144,7 @@ theorem gv_acc (w : E) {j : ℕ} (hj : j < 47) : gcVals w (gcAcc j) = gcH w j :=
 /-- **`grind_check`'s core IR is its meaning.** -/
 theorem grind_check_holds : grind_check_Spec := by
   intro rd args rets
-  rw [rel_iff_sem find_grind_check, grind_check_body, show Fn.params Data.core430 = [.n 0] from rfl,
+  rw [rel_iff_sem find_grind_check, grind_check_body, show Fn.params Data.core417 = [.n 0] from rfl,
     gcBody]
   simp only [holdsList_append, holds_canonicalLimbsT,
     holdsList_range_flatten 47 gcBlk (fun j => by cases j <;> rfl), holds_gcBlk, Stmt.HoldsList,

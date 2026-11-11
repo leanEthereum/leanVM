@@ -15,6 +15,8 @@ pub mod merkle;
 pub mod transcript;
 mod wire;
 
+pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
+
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
 
@@ -151,14 +153,15 @@ impl FiatShamirState {
     }
 
     /// Prover-side PoW grind: find the smallest `u64` nonce clearing `bits` low zero
-    /// bits, then bind it so later challenges depend on it. `bits = 0` is the
-    /// canonical no-work nonce `0`. Parallel search for the larger grinds.
+    /// bits, then bind it so later challenges depend on it. Parallel search for the
+    /// larger grinds.
     pub(crate) fn grind_pow(&mut self, bits: u32) -> u64 {
-        assert!(bits < 64, "the grinding window fits the challenge's low limb");
+        assert!(
+            (1..64).contains(&bits),
+            "a grind of at least one bit, its window in the challenge's low limb"
+        );
         const PARALLEL_GRIND_MIN: u64 = 1 << 13;
-        let nonce = if bits == 0 {
-            0
-        } else if (1u64 << bits) < PARALLEL_GRIND_MIN {
+        let nonce = if (1u64 << bits) < PARALLEL_GRIND_MIN {
             (0..)
                 .find(|&n| self.pow_bits_ok(F192::new(n, 0, 0), bits))
                 .expect("a nonce exists")
@@ -251,16 +254,24 @@ mod tests {
     fn pow_predicate() {
         let mut sp = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
         sp.observe(f(7));
-        for bits in [0, 8, 13, 17] {
+        for bits in [1, 8, 13, 17] {
             let mut clone = sp.clone();
             let good = clone.grind_pow(bits);
-            let expected = (0..=good)
-                .find(|&n| bits == 0 || sp.pow_bits_ok(F192::new(n, 0, 0), bits))
-                .unwrap();
+            let expected = (0..=good).find(|&n| sp.pow_bits_ok(F192::new(n, 0, 0), bits)).unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
             let mut expected_state = sp.clone();
             expected_state.absorb_nonce(F192::new(good, 0, 0));
             assert_eq!(clone.sample(), expected_state.sample());
         }
+    }
+
+    /// A grind of no bits is nothing: no nonce sent, the next challenge unchanged.
+    #[test]
+    fn a_zero_bit_grind_is_nothing() {
+        let mut ground = transcript::ProverState::from_label(b"t");
+        let mut plain = transcript::ProverState::from_label(b"t");
+        ground.grind(0);
+        assert_eq!(ground.sample(), plain.sample());
+        assert!(ground.into_proof().stream.is_empty());
     }
 }

@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Place.OsKidsC
 public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.Lift.OsCallees
 public import LeanVM.Guest.B1.Whir.Commit
+public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
 # The callees' meanings, by name
@@ -70,7 +71,7 @@ def OsKind.Pre : OsKind → Reader → List E → List E → Prop
 def osKindTable : List (String × OsKind) :=
   [("opening_fold", .fold), ("assert_canonical", .can), ("grind_check__L17", .grind 17),
     ("opening_row_weights__L4_L0", .rw 4 0), ("opening_row_weights__L6_L1", .rw 6 1)] ++
-  oodPointNames.map (fun p ↦ (p.1, .ood p.2)) ++
+  oodPointNamesAll.map (fun p ↦ (p.1, .ood p.2)) ++
   finalMessageNames.map (fun p ↦ (p.1, .fm p.2)) ++
   merkleCapNames.map (fun p ↦ (p.1, .cap p.2)) ++
   foldFinalMsgNames.map (fun p ↦ (p.1, .ffm p.2))
@@ -128,8 +129,7 @@ theorem osKindOf_ood_pos {f : String} {n : ℕ} (hK : osKindOf f = some (.ood n)
     or_false] at hm
   obtain ⟨p, hp, -, h2⟩ := hm
   cases h2
-  simp only [oodPointNames, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> subst h <;> decide
+  exact (by decide : ∀ p ∈ oodPointNamesAll, 1 ≤ p.2) p hp
 
 /-- **Words every defined-low memory holding `M` holds the same** at a callee's loads. -/
 def FixedReads (κ : ℕ) (spec : List (ℕ × ℕ)) (a : List E) (M : Layout) : Prop :=
@@ -220,7 +220,7 @@ theorem os_allOk_mono {C C' : CallRel} {rd : Reader} {σ : Val} (hC : ∀ f a r,
   | .ret _, h0 => exact h0
   | .ite .., h0 => exact h0
   | .match_ .., h0 => exact h0
-  | .dispatch .., h0 => exact h0
+  | .dispatch .., h0 => obtain ⟨j, hj, hx, h⟩ := h0; exact ⟨j, hj, hx, hC _ _ _ h⟩
 
 /-- The facts of a named callee's loads its meaning does not fix: its read words, fixed on every
 memory holding `M` (the row weights, the cap, the folded message; the final message's `out`). -/
@@ -283,18 +283,72 @@ theorem kind_fixed {K : OsKind} {a r : List E} {M : Layout} (hpos : ∀ n, K = .
   | cap d => exact hX
   | ffm n => exact hX
 
-/-- **A named call of a body proved at `osCR` on every memory holding `Lk`** is complete placed
-on `Lk`. -/
-theorem os_kid_named (hk : OsCalleesRegD fs cert κ) {Lk : Layout} {σ : Val} {pre : List Stmt}
-    {Sp : String → List E → List E → Prop}
+/-- Every dispatch of a block names fewer than `2^64 - 1` callees. -/
+def DispShort (pre : List Stmt) : Prop :=
+  ∀ s ∈ pre, ∀ x fs args rets, s = .dispatch x fs args rets → fs.length < 2 ^ 64 - 1
+
+/-- **A flat block holding at `C` makes `C` hold of each taken call's frame**, a dispatch's the
+callee its selector names. -/
+theorem os_calls_of_allOkF {C : CallRel} {rd : Reader} {σ : Val} :
+    ∀ {pre : List Stmt}, AllOk C rd σ pre → (∀ s ∈ pre, DispOk σ s) → DispShort pre →
+      ∀ c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ), c.taken = true →
+        C c.f (c.args.map σ) (c.rets.map σ)
+  | [], _, _, _, c, hc, _ => by simp at hc
+  | s :: pre, h, hdo, hfl, c, hc, ht => by
+    have h0 : StmtOk C rd σ s := h s (List.mem_cons_self ..)
+    have h1 : AllOk C rd σ pre := fun s' hs' => h s' (List.mem_cons_of_mem _ hs')
+    have hdo1 : ∀ s ∈ pre, DispOk σ s := fun s' hs' ↦ hdo s' (List.mem_cons_of_mem _ hs')
+    have hfl1 : DispShort pre := fun s' hs' ↦ hfl s' (List.mem_cons_of_mem _ hs')
+    have ih := os_calls_of_allOkF h1 hdo1 hfl1 c
+    match s, h0 with
+    | .atom _, _ =>
+      simp only [List.filterMap_cons, Stmt.callSF, Main.Stmt.callS] at hc
+      exact ih hc ht
+    | .call f args rets, h0 =>
+      simp only [List.filterMap_cons, Stmt.callSF, Main.Stmt.callS, List.map_cons,
+        List.mem_cons] at hc
+      rcases hc with rfl | hc
+      · exact h0
+      · exact ih hc ht
+    | .callIf cv f args, h0 =>
+      simp only [List.filterMap_cons, Stmt.callSF, Main.Stmt.callS, List.map_cons,
+        List.mem_cons] at hc
+      rcases hc with rfl | hc
+      · simp only [Main.mkCall, decide_eq_true_eq] at ht
+        exact h0.2 ht
+      · exact ih hc ht
+    | .ret _, _ =>
+      simp only [List.filterMap_cons, Stmt.callSF, Main.Stmt.callS] at hc
+      exact ih hc ht
+    | .ite .., _ =>
+      simp only [List.filterMap_cons, Stmt.callSF, Main.Stmt.callS] at hc
+      exact ih hc ht
+    | .match_ .., _ =>
+      simp only [List.filterMap_cons, Stmt.callSF, Main.Stmt.callS] at hc
+      exact ih hc ht
+    | .dispatch x fs args rets, h0 =>
+      simp only [List.filterMap_cons, Stmt.callSF, List.map_cons, List.mem_cons] at hc
+      rcases hc with rfl | hc
+      · obtain ⟨j, -, hj64, hx⟩ := hdo _ (List.mem_cons_self ..)
+        have hl := hfl _ (List.mem_cons_self ..) x fs args rets rfl
+        have := (Whir.stmtOk_dispatch hx hj64 hl h0).2
+        simp only [Main.mkCall]
+        rw [hx, logG_spec hj64]
+        exact this
+      · exact ih hc ht
+
+/-- **A named call of a flat body proved at `osCR` on every memory holding `Lk`** is complete
+placed on `Lk`. -/
+theorem os_kid_namedF (hk : OsCalleesRegD fs cert κ) {Lk : Layout} {σ : Val} {pre : List Stmt} {Sp : String → List E → List E → Prop}
     (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp (OsXOk κ Lk)) rd σ pre)
+    (hdo : ∀ s ∈ pre, DispOk σ s) (hfl : DispShort pre)
     (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk)
-    {c : Call} (hc : c ∈ (pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (ht : c.taken = true)
+    {c : Call} (hc : c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (ht : c.taken = true)
     {K : OsKind} (hK : osKindOf c.f = some K) :
     CompleteAtD fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) := by
   have hpre : ∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd (c.args.map σ) (c.rets.map σ) ∧
       OsXOk κ Lk K (c.args.map σ) := fun rd hl hm ↦ by
-    have h := os_calls_of_allOk (hall rd hl hm) c hc ht
+    have h := os_calls_of_allOkF (hall rd hl hm) hdo hfl c hc ht
     unfold osCR at h; rw [hK] at h; exact h
   obtain ⟨rd0, hl0, hm0⟩ := hex
   have hfix := kind_fixed (fun n hn ↦ osKindOf_ood_pos (hn ▸ hK)) ⟨rd0, hl0, hm0⟩
@@ -302,14 +356,15 @@ theorem os_kid_named (hk : OsCalleesRegD fs cert κ) {Lk : Layout} {σ : Val} {p
   exact hk.kindD hK _ _ Lk (fixedReads_region hfix ⟨rd0, hl0, hm0⟩) fun rd hl hm ↦ (hpre rd hl hm).1
 
 /-- **Another call of such a body** satisfies `Sp`, one memory holding `Lk` existing. -/
-theorem os_kid_special {Lk : Layout} {σ : Val} {pre : List Stmt}
+theorem os_kid_specialF {Lk : Layout} {σ : Val} {pre : List Stmt}
     {Sp : String → List E → List E → Prop} {X : OsKind → List E → Prop}
     (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp X) rd σ pre)
+    (hdo : ∀ s ∈ pre, DispOk σ s) (hfl : DispShort pre)
     (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk)
-    {c : Call} (hc : c ∈ (pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (ht : c.taken = true)
+    {c : Call} (hc : c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ)) (ht : c.taken = true)
     (hK : osKindOf c.f = none) : Sp c.f (c.args.map σ) (c.rets.map σ) := by
   obtain ⟨rd0, hl, hm⟩ := hex
-  have h := os_calls_of_allOk (hall rd0 hl hm) c hc ht
+  have h := os_calls_of_allOkF (hall rd0 hl hm) hdo hfl c hc ht
   unfold osCR at h; rw [hK] at h; exact h
 
 end

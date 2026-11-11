@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Selectors.ColumnSelectorComplete
 
-  `column_selector` is complete: for an offset `g^o`, `o < 2^28` a multiple of `2^κ`, and the
+  `column_selector` is complete: for an offset `g^o`, `o < 2^32` a multiple of `2^κ`, and the
   opening point's tables in memory, the eq weight of `o`'s bits above `κ` is an outcome of
   `column_selector__L{κ}`.
 -/
@@ -47,9 +47,9 @@ theorem csk_load {rd : Reader} (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSom
 
 /-! ## The digits -/
 
-/-- **An offset's digits**: `o < 2^28`, a multiple of `16^(κ/4)`, is `16^(κ/4)` times the number of
+/-- **An offset's digits**: `o < 2^32`, a multiple of `16^(κ/4)`, is `16^(κ/4)` times the number of
 its base-16 digits from `κ / 4` on. -/
-theorem cs_digits {κ : ℕ} (hκ : κ < 28) {o : ℕ} (ho : o < 2 ^ 28) (hd : 2 ^ (4 * (κ / 4)) ∣ o) :
+theorem cs_digits {κ : ℕ} (hκ : κ < 32) {o : ℕ} (ho : o < 2 ^ 32) (hd : 2 ^ (4 * (κ / 4)) ∣ o) :
     o = 16 ^ (κ / 4) * csDig (fun k ↦ o / 16 ^ (κ / 4 + k) % 16) (csN κ) := by
   have hu : ∀ k < csN κ, o / 16 ^ (κ / 4 + k) % 16 < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
   apply Nat.eq_of_testBit_eq
@@ -70,7 +70,7 @@ theorem cs_digits {κ : ℕ} (hκ : κ < 28) {o : ℕ} (ho : o < 2 ^ 28) (hd : 2
       congr 1; ring
     · rw [decide_eq_false hk, Bool.false_and]
       apply Nat.testBit_lt_two_pow
-      calc o < 2 ^ 28 := ho
+      calc o < 2 ^ 32 := ho
         _ ≤ 2 ^ (4 * (κ / 4) + (4 * k + t)) :=
           Nat.pow_le_pow_right (by norm_num) (by simp only [csN] at hk; omega)
 
@@ -104,7 +104,7 @@ noncomputable def cskRole (κ o : ℕ) (se sg : E) (p p1 : List E) (rd : Reader)
 /-- The valuation, by value number. -/
 noncomputable def cskVal (κ o : ℕ) (se sg : E) (p p1 : List E) (rd : Reader) (x : ℕ) : E :=
   if x = 0 then gen ^ o else if x = 1 then se else if x = 2 then sg
-  else if κ = 28 then word 1 0 0
+  else if κ = 32 then word 1 0 0
   else if x < 3 + csN κ then gen ^ cskU κ o (x - 3)
   else if x < csC κ 1 then cskRole κ o se sg p p1 rd 0 (x - csC κ 0)
   else if x < csC κ (csN κ) then
@@ -115,10 +115,10 @@ section Val
 
 variable {κ o : ℕ} {se sg : E} {p p1 : List E} {rd : Reader}
 
-theorem cskVal_at (hκ : κ < 28) {k s : ℕ} (hk : k < csN κ) (hs : s < if k = 0 then 8 else 10) :
+theorem cskVal_at (hκ : κ < 32) {k s : ℕ} (hk : k < csN κ) (hs : s < if k = 0 then 8 else 10) :
     cskVal κ o se sg p p1 rd (csC κ k + s) = cskRole κ o se sg p p1 rd k s := by
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
-  have h28 : κ ≠ 28 := by omega
+  have h32 : κ ≠ 32 := by omega
   have hC0 : csC κ 0 = 3 + csN κ := rfl
   have hC1 : csC κ 1 = 3 + csN κ + 8 := by simp [csC]
   have hCN : csC κ (csN κ) = 3 + csN κ + 8 + 10 * (csN κ - 1) := by
@@ -126,7 +126,7 @@ theorem cskVal_at (hκ : κ < 28) {k s : ℕ} (hk : k < csN κ) (hs : s < if k =
   unfold cskVal
   rw [hC1, hCN, ite_eq_right (by unfold csC; split <;> omega),
     ite_eq_right (by unfold csC; split <;> omega), ite_eq_right (by unfold csC; split <;> omega),
-    ite_eq_right h28]
+    ite_eq_right h32]
   by_cases hk0 : k = 0
   · subst hk0
     simp only [↓reduceIte] at hs
@@ -137,14 +137,14 @@ theorem cskVal_at (hκ : κ < 28) {k s : ℕ} (hk : k < csN κ) (hs : s < if k =
     rw [hCk, ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega)]
     congr 1 <;> omega
 
-theorem cskVal_digit (hκ : κ < 28) {k : ℕ} (hk : k < csN κ) :
+theorem cskVal_digit (hκ : κ < 32) {k : ℕ} (hk : k < csN κ) :
     cskVal κ o se sg p p1 rd (3 + k) = gen ^ cskU κ o k := by
   unfold cskVal
   rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
     ite_eq_right (by omega), ite_eq_left (by omega)]
   congr 2; omega
 
-theorem cskVal_sel (hκ : κ < 28) {k : ℕ} (hk : k < csN κ) :
+theorem cskVal_sel (hκ : κ < 32) {k : ℕ} (hk : k < csN κ) :
     cskVal κ o se sg p p1 rd (csSel κ k) = cskS κ o p p1 k := by
   by_cases hk0 : k = 0
   · subst hk0
@@ -153,7 +153,7 @@ theorem cskVal_sel (hκ : κ < 28) {k : ℕ} (hk : k < csN κ) :
   · rw [show csSel κ k = csC κ k + 6 by simp [csSel, hk0], cskVal_at hκ hk (by simp [hk0])]
     simp [cskRole, hk0]
 
-theorem cskVal_rb (hκ : κ < 28) {k : ℕ} (hk : k < csN κ) :
+theorem cskVal_rb (hκ : κ < 32) {k : ℕ} (hk : k < csN κ) :
     cskVal κ o se sg p p1 rd (csRb κ k) = cskR κ o k := by
   by_cases hk0 : k = 0
   · subst hk0
@@ -166,11 +166,11 @@ end Val
 
 theorem csC_ge (κ k : ℕ) : 3 + csN κ ≤ csC κ k := by unfold csC; split <;> omega
 
-theorem csC_one_le {κ : ℕ} (hκ : κ < 28) : csC κ 1 ≤ csC κ (csN κ) := by
+theorem csC_one_le {κ : ℕ} (hκ : κ < 32) : csC κ 1 ≤ csC κ (csN κ) := by
   have : 1 ≤ csN κ := by unfold csN; omega
   unfold csC; simp only [one_ne_zero, ↓reduceIte]; split <;> omega
 
-theorem cskVal_last {κ o : ℕ} {se sg : E} {p p1 : List E} {rd : Reader} (hκ : κ < 28) :
+theorem cskVal_last {κ o : ℕ} {se sg : E} {p p1 : List E} {rd : Reader} (hκ : κ < 32) :
     cskVal κ o se sg p p1 rd (csC κ (csN κ)) = cskS κ o p p1 (csN κ - 1) := by
   have hC := csC_ge κ (csN κ)
   have := csC_one_le hκ
@@ -181,8 +181,8 @@ theorem cskVal_last {κ o : ℕ} {se sg : E} {p p1 : List E} {rd : Reader} (hκ 
 
 /-! ## The relation -/
 
-theorem csk_rel {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
-    (ho : o < 2 ^ 28) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
+theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
     (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) :
     coreProgram.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
       [cskVal κ o se sg p p1 rd (csRet κ)] := by
@@ -193,13 +193,13 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {
   have f2 : F 2 = sg := by simp [hF, cskVal]
   refine (tb_rel_pre hf hb (csPre_noRet κ) [gen ^ o, se, sg] _).mpr ⟨fun x ↦ F x.idx,
     by rw [hfp]; simp only [List.map_cons, List.map_nil]; rw [f0, f1, f2], ?_, rfl⟩
-  by_cases h28 : κ = 28
-  · subst h28
+  by_cases h32 : κ = 32
+  · subst h32
     have ho0 : o = 0 := by
       obtain ⟨q, rfl⟩ := hd
       have : q = 0 := by
         by_contra hq
-        have : 2 ^ 28 * 1 ≤ 2 ^ 28 * q := Nat.mul_le_mul_left _ (by omega)
+        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
         omega
       simp [this]
     subst ho0
@@ -209,17 +209,17 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {
     have e4 : F 4 = word 1 0 0 := by simp [hF, cskVal]
     rw [e3, e4, f0, tb_word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
-  have hκ' : κ < 28 := by omega
+  have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
-  simp only [csPre, h28, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
+  simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
   rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (csNibT_noRet κ)),
     tb_holdsList_flatten_range _ _ (csNibT_noRet κ)]
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
   refine ⟨fun k hk ↦ ?_, ?_⟩
   · -- nibble `k`
     obtain ⟨hw1, hw4⟩ := csW_bounds κ k
-    have hj : κ / 4 + k < 7 := by simp only [csN] at hk; omega
+    have hj : κ / 4 + k < 8 := by simp only [csN] at hk; omega
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
     have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (64 * (κ / 4 + k) + 16 * (csW κ k - 1))
         (cskXE κ o p p1 k) := by
@@ -299,27 +299,27 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {
       prod_gen_pow_csDig, show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]
     exact e_add_self _
 
-/-- **`column_selector` is complete** at its 29 specializations. -/
+/-- **`column_selector` is complete** at its 33 specializations. -/
 theorem column_selector_complete_holds : column_selector_complete_Spec := by
   intro κ hκ rd o se sg p p1 ho hd hp hp1 hlow hE hG
   have hR := csk_rel hκ ho hd hlow hE hG
-  by_cases h28 : κ = 28
-  · subst h28
+  by_cases h32 : κ = 32
+  · subst h32
     have ho0 : o = 0 := by
       obtain ⟨q, rfl⟩ := hd
       have : q = 0 := by
         by_contra hq
-        have : 2 ^ 28 * 1 ≤ 2 ^ 28 * q := Nat.mul_le_mul_left _ (by omega)
+        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
         omega
       simp [this]
     subst ho0
-    have : cskVal 28 0 se sg p p1 rd (csRet 28) = 1 := by simp [cskVal, csRet, tb_word_one]
+    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, tb_word_one]
     rw [this] at hR
     simpa [bitsEq] using hR
-  have hκ' : κ < 28 := by omega
+  have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hret : cskVal κ o se sg p p1 rd (csRet κ) = cskS κ o p p1 (csN κ - 1) := by
-    simp only [csRet, h28, ↓reduceIte]; exact cskVal_last hκ'
+    simp only [csRet, h32, ↓reduceIte]; exact cskVal_last hκ'
   rw [hret, cskS, show csN κ - 1 + 1 = csN κ by unfold csN; omega] at hR
   have hsel := cs_sel_prod hκ' (u := cskU κ o) (fun k _ => Nat.mod_lt _ (by norm_num)) hp hp1
   rw [show (fun m ↦ cskXE κ o p p1 m) = fun k ↦ selEqEntry p p1 (κ / 4 + k) (csW κ k - 1)

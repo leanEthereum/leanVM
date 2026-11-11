@@ -71,7 +71,7 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is the first three lanes of its output, read as an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{KECCAK} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
 
-\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
+\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. A proof of work of $0$ bits is nothing: no nonce, no challenge.
 
 Merkle trees hash with Keccak-256, apart from the sponge.
 
@@ -88,7 +88,9 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input and by the IV, the hash of the version tag and the bytecode. The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves). The verifier also rejects a stack $q$ (\S\ref{sec:stacking}) of more than $2^{30}$ elements.
+
+A prover may refuse executions within the caps, e.g.\ by bounding its steps; the verifier is unaffected.
 
 \paragraph{Commitment.}
 

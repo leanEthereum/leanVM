@@ -333,7 +333,7 @@ variable (D : List Ev → Prop)
 of `b` bits passed on the state's challenge after the nonce `n`. -/
 noncomputable def powF : Option (ℕ × E) → KeccakState → ℝ≥0∞
   | none, _ => 1
-  | some (b, n), u => ind (powOk b n (challengeOf u) = true)
+  | some (b, _), u => ind (powOk b (challengeOf u) = true)
 
 /-- The term of a record. -/
 noncomputable def term (ℓ : Log) : Shape × KeccakState → ℝ≥0∞

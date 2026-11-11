@@ -91,12 +91,11 @@ def searchM (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
   | n, count + 1 => do
     let r ← powStepM F sp (nonceOf n)
-    if powOk bits (nonceOf n) r.1 then pure (some (nonceOf n)) else searchM bits sp (n + 1) count
+    if powOk bits r.1 then pure (some (nonceOf n)) else searchM bits sp (n + 1) count
 
-/-- The proof-of-work search (`grind_pow`): at `0` bits the nonce `0`; otherwise the first nonce
-below `fuel` that passes, if one does. -/
-def findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) : m (Option E) :=
-  if bits = 0 then pure (some (nonceOf 0)) else searchM F bits sp 0 fuel
+/-- The proof-of-work search (`grind_pow`): the first nonce below `fuel` that passes, if one
+does. -/
+def findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) : m (Option E) := searchM F bits sp 0 fuel
 
 end Monadic
 

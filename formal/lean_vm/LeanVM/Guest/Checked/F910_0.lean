@@ -17,33 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `decode_query_windows__L19_L4`, window 0. -/
+/-- `level_residual__L21_L12`, window 0. -/
 theorem w910_0 : WinOk 910 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop399`, window 0. -/
+/-- `level_residual__L19_L12`, window 0. -/
 theorem w911_0 : WinOk 911 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop399`, window 1. -/
-theorem w911_1 : WinOk 911 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop399`, window 2. -/
-theorem w911_2 : WinOk 911 2 := winOk_of_C (by decide +kernel)
-
-/-- `decode_query_windows__L24_L7`, window 0. -/
+/-- `level_residual__L18_L12`, window 0. -/
 theorem w912_0 : WinOk 912 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop400`, window 0. -/
+/-- `level_residual__L17_L8`, window 0. -/
 theorem w913_0 : WinOk 913 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop400`, window 1. -/
-theorem w913_1 : WinOk 913 1 := winOk_of_C (by decide +kernel)
+/-- `level_residual__L16_L8`, window 0. -/
+theorem w914_0 : WinOk 914 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop400`, window 2. -/
-theorem w913_2 : WinOk 913 2 := winOk_of_C (by decide +kernel)
+/-- `level_residual__L15_L8`, window 0. -/
+theorem w915_0 : WinOk 915 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L13_L4`, window 0. -/
+theorem w916_0 : WinOk 916 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L12_L4`, window 0. -/
+theorem w917_0 : WinOk 917 0 := winOk_of_C (by decide +kernel)
 
 theorem ok910 : CheckOk 910 := checkOk_one (by decide +kernel) w910_0
 
+theorem ok911 : CheckOk 911 := checkOk_one (by decide +kernel) w911_0
+
 theorem ok912 : CheckOk 912 := checkOk_one (by decide +kernel) w912_0
+
+theorem ok913 : CheckOk 913 := checkOk_one (by decide +kernel) w913_0
+
+theorem ok914 : CheckOk 914 := checkOk_one (by decide +kernel) w914_0
+
+theorem ok915 : CheckOk 915 := checkOk_one (by decide +kernel) w915_0
+
+theorem ok916 : CheckOk 916 := checkOk_one (by decide +kernel) w916_0
+
+theorem ok917 : CheckOk 917 := checkOk_one (by decide +kernel) w917_0
 
 end
 end LeanVM.Guest.Checked

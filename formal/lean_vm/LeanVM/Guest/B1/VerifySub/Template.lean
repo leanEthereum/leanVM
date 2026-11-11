@@ -32,8 +32,9 @@ The sections, in order (G = `lean_ethereum.py` at leanVM `40f877dc`):
 * `vsCtabT`: their Frobenius coefficients `c_table`, and `ring_switch_target` (G:3454-3463);
 * `vsLamT`: the batching challenge and the target, the pooled values read from `claim_pool` and
   `col_eval_words` (G:3472-3485);
-* `vsTailT`: `certify_placement`, the stack's log, the candidate, the dispatch to `open_stacked`,
-  the terminal, the deferred claim (G:3487-3513).
+* `vsTailT`: `certify_placement`, the stack's log, its size selector, the dispatch to
+  `open_stacked` on the size with the rate's selector passed on, the terminal, the deferred claim
+  (G:3534-3557).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -100,8 +101,8 @@ def vsReadsT : List Stmt :=
 def vsSizesT : List Stmt :=
   [vsCall "g_power_of_word" [110] [120], vsConst 121 (word 2 0 0), vsMul 120 122 121,
     vsConst 123 (word 8 0 0), vsRange 122 124 125 126 123, vsAlloc 127 7,
-    vsCall "g_power_of_word" [27] [128], vsConst 129 (word (2 ^ 32) 0 0),
-    vsRange 128 130 131 132 129, vsConst 133 (word (2 ^ 32) 0 0), vsConst 134 (word 65536 0 0),
+    vsCall "g_power_of_word" [27] [128], vsConst 129 (word (2 ^ 30) 0 0),
+    vsRange 128 130 131 132 129, vsConst 133 (word (2 ^ 32) 0 0), vsConst 134 (word 2 0 0),
     vsMul 128 135 134, vsRange 135 136 137 138 133, vsLd 128 127 0,
     .atom (.hint (.witness "table_logs" (.heap (.n 127) 1 6))), vsAlloc 139 8,
     vsConst 140 (word 1 0 0), .atom (.copy (.n 141) (.n 128))] ++
@@ -231,26 +232,25 @@ def vsLamT : List Stmt :=
     [vsMul 1680 1679 657, vsAdd 1681 1678 1680]
 
 /-- `open_stacked`'s specializations, named by `natStr` (which the kernel evaluates). -/
-def vsOpenNames : List String := (List.range 28).map fun m ↦ "open_stacked__L" ++ B1.Whir.natStr m
+def vsOpenNames : List String := (List.range 11).map fun m ↦ "open_stacked__L" ++ B1.Whir.natStr m
 
 theorem vsOpenNames_eq : vsOpenNames = B1.Whir.openNames := by
   simp only [vsOpenNames, B1.Whir.openNames, B1.Whir.natStr_eq]
 
-/-- The placement, the stack's log, the dispatch, the terminal, the deferred claim
-(G:3487-3513). -/
+/-- The placement, the stack's log and its size selector, the dispatch on the size with the rate's
+selector passed on, the terminal, the deferred claim (G:3534-3557). -/
 def vsTailT : List Stmt :=
   [vsCall "certify_placement" [139, 4] [1682, 1683],
-    vsCall "log2_ceil_in_the_exponent__L15_L34" [1682, 4] [1684],
-    vsConst 1685 (word 8198552432976855044 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 64 0 0),
-    vsRange 1686 1688 1689 1690 1687, vsMul 1691 122 122, vsMul 1692 1691 122,
-    vsMul 1693 1692 1692, vsMul 1694 1693 122, vsMul 1695 1686 1694,
-    vsConst 1696 (word 134217728 0 0), vsRange 1695 1697 1698 1699 1696,
-    .dispatch (.n 1695) vsOpenNames
-      [.n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1681, .n 324, .n 334, .n 656] (vsRun 1700 5),
+    vsCall "log2_ceil_in_the_exponent__L16_L34" [1682, 4] [1684],
+    vsConst 1685 (word 14347465658197868555 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 1024 0 0),
+    vsRange 1686 1688 1689 1690 1687,
+    .dispatch (.n 1686) vsOpenNames
+      [.n 122, .n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1681, .n 324, .n 334, .n 656]
+      (vsRun 1691 5),
     vsCall "check_opening_terminal" [4, 310, 635, 644, 309, 642, 128, 646, 139, 1111, 1683, 647,
-      665, 1701, 1702, 1703, 1704, 1700] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1705 + k) 310 k, vsLd (1705 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (1724 + k) 346 k, vsLd (1724 + k) 5 (19 + k)]) ++
+      665, 1692, 1693, 1694, 1695, 1691] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1696 + k) 310 k, vsLd (1696 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (1715 + k) 346 k, vsLd (1715 + k) 5 (19 + k)]) ++
   [vsLd 643 5 23, .ret []]
 
 /-- **`verify_sub`'s body as a template.** -/

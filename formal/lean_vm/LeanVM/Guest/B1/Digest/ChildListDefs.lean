@@ -197,7 +197,7 @@ theorem anyOk_of_parts {fn : Fn} {f : String} {m o0 p0 mk st0 w W v U : ℕ}
 /-! ## The big frame loop `__loop17` (136 claims, 64 blocks), in sixteen windows -/
 
 /-- `__loop17`'s atoms. -/
-noncomputable def any136Atoms : List Atom := loopAtoms (coreProgram.getD 349 default)
+noncomputable def any136Atoms : List Atom := loopAtoms (coreProgram.getD 336 default)
 
 /-- `__loop17`'s chain. -/
 noncomputable def any136Spec : ChainSpec := anySpec 136 22 1924 any136Atoms

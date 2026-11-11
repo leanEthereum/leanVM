@@ -69,9 +69,8 @@ def foldRoundsA.fast : ℕ → WhirState → List E → Array E → Array E →
     let W' := foldPairsA challenge W
     let g' := foldPairsA challenge g
     let quad ← roundA (polyEval s.runningQuad challenge) W' g'
-    foldRoundsA.fast n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds
-        ++ [challenge])
-      W' g'
+    foldRoundsA.fast n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
+      (levelFolds ++ [challenge]) W' g'
 
 @[csimp] theorem foldRoundsA.fast_eq : @foldRoundsA = @foldRoundsA.fast := by
   funext n s levelFolds W g
@@ -208,7 +207,7 @@ def searchM.fast (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
   | n, count + 1 => do
     let r ← powStepM F sp (nonceOf n)
-    if powOk bits (nonceOf n) r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
+    if powOk bits r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
 
 @[csimp] theorem searchM.fast_eq : @searchM = @searchM.fast := by
   funext m _ F bits sp n count

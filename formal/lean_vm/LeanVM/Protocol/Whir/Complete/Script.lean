@@ -265,10 +265,10 @@ theorem sampleN_sampleN (cs : Commits) :
     rintro cs'' a' b' ⟨rfl, rfl, hl⟩
     simp [Follows, hl]
 
-/-- Passing a proof of work meets checking it. -/
-theorem grindS_grindP (bits : ℕ) (cs : Commits) :
+/-- Passing a proof of work of some bits meets checking it. -/
+theorem grindS_grindP {bits : ℕ} (hb : bits ≠ 0) (cs : Commits) :
     Follows (fun cs' _ _ ↦ cs' = cs) Script.grindS (VerifierProgram.grindProofOfWork bits) cs := by
-  simp [Follows, Script.grindS, VerifierProgram.grindProofOfWork]
+  simp [Follows, Script.grindS, VerifierProgram.grindProofOfWork, hb]
 
 /-- Committing a word of the announced width meets reading the commitment. -/
 theorem commitS_commitP {ht w : ℕ} {W : Word} (hW : WellShaped w W) (cs : Commits) :

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Budget.VsCount
 
-  `verify_sub`'s instructions on a child, per opcode, by its callees at the child's candidate:
+  `verify_sub`'s instructions on a child, per opcode, by its callees at the child's opening arm:
   the static callees' and its opening arm's counts (`Count/VsCountData`), `verify_tables`' and the
   terminal's by their trees' shapes (`kcVtW`, `kcTermW`), and its two callees with no static bound
   within ratios of their words.
@@ -22,15 +22,15 @@ public import LeanVM.Guest.B1.VerifySub.CompleteBT
 public import LeanVM.Guest.Count.VsWB
 
 /-!
-# `verify_sub`'s instructions per candidate
+# `verify_sub`'s instructions per opening arm
 
-`B1.VerifySub.vsNames μ r`: `verify_sub`'s thirteen callees in call order, its opening arm `openName μ r`
+`B1.VerifySub.vsNames μ r`: `verify_sub`'s thirteen callees in call order, its opening arm `openName μ`
 twelfth. `vsWs op c Bs`: a bound on each callee's instructions of `op`, the static ones' and the
-arm's (candidate `c`) from the `V` certificates, `verify_tables`' and the terminal's from the `W`
+arm's (arm `c`, stack log `20 + c`) from the `V` certificates, `verify_tables`' and the terminal's from the `W`
 certificates (`kcVtW`, `kcTermW`: their trees within B1's `vtWB`, `termWB`), `verify_bus_gkr`'s and
 `verify_keccak`'s within their ratios of their words `Bs[5]`, `Bs[7]`. `vs_weight_le`: a
 `verify_sub` node of B1-d's shape (`vsTs` at `Count.vsWords`) weighs at most its frame's weight and
-`vsWs`. `vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `46339` and `65770`
+`vsWs`. `vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `50050` and `65770`
 words, at most `vsCountT op c`.
 -/
 
@@ -41,7 +41,7 @@ open LeanVM.Guest.Count
 
 @[expose] public section
 
-/-- **The callees' instructions of `op`** at the candidate `c`, the two ratio-bounded ones within
+/-- **The callees' instructions of `op`** at the arm `c`, the two ratio-bounded ones within
 the words `Bs`. -/
 def vsWs (op : Opcode) (c : ℕ) (Bs : List ℕ) : List ℕ :=
   [(kcVsStT op).getD 0 0, (kcVsStT op).getD 0 0, (kcVsStT op).getD 1 0, (kcVsStT op).getD 2 0,
@@ -83,7 +83,7 @@ theorem loopWeightLe_tab {op : Opcode} {j n : ℕ} {f : String}
   exact hw
 
 theorem vsTab_parts (op : Opcode) :
-    (∀ c < 28, (kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
+    (∀ c < 11, (kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
       kvSBJ op (osJ.getD c 0) == (kcOsT op).getD c 0) = true) ∧
     (∀ i < 6, (kvOkB op (vsStJ.getD i 0) (vsStNames.getD i "") &&
       kvSBJ op (vsStJ.getD i 0) == (kcVsStT op).getD i 0) = true) ∧
@@ -104,8 +104,8 @@ theorem vsTab_parts (op : Opcode) :
   · simp only [Bool.and_eq_true, beq_iff_eq]; exact ⟨h4a, h4b⟩
   · have := h5 i hi; simp only [Bool.and_eq_true, beq_iff_eq]; exact this
 
-/-- **The opening arm of candidate `c`.** -/
-theorem kcOs_weightLe (op : Opcode) {c : ℕ} (hc : c < 28) :
+/-- **The opening arm `c`.** -/
+theorem kcOs_weightLe (op : Opcode) {c : ℕ} (hc : c < 11) :
     WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) ("open_stacked__L" ++ B1.Whir.natStr c)
       fun _ => (kcOsT op).getD c 0 :=
   weightLe_tab ((vsTab_parts op).1 c hc)
@@ -149,8 +149,9 @@ theorem om_eq (op : Opcode) {i : ℕ} (hi : i < 5) :
   obtain ⟨hn, hv⟩ := (vsTab_parts op).2.2.2.2.2 i hi
   rw [ωArm_idx (decide_eq_true_eq.mp hn) (by interval_cases i <;> decide), hv]
 
-theorem openName_eq {μ r : ℕ} (h : B1.Whir.candidate μ r < 28) :
-    B1.Whir.openName μ r = "open_stacked__L" ++ B1.Whir.natStr (B1.Whir.candidate μ r) := by
+theorem openName_eq {μ : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
+    B1.Whir.openName μ = "open_stacked__L" ++ B1.Whir.natStr (μ - 20) := by
+  have h : μ - B1.Whir.minOpenLog < 11 := by simp only [B1.Whir.minOpenLog]; omega
   unfold B1.Whir.openName B1.Whir.openNames
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h, Option.map_some,
     Option.getD_some, B1.Whir.natStr_eq]
@@ -160,13 +161,13 @@ theorem div_of_ratio {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w
     have := Nat.mul_le_mul_left A ht; rw [Nat.mul_comm w]; omega)
 
 /-- **`verify_sub`'s instructions of `op`**: a node of B1-d's shape at `Count.vsWords` (`vsTs`)
-weighs at most its frame's weight and `vsWs op (candidate μ r) (vsBsAt vsWords Bvk μ r)`. -/
-theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28) {Bvk : ℕ}
+weighs at most its frame's weight and `vsWs op (μ - 20) (vsBsAt vsWords Bvk μ r)`. -/
+theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30) {Bvk : ℕ}
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWords Bvk μ r) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ B2C.ωArm B2C.xmssArmC op "verify_sub" +
-      (vsWs op (B1.Whir.candidate μ r) (B1.VerifySub.vsBsAt vsWords Bvk μ r)).sum := by
+      (vsWs op (μ - 20) (B1.VerifySub.vsBsAt vsWords Bvk μ r)).sum := by
   refine FlatShape.weight_le _ _ h hv hb
     (by simp [B1.VerifySub.vsTs, B1.namedP, B1.VerifySub.vsNames, B1.VerifySub.vsBsAt,
       B1.VerifySub.vsPs, vsWs]) ?_
@@ -189,13 +190,13 @@ theorem vs_weight_le (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 2
   · exact st 3 (by norm_num) hTi.1.1
   · exact st 4 (by norm_num) hTi.1.1
   · exact st 5 (by norm_num) hTi.1.1
-  · rw [openName_eq hc] at hTi
-    exact kcOs_weightLe op hc rd' t' args' rets' hTi.1.1 hv' hb'
+  · rw [openName_eq hμ1 hμ2] at hTi
+    exact kcOs_weightLe op (by omega) rd' t' args' rets' hTi.1.1 hv' hb'
   · exact (hTi.2 op rd' args' rets' hv' hb').trans (termWB_eq op).le
 
 /-- `vsCountT` is the frame's weight and `vsWs` at the two ratio-bounded callees' words. -/
-theorem vsCountT_eq (op : Opcode) : ∀ c < 28, (omT op).getD 0 0 +
-    (vsWs op c [0, 0, 0, 0, 0, 46339, 0, 65770, 0, 0, 0, 0, 0]).sum = (vsCountT op).getD c 0 := by
+theorem vsCountT_eq (op : Opcode) : ∀ c < 11, (omT op).getD 0 0 +
+    (vsWs op c [0, 0, 0, 0, 0, 50050, 0, 65770, 0, 0, 0, 0, 0]).sum = (vsCountT op).getD c 0 := by
   cases op <;> decide +kernel
 
 theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h5 : Bs.getD 5 0 ≤ Bs'.getD 5 0)
@@ -206,18 +207,18 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h5 : Bs.getD 5 0 
   omega
 
 /-- **`verify_sub`'s instructions of `op` on a tree of B1-d's shape** (`vsTs` at `Count.vsWords`),
-`verify_bus_gkr`'s and `verify_keccak`'s bounds within `46339` and `65770` words: at most
-`vsCountT op` at the candidate. -/
-theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r : ℕ} (hc : B1.Whir.candidate μ r < 28)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 46339) (h7 : Bvk ≤ 65770)
+`verify_bus_gkr`'s and `verify_keccak`'s bounds within `50050` and `65770` words: at most
+`vsCountT op` at the arm `μ - 20`. -/
+theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
+    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 50050) (h7 : Bvk ≤ 65770)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWords Bvk μ r) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (B1.Whir.candidate μ r) 0 := by
-  have h1 := vs_weight_le op hc h hv hb
-  have h2 := vsWs_mono op (B1.Whir.candidate μ r) (Bs := B1.VerifySub.vsBsAt vsWords Bvk μ r)
-    (Bs' := [0, 0, 0, 0, 0, 46339, 0, 65770, 0, 0, 0, 0, 0]) h5 h7
-  have h3 := vsCountT_eq op _ hc
+    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (μ - 20) 0 := by
+  have h1 := vs_weight_le op hμ1 hμ2 h hv hb
+  have h2 := vsWs_mono op (μ - 20) (Bs := B1.VerifySub.vsBsAt vsWords Bvk μ r)
+    (Bs' := [0, 0, 0, 0, 0, 50050, 0, 65770, 0, 0, 0, 0, 0]) h5 h7
+  have h3 := vsCountT_eq op _ (by omega : μ - 20 < 11)
   have h4 := om_eq op (i := 0) (by norm_num)
   simp only [omNames, List.getD_cons_zero] at h4
   omega

@@ -164,7 +164,7 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
   rw [sumcheck3_bind] at h3
   obtain ⟨c0, xs4, hx4, h4⟩ := runF_readE_bind h3
   obtain ⟨c2, xs5, hx5, h5⟩ := runF_readE_bind h4
-  obtain ⟨nonce, xs6, hx6, hpow, h6⟩ := runF_grindP_bind h5
+  obtain ⟨nonce, xs6, hx6, hpow, h6⟩ := runF_grindP_bind h5 (by decide)
   rw [absorb_four] at hpow h6
   have hd' : 1 ≤ 192 / (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length +
       level.logInvRate) := by
@@ -252,7 +252,7 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
     simp only [VerifierProgram.ret_bind, List.nil_append]
     rw [hx2, qs_commitP_bind _ _ _ _ _ _ _ hdig, absorb_two hF1, qs_sampleN_bind,
       squeezeN_cF1 _ _ (by rw [hfl]; exact hml), qs_readE_bind, sumcheck3_bind, qs_readE_bind,
-      qs_readE_bind, qs_grindP_bind _ _ _ _ _ _ (by rw [absorb_four]; exact hpow), absorb_four, eos]
+      qs_readE_bind, qs_grindP_bind _ _ _ _ _ _ (by rw [absorb_four]; exact hpow) (by decide), absorb_four, eos]
     exact rest_qs hd' hlam hroot hol hok hidx
 
 /-- **The last level, backwards**: its words and openings, then its tail rounds and the end. -/
@@ -284,7 +284,7 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
       ws.folds.length + level.fold := by
     rw [List.length_append, foldsTr_chs_length]
   obtain ⟨hml, h2⟩ := runF_readN_bind _ h1
-  obtain ⟨nonce, xs3, hx3, hpow, h3⟩ := runF_grindP_bind h2
+  obtain ⟨nonce, xs3, hx3, hpow, h3⟩ := runF_grindP_bind h2 (by decide)
   have hd' : 1 ≤ 192 / (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length +
       level.logInvRate) := by
     rw [hfl]; exact hd
@@ -402,7 +402,7 @@ theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirSta
     simp only [VerifierProgram.bind_eq]
     rw [qs_folds _ _ _ _ _ _ _ hl hnz]
     simp only
-    rw [qs_readN_bind _ _ _ _ _ _ hml, hx3, qs_grindP_bind _ _ _ _ _ _ hpow, eos]
+    rw [qs_readN_bind _ _ _ _ _ _ hml, hx3, qs_grindP_bind _ _ _ _ _ _ hpow (by decide), eos]
     simp only [levelRestNZ, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
         VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
     rw [rest_qs hd' hlam hroot hol hok hidx]

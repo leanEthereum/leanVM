@@ -69,21 +69,21 @@ structure MainStaticGoalsB (SB SK : String → ℕ) : Prop where
 
 /-- **`main`'s non-static callees within their bounds `b`, by trees satisfying `p`.** -/
 structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
-  clx : CompleteAtDTB fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  clx : CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px b.Bx
-  cls : CompleteAtDTB fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  cls : CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps b.Bs
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR) p.Pd b.Bd
   ag : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
         (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa b.Ba
   l5 : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 20 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -104,7 +104,7 @@ theorem MainGoalsTB.withTotal {p : MainPreds} {b : MainBs} (h : MainGoalsTB fs c
 /-- **`main`'s callees within their bounds.** -/
 theorem mainKidsDTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
-    KidsDTB fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
+    KidsDTB fs cert 20 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
       (mTs (hm fs fp seed s w) p) (mBs fs SB SK (hm fs fp seed s w) b) := by
   unfold mKids mTs mBs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
@@ -131,13 +131,13 @@ variable {bytecode : List K}
 /-- **`main` at `fp` on the honest run within its words**: its size at most `mainBH`, its
 callees' trees satisfying `p`. -/
 theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
     ∃ (n : ℕ) (L : B1.Main.Layout),
       n ≤ mainBH fs SB SK (hData seed s w) (hm fs fp seed s w) (hLmain fs fp seed s w) b ∧
       Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
@@ -163,11 +163,11 @@ structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop 
 
 /-- **`main`'s static callees on the honest run, within their bounds.** -/
 theorem mainStaticGoalsB_of {SB SK : String → ℕ} (hbl : bytecode.length = 2 ^ 23)
-    (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs) (hS : MainStaticsMain fs SB SK) :
     MainStaticGoalsB fs cert fp seed s w SB SK := by
-  have hb : MainBounds (hm fs fp seed s w) := hData_bounds hl fs fp
+  have hb : MainBounds (2 ^ 20) (hm fs fp seed s w) := hData_bounds hl fs fp
   exact ⟨mainGoalL1B hS.l1 (by have := hb.xd; omega), mainGoalL2B hS.l2 (by have := hb.sd; omega),
     mainGoalL3B hr hl hxc hS.l3, mainGoalL4B hr hl hsc hS.l4, mainGoalStB hr hbl hS.st⟩
 

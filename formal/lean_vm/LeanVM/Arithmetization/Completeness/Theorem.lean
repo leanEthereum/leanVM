@@ -16,7 +16,7 @@ public import LeanVM.Arithmetization.Completeness.Satisfied
 
 At leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`. The completeness direction for the proof
 system's constraint statement (`SatisfiedBy`). `constraintCompleteness`: a valid execution of at
-most `2^32` steps has a witness of the ensemble at its memory log-size, satisfying
+most `2^30` steps has a witness of the ensemble at its memory log-size, satisfying
 `SatisfiedBy prog input` and representing it.
 
 **The witness.** The skeletons are the run's (`Execution.runSkels`: the states stepped from and the
@@ -40,7 +40,7 @@ pull is its state and push its successor, and the run's register sequence is the
 
 ## Wrong readings excluded
 
-* The row cap is not part of validity: a valid execution with more than `2^32` rows of one opcode
+* The row cap is not part of validity: a valid execution with more than `2^30` rows of one opcode
   has no witness at all (`Caps`), which is why the theorem takes `hrows`
   (`tests/LeanVMTests/Arithmetization/Completeness/LongRun.lean`).
 * The witness represents `t` itself, over its own image: no row reads or writes a cell the run

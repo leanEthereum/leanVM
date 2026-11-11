@@ -103,9 +103,11 @@ impl ProverState {
     /// challenge's Schwartz-Zippel soundness by `bits` (the prover must redo
     /// the PoW to re-roll the challenge). Grinds, binds the nonce into the
     /// state, and transmits it on the stream as raw transport (already bound
-    /// by the grind, so it is NOT re-absorbed). `bits = 0` is the canonical
-    /// no-work nonce `0`.
+    /// by the grind, so it is NOT re-absorbed). A grind of no bits does nothing.
     pub fn grind(&mut self, bits: u32) {
+        if bits == 0 {
+            return;
+        }
         let nonce = self.fs.grind_pow(bits);
         self.stream.push(F192::new(nonce, 0, 0));
     }

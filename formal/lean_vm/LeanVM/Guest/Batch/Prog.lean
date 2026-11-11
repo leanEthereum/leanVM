@@ -126,9 +126,8 @@ theorem runD_bind {α β : Type} (f : α → VerifierProgram β) :
   | .sample k, s => runD_bind f (k _) _
   | .grind b k, ⟨sp, [], os, roots⟩ => rfl
   | .grind b k, ⟨sp, n :: xs, os, roots⟩ => by
-    show (if _ then _ else _) = match (if _ then _ else _) with
-      | some (a, s') => runD (f a) s'
-      | none => none
+    simp only [runD, VerifierProgram.bind, Compile.runWithHash, bind, pure]
+    split
     split
     · exact runD_bind f k _
     · rfl

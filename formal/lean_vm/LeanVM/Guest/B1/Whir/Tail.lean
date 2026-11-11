@@ -50,7 +50,7 @@ theorem osTail_sound (hC : ∀ args rets, C "opening_fold" args rets → Meaning
   obtain ⟨⟨⟨⟨⟨⟨⟨-, hF⟩, hCp⟩, hP0⟩, hP1⟩, hK⟩, hL⟩, hZ⟩ := hok
   obtain ⟨xs, chs, hxl, hcl, hrd, hrun, -, hfs2, -, hld⟩ :=
     osFolds_sound hC (st.k + 1) n 0 { st with k := st.k + 2 } ws [] hfs hco hq ht hF
-  have hpad2 := (osFolds_state (st.k + 1) n 0 { st with k := st.k + 2 }).1
+  have hpad2 := (osFolds_state' (st.k + 1) n 0 { st with k := st.k + 2 }).1
   rw [hpad2] at hK
   set f2 := (osFolds (st.k + 1) 0 n { st with k := st.k + 2 }).2 with hf2
   set j := f2.k

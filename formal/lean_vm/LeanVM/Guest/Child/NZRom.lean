@@ -117,7 +117,7 @@ theorem one_le_nzPot {σ : Seed} {P P' : VerifierProgram Bool} (hNZ : NZ P' P) {
     fuel : ℕ}
     (hfuel : fuel ≤ 2 ^ 64) (hfuel0 : fuel ≠ 0)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≠ 0 ∧ b ≤ bits)
     {z : (Proof × Bool) × Log} (hz : z ∈ support (logExperiment (honestComp σ P S fuel)
       (verifierComp σ P'))) (hrej : z.1.2 = false) :
     1 ≤ nzPot bits fuel z.2 := by
@@ -188,11 +188,11 @@ theorem one_le_nzPot {σ : Seed} {P P' : VerifierProgram Bool} (hNZ : NZ P' P) {
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
       proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (VerifierProgram.after.eq_1 P)
           ⟨by simp, by simp⟩ hr'
-    rw [hg h' b' k ha] at hf
-    obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
+    obtain ⟨-, hb'le⟩ := hg h' b' k ha
+    have hall := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.
     obtain ⟨κ, hκ, hnon⟩ : ∃ κ : PowKey, KeyOk κ ∧ ∀ n < fuel, ∃ u,
-        lookF ℓ (nonceInput κ.1 κ.2 n) = some u ∧ powOk bits (nonceOf n) (challengeOf u) = false := by
+        lookF ℓ (nonceInput κ.1 κ.2 n) = some u ∧ powOk bits (challengeOf u) = false := by
       by_cases h4 : sp.pending.length = 4
       · obtain ⟨r0, hr0, -⟩ := hall 0 (Nat.pos_of_ne_zero hfuel0)
         obtain ⟨c0, ps0, u0, -, -, hif⟩ := powStepM_option hr0
@@ -205,14 +205,14 @@ theorem one_le_nzPot {σ : Seed} {P P' : VerifierProgram Bool} (hNZ : NZ P' P) {
         obtain ⟨rfl, v', hv', rfl⟩ := hif
         rw [hv] at hv'
         cases hv'
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'le hp⟩
       · refine ⟨(capOf sp.state, sp.pending), ⟨by dsimp only; have := hsp.1; omega, hsp.2⟩,
           fun n hn ↦ ?_⟩
         obtain ⟨r, hr, hp⟩ := hall n hn
         obtain ⟨c, ps, u, hu, hru, hif⟩ := powStepM_option hr
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨rfl, rfl⟩ := hif
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'le hp⟩
     -- Its term is `1`.
     have hS : ¬ Solved bits fuel ℓ κ := by
       rintro ⟨n, hn, d, hd, hp⟩
@@ -240,14 +240,14 @@ theorem one_le_nzPot {σ : Seed} {P P' : VerifierProgram Bool} (hNZ : NZ P' P) {
 /-! ## The bound -/
 
 /-- **Completeness of the verifier refusing a zero challenge in the random-oracle model.** For a
-verifier program `P` whose proofs of work all ask for `bits ∈ [1, 64]` bits, a strategy `S`
+verifier program `P` whose proofs of work all ask for between `1` and `bits ≤ 64` bits, a strategy `S`
 that wins every interactive run of `P` with well-shaped words, `P'` refusing zero challenges of
 `P` (`NZ P' P`), both of cost `n`, the seeding `σ`, and a fuel of at most `2^64` nonces: the
 verifier `P'` rejects the honest prover's proof with probability at most
 `Q · ((1 - 2^-bits)^fuel + 2^-192)`, `Q` the queries of the prover and the verifier together. -/
 theorem romCompleteNZ (P P' : VerifierProgram Bool) (hNZ : NZ P' P) (S : Strategy) (σ : Seed)
-    {bits fuel height n : ℕ} (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
+    {bits fuel height n : ℕ} (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≠ 0 ∧ b ≤ bits)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
     (hP : P.CostLE height n) (hP' : P'.CostLE height n) :
     Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P')}[z.1.2 = false] ≤
@@ -271,7 +271,7 @@ theorem romCompleteNZ (P P' : VerifierProgram Bool) (hNZ : NZ P' P) (S : Strateg
     refine ⟨fun ℓ x _ ↦ ?_, fun ℓ s hs' ↦ ?_⟩
     · simp only [nzPot, powPot_append_inl, zeroPot_append_inl]
       exact (avg_le_of_le fun _ ↦ le_rfl).trans le_self_add
-    · have h1 := powPot_stepF hb0 hb hfuel ((lookR_eq_none_iff ℓ s).mpr hs')
+    · have h1 := powPot_stepF hb hfuel ((lookR_eq_none_iff ℓ s).mpr hs')
         (bits := bits) (fuel := fuel)
       have h2 := zeroPot_stepF ℓ s
       simp only [nzPot]

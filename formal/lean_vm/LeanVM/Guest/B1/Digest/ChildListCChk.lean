@@ -146,22 +146,22 @@ def anycOk (fn : Fn) (f : String) (m o0 p0 mk st0 : ℕ) : Bool :=
     recsWin (loopAtoms fn) (anyP mk) o0 p0 m 0 m
 
 /-- `__loop17`'s atoms. -/
-noncomputable def anyc136Atoms : List Atom := loopAtoms (coreProgram.getD 349 default)
+noncomputable def anyc136Atoms : List Atom := loopAtoms (coreProgram.getD 336 default)
 
 /-- Window `i` of `__loop17`'s records: `9i … 9i + 8`. -/
 noncomputable def anycWin (i : ℕ) : Bool := recsWin anyc136Atoms (anyP 21) 22 15 136 (9 * i) 9
 
 
 set_option maxRecDepth 100000 in
-theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (351 + k) default) = true := by
+theorem ccc_lo : ∀ k < 9, cccOk k (coreProgram.getD (338 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (360 + k) default) = true := by
+theorem ccc_hi : ∀ k < 8, cccOk (9 + k) (coreProgram.getD (347 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17c_ok : anycOk (coreProgram.getD 350 default) "__loop18" 17 19 12 18 255 = true := by
+theorem any17c_ok : anycOk (coreProgram.getD 337 default) "__loop18" 17 19 12 18 255 = true := by
   decide +kernel
 
 end

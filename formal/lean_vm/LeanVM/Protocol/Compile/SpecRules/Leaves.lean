@@ -21,7 +21,7 @@ follower's allowance `T` wherever `p` returns within the group:
 | `Spec.ret a` | `T` | |
 | `Spec.fail` | `0` | |
 | `Spec.readE`, `Spec.commitP` | `0` | `T ≤ εmax` (the boundary after the move) |
-| `Spec.grindP b` | `0` | `2⁻¹ ^ b * T ≤ εmax` (the proof of work discounts the follower) |
+| `Spec.grindP hb` | `0` | `2⁻¹ ^ b * T ≤ εmax` (the proof of work discounts the follower) |
 | `Spec.sampleE e` | `e + T` | at most a fraction `e` of the challenges break `Post` |
 | `Spec.queryP` | `T` | `Post` holds of the rows the words give |
 | `Spec.require` | `T` | |
@@ -335,23 +335,24 @@ noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
       simp only [hD, ite_true, grindBits, List.getLast?_singleton, pow_zero, one_mul]
       exact (min_le_right _ _).trans hT
 
-private theorem reach_grindP {b : ℕ} {h₀ l : List Ev} (hl : (grindProofOfWork b).Reach h₀ l) :
+private theorem reach_grindP {b : ℕ} (hb : b ≠ 0) {h₀ l : List Ev}
+    (hl : (grindProofOfWork b).Reach h₀ l) :
     l = [] ∨ l = [Ev.grind b] := by
   induction hl with
   | nil => exact .inl rfl
   | grind _ ha ih =>
     rcases ih with rfl | rfl
-    · simp only [grindProofOfWork, after, Option.some.injEq, VerifierProgram.grind.injEq] at ha
+    · simp only [grindProofOfWork, hb, ↓reduceIte, after, Option.some.injEq, VerifierProgram.grind.injEq] at ha
       obtain ⟨rfl, -⟩ := ha
       exact .inr rfl
-    · simp [grindProofOfWork, after] at ha
+    · simp [grindProofOfWork, hb, after] at ha
   | read _ _ ha ih | sample _ _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
-    rcases ih with rfl | rfl <;> simp [grindProofOfWork, after] at ha
+    rcases ih with rfl | rfl <;> simp [grindProofOfWork, hb, after] at ha
 
 open Classical in
 /-- **Proof of work** of `b` bits: `Post` after it; the boundary after it carries the follower's
 lead discounted by `2⁻¹ ^ b`. -/
-noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
+noncomputable def grindP {Post : Unit → List Ev → Prop} {b : ℕ} (hb : b ≠ 0)
     (h : ∀ h₀, Pre h₀ → Post () (h₀ ++ [Ev.grind b]))
     (hT : (2 : ENNReal)⁻¹ ^ b * T ≤ εmax) : Spec (VerifierProgram.grindProofOfWork b) Pre Post εmax
         0 T where
@@ -371,46 +372,46 @@ noncomputable def grindP {Post : Unit → List Ev → Prop} (b : ℕ)
   start_D _ h := h
   start_V _ h := by simp [h]
   read := by
-    intro _ _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
+    intro _ _ _ _ hl ha; rcases reach_grindP hb hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, hb, after] at ha
   grind := by
     intro h₀ l b' k hl ha hD
-    rcases reach_grindP hl with rfl | rfl
-    · simp only [VerifierProgram.grindProofOfWork, after, Option.some.injEq,
+    rcases reach_grindP hb hl with rfl | rfl
+    · simp only [VerifierProgram.grindProofOfWork, hb, ↓reduceIte, after, Option.some.injEq,
         VerifierProgram.grind.injEq] at ha
       obtain ⟨rfl, -⟩ := ha
       exact h h₀ hD
-    · simp [VerifierProgram.grindProofOfWork, after] at ha
+    · simp [VerifierProgram.grindProofOfWork, hb, after] at ha
   commit := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
+    rcases reach_grindP hb hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, hb, after] at ha
   sample := by
-    intro _ _ _ hl ha; rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
+    intro _ _ _ hl ha; rcases reach_grindP hb hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, hb, after] at ha
   query := by
     intro _ _ _ _ _ _ hl ha
-    rcases reach_grindP hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, after] at ha
+    rcases reach_grindP hb hl with rfl | rfl <;> simp [VerifierProgram.grindProofOfWork, hb, after] at ha
   moveEnd := by
     intro h₀ l q hl ha hm hD
-    rcases reach_grindP hl with rfl | rfl
+    rcases reach_grindP hb hl with rfl | rfl
     · simp [hD]
-    · simp [VerifierProgram.grindProofOfWork, after] at ha; subst ha; simp [IsMove] at hm
+    · simp [VerifierProgram.grindProofOfWork, hb, after] at ha; subst ha; simp [IsMove] at hm
   retEnd := by
     intro h₀ l a hl ha hD
-    rcases reach_grindP hl with rfl | rfl
-    · simp [VerifierProgram.grindProofOfWork, after] at ha
+    rcases reach_grindP hb hl with rfl | rfl
+    · simp [VerifierProgram.grindProofOfWork, hb, after] at ha
     · simp only at hD ⊢; simp [hD]
   retDoom := by
     intro h₀ l a hl ha hD
-    rcases reach_grindP hl with rfl | rfl
-    · simp [VerifierProgram.grindProofOfWork, after] at ha
+    rcases reach_grindP hb hl with rfl | rfl
+    · simp [VerifierProgram.grindProofOfWork, hb, after] at ha
     · simp only at hD ⊢; simp [hD]
   post := by
     intro h₀ l a hl ha hD
-    rcases reach_grindP hl with rfl | rfl
-    · simp [VerifierProgram.grindProofOfWork, after] at ha
+    rcases reach_grindP hb hl with rfl | rfl
+    · simp [VerifierProgram.grindProofOfWork, hb, after] at ha
     · exact hD
   bound := by
     intro h₀ l hl hne hm hD
-    rcases reach_grindP hl with rfl | rfl
+    rcases reach_grindP hb hl with rfl | rfl
     · exact absurd rfl hne
     · simp only at hD ⊢
       simp only [hD, ite_true, grindBits, List.getLast?_singleton]

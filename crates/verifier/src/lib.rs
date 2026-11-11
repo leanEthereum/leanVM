@@ -23,7 +23,10 @@ mod whir;
 
 pub use bytecode::Bytecode;
 pub use field::{E, K};
-pub use layout::TAG;
+pub use layout::{
+    MAX_LOG_BYTECODE, MAX_LOG_MEMORY, MAX_STACKED_LOG, MAX_TABLE_LOG, MIN_LOG_MEMORY, MIN_STACKED_LOG, TAG,
+    min_execution_stacked_log,
+};
 pub use merkle::MerklePath;
 pub use transcript::Proof;
 pub use whir::whir_queries;
@@ -33,8 +36,7 @@ use field::{ZERO, powers};
 use hash::{Digest, ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{
-    GLOBAL_COLUMN_BASES, KECCAK_OUT, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES,
-    OP_KECCAK, QKECCAK, build_layout,
+    GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, MEMORY_2, N_TABLES, OP_KECCAK, QKECCAK, build_layout,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;

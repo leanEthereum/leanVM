@@ -114,6 +114,7 @@ theorem atomEqns_read_pure {σ : Val} : ∀ (a : Atom), atomUnplaced a = true �
       rcases hq with rfl | rfl
       · exact h.1.2
       · exact h.2.2.2
+  | .touch .., _, h, q, hq => by rw [List.mem_singleton.mp hq]; exact h.2
   | .frameAddr .., hu, _, _, _ => by simp [atomUnplaced] at hu
   | .const .., _, _, _, hq => (List.not_mem_nil hq).elim
   | .add .., _, _, _, hq => (List.not_mem_nil hq).elim

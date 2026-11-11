@@ -88,7 +88,7 @@ def runLog {α : Type} (total : ℕ) : VerifierProgram α → VerifierProgramSta
       let log := { log with nonces := log.nonces.push (total - s.stream.length, bits) }
       let sp := Id.run (absorb keccakF1600 s.sponge n dsPowNonce)
       let (c, sp) := Id.run (squeeze keccakF1600 sp)
-      if powOk bits n c then runLog total k { s with sponge := sp, stream := xs } log
+      if powOk bits c then runLog total k { s with sponge := sp, stream := xs } log
       else (none, log)
   | .commit height width k, s, log => match s.stream with
     | x0 :: x1 :: xs =>

@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Whir.BrLevelH
 /-!
 # The chain of levels
 
-`spDats Ls lvl sq wp`: the levels' data from the trace's levels `Ls` (level `i`'s squeeze run and
-row weights buffers at `sq i`, `wp i`). `LvMemB`: a level's memory but its words. `lvsH_sp`: a chain
+`spDats Ls lvl wp`: the levels' data from the trace's levels `Ls` (level `i`'s row weights buffer
+at `wp i`). `LvMemB`: a level's memory but its words. `lvsH_sp`: a chain
 of the trace (`SpChain`) whose words memory holds from `cur`, each level's memory and calls given,
 gives the levels' hypotheses `LvsH`, and what the levels leave is the last level's: its sponge,
 quadratic and claim, the cursor at the tail's words (`ChainEnd`).
@@ -42,18 +42,16 @@ theorem SpLv.dn_of {L : SpLv} {d : Digest} (h : digestFromHalves (L.ra, L.rb) = 
   rw [SpLv.dn, h]; rfl
 
 /-- The levels' data from the trace's levels. -/
-def spDats : List SpLv → ℕ → (ℕ → E) → (ℕ → E) → List LvDat
-  | [], _, _, _ => []
-  | L :: Ls, i, sq, wp => spDat L L.dn (sq i) (wp i) :: spDats Ls (i + 1) sq wp
+def spDats : List SpLv → ℕ → (ℕ → E) → List LvDat
+  | [], _, _ => []
+  | L :: Ls, i, wp => spDat L L.dn (wp i) :: spDats Ls (i + 1) wp
 
 /-- A level's memory, but its words. -/
-structure LvMemB (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (L : SpLv)
-    (sqz : E) : Prop where
+structure LvMemB (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (L : SpLv) :
+    Prop where
   fch : ∀ j < lv.folds, LoadHolds rd P.fch (lv.foldsOff + j) (L.chs.getD j 0)
   r0 : LoadHolds rd P.roots (2 * lvl) (digestHalves L.root).1
   r1 : LoadHolds rd P.roots (2 * lvl + 1) (digestHalves L.root).2
-  rows : ∀ j ≤ lv.squeezes, ∀ i < 5, LoadHolds rd sqz (5 * j + i)
-    ((L.F2.squeezeN j).2.cap.getD i 0)
   mu : LoadHolds rd P.mus lvl L.lam⁻¹
   beta : LoadHolds rd P.betas lvl
     ((if lvl = c.yrLevel then L.lam else L.lam * L.lam) * L.lam ^ lv.queries)
@@ -66,9 +64,9 @@ structure LvMemB (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) 
   fmsg : lvl = c.yrLevel → ReadsAt rd P.fmsg L.ms
 
 theorem LvMemB.withWords {rd : Reader} {P : OsPtrs} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv}
-    {sqz cur : E} (h : LvMemB rd P c lvl lv L sqz) (hw : ReadsAt rd cur L.words) :
-    LvMem rd P c lvl lv L sqz cur :=
-  ⟨hw, h.fch, h.r0, h.r1, h.rows, h.mu, h.beta, h.r0', h.r1', h.oodz, h.ood, h.fmsg⟩
+    {cur : E} (h : LvMemB rd P c lvl lv L) (hw : ReadsAt rd cur L.words) :
+    LvMem rd P c lvl lv L cur :=
+  ⟨hw, h.fch, h.r0, h.r1, h.mu, h.beta, h.r0', h.r1', h.oodz, h.ood, h.fmsg⟩
 
 /-- What the levels leave: the last level's sponge, quadratic and claim, the cursor at the tail's
 words, the run's end. -/
@@ -101,18 +99,17 @@ theorem words_length {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit
       List.length_nil, hOk.xf, h.fold]
 
 /-- **The chain of levels gives the levels' hypotheses.** -/
-theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane : ℕ}
-    (sq wp : ℕ → E) : ∀ (lvs : List OsLv) (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT)
+theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {logN lane : ℕ}
+    (wp : ℕ → E) : ∀ (lvs : List OsLv) (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT)
     (F : Fs) (xs : List E) (os : List (List Opening)) (R : List (Digest × ℕ × ℕ)) (Ls : List SpLv)
     (res : WhirEnd × FSt) (cur : E),
     LevelsOk c logN lvl lvs cfg → SpChain logN lane lvl cfg ws F xs os R Ls res →
     ws.folds.length = (lvs.headD default).foldsOff → ReadsAt rd cur xs →
-    (∀ i < lvs.length, LvMemB rd P c (lvl + i) (lvs.getD i default) (Ls.getD i default)
-      (sq (lvl + i))) →
-    (∀ i < lvs.length, LvCallsOk C rd P c (lvl + i) (lvs.getD i default) (Ls.getD i default)
-      (sq (lvl + i)) (wp (lvl + i))) →
-    LvsH C rd P c lvl lvs (spDats Ls lvl sq wp) F ws.quad ws.target cur ∧
-      ChainEnd rd lane (lvsOut c lvl lvs (spDats Ls lvl sq wp) F ws.quad ws.target cur)
+    (∀ i < lvs.length, LvMemB rd P c (lvl + i) (lvs.getD i default) (Ls.getD i default)) →
+    (∀ i < lvs.length, LvCallsOk C rd P Rs c (lvl + i) (lvs.getD i default) (Ls.getD i default)
+      (wp (lvl + i))) →
+    LvsH C rd P Rs c lvl lvs (spDats Ls lvl wp) F ws.quad ws.target cur ∧
+      ChainEnd rd lane (lvsOut c lvl lvs (spDats Ls lvl wp) F ws.quad ws.target cur)
         (Ls.getLastD default) (xs.drop (Ls.map SpLv.words).flatten.length) res
   | [lv], [level], lvl, ws, F, xs, os, R, [L], res, cur, hok, hch, hfo, hrd, hmem, hcal => by
     obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
@@ -135,7 +132,7 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane 
       rw [hxs]; simp
     rw [hdr]
     refine ⟨⟨hH, trivial⟩, ?_⟩
-    have hO := lvOut_sp hfit L.dn (sq lvl) (wp lvl)
+    have hO := lvOut_sp hfit L.dn (wp lvl)
     simp only [spDats, lvsOut]
     rw [hO, show [L].getLastD default = L from rfl]
     refine ⟨rfl, rfl, rfl, ?_, e4, htl, htnz, ⟨osR, R, hOk, hres⟩⟩
@@ -159,14 +156,14 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {c : OsCfg} {logN lane 
     have hm := hm0.withWords (cur := cur) (readsAt_left (xs := L.words) (by rw [← hxs]; exact hrd))
     have hH := lvH_sp (d := L.dn) (wp := wp lvl) hfit (e3 ▸ hcfg) (fun _ ↦ hlvl) (fun h ↦ absurd h hnf) hOk
       (fun h ↦ SpLv.dn_of (hOk.digest h)) hm hcl
-    have hO := lvOut_sp hfit L.dn (sq lvl) (wp lvl)
+    have hO := lvOut_sp hfit L.dn (wp lvl)
     have hwl := words_length hfit hOk (fun h ↦ absurd h hnf)
     have hfo' : L.wsEnd.folds.length = ((lv' :: lvs).headD default).foldsOff := by
       rw [SpLv.wsEnd_folds, List.length_append, SpLv.chs_length, hfo, e3, hfold, List.headD_cons,
         hoff']
     have hrd' : ReadsAt rd (cur * gen ^ lvWords c lvl lv) xsR := by
       have := readsAt_right (by rw [← hxs]; exact hrd); rwa [hwl] at this
-    obtain ⟨hH', hE⟩ := lvsH_sp sq wp (lv' :: lvs) (next :: cfg) (lvl + 1) L.wsEnd L.Fend xsR
+    obtain ⟨hH', hE⟩ := lvsH_sp wp (lv' :: lvs) (next :: cfg) (lvl + 1) L.wsEnd L.Fend xsR
       osR _ Ls res (cur * gen ^ lvWords c lvl lv) hrest hch' hfo' hrd'
       (fun i hi ↦ by
         have := hmem (i + 1) (by simp at hi ⊢; omega)

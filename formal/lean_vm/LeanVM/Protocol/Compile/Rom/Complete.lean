@@ -70,21 +70,21 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 noncomputable def missProb (b : ℕ) : ℝ≥0∞ := 1 - 2⁻¹ ^ b
 
 /-- **A nonce fails with probability exactly `1 - 2^-b`.** -/
-theorem avg_miss_eq {b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ 64) (n : E) :
-    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = false)) / Fintype.card KeccakState =
+theorem avg_miss_eq {b : ℕ} (hb : b ≤ 64) :
+    (∑ u : KeccakState, ind (powOk b (challengeOf u) = false)) / Fintype.card KeccakState =
       missProb b := by
   have hc : (Fintype.card KeccakState : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   have hct : (Fintype.card KeccakState : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-  have hadd : (∑ u : KeccakState, ind (powOk b n (challengeOf u) = false)) +
-      (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) = Fintype.card KeccakState := by
+  have hadd : (∑ u : KeccakState, ind (powOk b (challengeOf u) = false)) +
+      (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) = Fintype.card KeccakState := by
     rw [← Finset.sum_add_distrib]
-    calc ∑ u : KeccakState, (ind (powOk b n (challengeOf u) = false) +
-          ind (powOk b n (challengeOf u) = true))
+    calc ∑ u : KeccakState, (ind (powOk b (challengeOf u) = false) +
+          ind (powOk b (challengeOf u) = true))
         = ∑ _u : KeccakState, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun u _ ↦ by
-          cases powOk b n (challengeOf u) <;> simp [ind]
+          cases powOk b (challengeOf u) <;> simp [ind]
       _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
   have hdiv := congrArg (· / (Fintype.card KeccakState : ℝ≥0∞)) hadd
-  simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_powOk_div_eq hb0 hb n] at hdiv
+  simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_powOk_div_eq hb] at hdiv
   exact ENNReal.eq_sub_of_add_eq (by simp) hdiv
 
 theorem missProb_eq_ofReal (b : ℕ) : missProb b = ENNReal.ofReal (1 - (1 / 2 : ℝ) ^ b) := by
@@ -188,7 +188,7 @@ noncomputable def tried (ℓ : Log) (κ : PowKey) : Finset ℕ :=
 /-- Some nonce below `fuel` passes at a position, in the log. -/
 def Solved (ℓ : Log) (κ : PowKey) : Prop :=
   ∃ n < fuel, ∃ v, lookF ℓ (nonceInput κ.1 κ.2 n) = some v ∧
-    powOk bits (nonceOf n) (challengeOf v) = true
+    powOk bits (challengeOf v) = true
 
 open Classical in
 /-- The term of a position: `0` once a nonce below `fuel` passed, otherwise the probability that
@@ -248,7 +248,7 @@ theorem powTerm_append_of_ne {ℓ : Log} {e : Entry} {κ : PowKey}
   rw [hT, hS']
 
 /-- **A position's term is a martingale** at a fresh nonce input of it. -/
-theorem powTerm_step (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
+theorem powTerm_step (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
     {κ : PowKey} (hκ : KeyOk κ) {n0 : ℕ} (hn0 : n0 < fuel)
     (ht : lookF ℓ (nonceInput κ.1 κ.2 n0) = none) :
     (∑ u, powTerm bits fuel (ℓ ++ [.inr (nonceInput κ.1 κ.2 n0, u)]) κ) / Fintype.card KeccakState ≤
@@ -289,11 +289,11 @@ theorem powTerm_step (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^
       rw [Finset.card_insert_of_notMem hn0T, Finset.card_range] at this
       omega
     have hpt : ∀ u, powTerm bits fuel (ℓ ++ [.inr (t, u)]) κ =
-        ind (powOk bits (nonceOf n0) (challengeOf u) = false) *
+        ind (powOk bits (challengeOf u) = false) *
           missProb bits ^ (fuel - ((tried fuel ℓ κ).card + 1)) := by
       intro u
       have hS : Solved bits fuel (ℓ ++ [.inr (t, u)]) κ ↔
-          powOk bits (nonceOf n0) (challengeOf u) = true := by
+          powOk bits (challengeOf u) = true := by
         constructor
         · rintro ⟨n, hn, d, hd, hp⟩
           by_cases hnn : n = n0
@@ -305,13 +305,13 @@ theorem powTerm_step (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^
           exact ⟨n0, hn0, u, lookF_append_inr_self ht u, hp⟩
       unfold powTerm
       rw [hT u, Finset.card_insert_of_notMem hn0T]
-      by_cases hp : powOk bits (nonceOf n0) (challengeOf u) = true
+      by_cases hp : powOk bits (challengeOf u) = true
       · simp [hS.mpr hp, hp, ind]
-      · have hf : powOk bits (nonceOf n0) (challengeOf u) = false := by simpa using hp
+      · have hf : powOk bits (challengeOf u) = false := by simpa using hp
         simp [mt hS.mp hp, hf, ind]
     simp only [hpt]
     rw [← Finset.sum_mul, ENNReal.div_eq_inv_mul, ← mul_assoc, ← ENNReal.div_eq_inv_mul,
-      avg_miss_eq hb0 hb]
+      avg_miss_eq hb]
     unfold powTerm
     simp only [hs, ↓reduceIte]
     rw [← pow_succ']
@@ -319,7 +319,7 @@ theorem powTerm_step (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^
 
 /-- **The potential's step at the permutation**: a fresh query raises it by at most
 `(1 - 2^-bits)^fuel` in expectation. -/
-theorem powPot_stepF (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
+theorem powPot_stepF (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64) {ℓ : Log}
     {t : KeccakState} (ht : lookF ℓ t = none) :
     (∑ u, powPot bits fuel (ℓ ++ [.inr (t, u)])) / Fintype.card KeccakState ≤
       powPot bits fuel ℓ + missProb bits ^ fuel := by
@@ -363,7 +363,7 @@ theorem powPot_stepF (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^
       exact hκne (nonceInput_inj hκok hκ0 (by omega) (by omega) he).1
     set T := nonceInput κ0.1 κ0.2 n0
     simp only [powPot, hkeys]
-    have hstep0 := powTerm_step hb0 hb hfuel hκ0 hn0 ht
+    have hstep0 := powTerm_step hb hfuel hκ0 hn0 ht
     by_cases hmem : κ0 ∈ keys fuel ℓ
     · simp only [Finset.insert_eq_of_mem hmem]
       have e1 : (∑ u, ∑ κ ∈ keys fuel ℓ, powTerm bits fuel (ℓ ++ [.inr (T, u)]) κ) =
@@ -439,7 +439,7 @@ theorem powStepM_option {sp : Sponge} {n : ℕ} {r : E × Sponge}
 theorem searchM_eq_some_none {bits : ℕ} {sp : Sponge} :
     ∀ (count n : ℕ), searchM F bits sp n count = some none →
       ∀ j, n ≤ j → j < n + count →
-        ∃ r, powStepM F sp (nonceOf j) = some r ∧ powOk bits (nonceOf j) r.1 = false
+        ∃ r, powStepM F sp (nonceOf j) = some r ∧ powOk bits r.1 = false
   | 0, _, _ => fun _ h1 h2 ↦ by omega
   | count + 1, n, h => by
     change (powStepM F sp (nonceOf n)).bind _ = _ at h
@@ -454,13 +454,8 @@ theorem searchM_eq_some_none {bits : ℕ} {sp : Sponge} :
 
 theorem findNonceM_eq_some_none {bits : ℕ} {sp : Sponge} {fuel : ℕ}
     (h : findNonceM F bits sp fuel = some none) :
-    bits ≠ 0 ∧ ∀ n < fuel, ∃ r, powStepM F sp (nonceOf n) = some r ∧
-      powOk bits (nonceOf n) r.1 = false := by
-  unfold findNonceM at h
-  split at h
-  · cases h
-  · rename_i hb
-    exact ⟨hb, fun n hn ↦ searchM_eq_some_none fuel 0 h n (Nat.zero_le n) (by omega)⟩
+    ∀ n < fuel, ∃ r, powStepM F sp (nonceOf n) = some r ∧ powOk bits r.1 = false :=
+  fun n hn ↦ searchM_eq_some_none fuel 0 h n (Nat.zero_le n) (by omega)
 
 /-- The honest prover's sponge between its moves: at most four scalars waiting, each of tag
 `1`. -/
@@ -566,12 +561,21 @@ theorem isTotalQueryBound_honestComp {σ : Seed} {P : VerifierProgram Bool} {hei
     exact isTotalQueryBound_bind (isTotalQueryBound_proveM hP S seed fuel) fun _ ↦
       isTotalQueryBound_pure' _ 0
 
+/-- A challenge that fails a proof of work of `b` bits fails one of `B ≥ b` bits. -/
+theorem powOk_false_mono {b B : ℕ} {c : E} (hbB : b ≤ B) (h : powOk b c = false) :
+    powOk B c = false := by
+  unfold powOk at h ⊢
+  simp only [decide_eq_false_iff_not] at h ⊢
+  intro hc
+  exact h (Nat.mod_eq_zero_of_dvd
+    (Nat.dvd_trans (Nat.pow_dvd_pow 2 hbB) (Nat.dvd_of_mod_eq_zero hc)))
+
 /-- **The final inequality.** On every reachable outcome of the logged experiment in which the
 verifier rejects the honest prover's proof, the potential of the final log is at least `1`. -/
 theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bits fuel : ℕ}
     (hfuel : fuel ≤ 2 ^ 64) (hfuel0 : fuel ≠ 0)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≠ 0 ∧ b ≤ bits)
     {z : (Proof × Bool) × Log} (hz : z ∈ support (logExperiment (honestComp σ P S fuel)
       (verifierComp σ P))) (hrej : z.1.2 = false) :
     1 ≤ powPot bits fuel z.2 := by
@@ -627,11 +631,11 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     obtain ⟨h', b', k, sp, ha, hsp, hf⟩ :=
       proveFromM_eq_some_none S fuel P ⟨seed, []⟩ [] [] (VerifierProgram.after.eq_1 P)
           ⟨by simp, by simp⟩ hr'
-    rw [hg h' b' k ha] at hf
-    obtain ⟨-, hall⟩ := findNonceM_eq_some_none hf
+    obtain ⟨-, hb'le⟩ := hg h' b' k ha
+    have hall := findNonceM_eq_some_none hf
     -- The position of the search, the same for every nonce.
     obtain ⟨κ, hκ, hnon⟩ : ∃ κ : PowKey, KeyOk κ ∧ ∀ n < fuel, ∃ u,
-        lookF ℓ (nonceInput κ.1 κ.2 n) = some u ∧ powOk bits (nonceOf n) (challengeOf u) = false := by
+        lookF ℓ (nonceInput κ.1 κ.2 n) = some u ∧ powOk bits (challengeOf u) = false := by
       by_cases h4 : sp.pending.length = 4
       · obtain ⟨r0, hr0, -⟩ := hall 0 (Nat.pos_of_ne_zero hfuel0)
         obtain ⟨c0, ps0, u0, -, -, hif⟩ := powStepM_option hr0
@@ -644,14 +648,14 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
         obtain ⟨rfl, v', hv', rfl⟩ := hif
         rw [hv] at hv'
         cases hv'
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'le hp⟩
       · refine ⟨(capOf sp.state, sp.pending), ⟨by dsimp only; have := hsp.1; omega, hsp.2⟩,
           fun n hn ↦ ?_⟩
         obtain ⟨r, hr, hp⟩ := hall n hn
         obtain ⟨c, ps, u, hu, hru, hif⟩ := powStepM_option hr
         simp only [h4, ↓reduceIte] at hif
         obtain ⟨rfl, rfl⟩ := hif
-        exact ⟨u, hu, by rw [← hru]; exact hp⟩
+        exact ⟨u, hu, by rw [← hru]; exact powOk_false_mono hb'le hp⟩
     -- Its term is `1`.
     have hS : ¬ Solved bits fuel ℓ κ := by
       rintro ⟨n, hn, d, hd, hp⟩
@@ -677,13 +681,13 @@ theorem one_le_powPot {σ : Seed} {P : VerifierProgram Bool} {S : Strategy} {bit
     exact Finset.single_le_sum (fun _ _ ↦ bot_le) hmem
 
 /-- **Completeness in the random-oracle model.** For a verifier program `P` whose proofs of work
-all ask for `bits ∈ [1, 64]` bits, a strategy `S` that wins every interactive run of `P` with
+all ask for between `1` and `bits ≤ 64` bits, a strategy `S` that wins every interactive run of `P` with
 well-shaped words, the seeding `σ`, and a fuel of at most `2^64` nonces: with `Q` the queries of
 the honest prover and the verifier together, the verifier rejects the honest prover's proof with
 probability at most `Q · (1 - 2^-bits)^fuel`. -/
 theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits fuel height n : ℕ}
-    (hb0 : bits ≠ 0) (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
-    (hg : ∀ h b k, P.after h = some (.grind b k) → b = bits)
+    (hb : bits ≤ 64) (hfuel : fuel ≤ 2 ^ 64)
+    (hg : ∀ h b k, P.after h = some (.grind b k) → b ≠ 0 ∧ b ≤ bits)
     (hc : ∀ chal, runI P S chal = some true) (hs : ∀ chal, shapedI P S chal)
     (hP : P.CostLE height n) :
     Pr{let z ← romExperiment (honestComp σ P S fuel) (verifierComp σ P)}[z.1.2 = false] ≤
@@ -706,7 +710,7 @@ theorem romComplete (P : VerifierProgram Bool) (S : Strategy) (σ : Seed) {bits 
     refine ⟨fun ℓ x _ ↦ ?_, fun ℓ s hs' ↦ ?_⟩
     · simp only [powPot_append_inl]
       exact (avg_le_of_le fun _ ↦ le_rfl).trans le_self_add
-    · exact powPot_stepF hb0 hb hfuel ((lookR_eq_none_iff ℓ s).mpr hs')
+    · exact powPot_stepF hb hfuel ((lookR_eq_none_iff ℓ s).mpr hs')
   have h := prEvent_run_loggedRO_le_of_freshStepBound hstep _ (QA + QV)
     (isTotalQueryBound_bind hA fun a ↦ (isQueryBound_map_iff (verifierComp σ P a) _ QV _ _).mpr
       (hV a)) [] (fun r _ ↦ r.2 = false)

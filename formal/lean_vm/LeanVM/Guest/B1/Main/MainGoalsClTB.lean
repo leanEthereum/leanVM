@@ -36,14 +36,14 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- `MainGoalClXT` within `clB` of the declared leanXMSS list's length. -/
 def MainGoalClXTB (SB SK : String → ℕ) : Prop :=
-  CompleteAtDTB fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (clHonest (hm fs fp seed s w).nlx)
     (clB fs SB SK (hm fs fp seed s w).nlx)
 
 /-- `MainGoalClST` within `clB` of the declared leanSPHINCS list's length. -/
 def MainGoalClSTB (SB SK : String → ℕ) : Prop :=
-  CompleteAtDTB fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDTB fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (clHonest (hm fs fp seed s w).nls)
     (clB fs SB SK (hm fs fp seed s w).nls)
@@ -60,7 +60,7 @@ theorem MainGoalClSTB.toT {SB SK : String → ℕ} (h : MainGoalClSTB fs cert fp
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape, within
 `clB`.** -/
-theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
+theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
@@ -68,10 +68,10 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
-  have hn : s.claims.xmss.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
+    have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -94,11 +94,11 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClXTB clHonest
   rw [ha, hn', hd, mf_xmss_digest]
-  exact key
+  exact key.lowMono (by norm_num)
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape,
 within `clB`.** -/
-theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
+theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
@@ -106,10 +106,10 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
-  have hn : s.claims.sphincs.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
+    have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++
@@ -132,7 +132,7 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClSTB clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
-  exact key
+  exact key.lowMono (by norm_num)
 
 
 end

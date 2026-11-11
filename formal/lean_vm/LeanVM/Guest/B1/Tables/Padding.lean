@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.Padding
 
   B1 for `padding_weight`: a table's padding weight at the bus point, and the certificate that
-  its hinted log height is the least holding its rows, at each of its 29 specializations.
+  its hinted log height is the least holding its rows, at each of its 31 specializations.
 -/
 
 module
@@ -418,7 +418,7 @@ theorem pwBl_top (b : ℕ → E) {τ : ℕ} (hτ : 2 ≤ τ) :
   exact Finset.sum_congr rfl fun i _ => by rw [show τ - 2 - (τ - 2) + i = i by omega]
 
 /-- The three returns, from bits of `pwW τ n` and the words `zs`. -/
-theorem pw_rets {τ n : ℕ} (h2 : 2 ≤ τ) (h28 : τ ≤ 28) {b z : ℕ → E}
+theorem pw_rets {τ n : ℕ} (h2 : 2 ≤ τ) (h32 : τ ≤ 32) {b z : ℕ → E}
     (hbits : ∀ k ≤ τ, b k = bitE ((pwW τ n).testBit k)) {zs : List E} (hlen : zs.length = τ)
     (hzs : ∀ k < τ, z k = zs.getD k 0) :
     [(word 1 0 0 + b τ) * padFold b z τ, b τ + word 1 0 0 + b (τ - 1),
@@ -450,7 +450,7 @@ theorem pw_rets {τ n : ℕ} (h2 : 2 ≤ τ) (h28 : τ ≤ 28) {b z : ℕ → E}
   refine List.cons_eq_cons.mpr ⟨by ring, List.cons_eq_cons.mpr ⟨?_, rfl⟩⟩
   rw [add_assoc, one_add_bitE, Bool.not_not]
 
-theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : τ ≤ 28)
+theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ ≤ 32)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
     (hbody : f.body = pwBody τ) (rd : Reader) (rows zeta : E) (rets : List E)
     (h : coreProgram.Rel rd name [rows, zeta] rets) :
@@ -522,7 +522,7 @@ theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : τ �
   rw [← hret, t18, t17, t16, show 6 * τ + 3 = τ + 8 + 5 * (τ - 1) by omega,
     hpad (τ - 1) (by omega), show τ - 1 + 1 = τ by omega, t19, t5, t4, t3, t20, t8, t7, t6, hb1,
     hbl _ le_rfl]
-  exact pw_rets h2 h28 hbits hlen hzs
+  exact pw_rets h2 h32 hbits hlen hzs
 
 /-! ## Completeness -/
 
@@ -625,7 +625,7 @@ theorem pwF_bit' {τ : ℕ} {rows zeta : E} {b z : ℕ → E} {i k : ℕ} (hi : 
     pwF τ rows zeta b z i = b k := by
   subst hi; exact pwF_bit hk
 
-theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : τ ≤ 28)
+theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ ≤ 32)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
     (hbody : f.body = pwBody τ) (rd : Reader) (rows zeta : E) (rets : List E)
     (h : MeaningPaddingWeight τ rd [rows, zeta] rets) :
@@ -723,7 +723,7 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h28 : �
       exact e_add_self _
     · rw [hlow, tb_word_eOfNat, tb_word_zero, add_zero]; exact htop
     · rw [hret]
-      exact pw_rets h2 h28 (fun k _ => rfl) hlen (fun k _ => rfl)
+      exact pw_rets h2 h32 (fun k _ => rfl) hlen (fun k _ => rfl)
 
 /-! ## `τ = 0` and `τ = 1` -/
 
@@ -861,9 +861,9 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
 
 /-! ## The specializations -/
 
-/-- **`padding_weight` at every `τ ≤ 28`**, for a compiled function whose body is the
+/-- **`padding_weight` at every `τ ≤ 32`**, for a compiled function whose body is the
 expansion at `τ`. -/
-theorem padding_weight_iff {name : String} {f : Fn} (τ : ℕ) (h28 : τ ≤ 28)
+theorem padding_weight_iff {name : String} {f : Fn} (τ : ℕ) (h32 : τ ≤ 32)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
     (hbody : f.body = if τ = 0 then pwBody0 else if τ = 1 then pwBody1 else pwBody τ)
     (rd : Reader) (rows zeta : E) (rets : List E) :
@@ -875,8 +875,8 @@ theorem padding_weight_iff {name : String} {f : Fn} (τ : ℕ) (h28 : τ ≤ 28)
     · obtain rfl : τ = 1 := by omega
       exact pw1_iff hfind hparams hbody rd rows zeta rets
   · rw [tb_ite_neg' (by omega), tb_ite_neg' (by omega)] at hbody
-    exact ⟨pw_sound τ h h28 hfind hparams hbody rd rows zeta rets,
-      pw_complete τ h h28 hfind hparams hbody rd rows zeta rets⟩
+    exact ⟨pw_sound τ h h32 hfind hparams hbody rd rows zeta rets,
+      pw_complete τ h h32 hfind hparams hbody rd rows zeta rets⟩
 
 /-! ## The specializations -/
 
@@ -889,9 +889,9 @@ noncomputable def pwCheck (τ : ℕ) : Bool :=
   | some fn => decide (fn.params = [.n 0, .n 1]) && tbStmtsEqb fn.body (pwBodyOf τ)
   | none => false
 
-theorem pwCheck_all : (List.range 29).all pwCheck = true := by decide +kernel
+theorem pwCheck_all : (List.range 31).all pwCheck = true := by decide +kernel
 
-theorem pwFound {τ : ℕ} (hτ : τ < 29) : ∃ fn : Fn,
+theorem pwFound {τ : ℕ} (hτ : τ < 31) : ∃ fn : Fn,
     coreProgram.find? (lName "padding_weight" τ) = some fn ∧ fn.params = [.n 0, .n 1] ∧
       fn.body = pwBodyOf τ := by
   have h := List.all_eq_true.mp pwCheck_all τ (List.mem_range.mpr hτ)
@@ -912,7 +912,7 @@ theorem pw_meaning_iff {τ : ℕ} (rd : Reader) (rows zeta : E) (rets : List E) 
     | [_, _, _], ⟨n, zs, hn, hrows, hlen, hread, hp, hl, hr⟩ =>
       exact ⟨n, zs, hn, hrows, hlen, hread, by rw [hp, hl, hr]⟩
 
-/-- **`padding_weight` is sound** at its 29 specializations. -/
+/-- **`padding_weight` is sound** at its 31 specializations. -/
 theorem padding_weight_holds : padding_weight_Spec := by
   intro τ hτ rd args rets h
   obtain ⟨fn, hf, hp, hb⟩ := pwFound hτ
@@ -923,7 +923,7 @@ theorem padding_weight_holds : padding_weight_Spec := by
   exact (pw_meaning_iff rd rows zeta rets).mp
     ((padding_weight_iff τ (by omega) hf hp hb rd rows zeta rets).mp h)
 
-/-- **`padding_weight` is complete** at its 29 specializations. -/
+/-- **`padding_weight` is complete** at its 31 specializations. -/
 theorem padding_weight_complete_holds : padding_weight_complete_Spec := by
   intro τ hτ rd args rets h
   obtain ⟨fn, hf, hp, hb⟩ := pwFound hτ

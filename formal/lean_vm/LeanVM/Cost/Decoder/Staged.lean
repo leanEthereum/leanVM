@@ -73,18 +73,18 @@ noncomputable def sphincsRawsT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signa
 
 theorem kidsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (n : ℕ) :
-    kidsT D rd σ wV (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) (lxTable D rd σ) (lsTable D rd σ) n =
+    kidsT D rd σ wV (σ (.n 399)) (σ (.n 31)) (σ (.n 34)) (lxTable D rd σ) (lsTable D rd σ) n =
       kidsAt D rd σ wV n :=
   List.map_congr_left fun c _ ↦ decKidT_eq D rd σ wV c
 
 theorem xmssRawsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wX : List E → LeanXmss.Signature) (n : ℕ) :
-    xmssRawsT rd (σ (.n 52)) wX (l2Args σ) (lxTable D rd σ) n = xmssRawsAt D rd σ wX n :=
+    xmssRawsT rd (σ (.n 31)) wX (l2Args σ) (lxTable D rd σ) n = xmssRawsAt D rd σ wX n :=
   List.map_congr_left fun j _ ↦ xmssRawT_eq D rd σ wX j
 
 theorem sphincsRawsT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (n : ℕ) :
-    sphincsRawsT rd (σ (.n 55)) wS (lsTable D rd σ) (nRawXD D σ) n = sphincsRawsAt D rd σ wS n :=
+    sphincsRawsT rd (σ (.n 34)) wS (lsTable D rd σ) (nRawXD D σ) n = sphincsRawsAt D rd σ wS n :=
   List.map_congr_left fun j _ ↦ sphincsRawT_eq D rd σ wS j
 
 /-- The witness off the tables: `nk` children, `nrx`, `nrs` raw signatures, `main`'s word
@@ -105,8 +105,8 @@ noncomputable def decWitAt (D : DiscreteLogTables) (σ : Val) (rd : Reader)
     (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → LeanVM.Protocol.Compile.Proof) (wA : List E → BatchingHints)
     (nk lx ls nrx nrs : ℕ) : NodeWitness :=
-  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 420)) (σ (.n 52)) (σ (.n 55))
-    (regionTable D rd (σ (.n 66)) 0 lx) (regionTable D rd (σ (.n 66)) lx ls) (l2ArgsD σ)
+  decWitTab D σ rd wX wS wD wV wA nk nrx nrs (σ (.n 399)) (σ (.n 31)) (σ (.n 34))
+    (regionTable D rd (σ (.n 45)) 0 lx) (regionTable D rd (σ (.n 45)) lx ls) (l2ArgsD σ)
 
 /-- **The witness, staged**: `decWit`'s fields through `decWitAt`, the counts (logarithms)
 computed here, each list through a function of one entry by partial application, the logarithm's

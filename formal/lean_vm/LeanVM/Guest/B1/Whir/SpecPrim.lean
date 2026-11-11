@@ -46,13 +46,13 @@ theorem runF_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) 
 
 theorem runF_grindP_bind {bits : ℕ} {k : Unit → VerifierProgram β} {F : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {r : β × FSt}
-    (h : runF ((VerifierProgram.grindProofOfWork bits).bind k) ⟨F, xs, os, R⟩ = some r) :
-    ∃ n xs', xs = n :: xs' ∧ powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true ∧
+    (h : runF ((VerifierProgram.grindProofOfWork bits).bind k) ⟨F, xs, os, R⟩ = some r) (hb : bits ≠ 0) :
+    ∃ n xs', xs = n :: xs' ∧ powOk bits (F.absorb n dsPowNonce).squeeze.1 = true ∧
       runF (k ()) ⟨(F.absorb n dsPowNonce).squeeze.2, xs', os, R⟩ = some r := by
   cases xs with
-  | nil => simp [VerifierProgram.grindProofOfWork, VerifierProgram.bind, runF] at h
+  | nil => simp [VerifierProgram.grindProofOfWork, hb, VerifierProgram.bind, runF] at h
   | cons n xs =>
-    simp only [VerifierProgram.grindProofOfWork, VerifierProgram.bind, runF] at h
+    simp only [VerifierProgram.grindProofOfWork, hb, ↓reduceIte, VerifierProgram.bind, runF] at h
     split at h
     · rename_i hp
       exact ⟨n, xs, rfl, hp, h⟩

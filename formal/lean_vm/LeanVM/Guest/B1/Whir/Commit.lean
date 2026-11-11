@@ -99,7 +99,7 @@ and intro read, the nonce's proof of work on the permutation after it. -/
 theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)
     {d : Digest} (hd : digestFromHalves (ra, rb) = some d) {m : ℕ} (hm : 1 ≤ m)
     (next : Whir.Level) (rest : List Whir.Level) (roots : List (Digest × ℕ × ℕ))
-    (hpow : powOk Whir.queryGrindingBits nonce
+    (hpow : powOk Whir.queryGrindingBits
       ((⟨((F.absorbAll [ra, rb] dsObserve).squeezeN m).2.cap,
         [(y, dsObserve), (c0, dsObserve), (c2, dsObserve), (nonce, dsPowNonce)]⟩ : Fs).perm |>
         challengeOf) = true) :
@@ -145,7 +145,7 @@ theorem levelMid_grind_run (F : Fs) (ra rb y c0 c2 nonce : E)
   have hF5 : (⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve)]⟩ : Fs).absorb nonce
       dsPowNonce = ⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve), (nonce, dsPowNonce)]⟩ :=
     by simp [Fs.absorb, rateScalars]
-  have h5 := RunsTo.withRoots (runsTo_grindP Whir.queryGrindingBits
+  have h5 := RunsTo.withRoots (runsTo_grindP Whir.queryGrindingBits (by decide)
     ⟨F2.cap, [(y, dsObserve), (c0, dsObserve), (c2, dsObserve)]⟩ nonce
     (by rw [hF5]; exact hpow)) (roots ++ [(d, hw)])
   rw [hF5] at h5
@@ -275,10 +275,9 @@ theorem osCommit_sound
   have o12 : σ (.n (k + 109)) = cellsOfState S2 false 12 := outs_eq hout 12 (by simp)
   -- the proof of work
   obtain ⟨-, -, hlow⟩ := hGr _ _ hgr
-  have hpow : powOk Whir.queryGrindingBits (σ (.n (k + 82))) (challengeOf S2) = true := by
+  have hpow : powOk Whir.queryGrindingBits (challengeOf S2) = true := by
     have h17 : ((challengeOf S2).limb 0).lane.toNat % 2 ^ Whir.queryGrindingBits = 0 := by
       rw [Keccak.challengeOf_limb0, ← o0]; exact hlow
-    simp only [powOk, show Whir.queryGrindingBits ≠ 0 by decide, ↓reduceIte]
     exact decide_eq_true h17
   have hrun := levelMid_grind_run (st.F σ) (σ (.n (k + 23))) (σ (.n (k + 33))) (σ (.n (k + 52)))
     (σ (.n (k + 62))) (σ (.n (k + 72))) (σ (.n (k + 82))) hdd hm next rest roots

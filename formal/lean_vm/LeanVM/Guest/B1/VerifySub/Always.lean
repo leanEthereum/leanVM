@@ -94,7 +94,7 @@ theorem Always.run {α : Type} {P : α → Prop} (p : VerifierProgram α) :
     split at hr
     · cases hr
     · rename_i x xs _
-      change (if powOk b x (Compile.squeeze (m := Id) keccakF1600
+      change (if powOk b (Compile.squeeze (m := Id) keccakF1600
           (Compile.absorb (m := Id) keccakF1600 st.sponge x dsPowNonce)).1 = true then
         Compile.runWithHash (m := Id) keccak256 keccakF1600 k (VerifierProgramState.mk (Compile.squeeze (m := Id) keccakF1600
           (Compile.absorb (m := Id) keccakF1600 st.sponge x dsPowNonce)).2 xs st.openings st.roots)

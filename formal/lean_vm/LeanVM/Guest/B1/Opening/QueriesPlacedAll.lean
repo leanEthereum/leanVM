@@ -14,9 +14,9 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedS3
 /-!
 # `opening_queries`, `CompleteAtB`, every specialization
 
-`opening_queries_completeAtB`: each of the 56 deployed specializations (`openingQueriesLoops`:
-name, loop helper, shape, `odd`) is `CompleteAtB` (`OqCompleteDB`, by a tree of at most
-`oqBound fs name loop N` words) at every frame size `fs` and frame certificate `cert` (`OqFits`
+`opening_queries_completeAtB`: each of the 42 deployed specializations (`openingQueriesLoops`:
+name, loop helper, shape, `odd`) is `CompleteAtB` (`OqCompleteDB`, by a tree of exactly
+`oqBound fs name loop N` words, `CompleteAtE`) at every frame size `fs` and frame certificate `cert` (`OqFits`
 trivial: no frame runs); `opening_queries_completeAtD`, its `CompleteAtD`.
 -/
 
@@ -31,63 +31,49 @@ theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V �
     ∀ p ∈ openingQueriesLoops, OqCompleteDB fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 := by
   intro p hp
   simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact oqD_413 fs cert
-  · exact oqD_449 fs cert
-  · exact oqD_701 fs cert
-  · exact oqD_575 fs cert
-  · exact oqD_598 fs cert
-  · exact oqD_623 fs cert
-  · exact oqD_654 fs cert
-  · exact oqD_425 fs cert
-  · exact oqD_418 fs cert
-  · exact oqD_524 fs cert
-  · exact oqD_491 fs cert
-  · exact oqD_489 fs cert
-  · exact oqD_761 fs cert
-  · exact oqD_600 fs cert
-  · exact oqD_533 fs cert
-  · exact oqD_692 fs cert
-  · exact oqD_563 fs cert
-  · exact oqD_721 fs cert
-  · exact oqD_743 fs cert
-  · exact oqD_632 fs cert
-  · exact oqD_515 fs cert
-  · exact oqD_422 fs cert
-  · exact oqD_568 fs cert
-  · exact oqD_474 fs cert
-  · exact oqD_471 fs cert
-  · exact oqD_683 fs cert
-  · exact oqD_602 fs cert
-  · exact oqD_745 fs cert
-  · exact oqD_433 fs cert
-  · exact oqD_551 fs cert
-  · exact oqD_487 fs cert
-  · exact oqD_586 fs cert
-  · exact oqD_755 fs cert
-  · exact oqD_643 fs cert
-  · exact oqD_665 fs cert
-  · exact oqD_556 fs cert
-  · exact oqD_455 fs cert
-  · exact oqD_452 fs cert
-  · exact oqD_605 fs cert
-  · exact oqD_519 fs cert
-  · exact oqD_517 fs cert
-  · exact oqD_678 fs cert
-  · exact oqD_542 fs cert
-  · exact oqD_468 fs cert
-  · exact oqD_710 fs cert
-  · exact oqD_732 fs cert
-  · exact oqD_614 fs cert
-  · exact oqD_501 fs cert
-  · exact oqD_676 fs cert
-  · exact oqD_439 fs cert
-  · exact oqD_436 fs cert
-  · exact oqD_591 fs cert
-  · exact oqD_505 fs cert
-  · exact oqD_503 fs cert
-  · exact oqD_680 fs cert
-  · exact oqD_757 fs cert
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact oqD_1084 fs cert
+  · exact oqD_1086 fs cert
+  · exact oqD_1088 fs cert
+  · exact oqD_1090 fs cert
+  · exact oqD_1096 fs cert
+  · exact oqD_1097 fs cert
+  · exact oqD_1098 fs cert
+  · exact oqD_1099 fs cert
+  · exact oqD_1105 fs cert
+  · exact oqD_1110 fs cert
+  · exact oqD_1142 fs cert
+  · exact oqD_1143 fs cert
+  · exact oqD_1144 fs cert
+  · exact oqD_1145 fs cert
+  · exact oqD_1149 fs cert
+  · exact oqD_1182 fs cert
+  · exact oqD_1183 fs cert
+  · exact oqD_1187 fs cert
+  · exact oqD_1220 fs cert
+  · exact oqD_1221 fs cert
+  · exact oqD_1225 fs cert
+  · exact oqD_1258 fs cert
+  · exact oqD_1259 fs cert
+  · exact oqD_1263 fs cert
+  · exact oqD_1298 fs cert
+  · exact oqD_1299 fs cert
+  · exact oqD_1300 fs cert
+  · exact oqD_1303 fs cert
+  · exact oqD_1337 fs cert
+  · exact oqD_1338 fs cert
+  · exact oqD_1341 fs cert
+  · exact oqD_1375 fs cert
+  · exact oqD_1376 fs cert
+  · exact oqD_1380 fs cert
+  · exact oqD_1412 fs cert
+  · exact oqD_1413 fs cert
+  · exact oqD_1417 fs cert
+  · exact oqD_1454 fs cert
+  · exact oqD_1455 fs cert
+  · exact oqD_1459 fs cert
+  · exact oqD_1498 fs cert
+  · exact oqD_1502 fs cert
 
 end
 end LeanVM.Guest.B1

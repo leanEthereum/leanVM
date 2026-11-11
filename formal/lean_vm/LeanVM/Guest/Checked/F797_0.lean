@@ -17,45 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop319`, window 0. -/
+/-- `level_queries__L23_L0_L16_L24_L24_L6`, window 0. -/
 theorem w797_0 : WinOk 797 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop320`, window 0. -/
+/-- `level_queries__L23_L0_L16_L24_L24_L6`, window 1. -/
+theorem w797_1 : WinOk 797 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L21_L0_L16_L24_L21_L3`, window 0. -/
 theorem w798_0 : WinOk 798 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop321`, window 0. -/
+/-- `level_queries__L21_L0_L16_L24_L21_L3`, window 1. -/
+theorem w798_1 : WinOk 798 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L19_L0_L16_L24_L22_L4`, window 0. -/
 theorem w799_0 : WinOk 799 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop322`, window 0. -/
+/-- `level_queries__L19_L0_L16_L24_L22_L4`, window 1. -/
+theorem w799_1 : WinOk 799 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L18_L0_L16_L24_L23_L5`, window 0. -/
 theorem w800_0 : WinOk 800 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop323`, window 0. -/
-theorem w801_0 : WinOk 801 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop324`, window 0. -/
-theorem w802_0 : WinOk 802 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop325`, window 0. -/
-theorem w803_0 : WinOk 803 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop326`, window 0. -/
-theorem w804_0 : WinOk 804 0 := winOk_of_C (by decide +kernel)
-
-theorem ok797 : CheckOk 797 := checkOk_one (by decide +kernel) w797_0
-
-theorem ok798 : CheckOk 798 := checkOk_one (by decide +kernel) w798_0
-
-theorem ok799 : CheckOk 799 := checkOk_one (by decide +kernel) w799_0
-
-theorem ok800 : CheckOk 800 := checkOk_one (by decide +kernel) w800_0
-
-theorem ok801 : CheckOk 801 := checkOk_one (by decide +kernel) w801_0
-
-theorem ok802 : CheckOk 802 := checkOk_one (by decide +kernel) w802_0
-
-theorem ok803 : CheckOk 803 := checkOk_one (by decide +kernel) w803_0
-
-theorem ok804 : CheckOk 804 := checkOk_one (by decide +kernel) w804_0
+/-- `level_queries__L18_L0_L16_L24_L23_L5`, window 1. -/
+theorem w800_1 : WinOk 800 1 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

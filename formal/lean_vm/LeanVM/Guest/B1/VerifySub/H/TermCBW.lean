@@ -23,19 +23,19 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **The terminal is complete on an honest child within `termBound`, by a tree within its
 weights** (`term_via` by `check_opening_terminal_completeAtBW`). -/
 theorem term_completeBW {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (bs : List ℕ) (sqE : ℕ)
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 14 ≤ κ) (bs : List ℕ) (sqE : ℕ)
     (hwl : S.w.point.length = S.μs) (pv : List (List E × Main.Layout))
     (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true)
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
-    (hCsW : ∀ i, ∀ κ' < 29, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
+    (hCsW : ∀ i, ∀ κ' < 31, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
     (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →

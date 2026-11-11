@@ -395,8 +395,8 @@ def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
     | _ => true
 
 #guard match Expand.expandProgram Data.guest with
-  | .ok fns => fns.length == 991 && fns.head?.map (·.name) == some "main" &&
-      fns.getLast?.map (·.name) == some "walk_path__L18_L4" &&
+  | .ok fns => fns.length == 1535 && fns.head?.map (·.name) == some "main" &&
+      fns.getLast?.map (·.name) == some "walk_path__L12_L8" &&
       fns.map (·.name) == Data.functions.tail.map (·.name) &&
       (fns.zip Data.functions.tail).all fun (f, c) => keccakAgree f c
   | .error _ => false

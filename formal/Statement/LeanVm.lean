@@ -81,7 +81,7 @@ abbrev HonestProver : Type 1 :=
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). From the
 execution it computes the witness (`witness?`, no proof unless the execution is valid and within
-`2^28` committed cells), and, at a valid rate, runs the honest script against the verifier's own
+`2^30` committed cells), and, at a valid rate, runs the honest script against the verifier's own
 program `leanVmVerifierProgram`, trying `nonceAttemptsPerProofOfWork` nonces per proof of work. -/
 def leanVmHonestProver : HonestProver :=
   fun π program input execution ρ nonceAttemptsPerProofOfWork ↦
@@ -90,12 +90,12 @@ def leanVmHonestProver : HonestProver :=
 /-- **The committed size of an execution**: the number of cells the honest prover commits to, every
 committed column at its table's height, the least power of two holding the table's rows (`1` for no
 row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
-`crates/verifier/src/layout.rs:490`). The memory has four columns of `2^κ` rows, and the bytecode's
+`crates/verifier/src/layout.rs:497`). The memory has four columns of `2^κ` rows, and the bytecode's
 counts (`BFCNT`) one of `2^logSize` rows. Each opcode has a table of one row per instruction of that
 opcode the execution executes (`Execution.opcodeCount`), with `15, 15, 8, 15, 14, 28` committed
 columns for `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's
 `92` columns, the `25` input lanes and `14` more ride `q_keccak`'s slots and the `25` output lanes
-are not committed, `layout.rs:388-432`); and `q_keccak` has `2^6` rows per row of the `KECCAK`
+are not committed, `layout.rs:395-439`); and `q_keccak` has `2^6` rows per row of the `KECCAK`
 table. -/
 noncomputable def Semantics.Execution.committedSize {program : LeanIsaProgram}
     (execution : Execution program) : ℕ :=
@@ -166,9 +166,9 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (outcome : Expe
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractor`: an
 adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
 probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The `2^14` covers the verifier's
-own Keccak-256 evaluations and duplex permutations, at most `12006` (the `Q + 12006` of `lean_vm`'s
-`soundnessError`; as calls of `π` they are up to `12006 · 2^32`, the IV hashing a bytecode of up to
-`2^32` instructions, which the transfer below pays), its `12006 · 2^-256` for a fresh hash answer
+own Keccak-256 evaluations and duplex permutations, at most `12674` (the `Q + 12674` of `lean_vm`'s
+`soundnessError`; as calls of `π` they are up to `12674 · 2^30`, the IV hashing a bytecode of up to
+`2^30` instructions, which the transfer below pays), its `12674 · 2^-256` for a fresh hash answer
 equal to a stack root the adversary announced without computing it, and the transfer from two
 random oracles to one permutation. `Statement.Theorems`
 states it for the extractor a cost-machine program computes within its budget
@@ -202,7 +202,7 @@ honest prover's (`leanVmHonestProver`) proof of an execution within the verifier
 rejected with probability at most `2^-256`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 25)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

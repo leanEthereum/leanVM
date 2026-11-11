@@ -29,7 +29,7 @@ theorem tauList_eq : Tables.vtTauList S.H.τ = S.hs := by
   rfl
 
 theorem hs_count (hbl : bytecode.length = 2 ^ 23) : S.hs.map Hints.count = S.hs.map (gen ^ ·) :=
-  List.map_congr_left fun x hx ↦ count_eq_gen (by have := S.hh29 hbl x hx; omega)
+  List.map_congr_left fun x hx ↦ count_eq_gen (by have := S.hh33 hbl x hx; omega)
 
 theorem dimsW_eq (hbl : bytecode.length = 2 ^ 23) : S.H.dimsW = vsDimsW S.logMem S.hs := by
   rw [Tables.VtHonest.dimsW, vsDimsW, S.tauList_eq, S.hs_count hbl]; rfl

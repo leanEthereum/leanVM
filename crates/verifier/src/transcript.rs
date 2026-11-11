@@ -133,19 +133,17 @@ impl<'a> Transcript<'a> {
     }
 
     /// The nonce is absorbed with its own tag, and the challenge drawn next, which nothing else uses, must have its low
-    /// `bits` bits zero. With no bits to grind the nonce must be zero.
+    /// `bits` bits zero. A grind of no bits reads and checks nothing.
     pub fn grind_check(&mut self, bits: u32) -> Result<(), VerifierError> {
+        if bits == 0 {
+            return Ok(());
+        }
         let nonce = self.next()?;
         self.sponge.absorb(nonce, DS_POW_NONCE);
         let challenge = self.sample();
         if self.checked {
             let mask = 1u64.checked_shl(bits).map_or(u64::MAX, |bit| bit - 1);
-            let valid = if bits == 0 {
-                nonce == ZERO
-            } else {
-                challenge.c0 & mask == 0
-            };
-            require(valid, VerifierError::GrindingNonce)?;
+            require(challenge.c0 & mask == 0, VerifierError::GrindingNonce)?;
         }
         Ok(())
     }

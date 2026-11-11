@@ -28,15 +28,10 @@ open LeanVM.Protocol.Verifier
 
 /-- **The candidate's rows fit its buffers.** -/
 structure OsSizes (c : OsCfg) : Prop where
-  sq : ∀ i < c.levels.length, (lvAt c i).squeezes ≤ c.maxSq
   cols : ∀ i < c.levels.length, (lvAt c i).logCols ≤ ligColsCap
   yr : c.yrLog ≤ yrLogCap
   pos : ∀ i < c.levels.length, (lvAt c i).posOff + (lvAt c i).squeezes * (192 / (lvAt c i).depth) ≤
-    if i + 1 < c.levels.length then (lvAt c (i + 1)).posOff else c.posLen
-  caps : ∀ i < c.levels.length, 4 * (lvAt c i).capOff + 2 ^ ((lvAt c i).capDepth + 2) ≤
-    if i + 1 < c.levels.length then 4 * (lvAt c (i + 1)).capOff else 4 * c.capLen
-  flags : ∀ i < c.levels.length, (lvAt c i).capOff + 2 ^ (lvAt c i).capDepth ≤
-    if i + 1 < c.levels.length then (lvAt c (i + 1)).capOff else c.capLen
+    if i + 1 < c.levels.length then (lvAt c (i + 1)).posOff else c.levels.length * ligPosCap
 
 /-- The fixed buffers' honest words in memory. -/
 structure FixedMem (rd : Reader) (P : OsPtrs) (c : OsCfg) (tr : OsTr) : Prop where
@@ -75,14 +70,14 @@ theorem oodZ_length (F1 : Fs) (ra rb : E) {m : ℕ} (hm : 1 ≤ m) : (oodZ F1 ra
 /-- **A level's memory facts from the buffers' words.** -/
 theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr)
     (hs : OsSizes c) {rd : Reader} {P : OsPtrs} (hm : FixedMem rd P c tr) {i : ℕ}
-    (hi : i < c.levels.length) {sqz : E} (hsq : ReadsAt rd sqz (sqzC c tr i)) :
-    LvMemB rd P c i (lvAt c i) (tr.L i) sqz := by
+    (hi : i < c.levels.length) :
+    LvMemB rd P c i (lvAt c i) (tr.L i) := by
   have hn := hF.n2
   have hst := hF.lv i hi
   obtain ⟨R, d, hOk⟩ := h.ok i hi
   have hfit := h.fit i hi
   have hnf : ∀ h' : i ≠ c.yrLevel, i + 1 < c.levels.length := fun h' ↦ by have := hF.yr; omega
-  refine ⟨fun j hj ↦ ?_, ?_, ?_, fun j hj t ht ↦ ?_, ?_, ?_, fun hf ↦ ?_, fun hf ↦ ?_,
+  refine ⟨fun j hj ↦ ?_, ?_, ?_, ?_, ?_, fun hf ↦ ?_, fun hf ↦ ?_,
     fun hf ↦ ?_, fun hf ↦ ?_, fun hf ↦ ?_⟩
   · have hle : (lvAt c i).foldsOff + (lvAt c i).folds ≤ c.nFolds := hst.le
     have := readsAt_map_range hm.fch (k := (lvAt c i).foldsOff + j) (by omega)
@@ -91,10 +86,6 @@ theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r 
     simpa [OsTr.L] using this
   · have := readsAt_map_range hm.roots (k := 2 * i + 1) (by omega)
     simpa [OsTr.L, Nat.add_mod, Nat.add_div] using this
-  · have := readsAt_map_range hsq (k := 5 * j + t) (by have := hs.sq i hi; nlinarith)
-    simp only [show (5 * j + t) / 5 = j by omega, show (5 * j + t) % 5 = t by omega, hj,
-      ↓reduceIte] at this
-    exact this
   · have := readsAt_map_range hm.mus (k := i) hi
     simpa [OsTr.L] using this
   · have := readsAt_map_range hm.betas (k := i) hi
@@ -114,12 +105,12 @@ theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r 
     exact this
   · intro k hk
     rw [oodZ_length _ _ _ (by rw [hfit.ml]; exact hst.ml1), hfit.ml] at hk
-    have hc : (lvAt c i).logCols ≤ 22 := hs.cols i hi
+    have hc : (lvAt c i).logCols ≤ 24 := hs.cols i hi
     have := readsAt_map_range hm.oodz (k := (i + 1) * ligColsCap + k) (by
       have := hnf hf; simp only [ligColsCap]; nlinarith)
     simp only [ligColsCap] at this
-    simp only [show ((i + 1) * 22 + k) / 22 = i + 1 by omega,
-      show ((i + 1) * 22 + k) % 22 = k by omega, Nat.le_add_left, ↓reduceIte,
+    simp only [show ((i + 1) * 24 + k) / 24 = i + 1 by omega,
+      show ((i + 1) * 24 + k) % 24 = k by omega, Nat.le_add_left, ↓reduceIte,
       Nat.add_sub_cancel] at this
     rw [loadHolds_mul_gen_pow, ← List.getD_eq_getElem _ 0]
     exact this

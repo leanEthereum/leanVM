@@ -9,47 +9,31 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_383 : kuxStaticRange 383 30 := by
+theorem kuxstaticRange_375 : kuxStaticRange 375 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_413 : kuxStaticRange 413 30 := by
+theorem kuxstaticRange_405 : kuxStaticRange 405 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_443 : kuxStaticRange 443 30 := by
+theorem kuxstaticRange_435 : kuxStaticRange 435 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_473 : kuxStaticRange 473 30 := by
+theorem kuxstaticRange_465 : kuxStaticRange 465 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_503 : kuxStaticRange 503 30 := by
+theorem kuxstaticRange_495 : kuxStaticRange 495 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_533 : kuxStaticRange 533 30 := by
+theorem kuxstaticRange_525 : kuxStaticRange 525 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_563 : kuxStaticRange 563 30 := by
-  unfold kuxStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kuxstaticRange_593 : kuxStaticRange 593 30 := by
-  unfold kuxStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kuxstaticRange_623 : kuxStaticRange 623 30 := by
-  unfold kuxStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kuxstaticRange_653 : kuxStaticRange 653 30 := by
-  unfold kuxStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kuxstaticRange_683 : kuxStaticRange 683 30 := by
+theorem kuxstaticRange_555 : kuxStaticRange 555 30 := by
   unfold kuxStaticRange; decide +kernel
 
 end

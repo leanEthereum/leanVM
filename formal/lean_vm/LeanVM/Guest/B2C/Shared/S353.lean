@@ -16,12 +16,54 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L15_L5`, window 1. -/
-theorem w973_1 : shareWin 973 (snapsOf 973) 1 = true := by decide +kernel
+/-- `residual_batch__L11`, window 0. -/
+theorem w1467_0 : shareWin 1467 (snapsOf 1467) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L15_L5`, window 2. -/
-theorem w973_2 : shareWin 973 (snapsOf 973) 2 = true := by decide +kernel
+/-- `residual_batch__L11`, window 1. -/
+theorem w1467_1 : shareWin 1467 (snapsOf 1467) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `residual_batch__L7`, once. -/
+theorem st1468 : shareStatic 1468 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `residual_batch__L7`, window 0. -/
+theorem w1468_0 : shareWin 1468 (snapsOf 1468) 0 = true := by decide +kernel
+
+theorem ok1468 : ShareOk 1468 := ⟨st1468, fun i hi ↦ by
+  have h : (snapsOf 1468).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1468_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `residual_batch__L3`, once. -/
+theorem st1469 : shareStatic 1469 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `residual_batch__L3`, window 0. -/
+theorem w1469_0 : shareWin 1469 (snapsOf 1469) 0 = true := by decide +kernel
+
+theorem ok1469 : ShareOk 1469 := ⟨st1469, fun i hi ↦ by
+  have h : (snapsOf 1469).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1469_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_windows__L20_L2`, once. -/
+theorem st1470 : shareStatic 1470 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_windows__L20_L2`, window 0. -/
+theorem w1470_0 : shareWin 1470 (snapsOf 1470) 0 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_windows__L20_L2`, window 1. -/
+theorem w1470_1 : shareWin 1470 (snapsOf 1470) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L12_L7`, once. -/
+theorem st1471 : shareStatic 1471 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

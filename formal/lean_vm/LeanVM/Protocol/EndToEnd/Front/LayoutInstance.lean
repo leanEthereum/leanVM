@@ -170,7 +170,7 @@ theorem width_opIdx (j : Fin 6) : width (opIdx j) = (tables.getD j default).widt
 /-! ## The layout -/
 
 /-- The checks `build_layout` makes of the sizes (`layout.rs:497-503`) for the program's
-bytecode: the memory window `[16, 32]` and the row cap `2 ^ 32`. The bytecode's checks hold by
+bytecode: the memory window `[1, 30]` and the row cap `2 ^ 30`. The bytecode's checks hold by
 construction (`LeanIsaProgram.logSize_le`). -/
 def LayoutOk (s : Sizes) : Prop :=
   minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ ∀ j, s.rows j ≤ 2 ^ maxLogRows
@@ -191,7 +191,7 @@ def verifierLayout (prog : LeanIsaProgram) (s : Sizes) : Verifier.Layout :=
 
 /-- Every table's announced row count is within the cap, as a list. -/
 private theorem all_tableRows (s : Sizes) :
-    ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ↔ ∀ j, s.rows j ≤ 2 ^ maxLogRows := by
+    ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 30)) = true ↔ ∀ j, s.rows j ≤ 2 ^ maxLogRows := by
   simp [tableRows, maxLogRows, Fin.forall_fin_succ]
 
 /-- **The layout is built** exactly when the sizes pass `build_layout`'s checks, and it is then
@@ -207,16 +207,16 @@ theorem buildLayout_eq (prog : LeanIsaProgram) (s : Sizes) :
     simp [tableRows, tables]
   by_cases hok : LayoutOk s
   · obtain ⟨h1, h2, h3⟩ := hok
-    have hc : 4 ≤ prog.logSize + 4 ∧ 16 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
-        ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ∧
-        prog.logSize ≤ 32 ∧ (tableRows s).length = tables.length :=
+    have hc : 4 ≤ prog.logSize + 4 ∧ 1 ≤ s.logMem ∧ s.logMem ≤ 30 ∧
+        ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 30)) = true ∧
+        prog.logSize ≤ 30 ∧ (tableRows s).length = tables.length :=
       ⟨by omega, h1, h2, (all_tableRows s).mpr h3, by simpa [maxLogBytecode] using hL, hlen⟩
     have hok : LayoutOk s := ⟨h1, h2, h3⟩
     simp only [hc, hok, and_self, ↓reduceIte]
     rfl
-  · have hc : ¬ (4 ≤ prog.logSize + 4 ∧ 16 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
-        ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ∧
-        prog.logSize ≤ 32 ∧ (tableRows s).length = tables.length) := by
+  · have hc : ¬ (4 ≤ prog.logSize + 4 ∧ 1 ≤ s.logMem ∧ s.logMem ≤ 30 ∧
+        ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 30)) = true ∧
+        prog.logSize ≤ 30 ∧ (tableRows s).length = tables.length) := by
       rintro ⟨-, h1, h2, h3, -, -⟩
       exact hok ⟨h1, h2, (all_tableRows s).mp h3⟩
     simp only [hc, hok, ↓reduceIte]

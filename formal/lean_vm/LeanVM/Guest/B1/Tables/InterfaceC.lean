@@ -42,7 +42,7 @@ def verify_tables_SpecC (bytecode : List K) (rd : Reader) (C : CallRel) : Prop :
 /-- `certify_placement_Spec` on `C`-calls. -/
 def certify_placement_SpecC (rd : Reader) (C : CallRel) : Prop :=
   ∀ (logMem : ℕ) (hs : List ℕ) (kb sq : E) (rets : List E), logMem ≤ 32 → hs.length = 6 →
-    (∀ h ∈ hs, h < 29) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
+    (∀ h ∈ hs, h < 33) → TbReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) →
     TbReadsAt rd sq gSquaresList → TbReadsAt rd (sq * gen ^ 178) rankKeysList →
     C "certify_placement" [kb, sq] rets →
       ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧

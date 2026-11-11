@@ -21,7 +21,7 @@ shaped (`Strategy.AcceptsFrom`), and the verifier program's openings are within 
 `proveFrom_stream_le`):
 
 * `proveWithHash_wireDecodable`: a proof of `Prover.proveWithHash (m := Id) h F` is
-  `WireDecodable h`: its stream is at most `leanVmCost = 48019` elements, at most
+  `WireDecodable h`: its stream is at most `leanVmCost = 50689` elements, at most
   `wireMaxPhases` phases, each the openings of one tree over `h` within the bounds.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
@@ -45,7 +45,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (F : KeccakState
 valid execution within the cap at a valid rate, `proveWithHash` is `proveM` with the strategy
 `leanVmProver` from the seed. -/
 theorem proveWithHash_eq_proveM (hv : ValidExecution prog input t)
-    (hcap : t.committedSize ≤ 2 ^ 28) (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
+    (hcap : t.committedSize ≤ 2 ^ 30) (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
     proveWithHash H F prog input t ρ fuel =
       seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun seed ↦
         proveM H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
@@ -61,7 +61,7 @@ theorem proveWithHash_eq_proveM (hv : ValidExecution prog input t)
 
 /-- **Otherwise the honest prover makes no proof.** -/
 theorem proveWithHash_eq_none
-    (h : ¬ (ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4))
+    (h : ¬ (ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 30 ∧ 1 ≤ ρ ∧ ρ ≤ 4))
     (fuel : ℕ) : proveWithHash H F prog input t ρ fuel = pure none := by
   unfold proveWithHash
   cases hW : witness? prog input t with
@@ -88,7 +88,7 @@ most `leanVmCost`. Stated for any program equal to the verifier's, so that the p
 on an abstract program (unfolding the concrete one is costly). -/
 theorem leanVm_honest_facts {prog : LeanIsaProgram} {input : PublicInput}
     {t : Execution prog} {ρ : ℕ} (hv : ValidExecution prog input t)
-    (hcap : t.committedSize ≤ 2 ^ 28) (hρ : 1 ≤ ρ ∧ ρ ≤ 4) :
+    (hcap : t.committedSize ≤ 2 ^ 30) (hρ : 1 ≤ ρ ∧ ρ ≤ 4) :
     ∃ P, P = leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input) ∧
       (∀ chal, runI P (leanVmProver prog (traceSizes prog input t) ρ
           (stackOf prog (traceSizes prog input t) (traceWitness prog input t))) chal =
@@ -113,7 +113,7 @@ theorem id_run_eq {α : Type} (x : Id α) : Id.run x = x := rfl
 from the seed. -/
 theorem proveWithHash_id_eq_prove (h : Bytes → Digest) (F : KeccakState → KeccakState)
     {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) (hρ : 1 ≤ ρ ∧ ρ ≤ 4)
+    (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30) (hρ : 1 ≤ ρ ∧ ρ ≤ 4)
     (fuel : ℕ) :
     Prover.proveWithHash (m := Id) h F prog input t ρ fuel =
       prove h F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
@@ -142,7 +142,7 @@ theorem prove_wireDecodable (h1 : ∀ chal, runI P S chal = some true)
   obtain ⟨hlen, hph⟩ := proveFrom_phases h F S fuel _ _ [] wireMaxPhases hacc
     (by simp [commits]) hw hpf
   have hxs := proveFrom_stream_le h F S fuel _ _ [] _ hc hpf
-  have hcost : leanVmCost = 48019 := by decide
+  have hcost : leanVmCost = 50689 := by decide
   refine ⟨lt_of_le_of_lt (hcost ▸ hxs) (by norm_num), hlen, fun phase hphase ↦ ?_⟩
   obtain ⟨ht, w, word, ps, rfl, hws, hne, hql, hht, hwl, hps⟩ := hph phase hphase
   exact ⟨ht, w, phaseDecodable_openingAt hws hne hql hht hwl hps⟩
@@ -153,7 +153,7 @@ end Abstract
 theorem proveWithHash_wireDecodable {h : Bytes → Digest} {F : KeccakState → KeccakState}
     {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ fuel : ℕ} {p : Proof}
     (hp : Prover.proveWithHash (m := Id) h F prog input t ρ fuel = some p) : WireDecodable h p := by
-  by_cases hcond : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
+  by_cases hcond : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 30 ∧ 1 ≤ ρ ∧ ρ ≤ 4
   · obtain ⟨hv, hcap, hρ⟩ := hcond
     rw [proveWithHash_id_eq_prove h F hv hcap hρ fuel] at hp
     obtain ⟨P, hP, h1, h2, hw, hc⟩ := leanVm_honest_facts hv hcap hρ

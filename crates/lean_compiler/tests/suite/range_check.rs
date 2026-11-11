@@ -60,24 +60,22 @@ def main():
     verify(&program, &want, &proof).expect("unwritten touches verify");
 }
 
-/// The largest allowed bound, `2^16` = the minimum prover memory, end to end:
-/// the complement cell is `g^65535`, the last cell of that memory, so an
-/// off-by-one in the bound check or in the memory size shows up here.
+/// The complement read sizes the memory: with `x = g^0`, a bound `k` touches `g^{k-1}`,
+/// so the run announces the least power of two above `k - 1` cells, exactly `2^16` at
+/// `k = 2^16` and `2^17` one past it. An off-by-one in the bound or in the memory size
+/// shows up here.
 #[test]
-fn range_check_max_bound() {
-    let src = "\
-def main():
-    x = GEN ** 5
-    assert log x < 65536
-    p = 1
-    p[1] = x
-    p[GEN] = x
-    return
-";
-    let program = compile(&parse(src).expect("parse"));
-    let want = [F192::from(g_pow(5)); 2];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("max-bound range check verifies");
+fn range_check_complement_sizes_the_memory() {
+    for (k, log_mem) in [(65536, 16), (65537, 17)] {
+        let src = format!(
+            "def main():\n    x = GEN ** 0\n    assert log x < {k}\n    p = 1\n    p[1] = x\n    p[GEN] = x\n    return\n"
+        );
+        let program = compile(&parse(&src).expect("parse"));
+        let want = [F192::from(g_pow(0)); 2];
+        let (proof, stats) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert_eq!(stats.log_mem, log_mem, "bound {k}");
+        verify(&program, &want, &proof).unwrap_or_else(|e| panic!("bound {k}: {e:?}"));
+    }
 }
 
 /// Range checks inside a `mul_range` body: the check runs once per iteration in
@@ -111,12 +109,52 @@ fn range_check_empty_bound_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
-/// Bounds beyond `2^16` (the minimum memory size) would not be sound for every
-/// prover memory choice: rejected at compile time.
+/// A bound whose complement lies past this prover's address space compiles (the
+/// protocol admits it) and the run is refused with an error, not a panic.
 #[test]
-#[should_panic(expected = "exceeds 2^16")]
+fn range_check_bound_past_the_prover_is_an_error() {
+    let src = "def main():\n    x = GEN ** 5\n    assert log x < 268435472\n    return\n";
+    let program = compile(&parse(src).expect("parse"));
+    match program.execute([F192::ZERO; 2]) {
+        Err(err) => assert!(
+            matches!(err.fault, leanvm_core::cpu::Fault::WildPointer { .. }),
+            "{err}"
+        ),
+        Ok(_) => panic!("a run past the prover's address space"),
+    }
+}
+
+/// A g-power reached only through a hint, past every cell the run otherwise touches:
+/// `assert_gpow` on it, and a runtime bound whose complement lies beyond it, prove.
+#[test]
+fn hinted_gpow_past_the_run_proves() {
+    let src = "\
+def main():
+    nb = StackBuf(1)
+    hint_witness(nb[0:1], \"n\")
+    n = nb[0]
+    assert_gpow(n)
+    x = GEN ** 3
+    assert log x < log n
+    p = 1
+    p[1] = x
+    p[GEN] = x
+    return
+";
+    let mut program = compile(&parse(src).expect("parse"));
+    program.set_witness("n", vec![vec![F192::from(g_pow(5000))]]);
+    let want = [F192::from(g_pow(3)); 2];
+    let (proof, stats) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    assert_eq!(stats.log_mem, 13);
+    verify(&program, &want, &proof).expect("hinted g-power range checks verify");
+}
+
+/// Bounds beyond `2^30`, the largest memory, could never be complete: rejected at
+/// compile time.
+#[test]
+#[should_panic(expected = "exceeds 2^30")]
 fn range_check_bound_too_big_rejected() {
-    let src = "def main():\n    x = 1\n    assert log x < 65537\n    return\n";
+    let src = "def main():\n    x = 1\n    assert log x < 1073741825\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 

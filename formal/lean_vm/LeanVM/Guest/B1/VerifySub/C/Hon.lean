@@ -45,7 +45,7 @@ theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
 instance (priority := high) instDecidableNotMemVsSL (a : Atom) : Decidable (a ∉ vsSL) :=
   decidable_of_iff _ (notStoredB_iff vsSL_ptrs a)
 
-theorem vs_chk' : chk 6 vsEvL = some 1728 := by decide +kernel
+theorem vs_chk' : chk 6 vsEvL = some 1719 := by decide +kernel
 
 /-- **The honest valuation** of `verify_sub`. -/
 noncomputable def vsσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=

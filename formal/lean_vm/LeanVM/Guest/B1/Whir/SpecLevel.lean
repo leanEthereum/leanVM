@@ -180,10 +180,10 @@ structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
   xf : L.xf.length = 2 * L.level.fold
   chs : ∀ c ∈ L.chs, c ≠ 0
   digest : L.fin = false → digestFromHalves (L.ra, L.rb) = some d
-  powNf : L.fin = false → powOk Whir.queryGrindingBits L.nonce
+  powNf : L.fin = false → powOk Whir.queryGrindingBits
     (challengeOf (cF2 L.F1 L.ra L.rb L.ml L.y L.c0 L.c2 L.nonce).perm) = true
   ms : L.fin = true → L.ms.length = 2 ^ L.ml
-  powFin : L.fin = true → powOk Whir.queryGrindingBits L.nonce
+  powFin : L.fin = true → powOk Whir.queryGrindingBits
     ((L.F1.absorbAll L.ms dsObserve).absorb L.nonce dsPowNonce).squeeze.1 = true
   lam : L.lam ≠ 0
   root : R[L.index]? = some (L.root, L.height, L.width)

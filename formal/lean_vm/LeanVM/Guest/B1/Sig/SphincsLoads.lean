@@ -129,7 +129,7 @@ theorem loadAddrs_of_loadOk {ptrs : List Nat} {es : List Ev} (h : ∀ e ∈ es, 
   intro A hA
   obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
   have hok := h e he
-  rcases e with ⟨_ | _ | _ | _ | ⟨d, p, off⟩ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | ⟨d, p, off⟩ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
     simp only [Ev.loadAddr?, reduceCtorEq] at hea
   simp only [Option.some.injEq] at hea
   subst hea

@@ -38,7 +38,7 @@ variable {rd : Reader} {args : List E}
 theorem vsRetVars_runs : (∀ i < 9, (vsRetVars.getD 5 []).getD i 0 = 626 + i) ∧
     (∀ i < 10, (vsRetVars.getD 6 []).getD i 0 = 636 + i) ∧
     (∀ i < 8, (vsRetVars.getD 7 []).getD i 0 = 651 + i) ∧
-    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1700 + i) := by decide
+    (∀ i < 5, (vsRetVars.getD 11 []).getD i 0 = 1691 + i) := by decide
 
 theorem vsRetVars_lens : (vsRetVars.getD 5 []).length = 9 ∧ (vsRetVars.getD 6 []).length = 10 ∧
     (vsRetVars.getD 7 []).length = 8 ∧ (vsRetVars.getD 11 []).length = 5 := by decide
@@ -157,7 +157,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     (hargs : args = [(digestHalves (statementDigest seed c.statement)).1,
       (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
       (digestHalves seed).2, ofK (addressOfIndex sqE), ofK (addressOfIndex outE)])
-    (bs : List ℕ) (outs : List (List E × Main.Layout)) {κ : ℕ} (hκ : 16 ≤ κ) (hlow : LowDef κ rd)
+    (bs : List ℕ) (outs : List (List E × Main.Layout)) {κ : ℕ} (hκ : 14 ≤ κ) (hlow : LowDef κ rd)
     (hmem : ∀ i < 13, ReadsAt rd (ofK (addressOfIndex (bs.getD i 0))) (S.ownW.getD i []))
     (hsq : ReadsAt rd (ofK (addressOfIndex sqE)) expTableWords)
     (hfx : ReadsAt rd (ofK (addressOfIndex outE)) (DeferredClaim.cells c.freshClaim))
@@ -166,7 +166,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     (o6 : (outs.getD 6 ([], [])).1 = S.vtRetsOf bs)
     (o7 : (outs.getD 7 ([], [])).1 =
       S.s7.cap ++ [ofK (addressOfIndex (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0])
-    (o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]) :
+    (o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))]) :
     ∃ D : VsSecData rd (vsW bs outs) args,
       D.vals = (fun i ↦ S.H.poolW.getD (vsKept i) 0) ∧ D.lir = S.rate ∧ D.logMem = S.logMem ∧
       D.hs = S.hs ∧ D.m = S.μs ∧ D.r = S.rate ∧
@@ -187,7 +187,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
   have par : ∀ i < 6, vsσ rd (vsW bs outs) args (.n i) = args.getD i 0 :=
     fun i hi ↦ vsC_param hl hi
   have hsl := S.hs_length
-  have hh := S.hh29 hbl
+  have hh := S.hh33 hbl
   -- the stream
   have mS : ReadsAt rd (vsσ rd (vsW bs outs) args (.n 25)) (vsStreamW c.proof.stream) :=
     m 1 (by norm_num)
@@ -312,8 +312,8 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     logMem := S.logMem
     hl1 := S.hr1
     hl4 := S.hr4
-    hm16 := S.h16
-    hm32 := S.h32
+    hlm1 := S.hlm1
+    hm30 := S.h30
     e112 := by rw [hσ]; have := F.hx 7 (by norm_num); rw [hw8 7 (by norm_num), S.words_getD7] at this; exact this
     e29 := by rw [hσ]; have := F.hx 0 (by norm_num); rw [hw8 0 (by norm_num)] at this; exact this
     e122 := by rw [hσ]; exact e122
@@ -387,11 +387,11 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
         exact readsAt_getD' mP (by rw [S.poolW_length hbl]; exact hk)
     m := S.μs
     r := S.rate
-    hm22 := S.hmu22
-    hm28 := S.hmu28
+    hmu20 := S.hmu20
+    hmu30 := S.hmu30
     hr1 := S.hr1
     hr4 := S.hr4
-    e1890 := by rw [hσ]; exact e1890
+    e1684 := by rw [hσ]; exact e1890
     e124 := vs_e124 hl (by rw [hσ]; exact e122) S.hr1
     zs := fun k ↦ S.point.getD k 0
     al := fun k ↦ S.alphas.getD k 0

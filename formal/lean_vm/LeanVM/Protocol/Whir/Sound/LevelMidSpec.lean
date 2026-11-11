@@ -113,7 +113,7 @@ noncomputable def midTailSpec (H : MidHyp μ ℓ₀ w P P' level next pre)
   (roundPolyInv (OodC μ ℓ₀ w i P P' level.fold next.fold pre r z) y (T := 0) zero_le).bind'
     fun hy ↦
   (grindInv (fun cs ↦ QuadOK hy y ∧ OodC μ ℓ₀ w i P P' level.fold next.fold pre r z cs)
-      Whir.queryGrindingBits (T := eQuery P P' level.queries) hεQ).bind' fun _ ↦
+      (b := Whir.queryGrindingBits) (by decide) (T := eQuery P P' level.queries) hεQ).bind' fun _ ↦
   (midQuerySpec H hQlt K r z y hy).congr
     (query_bind i (μ - r.1.folds.length + level.logInvRate) level.queries
       fun qs lam words ↦ midFinish μ ℓ₀ w i next rest r z y hy qs lam words).symm

@@ -202,7 +202,7 @@ noncomputable def finTailSpec (H : FinHyp μ ℓ₀ w P level pre)
   (readNInv (AfterFold μ ℓ₀ w i P level.fold pre r) (T := 0) zero_le
       (2 ^ (μ - r.1.folds.length))).bind' fun res ↦
   (grindInv (fun cs ↦ res.length = 2 ^ (μ - r.1.folds.length) ∧
-      AfterFold μ ℓ₀ w i P level.fold pre r cs) Whir.queryGrindingBits
+      AfterFold μ ℓ₀ w i P level.fold pre r cs) (b := Whir.queryGrindingBits) (by decide)
       (T := eQueryFinal P level.queries) hεQ).bind' fun _ ↦
   (finQuerySpec H hQlt hεT r res).congr
     (query_bind i (μ - r.1.folds.length + level.logInvRate) level.queries

@@ -11,25 +11,28 @@ public import LeanVM.Guest.B1.VerifySub.Proof
 
 `vsPiOf rd σ V` (`B1/VerifySub/Proof.lean`) reads the child proof off `verify_sub`'s valuation,
 the memory and the frame map `V : String → …`, through `open_stacked`'s template at the
-configuration `osCfg m` (`osQCalls`, `osWordsLen`, the `LIG_*` tables) and a classical exponent
-search (`dispatchIdx`). `vsPiOfN rd σ Vn cl` reads the same words off the literal tables of
+configuration of its size and rate `osCfgR m (r - 1)` (`osQCalls`, `osWordsLen`, the `LIG_*`
+tables) and classical exponent searches (`dispatchIdx`, `rateOf`). `vsPiOfN rd σ Vn cl` reads the same words off the literal tables of
 `Fast/WhirTables.lean`, the frames numbered (`Vn k = V (decoderFunctionName k)`,
 `Fast/FunctionNames.lean`) and the cursor's length a parameter `cl` (`cursorLen`);
 `vsPiOfN_eq`: they are equal; `openNames_eq`: `open_stacked`'s specializations are the functions
 `openStackedIdx m`.
 
 * `oqsOfN`: `opening_queries`' queries (`oqsOf`), its loop's frames numbered;
-* `levelOsN`: a level's openings (`osLevelOs`) from its call in numbers (`OsCall`).
+* `levelOsN`: a level's openings (`osLevelOs`) from its `level_queries` dispatch in numbers
+  (`OsCall`), read off the callee's frame and its `opening_queries` call's.
 
 **Off arrays, consecutive cells incrementally.** `vsPiOfA T rd σ Vn cl` reads the same proof off
-the tables `T` (`WhirTabs`: the lanes of `g^k`, the stream words and the calls of each candidate),
+the tables `T` (`WhirTabs`: the lanes of `g^k`, the stream words and the calls of each size and
+rate),
 built once by the caller (`whirTabs`), and reads consecutive cells by stepping the address by `g`
 (`wordsFrom`: `readN`, `wordsAt`), a query's windows once each, their exponents off the lanes
 (`winLogsFrom`, `winPosOfW`: `winPosOf`, whose `gLog7` searches the powers of `g` per bit), each
 query's position once (`oqQueryAt`),
 each loop iteration's frame at `x·g^j` by stepping `x` (`oqItersFrom`), the loop's other
-arguments once (`oqLoopArgs σ`, an argument), the selected candidate and its `open_stacked`
-frame once (`vsPiOfM`, `vsPiOfAt`); `vsPiOfA_tabs`: at `whirTabs` it is `vsPiOfN`.
+arguments once (`oqLoopArgs σ`, an argument), the selected size and rate and its `open_stacked`
+frame once (`vsPiOfM`, `vsPiOfAt`), each level's `level_queries` frame once (`levelOsA`,
+`levelOsQ`); `vsPiOfA_tabs`: at `whirTabs` it is `vsPiOfN`.
 -/
 
 namespace LeanVM.Guest.Fast
@@ -59,34 +62,43 @@ def oqsOfN (s : Oq) (odd loop walk N : ℕ) (rd : Reader) (σ : Val) (Vn : NFram
   (if odd = 1 then [oqQueryN s walk rd (σ (.n 12)) (σ (.n 0)) (σ (.n 1)) 13 true σ Vn] else []) ++
     (List.range N).flatMap fun j ↦ oqIterN s walk rd (Vn loop (gen ^ j :: oqLoopArgs σ) []) Vn
 
-/-- **A level's openings** from its `opening_queries` call `c`, the caller's frame `σ`
-(`osLevelOs`). -/
+/-- **A level's openings** from its `level_queries` dispatch `c`, the caller's frame `σ`
+(`osLevelOs`): the `opening_queries` call's in the callee's frame `fr`. -/
 def levelOsN (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening :=
-  let a := c.args.map fun k ↦ σ (.n k)
+  let fr := Vn c.lq (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k))
+  let a := c.qargs.map fun k ↦ fr (.n k)
   (oqsOfN ⟨c.base, c.I, c.pd, c.cd⟩ c.odd c.loop c.walk c.N rd
-    (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
+    (Vn c.fn a [fr (.n (c.pw + 2))]) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
 
 /-- **The child proof `verify_sub` checks** (`vsPiOf`), the frames numbered, `cl` the cursor's
 length (`cursorLen`). -/
 def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  let m := logGT (σ (.n 1695)) 28
+  let m := logGT (σ (.n 1686)) 11
+  let j := logGT (σ (.n 122)) 4 * 11 + m
   let fr := Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ)
   ⟨wordsAt rd (σ (.n 25)) (cl (σ (.n 25)) (σ (.n 656))) ++
-      readN rd (fr (.n 8)) (osWordsTab.getD m 0),
-    (osCallsTab.getD m []).map (levelOsN rd fr Vn)⟩
+      readN rd (fr (.n 9)) (osWordsTab.getD j 0),
+    (osCallsTab.getD j []).map (levelOsN rd fr Vn)⟩
 
 /-! ## Equal to the original -/
 
 /-- `open_stacked`'s specializations are the functions `openStackedIdx m`. -/
 theorem openNames_eq :
-    openNames = (List.range 28).map fun m ↦ decoderFunctionName (openStackedIdx m) := by
+    openNames = (List.range 11).map fun m ↦ decoderFunctionName (openStackedIdx m) := by
   simp only [openNames, ← natStr_eq]
   decide +kernel
 
-theorem dispatchIdx_eq_logGT (x : E) : dispatchIdx x = logGT x 28 := by
-  rw [← logG_eq_logGT _ (by norm_num)]
-  unfold dispatchIdx logG
+theorem gIdx_eq_logGT (N : ℕ) (hN : N ≤ 256) (x : E) : gIdx N x = logGT x N := by
+  rw [← logG_eq_logGT _ hN]
+  unfold gIdx logG
   congr 2
+
+theorem dispatchIdx_eq_logGT (x : E) : dispatchIdx x = logGT x 11 :=
+  gIdx_eq_logGT 11 (by norm_num) x
+
+theorem rateOf_sub_one (x : E) : VerifySub.rateOf x - 1 = logGT x 4 := by
+  unfold VerifySub.rateOf
+  rw [gIdx_eq_logGT 4 (by norm_num) x, Nat.add_sub_cancel]
 
 theorem map_vIdx {σ : Val} : ∀ {l : List V}, l.all isN = true →
     (l.map vIdx).map (fun k ↦ σ (.n k)) = l.map σ
@@ -116,16 +128,21 @@ theorem levelOsN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) {r : OsCall}
     {c : ℕ × OsLv × String × List V × List V} (h : callMatch r c = true) :
     levelOsN rd σ (fun k ↦ Fm (decoderFunctionName k)) r = osLevelOs rd σ Fm c := by
   obtain ⟨lvl, lv, name, args, rets⟩ := c
-  obtain ⟨base, I, pd, cd, odd, N, fn, loop, walk, depth, rargs, rrets⟩ := r
-  simp only [callMatch, Bool.and_eq_true, beq_iff_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hI⟩, hpd⟩, hcd⟩, hodd⟩, hN⟩, hdep⟩, hra⟩, hrr⟩, ha⟩, hr⟩, hn⟩, hl⟩, hw⟩ :=
-    h
-  subst hb hI hpd hcd hodd hN hdep hra hrr
-  have hw' : decoderFunctionName walk = oqWalkOf ⟨(lvOq lvl lv).base, (lvOq lvl lv).I,
-      (lvOq lvl lv).pd, (lvOq lvl lv).cd⟩ := hw
-  simp only [levelOsN, osLevelOs, lvOpenings, lvW, oqsOfN_eq _ hw', map_vIdx ha, map_vIdx hr, hn,
-    hl]
-  rfl
+  simp only [callMatch, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb, hI⟩, hpd⟩, hcd⟩, hodd⟩, hN⟩, hdep⟩, hcap⟩, hra⟩, hrr⟩, ha⟩, hr⟩,
+    hlq⟩, hq⟩, hl⟩, hw⟩ := h
+  have hs : (⟨r.base, r.I, r.pd, r.cd⟩ : Oq) = lvOq lvl lv := by
+    rw [hb, hI, hpd, hcd]
+  have hw' : decoderFunctionName r.walk = oqWalkOf ⟨r.base, r.I, r.pd, r.cd⟩ := by
+    rw [hw, hs]
+  have hfn : decoderFunctionName r.fn = oqNameOf lvl lv := (congrArg Prod.fst hq).symm
+  have hqa : (lqCall lvl lv).2.1 = r.qargs.map V.n := congrArg (fun p ↦ p.2.1) hq
+  have hqr : (lqCall lvl lv).2.2 = [V.n (r.pw + 2)] := congrArg (fun p ↦ p.2.2) hq
+  have hargs : r.args.map (fun k ↦ σ (.n k)) = args.map σ := by rw [hra]; exact map_vIdx ha
+  have hrets : r.rets.map (fun k ↦ σ (.n k)) = rets.map σ := by rw [hrr]; exact map_vIdx hr
+  dsimp only [levelOsN, osLevelOs, lqOpenings, lvOpenings, lvW]
+  rw [oqsOfN_eq _ hw', hs, hargs, hrets, hlq, hqa, hqr, hfn, hl, hodd, hN, hdep, hcap]
+  simp only [List.map_map, Function.comp_def, List.map_cons, List.map_nil]
 
 theorem map_zip_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
     ∀ {l₁ : List α} {l₂ : List β}, l₁.length = l₂.length →
@@ -140,15 +157,26 @@ theorem map_zip_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
 
 theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
     vsPiOfN rd σ (fun k ↦ Fm (decoderFunctionName k)) cursorLen = vsPiOf rd σ Fm := by
-  have hm := logG_lt (σ (.n 1695)) (bound := 28) (by norm_num)
+  have hm := logG_lt (σ (.n 1686)) (bound := 11) (by norm_num)
   rw [logG_eq_logGT _ (by norm_num)] at hm
-  have hname : decoderFunctionName (openStackedIdx (logGT (σ (.n 1695)) 28)) =
-      openNames.getD (logGT (σ (.n 1695)) 28) "" := by
-    rw [openNames_eq, getD_map_range hm]
-  obtain ⟨hlen, hok⟩ := callsOK _ hm
+  have hr := logG_lt (σ (.n 122)) (bound := 4) (by norm_num)
+  rw [logG_eq_logGT _ (by norm_num)] at hr
   unfold vsPiOfN vsPiOf piOfW vsOsW open_stacked_osW
-  simp only [dispatchIdx_eq_logGT, hname, osWordsTab_eq, getD_map_range hm]
-  rw [Proof.mk.injEq]
+  rw [dispatchIdx_eq_logGT, rateOf_sub_one]
+  generalize logGT (σ (.n 1686)) 11 = m at hm ⊢
+  generalize logGT (σ (.n 122)) 4 = ri at hr ⊢
+  have hj : ri * 11 + m < 44 := by omega
+  have hjm : (ri * 11 + m) % 11 = m := by omega
+  have hjr : (ri * 11 + m) / 11 = ri := by omega
+  have hname : decoderFunctionName (openStackedIdx m) = openNames.getD m "" := by
+    rw [openNames_eq, getD_map_range hm]
+  obtain ⟨hlen, hok⟩ := callsOK _ hj
+  unfold osCallsOf osCfgAt at hlen hok
+  rw [hjm, hjr] at hlen hok
+  have hw : osWordsTab.getD (ri * 11 + m) 0 = osWordsLen (osCfgR m ri) := by
+    rw [osWordsTab_eq, getD_map_range hj, osCfgAt, hjm, hjr]
+  dsimp only
+  rw [hname, hw, Proof.mk.injEq]
   refine ⟨rfl, ?_⟩
   exact map_zip_eq hlen fun p hp ↦ levelOsN_eq rd _ Fm (List.all_eq_true.mp hok p hp)
 
@@ -334,23 +362,30 @@ theorem oqsOfA_eq (s : Oq) (odd loop walk N : ℕ) (rd : Reader) (σ : Val) (Vn 
   unfold oqsOfA oqsOfN
   rw [h, oqQueryA_eq, List.range_eq_range']
 
-/-- A level's openings from its call `c`, the call's argument words `a` given (`levelOsN`). -/
-def levelOsAt (lanes : List ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) (a : List E) :
+/-- A level's openings from its `opening_queries` call in the frame `fr` of its `level_queries`
+callee, the call's argument words `a` given (`levelOsN`). -/
+def levelOsAt (lanes : List ℕ) (rd : Reader) (fr : Val) (Vn : NFrames) (c : OsCall) (a : List E) :
     List Opening :=
   (oqsOfA ⟨c.base, c.I, c.pd, c.cd⟩ lanes c.odd c.loop c.walk c.N rd
-    (Vn c.fn a (c.rets.map fun k ↦ σ (.n k))) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
+    (Vn c.fn a [fr (.n (c.pw + 2))]) Vn).map (toOpening rd (a.headD 0) c.cd c.depth)
 
-/-- **A level's openings** (`levelOsN`), its call's argument words read once. -/
+/-- A level's openings, the frame `fr` of its `level_queries` callee given: the `opening_queries`
+call's argument words read once. -/
+def levelOsQ (lanes : List ℕ) (rd : Reader) (fr : Val) (Vn : NFrames) (c : OsCall) :
+    List Opening :=
+  levelOsAt lanes rd fr Vn c (c.qargs.map fun k ↦ fr (.n k))
+
+/-- **A level's openings** (`levelOsN`), its `level_queries` callee's frame read once. -/
 def levelOsA (lanes : List ℕ) (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) :
     List Opening :=
-  levelOsAt lanes rd σ Vn c (c.args.map fun k ↦ σ (.n k))
+  levelOsQ lanes rd (Vn c.lq (c.args.map fun k ↦ σ (.n k)) (c.rets.map fun k ↦ σ (.n k))) Vn c
 
 theorem levelOsA_eq (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) :
     levelOsA gLanes rd σ Vn c = levelOsN rd σ Vn c := by
-  rw [levelOsA, levelOsAt, levelOsN, oqsOfA_eq]
+  rw [levelOsA, levelOsQ, levelOsAt, levelOsN, oqsOfA_eq]
 
-/-- `open_stacked`'s tables, as arrays: the lanes of `g^k` (`gLanes`), each candidate's stream
-words (`osWordsTab`) and `opening_queries` calls (`osCallsTab`). -/
+/-- `open_stacked`'s tables, as arrays: the lanes of `g^k` (`gLanes`), each size and rate's stream
+words (`osWordsTab`) and `level_queries` dispatches (`osCallsTab`). -/
 structure WhirTabs where
   lanes : List ℕ
   words : Array ℕ
@@ -359,30 +394,36 @@ structure WhirTabs where
 /-- **`open_stacked`'s tables**, built from the literals. -/
 def whirTabs : WhirTabs := ⟨gLanes, osWordsTab.toArray, osCallsTab.toArray⟩
 
-/-- The child proof, its candidate `m` and the frame `fr` of its `open_stacked` call given
-(`vsPiOfN`). -/
-def vsPiOfAt (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ)
+/-- The child proof, the index `j` of its size and rate and the frame `fr` of its `open_stacked`
+call given (`vsPiOfN`). -/
+def vsPiOfAt (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (j : ℕ)
     (fr : Val) : Proof :=
   ⟨wordsFrom rd ((σ (.n 25)).limb 0) (cl (σ (.n 25)) (σ (.n 656))) ++
-      wordsFrom rd ((fr (.n 8)).limb 0) (T.words.getD m 0),
-    (T.calls.getD m []).map (levelOsA T.lanes rd fr Vn)⟩
+      wordsFrom rd ((fr (.n 9)).limb 0) (T.words.getD j 0),
+    (T.calls.getD j []).map (levelOsA T.lanes rd fr Vn)⟩
 
-/-- The child proof, its candidate `m` given: the frame of `open_stacked__L{m}`'s call read once. -/
-def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ) :
+/-- The child proof, its size `m` and the index `j` of its size and rate given: the frame of
+`open_stacked__L{m}`'s call read once. -/
+def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m j : ℕ) :
     Proof :=
-  vsPiOfAt T rd σ Vn cl m (Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ))
+  vsPiOfAt T rd σ Vn cl j (Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ))
+
+/-- The child proof, its size `m` given. -/
+def vsPiOfS (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ) :
+    Proof :=
+  vsPiOfM T rd σ Vn cl m (logGTWith T.lanes (σ (.n 122)) 4 * 11 + m)
 
 /-- **The child proof `verify_sub` checks, off the tables `T`** (`vsPiOfN`). -/
 def vsPiOfA (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  vsPiOfM T rd σ Vn cl (logGTWith T.lanes (σ (.n 1695)) 28)
+  vsPiOfS T rd σ Vn cl (logGTWith T.lanes (σ (.n 1686)) 11)
 
 /-- **Off the tables built, the reader is `vsPiOfN`.** -/
 theorem vsPiOfA_tabs (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) :
     vsPiOfA whirTabs rd σ Vn cl = vsPiOfN rd σ Vn cl := by
   have hl : levelOsA gLanes rd = levelOsN rd := funext fun σ ↦ funext fun Vn ↦ funext fun c ↦
     levelOsA_eq rd σ Vn c
-  simp only [vsPiOfA, vsPiOfM, vsPiOfAt, vsPiOfN, whirTabs, logGTWith_gLanes, getD_toArray, hl,
-    ← wordsAt_eq_wordsFrom, readN_eq_wordsAt]
+  simp only [vsPiOfA, vsPiOfS, vsPiOfM, vsPiOfAt, vsPiOfN, whirTabs, logGTWith_gLanes,
+    getD_toArray, hl, ← wordsAt_eq_wordsFrom, readN_eq_wordsAt]
 
 end
 end LeanVM.Guest.Fast

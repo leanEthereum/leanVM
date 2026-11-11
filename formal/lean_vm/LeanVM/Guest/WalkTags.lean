@@ -26,6 +26,9 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, depth_shift, g_bus_mu, k_mod_next]`, `verify_bus_gkr`'s
   radix-four layer loop `__loop6` (`lean_ethereum.py:1868-1934` at `40f877dc`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
+* `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
+  windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which
+  `open_stacked` assumes at the rate's arm of its dispatch (`Check.selTag`, below `2^26`).
 
 `walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,
 `walkCd`. The certificates' generator (`cli/GuestCert.lean`) writes the tags.
@@ -67,6 +70,23 @@ def winsTag (d cd : ℕ) : ℕ := walkTag 0 1 d cd
 /-- The tag of `GkrPar`, above every walk tag. -/
 def tagGkr : ℕ := 2 ^ 20
 
+/-- The tag of `level_queries`' windows: the walk `walkTag (2 + base) odd d cd` (`OqMainWins`) on
+`[t]` at `N = g^n`; with `d < 64` the walk tag is below `2^16`, and with `n < 992` the tag below
+`2^26`. -/
+def lqTag (n odd base d cd : ℕ) : ℕ := 2 ^ 21 + walkTag (2 + base) odd d cd + 2 ^ 16 * n
+
+/-- A `level_queries` tag's walk tag. -/
+def lqWalk (t : ℕ) : ℕ := (t - 2 ^ 21) % 2 ^ 16
+
+/-- A `level_queries` tag's iteration count. -/
+def lqN (t : ℕ) : ℕ := (t - 2 ^ 21) / 2 ^ 16
+
+/-- **The relation of a `level_queries` tag** `t ≥ 2^21` on the words `ws`: its walk's
+`OqMainWins` at `g^n`. -/
+def lqSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
+  B1.OqMainWins rd (walkD (lqWalk t)) (walkCd (lqWalk t)) (walkOdd (lqWalk t)) (walkKind (lqWalk t) - 2)
+    (ws.getD 0 0) (gen ^ lqN t)
+
 /-- **`__loop6`'s parity obligation** on `layers`, the iteration `x`, the depth shift table, `g_bus_mu`
 and `k_mod_next`: `k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word
 `layer[g^12]` of layer `x`, `layer = layers·(x²·depth_shift[g_bus_mu])^17` (`LAYER_SLOTS = 17`,
@@ -75,6 +95,16 @@ def GkrPar (rd : Reader) (layers x shift gbm kmn : E) : Prop :=
   (∀ r < 4, ∀ v, LoadHolds rd kmn r v → ∃ e < 4, v = ofK (addressOfIndex e)) ∧
     ∀ s, LoadHolds rd (shift * gbm) 0 s → ∀ p, LoadHolds rd (layers * (x * x * s) ^ 17) 12 p →
       ∃ e < 4, p = ofK (addressOfIndex e)
+
+theorem walkTag_lt {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) (hd : d < 64) :
+    walkTag kind odd d cd < 2 ^ 16 := by
+  unfold walkTag; omega
+
+theorem lqTag_decode {n odd base d cd : ℕ} (hb : base < 2) (ho : odd < 2) (hc : cd < 64) (hd : d < 64) :
+    lqWalk (lqTag n odd base d cd) = walkTag (2 + base) odd d cd ∧ lqN (lqTag n odd base d cd) = n := by
+  have h := walkTag_lt (kind := 2 + base) (by omega) ho hc hd
+  unfold lqWalk lqN lqTag
+  refine ⟨by omega, by omega⟩
 
 theorem walkTag_decode {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) :
     walkKind (walkTag kind odd d cd) = kind ∧ walkOdd (walkTag kind odd d cd) = odd ∧

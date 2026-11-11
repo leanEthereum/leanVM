@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.RootsN
 
-  The subspace roots of `ml ≤ 22` coordinates are the certified ones; the vanishing tables
+  The subspace roots of `ml ≤ 26` coordinates are the certified ones; the vanishing tables
   checked against them.
 -/
 
@@ -36,7 +36,7 @@ theorem kRootsAux_prefix : ∀ (n N : ℕ) (last : K) (layer : List K), n ≤ N 
   | n + 1, N + 1, _, [], _, h2 => absurd h2 (by simp)
 
 /-- The certified layers compute the certified roots. -/
-theorem kRootsAux_cert : ∀ (n k : ℕ), k + n ≤ 22 →
+theorem kRootsAux_cert : ∀ (n k : ℕ), k + n ≤ 26 →
     kRootsAux n (lastOf k) (layerK k) = (rootK.drop k).take n
   | 0, _, _ => by simp [kRootsAux]
   | n + 1, k, h => by
@@ -49,20 +49,20 @@ theorem kRootsAux_cert : ∀ (n k : ℕ), k + n ≤ 22 →
     have hlt : k < rootK.length := by rw [rootK_length]; omega
     rw [hl, List.getD_eq_getElem _ _ hlt, List.drop_eq_getElem_cons hlt, List.take_succ_cons]
 
-theorem kRoots_cert {ml : ℕ} (h : ml ≤ 22) : kRoots ml = (1 :: rootK).take (ml + 1) := by
+theorem kRoots_cert {ml : ℕ} (h : ml ≤ 26) : kRoots ml = (1 :: rootK).take (ml + 1) := by
   have e : (List.range ml).map (fun i ↦ K.ofBits (2 ^ (i + 1))) = (layerK 0).take ml := by
     rw [layerK_zero, ← List.map_take, List.take_range, min_eq_left h]
-  rw [kRoots, e, kRootsAux_prefix ml 22 _ _ h (by rw [layerK_zero]; simp),
-    show (1 : K) = lastOf 0 from rfl, kRootsAux_cert 22 0 (by omega), List.drop_zero,
+  rw [kRoots, e, kRootsAux_prefix ml 26 _ _ h (by rw [layerK_zero]; simp),
+    show (1 : K) = lastOf 0 from rfl, kRootsAux_cert 26 0 (by omega), List.drop_zero,
     List.take_take, min_eq_left h, List.take_succ_cons]
 
 /-- A level's vanishing tables, checked against the certified roots and inverses. -/
 def vanishOkC (vo ml : ℕ) : Bool :=
-  decide (ml ≤ 22) && decide (vo + ml ≤ Data.arr_LIG_VANISH_VALS.length) &&
-  decide (vo + ml ≤ Data.arr_LIG_VANISH_INVS.length) &&
-  ((Data.arr_LIG_VANISH_VALS.drop vo).take ml).map (fun e ↦ K.ofBits e.1) ==
+  decide (ml ≤ 26) && decide (vo + ml ≤ Data.arr_VANISH_BY_COLS.length) &&
+  decide (vo + ml ≤ Data.arr_VANISH_INVS_BY_COLS.length) &&
+  ((Data.arr_VANISH_BY_COLS.drop vo).take ml).map (fun e ↦ K.ofBits e.1) ==
     (1 :: rootK).take ml &&
-  ((Data.arr_LIG_VANISH_INVS.drop vo).take ml).map (fun e ↦ K.ofBits e.1) ==
+  ((Data.arr_VANISH_INVS_BY_COLS.drop vo).take ml).map (fun e ↦ K.ofBits e.1) ==
     (1 :: invK).take ml
 
 /-- A run of a table, read entry by entry (`lig`) or at once. -/

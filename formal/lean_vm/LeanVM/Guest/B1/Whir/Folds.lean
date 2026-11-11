@@ -219,5 +219,17 @@ theorem osFolds_sound (hC : ∀ args rets, C "opening_fold" args rets → Meanin
         rw [show off + 1 + j = off + (j + 1) by ring] at this
         simpa using this
 
+
+/-- The rounds keep the zero run and do not lower the next free value. -/
+theorem osFolds_state' (p : ℕ) : ∀ (n off : ℕ) (st : OsSt),
+    (osFolds p off n st).2.pad = st.pad ∧ (osFolds p off n st).2.k ≥ st.k
+  | 0, _, _ => ⟨rfl, le_rfl⟩
+  | n + 1, off, st => by
+    obtain ⟨h1, h2⟩ := osFolds_state' p n (off + 1) (osFold p off st).2
+    refine ⟨h1, le_trans ?_ h2⟩
+    simp only [osFold]
+    have := osMat_next st.cb st.co st.k
+    omega
+
 end
 end LeanVM.Guest.B1.Whir

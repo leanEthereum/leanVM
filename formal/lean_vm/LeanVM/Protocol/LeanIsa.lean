@@ -27,9 +27,9 @@ row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the progra
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
 (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:230-233`): the memory window `[16, 32]`, the
-row cap `2^32`, and the stacked size `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`;
-its floor `15` holds by construction). `validRate` is the WHIR rate check, read off the same
+`crates/verifier/src/layout.rs:497-503`, and `lib.rs:230-233`): the memory window `[1, 30]`, the
+row cap `2^30`, and the stacked size `leanIsaμ prog s ≤ 30` (`MAX_STACKED_LOG`,
+`crates/verifier/src/layout.rs`; its floor `16` holds by construction). `validRate` is the WHIR rate check, read off the same
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
@@ -55,7 +55,7 @@ fifty value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Plac
 `witness.rs:20`; `layout.rs:228-240`), so `101` of the `165` columns are committed. The committed
 columns, in global order, are sorted by log-size, largest first, ties in global order
 (`stack_offsets`), and laid end to end at aligned offsets (`Blocks.layout`); the stack has
-`μ = max(⌈log₂ total⌉, 15)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
+`μ = max(⌈log₂ total⌉, 16)` variables (`placements_of`). Input lane `l` of the `KECCAK` table is
 read at slot `l` of `QKECCAK`, and its columns `0 … 13` at slots `50 … 63` (`qSlot`,
 `Blocks.sliceLayout`; `qkeccak_slot`, `crates/verifier/src/layout.rs:422-432, 559-563`): cell `x`
 of the column at slot `k` is cell `x + k · 2^τ_KECCAK` of the region. The output lanes are *derived*
@@ -374,10 +374,10 @@ def blocks : Blocks where
       exact this
 
 /-- The minimum stacked size, `MIN_MU` (`pcs.rs:49`). -/
-def minMu : ℕ := 15
+def minMu : ℕ := 16
 
-/-- The maximum stacked size, `MAX_MU` (`pcs.rs:51`). -/
-def maxMu : ℕ := 28
+/-- The maximum stacked size, `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). -/
+def maxMu : ℕ := 30
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
 `2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/

@@ -16,7 +16,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 /-- `__loop15`. -/
-noncomputable def bigFn : Fn := coreProgram.getD 330 default
+noncomputable def bigFn : Fn := coreProgram.getD 317 default
 
 /-- `__loop15`'s stores. -/
 noncomputable def bigS : List Atom := storesOf 4 bigFn.body

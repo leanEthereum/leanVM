@@ -20,20 +20,20 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- The terminal's bound (`check_opening_terminal_completeAtB`'s). -/
 def termBound (fs : String → ℕ) (Beqc K15 Bcs Brs : ℕ) : ℕ :=
   fs "check_opening_terminal" + 146 + 3 * Beqc + (32 * K15 + fs "__loop14") +
-    (fs "selector_tables" + 448) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)
+    (fs "selector_tables" + 512) + 101 * Bcs + (fs "ring_switch_weight" + 2240 + Brs)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **The terminal is complete on an honest child within `termBound`**, entered on what
 `certify_placement` and `open_stacked` return, its pure callees' words by hypotheses. -/
 theorem term_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (bs : List ℕ) (sqE : ℕ)
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 14 ≤ κ) (bs : List ℕ) (sqE : ℕ)
     (hwl : S.w.point.length = S.μs) (pv : List (List E × Main.Layout))
     (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true)
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs) :
     CompleteAtB fs cert κ ((S.kids bs sqE).getD 12 noKid pv).f

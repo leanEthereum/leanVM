@@ -59,7 +59,7 @@ theorem ndAt_of_ge {l : List ℕ} {i : ℕ} (h : l.length ≤ i) : ndAt l i = tr
   simp [ndAt, List.drop_eq_nil_of_le (Nat.le_succ_of_le h)]
 
 set_option maxRecDepth 100000 in
-theorem coreCodes_length : coreCodes.length ≤ 1120 := by decide +kernel
+theorem coreCodes_length : coreCodes.length ≤ 1820 := by decide +kernel
 
 /-! The check is split into windows of indices, one declaration each, to keep the kernel's
 memory low. -/
@@ -96,8 +96,28 @@ set_option maxRecDepth 100000 in
 theorem coreCodes_w14 : ∀ i ∈ List.range' 980 70, ndAt coreCodes i = true := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem coreCodes_w15 : ∀ i ∈ List.range' 1050 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w16 : ∀ i ∈ List.range' 1120 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w17 : ∀ i ∈ List.range' 1190 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w18 : ∀ i ∈ List.range' 1260 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w19 : ∀ i ∈ List.range' 1330 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w20 : ∀ i ∈ List.range' 1400 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w21 : ∀ i ∈ List.range' 1470 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w22 : ∀ i ∈ List.range' 1540 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w23 : ∀ i ∈ List.range' 1610 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w24 : ∀ i ∈ List.range' 1680 70, ndAt coreCodes i = true := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem coreCodes_w25 : ∀ i ∈ List.range' 1750 70, ndAt coreCodes i = true := by decide +kernel
 
-theorem coreCodes_nd : ∀ i < 1120, ndAt coreCodes i = true := by
+theorem coreCodes_nd : ∀ i < 1820, ndAt coreCodes i = true := by
   intro i hi
   by_cases h0 : i < 70
   · exact coreCodes_w0 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
@@ -129,11 +149,31 @@ theorem coreCodes_nd : ∀ i < 1120, ndAt coreCodes i = true := by
   · exact coreCodes_w13 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
   by_cases h14 : i < 1050
   · exact coreCodes_w14 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
-  exact coreCodes_w15 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h15 : i < 1120
+  · exact coreCodes_w15 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h16 : i < 1190
+  · exact coreCodes_w16 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h17 : i < 1260
+  · exact coreCodes_w17 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h18 : i < 1330
+  · exact coreCodes_w18 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h19 : i < 1400
+  · exact coreCodes_w19 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h20 : i < 1470
+  · exact coreCodes_w20 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h21 : i < 1540
+  · exact coreCodes_w21 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h22 : i < 1610
+  · exact coreCodes_w22 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h23 : i < 1680
+  · exact coreCodes_w23 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  by_cases h24 : i < 1750
+  · exact coreCodes_w24 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
+  exact coreCodes_w25 i (List.mem_range'_1.mpr ⟨by omega, by omega⟩)
 
 theorem coreProgram_encodings_nodup : (coreProgram.map fun f ↦ encS f.name).Nodup := by
   refine nodup_of_nodupB (nodupB_of_ndAt fun i _ ↦ ?_)
-  by_cases hi : i < 1120
+  by_cases hi : i < 1820
   · exact coreCodes_nd i hi
   · exact ndAt_of_ge (by have := coreCodes_length; unfold coreCodes at this; omega)
 

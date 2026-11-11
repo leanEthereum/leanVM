@@ -6,16 +6,16 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.CVal
+public import LeanVM.Guest.B1.Whir.CPrim
 public import LeanVM.Guest.B1.Whir.Folds
 
 /-!
 # The fold rounds, honestly
 
-`osMat_complete`: the materialized pointer. `osFold_complete`: from the carried sponge (canonical
-capacity), the cursor's two words in memory and the challenge's slot holding the challenge, the
-round's values make the block hold, `opening_fold` holding of its meaning (B1-a, `.mpr`), with
-`FoldOut`. `osFolds_complete`: `n` rounds.
+`osFold_complete`: from the carried sponge (canonical capacity), the cursor's two words in memory
+and the challenge's slot holding the challenge, the round's values make the block hold,
+`opening_fold` holding of its meaning (`FoldCallC`, B1-a's `.mpr`), with `FoldOut`. `foldsTr`: the
+honest rounds; `osFolds_complete`: `n` rounds.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -38,26 +38,9 @@ structure OsSt.Below (st : OsSt) : Prop where
   a : st.a < st.k
   t : st.t < st.k
 
-/-- The values of `osMat base off k`. -/
-def matVal (σ : Val) (base off k i : ℕ) : E :=
-  if i = k then gw off else σ (.n base) * gw off
-
-/-- **The materialized pointer.** -/
-theorem osMat_complete {base off k : ℕ} (hoff : off < u128Bound) (hb : base < k) {σ σ' : Val}
-    (ha : AgreeBelow k σ σ') (hv : RangeVals σ' k (osMat base off k).2.2 (matVal σ base off k)) :
-    AllOk C rd σ' (osMat base off k).1 ∧
-      σ' (.n (osMat base off k).2.1) = σ (.n base) * gen ^ off := by
-  by_cases h0 : off = 0
-  · subst h0
-    simp only [osMat, ↓reduceIte, pow_zero, mul_one]
-    exact ⟨allOk_nil, ha base hb⟩
-  · simp only [osMat, h0, ↓reduceIte] at hv ⊢
-    have e0 := hv k le_rfl (by omega)
-    have e1 := hv (k + 1) (by omega) (by omega)
-    simp only [matVal, ↓reduceIte, show k + 1 ≠ k by omega] at e0 e1
-    refine ⟨?_, by rw [e1, gw_eq hoff]⟩
-    simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds]
-    exact ⟨e0, by rw [e1, e0, ha base hb]⟩
+/-- **The rounds' calls hold of their meaning** (`opening_fold`'s, B1-a). -/
+def FoldCallC (C : CallRel) (rd : Reader) : Prop :=
+  ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets
 
 /-- The values of one round after its pointer: the squeeze's capacity, the cursor, the claim, the
 two words, the challenge, the next `b`. -/
@@ -72,9 +55,8 @@ def osFoldF (σ : Val) (st : OsSt) (d0 d2 : E) (i : ℕ) : E :=
   else (foldVals σ st d0 d2).getD (i - (osMat st.cb st.co st.k).2.2) 0
 
 /-- **One round, honestly.** -/
-theorem osFold_complete
-    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
-    {p off : ℕ} {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hco : st.co < u128Bound)
+theorem osFold_complete (hC : FoldCallC C rd) {p off : ℕ} {st : OsSt} (σ : Val)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound)
     (hb : st.Below) (hp : p < st.k) (hcan : AllCanonical (st.fsv σ)) {d0 d2 : E}
     (hrd : ReadsAt rd (st.cur σ) [d0, d2])
     (hst : LoadHolds rd (σ (.n p)) off (st.F σ).squeeze.1) :
@@ -154,17 +136,7 @@ theorem osFold_complete
   · simp only [OsSt.quad, osFold]
     rw [v10, v6, v7, v8]
 
-end
-end LeanVM.Guest.B1.Whir
-
-namespace LeanVM.Guest.B1.Whir
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-
-@[expose] public section
-
-variable {C : CallRel} {rd : Reader}
+/-! ## The rounds -/
 
 /-- A round's next sponge: the squeeze's capacity, the next quadratic's two words waiting. -/
 def foldStep (F : Fs) (d0 d2 : E) : Fs := ⟨F.squeeze.2.cap, [(d0, dsObserve), (d2, dsObserve)]⟩
@@ -224,10 +196,7 @@ theorem OsSt.agree {st : OsSt} (hb : st.Below) {σ σ' : Val} (ha : AgreeBelow s
   · simp only [OsSt.cur, ha _ hb.cb]
 
 /-- The capacity of a squeeze is canonical. -/
-theorem squeeze_cap_canonical (F : Fs) : AllCanonical F.squeeze.2.cap := by
-  intro c hc
-  simp only [Fs.squeeze, capOf, List.mem_cons, List.mem_nil_iff, or_false] at hc
-  rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
+theorem squeeze_cap_canonical (F : Fs) : AllCanonical F.squeeze.2.cap := capOf_canonical _
 
 /-- The values of `n` rounds from `off`. -/
 def foldsF (p : ℕ) : ℕ → ℕ → OsSt → Val → List E → ℕ → E
@@ -237,8 +206,7 @@ def foldsF (p : ℕ) : ℕ → ℕ → OsSt → Val → List E → ℕ → E
       (fun σ1 ↦ foldsF p n (off + 1) (osFold p off st).2 σ1 (xs.drop 2))
 
 /-- **`n` rounds, honestly.** -/
-theorem osFolds_complete
-    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets) (p : ℕ) :
+theorem osFolds_complete (hC : FoldCallC C rd) (p : ℕ) :
     ∀ (n off : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.fs.length = 5 → st.co < u128Bound →
       st.Below → p < st.k → AllCanonical (st.fsv σ) → xs.length = 2 * n →
       ReadsAt rd (st.cur σ) xs →

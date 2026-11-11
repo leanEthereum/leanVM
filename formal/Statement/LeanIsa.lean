@@ -48,16 +48,17 @@ def Opcode.busCode : Opcode → K
   | .jump => addressOfIndex 4
   | .keccak => addressOfIndex 5
 
-/-- The least memory log-size, `2^16` cells (`crates/leanvm_core/src/cpu/mod.rs:40`, `MIN_LOG_MEM`).
--/
-def minLogMem : ℕ := 16
+/-- The least memory log-size, `2^1` cells, the public input's two (`MIN_LOG_MEMORY`,
+`crates/verifier/src/layout.rs:89`). -/
+def minLogMem : ℕ := 1
 
-/-- The greatest memory log-size, `2^32` cells (`crates/leanvm_core/src/cpu/mod.rs:41`,
-`MAX_LOG_MEM`). -/
-def maxLogMem : ℕ := 32
+/-- The greatest memory log-size, `2^30` cells (`crates/verifier/src/layout.rs`,
+`MAX_LOG_MEMORY`). -/
+def maxLogMem : ℕ := 30
 
-/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs:501`). -/
-def maxLogBytecode : ℕ := 32
+/-- The greatest bytecode log-size, in instructions (`crates/verifier/src/layout.rs`,
+`MAX_LOG_BYTECODE`). -/
+def maxLogBytecode : ℕ := 30
 
 end LeanVM.Parameters
 
@@ -155,11 +156,11 @@ def LeanIsaInstruction.opcode : LeanIsaInstruction → Opcode
   | .jump .. => .jump
   | .keccak .. => .keccak
 
-/-- A program: `2^logSize ≤ 2^32` instructions, instruction `i` at address `g^i`. -/
+/-- A program: `2^logSize ≤ 2^30` instructions, instruction `i` at address `g^i`. -/
 structure LeanIsaProgram where
   /-- The log-size: `2^logSize` instructions. -/
   logSize : ℕ
-  /-- At most `2^32` instructions. -/
+  /-- At most `2^30` instructions. -/
   logSize_le : logSize ≤ maxLogBytecode
   /-- Instruction `i`, at address `g^i`. -/
   instructions : Fin (2 ^ logSize) → LeanIsaInstruction
@@ -173,7 +174,7 @@ noncomputable def LeanIsaProgram.fetch (program : LeanIsaProgram) (pc : K) : Opt
 
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` paragraph;
-`keccak_cell_lanes`, `layout.rs:302-309`; `cell_lanes`,
+`keccak_cell_lanes`, `layout.rs:309-316`; `cell_lanes`,
 `crates/leanvm_core/src/keccak.rs:60-81`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
@@ -183,7 +184,7 @@ words' limbs `0` and `1`, the `y²` limb zero (specification §2, the `KECCAK` p
 A limb `·` holds no lane: it is ignored when read and zero when written. -/
 
 /-- The lanes cell `c` holds in limbs `0` and `1`, in the layout `odd`; `none` marks a limb that
-holds no lane (`keccak_cell_lanes`, `layout.rs:302-309`, which the verifier's flushes read
+holds no lane (`keccak_cell_lanes`, `layout.rs:309-316`, which the verifier's flushes read
 too). -/
 def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   if 9 ≤ c ∨ (odd ∧ 1 ≤ c) then (some (2 * c - 1), some (2 * c))
@@ -214,7 +215,7 @@ def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
 /-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the first
 `outCells.cellCount` cells written are those cells, in the layout `outOdd`, of Keccak-f[1600] of
 the state the cells read hold in the layout `inOdd`; nothing is asked of a cell past them, which
-the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:958-994`). -/
+the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:938-978`). -/
 def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
     (outCells : KeccakOutputCells) : Prop :=
   (∀ c, IsCanonical128 (input c)) ∧
@@ -228,7 +229,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
 
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
 (`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`flushes_keccak`'s `address`,
-`layout.rs:343-348`). -/
+`layout.rs:350-355`). -/
 def keccakInputCellOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
   if h : c.val < 4 then om ⟨c.val, h⟩
   else if c.val < 8 then g ^ (c.val - 4) * otail
@@ -280,10 +281,11 @@ def derefSource : DerefMode → Registers K → E → E
 /-- Execute an instruction with the memory reader `read`: read its words, check its relation, and
 return the next registers; `none` if a read or a check fails. A taken `JUMP` moves to any elements
 `(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
-be powers of `g` with a 32-bit exponent, the target inside the bytecode
-(`crates/leanvm_core/src/cpu/execute.rs:914-952`, `cpu/hints.rs:139`), and stops after `MAX_STEPS`
-(`10^8`, `execute.rs:156`) steps, which nothing here bounds: those are the executor's limits, not
-the statement's. -/
+be powers `g^k` with `k < 2^28`, the target inside the bytecode: it finds `k` in its table of powers
+or by a discrete logarithm bounded below `MAX_CELLS = 2^28`, its own address space
+(`crates/leanvm_core/src/cpu/execute.rs:894-937`, `cpu/hints.rs:12, 140-144, 181-206`), and stops
+after `MAX_STEPS` (`10^8`, `execute.rs:154`) steps, which nothing here bounds: those are the
+executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
@@ -354,7 +356,7 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:543-554`): the last slot reached in
+the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:509-520`): the last slot reached in
 another frame executes like any other slot, and a step that falls through it, to
 `g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
@@ -376,7 +378,8 @@ structure Execution (program : LeanIsaProgram) where
   /-- The number of steps the run takes. -/
   stepCount : ℕ
 
-/-- The memory has between `2^16` and `2^32` words and holds the public input in words `0`, `1`. -/
+/-- The memory has between `2^minLogMem` and `2^maxLogMem` words and holds the public input in words
+`0`, `1`. -/
 def HoldsPublicInput {program : LeanIsaProgram} (input : PublicInput)
     (execution : Execution program) : Prop :=
   minLogMem ≤ execution.logMemorySize ∧ execution.logMemorySize ≤ maxLogMem ∧
@@ -425,17 +428,17 @@ def derefFlags : DerefMode → K × K
   | .fp => (0, 1)
 
 /-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
-`crates/leanvm_core/src/cpu/layout.rs:301`). -/
+`crates/leanvm_core/src/cpu/layout.rs:293`). -/
 def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- `KECCAK`'s output flags `(out_two, out_all)`: whether output cell `1` is written, and whether
 cells `2` to `12` are: `one ↦ (0, 0)`, `two ↦ (1, 0)`, `all ↦ (1, 1)` (`OutCells::flags`,
-`crates/leanvm_core/src/cpu/isa.rs:79-82`; `cpu/layout.rs:335-348`). -/
+`crates/leanvm_core/src/cpu/isa.rs:79-82`; `cpu/layout.rs:327-340`). -/
 def keccakOutputFlags (outCells : KeccakOutputCells) : K × K :=
   (layoutFlagWord (outCells != .one), layoutFlagWord (outCells == .all))
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₂)`: slots 3 to 15 of specification
-§8.1, the thirteen public columns of `bytecode_columns` (`cpu/layout.rs:292-366`): offsets as
+§8.1, the thirteen public columns of `bytecode_columns` (`cpu/layout.rs:284-358`): offsets as
 g-powers, a `SET` immediate as its three limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout and output flags as `0` or `1`, unused slots zero. -/
 def busEntry : LeanIsaInstruction → Vector K 13
@@ -471,7 +474,7 @@ def bytecodeWords (program : LeanIsaProgram) : List K :=
     (List.finRange (2 ^ program.logSize)).map fun i ↦ (instructionSlots (program.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:613-621`; `Digest::halves`,
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:616-623`; `Digest::halves`,
 `crates/verifier/src/hash.rs:110-113`). -/
 def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]

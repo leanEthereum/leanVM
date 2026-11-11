@@ -818,13 +818,13 @@ theorem ofm_complete {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m 
 
 
 set_option maxRecDepth 100000 in
-theorem core479_body : Fn.body Data.core479 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem core479_body : Fn.body Data.core446 = ofmBody 1 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core498_body : Fn.body Data.core498 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem core498_body : Fn.body Data.core495 = ofmBody 2 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core444_body : Fn.body Data.core444 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem core444_body : Fn.body Data.core540 = ofmBody 4 := stmtsEqb_sound (by decide +kernel)
 set_option maxRecDepth 100000 in
-theorem core461_body : Fn.body Data.core461 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
+theorem core461_body : Fn.body Data.core586 = ofmBody 8 := stmtsEqb_sound (by decide +kernel)
 
 theorem ofm_iff {name : String} {f : Fn} (m : ℕ) (hm1 : 1 ≤ m) (hm : m ≤ 8)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = ofmParams)
@@ -837,28 +837,28 @@ set_option maxRecDepth 100000 in
 theorem ofm_L4_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_final_message__L4" args rets ↔
       MeaningOpeningFinalMessage 4 rd args rets :=
-  ofm_iff 1 (by decide) (by decide) (Program.find?_of_indexOf? (j := 479) (by decide +kernel) rfl)
+  ofm_iff 1 (by decide) (by decide) (Program.find?_of_indexOf? (j := 446) (by decide +kernel) rfl)
     rfl core479_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ofm_L8_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_final_message__L8" args rets ↔
       MeaningOpeningFinalMessage 8 rd args rets :=
-  ofm_iff 2 (by decide) (by decide) (Program.find?_of_indexOf? (j := 498) (by decide +kernel) rfl)
+  ofm_iff 2 (by decide) (by decide) (Program.find?_of_indexOf? (j := 495) (by decide +kernel) rfl)
     rfl core498_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ofm_L16_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_final_message__L16" args rets ↔
       MeaningOpeningFinalMessage 16 rd args rets :=
-  ofm_iff 4 (by decide) (by decide) (Program.find?_of_indexOf? (j := 444) (by decide +kernel) rfl)
+  ofm_iff 4 (by decide) (by decide) (Program.find?_of_indexOf? (j := 540) (by decide +kernel) rfl)
     rfl core444_body rd args rets
 
 set_option maxRecDepth 100000 in
 theorem ofm_L32_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_final_message__L32" args rets ↔
       MeaningOpeningFinalMessage 32 rd args rets :=
-  ofm_iff 8 (by decide) (by decide) (Program.find?_of_indexOf? (j := 461) (by decide +kernel) rfl)
+  ofm_iff 8 (by decide) (by decide) (Program.find?_of_indexOf? (j := 586) (by decide +kernel) rfl)
     rfl core461_body rd args rets
 
 /-- **`opening_final_message`'s core IR is its meaning**, at every deployed length. -/

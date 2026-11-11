@@ -15,16 +15,16 @@ public import LeanVM.Guest.B1.Whir.Interface
 /-!
 # The template of `open_stacked` (TRIAGE G #42)
 
-`osBody c` is the body of `open_stacked__L{c.m}` (`lean_ethereum.py:1430-1760` at leanVM
-`40f877dc`, G below) at the configuration `c = osCfg m`, value by value as the expansion numbers it: every
-block takes the first free value `k` and returns the next, the running sponge cells, the cursor
-(a base value and a word offset), the waiting scalars, the quadratic and the claim in `OsSt`.
-`sqLoopBody` (G:1562-1574, one squeeze and its `decode_query_windows` an iteration) and
-`resLoopBody` (G:1730-1739, eight queries' induced products chained by `μ = 1/λ` an iteration) are the loop helpers'.
-The inline Fiat-Shamir helpers are B1-a's templates (`fsPackT`, `fsNextT`, `challengeT`,
-`keccakA`, `B1/Fs/Templates.lean`).
+`osBody c` is the body of `open_stacked__L{c.m}` (`lean_ethereum.py`, `open_stacked`) at the
+configuration `c = osCfg m`, value by value as the expansion numbers it: every block takes the
+first free value `k` and returns the next, the running sponge cells, the cursor (a base value and
+a word offset), the waiting scalars, the quadratic and the claim in `OsSt`. The body depends on the
+size alone: where a rate changes a level's shape it dispatches on the rate's selector, value `0`
+(`.dispatch`), into a helper specialized on that rate's row (`level_positions`, `level_queries`,
+`level_residual`), the names taken from every rate's levels (`OsCfg.lvAt`). The inline Fiat-Shamir helpers are B1-a's
+templates (`fsPackT`, `fsNextT`, `challengeT`, `keccakA`, `B1/Fs/Templates.lean`).
 
-`Whir/Data*.lean` check every candidate's body and loops equal to these by kernel evaluation.
+`Whir/Data*.lean` check every size's body equal to this by kernel evaluation.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -191,47 +191,44 @@ structure OsSt where
   mats : List OsMat
   deriving Repr, Inhabited
 
-/-- The fixed buffers' pointers, allocated by the head: `merkle_caps`, `cap_flags`, `final_msg`,
-`level_roots`, `fold_challenges`, `level_betas`, `level_mus`, `query_positions`,
-`query_win_ptrs`, `win_tabs`, `ood_z`, `ood`. -/
-abbrev osCaps : ℕ := 13
-abbrev osFlags : ℕ := 15
-abbrev osFmsg : ℕ := 17
-abbrev osRoots : ℕ := 19
-abbrev osFch : ℕ := 21
-abbrev osBetas : ℕ := 23
-abbrev osMus : ℕ := 25
-abbrev osQpos : ℕ := 27
-abbrev osQbp : ℕ := 29
-abbrev osWin : ℕ := 31
-abbrev osOodz : ℕ := 161
-abbrev osOod : ℕ := 163
+/-- The rate's selector `g^r`, the body's first argument, which the dispatches read. -/
+abbrev osRate : ℕ := 0
 
-/-- The window table (G:1475-1478): `win_tabs[g^n] = n`, `n < 128`, the constant `n` at
-`32 + n`. -/
+/-- The fixed buffers' pointers, allocated by the head: `final_msg`, `level_roots`,
+`fold_challenges`, `level_betas`, `level_mus`, `query_positions`, `query_win_ptrs`, `win_tabs`,
+`ood_z`, `ood`. -/
+abbrev osFmsg : ℕ := 14
+abbrev osRoots : ℕ := 16
+abbrev osFch : ℕ := 18
+abbrev osBetas : ℕ := 20
+abbrev osMus : ℕ := 22
+abbrev osQpos : ℕ := 24
+abbrev osQbp : ℕ := 26
+abbrev osWin : ℕ := 28
+abbrev osOodz : ℕ := 158
+abbrev osOod : ℕ := 160
+
+/-- The window table: `win_tabs[g^n] = n`, `n < 128`, the constant `n` at `29 + n`. -/
 def osWinTabs : List Stmt :=
   ((List.range 128).map fun i ↦
-    [.atom (.const (.n (32 + i)) (word i 0 0)), .atom (.load (.n (32 + i)) (.n osWin) i)]).flatten
+    [.atom (.const (.n (29 + i)) (word i 0 0)), .atom (.load (.n (29 + i)) (.n osWin) i)]).flatten
 
 /-! ## The head and the levels -/
 
-/-- The head (G:1442-1487): the first quadratic read (`c` at `9`, `a` at `10`, `b = target + a` at
-`11`), the fixed buffers, the commitment's root into `level_roots`. -/
+/-- The head: the first quadratic read (`c` at `10`, `a` at `11`, `b = target + a` at `12`), the
+fixed buffers, the commitment's root into `level_roots`. The arguments are the rate's selector
+`0`, the sponge `1 .. 5`, the target `6`, the root `7, 8` and the cursor `9`. -/
 def osHead (c : OsCfg) : List Stmt × OsSt :=
   let n := c.levels.length
-  ([.atom (.load (.n 9) (.n 8) 0), .atom (.load (.n 10) (.n 8) 1), .atom (.add (.n 11) (.n 5) (.n 10))] ++
-    osHeap (4 * c.capLen) 12 ++
-    [.atom (.hint (.witness "merkle_caps" (.heap (.n osCaps) 0 (4 * c.capLen))))] ++
-    osHeap c.capLen 14 ++
-    [.atom (.hint (.witness "merkle_cap_active" (.heap (.n osFlags) 0 c.capLen)))] ++
-    osHeap c.yrLen 16 ++ osHeap (2 * n) 18 ++
-    [.atom (.load (.n 6) (.n osRoots) 0), .atom (.load (.n 7) (.n osRoots) 1)] ++
-    osHeap c.nFolds 20 ++ osHeap n 22 ++ osHeap n 24 ++ osHeap c.posLen 26 ++
-    osHeap c.posLen 28 ++ osHeap 128 30 ++ osWinTabs ++ osHeap (n * ligColsCap) 160 ++
-    osHeap (n * oodSlots) 162,
-   ⟨164, [0, 1, 2, 3, 4], 9, 10, 8, 2, 9, 11, 10, 5, none, []⟩)
+  ([.atom (.load (.n 10) (.n 9) 0), .atom (.load (.n 11) (.n 9) 1), .atom (.add (.n 12) (.n 6) (.n 11))] ++
+    osHeap c.yrLen 13 ++ osHeap (2 * n) 15 ++
+    [.atom (.load (.n 7) (.n osRoots) 0), .atom (.load (.n 8) (.n osRoots) 1)] ++
+    osHeap c.nFolds 17 ++ osHeap n 19 ++ osHeap n 21 ++ osHeap (n * ligPosCap) 23 ++
+    osHeap (n * ligPosCap) 25 ++ osHeap 128 27 ++ osWinTabs ++ osHeap (n * ligColsCap) 157 ++
+    osHeap (n * oodSlots) 159,
+   ⟨161, [1, 2, 3, 4, 5], 10, 11, 9, 2, 10, 12, 11, 6, none, []⟩)
 
-/-- One sumcheck round (`opening_fold`, G:1494), its challenge stored at `p·g^off`: the cursor
+/-- One sumcheck round (`opening_fold`), its challenge stored at `p·g^off`: the cursor
 materialized, the call, the store, `b = claim + a`. -/
 def osFold (p off : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let m := osMat s.cb s.co s.k
@@ -294,88 +291,77 @@ def osCommit (plan : List (ℕ × ℕ × ℕ)) (lvl : ℕ) (lv : OsLv) (s : OsSt
    { s with k := k + 110, fs := [k + 105, k + 106, k + 107, k + 108, k + 109], co := s.co + 6,
             mats := osMatsAfter plan s.mats osOodz ((lvl + 1) * ligColsCap) (k + 45) }, k + 97)
 
-/-- The query positions (G:1409-1437): the squeeze run `sqz`, the capacity stored in it, the loop
-of `squeezes` squeezes decoding the positions, the last capacity loaded, and the batching
-challenge `lam` squeezed from it (at the returned `k - 1`); its capacity becomes the sponge's. -/
-def osSqueezes (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
+/-- The name of `level_positions`' specialization at a level's row. -/
+def osPositionsName (lv : OsLv) : String :=
+  "level_positions__L" ++ natStr lv.squeezes ++ "_L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth
+
+/-- The query positions: the level's slots of `query_positions` and `query_win_ptrs`
+materialized, the dispatch on the rate into `level_positions` (the squeezes, decoded), its
+capacity copied, and the batching challenge `lam` squeezed from it (at the returned `k - 1`);
+its capacity becomes the sponge's. -/
+def osPositions (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
   let k := s.k
-  let pd := osPad s.pad (k + 14)
-  let j := pd.2.2
-  (osHeap ((c.maxSq + 1) * 5) k ++
-    (s.fs.zipIdx.map fun (f, i) ↦ .atom (.load (.n f) (.n (k + 1)) i)) ++
-    osLoopCall (c.sqLoop lvl) lv.squeezes [k + 1, osQpos, osQbp, osWin] (k + 2) ++
-    [.atom (.const (.n (k + 7)) (gw (lv.squeezes * 5))), .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7)))] ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n (k + 9 + i)) (.n (k + 8)) i)) ++
-    pd.1 ++ osSqueeze0 pd.2.1 [k + 9, k + 10, k + 11, k + 12, k + 13] j,
-   { s with k := j + 20, fs := [j + 8, j + 9, j + 10, j + 11, j + 12], pad := some pd.2.1 })
+  let P := c.plan
+  let qp := osMatP P s.mats osQpos lv.posOff k
+  let m1 := osMatsAfter P s.mats osQpos lv.posOff k
+  let wp := osMatP P m1 osQbp lv.posOff qp.2.2
+  let m2 := osMatsAfter P m1 osQbp lv.posOff qp.2.2
+  let j := wp.2.2
+  let pd := osPad s.pad (j + 10)
+  let e := pd.2.2
+  (qp.1 ++ wp.1 ++
+    [.dispatch (.n osRate) ((c.lvAt lvl).map osPositionsName)
+      ((s.fs ++ [qp.2.1, wp.2.1, osWin]).map V.n) (osRun j 5)] ++
+    ((List.range 5).map fun i ↦ .atom (.copy (.n (j + 5 + i)) (.n (j + i)))) ++
+    pd.1 ++ osSqueeze0 pd.2.1 [j + 5, j + 6, j + 7, j + 8, j + 9] e,
+   { s with k := e + 20, fs := [e + 8, e + 9, e + 10, e + 11, e + 12], pad := some pd.2.1, mats := m2 })
 
-/-- `lam_pow = lam ** n_queries` and `level_mus[g^lvl] = 1 / lam` (G:1585-1586), from
-`k`: the power by the compiler's square-and-multiply (`osPowSteps`), then `1` at `k'` and the
-constraint `1 = μ·lam` with `μ` at `k' + 1`, stored. The statements, the power's value and the next
-free value. -/
-def osLamPow (lvl lam n k : ℕ) : List Stmt × ℕ × ℕ :=
-  let pw := osPowSteps lam (osPowDigits n) lam k
-  let k' := k + osPowLen n
-  (pw.1 ++ [.atom (.const (.n k') (word 1 0 0)), .atom (.mul (.n k') (.n (k' + 1)) (.n lam)),
-    .atom (.load (.n (k' + 1)) (.n osMus) lvl)], pw.2, k' + 2)
+/-- `level_mus[g^lvl] = 1 / lam`, from `k`: `1` at `k` and the constraint `1 = μ·lam` with `μ`
+at `k + 1`, stored. The statements and the next free value. -/
+def osMu (lvl lam k : ℕ) : List Stmt × ℕ :=
+  ([.atom (.const (.n k) (word 1 0 0)), .atom (.mul (.n k) (.n (k + 1)) (.n lam)),
+    .atom (.load (.n (k + 1)) (.n osMus) lvl)], k + 2)
 
-/-- The name of a level's `opening_queries` specialization. -/
+/-- The name of `level_queries`' specialization at a level's row. -/
 def osQueriesName (lvl : ℕ) (lv : OsLv) : String :=
   let base := if lvl = 0 then 1 else 0
-  "opening_queries__L" ++ natStr (lv.queries % 2 * base) ++ "_L" ++ natStr base ++ "_L" ++
+  "level_queries__L" ++ natStr lv.queries ++ "_L" ++ natStr base ++ "_L" ++
     natStr lv.interleave ++ "_L" ++ natStr lv.leafCells ++ "_L" ++ natStr lv.depth ++ "_L" ++
     natStr lv.capDepth
 
-/-- The level's queries (G:1598-1620), from `k`, after the weights: the row weights, the cap's
-root (into `level_roots`), the queries' sum, the intro message's two words and its linear
-coefficient. The statements, the next free value, and the values of the sum and of `c0`, `c1`,
-`c2`. -/
-def osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
-    List Stmt × ℕ × ℕ × ℕ × ℕ × ℕ :=
+/-- The level's queries, from `k`, after `level_mus`: the row weights, the dispatch on the rate
+into `level_queries` (the level's cap checked up to its root, stored in `level_roots`, the queries'
+sum and `lam^n`), the intro message's two words and its linear coefficient. The statements, the
+next free value, and the values of the sum, `lam^n` and `c0`, `c1`, `c2`. -/
+def osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam : ℕ) (s : OsSt) :
+    List Stmt × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ :=
   let k := s.k
   let P := c.plan
   let m0 := s.mats
   let fp := osMatP P m0 osFch lv.foldsOff (k + 2)
   let m1 := osMatsAfter P m0 osFch lv.foldsOff (k + 2)
-  let cp := osMatP P m1 osCaps (4 * lv.capOff) fp.2.2
-  let m2 := osMatsAfter P m1 osCaps (4 * lv.capOff) fp.2.2
-  let flp := osMatP P m2 osFlags lv.capOff cp.2.2
-  let m3 := osMatsAfter P m2 osFlags lv.capOff cp.2.2
-  let r := flp.2.2
-  let cp2 := osMatP P m3 osCaps (4 * lv.capOff) (r + 2)
-  let flp2 := osMatP P m3 osFlags lv.capOff cp2.2.2
-  let bp := osMatP P m3 osQbp lv.posOff flp2.2.2
-  let g := bp.2.2
+  let bp := osMatP P m1 osQbp lv.posOff fp.2.2
+  let r := bp.2.2
   (osHeap c.maxIl k ++ fp.1 ++
     [.call ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
       [.n fp.2.1, .n (k + 1)] []] ++
-    cp.1 ++ flp.1 ++
-    [.call ("verify_merkle_cap__L" ++ natStr lv.capDepth) [.n cp.2.1, .n flp.2.1] [.n r, .n (r + 1)],
-      .atom (.load (.n r) (.n osRoots) (2 * lvl)), .atom (.load (.n (r + 1)) (.n osRoots) (2 * lvl + 1))] ++
-    cp2.1 ++ flp2.1 ++ bp.1 ++
-    [.atom (.const (.n g) (gw (lv.queries / (1 + if lvl = 0 then 1 else 0)))),
-      .call (osQueriesName lvl lv) [.n cp2.2.1, .n flp2.2.1, .n lam, .n lamN, .n bp.2.1, .n (k + 1), .n g]
-        [.n (g + 1)],
-      .atom (.load (.n (g + 2)) (.n s.cb) s.co), .atom (.load (.n (g + 3)) (.n s.cb) (s.co + 1)),
-      .atom (.add (.n (g + 4)) (.n (g + 1)) (.n (g + 3)))],
-   g + 5, g + 1, g + 2, g + 4, g + 3)
+    bp.1 ++
+    [.dispatch (.n osRate) ((c.lvAt lvl).map (osQueriesName lvl)) [.n lam, .n bp.2.1, .n (k + 1)]
+        (osRun r 4),
+      .atom (.load (.n r) (.n osRoots) (2 * lvl)), .atom (.load (.n (r + 1)) (.n osRoots) (2 * lvl + 1)),
+      .atom (.load (.n (r + 4)) (.n s.cb) s.co), .atom (.load (.n (r + 5)) (.n s.cb) (s.co + 1)),
+      .atom (.add (.n (r + 6)) (.n (r + 2)) (.n (r + 5)))],
+   r + 7, r + 2, r + 3, r + 4, r + 6, r + 5)
 
-/-- The materializations after a level's queries (`osQueries`): the fold challenges', the cap's
-and its flags' (the second materializations repeat them), the window pointers'. -/
+/-- The materializations after a level's queries (`osQueries`): the fold challenges' and the
+window pointers' (repeating the positions' first). -/
 def osQueriesMats (c : OsCfg) (lv : OsLv) (s : OsSt) : List OsMat :=
   let k := s.k
   let P := c.plan
   let m0 := s.mats
   let fp := osMatP P m0 osFch lv.foldsOff (k + 2)
   let m1 := osMatsAfter P m0 osFch lv.foldsOff (k + 2)
-  let cp := osMatP P m1 osCaps (4 * lv.capOff) fp.2.2
-  let m2 := osMatsAfter P m1 osCaps (4 * lv.capOff) fp.2.2
-  let flp := osMatP P m2 osFlags lv.capOff cp.2.2
-  let m3 := osMatsAfter P m2 osFlags lv.capOff cp.2.2
-  let r := flp.2.2
-  let cp2 := osMatP P m3 osCaps (4 * lv.capOff) (r + 2)
-  let flp2 := osMatP P m3 osFlags lv.capOff cp2.2.2
-  osMatsAfter P m3 osQbp lv.posOff flp2.2.2
+  osMatsAfter P m1 osQbp lv.posOff fp.2.2
 
 /-- A level's out-of-domain claim glued with the scalar `lam` (G:1621-1631), from `k`: its value
 and intro reread from `ood`, the scalar stored, the running sums updated; the next scalar
@@ -402,25 +388,25 @@ def osGlue (beta v c0 c1 c2 : ℕ) (s : OsSt) : List Stmt × OsSt :=
     .atom (.mul (.n (k + 6)) (.n beta) (.n v)), .atom (.add (.n (k + 7)) (.n s.t) (.n (k + 6)))],
    { s with k := k + 8, c := k + 1, b := k + 3, a := k + 5, t := k + 7 })
 
-/-- One level (G:1488-1646). -/
+/-- One level. -/
 def osLevel (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
   let f := osFolds osFch lv.foldsOff lv.folds s
   let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit c.plan lvl lv f.2
   let gr : List Stmt := [.call ("grind_check__L" ++ natStr lv.grind) [.n m.2.2] []]
-  let sq := osSqueezes c lvl lv m.2.1
+  let sq := osPositions c lvl lv m.2.1
   let lam := sq.2.k - 1
-  let lp := osLamPow lvl lam lv.queries sq.2.k
-  let lamN := lp.2.1
-  let q := osQueries c lvl lv lam lamN { sq.2 with k := lp.2.2 }
-  let s1 : OsSt := { sq.2 with k := q.2.1, w0 := q.2.2.2.1, w1 := q.2.2.2.2.2,
-                               co := sq.2.co + 2, mats := osQueriesMats c lv { sq.2 with k := lp.2.2 } }
+  let mu := osMu lvl lam sq.2.k
+  let q := osQueries c lvl lv lam { sq.2 with k := mu.2 }
+  let lamN := q.2.2.2.1
+  let s1 : OsSt := { sq.2 with k := q.2.1, w0 := q.2.2.2.2.1, w1 := q.2.2.2.2.2.2,
+                               co := sq.2.co + 2, mats := osQueriesMats c lv { sq.2 with k := mu.2 } }
   let o := if lvl = c.yrLevel then (([] : List Stmt), s1, lam) else
     let g := osOodGlue lvl lam s1
     (g.1, g.2, s1.k + 12)
   let beta := o.2.2
   let bk := o.2.1.k
-  let gl := osGlue beta q.2.2.1 q.2.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2 { o.2.1 with k := bk + 1 }
-  (f.1 ++ m.1 ++ gr ++ sq.1 ++ lp.1 ++ q.1 ++ o.1 ++
+  let gl := osGlue beta q.2.2.1 q.2.2.2.2.1 q.2.2.2.2.2.1 q.2.2.2.2.2.2 { o.2.1 with k := bk + 1 }
+  (f.1 ++ m.1 ++ gr ++ sq.1 ++ mu.1 ++ q.1 ++ o.1 ++
     [.atom (.mul (.n bk) (.n beta) (.n lamN)), .atom (.load (.n bk) (.n osBetas) lvl)] ++ gl.1,
    gl.2)
 
@@ -524,9 +510,9 @@ def osBases (c : OsCfg) (tch bd ls : ℕ) : ℕ → List OsLv → ℕ → List S
     let t := osBases c tch bd ls (lvl + 1) rest r.2.2
     (.atom (.load (.n k) (.n osBetas) lvl) :: r.1 ++ [.atom (.load (.n r.2.1) (.n ls) lvl)] ++ t.1, t.2)
 
-/-- One step of a residual chain (G:1737-1738, 1742-1743), from `k`: the position
-loaded at `pp·g^j`, its `residual_query` (`osResQuery`) over the row at `bd·g^row`, then
-`h ← (h + eq)·μ`. The statements, the new `h` and the next free value. -/
+/-- One step of a residual chain, from `k`: the position loaded at `pp·g^j`, its
+`residual_query` (`osResQuery`) over the row at `bd·g^row`, then `h ← (h + eq)·μ`. The
+statements, the new `h` and the next free value. -/
 def osResStep (pp bd row vo ncols mu : ℕ) (j h k : ℕ) : List Stmt × ℕ × ℕ :=
   let e := osResQuery k bd row vo ncols (k + 1)
   ([.atom (.load (.n k) (.n pp) j)] ++ e.1 ++
@@ -541,36 +527,38 @@ def osResSteps (pp bd row vo ncols mu : ℕ) : List ℕ → ℕ → ℕ → List
     let t := osResSteps pp bd row vo ncols mu js r.2.1 r.2.2
     (r.1 ++ t.1, t.2)
 
-/-- `RES_BATCH`: the queries a residual loop iteration takes. -/
+/-- `RES_BATCH`: the queries a residual batch takes. -/
 abbrev resBatch : ℕ := 8
 
-/-- The position offsets of a level's queries past its loop: `posOff + n - n % 8 + i`,
-`i < n % 8`. -/
-def osResTail (lv : OsLv) : List ℕ :=
-  (List.range (lv.queries % resBatch)).map fun i ↦
-    lv.posOff + (lv.queries - lv.queries % resBatch) + i
+/-- The name of `level_residual`'s specialization at a level's row. -/
+def osResidualName (lv : OsLv) : String :=
+  "level_residual__L" ++ natStr lv.queries ++ "_L" ++ natStr lv.logCols
 
-/-- Level `lvl`'s residual chain (G:1721-1744), from `k`: `μ` read from `level_mus`
-at `k`, the chain's buffer (`k + 2`) from `0`, the loop over its batches of eight queries, the
-remaining queries inline, `inner[lvl + 1] = inner[lvl] + scale·h`. -/
-def osResidual (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (k : ℕ) : List Stmt × ℕ :=
-  let tl := osResSteps osQpos bd (lvl * ligColsCap) lv.vanish lv.logCols k (osResTail lv)
-    (k + 9) (k + 10)
-  let e := tl.2.2
-  ([.atom (.load (.n k) (.n osMus) lvl)] ++ osHeap (lv.queries / resBatch + 1) (k + 1) ++
-    [.atom (.const (.n (k + 3)) (word 0 0 0)), .atom (.load (.n (k + 3)) (.n (k + 2)) 0)] ++
-    osLoopCall (c.resLoop lvl) (lv.queries / resBatch) [osQpos, bd, k + 2, k] (k + 4) ++
-    [.atom (.load (.n (k + 9)) (.n (k + 2)) (lv.queries / resBatch))] ++ tl.1 ++
-    [.atom (.load (.n e) (.n ich) lvl), .atom (.load (.n (e + 1)) (.n ls) lvl),
-      .atom (.mul (.n (e + 2)) (.n (e + 1)) (.n tl.2.1)), .atom (.add (.n (e + 3)) (.n e) (.n (e + 2))),
-      .atom (.load (.n (e + 3)) (.n ich) (lvl + 1))], e + 4)
+/-- Level `lvl`'s residual chain, from `k` and the materializations `mats`: the level's slots of
+`query_positions` and its row of `basis_d` materialized, `μ` read from `level_mus`, the dispatch on
+the rate into `level_residual`, `inner[lvl + 1] = inner[lvl] + scale·h`. The statements, the
+materializations after it and the next free value. -/
+def osResidual (c : OsCfg) (ich bd ls lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
+    List Stmt × List OsMat × ℕ :=
+  let P := c.plan
+  let qp := osMatP P mats osQpos lv.posOff k
+  let m1 := osMatsAfter P mats osQpos lv.posOff k
+  let bp := osMatP P m1 bd (lvl * ligColsCap) qp.2.2
+  let m2 := osMatsAfter P m1 bd (lvl * ligColsCap) qp.2.2
+  let j := bp.2.2
+  (qp.1 ++ bp.1 ++
+    [.atom (.load (.n j) (.n osMus) lvl),
+      .dispatch (.n osRate) ((c.lvAt lvl).map osResidualName) [.n qp.2.1, .n bp.2.1, .n j] [.n (j + 1)],
+      .atom (.load (.n (j + 2)) (.n ich) lvl), .atom (.load (.n (j + 3)) (.n ls) lvl),
+      .atom (.mul (.n (j + 4)) (.n (j + 3)) (.n (j + 1))), .atom (.add (.n (j + 5)) (.n (j + 2)) (.n (j + 4))),
+      .atom (.load (.n (j + 5)) (.n ich) (lvl + 1))], m2, j + 6)
 
 /-- Every level's residual sum, from `k`. -/
-def osResiduals (c : OsCfg) (ich bd ls : ℕ) : ℕ → List OsLv → ℕ → List Stmt × ℕ
-  | _, [], k => ([], k)
-  | lvl, lv :: rest, k =>
-    let r := osResidual c ich bd ls lvl lv k
-    let t := osResiduals c ich bd ls (lvl + 1) rest r.2
+def osResiduals (c : OsCfg) (ich bd ls : ℕ) : ℕ → List OsLv → List OsMat → ℕ → List Stmt × ℕ
+  | _, [], _, k => ([], k)
+  | lvl, lv :: rest, mats, k =>
+    let r := osResidual c ich bd ls lvl lv mats k
+    let t := osResiduals c ich bd ls (lvl + 1) rest r.2.1 r.2.2
     (r.1 ++ t.1, t.2)
 
 /-- The factors of an out-of-domain weight (G:1750-1755) over the coordinates `(z slot, source)`,
@@ -618,7 +606,7 @@ def osFinish (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
   let ls := pts.2 + 3
   let bs := osBases c tch bd ls 0 c.levels (pts.2 + 4)
   let ich := bs.2 + 1
-  let rs := osResiduals c ich bd ls 0 c.levels (bs.2 + 3)
+  let rs := osResiduals c ich bd ls 0 c.levels st.mats (bs.2 + 3)
   let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
   let k := od.2.2
   [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
@@ -638,45 +626,6 @@ def osBody (c : OsCfg) : List Stmt :=
   let lv := osLevels c 0 c.levels h.2
   let tl := osTail c lv.2
   h.1 ++ lv.1 ++ tl.1 ++ osFinish c tl.2.1 tl.2.2
-
-/-! ## The loop helpers -/
-
-/-- The squeeze loop's body (G:1562-1574), at `x, N, sqz, qpos, qwp, tabs` (values
-`0 .. 5`): the row `sqz·x^5`, its capacity loaded, one squeeze, the next capacity stored, the
-decoded positions and windows at `g^posOff·x^(192/depth)`, then the loop's tail. -/
-def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
-  let pw := osPowSteps 0 (osPowDigits (192 / lv.depth)) 0 40
-  let p1 := osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))
-  let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
-  let e := p2.2.2 + 1
-  [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 0)),
-    .atom (.mul (.n 9) (.n 2) (.n 8))] ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n (10 + i)) (.n 9) i)) ++
-    [.atom (.const (.n 15) (word 1 0 0)), .atom (.const (.n 16) (word 0 0 0)),
-      .atom (.const (.n 17) (word 0 0 0)), .atom (.const (.n 18) (word 0 0 0)),
-      .atom (.const (.n 19) (word 0 0 0))] ++
-    osSqueeze0 15 [10, 11, 12, 13, 14] 20 ++
-    ((List.range 5).map fun i ↦ .atom (.load (.n (28 + i)) (.n 9) (5 + i))) ++
-    pw.1 ++ p1.1 ++ [.atom (.mul (.n p1.2.2) (.n p1.2.1) (.n pw.2))] ++
-    p2.1 ++ [.atom (.mul (.n p2.2.2) (.n p2.2.1) (.n pw.2))] ++
-    [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n 39, .n p1.2.2, .n p2.2.2, .n 5] []] ++
-    osLoopTail name 6 e
-
-/-- The residual loop's body (G:1730-1739), at `xr, N, qpos, basis_d, chain, μ`
-(values `0 .. 5`): the batch's positions at `qpos·g^posOff·xr^8`, `h = chain[xr]`, eight steps
-`h ← (h + eq)·μ`, `chain[xr·g] = h`, then the loop's tail. -/
-def resLoopBody (lvl : ℕ) (lv : OsLv) (name : String) : List Stmt :=
-  let pp := osMat 2 lv.posOff 6
-  let x := pp.2.2
-  let st := osResSteps (x + 3) 3 (lvl * ligColsCap) lv.vanish lv.logCols 5 (List.range resBatch)
-    (x + 5) (x + 6)
-  let r := st.2.2
-  pp.1 ++ [.atom (.mul (.n x) (.n 0) (.n 0)), .atom (.mul (.n (x + 1)) (.n x) (.n x)),
-    .atom (.mul (.n (x + 2)) (.n (x + 1)) (.n (x + 1))), .atom (.mul (.n (x + 3)) (.n pp.2.1) (.n (x + 2))),
-    .atom (.mul (.n (x + 4)) (.n 4) (.n 0)), .atom (.load (.n (x + 5)) (.n (x + 4)) 0)] ++ st.1 ++
-    [.atom (.mul (.n r) (.n 4) (.n 0)), .atom (.load (.n st.2.1) (.n r) 1)] ++
-    osLoopTail name 6 (r + 1)
 
 end
 end LeanVM.Guest.B1.Whir

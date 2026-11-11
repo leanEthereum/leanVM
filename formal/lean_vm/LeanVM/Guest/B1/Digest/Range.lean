@@ -99,19 +99,18 @@ theorem core21_body : Fn.body Data.core22 =
      .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
      .atom (.const (.n 8) (word 128 0 0)),
      .atom (.rangeCheck (.n 2) (.n 9) (.n 10) (.n 11) (.n 8)),
-     .atom (.const (.n 12) (word 9272771591053052074 0 0)),
-     .atom (.rangeCheck (.n 1) (.n 13) (.n 14) (.n 15) (.n 12)),
-     .atom (.mul (.n 16) (.n 1) (.n 1)), .atom (.mul (.n 17) (.n 16) (.n 16)),
-     .atom (.mul (.n 18) (.n 17) (.n 17)), .atom (.mul (.n 19) (.n 18) (.n 18)),
-     .atom (.mul (.n 20) (.n 19) (.n 1)), .atom (.mul (.n 21) (.n 20) (.n 20)),
-     .atom (.mul (.n 22) (.n 21) (.n 21)), .atom (.mul (.n 23) (.n 22) (.n 22)),
-     .atom (.mul (.n 24) (.n 2) (.n 2)), .atom (.mul (.n 25) (.n 24) (.n 24)),
-     .atom (.mul (.n 26) (.n 25) (.n 25)), .atom (.mul (.n 27) (.n 26) (.n 26)),
-     .atom (.mul (.n 28) (.n 27) (.n 2)), .atom (.mul (.n 29) (.n 23) (.n 28)),
-     .atom (.mul (.n 30) (.n 29) (.n 3)),
-     .atom (.assertEq (.n 30) (.n 0)), .atom (.copy (.n 31) (.n 1)), .atom (.copy (.n 32) (.n 2)),
-     .atom (.copy (.n 33) (.n 3)),
-     .ret [.n 31, .n 32, .n 33]] :=
+     .atom (.touch (.n 12) (.n 1)),
+     .atom (.mul (.n 13) (.n 1) (.n 1)), .atom (.mul (.n 14) (.n 13) (.n 13)),
+     .atom (.mul (.n 15) (.n 14) (.n 14)), .atom (.mul (.n 16) (.n 15) (.n 15)),
+     .atom (.mul (.n 17) (.n 16) (.n 1)), .atom (.mul (.n 18) (.n 17) (.n 17)),
+     .atom (.mul (.n 19) (.n 18) (.n 18)), .atom (.mul (.n 20) (.n 19) (.n 19)),
+     .atom (.mul (.n 21) (.n 2) (.n 2)), .atom (.mul (.n 22) (.n 21) (.n 21)),
+     .atom (.mul (.n 23) (.n 22) (.n 22)), .atom (.mul (.n 24) (.n 23) (.n 23)),
+     .atom (.mul (.n 25) (.n 24) (.n 2)), .atom (.mul (.n 26) (.n 20) (.n 25)),
+     .atom (.mul (.n 27) (.n 26) (.n 3)),
+     .atom (.assertEq (.n 27) (.n 0)), .atom (.copy (.n 28) (.n 1)), .atom (.copy (.n 29) (.n 2)),
+     .atom (.copy (.n 30) (.n 3)),
+     .ret [.n 28, .n 29, .n 30]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- **`list_split` splits a count into big frames, whole claim groups and a rest.** -/
@@ -120,22 +119,22 @@ theorem list_split_sound : list_split_sound_Spec := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_list_split args rets).mp h
   rw [core21_body] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨-, c4, rc1, c8, rc2, c12, rc3, m16, m17, m18, m19, m20, m21, m22, m23, m24, m25, m26,
-    m27, m28, m29, m30, aeq, e31, e32, e33, hr⟩ := hb
+  obtain ⟨-, c4, rc1, c8, rc2, l12, m13, m14, m15, m16, m17, m18, m19, m20, m21, m22, m23,
+    m24, m25, m26, m27, aeq, e28, e29, e30, hr⟩ := hb
   obtain ⟨c, hc, hx3⟩ := rc_const hm (c := 16) (by norm_num) (by rw [c4, word_g16]) rc1
   obtain ⟨b, hb, hx2⟩ := rc_const hm (c := 7) (by norm_num) (by rw [c8, word_g7]) rc2
-  obtain ⟨a, ha, hx1⟩ := rc_const hm (c := 65535) (by norm_num) (by rw [c12, word_gmax]) rc3
+  obtain ⟨a, ha, hx1⟩ := load_gpow hm l12
   have hp' : args = [σ (.n 0)] := by rw [← hp]; rfl
   subst hp'
-  refine ⟨a, by simp only [maxKeys]; omega, b, by simp only [bigGroups]; omega, c,
+  refine ⟨a, ha, b, by simp only [bigGroups]; omega, c,
     by simp only [claimGroup]; omega, ?_, ?_⟩
-  · rw [← e_add_eq_zero_iff.mp aeq, m30, m29, m28, m27, m26, m25, m24, m23, m22, m21, m20, m19,
-      m18, m17, m16, hx1, hx2, hx3]
+  · rw [← e_add_eq_zero_iff.mp aeq, m27, m26, m25, m24, m23, m22, m21, m20, m19, m18, m17, m16,
+      m15, m14, m13, hx1, hx2, hx3]
     simp only [← pow_add]
     congr 1
     simp only [claimGroup, claimBig]
     ring
-  · rw [← hr, e31, e32, e33, hx1, hx2, hx3]
+  · rw [← hr, e28, e29, e30, hx1, hx2, hx3]
 
 end
 end LeanVM.Guest.B1.Digest

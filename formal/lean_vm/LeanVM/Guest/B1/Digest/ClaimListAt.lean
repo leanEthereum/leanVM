@@ -23,7 +23,7 @@ dispatches on `r` to `claim_list_last__L{r}` (`cl_core`: the evaluated valuation
 on a memory holding the zero state at the buffer). `chainCells`: the buffer's honest words, the
 state after each group (`claimChainMem_of_reads`).
 
-`claim_list_digest_completeAt`: for `n < 17 · 2^16` canonical claims' cells at `g^eP` among the
+`claim_list_digest_completeAt`: for `n < 136 · 2^20` canonical claims' cells at `g^eP` among the
 caller's words `Lin`, `claim_list_digest` is `CompleteAtD` returning their digest's cells.
 -/
 
@@ -407,7 +407,7 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
 
 set_option maxRecDepth 100000 in
 theorem cl_pure_all : ∀ k < 17,
-    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (332 + k) default).body = true := by
+    Stmt.pureList [clNames.getD k ""] (coreProgram.getD (319 + k) default).body = true := by
   decide +kernel
 
 theorem cl_pure {r : ℕ} (hr : r < 17) : coreProgram.PureIn [clNames.getD r ""] :=
@@ -467,18 +467,18 @@ def clBufs (n : ℕ) (_ : Val) : List ℕ :=
 def clTs : List (Tree → Prop) := [fun _ => True, fun _ => True, fun _ => True, fun _ => True]
 
 set_option maxRecDepth 20000 in
-/-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^16`
+/-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^20`
 canonical claims' cells at `g^eP` among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
-    {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
+    {eP n : ℕ} {cells : List E} (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) :
-    CompleteAtDT fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
+    CompleteAtDT fs cert 20 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells))))
       (NodeHonest coreProgram "claim_list_digest" (clQ n) (clCalls n) (clBufs n) clTs) := by
   intro fp
-  simp only [claimBig, maxKeys] at hn
+  simp only [claimBig, bigFramesCap] at hn
   have mH : ∀ s ∈ clHead, isAtomS s = true := by decide
   have mTl : ∀ s ∈ clTail, isAtomS s = true := by decide
   rcases Nat.eq_zero_or_pos n with rfl | hn0
@@ -568,7 +568,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
     set b := n % 136 / 17 with hbdef
     set r := n % 17 with hrdef
     have hnm : n = 136 * a + 17 * b + r := by omega
-    have ha16 : a < 65536 := by omega
+    have ha20 : a < 1048576 := by omega
     have hb8 : b < 8 := by omega
     have hr17 : r < 17 := Nat.mod_lt _ (by norm_num)
     set b0 := fp + fs "claim_list_digest" with hb0
@@ -589,29 +589,29 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
           Lin ++ Own, Returns []⟩,
         ⟨clNames[r]!, true, [chain * gen ^ (13 * (a + b)), gen ^ eP * gen ^ (544 * a + 68 * b)],
           Lin ++ Own, Returns (digestCells D)⟩]
-    have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
+    have hok : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert 20 k.f k.Lin k.args k.Out := by
       intro k hk ht
       simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
       rcases hk with rfl | rfl | rfl | rfl
-      · have := list_split_completeAt fs cert (a := a) (b := b) (c := r) (by simp [maxKeys]; omega)
+      · have := list_split_completeAt fs cert (a := a) (b := b) (c := r) (by simp [bigFramesCap]; omega)
           (by simp [bigGroups]; omega) (by simp [claimGroup]; omega)
         rwa [show claimBig * a + claimGroup * b + r = n by simp [claimBig, claimGroup]; omega] at this
       · simp only [decide_eq_true_eq] at ht
-        refine completeAt_of_rel_pureD big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 16
+        refine completeAt_of_rel_pureD big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
         have hr := hLe rd (memL_append.mp hm).1
         have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
         exact (guard_complete (find_of_idx big_idx (by rw [coreProgram_length]; omega))
           (grpc_shapeF grpc_big) (cl_bigBlocks hl hr hc hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
       · simp only [decide_eq_true_eq] at ht
-        refine completeAt_of_rel_pureD grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 16
+        refine completeAt_of_rel_pureD grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
         have hr := hLe rd (memL_append.mp hm).1
         have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
         have := (guard_complete (find_of_idx grp_idx (by rw [coreProgram_length]; omega))
           (grpc_shapeF grpc_ok) (cl_grpBlocks hl hr hc hmem)).2 ((one_add_gen_ne (by omega)).mpr ht)
         exact this
-      · show CompleteAtD fs cert 16 clNames[r]! (Lin ++ Own) _ _
+      · show CompleteAtD fs cert 20 clNames[r]! (Lin ++ Own) _ _
         rw [clNames_get hr17]
-        refine completeAt_of_rel_pureD (cl_pure hr17) (List.mem_singleton_self _) (fun rd hm => ?_) 16
+        refine completeAt_of_rel_pureD (cl_pure hr17) (List.mem_singleton_self _) (fun rd hm => ?_) 20
         have hr := hLe rd (memL_append.mp hm).1
         have hS := state_of_reads (hmOwn rd (memL_append.mp hm).2) (le_refl (a + b))
         rw [clU_last] at hS
@@ -623,7 +623,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
         rw [← cellsBytes_append, List.take_append_drop] at this
         rw [show 544 * a + 68 * b = 68 * (8 * a + b) by ring]
         exact this
-    have hokT : KidsDT fs cert 16 ks clTs :=
+    have hokT : KidsDT fs cert 20 ks clTs :=
       ⟨fun ht => (hok _ List.mem_cons_self ht).toT,
         fun ht => (hok _ (List.mem_cons_of_mem _ List.mem_cons_self) ht).toT,
         fun ht => (hok _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)) ht).toT,
@@ -631,7 +631,7 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
           (List.mem_cons_of_mem _ List.mem_cons_self))) ht).toT,
         trivial⟩
     obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-      kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 ks clTs hokT (b0 + 13 * (a + b + 1))
+      kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 20 ks clTs hokT (b0 + 13 * (a + b + 1))
     have hl0 : outs.length = 4 := hoo.length
     obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
     obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
@@ -799,13 +799,13 @@ theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V
       rw [hal]
       exact hown _ (by omega) (by omega)
 
-/-- **`claim_list_digest` is complete, placed**: `n < 136 · 2^16` canonical claims' cells at `g^eP`
+/-- **`claim_list_digest` is complete, placed**: `n < 136 · 2^20` canonical claims' cells at `g^eP`
 among the caller's words, its chain buffer after its frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
-    {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
+    {eP n : ℕ} {cells : List E} (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) :
-    CompleteAtD fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
+    CompleteAtD fs cert 20 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
   (claim_list_digest_completeAtT fs cert hn hl hc hLe hLr).toD
 

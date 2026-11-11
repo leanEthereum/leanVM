@@ -13,8 +13,8 @@ the completeness theorem, instantiated with the interactive completeness and sha
 strategy, says so for every proof the prover can produce. Then the load-bearing checks: a
 tampered leaf, a tampered sibling, the other row, a tampered root scalar, an opening missing and
 an extra scalar are rejected, and so is the honest proof of a strategy that loses
-interactively; a fuel too small for the proof-of-work search makes the prover fail, while a
-zero-bit proof of work needs no fuel; the nonce found is the smallest that passes.
+interactively; a fuel too small for the proof-of-work search makes the prover fail, while at
+zero bits the first nonce passes; the nonce found is the smallest that passes.
 -/
 
 namespace LeanVMTests.Protocol.Compile.Prover
@@ -83,7 +83,7 @@ def grindState (π : Proof) : Sponge :=
 
 /-- The nonce is the first `m` below the fuel that passes, and every smaller `m` fails. -/
 def smallestNonce (π : Proof) : Bool :=
-  let ok := fun m ↦ powOk 3 (nonceOf m) (powStep keccakF1600 (grindState π) (nonceOf m)).1
+  let ok := fun m ↦ powOk 3 (powStep keccakF1600 (grindState π) (nonceOf m)).1
   match (List.range 1000).find? ok with
   | some m => π.stream[3]? == some (nonceOf m) && ok m && (List.range m).all (! ok ·)
   | none => false
@@ -143,11 +143,12 @@ def badStrat : Strategy where
 /- No nonce below the fuel: the three-bit search with no fuel fails. -/
 #guard (prove keccak256 keccakF1600 (prog 3) strat seed 0).isNone
 
-/- A zero-bit proof of work needs no fuel: the nonce is `0`. -/
-#guard accepts 0 (prove keccak256 keccakF1600 (prog 0) strat seed 0)
+/- At zero bits every nonce passes: a fuel of one finds `0`. -/
+#guard accepts 0 (prove keccak256 keccakF1600 (prog 0) strat seed 1)
+#guard (prove keccak256 keccakF1600 (prog 0) strat seed 1).map (·.stream[3]?) = some (some (nonceOf 0))
 
 /-- The search fails exactly when no nonce below the fuel passes. -/
 example (sp : Sponge) : findNonce keccakF1600 3 sp 0 = none :=
-  (findNonce_eq_none_iff keccakF1600 3 sp 0).mpr ⟨by decide, fun _ h ↦ absurd h (by omega)⟩
+  (findNonce_eq_none_iff keccakF1600 3 sp 0).mpr fun _ h ↦ absurd h (by omega)
 
 end LeanVMTests.Protocol.Compile.Prover

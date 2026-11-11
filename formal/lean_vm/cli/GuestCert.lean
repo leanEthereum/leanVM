@@ -488,6 +488,7 @@ def atom (a : Core.Atom) (p : Pos) (facts : Array Exec.Atom) : WM (Pos × Array 
         return (p, facts)
     | _, _ => go p facts (copyPred (vi d) (vi x))
   | .load d q off => go p facts (derefPred off (vi q) (vi d))
+  | .touch t q => go p facts (derefPred 0 (vi q) (vi t))
   | .assertEq x y =>
     match loc.get? (vi x), loc.get? (vi y) with
     | some c, some c' => if c == c' then return (p, facts) else go p facts (copyPred (vi x) (vi y))
@@ -826,6 +827,15 @@ def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
     | _ => none
   else none
 
+/-- `level_queries__L{n_queries}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
+`(n_queries, base, depth, cap_depth)`. -/
+def lqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
+  if name.startsWith "level_queries__L" then
+    match (((name.drop 16).toString).splitOn "_L").map String.toNat? with
+    | [some q, some base, some _, some _, some d, some cd] => some (q, base, d, cd)
+    | _ => none
+  else none
+
 /-- `walk_path__L{path_depth}_L{cap_depth}`'s `(path_depth, cap_depth)`. -/
 def wpParams (name : String) : Option (ℕ × ℕ) :=
   if name.startsWith "walk_path__L" then
@@ -845,7 +855,8 @@ def loopsOf (body : List Core.Stmt) : List String :=
 `__loop4`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
 `opening_queries`' window pointers and iteration count (arguments 4 and 6, `OqMainWins`) and at
 its loop's `[t, x, N]` (arguments 2, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
-(`Check.tagNe`). -/
+(`Check.tagNe`); and `level_queries`' window pointers (argument 1, `lqTag`), which it hands
+`opening_queries` with its iteration count. -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
@@ -869,6 +880,9 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
   -- (`lean_ethereum.py:1308-1320`); its callers take it as an obligation on the window pointer
     if let some (pd, cd) := wpParams cf.name then
       m := m.insert cf.name [(winsTag (pd + cd) cd, [4])]
+    if let some (q, base, d, cd) := lqParams cf.name then
+      let (n, odd) := if base == 1 then (q / 2, q % 2) else (q, 0)
+      m := m.insert cf.name [(lqTag n odd base d cd, [3])]
   return m
 
 /-- The semantic tuples a function learns from a top-level call, `(statement after it, value)`:
@@ -887,9 +901,14 @@ def defAfter (body : List Core.Stmt) (v : ℕ) : ℕ :=
 
 /-- The obligations a function's top-level calls carry: the callee's walk tuples (tags `≥ 2`) on
 the arguments' values, `(statement of the call, statement after its arguments' definitions, the
-tagged tuples of values)`; a cut before the call takes them from the statements before it. -/
-def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body : List Core.Stmt) :
-    Except String (List (ℕ × ℕ × List (ℕ × List ℕ))) := do
+tagged tuples of values)`; a cut before the call takes them from the statements before it. At a
+dispatch, arm `e`'s tuples on the arguments' values and the selector's, conditional on that arm
+(`Check.selTag`), after the previous dispatch (whose arm on the same rate wrote what they say) and
+after the earliest definition of a value in each argument's cell (`cell`, write-once), the cut no
+later than just after the last call before the dispatch (so the window before ends at that call's
+return, which the completeness walk joins). -/
+def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body : List Core.Stmt)
+    (cell : ℕ → ℕ := id) : Except String (List (ℕ × ℕ × List (ℕ × List ℕ))) := do
   -- the top-level constants of one limb: an argument that is one takes a conditional tag
   -- (`Check.impTag`), since the compiler sets it in the call's own setup
   let consts : Std.HashMap ℕ ℕ := body.foldl (fun m s => match s with
@@ -897,8 +916,31 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
       | (k0, 0, 0) => m.insert d.idx k0
       | _ => m
     | _ => m) {}
+  -- the statement after the earliest definition of a value in each cell
+  let cellDef : Std.HashMap ℕ ℕ := body.zipIdx.foldl (fun m (s, i) => match s with
+    | .atom a => match (Check.atomVals a).head? with
+      | some v => if m.contains (cell v.idx) then m else m.insert (cell v.idx) (i + 1)
+      | none => m
+    | _ => m) {}
   let mut out : Array (ℕ × ℕ × List (ℕ × List ℕ)) := #[]
+  let mut prevDispatch := 0
+  let mut lastCall := 0
   for (s, i) in body.zipIdx do
+    if let .dispatch x fs args _ := s then
+      let mut tu : List (ℕ × List ℕ) := []
+      let mut lo := prevDispatch
+      for (g, e) in fs.zipIdx do
+        for (t, os) in (semMap.getD g []).filter (·.1 ≥ 2) do
+          let vs := os.map fun o => (args.getD (o - 2) (.n 0)).idx
+          if vs.any consts.contains then throw s!"statement {i}: a dispatch's tuple with a constant"
+          tu := tu ++ [(Check.selTag t e, vs ++ [x.idx])]
+          lo := vs.foldl (fun acc v => max acc ((cellDef.get? (cell v)).getD (defAfter body v))) lo
+      unless tu.isEmpty do
+        out := out.push (if lastCall ≥ max lo prevDispatch then lastCall else i, lo, tu)
+      prevDispatch := i + 1
+      lastCall := i + 1
+      continue
+    if let .call .. := s then lastCall := i + 1
     let some (g, args) := (match s with
       | .call g args _ => some (g, args)
       | .callIf _ g args => some (g, args)
@@ -951,8 +993,8 @@ memory bounds they take from named obligations. `verify_tables` dispatches on `g
 `CLAIM_GROUP = 17`; their argument 6);
 `da_verify` (its tree's `match` on the padded count's log) on `da_row_shape`'s checked argument;
 `check_opening_terminal` on `kb[i] = kappa_base[g^i]` (argument 8, cell 10) and on `kb[0]·g^19`,
-`kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^29`,
-`kb[7] < g^23` (`lean_ethereum.py:3366-3383`). -/
+`kb[7]·g^6`, which `verify_sub` knows from an obligation: `kb[0] = g^0`, `kb[1..6] < g^31`,
+`kb[7] < g^25` (`lean_ethereum.py:3366-3383`). -/
 def bounds (name : String) :
     List (ℕ × ℕ) × List (ℕ × ℕ) × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ × ℕ) :=
   if name == "da_row_shape" then ([], [(3, 11)], [], [])
@@ -962,8 +1004,9 @@ def bounds (name : String) :
   else if name == "log2_ceil_in_the_exponent__L0_L34" ||
     name == "log2_ceil_in_the_exponent__L15_L34" then
     ([], [(4, 34)], [], [])
+  else if name.startsWith "open_stacked__L" then ([(2, 4)], [], [], [])
   else if name == "check_opening_terminal" then
-    ([], [], [(10, 0, 1)] ++ (List.range 6).map (fun i => (10, i + 1, 29)) ++ [(10, 7, 23)], [])
+    ([], [], [(10, 0, 1)] ++ (List.range 6).map (fun i => (10, i + 1, 31)) ++ [(10, 7, 25)], [])
   else ([], [], [], [])
 
 /-- The selectors `1 + b·(1 + g)` (`b·b = b`, so `g^0` or `g^1`) a function dispatches on in
@@ -1104,7 +1147,8 @@ partial def laterNeeds (walk : String → Bool) (cellOf : Core.V → ℕ) :
       | .match_ x arms => arms.foldl (fun (a, b) arm => let (a2, b2) := laterNeeds walk cellOf arm; (a ++ a2, b ++ b2))
           ([cellOf x], [])
       | .ite _ z n => let (a1, b1) := laterNeeds walk cellOf z; let (a2, b2) := laterNeeds walk cellOf n; (a1 ++ a2, b1 ++ b2)
-      | .dispatch x fs args _ => (cellOf x :: fs.flatMap (preCells · args), [])
+      | .dispatch x fs args _ =>
+          (cellOf x :: (if fs.any walk then args.map cellOf else []) ++ fs.flatMap (preCells · args), [])
       | .call g args _ => ((if walk g then args.map cellOf else []) ++ preCells g args, [])
       | .callIf c g args =>
           ((if walk g then cellOf c :: args.map cellOf else []) ++ preCells g args, [])
@@ -1274,7 +1318,7 @@ def forcedOf (semMap : Std.HashMap String (List (ℕ × List ℕ))) (cf : Core.F
   return (knownOf cf.body (fun g => (bounds g).2.2.1)).map (fun (i, v, c, n) =>
       (i, i, [(cell v, c, n)], none3, noneS)) ++
     (semsOf cf.body).map (fun (i, q) => (i, i, none3, none3, [(0, [cell q])])) ++
-    (← callObligations semMap cf.body).map (fun (i, lo, tu) =>
+    (← callObligations semMap cf.body cell).map (fun (i, lo, tu) =>
       (i, lo, none3, none3, tu.map fun (t, vs) => (t, vs.map cell))) ++
     (if walkFn then (winObligations cf.body ((semMap.getD cf.name []).any (·.1 == tagGkr))).map
       fun (i, lo, ws) =>
@@ -1436,6 +1480,7 @@ def atomSig (cell : Core.V → ℕ) : Core.Atom → String × List ℕ × String
   | .keccak ins outs inOdd outOdd => ("keccak", (ins ++ outs).map cell, s!"{inOdd}{outOdd}")
   | .frameAddr p run => ("addr", (p :: run).map cell, "")
   | .hint h => ("hint", (Core.Hint.vals h).map cell, "")
+  | .touch t p => ("touch", [cell t, cell p], "")
 
 /-- The first occurrence of each value: its statement's signature. -/
 partial def firsts (cell : Core.V → ℕ) (m : Std.HashMap ℕ (String × List ℕ × String × Core.Stmt))
@@ -1603,6 +1648,7 @@ def factOf (cell : ℕ → ℕ) (st : St) : Core.Atom → St
   | .assertNe _ _ p =>
     if st.know.contains (cell p.idx) then st else { st with know := st.know.insert (cell p.idx) (1, 0, 0) }
   | .rangeCheck x y _ _ _ => { st with inK := (st.inK.insert (cell x.idx)).insert (cell y.idx) }
+  | .touch _ p => { st with inK := st.inK.insert (cell p.idx) }
   | .frameAddr p _ => { st with inK := st.inK.insert (cell p.idx) }
   | _ => st
 
@@ -1743,6 +1789,7 @@ def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OffsetInstruction) : Bool :=
     (bookAt st o3).any (fun x => match x with
       | .load d p off => cell d.idx == o3 && cell p.idx == o1 && off == o2
       | .rangeCheck x y t1 t2 _ => o2 == 0 && ((cell x.idx == o1 && cell t1.idx == o3) || (cell y.idx == o1 && cell t2.idx == o3))
+      | .touch t p => o2 == 0 && cell p.idx == o1 && cell t.idx == o3
       | _ => false) ||
     (match st.frames.get? o1 with
       | some fcs => fcs.any fun (o, fc) => o == o2 && (match fc with
@@ -2283,6 +2330,7 @@ def listed (l : List (ℕ × ℕ)) (v : Core.V) (c : ℕ) : Bool := v == Core.V.
 
 def atomListed (X : Ctx) : Core.Atom → Bool
   | .rangeCheck _ _ t1 t2 _ => listedT X t1 (X.cell t1.idx) && listedT X t2 (X.cell t2.idx)
+  | .touch t _ => listedT X t (X.cell t.idx)
   | .frameAddr _ (r :: rs) => let base := X.cell r.idx
     ((r :: rs).zipIdx.all fun (v, k) => X.cell v.idx == base + k && listed X.runs v (base + k))
   | _ => true
@@ -2496,6 +2544,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
   let atoms := allAtoms cf.body
   let tmps := atoms.flatMap fun
     | .rangeCheck _ _ t1 t2 _ => [t1, t2]
+    | .touch t _ => [t]
     | _ => []
   let runs := (atoms.flatMap fun
     | .frameAddr _ run => run
@@ -2743,6 +2792,27 @@ partial def okTree (leaf : ℕ → String) (lo n : ℕ) : String :=
     let m := lo + n / 2
     s!"(if h : j < {m} then {okTree leaf lo (n / 2)} else {okTree leaf m (n - n / 2)})"
 
+/-- The functions per declaration of an index's `∀ j` proofs (`okSplit`): one `okTree` over many
+more times out in the elaborator. -/
+def okBlock : ℕ := 256
+
+/-- A theorem `thm : ∀ j, 1 ≤ j → j < nFns → hyps P j` for `j` from `1` to `n`, `leaf k` at
+`j = k`: one theorem `thm_b` per `okBlock` functions (`okTree`), and `thm` from them by halving
+the blocks. `intro` names the further hypotheses, `args` passes them on. -/
+partial def okSplit (doc thm hyps P intro args : String) (leaf : ℕ → String) (n : ℕ) : String :=
+  let nb := (n + okBlock - 1) / okBlock
+  let lo (b : ℕ) : ℕ := 1 + b * okBlock
+  let hi (b : ℕ) : ℕ := min (n + 1) (lo (b + 1))
+  let blocks := String.join ((List.range nb).map fun b =>
+    s!"theorem {thm}_{b} : ∀ j, {lo b} ≤ j → j < {hi b} → {hyps}{P} j := fun j h1 h2 {intro}↦\n  " ++
+      okTree leaf (lo b) (hi b - lo b) ++ "\n\n")
+  let rec tree (b k : ℕ) : String :=
+    if k ≤ 1 then s!"({thm}_{b} j (by omega) (by omega){args})"
+    else s!"(if h : j < {lo (b + k / 2)} then {tree b (k / 2)} else {tree (b + k / 2) (k - k / 2)})"
+  blocks ++ s!"/-- {doc} -/\n" ++
+    s!"theorem {thm} : ∀ j, 1 ≤ j → j < nFns → {hyps}{P} j := fun j h1 h2 {intro}↦\n  " ++
+    s!"have h2 : j < {n + 1} := h2\n  " ++ tree 0 nb
+
 /-- The functions per module of `CheckOk` and `Plain` proofs (`Checked/Fn*.lean`). -/
 def fnBlock : ℕ := 50
 
@@ -2862,18 +2932,15 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
   let index := ("Checked", checkedHeader "" "Every compiled function checked, and the powers of `g`." ++
     String.join ((fnFiles ++ powFiles ++ okFiles).map fun (n, _) => s!"public import LeanVM.Guest.Checked.{n}\n") ++
     "\nnamespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Exec\n\n@[expose] public section\n\n" ++
-    "/-- Every function but `__jump_tables` is checked. -/\n" ++
-    "theorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j := fun j h1 h2 ↦\n  " ++
-    s!"have h2 : j < {fns.size} := h2\n  " ++
-    okTree (fun k => s!"ok{k}") 1 (fns.size - 1) ++ "\n\n" ++
+    okSplit "Every function but `__jump_tables` is checked." "all_ok" "" "CheckOk" "" ""
+      (fun k => s!"ok{k}") (fns.size - 1) ++ "\n\n" ++
     "/-- The functions whose windows take obligations (`Cut.known`, `Cut.knownIf`, `Cut.sems`): `main`,\n" ++
-    "`verify_sub`, the windowed Merkle walk's (`opening_queries`, its loops, `open_stacked`). -/\n" ++
+    "`verify_sub`, the windowed Merkle walk's (`opening_queries`, its loops, `walk_path`, `level_queries`,\n" ++
+    "`open_stacked`) and the GKR layers' (`verify_bus_gkr`, its layer loop). -/\n" ++
     s!"def oblFns : List ℕ := {listText (obl.map toString)}\n\n" ++
-    "/-- No other function takes anything from obligations. -/\n" ++
-    "theorem all_plain : ∀ j, 1 ≤ j → j < nFns → j ∉ oblFns → Plain j := fun j h1 h2 hn ↦\n  " ++
-    s!"have h2 : j < {fns.size} := h2\n  " ++
-    okTree (fun k => if obl.contains k then "absurd (by decide) hn" else s!"plain{k}")
-      1 (fns.size - 1) ++ "\n\n" ++
+    okSplit "No other function takes anything from obligations." "all_plain" "j ∉ oblFns → " "Plain"
+      "hn " " hn" (fun k => if obl.contains k then "absurd (by decide) hn" else s!"plain{k}")
+      (fns.size - 1) ++ "\n\n" ++
     "/-- Every power of `g` the guest names is one. -/\ntheorem powTree_ok : Data.powTree.OkW :=\n  " ++
     (powTopProof ps powCut 0).1 ++ "\n\nend\nend LeanVM.Guest.Checked\n")
   return fnFiles ++ powFiles ++ okFiles ++ [index]
@@ -3039,9 +3106,8 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
   let text := checkedHeader "B2C.Shared" "Every compiled function's sharing check." ++
     "public import Mathlib.Tactic.IntervalCases\n" ++ String.join (files.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Shared.{(p.fileStem.getD "")}\n") ++
     "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++ cutOk ++
-    "/-- Every function but `__jump_tables` passes the sharing check. -/\n" ++
-    "theorem all : ∀ j, 1 ≤ j → j < nFns → ShareOk j := fun j h1 h2 ↦\n  " ++
-    s!"have h2 : j < {n + 1} := h2\n  " ++ okTree (fun k => s!"ok{k}") 1 n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n"
+    okSplit "Every function but `__jump_tables` passes the sharing check." "all" "" "ShareOk" "" ""
+      (fun k => s!"ok{k}") n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n"
   return files ++ [(index, text)]
 
 /-- The sharing check's snapshots: one definition each, in files `Data/SnapsNN.lean` of at most
@@ -3419,9 +3485,8 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     "public import Mathlib.Tactic.IntervalCases\n" ++
     String.join (files.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Cplw.{(p.fileStem.getD "")}\n") ++
     "\nnamespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++ oks ++
-    "/-- **Every compiled function passes the completeness check.** -/\n" ++
-    "theorem cplOk_all : ∀ j, 1 ≤ j → j < nFns → CplOk j := fun j h1 h2 ↦\n  " ++
-    s!"have h2 : j < {n + 1} := h2\n  " ++ okTree (fun k => s!"ok{k}") 1 n ++
+    okSplit "**Every compiled function passes the completeness check.**" "cplOk_all" "" "CplOk" ""
+      "" (fun k => s!"ok{k}") n ++
     "\n\nend\nend LeanVM.Guest.B2C.Cplw\n"
   return [(dataDir / "CplParts.lean", data)] ++ files ++ [(("LeanVM/Guest/B2C" : System.FilePath) / "Cplw.lean", index)]
 

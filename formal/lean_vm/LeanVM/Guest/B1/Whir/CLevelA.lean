@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Whir.SpecLevel
 # A level up to its grinding check, honestly
 
 `osLevelA_final_complete`, `osLevelA_nonfinal_complete`: the rounds (`osFolds_complete`) on the
-words `xs`, then the final message (`osFinal_complete`) or the next commitment
-(`osCommit_complete`), the sponges named from the rounds' (`cF1`, `cRest`, `cF2`).
+words `xs`, then the final message (`osFinal_complete`) or the next commitment (`osCommit_complete`),
+the sponges named from the rounds' (`cF1`, `cRest`, `cF2`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -29,7 +29,8 @@ open LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader}
 
-theorem osFolds_co (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), 0 < n → (osFolds p off n st).2.co = 0
+theorem osFolds_co (p : ℕ) :
+    ∀ (n off : ℕ) (st : OsSt), 0 < n → (osFolds p off n st).2.co = 0
   | 0, _, _, h => absurd h (by omega)
   | 1, _, _, _ => rfl
   | n + 2, off, st, _ => osFolds_co p (n + 1) (off + 1) _ (by omega)
@@ -52,28 +53,29 @@ structure LvAOut (σ' : Val) (st st2 : OsSt) (cap quad : List E) (t cur : E) (co
 /-- **The last level up to its grinding check, honestly.** -/
 theorem osLevelA_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
     (hfin : lvl = c.yrLevel)
-    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
+    (hC : FoldCallC C rd)
     (hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
       args.getD 8 0 = σ (.n osFmsg) → C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
-    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 164 ≤ st.k)
-    (hcan : AllCanonical (st.fsv σ)) (hmo : MatsOk σ st.mats) (hmob : MatsBelow st.k st.mats) {xs : List E} (hxl : xs.length = 2 * lv.folds)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 161 ≤ st.k)
+    (hcan : AllCanonical (st.fsv σ)) (hmo : MatsOk σ st.mats) (hmob : MatsBelow st.k st.mats)
+    {xs : List E} (hxl : xs.length = 2 * lv.folds)
     (hrd : ReadsAt rd (st.cur σ) xs)
     (hst : ∀ j, j < lv.folds → LoadHolds rd (σ (.n osFch)) (lv.foldsOff + j)
       ((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.1.getD j 0))
     {ms : List E} {nonce : E} (hml : ms.length = c.yrLen)
     (hrd2 : ReadsAt rd (st.cur σ * gen ^ (2 * lv.folds)) (ms ++ [nonce]))
     (hout : ReadsAt rd (σ (.n osFmsg)) ms)
-    (hpow : powOk Whir.queryGrindingBits nonce
+    (hpow : powOk Whir.queryGrindingBits
       ((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms dsObserve).absorb
         nonce dsPowNonce).squeeze.1) = true) :
-    BlkF C rd σ st.k (osLevelA c lvl lv st).2.1.k
+    BlkF C rd σ st.k (osLvA c lvl lv st).2.1.k
       (seqF σ st.k (osFolds osFch lv.foldsOff lv.folds st).2.k
         (foldsF osFch lv.folds lv.foldsOff st σ xs)
         fun σ1 ↦ osFinalF σ1 (osFolds osFch lv.foldsOff lv.folds st).2 ms nonce)
-      (osLevelA c lvl lv st).1
-      (fun σ' ↦ LvAOut σ' st (osLevelA c lvl lv st).2.1
+      (osLvA c lvl lv st).1
+      (fun σ' ↦ LvAOut σ' st (osLvA c lvl lv st).2.1
         ((((foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1.absorbAll ms
           dsObserve).absorb nonce dsPowNonce).squeeze.2.cap)
         (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.2.1
@@ -81,11 +83,11 @@ theorem osLevelA_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} 
         (st.cur σ * gen ^ (2 * lv.folds + c.yrLen + 1)) 0 ∧ AgreeBelow st.k σ σ') := by
   set R := foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs with hR
   set st1 := (osFolds osFch lv.foldsOff lv.folds st).2 with hst1
-  have e : osLevelA c lvl lv st = ((osFolds osFch lv.foldsOff lv.folds st).1 ++ ((osFinal c st1).1 ++
+  have e : osLvA c lvl lv st = ((osFolds osFch lv.foldsOff lv.folds st).1 ++ ((osFinal c st1).1 ++
       [.call ("grind_check__L" ++ natStr lv.grind) [.n (osFinal c st1).2.2] []]),
       (osFinal c st1).2.1, (osFinal c st1).2.2) := by
     have hc : (lvl = c.yrLevel) = True := eq_true hfin
-    simp only [osLevelA, hc, ↓reduceIte, List.append_assoc]
+    simp only [osLvA, hc, ↓reduceIte, List.append_assoc]
     rfl
   rw [e]
   dsimp only
@@ -101,7 +103,7 @@ theorem osLevelA_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} 
   have ecur : st.cur σ1 = st.cur σ := (OsSt.agree hb ha1').2.2.2.2
   have hrd1 : ReadsAt rd (st1.cur σ1) (ms ++ [nonce]) := by rw [fo.cur, ecur]; exact hrd2
   have hout1 : ReadsAt rd (σ1 (.n osFmsg)) ms := by rw [eF]; exact hout
-  have hpow1 : powOk Whir.queryGrindingBits nonce
+  have hpow1 : powOk Whir.queryGrindingBits
       (((st1.F σ1).absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.1 = true := by
     rw [fo.F]; exact hpow
   have hB := osFinal_complete (C := C) (rd := rd) (c := c) hFm hGr (st := st1) σ1 fo.fs fo.co fo.below
@@ -131,13 +133,13 @@ theorem osLevelA_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} 
 /-- **A level that is not the last, up to its grinding check, honestly.** -/
 theorem osLevelA_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val)
     (hnf : lvl ≠ c.yrLevel) (h1 : 1 ≤ lv.folds)
-    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
+    (hC : FoldCallC C rd)
     (hCan : ∀ args rets, MeaningAssertCanonical args rets → C "assert_canonical" args rets)
     (hOod : ∀ args rets, MeaningOpeningOodPoint lv.logCols rd args rets →
       C ("opening_ood_point__L" ++ natStr lv.logCols) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
-    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 164 ≤ st.k)
+    (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 161 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hlvl : (lvl + 1) * ligColsCap < u128Bound)
     (hmo : MatsOk σ st.mats) (hmob : MatsBelow st.k st.mats)
     {xs : List E} (hxl : xs.length = 2 * lv.folds)
@@ -154,16 +156,16 @@ theorem osLevelA_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsS
     (hy : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 1) y)
     (hc0 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0)
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)
-    (hpow : powOk Whir.queryGrindingBits nonce
+    (hpow : powOk Whir.queryGrindingBits
       (cF2 (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1 ra rb lv.logCols y c0 c2
         nonce).squeeze.1 = true) :
-    BlkF C rd σ st.k (osLevelA c lvl lv st).2.1.k
+    BlkF C rd σ st.k (osLvA c lvl lv st).2.1.k
       (seqF σ st.k (osFolds osFch lv.foldsOff lv.folds st).2.k
         (foldsF osFch lv.folds lv.foldsOff st σ xs)
         fun σ1 ↦ fun j ↦ segLookup (commitSegs c.plan σ1 (osFolds osFch lv.foldsOff lv.folds st).2 lvl
           lv.logCols ra rb y c0 c2 nonce) (j - (osFolds osFch lv.foldsOff lv.folds st).2.k))
-      (osLevelA c lvl lv st).1
-      (fun σ' ↦ LvAOut σ' st (osLevelA c lvl lv st).2.1
+      (osLvA c lvl lv st).1
+      (fun σ' ↦ LvAOut σ' st (osLvA c lvl lv st).2.1
         (capOf (cF2 (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).1 ra rb lv.logCols y c0
           c2 nonce).perm)
         (foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs).2.2.1
@@ -171,12 +173,12 @@ theorem osLevelA_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsS
         (st.cur σ * gen ^ (2 * lv.folds + 6)) 6 ∧ AgreeBelow st.k σ σ') := by
   set R := foldsTr lv.folds (st.F σ) (st.quad σ) (σ (.n st.t)) xs with hR
   set st1 := (osFolds osFch lv.foldsOff lv.folds st).2 with hst1
-  have e : osLevelA c lvl lv st = ((osFolds osFch lv.foldsOff lv.folds st).1 ++
+  have e : osLvA c lvl lv st = ((osFolds osFch lv.foldsOff lv.folds st).1 ++
       ((osCommit c.plan lvl lv st1).1 ++
         [.call ("grind_check__L" ++ natStr lv.grind) [.n (osCommit c.plan lvl lv st1).2.2] []]),
       (osCommit c.plan lvl lv st1).2.1, (osCommit c.plan lvl lv st1).2.2) := by
     have hc : (lvl = c.yrLevel) = False := eq_false hnf
-    simp only [osLevelA, hc, ↓reduceIte, List.append_assoc]
+    simp only [osLvA, hc, ↓reduceIte, List.append_assoc]
     rfl
   rw [e]
   dsimp only
@@ -194,7 +196,7 @@ theorem osLevelA_nonfinal_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsS
   have hz1 : ReadsAt rd (σ1 (.n osOodz) * gen ^ ((lvl + 1) * ligColsCap))
       (challengeOf (commitF1 σ1 st1 ra rb).perm :: (commitRest σ1 st1 ra rb lv.logCols).1) := by
     rw [commitF1_eq, commitRest_eq, fo.F, e1 osOodz (by unfold osOodz; omega)]; exact hz
-  have hpow1 : powOk Whir.queryGrindingBits nonce
+  have hpow1 : powOk Whir.queryGrindingBits
       (commitF2 σ1 st1 ra rb lv.logCols y c0 c2 nonce).squeeze.1 = true := by
     rw [commitF2_eq, fo.F]; exact hpow
   have hB := osCommit_complete (C := C) (rd := rd) (plan := c.plan) (lvl := lvl) (lv := lv) hCan hOod hGr (st := st1)

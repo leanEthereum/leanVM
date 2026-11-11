@@ -38,7 +38,7 @@ def mulk(a, b):
 GWINV = {}
 for d in range(6000):
     GWINV.setdefault(str(gpow(d)), d)
-BASES = {13: "caps", 15: "flags", 21: "fold_challenges", 29: "query_win_ptrs", 161: "ood_z"}
+ALLOC = re.compile(r"\s*hint %#0(?:\[(\d+)\])? = HeapBuf\(")
 MUL = re.compile(r"\s*%#0(?:\[(\d+)\])? = %#0(?:\[(\d+)\])? \* %#0(?:\[(\d+)\])?$")
 CST = re.compile(r"\s*%#0(?:\[(\d+)\])? = (\d+)$")
 
@@ -46,8 +46,12 @@ CST = re.compile(r"\s*%#0(?:\[(\d+)\])? = (\d+)$")
 def plan(m):
     out = subprocess.run(["./.lake/build/bin/guest-core", "--show", f"open_stacked__L{m}"],
                          check=True, capture_output=True, text=True).stdout
-    consts, rec, res, seen = {}, {}, [], set()
+    consts, rec, res, seen, bases = {}, {}, [], set(), set()
     for ln in out.split("\n"):
+        h = ALLOC.match(ln)
+        if h:
+            bases.add(int(h.group(1) or 0))
+            continue
         a = CST.match(ln)
         if a:
             consts[int(a.group(1) or 0)] = a.group(2)
@@ -59,7 +63,7 @@ def plan(m):
         if C not in consts or consts[C] not in GWINV:
             continue
         d = GWINV[consts[C]]
-        if B in BASES:
+        if B in bases:
             rec[A] = (B, d)
             seen.add((B, d))
         elif B in rec:
@@ -72,7 +76,9 @@ def plan(m):
 
 
 def main():
-    rows = [plan(m) for m in range(28)]
+    arms = int(re.search(r"abbrev ligNSizes : Nat := (\d+)",
+                         open("LeanVM/Guest/B1/Whir/Config.lean").read()).group(1))
+    rows = [plan(m) for m in range(arms)]
     body = "\n".join(
         f"  | {m} => [{', '.join(f'({b}, {e}, {s})' for b, e, s in r)}]" for m, r in enumerate(rows))
     text = f'''/-
@@ -86,9 +92,9 @@ module
 /-!
 # The shifted pointers `open_stacked` materializes from earlier ones
 
-`osMatPlan m`: the triples `(base, exp, src)` of candidate `m`: the compiler materializes the
-pointer `base·g^exp` (the value `base` one of `merkle_caps` 13, `merkle_cap_active` 15,
-`fold_challenges` 21, `query_win_ptrs` 29, `ood_z` 161) from its materialization `base·g^src`
+`osMatPlan m`: the triples `(base, exp, src)` of size `m`: the compiler materializes the
+pointer `base·g^exp` (the value `base` one of the buffers the body allocates: `fold_challenges`
+18, `query_positions` 24, `query_win_ptrs` 26, `ood_z` 158, `basis_d`) from its materialization `base·g^src`
 (`materialize`, `Guest/Expand.lean`: from the nearest earlier one whose distance is a constant
 already set). The template (`osMatP`) follows it; `Whir/Data*.lean` check the result.
 -/
@@ -97,7 +103,7 @@ namespace LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-/-- Candidate `m`'s materializations from earlier ones. -/
+/-- Size `m`'s materializations from earlier ones. -/
 def osMatPlan : Nat → List (Nat × Nat × Nat)
 {body}
   | _ => []

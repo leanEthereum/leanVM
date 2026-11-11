@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Main.NodeHonestAt
 /-!
 # The walk by hinted indices, placed
 
-`child_claim_list_any_completeAtTB`: for `n = 136a + 17b + c < 136 · 2^16` honest records
+`child_claim_list_any_completeAtTB`: for `n = 136a + 17b + c < 136 · 2^20` honest records
 (`RecMem`: slots `o j` below `L`, marks `base · g^j` at `region · g^(o j)`, cells at
 `entries · g^(4 o j)`) among the caller's words, with `L ≤ 2^κ` (the range checks read below
 `2^κ`), `child_claim_list_any` on `[g^eP, g^rg, base, g^L, g^a, g^b, g^c]` is complete returning
@@ -84,11 +84,11 @@ def anyB (fs : String → ℕ) (n : ℕ) : ℕ :=
 
 set_option maxRecDepth 20000 in
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape, within its bound**:
-`n < 136 · 2^16` honest records among the caller's words, its chain buffer after its frame
+`n < 136 · 2^20` honest records among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their cells' digest. -/
 theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -97,12 +97,12 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]
       (Returns (digestCells (keccak256 (cellsBytes cells)))) (anyHonest n) (anyB fs n) := by
   intro fp
-  simp only [claimBig, maxKeys] at hn
+  simp only [claimBig, bigFramesCap] at hn
   set a := n / 136 with hadef
   set b := n % 136 / 17 with hbdef
   set r := n % 17 with hrdef
   have hnm : n = 136 * a + 17 * b + r := by omega
-  have ha16 : a < 65536 := by omega
+  have ha20 : a < 1048576 := by omega
   have hb8 : b < 8 := by omega
   have hr17 : r < 17 := Nat.mod_lt _ (by norm_num)
   set b0 := fp + fs "child_claim_list_any" with hb0
@@ -133,7 +133,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
       [(a + 1) * fs "__loop17", (b + 1) * fs "__loop18", fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtB fs cert (j := 349)
+      refine anyLoop_completeAtB fs cert (j := 336)
         (find_of_idx any136_idx (by rw [coreProgram_length]; omega)) any136_ok any136c_head
         any136c_canon any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
         (chP := b0) (n0 := 0) (pre0 := []) (o := o) (cells := cells) rfl rfl rfl (by simp)
@@ -148,7 +148,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
         exact this
       · rw [Nat.add_assoc]; exact hOR _ (by omega)
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtB fs cert (j := 350)
+      refine anyLoop_completeAtB fs cert (j := 337)
         (find_of_idx any17_idx (by rw [coreProgram_length]; omega)) any17_ok any17c_parts.1
         any17c_parts.2.1 any17c_parts.2.2.1 any17c_parts.2.2.2 any17_nb any17_unplaced
         (by norm_num) (chP := b0 + 13 * a) (n0 := 64 * a)
@@ -350,7 +350,7 @@ theorem child_claim_list_any_completeAtTB (fs : String → ℕ) (cert : String �
 /-- **`child_claim_list_any` is complete, placed, by a tree of honest shape.** -/
 theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -363,7 +363,7 @@ theorem child_claim_list_any_completeAtT (fs : String → ℕ) (cert : String �
 /-- **`child_claim_list_any` is complete, placed.** -/
 theorem child_claim_list_any_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
     {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))

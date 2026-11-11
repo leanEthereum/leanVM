@@ -72,7 +72,7 @@ def qwTop (d t : ℕ) : ℕ := if t < 192 / d then t * d else min 192 (192 / d *
 
 /-- What the proof needs of a shape, decided for the deployed ones. -/
 def QwShape (d cd : ℕ) : Prop :=
-  14 ≤ d ∧ d ≤ 26 ∧ 192 / d * qwN d cd ≤ 56 ∧ qwOff d cd 0 = 0 ∧ qwN d cd ≤ 8 ∧
+  12 ≤ d ∧ d ≤ 30 ∧ 192 / d * qwN d cd ≤ 56 ∧ qwOff d cd 0 = 0 ∧ qwN d cd ≤ 8 ∧
     (∀ i < qwN d cd, 1 ≤ (qwWin d cd i).2 ∧ (qwWin d cd i).2 ≤ 7 ∧
       qwOff d cd i + (qwWin d cd i).2 = qwOff d cd (i + 1) ∧
       (qwWin d cd i).1 + (qwWin d cd i).2 ≤ d) ∧
@@ -293,7 +293,7 @@ theorem qwSums {d cd cut : ℕ} (hs : QwShape d cd) (hc : cut ≤ 64) {ns : ℕ 
     obtain ⟨ih1, ih2⟩ := qwSums hs hc hns m (by omega)
     have ht := qw_tiled hs hns
     obtain ⟨hw1, hw7, he, hd⟩ := hs.2.2.2.2.2.1 m (by omega)
-    have hd26 := hs.2.1
+    have hd30 := hs.2.1
     have hS := tS_lt ht m (by omega)
     rw [qwOff_lt (by omega)] at hS
     set off := (qwWin d cd m).1
@@ -349,7 +349,7 @@ theorem qwSums {d cd cut : ℕ} (hs : QwShape d cd) (hc : cut ≤ 64) {ns : ℕ 
 
 theorem qwPr_sound {rd : Reader} {σ : Val} {j base cut d k : ℕ} {lo hi : V} {recon : Option V}
     (h : qwAH rd σ (qwPr j base cut d k lo hi recon).1) (hrec : recon = none → base = 0)
-    {P : ℕ} (hP : P < 2 ^ d) (hd : 1 ≤ d) (hd26 : d ≤ 26) (hbase : base + d ≤ 192)
+    {P : ℕ} (hP : P < 2 ^ d) (hd : 1 ≤ d) (hd30 : d ≤ 30) (hbase : base + d ≤ 192)
     (hcut : cut = 64 - base % 64) (hlo : σ lo = eOfNat (P % 2 ^ cut))
     (hhi : cut < d → σ hi = eOfNat (P / 2 ^ cut)) :
     LoadHolds rd (σ (.n 1)) j (eOfNat P) ∧
@@ -507,8 +507,8 @@ theorem qwPos_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
       (qwPos d cd j k recon).2.2.isSome = true ∧
       ∃ p : E, LoadHolds L.read (σ (.n 2)) j p ∧
         FrameRun L.read p (qwN d cd) fun i ↦ gen ^ ((P >>> (qwWin d cd i).1) % 2 ^ (qwWin d cd i).2) := by
-  have hd14 := hs.1
-  have hd26 := hs.2.1
+  have hd12 := hs.1
+  have hd30 := hs.2.1
   have hwin := hs.2.2.2.2.2.1
   have hN8 := hs.2.2.2.2.1
   have hdpos : 0 < d := by omega
@@ -538,7 +538,7 @@ theorem qwPos_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
         obtain ⟨-, -, he, -⟩ := hwin (qwN d cd - 1) (by omega)
         rw [Nat.zero_add, ← qwOff_lt (by omega), he, Nat.sub_add_cancel hN1, qwOff_top]
         exact hc⟩)
-  obtain ⟨hpos, hrc⟩ := qwPr_sound hpr (fun h0 ↦ by rw [hrec h0, Nat.zero_mul]) hP (by omega) hd26
+  obtain ⟨hpos, hrc⟩ := qwPr_sound hpr (fun h0 ↦ by rw [hrec h0, Nat.zero_mul]) hP (by omega) hd30
     hbase rfl (by rw [qwOpt_getD (σ := σ) hlos, elo, sl]; simp [qwOpt, P])
     (fun hc ↦ by rw [qwOpt_getD (σ := σ) (hhis hc), ehi, sh]; simp [qwOpt, P])
   have hjn : j * qwN d cd + qwN d cd ≤ 56 := by
@@ -643,7 +643,7 @@ theorem qw_sound {name : String} {d cd : ℕ} (hs : QwShape d cd) (hq : QwIs nam
   rw [hbody] at hb
   subst hp
   simp only [List.map_cons, List.map_nil, List.getD_cons_succ, List.getD_cons_zero] at hT
-  have hd14 := hs.1
+  have hd12 := hs.1
   have hper : 192 / d * d ≤ 192 := Nat.div_mul_le_self 192 d
   have hper1 : 1 ≤ 192 / d := (Nat.le_div_iff_mul_le (by omega)).mpr (by have := hs.2.1; omega)
   unfold qwBody at hb

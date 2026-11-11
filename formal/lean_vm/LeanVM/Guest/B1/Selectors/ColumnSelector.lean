@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Selectors.ColumnSelector
 
-  B1 for `column_selector`: its 29 specializations rebuild a column's offset from hinted
-  base-16 digits below `2^28` and return the eq weight of its bits above `κ`, a nibble at a time
+  B1 for `column_selector`: its 33 specializations rebuild a column's offset from hinted
+  base-16 digits below `2^32` and return the eq weight of its bits above `κ`, a nibble at a time
   off the opening point's tables.
 -/
 
@@ -15,17 +15,17 @@ public import LeanVM.Guest.B1.Placement.Common
 # `column_selector` (TRIAGE G #68)
 
 `column_selector(offset, sel_eq, sel_g, κ)` (G:3181-3208) hints the `g`-power digits `g^u_k` of
-`offset`'s exponent's nibbles `κ / 4 .. 6` (`hint_decompose_digits_exponent`) and, for each
+`offset`'s exponent's nibbles `κ / 4 .. 7` (`hint_decompose_digits_exponent`) and, for each
 (`j = κ / 4 + k`, the first `4j + 4 - κ` wide, the others four), range-checks `u_k < 16`, reads
 the nibble's eq weight at `sel_eq·g^u` (offset `64j + 16(w - 1)`, the strided level-`w - 1`
 table) and its share `g^(u·16^j)` at `sel_g·g^u` (offset `16j`), and multiplies them up; then
 asserts the rebuilt power is `offset`. So `offset = g^o`, `o = Σ u_k 16^j` (`csDig`), below
-`2^28` and a multiple of `16^(κ / 4)`; once `o` is a multiple of `2^κ` (the placement), the lowest
+`2^32` and a multiple of `16^(κ / 4)`; once `o` is a multiple of `2^κ` (the placement), the lowest
 digit's bits below `κ` are zero and the strided table holds it, and the selector is the eq weight
-of `o`'s bits `κ .. 27`.
+of `o`'s bits `κ .. 31`.
 
 The specialization `column_selector__L{κ}` is the template `csPre κ` (`csFound`, by kernel
-evaluation for all `κ < 29`): the hint, nibble `k` from value `csC κ k` (`csNibT`), the assertion
+evaluation for all `κ < 31`): the hint, nibble `k` from value `csC κ k` (`csNibT`), the assertion
 and the copy of the selector.
 -/
 
@@ -147,7 +147,7 @@ theorem prod_gen_pow_csDig (u : ℕ → ℕ) (b : ℕ) : ∀ N : ℕ,
 /-! ## The template -/
 
 /-- The number of digits of `column_selector__L{κ}`. -/
-def csN (κ : ℕ) : ℕ := 7 - κ / 4
+def csN (κ : ℕ) : ℕ := 8 - κ / 4
 
 /-- The width of nibble `k`. -/
 def csW (κ k : ℕ) : ℕ := if k = 0 then 4 * (κ / 4) + 4 - κ else 4
@@ -188,12 +188,12 @@ def csNibT (κ k : ℕ) : List Stmt :=
 
 /-- The hint of the digits, at values `3 .. 3 + csN κ - 1`. -/
 def csHint (κ : ℕ) : Stmt :=
-  .atom (.hint (.digitsExp (.n 0) 28 (csN κ) 4 (4 * (κ / 4)) none
+  .atom (.hint (.digitsExp (.n 0) 32 (csN κ) 4 (4 * (κ / 4)) none
     (.stack ((List.range (csN κ)).map fun k ↦ .n (3 + k)))))
 
 /-- `column_selector__L{κ}`'s statements before its `ret`, the hint first. -/
 def csPre (κ : ℕ) : List Stmt :=
-  csHint κ :: if κ = 28 then
+  csHint κ :: if κ = 32 then
     [.atom (.const (.n 3) (word 1 0 0)), .atom (.assertEq (.n 3) (.n 0)),
       .atom (.const (.n 4) (word 1 0 0))]
   else ((List.range (csN κ)).map (csNibT κ)).flatten ++
@@ -201,7 +201,7 @@ def csPre (κ : ℕ) : List Stmt :=
       .atom (.copy (.n (csC κ (csN κ))) (.n (csSel κ (csN κ - 1))))]
 
 /-- The value `column_selector__L{κ}` returns. -/
-def csRet (κ : ℕ) : ℕ := if κ = 28 then 4 else csC κ (csN κ)
+def csRet (κ : ℕ) : ℕ := if κ = 32 then 4 else csC κ (csN κ)
 
 /-- The function found by name is the template. -/
 noncomputable def csCheck (κ : ℕ) : Bool :=
@@ -210,9 +210,9 @@ noncomputable def csCheck (κ : ℕ) : Bool :=
       tbStmtsEqb fn.body (csPre κ ++ [.ret [.n (csRet κ)]])
   | none => false
 
-theorem csCheck_all : (List.range 29).all csCheck = true := by decide +kernel
+theorem csCheck_all : (List.range 31).all csCheck = true := by decide +kernel
 
-theorem csFound {κ : ℕ} (hκ : κ < 29) : ∃ fn : Fn,
+theorem csFound {κ : ℕ} (hκ : κ < 31) : ∃ fn : Fn,
     coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n 0, .n 1, .n 2] ∧
       fn.body = csPre κ ++ [.ret [.n (csRet κ)]] := by
   have h := List.all_eq_true.mp csCheck_all κ (List.mem_range.mpr hκ)
@@ -284,14 +284,14 @@ theorem prod_Ico_four {M : Type} [CommMonoid M] (F : ℕ → M) (a : ℕ) :
   congr 1
   ext t; simp [Finset.mem_Ico, Finset.mem_filter]; omega
 
-/-- The nibbles cover the coordinates `κ .. 27`: with `H` trivial below `κ`, the product over the
-nibbles from `κ / 4` is the one over `κ .. 27`. -/
-theorem cs_cover {M : Type} [CommMonoid M] (G : ℕ → M) {κ : ℕ} (hκ : κ < 28) :
+/-- The nibbles cover the coordinates `κ .. 31`: with `H` trivial below `κ`, the product over the
+nibbles from `κ / 4` is the one over `κ .. 31`. -/
+theorem cs_cover {M : Type} [CommMonoid M] (G : ℕ → M) {κ : ℕ} (hκ : κ < 32) :
     ∏ k ∈ Finset.range (csN κ), ∏ t ∈ Finset.range 4,
         (if κ ≤ 4 * (κ / 4) + 4 * k + t then G (4 * (κ / 4) + 4 * k + t) else 1) =
-      ∏ i ∈ Finset.range (28 - κ), G (κ + i) := by
+      ∏ i ∈ Finset.range (32 - κ), G (κ + i) := by
   rw [prod_range_four_blocks (fun i ↦ if κ ≤ i then G i else 1) (4 * (κ / 4)) (csN κ),
-    show 4 * csN κ = (κ - 4 * (κ / 4)) + (28 - κ) by unfold csN; omega, Finset.prod_range_add]
+    show 4 * csN κ = (κ - 4 * (κ / 4)) + (32 - κ) by unfold csN; omega, Finset.prod_range_add]
   rw [Finset.prod_eq_one fun i hi => by
     have := Finset.mem_range.mp hi; rw [ite_eq_right (by omega)], one_mul]
   refine Finset.prod_congr rfl fun i _ => ?_
@@ -301,7 +301,7 @@ theorem cs_cover {M : Type} [CommMonoid M] (G : ℕ → M) {κ : ℕ} (hκ : κ 
 
 section Math
 
-variable {κ : ℕ} (hκ : κ < 28) {u : ℕ → ℕ} (hu : ∀ k < csN κ, u k < 16)
+variable {κ : ℕ} (hκ : κ < 32) {u : ℕ → ℕ} (hu : ∀ k < csN κ, u k < 16)
 include hκ hu
 
 omit hκ in
@@ -339,11 +339,11 @@ theorem cs_dvd (hal : 2 ^ κ ∣ 16 ^ (κ / 4) * csDig u (csN κ)) (k : ℕ) (hk
   · simp
 
 /-- **The selector**: the digits' eq weights off the strided tables multiply to the eq weight of
-the number's bits `κ .. 27`. -/
+the number's bits `κ .. 31`. -/
 theorem cs_sel_prod {p p1 : List E}
-    (hp : p.length = 28) (hp1 : p1.length = 28) :
+    (hp : p.length = 32) (hp1 : p1.length = 32) :
     ∏ k ∈ Finset.range (csN κ), selEqEntry p p1 (κ / 4 + k) (csW κ k - 1) (u k) =
-      bitsEq ((List.range (28 - κ)).map fun i ↦ (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i))
+      bitsEq ((List.range (32 - κ)).map fun i ↦ (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i))
         (p.drop κ) (p1.drop κ) := by
   let G : ℕ → E := fun i ↦
     if (16 ^ (κ / 4) * csDig u (csN κ)).testBit i then p.getD i 0 else p1.getD i 0
@@ -364,10 +364,10 @@ theorem cs_sel_prod {p p1 : List E}
       rw [cs_bit hu hk ht', show 4 * (κ / 4 + k) + t = 4 * (κ / 4) + 4 * k + t by ring]
     · rw [ite_eq_right (fun h => hct (hc.mp h)), ite_eq_right hct]
   rw [Finset.prod_congr rfl (fun k hk => hxe k (Finset.mem_range.mp hk)), cs_cover G hκ,
-    bitsEq_eq_prod (m := 28 - κ) (by simp) (by simp [hp]) (by simp [hp1])]
+    bitsEq_eq_prod (m := 32 - κ) (by simp) (by simp [hp]) (by simp [hp1])]
   refine Finset.prod_congr rfl fun i hi => ?_
   have hi' := Finset.mem_range.mp hi
-  have e1 : ((List.range (28 - κ)).map fun i ↦
+  have e1 : ((List.range (32 - κ)).map fun i ↦
       (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i)).getD i false =
       (16 ^ (κ / 4) * csDig u (csN κ)).testBit (κ + i) := by
     rw [List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range]
@@ -378,7 +378,7 @@ theorem cs_sel_prod {p p1 : List E}
 end Math
 
 /-- **`column_selector` is sound**. -/
-theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
+theorem column_selector_sound {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
     {args rets : List E} (h : coreProgram.Rel Lm.read (lName "column_selector" κ) args rets) :
     ColSelOut κ Lm.read args rets := by
   obtain ⟨fn, hf, hp, hb⟩ := csFound hκ
@@ -388,16 +388,16 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
   subst hpar hret
   simp only [ColSelOut]
   intro hG
-  by_cases h28 : κ = 28
-  · subst h28
+  by_cases h32 : κ = 32
+  · subst h32
     simp only [csPre, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
       true_and] at hpre
     obtain ⟨h1, h2, h3⟩ := hpre
     refine ⟨0, by norm_num, dvd_zero _, ?_, fun _ p p1 _ _ _ => ?_⟩
     · rw [pow_zero]; rw [h1, tb_word_one] at h2; exact (e_add_eq_zero_iff.mp h2).symm
     · simp only [csRet, ↓reduceIte, h3, tb_word_one]; rfl
-  have hκ' : κ < 28 := by omega
-  simp only [csPre, h28, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+  have hκ' : κ < 32 := by omega
+  simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
     true_and] at hpre
   rw [holdsList_append, holdsList_flatten _ (fun b hb => by
     obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact csNibT_noRet κ t)] at hpre
@@ -407,7 +407,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
   set N := csN κ with hNdef
   set b := κ / 4 with hbdef
   have hN1 : 1 ≤ N := by simp only [hNdef, csN]; omega
-  have hNb : b + N = 7 := by simp only [hNdef, hbdef, csN]; omega
+  have hNb : b + N = 8 := by simp only [hNdef, hbdef, csN]; omega
   have hNib : ∀ k < N, _ := fun k hk => holds_csNib hμ Lm (C := coreProgram.Rel Lm.read)
     (σ := σ) (kret := fun rs => rs = [σ (.n (csRet κ))]) (κ := κ) (k := k)
     (hnibs _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩))
@@ -435,7 +435,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
   -- the shares
   have hxg' : ∀ k < N, xg' k = gen ^ (u' k * 16 ^ (b + k)) := by
     intro k hk
-    have h1 := hG (b + k) (show b + k < 7 by omega) (u k hk) (hu k hk)
+    have h1 := hG (b + k) (show b + k < 8 by omega) (u k hk) (hu k hk)
     have h2 := hxg k hk
     rw [show u k hk + 16 * (b + k) = 16 * (b + k) + u k hk by omega] at h2
     simp only [xg', u', hk, ↓reduceDIte]
@@ -448,7 +448,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
     rw [hob]
     calc 2 ^ (4 * b) * csDig u' N < 2 ^ (4 * b) * 2 ^ (4 * N) :=
           Nat.mul_lt_mul_of_pos_left this (Nat.two_pow_pos _)
-      _ = 2 ^ 28 := by rw [← pow_add, show 4 * b + 4 * N = 28 by omega]
+      _ = 2 ^ 32 := by rw [← pow_add, show 4 * b + 4 * N = 32 by omega]
   · rw [hob]; exact Dvd.intro _ rfl
   · have e0 := e_add_eq_zero_iff.mp hassert
     rw [← e0, hR (N - 1) (by omega), show N - 1 + 1 = N by omega,
@@ -458,7 +458,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
     have hxe' : ∀ k < N, xe' k = selEqEntry p p1 (b + k) (csW κ k - 1) (u' k) := by
       intro k hk
       obtain ⟨hw1, hw4⟩ := csW_bounds κ k
-      have h1 := hE (b + k) (show b + k < 7 by omega) (csW κ k - 1) (by omega) (u' k) (hu' k hk)
+      have h1 := hE (b + k) (show b + k < 8 by omega) (csW κ k - 1) (by omega) (u' k) (hu' k hk)
         (cs_dvd hu' hal k hk)
       have h2 := hxe k hk
       rw [show u k hk + (64 * (κ / 4 + k) + 16 * (csW κ k - 1)) =
@@ -466,7 +466,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 29) {μ : ℕ} (hμ : μ �
         at h2
       simp only [xe', hk, ↓reduceDIte]
       exact tb_loadHolds_unique h2 h1
-    rw [show csRet κ = csC κ N by simp only [csRet, h28, ↓reduceIte, hNdef], hcopy,
+    rw [show csRet κ = csC κ N by simp only [csRet, h32, ↓reduceIte, hNdef], hcopy,
       hS (N - 1) (by omega), show N - 1 + 1 = N by omega,
       Finset.prod_congr rfl (fun k hk => hxe' k (Finset.mem_range.mp hk))]
     exact cs_sel_prod hκ' hu' hp hp1

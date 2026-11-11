@@ -84,8 +84,11 @@ theorem noOpen_readE : NoOpen VerifierProgram.readScalar := (noOpen_iff _).2 fun
 theorem noOpen_sampleE : NoOpen VerifierProgram.sampleChallenge :=
   (noOpen_iff _).2 fun _ ↦ trivial
 
-theorem noOpen_grind (bits : ℕ) : NoOpen (VerifierProgram.grindProofOfWork bits) :=
-  (noOpen_iff _).2 trivial
+theorem noOpen_grind (bits : ℕ) : NoOpen (VerifierProgram.grindProofOfWork bits) := by
+  unfold VerifierProgram.grindProofOfWork
+  split
+  · exact noOpen_ret _
+  · exact (noOpen_iff _).2 trivial
 
 theorem noOpen_readN : ∀ n, NoOpen (VerifierProgram.readScalars n)
   | 0 => noOpen_ret _
@@ -394,7 +397,7 @@ def stackWired : List Whir.Level → Bool
   | level :: _ => decide (2 ^ level.fold ≤ wireMaxLeafWords)
 
 /-- **Every admissible ladder is within the wire bounds**: at most `wireMaxPhases` levels, each
-within the bounds; decided over the `56` admissible pairs. -/
+within the bounds; decided over the `60` admissible pairs. -/
 theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     levels.length ≤ wireMaxPhases ∧ levelsWired μ levels = true ∧ stackWired levels = true := by

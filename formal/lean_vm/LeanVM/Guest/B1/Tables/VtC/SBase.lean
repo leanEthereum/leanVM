@@ -88,7 +88,8 @@ theorem mulDiv_holds {d x y : V} (h : σ x = σ d * (σ y)⁻¹) (hy : σ y ≠ 
 theorem vtW23_gen : vtW23 = gen ^ 23 := by rw [vtW23_eq, gen_pow_eq_ofK]
 theorem vtW8635_gen : vtW8635 = gen ^ 8635 := by rw [vtW8635_eq, gen_pow_eq_ofK]
 theorem vtW33_gen : vtW33 = gen ^ 33 := by rw [vt_word_g33, gen_pow_eq_ofK]
-theorem vtW28_gen : vtW28 = gen ^ 28 := by rw [vtW28_eq, gen_pow_eq_ofK]
+theorem vtW32_gen : vtW32 = gen ^ 32 := by rw [vtW32_eq, gen_pow_eq_ofK]
+theorem vtW30_gen : vtW30 = gen ^ 30 := by rw [vtW30_eq, gen_pow_eq_ofK]
 theorem isInK_gpow' (a : ℕ) : IsInK (gen ^ a) := tb_gen_pow_isInK a
 
 /-- An `ite`'s branches' equations. -/

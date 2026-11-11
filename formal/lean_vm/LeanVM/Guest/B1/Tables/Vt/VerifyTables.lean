@@ -45,11 +45,11 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     σ (.n 13), σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19)] from rfl] at hpre ⊢
   rw [show vtRets.map σ = [σ (.n 6961), σ (.n 6962), σ (.n 6963), σ (.n 6964), σ (.n 6965),
     σ (.n 6968), σ (.n 6969), σ (.n 6970), σ (.n 6971), σ (.n 6972)] from rfl]
-  obtain ⟨hpi, hz, hmu, hml, hlm16, hlm, ⟨ds, hdsl, hdims⟩, hE, hal, hW, hvals⟩ := hpre
+  obtain ⟨hpi, hz, hmu, hml, hlm1, hlm, ⟨ds, hdsl, hdims⟩, hE, hal, hW, hvals⟩ := hpre
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
   obtain ⟨tf, htf⟩ := tb_exists_fun_of_forall (α := ℕ × ℕ) (n := 6)
-    (P := fun t p ↦ ∃ zs : List E, p.1 < 29 ∧ LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ p.1) ∧
+    (P := fun t p ↦ ∃ zs : List E, p.1 < 31 ∧ LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ p.1) ∧
       LoadHolds Lm.read (σ (.n 11)) t (eOfNat p.2) ∧ p.2 ≤ 2 ^ p.1 ∧ zs.length = p.1 ∧
       TbReadsAt Lm.read (σ (.n 8)) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs p.2 ∧
       p.1 = max (log2Ceil p.2) (tableLogFloors.getD t 0))
@@ -65,8 +65,9 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [he, vtHt, tableHeightsOf, List.getD_eq_getElem _ _ (by simp [hr, tableLogFloors]; omega)]
     simp only [List.getElem_zipWith]
     rw [← List.getD_eq_getElem _ 0, ← List.getD_eq_getElem _ 0, ← vtRw, hRw t ht]
-  have hτ : ∀ t < 6, vtHt rows t < 29 := fun t ht ↦ by
+  have hτ31 : ∀ t < 6, vtHt rows t < 31 := fun t ht ↦ by
     rw [hHt t ht]; exact (htf t ht).choose_spec.1
+  have hτ : ∀ t < 6, vtHt rows t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   have hdim : ∀ t < 6, LoadHolds Lm.read (σ (.n 10)) (t + 1) (gen ^ vtHt rows t) := fun t ht ↦ by
     rw [hHt t ht]; exact (htf t ht).choose_spec.2.1
   -- the dims and kappa_base
@@ -197,7 +198,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [hpc, htc, ← hrm]
     rfl
   refine ⟨vtFreshWords σ ++ (xs ++ vtEvs σ), (vtEvalFs σ).squeeze.2.cap, rows, bus,
-    bus.claims ++ tclaims ++ pclaims, hr, ?rowsRead, ?dimsRead, ?h29, ?xsRead, ?run, ?len, ?pool,
+    bus.claims ++ tclaims ++ pclaims, hr, ?rowsRead, ?dimsRead, ?h31, ?xsRead, ?run, ?len, ?pool,
     ?cew, ?pipool, ?tctx, ?caps, ?cur⟩
   case rowsRead =>
     intro t ht
@@ -207,11 +208,11 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [← List.getD_eq_getElem _ 0 (by omega), ← vtRw, hRw t ht6]
     exact h3
   case dimsRead => rwa [vt_tableHeights_eq hr]
-  case h29 =>
+  case h31 =>
     intro x hx
     rw [vt_tableHeights_eq hr] at hx
     obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx
-    exact hτ t (List.mem_range.mp ht)
+    exact hτ31 t (List.mem_range.mp ht)
   case xsRead =>
     refine vt_readsAt_append hfr (vt_readsAt_append ?_ ?_)
     · rw [show (vtFreshWords σ).length = 5 from rfl]; exact hxs

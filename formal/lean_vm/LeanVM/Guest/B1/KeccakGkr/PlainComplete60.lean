@@ -27,9 +27,9 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem plain60_chk : Fwd.chk 10 Data.core265.body = some 299 := by decide +kernel
+theorem plain60_chk : Fwd.chk 10 Data.core267.body = some 299 := by decide +kernel
 
-theorem plain60_stores : storesOf 10 Data.core265.body =
+theorem plain60_stores : storesOf 10 Data.core267.body =
     [.load (.n 59) (.n 9) 0, .load (.n 104) (.n 9) 1, .load (.n 149) (.n 9) 2,
       .load (.n 194) (.n 9) 3, .load (.n 239) (.n 9) 4, .load (.n 284) (.n 9) 5] := by
   decide +kernel
@@ -65,12 +65,12 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
       b5][k]'(by simpa using hk)) := fun k hk ↦ hreads k (by simpa using hk)
   -- the honest valuation
   set l : List E := [f0, f1, f2, f3, f4, p0, p1, cur, value, point] with hl
-  have g := (ev_spec rd (fun _ ↦ 0) Data.core265.body l plain60_chk).2.2
-  have pp : ∀ i (hi : i < 10), Val.ofArgs (ev rd (fun _ ↦ 0) l Data.core265.body) (.n i) =
+  have g := (ev_spec rd (fun _ ↦ 0) Data.core267.body l plain60_chk).2.2
+  have pp : ∀ i (hi : i < 10), Val.ofArgs (ev rd (fun _ ↦ 0) l Data.core267.body) (.n i) =
       l.getD i 0 := fun i hi ↦
     ev_params rd (fun _ ↦ 0) (l := l) plain60_chk (by simpa [hl] using hi)
   rw [show l.length = 10 from rfl, plain60_stores] at g
-  generalize Val.ofArgs (ev rd (fun _ ↦ 0) l Data.core265.body) = σ at g pp
+  generalize Val.ofArgs (ev rd (fun _ ↦ 0) l Data.core267.body) = σ at g pp
   rw [body60] at g
   have p7 : σ (.n 7) = cur := pp 7 (by norm_num)
   have p9 : σ (.n 9) = point := pp 9 (by norm_num)
@@ -237,7 +237,7 @@ theorem plain60_complete (rd : Reader) (args rets : List E)
       pp 4 (by norm_num), pp 5 (by norm_num), pp 6 (by norm_num), pp 7 (by norm_num),
       pp 8 (by norm_num), pp 9 (by norm_num)]
     rfl
-  show Stmt.HoldsList _ rd σ Data.core265.body False (fun rs ↦ rs = rets)
+  show Stmt.HoldsList _ rd σ Data.core267.body False (fun rs ↦ rs = rets)
   rw [body60]
   simp only [plain60T, holdsList_append, Stmt.HoldsList, Stmt.Holds]
   refine ⟨c10, c11, c12, c13, c14, f0r (st 0 (by norm_num)) (f1r (st 1 (by norm_num))

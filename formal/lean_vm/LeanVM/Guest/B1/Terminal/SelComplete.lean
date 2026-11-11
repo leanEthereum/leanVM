@@ -39,8 +39,8 @@ open Finset
 /-! ## The honest valuation (B1-c's `csk_rel` and `column_selector_complete_holds`, on it) -/
 
 /-- **`column_selector__L{κ}`'s statements hold on its honest valuation `cskVal`.** -/
-theorem csk_holdsPre {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
-    (ho : o < 2 ^ 28) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
+theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
     (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) {kret : List E → Prop} :
     Stmt.HoldsList (coreProgram.Rel rd) rd (fun x ↦ cskVal κ o se sg p p1 rd x.idx) (csPre κ) True
       kret := by
@@ -48,13 +48,13 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg :
   have f0 : F 0 = gen ^ o := by simp [hF, cskVal]
   have f1 : F 1 = se := by simp [hF, cskVal]
   have f2 : F 2 = sg := by simp [hF, cskVal]
-  by_cases h28 : κ = 28
-  · subst h28
+  by_cases h32 : κ = 32
+  · subst h32
     have ho0 : o = 0 := by
       obtain ⟨q, rfl⟩ := hd
       have : q = 0 := by
         by_contra hq
-        have : 2 ^ 28 * 1 ≤ 2 ^ 28 * q := Nat.mul_le_mul_left _ (by omega)
+        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
         omega
       simp [this]
     subst ho0
@@ -64,17 +64,17 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg :
     have e4 : F 4 = word 1 0 0 := by simp [hF, cskVal]
     rw [e3, e4, f0, tb_word_one, pow_zero]
     exact ⟨rfl, e_add_self 1, rfl⟩
-  have hκ' : κ < 28 := by omega
+  have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
-  simp only [csPre, h28, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
+  simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
   rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (csNibT_noRet κ)),
     tb_holdsList_flatten_range _ _ (csNibT_noRet κ)]
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
   refine ⟨fun k hk ↦ ?_, ?_⟩
   · -- nibble `k`
     obtain ⟨hw1, hw4⟩ := csW_bounds κ k
-    have hj : κ / 4 + k < 7 := by simp only [csN] at hk; omega
+    have hj : κ / 4 + k < 8 := by simp only [csN] at hk; omega
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
     have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (64 * (κ / 4 + k) + 16 * (csW κ k - 1))
         (cskXE κ o p p1 k) := by
@@ -155,27 +155,27 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg :
     exact e_add_self _
 
 /-- **`column_selector__L{κ}`'s honest return** is the selector. -/
-theorem csk_ret {κ : ℕ} (hκ : κ < 29) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
-    (ho : o < 2 ^ 28) (hd : 2 ^ κ ∣ o) (hp : p.length = 28) (hp1 : p1.length = 28) :
+theorem csk_ret {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hp : p.length = 32) (hp1 : p1.length = 32) :
     cskVal κ o se sg p p1 rd (csRet κ) =
-      bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ) := by
-  by_cases h28 : κ = 28
-  · subst h28
+      bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ) := by
+  by_cases h32 : κ = 32
+  · subst h32
     have ho0 : o = 0 := by
       obtain ⟨q, rfl⟩ := hd
       have : q = 0 := by
         by_contra hq
-        have : 2 ^ 28 * 1 ≤ 2 ^ 28 * q := Nat.mul_le_mul_left _ (by omega)
+        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
         omega
       simp [this]
     subst ho0
-    have : cskVal 28 0 se sg p p1 rd (csRet 28) = 1 := by simp [cskVal, csRet, tb_word_one]
+    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, tb_word_one]
     rw [this]
     simp [bitsEq]
-  have hκ' : κ < 28 := by omega
+  have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hret : cskVal κ o se sg p p1 rd (csRet κ) = cskS κ o p p1 (csN κ - 1) := by
-    simp only [csRet, h28, ↓reduceIte]; exact cskVal_last hκ'
+    simp only [csRet, h32, ↓reduceIte]; exact cskVal_last hκ'
   rw [hret, cskS, show csN κ - 1 + 1 = csN κ by unfold csN; omega]
   have hsel := cs_sel_prod hκ' (u := cskU κ o) (fun k _ => Nat.mod_lt _ (by norm_num)) hp hp1
   rw [show (fun m ↦ cskXE κ o p p1 m) = fun k ↦ selEqEntry p p1 (κ / 4 + k) (csW κ k - 1)
@@ -204,9 +204,9 @@ noncomputable def csBodyOk (κ : ℕ) : Bool :=
     decide ((csPre κ).filterMap Stmt.loadS = csLoads κ) &&
     !coreProgram.loop (lName "column_selector" κ)
 
-theorem csBodyOk_all : (List.range 29).all csBodyOk = true := by decide +kernel
+theorem csBodyOk_all : (List.range 31).all csBodyOk = true := by decide +kernel
 
-theorem cs_body {κ : ℕ} (hκ : κ < 29) :
+theorem cs_body {κ : ℕ} (hκ : κ < 31) :
     (csPre κ).all isAtomS = true ∧ (csPre κ).all Stmt.flat = true ∧
       (csPre κ).all noLoadIte = true ∧ (csPre κ).filterMap Main.Stmt.addrS = [] ∧
       (csPre κ).filterMap Main.Stmt.allocSz = [] ∧ (csPre κ).filterMap Stmt.loadS = csLoads κ ∧
@@ -235,19 +235,19 @@ theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * 
     rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
-theorem colSelNames_mem {κ : ℕ} (hκ : κ < 29) : Tables.lName "column_selector" κ ∈ colSelNames :=
+theorem colSelNames_mem {κ : ℕ} (hκ : κ < 31) : Tables.lName "column_selector" κ ∈ colSelNames :=
   List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩
 
 /-! ## The nibble shares -/
 
-/-- **The nibble shares' words** (`exponent_tables`): `g^(u·16^j)` at `16j + u`, `j < 7`. -/
-def gTabW : List E := (List.range 112).map fun i ↦ gen ^ (i % 16 * 16 ^ (i / 16))
+/-- **The nibble shares' words** (`exponent_tables`): `g^(u·16^j)` at `16j + u`, `j < 8`. -/
+def gTabW : List E := (List.range 128).map fun i ↦ gen ^ (i % 16 * 16 ^ (i / 16))
 
-theorem gTabW_length : gTabW.length = 112 := by simp [gTabW]
+theorem gTabW_length : gTabW.length = 128 := by simp [gTabW]
 
 theorem gTabs_of_reads {rd : Reader} {b : ℕ} (h : ReadsAt rd (ofK (addressOfIndex b)) gTabW) :
     Tables.GTabsAt rd (ofK (addressOfIndex b)) := fun j hj u hu ↦ by
-  change j < 7 at hj
+  change j < 8 at hj
   have := h (16 * j + u) (by rw [gTabW_length]; omega)
   simp only [gTabW, List.getElem_map, List.getElem_range] at this
   rwa [show (16 * j + u) % 16 = u by omega, show (16 * j + u) / 16 = j by omega] at this
@@ -255,7 +255,7 @@ theorem gTabs_of_reads {rd : Reader} {b : ℕ} (h : ReadsAt rd (ofK (addressOfIn
 theorem reads_of_gTabs {rd : Reader} {b : ℕ} (h : Tables.GTabsAt rd (ofK (addressOfIndex b))) :
     ReadsAt rd (ofK (addressOfIndex b)) gTabW := fun k hk ↦ by
   rw [gTabW_length] at hk
-  have := h (k / 16) (show k / 16 < 7 by omega) (k % 16) (by omega)
+  have := h (k / 16) (show k / 16 < 8 by omega) (k % 16) (by omega)
   simp only [gTabW, List.getElem_map, List.getElem_range]
   rwa [show 16 * (k / 16) + k % 16 = k by omega] at this
 
@@ -263,8 +263,8 @@ theorem reads_of_gTabs {rd : Reader} {b : ℕ} (h : Tables.GTabsAt rd (ofK (addr
 
 /-- **`selector_tables`' honest buffer holds the opening point's tables**, on every memory holding
 it and the point. -/
-theorem selTabs_of_memL {ept ept1 ese : ℕ} {p p1 : List E} (hl : p.length = 28)
-    (hl1 : p1.length = 28) {rd : Reader}
+theorem selTabs_of_memL {ept ept1 ese : ℕ} {p p1 : List E} (hl : p.length = 32)
+    (hl1 : p1.length = 32) {rd : Reader}
     (hm : MemL rd (Tables.stOwn ept ept1 ese p p1 ++ Tables.stLin ept ept1 p p1)) :
     Tables.EqTabsAt rd (ofK (addressOfIndex ese)) p p1 :=
   Tables.selector_tables_holds rd _ _ (Tables.st_holds ept ept1 ese p p1 hl hl1 rd hm) p p1 hl hl1
@@ -281,17 +281,17 @@ set_option maxRecDepth 10000 in
 /-- **`column_selector__L{κ}` is complete, placed, within its frame**, on `selector_tables`'
 buffer, the point and the shares, the memory defined below `2^4`: it returns the eq weight of the
 offset's bits above `κ`. -/
-theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 29) {o : ℕ} (ho : o < 2 ^ 28)
-    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 28)
-    (hl1 : p1.length = 28) :
+theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
+    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
+    (hl1 : p1.length = 32) :
     CompleteAtDTB fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
       [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex bg)]
-      (Returns [Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
+      (Returns [Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
         (p1.drop κ)]) (fun _ ↦ True) (fs (Tables.lName "column_selector" κ)) := by
   obtain ⟨fn, hf, hp, hb⟩ := Tables.csFound hκ
   obtain ⟨hat, hfl, hnl, haddr, halloc, hld, hloop⟩ := Tables.cs_body hκ
   set f := Tables.lName "column_selector" κ
-  set sel := Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
+  set sel := Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
     (p1.drop κ)
   refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf hloop k (csLin ept ept1 ese bg p p1) _
     (fun _ ↦ [sel]) _ hb hfl haddr [] (fun _ ↦ []) (fun _ ↦ .nil) (fun _ ↦ ⟨rfl, rfl⟩)
@@ -333,10 +333,10 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 29) {o 
     simp only [Tables.csLoads, List.mem_flatMap, List.mem_range, List.mem_cons, List.not_mem_nil,
       or_false] at hq
     obtain ⟨j, hj, hq⟩ := hq
-    have hκ' : κ < 28 := by
+    have hκ' : κ < 32 := by
       by_contra h; simp only [Tables.csN] at hj; omega
     have hu : Tables.cskU κ o j < 16 := Nat.mod_lt _ (by norm_num)
-    have hjn : κ / 4 + j < 7 := by simp only [Tables.csN] at hj; omega
+    have hjn : κ / 4 + j < 8 := by simp only [Tables.csN] at hj; omega
     obtain ⟨hw1, hw4⟩ := Tables.csW_bounds κ j
     rcases hq with rfl | rfl
     · have e : σ (.n (Tables.csC κ j + 4)) = ofK (addressOfIndex ese) * gen ^ Tables.cskU κ o j := by
@@ -361,12 +361,12 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 29) {o 
       rw [e]; exact cs_addr_mul _ _ _
 
 /-- **`column_selector__L{κ}` is complete, placed, within its frame** (`cs_completeAtDTB`). -/
-theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 29) {o : ℕ} (ho : o < 2 ^ 28)
-    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 28)
-    (hl1 : p1.length = 28) :
+theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
+    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
+    (hl1 : p1.length = 32) :
     CompleteAtB fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
       [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex bg)]
-      (Returns [Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
+      (Returns [Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
         (p1.drop κ)]) (fs (Tables.lName "column_selector" κ)) := fun fp =>
   let ⟨n, Lown, rets, Lout, hn, ho', hw, hd', hr⟩ :=
     cs_completeAtDTB (fs := fs) (cert := cert) (ept := ept) (ept1 := ept1) (ese := ese) (bg := bg)
@@ -374,12 +374,12 @@ theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 29) {o : 
   ⟨n, Lown, rets, Lout, ho', hw, hd', hn, fun rd hl' hm => (hr rd hl' hm).relAtIn⟩
 
 /-- **`column_selector__L{κ}` is complete, placed** (`cs_completeAtDTB`). -/
-theorem cs_completeAt (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 29) {o : ℕ} (ho : o < 2 ^ 28)
-    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 28)
-    (hl1 : p1.length = 28) :
+theorem cs_completeAt (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
+    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
+    (hl1 : p1.length = 32) :
     CompleteAtD fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
       [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex bg)]
-      (Returns [Tables.bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
+      (Returns [Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
         (p1.drop κ)]) :=
   (cs_completeAtB (ept := ept) (ept1 := ept1) k hk hκ ho hd hl hl1).toCompleteAtD
 

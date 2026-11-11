@@ -28,13 +28,12 @@ have, takes it from a claim, as an aggregate's in-circuit verifier of its childr
 
 ### The WHIR parameters
 
-The constants are transcribed from `crates/pcs/src/whir_config.rs:38-86`, the ladder geometry from
-its `derive_ladder` and `derive_ladder_shape` (`:252-301`), the stacking window from
-`crates/leanvm_core/src/pcs.rs:49-51`, and the query counts from the Rust verifier's
-`WHIR_QUERIES` and `derive_config` (`crates/verifier/src/whir.rs:10-63`), which carry them
-verbatim. The specification describes the protocol these
-parameters instantiate (Annex B, Protocol B.1, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
-and gives no numbers.
+The constants are transcribed from `crates/pcs/src/whir_config.rs`, the ladder geometry from its
+`derive_ladder` and `derive_ladder_shape`, the stacking window from `crates/verifier/src/layout.rs`
+(`MIN_STACKED_LOG`, `MAX_STACKED_LOG`), and the query counts from the Rust verifier's
+`WHIR_QUERIES` and `derive_config` (`crates/verifier/src/whir.rs`), which carry them verbatim. The
+specification describes the protocol these parameters instantiate (Annex B, Protocol B.1,
+`doc/leanvm/body/b-polynomial-commitment-scheme.tex`) and gives no numbers.
 
 An opening of a stack of `2^μ` elements of `K` at rate `2^-R` runs a *ladder* of levels. Level 0
 folds `initialFold = 6` variables; every later level folds `subsequentFold = 4`, or what remains,
@@ -42,19 +41,17 @@ until at most `residualMaxLog = 5` variables remain, which are sent in the clear
 exponent of a level is the previous one plus the previous fold minus a domain reduction,
 `initialReduction = 3` after level 0 and `subsequentReduction = 1` after every later level. Each
 level opens `queries` positions after `queryGrindingBits = 17` bits of grinding; from level 1 on,
-one out-of-domain sample binds the level's commitment (`whir_config.rs:106-114`;
-`whir.rs:177-185`).
+one out-of-domain sample binds the level's commitment (`whir_config.rs`, `whir.rs`).
 
 The query counts are the Rust's *output*, not its derivation: `optimize_johnson_level`
-(`whir_config.rs:602-670`) minimises the queries of each level subject to the 128-bit
-round-by-round targets of Annex B's Theorem B.2 under a floating-point MCA formula
-(`paper_thm_ca_johnson_log_a`, `whir_config.rs:429-442`), and this module does not restate that
-search. The table is the Rust verifier's `WHIR_QUERIES` (`whir.rs:17-23`), indexed by rate
-exponent `1..4` and stack size `15..28`; outside that window `ladder` is `none`, as the verifier
-rejects (`whir_queries`, `whir.rs:31-38`; the prover's `validate_log_inv_rate`,
-`whir_config.rs:48-55`). `ladder` takes the stack size `μ`, as the verifier's `derive_config`
-does (the PCS crate's API takes `m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`), and the rate
-exponent is announced with the sizes.
+(`whir_config.rs`) minimises the queries of each level subject to the 128-bit round-by-round
+targets of Annex B's Theorem B.2 under a floating-point MCA formula
+(`paper_thm_ca_johnson_log_a`), and this module does not restate that search. The table is the
+Rust verifier's `WHIR_QUERIES`, indexed by rate exponent `1..4` and stack size `16..30`; outside
+that window `ladder` is `none`, as the verifier rejects (`whir_queries`; the prover's
+`validate_log_inv_rate`, `whir_config.rs`). `ladder` takes the stack size `μ`, as the verifier's
+`derive_config` does (the PCS crate's API takes `m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`),
+and the rate exponent is announced with the sizes.
 -/
 
 namespace LeanVM.Parameters.Whir
@@ -81,13 +78,13 @@ def residualMaxLog : ℕ := 5
 `whir_config.rs:60`). -/
 def queryGrindingBits : ℕ := 17
 
-/-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_MU`
-(`pcs.rs:49`; `MIN_STACKED_LOG`, `crates/verifier/src/layout.rs:87`). -/
-def minLogStack : ℕ := 15
+/-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_STACKED_LOG`
+(`crates/verifier/src/layout.rs:94`). -/
+def minLogStack : ℕ := 16
 
-/-- The largest stack the PCS commits: `MAX_MU` (`pcs.rs:51`; `MAX_STACKED_LOG`,
-`layout.rs:88`). -/
-def maxLogStack : ℕ := 28
+/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs:95`), the
+cap every size shares. -/
+def maxLogStack : ℕ := 30
 
 /-- One level of an opening: the number of sumcheck rounds it folds (`ℓ_i`), the rate exponent
 of the code its commitment is in (`R_i`), and the number of positions queried (`t_i`), in the
@@ -121,24 +118,28 @@ def ladderShape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
   (initialFold, logInvRate) ::
     levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
 
-/-- The query counts `WHIR_QUERIES` of `whir.rs:17-23`, verbatim: row `R - 1` for the rate
-exponent `R`, entry `μ - 15` for the stack size `μ`, one count per level. -/
+/-- The query counts `WHIR_QUERIES` of `whir.rs`, verbatim: row `R - 1` for the rate exponent
+`R`, entry `μ - 16` for the stack size `μ`, one count per level. -/
 def queryTable : List (List (List ℕ)) := [
-  [[222, 55], [223, 56, 30], [223, 56, 31], [223, 56, 32], [223, 56, 32], [223, 56, 32, 22],
-   [223, 56, 32, 22], [224, 56, 32, 23], [224, 56, 32, 23], [224, 56, 32, 23, 17],
-   [224, 56, 32, 23, 17], [224, 56, 32, 23, 18], [225, 56, 32, 23, 18], [225, 56, 32, 23, 18, 14]],
-  [[111, 45], [112, 45, 27], [112, 45, 28], [112, 45, 28], [112, 45, 28], [112, 45, 28, 20],
-   [112, 45, 28, 20], [112, 45, 28, 21], [112, 45, 28, 21], [112, 45, 28, 21, 16],
-   [112, 45, 28, 21, 16], [112, 45, 28, 21, 16], [112, 45, 28, 21, 16], [112, 45, 28, 21, 16, 13]],
-  [[75, 37], [75, 37, 24], [75, 37, 25], [75, 38, 25], [75, 38, 25], [75, 38, 25, 18],
-   [75, 38, 25, 19], [75, 38, 25, 19], [75, 38, 25, 19], [75, 38, 25, 19, 15],
-   [75, 38, 25, 19, 15], [75, 38, 25, 19, 15], [75, 38, 25, 19, 15], [75, 38, 25, 19, 15, 13]],
-  [[56, 32], [56, 32, 22], [56, 32, 22], [56, 32, 23], [56, 32, 23], [56, 32, 23, 17],
-   [56, 32, 23, 17], [56, 32, 23, 18], [56, 32, 23, 18], [56, 32, 23, 18, 14],
-   [56, 32, 23, 18, 14], [56, 32, 23, 18, 14], [56, 32, 23, 18, 15], [56, 32, 23, 18, 15, 12]]]
+  [[223, 56, 30], [223, 56, 31], [223, 56, 32], [223, 56, 32], [223, 56, 32, 22], [223, 56, 32, 22],
+   [224, 56, 32, 23], [224, 56, 32, 23], [224, 56, 32, 23, 17], [224, 56, 32, 23, 17],
+   [224, 56, 32, 23, 18], [225, 56, 32, 23, 18], [225, 56, 32, 23, 18, 14],
+   [225, 56, 32, 23, 18, 14], [226, 56, 32, 23, 18, 14]],
+  [[112, 45, 27], [112, 45, 28], [112, 45, 28], [112, 45, 28], [112, 45, 28, 20], [112, 45, 28, 20],
+   [112, 45, 28, 21], [112, 45, 28, 21], [112, 45, 28, 21, 16], [112, 45, 28, 21, 16],
+   [112, 45, 28, 21, 16], [112, 45, 28, 21, 16], [112, 45, 28, 21, 16, 13],
+   [113, 45, 28, 21, 16, 14], [113, 45, 28, 21, 17, 14]],
+  [[75, 37, 24], [75, 37, 25], [75, 38, 25], [75, 38, 25], [75, 38, 25, 18], [75, 38, 25, 19],
+   [75, 38, 25, 19], [75, 38, 25, 19], [75, 38, 25, 19, 15], [75, 38, 25, 19, 15],
+   [75, 38, 25, 19, 15], [75, 38, 25, 19, 15], [75, 38, 25, 19, 15, 13], [75, 38, 25, 19, 15, 13],
+   [75, 38, 25, 19, 16, 13]],
+  [[56, 32, 22], [56, 32, 22], [56, 32, 23], [56, 32, 23], [56, 32, 23, 17], [56, 32, 23, 17],
+   [56, 32, 23, 18], [56, 32, 23, 18], [56, 32, 23, 18, 14], [56, 32, 23, 18, 14],
+   [56, 32, 23, 18, 14], [56, 32, 23, 18, 15], [56, 32, 23, 18, 15, 12], [57, 32, 23, 18, 15, 12],
+   [57, 33, 23, 18, 15, 12]]]
 
 /-- The window the parameters are defined on: the stacking window and the rate range `1..4`
-(`whir_queries`, `whir.rs:31-38`; the rate also `crates/verifier/src/lib.rs:228` and
+(`whir_queries`, `whir.rs:33-38`; the rate also `crates/verifier/src/lib.rs:230` and
 `whir_config.rs:44-55`). -/
 def Admissible (μ logInvRate : ℕ) : Prop :=
   minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ 1 ≤ logInvRate ∧ logInvRate ≤ 4
@@ -147,9 +148,9 @@ instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _))
 
 /-- The ladder of an admissible stack size and rate (`derive_config(log_n, log_inv_rate)`,
-`whir.rs:40-63`): the geometry of `ladderShape` paired with the
-tabulated query counts, level by level. `none` outside the window, and `none` if the table did
-not have one count per level (`whir.rs:57`), so that no level is silently dropped. -/
+`whir.rs`): the geometry of `ladderShape` paired with the tabulated query counts, level by
+level. `none` outside the window, and `none` if the table did not have one count per level, so
+that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
   if Admissible μ logInvRate then
     let geometry := ladderShape μ logInvRate
@@ -164,7 +165,7 @@ end LeanVM.Parameters.Whir
 /-! # Part 2: the transcript
 
 The verifier touches the proof through five operations of its `Transcript`
-(`crates/verifier/src/transcript.rs:77-217`): `next_scalar`, `sample`, `grind_check`, a root read
+(`crates/verifier/src/transcript.rs:77-215`): `next_scalar`, `sample`, `grind_check`, a root read
 as two scalars, and `merkle`. It computes everything else from their results; `VerifierProgram α`
 is the free monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the
 challenges squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
@@ -178,7 +179,7 @@ The proof is the Rust verifier's `Proof` (`transcript.rs:9-15`): the scalar stre
 openings grouped in phases, one phase per opened commitment, each query's opening (`MerklePath`,
 `crates/verifier/src/merkle.rs:17-25`: position, leaf, siblings) in the order the verifier samples
 the queries; the proof's wire encoding (`wire.rs`, a compression layer formalized in `lean_vm`)
-needs the phases. A phase is checked as `Transcript::merkle` checks it (`transcript.rs:153-186`):
+needs the phases. A phase is checked as `Transcript::merkle` checks it (`transcript.rs:151-184`):
 its shape, then its positions, then its roots.
 -/
 
@@ -246,8 +247,10 @@ def sampleChallenges : ℕ → VerifierProgram (List E)
     let xs ← sampleChallenges n
     return x :: xs
 
-/-- Check a proof of work of `bits` bits. -/
-def grindProofOfWork (bits : ℕ) : VerifierProgram Unit := grind bits (ret ())
+/-- Check a proof of work of `bits` bits; one of no bits is nothing, no nonce read
+(`Transcript::grind_check`). -/
+def grindProofOfWork (bits : ℕ) : VerifierProgram Unit :=
+  if bits = 0 then ret () else grind bits (ret ())
 
 /-- Read a commitment to a matrix of `2^height` rows of `width` words. -/
 def readCommitment (height width : ℕ) : VerifierProgram Unit := commit height width (ret ())
@@ -256,7 +259,7 @@ def readCommitment (height width : ℕ) : VerifierProgram Unit := commit height 
 def queryOpenings (i : ℕ) (positions : List ℕ) : VerifierProgram (List (List K)) := query i
     positions ret
 
-/-- Reject unless `c` holds (`require`, `lib.rs:115-117`). -/
+/-- Reject unless `c` holds (`require`, `lib.rs:117-119`). -/
 def require (c : Prop) [Decidable c] : VerifierProgram Unit := if c then ret () else fail
 
 end VerifierProgram
@@ -266,12 +269,10 @@ abbrev Bytes : Type := List UInt8
 
 /-! ## Proofs and the run -/
 
-/-- The proof-of-work predicate on the challenge sampled after the nonce: at `bits = 0` the nonce
-is `0`; otherwise the low `bits` bits of the challenge's first limb are zero
-(`Transcript::grind_check`, `transcript.rs:135-151`). -/
-def powOk (bits : ℕ) (nonce challenge : E) : Bool :=
-  if bits = 0 then decide (nonce.limb 0 = 0 ∧ nonce.limb 1 = 0 ∧ nonce.limb 2 = 0)
-  else decide ((challenge.limb 0).lane.toNat % 2 ^ bits = 0)
+/-- The proof-of-work predicate on the challenge sampled after the nonce: the low `bits` bits of
+its first limb are zero (`Transcript::grind_check`). -/
+def powOk (bits : ℕ) (challenge : E) : Bool :=
+  decide ((challenge.limb 0).lane.toNat % 2 ^ bits = 0)
 
 /-- One Merkle opening (`MerklePath`, `crates/verifier/src/merkle.rs:17-25`): the position it
 opens, the leaf's words and the siblings from the leaf up. -/
@@ -318,7 +319,7 @@ def climb : Digest → ℕ → List Digest → m Digest
     climb parent (q / 2) ss
 
 /-- Check one opening against a root of the given shape at position `position`: its shape
-(`transcript.rs:171-176`), then its leaf hashed and climbed to the root (`hash_leaf` and
+(`transcript.rs:169-174`), then its leaf hashed and climbed to the root (`hash_leaf` and
 `MerklePath::root`, `merkle.rs:13-15, 28-38`). -/
 def openOne (root : Digest) (height width position : ℕ) (opening : Opening) : m Bool :=
   if opening.leaf.length = width ∧ opening.path.length = height then do
@@ -340,7 +341,7 @@ def openAll (root : Digest) (height width : ℕ) :
     else pure none
 
 /-- Open one phase of a commitment of the given shape at `positions` (`Transcript::merkle`,
-`crates/verifier/src/transcript.rs:153-186`): reject unless every leaf is `width` words and every
+`crates/verifier/src/transcript.rs:151-184`): reject unless every leaf is `width` words and every
 path `height` siblings, then unless the phase's positions are `positions`, in order, then unless
 each path climbs to `root`, in order (at its position, which is the query's). The leaves. -/
 def openPhase (root : Digest) (height width : ℕ) (positions : List ℕ) (phase : List Opening) :
@@ -371,7 +372,7 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
     | n :: xs => do
       let sponge ← absorb π s.sponge n dsPowNonce
       let (c, sponge) ← squeeze π sponge
-      if powOk bits n c then run k { s with sponge := sponge, stream := xs } else pure none
+      if powOk bits c then run k { s with sponge := sponge, stream := xs } else pure none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs => do
       let sponge ← absorb π s.sponge x0 dsObserve
@@ -389,7 +390,7 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
     | _, _ => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
-stream and the openings fully consumed (`Transcript::finish`, `transcript.rs:206-216`). -/
+stream and the openings fully consumed (`Transcript::finish`, `transcript.rs:204-214`). -/
 def runProof (program : VerifierProgram Bool) (seed : KeccakState) (proof : Proof) : m Bool := do
   match ← run π program ⟨⟨seed, []⟩, proof.stream, proof.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
@@ -432,7 +433,7 @@ reads (`whir.rs:81`). -/
 def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1) + 2 ^ 128 * kToNat (e.limb 2)
 
-/-- `gpow(index) = GEN.pow(index)` (`layout.rs:114-116`): `Parameters.addressOfIndex index`, the
+/-- `gpow(index) = GEN.pow(index)` (`layout.rs:121-123`): `Parameters.addressOfIndex index`, the
 same power in `K`, in limb `0`. -/
 def gpow (index : ℕ) : E := gen ^ index
 
@@ -517,7 +518,7 @@ def selectorPoint (selector length : ℕ) : List E :=
 
 /-! ## The verifier's layout (`multilinear.rs:114-148`, `layout.rs`, `bus.rs:53-93`) -/
 
-/-! ### Constants (`layout.rs:12, 70-88, 130-132, 373-379`;
+/-! ### Constants (`layout.rs:12, 70-95, 137-139, 380-386`;
 `crates/verifier/src/keccak.rs:18-20, 55-67`) -/
 
 /-- `BUS_BITS`: the bus communicates tuples of `2^BUS_BITS` field elements (`layout.rs:12`). -/
@@ -570,13 +571,13 @@ def keccakLocalBits : ℕ := 11
 /-- `LANE_BITS`: the bits of a lane's index, `25 ≤ 2^5` (`keccak.rs:20`). -/
 def keccakLaneBits : ℕ := 5
 
-/-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs:130-132`). -/
+/-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs:137-139`). -/
 def sepState : E := 1
 def sepMem : E := gen
 def sepBytecode : E := gen ^ 2
 
 /-- The opcodes' numbers `OP_XOR`, `OP_MUL`, `OP_SET`, `OP_DEREF`, `OP_JUMP`, `OP_KECCAK`
-(`layout.rs:373-378`). -/
+(`layout.rs:380-385`). -/
 def opXor : ℕ := 0
 def opMul : ℕ := 1
 def opSet : ℕ := 2
@@ -615,7 +616,7 @@ def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
     (acc.1.set i acc.2, acc.2 + 2 ^ size i)) (List.replicate sizes.length 0, 0)
   (placed.1, log2Ceil placed.2)
 
-/-! ### Forms (`Form`, `layout.rs:14-53, 118-128`) -/
+/-! ### Forms (`Form`, `layout.rs:14-53, 125-135`) -/
 
 /-- A polynomial of degree at most two in a table's columns: monomial (sorted column indices) to
 coefficient, in insertion order (the Rust's `BTreeMap` orders them by monomial; a form's value does
@@ -655,7 +656,7 @@ def Form.col (index : ℕ) (exponent : ℕ := 0) : Form := ⟨[([index], gpow ex
 /-- `prod(a, b, exponent)`: `g^exponent · x_a · x_b`. -/
 def Form.prod (a b : ℕ) (exponent : ℕ := 0) : Form := ⟨[([min a b, max a b], gpow exponent)]⟩
 
-/-! ### Flushes (`Flushes`, `layout.rs:134-184`) -/
+/-! ### Flushes (`Flushes`, `layout.rs:141-191`) -/
 
 /-- A table's bus flushes: the tuples it pushes and pulls, in pairs. -/
 structure Flushes where
@@ -707,26 +708,26 @@ def memoryCols (f : Flushes) (address : Form) (count : ℕ) (columns : List ℕ)
 
 end Flushes
 
-/-! ### The instruction tables (`layout.rs:186-490`) -/
+/-! ### The instruction tables (`layout.rs:193-497`) -/
 
 /-- `cols(columns, names)`, one name: the index of a column by name (every name the tables use is
-in its list, as the Rust's `expect` checks, `layout.rs:105-112`). -/
+in its list, as the Rust's `expect` checks, `layout.rs:112-119`). -/
 def columnIndexByName (columns : List String) (name : String) : ℕ := columns.idxOf name
 
-/-- `ARITH_COLUMNS` (`layout.rs:382`). -/
+/-- `ARITH_COLUMNS` (`layout.rs:389`). -/
 def arithColumns : List String :=
   ["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a",
     "cnt_b", "cnt_c", "cnt_bc"]
 
-/-- `SET_COLUMNS` (`layout.rs:383`). -/
+/-- `SET_COLUMNS` (`layout.rs:390`). -/
 def setColumns : List String := ["pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc"]
 
-/-- `DEREF_COLUMNS` (`layout.rs:385`). -/
+/-- `DEREF_COLUMNS` (`layout.rs:392`). -/
 def derefColumns : List String :=
   ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2", "cnt_ptr",
     "cnt_target", "cnt_local", "cnt_bc"]
 
-/-- `JUMP_COLUMNS` (`layout.rs:387`). -/
+/-- `JUMP_COLUMNS` (`layout.rs:394`). -/
 def jumpColumns : List String :=
   ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc",
     "w", "b"]
@@ -742,7 +743,7 @@ def decimalNumeral (n : ℕ) : String :=
 def laneNames (namePrefix : String) : List String :=
   (List.range 25).map fun l ↦ namePrefix ++ "_" ++ decimalNumeral l
 
-/-- `keccak_columns()` (`layout.rs:388-392, 434-443`): the operands, the layout flags, the
+/-- `keccak_columns()` (`layout.rs:395-399, 441-450`): the operands, the layout flags, the
 bytecode's flags for the output cells written (`out_two`: cell `1`; `out_all`: cells `2…12`), the
 read limb that holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots
 each; `out_l`, claimed by the Keccak reduction, committed nowhere), then the read counts. The
@@ -753,30 +754,30 @@ def keccakColumns : List String :=
     "odd_out", "out_two", "out_all", "free"] ++ laneNames "in" ++ laneNames "out" ++
     (List.range 26).map (fun c ↦ "cnt_" ++ decimalNumeral c) ++ ["cnt_bc"]
 
-/-- `KECCAK_IN` (`layout.rs:394`): the local column of input lane `0`. -/
+/-- `KECCAK_IN` (`layout.rs:401`): the local column of input lane `0`. -/
 def keccakIn : ℕ := columnIndexByName keccakColumns "in_0"
 
-/-- `KECCAK_OUT` (`layout.rs:395`): the local column of output lane `0`. -/
+/-- `KECCAK_OUT` (`layout.rs:402`): the local column of output lane `0`. -/
 def keccakOut : ℕ := columnIndexByName keccakColumns "out_0"
 
-/-- `KECCAK_CNT` (`layout.rs:396`): the local column of the first read count. -/
+/-- `KECCAK_CNT` (`layout.rs:403`): the local column of the first read count. -/
 def keccakCnt : ℕ := columnIndexByName keccakColumns "cnt_0"
 
-/-- `QKECCAK_SLOTS = STATE_LANES * (ROUNDS / KECCAK_DEPTH)` (`layout.rs:406-407`): the slots of
+/-- `QKECCAK_SLOTS = STATE_LANES * (ROUNDS / KECCAK_DEPTH)` (`layout.rs:413-414`): the slots of
 `q_keccak` the states take. -/
 def qkeccakSlots : ℕ := 25 * keccakSegments
 
-/-- `QKECCAK_SPARE`, `2^qkeccakSlotBits - QKECCAK_SLOTS` (`layout.rs:408`): the slots of
+/-- `QKECCAK_SPARE`, `2^qkeccakSlotBits - QKECCAK_SLOTS` (`layout.rs:415`): the slots of
 `q_keccak` left over, which carry `KECCAK` columns. -/
 def qkeccakSpare : ℕ := 2 ^ qkeccakSlotBits - qkeccakSlots
 
 /-- The local `KECCAK` columns outside the value lanes, `KECCAK_IN ≤ local < KECCAK_CNT`, in
-order: the `k`-th is `spare_local(k)` (`layout.rs:399-404`). -/
+order: the `k`-th is `spare_local(k)` (`layout.rs:406-411`). -/
 def keccakCommitted : List ℕ :=
   (List.range keccakColumns.length).filter fun l ↦ ¬ (keccakIn ≤ l ∧ l < keccakCnt)
 
 /-- The `q_keccak` slot of a local `KECCAK` column, if it has one (`qkeccak_slot`,
-`layout.rs:422-432`, past the table's base): input lane `l` (local column `KECCAK_IN + l`) is
+`layout.rs:429-439`, past the table's base): input lane `l` (local column `KECCAK_IN + l`) is
 slot `l`, and the first `QKECCAK_SPARE` committed columns take the slots from `QKECCAK_SLOTS` on,
 in order. The Rust tries the spare slots first; the two parts have disjoint keys
 (`keccakSlotOf_disjoint`), so the order in which they are tried does not matter. -/
@@ -785,12 +786,12 @@ def keccakSlotOf (l : ℕ) : Option ℕ :=
   else ((keccakCommitted.take qkeccakSpare).idxOf? l).map (qkeccakSlots + ·)
 
 /-- `TOWER_LANES`: the limb products of `E` multiplication folded by `y³ = y + 1`
-(`layout.rs:222-226`). -/
+(`layout.rs:229-233`). -/
 def towerLanes : List (List (ℕ × ℕ)) :=
   [[(0, 0), (1, 2), (2, 1)], [(0, 1), (1, 0), (1, 2), (2, 1), (2, 2)],
     [(0, 2), (1, 1), (2, 0), (2, 2)]]
 
-/-- `flushes_arith(opcode, multiply)` (`layout.rs:209-234`). -/
+/-- `flushes_arith(opcode, multiply)` (`layout.rs:216-241`). -/
 def flushesArith (opcode : ℕ) (multiply : Bool) : Flushes :=
   let c := columnIndexByName arithColumns
   let va := [c "va_0", c "va_1", c "va_2"]
@@ -808,7 +809,7 @@ def flushesArith (opcode : ℕ) (multiply : Bool) : Flushes :=
   let f := f.memoryCols (Form.prod (c "fp") (c "o_b")) (c "cnt_b") vb
   f.memory (Form.prod (c "fp") (c "o_c")) (c "cnt_c") result
 
-/-- `flushes_set()` (`layout.rs:236-245`). -/
+/-- `flushes_set()` (`layout.rs:243-252`). -/
 def flushesSet : Flushes :=
   let c := columnIndexByName setColumns
   let k := [c "k_0", c "k_1", c "k_2"]
@@ -818,7 +819,7 @@ def flushesSet : Flushes :=
     (Form.col (c "o") :: k.map (Form.col ·) ++ [Form.const 0])
   f.memoryCols (Form.prod (c "fp") (c "o")) (c "cnt") k
 
-/-- `flushes_deref()` (`layout.rs:247-270`). -/
+/-- `flushes_deref()` (`layout.rs:254-277`). -/
 def flushesDeref : Flushes :=
   let c := columnIndexByName derefColumns
   let pc := c "pc"
@@ -838,7 +839,7 @@ def flushesDeref : Flushes :=
   let f := f.memory (Form.prod (c "ptr") (c "o2")) (c "cnt_target") store
   f.memoryCols (Form.prod fp (c "o3")) (c "cnt_local") v3
 
-/-- `flushes_jump()` (`layout.rs:272-292`): `next_pc = b·dest + (b + 1)·g·pc`,
+/-- `flushes_jump()` (`layout.rs:279-299`): `next_pc = b·dest + (b + 1)·g·pc`,
 `next_fp = b·frame + (b + 1)·fp`. -/
 def flushesJump : Flushes :=
   let c := columnIndexByName jumpColumns
@@ -855,7 +856,7 @@ def flushesJump : Flushes :=
   let f := f.memoryCols (Form.prod fp (c "o_d")) (c "cnt_d") [c "v_pc"]
   f.memoryCols (Form.prod fp (c "o_f")) (c "cnt_f") [c "v_fp"]
 
-/-- `jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`layout.rs:294-297`). -/
+/-- `jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`layout.rs:301-304`). -/
 def jumpConstraints (columns : List E) : List E :=
   let c := columnIndexByName jumpColumns
   let condition := columns.getD (c "v_cond") 0
@@ -863,7 +864,7 @@ def jumpConstraints (columns : List E) : List E :=
   let flag := columns.getD (c "b") 0
   [flag + condition * inverse, condition * (flag + 1)]
 
-/-- `layout_limb(even, odd, flag, missing)` (`layout.rs:311-327`): a cell limb holding the
+/-- `layout_limb(even, odd, flag, missing)` (`layout.rs:318-334`): a cell limb holding the
 column `even` in the even layout and `odd` in the odd one, as the column `flag` selects,
 `a + flag·(a + b)`; a missing column is `missing`. -/
 def layoutLimb (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : Form :=
@@ -881,10 +882,10 @@ def layoutLimb (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : For
       | some b => [Form.prod flag b]
       | none => []))
 
-/-- `flushes_keccak()` (`layout.rs:329-371`): the state step, the bytecode read, then the
+/-- `flushes_keccak()` (`layout.rs:336-378`): the state step, the bytecode read, then the
 thirteen cells read (four addressed ones, the tail run, `b8`, the cap run) and the thirteen
 written, each holding its lanes in the layout its flag names (`keccak_cell_lanes`,
-`layout.rs:299-309`, which is `cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column
+`layout.rs:306-316`, which is `cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column
 `free`, a written one's zero. Output cell `0` is always written, cell `1` when `out_two` is `1`,
 and cells `2…12` when `out_all` is `1` (`memoryIf`). -/
 def flushesKeccak : Flushes :=
@@ -917,7 +918,7 @@ def flushesKeccak : Flushes :=
         (Form.prod fp (c "o_out") cell) count values) f) f
 
 /-- One instruction's table: its columns, its bus flushes, its constraints
-(`layout.rs:186-207`). -/
+(`layout.rs:193-214`). -/
 structure Table where
   /-- Its opcode, also its index in `tables()`. -/
   opcode : ℕ
@@ -939,7 +940,7 @@ def Table.nConstraints (t : Table) : ℕ := (t.constraints (List.replicate t.wid
 def Table.countColumns (t : Table) : List ℕ :=
   (t.columns.zipIdx.filter fun (name, _) ↦ name.startsWith "cnt").map (·.2)
 
-/-- `tables()`, in opcode order (`layout.rs:445-469`). -/
+/-- `tables()`, in opcode order (`layout.rs:452-476`). -/
 def tables : List Table :=
   [⟨opXor, arithColumns, flushesArith opXor false, fun _ ↦ []⟩,
     ⟨opMul, arithColumns, flushesArith opMul true, fun _ ↦ []⟩,
@@ -948,7 +949,7 @@ def tables : List Table :=
     ⟨opJump, jumpColumns, flushesJump, jumpConstraints⟩,
     ⟨opKeccak, keccakColumns, flushesKeccak, fun _ ↦ []⟩]
 
-/-- `Table::padding` (`layout.rs:448, 455-460`): the row a padding row holds, zero but for
+/-- `Table::padding` (`layout.rs:455, 462-467`): the row a padding row holds, zero but for
 `KECCAK`'s output lanes `KECCAK_OUT …`, a padding row permuting zeros (`keccak_f` of the zero
 state). -/
 def Table.padding (t : Table) : List E :=
@@ -958,18 +959,18 @@ def Table.padding (t : Table) : List E :=
       eOfNat (Keccak.lane output (i - keccakOut)).toNat
     else 0
 
-/-- `TABLE_WIDTHS` (`layout.rs:471-478`). -/
+/-- `TABLE_WIDTHS` (`layout.rs:478-485`). -/
 def tableWidths : List ℕ := tables.map Table.width
 
-/-- `GLOBAL_COLUMN_BASES`: each table's first global column (`layout.rs:479-487`). -/
+/-- `GLOBAL_COLUMN_BASES`: each table's first global column (`layout.rs:486-494`). -/
 def globalColumnBases : List ℕ :=
   (List.range tables.length).map fun t ↦ globalColumnCount + (tableWidths.take t).sum
 
-/-- `TABLE_LOG_FLOORS` (`layout.rs:489-490`): each table's least log-height, `0` but for
+/-- `TABLE_LOG_FLOORS` (`layout.rs:496-497`): each table's least log-height, `0` but for
 `KECCAK`, the Keccak reduction's block of steps. -/
 def tableLogFloors : List ℕ := [0, 0, 0, 0, 0, keccakMinStepsLog]
 
-/-! ### The bus layout (`layout.rs:55-62`, `bus.rs:53-93`, `lib.rs:119-120`) -/
+/-! ### The bus layout (`layout.rs:55-62`, `bus.rs:53-93`, `lib.rs:121-122`) -/
 
 /-- One block of a bus side, owned by a table (`BusBlock`, `layout.rs:55-62`). -/
 structure BusBlock where
@@ -1014,10 +1015,10 @@ structure ColumnClaim where
   deriving Inhabited
 
 /-- A claim on the stack: the weight it puts on the stack, and the value it claims for it
-(`StackClaim`, `lib.rs:119-120`). -/
+(`StackClaim`, `lib.rs:121-122`). -/
 abbrev StackClaim : Type := (List E → E) × E
 
-/-! ### `build_layout` (`layout.rs:90-103, 492-583`) -/
+/-! ### `build_layout` (`layout.rs:97-110, 557-621`) -/
 
 /-- The layout the verifier derives from the bytecode and the announced sizes. -/
 structure Layout where
@@ -1053,7 +1054,7 @@ def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : Option StackClaim 
     (fun x ↦ eqEval (placement.stackPoint c.point layout.stackLog) x, c.value)
 
 /-- The bus blocks of every table, side by side: pushes, pulls, counts, each block at its
-table's log-height and row count (`layout.rs:513-527`). -/
+table's log-height and row count (`layout.rs:578-592`). -/
 def busBlocks (tableLogHeights tableRows : List ℕ) :
     List BusBlock × List BusBlock × List BusBlock :=
   let rows := List.zip tables (List.zip tableLogHeights tableRows)
@@ -1061,7 +1062,7 @@ def busBlocks (tableLogHeights tableRows : List ℕ) :
     rows.flatMap fun (t, h, n) ↦ t.flushes.pull.map fun c ↦ ⟨h, n, c, t.opcode⟩,
     rows.flatMap fun (t, h, n) ↦ t.countColumns.map fun l ↦ ⟨h, n, [Form.col l], t.opcode⟩)
 
-/-- The `q_keccak` slot of a global column (`qkeccak_slot`, `layout.rs:422-432`): a `KECCAK`
+/-- The `q_keccak` slot of a global column (`qkeccak_slot`, `layout.rs:429-439`): a `KECCAK`
 input lane's, or a spare slot's column's; `none` for every other column, those of the other tables
 (below the `KECCAK` base, where `checked_sub` fails) among them. -/
 def keccakSlot (column : ℕ) : Option ℕ :=
@@ -1070,20 +1071,20 @@ def keccakSlot (column : ℕ) : Option ℕ :=
   else none
 
 /-- The global columns of the `KECCAK` output lanes, in lane order (`outputs`,
-`layout.rs:550-551`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
-`lib.rs:291`). -/
+`layout.rs:527-528`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
+`lib.rs:293`). -/
 def keccakOutputColumns : List ℕ :=
   (List.range 25).map (globalColumnBases.getD opKeccak 0 + keccakOut + ·)
 
 /-- Every column's log-size, in global order: the framework's, `q_keccak`'s, then each table's
-block (`kappas`, `layout.rs:529-545`). -/
+block (`column_kappas`, `layout.rs:506-521`). -/
 def columnKappas (logMemory logBytecode : ℕ) (tableLogHeights : List ℕ) : List ℕ :=
   let qkeccakKappa := tableLogHeights.getD opKeccak 0 + qkeccakSlotBits
   [logMemory, logMemory, logMemory, logMemory, logBytecode, qkeccakKappa] ++
     tables.flatMap fun t ↦ List.replicate t.width (tableLogHeights.getD t.opcode 0)
 
-/-- The placements of every column, and the stack's log-size (`layout.rs:547-569`): the
-committed columns (every column but those with a `q_keccak` slot, the `KECCAK` input lanes and
+/-- The placements of every column, and the stack's log-size (`stacked_blocks` and `stack`,
+`layout.rs:523-543`; `placement`, `layout.rs:594-607`): the committed columns (every column but those with a `q_keccak` slot, the `KECCAK` input lanes and
 the table's first fourteen committed columns, and the `KECCAK` output lanes: `101` of `165`)
 stacked by `stack_offsets`, a column with a slot at `q_keccak`'s offset plus its slot's `2^κ`
 words, an output lane nowhere. -/
@@ -1101,9 +1102,9 @@ def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
       else some { variableCount := kappa, index := offsetOf column }
   (placements, max Whir.minLogStack totalLog)
 
-/-- `build_layout(bytecode, log_memory, table_rows)` (`layout.rs:492-583`); `none` exactly where
+/-- `build_layout(bytecode, log_memory, table_rows)` (`layout.rs:557-621`); `none` exactly where
 the Rust returns an error: a bytecode whose length is not a power of two (`log2_strict`) or whose
-log-length is outside `BUS_BITS ..= 32 + BUS_BITS`, and sizes outside the window. It is also `none`
+log-length is outside `BUS_BITS ..= 30 + BUS_BITS`, and sizes outside the window. It is also `none`
 on row counts not one per table, which the verifier never passes (it reads `N_TABLES` of them). A
 table's log-height is the least `h` with `rows ≤ 2^h` (`log2Ceil`), and at least its floor
 (`tableLogFloors`). -/
@@ -1111,8 +1112,8 @@ def buildLayout (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : O
   match log2Strict bytecode.length with
   | none => none
   | some logLength =>
-    if busBits ≤ logLength ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
-        tableRows.all (· ≤ 2 ^ 32) ∧ logLength - busBits ≤ 32 ∧
+    if busBits ≤ logLength ∧ 1 ≤ logMemory ∧ logMemory ≤ 30 ∧
+        tableRows.all (· ≤ 2 ^ 30) ∧ logLength - busBits ≤ 30 ∧
         tableRows.length = tables.length then
       let logBytecode := logLength - busBits
       let tableLogHeights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
@@ -1127,7 +1128,7 @@ def buildLayout (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : O
 open LeanVM.Protocol.Compile
 
 /-!
-## Sumcheck rounds (`transcript.rs:188-233`)
+## Sumcheck rounds (`transcript.rs:186-231`)
 
 A round polynomial of `count` coefficients is sent with one coefficient left out, which the
 verifier derives from the running claim: in plain mode (`eq_factor = None`) `q(0) + q(1) = claim`
@@ -1142,7 +1143,7 @@ def liftOption {α : Type} : Option α → VerifierProgram α
 
 /-- `Transcript::sumcheck_round_poly(count, claim, eq_factor)`: read a round polynomial of `count`
 coefficients, deriving the one the claim fixes; its coefficients, constant first
-(`transcript.rs:188-204`). -/
+(`transcript.rs:186-202`). -/
 def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → VerifierProgram (List E)
   | none => do
     let constant ← VerifierProgram.readScalar
@@ -1154,7 +1155,7 @@ def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → VerifierProgram (
 
 /-- `sumcheck(transcript, claim, count, equalities)`: one round per entry of `equalities`, each
 reading its polynomial and sampling its challenge; the challenges in order, and the final claim
-(`transcript.rs:219-233`). -/
+(`transcript.rs:217-231`). -/
 def sumcheck (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
@@ -1352,7 +1353,7 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
   return evaluations
 
 /-!
-## The WHIR opening (`whir.rs`, `lib.rs:122-139`)
+## The WHIR opening (`whir.rs`, `lib.rs:124-141`)
 
 **Commitments.** The Rust reads a Merkle root as two scalars (`Digest::from_halves` of
 `next_scalars(2)`, `whir.rs:177-178`) and opens it a level later with
@@ -1459,15 +1460,15 @@ structure WhirState where
   /-- The glued claims so far. -/
   glued : List GluedClaim
 
-/-- A level's fold rounds: sample, fold the running claim, read the next quadratic
-(`whir.rs:159-165`). Returns the state and the level's own challenges. -/
+/-- A level's fold rounds: sample, fold the running claim, read the next quadratic (`whir.rs`).
+Returns the state and the level's own challenges. -/
 def foldRounds : ℕ → WhirState → List E → VerifierProgram (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
     let challenge ← VerifierProgram.sampleChallenge
     let quad ← sumcheckRoundPoly 3 (polyEval s.runningQuad challenge) none
-    foldRounds n { s with runningQuad := quad, folds := s.folds ++ [challenge] } (levelFolds ++
-        [challenge])
+    foldRounds n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
+      (levelFolds ++ [challenge])
 
 /-- The final level's tail rounds: sample, fold, and read the next quadratic unless it is the
 last round (`whir.rs:237-246`). The tail challenges and the final running claim. With no round
@@ -1552,7 +1553,7 @@ def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → 
   let quad ← sumcheckRoundPoly 3 target none
   whirLevels logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config ⟨quad, [], []⟩
 
-/-- Read the stack's root (`verify_execution`, step 2, `lib.rs:235-237`): commitment `0`, the
+/-- Read the stack's root (`verify_execution`, step 2, `lib.rs:237-239`): commitment `0`, the
 shape level `0` opens it at. -/
 def commitStack (logN logInvRate : ℕ) : VerifierProgram Unit := do
   let config ← liftOption (Whir.ladder logN logInvRate)
@@ -1563,7 +1564,7 @@ def commitStack (logN logInvRate : ℕ) : VerifierProgram Unit := do
     VerifierProgram.readCommitment height width
 
 /-- `verify_stacked_opening(transcript, root, stack_log, log_inv_rate, claims)`: batch the claims
-with powers of one challenge into one WHIR opening (`lib.rs:122-139`). -/
+with powers of one challenge into one WHIR opening (`lib.rs:124-141`). -/
 def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) : VerifierProgram
     Unit := do
   let scales := powers (← VerifierProgram.sampleChallenge) claims.length
@@ -1901,7 +1902,7 @@ def ringSwitch (point s : List E) : VerifierProgram (E × (List E → E)) := do
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 /-!
-## The leanVM verifier (`lib.rs:154-157, 215-329`; `layout.rs:64-68`; `transcript.rs:33-46`)
+## The leanVM verifier (`lib.rs:156-159, 217-331`; `layout.rs:64-68`; `transcript.rs:33-46`)
 
 `leanVmVerifierProgram bytecode publicInput` is `verify_execution` in the verifier language, one
 `VerifierProgram` function per numbered step of the Rust's `walk` (the steps of `verifyExecution`).
@@ -1917,7 +1918,7 @@ same kind. This is harmless for the end statements, which are proved for exactly
 -/
 
 /-- The announced sizes, read and checked, and the layout they give
-(`lib.rs:219-233`): the layout and the WHIR rate exponent. -/
+(`lib.rs:221-235`): the layout and the WHIR rate exponent. -/
 def readAnnouncedSizes (bytecode : List K) : VerifierProgram (Layout × ℕ) := do
   let announced ← VerifierProgram.readScalars (2 + tables.length)
   VerifierProgram.require (announced.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0)
@@ -1929,7 +1930,7 @@ def readAnnouncedSizes (bytecode : List K) : VerifierProgram (Layout × ℕ) := 
   VerifierProgram.require (Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack)
   return (layout, logInverseRate)
 
-/-- Step 4, the table sumcheck at the bus point (`lib.rs:242-258`): each table's point and
+/-- Step 4, the table sumcheck at the bus point (`lib.rs:244-260`): each table's point and
 evaluations. -/
 def tablePhase (layout : Layout) (bus : BusResult) : VerifierProgram (List (List E × List E)) := do
   let xi ← VerifierProgram.sampleChallenge
@@ -1940,13 +1941,13 @@ def tablePhase (layout : Layout) (bus : BusResult) : VerifierProgram (List (List
   let target := dot formPowers bus.totals
   tableSumcheck layout.tableLogHeights bus.forms constraintPowers formPowers bus.point target
 
-/-- The tables' column claims (`lib.rs:259-266`): each table's evaluations at its point,
+/-- The tables' column claims (`lib.rs:261-268`): each table's evaluations at its point,
 on the table's global columns. -/
 def tableColumnClaims (evaluations : List (List E × List E)) : List ColumnClaim :=
   (globalColumnBases.zip evaluations).flatMap fun (base, point, values) ↦
     values.zipIdx.map fun (value, column) ↦ ⟨base + column, point, value⟩
 
-/-- Step 5, binding the public input (`lib.rs:268-281`): a challenge, and claims on the
+/-- Step 5, binding the public input (`lib.rs:270-283`): a challenge, and claims on the
 three memory columns at `(challenge, 0, …, 0)`, each limb's claim the line through that limb of
 the public input's two halves, evaluated at the challenge by the verifier itself. The prover sends
 nothing. -/
@@ -1961,7 +1962,7 @@ def publicInputPhase (layout : Layout) (publicInput : Digest) : VerifierProgram
   return List.zipWith (fun column value ↦ ⟨column, publicPoint, value⟩)
     [memory0, memory1, memory2] publicLimbs
 
-/-- Step 6, `KECCAK`'s validity (`lib.rs:283-300`): the `KECCAK` table's point and its
+/-- Step 6, `KECCAK`'s validity (`lib.rs:285-302`): the `KECCAK` table's point and its
 output lanes' evaluations, `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`, are the Keccak
 reduction's claim on the permutation's output. The reduction's column claims, and the point and
 slices of `q_keccak` it leaves for ring switching. -/
@@ -1972,13 +1973,13 @@ def keccakPhase (layout : Layout) (evaluations : List (List E × List E)) : Veri
     ((List.range 25).map fun lane ↦ values.getD (keccakOut + lane) 0)
 
 /-- Step 7's ring-switching claim on the stack: supported on `q_keccak`'s region, its weight
-carries the placement's selector (`lib.rs:305-311`). -/
+carries the placement's selector (`lib.rs:307-313`). -/
 def ringSwitchClaim (layout : Layout) (target : E) (weight : List E → E) : StackClaim :=
   let qkeccakPlacement := layout.placement qkeccak
   (fun x ↦ qkeccakPlacement.eqAbove x * weight (x.take qkeccakPlacement.variableCount), target)
 
 /-- `verify_execution(bytecode, public_input, proof)` without its `finish` (`walk`,
-`lib.rs:215-320`), the fixed polynomial's value from `bytecodeValue`. -/
+`lib.rs:217-322`), the fixed polynomial's value from `bytecodeValue`. -/
 def verifyExecution (bytecodeValue : List K → List E → VerifierProgram E) (bytecode : List K)
     (publicInput : Digest) : VerifierProgram Unit := do
   -- 1] memory log-size, table row counts, and the WHIR rate
@@ -2085,6 +2086,36 @@ def fiatShamirIv (bytecode : List K) : Digest :=
 def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (claim : BytecodeClaim)
     (proof : Proof) : Bool :=
   Id.run (verifyDeferredWith (m := Id) keccakF1600 bytecode iv publicInput claim proof)
+
+end LeanVM.Protocol.Verifier
+
+/-! ## The sizes a proof announces
+
+The verifier's first step reads the announced sizes and nothing else (`readAnnouncedSizes`): its
+reads only absorb, so no hash or permutation is consulted for a value, and running it with every
+permutation answered by `default` gives the layout the proof announces. The extractor's budget
+(`Statement/CostMachine.lean`) grows with the stack size it announces. -/
+
+namespace LeanVM.Protocol.Compile
+
+open LeanVM.Parameters
+
+/-- A run with every permutation answered by `default`, for the steps that only read scalars: what
+they read does not depend on the sponge. -/
+def runPure {α : Type} (program : VerifierProgram α) (s : VerifierProgramState) : Option
+    (α × VerifierProgramState) :=
+  Id.run (run (m := Id) (fun _ ↦ default) program s)
+
+end LeanVM.Protocol.Compile
+
+namespace LeanVM.Protocol.Verifier
+
+open LeanVM.Parameters LeanVM.Protocol.Compile
+
+/-- The announced layout and rate exponent of a stream, read by the program's own
+`readAnnouncedSizes` (reads only absorb: no hash or permutation is consulted for a value). -/
+def announcedLayoutAndRate (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
+  (runPure (readAnnouncedSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩).map (·.1)
 
 end LeanVM.Protocol.Verifier
 

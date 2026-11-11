@@ -78,7 +78,7 @@ theorem verifierRZ_eq_comp (prog : LeanIsaProgram) (input : PublicInput) (π : P
 /-- The completeness error of the verifier refusing a zero challenge, against the random
 oracles. -/
 noncomputable def nzCompletenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (completenessQueries fuel : ℝ≥0∞) * (missProb Whir.queryGrindingBits ^ fuel + (2 : ℝ≥0∞)⁻¹ ^ 192)
+  (completenessQueries fuel : ℝ≥0∞) * (missProb EndToEnd.Sound.maxGrindingBits ^ fuel + (2 : ℝ≥0∞)⁻¹ ^ 192)
 
 set_option maxHeartbeats 1000000 in
 /-- **The specification's honest prover at a witness against the random oracles**, against the
@@ -98,8 +98,8 @@ theorem romChild_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution
   simp only [verifierRZ_eq_comp]
   have h := romCompleteNZ (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
     (rzProgram (bytecodeWords prog) (publicInputDigest input)) (nz_rzProgram _ _) _
-    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := Whir.queryGrindingBits)
-    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ EndToEnd.Sound.grind_bits_eq _ _ hg)
+    (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := EndToEnd.Sound.maxGrindingBits)
+    (by decide) hfuel (fun _ _ _ hg ↦ EndToEnd.Sound.grind_bits_ok _ _ hg)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
     (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input))
     (costLE_rzProgram (bytecodeWords prog) (publicInputDigest input))
@@ -174,7 +174,7 @@ theorem allQ_childComp (prog : LeanIsaProgram) (input : PublicInput) (t : Execut
 theorem isTotalQueryBound_childComp (prog : LeanIsaProgram) (input : PublicInput) (t :
     Execution prog)
     (ρ fuel : ℕ) :
-    IsTotalQueryBound (childComp prog input t ρ fuel) (2 + 48019 * (2 ^ 27 + 2 * fuel + 2)) := by
+    IsTotalQueryBound (childComp prog input t ρ fuel) (2 + 50689 * (2 ^ 29 + 2 * fuel + 2)) := by
   unfold childComp
   split
   · rename_i hex
@@ -182,21 +182,21 @@ theorem isTotalQueryBound_childComp (prog : LeanIsaProgram) (input : PublicInput
       (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) (leanVmProver
         prog hex.choose_spec.choose ρ (LeanIsa.stackOf prog hex.choose_spec.choose hex.choose))
       fuel (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-    have hc : leanVmCost = 48019 := by decide
+    have hc : leanVmCost = 50689 := by decide
     rw [hc] at h
     exact h
   · trivial
 
-/-- **A prover of at most `2 + 48019 · (2^27 + 2·fuel + 2)` short queries and the verifier
+/-- **A prover of at most `2 + 50689 · (2^29 + 2·fuel + 2)` short queries and the verifier
 refusing a zero challenge make at most `completenessPermCalls fuel` permutation calls.** -/
 theorem isWeightBound_proverNZ {X : OracleComp KeccakCalls Proof} (prog : LeanIsaProgram)
     (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (2 + 48019 * (2 ^ 27 + 2 * fuel + 2)))
+    (hX : IsTotalQueryBound X (2 + 50689 * (2 ^ 29 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
     Common.QueryCostAtMost (X >>= fun proof ↦ Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)
       hashBlocks (completenessPermCalls fuel) := by
   have hN : IsTotalQueryBound (X >>= fun proof ↦ Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)
-      (12008 + 48019 * (2 ^ 27 + 2 * fuel + 2)) := by
+      (12676 + 50689 * (2 ^ 29 + 2 * fuel + 2)) := by
     have h := isTotalQueryBound_bind hX
       fun proof ↦ by
         have := isTotalQueryBound_verifierComp
@@ -205,10 +205,10 @@ theorem isWeightBound_proverNZ {X : OracleComp KeccakCalls Proof} (prog : LeanIs
         rw [← verifierRZ_eq_comp] at this
         exact this
     refine h.mono ?_
-    have : leanVmCost / 4 = 12004 := by decide
+    have : leanVmCost / 4 = 12672 := by decide
     simp only [leanVmSeed, List.length_cons, List.length_nil, this]
     omega
-  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) hN
+  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifierRZ prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
 
@@ -244,7 +244,7 @@ theorem rpmChild_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution
 /-- **The child prover against the verifier refusing a zero challenge, in the
 random-permutation model.** -/
 theorem rpmChild {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let v ← (simulateQ keccakCallsOverRandomPermutation (childRun prog input t ρ fuel)).run' []}[v = false] ≤
       nzCompletenessError fuel + rpmError (completenessPermCalls fuel) :=
@@ -256,17 +256,17 @@ theorem rpmChild {prog : LeanIsaProgram} {input : PublicInput} {t : Execution pr
 /-! ## The numbers -/
 
 /-- **At a fuel of `2^25` nonces per proof of work, at most `2^-126`**: `completenessRpm_le`'s two
-terms, each at most `2^-257`, and `Q · 2^-192 ≤ 2^44 · 2^-192`, each taken at `2^-128`. -/
+terms, each at most `2^-257`, and `Q · 2^-192 ≤ 2^47 · 2^-192`, each taken at `2^-128`. -/
 theorem rpmChild_le :
     nzCompletenessError (2 ^ 25) + rpmError (completenessPermCalls (2 ^ 25)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126 := by
-  have hQ : completenessQueries (2 ^ 25) ≤ 2 ^ 44 := by decide
+  have hQ : completenessQueries (2 ^ 25) ≤ 2 ^ 47 := by decide
   have hz : (completenessQueries (2 ^ 25) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 192 ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 :=
     calc (completenessQueries (2 ^ 25) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 192
-        ≤ (2 : ℝ≥0∞) ^ 44 * (2 : ℝ≥0∞)⁻¹ ^ (44 + 148) := by
+        ≤ (2 : ℝ≥0∞) ^ 47 * (2 : ℝ≥0∞)⁻¹ ^ (47 + 145) := by
           gcongr
           exact_mod_cast hQ
-      _ = (2 : ℝ≥0∞)⁻¹ ^ 148 := Common.two_pow_mul_inv_pow 44 148
+      _ = (2 : ℝ≥0∞)⁻¹ ^ 145 := Common.two_pow_mul_inv_pow 47 145
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := Common.inv_two_pow_le_of_le (by norm_num)
   have e : nzCompletenessError (2 ^ 25) = EndToEnd.Complete.completenessError (2 ^ 25) +
       (completenessQueries (2 ^ 25) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 192 := by
@@ -291,7 +291,7 @@ theorem rpmChild_le :
 /-- **The child prover in the random-permutation model, at `2^25` nonces**: rejected by the
 verifier refusing a zero challenge with probability at most `2^-126`. -/
 theorem rpmChild_126 {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) :
     Pr{let v ← (simulateQ keccakCallsOverRandomPermutation (childRun prog input t ρ (2 ^ 25))).run' []}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126 :=

@@ -3,8 +3,8 @@
 
   The budget's static hypotheses at the deployed frame sizes, from the certificate families: the
   words of `main`'s statically bounded callees and of its non-static callees' static callees
-  (`mainStatics`), and `open_stacked`'s named callees and residual loops (`osLeafBounds`,
-  `osLoopBounds`). `main`'s callees' instruction counts (`mainCounts`) are `Budget/MvCount`'s.
+  (`mainStatics`). `main`'s callees' instruction counts (`mainCounts`) are `Budget/MvCount`'s;
+  `open_stacked`'s callees' words (`osLeafBounds`) are `Count/VsOsAll`'s.
 -/
 
 module
@@ -12,7 +12,6 @@ module
 public import LeanVM.Guest.Count.Words
 public import LeanVM.Guest.Budget.MainCount
 public import LeanVM.Guest.B1.Main.MainHonestBudgetB
-public import LeanVM.Guest.B1.Place.OsFinalB
 
 /-!
 # The budget's static hypotheses
@@ -96,27 +95,6 @@ theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
   l26 := iterK_totalLeOn (j := wIdxL 34) (by decide +kernel)
   l27 := iterK_totalLeOn (j := wIdxL 35) (by decide +kernel)
   bs := wSB_totalLe (j := wIdx "batch_sumcheck__L23") (by decide +kernel)
-
-/-- `open_stacked`'s named callees, checked. -/
-theorem osKind_ok : B1.osKindTable.all (fun p => wOkB (wIdx p.1) p.1) = true := by
-  decide +kernel
-
-/-- **`open_stacked`'s named callees within `wSB`.** -/
-theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun f K hK =>
-  wSB_totalLe (List.all_eq_true.mp osKind_ok (f, K) (B1.os_mem_of_lookup B1.osKindTable hK))
-
-set_option maxRecDepth 100000 in
-/-- The residual loops of the candidates, checked. -/
-theorem osRes_ok : ∀ m < 28, ∀ l < (B1.Whir.osCfg m).levels.length,
-    wOkK (wIdxL ((B1.Whir.osCfg m).loopBase + (B1.Whir.osCfg m).levels.length + l))
-      ((B1.Whir.osCfg m).resLoop l) = true := by
-  decide +kernel
-
-/-- **Each candidate's residual loops' runs within `wSKt` (`wSK` less the frame) per iteration
-and their one phantom frame.** -/
-theorem osLoopBounds :
-    ∀ m < 28, B1.OsLoopBounds B2C.fs (fun f => wSK f - B2C.fs f) (B1.Whir.osCfg m) :=
-  fun m hm l hl => by simpa only [wSKt_eq] using wSKt_totalLeOn (osRes_ok m hm l hl)
 
 end
 end LeanVM.Guest.Count

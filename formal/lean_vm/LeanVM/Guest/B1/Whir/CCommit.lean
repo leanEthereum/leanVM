@@ -30,9 +30,6 @@ open LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader}
 
-/-- Cell `c` of a state, `0` past the thirteen. -/
-def cells13F (S : KeccakState) (c : ℕ) : E := if h : c < 13 then cellsOfState S false ⟨c, h⟩ else 0
-
 /-- The sponge before the out-of-domain point: the two waiting scalars and the root's halves. -/
 def commitF1 (σ : Val) (st : OsSt) (ra rb : E) : Fs :=
   ⟨st.fsv σ, [(σ (.n st.w0), dsObserve), (σ (.n st.w1), dsObserve), (ra, dsObserve),
@@ -74,23 +71,6 @@ structure CommitOutC (σ : Val) (st st' : OsSt) (S : KeccakState) : Prop where
   mats : MatsOk σ st'.mats
   matsB : MatsBelow st'.k st'.mats
 
-theorem capOf_canonical (S : KeccakState) : AllCanonical (capOf S) := by
-  intro c hc
-  simp only [capOf, List.mem_cons, List.mem_nil_iff, or_false] at hc
-  rcases hc with rfl | rfl | rfl | rfl | rfl <;> exact cellsOfState_canonical _ _ _
-
-theorem pendCells_canonical (pend : List (E × ℕ)) : AllCanonical (pendCells pend) := by
-  intro c hc
-  simp only [pendCells, List.mem_flatMap, List.mem_cons, List.mem_nil_iff, or_false] at hc
-  obtain ⟨p, -, hp | hp⟩ := hc
-  · rw [hp]; exact (scalarCells_canonical _ _).1
-  · rw [hp]; exact (scalarCells_canonical _ _).2
-
-theorem squeezeN_cap_canonical : ∀ (n : ℕ) (F : Fs), AllCanonical F.cap →
-    AllCanonical (F.squeezeN n).2.cap
-  | 0, _, h => h
-  | n + 1, _, _ => squeezeN_cap_canonical n _ (capOf_canonical _)
-
 theorem osCommit_below (plan : List (ℕ × ℕ × ℕ)) (lvl : ℕ) (lv : OsLv) {st : OsSt} (hb : st.Below) :
     (osCommit plan lvl lv st).2.1.Below := by
   have := hb.w0; have := hb.w1; have := hb.c; have := hb.b; have := hb.a; have := hb.t
@@ -107,7 +87,7 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
       C ("opening_ood_point__L" ++ natStr lv.logCols) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
-    {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hb : st.Below) (hk : 164 ≤ st.k)
+    {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hb : st.Below) (hk : 161 ≤ st.k)
     (hcan : AllCanonical (st.fsv σ)) (hlvl : (lvl + 1) * ligColsCap < u128Bound)
     (hm : MatsOk σ st.mats) (hmb : MatsBelow st.k st.mats)
     {ra rb y c0 c2 nonce : E} {d : Digest} (hd : (ra, rb) = digestHalves d)
@@ -119,7 +99,7 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
     (hy : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 1) y)
     (hc0 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0)
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)
-    (hpow : powOk Whir.queryGrindingBits nonce
+    (hpow : powOk Whir.queryGrindingBits
       (commitF2 σ st ra rb lv.logCols y c0 c2 nonce).squeeze.1 = true) :
     BlkF C rd σ st.k (osCommit plan lvl lv st).2.1.k
       (fun j ↦ segLookup (commitSegs plan σ st lvl lv.logCols ra rb y c0 c2 nonce) (j - st.k))
@@ -423,7 +403,7 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
       have := vout 0 (by omega)
       rw [Nat.add_zero] at this
       rw [this]
-      exact grind_meaning (by decide) hpow
+      exact grind_meaning hpow
   · simp only [OsSt.cur, osCommit, pow_add, mul_assoc]
   · have hoff0 : (lvl + 1) * ligColsCap ≠ 0 := by unfold ligColsCap; omega
     have hm' : MatsOk σ' st.mats := matsOk_agree hm hmb hagree

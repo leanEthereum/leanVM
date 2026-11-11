@@ -329,7 +329,7 @@ theorem mem_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (hκ : κ ≤ maxLogMem
     obtain ⟨w, hw⟩ := readAddrs_valid (pc := sk.pc) (fp := sk.fp) hn a ha
     obtain ⟨i, rfl, -⟩ := (MemoryImage.read_eq_some_iff hκ64 img).mp hw
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, rfl⟩
-  have hb := block_balance _ (gpow_keys_nodup κ hκ) (memMsg img) _ hmem
+  have hb := block_balance _ (gpow_keys_nodup κ (hκ.trans (by decide))) (memMsg img) _ hmem
   -- The rows' pulls and pushes: the chained reads, and the cancelled pairs `C`, alike on both
   -- sides.
   set C := (skelRows img S).flatMap (PRow.skipMsgs img) with hC
@@ -380,7 +380,7 @@ theorem bc_pair_perm (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryImage κ) (
     obtain ⟨sk, hsk, rfl⟩ := List.mem_map.mp ha
     obtain ⟨i, hi, -⟩ := LeanIsaProgram.fetch_eq_some_iff prog |>.mp (hS sk hsk).1
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, hi.symm⟩
-  have hb := block_balance _ (gpow_keys_nodup prog.logSize prog.logSize_le) (bcMsg prog) _ hmem
+  have hb := block_balance _ (gpow_keys_nodup prog.logSize (prog.logSize_le.trans (by decide))) (bcMsg prog) _ hmem
   have hF : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins := fun sk h ↦ (hS sk h).1
   have h1 : (skelRows img S).flatMap (fun r ↦ chanOf BytecodePush.name (r.sends img)) =
       List.zipWith (fun pc e ↦ bcMsg prog pc (e + 1)) (S.map (·.pc))

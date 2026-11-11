@@ -21,7 +21,7 @@ For `κ ≥ 1`, `κ + R ≤ 64`, `n = 2^(κ+R)` and an agreement `A ≤ n` with 
 * **`laneCoeffs_mem_laneListAt`**: lane `u` of every stack whose encoding agrees with the word on
   at least `A` columns (a candidate, `Candidates`) is in the lane's list: the decoder returns its
   polynomial, and `toNovel` turns it back into the lane's coefficients (`toNovel_of_toPoly`).
-* `laneCoeffs_mem_laneList`: the same at the deployed shapes, `15 ≤ μ ≤ 28`, `1 ≤ R ≤ 4`, at the
+* `laneCoeffs_mem_laneList`: the same at the deployed shapes, `16 ≤ μ ≤ 30`, `1 ≤ R ≤ 4`, at the
   Johnson threshold (`gsParamCert_gsParams`' bounds, `johnsonThreshold_bounds`).
 
 For the running time only (the size of each lane's list): `gsLaneAt_sound` (ArkLib's
@@ -212,7 +212,7 @@ theorem laneCoeffs_mem_laneListAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - ini
 
 /-- **At the deployed shapes**: lane `u` of every candidate at the Johnson threshold is in the
 lane's list. -/
-theorem laneCoeffs_mem_laneList {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 28) (hR : 1 ≤ R ∧ R ≤ 4)
+theorem laneCoeffs_mem_laneList {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 30) (hR : 1 ≤ R ∧ R ≤ 4)
     (W : ℕ → List K) {q : Vector K (2 ^ μ)} (hq : q ∈ Candidates μ R (johnsonThreshold μ R) W)
     {u : ℕ} (hu : u < 2 ^ initialFold) :
     laneCoeffs q u ∈ laneListAt (μ - initialFold) R (johnsonThreshold μ R) W u := by

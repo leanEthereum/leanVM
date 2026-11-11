@@ -39,9 +39,9 @@ theorem osWinTabs_sound {C : CallRel} (hok : AllOk C rd σ osWinTabs) : WinTabs 
 
 /-- **The head**: the two words read at the cursor run the first round polynomial; the first
 level starts from the guest's state. -/
-theorem osHead_sound {c : OsCfg} {fs : List E} {target root0 root1 cur : E} {root : Digest}
+theorem osHead_sound {c : OsCfg} {fs : List E} {sel target root0 root1 cur : E} {root : Digest}
     {shape : ℕ × ℕ} (hfs : fs.length = 5)
-    (hp : (osParams 9).map σ = fs ++ [target, root0, root1, cur])
+    (hp : (osParams 10).map σ = sel :: fs ++ [target, root0, root1, cur])
     (hroot : (root0, root1) = digestHalves root)
     (hshape : shape = ((c.levels.headD default).depth, lvWidth 0 (c.levels.headD default)))
     (hoff : (c.levels.headD default).foldsOff = 0)
@@ -57,33 +57,33 @@ theorem osHead_sound {c : OsCfg} {fs : List E} {target root0 root1 cur : E} {roo
     | [f0, f1, f2, f3, f4], _ => exact ⟨f0, f1, f2, f3, f4, rfl⟩
   simp only [osParams, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, List.cons.injEq, and_true] at hp
-  obtain ⟨e0, e1, e2, e3, e4, e5, e6, e7, e8⟩ := hp
+  obtain ⟨-, e1, e2, e3, e4, e5, e6, e7, e8, e9⟩ := hp
   have hwin : AllOk (coreProgram.Rel rd) rd σ osWinTabs := fun s hs ↦ hok s (by
     simp only [osHead, List.mem_append]; tauto)
   simp only [osHead, allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds,
     osHeap, and_assoc] at hok
-  obtain ⟨l9, l10, a11, -, -, -, -, s6, s7, -⟩ := hok
-  have hF : (OsSt.F σ (osHead c).2) = ⟨[f0, f1, f2, f3, f4], [(σ (.n 9), dsObserve),
-      (σ (.n 10), dsObserve)]⟩ := by
-    simp [OsSt.F, OsSt.fsv, osHead, e0, e1, e2, e3, e4]
-  refine ⟨σ (.n 9), σ (.n 10), ?_, ?_, ?_, ?_, osWinTabs_sound hwin⟩
+  obtain ⟨l10, l11, a12, -, -, s7, s8, -⟩ := hok
+  have hF : (OsSt.F σ (osHead c).2) = ⟨[f0, f1, f2, f3, f4], [(σ (.n 10), dsObserve),
+      (σ (.n 11), dsObserve)]⟩ := by
+    simp [OsSt.F, OsSt.fsv, osHead, e1, e2, e3, e4, e5]
+  refine ⟨σ (.n 10), σ (.n 11), ?_, ?_, ?_, ?_, osWinTabs_sound hwin⟩
   · intro i hi
-    rw [← e8]
+    rw [← e9]
     rcases i with _ | _ | i
-    · exact l9
     · exact l10
+    · exact l11
     · simp at hi
   · rw [hF]
-    have := runsTo_round3 ⟨[f0, f1, f2, f3, f4], []⟩ target (σ (.n 9)) (σ (.n 10))
+    have := runsTo_round3 ⟨[f0, f1, f2, f3, f4], []⟩ target (σ (.n 10)) (σ (.n 11))
     refine RunsTo.of_eq this rfl rfl rfl ?_
     simp [Fs.absorbAll, Fs.absorb, rateScalars]
-  · refine ⟨rfl, by simp [osHead], trivial, ?_, by simp [osHead, e5], by rw [hoff]; rfl,
+  · refine ⟨rfl, by simp [osHead], trivial, ?_, by simp [osHead, e6], by rw [hoff]; rfl,
       fun j hj ↦ by simp at hj, rfl, by simp [hshape, lvWidth], ?_, ?_, ?_⟩
-    · simp [OsSt.quad, osHead, a11, e5]
-    · rw [← hroot]; simpa [e6] using s6
+    · simp [OsSt.quad, osHead, a12, e6]
     · rw [← hroot]; simpa [e7] using s7
+    · rw [← hroot]; simpa [e8] using s8
     · exact matsOk_nil σ
-  · simp [OsSt.cur, osHead, e8]
+  · simp [OsSt.cur, osHead, e9]
 
 end
 end LeanVM.Guest.B1.Whir

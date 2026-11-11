@@ -16,61 +16,57 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop388`, window 0, part 0. -/
+/-- `level_positions__L3_L25_L7`, window 0, part 0. -/
 theorem cw889_0_0 : cplWin 889 0 0 = true := by decide +kernel
 
-/-- `__loop388`, window 1, part 0. -/
-theorem cw889_1_0 : cplWin 889 1 0 = true := by decide +kernel
-
-/-- `__loop388`, window 2, part 0. -/
-theorem cw889_2_0 : cplWin 889 2 0 = true := by decide +kernel
-
-/-- `decode_query_windows__L21_L5`, window 0, part 0. -/
+/-- `level_queries__L21_L0_L16_L24_L23_L5`, window 0, part 0. -/
 theorem cw890_0_0 : cplWin 890 0 0 = true := by decide +kernel
 
-/-- `__loop389`, window 0, part 0. -/
+/-- `level_queries__L21_L0_L16_L24_L23_L5`, window 1, part 0. -/
+theorem cw890_1_0 : cplWin 890 1 0 = true := by decide +kernel
+
+/-- `level_queries__L19_L0_L16_L24_L24_L6`, window 0, part 0. -/
 theorem cw891_0_0 : cplWin 891 0 0 = true := by decide +kernel
 
-/-- `__loop389`, window 1, part 0. -/
+/-- `level_queries__L19_L0_L16_L24_L24_L6`, window 1, part 0. -/
 theorem cw891_1_0 : cplWin 891 1 0 = true := by decide +kernel
 
-/-- `__loop389`, window 2, part 0. -/
-theorem cw891_2_0 : cplWin 891 2 0 = true := by decide +kernel
-
-/-- `decode_query_windows__L18_L4`, window 0, part 0. -/
+/-- `level_queries__L18_L0_L16_L24_L25_L7`, window 0, part 0. -/
 theorem cw892_0_0 : cplWin 892 0 0 = true := by decide +kernel
+
+/-- `level_queries__L18_L0_L16_L24_L25_L7`, window 1, part 0. -/
+theorem cw892_1_0 : cplWin 892 1 0 = true := by decide +kernel
+
+/-- `level_positions__L2_L24_L6`, window 0, part 0. -/
+theorem cw893_0_0 : cplWin 893 0 0 = true := by decide +kernel
 
 theorem ok889 : CplOk 889 := by
   intro i hi k hk
-  have hc : (certOf 889).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 889).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 889 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw889_0_0
-  · have hn : nParts 889 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw889_1_0
-  · have hn : nParts 889 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw889_2_0
 
 theorem ok890 : CplOk 890 := by
   intro i hi k hk
-  have hc : (certOf 890).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 890).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 890 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw890_0_0
+  · have hn : nParts 890 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw890_1_0
 
 theorem ok891 : CplOk 891 := by
   intro i hi k hk
-  have hc : (certOf 891).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 891).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 891 0 = 1 := by decide +kernel
@@ -81,20 +77,30 @@ theorem ok891 : CplOk 891 := by
     rw [hn] at hk
     interval_cases k
     · exact cw891_1_0
-  · have hn : nParts 891 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw891_2_0
 
 theorem ok892 : CplOk 892 := by
   intro i hi k hk
-  have hc : (certOf 892).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 892).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 892 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw892_0_0
+  · have hn : nParts 892 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw892_1_0
+
+theorem ok893 : CplOk 893 := by
+  intro i hi k hk
+  have hc : (certOf 893).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 893 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw893_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

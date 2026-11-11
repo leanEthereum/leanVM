@@ -253,18 +253,18 @@ theorem iterSum_l5B_le (op : Opcode) (X S V : ℕ → ℕ) : ∀ c m,
 /-! ## The honest children's loop -/
 
 /-- **`verify_sub`'s instructions of `op` on a child of announced stack log `μ` and rate `r`**:
-`vsCountT op` at its candidate. -/
-def vsCnt (op : Opcode) (μ r : ℕ) : ℕ := (vsCountT op).getD (B1.Whir.candidate μ r) 0
+`vsCountT op` at its arm `μ - 20`, whatever the rate. -/
+def vsCnt (op : Opcode) (μ _r : ℕ) : ℕ := (vsCountT op).getD (μ - 20) 0
 
 /-- **`verify_sub`'s instructions of `op` on B1-d's tree at the deployed bounds** (`vsTs` at
 `Count.vsWords` and `vkBound`): at most `vsCnt op μ r`. -/
-theorem vs_weight_le_deployed (op : Opcode) {μ r : ℕ} (hc : B1.Whir.candidate μ r < 28)
+theorem vs_weight_le_deployed (op : Opcode) {μ r : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub"
       (B1.VerifySub.vsTs B2C.fs Count.vsWords B1.VerifySub.vkBound μ r) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ vsCnt op μ r :=
-  vs_weight_le_vsTs op hc (vbgMax_eq.trans_le (by norm_num)) (vkBound_eq.trans_le (by norm_num)) h
+  vs_weight_le_vsTs op hμ1 hμ2 (vbgMax_eq.trans_le (by norm_num)) (vkBound_eq.trans_le (by norm_num)) h
     hv hb
 
 theorem iterSum_le {A B : ℕ → ℕ} (h : ∀ i, A i ≤ B i) : ∀ c m, iterSum A c m ≤ iterSum B c m
@@ -288,20 +288,20 @@ theorem iterSum_getD : ∀ (l : List ℕ) (c : ℕ) (f : ℕ → ℕ),
       simpa using this]
 
 theorem hEx_lt {s : NodeStatement} {w : NodeWitness}
-    (hl : DeployedLimits s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 16 := by
+    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 20 := by
   unfold B1.Main.hEx
   by_cases hc : c < w.children.length
   · rw [B1.Main.getD_map_lt _ _ _ hc]
-    exact (hl.childClaimListsBelow2Pow16 _ (List.getElem_mem hc)).1
+    exact (hl.childClaimListsBelow2Pow20 _ (List.getElem_mem hc)).1
   · rw [List.getD_eq_default _ _ (by simpa using hc)]
     norm_num
 
 theorem hEs_lt {s : NodeStatement} {w : NodeWitness}
-    (hl : DeployedLimits s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 16 := by
+    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 20 := by
   unfold B1.Main.hEs
   by_cases hc : c < w.children.length
   · rw [B1.Main.getD_map_lt _ _ _ hc]
-    exact (hl.childClaimListsBelow2Pow16 _ (List.getElem_mem hc)).2
+    exact (hl.childClaimListsBelow2Pow20 _ (List.getElem_mem hc)).2
   · rw [List.getD_eq_default _ _ (by simpa using hc)]
     norm_num
 
@@ -310,7 +310,7 @@ it (`mainPredsH`'s `T5`), each child's `verify_sub` within `vsCnt op` at its ann
 and rate, at most `l5C op` per child, `ccS op` per child's claim and `vsCnt op μ r` per child of
 announced shape `(μ, r)`. -/
 theorem l5_honest_weight_le (op : Opcode) {s : NodeStatement} {w : NodeWitness}
-    {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hl : DeployedLimits s w)
+    {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hl : GuestLimits s w)
     (hPv : ∀ c (hc : c < w.children.length) (rd : Reader) (t : Tree) (args rets : List E),
       Pvs c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤

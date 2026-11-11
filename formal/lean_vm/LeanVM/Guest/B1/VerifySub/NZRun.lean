@@ -154,7 +154,7 @@ theorem queriesOf_eq_steps {α : Type} (p : VerifierProgram α) : ∀ (st : Whir
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
       have key : Limits.queryStepsOf (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
+          (if powOk b (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             Limits.queryStepsOf k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩

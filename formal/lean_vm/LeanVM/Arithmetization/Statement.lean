@@ -88,7 +88,7 @@ the M3 part of the announcement checks (`read_public` at `a386121f`; at the pin,
 wrapper `crates/leanvm_core/src/cpu/mod.rs:673-686`), which make eight checks: (1) the
 announced sizes have zero upper limbs (`verifier/src/lib.rs:234-238`, the transcript format)
 and (2) the two public words have a zero third limb (`cpu/mod.rs:676-678`), both by type here
-(`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
+(`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^30`
 (`cpu/mod.rs:688`, `verifier/src/layout.rs:483` and `:487`), `Program`'s by type
 (`LeanIsaProgram.logSize_le`); (4) the memory log-size is within
 `[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]` (`verifier/src/layout.rs:485`); (5) every table has at most
@@ -728,7 +728,7 @@ theorem exists_run_of_balanced (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
-The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^32`), never
+The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^30`), never
 assumed; there is no hypothesis on the program.
 -/
 

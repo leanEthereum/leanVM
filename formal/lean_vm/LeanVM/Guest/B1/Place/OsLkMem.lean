@@ -11,13 +11,12 @@ public import LeanVM.Guest.B1.Place.OsLayFacts
 /-!
 # The callees' words
 
-`osLk c tr b Lin` is the own buffers but the query bit pointers, and the caller's words.
+`osLk c tr b Lin` is the own buffers but the window pointers, and the caller's words.
 
 * `osLk_readsAt`, `osMem_of_memLk`: a memory holding it holds each of those buffers, so what the
-  body reads (`OsMem`), and the caps, flags and row weights its callees read (`osLk_caps`,
-  `osLk_flags`, `osLk_wp`).
+  body reads (`OsMem`), and the row weights its callees read (`osLk_wp`).
 * `regionL_osLk`: its words lie in the caller's or in the own buffers; `regionL_osW`: level `l`'s
-  bit pointers lie in the own buffers (in `query_bit_ptrs`).
+  window pointers lie in the own buffers (in `query_win_ptrs`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -32,14 +31,14 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 variable {c : OsCfg} {tr : OsTr}
 
 theorem bufL_os_length (c : OsCfg) (tr : OsTr) (b : ℕ) (bp : ℕ → ℕ → E) :
-    (bufL b (osSizesL c) (osOwnL c tr bp)).length = 18 + 3 * c.levels.length := by
+    (bufL b (osSizesL c) (osOwnL c tr bp)).length = 16 + c.levels.length := by
   simp only [bufL, List.length_zip, os_length_bases, osSizesL_length, osOwnL_length, Nat.min_self]
 
-theorem bufL_os_get_ne8 (c : OsCfg) (tr : OsTr) (b : ℕ) (bp bp' : ℕ → ℕ → E) {i : ℕ} (hne : i ≠ 8)
+theorem bufL_os_get_ne6 (c : OsCfg) (tr : OsTr) (b : ℕ) (bp bp' : ℕ → ℕ → E) {i : ℕ} (hne : i ≠ 6)
     (hi : i < (bufL b (osSizesL c) (osOwnL c tr bp)).length)
     (hi' : i < (bufL b (osSizesL c) (osOwnL c tr bp')).length) :
     (bufL b (osSizesL c) (osOwnL c tr bp))[i]'hi = (bufL b (osSizesL c) (osOwnL c tr bp'))[i]'hi' := by
-  have h1 := osOwnL_getElem?_ne8 c tr bp bp' hne
+  have h1 := osOwnL_getElem?_ne6 c tr bp bp' hne
   have hi2 : i < (osOwnL c tr bp).length := by rw [osOwnL_length]; rw [bufL_os_length] at hi; omega
   have hi3 : i < (osOwnL c tr bp').length := by rw [osOwnL_length]; rw [bufL_os_length] at hi; omega
   rw [List.getElem?_eq_getElem hi2, List.getElem?_eq_getElem hi3, Option.some.injEq] at h1
@@ -48,7 +47,7 @@ theorem bufL_os_get_ne8 (c : OsCfg) (tr : OsTr) (b : ℕ) (bp bp' : ℕ → ℕ 
 /-- **A memory holding the callees' words holds each own buffer but the window pointers.** -/
 theorem osLk_readsAt {rd : Reader} {b : ℕ} {Lin : Layout}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
-    (hm : MemL rd (osLk c tr b Lin)) {j : ℕ} (hj : j < 18 + 3 * c.levels.length) (hne : j ≠ 8) :
+    (hm : MemL rd (osLk c tr b Lin)) {j : ℕ} (hj : j < 16 + c.levels.length) (hne : j ≠ 6) :
     ReadsAt rd (osPtrAt c b j) ((osOwnL c tr fun _ _ ↦ 0).getD j []) := by
   have hf := osOwnL_fit c tr (fun _ _ ↦ 0) hpt htl
   have hjs : j < (osSizesL c).length := by rw [osSizesL_length]; exact hj
@@ -56,7 +55,7 @@ theorem osLk_readsAt {rd : Reader} {b : ℕ} {Lin : Layout}
   have hl : j < (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0)).length := by
     rw [bufL_os_length]; exact hj
   have hmem : (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0)).getD j default ∈
-      (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0)).eraseIdx 8 := by
+      (bufL b (osSizesL c) (osOwnL c tr fun _ _ ↦ 0)).eraseIdx 6 := by
     rw [List.getD_eq_getElem _ _ hl]
     exact List.mem_eraseIdx_iff_getElem.mpr ⟨j, hl, hne, rfl⟩
   rw [e] at hmem
@@ -67,43 +66,31 @@ theorem osLk_readsAt {rd : Reader} {b : ℕ} {Lin : Layout}
 theorem osMem_of_memLk {rd : Reader} {b : ℕ} {Lin : Layout}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
     (hm : MemL rd (osLk c tr b Lin)) : OsMem rd (osAtOf c b) c tr := by
-  have R := fun j (hj : j < 18 + 3 * c.levels.length) (hne : j ≠ 8) ↦ osLk_readsAt hpt htl hm hj hne
-  obtain ⟨-, -, g2, g3, g4, g5, g6, g7, -, g9, g10, g11⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
+  have R := fun j (hj : j < 16 + c.levels.length) (hne : j ≠ 6) ↦ osLk_readsAt hpt htl hm hj hne
+  obtain ⟨g0, g1, g2, g3, g4, g5, -, g7, g8, g9⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
   obtain ⟨gT, gP, gP1, gB, gL, gI⟩ := osOwnL_getD_fin c tr fun _ _ ↦ 0
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi ↦ ?_, fun i hi ↦ ?_⟩
-  · rw [← g4]; exact R 4 (by omega) (by omega)
-  · rw [← g3]; exact R 3 (by omega) (by omega)
-  · rw [← g5]; exact R 5 (by omega) (by omega)
-  · rw [← g6]; exact R 6 (by omega) (by omega)
-  · rw [← g9]; exact R 9 (by omega) (by omega)
-  · rw [← g7]; exact R 7 (by omega) (by omega)
-  · rw [← g10]; exact R 10 (by omega) (by omega)
-  · rw [← g11]; exact R 11 (by omega) (by omega)
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [← g2]; exact R 2 (by omega) (by omega)
+  · rw [← g1]; exact R 1 (by omega) (by omega)
+  · rw [← g3]; exact R 3 (by omega) (by omega)
+  · rw [← g4]; exact R 4 (by omega) (by omega)
+  · rw [← g7]; exact R 7 (by omega) (by omega)
+  · rw [← g5]; exact R 5 (by omega) (by omega)
+  · rw [← g8]; exact R 8 (by omega) (by omega)
+  · rw [← g9]; exact R 9 (by omega) (by omega)
+  · rw [← g0]; exact R 0 (by omega) (by omega)
   · rw [← gT]; exact R _ (by unfold osIxT; omega) (by unfold osIxT; omega)
   · rw [← gP]; exact R _ (by unfold osIxPT; omega) (by unfold osIxPT; omega)
   · rw [← gP1]; exact R _ (by unfold osIxPT1; omega) (by unfold osIxPT1; omega)
   · rw [← gB]; exact R _ (by unfold osIxBD; omega) (by unfold osIxBD; omega)
   · rw [← gL]; exact R _ (by unfold osIxLS; omega) (by unfold osIxLS; omega)
   · rw [← gI]; exact R _ (by unfold osIxICH; omega) (by unfold osIxICH; omega)
-  · rw [← (osOwnL_getD_lv c tr _ hi).1]; exact R _ (by unfold osIxSqz; omega) (by unfold osIxSqz; omega)
-  · rw [← osOwnL_getD_rc c tr _ hi]; exact R _ (by unfold osIxRC; omega) (by unfold osIxRC; omega)
-
-theorem osLk_caps {rd : Reader} {b : ℕ} {Lin : Layout}
-    (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
-    (hm : MemL rd (osLk c tr b Lin)) : ReadsAt rd (osAtOf c b).P.caps (capsC c tr) := by
-  rw [← (osOwnL_getD_head c tr fun _ _ ↦ 0).1]; exact osLk_readsAt hpt htl hm (by omega) (by omega)
-
-theorem osLk_flags {rd : Reader} {b : ℕ} {Lin : Layout}
-    (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
-    (hm : MemL rd (osLk c tr b Lin)) : ReadsAt rd (osAtOf c b).P.flags (flagsC c tr) := by
-  rw [← (osOwnL_getD_head c tr fun _ _ ↦ 0).2.1]; exact osLk_readsAt hpt htl hm (by omega) (by omega)
 
 theorem osLk_wp {rd : Reader} {b : ℕ} {Lin : Layout}
     (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
     (hm : MemL rd (osLk c tr b Lin)) {i : ℕ} (hi : i < c.levels.length) :
     ReadsAt rd ((osAtOf c b).wp i) (wpC c tr i) := by
-  rw [← (osOwnL_getD_lv c tr (fun _ _ ↦ 0) hi).2]
+  rw [← osOwnL_getD_lv c tr (fun _ _ ↦ 0) hi]
   exact osLk_readsAt hpt htl hm (by unfold osIxWp; omega) (by unfold osIxWp; omega)
 
 /-- **The callees' words lie in the caller's or in the own buffers.** -/
@@ -117,13 +104,13 @@ theorem regionL_osLk {b : ℕ} {Lin : Layout} (bp : ℕ → ℕ → E) {i : ℕ}
     have hj' : j < (bufL b (osSizesL c) (osOwnL c tr bp)).length := by
       rw [bufL_os_length]; rw [bufL_os_length] at hj; exact hj
     refine ⟨_, List.getElem_mem hj', ?_, ?_⟩ <;>
-      rw [← bufL_os_get_ne8 c tr b (fun _ _ ↦ 0) bp hne hj hj'] <;> assumption
+      rw [← bufL_os_get_ne6 c tr b (fun _ _ ↦ 0) bp hne hj hj'] <;> assumption
   · exact Or.inl ⟨q, hq, h1, h2⟩
 
 /-- **Level `l`'s window pointers lie in `query_win_ptrs`.** -/
-theorem regionL_osW {fs : String → ℕ} {cert : String → V → ℕ} {b : ℕ} (bp : ℕ → ℕ → E)
+theorem regionL_osW {cert : String → V → ℕ} {D : ℕ → ℕ → ℕ → ℕ} {b : ℕ} (bp : ℕ → ℕ → E)
     (hs : OsSizes c) {l p : ℕ} (hl : l < c.levels.length) {i : ℕ}
-    (h : RegionL (osW fs cert c b l p) i) : RegionL (bufL b (osSizesL c) (osOwnL c tr bp)) i := by
+    (h : RegionL (osW cert c D b l p) i) : RegionL (bufL b (osSizesL c) (osOwnL c tr bp)) i := by
   obtain ⟨q, hq, h1, h2⟩ := h
   simp only [osW, List.mem_singleton] at hq
   subst hq
@@ -131,18 +118,20 @@ theorem regionL_osW {fs : String → ℕ} {cert : String → V → ℕ} {b : ℕ
   have hend := off_end (off := fun i ↦ (lvAt c i).posOff)
     (span := fun i ↦ (lvAt c i).squeezes * (192 / (lvAt c i).depth)) hs.pos (c.levels.length - 1 - l) l
     (by omega)
-  have hend' : (lvAt c l).posOff + (lvAt c l).squeezes * (192 / (lvAt c l).depth) ≤ c.posLen := hend
-  have h8 : 8 < (bufL b (osSizesL c) (osOwnL c tr bp)).length := by rw [bufL_os_length]; omega
+  have hend' : (lvAt c l).posOff + (lvAt c l).squeezes * (192 / (lvAt c l).depth) ≤
+      c.levels.length * ligPosCap := hend
+  have h8 : 6 < (bufL b (osSizesL c) (osOwnL c tr bp)).length := by rw [bufL_os_length]; omega
   refine ⟨_, List.getElem_mem h8, ?_, ?_⟩
   · simp only [bufL, List.getElem_zip]
-    have : (bases b (osSizesL c))[8]'(by simp [os_length_bases, osSizesL_length]; omega) = osBase c b 8 := by
+    have : (bases b (osSizesL c))[6]'(by simp [os_length_bases, osSizesL_length]; omega) = osBase c b 6 := by
       unfold osBase; rw [List.getD_eq_getElem]
     rw [this]; omega
   · simp only [bufL, List.getElem_zip]
-    have e1 : (bases b (osSizesL c))[8]'(by simp [os_length_bases, osSizesL_length]; omega) = osBase c b 8 := by
+    have e1 : (bases b (osSizesL c))[6]'(by simp [os_length_bases, osSizesL_length]; omega) = osBase c b 6 := by
       unfold osBase; rw [List.getD_eq_getElem]
-    have e2 : ((osOwnL c tr bp)[8]'(by rw [osOwnL_length]; omega)).length = c.posLen := by
-      have := (osOwnL_getD_head c tr bp).2.2.2.2.2.2.2.2.1
+    have e2 : ((osOwnL c tr bp)[6]'(by rw [osOwnL_length]; omega)).length =
+        c.levels.length * ligPosCap := by
+      have := (osOwnL_getD_head c tr bp).2.2.2.2.2.2.1
       rw [List.getD_eq_getElem _ _ (by rw [osOwnL_length]; omega)] at this
       rw [this]; simp [qbpC]
     rw [e1, e2]; omega

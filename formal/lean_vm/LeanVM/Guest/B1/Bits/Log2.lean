@@ -20,7 +20,7 @@ the hint reads them) and the log `g^L`, range checks `L < 34` and `L - floor < 3
 `L = max floor (log2Ceil N)` (`meaningLog2CeilExp_pow`, V:661).
 
 The expansion is `lcBody floor` (`lcMin` the check above the floor), equal to both
-specializations (`__L0_L34`, `__L15_L34`) by kernel evaluation.
+specializations (`__L0_L34`, `__L16_L34`) by kernel evaluation.
 -/
 
 namespace LeanVM.Guest.B1
@@ -68,18 +68,18 @@ def lcBody (fl : ℕ) : List Stmt :=
     .atom (.const (.n 18) (word (2 ^ fl) 0 0)), .atom (.add (.n 19) (.n 4) (.n 18)),
     .ite (.n 19) [] lcMin, .atom (.copy (.n 27) (.n 4)), .ret [.n 27]]
 
-theorem core300_body : Fn.body Data.core300 = lcBody 0 := stmtsEqb_sound (by decide +kernel)
+theorem core300_body : Fn.body Data.core304 = lcBody 0 := stmtsEqb_sound (by decide +kernel)
 
-theorem core301_body : Fn.body Data.core301 = lcBody 15 := stmtsEqb_sound (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = some Data.core300 :=
-  Program.find?_of_indexOf? (j := 300) (by decide +kernel) rfl
+theorem core301_body : Fn.body Data.core305 = lcBody 16 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem find_lce_L15 :
-    coreProgram.find? "log2_ceil_in_the_exponent__L15_L34" = some Data.core301 :=
-  Program.find?_of_indexOf? (j := 301) (by decide +kernel) rfl
+theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = some Data.core304 :=
+  Program.find?_of_indexOf? (j := 304) (by decide +kernel) rfl
+
+set_option maxRecDepth 100000 in
+theorem find_lce_L16 :
+    coreProgram.find? "log2_ceil_in_the_exponent__L16_L34" = some Data.core305 :=
+  Program.find?_of_indexOf? (j := 305) (by decide +kernel) rfl
 
 /-- The body, unfolded to its conditions. -/
 theorem lc_unfold {name : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find? name = some f)
@@ -252,7 +252,7 @@ theorem log2_iff {name : String} {f : Fn} (fl : ℕ) (hfl : fl < 34)
 theorem log2_holds : log2_Spec :=
   ⟨fun hκ hκ6 Lm _ _ ht rets => log2_iff 0 (by decide) find_lce_L0 rfl core300_body hκ hκ6 Lm ht rets,
     fun hκ hκ6 Lm _ _ ht rets =>
-      log2_iff 15 (by decide) find_lce_L15 rfl core301_body hκ hκ6 Lm ht rets⟩
+      log2_iff 16 (by decide) find_lce_L16 rfl core301_body hκ hκ6 Lm ht rets⟩
 
 end
 end LeanVM.Guest.B1

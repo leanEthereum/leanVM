@@ -26,11 +26,11 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vsTs vkBound)
 
 /-- **Child `c`'s `verify_sub` tree at the deployed instance**: its callees calls of their names
 within their bounds at the child's announced stack log and rate (`Budget.FlatShape` for `vsTs`),
-the child's candidate among `open_stacked`'s 28. -/
+the child's stack log among `open_stacked`'s arms', `20` to `30`. -/
 def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
   ∀ hc : c < w.children.length,
-    B1.Whir.candidate (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2
-      < 28 ∧ FlatShape coreProgram "verify_sub" (vsTs B2C.fs Count.vsWords vkBound
+    20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
+      FlatShape coreProgram "verify_sub" (vsTs B2C.fs Count.vsWords vkBound
         (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t
 
 /-- **Each child's `verify_sub` call at the deployed instance**, within `vsBoundAt Count.vsWords
@@ -51,7 +51,7 @@ rate, and `vsCnt op` instructions of each opcode `op` there (`vs_weight_le_deplo
 theorem guest_complete : GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWords vkBound)) :=
   guest_complete_deployed (Pvs := deployedVsT)
     (fun _ _ _ hr _ hok => verifySubGoals_deployed hr hok)
-    fun op _ _ hc _ _ _ _ hP hv hb => vs_weight_le_deployed op (hP hc).1 (hP hc).2 hv hb
+    fun op _ _ hc _ _ _ _ hP hv hb => vs_weight_le_deployed op (hP hc).1 (hP hc).2.1 (hP hc).2.2 hv hb
 
 end
 end LeanVM.Guest.Budget

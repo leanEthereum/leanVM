@@ -36,7 +36,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd : Reader)
     (V : FrameMap) (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
   decWit σ rd (fun args => sigOf (V "__loop2" args []))
-    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 68)] []) V)
+    (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n 47)] []) V)
     (fun args rets => Da.dvWit (V "da_verify" args rets) V)
     (fun args => piOf rd (V "verify_sub" args []) V)
     (fun args => aggHints rd (V "aggregate_claims" args []))

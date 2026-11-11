@@ -17,43 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop197`, window 0. -/
+/-- `level_queries__L224_L1_L64_L32_L20_L8`, window 0. -/
 theorem w658_0 : WinOk 658 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop198`, window 0. -/
+/-- `level_queries__L224_L1_L64_L32_L20_L8`, window 1. -/
+theorem w658_1 : WinOk 658 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L112_L1_L64_L32_L21_L3`, window 0. -/
 theorem w659_0 : WinOk 659 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop199`, window 0. -/
+/-- `level_queries__L112_L1_L64_L32_L21_L3`, window 1. -/
+theorem w659_1 : WinOk 659 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L75_L1_L64_L32_L22_L4`, window 0. -/
 theorem w660_0 : WinOk 660 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop200`, window 0. -/
+/-- `level_queries__L75_L1_L64_L32_L22_L4`, window 1. -/
+theorem w660_1 : WinOk 660 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L56_L1_L64_L32_L23_L5`, window 0. -/
 theorem w661_0 : WinOk 661 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop201`, window 0. -/
-theorem w662_0 : WinOk 662 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop202`, window 0. -/
-theorem w663_0 : WinOk 663 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop203`, window 0. -/
-theorem w664_0 : WinOk 664 0 := winOk_of_C (by decide +kernel)
-
-/-- `opening_queries__L1_L1_L64_L32_L22_L7`, window 0. -/
-theorem w665_0 : WinOk 665 0 := winOk_of_C (by decide +kernel)
-
-theorem ok658 : CheckOk 658 := checkOk_one (by decide +kernel) w658_0
-
-theorem ok659 : CheckOk 659 := checkOk_one (by decide +kernel) w659_0
-
-theorem ok660 : CheckOk 660 := checkOk_one (by decide +kernel) w660_0
-
-theorem ok661 : CheckOk 661 := checkOk_one (by decide +kernel) w661_0
-
-theorem ok662 : CheckOk 662 := checkOk_one (by decide +kernel) w662_0
-
-theorem ok663 : CheckOk 663 := checkOk_one (by decide +kernel) w663_0
-
-theorem ok664 : CheckOk 664 := checkOk_one (by decide +kernel) w664_0
+/-- `level_queries__L56_L1_L64_L32_L23_L5`, window 1. -/
+theorem w661_1 : WinOk 661 1 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

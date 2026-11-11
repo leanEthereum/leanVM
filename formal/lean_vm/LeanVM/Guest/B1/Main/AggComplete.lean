@@ -79,14 +79,14 @@ theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : DeferredCla
     exact ⟨(Option.some.inj hb).symm, hc⟩
   · exact absurd hb (by simp)
 
-theorem find_l25 : coreProgram.find? "__loop33" = some (coreProgram.getD 414 default) :=
+theorem find_l25 : coreProgram.find? "__loop33" = some (coreProgram.getD 401 default) :=
   find_of_idx l25_idx (by rw [coreProgram_length]; omega)
-theorem find_l26 : coreProgram.find? "__loop34" = some (coreProgram.getD 415 default) :=
+theorem find_l26 : coreProgram.find? "__loop34" = some (coreProgram.getD 402 default) :=
   find_of_idx l26_idx (by rw [coreProgram_length]; omega)
-theorem find_l27 : coreProgram.find? "__loop35" = some (coreProgram.getD 417 default) :=
+theorem find_l27 : coreProgram.find? "__loop35" = some (coreProgram.getD 404 default) :=
   find_of_idx l27_idx (by rw [coreProgram_length]; omega)
 
-theorem l25_shape' : loopShapeF (coreProgram.getD 414 default) "__loop33" = true := by
+theorem l25_shape' : loopShapeF (coreProgram.getD 401 default) "__loop33" = true := by
   have hok := l25_ok
   simp only [l25Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩,
@@ -102,7 +102,7 @@ variable {cpi cfresh ccarried dst : E} {cs : List ChildClaims} {h : BatchingHint
 /-- The absorbing rows (`__loop33`), from its guard's counter `1`. -/
 theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 414 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 401 default) (gen ^ c)
       (gen ^ cs.length) [P.absorb, cfresh, P.lf, ccarried, P.lc, cpi] := by
   intro c hc
   obtain ⟨-, -, -, -, -, -, hpi, hfr, hca⟩ := kid_reads (hcw c hc)
@@ -115,7 +115,7 @@ theorem agg_l25 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 /-- The records of `bc_chain` (`__loop34`). -/
 theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 415 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 402 default) (gen ^ c)
       (gen ^ cs.length) [P.chain, P.lf, P.lc, lamA cs * lamA cs, lamA cs] := by
   intro c hc
   obtain ⟨-, -, -, -, hfv, hcv, -, -, -⟩ := kid_reads (hcw c hc)
@@ -127,7 +127,7 @@ theorem agg_l26 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh cc
 /-- The weights (`__loop35`). -/
 theorem agg_l27 (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (hrl : h.sumcheckMessages.length = 23) (hmem : AggMem rd cfresh ccarried dst cs h P) :
-    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 417 default) (gen ^ c)
+    ∀ c < cs.length, LoopBlock rd (coreProgram.getD 404 default) (gen ^ c)
       (gen ^ cs.length) [P.lf, P.lc, P.pt1, P.chain, P.w, lamA cs] := by
   intro c hc
   have hptl : ((aggRun cs h).1.1.map (1 + ·)).length = 23 := by

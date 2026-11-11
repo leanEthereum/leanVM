@@ -11,9 +11,10 @@ public import LeanVM.Guest.Child.Reads
 
 On a valid execution of the leanISA guest, the counts the compiled decoder reads off `main`'s
 valuation (`mainVal rd`, `rd` the reader of the memory vector through the table of its addresses,
-as the decoder's top `decTop` reads it) are the ones `main`'s range checks bound
-(`B1.Main.main_facts`): at most `16` children, at most `65535` claims of each list and raw
-signatures of each scheme, and at most `65535` slots of both regions together.
+as the decoder's top `decTop` reads it) are the ones `main`'s checks bound (`B1.Main.main_facts`):
+at most `16` children (a range check), and the claims of each list, the raw signatures of each
+scheme and the slots of both regions together below the memory's size `2^κ` (`assert_gpow`: each
+is the exponent of an address of the memory).
 
 * `mainVal_valid`: the decoder's valuation is `main`'s at its frame (`valG t.memory 1 (certOf 1)`);
 * `mainFacts_valid`: `main`'s facts (`MainFacts`) at that valuation;
@@ -33,15 +34,16 @@ open LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Extraction.Fast LeanVM.Cost.Dec
 
 public section
 
-/-- **The counts the decoder reads off `main`'s valuation `σ`**, in the logarithm's tables `D`,
-small. -/
-structure ValidCounts (D : DiscreteLogTables) (σ : Val) : Prop where
+/-- **The counts the decoder reads off `main`'s valuation `σ`**, in the logarithm's tables `D`:
+at most `16` children, at most `M` declared claims and raw signatures of each scheme and `M` slots
+of both regions together. -/
+structure ValidCounts (D : DiscreteLogTables) (σ : Val) (M : ℕ) : Prop where
   kids : nKidsD D σ ≤ 16
-  xClaims : gLogD D (σ (.n 0)) ≤ 65535
-  sClaims : gLogD D (σ (.n 3)) ≤ 65535
-  rawX : nRawXD D σ ≤ 65535
-  rawS : nRawSD D σ ≤ 65535
-  slots : lxSlotsD D σ + lsSlotsD D σ ≤ 65535
+  xClaims : gLogD D (σ (.n 0)) ≤ M
+  sClaims : gLogD D (σ (.n 3)) ≤ M
+  rawX : nRawXD D σ ≤ M
+  rawS : nRawSD D σ ≤ M
+  slots : lxSlotsD D σ + lsSlotsD D σ ≤ M
 
 /-- The decoder's reader of a valid execution's memory is the memory's. -/
 theorem memReader_valid {input : PublicInput} {t : Execution guestProgram}
@@ -67,7 +69,8 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
     MainFacts (Located.RLg t.memory) t.memory.read
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) := by
   rw [mainVal_valid hv]
-  have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
+  have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1,
+    (by have := hv.1.2.1; unfold maxLogMem at this; omega), t.memory, rfl⟩
   have hU := unfolds_of_V (Located.unfoldsV_replay End.b2SoundL hv)
   refine main_facts hU (Located.rlg_le_rel t.memory) hm exponent_tables_holds (fun args h ↦ ?_)
     (End.mainBodyL_of End.b2SoundL hv).1
@@ -76,25 +79,44 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
   cases hf
   exact ⟨_, loop2Out_of_body Sig.verify_lean_xmss_sound_holds hp hb⟩
 
-/-- The counts of `main`'s facts, read by `gLog`. -/
-theorem validCounts_of {C : CallRel} {rd : Reader} {σ : Val} (MF : MainFacts C rd σ) :
-    ValidCounts discreteLogTables σ := by
-  have hc : ∀ v ∈ [0, 1, 2, 3, 4, 5], gLog (σ (.n v)) ≤ 65535 := fun v hv ↦ by
-    rw [← lg_eq_gLog]; exact (MF.counts v hv).2
-  have h0 := hc 0 (by simp)
-  have h1 := hc 1 (by simp)
-  have h3 := hc 3 (by simp)
-  have h4 := hc 4 (by simp)
+open LeanVM.Protocol.Verifier LeanVM.Guest.Value in
+/-- A word read at offset `0` through a pointer of a memory of `2^κ` words is `g^e`, `e < 2^κ`. -/
+theorem load_gpow_lt {κ : ℕ} (hκ : κ ≤ 30) (L : MemoryImage κ) {x w : E}
+    (h : LoadHolds L.read x 0 w) : ∃ e < 2 ^ κ, x = gen ^ e := by
+  obtain ⟨hx, hr⟩ := h
+  rw [Parameters.addressOfIndex, pow_zero, mul_one] at hr
+  obtain ⟨i, hi, -⟩ := (read_some_iff (by omega) L _ _).mp hr
+  exact ⟨i, i.2, by rw [eq_ofK_limb hx, hi, gen_pow_eq_ofK]⟩
+
+open LeanVM.Protocol.Verifier LeanVM.Guest.Value in
+/-- The counts of `main`'s facts, read by `gLog`, on a memory of `2^κ` words: each below `2^κ`. -/
+theorem validCounts_of {C : CallRel} {κ : ℕ} (hκ : κ ≤ 30) {L : MemoryImage κ} {σ : Val}
+    (MF : MainFacts C L.read σ) : ValidCounts discreteLogTables σ (2 ^ κ) := by
+  have hpow : 2 ^ κ ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hκ
+  have hlt : ∀ v ∈ [0, 1, 2, 3, 4, 5, 24], ∀ e, e < 2 ^ 32 → σ (.n v) = gen ^ e → e < 2 ^ κ := by
+    intro v hv e he hve
+    obtain ⟨w, hw⟩ := MF.addr v hv
+    obtain ⟨e', he', h'⟩ := load_gpow_lt hκ L hw
+    have := gen_pow_inj (a := e) (b := e') (by omega) (by omega) (hve.symm.trans h')
+    omega
+  have hc : ∀ v ∈ [0, 1, 2, 3, 4, 5], gLog (σ (.n v)) ≤ 2 ^ κ := fun v hv ↦ by
+    rw [← lg_eq_gLog]
+    have := hlt v (by simp only [List.mem_cons] at hv ⊢; tauto) _ (MF.counts v hv).2
+      (MF.counts v hv).1
+    omega
   have hk : gLog (σ (.n 6)) ≤ 16 := by rw [← lg_eq_gLog]; exact MF.kids.2
-  have hx : gLog (σ (.n 40)) = lg σ 0 + lg σ 1 := by
-    rw [MF.lxs, gLog_gen_pow (by rw [lg_eq_gLog, lg_eq_gLog]; omega)]
-  have hs : gLog (σ (.n 41)) = lg σ 3 + lg σ 4 := by
-    rw [MF.lss, gLog_gen_pow (by rw [lg_eq_gLog, lg_eq_gLog]; omega)]
   have ht := MF.total.2
+  have ht' := hlt 24 (by simp) _ ht MF.total.1
+  have hx : gLog (σ (.n 22)) = lg σ 0 + lg σ 1 := by
+    rw [MF.lxs, gLog_gen_pow (by
+      have := (MF.counts 0 (by simp)).2; have := (MF.counts 1 (by simp)).2; omega)]
+  have hs : gLog (σ (.n 23)) = lg σ 3 + lg σ 4 := by
+    rw [MF.lss, gLog_gen_pow (by
+      have := (MF.counts 3 (by simp)).2; have := (MF.counts 4 (by simp)).2; omega)]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · unfold nKidsD; rw [gLogD_tables]; exact hk
-  · rw [gLogD_tables]; exact h0
-  · rw [gLogD_tables]; exact h3
+  · rw [gLogD_tables]; exact hc 0 (by simp)
+  · rw [gLogD_tables]; exact hc 3 (by simp)
   · unfold nRawXD; rw [gLogD_tables]; exact hc 2 (by simp)
   · unfold nRawSD; rw [gLogD_tables]; exact hc 5 (by simp)
   · unfold lxSlotsD lsSlotsD; rw [gLogD_tables, hx, hs]; omega
@@ -105,8 +127,9 @@ the logarithm's tables built. -/
 theorem valid_counts {input : PublicInput} {t : Execution guestProgram}
     (hv : ValidExecution guestProgram input t) :
     ValidCounts discreteLogTables
-      (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) :=
-  validCounts_of (mainFacts_valid hv)
+      (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)))
+      (2 ^ t.logMemorySize) :=
+  validCounts_of hv.1.2.1 (mainFacts_valid hv)
 
 
 /-- A child proof's stream begins with its cursor's words. -/
@@ -118,7 +141,7 @@ theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast
     induction n generalizing a with
     | zero => rfl
     | succ n ih => rw [Fast.wordsFrom, List.length_cons, ih]
-  simp only [Fast.vsPiOfA, Fast.vsPiOfM, Fast.vsPiOfAt, List.length_append, hw]
+  simp only [Fast.vsPiOfA, Fast.vsPiOfS, Fast.vsPiOfM, Fast.vsPiOfAt, List.length_append, hw]
   omega
 
 /-- **On a valid execution of the guest, each child's cursor length is at most `8192`**: at the
@@ -156,7 +179,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
       (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
         (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
           (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
-      (σ (.n 420)) (σ (.n 52)) (σ (.n 55)) (lxTable discreteLogTables rd σ)
+      (σ (.n 399)) (σ (.n 31)) (σ (.n 34)) (lxTable discreteLogTables rd σ)
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
     simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
     exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩

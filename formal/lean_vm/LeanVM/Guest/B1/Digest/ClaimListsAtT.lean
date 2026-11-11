@@ -28,7 +28,7 @@ the chain buffer). `ccTs n`: `child_claim_list_any`'s tree of honest shape `anyH
 
 `cc_nonempty`: the nonempty list placed, given its callees complete at their running offsets
 (`KidsAt`, a predicate `P` on their words); `child_claim_list_digest_completeAtT`,
-`_completeAt`: `n < 136 · 2^16` honest records among the caller's words (`RecMem`, region form),
+`_completeAt`: `n < 136 · 2^20` honest records among the caller's words (`RecMem`, region form),
 the digest of their cells.
 -/
 
@@ -236,9 +236,9 @@ theorem kidsAt_of_kidsDT {fs : String → ℕ} {cert : String → V → ℕ} {κ
   let ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_kidsDT κ ks Ts h b
   ⟨N, L, outs, trivial, ho, hW, hD, hI, hK⟩
 
-/-- `list_split`, complete, placed, below any `2^κ` past `2^16`. -/
+/-- `list_split`, complete, placed, below any `2^κ` past `2^20`. -/
 theorem list_split_completeAtK (fs : String → ℕ) (cert : String → V → ℕ) {κ a b c : ℕ}
-    (hκ : 16 ≤ κ) (ha : a < maxKeys) (hb : b < bigGroups) (hc : c < claimGroup) :
+    (hκ : 20 ≤ κ) (ha : a < bigFramesCap) (hb : b < bigGroups) (hc : c < claimGroup) :
     CompleteAtD fs cert κ "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
       (Returns [gen ^ a, gen ^ b, gen ^ c]) :=
   Lift.completeAtD_of_relIn list_split_pure (List.mem_singleton_self _) fun rd hl _ =>
@@ -251,20 +251,20 @@ theorem list_split_completeAtK (fs : String → ℕ) (cert : String → V → �
         exact absurd hA List.not_mem_nil)
       (list_split_complete' rd (hl.mono hκ) _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)
 
-theorem list_split_n (fs : String → ℕ) (cert : String → V → ℕ) {κ n : ℕ} (hκ : 16 ≤ κ)
-    (hn : n < claimBig * maxKeys) :
+theorem list_split_n (fs : String → ℕ) (cert : String → V → ℕ) {κ n : ℕ} (hκ : 20 ≤ κ)
+    (hn : n < claimBig * bigFramesCap) :
     CompleteAtD fs cert κ "list_split" [] [gen ^ n]
       (Returns [gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]) := by
-  simp only [claimBig, maxKeys] at hn
+  simp only [claimBig, bigFramesCap] at hn
   have := list_split_completeAtK fs cert (a := n / 136) (b := n % 136 / 17) (c := n % 17) hκ
-    (by simp [maxKeys]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega)
+    (by simp [bigFramesCap]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega)
   rwa [show claimBig * (n / 136) + claimGroup * (n % 136 / 17) + n % 17 = n by
     simp [claimBig, claimGroup]; omega] at this
 
 set_option maxRecDepth 20000 in
 /-- **The nonempty list, placed**, given its callees complete at their running offsets. -/
 theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {Lin : Main.Layout}
-    {eP rg L n : ℕ} {base : E} {D : Digest} (hn0 : n ≠ 0) (hn : n < claimBig * maxKeys)
+    {eP rg L n : ℕ} {base : E} {D : Digest} (hn0 : n ≠ 0) (hn : n < claimBig * bigFramesCap)
     {P : ℕ → Prop} (fp : ℕ)
     (hK : KidsAt fs cert κ (ccKids Lin eP rg L n base D) (ccTs n) P
       (fp + fs "child_claim_list_digest")) :
@@ -275,7 +275,7 @@ theorem cc_nonempty (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
           (fs "child_claim_list_digest" + N) "child_claim_list_digest"
           [gen ^ eP, gen ^ rg, base, gen ^ L, gen ^ n] (digestCells D)
           (NodeHonest coreProgram "child_claim_list_digest" (ccQ n) (ccCalls n) (ccBufs n) (ccTs n)) := by
-  simp only [claimBig, maxKeys] at hn
+  simp only [claimBig, bigFramesCap] at hn
   obtain ⟨Nk, Lk, outs, hP, hoo, hW, hD, -, hKids⟩ := hK
   have hl0 : outs.length = 2 := hoo.length
   obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
@@ -442,12 +442,12 @@ theorem cc_empty (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main
   rw [hal] at h'
   simpa using h'
 
-/-- **`child_claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^16`
+/-- **`child_claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^20`
 honest records among the caller's words (marks `base · g^j` at `g^(rg + o j)`, cells at
 `g^(eP + 4 o j)`, slots below `L ≤ 2^κ`); it returns their cells' digest. -/
 theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hκ : 20 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))
@@ -470,8 +470,8 @@ theorem child_claim_list_digest_completeAtT (fs : String → ℕ) (cert : String
 
 /-- **`child_claim_list_digest` is complete, placed.** -/
 theorem child_claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
+    (hκ : 20 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n) (hc : AllCanonical cells)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))

@@ -14,7 +14,7 @@ import LeanVM.Protocol.WithHash
   multilinear extension against their sums.
 * **Scaled-down runs** of the deployed level loop `whirRun` (the verifier's `verify_whir` past
   `derive_config`, `LeanVM.Protocol.Verifier.whirLevels` unchanged) on toy ladders over stacks
-  of `2^7` and `2^8` cells with two column claims. The smallest admissible stack (`2^15` cells,
+  of `2^7` and `2^8` cells with two column claims. The smallest admissible stack (`2^16` cells,
   at least `223` level-0 queries) is out of reach of the interpreter (`~0.6 ms` per `E`
   multiplication). The honest prover is accepted: once through the strategy `Strategy.ofScript`
   the theorems are about (`Strategy.runFrom`, `2^7`), once through `lockstep`, which runs the

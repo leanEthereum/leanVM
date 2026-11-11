@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `column_selector__L17`, window 0. -/
+/-- `column_selector__L15`, window 0. -/
 theorem w289_0 : WinOk 289 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L18`, window 0. -/
+/-- `column_selector__L16`, window 0. -/
 theorem w290_0 : WinOk 290 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L19`, window 0. -/
+/-- `column_selector__L17`, window 0. -/
 theorem w291_0 : WinOk 291 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L20`, window 0. -/
+/-- `column_selector__L18`, window 0. -/
 theorem w292_0 : WinOk 292 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L21`, window 0. -/
+/-- `column_selector__L19`, window 0. -/
 theorem w293_0 : WinOk 293 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L22`, window 0. -/
+/-- `column_selector__L20`, window 0. -/
 theorem w294_0 : WinOk 294 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L23`, window 0. -/
+/-- `column_selector__L21`, window 0. -/
 theorem w295_0 : WinOk 295 0 := winOk_of_C (by decide +kernel)
 
-/-- `column_selector__L24`, window 0. -/
+/-- `column_selector__L22`, window 0. -/
 theorem w296_0 : WinOk 296 0 := winOk_of_C (by decide +kernel)
 
 theorem ok289 : CheckOk 289 := checkOk_one (by decide +kernel) w289_0

@@ -66,12 +66,12 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
 
 /-- **`padding_weight`** (G:2075-2107; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
-  ∀ n < 29, ∀ rd args rets,
+  ∀ n < 31, ∀ rd args rets,
     coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
 
 /-- The converse, for completeness: every outcome is a relation's. -/
 def padding_weight_complete_Spec : Prop :=
-  ∀ n < 29, ∀ rd args rets,
+  ∀ n < 31, ∀ rd args rets,
     PadWeightOut n rd args rets → coreProgram.Rel rd (lName "padding_weight" n) args rets
 
 /-! ## The layout -/
@@ -240,14 +240,14 @@ def TablesPre (pi : Digest) (logMem : ℕ) (alphas point values : List E) (rd : 
     List E → Prop
   | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, cpush, cpull, ccount] =>
       (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
-      point.length < 33 ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
+      point.length < 33 ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
       (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds)) ∧
       ExpTablesAt rd sq ∧ alphas.length = 4 ∧ TbReadsAt rd fpw (eqKernel alphas) ∧
       values = [cpush, cpull, ccount]
   | _ => False
 
 /-- **`verify_tables`' outcome**: the row counts `rows` are integer words in `table_rows`, and
-their log-heights, below `29`, in `dims_g`; for the layout they give and every `ev` taking `bv`
+their log-heights, below `31`, in `dims_g`; for the layout they give and every `ev` taking `bv`
 for the bytecode at `(point[..logBytecode], alphas)`, from the carried capacity the words `xs`
 at the cursor run `tablesSeg` to the bus result and the `167` column claims, the bus's five
 values and the public input's three in `claim_pool` (slots `0 .. 4`, `162 .. 164`) and the
@@ -261,7 +261,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (alphas point val
       ∃ (xs cap' : List E) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim),
         rowsN.length = 6 ∧ TbReadsAt rd rows (rowsN.map eOfNat) ∧
         TbReadsAt rd dims (gen ^ logMem :: (tableHeightsOf rowsN).map (gen ^ ·)) ∧
-        (∀ h ∈ tableHeightsOf rowsN, h < 29) ∧ TbReadsAt rd cur xs ∧
+        (∀ h ∈ tableHeightsOf rowsN, h < 31) ∧ TbReadsAt rd cur xs ∧
         (∀ ev, BytecodeAt ev bytecode
             (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
           RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values)

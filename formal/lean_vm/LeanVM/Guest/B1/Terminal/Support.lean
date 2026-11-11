@@ -130,7 +130,7 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
     (hgt : Tables.GTabsAt Lm.read (σ (.n 0) * gen ^ 34))
     (hkap : σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ κ)
     (hoff : LoadHolds Lm.read (σ (.n 10)) c (gen ^ o)) (hdvd : 2 ^ κ ∣ o)
-    (hκ : κ ≤ L) (hL : L ≤ 28) (ho : o < 2 ^ L) (hx : x.length = L)
+    (hκ : κ ≤ L) (hL : L ≤ 32) (ho : o < 2 ^ L) (hx : x.length = L)
     (hpt : ReadsAt Lm.read (σ (.n 13)) (padPoint x))
     (hpt1 : ReadsAt Lm.read (σ (.n 14)) ((padPoint x).map (1 + ·))) :
     σ (.n (selV c)) = selProd o κ (L - κ) x := by
@@ -141,7 +141,7 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
     hadj (by rw [List.append_nil]; exact h)
   simp only [Stmt.HoldsList, List.map_cons, List.map_nil] at h
   obtain ⟨c34, m35, ⟨j, hj, hkj, hcall⟩, -⟩ := h
-  have hjl : j < 29 := by simpa [colSelNames] using hj
+  have hjl : j < 31 := by simpa [colSelNames] using hj
   have hkv' : σ (.n (selKap c).2.1) = gen ^ κ := hkv.trans hkap
   rw [hkv', ← gen_pow_eq_ofK] at hkj
   have hjκ : κ = j := gen_pow_inj_le (by omega) (by omega) hkj
@@ -153,13 +153,13 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
   have hout := hcs κ hjl μ hμ Lm _ _ hcall
   have hxl : x.length ≤ termPointCap := by simp only [termPointCap]; omega
   have hpl : (padPoint x).length = termPointCap := padPoint_length hxl
-  have htabs := hst Lm.read _ _ hstc ((padPoint x).take 28) (((padPoint x).map (1 + ·)).take 28)
-    (by simp [hpl, termPointCap]) (by simp [hpl, termPointCap]) (readsAt_take hpt 28)
-    (readsAt_take hpt1 28)
+  have htabs := hst Lm.read _ _ hstc ((padPoint x).take 32) (((padPoint x).map (1 + ·)).take 32)
+    (by simp [hpl, termPointCap]) (by simp [hpl, termPointCap]) (readsAt_take hpt 32)
+    (readsAt_take hpt1 32)
   obtain ⟨o', ho', -, hoff', hsel⟩ := hout hgt
   have e := loadHolds_unique loff hoff
   rw [e] at hoff'
-  have ho2 : o < 2 ^ 28 := lt_of_lt_of_le ho (Nat.pow_le_pow_right (by decide) hL)
+  have ho2 : o < 2 ^ 32 := lt_of_lt_of_le ho (Nat.pow_le_pow_right (by decide) hL)
   have hoo : o = o' :=
     gen_pow_inj (lt_trans ho2 (by norm_num)) (lt_trans ho' (by norm_num)) hoff'
   subst hoo

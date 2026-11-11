@@ -1,13 +1,11 @@
 use super::cells::{count, pack_16_bytes};
-use super::child::{MU_MAX, MU_MIN};
-use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
 use super::placeholders::placeholder_map;
-use super::proof::{EthereumClaims, EthereumProof, check_signer_set, decode, encode};
+use super::proof::{EthereumClaims, EthereumProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir::merkle::hash_to_scalars;
@@ -43,17 +41,6 @@ fn signing(
         .collect()
 }
 
-/// Distinct pubkeys, strictly increasing, without generating any.
-fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
-    (0..len)
-        .map(|i| {
-            let mut bytes = [0; lean_xmss::PUB_KEY_SIZE];
-            bytes[..16].copy_from_slice(&(i as u128).to_be_bytes());
-            LeanXmssPublicKey::from_bytes(&bytes)
-        })
-        .collect()
-}
-
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
@@ -86,43 +73,6 @@ fn guest_compiles_reproducibly() {
         format!("{:?}", two.prog()),
         "two compilations of the guest produced different bytecode, \
              so the compiler is reading a hash seed"
-    );
-}
-
-/// `MAX_KEYS` is exclusive at both host checks: one claim short of it passes,
-/// the cap itself is the documented error. The cap counts both schemes, so
-/// one leanXMSS claim short of it plus one leanSPHINCS claim is already over. No proof
-/// involved.
-#[test]
-fn max_keys_bound_is_exclusive() {
-    let claims: Vec<LeanXmssClaim> = signer_set(MAX_KEYS).into_iter().map(|pk| (pk, message())).collect();
-    let lean_sphincs = [(
-        LeanSphincsPublicKey::from_bytes(&[0; lean_sphincs::PUB_KEY_SIZE]),
-        [0; lean_sphincs::MESSAGE_LEN],
-    )];
-    let short = &claims[..MAX_KEYS - 1];
-    let set = |xmss: &[LeanXmssClaim], lean_sphincs: &[LeanSphincsClaim]| EthereumClaims {
-        xmss: xmss.to_vec(),
-        lean_sphincs: lean_sphincs.to_vec(),
-        da_commitment: None,
-    };
-    check_signer_set(&set(short, &[])).expect("one short of the cap");
-    assert_eq!(
-        check_signer_set(&set(&claims, &[])),
-        Err(AggregateVerifyError::MalformedSignerSet)
-    );
-    assert_eq!(
-        check_signer_set(&set(short, &lean_sphincs)),
-        Err(AggregateVerifyError::MalformedSignerSet)
-    );
-    plan_coverage(short, &[], &[], None).expect("one short of the cap");
-    assert_eq!(
-        plan_coverage(&claims, &[], &[], None).err(),
-        Some(AggregationError::TooLarge)
-    );
-    assert_eq!(
-        plan_coverage(short, &lean_sphincs, &[], None).err(),
-        Some(AggregationError::TooLarge)
     );
 }
 
@@ -321,10 +271,13 @@ fn guest_column_selectors_match_native_eq() {
     let source = format!(
         r#"{helpers}
 def main():
-    point = HeapBuf(MAX_STACK_LOG)
+    # The selector tables read whole nibbles of coordinates, zero past the stack.
+    point = HeapBuf(4 * SEL_NIBBLES)
     hint_witness(point[0:MAX_STACK_LOG], "point")
-    point1 = HeapBuf(MAX_STACK_LOG)
-    for k in unroll(0, MAX_STACK_LOG):
+    for k in unroll(MAX_STACK_LOG, 4 * SEL_NIBBLES):
+        point[GEN ** k] = 0
+    point1 = HeapBuf(4 * SEL_NIBBLES)
+    for k in unroll(0, 4 * SEL_NIBBLES):
         point1[GEN ** k] = 1 + point[GEN ** k]
     sel_eq = selector_tables(point, point1)
     g_squares = exponent_tables()
@@ -337,7 +290,8 @@ def main():
     return
 "#
     );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
+    let kbc = 18;
+    let guest = compile(&parse_with_replacements(&source, &placeholder_map(kbc)).unwrap());
     let run = |point: &[F192], offset: usize, kappa: usize, expected: F192| {
         let mut hints = Hints::default();
         hints.push("point", point.to_vec());
@@ -348,14 +302,14 @@ def main():
         program.execute([expected, F192::ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
-    for mu in MU_MIN..=MU_MAX {
+    for mu in verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG {
         let mut point: Vec<F192> = (0..mu)
             .map(|_| {
                 let (c0, c1, c2) = rand::Rng::random(&mut rng);
                 F192::new(c0, c1, c2)
             })
             .collect();
-        point.resize(MU_MAX, F192::ZERO);
+        point.resize(verifier::MAX_STACKED_LOG, F192::ZERO);
         for kappa in 0..=mu {
             let mask = ((1usize << mu) - 1) & !((1usize << kappa) - 1);
             for offset in [0, mask, 0x0555_5555 & mask] {

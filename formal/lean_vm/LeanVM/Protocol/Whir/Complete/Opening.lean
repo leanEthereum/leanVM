@@ -81,7 +81,7 @@ the enforced sum is the pairing of the folded message with the column weights
 ## Hypotheses
 
 * `Whir.Admissible μ R`: the ladder exists (`Whir.ladder` returns it), starts with the lane
-  fold `6` at rate `R`, and its folds fit in the stack (`ladder_head_sum`, decided over the 56
+  fold `6` at rate `R`, and its folds fit in the stack (`ladder_head_sum`, decided over the 60
   pairs); `μ ≤ 64` keeps every message log within the novel basis.
 * Every stack claim holds of `q` (`StackClaim.Holds`) and has a multilinear weight
   (`IsMultilinearFn`): the terminal check evaluates the weights at a random point.
@@ -595,7 +595,7 @@ theorem follows_whirLevels (hf₀ : f₀.length = 2 ^ μ) (hμ : μ ≤ 64) :
     all_goals
       rintro cs2 ⟨residual, pending, tables⟩ b ⟨rfl, hF, hans, hfinal⟩
       dsimp only
-      refine Follows.bind_of (Follows.grindS_grindP _ _) ?_
+      refine Follows.bind_of (Follows.grindS_grindP (by decide) _) ?_
       rintro cs3 _ _ rfl
       dsimp only [sampleQueries]
       refine Follows.bind_of (follows_sampleQueriesAux _ _ _ _) ?_

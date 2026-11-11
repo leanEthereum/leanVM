@@ -40,7 +40,7 @@ def runF {α : Type} : VerifierProgram α → FSt → Option (α × FSt)
     | [] => none
     | n :: xs =>
       let sq := (s.sponge.absorb n dsPowNonce).squeeze
-      if powOk bits n sq.1 then runF k { s with sponge := sq.2, stream := xs } else none
+      if powOk bits sq.1 then runF k { s with sponge := sq.2, stream := xs } else none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
       match digestFromHalves (x0, x1) with
@@ -146,7 +146,7 @@ theorem runF_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : FSt) (sp 
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
       have key : runId (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
+          (if powOk b (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩

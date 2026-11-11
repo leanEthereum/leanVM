@@ -54,28 +54,21 @@ theorem basisMem_of_P {σ : Val} {c : OsCfg} {tch bd ls L : ℕ} {lv : OsLv} {β
   rw [this]; exact g3
 
 /-- `ResMem` with its pointers named. -/
-structure ResMemP (C : CallRel) (rd : Reader) (P : OsPtrs) (BD ICH LS : E) (c : OsCfg) (lvl : ℕ)
-    (lv : OsLv) (RC acc M I L : E) (Pq D : ℕ → E) : Prop where
-  hml : 1 ≤ lv.logCols
-  hn : lv.queries / resBatch < u128Bound
+structure ResMemP (C : CallRel) (rd : Reader) (P : OsPtrs) (R BD ICH LS : E) (c : OsCfg) (lvl : ℕ)
+    (lv : OsLv) (M h I L : E) : Prop where
+  hpo : lv.posOff < u128Bound
+  hlc : lvl * ligColsCap < u128Bound
   hM : LoadHolds rd P.mus lvl M
-  hL : IsInK (1 + gen ^ (lv.queries / resBatch)) ∧ (1 + gen ^ (lv.queries / resBatch) ≠ 0 →
-    C (c.resLoop lvl) [1, gen ^ (lv.queries / resBatch), P.qpos, BD, RC, M] [])
-  h0 : LoadHolds rd RC 0 0
-  hacc : LoadHolds rd RC (lv.queries / resBatch) acc
-  hP : ∀ i < lv.queries % resBatch,
-    LoadHolds rd P.qpos (lv.posOff + (lv.queries - lv.queries % resBatch) + i) (Pq i)
-  hD : ∀ s < lv.logCols, LoadHolds rd BD (lvl * ligColsCap + s) (D s)
+  hD : DispC C rd R ((c.lvAt lvl).map osResidualName)
+    [P.qpos * gen ^ lv.posOff, BD * gen ^ (lvl * ligColsCap), M] [h]
   hI : LoadHolds rd ICH lvl I
   hLs : LoadHolds rd LS lvl L
-  hout : LoadHolds rd ICH (lvl + 1)
-    (I + L * resFold D lv.vanish lv.logCols M acc ((List.range (lv.queries % resBatch)).map Pq))
+  hout : LoadHolds rd ICH (lvl + 1) (I + L * h)
 
-theorem resMem_of_P {σ : Val} {c : OsCfg} {ich bd ls lvl : ℕ} {lv : OsLv} {RC acc M I L : E}
-    {Pq D : ℕ → E}
-    (h : ResMemP C rd (ptrsOf σ) (σ (.n bd)) (σ (.n ich)) (σ (.n ls)) c lvl lv RC acc M I L Pq D) :
-    ResMem C rd σ c ich bd ls lvl lv RC acc M I L Pq D :=
-  ⟨h.hml, h.hn, h.hM, h.hL, h.h0, h.hacc, h.hP, h.hD, h.hI, h.hLs, h.hout⟩
+theorem resMem_of_P {σ : Val} {R : E} {c : OsCfg} {ich bd ls lvl : ℕ} {lv : OsLv} {M h I L : E}
+    (hh : ResMemP C rd (ptrsOf σ) R (σ (.n bd)) (σ (.n ich)) (σ (.n ls)) c lvl lv M h I L) :
+    ResMem C rd σ R c ich bd ls lvl lv M h I L :=
+  ⟨hh.hpo, hh.hlc, hh.hM, hh.hD, hh.hI, hh.hLs, hh.hout⟩
 
 /-- The pointer an out-of-domain coordinate reads. -/
 def oodPtr (P : OsPtrs) (T : E) (zf t : ℕ) : E := if t < zf then P.fch else T
@@ -106,6 +99,43 @@ theorem oodAll_of_P {σ : Val} {c : OsCfg} {tch : ℕ} {Λ : ℕ → E} {Z Y : �
     have e2 : (oodSrc tch (prevCols - c.yrLog) lv t).2 = (oodSrc 0 (prevCols - c.yrLog) lv t).2 := by
       unfold oodSrc; split_ifs <;> rfl
     rw [e1, e2]; exact g2
+
+/-! ## The finish's statements -/
+
+/-- `osFinish` before its `ret`. -/
+def osFinA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
+  let n := c.levels.length
+  let yat := st.k
+  let pt := yat + 1
+  let pts := osPtBlks c pt (pt + 1) tch 0 pointCap (pt + 2)
+  let bd := pts.2 + 1
+  let ls := pts.2 + 3
+  let bs := osBases c tch bd ls 0 c.levels (pts.2 + 4)
+  let ich := bs.2 + 1
+  let rs := osResiduals c ich bd ls 0 c.levels st.mats (bs.2 + 3)
+  let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
+  let k := od.2.2
+  [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
+    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
+    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ bs.1 ++
+    osHeap (n + 1) bs.2 ++
+    [.atom (.const (.n (bs.2 + 2)) (word 0 0 0)), .atom (.load (.n (bs.2 + 2)) (.n ich) 0)] ++
+    rs.1 ++ od.1 ++
+    [.atom (.copy (.n k) (.n st.t)), .atom (.copy (.n (k + 1)) (.n pt)),
+      .atom (.copy (.n (k + 2)) (.n (pt + 1))), .atom (.load (.n (k + 3)) (.n ich) n),
+      .atom (.add (.n (k + 4)) (.n (k + 3)) (.n (od.2.1.getD 0))), .atom (.copy (.n (k + 5)) (.n yat))]
+
+/-- `osFinish`'s returns. -/
+def osFinRet (c : OsCfg) (st : OsSt) (tch : ℕ) : List V :=
+  let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
+  let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4)
+  let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels st.mats (bs.2 + 3)
+  let k := (osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2).2.2
+  [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)]
+
+theorem osFinish_splitC (c : OsCfg) (st : OsSt) (tch : ℕ) :
+    osFinish c st tch = osFinA c st tch ++ [.ret (osFinRet c st tch)] := by
+  simp only [osFinish, osFinA, osFinRet, List.append_assoc, List.cons_append, List.nil_append]
 
 end
 end LeanVM.Guest.B1.Whir

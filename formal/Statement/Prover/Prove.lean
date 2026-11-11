@@ -31,7 +31,7 @@ open LeanVM.Protocol.Verifier
 
 /-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
 `publicInput`: the eight moves of `verify_execution` (its `walk`,
-`crates/verifier/src/lib.rs:215-329`), each phase's executable prover beside the verifier's phase
+`crates/verifier/src/lib.rs:217-331`), each phase's executable prover beside the verifier's phase
 (`Script.alongside`), which hands the next phase its result. The public-input phase sends nothing;
 the output lanes' claims, on no committed column, do not reach the stack (`ColumnClaim.onStack`). -/
 def honestScript (W : Witness) (ρ : ℕ) (publicInput : Digest) : Script Unit :=

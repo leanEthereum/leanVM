@@ -11,6 +11,7 @@
 module
 
 public import LeanVM.Guest.Count.Instances
+public import LeanVM.Guest.Count.VsOsAll
 public import LeanVM.Guest.B1.VerifySub.CompleteB
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
 public import LeanVM.Guest.B1.Selectors.SharedTotal
@@ -23,45 +24,37 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
-/-- **`open_stacked`'s named callees' words**: `wSB` on the names `osKindOf` knows, `0` on the
-others (the queries' callees and the loops, which `osBk` bounds by `osSpB`). -/
-noncomputable def osBnd (f : String) : ℕ := if (B1.osKindOf f).isSome then wSB f else 0
-
-theorem osLeafBoundsB : B1.OsLeafBounds B2C.fs osBnd := fun f K hK => by
-  have h := osLeafBounds f K hK
-  simpa [osBnd, hK] using h
-
 /-- `verify_tables`' callees but `__loop9` and `shared_selector_tables`, with their core
 indices. -/
 def vtPairs : List (String × ℕ) :=
-  [("block_selector__L0", 159), ("block_selector__L1", 160), ("block_selector__L10", 169),
-    ("block_selector__L11", 170), ("block_selector__L12", 171), ("block_selector__L13", 172),
-    ("block_selector__L14", 173), ("block_selector__L15", 174), ("block_selector__L16", 175),
-    ("block_selector__L17", 176), ("block_selector__L18", 177), ("block_selector__L19", 178),
-    ("block_selector__L2", 161), ("block_selector__L20", 179), ("block_selector__L21", 180),
-    ("block_selector__L22", 181), ("block_selector__L23", 182), ("block_selector__L24", 183),
-    ("block_selector__L25", 184), ("block_selector__L26", 185), ("block_selector__L27", 186),
-    ("block_selector__L28", 187), ("block_selector__L29", 188), ("block_selector__L3", 162),
-    ("block_selector__L30", 189), ("block_selector__L31", 190), ("block_selector__L32", 191),
-    ("block_selector__L33", 192), ("block_selector__L4", 163), ("block_selector__L5", 164),
-    ("block_selector__L6", 165), ("block_selector__L7", 166), ("block_selector__L8", 167),
-    ("block_selector__L9", 168), ("block_selector_tab__L0", 227), ("block_selector_tab__L1", 228),
-    ("block_selector_tab__L10", 237), ("block_selector_tab__L11", 238),
-    ("block_selector_tab__L12", 239), ("block_selector_tab__L13", 240),
-    ("block_selector_tab__L14", 241), ("block_selector_tab__L15", 242),
-    ("block_selector_tab__L16", 243), ("block_selector_tab__L17", 244),
-    ("block_selector_tab__L18", 245), ("block_selector_tab__L19", 246),
-    ("block_selector_tab__L2", 229), ("block_selector_tab__L20", 247),
-    ("block_selector_tab__L21", 248), ("block_selector_tab__L22", 249),
-    ("block_selector_tab__L23", 250), ("block_selector_tab__L24", 251),
-    ("block_selector_tab__L25", 252), ("block_selector_tab__L26", 253),
-    ("block_selector_tab__L27", 254), ("block_selector_tab__L28", 255),
-    ("block_selector_tab__L29", 256), ("block_selector_tab__L3", 230),
-    ("block_selector_tab__L30", 257), ("block_selector_tab__L31", 258),
-    ("block_selector_tab__L32", 259), ("block_selector_tab__L33", 260),
-    ("block_selector_tab__L4", 231), ("block_selector_tab__L5", 232),
-    ("block_selector_tab__L6", 233), ("block_selector_tab__L7", 234),
-    ("block_selector_tab__L8", 235), ("block_selector_tab__L9", 236), ("eq_prefix_chain", 5),
+  [("block_selector__L0", 161), ("block_selector__L1", 162), ("block_selector__L10", 171),
+    ("block_selector__L11", 172), ("block_selector__L12", 173), ("block_selector__L13", 174),
+    ("block_selector__L14", 175), ("block_selector__L15", 176), ("block_selector__L16", 177),
+    ("block_selector__L17", 178), ("block_selector__L18", 179), ("block_selector__L19", 180),
+    ("block_selector__L2", 163), ("block_selector__L20", 181), ("block_selector__L21", 182),
+    ("block_selector__L22", 183), ("block_selector__L23", 184), ("block_selector__L24", 185),
+    ("block_selector__L25", 186), ("block_selector__L26", 187), ("block_selector__L27", 188),
+    ("block_selector__L28", 189), ("block_selector__L29", 190), ("block_selector__L3", 164),
+    ("block_selector__L30", 191), ("block_selector__L31", 192), ("block_selector__L32", 193),
+    ("block_selector__L33", 194), ("block_selector__L4", 165), ("block_selector__L5", 166),
+    ("block_selector__L6", 167), ("block_selector__L7", 168), ("block_selector__L8", 169),
+    ("block_selector__L9", 170), ("block_selector_tab__L0", 229), ("block_selector_tab__L1", 230),
+    ("block_selector_tab__L10", 239), ("block_selector_tab__L11", 240),
+    ("block_selector_tab__L12", 241), ("block_selector_tab__L13", 242),
+    ("block_selector_tab__L14", 243), ("block_selector_tab__L15", 244),
+    ("block_selector_tab__L16", 245), ("block_selector_tab__L17", 246),
+    ("block_selector_tab__L18", 247), ("block_selector_tab__L19", 248),
+    ("block_selector_tab__L2", 231), ("block_selector_tab__L20", 249),
+    ("block_selector_tab__L21", 250), ("block_selector_tab__L22", 251),
+    ("block_selector_tab__L23", 252), ("block_selector_tab__L24", 253),
+    ("block_selector_tab__L25", 254), ("block_selector_tab__L26", 255),
+    ("block_selector_tab__L27", 256), ("block_selector_tab__L28", 257),
+    ("block_selector_tab__L29", 258), ("block_selector_tab__L3", 232),
+    ("block_selector_tab__L30", 259), ("block_selector_tab__L31", 260),
+    ("block_selector_tab__L32", 261), ("block_selector_tab__L33", 262),
+    ("block_selector_tab__L4", 233), ("block_selector_tab__L5", 234),
+    ("block_selector_tab__L6", 235), ("block_selector_tab__L7", 236),
+    ("block_selector_tab__L8", 237), ("block_selector_tab__L9", 238), ("eq_prefix_chain", 5),
     ("eq_prefix_run__L0", 39), ("eq_prefix_run__L1", 40), ("eq_prefix_run__L10", 49),
     ("eq_prefix_run__L11", 50), ("eq_prefix_run__L12", 51), ("eq_prefix_run__L13", 52),
     ("eq_prefix_run__L14", 53), ("eq_prefix_run__L15", 54), ("eq_prefix_run__L16", 55),
@@ -75,18 +68,18 @@ def vtPairs : List (String × ℕ) :=
     ("eq_prefix_run__L36", 75), ("eq_prefix_run__L37", 76), ("eq_prefix_run__L38", 77),
     ("eq_prefix_run__L39", 78), ("eq_prefix_run__L4", 43), ("eq_prefix_run__L40", 79),
     ("eq_prefix_run__L5", 44), ("eq_prefix_run__L6", 45), ("eq_prefix_run__L7", 46),
-    ("eq_prefix_run__L8", 47), ("eq_prefix_run__L9", 48), ("index_mle__L0", 193),
-    ("index_mle__L1", 194), ("index_mle__L10", 203), ("index_mle__L11", 204),
-    ("index_mle__L12", 205), ("index_mle__L13", 206), ("index_mle__L14", 207),
-    ("index_mle__L15", 208), ("index_mle__L16", 209), ("index_mle__L17", 210),
-    ("index_mle__L18", 211), ("index_mle__L19", 212), ("index_mle__L2", 195),
-    ("index_mle__L20", 213), ("index_mle__L21", 214), ("index_mle__L22", 215),
-    ("index_mle__L23", 216), ("index_mle__L24", 217), ("index_mle__L25", 218),
-    ("index_mle__L26", 219), ("index_mle__L27", 220), ("index_mle__L28", 221),
-    ("index_mle__L29", 222), ("index_mle__L3", 196), ("index_mle__L30", 223),
-    ("index_mle__L31", 224), ("index_mle__L32", 225), ("index_mle__L33", 226),
-    ("index_mle__L4", 197), ("index_mle__L5", 198), ("index_mle__L6", 199), ("index_mle__L7", 200),
-    ("index_mle__L8", 201), ("index_mle__L9", 202), ("padding_weight__L0", 96),
+    ("eq_prefix_run__L8", 47), ("eq_prefix_run__L9", 48), ("index_mle__L0", 195),
+    ("index_mle__L1", 196), ("index_mle__L10", 205), ("index_mle__L11", 206),
+    ("index_mle__L12", 207), ("index_mle__L13", 208), ("index_mle__L14", 209),
+    ("index_mle__L15", 210), ("index_mle__L16", 211), ("index_mle__L17", 212),
+    ("index_mle__L18", 213), ("index_mle__L19", 214), ("index_mle__L2", 197),
+    ("index_mle__L20", 215), ("index_mle__L21", 216), ("index_mle__L22", 217),
+    ("index_mle__L23", 218), ("index_mle__L24", 219), ("index_mle__L25", 220),
+    ("index_mle__L26", 221), ("index_mle__L27", 222), ("index_mle__L28", 223),
+    ("index_mle__L29", 224), ("index_mle__L3", 198), ("index_mle__L30", 225),
+    ("index_mle__L31", 226), ("index_mle__L32", 227), ("index_mle__L33", 228),
+    ("index_mle__L4", 199), ("index_mle__L5", 200), ("index_mle__L6", 201), ("index_mle__L7", 202),
+    ("index_mle__L8", 203), ("index_mle__L9", 204), ("padding_weight__L0", 96),
     ("padding_weight__L1", 97), ("padding_weight__L10", 106), ("padding_weight__L11", 107),
     ("padding_weight__L12", 108), ("padding_weight__L13", 109), ("padding_weight__L14", 110),
     ("padding_weight__L15", 111), ("padding_weight__L16", 112), ("padding_weight__L17", 113),
@@ -94,22 +87,22 @@ def vtPairs : List (String × ℕ) :=
     ("padding_weight__L20", 116), ("padding_weight__L21", 117), ("padding_weight__L22", 118),
     ("padding_weight__L23", 119), ("padding_weight__L24", 120), ("padding_weight__L25", 121),
     ("padding_weight__L26", 122), ("padding_weight__L27", 123), ("padding_weight__L28", 124),
-    ("padding_weight__L3", 99), ("padding_weight__L4", 100), ("padding_weight__L5", 101),
-    ("padding_weight__L6", 102), ("padding_weight__L7", 103), ("padding_weight__L8", 104),
-    ("padding_weight__L9", 105), ("plus_one_run__L0", 125), ("plus_one_run__L1", 126),
-    ("plus_one_run__L10", 135), ("plus_one_run__L11", 136), ("plus_one_run__L12", 137),
-    ("plus_one_run__L13", 138), ("plus_one_run__L14", 139), ("plus_one_run__L15", 140),
-    ("plus_one_run__L16", 141), ("plus_one_run__L17", 142), ("plus_one_run__L18", 143),
-    ("plus_one_run__L19", 144), ("plus_one_run__L2", 127), ("plus_one_run__L20", 145),
-    ("plus_one_run__L21", 146), ("plus_one_run__L22", 147), ("plus_one_run__L23", 148),
-    ("plus_one_run__L24", 149), ("plus_one_run__L25", 150), ("plus_one_run__L26", 151),
-    ("plus_one_run__L27", 152), ("plus_one_run__L28", 153), ("plus_one_run__L29", 154),
-    ("plus_one_run__L3", 128), ("plus_one_run__L30", 155), ("plus_one_run__L31", 156),
-    ("plus_one_run__L32", 157), ("plus_one_run__L33", 158), ("plus_one_run__L4", 129),
-    ("plus_one_run__L5", 130), ("plus_one_run__L6", 131), ("plus_one_run__L7", 132),
-    ("plus_one_run__L8", 133), ("plus_one_run__L9", 134), ("sel_partial_nibble__L0", 92),
-    ("sel_partial_nibble__L1", 93), ("sel_partial_nibble__L2", 94), ("sel_partial_nibble__L3", 95),
-    ("sumcheck_round4", 7)]
+    ("padding_weight__L29", 125), ("padding_weight__L3", 99), ("padding_weight__L30", 126),
+    ("padding_weight__L4", 100), ("padding_weight__L5", 101), ("padding_weight__L6", 102),
+    ("padding_weight__L7", 103), ("padding_weight__L8", 104), ("padding_weight__L9", 105),
+    ("plus_one_run__L0", 127), ("plus_one_run__L1", 128), ("plus_one_run__L10", 137),
+    ("plus_one_run__L11", 138), ("plus_one_run__L12", 139), ("plus_one_run__L13", 140),
+    ("plus_one_run__L14", 141), ("plus_one_run__L15", 142), ("plus_one_run__L16", 143),
+    ("plus_one_run__L17", 144), ("plus_one_run__L18", 145), ("plus_one_run__L19", 146),
+    ("plus_one_run__L2", 129), ("plus_one_run__L20", 147), ("plus_one_run__L21", 148),
+    ("plus_one_run__L22", 149), ("plus_one_run__L23", 150), ("plus_one_run__L24", 151),
+    ("plus_one_run__L25", 152), ("plus_one_run__L26", 153), ("plus_one_run__L27", 154),
+    ("plus_one_run__L28", 155), ("plus_one_run__L29", 156), ("plus_one_run__L3", 130),
+    ("plus_one_run__L30", 157), ("plus_one_run__L31", 158), ("plus_one_run__L32", 159),
+    ("plus_one_run__L33", 160), ("plus_one_run__L4", 131), ("plus_one_run__L5", 132),
+    ("plus_one_run__L6", 133), ("plus_one_run__L7", 134), ("plus_one_run__L8", 135),
+    ("plus_one_run__L9", 136), ("sel_partial_nibble__L0", 92), ("sel_partial_nibble__L1", 93),
+    ("sel_partial_nibble__L2", 94), ("sel_partial_nibble__L3", 95), ("sumcheck_round4", 7)]
 
 theorem vtPairs_ok : (vtPairs.all fun p => wOkB p.2 p.1) = true := by decide +kernel
 
@@ -139,13 +132,13 @@ theorem sp_totalLe : ∀ j < 4,
   intro j hj
   interval_cases j
   · rw [show B1.Tables.lName "sel_partial_nibble" 0 = "sel_partial_nibble__L0" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 92) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L0") (by decide +kernel)) (by unfold kSp; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 1 = "sel_partial_nibble__L1" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 93) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L1") (by decide +kernel)) (by unfold kSp; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 2 = "sel_partial_nibble__L2" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 94) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L2") (by decide +kernel)) (by unfold kSp; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 95) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L3") (by decide +kernel)) (by unfold kSp; omega)
 
 /-- The gkr rounds' words (`gkr_rounds__L{0,1,2,4,6}`), at most. -/
 noncomputable def kGr : ℕ :=
@@ -158,15 +151,15 @@ theorem gr_totalLe : ∀ n ∈ B1.Tables.grCounts,
   simp only [B1.Tables.grCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl | rfl | rfl
   · rw [show B1.Tables.lName "gkr_rounds" 0 = "gkr_rounds__L0" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 420) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L0") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 1 = "gkr_rounds__L1" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 424) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L1") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 2 = "gkr_rounds__L2" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 421) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L2") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 4 = "gkr_rounds__L4" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 422) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L4") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 6 = "gkr_rounds__L6" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 423) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L6") (by decide +kernel)) (by unfold kGr; omega)
 
 /-! ## The weights of `verify_tables`' and the terminal's callees -/
 
@@ -197,28 +190,29 @@ theorem weightLe_mono {ω : String → ℕ} {f : String} {B B' : ℕ}
     (h : WeightLe coreProgram ω f fun _ => B) (hB : B ≤ B') : WeightLe coreProgram ω f fun _ => B' :=
   fun rd t args rets hn hv hb => (h rd t args rets hn hv hb).trans hB
 
+set_option maxHeartbeats 800000 in
 theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
     (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSpW op) := by
   intro j hj
   interval_cases j
   · rw [show B1.Tables.lName "sel_partial_nibble" 0 = "sel_partial_nibble__L0" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 92) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L0") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 1 = "sel_partial_nibble__L1" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 93) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L1") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 2 = "sel_partial_nibble__L2" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 94) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L2") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 95) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L3") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
 
 /-- The column selectors' weights, at most. -/
 noncomputable def kCsW (op : Opcode) : ℕ :=
-  ((List.range 29).map fun κ => kuSB op (B1.Tables.lName "column_selector" κ)).foldr max 0
+  ((List.range 31).map fun κ => kuSB op (B1.Tables.lName "column_selector" κ)).foldr max 0
 
-theorem cs_okW (op : Opcode) : (List.range 29).all (fun κ =>
-    kuOkB op (271 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
+theorem cs_okW (op : Opcode) : (List.range 31).all (fun κ =>
+    kuOkB op (273 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
   cases op <;> decide +kernel
 
-theorem cs_weightLe (op : Opcode) : ∀ κ < 29, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
+theorem cs_weightLe (op : Opcode) : ∀ κ < 31, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
     (B1.Tables.lName "column_selector" κ) (fun _ => kCsW op) := by
   intro κ hκ
   refine weightLe_mono (kuSB_weightLe (List.all_eq_true.mp (cs_okW op) κ (List.mem_range.mpr hκ))) ?_
@@ -231,29 +225,27 @@ theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤
 /-- **`verify_sub`'s callees' words at `B2C.fs`.** -/
 noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Bg := wSB "g_power_of_word"
-  hg := wSB_totalLe (j := 3) (by decide +kernel)
+  hg := wSB_totalLe (j := wIdx "g_power_of_word") (by decide +kernel)
   Ba := wSB "assert_canonical"
-  ha := wSB_totalLe (j := 1) (by decide +kernel)
+  ha := wSB_totalLe (j := wIdx "assert_canonical") (by decide +kernel)
   K29 := wSK "__loop36" - B2C.fs "__loop36"
   R := kGr
   K8 := wSK "__loop7" - B2C.fs "__loop7"
-  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 419) (by decide +kernel)
+  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 36) (by decide +kernel)
   hR := gr_totalLe
-  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 90) (by decide +kernel)
+  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 7) (by decide +kernel)
   Kf := wSB
   Ksh := B2C.fs "shared_selector_tables" +
     (B2C.fs "__loop8" + 15 * (wSK "__loop8" - B2C.fs "__loop8")) + kSp
   K10 := wSK "__loop9" - B2C.fs "__loop9"
   hKf := vt_kids_totalLe
   hsh := B1.Tables.ss_totalLeOn (wSK "__loop8" - B2C.fs "__loop8") kSp
-    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 91) (by decide +kernel)) sp_totalLe
-  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 261) (by decide +kernel)
+    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 8) (by decide +kernel)) sp_totalLe
+  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 9) (by decide +kernel)
   B14 := 5949
   hl14 := B1.VerifySub.l14_totalLeOn_fs
-  Bnd := osBnd
-  Kr := fun f => wSK f - B2C.fs f
-  hleaf := osLeafBoundsB
-  hloop := fun μ r h1 h2 h3 h4 => osLoopBounds _ (by unfold B1.Whir.candidate; omega)
+  Bnd := wSB
+  hleaf := osLeafBounds
   Beqc := 184
   K15 := 19
   Bcs := 157
@@ -269,15 +261,15 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Kw10 := fun op => kuSK op "__loop9"
   hKvw := vt_kids_weightLe
   hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
-    (loopW_of (kuSK_loop (j := 91) (by cases op <;> decide +kernel))) (sp_weightLe op)
-  h10w := fun op => loopW_of (kuSK_loop (j := 261) (by cases op <;> decide +kernel))
+    (loopW_of (kuSK_loop (j := wIdxL 8) (by cases op <;> decide +kernel))) (sp_weightLe op)
+  h10w := fun op => loopW_of (kuSK_loop (j := wIdxL 9) (by cases op <;> decide +kernel))
   Weqc := fun op => kuSB op "eq_prefix_chain"
   W15 := fun op => krVl15A op * max (B2C.fs "__loop14") (32 * 38) / 1000
   Wst := fun op => kuSB op "selector_tables"
   Wcs := kCsW
   Wrsw := fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000
-  hEqcW := fun op => kuSB_weightLe (j := 5) (by cases op <;> decide +kernel)
-  hStW := fun op => kuSB_weightLe (j := 16) (by cases op <;> decide +kernel)
+  hEqcW := fun op => kuSB_weightLe (j := wIdx "eq_prefix_chain") (by cases op <;> decide +kernel)
+  hStW := fun op => kuSB_weightLe (j := wIdx "selector_tables") (by cases op <;> decide +kernel)
   hCsW := cs_weightLe
   h15W := fun op rd t args rets hn hv hb ht => ratio_le (krVl15_weight op rd t args rets hn hv hb)
     (ht.trans (by rw [B1.VerifySub.fs_l15]; decide))

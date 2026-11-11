@@ -27,7 +27,7 @@ theorem H_shape (hbl : bytecode.length = 2 ^ 23) : Tables.VtShape S.H := by
   have hb := S.μ_bounds hbl
   have hpl := (S.runG' hbl).2.2.1
   have hsl := S.hs_length
-  have hh := S.hh29 hbl
+  have hh := S.hh31 hbl
   have hht : ∀ t < 6, Tables.vtHt S.rowsN t = S.hs.getD t 0 := fun t _ ↦ rfl
   obtain ⟨K, hK⟩ := (S.runG' hbl).2.2.2
   refine ⟨S.h32, ?_, ?_, ?_, S.hrowsL, fun t ht ↦ ?_, fun t ht ↦ ?_, ?_, by rw [H_f, hK]; rfl,

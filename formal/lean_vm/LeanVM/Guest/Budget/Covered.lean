@@ -6,7 +6,7 @@
   coverage slots and children's claims, with no raw signature or blob held directly, and every
   leaf of at most `2048` raw signatures (a leanSPHINCS signature counted as three), declared claims
   and coverage slots, with no blob held directly, has a valid execution of the guest of committed
-  size in `[2^22, 2^28]`.
+  size at most `2^28`.
 -/
 
 module
@@ -40,7 +40,7 @@ theorem sizeOf_le_pow {w : ℕ} {i : Opcode → ℕ} (k : Opcode → ℕ) (hw : 
     Nat.pow_le_pow_right (by norm_num) (max_le_max (Nat.clog_le_of_le_pow (hi .keccak)) le_rfl)
   have hm : 2 ^ End.padLog w ≤ 2 ^ 24 := by
     refine Nat.pow_le_pow_right (by norm_num) (max_le (max_le ?_ (Nat.clog_le_of_le_pow hw)) ?_)
-    · unfold minLogMem; omega
+    · omega
     · omega
   dsimp only [End.sizeOf]
   rw [guest_logSize]
@@ -66,8 +66,7 @@ theorem shapes_sum_le {ps : List (ℕ × ℕ)} (f : ℕ → ℕ → ℕ) {M : �
   exact h.trans (Nat.mul_le_mul_right M hl)
 
 /-- **A recursion node of at most `2048` claims fits**: no raw signature or blob held directly,
-at most `16` children (each charged at the largest of the guest's opening arms, `μ = 28` at rate
-`1`), at most `2048` declared claims, coverage slots and children's claims. -/
+at most `16` children (each charged at the largest of the guest's opening arms, `μ = 32`), at most `2048` declared claims, coverage slots and children's claims. -/
 theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs = 0)
     (hd : u.rawDa = 0) (hr : u.rawDaRows = 0) (hp : u.rawDaPad = 0) (hdecl : u.declared ≤ 2048)
     (hcov : u.coverage ≤ 2048) (hcc : u.childClaims ≤ 2048) (hch : u.children ≤ 16)
@@ -85,33 +84,33 @@ theorem recursion_size_le (u : End.Work) (hx : u.rawXmss = 0) (hs : u.rawSphincs
     omega
   · intro op
     cases op
-    · have hb := shapes_sum_le (Count.deployedInstrs .xor).childShape (M := 95303)
-        (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
+    · have hb := shapes_sum_le (Count.deployedInstrs .xor).childShape (M := 101576)
+        (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .mulNative).childShape (M := 175568)
-        (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
+    · have hb := shapes_sum_le (Count.deployedInstrs .mulNative).childShape (M := 186544)
+        (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 47771)
-        (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
+    · have hb := shapes_sum_le (Count.deployedInstrs .setConstant).childShape (M := 51142)
+        (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 100673)
-        (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
+    · have hb := shapes_sum_le (Count.deployedInstrs .deref).childShape (M := 108128)
+        (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 35079)
-        (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
+    · have hb := shapes_sum_le (Count.deployedInstrs .jump).childShape (M := 37228)
+        (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
-    · have hb := shapes_sum_le (Count.deployedInstrs .keccak).childShape (M := 9517)
-        (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hlen
+    · have hb := shapes_sum_le (Count.deployedInstrs .keccak).childShape (M := 12692)
+        (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hlen
       simp only [End.Linear.eval, Count.deployedInstrs] at hb ⊢
       rw [hx, hs, hd, hr, hp]
       omega
@@ -142,7 +141,7 @@ every seed, statement `s` and witness `w` with `NodeRelation`, within the deploy
 `16` children, each at one of the guest's opening arms), the caps agreeing and no zero challenge
 where the guest divides, holding no raw leanXMSS or leanSPHINCS signature and no blob directly,
 with at most `2048` declared claims, coverage slots and children's claims, there is a valid
-execution of the guest on the statement's digest of committed size in `[2^22, 2^28]`. -/
+execution of the guest on the statement's digest of committed size at most `2^28`. -/
 theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
     (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
@@ -154,8 +153,8 @@ theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) 
       c.statement.claims.sphincs.length).sum ≤ 2048) :
     ∃ t : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
-  refine guest_complete_numeric seed s w hrel hlim hok (recursion_size_le _ hx hs
+      t.committedSize ≤ 2 ^ 28 := by
+  refine guest_complete_numeric seed s w hrel ⟨hlim, by omega⟩ hok (recursion_size_le _ hx hs
     (by simp [work, hd]) (by simp [work, hd]) (by simp [work, hd]) hdecl
     ((B1.Main.planSlots_eq hlim).trans_le hcov) hcc ?_ ?_)
   · simpa [work] using hlim.atMostSixteenChildren
@@ -165,7 +164,7 @@ theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) 
 seed, statement `s` and witness `w` with `NodeRelation`, within the deployed limits, with no child and
 no blob held directly, at most `2048` raw signatures (leanXMSS ones and three for each leanSPHINCS
 one, `CoveredNode`'s count) and at most `2048` declared claims and coverage slots, there is a valid execution of the guest on the
-statement's digest of committed size in `[2^22, 2^28]`. -/
+statement's digest of committed size at most `2^28`. -/
 theorem guest_complete_leaf_acceptable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
     (hrel : NodeRelation (bytecodeWords guestProgram) seed s w) (hlim : DeployedLimits s w)
     (hok : ∀ c ∈ w.children, AcceptableChild (bytecodeWords guestProgram) seed c)
@@ -175,8 +174,8 @@ theorem guest_complete_leaf_acceptable (seed : Digest) (s : NodeStatement) (w : 
     (hcov : coverageSlots w ≤ 2048) :
     ∃ t : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28 := by
-  refine guest_complete_numeric seed s w hrel hlim hok (leaf_size_le _ hxs (by simp [work, hd])
+      t.committedSize ≤ 2 ^ 28 := by
+  refine guest_complete_numeric seed s w hrel ⟨hlim, by omega⟩ hok (leaf_size_le _ hxs (by simp [work, hd])
     (by simp [work, hd]) (by simp [work, hd]) hdecl ((B1.Main.planSlots_eq hlim).trans_le hcov) ?_ ?_
     ?_)
   · simp [work, hch]

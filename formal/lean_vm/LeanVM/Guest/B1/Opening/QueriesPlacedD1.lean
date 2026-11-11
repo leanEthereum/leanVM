@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Opening.QueriesPlacedD1
 
-  `opening_queries` at level 0 is `CompleteAtB`.
+  `opening_queries` at level 0 is `CompleteAtE`.
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Opening.QueriesMainW
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# `opening_queries` at level 0, `CompleteAtB`
+# `opening_queries` at level 0, `CompleteAtE`
 
 The honest data of the call: the iterations `N`, the queries' positions `qs`, rows `rows` and
 siblings below the cap `sibs`, the weights `w`, the window runs at `g^(eb k)`; the caller's buffers
@@ -21,8 +21,10 @@ at `g^ecap` (the cap), `g^eflags`, `g^eqp` (the window pointers), `g^ewp` (the w
   pointers and windows, each query's cap leaf (its path's top) and its flag;
 * `OqLinReg`: those words lie in `Lin`'s region.
 
-`oqMain1_completeAtB`: the function is `CompleteAtB` on `Lin`, returning the chain's end times
-`λ_n`, its own layout its chain buffer (`oqChainVals`), by a tree of at most
+`CompleteAtE … B`: `CompleteAtB` by a tree of exactly `B` words at every frame pointer, so that a
+caller's size is the same at every frame pointer too. `oqMain1_completeAtE`: the function is
+`CompleteAtE` on `Lin`, returning the chain's end times `λ_n`, its own layout its chain buffer
+(`oqChainVals`), by a tree of exactly
 `fs name + (N + 1) + (N + 1) * fs loop + (odd + 2N) * fs walk` words (a `walk_path` frame a query).
 -/
 
@@ -92,8 +94,26 @@ theorem OqQReg.mono {R R' : ℕ → Prop} {s : Oq} {cap flags wp bp : E} {q : �
 
 theorem regionL_nil (i : ℕ) : ¬ RegionL [] i := by simp [RegionL]
 
-/-- **`opening_queries` at level 0 is `CompleteAtB`.** -/
-theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
+/-- **`f` is complete at every frame pointer by a tree of exactly `B` words, its own words
+`Lown fp`**: `CompleteAtB` returning `rets` and no buffer, with the size `B` itself and the
+layout named, so that the size is the same at every frame pointer and a memory holding the
+layout can be built. -/
+def CompleteAtE (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
+    (Lin : Main.Layout) (args rets : List E) (Lown : ℕ → Main.Layout) (B : ℕ) : Prop :=
+  ∀ fp, Within (Lown fp) fp B ∧ DisjL (Lown fp) ∧ ∀ rd, LowDef k rd → MemL rd (Lown fp ++ Lin) →
+    RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ ↦ False) fp B f args rets
+
+theorem CompleteAtE.toB {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String}
+    {Lin : Main.Layout} {args rets : List E} {Lown : ℕ → Main.Layout} {B : ℕ}
+    (h : CompleteAtE fs cert k f Lin args rets Lown B) :
+    CompleteAtB fs cert k f Lin args (Returns rets) B := fun fp ↦ by
+  obtain ⟨hw, hd, hr⟩ := h fp
+  refine ⟨B, Lown fp, rets, [], ⟨rfl, rfl⟩, by simpa using hw, by simpa using hd, le_rfl,
+    fun rd hl hm ↦ relAtIn_dmono (hr rd hl (by simpa using hm)) fun i hi ↦ absurd hi
+      (regionL_nil i)⟩
+
+/-- **`opening_queries` at level 0 is `CompleteAtE`**, by a tree of exactly its bound. -/
+theorem oqMain1_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     {s : Oq} (hs : s.RowShape) (hb1 : s.base = 1) (hpd1 : 1 ≤ s.pd) (hcd : 2 ≤ s.cd) {odd : ℕ}
     (hodd : odd ≤ 1) {name wlk loop : String} (hW : WalkFn wlk s.pd s.cd) {fm fl : Fn}
     (hfm : coreProgram.find? name = some fm)
@@ -110,10 +130,11 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
       OqLinMem rd s (ofK (Parameters.addressOfIndex ecap)) (ofK (Parameters.addressOfIndex eflags))
         (ofK (Parameters.addressOfIndex ewp)) (ofK (Parameters.addressOfIndex eqp)) w eb qs rows
             sibs (odd + 2 * N)) :
-    CompleteAtB fs cert κ name Lin
+    CompleteAtE fs cert κ name Lin
       [ofK (Parameters.addressOfIndex ecap), ofK (Parameters.addressOfIndex eflags), lam, lamN,
         ofK (Parameters.addressOfIndex eqp), ofK (Parameters.addressOfIndex ewp), gen ^ N]
-      (Returns [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN])
+      [oqChain odd s.base lam⁻¹ (fun k ↦ rowDot s.base s.I (rows k) w) N * lamN]
+      (fun fp ↦ [(fp + fs name, oqChainVals odd s.base lam (fun k ↦ rowDot s.base s.I (rows k) w) N)])
       (fs name + (N + 1) + (N + 1) * fs loop + (odd + 2 * N) * fs wlk) := by
   intro fp
   set ds : ℕ → E := fun k ↦ rowDot s.base s.I (rows k) w with hds
@@ -127,9 +148,11 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
   set n := fs name + (N + 1) + odd * fs wlk + ((N + 1) * fs loop + N * (2 * fs wlk)) with hn
   have wAll : Within chainL fp n := wChain.mono (by omega) (by omega)
   have dAll : DisjL chainL := by rw [hchainL]; exact List.pairwise_singleton _ _
-  refine ⟨n, chainL, _, [], ⟨rfl, rfl⟩, by simpa using wAll,
-    by simpa using dAll, le_of_eq (by rw [hn]; ring), fun rd hlow hm ↦ ?_⟩
-  rw [List.nil_append, Main.memL_append] at hm
+  rw [show fs name + (N + 1) + (N + 1) * fs loop + (odd + 2 * N) * fs wlk = n by rw [hn]; ring]
+  beta_reduce
+  rw [← hchainL]
+  refine ⟨wAll, dAll, fun rd hlow hm ↦ ?_⟩
+  rw [Main.memL_append] at hm
   obtain ⟨hmChain, hmLin⟩ := hm
   obtain ⟨hw, hk⟩ := hmem rd hlow hmLin
   -- the chain buffer
@@ -139,7 +162,6 @@ theorem oqMain1_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) 
     have := hmChain (fp + fs name, oqChainVals odd s.base lam ds N) (by rw [hchainL]; simp) i
       (by simp [oqChainVals]; omega)
     simpa [oqChainVals] using this
-  refine relAtIn_dmono (D := fun _ ↦ False) ?_ (fun i hi ↦ absurd hi (regionL_nil i))
   refine oqMain1_placed (r := rows 0) (w := w) (q := qs 0) (sb := sibs 0)
     (bp := ofK (Parameters.addressOfIndex (eb 0))) (hNv := oqChain odd s.base lam⁻¹ ds N)
     (r1 := fun j ↦ rows (odd + 2 * j)) (r2 := fun j ↦ rows (odd + 2 * j + 1))

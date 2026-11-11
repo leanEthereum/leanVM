@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Whir.Glue
 /-!
 # A level of the trace, as the guest's data
 
-`spDat L d sqz wp`: the guest's data of a level `L : SpLv` of the honest trace (its words, its next
-commitment's digest `d`, its squeeze run and row weights buffers at `sqz`, `wp`, its root's cells
+`spDat L d wp`: the guest's data of a level `L : SpLv` of the honest trace (its words, its next
+commitment's digest `d`, its row weights buffer at `wp`, its root's cells
 the cap's returns, its enforced sum `opening_queries`' return). `SpLvFit`: the level's row against
 the Spec's level. `lvOut_sp`: what the guest's level leaves is what the Spec's leaves: the next
 sponge `L.Fend`, the glued quadratic and claim.
@@ -29,8 +29,8 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- **A level's honest data**, from the trace's level `L`. -/
-def spDat (L : SpLv) (d : Digest) (sqz wp : E) : LvDat :=
-  ⟨L.xf, L.ms, L.ra, L.rb, L.y, L.c0, L.c2, L.nonce, d, sqz, wp, (digestHalves L.root).1,
+def spDat (L : SpLv) (d : Digest) (wp : E) : LvDat :=
+  ⟨L.xf, L.ms, L.ra, L.rb, L.y, L.c0, L.c2, L.nonce, d, wp, (digestHalves L.root).1,
     (digestHalves L.root).2, L.enforced, L.ic0, L.ic2⟩
 
 /-- The level's row against the trace's level. -/
@@ -60,12 +60,12 @@ theorem list3 {l : List E} (h : l.length = 3) : l = [l.getD 0 0, l.getD 1 0, l.g
   | [a, b, c], _ => rfl
 
 theorem spDat_lvR {lv : OsLv} {L : SpLv} (hfold : L.level.fold = lv.folds) (d : Digest)
-    (sqz wp : E) : lvR lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target = L.tr := by
+    (wp : E) : lvR lv (spDat L d wp) L.F L.ws.quad L.ws.target = L.tr := by
   simp only [lvR, spDat, SpLv.tr, hfold]
 
 theorem spDat_cap {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit c lvl lv L)
-    (d : Digest) (sqz wp : E) :
-    (⟨lvCap c lvl lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target, []⟩ : Fs) = L.F2 := by
+    (d : Digest) (wp : E) :
+    (⟨lvCap c lvl lv (spDat L d wp) L.F L.ws.quad L.ws.target, []⟩ : Fs) = L.F2 := by
   unfold lvCap
   by_cases hf : lvl = c.yrLevel
   · have hL : L.fin = true := h.fin.mpr hf
@@ -79,21 +79,21 @@ theorem spDat_cap {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit c 
     rfl
 
 theorem spDat_lam {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit c lvl lv L)
-    (d : Digest) (sqz wp : E) : lvLam c lvl lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target = L.lam := by
-  unfold lvLam lamOf SpLv.lam
-  rw [spDat_cap h, h.nsq]
+    (d : Digest) (wp : E) : lvLam c lvl lv (spDat L d wp) L.F L.ws.quad L.ws.target = L.lam := by
+  unfold lvLam lamOf SpLv.lam sqLast
+  rw [← spDat_cap h d wp, (squeezeN_sqCaps _ _).1, h.nsq]
 
 /-- **What the guest's level leaves is the trace's.** -/
 theorem lvOut_sp {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit c lvl lv L)
-    (d : Digest) (sqz wp : E) :
-    lvOut c lvl lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target =
+    (d : Digest) (wp : E) :
+    lvOut c lvl lv (spDat L d wp) L.F L.ws.quad L.ws.target =
       (L.Fend, L.wsEnd.quad, L.wsEnd.target) := by
   have hq3 : L.tr.2.2.1.length = 3 := by
     rw [SpLv.tr, h.fold]; exact foldsTr_quad_len _ _ _ _ _ h.f1
   have hQ := list3 hq3
-  have hlam := spDat_lam h d sqz wp
-  have hFq : lvFq c lvl lv (spDat L d sqz wp) L.F L.ws.quad L.ws.target = (L.F2.squeezeN L.nsq).2 := by
-    unfold lvFq; rw [spDat_cap h, h.nsq]
+  have hlam := spDat_lam h d wp
+  have hFq : lvFq c lvl lv (spDat L d wp) L.F L.ws.quad L.ws.target = (L.F2.squeezeN L.nsq).2 := by
+    unfold lvFq sqLast; rw [← spDat_cap h d wp, (squeezeN_sqCaps _ _).1, h.nsq]
   unfold lvOut
   rw [hlam, hFq, spDat_lvR h.fold]
   by_cases hf : lvl = c.yrLevel

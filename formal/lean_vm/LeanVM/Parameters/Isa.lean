@@ -23,11 +23,13 @@ pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, the opcodes checked again at `4a
 * the opcode codes `g^0, …, g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP,
   KECCAK: `crates/leanvm_core/src/tables.rs:99-104` at `4af2cddd` (`OP_XOR`, …, `OP_KECCAK`; the
   sixth was `OP_BLAKE2S` at `127510d1`);
-* the memory bounds `16 ≤ κ_mem ≤ 32`: specification §2 (`02-vm-specification.tex:49`) and
-  §6.3 (`06-bus-interactions.tex:86`); `crates/leanvm_core/src/cpu/mod.rs:51-52`;
-* at most `2^32` rows per table and `2^32` bytecode instructions: specification §6.2, "Instance
-  caps" (`06-bus-interactions.tex:80`) and §6.4 (`:93`); `cpu/mod.rs:60` (`MAX_LOG_ROWS`) and
-  `crates/verifier/src/layout.rs:84`, `:393` (`MAX_TABLE_LOG`, the bytecode bound);
+* the memory bounds `1 ≤ κ_mem ≤ 30`, the floor the public input's two cells: specification §2
+  (`02-vm-specification.tex:49`) and §6.3 (`06-bus-interactions.tex:84`) at `aca3ea6a`;
+  `crates/leanvm_core/src/cpu/mod.rs:38-39`, `crates/verifier/src/layout.rs:88`
+  (`MIN_LOG_MEMORY`);
+* at most `2^30` rows per table and `2^30` bytecode instructions: specification §6.2, "Instance
+  caps", and §6.4; `cpu/mod.rs` (`MAX_LOG_ROWS`) and `crates/verifier/src/layout.rs`
+  (`MAX_TABLE_LOG`, `MAX_LOG_BYTECODE`);
 
 The verifier rejects an announcement outside these caps before any reduction runs
 (`crates/verifier/src/layout.rs:387-395`); they are what keeps the total read count below
@@ -48,8 +50,9 @@ theorem Opcode.code_injective : Function.Injective Opcode.busCode := by
 
 /-! ## Instance caps -/
 
-/-- The greatest log-height of an opcode table (`cpu/mod.rs:60`, `MAX_LOG_ROWS`). -/
-def maxLogRows : ℕ := 32
+/-- The greatest log-height of an opcode table (`cpu/mod.rs`, `MAX_LOG_ROWS`, which is
+`MAX_TABLE_LOG` of `crates/verifier/src/layout.rs`). -/
+def maxLogRows : ℕ := 30
 
 end
 end LeanVM.Parameters

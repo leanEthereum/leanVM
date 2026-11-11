@@ -73,6 +73,19 @@ def wpCutOk (C : Cert) (d cd : ℕ) (c : Cut) : Bool :=
 def wpOk (C : Cert) (d cd : ℕ) : Bool :=
   C.sem == [(winsTag d cd, [C.locs.getD 2 0])] && C.cuts.all (wpCutOk C d cd)
 
+/-- A cut of `level_queries`: no bound, its tuples the walk `tW` (`OqMainWins`) of its call of
+`opening_queries` on the window pointers' cell `3` and `n_iters_g`'s, conditional on the latter
+holding the one-limb word `g^n` (`impTag tW 1 l`). -/
+def lqCutOk (tW n : ℕ) (c : Cut) : Bool :=
+  c.known.isEmpty && c.knownIf.isEmpty && c.sems.all fun t ↦
+    t.1 == impTag tW 1 (impImm t.1) && decide (K.ofBits (impImm t.1) = gpowK n) &&
+      t.2.length == 2 && t.2.getD 0 0 == 3
+
+/-- `level_queries`' certificate: its windows (`lqTag`) on `win_ptrs` (cell `3`) assumed, every cut
+an `lqCutOk`. -/
+def lqOk (C : Cert) (n odd base d cd : ℕ) : Bool :=
+  C.sem == [(lqTag n odd base d cd, [3])] && C.cuts.all (lqCutOk (walkTag (2 + base) odd d cd) n)
+
 /-! ## By template -/
 
 /-- A deeper loop's certificate (`oqLoop0T s`; its specialization's `odd` is `0`). -/

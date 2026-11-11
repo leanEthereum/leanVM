@@ -46,7 +46,7 @@ Statements (`…_Spec`, proved as `…_holds`):
 * `selector_tables_Spec`, `column_selector_Spec`: `selector_tables(point, point1)` (G:3211-3231)
   writes the opening point's strided nibble tables over the top coordinates, and
   `column_selector__L{κ}(offset, sel_eq, sel_g)` (G:3181-3208) rebuilds `offset = g^o` from hinted
-  base-16 digits, so `o < 2^28` a multiple of `16^(κ / 4)`, and, `o` a multiple of `2^κ`, returns
+  base-16 digits, so `o < 2^32` a multiple of `16^(κ / 4)`, and, `o` a multiple of `2^κ`, returns
   the eq weight of `o`'s bits above `κ` against the point's coordinates there.
 -/
 
@@ -224,8 +224,8 @@ def block_selector_complete_Spec : Prop :=
 
 /-! ## The committed columns' selectors -/
 
-/-- `SEL_NIBBLES`: the opening point's `28 = MAX_STACK_LOG` coordinates, four to a nibble. -/
-abbrev selNibbles : ℕ := 7
+/-- `SEL_NIBBLES`: the opening point's `32 = MAX_STACKED_LOG` coordinates, four to a nibble. -/
+abbrev selNibbles : ℕ := 8
 
 /-- Entry `u` of nibble `j`'s level-`w` eq table (`selector_tables`): the eq weight of `u`'s bits
 `t ≥ 3 - w` against the point's coordinates `4j + t` (complements `p1`). -/
@@ -245,10 +245,10 @@ def GTabsAt (rd : Reader) (sg : E) : Prop :=
   ∀ j < selNibbles, ∀ u < 16, LoadHolds rd sg (16 * j + u) (gen ^ (u * 16 ^ j))
 
 /-- `selector_tables(point, point1)`: for the point and its complements read at `point`,
-`point1` (`28` coordinates), the returned buffer holds their eq tables. -/
+`point1` (`32` coordinates), the returned buffer holds their eq tables. -/
 def SelTablesOut (rd : Reader) : List E → List E → Prop
   | [pt, pt1], [se] =>
-      ∀ p p1 : List E, p.length = 28 → p1.length = 28 → TbReadsAt rd pt p → TbReadsAt rd pt1 p1 →
+      ∀ p p1 : List E, p.length = 32 → p1.length = 32 → TbReadsAt rd pt p → TbReadsAt rd pt1 p1 →
         EqTabsAt rd se p p1
   | _, _ => False
 
@@ -257,32 +257,32 @@ def selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "selector_tables" args rets → SelTablesOut rd args rets
 
 /-- `column_selector__L{κ}(offset, sel_eq, sel_g)`: with the nibble shares at `sel_g`,
-`offset = g^o` with `o < 2^28` a multiple of `16^(κ / 4)`, and, `o` a multiple of `2^κ` (the
+`offset = g^o` with `o < 2^32` a multiple of `16^(κ / 4)`, and, `o` a multiple of `2^κ` (the
 caller's placement), for any point whose eq tables are at `sel_eq` the selector is the eq weight of
-`o`'s bits `κ .. 27` against the point's coordinates there. -/
+`o`'s bits `κ .. 31` against the point's coordinates there. -/
 def ColSelOut (κ : ℕ) (rd : Reader) : List E → List E → Prop
   | [off, se, sg], [sel] =>
-      GTabsAt rd sg → ∃ o : ℕ, o < 2 ^ 28 ∧ 2 ^ (4 * (κ / 4)) ∣ o ∧ off = gen ^ o ∧
-        (2 ^ κ ∣ o → ∀ p p1 : List E, p.length = 28 → p1.length = 28 → EqTabsAt rd se p p1 →
-          sel = bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
+      GTabsAt rd sg → ∃ o : ℕ, o < 2 ^ 32 ∧ 2 ^ (4 * (κ / 4)) ∣ o ∧ off = gen ^ o ∧
+        (2 ^ κ ∣ o → ∀ p p1 : List E, p.length = 32 → p1.length = 32 → EqTabsAt rd se p p1 →
+          sel = bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
             (p1.drop κ))
   | _, _ => False
 
-/-- **`column_selector`** (G:3181-3208; TRIAGE #68) is sound, `κ ≤ 28`, on a memory of at most
+/-- **`column_selector`** (G:3181-3208; TRIAGE #68) is sound, `κ ≤ 32`, on a memory of at most
 `2^32` words (its digits' range checks). -/
 def column_selector_Spec : Prop :=
-  ∀ κ < 29, ∀ μ ≤ 32, ∀ (Lm : MemoryImage μ) args rets,
+  ∀ κ < 31, ∀ μ ≤ 32, ∀ (Lm : MemoryImage μ) args rets,
     coreProgram.Rel Lm.read (lName "column_selector" κ) args rets → ColSelOut κ Lm.read args rets
 
-/-- The converse, for completeness: an offset `g^o`, `o < 2^28` a multiple of `2^κ`, the memory
+/-- The converse, for completeness: an offset `g^o`, `o < 2^32` a multiple of `2^κ`, the memory
 defined below `2^4` (the digits' range checks), and the opening point's tables at `sel_eq`,
 `sel_g` give the relation, returning the eq weight of `o`'s bits above `κ`. -/
 def column_selector_complete_Spec : Prop :=
-  ∀ κ < 29, ∀ (rd : Reader) (o : ℕ) (se sg : E) (p p1 : List E), o < 2 ^ 28 → 2 ^ κ ∣ o →
-    p.length = 28 → p1.length = 28 → (∀ i < 16, (rd (addressOfIndex i)).isSome) →
+  ∀ κ < 31, ∀ (rd : Reader) (o : ℕ) (se sg : E) (p p1 : List E), o < 2 ^ 32 → 2 ^ κ ∣ o →
+    p.length = 32 → p1.length = 32 → (∀ i < 16, (rd (addressOfIndex i)).isSome) →
     EqTabsAt rd se p p1 → GTabsAt rd sg →
     coreProgram.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
-      [bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ)]
+      [bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ)]
 
 end
 end LeanVM.Guest.B1.Tables

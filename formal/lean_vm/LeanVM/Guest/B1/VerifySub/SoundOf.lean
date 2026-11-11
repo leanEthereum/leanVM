@@ -109,18 +109,21 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   have hctx := F.hctx
   simp only [Tables.TCtx] at hctx
   obtain ⟨chis0, hbp, hgmu, -, -, -, hcl, hcol, -⟩ := hctx
-  obtain ⟨hmaps, hchR, hct, hrstC, hlam, h1884, h1886, hcp, hl2, e1892, r1, e1901, r2, hdisp,
+  obtain ⟨hmaps, hchR, hct, hrstC, hlam, h1884, h1886, hcp, hl2, e1686, r1, hdisp,
     hterm, hd1, hd2, hd3, hkret⟩ :=
     vs_back h10 h11 h12 h13 hcol (claimAt_reads hcl F.hpool F.hcew F.hpoolPI) hR
   refine ⟨hkret.symm, ?_⟩
+  -- the stack
+  obtain ⟨hμ19, hμ30, hsize, hP, hKB⟩ :=
+    vs_stack hκ hκ6 L hLe (Tables.certify_placement_holds hκ L) hbl F hexp hcp hl2 e1686 r1
   -- the output lanes
   obtain ⟨chis, hchiR, hτc, hlcol, hlpt, hout, hl25⟩ := vs_lanes hbl F
   have hτ9 := tau_ge F.hrowsL
+  have hsL := tableHeights_length _ F.hrowsL
   have hτ28 : vsTau F.rowsN ≤ 28 := by
-    have := tau_lt F.hrowsL F.hh29
+    have := tau_le_of_kappasBelow hsL hKB
     show (Tables.tableHeightsOf F.rowsN).getD 5 0 ≤ 28
     omega
-  have hsL := tableHeights_length _ F.hrowsL
   have htg : σ (.n 646) = gen ^ vsTau F.rowsN := by
     refine loadHolds_unique F.l858 ?_
     have h6 := F.hdims 6 (by simp [hsL])
@@ -149,15 +152,13 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   obtain ⟨s', ch', hs'L, hch'L, hs'R, hch'R, hr1303⟩ := hrt
   have ech' : ch' = σ (.n 658) :: vsChs σ := readsAt_ext (by rw [hch'L]; rfl) hch'R hchR
   simp only [List.cons.injEq, and_true] at hr1303
-  -- the stack
-  obtain ⟨hμ22, hμ28, hcand, hP, hKB⟩ :=
-    vs_stack hκ hκ6 L hLe (Tables.certify_placement_holds hκ L) hbl F hexp hcp hl2 e1892 r1 e1901 r2
   -- the opening
+  have h122 : σ (.n 122) = B1.Whir.rateSel F.lir := by rw [F.e124, gen_pow_eq_ofK]; rfl
   obtain ⟨root, hroot⟩ := digest_of_canonical F.hc537 F.hc547
   obtain ⟨w, s10, roots', hxsW, hrunW, hwL, pt, pt1, hretsW, hptR, hpt1R⟩ :=
-    vs_dispatch (osSoundW_of hκ hU hLe) hμ22 hμ28 F.hl1 F.hl4 hcand hdisp hroot
+    vs_dispatch (osSoundW_of hκ hU hLe) hμ19 hμ30 F.hl1 F.hl4 hsize h122 hdisp hroot
   simp only [List.cons.injEq, and_true] at hretsW
-  obtain ⟨e1906, e1907, e1908, e1909, e1910⟩ := hretsW
+  obtain ⟨e1691, e1692, e1693, e1694, e1695⟩ := hretsW
   -- the bus point
   have hbpL : F.bus.point.length ≤ 40 := by
     have hle := mem_size_le hκ L hbp
@@ -170,12 +171,12 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   have hacc := hTacc (Tables.layoutOf bytecode F.logMem F.rowsN) F.bus F.claims
     ⟨qkeccak, op, word⟩ (σ (.n 1111)) point (ringCoefficients (σ (.n 658) :: vsChs σ)) w.point (by
       simp only [TermPre]
-      refine ⟨termCtx_of_tctx F.hctx, hP, hKB, layoutOf_placements hbl _ _, layoutOf_stackLog hbl _ _, hμ28,
-        show 1 ≤ F.logMem by have := F.hm16; omega, F.hm32, hbpL, hsL, F.hh29, F.e130, htg, F.hkb,
+      refine ⟨termCtx_of_tctx F.hctx, hP, hKB, layoutOf_placements hbl _ _, layoutOf_stackLog hbl _ _, by omega,
+        F.hlm1, F.hm32, hbpL, hsL, F.hh33, F.e130, htg, F.hkb,
         gTabs_of_exp hexp, trivial, trivial, hopL, hop, hpointL, hpoint, by simp [ringCoefficients, kBits],
         hct, hwL, ?_, ?_⟩
-      · rw [padPoint, hwL, e1907]; exact hptR
-      · rw [padPoint, hwL, List.map_append, List.map_replicate, add_zero, e1908]; exact hpt1R)
+      · rw [padPoint, hwL, e1692]; exact hptR
+      · rw [padPoint, hwL, List.map_append, List.map_replicate, add_zero, e1693]; exact hpt1R)
   simp only [List.getD_cons_succ, List.getD_cons_zero] at hacc
   -- the terminal's check, as `whirOpen`'s acceptance
   have hAcc : w.Accepts fun x ↦ dot (powers (σ (.n 1111))
@@ -185,7 +186,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
         slices (m0 :: vsChs σ)).map fun c ↦ c.1 x) := by
     unfold B1.Whir.WhirEnd.Accepts
     beta_reduce
-    rw [stackClaims_weight, ← e870, ← e1909, ← e1910, ← e1906]
+    rw [stackClaims_weight, ← e870, ← e1694, ← e1695, ← e1691]
     exact hacc
   -- the batched target
   have es' : s' = slices := readsAt_ext (by rw [hs'L, hslL]; rfl) hs'R hsl
@@ -196,8 +197,8 @@ theorem verify_sub_sound_w_of (bytecode : List K)
         slices (m0 :: vsChs σ)).map (·.2)) := by
     rw [stackClaims_values, stackClaims_length, h1886, hr1303, es', ech', ← e870, ← e869]
   -- the runs
-  obtain ⟨level, rest, hcfg⟩ := cfg_cons hμ22 hμ28 F.hl1 F.hl4
-  have h1 := readSizes_runsTo hbl F.hm16 F.hm32 F.hrowsL F.hh29 F.hl1 F.hl4 hμ28
+  obtain ⟨level, rest, hcfg⟩ := cfg_cons hμ19 hμ30 F.hl1 F.hl4
+  have h1 := readSizes_runsTo hbl F.hlm1 F.hm30 F.hrowsL F.hh31 F.hl1 F.hl4 hμ30
     (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs)
   rw [← vsWords_eq F, F.hab8] at h1
   have hroot' : digestFromHalves (σ (.n 324), σ (.n 334)) = some root := by
@@ -242,17 +243,16 @@ theorem verify_sub_sound_w_of (bytecode : List K)
     σ (.n 23), σ (.n 24)], []⟩) ⟨F.hcap0.symm, rfl⟩ h1 hcfg hroot' h3 F.hbeta h5 h6 h7 h8 h9 hlam
     h11 hAcc
   -- the decoded proof
-  have hcand28 : B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir < 28 := by
-    unfold B1.Whir.candidate; have := F.hl4; omega
-  have hidx : dispatchIdx (σ (.n 1695)) =
-      B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir :=
-    dispatchIdx_eq hcand28 (by rw [hcand, gen_pow_eq_ofK])
+  have hidx : dispatchIdx (σ (.n 1686)) =
+      (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - B1.Whir.minOpenLog :=
+    dispatchIdx_eq (by unfold B1.Whir.minOpenLog; omega) (by rw [hsize, gen_pow_eq_ofK])
+  have hrate : rateOf (σ (.n 122)) = F.lir := by rw [h122]; exact rateOf_eq F.hl1 F.hl4
   have hπ : vsPiOf L.read σ V = ⟨vsWords σ ++ [σ (.n 324), σ (.n 334)] ++ F.xsG ++ F.xsT ++ xsK ++
-      (vsOsW L.read V (B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir)
-        (vsOsArgs σ) (vsOsRets σ)).1,
-      (vsOsW L.read V (B1.Whir.candidate (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog F.lir)
-        (vsOsArgs σ) (vsOsRets σ)).2⟩ := by
-    simp only [vsPiOf, piOfW, hidx]
+      (vsOsW L.read V ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - B1.Whir.minOpenLog)
+        F.lir (vsOsArgs σ) (vsOsRets σ)).1,
+      (vsOsW L.read V ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - B1.Whir.minOpenLog)
+        F.lir (vsOsArgs σ) (vsOsRets σ)).2⟩ := by
+    simp only [vsPiOf, piOfW, hidx, hrate]
     rw [vs_stream hκ L F hxsK e868]
   -- the statement
   refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), rfl, F.seed, F.pi,

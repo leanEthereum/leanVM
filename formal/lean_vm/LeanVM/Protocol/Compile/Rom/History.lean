@@ -73,7 +73,7 @@ noncomputable def xrun {α : Type} : VerifierProgram α → VerifierProgramState
     | [] => none
     | n :: xs => (absorb (m := Option) F s.sponge n dsPowNonce).bind fun sp ↦
       (squeeze (m := Option) F sp).bind fun r ↦
-      if powOk bits n r.1 then
+      if powOk bits r.1 then
         xrun k { s with sponge := r.2, stream := xs } (h ++ [Ev.grind bits])
       else none
   | .commit height width k, s, h => match s.stream with

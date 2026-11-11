@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 
 Each family's specializations pass `dloadCheck` with its per-parameter bounds (the kernel):
 
-* `padding_weight__L{n}` (`n < 29`), `[rows, zeta]`: `zeta`'s `n` words;
+* `padding_weight__L{n}` (`n < 31`), `[rows, zeta]`: `zeta`'s `n` words;
 * `plus_one_run__L{n}` (`n ≤ 33`), `[out, src]`: `n` words each;
 * `index_mle__L{n}` (`n < 34`), `[zeta]`: `n` words;
 * `block_selector__L{n}` (`n < 34`), `[sel_bits, zeta1_hi, idxc_hi]`: `n` words each;
@@ -32,7 +32,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 
 @[expose] public section
 
-theorem pw_dload : ∀ n < 29, dloadCheck (lName "padding_weight" n) [0, n] = true := by
+theorem pw_dload : ∀ n < 31, dloadCheck (lName "padding_weight" n) [0, n] = true := by
   decide +kernel
 
 theorem por_dload : ∀ n < 34, dloadCheck (plusOneRunNames.getD n "") [n, n] = true := by
@@ -58,7 +58,7 @@ theorem sr4_dload : dloadCheck "sumcheck_round4" [12, 3, 0] = true := by decide 
 section
 variable {rd : Reader} {R : ℕ → Prop}
 
-theorem padding_weight_relIn {n : ℕ} (hn : n < 29) {rows zeta : E} {rets : List E}
+theorem padding_weight_relIn {n : ℕ} (hn : n < 31) {rows zeta : E} {rets : List E}
     (hz : PtrIn R zeta n) (h : coreProgram.Rel rd (lName "padding_weight" n) [rows, zeta] rets) :
     coreProgram.RelIn rd R (lName "padding_weight" n) [rows, zeta] rets :=
   relIn_of_dload (pw_dload n hn) (fun p hp ↦ by

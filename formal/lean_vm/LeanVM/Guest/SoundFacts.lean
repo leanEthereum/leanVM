@@ -102,7 +102,7 @@ theorem sigSem_args {j : ℕ} (hj : j < nFns) :
 
 theorem nameIndex_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : nameIndex (coreOf j).name = j := by
   have hl : j - 1 < coreProgram.length := by
-    have : coreProgram.length = 991 := coreProgram_length
+    have : coreProgram.length = 1535 := coreProgram_length
     simp only [nFns] at h2
     omega
   unfold nameIndex coreOf
@@ -120,9 +120,9 @@ theorem sig_name_inj {j j' : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (h1' : 1 ≤ j'
 theorem vs_cuts : (certOf 19).cuts.length = 2 := by decide +kernel
 
 /-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3255-3263`): `kb[0] = g^0`, the
-memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, keccak's `τ`,
-below `g^23` (`τ + 6` is a column's log, at most `28`). -/
-def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
+memory's log and the six tables' heights `kb[1..6]` below `g^31`, and `kb[7]`, keccak's `τ`,
+below `g^25` (`τ + 6` is a column's log, at most `30`). -/
+def vsKbBound (c : ℕ) : ℕ := [1, 31, 31, 31, 31, 31, 31, 25].getD c 0
 
 /-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `127`) among `g^e`,
 `e < 34`, which `verify_tables` dispatches on (the tables' logs, entries `1` to `6`, are range
@@ -136,9 +136,9 @@ theorem vs_cut1 : ((certOf 19).cutAt 1).start = 552 ∧
     ((certOf 19).cutAt 1).knownIf = [] ∧ ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
 /-- `verify_sub`'s third window starts at its call of `check_opening_terminal` (statement
-`1600`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
+`1593`) and takes, beside `dims_g`'s, the bound of each of the `8` entries of `kappa_base` (the
 value `139`). -/
-theorem vs_cut : ((certOf 19).cutAt 2).start = 1600 ∧
+theorem vs_cut : ((certOf 19).cutAt 2).start = 1593 ∧
     ((certOf 19).cutAt 2).known = vsDimsKnown ((certOf 19).locs.getD 127 0) ++
       (List.range 8).map (fun c ↦ ((certOf 19).locs.getD 139 0, c, vsKbBound c)) ∧
     ((certOf 19).cutAt 2).knownIf = [] ∧ ((certOf 19).cutAt 2).sems = [] := by decide +kernel
@@ -155,28 +155,28 @@ theorem coreOf_19 : coreOf 19 = Data.core18 := rfl
 table's relation (tag `0`) on that call's return cell. -/
 theorem main_cut : (certOf 1).cuts.length = 1 ∧ ((certOf 1).cutAt 1).known = [] ∧
     ((certOf 1).cutAt 1).knownIf = [] ∧
-    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 49 0])] := by
+    ((certOf 1).cutAt 1).sems = [(0, [(certOf 1).locs.getD 28 0])] := by
   decide +kernel
 
-/-- `main`'s statement `23` is its call of `exponent_tables`, before its cut, after no `ret`. -/
-theorem main_exp : (coreOf 1).body[23]? = some (.call "exponent_tables" [] [.n 49]) := rfl
+/-- `main`'s statement `16` is its call of `exponent_tables`, before its cut, after no `ret`. -/
+theorem main_exp : (coreOf 1).body[16]? = some (.call "exponent_tables" [] [.n 28]) := rfl
 
-theorem main_exp_lt : 23 < ((certOf 1).cutAt 1).start := by decide +kernel
+theorem main_exp_lt : 16 < ((certOf 1).cutAt 1).start := by decide +kernel
 
-theorem main_exp_noRet : Stmt.noRetList ((coreOf 1).body.take 23) = true := by decide +kernel
+theorem main_exp_noRet : Stmt.noRetList ((coreOf 1).body.take 16) = true := by decide +kernel
 
 /-- The statements before `main`'s cut, at its call of `exponent_tables` (wherever the cut is). -/
 theorem main_call : (coreOf 1).body.take ((certOf 1).cutAt 1).start =
-    (coreOf 1).body.take 23 ++ .call "exponent_tables" [] [.n 49] ::
-      ((coreOf 1).body.take ((certOf 1).cutAt 1).start).drop 24 := by
+    (coreOf 1).body.take 16 ++ .call "exponent_tables" [] [.n 28] ::
+      ((coreOf 1).body.take ((certOf 1).cutAt 1).start).drop 17 := by
   have h1 := main_exp
   have h2 := main_exp_lt
   generalize (coreOf 1).body = l at h1 ⊢
   generalize ((certOf 1).cutAt 1).start = n at h2 ⊢
-  have h : (l.take n)[23]? = some (.call "exponent_tables" [] [.n 49]) := by
+  have h : (l.take n)[16]? = some (.call "exponent_tables" [] [.n 28]) := by
     rw [List.getElem?_take_of_lt h2, h1]
-  have hl : 23 < (l.take n).length := (List.getElem?_eq_some_iff.mp h).1
-  conv_lhs => rw [← List.take_append_drop 23 (l.take n)]
+  have hl : 16 < (l.take n).length := (List.getElem?_eq_some_iff.mp h).1
+  conv_lhs => rw [← List.take_append_drop 16 (l.take n)]
   rw [List.take_take, Nat.min_eq_left h2.le, List.drop_eq_getElem_cons hl]
   congr 2
   exact (List.getElem?_eq_some_iff.mp h).2

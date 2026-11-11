@@ -40,7 +40,8 @@ theorem stmtOk_mono {C C' : CallRel} (hC : CallRel.Le C C') {σ : Val} :
   | .atom _, h => h
   | .call _ _ _, h => hC _ _ _ h
   | .callIf _ _ _, h => ⟨h.1, fun hc ↦ hC _ _ _ (h.2 hc)⟩
-  | .ite _ _ _, h | .match_ _ _, h | .dispatch _ _ _ _, h | .ret _, h => h
+  | .dispatch _ _ _ _, ⟨j, hj, hx, h⟩ => ⟨j, hj, hx, hC _ _ _ h⟩
+  | .ite _ _ _, h | .match_ _ _, h | .ret _, h => h
 
 theorem allOk_mono {C C' : CallRel} (hC : CallRel.Le C C') {σ : Val} {ss : List Stmt}
     (h : AllOk C rd σ ss) : AllOk C' rd σ ss := fun s hs ↦ stmtOk_mono hC s (h s hs)

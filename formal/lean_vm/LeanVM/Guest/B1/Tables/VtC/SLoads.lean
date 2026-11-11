@@ -298,7 +298,7 @@ group buffers and `idxc_tab`, on `dims_g`'s and the group order's honest words. 
 theorem vtS_loads {bufs : List (E × ℕ)}
     (hV : ∀ s ∈ (vtPre.drop 0).take 769, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s)
     (hb : ∀ q ∈ vtBufsSIdx, (vtσ rd w args (.n q.1), q.2) ∈ bufs) {lm : ℕ} (hlm : lm ≤ 32)
-    {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
+    {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hdims : TbReadsAt rd (vtσ rd w args (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
     (hord : TbReadsAt rd (vtσ rd w args (.n 39)) (vtGOrdW lm τ)) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take 769) := by

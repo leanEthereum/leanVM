@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 /-!
 # `verify_tables`' callees place nothing
 
-`vtKidS`: the 215 functions `verify_tables` calls, directly or not (`padding_weight`,
+`vtKidS`: the 217 functions `verify_tables` calls, directly or not (`padding_weight`,
 `plus_one_run`, `shared_selector_tables`, `sel_partial_nibble`, `block_selector(_tab)`,
 `index_mle`, `__loop9`, `__loop8`, `sumcheck_round4`, `eq_prefix_chain`, `eq_prefix_run`, their
 specializations). `vt_kids_pure`: no `HeapBuf` hint or `frameAddr` in their bodies, every callee
@@ -196,7 +196,9 @@ def vtKidS : List String := [
   "padding_weight__L26",
   "padding_weight__L27",
   "padding_weight__L28",
+  "padding_weight__L29",
   "padding_weight__L3",
+  "padding_weight__L30",
   "padding_weight__L4",
   "padding_weight__L5",
   "padding_weight__L6",

@@ -2,7 +2,7 @@
   LeanVM.Guest.Child.Deployed
 
   The deployed half of `GuestChildComplete`: the child prover's proof with Keccak of a guest
-  execution of committed size in `[2^22, 2^28]`, when the verifier refusing a zero challenge
+  execution, when the verifier refusing a zero challenge
   accepts it, is with its statement and the claims its run evaluates a child the guest accepts.
 -/
 
@@ -28,7 +28,7 @@ digest under the deployed seed:
   a true claim (`run_claimed_of_computed`): `noZeroChallenge`, and so `verifies`
   (`Limits.verifyDeferred_of_nz`) and `stream` (`stream_le_of_verifyDeferred`);
 * the proof is the pure prover's (`prove_of_some`), whose stream starts with the honest
-  sizes, of the execution's committed size (`muMin_le_announced`): `stackLog`;
+  sizes, whose stack log is at least `20` (`muMin_le_announced`): `stackLog`;
 * its query steps under the deferring program are the verifier program's (`queriesOf_le`, the
   claim being true), which are honest batches in range (`queriesOf_proveFrom`,
   `inRange_leanVmProgram`), which agree (`batchAgrees_honest`): `capsAgree`.
@@ -57,7 +57,7 @@ proof) is a child the guest accepts.** -/
 theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
     {t : Execution guestProgram} {ρ : ℕ}
     (hA : ChildSpec A guestProgram (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25))
-    (h21 : 2 ^ 21 < t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
+    (hsh : s.deferredClaim.HasBytecodeShape bytecode)
     {proof : Proof}
     (hsome : Budget.honestProofWithDeployedKeccakWithHash A guestProgram
       (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25) = some proof)
@@ -85,7 +85,7 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
   · -- the stack log
     show ∀ layout r, announcedLayoutAndRate bytecode proof.stream = some (layout, r) → _
     rw [hrest]
-    exact muMin_le_announced hchild h21 rest
+    exact muMin_le_announced hchild (le_of_eq guest_logSize.symm) rest
   · -- the caps
     intro b hb
     have hle : VerifierProgram.Le (deferringVerifierProgram c bytecode d) (leanVmVerifierProgram
@@ -112,7 +112,7 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
 
 /-- **The child prover's accepted proof is a child the guest accepts.** -/
 theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guestProgram} {ρ : ℕ}
-    (h21 : 2 ^ 21 < t.committedSize) (hsh : s.deferredClaim.HasBytecodeShape bytecode)
+    (hsh : s.deferredClaim.HasBytecodeShape bytecode)
     {proof : Proof}
     (hsome : Budget.honestProofWithDeployedKeccakWithHash childProver guestProgram
       (publicInputOf (statementDigest (deployedSeed guestProgram) s)) t ρ (2 ^ 25) = some proof)
@@ -120,7 +120,7 @@ theorem childOk_of_verifierRZ {s : NodeStatement} {t : Execution guestProgram} {
       (publicInputOf (statementDigest (deployedSeed guestProgram) s)) proof = true) :
     ∃ fresh, fresh.Holds bytecode ∧
       LeanVM.Guest.AcceptableChild bytecode (deployedSeed guestProgram) ⟨s, fresh, proof⟩ :=
-  childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) h21 hsh hsome hacc
+  childOk_of_verifierRZ_of (childSpec_childProver _ _ _ _ _) hsh hsome hacc
 
 end
 end LeanVM.Guest.Child

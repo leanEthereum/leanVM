@@ -33,7 +33,7 @@ A matrix of `r ≤ 32` rows is charged at its padded height `nPad r ≤ 32` too 
 claims are `CoveredNode`'s coverage slots, under `DeployedLimits` the honest run's table
 (`planSlots_eq`) and at least the declared claims and the children's (`coveredW_of`).
 
-`guest_complete_covered`: `GuestCompleteCovered`, from `guest_complete_numeric`.
+`guest_complete_covered`: `GuestCompleteCovered`, from `guest_complete_numeric`, whose execution's committed size is within `2^28`.
 -/
 
 namespace LeanVM.Guest.Budget
@@ -60,10 +60,10 @@ theorem shapes_sum_le_of {ps : List (ℕ × ℕ)} (f : ℕ → ℕ → ℕ) {M K
 theorem instr_shapes {ps : List (ℕ × ℕ)} {K : ℕ} (hl : ps.length ≤ K) (op : Opcode) :
     (ps.map fun p ↦ (Count.deployedInstrs op).childShape p.1 p.2).sum ≤
       K * (match op with
-        | .xor => 95303 | .mulNative => 175568 | .setConstant => 47771 | .deref => 100673
-        | .jump => 35079 | .keccak => 9517) := by
+        | .xor => 101576 | .mulNative => 186544 | .setConstant => 51142 | .deref => 108128
+        | .jump => 37228 | .keccak => 12692) := by
   cases op <;>
-    exact shapes_sum_le_of _ (fun μ r ↦ getD_le_of_forall (by decide) (B1.Whir.candidate μ r)) hl
+    exact shapes_sum_le_of _ (fun μ _ ↦ getD_le_of_forall (by decide) (μ - 20)) hl
 
 /-- The size at the budget, from the words and each opcode's instructions. -/
 theorem size_le_of (u : End.Work) (k : Opcode → ℕ)
@@ -226,6 +226,7 @@ theorem coveredW_of {s : NodeStatement} {w : NodeWitness} (hlim : DeployedLimits
 /-- **Every covered node has a valid execution of the guest.** -/
 theorem guest_complete_covered : GuestCompleteCovered := by
   intro seed s w hrel hlim hok hcov
+  have hgl := GuestLimits.of_coveredNode hlim hcov
   replace hcov := coveredW_of hlim hcov
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
   have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.atMostSixteenChildren
@@ -246,7 +247,9 @@ theorem guest_complete_covered : GuestCompleteCovered := by
     intro h0
     simp only [work, List.length_eq_zero_iff] at h0 ⊢
     simp [h0]
-  refine guest_complete_numeric seed s w hrel hlim hok ?_
+  suffices h : (deployedBudget deployedBvAt).size (work s w) ≤ 2 ^ 28 by
+    obtain ⟨t, hv, hle⟩ := guest_complete_numeric seed s w hrel hgl hok h
+    exact ⟨t, hv, hle.trans (by norm_num)⟩
   rcases hcov with ⟨hraw, hd, hdecl, hcov, hcc⟩ | ⟨h0, hd, hraw, hdecl, hcov⟩ |
     ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ |
     ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hr, hdecl, hcov, hcc⟩ |

@@ -194,7 +194,7 @@ theorem execute_jump_iff {pc : ℕ} {fp : K} {oc od of : ℕ} {r : Registers K} 
 /-- A pc before the last slot is not the halting one. -/
 theorem gpow_ne_pcFinal {pc : ℕ} (hpc : pc < 2 ^ prog.logSize - 1) : addressOfIndex pc ≠
     prog.pcFinal := by
-  have hlog : 2 ^ prog.logSize ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) prog.logSize_le
+  have hlog : 2 ^ prog.logSize ≤ 2 ^ 30 := Nat.pow_le_pow_right (by decide) prog.logSize_le
   intro h
   have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega) h
   omega

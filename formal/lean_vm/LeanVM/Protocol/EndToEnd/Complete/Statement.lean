@@ -24,7 +24,7 @@ bounds the probability that the verifier rejects the honest prover's proof
 (`completeness_le`), by the statement's `completenessError`, which is `completenessError`
 evaluated (`completenessError_eq`):
 
-  `completenessError fuel = (12008 + 48019 · (2^27 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
+  `completenessError fuel = (12676 + 50689 · (2^29 + 2·fuel + 2)) · (1 - 2^-17)^fuel`,
 
 below `2^-257` at a fuel of `2^25` nonces per proof of work (`statement_completenessError_le`).
 `completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
@@ -61,19 +61,19 @@ noncomputable def honestProverRom (prog : LeanIsaProgram) (input : PublicInput) 
 /-- The statement's completeness error is `completenessError`, evaluated. -/
 theorem completenessError_eq (fuel : ℕ) :
     LeanVM.completenessError fuel = completenessError fuel := by
-  have hc : leanVmCost = 48019 := by decide
-  have hQ : completenessQueries fuel = 12008 + 48019 * (2 ^ 27 + 2 * fuel + 2) := by
+  have hc : leanVmCost = 50689 := by decide
+  have hQ : completenessQueries fuel = 12676 + 50689 * (2 ^ 29 + 2 * fuel + 2) := by
     rw [completenessQueries, proverFactor, costHeight, hc, leanVmQueryBound_eq]
     ring
   rw [LeanVM.completenessError, completenessError, hQ]
   rfl
 
 /-- **Completeness in the statement's experiment.** For a valid execution whose committed size
-is at most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
+is at most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
 nonces: the verifier rejects the honest prover's proof with probability at most
 `completenessError fuel`. -/
 theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← LeanVM.experiment (honestProverRom prog input t ρ fuel)}[z.rejected] ≤
       LeanVM.completenessError fuel := by

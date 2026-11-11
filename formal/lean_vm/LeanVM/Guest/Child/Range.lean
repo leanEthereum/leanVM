@@ -184,14 +184,20 @@ theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : W
     simp only [List.length_append, List.length_singleton] at this
     omega
 
+theorem noCommit_grindProofOfWork (b : ℕ) : NoCommit (VerifierProgram.grindProofOfWork b) := by
+  unfold VerifierProgram.grindProofOfWork
+  split
+  · exact noCommit_ret _
+  · exact (noCommit_iff _).2 trivial
+
 theorem noCommit_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
     NoCommit (foldRoundsT n s lf)
   | 0, _, _ => noCommit_ret _
   | n + 1, s, lf => by
     unfold foldRoundsT
     simp only [VerifierProgram.bind_eq]
-    exact NoCommit.bind noCommit_sampleE fun _ ↦ NoCommit.bind
-      (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds n _ _
+    exact NoCommit.bind noCommit_sampleE fun _ ↦
+      NoCommit.bind (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ noCommit_foldRounds n _ _
 
 theorem noCommit_tailRounds : ∀ (n : ℕ) (t : E) (quad : List E), NoCommit (tailRoundsT n t quad)
   | 0, _, _ => noCommit_ret _
@@ -259,7 +265,7 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
     | nil =>
       refine InRange.nc_bind (noCommit_readN _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
-        ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
+        (noCommit_grindProofOfWork _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
       refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_
@@ -289,7 +295,7 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
       refine InRange.nc_bind noCommit_readE fun _ _ ↦ ?_
       refine InRange.nc_bind (noCommit_sumcheckRoundPoly _ _ _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
-        ((noCommit_iff _).2 trivial) fun _ _ ↦ ?_
+        (noCommit_grindProofOfWork _) fun _ _ ↦ ?_
       refine InRange.nc_bind (p := sampleQueries _ level.queries)
         (noCommit_sampleQueriesAux _ _ _) fun queries hq ↦ ?_
       refine InRange.nc_bind (p := VerifierProgram.sampleChallenge) noCommit_sampleE fun lam _ ↦ ?_

@@ -25,8 +25,8 @@ opening
 `0`. A run of a program of `n` reads consumes at most `n` scalars of the stream (`run_reads`),
 and an accepted run consumes the whole stream (`runProof`), so its proof's stream has at most
 `n` scalars. The verifier's phases are costed as in `Verifier/Cost.lean`, each bound crude: the
-bus's GKR walk over at most `38` levels, at most `32` table rounds, the Keccak reduction at a point
-of at most `29` coordinates, and the WHIR levels over the 56 admissible ladders. In total
+bus's GKR walk over at most `36` levels, at most `30` table rounds, the Keccak reduction at a point
+of at most `27` coordinates, and the WHIR levels over the 60 admissible ladders. In total
 `childReads ≤ 8192` (`childReads_le`), for every evaluation of the fixed polynomial that reads
 nothing (the deployed and the claimed ones), so every proof the deferring verifier accepts has a
 stream of at most `8192` scalars (`stream_le_of_verifyDeferred`).
@@ -126,8 +126,11 @@ theorem sampleN : ∀ n, Reads (VerifierProgram.sampleChallenges n) 0 fun xs ↦
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Reads (VerifierProgram.grindProofOfWork bits) 1 fun _ ↦ True := ⟨le_rfl,
-    trivial⟩
+theorem grindP (bits : ℕ) : Reads (VerifierProgram.grindProofOfWork bits) 1 fun _ ↦ True := by
+  unfold VerifierProgram.grindProofOfWork
+  split
+  · trivial
+  · exact ⟨le_rfl, trivial⟩
 
 theorem commitP (ht w : ℕ) : Reads (VerifierProgram.readCommitment ht w) 2 fun _ ↦ True := ⟨le_rfl,
     trivial⟩
@@ -268,7 +271,7 @@ def whirReadsBound : ℕ := 300
 
 /-- **The reads of the leanVM verifier program**, phase by phase. -/
 def childReads : ℕ :=
-  8 + 2 + (2 + gkrReads 38 0 + 5) + (32 * 3 + tableWidthSum) + keccakReads 29 +
+  8 + 2 + (2 + gkrReads 36 0 + 5) + (30 * 3 + tableWidthSum) + keccakReads 27 +
     (2 + whirReadsBound)
 
 section Phases
@@ -342,7 +345,7 @@ theorem readsNothing_claimed (c : BytecodeClaim) : ReadsNothing (claimedBytecode
   Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ trivial) le_rfl
 
 theorem reads_verifyBusBalance {ev : (List K → List E → VerifierProgram E)} (hev : ReadsNothing ev) (layout : Layout)
-    (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32) :
+    (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30) :
     Reads (verifyBusBalance ev layout)
       (2 + gkrReads (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0 + 5) fun r ↦ ClaimsShort r.claims := by
@@ -364,22 +367,22 @@ theorem reads_verifyBusBalance {ev : (List K → List E → VerifierProgram E)} 
     all_goals omega
   all_goals omega
 
-theorem gkrReads_le : ∀ D ≤ 38, gkrReads D 0 ≤ gkrReads 38 0 := by decide
+theorem gkrReads_le : ∀ D ≤ 36, gkrReads D 0 ≤ gkrReads 36 0 := by decide
 
 theorem reads_verifyBusBalance_le {ev : (List K → List E → VerifierProgram E)} (hev : ReadsNothing ev) {layout : Layout}
     (h : LayoutBounds layout) :
-    Reads (verifyBusBalance ev layout) (2 + gkrReads 38 0 + 5) fun r ↦ ClaimsShort r.claims :=
+    Reads (verifyBusBalance ev layout) (2 + gkrReads 36 0 + 5) fun r ↦ ClaimsShort r.claims :=
   (reads_verifyBusBalance hev layout h.logMemory_le h.logBytecode_le).mono
     (by have := gkrReads_le _ (pushDepth_le h); omega) fun _ h ↦ h
 
 theorem reads_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 32) →
+      (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 30) →
       Reads (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
   | [], _, _, claims, hc, _ => hc
   | (table, h, forms, weight) :: rest, cursor, final, claims, hc, hh => by
-    have h0 : h ≤ 32 := hh _ List.mem_cons_self
+    have h0 : h ≤ 30 := hh _ List.mem_cons_self
     refine Reads.seq (Reads.readN _) (fun evals _ ↦
       (reads_tableTerms constraintPowers formPowers point rest _ _ _ ?_
         fun r hr ↦ hh r (List.mem_cons_of_mem _ hr)).mono ?_ fun _ h ↦ h) ?_
@@ -402,14 +405,14 @@ private theorem foldl_max_le' (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc �
 
 theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E)
-    (hh : ∀ h ∈ heights, h ≤ 32) :
+    (hh : ∀ h ∈ heights, h ≤ 30) :
     Reads (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
-      (32 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le' 32 heights 0 (Nat.zero_le _) hh
+      (30 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
+  have hmax := foldl_max_le' 30 heights 0 (Nat.zero_le _) hh
   refine Reads.seq (reads_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
     have hrows : ∀ r ∈ List.zip tables (List.zip heights (List.zip busForms
-        (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 32 := by
+        (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 30 := by
       intro r hr
       exact hh _ (List.of_mem_zip (List.of_mem_zip hr).2).1
     refine Reads.seq (reads_tableTerms _ _ _ _ 0 0 [] (fun _ h ↦ by simp at h) hrows)
@@ -426,7 +429,7 @@ theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 
 theorem reads_tablePhase {layout : Layout} (hl : LayoutBounds layout) (bus : BusResult)
     (hbus : ClaimsShort bus.claims) :
-    Reads (tablePhaseClaims layout bus) (32 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl :=
+    Reads (tablePhaseClaims layout bus) (30 * 3 + tableWidthSum) fun cl ↦ ClaimsShort cl :=
   Reads.seq Reads.sampleE (fun _ _ ↦ Reads.seq
     (reads_tableSumcheck _ _ _ _ _ _ hl.heights_le) (fun cl hcl ↦ by
       intro c hc hcol
@@ -501,9 +504,9 @@ theorem reads_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : �
   Reads.seq (reads_sumcheck 3 _ _) (fun _ _ ↦ trivial)
     (by simp only [List.length_replicate, show max 3 2 - 1 = 2 from rfl]; omega)
 
-theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 32) :
-    Reads (verifyKeccak logSteps inst output) (keccakReads 29) fun _ ↦ True := by
-  have hL : (inst.drop 4).length + keccakSegmentBits ≤ 29 := by
+theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 30) :
+    Reads (verifyKeccak logSteps inst output) (keccakReads 27) fun _ ↦ True := by
+  have hL : (inst.drop 4).length + keccakSegmentBits ≤ 27 := by
     simp only [List.length_drop, keccakSegmentBits]
     have : log2Ceil keccakSegments = 1 := by decide
     omega
@@ -513,10 +516,10 @@ theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
   refine Reads.seq (Reads.sampleN _) (fun segment hseg ↦ Reads.seq
     (Reads.sampleN _) (fun _ _ ↦ Reads.seq Reads.readE (fun committed _ ↦ ?_) ?_)
     ?_) ?_
-  · have hpl : (inst.drop 4 ++ segment).length ≤ 29 := by
+  · have hpl : (inst.drop 4 ++ segment).length ≤ 27 := by
       rw [List.length_append, hseg]; exact hL
     have hlay : keccakDepth * keccakLayerReads (inst.drop 4 ++ segment).length ≤
-        keccakDepth * keccakLayerReads 29 := by
+        keccakDepth * keccakLayerReads 27 := by
       refine Nat.mul_le_mul_left _ ?_
       unfold keccakLayerReads
       omega
@@ -536,7 +539,7 @@ theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
 
 theorem reads_keccakPhase (layout : Layout) (claims : List ColumnClaim)
     (hc : ClaimsShort claims) :
-    Reads (keccakPhaseClaims layout claims) (keccakReads 29) fun _ ↦ True := by
+    Reads (keccakPhaseClaims layout claims) (keccakReads 27) fun _ ↦ True := by
   exact Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦ Reads.seq
     (reads_verifyKeccak _ _ _ (headD_filter_short claims hc)) (fun _ _ ↦ trivial) le_rfl)
     (Nat.zero_le _)
@@ -554,8 +557,8 @@ theorem reads_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
     Reads (foldRoundsT n s levelFolds) (2 * n) fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
-    refine Reads.seq Reads.sampleE (fun c _ ↦ Reads.seq
-      (reads_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
+    refine Reads.seq Reads.sampleE (fun c _ ↦
+      Reads.seq (reads_sumcheckRoundPoly 3 _ none) (fun _ _ ↦
         (reads_foldRounds n _ _).mono ?_ fun r hr ↦ ?_) ?_) ?_
     · simp only [show max 3 2 - 1 = 2 from rfl]; omega
     · rw [hr, List.length_append, List.length_singleton]; omega

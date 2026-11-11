@@ -23,19 +23,12 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `g^32`, as the data writes it. -/
-abbrev vtW32 : E := word 4294967296 0 0
-
-theorem vtW32_eq : vtW32 = ofK (Parameters.addressOfIndex 32) := by
-  rw [vtW32, show (4294967296 : ℕ) = 2 ^ 32 by norm_num, tb_word_two_pow (by norm_num),
-    gen_pow_eq_ofK]
-
 section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 /-- **The round count.** -/
-theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
+theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hkbt : ∀ t < 6, σ (.n (30 + t)) = gen ^ τ t) {m : ℕ} (hm : m < 33)
     (hmu : σ (.n 9) = gen ^ m) :
     ∃ n, σ (.n 2516) = gen ^ n ∧ (∀ t < 6, τ t ≤ n) ∧ (∃ t < 6, τ t = n) ∧ n ≤ m := by

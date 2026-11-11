@@ -37,10 +37,10 @@ example (f : E → ℝ≥0∞) :
     (∑ u : KeccakState, f (challengeOf u)) / Fintype.card KeccakState = (∑ c : E, f c) / Fintype.card E :=
   sum_challengeOf_div f
 
-example (b : ℕ) (n : E) :
-    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KeccakState ≤
+example (b : ℕ) :
+    (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) / Fintype.card KeccakState ≤
       2⁻¹ ^ min b 64 :=
-  sum_powOk_div_le b n
+  sum_powOk_div_le b
 
 example : Fintype.card Digest = 2 ^ 256 := card_digest
 
@@ -237,7 +237,7 @@ example : Pr{let z ← romExperiment toyAdv (verifierFam toySeeds toyProg)}[z.1.
 
 /-- A 70-bit proof of work passes on the zero challenge: the predicate tests one 64-bit lane, so
 for `b > 64` its success fraction is `2^-64`, and the discount is `2^-min(b, 64)`. -/
-example : powOk 70 0 (E.ofLimbs 0 0 0) = true := by
+example : powOk 70 (E.ofLimbs 0 0 0) = true := by
   simp [powOk, limb_ofLimbs, K.lane]
 
 /-- Extraction from no answers gives the zero row of the width. -/

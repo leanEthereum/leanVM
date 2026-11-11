@@ -85,7 +85,7 @@ theorem vsSizesT_good (hl : args.length = 6) :
 
 /-- **The sizes, honestly.** -/
 theorem vsSizesT_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
-    {lir logMem : ℕ} (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4) (hm16 : 16 ≤ logMem) (hm32 : logMem ≤ 32)
+    {lir logMem : ℕ} (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4) (hlm1 : 1 ≤ logMem) (hm30 : logMem ≤ 30)
     (e112 : vsσ rd w args (.n 110) = eOfNat lir) (e29 : vsσ rd w args (.n 27) = eOfNat logMem)
     (e122 : vsσ rd w args (.n 120) = gen ^ lir) (e130 : vsσ rd w args (.n 128) = gen ^ logMem)
     {hs : List ℕ} (hsl : hs.length = 6)
@@ -99,8 +99,8 @@ theorem vsSizesT_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (h
   have hG := vsSizesT_good (rd := rd) (w := w) hl
   have m1 : ∀ s ∈ [vsCall "g_power_of_word" [110] [120], vsConst 121 (word 2 0 0), vsMul 120 122 121,
       vsConst 123 (word 8 0 0), vsRange 122 124 125 126 123, vsAlloc 127 7,
-      vsCall "g_power_of_word" [27] [128], vsConst 129 (word (2 ^ 32) 0 0),
-      vsRange 128 130 131 132 129, vsConst 133 (word (2 ^ 32) 0 0), vsConst 134 (word 65536 0 0),
+      vsCall "g_power_of_word" [27] [128], vsConst 129 (word (2 ^ 30) 0 0),
+      vsRange 128 130 131 132 129, vsConst 133 (word (2 ^ 32) 0 0), vsConst 134 (word 2 0 0),
       vsMul 128 135 134, vsRange 135 136 137 138 133, vsLd 128 127 0,
       .atom (.hint (.witness "table_logs" (.heap (.n 127) 1 6))), vsAlloc 139 8,
       vsConst 140 (word 1 0 0), .atom (.copy (.n 141) (.n 128))], s ∈ vsSizesT :=
@@ -118,15 +118,15 @@ theorem vsSizesT_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (h
   have v123 : σ (.n 123) = gen ^ 3 := by
     have := g _ (mm (vsConst 123 (word 8 0 0)) (by simp)); simp only [Good] at this
     rw [this, show (8 : ℕ) = 2 ^ 3 from rfl, word_two_pow (by norm_num)]
-  have v129 : σ (.n 129) = gen ^ 32 := by
-    have := g _ (mm (vsConst 129 (word (2 ^ 32) 0 0)) (by simp)); simp only [Good] at this
+  have v129 : σ (.n 129) = gen ^ 30 := by
+    have := g _ (mm (vsConst 129 (word (2 ^ 30) 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_two_pow (by norm_num)]
   have v133 : σ (.n 133) = gen ^ 32 := by
     have := g _ (mm (vsConst 133 (word (2 ^ 32) 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_two_pow (by norm_num)]
-  have v134 : σ (.n 134) = gen ^ 16 := by
-    have := g _ (mm (vsConst 134 (word 65536 0 0)) (by simp)); simp only [Good] at this
-    rw [this, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by norm_num)]
+  have v134 : σ (.n 134) = gen ^ 1 := by
+    have := g _ (mm (vsConst 134 (word 2 0 0)) (by simp)); simp only [Good] at this
+    rw [this, pow_one, word_gen]
   have v140 : σ (.n 140) = 1 := by
     have := g _ (mm (vsConst 140 (word 1 0 0)) (by simp)); simp only [Good] at this
     rw [this, word_one]
@@ -147,15 +147,15 @@ theorem vsSizesT_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (h
   have r1 := rc_holds hlow (by decide) (by omega) (by omega) v122 v124
     (g _ (mm (vsRange 122 124 125 126 123) (by simp)))
   -- the memory's log
-  have v130 : σ (.n 130) = gen ^ (32 - logMem) := by
+  have v130 : σ (.n 130) = gen ^ (30 - logMem) := by
     rw [good_rc_y (by decide) (g _ (mm (vsRange 128 130 131 132 129) (by simp))), v129, e130,
-      gen_pow_div hm32]
+      gen_pow_div hm30]
   have r2 := rc_holds hlow (by decide) (by omega) (by omega) e130 v130
     (g _ (mm (vsRange 128 130 131 132 129) (by simp)))
-  have v135 : σ (.n 135) = gen ^ (logMem - 16) := by
+  have v135 : σ (.n 135) = gen ^ (logMem - 1) := by
     rw [good_mul_old (by decide) (g _ (mm (vsMul 128 135 134) (by simp))), e130, v134,
-      gen_pow_div hm16]
-  have v136 : σ (.n 136) = gen ^ (32 - (logMem - 16)) := by
+      gen_pow_div hlm1]
+  have v136 : σ (.n 136) = gen ^ (32 - (logMem - 1)) := by
     rw [good_rc_y (by decide) (g _ (mm (vsRange 135 136 137 138 133) (by simp))), v133, v135,
       gen_pow_div (by omega)]
   have r3 := rc_holds hlow (by decide) (by omega) (by omega) v135 v136

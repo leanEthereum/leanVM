@@ -123,6 +123,7 @@ def atom (e : Expr) : R Atom := do
       return .keccak (← vals ins) (← vals outs) (← bool i) (← bool o)
   | (``Atom.frameAddr, #[p, r]) => return .frameAddr (← val p) (← vals r)
   | (``Atom.hint, #[h]) => return .hint (← hint h)
+  | (``Atom.touch, #[t, p]) => return .touch (← val t) (← val p)
   | _ => bad "an atom" e
 
 partial def stmt (e : Expr) : R Stmt := do
@@ -148,7 +149,7 @@ run_meta do
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 991 && P == Q.map Fn.renumber do
+  | .ok Q => unless P.length == 1535 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
   | .error e => throwError e
 
@@ -161,7 +162,7 @@ function 21). -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 991 := coreProgram_length
+example : coreProgram.length = 1535 := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
@@ -175,11 +176,11 @@ example : coreProgram.find? "sp_wots" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "opening_ood_point__L14" = some Data.core471 :=
-  Program.find?_of_indexOf? (j := 471) (by decide +kernel) rfl
+example : coreProgram.find? "opening_ood_point__L14" = some Data.core416 :=
+  Program.find?_of_indexOf? (j := 416) (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core990 :=
-  Program.find?_of_indexOf? (j := 990) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core1496 :=
+  Program.find?_of_indexOf? (j := 1496) (by decide +kernel) rfl
 
 example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 
@@ -187,6 +188,11 @@ example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
 example : Data.core36.name = Data.f37.name := name_eq_compiled (j := 36) rfl rfl
 
-example : Data.core990.name = Data.f991.name := name_eq_compiled (j := 990) rfl rfl
+example : coreProgram.find? "walk_path__L12_L8" = some Data.core1534 :=
+  Program.find?_of_indexOf? (j := 1534) (by decide +kernel) rfl
+
+example : Data.core1496.name = Data.f1497.name := name_eq_compiled (j := 1496) rfl rfl
+
+example : Data.core1534.name = Data.f1535.name := name_eq_compiled (j := 1534) rfl rfl
 
 end LeanVMTests.Guest.CoreData

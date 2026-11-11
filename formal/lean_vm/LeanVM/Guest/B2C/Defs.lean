@@ -20,7 +20,7 @@ public import LeanVM.Guest.Data.CplArms
 # The honest memory's frames
 
 `cert f v` is the certificate's cell of value `v` of `f` and `fs f` its frame size (`main`'s
-frame also holds the jump table, cells `444 + s`). An instance's cells (`C`) are, first one per
+frame also holds the jump table, cells `429 + s`). An instance's cells (`C`) are, first one per
 cell (`frameE`): its range checks' temporaries, its frame runs, its fixed cells (`Plumb.stat`:
 constants and frame-pointer products), every value its path names (`namedOf`: parameters, the
 events' values, the returned values), the callee frame pointer and dispatch target of each call
@@ -54,7 +54,7 @@ noncomputable def cert (f : String) (v : V) : ℕ :=
   | none => 0
 
 /-- `main`'s frame: its cells and the jump table after them. -/
-def mainFrame : ℕ := 444 + 16555
+def mainFrame : ℕ := 429 + 13952
 
 /-- **The frame sizes**: the compiler's (`fsAt`), `main`'s holding the jump table, at least the
 header. -/
@@ -245,7 +245,7 @@ def weightVKids (ω : String → Val → ℕ) : List Tree → ℕ
 end
 
 /-- The jump table's `SET`s, run before `main`. -/
-def jtSets (op : Opcode) : ℕ := if op = .setConstant then 16555 else 0
+def jtSets (op : Opcode) : ℕ := if op = .setConstant then 13952 else 0
 
 /-- **The instructions of opcode `op` a run on the honest memory of `T` executes at most**: its
 path's count, per instance that runs, and the jump table. -/

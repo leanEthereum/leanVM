@@ -99,7 +99,7 @@ theorem rs_pure : coreProgram.PureIn rsPureNames := by
     subst hf; decide +kernel
   · rw [Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl, Option.some.injEq] at hf
     subst hf; decide +kernel
-  · rw [Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl, Option.some.injEq] at hf
+  · rw [Program.find?_of_indexOf? (j := 405) (by decide +kernel) rfl, Option.some.injEq] at hf
     subst hf; decide +kernel
 
 /-- `rs_eq_run`'s words: the chain, the coordinates, the point. -/

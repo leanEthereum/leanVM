@@ -20,15 +20,15 @@ its fold challenges `Fall`, its tail challenges `Tc`, its levels' records `rs` (
 proof's `OsRec`), its point.
 
 The finish's honest data, as the soundness proof names them (`βof`, `Xof`, `Pof`, `Wof`, `Λof`,
-`Zof`, `Yof` of the records): `finD`, `finM` (`μ = λ⁻¹`), `finB` (`level_betas`: `β·λ^n`), `finAcc`
-(the residual chain after its loop), `finPq` (the remaining queries' positions), `finL`, `finI`.
+`Zof`, `Yof` of the records): `finD`, `finM` (`μ = λ⁻¹`), `finB` (`level_betas`: `β·λ^n`),
+`finChain` (the residual chain after `m` batches), `finH` (after every query), `finL`, `finI`.
 
 Each buffer's honest words, a list of its size (`osHeap`'s, the allocation's): the fixed buffers
-(`capsC`, `flagsC`, `fmsgC`, `rootsC`, `fchC`, `betasC`, `musC`, `qposC`, `qbpC` (at the decoders'
+(`fmsgC`, `rootsC`, `fchC`, `betasC`, `musC`, `qposC`, `qbpC` (at the decoders'
 frames `bp`), `winC`, `oodzC`, `oodC`), the tail challenges (`tailC`), the point and one plus it (`ptC`,
 `pt1C`), the basis coefficients, scales and inner sums (`bdC`, `lsC`, `ichC`), and each level's
-squeeze chain, residual chain and row weights (`sqzC`, `rcC`, `wpC`). A buffer split by levels at
-the configuration's offsets (`capOff`, `posOff`) gives each word to its level (`ownerOf`).
+row weights (`wpC`). A buffer split by levels at the configuration's offsets (`posOff`) gives each
+word to its level (`ownerOf`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -94,12 +94,10 @@ def finChain (i m : ℕ) : E :=
   resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i) 0
     ((List.range (resBatch * m)).map (Pof tr.rs i))
 
-/-- Level `i`'s residual chain after its loop. -/
-def finAcc (i : ℕ) : E := finChain c tr i ((lvAt c i).queries / resBatch)
-
-/-- Level `i`'s remaining queries' positions (after the loop's `resBatch`-blocks). -/
-def finPq (i j : ℕ) : E :=
-  Pof tr.rs i ((lvAt c i).queries - (lvAt c i).queries % resBatch + j)
+/-- Level `i`'s residual chain over all its queries' positions (`level_residual`'s return). -/
+def finH (i : ℕ) : E :=
+  resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i) 0
+    ((List.range (lvAt c i).queries).map (Pof tr.rs i))
 
 /-- Level `i`'s scalar in `level_betas`: `β·λ^n`. -/
 def finB (i : ℕ) : E := βof c tr.rs i * Wof tr.rs i (lvAt c i).queries
@@ -112,8 +110,7 @@ def finL (i : ℕ) : E :=
 /-- The inner sum after the levels below `i`. -/
 def finI : ℕ → E
   | 0 => 0
-  | i + 1 => finI i + finL c tr i * resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols
-      (finM tr i) (finAcc c tr i) ((List.range ((lvAt c i).queries % resBatch)).map (finPq c tr i))
+  | i + 1 => finI i + finL c tr i * finH c tr i
 
 /-! ## The buffers' words -/
 
@@ -164,7 +161,7 @@ def posAt (i j : ℕ) : E :=
     ((j % (192 / (lvAt c i).depth)) * (lvAt c i).depth)) % 2 ^ (lvAt c i).depth)
 
 /-- `query_positions`: each level's squeezes' decoded positions from its offset. -/
-def qposC : List E := (List.range c.posLen).map fun k ↦
+def qposC : List E := (List.range (c.levels.length * ligPosCap)).map fun k ↦
   if k - (lvAt c (ownerOf (fun i ↦ (lvAt c i).posOff) c.levels.length k)).posOff <
       (lvAt c (ownerOf (fun i ↦ (lvAt c i).posOff) c.levels.length k)).squeezes *
         (192 / (lvAt c (ownerOf (fun i ↦ (lvAt c i).posOff) c.levels.length k)).depth) then
@@ -174,7 +171,7 @@ def qposC : List E := (List.range c.posLen).map fun k ↦
 
 /-- `query_win_ptrs`: each level's squeezes' window runs, squeeze `s` of level `i` decoded at the
 frame `bp i s` (position `j` of a squeeze `qwN depth capDepth` words further). -/
-def qbpC (bp : ℕ → ℕ → E) : List E := (List.range c.posLen).map fun k ↦
+def qbpC (bp : ℕ → ℕ → E) : List E := (List.range (c.levels.length * ligPosCap)).map fun k ↦
   let i := ownerOf (fun i ↦ (lvAt c i).posOff) c.levels.length k
   let j := k - (lvAt c i).posOff
   let per := 192 / (lvAt c i).depth
@@ -184,20 +181,6 @@ def qbpC (bp : ℕ → ℕ → E) : List E := (List.range c.posLen).map fun k �
 
 /-- A level's query step's openings. -/
 def SpLv.batch' (L : SpLv) : List (ℕ × Opening) := L.qs.zip L.os
-
-/-- `merkle_caps`: each level's honest cap cells from `4 · capOff`. -/
-noncomputable def capsC : List E := (List.range (4 * c.capLen)).map fun k ↦
-  let i := ownerOf (fun i ↦ 4 * (lvAt c i).capOff) c.levels.length k
-  if k - 4 * (lvAt c i).capOff < 2 ^ ((lvAt c i).capDepth + 2) then
-    capCell (tr.L i).height (SpLv.batch' (tr.L i)) (k - 4 * (lvAt c i).capOff)
-  else 0
-
-/-- `merkle_cap_active`: each level's honest cap flags from `capOff`. -/
-noncomputable def flagsC : List E := (List.range c.capLen).map fun k ↦
-  let i := ownerOf (fun i ↦ (lvAt c i).capOff) c.levels.length k
-  if k - (lvAt c i).capOff < 2 ^ (lvAt c i).capDepth then
-    capFl (tr.L i).height (SpLv.batch' (tr.L i)) (lvAt c i).capDepth (k - (lvAt c i).capOff)
-  else 0
 
 /-- The point buffer: the point zero-padded. -/
 def ptC (lane : ℕ) : List E := tr.point lane ++ List.replicate (pointCap - (tr.point lane).length) 0
@@ -215,14 +198,6 @@ def lsC : List E := (List.range c.levels.length).map (finL c tr)
 
 /-- `inner`: the inner sums. -/
 def ichC : List E := (List.range (c.levels.length + 1)).map (finI c tr)
-
-/-- Level `i`'s squeeze chain: the capacity after each squeeze. -/
-def sqzC (i : ℕ) : List E := (List.range ((c.maxSq + 1) * 5)).map fun k ↦
-  if k / 5 ≤ (lvAt c i).squeezes then (((tr.L i).F2.squeezeN (k / 5)).2.cap).getD (k % 5) 0 else 0
-
-/-- Level `i`'s residual chain (`q / resBatch + 1` words): the chain after each loop iteration. -/
-def rcC (i : ℕ) : List E :=
-  (List.range ((lvAt c i).queries / resBatch + 1)).map (finChain c tr i)
 
 /-- Level `i`'s row weights. -/
 def wpC (i : ℕ) : List E := (List.range c.maxIl).map fun k ↦

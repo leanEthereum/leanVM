@@ -1,12 +1,14 @@
 //! The constants baked into the guest.
 
+use super::MAX_RECURSIONS;
 use super::cells::{dsl_u128, pack_16_bytes};
-use super::child::{MU_CAP, MU_MAX, MU_MIN, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape};
+use super::child::{
+    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape,
+};
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
-use super::{MAX_KEYS, MAX_RECURSIONS};
 use fiat_shamir::merkle::hash_to_scalars;
 use lean_compiler::f192_literal;
 use lean_da::{CELLS_PER_ROW, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
@@ -154,13 +156,8 @@ struct OpeningShape {
     interleaving: Vec<usize>,
     query_grinding_bits: Vec<usize>,
     cap_depths: Vec<usize>,
-    cap_offsets: Vec<usize>,
-    positions_offsets: Vec<usize>,
-    vanish_offsets: Vec<usize>,
     fold_offsets: Vec<usize>,
     residual_fold_offsets: Vec<usize>,
-    vanish_values: Vec<F192>,
-    vanish_inverses: Vec<F192>,
     ood_samples: Vec<usize>,
 }
 
@@ -177,7 +174,10 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         rep.insert(format!("{k}_PLACEHOLDER"), v);
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
-    ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
+    ps("QW", QUERY_WINDOW_BITS.to_string());
+    ps("QUERY_WINDOWS_CAP", QUERY_WINDOWS_CAP.to_string());
+    ps("MIN_LOG_MEM", verifier::MIN_LOG_MEMORY.to_string());
+    ps("MAX_LOG_MEM", verifier::MAX_LOG_MEMORY.to_string());
     ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
@@ -591,7 +591,8 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("QKECCAK_SLOT_LOG", leanvm_core::keccak::SLOT_LOG.to_string());
 }
 
-/// The stacked opening's candidate tables, one per committed size in `MU_MIN..=MU_MAX` and rate.
+/// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
+/// an execution of the guest's bytecode, `min_execution_stacked_log(kbc)..=MAX_STACKED_LOG`.
 fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let oshape = |m: usize, log_inv_rate: usize| {
         let shape = whir_shape(m, log_inv_rate);
@@ -599,7 +600,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         let (cn, cr) = (sh.levels, vc.level_steps);
         // Every cap root must match a transcript-bound root, including the final level.
         assert_eq!(cr, cn - 1, "the yr level must be the last one");
-        let (ck, cl, cyr) = (&sh.ks, &sh.log_msg_cols, sh.yr_log_n);
+        let (ck, cyr) = (&sh.ks, sh.yr_log_n);
         let cq = &vc.queries;
         let (cd, cp) = (&shape.depth, &shape.per_squeeze);
         let cs: Vec<usize> = (0..cn).map(|i| cq[i].div_ceil(cp[i])).collect();
@@ -621,19 +622,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             offsets
         };
         let cap_depths: Vec<_> = (0..cn).map(|lv| merkle_cap_depth(cq[lv], cd[lv])).collect();
-        let cap_offsets = psum(&|lv| 1 << cap_depths[lv]);
-        let c_qpoff = psum(&|lv| cs[lv] * cp[lv]);
-        let c_svkoff = psum(&|lv| cl[lv] + 1);
         let c_foldbase = psum(&|lv| ck[lv]);
         let c_risstart: Vec<usize> = (0..cn).map(|k| c_foldbase[k] + ck[k]).collect();
-        let mut c_svk = Vec::new();
-        let mut c_ivk = Vec::new();
-        for &cl_lv in cl.iter().take(cn) {
-            for &v in &pcs::whir::eval_sk_at_vks(cl_lv) {
-                c_svk.push(F192::from(v));
-                c_ivk.push(F192::from(v.inv()));
-            }
-        }
         OpeningShape {
             n_levels: cn,
             yr_level: cr,
@@ -647,35 +637,28 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             interleaving: cni,
             query_grinding_bits: shape.config.grinding_bits,
             cap_depths,
-            cap_offsets,
-            positions_offsets: c_qpoff,
-            vanish_offsets: c_svkoff,
             fold_offsets: c_foldbase,
             residual_fold_offsets: c_risstart,
-            vanish_values: c_svk,
-            vanish_inverses: c_ivk,
             ood_samples: shape.config.ood_samples,
         }
     };
-    let (minm, maxm) = (MU_MIN, MU_MAX);
+    let (minm, maxm) = (verifier::min_execution_stacked_log(kbc), verifier::MAX_STACKED_LOG);
     let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
     let cands: Vec<_> = rates.flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r))).collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
-    let maxsvk = cands.iter().map(|c| c.vanish_values.len()).max().unwrap();
     let maxood = cands.iter().flat_map(|c| &c.ood_samples).copied().max().unwrap_or(0);
     ps("LIG_MAX_LEVELS", maxlev.to_string());
-    ps("LIG_MAX_VANISH_LEN", maxsvk.to_string());
     ps("LIG_MAX_OOD_SAMPLES", maxood.to_string());
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
     let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
-    ps("N_COLUMN_LOGS", (MU_MAX + 1).to_string());
+    ps("N_COLUMN_LOGS", (verifier::MAX_STACKED_LOG + 1).to_string());
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));
     ps("COL_KAPPA_ADJ", literals(cks.iter().map(|&(_, a)| a)));
     let groups = col_groups(&cks);
     ps("N_COL_GROUPS", groups.len().to_string());
     ps("COL_GROUP_START", literals(groups.iter().copied().chain([cks.len()])));
-    ps("PCS_MIN_MU", leanvm_core::pcs::MIN_MU.to_string());
+    ps("PCS_MIN_MU", verifier::MIN_STACKED_LOG.to_string());
     ps(
         "LIG_LOG_MSG_COLS_CAP",
         cands
@@ -715,16 +698,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_YR_LOG_LEN", scal(&|c| c.yr_log_len));
         ps("LIG_YR_LEN", scal(&|c| 1usize << c.yr_log_len));
         ps("LIG_TOTAL_FOLDS", scal(&|c| c.folds.iter().sum()));
-        ps("LIG_MAX_SQUEEZES", scal(&|c| *c.squeezes.iter().max().unwrap()));
         ps("LIG_MAX_INTERLEAVE", scal(&|c| *c.interleaving.iter().max().unwrap()));
-        ps(
-            "LIG_POSITIONS_LEN",
-            scal(&|c| {
-                (0..c.n_levels)
-                    .map(|level| c.squeezes[level] * c.positions_per_squeeze[level])
-                    .sum()
-            }),
-        );
         let row_cap = cands
             .iter()
             .flat_map(|c| {
@@ -737,6 +711,19 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             .unwrap();
         ps("LIG_ROW_CAP", row_cap.to_string());
         ps("LIG_PACKED_ROW_CAP", (row_cap / 2).to_string());
+        // `decode_query_windows`: a squeezed word's positions, each its path bits QW at a time, then the cap
+        // child bit and the cap index, read back through `win_tabs`' 128 bit patterns.
+        let windows = cands.iter().flat_map(|c| {
+            (0..c.n_levels).map(|lv| {
+                let (depth, cap) = (c.tree_depths[lv], c.cap_depths[lv]);
+                assert!((2..=8).contains(&cap), "a cap of {cap} levels");
+                c.positions_per_squeeze[lv] * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
+            })
+        });
+        assert!(
+            windows.max().unwrap() <= QUERY_WINDOWS_CAP,
+            "a squeezed word's windows past QUERY_WINDOWS_CAP"
+        );
         ps(
             "LIG_PATH_CAP",
             cands
@@ -750,6 +737,11 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 .max()
                 .unwrap()
                 .to_string(),
+        );
+        // The guest reads every level's query nonce, which a grind of no bits would not send.
+        assert!(
+            cands.iter().all(|c| c.query_grinding_bits.iter().all(|&bits| bits > 0)),
+            "a query phase grinds no bits"
         );
         ps("LIG_QUERY_GRIND_BITS", flat(&|c| c.query_grinding_bits.clone()));
         ps("LIG_OOD_SAMPLES", flat(&|c| c.ood_samples.clone()));
@@ -771,10 +763,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         );
         ps("LIG_TREE_DEPTH", flat(&|c| c.tree_depths.clone()));
         ps("LIG_CAP_DEPTH", flat(&|c| c.cap_depths.clone()));
-        ps("LIG_CAP_OFF", flat(&|c| c.cap_offsets.clone()));
-        ps("LIG_CAP_LEN", scal(&|c| c.cap_depths.iter().map(|&d| 1 << d).sum()));
         ps("LIG_SQUEEZES", flat(&|c| c.squeezes.clone()));
-        ps("LIG_POSITIONS_OFF", flat(&|c| c.positions_offsets.clone()));
         ps("LIG_LOG_MSG_COLS", flat(&|c| c.log_message_columns.clone()));
         ps("LIG_RESIDUAL_FOLD_OFF", flat(&|c| c.residual_fold_offsets.clone()));
         ps(
@@ -787,24 +776,55 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             }),
         );
         ps("LIG_FOLDS_OFF", flat(&|c| c.fold_offsets.clone()));
-        ps("LIG_VANISH_OFF", flat(&|c| c.vanish_offsets.clone()));
-        let mut svk2 = Vec::with_capacity(cands.len() * maxsvk);
-        let mut ivk2 = Vec::with_capacity(cands.len() * maxsvk);
-        for candidate in &cands {
-            let padded_len = svk2.len() + maxsvk;
-            svk2.extend_from_slice(&candidate.vanish_values);
-            ivk2.extend_from_slice(&candidate.vanish_inverses);
-            svk2.resize(padded_len, F192::ZERO);
-            ivk2.resize(padded_len, F192::ZERO);
-        }
-        ps("LIG_VANISH_VALS", flds(&svk2));
-        ps("LIG_VANISH_INVS", flds(&ivk2));
     }
     let n_log_sizes = maxm - minm + 1;
     let n_rates = MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1;
+    // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
+    fn size_only(c: &OpeningShape) -> (usize, usize, usize, [&Vec<usize>; 7]) {
+        let lists = [
+            &c.folds,
+            &c.log_message_columns,
+            &c.interleaving,
+            &c.fold_offsets,
+            &c.residual_fold_offsets,
+            &c.ood_samples,
+            &c.query_grinding_bits,
+        ];
+        (c.n_levels, c.yr_level, c.yr_log_len, lists)
+    }
+    for (i, c) in cands.iter().enumerate() {
+        assert!(
+            size_only(c) == size_only(&cands[i % n_log_sizes]),
+            "a size-only opening table varies by rate"
+        );
+    }
+    let level_positions = cands
+        .iter()
+        .flat_map(|c| (0..c.n_levels).map(|lv| c.squeezes[lv] * c.positions_per_squeeze[lv]));
+    ps("LIG_LEVEL_POSITIONS_CAP", level_positions.max().unwrap().to_string());
+    // The subspace-vanishing values of a level's message columns and their inverses, by the column count: block `n`
+    // at n(n+1)/2.
+    let max_cols = cands
+        .iter()
+        .flat_map(|c| &c.log_message_columns)
+        .copied()
+        .max()
+        .unwrap();
+    let by_cols: Vec<F64> = (0..=max_cols)
+        .flat_map(|cols| {
+            let values = pcs::whir::eval_sk_at_vks(cols);
+            assert_eq!(values.len(), cols + 1);
+            values
+        })
+        .collect();
+    let inverses: Vec<F192> = by_cols.iter().map(|v| F192::from(v.inv())).collect();
+    ps(
+        "VANISH_BY_COLS",
+        flds(&by_cols.into_iter().map(F192::from).collect::<Vec<_>>()),
+    );
+    ps("VANISH_INVS_BY_COLS", flds(&inverses));
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
-    ps("LIG_N_CANDIDATES", (n_log_sizes * n_rates).to_string());
     ps("LIG_MIN_SHIFT_INV", dsl_u128(F192::from(g_pow(minm).inv())).to_string());
 }
 
@@ -912,7 +932,6 @@ fn signature_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("LX_TAG_SLOT", format!("{slots:?}"));
     ps("LX_TAG_LOG", format!("{logs:?}"));
     ps("LX_N_TAGS", n_tags.to_string());
-    ps("MAX_KEYS", MAX_KEYS.to_string());
     ps("CLAIM_GROUP", CLAIM_GROUP.to_string());
     ps("BIG_GROUPS", BIG_GROUPS.to_string());
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());

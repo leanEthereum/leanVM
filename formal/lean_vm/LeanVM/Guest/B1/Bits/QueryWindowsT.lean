@@ -25,7 +25,7 @@ back, and joined in the exponent into its `wins` cell. Each position is stored a
 the pointer to the `wins` run from its first window (`addr` of the run's tail) at `win_ptrs[j]`, and the word is
 rebuilt from the positions and 7-bit windows of the bits above them (`qwRest`).
 
-`qwBody d cd` is the expansion, value by value; `QueryWindowsData.lean` checks the 45
+`qwBody d cd` is the expansion, value by value; `QueryWindowsData.lean` checks the 18
 specializations against it by kernel evaluation.
 -/
 
@@ -203,52 +203,24 @@ def QwIs (name : String) (body : List Stmt) : Prop :=
 
 /-- The deployed specializations: `(name, depth, cap depth)`. -/
 def queryWindowsShapes : List (String × ℕ × ℕ) :=
-  [
-    ("decode_query_windows__L14_L5", 14, 5),
-    ("decode_query_windows__L15_L5", 15, 5),
+  [("decode_query_windows__L12_L6", 12, 6),
+    ("decode_query_windows__L13_L7", 13, 7),
+    ("decode_query_windows__L14_L2", 14, 2),
+    ("decode_query_windows__L15_L3", 15, 3),
     ("decode_query_windows__L16_L4", 16, 4),
-    ("decode_query_windows__L16_L5", 16, 5),
-    ("decode_query_windows__L16_L6", 16, 6),
-    ("decode_query_windows__L17_L4", 17, 4),
     ("decode_query_windows__L17_L5", 17, 5),
-    ("decode_query_windows__L17_L6", 17, 6),
-    ("decode_query_windows__L17_L8", 17, 8),
-    ("decode_query_windows__L18_L4", 18, 4),
-    ("decode_query_windows__L18_L5", 18, 5),
     ("decode_query_windows__L18_L6", 18, 6),
-    ("decode_query_windows__L18_L7", 18, 7),
-    ("decode_query_windows__L18_L8", 18, 8),
-    ("decode_query_windows__L19_L4", 19, 4),
-    ("decode_query_windows__L19_L5", 19, 5),
-    ("decode_query_windows__L19_L6", 19, 6),
     ("decode_query_windows__L19_L7", 19, 7),
-    ("decode_query_windows__L19_L8", 19, 8),
-    ("decode_query_windows__L20_L4", 20, 4),
-    ("decode_query_windows__L20_L5", 20, 5),
-    ("decode_query_windows__L20_L6", 20, 6),
-    ("decode_query_windows__L20_L7", 20, 7),
+    ("decode_query_windows__L20_L2", 20, 2),
     ("decode_query_windows__L20_L8", 20, 8),
-    ("decode_query_windows__L21_L4", 21, 4),
-    ("decode_query_windows__L21_L5", 21, 5),
-    ("decode_query_windows__L21_L6", 21, 6),
-    ("decode_query_windows__L21_L7", 21, 7),
-    ("decode_query_windows__L21_L8", 21, 8),
+    ("decode_query_windows__L21_L3", 21, 3),
     ("decode_query_windows__L22_L4", 22, 4),
-    ("decode_query_windows__L22_L5", 22, 5),
-    ("decode_query_windows__L22_L6", 22, 6),
-    ("decode_query_windows__L22_L7", 22, 7),
-    ("decode_query_windows__L22_L8", 22, 8),
     ("decode_query_windows__L23_L5", 23, 5),
-    ("decode_query_windows__L23_L6", 23, 6),
-    ("decode_query_windows__L23_L7", 23, 7),
-    ("decode_query_windows__L23_L8", 23, 8),
-    ("decode_query_windows__L24_L5", 24, 5),
     ("decode_query_windows__L24_L6", 24, 6),
-    ("decode_query_windows__L24_L7", 24, 7),
-    ("decode_query_windows__L25_L5", 25, 5),
-    ("decode_query_windows__L25_L6", 25, 6),
     ("decode_query_windows__L25_L7", 25, 7),
-    ("decode_query_windows__L26_L6", 26, 6)]
+    ("decode_query_windows__L26_L2", 26, 2),
+    ("decode_query_windows__L27_L3", 27, 3),
+    ("decode_query_windows__L28_L4", 28, 4)]
 
 end
 end LeanVM.Guest.B1

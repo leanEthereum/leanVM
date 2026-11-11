@@ -6,7 +6,7 @@ use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AggregateVerifyError {
-    /// The signer set is unsorted, holds a duplicate, or has [`MAX_KEYS`](super::MAX_KEYS) claims or more.
+    /// The signer set is unsorted or holds a duplicate.
     MalformedSignerSet,
     /// A deferred claim's point has the wrong number of coordinates, or its value is not the bytecode's evaluation there.
     MalformedClaim,
@@ -52,8 +52,7 @@ pub enum AggregationError {
     /// A raw signature's randomness does not decode to a target-sum encoding,
     /// so there is no witness to build for it.
     MalformedRawSignature,
-    /// More than [`MAX_RECURSIONS`](super::MAX_RECURSIONS) children, or [`MAX_KEYS`](super::MAX_KEYS) signers or more
-    /// once the duplicate slots are counted.
+    /// More than [`MAX_RECURSIONS`](super::MAX_RECURSIONS) children.
     TooLarge,
     /// The payload has a partial row or exceeds [`DA_MAX_ROWS`].
     InvalidBlobSize { symbols: usize },
@@ -63,9 +62,7 @@ pub enum AggregationError {
     BlobsUnpublished,
     /// `log_inv_rate` is outside the range the WHIR configuration accepts.
     InvalidRate { log_inv_rate: usize },
-    /// A child's committed witness falls outside the opening arms the guest was
-    /// compiled with. Small aggregates are padded up to the floor, so this means
-    /// a child too big: more signatures than one node can hold.
+    /// A child's proof outgrows the guest's baked buffers (`MU_CAP`, `STREAM_CAP`).
     ChildOutOfRange { log_committed: usize },
     /// The prover made no proof of this node: the guest rejects its input (a
     /// forged signature fails the guest's run), or its witness is larger than any
@@ -100,7 +97,7 @@ impl std::fmt::Display for AggregationError {
             Self::NotCovered => write!(f, "a declared claim is not covered by the children and raw signatures"),
             Self::MalformedRawSignature => write!(f, "a raw signature does not decode to a target-sum encoding"),
             Self::TooLarge => {
-                write!(f, "too many children or signature claims")
+                write!(f, "too many children")
             }
             Self::InvalidBlobSize { symbols } => {
                 write!(

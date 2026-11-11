@@ -21,15 +21,14 @@ public import LeanVM.Guest.AcceptableChild
 # Completeness
 
 **The statement** (`GuestComplete budget`): for every seed, statement `s` and witness `w` with
-`NodeRelation bytecode seed s w`, within the deployed limits (`Limits`), every child one the guest
+`NodeRelation bytecode seed s w`, within the deployed limits (`GuestLimits`), every child one the guest
 accepts (`ChildrenOk`: its openings agreeing in the guest's Merkle caps, no zero challenge where
 the guest divides, ...) and the node within the budget (`budget s w ≤ 2^28`),
-there is a valid execution of the guest on the statement's digest whose committed size is at least
-`2^22` and at most `2^28`: at most the most the verifier admits, and at least `2^MU_MIN`, so the
-honest proof of it has a stack log the guest's opening arms take (an argument in prose, not proved
-here: the memory's four committed columns alone stack `2^22` cells, `placementsOf`), and
-completeness chains (the memory padded to `2^20` words at least, `padLog`, `Guest/Pad.lean`;
-leanVM grows the `SET` table instead, `aggregation/node.rs:321-325`). The three hypotheses are `Guest/Limits.lean`'s; the budget
+there is a valid execution of the guest on the statement's digest whose committed size is at most
+`2^28`, within the `2^30` the verifier admits; the guest has an opening arm for every stack log
+the verifier admits of an execution (`20` to `30`), so no lower bound is needed (the memory is
+still padded to `2^20` words at least, `padLog`, `Guest/Pad.lean`). The three hypotheses are
+`Guest/Limits.lean`'s; the budget
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is
 linear in the node's work (`Budget`: the words a run allocates and the instructions of each
 opcode it executes, each a constant plus a coefficient per declared claim, coverage slot, raw
@@ -166,9 +165,9 @@ children's openings agreeing in the caps, no zero challenge where the guest divi
 within the budget give a valid execution of the guest on the statement's digest within the
 verifier's committed size. -/
 def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
-  ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
     ∃ t : Execution guestProgram, ValidExecution guestProgram (publicInputOf (statementDigest seed s)) t ∧
-      2 ^ 22 ≤ t.committedSize ∧ t.committedSize ≤ 2 ^ 28
+      t.committedSize ≤ 2 ^ 28
 
 /-- **Completeness within a linear budget**, the final statement's form. -/
 abbrev GuestCompleteWithin (b : Budget) : Prop := GuestComplete fun s w ↦ b.size (work s w)
@@ -183,7 +182,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   /-- B1 (`main`'s completeness at the bump allocator's `HeapBuf` pointers), `Program.Rel.tree`
   and the discharge of `Honest`: under the hypotheses, a call tree of `main`, honest with the
   statement's digest as `main`'s header, of cost within the node's budget. -/
-  honest : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
+  honest : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → budget s w ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
@@ -209,7 +208,7 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
     (C : Memory.Inst → List (ℕ × E)) (cert : String → V → ℕ) (cnt : Memory.Tree → Opcode → ℕ)
     (b : Budget) : Prop where
   /-- As `CompletePieces.honest`, the tree within the budget's words and instruction counts. -/
-  honest : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  honest : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
@@ -276,11 +275,7 @@ theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
   have h32 := hH.toHonest.logMem_le
   obtain ⟨hv', -⟩ := validExecution_pad hv (le_max_left _ 20)
     (show padLog (T.total fs) ≤ maxLogMem from max_le h32 (by unfold maxLogMem; omega))
-  refine ⟨_, hv', ?_, (h.size _ rd T hname hH n hv.2).trans (hcost.trans hbudget)⟩
-  have h20 : 2 ^ 20 ≤ 2 ^ padLog (T.total fs) := Nat.pow_le_pow_right (by norm_num) (le_max_right _ _)
-  refine le_trans ?_ (four_mul_le_committedSize _)
-  show 2 ^ 22 ≤ 4 * 2 ^ padLog (T.total fs)
-  omega
+  exact ⟨_, hv', (h.size _ rd T hname hH n hv.2).trans (hcost.trans hbudget)⟩
 
 /-- **Completeness within the budget `b`, from its pieces.** -/
 theorem guest_complete_within {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}

@@ -18,116 +18,92 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L17_L8` is sound with its queries named. -/
-theorem oqSpecW_413 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L17_L8" "__loop368" ⟨1, 64, 9, 8⟩ 0 :=
-  oqMain1_sound_w (s := ⟨1, 64, 9, 8⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_955)
-    (Program.find?_of_indexOf? (j := 434) (by decide +kernel) rfl) rfl oqBody_413
-    (Program.find?_of_indexOf? (j := 846) (by decide +kernel) rfl) rfl oqBody_827
+/-- `opening_queries__L1_L1_L64_L32_L15_L3` is sound with its queries named. -/
+theorem oqSpecW_1084 :
+    opening_queries_sound_w_Spec "opening_queries__L1_L1_L64_L32_L15_L3" "__loop509" ⟨1, 64, 12, 3⟩ 1 :=
+  oqMain1_sound_w (s := ⟨1, 64, 12, 3⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 1 ≤ 1)) (hW := wpFn_1642)
+    (Program.find?_of_indexOf? (j := 977) (by decide +kernel) rfl) rfl oqBody_1084
+    (Program.find?_of_indexOf? (j := 1439) (by decide +kernel) rfl) rfl oqBody_1643
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L19_L8` is sound with its queries named. -/
-theorem oqSpecW_449 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L19_L8" "__loop375" ⟨1, 64, 11, 8⟩ 0 :=
-  oqMain1_sound_w (s := ⟨1, 64, 11, 8⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_962)
-    (Program.find?_of_indexOf? (j := 470) (by decide +kernel) rfl) rfl oqBody_449
-    (Program.find?_of_indexOf? (j := 860) (by decide +kernel) rfl) rfl oqBody_839
+/-- `opening_queries__L0_L1_L64_L32_L16_L4` is sound with its queries named. -/
+theorem oqSpecW_1086 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L16_L4" "__loop510" ⟨1, 64, 12, 4⟩ 0 :=
+  oqMain1_sound_w (s := ⟨1, 64, 12, 4⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_1662)
+    (Program.find?_of_indexOf? (j := 979) (by decide +kernel) rfl) rfl oqBody_1086
+    (Program.find?_of_indexOf? (j := 1440) (by decide +kernel) rfl) rfl oqBody_1644
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L21_L6` is sound with its queries named. -/
-theorem oqSpecW_701 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L21_L6" "__loop415" ⟨1, 64, 15, 6⟩ 0 :=
-  oqMain1_sound_w (s := ⟨1, 64, 15, 6⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_971)
-    (Program.find?_of_indexOf? (j := 722) (by decide +kernel) rfl) rfl oqBody_701
-    (Program.find?_of_indexOf? (j := 941) (by decide +kernel) rfl) rfl oqBody_885
+/-- `opening_queries__L1_L1_L64_L32_L17_L5` is sound with its queries named. -/
+theorem oqSpecW_1088 :
+    opening_queries_sound_w_Spec "opening_queries__L1_L1_L64_L32_L17_L5" "__loop511" ⟨1, 64, 12, 5⟩ 1 :=
+  oqMain1_sound_w (s := ⟨1, 64, 12, 5⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 1 ≤ 1)) (hW := wpFn_1645)
+    (Program.find?_of_indexOf? (j := 981) (by decide +kernel) rfl) rfl oqBody_1088
+    (Program.find?_of_indexOf? (j := 1442) (by decide +kernel) rfl) rfl oqBody_1646
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L22_L7` is sound with its queries named. -/
-theorem oqSpecW_575 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L22_L7" "__loop397" ⟨1, 64, 15, 7⟩ 0 :=
-  oqMain1_sound_w (s := ⟨1, 64, 15, 7⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_925)
-    (Program.find?_of_indexOf? (j := 596) (by decide +kernel) rfl) rfl oqBody_575
-    (Program.find?_of_indexOf? (j := 906) (by decide +kernel) rfl) rfl oqBody_865
+/-- `opening_queries__L0_L1_L64_L32_L18_L6` is sound with its queries named. -/
+theorem oqSpecW_1090 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L18_L6" "__loop512" ⟨1, 64, 12, 6⟩ 0 :=
+  oqMain1_sound_w (s := ⟨1, 64, 12, 6⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_1665)
+    (Program.find?_of_indexOf? (j := 983) (by decide +kernel) rfl) rfl oqBody_1090
+    (Program.find?_of_indexOf? (j := 1443) (by decide +kernel) rfl) rfl oqBody_1647
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L24_L7` is sound with its queries named. -/
-theorem oqSpecW_598 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L1_L64_L32_L24_L7" "__loop400" ⟨1, 64, 17, 7⟩ 0 :=
-  oqMain1_sound_w (s := ⟨1, 64, 17, 7⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 0 ≤ 1)) (hW := wpFn_929)
-    (Program.find?_of_indexOf? (j := 619) (by decide +kernel) rfl) rfl oqBody_598
-    (Program.find?_of_indexOf? (j := 912) (by decide +kernel) rfl) rfl oqBody_869
+/-- `opening_queries__L0_L0_L16_L24_L14_L2` is sound with its queries named. -/
+theorem oqSpecW_1096 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L14_L2" "__loop513" ⟨0, 16, 12, 2⟩ 0 :=
+  oqMain0_sound_w (s := ⟨0, 16, 12, 2⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_1747)
+    (Program.find?_of_indexOf? (j := 989) (by decide +kernel) rfl) rfl oqBody_1096
+    (Program.find?_of_indexOf? (j := 1445) (by decide +kernel) rfl) rfl oqBody_1649
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L64_L32_L20_L7` is sound with its queries named. -/
-theorem oqSpecW_623 :
-    opening_queries_sound_w_Spec "opening_queries__L1_L1_L64_L32_L20_L7" "__loop405" ⟨1, 64, 13, 7⟩ 1 :=
-  oqMain1_sound_w (s := ⟨1, 64, 13, 7⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 1 ≤ 1)) (hW := wpFn_921)
-    (Program.find?_of_indexOf? (j := 644) (by decide +kernel) rfl) rfl oqBody_623
-    (Program.find?_of_indexOf? (j := 922) (by decide +kernel) rfl) rfl oqBody_874
+/-- `opening_queries__L0_L0_L16_L24_L15_L3` is sound with its queries named. -/
+theorem oqSpecW_1097 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L15_L3" "__loop514" ⟨0, 16, 12, 3⟩ 0 :=
+  oqMain0_sound_w (s := ⟨0, 16, 12, 3⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_1642)
+    (Program.find?_of_indexOf? (j := 990) (by decide +kernel) rfl) rfl oqBody_1097
+    (Program.find?_of_indexOf? (j := 1446) (by decide +kernel) rfl) rfl oqBody_1650
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L64_L32_L23_L7` is sound with its queries named. -/
-theorem oqSpecW_654 :
-    opening_queries_sound_w_Spec "opening_queries__L1_L1_L64_L32_L23_L7" "__loop408" ⟨1, 64, 16, 7⟩ 1 :=
-  oqMain1_sound_w (s := ⟨1, 64, 16, 7⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 1 ≤ 1)) (hW := wpFn_927)
-    (Program.find?_of_indexOf? (j := 675) (by decide +kernel) rfl) rfl oqBody_654
-    (Program.find?_of_indexOf? (j := 928) (by decide +kernel) rfl) rfl oqBody_877
+/-- `opening_queries__L0_L0_L16_L24_L16_L4` is sound with its queries named. -/
+theorem oqSpecW_1098 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L16_L4" "__loop515" ⟨0, 16, 12, 4⟩ 0 :=
+  oqMain0_sound_w (s := ⟨0, 16, 12, 4⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_1662)
+    (Program.find?_of_indexOf? (j := 991) (by decide +kernel) rfl) rfl oqBody_1098
+    (Program.find?_of_indexOf? (j := 1447) (by decide +kernel) rfl) rfl oqBody_1651
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L14_L5` is sound with its queries named. -/
-theorem oqSpecW_425 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L14_L5" "__loop371" ⟨0, 16, 9, 5⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 9, 5⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_958)
-    (Program.find?_of_indexOf? (j := 446) (by decide +kernel) rfl) rfl oqBody_425
-    (Program.find?_of_indexOf? (j := 852) (by decide +kernel) rfl) rfl oqBody_833
+/-- `opening_queries__L0_L0_L16_L24_L17_L5` is sound with its queries named. -/
+theorem oqSpecW_1099 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L17_L5" "__loop516" ⟨0, 16, 12, 5⟩ 0 :=
+  oqMain0_sound_w (s := ⟨0, 16, 12, 5⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_1645)
+    (Program.find?_of_indexOf? (j := 992) (by decide +kernel) rfl) rfl oqBody_1099
+    (Program.find?_of_indexOf? (j := 1448) (by decide +kernel) rfl) rfl oqBody_1652
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L16_L6` is sound with its queries named. -/
-theorem oqSpecW_418 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L16_L6" "__loop369" ⟨0, 16, 10, 6⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 10, 6⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_956)
-    (Program.find?_of_indexOf? (j := 439) (by decide +kernel) rfl) rfl oqBody_418
-    (Program.find?_of_indexOf? (j := 848) (by decide +kernel) rfl) rfl oqBody_829
+/-- `opening_queries__L0_L0_L16_L24_L13_L7` is sound with its queries named. -/
+theorem oqSpecW_1105 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L13_L7" "__loop517" ⟨0, 16, 6, 7⟩ 0 :=
+  oqMain0_sound_w (s := ⟨0, 16, 6, 7⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_1748)
+    (Program.find?_of_indexOf? (j := 998) (by decide +kernel) rfl) rfl oqBody_1105
+    (Program.find?_of_indexOf? (j := 1450) (by decide +kernel) rfl) rfl oqBody_1654
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L18_L4` is sound with its queries named. -/
-theorem oqSpecW_524 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L18_L4" "__loop390" ⟨0, 16, 14, 4⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 14, 4⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_975)
-    (Program.find?_of_indexOf? (j := 545) (by decide +kernel) rfl) rfl oqBody_524
-    (Program.find?_of_indexOf? (j := 892) (by decide +kernel) rfl) rfl oqBody_858
+/-- `opening_queries__L0_L0_L16_L24_L12_L6` is sound with its queries named. -/
+theorem oqSpecW_1110 :
+    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L12_L6" "__loop518" ⟨0, 16, 6, 6⟩ 0 :=
+  oqMain0_sound_w (s := ⟨0, 16, 6, 6⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_1749)
+    (Program.find?_of_indexOf? (j := 1003) (by decide +kernel) rfl) rfl oqBody_1110
+    (Program.find?_of_indexOf? (j := 1452) (by decide +kernel) rfl) rfl oqBody_1656
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L19_L5` is sound with its queries named. -/
-theorem oqSpecW_491 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L19_L5" "__loop383" ⟨0, 16, 14, 5⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 14, 5⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_970)
-    (Program.find?_of_indexOf? (j := 512) (by decide +kernel) rfl) rfl oqBody_491
-    (Program.find?_of_indexOf? (j := 876) (by decide +kernel) rfl) rfl oqBody_849
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L20_L6` is sound with its queries named. -/
-theorem oqSpecW_489 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L20_L6" "__loop382" ⟨0, 16, 14, 6⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 14, 6⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_969)
-    (Program.find?_of_indexOf? (j := 510) (by decide +kernel) rfl) rfl oqBody_489
-    (Program.find?_of_indexOf? (j := 874) (by decide +kernel) rfl) rfl oqBody_848
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L22_L4` is sound with its queries named. -/
-theorem oqSpecW_761 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L22_L4" "__loop423" ⟨0, 16, 18, 4⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 18, 4⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_990)
-    (Program.find?_of_indexOf? (j := 782) (by decide +kernel) rfl) rfl oqBody_761
-    (Program.find?_of_indexOf? (j := 954) (by decide +kernel) rfl) rfl oqBody_894
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L16_L24_L23_L6` is sound with its queries named. -/
-theorem oqSpecW_600 :
-    opening_queries_sound_w_Spec "opening_queries__L0_L0_L16_L24_L23_L6" "__loop401" ⟨0, 16, 17, 6⟩ 0 :=
-  oqMain0_sound_w (s := ⟨0, 16, 17, 6⟩) (Or.inr ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hW := wpFn_980)
-    (Program.find?_of_indexOf? (j := 621) (by decide +kernel) rfl) rfl oqBody_600
-    (Program.find?_of_indexOf? (j := 914) (by decide +kernel) rfl) rfl oqBody_870
+/-- `opening_queries__L1_L1_L64_L32_L16_L4` is sound with its queries named. -/
+theorem oqSpecW_1142 :
+    opening_queries_sound_w_Spec "opening_queries__L1_L1_L64_L32_L16_L4" "__loop519" ⟨1, 64, 12, 4⟩ 1 :=
+  oqMain1_sound_w (s := ⟨1, 64, 12, 4⟩) (Or.inl ⟨rfl, rfl⟩) rfl (by decide) (by decide) (by decide) (hodd := (by decide : 1 ≤ 1)) (hW := wpFn_1662)
+    (Program.find?_of_indexOf? (j := 1035) (by decide +kernel) rfl) rfl oqBody_1142
+    (Program.find?_of_indexOf? (j := 1459) (by decide +kernel) rfl) rfl oqBody_1663
 
 end
 end LeanVM.Guest.B1

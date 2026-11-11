@@ -822,31 +822,31 @@ theorem gk_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n) (hn2 : n �
 
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body1 : Fn.body Data.core424 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body1 : Fn.body Data.core411 = gkBody 1 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body2 : Fn.body Data.core421 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body2 : Fn.body Data.core408 = gkBody 2 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body4 : Fn.body Data.core422 = gkBody 4 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body4 : Fn.body Data.core409 = gkBody 4 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem gkr_rounds_body6 : Fn.body Data.core423 = gkBody 6 := stmtsEqb_sound (by decide +kernel)
+theorem gkr_rounds_body6 : Fn.body Data.core410 = gkBody 6 := stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- **`gkr_rounds`' core IR is its meaning**, at one, two, four and six rounds, and at none it
 returns `0`. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
-  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core424 :=
-    Program.find?_of_indexOf? (j := 424) (by decide +kernel) rfl
-  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core421 :=
-    Program.find?_of_indexOf? (j := 421) (by decide +kernel) rfl
-  have h4 : coreProgram.find? "gkr_rounds__L4" = some Data.core422 :=
-    Program.find?_of_indexOf? (j := 422) (by decide +kernel) rfl
-  have h6 : coreProgram.find? "gkr_rounds__L6" = some Data.core423 :=
-    Program.find?_of_indexOf? (j := 423) (by decide +kernel) rfl
-  have h0 : coreProgram.find? "gkr_rounds__L0" = some Data.core420 :=
-    Program.find?_of_indexOf? (j := 420) (by decide +kernel) rfl
+  have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core411 :=
+    Program.find?_of_indexOf? (j := 411) (by decide +kernel) rfl
+  have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core408 :=
+    Program.find?_of_indexOf? (j := 408) (by decide +kernel) rfl
+  have h4 : coreProgram.find? "gkr_rounds__L4" = some Data.core409 :=
+    Program.find?_of_indexOf? (j := 409) (by decide +kernel) rfl
+  have h6 : coreProgram.find? "gkr_rounds__L6" = some Data.core410 :=
+    Program.find?_of_indexOf? (j := 410) (by decide +kernel) rfl
+  have h0 : coreProgram.find? "gkr_rounds__L0" = some Data.core407 :=
+    Program.find?_of_indexOf? (j := 407) (by decide +kernel) rfl
   refine ⟨fun n hn rd args rets ↦ ?_, fun rd args rets ↦ ?_⟩
   · simp only [gkrRoundsCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
     rcases hn with rfl | rfl | rfl | rfl
@@ -859,7 +859,7 @@ theorem gkr_rounds_holds : gkr_rounds_Spec := by
     · exact ⟨gk_sound 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets,
         gk_complete 6 (by decide) (by decide) h6 rfl gkr_rounds_body6 rd args rets⟩
   · rw [rel_iff_sem h0]
-    simp only [Data.core420, Data.core420.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+    simp only [Data.core407, Data.core407.body, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil]
     constructor
     · rintro ⟨σ, rfl, hc, rfl⟩

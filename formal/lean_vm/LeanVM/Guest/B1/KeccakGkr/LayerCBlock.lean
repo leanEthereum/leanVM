@@ -118,7 +118,7 @@ theorem block_holdsP {P B : List Stmt} (hall : B.all isAtom = true)
           List.getElem?_eq_getElem (show c.val < ins.length by omega), Option.map_some,
           Option.getD_some]
         exact this _ (List.getElem_mem _)
-      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at hns
+      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
       | _ => trivial
     · cases hik : inkB (inKVals (atomsL B)) a
       · rcases hR a (List.mem_filter.mpr ⟨ha, by simp [hns, hik]⟩) with h | h

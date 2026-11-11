@@ -332,6 +332,20 @@ theorem CompleteAtDT.toD {k : ℕ} {f : String} {Lin : Layout} {args : List E}
   let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
   ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => (hr rd hl hm).relAtIn⟩
 
+/-- A completeness on memories defined below `2^k` holds on those defined below `2^k'`,
+`k ≤ k'`. -/
+theorem CompleteAtD.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) (hk : k ≤ k') :
+    CompleteAtD fs cert k' f Lin args Out := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
+
+theorem CompleteAtDT.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {T : Tree → Prop} (h : CompleteAtDT fs cert k f Lin args Out T)
+    (hk : k ≤ k') : CompleteAtDT fs cert k' f Lin args Out T := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
+
 /-- The entered callees are complete by trees satisfying their predicates. -/
 def KidsDT (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : List Kid → List (Tree → Prop) → Prop
   | k :: ks, Ts => (k.taken = true → CompleteAtDT fs cert κ k.f k.Lin k.args k.Out

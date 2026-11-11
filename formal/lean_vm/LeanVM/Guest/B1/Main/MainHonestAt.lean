@@ -49,7 +49,7 @@ variable {fs cert fp seed s w}
 /-- **The callees `main_relAtInW` asks for.** -/
 theorem mainKids_ok (hg : MainGoals fs cert fp seed s w) :
     ∀ k ∈ mKids (hm fs fp seed s w) (hLmain fs fp seed s w), k.taken = true →
-      CompleteAtD fs cert 16 k.f k.Lin k.args k.Out := by
+      CompleteAtD fs cert 20 k.f k.Lin k.args k.Out := by
   intro k hk ht
   simp only [mKids, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hk
   rcases hk with ((((hk | hk | hk | hk | hk | hk) | hk) | hk) | hk) | hk
@@ -80,10 +80,10 @@ its callees' completeness on the run: a layout `L` within `[fp, fp + n)`, pairwi
 above `main`'s frame, containing `main`'s honest words, on every memory holding which and the statement's digest at
 words `0`, `1` `main` holds by its node at `fp`, at a valuation with the honest values. -/
 theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
+    (hl : GuestLimits s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []

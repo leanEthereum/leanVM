@@ -97,7 +97,7 @@ def runWithHash {α : Type} : VerifierProgram α → VerifierProgramState → m 
     | n :: xs => do
       let sp ← absorb F s.sponge n dsPowNonce
       let (c, sp) ← squeeze F sp
-      if powOk bits n c then runWithHash k { s with sponge := sp, stream := xs } else pure none
+      if powOk bits c then runWithHash k { s with sponge := sp, stream := xs } else pure none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs => do
       let sp ← absorb F s.sponge x0 dsObserve
@@ -403,7 +403,7 @@ abbrev HonestProverWithHash : Type :=
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
 Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, no
-proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
+proof unless `t` is a valid execution within `2^30` committed cells), and, at a valid rate,
 runs the honest script against the verifier's own program `leanVmVerifierProgram`, trying `fuel`
 nonces per proof of work. -/
 def proverWithHash : HonestProverWithHash :=
@@ -494,7 +494,7 @@ def BreaksKnowledgeSoundnessWithHash (z : ExperimentOutcomeWithHash) : Prop :=
 /-- **Knowledge soundness in the random-permutation model**, for the extractor
 `transcriptExtractor`: an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free)
 breaks soundness with probability at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`, the `2^14`
-covering the verifier's own `12006` oracle calls and two terms of `2^-128` (a guessed stack root,
+covering the verifier's own `12674` oracle calls and two terms of `2^-128` (a guessed stack root,
 the transfer from two random oracles to one permutation). -/
 def KnowledgeSoundnessWithHash : Prop :=
   ∀ (A : RandomPermutationAdversary) (Q : ℕ),
@@ -521,7 +521,7 @@ honest prover's (`prover`) proof of an execution within the verifier's size cap 
 probability at most `2^-256`. -/
 def CompletenessWithHash : Prop :=
   ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← verifierCompletenessExperimentWithHash proverWithHash prog input t ρ
           (2 ^ 25)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

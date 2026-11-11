@@ -108,10 +108,10 @@ def log2_ceil_in_the_exponent_Spec (name : String) (fl : ℕ) : Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → 6 ≤ κ → ∀ (L : MemoryImage κ) (gN q : E), ExpTables L.read q →
     ∀ rets : List E, coreProgram.Rel L.read name [gN, q] rets ↔ MeaningLog2CeilExp fl [gN, q] rets
 
-/-- The deployed specializations: floors `0` and `15`, 34 bits. -/
+/-- The deployed specializations: floors `0` and `16`, 34 bits. -/
 def log2_Spec : Prop :=
   log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L0_L34" 0 ∧
-    log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L15_L34" 15
+    log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L16_L34" 16
 
 /-! ## `grind_check` (G:912-938, TRIAGE #21) -/
 

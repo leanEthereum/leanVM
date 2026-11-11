@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.VerifySub.H.Bounds
 
-  An honest layout's sizes: the push side's total is at most the stack's (plus one), so the bus
-  depth is at most the stack's log plus one.
+  An honest layout's sizes: twice the push side's total is at most the stack's plus `2^19`, so the
+  bus depth is at most the stack's log.
 -/
 
 module
@@ -54,28 +54,30 @@ theorem pushTotal_eq (lm h0 h1 h2 h3 h4 h5 : ℕ) :
     List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, smul_eq_mul]
   ring
 
-/-- **The push side fits the stack**: its total is at most the stack's plus one. -/
-theorem pushTotal_le_stack (lm : ℕ) {hs : List ℕ} (hl : hs.length = 6) :
-    pushTotal lm hs ≤ Tables.stackTotal (columnKappas lm 19 hs) + 1 := by
+/-- **The push side fits the stack**: twice its total is at most the stack's plus `2^19`. -/
+theorem pushTotal_le_stack {lm : ℕ} (hlm : 1 ≤ lm) {hs : List ℕ} (hl : hs.length = 6) :
+    2 * pushTotal lm hs ≤ Tables.stackTotal (columnKappas lm 19 hs) + 2 ^ 19 := by
+  have h2 : 2 ≤ 2 ^ lm := by
+    calc 2 = 2 ^ 1 := rfl
+      _ ≤ 2 ^ lm := Nat.pow_le_pow_right (by norm_num) hlm
   match hs, hl with
   | [h0, h1, h2, h3, h4, h5], _ =>
     rw [pushTotal_eq, stackTotal_eq]
     omega
 
-/-- **An honest bus depth**: at most `29`, at least `20`, the memory's log and the heights. -/
+/-- **An honest bus depth**: at most `32`, the stack's log bound. -/
 theorem vsH_depth {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
-    {rowsN : List ℕ} (hrl : rowsN.length = 6)
-    (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28) :
-    log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) ≤ 29 ∧
-      pushTotal logMem (Tables.tableHeightsOf rowsN) ≤ 2 ^ 28 + 1 := by
+    {rowsN : List ℕ} (hrl : rowsN.length = 6) (hlm : 1 ≤ logMem)
+    (h32 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 32) :
+    log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) ≤ 32 ∧
+      pushTotal logMem (Tables.tableHeightsOf rowsN) ≤ 2 ^ 32 := by
   have hsl := tableHeights_length rowsN hrl
-  rw [stackLog_eq hbl] at h28
-  have hst : Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) ≤ 2 ^ 28 :=
+  rw [stackLog_eq hbl] at h32
+  have hst : Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) ≤ 2 ^ 32 :=
     log2Ceil_le_iff.mp (by omega)
-  have hp := pushTotal_le_stack logMem hsl
-  refine ⟨log2Ceil_le_iff.mpr (by
-    calc _ ≤ 2 ^ 28 + 1 := by omega
-      _ ≤ 2 ^ 29 := by norm_num), by omega⟩
+  have hp := pushTotal_le_stack hlm hsl
+  have hle : pushTotal logMem (Tables.tableHeightsOf rowsN) ≤ 2 ^ 32 := by omega
+  exact ⟨log2Ceil_le_iff.mpr hle, hle⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

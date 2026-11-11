@@ -41,7 +41,7 @@ open LeanVM.Node LeanVM.Guest.B1.Main
 /-- **`verify_sub` is complete on every honest child** (G7's target). -/
 def verify_sub_complete_Spec (bytecode : List K) : Prop :=
   ∀ (fs : String → ℕ) (cert : String → V → ℕ), Lift.RunsFit fs cert → RunsConsec cert →
-  ∀ (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout) (κ : ℕ), 16 ≤ κ →
+  ∀ (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout) (κ : ℕ), 14 ≤ κ →
     c.statement.deferredClaim.HasBytecodeShape bytecode →
     (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog) →

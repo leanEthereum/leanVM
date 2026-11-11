@@ -95,7 +95,7 @@ theorem duplexVm_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
 
 /-! ## The permutation calls -/
 
-theorem batchLabel_length : batchingLabel.length ≤ 2 ^ 39 := by decide +kernel
+theorem batchLabel_length : batchingLabel.length ≤ 2 ^ 37 := by decide +kernel
 
 theorem allQ_batchSeed : AllQueriesSatisfy (batchSeedOf.run callKeccak256 callKeccakF1600) Short := by
   refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
@@ -115,7 +115,7 @@ theorem isWeightBound_batch (M : ℕ) (bytecode : List K) (z : Unit × Proof) :
     Common.QueryCostAtMost (verifierFam batchSeeds (boundedBatchingProgram M bytecode) z) hashBlocks
       (batchingQueryBound bytecode M * 2 ^ 32) :=
   isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) (isTotalQueryBound_batchFam M bytecode z)
-    ((allQ_batch M bytecode z).mono fun _ h ↦ hashBlocks_le_of_short h)
+    ((allQ_batch M bytecode z).mono fun _ h ↦ (hashBlocks_le_of_short h).trans (by norm_num))
 
 /-! ## The batching in the random-permutation model -/
 

@@ -11,8 +11,8 @@ public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 `DecoderLaneSizes`, as for the extractor's decoder; the lanes' interpolation within the model's
 price, `LaneInterpOKPM`: `PMInterpOK` and `interpPMModel ≤ interpPMPrice`,
 `Bounds/PMLane/InterpDefs.lean`) and its value, at the model's prices with their
-margin (`marginPrices`), at most the one at `(28, 4)`, which
-`Bounds/PMLane/Shapes.lean` decides at each of the `56` admissible shapes. Definitions only, so
+margin (`marginPrices`), at most the one at `(30, 3)`, which
+`Bounds/PMLane/Shapes.lean` decides at each of the `60` admissible shapes. Definitions only, so
 that the checks import no proof (`Bounds/PMLane/ShapesFirewall.lean`).
 -/
 
@@ -22,9 +22,10 @@ open LeanVM.Parameters LeanVM.Extraction LeanVM.Cost.Bounds.Decoder LeanVM.Cost.
 
 public section
 
-/-- **The decoder's worst price beyond the word's**: `decoderBoundPM` at `(28, 4)`, the
-model's prices with their margin. -/
-@[expose] def pmDecoderWorstPrice : ℕ := decoderBoundPM marginPrices 28 4 0 0
+/-- **The decoder's price beyond the word's**, at a stack of `2^μ`: the statement's budget term
+`2^max(81, 2μ + 22)` (`leanVmKnowledgeExtractorBudget`) less `2^75`, which the rest of the
+extractor's price takes. -/
+@[expose] def pmDecoderBudget (μ : ℕ) : ℕ := 2 ^ max 81 (2 * μ + 22) - 2 ^ 75
 
 /-- **The lanes' interpolation within the model's price**, at prices `p`, a lane of `2^κ`
 symbols, `2^(κ+R)` points, threshold `A`: the interpolation bound's per-shape conditions
@@ -37,11 +38,11 @@ symbols, `2^(κ+R)` points, threshold `A`: the interpolation bound's per-shape c
 instance (p : PMPrices) (κ R A : ℕ) : Decidable (LaneInterpOKPM p κ R A) := by
   unfold LaneInterpOKPM; infer_instance
 
-/-- What the decoder's bound needs at a shape, and its value at most the worst. -/
+/-- What the decoder's bound needs at a shape, and its value within the stack size's budget. -/
 @[expose] def DecoderShapeOkPM (μ R : ℕ) : Prop :=
   DecoderLaneSizes (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
     LaneInterpOKPM marginPrices (μ - Whir.initialFold) R (johnsonThreshold μ R) ∧
-    decoderBoundPM marginPrices μ R 0 0 ≤ pmDecoderWorstPrice
+    decoderBoundPM marginPrices μ R 0 0 ≤ pmDecoderBudget μ
 
 instance (μ R : ℕ) : Decidable (DecoderShapeOkPM μ R) := by
   unfold DecoderShapeOkPM; infer_instance

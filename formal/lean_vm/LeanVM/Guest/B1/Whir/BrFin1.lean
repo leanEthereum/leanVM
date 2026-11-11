@@ -183,10 +183,10 @@ theorem fin_bases {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cf
     split_ifs with h1
     · exact fch_get hm (by omega)
     · exact tailC_get h hs hT (by omega)
-  · have hc : (lvAt c i).logCols ≤ 22 := hs.cols i hi
+  · have hc : (lvAt c i).logCols ≤ 24 := hs.cols i hi
     have := readsAt_map_range hBD (k := i * ligColsCap + t) (by simp only [ligColsCap]; nlinarith)
     simp only [ligColsCap] at this
-    simp only [show (i * 22 + t) / 22 = i by omega, show (i * 22 + t) % 22 = t by omega, finD,
+    simp only [show (i * 24 + t) / 24 = i by omega, show (i * 24 + t) % 24 = t by omega, finD,
       dOf] at this
     exact this
   · have := readsAt_map_range hLS hi

@@ -967,7 +967,7 @@ mod tests {
     fn production_profile_is_128_bit_johnson_with_query_grinding() {
         let mut min_pg_bits = f64::INFINITY;
         for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-            for m in 22 + crate::LOG_PACKING..=28 + crate::LOG_PACKING {
+            for m in verifier::MIN_STACKED_LOG + crate::LOG_PACKING..=verifier::MAX_STACKED_LOG + crate::LOG_PACKING {
                 let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
                 assert_eq!(cfg.target_security_bits, 128);
                 assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);

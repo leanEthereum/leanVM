@@ -281,7 +281,7 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
         rw [hget]
         exact (hcf i').1 c kfp hc hkfp ht
       have hjt : JumpTables L := jumpTables_honestC hH.toHonest hname
-      have hκ : logMem (T.total fs) ≤ 32 := hH.toHonest.logMem_le
+      have hκ : logMem (T.total fs) ≤ 32 := hH.toHonest.logMem_le.trans (by decide)
       have hmain : i + 1 = 1 → I.fp = 0 := fun h1' =>
         hm (by rw [hti]; exact (idx_one_iff hj).mp h1')
       obtain ⟨r, c, hr, hrun, hle, hrets'⟩ := h.run (i + 1) (by omega) hlt L hκ (End.jtHolds_of hjt) hjt

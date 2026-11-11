@@ -94,7 +94,7 @@ theorem tau_ge {rowsN : List ℕ} (h : rowsN.length = 6) :
     simp [Tables.tableHeightsOf, tableLogFloors, keccakMinStepsLog]
 
 theorem tau_lt {rowsN : List ℕ} (h : rowsN.length = 6)
-    (hh : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 29) : (Tables.tableHeightsOf rowsN).getD 5 0 < 29 :=
+    (hh : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 33) : (Tables.tableHeightsOf rowsN).getD 5 0 < 33 :=
   hh _ (getD_mem' (by rw [tableHeights_length rowsN h]; omega))
 
 /-! ## The bus depth -/
@@ -128,18 +128,18 @@ theorem bytecodeAt_claimed (bytecode : List K) (pt : List E) (v : E) :
 
 /-! ## The stack's log -/
 
-theorem sl_word_ginv22_mul : word 8198552432976855044 0 0 * gen ^ 22 = 1 := by
-  rw [show gen ^ 22 = ofK (K.ofBits 4194304) by
-      rw [← word_two_pow (a := 22) (by decide)]; exact word_eOfNat _,
-    show word 8198552432976855044 0 0 = ofK (K.ofBits 8198552432976855044) from word_eOfNat _,
-    ← ofK_mul, show K.ofBits 8198552432976855044 * K.ofBits 4194304 = 1 by decide +kernel, ofK_one]
+theorem sl_word_ginv20_mul : word 14347465658197868555 0 0 * gen ^ 20 = 1 := by
+  rw [show gen ^ 20 = ofK (K.ofBits 1048576) by
+      rw [← word_two_pow (a := 20) (by decide)]; exact word_eOfNat _,
+    show word 14347465658197868555 0 0 = ofK (K.ofBits 14347465658197868555) from word_eOfNat _,
+    ← ofK_mul, show K.ofBits 14347465658197868555 * K.ofBits 1048576 = 1 by decide +kernel, ofK_one]
 
-theorem size_sel_eq {m e : ℕ} (hm : m < 34) (he : e < 7)
-    (h : gen ^ m * word 8198552432976855044 0 0 = gen ^ e) : m = e + 22 := by
-  have h2 : gen ^ m = gen ^ (e + 22) := by
-    calc gen ^ m = gen ^ m * (word 8198552432976855044 0 0 * gen ^ 22) := by
-          rw [sl_word_ginv22_mul, mul_one]
-      _ = gen ^ (e + 22) := by rw [← mul_assoc, h, pow_add]
+theorem size_sel_eq {m e : ℕ} (hm : m < 34) (he : e < 13)
+    (h : gen ^ m * word 14347465658197868555 0 0 = gen ^ e) : m = e + 20 := by
+  have h2 : gen ^ m = gen ^ (e + 20) := by
+    calc gen ^ m = gen ^ m * (word 14347465658197868555 0 0 * gen ^ 20) := by
+          rw [sl_word_ginv20_mul, mul_one]
+      _ = gen ^ (e + 20) := by rw [← mul_assoc, h, pow_add]
   exact gen_pow_inj (by omega) (by omega) h2
 
 /-! ## The committed columns' total -/
@@ -147,20 +147,20 @@ theorem size_sel_eq {m e : ℕ} (hm : m < 34) (he : e < 7)
 theorem committedCols_length : (Tables.committedCols 165).length = Tables.nCommittedCols := by
   decide +kernel
 
-theorem sum_pow_le (l : List ℕ) (h : ∀ x ∈ l, x ≤ 34) :
-    (l.map (2 ^ ·)).sum ≤ l.length * 2 ^ 34 := by
+theorem sum_pow_le (l : List ℕ) (h : ∀ x ∈ l, x ≤ 38) :
+    (l.map (2 ^ ·)).sum ≤ l.length * 2 ^ 38 := by
   induction l with
   | nil => simp
   | cons x l ih =>
     simp only [List.map_cons, List.sum_cons, List.length_cons]
     have h1 := h x (by simp)
     have h2 := ih (fun y hy ↦ h y (by simp [hy]))
-    have : 2 ^ x ≤ 2 ^ 34 := Nat.pow_le_pow_right (by decide) h1
+    have : 2 ^ x ≤ 2 ^ 38 := Nat.pow_le_pow_right (by decide) h1
     nlinarith
 
 theorem sl_columnKappas_le {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6)
-    (hh : ∀ x ∈ hs, x < 29) : ∀ x ∈ columnKappas logMem 19 hs, x ≤ 34 := by
-  have hg : ∀ i, hs.getD i 0 < 29 := fun i ↦ by
+    (hh : ∀ x ∈ hs, x < 33) : ∀ x ∈ columnKappas logMem 19 hs, x ≤ 38 := by
+  have hg : ∀ i, hs.getD i 0 < 33 := fun i ↦ by
     by_cases hi : i < hs.length
     · exact hh _ (getD_mem' hi)
     · rw [List.getD_eq_default _ _ (by omega)]; omega
@@ -181,7 +181,7 @@ theorem sl_columnKappas_le {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (
     omega
 
 theorem sl_stackTotal_lt {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6)
-    (hh : ∀ x ∈ hs, x < 29) : Tables.stackTotal (columnKappas logMem 19 hs) < 2 ^ 41 := by
+    (hh : ∀ x ∈ hs, x < 33) : Tables.stackTotal (columnKappas logMem 19 hs) < 2 ^ 45 := by
   have hk := sl_columnKappas_le hm hl hh
   have hlen : (columnKappas logMem 19 hs).length = 165 := by
     simp [columnKappas]; decide +kernel

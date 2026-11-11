@@ -58,7 +58,7 @@ theorem vsPushStep_mem {b : ℕ} (hb : b < 54) {s : Stmt} (hs : s ∈ vsPushStep
 
 /-- The push blocks' running product, honestly. -/
 theorem vsPush_loop (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ}
-    (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
+    (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
     (hkbv : ∀ s < 8, vsσ rd w args (.n (140 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (hexp : B1.ExpTables rd (vsσ rd w args (.n 4)))
     {C : CallRel} {kret : List E → Prop} :
@@ -125,7 +125,7 @@ theorem vsPush_loop (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ}
 
 /-- **The push total and the bus depth, honestly.** -/
 theorem vsPushT_complete (hl : args.length = 6) {logMem : ℕ} {hs : List ℕ}
-    (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
+    (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
     (hkbv : ∀ s < 8, vsσ rd w args (.n (140 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (hexp : B1.ExpTables rd (vsσ rd w args (.n 4)))
     {C : CallRel} (hC : ∀ r, vsσ rd w args (.n 309) = r →

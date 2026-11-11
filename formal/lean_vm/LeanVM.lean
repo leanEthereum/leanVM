@@ -91,7 +91,7 @@ random-permutation model where an adversary is involved, except the memory-decod
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
 completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.extractorC_cost`,
-`extractorPrice_28_4`, `extractorPrice_28_4_2_128`), the guest's batching
+`extractorPrice_30_4`, `extractorPrice_30_4_2_128`), the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
 random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
 `aggregate_knowledge`, and the guest's completeness within its deployed budget
@@ -126,13 +126,13 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.Cost.Bounds.extractorC_cost
 
-/-- info: 'LeanVM.Cost.Bounds.extractorPrice_28_4' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.Bounds.extractorPrice_30_4' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorPrice_28_4
+#print axioms LeanVM.Cost.Bounds.extractorPrice_30_4
 
-/-- info: 'LeanVM.Cost.Bounds.extractorPrice_28_4_2_128' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.Bounds.extractorPrice_30_4_2_128' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorPrice_28_4_2_128
+#print axioms LeanVM.Cost.Bounds.extractorPrice_30_4_2_128
 
 /-- info: 'LeanVM.candidates_ncard_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

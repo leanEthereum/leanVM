@@ -15,8 +15,8 @@ import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 * **Row counts.** Row counts that are not powers of two give the placements and the stacked size
   of the least powers of two holding them.
 * **The announced sizes.** `readAnnouncedSizes` returns on the announcement of admissible sizes, and
-  rejects a memory below `2^16`, a table above `2^32` rows and the rate `5`; a `KECCAK` table
-  of two rows is accepted, at its floor height `2^9`.
+  rejects a memory above `2^30`, a table above `2^30` rows and the rate `5`; a memory of two cells,
+  the floor, is accepted, and a `KECCAK` table of two rows, at its floor height `2^9`.
 * **Mutations.** Breaking ties by the higher index moves placements: the tie order is
   load-bearing.
 * **The bus flushes.** Every opcode table's pushed and pulled tuples, evaluated on a row, are the
@@ -118,8 +118,9 @@ def rejects (s : Sizes) (ρ : ℕ) : Bool :=
 #guard readsTo s₂ 4 23
 #guard readsTo s₃ 4 23
 #guard readsTo ⟨16, by decide, ![65536, 8, 65536, 16, 65536, 2]⟩ 2 22
-#guard rejects ⟨15, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2
-#guard rejects ⟨16, by decide, ![65536, 8, 2 ^ 32 + 1, 16, 65536, 65536]⟩ 2
+#guard readsTo ⟨1, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2 24
+#guard rejects ⟨31, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2
+#guard rejects ⟨16, by decide, ![65536, 8, 2 ^ 30 + 1, 16, 65536, 65536]⟩ 2
 #guard rejects s₁ 5
 #guard rejects s₁ 0
 

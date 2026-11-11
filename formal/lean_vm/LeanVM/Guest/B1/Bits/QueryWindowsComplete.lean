@@ -438,7 +438,7 @@ theorem qwWindows_complete {d cd base cut at0 : ℕ} {ns : ℕ → ℕ} : ∀ (i
 /-! ## A position's store and pointer -/
 
 omit hT hlow in
-theorem qwPos_eq {P cut d : ℕ} (hP : P < 2 ^ d) (hc : cut < d) (hd26 : d ≤ 26) :
+theorem qwPos_eq {P cut d : ℕ} (hP : P < 2 ^ d) (hc : cut < d) (hd30 : d ≤ 30) :
     eOfNat (P % 2 ^ cut) + cbWord cut * eOfNat (P / 2 ^ cut) = eOfNat P := by
   have hY : P / 2 ^ cut < 2 ^ (d - cut) := by
     rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add, Nat.sub_add_cancel hc.le]
@@ -450,7 +450,7 @@ theorem qwPos_eq {P cut d : ℕ} (hP : P < 2 ^ d) (hc : cut < d) (hd26 : d ≤ 2
 omit hT hlow in
 theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d : ℕ} {lo hi : V}
     {recon : Option V} {P : ℕ} {R : E} (hrec : recon = none → base = 0) (hP : P < 2 ^ d)
-    (hd : 1 ≤ d) (hd26 : d ≤ 26) (hbase : base + d ≤ 192) (hcut : cut = 64 - base % 64)
+    (hd : 1 ≤ d) (hd30 : d ≤ 30) (hbase : base + d ≤ 192) (hcut : cut = 64 - base % 64)
     (hj : j < Q.np) (hpos : LoadHolds rd Q.pos j (eOfNat P))
     (hpre : QwStab l fun σ ↦ σ lo = eOfNat (P % 2 ^ cut) ∧ (cut < d → σ hi = eOfNat (P / 2 ^ cut)) ∧
       σ (.n 1) = Q.pos ∧ qwOpt σ recon = R) :
@@ -460,7 +460,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
   suffices h : QwExt l (qwPr j base cut d k lo hi recon).2.1 fun σ ↦
       qwAK rd Q σ (qwPr j base cut d k lo hi recon).1 by
     refine (h.and_stab hpre).mono fun σ ⟨hA, hlo, hhi, _, hR⟩ ↦ ⟨hA, ?_⟩
-    rw [(qwPr_sound hA.ah hrec hP hd hd26 hbase hcut hlo hhi).2, hR]
+    rw [(qwPr_sound hA.ah hrec hP hd hd30 hbase hcut hlo hhi).2, hR]
   unfold qwPr
   by_cases hc : cut < d
   · rw [ite_pos' hc]
@@ -469,7 +469,7 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
       cases recon with
       | none => exact absurd (hrec rfl) hb0
       | some rc => exact ⟨rc, rfl⟩
-    have hpE := qwPos_eq hP hc hd26
+    have hpE := qwPos_eq hP hc hd30
     refine ⟨[cbWord cut, cbWord cut * eOfNat (P / 2 ^ cut),
       eOfNat (P % 2 ^ cut) + cbWord cut * eOfNat (P / 2 ^ cut), cbWord base,
       cbWord base * eOfNat (P % 2 ^ cut), cbWord (base + cut),
@@ -578,8 +578,8 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
     QwExt l (qwPos d cd j k recon).2.1 fun σ ↦ qwAK rd Q σ (qwPos d cd j k recon).1 ∧
       qwOpt σ (qwPos d cd j k recon).2.2 = R + eOfNat192 (2 ^ (j * d) * P) ∧
       (qwPos d cd j k recon).2.2.isSome = true := by
-  have hd14 := hs.1
-  have hd26 := hs.2.1
+  have hd12 := hs.1
+  have hd30 := hs.2.1
   have hwin := hs.2.2.2.2.2.1
   have hN1 : 1 ≤ qwN d cd := by unfold qwN; omega
   have hbase : j * d + d ≤ 192 := by
@@ -615,7 +615,7 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
       (R := R)
       (lo := ((qwWindows d cd (j * d) cut (j * qwN d cd) 0 (qwN d cd) k none none).2.2.1.getD (.n 0)))
       (hi := ((qwWindows d cd (j * d) cut (j * qwN d cd) 0 (qwN d cd) k none none).2.2.2.getD (.n 0)))
-      (fun h0 ↦ by rw [hrec h0, Nat.zero_mul]) hP (by omega) hd26 hbase rfl (by omega) hpos
+      (fun h0 ↦ by rw [hrec h0, Nat.zero_mul]) hP (by omega) hd30 hbase rfl (by omega) hpos
       (((hpre.ext m1).and hs1).mono fun σ ⟨⟨_, hb, hR⟩, _, elo, ehi⟩ ↦
         ⟨?_, fun hc ↦ ?_, hb.1, hR⟩)).bind
       fun m2 hm2 hs2 ↦ qwPtr_complete hm2 hN1 hjn (by omega) hptr
@@ -743,7 +743,7 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
       ∀ C : CallRel, Stmt.HoldsList C rd σ (qwBody d cd) False (fun rs ↦ rs = []) := by
   set Q : QwEnv := ⟨pos, ptrs, tabs, run, 192 / d⟩ with hQ
   have hT' : WinTabs rd Q.tabs := hT
-  have hd14 := hs.1
+  have hd12 := hs.1
   have hper : 192 / d * d ≤ 192 := Nat.div_mul_le_self 192 d
   have hper1 : 1 ≤ 192 / d := (Nat.le_div_iff_mul_le (by omega)).mpr (by have := hs.2.1; omega)
   have hM : 192 / d * qwN d cd ≤ 56 := hs.2.2.1

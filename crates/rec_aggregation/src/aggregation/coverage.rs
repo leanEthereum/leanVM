@@ -2,7 +2,7 @@
 
 use super::error::AggregationError;
 use super::proof::{EthereumClaims, EthereumProof};
-use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS};
+use super::{LeanSphincsClaim, LeanXmssClaim};
 use std::collections::BTreeSet;
 
 /// The coverage slot each write in the guest's coverage walk targets, in walk
@@ -88,16 +88,6 @@ impl<K: Ord + Clone> Region<K> {
             children,
         })
     }
-
-    fn n_slots(&self) -> usize {
-        self.signers.len() + self.dups.len()
-    }
-}
-
-impl Coverage {
-    pub(super) fn n_total(&self) -> usize {
-        self.xmss.n_slots() + self.lean_sphincs.n_slots()
-    }
 }
 
 /// A claim takes its declared slot once; subsequent or omitted occurrences take
@@ -133,8 +123,5 @@ pub(super) fn plan_coverage(
             declare.map(|claims| claims.lean_sphincs.as_slice()),
         )?,
     };
-    if cover.n_total() >= MAX_KEYS {
-        return Err(AggregationError::TooLarge);
-    }
     Ok(cover)
 }

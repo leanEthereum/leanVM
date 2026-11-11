@@ -30,8 +30,9 @@ challenges, `c_table`) and the exponent table at `sqE` (G:3318-3436, at 40f877dc
    `col_eval_words·g^107`), `z_vals`, `slices`;
 8. `ring_switch_target` on `slices` and the ring map's challenges;
 9. `certify_placement` on `kappa_base` and the exponent table;
-10. `log2_ceil_in_the_exponent__L15_L34` on `g^(stack total)`;
-11. `open_stacked`'s candidate on the stream past the Keccak reduction's words;
+10. `log2_ceil_in_the_exponent__L16_L34` on `g^(stack total)`;
+11. `open_stacked`'s specialization of the stack's size, on the rate's selector and the stream past
+    the Keccak reduction's words;
 12. `check_opening_terminal`, on `certify_placement`'s buffers and `open_stacked`'s points when
     they are what those return (`termOk`).
 -/
@@ -141,11 +142,11 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
       Returns [polyEval (S.slices.map (phiMap · S.rchs)) gen]⟩,
     fun _ ↦ ⟨"certify_placement", true, [ofK (addressOfIndex (vb bs 4)), ofK (addressOfIndex sqE)],
       Tables.cpLin S.logMem S.hs (vb bs 4) sqE, Tables.cpOut S.logMem S.hs⟩,
-    fun _ ↦ ⟨"log2_ceil_in_the_exponent__L15_L34", true,
+    fun _ ↦ ⟨"log2_ceil_in_the_exponent__L16_L34", true,
       [gen ^ Tables.stackTotal S.kappas, ofK (addressOfIndex sqE)], log2Lin sqE,
-      Returns [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]⟩,
-    fun _ ↦ ⟨B1.Whir.openName S.μs S.rate, true,
-      capOf S.s8.perm ++ [S.target, (digestHalves S.root).1, (digestHalves S.root).2,
+      Returns [gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))]⟩,
+    fun _ ↦ ⟨B1.Whir.openName S.μs, true,
+      B1.Whir.rateSel S.rate :: capOf S.s8.perm ++ [S.target, (digestHalves S.root).1, (digestHalves S.root).2,
         ofK (addressOfIndex (S.cW bs))],
       [(S.cW bs, S.xsW)], vsOsOut S.μs S.w⟩,
     fun pv ↦

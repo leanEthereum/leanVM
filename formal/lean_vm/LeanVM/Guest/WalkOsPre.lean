@@ -1,307 +1,292 @@
 /-
   LeanVM.Guest.WalkOsPre
 
-  `open_stacked`'s window pointers name windows on every prefix of its body that reaches a level's
-  `opening_queries` call: the walk's obligation at that call (`OqMainWins`), from the decodes
-  before it.
+  What `open_stacked`'s dispatch into `level_positions` writes: at the rate's arm, the squeeze
+  loop's decodes, whose window pointers name windows (`QueryWinsOk`), the walk's obligation
+  (`OqMainWins`) at the level's queries.
 -/
 
 module
 
 public import LeanVM.Guest.WalkOsDefs
-public import LeanVM.Guest.B1.Whir.Flatness
-public import LeanVM.Guest.B1.Whir.Head
+public import LeanVM.Guest.B1.Whir.Flat
+public import LeanVM.Guest.B1.Whir.HelperT
+public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Opening.QueriesWalk
+public import LeanVM.Guest.B1.Bits.QueryWindowsAll
 
 /-!
-# `open_stacked`'s walk obligations, on a prefix (TRIAGE G #42)
+# `level_positions`' windows (TRIAGE G #42)
 
-Checker K cuts `open_stacked__L{m}` before each level's `opening_queries` call and asks there, on the
-statements before the cut, the callee's precondition `OqMainWins` on the call's `query_win_ptrs`
-(REC-GUEST-IFACE 'tool: walk obligations'). The cut comes before the call's constant `n_iters_g`
-(the compiler sets it in the call's setup), after the window pointers' materialization.
-
-* `osPre c ℓ`: the head, the levels before `ℓ`, and level `ℓ` up to its window pointers
-  (`osLevelPre`), a prefix of the body (`osPre_prefix`); every statement of it holds on any prefix of
-  the body at least as long (`allOk_osPre`).
-* `osPre_queryWinsOk`: from those statements, the level's window pointers
-  `σ (osPreBp c ℓ) = query_win_ptrs·g^posOff` (the materializations, `osLevels_mats`) name, for
-  each of the level's queries, a frame run of its windows (the squeeze loop's decodes,
-  `osSqueezes_wins`, reading the window table the head writes, `osHead_winTabs`).
-* `osPre_oqMainWins`: hence `OqMainWins` at `n_iters_g = g^(queries / (1 + base))`.
+* `holdsList_flatD`: a block of atoms, calls and dispatches that holds holds statement by
+  statement (`StmtOkD`, a dispatch's arm at its selector).
+* `lpLoop_sound`: `level_positions`' loop (`lpLoopBody`) decodes, at every iteration `g^j` of
+  `sq`, a squeeze's positions and windows at `qpos·g^(j·192/d)` and `qbp·g^(j·192/d)`.
+* `lp_sound`: from a call of a specialization (`lpBody`) at `[fs0..fs4, qpos, qbp, tabs]`, the
+  window pointers at `qbp` name the windows of every query `sq·192/d` decodes (`QueryWinsOk`), and
+  so `OqMainWins` at `g^n` for a walk of `oqCount odd base n ≤ sq·192/d` queries.
 -/
 
-namespace LeanVM.Guest.B1.Whir
+namespace LeanVM.Guest.End
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Guest.B1.Whir LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-! ## Prefixes -/
+/-! ## Flat blocks with dispatches -/
 
-theorem allOk_of_prefix {ss ts : List Stmt} (h : ss <+: ts) (hok : AllOk C rd σ ts) :
-    AllOk C rd σ ss :=
-  fun s hs ↦ hok s (h.subset hs)
+/-- A statement's relation, a dispatch's at its selector's arm. -/
+def StmtOkD (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
+  | .atom a => a.Holds rd σ
+  | .call f args rets => C f (args.map σ) (rets.map σ)
+  | .callIf c f args => IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) [])
+  | .dispatch x fs args rets => ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧
+      C fs[j] (args.map σ) (rets.map σ)
+  | _ => True
 
-theorem flat_of_prefix {ss ts : List Stmt} (h : ss <+: ts) (hf : Flat ts) : Flat ss := by
-  obtain ⟨t, rfl⟩ := h
-  simp only [Flat, List.all_append, Bool.and_eq_true] at hf
-  exact hf.1
+/-- **A block of atoms, calls and dispatches holds** statement by statement. -/
+theorem holdsList_flatD : ∀ (ss : List Stmt), ss.all flatD = true → ∀ (next : Prop)
+    (kret : List E → Prop), Stmt.HoldsList C rd σ ss next kret → (∀ s ∈ ss, StmtOkD C rd σ s) ∧ next
+  | [], _, _, _, h => ⟨fun _ hs ↦ absurd hs (by simp), h⟩
+  | s :: ss, hf, next, kret, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at hf
+    obtain ⟨hs, hf⟩ := hf
+    have key : StmtOkD C rd σ s ∧ Stmt.HoldsList C rd σ ss next kret := by
+      match s, hs with
+      | .atom a, _ => exact h
+      | .call f args rets, _ => exact h
+      | .callIf c f args, _ => exact ⟨⟨h.1, h.2.1⟩, h.2.2⟩
+      | .dispatch x fs args rets, _ => exact h
+    obtain ⟨hk, ht⟩ := key
+    obtain ⟨hall, hn⟩ := holdsList_flatD ss hf next kret ht
+    refine ⟨fun t ht' ↦ ?_, hn⟩
+    rcases List.mem_cons.mp ht' with rfl | ht'
+    · exact hk
+    · exact hall t ht'
 
-theorem osQueriesA_prefix (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
-    osQueriesA c lvl lv s <+: (osQueries c lvl lv lam lamN s).1 :=
-  ⟨_, rfl⟩
+/-- Every statement before `start` holds (one past the body a `ret`, which says nothing). -/
+theorem okAt {body : List Stmt} {start i : ℕ} (h : ∀ s ∈ body.take start, StmtOkD C rd σ s)
+    (hi : i < start) : StmtOkD C rd σ (stmtAt body i) := by
+  unfold stmtAt
+  by_cases hl : i < body.length
+  · rw [List.getD_eq_getElem _ _ hl]
+    exact h _ (List.mem_iff_getElem.mpr ⟨i, by simp; omega, by simp⟩)
+  · rw [List.getD_eq_default _ _ (by omega)]
+    trivial
 
-theorem osLevelPre_prefix (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    osLevelPre c lvl lv s <+: (osLevel c lvl lv s).1 := by
-  have h1 := osQueriesA_prefix c lvl lv
-    ((osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k - 1)
-    (osLamPow lvl ((osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k - 1) lv.queries
-      (osSqueezes c lvl lv (osLevelM c lvl lv s).2.1).2.k).2.1 (osLevelQ c lvl lv s)
-  refine List.IsPrefix.trans ((List.prefix_append_right_inj _).mpr h1) ?_
-  exact ((List.prefix_append _ _).trans (List.prefix_append _ _)).trans (List.prefix_append _ _)
+/-- A flat statement's relation is its `StmtOkD`. -/
+theorem stmtOk_of_D {s : Stmt} (hs : Stmt.flat s = true) (h : StmtOkD C rd σ s) :
+    Whir.StmtOk C rd σ s := by
+  match s, hs with
+  | .atom _, _ => exact h
+  | .call .., _ => exact h
+  | .callIf .., _ => exact h
+  | .dispatch .., _ => exact h
 
-/-- The levels before `ℓ` and level `ℓ` up to its window pointers. -/
-theorem osLevels_pre (c : OsCfg) : ∀ (ℓ lvl : ℕ) (lvs : List OsLv) (s : OsSt) (h : ℓ < lvs.length),
-    (osLevels c lvl (lvs.take ℓ) s).1 ++
-      osLevelPre c (lvl + ℓ) lvs[ℓ] (osLevels c lvl (lvs.take ℓ) s).2 <+: (osLevels c lvl lvs s).1
-  | 0, lvl, lv :: rest, s, _ => by
-    simp only [List.take_zero, osLevels, List.nil_append, Nat.add_zero, List.getElem_cons_zero]
-    exact (osLevelPre_prefix c lvl lv s).trans (List.prefix_append _ _)
-  | ℓ + 1, lvl, lv :: rest, s, h => by
-    have ih := osLevels_pre c ℓ (lvl + 1) rest (osLevel c lvl lv s).2 (by simp at h; omega)
-    simp only [List.take_succ_cons, osLevels, List.getElem_cons_succ, List.append_assoc]
-    rw [show lvl + (ℓ + 1) = lvl + 1 + ℓ by omega]
-    exact (List.prefix_append_right_inj _).mpr ih
+/-- **The window table** from a run of the body before the cut. -/
+theorem winTabs_of_body {body : List Stmt} {start hw : ℕ}
+    (h : ∀ s ∈ body.take start, StmtOkD C rd σ s) (hle : hw + osWinTabs.length ≤ start)
+    (heq : stmtsEqb ((body.drop hw).take osWinTabs.length) osWinTabs = true) :
+    WinTabs rd (σ (.n osWin)) := by
+  have hmem : ∀ s ∈ osWinTabs, s ∈ body.take start := by
+    intro s hs
+    rw [← stmtsEqb_sound heq] at hs
+    have h1 : s ∈ body.take (hw + osWinTabs.length) := by
+      rw [List.take_add]; exact List.mem_append_right _ hs
+    rw [← Nat.min_eq_left hle, ← List.take_take] at h1
+    exact List.mem_of_mem_take h1
+  intro n hn
+  have hc := h _ (hmem _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨n, List.mem_range.mpr hn, rfl⟩,
+    List.mem_cons_self ..⟩))
+  have hl := h _ (hmem _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨n, List.mem_range.mpr hn, rfl⟩,
+    List.mem_cons_of_mem _ (List.mem_cons_self ..)⟩))
+  simp only [StmtOkD, Atom.Holds] at hc hl
+  rw [hc, word_eOfNat] at hl
+  exact hl
 
-theorem osPre_prefixA {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) : osPre c ℓ <+: osBodyA c := by
-  have hL := osLevels_pre c ℓ 0 c.levels (osHead c).2 h
-  rw [Nat.zero_add] at hL
-  rw [← List.getD_eq_getElem _ default h] at hL
-  refine List.IsPrefix.trans ((List.prefix_append_right_inj _).mpr hL) ?_
-  unfold osBodyA
-  exact (List.prefix_append _ _).trans (List.prefix_append _ _)
+/-! ## The loop -/
 
-theorem osPre_prefix {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) : osPre c ℓ <+: osBody c := by
-  rw [osBody_split]
-  exact (osPre_prefixA h).trans (List.prefix_append _ _)
+/-- `level_positions`' loop before its tail: the squeeze, the pointers shifted, the decode. -/
+def lpLoopA (d cd : ℕ) : List Stmt :=
+  let pw := osPowSteps 0 (osPowDigits (192 / d)) 0 40
+  let e := 40 + osPowLen (192 / d)
+  ([.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 0)),
+    .atom (.mul (.n 9) (.n 2) (.n 8))] ++
+    ((List.range 5).map fun i ↦ .atom (.load (.n (10 + i)) (.n 9) i)) ++
+    [.atom (.const (.n 15) (word 1 0 0)), .atom (.const (.n 16) (word 0 0 0)),
+      .atom (.const (.n 17) (word 0 0 0)), .atom (.const (.n 18) (word 0 0 0)),
+      .atom (.const (.n 19) (word 0 0 0))] ++
+    osSqueeze0 15 [10, 11, 12, 13, 14] 20 ++
+    ((List.range 5).map fun i ↦ .atom (.load (.n (28 + i)) (.n 9) (5 + i)))) ++
+    pw.1 ++ [.atom (.mul (.n e) (.n 3) (.n pw.2)), .atom (.mul (.n (e + 1)) (.n 4) (.n pw.2)),
+      .call ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd) [.n 39, .n e, .n (e + 1), .n 5] []]
 
-/-- **Every statement up to level `ℓ`'s window pointers holds**, on a prefix of the body at least
-as long. -/
-theorem allOk_osPre {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) {n : ℕ}
-    (hn : (osPre c ℓ).length ≤ n) {next : Prop} {kret : List E → Prop}
-    (hl : Stmt.HoldsList C rd σ ((osBody c).take n) next kret) : AllOk C rd σ (osPre c ℓ) := by
-  obtain ⟨t, ht⟩ := osPre_prefix h
-  rw [← ht, List.take_append, List.take_of_length_le hn, holdsList_append,
-    holdsList_flat _ (flat_of_prefix (osPre_prefixA h) (osBodyA_flat c))] at hl
-  exact hl.1
+theorem lpLoopBody_split (d cd : ℕ) (name : String) :
+    lpLoopBody d cd name = (lpLoopA d cd ++ osLoopTailA (40 + osPowLen (192 / d) + 2)) ++
+      [.callIf (.n (40 + osPowLen (192 / d) + 2 + 2)) name
+        (.n (40 + osPowLen (192 / d) + 2 + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1)),
+        .ret []] := by
+  simp only [lpLoopBody, lpLoopA, osLoopTail_split, List.append_assoc, List.cons_append,
+    List.nil_append]
 
-/-! ## The window table -/
+theorem lpLoopA_flat (d cd : ℕ) :
+    (lpLoopA d cd ++ osLoopTailA (40 + osPowLen (192 / d) + 2)).all Stmt.flat = true := by
+  have hpw : ∀ ds acc k, (osPowSteps 0 ds acc k).1.all Stmt.flat = true := by
+    intro ds
+    induction ds with
+    | nil => intro _ _; rfl
+    | cons d ds ih =>
+      intro acc k
+      cases d <;> simp [osPowSteps, ih, Stmt.flat]
+  simp [lpLoopA, osSqueeze0, keccakA, challengeT, osLoopTailA, hpw, Stmt.flat]
 
-theorem osHead_winTabs {c : OsCfg} (h : AllOk C rd σ (osHead c).1) : WinTabs rd (σ (.n osWin)) := by
-  apply osWinTabs_sound (C := C)
-  intro x hx
-  refine h x ?_
-  simp only [osHead, List.mem_append]
-  simp [hx]
+/-- One iteration of `level_positions`' loop at `x`: a squeeze's positions and windows decoded at
+`qpos·x^(192/d)` and `qbp·x^(192/d)`. -/
+def LpIter (rd : Reader) (d cd : ℕ) (qpos qbp tabs x : E) : Prop :=
+  ∃ w, MeaningDecodeQueryWindows d cd rd [w, qpos * x ^ (192 / d), qbp * x ^ (192 / d), tabs] []
 
-/-! ## The materializations -/
-
-theorem osLevelM_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt}
-    (hb : (lvl + 1) * ligColsCap < u128Bound) (hm : MatsOk σ s.mats)
-    (h : AllOk C rd σ (osLevelM c lvl lv s).1) : MatsOk σ (osLevelM c lvl lv s).2.1.mats := by
-  unfold osLevelM at h ⊢
-  split
-  · show MatsOk σ (osFolds osFch lv.foldsOff lv.folds s).2.mats
-    rw [osFolds_mats]; exact hm
-  · rename_i hne
-    simp only [hne, ↓reduceIte] at h
-    have hm' : MatsOk σ (osFolds osFch lv.foldsOff lv.folds s).2.mats := by
-      rw [osFolds_mats]; exact hm
-    refine osMatsAfter_ok hm' hb fun x hx ↦ h x ?_
-    simp only [osCommit, List.mem_append]
-    simp [hx]
-
-/-- **A level's materializations hold** up to its window pointers, and the pointers are
-`query_win_ptrs·g^posOff`. -/
-theorem osLevelPre_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB lvl lv)
-    (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osLevelPre c lvl lv s)) :
-    MatsOk σ (osQueriesM3 c lv (osLevelQ c lvl lv s)) ∧
-      σ (.n (osQueriesBpS c lv (osLevelQ c lvl lv s)).2.1) = σ (.n osQbp) * gen ^ lv.posOff ∧
-      MatsOk σ (osQueriesMats c lv (osLevelQ c lvl lv s)) := by
-  obtain ⟨hb0, hb1, hb2, hb3, hb4⟩ := hb
-  unfold osLevelPre at h
-  simp only [allOk_append] at h
-  obtain ⟨⟨⟨⟨⟨-, hM⟩, -⟩, -⟩, -⟩, hQ⟩ := h
-  have hq0 : MatsOk σ (osLevelQ c lvl lv s).mats := by
-    show MatsOk σ (osLevelM c lvl lv s).2.1.mats
-    exact osLevelM_mats hb0 hm hM
-  unfold osQueriesA at hQ
-  simp only [allOk_append] at hQ
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, hfp⟩, -⟩, hcp⟩, hflp⟩, -⟩, -⟩, -⟩, hbp⟩ := hQ
-  have k1 := osMatsAfter_ok hq0 hb1 hfp
-  have k2 := osMatsAfter_ok k1 hb2 hcp
-  have k3 := osMatsAfter_ok k2 hb3 hflp
-  exact ⟨k3, osMatP_val k3 hb4 hbp, osMatsAfter_ok k3 hb4 hbp⟩
-
-theorem osLevel_mats_eq (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    (osLevel c lvl lv s).2.mats = osQueriesMats c lv (osLevelQ c lvl lv s) := by
-  unfold osLevel osLevelQ osLevelM
-  by_cases h : lvl = c.yrLevel
-  · simp only [h, ↓reduceIte]
-    rfl
-  · simp only [h, ↓reduceIte]
-    rfl
-
-/-- **A level's materializations hold** after it. -/
-theorem osLevel_mats {c : OsCfg} {lvl : ℕ} {lv : OsLv} {s : OsSt} (hb : LvMatB lvl lv)
-    (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osLevel c lvl lv s).1) :
-    MatsOk σ (osLevel c lvl lv s).2.mats := by
-  rw [osLevel_mats_eq]
-  exact (osLevelPre_mats hb hm (allOk_of_prefix (osLevelPre_prefix c lvl lv s) h)).2.2
-
-theorem osLevels_mats {c : OsCfg} : ∀ (lvl : ℕ) (lvs : List OsLv) (s : OsSt),
-    (∀ i (hi : i < lvs.length), LvMatB (lvl + i) lvs[i]) → MatsOk σ s.mats →
-    AllOk C rd σ (osLevels c lvl lvs s).1 → MatsOk σ (osLevels c lvl lvs s).2.mats
-  | _, [], _, _, hm, _ => hm
-  | lvl, lv :: rest, s, hb, hm, h => by
-    simp only [osLevels, allOk_append] at h ⊢
-    have h0 := osLevel_mats (hb 0 (by simp)) hm h.1
-    exact osLevels_mats (lvl + 1) rest _ (fun i hi ↦ by
-      have := hb (i + 1) (by simp; omega)
-      rwa [show lvl + (i + 1) = lvl + 1 + i by omega] at this) h0 h.2
-
-/-! ## The squeezes' decodes -/
-
-/-- **A level's squeeze loop decodes** every squeeze's positions and windows at
-`query_win_ptrs·g^(posOff + jj·(192/depth))`. -/
-theorem osSqueezes_wins {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osSqueezes c lvl lv st).1)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
+theorem lpLoop_step (d cd : ℕ) (hpw : digitsVal (osPowDigits (192 / d)) 1 = 192 / d)
     (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
-    (hwt : WinTabs rd (σ (.n osWin)))
-    (hn0 : 0 < lv.squeezes) (hn : lv.squeezes < ordG) :
-    ∀ jj < lv.squeezes, ∃ w, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
-      [w, σ (.n osQpos) * gen ^ (lv.posOff + jj * (192 / lv.depth)),
-        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth)), σ (.n osWin)] [] := by
-  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
-  set k := st.k
-  have hstm : (osSqueezes c lvl lv st).1 = osHeap ((c.maxSq + 1) * 5) k ++
-      (st.fs.zipIdx.map fun (f, i) ↦ .atom (.load (.n f) (.n (k + 1)) i)) ++
-      osLoopCall (c.sqLoop lvl) lv.squeezes [k + 1, osQpos, osQbp, osWin] (k + 2) ++
-      [.atom (.const (.n (k + 7)) (gw (lv.squeezes * 5))),
-        .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7)))] ++
-      ((List.range 5).map fun i ↦ .atom (.load (.n (k + 9 + i)) (.n (k + 8)) i)) ++
-      (osPad st.pad (k + 14)).1 ++ osSqueeze0 (osPad st.pad (k + 14)).2.1
-        [k + 9, k + 10, k + 11, k + 12, k + 13] (osPad st.pad (k + 14)).2.2 := rfl
-  rw [hstm] at hok
-  simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨-, -⟩, hL⟩, -⟩, -⟩, -⟩, -⟩ := hok
-  simp only [osLoopCall, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons,
-    List.map_nil] at hL
-  obtain ⟨c2, c3, a4, c5, c6, -, hcall⟩ := hL
-  have hgn : gw lv.squeezes = gen ^ lv.squeezes := gw_eq (by
-    have : ordG < u128Bound := by unfold ordG u128Bound; norm_num
-    omega)
-  have hit := sqLoop_sound hfind lv hps hbody hpw hpo hdec hn0 hn (σ (.n (k + 1))) (σ (.n osQpos))
-    (σ (.n osQbp)) (σ (.n osWin)) hwt (by
-      rw [a4, c2, c3, c5, c6, hgn, word_one] at hcall
-      exact hcall)
-  intro jj hjj
-  obtain ⟨cap, -, -, -, h3⟩ := sqIter_at (hit jj hjj)
-  exact ⟨_, h3⟩
+      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd) args rets →
+        MeaningDecodeQueryWindows d cd rd args rets)
+    (σ : Val) (x N sqz qpos qbp tabs : E) (hwt : WinTabs rd tabs)
+    (hp : (osParams 6).map σ = [x, N, sqz, qpos, qbp, tabs])
+    (hA : AllOk (coreProgram.Rel rd) rd σ (lpLoopA d cd ++ osLoopTailA (40 + osPowLen (192 / d) + 2))) :
+    LpIter rd d cd qpos qbp tabs x ∧ σ (.n (40 + osPowLen (192 / d) + 2 + 2)) = x * gen + N ∧
+      (.n (40 + osPowLen (192 / d) + 2 + 4) :: (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map σ =
+        x * gen :: [N, sqz, qpos, qbp, tabs] := by
+  simp only [osParams, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
+    List.nil_append, List.cons.injEq, and_true, List.cons_append] at hp
+  obtain ⟨h0, h1, h2, h3, h4, h5⟩ := hp
+  rw [allOk_append] at hA
+  obtain ⟨hA, hT⟩ := hA
+  obtain ⟨t2, t4⟩ := osLoopTailA_val hT
+  unfold lpLoopA at hA
+  simp only [allOk_append] at hA
+  obtain ⟨⟨-, hpw1⟩, hL⟩ := hA
+  simp only [allOk_cons, allOk_nil, and_true, Whir.StmtOk, Atom.Holds, List.map_cons, List.map_nil] at hL
+  obtain ⟨hmul1, hmul2, hdc⟩ := hL
+  have hpwv := osPowSteps_val (C := coreProgram.Rel rd) (σ := σ) 0 (osPowDigits (192 / d)) 0 40
+    1 (by rw [pow_one]) hpw1
+  rw [hpw, h0] at hpwv
+  rw [hpwv, h3] at hmul1
+  rw [hpwv, h4] at hmul2
+  refine ⟨⟨σ (.n 39), ?_⟩, ?_, ?_⟩
+  · have := hdec _ _ (by simpa [h5] using hwt) hdc
+    rwa [hmul1, hmul2, h5] at this
+  · rw [t2, h0, h1]
+  · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
+      List.cons_append, Nat.zero_add, t4, h0, h1, h2, h3, h4, h5]
 
-/-- **The window pointers name windows**: every decoded query's pointer, at `qbp·g^po`, a frame
-run of its windows at a position below `2^d`. -/
-theorem queryWinsOk_of_decodes {d cd po q nsq : ℕ} (hd : 1 ≤ 192 / d) (hq : q ≤ nsq * (192 / d))
-    {qpos qbp tabs : E}
-    (hdec : ∀ jj < nsq, ∃ w, MeaningDecodeQueryWindows d cd rd [w,
-      qpos * gen ^ (po + jj * (192 / d)), qbp * gen ^ (po + jj * (192 / d)), tabs] []) :
-    QueryWinsOk rd (qbp * gen ^ po) q d cd := by
+/-- **`level_positions`' loop, soundly**: entered from `1` with the bound `g^n`, `0 < n < ord g`,
+every iteration `g^j`, `j < n`, decoded. -/
+theorem lpLoop_sound {name : String} {d cd : ℕ}
+    (hloop : FnIs name (osParams 6) (lpLoopBody d cd name))
+    (hpw : digitsVal (osPowDigits (192 / d)) 1 = 192 / d)
+    (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
+      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd) args rets →
+        MeaningDecodeQueryWindows d cd rd args rets)
+    {n : ℕ} (hn0 : 0 < n) (hn : n < ordG) (sqz qpos qbp tabs : E) (hwt : WinTabs rd tabs)
+    (hg : 1 + gen ^ n ≠ 0 → coreProgram.Rel rd name [1, gen ^ n, sqz, qpos, qbp, tabs] []) :
+    ∀ j < n, LpIter rd d cd qpos qbp tabs (gen ^ j) := by
+  obtain ⟨fn, hf, hps, hb⟩ := hloop
+  rw [lpLoopBody_split] at hb
+  refine loop_guarded (rest := [sqz, qpos, qbp, tabs]) hn0 hn rfl
+    (loop_sound_flat hf (lpLoopA_flat d cd) hb ?_) hg
+  intro σ x hp hA
+  rw [hps] at hp
+  exact lpLoop_step d cd hpw hdec σ x (gen ^ n) sqz qpos qbp tabs hwt hp hA
+
+/-! ## The specialization -/
+
+/-- `level_positions` before its returns, and the `ret`. -/
+theorem lpBody_split (sq : ℕ) (loop : String) :
+    lpBody sq loop = (osHeap ((sq + 1) * 5) 8 ++
+      ((List.range 5).map fun i ↦ Stmt.atom (.load (.n i) (.n 9) i)) ++
+      osLoopCall loop sq [9, 5, 6, 7] 10 ++
+      ([Stmt.atom (.const (.n 15) (gw (sq * 5))), Stmt.atom (.mul (.n 16) (.n 9) (.n 15))] ++
+        ((List.range 5).map fun i ↦ Stmt.atom (.load (.n (17 + i)) (.n 16) i)) ++
+        ((List.range 5).map fun i ↦ Stmt.atom (.copy (.n (22 + i)) (.n (17 + i)))))) ++
+      [Stmt.ret ((List.range 5).map fun i ↦ .n (22 + i))] := by
+  simp only [lpBody, List.append_assoc]
+
+theorem lpBodyA_flat (sq : ℕ) (loop : String) :
+    (osHeap ((sq + 1) * 5) 8 ++ ((List.range 5).map fun i ↦ Stmt.atom (.load (.n i) (.n 9) i)) ++
+      osLoopCall loop sq [9, 5, 6, 7] 10 ++
+      ([Stmt.atom (.const (.n 15) (gw (sq * 5))), Stmt.atom (.mul (.n 16) (.n 9) (.n 15))] ++
+        ((List.range 5).map fun i ↦ Stmt.atom (.load (.n (17 + i)) (.n 16) i)) ++
+        ((List.range 5).map fun i ↦ Stmt.atom (.copy (.n (22 + i)) (.n (17 + i)))))).all
+      Stmt.flat = true := by
+  simp [osHeap, osLoopCall, Stmt.flat]
+
+/-- **The window pointers name windows**: every decoded query's pointer, at `qbp`, a frame run of
+its windows at a position below `2^d`. -/
+theorem queryWinsOk_of_iters {d cd q nsq : ℕ} (hd : 1 ≤ 192 / d) (hq : q ≤ nsq * (192 / d))
+    {qpos qbp tabs : E} (hit : ∀ jj < nsq, LpIter rd d cd qpos qbp tabs (gen ^ jj)) :
+    QueryWinsOk rd qbp q d cd := by
   intro k hk bp hbp
   set per := 192 / d
   have hjj : k / per < nsq := by
     rw [Nat.div_lt_iff_lt_mul (by omega)]; exact lt_of_lt_of_le hk hq
   have ht : k % per < per := Nat.mod_lt _ (by omega)
-  have hk' : po + k = po + k / per * per + k % per := by
+  have hk' : k = k / per * per + k % per := by
     have := Nat.div_add_mod k per; rw [Nat.mul_comm] at this; omega
-  obtain ⟨w, hw⟩ := hdec (k / per) hjj
+  obtain ⟨w, hw⟩ := hit (k / per) hjj
   obtain ⟨-, hall⟩ := hw
   obtain ⟨-, p, hptr, hrun⟩ := hall (k % per) ht
-  rw [loadHolds_mul_gen_pow] at hbp
-  rw [loadHolds_mul_gen_pow, ← hk'] at hptr
+  rw [← pow_mul, loadHolds_mul_gen_pow, ← hk'] at hptr
   rw [loadHolds_unique hbp hptr]
   exact ⟨qwPosOf d w (k % per), by unfold qwPosOf; exact Nat.mod_lt _ (by positivity), hrun⟩
 
-/-! ## The obligation -/
+/-- What a `level_positions` specialization of the table is: its body and its loop's. -/
+def LpOk (e : String × ℕ × ℕ × ℕ × String) : Prop :=
+  FnIs e.1 (osParams 8) (lpBody e.2.1 e.2.2.2.2) ∧
+    FnIs e.2.2.2.2 (osParams 6) (lpLoopBody e.2.2.1 e.2.2.2.1 e.2.2.2.2)
 
-/-- What `osPre_queryWinsOk` needs of a candidate's level: its squeeze loop's body, the decode's
-specification, the numbers the loop and the materializations need. -/
-structure OsWalkLv (rd : Reader) (c : OsCfg) (ℓ : ℕ) : Prop where
-  loop : FnIs (c.sqLoop ℓ) (osParams 6) (sqLoopBody (c.levels.getD ℓ default) (c.sqLoop ℓ))
-  pw : digitsVal (osPowDigits (192 / (c.levels.getD ℓ default).depth)) 1 =
-    192 / (c.levels.getD ℓ default).depth
-  per : 1 ≤ 192 / (c.levels.getD ℓ default).depth
-  q : (c.levels.getD ℓ default).queries ≤
-    (c.levels.getD ℓ default).squeezes * (192 / (c.levels.getD ℓ default).depth)
-  sq0 : 0 < (c.levels.getD ℓ default).squeezes
-  sqOrd : (c.levels.getD ℓ default).squeezes < ordG
-  mats : ∀ i ≤ ℓ, i < c.levels.length → LvMatB i (c.levels.getD i default)
-  dec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-    coreProgram.Rel rd ("decode_query_windows__L" ++ natStr (c.levels.getD ℓ default).depth ++ "_L" ++
-      natStr (c.levels.getD ℓ default).capDepth) args rets →
-    MeaningDecodeQueryWindows (c.levels.getD ℓ default).depth (c.levels.getD ℓ default).capDepth
-      rd args rets
-
-/-- **Level `ℓ`'s window pointers name windows**, on any prefix of `open_stacked`'s body reaching
-them. -/
-theorem osPre_queryWinsOk {c : OsCfg} {ℓ : ℕ} (hℓ : ℓ < c.levels.length) (hF : OsWalkLv rd c ℓ)
-    {n : ℕ} (hn : (osPre c ℓ).length ≤ n) {next : Prop} {kret : List E → Prop}
-    (hl : Stmt.HoldsList (coreProgram.Rel rd) rd σ ((osBody c).take n) next kret) :
-    QueryWinsOk rd (σ (.n (osPreBp c ℓ))) (c.levels.getD ℓ default).queries
-      (c.levels.getD ℓ default).depth (c.levels.getD ℓ default).capDepth := by
-  have hok := allOk_osPre hℓ hn hl
-  unfold osPre at hok
-  simp only [allOk_append] at hok
-  obtain ⟨hH, hLs, hP⟩ := hok
-  have hwt := osHead_winTabs hH
-  have hm0 : MatsOk σ (osStAt c ℓ).mats := by
-    refine osLevels_mats 0 _ _ (fun i hi ↦ ?_) (matsOk_nil σ) hLs
-    simp only [List.length_take] at hi
-    simp only [Nat.zero_add, List.getElem_take]
-    rw [← List.getD_eq_getElem _ default (by omega)]
-    exact hF.mats i (by omega) (by omega)
-  obtain ⟨-, hbp, -⟩ := osLevelPre_mats (hF.mats ℓ le_rfl hℓ) hm0 hP
-  unfold osPreBp
-  rw [hbp]
-  unfold osLevelPre at hP
-  simp only [allOk_append] at hP
-  obtain ⟨⟨⟨-, hS⟩, -⟩, -⟩ := hP
-  exact queryWinsOk_of_decodes hF.per hF.q (osSqueezes_wins hS hF.loop hF.pw
-    (hF.mats ℓ le_rfl hℓ).2.2.2.2 hF.dec hwt hF.sq0 hF.sqOrd)
-
-/-- **`opening_queries`' obligation at level `ℓ`'s call** (`OqMainWins` at `n_iters_g =
-g^(queries / (1 + base))`), on any prefix of `open_stacked`'s body reaching the window pointers. -/
-theorem osPre_oqMainWins {c : OsCfg} {ℓ : ℕ} (hℓ : ℓ < c.levels.length) (hF : OsWalkLv rd c ℓ)
-    {n : ℕ} (hn : (osPre c ℓ).length ≤ n) {next : Prop} {kret : List E → Prop}
-    (hl : Stmt.HoldsList (coreProgram.Rel rd) rd σ ((osBody c).take n) next kret) :
-    OqMainWins rd (c.levels.getD ℓ default).depth (c.levels.getD ℓ default).capDepth
-      ((c.levels.getD ℓ default).queries % 2 * (if ℓ = 0 then 1 else 0)) (if ℓ = 0 then 1 else 0)
-      (σ (.n (osPreBp c ℓ)))
-      (gen ^ ((c.levels.getD ℓ default).queries / (1 + if ℓ = 0 then 1 else 0))) := by
-  have h := osPre_queryWinsOk hℓ hF hn hl
-  rw [← oqCount_q (c.levels.getD ℓ default).queries ℓ] at h
-  refine oqMainWins_of_queryWinsOk (fun h1 ↦ ?_) h
-  by_cases h0 : ℓ = 0
-  · simp [h0]
-  · simp [h0] at h1
+/-- **A call of `level_positions`** at `[fs0..fs4, qpos, qbp, tabs]`, the table at `tabs`: its
+window pointers at `qbp` name windows for the walk of `oqCount odd base n` queries it covers. -/
+theorem lp_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {e : String × ℕ × ℕ × ℕ × String}
+    (he : LpOk e) {n odd base : ℕ} (hodd : odd = 1 → base = 1)
+    (hcov : lpCovers e.2.1 n odd base e.2.2.1 e.2.2.2.1 = true)
+    {args rets : List E} (hl : args.length = 8) (hwt : WinTabs L.read (args.getD 7 0))
+    (hrel : coreProgram.Rel L.read e.1 args rets) :
+    OqMainWins L.read e.2.2.1 e.2.2.2.1 odd base (args.getD 6 0) (gen ^ n) := by
+  obtain ⟨name, sq, d, cd, loop⟩ := e
+  obtain ⟨⟨fn, hf, hps, hb⟩, hloop⟩ := he
+  dsimp only at hf hb hloop hcov hrel hwt ⊢
+  simp only [lpCovers, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq, beq_iff_eq,
+    List.contains_iff_mem] at hcov
+  obtain ⟨⟨⟨⟨⟨hq, hper⟩, hpw⟩, hs0⟩, hso⟩, hshape⟩ := hcov
+  obtain ⟨fn', hf', σ, hp, hbody⟩ := (rel_iff _ _ _ _).mp hrel
+  obtain rfl := Option.some.inj (hf.symm.trans hf')
+  rw [hb, lpBody_split, holdsList_flat_ret _ (lpBodyA_flat sq loop)] at hbody
+  obtain ⟨hA, -⟩ := hbody
+  simp only [allOk_append] at hA
+  obtain ⟨⟨-, hL⟩, -⟩ := hA
+  simp only [osLoopCall, allOk_cons, allOk_nil, and_true, Whir.StmtOk, Atom.Holds, List.map_cons,
+    List.map_nil] at hL
+  obtain ⟨c10, c11, a12, c13, c14, -, hcall⟩ := hL
+  rw [hps] at hp
+  obtain ⟨a0, a1, a2, a3, a4, a5, a6, a7, rfl⟩ :
+      ∃ a0 a1 a2 a3 a4 a5 a6 a7, args = [a0, a1, a2, a3, a4, a5, a6, a7] := by
+    match args, hl with
+    | [a0, a1, a2, a3, a4, a5, a6, a7], _ => exact ⟨a0, a1, a2, a3, a4, a5, a6, a7, rfl⟩
+  simp only [osParams, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
+    List.nil_append, List.cons_append, List.cons.injEq, and_true] at hp
+  obtain ⟨-, -, -, -, -, h5, h6, h7⟩ := hp
+  simp only [List.getD_cons_succ, List.getD_cons_zero] at hwt ⊢
+  have hgn : gw sq = gen ^ sq := gw_eq (by
+    have : ordG < u128Bound := by unfold ordG u128Bound; norm_num
+    omega)
+  have hdec := fun args rets hw h ↦
+    decode_query_windows_all_holds _ hshape (κ := κ) hκ L args rets hw h
+  have hit := lpLoop_sound hloop hpw hdec hs0 hso (σ (.n 9)) a5 a6 a7 hwt (by
+    rw [a12, c10, c11, c13, c14, hgn, word_one, h5, h6, h7] at hcall
+    exact hcall)
+  exact oqMainWins_of_queryWinsOk hodd (queryWinsOk_of_iters hper hq hit)
 
 end
-end LeanVM.Guest.B1.Whir
+end LeanVM.Guest.End

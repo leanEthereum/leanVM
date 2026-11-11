@@ -40,10 +40,10 @@ theorem qs_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) (o
 
 theorem qs_grindP_bind {bits : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (n : E) (xs : List E)
     (os : List (List Opening)) (R : List (Digest × ℕ × ℕ))
-    (hp : powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true) :
+    (hp : powOk bits (F.absorb n dsPowNonce).squeeze.1 = true) (hb : bits ≠ 0) :
     queryStepsOf ((VerifierProgram.grindProofOfWork bits).bind k) ⟨F, n :: xs, os, R⟩ =
       queryStepsOf (k ()) ⟨(F.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ := by
-  simp only [VerifierProgram.grindProofOfWork, VerifierProgram.bind, queryStepsOf, hp, ↓reduceIte]
+  simp only [VerifierProgram.grindProofOfWork, hb, VerifierProgram.bind, queryStepsOf, hp, ↓reduceIte]
 
 theorem qs_commitP_bind {hh ww : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (x0 x1 : E) (xs :
     List E)
@@ -148,8 +148,8 @@ theorem qs_folds {K : WhirStateT × List E → VerifierProgram β} :
     rfl
   | n + 1, ws, lf, F, d0 :: d2 :: xs, os, R, hl, hnz => by
     have e : (foldRoundsNZ (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
-        (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦ VerifierProgram.readScalar.bind fun d2 ↦
-          (foldRoundsNZ n { ws with
+        (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦
+          VerifierProgram.readScalar.bind fun d2 ↦ (foldRoundsNZ n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]
             folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
