@@ -46,7 +46,7 @@ def TraceBounds (t : Execution prog) : Prop :=
   t.logMemorySize ≤ maxLogMem ∧ ∀ op, Skel.count op t.runSkels ≤ 2 ^ maxLogRows
 
 /-- A valid execution within the committed-size cap is within `skelWitness`'s bounds. -/
-theorem traceBounds_of (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28) :
+theorem traceBounds_of (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30) :
     TraceBounds t := by
   refine ⟨hv.1.2.1, fun op ↦ ?_⟩
   have hcount : ∀ op, t.opcodeCount op = t.runRows op := Execution.count_eq_runRows hv.2
@@ -57,7 +57,7 @@ theorem traceBounds_of (hv : ValidExecution prog input t) (hcap : t.committedSiz
       Nat.pow_le_pow_right (by norm_num) (le_max_left _ _)
     simp only [Execution.committedSize]
     cases op <;> omega
-  have h28 : (2 : ℕ) ^ 28 ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
+  have h28 : (2 : ℕ) ^ 30 ≤ 2 ^ maxLogRows := Nat.pow_le_pow_right (by norm_num) (by decide)
   rw [Execution.count_runSkels, ← hcount]
   exact (Nat.le_pow_clog (by norm_num) _).trans ((hheight.trans hcap).trans h28)
 

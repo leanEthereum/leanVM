@@ -46,10 +46,8 @@ pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 // The PCS and the unground F128 bus argument both target `SECURITY_BITS`.
 const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
-/// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.
-pub const MIN_MU: usize = 15;
-/// Largest committed size accepted by all verifiers and compiled into the recursion guest.
-pub const MAX_MU: usize = 28;
+/// The committed stack's log-size bounds, the protocol's.
+pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};
 
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
 fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
@@ -61,8 +59,8 @@ fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
     let mut map = cache.lock().expect("whir config cache poisoned");
     Arc::clone(map.entry((mu, log_inv_rate)).or_insert_with(|| {
         assert!(
-            mu >= MIN_MU,
-            "witness must be ≥ 2^{MIN_MU} elements (padded by placements_of)"
+            mu >= MIN_STACKED_LOG,
+            "witness must be ≥ 2^{MIN_STACKED_LOG} elements (padded by placements_of)"
         );
         let config = config_for_rate(mu, log_inv_rate)
             .unwrap_or_else(|e| panic!("whir config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"));
@@ -86,7 +84,7 @@ pub struct Committed {
     pub ood: SlotClaim,
 }
 
-/// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
+/// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_STACKED_LOG`, from
 /// [`crate::witness::placements_of`]), bind its root into the transcript
 /// before any challenge is sampled, and take its OOD sample ([`::pcs::ood`]).
 ///
@@ -102,8 +100,8 @@ pub fn commit(
 ) -> Committed {
     let mu = shape.mu;
     assert!(
-        mu >= MIN_MU,
-        "witness must be ≥ 2^{MIN_MU} elements (padded by placements_of)"
+        mu >= MIN_STACKED_LOG,
+        "witness must be ≥ 2^{MIN_STACKED_LOG} elements (padded by placements_of)"
     );
     assert_eq!(
         witness.len(),
@@ -160,7 +158,7 @@ mod tests {
     #[test]
     fn supported_window_is_configurable() {
         for rate in ::pcs::whir::MIN_LOG_INV_RATE..=::pcs::whir::MAX_LOG_INV_RATE {
-            for mu in MIN_MU..=MAX_MU {
+            for mu in MIN_STACKED_LOG..=MAX_STACKED_LOG {
                 assert!(config_for_rate(mu, rate).is_ok(), "mu={mu} rate={rate}");
             }
         }

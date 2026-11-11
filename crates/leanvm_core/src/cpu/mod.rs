@@ -31,22 +31,8 @@ pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
-/// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
-/// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`. The prover pads up to the minimum; the
-/// verifier rejects any announced `h` outside the range. `MIN_LOG_MEM` is also
-/// the static cap on range-check bounds (`compiler::Stmt::AssertLt`): a bound
-/// `≤ 2^MIN_LOG_MEM` keeps the complement argument sound for every memory size
-/// the prover may announce.
-pub const MIN_LOG_MEM: usize = 16;
-const MAX_LOG_MEM: usize = 32;
-
-/// Each per-opcode table holds at most `2^MAX_LOG_ROWS` rows (executed
-/// instructions of that opcode). Together with `MAX_LOG_MEM` and the bytecode
-/// cap these are the instance caps from “Counts must not wrap” in `doc/leanvm/body/06-memory-and-bytecode-lookups.tex`: at `ord(g) = 2^64−1`
-/// the memory-soundness and count-non-wrap counting arguments are theorems only
-/// for instances whose total read-flush count stays far below `2^64`, so the
-/// verifier rejects any announcement exceeding them before running a reduction.
-const MAX_LOG_ROWS: usize = 32;
+/// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
+pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
 
 /// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
 /// everything fixed about the proving environment.
@@ -120,16 +106,6 @@ pub struct Program {
     /// check reports a line rather than a pc to disassemble around. Empty for a
     /// hand-assembled program, and shorter than `prog`, which is padded.
     pub src_lines: Vec<u32>,
-    /// The smallest stacked witness this program's proofs may commit to, as a
-    /// log2. Zero (the default) asks for nothing.
-    ///
-    /// A consumer can need a proof to be no smaller than some size even when the
-    /// run is: the recursion guest holds one WHIR opening arm per committed size
-    /// it was compiled for, and has none below the first. A run that falls short
-    /// buys the difference in unused memory cells rather than in a padded commitment,
-    /// which keeps the committed size a function of the announced sizes, so neither
-    /// the verifier nor the guest needs a new parameter to certify. Prover-side only.
-    pub min_log_committed: usize,
 }
 
 /// The IV reinterprets the stacked bytecode table as bytes, which is its
@@ -171,7 +147,6 @@ impl Program {
             witness: HashMap::new(),
             fn_ranges: Vec::new(),
             src_lines: Vec::new(),
-            min_log_committed: 0,
         }
     }
 
@@ -250,7 +225,7 @@ pub enum ProveError {
     /// the prover's ([`Execution::unconstrained_reads`]).
     UnconstrainedReads(Vec<u32>),
     /// The committed witness is `2^log_committed` words, outside the
-    /// `2^MIN_MU..=2^MAX_MU` every verifier accepts
+    /// `2^MIN_STACKED_LOG..=2^MAX_STACKED_LOG` every verifier accepts
     WitnessOutOfRange { log_committed: usize },
 }
 
@@ -269,8 +244,8 @@ impl std::fmt::Display for ProveError {
             Self::WitnessOutOfRange { log_committed } => write!(
                 f,
                 "the committed witness would be 2^{log_committed} words, outside the verifiable 2^{}..=2^{}",
-                pcs::MIN_MU,
-                pcs::MAX_MU
+                pcs::MIN_STACKED_LOG,
+                pcs::MAX_STACKED_LOG
             ),
         }
     }
@@ -457,15 +432,22 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     if !exec.unconstrained_reads.is_empty() {
         return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
     }
-    let cycles = exec.cycles;
-    let mut w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
-    let mem_used = exec.mem_used;
-    drop(exec);
-    if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&w.layout.shape.mu) {
+    // The layout follows from the run's sizes alone: a run past the window is refused
+    // before its witness is built.
+    let layout = program.layout(
+        crate::log2_strict_usize(exec.mem.len()),
+        exec.trace.row_counts(),
+        public_input,
+    );
+    if layout.shape.mu > pcs::MAX_STACKED_LOG {
         return Err(ProveError::WitnessOutOfRange {
-            log_committed: w.layout.shape.mu,
+            log_committed: layout.shape.mu,
         });
     }
+    let cycles = exec.cycles;
+    let mut w = crate::stage!("Build witness", || program.build(&exec, layout, keccak_blocks));
+    let mem_used = exec.mem_used;
+    drop(exec);
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.

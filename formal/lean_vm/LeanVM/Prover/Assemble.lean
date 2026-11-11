@@ -390,7 +390,7 @@ attribute [local irreducible] Corr Script.bind Script.NoQuery Script.alongside h
   openingFast hOod oodFast in
 /-- **The honest script makes the specification's moves** at the execution's witness, its
 sizes and its stack. -/
-theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
+theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30)
     {ρ : ℕ} (hρ : validRate ρ) {W : Witness} (hW : WitnessSpec prog input t W) :
     Corr (fun _ _ ↦ True) (honestScript W ρ (publicInputDigest input))
       (LeanVM.Protocol.EndToEnd.Complete.honestProver prog (traceSizes prog input t) ρ

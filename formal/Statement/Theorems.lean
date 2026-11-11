@@ -42,16 +42,16 @@ structure Theorems
   /-- leanVM is knowledge sound for the straight-line extractor the program computes,
   `extractorComputedBy leanVmKnowledgeExtractor`: at most `(Q + 2^14) · 2^-125 +
   5 (Q + 2^14)² · 2^-256` for `Q ≤ 2^128` queries (`LeanVm.lean`). The program extracts nothing if
-  its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget N`, for
-  `N` permutation queries: about `2^81` up to `2^50` queries, `O(N·log³N)`), and extracting nothing
-  from an accepted proof is a break; so, but with that probability, the program extracts a valid
-  execution within its budget. That a price unit is a constant number of instructions of a 64-bit
+  its size or its run's price exceeds its bound or budget (`leanVmKnowledgeExtractorBudget μ N`, for
+  `N` permutation queries at a stack of `2^μ`: about `2^max(82, 2μ + 22)` up to `2^50` queries,
+  `O(N·log³N)`), and extracting nothing from an accepted proof is a break; so, but with that
+  probability, the program extracts a valid execution within its budget. That a price unit is a constant number of instructions of a 64-bit
   CPU is trusted (`CostMachine.lean`). -/
   leanVmKnowledgeSoundness : LeanVM.KnowledgeSoundness
       (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- leanVM is complete: the honest prover's (`LeanVM.leanVmHonestProver`, the executable
   `LeanVM.Prover.prove` of `Prover/Prove.lean`) proof of a valid execution of committed size at
-  most `2^28`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^33` nonces per proof of work, is
+  most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4` and `2^35` nonces per proof of work, is
   rejected with probability at most `2^-256` (`LeanVm.lean`). -/
   leanVmCompleteness : LeanVM.Completeness
 
@@ -71,9 +71,11 @@ structure Theorems
   candidates (`LeanVmGuest.lean`). With `leanVmKnowledgeSoundness` and `guestKnowledgeSoundness` it
   gives what an accepted proof establishes, `Statement.Corollaries`' `aggregateSound`. -/
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
-  /-- The leanISA guest program is complete on the seven families of `CoveredNode`, under the
-  deployed seed and within the deployed limits, wherever every child carries the honest prover's
-  proof (`HonestChild`) (`LeanVmGuestCompleteness.lean`). -/
+  /-- The leanISA guest program is complete, in at most `2^30` committed words, on every node within
+  the deployed limits (`DeployedLimits`: at most `16` children holding `2^17` claims in all, `2048`
+  leanXMSS and `512` leanSPHINCS signatures, a blob matrix of `32` rows), under the deployed seed,
+  wherever every child carries the honest prover's proof (`HonestChild`)
+  (`LeanVmGuestCompleteness.lean`). -/
   guestCompleteOnHonestChildren : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren
   /-- The same honest prover's proof of an execution of the guest program is rarely refused: it
   makes none, or the verifier refusing a zero where the guest divides rejects it, with

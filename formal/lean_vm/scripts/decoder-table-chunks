@@ -276,7 +276,9 @@ def main():
     ap.add_argument("--bound-limit", type=int, default=40000)
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args()
+    global N
     rows, names = nums(a.row_lengths), nums(a.split_lengths)
+    N = len(rows)
     os.chdir(Path(__file__).resolve().parent.parent)
     global N
     N = len(rows)

@@ -103,6 +103,7 @@ def numbers(g, certs):
              SKt('__loop3'), v['dvC'] + fs('da_verify'), v['dvS'], v['dvP'], 53 + v['l5A1'] + v['agA1'], v['l5A2']]
     instrs = {}
     JT_SETS = jt_sets(g.lv)
+    assert JT_SETS == g.jt_sets, (JT_SETS, g.jt_sets)
     tbl = vscount.tables(g)
     _, _, _, dv_aff, cl_aff = vscount.main_tables(g)
     for lop, P, k in OPS_:
@@ -200,13 +201,13 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
 def deployedWords (Bvf : ℕ → ℕ → ℕ) : End.Linear := %s
 
 /-- **The deployed budget's instructions of each opcode**, `verify_sub`'s on a child of announced
-stack log `μ` and rate `r` at its candidate `B1.Whir.candidate μ r` (`Budget.vsCnt`). -/
+stack log `μ` at its arm `μ - %d` (`Budget.vsCnt`). -/
 def deployedInstrs : Opcode → End.Linear
-''' % wlit
+''' % (wlit, g.min_open_log())
     for lop, P, k in ops:
         f, vst = instrs[lop]
-        body += '  | .%s => ⟨%s,\n    fun μ r => [%s].getD (B1.Whir.candidate μ r) 0⟩\n' % (
-            lop, ', '.join(str(x) for x in f), ', '.join(str(x) for x in vst))
+        body += '  | .%s => ⟨%s,\n    fun μ _ => [%s].getD (μ - %d) 0⟩\n' % (
+            lop, ', '.join(str(x) for x in f), ', '.join(str(x) for x in vst), g.min_open_log())
     body += '''
 set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/

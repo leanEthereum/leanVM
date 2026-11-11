@@ -3,10 +3,10 @@
 
 use std::collections::HashMap;
 
-use super::hints::MAX_CELLS;
+use super::hints::{MAX_CELLS, MAX_INDEX, bounded_dlog};
 use super::*;
 use primitives::{
-    field::{F64, F128, mul_by_g},
+    field::{F64, F128},
     pretty_f64, pretty_integer,
 };
 
@@ -42,8 +42,6 @@ impl Execution {
 /// `log2` of the cells a [`Memory`] page holds.
 const PAGE_LOG: usize = 16;
 const PAGE: usize = 1 << PAGE_LOG;
-// The padded image is a whole number of pages.
-const _: () = assert!(PAGE_LOG <= MIN_LOG_MEM);
 
 /// A cell's write state. A cell not `Written` holds ZERO; a `DEREF` between two
 /// unwritten cells links them, and a write to either reaches the other at once.
@@ -130,8 +128,8 @@ pub enum Fault {
         new: F128,
         hint: Option<&'static str>,
     },
-    /// A `DEREF` through a word that is no small g-power: a wild pointer, or a failed
-    /// range check.
+    /// A `DEREF` through a word that is no g-power below `MAX_CELLS`: a wild pointer, a
+    /// failed range check, or an address past any memory a stack can hold.
     WildPointer { value: F128 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
     NotInK { what: &'static str, value: F128 },
@@ -142,7 +140,7 @@ pub enum Fault {
     /// The advice does not fit the program: a witness stream is missing or
     /// exhausted, or an entry has the wrong length.
     Witness(String),
-    /// The program allocates or accesses a cell past the address space.
+    /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
     /// The halt `pc` reached in a frame other than `main`'s.
     HaltOutsideMain { fp: u32 },
@@ -150,8 +148,9 @@ pub enum Fault {
     StepLimit,
 }
 
-/// The longest run the interpreter executes.
-const MAX_STEPS: usize = 100_000_000;
+/// The longest run the interpreter executes, the longest a stack can commit: every step is a row
+/// of at least `MIN_COMMITTED_COLUMNS` committed columns.
+const MAX_STEPS: usize = (1 << verifier::MAX_STACKED_LOG) / crate::tables::MIN_COMMITTED_COLUMNS;
 // A row touches at most a `KECCAK` row's cells, so every access count fits the `u32` exponent.
 const _: () = assert!(crate::keccak::ROW_CELLS * MAX_STEPS < u32::MAX as usize);
 
@@ -196,14 +195,19 @@ impl std::fmt::Display for Fault {
             }
             Self::WildPointer { value } => write!(
                 f,
-                "DEREF pointer is not a small g-power: a wild pointer, or a failed range check (value {})",
+                "DEREF pointer is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (value {})",
+                MAX_CELLS.ilog2(),
                 word(*value)
             ),
             Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
-            Self::OutOfMemory => write!(f, "the program reaches past 2^{} cells", MAX_CELLS.ilog2()),
+            Self::OutOfMemory => write!(
+                f,
+                "the program reaches past 2^{} cells, more memory than a stack can hold",
+                MAX_CELLS.ilog2()
+            ),
             Self::HaltOutsideMain { fp } => write!(f, "the halt pc reached in frame {fp}, not main's"),
             Self::StepLimit => write!(f, "step limit of {MAX_STEPS} exceeded (runaway recursion?)"),
         }
@@ -268,13 +272,13 @@ impl Program {
         use super::hints::{BitsDest, GPow, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
+        if self.main_frame >= MAX_CELLS {
+            return Err(ExecError::new(self, 0, Fault::OutOfMemory));
+        }
 
-        // g^j, covering the pcs and return targets, the main frame and the range-check
-        // floor, then grown by each reservation, and its reverse index g^j ↦ j.
-        let seed = (self.prog.len() + 2)
-            .max(self.main_frame as usize)
-            .max(1 << MIN_LOG_MEM);
-        let mut g = GPow::new(seed);
+        // g^j, covering the pcs and return targets and the main frame, then grown by each
+        // reservation and each lookup past it, and its reverse index g^j ↦ j.
+        let mut g = GPow::new((self.prog.len() + 2).max(self.main_frame as usize));
 
         // The write-once data memory, each cell's access count and write state with its word.
         let n0 = self.main_frame.max(2) as usize;
@@ -483,41 +487,6 @@ impl Program {
                 count
             }
         }
-        // Bounded discrete log for `hint_decompose_bits_exponent`: find n < 2^nbits
-        // with g^n = x, by baby-step giant-step (baby table g^j for j < 2^17,
-        // built once per process; giant step ×g^(-2^17)). Prover-side only: the
-        // guest re-verifies the hinted bits in-circuit.
-        fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
-            const LOG_BABY: u32 = 17;
-            static TABLE: std::sync::OnceLock<(GPow, F64)> = std::sync::OnceLock::new();
-            let (baby, giant) = TABLE.get_or_init(|| {
-                let baby = GPow::dense((1usize << LOG_BABY) - 1);
-                // g^(2^17), one past the table; its inverse is the giant step.
-                let giant = mul_by_g(baby.pow((1usize << LOG_BABY) - 1)).inv();
-                (baby, giant)
-            });
-            let mut y = x;
-            let max_giant = if nbits > LOG_BABY {
-                1u64 << (nbits - LOG_BABY)
-            } else {
-                1
-            };
-            for a in 0..max_giant {
-                if let Some(j) = baby.lookup(y) {
-                    return Some((a as u128) << LOG_BABY | j as u128);
-                }
-                y *= *giant;
-            }
-            None
-        }
-
-        // A runtime count (a loop's frame span, a `HeapBuf` size) as the exponent of
-        // a g-power: the address table when it covers it, else a bounded discrete log.
-        fn count(g: &mut GPow, x: F64) -> Option<u32> {
-            g.log(x)
-                .or_else(|| bounded_dlog(x, MAX_CELLS.ilog2()).map(|n| n as u32))
-        }
-
         // The cell a heap run starts at: read the pointer back out of memory and
         // invert it. Shared by every hint that writes through one.
         fn heap_base(m: &Mem<'_>, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
@@ -586,7 +555,7 @@ impl Program {
                     });
                     match h {
                         RHint::FrameAddress { offset } => {
-                            g.note((fp + offset) as usize);
+                            g.note(at(fp, *offset)? as usize);
                         }
                         // A fresh region: write its base `g^{next_free}` into the
                         // pointer cell (once) and reserve `size` cells. `AllocDyn`
@@ -608,7 +577,7 @@ impl Program {
                                             value: span,
                                         }));
                                     }
-                                    let n = count(&mut g, span).ok_or_else(|| {
+                                    let n = g.log(span).ok_or_else(|| {
                                         fail(Fault::NotAGPower {
                                             what: "loop bound",
                                             value: span,
@@ -621,7 +590,7 @@ impl Program {
                                 // the cell holds g^k, allocate k cells.
                                 RHint::AllocDyn { ptr, size } => {
                                     let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
-                                    let cells = count(&mut g, sz).ok_or_else(|| {
+                                    let cells = g.log(sz).ok_or_else(|| {
                                         fail(Fault::NotAGPower {
                                             what: "HeapBuf size",
                                             value: sz,
@@ -638,7 +607,9 @@ impl Program {
                                 g.grow_to(next_free as usize);
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
-                                m.ensure(next_free as usize);
+                                if next_free > base {
+                                    m.ensure(next_free as usize - 1);
+                                }
                                 m.put(cell, F128::from(g.pow(base as usize)))?;
                             }
                         }
@@ -648,8 +619,9 @@ impl Program {
                                 let v = m.get(c);
                                 // Small integers and small g-powers overlap (8 = x^3
                                 // = g^3): show every reading that applies. Only a
-                                // K-valued word (extension limb 0) can be a g-power.
-                                let k = v.as_base().and_then(|lo| g.log(lo));
+                                // K-valued word (extension limb 0) can be a g-power. Read
+                                // without growing the address table.
+                                let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
                                 let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
                                 match (k, small) {
                                     (Some(k), true) => eprintln!(
@@ -940,7 +912,7 @@ impl Program {
                         bytecode_read,
                     });
                     if taken {
-                        pc = g.log(d).filter(|&t| (t as usize) < self.prog.len()).ok_or_else(|| {
+                        pc = g.log_below(d, self.prog.len()).ok_or_else(|| {
                             fail(Fault::NotAGPower {
                                 what: "JUMP target",
                                 value: d,
@@ -1047,18 +1019,10 @@ impl Program {
             bytecode_count,
             counts,
         };
-        // Pad memory to a power of two (the boundary tables read a dense image), at
-        // least 2^MIN_LOG_MEM cells (doc §Memory), doubled until the stacked witness
-        // reaches `min_log_committed`.
+        // The memory announced: the least power of two covering every cell the run touched
+        // (the boundary tables read a dense image).
         let mem_used = m.used;
-        let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
-        let taus = super::layout::table_logs(trace.row_counts());
-        let log_bytecode = crate::log2_strict_usize(self.prog.len());
-        while super::layout::committed_log(crate::log2_strict_usize(cells), log_bytecode, taus) < self.min_log_committed
-        {
-            cells *= 2;
-        }
-        assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
+        let cells = mem_used.next_power_of_two();
         Ok(Execution {
             mem: Memory {
                 pages: m.pages,

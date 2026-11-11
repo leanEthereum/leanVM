@@ -4,7 +4,7 @@ import LeanVM.Guest.Batch.Children
 import LeanVM.Guest.Batch.Rpm
 import LeanVM.Guest.EndRpm
 import LeanVM.Guest.Budget.ClosedN
-import LeanVM.Guest.Budget.Covered
+import LeanVM.Guest.Budget.Fits
 import LeanVM.Prover.End
 import LeanVM.Prover.EndChild
 import LeanVM.Guest.Child.Covered
@@ -79,8 +79,9 @@ random-permutation model where an adversary is involved, except the memory-decod
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
 * `LeanVM.Guest.Completeness.guest_complete_on_honest_children : GuestCompleteOnHonestChildren`
-  (`Statement/LeanVmGuestCompleteness.lean`): the guest program's completeness on the covered nodes whose children carry honest
-  proofs, from `LeanVM.Guest.Budget.guest_complete_covered` (children the guest accepts,
+  (`Statement/LeanVmGuestCompleteness.lean`): the guest program's completeness on the nodes within
+  the deployed limits whose children carry honest proofs, from
+  `LeanVM.Guest.Budget.guest_complete_on_acceptable_children` (children the guest accepts,
   `AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`), `guest_child_complete` (an honest proof
   is such a child) and `LeanVM.Guest.Child.freshClaim_unique`;
 * `LeanVM.Guest.Completeness.honest_proof_rarely_refused : HonestProofRarelyRefused`
@@ -92,7 +93,7 @@ random-permutation model where an adversary is involved, except the memory-decod
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
 completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.extractorC_cost`,
-`extractorPrice_28_4`, `extractorPrice_28_4_2_128`), the guest's batching
+`extractorPrice_30_4`, `extractorPrice_30_4_2_128`), the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
 random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
 `aggregate_knowledge`, and the guest's completeness within its deployed budget
@@ -115,7 +116,8 @@ example : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren :=
   LeanVM.Guest.Completeness.guest_complete_on_honest_children
 example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
   LeanVM.Guest.Completeness.honest_proof_rarely_refused
-example : LeanVM.Guest.Completeness.GuestCompleteCovered := LeanVM.Guest.Budget.guest_complete_covered
+example : LeanVM.Guest.Completeness.GuestCompleteOnAcceptableChildren :=
+  LeanVM.Guest.Budget.guest_complete_on_acceptable_children
 example : LeanVM.Guest.Completeness.GuestChildComplete := LeanVM.Guest.Budget.guest_child_complete
 example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_holds
 
@@ -127,13 +129,13 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.Cost.Bounds.extractorC_cost
 
-/-- info: 'LeanVM.Cost.Bounds.extractorPrice_28_4' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.Bounds.extractorPrice_30_4' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorPrice_28_4
+#print axioms LeanVM.Cost.Bounds.extractorPrice_30_4
 
-/-- info: 'LeanVM.Cost.Bounds.extractorPrice_28_4_2_128' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.Bounds.extractorPrice_30_4_2_128' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorPrice_28_4_2_128
+#print axioms LeanVM.Cost.Bounds.extractorPrice_30_4_2_128
 
 /-- info: 'LeanVM.candidates_ncard_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -239,9 +241,9 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.Guest.Child.freshClaim_unique
 
-/-- info: 'LeanVM.Guest.Budget.guest_complete_covered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Budget.guest_complete_on_acceptable_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Budget.guest_complete_covered
+#print axioms LeanVM.Guest.Budget.guest_complete_on_acceptable_children
 
 /-- info: 'LeanVM.Guest.Budget.guest_child_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

@@ -442,7 +442,7 @@ theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
     {BW Lw : ℕ}
     (hBW : ∀ v : ℕ, v < 2 ^ 64 → appCost P WVal [encodeValue v] ≤ BW) (hLw : ∀ v, (W v).length ≤ Lw) :
     machineCost P decodeStacksPMC.costIdx [encodeValue μ, encodeValue R, WVal] ≤
-      (BW + 12 * Lw) * 2 ^ 26 + pmDecoderWorstPrice := by
+      (BW + 12 * Lw) * 2 ^ 28 + pmDecoderBudget μ := by
   obtain ⟨hsz, hI, hle⟩ := decoderShapePM_ok hadm
   have h := decodeStacksPMC_cost P hP PMSolve.fftPricesOK_margin μ R hadm hsz hI W WVal hW hBW
     hLw
@@ -450,7 +450,7 @@ theorem decodeStacksPMC_cost_worst (hP : Includes P decodeStacksPMC.costDeps)
   have hadm' := hadm
   obtain ⟨-, h2, -, h4⟩ := hadm'
   simp only [Whir.maxLogStack] at h2
-  have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 26 :=
+  have hp : 2 ^ (μ - Whir.initialFold + R) ≤ 2 ^ 28 :=
     Nat.pow_le_pow_right (by norm_num) (by simp only [Whir.initialFold]; omega)
   have := Nat.mul_le_mul_left (BW + 12 * Lw) hp
   omega

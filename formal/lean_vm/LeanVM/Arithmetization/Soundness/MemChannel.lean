@@ -33,10 +33,10 @@ Every gate is `0` or `1` (`opRecs_bits`): a row's bytecode coordinates are the p
 pushes `(a, g·c, v)`, a read; at flag `0` it pulls and pushes the one tuple `(a, c, v)`, which
 `perm_cancel_mid` drops from both sides (`mem_triples_perm`). The counts of the reads are nonzero
 (`CountsNonzero`, which covers every memory pull of the six tables), there are fewer than
-`2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most twenty-six reads per row, `2^32` rows
+`2^64 - 1` reads (`opReads_length_lt`, from `Caps`: at most twenty-six reads per row, `2^30` rows
 per table, six tables), and each finalize has a seed's key. So `lookup_sound` makes every read's
 key, its address and limbs, a seed's: `(g^i, m_i)`, which is a correct read of word `i`
-(`MemoryImage.read_gpow`, as `κ ≤ 32`). A pull of multiplicity `1` is a read a row makes or a
+(`MemoryImage.read_gpow`, as `κ ≤ 30`). A pull of multiplicity `1` is a read a row makes or a
 finalize (`mem_pull_of_mult`), hence a correct read (`mem_channel_sound`).
 
 ## Wrong readings excluded

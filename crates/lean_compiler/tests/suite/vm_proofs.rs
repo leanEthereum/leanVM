@@ -77,3 +77,15 @@ fn any_number_of_steps_proves() {
         verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
     }
 }
+
+/// The memory announced is the least power of two covering the cells a run touches,
+/// with no floor but the protocol's: the empty program proves on a memory of a few
+/// cells, smaller than a line of the memory columns' fill.
+#[test]
+fn a_tiny_memory_proves() {
+    let program = compile(&parse("def main():\n    return\n").expect("parse"));
+    let pi = [F128::ZERO; 2];
+    let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
+    verify(&program, &pi, &proof).expect("honest proof verifies");
+}

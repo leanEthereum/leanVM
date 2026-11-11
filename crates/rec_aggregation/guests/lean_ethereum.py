@@ -17,6 +17,7 @@ from snark_lib import *
 # the shape dictates); binding always comes from the per-word absorbs.
 STREAM_CAP = STREAM_CAP_PLACEHOLDER
 MIN_LOG_MEM = MIN_LOG_MEM_PLACEHOLDER
+MAX_LOG_MEM = MAX_LOG_MEM_PLACEHOLDER
 INV_GEN = INV_GEN_PLACEHOLDER
 
 # ------------------------------------------------------------- the field, GF(2^128)
@@ -28,8 +29,8 @@ INV_GEN = INV_GEN_PLACEHOLDER
 FIELD_BITS = 128
 # A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
 # squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
-QW = 6
-QUERY_WINDOWS_CAP = 36
+QW = QW_PLACEHOLDER
+QUERY_WINDOWS_CAP = QUERY_WINDOWS_CAP_PLACEHOLDER
 BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
@@ -43,13 +44,11 @@ RS_CHUNK = 8  # ring-switch rows (target) or coordinates (weight) per loop itera
 RS_CHUNK_BITS = 3
 RES_BATCH = 8  # residual queries per loop iteration
 RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
-# Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
-# its top bit constrained to zero so the native strict 32-bit bound holds; any
-# structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
-# structural LOG (log_mem, log_inv_rate), announced as an integer word and
+# Exponent bit-widths, wider than the 2^30 caps need: a count's log is below
+# COUNT_BITS; a structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS
+# bits; and a structural LOG announced as an integer word (log_mem, log_inv_rate),
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
-# are enough and the reconstruction IS the bound (a larger announced log cannot
-# reproduce itself from this many bits).
+# make the reconstruction the bound (a larger log cannot reproduce itself from them).
 COUNT_BITS = 33
 SIZE_BITS = 34
 LOG_WORD_BITS = 6
@@ -251,12 +250,11 @@ KR_STEP = 2 ** KR_STEP_LOG
 KR_CAP = 16
 
 # ------------------------------------------------- the stacked WHIR opening
-# The opening is dispatched by the certified committed log-size m through `match`.
-# The LIG_* tables carry one row per (rate, m), emitted from the same
-# derive_profile/level_shapes the prover uses: scalars index as TBL[m_idx],
-# per-level values as TBL[m_idx * LIG_MAX_LEVELS + lvl] where m_idx is the
-# flattened rate-major configuration index, and the subspace vanishing constants
-# with the LIG_MAX_VANISH_LEN stride.
+# The opening is dispatched by the certified committed log-size m through `match`,
+# one arm per m, and by the announced rate inside it. The LIG_* tables carry one row
+# per (rate, m), emitted from the same level_shapes the prover uses: scalars index as
+# TBL[m_idx], per-level values as TBL[m_idx * LIG_MAX_LEVELS + lvl], where m_idx is
+# the rate-major candidate index rate * LIG_N_LOG_SIZES + m - LIG_MIN_LOG_SIZE.
 LIG_MIN_LOG_SIZE = LIG_MIN_LOG_SIZE_PLACEHOLDER
 LIG_N_LOG_SIZES = LIG_N_LOG_SIZES_PLACEHOLDER
 LIG_N_RATES = LIG_N_RATES_PLACEHOLDER
@@ -271,7 +269,8 @@ COL_GROUP_START = COL_GROUP_START_PLACEHOLDER  # a column group's first column, 
 PCS_MIN_MU = PCS_MIN_MU_PLACEHOLDER
 # Global maxima; StackBuf frame sizes are parse-time, so they must be baked.
 LIG_MAX_LEVELS = LIG_MAX_LEVELS_PLACEHOLDER
-LIG_MAX_VANISH_LEN = LIG_MAX_VANISH_LEN_PLACEHOLDER
+# A rate's tables follow the previous rate's, every size and level of it.
+LIG_RATE_STRIDE = LIG_N_LOG_SIZES * LIG_MAX_LEVELS
 LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
 # The opening's grinding (pcs::whir_config): before each fold round's (alpha, beta),
@@ -290,7 +289,8 @@ BATCH_GRIND_BITS = BATCH_GRIND_BITS_PLACEHOLDER
 # zerocheck too); the table sumcheck's xi; and the Keccak reduction's first message
 # (its segment and lane), its s and its beta.
 BUS_GRIND_BITS = BUS_GRIND_BITS_PLACEHOLDER
-BUS_GRIND_ARMS = SIZE_BITS - MIN_LOG_MEM  # the bus depths from MIN_LOG_MEM, below SIZE_BITS
+BUS_MIN_MU = BUS_MIN_MU_PLACEHOLDER  # the least push depth of an execution of this bytecode
+BUS_GRIND_ARMS = SIZE_BITS - BUS_MIN_MU  # the bus depths from BUS_MIN_MU, below SIZE_BITS
 ROUND2_GRIND_BITS = ROUND2_GRIND_BITS_PLACEHOLDER
 ROUND3_GRIND_BITS = ROUND3_GRIND_BITS_PLACEHOLDER
 ROUND5_GRIND_BITS = ROUND5_GRIND_BITS_PLACEHOLDER
@@ -325,12 +325,11 @@ LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
 LIG_YR_LEN = LIG_YR_LEN_PLACEHOLDER
 LIG_TOTAL_FOLDS = LIG_TOTAL_FOLDS_PLACEHOLDER
-LIG_MAX_SQUEEZES = LIG_MAX_SQUEEZES_PLACEHOLDER
 LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
-LIG_POSITIONS_LEN = LIG_POSITIONS_LEN_PLACEHOLDER
 LIG_CAP_DEPTH = LIG_CAP_DEPTH_PLACEHOLDER
-LIG_CAP_OFF = LIG_CAP_OFF_PLACEHOLDER
-LIG_CAP_LEN = LIG_CAP_LEN_PLACEHOLDER
+LIG_LEVEL_POSITIONS_CAP = LIG_LEVEL_POSITIONS_CAP_PLACEHOLDER
+VANISH_BY_COLS = VANISH_BY_COLS_PLACEHOLDER  # the subspace-vanishing values of n columns at n(n+1)/2
+VANISH_INVS_BY_COLS = VANISH_INVS_BY_COLS_PLACEHOLDER  # and their inverses
 LIG_QUERIES = LIG_QUERIES_PLACEHOLDER
 LIG_FOLDS = LIG_FOLDS_PLACEHOLDER
 LIG_INTERLEAVE = LIG_INTERLEAVE_PLACEHOLDER
@@ -340,16 +339,11 @@ LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
 LIG_PATH_CAP = LIG_PATH_CAP_PLACEHOLDER
 LIG_TREE_DEPTH = LIG_TREE_DEPTH_PLACEHOLDER
 LIG_SQUEEZES = LIG_SQUEEZES_PLACEHOLDER
-LIG_POSITIONS_OFF = LIG_POSITIONS_OFF_PLACEHOLDER
 LIG_LOG_MSG_COLS = LIG_LOG_MSG_COLS_PLACEHOLDER
 LIG_RESIDUAL_FOLD_OFF = LIG_RESIDUAL_FOLD_OFF_PLACEHOLDER
 LIG_RESIDUAL_PREFIX_LEN = LIG_RESIDUAL_PREFIX_LEN_PLACEHOLDER
 LIG_HIGH_BITS = LIG_HIGH_BITS_PLACEHOLDER  # the bits of a level's high-part index, j < folds
 LIG_FOLDS_OFF = LIG_FOLDS_OFF_PLACEHOLDER
-LIG_VANISH_OFF = LIG_VANISH_OFF_PLACEHOLDER
-LIG_VANISH_VALS = LIG_VANISH_VALS_PLACEHOLDER
-LIG_VANISH_INVS = LIG_VANISH_INVS_PLACEHOLDER
-LIG_N_CANDIDATES = LIG_N_CANDIDATES_PLACEHOLDER
 LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
 # eval_b claim descriptors. CLAIM_POINT_BUF says which point buffer a pooled
 # claim's x-part lives in, CLAIM_COMMITTED_COL maps it to the compact index of the
@@ -538,10 +532,10 @@ SP_ENCODING_BYTES = 16 * 4 + SP_COUNTER_BYTES
 SP_UNUSED_BYTES = 8 - SP_TAIL_BYTES
 
 # --------------------------------------------------------------- node capacities
-# MAX_KEYS caps the coverage table's slots, both schemes' declared claims and their
-# duplicates, which is what the coverage range check needs below 2^MIN_LOG_MEM;
+# The coverage table's slots, both schemes' declared claims and their duplicates, are
+# bounded by the memory itself: each count is a g-power address (`assert_gpow`), so its
+# log is below the announced memory size, at most 2^30, and sums of a few never wrap.
 # MAX_RECURSIONS is the arity of an aggregation tree.
-MAX_KEYS = MAX_KEYS_PLACEHOLDER
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
 
@@ -1451,7 +1445,7 @@ def opening_query(cap, flags, coefs, hs, x, wins, base: Const, folds: Const, lea
         ws = StackBuf(YR_LOG_CAP + 1)
         ws[0] = x
         for i in unroll(1, mu + 1):
-            ws[i] = ws[i - 1] * (ws[i - 1] + LIG_VANISH_VALS[vanish + i - 1])
+            ws[i] = ws[i - 1] * (ws[i - 1] + VANISH_BY_COLS[vanish + i - 1])
         assert value == novel_eval(hs, ws, n_hs, hs_bits)
         out = 0
     else:
@@ -1492,7 +1486,7 @@ def opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n
 
 
 @inline
-def residual_query(basis_chain, row_d, hs, vanish: Const, n_cols: Const, n_hs: Const, hs_bits: Const):
+def residual_query(basis_chain, row_d, hs, n_cols: Const, n_hs: Const, hs_bits: Const):
     # prod_t (d_t + chain_t) over one query's message-column coordinates, chain_t =
     # W_t(x), x the query position; then the high part's share of the query's fold,
     # What_mu(x) sum_j p_(2^mu + j) X_j(x), its normalizers in hs.
@@ -1500,21 +1494,106 @@ def residual_query(basis_chain, row_d, hs, vanish: Const, n_cols: Const, n_hs: C
     ws[0] = basis_chain
     prefix_eq = row_d[GEN ** 0] + basis_chain
     for t in unroll(1, n_cols + 1):
-        # subspace-vanishing recurrence for the novel-basis point
+        # subspace-vanishing recurrence for the novel-basis point, a function of n_cols alone
         if const(t // HIGH_BITS_CAP == 0):
-            ws[t] = basis_chain * (basis_chain + LIG_VANISH_VALS[vanish + t - 1])
+            ws[t] = basis_chain * (basis_chain + VANISH_BY_COLS[n_cols * (n_cols + 1) // 2 + t - 1])
             basis_chain = ws[t]
         else:
-            basis_chain *= basis_chain + LIG_VANISH_VALS[vanish + t - 1]
+            basis_chain *= basis_chain + VANISH_BY_COLS[n_cols * (n_cols + 1) // 2 + t - 1]
         if const(t != n_cols):
             prefix_eq *= row_d[GEN ** t] + basis_chain
     return prefix_eq, basis_chain * novel_eval(hs, ws, n_hs, hs_bits)
 
 
-def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor, tabs):
-    # The stacked WHIR opening, one specialization per (rate, committed log-size)
-    # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
-    # opening proof data is hinted here, so only the executed arm pops its streams.
+def level_residual(positions, row_d, hs, mu, n_queries: Const, n_cols: Const, n_hs: Const, hs_bits: Const):
+    # A non-final level's residual chains at the terminal point, RES_BATCH queries an
+    # iteration sharing the row's reads and constants, then the rest one at a time. Query
+    # q is weighted lam^q: each chain runs h <- (h + term_q) * mu with mu = 1/lam, ending
+    # at lam^-n * sum_q lam^q term_q.
+    chain = HeapBuf(GEN ** (2 * (n_queries // RES_BATCH + 1)))
+    chain[GEN ** 0] = 0
+    chain[GEN ** 1] = 0
+    for xr in mul_range(1, GEN ** (n_queries // RES_BATCH)):
+        batch = positions * xr ** RES_BATCH
+        rec = chain * xr * xr
+        h = rec[GEN ** 0]
+        h_high = rec[GEN ** 1]
+        for k in unroll(0, RES_BATCH):
+            eq_q, high_q = residual_query(batch[GEN ** k], row_d, hs, n_cols, n_hs, hs_bits)
+            h = (h + eq_q) * mu
+            h_high = (h_high + high_q) * mu
+        rec[GEN ** 2] = h
+        rec[GEN ** 3] = h_high
+    rec = chain * GEN ** (2 * (n_queries // RES_BATCH))
+    h = rec[GEN ** 0]
+    h_high = rec[GEN ** 1]
+    if const(n_queries % RES_BATCH != 0):
+        rest = HeapBuf(GEN ** (2 * (n_queries % RES_BATCH + 1)))
+        rest[GEN ** 0] = h
+        rest[GEN ** 1] = h_high
+        tail = positions * (GEN ** (n_queries // RES_BATCH)) ** RES_BATCH
+        for xq in mul_range(1, GEN ** (n_queries % RES_BATCH)):
+            rq = rest * xq * xq
+            eq_q, high_q = residual_query(tail[xq], row_d, hs, n_cols, n_hs, hs_bits)
+            rq[GEN ** 2] = (rq[GEN ** 0] + eq_q) * mu
+            rq[GEN ** 3] = (rq[GEN ** 1] + high_q) * mu
+        end = rest * GEN ** (2 * (n_queries % RES_BATCH))
+        h = end[GEN ** 0]
+        h_high = end[GEN ** 1]
+    return h, h_high
+
+
+def level_positions(word0, fs0, fs1, fs2, fs3, fs4, positions, win_ptrs, tabs, squeezes: Const, depth: Const, cap_depth: Const):
+    # A level's query positions, FIELD_BITS // depth a word: the first word, word0, drawn
+    # by the query nonce's permutation, the rest one squeeze each. Row k of sqz is the
+    # capacity of the permutation that drew word k - 1; returns the last one.
+    sqz = HeapBuf((GEN ** (squeezes + 1)) ** FS_CELLS)
+    sqz[GEN ** FS_CELLS] = fs0
+    sqz[GEN ** (FS_CELLS + 1)] = fs1
+    sqz[GEN ** (FS_CELLS + 2)] = fs2
+    sqz[GEN ** (FS_CELLS + 3)] = fs3
+    sqz[GEN ** (FS_CELLS + 4)] = fs4
+    decode_query_windows(word0, positions, win_ptrs, tabs, depth, cap_depth)
+    for xs in mul_range(GEN, GEN ** squeezes):
+        row = sqz * xs ** FS_CELLS
+        row_cap = fs_load(row, 0, 1)
+        no_rate = StackBuf(8)
+        row_sp, packed_word = squeeze(row_cap, no_rate, 0)
+        fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
+        query_ptr = xs ** (FIELD_BITS // depth)
+        decode_query_windows(packed_word, positions * query_ptr, win_ptrs * query_ptr, tabs, depth, cap_depth)
+    sp = fs_load(sqz * (GEN ** squeezes) ** FS_CELLS, 0, 1)
+    return sp[0], sp[1], sp[2], sp[3], sp[4]
+
+
+def level_queries(lam, lam_inv, coefs, hs, positions, win_ptrs, n_queries: Const, base: Const, folds: Const, leaf_cells: Const, depth: Const, cap_depth: Const, mu: Const, n_hs: Const, hs_bits: Const, final: Const):
+    # A level's Merkle cap, hinted and checked up to its root, and the level's query batch
+    # walked into it. Returns the root, the batch's sum, and lam^n_queries. At level 0 a
+    # leaf image lists its lanes from the top down: the lanes a padding-free commitment
+    # leaves out are its LEADING words, whose whole blocks the committer hashes once for
+    # all leaves. The flip is a compile-time index.
+    cap = HeapBuf(GEN ** (4 * 2 ** cap_depth))
+    hint_witness(cap[0:4 * 2 ** cap_depth], "merkle_caps")
+    flags = HeapBuf(GEN ** (2 ** cap_depth))
+    hint_witness(flags[0:2 ** cap_depth], "merkle_cap_active")
+    root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
+    if const(base == 1):
+        pairs = n_queries // 2
+        odd = n_queries % 2
+    else:
+        pairs = n_queries
+        odd = 0
+    batched = opening_queries(cap, flags, lam_inv, coefs, hs, positions, win_ptrs, GEN ** pairs, odd, base, folds, leaf_cells, depth, cap_depth, mu, mu * (mu + 1) // 2, n_hs, hs_bits, final)
+    return root_0, root_1, batched, lam ** n_queries
+
+
+def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor, tabs):
+    # The stacked WHIR opening, one specialization per committed log-size m_idx, the
+    # rate g^rate_sel dispatched per level by a `match` into `level_positions`,
+    # `level_queries` and `level_residual`, which read the tables a rate changes (query
+    # counts, tree and cap depths, squeezes) at `ml + r * LIG_RATE_STRIDE`. Every other
+    # LIG_* table is read at the size's first-rate row `ml`, which `opening_placeholders`
+    # checks does not vary by rate. Only the executed arm pops the opening's hint streams.
     # The opening's scalars (round tables, level roots, high parts, OOD values,
     # nonces, the final lane, the closing rounds) ride the SHARED stream, walked on in
     # protocol order. A Merkle root is its two F128 scalars, exactly the root's two cells.
@@ -1527,11 +1606,6 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     yr_len = LIG_YR_LEN[m_idx]
     n_folds = LIG_TOTAL_FOLDS[m_idx]
 
-    # Caps are shared across queries; rows and paths are hinted in each query's frame.
-    merkle_caps = HeapBuf(GEN ** (4 * LIG_CAP_LEN[m_idx]))
-    hint_witness(merkle_caps[0:4 * LIG_CAP_LEN[m_idx]], "merkle_caps")
-    cap_flags = HeapBuf(GEN ** LIG_CAP_LEN[m_idx])
-    hint_witness(cap_flags[0:LIG_CAP_LEN[m_idx]], "merkle_cap_active")
     # The final lane, its low part then its high part, read from the stream.
     final_msg = HeapBuf(GEN ** (yr_len + LIG_FOLDS[m_idx * LIG_MAX_LEVELS + last]))
     # Each cap root is checked against its transcript-bound level root.
@@ -1549,19 +1623,19 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     level_hs = HeapBuf(GEN ** (n_levels * 2 ** HIGH_BITS_CAP))  # each high part, normalizers in
     ood_z = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
     ood_scalars = HeapBuf(GEN ** n_levels)
-    query_positions = HeapBuf(GEN ** (LIG_POSITIONS_LEN[m_idx]))
-    query_win_ptrs = HeapBuf(GEN ** (LIG_POSITIONS_LEN[m_idx]))
+    # A level's query positions, at most LIG_LEVEL_POSITIONS_CAP at any rate, start at
+    # lvl * LIG_LEVEL_POSITIONS_CAP.
+    query_positions = HeapBuf(GEN ** (n_levels * LIG_LEVEL_POSITIONS_CAP))
+    query_win_ptrs = HeapBuf(GEN ** (n_levels * LIG_LEVEL_POSITIONS_CAP))
 
     claim = target
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
-        n_queries = LIG_QUERIES[ml]
-        depth = LIG_TREE_DEPTH[ml]
         folds = LIG_FOLDS[ml]
         mu = LIG_LOG_MSG_COLS[ml]
         folds_off = LIG_FOLDS_OFF[ml]
-        pos_off = LIG_POSITIONS_OFF[ml]
-        vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
+        pos_off = lvl * LIG_LEVEL_POSITIONS_CAP
+        vanish = mu * (mu + 1) // 2
         for j in unroll(0, folds):
             fs0, fs1, fs2, fs3, fs4, cursor, claim = opening_round(fs0, fs1, fs2, fs3, fs4, cursor, claim, tabs, fold_challenges * GEN ** (folds_off + j), round_coefs * GEN ** (2 * (folds_off + j)))
 
@@ -1593,32 +1667,10 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
         # The nonce, a raw transport word, is bound by its DS_POW_NONCE absorb above;
         # its permutation draws the first query word, word0.
         grind_check(pow0, tabs, QUERY_GRIND_BITS)
-
-        # Row k of sqz is the capacity of the permutation that drew query word k - 1.
-        sqz = HeapBuf((GEN ** (LIG_MAX_SQUEEZES[m_idx] + 1)) ** FS_CELLS)
-        sqz[GEN ** FS_CELLS] = fs0
-        sqz[GEN ** (FS_CELLS + 1)] = fs1
-        sqz[GEN ** (FS_CELLS + 2)] = fs2
-        sqz[GEN ** (FS_CELLS + 3)] = fs3
-        sqz[GEN ** (FS_CELLS + 4)] = fs4
-        decode_query_windows(word0, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, tabs, depth, LIG_CAP_DEPTH[ml])
-        for xs in mul_range(GEN, GEN ** LIG_SQUEEZES[ml]):
-            # a loop body captures free names BY VALUE, so the compile-time aliases
-            # are rebound here (m_idx and lvl are substituted literals)
-            depth = LIG_TREE_DEPTH[m_idx * LIG_MAX_LEVELS + lvl]
-            pos_off = LIG_POSITIONS_OFF[m_idx * LIG_MAX_LEVELS + lvl]
-            row = sqz * xs ** FS_CELLS
-            row_cap = fs_load(row, 0, 1)
-            no_rate = StackBuf(8)
-            row_sp, packed_word = squeeze(row_cap, no_rate, 0)
-            fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
-            query_ptr = xs ** (FIELD_BITS // depth)
-            cap_depth = LIG_CAP_DEPTH[m_idx * LIG_MAX_LEVELS + lvl]
-            decode_query_windows(packed_word, query_positions * GEN ** pos_off * query_ptr, query_win_ptrs * GEN ** pos_off * query_ptr, tabs, depth, cap_depth)
-        sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** FS_CELLS
-        sp = fs_load(sqz_end, 0, 1)
+        fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(word0, fs0, fs1, fs2, fs3, fs4, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, tabs, LIG_SQUEEZES[ml + r * LIG_RATE_STRIDE], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE]))
         if const(lvl != last):
             # The level's batching challenge, the query message's last squeeze.
+            sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
             no_rate = StackBuf(8)
             sp, lam = squeeze(sp, no_rate, 0)
             lam_inv = 1 / lam
@@ -1628,19 +1680,8 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             fs3 = sp[11]
             fs4 = sp[12]
         else:
+            lam = 0
             lam_inv = 0
-            fs0 = sp[0]
-            fs1 = sp[1]
-            fs2 = sp[2]
-            fs3 = sp[3]
-            fs4 = sp[4]
-
-        cap_depth = LIG_CAP_DEPTH[ml]
-        cap = merkle_caps * GEN ** (4 * LIG_CAP_OFF[ml])
-        flags = cap_flags * GEN ** LIG_CAP_OFF[ml]
-        root_0, root_1 = verify_merkle_cap(cap, flags, cap_depth)
-        level_roots[GEN ** (2 * lvl)] = root_0
-        level_roots[GEN ** (2 * lvl + 1)] = root_1
 
         # The sent coefficients scaled by the What_i normalizers of their basis
         # elements, so a query evaluates them at the unnormalized W_i(x): at the final
@@ -1654,32 +1695,25 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
                 sc = 1
                 for i in unroll(0, hs_bits):
                     if const((c // 2 ** i) % 2 == 1):
-                        sc = sc * LIG_VANISH_INVS[vanish + i]
+                        sc = sc * VANISH_INVS_BY_COLS[vanish + i]
                 hs[GEN ** c] = final_msg[GEN ** c] * sc
         else:
             n_hs = 0  # the queries take no high part here
             hs_bits = 0
             hs = level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP)
             for c in unroll(0, folds):
-                sc = LIG_VANISH_INVS[vanish + mu]
+                sc = VANISH_INVS_BY_COLS[vanish + mu]
                 for i in unroll(0, LIG_HIGH_BITS[ml]):
                     if const((c // 2 ** i) % 2 == 1):
-                        sc = sc * LIG_VANISH_INVS[vanish + i]
+                        sc = sc * VANISH_INVS_BY_COLS[vanish + i]
                 hs[GEN ** c] = sent[GEN ** (2 + c)] * sc
 
-        # At level 0 a leaf image lists its lanes from the top down: the lanes a
-        # padding-free commitment leaves out are its LEADING words, whose whole blocks
-        # the committer hashes once for all leaves. The flip is a compile-time index.
-        if const(lvl == 0):
-            pairs = n_queries // 2
-            odd = n_queries % 2
-        else:
-            pairs = n_queries
-            odd = 0
         if const(lvl == last):
-            batched = opening_queries(cap, flags, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, GEN ** pairs, odd, 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], depth, cap_depth, mu, vanish, n_hs, hs_bits, 1)
+            root_0, root_1, batched, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, LIG_QUERIES[ml + r * LIG_RATE_STRIDE], 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE], mu, n_hs, hs_bits, 1))
         else:
-            batched = opening_queries(cap, flags, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, GEN ** pairs, odd, 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], depth, cap_depth, 0, 0, 0, 0, 0)
+            root_0, root_1, batched, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, lam_inv, round_coefs * GEN ** (2 * folds_off), hs, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, LIG_QUERIES[ml + r * LIG_RATE_STRIDE], 1 // (lvl + 1), folds, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE], 0, 0, 0, 0))
+        level_roots[GEN ** (2 * lvl)] = root_0
+        level_roots[GEN ** (2 * lvl + 1)] = root_1
 
         if const(lvl != last):
             # The OOD claim takes lam, the query batch lam^2 times its own powers of
@@ -1688,7 +1722,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             # tail challenge drawn after this level, the claim's factor from here on.
             ood_scalars[GEN ** (lvl + 1)] = lam
             claim = claim + lam * ood_y
-            scale = lam * lam * lam ** n_queries
+            scale = lam * lam * lam_pow
             claim = claim + scale * batched
             level_betas[GEN ** lvl] = scale
             level_mus[GEN ** lvl] = lam_inv
@@ -1748,18 +1782,18 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     for lvl in unroll(0, last):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         prefix_len = LIG_RESIDUAL_PREFIX_LEN[ml]
-        vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
+        vanish = LIG_LOG_MSG_COLS[ml] * (LIG_LOG_MSG_COLS[ml] + 1) // 2
         scale = level_betas[GEN ** lvl]
         after = GEN ** 0
         for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
-            coef_b = fold_c * LIG_VANISH_INVS[vanish + t]
+            coef_b = fold_c * VANISH_INVS_BY_COLS[vanish + t]
             basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / coef_b
             scale *= coef_b
             after *= fold_c
         for j in unroll(0, yr_log):
             tail_c = tail_challenges[GEN ** j]
-            coef_b = tail_c * LIG_VANISH_INVS[vanish + prefix_len + j]
+            coef_b = tail_c * VANISH_INVS_BY_COLS[vanish + prefix_len + j]
             basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / coef_b
             scale *= coef_b
             after *= tail_c
@@ -1771,42 +1805,8 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
     inner_chain[GEN ** 1] = claim
     for lvl in unroll(0, last):
         ml = m_idx * LIG_MAX_LEVELS + lvl
-        n_queries = LIG_QUERIES[ml]
-        vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
-        basis_row = lvl * LIG_LOG_MSG_COLS_CAP
-        n_hs = LIG_FOLDS[ml]
-        hs_bits = LIG_HIGH_BITS[ml]
-        hs = level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP)
-        # Query q is weighted lam^q: each chain runs h <- (h + term_q) * mu with mu = 1/lam,
-        # ending at lam^-n * sum_q lam^q term_q, and level_betas carries lam^(n + 2).
-        mu = level_mus[GEN ** lvl]
-        residual_chain = HeapBuf(GEN ** (2 * (n_queries // RES_BATCH + 1)))
-        residual_chain[GEN ** 0] = 0
-        residual_chain[GEN ** 1] = 0
-        # RES_BATCH queries an iteration share the row's reads and constants.
-        for xr in mul_range(1, GEN ** (LIG_QUERIES[ml] // RES_BATCH)):
-            ml = m_idx * LIG_MAX_LEVELS + lvl  # rebound: the body captures by value
-            vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
-            basis_row = lvl * LIG_LOG_MSG_COLS_CAP
-            positions = query_positions * GEN ** LIG_POSITIONS_OFF[ml] * xr ** RES_BATCH
-            row_d = basis_d * GEN ** basis_row
-            hs = level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP)
-            rec = residual_chain * xr * xr
-            h = rec[GEN ** 0]
-            h_high = rec[GEN ** 1]
-            for k in unroll(0, RES_BATCH):
-                eq_q, high_q = residual_query(positions[GEN ** k], row_d, hs, vanish, LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml])
-                h = (h + eq_q) * mu
-                h_high = (h_high + high_q) * mu
-            rec[GEN ** 2] = h
-            rec[GEN ** 3] = h_high
-        rec = residual_chain * GEN ** (2 * (n_queries // RES_BATCH))
-        h = rec[GEN ** 0]
-        h_high = rec[GEN ** 1]
-        for q in unroll(n_queries - n_queries % RES_BATCH, n_queries):
-            eq_q, high_q = residual_query(query_positions[GEN ** (LIG_POSITIONS_OFF[ml] + q)], basis_d * GEN ** basis_row, hs, vanish, LIG_LOG_MSG_COLS[ml], n_hs, hs_bits)
-            h = (h + eq_q) * mu
-            h_high = (h_high + high_q) * mu
+        # level_betas carries the lam^(n + 2) that the chains' 1/lam steps leave out.
+        h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_mus[GEN ** lvl], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
         # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain) into the total,
         # and lam^(n+2) * (the challenges after the level) * (its high chain) into the claim
         acc = inner_chain * GEN ** (2 * lvl)
@@ -1898,7 +1898,7 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
     # fills, returning their leaf values with the walked Fiat-Shamir state and stream
     # cursor. The root-most layer, which has no rounds and finds the roots waiting in
     # the sponge, runs on its own: a binary layer for an odd depth, else a radix-four
-    # one. It is never the last, the depth being at least the memory block's MIN_LOG_MEM.
+    # one. It is never the last, the depth being at least BUS_MIN_MU (`verify_sub`).
     layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)
     rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
     gkr_pts = HeapBuf(GKR_POINTS_CAP)
@@ -3348,7 +3348,7 @@ def certify_placement(kappa_base, g_squares):
         c0 = COL_GROUP_START[gi]
         kappa_g = kb[COL_KAPPA_SRC[c0]] * GEN ** COL_KAPPA_ADJ[c0]
         # g_squares spans SIZE_BITS, and every kappa is under it: a certified log
-        # <= 32 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QKECCAK_SLOT_LOG.
+        # <= 30 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QKECCAK_SLOT_LOG.
         assert log(kappa_g) < SIZE_BITS
         # Descending kappa, then the group's first (compact, native-order) index ascending.
         group_key[GEN ** gi] = rank_keys[kappa_g] * INV_GEN ** c0
@@ -3523,8 +3523,8 @@ def check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem
 
 
 def bus_grind_check(word, tabs, d: Const):
-    # The bus's grind at a push depth of MIN_LOG_MEM + d.
-    grind_check(word, tabs, BUS_GRIND_BITS[MIN_LOG_MEM + d])
+    # The bus's grind at a push depth of BUS_MIN_MU + d.
+    grind_check(word, tabs, BUS_GRIND_BITS[BUS_MIN_MU + d])
     return 0
 
 
@@ -3576,7 +3576,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
     g_log_mem = g_power_of_word(log_mem_word)
-    assert log(g_log_mem) < COUNT_BITS
+    assert log(g_log_mem) < MAX_LOG_MEM + 1  # native log_mem <= MAX_LOG_MEM
     assert log(g_log_mem / GEN ** MIN_LOG_MEM) < COUNT_BITS  # native MIN_LOG_MEM <= log_mem
     dims_g[GEN ** 0] = g_log_mem
     hint_witness(dims_g[1:1 + N_TABLES], "table_logs")  # certified in verify_tables
@@ -3630,10 +3630,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
 
     # ---- bus challenges ----
     # They fail with probability at most 2^mu / |E| (verifier::bus), so a grind of
-    # BUS_GRIND_BITS[mu] comes first, mu the push side's depth: at least MIN_LOG_MEM,
-    # the memory block's. A tuple is fingerprinted linearly: slot x weighs its own
+    # BUS_GRIND_BITS[mu] comes first, mu the push side's depth: at least BUS_MIN_MU,
+    # its least over executions of this bytecode. A tuple is fingerprinted linearly: slot x weighs its own
     # challenge fp_w[x] (doc sec:gp).
-    bus_grind = g_bus_mu * INV_GEN ** MIN_LOG_MEM
+    bus_grind = g_bus_mu * INV_GEN ** BUS_MIN_MU
     assert log(bus_grind) < BUS_GRIND_ARMS
     done = match(log(bus_grind), range(0, BUS_GRIND_ARMS), lambda d: bus_grind_check(pow_word, tabs, d))  # a match needs a target
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
@@ -3710,12 +3710,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     target += lam_pow * keccak_word
     # The OOD sample's claim closes the batch.
     target += lam_pow * lam_cl * ood_value[1]
-    # Flatten (rate-1, m-MIN) in rate-major order. Both coordinates are
-    # transcript-bound and range-checked above, so a single compiled guest can
-    # dispatch independently for every inner proof in a mixed-rate batch.
-    config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
-    assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor, tabs))
+    # One arm per size, the rate passed on. Both are transcript-bound and range-checked
+    # above, so a single compiled guest dispatches independently for every inner proof
+    # in a mixed-rate batch.
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(size_sel), range(0, LIG_N_LOG_SIZES), lambda m_idx: open_stacked(m_idx, rate_sel, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor, tabs))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.
@@ -4326,7 +4324,7 @@ def list_split(n_g):
     rest = split[2]
     assert log(rest) < CLAIM_GROUP
     assert log(groups) < BIG_GROUPS
-    assert log(bigs) < MAX_KEYS
+    assert_gpow(bigs)
     # Every exponent is small and nonnegative, so this is an identity over the
     # integers: CLAIM_BIG * bigs + CLAIM_GROUP * groups + rest == n.
     assert bigs ** CLAIM_BIG * groups ** CLAIM_GROUP * rest == n_g
@@ -4466,8 +4464,9 @@ def child_claims_mono(cov, ent, mark, blk, out, n: Const):
 
 def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest):
     # The walk of a list at strictly increasing offsets o_j = e_0 + ... + e_j + j, every
-    # e_j in [0, 2^h): its first offset is at least zero, and the count of claims keeps
-    # the sum far from wrapping, so bounding its last offset below the region's size
+    # e_j in [0, 2^h): its first offset is at least zero, and the count of claims, a
+    # memory address (`assert_gpow`, below 2^30), keeps the sum below 2^60, short
+    # of wrapping, so bounding its last offset below the region's size
     # (child_claim_list_mono_last) bounds them all. A record carries the sponge state,
     # then the walk's coverage slot and table entry.
     chain = HeapBuf((bigs * groups * GEN) ** MONO_REC)
@@ -4725,20 +4724,21 @@ def main():
     n_raw_s_g = meta[5]
     n_children_g = meta[6]
     n_direct_da_g = meta[7]
-    assert log(n_lx_g) < MAX_KEYS
-    assert log(n_xdup_g) < MAX_KEYS
-    assert log(n_raw_x_g) < MAX_KEYS
-    assert log(n_lean_sphincs_g) < MAX_KEYS
-    assert log(n_sdup_g) < MAX_KEYS
-    assert log(n_raw_s_g) < MAX_KEYS
+    assert_gpow(n_lx_g)
+    assert_gpow(n_xdup_g)
+    assert_gpow(n_raw_x_g)
+    assert_gpow(n_lean_sphincs_g)
+    assert_gpow(n_sdup_g)
+    assert_gpow(n_raw_s_g)
     assert log(n_children_g) < MAX_RECURSIONS + 1
     assert log(n_direct_da_g) < 2
     lx_slots_g = n_lx_g * n_xdup_g
     lean_sphincs_slots_g = n_lean_sphincs_g * n_sdup_g
-    # The sum of both regions bounds the coverage indices, so it is what has to sit
-    # below the minimum memory size.
+    # The sum of both regions bounds the coverage indices, so it is what has to be a
+    # memory address: its log is then below 2^30 and the runtime bounds below mean
+    # what they say. An honest node holds its coverage table in memory, so it fits.
     n_total_g = lx_slots_g * lean_sphincs_slots_g
-    assert log(n_total_g) < MAX_KEYS
+    assert_gpow(n_total_g)
 
     # The proving environment (the proof system's version and this bytecode) as one
     # digest. It rides the statement rather than the bytecode, so nothing here has to
@@ -4791,11 +4791,10 @@ def main():
             lx_tags[LX_TAG_SLOT[i] - 1] = i
     for xi in mul_range(1, n_raw_x_g):
         idx = hint_witness("raw_index")
-        # A runtime bound, whose `n_total < 2^MIN_LOG_MEM` precondition is
-        # discharged by `assert log(n_total_g) < MAX_KEYS` above. Without it this
-        # degenerates to what DEREF alone gives and an index could reach past
-        # `cover`, which is the whole bijection. The bound is the leanXMSS region, so
-        # a raw leanXMSS signature covers no leanSPHINCS claim.
+        # The runtime bound is small by `assert_gpow(n_total_g)` above (its log below
+        # the memory size). Without it this degenerates to what DEREF alone gives and an
+        # index could reach past `cover`, which is the whole bijection. The bound is the
+        # leanXMSS region, so a raw leanXMSS signature covers no leanSPHINCS claim.
         assert log(idx) < log(lx_slots_g)
         cover[idx] = xi
         verify_lean_xmss(lx_table * (idx ** 4), lx_tags)
@@ -4833,8 +4832,8 @@ def main():
         hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_lean_sphincs
         nsub_x_g = child_meta[0]
         nsub_s_g = child_meta[1]
-        assert log(nsub_x_g) < MAX_KEYS
-        assert log(nsub_s_g) < MAX_KEYS
+        assert_gpow(nsub_x_g)
+        assert_gpow(nsub_s_g)
         nsub_g = nsub_x_g * nsub_s_g
         cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, lx_slots_g, nsub_x_g)
         cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, sp_cover, base * nsub_x_g, lean_sphincs_slots_g, nsub_s_g)

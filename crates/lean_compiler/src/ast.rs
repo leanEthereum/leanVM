@@ -208,9 +208,9 @@ pub enum ForBound {
 /// runtime `g^n`. Same gadget either way, only the cell holding `g^{k-1}`
 /// differing.
 ///
-/// A runtime bound loses the `k ≤ 2^MIN_LOG_MEM` cap the compiler would check,
-/// so the PROGRAM owes it: range-check the bound itself first, or `log X < log n`
-/// bounds `X` only by the prover-announced memory size.
+/// A runtime bound's meaning is the PROGRAM's to give: it owes a small `n`, by checking it
+/// first (`assert_gpow(n)` bounds its log by the memory size), or `log X < log n` bounds `X`
+/// by nothing.
 #[derive(Clone, Debug)]
 pub enum LtBound {
     Const(u64),

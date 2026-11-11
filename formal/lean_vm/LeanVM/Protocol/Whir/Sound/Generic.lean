@@ -22,7 +22,7 @@ predicate is kept by every move but a commitment, where the new word is appended
 * `readInv`, `readNInv`, `roundPolyInv`: scalars and the round polynomial
   `sumcheckRoundPoly 3 σ none` keep the invariant; the round polynomial comes out in the form
   `QuadOK q σ`.
-* `grindInv`: a proof of work keeps it, the follower's lead discounted by `2^-b`.
+* `grindInv`: a proof of work of `b > 0` bits keeps it, the follower's lead discounted by `2^-b`.
 * `commitInv`: a commitment appends its word.
 -/
 

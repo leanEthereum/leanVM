@@ -15,7 +15,7 @@ random leaves:
   `n − A`, including past the unique decoding radius `⌊(n − 2^κ − 6)/2⌋`, and finds nothing when
   they are not; it finds it also when the lanes carry high parts `W_κ·H_u` (`wordHighOf`);
 * the fast path (`fastStacks`) decodes a word without errors by interpolation alone, also at the
-  smallest deployed shape (`μ = 15`, `R = 1`), and gives up on a word with an error among its first
+  smallest deployed shape (`μ = 16`, `R = 1`), and gives up on a word with an error among its first
   `2^κ` columns, which the list decoder still decodes;
 * the parameters: the natural Johnson threshold and the decoder's multiplicities at the deployed
   shapes, against the table computed offline with exact integers;
@@ -24,7 +24,7 @@ random leaves:
   matter.
 
 The runs are interpreted, a few seconds each; the decoding past the unique radius takes about a
-minute and a half, the fast path at the deployed shape about half a minute.
+minute and a half; the fast path at the deployed shape is the slowest.
 -/
 
 namespace LeanVMTests.Extraction
@@ -116,9 +116,9 @@ def fastDecodes {μ : ℕ} (R : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List K)
 -- An error past them: the fast path still finds the stack (it agrees on `15` of `16` columns).
 #guard fastDecodes 2 (randomStack 2 8) (corrupt 2 [13] (wordOf 2 (randomStack 2 8)))
 
--- The smallest deployed shape, `μ = 15`, `R = 1`: a stack of `2^15` words on `1024` columns,
--- decoded by the fast path (about half a minute, interpreted, the word's encoding included).
-#guard fastDecodes 1 (randomStack 5 15) (wordOf 1 (randomStack 5 15))
+-- The smallest deployed shape, `μ = 16`, `R = 1`: a stack of `2^16` words on `2048` columns,
+-- decoded by the fast path (interpreted, the word's encoding included).
+#guard fastDecodes 1 (randomStack 5 16) (wordOf 1 (randomStack 5 16))
 
 /-! ## The parameters at the deployed shapes
 

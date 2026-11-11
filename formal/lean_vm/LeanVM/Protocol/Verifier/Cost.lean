@@ -151,7 +151,7 @@ def queryDepthsLE : ℕ → List Whir.Level → Bool
       queryDepthsLE (μ - level.fold) rest
 
 /-- The bound on every commitment's height. -/
-def costHeight : ℕ := 26
+def costHeight : ℕ := 28
 
 /-- The bound on the WHIR levels' cost over every admissible ladder (`ladder_cost`). -/
 def whirBound : ℕ := 40569
@@ -283,7 +283,7 @@ theorem costs_bytecodeShare (weights bytecodeLow : List E) :
 
 /-- The claims on `KECCAK` output lanes are at points of at most `32` coordinates. -/
 def ClaimsShort (claims : List ColumnClaim) : Prop :=
-  ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point.length ≤ 32
+  ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point.length ≤ 30
 
 /-- The bus phase, at the push side's depth, for a check of the fixed polynomial's value that
 costs nothing. -/
@@ -379,14 +379,14 @@ theorem busBlocks_push_length (hs rows : List ℕ) (h : hs.length = 6) (hr : row
 
 /-- What `buildLayout` guarantees of a layout it returns. -/
 structure LayoutBounds (layout : Layout) : Prop where
-  /-- The memory has at most `2^32` cells. -/
-  logMemory_le : layout.logMemory ≤ 32
-  /-- The bytecode has at most `2^32` tuples. -/
-  logBytecode_le : layout.logBytecode ≤ 32
+  /-- The memory has at most `2^30` cells. -/
+  logMemory_le : layout.logMemory ≤ 30
+  /-- The bytecode has at most `2^30` tuples. -/
+  logBytecode_le : layout.logBytecode ≤ 30
   /-- One height per table. -/
   heights_length : layout.tableLogHeights.length = 6
-  /-- Every table has at most `2^32` rows. -/
-  heights_le : ∀ h ∈ layout.tableLogHeights, h ≤ 32
+  /-- Every table has at most `2^30` rows. -/
+  heights_le : ∀ h ∈ layout.tableLogHeights, h ≤ 30
   /-- The push side's blocks are the tables' push flushes, at some row count per table. -/
   push_eq : ∃ tableRows : List ℕ, tableRows.length = 6 ∧
     layout.push = (busBlocks layout.tableLogHeights tableRows).1
@@ -417,7 +417,7 @@ theorem layoutBounds_of_buildLayout {bytecode : List K} {logMemory : ℕ} {table
       have hi1 : i < tableRows.length := by simp [hts] at hi; omega
       have hi2 : i < tableLogFloors.length := by simp [hts] at hi; omega
       refine max_le (log2Ceil_le (hall _ (List.getElem_mem hi1))) ?_
-      have : ∀ f ∈ tableLogFloors, f ≤ 32 := by decide
+      have : ∀ f ∈ tableLogFloors, f ≤ 30 := by decide
       exact this _ (List.getElem_mem hi2)
 
 /-- The sizes a run of `readAnnouncedSizes` returns: a layout `buildLayout` built, the stack in the
@@ -439,10 +439,10 @@ theorem costs_readSizes {height : ℕ} (bytecode : List K) :
   · exact ⟨layoutBounds_of_buildLayout hl, hr.1, hr.2, hs.1, hs.2⟩
   all_goals simp [tables]
 
-/-- The push side of a built layout has depth at most `38`. -/
+/-- The push side of a built layout has depth at most `36`. -/
 theorem pushDepth_le {layout : Layout} (h : LayoutBounds layout) :
-    (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth ≤ 38 := by
-  refine stackOffsets_snd_le _ 32 6 ?_ ?_
+    (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth ≤ 36 := by
+  refine stackOffsets_snd_le _ 30 6 ?_ ?_
   · intro x hx
     simp only [List.cons_append, List.nil_append, List.mem_cons, List.mem_map] at hx
     rcases hx with rfl | rfl | rfl | ⟨b, hb, rfl⟩
@@ -455,8 +455,8 @@ theorem pushDepth_le {layout : Layout} (h : LayoutBounds layout) :
   · obtain ⟨rows, hr, hp⟩ := h.push_eq
     simp [hp, busBlocks_push_length _ _ h.heights_length hr]
 
-/-- The GKR walk over at most `38` levels costs at most `gkrBound`. -/
-theorem gkrCost_le : ∀ D ≤ 38, gkrCost D 0 ≤ gkrBound := by decide
+/-- The GKR walk over at most `36` levels costs at most `gkrBound`. -/
+theorem gkrCost_le : ∀ D ≤ 36, gkrCost D 0 ≤ gkrBound := by decide
 
 
 /-- **The bus phase** on a built layout. -/
@@ -484,7 +484,7 @@ theorem costs_tableTerms (constraintPowers formPowers point : List E) :
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
   | [], _, _, claims, hc, _ => hc
   | (table, h, forms, weight) :: rest, cursor, final, claims, hc, hh => by
-    have h0 : h ≤ 32 := hh _ List.mem_cons_self
+    have h0 : h ≤ 30 := hh _ List.mem_cons_self
     refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun evals _ ↦
       (costs_tableTerms constraintPowers formPowers point rest _ _ _ ?_
         fun r hr ↦ hh r (List.mem_cons_of_mem _ hr)).mono ?_ fun _ h ↦ h) ?_
@@ -515,10 +515,10 @@ theorem sum_width_zip {β : Type} : ∀ (l : List Table) (m : List β),
     have := sum_width_zip l m
     omega
 
-/-- The table sumcheck over tables of at most `2^32` rows. -/
+/-- The table sumcheck over tables of at most `2^30` rows. -/
 theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E)
-    (hh : ∀ h ∈ heights, h ≤ 32) :
+    (hh : ∀ h ∈ heights, h ≤ 30) :
     VerifierProgram.Costs height
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (32 * roundCost 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
@@ -527,7 +527,7 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
   refine VerifierProgram.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
     have hrows : ∀ r ∈ List.zip tables (List.zip heights (List.zip busForms
-        (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 32 := by
+        (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 30 := by
       intro r hr
       exact hh _ (List.of_mem_zip (List.of_mem_zip hr).2).1
     refine VerifierProgram.Costs.seq (costs_tableTerms _ _ _ _ 0 0 [] (fun _ h ↦
@@ -641,11 +641,11 @@ theorem costs_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : �
   VerifierProgram.Costs.seq (costs_sumcheck 3 _ _) (fun _ _ ↦ trivial)
     (by simp only [List.length_replicate]; omega)
 
-/-- **The Keccak reduction** at an instance point of at most `32` coordinates. -/
-theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 32) :
-    VerifierProgram.Costs height (verifyKeccak logSteps inst output) (keccakCost 29) fun _ ↦
+/-- **The Keccak reduction** at an instance point of at most `30` coordinates. -/
+theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 30) :
+    VerifierProgram.Costs height (verifyKeccak logSteps inst output) (keccakCost 27) fun _ ↦
         True := by
-  have hL : (inst.drop 4).length + keccakSegmentBits ≤ 29 := by
+  have hL : (inst.drop 4).length + keccakSegmentBits ≤ 27 := by
     simp only [List.length_drop, keccakSegmentBits]
     have : log2Ceil keccakSegments = 1 := by decide
     omega
@@ -662,7 +662,7 @@ theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
   · have hpl : (inst.drop 4 ++ segment).length ≤ 29 := by
       rw [List.length_append, hseg]; exact hL
     have hlay : keccakDepth * keccakLayerCost (inst.drop 4 ++ segment).length ≤
-        keccakDepth * keccakLayerCost 29 := by
+        keccakDepth * keccakLayerCost 27 := by
       refine Nat.mul_le_mul_left _ ?_
       unfold keccakLayerCost
       have := Nat.mul_le_mul_right (roundCost 3) hpl
@@ -684,11 +684,11 @@ theorem costs_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
     all_goals omega
   all_goals simp only [keccakCost, hr3]; omega
 
-/-- The first claim on a `KECCAK` output lane is at a point of at most `32` coordinates. -/
+/-- The first claim on a `KECCAK` output lane is at a point of at most `30` coordinates. -/
 theorem headD_filter_short : ∀ (l : List ColumnClaim), ClaimsShort l →
-    ((l.filter fun c ↦ decide (c.column ∈ keccakOutputColumns)).headD default).point.length ≤ 32
+    ((l.filter fun c ↦ decide (c.column ∈ keccakOutputColumns)).headD default).point.length ≤ 30
   | [], _ => by
-    show (default : ColumnClaim).point.length ≤ 32
+    show (default : ColumnClaim).point.length ≤ 30
     rw [show (default : ColumnClaim).point = [] from rfl]
     simp
   | c :: l, h => by
@@ -698,10 +698,10 @@ theorem headD_filter_short : ∀ (l : List ColumnClaim), ClaimsShort l →
     · simp only [List.filter_cons, hc, decide_false, Bool.false_eq_true, ↓reduceIte]
       exact headD_filter_short l fun c' hc' ↦ h c' (List.mem_cons_of_mem _ hc')
 
-/-- **The Keccak phase**, its claims at points of at most `32` coordinates. -/
+/-- **The Keccak phase**, its claims at points of at most `30` coordinates. -/
 theorem costs_keccakPhase (layout : Layout) (claims : List ColumnClaim)
     (hc : ClaimsShort claims) :
-    VerifierProgram.Costs height (keccakPhaseClaims layout claims) (keccakCost 29) fun _ ↦
+    VerifierProgram.Costs height (keccakPhaseClaims layout claims) (keccakCost 27) fun _ ↦
         True := by
   exact VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
       VerifierProgram.Costs.seq
@@ -920,7 +920,7 @@ end Whir
 
 /-- Over every ladder `Parameters.Whir.ladder` returns, the commitments have height at most
 `costHeight`, the query positions at most `64` bits, and the WHIR levels cost at most
-`whirBound`; decided over the 56 admissible pairs. -/
+`whirBound`; decided over the 60 admissible pairs. -/
 theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     whirHeightsLE costHeight μ levels = true ∧ stackHeightLE costHeight μ levels = true ∧

@@ -171,14 +171,15 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (buildLayout (sampleBytecode.take 24) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 8) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 16) 16 sampleRows).isSome
-/- The memory window `[16, 32]`. -/
-#guard (buildLayout sampleBytecode 15 sampleRows).isNone
-#guard (buildLayout sampleBytecode 33 sampleRows).isNone
-#guard (buildLayout sampleBytecode 32 sampleRows).isSome
-/- The row cap `2^32`, on any table. -/
-#guard (buildLayout sampleBytecode 16 [2 ^ 32 + 1, 2, 2, 4, 3, 5]).isNone
-#guard (buildLayout sampleBytecode 16 [2 ^ 32, 2, 2, 4, 3, 5]).isSome
-#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 2 ^ 32]).isSome
+/- The memory window `[1, 30]`. -/
+#guard (buildLayout sampleBytecode 0 sampleRows).isNone
+#guard (buildLayout sampleBytecode 1 sampleRows).isSome
+#guard (buildLayout sampleBytecode 31 sampleRows).isNone
+#guard (buildLayout sampleBytecode 30 sampleRows).isSome
+/- The row cap `2^30`, on any table. -/
+#guard (buildLayout sampleBytecode 16 [2 ^ 30 + 1, 2, 2, 4, 3, 5]).isNone
+#guard (buildLayout sampleBytecode 16 [2 ^ 30, 2, 2, 4, 3, 5]).isSome
+#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 2 ^ 30]).isSome
 /- No `KECCAK` row is no rejection: the table's height is its floor. Past the floor it grows. -/
 #guard ((buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 0]).map (·.tableLogHeights)) =
   some [2, 1, 1, 2, 2, 9]
@@ -190,7 +191,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 
 /-! ## `derive_config` outside the window -/
 
-#guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 29 1).isNone
+#guard (Whir.ladder 15 1).isNone ∧ (Whir.ladder 33 1).isNone
 #guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
 /-! ## Field and multilinear arithmetic (`field.rs:255-264`, `multilinear.rs`, `layout.rs:113`;
@@ -722,7 +723,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [55, 32, 23, 18, 15]),
    (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [55, 32, 23, 18, 15, 14])]
 
-#guard refConfigs.length = 56
+#guard refConfigs.length = 60
 #guard refConfigs.all fun (n, r, folds, rates, queries) ↦
   decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))

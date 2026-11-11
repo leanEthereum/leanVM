@@ -65,6 +65,7 @@ def main():
     ap.add_argument("--split-rows", default="37",
                     help="rows whose cells' lists get a name of their own (checked by chunks)")
     a = ap.parse_args()
+    global N
     entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
     os.chdir(Path(__file__).resolve().parent.parent)
     N = len(entries)  # the compiled functions, `__jump_tables` first

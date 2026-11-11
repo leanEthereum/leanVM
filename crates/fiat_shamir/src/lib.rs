@@ -17,6 +17,8 @@ pub mod merkle;
 pub mod transcript;
 mod wire;
 
+pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
+
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
 
@@ -293,5 +295,15 @@ mod tests {
         let mut clone = sp.clone();
         assert_eq!(clone.grind(0), None);
         assert_eq!(clone.sample(), sp.clone().sample());
+    }
+
+    /// A grind of no bits is nothing: no nonce sent, the next challenge unchanged.
+    #[test]
+    fn a_zero_bit_grind_is_nothing() {
+        let mut ground = transcript::ProverState::from_label(b"t");
+        let mut plain = transcript::ProverState::from_label(b"t");
+        ground.grind(0);
+        assert_eq!(ground.sample(), plain.sample());
+        assert!(ground.into_proof().stream.is_empty());
     }
 }

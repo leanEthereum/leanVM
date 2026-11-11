@@ -123,6 +123,7 @@ def atom (e : Expr) : R Atom := do
       return .keccak (← vals ins) (← vals outs) (← bool i) (← bool o)
   | (``Atom.frameAddr, #[p, r]) => return .frameAddr (← val p) (← vals r)
   | (``Atom.hint, #[h]) => return .hint (← hint h)
+  | (``Atom.touch, #[t, p]) => return .touch (← val t) (← val p)
   | _ => bad "an atom" e
 
 partial def stmt (e : Expr) : R Stmt := do

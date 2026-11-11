@@ -99,6 +99,7 @@ def pAtom : Atom → String
   | .keccak ins outs inOdd outOdd => s!".keccak {pVs ins} {pVs outs} {inOdd} {outOdd}"
   | .frameAddr p run => s!".frameAddr {pV p} {pVs run}"
   | .hint h => s!".hint {pHint h}"
+  | .touch t p => s!".touch {pV t} {pV p}"
 
 /-! ## Blocks
 

@@ -25,7 +25,7 @@ program's at the pulled counter. It assumes the constraint statement `SatisfiedB
 **The argument** is the memory channel's (`Soundness.MemChannel`) on the triples
 `(pc, count, entry)` (`bcMsgOf`): the bytecode block seeds `(g^k, 1, entry (prog.code k))` for
 every slot `k` and finalizes the same keys, every row of the six tables reads one entry with a
-nonzero count (`CountsNonzero`), and there are at most `6 · 2^32` rows (`Caps`). So `lookup_sound`
+nonzero count (`CountsNonzero`), and there are at most `6 · 2^30` rows (`Caps`). So `lookup_sound`
 makes every pulled `(pc, e)` a seed's `(g^k, entry (prog.code k))`. The strong form implies the
 pull's guarantee, that the entry decodes (`decode_entry`), and is what joins a row's instruction
 to the program's fetch (`opRecs_fetch`, through `LeanIsaProgram.fetch_gpow` and `entry_injective`).

@@ -645,6 +645,35 @@ fn heap_keccak_slice_oob_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
+/// An index whose exponent ends past `u128` is out of bounds: `exp + 1` used to
+/// wrap to 0 and pass the check, so `hb[GEN ** (2^128 - 1)]` compiled.
+#[test]
+#[should_panic(expected = "heap index 340282366920938463463374607431768211455 out of bounds for `hb` (HeapBuf size 8)")]
+fn heap_index_exponent_overflow_rejected() {
+    let src =
+        "def main():\n    hb = HeapBuf(8)\n    hb[GEN ** 340282366920938463463374607431768211455] = 5\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// An alias shift plus an index that overflows `u128` is out of bounds too,
+/// where the check used to be skipped.
+#[test]
+#[should_panic(expected = "out of bounds for `hb` (HeapBuf size 8)")]
+fn heap_alias_exponent_overflow_rejected() {
+    let src = "def main():\n    hb = HeapBuf(8)\n    row = hb * GEN ** 340282366920938463463374607431768211455\n    row[GEN ** 2] = 5\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// A `StackBuf(n)` parameter as wide as `u32` allows pushes the next
+/// parameter's offset past `u32`: refused, rather than wrapped onto the
+/// return slots.
+#[test]
+#[should_panic(expected = "a call's arguments and returns outgrow 2^32 frame cells")]
+fn stack_buf_param_area_overflow_rejected() {
+    let src = "def wide(s: StackBuf(4294967295), i):\n    return i\n\ndef main():\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
 /// A heap index that folds to a non-g-power field constant (an integer loop
 /// var leaking in from a StackBuf conversion) can never name a heap cell (cell
 /// k lives at `buf · g^k`) and used to survive to proving time as a

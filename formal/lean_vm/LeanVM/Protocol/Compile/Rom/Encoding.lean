@@ -37,7 +37,7 @@ time. Both rest on facts about the encodings of `LeanVM.Protocol.Compile.run`, c
   capacity of a uniform state takes a given value with probability `2^-576 ≤ 2^-256`
   (`sum_capOf_div_le`); the proof-of-work predicate on the challenge of a uniform state holds
   with probability at most `2^-min(b, 64)` (`sum_powOk_div_le`), and exactly `2^-b` for
-  `1 ≤ b ≤ 64` (`sum_powOk_div_eq`).
+  `b ≤ 64` (`sum_powOk_div_eq`).
 -/
 
 namespace LeanVM.Protocol.Compile.Rom

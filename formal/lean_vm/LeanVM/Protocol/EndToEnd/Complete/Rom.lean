@@ -152,11 +152,11 @@ theorem romComplete_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execut
   rfl
 
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
-most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
+most `2^30`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)
         (verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))

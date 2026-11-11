@@ -101,17 +101,16 @@ products by the additive FFT) and is proved to list the same stacks
 algorithm with Mulders and Storjohann's reduction, is no longer compiled). It substitutes in
 Roth–Ruckenstein by a
 Taylor shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated
-roots (`ℓ²·k/2` per substitution, `2^68.8` in all), skips the final root check where the
+roots (`ℓ²·k/2` per substitution), skips the final root check where the
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes). Compiled to
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
 `compiledKnowledgeExtractor` (`Cost/ExtractorProgram.lean`) of the end statement:
 `knowledgeExtractorOf extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is
-proved (`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at
-most
-`2^40` queries, the list decoder dominating (`extractorPrice_28_4`), and `2^156.69` for `2^128`
-queries, the transcript's index dominating (`extractorPrice_28_4_2_128`).
+proved (`LeanVM.Cost.Bounds.extractorC_cost`): at the largest stack, `(μ, R) = (30, 4)`, at most
+about `2^82` for at most `2^40` queries, the list decoder dominating (`extractorPrice_30_4`), and
+`2^156.86` for `2^128` queries, the transcript's index dominating (`extractorPrice_30_4_2_128`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
 

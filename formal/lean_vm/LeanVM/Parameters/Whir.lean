@@ -18,7 +18,7 @@ public import Statement.Fast.FieldWords
 
 The parameters are defined with the verifier that reads them, in `Statement.LeanVmVerifier` (Part
 1). This module proves what the proofs need of them: the folds and reductions are ordered, and on
-the 56 admissible pairs of stack size and rate the ladder exists (`ladder_isSome`), has one level
+the 60 admissible pairs of stack size and rate the ladder exists (`ladder_isSome`), has one level
 per tabulated query count, and leaves a residual of at most `residualMaxLog` variables.
 -/
 
@@ -44,7 +44,7 @@ def blockLogs (μ : ℕ) : List Level → List ℕ
 
 /-! ## Structure of the table
 
-Each fact below is decided over the 56 admissible pairs; the general statement follows by
+Each fact below is decided over the 60 admissible pairs; the general statement follows by
 bounding the quantifiers. -/
 
 private theorem admissible_bounded {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :

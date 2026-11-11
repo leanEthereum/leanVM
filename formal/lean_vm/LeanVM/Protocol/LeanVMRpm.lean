@@ -339,7 +339,7 @@ theorem completenessRpm_at {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
 /-- **Completeness in the random-permutation model**, for the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
 theorem completenessRpm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let v ← verifierCompletenessExperimentWithHash
         (fun prog input t ρ fuel ↦ some <$> EndToEnd.Complete.honestComp prog input t ρ fuel)

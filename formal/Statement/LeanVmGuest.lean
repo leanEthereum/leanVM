@@ -350,7 +350,7 @@ def StatementDigestBinds : Prop :=
       HasCollision (collisionCandidates seed statement seed' statement')
 
 /-- The guest program's deployed seed: its Fiat-Shamir IV (`fs_seed`,
-`crates/leanvm_core/src/cpu/mod.rs:62-64`). -/
+`crates/leanvm_core/src/cpu/mod.rs:48-50`). -/
 abbrev deployedSeed (guest : LeanIsaProgram) : Digest := fiatShamirIv (bytecodeWords guest)
 
 end LeanVM.Node
@@ -467,15 +467,18 @@ def guestWitnessDecoderSizeBound : ℕ := 625130
 /-- **The guest decoder's budget** on an execution of `program` of `steps` steps on a memory of
 `2^κ` words: the most the decoder's run may cost, in the machine's price (so also the most steps it
 may execute), with `lg = log₂(steps + 1)`,
-`(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374)·2^κ + 2^37·(lg + 16)`: per step, the step replayed and
-filed in a sorted table of function entries; the sorted table of the memory's addresses; and the
-witness read at the counts and cursors the guest program's asserts bound on every valid execution.
+`(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374 + 2^23 + 2^14·lg)·2^κ + 2^37·(lg + 16)`: per step, the
+step replayed and filed in a sorted table of function entries; per memory word, the sorted table of
+the memory's addresses and the witness read at the counts the guest program's asserts bound on
+every valid execution (each below the memory's size, `assert_gpow`); and the witness read at the
+cursors and the other counts they bound.
 `lean_vm` proves the compiled decoder's price at most this on every valid execution
 (`decoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). The constants are the deployed
 guest program's, and `program` is only ever `LeanVM.Guest.guestProgram`. -/
 def guestWitnessDecoderBudget {program : LeanIsaProgram} (execution : Execution program) : ℕ :=
   (execution.stepCount + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (execution.stepCount + 1)) +
-    (70 * execution.logMemorySize + 374) * 2 ^ execution.logMemorySize +
+    (70 * execution.logMemorySize + 374 + 2 ^ 23 + 2 ^ 14 * Nat.log2 (execution.stepCount + 1)) *
+      2 ^ execution.logMemorySize +
     2 ^ 37 * (Nat.log2 (execution.stepCount + 1) + 16)
 
 /-- **Knowledge soundness of the leanISA guest program, its witness named**: on every valid

@@ -89,7 +89,7 @@ theorem extractor_of_extracted (O : OpeningIface) {X : Type} (σ : Seeds X) {ℓ
       have hWk : W = Extraction.committedWord (lookH (ℓ.take k)) root ht w :=
         hW.trans (committedWord_eq hf (hroot root hroot') ht w).symm
       rw [hWk] at hcand
-      have hμ : 15 ≤ leanIsaμ prog s ∧ leanIsaμ prog s ≤ 28 := by
+      have hμ : 16 ≤ leanIsaμ prog s ∧ leanIsaμ prog s ≤ 30 := by
         have h1 := hadm.1
         have h2 := hadm.2.1
         unfold Whir.minLogStack at h1

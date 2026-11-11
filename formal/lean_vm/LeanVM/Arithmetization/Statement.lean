@@ -728,7 +728,7 @@ theorem exists_run_of_balanced (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
-The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^32`), never
+The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 27 · 6 · 2^30`), never
 assumed; there is no hypothesis on the program.
 -/
 

@@ -47,8 +47,12 @@ CST = re.compile(r"\s*%#0(?:\[(\d+)\])? = (\d+)$")
 def plan(m):
     out = subprocess.run(["./.lake/build/bin/guest-core", "--show", f"open_stacked__L{m}"],
                          check=True, capture_output=True, text=True).stdout
-    consts, rec, res, seen = {}, {}, [], set()
+    consts, rec, res, seen, bases = {}, {}, [], set(), set()
     for ln in out.split("\n"):
+        h = ALLOC.match(ln)
+        if h:
+            bases.add(int(h.group(1) or 0))
+            continue
         a = CST.match(ln)
         if a:
             consts[int(a.group(1) or 0)] = a.group(2)
@@ -60,7 +64,7 @@ def plan(m):
         if C not in consts or consts[C] not in GWINV:
             continue
         d = GWINV[consts[C]]
-        if B in BASES:
+        if B in bases:
             rec[A] = (B, d)
             seen.add((B, d))
         elif B in rec:
@@ -73,7 +77,9 @@ def plan(m):
 
 
 def main():
-    rows = [plan(m) for m in range(28)]
+    arms = int(re.search(r"abbrev ligNSizes : Nat := (\d+)",
+                         open("LeanVM/Guest/B1/Whir/Config.lean").read()).group(1))
+    rows = [plan(m) for m in range(arms)]
     body = "\n".join(
         f"  | {m} => [{', '.join(f'({b}, {e}, {s})' for b, e, s in r)}]" for m, r in enumerate(rows))
     text = f'''/-
@@ -99,7 +105,7 @@ namespace LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-/-- Candidate `m`'s materializations from earlier ones. -/
+/-- Size `m`'s materializations from earlier ones. -/
 def osMatPlan : Nat → List (Nat × Nat × Nat)
 {body}
   | _ => []

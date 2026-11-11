@@ -34,7 +34,7 @@ example : Opcode.deref.busCode ≠ Opcode.jump.busCode :=
 
 /-! ## Caps -/
 
-example : minLogMem = 16 ∧ maxLogMem = 32 ∧ maxLogRows = 32 ∧ maxLogBytecode = 32 := by
+example : minLogMem = 1 ∧ maxLogMem = 30 ∧ maxLogRows = 30 ∧ maxLogBytecode = 30 := by
   decide
 
 /-- The floor is below the cap: the smallest announcement is admissible. -/

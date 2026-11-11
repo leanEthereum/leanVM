@@ -50,7 +50,6 @@ pub fn file() -> File {
         log = g.prog().len().trailing_zeros(),
         code = g.code_len(),
         nf = g.fn_ranges.len(),
-        minlog = g.min_log_committed,
     );
     File {
         path: "tests/LeanVMTests/Guest/Manifest.lean".into(),

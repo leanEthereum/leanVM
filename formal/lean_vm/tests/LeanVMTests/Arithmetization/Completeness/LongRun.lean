@@ -4,16 +4,16 @@ import LeanVMTests.Arithmetization.Completeness.Fixture
 /-!
 # Tests: no witness represents a run over the row cap
 
-A valid execution is unbounded: its steps are limited only by the memory `κ ≤ 32`, and `JUMP` loads
-the frame pointer from memory, so frames `g^(4 j)` can fill all `2^32` cells. For every program
+A valid execution is unbounded: its steps are limited only by the memory `κ ≤ 30`, and `JUMP` loads
+the frame pointer from memory, so frames `g^(4 j)` can fill all `2^30` cells. For every program
 that starts with thirty-three `SET_CONSTANT [g^0] g` and a `JUMP [g^1, g^2, g^3]` and has a
-sentinel slot (`Shape`), the run that loops over `2^30` frames, thirty-three steps each, is a valid
-execution of `33 * 2^30 + 1` steps (`long_run_valid`).
+sentinel slot (`Shape`), the run that loops over `2^28` frames, thirty-three steps each, is a valid
+execution of `33 * 2^28 + 1` steps (`long_run_valid`).
 
-A witness that satisfies `Caps` has at most `2^32` rows in each of its eight tables, and one that
+A witness that satisfies `Caps` has at most `2^30` rows in each of its eight tables, and one that
 represents a trace has a row for every step of it, with the state it steps from: distinct steps of
 a run that halts are distinct states, so distinct rows. Hence a witness that satisfies `Caps` and
-represents a valid trace has at most `8 * 2^32` steps in the trace (`steps_le_rows`), and no
+represents a valid trace has at most `8 * 2^30` steps in the trace (`steps_le_rows`), and no
 witness represents the long run (`completeness_fails_on_long_run`). So the row cap `hrows` of
 `constraintCompleteness_rows` cannot be dropped (`completeness_needs_rows`).
 -/
@@ -25,38 +25,38 @@ open Air.Flat (EnsembleWitness)
 open LeanVMTests.Arithmetization.Completeness.Fixture
 
 /-- The number of frames. -/
-def J : ℕ := 2 ^ 30
+def J : ℕ := 2 ^ 28
 
-/-- The image, at `κ = 32`, for the sentinel counter `fin`. -/
-def img (fin : K) : MemoryImage 32 := fun n ↦
+/-- The image, at `κ = 30`, for the sentinel counter `fin`. -/
+def img (fin : K) : MemoryImage 30 := fun n ↦
   if (n : ℕ) % 4 = 2 then (if (n : ℕ) / 4 = J - 1 then ofK fin else ofK g)
   else if (n : ℕ) % 4 = 3 then
     (if (n : ℕ) / 4 = J - 1 then ofK 1 else ofK (addressOfIndex (4 * ((n : ℕ) / 4 + 1))))
   else ofK g
 
-/-- The memory of `2^32` cells holds `4 J` cells, `J` frames of four. -/
-theorem two_pow_32 : (2 : ℕ) ^ 32 = 4 * J := by norm_num [J]
+/-- The memory of `2^30` cells holds `4 J` cells, `J` frames of four. -/
+theorem two_pow_30 : (2 : ℕ) ^ 30 = 4 * J := by norm_num [J]
 
 /-- Reading the address of a cell of the image gives the cell. -/
-theorem read_img (fin : K) (n : ℕ) (hn : n < 2 ^ 32) :
+theorem read_img (fin : K) (n : ℕ) (hn : n < 2 ^ 30) :
     (img fin).read (addressOfIndex n) = some (img fin ⟨n, hn⟩) :=
   MemoryImage.read_gpow (by decide) (img fin) ⟨n, hn⟩
 
 /-- Cell `4 j` of the image holds `g`: the operand of the `SET_CONSTANT`. -/
 theorem img_cell0 (fin : K) (j : ℕ) (hj : j < J) :
-    img fin ⟨4 * j, by have := two_pow_32; omega⟩ = ofK g := by
+    img fin ⟨4 * j, by have := two_pow_30; omega⟩ = ofK g := by
   unfold img
   simp
 
 /-- Cell `4 j + 1` holds `g`: the `JUMP` condition, nonzero. -/
 theorem img_cell1 (fin : K) (j : ℕ) (hj : j < J) :
-    img fin ⟨4 * j + 1, by have := two_pow_32; omega⟩ = ofK g := by
+    img fin ⟨4 * j + 1, by have := two_pow_30; omega⟩ = ofK g := by
   unfold img
   simp
 
 /-- Cell `4 j + 2` holds `g`, the `JUMP` destination (slot `1`), except in the last frame. -/
 theorem img_cell2 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
-    img fin ⟨4 * j + 2, by have := two_pow_32; omega⟩ = ofK g := by
+    img fin ⟨4 * j + 2, by have := two_pow_30; omega⟩ = ofK g := by
   unfold img
   have h1 : (4 * j + 2) % 4 = 2 := by omega
   have h2 : (4 * j + 2) / 4 ≠ J - 1 := by omega
@@ -64,7 +64,7 @@ theorem img_cell2 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
 
 /-- In the last frame that cell holds the sentinel counter. -/
 theorem img_cell2_last (fin : K) :
-    img fin ⟨4 * (J - 1) + 2, by have := two_pow_32; unfold J at *; omega⟩ = ofK fin := by
+    img fin ⟨4 * (J - 1) + 2, by have := two_pow_30; unfold J at *; omega⟩ = ofK fin := by
   unfold img
   have h1 : (4 * (J - 1) + 2) % 4 = 2 := by unfold J; omega
   have h2 : (4 * (J - 1) + 2) / 4 = J - 1 := by unfold J; omega
@@ -72,7 +72,7 @@ theorem img_cell2_last (fin : K) :
 
 /-- Cell `4 j + 3` holds the next frame pointer `g^(4 (j + 1))`, except in the last frame. -/
 theorem img_cell3 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
-    img fin ⟨4 * j + 3, by have := two_pow_32; omega⟩ = ofK (addressOfIndex (4 * (j + 1))) := by
+    img fin ⟨4 * j + 3, by have := two_pow_30; omega⟩ = ofK (addressOfIndex (4 * (j + 1))) := by
   unfold img
   have h1 : (4 * j + 3) % 4 ≠ 2 := by omega
   have h2 : (4 * j + 3) % 4 = 3 := by omega
@@ -82,7 +82,7 @@ theorem img_cell3 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
 
 /-- In the last frame that cell holds `1`, the final frame pointer. -/
 theorem img_cell3_last (fin : K) :
-    img fin ⟨4 * (J - 1) + 3, by have := two_pow_32; unfold J at *; omega⟩ = ofK 1 := by
+    img fin ⟨4 * (J - 1) + 3, by have := two_pow_30; unfold J at *; omega⟩ = ofK 1 := by
   unfold img
   have h2 : (4 * (J - 1) + 3) % 4 = 3 := by unfold J; omega
   have h3 : (4 * (J - 1) + 3) / 4 = J - 1 := by unfold J; omega
@@ -114,7 +114,7 @@ theorem set_step (prog : LeanIsaProgram) (fin : K) {s j : ℕ}
         j < J) :
     step prog (img fin) ⟨addressOfIndex s, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex (s + 1),
         addressOfIndex (4 * j)⟩ := by
-  have hlt : 4 * j < 2 ^ 32 := by have := two_pow_32; omega
+  have hlt : 4 * j < 2 ^ 30 := by have := two_pow_30; omega
   have hr : (img fin).read (addressOfIndex (4 * j)) = some (ofK g) := by
     rw [read_img fin (4 * j) hlt, img_cell0 fin j hj]
   have hmul : addressOfIndex (4 * j) * addressOfIndex 0 = addressOfIndex (4 * j) := by
@@ -134,7 +134,7 @@ theorem jump_loop (prog : LeanIsaProgram) (fin : K) {j : ℕ} (hj : j < J) (hne 
         (addressOfIndex 3))) :
     step prog (img fin) ⟨addressOfIndex 33, addressOfIndex (4 * j)⟩ = some ⟨addressOfIndex 1,
         addressOfIndex (4 * (j + 1))⟩ := by
-  have hlt : ∀ o, o ≤ 3 → 4 * j + o < 2 ^ 32 := by intro o ho; have := two_pow_32; omega
+  have hlt : ∀ o, o ≤ 3 → 4 * j + o < 2 ^ 30 := by intro o ho; have := two_pow_30; omega
   have m1 : addressOfIndex (4 * j) * addressOfIndex 1 = addressOfIndex (4 * j + 1) := (pow_add g (4
       * j) 1).symm
   have m2 : addressOfIndex (4 * j) * addressOfIndex 2 = addressOfIndex (4 * j + 2) := (pow_add g (4
@@ -163,8 +163,8 @@ theorem jump_last (prog : LeanIsaProgram) (fin : K)
     (h33 : prog.fetch (addressOfIndex 33) = some (.jump (addressOfIndex 1) (addressOfIndex 2)
         (addressOfIndex 3))) :
     step prog (img fin) ⟨addressOfIndex 33, addressOfIndex (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
-  have hlt : ∀ o, o ≤ 3 → 4 * (J - 1) + o < 2 ^ 32 := by
-    intro o ho; have := two_pow_32; unfold J at *; omega
+  have hlt : ∀ o, o ≤ 3 → 4 * (J - 1) + o < 2 ^ 30 := by
+    intro o ho; have := two_pow_30; unfold J at *; omega
   have m1 : addressOfIndex (4 * (J - 1)) * addressOfIndex 1 = addressOfIndex (4 * (J - 1) + 1) :=
     (pow_add g (4 * (J - 1)) 1).symm
   have m2 : addressOfIndex (4 * (J - 1)) * addressOfIndex 2 = addressOfIndex (4 * (J - 1) + 2) :=
@@ -265,9 +265,9 @@ theorem run_full (prog : LeanIsaProgram) (sh : Shape prog) :
   exact h2
 
 /-- **The long valid execution.**  For every program of the shape, a valid execution with more
-than `2^35 = 8 * 2^32` steps. -/
+than `2^33 = 8 * 2^30` steps. -/
 theorem long_run_valid (prog : LeanIsaProgram) (sh : Shape prog) :
-    ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧ 2 ^ 35 < t.stepCount := by
+    ∃ (input : PublicInput) (t : Execution prog), ValidExecution prog input t ∧ 2 ^ 33 < t.stepCount := by
   have hJ : 0 < J := by unfold J; omega
   refine ⟨⟨![g, 0, g, 0]⟩, ⟨32, img prog.pcFinal, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
   · refine ⟨by show minLogMem ≤ 32; decide, by show 32 ≤ maxLogMem; decide, ?_, ?_⟩
@@ -277,7 +277,7 @@ theorem long_run_valid (prog : LeanIsaProgram) (sh : Shape prog) :
     · show (img prog.pcFinal).read (addressOfIndex 1) = some (E.ofLimbs g 0)
       have hc : img prog.pcFinal ⟨1, by norm_num⟩ = ofK g := img_cell1 prog.pcFinal 0 hJ
       rw [read_img prog.pcFinal 1 (by norm_num), hc, ofK_eq_ofLimbs]
-  · show 2 ^ 35 < 33 * J + 1
+  · show 2 ^ 33 < 33 * J + 1
     unfold J
     norm_num
 
@@ -339,11 +339,11 @@ theorem regs_ext' {a b : Registers K} (h1 : a.pc = b.pc) (h2 : a.fp = b.fp) : a 
 /-! ## The counting bound -/
 
 /-- A witness that satisfies `Caps` and represents a valid trace has at least as many rows as the
-trace has steps, over its eight tables: `t.steps ≤ 8 * 2^32`. -/
+trace has steps, over its eight tables: `t.steps ≤ 8 * 2^30`. -/
 theorem steps_le_rows {prog : LeanIsaProgram} {input : PublicInput}
     {κ : ℕ} {w : EnsembleWitness (leanIsaEnsemble prog κ)} {t : Execution prog}
     (hv : ValidExecution prog input t) (hc : Caps w) (hr : AssignmentRepresents w t) :
-    t.stepCount ≤ 8 * 2 ^ 32 := by
+    t.stepCount ≤ 8 * 2 ^ 30 := by
   obtain ⟨-, hrun⟩ := hv
   have hlen : t.regs.length = t.stepCount + 1 := Execution.regs_length hrun
   have hrow : ∀ k : Fin t.stepCount, ∃ (j : Fin 8) (row : Array K), row ∈ (tableAt w j).table ∧
@@ -374,7 +374,7 @@ theorem steps_le_rows {prog : LeanIsaProgram} {input : PublicInput}
     exact Fin.ext (run_inj hrun rfl ha hb)
   let T : Finset (Σ _ : Fin 8, Array K) :=
     (Finset.univ : Finset (Fin 8)).sigma fun j ↦ (tableAt w j).table.toFinset
-  have hlen' : ∀ j : Fin 8, (tableAt w j).table.length ≤ 2 ^ 32 :=
+  have hlen' : ∀ j : Fin 8, (tableAt w j).table.length ≤ 2 ^ 30 :=
     fun j ↦ hc.heights (tableAt w j) (mem_tables_iff.mpr ⟨j, rfl⟩)
   calc t.stepCount = (Finset.univ : Finset (Fin t.stepCount)).card := by simp
     _ ≤ T.card := Finset.card_le_card_of_injOn (fun k ↦ (⟨j k, row k⟩ : Σ _ : Fin 8, Array K))
@@ -384,9 +384,9 @@ theorem steps_le_rows {prog : LeanIsaProgram} {input : PublicInput}
           exact hmem k)
         hinj.injOn
     _ = ∑ j : Fin 8, ((tableAt w j).table.toFinset).card := Finset.card_sigma _ _
-    _ ≤ ∑ _j : Fin 8, 2 ^ 32 := Finset.sum_le_sum fun j _ ↦
+    _ ≤ ∑ _j : Fin 8, 2 ^ 30 := Finset.sum_le_sum fun j _ ↦
         (List.toFinset_card_le _).trans (hlen' j)
-    _ = 8 * 2 ^ 32 := by simp
+    _ = 8 * 2 ^ 30 := by simp
 
 
 /-! ## The refutation -/
@@ -425,7 +425,7 @@ theorem shapeProg_shape : Shape shapeProg where
   big := by decide
 
 /-- **The row cap is load-bearing.** A program with a valid execution that no witness of
-`SatisfiedBy` represents; its run has more than `2^32` rows of some opcode, so
+`SatisfiedBy` represents; its run has more than `2^30` rows of some opcode, so
 `constraintCompleteness_rows` needs `hrows`. -/
 theorem completeness_needs_rows :
     ∃ (input : PublicInput) (t : Execution shapeProg), ValidExecution shapeProg input t ∧

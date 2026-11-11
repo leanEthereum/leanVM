@@ -66,9 +66,9 @@ def best(l,nxtL=2**18):
 # certificate fixed. The soundness is unchanged: every group stays at most 2^-128, the query
 # group at its limit. The query check and the agreement bound `agr` are monotone in the slack
 # (`thrHi` does not decrease), so a bisection finds their largest slack; the remaining checks
-# are then confirmed downwards. The checks are exact: in floating point the query group at (15, 2)
-# rounds to 2^-128.0 one step of `thrHi` too far (e = 4097, where the exact check fails; 2049).
-# Level 0's list bound is then at most 2049, at (15, 2) (at most 642 elsewhere): `shapeOK`'s 2^12.
+# are then confirmed downwards. The checks are exact, not in floating point, where the query group
+# can round to 2^-128.0 one step of `thrHi` too far. Level 0's list bound is then at most 642, at
+# (23, 4) to (28, 4): within `shapeOK`'s 2^12.
 def lvl0ok(l,c,nxt,B=128):
   k,R,e,s=c; v=vals(c); n=v['n']; t=l['t']; f=l['fold']
   fold=(2*v['listHi']+2**(f-1)*v['excHi'])*2**B<=2**192
@@ -94,7 +94,7 @@ def best0(l,nxt,B=128):
 table={}
 worst=999
 for R in range(1,5):
-  for mu in range(15,29):
+  for mu in range(16,31):
     lv=ladder(mu,R)
     certs=[]
     for l in lv:

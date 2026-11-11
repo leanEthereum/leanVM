@@ -462,7 +462,7 @@ theorem ceilSqrt_cost (hP : Includes P Auto.LeanVM.Extraction.ceilSqrt.c220.cost
   rw [limbs_of_lt (by omega : Nat.sqrt x < 2 ^ 64), limbs_of_lt (by omega : Nat.sqrt x + 1 < 2 ^ 64)]
   split_ifs <;> omega
 
-theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 14 := by
+theorem johnsonSlack_row_length (i : ℕ) : (johnsonSlack.getD i []).length ≤ 18 := by
   rcases i with _ | _ | _ | _ | i <;> simp [johnsonSlack]
 
 theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 14292205 := by
@@ -476,10 +476,10 @@ theorem johnsonSlackOf_le (μ R : ℕ) : johnsonSlackOf μ R ≤ 14292205 := by
   | none => simp
   | some x => exact hrow _ x (List.mem_of_getElem? h)
 
-/-- The slack table lookup (`johnsonSlackOf.c224`): at most `540`. -/
+/-- The slack table lookup (`johnsonSlackOf.c224`): at most `664`. -/
 theorem johnsonSlackOf_cost (hP : Includes P Auto.LeanVM.Extraction.johnsonSlackOf.c224.costDeps)
     (μ R : ℕ) (hμ : μ < 2 ^ 64) (hR : R < 2 ^ 64) :
-    machineCost P Auto.LeanVM.Extraction.johnsonSlackOf.c224.costIdx [encodeValue μ, encodeValue R] ≤ 540 := by
+    machineCost P Auto.LeanVM.Extraction.johnsonSlackOf.c224.costIdx [encodeValue μ, encodeValue R] ≤ 664 := by
   rw [Auto.LeanVM.Extraction.johnsonSlackOf.c224.costEq P hP,
     Auto.LeanVM.Extraction.johnsonSlack.c227.costEq P (by includes), limbs_of_lt hR,
     limbs_of_lt hμ, limbs_of_lt (by unfold Whir.minLogStack; omega : Whir.minLogStack < 2 ^ 64)]

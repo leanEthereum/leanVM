@@ -34,21 +34,29 @@ example : ladder 16 1 = some [⟨6, 1, 230⟩, ⟨4, 4, 60⟩, ⟨4, 7, 42⟩] :
 
 example : residualLog 16 1 = 2 := by decide
 
+/-- `(57, 33, 23, 18, 15, 12)` at `μ = 30`, the largest stack, rate 1/16: six levels, and four
+variables remain. -/
+example : ladder 30 4 =
+    some [⟨6, 4, 57⟩, ⟨4, 7, 33⟩, ⟨4, 10, 23⟩, ⟨4, 13, 18⟩, ⟨4, 16, 15⟩, ⟨4, 19, 12⟩] := by
+  decide
+
+example : residualLog 30 4 = 4 := by decide
+
 /-! ## Outside the window -/
 
-example : ladder 14 1 = none := by decide
-example : ladder 29 1 = none := by decide
-example : ladder 15 0 = none := by decide
-example : ladder 15 5 = none := by decide
+example : ladder 15 1 = none := by decide
+example : ladder 31 1 = none := by decide
+example : ladder 16 0 = none := by decide
+example : ladder 16 5 = none := by decide
 
 /-! ## The table and the constants -/
 
-/-- Four rates, fourteen stack sizes. -/
-example : queryTable.length = 4 ∧ ∀ row ∈ queryTable, row.length = 14 := by decide
+/-- Four rates, fifteen stack sizes. -/
+example : queryTable.length = 4 ∧ ∀ row ∈ queryTable, row.length = 15 := by decide
 
-/-- Level 0 of the first ladder is a code of length `2^10` (nine message variables at exponent
-1), level 1 of length `2^9` (five at exponent 4). -/
-example : ∀ levels, ladder 15 1 = some levels → blockLogs 15 levels = [10, 9] := by decide
+/-- Level 0 of the smallest ladder is a code of length `2^11` (ten message variables at exponent
+1), level 1 of length `2^10` (six at exponent 4), level 2 of length `2^9` (two at exponent 7). -/
+example : ∀ levels, ladder 16 1 = some levels → blockLogs 16 levels = [11, 10, 9] := by decide
 
 example : oodSamplesAt 0 = 0 ∧ oodSamplesAt 1 = 1 ∧ oodSamplesAt 5 = 1 := by decide
 

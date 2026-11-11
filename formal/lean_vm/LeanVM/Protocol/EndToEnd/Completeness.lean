@@ -23,7 +23,7 @@ the Rust verifier `crates/verifier` at leanVM `40f877dc`. The statements here ar
 * `leanVm_complete`: for every hash function and permutation, the compiled honest prover produces
   a proof the compiled verifier accepts, as soon as its proof-of-work searches find nonces below
   the fuel; `leanVm_complete_keccak` is the deployed instance.
-* `leanVm_complete_of_execution`: from a valid execution of at most `2^32` steps, a witness
+* `leanVm_complete_of_execution`: from a valid execution of at most `2^30` steps, a witness
   representing it, accepted as above when its sizes are admissible.
 
 Completeness is perfect: the only way the honest prover fails is a proof-of-work search that finds

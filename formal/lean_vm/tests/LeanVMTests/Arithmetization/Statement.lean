@@ -22,8 +22,8 @@ layout, the output lanes the pinned verifier's `keccak_f` computes
 The statement accepts rows that are not steps of the run as long as the state pair balances (Prop.
 6.1: one walk from the initial to the final registers, and closed walks), and the fixture exercises
 that. The thirty-two-slot program `walkProg` runs four steps from `(1, 1)` to `(g^31, 1)`
-(`walk_run`, a `ValidExecution`), and its honest witness `walkW kLout 1 g memCnt` at the minimum
-memory size `2^16` satisfies every conjunct of
+(`walk_run`, a `ValidExecution`), and its honest witness `walkW kLout 1 g memCnt` at the memory
+size `2^16` satisfies every conjunct of
 `SatisfiedBy` (`walk_satisfiedBy`) and represents the trace (`walk_represents`): the completeness
 instance for this program, by hand (`walk_t1_instance`). The witness is parametric in the
 `KECCAK` row's output lanes (written consistently in the row and in the image), the first
@@ -161,11 +161,11 @@ def walkCells (L : Vector K 25) : Array E :=
     [cellK 1, cellK (addressOfIndex 8), cellK (addressOfIndex 14), cellK 1, cellK (addressOfIndex
         31), cellK 1]).toArray
 
-/-- The image, at the minimum size `2^16`. -/
-def walkImage (L : Vector K 25) : MemoryImage minLogMem := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
+/-- The image, of `2^16` cells. -/
+def walkImage (L : Vector K 25) : MemoryImage 16 := fun i ↦ ((walkCells L)[(i : ℕ)]?).getD 0
 
 /-- The trace: four steps, over the honest image. -/
-def walkTrace : Execution walkProg := ⟨minLogMem, walkImage kLout, 4⟩
+def walkTrace : Execution walkProg := ⟨16, walkImage kLout, 4⟩
 
 /-- The honest finalize counts `g^A[i]` of the touched cells; `1` elsewhere (`memCnt`). The
 `KECCAK` row reads `a` and `b` twice, every other cell of its frame once. -/
@@ -254,7 +254,7 @@ theorem jumpRaws_size (rs : List (JumpRow K)) :
 
 /-- Row `i` of the memory block: `(mem[i], g^i, cnt i)`, the raw form of the typed row
 (`memRowOf`: the limbs first, as the committed columns). -/
-def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
+def memRowArr (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ 16)) : Array K :=
   rawRow (memRowOf (walkImage L) i (cnt i))
 
 /-- The memory row's four cells, without evaluating the block's row list. -/
@@ -266,14 +266,14 @@ theorem memRowArr_eq (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem
 /-- The memory block's rows, with any finalize counts, agree with its fixed index column: the
 block is preallocated, `2^16` rows, row `i` at `g^i`. -/
 theorem memRows_fixed (L : Vector K 25) (cnt : ℕ → K) :
-    (memComponent minLogMem).FixedRowsMatch (List.ofFn (memRowArr L cnt)) := by
-  show (List.ofFn (memRowArr L cnt)).length = (UInt64.ofNat (2 ^ minLogMem)).toNat ∧
-    ∀ i (hi : i < (List.ofFn (memRowArr L cnt)).length), (memMode minLogMem).FixedAt
+    (memComponent 16).FixedRowsMatch (List.ofFn (memRowArr L cnt)) := by
+  show (List.ofFn (memRowArr L cnt)).length = (UInt64.ofNat (2 ^ 16)).toNat ∧
+    ∀ i (hi : i < (List.ofFn (memRowArr L cnt)).length), (memMode 16).FixedAt
       (UInt64.ofNat i) (fromElements (Air.Flat.rowPrefix (size MemRow)
         (List.ofFn (memRowArr L cnt))[i]))
-  have h64 : 2 ^ minLogMem < 2 ^ 64 := by decide
+  have h64 : 2 ^ 16 < 2 ^ 64 := by decide
   refine ⟨by rw [List.length_ofFn, UInt64.toNat_ofNat_of_lt' h64], fun i hi ↦ ?_⟩
-  have hi' : i < 2 ^ minLogMem := by rwa [List.length_ofFn] at hi
+  have hi' : i < 2 ^ 16 := by rwa [List.length_ofFn] at hi
   have hnat : (UInt64.ofNat i).toNat = i := UInt64.toNat_ofNat_of_lt' (lt_trans hi' h64)
   refine (memMode_fixedAt (by rw [hnat]; exact hi') _).mpr ?_
   rw [List.getElem_ofFn, memRowArr, fromElements_rowPrefix_rawRow, hnat]
@@ -324,7 +324,7 @@ def kT (L : Vector K 25) : Air.Flat.Table K :=
   opT keccakTable ([kRow L].map rawRow) (rawRows_size [kRow L])
 /-- The memory block, with finalize counts `cnt`. -/
 def memT (L : Vector K 25) (cnt : ℕ → K) : Air.Flat.Table K :=
-  ownTable (memComponent minLogMem) (List.ofFn (memRowArr L cnt))
+  ownTable (memComponent 16) (List.ofFn (memRowArr L cnt))
     (by
       intro r hr
       rw [List.mem_ofFn] at hr
@@ -344,21 +344,21 @@ def bcT : Air.Flat.Table K :=
 /-- A witness whose tables are `ts`, eight tables of the ensemble's components in order, with the
 prover data Clean derives from them (`withDerivedData`) and the public input `mulInput`. -/
 theorem mkW_names (ts : List (Air.Flat.Table K))
-    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg minLogMem).tables) :
+    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg 16).tables) :
     (ts.map fun t ↦ t.component.circuit.name).Nodup := by
-  have h := (leanIsaEnsemble walkProg minLogMem).unique_names
+  have h := (leanIsaEnsemble walkProg 16).unique_names
   rw [← hc, List.map_map] at h
   exact h
 
 theorem mkW_components (ts : List (Air.Flat.Table K))
-    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg minLogMem).tables) :
+    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg 16).tables) :
     (Air.Flat.withDerivedData ts (mkW_names ts hc)).map (·.component) =
-      (leanIsaEnsemble walkProg minLogMem).tables := by
+      (leanIsaEnsemble walkProg 16).tables := by
   rw [Air.Flat.withDerivedData_map_component, hc]
 
 def mkW (ts : List (Air.Flat.Table K))
-    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg minLogMem).tables := by rfl) :
-    EnsembleWitness (leanIsaEnsemble walkProg minLogMem) where
+    (hc : ts.map (·.component) = (leanIsaEnsemble walkProg 16).tables := by rfl) :
+    EnsembleWitness (leanIsaEnsemble walkProg 16) where
   tables := Air.Flat.withDerivedData ts (mkW_names ts hc)
   publicInput := PublicIO.ofInput mulInput
   same_length := by simp only [← mkW_components ts hc, List.length_map]
@@ -371,7 +371,7 @@ def mkW (ts : List (Air.Flat.Table K))
 first `SET_CONSTANT` row's read count `c`, the product row's read count of `x` `rA`, and the
 memory block's finalize counts `cnt`; the honest one is `walkW kLout 1 g memCnt`. -/
 def walkW (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
-    EnsembleWitness (leanIsaEnsemble walkProg minLogMem) :=
+    EnsembleWitness (leanIsaEnsemble walkProg 16) :=
   mkW [xorT, mulT rA, setT c, derefT, jumpT, kT L, memT L cnt, bcT]
 
 /-! ## The tables of the witness, read back -/
@@ -454,7 +454,7 @@ theorem walk_memRows (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
 
 /-- The image the data names, as one equality of dependent pairs. -/
 theorem walk_imageOf (L : Vector K 25) (c rA : K) (cnt : ℕ → K) :
-    imageOf (walkW L c rA cnt).data = ⟨minLogMem, walkImage L⟩ :=
+    imageOf (walkW L c rA cnt).data = ⟨16, walkImage L⟩ :=
   imageOf_of_memRows (walk_memRows L c rA cnt) (by decide)
 
 /-! ## The run -/
@@ -471,9 +471,9 @@ theorem fetch_one : walkProg.fetch 1 = some (.setConstant (addressOfIndex 2) mul
   simpa using fetch_at 0 (.setConstant (addressOfIndex 2) mulX)
 
 /-- The word at `g^k`. -/
-theorem read_at (L : Vector K 25) (k : ℕ) (v : E) (hk : k < 2 ^ minLogMem := by decide)
+theorem read_at (L : Vector K 25) (k : ℕ) (v : E) (hk : k < 2 ^ 16 := by decide)
     (hv : walkImage L ⟨k, hk⟩ = v := by rfl) : (walkImage L).read (addressOfIndex k) = some v := by
-  rw [show addressOfIndex k = addressOfIndex ((⟨k, hk⟩ : Fin (2 ^ minLogMem)) : ℕ) from rfl,
+  rw [show addressOfIndex k = addressOfIndex ((⟨k, hk⟩ : Fin (2 ^ 16)) : ℕ) from rfl,
     MemoryImage.read_gpow (by decide), hv]
 
 theorem walk_step0 : step walkProg (walkImage kLout) ⟨1, 1⟩ = some ⟨addressOfIndex 1, 1⟩ := by
@@ -532,7 +532,7 @@ theorem walk_run : run walkProg (walkImage kLout) 4 Registers.initial = some (Re
 
 /-- The public words are in place. -/
 theorem walk_boundary : HoldsPublicInput mulInput walkTrace :=
-  ⟨le_rfl, by decide, read_at kLout 0 (cellK 1), read_at kLout 1 (cellK (K.ofBits 2))⟩
+  ⟨(by decide : minLogMem ≤ 16), by decide, read_at kLout 0 (cellK 1), read_at kLout 1 (cellK (K.ofBits 2))⟩
 
 /-- The extended program is a valid execution of the executor's on the same input. -/
 example : ValidExecution walkProg mulInput walkTrace := ⟨walk_boundary, walk_run⟩
@@ -590,8 +590,8 @@ def finMsg (L : Vector K 25) (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array
   #[addressOfIndex i, cnt i, (walkImage L i).limb 0, (walkImage L i).limb 1]
 
 /-- Row `i` of the memory block pushes its seed and pulls its finalize message, over any data. -/
-theorem memRow_sends (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (i : Fin (2 ^ minLogMem)) :
-    rowSends (memComponent minLogMem) (Environment.fromArray (memRowArr L cnt i) d) =
+theorem memRow_sends (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (i : Fin (2 ^ 16)) :
+    rowSends (memComponent 16) (Environment.fromArray (memRowArr L cnt i) d) =
       [(MemPush.name, seedMsg L i), (MemPull.name, finMsg L cnt i)] := by
   rw [rowSends_memComponent, memRowArr,
     mem_sends_gen _ _ _ _ (eval_rowVar (memRowOf (walkImage L) i (cnt i)) d)]
@@ -606,7 +606,7 @@ theorem memT_filter (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (n : 
   rw [sendsOver, memT_table, List.mem_flatMap] at hp
   obtain ⟨row, hrow, hp⟩ := hp
   obtain ⟨i, rfl⟩ := List.mem_ofFn.mp hrow
-  rw [show (memT L cnt).component = memComponent minLogMem from rfl, memRow_sends] at hp
+  rw [show (memT L cnt).component = memComponent 16 from rfl, memRow_sends] at hp
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl
   · simpa using Ne.symm hn
@@ -616,14 +616,14 @@ theorem memT_filter (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) (n : 
 theorem memT_pushes (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) :
     ((sendsOver (memT L cnt) d).filter (·.1 = MemPush.toRaw.name)).map (·.2) =
       List.ofFn (seedMsg L) := by
-  have h1 : ∀ i, ((rowSends (memComponent minLogMem)
+  have h1 : ∀ i, ((rowSends (memComponent 16)
       (Environment.fromArray (memRowArr L cnt i) d)).filter (·.1 = MemPush.toRaw.name)).map (·.2) =
         [seedMsg L i] := fun i ↦ by
     rw [memRow_sends]
     rfl
   rw [sendsOver, memT_table, List.filter_flatMap, List.map_flatMap, List.ofFn_eq_map,
     List.flatMap_map, List.ofFn_eq_map,
-    show (memT L cnt).component = memComponent minLogMem from rfl]
+    show (memT L cnt).component = memComponent 16 from rfl]
   simp only [h1]
   rw [← List.map_eq_flatMap]
 
@@ -631,14 +631,14 @@ theorem memT_pushes (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) :
 theorem memT_pulls (L : Vector K 25) (cnt : ℕ → K) (d : ProverData K) :
     ((sendsOver (memT L cnt) d).filter (·.1 = MemPull.toRaw.name)).map (·.2) =
       List.ofFn (finMsg L cnt) := by
-  have h1 : ∀ i, ((rowSends (memComponent minLogMem)
+  have h1 : ∀ i, ((rowSends (memComponent 16)
       (Environment.fromArray (memRowArr L cnt i) d)).filter (·.1 = MemPull.toRaw.name)).map (·.2) =
         [finMsg L cnt i] := fun i ↦ by
     rw [memRow_sends]
     rfl
   rw [sendsOver, memT_table, List.filter_flatMap, List.map_flatMap, List.ofFn_eq_map,
     List.flatMap_map, List.ofFn_eq_map,
-    show (memT L cnt).component = memComponent minLogMem from rfl]
+    show (memT L cnt).component = memComponent 16 from rfl]
   simp only [h1]
   rw [← List.map_eq_flatMap]
 
@@ -663,7 +663,7 @@ theorem bcT_filter (d : ProverData K) (n : String) (hn : n ≠ BytecodePush.name
 of the `2^16` are seeded and finalized with count `1` and cancel. -/
 abbrev touched : ℕ := 44
 abbrev untouched : ℕ := 65492
-theorem touched_add_untouched : touched + untouched = 2 ^ minLogMem := by decide
+theorem touched_add_untouched : touched + untouched = 2 ^ 16 := by decide
 
 /-- The seeds, split at the touched cells. -/
 theorem seeds_split (L : Vector K 25) : List.ofFn (seedMsg L) =
@@ -804,7 +804,7 @@ theorem walk_countsNonzero : CountsNonzero (walkW kLout 1 g memCnt) :=
 /-- Tables within the row cap are within the caps: the memory log-size is `16`. -/
 theorem mkW_caps (ts : List (Air.Flat.Table K)) (hc)
     (h : ∀ t ∈ ts, t.table.length ≤ 2 ^ maxLogRows) : Caps (mkW ts hc) where
-  minLogMem_le_logMem := le_rfl
+  minLogMem_le_logMem := (by decide : minLogMem ≤ 16)
   logMem_le_maxLogMem := by decide
   heights t ht := by
     obtain ⟨t₀, ht₀, -, htab⟩ := mem_mkW ht
@@ -972,7 +972,7 @@ theorem walk_t1_instance : ValidExecution walkProg mulInput walkTrace ∧
   ⟨⟨walk_boundary, walk_run⟩, walk_satisfiedBy, walk_represents⟩
 
 /-- The image the witness names is the trace's, as one equality. -/
-example : imageOf (walkW kLout 1 g memCnt).data = ⟨minLogMem, walkImage kLout⟩ :=
+example : imageOf (walkW kLout 1 g memCnt).data = ⟨16, walkImage kLout⟩ :=
   assignmentRepresents_image walk_represents
 
 /-! ## Rejections -/
@@ -1128,9 +1128,9 @@ def memRowArrShift (i : Fin (2 ^ minLogMem)) : Array K :=
 block's fixed column, so they are the rows of no witness's memory block (Clean's
 `fixed_rows_match`; a hypothesis of the statement, `IndexColumnsAreRowIndices`, before Clean's
 fixed columns). -/
-example : ¬ (memComponent minLogMem).FixedRowsMatch (List.ofFn memRowArrShift) := fun h ↦ by
-  have h0 := (show (List.ofFn memRowArrShift).length = (UInt64.ofNat (2 ^ minLogMem)).toNat ∧
-    ∀ i (hi : i < (List.ofFn memRowArrShift).length), (memMode minLogMem).FixedAt
+example : ¬ (memComponent 16).FixedRowsMatch (List.ofFn memRowArrShift) := fun h ↦ by
+  have h0 := (show (List.ofFn memRowArrShift).length = (UInt64.ofNat (2 ^ 16)).toNat ∧
+    ∀ i (hi : i < (List.ofFn memRowArrShift).length), (memMode 16).FixedAt
       (UInt64.ofNat i) (fromElements (Air.Flat.rowPrefix (size MemRow)
         (List.ofFn memRowArrShift)[i])) from h).2 0 (by rw [List.length_ofFn]; decide)
   rw [memMode_fixedAt (by decide), List.getElem_ofFn, memRowArrShift,
@@ -1174,7 +1174,7 @@ example : ¬ SatisfiedBy walkProg ⟨![K.ofBits 3, 0, K.ofBits 2, 0]⟩ (walkW k
 def setT3 : Air.Flat.Table K :=
   opT setTable ([setRow0 1, setRow1, setRow1].map rawRow) (rawRows_size [setRow0 1, setRow1, setRow1])
 
-def heightW : EnsembleWitness (leanIsaEnsemble walkProg minLogMem) :=
+def heightW : EnsembleWitness (leanIsaEnsemble walkProg 16) :=
   mkW [xorT, mulT g, setT3, derefT, jumpT, kT kLout, memT kLout memCnt, bcT]
 
 /-- A row count that is not a power of two is within the caps (`crates/verifier/src/layout.rs`,
@@ -1198,7 +1198,7 @@ def kT4 : Air.Flat.Table K :=
   opT keccakTable ((List.replicate 4 (kRow kLout)).map rawRow)
     (rawRows_size (List.replicate 4 (kRow kLout)))
 
-def floorW : EnsembleWitness (leanIsaEnsemble walkProg minLogMem) :=
+def floorW : EnsembleWitness (leanIsaEnsemble walkProg 16) :=
   mkW [xorT, mulT g, setT 1, derefT, jumpT, kT4, memT kLout memCnt, bcT]
 
 /-- There is no `KECCAK` floor: four rows are within the caps. -/

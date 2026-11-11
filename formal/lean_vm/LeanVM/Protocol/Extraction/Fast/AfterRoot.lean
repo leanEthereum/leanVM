@@ -333,8 +333,8 @@ structure LayoutLite where
   match log2Strict bytecode.length with
   | none => none
   | some logLength =>
-    if busBits ≤ logLength ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
-        tableRows.all (· ≤ 2 ^ 32) ∧ logLength - busBits ≤ 32 ∧
+    if busBits ≤ logLength ∧ 1 ≤ logMemory ∧ logMemory ≤ 30 ∧
+        tableRows.all (· ≤ 2 ^ 30) ∧ logLength - busBits ≤ 30 ∧
         tableRows.length = tables.length then
       let logBytecode := logLength - busBits
       let tableLogHeights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows

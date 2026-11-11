@@ -23,7 +23,7 @@ this page proves completeness, `completenessRom_holds`, with an explicit honest 
 
 **Completeness** (`completenessRom`): for a valid execution whose committed size
 (`Execution.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
-most `2^28`, the most the verifier admits, the honest prover
+most `2^30`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
 `completenessError fuel`, which is below `2^-257` at a fuel of `2^33` nonces per proof of work
 (`completenessError_le`). The honest prover is a specification, not an implementation.
@@ -72,11 +72,11 @@ theorem completenessError_eq (fuel : ℕ) :
     completenessError fuel = Complete.completenessError fuel :=
   Complete.completenessError_eq fuel
 
-/-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^28`, at an inverse
+/-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^30`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
 experiment, with probability at most `completenessError fuel`. -/
 theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel :=

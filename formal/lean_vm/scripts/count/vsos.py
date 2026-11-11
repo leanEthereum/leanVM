@@ -1,20 +1,20 @@
-"""`Count/VsOs*.lean`: `open_stacked`'s words at each of its 28 candidates (`Count.osC`), by the
-kernel in three parts per candidate (`Count.osCF_split`: its frame and buffers with its first calls,
-its middle calls, its last calls), each part a module of under 3.5 GB, and `Count/VsOsAll.lean`
-putting them together.
+"""`Count/VsOs*.lean`: `open_stacked`'s words at each of its arms (`Count.osC m`, the arm of
+stack log `B1.Whir.minOpenLog + m`), by the kernel, one module per arm, and `Count/VsOsAll.lean` putting them
+together with the arms' callees' words bounds (`Count.osLeafBounds`).
 
     python3 -I scripts/count/vsos.py LEAN_VM
 
-The numbers come from a mirror of `B1.osBos` at `B2C.fs`, `Count.osBnd`, `wSK - B2C.fs` (the named
-callees' words on `osKindTable`'s names only; a residual loop's words per iteration, its run's one
-phantom frame charged once); a mirror the Lean definitions disagree with fails the
-part's `decide +kernel`."""
+The numbers come from a mirror of `B1.osBos` at `B2C.fs` and `wSB` (`B1.osSizesL`, and for each call
+statement of the arm's core IR, which `Whir/Data*.lean` check equal to `osBody (osCfg m)`, the
+largest of its callees' frames and constants); a mirror the Lean definitions disagree with fails
+the module's `decide +kernel`."""
 import sys, os, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen
 
 LV = sys.argv[1]
 g = gen.G(LV, None)
+ARMS = len(g.os_names())
 fsd = g.fs_words(); w = g.words_certs()
 fs = lambda n: fsd.get(n, 2)
 def SB(n):
@@ -56,17 +56,26 @@ def nlev(m): return lig('LIG_N_LEVELS', m)
 def loopBase(m): return 41 + sum(2 * nlev(k) - 1 for k in range(m))  # `B1.Whir.loopBase`
 
 
-def calls(name):
+def sizes(m):
+    """`B1.osSizesL (osCfg m)`."""
+    n = lig('LIG_N_LEVELS', m)
+    return ([lig('LIG_YR_LEN', m), 2 * n, lig('LIG_TOTAL_FOLDS', m), n, n, n * POS_CAP, n * POS_CAP, 128,
+             n * COLS_CAP, n * OOD_SLOTS] + [lig('LIG_MAX_INTERLEAVE', m)] * n
+            + [YR_LOG_CAP, POINT_CAP, POINT_CAP, n * COLS_CAP, n, n + 1])
+
+
+def callees(name):
+    """`B1.osCallees`: each call statement's callees, in order."""
     out = []
     for s in g.fns[g.by[name]]['body']:
-        if s[0] == 'call': out.append(s[1])
-        elif s[0] == 'callIf': out.append(s[2])
+        if s[0] == 'call': out.append([s[1]])
+        elif s[0] == 'callIf': out.append([s[2]])
+        elif s[0] == 'dispatch': out.append(s[2])
         else: assert s[0] in ('atom', 'ret'), s[0]
     return out
 
 
 def osBos(m):
-    """The frame and buffers, and each call's bound, in order."""
     name = 'open_stacked__L%d' % m
     nl = nlev(m); capLen = lig('LIG_CAP_LEN', m); yrLen = lig('LIG_YR_LEN', m); nF = lig('LIG_TOTAL_FOLDS', m)
     posLen = lig('LIG_POSITIONS_LEN', m); maxSq = lig('LIG_MAX_SQUEEZES', m); last = lig('LIG_YR_LEVEL', m)
@@ -122,28 +131,35 @@ end LeanVM.Guest.Count
 '''
 D = os.path.join(LV, 'LeanVM', 'Guest', 'Count')
 for f in os.listdir(D):
-    if re.fullmatch(r'VsOs\d\d[abc]?\.lean', f): os.remove(os.path.join(D, f))
+    if re.fullmatch(r'VsOs\d\d[abcn]?\.lean', f): os.remove(os.path.join(D, f))
 def mod(name, doc, imports, body):
     open(os.path.join(D, name + '.lean'), 'w', encoding='utf-8').write(HDR % (name, doc, imports, body))
-total, comb = [], []
+total, comb, names = [], [], []
 imp = 'public import LeanVM.Guest.Count.VsOsDefs\n'
-for c in range(28):
-    head, cs = osBos(c)
-    n = len(cs); k = n // 3; m = n // 3
-    a = head + sum(cs[:k]); b = sum(cs[k:k + m]); r = sum(cs[k + m:])
-    total.append(a + b + r)
-    th = 'set_option maxRecDepth 100000 in\ntheorem %s : %s = %d := by\n  decide +kernel\n'
-    mod('VsOs%02da' % c, '`open_stacked`\'s frame, buffers and first %d calls at candidate %d, by the kernel.' % (k, c),
-        imp, '\n' + th % ('osC%d_a' % c, 'osHeadF %d + osPartF %d 0 %d' % (c, c, k), a))
-    mod('VsOs%02db' % c, '`open_stacked`\'s calls %d to %d at candidate %d, by the kernel.' % (k, k + m - 1, c),
-        imp, '\n' + th % ('osC%d_b' % c, 'osPartF %d %d %d' % (c, k, m), b))
-    mod('VsOs%02dc' % c, '`open_stacked`\'s calls from %d (of %d) at candidate %d, by the kernel.' % (k + m, n, c),
-        imp, '\n' + th % ('osC%d_c' % c, 'osRestF %d (%d + %d)' % (c, k, m), r))
-    comb.append('/-- `open_stacked`\'s words at candidate %d. -/\ntheorem osC_%d : osC %d = %d := by\n'
-                '  rw [osC_eq_fast, osCF_split %d %d %d, osC%d_a, osC%d_b, osC%d_c]\n'
-                % (c, c, c, a + b + r, c, k, m, c, c, c))
+th = 'set_option maxRecDepth 100000 in\ntheorem %s : %s := by\n  decide +kernel\n'
+for m in range(ARMS):
+    t = osBos(m)
+    total.append(t)
+    mod('VsOs%02d' % m, '`open_stacked`\'s words at the arm %d (`osCF`), and its callees\' words certificates, by '
+        'the kernel.' % m, imp,
+        '\n' + th % ('osCF_%d' % m, 'osCF %d = %d' % (m, t))
+        + '\n' + th % ('osNames_ok_%d' % m, '(B1.osCalleeNames (B1.Whir.osCfg %d)).all (fun f => wOkB (wIdx f) f) = true' % m))
+    comb.append('/-- `open_stacked`\'s words at the arm %d. -/\ntheorem osC_%d : osC %d = %d := by\n'
+                '  rw [osC_eq_fast, osCF_%d]\n' % (m, m, m, t, m))
+    names.append('osNames_ok_%d' % m)
 imports = 'public import LeanVM.Guest.Count.VsBoundBase\n' + ''.join(
-    'public import LeanVM.Guest.Count.VsOs%02d%s\n' % (c, p) for c in range(28) for p in 'abc')
-mod('VsOsAll', '`open_stacked`\'s words at each candidate (`osC c`), from its three parts.', imports,
-    '\n' + '\n'.join(comb))
+    'public import LeanVM.Guest.Count.VsOs%02d\n' % m for m in range(ARMS))
+body = '\n' + '\n'.join(comb) + '''
+/-- Every arm's callees have constant words certificates. -/
+theorem osNames_ok {m : ℕ} (hm : m < B1.osArms) :
+    (B1.osCalleeNames (B1.Whir.osCfg m)).all (fun f => wOkB (wIdx f) f) = true := by
+  interval_cases m
+  exacts [%s]
+
+/-- **Every arm's callees within `wSB`.** -/
+theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun _ hm f hf =>
+  wSB_totalLe (List.all_eq_true.mp (osNames_ok hm) f hf)
+''' % ', '.join(names)
+mod('VsOsAll', '`open_stacked`\'s words at each arm (`osC m`), and its callees\' words bounds.', imports, body)
 print('osC', total)
+print('wSB', [SB('open_stacked__L%d' % m) for m in range(ARMS)])

@@ -152,24 +152,26 @@ impl FnLower<'_> {
 
     /// Compile-time bounds check: when `arr` resolves to a sized `HeapBuf`
     /// (directly or through shifted aliases) and the whole index is the
-    /// compile-time exponent `exp`, reject `exp + span > size`. Runtime
+    /// compile-time exponent `exp`, reject `exp + span > size`, an overflowing sum included. Runtime
     /// indices are not checked (their value is not known here).
     pub(super) fn check_heap_bound(&self, arr: &Expr, extra: u128, span: u128) {
         let Some(ga) = self.gaddr_of(arr) else { return };
-        let (Some(base), Some(exp)) = (ga.base, ga.exp.checked_add(extra)) else {
-            return;
-        };
+        let Some(base) = ga.base else { return };
+        // An exponent past `u128` is past every buffer: saturate it into the
+        // check rather than skipping the check or wrapping it into a small index.
+        let exp = ga.exp.saturating_add(extra);
+        let end = exp.saturating_add(span);
         // A frame pointer from `addr(sb)`: `exp` is an absolute frame offset and
         // `base` is the shared `fp` cell, so the run comes from the address's own
         // provenance rather than from `heap_sizes`.
         if let Some((start, len)) = ga.run {
             let (start, len) = (start as u128, len as u128);
-            if exp < start || exp + span > start + len {
+            if exp < start || end > start + len {
                 let off = exp.saturating_sub(start); // `exp < start` is unreachable: gmul only adds
                 let what = if span == 1 {
                     format!("index {off}")
                 } else {
-                    format!("slice {off}:{}", off + span)
+                    format!("slice {off}:{}", off.saturating_add(span))
                 };
                 self.fail(format!(
                     "frame {what} out of bounds for the StackBuf({len}) named by `addr`"
@@ -180,7 +182,7 @@ impl FnLower<'_> {
         let Some(&size) = self.heap_sizes.get(&base) else {
             return;
         };
-        if exp + span > size {
+        if end > size {
             // Several names can share a cell, so pick the first alphabetically
             // rather than the first the map happens to yield: the same program
             // must blame the same name on every build.
@@ -198,8 +200,7 @@ impl FnLower<'_> {
                 ));
             }
             self.fail(format!(
-                "heap slice {exp}:{} out of bounds for `{name}` (HeapBuf size {size})",
-                exp + span
+                "heap slice {exp}:{end} out of bounds for `{name}` (HeapBuf size {size})"
             ));
         }
     }

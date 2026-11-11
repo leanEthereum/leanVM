@@ -2,8 +2,8 @@
   LeanVM.Protocol.Compile.RunPure
 
   The verifier program run with every permutation answered by `default` (`Compile.runPure`), and
-  the layout and rate a stream announces (`Verifier.announcedLayoutAndRate`): definitions of the
-  verifier no end statement reaches, moved here from `Statement/LeanVmVerifier.lean`, names kept.
+  the layout and rate a stream announces (`Verifier.announcedLayoutAndRate`), both in
+  `Statement/LeanVmVerifier.lean`, where the extractor's budget reads them.
 -/
 
 module

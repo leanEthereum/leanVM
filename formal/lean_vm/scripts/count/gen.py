@@ -78,7 +78,6 @@ MAIN_CALLEES = ['exponent_tables', 'claim_list_digest', '__loop0', '__loop1', '_
 class G:
     def __init__(self, lv, cache):
         self.lv = lv
-        self.main_frame = MAIN_FRAME
         self.D = os.path.join(lv, 'LeanVM', 'Guest', 'Data')
         self.LD = os.path.join(lv, 'LeanVM', 'Guest', 'Memory')
         self.fns = core.load(self.D, cache)
@@ -97,6 +96,37 @@ class G:
         m = re.search(r'def xmssArmC \(op : Opcode\) : ℕ := \[([\d, ]*)\]', lean)
         assert m and [int(x) for x in m.group(1).split(',')] == self.C, \
             'B2C.xmssArmC is not %s: update B2C/ArmBound.lean' % self.C
+        # `main`'s frame: its cells, then the jump table `__jump_tables` writes (one `SET` per slot).
+        bc = open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode.lean'), encoding='utf-8').read()
+        self.jt_sets = int(re.search(r'⟨"__jump_tables", 0, (\d+),', bc).group(1))
+        self.jt_base = self.fsz[1]
+        first = re.search(r'def f0c0 : List OffsetInstruction := \[\s*\.set (\d+) ',
+                          open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode00.lean'), encoding='utf-8').read())
+        assert first and int(first.group(1)) == self.jt_base, 'the jump table does not start at main\'s frame size'
+        self.main_frame = self.jt_base + self.jt_sets
+        defs = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'Defs.lean'), encoding='utf-8').read()
+        assert 'def mainFrame : ℕ := %d + %d\n' % (self.jt_base, self.jt_sets) in defs, \
+            'B2C.mainFrame is not %d + %d: update B2C/Defs.lean' % (self.jt_base, self.jt_sets)
+        assert 'if op = .setConstant then %d else 0' % self.jt_sets in defs, \
+            'B2C.jtSets is not %d: update B2C/Defs.lean' % self.jt_sets
+
+    def family(self, prefix):
+        """The specializations `prefix{k}...` of a function, by name."""
+        return sorted(n for n in self.by if n.startswith(prefix))
+
+    def min_open_log(self):
+        """The smallest stack log the guest opens, `B1.Whir.minOpenLog` (Whir/Interface.lean)."""
+        m = re.search(r"^abbrev minOpenLog : ℕ := (\d+)$", open(os.path.join(self.lv, "LeanVM", "Guest", "B1", "Whir", "Interface.lean"),
+                      encoding="utf-8").read(), re.M)
+        assert m, "no minOpenLog in Whir/Interface.lean"
+        return int(m.group(1))
+
+    def os_names(self):
+        """The opening arms `open_stacked__L{m}`, `m` from `0`."""
+        ns = [n for n in self.by if re.fullmatch(r'open_stacked__L\d+', n)]
+        out = ['open_stacked__L%d' % m for m in range(len(ns))]
+        assert sorted(out) == sorted(ns), ns
+        return out
 
     def arm_max(self, k):
         """`B2C.costMaxW` of `__loop2`'s body at opcode `k`."""
@@ -119,7 +149,7 @@ class G:
 
     def fs_words(self):
         """`B2C.fs` by name."""
-        return {f['name']: (MAIN_FRAME if i == 0 else max(2, self.fsz[i + 1]))
+        return {f['name']: (self.main_frame if i == 0 else max(2, self.fsz[i + 1]))
                 for i, f in self.fns.items()}
 
     def closure(self, roots):
@@ -181,7 +211,7 @@ def cmd_cnt(g, V=''):
     """The count families of `main`'s static callees (`V = ''`: `GuestCnt*`, `kw*`, `kc*`), of
     `verify_sub`'s (`V = 'V'`: `GuestCntV*`, `kv*`, `kcv*`) or of `verify_tables`' and the
     terminal's (`V = 'W'`: `GuestCntW*`, `ku*`, `kcu*`)."""
-    S, fams = g.cnt_certs({'': None, 'V': VROOTS, 'W': WROOTS}[V])
+    S, fams = g.cnt_certs({'': None, 'V': VROOTS(g), 'W': WROOTS(g)}[V])
     w = {'': 'kw', 'V': 'kv', 'W': 'ku'}[V]
     kc = {'': 'kc', 'V': 'kcv', 'W': 'kcu'}[V]
     rk = (lambda t: re.sub(r'\bkc(?=[A-Z_])', kc, t)) if V else (lambda t: t)
@@ -306,7 +336,8 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
 WORDS_PREFIXES = ('opening_round', 'opening_tail_round', 'opening_message__L', 'squeeze_point__L',
                   'squeeze_point_from__L', 'grind_check__L', 'verify_merkle_cap__L',
                   'fold_final_msg__L', 'claim_list_last__L', 'da_levels__L', 'list_split',
-                  'batch_sumcheck__L', 'statement_digest', 'exponent_tables')
+                  'batch_sumcheck__L', 'statement_digest', 'exponent_tables', 'gkr_rounds__L',
+                  'sel_partial_nibble__L', 'g_power_of_word', 'eq_prefix_chain', 'selector_tables')
 
 
 def cmd_words_by_name(g, wcert):

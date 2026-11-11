@@ -60,15 +60,27 @@ impl Abi {
     const RET_FP: Off = 1;
     /// Argument `i`, after the two return slots and the preceding arguments.
     fn arg(shapes: impl Iterator<Item = Shape>, i: usize) -> Off {
-        2 + shapes.take(i).map(Shape::cells).sum::<u32>()
+        Self::fit(2 + Self::width(shapes.take(i)))
     }
     /// Total width of the argument area.
     fn arg_cells(shapes: impl Iterator<Item = Shape>) -> u32 {
-        shapes.map(Shape::cells).sum()
+        Self::fit(Self::width(shapes))
     }
     /// Return cell `i` of a callee whose arguments occupy `arg_cells` cells.
     fn ret(arg_cells: u32, i: u32) -> Off {
-        2 + arg_cells + i
+        Self::fit(2 + u64::from(arg_cells) + u64::from(i))
+    }
+    /// The cells `shapes` occupy, summed where a `StackBuf(n)` of up to `2^32 - 1` cells cannot overflow it.
+    fn width(shapes: impl Iterator<Item = Shape>) -> u64 {
+        shapes.map(|s| u64::from(s.cells())).sum()
+    }
+    /// A call-area offset or width as an [`Off`], refusing one that does not fit rather than wrapping it into a
+    /// small offset that aliases another cell. `Off::MAX` is refused too, so a caller may add one.
+    fn fit(cells: u64) -> Off {
+        match Off::try_from(cells) {
+            Ok(off) if off < Off::MAX => off,
+            _ => panic!("a call's arguments and returns outgrow 2^32 frame cells"),
+        }
     }
     /// One past the last cell the CALLER touches, so the first local cell.
     fn end(arg_cells: u32, n_ret_cells: u32) -> Off {
@@ -80,7 +92,7 @@ impl Abi {
 /// the largest immediate, so beyond this a huge constant index falls back to a
 /// materialized pointer instead of inflating that table. The one cap: every site
 /// that folds an exponent into `β` measures it against this.
-const FOLD_MAX: u128 = 1 << leanvm_core::cpu::MIN_LOG_MEM;
+const FOLD_MAX: u128 = 1 << 16;
 
 /// The two pure operations worth interning. Both are commutative, so operands
 /// are stored sorted.
@@ -892,25 +904,26 @@ impl FnLower<'_> {
     ///    so the runner back-solves the one unknown operand;
     /// 3. `DEREF` through `y`, proving `y = g^f` with `f < 2^h`.
     ///
-    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h`, and a negative `k-1-e`
-    /// wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size,
-    /// provided `k ≤ 2^MIN_LOG_MEM`. Both `DEREF` destinations are unconstrained
-    /// touches, back-filled at the end of execution unless a cached read needs
-    /// their value sooner. Only the ADDRESS matters to the range check itself.
+    /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^30`, and a negative
+    /// `k-1-e` wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size.
+    /// The check is complete at the memory an honest prover announces, which holds
+    /// every cell the run touches, the complement included. Both `DEREF` destinations
+    /// are unconstrained touches, back-filled at the end of execution unless a cached
+    /// read needs their value sooner. Only the ADDRESS matters to the range check itself.
     ///
     /// A [`LtBound::Runtime`] bound reaches the same gadget through one extra
-    /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted, and
-    /// the `k ≤ 2^MIN_LOG_MEM` obligation moves to the program.
+    /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted; a small
+    /// `k` is then the program's to show.
     fn lower_assert_lt(&mut self, e: &Expr, bound: &LtBound) {
         let kcell = match bound {
             LtBound::Const(k) => {
                 if *k < 1 {
                     self.fail("range-check bound GEN ** 0 names the empty set")
                 };
-                if *k > 1 << leanvm_core::cpu::MIN_LOG_MEM {
+                if *k > 1 << leanvm_core::cpu::MAX_LOG_MEMORY {
                     self.fail(format!(
-                        "range-check bound GEN ** {k} exceeds 2^{} (the minimum memory size)",
-                        leanvm_core::cpu::MIN_LOG_MEM
+                        "range-check bound GEN ** {k} exceeds 2^{} (the largest memory size)",
+                        leanvm_core::cpu::MAX_LOG_MEMORY
                     ))
                 };
                 self.bound_cell(*k)
@@ -918,14 +931,13 @@ impl FnLower<'_> {
             LtBound::Runtime(b) => {
                 // A bound that folds only after substitution (`GEN ** i` inside an
                 // `unroll`) reaches here rather than the arm above, and would then
-                // skip the `k <= 2^MIN_LOG_MEM` cap entirely. Reject it: the author
-                // wrote a compile-time bound and should get the compile-time check.
+                // skip its cap. Reject it: the author wrote a compile-time bound and
+                // should get the compile-time treatment.
                 if self.try_field_const(b).is_some() {
-                    self.fail(format!(
+                    self.fail(
                         "a compile-time range-check bound must be written as `log GEN ** k` or an \
-                     integer, so that the 2^{} cap applies",
-                        leanvm_core::cpu::MIN_LOG_MEM
-                    ))
+                     integer, so that its cap applies",
+                    )
                 };
                 // A bound `c·g^j` with `j ≥ 1` has `c·g^{j-1}` as its target, at no `g^{-1}`.
                 if let Some(
@@ -1671,7 +1683,7 @@ pub(crate) fn lower_func(
     }
     // Reserve [0,1] retpc/retfp, params, then the flattened return area, then
     // locals. A StackBuf(n) return occupies n consecutive physical slots.
-    let n_ret_cells: u32 = f.return_shapes.iter().map(|s| s.cells()).sum();
+    let n_ret_cells = Abi::fit(Abi::width(f.return_shapes.iter().copied()));
     let arg_cells = Abi::arg_cells(f.param_shapes());
     let abi_end = Abi::end(arg_cells, n_ret_cells);
     // Loop callers write the callee's own fp just past its arguments. That

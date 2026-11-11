@@ -790,7 +790,7 @@ mod tests {
     use super::*;
     use primitives::pretty_integer;
 
-    const STACKED_LOGS: std::ops::RangeInclusive<usize> = 15..=28;
+    const STACKED_LOGS: std::ops::RangeInclusive<usize> = verifier::MIN_STACKED_LOG..=verifier::MAX_STACKED_LOG;
 
     /// Every admitted shape's query counts, `None` where no threshold clears the target.
     fn queries_with(grinding: Grinding) -> Vec<Option<Vec<usize>>> {

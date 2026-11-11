@@ -2,6 +2,8 @@
 //! against the prover's query search, and both verifiers' grinding constants against the prover's. They tabulate
 //! rather than repeat that search, which would make cross-language float identity part of the protocol.
 
+use fiat_shamir::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
+use leanvm_core::pcs::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
 use pcs::LOG_PACKING;
 use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
 
@@ -14,11 +16,11 @@ fn search(log_n: usize, rate: usize) -> ProverConfig {
         .unwrap_or_else(|e| panic!("rate {rate}, log_n {log_n}: {e}"))
 }
 
-/// A table's entries, per rate `1..=4`, per stack size in the window, each a list `[q,…]`.
+/// A table's entries, per rate, per stack size in the window, each a list `[q,…]`.
 fn entries(queries: impl Fn(usize, usize) -> Vec<usize>) -> Vec<Vec<String>> {
-    (1..=4)
+    (MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE)
         .map(|rate| {
-            (leanvm_core::pcs::MIN_MU..=leanvm_core::pcs::MAX_MU)
+            (MIN_STACKED_LOG..=MAX_STACKED_LOG)
                 .map(|log_n| {
                     let counts: Vec<String> = queries(log_n, rate).iter().map(usize::to_string).collect();
                     format!("[{}]", counts.join(","))
@@ -58,10 +60,7 @@ fn lean_query_table_matches_rust() {
     let source = lean_verifier();
     assert_lean_constants(
         &source,
-        &[
-            ("minLogStack", leanvm_core::pcs::MIN_MU),
-            ("maxLogStack", leanvm_core::pcs::MAX_MU),
-        ],
+        &[("minLogStack", MIN_STACKED_LOG), ("maxLogStack", MAX_STACKED_LOG)],
     );
     let head = "def queryTable : List (List (List ℕ)) :=";
     let body = &source[source.find(head).expect("`queryTable` in the Lean verifier") + head.len()..];
@@ -80,20 +79,32 @@ fn lean_query_table_matches_rust() {
 
 #[test]
 fn whir_query_table_matches_the_search() {
-    let (min_log, max_log) = (leanvm_core::pcs::MIN_MU, leanvm_core::pcs::MAX_MU);
-    for rate in 1..=4 {
-        for log_n in min_log..=max_log {
+    for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+        for log_n in MIN_STACKED_LOG..=MAX_STACKED_LOG {
             let config = search(log_n, rate);
             assert_eq!(
                 verifier::whir_queries(log_n, rate),
                 Some(&config.queries[..]),
                 "rate {rate}, log_n {log_n}: crates/verifier's WHIR_QUERIES is stale, regenerate it with print_whir_query_table"
             );
+            // Its proofs fit the wire format: Merkle phases, their queries, leaf widths and tree heights.
+            let shapes = config.level_shapes(log_n);
+            assert!(
+                shapes.levels <= MAX_PHASES,
+                "rate {rate}, log_n {log_n}: {} phases",
+                shapes.levels
+            );
+            for level in 0..shapes.levels {
+                let height = shapes.block_len[level].trailing_zeros() as usize;
+                // Level 0 commits base-field lanes, deeper levels two words a lane (`verify_whir`).
+                let leaf_words = (1 << shapes.ks[level]) * if level == 0 { 1 } else { 2 };
+                assert!(
+                    config.queries[level] <= MAX_QUERIES && height <= MAX_HEIGHT && leaf_words <= MAX_LEAF_WORDS,
+                    "rate {rate}, log_n {log_n}, level {level}: past the wire format's bounds"
+                );
+            }
         }
     }
-    // The verifier admits exactly the prover's committed-size window, which `pcs::MAX_MU` sets.
-    assert_eq!(verifier::whir_queries(min_log - 1, 1), None);
-    assert_eq!(verifier::whir_queries(max_log + 1, 1), None);
 }
 
 /// Regenerates the literals the pins above check: the rows go over `WHIR_QUERIES` in `crates/verifier/src/whir.rs`,

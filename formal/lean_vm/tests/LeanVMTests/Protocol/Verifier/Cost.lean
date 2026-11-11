@@ -72,13 +72,13 @@ batching grind and second out-of-domain point), net of their own grind and the n
 example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) + 325 = whirBound := by
   decide +kernel
 
-/-- The height bound is attained: the stack's commitment at `μ = 28`, rate `4`, has height
-`28 - 6 + 4 = 26`. -/
-example : stackHeightLE (costHeight - 1) 28 ((Whir.ladder 28 4).getD []) = false := by
+/-- The height bound is attained: the stack's commitment at `μ = 30`, rate `4`, has height
+`30 - 6 + 4 = 28`. -/
+example : stackHeightLE (costHeight - 1) 30 ((Whir.ladder 30 4).getD []) = false := by
   decide +kernel
 
-/-- The bus depth bound: `54` blocks of `2^32` rows. -/
-example : gkrCost 38 0 = gkrBound := by decide
+/-- The bus depth bound: `54` blocks of `2^30` rows. -/
+example : gkrCost 36 0 = gkrBound := by decide
 
 /-- The seed has `1` hash, the IV's. -/
 example (bytecode : List K) (publicInput : Digest) :

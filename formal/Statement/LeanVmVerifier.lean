@@ -35,8 +35,8 @@ counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs:10-70`); they are t
 (`crates/pcs/src/whir_config.rs:32-91`, its ladder `derive_ladder` and `derive_ladder_shape`,
 `:265-316`), as the tests `whir_query_table_matches_the_search` and
 `grinding_constants_match_the_prover` (`crates/leanvm_core/tests/verifiers/whir_query_table.rs`)
-check, the latter on this file's constants too. The stacking window is `MIN_MU` and `MAX_MU`
-(`crates/leanvm_core/src/pcs.rs:50-52`). The specification describes the protocol these
+check, the latter on this file's constants too. The stacking window is `MIN_STACKED_LOG` and
+`MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). The specification describes the protocol these
 parameters instantiate (Annex B, Protocol B.1, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
 and gives no numbers.
 
@@ -57,7 +57,7 @@ The query counts are the Rust's *output*, not its derivation: the prover's searc
 `2^-125` of Annex B's Theorem `thm:rbr`, through an exact integer check of each count
 (`query_count`, `whir_config.rs:551-564`), and this module does not restate that search. The table is the Rust
 verifier's `WHIR_QUERIES` (`whir.rs:24-30`), indexed by rate exponent `1..4` and stack size
-`15..28`; outside that window `ladder` is `none`, as the verifier rejects (`whir_queries`,
+`16..30`; outside that window `ladder` is `none`, as the verifier rejects (`whir_queries`,
 `whir.rs:38-45`; the prover's `validate_log_inv_rate`, `whir_config.rs:44-52`). `ladder` takes
 the stack size `μ`, as the verifier's `derive_config` does (the PCS crate's API takes
 `m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`), and the rate exponent is announced with the
@@ -100,13 +100,13 @@ def batchGrindingBits : ℕ := 13
 level's (`OOD_GRINDING_BITS`, `whir.rs:21-22`). -/
 def oodGrindingBits : ℕ := 15
 
-/-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_MU`
-(`pcs.rs:50`; `MIN_STACKED_LOG`, `crates/verifier/src/layout.rs:86`). -/
-def minLogStack : ℕ := 15
+/-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_STACKED_LOG`
+(`crates/verifier/src/layout.rs:94`). -/
+def minLogStack : ℕ := 16
 
-/-- The largest stack the PCS commits: `MAX_MU` (`pcs.rs:52`; `MAX_STACKED_LOG`,
-`layout.rs:87`). -/
-def maxLogStack : ℕ := 28
+/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs:95`), the
+cap every size shares. -/
+def maxLogStack : ℕ := 30
 
 /-- One level of an opening: the number of sumcheck rounds it folds (`ℓ_i`), the rate exponent
 of the code its commitment is in (`R_i`), and the number of positions queried (`t_i`), in the
@@ -142,20 +142,24 @@ def ladderShape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
     levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
 
 /-- The query counts `WHIR_QUERIES` of `whir.rs:24-30`, verbatim: row `R - 1` for the rate
-exponent `R`, entry `μ - 15` for the stack size `μ`, one count per level. -/
+exponent `R`, entry `μ - 16` for the stack size `μ`, one count per level. -/
 def queryTable : List (List (List ℕ)) := [
-  [[238, 63], [230, 60, 42], [225, 58, 38], [222, 57, 35], [220, 56, 34], [219, 55, 33, 27],
+  [[230, 60, 42], [225, 58, 38], [222, 57, 35], [220, 56, 34], [219, 55, 33, 27],
    [218, 55, 32, 25], [218, 55, 32, 24], [218, 55, 32, 23], [218, 55, 32, 23, 20],
-   [218, 55, 32, 23, 19], [218, 55, 32, 23, 18], [218, 55, 32, 23, 18], [218, 55, 32, 23, 18, 16]],
-  [[114, 49], [112, 47, 35], [111, 46, 32], [110, 45, 31], [110, 45, 29], [109, 44, 29, 24],
+   [218, 55, 32, 23, 19], [218, 55, 32, 23, 18], [218, 55, 32, 23, 18], [218, 55, 32, 23, 18, 16],
+   [218, 55, 32, 23, 18, 15], [218, 55, 32, 23, 18, 15]],
+  [[112, 47, 35], [111, 46, 32], [110, 45, 31], [110, 45, 29], [109, 44, 29, 24],
    [109, 44, 28, 23], [109, 44, 28, 22], [109, 44, 28, 21], [109, 44, 28, 21, 18],
-   [109, 44, 28, 21, 17], [109, 44, 28, 21, 17], [109, 44, 28, 21, 17], [109, 44, 28, 21, 17, 15]],
-  [[75, 40], [74, 39, 30], [74, 38, 28], [73, 37, 27], [73, 37, 26], [73, 37, 25, 22],
+   [109, 44, 28, 21, 17], [109, 44, 28, 21, 17], [109, 44, 28, 21, 17], [109, 44, 28, 21, 17, 15],
+   [109, 44, 28, 21, 17, 15], [109, 44, 28, 21, 17, 15]],
+  [[74, 39, 30], [74, 38, 28], [73, 37, 27], [73, 37, 26], [73, 37, 25, 22],
    [73, 37, 25, 20], [73, 37, 25, 20], [73, 37, 25, 19], [73, 37, 25, 19, 17], [73, 37, 25, 19, 16],
-   [73, 37, 25, 19, 16], [73, 37, 25, 19, 16], [73, 37, 25, 19, 16, 15]],
-  [[56, 34], [56, 33, 27], [55, 32, 25], [55, 32, 24], [55, 32, 23], [55, 32, 23, 20],
+   [73, 37, 25, 19, 16], [73, 37, 25, 19, 16], [73, 37, 25, 19, 16, 15], [73, 37, 25, 19, 16, 14],
+   [73, 37, 25, 19, 16, 15]],
+  [[56, 33, 27], [55, 32, 25], [55, 32, 24], [55, 32, 23], [55, 32, 23, 20],
    [55, 32, 23, 19], [55, 32, 23, 18], [55, 32, 23, 18], [55, 32, 23, 18, 16], [55, 32, 23, 18, 15],
-   [55, 32, 23, 18, 15], [55, 32, 23, 18, 15], [55, 32, 23, 18, 15, 14]]]
+   [55, 32, 23, 18, 15], [55, 32, 23, 18, 15], [55, 32, 23, 18, 15, 14], [55, 32, 23, 18, 16, 14],
+   [55, 32, 23, 18, 16, 14]]]
 
 /-- The window the parameters are defined on: the stacking window and the rate range `1..4`
 (`whir_queries`, `whir.rs:38-45`; the rate also `lib.rs:256` and `whir_config.rs:44-52`). -/
@@ -1138,7 +1142,7 @@ def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
 
 /-- `build_layout(bytecode, log_memory, table_rows)` (`layout.rs:483-567`); `none` exactly where
 the Rust returns an error: a bytecode whose length is not a power of two (`log2_strict`) or whose
-log-length is outside `BUS_BITS ..= 32 + BUS_BITS`, and sizes outside the window. It is also `none`
+log-length is outside `BUS_BITS ..= 30 + BUS_BITS`, and sizes outside the window. It is also `none`
 on row counts not one per table, which the verifier never passes (it reads `N_TABLES` of them). A
 table's log-height is the least `h` with `rows ≤ 2^h` (`log2Ceil`), and at least its floor
 (`tableLogFloors`). -/
@@ -1146,8 +1150,8 @@ def buildLayout (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : O
   match log2Strict bytecode.length with
   | none => none
   | some logLength =>
-    if busBits ≤ logLength ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
-        tableRows.all (· ≤ 2 ^ 32) ∧ logLength - busBits ≤ 32 ∧
+    if busBits ≤ logLength ∧ 1 ≤ logMemory ∧ logMemory ≤ 30 ∧
+        tableRows.all (· ≤ 2 ^ 30) ∧ logLength - busBits ≤ 30 ∧
         tableRows.length = tables.length then
       let logBytecode := logLength - busBits
       let tableLogHeights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
@@ -2244,6 +2248,36 @@ def fiatShamirIv (bytecode : List K) : Digest :=
 def verifyDeferred (bytecode : List K) (iv publicInput : Digest) (claim : BytecodeClaim)
     (proof : Proof) : Bool :=
   Id.run (verifyDeferredWith (m := Id) keccakF1600 bytecode iv publicInput claim proof)
+
+end LeanVM.Protocol.Verifier
+
+/-! ## The sizes a proof announces
+
+The verifier's first step reads the announced sizes and nothing else (`readAnnouncedSizes`): its
+reads only absorb, so no hash or permutation is consulted for a value, and running it with every
+permutation answered by `default` gives the layout the proof announces. The extractor's budget
+(`Statement/CostMachine.lean`) grows with the stack size it announces. -/
+
+namespace LeanVM.Protocol.Compile
+
+open LeanVM.Parameters
+
+/-- A run with every permutation answered by `default`, for the steps that only read scalars: what
+they read does not depend on the sponge. -/
+def runPure {α : Type} (program : VerifierProgram α) (s : VerifierProgramState) : Option
+    (α × VerifierProgramState) :=
+  Id.run (run (m := Id) (fun _ ↦ default) program s)
+
+end LeanVM.Protocol.Compile
+
+namespace LeanVM.Protocol.Verifier
+
+open LeanVM.Parameters LeanVM.Protocol.Compile
+
+/-- The announced layout and rate exponent of a stream, read by the program's own
+`readAnnouncedSizes` (reads only absorb: no hash or permutation is consulted for a value). -/
+def announcedLayoutAndRate (bytecode : List K) (stream : List E) : Option (Layout × ℕ) :=
+  (runPure (readAnnouncedSizes bytecode) ⟨⟨default, []⟩, stream, [], []⟩).map (·.1)
 
 end LeanVM.Protocol.Verifier
 

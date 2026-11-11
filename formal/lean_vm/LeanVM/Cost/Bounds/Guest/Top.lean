@@ -57,13 +57,13 @@ theorem lxSlots_cost (D : DiscreteLogTables) (hP : Includes P Decoder.lxSlotsC.c
     (hG : GLogBound P D G) :
     machineCost P Decoder.lxSlotsC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.lxSlotsC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 40)); have := hS (.n 40); omega
+  have := hG (σ (.n 22)); have := hS (.n 22); omega
 
 theorem lsSlots_cost (D : DiscreteLogTables) (hP : Includes P Decoder.lsSlotsC.costDeps)
     (hG : GLogBound P D G) :
     machineCost P Decoder.lsSlotsC.costIdx [encodeValue D, σV] ≤ S + G + 11 := by
   rw [Decoder.lsSlotsC.costEq P hP D σ σV hσ]
-  have := hG (σ (.n 41)); have := hS (.n 41); omega
+  have := hG (σ (.n 23)); have := hS (.n 23); omega
 
 theorem nRawX_cost (D : DiscreteLogTables) (hP : Includes P Decoder.nRawXC.costDeps)
     (hG : GLogBound P D G) :
@@ -220,8 +220,8 @@ theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC
       decWitAtPrice G R S WX WS WD WV WA K N X := by
   rw [Decoder.decWitAtC.costEq P hP D σ σV hσ rd rdV hrd wX wXV hwX wS wSV hwS wD wDV hwD wV wVV
     hwV wA wAV hwA]
-  have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) 0 lx (by norm_num) hlx.le
-  have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 66)) lx ls hlx.le hls
+  have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 45)) 0 lx (by norm_num) hlx.le
+  have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 45)) lx ls hlx.le hls
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA D (by includes) hG
     K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 419)) (σ (.n 52)) (σ (.n 55)) _ _
     (regionTable_good (rd := rd) D (σ (.n 66)) 0 lx hlx.le)

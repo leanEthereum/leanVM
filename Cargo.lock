@@ -390,6 +390,7 @@ dependencies = [
  "parallel",
  "primitives",
  "tracing",
+ "verifier",
 ]
 
 [[package]]

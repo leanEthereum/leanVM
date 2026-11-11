@@ -8,10 +8,10 @@ use primitives::field::{F64, F128};
 
 /// The most phases a proof, queries a phase, leaf words and tree height may have: at least the protocol's own, and few
 /// enough that hostile bytes unprune to a bounded size. Encoding asserts them, so an honest proof always decodes.
-const MAX_PHASES: usize = 8;
-const MAX_QUERIES: usize = 256;
-const MAX_LEAF_WORDS: usize = 64;
-const MAX_HEIGHT: usize = 32;
+pub const MAX_PHASES: usize = 8;
+pub const MAX_QUERIES: usize = 256;
+pub const MAX_LEAF_WORDS: usize = 64;
+pub const MAX_HEIGHT: usize = 32;
 
 impl Proof {
     /// Every count and size is a little-endian `u32`, every word a little-endian `u64`.

@@ -176,7 +176,7 @@ abbrev HonestProverWithHash : Type :=
 
 /-- **The honest prover**: `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`) with Keccak-256 and
 Keccak-f[1600] the oracle calls. From the execution `t` it computes the witness (`witness?`, no
-proof unless `t` is a valid execution within `2^28` committed cells), and, at a valid rate,
+proof unless `t` is a valid execution within `2^30` committed cells), and, at a valid rate,
 runs the honest script against the verifier's own program `leanVmVerifierProgram`, trying `fuel`
 nonces per proof of work. -/
 def proverWithHash : HonestProverWithHash :=
@@ -294,7 +294,7 @@ honest prover's (`prover`) proof of an execution within the verifier's size cap 
 probability at most `2^-256`. -/
 def CompletenessWithHash : Prop :=
   ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← verifierCompletenessExperimentWithHash proverWithHash prog input t ρ
           (2 ^ 33)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

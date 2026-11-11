@@ -148,8 +148,8 @@ include hσ hS
 theorem decSeed_cost (hP : Includes P Decoder.decSeedC.costDeps) :
     machineCost P Decoder.decSeedC.costIdx [σV] ≤ 2 * S + 45 := by
   rw [Decoder.decSeedC.costEq P hP σ σV hσ, digestOfCells_cost P (by includes)]
-  have := hS (.n 47)
-  have := hS (.n 48)
+  have := hS (.n 26)
+  have := hS (.n 27)
   omega
 
 section Reader

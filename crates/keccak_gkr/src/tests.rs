@@ -247,7 +247,7 @@ fn a_wrong_ood_value_fails_the_opening() {
 #[test]
 fn proof_verifies_against_the_commitment() {
     end_to_end(600, 8);
-    end_to_end(1024, 24);
+    end_to_end(2048, 24);
     // The VM's depth, over enough blocks that the input opening folds more than one run.
     end_to_end(8192, 12);
     end_to_end(8192, 6);

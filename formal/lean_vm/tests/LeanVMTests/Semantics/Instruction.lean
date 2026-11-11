@@ -74,15 +74,15 @@ example : prog.fetch 0 = none := prog.fetch_zero
 
 /-! ## The bytecode cap -/
 
-/-- The largest program the cap admits, `2 ^ 32` copies of `i0`. -/
+/-- The largest program the cap admits, `2 ^ 30` copies of `i0`. -/
 def largest : LeanIsaProgram := ⟨maxLogBytecode, le_rfl, fun _ ↦ i0⟩
 
 /-- Fetching the last slot of the largest program. -/
-example : largest.fetch (addressOfIndex (2 ^ 32 - 1)) = some i0 :=
-  largest.fetch_gpow ⟨2 ^ 32 - 1, by decide⟩
+example : largest.fetch (addressOfIndex (2 ^ 30 - 1)) = some i0 :=
+  largest.fetch_gpow ⟨2 ^ 30 - 1, by decide⟩
 
-/-- `2 ^ 33` instructions is not a program. -/
-example : ¬ 33 ≤ maxLogBytecode := by decide
+/-- `2 ^ 31` instructions is not a program. -/
+example : ¬ 31 ≤ maxLogBytecode := by decide
 
 end
 end LeanVMTests.Semantics

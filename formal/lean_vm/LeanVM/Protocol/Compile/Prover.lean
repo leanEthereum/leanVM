@@ -28,9 +28,8 @@ The prover is transcribed from the pinned leanVM
 
 * the Fiat-Shamir sponge is the one `run` checks (`crates/fiat_shamir/src/lib.rs`, `observe`,
   `sample`): a scalar sent is absorbed with tag `1`, a challenge squeezed by a permutation;
-* the proof of work is `grind_pow`: at `bits = 0` the canonical nonce `0`, otherwise the smallest
-  `u64` nonce `n`, as the scalar with limbs `(n, 0, 0)`, which absorbed with tag `4` makes the
-  next challenge's low `bits` bits zero. Here the search is bounded by a `fuel`: nonces
+* the proof of work is `grind_pow`: the smallest `u64` nonce `n`, as the scalar with limbs
+  `(n, 0, 0)`, which absorbed with tag `4` makes the next challenge's low `bits` bits zero. Here the search is bounded by a `fuel`: nonces
   `0, …, fuel - 1` (`findNonce`);
 * a commitment is the Merkle tree of `merkle_tree` (`crates/pcs/src/merkle.rs:50-61`): the
   `2^height` rows of the word hashed as the little-endian bytes of their `K` words (`:401-404`),
