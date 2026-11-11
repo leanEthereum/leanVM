@@ -202,10 +202,6 @@ Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that t
 Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest row over all rounds, each divided by $2^{b}$ for the grind of $b$ bits before its message.
 \end{theorem}
 
-\paragraph{Parameters.} The query grind is a fixed budget. The OOD and batching grinds are kept small so that level 0's list, which the knowledge extractor decodes, stays short. The fold grind is the smallest with which no admitted shape (stack size and rate) needs more queries than with unlimited grinding. The implementation picks the interpolation parameters of each $\epsaff$ by search, and the slack $\slack_i$ that minimizes $\nq_i$ with every ground row at most $2^{-125}$.
-
-The remainder of this section proves the theorem: \S\ref{sec:tools} states the coding-theoretic tools, \S\ref{pcs:proof} the invariant and the round-by-round argument.
-
 \subsubsection{Proximity tools}\label{sec:tools}
 
 The engine is \emph{mutual correlated agreement} (MCA)~\cite{ACFY25} for the affine combiner, from the preprint~\cite{CYWZ26}. We state its error as the finite count in the proof of~\cite[Lemma~4.1]{CYWZ26}, with the interpolation parameters left free, as in~\cite[\S5.1, Finite bounds]{CYWZ26}.
