@@ -164,6 +164,41 @@ impl F192x8 {
         std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(3 * j + k) / 8][(3 * j + k) % 8])))
     }
 
+    /// Eight blocks of sixteen consecutive elements, transposed: `out[e]` lane `l` is `src[16l + e]`.
+    #[inline(always)]
+    pub fn load_blocks(src: &[F192; 128], dst: &mut [Self; 16]) {
+        let q = src.as_ptr().cast::<u64>();
+        // Words `8b..8b+8` of every block, transposed across the blocks as in `load_runs`, one octet at a time
+        // so that only eight registers are live.
+        for b in 0..6 {
+            // SAFETY: the 128 elements are 384 readable qwords.
+            let words = transpose8(std::array::from_fn(|l| unsafe { load_u64x8(q.add(48 * l + 8 * b)) }));
+            for (i, word) in words.into_iter().enumerate() {
+                let w = 8 * b + i;
+                dst[w / 3].0[w % 3] = word;
+            }
+        }
+    }
+
+    /// The low halves of `a` and `b`, lanes `0..4` of each, then their high halves.
+    #[inline(always)]
+    pub fn halves(a: Self, b: Self) -> (Self, Self) {
+        // SAFETY: the module's cfg enables avx512f.
+        unsafe {
+            (
+                Self(std::array::from_fn(|k| _mm512_shuffle_i64x2::<0x44>(a.0[k], b.0[k]))),
+                Self(std::array::from_fn(|k| _mm512_shuffle_i64x2::<0xEE>(a.0[k], b.0[k]))),
+            )
+        }
+    }
+
+    /// The product by `y`: a permutation of the coefficients and one sum, as `y^3 = y + 1`.
+    #[inline(always)]
+    pub fn mul_y(self) -> Self {
+        let [c0, c1, c2] = self.0;
+        Self([c2, xor(c0, c2), c1])
+    }
+
     /// The even lanes of `a` then of `b`, and the odd lanes of `a` then of `b`.
     #[inline(always)]
     pub fn deinterleave(a: Self, b: Self) -> (Self, Self) {
@@ -390,6 +425,23 @@ mod tests {
             assert_eq!(acc.reduce().to_array(), want);
             assert_eq!((F64x8::new(k) * F64x8::splat(l[0])).to_array(), k.map(|k| k * l[0]));
         }
+    }
+
+    #[test]
+    fn blocks_transpose_halves_and_y() {
+        let mut rng = Rng::new(6);
+        let src: [F192; 128] = std::array::from_fn(|_| rng.ext());
+        let mut blocks = [F192x8::splat(F192::ZERO); 16];
+        F192x8::load_blocks(&src, &mut blocks);
+        for (e, lanes) in blocks.iter().enumerate() {
+            assert_eq!(lanes.to_array(), std::array::from_fn(|l| src[16 * l + e]));
+        }
+        let a: [F192; 8] = std::array::from_fn(|_| rng.ext());
+        let b: [F192; 8] = std::array::from_fn(|_| rng.ext());
+        let (low, high) = F192x8::halves(F192x8::load(&a), F192x8::load(&b));
+        let half = |h: usize| std::array::from_fn(|i| if i < 4 { a[4 * h + i] } else { b[4 * h + i - 4] });
+        assert_eq!((low.to_array(), high.to_array()), (half(0), half(1)));
+        assert_eq!(F192x8::load(&a).mul_y().to_array(), a.map(|x| x * F192::Y));
     }
 
     #[test]
