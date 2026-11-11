@@ -3,6 +3,7 @@ pragma solidity 0.8.38;
 
 import {Test} from "forge-std/Test.sol";
 import {XmssVerifierA} from "../src/XmssVerifierA.sol";
+import {XmssVerifierB} from "../src/XmssVerifierB.sol";
 import {Vectors} from "./Vectors.sol";
 
 interface IXmssVerifier {
@@ -12,6 +13,10 @@ interface IXmssVerifier {
 contract XmssVerifierTest is Test {
     function test_vectorsA() public {
         check(IXmssVerifier(address(new XmssVerifierA())));
+    }
+
+    function test_vectorsB() public {
+        check(IXmssVerifier(address(new XmssVerifierB())));
     }
 
     /// Every vector `verify` can take gives its expected result.
