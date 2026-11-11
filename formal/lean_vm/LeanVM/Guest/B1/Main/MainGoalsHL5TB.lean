@@ -50,16 +50,16 @@ theorem l5_stepAtTB (SB : String → ℕ)
     {lxt cover lxs lst spc lss s0 s1 gsq cfresh : E} {k : KidH} {Px Ps Pv Tt : Tree → Prop}
     (hnk : nk < 2 ^ 34) (hc : c + 1 ≤ nk) (hs01 : AllCanonical [s0, s1])
     (hk : KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c k)
-    (htail : c + 1 < nk → CompleteAtDTB fs cert 16 "__loop4" Lin
+    (htail : c + 1 < nk → CompleteAtDTB fs cert 20 "__loop4" Lin
       [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) Tt Bt)
-    (hVT : CompleteAtDTB fs cert 16 "verify_sub" Lin
+    (hVT : CompleteAtDTB fs cert 20 "verify_sub" Lin
       [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)] (Returns []) Pv Bv)
-    (hXT : CompleteAtDTB fs cert 16 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
+    (hXT : CompleteAtDTB fs cert 20 "child_claim_list_digest" Lin [lxt, cover, k.base, lxs, gen ^ k.ex]
       (Returns [k.cx.1, k.cx.2]) Px Bx)
-    (hST : CompleteAtDTB fs cert 16 "child_claim_list_digest" Lin
+    (hST : CompleteAtDTB fs cert 20 "child_claim_list_digest" Lin
       [lst, spc, k.base * gen ^ k.ex, lss, gen ^ k.es] (Returns [k.cs.1, k.cs.2]) Ps Bs) :
-    CompleteAtDTB fs cert 16 "__loop4" Lin
+    CompleteAtDTB fs cert 20 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns []) (L5Node k Px Ps Pv Tt)
       (fs "__loop4" + (if c + 1 < nk then Bt else fs "__loop4") + l5K SB Bx Bs Bv) := by
@@ -67,7 +67,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
   -- the rest of the loop
   obtain ⟨nt, Lt, hnt, hWt, hDt, hRt⟩ : ∃ nt Lt, nt ≤ (if c + 1 < nk then Bt else fs "__loop4") ∧
       Within Lt (fp + fs "__loop4") nt ∧ DisjL Lt ∧
-      ∀ rd, LowDef 16 rd → MemL rd (Lt ++ Lin) →
+      ∀ rd, LowDef 20 rd → MemL rd (Lt ++ Lin) →
         if decide (c + 1 ≠ nk) = true then
           RelAtInT coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs "__loop4") nt "__loop4"
             [gen ^ (c + 1), gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
@@ -92,7 +92,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
         gen ^ Cr * gen ^ (24 * c)], Lin, Returns [(k.pi s0 s1).1, (k.pi s0 s1).2]⟩,
       ⟨"verify_sub", true, [(k.pi s0 s1).1, (k.pi s0 s1).2, s0, s1, gsq,
         cfresh * gen ^ (24 * c)], Lin, Returns []⟩]
-  have ksd := statement_completeAtB fs cert (Lin := Lin)
+  have ksd := statement_completeAtB fs cert (κ := 20) (Lin := Lin)
       (args := [s0, s1, k.cx.1, k.cx.2, k.cs.1, k.cs.2, k.da.1, k.da.2, gen ^ Cr * gen ^ (24 * c)])
       (rets := [(k.pi s0 s1).1, (k.pi s0 s1).2]) SB hSD fun rd hm => by
     obtain ⟨-, -, -, -, -, -, hdef⟩ := hk.mem rd hm
@@ -103,10 +103,10 @@ theorem l5_stepAtTB (SB : String → ℕ)
     · exact hs01 _ (by simp)
     · exact hs01 _ (by simp)
     all_goals exact hk.can _ (by simp)
-  have hokB : KidsDTB fs cert 16 ks (l5Ts4 Px Ps Pv) [Bx, Bs, SB "statement_digest", Bv] :=
+  have hokB : KidsDTB fs cert 20 ks (l5Ts4 Px Ps Pv) [Bx, Bs, SB "statement_digest", Bv] :=
     ⟨fun _ => hXT, fun _ => hST, fun _ => ksd, fun _ => hVT, trivial⟩
   obtain ⟨Nk, Lk, outs, hNB, hoo, hW, hD, -, hKids⟩ :=
-    B1.kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 ks (l5Ts4 Px Ps Pv)
+    B1.kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 20 ks (l5Ts4 Px Ps Pv)
       [Bx, Bs, SB "statement_digest", Bv] hokB P1
   have hNB' : Nk ≤ Bx + Bs + SB "statement_digest" + Bv := by
     refine hNB.trans ?_
@@ -135,7 +135,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
     (dadig := gen ^ D) (s0 := s0) (s1 := s1) (cpi := gen ^ Pi) (gsq := gsq)
     (cfresh := cfresh) (cx0 := k.cx.1) (cx1 := k.cx.2) (cs0 := k.cs.1) (cs1 := k.cs.2)
     (d0 := k.da.1) (d1 := k.da.2) (p0 := (k.pi s0 s1).1) (p1 := (k.pi s0 s1).2)
-    hlow hk.ex_le hk.es_le
+    hlow hk.ex_lt hk.es_lt
     (by rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hb0)
     (by rw [gen_sq', loadHolds_mul_gen_pow, Nat.add_zero]; exact hd0)
     (by rw [gen_sq', loadHolds_mul_gen_pow]; exact hd1)
@@ -154,26 +154,26 @@ theorem l5_stepAtTB (SB : String → ℕ)
   obtain ⟨hpd, hpa, hpad, hpc⟩ := Main.straight_parts σ _ l5Pre_straight
   have hal : allocs σ ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) = [] := by
     rw [hpa, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.allocSz = [] from rfl]; rfl
-  have h59 : decide (σ (.n 59) ≠ 0) = decide (c + 1 ≠ nk) := by
+  have h59 : decide (σ (.n 53) ≠ 0) = decide (c + 1 ≠ nk) := by
     rw [hV.v59]
     refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
       fun h he => h ?_⟩
     exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
   have hcalls : calls ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) =
-      [⟨"child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 29, .n 30], true⟩,
-        ⟨"child_claim_list_digest", [.n 6, .n 7, .n 31, .n 8, .n 19], [.n 32, .n 33], true⟩,
-        ⟨"statement_digest", [.n 11, .n 12, .n 29, .n 30, .n 32, .n 33, .n 42, .n 43, .n 39],
-          [.n 44, .n 45], true⟩,
-        ⟨"verify_sub", [.n 44, .n 45, .n 11, .n 12, .n 14, .n 54], [], true⟩] ++
-      [⟨"__loop4", [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
+      [⟨"child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24], true⟩,
+        ⟨"child_claim_list_digest", [.n 6, .n 7, .n 25, .n 8, .n 19], [.n 26, .n 27], true⟩,
+        ⟨"statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
+          [.n 38, .n 39], true⟩,
+        ⟨"verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], [], true⟩] ++
+      [⟨"__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
         .n 12, .n 13, .n 14, .n 15], [], decide (c + 1 ≠ nk)⟩] := by
     rw [hpc, show (l5Pre ++ [l5Tail]).filterMap Main.Stmt.callS =
-      [(none, "child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 29, .n 30]),
-        (none, "child_claim_list_digest", [.n 6, .n 7, .n 31, .n 8, .n 19], [.n 32, .n 33]),
-        (none, "statement_digest", [.n 11, .n 12, .n 29, .n 30, .n 32, .n 33, .n 42, .n 43, .n 39],
-          [.n 44, .n 45]),
-        (none, "verify_sub", [.n 44, .n 45, .n 11, .n 12, .n 14, .n 54], []),
-        (some (.n 59), "__loop4", [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
+      [(none, "child_claim_list_digest", [.n 3, .n 4, .n 17, .n 5, .n 18], [.n 23, .n 24]),
+        (none, "child_claim_list_digest", [.n 6, .n 7, .n 25, .n 8, .n 19], [.n 26, .n 27]),
+        (none, "statement_digest", [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33],
+          [.n 38, .n 39]),
+        (none, "verify_sub", [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48], []),
+        (some (.n 53), "__loop4", [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9,
           .n 10, .n 11, .n 12, .n 13, .n 14, .n 15], [])] from rfl]
     simp only [List.map_cons, List.map_nil, Main.mkCall, h59, List.cons_append, List.nil_append]
   have hev : ∀ e ∈ (l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ), e.Holds rd σ := by
@@ -190,7 +190,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
       | .ret _, hk' => simp [l5Kind] at hk'
     · rw [List.mem_singleton] at hs
       subst hs
-      show IsInK (σ (.n 59))
+      show IsInK (σ (.n 53))
       rw [hV.v59]; exact gen_pow_add_isInK _ _
   have hparams : (coreProgram.getD 38 default).params.map σ = args := by
     rw [l5_params]
@@ -206,8 +206,8 @@ theorem l5_stepAtTB (SB : String → ℕ)
       by_cases hlast : c + 1 = nk
       · simpa [hlast] using ht
       · simp only [ne_eq, hlast, not_false_eq_true, decide_true, ↓reduceIte] at ht ⊢
-        rw [show [V.n 61, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
-          .n 12, .n 13, .n 14, .n 15].map σ = [σ (.n 61), σ (.n 1), σ (.n 2),
+        rw [show [V.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11,
+          .n 12, .n 13, .n 14, .n 15].map σ = [σ (.n 55), σ (.n 1), σ (.n 2),
           σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10),
           σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14), σ (.n 15)] from rfl,
           hV.v61, pr 1 (by omega), pr 2 (by omega), pr 3 (by omega), pr 4 (by omega),
@@ -231,18 +231,18 @@ theorem l5_stepAtTB (SB : String → ℕ)
         fun _ => ⟨?_, ?_⟩, rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
       · show [σ (.n 3), σ (.n 4), σ (.n 17), σ (.n 5), σ (.n 18)] = _
         rw [pr 3 (by omega), pr 4 (by omega), hV.v17, pr 5 (by omega), hV.v18]; rfl
-      · rw [(h1 rfl).1]; show [σ (.n 29), σ (.n 30)] = _; rw [hV.v29, hV.v30]
-      · show [σ (.n 6), σ (.n 7), σ (.n 31), σ (.n 8), σ (.n 19)] = _
+      · rw [(h1 rfl).1]; show [σ (.n 23), σ (.n 24)] = _; rw [hV.v29, hV.v30]
+      · show [σ (.n 6), σ (.n 7), σ (.n 25), σ (.n 8), σ (.n 19)] = _
         rw [pr 6 (by omega), pr 7 (by omega), hV.v31, pr 8 (by omega), hV.v19]
         rfl
-      · rw [(h2 rfl).1]; show [σ (.n 32), σ (.n 33)] = _; rw [hV.v32, hV.v33]
-      · show [σ (.n 11), σ (.n 12), σ (.n 29), σ (.n 30), σ (.n 32), σ (.n 33), σ (.n 42),
-          σ (.n 43), σ (.n 39)] = _
+      · rw [(h2 rfl).1]; show [σ (.n 26), σ (.n 27)] = _; rw [hV.v32, hV.v33]
+      · show [σ (.n 11), σ (.n 12), σ (.n 23), σ (.n 24), σ (.n 26), σ (.n 27), σ (.n 36),
+          σ (.n 37), σ (.n 33)] = _
         rw [pr 11 (by omega), pr 12 (by omega), hV.v29, hV.v30, hV.v32, hV.v33, hV.v42, hV.v43,
           hV.v39]
         rfl
-      · rw [(h3 rfl).1]; show [σ (.n 44), σ (.n 45)] = _; rw [hV.v44, hV.v45]
-      · show [σ (.n 44), σ (.n 45), σ (.n 11), σ (.n 12), σ (.n 14), σ (.n 54)] = _
+      · rw [(h3 rfl).1]; show [σ (.n 38), σ (.n 39)] = _; rw [hV.v44, hV.v45]
+      · show [σ (.n 38), σ (.n 39), σ (.n 11), σ (.n 12), σ (.n 14), σ (.n 48)] = _
         rw [hV.v44, hV.v45, pr 11 (by omega), pr 12 (by omega), pr 14 (by omega), hV.v54]
         rfl
       · rw [(h4 rfl).1]; rfl
@@ -257,7 +257,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
   · intro A hA
     rw [B1.loadAddrs_straight σ _ l5Pre_straight,
       show (l5Pre ++ [l5Tail]).filterMap B1.Stmt.loadS =
-        [(.n 16, 0), (.n 41, 0), (.n 41, 1), (.n 47, 0), (.n 48, 1), (.n 56, 1)] from rfl] at hA
+        [(.n 16, 0), (.n 35, 0), (.n 35, 1), (.n 41, 0), (.n 42, 1), (.n 50, 1)] from rfl] at hA
     simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
     rw [hal]
     have hW' : ∀ e, (gen ^ W * gen ^ c).limb 0 * addressOfIndex e = addressOfIndex (W + c + e) :=
@@ -295,21 +295,21 @@ theorem l5_completeAtTB (SB : String → ℕ)
     (hnk : nk < 2 ^ 34) (hs01 : AllCanonical [s0, s1])
     (hk : ∀ c < nk, KidOkC fs cert Lin W D Pi Cr lxt cover lxs lst spc lss s0 s1 gsq cfresh c
       (kid c))
-    (hVT : ∀ c < nk, CompleteAtDTB fs cert 16 "verify_sub" Lin
+    (hVT : ∀ c < nk, CompleteAtDTB fs cert 20 "verify_sub" Lin
       [((kid c).pi s0 s1).1, ((kid c).pi s0 s1).2, s0, s1, gsq, cfresh * gen ^ (24 * c)]
       (Returns []) (Pvs c) (Bv c))
-    (hXT : ∀ c < nk, CompleteAtDTB fs cert 16 "child_claim_list_digest" Lin
+    (hXT : ∀ c < nk, CompleteAtDTB fs cert 20 "child_claim_list_digest" Lin
       [lxt, cover, (kid c).base, lxs, gen ^ (kid c).ex] (Returns [(kid c).cx.1, (kid c).cx.2])
       (Pxs c) (Bxs c))
-    (hST : ∀ c < nk, CompleteAtDTB fs cert 16 "child_claim_list_digest" Lin
+    (hST : ∀ c < nk, CompleteAtDTB fs cert 20 "child_claim_list_digest" Lin
       [lst, spc, (kid c).base * gen ^ (kid c).ex, lss, gen ^ (kid c).es]
       (Returns [(kid c).cs.1, (kid c).cs.2]) (Pss c) (Bss c)) :
-    ∀ c < nk, CompleteAtDTB fs cert 16 "__loop4" Lin
+    ∀ c < nk, CompleteAtDTB fs cert 20 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (nk - c) c)
       (l5ChainB fs (fun c => l5K SB (Bxs c) (Bss c) (Bv c)) (nk - c - 1) c) := by
-  have key : ∀ t c, c + 1 + t = nk → CompleteAtDTB fs cert 16 "__loop4" Lin
+  have key : ∀ t c, c + 1 + t = nk → CompleteAtDTB fs cert 20 "__loop4" Lin
       [gen ^ c, gen ^ nk, gen ^ W, lxt, cover, lxs, lst, spc, lss, gen ^ Cr,
         gen ^ D, s0, s1, gen ^ Pi, gsq, cfresh] (Returns [])
       (L5From (fun c => (kid c).ex) (fun c => (kid c).es) Pxs Pss Pvs (t + 1) c)
@@ -337,7 +337,7 @@ variable {fs cert}
 /-- **Each child's `verify_sub` call complete within `Bv c`, by a tree satisfying `Pvs c`.** -/
 def VerifySubGoalsTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (Pvs : ℕ → Tree → Prop) (Bv : ℕ → ℕ) : Prop :=
-  ∀ c (hc : c < w.children.length), CompleteAtDTB fs cert 16 "verify_sub" (hLmain fs fp seed s w)
+  ∀ c (hc : c < w.children.length), CompleteAtDTB fs cert 20 "verify_sub" (hLmain fs fp seed s w)
     [(digestHalves (statementDigest seed w.children[c].statement)).1,
       (digestHalves (statementDigest seed w.children[c].statement)).2,
       (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,
@@ -360,7 +360,7 @@ theorem VerifySubGoalsTB.mono {fp : ℕ} {seed : Digest} {s : NodeStatement} {w 
 def MainGoalL5TB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (T5 : Tree → Prop) (B5 : ℕ) : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDTB fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDTB fs cert 20 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,

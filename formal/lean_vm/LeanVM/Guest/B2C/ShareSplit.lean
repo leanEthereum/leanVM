@@ -264,6 +264,9 @@ theorem atomListed_congr (tt : Exec.Trie ℕ) (P : Plumb) {a : Core.Atom}
   | rangeCheck x y t1 t2 k =>
     simp only [atomListed]
     rw [cell_congr hA (h t1 (by simp [Memory.atomTmps])), cell_congr hA (h t2 (by simp [Memory.atomTmps]))]
+  | touch t p =>
+    simp only [atomListed]
+    rw [cell_congr hA (h t (by simp [Memory.atomTmps]))]
   | frameAddr p run =>
     cases run with
     | nil => rfl

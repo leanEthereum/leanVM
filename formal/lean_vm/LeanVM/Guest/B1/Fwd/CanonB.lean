@@ -96,6 +96,7 @@ theorem canonGoB_eq : ∀ (as : List Atom) (K : List Nat) (M : Nat),
   | .hint .. :: as, K, M, h => canonGoB_eq as K M h
   | .assertInK .. :: as, K, M, h => canonGoB_eq as K M h
   | .frameAddr .. :: as, K, M, h => canonGoB_eq as K M h
+  | .touch .. :: as, K, M, h => canonGoB_eq as K M h
 
 /-- **`canonChk` from the walk on the inputs' mask.** -/
 theorem canonChk_of_canonGoB {A : List Nat} {atoms : List Atom}

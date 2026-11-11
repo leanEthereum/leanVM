@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.Memory.Discharge
 
-  The honest memory of a placed tree: its range-check temporaries re-chosen to read the final
+  The honest memory of a placed tree: its temporaries (range checks', touches') re-chosen to read
+  the final
   memory, every write of the frames and of the paths agrees with one function of the address,
   so the image is consistent and the re-chosen tree is valid on it (`HonestAt`).
 -/
@@ -14,11 +15,12 @@ public import LeanVM.Guest.Memory.Retemp
 /-!
 # Discharging `HonestAt`
 
-A range check reads an arbitrary word `g^n`, possibly a frame cell, so its temporaries must hold
-what the final memory holds there, and that memory holds the temporaries' own cells. The words
-fixed independently of the temporaries (`W`: the frame cells other than temporaries' and the
-equations of every atom but range checks) are consistent; a temporary's cell `c` reads its
-range check's address `a`. `resolveF` extends `W` to a function of the address with
+A range check or a touch (`assert_gpow`) reads an arbitrary word `g^n`, possibly a frame cell, so
+its temporaries must hold what the final memory holds there, and that memory holds the
+temporaries' own cells. The words fixed independently of the temporaries (`W`: the frame cells
+other than temporaries' and the equations of every atom without temporaries) are consistent; a
+temporary's cell `c` reads its atom's address `a`. `resolveF` extends `W` to a function of the
+address with
 `F c = F a` for every temporary: the value at the end of the chain `c ↦ a ↦ …` through
 temporaries' cells, `0` on a cycle (`resolveF_spec`). Choosing each temporary as `F` at its cell
 (`Tree.retemp`), every frame write and every equation of the re-chosen tree agrees with `F`.
@@ -199,9 +201,7 @@ variable (P fs ν) in
 /-- The local conditions of `Tree.ReadsAs` at a node. -/
 def ReadsAt (rd rd0 : Reader) (fp : ℕ) (f : String) (σ : Val) (es : List Ev) : Prop :=
   (∀ a, Ev.atom a ∈ es → atomTmps a = [] → ∀ q ∈ atomEqns σ a, rd q.1 = rd0 q.1) ∧
-    ∀ x y t1 t2 k, Ev.atom (.rangeCheck x y t1 t2 k) ∈ es →
-      rd ((σ x).limb 0 * addressOfIndex 0) = some (ν fp f σ t1) ∧
-        rd ((σ y).limb 0 * addressOfIndex 0) = some (ν fp f σ t2)
+    ∀ a, Ev.atom a ∈ es → ∀ r ∈ tmpReads σ a, rd r.2 = some (ν fp f σ r.1)
 
 mutual
 /-- **`Tree.ReadsAs` from its instances**: the local conditions at every node instance. -/
@@ -374,7 +374,7 @@ def TmpOff (P : Core.Program) (cert : String → V → ℕ) (t : Tree) (o : ℕ)
 
 theorem temps_of_rcRead {f : String} {σ : Val} {t : V} {A : K} (h : RcRead P f σ t A) :
     t ∈ P.temps f := by
-  obtain ⟨x, y, t1, t2, k, he, hA⟩ := h
+  obtain ⟨a, he, hA⟩ := h
   unfold Tree.events at he
   simp only [Tree.name, Tree.val] at he
   cases hf : P.find? f with
@@ -387,10 +387,7 @@ theorem temps_of_rcRead {f : String} {σ : Val} {t : V} {A : K} (h : RcRead P f 
       | stuck => rw [hw] at he; exact (List.not_mem_nil he).elim
       | ret es vs =>
           rw [hw] at he
-          have := mem_temps_of_event hf hw he
-          rcases hA with ⟨rfl, -⟩ | ⟨rfl, -⟩
-          · exact this.1
-          · exact this.2
+          exact mem_temps_of_event hf hw he hA
 
 theorem atomEqns_congr {σ σ' : Val} : ∀ (a : Atom), atomTmps a = [] →
     (∀ v ∈ atomUses a, σ' v = σ v) → atomEqns σ' a = atomEqns σ a
@@ -402,6 +399,7 @@ theorem atomEqns_congr {σ σ' : Val} : ∀ (a : Atom), atomTmps a = [] →
       simp only [List.getElem_mapIdx]
       rw [h _ (List.mem_cons_of_mem _ (List.getElem_mem (by simpa using h1)))]
   | .rangeCheck .., ht, _ => by simp [atomTmps] at ht
+  | .touch .., ht, _ => by simp [atomTmps] at ht
   | .const .., _, _ => rfl
   | .add .., _, _ => rfl
   | .mul .., _, _ => rfl
@@ -543,7 +541,7 @@ theorem DischargeHyps.classify {q : Write}
           data_insts (H := H) T 0 hdr i hd
         · exact Or.inl ⟨K, hK, i, hb, hi⟩
         · obtain ⟨e, he, hre⟩ := List.mem_filterMap.mp hqr
-          rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨pK, _ | ⟨r, rs⟩⟩ | _⟩ | _ | _ | _ <;>
+          rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨pK, _ | ⟨r, rs⟩⟩ | _ | _⟩ | _ | _ | _ <;>
             simp only [Ev.run?, reduceCtorEq, Option.some.injEq] at hre
           subst hre
           simp only at h1 h2
@@ -577,6 +575,7 @@ theorem DischargeHyps.classify {q : Write}
                 simp only [addressOfIndex, pow_add, mul_assoc]]
             exact this
   | rangeCheck _ _ _ _ _ => simp [atomTmps] at hta
+  | touch _ _ => simp [atomTmps] at hta
   | const _ _ => exact (List.not_mem_nil hq).elim
   | add _ _ _ => exact (List.not_mem_nil hq).elim
   | mul _ _ _ => exact (List.not_mem_nil hq).elim
@@ -792,44 +791,21 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
       have hqT := eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ a hIev q (by rw [hIt]; exact hqa)
       exact ⟨hF1 _ _ (Or.inr ⟨I, hI, ⟨f, σ, bufs, kids, hIt⟩, a, hIev, hta, by rw [hIt]; exact hqa⟩),
         h.addr q hqT⟩
-    · rcases a with _ | _ | _ | _ | _ | _ | _ | ⟨x, y, t1, t2, k⟩ | _ | _ | _ | _ <;>
-        simp only [atomTmps, not_true_eq_false] at hta
-      obtain ⟨ht1, ht2⟩ := mem_temps_of_event hf hw he
-      have hx : retempVal P ν I.fp f σ x = σ x := hag _ he x (by simp [Ev.uses, atomUses])
-      have hy : retempVal P ν I.fp f σ y = σ y := hag _ he y (by simp [Ev.uses, atomUses])
-      have hrc : ∀ {t : V} {z : V}, (t = t1 ∧ z = x) ∨ (t = t2 ∧ z = y) →
-          F (tempCell cert (I, t, (σ z).limb 0 * addressOfIndex 0)) = F ((σ z).limb 0 *
-              addressOfIndex 0) := by
-        intro t z htz
-        refine hF2 (I, t, (σ z).limb 0 * addressOfIndex 0) ⟨hI, f, σ, bufs, kids, hIt, x, y, t1, t2, k, ?_, ?_⟩
-        · rw [events_eq_node (bufs := []) (ks := []) (bufs' := bufs) (ks' := kids), ← hIt, hev]
-          exact he
-        · rcases htz with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-          · exact Or.inl ⟨rfl, rfl⟩
-          · exact Or.inr ⟨rfl, rfl⟩
+    · obtain ⟨r, hr, rfl⟩ := eqn_tmpReads hta hqa
+      rw [tmpReads_congr a fun v hv => hag _ he v hv] at hr
+      have htr := mem_temps_of_event hf hw he hr
       have hname : I.t.name = f := by rw [hIt]; rfl
-      have hT : ∀ {t z : V}, (t = t1 ∧ z = x) ∨ (t = t2 ∧ z = y) →
-          ((σ z).limb 0 * addressOfIndex 0, σ t) ∈ T.eqns P := by
-        intro t z htz
-        refine eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ _ hIev _ ?_
-        rw [hIt]
-        rcases htz with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-        · exact List.mem_cons_self
-        · exact List.mem_cons_of_mem _ List.mem_cons_self
-      simp only [atomEqns, List.mem_cons, List.not_mem_nil, or_false] at hqa
-      rcases hqa with rfl | rfl
-      · simp only
-        rw [hx, hrv ht1]
-        obtain ⟨i, hi⟩ := h.addr _ (hT (Or.inl ⟨rfl, rfl⟩))
-        refine ⟨?_, i, hi⟩
-        rw [← hrc (Or.inl ⟨rfl, rfl⟩)]
-        simp only [tempCell, hname]
-      · simp only
-        rw [hy, hrv ht2]
-        obtain ⟨i, hi⟩ := h.addr _ (hT (Or.inr ⟨rfl, rfl⟩))
-        refine ⟨?_, i, hi⟩
-        rw [← hrc (Or.inr ⟨rfl, rfl⟩)]
-        simp only [tempCell, hname]
+      have hT : (r.2, σ r.1) ∈ T.eqns P :=
+        eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ _ hIev _ (by rw [hIt]; exact tmpReads_eqn hr)
+      have hrc : F (tempCell cert (I, r.1, r.2)) = F r.2 := by
+        refine hF2 (I, r.1, r.2) ⟨hI, f, σ, bufs, kids, hIt, a, ?_, hr⟩
+        rw [events_eq_node (bufs := []) (ks := []) (bufs' := bufs) (ks' := kids), ← hIt, hev]
+        exact he
+      obtain ⟨i, hi⟩ := h.addr _ hT
+      refine ⟨?_, i, hi⟩
+      show F r.2 = retempVal P ν I.fp f σ r.1
+      rw [hrv htr, ← hrc]
+      simp only [tempCell, hname]
   have hall : ∀ q ∈ frameWrites C (honestInsts P fs H hdr (T.retemp P fs ν 0)) ++
       (T.retemp P fs ν 0).eqns P, F q.1 = q.2 := by
     intro q hq
@@ -859,18 +835,17 @@ theorem honestAt_retemp : ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν 0) cer
       eqns_of_insts _ 0 hdr I' hI' ⟨_, _, _, _, hI't⟩ _ (by rw [hev']; exact ha) _
         (by rw [hI't]; exact hq)
     rw [hev]
-    refine ⟨fun a ha hta q hq => ?_, fun x y t1 t2 k he => ?_⟩
+    refine ⟨fun a ha hta q hq => ?_, fun a ha r hr => ?_⟩
     · have hqT := eqns_of_insts T 0 hdr I hI ⟨f, σ, bufs, kids, hIt⟩ a (by rw [hev]; exact ha) q
         (by rw [hIt]; exact hq)
       rw [hread q (hmem' ha (by rw [atomEqns_congr a hta fun v hv => hag _ ha v hv]; exact hq)),
         h.valid.eqns_read h.lt_64 T q hqT (h.addr q hqT)]
-    · obtain ⟨ht1, ht2⟩ := mem_temps_of_event hf hw he
-      have hx : retempVal P ν I.fp f σ x = σ x := hag _ he x (by simp [Ev.uses, atomUses])
-      have hy : retempVal P ν I.fp f σ y = σ y := hag _ he y (by simp [Ev.uses, atomUses])
-      have e1 := hread _ (hmem' he List.mem_cons_self)
-      have e2 := hread _ (hmem' he (List.mem_cons_of_mem _ List.mem_cons_self))
-      simp only [hx, hy, hrv ht1, hrv ht2] at e1 e2
-      exact ⟨e1, e2⟩
+    · have htr := mem_temps_of_event hf hw ha hr
+      have hr' : r ∈ tmpReads (retempVal P ν I.fp f σ) a := by
+        rw [tmpReads_congr a fun v hv => hag _ ha v hv]; exact hr
+      have e1 := hread _ (hmem' ha (tmpReads_eqn hr'))
+      simp only [hrv htr] at e1
+      exact e1
   exact ⟨⟨retemp_valid hF T 0 h.valid hRA, by rw [htot]; exact h.size, h.cells' ν, haddr',
     fun a ha b hb => hcons a (List.mem_append_right _ ha) b (List.mem_append_right _ hb),
     fun a ha b hb => hcons a (List.mem_append_left _ ha) b (List.mem_append_right _ hb)⟩,

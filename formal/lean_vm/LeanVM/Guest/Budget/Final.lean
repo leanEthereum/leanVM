@@ -110,8 +110,28 @@ def mainBudget (fs : String → ℕ) (SB SK : String → ℕ) (Bvf : ℕ → ℕ
     (jt : Opcode → ℕ) : Budget :=
   ⟨B1.Main.mainWords fs SB SK Bvf, fun op => mainInstrs (H op) (c5 op) (s5 op) (v5 op) (jt op)⟩
 
+/-- The declared claims of each scheme are held by the raw signatures and the children's claims
+(`DeployedLimits`), so are fewer than the coverage slots, below `2^20`. -/
+theorem claims_lt {s : NodeStatement} {w : NodeWitness} (hl : DeployedLimits s w) :
+    s.claims.xmss.length < 2 ^ 20 ∧ s.claims.sphincs.length < 2 ^ 20 := by
+  have hx := hl.claimsHeldWithMultiplicity.1.length_le
+  have hs := hl.claimsHeldWithMultiplicity.2.length_le
+  have hc := hl.coverageSlotsBelow2Pow20
+  have hx' := List.sum_le_sum (l := w.children)
+    (f := fun ch ↦ ch.statement.claims.xmss.length)
+    (g := fun ch ↦ ch.statement.claims.xmss.length + ch.statement.claims.sphincs.length)
+    fun _ _ ↦ Nat.le_add_right _ _
+  have hs' := List.sum_le_sum (l := w.children)
+    (f := fun ch ↦ ch.statement.claims.sphincs.length)
+    (g := fun ch ↦ ch.statement.claims.xmss.length + ch.statement.claims.sphincs.length)
+    fun _ _ ↦ Nat.le_add_left _ _
+  simp only [List.length_append, List.length_map, List.length_flatten, List.map_map,
+    Function.comp_def] at hx hs
+  unfold coverageSlots at hc
+  omega
+
 /-- **`main`'s claim lists' instructions** on their honest trees: `clA + clS · n` on `n` claims. -/
-theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ} (hn : n ≤ 65535) (rd : Reader) (t : Tree)
+theorem clHonest_weight {ω fs : String → ℕ} (H : MainCounts ω fs) {n : ℕ} (hn : n < 2 ^ 20) (rd : Reader) (t : Tree)
     (args rets : List E) (hnm : t.name = "claim_list_digest") (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) (hT : B1.Main.clHonest n t) : t.weight ω ≤ H.clA + H.clS * n :=
   H.cl rd t args rets n hnm hv hb hT (by omega)
@@ -157,11 +177,11 @@ theorem mainComplete_budget (fs : String → ℕ) (cert : String → V → ℕ) 
     (fun op s w => (H op).dvA + (H op).dvR * (work s w).rawDaRows +
       (H op).dvP * (work s w).rawDaPad)
     (fun op s w => l5Lin (c5 op) (s5 op) (v5 op) (work s w))
-    (fun seed s _ _ hl op rd t args rets hn hv hb hT =>
-      clHonest_weight (H op) (n := s.claims.xmss.length) (hData_bounds (seed := seed) hl fs 0).lx rd t args rets
+    (fun _ s _ _ hl op rd t args rets hn hv hb hT =>
+      clHonest_weight (H op) (n := s.claims.xmss.length) (claims_lt hl).1 rd t args rets
         hn hv hb hT)
-    (fun seed s _ _ hl op rd t args rets hn hv hb hT =>
-      clHonest_weight (H op) (n := s.claims.sphincs.length) (hData_bounds (seed := seed) hl fs 0).ls rd t args
+    (fun _ s _ _ hl op rd t args rets hn hv hb hT =>
+      clHonest_weight (H op) (n := s.claims.sphincs.length) (claims_lt hl).2 rd t args
         rets hn hv hb hT)
     (fun _ _ _ hr _ hnd op rd t args rets hn hv hb hT =>
       dvNH_weight (H op) hr hnd rd t args rets hn hv hb hT) h5

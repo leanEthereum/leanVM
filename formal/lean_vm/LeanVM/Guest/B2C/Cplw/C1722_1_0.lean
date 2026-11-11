@@ -16,47 +16,39 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop635`, window 1, part 0. -/
+/-- `__loop636`, window 1, part 0. -/
 theorem cw1722_1_0 : cplWin 1722 1 0 = true := by decide +kernel
 
-/-- `__loop635`, window 2, part 0. -/
+/-- `__loop636`, window 2, part 0. -/
 theorem cw1722_2_0 : cplWin 1722 2 0 = true := by decide +kernel
 
-/-- `__loop635`, window 3, part 0. -/
-theorem cw1722_3_0 : cplWin 1722 3 0 = true := by decide +kernel
-
-/-- `__loop636`, window 0, part 0. -/
+/-- `residual_batch__L22`, window 0, part 0. -/
 theorem cw1723_0_0 : cplWin 1723 0 0 = true := by decide +kernel
 
-/-- `__loop636`, window 1, part 0. -/
-theorem cw1723_1_0 : cplWin 1723 1 0 = true := by decide +kernel
-
-/-- `__loop636`, window 2, part 0. -/
-theorem cw1723_2_0 : cplWin 1723 2 0 = true := by decide +kernel
-
-/-- `residual_batch__L15`, window 0, part 0. -/
+/-- `decode_query_windows__L27_L3`, window 0, part 0. -/
 theorem cw1724_0_0 : cplWin 1724 0 0 = true := by decide +kernel
 
-/-- `residual_batch__L11`, window 0, part 0. -/
+/-- `walk_path__L24_L2`, window 0, part 0. -/
 theorem cw1725_0_0 : cplWin 1725 0 0 = true := by decide +kernel
+
+/-- `walk_path__L24_L2`, window 1, part 0. -/
+theorem cw1725_1_0 : cplWin 1725 1 0 = true := by decide +kernel
+
+/-- `walk_path__L24_L2`, window 2, part 0. -/
+theorem cw1725_2_0 : cplWin 1725 2 0 = true := by decide +kernel
+
+/-- `walk_path__L24_L2`, window 3, part 0. -/
+theorem cw1725_3_0 : cplWin 1725 3 0 = true := by decide +kernel
 
 theorem ok1723 : CplOk 1723 := by
   intro i hi k hk
-  have hc : (certOf 1723).cuts.length = 2 := by decide +kernel
+  have hc : (certOf 1723).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1723 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1723_0_0
-  · have hn : nParts 1723 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1723_1_0
-  · have hn : nParts 1723 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1723_2_0
 
 theorem ok1724 : CplOk 1724 := by
   intro i hi k hk
@@ -67,16 +59,6 @@ theorem ok1724 : CplOk 1724 := by
     rw [hn] at hk
     interval_cases k
     · exact cw1724_0_0
-
-theorem ok1725 : CplOk 1725 := by
-  intro i hi k hk
-  have hc : (certOf 1725).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 1725 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1725_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

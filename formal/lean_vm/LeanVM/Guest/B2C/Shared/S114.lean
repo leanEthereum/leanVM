@@ -42,11 +42,11 @@ theorem ok309 : ShareOk 309 := ⟨st309, fun i hi ↦ by
   exact w309_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `log2_ceil_in_the_exponent__L15_L34`, once. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, once. -/
 theorem st310 : shareStatic 310 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `log2_ceil_in_the_exponent__L15_L34`, window 0. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, window 0. -/
 theorem w310_0 : shareWin 310 (snapsOf 310) 0 = true := by decide +kernel
 
 theorem ok310 : ShareOk 310 := ⟨st310, fun i hi ↦ by

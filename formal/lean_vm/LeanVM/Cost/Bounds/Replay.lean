@@ -239,11 +239,11 @@ theorem shape_cost (hP : Includes P shapeC.costDeps) (μ R : ℕ) (hμ : μ ≤ 
   omega
 
 open LeanVM.Parameters.Whir in
-theorem queryTable_rows : ∀ r ∈ queryTable, r.length = 18 ∧ ∀ q ∈ r, q.length ≤ 7 := by
+theorem queryTable_rows : ∀ r ∈ queryTable, r.length = 17 ∧ ∀ q ∈ r, q.length ≤ 7 := by
   decide +kernel
 
 open LeanVM.Parameters.Whir in
-theorem foldGrindingTable_rows : ∀ r ∈ foldGrindingTable, r.length = 18 ∧ ∀ q ∈ r, q.length ≤ 7 := by
+theorem foldGrindingTable_rows : ∀ r ∈ foldGrindingTable, r.length = 17 ∧ ∀ q ∈ r, q.length ≤ 7 := by
   decide +kernel
 
 theorem getD_mem_or {β : Type} (l : List β) (i : ℕ) (d : β) : l.getD i d ∈ l ∨ l.getD i d = d := by
@@ -269,7 +269,7 @@ theorem table_entry_length {t : List (List (List ℕ))} {n m : ℕ}
   · rw [h]; simp
 
 open LeanVM.Parameters.Whir in
-theorem queryTable_row_length (i : ℕ) : (queryTable.getD i []).length ≤ 18 :=
+theorem queryTable_row_length (i : ℕ) : (queryTable.getD i []).length ≤ 17 :=
   table_row_length queryTable_rows i
 
 open LeanVM.Parameters.Whir in
@@ -309,25 +309,25 @@ theorem ladder_cost (hP : Includes P ladderC.costDeps) (μ R : ℕ) (hμ : μ < 
     (hR : R < 2 ^ 64) : machineCost P ladderC.costIdx [encodeValue μ, encodeValue R] ≤ 6000 := by
   rw [ladderC.costEq P hP]
   simp only [minLogStack, maxLogStack, Admissible,
-    limbs_of_lt hμ, limbs_of_lt hR, limbs_of_lt (by norm_num : (15 : ℕ) < 2 ^ 64),
+    limbs_of_lt hμ, limbs_of_lt hR, limbs_of_lt (by norm_num : (16 : ℕ) < 2 ^ 64),
     limbs_of_lt (by norm_num : (32 : ℕ) < 2 ^ 64), max_self]
-  by_cases hadm : 15 ≤ μ ∧ μ ≤ 32 ∧ 1 ≤ R ∧ R ≤ 4
+  by_cases hadm : 16 ≤ μ ∧ μ ≤ 32 ∧ 1 ≤ R ∧ R ≤ 4
   · obtain ⟨h1, h2, h3, h4⟩ := hadm
     have hs := shape_cost P (by includes) μ R (by omega) (by omega)
     rw [queryTableC.costEq P (by includes),
       Auto.LeanVM.Parameters.Whir.foldGrindingTable.c352.costEq P (by includes)]
     have hg1 := getD_cost P (by includes) queryTable (R - 1) [] (by omega)
-    have hg2 := getD_cost P (by includes) (queryTable.getD (R - 1) []) (μ - 15) [] (by omega)
+    have hg2 := getD_cost P (by includes) (queryTable.getD (R - 1) []) (μ - 16) [] (by omega)
     have hg3 := getD_cost P (by includes) foldGrindingTable (R - 1) [] (by omega)
-    have hg4 := getD_cost P (by includes) (foldGrindingTable.getD (R - 1) []) (μ - 15) [] (by omega)
+    have hg4 := getD_cost P (by includes) (foldGrindingTable.getD (R - 1) []) (μ - 16) [] (by omega)
     have hsl : (ladderShape μ R).length ≤ 7 := by
       have key : ∀ μ < 33, ∀ R < 5, (ladderShape μ R).length ≤ 7 := by decide
       exact key μ (by omega) R (by omega)
     have hl1 := length_cost P (by includes) (ladderShape μ R) (by omega)
-    have hqq := queryTable_queries_length (R - 1) (μ - 15)
-    have hgg := table_entry_length foldGrindingTable_rows (R - 1) (μ - 15)
-    have hl2 := length_cost P (by includes) ((queryTable.getD (R - 1) []).getD (μ - 15) []) (by omega)
-    have hl3 := length_cost P (by includes) ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) [])
+    have hqq := queryTable_queries_length (R - 1) (μ - 16)
+    have hgg := table_entry_length foldGrindingTable_rows (R - 1) (μ - 16)
+    have hl2 := length_cost P (by includes) ((queryTable.getD (R - 1) []).getD (μ - 16) []) (by omega)
+    have hl3 := length_cost P (by includes) ((foldGrindingTable.getD (R - 1) []).getD (μ - 16) [])
       (by omega)
     have hqt : queryTable.length = 4 := by decide +kernel
     have hgt : foldGrindingTable.length = 4 := by decide +kernel
@@ -336,23 +336,23 @@ theorem ladder_cost (hP : Includes P ladderC.costDeps) (μ R : ℕ) (hμ : μ < 
     rw [hqt] at hg1
     rw [hgt] at hg3
     rw [limbs_of_lt (by omega : (ladderShape μ R).length < 2 ^ 64),
-      limbs_of_lt (by omega : ((queryTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64),
-      limbs_of_lt (by omega : ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) []).length < 2 ^ 64)]
+      limbs_of_lt (by omega : ((queryTable.getD (R - 1) []).getD (μ - 16) []).length < 2 ^ 64),
+      limbs_of_lt (by omega : ((foldGrindingTable.getD (R - 1) []).getD (μ - 16) []).length < 2 ^ 64)]
     have hz := zipWith3_cost P (by includes) (fun (g : ℕ × ℕ) (q b : ℕ) ↦ (⟨g.1, g.2, q, b⟩ : Level))
       (.closure ladderC.lam0.costIdx [])
       (fun g q b ↦ RunsApp.of_spec (ladderC.lam0.costSpec P (by includes) g q b)) 12
       (fun g q b ↦ by
         rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, ladderC.lam0.costEq P (by includes)]
         omega)
-      (ladderShape μ R) ((queryTable.getD (R - 1) []).getD (μ - 15) [])
-      ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) [])
+      (ladderShape μ R) ((queryTable.getD (R - 1) []).getD (μ - 16) [])
+      ((foldGrindingTable.getD (R - 1) []).getD (μ - 16) [])
     simp only [h1, h2, h3, h4, and_self, ↓reduceIte, max_self]
     generalize machineCost P Auto.List.zipWith3.c353.costIdx
         [MachineValue.closure ladderC.lam0.costIdx [], encodeValue (ladderShape μ R),
-          encodeValue ((queryTable.getD (R - 1) []).getD (μ - 15) []),
-          encodeValue ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) [])] = Z at hz ⊢
-    by_cases hc : (ladderShape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 15) []).length ∧
-        (ladderShape μ R).length = ((foldGrindingTable.getD (R - 1) []).getD (μ - 15) []).length
+          encodeValue ((queryTable.getD (R - 1) []).getD (μ - 16) []),
+          encodeValue ((foldGrindingTable.getD (R - 1) []).getD (μ - 16) [])] = Z at hz ⊢
+    by_cases hc : (ladderShape μ R).length = ((queryTable.getD (R - 1) []).getD (μ - 16) []).length ∧
+        (ladderShape μ R).length = ((foldGrindingTable.getD (R - 1) []).getD (μ - 16) []).length
     · have hC := hc.1 ▸ hc.2
       simp only [hc.1, hC, and_self, ↓reduceIte]
       omega
@@ -909,7 +909,7 @@ theorem buildLayoutLite_cost (hP : Includes P buildLayoutLiteC.costDeps) (byteco
       limbs_of_lt (by omega : val - 4 < 2 ^ 64), limbs_of_lt (by omega : tableRows.length < 2 ^ 64),
       limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64), max_self]
     have h6 : limbCount 6 = 1 := limbs_of_lt (by norm_num)
-    by_cases hc : 4 ≤ val ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
+    by_cases hc : 4 ≤ val ∧ 1 ≤ logMemory ∧ logMemory ≤ 32 ∧
         (tableRows.all fun x ↦ decide (x ≤ 2 ^ 32)) = true ∧ val - 4 ≤ 32 ∧ tableRows.length = 6
     · obtain ⟨c1, c2, c3, c4, c5, c6⟩ := hc
       have hr32 : ∀ r ∈ tableRows, r ≤ 2 ^ 32 := fun r hr' ↦ by
@@ -973,7 +973,7 @@ theorem buildLayoutLite_cost (hP : Includes P buildLayoutLiteC.costDeps) (byteco
       have hgk' := hhD opKeccak
       simp only [List.length_cons, List.length_nil] at hmap
       rw [hhl.antisymm (by simp [tableLogFloors_eq]; omega)] at hgk
-      rw [ite_eq_left (show 4 ≤ val ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
+      rw [ite_eq_left (show 4 ≤ val ∧ 1 ≤ logMemory ∧ logMemory ≤ 32 ∧
         (tableRows.all fun x ↦ decide (x ≤ 2 ^ 32)) = true ∧ val - 4 ≤ 32 ∧ tableRows.length = 6
         from ⟨c1, c2, c3, c4, c5, c6⟩)]
       simp only [c1, c2, c3, c4, c5, ↓reduceIte, keccakDepth, keccakSegments,

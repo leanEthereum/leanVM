@@ -141,7 +141,7 @@ and it is valid. -/
 theorem extract_of_candidate {layout : Layout} {R : ℕ} {st : VerifierProgramState} {root : Digest}
     {height width : ℕ} (haf : afterRoot bytecode π = some ((layout, R), st))
     (hroot : st.roots.head? = some (root, height, width)) (hinj : AnswersInj answers)
-    (hc : KeysCover answers keys) {μ : ℕ} (e : layout.stackLog = μ) (hμ : 15 ≤ μ ∧ μ ≤ 32)
+    (hc : KeysCover answers keys) {μ : ℕ} (e : layout.stackLog = μ) (hμ : 16 ≤ μ ∧ μ ≤ 32)
     (hR : 1 ≤ R ∧ R ≤ 4) {q : Vector K (2 ^ μ)}
     (hq : q ∈ Candidates μ R (johnsonThreshold μ R) (committedWord answers root height width))
     {t : Execution prog} (ht : candidateExecution prog input layout q = some t) :

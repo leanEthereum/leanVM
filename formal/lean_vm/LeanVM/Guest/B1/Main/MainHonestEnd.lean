@@ -62,7 +62,7 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecod
 it (B1-d's `verify_sub` completeness, per honest child). -/
 def VerifySubGoals (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) : Prop :=
-  ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
+  ∀ c (hc : c < w.children.length), CompleteAtD fs cert 20 "verify_sub" (hLmain fs fp seed s w)
     [(digestHalves (statementDigest seed w.children[c].statement)).1,
       (digestHalves (statementDigest seed w.children[c].statement)).2,
       (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,

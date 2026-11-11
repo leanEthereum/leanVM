@@ -48,15 +48,13 @@ public import LeanVM.Cost.Decoder.GuestTablesCheck.C40
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C41
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C42
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C43
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C44
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C45
 
 /-!
 # The guest decoder's tables, checked
 
 The literal tables of `GuestTables.lean` are the guest's: for every function `j < nFns`, its entry pc,
 its numbers of arguments and of return words (`(glob.sig j).entry`, `nargs`, `nret`), and its
-certificate's frame cells (`(certOf j).locs`), from the checks of `46` chunks of functions
+certificate's frame cells (`(certOf j).locs`), from the checks of `44` chunks of functions
 (`GuestTablesCheck/C*.lean`, each evaluation in a module of its own, under the memory a module
 may take).
 -/
@@ -245,16 +243,8 @@ theorem guestSig_eq : ∀ j < nFns,
   · have := guestSig_eq_42 (j - 1680) (by omega)
     rw [show 1680 + (j - 1680) = j by omega] at this
     exact this
-  by_cases h43 : j < 1760
-  · have := guestSig_eq_43 (j - 1720) (by omega)
-    rw [show 1720 + (j - 1720) = j by omega] at this
-    exact this
-  by_cases h44 : j < 1800
-  · have := guestSig_eq_44 (j - 1760) (by omega)
-    rw [show 1760 + (j - 1760) = j by omega] at this
-    exact this
-  have := guestSig_eq_45 (j - 1800) (by omega)
-  rw [show 1800 + (j - 1800) = j by omega] at this
+  have := guestSig_eq_43 (j - 1720) (by omega)
+  rw [show 1720 + (j - 1720) = j by omega] at this
   exact this
 
 theorem guestEntries_eq : ∀ j < nFns, guestEntries.getD j 0 = (glob.sig j).entry :=
@@ -443,16 +433,8 @@ theorem guestLocsList_eq : ∀ j < nFns, guestLocsList.getD j [] = (certOf j).lo
   · have := guestLocsList_eq_42 (j - 1680) (by omega)
     rw [show 1680 + (j - 1680) = j by omega] at this
     exact this
-  by_cases h43 : j < 1760
-  · have := guestLocsList_eq_43 (j - 1720) (by omega)
-    rw [show 1720 + (j - 1720) = j by omega] at this
-    exact this
-  by_cases h44 : j < 1800
-  · have := guestLocsList_eq_44 (j - 1760) (by omega)
-    rw [show 1760 + (j - 1760) = j by omega] at this
-    exact this
-  have := guestLocsList_eq_45 (j - 1800) (by omega)
-  rw [show 1800 + (j - 1800) = j by omega] at this
+  have := guestLocsList_eq_43 (j - 1720) (by omega)
+  rw [show 1720 + (j - 1720) = j by omega] at this
   exact this
 
 set_option maxRecDepth 100000 in

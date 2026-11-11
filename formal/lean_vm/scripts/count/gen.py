@@ -41,7 +41,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OPS = [('xor', 'X', 0), ('mulNative', 'M', 1), ('setConstant', 'S', 2), ('deref', 'D', 3),
        ('jump', 'J', 4), ('keccak', 'K', 5)]
 XMSS = '__loop2'  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4469-4474)
-MAIN_FRAME = 444 + 14911  # B2C.mainFrame
 # `main`'s statically bounded callees: the exponent tables, the statement's digest, and its four
 # loops (the two duplicate-claim regions, the raw leanXMSS and leanSPHINCS signatures).
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
@@ -53,20 +52,18 @@ ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # `claim_list_digest` and `da_verify`, whose trees' shapes count them (`vscount.MV_*`): the `V`
 # count families (`Memory/GuestCntV*`), apart from `main`'s static callees' so that neither
 # family's change rebuilds the other's dependents.
-VROOTS = (['open_stacked__L%d' % c for c in range(14)] +
-          ['g_power_of_word', 'assert_canonical', 'log2_ceil_in_the_exponent__L0_L34',
-           'log2_ceil_in_the_exponent__L15_L34', 'certify_placement', 'ring_switch_target',
-           'list_split'] + vscount.CC_LP + ['child_claim_list_last__L%d' % k for k in range(17)] +
-          ['child_claim_list_mono_last__L%d' % k for k in range(17)] +
-          vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + vscount.CL_LP)
+def VROOTS(g):
+    return (g.os_names() + ['g_power_of_word', 'assert_canonical', 'certify_placement', 'ring_switch_target',
+                            'list_split'] + g.family('log2_ceil_in_the_exponent__L') + vscount.CC_LP +
+            vscount.CCL + vscount.CCM + vscount.MV_ST + vscount.MV_LP + vscount.MV_DL + vscount.MV_CL + vscount.CL_LP)
 # `verify_tables`' and `check_opening_terminal`'s statically bounded callees, `verify_tables`' rounds
 # loop, `shared_selector_tables`' callees and the terminal's `__loop14`: the `W` count families
 # (`Memory/GuestCntW*`), which bound those two callees of `verify_sub` by their trees' shapes.
-WROOTS = (['block_selector__L%d' % k for k in range(34)] + ['block_selector_tab__L%d' % k for k in range(34)] +
-          ['eq_prefix_run__L%d' % k for k in range(41)] + ['index_mle__L%d' % k for k in range(34)] +
-          ['padding_weight__L%d' % k for k in range(29)] + ['plus_one_run__L%d' % k for k in range(34)] +
-          ['sel_partial_nibble__L%d' % k for k in range(4)] + ['column_selector__L%d' % k for k in range(29)] +
-          ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables'])
+def WROOTS(g):
+    return ([n for p in ['block_selector__L', 'block_selector_tab__L', 'eq_prefix_run__L', 'index_mle__L',
+                         'padding_weight__L', 'plus_one_run__L', 'sel_partial_nibble__L', 'column_selector__L']
+             for n in g.family(p)] +
+            ['eq_prefix_chain', 'sumcheck_round4', '__loop9', '__loop8', '__loop14', 'selector_tables'])
 # `verify_sub`'s callees with no static bound, and the terminal's `__loop14` and
 # `ring_switch_weight` (`verify_tables` and the terminal are bounded by their trees' shapes, the `W`
 # families), within ratios of their words (`Count/RatioV*`).
@@ -79,7 +76,6 @@ MAIN_CALLEES = ['exponent_tables', 'claim_list_digest', '__loop0', '__loop1', '_
 class G:
     def __init__(self, lv, cache):
         self.lv = lv
-        self.main_frame = MAIN_FRAME
         self.D = os.path.join(lv, 'LeanVM', 'Guest', 'Data')
         self.LD = os.path.join(lv, 'LeanVM', 'Guest', 'Memory')
         self.fns = core.load(self.D, cache)
@@ -98,6 +94,34 @@ class G:
         m = re.search(r'def xmssArmC \(op : Opcode\) : ℕ := \[([\d, ]*)\]', lean)
         assert m and [int(x) for x in m.group(1).split(',')] == self.C, \
             'B2C.xmssArmC is not %s: update B2C/ArmBound.lean' % self.C
+        # `main`'s frame: its cells, then the jump table `__jump_tables` writes (one `SET` per slot).
+        bc = open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode.lean'), encoding='utf-8').read()
+        self.jt_sets = int(re.search(r'⟨"__jump_tables", 0, (\d+),', bc).group(1))
+        self.jt_base = self.fsz[1]
+        first = re.search(r'def f0c0 : List OffsetInstruction := \[\s*\.set (\d+) ',
+                          open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode00.lean'), encoding='utf-8').read())
+        assert first and int(first.group(1)) == self.jt_base, 'the jump table does not start at main\'s frame size'
+        self.main_frame = self.jt_base + self.jt_sets
+        defs = open(os.path.join(lv, 'LeanVM', 'Guest', 'B2C', 'Defs.lean'), encoding='utf-8').read()
+        assert 'def mainFrame : ℕ := %d + %d\n' % (self.jt_base, self.jt_sets) in defs, \
+            'B2C.mainFrame is not %d + %d: update B2C/Defs.lean' % (self.jt_base, self.jt_sets)
+        assert 'if op = .setConstant then %d else 0' % self.jt_sets in defs, \
+            'B2C.jtSets is not %d: update B2C/Defs.lean' % self.jt_sets
+
+    def family(self, prefix):
+        """The specializations `prefix{k}...` of a function, by name."""
+        return sorted(n for n in self.by if n.startswith(prefix))
+
+    def min_open_log(self):
+        """The smallest stack log the guest opens: the arms run to `MAX_STACKED_LOG = 32`."""
+        return 33 - len(self.os_names())
+
+    def os_names(self):
+        """The opening arms `open_stacked__L{m}`, `m` from `0`."""
+        ns = [n for n in self.by if re.fullmatch(r'open_stacked__L\d+', n)]
+        out = ['open_stacked__L%d' % m for m in range(len(ns))]
+        assert sorted(out) == sorted(ns), ns
+        return out
 
     def arm_max(self, k):
         """`B2C.costMaxW` of `__loop2`'s body at opcode `k`."""
@@ -120,7 +144,7 @@ class G:
 
     def fs_words(self):
         """`B2C.fs` by name."""
-        return {f['name']: (MAIN_FRAME if i == 0 else max(2, self.fsz[i + 1]))
+        return {f['name']: (self.main_frame if i == 0 else max(2, self.fsz[i + 1]))
                 for i, f in self.fns.items()}
 
     def closure(self, roots):
@@ -182,7 +206,7 @@ def cmd_cnt(g, V=''):
     """The count families of `main`'s static callees (`V = ''`: `GuestCnt*`, `kw*`, `kc*`), of
     `verify_sub`'s (`V = 'V'`: `GuestCntV*`, `kv*`, `kcv*`) or of `verify_tables`' and the
     terminal's (`V = 'W'`: `GuestCntW*`, `ku*`, `kcu*`)."""
-    S, fams = g.cnt_certs({'': None, 'V': VROOTS, 'W': WROOTS}[V])
+    S, fams = g.cnt_certs({'': None, 'V': VROOTS(g), 'W': WROOTS(g)}[V])
     w = {'': 'kw', 'V': 'kv', 'W': 'ku'}[V]
     kc = {'': 'kc', 'V': 'kcv', 'W': 'kcu'}[V]
     rk = (lambda t: re.sub(r'\bkc(?=[A-Z_])', kc, t)) if V else (lambda t: t)
@@ -302,12 +326,15 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     cmd_words_by_name(g, wcert)
 
 
-# Functions the words tables index by name (`Count/Words.lean`, `wIdxN`): open_stacked's named
-# callees (`B1.osKindTable`) and the static callees of main's non-static ones.
-WORDS_PREFIXES = ('opening_fold', 'assert_canonical', 'grind_check__L', 'opening_row_weights__L',
+# Functions the words tables index by name (`Count/Words.lean`, `wIdxN`): open_stacked's callees
+# (`B1.osCalleeNames`), the static callees of main's non-static ones, and those `Count/VsWords.lean`
+# names.
+WORDS_PREFIXES = ('opening_fold', 'level_positions__L', 'level_queries__L', 'level_residual__L',
+                  'assert_canonical', 'grind_check__L', 'opening_row_weights__L',
                   'opening_ood_point__L', 'opening_final_message__L', 'verify_merkle_cap__L',
                   'fold_final_msg__L', 'claim_list_last__L', 'da_levels__L', 'list_split',
-                  'batch_sumcheck__L', 'statement_digest', 'exponent_tables')
+                  'batch_sumcheck__L', 'statement_digest', 'exponent_tables', 'gkr_rounds__L',
+                  'sel_partial_nibble__L', 'g_power_of_word', 'eq_prefix_chain', 'selector_tables')
 
 
 def cmd_words_by_name(g, wcert):

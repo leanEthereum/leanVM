@@ -16,45 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `batch_sumcheck__L23`, window 0. -/
-theorem w411_0 : shareWin 411 (snapsOf 411) 0 = true := by decide +kernel
+/-- `da_factors__L14_L7_L0`, window 1. -/
+theorem w398_1 : shareWin 398 (snapsOf 398) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `batch_sumcheck__L23`, window 1. -/
-theorem w411_1 : shareWin 411 (snapsOf 411) 1 = true := by decide +kernel
+/-- `da_expand__L14_L7`, once. -/
+theorem st399 : shareStatic 399 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop35`, once. -/
-theorem st412 : shareStatic 412 = true := by decide +kernel
+/-- `da_expand__L14_L7`, window 0. -/
+theorem w399_0 : shareWin 399 (snapsOf 399) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop35`, window 0. -/
-theorem w412_0 : shareWin 412 (snapsOf 412) 0 = true := by decide +kernel
-
-theorem ok412 : ShareOk 412 := ⟨st412, fun i hi ↦ by
-  have h : (snapsOf 412).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w412_0⟩
+/-- `da_expand__L14_L7`, window 1. -/
+theorem w399_1 : shareWin 399 (snapsOf 399) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, once. -/
-theorem st413 : shareStatic 413 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, once. -/
+theorem st400 : shareStatic 400 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 0. -/
-theorem w413_0 : shareWin 413 (snapsOf 413) 0 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, window 0. -/
+theorem w400_0 : shareWin 400 (snapsOf 400) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 1. -/
-theorem w413_1 : shareWin 413 (snapsOf 413) 1 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, window 1. -/
+theorem w400_1 : shareWin 400 (snapsOf 400) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 2. -/
-theorem w413_2 : shareWin 413 (snapsOf 413) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `rs_eq_rows__L8`, window 3. -/
-theorem w413_3 : shareWin 413 (snapsOf 413) 3 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, window 2. -/
+theorem w400_2 : shareWin 400 (snapsOf 400) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

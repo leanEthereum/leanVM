@@ -146,7 +146,7 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
             Guest.Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input
               proof)).run' []}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-    ∀ (s : NodeStatement) (t : Execution Guest.guestProgram) (ρ : ℕ), 2 ^ 21 < t.committedSize →
+    ∀ (s : NodeStatement) (t : Execution Guest.guestProgram) (ρ : ℕ),
       s.deferredClaim.HasBytecodeShape (bytecodeWords Guest.guestProgram) →
       let input := PublicInput.ofDigest (statementDigest (deployedSeed Guest.guestProgram) s)
       ∀ proof, Guest.Budget.honestProofWithDeployedKeccakWithHash A Guest.guestProgram input t ρ
@@ -156,8 +156,8 @@ theorem guestChildComplete_of_spec (A : HonestProverWithHash) (hA : SpecOnValid 
       ∃ fresh, fresh.Holds (bytecodeWords Guest.guestProgram) ∧
         LeanVM.Guest.AcceptableChild (bytecodeWords Guest.guestProgram)
           (deployedSeed Guest.guestProgram) ⟨s, fresh, proof⟩ := by
-  refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ h21 hsh _ hsome hacc ↦
-    childOk_of_verifierRZ_of (hA' _ _ _ _ _) h21 hsh hsome hacc⟩
+  refine ⟨fun prog input t ρ hv hbudget hρ ↦ ?_, fun s t ρ hsh _ hsome hacc ↦
+    childOk_of_verifierRZ_of (hA' _ _ _ _ _) hsh hsome hacc⟩
   obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 25) hv hbudget hρ
   refine le_of_eq_of_le ((noProof_evalDistEq LeanVM.keccakCallsOverRandomPermutation _ _ _
     (verifierRefusingZeroWithHash_empty _ _ prog input) []).prEvent_eq (· = false)) ?_

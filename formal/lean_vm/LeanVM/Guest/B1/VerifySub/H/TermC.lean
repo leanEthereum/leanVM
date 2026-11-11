@@ -103,14 +103,14 @@ theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
       readsAt_getD' mE (by simpa [expTableWords, length_etWordsN] using ho)
   -- `kappa_base`
   have hcount : S.hs.map Hints.count = S.hs.map (gen ^ ·) :=
-    List.map_congr_left fun x hx ↦ count_eq_gen (by have := S.hh29 hbl x hx; omega)
+    List.map_congr_left fun x hx ↦ count_eq_gen (by have := S.hh33 hbl x hx; omega)
   -- `certify_placement`'s buffers
   have hcpOut : Tables.cpOut S.logMem S.hs
       [gen ^ Tables.stackTotal (columnKappas S.logMem Tables.guestLogBytecode S.hs),
         ofK (addressOfIndex e295)] (Tables.cpOwn S.logMem S.hs e10 e11 e138 e139 e295) :=
     ⟨e10, e11, e138, e139, e295, rfl, rfl⟩
   have hP := Tables.cp_out_ctx hcpOut hcpo
-  have hK28 := committed_le28 hbl S.stack28
+  have hK32 := committed_le32 hbl S.stack32
   -- the bus point
   have hbus : S.bus = S.H.busH := (Tables.vt_spec hok).2.1
   have hbp : S.bus.point = S.point := by rw [hbus]; rfl
@@ -119,14 +119,14 @@ theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
   rw [S.hlayout] at hwl' ⊢
   simp only [TermPre, termArgs, vsTermB]
   refine ⟨termCtx_of_tctx hct, hP, fun c hc ↦ ?_, layoutOf_placements hbl _ _,
-    layoutOf_stackLog hbl _ _, S.stack28, by show 1 ≤ S.logMem; have := S.h16; omega,
-    S.h32, by rw [hbp, hpl]; omega, S.hs_length, S.hh29 hbl, rfl, rfl, ?_, gTabs_of_exp hexp, trivial,
+    layoutOf_stackLog hbl _ _, S.stack32, S.hlm1,
+    S.h32, by rw [hbp, hpl]; omega, S.hs_length, S.hh33 hbl, rfl, rfl, ?_, gTabs_of_exp hexp, trivial,
     trivial, by rw [hopl, Tables.qkeccakSlotBits_eq]; rfl, mOp,
     by rw [hkpl, Tables.qkeccakSlotBits_eq]; rfl, mKp, by simp [ringCoefficients, kBits],
     mT, hwl', ?_, ?_⟩
-  · have := hK28 c hc
+  · have := hK32 c hc
     show (Tables.committedKappas (columnKappas S.logMem Tables.guestLogBytecode
-      (Tables.tableHeightsOf S.rowsN))).getD c 0 < 29
+      (Tables.tableHeightsOf S.rowsN))).getD c 0 < 33
     omega
   · show Tables.TbReadsAt rd _ (1 :: gen ^ S.logMem :: S.hs.map (gen ^ ·))
     rw [← hcount]; exact mK
@@ -190,7 +190,7 @@ theorem term_via {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have hbp : S.bus.point = S.point := by rw [hbus]; rfl
   have hτ := S.τ_bounds hbl
   obtain ⟨-, hopl, hkpl, -, -⟩ := S.runK' hbl
-  have hμs : S.μs ≤ 28 := S.hmu28
+  have hμs : S.μs ≤ 32 := S.hmu32
   refine hQ _ (vsTermB bs sqE e295 pb pb1) (fun rd _ hm ↦ ?_) (fun i hi ↦ ?_)
   · obtain ⟨h12, hT⟩ := Main.memL_append.mp hm
     obtain ⟨hC, hO⟩ := Main.memL_append.mp h12
@@ -230,7 +230,7 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 /-- The batch's round count is at most `40`. -/
 theorem H_n_le40 (hbl : bytecode.length = 2 ^ 23) : S.H.n ≤ 40 := by
   obtain ⟨t, ht, e⟩ := Tables.VtHonest.vtH_n_ex (H := S.H) S.hrowsL
-  have := S.hh29 hbl (Tables.vtHt S.rowsN t) (by
+  have := S.hh33 hbl (Tables.vtHt S.rowsN t) (by
     show Tables.vtHt S.rowsN t ∈ Tables.tableHeightsOf S.rowsN
     rw [Tables.vt_tableHeights_eq S.hrowsL]
     exact List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩)
@@ -251,7 +251,7 @@ end ChildSegs
 /-- **The terminal is complete on an honest child**, entered on what `certify_placement` and
 `open_stacked` return (`hwl`: the opening's terminal point has `μ` coordinates, `H/WhirLen`). -/
 theorem term_complete {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (bs : List ℕ) (sqE : ℕ)
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 14 ≤ κ) (bs : List ℕ) (sqE : ℕ)
     (hwl : S.w.point.length = S.μs) (pv : List (List E × Main.Layout))
     (ht : ((S.kids bs sqE).getD 12 noKid pv).taken = true) :
     CompleteAtD fs cert κ ((S.kids bs sqE).getD 12 noKid pv).f

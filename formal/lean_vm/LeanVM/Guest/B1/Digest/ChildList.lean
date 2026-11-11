@@ -248,7 +248,7 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
 
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (345 + k) := by
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (344 + k) := by
   decide +kernel
 
 /-- **`child_claim_list_last__L{k}`**: from a state at its first argument after whole blocks
@@ -263,7 +263,7 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
   have hf := find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ccl_all k hk
-  set f := coreProgram.getD (345 + k) default
+  set f := coreProgram.getD (344 + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -294,15 +294,15 @@ theorem childLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {a
 
 -- `__loop17`: 136 claims a frame, 64 blocks.
 set_option maxRecDepth 100000 in
-theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 343 default))).nb = 64 := by
+theorem any136_nb : (anySpec 136 22 1924 (loopAtoms (coreProgram.getD 342 default))).nb = 64 := by
   decide +kernel
 
 -- its head here, its sixteen windows in `ChildListAny{q}`.
 set_option maxRecDepth 100000 in
-theorem any136_head : anyHead (coreProgram.getD 343 default) "__loop17" 136 22 21 1924 = true := by
+theorem any136_head : anyHead (coreProgram.getD 342 default) "__loop17" 136 22 21 1924 = true := by
   decide +kernel
 
-theorem any136_ok : anyOk (coreProgram.getD 343 default) "__loop17" 136 22 15 21 1924 = true := by
+theorem any136_ok : anyOk (coreProgram.getD 342 default) "__loop17" 136 22 15 21 1924 = true := by
   have hw : ∀ i < 16, anyWin i = true := by
     intro i hi
     interval_cases i
@@ -313,19 +313,19 @@ theorem any136_ok : anyOk (coreProgram.getD 343 default) "__loop17" 136 22 15 21
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem any136_idx : coreProgram.indexOf? "__loop17" = some 343 := by decide +kernel
+theorem any136_idx : coreProgram.indexOf? "__loop17" = some 342 := by decide +kernel
 
 
 -- `__loop18`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem any17_ok : anyOk (coreProgram.getD 344 default) "__loop18" 17 19 12 18 255 = true := by
+theorem any17_ok : anyOk (coreProgram.getD 343 default) "__loop18" 17 19 12 18 255 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_idx : coreProgram.indexOf? "__loop18" = some 344 := by decide +kernel
+theorem any17_idx : coreProgram.indexOf? "__loop18" = some 343 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 344 default))).nb = 8 := by
+theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 343 default))).nb = 8 := by
   decide +kernel
 
 /-- **One frame of `m` child claims, `nb` blocks**: from the state at `chain · x^13` after whole
@@ -339,7 +339,7 @@ def ChildGroupStep (rd : Reader) (m nb : ℕ) (chain entries region base limit x
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1803)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1752)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
@@ -435,7 +435,7 @@ theorem childGroups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of `m` child claims**, called as
 `callIf (1 + N) f [1, N, chain, entries, region, base, last]` with `N = g^a`, `a < 2^34`. -/
 theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1803)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1752)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries region base last : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
@@ -495,7 +495,7 @@ theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : Li
     (h : coreProgram.Rel rd "child_claim_list_any" args rets) :
     ∃ entries region base limit bigs groups rest,
       args = [entries, region, base, limit, bigs, groups, rest] ∧
-      ∀ a b c, a < 2 ^ 16 → b < 8 → c < 17 → bigs = gen ^ a → groups = gen ^ b → rest = gen ^ c →
+      ∀ a b c, a < 2 ^ 32 → b < 8 → c < 17 → bigs = gen ^ a → groups = gen ^ b → rest = gen ^ c →
         ∃ (os : List ℕ) (cells : List E),
           ClaimsAt rd region limit entries base (136 * a + 17 * b + c) os cells ∧
           AllCanonical cells ∧ rets = digestCells (keccak256 (cellsBytes cells)) := by

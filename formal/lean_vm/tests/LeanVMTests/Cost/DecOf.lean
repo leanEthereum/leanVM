@@ -9,8 +9,8 @@ reference decoder (`decodeStacksDistinct`, Lee–O'Sullivan and Mulders–Storjo
 directly) on a toy word: `μ = 7`, `R = 1` (`2^7` stack entries, `64` lanes of `4` columns,
 agreement `3`, multiplicity `1`, list size `2`), each lane a line with at most one corrupted
 symbol (the same column), so every lane decodes and the pruning runs over all `64` lanes. The admissible shapes
-(`μ ≥ 15`) are out of reach of a test: at `(15, 1)` a lane already interpolates at multiplicity
-`169` on `1024` points.
+(`μ ≥ 16`) are out of reach of a test: at `(16, 1)` a lane already interpolates at multiplicity
+`59` on `2048` points.
 -/
 
 namespace LeanVMTests.Cost.DecOf

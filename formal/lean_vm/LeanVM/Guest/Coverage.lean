@@ -23,7 +23,7 @@ slot if free, else the next duplicate slot (`takeSlot`, `coveragePlan`); the tab
 
 What `DeployedLimits` gives here: each declared claim's count at most its count among the claims
 made (`DeployedLimits.xmssClaimsHeldWithMultiplicity`, `sphincsClaimsHeldWithMultiplicity`, of
-the sub-multiset), and every child's lists below `2^16` (`childClaimListsBelow2Pow16`).
+the sub-multiset), and every child's lists below `2^20` (`childClaimListsBelow2Pow20`).
 -/
 
 @[expose] public section
@@ -112,15 +112,14 @@ theorem sphincsClaimsHeldWithMultiplicity (limits : DeployedLimits statement wit
   have h := limits.claimsHeldWithMultiplicity.2.count_le x
   simpa [List.count_append, List.count_flatten, Function.comp_def] using h
 
-/-- Every child's signature lists below `2^16` (G:4302-4303): each at most the coverage table's
-size. -/
-theorem childClaimListsBelow2Pow16 (limits : DeployedLimits statement witness) :
+/-- Every child's signature lists below `2^20`: each at most the coverage table's size. -/
+theorem childClaimListsBelow2Pow20 (limits : DeployedLimits statement witness) :
     ∀ child ∈ witness.children,
-      child.statement.claims.xmss.length < 2 ^ 16 ∧ child.statement.claims.sphincs.length < 2 ^ 16 := by
+      child.statement.claims.xmss.length < 2 ^ 20 ∧ child.statement.claims.sphincs.length < 2 ^ 20 := by
   intro child hchild
   have h1 := List.le_sum_of_mem (List.mem_map_of_mem (f := fun child : Child ↦
     child.statement.claims.xmss.length + child.statement.claims.sphincs.length) hchild)
-  have h2 := limits.coverageSlotsBelow2Pow16
+  have h2 := limits.coverageSlotsBelow2Pow20
   unfold coverageSlots at h2
   omega
 

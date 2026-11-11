@@ -161,7 +161,6 @@ theorem chkIdx_%d : chkIdx %d = true := by
   have hb : blockB (lookJ %d) ALPHA %s Data.core%d.params Data.core%d.name ([], []) Data.core%d.body = %s := by
     rw [← List.drop_zero (l := Data.core%d.body)]
 %s
-    rfl
   exact chkIdx_of_split (fn := Data.core%d) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 '''
 
@@ -171,7 +170,6 @@ theorem chkIdx_%d : chkIdx %d = true := by
   have hb : blockB (lookJ %d) ALPHA [] Data.core%d.params Data.core%d.name ([], []) Data.core%d.body = %s := by
     rw [← List.drop_zero (l := Data.core%d.body)]
 %s
-    rfl
   exact chkIdx_of_split (fn := Data.core%d) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 '''
 
@@ -367,6 +365,8 @@ def write_lean(LD, fns, cert, omega, B=2500, M=6000, FMAX=30, alpha=False, fam='
                          % (a, n, a + n, j, a, j, a, j, a, n, j, a))
         la = rs[-1][0]
         steps.append('    rw [← blockR_eq (Data.core%d.body.drop %d), split_%d_%d]' % (j, la, j, la))
+        # the last rewrite closes the goal when it is the only one; `rfl` closes it after several
+        if len(rs) > 1: steps.append('    rfl')
         sp += SPLITALL % (j, j, j, kslit(j), j, j, j, lit(acc), j, '\n'.join(steps), j)
     wopen(LD + '/' + fam + '/All.lean', 'w').write(ALL % (imports, sp, N, '\n'.join(
         ['  by_cases h%d : j = %d\n  · subst h%d; exact chkIdx_%d' % (i + 1000, j, i + 1000, j) for i, j in enumerate(split)] +

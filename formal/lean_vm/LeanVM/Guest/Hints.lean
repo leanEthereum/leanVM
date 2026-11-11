@@ -325,13 +325,21 @@ def stepChildren (step : ℕ × Digest × Digest) : Entry :=
   if step.1 % 2 = 0 then digestCells step.2.1 ++ digestCells step.2.2
   else digestCells step.2.2 ++ digestCells step.2.1
 
+/-- The bits of a query position the guest reads per window (`QUERY_WINDOW_BITS`). -/
+def queryWindowBits : ℕ := 6
+
+/-- A level's cap depth (`merkle_cap_depth`): whole windows below the root, the last ending from
+`log2 count - 5` to five levels below that, and at least two levels deep. -/
+def capDepthOf (count depth : ℕ) : ℕ :=
+  let near := min (max (log2Ceil count - (queryWindowBits - 1)) 2) depth
+  depth - (depth - near) / queryWindowBits * queryWindowBits
+
 /-- One level's Merkle hints, from its commitment's height, its query count and its phase of
 openings: per opening its leaf's words and the ordered children below the cap, climbing from its
-leaf index (`merkle_leaf_rows`, `merkle_children`), and the level's cap nodes and their parents'
-activity flags (`aggregation/child.rs:178-222`). -/
-def levelHints (depth count : ℕ) (phase : List Opening) :
-    List (String × Entry) × Entry × Entry :=
-  let capDepth := min (log2Ceil count) depth
+leaf index (`merkle_leaf_rows`, `merkle_children`), then the level's cap nodes and their parents'
+activity flags (`merkle_caps`, `merkle_cap_active`). -/
+def levelHints (depth count : ℕ) (phase : List Opening) : List (String × Entry) :=
+  let capDepth := capDepthOf count depth
   let pathDepth := depth - capDepth
   let climbs := phase.map fun o ↦
     (o, climbSteps (2 ^ depth + o.leafIndex) (merkleLeafDigest o.leaf) o.path)
@@ -345,16 +353,13 @@ def levelHints (depth count : ℕ) (phase : List Opening) :
   let nodes := climbs.foldl (fun (a : Array Digest) (_, _, root) ↦ a.set! 1 root) nodes
   let active := capSteps.foldl (fun (a : Array E) step ↦ a.set! (step.1 / 2) 1)
     (Array.replicate (2 ^ capDepth) 0)
-  (pushes, nodes.toList.flatMap digestCells, active.toList)
+  pushes ++ [("merkle_caps", nodes.toList.flatMap digestCells), ("merkle_cap_active", active.toList)]
 
 /-- Every level's Merkle hints, each level with its phase of the proof's openings (the levels
-zipped with `proof.merkle`); the caps and the flags of all levels each make one entry. -/
-def merkleHints : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry) × Entry × Entry
-  | (depth, positions) :: rest, phase :: phases =>
-    let (pushes, caps, active) := levelHints depth positions.length phase
-    let (pushes', caps', active') := merkleHints rest phases
-    (pushes ++ pushes', caps ++ caps', active ++ active')
-  | _, _ => ([], [], [])
+zipped with `proof.merkle`). -/
+def merkleHints : List (ℕ × List ℕ) → List (List Opening) → List (String × Entry)
+  | (depth, positions) :: rest, phase :: phases => levelHints depth positions.length phase ++ merkleHints rest phases
+  | _, _ => []
 
 /-- A side's blocks in the order the stacked leaf cube lays them out, by offset. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=
@@ -419,10 +424,9 @@ def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String ×
   match announcedLayoutAndRate bytecode c.proof.stream with
   | none => []
   | some (layout, _) =>
-    let (queries, caps, active) := merkleHints (childQueries bytecode seed c) c.proof.openings
+    let queries := merkleHints (childQueries bytecode seed c) c.proof.openings
     [("stream", c.proof.stream ++ List.replicate (childStreamCap - c.proof.stream.length) 0),
       ("bytecode_val", [c.freshClaim.bytecodeValue]),
-      ("merkle_caps", caps), ("merkle_cap_active", active),
       ("zc_tau_max", [count (layout.tableLogHeights.foldl max 0)]),
       ("table_logs", layout.tableLogHeights.map count),
       ("col_group_order", colGroupOrder layout), ("block_group_order", blockGroupOrder layout)] ++

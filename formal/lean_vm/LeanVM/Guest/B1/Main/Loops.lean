@@ -23,7 +23,8 @@ Each helper's body (`loopPre`) is checked by evaluation (`l3Ok`, `l4Ok`, `l5Ok`)
 * `__loop3` (G:4592-4596): a raw leanSPHINCS signature `j`: a slot `s` below the leanSPHINCS
   region, `sp_cover[g^s] = n_raw_x · g^j` (`sp_cover = cover · lx_slots`),
   `verify_sig_lean_sphincs(ls_table · g^(4s), byte_bits)`;
-* `__loop4` (G:4616-4640): child `c`, its DA digest hinted at `da_digests · c^2`.
+* `__loop4` (G:4616-4640): child `c`, its two counts addresses of the memory (`assert_gpow`), its
+  DA digest hinted at `da_digests · c^2`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -152,6 +153,16 @@ theorem pairHash_sound {rd : Reader} {σ : Val} {atoms : List Atom} {a b c d p :
 
 def isLoad (atoms : List Atom) (x p : V) (o : ℕ) : Bool := atoms.any (isLoadAt x p o)
 
+/-- `x` is a touch cell loaded through `p` (`assert_gpow`). -/
+def isTouch (atoms : List Atom) (x p : V) : Bool := atoms.any fun a => decide (a = .touch x p)
+
+theorem touch_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x p : V}
+    (h : isTouch atoms x p = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) : LoadHolds rd (σ p) 0 (σ x) := by
+  obtain ⟨a, ha, he⟩ := List.any_eq_true.mp h
+  rw [decide_eq_true_eq] at he
+  subst he
+  exact hat _ ha
+
 def l5Ok (fn : Fn) : Bool :=
   let P := loopPre fn
   let A := atomsIn P
@@ -159,27 +170,27 @@ def l5Ok (fn : Fn) : Bool :=
   decide (fn.params.length = 16) &&
   isMul A (.n 16) (.n 2) (.n 0) &&
   isLoad A (.n 17) (.n 16) 0 &&
-  rcConstOk A (.n 18) 9272771591053052074 &&
-  rcConstOk A (.n 19) 9272771591053052074 &&
-  isMul A (.n 28) (.n 18) (.n 19) &&
-  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 29, .n 30] &&
-  isMul A (.n 31) (.n 17) (.n 18) &&
-  hasCall P "child_claim_list_digest" [.n 6, .n 7, .n 31, .n 8, .n 19] [.n 32, .n 33] &&
-  monoIs A (.n 39) (.n 9) (.n 0) 24 &&
-  monoIs A (.n 41) (.n 10) (.n 0) 2 &&
-  isLoad A (.n 42) (.n 41) 0 &&
-  isLoad A (.n 43) (.n 41) 1 &&
-  hasCall P "statement_digest" [.n 11, .n 12, .n 29, .n 30, .n 32, .n 33, .n 42, .n 43, .n 39]
-    [.n 44, .n 45] &&
-  monoIs A (.n 47) (.n 13) (.n 0) 2 &&
-  isLoad A (.n 44) (.n 47) 0 &&
-  monoIs A (.n 48) (.n 13) (.n 0) 2 &&
-  isLoad A (.n 45) (.n 48) 1 &&
-  monoIs A (.n 54) (.n 15) (.n 0) 24 &&
-  hasCall P "verify_sub" [.n 44, .n 45, .n 11, .n 12, .n 14, .n 54] [] &&
-  isMul A (.n 55) (.n 17) (.n 28) &&
-  isMul A (.n 56) (.n 2) (.n 0) &&
-  isLoad A (.n 55) (.n 56) 1
+  isTouch A (.n 20) (.n 18) &&
+  isTouch A (.n 21) (.n 19) &&
+  isMul A (.n 22) (.n 18) (.n 19) &&
+  hasCall P "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24] &&
+  isMul A (.n 25) (.n 17) (.n 18) &&
+  hasCall P "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27] &&
+  monoIs A (.n 33) (.n 9) (.n 0) 24 &&
+  monoIs A (.n 35) (.n 10) (.n 0) 2 &&
+  isLoad A (.n 36) (.n 35) 0 &&
+  isLoad A (.n 37) (.n 35) 1 &&
+  hasCall P "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33]
+    [.n 38, .n 39] &&
+  monoIs A (.n 41) (.n 13) (.n 0) 2 &&
+  isLoad A (.n 38) (.n 41) 0 &&
+  monoIs A (.n 42) (.n 13) (.n 0) 2 &&
+  isLoad A (.n 39) (.n 42) 1 &&
+  monoIs A (.n 48) (.n 15) (.n 0) 24 &&
+  hasCall P "verify_sub" [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48] [] &&
+  isMul A (.n 49) (.n 17) (.n 22) &&
+  isMul A (.n 50) (.n 2) (.n 0) &&
+  isLoad A (.n 49) (.n 50) 1
 
 set_option maxRecDepth 100000 in
 theorem l5_ok : l5Ok (coreProgram.getD 38 default) = true := by decide +kernel

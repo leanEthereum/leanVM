@@ -125,25 +125,26 @@ theorem chain_foldsNz : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT
 structure LvOkAt (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop where
   b : LvB c lvl lv level lv.logCols
   fold : level.fold = lv.folds
+  grind : level.foldGrinding = lv.foldGrind
   f1 : 1 ≤ lv.folds
   ml : logN - (lv.foldsOff + lv.folds) = lv.logCols
 
 theorem levelsOk_at {c : OsCfg} : ∀ (lvl : ℕ) (lvs : List OsLv) (cfg : List Whir.Level),
     LevelsOk c logN lvl lvs cfg → lvs.length = cfg.length ∧
-      ∀ i < lvs.length, LvOkAt c logN (lvl + i) (lvs.getD i default) (cfg.getD i ⟨0, 0, 0⟩) ∧
+      ∀ i < lvs.length, LvOkAt c logN (lvl + i) (lvs.getD i default) (cfg.getD i ⟨0, 0, 0, 0⟩) ∧
         (i + 1 < lvs.length → lvl + i ≠ c.yrLevel ∧ (lvl + i + 1) * ligColsCap < u128Bound) ∧
         (i + 1 = lvs.length → lvl + i = c.yrLevel ∧ 2 ^ (lvs.getD i default).logCols = c.yrLen)
   | lvl, [lv], [level], h => by
-    obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := h
+    obtain ⟨hcfg, hfold, hgr, h4, hml, hlen, hfin⟩ := h
     refine ⟨rfl, fun i hi ↦ ?_⟩
     obtain rfl : i = 0 := by simpa using hi
-    exact ⟨⟨hcfg, hfold, h4, hml⟩, fun h ↦ absurd h (by simp), fun _ ↦ ⟨hfin, hlen⟩⟩
+    exact ⟨⟨hcfg, hfold, hgr, h4, hml⟩, fun h ↦ absurd h (by simp), fun _ ↦ ⟨hfin, hlen⟩⟩
   | lvl, lv :: lv' :: lvs, level :: next :: cfg, h => by
-    obtain ⟨hcfg, hfold, h4, hml, hm, hlvl, hnf, hoff', hshape, hrest⟩ := h
+    obtain ⟨hcfg, hfold, hgr, h4, hml, hm, hlvl, hnf, hoff', hshape, hrest⟩ := h
     obtain ⟨hl, hat⟩ := levelsOk_at (lvl + 1) (lv' :: lvs) (next :: cfg) hrest
     refine ⟨by simp only [List.length_cons] at hl ⊢; omega, fun i hi ↦ ?_⟩
     rcases i with _ | i
-    · exact ⟨⟨hcfg, hfold, h4, hml⟩, fun _ ↦ ⟨hnf, hlvl⟩, fun h ↦ absurd h (by simp)⟩
+    · exact ⟨⟨hcfg, hfold, hgr, h4, hml⟩, fun _ ↦ ⟨hnf, hlvl⟩, fun h ↦ absurd h (by simp)⟩
     · obtain ⟨a, b, d⟩ := hat i (by simpa using hi)
       simp only [List.getD_cons_succ, List.length_cons] at a b d ⊢
       rw [show lvl + (i + 1) = lvl + 1 + i by ring]
@@ -217,7 +218,7 @@ theorem trFit_of_run {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Cand
     have hml' : (tr.L i).ml = (lvAt c i).logCols := by
       simp only [SpLv.ml, SpLv.ws1, List.length_append, SpLv.chs_length, ha.logN, ha.level,
         hk.fold, hoff i hi, hk.ml]
-    refine ⟨by rw [ha.level, hk.fold], hk.f1, hml', ?_, ?_⟩
+    refine ⟨by rw [ha.level, hk.fold], by rw [ha.level, hk.grind], hk.f1, hml', ?_, ?_⟩
     · simp only [SpLv.nsq, SpLv.D, hml', ha.level, ← hk.b.depth, hk.b.queries, hk.b.squeezes]
     · rw [ha.fin, hlen]
       constructor

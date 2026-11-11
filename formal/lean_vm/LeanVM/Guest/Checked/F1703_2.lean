@@ -17,37 +17,33 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop628`, window 2. -/
+/-- `__loop626`, window 2. -/
 theorem w1703_2 : WinOk 1703 2 := winOk_of_C (by decide +kernel)
 
-/-- `residual_batch__L13`, window 0. -/
+/-- `__loop626`, window 3. -/
+theorem w1703_3 : WinOk 1703 3 := winOk_of_C (by decide +kernel)
+
+/-- `__loop627`, window 0. -/
 theorem w1704_0 : WinOk 1704 0 := winOk_of_C (by decide +kernel)
 
-/-- `residual_batch__L9`, window 0. -/
+/-- `__loop627`, window 1. -/
+theorem w1704_1 : WinOk 1704 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop627`, window 2. -/
+theorem w1704_2 : WinOk 1704 2 := winOk_of_C (by decide +kernel)
+
+/-- `residual_batch__L19`, window 0. -/
 theorem w1705_0 : WinOk 1705 0 := winOk_of_C (by decide +kernel)
 
-/-- `residual_batch__L5`, window 0. -/
+/-- `decode_query_windows__L24_L6`, window 0. -/
 theorem w1706_0 : WinOk 1706 0 := winOk_of_C (by decide +kernel)
 
-/-- `decode_query_windows__L18_L6`, window 0. -/
+/-- `walk_path__L18_L5`, window 0. -/
 theorem w1707_0 : WinOk 1707 0 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L12_L3`, window 0. -/
-theorem w1708_0 : WinOk 1708 0 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L12_L3`, window 1. -/
-theorem w1708_1 : WinOk 1708 1 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L12_L3`, window 2. -/
-theorem w1708_2 : WinOk 1708 2 := winOk_of_C (by decide +kernel)
-
-theorem ok1704 : CheckOk 1704 := checkOk_one (by decide +kernel) w1704_0
 
 theorem ok1705 : CheckOk 1705 := checkOk_one (by decide +kernel) w1705_0
 
 theorem ok1706 : CheckOk 1706 := checkOk_one (by decide +kernel) w1706_0
-
-theorem ok1707 : CheckOk 1707 := checkOk_one (by decide +kernel) w1707_0
 
 end
 end LeanVM.Guest.Checked

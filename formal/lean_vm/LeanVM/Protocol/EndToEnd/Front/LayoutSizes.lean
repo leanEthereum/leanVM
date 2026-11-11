@@ -177,9 +177,9 @@ theorem readSizes_ret {bytecode : List K} {l : List Ev} {a : Verifier.Layout × 
     | nil => exact h2 rfl
     | cons e l₂ => rw [hpure.after_cons] at h3; cases h3
 
-/-- A layout is built only for a memory of at least `2^16` cells. -/
+/-- A layout is built only for a memory of at least `2` cells. -/
 theorem logMem_of_buildLayout {bytecode : List K} {lm : ℕ} {tl : List ℕ} {layout : Verifier.Layout}
-    (h : buildLayout bytecode lm tl = some layout) : 16 ≤ lm := by
+    (h : buildLayout bytecode lm tl = some layout) : 1 ≤ lm := by
   unfold buildLayout at h
   split at h
   · cases h

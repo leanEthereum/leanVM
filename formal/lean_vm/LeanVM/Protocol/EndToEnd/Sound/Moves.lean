@@ -432,7 +432,7 @@ def GrindOK (b : ℕ) : Prop := b ≠ 0 ∧ b ≤ maxGrindingBits
 theorem queryGrindingBits_ok : GrindOK Whir.queryGrindingBits := ⟨by decide, by decide⟩
 
 /-- Every level of every ladder grinds at most `maxGrindingBits` before a fold challenge; decided
-over the `72` admissible pairs. -/
+over the `68` admissible pairs. -/
 theorem ladder_foldGrinding_le (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     ∀ level ∈ levels, level.foldGrinding ≤ maxGrindingBits := by

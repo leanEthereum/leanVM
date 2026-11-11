@@ -35,23 +35,23 @@ def l25Stores : List Atom :=
 
 /-- `__loop33`'s atoms but its stores. -/
 noncomputable def l25A : List Atom :=
-  (atomsIn (loopPre (coreProgram.getD 408 default))).filter fun a => decide (a ∉ l25Stores)
+  (atomsIn (loopPre (coreProgram.getD 407 default))).filter fun a => decide (a ∉ l25Stores)
 
 /-- `__loop33`'s chain, on its atoms but its stores. -/
 noncomputable def l25S : DupSpec := ⟨keccakBlocks l25A, packsOf l25A⟩
 
 theorem mem_l25A {a : Atom} :
-    a ∈ l25A ↔ a ∈ atomsIn (loopPre (coreProgram.getD 408 default)) ∧ a ∉ l25Stores := by
+    a ∈ l25A ↔ a ∈ atomsIn (loopPre (coreProgram.getD 407 default)) ∧ a ∉ l25Stores := by
   simp [l25A]
 
 set_option maxRecDepth 100000 in
-theorem l25_stores : storesOf 8 (coreProgram.getD 408 default).body = l25Stores := by
+theorem l25_stores : storesOf 8 (coreProgram.getD 407 default).body = l25Stores := by
   decide +kernel
 
 /-- **`__loop33`, evaluated**: its values defined in order, its atoms but its stores holding from
 its row's and child's loads and its packs. -/
 noncomputable def l25COk : Bool :=
-  let fn := coreProgram.getD 408 default
+  let fn := coreProgram.getD 407 default
   (chk 8 fn.body).isSome && (loopPre fn).all (fun s => match s with | .atom _ => true | _ => false) &&
   canonChk ((List.range 13).map (14 + ·) ++ (packsOf l25A).flatMap (fun p => [p.2 + 6, p.2 + 8])) l25A &&
   l25A.all (fun a => !needsSide a || isPackInK (packsOf l25A) a || isL25RowLoad a || isL25WordLoad a) &&
@@ -60,7 +60,7 @@ noncomputable def l25COk : Bool :=
 /-- **`__loop33`'s chain, on its atoms but its stores.** -/
 noncomputable def l25DOk : Bool :=
   let A := l25A
-  let P := (atomsIn (loopPre (coreProgram.getD 408 default))).filter pureB
+  let P := (atomsIn (loopPre (coreProgram.getD 407 default))).filter pureB
   (packsOf A).all (fun p => packIn A p.1 p.2) &&
   l25S.check A && decide (l25S.nb = 13) && rowInOk A (.n 13) (l25S.ins 0) &&
   (List.range 5).all (fun i => decide ((l25S.outs 12).getD (8 + i) default = .n (692 + i))) &&

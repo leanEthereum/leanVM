@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Whir.BrBody
 /-!
 # The callees reading the caller's buffers, honestly
 
-* `caps_get`, `flags_get`: level `i`'s cap cells and flags, read from `merkle_caps` and
-  `merkle_cap_active` at the level's offsets.
+* `capsL`, `flagsL`: level `i`'s honest cap cells and flags, the buffers `level_queries` hints;
+  `caps_get`, `flags_get` read them.
 * `cap_meaning_at`: `verify_merkle_cap`'s meaning on them, its returns the level's root's cells.
 * `rw_meaning_at`: `opening_row_weights`' meaning on the fold challenges and the level's row
   weights.
@@ -30,60 +30,35 @@ open LeanVM.Protocol.Verifier
 
 variable {c : OsCfg} {tr : OsTr}
 
-/-- **Level `i`'s cap cells** in `merkle_caps`. -/
-theorem caps_get (hs : OsSizes c) {rd : Reader} {caps : E} (hC : ReadsAt rd caps (capsC c tr))
-    {i : ℕ} (hi : i < c.levels.length) {k : ℕ} (hk : k < 2 ^ ((lvAt c i).capDepth + 2)) :
-    LoadHolds rd (caps * gen ^ (4 * (lvAt c i).capOff)) k
-      (capCell (tr.L i).height (SpLv.batch' (tr.L i)) k) := by
-  rw [loadHolds_mul_gen_pow]
-  have hend := off_end (off := fun i ↦ 4 * (lvAt c i).capOff)
-    (span := fun i ↦ 2 ^ ((lvAt c i).capDepth + 2)) hs.caps (c.levels.length - 1 - i) i (by omega)
-  have hown : ownerOf (fun i ↦ 4 * (lvAt c i).capOff) c.levels.length
-      (4 * (lvAt c i).capOff + k) = i := by
-    have := ownerOf_eq (off := fun i ↦ 4 * (lvAt c i).capOff)
-      (span := fun i ↦ 2 ^ ((lvAt c i).capDepth + 2)) hs.caps (i := i)
-      (k := 4 * (lvAt c i).capOff + k) (by omega) (by
-        show 4 * (lvAt c i).capOff + k < 4 * (lvAt c i).capOff + 2 ^ ((lvAt c i).capDepth + 2)
-        omega) (c.levels.length - 1 - i) (by omega)
-    rwa [show i + 1 + (c.levels.length - 1 - i) = c.levels.length by omega] at this
-  have := readsAt_map_range hC (k := 4 * (lvAt c i).capOff + k) (by
-    show 4 * (lvAt c i).capOff + k < 4 * c.capLen
-    have : 4 * (lvAt c i).capOff + 2 ^ ((lvAt c i).capDepth + 2) ≤ 4 * c.capLen := hend
-    omega)
-  simp only [hown, Nat.add_sub_cancel_left, hk, ↓reduceIte] at this
-  exact this
+/-- Level `i`'s honest cap cells, `level_queries`' hinted `merkle_caps`. -/
+noncomputable def capsL (c : OsCfg) (tr : OsTr) (i : ℕ) : List E :=
+  (List.range (4 * 2 ^ (lvAt c i).capDepth)).map (capCell (tr.L i).height (SpLv.batch' (tr.L i)))
 
-/-- **Level `i`'s cap flags** in `merkle_cap_active`. -/
-theorem flags_get (hs : OsSizes c) {rd : Reader} {flags : E} (hC : ReadsAt rd flags (flagsC c tr))
-    {i : ℕ} (hi : i < c.levels.length) {k : ℕ} (hk : k < 2 ^ (lvAt c i).capDepth) :
-    LoadHolds rd (flags * gen ^ (lvAt c i).capOff) k
-      (capFl (tr.L i).height (SpLv.batch' (tr.L i)) (lvAt c i).capDepth k) := by
-  rw [loadHolds_mul_gen_pow]
-  have hend := off_end (off := fun i ↦ (lvAt c i).capOff)
-    (span := fun i ↦ 2 ^ (lvAt c i).capDepth) hs.flags (c.levels.length - 1 - i) i (by omega)
-  have hown : ownerOf (fun i ↦ (lvAt c i).capOff) c.levels.length ((lvAt c i).capOff + k) = i := by
-    have := ownerOf_eq (off := fun i ↦ (lvAt c i).capOff)
-      (span := fun i ↦ 2 ^ (lvAt c i).capDepth) hs.flags (i := i)
-      (k := (lvAt c i).capOff + k) (by omega) (by
-        show (lvAt c i).capOff + k < (lvAt c i).capOff + 2 ^ (lvAt c i).capDepth
-        omega) (c.levels.length - 1 - i) (by omega)
-    rwa [show i + 1 + (c.levels.length - 1 - i) = c.levels.length by omega] at this
-  have := readsAt_map_range hC (k := (lvAt c i).capOff + k) (by
-    show (lvAt c i).capOff + k < c.capLen
-    have : (lvAt c i).capOff + 2 ^ (lvAt c i).capDepth ≤ c.capLen := hend
-    omega)
-  simp only [hown, Nat.add_sub_cancel_left, hk, ↓reduceIte] at this
-  exact this
+/-- Level `i`'s honest cap flags, `level_queries`' hinted `merkle_cap_active`. -/
+noncomputable def flagsL (c : OsCfg) (tr : OsTr) (i : ℕ) : List E :=
+  (List.range (2 ^ (lvAt c i).capDepth)).map
+    (capFl (tr.L i).height (SpLv.batch' (tr.L i)) (lvAt c i).capDepth)
+
+/-- **Level `i`'s cap cells.** -/
+theorem caps_get {rd : Reader} {caps : E} {i : ℕ} (hC : ReadsAt rd caps (capsL c tr i))
+    {k : ℕ} (hk : k < 2 ^ ((lvAt c i).capDepth + 2)) :
+    LoadHolds rd caps k (capCell (tr.L i).height (SpLv.batch' (tr.L i)) k) :=
+  readsAt_map_range hC (by rw [pow_add] at hk; omega)
+
+/-- **Level `i`'s cap flags.** -/
+theorem flags_get {rd : Reader} {flags : E} {i : ℕ} (hC : ReadsAt rd flags (flagsL c tr i))
+    {k : ℕ} (hk : k < 2 ^ (lvAt c i).capDepth) :
+    LoadHolds rd flags k (capFl (tr.L i).height (SpLv.batch' (tr.L i)) (lvAt c i).capDepth k) :=
+  readsAt_map_range hC hk
 
 /-- **`verify_merkle_cap`'s meaning on level `i`'s honest cap**, its returns the level's root's
 cells. -/
-theorem cap_meaning_at (h : TrFit c tr) (hs : OsSizes c) {μ r : ℕ} {target : E} {S : KeccakState}
+theorem cap_meaning_at (h : TrFit c tr) {μ r : ℕ} {target : E} {S : KeccakState}
     {xs : List E} {os : List (List Opening)} {root : Digest} (hrun : TrRun c μ r target S xs os root tr)
-    (hcaps : CapsAgree μ r target S xs os root) {rd : Reader} {caps flags : E}
-    (hC : ReadsAt rd caps (capsC c tr)) (hF : ReadsAt rd flags (flagsC c tr))
-    {i : ℕ} (hi : i < c.levels.length) (hcdd : (lvAt c i).capDepth ≤ (lvAt c i).depth) :
-    MeaningVerifyMerkleCap (lvAt c i).capDepth rd
-      [caps * gen ^ (4 * (lvAt c i).capOff), flags * gen ^ (lvAt c i).capOff]
+    (hcaps : CapsAgree μ r target S xs os root) {rd : Reader} {caps flags : E} {i : ℕ}
+    (hC : ReadsAt rd caps (capsL c tr i)) (hF : ReadsAt rd flags (flagsL c tr i))
+    (hi : i < c.levels.length) (hcdd : (lvAt c i).capDepth ≤ (lvAt c i).depth) :
+    MeaningVerifyMerkleCap (lvAt c i).capDepth rd [caps, flags]
       [(digestHalves (tr.L i).root).1, (digestHalves (tr.L i).root).2] := by
   have hil : i < tr.Ls.length := by rw [h.len]; exact hi
   obtain ⟨R, d, hOk⟩ := h.ok i hi
@@ -95,7 +70,7 @@ theorem cap_meaning_at (h : TrFit c tr) (hs : OsSizes c) {μ r : ℕ} {target : 
     rw [OsTr.L, List.getD_eq_getElem _ _ hil]; exact List.getElem_mem hil
   refine SpLv.cap_meaning (tr.L i) hOk hh (SpLv.batchAgrees (tr.L i) hcaps (hrun.qs _ hmem))
     (by rw [hb.queries]; have := hb.q2; omega) hb.cd (by rw [hh, hD]; exact hcdd)
-    (fun k _ hk ↦ caps_get hs hC hi hk) (fun k _ hk ↦ flags_get hs hF hi hk)
+    (fun k _ hk ↦ caps_get hC hk) (fun k _ hk ↦ flags_get hF hk)
 
 /-- **`opening_row_weights`' meaning on level `i`'s fold challenges and honest row weights.** -/
 theorem rw_meaning_at {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr)

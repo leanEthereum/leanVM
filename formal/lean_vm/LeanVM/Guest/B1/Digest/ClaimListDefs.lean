@@ -110,7 +110,7 @@ theorem grpOk_of_parts {fn : Fn} {f : String} {m c0 st0 ep w W v U : ℕ}
 /-! ## The big frame loop `__loop15` (136 claims, 64 blocks), in sixteen windows -/
 
 /-- `__loop15`'s atoms. -/
-noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD 324 default)
+noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD 323 default)
 
 /-- `__loop15`'s chain. -/
 noncomputable def bigSpec : ChainSpec := grpSpec 136 21 565 bigAtoms

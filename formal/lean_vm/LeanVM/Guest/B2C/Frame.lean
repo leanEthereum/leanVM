@@ -84,9 +84,9 @@ structure Apart (j : ℕ) : Prop where
   siteNodup : (siteCells (plumbOf j)).Nodup
   armNodup : ((plumbOf j).arms.map fun a ↦ a.2.1).Nodup
   env : ∀ p ∈ (certOf j).facts.env, (p.1, PC.fpg 0) ∈ (plumbOf j).stat
-  main : j = 1 → (∀ p ∈ (plumbOf j).tmps, p.2 < 444) ∧ (∀ p ∈ (plumbOf j).runs, p.2 < 444) ∧
-    (∀ q ∈ (plumbOf j).stat, q.1 < 444) ∧ (∀ c ∈ (certOf j).locs, c < 444) ∧
-    (∀ c ∈ siteCells (plumbOf j), c < 444) ∧ ∀ a ∈ (plumbOf j).arms, a.2.1 < 444
+  main : j = 1 → (∀ p ∈ (plumbOf j).tmps, p.2 < 429) ∧ (∀ p ∈ (plumbOf j).runs, p.2 < 429) ∧
+    (∀ q ∈ (plumbOf j).stat, q.1 < 429) ∧ (∀ c ∈ (certOf j).locs, c < 429) ∧
+    (∀ c ∈ siteCells (plumbOf j), c < 429) ∧ ∀ a ∈ (plumbOf j).arms, a.2.1 < 429
 
 theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
   unfold apartOk at h
@@ -130,7 +130,7 @@ theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
     simp only [show Nat.beq 1 1 = true from rfl, Bool.cond_true, Nat.blt_eq] at h7
     have hlt : ∀ c, (Nat.lor (Nat.lor (Nat.lor (Nat.lor (tmpCells (plumbOf 1)) (bitsOf ((plumbOf 1).runs.map Prod.snd)))
         (bitsOf ((plumbOf 1).stat.map Prod.fst))) (bitsOf (certOf 1).locs)) (bitsOf (siteCells (plumbOf 1)))).testBit c
-          = true ∨ (bitsOf ((plumbOf 1).arms.map fun a ↦ a.2.1)).testBit c = true → c < 444 := fun c hc ↦
+          = true ∨ (bitsOf ((plumbOf 1).arms.map fun a ↦ a.2.1)).testBit c = true → c < 429 := fun c hc ↦
       lt_of_testBit_lt h7 (by
         rcases hc with hc | hc
         · exact testBit_lor_l hc
@@ -379,7 +379,7 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
     exact absurd hxc.symm (hC.path σ es vs hw ch hch k tc hkt hσk v hv)
   · split_ifs at hx with h1
     · have hlt := (AP.main h1).2.2.2.1 _ (cellJ_mem h2)
-      have hge : 444 ≤ x.1 := by
+      have hge : 429 ≤ x.1 := by
         have : x.1 ∈ tableCells.map Prod.fst := List.mem_map_of_mem hx
         rw [tableCells_offsets, List.mem_range'] at this
         omega

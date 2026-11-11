@@ -8,16 +8,17 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Loops
+public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.Commit
 public import LeanVM.Guest.B1.Bits.QueryWindows
 
 /-!
-# The squeeze loop (G:1562-1574)
+# The squeeze loop (`level_positions`' loop)
 
 At `x = g^j`, the iteration loads the sponge's capacity from the squeeze run's row
 `sqz·x^5`, squeezes with nothing waiting, stores the next capacity in the next row, and decodes
 the challenge's positions and their windows into `query_positions`, `query_win_ptrs` at
-`g^po·x^(192/depth)` (`decode_query_windows`, reading the window table `tabs`). `SqIter` is that meaning; `sqLoop_sound`: from the
+`g^po·x^(192/depth)` (`decode_query_windows`, reading the window table `tabs`). `SqIter` is that meaning; `lpLoop_sound`: from the
 loop's relation, it holds at every iteration.
 -/
 
@@ -40,11 +41,10 @@ def SqIter (rd : Reader) (d cd po : ℕ) (sqz qpos qbp tabs x : E) : Prop :=
     MeaningDecodeQueryWindows d cd rd [challengeOf (⟨cap, []⟩ : Fs).perm,
       qpos * gen ^ po * x ^ (192 / d), qbp * gen ^ po * x ^ (192 / d), tabs] []
 
-/-- The squeeze loop's body before its tail. -/
-def sqLoopA (lv : OsLv) : List Stmt :=
-  let pw := osPowSteps 0 (osPowDigits (192 / lv.depth)) 0 40
-  let p1 := osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))
-  let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
+/-- The squeeze loop's body before its tail (`level_positions`' loop, `lpLoopBody`). -/
+def lpLoopA (d cd : ℕ) : List Stmt :=
+  let pw := osPowSteps 0 (osPowDigits (192 / d)) 0 40
+  let e := 40 + osPowLen (192 / d)
   [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 6)), .atom (.mul (.n 8) (.n 7) (.n 0)),
     .atom (.mul (.n 9) (.n 2) (.n 8))] ++
     ((List.range 5).map fun i ↦ .atom (.load (.n (10 + i)) (.n 9) i)) ++
@@ -53,67 +53,57 @@ def sqLoopA (lv : OsLv) : List Stmt :=
       .atom (.const (.n 19) (word 0 0 0))] ++
     osSqueeze0 15 [10, 11, 12, 13, 14] 20 ++
     ((List.range 5).map fun i ↦ .atom (.load (.n (28 + i)) (.n 9) (5 + i))) ++
-    pw.1 ++ p1.1 ++ [.atom (.mul (.n p1.2.2) (.n p1.2.1) (.n pw.2))] ++
-    p2.1 ++ [.atom (.mul (.n p2.2.2) (.n p2.2.1) (.n pw.2))] ++
-    [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n 39, .n p1.2.2, .n p2.2.2, .n 5] []]
+    pw.1 ++ [.atom (.mul (.n e) (.n 3) (.n pw.2)), .atom (.mul (.n (e + 1)) (.n 4) (.n pw.2))] ++
+    [.call ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd)
+      [.n 39, .n e, .n (e + 1), .n 5] []]
 
-theorem sqLoopBody_split (lv : OsLv) (name : String) :
-    sqLoopBody lv name = (sqLoopA lv ++ osLoopTailA
-      ((osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1)) ++
-      [.callIf (.n ((osMat 4 lv.posOff ((osMat 3 lv.posOff
-          (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1 + 2)) name
-        (.n ((osMat 4 lv.posOff ((osMat 3 lv.posOff
-          (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1 + 4) ::
-          (List.range (6 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
-  simp only [sqLoopBody, sqLoopA, osLoopTail_split, List.append_assoc]
+/-- The loop tail's first value. -/
+abbrev lpLoopR (d : ℕ) : ℕ := 40 + osPowLen (192 / d) + 2
 
-theorem sqLoopA_flat (lv : OsLv) : (sqLoopA lv ++ osLoopTailA
-    ((osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1)).all
-      Stmt.flat = true := by
-  have hpw : ∀ ds acc k, (osPowSteps 0 ds acc k).1.all Stmt.flat = true := by
-    intro ds
-    induction ds with
-    | nil => intro _ _; rfl
-    | cons d ds ih =>
-      intro acc k
-      cases d <;> simp [osPowSteps, ih, Stmt.flat]
-  have hm : ∀ b o k, (osMat b o k).1.all Stmt.flat = true := by
-    intro b o k; unfold osMat; split_ifs <;> rfl
-  simp [sqLoopA, osSqueeze0, keccakA, challengeT, osLoopTailA, hpw, hm, Stmt.flat]
+theorem lpLoopBody_split (d cd : ℕ) (name : String) :
+    lpLoopBody d cd name = (lpLoopA d cd ++ osLoopTailA (lpLoopR d)) ++
+      [.callIf (.n (lpLoopR d + 2)) name
+        (.n (lpLoopR d + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
+  simp only [lpLoopBody, lpLoopA, lpLoopR, osLoopTail_split, List.append_assoc]
+
+theorem osPowSteps_allFlat (x : ℕ) : ∀ ds acc k, (osPowSteps x ds acc k).1.all Stmt.flat = true := by
+  intro ds
+  induction ds with
+  | nil => intro _ _; rfl
+  | cons d ds ih =>
+    intro acc k
+    cases d <;> simp [osPowSteps, ih, Stmt.flat]
+
+theorem lpLoopA_flat (d cd : ℕ) : (lpLoopA d cd ++ osLoopTailA (lpLoopR d)).all Stmt.flat = true := by
+  simp [lpLoopA, osSqueeze0, keccakA, challengeT, osLoopTailA, osPowSteps_allFlat, Stmt.flat]
 
 /-- **The squeeze loop's iteration**: from its body's atoms and calls at `x`, the iteration's
-meaning, the guard `x·g + N` and the next call's arguments. -/
-theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
+meaning (the pointers already at the level's slots: `po = 0`), the guard `x·g + N` and the next
+call's arguments. -/
+theorem lpLoop_step (d cd : ℕ) (hpw : digitsVal (osPowDigits (192 / d)) 1 = 192 / d)
     (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
+      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd)
+        args rets → MeaningDecodeQueryWindows d cd rd args rets)
     (σ : Val) (x N sqz qpos qbp tabs : E) (hwt : WinTabs rd tabs)
     (hp : (osParams 6).map σ = [x, N, sqz, qpos, qbp, tabs])
-    (hA : AllOk (coreProgram.Rel rd) rd σ (sqLoopA lv ++ osLoopTailA
-      ((osMat 4 lv.posOff ((osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1))) :
-    SqIter rd lv.depth lv.capDepth lv.posOff sqz qpos qbp tabs x ∧
-      σ (.n ((osMat 4 lv.posOff ((osMat 3 lv.posOff
-        (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1 + 2)) = x * gen + N ∧
-      (.n ((osMat 4 lv.posOff ((osMat 3 lv.posOff
-          (40 + osPowLen (192 / lv.depth))).2.2 + 1)).2.2 + 1 + 4) ::
-          (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map σ = x * gen :: [N, sqz, qpos, qbp, tabs] := by
+    (hA : AllOk (coreProgram.Rel rd) rd σ (lpLoopA d cd ++ osLoopTailA (lpLoopR d))) :
+    SqIter rd d cd 0 sqz qpos qbp tabs x ∧
+      σ (.n (lpLoopR d + 2)) = x * gen + N ∧
+      (.n (lpLoopR d + 4) :: (List.range (6 - 1)).map fun i ↦ V.n (i + 1)).map σ =
+        x * gen :: [N, sqz, qpos, qbp, tabs] := by
   simp only [osParams, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons.injEq, and_true, List.cons_append] at hp
   obtain ⟨h0, h1, h2, h3, h4, h5⟩ := hp
   rw [allOk_append] at hA
   obtain ⟨hA, hT⟩ := hA
   obtain ⟨t2, t4⟩ := osLoopTailA_val hT
-  set pw := osPowSteps 0 (osPowDigits (192 / lv.depth)) 0 40
-  set p1 := osMat 3 lv.posOff (40 + osPowLen (192 / lv.depth))
-  set p2 := osMat 4 lv.posOff (p1.2.2 + 1)
-  unfold sqLoopA at hA
+  set pw := osPowSteps 0 (osPowDigits (192 / d)) 0 40
+  unfold lpLoopA at hA
   simp only [allOk_append, allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, osSqueeze0,
     allOk_challengeT, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, Nat.add_zero, and_assoc] at hA
   obtain ⟨m5, m6, m7, m8, l9, l10, l11, l12, l13, c14, c15, c16, c17, c18, hK, hch, s27, s28, s29,
-    s30, s31, hpw1, hp1, hmul1, hp2, hmul2, hdc⟩ := hA
+    s30, s31, hpw1, hmul1, hmul2, hdc⟩ := hA
   have hrow : σ (.n 9) = sqz * x ^ 5 := by
     rw [m8, m7, m6, m5, h0, h2]; ring
   obtain ⟨-, -, -, hout⟩ := keccakA_perm (rd := rd) hK
@@ -127,13 +117,11 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (192 / lv.depth)) 
   have o0 : σ (.n 20) = cellsOfState (⟨cap, []⟩ : Fs).perm false 0 := outs_eq hout 0 (by simp [osRun])
   have o1 : σ (.n 21) = cellsOfState (⟨cap, []⟩ : Fs).perm false 1 := outs_eq hout 1 (by simp [osRun])
   have hw : σ (.n 39) = challengeOf (⟨cap, []⟩ : Fs).perm := challengeT_value hch o0 o1
-  have hpwv := osPowSteps_val (C := coreProgram.Rel rd) (σ := σ) 0 (osPowDigits (192 / lv.depth)) 0 40
+  have hpwv := osPowSteps_val (C := coreProgram.Rel rd) (σ := σ) 0 (osPowDigits (192 / d)) 0 40
     1 (by rw [pow_one]) hpw1
   rw [hpw, h0] at hpwv
-  have hq1 := osMat_val hpo hp1
-  have hq2 := osMat_val hpo hp2
-  rw [hq1, hpwv, h3] at hmul1
-  rw [hq2, hpwv, h4] at hmul2
+  rw [hpwv, h3] at hmul1
+  rw [hpwv, h4] at hmul2
   refine ⟨⟨cap, rfl, fun i hi ↦ ?_, fun i hi ↦ ?_, ?_⟩, ?_, ?_⟩
   · rw [← hrow]
     rcases i with _ | _ | _ | _ | _ | i
@@ -154,29 +142,29 @@ theorem sqLoop_step (lv : OsLv) (hpw : digitsVal (osPowDigits (192 / lv.depth)) 
     · simpa [capOf, ← e 12] using s31
     · omega
   · have := hdec _ _ (by simpa [h5] using hwt) hdc
-    rwa [hw, hmul1, hmul2, h5] at this
+    rw [hw, hmul1, hmul2, h5] at this
+    simpa using this
   · rw [t2, h0, h1]
   · simp only [List.range_succ, List.range_zero, List.map_cons, List.map_nil, List.nil_append,
       List.cons_append, Nat.zero_add, t4, h0, h1, h2, h3, h4, h5]
 
 /-- **The squeeze loop, soundly**: entered from `1` with the bound `g^n`, `0 < n < ord g`, the
 iteration's meaning holds at every `g^j`, `j < n`. -/
-theorem sqLoop_sound {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    (lv : OsLv) (hps : fn.params = osParams 6) (hb : fn.body = sqLoopBody lv name)
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
+theorem lpLoop_sound {name : String} {d cd : ℕ} (hloop : FnIs name (osParams 6) (lpLoopBody d cd name))
+    (hpw : digitsVal (osPowDigits (192 / d)) 1 = 192 / d)
     (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
+      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd)
+        args rets → MeaningDecodeQueryWindows d cd rd args rets)
     {n : ℕ} (hn0 : 0 < n) (hn : n < ordG) (sqz qpos qbp tabs : E) (hwt : WinTabs rd tabs)
     (hg : 1 + gen ^ n ≠ 0 → coreProgram.Rel rd name [1, gen ^ n, sqz, qpos, qbp, tabs] []) :
-    ∀ j < n, SqIter rd lv.depth lv.capDepth lv.posOff sqz qpos qbp tabs (gen ^ j) := by
-  rw [sqLoopBody_split] at hb
+    ∀ j < n, SqIter rd d cd 0 sqz qpos qbp tabs (gen ^ j) := by
+  obtain ⟨fn, hf, hps, hb⟩ := hloop
+  rw [lpLoopBody_split] at hb
   refine loop_guarded (rest := [sqz, qpos, qbp, tabs]) hn0 hn rfl
-    (loop_sound_flat hf (sqLoopA_flat lv) hb ?_) hg
+    (loop_sound_flat hf (lpLoopA_flat d cd) hb ?_) hg
   intro σ x hp hA
   rw [hps] at hp
-  exact sqLoop_step lv hpw hpo hdec σ x (gen ^ n) sqz qpos qbp tabs hwt hp hA
+  exact lpLoop_step d cd hpw hdec σ x (gen ^ n) sqz qpos qbp tabs hwt hp hA
 
 /-! ## The chain of squeezes -/
 

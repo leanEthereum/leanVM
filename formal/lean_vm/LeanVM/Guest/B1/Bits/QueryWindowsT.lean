@@ -25,7 +25,7 @@ back, and joined in the exponent into its `wins` cell. Each position is stored a
 the pointer to the `wins` run from its first window (`addr` of the run's tail) at `win_ptrs[j]`, and the word is
 rebuilt from the positions and 7-bit windows of the bits above them (`qwRest`).
 
-`qwBody d cd` is the expansion, value by value; `QueryWindowsData.lean` checks the 22
+`qwBody d cd` is the expansion, value by value; `QueryWindowsData.lean` checks the 21
 specializations against it by kernel evaluation.
 -/
 
@@ -206,7 +206,6 @@ def queryWindowsShapes : List (String × ℕ × ℕ) :=
   [("decode_query_windows__L12_L6", 12, 6),
     ("decode_query_windows__L13_L7", 13, 7),
     ("decode_query_windows__L14_L2", 14, 2),
-    ("decode_query_windows__L14_L8", 14, 8),
     ("decode_query_windows__L15_L3", 15, 3),
     ("decode_query_windows__L16_L4", 16, 4),
     ("decode_query_windows__L17_L5", 17, 5),

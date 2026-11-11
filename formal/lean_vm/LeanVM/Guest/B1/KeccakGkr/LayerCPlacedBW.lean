@@ -50,8 +50,8 @@ theorem packLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (packLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * 473 + LeanVM.Guest.B2C.fs (packLoopName first) := by
   interval_cases first
-  · exact loop_totalLeOn_at (j := 427) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 425) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 420) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 418) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **The remainder loops' runs' words at `B2C.fs`**: at most `92` per iteration and their
 frame. -/
@@ -59,18 +59,18 @@ theorem remLoop_totalLeOn_fs {first : ℕ} (hf : first < 2) :
     TotalLeOn coreProgram LeanVM.Guest.B2C.fs (remLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * 92 + LeanVM.Guest.B2C.fs (remLoopName first) := by
   interval_cases first
-  · exact loop_totalLeOn_at (j := 428) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 426) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 421) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 419) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- The pack loops' frame at `B2C.fs`: `473`. -/
 theorem packLoopName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (packLoopName first) = 473 := by
   interval_cases first
   · rw [show packLoopName 0 = "__loop39" from rfl,
-      fs_idx (j := 421) (f := "__loop39") (by decide +kernel)]
+      fs_idx (j := 420) (f := "__loop39") (by decide +kernel)]
     decide +kernel
   · rw [show packLoopName 1 = "__loop37" from rfl,
-      fs_idx (j := 419) (f := "__loop37") (by decide +kernel)]
+      fs_idx (j := 418) (f := "__loop37") (by decide +kernel)]
     decide +kernel
 
 /-- The remainder loops' frame at `B2C.fs`: `92`. -/
@@ -78,10 +78,10 @@ theorem remLoopName_fs {first : ℕ} (hf : first < 2) :
     LeanVM.Guest.B2C.fs (remLoopName first) = 92 := by
   interval_cases first
   · rw [show remLoopName 0 = "__loop40" from rfl,
-      fs_idx (j := 422) (f := "__loop40") (by decide +kernel)]
+      fs_idx (j := 421) (f := "__loop40") (by decide +kernel)]
     decide +kernel
   · rw [show remLoopName 1 = "__loop38" from rfl,
-      fs_idx (j := 420) (f := "__loop38") (by decide +kernel)]
+      fs_idx (j := 419) (f := "__loop38") (by decide +kernel)]
     decide +kernel
 
 /-- The layers' frames at `B2C.fs`: `2624` (`keccak_layer__L0`), `2245` (`keccak_layer__L1`). -/

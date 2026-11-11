@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.Template
 # The sizes' core IR, as the templates
 
 `OsData m`: the core IR holds `open_stacked__L{m}` with the parameters `0 .. 9` and the body
-`osBody (osCfg m)`. `Whir/Data{m}.lean` prove it for the 14 sizes by kernel evaluation
+`osBody (osCfg m)`. `Whir/Data{m}.lean` prove it for the `ligNSizes` sizes by kernel evaluation
 (`stmtsEqb_sound`), `Whir/DataAll.lean` collects them.
 -/
 

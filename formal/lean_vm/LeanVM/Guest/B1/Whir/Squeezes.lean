@@ -9,14 +9,15 @@ module
 
 public import LeanVM.Guest.B1.Whir.SqLoop
 public import LeanVM.Guest.B1.Whir.Positions
+public import LeanVM.Guest.B1.Whir.RateCfg
 
 /-!
-# The squeezes of a level (G:1559-1593)
+# The squeezes of a level
 
-After the proof of work the sponge has nothing waiting. The level stores its capacity in the
-squeeze run's row `0`, runs the squeeze loop (`lv.squeezes` squeezes, each decoding `192/depth`
-positions), loads the last capacity and squeezes the batching challenge `lam`
-(`osSqueezes_sound`). In the Spec that is `sampleQueries` (V:1682; `sampleQueriesAux_run`) and
+After the proof of work the sponge has nothing waiting. `level_positions` stores its capacity in
+the squeeze run's row `0`, runs the squeeze loop (`lv.squeezes` squeezes, each decoding
+`192/depth` positions) and returns the last capacity (`level_positions_sound`); the level
+squeezes the batching challenge `lam` from it (`osPositions_sound`). In the Spec that is `sampleQueries` (V:1682; `sampleQueriesAux_run`) and
 `sampleE`.
 
 `PadOk σ pad`: the sponge's zero run, once allocated, holds zeros.
@@ -86,72 +87,69 @@ theorem squeezeN_cap_length : ∀ (n : ℕ) (s : Fs), s.cap.length = 5 →
 theorem fs_of_pend_nil {s : Fs} (h : s.pend = []) : s = ⟨s.cap, []⟩ := by
   cases s; simp_all
 
-/-- **A level's squeezes** (G:1556-1583): from the capacity it carries with nothing waiting
-(`F0`), the loop's `n` squeezes decode the positions and their windows (reading the window table
-at `win_tabs`), the next squeeze is the batching
-challenge `lam` (at the returned `k - 1`), its capacity the sponge's. -/
-theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hok : AllOk (coreProgram.Rel rd) rd σ (osSqueezes c lvl lv st).1)
-    (hloop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
-    (hpw : digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth)
-    (hpo : lv.posOff < u128Bound)
+/-! ## `level_positions` -/
+
+/-- **`level_positions(fs0..fs4, positions, win_ptrs, win_tabs)`** at `sq` squeezes, a level of
+tree depth `d` and cap depth `cd`: from the capacity `fs0..fs4` with nothing waiting, squeeze `j`
+(`j < sq`) decodes its positions and windows at `positions·g^(j·(192/d))` and
+`win_ptrs·g^(j·(192/d))`; it returns the capacity after the `sq` squeezes. -/
+def MeaningLevelPositions (d cd sq : ℕ) (rd : Reader) : List E → List E → Prop
+  | [f0, f1, f2, f3, f4, qpos, qbp, tabs], rets =>
+      (∀ jj < sq, MeaningDecodeQueryWindows d cd rd
+        [((⟨[f0, f1, f2, f3, f4], []⟩ : Fs).squeezeN jj).2.squeeze.1,
+          qpos * gen ^ (jj * (192 / d)), qbp * gen ^ (jj * (192 / d)), tabs] []) ∧
+      rets = ((⟨[f0, f1, f2, f3, f4], []⟩ : Fs).squeezeN sq).2.cap
+  | _, _ => False
+
+/-- `level_positions`' body before its `ret`. -/
+def lpA (sq : ℕ) (loop : String) : List Stmt :=
+  osHeap ((sq + 1) * 5) 8 ++
+    ((List.range 5).map fun i ↦ .atom (.load (.n i) (.n 9) i)) ++
+    osLoopCall loop sq [9, 5, 6, 7] 10 ++
+    [.atom (.const (.n 15) (gw (sq * 5))), .atom (.mul (.n 16) (.n 9) (.n 15))] ++
+    ((List.range 5).map fun i ↦ .atom (.load (.n (17 + i)) (.n 16) i)) ++
+    ((List.range 5).map fun i ↦ .atom (.copy (.n (22 + i)) (.n (17 + i))))
+
+theorem lpBody_split (sq : ℕ) (loop : String) :
+    lpBody sq loop = lpA sq loop ++ [.ret ((List.range 5).map fun i ↦ .n (22 + i))] := by
+  simp only [lpBody, lpA, List.append_assoc]
+
+theorem lpA_flat (sq : ℕ) (loop : String) : (lpA sq loop).all Stmt.flat = true := by
+  simp [lpA, osHeap, osLoopCall, Stmt.flat]
+
+/-- **`level_positions` is sound** at its specialization's template and its loop's. -/
+theorem level_positions_sound {name loop : String} {sq d cd : ℕ}
+    (hfn : FnIs name (osParams 8) (lpBody sq loop))
+    (hloop : FnIs loop (osParams 6) (lpLoopBody d cd loop))
+    (hpw : digitsVal (osPowDigits (192 / d)) 1 = 192 / d)
     (hdec : ∀ args rets, WinTabs rd (args.getD 3 0) →
-      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-        args rets → MeaningDecodeQueryWindows lv.depth lv.capDepth rd args rets)
-    (hwt : WinTabs rd (σ (.n osWin)))
-    (hn0 : 0 < lv.squeezes) (hn : lv.squeezes < ordG) (hn5 : lv.squeezes * 5 < u128Bound)
-    (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad) :
-    (∀ jj < lv.squeezes, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
-      [((⟨st.fsv σ, []⟩ : Fs).squeezeN jj).2.squeeze.1,
-        σ (.n osQpos) * gen ^ (lv.posOff + jj * (192 / lv.depth)),
-        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth)), σ (.n osWin)] []) ∧
-    σ (.n ((osSqueezes c lvl lv st).2.k - 1)) =
-      ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1 ∧
-    (osSqueezes c lvl lv st).2.fsv σ =
-      ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.2.cap ∧
-    PadOk σ (osSqueezes c lvl lv st).2.pad ∧ (osSqueezes c lvl lv st).2.fs.length = 5 ∧
-    (osSqueezes c lvl lv st).2.mats = st.mats := by
-  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
-  obtain ⟨fn, hfind, hps, hbody⟩ := hloop
-  set k := st.k
-  set p := (osPad st.pad (k + 14)).2.1
-  set j := (osPad st.pad (k + 14)).2.2
-  have hsk : (osSqueezes c lvl lv st).2.k = j + 20 := rfl
-  have hsfs : (osSqueezes c lvl lv st).2.fs = [j + 8, j + 9, j + 10, j + 11, j + 12] := rfl
-  have hspad : (osSqueezes c lvl lv st).2.pad = some p := rfl
-  have hstm : (osSqueezes c lvl lv st).1 = osHeap ((c.maxSq + 1) * 5) k ++
-      (st.fs.zipIdx.map fun (f, i) ↦ .atom (.load (.n f) (.n (k + 1)) i)) ++
-      osLoopCall (c.sqLoop lvl) lv.squeezes [k + 1, osQpos, osQbp, osWin] (k + 2) ++
-      [.atom (.const (.n (k + 7)) (gw (lv.squeezes * 5))),
-        .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7)))] ++
-      ((List.range 5).map fun i ↦ .atom (.load (.n (k + 9 + i)) (.n (k + 8)) i)) ++
-      (osPad st.pad (k + 14)).1 ++ osSqueeze0 p [k + 9, k + 10, k + 11, k + 12, k + 13] j := rfl
-  rw [hstm] at hok
-  rw [hsk, hsfs, hspad]
-  simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨-, hS⟩, hL⟩, hM⟩, hLd⟩, hPd⟩, hQ⟩ := hok
-  simp only [osLoopCall, hf, List.zipIdx_cons, List.zipIdx_nil, allOk_cons, allOk_nil,
-    and_true, StmtOk, Atom.Holds, List.map_cons, List.map_nil, List.range_succ, List.range_zero,
-    List.nil_append, List.cons_append, Nat.add_zero, Nat.zero_add, Nat.add_assoc,
-    Nat.reduceAdd] at hS hL hM hLd
-  obtain ⟨s0, s1, s2, s3, s4⟩ := hS
-  obtain ⟨c2, c3, a4, c5, c6, -, hcall⟩ := hL
-  obtain ⟨c7, m8⟩ := hM
-  obtain ⟨l9, l10, l11, l12, l13⟩ := hLd
-  have hpad' := osPad_ok hpad hPd
-  have hsq := osSqueeze0_val (cap := [k + 9, k + 10, k + 11, k + 12, k + 13]) rfl hpad' hQ
-  -- the loop
-  have hgn : gw lv.squeezes = gen ^ lv.squeezes := gw_eq (by
+      coreProgram.Rel rd ("decode_query_windows__L" ++ natStr d ++ "_L" ++ natStr cd)
+        args rets → MeaningDecodeQueryWindows d cd rd args rets)
+    (hn0 : 0 < sq) (hn : sq < ordG) (hn5 : sq * 5 < u128Bound) (args rets : List E)
+    (h : coreProgram.Rel rd name args rets) (hwt : WinTabs rd (args.getD 7 0)) :
+    MeaningLevelPositions d cd sq rd args rets := by
+  obtain ⟨fn, hf, hps, hb⟩ := hfn
+  rw [rel_iff_sem hf] at h
+  obtain ⟨σ, hp, hh⟩ := h
+  rw [hb, lpBody_split, holdsList_flat_ret _ (lpA_flat sq loop)] at hh
+  obtain ⟨hok, hret⟩ := hh
+  rw [hps] at hp
+  subst hp
+  subst hret
+  simp only [osParams, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
+    List.nil_append, List.cons_append, List.getD_cons_succ, List.getD_cons_zero] at hwt ⊢
+  simp only [lpA, osHeap, osLoopCall, allOk_cons, allOk_nil, and_true, StmtOk,
+    Atom.Holds, List.map_cons, List.map_nil, List.range_succ, List.range_zero, List.nil_append,
+    List.cons_append, Nat.add_zero, Nat.reduceAdd, and_assoc] at hok
+  obtain ⟨-, -, s0, s1, s2, s3, s4, c10, c11, a12, c13, c14, -, hcall, c15, m16,
+    l17, l18, l19, l20, l21, e22, e23, e24, e25, e26⟩ := hok
+  have hgn : gw sq = gen ^ sq := gw_eq (by
     have : ordG < u128Bound := by unfold ordG u128Bound; norm_num
     omega)
-  have hit := sqLoop_sound hfind lv hps hbody hpw hpo hdec hn0 hn (σ (.n (k + 1))) (σ (.n osQpos))
-    (σ (.n osQbp)) (σ (.n osWin)) hwt (by
-      rw [a4, c2, c3, c5, c6, hgn, word_one] at hcall
-      exact hcall)
-  have hfsv : st.fsv σ = [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] := by
-    simp [OsSt.fsv, hf]
-  obtain ⟨P, D⟩ := sqChain (st.fsv σ) (by simp [OsSt.fsv, hfs]) (fun i hi ↦ by
-      rw [hfsv]
+  have hit := lpLoop_sound hloop hpw hdec hn0 hn (σ (.n 9)) (σ (.n 5)) (σ (.n 6)) (σ (.n 7)) hwt
+    (by rw [a12, c10, c11, c13, c14, hgn, word_one] at hcall; exact hcall)
+  set fs := [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)]
+  obtain ⟨P, D⟩ := sqChain (sqz := σ (.n 9)) fs rfl (fun i hi ↦ by
       rcases i with _ | _ | _ | _ | _ | i
       · exact s0
       · exact s1
@@ -159,34 +157,100 @@ theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
       · exact s3
       · exact s4
       · omega) hit
-  -- the last capacity
-  have hrow : σ (.n (k + 8)) = σ (.n (k + 1)) * gen ^ (5 * lv.squeezes) := by
-    rw [m8, c7, gw_eq hn5, Nat.mul_comm]
-  have hlast : [σ (.n (k + 9)), σ (.n (k + 10)), σ (.n (k + 11)), σ (.n (k + 12)), σ (.n (k + 13))] =
-      ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.cap := by
-    refine five_eq (o := 5 * lv.squeezes) rfl ?_ (fun i hi ↦ ?_) (P lv.squeezes le_rfl)
-    · exact squeezeN_cap_length _ _ (by simp [OsSt.fsv, hfs])
+  have hrow : σ (.n 16) = σ (.n 9) * gen ^ (5 * sq) := by
+    rw [m16, c15, gw_eq hn5, Nat.mul_comm]
+  have hlast : [σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20), σ (.n 21)] =
+      ((⟨fs, []⟩ : Fs).squeezeN sq).2.cap := by
+    refine five_eq (o := 5 * sq) rfl ?_ (fun i hi ↦ ?_) (P sq le_rfl)
+    · exact squeezeN_cap_length _ _ rfl
     · rw [← loadHolds_mul_gen_pow, ← hrow]
       rcases i with _ | _ | _ | _ | _ | i
-      · exact l9
-      · exact l10
-      · exact l11
-      · exact l12
-      · exact l13
+      · exact l17
+      · exact l18
+      · exact l19
+      · exact l20
+      · exact l21
       · omega
-  have hF : (⟨[σ (.n (k + 9)), σ (.n (k + 10)), σ (.n (k + 11)), σ (.n (k + 12)),
-      σ (.n (k + 13))], []⟩ : Fs) = ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2 := by
-    rw [hlast, ← fs_of_pend_nil (squeezeN_pend rfl _)]
+  refine ⟨fun jj hjj ↦ by simpa using D jj hjj, ?_⟩
+  rw [← hlast, e22, e23, e24, e25, e26]
+
+/-- **A level's query positions and batching challenge**: from the capacity it carries with
+nothing waiting, the dispatch on the rate into `level_positions` decodes the positions and their
+windows at the level's slots (reading the window table at `win_tabs`), and the next squeeze is the
+batching challenge `lam` (at the returned `k - 1`), its capacity the sponge's. -/
+theorem osPositions_sound {C : CallRel} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
+    (hok : AllOk C rd σ (osPositions c lvl lv st).1)
+    (hLP : ∀ args rets, C (osPositionsName lv) args rets → WinTabs rd (args.getD 7 0) →
+      MeaningLevelPositions lv.depth lv.capDepth lv.squeezes rd args rets)
+    (hrate : LvRate σ c lvl lv) (hwt : WinTabs rd (σ (.n osWin))) (hpo : lv.posOff < u128Bound)
+    (hfs : st.fs.length = 5) (hpad : PadOk σ st.pad) (hmats : MatsOk σ st.mats) :
+    (∀ jj < lv.squeezes, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
+      [((⟨st.fsv σ, []⟩ : Fs).squeezeN jj).2.squeeze.1,
+        σ (.n osQpos) * gen ^ (lv.posOff + jj * (192 / lv.depth)),
+        σ (.n osQbp) * gen ^ (lv.posOff + jj * (192 / lv.depth)), σ (.n osWin)] []) ∧
+    σ (.n ((osPositions c lvl lv st).2.k - 1)) =
+      ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.1 ∧
+    (osPositions c lvl lv st).2.fsv σ =
+      ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2.squeeze.2.cap ∧
+    PadOk σ (osPositions c lvl lv st).2.pad ∧ (osPositions c lvl lv st).2.fs.length = 5 ∧
+    MatsOk σ (osPositions c lvl lv st).2.mats := by
+  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fold_args st hfs
+  set k := st.k
+  set P := c.plan
+  set qp := osMatP P st.mats osQpos lv.posOff k
+  set m1 := osMatsAfter P st.mats osQpos lv.posOff k
+  set wp := osMatP P m1 osQbp lv.posOff qp.2.2
+  set j := wp.2.2
+  set p := (osPad st.pad (j + 10)).2.1
+  set e := (osPad st.pad (j + 10)).2.2
+  have hsk : (osPositions c lvl lv st).2.k = e + 20 := rfl
+  have hsfs : (osPositions c lvl lv st).2.fs = [e + 8, e + 9, e + 10, e + 11, e + 12] := rfl
+  have hspad : (osPositions c lvl lv st).2.pad = some p := rfl
+  have hsm : (osPositions c lvl lv st).2.mats = osMatsAfter P m1 osQbp lv.posOff qp.2.2 := rfl
+  have hstm : (osPositions c lvl lv st).1 = qp.1 ++ wp.1 ++
+      [.dispatch (.n osRate) ((c.lvAt lvl).map osPositionsName)
+        ((st.fs ++ [qp.2.1, wp.2.1, osWin]).map V.n) (osRun j 5)] ++
+      ((List.range 5).map fun i ↦ .atom (.copy (.n (j + 5 + i)) (.n (j + i)))) ++
+      (osPad st.pad (j + 10)).1 ++ osSqueeze0 p [j + 5, j + 6, j + 7, j + 8, j + 9] e := rfl
+  rw [hstm] at hok
+  rw [hsk, hsfs, hspad, hsm]
+  simp only [allOk_append] at hok
+  obtain ⟨⟨⟨⟨⟨hqp, hwp⟩, hD⟩, hcp⟩, hPd⟩, hQ⟩ := hok
+  have mk1 := osMatsAfter_ok hmats hpo hqp
+  have eqp := osMatP_val hmats hpo hqp
+  have ewp := osMatP_val mk1 hpo hwp
+  rw [allOk_cons] at hD
+  have hcall := dispatch_rate hrate osPositionsName hD.1
+  simp only [hf, osRun, List.cons_append, List.nil_append, List.map_cons, List.map_nil,
+    List.range_succ, List.range_zero, Nat.add_zero] at hcall
+  have hm := hLP _ _ hcall (by simpa using hwt)
+  obtain ⟨hdec, hrets⟩ := hm
+  have hfsv : st.fsv σ = [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] := by
+    simp [OsSt.fsv, hf]
+  simp only [allOk_cons, allOk_nil, and_true, StmtOk, Atom.Holds, List.map_cons, List.map_nil,
+    List.range_succ, List.range_zero, List.nil_append, List.cons_append, Nat.add_zero,
+    Nat.add_assoc, Nat.reduceAdd] at hcp
+  obtain ⟨e5, e6, e7, e8, e9⟩ := hcp
+  have hpad' := osPad_ok hpad hPd
+  have hsq := osSqueeze0_val (cap := [j + 5, j + 6, j + 7, j + 8, j + 9]) rfl hpad' hQ
+  have hF : (⟨[σ (.n (j + 5)), σ (.n (j + 6)), σ (.n (j + 7)), σ (.n (j + 8)),
+      σ (.n (j + 9))], []⟩ : Fs) = ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2 := by
+    rw [e5, e6, e7, e8, e9, ← hrets.symm.trans rfl, hfsv]
+    rw [← fs_of_pend_nil (squeezeN_pend rfl _)]
   simp only [List.map_cons, List.map_nil, hF] at hsq
   obtain ⟨hcells, hlam⟩ := hsq
-  refine ⟨D, by rw [show j + 20 - 1 = j + 19 by omega, hlam]; rfl, ?_, hpad', rfl, rfl⟩
-  have h8 : σ (.n (j + 8)) = _ := hcells 8
-  have h9 : σ (.n (j + 9)) = _ := hcells 9
-  have h10 : σ (.n (j + 10)) = _ := hcells 10
-  have h11 : σ (.n (j + 11)) = _ := hcells 11
-  have h12 : σ (.n (j + 12)) = _ := hcells 12
-  rw [OsSt.fsv, hsfs]
-  simp only [List.map_cons, List.map_nil, Fs.squeeze, capOf, h8, h9, h10, h11, h12]
+  refine ⟨fun jj hjj ↦ ?_, by rw [show e + 20 - 1 = e + 19 by omega, hlam]; rfl, ?_, hpad', rfl,
+    osMatsAfter_ok mk1 hpo hwp⟩
+  · have := hdec jj hjj
+    rw [eqp, ewp, mul_assoc, mul_assoc, ← pow_add, ← hfsv] at this
+    exact this
+  · have h8 : σ (.n (e + 8)) = _ := hcells 8
+    have h9 : σ (.n (e + 9)) = _ := hcells 9
+    have h10 : σ (.n (e + 10)) = _ := hcells 10
+    have h11 : σ (.n (e + 11)) = _ := hcells 11
+    have h12 : σ (.n (e + 12)) = _ := hcells 12
+    rw [OsSt.fsv, hsfs]
+    simp only [List.map_cons, List.map_nil, Fs.squeeze, capOf, h8, h9, h10, h11, h12]
 
 end
 end LeanVM.Guest.B1.Whir

@@ -51,13 +51,13 @@ open LeanVM.Guest.Exec
 /-! ## B1's obligations -/
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `1600` statements, which include its call of
+`verify_sub`'s argument `4` (`g_squares`), its first `1593` statements, up to its call of
 `check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `139`) among the powers
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1600) True (fun _ ↦ True) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1593) True (fun _ ↦ True) →
       ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 139)) c (ofK (addressOfIndex e))
 
 /-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
@@ -130,7 +130,7 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
     rw [hst] at hl
     refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
     rcases List.mem_append.mp hm with hm | hm
-    · exact hdims 1600 (by omega) hl m hm
+    · exact hdims 1593 (by omega) hl m hm
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
     exact hvs L h16 h32 _ ht hl c (List.mem_range.mp hc)
 

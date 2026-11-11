@@ -16,38 +16,38 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L3`. -/
-theorem wpBody_1707 : Data.core1707.body = wpBodyT ⟨0, 0, 12, 3⟩ :=
-  stmtsEqb_sound (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L7`. -/
-theorem wpBody_1728 : Data.core1728.body = wpBodyT ⟨0, 0, 12, 7⟩ :=
-  stmtsEqb_sound (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-/-- `walk_path__L18_L4`. -/
-theorem wpBody_1751 : Data.core1751.body = wpBodyT ⟨0, 0, 18, 4⟩ :=
-  stmtsEqb_sound (by decide +kernel)
-
-set_option maxRecDepth 100000 in
 /-- `walk_path__L18_L7`. -/
-theorem wpBody_1769 : Data.core1769.body = wpBodyT ⟨0, 0, 18, 7⟩ :=
+theorem wpBody_1718 : Data.core1718.body = wpBodyT ⟨0, 0, 18, 7⟩ :=
+  stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L18_L8`. -/
+theorem wpBody_1751 : Data.core1751.body = wpBodyT ⟨0, 0, 18, 8⟩ :=
+  stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L24_L2`. -/
+theorem wpBody_1724 : Data.core1724.body = wpBodyT ⟨0, 0, 24, 2⟩ :=
+  stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+/-- `walk_path__L24_L3`. -/
+theorem wpBody_1726 : Data.core1726.body = wpBodyT ⟨0, 0, 24, 3⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 /-- `walk_path__L24_L4`. -/
-theorem wpBody_1782 : Data.core1782.body = wpBodyT ⟨0, 0, 24, 4⟩ :=
+theorem wpBody_1731 : Data.core1731.body = wpBodyT ⟨0, 0, 24, 4⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L6_L7`. -/
-theorem wpBody_1798 : Data.core1798.body = wpBodyT ⟨0, 0, 6, 7⟩ :=
+/-- `walk_path__L24_L5`. -/
+theorem wpBody_1738 : Data.core1738.body = wpBodyT ⟨0, 0, 24, 5⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L8`. -/
-theorem wpBody_1801 : Data.core1801.body = wpBodyT ⟨0, 0, 12, 8⟩ :=
+/-- `walk_path__L24_L6`. -/
+theorem wpBody_1743 : Data.core1743.body = wpBodyT ⟨0, 0, 24, 6⟩ :=
   stmtsEqb_sound (by decide +kernel)
 
 end

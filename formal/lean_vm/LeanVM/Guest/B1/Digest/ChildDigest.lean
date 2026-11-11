@@ -74,7 +74,7 @@ theorem childListOut_of_any {rd : Reader} {entries region base limit : E} {n : �
 
 /-- The gap walk gives `ChildListOut` (every mark `base`, the slots strictly increasing). -/
 theorem childListOut_of_mono {rd : Reader} (hm : MemOk rd) {entries region base limit : E}
-    {n : ℕ} (hn : n < 2 ^ 24) {os : List ℕ} {cells : List E} {O : ℕ} {rets : List E}
+    {n : ℕ} (hn : n < 2 ^ 32) {os : List ℕ} {cells : List E} {O : ℕ} {rets : List E}
     (hlen : os.length = n) (hw : MonoWalk 0 os O) (hat : MonoAt rd region entries base os cells)
     (hcan : AllCanonical cells) (hr : rets = digestCells (keccak256 (cellsBytes cells)))
     (hb : ∃ e e', e < 2 ^ 32 ∧ e' < 2 ^ 32 ∧ region * gen ^ O = gen ^ e * region ∧
@@ -110,16 +110,20 @@ theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
       (fun c => (cellsOfState_zero false c).symm)
     rw [hz13, hz14, show List.take (cc25ZSpec.len / 16) (cc25ZSpec.vals σ) = [] by
       simp [cc25ZSpec], List.nil_append] at hd
-    refine ⟨0, by norm_num, by rw [hn1, pow_zero], childListOut_of_any (os := []) (cells := [])
-      ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩ (fun _ h => absurd h (by simp)) ?_⟩
+    intro m hmb hgm
+    obtain rfl : 0 = m := gen_pow_inj (by omega) (by omega) (by rw [← hgm, hn1, pow_zero])
+    refine childListOut_of_any (os := []) (cells := [])
+      ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩ (fun _ h => absurd h (by simp)) ?_
     rw [← hr, h36, h37, digestCells, ← hd]
   · -- a nonempty list
     obtain ⟨hsplit, -, c30, a31, -, hmono, hany⟩ := hnz h6
     obtain ⟨a, ha, b, hb, c, hc, hn, habc⟩ := list_split_sound rd hm _ _ hsplit
     simp only [List.cons.injEq, and_true] at habc
     obtain ⟨h26, h27, h28⟩ := habc
-    simp only [maxKeys, claimGroup, bigGroups] at ha hb hc
-    refine ⟨136 * a + 17 * b + c, by simp only [claimBig, maxKeys]; omega, by rw [hn], ?_⟩
+    simp only [claimGroup, bigGroups] at hb hc
+    intro m hmb hgm
+    obtain rfl : 136 * a + 17 * b + c = m :=
+      gen_pow_inj (by omega) (by omega) (by rw [← hgm, hn])
     by_cases h31 : σ (.n 20) = 0
     · -- the gap walk
       obtain ⟨hcall, c13, c14, c36, c37, hr⟩ := hmono h31

@@ -22,9 +22,9 @@ local notation "d₀" => (addressOfIndex 2047 : K)
 
 /-! ## The prover data of an image -/
 
-/-- Data whose `"mem"` table is an image's names that image, at the least memory log-size. -/
+/-- Data whose `"mem"` table is an image's names that image, at its memory log-size `16`. -/
 example (data : ProverData K) (h : memRows data = imageRows (badImage d₀)) :
-    imageOf data = ⟨minLogMem, badImage d₀⟩ :=
+    imageOf data = ⟨16, badImage d₀⟩ :=
   imageOf_of_memRows h (by decide)
 
 /-- Such data has the `2^κ` rows of its image: it is well shaped. -/
@@ -36,7 +36,7 @@ example (data : ProverData K) (h : memRows data = imageRows (badImage d₀)) :
 memory block. -/
 example (S : List Skel) (hrows : ∀ op, Skel.count op S ≤ 2 ^ maxLogRows) :
     imageOf (skelWitness jumpProg badInput (badImage d₀) S (by decide) hrows).data =
-      ⟨minLogMem, badImage d₀⟩ :=
+      ⟨16, badImage d₀⟩ :=
   imageOf_skelWitness _ _ _ _ _ _
 
 /-- A memory of `2^33` cells is named by data whose log-size is clamped to `maxLogMem`: the bound

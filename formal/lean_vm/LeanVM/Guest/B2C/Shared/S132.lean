@@ -16,108 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L9`, once. -/
-theorem st355 : shareStatic 355 = true := by decide +kernel
+/-- `__loop17`, once. -/
+theorem st343 : shareStatic 343 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L9`, window 0. -/
-theorem w355_0 : shareWin 355 (snapsOf 355) 0 = true := by decide +kernel
-
-theorem ok355 : ShareOk 355 := ⟨st355, fun i hi ↦ by
-  have h : (snapsOf 355).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w355_0⟩
+/-- `__loop17`, window 0. -/
+theorem w343_0 : shareWin 343 (snapsOf 343) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L10`, once. -/
-theorem st356 : shareStatic 356 = true := by decide +kernel
+/-- `__loop17`, window 1. -/
+theorem w343_1 : shareWin 343 (snapsOf 343) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L10`, window 0. -/
-theorem w356_0 : shareWin 356 (snapsOf 356) 0 = true := by decide +kernel
-
-theorem ok356 : ShareOk 356 := ⟨st356, fun i hi ↦ by
-  have h : (snapsOf 356).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w356_0⟩
+/-- `__loop17`, window 2. -/
+theorem w343_2 : shareWin 343 (snapsOf 343) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L11`, once. -/
-theorem st357 : shareStatic 357 = true := by decide +kernel
+/-- `__loop17`, window 3. -/
+theorem w343_3 : shareWin 343 (snapsOf 343) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L11`, window 0. -/
-theorem w357_0 : shareWin 357 (snapsOf 357) 0 = true := by decide +kernel
-
-theorem ok357 : ShareOk 357 := ⟨st357, fun i hi ↦ by
-  have h : (snapsOf 357).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w357_0⟩
+/-- `__loop17`, window 4. -/
+theorem w343_4 : shareWin 343 (snapsOf 343) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L12`, once. -/
-theorem st358 : shareStatic 358 = true := by decide +kernel
+/-- `__loop17`, window 5. -/
+theorem w343_5 : shareWin 343 (snapsOf 343) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L12`, window 0. -/
-theorem w358_0 : shareWin 358 (snapsOf 358) 0 = true := by decide +kernel
-
-theorem ok358 : ShareOk 358 := ⟨st358, fun i hi ↦ by
-  have h : (snapsOf 358).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w358_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L13`, once. -/
-theorem st359 : shareStatic 359 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L13`, window 0. -/
-theorem w359_0 : shareWin 359 (snapsOf 359) 0 = true := by decide +kernel
-
-theorem ok359 : ShareOk 359 := ⟨st359, fun i hi ↦ by
-  have h : (snapsOf 359).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w359_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L14`, once. -/
-theorem st360 : shareStatic 360 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L14`, window 0. -/
-theorem w360_0 : shareWin 360 (snapsOf 360) 0 = true := by decide +kernel
-
-theorem ok360 : ShareOk 360 := ⟨st360, fun i hi ↦ by
-  have h : (snapsOf 360).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w360_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L15`, once. -/
-theorem st361 : shareStatic 361 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L15`, window 0. -/
-theorem w361_0 : shareWin 361 (snapsOf 361) 0 = true := by decide +kernel
-
-theorem ok361 : ShareOk 361 := ⟨st361, fun i hi ↦ by
-  have h : (snapsOf 361).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w361_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L16`, once. -/
-theorem st362 : shareStatic 362 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L16`, window 0. -/
-theorem w362_0 : shareWin 362 (snapsOf 362) 0 = true := by decide +kernel
-
-theorem ok362 : ShareOk 362 := ⟨st362, fun i hi ↦ by
-  have h : (snapsOf 362).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w362_0⟩
+/-- `__loop17`, window 6. -/
+theorem w343_6 : shareWin 343 (snapsOf 343) 6 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

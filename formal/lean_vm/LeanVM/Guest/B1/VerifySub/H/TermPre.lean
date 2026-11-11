@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.VerifySub.H.TermCtx
 /-!
 # The terminal's precondition, honestly
 
-`committed_le28`: an honest child's committed columns' logs are at most `28`. `ChildSegs.km_eq`:
+`committed_le32`: an honest child's committed columns' logs are at most `32`. `ChildSegs.km_eq`:
 the Keccak reduction's results. `ChildSegs.fin`: the WHIR terminal equation (`ChildSegs.acc`).
 The terminal point's length (`whir_point_length`) is in `H/WhirLen`.
 -/
@@ -25,11 +25,11 @@ open LeanVM.Node
 
 @[expose] public section
 
-/-- **An honest child's committed columns' logs are at most `28`.** -/
-theorem committed_le28 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
-    {rowsN : List ℕ} (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28) :
+/-- **An honest child's committed columns' logs are at most `32`.** -/
+theorem committed_le32 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
+    {rowsN : List ℕ} (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 32) :
     ∀ c < Tables.nCommittedCols, (Tables.committedKappas
-      (columnKappas logMem Tables.guestLogBytecode (Tables.tableHeightsOf rowsN))).getD c 0 ≤ 28 := by
+      (columnKappas logMem Tables.guestLogBytecode (Tables.tableHeightsOf rowsN))).getD c 0 ≤ 32 := by
   rw [stackLog_eq hbl] at h28
   intro c hc
   have hcl : c < (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode

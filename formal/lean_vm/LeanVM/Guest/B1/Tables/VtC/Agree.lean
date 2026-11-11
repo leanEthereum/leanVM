@@ -30,6 +30,7 @@ open LeanVM.Guest.B1.Fwd
 /-- The indices a statement's range check reads the memory into. -/
 def auxS : Stmt → List ℕ
   | .atom (.rangeCheck _ _ t1 t2 _) => [t1.idx, t2.idx]
+  | .atom (.touch t _) => [t.idx]
   | _ => []
 
 /-- The indices the range checks of a block read the memory into. -/
@@ -38,6 +39,7 @@ def auxIdx (ss : List Stmt) : List ℕ := ss.flatMap auxS
 /-- A statement uses none of `A` (a range check: none but its two reads). -/
 def deadS (A : ℕ → Bool) : Stmt → Bool
   | .atom (.rangeCheck x y _ _ k) => !(A x.idx) && !(A y.idx) && !(A k.idx)
+  | .atom (.touch _ p) => !(A p.idx)
   | s => s.vals.all fun v ↦ !(A v.idx)
 
 /-- Two word lists agree off `A`. -/
@@ -50,12 +52,14 @@ theorem not_mem_of_contains {A : ℕ → Bool} {i : ℕ} (h : (!(A i)) = true) :
   simpa using h
 
 theorem dead_vals {A : ℕ → Bool} {s : Stmt} (hd : deadS A s = true)
-    (hr : ∀ x y t1 t2 k, s ≠ .atom (.rangeCheck x y t1 t2 k)) : ∀ v ∈ s.vals, A v.idx = false := by
+    (hr : ∀ x y t1 t2 k, s ≠ .atom (.rangeCheck x y t1 t2 k)) (ht : ∀ t p, s ≠ .atom (.touch t p)) :
+    ∀ v ∈ s.vals, A v.idx = false := by
   intro v hv
   have : deadS A s = s.vals.all fun v ↦ !(A v.idx) := by
     cases s with
     | atom a => cases a with
       | rangeCheck x y t1 t2 k => exact absurd rfl (hr x y t1 t2 k)
+      | touch t p => exact absurd rfl (ht t p)
       | _ => rfl
     | _ => rfl
   rw [this] at hd
@@ -73,6 +77,21 @@ theorem newA_agree {rd1 rd2 : Reader} {w : ℕ → E} {A : ℕ → Bool} {l1 l2 
   intro j hj
   have hσ : ∀ v, A v.idx = false → B1.Val.ofArgs l1 v = B1.Val.ofArgs l2 v := fun v hv ↦
     agreeOff_val hl hv
+  by_cases htc : ∃ t p, a = .touch t p
+  · obtain ⟨t, p, rfl⟩ := htc
+    have h1 : A t.idx = true := haux _ (by simp [auxS])
+    simp only [chkA] at hc
+    split at hc
+    · rename_i hc1
+      simp only [Bool.and_eq_true] at hc1
+      have e := idx_of_isN hc1.2
+      rcases j with _ | j
+      · rw [e] at h1
+        simp only [Nat.add_zero] at hj
+        rw [hj] at h1
+        exact absurd h1 (by decide)
+      · simp [newA]
+    · exact absurd hc (by simp)
   by_cases hrc : ∃ x y t1 t2 k, a = .rangeCheck x y t1 t2 k
   · obtain ⟨x, y, t1, t2, k, rfl⟩ := hrc
     simp only [deadS, Bool.and_eq_true] at hd
@@ -123,6 +142,7 @@ theorem newA_agree {rd1 rd2 : Reader} {w : ℕ → E} {A : ℕ → Bool} {l1 l2 
         · simp
       · exact absurd hc (by simp)
   · have hv := dead_vals hd (fun x y t1 t2 k h ↦ hrc ⟨x, y, t1, t2, k, by cases h; rfl⟩)
+      (fun t p h ↦ htc ⟨t, p, by cases h; rfl⟩)
     have hs : ∀ v ∈ a.vals, B1.Val.ofArgs l1 v = B1.Val.ofArgs l2 v := fun v hm ↦ hσ v (hv v hm)
     congr 1
     cases a with
@@ -141,6 +161,7 @@ theorem newA_agree {rd1 rd2 : Reader} {w : ℕ → E} {A : ℕ → Bool} {l1 l2 
     | assertInK => rfl
     | assertNe x i p => simp only [newA, hs x (by simp [Atom.vals])]
     | rangeCheck x y t1 t2 k => exact absurd ⟨x, y, t1, t2, k, rfl⟩ hrc
+    | touch t p => exact absurd ⟨t, p, rfl⟩ htc
     | keccak ins outs i o =>
       simp only [newA]
       rw [List.map_congr_left (fun v hm ↦ hs v (by simp [Atom.vals, hm]))]

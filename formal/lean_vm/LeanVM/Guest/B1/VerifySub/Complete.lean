@@ -42,11 +42,11 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23) (hst : c.proof.stream.length 
   have hpl := (S.runG' hbl).2.2.1
   have hτ := S.τ_bounds hbl
   obtain ⟨-, hopl, hkpl, hsll, -⟩ := S.runK' hbl
-  have hn : S.H.n ≤ 28 := by
-    show (Tables.tableHeightsOf S.rowsN).foldl max 0 ≤ 28
+  have hn : S.H.n ≤ 32 := by
+    show (Tables.tableHeightsOf S.rowsN).foldl max 0 ≤ 32
     rcases Tables.VtHonest.vsFoldl_max_mem (Tables.tableHeightsOf S.rowsN) 0 with h | h
     · omega
-    · have := S.hh29 hbl _ h
+    · have := S.hh33 hbl _ h
       omega
   simp only [ChildSegs.ownW, vsSizes, List.forall₂_cons, List.forall₂_nil_left_iff, and_true]
   refine ⟨(S.poolW_length hbl).le, ?_, by simp [S.hrowsL], by simp [vsDimsW, S.hs_length],
@@ -69,7 +69,7 @@ memory, and its valuation is the honest one (`completeAt_flatDepR`'s and `comple
 `hkr`, `hkm`, `hσ`). -/
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {sqE outE : ℕ}
-    {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexpL : ∀ q ∈ log2Lin sqE, q ∈ Lin)
+    {Lin : Main.Layout} {κ : ℕ} (hκ : 14 ≤ κ) (hexpL : ∀ q ∈ log2Lin sqE, q ∈ Lin)
     (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.μ)) sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.μ) S.ownW
@@ -196,7 +196,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
           simp [vsStreamW]
         simp only [ChildSegs.cT, vcG, vb, ← hbs]
         omega
-    refine ⟨_, ?_, vs_dispOk S G.e1901, ?_, vs_alloc_sizes hbl G O, vs_alloc_bases G hbs,
+    refine ⟨_, ?_, vs_dispOk S G.e1686, ?_, vs_alloc_sizes hbl G O, vs_alloc_bases G hbs,
       vs_callsMatch hbl rfl G O, vs_loads (fun k hk ↦ vs_own_mem S _ hk) G.ptr
         (S.ownW_lens hbl) hout hcl (G.par 5 (by norm_num)) hsqm hcev G.push⟩
     · rw [vs_params]

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.MatPlan
 # The `LIG_*` tables and a candidate's configuration (TRIAGE G #42)
 
 `open_stacked(m_idx, rate_sel, …)` (`lean_ethereum.py`, `open_stacked`) is specialized on the
-committed log-size alone, `m_idx = μ - 19`, and reads the rate `g^rate_sel` at runtime. At compile
+committed log-size alone, `m_idx = μ - 20`, and reads the rate `g^rate_sel` at runtime. At compile
 time it reads the row `m_idx` of the per-size tables (`LIG_N_LEVELS`, `LIG_YR_LEVEL`, …), the rows
 `ml = m_idx · LIG_MAX_LEVELS + lvl` of the per-level ones that no rate changes (`LIG_FOLDS`,
 `LIG_INTERLEAVE`, …), and, through a `match` on the rate, the rows
@@ -42,13 +42,13 @@ def lig (a : List (Nat × Nat × Nat)) (i : Nat) : Nat := (a.getD i (0, 0, 0)).1
 abbrev ligMaxLevels : Nat := 7
 
 /-- `LIG_N_LOG_SIZES`: the sizes a rate's rows cover. -/
-abbrev ligNSizes : Nat := 14
+abbrev ligNSizes : Nat := 13
 
 /-- `LIG_N_RATES`. -/
 abbrev ligNRates : Nat := 4
 
 /-- `LIG_LEVEL_POSITIONS_CAP`: a level's slots in `query_positions` and `query_win_ptrs`. -/
-abbrev ligPosCap : Nat := 234
+abbrev ligPosCap : Nat := 232
 
 /-- `LIG_LOG_MSG_COLS_CAP`: the stride of a level's row in `ood_z` and `basis_d`. -/
 abbrev ligColsCap : Nat := 26
@@ -122,7 +122,7 @@ def osLvR (m r lvl : Nat) : OsLv :=
 
 /-- A size's configuration. -/
 structure OsCfg where
-  /-- The size, `μ - 19`. -/
+  /-- The size, `μ - 20`, `minOpenLog` in `Interface`. -/
   m : Nat
   /-- Its levels, at the first rate: the columns no rate changes, which the body reads. -/
   levels : List OsLv

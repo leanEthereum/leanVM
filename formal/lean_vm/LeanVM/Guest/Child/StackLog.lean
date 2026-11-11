@@ -2,8 +2,8 @@
   LeanVM.Guest.Child.StackLog
 
   The honest proof announces the honest sizes: its stream starts with them, so the stack log a
-  child's stream announces is the stack of the execution's committed size, at least `22` when that
-  is at least `2^22`.
+  child's stream announces is the stack of the execution's committed size, at least `20` for the
+  guest's `2^19` instructions.
 -/
 
 module
@@ -158,24 +158,32 @@ theorem announced_honest {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible 
   rw [Compile.runPure_eq_withHash, e, hb]
   rfl
 
-/-- **A child's honest proof announces a stack log of at least `22`** when the execution's
-committed size is above `2^21`. -/
+/-- **A child's honest proof announces a stack log of at least `20`**, for a program of at least
+`2^19` instructions: its bytecode column alone commits `2^logSize` words, and the Keccak table
+some more. -/
 theorem muMin_le_announced {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
     {w : EnsembleWitness (leanIsaEnsemble prog t.logMemorySize)} {s : Sizes} (hc : ChildFor prog input t ρ w s)
-    (h21 : 2 ^ 21 < t.committedSize) (rest : List E) :
+    (hls : 19 ≤ prog.logSize) (rest : List E) :
     ∀ layout r, announcedLayoutAndRate (bytecodeWords prog) (announce s ρ ++ rest) = some
         (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog := by
   intro layout r h
-  obtain ⟨⟨hρ, -, -, hadm, -⟩, htot⟩ := hc
+  obtain ⟨⟨hρ, -, -, hadm, -⟩, -⟩ := hc
   rw [announced_honest hadm hρ rest] at h
   simp only [Option.some.injEq, Prod.mk.injEq] at h
   obtain ⟨rfl, -⟩ := h
   rw [stackLog_verifierLayout]
   refine le_trans ?_ (le_max_left _ _)
-  rw [htot]
-  exact (Nat.lt_clog_iff_pow_lt (by norm_num)).2 h21
+  have hb : 2 ^ 19 ≤ 2 ^ prog.logSize := Nat.pow_le_pow_right (by norm_num) hls
+  have hk : 0 < 2 ^ s.τ 5 := Nat.two_pow_pos _
+  have htot : 2 ^ 19 < (LeanIsa.blocks prog s).total := by
+    rw [blocks_total_eq]
+    have h4 : 2 ^ 19 < 2 ^ prog.logSize + 28 * 2 ^ s.τ 5 := by omega
+    generalize 2 ^ s.logMem = a
+    generalize 2 ^ (s.τ 5 + 6) = d
+    omega
+  exact (Nat.lt_clog_iff_pow_lt (by norm_num)).2 htot
 
 end
 end LeanVM.Guest.Child

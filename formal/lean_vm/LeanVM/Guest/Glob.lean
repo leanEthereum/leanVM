@@ -33,7 +33,7 @@ open LeanVM.Guest.Check
 @[expose] public section
 
 /-- The number of compiled functions. -/
-def nFns : ℕ := 1804
+def nFns : ℕ := 1753
 
 instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
 
@@ -64,15 +64,15 @@ def good (j : ℕ) : Bool := Nat.ble 2 j && Nat.blt j nFns
 
 /-- The semantic relations by tag (`WalkTags.lean`): `0` the exponent table (`B1.ExpTables`),
 which `verify_sub` and `__loop4` assume of an argument; `1` the checker's own (`Check.tagNe`, here
-unused); `tagGkr` the GKR layer loop's parity (`GkrPar`); the others the windowed Merkle walk's
-(`walkSem`). -/
+unused); `tagGkr` the GKR layer loop's parity (`GkrPar`); from `2^21` `level_queries`' windows
+(`lqSem`); the others the windowed Merkle walk's (`walkSem`). -/
 def globSem (t : ℕ) (rd : Core.Reader) (ws : List LeanVM.Parameters.E) : Prop :=
   match t with
   | 0 => B1.ExpTables rd (ws.getD 0 0)
   | 1 => True
   | t => if t = tagGkr then
       GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0) (ws.getD 4 0)
-    else walkSem t rd ws
+    else if 2 ^ 21 ≤ t then lqSem t rd ws else walkSem t rd ws
 
 /-- The context the guest's checks share, with the semantic relations `globSem`. -/
 noncomputable def glob : Glob := ⟨sigOf, good, Data.jtTrie, globSem⟩

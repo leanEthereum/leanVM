@@ -82,7 +82,7 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   hl4 : lir ≤ 4
   e112 : σ (.n 110) = eOfNat lir
   e124 : σ (.n 122) = gen ^ (lir - 1)
-  hm16 : 16 ≤ logMem
+  hlm1 : 1 ≤ logMem
   hm32 : logMem ≤ 32
   e29 : σ (.n 27) = eOfNat logMem
   e130 : σ (.n 128) = gen ^ logMem
@@ -90,7 +90,7 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   hrowsL : rowsN.length = 6
   hrows : ReadsAt rd (σ (.n 26)) (rowsN.map eOfNat)
   hdims : ReadsAt rd (σ (.n 127)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
-  hh29 : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29
+  hh33 : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 33
   hkb : ReadsAt rd (σ (.n 139)) (1 :: gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
   hkbv : ∀ s < 8, σ (.n (140 + s)) = gen ^ (([0, logMem] ++ Tables.tableHeightsOf rowsN).getD s 0)
   e522 : σ (.n 309) = gen ^ log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN))
@@ -185,7 +185,7 @@ theorem tables_heights {bytecode : List K} {rd : Reader} {pi : Digest} {logMem :
         σ (.n 643), σ (.n 644), σ (.n 645)]) :
     ∃ rowsN : List ℕ, rowsN.length = 6 ∧
       ReadsAt rd (σ (.n 127)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·)) ∧
-      ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29 := by
+      ∀ h ∈ Tables.tableHeightsOf rowsN, h < 33 := by
   obtain ⟨-, -, rowsN, -, -, hl, -, hd, hh, -⟩ := hT
   exact ⟨rowsN, hl, hd, hh⟩
 
@@ -206,8 +206,8 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
   obtain ⟨h10, h11, h12, h13, hk, h⟩ := vsHeadT_holds h
   obtain ⟨seed, pi, hseed, hpi, hcap0⟩ := vs_seed hk h10 h11 h12 h13
   obtain ⟨hw, hrw, hk50, h⟩ := vsReadsT_holds h
-  obtain ⟨lir, logMem, hl1, hl4, e112, e124, hm16, hm32, e29, e130, ds, hdsL, hdims0, hkb0, hkbv0,
-    h⟩ := vsSizesT_holds hκ hκ6 L hC h
+  obtain ⟨lir, logMem, hl1, hl4, e112, e124, hlm1, hm32, e29, e130, ds, hdsL, hdims0, hkb0, hkbv0,
+    h⟩ := vsSizesT_holds hκ L hC h
   obtain ⟨hP, h⟩ := (holdsList_noRet vsPushT vsPushT_noRet _ _).1 h
   obtain ⟨hk649, w8, w9, ca1, ca2, h⟩ := vsRootsT_holds h
   obtain ⟨halpha, halphaR, h⟩ := vsAlphasT_holds h10 h11 h12 h13 w8 w9 h
@@ -227,12 +227,12 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
         L.read _ _ := fun point hp hg hl ↦ htab pi logMem (vsAlphas σ) point _ _ _
       (by
         simp only [Tables.TablesPre]
-        exact ⟨hpi, hp, hg, hl, hm16, hm32, ⟨ds, hdsL, hdims0⟩, expTablesAt_of hexp, rfl,
+        exact ⟨hpi, hp, hg, hl, hlm1, hm32, ⟨ds, hdsL, hdims0⟩, expTablesAt_of hexp, rfl,
           hfpw, trivial⟩) ct'
   -- the push total, once the heights are certified
   have hpush : ∀ rowsN : List ℕ, rowsN.length = 6 →
       ReadsAt L.read (σ (.n 127)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·)) →
-      (∀ h ∈ Tables.tableHeightsOf rowsN, h < 29) →
+      (∀ h ∈ Tables.tableHeightsOf rowsN, h < 33) →
       ds = (Tables.tableHeightsOf rowsN).map (gen ^ ·) ∧
       σ (.n 309) = gen ^ log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) ∧
         log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) < 34 := by
@@ -284,9 +284,9 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
     (hc537 := hc537)
     (hc547 := hc547) (hab8 := vs_absorb8 hw hk50) (habR := vs_absorbRoot hw hk649)
     (halpha := halpha) (hbeta := hbeta) (halphaR := halphaR) (hfpw := hfpw) (lir := lir)
-    (logMem := logMem) (hl1 := hl1) (hl4 := hl4) (e112 := e112) (e124 := e124) (hm16 := hm16)
+    (logMem := logMem) (hl1 := hl1) (hl4 := hl4) (e112 := e112) (e124 := e124) (hlm1 := hlm1)
     (hm32 := hm32) (e29 := e29) (e130 := e130) (rowsN := rowsN) (hrowsL := hrl) (hrows := hrows)
-    (hdims := hdims) (hh29 := hh) (hkb := hkb0) (hkbv := hkbv) (e522 := e522) (hdep := hdlt)
+    (hdims := hdims) (hh33 := hh) (hkb := hkb0) (hkbv := hkbv) (e522 := e522) (hdep := hdlt)
     (xsG := xsG) (r := r) (capG := capG) (hxsG := (by rw [← e838]; exact hxsG)) (hrunG := ?_)
     (hptL := hptL) (hvL := hvL) (hzeta := hzeta)
     (hretG := (by rw [← e838]; exact hretG')) (xsT := xsT) (capT := capT)

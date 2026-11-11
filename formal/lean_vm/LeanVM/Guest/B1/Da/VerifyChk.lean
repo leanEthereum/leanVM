@@ -16,21 +16,21 @@ set_option maxRecDepth 100000 in
 theorem dv_ok : dvOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l17_ok : l17Ok (coreProgram.getD 381 default) = true := by decide +kernel
+theorem l17_ok : l17Ok (coreProgram.getD 380 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l18_ok : l18Ok (coreProgram.getD 382 default) = true := by decide +kernel
+theorem l18_ok : l18Ok (coreProgram.getD 381 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l19_ok : l19Ok (coreProgram.getD 383 default) = true := by decide +kernel
+theorem l19_ok : l19Ok (coreProgram.getD 382 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l20_ok : l20Ok (coreProgram.getD 384 default) = true := by decide +kernel
+theorem l20_ok : l20Ok (coreProgram.getD 383 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem dv_loops_idx : coreProgram.indexOf? "__loop21" = some 381 ∧
-    coreProgram.indexOf? "__loop22" = some 382 ∧ coreProgram.indexOf? "__loop23" = some 383 ∧
-    coreProgram.indexOf? "__loop24" = some 384 := by
+theorem dv_loops_idx : coreProgram.indexOf? "__loop21" = some 380 ∧
+    coreProgram.indexOf? "__loop22" = some 381 ∧ coreProgram.indexOf? "__loop23" = some 382 ∧
+    coreProgram.indexOf? "__loop24" = some 383 := by
   decide +kernel
 
 end

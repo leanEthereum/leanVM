@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Bits.Tables
 # The callees, placed
 
 `verify_sub` calls (in order, `vs_calls`): `g_power_of_word` twice, `log2_ceil_in_the_exponent`
-(floors `0` and `15`), `assert_canonical` twice, `verify_bus_gkr`, `verify_tables`,
+(floors `0` and `16`), `assert_canonical` twice, `verify_bus_gkr`, `verify_tables`,
 `verify_keccak`, `ring_switch_target`, `certify_placement`, `open_stacked` (dispatched on the
 candidate) and `check_opening_terminal`.
 

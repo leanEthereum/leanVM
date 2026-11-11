@@ -6,7 +6,7 @@ import LeanVM.Cost.Decoder.PreTable
 `preTestAtC` run on a small memory (the word at `g^i` is `g^(i+1)`, `i < 64`), a small table of
 preconditions and the logarithm's tables (`discreteLogTables`, passed in as a value), its output
 the Lean function's value: an entry environment's check, a bound and a memory bound, each holding
-or not, and the functions without a precondition (`none`) or outside `2 … 991`.
+or not, and the functions without a precondition (`none`) or outside `2 … 1803`.
 -/
 
 namespace LeanVMTests.Cost.DecoderPreTest

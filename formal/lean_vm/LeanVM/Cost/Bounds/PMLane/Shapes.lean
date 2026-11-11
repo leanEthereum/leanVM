@@ -5,7 +5,7 @@ public import LeanVM.Cost.Bounds.PMLane.ShapeDefs
 /-!
 # Bounds: the decoder on `pmSolver` at every admissible shape
 
-At each of the `72` admissible shapes (`15 ≤ μ ≤ 32`, `1 ≤ R ≤ 4`), one `decide +kernel` each
+At each of the `68` admissible shapes (`16 ≤ μ ≤ 32`, `1 ≤ R ≤ 4`), one `decide +kernel` each
 (a single `decide` over all shapes at once outgrows the memory): the lanes are word-sized
 (`DecoderLaneSizes`) and the decoder's bound beyond the word's prices, at the model's prices
 with their margin, is within the stack size's budget less `2^75` (`pmDecoderBudget`; the worst,
@@ -23,10 +23,6 @@ open LeanVM.Cost.Bounds.Decoder LeanVM.Cost.Bounds.PMBasis
 
 public section
 
-theorem decoderShapeOkPM_15_1 : DecoderShapeOkPM 15 1 := by decide +kernel
-theorem decoderShapeOkPM_15_2 : DecoderShapeOkPM 15 2 := by decide +kernel
-theorem decoderShapeOkPM_15_3 : DecoderShapeOkPM 15 3 := by decide +kernel
-theorem decoderShapeOkPM_15_4 : DecoderShapeOkPM 15 4 := by decide +kernel
 theorem decoderShapeOkPM_16_1 : DecoderShapeOkPM 16 1 := by decide +kernel
 theorem decoderShapeOkPM_16_2 : DecoderShapeOkPM 16 2 := by decide +kernel
 theorem decoderShapeOkPM_16_3 : DecoderShapeOkPM 16 3 := by decide +kernel
@@ -101,13 +97,9 @@ theorem decoderShapePM_ok {μ R : ℕ} (h : Whir.Admissible μ R) : DecoderShape
   obtain ⟨h1, h2, h3, h4⟩ := h
   simp only [Whir.minLogStack, Whir.maxLogStack] at h1 h2
   have hR : R = 1 ∨ R = 2 ∨ R = 3 ∨ R = 4 := by omega
-  rcases (show μ = 15 ∨ μ = 16 ∨ μ = 17 ∨ μ = 18 ∨ μ = 19 ∨ μ = 20 ∨ μ = 21 ∨ μ = 22 ∨ μ = 23 ∨ μ = 24 ∨ μ = 25 ∨ μ = 26 ∨ μ = 27 ∨ μ = 28 ∨ μ = 29 ∨ μ = 30 ∨ μ = 31 ∨ μ = 32 by omega) with
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+  rcases (show μ = 16 ∨ μ = 17 ∨ μ = 18 ∨ μ = 19 ∨ μ = 20 ∨ μ = 21 ∨ μ = 22 ∨ μ = 23 ∨ μ = 24 ∨ μ = 25 ∨ μ = 26 ∨ μ = 27 ∨ μ = 28 ∨ μ = 29 ∨ μ = 30 ∨ μ = 31 ∨ μ = 32 by omega) with
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     rcases hR with rfl | rfl | rfl | rfl
-  · exact decoderShapeOkPM_15_1
-  · exact decoderShapeOkPM_15_2
-  · exact decoderShapeOkPM_15_3
-  · exact decoderShapeOkPM_15_4
   · exact decoderShapeOkPM_16_1
   · exact decoderShapeOkPM_16_2
   · exact decoderShapeOkPM_16_3

@@ -28,7 +28,7 @@ theorem cw308_0_0 : cplWin 308 0 0 = true := by decide +kernel
 /-- `log2_ceil_in_the_exponent__L0_L34`, window 0, part 0. -/
 theorem cw309_0_0 : cplWin 309 0 0 = true := by decide +kernel
 
-/-- `log2_ceil_in_the_exponent__L15_L34`, window 0, part 0. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, window 0, part 0. -/
 theorem cw310_0_0 : cplWin 310 0 0 = true := by decide +kernel
 
 /-- `open_stacked__L0`, window 0, part 0. -/
@@ -89,24 +89,6 @@ theorem ok310 : CplOk 310 := by
     rw [hn] at hk
     interval_cases k
     · exact cw310_0_0
-
-theorem ok311 : CplOk 311 := by
-  intro i hi k hk
-  have hc : (certOf 311).cuts.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 311 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_0_0
-  · have hn : nParts 311 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_1_0
-  · have hn : nParts 311 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw311_2_0
 
 end
 end LeanVM.Guest.B2C.Cplw

@@ -13,9 +13,10 @@ public import LeanVM.Guest.B1.Whir.BrHeight
 # The body on the Spec's run
 
 `OsAt`: the pointers of the frame's own buffers (the fixed buffers, the tail challenges, the point
-and `point1`, the basis coefficients, scales and inner sums, and each level's squeeze chain, row
-weights and residual chain). `OsMem`: memory holds each buffer's honest words there (`BrCont`).
-`OsCallsOk`: the calls of `C` the body makes, at their honest arguments and returns.
+and `point1`, the basis coefficients, scales and inner sums, and each level's row weights; the
+helpers' buffers are theirs). `OsMem`: memory holds each buffer's honest words there (`BrCont`).
+`OsCallsOk`: the calls of `C` the body makes, at their honest arguments and returns, the
+dispatches at the rate's selector `σ 0`.
 
 **`osBodyA_honest`**: on an accepting run of `whirOpen μ r target` from `⟨capOf S, []⟩` with no
 zero challenge, at a candidate's facts and sizes, there is an honest trace `tr` (the run's words
@@ -43,9 +44,7 @@ structure OsAt where
   BD : E
   LS : E
   ICH : E
-  sqz : ℕ → E
   wp : ℕ → E
-  rc : ℕ → E
 
 /-- **Memory holds the buffers' honest words** (those the body reads). -/
 structure OsMem (rd : Reader) (A : OsAt) (c : OsCfg) (tr : OsTr) : Prop where
@@ -56,18 +55,18 @@ structure OsMem (rd : Reader) (A : OsAt) (c : OsCfg) (tr : OsTr) : Prop where
   BD : ReadsAt rd A.BD (bdC c tr)
   LS : ReadsAt rd A.LS (lsC c tr)
   ICH : ReadsAt rd A.ICH (ichC c tr)
-  sqz : ∀ i < c.levels.length, ReadsAt rd (A.sqz i) (sqzC c tr i)
-  rc : ∀ i < c.levels.length, ReadsAt rd (A.rc i) (rcC c tr i)
 
 /-- **The calls of `C` the body makes**, at their honest arguments and returns. -/
-structure OsCallsOk (C : CallRel) (rd : Reader) (A : OsAt) (c : OsCfg) (tr : OsTr) : Prop where
-  fold : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets
-  lv : ∀ i < c.levels.length, LvCallsOk C rd A.P c i (lvAt c i) (tr.L i) (A.sqz i) (A.wp i)
-  res : ∀ i < c.levels.length, ResCallOk C A.P c i A.BD (A.rc i) (finM tr i)
+structure OsCallsOk (C : CallRel) (rd : Reader) (R : E) (A : OsAt) (c : OsCfg) (tr : OsTr) :
+    Prop where
+  fold : FoldCallC C rd none 0 R
+  lv : ∀ i < c.levels.length, LvCallsOk C rd A.P R c i (lvAt c i) (tr.L i) (A.wp i)
+  res : ∀ i < c.levels.length, DispC C rd R ((c.lvAt i).map osResidualName)
+    [A.P.qpos * gen ^ (lvAt c i).posOff, A.BD * gen ^ (i * ligColsCap), finM tr i] [finH c tr i]
   ffm : C ("fold_final_msg__L" ++ natStr c.yrLog) [A.P.fmsg, A.T] [multilinearEval tr.Lf.ms tr.Tc]
 
 /-- The honest data of the body's levels. -/
-def OsTr.Ds (tr : OsTr) (A : OsAt) : List LvDat := spDats tr.Ls 0 A.sqz A.wp
+def OsTr.Ds (tr : OsTr) (A : OsAt) : List LvDat := spDats tr.Ls 0 A.wp
 
 /-- The tail's words. -/
 def OsTr.tailWords (c : OsCfg) (tr : OsTr) : List E := tr.xsR.take (2 * (c.yrLog - 1))
@@ -77,8 +76,8 @@ def osBodyF (c : OsCfg) (tr : OsTr) (σ : Val) (c0 c2 : E) (A : OsAt) : ℕ → 
   bodyF c σ A.P c0 c2 (tr.Ds A) A.T (tr.tailWords c) (multilinearEval tr.Lf.ms tr.Tc) A.PT A.PT1
     A.BD A.LS A.ICH (finI c tr c.levels.length)
     (fun j ↦ (ptC tr (c.levels.headD default).folds).getD j 0) (finB c tr)
-    (Xof tr.rs tr.Fall tr.Tc) A.rc (finAcc c tr) (finM tr) (finI c tr) (finL c tr) (finPq c tr)
-    (finD c tr) (Λof tr.rs) (Zof tr.rs) (Yof tr.rs tr.Fall tr.Tc)
+    (Xof tr.rs tr.Fall tr.Tc) (finM tr) (finH c tr) (finI c tr) (finL c tr)
+    (Λof tr.rs) (Zof tr.rs) (Yof tr.rs tr.Fall tr.Tc)
 
 /-- **What the run gives of its trace** beyond the body: each level's query step is one of the
 run's (so `CapsAgree` speaks of it), and each level's tree has height `L.D`. -/
@@ -102,13 +101,13 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
       pt1C tr (c.levels.headD default).folds =
         w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1 ∧
       (∀ (C : CallRel) (rd : Reader) (σ : Val) (A : OsAt),
-        [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = capOf S → σ (.n 5) = target →
-        σ (.n 6) = (digestHalves root).1 → σ (.n 7) = (digestHalves root).2 →
-        ReadsAt rd (σ (.n 8)) xs → OsMem rd A c tr → OsCallsOk C rd A c tr →
-        BlkF C rd σ 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ c0 c2 A)
-          (osBodyA c)
-          (fun σ' ↦ (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
-            [w.target, A.PT, A.PT1, w.inner, w.residual] ∧ AgreeBelow 9 σ σ')) ∧
+        [σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] = capOf S → σ (.n 6) = target →
+        σ (.n 7) = (digestHalves root).1 → σ (.n 8) = (digestHalves root).2 →
+        ReadsAt rd (σ (.n 9)) xs → OsMem rd A c tr → OsCallsOk C rd (σ (.n osRate)) A c tr →
+        BlkF C rd σ 10 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ c0 c2 A)
+          (osBodyAc c)
+          (fun σ' ↦ (osFinRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
+            [w.target, A.PT, A.PT1, w.inner, w.residual] ∧ AgreeBelow 10 σ σ')) ∧
       TrRun c μ r target S xs os root tr := by
   obtain ⟨c0, c2, xs', Ls, hxs, hlc, hch, hqs⟩ := nz_trace hF hrun hnz
   set lane := (cfg.head?.map (·.fold)).getD 0 with hlane
@@ -170,34 +169,34 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
   intro C rd σ A hcap h5 h6 h7 hrd hm hc
   -- the head's words
   rw [hxs] at hrd
-  have h0 : LoadHolds rd (σ (.n 8)) 0 c0 := hrd 0 (by simp)
-  have h2 : LoadHolds rd (σ (.n 8)) 1 c2 := hrd 1 (by simp)
-  have hrd' : ReadsAt rd (σ (.n 8) * gen ^ 2) xs' := readsAt_right (xs := [c0, c2]) hrd
-  have hr0 : LoadHolds rd A.P.roots 0 (σ (.n 6)) := by
+  have h0 : LoadHolds rd (σ (.n 9)) 0 c0 := hrd 0 (by simp)
+  have h2 : LoadHolds rd (σ (.n 9)) 1 c2 := hrd 1 (by simp)
+  have hrd' : ReadsAt rd (σ (.n 9) * gen ^ 2) xs' := readsAt_right (xs := [c0, c2]) hrd
+  have hr0 : LoadHolds rd A.P.roots 0 (σ (.n 7)) := by
     have := readsAt_map_range hm.fixed.roots (k := 0) (by omega)
     simp only [Nat.zero_mod, Nat.zero_div, ↓reduceIte, OsTr.L] at this
     rw [h6, ← hroot0]; exact this
-  have hr1 : LoadHolds rd A.P.roots 1 (σ (.n 7)) := by
+  have hr1 : LoadHolds rd A.P.roots 1 (σ (.n 8)) := by
     have := readsAt_map_range hm.fixed.roots (k := 1) (by omega)
     simp only [show (1 : ℕ) % 2 = 1 from rfl, show (1 : ℕ) / 2 = 0 from rfl, one_ne_zero,
       ↓reduceIte, OsTr.L] at this
     rw [h7, ← hroot0]; exact this
-  have hcan : AllCanonical [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := by
+  have hcan : AllCanonical [σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] := by
     rw [hcap]; exact capOf_canonical S
   have hsp : headSponge σ c0 c2 = ⟨capOf S, [(c0, dsObserve), (c2, dsObserve)]⟩ := by
     rw [headSponge, hcap]
   -- the levels
-  obtain ⟨hlv, hO⟩ := lvsH_sp (C := C) (rd := rd) (P := A.P) A.sqz A.wp c.levels cfg 0
-    ⟨target, [c0, target + c2, c2], [], []⟩ _ xs' os _ Ls _ (σ (.n 8) * gen ^ 2) hF.lok hch
+  obtain ⟨hlv, hO⟩ := lvsH_sp (C := C) (rd := rd) (P := A.P) (Rs := σ (.n osRate)) A.wp c.levels
+    cfg 0 ⟨target, [c0, target + c2, c2], [], []⟩ _ xs' os _ Ls _ (σ (.n 9) * gen ^ 2) hF.lok hch
     (by simpa using hF.off0.symm) hrd'
-    (fun i hi ↦ by simpa [OsTr.L] using lvMemB_cont hF hfit hs hm.fixed hi (hm.sqz i hi))
+    (fun i hi ↦ by simpa [OsTr.L] using lvMemB_cont hF hfit hs hm.fixed hi)
     (fun i hi ↦ by simpa [OsTr.L] using hc.lv i hi)
-  have hlvs : LvsH C rd A.P c 0 c.levels (tr.Ds A) (headSponge σ c0 c2) [c0, σ (.n 5) + c2, c2]
-      (σ (.n 5)) (σ (.n 8) * gen ^ 2) := by
+  have hlvs : LvsH C rd A.P (σ (.n osRate)) c 0 c.levels (tr.Ds A) (headSponge σ c0 c2)
+      [c0, σ (.n 6) + c2, c2] (σ (.n 6)) (σ (.n 9) * gen ^ 2) := by
     rw [hsp, h5]; exact hlv
-  have hBL : bodyLvs c σ c0 c2 (tr.Ds A) = lvsOut c 0 c.levels (spDats Ls 0 A.sqz A.wp)
+  have hBL : bodyLvs c σ c0 c2 (tr.Ds A) = lvsOut c 0 c.levels (spDats Ls 0 A.wp)
       ⟨capOf S, [(c0, dsObserve), (c2, dsObserve)]⟩ [c0, target + c2, c2] target
-      (σ (.n 8) * gen ^ 2) := by
+      (σ (.n 9) * gen ^ 2) := by
     rw [bodyLvs, hsp, h5]; rfl
   -- the tail
   have hml : tr.Lf.ml = c.yrLog := by
@@ -211,12 +210,12 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
   -- the body
   refine BlkF.mono (osBodyA_complete (C := C) (rd := rd) σ A.P (Ds := tr.Ds A)
     (xs := tr.tailWords c) (Y := multilinearEval tr.Lf.ms tr.Tc)
-    (by intro h; have := congrArg List.length h; simp at this; omega) h0 h2 hr0 hr1
+    (by intro h; have := congrArg List.length h; simp at this; omega) rfl h0 h2 hr0 hr1
     (fun i hi ↦ readsAt_map_range hm.fixed.win hi) hcan hlvs hc.fold hxl hrdT hT hlast hzero
     hc.ffm (fin_pt hF hfit hs hm.fixed hm.T hm.PT hm.PT1)
     (fun i hi ↦ fin_bases hF hfit hs hm.fixed hm.T hm.BD hm.LS hi)
     (by have := readsAt_map_range hm.ICH (k := 0) (by omega); simpa [finI] using this)
-    (fun i hi ↦ fin_res hF hfit hs hm.fixed hm.BD hm.LS hm.ICH hi (hm.rc i hi) (hc.res i hi))
+    (fun i hi ↦ fin_res hF hfit hm.fixed hm.LS hm.ICH hi (hc.res i hi))
     (readsAt_map_range hm.ICH (k := c.levels.length) (by omega))
     (fin_ood hF hfit hs hm.fixed hm.T)) fun σ' ⟨hr, ha⟩ ↦ ⟨?_, ha⟩
   rw [hr, OsTr.tailWords, htgt, fin_inner hF hfit, hw]

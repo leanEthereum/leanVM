@@ -185,8 +185,8 @@ theorem extractorProgram_includes_all : Includes compiledKnowledgeExtractor
   rw [extractorProgramBodies_eq, List.map_cons]
   exact h
 
-/-- **The program's size is within `leanVmKnowledgeExtractorSizeBound`** (`16048`), evaluated
-(`Cost/ExtractorSize.lean`; exactly `15773`). -/
+/-- **The program's size is within `leanVmKnowledgeExtractorSizeBound`** (`15972`), evaluated
+(`Cost/ExtractorSize.lean`; exactly `15697`). -/
 theorem extractorProgram_size_le : compiledKnowledgeExtractor.size ≤
     leanVmKnowledgeExtractorSizeBound :=
   extractorProgram_size_le_measured.trans (by decide)

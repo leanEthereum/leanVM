@@ -49,6 +49,8 @@ cost_compile spForsBitsC := spForsBits
 cost_compile spPathKidsC := spPathKids
 cost_compile spPathBitsC := spPathBits
 cost_compile osWordsTabC := osWordsTab
+cost_compile OsCallRetsC := OsCall.rets
+cost_compile OsCallQargsC := OsCall.qargs
 set_option maxRecDepth 100000 in
 cost_compile osCallsTabC := osCallsTab
 cost_compile tabAC := tabA
@@ -123,9 +125,11 @@ cost_compile oqIterAC := oqIterA
 cost_compile oqItersFromC measure fun _ _ _ _ _ _ _ n _ ↦ n := oqItersFrom
 cost_compile oqsOfNC := oqsOfA
 cost_compile levelOsAtC := levelOsAt
+cost_compile levelOsQC := levelOsQ
 cost_compile levelOsNC := levelOsA
 cost_compile vsPiOfAtC := vsPiOfAt
 cost_compile vsPiOfMC := vsPiOfM
+cost_compile vsPiOfSC := vsPiOfS
 cost_compile vsPiOfNC := vsPiOfA
 
 end

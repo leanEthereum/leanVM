@@ -31,15 +31,15 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- **An honest layout's table heights are below `29`**, its stack's log at most `28`. -/
+/-- **An honest layout's table heights are below `33`**, its stack's log at most `32`. -/
 theorem vsH_heights {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
     {rowsN : List ℕ} (hrl : rowsN.length = 6)
-    (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28) :
-    ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29 := by
+    (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 32) :
+    ∀ h ∈ Tables.tableHeightsOf rowsN, h < 33 := by
   have hsl := tableHeights_length rowsN hrl
   rw [stackLog_eq hbl] at h28
   have hk : ∀ c < Tables.nCommittedCols, (Tables.committedKappas
-      (columnKappas logMem Tables.guestLogBytecode (Tables.tableHeightsOf rowsN))).getD c 0 ≤ 28 := by
+      (columnKappas logMem Tables.guestLogBytecode (Tables.tableHeightsOf rowsN))).getD c 0 ≤ 32 := by
     intro c hc
     have hcl : c < (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode
         (Tables.tableHeightsOf rowsN))).length := by
@@ -55,7 +55,7 @@ theorem vsH_heights {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem
   obtain ⟨t, ht, rfl⟩ := List.getElem_of_mem hh
   rw [hsl] at ht
   have key : ∀ c < Tables.nCommittedCols, (0 :: logMem :: Tables.tableHeightsOf rowsN).getD
-      (Tables.colKappaSrc c) 0 + Tables.colKappaAdj c ≤ 28 := fun c hc ↦ by
+      (Tables.colKappaSrc c) 0 + Tables.colKappaAdj c ≤ 32 := fun c hc ↦ by
     have := hk c hc
     rwa [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range] at this
   have e : (Tables.tableHeightsOf rowsN)[t] = (Tables.tableHeightsOf rowsN).getD t 0 :=
@@ -68,6 +68,26 @@ theorem vsH_heights {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem
   · have := key 44 (by decide); simp [Tables.colKappaSrc, Tables.colKappaAdj] at this; rw [List.getD_eq_getElem?_getD]; omega
   · have := key 59 (by decide); simp [Tables.colKappaSrc, Tables.colKappaAdj] at this; rw [List.getD_eq_getElem?_getD]; omega
   · have := key 73 (by decide); simp [Tables.colKappaSrc, Tables.colKappaAdj] at this; rw [List.getD_eq_getElem?_getD]; omega
+
+/-- **An honest `KECCAK` height is at most `26`.** -/
+theorem vsH_tau26 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
+    {rowsN : List ℕ} (hrl : rowsN.length = 6)
+    (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 32) :
+    (Tables.tableHeightsOf rowsN).getD 5 0 ≤ 26 := by
+  have hsl := tableHeights_length rowsN hrl
+  rw [stackLog_eq hbl] at h28
+  have hcl : 5 < (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode
+      (Tables.tableHeightsOf rowsN))).length := by
+    rw [Tables.committedKappas_length _ (Tables.columnKappas_length _ _ _)]; show 5 < 101; norm_num
+  have := Tables.tb_le_log2Ceil_of_two_pow_le (Tables.tb_single_le_sum_map _ 5 hcl)
+  have e : ((Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode
+      (Tables.tableHeightsOf rowsN))).map (2 ^ ·)).sum =
+      Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) := rfl
+  rw [e, Tables.committedKappas_columnKappas logMem _ hsl,
+    List.getD_eq_getElem _ _ (by simp; show 5 < 101; norm_num), List.getElem_map, List.getElem_range] at this
+  simp [Tables.colKappaSrc, Tables.colKappaAdj] at this
+  rw [List.getD_eq_getElem?_getD]
+  omega
 
 /-- The announced words of an honest child. -/
 def ChildSegs.words {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c) :
@@ -171,8 +191,8 @@ theorem vsH_spec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have e537 : σ (.n 324) = S.x0 := by rw [F.e537, hx8]
   have e547 : σ (.n 334) = S.x1 := by rw [F.e547, hx9]
   -- the announced sizes' run
-  have hh := vsH_heights hbl S.hrowsL (by rw [← S.hlayout]; exact S.hmu28)
-  have hr := readSizes_runsTo hbl S.h16 S.h32 S.hrowsL hh S.hr1 S.hr4 (by rw [← S.hlayout]; exact S.hmu28)
+  have hh := vsH_heights hbl S.hrowsL (by rw [← S.hlayout]; exact S.hmu32)
+  have hr := readSizes_runsTo hbl S.hlm1 S.h32 S.hrowsL hh S.hr1 S.hr4 (by rw [← S.hlayout]; exact S.hmu32)
     (⟨capOf (keccakF1600 (seedInput seed (statementDigest seed c.statement))), []⟩ : Fs)
   rw [← S.hlayout] at hr
   obtain ⟨-, es1, -⟩ := Tables.runsTo_det S.runS hr (seed_carries _ _) (r1 := []) (r2 := []) rfl

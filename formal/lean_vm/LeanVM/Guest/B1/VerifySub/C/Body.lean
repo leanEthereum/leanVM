@@ -64,7 +64,7 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   logMem : ℕ
   hl1 : 1 ≤ lir
   hl4 : lir ≤ 4
-  hm16 : 16 ≤ logMem
+  hlm1 : 1 ≤ logMem
   hm32 : logMem ≤ 32
   e112 : vsσ rd w args (.n 110) = eOfNat lir
   e29 : vsσ rd w args (.n 27) = eOfNat logMem
@@ -72,7 +72,7 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   e130 : vsσ rd w args (.n 128) = gen ^ logMem
   hs : List ℕ
   hsl : hs.length = 6
-  hh : ∀ x ∈ hs, x < 29
+  hh : ∀ x ∈ hs, x < 33
   hdims : ReadsAt rd (vsσ rd w args (.n 127)) (gen ^ logMem :: hs.map Hints.count)
   hkb : ReadsAt rd (vsσ rd w args (.n 139)) (1 :: gen ^ logMem :: hs.map Hints.count)
   hcount : hs.map Hints.count = hs.map (gen ^ ·)
@@ -115,11 +115,11 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   -- the tail
   m : ℕ
   r : ℕ
-  hm22 : 22 ≤ m
-  hm28 : m ≤ 28
+  hmu20 : B1.Whir.minOpenLog ≤ m
+  hmu32 : m ≤ 32
   hr1 : 1 ≤ r
   hr4 : r ≤ 4
-  e1890 : vsσ rd w args (.n 1684) = gen ^ m
+  e1684 : vsσ rd w args (.n 1684) = gen ^ m
   e124 : vsσ rd w args (.n 122) = gen ^ (r - 1)
   zs : ℕ → E
   al : ℕ → E
@@ -139,10 +139,10 @@ theorem vsCPre_complete (D : VsSecData rd w args) {next : Prop} {kret : List E �
   refine vsHeadT_completeH hl D.hc4 ?_
   refine (vsReadsT_complete hl D.hws D.hrows D.hcap22 ?_).2
   have hS := (vsSizesT_complete (C := fun _ _ _ ↦ True) (kret := kret) hl D.hκ6 D.hlow D.hl1 D.hl4
-    D.hm16 D.hm32 D.e112 D.e29 D.e122 D.e130 D.hsl D.hdims D.hkb trivial trivial trivial).1
+    D.hlm1 D.hm32 D.e112 D.e29 D.e122 D.e130 D.hsl D.hdims D.hkb trivial trivial trivial).1
   have hkbv : ∀ s < 8, vsσ rd w args (.n (140 + s)) = gen ^ (([0, D.logMem] ++ D.hs).getD s 0) :=
     fun s hs8 ↦ by rw [hS s hs8, D.hcount, kbase_getD D.hsl hs8]
-  refine (vsSizesT_complete hl D.hκ6 D.hlow D.hl1 D.hl4 D.hm16 D.hm32 D.e112 D.e29 D.e122 D.e130
+  refine (vsSizesT_complete hl D.hκ6 D.hlow D.hl1 D.hl4 D.hlm1 D.hm32 D.e112 D.e29 D.e122 D.e130
     D.hsl D.hdims D.hkb trivial trivial ?_).2
   refine (vsPushT_complete hl D.hh D.hm32 hkbv D.hexp (fun _ _ ↦ trivial) ?_).2
   have R := vsRootsT_complete (rd := rd) (w := w) (C := fun _ _ _ ↦ True) (next := True)
@@ -154,7 +154,7 @@ theorem vsCPre_complete (D : VsSecData rd w args) {next : Prop} {kret : List E �
   refine vsMapsT_complete hl D.hz D.hcap871 D.hM ?_
   refine vsCtabT_complete hl D.hcl D.hchs D.hct trivial ?_
   refine (vsLamT_complete hl D.hz D.hcap966 D.hpool ?_).2.2
-  exact (vsTailPre_complete hl D.hκ6 D.hlow D.hm22 D.hm28 D.hr1 D.hr4 D.e1890 D.e124 D.hzeta
+  exact (vsTailPre_complete hl D.hκ6 D.hlow D.hmu20 D.hmu32 D.e1684 D.hzeta
     D.halpha D.hout D.hout' D.hout23 trivial trivial trivial trivial hn).2
 
 end

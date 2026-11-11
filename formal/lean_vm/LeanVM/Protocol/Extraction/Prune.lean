@@ -264,7 +264,7 @@ theorem mem_decodeStacksAt {μ R A : ℕ} (hμ : 7 ≤ μ) (hn : μ - initialFol
 
 /-- **At the deployed shapes, the candidates at the Johnson threshold are decoded**:
 `Candidates μ R (johnsonThreshold μ R) W ⊆ decodeStacks μ R W`. -/
-theorem candidates_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 32) (hR : 1 ≤ R ∧ R ≤ 4)
+theorem candidates_subset_decodeStacks {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 32) (hR : 1 ≤ R ∧ R ≤ 4)
     (W : ℕ → List K) :
     Candidates μ R (johnsonThreshold μ R) W ⊆ {q | q ∈ decodeStacks μ R W} := fun q hq ↦ by
   obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds hμ hR
@@ -272,7 +272,7 @@ theorem candidates_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 
   exact mem_decodeStacksAt (by omega) (by simp only [initialFold]; omega) hA hcap W hq
 
 /-- The same, at the statement's real-valued threshold (`johnsonThreshold_eq_real`). -/
-theorem candidates_real_subset_decodeStacks {μ R : ℕ} (hμ : 15 ≤ μ ∧ μ ≤ 32)
+theorem candidates_real_subset_decodeStacks {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 32)
     (hR : 1 ≤ R ∧ R ≤ 4) (W : ℕ → List K) :
     Candidates μ R (johnsonThresholdReal μ R) W ⊆ {q | q ∈ decodeStacks μ R W} := by
   rw [johnsonThreshold_eq_real]

@@ -38,7 +38,7 @@ open LeanVM.Guest.Fast in
 its frame and its three `sp_wots` frames (`21`), the readers' tables `R` given. -/
 noncomputable def sphincsAtFrame (R : ReaderTabs) (σ : Val) (Vn : NFrames) (p : E) :
     Sphincs.Signature :=
-  let s := Vn 21 [p, σ (.n 68)] []
+  let s := Vn 21 [p, σ (.n 47)] []
   sphincsSigOfA R.sphincs s (Vn 20 (spWotsArgs s 0) (spWotsRets s 0))
     (Vn 20 (spWotsArgs s 1) (spWotsRets s 1)) (Vn 20 (spWotsArgs s 2) (spWotsRets s 2))
 

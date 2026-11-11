@@ -13,7 +13,7 @@ public import LeanVM.Guest.JumpTable
 # The jump table in `main`'s cells
 
 An instance of `main` that runs has the jump table among its candidates (`nodeE`'s last block),
-and every other candidate lies below the table's first slot `444`: its values' certificate cells,
+and every other candidate lies below the table's first slot `429`: its values' certificate cells,
 its fixed cells, call sites and table jumps (`mainSmall`, by the kernel), and no frame run, since
 `main`'s body has no `frameAddr` (`main_noRun`, through `walk_blockAtoms`: a path's atoms are its
 block's). So each slot is the first candidate at its cell (`tableC_node`), and the honest memory
@@ -126,11 +126,11 @@ def noRun : Atom → Bool
 set_option maxRecDepth 100000 in
 theorem main_noRun : (blockAtoms Data.core0.body).all noRun = true := by decide +kernel
 
-/-- `main`'s certificate cells, fixed cells, call sites and table jumps lie below `444`. -/
+/-- `main`'s certificate cells, fixed cells, call sites and table jumps lie below `429`. -/
 noncomputable def mainSmallB : Bool :=
-  (certOf 1).locs.all (fun c => Nat.blt c 444) && (plumbOf 1).stat.all (fun p => Nat.blt p.1 444) &&
-    (plumbOf 1).sites.all (fun s => Nat.blt s.q 444 && Nat.blt s.tgt 444) &&
-    (plumbOf 1).arms.all (fun a => Nat.blt a.2.1 444) && (plumbOf 1).chains.isEmpty
+  (certOf 1).locs.all (fun c => Nat.blt c 429) && (plumbOf 1).stat.all (fun p => Nat.blt p.1 429) &&
+    (plumbOf 1).sites.all (fun s => Nat.blt s.q 429 && Nat.blt s.tgt 429) &&
+    (plumbOf 1).arms.all (fun a => Nat.blt a.2.1 429) && (plumbOf 1).chains.isEmpty
 
 set_option maxRecDepth 100000 in
 theorem mainSmall : mainSmallB = true := by decide +kernel
@@ -178,8 +178,8 @@ theorem runsE_main {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} :
     | _ => rfl
   | _ => rfl
 
-private theorem getD_lt {l : List ℕ} (h : l.all (fun c => Nat.blt c 444) = true) (n : ℕ) :
-    l.getD n 0 < 444 := by
+private theorem getD_lt {l : List ℕ} (h : l.all (fun c => Nat.blt c 429) = true) (n : ℕ) :
+    l.getD n 0 < 429 := by
   rw [List.getD_eq_getElem?_getD]
   cases hn : l[n]? with
   | none => simp
@@ -187,14 +187,14 @@ private theorem getD_lt {l : List ℕ} (h : l.all (fun c => Nat.blt c 444) = tru
     have := List.all_eq_true.mp h c (List.mem_of_getElem? hn)
     simpa using this
 
-/-- **Every candidate of `main` but the jump table lies below `444`.** -/
+/-- **Every candidate of `main` but the jump table lies below `429`.** -/
 theorem mainRest_lt {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} {I : Inst}
-    (ht : I.t = .node "main" σ bufs kids) : ∀ x ∈ mainRest σ I, x.1 < 444 := by
+    (ht : I.t = .node "main" σ bufs kids) : ∀ x ∈ mainRest σ I, x.1 < 429 := by
   have hs := mainSmall
   simp only [mainSmallB, Bool.and_eq_true] at hs
   obtain ⟨⟨⟨⟨hl, hst⟩, hsi⟩, har⟩, hch⟩ := hs
   obtain ⟨_, -, -, -, -, -, -, hcert, -, -⟩ := fn_of_idx main_idx
-  have hval : ∀ vs : List V, ∀ x ∈ valE "main" σ vs, x.1 < 444 := by
+  have hval : ∀ vs : List V, ∀ x ∈ valE "main" σ vs, x.1 < 429 := by
     intro vs x hx
     obtain ⟨v, -, rfl⟩ := List.mem_map.mp hx
     rw [hcert v]
@@ -230,7 +230,7 @@ theorem mainRest_lt {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} {I : 
 theorem tableC_node {I : Inst} {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree}
     (ht : I.t = .node "main" σ bufs kids) : tableCells ⊆ C I := by
   intro q hq
-  have hlo : 444 ≤ q.1 := by
+  have hlo : 429 ≤ q.1 := by
     have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
     rw [List.mem_range'_1] at this
     exact this.1

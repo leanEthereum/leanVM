@@ -45,7 +45,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     σ (.n 13), σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19)] from rfl] at hpre ⊢
   rw [show vtRets.map σ = [σ (.n 6961), σ (.n 6962), σ (.n 6963), σ (.n 6964), σ (.n 6965),
     σ (.n 6968), σ (.n 6969), σ (.n 6970), σ (.n 6971), σ (.n 6972)] from rfl]
-  obtain ⟨hpi, hz, hmu, hml, hlm16, hlm, ⟨ds, hdsl, hdims⟩, hE, hal, hW, hvals⟩ := hpre
+  obtain ⟨hpi, hz, hmu, hml, hlm1, hlm, ⟨ds, hdsl, hdims⟩, hE, hal, hW, hvals⟩ := hpre
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
   obtain ⟨tf, htf⟩ := tb_exists_fun_of_forall (α := ℕ × ℕ) (n := 6)

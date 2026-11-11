@@ -22,7 +22,7 @@ witness's (`decWitNC` at the frames stage's closures, at most `Wn`) a parameter:
 * **`decTopStates_cost`**, **`decTopTables_cost`**, **`decTop_cost`**: the entry table (at most `E`),
   `main`'s valuation, the reader (`1271` at `κ ≤ 32`), the replay (`replayStatesOf_cost`), the
   tables built once (the preconditions' at most `Kpre`, the entries' at most `Kpc`, the readers'
-  `32900`): at most `(runnerStepPrice κ ℓ + 46)·|states| + E + Kpre + Kpc +
+  `36800`): at most `(runnerStepPrice κ ℓ + 46)·|states| + E + Kpre + Kpc +
   addressTablesPrice κ ℓ + topConstPrice X Wn`, the address tables
   `(74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`);
 * `frameWit_cost`: the witness at the frames stage's closures, `Wn` from the frame map's price `F`
@@ -222,10 +222,10 @@ theorem sphincsAtFrameT_cost (hP : Includes P Decoder.sphincsAtFrameTC.costDeps)
     machineCost P Decoder.sphincsAtFrameTC.costIdx [encodeValue Rt, encodeValue table, rdV, σV,
       encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351525 := by
   rw [Decoder.sphincsAtFrameTC.costEq P hP Rt table rd rdV hrd σ σV hσ p]
-  have := hS (.n 68)
-  have := hFp 21 [p, σ (.n 68)] [] (by norm_num) (by simp)
+  have := hS (.n 47)
+  have := hFp 21 [p, σ (.n 47)] [] (by norm_num) (by simp)
   have := sphincsAtFp_cost P hrd hR table hFp (by includes) Rt hRt
-    (Decoder.frameFpA table 21 [p, σ (.n 68)] [])
+    (Decoder.frameFpA table 21 [p, σ (.n 47)] [])
   omega
 
 omit hR hFp in
@@ -526,7 +526,7 @@ program's of `2^ℓ` instructions, each sorted. -/
 /-- The top's constant, the address tables apart: the witness (at most `Wn`), the decoding, the
 replay's and the other tables' constants. -/
 @[expose] def topConstPrice (X Wn : ℕ) : ℕ :=
-  framesPrice gLogPrice 1271 (1271 + 1525) X Wn + 42 + 2456 + 90351983 + 17565 + 32900 + 12
+  framesPrice gLogPrice 1271 (1271 + 1525) X Wn + 42 + 2456 + 90351983 + 17565 + 36800 + 12
 
 /-- **The decoder's top** (`decTopC`) on a program of `ℓ` and a memory of `2^κ` words, `κ ≤ 32`:
 the tables built once (the logarithm's, the preconditions' at most `Kpre`, the powers, the readers'

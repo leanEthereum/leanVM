@@ -31,7 +31,7 @@ namespace LeanVM.Parameters.Whir
 /-- Out-of-domain samples taken after a level's commitment: none at level 0, whose commitment the
 opening's own evaluation claim binds, and one at every later level (`whir_config.rs:107-114`).
 The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:974, 986`);
-for 15 to 21 it is the deployed verifier's, which takes one sample per level after the first
+for 16 to 21 it is the deployed verifier's, which takes one sample per level after the first
 (`crates/verifier/src/whir.rs:174-183`). -/
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
@@ -46,7 +46,7 @@ def blockLogs (μ : ℕ) : List Level → List ℕ
 
 /-! ## Structure of the table
 
-Each fact below is decided over the 56 admissible pairs; the general statement follows by
+Each fact below is decided over the 68 admissible pairs; the general statement follows by
 bounding the quantifiers. -/
 
 private theorem admissible_bounded {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :

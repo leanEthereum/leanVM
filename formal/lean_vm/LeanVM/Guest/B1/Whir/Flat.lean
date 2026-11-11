@@ -12,8 +12,9 @@ public import LeanVM.Guest.B1.Whir.DataSpec
 /-!
 # Flat bodies
 
-`open_stacked`'s body (`osBody`) and its loops have no branch, `match` or dispatch: every
-statement is an atom, a call or a conditional call, and the last is the `ret`. So the body holds
+`open_stacked`'s body (`osBody`) and its loops have no branch or `match`: every statement is an
+atom, a call, a conditional call or a dispatch (a call of one of several functions, chosen by a
+selector), and the last is the `ret`. So the body holds
 of a valuation exactly when every statement's relation does (`StmtOk`) and the `ret`'s words are
 the returns (`holdsList_flat_ret`). `AllOk σ ss` is that conjunction over a block; it splits over
 `++` (`allOk_append`), so each block of the template is read on its own.
@@ -33,9 +34,9 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Flat statements -/
 
-/-- A flat statement: an atom, a call or a conditional call. -/
+/-- A flat statement: an atom, a call, a conditional call or a dispatch. -/
 def Stmt.flat : Stmt → Bool
-  | .atom _ | .call .. | .callIf .. => true
+  | .atom _ | .call .. | .callIf .. | .dispatch .. => true
   | _ => false
 
 /-- A flat statement's relation. -/
@@ -43,6 +44,8 @@ def StmtOk (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
   | .atom a => a.Holds rd σ
   | .call f args rets => C f (args.map σ) (rets.map σ)
   | .callIf c f args => IsInK (σ c) ∧ (σ c ≠ 0 → C f (args.map σ) [])
+  | .dispatch x fs args rets =>
+      ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (addressOfIndex j) ∧ C fs[j] (args.map σ) (rets.map σ)
   | _ => True
 
 /-- Every statement of a block holds. -/
@@ -77,6 +80,18 @@ theorem holdsList_flat : ∀ (ss : List Stmt), ss.all Stmt.flat = true → ∀ (
     | .atom a, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
     | .call f args rets, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
     | .callIf c f args, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
+    | .dispatch x fs args rets, _ => simp only [Stmt.HoldsList, Stmt.Holds, StmtOk, ih, and_assoc]
+
+/-- **A dispatch at the selector `g^i`** calls its `i`-th function. -/
+theorem stmtOk_dispatch {x : V} {fs : List String} {args rets : List V} {i : ℕ}
+    (hx : σ x = ofK (Parameters.addressOfIndex i)) (hi : i < 2 ^ 64 - 1)
+    (hfl : fs.length < 2 ^ 64 - 1) (h : StmtOk C rd σ (.dispatch x fs args rets)) :
+    i < fs.length ∧ C (fs.getD i "") (args.map σ) (rets.map σ) := by
+  obtain ⟨j, hj, hjx, hc⟩ := h
+  have hji : j = i := gen_pow_inj (by omega) hi
+    (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK, ← hjx, hx])
+  subst hji
+  exact ⟨hj, by rw [List.getD_eq_getElem _ _ hj]; exact hc⟩
 
 /-- **A flat body ending in a `ret`** holds exactly when every statement before it does and the
 returns are its words. -/

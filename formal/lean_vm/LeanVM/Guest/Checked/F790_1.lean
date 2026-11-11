@@ -17,31 +17,35 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_queries__L18_L0_L16_L24_L22_L4`, window 1. -/
+/-- `level_queries__L112_L1_L64_L32_L24_L6`, window 1. -/
 theorem w790_1 : WinOk 790 1 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L16_L0_L16_L24_L19_L7`, window 0. -/
+/-- `level_queries__L75_L1_L64_L32_L25_L7`, window 0. -/
 theorem w791_0 : WinOk 791 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L16_L0_L16_L24_L19_L7`, window 1. -/
+/-- `level_queries__L75_L1_L64_L32_L25_L7`, window 1. -/
 theorem w791_1 : WinOk 791 1 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L15_L0_L16_L24_L20_L2`, window 0. -/
+/-- `level_queries__L56_L1_L64_L32_L26_L2`, window 0. -/
 theorem w792_0 : WinOk 792 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L15_L0_L16_L24_L20_L2`, window 1. -/
+/-- `level_queries__L56_L1_L64_L32_L26_L2`, window 1. -/
 theorem w792_1 : WinOk 792 1 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L15_L0_L16_L24_L21_L3`, window 0. -/
+/-- `level_positions__L6_L23_L5`, window 0. -/
 theorem w793_0 : WinOk 793 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L15_L0_L16_L24_L21_L3`, window 1. -/
-theorem w793_1 : WinOk 793 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_residual__L225_L21`, window 0. -/
+/-- `level_positions__L5_L24_L6`, window 0. -/
 theorem w794_0 : WinOk 794 0 := winOk_of_C (by decide +kernel)
 
+/-- `level_positions__L5_L25_L7`, window 0. -/
+theorem w795_0 : WinOk 795 0 := winOk_of_C (by decide +kernel)
+
+theorem ok793 : CheckOk 793 := checkOk_one (by decide +kernel) w793_0
+
 theorem ok794 : CheckOk 794 := checkOk_one (by decide +kernel) w794_0
+
+theorem ok795 : CheckOk 795 := checkOk_one (by decide +kernel) w795_0
 
 end
 end LeanVM.Guest.Checked

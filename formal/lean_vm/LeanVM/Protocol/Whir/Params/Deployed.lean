@@ -13,8 +13,8 @@ public import LeanVM.Protocol.Whir.Params.Check
 /-!
 # The deployed codes and their escape bound
 
-For each of the 72 admissible pairs `(μ, R)` (`LeanVM.Parameters.Whir.Admissible`, stacks of
-`2^15` to `2^32`), `certTable` gives one `Cert` per level of the ladder
+For each of the 68 admissible pairs `(μ, R)` (`LeanVM.Parameters.Whir.Admissible`, stacks of
+`2^16` to `2^32`), `certTable` gives one `Cert` per level of the ladder
 `ladder μ R`: the level's `κ` and `R`, its Johnson slack `η = e / 2^22`, and the bracket
 `s / 2^40 ≤ √ρ₋ ≤ (s + 1) / 2^40`. The slacks were chosen offline by `scripts/whir-params/gen.py`.
 From level 1 on, they balance the fold group's exception count (decreasing in `η`) against the
@@ -35,8 +35,7 @@ its fold group checked at `2^-(128-b)`, the grinding's `2^-b` bringing it to `2^
 
 The certified bound is `B = 128`, with no margin at level 0: at every shape its query group is at
 `2^-128` within a fraction of a bit, one more unit of slack breaks it, and `shapeOK 129` fails
-at every shape (see the tests). Level 0's list bound is at most `2049` (`(15, 2)`; at most `642`
-elsewhere), so `2^12`.
+at every shape (see the tests). Level 0's list bound is at most `642`, so `2^12`.
 
 The fold group is the one `LeanVM.Protocol.Whir.Sound.eFold` proves, with the row-union factor:
 `(2·listMax + 2^(ℓ−1)·mcaMax)/|E|`. Annex B at this pin states the smaller `2L/|E| + ε`
@@ -52,13 +51,12 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Sound
 
 @[expose] public section
 
-/-- The certificates `(κ, R, e, s)` of the levels, indexed by `R − 1`, then `μ − 15`, then the
+/-- The certificates `(κ, R, e, s)` of the levels, indexed by `R − 1`, then `μ − 16`, then the
 level. -/
 def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
   [
-    -- rate exponent 1, stack sizes 15 to 32
+    -- rate exponent 1, stack sizes 16 to 32
     [
-      [(9, 1, 6676, 776712506778), (5, 4, 12, 270548850458)],
       [(10, 1, 7275, 777092410204), (6, 4, 19, 272721968504), (2, 7, 7, 84163826697)],
       [(11, 1, 5527, 777282292286), (7, 4, 21, 273802059735), (3, 7, 10, 90907322834)],
       [(12, 1, 5165, 777377215934), (8, 4, 25, 274340510717), (4, 7, 19, 94098018870)],
@@ -90,9 +88,8 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(26, 1, 22727, 777472122201), (22, 4, 602, 274877874175), (18, 7, 323, 97183830635),
         (14, 10, 353, 34358689775), (10, 13, 309, 12142068909), (6, 16, 339, 4261280757),
         (2, 19, 81, 1315059792)]],
-    -- rate exponent 2, stack sizes 15 to 32
+    -- rate exponent 2, stack sizes 16 to 32
     [
-      [(9, 2, 2049, 549218680575), (5, 5, 19, 191306926801)],
       [(10, 2, 14336, 549487312863), (6, 5, 22, 192843553308), (2, 8, 14, 59512812588)],
       [(11, 2, 13824, 549621579771), (7, 5, 25, 193607293142), (3, 8, 22, 64281184436)],
       [(12, 2, 13312, 549688700927), (8, 5, 31, 193988035482), (4, 8, 20, 66537347239)],
@@ -124,9 +121,8 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(26, 2, 25886, 549755809791), (22, 5, 740, 194368008827), (18, 8, 886, 68719345663),
         (14, 11, 442, 24295262533), (10, 14, 529, 8585739263), (6, 17, 303, 3013180520),
         (2, 20, 296, 929887696)]],
-    -- rate exponent 3, stack sizes 15 to 32
+    -- rate exponent 3, stack sizes 16 to 32
     [
-      [(9, 3, 22794, 388356253389), (5, 6, 15, 135274425229)],
       [(10, 3, 21557, 388546205102), (6, 6, 16, 136360984252), (2, 9, 13, 42081913348)],
       [(11, 3, 21195, 388641146143), (7, 6, 20, 136901029867), (3, 9, 25, 45453661417)],
       [(12, 3, 20886, 388688607967), (8, 6, 48, 137170255358), (4, 9, 24, 47049009435)],
@@ -158,9 +154,8 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(26, 3, 20700, 388736061100), (22, 6, 1145, 137438937087), (18, 9, 446, 48591915317),
         (14, 12, 349, 17179344887), (10, 15, 724, 6071034454), (6, 18, 214, 2130640378),
         (2, 21, 126, 657529896)]],
-    -- rate exponent 4, stack sizes 15 to 32
+    -- rate exponent 4, stack sizes 16 to 32
     [
-      [(9, 4, 14336, 274609340287), (5, 7, 20, 95653463400)],
       [(10, 4, 13824, 274743656431), (6, 7, 23, 96421776654), (2, 10, 21, 29756406294)],
       [(11, 4, 13440, 274810789885), (7, 7, 27, 96803646571), (3, 10, 15, 32140592218)],
       [(12, 4, 13248, 274844350463), (8, 7, 34, 96994017741), (4, 10, 46, 33268673619)],
@@ -195,7 +190,7 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
 
 /-- The certificate of level `i` of the ladder `(μ, R)` (the default certificate off the table). -/
 def certOf (μ R i : ℕ) : Cert :=
-  match ((certTable.getD (R - 1) []).getD (μ - 15) []).getD i (1, 1, 2 ^ 20, 2 ^ 39) with
+  match ((certTable.getD (R - 1) []).getD (μ - 16) []).getD i (1, 1, 2 ^ 20, 2 ^ 39) with
   | (κ, R', e, s) => ⟨κ, R', e, s⟩
 
 /-- **The codes of the deployed ladder `(μ, R)`.** -/

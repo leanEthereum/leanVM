@@ -95,7 +95,7 @@ def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- The image the executor commits, at the smallest size: the public words, the operands, the
 product, and zero elsewhere. -/
-def mulImage : MemoryImage minLogMem := fun i ↦
+def mulImage : MemoryImage 16 := fun i ↦
   match (i : ℕ) with
   | 0 => mulInput.word0
   | 1 => mulInput.word1
@@ -105,7 +105,7 @@ def mulImage : MemoryImage minLogMem := fun i ↦
   | _ => 0
 
 /-- Three instructions execute before the final state. -/
-def mulTrace : Execution mulProg := ⟨minLogMem, mulImage, 3⟩
+def mulTrace : Execution mulProg := ⟨16, mulImage, 3⟩
 
 theorem mul_step0 : step mulProg mulImage ⟨1, 1⟩ = some ⟨addressOfIndex 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one mulProg)]
@@ -134,8 +134,8 @@ theorem mul_run : run mulProg mulImage 3 Registers.initial = some (Registers.fin
 
 /-- The two public words are in place, whatever the program and the step count. -/
 theorem mulImage_boundary {prog : LeanIsaProgram} (steps : ℕ) :
-    HoldsPublicInput mulInput (⟨minLogMem, mulImage, steps⟩ : Execution prog) := by
-  refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
+    HoldsPublicInput mulInput (⟨16, mulImage, steps⟩ : Execution prog) := by
+  refine ⟨(by decide : minLogMem ≤ 16), (by decide : 16 ≤ maxLogMem), ?_, ?_⟩
   · show mulImage.read (addressOfIndex 0) = some (mulImage ⟨0, by decide⟩)
     exact read_lit mulImage 0
   · show mulImage.read (addressOfIndex 1) = some (mulImage ⟨1, by decide⟩)
@@ -158,7 +158,7 @@ example : run mulProg mulImage 4 Registers.initial = none := by
 def oneProg : LeanIsaProgram := ⟨0, by decide, ![.xor 1 1 1]⟩
 
 /-- Zero steps from `(1, 1)` reach `(g^0, 1)`, so the program has a valid execution... -/
-example : ValidExecution oneProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
+example : ValidExecution oneProg mulInput ⟨16, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 
 /-- ...and its one slot is not executed, whatever it holds: the initial state is the final one. -/
@@ -167,7 +167,7 @@ example : run oneProg mulImage 1 Registers.initial = none := run_succ_of_eq (by 
 /-- The same with a `JUMP` in that slot. -/
 def oneJumpProg : LeanIsaProgram := ⟨0, by decide, ![.jump 0 0 0]⟩
 
-example : ValidExecution oneJumpProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
+example : ValidExecution oneJumpProg mulInput ⟨16, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 example : run oneJumpProg mulImage 1 Registers.initial = none :=
   run_succ_of_eq (by decide +kernel) 0
@@ -589,7 +589,7 @@ abbrev setLast : LeanIsaProgram := finalProg (.setConstant (addressOfIndex 5) wO
 def finalInput : PublicInput := ⟨![K.ofBits 7, 0, K.ofBits 11, 0]⟩
 
 /-- The memory leanVM's executor writes: the public words and the three cells set. -/
-def finalImage : MemoryImage minLogMem := fun i ↦
+def finalImage : MemoryImage 16 := fun i ↦
   match (i : ℕ) with
   | 0 => finalInput.word0
   | 1 => finalInput.word1
@@ -666,8 +666,8 @@ theorem jumpLast_run : run jumpLast finalImage 5 Registers.initial = some (Regis
     Option.bind_some, run_zero]
 
 /-- **`halts_in_the_final_state` is a valid execution.** -/
-theorem jumpLast_valid : ValidExecution jumpLast finalInput ⟨minLogMem, finalImage, 5⟩ := by
-  refine ⟨⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩, jumpLast_run⟩
+theorem jumpLast_valid : ValidExecution jumpLast finalInput ⟨16, finalImage, 5⟩ := by
+  refine ⟨⟨(by decide : minLogMem ≤ 16), (by decide : 16 ≤ maxLogMem), ?_, ?_⟩, jumpLast_run⟩
   · show finalImage.read (addressOfIndex 0) = some (finalImage ⟨0, by decide⟩)
     exact read_lit finalImage 0
   · show finalImage.read (addressOfIndex 1) = some (finalImage ⟨1, by decide⟩)

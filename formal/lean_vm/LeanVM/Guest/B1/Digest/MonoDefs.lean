@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Digest.ChildListDefs
 # `child_claim_list_mono`: the checks
 
 `child_claims_mono` (G:4234-4252) walks a list by hinted gaps: claim `j`'s gap `g^e` is a power
-of `g` (`assert_gpow`, a load through it), the coverage pointer moves on to `cov · g^e` and the
+of `g` (`assert_gpow`, a touch through it), the coverage pointer moves on to `cov · g^e` and the
 table pointer to `ent · g^(4e)`, the mark is written at `cov · g^j` and the four cells read at
 `ent · g^(4j + c)`. Its eleven atoms sit at `p0 + 11 j` with the gap at `.n (g0 + 10 j)`
 (`monoClaimOk`, checked on its window `monoWin`, `monoRecs`). A frame loop's record (`MONO_REC`
@@ -32,9 +32,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-! ## A claim of the gap walk -/
 
-/-- Some value is loaded through `p` at offset 0 (`assert_gpow`). -/
+/-- Some touch cell is loaded through `p` (`assert_gpow`). -/
 def isDerefOf (p : V) : Atom → Bool
-  | .load _ q off => decide (q = p) && off == 0
+  | .touch _ q => decide (q = p)
   | _ => false
 
 /-- The coverage pointer before claim `j`: `.n cov0`, else the previous claim's. -/
@@ -191,7 +191,7 @@ def mlOk (k : ℕ) (f : Fn) : Bool :=
 /-! ## The big frame loop `__loop19` (136 claims, 64 blocks), in sixteen windows -/
 
 /-- `__loop19`'s atoms. -/
-noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 362 default)
+noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 361 default)
 
 /-- `__loop19`'s chain. -/
 noncomputable def mono136Spec : ChainSpec := monoSpec 136 1377 mono136Atoms

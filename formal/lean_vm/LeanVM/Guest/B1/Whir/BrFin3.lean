@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.Whir.BrFin2
 /-!
 # The glued weight
 
-`finI_eq`: the inner sum after `m` levels is `Σ scale · chain`; `finRes_full`: a level's chain is
-the `μ`-chain over every query. `fin_inner`: the inner sum after
+`finI_eq`: the inner sum after `m` levels is `Σ scale · chain`, a level's chain the `μ`-chain over
+every query. `fin_inner`: the inner sum after
 every level plus the out-of-domain weights is the trace's glued weight (by the soundness proof's
 `inner_eq`).
 -/
@@ -28,27 +28,10 @@ open LeanVM.Protocol.Verifier
 variable {c : OsCfg} {tr : OsTr}
 
 theorem finI_eq (c : OsCfg) (tr : OsTr) : ∀ m, finI c tr m = ∑ i ∈ Finset.range m,
-    finL c tr i * resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i)
-      (finAcc c tr i) ((List.range ((lvAt c i).queries % resBatch)).map (finPq c tr i))
+    finL c tr i * resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i) 0
+      ((List.range (lvAt c i).queries).map (Pof tr.rs i))
   | 0 => by simp [finI]
-  | m + 1 => by rw [finI, finI_eq c tr m, Finset.sum_range_succ]
-
-/-- **The chain after the loop, continued over the remaining queries**, is the chain over every
-query. -/
-theorem finRes_full (c : OsCfg) (tr : OsTr) (i : ℕ) :
-    resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i)
-      (finAcc c tr i) ((List.range ((lvAt c i).queries % resBatch)).map (finPq c tr i)) =
-    resFold (finD c tr i) (lvAt c i).vanish (lvAt c i).logCols (finM tr i) 0
-      ((List.range (lvAt c i).queries).map (Pof tr.rs i)) := by
-  have hq : (lvAt c i).queries = resBatch * ((lvAt c i).queries / resBatch) +
-      (lvAt c i).queries % resBatch := (Nat.div_add_mod _ _).symm
-  have hq' : (lvAt c i).queries - (lvAt c i).queries % resBatch =
-      resBatch * ((lvAt c i).queries / resBatch) := by omega
-  rw [finAcc, finChain, ← resFold_append]
-  conv_rhs => rw [hq, List.range_add, List.map_append, List.map_map]
-  congr 2
-  refine List.map_congr_left fun j _ ↦ ?_
-  simp only [finPq, hq', Function.comp]
+  | m + 1 => by rw [finI, finI_eq c tr m, Finset.sum_range_succ]; rfl
 
 /-- **The inner sum plus the out-of-domain sum is the trace's glued weight.** -/
 theorem fin_inner {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr) :
@@ -87,7 +70,6 @@ theorem fin_inner {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cf
     rw [rs_get h (Finset.mem_range.mp hi)]; exact hOk.lam
   have key := resFold_lam (D := finD c tr i) (vo := (lvAt c i).vanish) (ml := (lvAt c i).logCols)
     (n := (lvAt c i).queries) hl0 (Pof tr.rs i)
-  rw [finRes_full]
   simp only [finL, finB, finM, Wof, finD, lvAt, lvRes] at key ⊢
   rw [← key]
   ring

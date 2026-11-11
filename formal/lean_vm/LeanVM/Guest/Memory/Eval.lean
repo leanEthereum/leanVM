@@ -326,6 +326,7 @@ def atomEqns (σ : Val) : Atom → List (K × E)
   | .rangeCheck x y t1 t2 _
       => [((σ x).limb 0 * addressOfIndex 0, σ t1), ((σ y).limb 0 * addressOfIndex 0, σ t2)]
   | .frameAddr p run => run.mapIdx fun k v => ((σ p).limb 0 * addressOfIndex k, σ v)
+  | .touch t p => [((σ p).limb 0 * addressOfIndex 0, σ t)]
   | _ => []
 
 /-- The memory equations of events. -/
@@ -374,6 +375,7 @@ theorem holds_transfer : ∀ (a : Atom), a.Holds rd σ →
         ⟨h.2.2.1, he _ (List.mem_cons_of_mem _ List.mem_cons_self)⟩⟩
   | .assertInK .., h, _ => h
   | .keccak .., h, _ => h
+  | .touch .., h, he => ⟨h.1, he _ (List.mem_singleton_self _)⟩
   | .frameAddr p run, h, he => by
       refine ⟨h.1, fun k hk w hw => ?_⟩
       have hm : ((σ p).limb 0 * addressOfIndex k, σ run[k]) ∈ run.mapIdx fun k v => ((σ p).limb 0 * addressOfIndex k, σ v) :=
@@ -394,6 +396,9 @@ theorem atomEqns_read {κ : ℕ} (hκ : κ < 64) {L : MemoryImage κ} :
       rcases hq with rfl | rfl
       · exact h.1.2
       · exact h.2.2.2
+  | .touch .., h, q, hq, _ => by
+      rw [List.mem_singleton.mp hq]
+      exact h.2
   | .frameAddr p run, h, q, hq, ⟨i, hi⟩ => by
       obtain ⟨k, hk, rfl⟩ := List.mem_mapIdx.mp hq
       dsimp only at hi ⊢

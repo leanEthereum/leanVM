@@ -214,7 +214,7 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
     (h : Whir.runF (readAnnouncedSizes bytecode) st = some ((L, r), st')) :
     ∃ (logMem : ℕ) (rowsN : List ℕ),
       st.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r]) ++ st'.stream ∧
-      L = Tables.layoutOf bytecode logMem rowsN ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
+      L = Tables.layoutOf bytecode logMem rowsN ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
       rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 32) ∧ 1 ≤ r ∧ r ≤ 4 ∧
       Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := by
   unfold readAnnouncedSizes at h
@@ -433,14 +433,14 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   /-- The layout. -/
   layout : Layout
   hlayout : layout = Tables.layoutOf bytecode logMem rowsN
-  h16 : 16 ≤ logMem
+  hlm1 : 1 ≤ logMem
   h32 : logMem ≤ 32
   hrowsL : rowsN.length = 6
   hrows32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32
   hr1 : 1 ≤ rate
   hr4 : rate ≤ 4
-  hmu22 : 22 ≤ layout.stackLog
-  hmu28 : layout.stackLog ≤ 28
+  hmu20 : 20 ≤ layout.stackLog
+  hmu32 : layout.stackLog ≤ 32
   /-- The announced sizes. -/
   s1 : Fs
   runS : RunsTo (readAnnouncedSizes bytecode) ⟨capOf (keccakF1600 (seedInput seed
@@ -525,14 +525,14 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   -- the announced sizes
   obtain ⟨ls, sA, hA, h⟩ := Whir.runF_bind_some hpre
   obtain ⟨L, r⟩ := ls
-  obtain ⟨logMem, rowsN, hsA, hL, h16, h32, hrowsL, hrows32, hr1, hr4, -, hst28⟩ :=
+  obtain ⟨logMem, rowsN, hsA, hL, hlm1, h32, hrowsL, hrows32, hr1, hr4, -, hst28⟩ :=
     readSizes_inv hbl hA
   obtain ⟨xs1, hxs1, runS⟩ := runsTo_of_runF (noCommit_readSizes _) hA
   have exs1 : xs1 = eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r] := by
     have := hsA.symm.trans hxs1
     exact (List.append_cancel_right this).symm
   subst exs1
-  have hmu22 : Coverage.minChildStackLog ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF1600 (seedInput seed
+  have hmu20 : Coverage.minChildStackLog ≤ L.stackLog := hmu L r (announced_eq (sp := ⟨keccakF1600 (seedInput seed
     (Node.statementDigest seed c.statement)), []⟩) ⟨rfl, rfl⟩ hA)
   obtain ⟨rA, oA⟩ := NoCommit.runF (noCommit_readSizes _) hA
   -- the stack's root
@@ -570,7 +570,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
     simp only [deferStart, List.nil_append, List.cons.injEq, Prod.mk.injEq, and_true] at e
     exact e.symm
   subst hroot'
-  refine ⟨⟨logMem, rowsN, r, L, hL, h16, h32, hrowsL, hrows32, hr1, hr4, hmu22, hst28, sA.sponge,
+  refine ⟨⟨logMem, rowsN, r, L, hL, hlm1, h32, hrowsL, hrows32, hr1, hr4, hmu20, hst28, sA.sponge,
     runS, x0, x1, root', hroot, alphas, sC.sponge, ?_, xsG, rG, sD.sponge, ?_, xsT, bus, claims,
     sE.sponge, runT, hlanes, xsK, km, sF.sponge, runK, chs, _, hch, xsW, w, s', roots', hrun,
     hnzW, hcapsW, hacc, ?_, ?_⟩⟩

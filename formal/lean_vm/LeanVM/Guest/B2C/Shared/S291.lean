@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 4. -/
-theorem w1109_4 : shareWin 1109 (snapsOf 1109) 4 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L15_L3`, window 0. -/
+theorem w1098_0 : shareWin 1098 (snapsOf 1098) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 5. -/
-theorem w1109_5 : shareWin 1109 (snapsOf 1109) 5 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L15_L3`, window 1. -/
+theorem w1098_1 : shareWin 1098 (snapsOf 1098) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 6. -/
-theorem w1109_6 : shareWin 1109 (snapsOf 1109) 6 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L16_L4`, once. -/
+theorem st1099 : shareStatic 1099 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 7. -/
-theorem w1109_7 : shareWin 1109 (snapsOf 1109) 7 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L16_L4`, window 0. -/
+theorem w1099_0 : shareWin 1099 (snapsOf 1099) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 8. -/
-theorem w1109_8 : shareWin 1109 (snapsOf 1109) 8 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L16_L4`, window 1. -/
+theorem w1099_1 : shareWin 1099 (snapsOf 1099) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 9. -/
-theorem w1109_9 : shareWin 1109 (snapsOf 1109) 9 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L17_L5`, once. -/
+theorem st1100 : shareStatic 1100 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 10. -/
-theorem w1109_10 : shareWin 1109 (snapsOf 1109) 10 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L17_L5`, window 0. -/
+theorem w1100_0 : shareWin 1100 (snapsOf 1100) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L8`, window 11. -/
-theorem w1109_11 : shareWin 1109 (snapsOf 1109) 11 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L16_L24_L17_L5`, window 1. -/
+theorem w1100_1 : shareWin 1100 (snapsOf 1100) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -110,10 +110,10 @@ theorem chain_widths : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT)
 /-- **`LevelsOk` gives each later level's width** from its Spec level's fold. -/
 theorem levelsOk_width {c : OsCfg} {logN : ℕ} : ∀ (lvl : ℕ) (lvs : List OsLv) (cfg : List Whir.Level),
     LevelsOk c logN lvl lvs cfg → ∀ j, j + 1 < lvs.length →
-      3 * 2 ^ (cfg.getD (j + 1) ⟨0, 0, 0⟩).fold = lvWidth (lvl + j + 1) (lvs.getD (j + 1) default)
+      3 * 2 ^ (cfg.getD (j + 1) ⟨0, 0, 0, 0⟩).fold = lvWidth (lvl + j + 1) (lvs.getD (j + 1) default)
   | _, [_], [_], _, j, hj => absurd hj (by simp)
   | lvl, lv :: lv' :: lvs, level :: next :: cfg, h, j, hj => by
-    obtain ⟨-, -, -, -, -, -, -, -, hsh, h'⟩ := h
+    obtain ⟨-, -, -, -, -, -, -, -, -, hsh, h'⟩ := h
     rcases j with _ | j
     · have := congrArg Prod.snd hsh
       simpa [levelShape] using this

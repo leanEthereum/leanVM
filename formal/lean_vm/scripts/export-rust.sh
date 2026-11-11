@@ -198,7 +198,7 @@ fn main() {
         let wire = proof.to_bytes();
         assert!(fiat_shamir::transcript::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
         let scalar = scalar_proof(&proof);
-        let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(&program.prog)
+        let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(program.prog())
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
             .collect();
@@ -231,7 +231,7 @@ fn main() {
         let Some(exec) = exec else {
             println!(
                 "{name}: {} instructions, {} cycles, {} scalars, {} phases, {} openings, {} wire bytes",
-                program.prog.len(),
+                program.prog().len(),
                 stats.cycles,
                 proof.stream.len(),
                 scalar.merkle_openings.len(),
@@ -252,7 +252,7 @@ fn main() {
         std::fs::write(directory.join("rust.txt"), format!("{seconds}\n")).expect("write time");
         println!(
             "{name}: {} instructions, 2^{log_mem} cells, {} cycles, Rust prover {seconds:.3} s",
-            program.prog.len(),
+            program.prog().len(),
             stats.cycles,
         );
     }

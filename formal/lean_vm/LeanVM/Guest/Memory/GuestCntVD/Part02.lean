@@ -9,6 +9,10 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
+theorem kvdstaticRange_313 : kvdStaticRange 313 1 := by
+  unfold kvdStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
 theorem kvdstaticRange_314 : kvdStaticRange 314 1 := by
   unfold kvdStaticRange; decide +kernel
 
@@ -22,10 +26,6 @@ theorem kvdstaticRange_316 : kvdStaticRange 316 1 := by
 
 set_option maxRecDepth 100000 in
 theorem kvdstaticRange_317 : kvdStaticRange 317 1 := by
-  unfold kvdStaticRange; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem kvdstaticRange_318 : kvdStaticRange 318 1 := by
   unfold kvdStaticRange; decide +kernel
 
 end

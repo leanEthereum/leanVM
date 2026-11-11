@@ -22,13 +22,13 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem core1122_body : Fn.body Data.core1122 = mcBody (2 ^ 2) := stmtsEqb_sound (by decide +kernel)
-theorem core1110_body : Fn.body Data.core1110 = mcBody (2 ^ 3) := stmtsEqb_sound (by decide +kernel)
-theorem core1112_body : Fn.body Data.core1112 = mcBody (2 ^ 4) := stmtsEqb_sound (by decide +kernel)
-theorem core1114_body : Fn.body Data.core1114 = mcBody (2 ^ 5) := stmtsEqb_sound (by decide +kernel)
-theorem core1130_body : Fn.body Data.core1130 = mcBody (2 ^ 6) := stmtsEqb_sound (by decide +kernel)
-theorem core1120_body : Fn.body Data.core1120 = mcBody (2 ^ 7) := stmtsEqb_sound (by decide +kernel)
-theorem core1108_body : Fn.body Data.core1108 = mcBody (2 ^ 8) := stmtsEqb_sound (by decide +kernel)
+theorem core1122_body : Fn.body Data.core1095 = mcBody (2 ^ 2) := stmtsEqb_sound (by decide +kernel)
+theorem core1110_body : Fn.body Data.core1083 = mcBody (2 ^ 3) := stmtsEqb_sound (by decide +kernel)
+theorem core1112_body : Fn.body Data.core1085 = mcBody (2 ^ 4) := stmtsEqb_sound (by decide +kernel)
+theorem core1114_body : Fn.body Data.core1087 = mcBody (2 ^ 5) := stmtsEqb_sound (by decide +kernel)
+theorem core1130_body : Fn.body Data.core1089 = mcBody (2 ^ 6) := stmtsEqb_sound (by decide +kernel)
+theorem core1120_body : Fn.body Data.core1104 = mcBody (2 ^ 7) := stmtsEqb_sound (by decide +kernel)
+theorem core1108_body : Fn.body Data.core1297 = mcBody (2 ^ 8) := stmtsEqb_sound (by decide +kernel)
 
 theorem merkle_cap_at {name : String} {f : Fn} (D : ℕ) (hD : 2 ≤ D)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
@@ -47,19 +47,19 @@ theorem verify_merkle_cap_holds : verify_merkle_cap_Spec := by
   intro p hp
   simp only [merkleCapNames, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact merkle_cap_at 2 le_rfl (Program.find?_of_indexOf? (j := 1122) (by decide +kernel) rfl)
+  · exact merkle_cap_at 2 le_rfl (Program.find?_of_indexOf? (j := 1095) (by decide +kernel) rfl)
       rfl core1122_body
-  · exact merkle_cap_at 3 (by omega) (Program.find?_of_indexOf? (j := 1110) (by decide +kernel) rfl)
+  · exact merkle_cap_at 3 (by omega) (Program.find?_of_indexOf? (j := 1083) (by decide +kernel) rfl)
       rfl core1110_body
-  · exact merkle_cap_at 4 (by omega) (Program.find?_of_indexOf? (j := 1112) (by decide +kernel) rfl)
+  · exact merkle_cap_at 4 (by omega) (Program.find?_of_indexOf? (j := 1085) (by decide +kernel) rfl)
       rfl core1112_body
-  · exact merkle_cap_at 5 (by omega) (Program.find?_of_indexOf? (j := 1114) (by decide +kernel) rfl)
+  · exact merkle_cap_at 5 (by omega) (Program.find?_of_indexOf? (j := 1087) (by decide +kernel) rfl)
       rfl core1114_body
-  · exact merkle_cap_at 6 (by omega) (Program.find?_of_indexOf? (j := 1130) (by decide +kernel) rfl)
+  · exact merkle_cap_at 6 (by omega) (Program.find?_of_indexOf? (j := 1089) (by decide +kernel) rfl)
       rfl core1130_body
-  · exact merkle_cap_at 7 (by omega) (Program.find?_of_indexOf? (j := 1120) (by decide +kernel) rfl)
+  · exact merkle_cap_at 7 (by omega) (Program.find?_of_indexOf? (j := 1104) (by decide +kernel) rfl)
       rfl core1120_body
-  · exact merkle_cap_at 8 (by omega) (Program.find?_of_indexOf? (j := 1108) (by decide +kernel) rfl)
+  · exact merkle_cap_at 8 (by omega) (Program.find?_of_indexOf? (j := 1297) (by decide +kernel) rfl)
       rfl core1108_body
 
 end

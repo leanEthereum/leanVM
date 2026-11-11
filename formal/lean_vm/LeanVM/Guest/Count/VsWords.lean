@@ -11,6 +11,7 @@
 module
 
 public import LeanVM.Guest.Count.Instances
+public import LeanVM.Guest.Count.VsOsAll
 public import LeanVM.Guest.B1.VerifySub.CompleteB
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
 public import LeanVM.Guest.B1.Selectors.SharedTotal
@@ -22,14 +23,6 @@ namespace LeanVM.Guest.Count
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
 
 @[expose] public section
-
-/-- **`open_stacked`'s named callees' words**: `wSB` on the names `osKindOf` knows, `0` on the
-others (the queries' callees and the loops, which `osBk` bounds by `osSpB`). -/
-noncomputable def osBnd (f : String) : ℕ := if (B1.osKindOf f).isSome then wSB f else 0
-
-theorem osLeafBoundsB : B1.OsLeafBounds B2C.fs osBnd := fun f K hK => by
-  have h := osLeafBounds f K hK
-  simpa [osBnd, hK] using h
 
 /-- `verify_tables`' callees but `__loop9` and `shared_selector_tables`, with their core
 indices. -/
@@ -139,13 +132,13 @@ theorem sp_totalLe : ∀ j < 4,
   intro j hj
   interval_cases j
   · rw [show B1.Tables.lName "sel_partial_nibble" 0 = "sel_partial_nibble__L0" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 92) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L0") (by decide +kernel)) (by unfold kSp; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 1 = "sel_partial_nibble__L1" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 93) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L1") (by decide +kernel)) (by unfold kSp; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 2 = "sel_partial_nibble__L2" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 94) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L2") (by decide +kernel)) (by unfold kSp; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 95) (by decide +kernel)) (by unfold kSp; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L3") (by decide +kernel)) (by unfold kSp; omega)
 
 /-- The gkr rounds' words (`gkr_rounds__L{0,1,2,4,6}`), at most. -/
 noncomputable def kGr : ℕ :=
@@ -158,15 +151,15 @@ theorem gr_totalLe : ∀ n ∈ B1.Tables.grCounts,
   simp only [B1.Tables.grCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl | rfl | rfl
   · rw [show B1.Tables.lName "gkr_rounds" 0 = "gkr_rounds__L0" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 414) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L0") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 1 = "gkr_rounds__L1" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 418) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L1") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 2 = "gkr_rounds__L2" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 415) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L2") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 4 = "gkr_rounds__L4" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 416) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L4") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 6 = "gkr_rounds__L6" by decide]
-    exact totalLe_mono (wSB_totalLe (j := 417) (by decide +kernel)) (by unfold kGr; omega)
+    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L6") (by decide +kernel)) (by unfold kGr; omega)
 
 /-! ## The weights of `verify_tables`' and the terminal's callees -/
 
@@ -197,18 +190,19 @@ theorem weightLe_mono {ω : String → ℕ} {f : String} {B B' : ℕ}
     (h : WeightLe coreProgram ω f fun _ => B) (hB : B ≤ B') : WeightLe coreProgram ω f fun _ => B' :=
   fun rd t args rets hn hv hb => (h rd t args rets hn hv hb).trans hB
 
+set_option maxHeartbeats 800000 in
 theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
     (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSpW op) := by
   intro j hj
   interval_cases j
   · rw [show B1.Tables.lName "sel_partial_nibble" 0 = "sel_partial_nibble__L0" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 92) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L0") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 1 = "sel_partial_nibble__L1" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 93) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L1") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 2 = "sel_partial_nibble__L2" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 94) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L2") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
-    exact weightLe_mono (kuSB_weightLe (j := 95) (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
+    exact weightLe_mono (kuSB_weightLe (j := wIdx "sel_partial_nibble__L3") (by cases op <;> decide +kernel)) (by unfold kSpW; omega)
 
 /-- The column selectors' weights, at most. -/
 noncomputable def kCsW (op : Opcode) : ℕ :=
@@ -231,29 +225,27 @@ theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤
 /-- **`verify_sub`'s callees' words at `B2C.fs`.** -/
 noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Bg := wSB "g_power_of_word"
-  hg := wSB_totalLe (j := 3) (by decide +kernel)
+  hg := wSB_totalLe (j := wIdx "g_power_of_word") (by decide +kernel)
   Ba := wSB "assert_canonical"
-  ha := wSB_totalLe (j := 1) (by decide +kernel)
+  ha := wSB_totalLe (j := wIdx "assert_canonical") (by decide +kernel)
   K29 := wSK "__loop36" - B2C.fs "__loop36"
   R := kGr
   K8 := wSK "__loop7" - B2C.fs "__loop7"
-  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 413) (by decide +kernel)
+  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 36) (by decide +kernel)
   hR := gr_totalLe
-  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 90) (by decide +kernel)
+  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 7) (by decide +kernel)
   Kf := wSB
   Ksh := B2C.fs "shared_selector_tables" +
     (B2C.fs "__loop8" + 15 * (wSK "__loop8" - B2C.fs "__loop8")) + kSp
   K10 := wSK "__loop9" - B2C.fs "__loop9"
   hKf := vt_kids_totalLe
   hsh := B1.Tables.ss_totalLeOn (wSK "__loop8" - B2C.fs "__loop8") kSp
-    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 91) (by decide +kernel)) sp_totalLe
-  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := 265) (by decide +kernel)
+    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 8) (by decide +kernel)) sp_totalLe
+  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 9) (by decide +kernel)
   B14 := 5949
   hl14 := B1.VerifySub.l14_totalLeOn_fs
-  Bnd := osBnd
-  Kr := fun f => wSK f - B2C.fs f
-  hleaf := osLeafBoundsB
-  hloop := fun μ r h1 h2 h3 h4 => osLoopBounds _ (by unfold B1.Whir.candidate; omega)
+  Bnd := wSB
+  hleaf := osLeafBounds
   Beqc := 184
   K15 := 19
   Bcs := 157
@@ -269,15 +261,15 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Kw10 := fun op => kuSK op "__loop9"
   hKvw := vt_kids_weightLe
   hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
-    (loopW_of (kuSK_loop (j := 91) (by cases op <;> decide +kernel))) (sp_weightLe op)
-  h10w := fun op => loopW_of (kuSK_loop (j := 265) (by cases op <;> decide +kernel))
+    (loopW_of (kuSK_loop (j := wIdxL 8) (by cases op <;> decide +kernel))) (sp_weightLe op)
+  h10w := fun op => loopW_of (kuSK_loop (j := wIdxL 9) (by cases op <;> decide +kernel))
   Weqc := fun op => kuSB op "eq_prefix_chain"
   W15 := fun op => krVl15A op * max (B2C.fs "__loop14") (32 * 38) / 1000
   Wst := fun op => kuSB op "selector_tables"
   Wcs := kCsW
   Wrsw := fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000
-  hEqcW := fun op => kuSB_weightLe (j := 5) (by cases op <;> decide +kernel)
-  hStW := fun op => kuSB_weightLe (j := 16) (by cases op <;> decide +kernel)
+  hEqcW := fun op => kuSB_weightLe (j := wIdx "eq_prefix_chain") (by cases op <;> decide +kernel)
+  hStW := fun op => kuSB_weightLe (j := wIdx "selector_tables") (by cases op <;> decide +kernel)
   hCsW := cs_weightLe
   h15W := fun op rd t args rets hn hv hb ht => ratio_le (krVl15_weight op rd t args rets hn hv hb)
     (ht.trans (by rw [B1.VerifySub.fs_l15]; decide))

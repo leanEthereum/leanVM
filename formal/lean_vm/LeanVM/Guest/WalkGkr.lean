@@ -46,7 +46,8 @@ theorem semRel_gkr (rd : Reader) (ws : List E) :
     SemRel glob tagGkr rd ws ↔
       GkrPar rd (ws.getD 0 0) (ws.getD 1 0) (ws.getD 2 0) (ws.getD 3 0) (ws.getD 4 0) := by
   unfold SemRel
-  rw [ite_eq_right_of_eq_false _ _ (eq_false (by have := tagGkr_lt; omega)), semRel0_gkr]
+  rw [ite_eq_right_of_eq_false _ _ (eq_false (by have := tagGkr_lt; omega)),
+    ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagGkr; norm_num)), semRel0_gkr]
 
 /-- `GkrPar` conditional on the immediate `1` at position `1` (the loop call's `x`). -/
 theorem semRel_gkrImp (rd : Reader) (ws : List E) :

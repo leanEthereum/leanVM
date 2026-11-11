@@ -16,51 +16,39 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop631`, window 0, part 0. -/
+/-- `decode_query_windows__L25_L7`, window 0, part 0. -/
 theorem cw1712_0_0 : cplWin 1712 0 0 = true := by decide +kernel
 
-/-- `__loop631`, window 1, part 0. -/
-theorem cw1712_1_0 : cplWin 1712 1 0 = true := by decide +kernel
-
-/-- `__loop631`, window 2, part 0. -/
-theorem cw1712_2_0 : cplWin 1712 2 0 = true := by decide +kernel
-
-/-- `__loop631`, window 3, part 0. -/
-theorem cw1712_3_0 : cplWin 1712 3 0 = true := by decide +kernel
-
-/-- `__loop632`, window 0, part 0. -/
+/-- `walk_path__L18_L6`, window 0, part 0. -/
 theorem cw1713_0_0 : cplWin 1713 0 0 = true := by decide +kernel
 
-/-- `__loop632`, window 1, part 0. -/
+/-- `walk_path__L18_L6`, window 1, part 0. -/
 theorem cw1713_1_0 : cplWin 1713 1 0 = true := by decide +kernel
 
-/-- `__loop632`, window 2, part 0. -/
+/-- `walk_path__L18_L6`, window 2, part 0. -/
 theorem cw1713_2_0 : cplWin 1713 2 0 = true := by decide +kernel
 
-/-- `__loop632`, window 3, part 0. -/
+/-- `walk_path__L18_L6`, window 3, part 0. -/
 theorem cw1713_3_0 : cplWin 1713 3 0 = true := by decide +kernel
+
+/-- `__loop631`, window 0, part 0. -/
+theorem cw1714_0_0 : cplWin 1714 0 0 = true := by decide +kernel
+
+/-- `__loop631`, window 1, part 0. -/
+theorem cw1714_1_0 : cplWin 1714 1 0 = true := by decide +kernel
+
+/-- `__loop631`, window 2, part 0. -/
+theorem cw1714_2_0 : cplWin 1714 2 0 = true := by decide +kernel
 
 theorem ok1712 : CplOk 1712 := by
   intro i hi k hk
-  have hc : (certOf 1712).cuts.length = 3 := by decide +kernel
+  have hc : (certOf 1712).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 1712 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw1712_0_0
-  · have hn : nParts 1712 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1712_1_0
-  · have hn : nParts 1712 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1712_2_0
-  · have hn : nParts 1712 3 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1712_3_0
 
 theorem ok1713 : CplOk 1713 := by
   intro i hi k hk

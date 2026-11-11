@@ -17,29 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_queries__L56_L0_L16_L24_L20_L2`, window 0. -/
+/-- `level_residual__L21_L8`, window 0. -/
 theorem w737_0 : WinOk 737 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L56_L0_L16_L24_L20_L2`, window 1. -/
-theorem w737_1 : WinOk 737 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L45_L0_L16_L24_L21_L3`, window 0. -/
+/-- `level_residual__L19_L8`, window 0. -/
 theorem w738_0 : WinOk 738 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L45_L0_L16_L24_L21_L3`, window 1. -/
-theorem w738_1 : WinOk 738 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L38_L0_L16_L24_L22_L4`, window 0. -/
+/-- `level_residual__L18_L8`, window 0. -/
 theorem w739_0 : WinOk 739 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L38_L0_L16_L24_L22_L4`, window 1. -/
-theorem w739_1 : WinOk 739 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L32_L0_L16_L24_L23_L5`, window 0. -/
+/-- `level_residual__L16_L4`, window 0. -/
 theorem w740_0 : WinOk 740 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L32_L0_L16_L24_L23_L5`, window 1. -/
-theorem w740_1 : WinOk 740 1 := winOk_of_C (by decide +kernel)
+/-- `level_residual__L15_L4`, window 0. -/
+theorem w741_0 : WinOk 741 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_residual__L14_L4`, window 0. -/
+theorem w742_0 : WinOk 742 0 := winOk_of_C (by decide +kernel)
+
+/-- `opening_ood_point__L21`, window 0. -/
+theorem w743_0 : WinOk 743 0 := winOk_of_C (by decide +kernel)
+
+/-- `level_positions__L29_L22_L4`, window 0. -/
+theorem w744_0 : WinOk 744 0 := winOk_of_C (by decide +kernel)
+
+theorem ok737 : CheckOk 737 := checkOk_one (by decide +kernel) w737_0
+
+theorem ok738 : CheckOk 738 := checkOk_one (by decide +kernel) w738_0
+
+theorem ok739 : CheckOk 739 := checkOk_one (by decide +kernel) w739_0
+
+theorem ok740 : CheckOk 740 := checkOk_one (by decide +kernel) w740_0
+
+theorem ok741 : CheckOk 741 := checkOk_one (by decide +kernel) w741_0
+
+theorem ok742 : CheckOk 742 := checkOk_one (by decide +kernel) w742_0
+
+theorem ok743 : CheckOk 743 := checkOk_one (by decide +kernel) w743_0
+
+theorem ok744 : CheckOk 744 := checkOk_one (by decide +kernel) w744_0
 
 end
 end LeanVM.Guest.Checked

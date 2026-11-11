@@ -31,7 +31,7 @@ structure VsOuts {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs 
     S.s7.cap ++ [ofK (addressOfIndex (S.cK bs)) * gen ^ S.xsK.length, S.word, S.m0]
   o8 : (outs.getD 8 ([], [])).1 = [polyEval (S.slices.map (phiMap · S.rchs)) gen]
   o9 : Tables.cpOut S.logMem S.hs (outs.getD 9 ([], [])).1 (outs.getD 9 ([], [])).2
-  o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]
+  o10 : (outs.getD 10 ([], [])).1 = [gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))]
   o11 : vsOsOut S.μs S.w (outs.getD 11 ([], [])).1 (outs.getD 11 ([], [])).2
   o12 : (outs.getD 12 ([], [])).1 = []
   term : S.termOk (outs.take 12)

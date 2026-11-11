@@ -24,7 +24,7 @@ of
 work `5`, a commitment `2`, and an opening of `k` positions `4 · k · (1 + height)` (one hash per
 leaf and per level). A run's shape depends on the sizes the proof announces, but a run that is
 not rejected has sizes inside the window the program checks: memory and table log-heights at most
-`32`, a bytecode of at most `2^36` words, a stack of `15 ≤ μ ≤ 32` variables, a rate exponent
+`32`, a bytecode of at most `2^36` words, a stack of `16 ≤ μ ≤ 32` variables, a rate exponent
 `1 ≤ R ≤ 4`, and the WHIR ladder `Parameters.Whir.ladder μ R`. The cost is maximised over that
 window:
 
@@ -39,7 +39,7 @@ window:
   `keccakCost 29`, `12` layers of `135 + 6 · 29`;
 * ring switching: `6` challenges, `24`;
 * the stacked opening: `6` plus the WHIR levels (`whirCost`, each fold round charged `11`, a
-  proof of work's `5` included whether or not the level grinds), at most `whirBound` over the 72
+  proof of work's `5` included whether or not the level grinds), at most `whirBound` over the 68
   admissible ladders (`ladder_cost`, decided), every commitment of height at most
   `costHeight = 30`.
 
@@ -868,7 +868,7 @@ end Whir
 
 /-- Over every ladder `Parameters.Whir.ladder` returns, the commitments have height at most
 `costHeight`, the query positions at most `64` bits, and the WHIR levels cost at most
-`whirBound`; decided over the 72 admissible pairs. -/
+`whirBound`; decided over the 68 admissible pairs. -/
 theorem ladder_cost (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     whirHeightsLE costHeight μ levels = true ∧ stackHeightLE costHeight μ levels = true ∧

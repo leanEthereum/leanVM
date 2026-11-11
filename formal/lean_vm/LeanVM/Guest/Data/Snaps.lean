@@ -116,75 +116,75 @@ noncomputable def snaps274 : List B2C.Snap :=
 
 /-- Function 311's windows after the first start from these. -/
 noncomputable def snaps311 : List B2C.Snap :=
-  [snap311_1, snap311_2, snap311_3]
+  [snap311_1, snap311_2, snap311_3, snap311_4, snap311_5]
 
 /-- Function 312's windows after the first start from these. -/
 noncomputable def snaps312 : List B2C.Snap :=
-  [snap312_1, snap312_2, snap312_3]
+  [snap312_1, snap312_2, snap312_3, snap312_4, snap312_5]
 
 /-- Function 313's windows after the first start from these. -/
 noncomputable def snaps313 : List B2C.Snap :=
-  [snap313_1, snap313_2, snap313_3]
+  [snap313_1, snap313_2, snap313_3, snap313_4, snap313_5]
 
 /-- Function 314's windows after the first start from these. -/
 noncomputable def snaps314 : List B2C.Snap :=
-  [snap314_1, snap314_2, snap314_3, snap314_4]
+  [snap314_1, snap314_2, snap314_3, snap314_4, snap314_5]
 
 /-- Function 315's windows after the first start from these. -/
 noncomputable def snaps315 : List B2C.Snap :=
-  [snap315_1, snap315_2, snap315_3, snap315_4]
+  [snap315_1, snap315_2, snap315_3, snap315_4, snap315_5, snap315_6]
 
 /-- Function 316's windows after the first start from these. -/
 noncomputable def snaps316 : List B2C.Snap :=
-  [snap316_1, snap316_2, snap316_3, snap316_4]
+  [snap316_1, snap316_2, snap316_3, snap316_4, snap316_5, snap316_6, snap316_7]
 
 /-- Function 317's windows after the first start from these. -/
 noncomputable def snaps317 : List B2C.Snap :=
-  [snap317_1, snap317_2, snap317_3, snap317_4]
+  [snap317_1, snap317_2, snap317_3, snap317_4, snap317_5, snap317_6, snap317_7]
 
 /-- Function 318's windows after the first start from these. -/
 noncomputable def snaps318 : List B2C.Snap :=
-  [snap318_1, snap318_2, snap318_3, snap318_4, snap318_5]
+  [snap318_1, snap318_2, snap318_3, snap318_4, snap318_5, snap318_6, snap318_7]
 
 /-- Function 319's windows after the first start from these. -/
 noncomputable def snaps319 : List B2C.Snap :=
-  [snap319_1, snap319_2, snap319_3, snap319_4, snap319_5]
+  [snap319_1, snap319_2, snap319_3, snap319_4, snap319_5, snap319_6, snap319_7, snap319_8]
 
 /-- Function 320's windows after the first start from these. -/
 noncomputable def snaps320 : List B2C.Snap :=
-  [snap320_1, snap320_2, snap320_3, snap320_4, snap320_5, snap320_6]
+  [snap320_1, snap320_2, snap320_3, snap320_4, snap320_5, snap320_6, snap320_7, snap320_8]
 
 /-- Function 321's windows after the first start from these. -/
 noncomputable def snaps321 : List B2C.Snap :=
-  [snap321_1, snap321_2, snap321_3, snap321_4, snap321_5, snap321_6]
+  [snap321_1, snap321_2, snap321_3, snap321_4, snap321_5, snap321_6, snap321_7, snap321_8, snap321_9]
 
 /-- Function 322's windows after the first start from these. -/
 noncomputable def snaps322 : List B2C.Snap :=
-  [snap322_1, snap322_2, snap322_3, snap322_4, snap322_5, snap322_6]
+  [snap322_1, snap322_2, snap322_3, snap322_4, snap322_5, snap322_6, snap322_7, snap322_8, snap322_9]
 
 /-- Function 323's windows after the first start from these. -/
 noncomputable def snaps323 : List B2C.Snap :=
-  [snap323_1, snap323_2, snap323_3, snap323_4, snap323_5, snap323_6]
+  [snap323_1, snap323_2, snap323_3, snap323_4, snap323_5, snap323_6, snap323_7, snap323_8, snap323_9, snap323_10]
 
 /-- Function 324's windows after the first start from these. -/
 noncomputable def snaps324 : List B2C.Snap :=
-  [snap324_1, snap324_2, snap324_3, snap324_4, snap324_5, snap324_6]
+  [snap324_1, snap324_2, snap324_3, snap324_4]
 
-/-- Function 325's windows after the first start from these. -/
-noncomputable def snaps325 : List B2C.Snap :=
-  [snap325_1, snap325_2, snap325_3, snap325_4]
+/-- Function 343's windows after the first start from these. -/
+noncomputable def snaps343 : List B2C.Snap :=
+  [snap343_1, snap343_2, snap343_3, snap343_4, snap343_5, snap343_6, snap343_7, snap343_8]
 
-/-- Function 344's windows after the first start from these. -/
-noncomputable def snaps344 : List B2C.Snap :=
-  [snap344_1, snap344_2, snap344_3, snap344_4, snap344_5, snap344_6, snap344_7, snap344_8]
+/-- Function 362's windows after the first start from these. -/
+noncomputable def snaps362 : List B2C.Snap :=
+  [snap362_1, snap362_2, snap362_3, snap362_4, snap362_5, snap362_6, snap362_7, snap362_8]
 
-/-- Function 363's windows after the first start from these. -/
-noncomputable def snaps363 : List B2C.Snap :=
-  [snap363_1, snap363_2, snap363_3, snap363_4, snap363_5, snap363_6, snap363_7, snap363_8]
+/-- Function 396's windows after the first start from these. -/
+noncomputable def snaps396 : List B2C.Snap :=
+  [snap396_1, snap396_2, snap396_3, snap396_4]
 
-/-- Function 397's windows after the first start from these. -/
-noncomputable def snaps397 : List B2C.Snap :=
-  [snap397_1, snap397_2, snap397_3, snap397_4]
+/-- Function 398's windows after the first start from these. -/
+noncomputable def snaps398 : List B2C.Snap :=
+  [snap398_1]
 
 /-- Function 399's windows after the first start from these. -/
 noncomputable def snaps399 : List B2C.Snap :=
@@ -192,27 +192,27 @@ noncomputable def snaps399 : List B2C.Snap :=
 
 /-- Function 400's windows after the first start from these. -/
 noncomputable def snaps400 : List B2C.Snap :=
-  [snap400_1]
+  [snap400_1, snap400_2]
 
-/-- Function 401's windows after the first start from these. -/
-noncomputable def snaps401 : List B2C.Snap :=
-  [snap401_1, snap401_2]
+/-- Function 408's windows after the first start from these. -/
+noncomputable def snaps408 : List B2C.Snap :=
+  [snap408_1]
 
-/-- Function 409's windows after the first start from these. -/
-noncomputable def snaps409 : List B2C.Snap :=
-  [snap409_1]
+/-- Function 410's windows after the first start from these. -/
+noncomputable def snaps410 : List B2C.Snap :=
+  [snap410_1]
 
-/-- Function 411's windows after the first start from these. -/
-noncomputable def snaps411 : List B2C.Snap :=
-  [snap411_1]
+/-- Function 412's windows after the first start from these. -/
+noncomputable def snaps412 : List B2C.Snap :=
+  [snap412_1, snap412_2, snap412_3, snap412_4, snap412_5]
 
 /-- Function 413's windows after the first start from these. -/
 noncomputable def snaps413 : List B2C.Snap :=
-  [snap413_1, snap413_2, snap413_3, snap413_4, snap413_5]
+  [snap413_1]
 
-/-- Function 414's windows after the first start from these. -/
-noncomputable def snaps414 : List B2C.Snap :=
-  [snap414_1]
+/-- Function 430's windows after the first start from these. -/
+noncomputable def snaps430 : List B2C.Snap :=
+  [snap430_1]
 
 /-- Function 431's windows after the first start from these. -/
 noncomputable def snaps431 : List B2C.Snap :=
@@ -226,9 +226,9 @@ noncomputable def snaps432 : List B2C.Snap :=
 noncomputable def snaps433 : List B2C.Snap :=
   [snap433_1]
 
-/-- Function 434's windows after the first start from these. -/
-noncomputable def snaps434 : List B2C.Snap :=
-  [snap434_1]
+/-- Function 440's windows after the first start from these. -/
+noncomputable def snaps440 : List B2C.Snap :=
+  [snap440_1]
 
 /-- Function 441's windows after the first start from these. -/
 noncomputable def snaps441 : List B2C.Snap :=
@@ -242,9 +242,9 @@ noncomputable def snaps442 : List B2C.Snap :=
 noncomputable def snaps443 : List B2C.Snap :=
   [snap443_1]
 
-/-- Function 444's windows after the first start from these. -/
-noncomputable def snaps444 : List B2C.Snap :=
-  [snap444_1]
+/-- Function 449's windows after the first start from these. -/
+noncomputable def snaps449 : List B2C.Snap :=
+  [snap449_1]
 
 /-- Function 450's windows after the first start from these. -/
 noncomputable def snaps450 : List B2C.Snap :=
@@ -258,57 +258,45 @@ noncomputable def snaps451 : List B2C.Snap :=
 noncomputable def snaps452 : List B2C.Snap :=
   [snap452_1]
 
-/-- Function 453's windows after the first start from these. -/
-noncomputable def snaps453 : List B2C.Snap :=
-  [snap453_1]
+/-- Function 458's windows after the first start from these. -/
+noncomputable def snaps458 : List B2C.Snap :=
+  [snap458_1]
 
-/-- Function 472's windows after the first start from these. -/
-noncomputable def snaps472 : List B2C.Snap :=
-  [snap472_1]
+/-- Function 459's windows after the first start from these. -/
+noncomputable def snaps459 : List B2C.Snap :=
+  [snap459_1]
 
-/-- Function 473's windows after the first start from these. -/
-noncomputable def snaps473 : List B2C.Snap :=
-  [snap473_1]
+/-- Function 460's windows after the first start from these. -/
+noncomputable def snaps460 : List B2C.Snap :=
+  [snap460_1]
 
-/-- Function 474's windows after the first start from these. -/
-noncomputable def snaps474 : List B2C.Snap :=
-  [snap474_1]
+/-- Function 461's windows after the first start from these. -/
+noncomputable def snaps461 : List B2C.Snap :=
+  [snap461_1]
 
-/-- Function 475's windows after the first start from these. -/
-noncomputable def snaps475 : List B2C.Snap :=
-  [snap475_1]
+/-- Function 484's windows after the first start from these. -/
+noncomputable def snaps484 : List B2C.Snap :=
+  [snap484_1]
 
-/-- Function 480's windows after the first start from these. -/
-noncomputable def snaps480 : List B2C.Snap :=
-  [snap480_1]
+/-- Function 485's windows after the first start from these. -/
+noncomputable def snaps485 : List B2C.Snap :=
+  [snap485_1]
 
-/-- Function 481's windows after the first start from these. -/
-noncomputable def snaps481 : List B2C.Snap :=
-  [snap481_1]
+/-- Function 486's windows after the first start from these. -/
+noncomputable def snaps486 : List B2C.Snap :=
+  [snap486_1]
 
-/-- Function 482's windows after the first start from these. -/
-noncomputable def snaps482 : List B2C.Snap :=
-  [snap482_1]
-
-/-- Function 483's windows after the first start from these. -/
-noncomputable def snaps483 : List B2C.Snap :=
-  [snap483_1]
-
-/-- Function 489's windows after the first start from these. -/
-noncomputable def snaps489 : List B2C.Snap :=
-  [snap489_1]
-
-/-- Function 490's windows after the first start from these. -/
-noncomputable def snaps490 : List B2C.Snap :=
-  [snap490_1]
-
-/-- Function 491's windows after the first start from these. -/
-noncomputable def snaps491 : List B2C.Snap :=
-  [snap491_1]
+/-- Function 487's windows after the first start from these. -/
+noncomputable def snaps487 : List B2C.Snap :=
+  [snap487_1]
 
 /-- Function 492's windows after the first start from these. -/
 noncomputable def snaps492 : List B2C.Snap :=
   [snap492_1]
+
+/-- Function 493's windows after the first start from these. -/
+noncomputable def snaps493 : List B2C.Snap :=
+  [snap493_1]
 
 /-- Function 494's windows after the first start from these. -/
 noncomputable def snaps494 : List B2C.Snap :=
@@ -318,33 +306,37 @@ noncomputable def snaps494 : List B2C.Snap :=
 noncomputable def snaps495 : List B2C.Snap :=
   [snap495_1]
 
-/-- Function 496's windows after the first start from these. -/
-noncomputable def snaps496 : List B2C.Snap :=
-  [snap496_1]
+/-- Function 498's windows after the first start from these. -/
+noncomputable def snaps498 : List B2C.Snap :=
+  [snap498_1]
 
-/-- Function 497's windows after the first start from these. -/
-noncomputable def snaps497 : List B2C.Snap :=
-  [snap497_1]
+/-- Function 499's windows after the first start from these. -/
+noncomputable def snaps499 : List B2C.Snap :=
+  [snap499_1]
 
-/-- Function 520's windows after the first start from these. -/
-noncomputable def snaps520 : List B2C.Snap :=
-  [snap520_1]
+/-- Function 500's windows after the first start from these. -/
+noncomputable def snaps500 : List B2C.Snap :=
+  [snap500_1]
 
-/-- Function 521's windows after the first start from these. -/
-noncomputable def snaps521 : List B2C.Snap :=
-  [snap521_1]
+/-- Function 501's windows after the first start from these. -/
+noncomputable def snaps501 : List B2C.Snap :=
+  [snap501_1]
 
-/-- Function 522's windows after the first start from these. -/
-noncomputable def snaps522 : List B2C.Snap :=
-  [snap522_1]
+/-- Function 503's windows after the first start from these. -/
+noncomputable def snaps503 : List B2C.Snap :=
+  [snap503_1]
 
-/-- Function 523's windows after the first start from these. -/
-noncomputable def snaps523 : List B2C.Snap :=
-  [snap523_1]
+/-- Function 504's windows after the first start from these. -/
+noncomputable def snaps504 : List B2C.Snap :=
+  [snap504_1]
 
-/-- Function 528's windows after the first start from these. -/
-noncomputable def snaps528 : List B2C.Snap :=
-  [snap528_1]
+/-- Function 505's windows after the first start from these. -/
+noncomputable def snaps505 : List B2C.Snap :=
+  [snap505_1]
+
+/-- Function 506's windows after the first start from these. -/
+noncomputable def snaps506 : List B2C.Snap :=
+  [snap506_1]
 
 /-- Function 529's windows after the first start from these. -/
 noncomputable def snaps529 : List B2C.Snap :=
@@ -358,21 +350,13 @@ noncomputable def snaps530 : List B2C.Snap :=
 noncomputable def snaps531 : List B2C.Snap :=
   [snap531_1]
 
-/-- Function 533's windows after the first start from these. -/
-noncomputable def snaps533 : List B2C.Snap :=
-  [snap533_1]
+/-- Function 532's windows after the first start from these. -/
+noncomputable def snaps532 : List B2C.Snap :=
+  [snap532_1]
 
-/-- Function 534's windows after the first start from these. -/
-noncomputable def snaps534 : List B2C.Snap :=
-  [snap534_1]
-
-/-- Function 535's windows after the first start from these. -/
-noncomputable def snaps535 : List B2C.Snap :=
-  [snap535_1]
-
-/-- Function 536's windows after the first start from these. -/
-noncomputable def snaps536 : List B2C.Snap :=
-  [snap536_1]
+/-- Function 537's windows after the first start from these. -/
+noncomputable def snaps537 : List B2C.Snap :=
+  [snap537_1]
 
 /-- Function 538's windows after the first start from these. -/
 noncomputable def snaps538 : List B2C.Snap :=
@@ -386,57 +370,57 @@ noncomputable def snaps539 : List B2C.Snap :=
 noncomputable def snaps540 : List B2C.Snap :=
   [snap540_1]
 
-/-- Function 541's windows after the first start from these. -/
-noncomputable def snaps541 : List B2C.Snap :=
-  [snap541_1]
+/-- Function 543's windows after the first start from these. -/
+noncomputable def snaps543 : List B2C.Snap :=
+  [snap543_1]
 
-/-- Function 564's windows after the first start from these. -/
-noncomputable def snaps564 : List B2C.Snap :=
-  [snap564_1]
+/-- Function 544's windows after the first start from these. -/
+noncomputable def snaps544 : List B2C.Snap :=
+  [snap544_1]
 
-/-- Function 565's windows after the first start from these. -/
-noncomputable def snaps565 : List B2C.Snap :=
-  [snap565_1]
+/-- Function 545's windows after the first start from these. -/
+noncomputable def snaps545 : List B2C.Snap :=
+  [snap545_1]
 
-/-- Function 566's windows after the first start from these. -/
-noncomputable def snaps566 : List B2C.Snap :=
-  [snap566_1]
+/-- Function 546's windows after the first start from these. -/
+noncomputable def snaps546 : List B2C.Snap :=
+  [snap546_1]
 
-/-- Function 567's windows after the first start from these. -/
-noncomputable def snaps567 : List B2C.Snap :=
-  [snap567_1]
+/-- Function 549's windows after the first start from these. -/
+noncomputable def snaps549 : List B2C.Snap :=
+  [snap549_1]
 
-/-- Function 572's windows after the first start from these. -/
-noncomputable def snaps572 : List B2C.Snap :=
-  [snap572_1]
+/-- Function 550's windows after the first start from these. -/
+noncomputable def snaps550 : List B2C.Snap :=
+  [snap550_1]
 
-/-- Function 573's windows after the first start from these. -/
-noncomputable def snaps573 : List B2C.Snap :=
-  [snap573_1]
+/-- Function 551's windows after the first start from these. -/
+noncomputable def snaps551 : List B2C.Snap :=
+  [snap551_1]
 
-/-- Function 574's windows after the first start from these. -/
-noncomputable def snaps574 : List B2C.Snap :=
-  [snap574_1]
+/-- Function 552's windows after the first start from these. -/
+noncomputable def snaps552 : List B2C.Snap :=
+  [snap552_1]
 
 /-- Function 575's windows after the first start from these. -/
 noncomputable def snaps575 : List B2C.Snap :=
   [snap575_1]
 
+/-- Function 576's windows after the first start from these. -/
+noncomputable def snaps576 : List B2C.Snap :=
+  [snap576_1]
+
+/-- Function 577's windows after the first start from these. -/
+noncomputable def snaps577 : List B2C.Snap :=
+  [snap577_1]
+
 /-- Function 578's windows after the first start from these. -/
 noncomputable def snaps578 : List B2C.Snap :=
   [snap578_1]
 
-/-- Function 579's windows after the first start from these. -/
-noncomputable def snaps579 : List B2C.Snap :=
-  [snap579_1]
-
-/-- Function 580's windows after the first start from these. -/
-noncomputable def snaps580 : List B2C.Snap :=
-  [snap580_1]
-
-/-- Function 581's windows after the first start from these. -/
-noncomputable def snaps581 : List B2C.Snap :=
-  [snap581_1]
+/-- Function 583's windows after the first start from these. -/
+noncomputable def snaps583 : List B2C.Snap :=
+  [snap583_1]
 
 /-- Function 584's windows after the first start from these. -/
 noncomputable def snaps584 : List B2C.Snap :=
@@ -450,41 +434,37 @@ noncomputable def snaps585 : List B2C.Snap :=
 noncomputable def snaps586 : List B2C.Snap :=
   [snap586_1]
 
-/-- Function 587's windows after the first start from these. -/
-noncomputable def snaps587 : List B2C.Snap :=
-  [snap587_1]
+/-- Function 589's windows after the first start from these. -/
+noncomputable def snaps589 : List B2C.Snap :=
+  [snap589_1]
 
-/-- Function 610's windows after the first start from these. -/
-noncomputable def snaps610 : List B2C.Snap :=
-  [snap610_1]
+/-- Function 590's windows after the first start from these. -/
+noncomputable def snaps590 : List B2C.Snap :=
+  [snap590_1]
 
-/-- Function 611's windows after the first start from these. -/
-noncomputable def snaps611 : List B2C.Snap :=
-  [snap611_1]
+/-- Function 591's windows after the first start from these. -/
+noncomputable def snaps591 : List B2C.Snap :=
+  [snap591_1]
 
-/-- Function 612's windows after the first start from these. -/
-noncomputable def snaps612 : List B2C.Snap :=
-  [snap612_1]
+/-- Function 592's windows after the first start from these. -/
+noncomputable def snaps592 : List B2C.Snap :=
+  [snap592_1]
 
-/-- Function 613's windows after the first start from these. -/
-noncomputable def snaps613 : List B2C.Snap :=
-  [snap613_1]
+/-- Function 595's windows after the first start from these. -/
+noncomputable def snaps595 : List B2C.Snap :=
+  [snap595_1]
 
-/-- Function 616's windows after the first start from these. -/
-noncomputable def snaps616 : List B2C.Snap :=
-  [snap616_1]
+/-- Function 596's windows after the first start from these. -/
+noncomputable def snaps596 : List B2C.Snap :=
+  [snap596_1]
 
-/-- Function 617's windows after the first start from these. -/
-noncomputable def snaps617 : List B2C.Snap :=
-  [snap617_1]
+/-- Function 597's windows after the first start from these. -/
+noncomputable def snaps597 : List B2C.Snap :=
+  [snap597_1]
 
-/-- Function 618's windows after the first start from these. -/
-noncomputable def snaps618 : List B2C.Snap :=
-  [snap618_1]
-
-/-- Function 619's windows after the first start from these. -/
-noncomputable def snaps619 : List B2C.Snap :=
-  [snap619_1]
+/-- Function 598's windows after the first start from these. -/
+noncomputable def snaps598 : List B2C.Snap :=
+  [snap598_1]
 
 /-- Function 621's windows after the first start from these. -/
 noncomputable def snaps621 : List B2C.Snap :=
@@ -498,69 +478,61 @@ noncomputable def snaps622 : List B2C.Snap :=
 noncomputable def snaps623 : List B2C.Snap :=
   [snap623_1]
 
-/-- Function 625's windows after the first start from these. -/
-noncomputable def snaps625 : List B2C.Snap :=
-  [snap625_1]
+/-- Function 624's windows after the first start from these. -/
+noncomputable def snaps624 : List B2C.Snap :=
+  [snap624_1]
 
-/-- Function 626's windows after the first start from these. -/
-noncomputable def snaps626 : List B2C.Snap :=
-  [snap626_1]
+/-- Function 628's windows after the first start from these. -/
+noncomputable def snaps628 : List B2C.Snap :=
+  [snap628_1]
 
-/-- Function 627's windows after the first start from these. -/
-noncomputable def snaps627 : List B2C.Snap :=
-  [snap627_1]
+/-- Function 629's windows after the first start from these. -/
+noncomputable def snaps629 : List B2C.Snap :=
+  [snap629_1]
 
-/-- Function 646's windows after the first start from these. -/
-noncomputable def snaps646 : List B2C.Snap :=
-  [snap646_1]
+/-- Function 630's windows after the first start from these. -/
+noncomputable def snaps630 : List B2C.Snap :=
+  [snap630_1]
 
-/-- Function 647's windows after the first start from these. -/
-noncomputable def snaps647 : List B2C.Snap :=
-  [snap647_1]
+/-- Function 631's windows after the first start from these. -/
+noncomputable def snaps631 : List B2C.Snap :=
+  [snap631_1]
 
-/-- Function 648's windows after the first start from these. -/
-noncomputable def snaps648 : List B2C.Snap :=
-  [snap648_1]
+/-- Function 633's windows after the first start from these. -/
+noncomputable def snaps633 : List B2C.Snap :=
+  [snap633_1]
 
-/-- Function 649's windows after the first start from these. -/
-noncomputable def snaps649 : List B2C.Snap :=
-  [snap649_1]
+/-- Function 634's windows after the first start from these. -/
+noncomputable def snaps634 : List B2C.Snap :=
+  [snap634_1]
 
-/-- Function 653's windows after the first start from these. -/
-noncomputable def snaps653 : List B2C.Snap :=
-  [snap653_1]
+/-- Function 635's windows after the first start from these. -/
+noncomputable def snaps635 : List B2C.Snap :=
+  [snap635_1]
 
-/-- Function 654's windows after the first start from these. -/
-noncomputable def snaps654 : List B2C.Snap :=
-  [snap654_1]
+/-- Function 637's windows after the first start from these. -/
+noncomputable def snaps637 : List B2C.Snap :=
+  [snap637_1]
 
-/-- Function 655's windows after the first start from these. -/
-noncomputable def snaps655 : List B2C.Snap :=
-  [snap655_1]
+/-- Function 638's windows after the first start from these. -/
+noncomputable def snaps638 : List B2C.Snap :=
+  [snap638_1]
 
-/-- Function 656's windows after the first start from these. -/
-noncomputable def snaps656 : List B2C.Snap :=
-  [snap656_1]
+/-- Function 639's windows after the first start from these. -/
+noncomputable def snaps639 : List B2C.Snap :=
+  [snap639_1]
 
-/-- Function 658's windows after the first start from these. -/
-noncomputable def snaps658 : List B2C.Snap :=
-  [snap658_1]
+/-- Function 640's windows after the first start from these. -/
+noncomputable def snaps640 : List B2C.Snap :=
+  [snap640_1]
 
-/-- Function 659's windows after the first start from these. -/
-noncomputable def snaps659 : List B2C.Snap :=
-  [snap659_1]
+/-- Function 641's windows after the first start from these. -/
+noncomputable def snaps641 : List B2C.Snap :=
+  [snap641_1]
 
-/-- Function 660's windows after the first start from these. -/
-noncomputable def snaps660 : List B2C.Snap :=
-  [snap660_1]
-
-/-- Function 662's windows after the first start from these. -/
-noncomputable def snaps662 : List B2C.Snap :=
-  [snap662_1]
-
-/-- Function 663's windows after the first start from these. -/
-noncomputable def snaps663 : List B2C.Snap :=
-  [snap663_1]
+/-- Function 642's windows after the first start from these. -/
+noncomputable def snaps642 : List B2C.Snap :=
+  [snap642_1]
 
 /-- Function 664's windows after the first start from these. -/
 noncomputable def snaps664 : List B2C.Snap :=
@@ -578,57 +550,57 @@ noncomputable def snaps666 : List B2C.Snap :=
 noncomputable def snaps667 : List B2C.Snap :=
   [snap667_1]
 
-/-- Function 689's windows after the first start from these. -/
-noncomputable def snaps689 : List B2C.Snap :=
-  [snap689_1]
+/-- Function 670's windows after the first start from these. -/
+noncomputable def snaps670 : List B2C.Snap :=
+  [snap670_1]
 
-/-- Function 690's windows after the first start from these. -/
-noncomputable def snaps690 : List B2C.Snap :=
-  [snap690_1]
+/-- Function 671's windows after the first start from these. -/
+noncomputable def snaps671 : List B2C.Snap :=
+  [snap671_1]
 
-/-- Function 691's windows after the first start from these. -/
-noncomputable def snaps691 : List B2C.Snap :=
-  [snap691_1]
+/-- Function 672's windows after the first start from these. -/
+noncomputable def snaps672 : List B2C.Snap :=
+  [snap672_1]
 
-/-- Function 692's windows after the first start from these. -/
-noncomputable def snaps692 : List B2C.Snap :=
-  [snap692_1]
+/-- Function 673's windows after the first start from these. -/
+noncomputable def snaps673 : List B2C.Snap :=
+  [snap673_1]
 
-/-- Function 695's windows after the first start from these. -/
-noncomputable def snaps695 : List B2C.Snap :=
-  [snap695_1]
+/-- Function 675's windows after the first start from these. -/
+noncomputable def snaps675 : List B2C.Snap :=
+  [snap675_1]
 
-/-- Function 696's windows after the first start from these. -/
-noncomputable def snaps696 : List B2C.Snap :=
-  [snap696_1]
+/-- Function 676's windows after the first start from these. -/
+noncomputable def snaps676 : List B2C.Snap :=
+  [snap676_1]
 
-/-- Function 697's windows after the first start from these. -/
-noncomputable def snaps697 : List B2C.Snap :=
-  [snap697_1]
+/-- Function 677's windows after the first start from these. -/
+noncomputable def snaps677 : List B2C.Snap :=
+  [snap677_1]
 
-/-- Function 698's windows after the first start from these. -/
-noncomputable def snaps698 : List B2C.Snap :=
-  [snap698_1]
+/-- Function 679's windows after the first start from these. -/
+noncomputable def snaps679 : List B2C.Snap :=
+  [snap679_1]
 
-/-- Function 700's windows after the first start from these. -/
-noncomputable def snaps700 : List B2C.Snap :=
-  [snap700_1]
+/-- Function 680's windows after the first start from these. -/
+noncomputable def snaps680 : List B2C.Snap :=
+  [snap680_1]
 
-/-- Function 701's windows after the first start from these. -/
-noncomputable def snaps701 : List B2C.Snap :=
-  [snap701_1]
+/-- Function 681's windows after the first start from these. -/
+noncomputable def snaps681 : List B2C.Snap :=
+  [snap681_1]
 
-/-- Function 702's windows after the first start from these. -/
-noncomputable def snaps702 : List B2C.Snap :=
-  [snap702_1]
+/-- Function 682's windows after the first start from these. -/
+noncomputable def snaps682 : List B2C.Snap :=
+  [snap682_1]
 
-/-- Function 704's windows after the first start from these. -/
-noncomputable def snaps704 : List B2C.Snap :=
-  [snap704_1]
+/-- Function 683's windows after the first start from these. -/
+noncomputable def snaps683 : List B2C.Snap :=
+  [snap683_1]
 
-/-- Function 705's windows after the first start from these. -/
-noncomputable def snaps705 : List B2C.Snap :=
-  [snap705_1]
+/-- Function 684's windows after the first start from these. -/
+noncomputable def snaps684 : List B2C.Snap :=
+  [snap684_1]
 
 /-- Function 706's windows after the first start from these. -/
 noncomputable def snaps706 : List B2C.Snap :=
@@ -646,57 +618,57 @@ noncomputable def snaps708 : List B2C.Snap :=
 noncomputable def snaps709 : List B2C.Snap :=
   [snap709_1]
 
-/-- Function 731's windows after the first start from these. -/
-noncomputable def snaps731 : List B2C.Snap :=
-  [snap731_1]
+/-- Function 712's windows after the first start from these. -/
+noncomputable def snaps712 : List B2C.Snap :=
+  [snap712_1]
 
-/-- Function 732's windows after the first start from these. -/
-noncomputable def snaps732 : List B2C.Snap :=
-  [snap732_1]
+/-- Function 713's windows after the first start from these. -/
+noncomputable def snaps713 : List B2C.Snap :=
+  [snap713_1]
 
-/-- Function 733's windows after the first start from these. -/
-noncomputable def snaps733 : List B2C.Snap :=
-  [snap733_1]
+/-- Function 714's windows after the first start from these. -/
+noncomputable def snaps714 : List B2C.Snap :=
+  [snap714_1]
 
-/-- Function 734's windows after the first start from these. -/
-noncomputable def snaps734 : List B2C.Snap :=
-  [snap734_1]
+/-- Function 715's windows after the first start from these. -/
+noncomputable def snaps715 : List B2C.Snap :=
+  [snap715_1]
 
-/-- Function 737's windows after the first start from these. -/
-noncomputable def snaps737 : List B2C.Snap :=
-  [snap737_1]
+/-- Function 717's windows after the first start from these. -/
+noncomputable def snaps717 : List B2C.Snap :=
+  [snap717_1]
 
-/-- Function 738's windows after the first start from these. -/
-noncomputable def snaps738 : List B2C.Snap :=
-  [snap738_1]
+/-- Function 718's windows after the first start from these. -/
+noncomputable def snaps718 : List B2C.Snap :=
+  [snap718_1]
 
-/-- Function 739's windows after the first start from these. -/
-noncomputable def snaps739 : List B2C.Snap :=
-  [snap739_1]
+/-- Function 719's windows after the first start from these. -/
+noncomputable def snaps719 : List B2C.Snap :=
+  [snap719_1]
 
-/-- Function 740's windows after the first start from these. -/
-noncomputable def snaps740 : List B2C.Snap :=
-  [snap740_1]
+/-- Function 721's windows after the first start from these. -/
+noncomputable def snaps721 : List B2C.Snap :=
+  [snap721_1]
 
-/-- Function 742's windows after the first start from these. -/
-noncomputable def snaps742 : List B2C.Snap :=
-  [snap742_1]
+/-- Function 722's windows after the first start from these. -/
+noncomputable def snaps722 : List B2C.Snap :=
+  [snap722_1]
 
-/-- Function 743's windows after the first start from these. -/
-noncomputable def snaps743 : List B2C.Snap :=
-  [snap743_1]
+/-- Function 723's windows after the first start from these. -/
+noncomputable def snaps723 : List B2C.Snap :=
+  [snap723_1]
 
-/-- Function 744's windows after the first start from these. -/
-noncomputable def snaps744 : List B2C.Snap :=
-  [snap744_1]
+/-- Function 724's windows after the first start from these. -/
+noncomputable def snaps724 : List B2C.Snap :=
+  [snap724_1]
 
-/-- Function 746's windows after the first start from these. -/
-noncomputable def snaps746 : List B2C.Snap :=
-  [snap746_1]
+/-- Function 725's windows after the first start from these. -/
+noncomputable def snaps725 : List B2C.Snap :=
+  [snap725_1]
 
-/-- Function 747's windows after the first start from these. -/
-noncomputable def snaps747 : List B2C.Snap :=
-  [snap747_1]
+/-- Function 726's windows after the first start from these. -/
+noncomputable def snaps726 : List B2C.Snap :=
+  [snap726_1]
 
 /-- Function 748's windows after the first start from these. -/
 noncomputable def snaps748 : List B2C.Snap :=
@@ -714,53 +686,57 @@ noncomputable def snaps750 : List B2C.Snap :=
 noncomputable def snaps751 : List B2C.Snap :=
   [snap751_1]
 
-/-- Function 773's windows after the first start from these. -/
-noncomputable def snaps773 : List B2C.Snap :=
-  [snap773_1]
+/-- Function 755's windows after the first start from these. -/
+noncomputable def snaps755 : List B2C.Snap :=
+  [snap755_1]
 
-/-- Function 774's windows after the first start from these. -/
-noncomputable def snaps774 : List B2C.Snap :=
-  [snap774_1]
+/-- Function 756's windows after the first start from these. -/
+noncomputable def snaps756 : List B2C.Snap :=
+  [snap756_1]
 
-/-- Function 775's windows after the first start from these. -/
-noncomputable def snaps775 : List B2C.Snap :=
-  [snap775_1]
+/-- Function 757's windows after the first start from these. -/
+noncomputable def snaps757 : List B2C.Snap :=
+  [snap757_1]
 
-/-- Function 776's windows after the first start from these. -/
-noncomputable def snaps776 : List B2C.Snap :=
-  [snap776_1]
+/-- Function 758's windows after the first start from these. -/
+noncomputable def snaps758 : List B2C.Snap :=
+  [snap758_1]
 
-/-- Function 780's windows after the first start from these. -/
-noncomputable def snaps780 : List B2C.Snap :=
-  [snap780_1]
+/-- Function 760's windows after the first start from these. -/
+noncomputable def snaps760 : List B2C.Snap :=
+  [snap760_1]
 
-/-- Function 781's windows after the first start from these. -/
-noncomputable def snaps781 : List B2C.Snap :=
-  [snap781_1]
+/-- Function 761's windows after the first start from these. -/
+noncomputable def snaps761 : List B2C.Snap :=
+  [snap761_1]
 
-/-- Function 782's windows after the first start from these. -/
-noncomputable def snaps782 : List B2C.Snap :=
-  [snap782_1]
+/-- Function 762's windows after the first start from these. -/
+noncomputable def snaps762 : List B2C.Snap :=
+  [snap762_1]
 
-/-- Function 783's windows after the first start from these. -/
-noncomputable def snaps783 : List B2C.Snap :=
-  [snap783_1]
+/-- Function 763's windows after the first start from these. -/
+noncomputable def snaps763 : List B2C.Snap :=
+  [snap763_1]
 
-/-- Function 785's windows after the first start from these. -/
-noncomputable def snaps785 : List B2C.Snap :=
-  [snap785_1]
+/-- Function 764's windows after the first start from these. -/
+noncomputable def snaps764 : List B2C.Snap :=
+  [snap764_1]
 
-/-- Function 786's windows after the first start from these. -/
-noncomputable def snaps786 : List B2C.Snap :=
-  [snap786_1]
+/-- Function 765's windows after the first start from these. -/
+noncomputable def snaps765 : List B2C.Snap :=
+  [snap765_1]
 
-/-- Function 787's windows after the first start from these. -/
-noncomputable def snaps787 : List B2C.Snap :=
-  [snap787_1]
+/-- Function 766's windows after the first start from these. -/
+noncomputable def snaps766 : List B2C.Snap :=
+  [snap766_1]
 
-/-- Function 788's windows after the first start from these. -/
-noncomputable def snaps788 : List B2C.Snap :=
-  [snap788_1]
+/-- Function 767's windows after the first start from these. -/
+noncomputable def snaps767 : List B2C.Snap :=
+  [snap767_1]
+
+/-- Function 768's windows after the first start from these. -/
+noncomputable def snaps768 : List B2C.Snap :=
+  [snap768_1]
 
 /-- Function 789's windows after the first start from these. -/
 noncomputable def snaps789 : List B2C.Snap :=
@@ -778,73 +754,65 @@ noncomputable def snaps791 : List B2C.Snap :=
 noncomputable def snaps792 : List B2C.Snap :=
   [snap792_1]
 
-/-- Function 793's windows after the first start from these. -/
-noncomputable def snaps793 : List B2C.Snap :=
-  [snap793_1]
+/-- Function 796's windows after the first start from these. -/
+noncomputable def snaps796 : List B2C.Snap :=
+  [snap796_1]
 
-/-- Function 814's windows after the first start from these. -/
-noncomputable def snaps814 : List B2C.Snap :=
-  [snap814_1]
+/-- Function 797's windows after the first start from these. -/
+noncomputable def snaps797 : List B2C.Snap :=
+  [snap797_1]
 
-/-- Function 815's windows after the first start from these. -/
-noncomputable def snaps815 : List B2C.Snap :=
-  [snap815_1]
+/-- Function 798's windows after the first start from these. -/
+noncomputable def snaps798 : List B2C.Snap :=
+  [snap798_1]
 
-/-- Function 816's windows after the first start from these. -/
-noncomputable def snaps816 : List B2C.Snap :=
-  [snap816_1]
+/-- Function 799's windows after the first start from these. -/
+noncomputable def snaps799 : List B2C.Snap :=
+  [snap799_1]
 
-/-- Function 817's windows after the first start from these. -/
-noncomputable def snaps817 : List B2C.Snap :=
-  [snap817_1]
+/-- Function 801's windows after the first start from these. -/
+noncomputable def snaps801 : List B2C.Snap :=
+  [snap801_1]
 
-/-- Function 821's windows after the first start from these. -/
-noncomputable def snaps821 : List B2C.Snap :=
-  [snap821_1]
+/-- Function 802's windows after the first start from these. -/
+noncomputable def snaps802 : List B2C.Snap :=
+  [snap802_1]
 
-/-- Function 822's windows after the first start from these. -/
-noncomputable def snaps822 : List B2C.Snap :=
-  [snap822_1]
+/-- Function 803's windows after the first start from these. -/
+noncomputable def snaps803 : List B2C.Snap :=
+  [snap803_1]
 
-/-- Function 823's windows after the first start from these. -/
-noncomputable def snaps823 : List B2C.Snap :=
-  [snap823_1]
+/-- Function 804's windows after the first start from these. -/
+noncomputable def snaps804 : List B2C.Snap :=
+  [snap804_1]
 
-/-- Function 824's windows after the first start from these. -/
-noncomputable def snaps824 : List B2C.Snap :=
-  [snap824_1]
+/-- Function 805's windows after the first start from these. -/
+noncomputable def snaps805 : List B2C.Snap :=
+  [snap805_1]
 
-/-- Function 826's windows after the first start from these. -/
-noncomputable def snaps826 : List B2C.Snap :=
-  [snap826_1]
+/-- Function 806's windows after the first start from these. -/
+noncomputable def snaps806 : List B2C.Snap :=
+  [snap806_1]
 
-/-- Function 827's windows after the first start from these. -/
-noncomputable def snaps827 : List B2C.Snap :=
-  [snap827_1]
+/-- Function 808's windows after the first start from these. -/
+noncomputable def snaps808 : List B2C.Snap :=
+  [snap808_1]
 
-/-- Function 828's windows after the first start from these. -/
-noncomputable def snaps828 : List B2C.Snap :=
-  [snap828_1]
+/-- Function 809's windows after the first start from these. -/
+noncomputable def snaps809 : List B2C.Snap :=
+  [snap809_1]
 
-/-- Function 829's windows after the first start from these. -/
-noncomputable def snaps829 : List B2C.Snap :=
-  [snap829_1]
+/-- Function 810's windows after the first start from these. -/
+noncomputable def snaps810 : List B2C.Snap :=
+  [snap810_1]
 
-/-- Function 830's windows after the first start from these. -/
-noncomputable def snaps830 : List B2C.Snap :=
-  [snap830_1]
+/-- Function 811's windows after the first start from these. -/
+noncomputable def snaps811 : List B2C.Snap :=
+  [snap811_1]
 
-/-- Function 831's windows after the first start from these. -/
-noncomputable def snaps831 : List B2C.Snap :=
-  [snap831_1]
-
-/-- Function 833's windows after the first start from these. -/
-noncomputable def snaps833 : List B2C.Snap :=
-  [snap833_1]
-
-/-- Function 834's windows after the first start from these. -/
-noncomputable def snaps834 : List B2C.Snap :=
-  [snap834_1]
+/-- Function 812's windows after the first start from these. -/
+noncomputable def snaps812 : List B2C.Snap :=
+  [snap812_1]
 
 /-- Function 835's windows after the first start from these. -/
 noncomputable def snaps835 : List B2C.Snap :=
@@ -858,65 +826,65 @@ noncomputable def snaps836 : List B2C.Snap :=
 noncomputable def snaps837 : List B2C.Snap :=
   [snap837_1]
 
-/-- Function 860's windows after the first start from these. -/
-noncomputable def snaps860 : List B2C.Snap :=
-  [snap860_1]
+/-- Function 838's windows after the first start from these. -/
+noncomputable def snaps838 : List B2C.Snap :=
+  [snap838_1]
 
-/-- Function 861's windows after the first start from these. -/
-noncomputable def snaps861 : List B2C.Snap :=
-  [snap861_1]
+/-- Function 842's windows after the first start from these. -/
+noncomputable def snaps842 : List B2C.Snap :=
+  [snap842_1]
 
-/-- Function 862's windows after the first start from these. -/
-noncomputable def snaps862 : List B2C.Snap :=
-  [snap862_1]
+/-- Function 843's windows after the first start from these. -/
+noncomputable def snaps843 : List B2C.Snap :=
+  [snap843_1]
 
-/-- Function 863's windows after the first start from these. -/
-noncomputable def snaps863 : List B2C.Snap :=
-  [snap863_1]
+/-- Function 844's windows after the first start from these. -/
+noncomputable def snaps844 : List B2C.Snap :=
+  [snap844_1]
 
-/-- Function 867's windows after the first start from these. -/
-noncomputable def snaps867 : List B2C.Snap :=
-  [snap867_1]
+/-- Function 845's windows after the first start from these. -/
+noncomputable def snaps845 : List B2C.Snap :=
+  [snap845_1]
 
-/-- Function 868's windows after the first start from these. -/
-noncomputable def snaps868 : List B2C.Snap :=
-  [snap868_1]
+/-- Function 847's windows after the first start from these. -/
+noncomputable def snaps847 : List B2C.Snap :=
+  [snap847_1]
 
-/-- Function 869's windows after the first start from these. -/
-noncomputable def snaps869 : List B2C.Snap :=
-  [snap869_1]
+/-- Function 848's windows after the first start from these. -/
+noncomputable def snaps848 : List B2C.Snap :=
+  [snap848_1]
 
-/-- Function 870's windows after the first start from these. -/
-noncomputable def snaps870 : List B2C.Snap :=
-  [snap870_1]
+/-- Function 849's windows after the first start from these. -/
+noncomputable def snaps849 : List B2C.Snap :=
+  [snap849_1]
 
-/-- Function 872's windows after the first start from these. -/
-noncomputable def snaps872 : List B2C.Snap :=
-  [snap872_1]
+/-- Function 850's windows after the first start from these. -/
+noncomputable def snaps850 : List B2C.Snap :=
+  [snap850_1]
 
-/-- Function 873's windows after the first start from these. -/
-noncomputable def snaps873 : List B2C.Snap :=
-  [snap873_1]
+/-- Function 851's windows after the first start from these. -/
+noncomputable def snaps851 : List B2C.Snap :=
+  [snap851_1]
 
-/-- Function 874's windows after the first start from these. -/
-noncomputable def snaps874 : List B2C.Snap :=
-  [snap874_1]
+/-- Function 852's windows after the first start from these. -/
+noncomputable def snaps852 : List B2C.Snap :=
+  [snap852_1]
 
-/-- Function 875's windows after the first start from these. -/
-noncomputable def snaps875 : List B2C.Snap :=
-  [snap875_1]
+/-- Function 854's windows after the first start from these. -/
+noncomputable def snaps854 : List B2C.Snap :=
+  [snap854_1]
 
-/-- Function 876's windows after the first start from these. -/
-noncomputable def snaps876 : List B2C.Snap :=
-  [snap876_1]
+/-- Function 855's windows after the first start from these. -/
+noncomputable def snaps855 : List B2C.Snap :=
+  [snap855_1]
 
-/-- Function 877's windows after the first start from these. -/
-noncomputable def snaps877 : List B2C.Snap :=
-  [snap877_1]
+/-- Function 856's windows after the first start from these. -/
+noncomputable def snaps856 : List B2C.Snap :=
+  [snap856_1]
 
-/-- Function 879's windows after the first start from these. -/
-noncomputable def snaps879 : List B2C.Snap :=
-  [snap879_1]
+/-- Function 857's windows after the first start from these. -/
+noncomputable def snaps857 : List B2C.Snap :=
+  [snap857_1]
 
 /-- Function 880's windows after the first start from these. -/
 noncomputable def snaps880 : List B2C.Snap :=
@@ -930,77 +898,73 @@ noncomputable def snaps881 : List B2C.Snap :=
 noncomputable def snaps882 : List B2C.Snap :=
   [snap882_1]
 
+/-- Function 883's windows after the first start from these. -/
+noncomputable def snaps883 : List B2C.Snap :=
+  [snap883_1]
+
+/-- Function 887's windows after the first start from these. -/
+noncomputable def snaps887 : List B2C.Snap :=
+  [snap887_1]
+
+/-- Function 888's windows after the first start from these. -/
+noncomputable def snaps888 : List B2C.Snap :=
+  [snap888_1]
+
+/-- Function 889's windows after the first start from these. -/
+noncomputable def snaps889 : List B2C.Snap :=
+  [snap889_1]
+
+/-- Function 890's windows after the first start from these. -/
+noncomputable def snaps890 : List B2C.Snap :=
+  [snap890_1]
+
+/-- Function 892's windows after the first start from these. -/
+noncomputable def snaps892 : List B2C.Snap :=
+  [snap892_1]
+
+/-- Function 893's windows after the first start from these. -/
+noncomputable def snaps893 : List B2C.Snap :=
+  [snap893_1]
+
+/-- Function 894's windows after the first start from these. -/
+noncomputable def snaps894 : List B2C.Snap :=
+  [snap894_1]
+
+/-- Function 896's windows after the first start from these. -/
+noncomputable def snaps896 : List B2C.Snap :=
+  [snap896_1]
+
+/-- Function 897's windows after the first start from these. -/
+noncomputable def snaps897 : List B2C.Snap :=
+  [snap897_1]
+
+/-- Function 898's windows after the first start from these. -/
+noncomputable def snaps898 : List B2C.Snap :=
+  [snap898_1]
+
+/-- Function 900's windows after the first start from these. -/
+noncomputable def snaps900 : List B2C.Snap :=
+  [snap900_1]
+
+/-- Function 901's windows after the first start from these. -/
+noncomputable def snaps901 : List B2C.Snap :=
+  [snap901_1]
+
+/-- Function 902's windows after the first start from these. -/
+noncomputable def snaps902 : List B2C.Snap :=
+  [snap902_1]
+
+/-- Function 903's windows after the first start from these. -/
+noncomputable def snaps903 : List B2C.Snap :=
+  [snap903_1]
+
+/-- Function 904's windows after the first start from these. -/
+noncomputable def snaps904 : List B2C.Snap :=
+  [snap904_1]
+
 /-- Function 905's windows after the first start from these. -/
 noncomputable def snaps905 : List B2C.Snap :=
   [snap905_1]
-
-/-- Function 906's windows after the first start from these. -/
-noncomputable def snaps906 : List B2C.Snap :=
-  [snap906_1]
-
-/-- Function 907's windows after the first start from these. -/
-noncomputable def snaps907 : List B2C.Snap :=
-  [snap907_1]
-
-/-- Function 908's windows after the first start from these. -/
-noncomputable def snaps908 : List B2C.Snap :=
-  [snap908_1]
-
-/-- Function 912's windows after the first start from these. -/
-noncomputable def snaps912 : List B2C.Snap :=
-  [snap912_1]
-
-/-- Function 913's windows after the first start from these. -/
-noncomputable def snaps913 : List B2C.Snap :=
-  [snap913_1]
-
-/-- Function 914's windows after the first start from these. -/
-noncomputable def snaps914 : List B2C.Snap :=
-  [snap914_1]
-
-/-- Function 915's windows after the first start from these. -/
-noncomputable def snaps915 : List B2C.Snap :=
-  [snap915_1]
-
-/-- Function 917's windows after the first start from these. -/
-noncomputable def snaps917 : List B2C.Snap :=
-  [snap917_1]
-
-/-- Function 918's windows after the first start from these. -/
-noncomputable def snaps918 : List B2C.Snap :=
-  [snap918_1]
-
-/-- Function 919's windows after the first start from these. -/
-noncomputable def snaps919 : List B2C.Snap :=
-  [snap919_1]
-
-/-- Function 921's windows after the first start from these. -/
-noncomputable def snaps921 : List B2C.Snap :=
-  [snap921_1]
-
-/-- Function 922's windows after the first start from these. -/
-noncomputable def snaps922 : List B2C.Snap :=
-  [snap922_1]
-
-/-- Function 923's windows after the first start from these. -/
-noncomputable def snaps923 : List B2C.Snap :=
-  [snap923_1]
-
-/-- Function 925's windows after the first start from these. -/
-noncomputable def snaps925 : List B2C.Snap :=
-  [snap925_1]
-
-/-- Function 926's windows after the first start from these. -/
-noncomputable def snaps926 : List B2C.Snap :=
-  [snap926_1]
-
-/-- Function 927's windows after the first start from these. -/
-noncomputable def snaps927 : List B2C.Snap :=
-  [snap927_1]
-
-/-- Function 928's windows after the first start from these. -/
-noncomputable def snaps928 : List B2C.Snap :=
-  [snap928_1]
 
 /-- Function 929's windows after the first start from these. -/
 noncomputable def snaps929 : List B2C.Snap :=
@@ -1010,77 +974,77 @@ noncomputable def snaps929 : List B2C.Snap :=
 noncomputable def snaps930 : List B2C.Snap :=
   [snap930_1]
 
-/-- Function 954's windows after the first start from these. -/
-noncomputable def snaps954 : List B2C.Snap :=
-  [snap954_1]
+/-- Function 931's windows after the first start from these. -/
+noncomputable def snaps931 : List B2C.Snap :=
+  [snap931_1]
 
-/-- Function 955's windows after the first start from these. -/
-noncomputable def snaps955 : List B2C.Snap :=
-  [snap955_1]
+/-- Function 932's windows after the first start from these. -/
+noncomputable def snaps932 : List B2C.Snap :=
+  [snap932_1]
 
-/-- Function 956's windows after the first start from these. -/
-noncomputable def snaps956 : List B2C.Snap :=
-  [snap956_1]
+/-- Function 936's windows after the first start from these. -/
+noncomputable def snaps936 : List B2C.Snap :=
+  [snap936_1]
 
-/-- Function 957's windows after the first start from these. -/
-noncomputable def snaps957 : List B2C.Snap :=
-  [snap957_1]
+/-- Function 937's windows after the first start from these. -/
+noncomputable def snaps937 : List B2C.Snap :=
+  [snap937_1]
 
-/-- Function 961's windows after the first start from these. -/
-noncomputable def snaps961 : List B2C.Snap :=
-  [snap961_1]
+/-- Function 938's windows after the first start from these. -/
+noncomputable def snaps938 : List B2C.Snap :=
+  [snap938_1]
 
-/-- Function 962's windows after the first start from these. -/
-noncomputable def snaps962 : List B2C.Snap :=
-  [snap962_1]
+/-- Function 939's windows after the first start from these. -/
+noncomputable def snaps939 : List B2C.Snap :=
+  [snap939_1]
 
-/-- Function 963's windows after the first start from these. -/
-noncomputable def snaps963 : List B2C.Snap :=
-  [snap963_1]
+/-- Function 941's windows after the first start from these. -/
+noncomputable def snaps941 : List B2C.Snap :=
+  [snap941_1]
 
-/-- Function 964's windows after the first start from these. -/
-noncomputable def snaps964 : List B2C.Snap :=
-  [snap964_1]
+/-- Function 942's windows after the first start from these. -/
+noncomputable def snaps942 : List B2C.Snap :=
+  [snap942_1]
 
-/-- Function 966's windows after the first start from these. -/
-noncomputable def snaps966 : List B2C.Snap :=
-  [snap966_1]
+/-- Function 943's windows after the first start from these. -/
+noncomputable def snaps943 : List B2C.Snap :=
+  [snap943_1]
 
-/-- Function 967's windows after the first start from these. -/
-noncomputable def snaps967 : List B2C.Snap :=
-  [snap967_1]
+/-- Function 945's windows after the first start from these. -/
+noncomputable def snaps945 : List B2C.Snap :=
+  [snap945_1]
 
-/-- Function 968's windows after the first start from these. -/
-noncomputable def snaps968 : List B2C.Snap :=
-  [snap968_1]
+/-- Function 946's windows after the first start from these. -/
+noncomputable def snaps946 : List B2C.Snap :=
+  [snap946_1]
 
-/-- Function 970's windows after the first start from these. -/
-noncomputable def snaps970 : List B2C.Snap :=
-  [snap970_1]
+/-- Function 947's windows after the first start from these. -/
+noncomputable def snaps947 : List B2C.Snap :=
+  [snap947_1]
 
-/-- Function 971's windows after the first start from these. -/
-noncomputable def snaps971 : List B2C.Snap :=
-  [snap971_1]
+/-- Function 948's windows after the first start from these. -/
+noncomputable def snaps948 : List B2C.Snap :=
+  [snap948_1]
 
-/-- Function 972's windows after the first start from these. -/
-noncomputable def snaps972 : List B2C.Snap :=
-  [snap972_1]
+/-- Function 949's windows after the first start from these. -/
+noncomputable def snaps949 : List B2C.Snap :=
+  [snap949_1]
 
-/-- Function 973's windows after the first start from these. -/
-noncomputable def snaps973 : List B2C.Snap :=
-  [snap973_1]
+/-- Function 950's windows after the first start from these. -/
+noncomputable def snaps950 : List B2C.Snap :=
+  [snap950_1]
 
-/-- Function 974's windows after the first start from these. -/
-noncomputable def snaps974 : List B2C.Snap :=
-  [snap974_1]
+/-- Function 951's windows after the first start from these. -/
+noncomputable def snaps951 : List B2C.Snap :=
+  [snap951_1]
 
-/-- Function 975's windows after the first start from these. -/
-noncomputable def snaps975 : List B2C.Snap :=
-  [snap975_1]
+/-- Function 952's windows after the first start from these. -/
+noncomputable def snaps952 : List B2C.Snap :=
+  [snap952_1]
 
-/-- Function 976's windows after the first start from these. -/
-noncomputable def snaps976 : List B2C.Snap :=
-  [snap976_1]
+/-- Function 953's windows after the first start from these. -/
+noncomputable def snaps953 : List B2C.Snap :=
+  [snap953_1]
 
 /-- Function 977's windows after the first start from these. -/
 noncomputable def snaps977 : List B2C.Snap :=
@@ -1090,13 +1054,73 @@ noncomputable def snaps977 : List B2C.Snap :=
 noncomputable def snaps978 : List B2C.Snap :=
   [snap978_1]
 
-/-- Function 1002's windows after the first start from these. -/
-noncomputable def snaps1002 : List B2C.Snap :=
-  [snap1002_1]
+/-- Function 979's windows after the first start from these. -/
+noncomputable def snaps979 : List B2C.Snap :=
+  [snap979_1]
 
-/-- Function 1003's windows after the first start from these. -/
-noncomputable def snaps1003 : List B2C.Snap :=
-  [snap1003_1]
+/-- Function 980's windows after the first start from these. -/
+noncomputable def snaps980 : List B2C.Snap :=
+  [snap980_1]
+
+/-- Function 984's windows after the first start from these. -/
+noncomputable def snaps984 : List B2C.Snap :=
+  [snap984_1]
+
+/-- Function 985's windows after the first start from these. -/
+noncomputable def snaps985 : List B2C.Snap :=
+  [snap985_1]
+
+/-- Function 986's windows after the first start from these. -/
+noncomputable def snaps986 : List B2C.Snap :=
+  [snap986_1]
+
+/-- Function 987's windows after the first start from these. -/
+noncomputable def snaps987 : List B2C.Snap :=
+  [snap987_1]
+
+/-- Function 989's windows after the first start from these. -/
+noncomputable def snaps989 : List B2C.Snap :=
+  [snap989_1]
+
+/-- Function 990's windows after the first start from these. -/
+noncomputable def snaps990 : List B2C.Snap :=
+  [snap990_1]
+
+/-- Function 991's windows after the first start from these. -/
+noncomputable def snaps991 : List B2C.Snap :=
+  [snap991_1]
+
+/-- Function 993's windows after the first start from these. -/
+noncomputable def snaps993 : List B2C.Snap :=
+  [snap993_1]
+
+/-- Function 994's windows after the first start from these. -/
+noncomputable def snaps994 : List B2C.Snap :=
+  [snap994_1]
+
+/-- Function 995's windows after the first start from these. -/
+noncomputable def snaps995 : List B2C.Snap :=
+  [snap995_1]
+
+/-- Function 996's windows after the first start from these. -/
+noncomputable def snaps996 : List B2C.Snap :=
+  [snap996_1]
+
+/-- Function 997's windows after the first start from these. -/
+noncomputable def snaps997 : List B2C.Snap :=
+  [snap997_1]
+
+/-- Function 998's windows after the first start from these. -/
+noncomputable def snaps998 : List B2C.Snap :=
+  [snap998_1]
+
+/-- Function 1000's windows after the first start from these. -/
+noncomputable def snaps1000 : List B2C.Snap :=
+  [snap1000_1]
+
+/-- Function 1001's windows after the first start from these. -/
+noncomputable def snaps1001 : List B2C.Snap :=
+  [snap1001_1]
 
 /-- Function 1004's windows after the first start from these. -/
 noncomputable def snaps1004 : List B2C.Snap :=
@@ -1106,289 +1130,373 @@ noncomputable def snaps1004 : List B2C.Snap :=
 noncomputable def snaps1005 : List B2C.Snap :=
   [snap1005_1]
 
-/-- Function 1009's windows after the first start from these. -/
-noncomputable def snaps1009 : List B2C.Snap :=
-  [snap1009_1]
+/-- Function 1085's windows after the first start from these. -/
+noncomputable def snaps1085 : List B2C.Snap :=
+  [snap1085_1, snap1085_2]
 
-/-- Function 1010's windows after the first start from these. -/
-noncomputable def snaps1010 : List B2C.Snap :=
-  [snap1010_1]
+/-- Function 1087's windows after the first start from these. -/
+noncomputable def snaps1087 : List B2C.Snap :=
+  [snap1087_1]
 
-/-- Function 1011's windows after the first start from these. -/
-noncomputable def snaps1011 : List B2C.Snap :=
-  [snap1011_1]
+/-- Function 1089's windows after the first start from these. -/
+noncomputable def snaps1089 : List B2C.Snap :=
+  [snap1089_1, snap1089_2]
 
-/-- Function 1012's windows after the first start from these. -/
-noncomputable def snaps1012 : List B2C.Snap :=
-  [snap1012_1]
+/-- Function 1090's windows after the first start from these. -/
+noncomputable def snaps1090 : List B2C.Snap :=
+  [snap1090_1]
 
-/-- Function 1014's windows after the first start from these. -/
-noncomputable def snaps1014 : List B2C.Snap :=
-  [snap1014_1]
+/-- Function 1091's windows after the first start from these. -/
+noncomputable def snaps1091 : List B2C.Snap :=
+  [snap1091_1]
 
-/-- Function 1015's windows after the first start from these. -/
-noncomputable def snaps1015 : List B2C.Snap :=
-  [snap1015_1]
+/-- Function 1097's windows after the first start from these. -/
+noncomputable def snaps1097 : List B2C.Snap :=
+  [snap1097_1]
 
-/-- Function 1016's windows after the first start from these. -/
-noncomputable def snaps1016 : List B2C.Snap :=
-  [snap1016_1]
+/-- Function 1098's windows after the first start from these. -/
+noncomputable def snaps1098 : List B2C.Snap :=
+  [snap1098_1]
 
-/-- Function 1018's windows after the first start from these. -/
-noncomputable def snaps1018 : List B2C.Snap :=
-  [snap1018_1]
+/-- Function 1099's windows after the first start from these. -/
+noncomputable def snaps1099 : List B2C.Snap :=
+  [snap1099_1]
 
-/-- Function 1019's windows after the first start from these. -/
-noncomputable def snaps1019 : List B2C.Snap :=
-  [snap1019_1]
+/-- Function 1100's windows after the first start from these. -/
+noncomputable def snaps1100 : List B2C.Snap :=
+  [snap1100_1]
 
-/-- Function 1020's windows after the first start from these. -/
-noncomputable def snaps1020 : List B2C.Snap :=
-  [snap1020_1]
+/-- Function 1105's windows after the first start from these. -/
+noncomputable def snaps1105 : List B2C.Snap :=
+  [snap1105_1, snap1105_2, snap1105_3, snap1105_4]
 
-/-- Function 1021's windows after the first start from these. -/
-noncomputable def snaps1021 : List B2C.Snap :=
-  [snap1021_1]
+/-- Function 1106's windows after the first start from these. -/
+noncomputable def snaps1106 : List B2C.Snap :=
+  [snap1106_1]
 
-/-- Function 1022's windows after the first start from these. -/
-noncomputable def snaps1022 : List B2C.Snap :=
-  [snap1022_1]
+/-- Function 1111's windows after the first start from these. -/
+noncomputable def snaps1111 : List B2C.Snap :=
+  [snap1111_1]
 
-/-- Function 1023's windows after the first start from these. -/
-noncomputable def snaps1023 : List B2C.Snap :=
-  [snap1023_1]
+/-- Function 1143's windows after the first start from these. -/
+noncomputable def snaps1143 : List B2C.Snap :=
+  [snap1143_1, snap1143_2]
 
-/-- Function 1025's windows after the first start from these. -/
-noncomputable def snaps1025 : List B2C.Snap :=
-  [snap1025_1]
+/-- Function 1144's windows after the first start from these. -/
+noncomputable def snaps1144 : List B2C.Snap :=
+  [snap1144_1]
 
-/-- Function 1026's windows after the first start from these. -/
-noncomputable def snaps1026 : List B2C.Snap :=
-  [snap1026_1]
+/-- Function 1145's windows after the first start from these. -/
+noncomputable def snaps1145 : List B2C.Snap :=
+  [snap1145_1, snap1145_2]
 
-/-- Function 1029's windows after the first start from these. -/
-noncomputable def snaps1029 : List B2C.Snap :=
-  [snap1029_1]
+/-- Function 1146's windows after the first start from these. -/
+noncomputable def snaps1146 : List B2C.Snap :=
+  [snap1146_1]
 
-/-- Function 1030's windows after the first start from these. -/
-noncomputable def snaps1030 : List B2C.Snap :=
-  [snap1030_1]
+/-- Function 1150's windows after the first start from these. -/
+noncomputable def snaps1150 : List B2C.Snap :=
+  [snap1150_1]
 
-/-- Function 1109's windows after the first start from these. -/
-noncomputable def snaps1109 : List B2C.Snap :=
-  [snap1109_1, snap1109_2, snap1109_3, snap1109_4, snap1109_5, snap1109_6, snap1109_7, snap1109_8, snap1109_9, snap1109_10, snap1109_11, snap1109_12, snap1109_13]
+/-- Function 1183's windows after the first start from these. -/
+noncomputable def snaps1183 : List B2C.Snap :=
+  [snap1183_1, snap1183_2]
 
-/-- Function 1110's windows after the first start from these. -/
-noncomputable def snaps1110 : List B2C.Snap :=
-  [snap1110_1, snap1110_2]
+/-- Function 1184's windows after the first start from these. -/
+noncomputable def snaps1184 : List B2C.Snap :=
+  [snap1184_1]
 
-/-- Function 1112's windows after the first start from these. -/
-noncomputable def snaps1112 : List B2C.Snap :=
-  [snap1112_1]
+/-- Function 1188's windows after the first start from these. -/
+noncomputable def snaps1188 : List B2C.Snap :=
+  [snap1188_1]
 
-/-- Function 1114's windows after the first start from these. -/
-noncomputable def snaps1114 : List B2C.Snap :=
-  [snap1114_1, snap1114_2]
+/-- Function 1221's windows after the first start from these. -/
+noncomputable def snaps1221 : List B2C.Snap :=
+  [snap1221_1, snap1221_2]
 
-/-- Function 1116's windows after the first start from these. -/
-noncomputable def snaps1116 : List B2C.Snap :=
-  [snap1116_1]
+/-- Function 1222's windows after the first start from these. -/
+noncomputable def snaps1222 : List B2C.Snap :=
+  [snap1222_1]
 
-/-- Function 1121's windows after the first start from these. -/
-noncomputable def snaps1121 : List B2C.Snap :=
-  [snap1121_1, snap1121_2, snap1121_3, snap1121_4]
+/-- Function 1226's windows after the first start from these. -/
+noncomputable def snaps1226 : List B2C.Snap :=
+  [snap1226_1]
 
-/-- Function 1122's windows after the first start from these. -/
-noncomputable def snaps1122 : List B2C.Snap :=
-  [snap1122_1]
+/-- Function 1259's windows after the first start from these. -/
+noncomputable def snaps1259 : List B2C.Snap :=
+  [snap1259_1, snap1259_2]
 
-/-- Function 1124's windows after the first start from these. -/
-noncomputable def snaps1124 : List B2C.Snap :=
-  [snap1124_1]
+/-- Function 1260's windows after the first start from these. -/
+noncomputable def snaps1260 : List B2C.Snap :=
+  [snap1260_1]
 
-/-- Function 1125's windows after the first start from these. -/
-noncomputable def snaps1125 : List B2C.Snap :=
-  [snap1125_1]
+/-- Function 1264's windows after the first start from these. -/
+noncomputable def snaps1264 : List B2C.Snap :=
+  [snap1264_1]
 
-/-- Function 1126's windows after the first start from these. -/
-noncomputable def snaps1126 : List B2C.Snap :=
-  [snap1126_1]
+/-- Function 1298's windows after the first start from these. -/
+noncomputable def snaps1298 : List B2C.Snap :=
+  [snap1298_1, snap1298_2, snap1298_3, snap1298_4, snap1298_5, snap1298_6, snap1298_7, snap1298_8, snap1298_9, snap1298_10, snap1298_11, snap1298_12, snap1298_13]
 
-/-- Function 1131's windows after the first start from these. -/
-noncomputable def snaps1131 : List B2C.Snap :=
-  [snap1131_1]
+/-- Function 1299's windows after the first start from these. -/
+noncomputable def snaps1299 : List B2C.Snap :=
+  [snap1299_1]
 
-/-- Function 1132's windows after the first start from these. -/
-noncomputable def snaps1132 : List B2C.Snap :=
-  [snap1132_1]
+/-- Function 1300's windows after the first start from these. -/
+noncomputable def snaps1300 : List B2C.Snap :=
+  [snap1300_1, snap1300_2]
 
-/-- Function 1156's windows after the first start from these. -/
-noncomputable def snaps1156 : List B2C.Snap :=
-  [snap1156_1, snap1156_2]
+/-- Function 1301's windows after the first start from these. -/
+noncomputable def snaps1301 : List B2C.Snap :=
+  [snap1301_1]
 
-/-- Function 1157's windows after the first start from these. -/
-noncomputable def snaps1157 : List B2C.Snap :=
-  [snap1157_1]
+/-- Function 1304's windows after the first start from these. -/
+noncomputable def snaps1304 : List B2C.Snap :=
+  [snap1304_1]
 
-/-- Function 1158's windows after the first start from these. -/
-noncomputable def snaps1158 : List B2C.Snap :=
-  [snap1158_1, snap1158_2]
+/-- Function 1338's windows after the first start from these. -/
+noncomputable def snaps1338 : List B2C.Snap :=
+  [snap1338_1, snap1338_2]
 
-/-- Function 1159's windows after the first start from these. -/
-noncomputable def snaps1159 : List B2C.Snap :=
-  [snap1159_1]
+/-- Function 1339's windows after the first start from these. -/
+noncomputable def snaps1339 : List B2C.Snap :=
+  [snap1339_1]
 
-/-- Function 1163's windows after the first start from these. -/
-noncomputable def snaps1163 : List B2C.Snap :=
-  [snap1163_1]
+/-- Function 1342's windows after the first start from these. -/
+noncomputable def snaps1342 : List B2C.Snap :=
+  [snap1342_1]
 
-/-- Function 1199's windows after the first start from these. -/
-noncomputable def snaps1199 : List B2C.Snap :=
-  [snap1199_1, snap1199_2]
+/-- Function 1376's windows after the first start from these. -/
+noncomputable def snaps1376 : List B2C.Snap :=
+  [snap1376_1, snap1376_2]
 
-/-- Function 1200's windows after the first start from these. -/
-noncomputable def snaps1200 : List B2C.Snap :=
-  [snap1200_1]
+/-- Function 1377's windows after the first start from these. -/
+noncomputable def snaps1377 : List B2C.Snap :=
+  [snap1377_1]
 
-/-- Function 1204's windows after the first start from these. -/
-noncomputable def snaps1204 : List B2C.Snap :=
-  [snap1204_1]
+/-- Function 1381's windows after the first start from these. -/
+noncomputable def snaps1381 : List B2C.Snap :=
+  [snap1381_1]
 
-/-- Function 1236's windows after the first start from these. -/
-noncomputable def snaps1236 : List B2C.Snap :=
-  [snap1236_1, snap1236_2]
+/-- Function 1413's windows after the first start from these. -/
+noncomputable def snaps1413 : List B2C.Snap :=
+  [snap1413_1, snap1413_2]
 
-/-- Function 1237's windows after the first start from these. -/
-noncomputable def snaps1237 : List B2C.Snap :=
-  [snap1237_1]
+/-- Function 1414's windows after the first start from these. -/
+noncomputable def snaps1414 : List B2C.Snap :=
+  [snap1414_1]
 
-/-- Function 1241's windows after the first start from these. -/
-noncomputable def snaps1241 : List B2C.Snap :=
-  [snap1241_1]
+/-- Function 1418's windows after the first start from these. -/
+noncomputable def snaps1418 : List B2C.Snap :=
+  [snap1418_1]
 
-/-- Function 1274's windows after the first start from these. -/
-noncomputable def snaps1274 : List B2C.Snap :=
-  [snap1274_1, snap1274_2]
+/-- Function 1455's windows after the first start from these. -/
+noncomputable def snaps1455 : List B2C.Snap :=
+  [snap1455_1, snap1455_2]
 
-/-- Function 1275's windows after the first start from these. -/
-noncomputable def snaps1275 : List B2C.Snap :=
-  [snap1275_1]
-
-/-- Function 1278's windows after the first start from these. -/
-noncomputable def snaps1278 : List B2C.Snap :=
-  [snap1278_1]
-
-/-- Function 1307's windows after the first start from these. -/
-noncomputable def snaps1307 : List B2C.Snap :=
-  [snap1307_1, snap1307_2]
-
-/-- Function 1308's windows after the first start from these. -/
-noncomputable def snaps1308 : List B2C.Snap :=
-  [snap1308_1]
-
-/-- Function 1312's windows after the first start from these. -/
-noncomputable def snaps1312 : List B2C.Snap :=
-  [snap1312_1]
-
-/-- Function 1346's windows after the first start from these. -/
-noncomputable def snaps1346 : List B2C.Snap :=
-  [snap1346_1]
-
-/-- Function 1347's windows after the first start from these. -/
-noncomputable def snaps1347 : List B2C.Snap :=
-  [snap1347_1, snap1347_2]
-
-/-- Function 1348's windows after the first start from these. -/
-noncomputable def snaps1348 : List B2C.Snap :=
-  [snap1348_1]
-
-/-- Function 1351's windows after the first start from these. -/
-noncomputable def snaps1351 : List B2C.Snap :=
-  [snap1351_1]
-
-/-- Function 1385's windows after the first start from these. -/
-noncomputable def snaps1385 : List B2C.Snap :=
-  [snap1385_1, snap1385_2]
-
-/-- Function 1386's windows after the first start from these. -/
-noncomputable def snaps1386 : List B2C.Snap :=
-  [snap1386_1]
-
-/-- Function 1389's windows after the first start from these. -/
-noncomputable def snaps1389 : List B2C.Snap :=
-  [snap1389_1]
-
-/-- Function 1423's windows after the first start from these. -/
-noncomputable def snaps1423 : List B2C.Snap :=
-  [snap1423_1, snap1423_2]
-
-/-- Function 1424's windows after the first start from these. -/
-noncomputable def snaps1424 : List B2C.Snap :=
-  [snap1424_1]
-
-/-- Function 1428's windows after the first start from these. -/
-noncomputable def snaps1428 : List B2C.Snap :=
-  [snap1428_1]
+/-- Function 1456's windows after the first start from these. -/
+noncomputable def snaps1456 : List B2C.Snap :=
+  [snap1456_1, snap1456_2]
 
 /-- Function 1460's windows after the first start from these. -/
 noncomputable def snaps1460 : List B2C.Snap :=
-  [snap1460_1, snap1460_2]
+  [snap1460_1]
 
-/-- Function 1461's windows after the first start from these. -/
-noncomputable def snaps1461 : List B2C.Snap :=
-  [snap1461_1]
-
-/-- Function 1465's windows after the first start from these. -/
-noncomputable def snaps1465 : List B2C.Snap :=
-  [snap1465_1]
-
-/-- Function 1502's windows after the first start from these. -/
-noncomputable def snaps1502 : List B2C.Snap :=
-  [snap1502_1, snap1502_2]
+/-- Function 1499's windows after the first start from these. -/
+noncomputable def snaps1499 : List B2C.Snap :=
+  [snap1499_1, snap1499_2]
 
 /-- Function 1503's windows after the first start from these. -/
 noncomputable def snaps1503 : List B2C.Snap :=
-  [snap1503_1, snap1503_2]
-
-/-- Function 1507's windows after the first start from these. -/
-noncomputable def snaps1507 : List B2C.Snap :=
-  [snap1507_1]
+  [snap1503_1]
 
 /-- Function 1546's windows after the first start from these. -/
 noncomputable def snaps1546 : List B2C.Snap :=
-  [snap1546_1, snap1546_2]
+  [snap1546_1]
 
-/-- Function 1550's windows after the first start from these. -/
-noncomputable def snaps1550 : List B2C.Snap :=
-  [snap1550_1]
+/-- Function 1547's windows after the first start from these. -/
+noncomputable def snaps1547 : List B2C.Snap :=
+  [snap1547_1, snap1547_2]
+
+/-- Function 1551's windows after the first start from these. -/
+noncomputable def snaps1551 : List B2C.Snap :=
+  [snap1551_1]
 
 /-- Function 1593's windows after the first start from these. -/
 noncomputable def snaps1593 : List B2C.Snap :=
-  [snap1593_1]
+  [snap1593_1, snap1593_2]
 
-/-- Function 1594's windows after the first start from these. -/
-noncomputable def snaps1594 : List B2C.Snap :=
-  [snap1594_1, snap1594_2]
+/-- Function 1597's windows after the first start from these. -/
+noncomputable def snaps1597 : List B2C.Snap :=
+  [snap1597_1]
 
-/-- Function 1598's windows after the first start from these. -/
-noncomputable def snaps1598 : List B2C.Snap :=
-  [snap1598_1]
+/-- Function 1639's windows after the first start from these. -/
+noncomputable def snaps1639 : List B2C.Snap :=
+  [snap1639_1]
 
 /-- Function 1640's windows after the first start from these. -/
 noncomputable def snaps1640 : List B2C.Snap :=
-  [snap1640_1, snap1640_2]
+  [snap1640_1]
+
+/-- Function 1641's windows after the first start from these. -/
+noncomputable def snaps1641 : List B2C.Snap :=
+  [snap1641_1]
+
+/-- Function 1642's windows after the first start from these. -/
+noncomputable def snaps1642 : List B2C.Snap :=
+  [snap1642_1]
+
+/-- Function 1643's windows after the first start from these. -/
+noncomputable def snaps1643 : List B2C.Snap :=
+  [snap1643_1, snap1643_2, snap1643_3, snap1643_4]
 
 /-- Function 1644's windows after the first start from these. -/
 noncomputable def snaps1644 : List B2C.Snap :=
-  [snap1644_1]
+  [snap1644_1, snap1644_2, snap1644_3]
+
+/-- Function 1645's windows after the first start from these. -/
+noncomputable def snaps1645 : List B2C.Snap :=
+  [snap1645_1, snap1645_2, snap1645_3]
+
+/-- Function 1646's windows after the first start from these. -/
+noncomputable def snaps1646 : List B2C.Snap :=
+  [snap1646_1, snap1646_2, snap1646_3, snap1646_4]
+
+/-- Function 1647's windows after the first start from these. -/
+noncomputable def snaps1647 : List B2C.Snap :=
+  [snap1647_1, snap1647_2, snap1647_3]
+
+/-- Function 1648's windows after the first start from these. -/
+noncomputable def snaps1648 : List B2C.Snap :=
+  [snap1648_1, snap1648_2, snap1648_3]
+
+/-- Function 1649's windows after the first start from these. -/
+noncomputable def snaps1649 : List B2C.Snap :=
+  [snap1649_1]
+
+/-- Function 1650's windows after the first start from these. -/
+noncomputable def snaps1650 : List B2C.Snap :=
+  [snap1650_1, snap1650_2]
+
+/-- Function 1651's windows after the first start from these. -/
+noncomputable def snaps1651 : List B2C.Snap :=
+  [snap1651_1, snap1651_2]
+
+/-- Function 1652's windows after the first start from these. -/
+noncomputable def snaps1652 : List B2C.Snap :=
+  [snap1652_1, snap1652_2]
+
+/-- Function 1653's windows after the first start from these. -/
+noncomputable def snaps1653 : List B2C.Snap :=
+  [snap1653_1, snap1653_2]
+
+/-- Function 1654's windows after the first start from these. -/
+noncomputable def snaps1654 : List B2C.Snap :=
+  [snap1654_1]
+
+/-- Function 1655's windows after the first start from these. -/
+noncomputable def snaps1655 : List B2C.Snap :=
+  [snap1655_1, snap1655_2]
+
+/-- Function 1656's windows after the first start from these. -/
+noncomputable def snaps1656 : List B2C.Snap :=
+  [snap1656_1]
+
+/-- Function 1657's windows after the first start from these. -/
+noncomputable def snaps1657 : List B2C.Snap :=
+  [snap1657_1, snap1657_2]
+
+/-- Function 1658's windows after the first start from these. -/
+noncomputable def snaps1658 : List B2C.Snap :=
+  [snap1658_1]
+
+/-- Function 1662's windows after the first start from these. -/
+noncomputable def snaps1662 : List B2C.Snap :=
+  [snap1662_1]
+
+/-- Function 1663's windows after the first start from these. -/
+noncomputable def snaps1663 : List B2C.Snap :=
+  [snap1663_1, snap1663_2, snap1663_3, snap1663_4]
+
+/-- Function 1664's windows after the first start from these. -/
+noncomputable def snaps1664 : List B2C.Snap :=
+  [snap1664_1, snap1664_2, snap1664_3]
+
+/-- Function 1665's windows after the first start from these. -/
+noncomputable def snaps1665 : List B2C.Snap :=
+  [snap1665_1, snap1665_2, snap1665_3]
+
+/-- Function 1666's windows after the first start from these. -/
+noncomputable def snaps1666 : List B2C.Snap :=
+  [snap1666_1, snap1666_2, snap1666_3, snap1666_4]
+
+/-- Function 1667's windows after the first start from these. -/
+noncomputable def snaps1667 : List B2C.Snap :=
+  [snap1667_1, snap1667_2, snap1667_3]
+
+/-- Function 1668's windows after the first start from these. -/
+noncomputable def snaps1668 : List B2C.Snap :=
+  [snap1668_1, snap1668_2, snap1668_3]
+
+/-- Function 1669's windows after the first start from these. -/
+noncomputable def snaps1669 : List B2C.Snap :=
+  [snap1669_1, snap1669_2]
+
+/-- Function 1670's windows after the first start from these. -/
+noncomputable def snaps1670 : List B2C.Snap :=
+  [snap1670_1]
+
+/-- Function 1671's windows after the first start from these. -/
+noncomputable def snaps1671 : List B2C.Snap :=
+  [snap1671_1]
+
+/-- Function 1674's windows after the first start from these. -/
+noncomputable def snaps1674 : List B2C.Snap :=
+  [snap1674_1]
+
+/-- Function 1675's windows after the first start from these. -/
+noncomputable def snaps1675 : List B2C.Snap :=
+  [snap1675_1, snap1675_2, snap1675_3, snap1675_4]
+
+/-- Function 1676's windows after the first start from these. -/
+noncomputable def snaps1676 : List B2C.Snap :=
+  [snap1676_1, snap1676_2, snap1676_3]
+
+/-- Function 1677's windows after the first start from these. -/
+noncomputable def snaps1677 : List B2C.Snap :=
+  [snap1677_1, snap1677_2, snap1677_3]
+
+/-- Function 1678's windows after the first start from these. -/
+noncomputable def snaps1678 : List B2C.Snap :=
+  [snap1678_1, snap1678_2]
+
+/-- Function 1679's windows after the first start from these. -/
+noncomputable def snaps1679 : List B2C.Snap :=
+  [snap1679_1]
+
+/-- Function 1680's windows after the first start from these. -/
+noncomputable def snaps1680 : List B2C.Snap :=
+  [snap1680_1]
+
+/-- Function 1683's windows after the first start from these. -/
+noncomputable def snaps1683 : List B2C.Snap :=
+  [snap1683_1]
+
+/-- Function 1684's windows after the first start from these. -/
+noncomputable def snaps1684 : List B2C.Snap :=
+  [snap1684_1, snap1684_2, snap1684_3, snap1684_4, snap1684_5, snap1684_6]
+
+/-- Function 1685's windows after the first start from these. -/
+noncomputable def snaps1685 : List B2C.Snap :=
+  [snap1685_1, snap1685_2, snap1685_3]
 
 /-- Function 1686's windows after the first start from these. -/
 noncomputable def snaps1686 : List B2C.Snap :=
-  [snap1686_1]
+  [snap1686_1, snap1686_2, snap1686_3]
 
 /-- Function 1687's windows after the first start from these. -/
 noncomputable def snaps1687 : List B2C.Snap :=
-  [snap1687_1]
+  [snap1687_1, snap1687_2]
 
 /-- Function 1688's windows after the first start from these. -/
 noncomputable def snaps1688 : List B2C.Snap :=
@@ -1398,21 +1506,9 @@ noncomputable def snaps1688 : List B2C.Snap :=
 noncomputable def snaps1689 : List B2C.Snap :=
   [snap1689_1]
 
-/-- Function 1690's windows after the first start from these. -/
-noncomputable def snaps1690 : List B2C.Snap :=
-  [snap1690_1, snap1690_2]
-
-/-- Function 1691's windows after the first start from these. -/
-noncomputable def snaps1691 : List B2C.Snap :=
-  [snap1691_1, snap1691_2, snap1691_3]
-
-/-- Function 1692's windows after the first start from these. -/
-noncomputable def snaps1692 : List B2C.Snap :=
-  [snap1692_1, snap1692_2, snap1692_3]
-
 /-- Function 1693's windows after the first start from these. -/
 noncomputable def snaps1693 : List B2C.Snap :=
-  [snap1693_1, snap1693_2, snap1693_3, snap1693_4]
+  [snap1693_1, snap1693_2, snap1693_3, snap1693_4, snap1693_5, snap1693_6]
 
 /-- Function 1694's windows after the first start from these. -/
 noncomputable def snaps1694 : List B2C.Snap :=
@@ -1424,47 +1520,43 @@ noncomputable def snaps1695 : List B2C.Snap :=
 
 /-- Function 1696's windows after the first start from these. -/
 noncomputable def snaps1696 : List B2C.Snap :=
-  [snap1696_1]
+  [snap1696_1, snap1696_2]
 
 /-- Function 1697's windows after the first start from these. -/
 noncomputable def snaps1697 : List B2C.Snap :=
   [snap1697_1]
 
-/-- Function 1698's windows after the first start from these. -/
-noncomputable def snaps1698 : List B2C.Snap :=
-  [snap1698_1, snap1698_2]
-
-/-- Function 1699's windows after the first start from these. -/
-noncomputable def snaps1699 : List B2C.Snap :=
-  [snap1699_1, snap1699_2]
-
 /-- Function 1700's windows after the first start from these. -/
 noncomputable def snaps1700 : List B2C.Snap :=
-  [snap1700_1, snap1700_2]
+  [snap1700_1, snap1700_2, snap1700_3]
 
 /-- Function 1701's windows after the first start from these. -/
 noncomputable def snaps1701 : List B2C.Snap :=
-  [snap1701_1, snap1701_2]
+  [snap1701_1, snap1701_2, snap1701_3, snap1701_4, snap1701_5, snap1701_6]
 
 /-- Function 1702's windows after the first start from these. -/
 noncomputable def snaps1702 : List B2C.Snap :=
-  [snap1702_1]
+  [snap1702_1, snap1702_2, snap1702_3]
 
 /-- Function 1703's windows after the first start from these. -/
 noncomputable def snaps1703 : List B2C.Snap :=
-  [snap1703_1, snap1703_2]
+  [snap1703_1, snap1703_2, snap1703_3]
 
 /-- Function 1704's windows after the first start from these. -/
 noncomputable def snaps1704 : List B2C.Snap :=
-  [snap1704_1]
+  [snap1704_1, snap1704_2]
+
+/-- Function 1705's windows after the first start from these. -/
+noncomputable def snaps1705 : List B2C.Snap :=
+  [snap1705_1]
 
 /-- Function 1707's windows after the first start from these. -/
 noncomputable def snaps1707 : List B2C.Snap :=
-  [snap1707_1]
+  [snap1707_1, snap1707_2, snap1707_3, snap1707_4, snap1707_5, snap1707_6]
 
 /-- Function 1708's windows after the first start from these. -/
 noncomputable def snaps1708 : List B2C.Snap :=
-  [snap1708_1, snap1708_2, snap1708_3, snap1708_4]
+  [snap1708_1, snap1708_2, snap1708_3]
 
 /-- Function 1709's windows after the first start from these. -/
 noncomputable def snaps1709 : List B2C.Snap :=
@@ -1472,35 +1564,39 @@ noncomputable def snaps1709 : List B2C.Snap :=
 
 /-- Function 1710's windows after the first start from these. -/
 noncomputable def snaps1710 : List B2C.Snap :=
-  [snap1710_1, snap1710_2, snap1710_3]
+  [snap1710_1, snap1710_2]
 
 /-- Function 1711's windows after the first start from these. -/
 noncomputable def snaps1711 : List B2C.Snap :=
-  [snap1711_1, snap1711_2, snap1711_3, snap1711_4]
-
-/-- Function 1712's windows after the first start from these. -/
-noncomputable def snaps1712 : List B2C.Snap :=
-  [snap1712_1, snap1712_2, snap1712_3]
+  [snap1711_1]
 
 /-- Function 1713's windows after the first start from these. -/
 noncomputable def snaps1713 : List B2C.Snap :=
-  [snap1713_1, snap1713_2, snap1713_3]
+  [snap1713_1, snap1713_2, snap1713_3, snap1713_4, snap1713_5, snap1713_6]
 
 /-- Function 1714's windows after the first start from these. -/
 noncomputable def snaps1714 : List B2C.Snap :=
-  [snap1714_1, snap1714_2]
+  [snap1714_1, snap1714_2, snap1714_3]
 
 /-- Function 1715's windows after the first start from these. -/
 noncomputable def snaps1715 : List B2C.Snap :=
-  [snap1715_1]
+  [snap1715_1, snap1715_2, snap1715_3]
+
+/-- Function 1716's windows after the first start from these. -/
+noncomputable def snaps1716 : List B2C.Snap :=
+  [snap1716_1, snap1716_2]
+
+/-- Function 1717's windows after the first start from these. -/
+noncomputable def snaps1717 : List B2C.Snap :=
+  [snap1717_1, snap1717_2]
 
 /-- Function 1719's windows after the first start from these. -/
 noncomputable def snaps1719 : List B2C.Snap :=
-  [snap1719_1]
+  [snap1719_1, snap1719_2, snap1719_3, snap1719_4, snap1719_5, snap1719_6]
 
 /-- Function 1720's windows after the first start from these. -/
 noncomputable def snaps1720 : List B2C.Snap :=
-  [snap1720_1, snap1720_2, snap1720_3, snap1720_4]
+  [snap1720_1, snap1720_2, snap1720_3]
 
 /-- Function 1721's windows after the first start from these. -/
 noncomputable def snaps1721 : List B2C.Snap :=
@@ -1508,59 +1604,59 @@ noncomputable def snaps1721 : List B2C.Snap :=
 
 /-- Function 1722's windows after the first start from these. -/
 noncomputable def snaps1722 : List B2C.Snap :=
-  [snap1722_1, snap1722_2, snap1722_3]
+  [snap1722_1, snap1722_2]
 
 /-- Function 1723's windows after the first start from these. -/
 noncomputable def snaps1723 : List B2C.Snap :=
   [snap1723_1, snap1723_2]
 
-/-- Function 1724's windows after the first start from these. -/
-noncomputable def snaps1724 : List B2C.Snap :=
-  [snap1724_1]
-
 /-- Function 1725's windows after the first start from these. -/
 noncomputable def snaps1725 : List B2C.Snap :=
-  [snap1725_1]
+  [snap1725_1, snap1725_2, snap1725_3, snap1725_4, snap1725_5, snap1725_6, snap1725_7, snap1725_8]
+
+/-- Function 1726's windows after the first start from these. -/
+noncomputable def snaps1726 : List B2C.Snap :=
+  [snap1726_1, snap1726_2, snap1726_3]
+
+/-- Function 1727's windows after the first start from these. -/
+noncomputable def snaps1727 : List B2C.Snap :=
+  [snap1727_1, snap1727_2, snap1727_3, snap1727_4, snap1727_5, snap1727_6, snap1727_7, snap1727_8]
 
 /-- Function 1728's windows after the first start from these. -/
 noncomputable def snaps1728 : List B2C.Snap :=
-  [snap1728_1]
+  [snap1728_1, snap1728_2, snap1728_3]
 
 /-- Function 1729's windows after the first start from these. -/
 noncomputable def snaps1729 : List B2C.Snap :=
-  [snap1729_1, snap1729_2, snap1729_3, snap1729_4]
+  [snap1729_1, snap1729_2]
 
 /-- Function 1730's windows after the first start from these. -/
 noncomputable def snaps1730 : List B2C.Snap :=
-  [snap1730_1, snap1730_2, snap1730_3]
-
-/-- Function 1731's windows after the first start from these. -/
-noncomputable def snaps1731 : List B2C.Snap :=
-  [snap1731_1, snap1731_2, snap1731_3]
+  [snap1730_1, snap1730_2]
 
 /-- Function 1732's windows after the first start from these. -/
 noncomputable def snaps1732 : List B2C.Snap :=
-  [snap1732_1, snap1732_2]
+  [snap1732_1, snap1732_2, snap1732_3, snap1732_4, snap1732_5, snap1732_6, snap1732_7, snap1732_8]
 
 /-- Function 1733's windows after the first start from these. -/
 noncomputable def snaps1733 : List B2C.Snap :=
-  [snap1733_1]
+  [snap1733_1, snap1733_2, snap1733_3]
 
 /-- Function 1734's windows after the first start from these. -/
 noncomputable def snaps1734 : List B2C.Snap :=
-  [snap1734_1]
+  [snap1734_1, snap1734_2]
 
-/-- Function 1737's windows after the first start from these. -/
-noncomputable def snaps1737 : List B2C.Snap :=
-  [snap1737_1]
+/-- Function 1735's windows after the first start from these. -/
+noncomputable def snaps1735 : List B2C.Snap :=
+  [snap1735_1, snap1735_2]
 
 /-- Function 1738's windows after the first start from these. -/
 noncomputable def snaps1738 : List B2C.Snap :=
-  [snap1738_1, snap1738_2, snap1738_3, snap1738_4, snap1738_5, snap1738_6]
+  [snap1738_1, snap1738_2, snap1738_3]
 
 /-- Function 1739's windows after the first start from these. -/
 noncomputable def snaps1739 : List B2C.Snap :=
-  [snap1739_1, snap1739_2, snap1739_3]
+  [snap1739_1, snap1739_2, snap1739_3, snap1739_4, snap1739_5, snap1739_6, snap1739_7, snap1739_8]
 
 /-- Function 1740's windows after the first start from these. -/
 noncomputable def snaps1740 : List B2C.Snap :=
@@ -1572,11 +1668,11 @@ noncomputable def snaps1741 : List B2C.Snap :=
 
 /-- Function 1742's windows after the first start from these. -/
 noncomputable def snaps1742 : List B2C.Snap :=
-  [snap1742_1]
+  [snap1742_1, snap1742_2]
 
 /-- Function 1744's windows after the first start from these. -/
 noncomputable def snaps1744 : List B2C.Snap :=
-  [snap1744_1, snap1744_2, snap1744_3, snap1744_4, snap1744_5, snap1744_6]
+  [snap1744_1, snap1744_2, snap1744_3, snap1744_4, snap1744_5, snap1744_6, snap1744_7, snap1744_8]
 
 /-- Function 1745's windows after the first start from these. -/
 noncomputable def snaps1745 : List B2C.Snap :=
@@ -1584,7 +1680,7 @@ noncomputable def snaps1745 : List B2C.Snap :=
 
 /-- Function 1746's windows after the first start from these. -/
 noncomputable def snaps1746 : List B2C.Snap :=
-  [snap1746_1, snap1746_2, snap1746_3]
+  [snap1746_1, snap1746_2]
 
 /-- Function 1747's windows after the first start from these. -/
 noncomputable def snaps1747 : List B2C.Snap :=
@@ -1592,191 +1688,27 @@ noncomputable def snaps1747 : List B2C.Snap :=
 
 /-- Function 1748's windows after the first start from these. -/
 noncomputable def snaps1748 : List B2C.Snap :=
-  [snap1748_1]
+  [snap1748_1, snap1748_2, snap1748_3, snap1748_4]
+
+/-- Function 1749's windows after the first start from these. -/
+noncomputable def snaps1749 : List B2C.Snap :=
+  [snap1749_1, snap1749_2]
+
+/-- Function 1750's windows after the first start from these. -/
+noncomputable def snaps1750 : List B2C.Snap :=
+  [snap1750_1, snap1750_2]
 
 /-- Function 1751's windows after the first start from these. -/
 noncomputable def snaps1751 : List B2C.Snap :=
-  [snap1751_1, snap1751_2, snap1751_3]
+  [snap1751_1, snap1751_2, snap1751_3, snap1751_4]
 
 /-- Function 1752's windows after the first start from these. -/
 noncomputable def snaps1752 : List B2C.Snap :=
   [snap1752_1, snap1752_2, snap1752_3, snap1752_4, snap1752_5, snap1752_6]
 
-/-- Function 1753's windows after the first start from these. -/
-noncomputable def snaps1753 : List B2C.Snap :=
-  [snap1753_1, snap1753_2, snap1753_3]
-
-/-- Function 1754's windows after the first start from these. -/
-noncomputable def snaps1754 : List B2C.Snap :=
-  [snap1754_1, snap1754_2, snap1754_3]
-
-/-- Function 1755's windows after the first start from these. -/
-noncomputable def snaps1755 : List B2C.Snap :=
-  [snap1755_1, snap1755_2]
-
-/-- Function 1756's windows after the first start from these. -/
-noncomputable def snaps1756 : List B2C.Snap :=
-  [snap1756_1]
-
-/-- Function 1758's windows after the first start from these. -/
-noncomputable def snaps1758 : List B2C.Snap :=
-  [snap1758_1, snap1758_2, snap1758_3, snap1758_4, snap1758_5, snap1758_6]
-
-/-- Function 1759's windows after the first start from these. -/
-noncomputable def snaps1759 : List B2C.Snap :=
-  [snap1759_1, snap1759_2, snap1759_3]
-
-/-- Function 1760's windows after the first start from these. -/
-noncomputable def snaps1760 : List B2C.Snap :=
-  [snap1760_1, snap1760_2, snap1760_3]
-
-/-- Function 1761's windows after the first start from these. -/
-noncomputable def snaps1761 : List B2C.Snap :=
-  [snap1761_1, snap1761_2]
-
-/-- Function 1762's windows after the first start from these. -/
-noncomputable def snaps1762 : List B2C.Snap :=
-  [snap1762_1]
-
-/-- Function 1764's windows after the first start from these. -/
-noncomputable def snaps1764 : List B2C.Snap :=
-  [snap1764_1, snap1764_2, snap1764_3, snap1764_4, snap1764_5, snap1764_6]
-
-/-- Function 1765's windows after the first start from these. -/
-noncomputable def snaps1765 : List B2C.Snap :=
-  [snap1765_1, snap1765_2, snap1765_3]
-
-/-- Function 1766's windows after the first start from these. -/
-noncomputable def snaps1766 : List B2C.Snap :=
-  [snap1766_1, snap1766_2, snap1766_3]
-
-/-- Function 1767's windows after the first start from these. -/
-noncomputable def snaps1767 : List B2C.Snap :=
-  [snap1767_1, snap1767_2]
-
-/-- Function 1768's windows after the first start from these. -/
-noncomputable def snaps1768 : List B2C.Snap :=
-  [snap1768_1, snap1768_2]
-
-/-- Function 1770's windows after the first start from these. -/
-noncomputable def snaps1770 : List B2C.Snap :=
-  [snap1770_1, snap1770_2, snap1770_3, snap1770_4, snap1770_5, snap1770_6]
-
-/-- Function 1771's windows after the first start from these. -/
-noncomputable def snaps1771 : List B2C.Snap :=
-  [snap1771_1, snap1771_2, snap1771_3]
-
-/-- Function 1772's windows after the first start from these. -/
-noncomputable def snaps1772 : List B2C.Snap :=
-  [snap1772_1, snap1772_2, snap1772_3]
-
-/-- Function 1773's windows after the first start from these. -/
-noncomputable def snaps1773 : List B2C.Snap :=
-  [snap1773_1, snap1773_2]
-
-/-- Function 1774's windows after the first start from these. -/
-noncomputable def snaps1774 : List B2C.Snap :=
-  [snap1774_1, snap1774_2]
-
-/-- Function 1776's windows after the first start from these. -/
-noncomputable def snaps1776 : List B2C.Snap :=
-  [snap1776_1, snap1776_2, snap1776_3, snap1776_4, snap1776_5, snap1776_6, snap1776_7, snap1776_8]
-
-/-- Function 1777's windows after the first start from these. -/
-noncomputable def snaps1777 : List B2C.Snap :=
-  [snap1777_1, snap1777_2, snap1777_3]
-
-/-- Function 1778's windows after the first start from these. -/
-noncomputable def snaps1778 : List B2C.Snap :=
-  [snap1778_1, snap1778_2, snap1778_3, snap1778_4, snap1778_5, snap1778_6, snap1778_7, snap1778_8]
-
-/-- Function 1779's windows after the first start from these. -/
-noncomputable def snaps1779 : List B2C.Snap :=
-  [snap1779_1, snap1779_2, snap1779_3]
-
-/-- Function 1780's windows after the first start from these. -/
-noncomputable def snaps1780 : List B2C.Snap :=
-  [snap1780_1, snap1780_2]
-
-/-- Function 1781's windows after the first start from these. -/
-noncomputable def snaps1781 : List B2C.Snap :=
-  [snap1781_1, snap1781_2]
-
-/-- Function 1783's windows after the first start from these. -/
-noncomputable def snaps1783 : List B2C.Snap :=
-  [snap1783_1, snap1783_2, snap1783_3, snap1783_4, snap1783_5, snap1783_6, snap1783_7, snap1783_8]
-
-/-- Function 1784's windows after the first start from these. -/
-noncomputable def snaps1784 : List B2C.Snap :=
-  [snap1784_1, snap1784_2, snap1784_3]
-
-/-- Function 1785's windows after the first start from these. -/
-noncomputable def snaps1785 : List B2C.Snap :=
-  [snap1785_1, snap1785_2]
-
-/-- Function 1786's windows after the first start from these. -/
-noncomputable def snaps1786 : List B2C.Snap :=
-  [snap1786_1, snap1786_2]
-
-/-- Function 1789's windows after the first start from these. -/
-noncomputable def snaps1789 : List B2C.Snap :=
-  [snap1789_1, snap1789_2, snap1789_3]
-
-/-- Function 1790's windows after the first start from these. -/
-noncomputable def snaps1790 : List B2C.Snap :=
-  [snap1790_1, snap1790_2, snap1790_3, snap1790_4, snap1790_5, snap1790_6, snap1790_7, snap1790_8]
-
-/-- Function 1791's windows after the first start from these. -/
-noncomputable def snaps1791 : List B2C.Snap :=
-  [snap1791_1, snap1791_2, snap1791_3]
-
-/-- Function 1792's windows after the first start from these. -/
-noncomputable def snaps1792 : List B2C.Snap :=
-  [snap1792_1, snap1792_2]
-
-/-- Function 1793's windows after the first start from these. -/
-noncomputable def snaps1793 : List B2C.Snap :=
-  [snap1793_1, snap1793_2]
-
-/-- Function 1795's windows after the first start from these. -/
-noncomputable def snaps1795 : List B2C.Snap :=
-  [snap1795_1, snap1795_2, snap1795_3, snap1795_4, snap1795_5, snap1795_6, snap1795_7, snap1795_8]
-
-/-- Function 1796's windows after the first start from these. -/
-noncomputable def snaps1796 : List B2C.Snap :=
-  [snap1796_1, snap1796_2, snap1796_3]
-
-/-- Function 1797's windows after the first start from these. -/
-noncomputable def snaps1797 : List B2C.Snap :=
-  [snap1797_1, snap1797_2]
-
-/-- Function 1798's windows after the first start from these. -/
-noncomputable def snaps1798 : List B2C.Snap :=
-  [snap1798_1, snap1798_2]
-
-/-- Function 1799's windows after the first start from these. -/
-noncomputable def snaps1799 : List B2C.Snap :=
-  [snap1799_1, snap1799_2]
-
-/-- Function 1800's windows after the first start from these. -/
-noncomputable def snaps1800 : List B2C.Snap :=
-  [snap1800_1, snap1800_2, snap1800_3, snap1800_4]
-
-/-- Function 1801's windows after the first start from these. -/
-noncomputable def snaps1801 : List B2C.Snap :=
-  [snap1801_1, snap1801_2]
-
-/-- Function 1802's windows after the first start from these. -/
-noncomputable def snaps1802 : List B2C.Snap :=
-  [snap1802_1, snap1802_2, snap1802_3, snap1802_4]
-
-/-- Function 1803's windows after the first start from these. -/
-noncomputable def snaps1803 : List B2C.Snap :=
-  [snap1803_1, snap1803_2, snap1803_3, snap1803_4, snap1803_5, snap1803_6]
-
 /-- The snapshots, by compiled function index (functions of one window omitted). -/
 noncomputable def snaps : List (ℕ × List B2C.Snap) :=
-  [(1, snaps1), (10, snaps10), (12, snaps12), (13, snaps13), (16, snaps16), (17, snaps17), (18, snaps18), (19, snaps19), (20, snaps20), (21, snaps21), (31, snaps31), (37, snaps37), (84, snaps84), (85, snaps85), (86, snaps86), (87, snaps87), (88, snaps88), (89, snaps89), (90, snaps90), (268, snaps268), (269, snaps269), (274, snaps274), (311, snaps311), (312, snaps312), (313, snaps313), (314, snaps314), (315, snaps315), (316, snaps316), (317, snaps317), (318, snaps318), (319, snaps319), (320, snaps320), (321, snaps321), (322, snaps322), (323, snaps323), (324, snaps324), (325, snaps325), (344, snaps344), (363, snaps363), (397, snaps397), (399, snaps399), (400, snaps400), (401, snaps401), (409, snaps409), (411, snaps411), (413, snaps413), (414, snaps414), (431, snaps431), (432, snaps432), (433, snaps433), (434, snaps434), (441, snaps441), (442, snaps442), (443, snaps443), (444, snaps444), (450, snaps450), (451, snaps451), (452, snaps452), (453, snaps453), (472, snaps472), (473, snaps473), (474, snaps474), (475, snaps475), (480, snaps480), (481, snaps481), (482, snaps482), (483, snaps483), (489, snaps489), (490, snaps490), (491, snaps491), (492, snaps492), (494, snaps494), (495, snaps495), (496, snaps496), (497, snaps497), (520, snaps520), (521, snaps521), (522, snaps522), (523, snaps523), (528, snaps528), (529, snaps529), (530, snaps530), (531, snaps531), (533, snaps533), (534, snaps534), (535, snaps535), (536, snaps536), (538, snaps538), (539, snaps539), (540, snaps540), (541, snaps541), (564, snaps564), (565, snaps565), (566, snaps566), (567, snaps567), (572, snaps572), (573, snaps573), (574, snaps574), (575, snaps575), (578, snaps578), (579, snaps579), (580, snaps580), (581, snaps581), (584, snaps584), (585, snaps585), (586, snaps586), (587, snaps587), (610, snaps610), (611, snaps611), (612, snaps612), (613, snaps613), (616, snaps616), (617, snaps617), (618, snaps618), (619, snaps619), (621, snaps621), (622, snaps622), (623, snaps623), (625, snaps625), (626, snaps626), (627, snaps627), (646, snaps646), (647, snaps647), (648, snaps648), (649, snaps649), (653, snaps653), (654, snaps654), (655, snaps655), (656, snaps656), (658, snaps658), (659, snaps659), (660, snaps660), (662, snaps662), (663, snaps663), (664, snaps664), (665, snaps665), (666, snaps666), (667, snaps667), (689, snaps689), (690, snaps690), (691, snaps691), (692, snaps692), (695, snaps695), (696, snaps696), (697, snaps697), (698, snaps698), (700, snaps700), (701, snaps701), (702, snaps702), (704, snaps704), (705, snaps705), (706, snaps706), (707, snaps707), (708, snaps708), (709, snaps709), (731, snaps731), (732, snaps732), (733, snaps733), (734, snaps734), (737, snaps737), (738, snaps738), (739, snaps739), (740, snaps740), (742, snaps742), (743, snaps743), (744, snaps744), (746, snaps746), (747, snaps747), (748, snaps748), (749, snaps749), (750, snaps750), (751, snaps751), (773, snaps773), (774, snaps774), (775, snaps775), (776, snaps776), (780, snaps780), (781, snaps781), (782, snaps782), (783, snaps783), (785, snaps785), (786, snaps786), (787, snaps787), (788, snaps788), (789, snaps789), (790, snaps790), (791, snaps791), (792, snaps792), (793, snaps793), (814, snaps814), (815, snaps815), (816, snaps816), (817, snaps817), (821, snaps821), (822, snaps822), (823, snaps823), (824, snaps824), (826, snaps826), (827, snaps827), (828, snaps828), (829, snaps829), (830, snaps830), (831, snaps831), (833, snaps833), (834, snaps834), (835, snaps835), (836, snaps836), (837, snaps837), (860, snaps860), (861, snaps861), (862, snaps862), (863, snaps863), (867, snaps867), (868, snaps868), (869, snaps869), (870, snaps870), (872, snaps872), (873, snaps873), (874, snaps874), (875, snaps875), (876, snaps876), (877, snaps877), (879, snaps879), (880, snaps880), (881, snaps881), (882, snaps882), (905, snaps905), (906, snaps906), (907, snaps907), (908, snaps908), (912, snaps912), (913, snaps913), (914, snaps914), (915, snaps915), (917, snaps917), (918, snaps918), (919, snaps919), (921, snaps921), (922, snaps922), (923, snaps923), (925, snaps925), (926, snaps926), (927, snaps927), (928, snaps928), (929, snaps929), (930, snaps930), (954, snaps954), (955, snaps955), (956, snaps956), (957, snaps957), (961, snaps961), (962, snaps962), (963, snaps963), (964, snaps964), (966, snaps966), (967, snaps967), (968, snaps968), (970, snaps970), (971, snaps971), (972, snaps972), (973, snaps973), (974, snaps974), (975, snaps975), (976, snaps976), (977, snaps977), (978, snaps978), (1002, snaps1002), (1003, snaps1003), (1004, snaps1004), (1005, snaps1005), (1009, snaps1009), (1010, snaps1010), (1011, snaps1011), (1012, snaps1012), (1014, snaps1014), (1015, snaps1015), (1016, snaps1016), (1018, snaps1018), (1019, snaps1019), (1020, snaps1020), (1021, snaps1021), (1022, snaps1022), (1023, snaps1023), (1025, snaps1025), (1026, snaps1026), (1029, snaps1029), (1030, snaps1030), (1109, snaps1109), (1110, snaps1110), (1112, snaps1112), (1114, snaps1114), (1116, snaps1116), (1121, snaps1121), (1122, snaps1122), (1124, snaps1124), (1125, snaps1125), (1126, snaps1126), (1131, snaps1131), (1132, snaps1132), (1156, snaps1156), (1157, snaps1157), (1158, snaps1158), (1159, snaps1159), (1163, snaps1163), (1199, snaps1199), (1200, snaps1200), (1204, snaps1204), (1236, snaps1236), (1237, snaps1237), (1241, snaps1241), (1274, snaps1274), (1275, snaps1275), (1278, snaps1278), (1307, snaps1307), (1308, snaps1308), (1312, snaps1312), (1346, snaps1346), (1347, snaps1347), (1348, snaps1348), (1351, snaps1351), (1385, snaps1385), (1386, snaps1386), (1389, snaps1389), (1423, snaps1423), (1424, snaps1424), (1428, snaps1428), (1460, snaps1460), (1461, snaps1461), (1465, snaps1465), (1502, snaps1502), (1503, snaps1503), (1507, snaps1507), (1546, snaps1546), (1550, snaps1550), (1593, snaps1593), (1594, snaps1594), (1598, snaps1598), (1640, snaps1640), (1644, snaps1644), (1686, snaps1686), (1687, snaps1687), (1688, snaps1688), (1689, snaps1689), (1690, snaps1690), (1691, snaps1691), (1692, snaps1692), (1693, snaps1693), (1694, snaps1694), (1695, snaps1695), (1696, snaps1696), (1697, snaps1697), (1698, snaps1698), (1699, snaps1699), (1700, snaps1700), (1701, snaps1701), (1702, snaps1702), (1703, snaps1703), (1704, snaps1704), (1707, snaps1707), (1708, snaps1708), (1709, snaps1709), (1710, snaps1710), (1711, snaps1711), (1712, snaps1712), (1713, snaps1713), (1714, snaps1714), (1715, snaps1715), (1719, snaps1719), (1720, snaps1720), (1721, snaps1721), (1722, snaps1722), (1723, snaps1723), (1724, snaps1724), (1725, snaps1725), (1728, snaps1728), (1729, snaps1729), (1730, snaps1730), (1731, snaps1731), (1732, snaps1732), (1733, snaps1733), (1734, snaps1734), (1737, snaps1737), (1738, snaps1738), (1739, snaps1739), (1740, snaps1740), (1741, snaps1741), (1742, snaps1742), (1744, snaps1744), (1745, snaps1745), (1746, snaps1746), (1747, snaps1747), (1748, snaps1748), (1751, snaps1751), (1752, snaps1752), (1753, snaps1753), (1754, snaps1754), (1755, snaps1755), (1756, snaps1756), (1758, snaps1758), (1759, snaps1759), (1760, snaps1760), (1761, snaps1761), (1762, snaps1762), (1764, snaps1764), (1765, snaps1765), (1766, snaps1766), (1767, snaps1767), (1768, snaps1768), (1770, snaps1770), (1771, snaps1771), (1772, snaps1772), (1773, snaps1773), (1774, snaps1774), (1776, snaps1776), (1777, snaps1777), (1778, snaps1778), (1779, snaps1779), (1780, snaps1780), (1781, snaps1781), (1783, snaps1783), (1784, snaps1784), (1785, snaps1785), (1786, snaps1786), (1789, snaps1789), (1790, snaps1790), (1791, snaps1791), (1792, snaps1792), (1793, snaps1793), (1795, snaps1795), (1796, snaps1796), (1797, snaps1797), (1798, snaps1798), (1799, snaps1799), (1800, snaps1800), (1801, snaps1801), (1802, snaps1802), (1803, snaps1803)]
+  [(1, snaps1), (10, snaps10), (12, snaps12), (13, snaps13), (16, snaps16), (17, snaps17), (18, snaps18), (19, snaps19), (20, snaps20), (21, snaps21), (31, snaps31), (37, snaps37), (84, snaps84), (85, snaps85), (86, snaps86), (87, snaps87), (88, snaps88), (89, snaps89), (90, snaps90), (268, snaps268), (269, snaps269), (274, snaps274), (311, snaps311), (312, snaps312), (313, snaps313), (314, snaps314), (315, snaps315), (316, snaps316), (317, snaps317), (318, snaps318), (319, snaps319), (320, snaps320), (321, snaps321), (322, snaps322), (323, snaps323), (324, snaps324), (343, snaps343), (362, snaps362), (396, snaps396), (398, snaps398), (399, snaps399), (400, snaps400), (408, snaps408), (410, snaps410), (412, snaps412), (413, snaps413), (430, snaps430), (431, snaps431), (432, snaps432), (433, snaps433), (440, snaps440), (441, snaps441), (442, snaps442), (443, snaps443), (449, snaps449), (450, snaps450), (451, snaps451), (452, snaps452), (458, snaps458), (459, snaps459), (460, snaps460), (461, snaps461), (484, snaps484), (485, snaps485), (486, snaps486), (487, snaps487), (492, snaps492), (493, snaps493), (494, snaps494), (495, snaps495), (498, snaps498), (499, snaps499), (500, snaps500), (501, snaps501), (503, snaps503), (504, snaps504), (505, snaps505), (506, snaps506), (529, snaps529), (530, snaps530), (531, snaps531), (532, snaps532), (537, snaps537), (538, snaps538), (539, snaps539), (540, snaps540), (543, snaps543), (544, snaps544), (545, snaps545), (546, snaps546), (549, snaps549), (550, snaps550), (551, snaps551), (552, snaps552), (575, snaps575), (576, snaps576), (577, snaps577), (578, snaps578), (583, snaps583), (584, snaps584), (585, snaps585), (586, snaps586), (589, snaps589), (590, snaps590), (591, snaps591), (592, snaps592), (595, snaps595), (596, snaps596), (597, snaps597), (598, snaps598), (621, snaps621), (622, snaps622), (623, snaps623), (624, snaps624), (628, snaps628), (629, snaps629), (630, snaps630), (631, snaps631), (633, snaps633), (634, snaps634), (635, snaps635), (637, snaps637), (638, snaps638), (639, snaps639), (640, snaps640), (641, snaps641), (642, snaps642), (664, snaps664), (665, snaps665), (666, snaps666), (667, snaps667), (670, snaps670), (671, snaps671), (672, snaps672), (673, snaps673), (675, snaps675), (676, snaps676), (677, snaps677), (679, snaps679), (680, snaps680), (681, snaps681), (682, snaps682), (683, snaps683), (684, snaps684), (706, snaps706), (707, snaps707), (708, snaps708), (709, snaps709), (712, snaps712), (713, snaps713), (714, snaps714), (715, snaps715), (717, snaps717), (718, snaps718), (719, snaps719), (721, snaps721), (722, snaps722), (723, snaps723), (724, snaps724), (725, snaps725), (726, snaps726), (748, snaps748), (749, snaps749), (750, snaps750), (751, snaps751), (755, snaps755), (756, snaps756), (757, snaps757), (758, snaps758), (760, snaps760), (761, snaps761), (762, snaps762), (763, snaps763), (764, snaps764), (765, snaps765), (766, snaps766), (767, snaps767), (768, snaps768), (789, snaps789), (790, snaps790), (791, snaps791), (792, snaps792), (796, snaps796), (797, snaps797), (798, snaps798), (799, snaps799), (801, snaps801), (802, snaps802), (803, snaps803), (804, snaps804), (805, snaps805), (806, snaps806), (808, snaps808), (809, snaps809), (810, snaps810), (811, snaps811), (812, snaps812), (835, snaps835), (836, snaps836), (837, snaps837), (838, snaps838), (842, snaps842), (843, snaps843), (844, snaps844), (845, snaps845), (847, snaps847), (848, snaps848), (849, snaps849), (850, snaps850), (851, snaps851), (852, snaps852), (854, snaps854), (855, snaps855), (856, snaps856), (857, snaps857), (880, snaps880), (881, snaps881), (882, snaps882), (883, snaps883), (887, snaps887), (888, snaps888), (889, snaps889), (890, snaps890), (892, snaps892), (893, snaps893), (894, snaps894), (896, snaps896), (897, snaps897), (898, snaps898), (900, snaps900), (901, snaps901), (902, snaps902), (903, snaps903), (904, snaps904), (905, snaps905), (929, snaps929), (930, snaps930), (931, snaps931), (932, snaps932), (936, snaps936), (937, snaps937), (938, snaps938), (939, snaps939), (941, snaps941), (942, snaps942), (943, snaps943), (945, snaps945), (946, snaps946), (947, snaps947), (948, snaps948), (949, snaps949), (950, snaps950), (951, snaps951), (952, snaps952), (953, snaps953), (977, snaps977), (978, snaps978), (979, snaps979), (980, snaps980), (984, snaps984), (985, snaps985), (986, snaps986), (987, snaps987), (989, snaps989), (990, snaps990), (991, snaps991), (993, snaps993), (994, snaps994), (995, snaps995), (996, snaps996), (997, snaps997), (998, snaps998), (1000, snaps1000), (1001, snaps1001), (1004, snaps1004), (1005, snaps1005), (1085, snaps1085), (1087, snaps1087), (1089, snaps1089), (1090, snaps1090), (1091, snaps1091), (1097, snaps1097), (1098, snaps1098), (1099, snaps1099), (1100, snaps1100), (1105, snaps1105), (1106, snaps1106), (1111, snaps1111), (1143, snaps1143), (1144, snaps1144), (1145, snaps1145), (1146, snaps1146), (1150, snaps1150), (1183, snaps1183), (1184, snaps1184), (1188, snaps1188), (1221, snaps1221), (1222, snaps1222), (1226, snaps1226), (1259, snaps1259), (1260, snaps1260), (1264, snaps1264), (1298, snaps1298), (1299, snaps1299), (1300, snaps1300), (1301, snaps1301), (1304, snaps1304), (1338, snaps1338), (1339, snaps1339), (1342, snaps1342), (1376, snaps1376), (1377, snaps1377), (1381, snaps1381), (1413, snaps1413), (1414, snaps1414), (1418, snaps1418), (1455, snaps1455), (1456, snaps1456), (1460, snaps1460), (1499, snaps1499), (1503, snaps1503), (1546, snaps1546), (1547, snaps1547), (1551, snaps1551), (1593, snaps1593), (1597, snaps1597), (1639, snaps1639), (1640, snaps1640), (1641, snaps1641), (1642, snaps1642), (1643, snaps1643), (1644, snaps1644), (1645, snaps1645), (1646, snaps1646), (1647, snaps1647), (1648, snaps1648), (1649, snaps1649), (1650, snaps1650), (1651, snaps1651), (1652, snaps1652), (1653, snaps1653), (1654, snaps1654), (1655, snaps1655), (1656, snaps1656), (1657, snaps1657), (1658, snaps1658), (1662, snaps1662), (1663, snaps1663), (1664, snaps1664), (1665, snaps1665), (1666, snaps1666), (1667, snaps1667), (1668, snaps1668), (1669, snaps1669), (1670, snaps1670), (1671, snaps1671), (1674, snaps1674), (1675, snaps1675), (1676, snaps1676), (1677, snaps1677), (1678, snaps1678), (1679, snaps1679), (1680, snaps1680), (1683, snaps1683), (1684, snaps1684), (1685, snaps1685), (1686, snaps1686), (1687, snaps1687), (1688, snaps1688), (1689, snaps1689), (1693, snaps1693), (1694, snaps1694), (1695, snaps1695), (1696, snaps1696), (1697, snaps1697), (1700, snaps1700), (1701, snaps1701), (1702, snaps1702), (1703, snaps1703), (1704, snaps1704), (1705, snaps1705), (1707, snaps1707), (1708, snaps1708), (1709, snaps1709), (1710, snaps1710), (1711, snaps1711), (1713, snaps1713), (1714, snaps1714), (1715, snaps1715), (1716, snaps1716), (1717, snaps1717), (1719, snaps1719), (1720, snaps1720), (1721, snaps1721), (1722, snaps1722), (1723, snaps1723), (1725, snaps1725), (1726, snaps1726), (1727, snaps1727), (1728, snaps1728), (1729, snaps1729), (1730, snaps1730), (1732, snaps1732), (1733, snaps1733), (1734, snaps1734), (1735, snaps1735), (1738, snaps1738), (1739, snaps1739), (1740, snaps1740), (1741, snaps1741), (1742, snaps1742), (1744, snaps1744), (1745, snaps1745), (1746, snaps1746), (1747, snaps1747), (1748, snaps1748), (1749, snaps1749), (1750, snaps1750), (1751, snaps1751), (1752, snaps1752)]
 
 end
 end LeanVM.Guest.Data

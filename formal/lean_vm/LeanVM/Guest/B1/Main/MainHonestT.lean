@@ -50,7 +50,7 @@ variable {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness} {bytec
 def MainGoalL5T (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (T5 : Tree → Prop) : Prop :=
   (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDT fs cert 16 "__loop4" (hLmain fs fp seed s w)
+    CompleteAtDT fs cert 20 "__loop4" (hLmain fs fp seed s w)
       [1, gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a409, (hm fs fp seed s w).a77,
         (hm fs fp seed s w).a117, gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hm fs fp seed s w).a80,
@@ -67,17 +67,17 @@ theorem MainGoalL5T.goal {T5 : Tree → Prop} (h : MainGoalL5T fs cert fp seed s
 `aggregate_claims`, the children's loop. -/
 structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (p : MainPreds) : Prop where
-  clx : CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  clx : CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) p.Px
-  cls : CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  cls : CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDT fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDT fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR) p.Pd
   ag : (hm fs fp seed s w).nc ≠ 0 →
-    CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+    CompleteAtDT fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
       [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
         (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns []) p.Pa
   l5 : MainGoalL5T fs cert fp seed s w p.T5
@@ -85,7 +85,7 @@ structure MainGoalsT (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
 /-- **`main`'s callees, by trees satisfying `p`.** -/
 theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
     (hT : MainGoalsT fs cert fp seed s w p) :
-    KidsDT fs cert 16 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
+    KidsDT fs cert 20 (mKids (hm fs fp seed s w) (hLmain fs fp seed s w))
       (mTs (hm fs fp seed s w) p) := by
   unfold mKids mTs
   by_cases hnd : (hm fs fp seed s w).nd = 1 <;> by_cases hnc : (hm fs fp seed s w).nc = 0 <;>
@@ -115,7 +115,7 @@ theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
     (hT : MainGoalsT fs cert fp seed s w p) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
+      ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
         LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []

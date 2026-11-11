@@ -8,78 +8,111 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1700_1
-public import LeanVM.Guest.Checked.F1700_1
+public import LeanVM.Guest.Checked.F1698_0
+public import LeanVM.Guest.Checked.F1701_2
+public import LeanVM.Guest.Checked.F1701_2
+public import LeanVM.Guest.Checked.F1701_2
 public import LeanVM.Guest.Checked.F1703_2
 public import LeanVM.Guest.Checked.F1703_2
-public import LeanVM.Guest.Checked.F1709_0
-public import LeanVM.Guest.Checked.F1709_0
-public import LeanVM.Guest.Checked.F1711_0
-public import LeanVM.Guest.Checked.F1711_0
-public import LeanVM.Guest.Checked.F1711_0
-public import LeanVM.Guest.Checked.F1713_1
-public import LeanVM.Guest.Checked.F1713_1
-public import LeanVM.Guest.Checked.F1717_0
-public import LeanVM.Guest.Checked.F1717_0
-public import LeanVM.Guest.Checked.F1721_2
-public import LeanVM.Guest.Checked.F1721_2
-public import LeanVM.Guest.Checked.F1721_2
-public import LeanVM.Guest.Checked.F1723_2
-public import LeanVM.Guest.Checked.F1723_2
-public import LeanVM.Guest.Checked.F1729_2
-public import LeanVM.Guest.Checked.F1729_2
-public import LeanVM.Guest.Checked.F1729_2
-public import LeanVM.Guest.Checked.F1731_3
-public import LeanVM.Guest.Checked.F1731_3
-public import LeanVM.Guest.Checked.F1737_0
-public import LeanVM.Guest.Checked.F1737_0
-public import LeanVM.Guest.Checked.F1739_3
-public import LeanVM.Guest.Checked.F1739_3
-public import LeanVM.Guest.Checked.F1739_3
+public import LeanVM.Guest.Checked.F1703_2
+public import LeanVM.Guest.Checked.F1707_1
+public import LeanVM.Guest.Checked.F1707_1
+public import LeanVM.Guest.Checked.F1707_1
+public import LeanVM.Guest.Checked.F1709_1
+public import LeanVM.Guest.Checked.F1709_1
+public import LeanVM.Guest.Checked.F1713_0
+public import LeanVM.Guest.Checked.F1713_0
+public import LeanVM.Guest.Checked.F1715_0
+public import LeanVM.Guest.Checked.F1715_0
+public import LeanVM.Guest.Checked.F1718_0
+public import LeanVM.Guest.Checked.F1718_0
+public import LeanVM.Guest.Checked.F1720_3
+public import LeanVM.Guest.Checked.F1720_3
+public import LeanVM.Guest.Checked.F1720_3
+public import LeanVM.Guest.Checked.F1723_0
+public import LeanVM.Guest.Checked.F1723_0
+public import LeanVM.Guest.Checked.F1726_1
+public import LeanVM.Guest.Checked.F1726_1
+public import LeanVM.Guest.Checked.F1728_0
+public import LeanVM.Guest.Checked.F1728_0
+public import LeanVM.Guest.Checked.F1731_0
+public import LeanVM.Guest.Checked.F1731_0
+public import LeanVM.Guest.Checked.F1733_2
+public import LeanVM.Guest.Checked.F1733_2
+public import LeanVM.Guest.Checked.F1738_0
+public import LeanVM.Guest.Checked.F1738_0
+public import LeanVM.Guest.Checked.F1739_4
+public import LeanVM.Guest.Checked.F1739_4
+public import LeanVM.Guest.Checked.F1739_4
 public import LeanVM.Guest.Checked.F1742_0
 public import LeanVM.Guest.Checked.F1742_0
-public import LeanVM.Guest.Checked.F1745_2
-public import LeanVM.Guest.Checked.F1745_2
-public import LeanVM.Guest.Checked.F1745_2
-public import LeanVM.Guest.Checked.F1747_2
+public import LeanVM.Guest.Checked.F1745_1
+public import LeanVM.Guest.Checked.F1745_1
+public import LeanVM.Guest.Checked.F1745_1
+public import LeanVM.Guest.Checked.F1748_1
+public import LeanVM.Guest.Checked.F1748_1
+public import LeanVM.Guest.Checked.F1748_1
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
 theorem ok1701 : CheckOk 1701 := fun i hi ↦ by
-  have h : (certOf 1701).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1701).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1701_0
   · exact w1701_1
   · exact w1701_2
+  · exact w1701_3
 
-theorem plain1702 : Plain 1702 := plain_of_nil (by decide +kernel)
+theorem ok1702 : CheckOk 1702 := fun i hi ↦ by
+  have h : (certOf 1702).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1702_0
+  · exact w1702_1
+  · exact w1702_2
+  · exact w1702_3
 
 theorem ok1703 : CheckOk 1703 := fun i hi ↦ by
-  have h : (certOf 1703).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1703).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1703_0
   · exact w1703_1
   · exact w1703_2
+  · exact w1703_3
 
-theorem plain1704 : Plain 1704 := plain_of_nil (by decide +kernel)
+theorem ok1704 : CheckOk 1704 := fun i hi ↦ by
+  have h : (certOf 1704).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1704_0
+  · exact w1704_1
+  · exact w1704_2
 
 theorem plain1705 : Plain 1705 := plain_of_nil (by decide +kernel)
 
 theorem plain1706 : Plain 1706 := plain_of_nil (by decide +kernel)
 
-theorem plain1707 : Plain 1707 := plain_of_nil (by decide +kernel)
+theorem ok1707 : CheckOk 1707 := fun i hi ↦ by
+  have h : (certOf 1707).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1707_0
+  · exact w1707_1
+  · exact w1707_2
+  · exact w1707_3
 
 theorem ok1708 : CheckOk 1708 := fun i hi ↦ by
-  have h : (certOf 1708).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1708).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1708_0
   · exact w1708_1
   · exact w1708_2
+  · exact w1708_3
 
 theorem ok1709 : CheckOk 1709 := fun i hi ↦ by
   have h : (certOf 1709).cuts.length = 3 := by decide +kernel
@@ -91,30 +124,16 @@ theorem ok1709 : CheckOk 1709 := fun i hi ↦ by
   · exact w1709_3
 
 theorem ok1710 : CheckOk 1710 := fun i hi ↦ by
-  have h : (certOf 1710).cuts.length = 3 := by decide +kernel
+  have h : (certOf 1710).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1710_0
   · exact w1710_1
   · exact w1710_2
-  · exact w1710_3
 
-theorem ok1711 : CheckOk 1711 := fun i hi ↦ by
-  have h : (certOf 1711).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1711_0
-  · exact w1711_1
-  · exact w1711_2
+theorem plain1711 : Plain 1711 := plain_of_nil (by decide +kernel)
 
-theorem ok1712 : CheckOk 1712 := fun i hi ↦ by
-  have h : (certOf 1712).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1712_0
-  · exact w1712_1
-  · exact w1712_2
-  · exact w1712_3
+theorem plain1712 : Plain 1712 := plain_of_nil (by decide +kernel)
 
 theorem ok1713 : CheckOk 1713 := fun i hi ↦ by
   have h : (certOf 1713).cuts.length = 3 := by decide +kernel
@@ -126,30 +145,52 @@ theorem ok1713 : CheckOk 1713 := fun i hi ↦ by
   · exact w1713_3
 
 theorem ok1714 : CheckOk 1714 := fun i hi ↦ by
-  have h : (certOf 1714).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1714).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1714_0
   · exact w1714_1
   · exact w1714_2
+  · exact w1714_3
 
-theorem plain1715 : Plain 1715 := plain_of_nil (by decide +kernel)
+theorem ok1715 : CheckOk 1715 := fun i hi ↦ by
+  have h : (certOf 1715).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1715_0
+  · exact w1715_1
+  · exact w1715_2
+  · exact w1715_3
 
-theorem plain1716 : Plain 1716 := plain_of_nil (by decide +kernel)
+theorem ok1716 : CheckOk 1716 := fun i hi ↦ by
+  have h : (certOf 1716).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1716_0
+  · exact w1716_1
+  · exact w1716_2
 
 theorem plain1717 : Plain 1717 := plain_of_nil (by decide +kernel)
 
 theorem plain1718 : Plain 1718 := plain_of_nil (by decide +kernel)
 
-theorem plain1719 : Plain 1719 := plain_of_nil (by decide +kernel)
+theorem ok1719 : CheckOk 1719 := fun i hi ↦ by
+  have h : (certOf 1719).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1719_0
+  · exact w1719_1
+  · exact w1719_2
+  · exact w1719_3
 
 theorem ok1720 : CheckOk 1720 := fun i hi ↦ by
-  have h : (certOf 1720).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1720).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1720_0
   · exact w1720_1
   · exact w1720_2
+  · exact w1720_3
 
 theorem ok1721 : CheckOk 1721 := fun i hi ↦ by
   have h : (certOf 1721).cuts.length = 3 := by decide +kernel
@@ -161,31 +202,54 @@ theorem ok1721 : CheckOk 1721 := fun i hi ↦ by
   · exact w1721_3
 
 theorem ok1722 : CheckOk 1722 := fun i hi ↦ by
-  have h : (certOf 1722).cuts.length = 3 := by decide +kernel
+  have h : (certOf 1722).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1722_0
   · exact w1722_1
   · exact w1722_2
-  · exact w1722_3
 
-theorem ok1723 : CheckOk 1723 := fun i hi ↦ by
-  have h : (certOf 1723).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1723_0
-  · exact w1723_1
-  · exact w1723_2
+theorem plain1723 : Plain 1723 := plain_of_nil (by decide +kernel)
 
 theorem plain1724 : Plain 1724 := plain_of_nil (by decide +kernel)
 
-theorem plain1725 : Plain 1725 := plain_of_nil (by decide +kernel)
+theorem ok1725 : CheckOk 1725 := fun i hi ↦ by
+  have h : (certOf 1725).cuts.length = 4 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1725_0
+  · exact w1725_1
+  · exact w1725_2
+  · exact w1725_3
+  · exact w1725_4
 
-theorem plain1726 : Plain 1726 := plain_of_nil (by decide +kernel)
+theorem ok1726 : CheckOk 1726 := fun i hi ↦ by
+  have h : (certOf 1726).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1726_0
+  · exact w1726_1
+  · exact w1726_2
+  · exact w1726_3
 
-theorem plain1727 : Plain 1727 := plain_of_nil (by decide +kernel)
+theorem ok1727 : CheckOk 1727 := fun i hi ↦ by
+  have h : (certOf 1727).cuts.length = 4 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1727_0
+  · exact w1727_1
+  · exact w1727_2
+  · exact w1727_3
+  · exact w1727_4
 
-theorem plain1728 : Plain 1728 := plain_of_nil (by decide +kernel)
+theorem ok1728 : CheckOk 1728 := fun i hi ↦ by
+  have h : (certOf 1728).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1728_0
+  · exact w1728_1
+  · exact w1728_2
+  · exact w1728_3
 
 theorem ok1729 : CheckOk 1729 := fun i hi ↦ by
   have h : (certOf 1729).cuts.length = 2 := by decide +kernel
@@ -195,35 +259,36 @@ theorem ok1729 : CheckOk 1729 := fun i hi ↦ by
   · exact w1729_1
   · exact w1729_2
 
-theorem ok1730 : CheckOk 1730 := fun i hi ↦ by
-  have h : (certOf 1730).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1730_0
-  · exact w1730_1
-  · exact w1730_2
-  · exact w1730_3
+theorem plain1730 : Plain 1730 := plain_of_nil (by decide +kernel)
 
-theorem ok1731 : CheckOk 1731 := fun i hi ↦ by
-  have h : (certOf 1731).cuts.length = 3 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1731_0
-  · exact w1731_1
-  · exact w1731_2
-  · exact w1731_3
+theorem plain1731 : Plain 1731 := plain_of_nil (by decide +kernel)
 
 theorem ok1732 : CheckOk 1732 := fun i hi ↦ by
-  have h : (certOf 1732).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1732).cuts.length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1732_0
   · exact w1732_1
   · exact w1732_2
+  · exact w1732_3
+  · exact w1732_4
 
-theorem plain1733 : Plain 1733 := plain_of_nil (by decide +kernel)
+theorem ok1733 : CheckOk 1733 := fun i hi ↦ by
+  have h : (certOf 1733).cuts.length = 3 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1733_0
+  · exact w1733_1
+  · exact w1733_2
+  · exact w1733_3
 
-theorem plain1734 : Plain 1734 := plain_of_nil (by decide +kernel)
+theorem ok1734 : CheckOk 1734 := fun i hi ↦ by
+  have h : (certOf 1734).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1734_0
+  · exact w1734_1
+  · exact w1734_2
 
 theorem plain1735 : Plain 1735 := plain_of_nil (by decide +kernel)
 
@@ -241,13 +306,14 @@ theorem ok1738 : CheckOk 1738 := fun i hi ↦ by
   · exact w1738_3
 
 theorem ok1739 : CheckOk 1739 := fun i hi ↦ by
-  have h : (certOf 1739).cuts.length = 3 := by decide +kernel
+  have h : (certOf 1739).cuts.length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1739_0
   · exact w1739_1
   · exact w1739_2
   · exact w1739_3
+  · exact w1739_4
 
 theorem ok1740 : CheckOk 1740 := fun i hi ↦ by
   have h : (certOf 1740).cuts.length = 3 := by decide +kernel
@@ -271,13 +337,14 @@ theorem plain1742 : Plain 1742 := plain_of_nil (by decide +kernel)
 theorem plain1743 : Plain 1743 := plain_of_nil (by decide +kernel)
 
 theorem ok1744 : CheckOk 1744 := fun i hi ↦ by
-  have h : (certOf 1744).cuts.length = 3 := by decide +kernel
+  have h : (certOf 1744).cuts.length = 4 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1744_0
   · exact w1744_1
   · exact w1744_2
   · exact w1744_3
+  · exact w1744_4
 
 theorem ok1745 : CheckOk 1745 := fun i hi ↦ by
   have h : (certOf 1745).cuts.length = 3 := by decide +kernel
@@ -289,27 +356,36 @@ theorem ok1745 : CheckOk 1745 := fun i hi ↦ by
   · exact w1745_3
 
 theorem ok1746 : CheckOk 1746 := fun i hi ↦ by
-  have h : (certOf 1746).cuts.length = 3 := by decide +kernel
+  have h : (certOf 1746).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1746_0
   · exact w1746_1
   · exact w1746_2
-  · exact w1746_3
 
-theorem ok1747 : CheckOk 1747 := fun i hi ↦ by
-  have h : (certOf 1747).cuts.length = 2 := by decide +kernel
+theorem plain1747 : Plain 1747 := plain_of_nil (by decide +kernel)
+
+theorem ok1748 : CheckOk 1748 := fun i hi ↦ by
+  have h : (certOf 1748).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w1747_0
-  · exact w1747_1
-  · exact w1747_2
+  · exact w1748_0
+  · exact w1748_1
+  · exact w1748_2
 
-theorem plain1748 : Plain 1748 := plain_of_nil (by decide +kernel)
+theorem ok1749 : CheckOk 1749 := fun i hi ↦ by
+  have h : (certOf 1749).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1749_0
+  · exact w1749_1
 
-theorem plain1749 : Plain 1749 := plain_of_nil (by decide +kernel)
-
-theorem plain1750 : Plain 1750 := plain_of_nil (by decide +kernel)
+theorem ok1750 : CheckOk 1750 := fun i hi ↦ by
+  have h : (certOf 1750).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1750_0
+  · exact w1750_1
 
 end
 end LeanVM.Guest.Checked

@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.Proof
 /-!
 # The back of `verify_sub`
 
-`vs_back`: from the zero cells and the pooled claims, the statements after the calls (G:3444-3513)
+`vs_back`: from the zero cells and the pooled claims, the statements after the calls (G:3489-3557)
 give the ring map's challenges and their coefficients, the batching challenge and the target, and the tail's facts (`vsTailT_holds`).
 -/
 
@@ -55,19 +55,15 @@ theorem vs_back (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 
       (σ (.n 1091) :: ((notLanes claims).map (·.value) ++ [σ (.n 657)])) ∧
     -- the tail
     C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1682), σ (.n 1683)] ∧
-    C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)] ∧
-    σ (.n 1686) = σ (.n 1684) * word 8198552432976855044 0 0 ∧
-    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 64 0 0 = σ (.n 1686) * σ (.n 1688) ∧
+    C "log2_ceil_in_the_exponent__L16_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)] ∧
+    σ (.n 1686) = σ (.n 1684) * word 14347465658197868555 0 0 ∧
+    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 4096 0 0 = σ (.n 1686) * σ (.n 1688) ∧
       LoadHolds rd (σ (.n 1688)) 0 (σ (.n 1690))) ∧
-    σ (.n 1695) = σ (.n 1686) * (σ (.n 122) * σ (.n 122) * σ (.n 122) *
-      (σ (.n 122) * σ (.n 122) * σ (.n 122)) * σ (.n 122)) ∧
-    (LoadHolds rd (σ (.n 1695)) 0 (σ (.n 1698)) ∧ word 134217728 0 0 = σ (.n 1695) * σ (.n 1697) ∧
-      LoadHolds rd (σ (.n 1697)) 0 (σ (.n 1699))) ∧
-    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1695) = ofK (addressOfIndex j) ∧
+    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1686) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] (vsOsArgs σ) (vsOsRets σ)) ∧
     C "check_opening_terminal" [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309),
       σ (.n 642), σ (.n 128), σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1683), σ (.n 647),
-      σ (.n 665), σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704), σ (.n 1700)] [] ∧
+      σ (.n 665), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1691)] [] ∧
     (∀ k < 19, ∃ v, LoadHolds rd (σ (.n 310)) k v ∧ LoadHolds rd (σ (.n 5)) k v) ∧
     (∀ k < 4, ∃ v, LoadHolds rd (σ (.n 346)) k v ∧ LoadHolds rd (σ (.n 5)) (19 + k) v) ∧
     LoadHolds rd (σ (.n 5)) 23 (σ (.n 643)) ∧ kret [] := by

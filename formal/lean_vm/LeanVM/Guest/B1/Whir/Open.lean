@@ -48,6 +48,8 @@ structure LvStatic (c : OsCfg) (i : ℕ) (lv : OsLv) : Prop where
   le : lv.foldsOff + lv.folds ≤ c.nFolds
   cols : c.nFolds - (lv.foldsOff + lv.folds) + c.yrLog = lv.logCols
   vanish : vanishOk lv.vanish lv.logCols = true
+  lc : i * ligColsCap < u128Bound
+  van : lv.vanish = vanishOff lv.logCols
 
 /-- **A candidate's facts**: its configuration against the Spec's, its rows. -/
 structure CandFacts (c : OsCfg) (μ r : ℕ) (cfg : List Whir.Level) : Prop where
@@ -135,27 +137,25 @@ theorem readsAt_padded {rd : Reader} {p : E} {P : List E} {n : ℕ} (f : E → E
     have := h k hk
     rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega), Option.getD_none] at this
 
-/-- **A candidate, soundly**: from its data, its facts and its callees' meanings, a call
-establishes `OpenOut`. -/
-theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
-    (hfnc : FnIs ("open_stacked__L" ++ natStr m) (osParams 9) (osBody c))
-    (hloops : ∀ lvl (h : lvl < c.levels.length),
-      FnIs (c.resLoop lvl) (osParams 6) (resLoopBody lvl c.levels[lvl] (c.resLoop lvl)))
+/-- **A configuration, soundly**: from its body, its facts, its callees' meanings and the rate's
+selector naming its levels' rows, a call establishes `OpenOut`. -/
+theorem open_generic {name : String} {μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
+    (hfnc : FnIs name (osParams 10) (osBody c))
     (hF : CandFacts c μ r cfg) (hcal : CalleesOk rd c 0 c.levels)
     (hfold : ∀ args rets, coreProgram.Rel rd "opening_fold" args rets →
       MeaningOpeningFold rd args rets)
     (hfm : ∀ args rets, coreProgram.Rel rd ("fold_final_msg__L" ++ natStr c.yrLog)
       args rets → MeaningFoldFinalMsg c.yrLog rd args rets)
-    {root : Digest} {fs : List E} {target root0 root1 cur : E} {rets : List E}
+    {root : Digest} {fs : List E} {sel target root0 root1 cur : E} {rets : List E}
     (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root)
-    {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
+    {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd)) {V : FrameMap} (hU : UnfoldsV rd C V)
     {Wf : ℕ → OsLv → List E → List E → List QW} (hqw : QWOk rd C Wf 0 c.levels)
-    {σ : Val} {fn' : Fn} (hfind' : coreProgram.find? ("open_stacked__L" ++ natStr m) = some fn')
-    (hp' : fn'.params.map σ = fs ++ [target, root0, root1, cur])
+    {σ : Val} (hrat : RatesOk σ c 0 c.levels) {fn' : Fn} (hfind' : coreProgram.find? name = some fn')
+    (hp' : fn'.params.map σ = sel :: fs ++ [target, root0, root1, cur])
     (hh : Stmt.HoldsList C rd σ fn'.body False (fun rs ↦ rs = rets)) :
     OpenOutW rd μ r root fs target cur rets (readN rd cur (osWordsLen c))
       ((osQCalls c 0 c.levels (osHead c).2).map
-        (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2)) := by
+        (fun e ↦ lvOs rd σ V (Wf e.1 e.2.1) e.1 e.2.1 e.2.2)) := by
   have hn := hF.n2
   obtain ⟨fn, hfind, hps, hbody⟩ := hfnc
   rw [hfind] at hfind'
@@ -171,15 +171,19 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     osHead_sound (c := c) hfs hp hroot hF.shape hF.off0 (allOk_mono hle hH)
   -- the levels
   obtain ⟨xs1, os1, R', ms, ws', rs, hrd1, hrun1, hmsl, hfmr, hgl, hrsl, hrec, hfl, hfch, hq, ht,
-    hfs1, hpad1, hco1, hcur1, hos1, hxl1⟩ :=
-    osLevels_sound hle c.levels cfg 0 (osHead c).2 _ _ root hF.lok hcal hqw hin0 hwt hL
+    hfs1, hpad1, hco1, hcur1, hos1, hxl1, hmt1⟩ :=
+    osLevels_sound hle hU c.levels cfg 0 (osHead c).2 _ _ root hF.lok hcal hqw hrat hin0 hwt hL
   obtain ⟨p, hpp⟩ := osLevels_pad c c.levels 0 (osHead c).2 (by
     intro h; rw [h] at hn; simp at hn)
   set stL := (osLevels c 0 c.levels (osHead c).2).2 with hstL
   -- the tail
   obtain ⟨xs2, T, F', hxl2, hTl, hrd2, hrun2, hTr, -⟩ := osTail_sound hfold hF.ylog hfs1
-    (by have := hco1; unfold u128Bound; omega) (by rw [hpp] at hpad1 ⊢; exact hpad1) ws' hq ht (allOk_mono hle hT)
+    (by have := hco1; unfold u128Bound; omega) (by rw [hpp] at hpad1 ⊢; exact hpad1) ws' hq ht
+    (allOk_mono hle hT)
   set stT := (osTail c stL).2 with hstT
+  have hmtT : MatsOk σ stT.1.mats := by
+    have e : stT.1.mats = stL.mats := by simp [stT, osTail, osFolds_mats]
+    rw [e]; exact hmt1
   set F := ws'.folds with hFdef
   have hFl : F.length = c.nFolds := by
     rw [hfl, ← hF.lastF]
@@ -193,6 +197,10 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
       simpa using this
   have hsta : ∀ i (hi : i < c.levels.length), LvStatic c i c.levels[i] := fun i hi ↦ by
     have := hF.lv i hi; rwa [lv_getD hi] at this
+  have hcal' : ∀ i (hi : i < c.levels.length), LvCallees rd c i c.levels[i] := fun i hi ↦ by
+    simpa using calleesOk_at hcal i hi
+  have hrat' : ∀ i (hi : i < c.levels.length), LvRate σ c i c.levels[i] := fun i hi ↦ by
+    simpa using ratesOk_at hrat i hi
   -- the levels' inputs to the finish
   have hTr' : ∀ j (h : j < T.length), LoadHolds rd (σ (.n stT.2)) j T[j] := hTr
   have hbasis : ∀ i (hi : i < c.levels.length), BasisIn rd σ c stT.2 i c.levels[i]
@@ -213,7 +221,7 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     fun i hi ↦ by
       have hr := hrec' i hi
       have hs := hsta i hi
-      exact ⟨hloops i hi, hs.ml1, hs.posOff, hs.qo, hs.qu, hs.pre,
+      exact ⟨(hcal' i hi).res, hrat' i hi, hs.van, hs.posOff, hs.lc, hs.pre,
         fun j hj ↦ hr.rq.pos j hj, hr.rq.lam0, hr.rq.mu⟩
   have hood : OodAll rd σ c stT.2 (Λof rs) (Zof rs) (Yof rs F T) (c.levels.headD default).logCols
       1 c.levels.tail := by
@@ -255,7 +263,7 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     (ms := ms) (T := T) (Pt := (F ++ T).drop lane ++ (F ++ T).take lane)
     (β := βof c rs) (X := Xof rs F T) (P := Pof rs) (W := Wof rs) (Λ := Λof rs) (Z := Zof rs)
     (Y := Yof rs F T) (Lam := fun i ↦ (rs.getD i default).lam) (fun _ _ ↦ rfl) hfm (by rw [hmsl, hF.ylen]) hfmr hTl hTr
-    (ptSrc_ok hFl hTl hF.lane hfch hTr') hbasis hres hood hn (allOk_mono hle hFin)
+    (ptSrc_ok hFl hTl hF.lane hfch hTr') hbasis hres hood hn hmtT (allOk_mono hle hFin)
   -- the glued weight
   have hlvfin : ∀ i < c.levels.length, LvFin c rs F T i := fun i hi ↦ by
     have hr := hrec' i hi

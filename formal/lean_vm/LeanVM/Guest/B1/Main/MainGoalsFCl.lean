@@ -32,7 +32,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims.** -/
 theorem mainGoalClX (hL : DeployedLimits s w) : MainGoalClX fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+    have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
     simp only [claimBig, maxKeys]
     omega
@@ -56,12 +56,12 @@ theorem mainGoalClX (hL : DeployedLimits s w) : MainGoalClX fs cert fp seed s w 
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClX
   rw [ha, hn', hd, mf_xmss_digest]
-  exact key
+  exact CompleteAtD.lowMono key (by norm_num)
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims.** -/
 theorem mainGoalClS (hL : DeployedLimits s w) : MainGoalClS fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+    have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
     simp only [claimBig, maxKeys]
     omega
@@ -85,7 +85,7 @@ theorem mainGoalClS (hL : DeployedLimits s w) : MainGoalClS fs cert fp seed s w 
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClS
   rw [ha, hn', hd, mf_sphincs_digest]
-  exact key
+  exact CompleteAtD.lowMono key (by norm_num)
 
 end
 end LeanVM.Guest.B1.Main

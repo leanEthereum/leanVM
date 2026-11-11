@@ -1577,7 +1577,7 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         let [a0] := args | fail "assert_gpow(x) takes one scalar cell"
         let x ← expr n a0
         let t ← fresh
-        emitAtom (.load t x 0)
+        emitAtom (.touch t x)
         return true
     | "keccak" => do
         lowerKeccak n args

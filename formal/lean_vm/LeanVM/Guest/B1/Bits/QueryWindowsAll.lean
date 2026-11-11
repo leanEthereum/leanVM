@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Bits.QueryWindowsAll
 
-  `decode_query_windows` is sound at each of its 22 specializations.
+  `decode_query_windows` is sound at each of its 21 specializations.
 -/
 
 module

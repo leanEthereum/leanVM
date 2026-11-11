@@ -32,7 +32,7 @@ theorem w308_0 : WinOk 308 0 := winOk_of_C (by decide +kernel)
 /-- `log2_ceil_in_the_exponent__L0_L34`, window 0. -/
 theorem w309_0 : WinOk 309 0 := winOk_of_C (by decide +kernel)
 
-/-- `log2_ceil_in_the_exponent__L15_L34`, window 0. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, window 0. -/
 theorem w310_0 : WinOk 310 0 := winOk_of_C (by decide +kernel)
 
 /-- `open_stacked__L0`, window 0. -/

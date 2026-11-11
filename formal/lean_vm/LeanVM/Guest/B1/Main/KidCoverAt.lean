@@ -42,11 +42,11 @@ theorem sd_pure : coreProgram.PureIn ["statement_digest"] := by
 
 /-- **`statement_digest` is complete, placed**, on every memory holding the caller's words
 `MeaningStatementDigest` reads. -/
-theorem statement_completeAt {Lin : Layout} {args rets : List E}
+theorem statement_completeAt {κ : ℕ} {Lin : Layout} {args rets : List E}
     (h : ∀ rd, MemL rd Lin → MeaningStatementDigest rd args rets) :
-    CompleteAtD fs cert 16 "statement_digest" Lin args (Returns rets) :=
+    CompleteAtD fs cert κ "statement_digest" Lin args (Returns rets) :=
   completeAt_of_rel_pureD sd_pure (List.mem_singleton_self _)
-    (fun rd hm => statement_digest_complete rd args rets (h rd hm)) 16
+    (fun rd hm => statement_digest_complete rd args rets (h rd hm)) κ
 
 /-- **A statement's digest from its parts**: the header cells' bytes and the 24 deferred cells. -/
 theorem statementDigest_of_parts {seed : Digest} {s : NodeStatement}

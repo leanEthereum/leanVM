@@ -39,12 +39,12 @@ theorem vs_rets (G : VsSig S bs sqE outs args σ) (j : ℕ) (hj : j < 13)
   rw [List.getElem_map, List.getElem_map, ← List.getD_eq_getElem _ 0 hk, G.ret j hj k hk,
     List.getD_eq_getElem _ _ h2]
 
-/-- The selector's candidate is below the dispatch's `28` callees. -/
-theorem ChildSegs.candidate_lt (S : ChildSegs bytecode seed c) :
-    B1.Whir.candidate S.μs S.rate < 28 := by
-  have h1 : S.μs ≤ 28 := S.hmu28
-  have h2 := S.hr4
-  unfold B1.Whir.candidate
+/-- The size's index is below the dispatch's `13` callees. -/
+theorem ChildSegs.size_lt (S : ChildSegs bytecode seed c) :
+    S.μs - B1.Whir.minOpenLog < 13 := by
+  have h1 : S.μs ≤ 32 := S.hmu32
+  have h2 : 20 ≤ S.μs := S.hmu20
+  unfold B1.Whir.minOpenLog
   omega
 
 set_option maxRecDepth 100000 in
@@ -115,7 +115,7 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
     rfl
   have hpl : S.point.length = S.μ := (S.runG' hbl).2.2.1
   have hvl := S.vals_length hbl
-  have hc28 := S.candidate_lt
+  have hc14 := S.size_lt
   -- the frames
   rw [vs_calls σ]
   refine callsMatch_kidsAt _ _ _ _ (by simp [vsCallsA, vsCallsB, ChildSegs.kids])
@@ -190,13 +190,14 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
     rw [r1674, a4]
   · refine ⟨?_, rfl, fun _ ↦ ⟨?_, vs_rets G 11 (by norm_num)
       (by rw [h11]; simp only [List.length_cons, List.length_nil]; rfl)⟩⟩
-    · show vsOpenNames.getD (logG (σ (.n 1695))) "" = B1.Whir.openName S.μs S.rate
-      rw [G.e1901, logG_gen_pow (by omega), vsOpenNames_eq]
+    · show vsOpenNames.getD (logG (σ (.n 1686))) "" = B1.Whir.openName S.μs
+      rw [G.e1686, logG_gen_pow (by have := S.size_lt; omega), vsOpenNames_eq]
       rfl
-    · show [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1681),
-        σ (.n 324), σ (.n 334), σ (.n 656)] = capOf S.s8.perm ++ [S.target,
-          (digestHalves S.root).1, (digestHalves S.root).2, ofK (addressOfIndex (S.cW bs))]
-      rw [← G.e1312, G.e1886, G.e537, G.e547, r656, S.root_cells]
+    · show [σ (.n 122), σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104),
+        σ (.n 1681), σ (.n 324), σ (.n 334), σ (.n 656)] = B1.Whir.rateSel S.rate ::
+          (capOf S.s8.perm ++ [S.target,
+          (digestHalves S.root).1, (digestHalves S.root).2, ofK (addressOfIndex (S.cW bs))])
+      rw [G.e122, ← G.e1312, G.e1886, G.e537, G.e547, r656, S.root_cells]
       rfl
   · refine ⟨rfl, ?_, fun _ ↦ ⟨?_, vs_rets G 12 (by norm_num)
       (by rw [O.o12, List.length_nil]; rfl)⟩⟩
@@ -204,7 +205,7 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
       exact (@decide_eq_true _ (Classical.propDecidable _) O.term).symm
     · show [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309), σ (.n 642), σ (.n 128),
         σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1683), σ (.n 647), σ (.n 665),
-        σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704), σ (.n 1700)] =
+        σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1691)] =
         [ofK (addressOfIndex sqE), ofK (addressOfIndex (vb bs 5)), ofK (addressOfIndex (vb bs 8)),
           S.H.rm, gen ^ S.μ, gen ^ S.H.n, gen ^ S.logMem, gen ^ S.τ,
           ofK (addressOfIndex (vb bs 4)), S.lam, ((outs.take 12).getD 9 ([], [])).1.getD 1 0,
@@ -215,26 +216,26 @@ theorem vs_callsMatch (hbl : bytecode.length = 2 ^ 23) {outE : ℕ}
       rw [take_getD _ _ (by norm_num : 9 < 12), take_getD _ _ (by norm_num : 11 < 12), a4, q310,
         q635, r644, r522, r642, r130, G.e858, q139, G.e1111,
         show σ (.n 1683) = _ from R 9 (by norm_num) 1 (by decide), q647, q665,
-        show σ (.n 1700) = _ from R 11 (by norm_num) 0 (by decide),
-        show σ (.n 1701) = _ from R 11 (by norm_num) 1 (by decide),
-        show σ (.n 1702) = _ from R 11 (by norm_num) 2 (by decide),
-        show σ (.n 1703) = _ from R 11 (by norm_num) 3 (by decide),
-        show σ (.n 1704) = _ from R 11 (by norm_num) 4 (by decide)]
+        show σ (.n 1691) = _ from R 11 (by norm_num) 0 (by decide),
+        show σ (.n 1692) = _ from R 11 (by norm_num) 1 (by decide),
+        show σ (.n 1693) = _ from R 11 (by norm_num) 2 (by decide),
+        show σ (.n 1694) = _ from R 11 (by norm_num) 3 (by decide),
+        show σ (.n 1695) = _ from R 11 (by norm_num) 4 (by decide)]
 
 /-- **The dispatch's selector names one of its callees.** -/
 theorem vs_dispOk (S : ChildSegs bytecode seed c)
-    (h1901 : σ (.n 1695) = gen ^ B1.Whir.candidate S.μs S.rate) :
+    (h1686 : σ (.n 1686) = gen ^ (S.μs - B1.Whir.minOpenLog)) :
     ∀ s ∈ vsCPre, DispOk σ s := by
   intro s hs
   rw [vs_split_disp] at hs
   simp only [List.mem_append, List.mem_singleton] at hs
-  have hc := S.candidate_lt
+  have hc := S.size_lt
   rcases hs with (h | rfl) | h
   · have := List.all_eq_true.mp vs_noDisp.1 s h
     cases s with
     | dispatch => simp [noDispatchB] at this
     | _ => trivial
-  · exact ⟨_, by simp [vsOpenNames]; exact hc, by omega, by rw [h1901, gen_pow_eq_ofK]⟩
+  · exact ⟨_, by simp [vsOpenNames]; exact hc, by omega, by rw [h1686, gen_pow_eq_ofK]⟩
   · have := List.all_eq_true.mp vs_noDisp.2 s h
     cases s with
     | dispatch => simp [noDispatchB] at this

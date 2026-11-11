@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Opening.QueriesBody3
 /-!
 # `opening_queries`, every specialization (TRIAGE G #40)
 
-The 49 deployed shapes' bodies checked against the templates (`QueriesBody0-3`), for `Whir.Sound`;
+The 47 deployed shapes' bodies checked against the templates (`QueriesBody0-3`), for `Whir.Sound`;
 their soundness is `QueriesAllW`, their placed completeness `QueriesPlacedAll`.
 -/
 

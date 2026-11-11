@@ -138,7 +138,7 @@ theorem canonGo_sound {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) :
 
 /-- The atoms whose side condition is not automatic. -/
 def needsSide : Atom → Bool
-  | .load .. | .assertEq .. | .assertInK .. | .assertNe .. | .rangeCheck .. | .frameAddr .. => true
+  | .load .. | .assertEq .. | .assertInK .. | .assertNe .. | .rangeCheck .. | .frameAddr .. | .touch .. => true
   | .mul d x y => !(decide (x.idx < d.idx) && decide (y.idx < d.idx))
   | _ => false
 
@@ -166,7 +166,7 @@ theorem atoms_holds {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) {A : List Nat
         List.getElem?_eq_getElem (show c.val < ins.length by omega), Option.map_some,
         Option.getD_some]
       exact this _ (List.getElem_mem _)
-    | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at hns
+    | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
     | _ => trivial
   · rcases hn a ha hns with h | h
     · exact h

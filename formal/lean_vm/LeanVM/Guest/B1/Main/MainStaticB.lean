@@ -49,10 +49,10 @@ variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- **`__loop2` within its static bound**, from every counter below the count. -/
 theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
-    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 16) (hnrx : nrx < 2 ^ 34) {SK : String → ℕ}
+    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 20) (hnrx : nrx < 2 ^ 34) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop2" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")) :
-    ∀ i < nrx, CompleteAtDTB fs cert 16 "__loop2" Lin
+    ∀ i < nrx, CompleteAtDTB fs cert 20 "__loop2" Lin
       ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns []) (fun _ => True)
       (nrx * iterK fs SK "__loop2" + fs "__loop2") := fun i hi =>
   completeAtDTB_of_relIn raw3_pure (by simp)
@@ -64,10 +64,10 @@ theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb 
 /-- **`__loop3` within its static bound**, from every counter below the count. -/
 theorem rawS_completeAtB (hc : Sig.SphincsCompleteSpecs)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin)
-    (hY : Y ≤ 2 ^ 16) (hnrs : nrs < 2 ^ 34) {SK : String → ℕ}
+    (hY : Y ≤ 2 ^ 20) (hnrs : nrs < 2 ^ 34) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")) :
-    ∀ j < nrs, CompleteAtDTB fs cert 16 "__loop3" Lin
+    ∀ j < nrs, CompleteAtDTB fs cert 20 "__loop3" Lin
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
       (fun _ => True) (nrs * iterK fs SK "__loop3" + fs "__loop3") := fun j hj =>
   completeAtDTB_of_relIn raw4_pure (by simp)

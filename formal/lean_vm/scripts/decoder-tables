@@ -14,7 +14,7 @@ lean_vm's); `--check` fails when the file differs (`check-all.sh` and the CI run
 import argparse, glob, os, re, sys
 from pathlib import Path
 
-N = 1804
+N = None  # the number of compiled functions: the entry list's length, the certificates'
 PART = 512  # rows per part of `guestLocsList`
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
@@ -66,10 +66,12 @@ def main():
     ap.add_argument("--split-rows", default="37",
                     help="rows whose cells' lists get a name of their own (checked by chunks)")
     a = ap.parse_args()
+    global N
     entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
     os.chdir(Path(__file__).resolve().parent.parent)
-    assert len(entries) == N, len(entries)
     co, ce = cores(), certs()
+    N = len(entries)
+    assert N == len(ce), (N, len(ce))
     args = [co[max(j - 1, 0)] for j in range(N)]
     rets = [ce[j][1] for j in range(N)]
     split = [int(x) for x in a.split_rows.split(",") if x]

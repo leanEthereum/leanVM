@@ -76,7 +76,9 @@ def plan(m):
 
 
 def main():
-    rows = [plan(m) for m in range(14)]
+    arms = int(re.search(r"abbrev ligNSizes : Nat := (\d+)",
+                         open("LeanVM/Guest/B1/Whir/Config.lean").read()).group(1))
+    rows = [plan(m) for m in range(arms)]
     body = "\n".join(
         f"  | {m} => [{', '.join(f'({b}, {e}, {s})' for b, e, s in r)}]" for m, r in enumerate(rows))
     text = f'''/-

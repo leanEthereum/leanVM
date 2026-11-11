@@ -57,7 +57,7 @@ end ChildSegs
 /-- The callees' return values, callee by callee in call order. -/
 def vsRetVars : List (List ℕ) :=
   [[120], [128], [309], [344], [345], (List.range 9).map (626 + ·), (List.range 10).map (636 + ·),
-    (List.range 8).map (651 + ·), [1091], [1682, 1683], [1684], (List.range 5).map (1700 + ·), []]
+    (List.range 8).map (651 + ·), [1091], [1682, 1683], [1684], (List.range 5).map (1691 + ·), []]
 
 /-- **The oracle**: an allocation's pointer, a callee's return. -/
 noncomputable def vsW (bs : List ℕ) (outs : List (List E × Main.Layout)) (n : ℕ) : E :=

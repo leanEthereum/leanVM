@@ -31,10 +31,10 @@ def facCOk (fn : Fn) (top D : ℕ) : Bool :=
   decide (((facT top D).map Stmt.atom).filterMap Stmt.allocSz = [(.n 1, .inl 256)])
 
 set_option maxRecDepth 100000 in
-theorem fac14_cok : facCOk Data.core398 14 7 = true := by decide +kernel
+theorem fac14_cok : facCOk Data.core397 14 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem fac7_cok : facCOk Data.core400 7 8 = true := by decide +kernel
+theorem fac7_cok : facCOk Data.core399 7 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

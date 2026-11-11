@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Whir.Interface
 
   The interface of `open_stacked` (B1-b): the Spec's stacked WHIR opening split at the terminal
-  the guest checks elsewhere, what a call of each of the 14 specializations establishes about it,
+  the guest checks elsewhere, what a call of each of the `ligNSizes` specializations establishes about it,
   and the statement that every specialization's core IR establishes it.
 -/
 
@@ -11,6 +11,7 @@ module
 public import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Guest.B1.Common.Sponge
 public import LeanVM.Protocol.Compile.Prog
+public import LeanVM.Guest.B1.Whir.Config
 
 /-!
 # `open_stacked` (TRIAGE G #42): the interface
@@ -20,8 +21,8 @@ public import LeanVM.Protocol.Compile.Prog
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`, V:1836;
 `crates/verifier/src/whir.rs:142-265`) from `verifyStackedOpening` (V:1854), up to its terminal:
 the terminal's check `(inner + evaluateBasis point) · residual = target` is
-`check_opening_terminal`'s, which evaluates the transparent weight `evaluateBasis`. It has 14
-specializations `open_stacked__L{m}`, one per stack log `μ = 19 + m ≤ 32`, each reading its size's
+`check_opening_terminal`'s, which evaluates the transparent weight `evaluateBasis`. It has `ligNSizes`
+specializations `open_stacked__L{m}`, one per stack log `μ = minOpenLog + m ≤ 32`, each reading its size's
 rows of the `LIG_*` tables at compile time; the rate `1 ≤ r ≤ 4` is its first argument
 `rateSel r = g^(r - 1)`, which each level's `match` on the rate dispatches into helpers
 specialized on the rate's shapes.
@@ -176,14 +177,14 @@ theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List
 
 /-! ## The specializations -/
 
-/-- `open_stacked`'s 14 specializations, in dispatch order. -/
+/-- `open_stacked`'s `ligNSizes` specializations, in dispatch order. -/
 def openNames : List String :=
-  (List.range 14).map fun m ↦ "open_stacked__L" ++ toString m
+  (List.range ligNSizes).map fun m ↦ "open_stacked__L" ++ toString m
 
-/-- The smallest stack log a child's opening takes (`verifier::MIN_EXECUTION_STACKED_LOG`). -/
-abbrev minOpenLog : ℕ := 19
+/-- The smallest stack log a child's opening takes (`verifier::min_execution_stacked_log` of the guest's bytecode). -/
+abbrev minOpenLog : ℕ := 20
 
-/-- The specialization of `open_stacked` for the stack log `μ`: `μ - 19` in dispatch order. -/
+/-- The specialization of `open_stacked` for the stack log `μ`: `μ - minOpenLog` in dispatch order. -/
 def openName (μ : ℕ) : String := openNames.getD (μ - minOpenLog) ""
 
 /-- The rate's selector, `open_stacked`'s first argument: `g^(r - 1)`. -/
@@ -205,7 +206,7 @@ def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : L
 
 /-! ## What a call establishes -/
 
-/-- **`open_stacked__L{μ - 19}(rateSel r, fs0..fs4, target, root_0, root_1, cursor)`**: from the sponge the guest carries as the capacity `fs` with nothing waiting (the
+/-- **`open_stacked__L{μ - minOpenLog}(rateSel r, fs0..fs4, target, root_0, root_1, cursor)`**: from the sponge the guest carries as the capacity `fs` with nothing waiting (the
 batching challenge of `verifyStackedOpening` was just squeezed, G:3467), the stack's root `root`
 committed with its shape and nothing else, the words `xs` at the cursor and some openings `os`
 run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer holding its point

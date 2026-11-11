@@ -16,32 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 1. -/
-theorem w316_1 : shareWin 316 (snapsOf 316) 1 = true := by decide +kernel
+/-- `open_stacked__L4`, window 0. -/
+theorem w315_0 : shareWin 315 (snapsOf 315) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 2. -/
-theorem w316_2 : shareWin 316 (snapsOf 316) 2 = true := by decide +kernel
+/-- `open_stacked__L4`, window 1. -/
+theorem w315_1 : shareWin 315 (snapsOf 315) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 3. -/
-theorem w316_3 : shareWin 316 (snapsOf 316) 3 = true := by decide +kernel
+/-- `open_stacked__L4`, window 2. -/
+theorem w315_2 : shareWin 315 (snapsOf 315) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L5`, window 4. -/
-theorem w316_4 : shareWin 316 (snapsOf 316) 4 = true := by decide +kernel
+/-- `open_stacked__L4`, window 3. -/
+theorem w315_3 : shareWin 315 (snapsOf 315) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, once. -/
-theorem st317 : shareStatic 317 = true := by decide +kernel
+/-- `open_stacked__L4`, window 4. -/
+theorem w315_4 : shareWin 315 (snapsOf 315) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 0. -/
-theorem w317_0 : shareWin 317 (snapsOf 317) 0 = true := by decide +kernel
+/-- `open_stacked__L4`, window 5. -/
+theorem w315_5 : shareWin 315 (snapsOf 315) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 1. -/
-theorem w317_1 : shareWin 317 (snapsOf 317) 1 = true := by decide +kernel
+/-- `open_stacked__L4`, window 6. -/
+theorem w315_6 : shareWin 315 (snapsOf 315) 6 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L5`, once. -/
+theorem st316 : shareStatic 316 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

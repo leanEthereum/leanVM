@@ -15,10 +15,10 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # `verify_sub` by its callees' trees
 
-`vsNames μ r`: the thirteen callees in call order (`vs_calls`), `open_stacked`'s candidate
-`openName μ r`. `vsTs fs W Bvk μ r`: callee `j` a call of `vsNames μ r`'s `j`-th name within
+`vsNames μ r`: the thirteen callees in call order (`vs_calls`), `open_stacked`'s specialization
+`openName μ` of the stack log. `vsTs fs W Bvk μ r`: callee `j` a call of `vsNames μ r`'s `j`-th name within
 `vsBsAt W Bvk μ r`'s `j`-th bound, `verify_tables`' and the terminal's within their weights at each
-opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 8675 +
+opcode (`vsPs W`: `vtWB`, `termWB`). `vsBoundAt W Bvk μ r = fs "verify_sub" + 8678 +
 (vsBsAt W Bvk μ r).sum`. `vs_kidsDepBP`: the callees on an honest child, each within its bound by
 a tree of its predicate.
 
@@ -36,10 +36,10 @@ open LeanVM.Node LeanVM.Guest.Memory
 @[expose] public section
 
 /-- **`verify_sub`'s callees' names**, in call order (`vs_calls`). -/
-def vsNames (μ r : ℕ) : List String :=
+def vsNames (μ _r : ℕ) : List String :=
   ["g_power_of_word", "g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "assert_canonical",
     "assert_canonical", "verify_bus_gkr", "verify_tables", "verify_keccak", "ring_switch_target",
-    "certify_placement", "log2_ceil_in_the_exponent__L15_L34", B1.Whir.openName μ r,
+    "certify_placement", "log2_ceil_in_the_exponent__L16_L34", B1.Whir.openName μ,
     "check_opening_terminal"]
 
 /-- **`verify_sub`'s callees' predicates**: `verify_tables`' tree within `vtWB`, the terminal's
@@ -55,9 +55,9 @@ its predicate. -/
 noncomputable def vsTs (fs : String → ℕ) (W : VsWords fs) (Bvk μ r : ℕ) : List (Tree → Prop) :=
   namedP fs (vsNames μ r) (vsBsAt W Bvk μ r) (vsPs W)
 
-/-- **`verify_sub`'s bound at one candidate.** -/
+/-- **`verify_sub`'s bound at one stack log and rate.** -/
 noncomputable def vsBoundAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ r : ℕ) : ℕ :=
-  fs "verify_sub" + 8675 + (vsBsAt W Bvk μ r).sum
+  fs "verify_sub" + 8678 + (vsBsAt W Bvk μ r).sum
 
 theorem vs_names {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (bs : List ℕ) (sqE : ℕ) :
@@ -98,9 +98,9 @@ theorem kidsDepB_getD {κ : ℕ} : ∀ {ks : List KidD} {Bs : List ℕ}, KidsDep
   | _ :: _, _ :: _, h, j + 1, hj, pv => kidsDepB_getD h.2 j (by simpa using hj) pv
 
 /-- **`verify_sub`'s callees on an honest child, each within its bound by a tree of its predicate**,
-`open_stacked` within its candidate's. -/
+`open_stacked` within its stack log and rate's. -/
 theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
-    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 16 ≤ κ) (hrf : Lift.RunsFit fs cert)
+    {c : Child} (S : ChildSegs bytecode seed c) {κ : ℕ} (hκ : 14 ≤ κ) (hrf : Lift.RunsFit fs cert)
     (hcons : RunsConsec cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert κ Bvk)
     (bs : List ℕ) (sqE : ℕ) :
     KidsDepBP fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) (vsPs W) := by
@@ -118,10 +118,10 @@ theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
   · exact ⟨fun h ↦ ((hB 4 (by norm_num) pv).1 h).toDTB, (hB 4 (by norm_num) pv).2⟩
   · exact ⟨fun h ↦ ((hB 5 (by norm_num) pv).1 h).toDTB, (hB 5 (by norm_num) pv).2⟩
   · obtain ⟨hok, -, -, -⟩ := S.H_run hbl
-    have hHμ : S.H.μ < 30 := by
-      show S.point.length < 30
+    have hHμ : S.H.μ < 33 := by
+      show S.point.length < 33
       rw [(S.runG' hbl).2.2.1]; omega
-    have hn : S.H.n < 29 := by have := S.n_le hbl; omega
+    have hn : S.H.n < 33 := by have := S.n_le hbl; omega
     have hB : fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh (Tables.vtRunB fs W.K10 S.H.n)).sum +
         Tables.ifFrames fs Tables.vtPre) ≤ vtMax fs W.Kf W.Ksh W.K10 := by
       rw [S.vt_sizes_sum]
@@ -146,7 +146,7 @@ callees are calls of their names within their bounds, at the child's announced s
 rate. -/
 theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWords fs) {Bvk κ : ℕ}
-    (hκ : 16 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
+    (hκ : 14 ≤ κ) (hvk : VkCompleteAtB fs cert κ Bvk) (seed : Digest) (c : Child)
     (sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
@@ -181,7 +181,7 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
 sizes, `verify_keccak` within `vkBound`. -/
 theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
-    (hcons : RunsConsec cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
+    (hcons : RunsConsec cert) (W : VsWords LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 14 ≤ κ)
     (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)

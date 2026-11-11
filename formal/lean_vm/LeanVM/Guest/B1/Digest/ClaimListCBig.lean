@@ -19,7 +19,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem grpc_big : grpcOk (coreProgram.getD 324 default) "__loop15" 136 21 565 20 = true := by
+theorem grpc_big : grpcOk (coreProgram.getD 323 default) "__loop15" 136 21 565 20 = true := by
   have h1 := big_c1
   have h2 := big_c2
   have h3 := big_c3

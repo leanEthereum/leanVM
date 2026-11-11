@@ -1,55 +1,31 @@
 /-
   LeanVM.Guest.WalkOs0
 
-  The cut obligations (`CutsKnown`) of `open_stacked__L0` to `open_stacked__L6`
+  The cut obligations (`CutsKnown`) of `open_stacked__L0`, `open_stacked__L1`, `open_stacked__L2`, `open_stacked__L3`
   (`os_cutsKnown`, `WalkOsOk0.lean`'s checks).
 -/
 
 module
 
 public import LeanVM.Guest.WalkOs
+public import LeanVM.Guest.WalkOsTabOk
 public import LeanVM.Guest.WalkOsOk0
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Guest.B1.Whir
-
 @[expose] public section
 
-set_option maxRecDepth 100000 in
-theorem walk_303 : CutsKnown 303 :=
-  os_cutsKnown (m := 0) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_0 osOk_303
+/-- `open_stacked__L0`. -/
+theorem walk_311 : CutsKnown 311 := os_cutsKnown lpTab_ok osOk_311
 
-set_option maxRecDepth 100000 in
-theorem walk_304 : CutsKnown 304 :=
-  os_cutsKnown (m := 1) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_1 osOk_304
+/-- `open_stacked__L1`. -/
+theorem walk_312 : CutsKnown 312 := os_cutsKnown lpTab_ok osOk_312
 
-set_option maxRecDepth 100000 in
-theorem walk_305 : CutsKnown 305 :=
-  os_cutsKnown (m := 2) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_2 osOk_305
+/-- `open_stacked__L2`. -/
+theorem walk_313 : CutsKnown 313 := os_cutsKnown lpTab_ok osOk_313
 
-set_option maxRecDepth 100000 in
-theorem walk_306 : CutsKnown 306 :=
-  os_cutsKnown (m := 3) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_3 osOk_306
-
-set_option maxRecDepth 100000 in
-theorem walk_307 : CutsKnown 307 :=
-  os_cutsKnown (m := 4) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_4 osOk_307
-
-set_option maxRecDepth 100000 in
-theorem walk_308 : CutsKnown 308 :=
-  os_cutsKnown (m := 5) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_5 osOk_308
-
-set_option maxRecDepth 100000 in
-theorem walk_309 : CutsKnown 309 :=
-  os_cutsKnown (m := 6) (by decide) (os_body (by decide) (by decide) (by decide) (by decide +kernel))
-    osLvB_6 osOk_309
+/-- `open_stacked__L3`. -/
+theorem walk_314 : CutsKnown 314 := os_cutsKnown lpTab_ok osOk_314
 
 end
 end LeanVM.Guest.End

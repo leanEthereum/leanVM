@@ -96,17 +96,16 @@ products by the additive FFT) and is proved to list the same stacks
 algorithm with Mulders and Storjohann's reduction, is no longer compiled). It substitutes in
 Roth–Ruckenstein by a
 Taylor shift with binomials by parity, modulo `X^(k−depth)` with an exact fallback at repeated
-roots (`ℓ²·k/2` per substitution, `2^68.8` in all), skips the final root check where the
+roots (`ℓ²·k/2` per substitution), skips the final root check where the
 Guruswami–Sudan lemma makes it redundant, looks up addresses by binary search in sorted tables,
 and keeps the replay, the first answers and the preimages in sorted maps (`O(log² N)` comparisons
 per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` bytes). Compiled to
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
 `compiledKnowledgeExtractor` (`Cost/ExtractorProgram.lean`) of the end statement:
 `knowledgeExtractorOf extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is
-proved (`LeanVM.Cost.Bounds.extractorC_cost`): at most about `2^94.07` at the worst shape for at
-most
-`2^40` queries, the list decoder dominating (`extractorPrice_28_4`), and `2^156.69` for `2^128`
-queries, the transcript's index dominating (`extractorPrice_28_4_2_128`).
+proved (`LeanVM.Cost.Bounds.extractorC_cost`): at the largest stack, `(μ, R) = (32, 4)`, at most
+about `2^86` for at most `2^40` queries, the list decoder dominating (`extractorPrice_32_4`), and
+`2^156.86` for `2^128` queries, the transcript's index dominating (`extractorPrice_32_4_2_128`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
 
@@ -232,7 +231,7 @@ def leafAt (leaves : Array (List K)) (height width v : ℕ) : List K :=
 exactly on `U_i = {x_v | v < 2^i}`. -/
 def subspacePoly (i : ℕ) (a : K) : K := ∏ v ∈ Finset.range (2 ^ i), (a + K.ofBits v)
 
-/-- Level 0's Johnson slacks, `η = e / 2^22`: entry `[R − 1][μ − 15]` for the stack size `μ` and
+/-- Level 0's Johnson slacks, `η = e / 2^22`: entry `[R − 1][μ − 16]` for the stack size `μ` and
 the rate exponent `R`. The soundness proof certifies the opening's `2^-128` per query at these
 slacks, each the largest at which every group of level 0 is at most `2^-128` (chosen offline by
 `lean_vm/scripts/whir-params/gen.py`): a larger slack means a smaller list of candidates and a
@@ -240,14 +239,14 @@ smaller multiplicity, so a cheaper decoder. The table is copied from the proof's
 and the proof checks the copy against them for every admissible shape (`certOf_e_eq`,
 `thrOf_eq_johnsonThreshold` in `LeanVM.Protocol.EndToEnd.Sound`). -/
 def johnsonSlack : List (List ℕ) := [
-  [6676, 7275, 5527, 5165, 4984, 4765, 4720, 9241, 9214,
-    9200, 9198, 9194, 13737, 13737, 13737, 18248, 18248, 22727],
-  [2049, 14336, 13824, 13312, 13184, 13120, 13056, 13040, 13032,
-    13024, 13022, 13021, 13020, 13019, 25886, 25886, 25886, 25886],
-  [22794, 21557, 21195, 20886, 20796, 20750, 20728, 20716, 20707,
-    20704, 20703, 20701, 20701, 20700, 20700, 20700, 20700, 20700],
-  [14336, 13824, 13440, 13248, 13152, 13104, 13080, 13068, 13064,
-    13062, 13061, 13060, 13059, 13059, 38959, 38959, 38959, 38959]]
+  [7275, 5527, 5165, 4984, 4765, 4720, 9241, 9214, 9200,
+    9198, 9194, 13737, 13737, 13737, 18248, 18248, 22727],
+  [14336, 13824, 13312, 13184, 13120, 13056, 13040, 13032, 13024,
+    13022, 13021, 13020, 13019, 25886, 25886, 25886, 25886],
+  [21557, 21195, 20886, 20796, 20750, 20728, 20716, 20707, 20704,
+    20703, 20701, 20701, 20700, 20700, 20700, 20700, 20700],
+  [13824, 13440, 13248, 13152, 13104, 13080, 13068, 13064, 13062,
+    13061, 13060, 13059, 13059, 38959, 38959, 38959, 38959]]
 
 /-- Level 0's slack `e` (`η = e/2^22`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0
@@ -262,7 +261,7 @@ agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the sla
 `X = 2^44·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
 extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
-and `15 ≤ μ ≤ 32`, the table's range. -/
+and `16 ≤ μ ≤ 32`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n := 2 ^ (κ + R)

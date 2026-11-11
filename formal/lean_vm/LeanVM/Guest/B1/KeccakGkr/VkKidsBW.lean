@@ -39,9 +39,9 @@ theorem copyLoop_totalLeOn_fs : ∀ name ∈ ["__loop10", "__loop11", "__loop12"
   intro name hn
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl
-  · exact loop_totalLeOn_at (j := 262) (by decide +kernel) (by decide +kernel) (by decide +kernel)
   · exact loop_totalLeOn_at (j := 266) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 268) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 270) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 272) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **`keccak_plain_rounds__L6_L0`'s words at `B2C.fs`**: `325`. -/
 theorem plain0_totalLe_fs :

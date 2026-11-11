@@ -6,14 +6,14 @@ module
 
 public import LeanVM.Cost.DecoderSize.Rows
 
-/-! The sizes of the guest's frame cells' rows `1369 … 1744`, by evaluation. -/
+/-! The sizes of the guest's frame cells' rows `1382 … 1700`, by evaluation. -/
 
 namespace LeanVM.Cost.Decoder
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem rowsSize_1369_376 : rowsSize 1369 376 = 69615 := by
+theorem rowsSize_1382_319 : rowsSize 1382 319 = 67492 := by
   decide +kernel
 
 end

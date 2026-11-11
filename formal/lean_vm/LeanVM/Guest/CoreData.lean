@@ -62,7 +62,7 @@ theorem Core.Program.find?_of_indexOf? {n : String} :
         simp only [List.getElem?_cons_succ] at hj
         simpa [List.find?_cons, hg, Program.find?] using find?_of_indexOf? hk hj
 
-theorem coreProgram_length : coreProgram.length = 1803 := by decide +kernel
+theorem coreProgram_length : coreProgram.length = 1752 := by decide +kernel
 
 /-- Function `j` has the name of compiled function `j + 1`, after `__jump_tables`. -/
 theorem names_eq : coreProgram.map Fn.name = Data.functions.tail.map CompiledFunction.name := by

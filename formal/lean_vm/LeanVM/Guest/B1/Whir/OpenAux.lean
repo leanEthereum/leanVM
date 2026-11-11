@@ -31,7 +31,7 @@ variable {rd : Reader} {σ : Val}
 
 theorem osLevelB_pad (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     ∃ p, (osLevelB c lvl lv s).2.pad = some p := by
-  refine ⟨(osPad s.pad (s.k + 14)).2.1, ?_⟩
+  refine ⟨(osPositions c lvl lv s).2.pad.getD 0, ?_⟩
   by_cases h : lvl = c.yrLevel
   · simp only [osLevelB, h, ↓reduceIte]; rfl
   · simp only [osLevelB, h, ↓reduceIte]; rfl

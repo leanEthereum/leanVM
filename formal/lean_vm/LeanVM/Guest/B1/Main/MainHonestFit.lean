@@ -215,8 +215,8 @@ theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
 
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
 theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) :
-    MainBounds ((hData seed s w).toIn fs fp) := by
-  have hc := hl.planSlotsBelow2Pow16
+    MainBounds (2 ^ 20) ((hData seed s w).toIn fs fp) := by
+  have hc := hl.planSlotsBelow2Pow20
   rw [coverage_eq] at hc
   have hx : w.xmssSignatures.length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
     raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl)
@@ -225,16 +225,16 @@ theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) 
     raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl)
   simp only [List.length_append] at hc hx hs
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.atMostSixteenChildren, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
-  · show s.claims.xmss.length ≤ 65535; omega
-  · show (xPlan s w).duplicates.length ≤ 65535; omega
-  · show w.xmssSignatures.length ≤ 65535; omega
-  · show s.claims.sphincs.length ≤ 65535; omega
-  · show (sPlan s w).duplicates.length ≤ 65535; omega
-  · show w.sphincsSignatures.length ≤ 65535; omega
+  · show s.claims.xmss.length < 2 ^ 20; omega
+  · show (xPlan s w).duplicates.length < 2 ^ 20; omega
+  · show w.xmssSignatures.length < 2 ^ 20; omega
+  · show s.claims.sphincs.length < 2 ^ 20; omega
+  · show (sPlan s w).duplicates.length < 2 ^ 20; omega
+  · show w.sphincsSignatures.length < 2 ^ 20; omega
   · show (w.daMatrix.map fun _ => 1).getD 0 ≤ 1
     cases w.daMatrix <;> simp
   · show s.claims.xmss.length + (xPlan s w).duplicates.length +
-      (s.claims.sphincs.length + (sPlan s w).duplicates.length) ≤ 65535
+      (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 20
     omega
   · have h' : (w.daMatrix.map fun _ => 1).getD 0 = 1 := h
     show daPick s w = w.children.length

@@ -16,28 +16,28 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop345`, window 0, part 0. -/
+/-- `__loop369`, window 0, part 0. -/
 theorem cw1394_0_0 : cplWin 1394 0 0 = true := by decide +kernel
 
-/-- `__loop346`, window 0, part 0. -/
+/-- `__loop370`, window 0, part 0. -/
 theorem cw1395_0_0 : cplWin 1395 0 0 = true := by decide +kernel
 
-/-- `__loop347`, window 0, part 0. -/
+/-- `__loop371`, window 0, part 0. -/
 theorem cw1396_0_0 : cplWin 1396 0 0 = true := by decide +kernel
 
-/-- `__loop348`, window 0, part 0. -/
+/-- `__loop372`, window 0, part 0. -/
 theorem cw1397_0_0 : cplWin 1397 0 0 = true := by decide +kernel
 
-/-- `__loop349`, window 0, part 0. -/
+/-- `__loop373`, window 0, part 0. -/
 theorem cw1398_0_0 : cplWin 1398 0 0 = true := by decide +kernel
 
-/-- `__loop350`, window 0, part 0. -/
+/-- `__loop374`, window 0, part 0. -/
 theorem cw1399_0_0 : cplWin 1399 0 0 = true := by decide +kernel
 
-/-- `__loop351`, window 0, part 0. -/
+/-- `__loop375`, window 0, part 0. -/
 theorem cw1400_0_0 : cplWin 1400 0 0 = true := by decide +kernel
 
-/-- `__loop352`, window 0, part 0. -/
+/-- `__loop376`, window 0, part 0. -/
 theorem cw1401_0_0 : cplWin 1401 0 0 = true := by decide +kernel
 
 theorem ok1394 : CplOk 1394 := by

@@ -109,44 +109,30 @@ theorem qpos_get (h : TrFit c tr)
       omega) (c.levels.length - 1 - i) (by omega)
     rwa [show i + 1 + (c.levels.length - 1 - i) = c.levels.length by omega] at this
   have := readsAt_map_range hm.qpos (k := (lvAt c i).posOff + j) (by
-    show (lvAt c i).posOff + j < c.posLen
-    have : (lvAt c i).posOff + (lvAt c i).squeezes * (192 / (lvAt c i).depth) ≤ c.posLen := hend
+    show (lvAt c i).posOff + j < c.levels.length * ligPosCap
+    have : (lvAt c i).posOff + (lvAt c i).squeezes * (192 / (lvAt c i).depth) ≤
+      c.levels.length * ligPosCap := hend
     omega)
   simp only [hown, Nat.add_sub_cancel_left, show j < (lvAt c i).squeezes * (192 / (lvAt c i).depth) by
     omega, ↓reduceIte] at this
   rwa [posAt_eq h hi hj] at this
 
-/-- The residual's callee fact: the level's loop at its honest arguments, `μ = λ⁻¹`. -/
-def ResCallOk (C : CallRel) (P : OsPtrs) (c : OsCfg) (i : ℕ) (BD RC M : E) : Prop :=
-  1 + gen ^ ((lvAt c i).queries / resBatch) ≠ 0 →
-    C (c.resLoop i) [1, gen ^ ((lvAt c i).queries / resBatch), P.qpos, BD, RC, M] []
-
-/-- **Level `i`'s residual's memory.** -/
+/-- **Level `i`'s residual's memory**, its dispatch's call given. -/
 theorem fin_res {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (h : TrFit c tr)
-    (hs : OsSizes c) {C : CallRel} {rd : Reader} {P : OsPtrs} (hm : FixedMem rd P c tr)
-    {BD LS ICH RC : E} (hBD : ReadsAt rd BD (bdC c tr)) (hLS : ReadsAt rd LS (lsC c tr))
+    {C : CallRel} {rd : Reader} {P : OsPtrs} {R : E} (hm : FixedMem rd P c tr)
+    {BD LS ICH : E} (hLS : ReadsAt rd LS (lsC c tr))
     (hICH : ReadsAt rd ICH (ichC c tr)) {i : ℕ} (hi : i < c.levels.length)
-    (hRC : ReadsAt rd RC (rcC c tr i)) (hcall : ResCallOk C P c i BD RC (finM tr i)) :
-    ResMemP C rd P BD ICH LS c i c.levels[i] RC (finAcc c tr i) (finM tr i) (finI c tr i)
-      (finL c tr i) (finPq c tr i) (finD c tr i) := by
+    (hcall : DispC C rd R ((c.lvAt i).map osResidualName)
+      [P.qpos * gen ^ (lvAt c i).posOff, BD * gen ^ (i * ligColsCap), finM tr i] [finH c tr i]) :
+    ResMemP C rd P R BD ICH LS c i c.levels[i] (finM tr i) (finH c tr i) (finI c tr i)
+      (finL c tr i) := by
   have hst := hF.lv i hi
   have hg : c.levels[i] = lvAt c i := (List.getD_eq_getElem _ _ hi).symm
   rw [hg]
-  refine ⟨hst.ml1, hst.qu, ?_, ⟨isInK_add isInK_one (gen_pow_isInK _), hcall⟩, ?_, ?_,
-    fun j hj ↦ ?_, fun s hs' ↦ ?_, ?_, ?_, ?_⟩
+  refine ⟨hst.posOff, hst.lc, ?_, hcall, ?_, ?_, ?_⟩
   · have := readsAt_map_range hm.mus hi
     rw [finM, rs_get h hi]
     simpa [recOf, OsTr.L] using this
-  · have := readsAt_map_range hRC (k := 0) (Nat.succ_pos _)
-    simpa [finChain, resFold] using this
-  · exact readsAt_map_range hRC (k := (lvAt c i).queries / resBatch) (Nat.lt_succ_self _)
-  · rw [finPq, Nat.add_assoc]
-    exact qpos_get h hs hm hi (by have := Nat.mod_le (lvAt c i).queries resBatch; omega)
-  · have hc : (lvAt c i).logCols ≤ 22 := hs.cols i hi
-    have := readsAt_map_range hBD (k := i * ligColsCap + s) (by simp only [ligColsCap]; nlinarith)
-    simp only [ligColsCap] at this
-    simp only [show (i * 22 + s) / 22 = i by omega, show (i * 22 + s) % 22 = s by omega] at this
-    exact this
   · exact readsAt_map_range hICH (k := i) (by omega)
   · exact readsAt_map_range hLS hi
   · exact readsAt_map_range hICH (k := i + 1) (by omega)
@@ -208,7 +194,7 @@ theorem fin_ood {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
   have hle : (lvAt c i).foldsOff + (lvAt c i).folds ≤ c.nFolds := hst.le
   have hnext : (lvAt c (i + 1)).foldsOff = (lvAt c i).foldsOff + (lvAt c i).folds := hF.next i hi'
   have hzf : (lvAt c i).logCols - c.yrLog = (lvAt c i).prefixLen := by omega
-  have hc : (lvAt c i).logCols ≤ 22 := hs.cols i (by omega)
+  have hc : (lvAt c i).logCols ≤ 26 := hs.cols i (by omega)
   refine ⟨?_, fun t ht ↦ ⟨?_, ?_⟩⟩
   · have := readsAt_map_range hm.ood (k := (i + 1) * oodSlots) (by simp only [oodSlots]; nlinarith)
     simp only [oodSlots] at this ⊢
@@ -219,7 +205,7 @@ theorem fin_ood {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
   · have := readsAt_map_range hm.oodz (k := (i + 1) * ligColsCap + t) (by
       simp only [ligColsCap]; nlinarith)
     simp only [ligColsCap] at this ⊢
-    simp only [show ((i + 1) * 22 + t) / 22 = i + 1 by omega, show ((i + 1) * 22 + t) % 22 = t by omega,
+    simp only [show ((i + 1) * 26 + t) / 26 = i + 1 by omega, show ((i + 1) * 26 + t) % 26 = t by omega,
       Nat.le_add_left, ↓reduceIte, Nat.add_sub_cancel] at this
     rw [Zof, Nat.add_sub_cancel, rs_get h (by omega)]
     simpa [recOf, hfin] using this

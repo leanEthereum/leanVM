@@ -30,7 +30,7 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main Le
 /-- **`main`'s witness** (`decWitV`), its frames numbered. -/
 noncomputable def decWitN (σ : Val) (rd : Reader) (Vn : NFrames) (cl : E → E → ℕ) : NodeWitness :=
   decWit σ rd (fun args ↦ xmssSigOfN (Vn 37 args []))
-    (fun p ↦ sphincsSigOfN (Vn 21 [p, σ (.n 68)] []) Vn)
+    (fun p ↦ sphincsSigOfN (Vn 21 [p, σ (.n 47)] []) Vn)
     (fun args rets ↦ dvWitN (Vn 28 args rets) Vn)
     (fun args ↦ vsPiOfN rd (Vn 19 args []) Vn cl)
     (fun args ↦ aggHints rd (Vn 34 args []))

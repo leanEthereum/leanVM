@@ -319,7 +319,6 @@ does not reduce in a `module`'s kernel). -/
 def walkPathNames : List (ℕ × ℕ × String) :=
   [(6, 6, "walk_path__L6_L6"),
     (6, 7, "walk_path__L6_L7"),
-    (6, 8, "walk_path__L6_L8"),
     (12, 2, "walk_path__L12_L2"),
     (12, 3, "walk_path__L12_L3"),
     (12, 4, "walk_path__L12_L4"),

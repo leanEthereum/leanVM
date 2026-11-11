@@ -8,15 +8,21 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F1591_0
-public import LeanVM.Guest.Checked.F1591_0
-public import LeanVM.Guest.Checked.F1596_0
+public import LeanVM.Guest.Checked.F1548_0
+public import LeanVM.Guest.Checked.F1587_0
+public import LeanVM.Guest.Checked.F1593_2
+public import LeanVM.Guest.Checked.F1593_2
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
-theorem plain1551 : Plain 1551 := plain_of_nil (by decide +kernel)
+theorem ok1551 : CheckOk 1551 := fun i hi ↦ by
+  have h : (certOf 1551).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1551_0
+  · exact w1551_1
 
 theorem plain1552 : Plain 1552 := plain_of_nil (by decide +kernel)
 
@@ -101,32 +107,27 @@ theorem plain1591 : Plain 1591 := plain_of_nil (by decide +kernel)
 theorem plain1592 : Plain 1592 := plain_of_nil (by decide +kernel)
 
 theorem ok1593 : CheckOk 1593 := fun i hi ↦ by
-  have h : (certOf 1593).cuts.length = 1 := by decide +kernel
+  have h : (certOf 1593).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1593_0
   · exact w1593_1
+  · exact w1593_2
 
-theorem ok1594 : CheckOk 1594 := fun i hi ↦ by
-  have h : (certOf 1594).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1594_0
-  · exact w1594_1
-  · exact w1594_2
+theorem plain1594 : Plain 1594 := plain_of_nil (by decide +kernel)
 
 theorem plain1595 : Plain 1595 := plain_of_nil (by decide +kernel)
 
 theorem plain1596 : Plain 1596 := plain_of_nil (by decide +kernel)
 
-theorem plain1597 : Plain 1597 := plain_of_nil (by decide +kernel)
-
-theorem ok1598 : CheckOk 1598 := fun i hi ↦ by
-  have h : (certOf 1598).cuts.length = 1 := by decide +kernel
+theorem ok1597 : CheckOk 1597 := fun i hi ↦ by
+  have h : (certOf 1597).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w1598_0
-  · exact w1598_1
+  · exact w1597_0
+  · exact w1597_1
+
+theorem plain1598 : Plain 1598 := plain_of_nil (by decide +kernel)
 
 theorem plain1599 : Plain 1599 := plain_of_nil (by decide +kernel)
 

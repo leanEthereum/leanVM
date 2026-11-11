@@ -163,6 +163,10 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree}
     rcases hqa with rfl | rfl
     · exact read_some_gpow hκ hh.1.2
     · exact read_some_gpow hκ hh.2.2.2
+  | touch t p =>
+    simp only [atomEqns, List.mem_singleton] at hqa
+    subst hqa
+    exact read_some_gpow hκ hh.2
   | frameAddr p run =>
     match run, hqa, ha with
     | r :: rs, hqa, ha =>

@@ -17,43 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_residual__L19_L5`, window 0. -/
+/-- `level_queries__L18_L0_L16_L24_L19_L7`, window 0. -/
 theorem w639_0 : WinOk 639 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_residual__L18_L5`, window 0. -/
+/-- `level_queries__L18_L0_L16_L24_L19_L7`, window 1. -/
+theorem w639_1 : WinOk 639 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L16_L0_L16_L24_L16_L4`, window 0. -/
 theorem w640_0 : WinOk 640 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_ood_point__L18`, window 0. -/
+/-- `level_queries__L16_L0_L16_L24_L16_L4`, window 1. -/
+theorem w640_1 : WinOk 640 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L15_L0_L16_L24_L17_L5`, window 0. -/
 theorem w641_0 : WinOk 641 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_positions__L23_L19_L7`, window 0. -/
+/-- `level_queries__L15_L0_L16_L24_L17_L5`, window 1. -/
+theorem w641_1 : WinOk 641 1 := winOk_of_C (by decide +kernel)
+
+/-- `level_queries__L14_L0_L16_L24_L18_L6`, window 0. -/
 theorem w642_0 : WinOk 642 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_positions__L13_L20_L2`, window 0. -/
-theorem w643_0 : WinOk 643 0 := winOk_of_C (by decide +kernel)
-
-/-- `level_positions__L9_L21_L3`, window 0. -/
-theorem w644_0 : WinOk 644 0 := winOk_of_C (by decide +kernel)
-
-/-- `level_positions__L7_L22_L4`, window 0. -/
-theorem w645_0 : WinOk 645 0 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L224_L1_L64_L32_L19_L7`, window 0. -/
-theorem w646_0 : WinOk 646 0 := winOk_of_C (by decide +kernel)
-
-theorem ok639 : CheckOk 639 := checkOk_one (by decide +kernel) w639_0
-
-theorem ok640 : CheckOk 640 := checkOk_one (by decide +kernel) w640_0
-
-theorem ok641 : CheckOk 641 := checkOk_one (by decide +kernel) w641_0
-
-theorem ok642 : CheckOk 642 := checkOk_one (by decide +kernel) w642_0
-
-theorem ok643 : CheckOk 643 := checkOk_one (by decide +kernel) w643_0
-
-theorem ok644 : CheckOk 644 := checkOk_one (by decide +kernel) w644_0
-
-theorem ok645 : CheckOk 645 := checkOk_one (by decide +kernel) w645_0
+/-- `level_queries__L14_L0_L16_L24_L18_L6`, window 1. -/
+theorem w642_1 : WinOk 642 1 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

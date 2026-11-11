@@ -16,11 +16,24 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop457`, once. -/
+/-- `__loop481`, once. -/
+theorem st1514 : shareStatic 1514 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop481`, window 0. -/
+theorem w1514_0 : shareWin 1514 (snapsOf 1514) 0 = true := by decide +kernel
+
+theorem ok1514 : ShareOk 1514 := ⟨st1514, fun i hi ↦ by
+  have h : (snapsOf 1514).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w1514_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop482`, once. -/
 theorem st1515 : shareStatic 1515 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop457`, window 0. -/
+/-- `__loop482`, window 0. -/
 theorem w1515_0 : shareWin 1515 (snapsOf 1515) 0 = true := by decide +kernel
 
 theorem ok1515 : ShareOk 1515 := ⟨st1515, fun i hi ↦ by
@@ -29,11 +42,11 @@ theorem ok1515 : ShareOk 1515 := ⟨st1515, fun i hi ↦ by
   exact w1515_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop458`, once. -/
+/-- `__loop483`, once. -/
 theorem st1516 : shareStatic 1516 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop458`, window 0. -/
+/-- `__loop483`, window 0. -/
 theorem w1516_0 : shareWin 1516 (snapsOf 1516) 0 = true := by decide +kernel
 
 theorem ok1516 : ShareOk 1516 := ⟨st1516, fun i hi ↦ by
@@ -42,11 +55,11 @@ theorem ok1516 : ShareOk 1516 := ⟨st1516, fun i hi ↦ by
   exact w1516_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop459`, once. -/
+/-- `__loop484`, once. -/
 theorem st1517 : shareStatic 1517 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop459`, window 0. -/
+/-- `__loop484`, window 0. -/
 theorem w1517_0 : shareWin 1517 (snapsOf 1517) 0 = true := by decide +kernel
 
 theorem ok1517 : ShareOk 1517 := ⟨st1517, fun i hi ↦ by
@@ -55,11 +68,11 @@ theorem ok1517 : ShareOk 1517 := ⟨st1517, fun i hi ↦ by
   exact w1517_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop460`, once. -/
+/-- `__loop485`, once. -/
 theorem st1518 : shareStatic 1518 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop460`, window 0. -/
+/-- `__loop485`, window 0. -/
 theorem w1518_0 : shareWin 1518 (snapsOf 1518) 0 = true := by decide +kernel
 
 theorem ok1518 : ShareOk 1518 := ⟨st1518, fun i hi ↦ by
@@ -68,11 +81,11 @@ theorem ok1518 : ShareOk 1518 := ⟨st1518, fun i hi ↦ by
   exact w1518_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop461`, once. -/
+/-- `__loop486`, once. -/
 theorem st1519 : shareStatic 1519 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop461`, window 0. -/
+/-- `__loop486`, window 0. -/
 theorem w1519_0 : shareWin 1519 (snapsOf 1519) 0 = true := by decide +kernel
 
 theorem ok1519 : ShareOk 1519 := ⟨st1519, fun i hi ↦ by
@@ -81,11 +94,11 @@ theorem ok1519 : ShareOk 1519 := ⟨st1519, fun i hi ↦ by
   exact w1519_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop462`, once. -/
+/-- `__loop487`, once. -/
 theorem st1520 : shareStatic 1520 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop462`, window 0. -/
+/-- `__loop487`, window 0. -/
 theorem w1520_0 : shareWin 1520 (snapsOf 1520) 0 = true := by decide +kernel
 
 theorem ok1520 : ShareOk 1520 := ⟨st1520, fun i hi ↦ by
@@ -94,30 +107,17 @@ theorem ok1520 : ShareOk 1520 := ⟨st1520, fun i hi ↦ by
   exact w1520_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop463`, once. -/
+/-- `__loop488`, once. -/
 theorem st1521 : shareStatic 1521 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop463`, window 0. -/
+/-- `__loop488`, window 0. -/
 theorem w1521_0 : shareWin 1521 (snapsOf 1521) 0 = true := by decide +kernel
 
 theorem ok1521 : ShareOk 1521 := ⟨st1521, fun i hi ↦ by
   have h : (snapsOf 1521).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w1521_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop464`, once. -/
-theorem st1522 : shareStatic 1522 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop464`, window 0. -/
-theorem w1522_0 : shareWin 1522 (snapsOf 1522) 0 = true := by decide +kernel
-
-theorem ok1522 : ShareOk 1522 := ⟨st1522, fun i hi ↦ by
-  have h : (snapsOf 1522).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1522_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

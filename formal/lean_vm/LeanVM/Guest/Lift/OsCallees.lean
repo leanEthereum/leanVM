@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.B1.Opening.Fold
-public import LeanVM.Guest.B1.Opening.OodPoint
+public import LeanVM.Guest.B1.Opening.OodPointHi
 public import LeanVM.Guest.B1.Opening.FinalMessage
 public import LeanVM.Guest.B1.Opening.RowWeights
 public import LeanVM.Guest.B1.Merkle.CapAll
@@ -138,7 +138,7 @@ structure OsCalleesRegD (fs : String → ℕ) (cert : String → V → ℕ) (k :
     (fun _ args rets => MeaningAssertCanonical args rets) (RegPtrs [])
   grind : CompleteRelRegD fs cert k "grind_check__L17"
     (fun _ args rets => MeaningGrindCheck 17 args rets) (RegPtrs [])
-  ood : ∀ p ∈ oodPointNames, CompleteRelRegD fs cert k p.1 (MeaningOpeningOodPoint p.2)
+  ood : ∀ p ∈ oodPointNamesAll, CompleteRelRegD fs cert k p.1 (MeaningOpeningOodPoint p.2)
     (RegPtrs (oodSpec p.2))
   finalMsg : ∀ p ∈ finalMessageNames, CompleteRelRegD fs cert k p.1
     (MeaningOpeningFinalMessage p.2) (RegPtrs (finalMsgSpec p.2))
@@ -184,7 +184,7 @@ set_option maxRecDepth 100000 in
 theorem grind_leafSpec : leafSpecB "grind_check__L17" [] = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem ood_leafSpec : (oodPointNames.all fun p => leafSpecB p.1 (oodSpec p.2)) = true := by
+theorem ood_leafSpec : (oodPointNamesAll.all fun p => leafSpecB p.1 (oodSpec p.2)) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -217,7 +217,7 @@ theorem osCalleesRegD_holds (k : ℕ) : OsCalleesRegD fs cert k where
   canonical := completeRelRegD_of_iff (leafSpecOk_of canonical_leafSpec) assert_canonical_holds k
   grind := completeRelRegD_of_iff (leafSpecOk_of grind_leafSpec) grind_check_holds k
   ood p hp := completeRelRegD_of_iff (leafSpecOk_all ood_leafSpec p hp)
-    (opening_ood_point_holds p hp) k
+    (opening_ood_point_all_holds p hp) k
   finalMsg p hp := completeRelRegD_of_iff (leafSpecOk_all finalMsg_leafSpec p hp)
     (opening_final_message_holds p hp) k
   rowWeights4 := completeRelRegD_of_iff (leafSpecOk_of rowWeights4_leafSpec)

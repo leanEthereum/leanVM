@@ -240,7 +240,7 @@ def TablesPre (pi : Digest) (logMem : ℕ) (alphas point values : List E) (rd : 
     List E → Prop
   | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, cpush, cpull, ccount] =>
       (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
-      point.length < 33 ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
+      point.length < 33 ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
       (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds)) ∧
       ExpTablesAt rd sq ∧ alphas.length = 4 ∧ TbReadsAt rd fpw (eqKernel alphas) ∧
       values = [cpush, cpull, ccount]

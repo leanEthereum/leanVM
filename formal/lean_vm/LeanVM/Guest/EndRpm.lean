@@ -184,7 +184,7 @@ theorem aggregate_complete_of {budget : NodeStatement → NodeWitness → ℕ}
               some <$> LeanVM.Protocol.EndToEnd.Complete.honestComp prog input t ρ fuel)
             guestProgram (publicInputOf (statementDigest seed s)) t ρ fuel}[v = false] ≤
           completenessError fuel + rpmError (completenessPermCalls fuel) := by
-  obtain ⟨t, hv, -, hsize⟩ := h seed s w hrel hlim hok hbudget
+  obtain ⟨t, hv, hsz⟩ := h seed s w hrel hlim hok hbudget
   exact ⟨t, hv, fun _ _ hρ hfuel ↦ Rpm.completenessRpm hv (by omega) hρ hfuel⟩
 
 end LeanVM.Guest.End

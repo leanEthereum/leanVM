@@ -28,7 +28,7 @@ bytecode of `2^bytecodeVars` words. -/
 theorem mainGoalAgT (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
     (hl : DeployedLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
-      CompleteAtDT fs cert 16 "aggregate_claims" (hLmain fs fp seed s w)
+      CompleteAtDT fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
           (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])
         (aggHonest (hm fs fp seed s w).nc) := by
@@ -47,7 +47,7 @@ theorem mainGoalAgT (cert : String → V → ℕ) {bytecode : List K}
   have := aggregate_claims_completeAtT fs cert (m := w.children.length) (by omega) hl.atMostSixteenChildren
     (cs := hKids seed w) (by rw [List.length_map]) hrl hb
     (fun rd hM => hkids_words fs fp hbl hrel hM) hdst
-  exact this
+  exact this.lowMono (by norm_num)
 
 end
 end LeanVM.Guest.B1.Main

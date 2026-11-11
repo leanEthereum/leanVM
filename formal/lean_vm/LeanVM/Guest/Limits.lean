@@ -35,7 +35,7 @@ predicate on the witness:
   computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1400, and the basis
   coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1709, G:1714).
 
-The coverage table's size (`coverageSlotsBelow2Pow16`) is the number of claims made; an honest run lays it out by `Coverage.coveragePlan` (`planSlots`, equal to it under `DeployedLimits`: `B1/Main/Plan.lean`'s `planSlots_eq`).
+The coverage table's size (`coverageSlotsBelow2Pow20`) is the number of claims made; an honest run lays it out by `Coverage.coveragePlan` (`planSlots`, equal to it under `DeployedLimits`: `B1/Main/Plan.lean`'s `planSlots_eq`).
 -/
 
 namespace LeanVM.Guest

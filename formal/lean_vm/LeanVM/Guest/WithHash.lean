@@ -95,10 +95,9 @@ for the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover
 oracle calls),
 1. in the random-permutation model, at `2^25` nonces per proof of work, it makes no proof, or
    `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
-   `2^28`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
+   `2^32`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
-   execution of the leanISA guest program of committed size above `2^21` on a statement's digest
-   under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
+   execution of the leanISA guest program on a statement's digest under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
    forms with the statement (its deferred claim shaped) and some true claim `freshClaim` on the
    bytecode (`fresh.Holds`) a child the guest program accepts (`AcceptableChild`).
 Reading part 1 for the deployed Keccak, so that part 2 applies to the honest proof, is the heuristic
@@ -106,7 +105,7 @@ that the deployed Keccak-f[1600] behaves as a random permutation, applied to thi
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildCompleteWithHash : Prop :=
   (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 32 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
         match ← LeanVM.proverWithHash prog input t ρ (2 ^ 25) with
         | none => pure false
@@ -114,7 +113,7 @@ def GuestChildCompleteWithHash : Prop :=
           verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []}[v =
           false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 126) ∧
-  ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ), 2 ^ 21 < t.committedSize →
+  ∀ (s : NodeStatement) (t : Execution guestProgram) (ρ : ℕ),
     s.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) s)
     ∀ proof,

@@ -17,9 +17,10 @@ public import LeanVM.Guest.B1.Main.Frames
 frame map `V`, choosing nothing and computing no hash: the stream is the memory's words at
 `stream` (`σ 25`) up to the cursor handed to `open_stacked` (`σ 656`, found by comparing
 `g`-powers, `cursorLen`), then `open_stacked`'s words, and the openings are `open_stacked`'s
-(`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 1695`).
+(`open_stacked_osW` at its frame, the specialization read off the dispatch's selector `σ 1686`,
+the rate off its selector `σ 122`).
 
-`wordsAt_eq`, `cursorLen_eq`, `dispatchIdx_eq`: the decoding gives what a run read.
+`wordsAt_eq`, `cursorLen_eq`, `gIdx_eq`: the decoding gives what a run read.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -37,28 +38,34 @@ def wordsAt (rd : Reader) (p : E) (n : ℕ) : List E :=
 def cursorLen (p q : E) : ℕ :=
   ((List.range (2 ^ 32 + 1)).find? fun n ↦ decide (q = p * gen ^ n)).getD 0
 
-/-- The `j < 28` with `x = g^j`, the first one (`0` if there is none). -/
-def dispatchIdx (x : E) : ℕ :=
-  ((List.range 28).find? fun j ↦ decide (x = ofK (Parameters.addressOfIndex j))).getD 0
+/-- The `j < N` with `x = g^j`, the first one (`0` if there is none). -/
+def gIdx (N : ℕ) (x : E) : ℕ :=
+  ((List.range N).find? fun j ↦ decide (x = ofK (Parameters.addressOfIndex j))).getD 0
+
+/-- The size's index the dispatch selects: the `j < 13` with `x = g^j`. -/
+def dispatchIdx (x : E) : ℕ := gIdx 13 x
+
+/-- The rate whose selector is `x`: one plus the `j < 4` with `x = g^j`. -/
+def rateOf (x : E) : ℕ := gIdx 4 x + 1
 
 /-- `open_stacked`'s argument words in `verify_sub`. -/
 def vsOsArgs (σ : Val) : List E :=
-  [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1681), σ (.n 324),
+  [σ (.n 122), σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104), σ (.n 1681), σ (.n 324),
     σ (.n 334), σ (.n 656)]
 
 /-- `open_stacked`'s return words in `verify_sub`. -/
-def vsOsRets (σ : Val) : List E := [σ (.n 1700), σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704)]
+def vsOsRets (σ : Val) : List E := [σ (.n 1691), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695)]
 
-/-- The child proof, given `open_stacked`'s witness function `osW` (candidate, arguments,
-returns ↦ stream words, openings). -/
-def piOfW (osW : ℕ → List E → List E → List E × List (List Opening)) (rd : Reader) (σ : Val) :
+/-- The child proof, given `open_stacked`'s witness function `osW` (size's index, rate,
+arguments, returns ↦ stream words, openings). -/
+def piOfW (osW : ℕ → ℕ → List E → List E → List E × List (List Opening)) (rd : Reader) (σ : Val) :
     Proof :=
-  let w := osW (dispatchIdx (σ (.n 1695))) (vsOsArgs σ) (vsOsRets σ)
+  let w := osW (dispatchIdx (σ (.n 1686))) (rateOf (σ (.n 122))) (vsOsArgs σ) (vsOsRets σ)
   ⟨wordsAt rd (σ (.n 25)) (cursorLen (σ (.n 25)) (σ (.n 656))) ++ w.1, w.2⟩
 
 /-- `open_stacked`'s witness function at the frame map `V`. -/
-def vsOsW (rd : Reader) (V : FrameMap) : ℕ → List E → List E → List E × List (List Opening) :=
-  fun m args rets ↦ B1.Whir.open_stacked_osW rd m (V (B1.Whir.openNames.getD m "") args rets) V
+def vsOsW (rd : Reader) (V : FrameMap) : ℕ → ℕ → List E → List E → List E × List (List Opening) :=
+  fun m r args rets ↦ B1.Whir.open_stacked_osW rd m r (V (B1.Whir.openNames.getD m "") args rets) V
 
 /-- **The child proof `verify_sub` checks**, read off its valuation, the memory and the frame
 map. -/
@@ -99,15 +106,23 @@ theorem cursorLen_eq {p q : E} {n : ℕ} (hp : p ≠ 0) (hq : q = p * gen ^ n) (
     exact gen_pow_inj (by omega) (by omega) (mul_left_cancel₀ hp e).symm)]
   rfl
 
-theorem dispatchIdx_eq {x : E} {j : ℕ} (hj : j < 28) (hx : x = ofK (Parameters.addressOfIndex j)) :
-    dispatchIdx x = j := by
-  unfold dispatchIdx
+theorem gIdx_eq {N : ℕ} (hN : N ≤ 2 ^ 32) {x : E} {j : ℕ} (hj : j < N)
+    (hx : x = ofK (Parameters.addressOfIndex j)) : gIdx N x = j := by
+  unfold gIdx
   rw [find?_range_unique (n := j) hj (by simp [hx]) (fun m hm hP ↦ by
     have e := of_decide_eq_true hP
     rw [hx] at e
     exact (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
       (ofK_injective e)).symm)]
   rfl
+
+theorem dispatchIdx_eq {x : E} {j : ℕ} (hj : j < 13) (hx : x = ofK (Parameters.addressOfIndex j)) :
+    dispatchIdx x = j := gIdx_eq (by norm_num) hj hx
+
+theorem rateOf_eq {r : ℕ} (h1 : 1 ≤ r) (h4 : r ≤ 4) : rateOf (B1.Whir.rateSel r) = r := by
+  unfold rateOf
+  rw [gIdx_eq (x := B1.Whir.rateSel r) (j := r - 1) (by norm_num) (by omega) rfl]
+  omega
 
 end
 end LeanVM.Guest.B1.VerifySub

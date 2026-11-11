@@ -39,8 +39,8 @@ example (a : K) (i : Fin (2 ^ maxLogBytecode)) : addressIndex? maxLogBytecode a 
 example : addressIndex? minLogMem 1 = some 0 := (gLog?_spec (by decide)).mpr (pow_zero g).symm
 example : addressIndex? 0 1 = some 0 := (gLog?_spec (by decide)).mpr (pow_zero g).symm
 
-/-- `g ^ 4000` has index `4000` at the floor. -/
-example : addressIndex? minLogMem (addressOfIndex 4000) = some ⟨4000, by decide⟩ := (gLog?_spec (by decide)).mpr rfl
+/-- `g ^ 4000` has index `4000` in a memory of `2^16` cells. -/
+example : addressIndex? 16 (addressOfIndex 4000) = some ⟨4000, by decide⟩ := (gLog?_spec (by decide)).mpr rfl
 
 /-- A one-cell memory has no second address. -/
 example : addressIndex? 0 g = none := by

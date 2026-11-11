@@ -40,7 +40,7 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
   let ls := pts.2 + 3
   let bs := osBases c tch bd ls 0 c.levels (pts.2 + 4)
   let ich := bs.2 + 1
-  let rs := osResiduals c ich bd ls 0 c.levels (bs.2 + 3)
+  let rs := osResiduals c ich bd ls 0 c.levels st.mats (bs.2 + 3)
   let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
   let k := od.2.2
   [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
@@ -57,7 +57,7 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
 def osFinishRet (c : OsCfg) (st : OsSt) (tch : ℕ) : List V :=
   let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
   let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4)
-  let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3)
+  let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels st.mats (bs.2 + 3)
   let k := (osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2).2.2
   [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)]
 
@@ -69,27 +69,30 @@ theorem osFinish_split (c : OsCfg) (st : OsSt) (tch : ℕ) :
 /-! ## The residual sums, every level -/
 
 theorem osResiduals_sound {c : OsCfg} {ich bd ls : ℕ} (G : ℕ → E) (levels : List OsLv) :
-    ∀ (lvl k : ℕ) (I : E),
-      (∀ i (hi : i < levels.length) (k' : ℕ) (I' : E),
-        AllOk (coreProgram.Rel rd) rd σ (osResidual c ich bd ls (lvl + i) levels[i] k').1 →
+    ∀ (lvl : ℕ) (mats : List OsMat) (k : ℕ) (I : E),
+      (∀ i (hi : i < levels.length) (mats' : List OsMat) (k' : ℕ) (I' : E), MatsOk σ mats' →
+        AllOk (coreProgram.Rel rd) rd σ (osResidual c ich bd ls (lvl + i) levels[i] mats' k').1 →
         LoadHolds rd (σ (.n ich)) (lvl + i) I' →
-        LoadHolds rd (σ (.n ich)) (lvl + i + 1) (I' + G (lvl + i))) →
-      AllOk (coreProgram.Rel rd) rd σ (osResiduals c ich bd ls lvl levels k).1 →
+        LoadHolds rd (σ (.n ich)) (lvl + i + 1) (I' + G (lvl + i)) ∧
+          MatsOk σ (osResidual c ich bd ls (lvl + i) levels[i] mats' k').2.1) →
+      MatsOk σ mats →
+      AllOk (coreProgram.Rel rd) rd σ (osResiduals c ich bd ls lvl levels mats k).1 →
       LoadHolds rd (σ (.n ich)) lvl I →
       LoadHolds rd (σ (.n ich)) (lvl + levels.length)
         (I + ∑ i ∈ Finset.range levels.length, G (lvl + i)) := by
   induction levels with
-  | nil => intro lvl _ I _ _ h; simpa using h
+  | nil => intro lvl _ _ I _ _ _ h; simpa using h
   | cons lv rest ih =>
-    intro lvl k I hstep hok h
+    intro lvl mats k I hstep hm hok h
     simp only [osResiduals] at hok
     rw [allOk_append] at hok
-    have h1 := hstep 0 (by simp) k I hok.1 (by simpa using h)
-    have := ih (lvl + 1) _ _ (fun i hi k' I' h1 h2 ↦ by
-      have := hstep (i + 1) (by simp; omega) k' I'
+    have h1 := hstep 0 (by simp) mats k I hm hok.1 (by simpa using h)
+    have := ih (lvl + 1) _ _ _ (fun i hi mats' k' I' hm' h1 h2 ↦ by
+      have := hstep (i + 1) (by simp; omega) mats' k' I' hm'
         (by rwa [show lvl + (i + 1) = lvl + 1 + i by ring]) (by
           rwa [show lvl + (i + 1) = lvl + 1 + i by ring])
-      rwa [show lvl + (i + 1) = lvl + 1 + i by ring] at this) hok.2 (by simpa using h1)
+      rwa [show lvl + (i + 1) = lvl + 1 + i by ring] at this) (by simpa using h1.2) hok.2
+      (by simpa using h1.1)
     have e : I + ∑ i ∈ Finset.range (lv :: rest).length, G (lvl + i) =
         I + G lvl + ∑ i ∈ Finset.range rest.length, G (lvl + 1 + i) := by
       rw [List.length_cons, Finset.sum_range_succ', Finset.sum_congr rfl
@@ -106,11 +109,13 @@ theorem readsAt_unique {p : E} {xs ys : List E} (hl : xs.length = ys.length)
     (hx : ReadsAt rd p xs) (hy : ReadsAt rd p ys) : xs = ys :=
   List.ext_getElem hl fun i h1 h2 ↦ loadHolds_unique (hx i h1) (hy i h2)
 
-/-- What a level's residual sum reads: its loop, its positions, `μ = λ⁻¹` in `level_mus`. -/
+/-- What a level's residual sum reads: `level_residual`'s meaning at the rate's row, its
+positions, `μ = λ⁻¹` in `level_mus`. -/
 def ResIn (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (P : ℕ → E) (lam : E) :
     Prop :=
-  FnIs (c.resLoop lvl) (osParams 6) (resLoopBody lvl lv (c.resLoop lvl)) ∧ 1 ≤ lv.logCols ∧
-    lv.posOff < u128Bound ∧ lv.queries / resBatch < ordG ∧ lv.queries / resBatch < u128Bound ∧
+  (∀ args rets, coreProgram.Rel rd (osResidualName lv) args rets →
+      MeaningLevelResidual lv.queries lv.logCols rd args rets) ∧ LvRate σ c lvl lv ∧
+    lv.vanish = vanishOff lv.logCols ∧ lv.posOff < u128Bound ∧ lvl * ligColsCap < u128Bound ∧
     lv.prefixLen + c.yrLog = lv.logCols ∧
     (∀ i < lv.queries, LoadHolds rd (σ (.n osQpos)) (lv.posOff + i) (P i)) ∧ lam ≠ 0 ∧
     LoadHolds rd (σ (.n osMus)) lvl lam⁻¹
@@ -152,7 +157,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {�
       (β i * Lam i ^ c.levels[i].queries) (X i))
     (hres : ∀ i (hi : i < c.levels.length), ResIn rd σ c i c.levels[i] (P i) (Lam i))
     (hood : OodAll rd σ c tch Λ Z Y (c.levels.headD default).logCols 1 c.levels.tail)
-    (hn2 : 2 ≤ c.levels.length)
+    (hn2 : 2 ≤ c.levels.length) (hmats : MatsOk σ st.mats)
     (hok : AllOk (coreProgram.Rel rd) rd σ (osFinishA c st tch)) :
     (osFinishRet c st tch).map σ = [σ (.n st.t), σ (.n (st.k + 1)), σ (.n (st.k + 1 + 1)),
       finInner c β X P W Λ Z Y, multilinearEval ms T] ∧
@@ -163,7 +168,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {�
   simp only [osFinishA, osFinishRet] at hok ⊢
   set pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2) with hpts
   set bs := osBases c tch (pts.2 + 1) (pts.2 + 3) 0 c.levels (pts.2 + 4) with hbs
-  set rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels (bs.2 + 3) with hrs
+  set rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) 0 c.levels st.mats (bs.2 + 3) with hrs
   set od := osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2 with hod
   simp only [allOk_append] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hA, hP⟩, -⟩, -⟩, hB⟩, -⟩, hZ⟩, hR⟩, hO⟩, hE⟩ := hok
@@ -189,20 +194,21 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ} {ms T Pt : List E} {�
         c.yrLog), (X i t * invW (c.levels.getD i default) t)) *
       ∑ j ∈ Finset.range (c.levels.getD i default).queries,
         W i j * lvRes (c.levels.getD i default) (dOf (c.levels.getD i default) (X i)) (P i j))
-    c.levels 0 _ 0 (fun i hi k' I' h1 h2 ↦ by
+    c.levels 0 st.mats _ 0 (fun i hi mats' k' I' hm' h1 h2 ↦ by
       simp only [Nat.zero_add] at h1 h2 ⊢
-      obtain ⟨hf, h1', hpo, hqo, hqu, hlen, hPq, hl0, hM⟩ := hres i hi
+      obtain ⟨hf, hrate, hvan, hpo, hlc, hlen, hPq, hl0, hM⟩ := hres i hi
       obtain ⟨hD, hL⟩ := hbo i hi
       simp only [Nat.zero_add] at hD hL
       have hgd : c.levels.getD i default = c.levels[i] := by
         rw [List.getD_eq_getElem _ _ hi]
       rw [hgd] at hL ⊢
-      have := osResidual_sound hf h1' hpo hqo hqu (D := dOf c.levels[i] (X i))
+      obtain ⟨this, hmo⟩ := osResidual_sound hf hrate hvan hpo hlc hm' (D := dOf c.levels[i] (X i))
         (fun s hs ↦ (hD s (by omega)).2) hPq hM h2 hL h1
+      refine ⟨?_, hmo⟩
       convert this using 2
       simp only [hW, lvRes]
       rw [← resFold_lam hl0]
-      ring) hR (by simpa using s0)
+      ring) hmats hR (by simpa using s0)
   -- the out-of-domain weights
   obtain ⟨x, hx, hxv⟩ := osOodWeights_sound (C := coreProgram.Rel rd) Λ Z Y c.levels.tail
     (c.levels.headD default).logCols 1 none rs.2 hood hO (Or.inr (by

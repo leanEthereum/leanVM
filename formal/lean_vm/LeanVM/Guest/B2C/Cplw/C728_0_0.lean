@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `level_positions__L14_L22_L4`, window 0, part 0. -/
+/-- `level_residual__L112_L20`, window 0, part 0. -/
 theorem cw728_0_0 : cplWin 728 0 0 = true := by decide +kernel
 
-/-- `level_positions__L10_L23_L5`, window 0, part 0. -/
+/-- `level_residual__L75_L20`, window 0, part 0. -/
 theorem cw729_0_0 : cplWin 729 0 0 = true := by decide +kernel
 
-/-- `level_positions__L7_L24_L6`, window 0, part 0. -/
+/-- `level_residual__L56_L20`, window 0, part 0. -/
 theorem cw730_0_0 : cplWin 730 0 0 = true := by decide +kernel
 
-/-- `level_queries__L224_L1_L64_L32_L21_L3`, window 0, part 0. -/
+/-- `level_residual__L45_L16`, window 0, part 0. -/
 theorem cw731_0_0 : cplWin 731 0 0 = true := by decide +kernel
 
-/-- `level_queries__L224_L1_L64_L32_L21_L3`, window 1, part 0. -/
-theorem cw731_1_0 : cplWin 731 1 0 = true := by decide +kernel
-
-/-- `level_queries__L112_L1_L64_L32_L22_L4`, window 0, part 0. -/
+/-- `level_residual__L38_L16`, window 0, part 0. -/
 theorem cw732_0_0 : cplWin 732 0 0 = true := by decide +kernel
 
-/-- `level_queries__L112_L1_L64_L32_L22_L4`, window 1, part 0. -/
-theorem cw732_1_0 : cplWin 732 1 0 = true := by decide +kernel
-
-/-- `level_queries__L75_L1_L64_L32_L23_L5`, window 0, part 0. -/
+/-- `level_residual__L32_L16`, window 0, part 0. -/
 theorem cw733_0_0 : cplWin 733 0 0 = true := by decide +kernel
+
+/-- `level_residual__L28_L12`, window 0, part 0. -/
+theorem cw734_0_0 : cplWin 734 0 0 = true := by decide +kernel
+
+/-- `level_residual__L25_L12`, window 0, part 0. -/
+theorem cw735_0_0 : cplWin 735 0 0 = true := by decide +kernel
 
 theorem ok728 : CplOk 728 := by
   intro i hi k hk
@@ -72,31 +72,53 @@ theorem ok730 : CplOk 730 := by
 
 theorem ok731 : CplOk 731 := by
   intro i hi k hk
-  have hc : (certOf 731).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 731).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 731 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw731_0_0
-  · have hn : nParts 731 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw731_1_0
 
 theorem ok732 : CplOk 732 := by
   intro i hi k hk
-  have hc : (certOf 732).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 732).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 732 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw732_0_0
-  · have hn : nParts 732 1 = 1 := by decide +kernel
+
+theorem ok733 : CplOk 733 := by
+  intro i hi k hk
+  have hc : (certOf 733).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 733 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw732_1_0
+    · exact cw733_0_0
+
+theorem ok734 : CplOk 734 := by
+  intro i hi k hk
+  have hc : (certOf 734).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 734 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw734_0_0
+
+theorem ok735 : CplOk 735 := by
+  intro i hi k hk
+  have hc : (certOf 735).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 735 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw735_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

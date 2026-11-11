@@ -16,85 +16,99 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `level_queries__L21_L0_L16_L24_L24_L6`, window 0, part 0. -/
+/-- `level_residual__L14_L5`, window 0, part 0. -/
 theorem cw970_0_0 : cplWin 970 0 0 = true := by decide +kernel
 
-/-- `level_queries__L21_L0_L16_L24_L24_L6`, window 1, part 0. -/
-theorem cw970_1_0 : cplWin 970 1 0 = true := by decide +kernel
-
-/-- `level_queries__L19_L0_L16_L24_L25_L7`, window 0, part 0. -/
+/-- `level_residual__L13_L5`, window 0, part 0. -/
 theorem cw971_0_0 : cplWin 971 0 0 = true := by decide +kernel
 
-/-- `level_queries__L19_L0_L16_L24_L25_L7`, window 1, part 0. -/
-theorem cw971_1_0 : cplWin 971 1 0 = true := by decide +kernel
-
-/-- `level_queries__L18_L0_L16_L24_L26_L2`, window 0, part 0. -/
+/-- `opening_ood_point__L26`, window 0, part 0. -/
 theorem cw972_0_0 : cplWin 972 0 0 = true := by decide +kernel
 
-/-- `level_queries__L18_L0_L16_L24_L26_L2`, window 1, part 0. -/
-theorem cw972_1_0 : cplWin 972 1 0 = true := by decide +kernel
-
-/-- `level_queries__L17_L0_L16_L24_L23_L5`, window 0, part 0. -/
+/-- `level_positions__L33_L27_L3`, window 0, part 0. -/
 theorem cw973_0_0 : cplWin 973 0 0 = true := by decide +kernel
 
-/-- `level_queries__L17_L0_L16_L24_L23_L5`, window 1, part 0. -/
-theorem cw973_1_0 : cplWin 973 1 0 = true := by decide +kernel
+/-- `level_positions__L19_L28_L4`, window 0, part 0. -/
+theorem cw974_0_0 : cplWin 974 0 0 = true := by decide +kernel
+
+/-- `level_positions__L13_L29_L5`, window 0, part 0. -/
+theorem cw975_0_0 : cplWin 975 0 0 = true := by decide +kernel
+
+/-- `level_positions__L10_L30_L6`, window 0, part 0. -/
+theorem cw976_0_0 : cplWin 976 0 0 = true := by decide +kernel
+
+/-- `level_queries__L227_L1_L64_L32_L27_L3`, window 0, part 0. -/
+theorem cw977_0_0 : cplWin 977 0 0 = true := by decide +kernel
 
 theorem ok970 : CplOk 970 := by
   intro i hi k hk
-  have hc : (certOf 970).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 970).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 970 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw970_0_0
-  · have hn : nParts 970 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw970_1_0
 
 theorem ok971 : CplOk 971 := by
   intro i hi k hk
-  have hc : (certOf 971).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 971).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 971 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw971_0_0
-  · have hn : nParts 971 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw971_1_0
 
 theorem ok972 : CplOk 972 := by
   intro i hi k hk
-  have hc : (certOf 972).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 972).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 972 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw972_0_0
-  · have hn : nParts 972 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw972_1_0
 
 theorem ok973 : CplOk 973 := by
   intro i hi k hk
-  have hc : (certOf 973).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 973).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 973 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw973_0_0
-  · have hn : nParts 973 1 = 1 := by decide +kernel
+
+theorem ok974 : CplOk 974 := by
+  intro i hi k hk
+  have hc : (certOf 974).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 974 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw973_1_0
+    · exact cw974_0_0
+
+theorem ok975 : CplOk 975 := by
+  intro i hi k hk
+  have hc : (certOf 975).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 975 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw975_0_0
+
+theorem ok976 : CplOk 976 := by
+  intro i hi k hk
+  have hc : (certOf 976).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 976 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw976_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

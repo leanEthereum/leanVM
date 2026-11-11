@@ -62,16 +62,16 @@ theorem loopPre_of_body {fn : Fn} {pre : List Stmt} {c : V} {f : String} {args :
     loopPre fn = pre := by
   simp [loopPre, h, splitLoopF_append pre hf]
 
-theorem find_l17 : coreProgram.find? "__loop21" = some (coreProgram.getD 381 default) :=
+theorem find_l17 : coreProgram.find? "__loop21" = some (coreProgram.getD 380 default) :=
   find_of_idx dv_loops_idx.1 (by rw [coreProgram_length]; omega)
 
-theorem find_l19 : coreProgram.find? "__loop23" = some (coreProgram.getD 383 default) :=
+theorem find_l19 : coreProgram.find? "__loop23" = some (coreProgram.getD 382 default) :=
   find_of_idx dv_loops_idx.2.2.1 (by rw [coreProgram_length]; omega)
 
-theorem find_l20 : coreProgram.find? "__loop24" = some (coreProgram.getD 384 default) :=
+theorem find_l20 : coreProgram.find? "__loop24" = some (coreProgram.getD 383 default) :=
   find_of_idx dv_loops_idx.2.2.2 (by rw [coreProgram_length]; omega)
 
-theorem find_l21 : coreProgram.find? "__loop25" = some (coreProgram.getD 397 default) :=
+theorem find_l21 : coreProgram.find? "__loop25" = some (coreProgram.getD 396 default) :=
   find_of_idx l21_idx (by rw [coreProgram_length]; omega)
 
 /-! ## The blocks -/
@@ -81,7 +81,7 @@ set_option maxRecDepth 20000 in
 zero. -/
 theorem l17_block {x N bl rb : E} (h1 : LoadHolds rd (rb * x) 0 (bl * x ^ 641))
     (h2 : LoadHolds rd (bl * x ^ 641) 512 0) :
-    LoopBlock rd (coreProgram.getD 381 default) x N [bl, rb] := by
+    LoopBlock rd (coreProgram.getD 380 default) x N [bl, rb] := by
   obtain ⟨⟨hs, hl⟩, -⟩ := dv_loops_shape
   rw [← word_zero] at h2
   refine ⟨Val.ofArgs [x, N, bl, rb, x * x, x * x * (x * x), x * x * (x * x) * x,
@@ -105,7 +105,7 @@ set_option maxRecDepth 20000 in
 theorem l19_block {x N rb roots base c0 c1 : E} (h1 : LoadHolds rd (rb * x) 0 base)
     (h2 : LoadHolds rd base 640 0) (hc : coreProgram.Rel rd "da_levels__L128_L7" [base] [c0, c1])
     (h3 : LoadHolds rd (roots * (x * x)) 0 c0) (h4 : LoadHolds rd (roots * (x * x)) 1 c1) :
-    LoopBlock rd (coreProgram.getD 383 default) x N [rb, roots] := by
+    LoopBlock rd (coreProgram.getD 382 default) x N [rb, roots] := by
   obtain ⟨-, ⟨hs, hl⟩, -⟩ := dv_loops_shape
   refine ⟨Val.ofArgs [x, N, rb, roots, rb * x, base, 0, word 0 0 0, c0, c1, x * x,
     roots * (x * x), word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0],
@@ -125,7 +125,7 @@ set_option maxRecDepth 20000 in
 theorem l20_block {x N roots nb : E}
     (h0 : LoadHolds rd (roots * (nb * nb) * (x * x)) 0 (digestHalves daPadBlobDigest).1)
     (h1 : LoadHolds rd (roots * (nb * nb) * (x * x)) 1 (digestHalves daPadBlobDigest).2) :
-    LoopBlock rd (coreProgram.getD 384 default) x N [roots, nb] := by
+    LoopBlock rd (coreProgram.getD 383 default) x N [roots, nb] := by
   obtain ⟨-, -, ⟨hs, hl⟩, -⟩ := dv_loops_shape
   have e := daPadBlob_cells
   simp only [Prod.ext_iff] at e
@@ -152,7 +152,7 @@ theorem l21_block {x N lv rb xb xb2 d0 d1 s base prev : E}
     (h1 : LoadHolds rd (rb * x) 0 base) (h2 : LoadHolds rd (base * xb) 512 prev)
     (h3 : LoadHolds rd (base * xb) 513 (prev + s)) (h4 : LoadHolds rd (base * xb2) 0 d0)
     (h5 : LoadHolds rd (base * xb2) 1 d1) :
-    LoopBlock rd (coreProgram.getD 397 default) x N [lv, rb, xb, xb2] := by
+    LoopBlock rd (coreProgram.getD 396 default) x N [lv, rb, xb, xb2] := by
   obtain ⟨-, -, -, hs, hl⟩ := dv_loops_shape
   refine ⟨Val.ofArgs [x, N, lv, rb, xb, xb2, d0, d1, s, rb * x, base, base * xb, prev, prev + s,
     base * xb2, word 2 0 0, x * word 2 0 0, x * word 2 0 0 + N, word 2 0 0, x * word 2 0 0],

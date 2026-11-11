@@ -87,10 +87,9 @@ def m0 : E := S.km.2
 theorem chis_length : S.chis.length = S.H.n := by
   simp [ChildSegs.chis, Tables.VtHonest.chiW, Tables.zcChis]
 
-theorem τ_bounds (hbl : bytecode.length = 2 ^ 23) : 9 ≤ S.τ ∧ S.τ < 29 ∧ S.τ ≤ S.H.n := by
+theorem τ_bounds (hbl : bytecode.length = 2 ^ 23) : 9 ≤ S.τ ∧ S.τ ≤ 26 ∧ S.τ ≤ S.H.n := by
   have hsl := S.hs_length
-  refine ⟨tau_ge S.hrowsL, S.hh29 hbl _ ?_, ?_⟩
-  · rw [ChildSegs.τ, List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _
+  refine ⟨tau_ge S.hrowsL, vsH_tau26 hbl S.hrowsL S.stack32, ?_⟩
   · show S.hs.getD 5 0 ≤ (Tables.tableHeightsOf S.rowsN).foldl max 0
     exact mem_le_foldl_max 0 (getD_mem' (by have := hsl; unfold ChildSegs.hs at this; omega))
 

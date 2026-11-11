@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.Front
   argument words, the cursor `stream·g^10`, the keccak table's `g^τ` from `dims_g`, the output
   lanes at `col_eval_words·g^107`, the capacity copied;
 * `vsMapsT_holds`: the ring map's challenges, the first `verify_keccak`'s, five squeezed;
-* `vsTailT_holds`: `certify_placement`, the stack's log, the two range checks, the dispatch, the
+* `vsTailT_holds`: `certify_placement`, the stack's log, its range check, the dispatch, the
   terminal, the deferred claim's words, and the return;
 * `mem_size`: a memory image holding `n` words at one pointer has at least `n` words.
 -/
@@ -119,26 +119,22 @@ theorem holds_copyLoads (p q b : ℕ) (qo : ℕ → ℕ) : ∀ (n : ℕ) {X : Pr
     · exact hk k hk'
     · exact ⟨_, l1, l2⟩
 
-/-- **The tail** (G:3487-3513): the placement, the stack's log `g^m`, `size_sel = g^m·g^-22` below
-`g^7`, the candidate `size_sel·rate_sel^7` below `g^28`, one specialization of `open_stacked`
-dispatched on it, the terminal, the deferred claim's words, and no return word. -/
+/-- **The tail** (G:3534-3557): the placement, the stack's log `g^m`, `size_sel = g^m·g^-19` below
+`g^14`, one specialization of `open_stacked` dispatched on it with the rate's selector
+`rate_sel` passed on, the terminal, the deferred claim's words, and no return word. -/
 theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
     C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1682), σ (.n 1683)] ∧
-    C "log2_ceil_in_the_exponent__L15_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)] ∧
-    σ (.n 1686) = σ (.n 1684) * word 8198552432976855044 0 0 ∧
-    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 64 0 0 = σ (.n 1686) * σ (.n 1688) ∧
+    C "log2_ceil_in_the_exponent__L16_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)] ∧
+    σ (.n 1686) = σ (.n 1684) * word 14347465658197868555 0 0 ∧
+    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 4096 0 0 = σ (.n 1686) * σ (.n 1688) ∧
       LoadHolds rd (σ (.n 1688)) 0 (σ (.n 1690))) ∧
-    σ (.n 1695) = σ (.n 1686) * (σ (.n 122) * σ (.n 122) * σ (.n 122) *
-      (σ (.n 122) * σ (.n 122) * σ (.n 122)) * σ (.n 122)) ∧
-    (LoadHolds rd (σ (.n 1695)) 0 (σ (.n 1698)) ∧ word 134217728 0 0 = σ (.n 1695) * σ (.n 1697) ∧
-      LoadHolds rd (σ (.n 1697)) 0 (σ (.n 1699))) ∧
-    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1695) = ofK (addressOfIndex j) ∧
-      C vsOpenNames[j] [σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103), σ (.n 1104),
-        σ (.n 1681), σ (.n 324), σ (.n 334), σ (.n 656)]
-        [σ (.n 1700), σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704)]) ∧
+    (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1686) = ofK (addressOfIndex j) ∧
+      C vsOpenNames[j] [σ (.n 122), σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
+        σ (.n 1104), σ (.n 1681), σ (.n 324), σ (.n 334), σ (.n 656)]
+        [σ (.n 1691), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695)]) ∧
     C "check_opening_terminal" [σ (.n 4), σ (.n 310), σ (.n 635), σ (.n 644), σ (.n 309),
       σ (.n 642), σ (.n 128), σ (.n 646), σ (.n 139), σ (.n 1111), σ (.n 1683), σ (.n 647),
-      σ (.n 665), σ (.n 1701), σ (.n 1702), σ (.n 1703), σ (.n 1704), σ (.n 1700)] [] ∧
+      σ (.n 665), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695), σ (.n 1691)] [] ∧
     (∀ k < 19, ∃ v, LoadHolds rd (σ (.n 310)) k v ∧ LoadHolds rd (σ (.n 5)) k v) ∧
     (∀ k < 4, ∃ v, LoadHolds rd (σ (.n 346)) k v ∧ LoadHolds rd (σ (.n 5)) (19 + k) v) ∧
     LoadHolds rd (σ (.n 5)) 23 (σ (.n 643)) ∧ kret [] := by
@@ -146,16 +142,14 @@ theorem vsTailT_holds (h : Stmt.HoldsList C rd σ vsTailT next kret) :
   simp only [holdsList_append] at h
   simp only [vsConst, vsMul, vsCall, vsRange, vsLd, vsRun, Stmt.HoldsList, Stmt.Holds,
     List.map_cons, List.map_nil] at h
-  obtain ⟨cp, cl, c1891, m1892, c1893, r1, m1897, m1898, m1899, m1900, m1901, c1902, r2, hd, ct,
-    h⟩ := h
-  obtain ⟨d1, h⟩ := holds_copyLoads 310 5 1705 (fun k ↦ k) 19 h
-  obtain ⟨d2, h⟩ := holds_copyLoads 346 5 1724 (fun k ↦ 19 + k) 4 h
-  simp only [Atom.Holds] at c1891 m1892 c1893 r1 m1897 m1898 m1899 m1900 m1901 c1902 r2 h
-  refine ⟨cp, cl, by rw [m1892, c1891], by rw [← c1893]; exact r1, ?_, by rw [← c1902]; exact r2,
-    ?_, ct, d1, d2, h.1, by simpa using h.2⟩
-  · rw [m1901, m1900, m1899, m1898, m1897]
-  · obtain ⟨j, hj, hx, hc⟩ := hd
-    exact ⟨j, hj, hx, by simpa [List.range_succ] using hc⟩
+  obtain ⟨cp, cl, c1685, m1686, c1687, r1, hd, ct, h⟩ := h
+  obtain ⟨d1, h⟩ := holds_copyLoads 310 5 1696 (fun k ↦ k) 19 h
+  obtain ⟨d2, h⟩ := holds_copyLoads 346 5 1715 (fun k ↦ 19 + k) 4 h
+  simp only [Atom.Holds] at c1685 m1686 c1687 r1 h
+  refine ⟨cp, cl, by rw [m1686, c1685], by rw [← c1687]; exact r1, ?_, ct, d1, d2, h.1,
+    by simpa using h.2⟩
+  obtain ⟨j, hj, hx, hc⟩ := hd
+  exact ⟨j, hj, hx, by simpa [List.range_succ] using hc⟩
 
 /-! ## The memory's size -/
 

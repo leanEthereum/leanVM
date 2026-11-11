@@ -14,15 +14,15 @@ def leanvmRev : String := "40f877dc2c858f013c5974ab71ca594b31a7aec9"
 def logSize : Nat := 19
 
 /-- The compiled functions' instructions. -/
-def codeLen : Nat := 410607
+def codeLen : Nat := 404528
 
 /-- The compiled functions. -/
-def functionCount : Nat := 1804
+def functionCount : Nat := 1753
 
 /-- The instructions of each opcode (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`), the padding included. -/
-def opcodeCounts : List Nat := [69881, 94124, 173321, 78287, 25056, 83619]
+def opcodeCounts : List Nat := [68904, 92450, 178705, 76395, 24630, 83204]
 
 /-- `fs_seed`: the guest's Fiat-Shamir IV, two cells as `(c0, c1, c2)` limbs. -/
-def fsSeed : List (Nat × Nat × Nat) := [(7060093779693644566, 3092064655992983778, 0), (6751055318200093512, 318938287419593549, 0)]
+def fsSeed : List (Nat × Nat × Nat) := [(8026077107046122075, 17441759959306713532, 0), (7215117535298544036, 2855246715843409070, 0)]
 
 end LeanVMTests.Guest.Manifest

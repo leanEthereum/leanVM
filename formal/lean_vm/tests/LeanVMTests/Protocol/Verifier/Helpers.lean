@@ -22,7 +22,7 @@ global bases, log-height floors, constraint counts, count columns and padding ro
 `jump_constraints`, `keccak_cell_lanes`, `layout_limb`, the `q_keccak` slots (`qkeccak_slot`) and
 output columns; `build_layout` on a sample bytecode and sizes (log-heights, stack log-size, every
 placement, every bus block's shape and flushed tuple at a sample row), `bus_layout` of the three
-sides; `derive_config` on all 56 admissible pairs; `along`, `linear_transpose`,
+sides; `derive_config` on all 68 admissible pairs (at `aca3ea6a`); `along`, `linear_transpose`,
 `instance_weights`, the slot weights of `open`, the RMFE's factors, `RMFE_EMBED`, `RMFE_PROJECT`,
 the carry-less product and division and the Keccak reduction's constants; `KECCAK_RC`,
 `KECCAK_RHO`, `KECCAK_PI`, `keccak_f`, `keccak_hash` across the block boundary, the sponge's
@@ -160,8 +160,9 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (buildLayout (sampleBytecode.take 24) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 8) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 16) 16 sampleRows).isSome
-/- The memory window `[16, 32]`. -/
-#guard (buildLayout sampleBytecode 15 sampleRows).isNone
+/- The memory window `[1, 32]` (at `aca3ea6a`). -/
+#guard (buildLayout sampleBytecode 0 sampleRows).isNone
+#guard (buildLayout sampleBytecode 1 sampleRows).isSome
 #guard (buildLayout sampleBytecode 33 sampleRows).isNone
 #guard (buildLayout sampleBytecode 32 sampleRows).isSome
 /- The row cap `2^32`, on any table. -/
@@ -179,7 +180,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 
 /-! ## `derive_config` outside the window -/
 
-#guard (Whir.ladder 14 1).isNone ∧ (Whir.ladder 33 1).isNone
+#guard (Whir.ladder 15 1).isNone ∧ (Whir.ladder 33 1).isNone
 #guard (Whir.ladder 20 0).isNone ∧ (Whir.ladder 20 5).isNone
 
 /-! ## Field and multilinear arithmetic (`field.rs:258-267`, `multilinear.rs`, `layout.rs:114`) -/
@@ -693,9 +694,8 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 
 /-- `derive_config(log_n, rate)` for every admissible pair: folds, rates, queries. -/
 def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
-  [(15, 1, [6, 4], [1, 4], [222, 55]), (16, 1, [6, 4, 4], [1, 4, 7], [223, 56, 30]),
-   (17, 1, [6, 4, 4], [1, 4, 7], [223, 56, 31]), (18, 1, [6, 4, 4], [1, 4, 7], [223, 56, 32]),
-   (19, 1, [6, 4, 4], [1, 4, 7], [223, 56, 32]),
+  [(16, 1, [6, 4, 4], [1, 4, 7], [223, 56, 30]), (17, 1, [6, 4, 4], [1, 4, 7], [223, 56, 31]),
+   (18, 1, [6, 4, 4], [1, 4, 7], [223, 56, 32]), (19, 1, [6, 4, 4], [1, 4, 7], [223, 56, 32]),
    (20, 1, [6, 4, 4, 4], [1, 4, 7, 10], [223, 56, 32, 22]),
    (21, 1, [6, 4, 4, 4], [1, 4, 7, 10], [223, 56, 32, 22]),
    (22, 1, [6, 4, 4, 4], [1, 4, 7, 10], [224, 56, 32, 23]),
@@ -705,9 +705,12 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (26, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [224, 56, 32, 23, 18]),
    (27, 1, [6, 4, 4, 4, 4], [1, 4, 7, 10, 13], [225, 56, 32, 23, 18]),
    (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [225, 56, 32, 23, 18, 14]),
-   (15, 2, [6, 4], [2, 5], [111, 45]), (16, 2, [6, 4, 4], [2, 5, 8], [112, 45, 27]),
-   (17, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]), (18, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
-   (19, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
+   (29, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [225, 56, 32, 23, 18, 14]),
+   (30, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [226, 56, 32, 23, 18, 14]),
+   (31, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [226, 56, 32, 23, 18, 15]),
+   (32, 1, [6, 4, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16, 19], [227, 56, 32, 23, 18, 15, 12]),
+   (16, 2, [6, 4, 4], [2, 5, 8], [112, 45, 27]), (17, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
+   (18, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]), (19, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
    (20, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 20]),
    (21, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 20]),
    (22, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 21]),
@@ -717,9 +720,12 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (26, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [112, 45, 28, 21, 16]),
    (27, 2, [6, 4, 4, 4, 4], [2, 5, 8, 11, 14], [112, 45, 28, 21, 16]),
    (28, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [112, 45, 28, 21, 16, 13]),
-   (15, 3, [6, 4], [3, 6], [75, 37]), (16, 3, [6, 4, 4], [3, 6, 9], [75, 37, 24]),
-   (17, 3, [6, 4, 4], [3, 6, 9], [75, 37, 25]), (18, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]),
-   (19, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]),
+   (29, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [113, 45, 28, 21, 16, 14]),
+   (30, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [113, 45, 28, 21, 17, 14]),
+   (31, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [113, 45, 28, 21, 17, 14]),
+   (32, 2, [6, 4, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17, 20], [113, 45, 29, 21, 17, 14, 12]),
+   (16, 3, [6, 4, 4], [3, 6, 9], [75, 37, 24]), (17, 3, [6, 4, 4], [3, 6, 9], [75, 37, 25]),
+   (18, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]), (19, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]),
    (20, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 18]),
    (21, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 19]),
    (22, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 19]),
@@ -729,9 +735,12 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (26, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [75, 38, 25, 19, 15]),
    (27, 3, [6, 4, 4, 4, 4], [3, 6, 9, 12, 15], [75, 38, 25, 19, 15]),
    (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 15, 13]),
-   (15, 4, [6, 4], [4, 7], [56, 32]), (16, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]),
-   (17, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]), (18, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]),
-   (19, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]),
+   (29, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 15, 13]),
+   (30, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 16, 13]),
+   (31, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 16, 13]),
+   (32, 3, [6, 4, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18, 21], [75, 38, 25, 19, 16, 13, 11]),
+   (16, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]), (17, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]),
+   (18, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]), (19, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]),
    (20, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 17]),
    (21, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 17]),
    (22, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 18]),
@@ -740,9 +749,13 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (25, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 14]),
    (26, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 14]),
    (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 15]),
-   (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [56, 32, 23, 18, 15, 12])]
+   (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [56, 32, 23, 18, 15, 12]),
+   (29, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 32, 23, 18, 15, 12]),
+   (30, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 33, 23, 18, 15, 12]),
+   (31, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 33, 23, 18, 15, 13]),
+   (32, 4, [6, 4, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19, 22], [57, 33, 23, 18, 15, 13, 11])]
 
-#guard refConfigs.length = 56
+#guard refConfigs.length = 68
 #guard refConfigs.all fun (n, r, folds, rates, queries) ↦
   decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
@@ -802,7 +815,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      (0x0, 0x5)]
 
 #guard (keccakConstants) =
-    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 15, 32]
+    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 16, 32]
 
 #guard (ringMapShifts) =
     [32, 16, 8, 4, 2, 1]

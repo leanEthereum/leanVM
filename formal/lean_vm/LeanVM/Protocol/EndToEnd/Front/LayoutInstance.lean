@@ -207,14 +207,14 @@ theorem buildLayout_eq (prog : LeanIsaProgram) (s : Sizes) :
     simp [tableRows, tables]
   by_cases hok : LayoutOk s
   · obtain ⟨h1, h2, h3⟩ := hok
-    have hc : 4 ≤ prog.logSize + 4 ∧ 16 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
+    have hc : 4 ≤ prog.logSize + 4 ∧ 1 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
         ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ∧
         prog.logSize ≤ 32 ∧ (tableRows s).length = tables.length :=
       ⟨by omega, h1, h2, (all_tableRows s).mpr h3, by simpa [maxLogBytecode] using hL, hlen⟩
     have hok : LayoutOk s := ⟨h1, h2, h3⟩
     simp only [hc, hok, and_self, ↓reduceIte]
     rfl
-  · have hc : ¬ (4 ≤ prog.logSize + 4 ∧ 16 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
+  · have hc : ¬ (4 ≤ prog.logSize + 4 ∧ 1 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
         ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ∧
         prog.logSize ≤ 32 ∧ (tableRows s).length = tables.length) := by
       rintro ⟨-, h1, h2, h3, -, -⟩

@@ -48,9 +48,5 @@ set_option maxRecDepth 100000 in
 theorem kvmstaticRange_312 : kvmStaticRange 312 1 := by
   unfold kvmStaticRange; decide +kernel
 
-set_option maxRecDepth 100000 in
-theorem kvmstaticRange_313 : kvmStaticRange 313 1 := by
-  unfold kvmStaticRange; decide +kernel
-
 end
 end LeanVM.Guest

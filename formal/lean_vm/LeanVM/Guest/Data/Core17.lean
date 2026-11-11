@@ -70,48 +70,46 @@ noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 16) (.n 2) (.n 0)) ::
   .atom (.load (.n 17) (.n 16) 0) ::
   .atom (.hint (.witness "child_meta" (.stack [.n 18, .n 19]))) ::
-  .atom (.const (.n 20) (word 9272771591053052074 0 0)) ::
-  .atom (.rangeCheck (.n 18) (.n 21) (.n 22) (.n 23) (.n 20)) ::
-  .atom (.const (.n 24) (word 9272771591053052074 0 0)) ::
-  .atom (.rangeCheck (.n 19) (.n 25) (.n 26) (.n 27) (.n 24)) ::
-  .atom (.mul (.n 28) (.n 18) (.n 19)) ::
-  .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 29, .n 30] ::
-  .atom (.mul (.n 31) (.n 17) (.n 18)) ::
-  .call "child_claim_list_digest" [.n 6, .n 7, .n 31, .n 8, .n 19] [.n 32, .n 33] ::
+  .atom (.touch (.n 20) (.n 18)) ::
+  .atom (.touch (.n 21) (.n 19)) ::
+  .atom (.mul (.n 22) (.n 18) (.n 19)) ::
+  .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24] ::
+  .atom (.mul (.n 25) (.n 17) (.n 18)) ::
+  .call "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27] ::
+  .atom (.mul (.n 28) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 29) (.n 28) (.n 0)) ::
+  .atom (.mul (.n 30) (.n 29) (.n 29)) ::
+  .atom (.mul (.n 31) (.n 30) (.n 30)) ::
+  .atom (.mul (.n 32) (.n 31) (.n 31)) ::
+  .atom (.mul (.n 33) (.n 9) (.n 32)) ::
+  .atom (.hint (.witness "child_defer" (.heap (.n 33) 0 24))) ::
   .atom (.mul (.n 34) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 35) (.n 34) (.n 0)) ::
-  .atom (.mul (.n 36) (.n 35) (.n 35)) ::
-  .atom (.mul (.n 37) (.n 36) (.n 36)) ::
-  .atom (.mul (.n 38) (.n 37) (.n 37)) ::
-  .atom (.mul (.n 39) (.n 9) (.n 38)) ::
-  .atom (.hint (.witness "child_defer" (.heap (.n 39) 0 24))) ::
+  .atom (.mul (.n 35) (.n 10) (.n 34)) ::
+  .atom (.hint (.witness "child_da" (.heap (.n 35) 0 2))) ::
+  .atom (.load (.n 36) (.n 35) 0) ::
+  .atom (.load (.n 37) (.n 35) 1) ::
+  .call "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33] [.n 38, .n 39] ::
   .atom (.mul (.n 40) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 41) (.n 10) (.n 40)) ::
-  .atom (.hint (.witness "child_da" (.heap (.n 41) 0 2))) ::
-  .atom (.load (.n 42) (.n 41) 0) ::
-  .atom (.load (.n 43) (.n 41) 1) ::
-  .call "statement_digest" [.n 11, .n 12, .n 29, .n 30, .n 32, .n 33, .n 42, .n 43, .n 39] [.n 44, .n 45] ::
-  .atom (.mul (.n 46) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 47) (.n 13) (.n 46)) ::
-  .atom (.load (.n 44) (.n 47) 0) ::
-  .atom (.mul (.n 48) (.n 13) (.n 46)) ::
-  .atom (.load (.n 45) (.n 48) 1) ::
-  .atom (.mul (.n 49) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 50) (.n 49) (.n 0)) ::
-  .atom (.mul (.n 51) (.n 50) (.n 50)) ::
-  .atom (.mul (.n 52) (.n 51) (.n 51)) ::
-  .atom (.mul (.n 53) (.n 52) (.n 52)) ::
-  .atom (.mul (.n 54) (.n 15) (.n 53)) ::
-  .call "verify_sub" [.n 44, .n 45, .n 11, .n 12, .n 14, .n 54] [] ::
-  .atom (.mul (.n 55) (.n 17) (.n 28)) ::
-  .atom (.mul (.n 56) (.n 2) (.n 0)) ::
-  .atom (.load (.n 55) (.n 56) 1) ::
-  .atom (.const (.n 57) (word 2 0 0)) ::
-  .atom (.mul (.n 58) (.n 0) (.n 57)) ::
-  .atom (.add (.n 59) (.n 58) (.n 1)) ::
-  .atom (.const (.n 60) (word 2 0 0)) ::
-  .atom (.mul (.n 61) (.n 0) (.n 60)) ::
-  .callIf (.n 59) "__loop4" [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15] ::
+  .atom (.mul (.n 41) (.n 13) (.n 40)) ::
+  .atom (.load (.n 38) (.n 41) 0) ::
+  .atom (.mul (.n 42) (.n 13) (.n 40)) ::
+  .atom (.load (.n 39) (.n 42) 1) ::
+  .atom (.mul (.n 43) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 44) (.n 43) (.n 0)) ::
+  .atom (.mul (.n 45) (.n 44) (.n 44)) ::
+  .atom (.mul (.n 46) (.n 45) (.n 45)) ::
+  .atom (.mul (.n 47) (.n 46) (.n 46)) ::
+  .atom (.mul (.n 48) (.n 15) (.n 47)) ::
+  .call "verify_sub" [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48] [] ::
+  .atom (.mul (.n 49) (.n 17) (.n 22)) ::
+  .atom (.mul (.n 50) (.n 2) (.n 0)) ::
+  .atom (.load (.n 49) (.n 50) 1) ::
+  .atom (.const (.n 51) (word 2 0 0)) ::
+  .atom (.mul (.n 52) (.n 0) (.n 51)) ::
+  .atom (.add (.n 53) (.n 52) (.n 1)) ::
+  .atom (.const (.n 54) (word 2 0 0)) ::
+  .atom (.mul (.n 55) (.n 0) (.n 54)) ::
+  .callIf (.n 53) "__loop4" [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15] ::
   .ret [] ::
   [])
 

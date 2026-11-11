@@ -41,13 +41,13 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : 
 
 /-- `MainGoalClX` by a tree of honest shape. -/
 def MainGoalClXT : Prop :=
-  CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (clHonest (hm fs fp seed s w).nlx)
 
 /-- `MainGoalClS` by a tree of honest shape. -/
 def MainGoalClST : Prop :=
-  CompleteAtDT fs cert 16 "claim_list_digest" (hLmain fs fp seed s w)
+  CompleteAtDT fs cert 20 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (clHonest (hm fs fp seed s w).nls)
 
@@ -62,7 +62,7 @@ theorem MainGoalClST.goal (h : MainGoalClST fs cert fp seed s w) : MainGoalClS f
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s w := by
   have hn : s.claims.xmss.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+    have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
     simp only [claimBig, maxKeys]
     omega
@@ -86,12 +86,12 @@ theorem mainGoalClXT (hL : DeployedLimits s w) : MainGoalClXT fs cert fp seed s 
   have hd : (hm fs fp seed s w).xd = claimListDigest xmssPublicKeyBytes s.claims.xmss := rfl
   unfold MainGoalClXT clHonest
   rw [ha, hn', hd, mf_xmss_digest]
-  exact key
+  exact key.lowMono (by norm_num)
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape.** -/
 theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s w := by
   have hn : s.claims.sphincs.length < claimBig * maxKeys := by
-    have := hL.planSlotsBelow2Pow16
+    have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
     simp only [claimBig, maxKeys]
     omega
@@ -115,7 +115,7 @@ theorem mainGoalClST (hL : DeployedLimits s w) : MainGoalClST fs cert fp seed s 
   have hd : (hm fs fp seed s w).sd = claimListDigest Sphincs.PublicKey.toBytes s.claims.sphincs := rfl
   unfold MainGoalClST clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
-  exact key
+  exact key.lowMono (by norm_num)
 
 
 end
