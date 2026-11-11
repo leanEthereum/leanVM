@@ -45,8 +45,8 @@ folds `initialFold = 6` variables; every later level folds `subsequentFold = 4`,
 until at most `residualMaxLog = 5` variables remain, which the final level closes with a sumcheck.
 The rate exponent of a level is the previous one plus the previous fold minus a domain reduction,
 `initialReduction = 3` after level 0 and `subsequentReduction = 1` after every later level. Every
-fold round grinds `foldGrindingBits = 9` bits twice; each level opens `queries` positions after
-`queryGrindingBits = 17` bits of grinding; every level but the last commits its folded lane and
+fold round grinds `foldGrindingBits = 9` bits before its challenges; each level opens `queries`
+positions after `queryGrindingBits = 17` bits of grinding; every level but the last commits its folded lane and
 binds the commitment with `oodSamples = 2` out-of-domain points, then grinds `batchGrindingBits =
 14` bits before its batching challenge; the stack's own commitment takes one out-of-domain point
 after `oodGrindingBits = 15` bits (`read_ood`, `crates/verifier/src/lib.rs:158-165`).
@@ -87,8 +87,7 @@ def residualMaxLog : ℕ := 5
 `whir.rs:15`). -/
 def queryGrindingBits : ℕ := 17
 
-/-- Grinding bits before each fold round's `θ`, and again before its `(γ, α, β)`
-(`FOLD_GRINDING_BITS`, `whir.rs:16-17`). -/
+/-- Grinding bits before each fold round's `(γ, α, β)` (`FOLD_GRINDING_BITS`, `whir.rs:16-17`). -/
 def foldGrindingBits : ℕ := 9
 
 /-- Grinding bits before every batching challenge: each non-final level's `λ`, and the stacked
@@ -147,16 +146,16 @@ def ladderShape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
 /-- The query counts `WHIR_QUERIES` of `whir.rs:25-31`, verbatim: row `R - 1` for the rate
 exponent `R`, entry `μ - 15` for the stack size `μ`, one count per level. -/
 def queryTable : List (List (List ℕ)) := [
-  [[234, 62], [228, 59, 41], [224, 58, 37], [221, 57, 35], [220, 56, 34], [219, 55, 33, 27],
+  [[238, 63], [230, 60, 42], [225, 58, 38], [222, 57, 35], [220, 56, 34], [219, 55, 33, 27],
    [218, 55, 32, 25], [218, 55, 32, 24], [217, 55, 32, 23], [217, 55, 32, 23, 20],
    [217, 55, 32, 23, 19], [217, 55, 32, 22, 18], [217, 55, 31, 22, 18], [217, 55, 31, 22, 18, 16]],
-  [[114, 48], [112, 47, 35], [111, 46, 32], [110, 45, 30], [110, 45, 29], [109, 44, 29, 24],
-   [109, 44, 28, 22], [109, 44, 28, 22], [109, 44, 28, 21], [109, 44, 28, 21, 18],
+  [[114, 49], [112, 47, 35], [111, 46, 32], [110, 45, 31], [110, 45, 29], [109, 44, 29, 24],
+   [109, 44, 28, 23], [109, 44, 28, 22], [109, 44, 28, 21], [109, 44, 28, 21, 18],
    [109, 44, 28, 21, 17], [109, 44, 28, 20, 17], [109, 44, 28, 20, 17], [109, 44, 28, 20, 16, 15]],
   [[75, 40], [74, 39, 30], [74, 38, 28], [73, 37, 27], [73, 37, 26], [73, 37, 25, 22],
    [73, 37, 25, 20], [73, 37, 25, 20], [73, 37, 25, 19], [73, 37, 25, 19, 17], [73, 37, 25, 19, 16],
    [73, 37, 25, 19, 16], [73, 37, 25, 19, 15], [73, 37, 25, 19, 15, 14]],
-  [[56, 34], [55, 33, 27], [55, 32, 25], [55, 32, 24], [55, 32, 23], [55, 32, 23, 20],
+  [[56, 34], [56, 33, 27], [55, 32, 25], [55, 32, 24], [55, 32, 23], [55, 32, 23, 20],
    [55, 32, 23, 19], [55, 32, 22, 18], [55, 31, 22, 18], [55, 31, 22, 18, 16], [55, 31, 22, 17, 15],
    [55, 31, 22, 17, 15], [55, 31, 22, 17, 14], [55, 31, 22, 17, 14, 13]]]
 
@@ -1430,7 +1429,7 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 ## The WHIR opening (`whir.rs`, `lib.rs:128-165`)
 
 The opening of [CYWZ26, preprint]'s affine folds (Annex B, Protocol B.1): a level's rounds fold its
-lanes by the affine combiner `G + (α + β·X)(F + θ·G)`, the claim carried by five scalars a round
+lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by five scalars a round
 and the weight folded by `γ`, so the `γ`s are the weight's point. A non-final level then commits
 the folded lane's low part, sends its high part, and glues its out-of-domain claims and its queries,
 each opened row folded as the lanes were and corrected by the high part. The final level sends the
@@ -1525,19 +1524,17 @@ def novelBasis (what : List K) (count : ℕ) : List K :=
 def novelEval (coefficients : List E) (what : List K) : E :=
   sumE (List.zipWith (fun p b ↦ p * ofK b) coefficients (novelBasis what coefficients.length))
 
-/-- The challenges of one fold round that act on the oracle, `P = G + (α + β·X)(F + θ·G)`
+/-- The challenges of one fold round that act on the oracle, `P = G + (α + β·X)·F`
 (`FoldRound`, `whir.rs:158-164`). -/
 structure FoldRound where
-  /-- `θ`, combining the round's two lanes. -/
-  theta : E
   /-- `α`, the combiner's constant term. -/
   alpha : E
   /-- `β`, the combiner's coefficient of `X`. -/
   beta : E
 
-/-- One fold of `fold_row`: adjacent lanes `(f, g)` become `g + (α + β·x)(f + θ·g)`. -/
+/-- One fold of `fold_row`: adjacent lanes `(f, g)` become `g + (α + β·x)·f`. -/
 def foldLanes (x : K) (round : FoldRound) : List E → List E
-  | f :: g :: rest => (g + (round.alpha + round.beta * ofK x) * (f + round.theta * g)) ::
+  | f :: g :: rest => (g + (round.alpha + round.beta * ofK x) * f) ::
     foldLanes x round rest
   | _ => []
 
@@ -1579,23 +1576,21 @@ structure WhirState where
   /-- `glued`: the glued claims so far. -/
   glued : List GluedClaim
 
-/-- One fold round (`whir.rs:240-254`): a grind and `θ`; the five scalars `u0, v0, c0, v1, c1`,
-the `G` lanes' share `u1` derived from the claim; a grind and `γ, α, β`; the claim folded. -/
+/-- One fold round (`whir.rs:240-254`): the five scalars `u0, v0, c0, v1, c1`, the `G` lanes'
+share `u1` derived from the claim; a grind and `γ, α, β`; the claim folded. -/
 def foldRound (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
-  VerifierProgram.grindProofOfWork Whir.foldGrindingBits
-  let theta ← VerifierProgram.sampleChallenge
   let u0 ← VerifierProgram.readScalar
   let v0 ← VerifierProgram.readScalar
   let c0 ← VerifierProgram.readScalar
   let v1 ← VerifierProgram.readScalar
   let c1 ← VerifierProgram.readScalar
-  let u1 := s.claim + v0 + theta * u0
+  let u1 := s.claim + v0
   VerifierProgram.grindProofOfWork Whir.foldGrindingBits
   let gamma ← VerifierProgram.sampleChallenge
   let alpha ← VerifierProgram.sampleChallenge
   let beta ← VerifierProgram.sampleChallenge
   let claim := (1 + gamma) * (u0 + alpha * v0 + beta * c0) + gamma * (u1 + alpha * v1 + beta * c1)
-  return ({ s with claim := claim, gammas := s.gammas ++ [gamma] }, ⟨theta, alpha, beta⟩)
+  return ({ s with claim := claim, gammas := s.gammas ++ [gamma] }, ⟨alpha, beta⟩)
 
 /-- A level's fold rounds, in order. -/
 def foldRounds : ℕ → WhirState → VerifierProgram (WhirState × List FoldRound)

@@ -17,8 +17,8 @@ weights are closures the prover does not evaluate on the cube: the starting weig
 by scatter, a column claim's equality kernel on its block of the stack and the ring claim's `Φ` of
 the equality kernel on `q_keccak`'s block (`basisTableA`). The lanes are tables of novel-basis
 coefficients, coefficient `c` of lane `l` at `c·stride + l` (the Rust's `Dense`): a fold round
-sends the table of the premixed half `H` and of `X H` against the weight (`mulXA`, `roundTableA`)
-and folds the lanes to `G + α H + β X H`, one coefficient longer, and the weight by `γ`. A level's
+sends the table of the half `F` and of `X F` against the weight (`mulXA`, `roundTableA`) and folds
+the lanes to `G + α F + β X F`, one coefficient longer, and the weight by `γ`. A level's
 word is the additive NTT of the folded lane's low part (`levelWordFast`), its query table the
 queries' tensor products `∏_c (1, Ŵ_c(x_q))` summed (`queryTableA`). The prover's messages do not
 depend on the running claim, which it does not track.
@@ -210,16 +210,15 @@ def mulXA (h : Array E) (stride : ℕ) : Array E :=
 /-- `Σ_i a_i b_i` over the shorter array. -/
 def dotA (a b : Array E) : E := sumRange (min a.size b.size) fun i ↦ a.getD i 0 * b.getD i 0
 
-/-- The premixed half `H = F + θ G` of a table `f` of `s` lanes, coefficient by coefficient
-(`Dense::table`, `crates/pcs/src/whir.rs:605-651`): `F`, `G` the lanes `2m`, `2m + 1`. -/
-def premixA (f : Array E) (s : ℕ) (θ : E) : Array E :=
+/-- The half `F` of a table `f` of `s` lanes, coefficient by coefficient (`Dense::table`,
+`crates/pcs/src/whir.rs:605-651`): `F`, `G` the lanes `2m`, `2m + 1`. -/
+def halfA (f : Array E) (s : ℕ) : Array E :=
   Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
-    let c := i.val / (s / 2)
-    let m := i.val % (s / 2)
-    f.getD (c * s + 2 * m) 0 + θ * f.getD (c * s + 2 * m + 1) 0
+    f.getD (i.val / (s / 2) * s + 2 * (i.val % (s / 2))) 0
 
-/-- **A fold round's table** `[u₀, v₀, c₀, v₁, c₁] = [⟨W₀, G⟩, ⟨W₀, H⟩, ⟨W₀, XH⟩, ⟨W₁, H⟩, ⟨W₁, XH⟩]`
-over the low coefficients the weight `w` covers, from the halves' table `f`, `H` and `XH`. -/
+/-- **A fold round's table** `[u₀, v₀, c₀, v₁, c₁] = [⟨W₀, G⟩, ⟨W₀, F⟩, ⟨W₀, XF⟩, ⟨W₁, F⟩, ⟨W₁, XF⟩]`
+over the low coefficients the weight `w` covers, from the halves' table `f`, `H = F` and
+`XH = X F`. -/
 def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
   let n := w.size / s * (s / 2)
   let at_ := fun i ↦ (i / (s / 2)) * s + 2 * (i % (s / 2))
@@ -229,7 +228,7 @@ def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
    sumRange n fun i ↦ w.getD (at_ i + 1) 0 * H.getD i 0,
    sumRange n fun i ↦ w.getD (at_ i + 1) 0 * XH.getD i 0]
 
-/-- The folded lanes `P = G + α H + β X H`, one coefficient longer (`Dense::fold`,
+/-- The folded lanes `P = G + α F + β X F`, one coefficient longer (`Dense::fold`,
 `crates/pcs/src/whir.rs:653-700`). -/
 def foldLanesA (f : Array E) (s : ℕ) (H XH : Array E) (α β : E) : Array E :=
   Array.ofFn (n := XH.size) fun i ↦
@@ -237,12 +236,10 @@ def foldLanesA (f : Array E) (s : ℕ) (H XH : Array E) (α β : E) : Array E :=
     let m := i.val % (s / 2)
     f.getD (c * s + 2 * m + 1) 0 + α * H.getD i.val 0 + β * XH.getD i.val 0
 
-/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs:554-571`): a grind and `θ`, the table,
-a grind and `(γ, α, β)`; the folded lanes and the weight folded by `γ`. -/
+/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs:554-571`): the table, a grind and
+`(γ, α, β)`; the folded lanes and the weight folded by `γ`. -/
 def foldRoundA (f w : Array E) (s : ℕ) : Script (Array E × Array E) := do
-  Script.grindBits Whir.foldGrindingBits
-  let θ ← Script.sampleE
-  let H := premixA f s θ
+  let H := halfA f s
   let XH := mulXA H (s / 2)
   Script.sendList (roundTableA f w s H XH)
   Script.grindBits Whir.foldGrindingBits
