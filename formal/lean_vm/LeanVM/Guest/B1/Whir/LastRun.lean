@@ -46,33 +46,33 @@ theorem squeezeN_mk (cap : List E) (n : ℕ) :
 theorem levelLast_run (logN laneFolds index : ℕ) (level : Whir.Level) (s : WhirState)
     (rounds : List FoldRound) (F : Fs) (R : List (Digest × ℕ × ℕ)) {root : Digest}
     {height width : ℕ} (hi : R[index]? = some (root, height, width))
-    (fold : List E) (hfl : fold.length = 2 ^ (logN - s.gammas.length) + level.fold) (nn : E)
+    (fold : List E) (hfl : fold.length = 2 ^ (logN - s.alphas.length) + level.fold) (nn : E)
     (hb1 : Whir.queryGrindingBits ≠ 0)
-    (hP : 1 ≤ 128 / (logN - s.gammas.length + level.logInvRate)) (hQ : 0 < level.queries)
+    (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
     (hok1 : powOk Whir.queryGrindingBits
       (Keccak.lane ((F.absorbAll fold dsObserve).nonceState nn) 2) = true)
-    (qs : List ℕ) (hqs : qs = sqPositions (logN - s.gammas.length + level.logInvRate)
+    (qs : List ℕ) (hqs : qs = sqPositions (logN - s.alphas.length + level.logInvRate)
       (sqSample (challengeOf ((F.absorbAll fold dsObserve).nonceState nn))
         (capOf ((F.absorbAll fold dsObserve).nonceState nn))) level.queries)
     (F3 : Fs) (hF3 : F3 = ((⟨capOf ((F.absorbAll fold dsObserve).nonceState nn), []⟩ : Fs).squeezeN
-        (sqCount (128 / (logN - s.gammas.length + level.logInvRate)) level.queries - 1)).2)
+        (sqCount (128 / (logN - s.alphas.length + level.logInvRate)) level.queries - 1)).2)
     (os : List Opening) (hl : os.length = qs.length)
     (hopen : ∀ k (hk : k < qs.length) (ho : k < os.length),
       Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width qs[k] os[k]) = true)
     (hidx : os.map Opening.leafIndex = qs)
     (hreq : ∀ k (hk : k < qs.length) (ho : k < os.length),
       foldRow (specLanes index os[k].leaf) (K.ofBits qs[k]) rounds =
-        novelEval fold (subspaceAt (logN - s.gammas.length) (K.ofBits qs[k])))
-    (pairs : List (E × E)) (hpl : pairs.length = logN - s.gammas.length) :
+        novelEval fold (subspaceAt (logN - s.alphas.length) (K.ofBits qs[k])))
+    (pairs : List (E × E)) (hpl : pairs.length = logN - s.alphas.length) :
     RunsWith (levelLast logN laneFolds index level s rounds) F (fold ++ [nn] ++ tailWords pairs) [os] R
-      ⟨(s.gammas ++ (tailRun pairs F3.cap s.claim).1).drop laneFolds ++
-          (s.gammas ++ (tailRun pairs F3.cap s.claim).1).take laneFolds,
+      ⟨(s.alphas ++ (tailRun pairs F3.cap s.claim).1).drop laneFolds ++
+          (s.alphas ++ (tailRun pairs F3.cap s.claim).1).take laneFolds,
         s.glued.foldl (fun weight glued ↦ weight + glued.scalar *
-          glued.weightAt ((s.gammas ++ (tailRun pairs F3.cap s.claim).1).drop glued.foldStart)) 0,
-        multilinearEval (fold.take (2 ^ (logN - s.gammas.length))) (tailRun pairs F3.cap s.claim).1,
+          glued.weightAt ((s.alphas ++ (tailRun pairs F3.cap s.claim).1).drop glued.foldStart)) 0,
+        multilinearEval (fold.take (2 ^ (logN - s.alphas.length))) (tailRun pairs F3.cap s.claim).1,
         (tailRun pairs F3.cap s.claim).2.1⟩
       ⟨(tailRun pairs F3.cap s.claim).2.2, []⟩ R := by
-  set mu := logN - s.gammas.length with hmu
+  set mu := logN - s.alphas.length with hmu
   have h1 := RunsTo.toW (runsTo_readN F fold) R
   rw [hfl] at h1
   have h2 := RunsToG.toW (runsToG_grind hb1 _ nn hok1) R
@@ -96,10 +96,10 @@ theorem levelLast_run (logN laneFolds index : ℕ) (level : Whir.Level) (s : Whi
   have hF3' : F3 = ⟨F3.cap, []⟩ := by rw [hF3]; exact squeezeN_mk _ _
   have h6 := RunsTo.toW (sumcheck_tail_run pairs F3.cap s.claim) R
   rw [← hF3', hpl] at h6
-  have h7 := RunsWith.toW (runsWith_ret (⟨(s.gammas ++ (tailRun pairs F3.cap s.claim).1).drop laneFolds ++
-          (s.gammas ++ (tailRun pairs F3.cap s.claim).1).take laneFolds,
+  have h7 := RunsWith.toW (runsWith_ret (⟨(s.alphas ++ (tailRun pairs F3.cap s.claim).1).drop laneFolds ++
+          (s.alphas ++ (tailRun pairs F3.cap s.claim).1).take laneFolds,
         s.glued.foldl (fun weight glued ↦ weight + glued.scalar *
-          glued.weightAt ((s.gammas ++ (tailRun pairs F3.cap s.claim).1).drop glued.foldStart)) 0,
+          glued.weightAt ((s.alphas ++ (tailRun pairs F3.cap s.claim).1).drop glued.foldStart)) 0,
         multilinearEval (fold.take (2 ^ mu)) (tailRun pairs F3.cap s.claim).1,
         (tailRun pairs F3.cap s.claim).2.1⟩ : WhirEnd) (⟨(tailRun pairs F3.cap s.claim).2.2, []⟩ : Fs) R)
   unfold levelLast

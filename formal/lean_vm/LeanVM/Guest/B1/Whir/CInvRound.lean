@@ -15,9 +15,9 @@ public import LeanVM.Guest.B1.Whir.CRounds
 * `runTz_readE`, `runTz_sampleE_none`, `runTz_sampleE_some`, `runTz_grindPoW`: the Spec's reads,
   samples and grinds in a sequence, backwards.
 * `runT_of_runsTo`: a forward run reading no opening is the carried run on any rest.
-* `foldRound_inv`: an accepting run of `foldRound` from a carried capacity read its seven words
-  `n1, u0, v0, c0, v1, c1, n2`, both grinds passing (`RoundGrinds`), `θ, γ, α, β` nonzero; it
-  returns `opening_round_run`'s.
+* `foldRound_inv`: an accepting run of `foldRound` from a carried capacity read its six words
+  `u0, v0, c0, v1, c1, n2`, the grind passing (`RoundGrinds`), `α, β` nonzero; it returns
+  `opening_round_run`'s.
 * `foldRounds_inv`: `n` of them (`roundsSpec`, `RoundsOk`), the carried capacity `roundsCap`.
 -/
 
@@ -84,25 +84,22 @@ theorem runTz_detTo {p : VerifierProgram α} {F F' : Fs} {xs rest : List E} {a b
 
 /-- The sponge `opening_round_run` leaves. -/
 def roundSponge (fs : List E) (w : List E) : Fs :=
-  (rdG2 fs (w.getD 0 0) [w.getD 1 0, w.getD 2 0, w.getD 3 0, w.getD 4 0, w.getD 5 0]
-    (w.getD 6 0)).2.squeeze.2.squeeze.2
+  (rdG2 fs [w.getD 0 0, w.getD 1 0, w.getD 2 0, w.getD 3 0, w.getD 4 0]
+    (w.getD 5 0)).2.squeeze.2
 
 /-- What `opening_round_run` returns. -/
 def roundSpec (s : WhirState) (fs : List E) (w : List E) : WhirState × FoldRound :=
-  let n1 := w.getD 0 0
-  let m := [w.getD 1 0, w.getD 2 0, w.getD 3 0, w.getD 4 0, w.getD 5 0]
-  let n2 := w.getD 6 0
+  let m := [w.getD 0 0, w.getD 1 0, w.getD 2 0, w.getD 3 0, w.getD 4 0]
+  let n2 := w.getD 5 0
   ({ s with
-      claim := roundClaim s.claim (rdG1 fs n1).1 (rdG2 fs n1 m n2).1
-        (rdG2 fs n1 m n2).2.squeeze.1 (rdG2 fs n1 m n2).2.squeeze.2.squeeze.1
-        (w.getD 1 0) (w.getD 2 0) (w.getD 3 0) (w.getD 4 0) (w.getD 5 0),
-      gammas := s.gammas ++ [(rdG2 fs n1 m n2).1] },
-    ⟨(rdG1 fs n1).1, (rdG2 fs n1 m n2).2.squeeze.1, (rdG2 fs n1 m n2).2.squeeze.2.squeeze.1⟩)
+      claim := roundClaim s.claim (rdG2 fs m n2).1 (rdG2 fs m n2).2.squeeze.1
+        (w.getD 0 0) (w.getD 1 0) (w.getD 2 0) (w.getD 3 0) (w.getD 4 0),
+      alphas := s.alphas ++ [(rdG2 fs m n2).1] },
+    ⟨(rdG2 fs m n2).1, (rdG2 fs m n2).2.squeeze.1⟩)
 
-/-- A round's challenges `θ, γ, α, β` are nonzero. -/
+/-- A round's challenges `α, β` are nonzero. -/
 def RoundNZ (fs w : List E) : Prop :=
-  (roundChs fs w).1 ≠ 0 ∧ (roundChs fs w).2.1 ≠ 0 ∧ (roundChs fs w).2.2.1 ≠ 0 ∧
-    (roundChs fs w).2.2.2 ≠ 0
+  (roundChs fs w).1 ≠ 0 ∧ (roundChs fs w).2.1 ≠ 0 ∧ (roundChs fs w).2.2 ≠ 0
 
 theorem foldGrind_ne : _root_.LeanVM.Parameters.Whir.foldGrindingBits ≠ 0 := by decide
 
@@ -111,46 +108,38 @@ theorem foldRound_inv {s : WhirState} {fs xs : List E} {os : List (List Opening)
     {R : List (Digest × ℕ × ℕ)} {a : WhirState × FoldRound} {st1 : TSt}
     (hc : ∃ sp, (⟨fs, []⟩ : Fs).Carries sp)
     (h : runTz (foldRound s) ⟨⟨fs, []⟩, none, xs, os, R⟩ = some (a, st1)) :
-    ∃ w xs', w.length = 7 ∧ xs = w ++ xs' ∧ RoundGrinds fs w ∧ RoundNZ fs w ∧
+    ∃ w xs', w.length = 6 ∧ xs = w ++ xs' ∧ RoundGrinds fs w ∧ RoundNZ fs w ∧
       a = roundSpec s fs w ∧ st1 = ⟨roundSponge fs w, none, xs', os, R⟩ := by
   have hb := foldGrind_ne
   have h0 := h
   unfold foldRound at h
-  obtain ⟨n1, xs1, hs1, -, hp1, h⟩ := runTz_grindPoW hb h
-  obtain ⟨hθ, h⟩ := runTz_sampleE_some h rfl
   obtain ⟨u0, xs2, hs2, -, h⟩ := runTz_readE h
   obtain ⟨v0, xs3, hs3, -, h⟩ := runTz_readE h
   obtain ⟨c0, xs4, hs4, -, h⟩ := runTz_readE h
   obtain ⟨v1, xs5, hs5, -, h⟩ := runTz_readE h
   obtain ⟨c1, xs6, hs6, -, h⟩ := runTz_readE h
   obtain ⟨n2, xs7, hs7, -, hp2, h⟩ := runTz_grindPoW hb h
-  obtain ⟨hγ, h⟩ := runTz_sampleE_some h rfl
-  obtain ⟨hα, h⟩ := runTz_sampleE_none h rfl
+  obtain ⟨hα, h⟩ := runTz_sampleE_some h rfl
   obtain ⟨hβ, -⟩ := runTz_sampleE_none h rfl
-  simp only at hs1 hs2 hs3 hs4 hs5 hs6 hs7 hθ hγ hα hβ hp1 hp2
-  subst hs7 hs6 hs5 hs4 hs3 hs2
-  have hxs : xs = [n1, u0, v0, c0, v1, c1, n2] ++ xs7 := by rw [hs1]; rfl
-  have e1 : rdG1 fs n1 = (challengeOf ((⟨fs, []⟩ : Fs).nonceState n1),
-      ⟨capOf ((⟨fs, []⟩ : Fs).nonceState n1), []⟩) := Fs.grindSqueeze_pos _ hb _
-  have es : rdS2 fs n1 [u0, v0, c0, v1, c1] =
-      (((((⟨capOf ((⟨fs, []⟩ : Fs).nonceState n1), []⟩ : Fs).absorb u0 dsObserve).absorb v0
-        dsObserve).absorb c0 dsObserve).absorb v1 dsObserve).absorb c1 dsObserve := by
-    rw [rdS2, e1]; rfl
-  have e2 : rdG2 fs n1 [u0, v0, c0, v1, c1] n2 =
-      (challengeOf ((rdS2 fs n1 [u0, v0, c0, v1, c1]).nonceState n2),
-        ⟨capOf ((rdS2 fs n1 [u0, v0, c0, v1, c1]).nonceState n2), []⟩) := Fs.grindSqueeze_pos _ hb _
-  have g1 : (⟨fs, []⟩ : Fs).GrindOk _root_.LeanVM.Parameters.Whir.foldGrindingBits n1 := Or.inr hp1
-  have g2 : (rdS2 fs n1 [u0, v0, c0, v1, c1]).GrindOk
+  simp only at hs2 hs3 hs4 hs5 hs6 hs7 hα hβ hp2
+  subst hs7 hs6 hs5 hs4 hs3
+  have hxs : xs = [u0, v0, c0, v1, c1, n2] ++ xs7 := by rw [hs2]; rfl
+  have es : rdS2 fs [u0, v0, c0, v1, c1] =
+      (((((⟨fs, []⟩ : Fs).absorb u0 dsObserve).absorb v0 dsObserve).absorb c0 dsObserve).absorb v1
+        dsObserve).absorb c1 dsObserve := rfl
+  have e2 : rdG2 fs [u0, v0, c0, v1, c1] n2 =
+      (challengeOf ((rdS2 fs [u0, v0, c0, v1, c1]).nonceState n2),
+        ⟨capOf ((rdS2 fs [u0, v0, c0, v1, c1]).nonceState n2), []⟩) := Fs.grindSqueeze_pos _ hb _
+  have g2 : (rdS2 fs [u0, v0, c0, v1, c1]).GrindOk
       _root_.LeanVM.Parameters.Whir.foldGrindingBits n2 := Or.inr (by rw [es]; exact hp2)
-  have hf := opening_round_run s fs n1 u0 v0 c0 v1 c1 n2 g1 g2
+  have hf := opening_round_run s fs u0 v0 c0 v1 c1 n2 g2
   rw [hxs] at h0
   obtain ⟨ea, est⟩ := runTz_detTo h0 hf hc
-  refine ⟨[n1, u0, v0, c0, v1, c1, n2], xs7, rfl, hxs, ⟨g1, g2⟩, ?_, ea, est⟩
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> simp only [roundChs, List.getD_cons_zero, List.getD_cons_succ]
-  · rw [e2, es]; exact hγ
+  refine ⟨[u0, v0, c0, v1, c1, n2], xs7, rfl, hxs, g2, ?_, ea, est⟩
+  refine ⟨?_, ?_, ?_⟩ <;> simp only [roundChs, List.getD_cons_zero, List.getD_cons_succ]
+  · rw [e2, es]; exact hα
   · rw [e2, es]; exact hα
   · rw [e2, es]; exact hβ
-  · rw [e1]; exact hθ
 
 
 /-! ## A level's fold rounds -/
@@ -159,19 +148,19 @@ theorem foldRound_inv {s : WhirState} {fs xs : List E} {os : List (List Opening)
 def roundsSpec : ℕ → WhirState → List E → List E → WhirState × List FoldRound
   | 0, s, _, _ => (s, [])
   | n + 1, s, fs, xs =>
-    let t := roundsSpec n (roundSpec s fs (xs.take 7)).1 (roundSponge fs (xs.take 7)).cap (xs.drop 7)
-    (t.1, (roundSpec s fs (xs.take 7)).2 :: t.2)
+    let t := roundsSpec n (roundSpec s fs (xs.take 6)).1 (roundSponge fs (xs.take 6)).cap (xs.drop 6)
+    (t.1, (roundSpec s fs (xs.take 6)).2 :: t.2)
 
 /-- The capacity after `n` rounds. -/
 def roundsCap : ℕ → List E → List E → List E
   | 0, fs, _ => fs
-  | n + 1, fs, xs => roundsCap n (roundSponge fs (xs.take 7)).cap (xs.drop 7)
+  | n + 1, fs, xs => roundsCap n (roundSponge fs (xs.take 6)).cap (xs.drop 6)
 
-/-- Every round's grinds pass and its challenges are nonzero. -/
+/-- Every round's grind passes and its challenges are nonzero. -/
 def RoundsOk : ℕ → List E → List E → Prop
   | 0, _, _ => True
-  | n + 1, fs, xs => RoundGrinds fs (xs.take 7) ∧ RoundNZ fs (xs.take 7) ∧
-      RoundsOk n (roundSponge fs (xs.take 7)).cap (xs.drop 7)
+  | n + 1, fs, xs => RoundGrinds fs (xs.take 6) ∧ RoundNZ fs (xs.take 6) ∧
+      RoundsOk n (roundSponge fs (xs.take 6)).cap (xs.drop 6)
 
 theorem roundSponge_pend (fs w : List E) : (roundSponge fs w).pend = [] := rfl
 
@@ -194,7 +183,7 @@ theorem foldRounds_inv : ∀ (n : ℕ) {s : WhirState} {fs xs : List E} {os : Li
     {R : List (Digest × ℕ × ℕ)} {a : WhirState × List FoldRound} {st1 : TSt},
     (∃ sp, (⟨fs, []⟩ : Fs).Carries sp) →
     runTz (foldRounds n s) ⟨⟨fs, []⟩, none, xs, os, R⟩ = some (a, st1) →
-    ∃ ws xs', ws.length = 7 * n ∧ xs = ws ++ xs' ∧ RoundsOk n fs ws ∧ a = roundsSpec n s fs ws ∧
+    ∃ ws xs', ws.length = 6 * n ∧ xs = ws ++ xs' ∧ RoundsOk n fs ws ∧ a = roundsSpec n s fs ws ∧
       st1 = ⟨⟨roundsCap n fs ws, []⟩, none, xs', os, R⟩
   | 0, s, fs, xs, os, R, a, st1, _, h => by
     have e := runTz_ret_inv (α := WhirState × List FoldRound) h
@@ -216,8 +205,8 @@ theorem foldRounds_inv : ∀ (n : ℕ) {s : WhirState} {fs xs : List E} {os : Li
     have e := runTz_ret_inv h4
     simp only [Prod.mk.injEq] at e
     obtain ⟨rfl, rfl⟩ := e
-    have htw : (w ++ ws).take 7 = w := by simp [hwl]
-    have hdw : (w ++ ws).drop 7 = ws := by simp [hwl]
+    have htw : (w ++ ws).take 6 = w := by simp [hwl]
+    have hdw : (w ++ ws).drop 6 = ws := by simp [hwl]
     refine ⟨w ++ ws, xs', by simp [hwl, hl]; ring, by rw [hxs, hx, List.append_assoc], ?_, ?_, ?_⟩
     · simp only [RoundsOk, htw, hdw]
       exact ⟨hg, hnz, hok⟩

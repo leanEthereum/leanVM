@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.LayerSecA
 
-  `keccak_layer`'s first sections (G:2694-2726): the head, the readers, the product read and
+  `keccak_layer`'s first sections (G:2685-2717): the head, the readers, the product read and
   absorbed, the projection check, and the squeeze of `s`.
 -/
 
@@ -251,7 +251,7 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
     obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 543)) (b := 551) hout hg' hch
     exact ⟨hl, hok, hsq, hn⟩
 
-/-- **The product and `s`** (G:2694-2726 against V:1983-1997). -/
+/-- **The product and `s`** (G:2685-2717 against V:1983-1997). -/
 theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} {w : E}
     (hcr : ClaimRec rd (first = 1) (σ (.n 11)) c y)
     (hw : first = 1 → (σ (.n 5), σ (.n 6)) = Keccak.scalarCells w dsObserve)

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.IndexMle
 /-!
 # `block_selector` (TRIAGE G #50)
 
-`block_selector(sel_bits, zeta1_hi, idxc_hi, n)` (G:1881-1896) reads bit `k < n` at `sel_bits`,
+`block_selector(sel_bits, zeta1_hi, idxc_hi, n)` (G:1872-1887) reads bit `k < n` at `sel_bits`,
 pins it by the write-once store of its square (`b = b²`, so `b ∈ {0, 1}`), and multiplies
 `b + zeta1_hi[k]` and `1 + b·idxc_hi[k]`. Its specialization `block_selector__L{n}` is `bsBody n`:
 bit `k`'s block from value `10k + 1` (`bsBlk`), the first without the products, then copies of the

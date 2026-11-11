@@ -18,7 +18,7 @@ On `HonRun μ r … cfg Ls`, with `c := osCfg (candidate μ r)` and `L l := Ls.g
 * `HonRun.len`, `HonRun.level`: `Ls` has a level a row, level `l` is `cfg[l]`;
 * `HonRun.mid`, `HonRun.fin`: the candidate's checked facts at each level of the run;
 * `HonRun.step`, `HonRun.last`: the non-final levels' steps and the final level's end;
-* `HonRun.gammas`: level `l` starts after `foldsOff` fold challenges;
+* `HonRun.alphas`: level `l` starts after `foldsOff` fold challenges;
 * `HonRun.recs`: the records of the levels before `l` are what level `l`'s state glued, their `F`
   within its challenges;
 * `HonRun.off`: each level's words' offset in the stream.
@@ -38,7 +38,7 @@ theorem lvsRecs_succ {logN : ℕ} {Ls : List LvAt} {l : ℕ} (hl : l < Ls.length
   simp [List.getElem?_eq_getElem hl]
 
 theorem osRec_F {L L' : LvAt} {logN index : ℕ} (hN : LvAt.NextStep logN index L L') :
-    (L.osRec logN).F = L.s1.gammas.length := by
+    (L.osRec logN).F = L.s1.alphas.length := by
   obtain ⟨rw, W, hd, -⟩ := hN
   unfold LvAt.osRec; rw [hd]; rfl
 
@@ -114,7 +114,7 @@ theorem foldsOff0 : (osLvAt (osCfg (candidate μ r)) 0).foldsOff = 0 := by
 
 /-- The non-final level's next level starts after its folds' challenges, with its record glued. -/
 theorem stepS {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
-    (Ls.getD (l + 1) default).s.gammas = (Ls.getD l default).s1.gammas ∧
+    (Ls.getD (l + 1) default).s.alphas = (Ls.getD l default).s1.alphas ∧
     (Ls.getD (l + 1) default).s.glued = (Ls.getD l default).s.glued ++ recGlued ((Ls.getD l default).osRec μ) := by
   obtain ⟨rw, W, hd, -, -, -, -, -, hs, -, -⟩ := hR.step hl
   obtain ⟨e1, e2⟩ := NextW.glued_glued W μ l (Ls.getD l default).level (Ls.getD l default).s1
@@ -127,20 +127,20 @@ theorem stepS {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
   exact ⟨e2, e1.trans (congrArg (· ++ _) (roundsSpec_glued _ _ _ _))⟩
 
 /-- **Level `l` starts after `foldsOff` fold challenges.** -/
-theorem gammas : ∀ l < (osCfg (candidate μ r)).levels.length,
-    (Ls.getD l default).s.gammas.length = (osLvAt (osCfg (candidate μ r)) l).foldsOff
+theorem alphas : ∀ l < (osCfg (candidate μ r)).levels.length,
+    (Ls.getD l default).s.alphas.length = (osLvAt (osCfg (candidate μ r)) l).foldsOff
   | 0, _ => by rw [hR.start.1, hR.foldsOff0]; rfl
   | l + 1, hl => by
     have hy := hR.yr
-    have ih := gammas l (by omega)
+    have ih := alphas l (by omega)
     obtain ⟨-, hf, -⟩ := hR.mid (l := l) (by omega)
     have hoff := hR.mid (l := l) (by omega)
-    rw [(hR.stepS (by omega)).1, LvAt.s1, roundsSpec_gammas_length, ih, hf]
+    rw [(hR.stepS (by omega)).1, LvAt.s1, roundsSpec_alphas_length, ih, hf]
     exact hoff.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1.symm
 
 /-- **The records before level `l`**: what its state glued, their `F` within its challenges. -/
 theorem recs : ∀ l < (osCfg (candidate μ r)).levels.length,
-    (∀ q ∈ lvsRecs μ Ls l, q.F ≤ (Ls.getD l default).s.gammas.length) ∧
+    (∀ q ∈ lvsRecs μ Ls l, q.F ≤ (Ls.getD l default).s.alphas.length) ∧
     (Ls.getD l default).s.glued = (lvsRecs μ Ls l).flatMap recGlued
   | 0, _ => by
     refine ⟨fun q hq ↦ by simp [lvsRecs] at hq, ?_⟩
@@ -152,8 +152,8 @@ theorem recs : ∀ l < (osCfg (candidate μ r)).levels.length,
     have hlen := hR.len
     rw [lvsRecs_succ (by rw [hlen]; omega), e1, e2, ih2, List.flatMap_append, List.flatMap_singleton]
     refine ⟨fun q hq ↦ ?_, rfl⟩
-    have hge : (Ls.getD l default).s.gammas.length ≤ (Ls.getD l default).s1.gammas.length := by
-      rw [LvAt.s1, roundsSpec_gammas_length]; omega
+    have hge : (Ls.getD l default).s.alphas.length ≤ (Ls.getD l default).s1.alphas.length := by
+      rw [LvAt.s1, roundsSpec_alphas_length]; omega
     rcases List.mem_append.mp hq with hq | hq
     · exact le_trans (ih1 q hq) hge
     · rw [List.mem_singleton] at hq

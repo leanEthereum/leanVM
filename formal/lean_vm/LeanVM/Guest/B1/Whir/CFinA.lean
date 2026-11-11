@@ -14,9 +14,9 @@ public import LeanVM.Guest.B1.Whir.CFinO
 public import LeanVM.Guest.B1.Whir.FinishSound
 
 /-!
-# The finish, honestly (G:1755-1856)
+# The finish, honestly (G:1746-1847)
 
-The finish's own buffers' honest words, from all `γ`s `G`, the tail challenges `T` and the
+The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
 non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded
 (`finPtC`, `finPt1C`), each level's basis row (`finBdC`), scale (`finLsC`), product of
 coordinates (`finLaC`), the inner chain (`finIchC`) and the residual chains (`finRcC`).

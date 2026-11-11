@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkSlices
 
-  `verify_keccak`'s 64 slices (G:3060-3069): read at the cursor, stored, absorbed four to a
+  `verify_keccak`'s 64 slices (G:3051-3060): read at the cursor, stored, absorbed four to a
   permutation, then the ring map's first challenge squeezed.
 -/
 
@@ -59,7 +59,7 @@ theorem range_map_take (f : ℕ → E) (g : ℕ) :
   rw [show 4 * (g + 1) = 4 * g + 4 by ring, List.range_add, List.map_append, List.map_map]
   rfl
 
-/-- **The slices** (G:3060-3069). -/
+/-- **The slices** (G:3051-3060). -/
 theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (slicesT cur capb b) next kret) :
     ReadsAt rd (σ cur) ((List.range 64).map fun z ↦ σ (.n (slB b z))) ∧

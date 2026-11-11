@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsFields
 
-  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3749-3810` at leanVM main 40f877dc, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
+  The message digest's fields in `verify_sig_lean_sphincs` (`lean_ethereum.py:3740-3801` at leanVM main 40f877dc, `sp_md_bit`, `sp_fors_field`, `sp_md_byte`, `sp_leaf_bit`, `sp_leaf_shifts`): from the
   bits of the digest's number, the FORS leaves and the layers' leaves read as FIPS 205's
   Algorithm 19 reads them, their right shifts, and the digest's bytes placed back into its cells.
 -/
@@ -443,14 +443,14 @@ theorem mdAcross_sound {T c k1 s b : Nat} (hc : c + 1 < 24) (hk1 : 1 ≤ k1) (hk
     rw [a7, e4, m6, k5, hv1, add_mul, pw_mul hs (two_pow_mod_mul_lt (k := 8 - k1) (by omega) hq),
       ← add_assoc, hsk, eOfNat128_shift_add hq]
 
-/-- **The place `vals` adds to digest byte `i`** (`G:4001-4007`): in a byte inside a field only
+/-- **The place `vals` adds to digest byte `i`** (`G:3992-3998`): in a byte inside a field only
 where the field starts (`c · 256`), in a byte across two the second field's
 (`(c + 1) · 2^(8 i + 8 - 10 (c + 1))`). -/
 def mdPlaceN (i : Nat) : Nat :=
   if (8 * i + 7) / 10 ≠ 8 * i / 10 then (8 * i / 10 + 1) * 2 ^ (8 * i + 8 - 10 * (8 * i / 10 + 1))
   else if 8 * i = 10 * (8 * i / 10) then 8 * i / 10 * 256 else 0
 
-/-- The place at its bit in the cell, `pc` of `G:4001-4007`. -/
+/-- The place at its bit in the cell, `pc` of `G:3992-3998`. -/
 def mdPlace (i : Nat) : E := eOfNat (mdPlaceN i) * pw (8 * (i % 16))
 
 /-- The places of bytes `i0 ..< i0 + n`, summed. -/

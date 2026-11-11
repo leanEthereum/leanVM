@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DvLoops
 
-  `da_verify`'s loops on its honest buffers (G:4340-4361): the regions' bases (`__loop21`), a
+  `da_verify`'s loops on its honest buffers (G:4331-4352): the regions' bases (`__loop21`), a
   column's cells (`__loop25`), the blobs' trees (`__loop23`), the padding blobs' roots
   (`__loop24`), and the tree over the blobs' roots (`da_levels` at the padded count).
 

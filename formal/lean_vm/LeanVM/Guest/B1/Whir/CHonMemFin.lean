@@ -195,7 +195,7 @@ theorem qMem_at (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) (hL : h.Ls.len
         h.cv l (2 * (2 ^ (oqS h.c l).cd + qs k / 2 ^ (oqS h.c l).pd) + 1) =
           (digestHalves (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).2 ∧
         h.fv l (2 ^ ((oqS h.c l).cd - 1) + qs k / 2 ^ ((oqS h.c l).pd + 1)) = 1) :
-    RoundsAt rd (osPtrF h.c b 5 * gen ^ (3 * (osLvAt h.c l).foldsOff)) (h.L l).rounds ∧
+    RoundsAt rd (osPtrF h.c b 5 * gen ^ (2 * (osLvAt h.c l).foldsOff)) (h.L l).rounds ∧
     ((oqS h.c l).final = 1 → WordsAt rd (osHsPtr h.c b l) (if l = h.c.yrLevel then h.hsFC else [])) ∧
     ∀ k < oqQ h.c l,
       LoadHolds rd (osPtrF h.c b 0 * gen ^ (4 * (osLvAt h.c l).capOff))

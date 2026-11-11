@@ -77,8 +77,8 @@ theorem osHonest_run {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest}
 
 /-- **Every accepting run has its honest data** (`Place/OsHonestSpec`). -/
 theorem osHonestSpec_holds : OsHonestSpec := by
-  intro μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hnc hca
-  obtain ⟨cfg, Ls, hR⟩ := honRun_of h1 h2 h3 h4 hrun hnz hnc hca
+  intro μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hca
+  obtain ⟨cfg, Ls, hR⟩ := honRun_of h1 h2 h3 h4 hrun hnz hca
   exact osHonest_run hR
 
 end

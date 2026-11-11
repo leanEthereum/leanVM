@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Fs.TailRound
 public import LeanVM.Guest.B1.Sumcheck.Run
 
 /-!
-# The closing rounds (G:1746-1754)
+# The closing rounds (G:1737-1745)
 
 `tailRun pairs cap claim`: round by round, the two words `c0, c2` absorbed on the capacity, the
 challenge `r` squeezed, the claim `c0 + r (claim + (1 + r) c2)` (`opening_tail_round`'s);

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DvBound
 
-  `da_verify`'s words bound on `r` blobs padded to `2^L` (G:4323-4392): its frame, its buffers and
+  `da_verify`'s words bound on `r` blobs padded to `2^L` (G:4314-4383): its frame, its buffers and
   its callees' bounds, in call order, for the budget.
 -/
 

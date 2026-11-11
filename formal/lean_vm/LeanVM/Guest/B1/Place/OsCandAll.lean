@@ -89,9 +89,9 @@ theorem os_args_length (S : KeccakState) (target r0 r1 cur tabs : E) :
 /-- **`open_stacked` is complete placed at every candidate**, from the honest data. -/
 theorem open_stacked_completeAtD_of (hH : OsHonestSpec) : open_stacked_completeAtD_Spec := by
   intro μ r h1 h2 h3 h4 fs cert κ hrf hcons hκ S root target cur tabs xs os w s' roots' hrun hnz
-    hnzc hcaps Lin hLin
+    hcaps Lin hLin
   have hm : candidate μ r < 28 := by unfold candidate; omega
-  obtain ⟨H⟩ := hH μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hnzc hcaps
+  obtain ⟨H⟩ := hH μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hcaps
   obtain ⟨⟨fn, hf, hp, hb⟩, hsq, hres⟩ := osData_at hm
   rw [openName_eq μ r hm]
   exact os_completeAtD_lift hrf hcons hκ (placeAll_all _ hm) hf hp hb hsq hres
@@ -101,9 +101,9 @@ theorem open_stacked_completeAtD_of (hH : OsHonestSpec) : open_stacked_completeA
 honest data (the named callees within their bounds by `os_kid_namedB`). -/
 theorem open_stacked_completeAtB_of (hH : OsHonestSpec) : open_stacked_completeAtB_Spec := by
   intro μ r h1 h2 h3 h4 fs cert κ Bnd Kr hrf hcons hκ hT hL S root target cur tabs xs os w s'
-    roots' hrun hnz hnzc hcaps Lin hLin
+    roots' hrun hnz hcaps Lin hLin
   have hm : candidate μ r < 28 := by unfold candidate; omega
-  obtain ⟨H⟩ := hH μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hnzc hcaps
+  obtain ⟨H⟩ := hH μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hnz hcaps
   obtain ⟨⟨fn, hf, hp, hb⟩, hsq, hres⟩ := osData_at hm
   unfold osBosAt
   rw [openName_eq μ r hm]

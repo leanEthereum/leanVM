@@ -74,8 +74,7 @@ def verifierRefusingZeroWithHash {m : Type → Type} [Monad m] (H : Bytes → m 
   let seed ← seedWithHash H F (bytecodeWords prog) (publicInputDigest input)
   runProofWithHash H F
     (do
-      verifyExecutionRefusingZeroCombiner computedBytecodeValue (bytecodeWords prog)
-        (publicInputDigest input)
+      verifyExecution computedBytecodeValue (bytecodeWords prog) (publicInputDigest input)
       return true : VerifierProgram Bool).refusingZeroChallenge
         seed proof
 

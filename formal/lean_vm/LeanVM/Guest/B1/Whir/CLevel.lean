@@ -80,7 +80,7 @@ def msg : List E := W.x0 :: W.x1 :: W.high
 /-- The capacity, claim and cursor after the rounds. -/
 def cap1 : List E := (roundsTr lv.folds cap cl W.rw).1
 def cl1 : E := (roundsTr lv.folds cap cl W.rw).2
-def cur1 : E := cur * gen ^ (7 * lv.folds)
+def cur1 : E := cur * gen ^ (6 * lv.folds)
 
 /-- The query nonce's permutation. -/
 def S2 : KeccakState := commitS (W.cap1 lv cap cl) W.msg lv.logCols W.y0 W.y1 W.nq
@@ -137,7 +137,7 @@ structure MidC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (l
       word (hsScale lv.vanish lv.highBits j (vanishInv (lv.vanish + lv.logCols))) 0)
   q : C (osQueriesName c lvl lv)
     [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, (W.lam lv cap cl)⁻¹,
-      σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), σ (.n osHs) * gen ^ (lvl * hsStride),
+      σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), σ (.n osHs) * gen ^ (lvl * hsStride),
       σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff,
       gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] [W.batched]
   glue : LoadHolds rd (σ (.n osOodSc)) (oodSamples * (lvl + 1)) (W.lam lv cap cl) ∧
@@ -189,13 +189,13 @@ theorem osQueries_batched_lt (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osQueries c lvl lv s).2.batched < (osQueries c lvl lv s).2.k := by
   simp only [osQueries]; omega
 
-/-- **A non-final level, honestly** (G:1576-1744). -/
+/-- **A non-final level, honestly** (G:1567-1735). -/
 theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hfin : lvl ≠ c.yrLevel) (W : MidW)
-    (hr3 : 3 * (lv.foldsOff + lv.folds) < u128Bound)
+    (hr3 : 2 * (lv.foldsOff + lv.folds) < u128Bound)
     (hoff : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound) (hpo : lv.posOff < u128Bound)
     (hS5 : lv.squeezes * 5 < u128Bound) (hS : lv.squeezes < u128Bound)
-    (hc4 : 4 * lv.capOff < u128Bound) (h3 : 3 * lv.foldsOff < u128Bound)
+    (hc4 : 4 * lv.capOff < u128Bound) (h3 : 2 * lv.foldsOff < u128Bound)
     (hh8 : lvl * hsStride < u128Bound)
     (hpq : (if lvl = 0 then lv.queries / 2 else lv.queries) < u128Bound)
     (hpw : digitsVal (osPowDigits lv.queries) 1 = lv.queries)
@@ -217,7 +217,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
         [gen, gen ^ lv.squeezes, W.pZ, σ (.n osQpos), σ (.n osQbp), σ (.n osTabs)] ∧
       (osQCallAt c lvl lv (lvH c lvl lv st).2).2.2.1.map σ' =
         [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
-          (W.lam lv (st.fsv σ) (σ (.n st.claim)))⁻¹, σ (.n osCoefs) * gen ^ (3 * lv.foldsOff),
+          (W.lam lv (st.fsv σ) (σ (.n st.claim)))⁻¹, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
           σ (.n osHs) * gen ^ (lvl * hsStride), σ (.n osQpos) * gen ^ lv.posOff,
           σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] ∧
       (osQCallAt c lvl lv (lvH c lvl lv st).2).2.2.2.map σ' = [W.batched]) := by
@@ -375,7 +375,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
     (OutB := fun σ' ↦ s8.Ok σ' ∧ s7.k ≤ s8.k ∧ k ≤ s8.k ∧
       (osQCallAt c lvl lv s7).2.2.1.map σ' =
         [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
-          (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (3 * lv.foldsOff),
+          (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
           σ (.n osHs) * gen ^ (lvl * hsStride), σ (.n osQpos) * gen ^ lv.posOff,
           σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] ∧
       (osQCallAt c lvl lv s7).2.2.2.map σ' = [W.batched] ∧ σ' (.n s8.batched) = W.batched)
@@ -388,7 +388,7 @@ theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       have hl5 : s5.lamInv < s5.k := (osLam_lt s4).2
       have eA : osQArgsV σ1 c lvl lv s7 =
           [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
-            (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (3 * lv.foldsOff),
+            (W.lam lv cap cl)⁻¹, σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
             σ (.n osHs) * gen ^ (lvl * hsStride), σ (.n osQpos) * gen ^ lv.posOff,
             σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] := by
         simp only [osQArgsV, hfin, ↓reduceIte]
@@ -534,15 +534,15 @@ structure FinC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (l
     LoadHolds rd W.pH j (W.lane.getD j 0 * word (hsScale lv.vanish (c.yrLog + 1) j 1) 0)
   q : C (osQueriesName c lvl lv)
     [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
-      σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+      σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
       σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] [W.batched]
 
-/-- **The final level, honestly** (G:1576-1726 at the final level). -/
+/-- **The final level, honestly** (G:1567-1717 at the final level). -/
 theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hfin : lvl = c.yrLevel) (W : FinWD)
-    (hr3 : 3 * (lv.foldsOff + lv.folds) < u128Bound) (hpo : lv.posOff < u128Bound)
+    (hr3 : 2 * (lv.foldsOff + lv.folds) < u128Bound) (hpo : lv.posOff < u128Bound)
     (hS5 : lv.squeezes * 5 < u128Bound) (hS : lv.squeezes < u128Bound)
-    (hc4 : 4 * lv.capOff < u128Bound) (h3 : 3 * lv.foldsOff < u128Bound)
+    (hc4 : 4 * lv.capOff < u128Bound) (h3 : 2 * lv.foldsOff < u128Bound)
     (hh8 : lvl * hsStride < u128Bound)
     (hpq : (if lvl = 0 then lv.queries / 2 else lv.queries) < u128Bound)
     (hC : ∀ C rd, H C rd → FinC C rd σ c lvl lv (st.fsv σ) (σ (.n st.claim)) (st.cur σ) W) :
@@ -563,7 +563,7 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
         [gen, gen ^ lv.squeezes, W.pZ, σ (.n osQpos), σ (.n osQbp), σ (.n osTabs)] ∧
       (osQCallAt c lvl lv (lvH c lvl lv st).2).2.2.1.map σ' =
         [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
-          σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+          σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
           σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] ∧
       (osQCallAt c lvl lv (lvH c lvl lv st).2).2.2.2.map σ' = [W.batched]) := by
   set cap := st.fsv σ with hcap
@@ -682,7 +682,7 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       k ≤ (osQueries c lvl lv s7).2.k ∧
       (osQCallAt c lvl lv s7).2.2.1.map σ' =
         [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
-          σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+          σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
           σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] ∧
       (osQCallAt c lvl lv s7).2.2.2.map σ' = [W.batched])
     (fun σ1 ha1 ho1 ↦ BlkA.of_ne fun ⟨C0, rd0, hH0⟩ ↦ by
@@ -691,7 +691,7 @@ theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       have hpH := (ho1 C0 rd0 hH0).2.2.2.2.2
       have eA : osQArgsV σ1 c lvl lv s7 =
           [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff, 0,
-            σ (.n osCoefs) * gen ^ (3 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
+            σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
             σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] := by
         simp only [osQArgsV, hfin, ↓reduceIte]
         rw [hpH, ha1 _ (show 11 < k by omega), ha1 _ (show 13 < k by omega),

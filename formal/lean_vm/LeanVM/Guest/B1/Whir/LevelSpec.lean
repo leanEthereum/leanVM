@@ -47,7 +47,7 @@ def levelBatched (mu index : ℕ) (rounds : List FoldRound) (high : List E) (que
 and the rounds, up to the glued state. -/
 def levelNext (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
     (rounds : List FoldRound) : VerifierProgram WhirState := do
-  let mu := logN - s.gammas.length
+  let mu := logN - s.alphas.length
   let depth := mu + level.logInvRate
   VerifierProgram.readCommitment (levelShape mu next (2 * 2 ^ next.fold)).1
     (levelShape mu next (2 * 2 ^ next.fold)).2
@@ -65,7 +65,7 @@ def levelNext (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
 /-- The final level after its folds (V: `whirLevels`, the `[]` arm), up to the terminal. -/
 def levelLast (logN laneFolds index : ℕ) (level : Whir.Level) (s : WhirState)
     (rounds : List FoldRound) : VerifierProgram WhirEnd := do
-  let mu := logN - s.gammas.length
+  let mu := logN - s.alphas.length
   let depth := mu + level.logInvRate
   let lanesOf : List K → List E := fun row ↦
     if index = 0 then row.reverse.map ofK else extRow row
@@ -77,7 +77,7 @@ def levelLast (logN laneFolds index : ℕ) (level : Whir.Level) (s : WhirState)
     foldRow (lanesOf row) (K.ofBits query) rounds =
       novelEval folded (subspaceAt mu (K.ofBits query)))
   let (tail, claim) ← sumcheck s.claim 3 (List.replicate mu none)
-  let point := s.gammas ++ tail
+  let point := s.alphas ++ tail
   let inner := s.glued.foldl
     (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart)) 0
   return ⟨point.drop laneFolds ++ point.take laneFolds, inner,

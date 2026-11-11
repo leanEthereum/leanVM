@@ -47,14 +47,12 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 
 /-- What `verify_sub`'s completeness asks of a child `c` under the seed `seed`: its announced stack
 log at least `22`, its stream within the cap, its deferring verifier accepting without a zero
-challenge (the statement's refusal and the guest's), and its openings agreeing in the caps. -/
+challenge, and its openings agreeing in the caps. -/
 def VsChildOk (bytecode : List K) (seed : Digest) (c : Child) : Prop :=
   (∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog) ∧
     c.proof.stream.length ≤ Coverage.childStreamCap ∧
     Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true ∧
-    Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
       c.proof = true ∧
     ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
@@ -90,7 +88,7 @@ theorem childShape_bounds {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ �
     22 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 28 ∧
       1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 :=
   hvs.shape seed ch ⟨(hok _ hch).stackLogAtLeastMinimum, (hok _ hch).streamWithinCap,
-    (hok _ hch).noZeroChallenge, Limits.verifyDeferredNZ_of_childOk (hok _ hch), (hok _ hch).capsAgree⟩
+    (hok _ hch).noZeroChallenge, (hok _ hch).capsAgree⟩
 
 /-- **Each child's `verify_sub` call on the honest run, within its own bound**: `B` at its
 announced stack log and rate, by a tree of `T`, the child's candidate among `open_stacked`'s
@@ -111,7 +109,7 @@ theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ
   have h := hvs.complete seed w.children[c] e outE
     (vsExpLin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
     ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
-      (hok _ hmem).noZeroChallenge, Limits.verifyDeferredNZ_of_childOk (hok _ hmem), (hok _ hmem).capsAgree⟩
+      (hok _ hmem).noZeroChallenge, (hok _ hmem).capsAgree⟩
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
   have hB : B (childShape bytecode w.children[c]).1
       (childShape bytecode w.children[c]).2 = (w.children.map fun ch =>

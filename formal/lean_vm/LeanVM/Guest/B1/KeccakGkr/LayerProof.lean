@@ -42,7 +42,7 @@ def WeightOk (first o : ℕ) : Prop :=
     Stmt.HoldsList C rd σ (weightT first o) next kret →
     σ (.n (weightVal first o)) = dot ((eqKernel locPt).take keccakBits) c.weights ∧ next
 
-/-- **The first claim's weight section** (G:2826-2832). -/
+/-- **The first claim's weight section** (G:2817-2823). -/
 theorem weightOk_one (o : ℕ) : WeightOk 1 o := by
   intro C rd σ c y locPt next kret hcr hlocL hloc hf h
   obtain ⟨-, -, -, -, -, -, lp, lanes, hlp, hlen, hlanes, hw⟩ := hcr

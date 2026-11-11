@@ -54,7 +54,7 @@ theorem br_Rlen : ∀ l < (osCfg (candidate μ r)).levels.length, (Ls.getD l def
 theorem br_Rnext {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
     ∃ (rw : List E) (W : NextW), (Ls.getD l default).d = .next rw W ∧
       (Ls.getD (l + 1) default).R.getD (l + 1) default =
-        (digestFromHalves (W.x0, W.x1), levelShape (μ - (Ls.getD l default).s1.gammas.length)
+        (digestFromHalves (W.x0, W.x1), levelShape (μ - (Ls.getD l default).s1.alphas.length)
           (Ls.getD (l + 1) default).level (2 * 2 ^ (Ls.getD (l + 1) default).level.fold)) := by
   have hy := hR.yr
   obtain ⟨rw, W, hd, -, -, -, -, -, -, -, hRR⟩ := hR.step hl
@@ -82,19 +82,19 @@ theorem br_dep {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
       (Ls.getD l default).level.queries = (osLvAt (osCfg (candidate μ r)) l).queries ∧
       0 < (osLvAt (osCfg (candidate μ r)) l).queries := by
   have hy := hR.yr
-  have hg := hR.gammas l hl
+  have hg := hR.alphas l hl
   by_cases hf : l = (osCfg (candidate μ r)).yrLevel
   · subst hf
     obtain ⟨-, hfold, hlog, -, hdepth, hqueries, hq0, -⟩ := hR.fin
     refine ⟨?_, hfold, hqueries, hq0⟩
     rw [hdepth]
-    show _ = μ - (Ls.getD _ default).s1.gammas.length + _
-    rw [LvAt.s1, roundsSpec_gammas_length, hg, hfold, hlog]
+    show _ = μ - (Ls.getD _ default).s1.alphas.length + _
+    rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold, hlog]
   · obtain ⟨-, hfold, hcols, -, hdepth, hqueries, hq0, -⟩ := hR.mid (l := l) (by omega)
     refine ⟨?_, hfold, hqueries, hq0⟩
     rw [hdepth]
-    show _ = μ - (Ls.getD l default).s1.gammas.length + _
-    rw [LvAt.s1, roundsSpec_gammas_length, hg, hfold, hcols]
+    show _ = μ - (Ls.getD l default).s1.alphas.length + _
+    rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold, hcols]
 
 theorem br_ht : ∀ l < (osCfg (candidate μ r)).levels.length,
     ((Ls.getD l default).R.getD l default).2.1 = (osLvAt (osCfg (candidate μ r)) l).depth
@@ -110,8 +110,8 @@ theorem br_ht : ∀ l < (osCfg (candidate μ r)).levels.length,
     obtain ⟨-, hfold, hcols, -⟩ := hR.mid (l := l) (by omega)
     have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
     rw [he]
-    show (levelShape (μ - (Ls.getD l default).s1.gammas.length) _ _).1 = _
-    rw [LvAt.s1, roundsSpec_gammas_length, hR.gammas l (by omega), hfold, hcols, hshape]
+    show (levelShape (μ - (Ls.getD l default).s1.alphas.length) _ _).1 = _
+    rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l (by omega), hfold, hcols, hshape]
 
 theorem br_rl : ∀ i < (osCfg (candidate μ r)).levels.length,
     (Ls.getD i default).rounds.length = (osLvAt (osCfg (candidate μ r)) i).folds := by
@@ -121,12 +121,12 @@ theorem br_rl : ∀ i < (osCfg (candidate μ r)).levels.length,
 
 /-- **Each level's challenges begin the final level's.** -/
 theorem br_prefix : ∀ d l, l + d = (osCfg (candidate μ r)).yrLevel →
-    (Ls.getD l default).s1.gammas <+: (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas
+    (Ls.getD l default).s1.alphas <+: (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas
   | 0, l, h => by rw [Nat.add_zero] at h; subst h; exact List.prefix_refl _
   | d + 1, l, h => by
     have ih := br_prefix d (l + 1) (by omega)
     have e := (hR.stepS (l := l) (by omega)).1
-    obtain ⟨gs, hg, -⟩ := roundsSpec_gammas (Ls.getD (l + 1) default).level.fold (Ls.getD (l + 1) default).s
+    obtain ⟨gs, hg, -⟩ := roundsSpec_alphas (Ls.getD (l + 1) default).level.fold (Ls.getD (l + 1) default).s
       (Ls.getD (l + 1) default).cap (Ls.getD (l + 1) default).rw
     refine List.IsPrefix.trans ?_ ih
     rw [LvAt.s1, rsSt, hg, e]
@@ -135,19 +135,19 @@ theorem br_prefix : ∀ d l, l + d = (osCfg (candidate μ r)).yrLevel →
 theorem br_G : ∀ l < (osCfg (candidate μ r)).levels.length, ∀ j < (osLvAt (osCfg (candidate μ r)) l).folds,
     (hdOf μ r Ls).G.getD ((osLvAt (osCfg (candidate μ r)) l).foldsOff + j) 0 =
       (roundsSpec (osLvAt (osCfg (candidate μ r)) l).folds (Ls.getD l default).s (Ls.getD l default).cap
-        (Ls.getD l default).rw).1.gammas.getD ((Ls.getD l default).s.gammas.length + j) 0 := by
+        (Ls.getD l default).rw).1.alphas.getD ((Ls.getD l default).s.alphas.length + j) 0 := by
   intro l hl j hj
   have hy := hR.yr
   have hfold := (hR.br_dep hl).2.1
   have hp := hR.br_prefix ((osCfg (candidate μ r)).yrLevel - l) l (by omega)
-  have hlen : (Ls.getD l default).s1.gammas.length = (Ls.getD l default).s.gammas.length +
+  have hlen : (Ls.getD l default).s1.alphas.length = (Ls.getD l default).s.alphas.length +
       (osLvAt (osCfg (candidate μ r)) l).folds := by
-    rw [LvAt.s1, roundsSpec_gammas_length, hfold]
+    rw [LvAt.s1, roundsSpec_alphas_length, hfold]
   have e1 : (Ls.getD l default).s1 =
       (roundsSpec (osLvAt (osCfg (candidate μ r)) l).folds (Ls.getD l default).s (Ls.getD l default).cap
         (Ls.getD l default).rw).1 := by rw [LvAt.s1, rsSt, hfold]
-  rw [← e1, ← hR.gammas l hl]
-  show (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas.getD _ 0 = _
+  rw [← e1, ← hR.alphas l hl]
+  show (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.getD _ 0 = _
   obtain ⟨t, ht⟩ := hp
   rw [← ht, List.getD_append _ _ _ _ (by omega)]
 
@@ -187,7 +187,7 @@ theorem br_lane : (hdOf μ r Ls).Lf.fw.fold.length =
   rw [← hrw] at hok
   show (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.fold.length = _
   rw [hfw, hok.flen]
-  show 2 ^ (μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas.length) + _ = _
+  show 2 ^ (μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.length) + _ = _
   rw [hR.fin_s1, show μ - (osCfg (candidate μ r)).nFolds = (osCfg (candidate μ r)).yrLog by omega, cylen,
     ffold]
 
@@ -199,7 +199,7 @@ theorem br_pl : (hdOf μ r Ls).Lf.fw.pairs.length = (osCfg (candidate μ r)).yrL
   rw [← hrw] at hok
   show (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.pairs.length = _
   rw [hfw, hok.plen2]
-  show μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas.length = _
+  show μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.length = _
   rw [hR.fin_s1]; omega
 
 theorem br_tsuf : tailWords (hdOf μ r Ls).Lf.fw.pairs <:+ xs := by

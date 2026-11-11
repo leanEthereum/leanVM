@@ -107,21 +107,21 @@ theorem levelNext_run (logN index : ℕ) (level next : Whir.Level) (s : WhirStat
     {height width : ℕ} (hi : R[index]? = some (root, height, width))
     (x0 x1 : E) (high : List E) (hhl : high.length = level.fold) (y0 y1 nn n2 : E)
     (hb1 : Whir.queryGrindingBits ≠ 0) (hb2 : Whir.batchGrindingBits ≠ 0)
-    (hP : 1 ≤ 128 / (logN - s.gammas.length + level.logInvRate)) (hQ : 0 < level.queries)
+    (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
     (hok1 : powOk Whir.queryGrindingBits (Keccak.lane
-      (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.gammas.length)).2.squeezeN
-        (logN - s.gammas.length)).2.absorbAll [y0, y1] dsObserve).nonceState nn) 2) = true)
-    (qs : List ℕ) (hqs : qs = sqPositions (logN - s.gammas.length + level.logInvRate)
+      (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.alphas.length)).2.squeezeN
+        (logN - s.alphas.length)).2.absorbAll [y0, y1] dsObserve).nonceState nn) 2) = true)
+    (qs : List ℕ) (hqs : qs = sqPositions (logN - s.alphas.length + level.logInvRate)
       (sqSample (challengeOf (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
-        (logN - s.gammas.length)).2.squeezeN (logN - s.gammas.length)).2.absorbAll [y0, y1]
+        (logN - s.alphas.length)).2.squeezeN (logN - s.alphas.length)).2.absorbAll [y0, y1]
           dsObserve).nonceState nn))
         (capOf (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
-        (logN - s.gammas.length)).2.squeezeN (logN - s.gammas.length)).2.absorbAll [y0, y1]
+        (logN - s.alphas.length)).2.squeezeN (logN - s.alphas.length)).2.absorbAll [y0, y1]
           dsObserve).nonceState nn))) level.queries)
     (F3 : Fs) (hF3 : F3 = ((⟨capOf (((((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN
-        (logN - s.gammas.length)).2.squeezeN (logN - s.gammas.length)).2.absorbAll [y0, y1]
+        (logN - s.alphas.length)).2.squeezeN (logN - s.alphas.length)).2.absorbAll [y0, y1]
           dsObserve).nonceState nn), []⟩ : Fs).squeezeN
-        (sqCount (128 / (logN - s.gammas.length + level.logInvRate)) level.queries - 1)).2)
+        (sqCount (128 / (logN - s.alphas.length + level.logInvRate)) level.queries - 1)).2)
     (hok2 : powOk Whir.batchGrindingBits (Keccak.lane (F3.nonceState n2) 2) = true)
     (os : List Opening) (hl : os.length = qs.length)
     (hopen : ∀ k (hk : k < qs.length) (ho : k < os.length),
@@ -129,17 +129,17 @@ theorem levelNext_run (logN index : ℕ) (level next : Whir.Level) (s : WhirStat
     (hidx : os.map Opening.leafIndex = qs) :
     RunsWith (levelNext logN index level next s rounds) F
       (x0 :: x1 :: high ++ [y0, y1, nn, n2]) [os] R
-      (glueLevel s (challengeOf (F3.nonceState n2)) (logN - s.gammas.length)
-        [((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.gammas.length)).1,
-          (((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.gammas.length)).2.squeezeN
-            (logN - s.gammas.length)).1] [y0, y1] qs
+      (glueLevel s (challengeOf (F3.nonceState n2)) (logN - s.alphas.length)
+        [((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.alphas.length)).1,
+          (((F.absorbAll (x0 :: x1 :: high) dsObserve).squeezeN (logN - s.alphas.length)).2.squeezeN
+            (logN - s.alphas.length)).1] [y0, y1] qs
         (powers (challengeOf (F3.nonceState n2)) qs.length)
-        (levelBatched (logN - s.gammas.length) index rounds high qs (os.map (·.leaf))
+        (levelBatched (logN - s.alphas.length) index rounds high qs (os.map (·.leaf))
           (challengeOf (F3.nonceState n2))))
       ⟨capOf (F3.nonceState n2), []⟩
-      (R ++ [(digestFromHalves (x0, x1), levelShape (logN - s.gammas.length) next
+      (R ++ [(digestFromHalves (x0, x1), levelShape (logN - s.alphas.length) next
         (2 * 2 ^ next.fold))]) := by
-  set mu := logN - s.gammas.length with hmu
+  set mu := logN - s.alphas.length with hmu
   set R' := R ++ [(digestFromHalves (x0, x1), levelShape mu next (2 * 2 ^ next.fold))] with hR'
   have hi' : R'[index]? = some (root, height, width) := by
     rw [hR', List.getElem?_append_left (List.getElem?_eq_some_iff.mp hi).1]; exact hi

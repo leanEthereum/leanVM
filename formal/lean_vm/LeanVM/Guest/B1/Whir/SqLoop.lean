@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Bits.QueryWindows
 
 /-!
-# The squeeze loop (G:1637-1651)
+# The squeeze loop (G:1628-1642)
 
 At `x = g^j`, the iteration loads the sponge's capacity from the squeeze run's row `sqz·x^5`,
 squeezes with nothing waiting, stores the next capacity in the next row, and decodes the

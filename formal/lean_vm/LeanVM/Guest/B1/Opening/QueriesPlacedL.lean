@@ -45,12 +45,11 @@ theorem qdOk_of_mem {rd : Reader} {s : Oq} {b : ℕ} {emit : Bool} {pr : ℕ} {w
       (digestHalves (climbD (merkleLeafDigest w.2.1) w.1 w.2.2)).2)
     (hfl : LoadHolds rd flags (2 ^ (s.cd - 1) + w.1 / 2 ^ (s.pd + 1)) 1)
     (hR : RoundsAt rd coefs rounds) (hrl : rounds.length = s.folds)
-    (hnz : FoldsNonzero rounds (K.ofBits w.1))
     (hfin : s.final = 1 → WordsAt rd hsp hsv ∧ hsv.length = s.nHs ∧
       foldRow (lanesOf s.base w.2.1) (K.ofBits w.1) rounds =
         novelSum hsv (wsChain (s.vs.map K.ofBits) (eOfNat w.1)) s.nHs s.hsBits) :
     (oqQD s b emit pr cap flags rounds hsv w).Ok rd coefs hsp bpv :=
-  ⟨hsl, hrow, ⟨hwin, hc0, hc1, hfl⟩, hq, hR, hrl, hnz, hfin⟩
+  ⟨hsl, hrow, ⟨hwin, hc0, hc1, hfl⟩, hq, hR, hrl, hfin⟩
 
 end
 end LeanVM.Guest.B1

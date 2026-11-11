@@ -15,8 +15,8 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 # The opening
 
 `always_whirOpen`: every end `whirOpen μ r target` returns has a point of `μ` coordinates: each
-fold round draws one `γ` (`always_foldRounds`), the levels glue without drawing any
-(`glueLevel_gammas`), the final sumcheck draws the rest, and the ladder's folds leave the final
+fold round draws one `α` (`always_foldRounds`), the levels glue without drawing any
+(`glueLevel_alphas`), the final sumcheck draws the rest, and the ladder's folds leave the final
 level a variable (`ladder_sum_lt`). `ChildSegs.w_point_length`: the honest opening's.
 `ChildSegs.os_kidB`: `open_stacked`'s candidate, within `osBosAt`, from its placed completeness
 (`open_stacked_completeAtB_Spec`).
@@ -66,14 +66,14 @@ theorem alwaysR_sumcheck (count : ℕ) : ∀ (eqs : List (Option E)) (claim : E)
     exact alwaysR_ret (by simp only [List.length_cons] at hr ⊢; omega)
 
 theorem always_foldRound (s : WhirState) :
-    AlwaysR (foldRound s) fun r ↦ r.1.gammas.length = s.gammas.length + 1 := by
+    AlwaysR (foldRound s) fun r ↦ r.1.alphas.length = s.alphas.length + 1 := by
   unfold foldRound
   try simp only [VerifierProgram.bind_eq]
   repeat refine always_bind_all fun _ ↦ ?_
   exact alwaysR_ret (by simp)
 
 theorem always_foldRounds : ∀ (n : ℕ) (s : WhirState),
-    AlwaysR (foldRounds n s) fun r ↦ r.1.gammas.length = s.gammas.length + n
+    AlwaysR (foldRounds n s) fun r ↦ r.1.alphas.length = s.alphas.length + n
   | 0, s => alwaysR_ret rfl
   | n + 1, s => by
     unfold foldRounds
@@ -84,17 +84,17 @@ theorem always_foldRounds : ∀ (n : ℕ) (s : WhirState),
     obtain ⟨s2, rounds⟩ := r'
     exact alwaysR_ret (by simp only at hr hr' ⊢; omega)
 
-theorem foldl_gammas {X : Type} (f : WhirState → X → WhirState)
-    (hf : ∀ s x, (f s x).gammas = s.gammas) :
-    ∀ (l : List X) (s : WhirState), (l.foldl f s).gammas = s.gammas
+theorem foldl_alphas {X : Type} (f : WhirState → X → WhirState)
+    (hf : ∀ s x, (f s x).alphas = s.alphas) :
+    ∀ (l : List X) (s : WhirState), (l.foldl f s).alphas = s.alphas
   | [], _ => rfl
-  | x :: l, s => (foldl_gammas f hf l (f s x)).trans (hf s x)
+  | x :: l, s => (foldl_alphas f hf l (f s x)).trans (hf s x)
 
-theorem glueLevel_gammas (s : WhirState) (lam : E) (mu : ℕ) (ps : List (List E)) (vs : List E)
-    (qs : List ℕ) (ws : List E) (b : E) : (glueLevel s lam mu ps vs qs ws b).gammas = s.gammas := by
+theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (ps : List (List E)) (vs : List E)
+    (qs : List ℕ) (ws : List E) (b : E) : (glueLevel s lam mu ps vs qs ws b).alphas = s.alphas := by
   unfold glueLevel
   dsimp only
-  exact foldl_gammas _ (fun s x ↦ by obtain ⟨⟨_, _⟩, _⟩ := x; rfl) _ _
+  exact foldl_alphas _ (fun s x ↦ by obtain ⟨⟨_, _⟩, _⟩ := x; rfl) _ _
 
 theorem length_rot (l : List E) (k : ℕ) : (l.drop k ++ l.take k).length = l.length := by
   simp only [List.length_append, List.length_drop, List.length_take]
@@ -102,7 +102,7 @@ theorem length_rot (l : List E) (k : ℕ) : (l.drop k ++ l.take k).length = l.le
 
 /-- **The levels' end has a point of `logN` coordinates**, when the folds leave a variable. -/
 theorem alwaysR_whirLevelsOpen (logN lf : ℕ) : ∀ (levels : List Whir.Level) (index : ℕ)
-    (s : WhirState), s.gammas.length + (levels.map (·.fold)).sum ≤ logN →
+    (s : WhirState), s.alphas.length + (levels.map (·.fold)).sum ≤ logN →
       AlwaysR (B1.Whir.whirLevelsOpen logN lf index levels s) fun w ↦ w.point.length = logN
   | [], _, _, _ => alwaysR_fail
   | level :: rest, index, s, hle => by
@@ -131,7 +131,7 @@ theorem alwaysR_whirLevelsOpen (logN lf : ℕ) : ∀ (levels : List Whir.Level) 
         always_bind_all fun _ ↦ always_bind_all fun _ ↦ always_bind_all fun _ ↦
         always_bind_all fun _ ↦ always_bind_all fun _ ↦ always_bind_all fun _ ↦ ?_
       refine alwaysR_whirLevelsOpen logN lf (next :: rest') _ _ ?_
-      rw [glueLevel_gammas, hr]
+      rw [glueLevel_alphas, hr]
       omega
 
 /-- **Every end of `whirOpen μ r target` has a point of `μ` coordinates.** -/
@@ -177,7 +177,7 @@ theorem os_kidB (hos : open_stacked_completeAtB_Spec) {κ : ℕ} (hκ : 11 ≤ �
       (osBosAt fs W.Bnd W.Kr S.μs S.rate) :=
   hos S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ W.Bnd W.Kr hrf hcons hκ W.hleaf
     (W.hloop _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) S.s7.perm S.root S.target (ptr (S.cW bs))
-    (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW S.nzW S.nzcW
+    (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW S.nzW
     S.capsW _ fun _ _ hL ↦ ⟨hL _ List.mem_cons_self, winTabs_vsExp fun q hq ↦ hL q (by
       simp only [vsExpLin, List.mem_singleton] at hq
       simp [hq])⟩

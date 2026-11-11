@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Spec
 
 /-!
-# One GKR round (G:2032-2049, `gkr_rounds`, G:1138-1148)
+# One GKR round (G:2023-2040, `gkr_rounds`, G:1138-1148)
 
 A round `q` of `verify_bus_gkr`'s inner loop (and of `gkr_rounds`) from value `B`: four
 `fs_next` of the words at `cursor·g^(4q + i)` (`c1 .. c4`, three values each), one `KECCAK`

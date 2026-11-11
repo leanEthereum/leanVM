@@ -26,7 +26,7 @@ along `flatPre` (Split.lean's `deferredFlat`): the announced sizes, the stack's 
 out-of-domain sample, the bus's challenges, its GKR, the tables, the Keccak reduction, the ring
 switch, then the stacked opening from the batching challenge's state, each a carried run
 (`RunsTo`); the opening a `RunsWith` with `open_stacked`'s hypotheses (`NoZeroChallenge`,
-`NoZeroCombiner`'s run, `CapsAgree`) and an end passing the terminal's check. `child_segments`: every
+`CapsAgree`) and an end passing the terminal's check. `child_segments`: every
 child with the per-child hypotheses has them.
 -/
 
@@ -379,10 +379,6 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   nzW : Whir.NoZeroChallenge layout.stackLog rate
     (batchTarget (stackClaims layout kc.1 rs.1 rs.2 ood) s7.squeeze.1) s7.perm xsW
     c.proof.openings root
-  nzcW : ∃ (w' : Whir.WhirEnd) (s'' : Fs) (roots'' : List (Digest × ℕ × ℕ)),
-    Whir.RunsWith (Limits.whirOpenNZ layout.stackLog rate
-      (batchTarget (stackClaims layout kc.1 rs.1 rs.2 ood) s7.squeeze.1)) ⟨capOf s7.perm, []⟩ xsW
-      c.proof.openings [(root, Whir.stackShape layout.stackLog rate)] w' s'' roots''
   capsW : Whir.CapsAgree layout.stackLog rate
     (batchTarget (stackClaims layout kc.1 rs.1 rs.2 ood) s7.squeeze.1) s7.perm xsW
     c.proof.openings root
@@ -425,16 +421,11 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
       Coverage.minChildStackLog ≤ layout.stackLog)
     (hrz : Limits.verifyDeferredRefusingZero bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement)
-      c.freshClaim c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf
       (deferringVerifierProgram c.freshClaim bytecode (Node.statementDigest seed c.statement))
       (Coverage.childVerifierStart seed c), Limits.OpeningsAgree b.1 b.2) :
     Nonempty (ChildSegs bytecode seed c) := by
   obtain ⟨q, stq, t, hpre, hop, ht1, ht2⟩ := accept_rz hrz
-  obtain ⟨q', stq', t', hpre', hop', ht1', ht2'⟩ := accept_nz hnz
-  rw [hpre, Option.some.injEq, Prod.mk.injEq] at hpre'
-  obtain ⟨rfl, rfl⟩ := hpre'
   have hpre0 := hpre
   unfold flatPre at hpre
   -- the announced sizes
@@ -493,28 +484,26 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   subst q
   subst stq
   -- the stacked opening
-  simp only at hop hop'
+  simp only at hop
   obtain ⟨hcl, w, hW, hWz, hacc⟩ := opening_rz hop
-  obtain ⟨w', hWn⟩ := opening_nz hop'
   set s7 := Tables.fsOfT st8.sponge with hs7
   have hc8 : s7.Carries st8.sponge := carries_fsOfT hg8
   obtain ⟨hlam, -⟩ := carries_squeeze hc8
   have hsq : Id.run (squeeze keccakF1600 st8.sponge) = (s7.squeeze.1, ⟨s7.perm, [], none⟩) := by
     rw [Keccak.squeeze_id st8.sponge hg8, perm_eq hc8]
     rfl
-  rw [hsq] at hW hWz hWn hacc
+  rw [hsq] at hW hWz hacc
   have hcS : (⟨capOf s7.perm, []⟩ : Fs).Carries ⟨s7.perm, [], none⟩ := ⟨rfl, rfl, rfl⟩
   have hO : st8.openings = c.proof.openings := by
     rw [hO8, hO7, hO6, hO5, hO4, hO3, hoB, hO1]; rfl
   have hR : st8.roots = [(digestFromHalves (x0, x1), Whir.stackShape L.stackLog r)] := by
     rw [hR8, hR7, hR6, hR5, hR4, hR3, hrB, hR1]; rfl
   obtain ⟨sp8, stream8, os8, roots8⟩ := st8
-  simp only at hO hR hW hWz hWn hxsR
+  simp only at hO hR hW hWz hxsR
   subst hO hR
   have runW := runsWith_of_runId hcS hW ht1 ht2 (endsAny_whirOpen _ _ _ _ _ _ hW)
   have nzW := runsWith_of_runId hcS hWz ht1 ht2
     (endsAny_rz (endsAny_whirOpen _ _ _) _ _ _ hWz)
-  have nzcW := runsWith_of_runId hcS hWn ht1' ht2' (endsAny_whirOpenNZ _ _ _ _ _ _ hWn)
   -- the caps
   have capsW : Whir.CapsAgree L.stackLog r
       (batchTarget (stackClaims L kc.1 rs.1 rs.2 ood) s7.squeeze.1) s7.perm stream8
@@ -547,7 +536,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   refine ⟨⟨logMem, rowsN, r, L, hL, h16, h32, hrowsL, hrows32, hr1, hr4, hmu22, hst28,
     Tables.fsOfT st1.sponge, runS, x0, x1, _, rfl, xsO, ood, Tables.fsOfT st3.sponge,
     hc2 ▸ runO, hdepth, xsB, wb, _, runB, xsG, rG, _, runG, xsT, bus, claims, _, runT, xsK, kc, _,
-    runK, xsR, rs, s7, runR, hcl, stream8, w, _, _, runW, ⟨w, _, _, nzW⟩, ⟨w', _, _, nzcW⟩,
+    runK, xsR, rs, s7, runR, hcl, stream8, w, _, _, runW, ⟨w, _, _, nzW⟩,
     capsW, hacc, ?_, hann⟩⟩
   have h0 : c.proof.stream = (deferStart seed (Node.statementDigest seed c.statement)
     c.proof).stream := rfl

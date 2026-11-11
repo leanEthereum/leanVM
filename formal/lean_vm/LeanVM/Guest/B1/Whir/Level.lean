@@ -11,12 +11,12 @@ public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Opening.QueriesAllW
 
 /-!
-# A non-final level (G:1576-1744)
+# A non-final level (G:1567-1735)
 
 `LvIn` is the guest's state at a level's start against the Spec's: the sponge it carries, the
 claim the guest's plus the deficit `recsDeficit` of the levels so far (each level's high-part
-share of its queries, `λ³ Σ_k λ^k novelEval(high, Ŵ(x_k))·Ŵ_μ(x_k)`, scaled by the `γ`s drawn
-after it), the `γ`s stored in `fold_challenges`, the commitments so far and the level's root in
+share of its queries, `λ³ Σ_k λ^k novelEval(high, Ŵ(x_k))·Ŵ_μ(x_k)`, scaled by the `α`s drawn
+after it), the `α`s stored in `fold_challenges`, the commitments so far and the level's root in
 `level_roots`, the glued claims those of the records (`recGlued`).
 
 `osLevelMid_sound`: a non-final level's template runs `foldRounds` then `levelNext` from `LvIn`,
@@ -56,7 +56,7 @@ def osQCallOf (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V 
   let li : List Stmt × ℕ × OsSt :=
     if fin then ([osCst fl.2.2.k (word 0 0)], fl.2.2.k, { fl.2.2 with k := fl.2.2.k + 1 })
     else ([], s.lamInv, fl.2.2)
-  let cf := osMatS c.plan osCoefs (3 * lv.foldsOff) li.2.2
+  let cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2
   let hp : List Stmt × ℕ × OsSt :=
     if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
   let qp := osMatS c.plan osQpos lv.posOff hp.2.2
@@ -73,7 +73,7 @@ def osQCallsL (c : OsCfg) : ℕ → List OsLv → OsSt → List (String × List 
 
 /-- **The call's arguments and returns** through the valuation. -/
 theorem osQCallOf_val {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hm : MatsOk σ st.mats) (hb : 4 * lv.capOff < u128Bound) (hf : 3 * lv.foldsOff < u128Bound)
+    (hm : MatsOk σ st.mats) (hb : 4 * lv.capOff < u128Bound) (hf : 2 * lv.foldsOff < u128Bound)
     (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
     (hq : lv.queries < u128Bound) (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
     (osQCallOf c lvl lv st).1 = osQueriesName c lvl lv ∧
@@ -172,23 +172,23 @@ def highTerm (mu : ℕ) (high : List E) (q : ℕ) : E :=
 def recH (r : OsRec) : E :=
   ∑ k ∈ Finset.range r.qs.length, r.lam ^ k * highTerm r.mu r.high (r.qs.getD k 0)
 
-/-- **The deficit**: the Spec's claim less the guest's, each level's `λ³·recH` times the `γ`s
+/-- **The deficit**: the Spec's claim less the guest's, each level's `λ³·recH` times the `α`s
 drawn after it. -/
-def recsDeficit (recs : List OsRec) (gammas : List E) : E :=
-  (recs.map fun r ↦ r.lam ^ 3 * recH r * (gammas.drop r.F).prod).sum
+def recsDeficit (recs : List OsRec) (alphas : List E) : E :=
+  (recs.map fun r ↦ r.lam ^ 3 * recH r * (alphas.drop r.F).prod).sum
 
-theorem recsDeficit_append_gammas (recs : List OsRec) (gammas gs : List E)
-    (h : ∀ r ∈ recs, r.F ≤ gammas.length) :
-    recsDeficit recs (gammas ++ gs) = gs.prod * recsDeficit recs gammas := by
+theorem recsDeficit_append_alphas (recs : List OsRec) (alphas gs : List E)
+    (h : ∀ r ∈ recs, r.F ≤ alphas.length) :
+    recsDeficit recs (alphas ++ gs) = gs.prod * recsDeficit recs alphas := by
   unfold recsDeficit
   rw [← List.sum_map_mul_left]
   refine congrArg List.sum (List.map_congr_left fun r hr ↦ ?_)
   rw [List.drop_append_of_le_length (h r hr), List.prod_append]
   ring
 
-theorem recsDeficit_snoc (recs : List OsRec) (r : OsRec) (gammas : List E)
-    (h : r.F = gammas.length) :
-    recsDeficit (recs ++ [r]) gammas = recsDeficit recs gammas + r.lam ^ 3 * recH r := by
+theorem recsDeficit_snoc (recs : List OsRec) (r : OsRec) (alphas : List E)
+    (h : r.F = alphas.length) :
+    recsDeficit (recs ++ [r]) alphas = recsDeficit recs alphas + r.lam ^ 3 * recH r := by
   simp [recsDeficit, h]
 
 /-- `glueLevel` at two out-of-domain samples. -/
@@ -196,10 +196,10 @@ theorem glueLevel_two (s : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) 
     (queries : List ℕ) (queryWeights : List E) (batched : E) :
     glueLevel s lam mu [z₁, z₂] [y₁, y₂] queries queryWeights batched =
       { claim := s.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * batched
-        gammas := s.gammas
-        glued := s.glued ++ [⟨1 * lam, s.gammas.length, fun x ↦ eqEval z₁ x⟩,
-          ⟨1 * lam * lam, s.gammas.length, fun x ↦ eqEval z₂ x⟩,
-          ⟨1 * lam * lam * lam, s.gammas.length, inducedWeight mu queries queryWeights⟩] } := by
+        alphas := s.alphas
+        glued := s.glued ++ [⟨1 * lam, s.alphas.length, fun x ↦ eqEval z₁ x⟩,
+          ⟨1 * lam * lam, s.alphas.length, fun x ↦ eqEval z₂ x⟩,
+          ⟨1 * lam * lam * lam, s.alphas.length, inducedWeight mu queries queryWeights⟩] } := by
   simp [glueLevel, powers, powersFrom, Parameters.Whir.oodSamples]
 
 /-! ## The batch -/
@@ -268,15 +268,15 @@ structure LvIn (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (st : OsSt) (ws 
   co : st.co < u128Bound
   pad : PadOk σ st.pad
   mats : MatsOk σ st.mats
-  claim : ws.claim = σ (.n st.claim) + recsDeficit recs ws.gammas
-  glen : ws.gammas.length = lv.foldsOff
-  fch : ∀ j (h : j < ws.gammas.length), LoadHolds rd (σ (.n osFch)) j ws.gammas[j]
+  claim : ws.claim = σ (.n st.claim) + recsDeficit recs ws.alphas
+  glen : ws.alphas.length = lv.foldsOff
+  fch : ∀ j (h : j < ws.alphas.length), LoadHolds rd (σ (.n osFch)) j ws.alphas[j]
   rlen : R.length = lvl + 1
   R : R[lvl]? = some (root, lv.depth, lvWidth lvl lv)
   r0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestHalves root).1
   r1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestHalves root).2
   glued : ws.glued = recs.flatMap recGlued
-  recF : ∀ r ∈ recs, r.F ≤ ws.gammas.length
+  recF : ∀ r ∈ recs, r.F ≤ ws.alphas.length
 
 /-- What the finish rereads of a non-final level's record. -/
 structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec) : Prop where
@@ -326,7 +326,7 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
   sq1 : 1 ≤ lv.squeezes
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
-  r3 : 3 * (lv.foldsOff + lv.folds) < u128Bound
+  r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
   ood : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound
   cap4 : 4 * lv.capOff < u128Bound
   hs8 : lvl * hsStride < u128Bound

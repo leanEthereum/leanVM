@@ -96,7 +96,7 @@ abbrev Lf : LvAt := h.L h.c.yrLevel
 def recs : List OsRec := lvsRecs h.logN h.Ls h.c.yrLevel
 
 /-- Every fold challenge. -/
-def G : List E := h.Lf.s1.gammas
+def G : List E := h.Lf.s1.alphas
 
 /-- The guest's claim at level `i`'s start. -/
 def gclAt (i : ℕ) : E := (h.L i).gcl (lvsRecs h.logN h.Ls i)
@@ -141,10 +141,10 @@ def rootsC : List E := (List.range (2 * h.c.levels.length)).map fun e ↦
 /-- `fold_challenges`. -/
 def fchC : List E := h.G
 
-/-- `round_coefs`: each round's `α, β, θ`. -/
-def coefsC : List E := (List.range (3 * h.c.nFolds)).map fun e ↦
-  let r := h.allRounds.getD (e / 3) ⟨0, 0, 0⟩
-  if e % 3 = 0 then r.alpha else if e % 3 = 1 then r.beta else r.theta
+/-- `round_coefs`: each round's `α, β`. -/
+def coefsC : List E := (List.range (2 * h.c.nFolds)).map fun e ↦
+  let r := h.allRounds.getD (e / 2) ⟨0, 0⟩
+  if e % 2 = 0 then r.alpha else r.beta
 
 /-- `level_betas`: `λ³·λ^Q`. -/
 def betasC : List E := (List.range h.c.levels.length).map fun i ↦

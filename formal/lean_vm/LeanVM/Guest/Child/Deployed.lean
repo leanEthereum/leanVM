@@ -72,20 +72,18 @@ theorem childOk_of_verifierRZ_of {A : HonestProverWithHash} {s : NodeStatement}
   have hacc' := hacc
   rw [verifierRZ_eq] at hacc'
   obtain ⟨c, hc, hrz⟩ := runProof_claimed_of_computed_rz keccak256 keccakF1600
-    Completeness.verifyStackedOpeningRefusingZeroCombiner (bytecodeWords guestProgram)
-    (publicInputDigest (publicInputOf d)) hacc'
+    verifyStackedOpening (bytecodeWords guestProgram) (publicInputDigest (publicInputOf d)) hacc'
   rw [hpd] at hrz
-  have hRZC : Limits.verifyDeferredRefusingZeroCombiner bytecode (deployedSeed guestProgram) d c
-      proof = true := by
-    rw [verifyDeferredRefusingZeroCombiner_eq_withHash]
+  have hRZ : Limits.verifyDeferredRefusingZero bytecode (deployedSeed guestProgram) d c proof =
+      true := by
+    rw [Limits.verifyDeferredRefusingZero_eq_withHash]
     exact hrz
-  have hRZ := verifyDeferredRefusingZero_of_rzc hRZC
-  have hV := Limits.verifyDeferred_of_nz (verifyDeferredNZ_of_rzc hRZC)
+  have hV := Limits.verifyDeferred_of_nz (verifyDeferredNZ_of_rz hRZ)
   -- the pure prover's proof
   obtain ⟨w, sz, hchild, hprove⟩ := prove_of_some hA hsome
   obtain ⟨⟨hρ, hw, hs, hadm, -⟩, -⟩ := id hchild
   obtain ⟨rest, hrest⟩ := stream_prefix keccak256 keccakF1600 hprove
-  refine ⟨c, hc, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ, hRZC⟩⟩
+  refine ⟨c, hc, ⟨hsh, hV, ?_, stream_le_of_verifyDeferred hV, ?_, hRZ⟩⟩
   · -- the stack log
     show ∀ layout r, announcedLayoutAndRate bytecode proof.stream = some (layout, r) → _
     rw [hrest]

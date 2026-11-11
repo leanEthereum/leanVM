@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Base
 /-!
 # `certify_placement` (TRIAGE G #67): the interface
 
-`certify_placement(kappa_base, g_squares)` (G:3360-3404) groups the committed columns into the
+`certify_placement(kappa_base, g_squares)` (G:3351-3395) groups the committed columns into the
 runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`
 is `kappa_base[COL_KAPPA_SRC]·g^COL_KAPPA_ADJ`, `colKappaSrc`, `colKappaAdj`, over
 `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]`), keys each group by `g^(κ·RANK_STRIDE - c₀)`

@@ -166,8 +166,8 @@ challenges. -/
 theorem verifierRZ_eq (prog : LeanIsaProgram) (input : PublicInput) (π : Proof) :
     Budget.verifierRefusingZeroWithHash (m := Id) keccak256 keccakF1600 prog input π =
       Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        ((execWith computedBytecodeValue Completeness.verifyStackedOpeningRefusingZeroCombiner
-          (bytecodeWords prog) (publicInputDigest input)).bind fun _ ↦
+        ((execWith computedBytecodeValue verifyStackedOpening (bytecodeWords prog)
+          (publicInputDigest input)).bind fun _ ↦
             VerifierProgram.ret true).refusingZeroChallenge
         (seed (bytecodeWords prog) (publicInputDigest input)) π) := by
   unfold Budget.verifierRefusingZeroWithHash

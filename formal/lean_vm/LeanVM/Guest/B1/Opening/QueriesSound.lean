@@ -103,8 +103,8 @@ theorem oqQuery_packs {s : Oq} (hb : s.base = 1) (hI : s.I % 2 = 0) {b : ℕ}
 
 /-- **One query** (`opening_query` with a sound `walk_path`) at the point `x = eOfNat q`: with the
 padding run `1, 0, 0, 0, 0` and the window pointer's run holding the windows of
-`q < 2^(pd + cd)`, the query reads its windows, opens the row at `q`, reads the rounds, none of
-whose combiners vanishes at `q`, and its fold's value is `foldRow`; at the final level the fold is
+`q < 2^(pd + cd)`, the query reads its windows, opens the row at `q`, reads the rounds, and its
+fold's value is `foldRow`; at the final level the fold is
 `novelSum` of the coefficients at `hs` over `wsChain` at the point. -/
 theorem oqQuery_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound walk s.pd s.cd)
     {x bp cap flags coefs hsV : V} {b : ℕ} {emit : Bool} {pr : ℕ}
@@ -117,7 +117,6 @@ theorem oqQuery_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound
     (∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd (σ bp) i (gen ^ qwVal (s.pd + s.cd) s.cd q i)) ∧
     (∃ sibs, QueryOpensS rd s.base s.folds (s.pd + s.cd) s.cd (σ cap) (σ flags) q (oqRow s b σ) sibs) ∧
     RoundsAt rd (σ coefs) (oqRounds s (oqCh s b emit) σ) ∧
-    FoldsNonzero (oqRounds s (oqCh s b emit) σ) (K.ofBits q) ∧
     σ (.n (oqVal s (oqCh s b emit))) =
       foldRow (lanesOf s.base (oqRow s b σ)) (K.ofBits q) (oqRounds s (oqCh s b emit) σ) := by
   obtain ⟨hP, -, hL, hcall, hF, -⟩ := oqQuery_pieces hA
@@ -144,14 +143,11 @@ theorem oqQuery_sound {s : Oq} (hs : s.RowShape) {walk : String} (hW : WalkSound
       rw [cellsBytes_limbs]
       simp [oqRow, hb, oqCells, List.flatMap_map]
   obtain ⟨-, hwl, sibs, hsl, hflag, hc0, hc1⟩ := hW rd _ _ _ _ _ _ hcall _ q hleaf hq hwin
-  obtain ⟨hRA, hNZ, hval⟩ := oqFold_sound hf hF
-  refine ⟨hwl, ⟨sibs, length_oqRow s b σ, by simpa using hsl, ?_, ?_, ?_⟩, hRA, ?_, ?_⟩
+  obtain ⟨hRA, hval⟩ := oqFold_sound hf hF
+  refine ⟨hwl, ⟨sibs, length_oqRow s b σ, by simpa using hsl, ?_, ?_, ?_⟩, hRA, ?_⟩
   · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc0
   · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc1
   · rw [show s.pd + s.cd - s.cd + 1 = s.pd + 1 by omega]; exact hflag
-  · intro r hr
-    have := hNZ r hr
-    rwa [hx] at this
   · rw [hval, foldRow_eq, lanesOf_oqRow hKr, hx]
     rfl
 

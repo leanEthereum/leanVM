@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.HonestDefs
 
   The words an honest run of `da_vector` and its callees leaves in their buffers and frame runs,
-  as functions of the challenge `z` (G:4421-4485), and reading a layout's word.
+  as functions of the challenge `z` (G:4412-4476), and reading a layout's word.
 -/
 
 module

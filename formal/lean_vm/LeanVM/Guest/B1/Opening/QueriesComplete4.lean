@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Opening.QueriesComplete3
 # One query, completeness
 
 `QD.Ok` is what the opening, the windows and the challenges say of an honest query: the siblings,
-the row's length, the walk's memory (`MemOk`), the position below `2^depth`, the rounds at `coefs`,
-no combiner zero at the point (`FoldsNonzero`) and, at the final level, the coefficients at `hs`
+the row's length, the walk's memory (`MemOk`), the position below `2^depth`, the rounds at `coefs` and, at the
+final level, the coefficients at `hs`
 and the fold equal to their novel sum (`QueryHolds`' last clause). `foldVal_eq`: the guest's fold
 of the honest values is the Spec's `foldRow` (`guestFold_value`). `query_complete`: at a valuation
 that is the honest values on the query's indices, with the padding run `1, 0, 0, 0, 0`, every
@@ -59,7 +59,6 @@ structure Ok (d : QD) (rd : Reader) (coefsv hsp bpv : E) : Prop where
   hq : d.q < 2 ^ (d.s.pd + d.s.cd)
   hR : RoundsAt rd coefsv d.rounds
   hrl : d.rounds.length = d.s.folds
-  hnz : FoldsNonzero d.rounds (K.ofBits d.q)
   hfin : d.s.final = 1 → WordsAt rd hsp d.hsv ∧ d.hsv.length = d.s.nHs ∧
     foldRow (lanesOf d.s.base d.row) (K.ofBits d.q) d.rounds =
       novelSum d.hsv (wsChain (d.s.vs.map K.ofBits) (eOfNat d.q)) d.s.nHs d.s.hsBits
@@ -68,23 +67,15 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 theorem x_eq : d.x = ofK (K.ofBits d.q) := rfl
 
-/-- The combiners are nonzero. -/
-theorem t_ne (hrl : d.rounds.length = d.s.folds) (hnz : FoldsNonzero d.rounds (K.ofBits d.q)) :
-    ∀ j < d.s.folds, d.t j ≠ 0 := fun j hj ↦ by
-  have hm : d.rounds.getD j ⟨0, 0, 0⟩ ∈ d.rounds := by
-    rw [List.getD_eq_getElem _ _ (by omega)]; exact List.getElem_mem _
-  exact hnz _ hm
-
 /-- **The guest's fold of the honest values is the Spec's.** -/
 theorem foldVal_eq (hs : d.s.RowShape) (hrow : d.row.length = rowLen d.s.base d.s.folds)
-    (hrl : d.rounds.length = d.s.folds) (hnz : FoldsNonzero d.rounds (K.ofBits d.q)) :
+    (hrl : d.rounds.length = d.s.folds) :
     d.foldVal = foldRow (lanesOf d.s.base d.row) (K.ofBits d.q) d.rounds := by
   have hf1 : 1 ≤ d.s.folds := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> omega
   have hI : d.s.I = 2 ^ d.s.folds := rfl
   have h2 : 2 ^ d.s.folds = 2 * 2 ^ (d.s.folds - 1) := by rw [← pow_succ']; congr 1; omega
   rw [foldRow_eq, foldVal]
-  refine guestFold_value hrl hf1 ?_ (acc := d.acc) (scale := d.scale) (ts := d.t) (rs := d.r)
-    (fun j _ ↦ rfl) (d.t_ne hrl hnz) (fun j _ ↦ rfl) rfl (fun j _ ↦ rfl) (fun m hm ↦ ?_)
+  refine guestFold_value hrl hf1 ?_ (acc := d.acc) (ts := d.t) (fun j _ ↦ rfl) (fun m hm ↦ ?_)
     (fun j _ m _ ↦ rfl)
   · unfold lanesOf; unfold rowLen at hrow
     split
@@ -107,11 +98,11 @@ theorem foldVal_eq (hs : d.s.RowShape) (hrow : d.row.length = rowLen d.s.base d.
 
 /-- The final level's equation in the honest values' terms. -/
 theorem finEq_of (hs : d.s.RowShape) (hrow : d.row.length = rowLen d.s.base d.s.folds)
-    (hrl : d.rounds.length = d.s.folds) (hnz : FoldsNonzero d.rounds (K.ofBits d.q))
+    (hrl : d.rounds.length = d.s.folds)
     (h : foldRow (lanesOf d.s.base d.row) (K.ofBits d.q) d.rounds =
       novelSum d.hsv (wsChain (d.s.vs.map K.ofBits) (eOfNat d.q)) d.s.nHs d.s.hsBits) :
     d.finEq := by
-  rw [finEq, d.foldVal_eq hs hrow hrl hnz, h]; rfl
+  rw [finEq, d.foldVal_eq hs hrow hrl, h]; rfl
 
 /-- **An opening with its windows is an honest query**, wherever it is placed. -/
 theorem exists_of_holds {sh : OqShape} {rd : Reader} {cap flags coefs hs positions qptrs : E}
@@ -120,9 +111,9 @@ theorem exists_of_holds {sh : OqShape} {rd : Reader} {cap flags coefs hs positio
     (hhl : sh.final = 1 → hsv.length = sh.nHs) :
     ∃ bpv : E, LoadHolds rd qptrs k bpv ∧ ∀ b emit pr,
       (QD.mk sh.oq b emit pr w.2.1 w.1 w.2.2 cap flags rounds hsv).Ok rd coefs hs bpv := by
-  obtain ⟨hR, hW, hpos, hq, ⟨bp, hbp, hwin⟩, ⟨hrl', hsl, hc0, hc1, hfl⟩, hnz, hfeq⟩ := h
+  obtain ⟨hR, hW, hpos, hq, ⟨bp, hbp, hwin⟩, ⟨hrl', hsl, hc0, hc1, hfl⟩, hfeq⟩ := h
   have hd : sh.depth - sh.cd + sh.cd = sh.depth := by omega
-  refine ⟨bp, hbp, fun b emit pr ↦ ⟨hsl, hrl', ⟨fun i hi ↦ ?_, hc0, hc1, hfl⟩, ?_, hR, hrl, hnz,
+  refine ⟨bp, hbp, fun b emit pr ↦ ⟨hsl, hrl', ⟨fun i hi ↦ ?_, hc0, hc1, hfl⟩, ?_, hR, hrl,
     fun hf ↦ ⟨hW hf, hhl hf, hfeq hf⟩⟩⟩
   · change i < qwN (sh.depth - sh.cd + sh.cd) sh.cd at hi
     show LoadHolds rd bp i (gen ^ qwVal (sh.depth - sh.cd + sh.cd) sh.cd w.1 i)
@@ -181,7 +172,6 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
   have hf1 : 1 ≤ d.s.folds := by rcases hs with ⟨-, h⟩ | ⟨-, h⟩ <;> omega
   have hrow2 : d.row.length = 2 * d.s.ncells := by rw [hok.hrow, d.rowLen_eq hs]
   have hleaf := d.oqLeaf_digest hs hrow2 hv hpad hz
-  have hnz := d.t_ne hok.hrl hok.hnz
   -- the atoms before the call
   have hA1 : BlockOkC C rd σ (oqPrepT d.s d.b ++ (if d.emit then oqPadT (oqK1 d.s d.b) else []) ++
       oqLeafT d.s d.b (oqPr d.s d.b d.emit d.pr) (oqKL d.s d.b d.emit)) := by
@@ -209,12 +199,12 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
     refine blockOkC_of_blockOk (blockOk_of_atoms (allAtoms_append (oqFoldT_atoms _ _ _ _ _)
       (by split; exact oqFinT_atoms _ _ _ _; exact allAtoms_nil)) fun a ha ↦ ?_)
     rcases List.mem_append.mp ha with ha | ha
-    · exact d.oqFold_complete hf1 hv hok.hR hok.hrl hx hnz a ha
+    · exact d.oqFold_complete hf1 hv hok.hR hok.hrl hx a ha
     · split at ha
       · rename_i hfinal
         obtain ⟨hW, hl, heq⟩ := hok.hfin hfinal
-        exact d.oqFin_complete hfinal hfin hv hx hW hl
-          (d.finEq_of hs hok.hrow hok.hrl hok.hnz heq) a ha
+        exact d.oqFin_complete hf1 hfinal hfin hv hx hW hl
+          (d.finEq_of hs hok.hrow hok.hrl heq) a ha
       · simp at ha
   refine ⟨?_, ?_, hleaf⟩
   · rw [oqQueryT_eq]
@@ -230,8 +220,8 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
     exact hC
   · by_cases hfinal : d.s.final = 1
     · obtain ⟨hW, hl, heq⟩ := hok.hfin hfinal
-      have hA := d.oqFin_complete (rd := rd) hfinal hfin hv hx hW hl
-        (d.finEq_of hs hok.hrow hok.hrl hok.hnz heq)
+      have hA := d.oqFin_complete (rd := rd) hf1 hfinal hfin hv hx hW hl
+        (d.finEq_of hs hok.hrow hok.hrl heq)
       have h := hA _ (List.mem_append_right _ (List.mem_cons_of_mem _ (List.mem_singleton_self _)))
       simp only [Atom.Holds] at h
       simp only [oqRes, hfinal, ↓reduceIte]
@@ -239,8 +229,8 @@ theorem query_complete (hs : d.s.RowShape) (hfin : d.s.FinOk) {walk : String} {C
         (oqNovel d.s hsp d.v).2.2 from rfl, h, word_zero]
     · simp only [oqRes, hfinal, ↓reduceIte]
       rw [show oqVal d.s (oqCh d.s d.b d.emit) = d.v from rfl,
-        d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, val_v,
-        d.foldVal_eq hs hok.hrow hok.hrl hok.hnz]
+        d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, d.val_v hf1,
+        d.foldVal_eq hs hok.hrow hok.hrl]
       rfl
 
 end QD

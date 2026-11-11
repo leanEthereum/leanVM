@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SShT
 public import LeanVM.Guest.B1.Tables.VtC.SSortAll
 
 /-!
-# Statements `563 ..< 765` (G:2356-2378)
+# Statements `563 ..< 765` (G:2347-2369)
 
 `vtS_p2`: for the bus point (`|point| = μ < 33`), the tables' heights at `kappa_base[2 + t]`,
 `τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ μ`, on a memory holding `table_rows`, the squares,

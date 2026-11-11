@@ -30,7 +30,7 @@ structure LvB (c : OsCfg) (logN l : ℕ) (L : LvAt) : Prop where
   dep : (osLvAt c l).depth = L.dp logN
   q : L.level.queries = (osLvAt c l).queries
   sq : (osLvAt c l).squeezes = sqCount (128 / (osLvAt c l).depth) (osLvAt c l).queries
-  g1 : L.s1.gammas.length = (osLvAt c l).foldsOff + (osLvAt c l).folds
+  g1 : L.s1.alphas.length = (osLvAt c l).foldsOff + (osLvAt c l).folds
   mu : L.mu logN = (osLvAt c l).logCols
   qsh : QshOk c l (osLvAt c l) (if l = c.yrLevel then 1 else 0)
   P1 : 1 ≤ 128 / (osLvAt c l).depth
@@ -42,16 +42,16 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
   (hR : HonRun μ r target S root xs os w cfg Ls)
 include hR
 
-theorem s1_gammas {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
-    (Ls.getD l default).s1.gammas.length =
+theorem s1_alphas {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
+    (Ls.getD l default).s1.alphas.length =
       (osLvAt (osCfg (candidate μ r)) l).foldsOff + (Ls.getD l default).level.fold := by
-  rw [LvAt.s1, roundsSpec_gammas_length, hR.gammas l hl]
+  rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l hl]
 
 /-- **Every level of the run against its row.** -/
 theorem lvb {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
     LvB (osCfg (candidate μ r)) μ l (Ls.getD l default) := by
   have hy := hR.yr
-  have hg := hR.s1_gammas hl
+  have hg := hR.s1_alphas hl
   by_cases hlt : l < (osCfg (candidate μ r)).yrLevel
   · obtain ⟨hne, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, -, -, hqsh,
       -⟩ := hR.mid hlt

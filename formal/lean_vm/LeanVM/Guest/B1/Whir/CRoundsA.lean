@@ -12,8 +12,8 @@ public import LeanVM.Guest.B1.Whir.CAtoms
 # The fold rounds at fixed values
 
 `RoundsC C fch coefs tabs n i fs cl cur xs`: the `n` rounds' `opening_round` calls from `i` hold
-of `C` at their exact arguments and returns (the round's capacity, cursor, claim, `γ` and
-`α, β, θ` slots); `osRounds_completeA`: the rounds as a block at fixed values (`BlkA`).
+of `C` at their exact arguments and returns (the round's capacity, cursor, claim, `α` and
+`α, β` slots); `osRounds_completeA`: the rounds as a block at fixed values (`BlkA`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -29,17 +29,17 @@ variable {H : CallRel → Reader → Prop}
 def RoundsC (C : CallRel) (fch coefs tabs : E) : ℕ → ℕ → List E → E → E → List E → Prop
   | 0, _, _, _, _, _ => True
   | n + 1, i, fs, cl, cur, xs =>
-    C "opening_round" (fs ++ [cur, cl, tabs, fch * gen ^ i, coefs * gen ^ (3 * i)])
-        (roundRets fs cur cl (xs.take 7)) ∧
-      RoundsC C fch coefs tabs n (i + 1) ((roundRets fs 0 cl (xs.take 7)).take 5)
-        ((roundRets fs 0 cl (xs.take 7)).getD 6 0) (cur * gen ^ 7) (xs.drop 7)
+    C "opening_round" (fs ++ [cur, cl, tabs, fch * gen ^ i, coefs * gen ^ (2 * i)])
+        (roundRets fs cur cl (xs.take 6)) ∧
+      RoundsC C fch coefs tabs n (i + 1) ((roundRets fs 0 cl (xs.take 6)).take 5)
+        ((roundRets fs 0 cl (xs.take 6)).getD 6 0) (cur * gen ^ 6) (xs.drop 6)
 
 /-- The state after a round lies below its next free value. -/
 theorem osRound_below (P : List (ℕ × ℕ × ℕ)) (i : ℕ) (st : OsSt) (hb : st.Below) (hk : 36 ≤ st.k) :
     (osRound P i st).2.Below := by
   set cu := osCurS st
   set fp := osMatS P osFch i cu.2.2
-  set cp := osMatS P osCoefs (3 * i) fp.2.2
+  set cp := osMatS P osCoefs (2 * i) fp.2.2
   have k1 : st.k ≤ cu.2.2.k := osCurS_k st
   have k2 : cu.2.2.k ≤ fp.2.2.k := osMatS_k _ _ _ _
   have k3 : fp.2.2.k ≤ cp.2.2.k := osMatS_k _ _ _ _
@@ -59,7 +59,7 @@ theorem osRound_below (P : List (ℕ × ℕ × ℕ)) (i : ℕ) (st : OsSt) (hb :
 
 /-- **`n` rounds as a block at fixed values.** -/
 theorem osRounds_completeA {P : List (ℕ × ℕ × ℕ)} :
-    ∀ (n i : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.co < u128Bound → 3 * (i + n) < u128Bound →
+    ∀ (n i : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.co < u128Bound → 2 * (i + n) < u128Bound →
       st.Below → (∀ C rd, H C rd → MatsOk σ st.mats) → 36 ≤ st.k → st.fs.length = 5 →
       (∀ C rd, H C rd → RoundsC C (σ (.n osFch)) (σ (.n osCoefs)) (σ (.n osTabs)) n i (st.fsv σ)
         (σ (.n st.claim)) (st.cur σ) xs) →
@@ -77,7 +77,7 @@ theorem osRounds_completeA {P : List (ℕ × ℕ × ℕ)} :
       matsOk_agree (hm C rd hH) hb.mats fun i hi ↦ ha i hi, rfl, le_rfl⟩
   | succ n ih =>
     intro i st σ xs hco hi hb hm hk hfs hR
-    set w := xs.take 7 with hw
+    set w := xs.take 6 with hw
     have hA : BlkA H σ st.k (osRound P i st).2.k (osRound P i st).1
         (fun σ' ↦ RoundOut σ σ' st (osRound P i st).2 w ∧ AgreeBelow st.k σ σ') :=
       BlkA.ofF (osRoundF P i st w σ) fun C rd hH ↦
@@ -93,11 +93,11 @@ theorem osRounds_completeA {P : List (ℕ × ℕ × ℕ)} :
     set fsv := st.fsv σ with hfsv
     set cl := σ (.n st.claim) with hcl
     have hRt : roundsTr (n + 1) fsv cl xs =
-        roundsTr n ((roundRets fsv 0 cl w).take 5) ((roundRets fsv 0 cl w).getD 6 0) (xs.drop 7) :=
+        roundsTr n ((roundRets fsv 0 cl w).take 5) ((roundRets fsv 0 cl w).getD 6 0) (xs.drop 6) :=
       rfl
     refine BlkA.mono (BlkA.seq hk1 hk2 hA fun σ1 ha1 ho1 ↦ ?_) fun σ' ⟨⟨_, ha'⟩, ho⟩ ↦ ⟨ho, ha'⟩
     have sb : st1.Below := osRound_below P i st hb hk
-    have hih := ih (i + 1) st1 σ1 (xs.drop 7) (by show 0 < u128Bound; unfold u128Bound; positivity)
+    have hih := ih (i + 1) st1 σ1 (xs.drop 6) (by show 0 < u128Bound; unfold u128Bound; positivity)
       (by omega) sb (fun C rd hH ↦ (ho1 C rd hH).1.mats) (le_trans hk hk1) rfl fun C rd hH ↦ by
         obtain ⟨ro, ha1'⟩ := ho1 C rd hH
         have ef : st1.fsv σ1 = (roundRets fsv 0 cl w).take 5 := by

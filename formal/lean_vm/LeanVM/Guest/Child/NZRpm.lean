@@ -133,9 +133,9 @@ theorem rpmChild_le :
   have hQle : LeanVM.completenessQueries (2 ^ 33) ≤ 2 ^ 51 := by
     norm_num [LeanVM.completenessQueries]
   -- the ideal failure
-  have h1 : (2048 + ((leanVmCost / 4 : ℕ) : ℝ≥0∞)) * epsE ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
+  have h1 : ((leanVmCost / 4 : ℕ) : ℝ≥0∞) * epsE ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
     rw [hc, epsE_eq]
-    calc (2048 + ((53036 / 4 : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 128
+    calc ((53036 / 4 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128
         ≤ (2 : ℝ≥0∞) ^ 14 * (2 : ℝ≥0∞)⁻¹ ^ (14 + 114) := by
           gcongr
           norm_num

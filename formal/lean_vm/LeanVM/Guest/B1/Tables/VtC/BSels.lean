@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SShT
 public import LeanVM.Guest.B1.Tables.Vt.SelsAll
 
 /-!
-# The block selectors, all (G:2229-2275)
+# The block selectors, all (G:2220-2266)
 
 `vtFwW b`: framework block `b`'s first value. `vtc_sels`: with `kappa_base` the memory's log-size
 and the tables' heights, every push and count block's offset its side's `stackOffsets` offset

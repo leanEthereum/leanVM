@@ -50,7 +50,7 @@ theorem end_eq :
   set Lf := Ls.getD (osCfg (candidate μ r)).yrLevel default with hLf
   set lv := osLvAt (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel with hlv
   have hmu : Lf.mu μ = (osCfg (candidate μ r)).yrLog := by
-    show μ - Lf.s1.gammas.length = _; rw [hs1]; omega
+    show μ - Lf.s1.alphas.length = _; rw [hs1]; omega
   have hdep : lv.depth = Lf.dp μ := by rw [hdepth]; show _ = Lf.mu μ + _; rw [hmu]
   have hF := hR.last
   rw [clane] at hF

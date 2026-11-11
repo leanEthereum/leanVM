@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Flat
 
 /-!
-# The out-of-domain weights (G:1863-1873)
+# The out-of-domain weights (G:1854-1864)
 
 The weight of out-of-domain claim `s` of the commitment level `ol - 1` read: its scalar from
 `ood_scalars`, times `1 + z_t + p_t` over its point `z` (in `ood_z`) and the terminal point's

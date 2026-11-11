@@ -262,8 +262,8 @@ def busReads : ℕ := 1 + 0 + 0 + (2 + gkrReadsBound) + 4 + (1 + busBits * round
 /-- The table phase. -/
 def tableReads : ℕ := 1 + 0 + (32 * roundReads 4 + tableWidthSum)
 
-/-- One fold round: two proofs of work and five reads. -/
-def foldRoundReads : ℕ := 1 + 0 + 5 + 1 + 0
+/-- One fold round: five reads and a proof of work. -/
+def foldRoundReads : ℕ := 5 + 1 + 0
 
 /-- The WHIR levels from a message of `μ` variables, as `whirCost`. -/
 def whirReads : ℕ → List Whir.Level → ℕ
@@ -677,34 +677,31 @@ theorem reads_readOod (stackLog : ℕ) :
 
 theorem reads_foldRound (s : WhirState) :
     Reads (foldRound s) foldRoundReads
-      fun r ↦ r.1.gammas.length = s.gammas.length + 1 := by
-  refine Reads.seq (Reads.grindP _) (fun _ _ ↦
-    Reads.seq Reads.sampleE (fun _ _ ↦
-    Reads.seq Reads.readE (fun _ _ ↦
+      fun r ↦ r.1.alphas.length = s.alphas.length + 1 := by
+  refine Reads.seq Reads.readE (fun _ _ ↦
     Reads.seq Reads.readE (fun _ _ ↦
     Reads.seq Reads.readE (fun _ _ ↦
     Reads.seq Reads.readE (fun _ _ ↦
     Reads.seq Reads.readE (fun _ _ ↦
     Reads.seq (Reads.grindP _) (fun _ _ ↦
     Reads.seq Reads.sampleE (fun _ _ ↦
-    Reads.seq Reads.sampleE (fun _ _ ↦
     Reads.seq Reads.sampleE (fun _ _ ↦ ?_)
-      ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_
-  · show (s.gammas ++ [_]).length = s.gammas.length + 1
+      ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_
+  · show (s.alphas ++ [_]).length = s.alphas.length + 1
     simp
   all_goals simp only [foldRoundReads]; omega
 
-/-- A level's fold rounds; they append one `γ` each. -/
+/-- A level's fold rounds; they append one `α` each. -/
 theorem reads_foldRounds : ∀ (n : ℕ) (s : WhirState),
     Reads (foldRounds n s) (foldRoundReads * n)
-      fun r ↦ r.1.gammas.length = s.gammas.length + n
+      fun r ↦ r.1.alphas.length = s.alphas.length + n
   | 0, _ => rfl
   | n + 1, s => by
     refine Reads.seq (reads_foldRound s) (fun r hr ↦ ?_) ?_
     · obtain ⟨s', round⟩ := r
       refine Reads.seq (reads_foldRounds n s') (fun r' hr' ↦ ?_) ?_
       · obtain ⟨s'', rounds⟩ := r'
-        show s''.gammas.length = s.gammas.length + (n + 1)
+        show s''.alphas.length = s.alphas.length + (n + 1)
         simp only at hr hr'
         omega
       · rw [Nat.mul_succ]; omega
@@ -728,7 +725,7 @@ theorem reads_sampleQueriesAux (depth : ℕ) :
 /-- **The WHIR levels** from a message of `μ` variables read `whirReads μ levels`. -/
 theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (μ : ℕ),
-      logN - s.gammas.length = μ →
+      logN - s.alphas.length = μ →
       Reads (whirLevels logN laneFolds evaluateBasis index levels s)
         (whirReads μ levels) fun _ ↦ True
   | [], _, _, _, _ => trivial
@@ -739,7 +736,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     refine Reads.seq (reads_foldRounds level.fold s) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', rounds⟩ := r
     simp only at hr
-    have hm : logN - s'.gammas.length = μ - level.fold := by rw [hr]; omega
+    have hm : logN - s'.alphas.length = μ - level.fold := by rw [hr]; omega
     refine Reads.seq (Reads.readN _) (fun _ _ ↦
       Reads.seq (Reads.grindP _) (fun _ _ ↦ Reads.seq
         (reads_sampleQueriesAux _ level.queries level.queries) (fun queries _ ↦ ?_)
@@ -758,7 +755,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     refine Reads.seq (reads_foldRounds level.fold s) (fun r hr ↦ ?_) (by omega)
     obtain ⟨s', rounds⟩ := r
     simp only at hr
-    have hm : logN - s'.gammas.length = μ - level.fold := by rw [hr]; omega
+    have hm : logN - s'.alphas.length = μ - level.fold := by rw [hr]; omega
     refine Reads.seq (Reads.commitP _ _) (fun _ _ ↦
       Reads.seq (Reads.readN _) (fun _ _ ↦
       Reads.seq (reads_sampleOodPoints _ _) (fun _ _ ↦
@@ -770,7 +767,7 @@ theorem reads_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
         Reads.seq Reads.sampleE (fun lam _ ↦
         Reads.seq (Reads.queryP index queries) (fun words _ ↦
           (reads_whirLevels logN laneFolds evaluateBasis (next :: rest) (index + 1) _
-            (μ - level.fold) (by rw [glueLevel_gammas]; exact hm)).mono ?_
+            (μ - level.fold) (by rw [glueLevel_alphas]; exact hm)).mono ?_
             fun _ h ↦ h) ?_) ?_) ?_
       all_goals omega
     all_goals omega

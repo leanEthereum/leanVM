@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.LevelLast
 
 /-!
-# The levels (G:1576-1754)
+# The levels (G:1567-1745)
 
 `LevelsOk`: every non-final level's facts and callees (`MidFacts`, `MidCalls`), then the final
 level's (`FinFacts`, `FinCalls`). `osLevels_sound`: from a level's `LvIn`, the template's levels
@@ -81,18 +81,18 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         xs.length = lvsWords c lvl (lv :: lvs) + 2 * c.yrLog ∧ ReadsAt rd (st.cur σ) xs ∧
         RunsWith (whirLevelsOpen logN lane lvl cfg ws) (st.F σ) xs
           (osLevelsW rd V σ c lvl (lv :: lvs) st) R
-          ⟨((ws.gammas ++ gs) ++ T).drop lane ++ ((ws.gammas ++ gs) ++ T).take lane,
+          ⟨((ws.alphas ++ gs) ++ T).drop lane ++ ((ws.alphas ++ gs) ++ T).take lane,
             ((recs ++ recs').flatMap recGlued).foldl
-              (fun w g ↦ w + g.scalar * g.weightAt (((ws.gammas ++ gs) ++ T).drop g.foldStart)) 0,
+              (fun w g ↦ w + g.scalar * g.weightAt (((ws.alphas ++ gs) ++ T).drop g.foldStart)) 0,
             multilinearEval (fold.take c.yrLen) T,
             σ (.n (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.claim) +
-              T.prod * recsDeficit (recs ++ recs') (ws.gammas ++ gs)⟩
+              T.prod * recsDeficit (recs ++ recs') (ws.alphas ++ gs)⟩
           ((osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.F σ) R' ∧
         recs'.length = lvs.length ∧
         (∀ i (hi : i < recs'.length), RecStored rd σ (lvl + i) ((lv :: lvs).getD i default) recs'[i]) ∧
-        (∀ r ∈ recs, r.F ≤ ws.gammas.length) ∧
+        (∀ r ∈ recs, r.F ≤ ws.alphas.length) ∧
         gs.length = lvsFolds (lv :: lvs) ∧
-        (∀ j (h : j < (ws.gammas ++ gs).length), LoadHolds rd (σ (.n osFch)) j (ws.gammas ++ gs)[j]) ∧
+        (∀ j (h : j < (ws.alphas ++ gs).length), LoadHolds rd (σ (.n osFch)) j (ws.alphas ++ gs)[j]) ∧
         ReadsAt rd (σ (.n osFmsg)) fold ∧ fold.length = c.yrLen + (lvsLast (lv :: lvs)).folds ∧
         ReadsAt rd (σ (.n (osTail c (osLevels c lvl (lv :: lvs) st).2).2.2)) T ∧
         T.length = c.yrLog
@@ -106,12 +106,12 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     · rw [whirLevelsOpen_last]
       simp only [osLevelsW, List.append_nil, osLevels]
       refine RunsWith.of_eq hrun rfl rfl rfl rfl ?_ rfl rfl
-      rw [hin.glued, recsDeficit_append_gammas _ _ _ hin.recF]
+      rw [hin.glued, recsDeficit_append_alphas _ _ _ hin.recF]
     · intro j hj
-      by_cases h0 : j < ws.gammas.length
+      by_cases h0 : j < ws.alphas.length
       · rw [List.getElem_append_left h0]; exact hin.fch j h0
       · rw [List.getElem_append_right (by omega)]
-        have := lg (j - ws.gammas.length) (by simp at hj; omega)
+        have := lg (j - ws.alphas.length) (by simp at hj; omega)
         rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at hj; omega),
           Option.getD_some, ← hin.glen, Nat.add_sub_cancel' (by omega)] at this
         exact this
@@ -126,7 +126,7 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       hfl, hTr, hTl⟩ :=
       osLevels_sound hU hle hwt lane (lvl + 1) lv' lvs (next :: cfg) (osLevel c lvl lv st).2 ws1
         (recs ++ [r]) _ root' hrest hin1 hA.2 hT
-    have eG : ws1.gammas ++ gs2 = ws.gammas ++ (gs1 ++ gs2) := by rw [hgs1, List.append_assoc]
+    have eG : ws1.alphas ++ gs2 = ws.alphas ++ (gs1 ++ gs2) := by rw [hgs1, List.append_assoc]
     rw [eG] at hrun2 hfch
     rw [List.append_assoc] at hrun2
     refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, by simp [hrl], ?_,

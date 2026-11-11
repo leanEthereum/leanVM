@@ -51,8 +51,8 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
     (hcols : 1 ≤ (osLvAt h.c l).logCols) (hcap5 : (h.L l).cap.length = 5) (hsuf : (h.L l).xs <:+ xs)
     (hR : digestHalves (h.root (l + 1)) = ((h.L l).nw.x0, (h.L l).nw.x1))
     (hG : ∀ j < (osLvAt h.c l).folds, h.G.getD ((osLvAt h.c l).foldsOff + j) 0 =
-      (roundsSpec (osLvAt h.c l).folds (h.L l).s (h.L l).cap (h.L l).rw).1.gammas.getD
-        ((h.L l).s.gammas.length + j) 0)
+      (roundsSpec (osLvAt h.c l).folds (h.L l).s (h.L l).cap (h.L l).rw).1.alphas.getD
+        ((h.L l).s.alphas.length + j) 0)
     (hL : h.Ls.length = h.c.levels.length)
     (hrl : ∀ i < h.c.levels.length, (h.L i).rounds.length = (osLvAt h.c i).folds)
     (hz0 : ((h.L l).osRec h.logN).z0.length = (osLvAt h.c l).logCols)
@@ -97,24 +97,24 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   have p9 : σ (.n osOodz) = osPtrF h.c b 9 := hp 9 (by norm_num)
   have p10 : σ (.n osOodSc) = osPtrF h.c b 10 := hp 10 (by norm_num)
   -- the level's words
-  have hrwl : rw.length = 7 * (osLvAt h.c l).folds := by rw [hrl7, hfold]
+  have hrwl : rw.length = 6 * (osLvAt h.c l).folds := by rw [hrl7, hfold]
   have hhl : W'.high.length = (osLvAt h.c l).folds := by rw [hnext.hlen, hfold]
   have hxs' : (h.L l).xs = rw ++ ((W'.x0 :: W'.x1 :: W'.high) ++
       ([W'.y0, W'.y1, W'.nn] ++ (W'.n2 :: (h.L (l + 1)).xs))) := by
     rw [hxsL]; simp [NextW.words]
-  have hlen : (h.L l).xs.length = 7 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3 + 1 +
+  have hlen : (h.L l).xs.length = 6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3 + 1 +
       (h.L (l + 1)).xs.length := by
     rw [hxs']; simp [hrwl, hhl]; omega
   have e0 : (((h.L l).xs.drop 0).take rw.length) = rw := by
     rw [hxs', List.drop_zero, List.take_left' rfl]
-  have e1 : (((h.L l).xs.drop (7 * (osLvAt h.c l).folds)).take (W'.x0 :: W'.x1 :: W'.high).length) =
+  have e1 : (((h.L l).xs.drop (6 * (osLvAt h.c l).folds)).take (W'.x0 :: W'.x1 :: W'.high).length) =
       W'.x0 :: W'.x1 :: W'.high := by
     rw [hxs']; exact seg_eq hrwl.symm
-  have e2 : (((h.L l).xs.drop (7 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds))).take 3) =
+  have e2 : (((h.L l).xs.drop (6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds))).take 3) =
       [W'.y0, W'.y1, W'.nn] := by
     rw [hxs', ← List.append_assoc]
     exact seg_eq (B := [W'.y0, W'.y1, W'.nn]) (by simp [hrwl, hhl]; omega)
-  have e3 : (((h.L l).xs.drop (7 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3)).take 1) =
+  have e3 : (((h.L l).xs.drop (6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3)).take 1) =
       [W'.n2] := by
     rw [hxs', ← List.append_assoc, ← List.append_assoc, show W'.n2 :: (h.L (l + 1)).xs =
       [W'.n2] ++ (h.L (l + 1)).xs from rfl]
@@ -123,26 +123,26 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   -- the reads at the cursor
   have r0 := segR hrdx hsuf (k := 0) (m := rw.length) (by omega)
   rw [e0, Nat.add_zero] at r0
-  have r1 := segR hrdx hsuf (k := 7 * (osLvAt h.c l).folds) (m := (W'.x0 :: W'.x1 :: W'.high).length)
+  have r1 := segR hrdx hsuf (k := 6 * (osLvAt h.c l).folds) (m := (W'.x0 :: W'.x1 :: W'.high).length)
     (by rw [hml]; omega)
   rw [e1] at r1
-  have r2 := segR hrdx hsuf (k := 7 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds)) (m := 3) (by omega)
+  have r2 := segR hrdx hsuf (k := 6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds)) (m := 3) (by omega)
   rw [e2] at r2
-  have r3 := segR hrdx hsuf (k := 7 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3) (m := 1)
+  have r3 := segR hrdx hsuf (k := 6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3) (m := 1)
     (by omega)
   rw [e3] at r3
   -- the level's Spec values
   have hqS : (h.L l).qS h.logN = W'.qS (rsF (h.L l).level (h.L l).cap rw)
-      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).gammas.length) := by
+      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length) := by
     simp only [LvAt.qS, hd, LvAt.F, LvAt.mu, LvAt.s1, hLrw]
   have hF3 : (h.L l).F3 h.logN = W'.F3 (rsF (h.L l).level (h.L l).cap rw)
-      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).gammas.length)
-      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).gammas.length + (h.L l).level.logInvRate)
+      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length)
+      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length + (h.L l).level.logInvRate)
       (h.L l).level.queries := by
     simp only [LvAt.F3, hd, LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hLrw]
   have hqs : (h.L l).qs h.logN = W'.qs (rsF (h.L l).level (h.L l).cap rw)
-      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).gammas.length)
-      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).gammas.length + (h.L l).level.logInvRate)
+      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length)
+      (h.logN - (rsSt (h.L l).level (h.L l).s (h.L l).cap rw).alphas.length + (h.L l).level.logInvRate)
       (h.L l).level.queries := by
     simp only [LvAt.qs, hd, LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hLrw]
   have hph : (h.L l).phase = W'.phase := by simp only [LvAt.phase, hd]
@@ -162,7 +162,7 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
   simp only [show l ≠ h.c.yrLevel by omega, ↓reduceIte] at hsz0
   have hfe := h.foldsEnd_le hS hln
   have h4 : (osSizesF h.c).getD 4 0 = h.c.nFolds := by rw [hS.head (j := 4) (by omega)]; rfl
-  have h5 : (osSizesF h.c).getD 5 0 = 3 * h.c.nFolds := by rw [hS.head (j := 5) (by omega)]; rfl
+  have h5 : (osSizesF h.c).getD 5 0 = 2 * h.c.nFolds := by rw [hS.head (j := 5) (by omega)]; rfl
   refine ⟨?f_rounds, ?f_om, ?f_sent, ?f_spf, ?f_sp, ?f_ys, ?f_g17, ?f_rows, ?f_dec, ?f_loop, ?f_nb, ?f_g14, ?f_mcap, ?f_roots, ?f_hs, ?f_q, ?f_glue⟩
   case f_rounds =>
     rw [p4, p5, ht]
@@ -178,10 +178,10 @@ theorem midC_of {h : OsHD} {b : ℕ} {cur tabs : E} {xs : List E} {l : ℕ}
         rw [hG j hj, hLrw] at this
         exact this
       · rw [hfold] at hj ⊢
-        obtain ⟨a0, a1, a2⟩ := h.coefs_load hS hm (i := (osLvAt h.c l).foldsOff + j) (by omega)
-        rw [h.allRounds_getD hS hL hrl hln hj] at a0 a1 a2
-        simp only [LvAt.rounds, rsRounds, hLrw, hfold] at a0 a1 a2
-        exact ⟨a0, a1, a2⟩
+        obtain ⟨a0, a1⟩ := h.coefs_load hS hm (i := (osLvAt h.c l).foldsOff + j) (by omega)
+        rw [h.allRounds_getD hS hL hrl hln hj] at a0 a1
+        simp only [LvAt.rounds, rsRounds, hLrw, hfold] at a0 a1
+        exact ⟨a0, a1⟩
     · refine ⟨?_, ?_, ?_⟩
       · rw [mul_gen_pow_add]
         exact segF hsuf (by rw [hlen]; omega)

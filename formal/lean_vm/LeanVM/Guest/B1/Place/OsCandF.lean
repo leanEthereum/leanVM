@@ -83,7 +83,7 @@ theorem LvStatic.resLt {c : OsCfg} {l : ℕ} (h : LvStatic c l) (hl : l < c.yrLe
 def SizesOk (c : OsCfg) : Prop :=
   let sz := osSizesF c
   osIxPT c < sz.length ∧ osIxPT1 c < sz.length ∧ osIxHsF c < sz.length ∧
-  sz.getD 0 0 = 4 * c.capLen ∧ sz.getD 1 0 = c.capLen ∧ sz.getD 5 0 = 3 * c.nFolds ∧
+  sz.getD 0 0 = 4 * c.capLen ∧ sz.getD 1 0 = c.capLen ∧ sz.getD 5 0 = 2 * c.nFolds ∧
   sz.getD 11 0 = c.posLen ∧
   sz.getD (osIxHsF c) 0 = c.yrLen + (osLvAt c c.yrLevel).folds ∧
   ∀ l < c.levels.length, osIxSqz c l < sz.length ∧ osIxSqz c l ≠ osIxQbp ∧

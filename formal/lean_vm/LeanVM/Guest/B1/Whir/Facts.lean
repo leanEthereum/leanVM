@@ -74,7 +74,7 @@ def MidOk (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.Level) (lv
   lv.squeezes = sqCount (128 / lv.depth) lv.queries ∧
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧
   digitsVal (osPowDigits lv.queries) 1 = lv.queries ∧ lv.posOff < u128Bound ∧ 1 ≤ lv.squeezes ∧
-  lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧ 3 * (lv.foldsOff + lv.folds) < u128Bound ∧
+  lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧ 2 * (lv.foldsOff + lv.folds) < u128Bound ∧
   (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
   lvl * hsStride < u128Bound ∧
   levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv') ∧
@@ -105,7 +105,7 @@ def FinOkF (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level) : Prop 
   lv.squeezes = sqCount (128 / lv.depth) lv.queries ∧
   digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth ∧ lv.posOff < u128Bound ∧
   1 ≤ lv.squeezes ∧ lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧
-  3 * (lv.foldsOff + lv.folds) < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
+  2 * (lv.foldsOff + lv.folds) < u128Bound ∧ 4 * lv.capOff < u128Bound ∧
   lvl * hsStride < u128Bound ∧ lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG ∧
   QshOk c lvl lv 1 ∧ (oqShapeOf (osQueriesName c lvl lv)).nHs = c.yrLen + lv.folds ∧
   (oqShapeOf (osQueriesName c lvl lv)).hsBits = c.yrLog + 1 ∧

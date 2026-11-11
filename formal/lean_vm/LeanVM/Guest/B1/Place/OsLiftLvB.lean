@@ -193,7 +193,7 @@ theorem os_lv_okB (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 
         (s := oqS c i) (odd := oqOdd c i) hdb hpd
         hcd (n := (osLvAt c i).squeezes) (N := oqN c i) hN hQ (w := H.word i) (Lk := Lk)
         (ecap := osBaseF c b0 0 + 4 * (osLvAt c i).capOff) (eflags := osBaseF c b0 1 + (osLvAt c i).capOff)
-        (ecoefs := osBaseF c b0 5 + 3 * (osLvAt c i).foldsOff) (ehs := ehs)
+        (ecoefs := osBaseF c b0 5 + 2 * (osLvAt c i).foldsOff) (ehs := ehs)
         (epos := osBaseF c b0 11 + (osLvAt c i).posOff) (eq := osBaseF c b0 osIxQbp) (lamInv := H.lamInv i)
         (H.rounds_len i hi) (H.hsv_len i hi) hst (H.qs_eq i hi) (fun rd hl hm ↦ ?_) ?_ p
       · rw [mkCall_f, mkCall_args, mkCall_rets]
@@ -201,7 +201,7 @@ theorem os_lv_okB (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 
           (Returns ((osQCall c i).2.2.2.map σ)) (osBk fs Bnd Kr c (osQCall c i).2.1)
         have ha : (osQCall c i).2.2.1.map σ = [ofK (addressOfIndex (osBaseF c b0 0 + 4 * (osLvAt c i).capOff)),
             ofK (addressOfIndex (osBaseF c b0 1 + (osLvAt c i).capOff)), H.lamInv i,
-            ofK (addressOfIndex (osBaseF c b0 5 + 3 * (osLvAt c i).foldsOff)), ofK (addressOfIndex ehs),
+            ofK (addressOfIndex (osBaseF c b0 5 + 2 * (osLvAt c i).foldsOff)), ofK (addressOfIndex ehs),
             ofK (addressOfIndex (osBaseF c b0 11 + (osLvAt c i).posOff)),
             ofK (addressOfIndex (osBaseF c b0 osIxQbp + (osLvAt c i).posOff)), gen ^ oqN c i] := by
           rw [d4, osPtrF_mul, osPtrF_mul, osPtrF_mul, osPtrF_mul, osPtrF_mul, hhs]
@@ -231,7 +231,7 @@ theorem os_lv_okB (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 
         have hlen11 := forall₂_getD_len H.own_len h11
         refine ⟨fun l' hl' ↦ ?_, fun hf l' hl' ↦ ?_, fun k hk ↦ ?_⟩
         · have := regionL_lk_buf (b := b0) (Lin := Lin) hlen h5 (by decide)
-            (t := 3 * (osLvAt c i).foldsOff + l') (by rw [hlen5, hg5]; omega)
+            (t := 2 * (osLvAt c i).foldsOff + l') (by rw [hlen5, hg5]; omega)
           simpa only [Nat.add_assoc] using this
         · have hyr : i = c.yrLevel := by
             by_contra h; simp only [hfin, h, ↓reduceIte] at hf; exact absurd hf (by decide)

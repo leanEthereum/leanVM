@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundAddrs
 
-  The hypertree's address cells in `verify_sig_lean_sphincs` (`lean_ethereum.py:4028-4029,
+  The hypertree's address cells in `verify_sig_lean_sphincs` (`lean_ethereum.py:4019-4020,
   4044-4045, 4048-4049` at leanVM main 40f877dc) are the statement's: each layer's `a0` is the first
   address cell of its tree, its `a1` the second cell of its one-time key, type `WOTS_HASH`.
 -/
@@ -20,9 +20,9 @@ The digest block gives the layers' leaves `L0`, `L1`, `L2` (`layerLeafN T l`), t
 = L2 mod 2^8` and the shifts `lvals`. From them the guest computes (field addition is `XOR`, the
 bits disjoint, so the cells are sums of their numbers):
 
-* `sForsAddrs_sound` (`G:4028-4029`): `a0_b = adrsCell0 0 (L1 + 2^8 L2)`, `key_b = adrsCell1 0 L0 0 0`;
-* `sMidAddrs_sound` (`G:4043-4044`): `a0_m = adrsCell0 1 L2`, `key_m = adrsCell1 0 L1 0 0`;
-* `sTopAddrs_sound` (`G:4047-4048`): `a0_t = adrsCell0 2 0`, `key_t = adrsCell1 0 L2 0 0`.
+* `sForsAddrs_sound` (`G:4019-4020`): `a0_b = adrsCell0 0 (L1 + 2^8 L2)`, `key_b = adrsCell1 0 L0 0 0`;
+* `sMidAddrs_sound` (`G:4034-4035`): `a0_m = adrsCell0 1 L2`, `key_m = adrsCell1 0 L1 0 0`;
+* `sTopAddrs_sound` (`G:4038-4039`): `a0_t = adrsCell0 2 0`, `key_t = adrsCell1 0 L2 0 0`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -93,7 +93,7 @@ theorem lval_cells {T : Nat} (hD : DigestAt σ T) :
 theorem leaves_lt (T : Nat) : layerLeafN T 0 < 256 ∧ layerLeafN T 1 < 256 ∧ layerLeafN T 2 < 1024 :=
   layerLeafN_lt' T
 
-/-- **The bottom layer's addresses** (`G:4028-4029`). -/
+/-- **The bottom layer's addresses** (`G:4019-4020`). -/
 theorem sForsAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sForsAddrs) :
     σ sA0B = adrsCell0 0 (layerTreeN T 0) ∧ σ sKeyB = adrsCell1 0 (layerLeafN T 0) 0 0 := by
   obtain ⟨v0, v8, v24, vm⟩ := lval_cells hD
@@ -150,7 +150,7 @@ theorem keyCell_eq {m q : Nat} (hm : m < 256) (hq : q < 256) :
   simp only [beWordAt, Nat.zero_div, Nat.zero_mod]
   ring
 
-/-- **The middle layer's addresses** (`G:4043-4044`). -/
+/-- **The middle layer's addresses** (`G:4034-4035`). -/
 theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMidAddrs) :
     σ (sA0Of 1) = adrsCell0 1 (layerTreeN T 1) ∧ σ (sA1Of 1) = adrsCell1 0 (layerLeafN T 1) 0 0 := by
   obtain ⟨-, v8, v24, vm⟩ := lval_cells hD
@@ -190,7 +190,7 @@ theorem sMidAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sMid
       keyCell_eq b1 (by norm_num)]
     simp
 
-/-- **The top layer's addresses** (`G:4047-4048`). -/
+/-- **The top layer's addresses** (`G:4038-4039`). -/
 theorem sTopAddrs_sound {T : Nat} (hD : DigestAt σ T) (h : AtomsHold rd σ sTopAddrs) :
     σ (sA0Of 2) = adrsCell0 2 (layerTreeN T 2) ∧ σ (sA1Of 2) = adrsCell1 0 (layerLeafN T 2) 0 0 := by
   obtain ⟨-, -, v24, vm⟩ := lval_cells hD

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DvHonest
 
-  The words an honest run of `da_verify` (G:4323-4363) leaves in its buffers, as functions of the
+  The words an honest run of `da_verify` (G:4314-4354) leaves in its buffers, as functions of the
   cells' symbols and the challenge: each blob's region (its tree over its cells' digests, its
   running sum), the regions' bases, the tree over the blobs' roots.
 

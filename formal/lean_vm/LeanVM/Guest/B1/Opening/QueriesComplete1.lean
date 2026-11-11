@@ -17,8 +17,7 @@ With the valuation `σ` the honest values `d.val` on the query's range (`d.Hv σ
 
 * `oqPacks_complete`: every atom of the packs (level 0);
 * `oqPad_complete`: of the padding run, when emitted;
-* `oqFold_complete`: of the fold, the rounds in memory at `coefs` (`RoundsAt`), the point `x`,
-  no combiner `t_j` zero;
+* `oqFold_complete`: of the fold, the rounds in memory at `coefs` (`RoundsAt`), the point `x`;
 * `oqFin_complete`: of the final check, the coefficients at `hs` (`WordsAt`), the fold's value
   their novel sum over the chain (`finEq`).
 -/
@@ -44,7 +43,9 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 theorem b_le_ch : d.b ≤ d.ch := by rw [ch_off]; omega
 
-theorem ch_le_v : d.ch ≤ d.v := by rw [v_eq]; omega
+theorem ch_le_v : d.ch ≤ d.v := by
+  simp only [v, oqVal, oqAcc, oqRO, d.oqRK_eq]
+  omega
 
 theorem v_lt_oqNovel (s : Oq) (hs : V) (v : ℕ) : v < (oqNovel s hs v).2.2 := by
   simp only [oqNovel]
@@ -119,37 +120,22 @@ theorem oqPad_complete (he : d.emit = true) (hv : d.Hv σ) :
 
 /-! ## The fold -/
 
-/-- The offset of round `j`'s outputs in its values. -/
-def oH (j : ℕ) : ℕ := 8 + (if j = 0 then 0 else 1)
-
-theorem roundVals_head (j : ℕ) {o : ℕ} (ho : o < 8) :
-    (d.roundVals j).getD o 0 = [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j,
-      (d.rd j).theta, word 1 0, (d.t j)⁻¹, d.r j].getD o 0 := by
-  rw [roundVals, List.append_assoc, List.getD_append _ _ _ _ (by simpa using ho)]
-
-theorem roundVals_scale {j : ℕ} (hj : j ≠ 0) : (d.roundVals j).getD 8 0 = d.scale j := by
-  rw [roundVals, List.getD_append _ _ _ _ (by simp [hj]), List.getD_append_right _ _ _ _ (by simp)]
-  simp [hj]
+theorem roundVals_head (j : ℕ) {o : ℕ} (ho : o < 4) :
+    (d.roundVals j).getD o 0 = [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j].getD o 0 := by
+  rw [roundVals, List.getD_append _ _ _ _ (by simpa using ho)]
 
 theorem roundVals_out (j : ℕ) {m c : ℕ} (hm : m < 2 ^ (d.s.folds - 1 - j)) (hc : c < 2) :
-    (d.roundVals j).getD (oH j + (2 * m + c)) 0 = [d.r j * d.hiV j m, d.acc j m].getD c 0 := by
-  have hl : ([(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j, (d.rd j).theta, word 1 0,
-      (d.t j)⁻¹, d.r j] ++ (if j = 0 then [] else [d.scale j])).length = oH j := by
-    unfold oH; split <;> simp
+    (d.roundVals j).getD (4 + (2 * m + c)) 0 = [d.t j * d.loV j m, d.acc j m].getD c 0 := by
+  have hl : ([(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j] : List E).length = 4 := rfl
   rw [roundVals, List.getD_append_right _ _ _ _ (by rw [hl]; omega), hl, Nat.add_sub_cancel_left]
   exact getD_flatMap_const _ (c := 2) (fun _ ↦ rfl) 0 hm hc
 
-theorem oqRO_eq (F j : ℕ) : oqRO d.s F j = oqRK d.s F j + oH j := by
-  simp only [oqRO, oH]; omega
-
-/-- **The fold's atoms hold** at the honest values, the rounds at `coefs`, the point `x`, every
-combiner nonzero. -/
+/-- **The fold's atoms hold** at the honest values, the rounds at `coefs`, the point `x`. -/
 theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
-    (hR : RoundsAt rd (σ coefs) d.rounds) (hrl : d.rounds.length = d.s.folds) (hx : σ x = d.x)
-    (hnz : ∀ j < d.s.folds, d.t j ≠ 0) :
+    (hR : RoundsAt rd (σ coefs) d.rounds) (hrl : d.rounds.length = d.s.folds) (hx : σ x = d.x) :
     ∀ a, Stmt.atom a ∈ oqFoldT d.s coefs x d.b d.ch → a.Holds rd σ := by
   have hbc := d.b_le_ch
-  have hvv := d.v_eq
+  have hvv := d.v_eq hf1
   have hrk := d.oqRK_eq d.ch
   -- a round's value at offset `o`
   have hvr : ∀ j < d.s.folds, ∀ o < (d.roundVals j).length,
@@ -157,32 +143,22 @@ theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
     intro j hj o ho
     have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
     simp only [offOf] at h1
-    rw [d.hv_of hv (by rw [hrk]; omega) (by rw [hrk, hvv]; omega), val_round d hj ho]
-  have hlen : ∀ j, oH j + 2 * 2 ^ (d.s.folds - 1 - j) = (d.roundVals j).length := fun j ↦ by
-    rw [roundVals_length]; simp only [oH]
-  have hhead : ∀ j < d.s.folds, ∀ o < 8,
-      σ (.n (oqRK d.s d.ch j + o)) = [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j,
-        (d.rd j).theta, word 1 0, (d.t j)⁻¹, d.r j].getD o 0 := fun j hj o ho ↦ by
-    rw [hvr j hj o (by rw [← hlen]; unfold oH; split <;> omega), roundVals_head d j ho]
+    rw [d.hv_of hv (by rw [hrk]; omega) (by rw [hrk]; omega), val_round d hj ho]
+  have hlen : ∀ j, 4 + 2 * 2 ^ (d.s.folds - 1 - j) = (d.roundVals j).length := fun j ↦ by
+    rw [roundVals_length]
+  have hhead : ∀ j < d.s.folds, ∀ o < 4,
+      σ (.n (oqRK d.s d.ch j + o)) =
+        [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j].getD o 0 := fun j hj o ho ↦ by
+    rw [hvr j hj o (by rw [← hlen]; omega), roundVals_head d j ho]
   have hout : ∀ j < d.s.folds, ∀ m < 2 ^ (d.s.folds - 1 - j), ∀ c < 2,
-      σ (.n (oqRO d.s d.ch j + 2 * m + c)) = [d.r j * d.hiV j m, d.acc j m].getD c 0 := by
+      σ (.n (oqRO d.s d.ch j + 2 * m + c)) = [d.t j * d.loV j m, d.acc j m].getD c 0 := by
     intro j hj m hm c hc
-    rw [oqRO_eq, Nat.add_assoc, Nat.add_assoc, hvr j hj _ (by rw [← hlen]; omega),
-      roundVals_out d j hm hc]
-  -- the scale after round `j`
-  have hsc : ∀ j < d.s.folds, σ (.n (oqScale d.s d.ch j)) = d.scale j := by
-    intro j hj
-    rcases j with _ | j
-    · simp only [oqScale, ↓reduceIte]
-      rw [hhead 0 hj 3 (by omega)]
-      rfl
-    · simp only [oqScale, Nat.succ_ne_zero, ↓reduceIte]
-      rw [hvr _ hj 8 (by rw [← hlen]; simp only [oH, Nat.succ_ne_zero, ↓reduceIte]; omega),
-        roundVals_scale d (Nat.succ_ne_zero j)]
+    rw [show oqRO d.s d.ch j + 2 * m + c = oqRK d.s d.ch j + (4 + (2 * m + c)) by
+      simp only [oqRO]; omega, hvr j hj _ (by rw [← hlen]; omega), roundVals_out d j hm hc]
   -- the lanes round `j` reads
   have hlohi : ∀ j < d.s.folds, ∀ m < 2 ^ (d.s.folds - 1 - j),
-      σ (.n (oqLoHi d.s d.b d.ch j m).1) + d.r j * σ (.n (oqLoHi d.s d.b d.ch j m).2) = d.acc j m ∧
-        σ (.n (oqLoHi d.s d.b d.ch j m).2) = d.hiV j m := by
+      σ (.n (oqLoHi d.s d.b d.ch j m).2) + d.t j * σ (.n (oqLoHi d.s d.b d.ch j m).1) = d.acc j m ∧
+        σ (.n (oqLoHi d.s d.b d.ch j m).1) = d.loV j m := by
     intro j hj m hm
     have hI : d.s.I = 2 ^ d.s.folds := rfl
     rcases j with _ | j
@@ -192,9 +168,9 @@ theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
           rw [← pow_succ']; congr 1; omega
         simp only [Nat.sub_zero] at hm; omega
       have hrow : ∀ i < d.s.I, σ (.n (d.b + i)) = d.cell i := fun i hi ↦ by
-        rw [d.hv_of hv (by omega) (by have := d.ch_off; rw [rowVals_length] at this; omega),
+        rw [d.hv_of hv (by omega) (by have := d.ch_off; have := d.ch_le_v; rw [rowVals_length] at *; omega),
           val_row d hi]
-      simp only [oqLoHi, ↓reduceIte, hiV, acc, lane0]
+      simp only [oqLoHi, ↓reduceIte, loV, acc, lane0]
       split
       · rw [show d.b + d.s.I - 1 - 2 * m = d.b + (d.s.I - 1 - 2 * m) by omega,
           show d.b + d.s.I - 2 - 2 * m = d.b + (d.s.I - 2 - 2 * m) by omega, hrow _ (by omega),
@@ -206,72 +182,44 @@ theorem oqFold_complete {coefs x : V} (hf1 : 1 ≤ d.s.folds) (hv : d.Hv σ)
         have : 2 ^ (d.s.folds - 1 - j) = 2 * 2 ^ (d.s.folds - 1 - (j + 1)) := by
           rw [← pow_succ']; congr 1; omega
         omega
-      simp only [oqLoHi, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel, oqAcc, hiV, acc]
+      simp only [oqLoHi, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel, oqAcc, loV, acc]
       have e0 := hout j (by omega) (2 * m) (by omega) 1 (by omega)
       have e1 := hout j (by omega) (2 * m + 1) hm2 1 (by omega)
       simp only [List.getD_cons_succ, List.getD_cons_zero] at e0 e1
       rw [e0, e1]
       exact ⟨rfl, rfl⟩
   intro a ha
+  simp only [oqFoldT, List.mem_flatten, List.mem_map, List.mem_range] at ha
+  obtain ⟨_, ⟨j, hj, rfl⟩, ha⟩ := ha
+  have hRj := hR j (by rw [hrl]; exact hj)
+  have g0 := hhead j hj 0 (by omega); have g1 := hhead j hj 1 (by omega)
+  have g2 := hhead j hj 2 (by omega); have g3 := hhead j hj 3 (by omega)
+  simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at g0 g1 g2 g3
+  unfold oqRoundT at ha
+  dsimp only at ha
   rcases List.mem_append.mp ha with ha | ha
+  · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    rcases ha with rfl | rfl | rfl | rfl
+    · show LoadHolds rd _ _ _
+      rw [g0]; exact hRj.1
+    · show LoadHolds rd _ _ _
+      rw [g1]; exact hRj.2
+    · show σ _ = σ _ * σ _
+      rw [g2, g1, hx]
+    · show σ _ = σ _ + σ _
+      rw [g3, g0, g2]; rfl
   · simp only [List.mem_flatten, List.mem_map, List.mem_range] at ha
-    obtain ⟨_, ⟨j, hj, rfl⟩, ha⟩ := ha
-    have hRj := hR j (by rw [hrl]; exact hj)
-    have g0 := hhead j hj 0 (by omega); have g1 := hhead j hj 1 (by omega)
-    have g2 := hhead j hj 2 (by omega); have g3 := hhead j hj 3 (by omega)
-    have g4 := hhead j hj 4 (by omega); have g5 := hhead j hj 5 (by omega)
-    have g6 := hhead j hj 6 (by omega); have g7 := hhead j hj 7 (by omega)
-    simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at g0 g1 g2 g3 g4 g5 g6 g7
-    unfold oqRoundT at ha
-    dsimp only at ha
-    rcases List.mem_append.mp ha with ha | ha
-    · rcases List.mem_append.mp ha with ha | ha
-      · simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-        rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-        · show LoadHolds rd _ _ _
-          rw [g0]; exact hRj.1
-        · show LoadHolds rd _ _ _
-          rw [g1]; exact hRj.2.1
-        · show σ _ = σ _ * σ _
-          rw [g2, g1, hx]
-        · show σ _ = σ _ + σ _
-          rw [g3, g0, g2]; rfl
-        · show LoadHolds rd _ _ _
-          rw [g4]; exact hRj.2.2
-        · exact g5
-        · show σ _ = σ _ * σ _
-          rw [g5, g6, g3, word_one, inv_mul_cancel₀ (hnz j hj)]
-        · show σ _ = σ _ + σ _
-          rw [g7, g4, g6]; rfl
-      · rcases j with _ | j
-        · simp at ha
-        · simp only [Nat.succ_ne_zero, ↓reduceIte, List.mem_singleton, Stmt.atom.injEq] at ha
-          subst ha
-          show σ _ = σ _ * σ _
-          rw [hvr _ hj 8 (by rw [← hlen]; simp only [oH, Nat.succ_ne_zero, ↓reduceIte]; omega),
-            roundVals_scale d (Nat.succ_ne_zero j), Nat.add_sub_cancel, hsc j (by omega), g3]
-          rfl
-    · simp only [List.mem_flatten, List.mem_map, List.mem_range] at ha
-      obtain ⟨_, ⟨m, hm, rfl⟩, ha⟩ := ha
-      have o0 := hout j hj m hm 0 (by omega)
-      have o1 := hout j hj m hm 1 (by omega)
-      simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at o0 o1
-      obtain ⟨hl1, hl2⟩ := hlohi j hj m hm
-      simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-      rcases ha with rfl | rfl
-      · show σ _ = σ _ * σ _
-        rw [o0, g7, hl2]
-      · show σ _ = σ _ + σ _
-        rw [o1, o0, ← hl1, hl2]
-  · simp only [List.mem_singleton, Stmt.atom.injEq] at ha
-    subst ha
-    show σ _ = σ _ * σ _
-    have h0 := hout (d.s.folds - 1) (by omega) 0 (by positivity) 1 (by omega)
-    simp only [List.getD_cons_succ, List.getD_cons_zero, Nat.mul_zero, Nat.add_zero] at h0
-    rw [show oqVal d.s d.ch = d.v from rfl, d.hv_of hv (by have := d.ch_le_v; omega) le_rfl, val_v,
-      hsc _ (by omega), show oqAcc d.s d.ch (d.s.folds - 1) 0 = oqRO d.s d.ch (d.s.folds - 1) + 1
-        by simp [oqAcc], h0]
-    rfl
+    obtain ⟨_, ⟨m, hm, rfl⟩, ha⟩ := ha
+    have o0 := hout j hj m hm 0 (by omega)
+    have o1 := hout j hj m hm 1 (by omega)
+    simp only [List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at o0 o1
+    obtain ⟨hl1, hl2⟩ := hlohi j hj m hm
+    simp only [List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    rcases ha with rfl | rfl
+    · show σ _ = σ _ * σ _
+      rw [o0, g3, hl2]
+    · show σ _ = σ _ + σ _
+      rw [o1, o0, ← hl1, hl2]
 
 /-! ## The final check -/
 
@@ -348,12 +296,13 @@ theorem hsv_take_eq {l : List E} {n : ℕ} (h : n ≤ l.length) :
 
 /-- **The final check's atoms hold** at the honest values, the coefficients at `hs`, the fold's
 value their novel sum (`finEq`). -/
-theorem oqFin_complete {x hs : V} (hfinal : d.s.final = 1) (hfin : d.s.FinOk) (hv : d.Hv σ)
+theorem oqFin_complete {x hs : V} (hf1 : 1 ≤ d.s.folds) (hfinal : d.s.final = 1) (hfin : d.s.FinOk)
+    (hv : d.Hv σ)
     (hx : σ x = d.x) (hW : WordsAt rd (σ hs) d.hsv) (hlen : d.hsv.length = d.s.nHs) (heq : d.finEq) :
     ∀ a, Stmt.atom a ∈ oqFinT d.s x hs d.v → a.Holds rd σ := by
   obtain ⟨hev, hn2, hb1, hbm⟩ := hfin hfinal
-  have he := d.e_eq fun _ ↦ ⟨hev, by omega⟩
-  have hvv := d.v_eq
+  have he := d.e_eq hf1 fun _ ↦ ⟨hev, by omega⟩
+  have hvv := d.v_eq hf1
   have hc := d.ch_off
   have hfl := d.foldVals_length
   set nv := nvVals d.W (d.s.hsBits - 1) 1 (nvPair (d.W 0) (d.hsv.take d.s.nHs)) with hnv
@@ -363,7 +312,7 @@ theorem oqFin_complete {x hs : V} (hfinal : d.s.final = 1) (hfin : d.s.FinOk) (h
     simp only [finVals, hfinal, ↓reduceIte, List.length_append, hcl, hnl, List.length_cons,
       List.length_nil, hnv]
   have hvf : ∀ o < d.finVals.length, σ (.n (d.v + 1 + o)) = d.finVals.getD o 0 := fun o ho ↦ by
-    rw [hv _ (by omega) (by rw [he]; simp only [vals, List.length_append]; omega), val_fin]
+    rw [hv _ (by omega) (by rw [he]; simp only [vals, List.length_append]; omega), d.val_fin hf1]
   have hfv : d.finVals = [d.x] ++ (d.chainVals ++ (d.nv0Vals ++ (nv ++ [word 0 0]))) := by
     simp only [finVals, hfinal, ↓reduceIte, List.append_assoc, hnv]
   -- the pieces' values
@@ -500,7 +449,7 @@ theorem oqFin_complete {x hs : V} (hfinal : d.s.final = 1) (hfin : d.s.FinOk) (h
         cases outs with
         | nil => exact absurd rfl hne
         | cons o _ => rfl
-      rw [hout, d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, val_v,
+      rw [hout, d.hv_of hv (by have := d.b_le_ch; have := d.ch_le_v; omega) le_rfl, d.val_v hf1,
         show d.foldVal = _ from heq, CharTwo.add_self_eq_zero]
     · show σ _ = _
       rw [hnext, show d.v + 2 + 3 * d.s.mu + 4 * (d.s.nHs / 2) + nv.length =

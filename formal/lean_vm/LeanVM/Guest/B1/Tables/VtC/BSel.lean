@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Selectors.BlockSelectorTabComplete
 public import LeanVM.Guest.B1.Selectors.BlockSelectorComplete
 
 /-!
-# The block selectors, complete (G:2229-2275)
+# The block selectors, complete (G:2220-2266)
 
 `offBits off`: the `34` bits of an offset, as the `bitsExp` hint writes them; `selBitsOf off τ d`:
 its bits `τ ..< τ + d`, whose value shifted by `τ` is the offset when it is aligned to `2^τ` and

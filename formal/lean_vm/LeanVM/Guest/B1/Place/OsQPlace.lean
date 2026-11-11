@@ -135,7 +135,7 @@ theorem os_q_completeAtB {fs : String → ℕ} {cert : String → V → ℕ} (κ
         LoadHolds rd (ofK (Parameters.addressOfIndex ecap)) (2 * (2 ^ s.cd + qs k / 2 ^ s.pd) + 1)
           (digestHalves (climbD (merkleLeafDigest (rows k)) (qs k) (sibs k))).2 ∧
         LoadHolds rd (ofK (Parameters.addressOfIndex eflags)) (2 ^ (s.cd - 1) + qs k / 2 ^ (s.pd + 1)) 1)
-    (hreg : (∀ l < 3 * s.folds, RegionL Lk (ecoefs + l)) ∧
+    (hreg : (∀ l < 2 * s.folds, RegionL Lk (ecoefs + l)) ∧
       (s.final = 1 → ∀ l < s.nHs, RegionL Lk (ehs + l)) ∧
       ∀ k < oqCount odd s.base N, RegionL Lk (epos + k) ∧
         RegionL Lk (eflags + (qs k / 2 ^ (s.pd + 1) + 2 ^ (s.cd - 1))) ∧

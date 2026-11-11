@@ -138,7 +138,7 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   have h9 : (9 : ℕ) ∈ grindBitsDeployed := by decide
   have hname : grindCheckName 9 = "grind_check__L9" := rfl
   obtain ⟨hm, -⟩ := hpre rd hlow hLin
-  obtain ⟨xs, -, -, -, -, hpar, hh⟩ := Whir.round_complete
+  obtain ⟨xs, -, -, -, hpar, hh⟩ := Whir.round_complete
     (C := coreProgram.RelIn rd (RegionL Lin)) hm (fun w hw ↦ by
       have := grind_relIn (args := [w, args.getD 7 0]) (rets := []) h9 hκ
         (fun rd' hl' hL' ↦ ⟨rfl, w, args.getD 7 0, rfl, (hpre rd' hl' hL').2, hw⟩) hlow hLin
@@ -146,7 +146,7 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
   have hst : roundPre.all Main.Stmt.straight = true := straight_of_flat _ roundPre_flat
   have hbody := Whir.core7_body.trans roundBody_eq
-  have hw := Main.walk_straight σ [.n 121, .n 122, .n 123, .n 124, .n 125, .n 128, .n 131] roundPre hst
+  have hw := Main.walk_straight σ [.n 88, .n 89, .n 90, .n 91, .n 92, .n 95, .n 98] roundPre hst
   rw [← hbody] at hw
   rw [← Whir.core7_body] at hh
   have hsat := walk_sat (P := coreProgram) _
@@ -157,14 +157,14 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   refine relIn_of_walk (P := coreProgram) coreProgram_wf Whir.find_opening_round hpar hw hsat.2
     (fun e he ↦ (hsat.1 e he).1) (fun A hA ↦ ?_) (fun c hc ht ↦ calls_ok hsat.1 hc ht)
   rw [loadAddrs_straight σ _ hst, roundPre_loadsS] at hA
-  have r5 := hreg (5, 7) (by simp [roundSpec])
+  have r5 := hreg (5, 6) (by simp [roundSpec])
   have r8 := hreg (8, 1) (by simp [roundSpec])
-  have r9 := hreg (9, 3) (by simp [roundSpec])
+  have r9 := hreg (9, 2) (by simp [roundSpec])
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
   have e5 : σ (.n 5) = args.getD 5 0 := hv 5 (by decide)
   have e8 : σ (.n 8) = args.getD 8 0 := hv 8 (by decide)
   have e9 : σ (.n 9) = args.getD 9 0 := hv 9 (by decide)
-  rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+  rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     simp only [e5, e8, e9]
   · obtain ⟨i, h, r⟩ := r5 0 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 1 (by decide); exact ⟨i, h, r⟩
@@ -172,11 +172,9 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
   · obtain ⟨i, h, r⟩ := r5 3 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 4 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r5 5 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r5 6 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r8 0 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r9 0 (by decide); exact ⟨i, h, r⟩
   · obtain ⟨i, h, r⟩ := r9 1 (by decide); exact ⟨i, h, r⟩
-  · obtain ⟨i, h, r⟩ := r9 2 (by decide); exact ⟨i, h, r⟩
 
 theorem round_pure_body : Stmt.pureList ["opening_round", "grind_check__L9"] Whir.roundBody = true := by
   decide +kernel

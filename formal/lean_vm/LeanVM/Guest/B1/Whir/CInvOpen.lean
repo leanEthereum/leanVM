@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.CInvLadder
 
 `LvsRun logN lane index levels s cap R xs os w`: the levels `levels` from the Spec's state `s`, the
 carried capacity `cap` (nothing waiting) and the roots `R`, read the words `xs` and the phases `os`
-and return `w`: each level's fold rounds read `7·fold` words, every round passing (`RoundsOk`);
+and return `w`: each level's fold rounds read `6·fold` words, every round passing (`RoundsOk`);
 a non-final level then reads a `NextW` with `NextOk`, and the next level runs from its glued state,
 sponge and roots; the final one reads a `FinW` with `FinOk` and returns its `wend`.
 
@@ -63,20 +63,20 @@ def LvsRun (logN lane : ℕ) : ℕ → List Whir.Level → WhirState → List E 
     List E → List (List Opening) → WhirEnd → Prop
   | _, [], _, _, _, _, _, _ => False
   | index, [level], s, cap, R, xs, os, w =>
-    ∃ (rw : List E) (W : FinW), rw.length = 7 * level.fold ∧ RoundsOk level.fold cap rw ∧
+    ∃ (rw : List E) (W : FinW), rw.length = 6 * level.fold ∧ RoundsOk level.fold cap rw ∧
       xs = rw ++ W.words ∧ os = [W.phase] ∧
       FinOk logN index level (rsSt level s cap rw) (rsRounds level s cap rw) (rsF level cap rw) R W ∧
       w = W.wend logN lane level (rsSt level s cap rw) (rsF level cap rw)
   | index, level :: next :: rest, s, cap, R, xs, os, w =>
     ∃ (rw : List E) (W : NextW) (xs' : List E) (os' : List (List Opening)),
-      rw.length = 7 * level.fold ∧ RoundsOk level.fold cap rw ∧
+      rw.length = 6 * level.fold ∧ RoundsOk level.fold cap rw ∧
       xs = rw ++ W.words ++ xs' ∧ os = W.phase :: os' ∧
       NextOk logN index level (rsSt level s cap rw) (rsF level cap rw) R W ∧
       LvsRun logN lane (index + 1) (next :: rest)
         (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-        (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).gammas.length)
-          (logN - (rsSt level s cap rw).gammas.length + level.logInvRate) level.queries).nonceState W.n2))
-        (W.roots (logN - (rsSt level s cap rw).gammas.length) next R) xs' os' w
+        (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+          (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+        (W.roots (logN - (rsSt level s cap rw).alphas.length) next R) xs' os' w
 
 theorem carries_capOf (S : KeccakState) : ∃ sp, (⟨capOf S, []⟩ : Fs).Carries sp :=
   ⟨⟨S, [], none⟩, rfl, rfl, rfl⟩
@@ -192,16 +192,16 @@ theorem whirOpen_honest {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 �
 /-- **A non-final level's record** (`OsRec`): `λ`, the folds before its claims, its message log,
 its out-of-domain points, its positions, its high part. -/
 def NextW.osRec (W : NextW) (logN : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs) : OsRec :=
-  let mu := logN - s.gammas.length
+  let mu := logN - s.alphas.length
   let d := mu + level.logInvRate
-  ⟨W.lam F mu d level.queries, s.gammas.length, mu, (W.ood F mu).getD 0 [], (W.ood F mu).getD 1 [],
+  ⟨W.lam F mu d level.queries, s.alphas.length, mu, (W.ood F mu).getD 0 [], (W.ood F mu).getD 1 [],
     W.qs F mu d level.queries, W.high⟩
 
 /-- **A non-final level glues its record's claims.** -/
 theorem NextW.glued_glued (W : NextW) (logN index : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs)
     (rounds : List FoldRound) :
     (W.glued logN index level s F rounds).glued = s.glued ++ recGlued (W.osRec logN level s F) ∧
-      (W.glued logN index level s F rounds).gammas = s.gammas := by
+      (W.glued logN index level s F rounds).alphas = s.alphas := by
   simp only [NextW.glued, NextW.ood, glueLevel_two]
   exact ⟨rfl, trivial⟩
 

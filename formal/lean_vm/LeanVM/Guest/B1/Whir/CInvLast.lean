@@ -128,11 +128,11 @@ end FinW
 /-- What `levelLast_run` returns. -/
 def FinW.wend (W : FinW) (logN laneFolds : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs) :
     WhirEnd :=
-  let mu := logN - s.gammas.length
+  let mu := logN - s.alphas.length
   let T := W.tail F (mu + level.logInvRate) level.queries s.claim
-  ⟨(s.gammas ++ T.1).drop laneFolds ++ (s.gammas ++ T.1).take laneFolds,
+  ⟨(s.alphas ++ T.1).drop laneFolds ++ (s.alphas ++ T.1).take laneFolds,
     s.glued.foldl (fun weight glued ↦ weight + glued.scalar *
-      glued.weightAt ((s.gammas ++ T.1).drop glued.foldStart)) 0,
+      glued.weightAt ((s.alphas ++ T.1).drop glued.foldStart)) 0,
     multilinearEval (W.fold.take (2 ^ mu)) T.1, T.2.1⟩
 
 /-- **`levelLast_run`'s hypotheses at what the final level read**, and its closing challenges
@@ -140,23 +140,23 @@ nonzero. -/
 structure FinOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (rounds : List FoldRound)
     (F : Fs) (R : List (Digest × ℕ × ℕ)) (W : FinW) : Prop where
   root : ∃ root height width, R[index]? = some (root, height, width) ∧
-    (∀ k (hk : k < (W.qs F (logN - s.gammas.length + level.logInvRate) level.queries).length)
+    (∀ k (hk : k < (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries).length)
         (ho : k < W.phase.length),
       Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width
-        (W.qs F (logN - s.gammas.length + level.logInvRate) level.queries)[k] W.phase[k]) = true)
-  flen : W.fold.length = 2 ^ (logN - s.gammas.length) + level.fold
+        (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries)[k] W.phase[k]) = true)
+  flen : W.fold.length = 2 ^ (logN - s.alphas.length) + level.fold
   ok1 : powOk Whir.queryGrindingBits (Keccak.lane (W.qS F) 2) = true
-  plen : W.phase.length = (W.qs F (logN - s.gammas.length + level.logInvRate) level.queries).length
-  idx : W.phase.map Opening.leafIndex = W.qs F (logN - s.gammas.length + level.logInvRate)
+  plen : W.phase.length = (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries).length
+  idx : W.phase.map Opening.leafIndex = W.qs F (logN - s.alphas.length + level.logInvRate)
     level.queries
-  req : ∀ k (hk : k < (W.qs F (logN - s.gammas.length + level.logInvRate) level.queries).length)
+  req : ∀ k (hk : k < (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries).length)
       (ho : k < W.phase.length),
     foldRow (specLanes index W.phase[k].leaf)
-        (K.ofBits (W.qs F (logN - s.gammas.length + level.logInvRate) level.queries)[k]) rounds =
-      novelEval W.fold (subspaceAt (logN - s.gammas.length)
-        (K.ofBits (W.qs F (logN - s.gammas.length + level.logInvRate) level.queries)[k]))
-  plen2 : W.pairs.length = logN - s.gammas.length
-  tnz : ∀ c ∈ (W.tail F (logN - s.gammas.length + level.logInvRate) level.queries s.claim).1, c ≠ 0
+        (K.ofBits (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries)[k]) rounds =
+      novelEval W.fold (subspaceAt (logN - s.alphas.length)
+        (K.ofBits (W.qs F (logN - s.alphas.length + level.logInvRate) level.queries)[k]))
+  plen2 : W.pairs.length = logN - s.alphas.length
+  tnz : ∀ c ∈ (W.tail F (logN - s.alphas.length + level.logInvRate) level.queries s.claim).1, c ≠ 0
 
 /-- The checks of an accepted `require` over the zipped queries, pointwise. -/
 theorem zip_all_get {qs : List ℕ} {rows : List (List K)} {P : ℕ × List K → Bool}
@@ -172,15 +172,15 @@ theorem levelLast_inv {logN laneFolds index : ℕ} {level : Whir.Level} {s : Whi
     {rounds : List FoldRound} {F : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {a : WhirEnd} {st1 : TSt}
     (hc : ∃ sp, F.Carries sp)
-    (hP : 1 ≤ 128 / (logN - s.gammas.length + level.logInvRate)) (hQ : 0 < level.queries)
+    (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
     (h : runTz (levelLast logN laneFolds index level s rounds) ⟨F, none, xs, os, R⟩ = some (a, st1)) :
     ∃ (W : FinW) (xs' : List E) (orest : List (List Opening)),
       xs = W.words ++ xs' ∧ os = W.phase :: orest ∧ FinOk logN index level s rounds F R W ∧
       a = W.wend logN laneFolds level s F ∧
-      st1 = ⟨⟨(W.tail F (logN - s.gammas.length + level.logInvRate) level.queries s.claim).2.2, []⟩,
+      st1 = ⟨⟨(W.tail F (logN - s.alphas.length + level.logInvRate) level.queries s.claim).2.2, []⟩,
         none, xs', orest, R⟩ := by
   have h0 := h
-  set mu := logN - s.gammas.length with hmu
+  set mu := logN - s.alphas.length with hmu
   set d := mu + level.logInvRate with hd
   unfold levelLast at h
   obtain ⟨fold, xs1, hfl, hs1, h⟩ := runTz_readScalars (2 ^ mu + level.fold) _ _ rfl h

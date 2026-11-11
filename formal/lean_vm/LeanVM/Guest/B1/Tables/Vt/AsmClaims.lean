@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmRun
 public import LeanVM.Guest.B1.Tables.Vt.Pi
 
 /-!
-# The column claims (G:2269-2303, 2416-2434, 2521-2535)
+# The column claims (G:2260-2294, 2407-2425, 2512-2526)
 
 `vtAllClaims`: the claims `tablesSeg` returns on the layout of the announced sizes, with the
 evaluations `vtEvsC σ` read table by table. `vt_tab_claims`: the tables' claims, through

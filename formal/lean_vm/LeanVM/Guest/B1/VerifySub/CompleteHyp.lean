@@ -34,9 +34,9 @@ theorem vsCompleteHyp_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
       (vsTsAny LeanVM.Guest.B2C.fs W vkBound) (vsBoundAt W vkBound) where
   complete seed c sqE outE Lin hc hexp hout :=
     verify_sub_completeBT_fs hbl hrf hcons W le_rfl seed c sqE outE Lin hc.1 hc.2.1 hc.2.2.1
-      hc.2.2.2.1 hc.2.2.2.2 hexp hout
+      hc.2.2.2 hexp hout
   shape seed c hc := by
-    obtain ⟨S⟩ := child_segments hbl seed c hc.1 hc.2.2.1 hc.2.2.2.1 hc.2.2.2.2
+    obtain ⟨S⟩ := child_segments hbl seed c hc.1 hc.2.2.1 hc.2.2.2
     rw [childShape_of S.hann]
     exact ⟨S.hmu22, S.hmu28, S.hr1, S.hr4⟩
 

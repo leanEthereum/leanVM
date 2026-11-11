@@ -42,7 +42,7 @@ theorem bodyFacts (cur tabs : E) :
   have hm := hR.m28
   refine ⟨bodyStatic_all _ hm, honStatic_all _ hm, honNames_all _ hm,
     (honNames_all _ hm).2.2.2.2.2.2.2.1, hR.len, fun l hl ↦ hR.step hl,
-    fun l hl ↦ hR.mid hl, hR.last, hR.fin, hR.gammas, fun l hl ↦ (hR.recs l hl).1,
+    fun l hl ↦ hR.mid hl, hR.last, hR.fin, hR.alphas, fun l hl ↦ (hR.recs l hl).1,
     fun l hl ↦ lvsAt_suffix hR.run l (by rw [hR.len]; exact hl), hR.br_cap5, fun l hl ↦ hR.br_rootN hl,
     hR.br_G, hR.br_rl, hR.br_ht, fun l hl ↦ ?_, fun l hl ↦ ?_, hR.br_ag, hR.br_ps, hR.br_q0, hR.br_lane,
     hR.br_tsuf, hR.br_pl, br_f3, hR.finStatic_run, hR.recRun_run, hR.hylen, hR.hfold, hR.hffm, ?_, ?_, ?_, ?_⟩
@@ -57,7 +57,7 @@ theorem bodyFacts (cur tabs : E) :
     rw [hR.start.2.1]
     rfl
   · rw [OsHD.claimAt_of _ (Nat.zero_le _)]
-    show _ = (Ls.getD 0 default).s.claim + recsDeficit (lvsRecs μ Ls 0) (Ls.getD 0 default).s.gammas
+    show _ = (Ls.getD 0 default).s.claim + recsDeficit (lvsRecs μ Ls 0) (Ls.getD 0 default).s.alphas
     rw [hR.start.1]
     simp only [lvsRecs, List.take_zero, List.map_nil, recsDeficit, List.sum_nil, add_zero]
     rfl

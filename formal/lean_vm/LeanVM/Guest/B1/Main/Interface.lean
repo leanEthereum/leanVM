@@ -23,7 +23,7 @@ words the memory holds (`ChildWordsAt`) returns that claim, for the hints `bc_su
 nonce first) and `bc_star_hint` (`MeaningAggregateClaims`), given the grind's window tables at
 its last argument (`WinTabs`).
 
-**`main`** (G:4491-4667, `core0`). Its callees with a witness, each through a witness function of
+**`main`** (G:4482-4658, `core0`). Its callees with a witness, each through a witness function of
 the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
 `__loop2` at `args` (the leanXMSS check is inline there at 40f877dc: `Loop2Out`, its segment read
 as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
@@ -94,7 +94,7 @@ def deferOfCells (cs : List E) : DeferredClaim := ⟨cs.take bytecodeVars, cs.ge
 /-- A proof's claim on the bytecode of its `24` cells (`defer_out`). -/
 def fixedOfCells (cs : List E) : BytecodeClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
 
-/-! ## `aggregate_claims` (G:4670-4773, TRIAGE #97) -/
+/-! ## `aggregate_claims` (G:4661-4764, TRIAGE #97) -/
 
 /-- **Child `c`'s words in memory**: its public input's two cells at `child_pi · g^(2c)`, its
 proof's claim at `child_fresh · g^(24c)`, its statement's deferred claim at
@@ -127,7 +127,7 @@ def aggregate_claims_sound_Spec : Prop :=
 
 /-! ## What `main` asks of its callees with a witness -/
 
-/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`, G:3321;
+/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`, G:3312;
 `VerifySub.MeaningVerifySub`): its first four cells hold a public input and a seed, its sixth
 argument the child proof's claim on the bytecode (`23` coordinates, then the value), and the
 deferring verifier accepts `π` for the public input under the seed. -/
@@ -281,7 +281,7 @@ noncomputable def dvClaim (σ : Val) : DaClaim :=
   ⟨digestOfCells (σ (.n 390)) (σ (.n 391)), σ (.n 392)⟩
 
 /-- `__loop2`'s arguments after its counter: `n_raw_x`, `lx_slots`, `cover`, `lx_table`, then
-the `51` carried tags `lx_tags` (`.n 325 ..< .n 376`; lean_ethereum.py:4578-4591). -/
+the `51` carried tags `lx_tags` (`.n 325 ..< .n 376`; lean_ethereum.py:4569-4582). -/
 def l2Args (σ : Val) : List E :=
   [σ (.n 2), σ (.n 40), σ (.n 66), σ (.n 52)] ++ (List.range 51).map fun j => σ (.n (325 + j))
 
@@ -313,7 +313,7 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
 
 /-! ## The statement -/
 
-/-- **`main`, soundly, its witness decoded** (G:4491-4667, TRIAGE #96): on a memory image whose
+/-- **`main`, soundly, its witness decoded** (G:4482-4658, TRIAGE #96): on a memory image whose
 public input cells (`[1]`, `[g]`) hold the digest `D`, given the callees' contracts with the
 witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives the seed
 `decSeed σ` and the statement `decStmt σ rd` of digest `D`, which the witness

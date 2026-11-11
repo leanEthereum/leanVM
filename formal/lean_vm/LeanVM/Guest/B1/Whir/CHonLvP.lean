@@ -139,22 +139,22 @@ theorem lvAt_words (L : LvAt) (logN : ℕ) {lv : OsLv} (hdep : lv.depth = L.dp l
 
 /-! ## The rounds' challenges -/
 
-/-- The rounds only append their `γ`s. -/
-theorem roundsSpec_gammas : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
-    ∃ gs : List E, (roundsSpec n s fs xs).1.gammas = s.gammas ++ gs ∧ gs.length = n
+/-- The rounds only append their `α`s. -/
+theorem roundsSpec_alphas : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
+    ∃ gs : List E, (roundsSpec n s fs xs).1.alphas = s.alphas ++ gs ∧ gs.length = n
   | 0, s, _, _ => ⟨[], by simp [roundsSpec], rfl⟩
   | n + 1, s, fs, xs => by
-    obtain ⟨gs, h1, h2⟩ := roundsSpec_gammas n (roundSpec s fs (xs.take 7)).1
-      (roundSponge fs (xs.take 7)).cap (xs.drop 7)
-    refine ⟨(roundChs fs (xs.take 7)).1 :: gs, ?_, by simp [h2]⟩
-    show (roundsSpec n _ _ _).1.gammas = _
-    rw [h1, show (roundSpec s fs (List.take 7 xs)).1.gammas = s.gammas ++ [(roundChs fs (List.take 7 xs)).1]
+    obtain ⟨gs, h1, h2⟩ := roundsSpec_alphas n (roundSpec s fs (xs.take 6)).1
+      (roundSponge fs (xs.take 6)).cap (xs.drop 6)
+    refine ⟨(roundChs fs (xs.take 6)).1 :: gs, ?_, by simp [h2]⟩
+    show (roundsSpec n _ _ _).1.alphas = _
+    rw [h1, show (roundSpec s fs (List.take 6 xs)).1.alphas = s.alphas ++ [(roundChs fs (List.take 6 xs)).1]
       from rfl, List.append_assoc]
     rfl
 
-theorem roundsSpec_gammas_length (n : ℕ) (s : WhirState) (fs xs : List E) :
-    (roundsSpec n s fs xs).1.gammas.length = s.gammas.length + n := by
-  obtain ⟨gs, h1, h2⟩ := roundsSpec_gammas n s fs xs
+theorem roundsSpec_alphas_length (n : ℕ) (s : WhirState) (fs xs : List E) :
+    (roundsSpec n s fs xs).1.alphas.length = s.alphas.length + n := by
+  obtain ⟨gs, h1, h2⟩ := roundsSpec_alphas n s fs xs
   rw [h1, List.length_append, h2]
 
 theorem roundsSpec_rounds_length : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
@@ -163,49 +163,47 @@ theorem roundsSpec_rounds_length : ∀ (n : ℕ) (s : WhirState) (fs xs : List E
   | n + 1, s, fs, xs => by
     simp only [roundsSpec, List.length_cons, roundsSpec_rounds_length n]
 
-/-- **The rounds' challenges in memory**: from the Spec's `γ`s at `fch·g^i` on and its rounds'
-`α, β, θ` at `coefs·g^(3i)` on, every round's grinds passing, `RoundsMem`. -/
+/-- **The rounds' challenges in memory**: from the Spec's `α`s at `fch·g^i` on and its rounds'
+`α, β` at `coefs·g^(2i)` on, every round's grind passing, `RoundsMem`. -/
 theorem roundsMem_of {rd : Reader} {fch coefs : E} : ∀ (n i : ℕ) (s : WhirState) (fs : List E)
     (cl : E) (xs : List E), RoundsOk n fs xs →
-    (∀ j < n, LoadHolds rd fch (i + j) ((roundsSpec n s fs xs).1.gammas.getD (s.gammas.length + j) 0)) →
-    (∀ j < n, LoadHolds rd coefs (3 * (i + j)) ((roundsSpec n s fs xs).2.getD j ⟨0, 0, 0⟩).alpha ∧
-      LoadHolds rd coefs (3 * (i + j) + 1) ((roundsSpec n s fs xs).2.getD j ⟨0, 0, 0⟩).beta ∧
-      LoadHolds rd coefs (3 * (i + j) + 2) ((roundsSpec n s fs xs).2.getD j ⟨0, 0, 0⟩).theta) →
+    (∀ j < n, LoadHolds rd fch (i + j) ((roundsSpec n s fs xs).1.alphas.getD (s.alphas.length + j) 0)) →
+    (∀ j < n, LoadHolds rd coefs (2 * (i + j)) ((roundsSpec n s fs xs).2.getD j ⟨0, 0⟩).alpha ∧
+      LoadHolds rd coefs (2 * (i + j) + 1) ((roundsSpec n s fs xs).2.getD j ⟨0, 0⟩).beta) →
     RoundsMem rd fch coefs n i fs cl xs
   | 0, _, _, _, _, _, _, _, _ => trivial
   | n + 1, i, s, fs, cl, xs, hok, hg, hc => by
     obtain ⟨hgr, -, hok'⟩ := hok
-    set w := xs.take 7 with hw
+    set w := xs.take 6 with hw
     set s1 := (roundSpec s fs w).1 with hs1
-    obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas n s1 (roundSponge fs w).cap (xs.drop 7)
+    obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 6)
     have hspec : roundsSpec (n + 1) s fs xs =
-        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1,
-          (roundSpec s fs w).2 :: (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).2) := rfl
-    have hs1g : s1.gammas = s.gammas ++ [(roundChs fs w).1] := rfl
-    have hG : (roundsSpec (n + 1) s fs xs).1.gammas = s.gammas ++ (roundChs fs w).1 :: gs := by
+        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1,
+          (roundSpec s fs w).2 :: (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).2) := rfl
+    have hs1g : s1.alphas = s.alphas ++ [(roundChs fs w).1] := rfl
+    have hG : (roundsSpec (n + 1) s fs xs).1.alphas = s.alphas ++ (roundChs fs w).1 :: gs := by
       rw [hspec]
-      show (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1.gammas = _
+      show (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1.alphas = _
       rw [hgs, hs1g, List.append_assoc]
       rfl
     have g0 := hg 0 (by omega)
-    rw [hG, show (s.gammas ++ (roundChs fs w).1 :: gs).getD (s.gammas.length + 0) 0 = (roundChs fs w).1 by
+    rw [hG, show (s.alphas ++ (roundChs fs w).1 :: gs).getD (s.alphas.length + 0) 0 = (roundChs fs w).1 by
       simp [List.getD_eq_getElem?_getD]] at g0
-    have hR : (roundsSpec (n + 1) s fs xs).2.getD 0 ⟨0, 0, 0⟩ =
-        ⟨(roundChs fs w).2.2.2, (roundChs fs w).2.1, (roundChs fs w).2.2.1⟩ := by
+    have hR : (roundsSpec (n + 1) s fs xs).2.getD 0 ⟨0, 0⟩ =
+        ⟨(roundChs fs w).2.1, (roundChs fs w).2.2⟩ := by
       rw [hspec]; rfl
-    obtain ⟨c0, c1, c2⟩ := hc 0 (by omega)
-    rw [hR] at c0 c1 c2
-    simp only [Nat.add_zero] at c0 c1 c2
-    refine ⟨hgr, by rw [loadHolds_mul_gen_pow]; simpa using g0, ?_, ?_, ?_, ?_⟩
+    obtain ⟨c0, c1⟩ := hc 0 (by omega)
+    rw [hR] at c0 c1
+    simp only [Nat.add_zero] at c0 c1
+    refine ⟨hgr, by rw [loadHolds_mul_gen_pow]; simpa using g0, ?_, ?_, ?_⟩
     · rw [loadHolds_mul_gen_pow]; simpa using c0
     · rw [loadHolds_mul_gen_pow]; exact c1
-    · rw [loadHolds_mul_gen_pow]; exact c2
     · rw [roundRets_take5]
       refine roundsMem_of n (i + 1) s1 _ _ _ hok' (fun j hj ↦ ?_) (fun j hj ↦ ?_)
       · have := hg (j + 1) (by omega)
         rw [hspec] at this
-        rw [show s1.gammas.length = s.gammas.length + 1 by simp [hs1g],
-          show i + 1 + j = i + (j + 1) by ring, show s.gammas.length + 1 + j = s.gammas.length + (j + 1) by ring]
+        rw [show s1.alphas.length = s.alphas.length + 1 by simp [hs1g],
+          show i + 1 + j = i + (j + 1) by ring, show s.alphas.length + 1 + j = s.alphas.length + (j + 1) by ring]
         exact this
       · have := hc (j + 1) (by omega)
         rw [hspec] at this
@@ -220,47 +218,47 @@ theorem roundsSpec_glued : ∀ (n : ℕ) (s : WhirState) (fs xs : List E),
   | 0, _, _, _ => rfl
   | n + 1, _, _, _ => roundsSpec_glued n _ _ _
 
-/-- **The guest's rounds' claim is the Spec's** but for the deficit `D` times the rounds' `γ`s. -/
+/-- **The guest's rounds' claim is the Spec's** but for the deficit `D` times the rounds' `α`s. -/
 theorem roundsTr_claim : ∀ (n : ℕ) (s : WhirState) (fs xs : List E) (D : E),
     (roundsTr n fs (s.claim + D) xs).2 = (roundsSpec n s fs xs).1.claim +
-      ((roundsSpec n s fs xs).1.gammas.drop s.gammas.length).prod * D
+      ((roundsSpec n s fs xs).1.alphas.drop s.alphas.length).prod * D
   | 0, s, _, _, D => by simp [roundsTr, roundsSpec]
   | n + 1, s, fs, xs, D => by
-    set w := xs.take 7 with hw
+    set w := xs.take 6 with hw
     set s1 := (roundSpec s fs w).1 with hs1
     have hcl : (roundRets fs 0 (s.claim + D) w).getD 6 0 = s1.claim + (roundChs fs w).1 * D := by
       simp only [roundRets, hs1, roundSpec, roundChs, List.cons_append, List.nil_append,
         List.getD_cons_succ, List.getD_cons_zero, Fs.squeeze, capOf]
       rw [roundClaim_add]
-    have ih := roundsTr_claim n s1 (roundSponge fs w).cap (xs.drop 7) ((roundChs fs w).1 * D)
-    obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas n s1 (roundSponge fs w).cap (xs.drop 7)
-    have hs1g : s1.gammas = s.gammas ++ [(roundChs fs w).1] := rfl
+    have ih := roundsTr_claim n s1 (roundSponge fs w).cap (xs.drop 6) ((roundChs fs w).1 * D)
+    obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas n s1 (roundSponge fs w).cap (xs.drop 6)
+    have hs1g : s1.alphas = s.alphas ++ [(roundChs fs w).1] := rfl
     show (roundsTr n ((roundRets fs 0 (s.claim + D) w).take 5) ((roundRets fs 0 (s.claim + D) w).getD 6 0)
-      (xs.drop 7)).2 = (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1.claim +
-        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 7)).1.gammas.drop s.gammas.length).prod * D
+      (xs.drop 6)).2 = (roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1.claim +
+        ((roundsSpec n s1 (roundSponge fs w).cap (xs.drop 6)).1.alphas.drop s.alphas.length).prod * D
     rw [roundRets_take5, hcl, ih, hgs, hs1g]
     simp only [List.append_assoc, List.cons_append, List.nil_append,
       List.length_append, List.length_singleton, List.drop_append_of_le_length le_rfl, List.drop_length,
       List.nil_append, List.prod_cons]
-    have e : List.drop (s.gammas.length + 1) (s.gammas ++ (roundChs fs w).1 :: gs) = gs := by
-      rw [show s.gammas ++ (roundChs fs w).1 :: gs = (s.gammas ++ [(roundChs fs w).1]) ++ gs by simp,
-        show s.gammas.length + 1 = (s.gammas ++ [(roundChs fs w).1]).length by simp, List.drop_left]
+    have e : List.drop (s.alphas.length + 1) (s.alphas ++ (roundChs fs w).1 :: gs) = gs := by
+      rw [show s.alphas ++ (roundChs fs w).1 :: gs = (s.alphas ++ [(roundChs fs w).1]) ++ gs by simp,
+        show s.alphas.length + 1 = (s.alphas ++ [(roundChs fs w).1]).length by simp, List.drop_left]
     rw [e]
     ring
 
 /-- **A non-final level's claim**: the guest's claim after the glue is the next level's, the
-Spec's less the deficit with the level's record appended; the next state's `γ`s and glued claims. -/
+Spec's less the deficit with the level's record appended; the next state's `α`s and glued claims. -/
 theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index L L') {lv : OsLv}
     (hfold : L.level.fold = lv.folds) (hmu : L.mu logN = lv.logCols) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
-    (hcols : 1 ≤ lv.logCols) {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.gammas.length)
+    (hcols : 1 ≤ lv.logCols) {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.alphas.length)
     (r0 r1 batched pS pZ : E)
     (hbat : (L.lam logN) ^ L.level.queries * batched = ∑ k ∈ Finset.range (L.qs logN).length,
       (L.lam logN) ^ k * foldRow (specLanes index ((L.phase.map (·.leaf)).getD k []))
         (K.ofBits ((L.qs logN).getD k 0)) L.rounds) :
     (L.midW r0 r1 batched pS pZ).claimOut lv L.cap (L.gcl recs) = L'.gcl (recs ++ [L.osRec logN]) ∧
-      L'.s.gammas = L.s1.gammas ∧ L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) ∧
-      (L.osRec logN).F = L.s1.gammas.length := by
+      L'.s.alphas = L.s1.alphas ∧ L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) ∧
+      (L.osRec logN).F = L.s1.alphas.length := by
   have hE := midEqs hN hfold hmu hdep hq hsq hcols r0 r1 batched pS pZ (L.gcl recs)
   obtain ⟨rw, W, hd, -, -, -, -, hok, hs', -, -⟩ := hN
   have hrw : L.rw = rw := by simp [LvAt.rw, hd]
@@ -284,23 +282,23 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
       (levelBatched (L.mu logN) index L.rounds W.high (L.qs logN) (W.phase.map (·.leaf)) (L.lam logN)) := by
     rw [hlam, hqs]; rfl
   rw [hgl, hglue] at hs''
-  have hrecF' : (L.osRec logN).F = L.s1.gammas.length := by rw [hrec]; rfl
+  have hrecF' : (L.osRec logN).F = L.s1.alphas.length := by rw [hrec]; rfl
   have hrlam : (L.osRec logN).lam = L.lam logN := by rw [hrec, hlam]; rfl
-  have hrecGl : recGlued (L.osRec logN) = [⟨1 * L.lam logN, L.s1.gammas.length,
+  have hrecGl : recGlued (L.osRec logN) = [⟨1 * L.lam logN, L.s1.alphas.length,
       fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 0 []) x⟩,
-      ⟨1 * L.lam logN * L.lam logN, L.s1.gammas.length, fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 1 []) x⟩,
-      ⟨1 * L.lam logN * L.lam logN * L.lam logN, L.s1.gammas.length,
+      ⟨1 * L.lam logN * L.lam logN, L.s1.alphas.length, fun x ↦ eqEval ((W.ood L.F (L.mu logN)).getD 1 []) x⟩,
+      ⟨1 * L.lam logN * L.lam logN * L.lam logN, L.s1.alphas.length,
         inducedWeight (L.mu logN) (L.qs logN) (powers (L.lam logN) (L.qs logN).length)⟩] := by
     rw [hrec, hlam, hqs]; rfl
-  have hgam : L'.s.gammas = L.s1.gammas := by rw [hs'']
+  have hgam : L'.s.alphas = L.s1.alphas := by rw [hs'']
   have hglued : L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) := by
     rw [hs'', hrecGl, hs1, roundsSpec_glued]
   refine ⟨?_, hgam, hglued, hrecF'⟩
   -- the claims
-  obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas L.level.fold L.s L.cap rw
-  have hs1g : L.s1.gammas = L.s.gammas ++ gs := by rw [hs1]; exact hgs
+  obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas L.level.fold L.s L.cap rw
+  have hs1g : L.s1.alphas = L.s.alphas ++ gs := by rw [hs1]; exact hgs
   have hcl1 : (L.midW r0 r1 batched pS pZ).cl1 lv L.cap (L.gcl recs) =
-      L.s1.claim + gs.prod * recsDeficit recs L.s.gammas := by
+      L.s1.claim + gs.prod * recsDeficit recs L.s.alphas := by
     simp only [MidW.cl1, LvAt.midW, LvAt.gcl, hrw, ← hfold]
     have hs1' : L.s1 = (roundsSpec L.level.fold L.s L.cap rw).1 := hs1
     rw [roundsTr_claim, ← hs1', hs1g, List.drop_left]
@@ -309,10 +307,10 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
   have hH : recH (L.osRec logN) = ∑ k ∈ Finset.range (L.qs logN).length,
       L.lam logN ^ k * highTerm (L.mu logN) W.high ((L.qs logN).getD k 0) := by
     rw [recH, hrlam, hrec, hqs]; rfl
-  have hdef : recsDeficit (recs ++ [L.osRec logN]) L'.s.gammas =
-      gs.prod * recsDeficit recs L.s.gammas + L.lam logN ^ 3 * recH (L.osRec logN) := by
-    rw [hgam, recsDeficit_snoc _ _ _ hrecF', hs1g, recsDeficit_append_gammas _ _ _ hrecF, hrlam]
-  show _ = L'.s.claim + recsDeficit (recs ++ [L.osRec logN]) L'.s.gammas
+  have hdef : recsDeficit (recs ++ [L.osRec logN]) L'.s.alphas =
+      gs.prod * recsDeficit recs L.s.alphas + L.lam logN ^ 3 * recH (L.osRec logN) := by
+    rw [hgam, recsDeficit_snoc _ _ _ hrecF', hs1g, recsDeficit_append_alphas _ _ _ hrecF, hrlam]
+  show _ = L'.s.claim + recsDeficit (recs ++ [L.osRec logN]) L'.s.alphas
   rw [hdef, hs'']
   rw [MidW.claimOut, hcl1, hE.lam]
   simp only [LvAt.midW, hnw]
@@ -368,19 +366,19 @@ after the folds, the terminal's target, inner sum, residual and point. -/
 theorem finEnd_w {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinStep logN lane index L w)
     {lv : OsLv} (hfold : L.level.fold = lv.folds) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
-    {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.gammas.length)
+    {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.alphas.length)
     (hglued : L.s.glued = recs.flatMap recGlued) (r0 r1 batched pZ pH : E) :
     w.target = (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
         ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).2.1 +
       (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1.prod * recsDeficit recs L.s1.gammas ∧
-    w.inner = (recs.flatMap recGlued).foldl (fun x g ↦ x + g.scalar * g.weightAt ((L.s1.gammas ++
+        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1.prod * recsDeficit recs L.s1.alphas ∧
+    w.inner = (recs.flatMap recGlued).foldl (fun x g ↦ x + g.scalar * g.weightAt ((L.s1.alphas ++
       (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
         ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1).drop g.foldStart)) 0 ∧
     w.residual = multilinearEval (L.fw.fold.take (2 ^ L.mu logN))
       (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
         ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1 ∧
-    w.point = rotPt L.s1.gammas
+    w.point = rotPt L.s1.alphas
       (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
         ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1 lane ∧
     (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
@@ -391,14 +389,14 @@ theorem finEnd_w {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.Fin
   have hfw : L.fw = W := by simp [LvAt.fw, hd]
   rw [← hrw] at hw
   have hF3 : L.F3 logN = W.F3 L.F (L.dp logN) L.level.queries := by simp [LvAt.F3, hd]
-  obtain ⟨gs, hgs, -⟩ := roundsSpec_gammas L.level.fold L.s L.cap L.rw
-  have hs1g : L.s1.gammas = L.s.gammas ++ gs := hgs
+  obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas L.level.fold L.s L.cap L.rw
+  have hs1g : L.s1.alphas = L.s.alphas ++ gs := hgs
   have hcl1 : (L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs) =
-      L.s1.claim + recsDeficit recs L.s1.gammas := by
+      L.s1.claim + recsDeficit recs L.s1.alphas := by
     simp only [FinWD.cl1, LvAt.finWD, LvAt.gcl, ← hfold]
-    rw [roundsTr_claim, hs1g, List.drop_left, recsDeficit_append_gammas _ _ _ hrecF]
+    rw [roundsTr_claim, hs1g, List.drop_left, recsDeficit_append_alphas _ _ _ hrecF]
   rw [hE.cap3, hcl1, hfw]
-  obtain ⟨t1, t2, -⟩ := tailRun_add W.pairs (L.F3 logN).cap L.s1.claim (recsDeficit recs L.s1.gammas)
+  obtain ⟨t1, t2, -⟩ := tailRun_add W.pairs (L.F3 logN).cap L.s1.claim (recsDeficit recs L.s1.alphas)
   have hT : W.tail L.F (L.dp logN) L.level.queries L.s1.claim = tailRun W.pairs (L.F3 logN).cap L.s1.claim := by
     rw [hF3]; rfl
   have hgl : L.s1.glued = recs.flatMap recGlued := by
@@ -410,7 +408,7 @@ theorem finEnd_w {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.Fin
   rw [hT, t1, t2, hgl]
   refine ⟨?_, rfl, rfl, rfl, by rw [tailRun_length, hpl]⟩
   have h2 : ∀ x : E, x + x = 0 := fun x ↦ CharTwo.add_self_eq_zero x
-  linear_combination -h2 ((tailRun W.pairs (L.F3 logN).cap L.s1.claim).1.prod * recsDeficit recs L.s1.gammas)
+  linear_combination -h2 ((tailRun W.pairs (L.F3 logN).cap L.s1.claim).1.prod * recsDeficit recs L.s1.alphas)
 
 /-- **The closing rounds' calls**, from each round's call at the state `tailRun` reaches before
 it and the challenges' loads. -/

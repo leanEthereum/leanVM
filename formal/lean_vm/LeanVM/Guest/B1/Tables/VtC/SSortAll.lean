@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SSort
 
 /-!
-# The block certification's statements, honestly (G:2267-2325)
+# The block certification's statements, honestly (G:2258-2316)
 
 `vtS_sort`: on a memory holding `dims_g`'s `g^log_mem` and heights, the exponent tables at
 `g_squares` and the four group buffers' honest words (`vtGKeyW`, `vtGSizeW`, `vtGBaseW`, `vtGOrdW`),

@@ -58,13 +58,12 @@ theorem roundsAt_unique {c : E} {r1 r2 : List FoldRound} (h1 : RoundsAt rd c r1)
     (h2 : RoundsAt rd c r2) (hl : r1.length = r2.length) : r1 = r2 := by
   apply List.ext_getElem hl
   intro j hj1 hj2
-  obtain ⟨a1, b1, t1⟩ := h1 j hj1
-  obtain ⟨a2, b2, t2⟩ := h2 j hj2
-  rw [List.getD_eq_getElem _ _ hj1] at a1 b1 t1
-  rw [List.getD_eq_getElem _ _ hj2] at a2 b2 t2
+  obtain ⟨a1, b1⟩ := h1 j hj1
+  obtain ⟨a2, b2⟩ := h2 j hj2
+  rw [List.getD_eq_getElem _ _ hj1] at a1 b1
+  rw [List.getD_eq_getElem _ _ hj2] at a2 b2
   have e1 := loadHolds_unique a1 a2
   have e2 := loadHolds_unique b1 b2
-  have e3 := loadHolds_unique t1 t2
   generalize r1[j] = x at *
   generalize r2[j] = y at *
   cases x; cases y
@@ -196,14 +195,14 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
     rw [hwsI j hj, ← hw]; exact h
   -- the rounds and the final coefficients, shared
   have hR : ∀ j < N, ∃ rounds : List FoldRound, rounds.length = s.folds ∧
-      RoundsAt rd (σ (.n 3)) rounds ∧ FoldsNonzero rounds (K.ofBits (ws.getD j default).1) ∧
+      RoundsAt rd (σ (.n 3)) rounds ∧
       (s.final ≠ 1 → τ j (.n (oqRes s 14 true)) = qwFold s.base rounds (ws.getD j default)) ∧
       (s.final = 1 → ∃ hsv : List E, hsv.length = s.nHs ∧ WordsAt rd (σ (.n 4)) hsv ∧
         qwFold s.base rounds (ws.getD j default) =
           novelSum hsv (wsChain (s.vs.map K.ofBits) (τ j (.n 11))) s.nHs s.hsBits) :=
     fun j hj ↦ (hQW j hj).2.2.2.2
   choose! rr hrr using hR
-  let rounds : List FoldRound := if N = 0 then List.replicate s.folds ⟨0, 0, 0⟩ else rr 0
+  let rounds : List FoldRound := if N = 0 then List.replicate s.folds ⟨0, 0⟩ else rr 0
   have hrl : rounds.length = s.folds := by
     by_cases h0 : N = 0
     · simp [rounds, h0]
@@ -216,7 +215,7 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
       qwFold s.base rounds (ws.getD j default) =
         novelSum hsv (wsChain (s.vs.map K.ofBits) (τ j (.n 11))) s.nHs s.hsBits := fun j hj ↦ by
     by_cases hf : s.final = 1
-    · obtain ⟨hsv, h1, h2, h3⟩ := (hrr j hj).2.2.2.2 hf
+    · obtain ⟨hsv, h1, h2, h3⟩ := (hrr j hj).2.2.2 hf
       exact ⟨hsv, fun _ ↦ ⟨h1, h2, by rw [← hrj j hj]; exact h3⟩⟩
     · exact ⟨[], fun h ↦ absurd h hf⟩
   choose! hh hhh using hH
@@ -232,15 +231,15 @@ theorem oqMain0_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
       (by rw [(hhh j hj hf).1, (hhh 0 (by omega) hf).1])
   -- the chain
   have hds : ∀ j < N, s.final ≠ 1 → τ j (.n (oqRes s 14 true)) = qwFold s.base rounds (ws.getD j default) :=
-    fun j hj hf ↦ by rw [(hrr j hj).2.2.2.1 hf, hrj j hj]
+    fun j hj hf ↦ by rw [(hrr j hj).2.2.1 hf, hrj j hj]
   refine ⟨N, hNo, hN, by rw [hQ, oqsOf_length_zero hsb], rounds, hsv, hrl, hhl, fun k hk ↦ ?_, ?_⟩
   · rw [hQ] at hk
     obtain ⟨l5, l6, hq⟩ := hit k hk
     obtain ⟨q1, q2, q3, q4, -⟩ := hQW k hk
-    obtain ⟨-, hRA, hNZ, -, -⟩ := hrr k hk
-    rw [hrj k hk] at hRA hNZ
+    obtain ⟨-, hRA, -, -⟩ := hrr k hk
+    rw [hrj k hk] at hRA
     refine ⟨hRA, fun hf ↦ ?_, by rw [← q2]; exact l5, by rw [← es]; exact q1,
-      ⟨τ k (.n 13), l6, by rw [← es]; exact q3⟩, by rw [← es]; exact q4, hNZ, fun hf ↦ ?_⟩
+      ⟨τ k (.n 13), l6, by rw [← es]; exact q3⟩, by rw [← es]; exact q4, fun hf ↦ ?_⟩
     · rw [← hhj k hk hf]; exact (hhh k hk hf).2.1
     · have := (hhh k hk hf).2.2
       rw [hhj k hk hf, q2] at this
@@ -447,12 +446,12 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
         rw [hd, List.getD_cons_succ, List.getD_cons_zero, ← hw2]; exact a6
   -- the rounds, shared
   have hR : ∀ k < odd + 2 * N, ∃ rounds : List FoldRound, rounds.length = s.folds ∧
-      RoundsAt rd (σ (.n 3)) rounds ∧ FoldsNonzero rounds (K.ofBits (ws.getD k default).1) ∧
+      RoundsAt rd (σ (.n 3)) rounds ∧
       dOf k = qwFold s.base rounds (ws.getD k default) := fun k hk ↦ by
-    obtain ⟨x, bp, -, -, -, -, -, -, rounds, h1, h2, h3, h4, -⟩ := hQW k hk
-    exact ⟨rounds, h1, h2, h3, h4 (by simp [hsdef, OqShape.oq, hnf])⟩
+    obtain ⟨x, bp, -, -, -, -, -, -, rounds, h1, h2, h4, -⟩ := hQW k hk
+    exact ⟨rounds, h1, h2, h4 (by simp [hsdef, OqShape.oq, hnf])⟩
   choose! rr hrr using hR
-  let rounds : List FoldRound := if odd + 2 * N = 0 then List.replicate s.folds ⟨0, 0, 0⟩ else rr 0
+  let rounds : List FoldRound := if odd + 2 * N = 0 then List.replicate s.folds ⟨0, 0⟩ else rr 0
   have hrl : rounds.length = s.folds := by
     by_cases h0 : odd + 2 * N = 0
     · simp [rounds, h0]
@@ -462,15 +461,15 @@ theorem oqMain1_sound_w {sh : OqShape} (hs : sh.oq.RowShape) (hfin : sh.oq.FinOk
     simp only [rounds, h0, ↓reduceIte]
     exact roundsAt_unique (hrr k hk).2.1 (hrr 0 (by omega)).2.1 (by rw [(hrr k hk).1, (hrr 0 (by omega)).1])
   have hds : ∀ k < odd + 2 * N, dOf k = qwFold sh.base rounds (ws.getD k default) := fun k hk ↦ by
-    rw [(hrr k hk).2.2.2, hrj k hk]; rfl
+    rw [(hrr k hk).2.2, hrj k hk]; rfl
   refine ⟨N, hNo, hN, by rw [hQ, oqsOf_length_one hsb hodd], rounds, List.replicate sh.nHs 0, hrl,
     by simp, fun k hk ↦ ?_, ?_⟩
   · rw [hQ] at hk
     obtain ⟨x, bp, l5, l6, q1, q2, q3, q4, -⟩ := hQW k hk
-    obtain ⟨-, hRA, hNZ, -⟩ := hrr k hk
-    rw [hrj k hk] at hRA hNZ
+    obtain ⟨-, hRA, -⟩ := hrr k hk
+    rw [hrj k hk] at hRA
     refine ⟨hRA, fun hf ↦ absurd hf (by omega), by rw [← q2]; exact l5, by rw [← es]; exact q1,
-      ⟨bp, l6, by rw [← es]; exact q3⟩, by rw [← es]; exact q4, hNZ, fun hf ↦ absurd hf (by omega)⟩
+      ⟨bp, l6, by rw [← es]; exact q3⟩, by rw [← es]; exact q4, fun hf ↦ absurd hf (by omega)⟩
   · simp only [hnf, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte]
     have hchain : ∀ i ≤ N, LoadHolds rd (σ (.n 10)) i
         (oqChain odd sh.base (σ (.n 2)) (fun k ↦ qwFold sh.base rounds (ws.getD k default)) i) := by

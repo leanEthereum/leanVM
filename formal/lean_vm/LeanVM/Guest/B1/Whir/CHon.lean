@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.CInvNZ
+public import LeanVM.Guest.B1.Whir.CRunBack
 
 /-!
 # The run's levels, indexed
@@ -14,8 +14,7 @@ public import LeanVM.Guest.B1.Whir.CInvNZ
 `LvAt`: a level of the honest run, its Spec level, the Spec's state, the carried capacity and the
 roots at its start, the words and phases from it on, its data (`LvD`). `lvsAt`: the levels of a
 `LvsRunD`, in order; `lvsAt_run`: their count, levels, start, each non-final level's step to the
-next (`LvAt.NextStep`) and the final one's end (`LvAt.FinStep`); `lvsAt_nz`: each level's
-combiners at its positions (`LvsNZ`, indexed).
+next (`LvAt.NextStep`) and the final one's end (`LvAt.FinStep`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -56,7 +55,7 @@ abbrev F : Fs := rsF L.level L.cap L.rw
 abbrev rounds : List FoldRound := rsRounds L.level L.s L.cap L.rw
 
 /-- The message log after the level's folds. -/
-abbrev mu : ℕ := logN - L.s1.gammas.length
+abbrev mu : ℕ := logN - L.s1.alphas.length
 
 /-- The level's code's depth. -/
 abbrev dp : ℕ := L.mu logN + L.level.logInvRate
@@ -76,27 +75,27 @@ def lvsAt (logN : ℕ) : ℕ → List Whir.Level → WhirState → List E → Li
     ⟨level, s, cap, R, xs, os, .next rw W⟩ ::
       lvsAt logN (index + 1) (next :: rest)
         (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-        (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).gammas.length)
-          (logN - (rsSt level s cap rw).gammas.length + level.logInvRate) level.queries).nonceState W.n2))
-        (W.roots (logN - (rsSt level s cap rw).gammas.length) next R)
+        (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+          (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+        (W.roots (logN - (rsSt level s cap rw).alphas.length) next R)
         (xs.drop (rw.length + W.words.length)) os.tail ds
   | _, _, _, _, _, _, _, _ => []
 
 /-- **A non-final level's step**: its reads and checks, and the next level's start. -/
 def LvAt.NextStep (logN index : ℕ) (L L' : LvAt) : Prop :=
-  ∃ (rw : List E) (W : NextW), L.d = .next rw W ∧ rw.length = 7 * L.level.fold ∧
+  ∃ (rw : List E) (W : NextW), L.d = .next rw W ∧ rw.length = 6 * L.level.fold ∧
     RoundsOk L.level.fold L.cap rw ∧ L.xs = rw ++ W.words ++ L'.xs ∧ L.os = W.phase :: L'.os ∧
     NextOk logN index L.level (rsSt L.level L.s L.cap rw) (rsF L.level L.cap rw) L.R W ∧
     L'.s = W.glued logN index L.level (rsSt L.level L.s L.cap rw) (rsF L.level L.cap rw)
       (rsRounds L.level L.s L.cap rw) ∧
-    L'.cap = capOf ((W.F3 (rsF L.level L.cap rw) (logN - (rsSt L.level L.s L.cap rw).gammas.length)
-      (logN - (rsSt L.level L.s L.cap rw).gammas.length + L.level.logInvRate)
+    L'.cap = capOf ((W.F3 (rsF L.level L.cap rw) (logN - (rsSt L.level L.s L.cap rw).alphas.length)
+      (logN - (rsSt L.level L.s L.cap rw).alphas.length + L.level.logInvRate)
       L.level.queries).nonceState W.n2) ∧
-    L'.R = W.roots (logN - (rsSt L.level L.s L.cap rw).gammas.length) L'.level L.R
+    L'.R = W.roots (logN - (rsSt L.level L.s L.cap rw).alphas.length) L'.level L.R
 
 /-- **The final level's end.** -/
 def LvAt.FinStep (logN lane index : ℕ) (L : LvAt) (w : WhirEnd) : Prop :=
-  ∃ (rw : List E) (W : FinW), L.d = .fin rw W ∧ rw.length = 7 * L.level.fold ∧
+  ∃ (rw : List E) (W : FinW), L.d = .fin rw W ∧ rw.length = 6 * L.level.fold ∧
     RoundsOk L.level.fold L.cap rw ∧ L.xs = rw ++ W.words ∧ L.os = [W.phase] ∧
     FinOk logN index L.level (rsSt L.level L.s L.cap rw) (rsRounds L.level L.s L.cap rw)
       (rsF L.level L.cap rw) L.R W ∧
@@ -136,9 +135,9 @@ theorem lvsAt_run (logN lane : ℕ) :
     rw [← hxs', ← hos'] at ih
     set L' := lvsAt logN (index + 1) (next :: rest)
       (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-      (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).gammas.length)
-        (logN - (rsSt level s cap rw).gammas.length + level.logInvRate) level.queries).nonceState W.n2))
-      (W.roots (logN - (rsSt level s cap rw).gammas.length) next R)
+      (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+      (W.roots (logN - (rsSt level s cap rw).alphas.length) next R)
       (xs.drop (rw.length + W.words.length)) os.tail ds with hL'
     have e : lvsAt logN index (level :: next :: rest) s cap R xs os (LvD.next rw W :: ds) =
         ⟨level, s, cap, R, xs, os, .next rw W⟩ :: L' := rfl
@@ -172,34 +171,6 @@ theorem lvsAt_run (logN lane : ℕ) :
   | [_], _, _, _, _, _, _, _, LvD.fin _ _ :: _ :: _, hD => by simp [LvsRunD] at hD
   | _ :: _ :: _, _, _, _, _, _, _, _, [], hD => by simp [LvsRunD] at hD
   | _ :: _ :: _, _, _, _, _, _, _, _, LvD.fin _ _ :: _, hD => by simp [LvsRunD] at hD
-
-/-- **Each level's combiners at its positions**, indexed. -/
-theorem lvsAt_nz (logN lane : ℕ) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (cap : List E)
-      (R : List (Digest × ℕ × ℕ)) (xs : List E) (os : List (List Opening)) (w : WhirEnd)
-      (ds : List LvD), LvsRunD logN lane index levels s cap R xs os w ds → LvsNZ logN index levels s cap ds →
-      ∀ i < (lvsAt logN index levels s cap R xs os ds).length,
-        Limits.CombinersNZ (((lvsAt logN index levels s cap R xs os ds).getD i default).qs logN)
-          ((lvsAt logN index levels s cap R xs os ds).getD i default).rounds
-  | [level], index, s, cap, R, xs, os, w, [LvD.fin rw W], _, hN, i, h => by
-    obtain rfl : i = 0 := by simp [lvsAt] at h; omega
-    exact hN
-  | level :: next :: rest, index, s, cap, R, xs, os, w, LvD.next rw W :: ds, hD, hN, i, h => by
-    obtain ⟨xs', os', hrl, hrok, hxs, hos, hnext, hD'⟩ := hD
-    have hxs' : xs.drop (rw.length + W.words.length) = xs' := by rw [hxs]; exact drop_words
-    have hos' : os.tail = os' := by rw [hos]; rfl
-    rcases i with _ | i
-    · exact hN.1
-    · have ih := lvsAt_nz logN lane (next :: rest) (index + 1) _ _ _ xs' os' w ds hD' hN.2 i
-      simp only [lvsAt, List.length_cons, List.getD_cons_succ] at h ⊢
-      rw [hxs', hos'] at h ⊢
-      exact ih (by omega)
-  | [], _, _, _, _, _, _, _, _, hD, _, _, _ => by simp [LvsRunD] at hD
-  | [_], _, _, _, _, _, _, _, [], hD, _, _, _ => by simp [LvsRunD] at hD
-  | [_], _, _, _, _, _, _, _, LvD.next _ _ :: _, hD, _, _, _ => by simp [LvsRunD] at hD
-  | [_], _, _, _, _, _, _, _, LvD.fin _ _ :: _ :: _, hD, _, _, _ => by simp [LvsRunD] at hD
-  | _ :: _ :: _, _, _, _, _, _, _, _, [], hD, _, _, _ => by simp [LvsRunD] at hD
-  | _ :: _ :: _, _, _, _, _, _, _, _, LvD.fin _ _ :: _, hD, _, _, _ => by simp [LvsRunD] at hD
 
 end
 end LeanVM.Guest.B1.Whir

@@ -43,7 +43,7 @@ open LeanVM.Guest.Value.KeccakEval
 /-! ## Bytes of cells -/
 
 /-- The sixteen bytes a cell holds: its limb `0`, then its limb `1`, little-endian
-(`pack_16_bytes`, `crates/rec_aggregation/src/aggregation/cells.rs:23-26`). -/
+(`pack_16_bytes`, `crates/rec_aggregation/src/aggregation/cells.rs:23-29`). -/
 def cellBytes (c : E) : List UInt8 := K.toBytes (c.limb 0) ++ K.toBytes (c.limb 1)
 
 /-- The bytes of a run of cells, in order. -/

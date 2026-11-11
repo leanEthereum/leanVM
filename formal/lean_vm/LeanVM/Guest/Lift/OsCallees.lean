@@ -56,9 +56,9 @@ def spfSpec (n : ℕ) : List (ℕ × ℕ) := [(6, n)]
 /-- `opening_tail_round`'s: the two words at the cursor (argument 5). -/
 def tailSpec : List (ℕ × ℕ) := [(5, 2)]
 
-/-- `opening_round`'s: the seven words at the cursor (argument 5), `γ` at `gammas` (8), `α, β, θ`
-at `coefs` (9). -/
-def roundSpec : List (ℕ × ℕ) := [(5, 7), (8, 1), (9, 3)]
+/-- `opening_round`'s: the six words at the cursor (argument 5), `α` at `alphas` (8), `α, β` at
+`coefs` (9). -/
+def roundSpec : List (ℕ × ℕ) := [(5, 6), (8, 1), (9, 2)]
 
 /-- `verify_merkle_cap__L{D}`'s: the cap's `2^(D+2)` cells (0), the `2^D` flags (1). -/
 def merkleCapSpec (D : ℕ) : List (ℕ × ℕ) := [(0, 2 ^ (D + 2)), (1, 2 ^ D)]

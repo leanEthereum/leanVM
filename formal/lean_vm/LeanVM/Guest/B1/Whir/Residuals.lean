@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.ResLoop
 
 /-!
-# The residuals (G:1826-1862)
+# The residuals (G:1817-1853)
 
 A non-final level's residual (`osResidual`): `μ` read from `level_mus`, the chains' buffer from
 `0, 0`, the loop over its batches of eight queries (`resLoop_sound`, `resChain`), the remaining
@@ -44,7 +44,7 @@ def resAll (lv : OsLv) (D : ℕ → E) (hsv : List E) (Pos : ℕ → E) (mu : E)
 
 theorem gw_zero : gw 0 = 1 := by rw [gw_eq (by decide), pow_zero]
 
-/-- **A level's residual** (G:1826-1862): the inner chain's two sums advanced by its chains. -/
+/-- **A level's residual** (G:1817-1853): the inner chain's two sums advanced by its chains. -/
 theorem osResidual_sound (hle : CallRel.Le C (coreProgram.Rel rd)) {c : OsCfg}
     {ich bd ls la lvl : ℕ} {lv : OsLv} {D : ℕ → E} {hsv : List E} {Pos : ℕ → E} {mu : E}
     (hin : ResIn rd σ c bd lvl lv D hsv Pos mu) {k : ℕ}

@@ -28,9 +28,7 @@ level's queries of the stacked WHIR opening (`whirLevels`, `Statement/LeanVmVeri
   cap (`walk_path`): the node reached is written at the cap's cells of node
   `2^cd + q / 2^(depth - cd)` and its parent's flag set (`QueryOpens`);
 * folds the row's lanes (`lanesOf`: level `0`'s reversed, deeper ones as they are) at its point
-  round by round (`foldRow`), the rounds' `(α, β, θ)` at `coefs[3j], coefs[3j + 1], coefs[3j + 2]`;
-  the guest folds by `θ + 1/t`, `t = α + β·x`, and multiplies the `t`'s back once, so every `t` is
-  nonzero (`FoldsNonzero`);
+  round by round (`foldRow`), the rounds' `(α, β)` at `coefs[2j], coefs[2j + 1]`;
 * at a non-final level (`final = 0`) the fold is the query's value `d_k`, and the function returns
   `Σ_k d_k λ^(k - Q)` (`oqChain`, `λ⁻¹ = lam_inv`), which the caller scales by `λ^Q`; at the final
   level (`final = 1`) the fold must be the final polynomial at the point: `novelSum hs` over the
@@ -77,15 +75,10 @@ reversed, a deeper level's regrouped into `E` (`extRow`). -/
 def lanesOf (base : ℕ) (row : List K) : List E :=
   if base = 1 then row.reverse.map ofK else extRow row
 
-/-- The rounds' challenges at `coefs`: round `j`'s `α, β, θ` at `3j, 3j + 1, 3j + 2`. -/
+/-- The rounds' challenges at `coefs`: round `j`'s `α, β` at `2j, 2j + 1`. -/
 def RoundsAt (rd : Reader) (coefs : E) (rounds : List FoldRound) : Prop :=
-  ∀ j < rounds.length, LoadHolds rd coefs (3 * j) (rounds.getD j ⟨0, 0, 0⟩).alpha ∧
-    LoadHolds rd coefs (3 * j + 1) (rounds.getD j ⟨0, 0, 0⟩).beta ∧
-    LoadHolds rd coefs (3 * j + 2) (rounds.getD j ⟨0, 0, 0⟩).theta
-
-/-- No round's combiner vanishes at the point: `α + β·x ≠ 0` (the guest inverts it). -/
-def FoldsNonzero (rounds : List FoldRound) (x : K) : Prop :=
-  ∀ r ∈ rounds, r.alpha + r.beta * ofK x ≠ 0
+  ∀ j < rounds.length, LoadHolds rd coefs (2 * j) (rounds.getD j ⟨0, 0⟩).alpha ∧
+    LoadHolds rd coefs (2 * j + 1) (rounds.getD j ⟨0, 0⟩).beta
 
 /-- The `n` words at `p`. -/
 def WordsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
@@ -153,8 +146,8 @@ def QueryPosOk (rd : Reader) (positions qptrs : E) (Q depth cd : ℕ) : Prop :=
 /-- **Query `k` of `opening_queries`** of shape `sh`, its witness `w = (q, row, sibs)`, the rounds
 at `coefs` and the final coefficients at `hs` (`n_hs`, read at the final level only): the query
 reads the rounds, its position `positions[k] = eOfNat q`, `q < 2^depth`, and its windows through
-its window pointer; it opens the row (`QueryOpensS`), whose fold at `q` has no vanishing combiner
-and is, at the final level, the final polynomial at `q`. -/
+its window pointer; it opens the row (`QueryOpensS`), whose fold at `q` is, at the final level,
+the final polynomial at `q`. -/
 def QueryHolds (sh : OqShape) (rd : Reader) (cap flags coefs hs positions qptrs : E)
     (rounds : List FoldRound) (hsv : List E) (k : ℕ) (w : QW) : Prop :=
   RoundsAt rd coefs rounds ∧ (sh.final = 1 → WordsAt rd hs hsv) ∧
@@ -162,7 +155,6 @@ def QueryHolds (sh : OqShape) (rd : Reader) (cap flags coefs hs positions qptrs 
     (∃ bp, LoadHolds rd qptrs k bp ∧
       ∀ i < qwN sh.depth sh.cd, LoadHolds rd bp i (gen ^ qwVal sh.depth sh.cd w.1 i)) ∧
     QueryOpensS rd sh.base sh.folds sh.depth sh.cd cap flags w.1 w.2.1 w.2.2 ∧
-    FoldsNonzero rounds (K.ofBits w.1) ∧
     (sh.final = 1 → foldRow (lanesOf sh.base w.2.1) (K.ofBits w.1) rounds =
       novelSum hsv (wsChain (sh.vs.map K.ofBits) (eOfNat w.1)) sh.nHs sh.hsBits)
 

@@ -88,7 +88,7 @@ def finWD (r0 r1 batched pZ pH : E) : FinWD :=
 
 /-- **The guest's claim at the level's start**: the Spec's plus the deficit of the records
 `recs` before it. -/
-def gcl (recs : List OsRec) : E := L.s.claim + recsDeficit recs L.s.gammas
+def gcl (recs : List OsRec) : E := L.s.claim + recsDeficit recs L.s.alphas
 
 end LvAt
 

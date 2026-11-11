@@ -58,8 +58,6 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hrz : Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement)
       c.freshClaim c.proof = true)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
@@ -67,7 +65,7 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
     CompleteAtDTB fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (vsTsAny fs W Bvk (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W Bvk (childShape bytecode c).1 (childShape bytecode c).2) := by
-  obtain ⟨S⟩ := child_segments hbl seed c hmu hrz hnz hcaps
+  obtain ⟨S⟩ := child_segments hbl seed c hmu hrz hcaps
   rw [childShape_of S.hann]
   have hd := S.d_bounds hbl
   obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexp hout (vs_callsMatch hbl S hexp)
@@ -94,8 +92,6 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
     (hrz : Limits.verifyDeferredRefusingZero bytecode seed (statementDigest seed c.statement)
       c.freshClaim c.proof = true)
-    (hnz : Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim
-      c.proof = true)
     (hcaps : ∀ b ∈ Limits.queryStepsOf (deferringVerifierProgram c.freshClaim bytecode
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
@@ -104,7 +100,7 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
       (vsTsAny LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=
   verify_sub_completeBT hbl hrf hcons W hκ (verify_keccak_completeAtB_fs (by omega)) seed c sqE
-    outE Lin hmu hst hrz hnz hcaps hexp hout
+    outE Lin hmu hst hrz hcaps hexp hout
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Common.Atoms
   `E.ofLimbs` of their limbs (`pack64x2`); `oqRow s b σ` is the row's `K` words (level 0: the
   cells' low limbs; deeper: both limbs of each cell, `extRow`'s inverse).
 * `oqFold_sound`: the fold's value is `foldRowE` of the lanes (the cells, reversed at level 0) at
-  the point, the rounds read at `coefs`, none of their combiners vanishing (`FoldAlg.guestFold_value`).
+  the point, the rounds read at `coefs` (`FoldAlg.guestFold_value`).
 * `oqFin_sound`: the final check's coefficients are read at `hs` and the fold's value is
   `novelSum` of them over `wsChain` at the point.
 -/
@@ -50,17 +50,13 @@ theorem oqPrepT_atoms (s : Oq) (b : ℕ) : AllAtoms (oqPrepT s b) := by
 
 theorem oqRoundT_atoms (s : Oq) (coefs x : V) (b F j : ℕ) : AllAtoms (oqRoundT s coefs x b F j) := by
   unfold oqRoundT
-  refine allAtoms_append (allAtoms_append ?_ ?_) (allAtoms_map_flatten fun _ _ =>
+  refine allAtoms_append ?_ (allAtoms_map_flatten fun _ _ =>
     allAtoms_cons (allAtoms_cons allAtoms_nil))
-  · repeat' apply allAtoms_cons
-    exact allAtoms_nil
-  · split
-    · exact allAtoms_nil
-    · exact allAtoms_cons allAtoms_nil
+  repeat' apply allAtoms_cons
+  exact allAtoms_nil
 
 theorem oqFoldT_atoms (s : Oq) (coefs x : V) (b F : ℕ) : AllAtoms (oqFoldT s coefs x b F) :=
-  allAtoms_append (allAtoms_map_flatten fun _ _ => oqRoundT_atoms _ _ _ _ _ _)
-    (allAtoms_cons allAtoms_nil)
+  allAtoms_map_flatten fun _ _ => oqRoundT_atoms _ _ _ _ _ _
 
 theorem oqWsT_atoms (s : Oq) (x : V) (v : ℕ) : AllAtoms (oqWsT s x v) :=
   allAtoms_cons (allAtoms_map_flatten fun _ _ =>
@@ -133,62 +129,46 @@ theorem oqPack_sound {b I j : ℕ} (hA : ∀ a, Stmt.atom a ∈ oqPacksT b I →
 
 theorem mem_oqFoldT_round {s : Oq} {coefs x : V} {b F j : ℕ} (hj : j < s.folds) {a : Atom}
     (h : Stmt.atom a ∈ oqRoundT s coefs x b F j) : Stmt.atom a ∈ oqFoldT s coefs x b F :=
-  List.mem_append_left _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩, h⟩)
+  List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩, h⟩
 
 theorem mem_oqRoundT_head {s : Oq} {coefs x : V} {b F j : ℕ} {a : Atom}
-    (h : Stmt.atom a ∈ [Stmt.atom (.load (.n (oqRK s F j)) coefs (3 * j)),
-      .atom (.load (.n (oqRK s F j + 1)) coefs (3 * j + 1)),
+    (h : Stmt.atom a ∈ [Stmt.atom (.load (.n (oqRK s F j)) coefs (2 * j)),
+      .atom (.load (.n (oqRK s F j + 1)) coefs (2 * j + 1)),
       .atom (.mul (.n (oqRK s F j + 2)) (.n (oqRK s F j + 1)) x),
-      .atom (.add (.n (oqRK s F j + 3)) (.n (oqRK s F j)) (.n (oqRK s F j + 2))),
-      .atom (.load (.n (oqRK s F j + 4)) coefs (3 * j + 2)),
-      .atom (.const (.n (oqRK s F j + 5)) (word 1 0)),
-      .atom (.mul (.n (oqRK s F j + 5)) (.n (oqRK s F j + 6)) (.n (oqRK s F j + 3))),
-      .atom (.add (.n (oqRK s F j + 7)) (.n (oqRK s F j + 4)) (.n (oqRK s F j + 6)))]) :
+      .atom (.add (.n (oqRK s F j + 3)) (.n (oqRK s F j)) (.n (oqRK s F j + 2)))]) :
     Stmt.atom a ∈ oqRoundT s coefs x b F j := by
   unfold oqRoundT
-  exact List.mem_append_left _ (List.mem_append_left _ h)
-
-theorem mem_oqRoundT_scale {s : Oq} {coefs x : V} {b F j : ℕ} (hj : j ≠ 0) :
-    Stmt.atom (.mul (.n (oqRK s F j + 8)) (.n (oqScale s F (j - 1))) (.n (oqRK s F j + 3))) ∈
-      oqRoundT s coefs x b F j := by
-  unfold oqRoundT
-  exact List.mem_append_left _ (List.mem_append_right _ (by simp [hj]))
+  exact List.mem_append_left _ h
 
 theorem mem_oqRoundT_out {s : Oq} {coefs x : V} {b F j m : ℕ} (hm : m < 2 ^ (s.folds - 1 - j))
-    {a : Atom} (h : Stmt.atom a ∈ [Stmt.atom (.mul (.n (oqRO s F j + 2 * m)) (.n (oqRK s F j + 7))
-        (.n (oqLoHi s b F j m).2)),
-      .atom (.add (.n (oqRO s F j + 2 * m + 1)) (.n (oqLoHi s b F j m).1) (.n (oqRO s F j + 2 * m)))]) :
+    {a : Atom} (h : Stmt.atom a ∈ [Stmt.atom (.mul (.n (oqRO s F j + 2 * m)) (.n (oqRK s F j + 3))
+        (.n (oqLoHi s b F j m).1)),
+      .atom (.add (.n (oqRO s F j + 2 * m + 1)) (.n (oqLoHi s b F j m).2) (.n (oqRO s F j + 2 * m)))]) :
     Stmt.atom a ∈ oqRoundT s coefs x b F j := by
   unfold oqRoundT
   exact List.mem_append_right _ (List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨m, List.mem_range.mpr hm, rfl⟩, h⟩)
 
-/-- The rounds a fold reads: round `j`'s `θ, α, β` at its values `K + 4, K, K + 1`. -/
+/-- The rounds a fold reads: round `j`'s `α, β` at its values `K, K + 1`. -/
 def oqRounds (s : Oq) (F : ℕ) (σ : Val) : List FoldRound :=
-  (List.range s.folds).map fun j ↦
-    ⟨σ (.n (oqRK s F j + 4)), σ (.n (oqRK s F j)), σ (.n (oqRK s F j + 1))⟩
+  (List.range s.folds).map fun j ↦ ⟨σ (.n (oqRK s F j)), σ (.n (oqRK s F j + 1))⟩
 
 theorem oqRounds_getD {s : Oq} {F : ℕ} {σ : Val} {j : ℕ} (hj : j < s.folds) :
-    (oqRounds s F σ).getD j ⟨0, 0, 0⟩ =
-      ⟨σ (.n (oqRK s F j + 4)), σ (.n (oqRK s F j)), σ (.n (oqRK s F j + 1))⟩ := by
+    (oqRounds s F σ).getD j ⟨0, 0⟩ = ⟨σ (.n (oqRK s F j)), σ (.n (oqRK s F j + 1))⟩ := by
   simp [oqRounds, List.getD_eq_getElem?_getD, hj]
 
 /-- **The fold** (`opening_query`'s rounds): its value is `foldRowE` of the lanes at the point,
-the rounds read at `coefs`, no combiner vanishing. -/
+the rounds read at `coefs`. -/
 theorem oqFold_sound {s : Oq} (hf : 1 ≤ s.folds) {coefs x : V} {b F : ℕ}
     (hA : ∀ a, Stmt.atom a ∈ oqFoldT s coefs x b F → a.Holds rd σ) :
     RoundsAt rd (σ coefs) (oqRounds s F σ) ∧
-      (∀ r ∈ oqRounds s F σ, r.alpha + r.beta * σ x ≠ 0) ∧
       σ (.n (oqVal s F)) = foldRowE (oqLanes s b σ) (σ x) (oqRounds s F σ) := by
   have hR : ∀ j < s.folds, ∀ a, Stmt.atom a ∈ oqRoundT s coefs x b F j → a.Holds rd σ :=
     fun j hj a h ↦ hA a (mem_oqFoldT_round hj h)
   -- each round's head
   have head : ∀ j < s.folds,
-      LoadHolds rd (σ coefs) (3 * j) (σ (.n (oqRK s F j))) ∧
-      LoadHolds rd (σ coefs) (3 * j + 1) (σ (.n (oqRK s F j + 1))) ∧
-      LoadHolds rd (σ coefs) (3 * j + 2) (σ (.n (oqRK s F j + 4))) ∧
-      σ (.n (oqRK s F j + 3)) = σ (.n (oqRK s F j)) + σ (.n (oqRK s F j + 1)) * σ x ∧
-      σ (.n (oqRK s F j + 3)) ≠ 0 ∧
-      σ (.n (oqRK s F j + 7)) = σ (.n (oqRK s F j + 4)) + (σ (.n (oqRK s F j + 3)))⁻¹ := by
+      LoadHolds rd (σ coefs) (2 * j) (σ (.n (oqRK s F j))) ∧
+      LoadHolds rd (σ coefs) (2 * j + 1) (σ (.n (oqRK s F j + 1))) ∧
+      σ (.n (oqRK s F j + 3)) = σ (.n (oqRK s F j)) + σ (.n (oqRK s F j + 1)) * σ x := by
     intro j hj
     have g : ∀ a, Stmt.atom a ∈ _ → a.Holds rd σ := fun a h ↦ hR j hj a (mem_oqRoundT_head h)
     have l0 := g _ (List.mem_cons_self ..)
@@ -196,49 +176,18 @@ theorem oqFold_sound {s : Oq} (hf : 1 ≤ s.folds) {coefs x : V} {b F : ℕ}
     have m2 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
     have a3 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_self ..))))
-    have l4 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-      (List.mem_cons_of_mem _ (List.mem_cons_self ..)))))
-    have c5 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))
-    have m5 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        (List.mem_cons_self ..)))))))
-    have a7 := g _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-      (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-        (List.mem_cons_of_mem _ (List.mem_cons_self ..))))))))
-    simp only [Atom.Holds] at l0 l1 m2 a3 l4 c5 m5 a7
-    rw [c5, word_one] at m5
-    have hne : σ (.n (oqRK s F j + 3)) ≠ 0 := fun h0 ↦ by
-      rw [h0, mul_zero] at m5; exact one_ne_zero m5
-    have hinv : σ (.n (oqRK s F j + 6)) = (σ (.n (oqRK s F j + 3)))⁻¹ :=
-      eq_inv_of_mul_eq_one_left m5.symm
-    exact ⟨l0, l1, l4, by rw [a3, m2], hne, by rw [a7, hinv]⟩
+    simp only [Atom.Holds] at l0 l1 m2 a3
+    exact ⟨l0, l1, by rw [a3, m2]⟩
   have hlen : (oqRounds s F σ).length = s.folds := by simp [oqRounds]
-  refine ⟨fun j hj ↦ ?_, fun r hr ↦ ?_, ?_⟩
+  refine ⟨fun j hj ↦ ?_, ?_⟩
   · rw [hlen] at hj
     rw [oqRounds_getD hj]
-    exact ⟨(head j hj).1, (head j hj).2.1, (head j hj).2.2.1⟩
-  · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hr
-    have hj' := List.mem_range.mp hj
-    rw [← (head j hj').2.2.2.1]
-    exact (head j hj').2.2.2.2.1
-  · have hlast := hA _ (List.mem_append_right _ (List.mem_singleton_self _) :
-      Stmt.atom (.mul (.n (oqVal s F)) (.n (oqScale s F (s.folds - 1)))
-        (.n (oqAcc s F (s.folds - 1) 0))) ∈ oqFoldT s coefs x b F)
-    simp only [Atom.Holds] at hlast
-    rw [hlast]
-    have hI : s.I = 2 ^ s.folds := rfl
+    exact ⟨(head j hj).1, (head j hj).2.1⟩
+  · have hI : s.I = 2 ^ s.folds := rfl
     refine guestFold_value hlen hf (by simp [oqLanes, oqCells, hI]; split <;> simp)
-      (acc := fun j m ↦ σ (.n (oqAcc s F j m))) (scale := fun j ↦ σ (.n (oqScale s F j)))
-      (ts := fun j ↦ σ (.n (oqRK s F j + 3))) (rs := fun j ↦ σ (.n (oqRK s F j + 7)))
-      (fun j hj ↦ by rw [oqRounds_getD hj]; exact (head j hj).2.2.2.1)
-      (fun j hj ↦ (head j hj).2.2.2.2.1)
-      (fun j hj ↦ by rw [oqRounds_getD hj]; exact (head j hj).2.2.2.2.2)
-      rfl (fun j hj ↦ ?_) (fun m hm ↦ ?_) (fun j hj m hm ↦ ?_)
-    · have h := hR (j + 1) hj _ (mem_oqRoundT_scale (Nat.succ_ne_zero j))
-      simp only [Atom.Holds] at h
-      simp only [oqScale, Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel] at h ⊢
-      exact h
+      (acc := fun j m ↦ σ (.n (oqAcc s F j m))) (ts := fun j ↦ σ (.n (oqRK s F j + 3)))
+      (fun j hj ↦ by rw [oqRounds_getD hj]; exact (head j hj).2.2)
+      (fun m hm ↦ ?_) (fun j hj m hm ↦ ?_)
     · have hm' : m < 2 ^ (s.folds - 1 - 0) := by simpa using hm
       have hmul := hR 0 (by omega) _ (mem_oqRoundT_out hm' (List.mem_cons_self ..))
       have hadd := hR 0 (by omega) _ (mem_oqRoundT_out hm' (List.mem_cons_of_mem _

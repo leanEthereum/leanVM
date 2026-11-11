@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 final coefficients (final level), its windows (the path's and the cap's two), its flag and its cap
 leaf. -/
 structure OqQReg (R : ℕ → Prop) (s : Oq) (cap flags coefs hs bp : E) (q : ℕ) : Prop where
-  co : ∀ off < 3 * s.folds, OqIn R (coefs.limb 0 * Parameters.addressOfIndex off)
+  co : ∀ off < 2 * s.folds, OqIn R (coefs.limb 0 * Parameters.addressOfIndex off)
   h : s.final = 1 → ∀ off < s.nHs, OqIn R (hs.limb 0 * Parameters.addressOfIndex off)
   b : ∀ off < oqNpw s + 2, OqIn R (bp.limb 0 * Parameters.addressOfIndex off)
   f : OqIn R ((flags * gen ^ (q / 2 ^ (s.pd + 1))).limb 0 * Parameters.addressOfIndex (2 ^

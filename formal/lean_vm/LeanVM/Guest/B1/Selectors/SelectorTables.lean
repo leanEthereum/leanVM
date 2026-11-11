@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 /-!
 # `selector_tables` (TRIAGE G #69)
 
-`selector_tables(point, point1)` (G:3211-3231) allocates `sel_eq` (`7·64` words) and for each
+`selector_tables(point, point1)` (G:3202-3222) allocates `sel_eq` (`7·64` words) and for each
 nibble `j < 7` computes the eq levels over its top coordinates `4j + 3, 4j + 2, …` (level `w` from
 level `w - 1`: entry `i` times `1 + r`, then times `r`, `r` coordinate `4j + 3 - w`) and stores
 level `w`'s `2^(w+1)` entries at `sel_eq[64j + 16w ..]`, strided by `2^(3 - w)`: entry `u` there

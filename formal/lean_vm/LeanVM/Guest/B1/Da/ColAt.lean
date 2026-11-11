@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColAt
 
-  `da_verify_column` placed (G:4378-4392): column `h` of every blob, its weights expanded from the
+  `da_verify_column` placed (G:4369-4383): column `h` of every blob, its weights expanded from the
   top leaf `h` (`da_expand__L7_L8`, its run in its frame), then every blob's cell checked against
   them and joined to its running sum and its tree (`__loop25`), within its frame and its callees'
   bounds, by a tree of its honest shape (`colNH r`).

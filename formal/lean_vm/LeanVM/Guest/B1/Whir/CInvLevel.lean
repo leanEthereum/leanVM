@@ -144,27 +144,27 @@ nonzero. -/
 structure NextOk (logN index : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs)
     (R : List (Digest × ℕ × ℕ)) (W : NextW) : Prop where
   root : ∃ root height width, R[index]? = some (root, height, width) ∧
-    (∀ k (hk : k < (W.qs F (logN - s.gammas.length) (logN - s.gammas.length + level.logInvRate)
+    (∀ k (hk : k < (W.qs F (logN - s.alphas.length) (logN - s.alphas.length + level.logInvRate)
         level.queries).length) (ho : k < W.phase.length),
       Id.run (Compile.openOneWithHash (m := Id) keccak256 root height width
-        (W.qs F (logN - s.gammas.length) (logN - s.gammas.length + level.logInvRate)
+        (W.qs F (logN - s.alphas.length) (logN - s.alphas.length + level.logInvRate)
           level.queries)[k] W.phase[k]) = true)
   hlen : W.high.length = level.fold
-  ok1 : powOk Whir.queryGrindingBits (Keccak.lane (W.qS F (logN - s.gammas.length)) 2) = true
-  ok2 : powOk Whir.batchGrindingBits (Keccak.lane ((W.F3 F (logN - s.gammas.length)
-    (logN - s.gammas.length + level.logInvRate) level.queries).nonceState W.n2) 2) = true
-  plen : W.phase.length = (W.qs F (logN - s.gammas.length)
-    (logN - s.gammas.length + level.logInvRate) level.queries).length
-  idx : W.phase.map Opening.leafIndex = W.qs F (logN - s.gammas.length)
-    (logN - s.gammas.length + level.logInvRate) level.queries
-  lam : W.lam F (logN - s.gammas.length) (logN - s.gammas.length + level.logInvRate)
+  ok1 : powOk Whir.queryGrindingBits (Keccak.lane (W.qS F (logN - s.alphas.length)) 2) = true
+  ok2 : powOk Whir.batchGrindingBits (Keccak.lane ((W.F3 F (logN - s.alphas.length)
+    (logN - s.alphas.length + level.logInvRate) level.queries).nonceState W.n2) 2) = true
+  plen : W.phase.length = (W.qs F (logN - s.alphas.length)
+    (logN - s.alphas.length + level.logInvRate) level.queries).length
+  idx : W.phase.map Opening.leafIndex = W.qs F (logN - s.alphas.length)
+    (logN - s.alphas.length + level.logInvRate) level.queries
+  lam : W.lam F (logN - s.alphas.length) (logN - s.alphas.length + level.logInvRate)
     level.queries ≠ 0
-  ood : ∀ p ∈ W.ood F (logN - s.gammas.length), ∀ c ∈ p, c ≠ 0
+  ood : ∀ p ∈ W.ood F (logN - s.alphas.length), ∀ c ∈ p, c ≠ 0
 
 /-- What `levelNext_run` returns. -/
 def NextW.glued (W : NextW) (logN index : ℕ) (level : Whir.Level) (s : WhirState) (F : Fs)
     (rounds : List FoldRound) : WhirState :=
-  let mu := logN - s.gammas.length
+  let mu := logN - s.alphas.length
   let d := mu + level.logInvRate
   glueLevel s (W.lam F mu d level.queries) mu (W.ood F mu) [W.y0, W.y1] (W.qs F mu d level.queries)
     (powers (W.lam F mu d level.queries) (W.qs F mu d level.queries).length)
@@ -182,16 +182,16 @@ theorem levelNext_inv {logN index : ℕ} {level next : Whir.Level} {s : WhirStat
     {rounds : List FoldRound} {F : Fs} {xs : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {a : WhirState} {st1 : TSt}
     (hc : ∃ sp, F.Carries sp) (hR : index < R.length)
-    (hP : 1 ≤ 128 / (logN - s.gammas.length + level.logInvRate)) (hQ : 0 < level.queries)
+    (hP : 1 ≤ 128 / (logN - s.alphas.length + level.logInvRate)) (hQ : 0 < level.queries)
     (h : runTz (levelNext logN index level next s rounds) ⟨F, none, xs, os, R⟩ = some (a, st1)) :
     ∃ (W : NextW) (xs' : List E) (orest : List (List Opening)),
       xs = W.words ++ xs' ∧ os = W.phase :: orest ∧ NextOk logN index level s F R W ∧
       a = W.glued logN index level s F rounds ∧
-      st1 = ⟨⟨capOf ((W.F3 F (logN - s.gammas.length) (logN - s.gammas.length + level.logInvRate)
+      st1 = ⟨⟨capOf ((W.F3 F (logN - s.alphas.length) (logN - s.alphas.length + level.logInvRate)
         level.queries).nonceState W.n2), []⟩, none, xs', orest,
-        W.roots (logN - s.gammas.length) next R⟩ := by
+        W.roots (logN - s.alphas.length) next R⟩ := by
   have h0 := h
-  set mu := logN - s.gammas.length with hmu
+  set mu := logN - s.alphas.length with hmu
   set d := mu + level.logInvRate with hd
   unfold levelNext at h
   obtain ⟨x0, x1, xs1, hs1, -, h⟩ := runTz_commitB h

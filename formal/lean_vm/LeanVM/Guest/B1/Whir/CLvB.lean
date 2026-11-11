@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Place.OsCallV
 public import LeanVM.Guest.B1.Whir.CSqLoop
 
 /-!
-# A level after its squeezes, honestly (G:1658-1744)
+# A level after its squeezes, honestly (G:1649-1735)
 
 * `osStep_of`: a block's state moved on, from its fields.
 * `osCap_complete`: `verify_merkle_cap` on the level's cap and flags, its returns stored in
@@ -50,7 +50,7 @@ theorem osStep_of {σ σ' : Val} {st st' : OsSt} (hsf : st.Sf) (hok : st.Ok σ)
 
 /-! ## The cap -/
 
-/-- **The level's cap, honestly** (G:1658-1662): `verify_merkle_cap` returning the root's cells
+/-- **The level's cap, honestly** (G:1649-1653): `verify_merkle_cap` returning the root's cells
 `r0, r1`, stored in `level_roots`. -/
 theorem osCap_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (r0 r1 : E) (hc4 : 4 * lv.capOff < u128Bound)
@@ -168,7 +168,7 @@ theorem osHsCoefs_complete (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) (xs 
           exact hmem C rd hH j (by omega) (by omega)
     exact h.mono fun _ _ ↦ trivial
 
-/-- **A non-final level's high part, honestly** (G:1704-1712): word `2 + j` of `sent`, scaled,
+/-- **A non-final level's high part, honestly** (G:1695-1703): word `2 + j` of `sent`, scaled,
 into `level_hs[lvl·8 + j]`. -/
 theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hsent : st.sent < st.k) (high : ℕ → E)
@@ -198,7 +198,7 @@ theorem osHsMid_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : s
       by show m.src < K; omega,
       by show m.base < K; omega⟩
 
-/-- **The final level's lane, honestly** (G:1693-1703): a fresh buffer at `pH`, word `j` of
+/-- **The final level's lane, honestly** (G:1684-1694): a fresh buffer at `pH`, word `j` of
 `final_msg`, scaled, into its word `j`. -/
 theorem osHsFinal_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (pH : E) (lane : ℕ → E)
@@ -241,16 +241,16 @@ theorem osHsFinal_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf :
 round coefficients, the high part, the positions and windows, `g^pairs`. -/
 def osQArgsV (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E :=
   [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
-    if lvl = c.yrLevel then 0 else σ (.n st.lamInv), σ (.n osCoefs) * gen ^ (3 * lv.foldsOff),
+    if lvl = c.yrLevel then 0 else σ (.n st.lamInv), σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
     if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride),
     σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff,
     gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)]
 
-/-- **The level's queries, honestly** (G:1719-1726): `opening_queries` at its honest arguments
+/-- **The level's queries, honestly** (G:1710-1717): `opening_queries` at its honest arguments
 (`osQArgsV`), returning `batched`. -/
 theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (batched : E) (hc4 : 4 * lv.capOff < u128Bound)
-    (h3 : 3 * lv.foldsOff < u128Bound) (hpo : lv.posOff < u128Bound)
+    (h3 : 2 * lv.foldsOff < u128Bound) (hpo : lv.posOff < u128Bound)
     (hh8 : lvl * hsStride < u128Bound)
     (hpq : (if lvl = 0 then lv.queries / 2 else lv.queries) < u128Bound)
     (hli : lvl ≠ c.yrLevel → st.lamInv < st.k) (hhs : lvl = c.yrLevel → st.hs < st.k)
@@ -266,7 +266,7 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
   set li : List Stmt × ℕ × OsSt := if lvl = c.yrLevel then
     ([osCst fl.2.2.k (word 0 0)], fl.2.2.k, { fl.2.2 with k := fl.2.2.k + 1 })
     else ([], st.lamInv, fl.2.2) with hliD
-  set cf := osMatS c.plan osCoefs (3 * lv.foldsOff) li.2.2 with hcf
+  set cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2 with hcf
   set hp : List Stmt × ℕ × OsSt := if lvl = c.yrLevel then ([], st.hs, cf.2.2)
     else osMatS c.plan osHs (lvl * hsStride) cf.2.2 with hhpD
   set qp := osMatS c.plan osQpos lv.posOff hp.2.2 with hqp
@@ -337,9 +337,9 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
           rw [ha _ (show st.lamInv < fl.2.2.k by omega), ha1 _ this]
   -- the round coefficients
   have b4 := BlkA.seq (H := H) (show k ≤ li.2.2.k by omega) k4 b3 (B := cf.1)
-    (OutB := fun σ' ↦ σ' (.n cf.2.1) = σ (.n osCoefs) * gen ^ (3 * lv.foldsOff) ∧
+    (OutB := fun σ' ↦ σ' (.n cf.2.1) = σ (.n osCoefs) * gen ^ (2 * lv.foldsOff) ∧
       MatsOk σ' cf.2.2.mats ∧ MatsBelow cf.2.2.k cf.2.2.mats) fun σ1 ha1 ho1 ↦ by
-      have h := osMatS_blkA (H := H) (P := c.plan) (base := osCoefs) (off := 3 * lv.foldsOff)
+      have h := osMatS_blkA (H := H) (P := c.plan) (base := osCoefs) (off := 2 * lv.foldsOff)
         (s := li.2.2) σ1 (show 21 < li.2.2.k by omega) mb3
         (fun C rd hH ↦ by rw [mli]; exact (ho1 C rd hH).1.2.2.1) h3
       rw [ha1 osCoefs (by show 21 < k; omega)] at h
@@ -448,7 +448,7 @@ def glueVals (cl lam y0 y1 : E) : List E :=
 def glueEnd (cl lam y0 y1 lq b : E) : List E :=
   [lam * lam * lam * lq, lam * lam * lam * lq * b, cl + lam * y0 + lam * lam * y1 + lam * lam * lam * lq * b]
 
-/-- **A non-final level's claims glued, honestly** (G:1728-1744): `λ` and `λ²` into `ood_scalars`,
+/-- **A non-final level's claims glued, honestly** (G:1719-1735): `λ` and `λ²` into `ood_scalars`,
 `λ³·λ^Q` into `level_betas`, `1/λ` into `level_mus`; the new claim the old plus
 `λ·y0 + λ²·y1 + λ³·λ^Q·batched`. -/
 theorem osGlue_complete {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)

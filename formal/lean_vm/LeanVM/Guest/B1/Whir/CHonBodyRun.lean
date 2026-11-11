@@ -47,14 +47,14 @@ structure BodyFacts (h : OsHD) (args xs : List E) (lane : ℕ) (w : WhirEnd) : P
     (osLvAt h.c (l + 1))
   last : LvAt.FinStep h.logN lane h.c.yrLevel h.Lf w
   fin : FinOkF h.c h.logN h.c.yrLevel (osLvAt h.c h.c.yrLevel) h.Lf.level
-  gam : ∀ l < h.c.levels.length, (h.L l).s.gammas.length = (osLvAt h.c l).foldsOff
-  recF : ∀ l < h.c.levels.length, ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.L l).s.gammas.length
+  gam : ∀ l < h.c.levels.length, (h.L l).s.alphas.length = (osLvAt h.c l).foldsOff
+  recF : ∀ l < h.c.levels.length, ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.L l).s.alphas.length
   suf : ∀ l < h.c.levels.length, ∃ p, xs = p ++ (h.L l).xs
   cap5 : ∀ l < h.c.levels.length, (h.L l).cap.length = 5
   rootN : ∀ l < h.c.yrLevel, digestHalves (h.root (l + 1)) = ((h.L l).nw.x0, (h.L l).nw.x1)
   G : ∀ l < h.c.levels.length, ∀ j < (osLvAt h.c l).folds, h.G.getD ((osLvAt h.c l).foldsOff + j) 0 =
-    (roundsSpec (osLvAt h.c l).folds (h.L l).s (h.L l).cap (h.L l).rw).1.gammas.getD
-      ((h.L l).s.gammas.length + j) 0
+    (roundsSpec (osLvAt h.c l).folds (h.L l).s (h.L l).cap (h.L l).rw).1.alphas.getD
+      ((h.L l).s.alphas.length + j) 0
   rl : ∀ i < h.c.levels.length, (h.L i).rounds.length = (osLvAt h.c i).folds
   ht : ∀ l < h.c.levels.length, ((h.L l).R.getD l default).2.1 = (osLvAt h.c l).depth
   cv : ∀ l < h.c.levels.length, h.cv l = capCellH (osLvAt h.c l).depth ((h.L l).qs h.logN) (h.L l).phase
@@ -101,8 +101,8 @@ theorem lv {b : ℕ} {cur tabs : E} :
     obtain ⟨-, hfold, hlog, -, hdepth, hqueries, -, -, -, hsq, -, -, hsq1, -⟩ := F.fin
     have hdep : (osLvAt h.c h.c.yrLevel).depth = h.Lf.dp h.logN := by
       rw [hdepth]
-      show _ = h.logN - h.Lf.s1.gammas.length + _
-      rw [LvAt.s1, roundsSpec_gammas_length, F.gam _ hl, hfold, hlog]
+      show _ = h.logN - h.Lf.s1.alphas.length + _
+      rw [LvAt.s1, roundsSpec_alphas_length, F.gam _ hl, hfold, hlog]
     exact lvFin_gen F.bs F.last F.fin (F.gam _ hl) (F.suf _ hl) hq fun C rd hH ↦
       finC_of F.hs F.nm hq.ptr hq.tabs (h.bat h.c.yrLevel) F.last hfold hdep hqueries hsq (F.cap5 _ hl)
         hsfx F.lane (F.G _ hl) F.len F.rl (F.ht _ hl) (F.cv _ hl) (F.fv _ hl) (F.ag _ hl) (F.ps _ hl)
@@ -110,8 +110,8 @@ theorem lv {b : ℕ} {cur tabs : E} :
   · have hl' : l < h.c.yrLevel := by omega
     obtain ⟨-, hfold, hcols, hcols1, hdepth, hqueries, -, -, -, hsq, -, -, -, hsq1, -⟩ := F.mid l hl'
     have hmu : (h.L l).mu h.logN = (osLvAt h.c l).logCols := by
-      show h.logN - (h.L l).s1.gammas.length = _
-      rw [LvAt.s1, roundsSpec_gammas_length, F.gam l hl, hfold]; exact hcols
+      show h.logN - (h.L l).s1.alphas.length = _
+      rw [LvAt.s1, roundsSpec_alphas_length, F.gam l hl, hfold]; exact hcols
     have hdep : (osLvAt h.c l).depth = (h.L l).dp h.logN := by
       rw [hdepth]; show _ = (h.L l).mu h.logN + _; rw [hmu]
     exact lvMid_gen F.bs hl' hy (by rw [F.len]; omega) (F.step l hl') (F.mid l hl') (F.gam l hl)

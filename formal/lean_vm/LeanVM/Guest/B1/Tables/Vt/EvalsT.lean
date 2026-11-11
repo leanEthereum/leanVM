@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.ZcRun
 public import LeanVM.Guest.B1.Gkr.Layer
 
 /-!
-# The table evaluations' templates (G:2644-2655)
+# The table evaluations' templates (G:2635-2646)
 
 `vtEvalData[k]`: evaluation `k`'s first statement and its value; it is `fs_next` at the cursor
 `σ 2647` (offset `k`, the words `col_eval_words` names), copied into `col_evals`. `vtPermData[j]`: the permutation before evaluation `4(j + 1)`, its first statement

@@ -177,17 +177,17 @@ end InRange
 
 /-! ## WHIR -/
 
-/-- A fold round adds one `γ`. -/
+/-- A fold round adds one `α`. -/
 theorem foldRound_returns {s : WhirState} {p : WhirState × FoldRound}
-    (h : VerifierProgram.Returns (foldRound s) p) : p.1.gammas.length = s.gammas.length + 1 := by
+    (h : VerifierProgram.Returns (foldRound s) p) : p.1.alphas.length = s.alphas.length + 1 := by
   unfold foldRound at h
   repeat (obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h)
   rw [VerifierProgram.returns_ret h]
   simp
 
-/-- A level's fold rounds add one `γ` each. -/
+/-- A level's fold rounds add one `α` each. -/
 theorem foldRounds_returns : ∀ {n : ℕ} {s : WhirState} {p : WhirState × List FoldRound},
-    VerifierProgram.Returns (foldRounds n s) p → p.1.gammas.length = s.gammas.length + n
+    VerifierProgram.Returns (foldRounds n s) p → p.1.alphas.length = s.alphas.length + n
   | 0, s, p, h => by
     rw [foldRounds] at h
     rw [VerifierProgram.returns_ret h]
@@ -257,12 +257,12 @@ theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs 
       · exact sampleQueriesAux_returns depth fuel _ hrest q hq
 
 /-- **The WHIR levels open in range**: at level `index`, the heights so far end with the
-current level's, `logN − γs − fold + rate`. -/
+current level's, `logN − αs − fold + rate`. -/
 theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (hs : List ℕ),
       hs.length = index + 1 →
       (∀ level ∈ levels.head?,
-        hs.getD index 0 = logN - s.gammas.length - level.fold + level.logInvRate) →
+        hs.getD index 0 = logN - s.alphas.length - level.fold + level.logInvRate) →
       InRange (whirLevels logN laneFolds evaluateBasis index levels s) hs fun _ _ ↦ True
   | [], _, _, _, _, _ => trivial
   | level :: rest, index, s, hs, hl, hh => by
@@ -273,7 +273,7 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
     obtain ⟨s', rounds⟩ := r
     have hf := foldRounds_returns hr
     dsimp only at hf ⊢
-    have hdepth : logN - s'.gammas.length + level.logInvRate = hs.getD index 0 := by
+    have hdepth : logN - s'.alphas.length + level.logInvRate = hs.getD index 0 := by
       rw [hh', hf]; omega
     cases rest with
     | nil =>
@@ -292,14 +292,14 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
     | cons next rest' =>
       dsimp only
       simp only [levelShape]
-      have hc : InRange (VerifierProgram.readCommitment (logN - s'.gammas.length - next.fold +
+      have hc : InRange (VerifierProgram.readCommitment (logN - s'.alphas.length - next.fold +
           next.logInvRate) (2 * 2 ^ next.fold)) hs
-          (fun _ hs' ↦ hs' = hs ++ [logN - s'.gammas.length - next.fold + next.logInvRate]) :=
+          (fun _ hs' ↦ hs' = hs ++ [logN - s'.alphas.length - next.fold + next.logInvRate]) :=
         rfl
       refine InRange.bind (Q := fun (_ : Unit) hs' ↦
-        hs' = hs ++ [logN - s'.gammas.length - next.fold + next.logInvRate]) hc fun _ _ e ↦ ?_
+        hs' = hs ++ [logN - s'.alphas.length - next.fold + next.logInvRate]) hc fun _ _ e ↦ ?_
       subst e
-      have hgi : (hs ++ [logN - s'.gammas.length - next.fold + next.logInvRate]).getD index 0 =
+      have hgi : (hs ++ [logN - s'.alphas.length - next.fold + next.logInvRate]).getD index 0 =
           hs.getD index 0 := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
@@ -318,7 +318,7 @@ theorem inRange_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
           (by simp [hl]) fun lv hlv ↦ ?_
         simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
         subst hlv
-        rw [glueLevel_gammas]
+        rw [glueLevel_alphas]
         simp [List.getD_eq_getElem?_getD, hl]
 
 /-! ## The verifier program -/

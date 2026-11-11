@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SelBlock
 public import LeanVM.Guest.B1.Selectors.BlockSelector
 
 /-!
-# The framework blocks' selectors (G:2423-2433)
+# The framework blocks' selectors (G:2414-2424)
 
 The push side's framework blocks `0, 1, 2` (state, memory, bytecode) take their selector from
 `block_selector` over `1 + ζ` and the index MLE's factors above their `κ` (`vtFwSelT`).

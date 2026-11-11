@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Mid
 
-  `verify_sub`'s sizes, `kappa_base` and the push side's total (G:3600-3626).
+  `verify_sub`'s sizes, `kappa_base` and the push side's total (G:3591-3617).
 -/
 
 module
@@ -53,7 +53,7 @@ theorem word_pow2 {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := word_two_
 
 /-! ## The sizes -/
 
-/-- **The sizes** (G:3600-3619): the rate exponent and the memory's log-size, `dims`, `kb` in the
+/-- **The sizes** (G:3591-3610): the rate exponent and the memory's log-size, `dims`, `kb` in the
 frame (`84 .. 91`) and `kappa_base`. -/
 theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read))
@@ -217,7 +217,7 @@ theorem push_sum_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (
 theorem vsPushStep_noRet : Stmt.noRetList ((List.range 54).flatMap vsPushStep) = true := by
   decide +kernel
 
-/-- **The bus depth** (G:3625): `g^L`, `L < 34`, whatever the push blocks' product. -/
+/-- **The bus depth** (G:3616): `g^L`, `L < 34`, whatever the push blocks' product. -/
 theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)))
     (h : Stmt.HoldsList C L.read σ vsPushT next kret) :
@@ -233,7 +233,7 @@ theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
   simp only [List.cons.injEq, and_true] at hret
   exact ⟨μ, hμ, hret, hn⟩
 
-/-- **The push total** (G:3622-3626): the bus depth `g^(log2Ceil Σ)` over the push blocks'
+/-- **The push total** (G:3613-3617): the bus depth `g^(log2Ceil Σ)` over the push blocks'
 `Σ 2^κ_b`. -/
 theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)))

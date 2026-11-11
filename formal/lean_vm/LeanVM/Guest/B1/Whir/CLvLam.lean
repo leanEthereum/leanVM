@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.CLvSq
 
 /-!
-# The batching challenge, honestly (G:1641-1650)
+# The batching challenge, honestly (G:1632-1641)
 
 `osLam_complete`: the batching nonce `n2` at the cursor; its permutation `lamS cap n2` on the
 carried capacity (`fs_absorb_nonce`); the grind's check on its cell `1`; `λ` its cell `0` and
@@ -75,7 +75,7 @@ theorem osPad_ptr (pad : Option ℕ) (k : ℕ) (hpb : ∀ p, pad = some p → p 
 /-- The values after the batching nonce's permutation: `λ`, one and `1/λ`. -/
 def lamVals (S : KeccakState) : List E := [rdCell S 0, word 1 0, (rdCell S 0)⁻¹]
 
-/-- **The batching challenge, honestly** (G:1641-1650). -/
+/-- **The batching challenge, honestly** (G:1632-1641). -/
 theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C rd → st.Ok σ)
     (hco1 : st.co + 1 < u128Bound) (n2 : E) (hlam : rdCell (lamS (st.fsv σ) n2) 0 ≠ 0)
     (hn : ∀ C rd, H C rd → LoadHolds rd (st.cur σ) 0 n2)

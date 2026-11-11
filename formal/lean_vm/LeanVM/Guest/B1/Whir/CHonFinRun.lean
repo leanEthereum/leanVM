@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Whir.CHonFields0
 On `hR : HonRun μ r … cfg Ls`, at `h := hdOf μ r Ls`: the finish's static facts
 (`HonRun.finStatic_run`), each non-final level's record facts (`HonRun.recRun_run`), the final
 lane's length (`HonRun.hylen`, `HonRun.hfold`) and `fold_final_msg`'s kind (`HonRun.hffm`).
-Every fold challenge is nonzero along the levels (`gammas_nz`, `HonRun.s_gnz`), and the tail
+Every fold challenge is nonzero along the levels (`alphas_nz`, `HonRun.s_gnz`), and the tail
 challenges do not depend on the claim (`tailRun_add`).
 -/
 
@@ -39,14 +39,14 @@ theorem osLvAt_osCfg {m l : ℕ} (hl : l < osNLevels m) : osLvAt (osCfg m) l = o
 theorem osNLevels_le : ∀ m < 28, osNLevels m ≤ 6 := by decide +kernel
 
 /-- The rounds' fold challenges are nonzero when their grinds' are. -/
-theorem gammas_nz : ∀ (n : ℕ) (s : WhirState) (fs xs : List E), RoundsOk n fs xs →
-    (∀ x ∈ s.gammas, x ≠ 0) → ∀ x ∈ (roundsSpec n s fs xs).1.gammas, x ≠ 0
+theorem alphas_nz : ∀ (n : ℕ) (s : WhirState) (fs xs : List E), RoundsOk n fs xs →
+    (∀ x ∈ s.alphas, x ≠ 0) → ∀ x ∈ (roundsSpec n s fs xs).1.alphas, x ≠ 0
   | 0, _, _, _, _, h => h
   | n + 1, s, fs, xs, ⟨_, hnz, hok⟩, h => by
-    show ∀ x ∈ (roundsSpec n (roundSpec s fs (xs.take 7)).1 (roundSponge fs (xs.take 7)).cap
-      (xs.drop 7)).1.gammas, x ≠ 0
-    refine gammas_nz n _ _ _ hok fun x hx ↦ ?_
-    rw [show (roundSpec s fs (xs.take 7)).1.gammas = s.gammas ++ [(roundChs fs (xs.take 7)).1] from rfl]
+    show ∀ x ∈ (roundsSpec n (roundSpec s fs (xs.take 6)).1 (roundSponge fs (xs.take 6)).cap
+      (xs.drop 6)).1.alphas, x ≠ 0
+    refine alphas_nz n _ _ _ hok fun x hx ↦ ?_
+    rw [show (roundSpec s fs (xs.take 6)).1.alphas = s.alphas ++ [(roundChs fs (xs.take 6)).1] from rfl]
       at hx
     rcases List.mem_append.mp hx with h1 | h1
     · exact h x h1
@@ -69,22 +69,22 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
 include hR
 
 /-- Every level starts after nonzero fold challenges. -/
-theorem s_gnz : ∀ l ≤ (osCfg (candidate μ r)).yrLevel, ∀ x ∈ (Ls.getD l default).s.gammas, x ≠ 0
+theorem s_gnz : ∀ l ≤ (osCfg (candidate μ r)).yrLevel, ∀ x ∈ (Ls.getD l default).s.alphas, x ≠ 0
   | 0, _ => by rw [hR.start.1]; simp
   | l + 1, hl => by
     have hst := (hR.stepS (l := l) (by omega)).1
     obtain ⟨rw, W, hd, -, hrok, -⟩ := hR.step (l := l) (by omega)
     have hrw : (Ls.getD l default).rw = rw := by unfold LvAt.rw; rw [hd]
     rw [hst, LvAt.s1, hrw]
-    exact gammas_nz _ _ _ _ hrok (s_gnz l (by omega))
+    exact alphas_nz _ _ _ _ hrok (s_gnz l (by omega))
 
 /-- The final level's folds end at `nFolds`. -/
-theorem fin_s1 : (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas.length =
+theorem fin_s1 : (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.length =
     (osCfg (candidate μ r)).nFolds := by
   have hy := hR.yr
   obtain ⟨cF, -, -, -, -, -, cyl, -⟩ := hR.cand
   obtain ⟨-, ffold, flog, -⟩ := hR.fin
-  rw [LvAt.s1, roundsSpec_gammas_length, hR.gammas _ (by omega), ffold]
+  rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas _ (by omega), ffold]
   omega
 
 /-- A non-final level's record. -/
@@ -107,14 +107,14 @@ theorem rec_F {i : ℕ} (hi : i < (osCfg (candidate μ r)).yrLevel) :
   obtain ⟨rw, W, -, -, he, -⟩ := hR.rec_eq hi
   obtain ⟨-, hf, -⟩ := hR.mid hi
   rw [he]
-  show (Ls.getD i default).s1.gammas.length = _
-  rw [LvAt.s1, roundsSpec_gammas_length, hR.gammas _ (by omega), hf]
+  show (Ls.getD i default).s1.alphas.length = _
+  rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas _ (by omega), hf]
 
 theorem rec_mu {i : ℕ} (hi : i < (osCfg (candidate μ r)).yrLevel) :
-    μ - (Ls.getD i default).s1.gammas.length = (osLvAt (osCfg (candidate μ r)) i).logCols := by
+    μ - (Ls.getD i default).s1.alphas.length = (osLvAt (osCfg (candidate μ r)) i).logCols := by
   have hy := hR.yr
   obtain ⟨-, hf, hm, -⟩ := hR.mid hi
-  rw [LvAt.s1, roundsSpec_gammas_length, hR.gammas _ (by omega), hf]
+  rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas _ (by omega), hf]
   exact hm
 
 /-- A non-final level's `LvFin`. -/
@@ -167,10 +167,10 @@ theorem finStatic_run :
     exact ⟨lf.ml1, lf.nhs, lf.b3, lf.bn, by simp [hsvOf], lf.nbu, hlt⟩
   · show (tailRun Lf.fw.pairs (Lf.F3 μ).cap (hdOf μ r Ls).cl1F).1.length = _
     rw [tailRun_length, hfw, hok.plen2]
-    show μ - Lf.s1.gammas.length = _
+    show μ - Lf.s1.alphas.length = _
     rw [hs1]; omega
   · intro x hx
-    exact gammas_nz _ _ _ _ hrok (hR.s_gnz _ le_rfl) x hx
+    exact alphas_nz _ _ _ _ hrok (hR.s_gnz _ le_rfl) x hx
   · intro x hx
     rw [hT] at hx
     exact hok.tnz x hx
@@ -184,7 +184,7 @@ theorem recRun_run : ∀ i < (osCfg (candidate μ r)).yrLevel, RecRun (hdOf μ r
   obtain ⟨-, hf, -, -, hdep, hq, -, -, hP, hsq, -⟩ := hR.mid hi
   have hmu := hR.rec_mu hi
   have hdep' : (osLvAt (osCfg (candidate μ r)) i).depth = (Ls.getD i default).dp μ := by
-    rw [hdep]; show _ = μ - (Ls.getD i default).s1.gammas.length + _; rw [hmu]
+    rw [hdep]; show _ = μ - (Ls.getD i default).s1.alphas.length + _; rw [hmu]
   refine ⟨hR.rec_F hi, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · show ((Ls.getD i default).osRec μ).mu = _
     rw [he]; exact hmu
@@ -194,12 +194,12 @@ theorem recRun_run : ∀ i < (osCfg (candidate μ r)).yrLevel, RecRun (hdOf μ r
     rw [he]; show W.high.length = _; rw [hok.hlen, hf]; rfl
   · show ((Ls.getD i default).osRec μ).z0.length = _
     rw [he]
-    show ((W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.gammas.length)).getD 0 []).length =
+    show ((W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.alphas.length)).getD 0 []).length =
       (osLvAt (osCfg (candidate μ r)) i).logCols
     rw [NextW.ood, List.getD_cons_zero, squeezeN_length, hmu]
   · show ((Ls.getD i default).osRec μ).z1.length = _
     rw [he]
-    show ((W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.gammas.length)).getD 1 []).length =
+    show ((W.ood (Ls.getD i default).F (μ - (Ls.getD i default).s1.alphas.length)).getD 1 []).length =
       (osLvAt (osCfg (candidate μ r)) i).logCols
     rw [NextW.ood, List.getD_cons_succ, List.getD_cons_zero, squeezeN_length, hmu]
   · show (Ls.getD i default).lam μ ≠ 0
@@ -224,7 +224,7 @@ theorem hfold : (hdOf μ r Ls).c.yrLen ≤ (hdOf μ r Ls).Lf.fw.fold.length := b
   rw [← hrw] at hok
   show _ ≤ (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.fold.length
   rw [hfw, hok.flen]
-  show _ ≤ 2 ^ (μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas.length) + _
+  show _ ≤ 2 ^ (μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.length) + _
   rw [hR.fin_s1, show μ - (osCfg (candidate μ r)).nFolds = (osCfg (candidate μ r)).yrLog by omega, cylen]
   show (osCfg (candidate μ r)).yrLen ≤ _
   omega

@@ -31,8 +31,8 @@ structure OsCall where
 
 /-- The stream words each candidate reads (`osWordsLen (osCfg m)`). -/
 def osWordsTab : List Nat := [
-    187, 205, 209, 215, 225, 243, 247, 187, 205, 209, 215, 225, 243, 247, 187, 205, 209, 215, 225,
-    243, 247, 187, 205, 209, 215, 225, 243, 247]
+    169, 187, 187, 193, 203, 221, 221, 169, 187, 187, 193, 203, 221, 221, 169, 187, 187, 193, 203,
+    221, 221, 169, 187, 187, 193, 203, 221, 221]
 
 /-- Each candidate's `opening_queries` calls (`osQCalls`). -/
 def osCallsTab : List (List OsCall) := [

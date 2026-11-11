@@ -65,16 +65,16 @@ theorem finFold : ∀ k < ((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs
   have hrw : L.rw = rw := by unfold LvAt.rw; rw [hd]
   have hfw : L.fw = W := by unfold LvAt.fw; rw [hd]
   have hqs : L.qs μ = W.qs (rsF L.level L.cap rw)
-      (μ - (rsSt L.level L.s L.cap rw).gammas.length + L.level.logInvRate) L.level.queries := by
+      (μ - (rsSt L.level L.s L.cap rw).alphas.length + L.level.logInvRate) L.level.queries := by
     unfold LvAt.qs; rw [hd]; simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
   have hph : L.phase = W.phase := by unfold LvAt.phase; rw [hd]
   have hrd : L.rounds = rsRounds L.level L.s L.cap rw := by simp only [LvAt.rounds, hrw]
-  have hmu : μ - (rsSt L.level L.s L.cap rw).gammas.length = (osCfg (candidate μ r)).yrLog := by
+  have hmu : μ - (rsSt L.level L.s L.cap rw).alphas.length = (osCfg (candidate μ r)).yrLog := by
     have := hB.mu
     simp only [LvAt.mu, LvAt.s1, hrw] at this
     rw [this, hlc]
   have hk' : k < (W.qs (rsF L.level L.cap rw)
-      (μ - (rsSt L.level L.s L.cap rw).gammas.length + L.level.logInvRate) L.level.queries).length := by
+      (μ - (rsSt L.level L.s L.cap rw).alphas.length + L.level.logInvRate) L.level.queries).length := by
     rw [← hqs]; exact hk
   have ho : k < W.phase.length := by rw [hfin.plen]; exact hk'
   have hreq := (hfin.req k hk' ho).trans
@@ -124,7 +124,7 @@ theorem fld_static : ∀ l < (osCfg (candidate μ r)).levels.length,
   obtain ⟨hw, hpl, -⟩ := openOne_facts (hok k hk' ho)
   have hmem : ((Ls.getD l default).qs μ).getD k 0 ∈ (Ls.getD l default).qs μ := by
     rw [hq, List.getD_eq_getElem _ _ hk']; exact List.getElem_mem hk'
-  refine ⟨?_, ?_, ?_, ?_, fun hf ↦ ?_⟩
+  refine ⟨?_, ?_, ?_, fun hf ↦ ?_⟩
   · show _ < _
     rw [hpd, hcdq, Nat.sub_add_cancel hcdd]
     exact hR.qs_lt hl _ hmem
@@ -134,7 +134,6 @@ theorem fld_static : ∀ l < (osCfg (candidate μ r)).levels.length,
   · show (((Ls.getD l default).phase.map _).getD k []).length = _
     rw [hp, map_getD_eq _ _ _ ho, List.length_take, hpl, hpd]
     omega
-  · exact combinersNZ_folds (hR.nz l (by rw [hR.len]; exact hl)) _ hmem
   · rw [oqS, oq_final, hfinal] at hf
     have he : l = (osCfg (candidate μ r)).yrLevel := by
       by_contra hne

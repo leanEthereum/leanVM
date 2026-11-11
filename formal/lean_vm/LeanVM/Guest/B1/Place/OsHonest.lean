@@ -108,7 +108,7 @@ def OsSpecVals (c : OsCfg) (b : ℕ) (tabs : E) (word : ℕ → ℕ → E) (lamI
       osPtrF c b 11, osPtrF c b osIxQbp, tabs] ∧
     (osQCall c l).2.2.1.map σ' = [osPtrF c b 0 * gen ^ (4 * (osLvAt c l).capOff),
       osPtrF c b 1 * gen ^ (osLvAt c l).capOff, lamInv l,
-      osPtrF c b 5 * gen ^ (3 * (osLvAt c l).foldsOff), osHsPtr c b l,
+      osPtrF c b 5 * gen ^ (2 * (osLvAt c l).foldsOff), osHsPtr c b l,
       osPtrF c b 11 * gen ^ (osLvAt c l).posOff, osPtrF c b osIxQbp * gen ^ (osLvAt c l).posOff,
       gen ^ oqN c l] ∧
     (osQCall c l).2.2.2.map σ' = [batched l]) ∧
@@ -166,7 +166,7 @@ structure OsHonest (c : OsCfg) (args : List E) (cur tabs : E) (xs : List E) (tgt
       LoadHolds rd (osPtrF c b 11 * gen ^ (osLvAt c l).posOff * (gen ^ j) ^ sqPer (osLvAt c l)) i
         (eOfNat (qwPosOf (osLvAt c l).depth (word l j) i))
   qMem : ∀ b rd, OsMemF rd c b own → ∀ l < c.levels.length,
-    RoundsAt rd (osPtrF c b 5 * gen ^ (3 * (osLvAt c l).foldsOff)) (rounds l) ∧
+    RoundsAt rd (osPtrF c b 5 * gen ^ (2 * (osLvAt c l).foldsOff)) (rounds l) ∧
     ((oqS c l).final = 1 → WordsAt rd (osHsPtr c b l) (hsv l)) ∧
     ∀ k < oqQ c l,
       LoadHolds rd (osPtrF c b 0 * gen ^ (4 * (osLvAt c l).capOff))

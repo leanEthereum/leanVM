@@ -32,7 +32,7 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
     (hS : BodyStatic h.c)
     (hF : LvAt.FinStep h.logN lane h.c.yrLevel (h.Ls.getD h.c.yrLevel default) w)
     (hfo : FinOkF h.c h.logN h.c.yrLevel (osLvAt h.c h.c.yrLevel) (h.Ls.getD h.c.yrLevel default).level)
-    (hg : (h.Ls.getD h.c.yrLevel default).s.gammas.length = (osLvAt h.c h.c.yrLevel).foldsOff)
+    (hg : (h.Ls.getD h.c.yrLevel default).s.alphas.length = (osLvAt h.c h.c.yrLevel).foldsOff)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD h.c.yrLevel default).xs)
     {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs h.c.yrLevel st σ)
     (hFC : ∀ C rd, H C rd → FinC C rd σ h.c h.c.yrLevel (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel)
@@ -48,8 +48,8 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
   obtain ⟨-, hfold, hlog, hylen, hdepth, hqueries, -, hqu, -, hsq, -, hpo, -, -, hS5, hr3, hc4, hh8, -⟩ := hfo
   set L := h.Ls.getD h.c.yrLevel default with hL
   have hmu : L.mu h.logN = h.c.yrLog := by
-    show h.logN - L.s1.gammas.length = _
-    rw [LvAt.s1, roundsSpec_gammas_length, hg, hfold]; exact hlog
+    show h.logN - L.s1.alphas.length = _
+    rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold]; exact hlog
   have hdep : (osLvAt h.c h.c.yrLevel).depth = L.dp h.logN := by
     rw [hdepth]; show _ = L.mu h.logN + _; rw [hmu]
   have E := finEqs hF hfold hdep hqueries hsq (digestHalves (h.root h.c.yrLevel)).1
@@ -77,7 +77,7 @@ theorem lvFin_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur bt : E} {lane : �
     have hfl := hok.flen
     rw [← hrw] at hfl
     have e0 : W.fold.length = h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds := by
-      rw [hfl, show h.logN - L.s1.gammas.length = h.c.yrLog from hmu, hylen, hfold]
+      rw [hfl, show h.logN - L.s1.alphas.length = h.c.yrLog from hmu, hylen, hfold]
     obtain ⟨p, hp⟩ := hsuf
     have e1 := congrArg List.length hxs
     have e2 := congrArg List.length hp

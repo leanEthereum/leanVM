@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Ood
 
-  `verify_sub`'s out-of-domain sample (G:3649-3654): the grind, the point, the value and the bus
+  `verify_sub`'s out-of-domain sample (G:3640-3645): the grind, the point, the value and the bus
   grind's nonce.
 -/
 
@@ -54,7 +54,7 @@ theorem runsFromG_sampleN_succ (k : ℕ) (cap : List E) (c : E) :
 
 /-! ## The nonce's permutation -/
 
-/-- The nonce's permutation after the root's two words (G:3649-3650). -/
+/-- The nonce's permutation after the root's two words (G:3640-3641). -/
 abbrev vsAtom288 : Atom :=
   .keccak [.n 269, .n 270, .n 272, .n 273, .n 284, .n 285, .n 286, .n 287, .n 263, .n 264,
     .n 265, .n 266, .n 267] (vsRun 288 13) false false
@@ -104,7 +104,7 @@ theorem spf_mem {m : ℕ} (h1 : 22 ≤ m) (h2 : m ≤ 28) : m ∈ spfDeployed :=
 theorem word_g11 : word 2048 0 = gen ^ 11 := by
   rw [show (2048 : ℕ) = 2 ^ 11 from rfl]; exact word_two_pow (by norm_num)
 
-/-- **The out-of-domain sample** (G:3649-3654). -/
+/-- **The out-of-domain sample** (G:3640-3645). -/
 theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n 4)))
     {m : ℕ} (hm22 : 22 ≤ m) (hm28 : m ≤ 28) (h278 : σ (.n 278) = gen ^ (m - 22))

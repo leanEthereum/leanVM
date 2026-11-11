@@ -28,9 +28,8 @@ value `b`, at the point `x`, is `oqQueryT`:
   (`oqLeafT`), the padding `0x01` and `0x80` XORed into the last block: the run's first cell and a
   constant, or one constant holding both when they share a cell;
 * the call of `walk_path` on the leaf digest, the windows, the cap and the flags;
-* the fold (`oqFoldT`): round `j` reads `α, β, θ` at `coefs[3j ..]`, `t = α + β·x`, its inverse
-  (`1 = t⁻¹·t`), `r = θ + t⁻¹`, the scale `Π t` so far, and folds the lane pairs `lo + r·hi`;
-  the value is the scale times the last lane;
+* the fold (`oqFoldT`): round `j` reads `α, β` at `coefs[2j ..]`, `t = α + β·x`, and folds the
+  lane pairs to `hi + t·lo`; the value is the last lane;
 * at the final level (`oqFinT`): the chain `W_0 = x`, `W_(i+1) = W_i (W_i + vs_i)`, the novel sum
   of the `n_hs` words at `hs` folded the lowest bit first (`nvLevelT`), asserted equal to the
   value; the query returns `0`.
@@ -323,17 +322,14 @@ def oqWalkOf (s : Oq) : String :=
 
 /-! ## The fold -/
 
-/-- The first value of fold round `j`, the fold starting at `F`: a round takes eight values, a
-later round one more (the scale), and two per output, `2^(folds - 1 - j)` outputs. -/
+/-- The first value of fold round `j`, the fold starting at `F`: a round takes four values and
+two per output, `2^(folds - 1 - j)` outputs. -/
 def oqRK (s : Oq) (F : ℕ) : ℕ → ℕ
   | 0 => F
-  | j + 1 => oqRK s F j + 8 + (if j = 0 then 0 else 1) + 2 * 2 ^ (s.folds - 1 - j)
+  | j + 1 => oqRK s F j + 4 + 2 * 2 ^ (s.folds - 1 - j)
 
 /-- The first output value of fold round `j`. -/
-def oqRO (s : Oq) (F j : ℕ) : ℕ := oqRK s F j + 8 + (if j = 0 then 0 else 1)
-
-/-- The scale `Π_(i ≤ j) t_i` after round `j`. -/
-def oqScale (s : Oq) (F j : ℕ) : ℕ := if j = 0 then oqRK s F 0 + 3 else oqRK s F j + 8
+def oqRO (s : Oq) (F j : ℕ) : ℕ := oqRK s F j + 4
 
 /-- Lane `m` after round `j`. -/
 def oqAcc (s : Oq) (F j m : ℕ) : ℕ := oqRO s F j + 2 * m + 1
@@ -345,28 +341,23 @@ def oqLoHi (s : Oq) (b F j m : ℕ) : ℕ × ℕ :=
     (if s.base = 1 then (b + s.I - 1 - 2 * m, b + s.I - 2 - 2 * m) else (b + 2 * m, b + 2 * m + 1))
   else (oqAcc s F (j - 1) (2 * m), oqAcc s F (j - 1) (2 * m + 1))
 
-/-- Fold round `j` at the point `x`, the challenges at `coefs`: `t = α + β·x`, `1 = t⁻¹·t`,
-`r = θ + t⁻¹`, the scale, the outputs `lo + r·hi`. -/
+/-- Fold round `j` at the point `x`, the challenges at `coefs`: `t = α + β·x`, the outputs
+`hi + t·lo`. -/
 def oqRoundT (s : Oq) (coefs x : V) (b F j : ℕ) : List Stmt :=
   let K := oqRK s F j
   let O := oqRO s F j
-  [.atom (.load (.n K) coefs (3 * j)), .atom (.load (.n (K + 1)) coefs (3 * j + 1)),
-    .atom (.mul (.n (K + 2)) (.n (K + 1)) x), .atom (.add (.n (K + 3)) (.n K) (.n (K + 2))),
-    .atom (.load (.n (K + 4)) coefs (3 * j + 2)), .atom (.const (.n (K + 5)) (word 1 0)),
-    .atom (.mul (.n (K + 5)) (.n (K + 6)) (.n (K + 3))),
-    .atom (.add (.n (K + 7)) (.n (K + 4)) (.n (K + 6)))] ++
-  (if j = 0 then [] else [.atom (.mul (.n (K + 8)) (.n (oqScale s F (j - 1))) (.n (K + 3)))]) ++
+  [.atom (.load (.n K) coefs (2 * j)), .atom (.load (.n (K + 1)) coefs (2 * j + 1)),
+    .atom (.mul (.n (K + 2)) (.n (K + 1)) x), .atom (.add (.n (K + 3)) (.n K) (.n (K + 2)))] ++
   ((List.range (2 ^ (s.folds - 1 - j))).map fun m ↦
-    [.atom (.mul (.n (O + 2 * m)) (.n (K + 7)) (.n (oqLoHi s b F j m).2)),
-      .atom (.add (.n (O + 2 * m + 1)) (.n (oqLoHi s b F j m).1) (.n (O + 2 * m)))]).flatten
+    [.atom (.mul (.n (O + 2 * m)) (.n (K + 3)) (.n (oqLoHi s b F j m).1)),
+      .atom (.add (.n (O + 2 * m + 1)) (.n (oqLoHi s b F j m).2) (.n (O + 2 * m)))]).flatten
 
-/-- The fold's value: the scale times the last lane. -/
-def oqVal (s : Oq) (F : ℕ) : ℕ := oqRK s F s.folds
+/-- The fold's value: the last lane. -/
+def oqVal (s : Oq) (F : ℕ) : ℕ := oqAcc s F (s.folds - 1) 0
 
 /-- The fold of the row from `b` at `x`, from the value `F`. -/
 def oqFoldT (s : Oq) (coefs x : V) (b F : ℕ) : List Stmt :=
-  ((List.range s.folds).map (oqRoundT s coefs x b F)).flatten ++
-    [.atom (.mul (.n (oqVal s F)) (.n (oqScale s F (s.folds - 1))) (.n (oqAcc s F (s.folds - 1) 0)))]
+  ((List.range s.folds).map (oqRoundT s coefs x b F)).flatten
 
 /-! ## The final level's check -/
 

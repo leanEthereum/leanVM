@@ -29,7 +29,7 @@ there is a valid execution of the guest on the statement's digest whose committe
 honest proof of it has a stack log the guest's opening arms take (an argument in prose, not proved
 here: the memory's three committed columns alone stack `2^22` cells, `placementsOf`), and
 completeness chains (the memory padded to `2^21` words at least, `padLog`, `Guest/Pad.lean`;
-leanVM grows the `SET` table instead, `aggregation/node.rs:321-325`). The three hypotheses are `Guest/Limits.lean`'s; the budget
+leanVM grows the `SET` table instead, `aggregation/node.rs:324-328`). The three hypotheses are `Guest/Limits.lean`'s; the budget
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is
 linear in the node's work (`Budget`: the words a run allocates and the instructions of each
 opcode it executes, each a constant plus a coefficient per declared claim, coverage slot, raw

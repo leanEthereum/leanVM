@@ -56,7 +56,7 @@ variable (d : QD) {rd : Reader} {σ : Val}
 
 /-- The fold starts before the query's end. -/
 theorem ch_lt_e : d.ch < d.e := by
-  have hv : d.ch ≤ oqVal d.s d.ch := by rw [oqVal, oqRK_eq]; omega
+  have hv : d.ch ≤ oqVal d.s d.ch := by simp only [oqVal, oqAcc, oqRO, d.oqRK_eq]; omega
   have hr : oqVal d.s d.ch ≤ oqRes d.s d.b d.emit := by
     unfold oqRes
     split

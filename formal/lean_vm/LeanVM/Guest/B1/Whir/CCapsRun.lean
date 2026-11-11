@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.CInvNZ
+public import LeanVM.Guest.B1.Whir.CRunBack
 public import LeanVM.Guest.B1.VerifySub.NZRun
 
 /-!
@@ -420,23 +420,23 @@ def LvsAgree (logN : ℕ) : ℕ → List Whir.Level → WhirState → List E →
   | index, [level], s, cap, R, [LvD.fin rw W] =>
     ∀ root height width, R[index]? = some (root, height, width) →
       Guest.Limits.OpeningsAgree height ((W.qs (rsF level cap rw)
-        (logN - (rsSt level s cap rw).gammas.length + level.logInvRate) level.queries).zip W.phase)
+        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).zip W.phase)
   | index, level :: next :: rest, s, cap, R, LvD.next rw W :: ds =>
     (∀ root height width, R[index]? = some (root, height, width) →
       Guest.Limits.OpeningsAgree height ((W.qs (rsF level cap rw)
-        (logN - (rsSt level s cap rw).gammas.length)
-        (logN - (rsSt level s cap rw).gammas.length + level.logInvRate) level.queries).zip W.phase)) ∧
+        (logN - (rsSt level s cap rw).alphas.length)
+        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).zip W.phase)) ∧
     LvsAgree logN (index + 1) (next :: rest)
       (W.glued logN index level (rsSt level s cap rw) (rsF level cap rw) (rsRounds level s cap rw))
-      (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).gammas.length)
-        (logN - (rsSt level s cap rw).gammas.length + level.logInvRate) level.queries).nonceState W.n2))
-      (W.roots (logN - (rsSt level s cap rw).gammas.length) next R) ds
+      (capOf ((W.F3 (rsF level cap rw) (logN - (rsSt level s cap rw).alphas.length)
+        (logN - (rsSt level s cap rw).alphas.length + level.logInvRate) level.queries).nonceState W.n2))
+      (W.roots (logN - (rsSt level s cap rw).alphas.length) next R) ds
   | _, _, _, _, _, _ => True
 
 /-- The fold rounds of a level of the honest run, carried. -/
 theorem rounds_plain {n : ℕ} {s : WhirState} {cap rw rest : List E} {os : List (List Opening)}
     {R : List (Digest × ℕ × ℕ)} {p : WhirState × List FoldRound} {st1 : TSt}
-    (hc : ∃ sp, (⟨cap, []⟩ : Fs).Carries sp) (hrl : rw.length = 7 * n) (hok : RoundsOk n cap rw)
+    (hc : ∃ sp, (⟨cap, []⟩ : Fs).Carries sp) (hrl : rw.length = 6 * n) (hok : RoundsOk n cap rw)
     (h : runT (foldRounds n s) ⟨⟨cap, []⟩, none, rw ++ rest, os, R⟩ = some (p, st1)) :
     p = roundsSpec n s cap rw ∧ st1 = ⟨⟨roundsCap n cap rw, []⟩, none, rest, os, R⟩ := by
   rw [runT_of_runsTo (foldRounds_run n s cap rw hrl hok) hc rest os R] at h
@@ -460,7 +460,7 @@ theorem lvsAgree_of_run (logN lane : ℕ) :
     have hq2 := allQ_bind h1 hq
     rw [hxs] at h1
     obtain ⟨rfl, rfl⟩ := rounds_plain hc hrl hrok h1
-    set mu := logN - (rsSt level s cap rw).gammas.length with hmu
+    set mu := logN - (rsSt level s cap rw).alphas.length with hmu
     set d := mu + level.logInvRate with hd
     obtain ⟨fold, xs1, hfl, hs1, h, hq⟩ := rq_readScalars (2 ^ mu + level.fold) _ _ rfl h2 hq2
     obtain ⟨nn, xs2, hs2, -, h, hq⟩ := rq_grindPoW (by decide) h hq
@@ -499,7 +499,7 @@ theorem lvsAgree_of_run (logN lane : ℕ) :
     have hq2 := allQ_bind h1 hq
     rw [hxs, List.append_assoc] at h1
     obtain ⟨rfl, rfl⟩ := rounds_plain hc hrl hrok h1
-    set mu := logN - (rsSt level s cap rw).gammas.length with hmu
+    set mu := logN - (rsSt level s cap rw).alphas.length with hmu
     set d := mu + level.logInvRate with hd
     obtain ⟨x0, x1, xs1, hs1, -, h, hq⟩ := rq_commitB h2 hq2
     obtain ⟨high, xs2, hhl, hs2, h, hq⟩ := rq_readScalars level.fold _ _ rfl h hq

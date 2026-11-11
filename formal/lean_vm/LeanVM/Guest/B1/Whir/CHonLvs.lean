@@ -69,8 +69,8 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
     (hN : LvAt.NextStep h.logN l (h.Ls.getD l default) (h.Ls.getD (l + 1) default))
     (hmo : MidOk h.c h.logN l (osLvAt h.c l) (h.Ls.getD l default).level (h.Ls.getD (l + 1) default).level
       (osLvAt h.c (l + 1)))
-    (hg : (h.Ls.getD l default).s.gammas.length = (osLvAt h.c l).foldsOff)
-    (hrecF : ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.Ls.getD l default).s.gammas.length)
+    (hg : (h.Ls.getD l default).s.alphas.length = (osLvAt h.c l).foldsOff)
+    (hrecF : ∀ q ∈ lvsRecs h.logN h.Ls l, q.F ≤ (h.Ls.getD l default).s.alphas.length)
     (hsuf : ∃ p, xs = p ++ (h.Ls.getD l default).xs)
     {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ)
     (hMC : ∀ C rd, H C rd → MidC C rd σ h.c l (osLvAt h.c l) (h.capAt l) (h.claimAt l)
@@ -84,8 +84,8 @@ theorem lvMid_gen {h : OsHD} {xs : List E} {b : ℕ} {tabs cur : E} (hS : BodySt
   obtain ⟨hnf, hfold, hcols, hcols1, hdepth, hqueries, hq0, hqu, hP1, hsq, hpwP, hpwQ, hpo, hsq1, hsqo,
     hS5, hr3, hood, hc4, hh8, hshape, hoff', hqsh, hNo, -⟩ := hmo
   have hmu : (h.Ls.getD l default).mu h.logN = (osLvAt h.c l).logCols := by
-    show h.logN - (h.Ls.getD l default).s1.gammas.length = _
-    rw [LvAt.s1, roundsSpec_gammas_length, hg, hfold]; exact hcols
+    show h.logN - (h.Ls.getD l default).s1.alphas.length = _
+    rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold]; exact hcols
   have hdep : (osLvAt h.c l).depth = (h.Ls.getD l default).dp h.logN := by
     rw [hdepth]; show _ = (h.Ls.getD l default).mu h.logN + _; rw [hmu]
   have E := midEqs hN hfold hmu hdep hqueries hsq hcols1 (digestHalves (h.root l)).1

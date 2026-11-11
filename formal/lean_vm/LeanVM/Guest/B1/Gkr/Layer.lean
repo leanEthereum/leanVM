@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Loop29
 
 /-!
-# A layer of two levels (`__loop6`, G:2047-2091)
+# A layer of two levels (`__loop6`, G:2038-2082)
 
 `__loop6`'s body is the core IR's (`Data.core90.body`); its arguments are
 `[x, bound, start_g, layers, tabs, rounds, claim, odd_g, g_bus_mu, k_mod_next]`. From the layer
@@ -77,7 +77,7 @@ def GkSlot (rd : Reader) (layers : E) (L : ℕ) (s : Fs) (cur : E) (st : GkrStat
     LoadHolds rd layers (13 * L + 10) pos ∧ LoadHolds rd layers (13 * L + 11) half ∧
     LoadHolds rd layers (13 * L + 12) parity
 
-/-- The table `k_mod_next` (G:1962-1965): at `g^r`, `r < 4`, the next layer index's
+/-- The table `k_mod_next` (G:1953-1956): at `g^r`, `r < 4`, the next layer index's
 `g^((r + 1) % 4)`, and at `g^(4 + r)` its carry into `half`, `g^((r + 1) / 4)`. -/
 def KModNext (rd : Reader) (kmn : E) : Prop :=
   ∀ r < 4, LoadHolds rd kmn (4 + r) (gen ^ ((r + 1) / 4)) ∧ LoadHolds rd kmn r (gen ^ ((r + 1) % 4))

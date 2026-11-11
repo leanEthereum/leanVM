@@ -34,7 +34,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-- A load of a query: its pointer and offset: the fold's challenges, the final coefficients. -/
 def OqQLoad (s : Oq) (coefs hs : V) (p : V) (off : ℕ) : Prop :=
-  (p = coefs ∧ off < 3 * s.folds) ∨ (s.final = 1 ∧ p = hs ∧ off < s.nHs)
+  (p = coefs ∧ off < 2 * s.folds) ∨ (s.final = 1 ∧ p = hs ∧ off < s.nHs)
 
 /-- A load of `walk_path`: its pointer and offset: the windows (the path's and the cap's two), the
 flag, the cap leaf. -/
@@ -180,19 +180,15 @@ theorem ok_leafT (b pr kL : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqLeafT s b pr
 theorem ok_roundT (x : V) (b F : ℕ) {j : ℕ} (hj : j < s.folds) :
     AtomsOk (OqAtomOk s coefs hs) (oqRoundT s coefs x b F j) := by
   unfold oqRoundT
-  refine atomsOk_append (atomsOk_append ?_ ?_) (atomsOk_flatten fun y hy ↦ ?_)
+  refine atomsOk_append ?_ (atomsOk_flatten fun y hy ↦ ?_)
   · exact atomsOk_cons (Or.inl ⟨rfl, by omega⟩) (atomsOk_cons (Or.inl ⟨rfl, by omega⟩)
-      (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons (Or.inl ⟨rfl, by omega⟩)
-      (atomsOk_cons trivial (atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil)))))))
-  · split
-    · exact atomsOk_nil
-    · exact atomsOk_cons trivial atomsOk_nil
+      (atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil)))
   · obtain ⟨m, -, rfl⟩ := List.mem_map.mp hy
     exact atomsOk_cons trivial (atomsOk_cons trivial atomsOk_nil)
 
 theorem ok_foldT (x : V) (b F : ℕ) : AtomsOk (OqAtomOk s coefs hs) (oqFoldT s coefs x b F) := by
   unfold oqFoldT
-  refine atomsOk_append (atomsOk_flatten fun y hy ↦ ?_) (atomsOk_cons trivial atomsOk_nil)
+  refine atomsOk_flatten fun y hy ↦ ?_
   obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hy
   exact ok_roundT s coefs hs x b F (List.mem_range.mp hj)
 

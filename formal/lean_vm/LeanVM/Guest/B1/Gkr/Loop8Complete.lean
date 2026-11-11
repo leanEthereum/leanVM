@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.B1.Common.Loops
 
 /-!
-# `__loop7`, completely (G:1938-1939)
+# `__loop7`, completely (G:1929-1930)
 
 `l8_complete`: when the memory holds the same `m ≥ 1` words at `row` and at `zeta`, `__loop7`
 holds from `1` below `g^m` (`loop_iff`, each iteration's atoms on the evident valuation).

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# A non-final level, soundly (G:1576-1744)
+# A non-final level, soundly (G:1567-1735)
 
 `osLevelMid_sound`: from `LvIn`, a non-final level's template runs `foldRounds` then
 `levelNext`, reading `lvWords` words at the cursor and one phase of openings (the witness's,
@@ -30,20 +30,19 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-- The rounds `queries_open` reads at `coefs` are the stored ones. -/
 theorem rounds_eq {coefs : E} {n : ℕ} {rs rs' : List FoldRound} (hl : rs.length = n)
     (hl' : rs'.length = n) (h1 : RoundsAt rd coefs rs')
-    (h2 : ∀ j < n, LoadHolds rd coefs (3 * j) rs[j]!.alpha ∧
-      LoadHolds rd coefs (3 * j + 1) rs[j]!.beta ∧ LoadHolds rd coefs (3 * j + 2) rs[j]!.theta) :
+    (h2 : ∀ j < n, LoadHolds rd coefs (2 * j) rs[j]!.alpha ∧
+      LoadHolds rd coefs (2 * j + 1) rs[j]!.beta) :
     rs' = rs := by
   refine List.ext_getElem (by rw [hl, hl']) fun j hj' hj ↦ ?_
-  obtain ⟨a1, b1, t1⟩ := h1 j hj'
-  obtain ⟨a2, b2, t2⟩ := h2 j (by omega)
-  rw [List.getD_eq_getElem _ _ hj'] at a1 b1 t1
-  rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some] at a2 b2 t2
+  obtain ⟨a1, b1⟩ := h1 j hj'
+  obtain ⟨a2, b2⟩ := h2 j (by omega)
+  rw [List.getD_eq_getElem _ _ hj'] at a1 b1
+  rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some] at a2 b2
   have ea := loadHolds_unique a1 a2
   have eb := loadHolds_unique b1 b2
-  have et := loadHolds_unique t1 t2
-  have ext : ∀ x y : FoldRound, x.alpha = y.alpha → x.beta = y.beta → x.theta = y.theta → x = y := by
-    rintro ⟨⟩ ⟨⟩ h1 h2 h3; simp_all
-  exact ext _ _ ea eb et
+  have ext : ∀ x y : FoldRound, x.alpha = y.alpha → x.beta = y.beta → x = y := by
+    rintro ⟨⟩ ⟨⟩ h1 h2; simp_all
+  exact ext _ _ ea eb
 
 /-- Words read from the cursor, then past them. -/
 theorem readsAt_snoc {p : E} {xs : List E} {x : E} (h1 : ReadsAt rd p xs)
@@ -72,7 +71,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         (R ++ [(root', lv'.depth, lvWidth (lvl + 1) lv')]) root' ∧
       RecStored rd σ lvl lv r ∧
       (osLevel c lvl lv st).2.cur σ = st.cur σ * gen ^ xs.length ∧
-      ∃ gs, ws'.gammas = ws.gammas ++ gs ∧ gs.length = lv.folds := by
+      ∃ gs, ws'.alphas = ws.alphas ++ gs ∧ gs.length = lv.folds := by
   obtain ⟨loop, sh, hmem, hent, hodd, hbase, hsf, hsd, hscd, hfin0, hcd2, hcd8, hcdd, hQ⟩ := hF.qsh
   have hnf := hF.nf
   obtain ⟨hshape, hloop⟩ := oqEntry_shape hent
@@ -105,7 +104,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   set g := osGlue lvl lv q.2 with hg
   simp only [allOk_append] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hoF, hoM⟩, hoG⟩, hoS⟩, hoL⟩, hoC⟩, hoH⟩, hoQ⟩, hoGl⟩ := hok
-  set D := recsDeficit recs ws.gammas with hD
+  set D := recsDeficit recs ws.alphas with hD
   -- the folds
   obtain ⟨xs0, gs, rounds, hx0, hgl, hrl, hrd0, hrun0, hcur0, hfs0, hm0, hco0, hpad0, lg, lc⟩ :=
     osRounds_sound hcal.round hwt c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
@@ -134,7 +133,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   obtain ⟨hhs, hhse⟩ := osHsMid_sound hoH
   -- the queries
   have hmh : MatsOk σ h.2.mats := by rw [hhse]; exact hmc
-  have hf3 : 3 * lv.foldsOff < u128Bound := lt_of_le_of_lt (by omega) hF.r3
+  have hf3 : 2 * lv.foldsOff < u128Bound := lt_of_le_of_lt (by omega) hF.r3
   obtain ⟨hqC, hmq, hqe⟩ := osQueries_sound hmh hF.cap4 hf3 hF.hs8 hF.posOff hF.qu hoQ
   obtain ⟨hn1, hargs, hrets⟩ := osQCallOf_val hmh hF.cap4 hf3 hF.hs8 hF.posOff hF.qu hoQ
   -- the glue
@@ -190,7 +189,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hm' : MeaningOpeningQueriesW sh rd wsq [args.getD 0 0, args.getD 1 0, args.getD 2 0,
       args.getD 3 0, args.getD 4 0, args.getD 5 0, args.getD 6 0, args.getD 7 0]
       [σ (.n q.2.batched)] := hsw
-  obtain ⟨rounds', hsv, hrl', -, hRA, -, hosl, hopen, hidx, hwq, -, -, -, hret⟩ :=
+  obtain ⟨rounds', hsv, hrl', -, hRA, -, hosl, hopen, hidx, hwq, -, -, hret⟩ :=
     queries_open hm' hcap' hroot hcd2 hcd8 hcdd (N0 := N) (by simp [args, osQArgs, hpairs]) hF.N
       hQN (by have := hF.q0; omega) qs (by rw [hqsl])
       (fun k hk ↦ by rw [hsd]; exact (hpos k hk).2.1)
@@ -200,14 +199,12 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   -- the rounds are the stored ones
   have hrr : rounds' = rounds := rounds_eq (n := lv.folds) hrl (by rw [hrl', hsf])
     (by simpa [args, osQArgs] using hRA) (fun j hj ↦ by
-      obtain ⟨a, b, t⟩ := lc j hj
-      refine ⟨?_, ?_, ?_⟩
-      · rw [loadHolds_mul_gen_pow, show 3 * lv.foldsOff + 3 * j = 3 * (lv.foldsOff + j) by ring]
+      obtain ⟨a, b⟩ := lc j hj
+      refine ⟨?_, ?_⟩
+      · rw [loadHolds_mul_gen_pow, show 2 * lv.foldsOff + 2 * j = 2 * (lv.foldsOff + j) by ring]
         exact a
-      · rw [loadHolds_mul_gen_pow, show 3 * lv.foldsOff + (3 * j + 1) = 3 * (lv.foldsOff + j) + 1 by ring]
-        exact b
-      · rw [loadHolds_mul_gen_pow, show 3 * lv.foldsOff + (3 * j + 2) = 3 * (lv.foldsOff + j) + 2 by ring]
-        exact t)
+      · rw [loadHolds_mul_gen_pow, show 2 * lv.foldsOff + (2 * j + 1) = 2 * (lv.foldsOff + j) + 1 by ring]
+        exact b)
   subst hrr
   have hbat : σ (.n q.2.batched) = oqChain sh.odd sh.base (args.getD 2 0)
       (fun k ↦ qwFold sh.base rounds' (wsq.getD k default)) N := by
@@ -215,10 +212,10 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     simpa using this
   -- the Spec's level
   set os := wsq.map (toOpening rd (args.getD 0 0) sh.cd sh.depth) with hos
-  set ws1 : WhirState := { ws with claim := σ (.n f.2.claim) + gs.prod * D, gammas := ws.gammas ++ gs }
+  set ws1 : WhirState := { ws with claim := σ (.n f.2.claim) + gs.prod * D, alphas := ws.alphas ++ gs }
     with hws1
-  have hg1 : ws1.gammas.length = lv.foldsOff + lv.folds := by simp [ws1, hin.glen, hgl]
-  have hmu : logN - ws1.gammas.length = lv.logCols := by rw [hg1]; exact hF.cols
+  have hg1 : ws1.alphas.length = lv.foldsOff + lv.folds := by simp [ws1, hin.glen, hgl]
+  have hmu : logN - ws1.alphas.length = lv.logCols := by rw [hg1]; exact hF.cols
   set F3 : Fs := ((⟨capOf S', []⟩ : Fs).squeezeN (sqCount P lv.queries - 1)).2 with hF3
   have hsqF : sq.2.F σ = F3 := by rw [hSq.F, hF.sq]
   have hpow2 : powOk batchGrind (Keccak.lane (F3.nonceState n2) 2) = true := by
@@ -272,9 +269,9 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hB := levelBatched_eq lv.logCols lvl rounds' high qs (os.map (·.leaf)) hwlen lam
   rw [hfoldsum] at hB
   -- the claim
-  have hclaim : ws'.claim = σ (.n g.2.claim) + recsDeficit (recs ++ [r]) (ws.gammas ++ gs) := by
+  have hclaim : ws'.claim = σ (.n g.2.claim) + recsDeficit (recs ++ [r]) (ws.alphas ++ gs) := by
     rw [hws', glueLevel_two, hB, recsDeficit_snoc _ _ _ (by simp [r, hin.glen, hgl]),
-      recsDeficit_append_gammas _ _ _ hin.recF, hcl]
+      recsDeficit_append_alphas _ _ _ hin.recF, hcl]
     have e1 : σ (.n q.2.lam) = lam := by rw [eql, hlam]
     have e2 : σ (.n (q.2.ys.getD 0 0)) = y0 := by rw [eqys]; exact hC.ys.2.1
     have e3 : σ (.n (q.2.ys.getD 1 0)) = y1 := by rw [eqys]; exact hC.ys.2.2
@@ -314,10 +311,10 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     · simp [ws', glueLevel_two, ws1, hin.glen, hgl, hF.off']
     · intro j hj
       simp only [ws', glueLevel_two, ws1] at hj ⊢
-      by_cases hj0 : j < ws.gammas.length
+      by_cases hj0 : j < ws.alphas.length
       · rw [List.getElem_append_left hj0]; exact hin.fch j hj0
       · rw [List.getElem_append_right (by omega)]
-        have := lg (j - ws.gammas.length) (by simp at hj; omega)
+        have := lg (j - ws.alphas.length) (by simp at hj; omega)
         rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at hj; omega),
           Option.getD_some, ← hin.glen, Nat.add_sub_cancel' (by omega)] at this
         exact this

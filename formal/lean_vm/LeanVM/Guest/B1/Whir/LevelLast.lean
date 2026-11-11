@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Fs.TailRound
 public import LeanVM.Guest.B1.Opening.NovelEval
 
 /-!
-# The final level and the closing rounds, soundly (G:1576-1754)
+# The final level and the closing rounds, soundly (G:1567-1745)
 
 * `osTailRounds_sound`, `osTail_sound`: the closing rounds (`opening_tail_round` calls) run
   `tailRun` over their words, the challenges stored in `tail_challenges`.
@@ -35,7 +35,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The closing rounds -/
 
-/-- **One `opening_tail_round` call** (G:1748-1750), its challenge stored at `tch·g^j`. -/
+/-- **One `opening_tail_round` call** (G:1739-1741), its challenge stored at `tch·g^j`. -/
 theorem osTailRound_sound (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r)
     {tch j : ℕ} {s : OsSt} (hfs : s.fs.length = 5) (hco : s.co < u128Bound)
     (hok : AllOk C rd σ (osTailRound tch j s).1) :
@@ -112,7 +112,7 @@ theorem osTailRounds_sound (hT : ∀ a r, C "opening_tail_round" a r → Meaning
     · simp [tailRun, hTl]
     · rw [hcur, hcur0, mul_assoc, ← pow_add]; ring_nf
 
-/-- **The closing rounds** (G:1746-1754) into `tail_challenges` at `tch`. -/
+/-- **The closing rounds** (G:1737-1745) into `tail_challenges` at `tch`. -/
 theorem osTail_sound (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r)
     {c : OsCfg} {s : OsSt} (hfs : s.fs.length = 5) (hco : s.co < u128Bound)
     (hok : AllOk C rd σ (osTail c s).1) :
@@ -154,7 +154,7 @@ structure FinFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level : Whir.Level)
   sq1 : 1 ≤ lv.squeezes
   sqo : lv.squeezes < ordG
   sq5 : lv.squeezes * 5 < u128Bound
-  r3 : 3 * (lv.foldsOff + lv.folds) < u128Bound
+  r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
   cap4 : 4 * lv.capOff < u128Bound
   hs8 : lvl * hsStride < u128Bound
   N : lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG
@@ -205,11 +205,11 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         [osLevelW rd V lvl lv (osQCallOf c lvl lv (osPreQ c lvl lv st)).1
           ((osQCallOf c lvl lv (osPreQ c lvl lv st)).2.1.map σ)
           ((osQCallOf c lvl lv (osPreQ c lvl lv st)).2.2.map σ)] R
-        ⟨((ws.gammas ++ gs) ++ T).drop lane ++ ((ws.gammas ++ gs) ++ T).take lane,
-          ws.glued.foldl (fun w g ↦ w + g.scalar * g.weightAt (((ws.gammas ++ gs) ++ T).drop g.foldStart)) 0,
+        ⟨((ws.alphas ++ gs) ++ T).drop lane ++ ((ws.alphas ++ gs) ++ T).take lane,
+          ws.glued.foldl (fun w g ↦ w + g.scalar * g.weightAt (((ws.alphas ++ gs) ++ T).drop g.foldStart)) 0,
           multilinearEval (fold.take c.yrLen) T,
           σ (.n (osTail c (osLevel c lvl lv st).2).2.1.claim) +
-            T.prod * (gs.prod * recsDeficit recs ws.gammas)⟩
+            T.prod * (gs.prod * recsDeficit recs ws.alphas)⟩
         ((osTail c (osLevel c lvl lv st).2).2.1.F σ) R ∧
       ReadsAt rd (σ (.n osFmsg)) fold ∧
       ReadsAt rd (σ (.n (osTail c (osLevel c lvl lv st).2).2.2)) T ∧
@@ -242,7 +242,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   set q := osQueries c lvl lv h.2 with hq
   simp only [allOk_append] at hok
   obtain ⟨⟨⟨⟨⟨⟨hoF, hoM⟩, hoG⟩, hoS⟩, hoC⟩, hoH⟩, hoQ⟩ := hok
-  set D := recsDeficit recs ws.gammas with hD
+  set D := recsDeficit recs ws.alphas with hD
   -- the folds
   obtain ⟨xs0, gs, rounds, hx0, hgl, hrl, hrd0, hrun0, hcur0, hfs0, hm0, hco0, hpad0, lg, lc⟩ :=
     osRounds_sound hcal.round hwt c.plan lv.folds lv.foldsOff st ws D hin.fs hin.mats hin.co hF.r3
@@ -261,7 +261,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   obtain ⟨r0, r1, hcapM, lr0, lr1, hmc, hcpe⟩ := osCap_sound hcal.cap hSq.mats hF.cap4 hoC
   obtain ⟨hhs, hhse⟩ := osHsFinal_sound hoH
   have hmh : MatsOk σ h.2.mats := by rw [hhse]; exact hmc
-  have hf3 : 3 * lv.foldsOff < u128Bound := lt_of_le_of_lt (by omega) hF.r3
+  have hf3 : 2 * lv.foldsOff < u128Bound := lt_of_le_of_lt (by omega) hF.r3
   obtain ⟨hqC, -, hqe⟩ := osQueries_sound hmh hF.cap4 hf3 hF.hs8 hF.posOff hF.qu hoQ
   obtain ⟨hn1, hargs, hrets⟩ := osQCallOf_val hmh hF.cap4 hf3 hF.hs8 hF.posOff hF.qu hoQ
   have eq_q : q.2.fs = sq.2.fs ∧ q.2.cb = sq.2.cb ∧ q.2.co = sq.2.co ∧ q.2.claim = f.2.claim := by
@@ -306,7 +306,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hm' : MeaningOpeningQueriesW sh rd wsq [args.getD 0 0, args.getD 1 0, args.getD 2 0,
       args.getD 3 0, args.getD 4 0, args.getD 5 0, args.getD 6 0, args.getD 7 0]
       [σ (.n q.2.batched)] := hsw
-  obtain ⟨rounds', hsv, hrl', hsvl, hRA, hWA, hosl, hopen, hidx, hwq, -, hfinal, -, -⟩ :=
+  obtain ⟨rounds', hsv, hrl', hsvl, hRA, hWA, hosl, hopen, hidx, hwq, hfinal, -, -⟩ :=
     queries_open hm' hcap' hroot hcd2 hcd8 hcdd (N0 := N) (by simp [args, osQArgs, hpairs]) hF.N
       hQN (by have := hF.q0; omega) qs (by rw [hqsl])
       (fun k hk ↦ by rw [hsd]; exact (hpos k hk).2.1)
@@ -315,14 +315,12 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         exact ⟨bp, by simpa [args, osQArgs] using hbp, by rw [hsd, hscd]; exact hfr⟩)
   have hrr : rounds' = rounds := rounds_eq (n := lv.folds) hrl (by rw [hrl', hsf])
     (by simpa [args, osQArgs] using hRA) (fun j hj ↦ by
-      obtain ⟨a, b, t⟩ := lc j hj
-      refine ⟨?_, ?_, ?_⟩
-      · rw [loadHolds_mul_gen_pow, show 3 * lv.foldsOff + 3 * j = 3 * (lv.foldsOff + j) by ring]
+      obtain ⟨a, b⟩ := lc j hj
+      refine ⟨?_, ?_⟩
+      · rw [loadHolds_mul_gen_pow, show 2 * lv.foldsOff + 2 * j = 2 * (lv.foldsOff + j) by ring]
         exact a
-      · rw [loadHolds_mul_gen_pow, show 3 * lv.foldsOff + (3 * j + 1) = 3 * (lv.foldsOff + j) + 1 by ring]
-        exact b
-      · rw [loadHolds_mul_gen_pow, show 3 * lv.foldsOff + (3 * j + 2) = 3 * (lv.foldsOff + j) + 2 by ring]
-        exact t)
+      · rw [loadHolds_mul_gen_pow, show 2 * lv.foldsOff + (2 * j + 1) = 2 * (lv.foldsOff + j) + 1 by ring]
+        exact b)
   subst hrr
   -- the normalized lane
   have hfl : fold.length = c.yrLen + lv.folds := hM.len
@@ -352,9 +350,9 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   -- the Spec's level
   set os := wsq.map (toOpening rd (args.getD 0 0) sh.cd sh.depth) with hos
   set ws1 : WhirState :=
-    { ws with claim := σ (.n f.2.claim) + gs.prod * D, gammas := ws.gammas ++ gs } with hws1
-  have hg1 : ws1.gammas.length = lv.foldsOff + lv.folds := by simp [ws1, hin.glen, hgl]
-  have hmu : logN - ws1.gammas.length = c.yrLog := by rw [hg1]; exact hF.cols
+    { ws with claim := σ (.n f.2.claim) + gs.prod * D, alphas := ws.alphas ++ gs } with hws1
+  have hg1 : ws1.alphas.length = lv.foldsOff + lv.folds := by simp [ws1, hin.glen, hgl]
+  have hmu : logN - ws1.alphas.length = c.yrLog := by rw [hg1]; exact hF.cols
   set F3 : Fs := ((⟨capOf S', []⟩ : Fs).squeezeN (sqCount P lv.queries - 1)).2 with hF3
   have hsqF : sq.2.F σ = F3 := by rw [hSq.F, hF.sq]
   have hqF3 : (q.2.F σ).cap = F3.cap := by rw [hqF, hsqF]

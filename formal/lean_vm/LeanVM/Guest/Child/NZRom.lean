@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Rom.Sharp
-public import LeanVM.Guest.Child.CombinerBound
+public import LeanVM.Guest.Child.Refusing
 public import LeanVM.Protocol.EndToEnd.Complete.Rom
 public import LeanVM.Protocol.EndToEnd.Complete.Theorem
 public import LeanVM.Protocol.Verifier.Cost
@@ -20,7 +20,7 @@ public import LeanVM.Protocol.Verifier.Cost
 `romChild_at`: `Rom.romCompleteSharp` at leanVM's program and seed, the refusing program
 (`Limits.refusingZeroProgram`, the statement's `verifierRefusingZero`) refining the verifier
 program, the honest strategy winning every interactive run; the ideal failure probability of the
-refusing program is at most `(2048 + leanVmCost / 4) · |E|⁻¹`
+refusing program is at most `(leanVmCost / 4) · |E|⁻¹`
 (`failFrom_refusingZeroProgram_le`).
 -/
 
@@ -43,10 +43,10 @@ theorem epsE_eq : epsE = (2 : ℝ≥0∞)⁻¹ ^ 128 := by
   rw [h, Nat.cast_pow, Nat.cast_ofNat, ENNReal.inv_pow]
 
 /-- **The completeness error of the statement's refusing verifier** against the random oracles:
-its ideal failure (`|E|⁻¹` per sample and per round and query of the opening), a proof of work's
+its ideal failure (`|E|⁻¹` per sample), a proof of work's
 miss per quarter of the cost, and a capacity collision among the queries. -/
 noncomputable def childCompletenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (2048 + ((leanVmCost / 4 : ℕ) : ℝ≥0∞)) * epsE + (leanVmCost : ℝ≥0∞) * missProb 25 ^ fuel +
+  ((leanVmCost / 4 : ℕ) : ℝ≥0∞) * epsE + (leanVmCost : ℝ≥0∞) * missProb 25 ^ fuel +
     (EndToEnd.Complete.completenessQueries fuel : ℝ≥0∞) *
       ((EndToEnd.Complete.completenessQueries fuel : ℝ≥0∞) * 2⁻¹ ^ 256)
 

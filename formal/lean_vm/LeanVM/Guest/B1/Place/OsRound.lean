@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.OsRound
 
-  `opening_round` complete placed on its regions: a flat body whose two callees are
+  `opening_round` complete placed on its regions: a flat body whose one callee is
   `grind_check__L9`, placed by its own form.
 -/
 
@@ -16,10 +16,10 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 
 `osRoundRegD_holds`: on memories defined below `2^κ`, `11 ≤ κ`, `opening_round` is
 `OsRoundRegD`. Its body is flat (`completeAt_flatD`), with no buffer; the words at the cursor are
-the caller's (`RegPtrs roundSpec`), so every memory holding them reads the same seven words and the
-honest values (`Whir.rdVals`) are one valuation; its two callees are `grind_check__L9` on the
-nonces' permutations' cell `1`, which pass (`Whir.round_complete`), placed by
-`grind_check_completeD`; its loads are the cursor's words and the three stores, the spec's.
+the caller's (`RegPtrs roundSpec`), so every memory holding them reads the same six words and the
+honest values (`Whir.rdVals`) are one valuation; its callee is `grind_check__L9` on the nonce's
+permutation's cell `1`, which passes (`Whir.round_complete`), placed by `grind_check_completeD`;
+its loads are the cursor's words and the three stores, the spec's.
 -/
 
 namespace LeanVM.Guest.B1
@@ -55,7 +55,7 @@ theorem roundPre_disp (σ : Val) : ∀ s ∈ roundPre, DispOk σ s := by
   cases s <;> simp_all [DispOk]
 
 theorem roundPre_calls (σ : Val) : roundPre.filterMap (Stmt.callSF σ) =
-    [(none, "grind_check__L9", [.n 24, .n 7], []), (none, "grind_check__L9", [.n 69, .n 7], [])] :=
+    [(none, "grind_check__L9", [.n 52, .n 7], [])] :=
   rfl
 
 /-- A statement other than a branch. -/
@@ -76,25 +76,25 @@ theorem flatMap_loadsEv_noIte (σ : Val) : ∀ l : List Stmt, l.all Stmt.noIte =
 theorem roundPre_noIte : roundPre.all Stmt.noIte = true := by decide +kernel
 
 theorem roundPre_loadsS : roundPre.filterMap Stmt.loadS =
-    [(.n 5, 0), (.n 5, 1), (.n 5, 2), (.n 5, 3), (.n 5, 4), (.n 5, 5), (.n 5, 6), (.n 8, 0),
-      (.n 9, 0), (.n 9, 1), (.n 9, 2)] := by
+    [(.n 5, 0), (.n 5, 1), (.n 5, 2), (.n 5, 3), (.n 5, 4), (.n 5, 5), (.n 8, 0), (.n 9, 0),
+      (.n 9, 1)] := by
   decide +kernel
 
 theorem roundPre_loads (σ : Val) : roundPre.flatMap (loadsEv σ) =
-    [(.n 5, 0), (.n 5, 1), (.n 5, 2), (.n 5, 3), (.n 5, 4), (.n 5, 5), (.n 5, 6), (.n 8, 0),
-      (.n 9, 0), (.n 9, 1), (.n 9, 2)] := by
+    [(.n 5, 0), (.n 5, 1), (.n 5, 2), (.n 5, 3), (.n 5, 4), (.n 5, 5), (.n 8, 0), (.n 9, 0),
+      (.n 9, 1)] := by
   rw [flatMap_loadsEv_noIte σ _ roundPre_noIte, roundPre_loadsS]
 
-theorem roundBody_eq : Whir.roundBody = roundPre ++ [.ret [.n 121, .n 122, .n 123, .n 124, .n 125,
-    .n 128, .n 131]] := Whir.roundBody_split
+theorem roundBody_eq : Whir.roundBody = roundPre ++ [.ret [.n 88, .n 89, .n 90, .n 91, .n 92,
+    .n 95, .n 98]] := Whir.roundBody_split
 
-/-- The cursor's seven words, read through the caller's words. -/
+/-- The cursor's six words, read through the caller's words. -/
 theorem round_words {args : List E} {Lin : Layout} (hreg : RegPtrs roundSpec args (RegionL Lin))
-    {rd rd' : Reader} (hL : MemL rd Lin) (hL' : MemL rd' Lin) {xs xs' : List E} (hx : xs.length = 7)
-    (hx' : xs'.length = 7) (h : ReadsAt rd (args.getD 5 0) xs) (h' : ReadsAt rd' (args.getD 5 0) xs') :
+    {rd rd' : Reader} (hL : MemL rd Lin) (hL' : MemL rd' Lin) {xs xs' : List E} (hx : xs.length = 6)
+    (hx' : xs'.length = 6) (h : ReadsAt rd (args.getD 5 0) xs) (h' : ReadsAt rd' (args.getD 5 0) xs') :
     xs = xs' := by
   refine List.ext_getElem (by rw [hx, hx']) fun t h1 h2 ↦ ?_
-  obtain ⟨i, hi, hr⟩ := hreg (5, 7) (by simp [roundSpec]) t (by omega)
+  obtain ⟨i, hi, hr⟩ := hreg (5, 6) (by simp [roundSpec]) t (by omega)
   have a := (h t h1).2
   have b := (h' t h2).2
   rw [hi] at a b
@@ -114,7 +114,7 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
       fun rd hl hL ↦ absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
   obtain ⟨rd0, hl0, hL0⟩ := hex
   obtain ⟨hm0, -⟩ := hpre rd0 hl0 hL0
-  obtain ⟨xs, hxl, hrd0, p1, p2, -, -⟩ := Whir.round_complete (C := fun _ _ _ ↦ True) hm0
+  obtain ⟨xs, hxl, hrd0, p2, -, -⟩ := Whir.round_complete (C := fun _ _ _ ↦ True) hm0
     (fun _ _ ↦ trivial)
   have h9 : (9 : ℕ) ∈ grindBitsDeployed := by decide
   have hname : grindCheckName 9 = "grind_check__L9" := rfl
@@ -124,7 +124,7 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
         (fun rs ↦ rs = rets) := by
     intro rd hl hL
     obtain ⟨hm, -⟩ := hpre rd hl hL
-    obtain ⟨xs', hxl', hrd', -, -, -, hh⟩ := Whir.round_complete (C := coreProgram.Rel rd) hm
+    obtain ⟨xs', hxl', hrd', -, -, hh⟩ := Whir.round_complete (C := coreProgram.Rel rd) hm
       (fun w hw ↦ by
         have := grind_relAtIn (fs := fs) (cert := cert) h9 hκ (args := [w, args.getD 7 0]) (rets := [])
           (Lin := Lin) (fun rd' hl' hL' ↦ ⟨rfl, w, args.getD 7 0, rfl, (hpre rd' hl' hL').2, hw⟩)
@@ -136,22 +136,19 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
     refine completeAt_flatD Whir.find_opening_round round_not_loop κ Lin args rets
       (pre := roundPre) (by rw [Whir.core7_body]; exact roundBody_eq) roundPre_flat roundPre_addrs []
       (fun _ ↦ []) (fun _ ↦ List.Forall₂.nil)
-      (fun _ ↦ [⟨"grind_check__L9", true, [Whir.rdCell (Whir.rdS1 args xs) 1, args.getD 7 0], Lin,
-        Returns []⟩, ⟨"grind_check__L9", true, [Whir.rdCell (Whir.rdS3 args xs) 1, args.getD 7 0], Lin,
+      (fun _ ↦ [⟨"grind_check__L9", true, [Whir.rdCell (Whir.rdS3 args xs) 1, args.getD 7 0], Lin,
         Returns []⟩]) ?_ ?_ ?_ ?_
     · intro fp k hk _
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
-      rcases hk with rfl | rfl
-      · exact (grind_check_completeD h9 hκ) _ _ Lin fun rd hl hL ↦
-          ⟨rfl, _, _, rfl, (hpre rd hl hL).2, p1⟩
-      · exact (grind_check_completeD h9 hκ) _ _ Lin fun rd hl hL ↦
-          ⟨rfl, _, _, rfl, (hpre rd hl hL).2, p2⟩
+      subst hk
+      exact (grind_check_completeD h9 hκ) _ _ Lin fun rd hl hL ↦
+        ⟨rfl, _, _, rfl, (hpre rd hl hL).2, p2⟩
     · intro fp k hk _ i hi
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
-      rcases hk with rfl | rfl <;> exact Or.inl hi
+      subst hk; exact Or.inl hi
     · intro fp rd _ hL k hk
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
-      rcases hk with rfl | rfl <;> exact hL
+      subst hk; exact hL
     · intro fp outs ho rd hl _ hL
       refine ⟨fun v ↦ Whir.rdVals args xs v.idx, ?_, roundPre_disp _, ?_, by rw [roundPre_allocs]; rfl,
         by rw [roundPre_allocs]; rfl, ?_, ?_⟩
@@ -162,24 +159,21 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
       · rw [Whir.core7_body]; exact hall rd hl hL
       · rw [roundPre_calls]
         match outs, ho with
-        | [o1, o2], ho =>
-          obtain ⟨h1, h2, -⟩ := ho
+        | [o1], ho =>
+          obtain ⟨h1, -⟩ := ho
           obtain ⟨e1, -⟩ := h1 rfl
-          obtain ⟨e2, -⟩ := h2 rfl
-          refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
-          · simp [Main.mkCall, Whir.rdVals_24, Whir.rdVals_7]
+          refine ⟨rfl, rfl, fun _ ↦ ⟨?_, ?_⟩, trivial⟩
+          · simp [Main.mkCall, Whir.rdVals_52, Whir.rdVals_7]
           · simp [Main.mkCall, e1]
-          · simp [Main.mkCall, Whir.rdVals_69, Whir.rdVals_7]
-          · simp [Main.mkCall, e2]
       · rw [roundPre_loads]
         intro q hq
         have hv : ∀ j < 10, Whir.rdVals args xs j = args.getD j 0 := fun j hj ↦ by
           simp [Whir.rdVals, hj]
         simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
-        have r5 := hreg (5, 7) (by simp [roundSpec])
+        have r5 := hreg (5, 6) (by simp [roundSpec])
         have r8 := hreg (8, 1) (by simp [roundSpec])
-        have r9 := hreg (9, 3) (by simp [roundSpec])
-        rcases hq with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+        have r9 := hreg (9, 2) (by simp [roundSpec])
+        rcases hq with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
           simp only [hv 5 (by decide), hv 8 (by decide), hv 9 (by decide)]
         · obtain ⟨i, h, r⟩ := r5 0 (by decide); exact ⟨i, h, Or.inl r⟩
         · obtain ⟨i, h, r⟩ := r5 1 (by decide); exact ⟨i, h, Or.inl r⟩
@@ -187,11 +181,9 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
         · obtain ⟨i, h, r⟩ := r5 3 (by decide); exact ⟨i, h, Or.inl r⟩
         · obtain ⟨i, h, r⟩ := r5 4 (by decide); exact ⟨i, h, Or.inl r⟩
         · obtain ⟨i, h, r⟩ := r5 5 (by decide); exact ⟨i, h, Or.inl r⟩
-        · obtain ⟨i, h, r⟩ := r5 6 (by decide); exact ⟨i, h, Or.inl r⟩
         · obtain ⟨i, h, r⟩ := r8 0 (by decide); exact ⟨i, h, Or.inl r⟩
         · obtain ⟨i, h, r⟩ := r9 0 (by decide); exact ⟨i, h, Or.inl r⟩
         · obtain ⟨i, h, r⟩ := r9 1 (by decide); exact ⟨i, h, Or.inl r⟩
-        · obtain ⟨i, h, r⟩ := r9 2 (by decide); exact ⟨i, h, Or.inl r⟩
   exact hcom
 
 end

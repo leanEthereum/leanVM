@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.CLvMsg
 public import LeanVM.Guest.B1.Whir.CAtoms
 
 /-!
-# A non-final level's message, honestly (G:1586-1612)
+# A non-final level's message, honestly (G:1577-1603)
 
 `osCommit_complete`: `sent` allocated at a given pointer; `opening_message` reads the next root's
 two cells and the high part (`omRets`, no nonce), the root stored in `sent` and `level_roots`; the
@@ -68,7 +68,7 @@ theorem commitS_eq (cp : List E) (y0 y1 nq : E) :
   rw [absorbAll_short _ _ _ (by simp)]
   simp [Fs.nonceState, Fs.absorb, rateScalars]
 
-/-- **A non-final level's message, honestly** (G:1586-1612). -/
+/-- **A non-final level's message, honestly** (G:1577-1603). -/
 theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (x0 x1 : E) (high : List E) (y0 y1 nq pS : E)
     (hoff : (oodSamples * (lvl + 1) + 1) * ligColsCap < u128Bound)

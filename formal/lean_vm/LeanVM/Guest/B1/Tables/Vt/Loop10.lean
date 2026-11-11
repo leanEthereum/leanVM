@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.ZcCert
 public import LeanVM.Guest.B1.Sumcheck.Round4
 
 /-!
-# The table sumcheck's rounds (`__loop9`, G:2396-2406)
+# The table sumcheck's rounds (`__loop9`, G:2387-2397)
 
 `__loop9(x, g^n, rounds, tabs, chi, g^n, cprod)` at `x = g^j`: the record `rounds·x^7` (capacity
 cells `0 .. 4`, cursor `5`, claim `6`) runs `sumcheck_round4`, whose cursor and claim go to the next

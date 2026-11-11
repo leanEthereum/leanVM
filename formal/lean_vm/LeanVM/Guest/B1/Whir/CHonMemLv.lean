@@ -285,25 +285,20 @@ theorem fch_load (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {i : ℕ} (hi
   rwa [ownW_fch, fchC] at a
 
 theorem coefs_load (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) {i : ℕ} (hi : i < h.c.nFolds) :
-    LoadHolds rd (osPtrF h.c b 5) (3 * i) (h.allRounds.getD i ⟨0, 0, 0⟩).alpha ∧
-      LoadHolds rd (osPtrF h.c b 5) (3 * i + 1) (h.allRounds.getD i ⟨0, 0, 0⟩).beta ∧
-      LoadHolds rd (osPtrF h.c b 5) (3 * i + 2) (h.allRounds.getD i ⟨0, 0, 0⟩).theta := by
+    LoadHolds rd (osPtrF h.c b 5) (2 * i) (h.allRounds.getD i ⟨0, 0⟩).alpha ∧
+      LoadHolds rd (osPtrF h.c b 5) (2 * i + 1) (h.allRounds.getD i ⟨0, 0⟩).beta := by
   have h5 := hS.head (j := 5) (by omega)
   simp only [headSizes, List.getD_cons_succ, List.getD_cons_zero] at h5
-  have a t := h.load hm (hS.headLt (j := 5) (by omega)) (by unfold osIxQbp; omega) (e := 3 * i + t)
+  have a t := h.load hm (hS.headLt (j := 5) (by omega)) (by unfold osIxQbp; omega) (e := 2 * i + t)
   have a0 := a 0 (by rw [h5]; omega)
   have a1 := a 1 (by rw [h5]; omega)
-  have a2 := a 2 (by rw [h5]; omega)
-  rw [ownW_coefs, coefsC, getD_mapRange _ (by omega)] at a0 a1 a2
-  have d0 : (3 * i + 0) / 3 = i := by omega
-  have d1 : (3 * i + 1) / 3 = i := by omega
-  have d2 : (3 * i + 2) / 3 = i := by omega
-  have m0 : (3 * i + 0) % 3 = 0 := by omega
-  have m1 : (3 * i + 1) % 3 = 1 := by omega
-  have m2 : (3 * i + 2) % 3 = 2 := by omega
-  simp only [d0, d1, d2, m0, m1, m2, ↓reduceIte, one_ne_zero, show (2 : ℕ) ≠ 0 by omega,
-    show (2 : ℕ) ≠ 1 by omega] at a0 a1 a2
-  exact ⟨a0, a1, a2⟩
+  rw [ownW_coefs, coefsC, getD_mapRange _ (by omega)] at a0 a1
+  have d0 : (2 * i + 0) / 2 = i := by omega
+  have d1 : (2 * i + 1) / 2 = i := by omega
+  have m0 : (2 * i + 0) % 2 = 0 := by omega
+  have m1 : (2 * i + 1) % 2 = 1 := by omega
+  simp only [d0, d1, m0, m1, ↓reduceIte, one_ne_zero] at a0 a1
+  exact ⟨a0, a1⟩
 
 /-- A flattened list read at a level's offset. -/
 theorem flatMap_getD {α β : Type} (f : α → List β) (d : β) [Inhabited α] :
@@ -327,7 +322,7 @@ theorem flatMap_getD {α β : Type} (f : α → List β) (d : β) [Inhabited α]
 theorem allRounds_getD (hS : HonStatic h.c) (hL : h.Ls.length = h.c.levels.length)
     (hrl : ∀ i < h.c.levels.length, (h.L i).rounds.length = (osLvAt h.c i).folds)
     {l j : ℕ} (hl : l < h.c.levels.length) (hj : j < (osLvAt h.c l).folds) :
-    h.allRounds.getD ((osLvAt h.c l).foldsOff + j) ⟨0, 0, 0⟩ = (h.L l).rounds.getD j ⟨0, 0, 0⟩ := by
+    h.allRounds.getD ((osLvAt h.c l).foldsOff + j) ⟨0, 0⟩ = (h.L l).rounds.getD j ⟨0, 0⟩ := by
   have hoff : ∀ l ≤ h.c.levels.length, ((h.Ls.take l).map fun a ↦ a.rounds.length).sum =
       if l = 0 then 0 else (osLvAt h.c (l - 1)).foldsOff + (osLvAt h.c (l - 1)).folds := by
     intro l
@@ -353,7 +348,7 @@ theorem allRounds_getD (hS : HonStatic h.c) (hL : h.Ls.length = h.c.levels.lengt
     · simpa using hS.fo0.symm
     · simp only [Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
       rw [hS.fo (l := l) hl]
-  have := flatMap_getD (fun a : LvAt ↦ a.rounds) ⟨0, 0, 0⟩ h.Ls l j (by omega)
+  have := flatMap_getD (fun a : LvAt ↦ a.rounds) ⟨0, 0⟩ h.Ls l j (by omega)
     (by rw [hrl l hl]; exact hj)
   rw [hl'] at this
   exact this
@@ -362,7 +357,7 @@ theorem allRounds_getD (hS : HonStatic h.c) (hL : h.Ls.length = h.c.levels.lengt
 theorem roundsAt_of (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) (hL : h.Ls.length = h.c.levels.length)
     (hrl : ∀ i < h.c.levels.length, (h.L i).rounds.length = (osLvAt h.c i).folds) {l : ℕ}
     (hl : l < h.c.levels.length) :
-    RoundsAt rd (osPtrF h.c b 5 * gen ^ (3 * (osLvAt h.c l).foldsOff)) (h.L l).rounds := by
+    RoundsAt rd (osPtrF h.c b 5 * gen ^ (2 * (osLvAt h.c l).foldsOff)) (h.L l).rounds := by
   intro j hj
   rw [hrl l hl] at hj
   have hT : (osLvAt h.c l).foldsOff + (osLvAt h.c l).folds ≤ h.c.nFolds := by
@@ -381,14 +376,12 @@ theorem roundsAt_of (hS : HonStatic h.c) (hm : OsMemF rd h.c b h.own) (hL : h.Ls
     have := key (h.c.yrLevel - l) (by omega)
     rw [show l + (h.c.yrLevel - l) = h.c.yrLevel by omega, hS.foT] at this
     exact this
-  obtain ⟨a0, a1, a2⟩ := h.coefs_load hS hm (i := (osLvAt h.c l).foldsOff + j) (by omega)
-  rw [h.allRounds_getD hS hL hrl hl hj] at a0 a1 a2
-  refine ⟨?_, ?_, ?_⟩ <;> rw [loadHolds_mul_gen_pow]
-  · rw [show 3 * (osLvAt h.c l).foldsOff + 3 * j = 3 * ((osLvAt h.c l).foldsOff + j) by ring]; exact a0
-  · rw [show 3 * (osLvAt h.c l).foldsOff + (3 * j + 1) = 3 * ((osLvAt h.c l).foldsOff + j) + 1 by ring]
+  obtain ⟨a0, a1⟩ := h.coefs_load hS hm (i := (osLvAt h.c l).foldsOff + j) (by omega)
+  rw [h.allRounds_getD hS hL hrl hl hj] at a0 a1
+  refine ⟨?_, ?_⟩ <;> rw [loadHolds_mul_gen_pow]
+  · rw [show 2 * (osLvAt h.c l).foldsOff + 2 * j = 2 * ((osLvAt h.c l).foldsOff + j) by ring]; exact a0
+  · rw [show 2 * (osLvAt h.c l).foldsOff + (2 * j + 1) = 2 * ((osLvAt h.c l).foldsOff + j) + 1 by ring]
     exact a1
-  · rw [show 3 * (osLvAt h.c l).foldsOff + (3 * j + 2) = 3 * ((osLvAt h.c l).foldsOff + j) + 2 by ring]
-    exact a2
 
 /-! ## The caps -/
 

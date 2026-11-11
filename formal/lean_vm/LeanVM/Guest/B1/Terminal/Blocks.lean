@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.Blocks
 
-  The claims' blocks of `check_opening_terminal` (G:3491-3528): each adds its claim's term to the
+  The claims' blocks of `check_opening_terminal` (G:3482-3519): each adds its claim's term to the
   running sum and multiplies the running power of `λ` by `lam_cl`.
 -/
 

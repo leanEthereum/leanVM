@@ -14,7 +14,7 @@ public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
 public import LeanVM.Guest.AcceptableChild
-public import LeanVM.Guest.Child.Combiner
+public import LeanVM.Guest.Child.Refusing
 
 /-!
 # Refusing a zero challenge anywhere
@@ -140,43 +140,22 @@ theorem refines_refuseZero_mono {P' P : VerifierProgram α} (h : Limits.Refines 
 
 /-! ## The deferring verifier and the verifier -/
 
-theorem verifyDeferredRefusingZeroCombiner_eq_withHash (bytecode : List K)
-    (iv publicInput : Digest) (c : BytecodeClaim) (π : Proof) :
-    Limits.verifyDeferredRefusingZeroCombiner bytecode iv publicInput c π =
-      Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
-        (deferredProgramRZC c bytecode publicInput).refusingZeroChallenge
-        (keccakF1600 (seedInput iv publicInput)) π) := by
-  rw [Limits.verifyDeferredRefusingZeroCombiner, runProof_eq_withHash, keccak256With_keccakF1600]
-  rfl
-
-/-- **The deferring verifier refusing a vanishing combiner too accepts only what the one refusing a
-zero challenge accepts.** -/
-theorem verifyDeferredRefusingZero_of_rzc {bytecode : List K} {iv publicInput : Digest}
-    {c : BytecodeClaim} {π : Proof}
-    (h : Limits.verifyDeferredRefusingZeroCombiner bytecode iv publicInput c π = true) :
-    Limits.verifyDeferredRefusingZero bytecode iv publicInput c π = true := by
-  rw [verifyDeferredRefusingZeroCombiner_eq_withHash] at h
-  rw [Limits.verifyDeferredRefusingZero_eq_withHash]
-  refine Limits.runProof_refines (refines_refuseZero_mono ?_) _ π h
-  exact Limits.Refines.bind (Limits.verifyExecutionRefusingZeroCombiner_refines _ _ _)
-    fun _ ↦ Limits.Refines.refl _
-
-/-- **The statement's refusing deferring verifier accepts only what the guest's accepts.** -/
-theorem verifyDeferredNZ_of_rzc {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
-    {π : Proof} (h : Limits.verifyDeferredRefusingZeroCombiner bytecode iv publicInput c π = true) :
+/-- **The deferring verifier refusing a zero challenge accepts only what the guest's accepts.** -/
+theorem verifyDeferredNZ_of_rz {bytecode : List K} {iv publicInput : Digest} {c : BytecodeClaim}
+    {π : Proof} (h : Limits.verifyDeferredRefusingZero bytecode iv publicInput c π = true) :
     Limits.verifyDeferredNZ bytecode iv publicInput c π = true := by
-  rw [verifyDeferredRefusingZeroCombiner_eq_withHash] at h
+  rw [Limits.verifyDeferredRefusingZero_eq_withHash] at h
   unfold Limits.verifyDeferredNZ
   exact Limits.runProof_refines (refines_refuseZero_of_nz (nz_deferredProgram c bytecode
     publicInput)) _ π h
 
 /-- A child the guest program accepts is accepted by the guest's deferring verifier refusing a
-zero fold, tail or level batching challenge and a vanishing combiner. -/
+zero fold, tail or level batching challenge. -/
 theorem _root_.LeanVM.Guest.Limits.verifyDeferredNZ_of_childOk {bytecode : List K} {seed : Digest}
     {c : Child} (h : AcceptableChild bytecode seed c) :
     Limits.verifyDeferredNZ bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof =
       true :=
-  verifyDeferredNZ_of_rzc h.noZeroCombiner
+  verifyDeferredNZ_of_rz h.noZeroChallenge
 
 /-- **The statement's refusing verifier accepts only what the guest's accepts.** -/
 theorem verifierNZ_of_rz {prog : LeanIsaProgram} {input : PublicInput} {π : Proof}

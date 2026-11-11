@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Lam
 
-  `verify_sub`'s batching challenge and the stacked opening's target (G:3722-3737).
+  `verify_sub`'s batching challenge and the stacked opening's target (G:3713-3728).
 -/
 
 module
@@ -119,7 +119,7 @@ theorem lam_chain {lam : E} {W : ℕ → E}
         add_assoc]
     · rw [show j + (k + 1) = j + 1 + k by omega, e2]
 
-/-- **The batching challenge and the target** (G:3722-3737): `λ` squeezed, and the target
+/-- **The batching challenge and the target** (G:3713-3728): `λ` squeezed, and the target
 `dot (powers λ 137)` of the ring switch's target, the claims kept (not an output lane's), the
 Keccak reduction's word and the out-of-domain value. -/
 theorem vsLamT_holds (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0)

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Squeezes
 
 /-!
-# The batching challenge (G:1641-1650)
+# The batching challenge (G:1632-1641)
 
 `fs_grind_squeeze`: the batching nonce read at the cursor, absorbed with `DS_POW_NONCE` and
 permuted (the zero run's cells for the rest of the rate), the grind checked on the permutation's
@@ -60,7 +60,7 @@ structure LamOut (rd : Reader) (σ : Val) (st st' : OsSt) (n : E) : Prop where
   co : st'.co = st.co + 1
   claim : st'.claim = st.claim
 
-/-- **A non-final level's batching challenge, soundly** (G:1641-1650). -/
+/-- **A non-final level's batching challenge, soundly** (G:1632-1641). -/
 theorem osLam_sound {st : OsSt}
     (hgr : ∀ w, C ("grind_check__L" ++ natStr batchGrind) [w, σ (.n osTabs)] [] →
       (w.limb 0).lane.toNat % 2 ^ batchGrind = 0)

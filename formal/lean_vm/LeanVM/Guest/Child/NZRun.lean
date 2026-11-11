@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.Child.NZRun
 
-  The guest's refusing programs (`Limits.verifyExecutionNZ`) are the statement's
-  combiner-refusing programs (`verifyExecutionRefusingZeroCombiner`) with, after some challenges,
-  a check that the challenge is not zero.
+  The guest's refusing programs (`Limits.verifyExecutionNZ`) are the verifier's programs
+  (`verifyExecution`) with, after some challenges, a check that the challenge is not zero.
 -/
 
 module
@@ -17,8 +16,8 @@ public import LeanVM.Protocol.WithHash
 
 `NZ p' p`: `p'` is `p` with, after some challenges, a check that the challenge is not zero; at a
 nonzero challenge the two continue alike. The guest's program refusing a zero fold, tail or level
-batching challenge and a vanishing combiner is such a `p'` of the statement's program refusing a
-vanishing combiner (`nz_verifyExecution`, `nz_deferredProgram`): both check the combiners alike.
+batching challenge is such a `p'` of the verifier's program (`nz_verifyExecution`,
+`nz_deferredProgram`).
 -/
 
 namespace LeanVM.Guest.Child
@@ -84,7 +83,7 @@ end NZ
 
 theorem nz_foldRound (s : WhirState) : NZ (Limits.foldRoundNZ s) (foldRound s) := by
   unfold Limits.foldRoundNZ foldRound
-  iterate 8 refine NZ.bind (NZ.refl _) fun _ ↦ ?_
+  iterate 6 refine NZ.bind (NZ.refl _) fun _ ↦ ?_
   refine NZ.sample_bind fun c hc ↦ ?_
   exact NZ.require_bind_of hc (NZ.refl _)
 
@@ -121,12 +120,12 @@ local macro "nz_step" : tactic => `(tactic| first
 theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List Whir.Level) :
     ∀ (index : ℕ) (s : WhirState),
       NZ (Limits.whirLevelsNZ logN laneFolds eb index levels s)
-        (whirLevelsRefusingZeroCombiner logN laneFolds eb index levels s) := by
+        (whirLevels logN laneFolds eb index levels s) := by
   induction levels with
   | nil => intro index s; exact NZ.refl _
   | cons level rest ih =>
     intro index s
-    unfold Limits.whirLevelsNZ whirLevelsRefusingZeroCombiner
+    unfold Limits.whirLevelsNZ whirLevels
     apply NZ.bind (nz_foldRounds _ _)
     intro p
     obtain ⟨s', lf⟩ := p
@@ -141,32 +140,27 @@ theorem nz_whirLevels (logN laneFolds : ℕ) (eb : List E → E) (levels : List 
 
 theorem nz_verifyWhir (logN logInvRate : ℕ) (target : E) (eb : List E → E) :
     NZ (Limits.verifyWhirNZ logN logInvRate target eb)
-      (verifyWhirRefusingZeroCombiner logN logInvRate target eb) := by
-  unfold Limits.verifyWhirNZ verifyWhirRefusingZeroCombiner
+      (verifyWhir logN logInvRate target eb) := by
+  unfold Limits.verifyWhirNZ verifyWhir
   repeat (first | exact nz_whirLevels _ _ _ _ _ _ | nz_step)
 
 theorem nz_verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) :
     NZ (Limits.verifyStackedOpeningNZ stackLog logInvRate claims)
-      (verifyStackedOpeningRefusingZeroCombiner stackLog logInvRate claims) := by
-  unfold Limits.verifyStackedOpeningNZ verifyStackedOpeningRefusingZeroCombiner
+      (verifyStackedOpening stackLog logInvRate claims) := by
+  unfold Limits.verifyStackedOpeningNZ verifyStackedOpening
   repeat (first | exact nz_verifyWhir _ _ _ _ | nz_step)
 
-/-- **The guest's refusing verifier refuses zero challenges of the statement's.** -/
+/-- **The guest's refusing verifier refuses zero challenges of the verifier.** -/
 theorem nz_verifyExecution (bv : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
     (publicInput : Digest) :
     NZ (Limits.verifyExecutionNZ bv bytecode publicInput)
-      (verifyExecutionRefusingZeroCombiner bv bytecode publicInput) := by
-  unfold Limits.verifyExecutionNZ verifyExecutionRefusingZeroCombiner
+      (verifyExecution bv bytecode publicInput) := by
+  unfold Limits.verifyExecutionNZ verifyExecution
   repeat (first | with_reducible exact nz_verifyStackedOpening _ _ _ | nz_step)
 
-/-- The statement's deferring program refusing a vanishing combiner. -/
-def deferredProgramRZC (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    VerifierProgram Bool := do
-  verifyExecutionRefusingZeroCombiner (claimedBytecodeValue c) bytecode publicInput
-  return true
-
 theorem nz_deferredProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    NZ (Limits.deferredProgramNZ c bytecode publicInput) (deferredProgramRZC c bytecode publicInput) :=
+    NZ (Limits.deferredProgramNZ c bytecode publicInput)
+      (deferringVerifierProgram c bytecode publicInput) :=
   NZ.bind (nz_verifyExecution _ _ _) fun _ ↦ NZ.refl _
 
 end

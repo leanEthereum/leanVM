@@ -97,7 +97,7 @@ theorem allOk_osPre {c : OsCfg} {ℓ : ℕ} (h : ℓ < c.levels.length) {n : ℕ
 
 /-! ## The materializations -/
 
-theorem osRound_mats {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {s : OsSt} (hb : 3 * i < u128Bound)
+theorem osRound_mats {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {s : OsSt} (hb : 2 * i < u128Bound)
     (hm : MatsOk σ s.mats) (h : AllOk C rd σ (osRound P i s).1) :
     MatsOk σ (osRound P i s).2.mats := by
   unfold osRound at h ⊢
@@ -105,7 +105,7 @@ theorem osRound_mats {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {s : OsSt} (hb : 3
   obtain ⟨⟨⟨-, hf⟩, hc⟩, -⟩ := h
   exact (osMatS_val' hc (osMatS_val' hf hm (by omega)).2 hb).2
 
-theorem osRounds_mats {P : List (ℕ × ℕ × ℕ)} : ∀ (i n : ℕ) (s : OsSt), 3 * (i + n) < u128Bound →
+theorem osRounds_mats {P : List (ℕ × ℕ × ℕ)} : ∀ (i n : ℕ) (s : OsSt), 2 * (i + n) < u128Bound →
     MatsOk σ s.mats → AllOk C rd σ (osRounds P i n s).1 → MatsOk σ (osRounds P i n s).2.mats
   | _, 0, _, _, hm, _ => hm
   | i, n + 1, s, hb, hm, h => by

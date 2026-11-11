@@ -142,7 +142,7 @@ def osQCallAt (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Option V × Strin
   let li : List Stmt × ℕ × OsSt :=
     if fin then ([osCst fl.2.2.k (word 0 0)], fl.2.2.k, { fl.2.2 with k := fl.2.2.k + 1 })
     else ([], s.lamInv, fl.2.2)
-  let cf := osMatS c.plan osCoefs (3 * lv.foldsOff) li.2.2
+  let cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2
   let hp : List Stmt × ℕ × OsSt :=
     if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
   let qp := osMatS c.plan osQpos lv.posOff hp.2.2

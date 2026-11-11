@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Placement.Certify
 
 /-!
-# A certified stacking order (G:1961-1994, G:1962-1987)
+# A certified stacking order (G:1952-1985, G:1953-1978)
 
 `certify_placement` and `verify_tables`' block certification run the same loop: rank `r` names a
 block `π r`, reads its log-size `k r`, checks it against the previous rank's (not larger; on a

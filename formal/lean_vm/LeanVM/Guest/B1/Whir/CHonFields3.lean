@@ -80,7 +80,7 @@ theorem finPt :
         ((Ls.getD (osCfg (candidate μ r)).yrLevel default).dp μ)
         (Ls.getD (osCfg (candidate μ r)).yrLevel default).level.queries := by
     unfold LvAt.F3; rw [hd]
-  have hG : (hdOf μ r Ls).G = (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.gammas := rfl
+  have hG : (hdOf μ r Ls).G = (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas := rfl
   have hT : (hdOf μ r Ls).T = (tailRun W.pairs ((Ls.getD (osCfg (candidate μ r)).yrLevel default).F3 μ).cap
       (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.claim).1 := by
     show (tailRun (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.pairs _ _).1 = _

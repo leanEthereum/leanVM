@@ -25,7 +25,7 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
   G:912-938, whose reconstruction starts at bit `nbits`, G:930-937);
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
   (`g_power_of_word`, G:745-758; `log2_ceil_in_the_exponent`, G:779-794; `column_selector`,
-  G:3181-3208, a nibble at a time),
+  G:3172-3199, a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
   (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
   and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate

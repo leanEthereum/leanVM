@@ -13,9 +13,9 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # `verifyWhir`, split at its terminal
 
-`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1530-1856` at leanVM `afe891a7`)
-runs `verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:222-345`) up to
-its last `require`, the terminal's check, which `check_opening_terminal` makes (G:3460).
+`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1520-1847` at leanVM `914612b6`)
+runs `verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:213-333`) up to
+its last `require`, the terminal's check, which `check_opening_terminal` makes (G:3451).
 
 * `WhirEnd`, `whirLevelsOpen`, `whirOpen`: `whirLevels` and `verifyWhir` without the final
   `require`, returning what the terminal reads (the final level's query checks stay);
@@ -23,7 +23,7 @@ its last `require`, the terminal's check, which `check_opening_terminal` makes (
 * `verifyWhir_split`: `verifyWhir` is `whirOpen`, then `require Accepts`;
 * `stackShape μ r`, `commitStack_eq`: the shape `commitStack` gives the stack's root;
 * `openNames`, `candidate`, `openName`, `pointCap`: the 28 specializations, rate-major
-  (G:3741-3743), and the length of the point buffers (G:1742-1743).
+  (G:3732-3734), and the length of the point buffers (G:1733-1734).
 
 Only the Statement is imported, so the split builds apart from the guest's proofs.
 -/
@@ -54,7 +54,7 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
     let (s, rounds) ← foldRounds level.fold s
-    let mu := logN - s.gammas.length
+    let mu := logN - s.alphas.length
     let depth := mu + level.logInvRate
     let lanesOf : List K → List E := fun row ↦
       if index = 0 then row.reverse.map ofK else extRow row
@@ -68,7 +68,7 @@ def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStat
         foldRow (lanesOf row) (K.ofBits query) rounds =
           novelEval folded (subspaceAt mu (K.ofBits query)))
       let (tail, claim) ← sumcheck s.claim 3 (List.replicate mu none)
-      let point := s.gammas ++ tail
+      let point := s.alphas ++ tail
       let inner := s.glued.foldl
         (fun weight glued ↦ weight + glued.scalar * glued.weightAt (point.drop glued.foldStart)) 0
       return ⟨point.drop laneFolds ++ point.take laneFolds, inner,
@@ -161,14 +161,14 @@ theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List
 def openNames : List String :=
   (List.range 28).map fun m ↦ "open_stacked__L" ++ toString m
 
-/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3741):
+/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3732):
 `(μ - 22) + 7·(r - 1)`. -/
 def candidate (μ r : ℕ) : ℕ := μ - 22 + 7 * (r - 1)
 
 /-- The specialization of `open_stacked` for the stack log `μ` and the rate `r`. -/
 def openName (μ r : ℕ) : String := openNames.getD (candidate μ r) ""
 
-/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1742-1743). -/
+/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1733-1734). -/
 abbrev pointCap : ℕ := 40
 
 end

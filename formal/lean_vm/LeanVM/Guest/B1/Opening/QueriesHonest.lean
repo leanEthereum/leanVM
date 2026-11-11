@@ -22,9 +22,8 @@ list `vals`, piece by piece as `oqQueryT` numbers them:
 * at level 0 the packs `y`, `y·cell`, the leaf cell `pk` (`packVals`);
 * the padding run `1, 0, 0, 0, 0` when emitted;
 * the leaf hash: per block the XORed inputs and the permutation's output (`leafV`);
-* the fold (`foldVals`): round `j`'s `α, β, β·x, t, θ, 1, t⁻¹, r = θ + t⁻¹`, the scale
-  `Π_(i ≤ j) t_i` (`j ≥ 1`), its outputs `r·hi`, `lo + r·hi` (`roundVals`); the value
-  `scale · acc` (`foldVal`);
+* the fold (`foldVals`): round `j`'s `α, β, β·x, t`, its outputs `t·lo`, `hi + t·lo`
+  (`roundVals`); the value the last lane (`foldVal`);
 * at the final level (`finVals`): the point, the chain `W_i` by threes, `novel_eval`'s level `0`
   by fours (`nv0Vals`), its later levels (`nvVals`), the result `0`.
 
@@ -190,18 +189,10 @@ def leaf : Digest := merkleLeafDigest d.row
 /-! ### The fold -/
 
 /-- Round `j`'s challenges. -/
-def rd (j : ℕ) : FoldRound := d.rounds.getD j ⟨0, 0, 0⟩
+def rd (j : ℕ) : FoldRound := d.rounds.getD j ⟨0, 0⟩
 
 /-- Round `j`'s combiner `t = α + β·x`. -/
 def t (j : ℕ) : E := (d.rd j).alpha + (d.rd j).beta * d.x
-
-/-- Round `j`'s fold factor `r = θ + t⁻¹`. -/
-def r (j : ℕ) : E := (d.rd j).theta + (d.t j)⁻¹
-
-/-- The scale after round `j`, `Π_(i ≤ j) t_i`. -/
-def scale : ℕ → E
-  | 0 => d.t 0
-  | j + 1 => scale j * d.t (j + 1)
 
 /-- Round `0`'s lanes `(lo, hi)` for its output `m`: the cells, reversed at level 0. -/
 def lane0 (m : ℕ) : E × E :=
@@ -210,23 +201,22 @@ def lane0 (m : ℕ) : E × E :=
 
 /-- Lane `m` after round `j`. -/
 def acc : ℕ → ℕ → E
-  | 0, m => (d.lane0 m).1 + d.r 0 * (d.lane0 m).2
-  | j + 1, m => acc j (2 * m) + d.r (j + 1) * acc j (2 * m + 1)
+  | 0, m => (d.lane0 m).2 + d.t 0 * (d.lane0 m).1
+  | j + 1, m => acc j (2 * m + 1) + d.t (j + 1) * acc j (2 * m)
 
-/-- The `hi` lane round `j` reads for its output `m`. -/
-def hiV (j m : ℕ) : E := if j = 0 then (d.lane0 m).2 else d.acc (j - 1) (2 * m + 1)
+/-- The `lo` lane round `j` reads for its output `m`. -/
+def loV (j m : ℕ) : E := if j = 0 then (d.lane0 m).1 else d.acc (j - 1) (2 * m)
 
 /-- Round `j`'s values. -/
 def roundVals (j : ℕ) : List E :=
-  [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j, (d.rd j).theta, word 1 0, (d.t j)⁻¹,
-    d.r j] ++ (if j = 0 then [] else [d.scale j]) ++
-  (List.range (2 ^ (d.s.folds - 1 - j))).flatMap fun m ↦ [d.r j * d.hiV j m, d.acc j m]
+  [(d.rd j).alpha, (d.rd j).beta, (d.rd j).beta * d.x, d.t j] ++
+  (List.range (2 ^ (d.s.folds - 1 - j))).flatMap fun m ↦ [d.t j * d.loV j m, d.acc j m]
 
-/-- The fold's value: the scale times the last lane. -/
-def foldVal : E := d.scale (d.s.folds - 1) * d.acc (d.s.folds - 1) 0
+/-- The fold's value: the last lane. -/
+def foldVal : E := d.acc (d.s.folds - 1) 0
 
 /-- The fold's values. -/
-def foldVals : List E := (List.range d.s.folds).flatMap d.roundVals ++ [d.foldVal]
+def foldVals : List E := (List.range d.s.folds).flatMap d.roundVals
 
 /-! ### The final check -/
 
@@ -301,10 +291,10 @@ theorem padVals_length : d.padVals.length = if d.emit then 5 else 0 := by
 theorem leafVals_length : d.leafVals.length = d.s.chainLen := by simp [leafVals]
 
 theorem roundVals_length (j : ℕ) :
-    (d.roundVals j).length = 8 + (if j = 0 then 0 else 1) + 2 * 2 ^ (d.s.folds - 1 - j) := by
+    (d.roundVals j).length = 4 + 2 * 2 ^ (d.s.folds - 1 - j) := by
   unfold roundVals
-  rw [List.length_append, List.length_append, length_flatMap_const _ (c := 2) (fun _ ↦ rfl)]
-  split <;> simp
+  rw [List.length_append, length_flatMap_const _ (c := 2) (fun _ ↦ rfl)]
+  simp
 
 theorem oqRK_eq (F : ℕ) : ∀ j, oqRK d.s F j = F + offOf d.roundVals j
   | 0 => rfl
@@ -312,8 +302,15 @@ theorem oqRK_eq (F : ℕ) : ∀ j, oqRK d.s F j = F + offOf d.roundVals j
     rw [oqRK, oqRK_eq F j, offOf, roundVals_length]
     omega
 
-theorem foldVals_length : d.foldVals.length = offOf d.roundVals d.s.folds + 1 := by
-  simp only [foldVals, List.length_append, length_flatMap_range_of, List.length_singleton]
+theorem foldVals_length : d.foldVals.length = offOf d.roundVals d.s.folds := by
+  simp only [foldVals, length_flatMap_range_of]
+
+/-- The last round takes six values. -/
+theorem offOf_last (hf : 1 ≤ d.s.folds) :
+    offOf d.roundVals d.s.folds = offOf d.roundVals (d.s.folds - 1) + 6 := by
+  conv_lhs => rw [show d.s.folds = d.s.folds - 1 + 1 by omega]
+  rw [offOf, roundVals_length]
+  simp
 
 theorem k1_eq : d.k1 = d.b + d.rowVals.length + d.packVals.length := by
   rw [rowVals_length, packVals_length]; rfl
@@ -324,8 +321,10 @@ theorem kL_eq : d.kL = d.k1 + d.padVals.length := by
 theorem ch_eq : d.ch = d.kL + d.leafVals.length := by
   rw [leafVals_length]; rfl
 
-theorem v_eq : d.v = d.ch + offOf d.roundVals d.s.folds := by
-  rw [v, oqVal, oqRK_eq]
+theorem v_eq (hf : 1 ≤ d.s.folds) : d.v + 1 = d.ch + offOf d.roundVals d.s.folds := by
+  rw [d.offOf_last hf]
+  simp only [v, oqVal, oqAcc, oqRO, oqRK_eq]
+  omega
 
 theorem val_add (o : ℕ) : d.val (d.b + o) = d.vals.getD o 0 := by
   simp [val]
@@ -382,21 +381,20 @@ theorem val_round {j o : ℕ} (hj : j < d.s.folds) (ho : o < (d.roundVals j).len
     d.val (oqRK d.s d.ch j + o) = (d.roundVals j).getD o 0 := by
   have h1 : offOf d.roundVals (j + 1) ≤ offOf d.roundVals d.s.folds := offOf_mono _ hj
   simp only [offOf] at h1
-  rw [oqRK_eq, Nat.add_assoc, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
-    List.getD_append _ _ _ _ (by rw [length_flatMap_range_of]; omega)]
+  rw [oqRK_eq, Nat.add_assoc, val_foldVals _ (by rw [foldVals_length]; omega), foldVals]
   exact getD_flatMap_range_of _ 0 _ _ _ hj ho
 
-theorem val_v : d.val d.v = d.foldVal := by
-  rw [v_eq, val_foldVals _ (by rw [foldVals_length]; omega), foldVals,
-    List.getD_append_right _ _ _ _ (by rw [length_flatMap_range_of]), length_flatMap_range_of,
-    Nat.sub_self]
-  rfl
+theorem val_v (hf1 : 1 ≤ d.s.folds) : d.val d.v = d.foldVal := by
+  have e : d.v = oqRK d.s d.ch (d.s.folds - 1) + 5 := by simp only [v, oqVal, oqAcc, oqRO]
+  rw [e, val_round d (by omega) (by rw [roundVals_length, Nat.sub_self, pow_zero]; omega)]
+  simp [roundVals, foldVal]
 
-theorem val_fin (o : ℕ) : d.val (d.v + 1 + o) = d.finVals.getD o 0 := by
+theorem val_fin (hf1 : 1 ≤ d.s.folds) (o : ℕ) : d.val (d.v + 1 + o) = d.finVals.getD o 0 := by
   have hf := d.foldVals_length
+  have hv := d.v_eq hf1
   have e : d.v + 1 + o = d.b + (d.rowVals.length + (d.packVals.length + (d.padVals.length +
       (d.leafVals.length + (d.foldVals.length + o))))) := by
-    rw [v_eq, ch_off]; omega
+    rw [hv, ch_off]; omega
   rw [e, val_add, vals_eq]
   repeat rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
 
@@ -446,9 +444,10 @@ theorem oqNovel_next (hn : d.s.nHs % 2 = 0) (hlen : d.s.nHs ≤ d.hsv.length) :
   rw [nvLevelsT_next d.W _ _ _ (nvPair (d.W 0) (d.hsv.take d.s.nHs)) _
     (by rw [length_nvPair']; simp; omega)]
 
-theorem e_eq (hn : d.s.final = 1 → d.s.nHs % 2 = 0 ∧ d.s.nHs ≤ d.hsv.length) :
+theorem e_eq (hf1 : 1 ≤ d.s.folds)
+    (hn : d.s.final = 1 → d.s.nHs % 2 = 0 ∧ d.s.nHs ≤ d.hsv.length) :
     d.e = d.b + d.vals.length := by
-  have hv := d.v_eq
+  have hv := d.v_eq hf1
   have hc := d.ch_off
   have hf := d.foldVals_length
   rw [e, oqEnd, oqRes]

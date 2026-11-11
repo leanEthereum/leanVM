@@ -35,7 +35,7 @@ def OsHonestSpec : Prop :=
     ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
       (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-      NoZeroChallenge μ r target S xs os root → NoZeroCombiner μ r target S xs os root →
+      NoZeroChallenge μ r target S xs os root →
       CapsAgree μ r target S xs os root →
       Nonempty (OsHonest (osCfg (candidate μ r))
         (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]) cur tabs xs

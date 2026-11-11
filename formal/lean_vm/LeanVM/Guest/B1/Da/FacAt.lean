@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.FacAt
 
-  `da_factors` placed (G:4443-4451): its `HeapBuf` of node factors, returned, within its frame and
+  `da_factors` placed (G:4434-4442): its `HeapBuf` of node factors, returned, within its frame and
   its buffer, by its evaluated valuation.
 -/
 

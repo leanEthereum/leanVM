@@ -16,7 +16,7 @@ public import Statement.LeanVmGuestCompleteness
 The guest program (`G:N`, lines of `crates/rec_aggregation/guests/lean_ethereum.py` at the pin)
 writes every claim a node makes, its raw signatures' then its children's, into a slot of its
 scheme's region of the coverage table: the declared claims' slots, then duplicate slots
-(G:4234-4240, 4258-4272, 4589-4590, 4594-4595). An honest run takes, for each claim in order, its declared
+(G:4225-4231, 4249-4263, 4580-4581, 4585-4586). An honest run takes, for each claim in order, its declared
 slot if free, else the next duplicate slot (`takeSlot`, `coveragePlan`); the table's slots are
 `planSlots`. `DeployedLimits` states the table's size as the number of claims made
 (`coverageSlots`); `B1/Main/Plan.lean` proves the two equal under it (`planSlots_eq`).
@@ -78,7 +78,7 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
   let (children, slotState) := takeSlotsAll declared slotState children
   ⟨slotState.2, raw, children⟩
 
-/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4530): each
+/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4521): each
 region's declared claims and its duplicates, as `coveragePlan` assigns them. Under
 `DeployedLimits`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
 def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=
@@ -112,7 +112,7 @@ theorem sphincsClaimsHeldWithMultiplicity (limits : DeployedLimits statement wit
   have h := limits.claimsHeldWithMultiplicity.2.count_le x
   simpa [List.count_append, List.count_flatten, Function.comp_def] using h
 
-/-- Every child's signature lists below `2^16` (G:4302-4303): each at most the coverage table's
+/-- Every child's signature lists below `2^16` (G:4293-4294): each at most the coverage table's
 size. -/
 theorem childClaimListsBelow2Pow16 (limits : DeployedLimits statement witness) :
     ∀ child ∈ witness.children,

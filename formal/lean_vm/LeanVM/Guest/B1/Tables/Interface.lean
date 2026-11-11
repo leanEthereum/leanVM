@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
-fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)` (G:2267-2744, `G` the guest
+fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)` (G:2258-2735, `G` the guest
 `crates/rec_aggregation/guests/lean_ethereum.py` and `V` `Statement/LeanVmVerifier.lean`, at the
 commit in `leanvm-rev`) settles the bus against the six tables: it certifies each side's blocks'
 offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
@@ -35,7 +35,7 @@ What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), 
 returned, the point left at `bc_point`: the deferred claim `verify_sub` exports. For every check
 `ev` of the fixed polynomial that accepts that value at that point, the run is the specification's.
 
-* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2233-2265) holds exactly when
+* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2224-2256) holds exactly when
   `rows` is an integer word `n ≤ 2^τ`; it returns `paddingWeight (zeta[..τ]) n` and the two words
   whose `lead = 1 ∧ rest ≠ 0` says `τ = log2Ceil n` (`PadLead`, `PadRest`).
 * `verify_tables_Spec`: under `TablesPre` (what `verify_sub` establishes before the call), the
@@ -67,7 +67,7 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (G:2233-2265; TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** (G:2224-2256; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
   ∀ n < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -226,7 +226,7 @@ def ExpTablesAt (rd : Reader) (sq : E) : Prop :=
 /-- `N_TUPLE_SLOTS`: the fingerprint's slot weights. -/
 abbrev nTupleSlots : ℕ := 2 ^ busBits
 
-/-- **What `verify_sub` establishes before `verify_tables`** (G:3640-3679), for the public input
+/-- **What `verify_sub` establishes before `verify_tables`** (G:3631-3670), for the public input
 `pi`, the memory's log-size `logMem`, the slot weights `weights`, the GKR point and values: the
 public input's cells; the point at `zeta`, `g_bus_mu = g^|point|`; `dims_g = [g^log_mem, …]`; the
 exponent tables (`ExpTablesAt`), `tabs` the window table among them; `fp_w` the sixteen slot
@@ -270,7 +270,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (weights point va
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (G:2267-2744; TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound** (G:2258-2735; TRIAGE #52), for the guest's own bytecode words
 `bytecode`. -/
 def verify_tables_Spec (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem weights point values args rets,

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Opening.QueriesW
 public import LeanVM.Protocol.WithHash
 
 /-!
-# The queries' openings (G:1658-1662, 1719-1726)
+# The queries' openings (G:1649-1653, 1710-1717)
 
 `cap_climb_w`: up the cap by the siblings `capSibsOf` reads off the cap's cells, a node whose cells
 the cap check (`verify_merkle_cap`) holds and whose parent is flagged reaches the root.
@@ -221,7 +221,6 @@ theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs n
           qs[k] (ws.map (toOpening rd cap sh.cd sh.depth))[k]) = true) ∧
       (ws.map (toOpening rd cap sh.cd sh.depth)).map Opening.leafIndex = qs ∧
       (∀ k < Q, (ws.getD k default).1 = qs.getD k 0) ∧
-      (∀ k < Q, FoldsNonzero rounds (K.ofBits (qs.getD k 0))) ∧
       (sh.final = 1 → ∀ k < Q, qwFold sh.base rounds (ws.getD k default) =
         novelSum hsv (wsChain (sh.vs.map K.ofBits) (eOfNat (qs.getD k 0))) sh.nHs sh.hsBits) ∧
       (sh.final = 1 → rets = [0]) ∧
@@ -243,7 +242,7 @@ theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs n
       toOpening rd cap sh.cd sh.depth (ws.getD k default) := by
     intro k hk
     rw [List.getElem_map, List.getD_eq_getElem _ _ (by rw [hwl]; exact hk)]
-  refine ⟨rounds, hsv, hrl, hhl, (hall 0 hQpos).1, (hall 0 hQpos).2.1, hql, fun k hk ho ↦ ?_, ?_, hqs', fun k hk ↦ ?_,
+  refine ⟨rounds, hsv, hrl, hhl, (hall 0 hQpos).1, (hall 0 hQpos).2.1, hql, fun k hk ho ↦ ?_, ?_, hqs',
     fun hf k hk ↦ ?_, fun hf ↦ ?_, fun hf ↦ ?_⟩
   · have hkq : k < Q := by rw [hql] at ho; exact ho
     obtain ⟨-, -, -, hlt, -, hop, -⟩ := hall k hkq
@@ -256,8 +255,7 @@ theorem queries_open {sh : OqShape} {cap flags lamInv coefs hs positions qptrs n
     have e := hqs' k hk
     rw [List.getD_eq_getElem _ _ (by rw [hwl]; exact hk), List.getD_eq_getElem _ _ h2] at e
     simpa [toOpening] using e
-  · rw [← hqs' k hk]; exact (hall k hk).2.2.2.2.2.2.1
-  · rw [← hqs' k hk]; exact (hall k hk).2.2.2.2.2.2.2 hf
+  · rw [← hqs' k hk]; exact (hall k hk).2.2.2.2.2.2 hf
   · simpa [hf] using hret
   · simp only [hf, ↓reduceIte] at hret
     obtain ⟨-, -, h⟩ := hret

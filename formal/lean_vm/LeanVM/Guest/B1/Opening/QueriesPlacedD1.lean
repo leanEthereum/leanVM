@@ -23,8 +23,8 @@ cap `sibs` (`oqW`), the window runs at `g^(eb k)`; the caller's buffers at `g^ec
   coefficients, the points, the window pointers and windows, each query's cap leaf (its path's
   top) and its flag;
 * `OqLinReg`: those words lie in `Lin`'s region;
-* `OqStatic`: the opening's facts of each query: the position's range, the lengths, no vanishing
-  combiner, at the final level the fold the final polynomial at the point.
+* `OqStatic`: the opening's facts of each query: the position's range, the lengths, at the final
+  level the fold the final polynomial at the point.
 
 `oqMain1_completeAtB`: the function is `CompleteAtB` on `Lin`, returning the chain of the queries'
 folds (or `0` at the final level), its own layout its chain buffer (`oqChainVals`), by a tree of
@@ -65,18 +65,17 @@ def OqLinMem (rd : Reader) (s : Oq) (cap flags coefs hs positions qptrs : E)
 /-- **Where those words lie**: in the region `R`. -/
 def OqLinReg (R : ℕ → Prop) (s : Oq) (ecap eflags ecoefs ehs epos eqp : ℕ) (eb qs : ℕ → ℕ)
     (Q : ℕ) : Prop :=
-  (∀ l < 3 * s.folds, R (ecoefs + l)) ∧ (s.final = 1 → ∀ l < s.nHs, R (ehs + l)) ∧
+  (∀ l < 2 * s.folds, R (ecoefs + l)) ∧ (s.final = 1 → ∀ l < s.nHs, R (ehs + l)) ∧
     ∀ k < Q, R (epos + k) ∧ R (eqp + k) ∧ (∀ i < qwN (s.pd + s.cd) s.cd, R (eb k + i)) ∧
       R (eflags + (qs k / 2 ^ (s.pd + 1) + 2 ^ (s.cd - 1))) ∧
       ∀ e < 2, R (ecap + (2 * (2 ^ s.cd + qs k / 2 ^ s.pd) + e))
 
 /-- **The opening's static facts** of the queries `k < Q`: the position below `2^depth`, the row's
-and the siblings' lengths, no combiner vanishing at the point, and (final level) the fold the final
-polynomial at the point. -/
+and the siblings' lengths, and (final level) the fold the final polynomial at the point. -/
 def OqStatic (s : Oq) (rounds : List FoldRound) (hsv : List E) (qs : ℕ → ℕ) (rows : ℕ → List K)
     (sibs : ℕ → List Digest) (Q : ℕ) : Prop :=
   ∀ k < Q, qs k < 2 ^ (s.pd + s.cd) ∧ (rows k).length = rowLen s.base s.folds ∧
-    (sibs k).length = s.pd ∧ FoldsNonzero rounds (K.ofBits (qs k)) ∧
+    (sibs k).length = s.pd ∧
     (s.final = 1 → foldRow (lanesOf s.base (rows k)) (K.ofBits (qs k)) rounds =
       novelSum hsv (wsChain (s.vs.map K.ofBits) (eOfNat (qs k))) s.nHs s.hsBits)
 
@@ -132,8 +131,8 @@ theorem qdOk_of_lin {rd : Reader} {s : Oq} {cap flags coefs hsp positions qptrs 
       (ofK (Parameters.addressOfIndex (eb k))) := by
   obtain ⟨hR, hW, hk'⟩ := hm
   obtain ⟨-, -, a2, a3, a4, a5⟩ := hk' k hk
-  obtain ⟨qa, ra, sa, na, fa⟩ := hst k hk
-  exact qdOk_of_mem ra sa qa a2 a3 a4 a5 hR hrl na fun hf ↦ ⟨hW hf, hhl hf, fa hf⟩
+  obtain ⟨qa, ra, sa, fa⟩ := hst k hk
+  exact qdOk_of_mem ra sa qa a2 a3 a4 a5 hR hrl fun hf ↦ ⟨hW hf, hhl hf, fa hf⟩
 
 /-- The chain's words: the queries' results. -/
 theorem oqResV_W {s : Oq} {rounds : List FoldRound} {qs : ℕ → ℕ} {rows : ℕ → List K}

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VecAt
 
-  `da_vector` placed (G:4421-4440): its two `HeapBuf`s (`zs`, `above_top`), its four callees on
+  `da_vector` placed (G:4412-4431): its two `HeapBuf`s (`zs`, `above_top`), its four callees on
   them, the powers, the top leaves, the cell factors and the column offsets returned, within its
   frame, its buffers and its callees' bounds.
 -/

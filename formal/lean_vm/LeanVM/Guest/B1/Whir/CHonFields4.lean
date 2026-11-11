@@ -88,8 +88,8 @@ theorem opens {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
   · obtain ⟨rw, W, hd, -, -, -, -, hnext, -⟩ := hR.step hlt
     have hrw : (Ls.getD l default).rw = rw := by unfold LvAt.rw; rw [hd]
     have hqs : (Ls.getD l default).qs μ = W.qs (rsF (Ls.getD l default).level (Ls.getD l default).cap rw)
-        (μ - (rsSt (Ls.getD l default).level (Ls.getD l default).s (Ls.getD l default).cap rw).gammas.length)
-        (μ - (rsSt (Ls.getD l default).level (Ls.getD l default).s (Ls.getD l default).cap rw).gammas.length +
+        (μ - (rsSt (Ls.getD l default).level (Ls.getD l default).s (Ls.getD l default).cap rw).alphas.length)
+        (μ - (rsSt (Ls.getD l default).level (Ls.getD l default).s (Ls.getD l default).cap rw).alphas.length +
           (Ls.getD l default).level.logInvRate) (Ls.getD l default).level.queries := by
       unfold LvAt.qs; rw [hd]; simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
     have hph : (Ls.getD l default).phase = W.phase := by unfold LvAt.phase; rw [hd]
@@ -109,7 +109,7 @@ theorem opens {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
           (Ls.getD (osCfg (candidate μ r)).yrLevel default).cap rw)
         (μ - (rsSt (Ls.getD (osCfg (candidate μ r)).yrLevel default).level
           (Ls.getD (osCfg (candidate μ r)).yrLevel default).s
-          (Ls.getD (osCfg (candidate μ r)).yrLevel default).cap rw).gammas.length +
+          (Ls.getD (osCfg (candidate μ r)).yrLevel default).cap rw).alphas.length +
           (Ls.getD (osCfg (candidate μ r)).yrLevel default).level.logInvRate)
         (Ls.getD (osCfg (candidate μ r)).yrLevel default).level.queries := by
       unfold LvAt.qs; rw [hd]; simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
@@ -212,7 +212,7 @@ theorem fld_posMem : ∀ b rd, OsMemF rd (osCfg (candidate μ r)) b (hdOf μ r L
 /-- **OsHonest's `qMem`.** -/
 theorem fld_qMem : ∀ b rd, OsMemF rd (osCfg (candidate μ r)) b (hdOf μ r Ls).own →
     ∀ l < (osCfg (candidate μ r)).levels.length,
-    RoundsAt rd (osPtrF (osCfg (candidate μ r)) b 5 * gen ^ (3 * (osLvAt (osCfg (candidate μ r)) l).foldsOff))
+    RoundsAt rd (osPtrF (osCfg (candidate μ r)) b 5 * gen ^ (2 * (osLvAt (osCfg (candidate μ r)) l).foldsOff))
       (Ls.getD l default).rounds ∧
     ((oqS (osCfg (candidate μ r)) l).final = 1 → WordsAt rd (osHsPtr (osCfg (candidate μ r)) b l)
       (if l = (osCfg (candidate μ r)).yrLevel then (hdOf μ r Ls).hsFC else [])) ∧

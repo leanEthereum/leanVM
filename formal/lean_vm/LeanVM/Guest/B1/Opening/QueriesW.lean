@@ -100,15 +100,13 @@ theorem oqSibsOf_eq {pd ch q : ℕ} {sibs : List Digest} (hl : sibs.length = pd)
 
 /-- What a query establishes of its witness `w` at the point `x` (window run `bp`): its position
 below `2^(pd + cd)`, the point `eOfNat` of it, the run holding its windows, `QueryOpensS` at its
-row and siblings, and some rounds read at `coefs` with no combiner vanishing at it; at a non-final
-level its result `d` is the fold, at the final level the fold is the final polynomial, the
-coefficients read at `hs`. -/
+row and siblings, and some rounds read at `coefs`; at a non-final level its result `d` is the
+fold, at the final level the fold is the final polynomial, the coefficients read at `hs`. -/
 def QueryW (rd : Reader) (s : Oq) (cap flags coefs hs x bp : E) (w : QW) (d : E) : Prop :=
   w.1 < 2 ^ (s.pd + s.cd) ∧ x = eOfNat w.1 ∧
     (∀ i < qwN (s.pd + s.cd) s.cd, LoadHolds rd bp i (gen ^ qwVal (s.pd + s.cd) s.cd w.1 i)) ∧
     QueryOpensS rd s.base s.folds (s.pd + s.cd) s.cd cap flags w.1 w.2.1 w.2.2 ∧
     ∃ rounds : List FoldRound, rounds.length = s.folds ∧ RoundsAt rd coefs rounds ∧
-      FoldsNonzero rounds (K.ofBits w.1) ∧
       (s.final ≠ 1 → d = foldRow (lanesOf s.base w.2.1) (K.ofBits w.1) rounds) ∧
       (s.final = 1 → ∃ hsv : List E, hsv.length = s.nHs ∧ WordsAt rd hs hsv ∧
         foldRow (lanesOf s.base w.2.1) (K.ofBits w.1) rounds =
@@ -171,7 +169,7 @@ theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
   have hsibs : oqSibsOf s.pd wpCh q (V (oqWalkOf s) (oqWalkArgs s b emit (σ bp) (σ cap) (σ flags) σ) []) =
       sibs := oqSibsOf_eq hsl hsib
   -- the fold
-  obtain ⟨hRA, hNZ, hval⟩ := oqFold_sound hf hF
+  obtain ⟨hRA, hval⟩ := oqFold_sound hf hF
   have hfold : σ (.n (oqVal s (oqCh s b emit))) =
       foldRow (lanesOf s.base (oqRow s b σ)) (K.ofBits q) (oqRounds s (oqCh s b emit) σ) := by
     rw [hval, foldRow_eq, lanesOf_oqRow hKr, hx]
@@ -179,8 +177,7 @@ theorem oqQuery_sound_w {C : CallRel} {V : FrameMap} (hU : UnfoldsV rd C V) {s :
   unfold oqQueryW
   rw [e, hsibs]
   refine ⟨hq, hx, hwl, ⟨length_oqRow s b σ, by simp only at hsl ⊢; omega, ?_, ?_, ?_⟩, oqRounds s (oqCh s b emit) σ,
-    by simp [oqRounds], hRA, fun r hr ↦ by have := hNZ r hr; rwa [hx] at this, fun hnf ↦ ?_,
-    fun h1 ↦ ?_⟩
+    by simp [oqRounds], hRA, fun hnf ↦ ?_, fun h1 ↦ ?_⟩
   · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc0
   · rw [show s.pd + s.cd - s.cd = s.pd by omega]; exact hc1
   · rw [show s.pd + s.cd - s.cd + 1 = s.pd + 1 by omega]; exact hflag

@@ -85,7 +85,7 @@ def RQ (h : OsHD) (b : ℕ) (l : ℕ) (batched : E) (σ' : Val) : Prop :=
   let c := h.c
   (osQCall c l).2.2.1.map σ' = [osPtrF c b 0 * gen ^ (4 * (osLvAt c l).capOff),
     osPtrF c b 1 * gen ^ (osLvAt c l).capOff, h.lamInv l,
-    osPtrF c b 5 * gen ^ (3 * (osLvAt c l).foldsOff), osHsPtr c b l,
+    osPtrF c b 5 * gen ^ (2 * (osLvAt c l).foldsOff), osHsPtr c b l,
     osPtrF c b 11 * gen ^ (osLvAt c l).posOff, osPtrF c b osIxQbp * gen ^ (osLvAt c l).posOff,
     gen ^ oqN c l] ∧
   (osQCall c l).2.2.2.map σ' = [batched]
@@ -118,7 +118,7 @@ variable {H : CallRel → Reader → Prop}
 theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (hS : BodyStatic h.c)
     (hl : l < h.c.yrLevel) {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs l st σ) (W : MidW)
     (hpS : W.pS = osPtrF h.c b (13 + 2 * l)) (hpZ : W.pZ = osPtrF h.c b (14 + 2 * l))
-    (hr3 : 3 * ((osLvAt h.c l).foldsOff + (osLvAt h.c l).folds) < u128Bound)
+    (hr3 : 2 * ((osLvAt h.c l).foldsOff + (osLvAt h.c l).folds) < u128Bound)
     (hoff : (oodSamples * (l + 1) + 1) * ligColsCap < u128Bound)
     (hpo : (osLvAt h.c l).posOff < u128Bound) (hS5 : (osLvAt h.c l).squeezes * 5 < u128Bound)
     (hc4 : 4 * (osLvAt h.c l).capOff < u128Bound) (hh8 : l * hsStride < u128Bound)
@@ -129,7 +129,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
       (cur * gen ^ (xs.length - (h.xsAt l).length)) W)
     (hcap' : capOf (W.SL (osLvAt h.c l) (h.capAt l) (h.claimAt l)) = h.capAt (l + 1))
     (hcl' : W.claimOut (osLvAt h.c l) (h.capAt l) (h.claimAt l) = h.claimAt (l + 1))
-    (hcur' : xs.length - (h.xsAt l).length + (7 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3 + 1) =
+    (hcur' : xs.length - (h.xsAt l).length + (6 * (osLvAt h.c l).folds + (2 + (osLvAt h.c l).folds) + 3 + 1) =
       xs.length - (h.xsAt (l + 1)).length)
     (hw0 : rdCell (W.S2 (osLvAt h.c l) (h.capAt l) (h.claimAt l)) 0 = h.word l 0)
     (hli : (W.lam (osLvAt h.c l) (h.capAt l) (h.claimAt l))⁻¹ = h.lamInv l) :
@@ -203,7 +203,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
 theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyStatic h.c)
     {st : OsSt} {σ : Val} (hq : QAt h b tabs cur xs h.c.yrLevel st σ) (W : FinWD)
     (hpZ : W.pZ = osPtrF h.c b (13 + 2 * h.c.yrLevel)) (hpH : W.pH = osPtrF h.c b (14 + 2 * h.c.yrLevel))
-    (hr3 : 3 * ((osLvAt h.c h.c.yrLevel).foldsOff + (osLvAt h.c h.c.yrLevel).folds) < u128Bound)
+    (hr3 : 2 * ((osLvAt h.c h.c.yrLevel).foldsOff + (osLvAt h.c h.c.yrLevel).folds) < u128Bound)
     (hpo : (osLvAt h.c h.c.yrLevel).posOff < u128Bound)
     (hS5 : (osLvAt h.c h.c.yrLevel).squeezes * 5 < u128Bound)
     (hc4 : 4 * (osLvAt h.c h.c.yrLevel).capOff < u128Bound) (hh8 : h.c.yrLevel * hsStride < u128Bound)
@@ -215,7 +215,7 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
     (hcl' : W.cl1 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel) =
       h.claimAt (h.c.yrLevel + 1))
     (hcur' : xs.length - (h.xsAt h.c.yrLevel).length +
-        (7 * (osLvAt h.c h.c.yrLevel).folds + (h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds + 1)) =
+        (6 * (osLvAt h.c h.c.yrLevel).folds + (h.c.yrLen + (osLvAt h.c h.c.yrLevel).folds + 1)) =
       xs.length - (h.xsAt (h.c.yrLevel + 1)).length)
     (hw0 : cellsOfState (W.S2 (osLvAt h.c h.c.yrLevel) (h.capAt h.c.yrLevel) (h.claimAt h.c.yrLevel))
       false 0 = h.word h.c.yrLevel 0) :

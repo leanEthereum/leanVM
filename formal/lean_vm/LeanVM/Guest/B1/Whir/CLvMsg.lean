@@ -17,9 +17,9 @@ public import LeanVM.Guest.B1.Whir.Commit
   `ms`, the nonce and the cursor (its meaning's formula).
 * `OsStep σ σ' st st'`: a block's state moved on: its invariants, its next free value, the
   agreement below the old one.
-* `osFinalMsg_complete`: the final level's message (G:1584-1585) at its values.
+* `osFinalMsg_complete`: the final level's message (G:1575-1576) at its values.
 * `osCommit_complete`: a non-final level's message, out-of-domain points and values and query
-  nonce (G:1586-1612) at its values.
+  nonce (G:1577-1603) at its values.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -52,7 +52,7 @@ theorem osCurS_blkA {st : OsSt} (σ : Val) (hb : st.cb < st.k) (hco : st.co < u1
       (fun σ' ↦ σ' (.n (osCurS st).2.1) = σ (.n st.cb) * gen ^ st.co) :=
   BlkA.ofF _ fun _ _ _ ↦ osCurS_blk σ hb hco
 
-/-- **The final level's message, honestly** (G:1584-1585): `opening_message` with a nonce, its
+/-- **The final level's message, honestly** (G:1575-1576): `opening_message` with a nonce, its
 returns `omRets` on the carried capacity, the lane `ms` and the nonce `nn`. -/
 theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ)

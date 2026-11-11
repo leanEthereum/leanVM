@@ -420,7 +420,6 @@ theorem endsAny_whirLevelsOpenNZ_last (logN laneFolds index : ℕ) (level : Whir
   dsimp only
   refine endsAny_bind_right fun _ ↦ endsAny_bind_right fun _ ↦ ?_
   refine (endsAny_sampleQueries (by omega)).bind fun _ ↦ ?_
-  refine EndsClear.bind (endsClear_require _) fun _ ↦ ?_
   refine EndsClear.bind (endsClear_queryOpenings _ _) fun _ ↦ ?_
   refine EndsClear.bind (endsClear_require _) fun _ ↦ ?_
   refine EndsClear.bind (endsClear_sumcheckNZ _ _ _) fun _ ↦ ?_

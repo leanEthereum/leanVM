@@ -9,7 +9,7 @@ import LeanVM.Prover.Complete
 import LeanVM.Guest.Child.NZRpm
 import LeanVM.Guest.Child.Deployed
 import LeanVM.Guest.WithHash
-import LeanVM.Guest.Child.Combiner
+import LeanVM.Guest.Child.Refusing
 
 /-!
 # The guest's completeness for a prover that is the specification at a child's witness
