@@ -15,9 +15,9 @@ namespace LeanVMTests.Guest.Bytecode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
-example : Data.functions.length = 1038 := by decide +kernel
+example : Data.functions.length = 1036 := by decide +kernel
 
-example : Data.codeLen = 492310 := rfl
+example : Data.codeLen = 492925 := rfl
 
 /-- `sp_wots` is function 20, the largest after `__loop2` (function 37, 114219 instructions). -/
 theorem spWots_mem : Data.f20 ∈ Data.functions := mem_functions (j := 20) rfl

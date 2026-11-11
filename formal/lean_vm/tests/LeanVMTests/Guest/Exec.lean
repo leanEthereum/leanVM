@@ -28,11 +28,11 @@ def F0 : Facts := {}
 `fp[17..20]`, in the even layout, to the two cells `fp[6..7]`, in the even layout. -/
 def hashIns : OffsetInstruction := .keccak 26 9 10 11 12 28 17 6 false false .two
 
-theorem hash_name : Data.f362.name = "claim_list_last__L0" ∧ Data.f362.entryPc = 299228 := by
+theorem hash_name : Data.f362.name = "claim_list_last__L0" ∧ Data.f362.entryPc = 299970 := by
   decide +kernel
 
 theorem hash_shape : (exec F0 Data.f362).segs.map (fun s ↦ (s.start, s.env.sub Sym.beq .nil,
-    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 299249 hashIns),
+    (branchExits s.items).isEmpty, (s.items.filterMap Item.atom?).contains (.instr 299991 hashIns),
       s.exit.kind)) = [(0, true, true, true, .ret)] := by
   decide +kernel
 
@@ -40,7 +40,7 @@ theorem hash_shape : (exec F0 Data.f362).segs.map (fun s ↦ (s.start, s.env.sub
 returns, in fewer steps, with its `KECCAK` holding: the cells it reads hold a state whose
 Keccak-f[1600]'s first two cells the cells it writes hold. -/
 theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
-    FunSpecReached guestProgram L 299228 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
+    FunSpecReached guestProgram L 299970 (fun _ ↦ True) (fun fp ↦ ∃ input output : Fin 13 → E,
       (∀ c : Fin 13, L.read (fp * addressOfIndex (keccakInOff 26 9 10 11 12 28 17 c.val)) = some
           (input c)) ∧
       (∀ c : Fin 13, c.val < KeccakOutputCells.two.cellCount →
@@ -51,7 +51,7 @@ theorem hash_spec {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32) :
   simp only [Prod.mk.injEq] at he
   obtain ⟨h0, henv, hb, hmem, hkind⟩ := he
   have hctx : Ctx F0 κ fp := ⟨trivial, fun h ↦ absurd h (by decide), hκ⟩
-  have hentry : Data.f362.entryPc + s.start = 299228 := by rw [h0]; rfl
+  have hentry : Data.f362.entryPc + s.start = 299970 := by rw [h0]; rfl
   have hrun := exec_sound hctx (guest_fetches (mem_functions (j := 362) rfl)) hs
     (EnvHolds.nil.sub henv) (hentry ▸ h)
   obtain ⟨hall, k', -, hlt, -, -, r, hr, hsafe⟩ :=
