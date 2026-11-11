@@ -856,6 +856,52 @@ mod tests {
         }
     }
 
+    /// The bus catches a run edited after execution so that a gated KECCAK write is not what memory counts.
+    /// `partial_keccak_program`'s 2-cell KECCAK writes cell 27, which the XOR at pc 13 then reads: (n1) the cell's word
+    /// replaced; (n2) the XOR's read given the count the gated write took, the cell's final count one less; (n3) the
+    /// row filled with `OUT_TWO` 0, its instruction's flag being 1. The honest run balances.
+    #[test]
+    fn miscounted_gated_output_unbalances_the_bus() {
+        let (program, pi) = (partial_keccak_program(), [w(7), w(11)]);
+        let run = || {
+            let (exec, blocks) = crate::keccak::while_executing(|step| program.execute_with(pi, step));
+            (exec.unwrap(), blocks)
+        };
+        // The program's bus over the columns `filled` gives the run.
+        let balances = |filled: &Program, (exec, blocks): (Execution, crate::keccak::Blocks)| {
+            let log_mem = crate::log2_strict_usize(exec.mem.len());
+            let w = filled.build(&exec, filled.layout(log_mem, exec.trace.row_counts(), pi), blocks);
+            let l = program.layout(w.log_mem, w.layout.rows, w.layout.pi);
+            crate::leaf::tests::balances(&l.push, &l.pull, &w.columns())
+        };
+        assert!(balances(&program, run()), "the honest run balances");
+
+        let (mut exec, blocks) = run();
+        exec.mem.cell_mut(27).word += F192::ONE;
+        assert!(!balances(&program, (exec, blocks)), "n1");
+
+        let (mut exec, blocks) = run();
+        let cell = exec.mem.cell_mut(27);
+        assert_eq!(cell.count, 2, "the KECCAK writes cell 27, then the XOR reads it");
+        cell.count = 1;
+        let mut xor = trace::Rows::new();
+        for r in exec.trace.xor.iter() {
+            xor.push(trace::Xrow {
+                rb: if r.pc == 13 { 0 } else { r.rb },
+                ..*r
+            });
+        }
+        exec.trace.xor = xor;
+        assert!(!balances(&program, (exec, blocks)), "n2");
+
+        let mut filled = program.clone();
+        let Op::Keccak { out_cells, .. } = &mut filled.prog[12] else {
+            panic!("pc 12 is the 2-cell KECCAK")
+        };
+        *out_cells = OutCells::One;
+        assert!(!balances(&filled, run()), "n3");
+    }
+
     /// The opcode's execution semantics: the output cells hold the permutation of the lanes the
     /// input cells hold, each side in its layout, the two `m` pairs aliasing one another and
     /// `b8`'s free high limb ignored. With a zero `cap` and the padding in `tail` and `b8`, the

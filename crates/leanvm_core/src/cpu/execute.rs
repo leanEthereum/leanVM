@@ -95,6 +95,12 @@ impl Memory {
         self.page(i >> PAGE_LOG).map_or(F192::ZERO, |p| p[i & (PAGE - 1)].word)
     }
 
+    /// Cell `i`, for a test to edit a finished run.
+    #[cfg(test)]
+    pub(crate) fn cell_mut(&mut self, i: usize) -> &mut Cell {
+        &mut self.pages[i >> PAGE_LOG][i & (PAGE - 1)]
+    }
+
     /// Page `p`'s cells, `None` past the last one.
     pub(crate) fn page(&self, p: usize) -> Option<&[Cell]> {
         self.pages.get(p).map(|p| &p[..])

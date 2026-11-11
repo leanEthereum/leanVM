@@ -1007,7 +1007,7 @@ fn tables_and_prods_at(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::gkr::{Leaves, prove_product_triple};
 
@@ -1038,6 +1038,18 @@ mod tests {
             }
         }
         leaves
+    }
+
+    /// Whether the bus balances on `cols`: the push side's grand product is the pull side's, by the leaves'
+    /// definition at fixed challenges. The GKR proves this equality, so a test that edits a run sees here whether the
+    /// bus catches the edit.
+    pub(crate) fn balances(push: &[Block], pull: &[Block], cols: &[&[F64]]) -> bool {
+        let w = fingerprint_weights(&[F192::new(3, 1, 4), F192::new(1, 5, 9), F192::new(2, 6, 5), F192::Y]);
+        let product = |blocks: &[Block]| {
+            let leaves = naive_leaves(blocks, &layout(blocks), cols, &w, F192::new(27, 18, 28));
+            leaves.into_iter().fold(F192::ONE, |acc, leaf| acc * leaf)
+        };
+        product(push) == product(pull)
     }
 
     /// The builder's leaves and products are their definitions, and its identity runs
