@@ -39,7 +39,6 @@ public import LeanVM.Guest.Data.Core28
 public import LeanVM.Guest.Data.Core29
 public import LeanVM.Guest.Data.Core30
 public import LeanVM.Guest.Data.Core31
-public import LeanVM.Guest.Data.Core32
 
 namespace LeanVM.Guest.Data
 
@@ -115,8 +114,7 @@ noncomputable def coreFunctions : List Core.Fn :=
   core976 :: core977 :: core978 :: core979 :: core980 :: core981 :: core982 :: core983 :: core984 :: core985 :: core986 :: core987 :: core988 :: core989 :: core990 :: core991 ::
   core992 :: core993 :: core994 :: core995 :: core996 :: core997 :: core998 :: core999 :: core1000 :: core1001 :: core1002 :: core1003 :: core1004 :: core1005 :: core1006 :: core1007 ::
   core1008 :: core1009 :: core1010 :: core1011 :: core1012 :: core1013 :: core1014 :: core1015 :: core1016 :: core1017 :: core1018 :: core1019 :: core1020 :: core1021 :: core1022 :: core1023 ::
-  core1024 :: core1025 :: core1026 :: core1027 :: core1028 :: core1029 :: core1030 :: core1031 :: core1032 :: core1033 :: core1034 :: core1035 :: core1036 :: core1037 :: core1038 :: core1039 ::
-  core1040 :: core1041 :: core1042 :: core1043 :: core1044 :: core1045 :: core1046 :: core1047 :: core1048 :: core1049 :: core1050 :: core1051 :: core1052 :: core1053 :: core1054 :: []
+  core1024 :: core1025 :: core1026 :: core1027 :: core1028 :: core1029 :: core1030 :: core1031 :: core1032 :: core1033 :: core1034 :: core1035 :: core1036 :: []
 
 end
 end LeanVM.Guest.Data

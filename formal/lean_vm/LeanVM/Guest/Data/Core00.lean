@@ -5676,68 +5676,53 @@ noncomputable def body : List Core.Stmt := (
   .atom (.copy (.n 14) (.n 4)) ::
   .atom (.load (.n 15) (.n 5) 0) ::
   .atom (.copy (.n 16) (.n 15)) ::
-  .atom (.const (.n 17) (word 0 4)) ::
-  .atom (.const (.n 18) (word 1 0)) ::
-  .atom (.const (.n 19) (word 0 0)) ::
-  .atom (.const (.n 20) (word 0 0)) ::
-  .atom (.const (.n 21) (word 0 0)) ::
-  .atom (.const (.n 22) (word 0 0)) ::
-  .atom (.keccak [.n 16, .n 17, .n 19, .n 19, .n 19, .n 20, .n 21, .n 22, .n 10, .n 11, .n 12, .n 13, .n 14] [.n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35] false false) ::
-  .call "grind_check__L9" [.n 24, .n 7] [] ::
-  .atom (.copy (.n 36) (.n 23)) ::
-  .atom (.load (.n 37) (.n 5) 1) ::
-  .atom (.copy (.n 38) (.n 37)) ::
-  .atom (.const (.n 39) (word 0 1)) ::
-  .atom (.load (.n 40) (.n 5) 2) ::
+  .atom (.const (.n 17) (word 0 1)) ::
+  .atom (.load (.n 18) (.n 5) 1) ::
+  .atom (.copy (.n 19) (.n 18)) ::
+  .atom (.const (.n 20) (word 0 1)) ::
+  .atom (.load (.n 21) (.n 5) 2) ::
+  .atom (.copy (.n 22) (.n 21)) ::
+  .atom (.const (.n 23) (word 0 1)) ::
+  .atom (.load (.n 24) (.n 5) 3) ::
+  .atom (.copy (.n 25) (.n 24)) ::
+  .atom (.const (.n 26) (word 0 1)) ::
+  .atom (.keccak [.n 16, .n 17, .n 19, .n 20, .n 22, .n 23, .n 25, .n 26, .n 10, .n 11, .n 12, .n 13, .n 14] [.n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39] false false) ::
+  .atom (.load (.n 40) (.n 5) 4) ::
   .atom (.copy (.n 41) (.n 40)) ::
-  .atom (.const (.n 42) (word 0 1)) ::
-  .atom (.load (.n 43) (.n 5) 3) ::
-  .atom (.copy (.n 44) (.n 43)) ::
-  .atom (.const (.n 45) (word 0 1)) ::
-  .atom (.load (.n 46) (.n 5) 4) ::
-  .atom (.copy (.n 47) (.n 46)) ::
-  .atom (.const (.n 48) (word 0 1)) ::
-  .atom (.keccak [.n 38, .n 39, .n 41, .n 42, .n 44, .n 45, .n 47, .n 48, .n 31, .n 32, .n 33, .n 34, .n 35] [.n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60, .n 61] false false) ::
-  .atom (.load (.n 62) (.n 5) 5) ::
-  .atom (.copy (.n 63) (.n 62)) ::
-  .atom (.const (.n 64) (word 0 1)) ::
-  .atom (.load (.n 65) (.n 5) 6) ::
-  .atom (.copy (.n 66) (.n 65)) ::
-  .atom (.const (.n 67) (word 0 4)) ::
-  .atom (.keccak [.n 63, .n 64, .n 66, .n 67, .n 19, .n 20, .n 21, .n 22, .n 57, .n 58, .n 59, .n 60, .n 61] [.n 68, .n 69, .n 70, .n 71, .n 72, .n 73, .n 74, .n 75, .n 76, .n 77, .n 78, .n 79, .n 80] false false) ::
-  .call "grind_check__L9" [.n 69, .n 7] [] ::
-  .atom (.copy (.n 81) (.n 68)) ::
-  .atom (.keccak [.n 19, .n 19, .n 19, .n 19, .n 19, .n 20, .n 21, .n 22, .n 76, .n 77, .n 78, .n 79, .n 80] [.n 82, .n 83, .n 84, .n 85, .n 86, .n 87, .n 88, .n 89, .n 90, .n 91, .n 92, .n 93, .n 94] false false) ::
-  .atom (.copy (.n 95) (.n 82)) ::
-  .atom (.keccak [.n 19, .n 19, .n 19, .n 19, .n 19, .n 20, .n 21, .n 22, .n 90, .n 91, .n 92, .n 93, .n 94] [.n 96, .n 97, .n 98, .n 99, .n 100, .n 101, .n 102, .n 103, .n 104, .n 105, .n 106, .n 107, .n 108] false false) ::
-  .atom (.copy (.n 109) (.n 96)) ::
-  .atom (.load (.n 81) (.n 8) 0) ::
-  .atom (.load (.n 95) (.n 9) 0) ::
-  .atom (.load (.n 109) (.n 9) 1) ::
-  .atom (.load (.n 36) (.n 9) 2) ::
-  .atom (.mul (.n 110) (.n 95) (.n 40)) ::
-  .atom (.add (.n 111) (.n 37) (.n 110)) ::
-  .atom (.mul (.n 112) (.n 109) (.n 43)) ::
-  .atom (.add (.n 113) (.n 111) (.n 112)) ::
-  .atom (.add (.n 114) (.n 6) (.n 40)) ::
-  .atom (.mul (.n 115) (.n 36) (.n 37)) ::
-  .atom (.add (.n 116) (.n 114) (.n 115)) ::
-  .atom (.mul (.n 117) (.n 95) (.n 46)) ::
-  .atom (.add (.n 118) (.n 116) (.n 117)) ::
-  .atom (.mul (.n 119) (.n 109) (.n 62)) ::
-  .atom (.add (.n 120) (.n 118) (.n 119)) ::
-  .atom (.copy (.n 121) (.n 104)) ::
-  .atom (.copy (.n 122) (.n 105)) ::
-  .atom (.copy (.n 123) (.n 106)) ::
-  .atom (.copy (.n 124) (.n 107)) ::
-  .atom (.copy (.n 125) (.n 108)) ::
-  .atom (.const (.n 126) (word 128 0)) ::
-  .atom (.mul (.n 127) (.n 5) (.n 126)) ::
-  .atom (.copy (.n 128) (.n 127)) ::
-  .atom (.add (.n 129) (.n 113) (.n 120)) ::
-  .atom (.mul (.n 130) (.n 81) (.n 129)) ::
-  .atom (.add (.n 131) (.n 113) (.n 130)) ::
-  .ret [.n 121, .n 122, .n 123, .n 124, .n 125, .n 128, .n 131] ::
+  .atom (.const (.n 42) (word 0 4)) ::
+  .atom (.const (.n 43) (word 1 0)) ::
+  .atom (.const (.n 44) (word 0 0)) ::
+  .atom (.const (.n 45) (word 0 0)) ::
+  .atom (.const (.n 46) (word 0 0)) ::
+  .atom (.const (.n 47) (word 0 0)) ::
+  .atom (.keccak [.n 41, .n 42, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 35, .n 36, .n 37, .n 38, .n 39] [.n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60] false false) ::
+  .call "grind_check__L8" [.n 49, .n 7] [] ::
+  .atom (.copy (.n 61) (.n 48)) ::
+  .atom (.keccak [.n 44, .n 44, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 56, .n 57, .n 58, .n 59, .n 60] [.n 62, .n 63, .n 64, .n 65, .n 66, .n 67, .n 68, .n 69, .n 70, .n 71, .n 72, .n 73, .n 74] false false) ::
+  .atom (.copy (.n 75) (.n 62)) ::
+  .atom (.load (.n 61) (.n 8) 0) ::
+  .atom (.load (.n 61) (.n 9) 0) ::
+  .atom (.load (.n 75) (.n 9) 1) ::
+  .atom (.mul (.n 76) (.n 75) (.n 21)) ::
+  .atom (.add (.n 77) (.n 15) (.n 76)) ::
+  .atom (.add (.n 78) (.n 15) (.n 6)) ::
+  .atom (.mul (.n 79) (.n 61) (.n 18)) ::
+  .atom (.add (.n 80) (.n 78) (.n 79)) ::
+  .atom (.add (.n 81) (.n 21) (.n 24)) ::
+  .atom (.mul (.n 82) (.n 75) (.n 81)) ::
+  .atom (.add (.n 83) (.n 80) (.n 82)) ::
+  .atom (.mul (.n 84) (.n 61) (.n 83)) ::
+  .atom (.add (.n 85) (.n 77) (.n 84)) ::
+  .atom (.copy (.n 86) (.n 70)) ::
+  .atom (.copy (.n 87) (.n 71)) ::
+  .atom (.copy (.n 88) (.n 72)) ::
+  .atom (.copy (.n 89) (.n 73)) ::
+  .atom (.copy (.n 90) (.n 74)) ::
+  .atom (.const (.n 91) (word 32 0)) ::
+  .atom (.mul (.n 92) (.n 5) (.n 91)) ::
+  .atom (.copy (.n 93) (.n 92)) ::
+  .atom (.copy (.n 94) (.n 85)) ::
+  .ret [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94] ::
   [])
 
 end core7
@@ -18998,7 +18983,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.keccak [.n 603, .n 604, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 597, .n 598, .n 599, .n 600, .n 601] [.n 605, .n 606, .n 607, .n 608, .n 609, .n 610, .n 611, .n 612, .n 613, .n 614, .n 615, .n 616, .n 617] false false) ::
   .atom (.const (.n 618) (word 133823759239872512 0)) ::
   .atom (.mul (.n 619) (.n 4) (.n 618)) ::
-  .call "grind_check__L14" [.n 606, .n 619] [] ::
+  .call "grind_check__L13" [.n 606, .n 619] [] ::
   .atom (.copy (.n 620) (.n 605)) ::
   .atom (.copy (.n 621) (.n 620)) ::
   .atom (.keccak [.n 8, .n 8, .n 8, .n 8, .n 8, .n 9, .n 10, .n 11, .n 613, .n 614, .n 615, .n 616, .n 617] [.n 622, .n 623, .n 624, .n 625, .n 626, .n 627, .n 628, .n 629, .n 630, .n 631, .n 632, .n 633, .n 634] false false) ::

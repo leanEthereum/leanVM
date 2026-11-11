@@ -11433,58 +11433,65 @@ noncomputable def core88 : Core.Fn where
 
 namespace core89
 
-/-- `grind_check__L9`: the body. -/
+/-- `grind_check__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.windowsExp (.n 0) 9 11 4 (.stack [.n 2, .n 3, .n 4, .n 5]))) ::
-  .atom (.hint (.windowsExp (.n 0) 53 11 1 (.stack [.n 6]))) ::
-  .atom (.const (.n 7) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 8) (.n 9) (.n 10) (.n 7)) ::
-  .atom (.mul (.n 11) (.n 1) (.n 6)) ::
-  .atom (.load (.n 12) (.n 11) 0) ::
-  .atom (.const (.n 13) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 14) (.n 15) (.n 16) (.n 13)) ::
-  .atom (.const (.n 17) (word 2048 0)) ::
-  .atom (.mul (.n 18) (.n 12) (.n 17)) ::
-  .atom (.mul (.n 19) (.n 1) (.n 5)) ::
-  .atom (.load (.n 20) (.n 19) 0) ::
-  .atom (.add (.n 21) (.n 18) (.n 20)) ::
-  .atom (.const (.n 22) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 23) (.n 24) (.n 25) (.n 22)) ::
-  .atom (.const (.n 26) (word 2048 0)) ::
-  .atom (.mul (.n 27) (.n 21) (.n 26)) ::
-  .atom (.mul (.n 28) (.n 1) (.n 4)) ::
-  .atom (.load (.n 29) (.n 28) 0) ::
-  .atom (.add (.n 30) (.n 27) (.n 29)) ::
-  .atom (.const (.n 31) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 32) (.n 33) (.n 34) (.n 31)) ::
-  .atom (.const (.n 35) (word 2048 0)) ::
-  .atom (.mul (.n 36) (.n 30) (.n 35)) ::
-  .atom (.mul (.n 37) (.n 1) (.n 3)) ::
-  .atom (.load (.n 38) (.n 37) 0) ::
-  .atom (.add (.n 39) (.n 36) (.n 38)) ::
-  .atom (.const (.n 40) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 2) (.n 41) (.n 42) (.n 43) (.n 40)) ::
-  .atom (.const (.n 44) (word 2048 0)) ::
-  .atom (.mul (.n 45) (.n 39) (.n 44)) ::
-  .atom (.mul (.n 46) (.n 1) (.n 2)) ::
-  .atom (.load (.n 47) (.n 46) 0) ::
-  .atom (.add (.n 48) (.n 45) (.n 47)) ::
-  .atom (.const (.n 49) (word 512 0)) ::
-  .atom (.mul (.n 50) (.n 48) (.n 49)) ::
-  .atom (.add (.n 51) (.n 0) (.n 50)) ::
-  .atom (.const (.n 52) (word 2 1)) ::
-  .atom (.mul (.n 53) (.n 51) (.n 52)) ::
-  .atom (.const (.n 54) (word 512 0)) ::
-  .atom (.mul (.n 55) (.n 48) (.n 54)) ::
-  .atom (.assertInK (.n 53) (.n 55)) ::
+  .atom (.hint (.windowsExp (.n 0) 8 11 5 (.stack [.n 2, .n 3, .n 4, .n 5, .n 6]))) ::
+  .atom (.hint (.windowsExp (.n 0) 63 1 1 (.stack [.n 7]))) ::
+  .atom (.const (.n 8) (word 2 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 9) (.n 10) (.n 11) (.n 8)) ::
+  .atom (.mul (.n 12) (.n 1) (.n 7)) ::
+  .atom (.load (.n 13) (.n 12) 0) ::
+  .atom (.const (.n 14) (word 55834575010 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 15) (.n 16) (.n 17) (.n 14)) ::
+  .atom (.const (.n 18) (word 2048 0)) ::
+  .atom (.mul (.n 19) (.n 13) (.n 18)) ::
+  .atom (.mul (.n 20) (.n 1) (.n 6)) ::
+  .atom (.load (.n 21) (.n 20) 0) ::
+  .atom (.add (.n 22) (.n 19) (.n 21)) ::
+  .atom (.const (.n 23) (word 55834575010 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 24) (.n 25) (.n 26) (.n 23)) ::
+  .atom (.const (.n 27) (word 2048 0)) ::
+  .atom (.mul (.n 28) (.n 22) (.n 27)) ::
+  .atom (.mul (.n 29) (.n 1) (.n 5)) ::
+  .atom (.load (.n 30) (.n 29) 0) ::
+  .atom (.add (.n 31) (.n 28) (.n 30)) ::
+  .atom (.const (.n 32) (word 55834575010 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 33) (.n 34) (.n 35) (.n 32)) ::
+  .atom (.const (.n 36) (word 2048 0)) ::
+  .atom (.mul (.n 37) (.n 31) (.n 36)) ::
+  .atom (.mul (.n 38) (.n 1) (.n 4)) ::
+  .atom (.load (.n 39) (.n 38) 0) ::
+  .atom (.add (.n 40) (.n 37) (.n 39)) ::
+  .atom (.const (.n 41) (word 55834575010 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 42) (.n 43) (.n 44) (.n 41)) ::
+  .atom (.const (.n 45) (word 2048 0)) ::
+  .atom (.mul (.n 46) (.n 40) (.n 45)) ::
+  .atom (.mul (.n 47) (.n 1) (.n 3)) ::
+  .atom (.load (.n 48) (.n 47) 0) ::
+  .atom (.add (.n 49) (.n 46) (.n 48)) ::
+  .atom (.const (.n 50) (word 55834575010 0)) ::
+  .atom (.rangeCheck (.n 2) (.n 51) (.n 52) (.n 53) (.n 50)) ::
+  .atom (.const (.n 54) (word 2048 0)) ::
+  .atom (.mul (.n 55) (.n 49) (.n 54)) ::
+  .atom (.mul (.n 56) (.n 1) (.n 2)) ::
+  .atom (.load (.n 57) (.n 56) 0) ::
+  .atom (.add (.n 58) (.n 55) (.n 57)) ::
+  .atom (.const (.n 59) (word 256 0)) ::
+  .atom (.mul (.n 60) (.n 58) (.n 59)) ::
+  .atom (.add (.n 61) (.n 0) (.n 60)) ::
+  .atom (.const (.n 62) (word 2 1)) ::
+  .atom (.mul (.n 63) (.n 61) (.n 62)) ::
+  .atom (.const (.n 64) (word 256 0)) ::
+  .atom (.mul (.n 65) (.n 58) (.n 64)) ::
+  .atom (.assertInK (.n 63) (.n 65)) ::
   .ret [] ::
   [])
 
 end core89
 
-/-- `grind_check__L9`. -/
+/-- `grind_check__L8`. -/
 noncomputable def core89 : Core.Fn where
-  name := "grind_check__L9"
+  name := "grind_check__L8"
   params := [.n 0, .n 1]
   body := core89.body
 
