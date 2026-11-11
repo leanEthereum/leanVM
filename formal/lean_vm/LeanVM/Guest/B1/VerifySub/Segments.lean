@@ -214,8 +214,8 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
     (h : Whir.runF (readAnnouncedSizes bytecode) st = some ((L, r), st')) :
     ∃ (logMem : ℕ) (rowsN : List ℕ),
       st.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r]) ++ st'.stream ∧
-      L = Tables.layoutOf bytecode logMem rowsN ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
-      rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 32) ∧ 1 ≤ r ∧ r ≤ 4 ∧
+      L = Tables.layoutOf bytecode logMem rowsN ∧ 1 ≤ logMem ∧ logMem ≤ 30 ∧
+      rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 30) ∧ 1 ≤ r ∧ r ≤ 4 ∧
       Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := by
   unfold readAnnouncedSizes at h
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h
@@ -247,13 +247,13 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {st :
     simp only at hcond
     split at hcond
     · rename_i hc
-      obtain ⟨-, h16, h32, hall32, -, hlen⟩ := hc
+      obtain ⟨-, h16, h30, hall30, -, hlen⟩ := hc
       have hlen' : rowsN.length = 6 := by rw [hlen]; rfl
-      have hr32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32 := by simpa using hall32
-      have hLe := buildLayout_eq hbl h16 h32 hlen' hr32
+      have hr30 : ∀ n ∈ rowsN, n ≤ 2 ^ 30 := by simpa using hall30
+      have hLe := buildLayout_eq hbl h16 h30 hlen' hr30
       rw [hL'] at hLe
       obtain rfl := Option.some.inj hLe
-      refine ⟨kToNat (v0.limb 0), rowsN, ?_, rfl, h16, h32, hlen', hr32, hr.1, hr.2, hst.1, hst.2⟩
+      refine ⟨kToNat (v0.limb 0), rowsN, ?_, rfl, h16, h30, hlen', hr30, hr.1, hr.2, hst.1, hst.2⟩
       rw [hs1, ← word_eOfNat_of a0 b0, ← word_eOfNat_of a7 b7]
       simp only [hrowsN, List.map_cons, List.map_nil, ← word_eOfNat_of a1 b1,
         ← word_eOfNat_of a2 b2, ← word_eOfNat_of a3 b3, ← word_eOfNat_of a4 b4,
@@ -434,13 +434,13 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   layout : Layout
   hlayout : layout = Tables.layoutOf bytecode logMem rowsN
   hlm1 : 1 ≤ logMem
-  h32 : logMem ≤ 32
+  h30 : logMem ≤ 30
   hrowsL : rowsN.length = 6
-  hrows32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32
+  hrows30 : ∀ n ∈ rowsN, n ≤ 2 ^ 30
   hr1 : 1 ≤ rate
   hr4 : rate ≤ 4
   hmu20 : 20 ≤ layout.stackLog
-  hmu32 : layout.stackLog ≤ 32
+  hmu30 : layout.stackLog ≤ 30
   /-- The announced sizes. -/
   s1 : Fs
   runS : RunsTo (readAnnouncedSizes bytecode) ⟨capOf (keccakF1600 (seedInput seed
@@ -506,6 +506,14 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   /-- The announced sizes are `Verifier.announcedLayoutAndRate`'s. -/
   hann : Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, rate)
 
+/-- The memory's log-size (`h30` weakened). -/
+theorem ChildSegs.h32 {bytecode : List K} {seed : Digest} {c : Node.Child}
+    (S : ChildSegs bytecode seed c) : S.logMem ≤ 32 := by have := S.h30; omega
+
+/-- The stack's log-size (`hmu30` weakened). -/
+theorem ChildSegs.hmu32 {bytecode : List K} {seed : Digest} {c : Node.Child}
+    (S : ChildSegs bytecode seed c) : S.layout.stackLog ≤ 32 := by have := S.hmu30; omega
+
 /-- **An honest child's run, in segments** (G7's per-child hypotheses; the guest's bytecode of
 `2^23` words). -/
 theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (seed : Digest)
@@ -525,7 +533,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   -- the announced sizes
   obtain ⟨ls, sA, hA, h⟩ := Whir.runF_bind_some hpre
   obtain ⟨L, r⟩ := ls
-  obtain ⟨logMem, rowsN, hsA, hL, hlm1, h32, hrowsL, hrows32, hr1, hr4, -, hst28⟩ :=
+  obtain ⟨logMem, rowsN, hsA, hL, hlm1, h30, hrowsL, hrows30, hr1, hr4, -, hst30⟩ :=
     readSizes_inv hbl hA
   obtain ⟨xs1, hxs1, runS⟩ := runsTo_of_runF (noCommit_readSizes _) hA
   have exs1 : xs1 = eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r] := by
@@ -570,7 +578,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
     simp only [deferStart, List.nil_append, List.cons.injEq, Prod.mk.injEq, and_true] at e
     exact e.symm
   subst hroot'
-  refine ⟨⟨logMem, rowsN, r, L, hL, hlm1, h32, hrowsL, hrows32, hr1, hr4, hmu20, hst28, sA.sponge,
+  refine ⟨⟨logMem, rowsN, r, L, hL, hlm1, h30, hrowsL, hrows30, hr1, hr4, hmu20, hst30, sA.sponge,
     runS, x0, x1, root', hroot, alphas, sC.sponge, ?_, xsG, rG, sD.sponge, ?_, xsT, bus, claims,
     sE.sponge, runT, hlanes, xsK, km, sF.sponge, runK, chs, _, hch, xsW, w, s', roots', hrun,
     hnzW, hcapsW, hacc, ?_, ?_⟩⟩

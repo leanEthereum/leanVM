@@ -30,7 +30,7 @@ open LeanVM.Protocol.Verifier
 instance : Inhabited Fs := ⟨⟨[], []⟩⟩
 
 instance : Inhabited SpLv :=
-  ⟨{ logN := 0, index := 0, level := ⟨0, 0, 0, 0⟩, fin := false, ws := ⟨0, [], [], []⟩, F := ⟨[], []⟩,
+  ⟨{ logN := 0, index := 0, level := ⟨0, 0, 0⟩, fin := false, ws := ⟨0, [], [], []⟩, F := ⟨[], []⟩,
      xf := [], ra := 0, rb := 0, y := 0, c0 := 0, c2 := 0, ms := [], nonce := 0, os := [],
      ic0 := 0, ic2 := 0, root := Vector.replicate 4 0, height := 0, width := 0 }⟩
 
@@ -90,13 +90,13 @@ theorem words_length {c : OsCfg} {lvl : ℕ} {lv : OsLv} {L : SpLv} (h : SpLvFit
   by_cases hf : lvl = c.yrLevel
   · have hL : L.fin = true := h.fin.mpr hf
     simp only [hL, hf, ↓reduceIte, List.length_append, List.length_cons, List.length_nil,
-      hOk.xf, h.fold, h.grind, hOk.ms hL, h.ml, hyl hf]
+      hOk.xf, h.fold, hOk.ms hL, h.ml, hyl hf]
   · have hL : L.fin = false := by
       cases e : L.fin
       · rfl
       · exact absurd (h.fin.mp e) hf
     simp only [hL, hf, Bool.false_eq_true, ↓reduceIte, List.length_append, List.length_cons,
-      List.length_nil, hOk.xf, h.fold, h.grind]
+      List.length_nil, hOk.xf, h.fold]
 
 /-- **The chain of levels gives the levels' hypotheses.** -/
 theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {logN lane : ℕ}
@@ -112,12 +112,12 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {l
       ChainEnd rd lane (lvsOut c lvl lvs (spDats Ls lvl wp) F ws.quad ws.target cur)
         (Ls.getLastD default) (xs.drop (Ls.map SpLv.words).flatten.length) res
   | [lv], [level], lvl, ws, F, xs, os, R, [L], res, cur, hok, hch, hfo, hrd, hmem, hcal => by
-    obtain ⟨hcfg, hfold, hgr, h4, hml, hlen, hfin⟩ := hok
+    obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
     obtain ⟨e1, e2, e3, e4, e5, e6, hOk, xsR, osR, hxs, hos, htl, htnz, hres⟩ := hch
     subst e5 e6
     simp only [List.headD_cons] at hfo
     have hfit : SpLvFit c lvl lv L := by
-      refine ⟨by rw [e3, hfold], by rw [e3, hgr], h4, ?_, ?_, ⟨fun _ ↦ hfin, fun _ ↦ e4⟩⟩
+      refine ⟨by rw [e3, hfold], h4, ?_, ?_, ⟨fun _ ↦ hfin, fun _ ↦ e4⟩⟩
       · simp only [SpLv.ml, SpLv.ws1, List.length_append, SpLv.chs_length, e1, e3, hfo, hfold, hml]
       · have hml' : L.ml = lv.logCols := by
           simp only [SpLv.ml, SpLv.ws1, List.length_append, SpLv.chs_length, e1, e3, hfo, hfold, hml]
@@ -140,14 +140,14 @@ theorem lvsH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {l
     rwa [words_length hfit hOk (fun _ ↦ hlen)] at this
   | lv :: lv' :: lvs, level :: next :: cfg, lvl, ws, F, xs, os, R, L :: Ls, res, cur, hok, hch,
       hfo, hrd, hmem, hcal => by
-    obtain ⟨hcfg, hfold, hgr, h4, hml, hm1, hlvl, hnf, hoff', hshape, hrest⟩ := hok
+    obtain ⟨hcfg, hfold, h4, hml, hm1, hlvl, hnf, hoff', hshape, hrest⟩ := hok
     obtain ⟨e1, e2, e3, e4, e5, e6, d, xsR, osR, hOk, hxs, hos, hch'⟩ := hch
     subst e5 e6
     simp only [List.headD_cons] at hfo
     have hml' : L.ml = lv.logCols := by
       simp only [SpLv.ml, SpLv.ws1, List.length_append, SpLv.chs_length, e1, e3, hfo, hfold, hml]
     have hfit : SpLvFit c lvl lv L := by
-      refine ⟨by rw [e3, hfold], by rw [e3, hgr], h4, hml', ?_, ⟨fun h ↦ (by rw [e4] at h; cases h),
+      refine ⟨by rw [e3, hfold], h4, hml', ?_, ⟨fun h ↦ (by rw [e4] at h; cases h),
         fun h ↦ absurd h hnf⟩⟩
       simp only [SpLv.nsq, SpLv.D, hml', e3, ← hcfg.depth, hcfg.queries, hcfg.squeezes]
     have hm0 := hmem 0 (by simp)

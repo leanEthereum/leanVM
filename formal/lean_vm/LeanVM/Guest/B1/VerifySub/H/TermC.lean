@@ -110,7 +110,6 @@ theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
         ofK (addressOfIndex e295)] (Tables.cpOwn S.logMem S.hs e10 e11 e138 e139 e295) :=
     ⟨e10, e11, e138, e139, e295, rfl, rfl⟩
   have hP := Tables.cp_out_ctx hcpOut hcpo
-  have hK32 := committed_le32 hbl S.stack32
   -- the bus point
   have hbus : S.bus = S.H.busH := (Tables.vt_spec hok).2.1
   have hbp : S.bus.point = S.point := by rw [hbus]; rfl
@@ -119,14 +118,14 @@ theorem vsH_termPre {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
   rw [S.hlayout] at hwl' ⊢
   simp only [TermPre, termArgs, vsTermB]
   refine ⟨termCtx_of_tctx hct, hP, fun c hc ↦ ?_, layoutOf_placements hbl _ _,
-    layoutOf_stackLog hbl _ _, S.stack32, S.hlm1,
+    layoutOf_stackLog hbl _ _, S.stack30, S.hlm1,
     S.h32, by rw [hbp, hpl]; omega, S.hs_length, S.hh33 hbl, rfl, rfl, ?_, gTabs_of_exp hexp, trivial,
     trivial, by rw [hopl, Tables.qkeccakSlotBits_eq]; rfl, mOp,
     by rw [hkpl, Tables.qkeccakSlotBits_eq]; rfl, mKp, by simp [ringCoefficients, kBits],
     mT, hwl', ?_, ?_⟩
-  · have := hK32 c hc
+  · have := committed_le32 hbl S.stack30 c hc
     show (Tables.committedKappas (columnKappas S.logMem Tables.guestLogBytecode
-      (Tables.tableHeightsOf S.rowsN))).getD c 0 < 33
+      (Tables.tableHeightsOf S.rowsN))).getD c 0 < 31
     omega
   · show Tables.TbReadsAt rd _ (1 :: gen ^ S.logMem :: S.hs.map (gen ^ ·))
     rw [← hcount]; exact mK

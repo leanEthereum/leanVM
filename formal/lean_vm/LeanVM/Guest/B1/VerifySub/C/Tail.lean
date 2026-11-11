@@ -39,7 +39,7 @@ theorem vsCPre_tail : vsCPre = vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++
 def vsTailHead : List Stmt :=
   [vsCall "certify_placement" [139, 4] [1682, 1683],
     vsCall "log2_ceil_in_the_exponent__L16_L34" [1682, 4] [1684],
-    vsConst 1685 (word 14347465658197868555 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 4096 0 0),
+    vsConst 1685 (word 14347465658197868555 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 1024 0 0),
     vsRange 1686 1688 1689 1690 1687,
     .dispatch (.n 1686) vsOpenNames
       [.n 122, .n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1681, .n 324, .n 334, .n 656]
@@ -69,7 +69,7 @@ theorem vsTailPre_good (hl : args.length = 6) :
 set_option maxRecDepth 100000 in
 /-- **The tail, honestly.** -/
 theorem vsTailPre_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (hlow : LowDef κ rd)
-    {m : ℕ} (hm19 : B1.Whir.minOpenLog ≤ m) (hm32 : m ≤ 32)
+    {m : ℕ} (hm19 : B1.Whir.minOpenLog ≤ m) (hm30 : m ≤ 30)
     (e1684 : vsσ rd w args (.n 1684) = gen ^ m)
     {zs al : ℕ → E}
     (hzeta : ∀ k < 19, LoadHolds rd (vsσ rd w args (.n 310)) k (zs k))
@@ -106,9 +106,9 @@ theorem vsTailPre_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (
       rwa [ite_eq_left_of_eq_true _ _ (eq_true ⟨show x < d from hx, show y < d from hy⟩)] at this
   have c1685 : σ (.n 1685) = word 14347465658197868555 0 0 :=
     g _ (show vsConst 1685 (word 14347465658197868555 0 0) ∈ vsTailHead by simp [vsTailHead])
-  have c1687 : σ (.n 1687) = gen ^ 12 := by
-    rw [show σ (.n 1687) = word 4096 0 0 from g _ (show vsConst 1687 (word 4096 0 0) ∈ vsTailHead by
-      simp [vsTailHead]), show (4096 : ℕ) = 2 ^ 12 from rfl, word_two_pow (by norm_num)]
+  have c1687 : σ (.n 1687) = gen ^ 10 := by
+    rw [show σ (.n 1687) = word 1024 0 0 from g _ (show vsConst 1687 (word 1024 0 0) ∈ vsTailHead by
+      simp [vsTailHead]), show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)]
   have m1686 := gm 1686 1684 1685 (by simp [vsTailHead]) (by norm_num) (by norm_num)
   have v1686 : σ (.n 1686) = gen ^ (m - B1.Whir.minOpenLog) := by
     rw [m1686, e1684, c1685]
@@ -116,13 +116,13 @@ theorem vsTailPre_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (
       rw [← pow_add]; congr 1; unfold B1.Whir.minOpenLog at hm19; omega
     rw [this, mul_assoc, mul_comm (gen ^ 20), kn_word_ginv20_mul, mul_one]
   have r1 := rc_holds hlow (by decide) (a := m - B1.Whir.minOpenLog)
-    (b := 12 - (m - B1.Whir.minOpenLog)) (by unfold B1.Whir.minOpenLog; omega)
+    (b := 10 - (m - B1.Whir.minOpenLog)) (by unfold B1.Whir.minOpenLog; omega)
     (by unfold B1.Whir.minOpenLog; omega)
     v1686 (by
       rw [good_rc_y (by decide) (g _ (show vsRange 1686 1688 1689 1690 1687 ∈ vsTailHead by
         simp [vsTailHead])), c1687, v1686, gen_pow_div (by unfold B1.Whir.minOpenLog; omega)])
     (g _ (show vsRange 1686 1688 1689 1690 1687 ∈ vsTailHead by simp [vsTailHead]))
-  have hlen : vsOpenNames.length = 13 := by simp [vsOpenNames]
+  have hlen : vsOpenNames.length = 11 := by simp [vsOpenNames]
   have hdisp : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1686) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] ([V.n 122, V.n 1100, V.n 1101, V.n 1102, V.n 1103, V.n 1104, V.n 1681,
         V.n 324, V.n 334, V.n 656].map σ) ((vsRun 1691 5).map σ) := by
@@ -131,8 +131,8 @@ theorem vsTailPre_complete (hl : args.length = 6) {κ : ℕ} (hκ6 : 6 ≤ κ) (
     rw [← List.getD_eq_getElem _ ""]
     simpa using hD
   refine ⟨v1686, ?_⟩
-  have k1687 : σ (.n 1687) = word 4096 0 0 :=
-    g _ (show vsConst 1687 (word 4096 0 0) ∈ vsTailHead by simp [vsTailHead])
+  have k1687 : σ (.n 1687) = word 1024 0 0 :=
+    g _ (show vsConst 1687 (word 1024 0 0) ∈ vsTailHead by simp [vsTailHead])
   have memZ : ∀ k < 19, ∀ s ∈ [vsLd (1696 + k) 310 k, vsLd (1696 + k) 5 k], s ∈ vsTailPre :=
     fun k hk s hs ↦ by
       rw [vsTailPre_eq]

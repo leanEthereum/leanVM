@@ -8,7 +8,9 @@ module
 
 public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Whir.BrCaps
-public import LeanVM.Guest.B1.Whir.CFoldCall
+public import LeanVM.Guest.B1.Whir.CFold
+public import LeanVM.Guest.B1.Whir.CFinal
+public import LeanVM.Guest.B1.Opening.Fold
 public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Place.OsLkMem
 
@@ -71,9 +73,6 @@ structure OsNames (c : OsCfg) (ri : ℕ) : Prop where
     osKindOf ("opening_row_weights__L" ++ natStr (lvAt c i).folds ++ "_L" ++
       natStr (if i = 0 then 1 else 0)) = some (.rw (lvAt c i).folds (if i = 0 then 1 else 0))
   ffm : osKindOf ("fold_final_msg__L" ++ natStr c.yrLog) = some (.ffm c.yrLog)
-  fold0 : ∀ i < c.levels.length, (lvAt c i).grindAny = 0 → (lvAt c i).foldGrind = 0
-  ofr : ∀ i < c.levels.length, (lvAt c i).grindAny ≠ 0 →
-    osKindOf (osFoldRoundName (lvAt c i).foldGrind) = some (.ofr (lvAt c i).foldGrind)
   pos : ∀ i < c.levels.length, osKindOf (osPositionsName (lvAt c i)) = none
   q : ∀ i < c.levels.length, osKindOf (osQueriesName i (lvAt c i)) = none
   res : ∀ i < c.levels.length, osKindOf (osResidualName (lvAt c i)) = none
@@ -152,25 +151,13 @@ theorem osCallsOk_honest {μ r : ℕ} {cfg : List Whir.Level} {ri : ℕ}
     obtain ⟨l1, l2⟩ := lk_slice0 (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := 0) (n := c.yrLen)
       (by omega) (by omega) (by rw [g0]; simp [fmsgC])
     exact ⟨_, l1, fun rd' hl hm' ↦ by rw [h8]; exact l2 rd' hl hm'⟩
-  have hfold0 : FoldCallC (osCR rd (osSp c tr (osAtOf c b0)) (OsXOk κ (osLk c tr b0 Lin))) rd none 0
-      (ofK (addressOfIndex ri)) := fun _ _ _ _ hcan hmf ↦
-    osCR_named osKindOf_fold (meaningOpeningFold_of hcan hmf) trivial
+  have hfold0 : FoldCallC (osCR rd (osSp c tr (osAtOf c b0)) (OsXOk κ (osLk c tr b0 Lin))) rd :=
+    fun _ _ hmf ↦ osCR_named osKindOf_fold hmf trivial
   refine ⟨hfold0, fun i hi ↦ ?_, fun i hi ↦ ?_, ?_⟩
-  · refine ⟨?_, fun _ _ hm' ↦ osCR_named osKindOf_can hm' trivial,
+  · refine ⟨hfold0, fun _ _ hm' ↦ osCR_named osKindOf_can hm' trivial,
       fun hne _ _ hm' ↦ osCR_named (hN.ood i hi hne) hm' trivial,
       fun _ _ hm' ↦ osCR_named (hN.grind i hi) hm' trivial,
       fun _ a _ hm' h8 ↦ osCR_named hN.fm hm' (hfm a h8), ?_, ?_, ?_⟩
-    · -- the fold rounds
-      unfold osFoldNames
-      split
-      · next hg => rw [hN.fold0 i hi hg]; exact hfold0
-      · next hg =>
-        intro σ hR args rets hcan hmf
-        have hl : ri < ((c.lvAt i).map fun l ↦ osFoldRoundName l.foldGrind).length := by
-          rw [List.length_map, (hN.rate i hi).1]; exact hN.ri4
-        refine ⟨ri, hl, hR, ?_⟩
-        rw [List.getElem_map, ← List.getD_eq_getElem _ default (by simpa using hl), (hN.rate i hi).2]
-        exact osCR_named (hN.ofr i hi hg) ⟨hcan, hmf⟩ trivial
     · exact dispC_rate (hN.rate i hi) hN.ri4 osPositionsName
         (osCR_special (hN.pos i hi) ⟨i, hi, Or.inl ⟨rfl, rfl, rfl⟩⟩)
     · -- the row weights

@@ -133,19 +133,19 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
   rw [hlir] at e112
   rw [hlm] at e29
   have hS := (vsSizesT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
-    D.hκ6 D.hlow D.hl1 D.hl4 D.hlm1 D.hm32 D.e112 D.e29 D.e122 D.e130 D.hsl D.hdims D.hkb trivial
+    D.hκ6 D.hlow D.hl1 D.hl4 D.hlm1 D.hm30 D.e112 D.e29 D.e122 D.e130 D.hsl D.hdims D.hkb trivial
     trivial trivial).1
   have hkbv : ∀ s < 8, vsσ rd (vsW bs outs) args (.n (140 + s)) =
       gen ^ (([0, D.logMem] ++ D.hs).getD s 0) :=
     fun s hs8 ↦ by rw [hS s hs8, D.hcount, kbase_getD D.hsl hs8]
   have hpush := (vsPushT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
-    D.hh D.hm32 hkbv D.hexp (fun _ _ ↦ trivial) trivial).1
+    D.hh (by have := D.hm30; omega) hkbv D.hexp (fun _ _ ↦ trivial) trivial).1
   rw [hlm, hhs] at hpush
   have hpp : ∀ b < 54, vsσ rd (vsW bs outs) args (.n (vsPushM b)) =
       vsσ rd (vsW bs outs) args (.n 4) *
         gen ^ ([0, D.logMem] ++ D.hs).getD (Tables.blockKappaSrc.getD b 0) 0 :=
     fun b hb ↦ vs_push_ptr hl hkbv hb
-  have hpk : ∀ b < 54, pushKappa D.logMem D.hs b < 34 := fun b hb ↦ pushKappa_lt D.hh D.hm32 hb
+  have hpk : ∀ b < 54, pushKappa D.logMem D.hs b < 34 := fun b hb ↦ pushKappa_lt D.hh (by have := D.hm30; omega) hb
   have hcalls := vsCallsT_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True) hl
     D.hd6 trivial trivial trivial trivial
   rw [hτ] at hcalls
@@ -153,7 +153,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     D.hz D.hcap966 D.hpool trivial
   rw [hv] at hlam
   have htail := (vsTailPre_complete (C := fun _ _ _ ↦ True) (next := True) (kret := fun _ ↦ True)
-    hl D.hκ6 D.hlow D.hmu20 D.hmu32 D.e1684 D.hzeta D.halpha D.hout D.hout'
+    hl D.hκ6 D.hlow D.hmu20 D.hmu30 D.e1684 D.hzeta D.halpha D.hout D.hout'
     D.hout23 trivial trivial trivial trivial trivial).1
   rw [hm] at htail
   have h122 := D.e124

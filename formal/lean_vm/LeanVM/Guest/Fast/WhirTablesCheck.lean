@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Whir.InterfaceW
   `Fast/FunctionNames.lean`);
 * `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's at
   every size and rate, by kernel evaluation, a size and rate at a time (`callsOK_j`, at the index
-  `j = (r - 1) * 13 + m`).
+  `j = (r - 1) * 11 + m`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -42,14 +42,14 @@ noncomputable def callMatch (r : OsCall) : ℕ × OsLv × String × List V × Li
       decoderFunctionName r.loop == oqLoopOf (oqNameOf lvl lv) &&
       decoderFunctionName r.walk == oqWalkOf (lvOq lvl lv)
 
-/-- The configuration at the index `j = (r - 1) * 13 + m`. -/
-def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 13) (j / 13)
+/-- The configuration at the index `j = (r - 1) * 11 + m`. -/
+def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)
 
 /-- The `level_queries` dispatches at the index `j`. -/
 def osCallsOf (j : ℕ) : List (ℕ × OsLv × String × List V × List V) :=
   osQCalls (osCfgAt j) 0 (osCfgAt j).levels (osHead (osCfgAt j)).2
 
-theorem osWordsTab_eq : osWordsTab = (List.range 52).map fun j ↦ osWordsLen (osCfgAt j) := by
+theorem osWordsTab_eq : osWordsTab = (List.range 44).map fun j ↦ osWordsLen (osCfgAt j) := by
   decide +kernel
 
 /-- The calls at the index `j` are the table's. -/
@@ -145,24 +145,8 @@ theorem callsOK_42 : CallsOK 42 := by unfold CallsOK; decide +kernel
 
 theorem callsOK_43 : CallsOK 43 := by unfold CallsOK; decide +kernel
 
-theorem callsOK_44 : CallsOK 44 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_45 : CallsOK 45 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_46 : CallsOK 46 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_47 : CallsOK 47 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_48 : CallsOK 48 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_49 : CallsOK 49 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_50 : CallsOK 50 := by unfold CallsOK; decide +kernel
-
-theorem callsOK_51 : CallsOK 51 := by unfold CallsOK; decide +kernel
-
 /-- **Every size and rate's calls are the table's.** -/
-theorem callsOK : ∀ j < 52, CallsOK j
+theorem callsOK : ∀ j < 44, CallsOK j
   | 0, _ => callsOK_0
   | 1, _ => callsOK_1
   | 2, _ => callsOK_2
@@ -207,15 +191,7 @@ theorem callsOK : ∀ j < 52, CallsOK j
   | 41, _ => callsOK_41
   | 42, _ => callsOK_42
   | 43, _ => callsOK_43
-  | 44, _ => callsOK_44
-  | 45, _ => callsOK_45
-  | 46, _ => callsOK_46
-  | 47, _ => callsOK_47
-  | 48, _ => callsOK_48
-  | 49, _ => callsOK_49
-  | 50, _ => callsOK_50
-  | 51, _ => callsOK_51
-  | _ + 52, h => absurd h (by omega)
+  | _ + 44, h => absurd h (by omega)
 
 end
 end LeanVM.Guest.Fast

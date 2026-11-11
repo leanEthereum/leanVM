@@ -61,13 +61,13 @@ theorem post_liftOption {α : Type} (o : Option α) : Post (liftOption o) fun a 
   | some a => exact post_ret rfl
 
 /-- **Each fold round adds one fold.** -/
-theorem foldRoundsT_post (g : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (l : List E),
-    Post (foldRoundsT g n s l) fun r ↦ r.1.folds.length = s.folds.length + n
+theorem foldRoundsT_post : ∀ (n : ℕ) (s : WhirStateT) (l : List E),
+    Post (foldRoundsT n s l) fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, s, l => post_ret rfl
   | n + 1, s, l => by
     simp only [foldRoundsT]
-    refine post_bind (post_true _) fun _ _ ↦ post_bind (post_true _) fun c _ ↦
-      post_bind (post_true _) fun q _ ↦ post_mono (foldRoundsT_post g n _ _) fun r hr ↦ ?_
+    refine post_bind (post_true _) fun c _ ↦
+      post_bind (post_true _) fun q _ ↦ post_mono (foldRoundsT_post n _ _) fun r hr ↦ ?_
     rw [hr, List.length_append, List.length_singleton]
     omega
 
@@ -105,7 +105,7 @@ theorem whirLevelsOpen_post (logN lane : ℕ) : ∀ (index : ℕ) (levels : List
   | index, level :: rest, s, hsum => by
     simp only [List.map_cons, List.sum_cons] at hsum
     simp only [B1.Whir.whirLevelsOpen]
-    refine post_bind (foldRoundsT_post _ _ _ _) fun r hr ↦ ?_
+    refine post_bind (foldRoundsT_post _ _ _) fun r hr ↦ ?_
     obtain ⟨s1, lf⟩ := r
     simp only at hr
     cases rest with

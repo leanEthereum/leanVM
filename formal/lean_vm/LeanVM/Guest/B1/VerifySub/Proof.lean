@@ -43,7 +43,7 @@ def gIdx (N : ℕ) (x : E) : ℕ :=
   ((List.range N).find? fun j ↦ decide (x = ofK (Parameters.addressOfIndex j))).getD 0
 
 /-- The size's index the dispatch selects: the `j < 13` with `x = g^j`. -/
-def dispatchIdx (x : E) : ℕ := gIdx 13 x
+def dispatchIdx (x : E) : ℕ := gIdx 11 x
 
 /-- The rate whose selector is `x`: one plus the `j < 4` with `x = g^j`. -/
 def rateOf (x : E) : ℕ := gIdx 4 x + 1
@@ -116,7 +116,7 @@ theorem gIdx_eq {N : ℕ} (hN : N ≤ 2 ^ 32) {x : E} {j : ℕ} (hj : j < N)
       (ofK_injective e)).symm)]
   rfl
 
-theorem dispatchIdx_eq {x : E} {j : ℕ} (hj : j < 13) (hx : x = ofK (Parameters.addressOfIndex j)) :
+theorem dispatchIdx_eq {x : E} {j : ℕ} (hj : j < 11) (hx : x = ofK (Parameters.addressOfIndex j)) :
     dispatchIdx x = j := gIdx_eq (by norm_num) hj hx
 
 theorem rateOf_eq {r : ℕ} (h1 : 1 ≤ r) (h4 : r ≤ 4) : rateOf (B1.Whir.rateSel r) = r := by

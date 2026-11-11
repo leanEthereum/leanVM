@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop403`, window 0. -/
+/-- `__loop505`, window 0. -/
 theorem w1431_0 : WinOk 1431 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop404`, window 0. -/
+/-- `__loop506`, window 0. -/
 theorem w1432_0 : WinOk 1432 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop405`, window 0. -/
+/-- `__loop507`, window 0. -/
 theorem w1433_0 : WinOk 1433 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop406`, window 0. -/
+/-- `__loop508`, window 0. -/
 theorem w1434_0 : WinOk 1434 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop407`, window 0. -/
+/-- `decode_query_windows__L15_L3`, window 0. -/
 theorem w1435_0 : WinOk 1435 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop408`, window 0. -/
+/-- `decode_query_windows__L16_L4`, window 0. -/
 theorem w1436_0 : WinOk 1436 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop409`, window 0. -/
+/-- `decode_query_windows__L17_L5`, window 0. -/
 theorem w1437_0 : WinOk 1437 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop410`, window 0. -/
+/-- `decode_query_windows__L18_L6`, window 0. -/
 theorem w1438_0 : WinOk 1438 0 := winOk_of_C (by decide +kernel)
 
 theorem ok1431 : CheckOk 1431 := checkOk_one (by decide +kernel) w1431_0

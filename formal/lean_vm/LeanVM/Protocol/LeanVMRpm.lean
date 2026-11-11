@@ -27,7 +27,7 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 **Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
 to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `transcriptExtractor` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
-`soundnessError Q + (Q + 14026 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
+`soundnessError Q + (Q + 12674 · 2^30)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
 `Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_128`, the end statement `KnowledgeSoundness`) and at most `2^-63` for
 `Q ≤ 2^64` (`soundnessRpm_le`). The proof:
@@ -336,7 +336,7 @@ theorem completenessRpm_at {prog : LeanIsaProgram} {input : PublicInput} {t : Ex
 /-- **Completeness in the random-permutation model**, for the honest prover
 `LeanVM.Protocol.EndToEnd.Complete.honestComp`. -/
 theorem completenessRpm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 32) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let v ← verifierCompletenessExperimentWithHash
         (fun prog input t ρ fuel ↦ some <$> EndToEnd.Complete.honestComp prog input t ρ fuel)
@@ -358,11 +358,11 @@ theorem completenessRpm {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
 /-! ## The numbers -/
 
 theorem soundnessError_eq (Q : ℕ) :
-    soundnessError Q = (((Q + 14026) * (2 ^ 128 + 5 * (Q + 14026)) + 14026 : ℕ) : ℝ≥0∞) /
+    soundnessError Q = (((Q + 12674) * (2 ^ 128 + 5 * (Q + 12674)) + 12674 : ℕ) : ℝ≥0∞) /
       ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
   have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
-  have hV : (verifierQueries : ℝ≥0∞) = ((14026 : ℕ) : ℝ≥0∞) := rfl
-  rw [soundnessError, hV, show verifierQueries = 14026 from rfl,
+  have hV : (verifierQueries : ℝ≥0∞) = ((12674 : ℕ) : ℝ≥0∞) := rfl
+  rw [soundnessError, hV, show verifierQueries = 12674 from rfl,
     EndToEnd.Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
     ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
     ENNReal.div_add_div_same, ← Nat.cast_add]
@@ -381,11 +381,11 @@ theorem soundnessRpm_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) :
     ← ENNReal.mul_div_mul_right _ _ hc hc', ← Nat.cast_mul, ← Nat.cast_mul,
     ← pow_add, ENNReal.div_add_div_same, ← Nat.cast_add, show 256 + 252 = 508 from rfl]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show verifierPermCalls = 14026 * 2 ^ 32 from rfl]
-  calc ((Q + 14026) * (2 ^ 128 + 5 * (Q + 14026)) + 14026) * 2 ^ 252 +
-        (Q + 14026 * 2 ^ 32) ^ 2
-      ≤ ((2 ^ 64 + 14026) * (2 ^ 128 + 5 * (2 ^ 64 + 14026)) + 14026) * 2 ^ 252 +
-        (2 ^ 64 + 14026 * 2 ^ 32) ^ 2 := by gcongr
+  rw [show verifierPermCalls = 12674 * 2 ^ 30 from rfl]
+  calc ((Q + 12674) * (2 ^ 128 + 5 * (Q + 12674)) + 12674) * 2 ^ 252 +
+        (Q + 12674 * 2 ^ 30) ^ 2
+      ≤ ((2 ^ 64 + 12674) * (2 ^ 128 + 5 * (2 ^ 64 + 12674)) + 12674) * 2 ^ 252 +
+        (2 ^ 64 + 12674 * 2 ^ 30) ^ 2 := by gcongr
     _ ≤ 2 ^ 200 * 2 ^ 245 := by norm_num
     _ = 2 ^ (508 - 63) := by rw [← pow_add]
 
@@ -404,29 +404,29 @@ theorem soundnessRpm_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
     ← pow_add, ENNReal.div_add_div_same, ← Nat.cast_add, show 256 + 252 = 508 from rfl,
     EndToEnd.Sound.inv_pow_eq_div 127 508 (by norm_num), hQ', ← mul_div_assoc, ← Nat.cast_mul]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [show verifierPermCalls = 14026 * 2 ^ 32 from rfl, show 508 - 127 = 381 from rfl]
-  have h5 : 5 * (Q + 14026) ≤ 2 ^ 128 :=
-    calc 5 * (Q + 14026) ≤ 5 * (2 ^ 120 + 14026) := by gcongr
+  rw [show verifierPermCalls = 12674 * 2 ^ 30 from rfl, show 508 - 127 = 381 from rfl]
+  have h5 : 5 * (Q + 12674) ≤ 2 ^ 128 :=
+    calc 5 * (Q + 12674) ≤ 5 * (2 ^ 120 + 12674) := by gcongr
       _ ≤ 2 ^ 128 := by norm_num
-  have hP : Q + 14026 * 2 ^ 32 ≤ 2 ^ 121 :=
-    calc Q + 14026 * 2 ^ 32 ≤ 2 ^ 120 + 14026 * 2 ^ 32 := by gcongr
+  have hP : Q + 12674 * 2 ^ 30 ≤ 2 ^ 121 :=
+    calc Q + 12674 * 2 ^ 30 ≤ 2 ^ 120 + 12674 * 2 ^ 30 := by gcongr
       _ ≤ 2 ^ 121 := by norm_num
-  calc ((Q + 14026) * (2 ^ 128 + 5 * (Q + 14026)) + 14026) * 2 ^ 252 + (Q + 14026 * 2 ^ 32) ^ 2
-      ≤ ((Q + 14026) * (2 ^ 128 + 2 ^ 128) + 14026) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
-    _ ≤ ((Q + 14026) * (2 ^ 128 + 2 ^ 128) + 14026) * 2 ^ 252 + 2 ^ 252 :=
+  calc ((Q + 12674) * (2 ^ 128 + 5 * (Q + 12674)) + 12674) * 2 ^ 252 + (Q + 12674 * 2 ^ 30) ^ 2
+      ≤ ((Q + 12674) * (2 ^ 128 + 2 ^ 128) + 12674) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
+    _ ≤ ((Q + 12674) * (2 ^ 128 + 2 ^ 128) + 12674) * 2 ^ 252 + 2 ^ 252 :=
         Nat.add_le_add_left (by norm_num) _
-    _ = ((Q + 14026) * (2 ^ 128 + 2 ^ 128) + 14026 + 1) * 2 ^ 252 := by ring
+    _ = ((Q + 12674) * (2 ^ 128 + 2 ^ 128) + 12674 + 1) * 2 ^ 252 := by ring
     _ ≤ (Q + 2 ^ 14) * 2 ^ 129 * 2 ^ 252 := by
         gcongr
-        calc (Q + 14026) * (2 ^ 128 + 2 ^ 128) + 14026 + 1
-            = Q * 2 ^ 129 + (14026 * 2 ^ 129 + 14027) := by ring
+        calc (Q + 12674) * (2 ^ 128 + 2 ^ 128) + 12674 + 1
+            = Q * 2 ^ 129 + (12674 * 2 ^ 129 + 12675) := by ring
           _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
           _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
     _ = (Q + 2 ^ 14) * 2 ^ 381 := by rw [mul_assoc, ← pow_add]
 
 /-- **The knowledge-soundness bound up to `2^128` queries**: for `Q ≤ 2^128` queries to `π` and
 `π⁻¹`, at most `(Q + 2^14) · 2^-128 + 5 (Q + 2^14)² · 2^-256`. The random-oracle error is
-`A · 2^-128 + 5 A² · 2^-256 + V / 2^256` with `A = Q + V`, `V = 14026`; the verifier's
+`A · 2^-128 + 5 A² · 2^-256 + V / 2^256` with `A = Q + V`, `V = 12674`; the verifier's
 `V / 2^256` and the transfer's `(Q + verifierPermCalls)² / 2^508` are each at most `2^-128`, and
 `A + 2 ≤ Q + 2^14`. -/
 theorem soundnessRpm_le_128 {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :

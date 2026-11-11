@@ -17,8 +17,6 @@ public import LeanVM.Guest.B1.Whir.Facts7
 public import LeanVM.Guest.B1.Whir.Facts8
 public import LeanVM.Guest.B1.Whir.Facts9
 public import LeanVM.Guest.B1.Whir.Facts10
-public import LeanVM.Guest.B1.Whir.Facts11
-public import LeanVM.Guest.B1.Whir.Facts12
 
 namespace LeanVM.Guest.B1.Whir
 
@@ -71,14 +69,6 @@ theorem candB_all (m ri : Nat) (hm : m < ligNSizes) (hr : ri < 4) : candB m ri =
   · exact candB_10_1
   · exact candB_10_2
   · exact candB_10_3
-  · exact candB_11_0
-  · exact candB_11_1
-  · exact candB_11_2
-  · exact candB_11_3
-  · exact candB_12_0
-  · exact candB_12_1
-  · exact candB_12_2
-  · exact candB_12_3
 
 end
 end LeanVM.Guest.B1.Whir

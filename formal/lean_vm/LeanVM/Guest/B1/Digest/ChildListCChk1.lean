@@ -17,15 +17,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem any136c_head : anycHead (coreProgram.getD 342 default) "__loop17" = true := by
+theorem any136c_head : anycHead (coreProgram.getD 336 default) "__loop17" = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any136c_canon : anycCanon (coreProgram.getD 342 default) 136 22 1924 = true := by
+theorem any136c_canon : anycCanon (coreProgram.getD 336 default) 136 22 1924 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any136c_edge : anycEdge (coreProgram.getD 342 default) 136 22 15 21 1924 = true := by
+theorem any136c_edge : anycEdge (coreProgram.getD 336 default) 136 22 15 21 1924 = true := by
   decide +kernel
 
 end

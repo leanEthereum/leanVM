@@ -39,11 +39,11 @@ open LeanVM.Guest.B1.Da (limb0_gen_pow_mul)
 
 variable {rd : Reader}
 
-theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (344 + k) default) = true := by
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (338 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 353 + (k - 9) = 344 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 347 + (k - 9) = 338 + k by omega] at this
 
 theorem mem_ccA {st : List V} {o0 K i : ℕ} (h : i ∈ ccA st o0 K) :
     (∃ v ∈ st, i = v.idx) ∨ ∃ j < K, ∃ c < 4, i = ccCell o0 j c := by
@@ -282,7 +282,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
 /-! ## The two frame loops -/
 
 theorem any136c_recs : ∀ i < 136,
-    recW (ccOwn (loopAtoms (coreProgram.getD 342 default)) 15 i) (anyP 21) 22 i = true :=
+    recW (ccOwn (loopAtoms (coreProgram.getD 336 default)) 15 i) (anyP 21) 22 i = true :=
   recs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => by
     have hw : ∀ i < 16, anycWin i = true := by
       intro i hi
@@ -292,10 +292,10 @@ theorem any136c_recs : ∀ i < 136,
         anycWin_14, anycWin_15]
     exact hw i hi
 
-theorem any17c_parts : anycHead (coreProgram.getD 343 default) "__loop18" = true ∧
-    anycCanon (coreProgram.getD 343 default) 17 19 255 = true ∧
-    anycEdge (coreProgram.getD 343 default) 17 19 12 18 255 = true ∧
-    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 343 default)) 12 i) (anyP 18) 19 i = true := by
+theorem any17c_parts : anycHead (coreProgram.getD 337 default) "__loop18" = true ∧
+    anycCanon (coreProgram.getD 337 default) 17 19 255 = true ∧
+    anycEdge (coreProgram.getD 337 default) 17 19 12 18 255 = true ∧
+    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 337 default)) 12 i) (anyP 18) 19 i = true := by
   have h := any17c_ok
   simp only [anycOk, Bool.and_eq_true] at h
   exact ⟨h.1.1.1, h.1.1.2, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by

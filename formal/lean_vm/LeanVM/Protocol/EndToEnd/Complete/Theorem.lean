@@ -40,7 +40,7 @@ prover `KeccakGkr.hKeccak`), ring switching (`Complete.Ring`) and the WHIR openi
   public digest, as soon as every proof-of-work search finds its nonce below `fuel`
   (`exists_prove_runProof`); at Keccak-256 and Keccak-f[1600] this is the deployed verifier
   `verify` (`exists_prove_verify`).
-* `leanVm_complete_of_execution`: a valid execution of at most `2^32` steps
+* `leanVm_complete_of_execution`: a valid execution of at most `2^30` steps
   (`constraintCompleteness`) has a witness representing it, at sizes for which, when they are
   admissible, the honest strategy wins.
 
@@ -146,7 +146,7 @@ theorem exists_prove_verify {prog : LeanIsaProgram} {input : PublicInput}
       Verifier.verify (bytecodeWords prog) (publicInputDigest input) π = true :=
   exists_prove_verifyWith keccak256 keccakF1600 h hsz hs hρ fuel hg
 
-/-- **From an execution.** A valid execution of at most `2^32` steps has a witness representing
+/-- **From an execution.** A valid execution of at most `2^30` steps has a witness representing
 it at some sizes; when those sizes are admissible, for every valid rate the honest strategy makes
 the verifier program accept against every challenge function. -/
 theorem leanVm_complete_of_execution {prog : LeanIsaProgram} {input : PublicInput} {t :

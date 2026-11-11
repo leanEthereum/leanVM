@@ -493,13 +493,13 @@ theorem opRecs_counts_nonzero {input : PublicInput} {w : EnsembleWitness (leanIs
     have := h.counts_nonzero p.1 ht i hi (Or.inr hn) (by rw [hmsg]; simp [bcMsgOf])
     simpa [hmsg, bcMsgOf] using this
 
-/-- The caps bound the rows of the six tables: at most `6 · 2^32` (`Caps.heights`). -/
+/-- The caps bound the rows of the six tables: at most `6 · 2^30` (`Caps.heights`). -/
 theorem opPairs_length_le {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog κ)}
-    (h : SatisfiedByB prog input w) : (opPairs w).length ≤ 6 * 2 ^ 32 := by
+    (h : SatisfiedByB prog input w) : (opPairs w).length ≤ 6 * 2 ^ 30 := by
   unfold opPairs
   rw [List.length_flatMap]
   have hb : ∀ x ∈ (w.tables.take 6).map fun t ↦ (t.table.map fun row ↦ (t, row)).length,
-      x ≤ 2 ^ 32 := by
+      x ≤ 2 ^ 30 := by
     intro x hx
     obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx
     rw [List.length_map]
@@ -507,10 +507,10 @@ theorem opPairs_length_le {input : PublicInput} {w : EnsembleWitness (leanIsaEns
   have hsum := List.sum_le_length_nsmul _ _ hb
   rw [List.length_map, smul_eq_mul] at hsum
   have h6 : (w.tables.take 6).length ≤ 6 := List.length_take_le _ _
-  calc _ ≤ (w.tables.take 6).length * 2 ^ 32 := hsum
-    _ ≤ 6 * 2 ^ 32 := Nat.mul_le_mul_right _ h6
+  calc _ ≤ (w.tables.take 6).length * 2 ^ 30 := hsum
+    _ ≤ 6 * 2 ^ 30 := Nat.mul_le_mul_right _ h6
 
-/-- The rows of the six tables read at most `26 · 6 · 2^32` cells, fewer than `2^64 - 1`: the read
+/-- The rows of the six tables read at most `26 · 6 · 2^30` cells, fewer than `2^64 - 1`: the read
 bound of specification Lemma 6.3, derived from the caps. -/
 theorem opReads_length_lt {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog κ)}
     (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :

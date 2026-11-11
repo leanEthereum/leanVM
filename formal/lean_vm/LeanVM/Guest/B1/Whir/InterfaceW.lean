@@ -22,10 +22,9 @@ function's own valuation `σ` and the frame map `V`, reading words only.
 rate's rows (`osCfgR m (r - 1)`):
 
 * the stream words: the `osWordsLen c` words at the cursor `σ 9` (`readN`), as many as the size
-  reads at the rate: the first quadratic's two, each level's rounds (`roundLen` words a round: the
-  nonce of its proof of work, if any, and two), its next commitment's six (root, out-of-domain
-  value, intro, nonce) or the final message and its nonce, its intro's two, and the tail's
-  `2·(yrLog - 1)`;
+  reads at the rate: the first quadratic's two, each level's rounds (two words a round), its next
+  commitment's six (root, out-of-domain value, intro, nonce) or the final message and its nonce,
+  its intro's two, and the tail's `2·(yrLog - 1)`;
 * the openings, one phase per level: the queries of the `opening_queries` call in the level's
   `level_queries` call (`osQCalls`, the dispatches the template makes, its words values of `σ`;
   `lqCall`, the call in the callee's frame `V name args rets`), read off that callee's frame and
@@ -71,7 +70,7 @@ final message and its nonce, and its intro's two. -/
 def lvsWords (c : OsCfg) : ℕ → List OsLv → ℕ
   | _, [] => 0
   | lvl, lv :: rest =>
-    roundLen lv.foldGrind * lv.folds + (if lvl = c.yrLevel then c.yrLen + 1 else 6) + 2 +
+    2 * lv.folds + (if lvl = c.yrLevel then c.yrLen + 1 else 6) + 2 +
       lvsWords c (lvl + 1) rest
 
 /-- The stream words a size reads at a rate's levels: the first quadratic's two, the levels', the
@@ -103,7 +102,7 @@ def osQueriesDisp (c : OsCfg) (lvl : ℕ) (lv : OsLv) (lam : ℕ) (s : OsSt) :
 
 /-- The `level_queries` dispatch of a level's template (`osLevel`, `osQueries`). -/
 def osQCall (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V × List V :=
-  let f := osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds s
+  let f := osFolds osFch lv.foldsOff lv.folds s
   let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit c.plan lvl lv f.2
   let sq := osPositions c lvl lv m.2.1
   let lam := sq.2.k - 1
@@ -183,7 +182,7 @@ def open_stacked_sound_w_Spec
     Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap), UnfoldsV L.read C V →
     CallRel.Le C (coreProgram.Rel L.read) →
-    ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 32 → 1 ≤ r → r ≤ 4 →
+    ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
       ∀ (root : Digest) (fs : List E) (target root0 root1 cur : E) (rets : List E) (fn : Fn)
         (σ : Val), fs.length = 5 → (root0, root1) = digestHalves root →
         coreProgram.find? (openName μ) = some fn →

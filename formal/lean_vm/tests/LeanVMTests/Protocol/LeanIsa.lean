@@ -16,8 +16,8 @@ import LeanVM.Protocol.LeanIsa
   same for any row count of the same height.
 * **Admissible sizes.** The first vector is admissible, and so is one with row counts that are
   not powers of two, an empty table among them, and a `KECCAK` table of five rows (below its
-  floor), and so is a memory of two cells, the floor; a memory above `2^32` cells, a table above
-  `2^32` rows and a stack above `2^32` are rejected, and so is the WHIR rate `5`.
+  floor), and so is a memory of two cells, the floor; a memory above `2^30` cells, a table above
+  `2^30` rows and a stack above `2^30` are rejected, and so is the WHIR rate `5`.
 * **The public lines and the bus.** The third line is `MEM_TOP` with cells `0, 0`, not sent;
   six boundary blocks, three per side; the Keccak region is `QKECCAK` with `2^τ_KECCAK` steps.
 * **The relation is decidable, and the instance meets the bus phase's conditions.**
@@ -122,10 +122,10 @@ def offsets (prog : LeanIsaProgram) (s : Sizes) : List (Option ℕ) :=
 #guard decide (s₃.Admissible prog4)
 #guard leanIsaμ prog4 s₃ = leanIsaμ prog4 s₂
 #guard decide (Sizes.Admissible prog4 ⟨1, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
-#guard !decide (Sizes.Admissible prog4 ⟨33, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
-#guard !decide (Sizes.Admissible prog4 ⟨16, by decide, ![2 ^ 32 + 1, 8, 1, 1, 1, 1]⟩)
 #guard !decide (Sizes.Admissible prog4 ⟨31, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
-#guard leanIsaμ prog4 ⟨31, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩ = 34
+#guard !decide (Sizes.Admissible prog4 ⟨16, by decide, ![2 ^ 30 + 1, 8, 1, 1, 1, 1]⟩)
+#guard !decide (Sizes.Admissible prog4 ⟨29, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
+#guard leanIsaμ prog4 ⟨29, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩ = 32
 #guard (List.range 6).map (fun ρ ↦ decide (validRate ρ)) = [false, true, true, true, true, false]
 
 /-! ## The public lines, the bus, the Keccak region -/

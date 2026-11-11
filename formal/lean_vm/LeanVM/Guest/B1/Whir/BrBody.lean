@@ -59,7 +59,7 @@ structure OsMem (rd : Reader) (A : OsAt) (c : OsCfg) (tr : OsTr) : Prop where
 /-- **The calls of `C` the body makes**, at their honest arguments and returns. -/
 structure OsCallsOk (C : CallRel) (rd : Reader) (R : E) (A : OsAt) (c : OsCfg) (tr : OsTr) :
     Prop where
-  fold : FoldCallC C rd none 0 R
+  fold : FoldCallC C rd
   lv : ∀ i < c.levels.length, LvCallsOk C rd A.P R c i (lvAt c i) (tr.L i) (A.wp i)
   res : ∀ i < c.levels.length, DispC C rd R ((c.lvAt i).map osResidualName)
     [A.P.qpos * gen ^ (lvAt c i).posOff, A.BD * gen ^ (i * ligColsCap), finM tr i] [finH c tr i]

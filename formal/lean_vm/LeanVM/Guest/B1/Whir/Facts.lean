@@ -56,11 +56,10 @@ theorem lvBB_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {level : Whir.Level} {ml 
 /-- `LevelsOk`, checked. -/
 def levelsOkB (c : OsCfg) (logN : ℕ) : ℕ → List OsLv → List Whir.Level → Bool
   | lvl, [lv], [level] => lvBB c lvl lv level lv.logCols && decide (level.fold = lv.folds) &&
-      decide (level.foldGrinding = lv.foldGrind) && decide (1 ≤ lv.folds) && decide (logN - (lv.foldsOff + lv.folds) = lv.logCols) &&
+      decide (1 ≤ lv.folds) && decide (logN - (lv.foldsOff + lv.folds) = lv.logCols) &&
       decide (2 ^ lv.logCols = c.yrLen) && decide (lvl = c.yrLevel)
   | lvl, lv :: lv' :: lvs, level :: next :: cfg => lvBB c lvl lv level lv.logCols &&
-      decide (level.fold = lv.folds) && decide (level.foldGrinding = lv.foldGrind) &&
-      decide (1 ≤ lv.folds) &&
+      decide (level.fold = lv.folds) && decide (1 ≤ lv.folds) &&
       decide (logN - (lv.foldsOff + lv.folds) = lv.logCols) && decide (1 ≤ lv.logCols) &&
       decide ((lvl + 1) * ligColsCap < u128Bound) && decide (lvl ≠ c.yrLevel) &&
       decide (lv'.foldsOff = lv.foldsOff + lv.folds) &&
@@ -72,12 +71,12 @@ theorem levelsOkB_sound {c : OsCfg} {logN : ℕ} : ∀ {lvl : ℕ} {lvs : List O
     {cfg : List Whir.Level}, levelsOkB c logN lvl lvs cfg = true → LevelsOk c logN lvl lvs cfg
   | lvl, [lv], [level], h => by
     simp only [levelsOkB, Bool.and_eq_true, decide_eq_true_eq] at h
-    obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, hg⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
-    exact ⟨lvBB_sound h1, h2, hg, h3, h4, h5, h6⟩
+    obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
+    exact ⟨lvBB_sound h1, h2, h3, h4, h5, h6⟩
   | lvl, lv :: lv' :: lvs, level :: next :: cfg, h => by
     simp only [levelsOkB, Bool.and_eq_true, decide_eq_true_eq] at h
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, hg⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := h
-    exact ⟨lvBB_sound h1, h2, hg, h3, h4, h5, h6, h7, h8, h9, levelsOkB_sound h10⟩
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := h
+    exact ⟨lvBB_sound h1, h2, h3, h4, h5, h6, h7, h8, h9, levelsOkB_sound h10⟩
   | _, [], _, h => by simp [levelsOkB] at h
   | _, [_], [], h => by simp [levelsOkB] at h
   | _, [_], _ :: _ :: _, h => by simp [levelsOkB] at h
@@ -126,7 +125,6 @@ def NamesOkH (lvl : ℕ) (lv : OsLv) : Prop :=
   (osResidualName lv, lv.queries, lv.logCols, (lrLoopsOf (osResidualName lv)).1,
     (lrLoopsOf (osResidualName lv)).2) ∈ lrTable ∧
   (rbName lv.logCols, lv.logCols) ∈ rbTable ∧
-  (lv.foldGrind = 0 ∨ lv.foldGrind = 3) ∧ (lv.grindAny = 0 → lv.foldGrind = 0) ∧
   digitsVal (osPowDigits (192 / lv.depth)) 1 = 192 / lv.depth ∧ 0 < lv.squeezes ∧
   lv.squeezes < ordG ∧ lv.squeezes * 5 < u128Bound ∧
   resBatch * (lv.queries / resBatch) < u128Bound

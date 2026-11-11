@@ -57,7 +57,7 @@ theorem vs_back (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0) (h12 : σ (.n 10) = 
     C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1682), σ (.n 1683)] ∧
     C "log2_ceil_in_the_exponent__L16_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)] ∧
     σ (.n 1686) = σ (.n 1684) * word 14347465658197868555 0 0 ∧
-    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 4096 0 0 = σ (.n 1686) * σ (.n 1688) ∧
+    (LoadHolds rd (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 1024 0 0 = σ (.n 1686) * σ (.n 1688) ∧
       LoadHolds rd (σ (.n 1688)) 0 (σ (.n 1690))) ∧
     (∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1686) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] (vsOsArgs σ) (vsOsRets σ)) ∧

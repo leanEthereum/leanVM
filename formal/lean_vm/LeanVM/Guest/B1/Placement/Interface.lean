@@ -96,13 +96,13 @@ def certify_placement_Spec (rd : Reader) : Prop :=
       ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
         PCtx rd (columnKappas logMem guestLogBytecode hs) off
 
-/-- Every committed column's log is below `N_COLUMN_LOGS = 33`. -/
+/-- Every committed column's log is below `N_COLUMN_LOGS = 31`. -/
 def KappasBelow (kappas : List ℕ) : Prop :=
-  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 33
+  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 31
 
-/-- **The columns' logs are in range** once the stack is at most `2^32`. -/
+/-- **The columns' logs are in range** once the stack is at most `2^30`. -/
 def HypKappa : Prop :=
-  ∀ kappas : List ℕ, kappas.length = 165 → log2Ceil (stackTotal kappas) ≤ 32 → KappasBelow kappas
+  ∀ kappas : List ℕ, kappas.length = 165 → log2Ceil (stackTotal kappas) ≤ 30 → KappasBelow kappas
 
 end
 end LeanVM.Guest.B1.Tables

@@ -84,8 +84,11 @@ theorem noOpen_readE : NoOpen VerifierProgram.readScalar := (noOpen_iff _).2 fun
 theorem noOpen_sampleE : NoOpen VerifierProgram.sampleChallenge :=
   (noOpen_iff _).2 fun _ ↦ trivial
 
-theorem noOpen_grind (bits : ℕ) : NoOpen (VerifierProgram.grindProofOfWork bits) :=
-  (noOpen_iff _).2 trivial
+theorem noOpen_grind (bits : ℕ) : NoOpen (VerifierProgram.grindProofOfWork bits) := by
+  unfold VerifierProgram.grindProofOfWork
+  split
+  · exact noOpen_ret _
+  · exact (noOpen_iff _).2 trivial
 
 theorem noOpen_readN : ∀ n, NoOpen (VerifierProgram.readScalars n)
   | 0 => noOpen_ret _
@@ -394,7 +397,7 @@ def stackWired : List Whir.Level → Bool
   | level :: _ => decide (2 ^ level.fold ≤ wireMaxLeafWords)
 
 /-- **Every admissible ladder is within the wire bounds**: at most `wireMaxPhases` levels, each
-within the bounds; decided over the `56` admissible pairs. -/
+within the bounds; decided over the `60` admissible pairs. -/
 theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
     levels.length ≤ wireMaxPhases ∧ levelsWired μ levels = true ∧ stackWired levels = true := by
@@ -412,36 +415,28 @@ theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
 
 /-! ## The WHIR levels -/
 
-theorem foldRoundsT_returns (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E)
-    {r : WhirStateT × List E},
-    VerifierProgram.Returns (foldRoundsT b n s lf) r → r.1.folds.length = s.folds.length + n
+theorem foldRoundsT_returns : ∀ (n : ℕ) (s : WhirStateT) (lf : List E) {r : WhirStateT × List E},
+    VerifierProgram.Returns (foldRoundsT n s lf) r → r.1.folds.length = s.folds.length + n
   | 0, s, lf, r, h => by
     have := VerifierProgram.returns_ret h
     subst this
     rfl
   | n + 1, s, lf, r, h => by
     unfold foldRoundsT at h
-    obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
     obtain ⟨c, -, h⟩ := VerifierProgram.returns_bind h
     obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-    have := foldRoundsT_returns b n _ _ h
+    have := foldRoundsT_returns n _ _ h
     simp only [List.length_append, List.length_singleton] at this
     omega
 
-theorem noOpen_foldProofOfWork (b : ℕ) : NoOpen (VerifierProgram.foldProofOfWork b) := by
-  unfold VerifierProgram.foldProofOfWork
-  split
-  · exact noOpen_ret _
-  · exact noOpen_grind b
-
-theorem noOpen_foldRoundsT (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    NoOpen (foldRoundsT b n s lf)
+theorem noOpen_foldRoundsT : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    NoOpen (foldRoundsT n s lf)
   | 0, _, _ => noOpen_ret _
   | n + 1, s, lf => by
     unfold foldRoundsT
     simp only [VerifierProgram.bind_eq]
-    exact NoOpen.bind (noOpen_foldProofOfWork b) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦
-      NoOpen.bind (noOpen_sumcheckRoundPoly _ _ _) fun _ ↦ noOpen_foldRoundsT b n _ _
+    exact NoOpen.bind noOpen_sampleE fun _ ↦ NoOpen.bind
+      (noOpen_sumcheckRoundPoly _ _ _) fun _ ↦ noOpen_foldRoundsT n _ _
 
 theorem noOpen_tailRoundsT : ∀ (n : ℕ) (t : E) (quad : List E), NoOpen (tailRoundsT n t quad)
   | 0, _, _ => noOpen_ret _
@@ -521,9 +516,9 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     simp only [levelsWired, Bool.and_eq_true, decide_eq_true_eq] at hw
     obtain ⟨⟨⟨hq1, hq2, hd1, hd2⟩, hnext⟩, hrest⟩ := hw
     unfold whirLevelsT
-    refine Wired.no_bind (noOpen_foldRoundsT _ _ _ _) fun r hr ↦ ?_
+    refine Wired.no_bind (noOpen_foldRoundsT _ _ _) fun r hr ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
-    have hf := foldRoundsT_returns _ _ _ _ hr
+    have hf := foldRoundsT_returns _ _ _ hr
     simp only at hf
     have hdepth : logN - s'.folds.length + level.logInvRate = (shapes.getD index (0, 0)).1 := by
       rw [hh1, hf]; omega

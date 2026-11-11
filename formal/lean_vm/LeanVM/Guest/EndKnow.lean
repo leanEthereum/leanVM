@@ -108,7 +108,8 @@ seed and a witness holding it. -/
 theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge guestProgram (decodeWith W) := by
   intro input t hv
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of h.b2 hv
-  have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
+  have hm : MemOk t.memory.read :=
+    ⟨t.logMemorySize, hv.1.1, hv.1.2.1.trans (by decide), t.memory, rfl⟩
   exact h.main bytecode_length t.memory.read hm _ _ (Located.unfoldsV_RL t.memory)
     (Located.rlg_le_rel t.memory) _ _ h0 h1 hb
 

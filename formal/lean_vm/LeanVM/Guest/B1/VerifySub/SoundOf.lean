@@ -114,7 +114,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
     vs_back h10 h11 h12 h13 hcol (claimAt_reads hcl F.hpool F.hcew F.hpoolPI) hR
   refine ⟨hkret.symm, ?_⟩
   -- the stack
-  obtain ⟨hμ19, hμ32, hsize, hP, hKB⟩ :=
+  obtain ⟨hμ19, hμ30, hsize, hP, hKB⟩ :=
     vs_stack hκ hκ6 L hLe (Tables.certify_placement_holds hκ L) hbl F hexp hcp hl2 e1686 r1
   -- the output lanes
   obtain ⟨chis, hchiR, hτc, hlcol, hlpt, hout, hl25⟩ := vs_lanes hbl F
@@ -156,7 +156,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   have h122 : σ (.n 122) = B1.Whir.rateSel F.lir := by rw [F.e124, gen_pow_eq_ofK]; rfl
   obtain ⟨root, hroot⟩ := digest_of_canonical F.hc537 F.hc547
   obtain ⟨w, s10, roots', hxsW, hrunW, hwL, pt, pt1, hretsW, hptR, hpt1R⟩ :=
-    vs_dispatch (osSoundW_of hκ hU hLe) hμ19 hμ32 F.hl1 F.hl4 hsize h122 hdisp hroot
+    vs_dispatch (osSoundW_of hκ hU hLe) hμ19 hμ30 F.hl1 F.hl4 hsize h122 hdisp hroot
   simp only [List.cons.injEq, and_true] at hretsW
   obtain ⟨e1691, e1692, e1693, e1694, e1695⟩ := hretsW
   -- the bus point
@@ -171,7 +171,7 @@ theorem verify_sub_sound_w_of (bytecode : List K)
   have hacc := hTacc (Tables.layoutOf bytecode F.logMem F.rowsN) F.bus F.claims
     ⟨qkeccak, op, word⟩ (σ (.n 1111)) point (ringCoefficients (σ (.n 658) :: vsChs σ)) w.point (by
       simp only [TermPre]
-      refine ⟨termCtx_of_tctx F.hctx, hP, hKB, layoutOf_placements hbl _ _, layoutOf_stackLog hbl _ _, hμ32,
+      refine ⟨termCtx_of_tctx F.hctx, hP, hKB, layoutOf_placements hbl _ _, layoutOf_stackLog hbl _ _, by omega,
         F.hlm1, F.hm32, hbpL, hsL, F.hh33, F.e130, htg, F.hkb,
         gTabs_of_exp hexp, trivial, trivial, hopL, hop, hpointL, hpoint, by simp [ringCoefficients, kBits],
         hct, hwL, ?_, ?_⟩
@@ -197,8 +197,8 @@ theorem verify_sub_sound_w_of (bytecode : List K)
         slices (m0 :: vsChs σ)).map (·.2)) := by
     rw [stackClaims_values, stackClaims_length, h1886, hr1303, es', ech', ← e870, ← e869]
   -- the runs
-  obtain ⟨level, rest, hcfg⟩ := cfg_cons hμ19 hμ32 F.hl1 F.hl4
-  have h1 := readSizes_runsTo hbl F.hlm1 F.hm32 F.hrowsL F.hh33 F.hl1 F.hl4 hμ32
+  obtain ⟨level, rest, hcfg⟩ := cfg_cons hμ19 hμ30 F.hl1 F.hl4
+  have h1 := readSizes_runsTo hbl F.hlm1 F.hm30 F.hrowsL F.hh31 F.hl1 F.hl4 hμ30
     (⟨[σ (.n 20), σ (.n 21), σ (.n 22), σ (.n 23), σ (.n 24)], []⟩ : Fs)
   rw [← vsWords_eq F, F.hab8] at h1
   have hroot' : digestFromHalves (σ (.n 324), σ (.n 334)) = some root := by

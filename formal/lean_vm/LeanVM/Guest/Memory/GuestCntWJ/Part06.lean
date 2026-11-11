@@ -9,27 +9,35 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_711 : kujStaticRange 711 30 := by
+theorem kujstaticRange_765 : kujStaticRange 765 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_741 : kujStaticRange 741 30 := by
+theorem kujstaticRange_795 : kujStaticRange 795 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_771 : kujStaticRange 771 30 := by
+theorem kujstaticRange_825 : kujStaticRange 825 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_801 : kujStaticRange 801 30 := by
+theorem kujstaticRange_855 : kujStaticRange 855 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_831 : kujStaticRange 831 30 := by
+theorem kujstaticRange_885 : kujStaticRange 885 30 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_861 : kujStaticRange 861 30 := by
+theorem kujstaticRange_915 : kujStaticRange 915 30 := by
+  unfold kujStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kujstaticRange_945 : kujStaticRange 945 30 := by
+  unfold kujStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kujstaticRange_975 : kujStaticRange 975 30 := by
   unfold kujStaticRange; decide +kernel
 
 end

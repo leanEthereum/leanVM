@@ -91,22 +91,21 @@ theorem corr_roundA' {claim : E} {W g : Array E} {W' g' : List E} (hW : W.toList
   exact corr_roundA claim W g
 
 /-- **The fold rounds**, both tables folded in place. -/
-theorem corr_foldRoundsA (f₀ : List E) (grinding : ℕ) :
+theorem corr_foldRoundsA (f₀ : List E) :
     ∀ (n : ℕ) (s : WhirStateT) (lf : List E) (W g : Array E), g.toList = foldAll f₀ s.folds →
       Corr (fun a b ↦ a.1 = b.1.forget ∧ a.2.1 = b.2.1 ∧ a.2.2.1.toList = b.2.2 ∧
           a.2.2.2.toList = foldAll f₀ b.1.folds)
-        (foldRoundsA grinding n s.forget lf W g) (hFoldRounds f₀ grinding n s lf W.toList)
+        (foldRoundsA n s.forget lf W g) (hFoldRounds f₀ n s lf W.toList)
   | 0, s, lf, W, g, hg => by
     simp only [foldRoundsA, hFoldRounds]
     exact ⟨rfl, rfl, rfl, hg⟩
   | n + 1, s, lf, W, g, hg => by
     simp only [foldRoundsA, hFoldRounds]
-    refine corrW_same (Script.foldGrindS grinding) fun _ ↦ ?_
     refine corrW_sampleE fun c ↦ ?_
     refine Corr.bind' (corr_roundA' (toList_foldPairsA c W) (toList_foldPairsA_foldAll hg c))
       fun quad _ hq ↦ ?_
     subst hq
-    have := corr_foldRoundsA f₀ grinding n
+    have := corr_foldRoundsA f₀ n
       { s with target := polyEval s.quad c,
                quad := roundQuad (polyEval s.quad c) (foldPairs c W.toList)
                  (foldAll f₀ (s.folds ++ [c])),
@@ -169,7 +168,7 @@ theorem corr_levelsA {μ : ℕ} (hμ : μ ≤ 64) (f₀ : List E) :
   | cons level rest ih =>
     intro index s W g hg
     simp only [levelsA, hLevels]
-    refine Corr.bind' (corr_foldRoundsA f₀ level.foldGrinding level.fold s [] W g hg) fun a b hab ↦ ?_
+    refine Corr.bind' (corr_foldRoundsA f₀ level.fold s [] W g hg) fun a b hab ↦ ?_
     obtain ⟨s₁, lf, W₁, g₁⟩ := a
     obtain ⟨sb, lfb, Wb⟩ := b
     obtain ⟨h1, h2, h3, hg₁⟩ := hab

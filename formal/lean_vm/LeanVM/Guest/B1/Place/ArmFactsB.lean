@@ -94,9 +94,6 @@ structure LvArm (c : OsCfg) (i : ℕ) : Prop where
   grind : osKindOf ("grind_check__L" ++ natStr (lvAt c i).grind) = some (.grind Whir.queryGrindingBits)
   rw : osKindOf ("opening_row_weights__L" ++ natStr (lvAt c i).folds ++ "_L" ++
     natStr (if i = 0 then 1 else 0)) = some (.rw (lvAt c i).folds (if i = 0 then 1 else 0))
-  fold0 : (lvAt c i).grindAny = 0 → (lvAt c i).foldGrind = 0
-  ofr : (lvAt c i).grindAny ≠ 0 →
-    osKindOf (osFoldRoundName (lvAt c i).foldGrind) = some (.ofr (lvAt c i).foldGrind)
   pos : osKindOf (osPositionsName (lvAt c i)) = none
   q : osKindOf (osQueriesName i (lvAt c i)) = none
   res : osKindOf (osResidualName (lvAt c i)) = none
@@ -120,9 +117,6 @@ def LvNamesP (c : OsCfg) (i : ℕ) : Prop :=
   osKindOf ("grind_check__L" ++ natStr (lvAt c i).grind) = some (.grind Whir.queryGrindingBits) ∧
   osKindOf ("opening_row_weights__L" ++ natStr (lvAt c i).folds ++ "_L" ++
     natStr (if i = 0 then 1 else 0)) = some (.rw (lvAt c i).folds (if i = 0 then 1 else 0)) ∧
-  ((lvAt c i).grindAny = 0 → (lvAt c i).foldGrind = 0) ∧
-  ((lvAt c i).grindAny ≠ 0 →
-    osKindOf (osFoldRoundName (lvAt c i).foldGrind) = some (.ofr (lvAt c i).foldGrind)) ∧
   osKindOf (osPositionsName (lvAt c i)) = none ∧
   osKindOf (osQueriesName i (lvAt c i)) = none ∧
   osKindOf (osResidualName (lvAt c i)) = none ∧
@@ -151,8 +145,8 @@ def LvArmP (c : OsCfg) (i : ℕ) : Prop := LvNamesP c i ∧ LvShapeP c i
 instance (c : OsCfg) (i : ℕ) : Decidable (LvArmP c i) := by unfold LvArmP; infer_instance
 
 theorem LvArmP.out {c : OsCfg} {i : ℕ} (h : LvArmP c i) : LvArm c i :=
-  let ⟨⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12⟩, a13, a14, a15, a16, a17⟩ := h
-  ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17⟩
+  let ⟨⟨a1, a2, a3, a6, a7, a8, a9, a10, a11, a12⟩, a13, a14, a15, a16, a17⟩ := h
+  ⟨a1, a2, a3, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17⟩
 
 /-- **The arm `m`'s facts at the rate `ri`**, at `osCfgR m ri`. -/
 def ArmRateP (m ri : ℕ) : Prop :=
@@ -217,7 +211,7 @@ theorem osArmFacts_of {m ri : ℕ} (hm : m < osArms) (hd : OsData m) (hb : ArmBo
   have hfind' : coreProgram.find? (openName (m + minOpenLog)) = some fn := by rw [hname]; exact hfind
   refine ⟨⟨fn, hfind', hpar, hbody, ?_⟩, ⟨hri, fun i _ ↦ ⟨osCfgR_lvAt_length m ri i,
       osCfgR_lvAt_getD i hri⟩, fun i hi ↦ (hl i hi).ood, fun i hi ↦ (hl i hi).grind, hfm,
-      fun i hi ↦ (hl i hi).rw, hffm, fun i hi ↦ (hl i hi).fold0, fun i hi ↦ (hl i hi).ofr,
+      fun i hi ↦ (hl i hi).rw, hffm,
       fun i hi ↦ (hl i hi).pos, fun i hi ↦ (hl i hi).q, fun i hi ↦ (hl i hi).res,
       fun i hi ↦ (hl i hi).il⟩,
     (osSizesB_sound hs).1, ?_, ?_, ?_, ?_, fun i hi ↦ ⟨_, (hl i hi).lp⟩, fun i hi ↦ (hl i hi).lq,

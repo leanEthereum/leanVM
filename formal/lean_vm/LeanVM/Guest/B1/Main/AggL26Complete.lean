@@ -38,14 +38,14 @@ theorem l26_block {x N chainT lfT lcT lamSq lam pf pc fv cv pw acc : E}
     (hnext : ReadsAt rd (chainT * x ^ 2 * gen ^ 2) [pw * lamSq, acc + pw * (fv + lam * cv)])
     (hlf : LoadHolds rd (lfT * x) 0 pf) (hlc : LoadHolds rd (lcT * x) 0 pc)
     (hfv : LoadHolds rd pf 23 fv) (hcv : LoadHolds rd pc 23 cv) :
-    LoopBlock rd (coreProgram.getD 408 default) x N [chainT, lfT, lcT, lamSq, lam] := by
+    LoopBlock rd (coreProgram.getD 402 default) x N [chainT, lfT, lcT, lamSq, lam] := by
   obtain ⟨hshape, hlen⟩ := l26_shape
   have hcok := l26c_ok
   simp only [l26COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm7⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩,
     hm12⟩, hl13⟩, hm14⟩, hl15⟩, hl16⟩, hl17⟩, hm18⟩, ha19⟩, hm20⟩, ha21⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 408 default
+  set fn := coreProgram.getD 402 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, chainT, lfT, lcT, lamSq, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
@@ -133,14 +133,14 @@ theorem l27_block {x N lfT lcT pt1 chainT wT lam pf pc pw wc : E} {pp pq r1 : Li
     (hpw : LoadHolds rd (chainT * x ^ 2) 0 pw) (hw : LoadHolds rd (wT * x) 0 wc)
     (hw1 : LoadHolds rd (wT * x) 1 (wc + pw * (eqEval pp (r1.map (1 + ·)) +
       lam * eqEval pq (r1.map (1 + ·))))) :
-    LoopBlock rd (coreProgram.getD 410 default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
+    LoopBlock rd (coreProgram.getD 404 default) x N [lfT, lcT, pt1, chainT, wT, lam] := by
   obtain ⟨hshape, hlen⟩ := l27_shape
   have hcok := l27c_ok
   simp only [l27COk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c', hchk⟩, hatoms⟩, hcanA⟩, hneeds⟩, hm8⟩, hl9⟩, hm10⟩, hl11⟩, he1⟩,
     he2⟩, hm171⟩, hm172⟩, hm173⟩, hl174⟩, hl175⟩, hm176⟩, ha177⟩, hm178⟩, ha179⟩, hm180⟩ := hcok
   simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hatoms hneeds
-  set fn := coreProgram.getD 410 default
+  set fn := coreProgram.getD 404 default
   set A := atomsIn (loopPre fn)
   let args : List E := [x, N, lfT, lcT, pt1, chainT, wT, lam]
   obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Bits.QueryWindowsAtAll
 
-  `decode_query_windows` complete placed at each of its 21 specializations.
+  `decode_query_windows` complete placed at each of its 18 specializations.
 -/
 
 module

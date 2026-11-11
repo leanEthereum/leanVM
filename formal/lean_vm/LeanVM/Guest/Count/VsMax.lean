@@ -24,7 +24,7 @@ theorem vbgMax_eq : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vtMax_eq : B1.VerifySub.vtMax B2C.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 38467 := by
+theorem vtMax_eq : B1.VerifySub.vtMax B2C.fs vsWords.Kf vsWords.Ksh vsWords.K10 = 38372 := by
   unfold B1.VerifySub.vtMax
   dsimp only [vsWords]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]

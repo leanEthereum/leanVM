@@ -9,9 +9,9 @@ import LeanVM.Cost.Efficient
 * a program built from a compiled function's bodies (`invItohTsujii.c10`, the inverse in `K`, the
   extractor's) and the entry: its size bounded by evaluating its bodies' sizes (`size_ofList_le`,
   decided by the kernel);
-* the extractor's program (`compiledKnowledgeExtractor`): `703` bodies, the entry's and the compiled
-  extractor's, the largest index `714`, its size `15697` (`Cost/ExtractorSize.lean` proves at
-  most `15972`, `leanVmKnowledgeExtractorSizeBound`, by evaluating the program itself);
+* the extractor's program (`compiledKnowledgeExtractor`): `701` bodies, the entry's and the compiled
+  extractor's, the largest index `712`, its size `14365` (`Cost/ExtractorSize.lean` proves at
+  most `14640`, `leanVmKnowledgeExtractorSizeBound`, by evaluating the program itself);
 * the axioms of `extractorOf_extractorProgram`, `knowledgeExtractorOf extractorProgram =
   transcriptExtractor`.
 -/
@@ -50,10 +50,10 @@ theorem invProgram_size : (MachineProgram.ofList invProgramBodies).size ≤ 2 ^ 
 
 /-! ## The extractor's program -/
 
-#guard extractorProgramBodies.length == 703
-#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 714
-#guard compiledKnowledgeExtractor.size == 15697
-#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 15673
+#guard extractorProgramBodies.length == 701
+#guard (extractorProgramBodies.map (·.1)).foldr max 0 == 712
+#guard compiledKnowledgeExtractor.size == 14365
+#guard (extractorProgramBodies.map fun p ↦ p.2.size).sum == 14341
 
 /-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

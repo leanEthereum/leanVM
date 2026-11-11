@@ -7,9 +7,9 @@
 module
 
 public import LeanVM.Guest.B1.Place.KidsAt
-public import LeanVM.Guest.B1.Place.OfrRegion
 public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.B1.Place.OsBos
+public import LeanVM.Guest.B1.Place.OsCallsOk
 
 /-!
 # An arm, placed
@@ -190,21 +190,6 @@ theorem os_arm_completeAtO {Bd : Option (String → ℕ)} {c : OsCfg} {μ r : �
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk
   · -- the callees
     set D : ℕ → ℕ → ℕ → ℕ := fun l ↦ Dn (osPositionsName (lvAt c l)) with hD
-    have hofrR : ∀ c' ∈ ((osBodyAc c).filterMap (Stmt.callSF σ)).map (Main.mkCall σ),
-        c'.taken = true → ∀ b, osKindOf c'.f = some (.ofr b) →
-        RegPtrs [(7, roundLen b)] (c'.args.map σ) (RegionL Lk) := by
-      obtain ⟨rd0, hl0, hm0⟩ := hex
-      set rd' := restrictL rd0 Lk
-      have hm' : MemL rd' Lk := memL_restrictL hm0
-      have hx' : ReadsAt rd' cur xs := readsAt_restrictL_of (hLin rd0 hl0 (hLkLin rd0 hm0)) fun t ht ↦ by
-        obtain ⟨i, hi, hreg⟩ := os_addr_in_regionL (M := Lin) (A := cur.limb 0 * addressOfIndex t)
-          (v := xs[t]) (fun rd hl hm ↦ (hLin rd hl hm t ht).2) hl0 (hLkLin rd0 hm0)
-        obtain ⟨q, hq, h1, h2⟩ := hreg
-        exact ⟨i, hi, q, List.mem_append_right _ hq, h1, h2⟩
-      have h := (hblk (ofrC Lk) rd' (osMem_of_memLk hpt htl hm')
-        (by rw [hR0]; exact osCallsOk_ofr hK.names A Lk rd0) hx').1
-      intro c' hc' ht b hk
-      exact os_calls_of_allOkF h hdo hK.disp c' hc' ht b hk
     have hlpK : ∀ l < c.levels.length, osPositionsName (lvAt c l) ∈ osCalleeNames c →
         CompleteAtPO fs cert κ (osPositionsName (lvAt c l))
         (fun p ↦ Lk ++ osW cert c D b0 l p) (osLpArgs c tr A l) (sqLast (lvAt c l) (tr.L l).F2.cap)
@@ -227,7 +212,7 @@ theorem os_arm_completeAtO {Bd : Option (String → ℕ)} {c : OsCfg} {μ r : �
         (hlr _ he (Bd.map (· (osResidualName (lvAt c l))))) (hB _ hmn) hex
     obtain ⟨N, L, ps, hps, hW, hDj, hNb, hKid⟩ := os_kids_at (fs := fs) (cert := cert) (κ := κ)
       (Bd := Bd) (D := D) hK.names hK.shapes hK.pos hK.tot hK.posOff hK.poN
-      (fun l hl ↦ (hH l hl).cap5) hRσ hV hall hdo hK.disp hex hnamed hofrR hlpK hlqK hlrK
+      (fun l hl ↦ (hH l hl).cap5) hRσ hV hall hdo hK.disp hex hnamed hlpK hlqK hlrK
       (b0 + (osSizesL c).sum)
     refine ⟨σ, osOwnL c tr (osBp cert c D fun l ↦ ps.getD l 0), [w.target, A.PT, A.PT1, w.inner,
       w.residual], N, L, fun _ ↦ False, _, rfl, hdo, osOwnL_fit c tr _ hpt htl, hOut _, hW, hDj,

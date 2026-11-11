@@ -65,7 +65,7 @@ structure LvMem (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (
 selector `R`. -/
 structure LvCallsOk (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl : ℕ)
     (lv : OsLv) (L : SpLv) (wp : E) : Prop where
-  fold : FoldCallC C rd (osFoldNames c lvl lv) lv.foldGrind R
+  fold : FoldCallC C rd
   can : ∀ args rets, MeaningAssertCanonical args rets → C "assert_canonical" args rets
   ood : lvl ≠ c.yrLevel → ∀ args rets, MeaningOpeningOodPoint lv.logCols rd args rets →
     C ("opening_ood_point__L" ++ natStr lv.logCols) args rets
@@ -92,12 +92,10 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {lv
     (hOk : L.Ok R d') (hdd : L.fin = false → digestFromHalves (L.ra, L.rb) = some d)
     (hm : LvMem rd P c lvl lv L cur) (hc : LvCallsOk C rd P Rs c lvl lv L wp) :
     LvH C rd P Rs c lvl lv (spDat L d wp) L.F L.ws.quad L.ws.target cur := by
-  have hR := spDat_lvR h.fold h.grind d wp
+  have hR := spDat_lvR h.fold d wp
   have hcap := spDat_cap h d wp
   have hlam := spDat_lam h d wp
-  have hxl : L.xf.length = roundLen lv.foldGrind * lv.folds := by rw [hOk.xf, h.fold, h.grind]
-  have hpw : FoldsPow lv.foldGrind lv.folds L.F L.ws.quad L.ws.target L.xf := by
-    have := hOk.pow; rwa [h.fold, h.grind] at this
+  have hxl : L.xf.length = 2 * lv.folds := by rw [hOk.xf, h.fold]
   have hst : ∀ j, j < lv.folds → LoadHolds rd P.fch (lv.foldsOff + j)
       ((lvR lv (spDat L d wp) L.F L.ws.quad L.ws.target).2.1.getD j 0) := fun j hj ↦ by
     rw [hR]; exact hm.fch j hj
@@ -116,7 +114,7 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {lv
       simp only [SpLv.words, hL, ↓reduceIte]
     have hwr := hm.words
     rw [hw] at hwr
-    refine ⟨hf, hc.fold, hc.fm hf, hc.grind, hxl, readsAt_left (readsAt_left hwr), hpw, hst, hmsl,
+    refine ⟨hf, hc.fold, hc.fm hf, hc.grind, hxl, readsAt_left (readsAt_left hwr), hst, hmsl,
       ?_, hm.fmsg hf, ?_, by rw [hcapF]; exact hc.pos, by rw [hlamF]; exact hOk.lam,
       by rw [hlamF]; exact hm.mu, hbo, hc.rw, by rw [hlamF]; exact hc.queries, hm.r0, hm.r1, ?_, ?_⟩
     · have := readsAt_right (readsAt_left hwr); rwa [hxl] at this
@@ -141,7 +139,7 @@ theorem lvH_sp {C : CallRel} {rd : Reader} {P : OsPtrs} {Rs : E} {c : OsCfg} {lv
     rw [hw] at hwr
     have hood := hm.ood hf
     refine ⟨hf, h.f1, hc.fold, hc.can, hc.ood hf, hc.grind, hlvl hf, hxl,
-      readsAt_left (readsAt_left hwr), hpw, hst,
+      readsAt_left (readsAt_left hwr), hst,
       (digestScalars_digestOfScalars (hdd hL)).symm, ?_, hm.r0' hf, hm.r1' hf, ?_,
       readsAt_off hood (k := 1) (by simp), readsAt_off hood (k := 2) (by simp),
       readsAt_off hood (k := 3) (by simp), ?_, by rw [hcapN]; exact hc.pos,

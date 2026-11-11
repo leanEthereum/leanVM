@@ -33,7 +33,7 @@ structure SpAt (logN : ℕ) (cfg : List Whir.Level) (lvl n i : ℕ) (L : SpLv) :
   ok : ∃ R d, L.Ok R d
   index : L.index = lvl + i
   logN : L.logN = logN
-  level : L.level = cfg.getD i ⟨0, 0, 0, 0⟩
+  level : L.level = cfg.getD i ⟨0, 0, 0⟩
   fin : L.fin = true ↔ i + 1 = n
 
 theorem chain_at : ∀ (cfg : List Whir.Level) (lvl : ℕ) (ws : WhirStateT) (F : Fs) (xs : List E)

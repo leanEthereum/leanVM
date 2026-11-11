@@ -65,7 +65,7 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read))
     (h : Stmt.HoldsList C L.read σ vsSizesT next kret) :
     ∃ lir logMem : ℕ, 1 ≤ lir ∧ lir ≤ 4 ∧ σ (.n 110) = eOfNat lir ∧ σ (.n 122) = gen ^ (lir - 1) ∧
-      1 ≤ logMem ∧ logMem ≤ 32 ∧ σ (.n 27) = eOfNat logMem ∧ σ (.n 128) = gen ^ logMem ∧
+      1 ≤ logMem ∧ logMem ≤ 30 ∧ σ (.n 27) = eOfNat logMem ∧ σ (.n 128) = gen ^ logMem ∧
       ∃ ds : List E, ds.length = 6 ∧ ReadsAt L.read (σ (.n 127)) (gen ^ logMem :: ds) ∧
         ReadsAt L.read (σ (.n 139)) (1 :: gen ^ logMem :: ds) ∧
         (∀ s < 8, σ (.n (140 + s)) = (1 :: gen ^ logMem :: ds).getD s 0) ∧ next := by
@@ -86,7 +86,7 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
   -- the memory's log-size
   obtain ⟨m, hm64, h29, hr130⟩ := (g_power_of_word_holds _ _ _).1 (hC _ _ _ c29)
   simp only [List.cons.injEq, and_true] at hr130
-  obtain ⟨e1, he1, h130⟩ := rc_pow hκ L (a := 32) le_rfl
+  obtain ⟨e1, he1, h130⟩ := rc_pow hκ L (a := 30) (by norm_num)
     (by rw [e131, word_pow2 (by norm_num)]) r130
   obtain ⟨e2, he2, h137⟩ := rc_pow hκ L (a := 32) le_rfl
     (by rw [e135, word_pow2 (by norm_num)]) r137

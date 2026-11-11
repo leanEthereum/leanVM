@@ -29,15 +29,15 @@ theorem kumstaticRange_181 : kumStaticRange 181 24 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_205 : kumStaticRange 205 25 := by
+theorem kumstaticRange_205 : kumStaticRange 205 26 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_230 : kumStaticRange 230 28 := by
+theorem kumstaticRange_231 : kumStaticRange 231 28 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_258 : kumStaticRange 258 30 := by
+theorem kumstaticRange_259 : kumStaticRange 259 30 := by
   unfold kumStaticRange; decide +kernel
 
 end

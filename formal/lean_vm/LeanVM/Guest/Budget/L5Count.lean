@@ -258,7 +258,7 @@ def vsCnt (op : Opcode) (μ _r : ℕ) : ℕ := (vsCountT op).getD (μ - 20) 0
 
 /-- **`verify_sub`'s instructions of `op` on B1-d's tree at the deployed bounds** (`vsTs` at
 `Count.vsWords` and `vkBound`): at most `vsCnt op μ r`. -/
-theorem vs_weight_le_deployed (op : Opcode) {μ r : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 32)
+theorem vs_weight_le_deployed (op : Opcode) {μ r : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub"
       (B1.VerifySub.vsTs B2C.fs Count.vsWords B1.VerifySub.vkBound μ r) t)

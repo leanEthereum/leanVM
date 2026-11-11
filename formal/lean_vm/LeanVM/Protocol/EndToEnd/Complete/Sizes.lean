@@ -69,7 +69,7 @@ theorem follows_readSizes (prog : LeanIsaProgram) {s : Sizes} (hs : s.Admissible
       true := by
     simp [announce, eOfNat_limb_one, eOfNat_limb_two]
   have hmem : s.logMem < 2 ^ 64 := by
-    have : s.logMem ≤ 32 := h2
+    have : s.logMem ≤ 30 := h2
     omega
   have hhead : kToNat (((announce s ρ).headD 0).limb 0) = s.logMem := by
     simp only [announce, List.cons_append, List.map_cons, List.headD_cons]

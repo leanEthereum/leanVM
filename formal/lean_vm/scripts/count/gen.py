@@ -113,8 +113,11 @@ class G:
         return sorted(n for n in self.by if n.startswith(prefix))
 
     def min_open_log(self):
-        """The smallest stack log the guest opens: the arms run to `MAX_STACKED_LOG = 32`."""
-        return 33 - len(self.os_names())
+        """The smallest stack log the guest opens, `B1.Whir.minOpenLog` (Whir/Interface.lean)."""
+        m = re.search(r"^abbrev minOpenLog : ℕ := (\d+)$", open(os.path.join(self.lv, "LeanVM", "Guest", "B1", "Whir", "Interface.lean"),
+                      encoding="utf-8").read(), re.M)
+        assert m, "no minOpenLog in Whir/Interface.lean"
+        return int(m.group(1))
 
     def os_names(self):
         """The opening arms `open_stacked__L{m}`, `m` from `0`."""

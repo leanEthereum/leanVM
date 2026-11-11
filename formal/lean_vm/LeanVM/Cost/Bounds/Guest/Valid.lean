@@ -69,7 +69,8 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
     MainFacts (Located.RLg t.memory) t.memory.read
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) := by
   rw [mainVal_valid hv]
-  have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
+  have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1,
+    (by have := hv.1.2.1; unfold maxLogMem at this; omega), t.memory, rfl⟩
   have hU := unfolds_of_V (Located.unfoldsV_replay End.b2SoundL hv)
   refine main_facts hU (Located.rlg_le_rel t.memory) hm exponent_tables_holds (fun args h ↦ ?_)
     (End.mainBodyL_of End.b2SoundL hv).1
@@ -80,7 +81,7 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
 
 open LeanVM.Protocol.Verifier LeanVM.Guest.Value in
 /-- A word read at offset `0` through a pointer of a memory of `2^κ` words is `g^e`, `e < 2^κ`. -/
-theorem load_gpow_lt {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {x w : E}
+theorem load_gpow_lt {κ : ℕ} (hκ : κ ≤ 30) (L : MemoryImage κ) {x w : E}
     (h : LoadHolds L.read x 0 w) : ∃ e < 2 ^ κ, x = gen ^ e := by
   obtain ⟨hx, hr⟩ := h
   rw [Parameters.addressOfIndex, pow_zero, mul_one] at hr
@@ -89,9 +90,9 @@ theorem load_gpow_lt {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {x w : E}
 
 open LeanVM.Protocol.Verifier LeanVM.Guest.Value in
 /-- The counts of `main`'s facts, read by `gLog`, on a memory of `2^κ` words: each below `2^κ`. -/
-theorem validCounts_of {C : CallRel} {κ : ℕ} (hκ : κ ≤ 32) {L : MemoryImage κ} {σ : Val}
+theorem validCounts_of {C : CallRel} {κ : ℕ} (hκ : κ ≤ 30) {L : MemoryImage κ} {σ : Val}
     (MF : MainFacts C L.read σ) : ValidCounts discreteLogTables σ (2 ^ κ) := by
-  have hpow : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hκ
+  have hpow : 2 ^ κ ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hκ
   have hlt : ∀ v ∈ [0, 1, 2, 3, 4, 5, 24], ∀ e, e < 2 ^ 32 → σ (.n v) = gen ^ e → e < 2 ^ κ := by
     intro v hv e he hve
     obtain ⟨w, hw⟩ := MF.addr v hv

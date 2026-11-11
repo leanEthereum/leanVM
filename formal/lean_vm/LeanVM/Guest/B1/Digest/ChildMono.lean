@@ -255,7 +255,7 @@ def MonoStep (rd : Reader) (m nb : ℕ) (chain mark x : E) : Prop :=
       LoadHolds rd (chain * x ^ 15) 29 (entries * gen ^ (4 * O'))
 
 theorem mono_step {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1752)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1535)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 0 = gen ^ m) (hew : word ew 0 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
@@ -351,7 +351,7 @@ theorem monoFrames_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of the walk**, called as `callIf (1 + N) f [1, N, chain, mark]` with
 `N = g^a`, `a < 2^34`. -/
 theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1752)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1535)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 0 = gen ^ m) (hew : word ew 0 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
@@ -369,19 +369,19 @@ theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st
 
 -- `__loop19`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
 set_option maxRecDepth 100000 in
-theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 361 := by decide +kernel
+theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 355 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 361 default))).nb = 64 := by
+theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 355 default))).nb = 64 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono136_head :
-    monoHead (coreProgram.getD 361 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
+    monoHead (coreProgram.getD 355 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
   decide +kernel
 
 theorem mono136_ok :
-    monoOk (coreProgram.getD 361 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
+    monoOk (coreProgram.getD 355 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
   have hw : ∀ i < 16, monoWinOk i = true := by
     intro i hi
     interval_cases i
@@ -394,14 +394,14 @@ theorem mono136_ok :
 
 -- `__loop20`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 362 := by decide +kernel
+theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 356 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 362 default))).nb = 8 := by
+theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 356 default))).nb = 8 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_ok : monoOk (coreProgram.getD 362 default) "__loop20" 17 9 187 131072 432 = true := by
+theorem mono17_ok : monoOk (coreProgram.getD 356 default) "__loop20" 17 9 187 131072 432 = true := by
   decide +kernel
 
 theorem word_g17 : word 131072 0 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)
@@ -453,7 +453,7 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
   have hf := find_of_idx (ml_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ml_all k hk
-  set f := coreProgram.getD (363 + k) default
+  set f := coreProgram.getD (357 + k) default
   simp only [mlOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp

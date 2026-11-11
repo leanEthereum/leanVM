@@ -12,7 +12,7 @@ and its numbers, with the axioms each depends on. Knowledge soundness is locked 
 open LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol.LeanIsa LeanVM
 
 example {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 32) {ρ : ℕ}
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 30) {ρ : ℕ}
     (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel :=

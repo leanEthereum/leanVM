@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `block_selector_tab__L30`, window 0. -/
+/-- `block_selector_tab__L32`, window 0. -/
 theorem w262_0 : WinOk 262 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L31`, window 0. -/
+/-- `block_selector_tab__L33`, window 0. -/
 theorem w263_0 : WinOk 263 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L32`, window 0. -/
+/-- `__loop9`, window 0. -/
 theorem w264_0 : WinOk 264 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L33`, window 0. -/
+/-- `__loop10`, window 0. -/
 theorem w265_0 : WinOk 265 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop9`, window 0. -/
+/-- `keccak_layer__L1`, window 0. -/
 theorem w266_0 : WinOk 266 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop10`, window 0. -/
-theorem w267_0 : WinOk 267 0 := winOk_of_C (by decide +kernel)
-
-/-- `keccak_layer__L1`, window 0. -/
-theorem w268_0 : WinOk 268 0 := winOk_of_C (by decide +kernel)
-
 /-- `keccak_layer__L1`, window 1. -/
-theorem w268_1 : WinOk 268 1 := winOk_of_C (by decide +kernel)
+theorem w266_1 : WinOk 266 1 := winOk_of_C (by decide +kernel)
+
+/-- `keccak_layer__L1`, window 2. -/
+theorem w266_2 : WinOk 266 2 := winOk_of_C (by decide +kernel)
+
+/-- `keccak_layer__L0`, window 0. -/
+theorem w267_0 : WinOk 267 0 := winOk_of_C (by decide +kernel)
 
 theorem ok262 : CheckOk 262 := checkOk_one (by decide +kernel) w262_0
 
@@ -48,10 +48,6 @@ theorem ok263 : CheckOk 263 := checkOk_one (by decide +kernel) w263_0
 theorem ok264 : CheckOk 264 := checkOk_one (by decide +kernel) w264_0
 
 theorem ok265 : CheckOk 265 := checkOk_one (by decide +kernel) w265_0
-
-theorem ok266 : CheckOk 266 := checkOk_one (by decide +kernel) w266_0
-
-theorem ok267 : CheckOk 267 := checkOk_one (by decide +kernel) w267_0
 
 end
 end LeanVM.Guest.Checked

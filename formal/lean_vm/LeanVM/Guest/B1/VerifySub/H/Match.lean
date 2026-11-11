@@ -39,10 +39,10 @@ theorem vs_rets (G : VsSig S bs sqE outs args σ) (j : ℕ) (hj : j < 13)
   rw [List.getElem_map, List.getElem_map, ← List.getD_eq_getElem _ 0 hk, G.ret j hj k hk,
     List.getD_eq_getElem _ _ h2]
 
-/-- The size's index is below the dispatch's `13` callees. -/
+/-- The size's index is below the dispatch's `11` callees. -/
 theorem ChildSegs.size_lt (S : ChildSegs bytecode seed c) :
-    S.μs - B1.Whir.minOpenLog < 13 := by
-  have h1 : S.μs ≤ 32 := S.hmu32
+    S.μs - B1.Whir.minOpenLog < 11 := by
+  have h1 : S.μs ≤ 30 := S.hmu30
   have h2 : 20 ≤ S.μs := S.hmu20
   unfold B1.Whir.minOpenLog
   omega

@@ -9,35 +9,43 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_891 : kumStaticRange 891 30 := by
+theorem kumstaticRange_1005 : kumStaticRange 1005 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_921 : kumStaticRange 921 30 := by
+theorem kumstaticRange_1035 : kumStaticRange 1035 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_951 : kumStaticRange 951 30 := by
+theorem kumstaticRange_1065 : kumStaticRange 1065 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_981 : kumStaticRange 981 30 := by
+theorem kumstaticRange_1095 : kumStaticRange 1095 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_1011 : kumStaticRange 1011 30 := by
+theorem kumstaticRange_1125 : kumStaticRange 1125 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_1041 : kumStaticRange 1041 30 := by
+theorem kumstaticRange_1155 : kumStaticRange 1155 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_1071 : kumStaticRange 1071 30 := by
+theorem kumstaticRange_1185 : kumStaticRange 1185 30 := by
   unfold kumStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kumstaticRange_1101 : kumStaticRange 1101 30 := by
+theorem kumstaticRange_1215 : kumStaticRange 1215 30 := by
+  unfold kumStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kumstaticRange_1245 : kumStaticRange 1245 30 := by
+  unfold kumStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kumstaticRange_1275 : kumStaticRange 1275 30 := by
   unfold kumStaticRange; decide +kernel
 
 end

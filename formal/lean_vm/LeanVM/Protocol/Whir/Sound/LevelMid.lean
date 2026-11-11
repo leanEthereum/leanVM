@@ -78,8 +78,7 @@ def midTail (r : WhirStateT × List E) : VerifierProgram Unit :=
 
 /-- The level, unfolded. -/
 def midProg (s : WhirStateT) : VerifierProgram Unit :=
-  (foldRoundsT level.foldGrinding level.fold s []).bind fun r ↦
-    midTail μ ℓ₀ w i level next rest r
+  (foldRoundsT level.fold s []).bind fun r ↦ midTail μ ℓ₀ w i level next rest r
 
 /-- **`whirLevels` on a level with a next commitment is `midProg`.** -/
 theorem whirLevels_mid (s : WhirStateT) :

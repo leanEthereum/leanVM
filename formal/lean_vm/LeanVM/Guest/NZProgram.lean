@@ -25,15 +25,14 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Limits
 
 /-- `foldRounds` refusing a zero challenge. -/
-def foldRoundsNZ (grinding : ℕ) : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
+def foldRoundsNZ : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    VerifierProgram.foldProofOfWork grinding
     let challenge ← VerifierProgram.sampleChallenge
     VerifierProgram.require (challenge ≠ 0)
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
-    foldRoundsNZ grinding n { s with target, quad, folds := s.folds ++ [challenge] }
+    foldRoundsNZ n { s with target, quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge])
 
 /-- `tailRounds` refusing a zero challenge. -/
@@ -54,7 +53,7 @@ def whirLevelsNZ (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ℕ → List Whir.Level → WhirStateT → VerifierProgram Unit
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRoundsNZ level.foldGrinding level.fold s []
+    let (s, levelFolds) ← foldRoundsNZ level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do

@@ -97,11 +97,11 @@ theorem verifyStackedOpening_split (μ r : ℕ) (cl : List StackClaim) :
   simp only [verifyStackedOpening, verifyWhir_eq_target, Whir.verifyWhir_split, VerifierProgram.bind_eq, batchTarget]
   rfl
 
-theorem foldRoundsNZ_eq (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
-    Limits.foldRoundsNZ b n s lf = Whir.foldRoundsNZ b n s lf
+theorem foldRoundsNZ_eq : ∀ (n : ℕ) (s : WhirStateT) (lf : List E),
+    Limits.foldRoundsNZ n s lf = Whir.foldRoundsNZ n s lf
   | 0, _, _ => rfl
   | n + 1, s, lf => by
-    simp only [Limits.foldRoundsNZ, Whir.foldRoundsNZ, foldRoundsNZ_eq b n]
+    simp only [Limits.foldRoundsNZ, Whir.foldRoundsNZ, foldRoundsNZ_eq n]
 
 theorem tailRoundsNZ_eq : ∀ (n : ℕ) (t : E) (quad : List E),
     Limits.tailRoundsNZ n t quad = Whir.tailRoundsNZ n t quad

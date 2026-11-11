@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CLevels
-public import LeanVM.Guest.B1.Whir.TailSpec
+public import LeanVM.Guest.B1.Whir.Tail
 
 /-!
 # The tail rounds, honestly
@@ -48,13 +48,13 @@ def tailEnd (c : OsCfg) (tch : ℕ) (f2 : OsSt) (p : ℕ) : List Stmt :=
         .atom (.load (.n (j + 48 + i)) (.n tch) (c.yrLog + i))]).flatten
 
 theorem osTail_eq (c : OsCfg) (st : OsSt) :
-    osTail c st = (osHeap yrLogCap st.k ++ (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).1 ++
-      tailEnd c (st.k + 1) (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2
-        ((osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.pad.getD 0),
-      { (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2 with
-        k := (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k + 48 +
+    osTail c st = (osHeap yrLogCap st.k ++ (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).1 ++
+      tailEnd c (st.k + 1) (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2
+        ((osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.pad.getD 0),
+      { (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2 with
+        k := (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k + 48 +
           (yrLogCap - c.yrLog)
-        t := (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k + 47 },
+        t := (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k + 47 },
       st.k + 1) := by
   simp only [osTail, tailEnd, List.append_assoc, List.cons_append]
 
@@ -247,34 +247,34 @@ theorem osHeap_complete {e k : ℕ} (σ : Val) (T : E) :
 /-- The values of the tail. -/
 def tailF (c : OsCfg) (st : OsSt) (σ : Val) (T : E) (xs : List E) : ℕ → E :=
   seqF σ st.k (st.k + 2) (fun i ↦ [gw yrLogCap, T].getD (i - st.k) 0) fun σ1 ↦
-  seqF σ1 (st.k + 2) (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k
-    (foldsF none 0 (st.k + 1) (c.yrLog - 1) 0 { st with k := st.k + 2 } σ1 xs) fun σ2 ↦
-  fun i ↦ segLookup (tailEndSegs c σ2 (osFolds none (st.k + 1) 0 (c.yrLog - 1)
-    { st with k := st.k + 2 }).2) (i - (osFolds none (st.k + 1) 0 (c.yrLog - 1)
+  seqF σ1 (st.k + 2) (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k
+    (foldsF (st.k + 1) (c.yrLog - 1) 0 { st with k := st.k + 2 } σ1 xs) fun σ2 ↦
+  fun i ↦ segLookup (tailEndSegs c σ2 (osFolds (st.k + 1) 0 (c.yrLog - 1)
+    { st with k := st.k + 2 }).2) (i - (osFolds (st.k + 1) 0 (c.yrLog - 1)
       { st with k := st.k + 2 }).2.k)
 
 /-- **The tail rounds, honestly.** -/
 theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val)
-    {Rs : E} (hRs : σ (.n osRate) = Rs) (hC : FoldCallC C rd none 0 Rs)
+    (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
     {F : Fs} {q : List E} {t cur : E} (hs : LvsSt σ st F q t cur) {p : ℕ} (hp : st.pad = some p)
     (T : E) {xs : List E} (hxl : xs.length = 2 * (c.yrLog - 1)) (hrd : ReadsAt rd cur xs)
-    (hT : ∀ j, j < c.yrLog - 1 → LoadHolds rd T j ((foldsTr 0 (c.yrLog - 1) F q t xs).2.1.getD j 0))
-    (hlast : LoadHolds rd T (c.yrLog - 1) (foldsTr 0 (c.yrLog - 1) F q t xs).1.squeeze.1)
+    (hT : ∀ j, j < c.yrLog - 1 → LoadHolds rd T j ((foldsTr (c.yrLog - 1) F q t xs).2.1.getD j 0))
+    (hlast : LoadHolds rd T (c.yrLog - 1) (foldsTr (c.yrLog - 1) F q t xs).1.squeeze.1)
     (hzero : ∀ i < yrLogCap - c.yrLog, LoadHolds rd T (c.yrLog + i) 0) :
     BlkF C rd σ st.k (osTail c st).2.1.k (tailF c st σ T xs) (osTail c st).1
       (fun σ' ↦ σ' (.n (osTail c st).2.2) = T ∧
-        σ' (.n (osTail c st).2.1.t) = polyEval (foldsTr 0 (c.yrLog - 1) F q t xs).2.2.1
-          (foldsTr 0 (c.yrLog - 1) F q t xs).1.squeeze.1 ∧ AgreeBelow st.k σ σ') := by
+        σ' (.n (osTail c st).2.1.t) = polyEval (foldsTr (c.yrLog - 1) F q t xs).2.2.1
+          (foldsTr (c.yrLog - 1) F q t xs).1.squeeze.1 ∧ AgreeBelow st.k σ σ') := by
   rw [osTail_eq]
   dsimp only
   rw [List.append_assoc]
   unfold tailF
-  set R := foldsTr 0 (c.yrLog - 1) F q t xs with hR
+  set R := foldsTr (c.yrLog - 1) F q t xs with hR
   set st' : OsSt := { st with k := st.k + 2 } with hst'
-  set f := osFolds none (st.k + 1) 0 (c.yrLog - 1) st' with hf
+  set f := osFolds (st.k + 1) 0 (c.yrLog - 1) st' with hf
   have hpk := hs.pk p hp
   have hst'k : st'.k = st.k + 2 := rfl
-  have hk2 : st.k + 2 ≤ f.2.k := osFolds_k none (st.k + 1) (c.yrLog - 1) 0 st'
+  have hk2 : st.k + 2 ≤ f.2.k := osFolds_k (st.k + 1) (c.yrLog - 1) 0 st'
   refine BlkF.then (k1 := st.k + 2) (by omega) (by omega) (osHeap_complete σ T)
     fun σ1 ha1 ⟨hT1, ha1'⟩ ↦ ?_
   have ha1'' := ha1'
@@ -288,12 +288,9 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val)
   have eQ' : st'.quad σ1 = q := by rw [show st'.quad σ1 = st.quad σ1 from rfl, eQ, hs.quad]
   have eT' : σ1 (.n st'.t) = t := by rw [show st'.t = st.t from rfl, eT, hs.t]
   have eC' : st'.cur σ1 = cur := by rw [show st'.cur σ1 = st.cur σ1 from rfl, eC, hs.cur]
-  have hA := osFolds_complete (C := C) (rd := rd) hC (st.k + 1) (c.yrLog - 1) 0 st' σ1 xs
-    (by rw [ha1' _ (by unfold osRate; have := hs.k; omega), hRs]) (by simp [hst'])
-    hs.fs
+  have hA := osFolds_complete (C := C) (rd := rd) hC (st.k + 1) (c.yrLog - 1) 0 st' σ1 xs hs.fs
     (by have := hs.co; show st.co < u128Bound; unfold u128Bound; omega) hb' (by simp [hst'])
-    (by rw [show st'.fsv σ1 = st.fsv σ1 from rfl, e1]; exact hs.can) (by rw [roundLen_zero]; exact hxl)
-    (by rw [eC']; exact hrd) (foldsPow_zero _ _ _ _ _)
+    (by rw [show st'.fsv σ1 = st.fsv σ1 from rfl, e1]; exact hs.can) hxl (by rw [eC']; exact hrd)
     (fun j hj ↦ by rw [hT1, eF', eQ', eT', Nat.zero_add]; exact hT j hj)
   rw [eF', eQ', eT'] at hA
   refine BlkF.then (k1 := f.2.k) hk2 (by omega) hA fun σ2 ha2 ⟨fo, ha2'⟩ ↦ ?_

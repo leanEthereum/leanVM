@@ -358,7 +358,7 @@ attribute [local irreducible] Corr Script.bind Script.NoQuery Script.alongside h
   openingFast in
 /-- **The honest script makes the specification's moves** at the execution's witness, its
 sizes and its stack. -/
-theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 32)
+theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30)
     {ρ : ℕ} (hρ : validRate ρ) {W : Witness} (hW : WitnessSpec prog input t W) :
     Corr (fun _ _ ↦ True) (honestScript W ρ (publicInputDigest input))
       (LeanVM.Protocol.EndToEnd.Complete.honestProver prog (traceSizes prog input t) ρ
@@ -443,7 +443,7 @@ variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 valid execution within the cap at a valid rate, `proveWithHash callKeccak256 callKeccakF1600` is
 `Rom.honestComp?` of the specification's honest strategy at `skelWitness`, its sizes and its
 stack. -/
-theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 32)
+theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30)
     {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
     proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel =
       Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
@@ -478,7 +478,7 @@ theorem specOnValid_prove_honest : SpecOnValid oracleProver HonestFor :=
 theorem childSpec_prove (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ
     fuel : ℕ) :
     ChildSpec oracleProver prog input t ρ fuel := by
-  by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 32 ∧ 1 ≤ ρ ∧ ρ ≤ 4
+  by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 30 ∧ 1 ≤ ρ ∧ ρ ≤ 4
   · exact .inr (specOnValid_prove prog input t ρ fuel h.1 h.2.1 h.2.2)
   · left
     show proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel = pure none

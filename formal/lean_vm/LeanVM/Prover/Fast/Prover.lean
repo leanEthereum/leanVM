@@ -61,20 +61,19 @@ def treeLayers.fast : ℕ → Array E → List (Array E)
   | succ n ih => simp only [treeLayers, treeLayers.fast, ih]
 
 /-- `foldRoundsA`, copied. -/
-def foldRoundsA.fast (grinding : ℕ) : ℕ → WhirState → List E → Array E → Array E →
+def foldRoundsA.fast : ℕ → WhirState → List E → Array E → Array E →
     Script (WhirState × List E × Array E × Array E)
   | 0, s, levelFolds, W, g => return (s, levelFolds, W, g)
   | n + 1, s, levelFolds, W, g => do
-    Script.foldGrindS grinding
     let challenge ← Script.sampleE
     let W' := foldPairsA challenge W
     let g' := foldPairsA challenge g
     let quad ← roundA (polyEval s.runningQuad challenge) W' g'
-    foldRoundsA.fast grinding n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
+    foldRoundsA.fast n { s with runningQuad := quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge]) W' g'
 
 @[csimp] theorem foldRoundsA.fast_eq : @foldRoundsA = @foldRoundsA.fast := by
-  funext grinding n s levelFolds W g
+  funext n s levelFolds W g
   induction n generalizing s levelFolds W g with
   | zero => rfl
   | succ n ih => simp only [foldRoundsA, foldRoundsA.fast, ih]
@@ -151,7 +150,7 @@ def gkrLayersA.fast (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Scr
 def levelsA.fast (μ : ℕ) : ℕ → List Whir.Level → WhirState → Array E → Array E → Script Unit
   | _, [], _, _, _ => return ()
   | index, level :: rest, s, W, g => do
-    let (s, levelFolds, W, g) ← foldRoundsA level.foldGrinding level.fold s [] W g
+    let (s, levelFolds, W, g) ← foldRoundsA level.fold s [] W g
     let messageLog := μ - s.folds.length
     let (residual, pending, tables) ← match rest with
       | [] => do
@@ -208,7 +207,7 @@ def searchM.fast (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
   | _, 0 => pure none
   | n, count + 1 => do
     let r ← powStepM F sp (nonceOf n)
-    if powOk bits (nonceOf n) r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
+    if powOk bits r.1 then pure (some (nonceOf n)) else searchM.fast bits sp (n + 1) count
 
 @[csimp] theorem searchM.fast_eq : @searchM = @searchM.fast := by
   funext m _ F bits sp n count

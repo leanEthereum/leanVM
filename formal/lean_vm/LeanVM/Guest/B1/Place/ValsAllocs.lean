@@ -66,18 +66,14 @@ theorem osMatP_allocsV (plan : List (ℕ × ℕ × ℕ)) (mats : List OsMat) (b 
     (osMatP plan mats b o k).1.filterMap Main.Stmt.allocSz = [] := by
   unfold osMatP; split_ifs <;> simp [List.filterMap_cons]
 
-theorem osFoldCall_allocsV (fr : Option (List String)) (as rs : List V) :
-    Main.Stmt.allocSz (osFoldCall fr as rs) = none := by
-  cases fr <;> rfl
-
-theorem osFolds_allocsV (fr : Option (List String)) (p : ℕ) : ∀ (n off : ℕ) (s : OsSt),
-    (osFolds fr p off n s).1.filterMap Main.Stmt.allocSz = []
+theorem osFolds_allocsV (p : ℕ) : ∀ (n off : ℕ) (s : OsSt),
+    (osFolds p off n s).1.filterMap Main.Stmt.allocSz = []
   | 0, _, _ => rfl
   | n + 1, off, s => by
-    have e : (osFolds fr p off (n + 1) s).1 =
-        (osFold fr p off s).1 ++ (osFolds fr p (off + 1) n (osFold fr p off s).2).1 := rfl
-    rw [e, List.filterMap_append, osFolds_allocsV fr p n (off + 1)]
-    simp [osFold, osMat_allocsV, osFoldCall_allocsV, List.filterMap_cons]
+    have e : (osFolds p off (n + 1) s).1 =
+        (osFold p off s).1 ++ (osFolds p (off + 1) n (osFold p off s).2).1 := rfl
+    rw [e, List.filterMap_append, osFolds_allocsV p n (off + 1)]
+    simp [osFold, osMat_allocsV, List.filterMap_cons]
 
 theorem osFinal_allocsV (c : OsCfg) (s : OsSt) :
     (osFinal c s).1.filterMap Main.Stmt.allocSz = [] := by

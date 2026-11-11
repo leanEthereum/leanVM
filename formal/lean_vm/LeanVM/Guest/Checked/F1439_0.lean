@@ -17,45 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop411`, window 0. -/
+/-- `walk_path__L12_L3`, window 0. -/
 theorem w1439_0 : WinOk 1439 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop412`, window 0. -/
+/-- `walk_path__L12_L3`, window 1. -/
+theorem w1439_1 : WinOk 1439 1 := winOk_of_C (by decide +kernel)
+
+/-- `walk_path__L12_L3`, window 2. -/
+theorem w1439_2 : WinOk 1439 2 := winOk_of_C (by decide +kernel)
+
+/-- `__loop509`, window 0. -/
 theorem w1440_0 : WinOk 1440 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop413`, window 0. -/
+/-- `__loop509`, window 1. -/
+theorem w1440_1 : WinOk 1440 1 := winOk_of_C (by decide +kernel)
+
+/-- `__loop509`, window 2. -/
+theorem w1440_2 : WinOk 1440 2 := winOk_of_C (by decide +kernel)
+
+/-- `__loop509`, window 3. -/
+theorem w1440_3 : WinOk 1440 3 := winOk_of_C (by decide +kernel)
+
+/-- `__loop510`, window 0. -/
 theorem w1441_0 : WinOk 1441 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop414`, window 0. -/
-theorem w1442_0 : WinOk 1442 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop415`, window 0. -/
-theorem w1443_0 : WinOk 1443 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop416`, window 0. -/
-theorem w1444_0 : WinOk 1444 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop417`, window 0. -/
-theorem w1445_0 : WinOk 1445 0 := winOk_of_C (by decide +kernel)
-
-/-- `__loop418`, window 0. -/
-theorem w1446_0 : WinOk 1446 0 := winOk_of_C (by decide +kernel)
-
-theorem ok1439 : CheckOk 1439 := checkOk_one (by decide +kernel) w1439_0
-
-theorem ok1440 : CheckOk 1440 := checkOk_one (by decide +kernel) w1440_0
-
-theorem ok1441 : CheckOk 1441 := checkOk_one (by decide +kernel) w1441_0
-
-theorem ok1442 : CheckOk 1442 := checkOk_one (by decide +kernel) w1442_0
-
-theorem ok1443 : CheckOk 1443 := checkOk_one (by decide +kernel) w1443_0
-
-theorem ok1444 : CheckOk 1444 := checkOk_one (by decide +kernel) w1444_0
-
-theorem ok1445 : CheckOk 1445 := checkOk_one (by decide +kernel) w1445_0
-
-theorem ok1446 : CheckOk 1446 := checkOk_one (by decide +kernel) w1446_0
 
 end
 end LeanVM.Guest.Checked

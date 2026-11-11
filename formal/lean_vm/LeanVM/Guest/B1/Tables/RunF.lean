@@ -48,7 +48,7 @@ def runT {α : Type} : VerifierProgram α → TSt → Option (α × TSt)
     | [] => none
     | n :: xs =>
       let sq := (s.sponge.absorb n dsPowNonce).squeeze
-      if powOk bits n sq.1 then runT k { s with sponge := sq.2, stream := xs } else none
+      if powOk bits sq.1 then runT k { s with sponge := sq.2, stream := xs } else none
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
       match digestFromHalves (x0, x1) with
@@ -229,7 +229,7 @@ theorem runId_of_runT {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
       · rename_i hp
         obtain ⟨sp', h1, h2⟩ := ih ⟨(s.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ _ e2 a st' h
         refine ⟨sp', h1, ?_⟩
-        show (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
+        show (if powOk b (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, R⟩
@@ -317,7 +317,7 @@ theorem runT_of_runId {α : Type} (p : VerifierProgram α) : ∀ (st : TSt) (sp 
       have ha := carries_absorb hs n dsPowNonce
       obtain ⟨e1, e2⟩ := carries_squeeze ha
       have key : runId (VerifierProgram.grind b k) ⟨sp, n :: xs, os, roots⟩ =
-          (if powOk b n (Id.run (Compile.squeeze (m := Id) keccakF1600
+          (if powOk b (Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
             runId k ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
               (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, xs, os, roots⟩

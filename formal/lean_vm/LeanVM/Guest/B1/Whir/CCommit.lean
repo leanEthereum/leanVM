@@ -99,7 +99,7 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
     (hy : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 1) y)
     (hc0 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 2) c0)
     (hc2 : LoadHolds rd (σ (.n osOod)) ((lvl + 1) * oodSlots + 3) c2)
-    (hpow : powOk Whir.queryGrindingBits nonce
+    (hpow : powOk Whir.queryGrindingBits
       (commitF2 σ st ra rb lv.logCols y c0 c2 nonce).squeeze.1 = true) :
     BlkF C rd σ st.k (osCommit plan lvl lv st).2.1.k
       (fun j ↦ segLookup (commitSegs plan σ st lvl lv.logCols ra rb y c0 c2 nonce) (j - st.k))
@@ -403,7 +403,7 @@ theorem osCommit_complete {plan : List (ℕ × ℕ × ℕ)}
       have := vout 0 (by omega)
       rw [Nat.add_zero] at this
       rw [this]
-      exact grind_meaning (by decide) hpow
+      exact grind_meaning hpow
   · simp only [OsSt.cur, osCommit, pow_add, mul_assoc]
   · have hoff0 : (lvl + 1) * ligColsCap ≠ 0 := by unfold ligColsCap; omega
     have hm' : MatsOk σ' st.mats := matsOk_agree hm hmb hagree

@@ -17,31 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `level_queries__L25_L0_L16_L24_L26_L2`, window 0. -/
+/-- `__loop65`, window 0. -/
 theorem w942_0 : WinOk 942 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L25_L0_L16_L24_L26_L2`, window 1. -/
-theorem w942_1 : WinOk 942 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L23_L0_L16_L24_L27_L3`, window 0. -/
+/-- `__loop66`, window 0. -/
 theorem w943_0 : WinOk 943 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L23_L0_L16_L24_L27_L3`, window 1. -/
-theorem w943_1 : WinOk 943 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_positions__L3_L26_L2`, window 0. -/
+/-- `__loop67`, window 0. -/
 theorem w944_0 : WinOk 944 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L21_L0_L16_L24_L24_L6`, window 0. -/
+/-- `__loop68`, window 0. -/
 theorem w945_0 : WinOk 945 0 := winOk_of_C (by decide +kernel)
 
-/-- `level_queries__L21_L0_L16_L24_L24_L6`, window 1. -/
-theorem w945_1 : WinOk 945 1 := winOk_of_C (by decide +kernel)
-
-/-- `level_queries__L19_L0_L16_L24_L25_L7`, window 0. -/
+/-- `__loop69`, window 0. -/
 theorem w946_0 : WinOk 946 0 := winOk_of_C (by decide +kernel)
 
+/-- `__loop70`, window 0. -/
+theorem w947_0 : WinOk 947 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop71`, window 0. -/
+theorem w948_0 : WinOk 948 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop72`, window 0. -/
+theorem w949_0 : WinOk 949 0 := winOk_of_C (by decide +kernel)
+
+theorem ok942 : CheckOk 942 := checkOk_one (by decide +kernel) w942_0
+
+theorem ok943 : CheckOk 943 := checkOk_one (by decide +kernel) w943_0
+
 theorem ok944 : CheckOk 944 := checkOk_one (by decide +kernel) w944_0
+
+theorem ok945 : CheckOk 945 := checkOk_one (by decide +kernel) w945_0
+
+theorem ok946 : CheckOk 946 := checkOk_one (by decide +kernel) w946_0
+
+theorem ok947 : CheckOk 947 := checkOk_one (by decide +kernel) w947_0
+
+theorem ok948 : CheckOk 948 := checkOk_one (by decide +kernel) w948_0
+
+theorem ok949 : CheckOk 949 := checkOk_one (by decide +kernel) w949_0
 
 end
 end LeanVM.Guest.Checked

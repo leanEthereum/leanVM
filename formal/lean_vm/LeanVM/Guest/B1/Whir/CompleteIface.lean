@@ -55,15 +55,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## No zero challenge -/
 
 /-- `foldRounds` refusing a zero challenge. -/
-def foldRoundsNZ (grinding : ℕ) : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
+def foldRoundsNZ : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    VerifierProgram.foldProofOfWork grinding
     let challenge ← VerifierProgram.sampleChallenge
     VerifierProgram.require (challenge ≠ 0)
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
-    foldRoundsNZ grinding n { s with target, quad, folds := s.folds ++ [challenge] }
+    foldRoundsNZ n { s with target, quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge])
 
 /-- `tailRounds` refusing a zero challenge. -/
@@ -84,7 +83,7 @@ def whirLevelsOpenNZ (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirSt
     WhirEnd
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRoundsNZ level.foldGrinding level.fold s []
+    let (s, levelFolds) ← foldRoundsNZ level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
@@ -157,7 +156,7 @@ def queryStepsOf {α : Type} : VerifierProgram α → FSt → List (ℕ × List 
     | [] => []
     | n :: xs =>
       let sq := (s.sponge.absorb n dsPowNonce).squeeze
-      if powOk bits n sq.1 then queryStepsOf k { s with sponge := sq.2, stream := xs } else []
+      if powOk bits sq.1 then queryStepsOf k { s with sponge := sq.2, stream := xs } else []
   | .commit height width k, s => match s.stream with
     | x0 :: x1 :: xs =>
       match digestFromHalves (x0, x1) with
@@ -224,7 +223,7 @@ addresses below `2^7` (the positions' decoders' range checks) holding `L` and th
 cursor, the call returns the run's claim, the point buffers' pointers, its
 glued weight and its residual's value. Proved as `open_stacked_complete_holds`. -/
 def open_stacked_complete_Spec : Prop :=
-  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 32 → 1 ≤ r → r ≤ 4 →
+  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List (List Opening))
       (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →

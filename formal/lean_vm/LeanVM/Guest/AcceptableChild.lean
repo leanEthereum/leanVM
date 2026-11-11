@@ -81,7 +81,7 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
     | n :: xs =>
       let (c, sponge) :=
         Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 state.sponge n dsPowNonce)))
-      if powOk bits n c then queryStepsOf k { state with sponge := sponge, stream := xs } else []
+      if powOk bits c then queryStepsOf k { state with sponge := sponge, stream := xs } else []
   | .commit height width k, state => match state.stream with
     | x0 :: x1 :: xs =>
       match digestFromHalves (x0, x1) with
@@ -178,7 +178,7 @@ statement and witness with `NodeRelation`, within the deployed limits (so at mos
 every child one the guest program accepts (`AcceptableChild`: at one of its opening arms, its
 openings agreeing in the caps, no zero challenge), and in one of the families `CoveredNode` lists,
 there is a valid execution of the guest program on the statement's digest of committed size at
-most `2^32`. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
+most `2^30`. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
 abbrev GuestCompleteCovered : Prop :=
   ∀ (seed : Digest) (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) seed statement witness →
@@ -188,7 +188,7 @@ abbrev GuestCompleteCovered : Prop :=
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed statement))
         execution ∧
-      execution.committedSize ≤ 2 ^ 32
+      execution.committedSize ≤ 2 ^ 30
 
 /-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
 makes one (`HonestChild`'s, `Statement/LeanVmGuestCompleteness.lean`, written out). -/

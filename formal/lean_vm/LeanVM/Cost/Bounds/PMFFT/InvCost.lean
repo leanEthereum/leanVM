@@ -100,14 +100,14 @@ theorem polyMulPrice_newton (p : PMPrices) {i k' : ℕ} (h : 2 ^ i < k') :
   have := polyMulPrice_mono p h2
   omega
 
-/-- **Newton's loop** (`inverseModX.go.c421`) from precision `a ≤ k` with `k ≤ a·2^m`, `a` a power
+/-- **Newton's loop** (`inverseModX.go.c419`) from precision `a ≤ k` with `k ≤ a·2^m`, `a` a power
 of two or `k`: its price and four products at precision `a` within four at `k` and
 `m · newtonExtra k + k + 18`. -/
-theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c421.costDeps)
+theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c419.costDeps)
     (p : PMPrices) (hp : FFTPricesOK p) (k : ℕ) (hk : k ≤ 2 ^ 35) (f : CompPoly.CPolynomial.Raw K) :
     ∀ m fuel a (acc : CompPoly.CPolynomial.Raw K), 1 ≤ a → a ≤ k → k ≤ a * 2 ^ m → fuel < 2 ^ 64 →
       (a = k ∨ ∃ i, a = 2 ^ i) →
-      machineCost P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c421.costIdx [encodeValue k,
+      machineCost P Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c419.costIdx [encodeValue k,
         encodeValue f, encodeValue fuel, encodeValue a, encodeValue acc] +
           4 * polyMulPrice p (clog2 (2 * a - 1)) ≤
         4 * polyMulPrice p (clog2 (2 * k - 1)) + m * newtonExtra k + k + 18 := by
@@ -117,7 +117,7 @@ theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX
     intro fuel a acc ha hak hkm hf _
     have hs : (acc.extract 0 k).size ≤ k := by simp
     have hmono := polyMulPrice_mono p (clog2_mono (show 2 * a - 1 ≤ 2 * k - 1 by omega))
-    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c421.costEq P hP]
+    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c419.costEq P hP]
     cases fuel with
     | zero => cost_simp; omega
     | succ n =>
@@ -128,7 +128,7 @@ theorem newtonGo_cost (hP : Includes P Auto.CompPoly.CPolynomial.Raw.inverseModX
     intro fuel a acc ha hak hkm hf hpow
     have hs : (acc.extract 0 k).size ≤ k := by simp
     have hmono := polyMulPrice_mono p (clog2_mono (show 2 * a - 1 ≤ 2 * k - 1 by omega))
-    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c421.costEq P hP]
+    rw [Auto.CompPoly.CPolynomial.Raw.inverseModX.go.c419.costEq P hP]
     cases fuel with
     | zero => cost_simp; omega
     | succ n =>

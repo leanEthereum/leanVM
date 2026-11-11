@@ -168,7 +168,7 @@ theorem gkrBus_cutsKnown : CutsKnown 10 := by
   simp only [List.map_cons, List.map_nil, List.getD_cons_zero, List.getD_cons_succ]
   intro hx
   rw [hx, ← valG_of_loc l15, ← valG_of_loc l66, ← valG_of_loc l6, ← valG_of_loc l56]
-  exact vbg_par hκ L hl
+  exact vbg_par (hκ.trans (by decide)) L hl
 
 end
 end LeanVM.Guest.End

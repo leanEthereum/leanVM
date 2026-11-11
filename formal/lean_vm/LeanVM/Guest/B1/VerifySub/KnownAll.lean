@@ -35,7 +35,7 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1593) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 139)) i (ofK (addressOfIndex e)) :=
-  have hκ : κ ≤ 32 := h32
+  have hκ : κ ≤ 32 := h32.trans (by decide)
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
   vsKnown_of L h16 h32 (Tables.verify_bus_gkr_holdsC hκ L hle)
     (Tables.verify_tables_holdsC hκ L _ List.length_replicate hle) (Tables.certify_placement_holds hκ L)
@@ -50,7 +50,7 @@ theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem �
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 552) True
       (fun _ ↦ True)) :
     ∃ e < 34, LoadHolds L.read (σ (.n 127)) 0 (ofK (addressOfIndex e)) := by
-  have hκ : κ ≤ 32 := h32
+  have hκ : κ ≤ 32 := h32.trans (by decide)
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
   have hT : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsRootsT ++ vsAlphasT ++
       vsFpwT ++ vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT ++ vsTailT) := by

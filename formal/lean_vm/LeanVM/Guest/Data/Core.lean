@@ -33,8 +33,6 @@ public import LeanVM.Guest.Data.Core22
 public import LeanVM.Guest.Data.Core23
 public import LeanVM.Guest.Data.Core24
 public import LeanVM.Guest.Data.Core25
-public import LeanVM.Guest.Data.Core26
-public import LeanVM.Guest.Data.Core27
 
 namespace LeanVM.Guest.Data
 
@@ -141,21 +139,7 @@ noncomputable def coreFunctions : List Core.Fn :=
   core1472 :: core1473 :: core1474 :: core1475 :: core1476 :: core1477 :: core1478 :: core1479 :: core1480 :: core1481 :: core1482 :: core1483 :: core1484 :: core1485 :: core1486 :: core1487 ::
   core1488 :: core1489 :: core1490 :: core1491 :: core1492 :: core1493 :: core1494 :: core1495 :: core1496 :: core1497 :: core1498 :: core1499 :: core1500 :: core1501 :: core1502 :: core1503 ::
   core1504 :: core1505 :: core1506 :: core1507 :: core1508 :: core1509 :: core1510 :: core1511 :: core1512 :: core1513 :: core1514 :: core1515 :: core1516 :: core1517 :: core1518 :: core1519 ::
-  core1520 :: core1521 :: core1522 :: core1523 :: core1524 :: core1525 :: core1526 :: core1527 :: core1528 :: core1529 :: core1530 :: core1531 :: core1532 :: core1533 :: core1534 :: core1535 ::
-  core1536 :: core1537 :: core1538 :: core1539 :: core1540 :: core1541 :: core1542 :: core1543 :: core1544 :: core1545 :: core1546 :: core1547 :: core1548 :: core1549 :: core1550 :: core1551 ::
-  core1552 :: core1553 :: core1554 :: core1555 :: core1556 :: core1557 :: core1558 :: core1559 :: core1560 :: core1561 :: core1562 :: core1563 :: core1564 :: core1565 :: core1566 :: core1567 ::
-  core1568 :: core1569 :: core1570 :: core1571 :: core1572 :: core1573 :: core1574 :: core1575 :: core1576 :: core1577 :: core1578 :: core1579 :: core1580 :: core1581 :: core1582 :: core1583 ::
-  core1584 :: core1585 :: core1586 :: core1587 :: core1588 :: core1589 :: core1590 :: core1591 :: core1592 :: core1593 :: core1594 :: core1595 :: core1596 :: core1597 :: core1598 :: core1599 ::
-  core1600 :: core1601 :: core1602 :: core1603 :: core1604 :: core1605 :: core1606 :: core1607 :: core1608 :: core1609 :: core1610 :: core1611 :: core1612 :: core1613 :: core1614 :: core1615 ::
-  core1616 :: core1617 :: core1618 :: core1619 :: core1620 :: core1621 :: core1622 :: core1623 :: core1624 :: core1625 :: core1626 :: core1627 :: core1628 :: core1629 :: core1630 :: core1631 ::
-  core1632 :: core1633 :: core1634 :: core1635 :: core1636 :: core1637 :: core1638 :: core1639 :: core1640 :: core1641 :: core1642 :: core1643 :: core1644 :: core1645 :: core1646 :: core1647 ::
-  core1648 :: core1649 :: core1650 :: core1651 :: core1652 :: core1653 :: core1654 :: core1655 :: core1656 :: core1657 :: core1658 :: core1659 :: core1660 :: core1661 :: core1662 :: core1663 ::
-  core1664 :: core1665 :: core1666 :: core1667 :: core1668 :: core1669 :: core1670 :: core1671 :: core1672 :: core1673 :: core1674 :: core1675 :: core1676 :: core1677 :: core1678 :: core1679 ::
-  core1680 :: core1681 :: core1682 :: core1683 :: core1684 :: core1685 :: core1686 :: core1687 :: core1688 :: core1689 :: core1690 :: core1691 :: core1692 :: core1693 :: core1694 :: core1695 ::
-  core1696 :: core1697 :: core1698 :: core1699 :: core1700 :: core1701 :: core1702 :: core1703 :: core1704 :: core1705 :: core1706 :: core1707 :: core1708 :: core1709 :: core1710 :: core1711 ::
-  core1712 :: core1713 :: core1714 :: core1715 :: core1716 :: core1717 :: core1718 :: core1719 :: core1720 :: core1721 :: core1722 :: core1723 :: core1724 :: core1725 :: core1726 :: core1727 ::
-  core1728 :: core1729 :: core1730 :: core1731 :: core1732 :: core1733 :: core1734 :: core1735 :: core1736 :: core1737 :: core1738 :: core1739 :: core1740 :: core1741 :: core1742 :: core1743 ::
-  core1744 :: core1745 :: core1746 :: core1747 :: core1748 :: core1749 :: core1750 :: core1751 :: []
+  core1520 :: core1521 :: core1522 :: core1523 :: core1524 :: core1525 :: core1526 :: core1527 :: core1528 :: core1529 :: core1530 :: core1531 :: core1532 :: core1533 :: core1534 :: []
 
 end
 end LeanVM.Guest.Data

@@ -85,8 +85,9 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
   obtain ⟨rd0, hl0, hm0⟩ := hex
   have P0 := hpre rd0 hl0 hm0
   simp only [TermPre, termArgs] at P0
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
+  obtain ⟨hT, hPC, -, hP, hSL, hSL30, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
     -, hrpl, -, hcfl, -, hxl, -, -⟩ := P0
+  have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
@@ -144,7 +145,7 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
   · refine termKids_complete κ hκ Lin D _ hreg hbus f7 f4 f1 f5 f2 f3 hgmu hgzc hglm hgtau hlm1
       hlm32 (fun c hc => ?_) (fun c hc => ?_)
       (fun rd hl hm => ?_)
-    · have := hK c hc; show KC.getD c 0 < 33; omega
+    · have := hK c hc; show KC.getD c 0 < 31; omega
     · exact ⟨lt_of_lt_of_le (hO c) (Nat.pow_le_pow_right (by decide) hSL28),
         dvd_stackOffset KC (by omega)⟩
     · have P := hpre rd hl hm

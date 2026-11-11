@@ -48,14 +48,9 @@ theorem osHeap_flat (e k : ℕ) : Flat (osHeap e k) := rfl
 theorem osLoopCall_flat (name : String) (n : ℕ) (args : List ℕ) (k : ℕ) :
     Flat (osLoopCall name n args k) := rfl
 
-theorem osFoldCall_flat (fr : Option (List String)) (args rets : List V) :
-    Stmt.flat (osFoldCall fr args rets) = true := by
-  cases fr <;> rfl
-
-theorem osFolds_flat (fr : Option (List String)) (p : ℕ) : ∀ n off s, Flat (osFolds fr p off n s).1
+theorem osFolds_flat (p : ℕ) : ∀ n off s, Flat (osFolds p off n s).1
   | 0, _, _ => rfl
-  | n + 1, off, _ => flat_append (flat_append (osMat_flat _ _ _)
-      (flat_cons (osFoldCall_flat _ _ _) rfl)) (osFolds_flat fr p n (off + 1) _)
+  | n + 1, off, _ => flat_append (flat_append (osMat_flat _ _ _) rfl) (osFolds_flat p n (off + 1) _)
 
 theorem osPad_flat (pad : Option ℕ) (k : ℕ) : Flat (osPad pad k).1 := by
   cases pad <;> rfl
@@ -108,7 +103,7 @@ theorem osFinal_flat (c : OsCfg) (s : OsSt) : Flat (osFinal c s).1 :=
 theorem osLevel_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osLevel c lvl lv s).1 := by
   simp only [osLevel]
   refine flat_append (flat_append (flat_append (flat_append (flat_append (flat_append
-    (flat_append (flat_append (osFolds_flat _ _ _ _ _) ?_) rfl) (osPositions_flat _ _ _ _))
+    (flat_append (flat_append (osFolds_flat _ _ _ _) ?_) rfl) (osPositions_flat _ _ _ _))
     (osMu_flat _ _ _)) (osQueries_flat _ _ _ _ _)) ?_) rfl) rfl
   · split
     · exact osFinal_flat _ _
@@ -124,7 +119,7 @@ theorem osLevels_flat (c : OsCfg) : ∀ lvl lvs s, Flat (osLevels c lvl lvs s).1
 theorem osTail_flat (c : OsCfg) (s : OsSt) : Flat (osTail c s).1 := by
   simp only [osTail]
   refine flat_append (flat_append (flat_append (flat_append (flat_append (flat_append
-    (flat_append (osHeap_flat _ _) (osFolds_flat _ _ _ _ _)) (flat_map _ _ fun _ ↦ rfl)) rfl) rfl)
+    (flat_append (osHeap_flat _ _) (osFolds_flat _ _ _ _)) (flat_map _ _ fun _ ↦ rfl)) rfl) rfl)
     rfl) rfl) (flat_flatten fun a ha ↦ ?_)
   obtain ⟨i, -, rfl⟩ := List.mem_map.mp ha
   rfl

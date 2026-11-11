@@ -22,7 +22,7 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
   iteration and their runs' one phantom frame, `19`, `27` (their certificates);
 * `rsRows_totalLe_fs`: each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words (their certificates);
 * `l14_totalLeOn_fs`: `__loop13` from `1` (to its constant end `g^8`) within `8 · 661 + 661`;
-* `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 33`, within `157` words, its frame
+* `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
   at most `157` (its certificate is its frame);
 * `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8142` (`rs_totalLeOn34`:
   `50 + (27 + 4 · 1644) + 1489`).
@@ -57,10 +57,10 @@ theorem fs_l6 : B2C.fs "__loop5" = 27 := by
   rw [fsB_idx (j := 80) (by decide +kernel)]; decide +kernel
 
 theorem fs_l15 : B2C.fs "__loop14" = 19 := by
-  rw [fsB_idx (j := 274) (by decide +kernel)]; decide +kernel
+  rw [fsB_idx (j := 272) (by decide +kernel)]; decide +kernel
 
 theorem fs_l14 : B2C.fs "__loop13" = 661 := by
-  rw [fsB_idx (j := 273) (by decide +kernel)]; decide +kernel
+  rw [fsB_idx (j := 271) (by decide +kernel)]; decide +kernel
 
 /-! ## The callees' words -/
 
@@ -87,7 +87,7 @@ theorem loopTotalLeOn_fs {f : String} {K : ℕ} {ks : List (V × ℕ)}
 theorem l15_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * 19 + B2C.fs "__loop14" :=
-  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 274) (by decide +kernel)]; rfl :
+  loopTotalLeOn_fs (by rw [wcertOf_of_idx (j := 272) (by decide +kernel)]; rfl :
     wcertOf "__loop14" = .loop none [] ⟨19, []⟩ [])
 
 /-- `__loop5` within `1644` words per iteration and its run's phantom frame, `27`. -/
@@ -102,7 +102,7 @@ run's phantom frame, `661`). -/
 theorem l14_totalLeOn_fs :
     TotalLeOn coreProgram B2C.fs "__loop13" (fun a => a.getD 0 0 = 1) fun _ => 5949 := by
   intro rd t args rets hn ha hv hb
-  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 273) (by decide +kernel)]; rfl :
+  have := fs_total_le_of_loop (by rw [wcertOf_of_idx (j := 271) (by decide +kernel)]; rfl :
       wcertOf "__loop13" = .loop (some 8) [] ⟨661, []⟩ []) hn hv hb (a := 0) (e := 8)
     (by rw [ha]; simp [Parameters.addressOfIndex]) rfl (by decide) (by decide)
     (fun _ h => (List.not_mem_nil h).elim)
@@ -123,22 +123,22 @@ theorem certLe_spec {B : ℕ} {c : Cert} (h : certLe B c = true) :
   · exact ⟨_, _, rfl, of_decide_eq_true h⟩
   · cases h
 
-/-- The column selectors: core functions `275 + κ`, constant words certificates within `157`, frames
+/-- The column selectors: core functions `273 + κ`, constant words certificates within `157`, frames
 within `157`. -/
-theorem cs_ok : (List.range 33).all (fun κ =>
-    decide ((coreProgram[275 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
-      certLe 157 (Data.wcertJ (275 + κ)) && decide (wfsJ (275 + κ) ≤ 157)) = true := by
+theorem cs_ok : (List.range 31).all (fun κ =>
+    decide ((coreProgram[273 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ)) &&
+      certLe 157 (Data.wcertJ (273 + κ)) && decide (wfsJ (273 + κ) ≤ 157)) = true := by
   decide +kernel
 
-theorem cs_facts {κ : ℕ} (hκ : κ < 33) :
-    (coreProgram[275 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
-      certLe 157 (Data.wcertJ (275 + κ)) = true ∧ wfsJ (275 + κ) ≤ 157 := by
+theorem cs_facts {κ : ℕ} (hκ : κ < 31) :
+    (coreProgram[273 + κ]?).map Fn.name = some (Tables.lName "column_selector" κ) ∧
+      certLe 157 (Data.wcertJ (273 + κ)) = true ∧ wfsJ (273 + κ) ≤ 157 := by
   have h := List.all_eq_true.mp cs_ok κ (List.mem_range.mpr hκ)
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨h.1.1, h.1.2, h.2⟩
 
 /-- **Each `column_selector__L{κ}` within `157` words.** -/
-theorem cs_totalLe_fs : ∀ κ < 33,
+theorem cs_totalLe_fs : ∀ κ < 31,
     TotalLe coreProgram B2C.fs (Tables.lName "column_selector" κ) fun _ => 157 := by
   intro κ hκ rd t args rets hn hv hb
   obtain ⟨hname, hc, -⟩ := cs_facts hκ
@@ -146,7 +146,7 @@ theorem cs_totalLe_fs : ∀ κ < 33,
   exact (fs_totalLe ((wcertOf_of_idx hname).trans hcb) rd t args rets hn hv hb).trans hb157
 
 /-- **Each `column_selector__L{κ}`'s frame at most `157` words.** -/
-theorem cs_fs_le : ∀ κ < 33, B2C.fs (Tables.lName "column_selector" κ) ≤ 157 := by
+theorem cs_fs_le : ∀ κ < 31, B2C.fs (Tables.lName "column_selector" κ) ≤ 157 := by
   intro κ hκ
   obtain ⟨hname, -, hF⟩ := cs_facts hκ
   rw [fsB_idx hname]

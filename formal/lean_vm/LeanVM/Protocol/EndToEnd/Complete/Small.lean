@@ -21,7 +21,7 @@ public import LeanVM.Protocol.WithHash
 The completeness theorems of `EndToEnd.Completeness` start from a witness at admissible sizes
 (`Sizes.Admissible`), an arithmetization notion. This file closes the gap to the ISA: a valid
 execution (`ValidExecution`) whose committed size (`Execution.committedSize`, stated in the ISA's
-terms in `Statement/LeanVm.lean`) is at most `2^completeMu = 2^32` has a witness representing it at
+terms in `Statement/LeanVm.lean`) is at most `2^completeMu = 2^30` has a witness representing it at
 admissible sizes (`exists_admissible_witness`), and the honest proof of that witness
 (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the proof-of-work
 searches succeed (`honestProofOf_isSome`).
@@ -39,7 +39,7 @@ its table's height (`blocks_total_eq`):
 columns of `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, the last without its
 fifty value lanes and the fourteen columns riding `q_keccak`'s spare slots), `τ_j = ⌈log₂ rows_j⌉`, and `τ₅` at least `9` (`TABLE_LOG_FLOORS`). At the
 witness's sizes it is the execution's committed size (`Execution.committedSize`), so it is within the
-verifier's cap exactly when that is at most `2^32`.
+verifier's cap exactly when that is at most `2^30`.
 
 ## Wrong readings excluded
 
@@ -88,9 +88,9 @@ theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) : (LeanIsa.blocks pr
     Nat.add_zero, ← Nat.add_assoc]
   rfl
 
-/-- The committed size completeness is stated for, `2^32` cells (`Statement/LeanVm.lean`), the
+/-- The committed size completeness is stated for, `2^30` cells (`Statement/LeanVm.lean`), the
 `2^maxMu` the verifier admits. -/
-def completeMu : ℕ := 32
+def completeMu : ℕ := 30
 
 /-- The stacked size is within the cap when the blocks fit on `2^completeMu` cells. -/
 theorem leanIsaμ_le_of_total_le {prog : LeanIsaProgram} {s : Sizes}
@@ -100,7 +100,7 @@ theorem leanIsaμ_le_of_total_le {prog : LeanIsaProgram} {s : Sizes}
 /-! ## The admissible witness -/
 
 /-- **An admissible witness, under the budget.** A valid execution whose committed size is at most
-`2^32` has a witness representing it that satisfies leanISA's constraint system at sizes the
+`2^30` has a witness representing it that satisfies leanISA's constraint system at sizes the
 verifier admits. -/
 theorem exists_admissible_witness {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ completeMu) :
@@ -189,7 +189,7 @@ theorem verify_honestProofOf (H : Bytes → Digest) (F : KeccakState → KeccakS
   exact runProof_prove H F _ _ _ fuel (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2) h
 
 /-- **The honest prover succeeds within the budget.** For a valid execution whose committed size is
-at most `2^32`, at a valid rate, the honest proof exists as soon as every proof-of-work search the
+at most `2^30`, at a valid rate, the honest proof exists as soon as every proof-of-work search the
 verifier program asks for finds a nonce below `fuel`. -/
 theorem honestProofOf_isSome {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}
@@ -205,7 +205,7 @@ theorem honestProofOf_isSome {prog : LeanIsaProgram} {input : PublicInput} {t : 
   split_ifs
   exact Option.isSome_iff_ne_none.mpr (prove_ne_none H F _ _ _ fuel hpow)
 
-/-- **Completeness within the budget.** A valid execution whose committed size is at most `2^32`,
+/-- **Completeness within the budget.** A valid execution whose committed size is at most `2^30`,
 at a valid rate: when every proof-of-work search succeeds below `fuel`, the honest prover outputs
 a proof, and the verifier accepts it, for every hash function and permutation. -/
 theorem complete_of_budget {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}

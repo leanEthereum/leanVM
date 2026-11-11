@@ -17,45 +17,33 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop181`, window 0. -/
+/-- `__loop282`, window 0. -/
 theorem w1189_0 : WinOk 1189 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop182`, window 0. -/
+/-- `__loop283`, window 0. -/
 theorem w1190_0 : WinOk 1190 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop183`, window 0. -/
+/-- `verify_merkle_cap__L8`, window 0. -/
 theorem w1191_0 : WinOk 1191 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop184`, window 0. -/
-theorem w1192_0 : WinOk 1192 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 1. -/
+theorem w1191_1 : WinOk 1191 1 := winOk_of_C (by decide +kernel)
 
-/-- `__loop185`, window 0. -/
-theorem w1193_0 : WinOk 1193 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 2. -/
+theorem w1191_2 : WinOk 1191 2 := winOk_of_C (by decide +kernel)
 
-/-- `__loop186`, window 0. -/
-theorem w1194_0 : WinOk 1194 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 3. -/
+theorem w1191_3 : WinOk 1191 3 := winOk_of_C (by decide +kernel)
 
-/-- `__loop187`, window 0. -/
-theorem w1195_0 : WinOk 1195 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 4. -/
+theorem w1191_4 : WinOk 1191 4 := winOk_of_C (by decide +kernel)
 
-/-- `__loop188`, window 0. -/
-theorem w1196_0 : WinOk 1196 0 := winOk_of_C (by decide +kernel)
+/-- `verify_merkle_cap__L8`, window 5. -/
+theorem w1191_5 : WinOk 1191 5 := winOk_of_C (by decide +kernel)
 
 theorem ok1189 : CheckOk 1189 := checkOk_one (by decide +kernel) w1189_0
 
 theorem ok1190 : CheckOk 1190 := checkOk_one (by decide +kernel) w1190_0
-
-theorem ok1191 : CheckOk 1191 := checkOk_one (by decide +kernel) w1191_0
-
-theorem ok1192 : CheckOk 1192 := checkOk_one (by decide +kernel) w1192_0
-
-theorem ok1193 : CheckOk 1193 := checkOk_one (by decide +kernel) w1193_0
-
-theorem ok1194 : CheckOk 1194 := checkOk_one (by decide +kernel) w1194_0
-
-theorem ok1195 : CheckOk 1195 := checkOk_one (by decide +kernel) w1195_0
-
-theorem ok1196 : CheckOk 1196 := checkOk_one (by decide +kernel) w1196_0
 
 end
 end LeanVM.Guest.Checked

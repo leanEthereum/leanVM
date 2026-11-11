@@ -244,7 +244,7 @@ def opening_queries_Spec (name : String) (odd base I depth cd : ℕ) : Prop :=
     (coreProgram.Rel rd name [cap, flags, lam, lamN, qptrs, wp, nG] rets ↔
       MeaningOpeningQueries odd base I depth cd rd [cap, flags, lam, lamN, qptrs, wp, nG] rets)
 
-/-- The 47 deployed specializations, by name (a name built by `++ toString` does not reduce in a
+/-- The 42 deployed specializations, by name (a name built by `++ toString` does not reduce in a
 `module`'s kernel), with their shapes `(odd, base, I, leafCells, depth, cd)`: `base = 1`,
 `I = 64`, `leafCells = 32`, or `base = 0`, `odd = 0`, `I = 16`, `leafCells = 24`; `2 ≤ cd ≤ 8`. -/
 def openingQueriesShapes : List (String × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ) :=
@@ -289,12 +289,7 @@ def openingQueriesShapes : List (String × ℕ × ℕ × ℕ × ℕ × ℕ × �
     ("opening_queries__L1_L1_L64_L32_L27_L3", 1, 1, 64, 32, 27, 3),
     ("opening_queries__L0_L0_L16_L24_L26_L2", 0, 0, 16, 24, 26, 2),
     ("opening_queries__L1_L1_L64_L32_L28_L4", 1, 1, 64, 32, 28, 4),
-    ("opening_queries__L0_L0_L16_L24_L27_L3", 0, 0, 16, 24, 27, 3),
-    ("opening_queries__L0_L1_L64_L32_L26_L8", 0, 1, 64, 32, 26, 8),
-    ("opening_queries__L1_L1_L64_L32_L29_L5", 1, 1, 64, 32, 29, 5),
-    ("opening_queries__L0_L0_L16_L24_L28_L4", 0, 0, 16, 24, 28, 4),
-    ("opening_queries__L1_L1_L64_L32_L30_L6", 1, 1, 64, 32, 30, 6),
-    ("opening_queries__L0_L0_L16_L24_L29_L5", 0, 0, 16, 24, 29, 5)]
+    ("opening_queries__L0_L0_L16_L24_L27_L3", 0, 0, 16, 24, 27, 3)]
 
 /-- Every deployed specialization of `opening_queries` is its meaning. -/
 def opening_queries_all_Spec : Prop :=

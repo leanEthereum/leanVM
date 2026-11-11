@@ -155,7 +155,7 @@ theorem colFoldC_cost (hP : Includes P gsRelationColumnC.costDeps)
         _ = 2 ^ (w + 20) := by rw [← Nat.pow_add]
         _ ≤ 2 ^ (64 * (w + 1)) := Nat.pow_le_pow_right (by norm_num) (by omega))
     have hL3 : limbCount (j₀.choose b % 2) = 1 := limbs_of_lt (by omega)
-    have hnc := Auto.BF64.natCast.c579.costEq P (by includes) (j₀.choose b)
+    have hnc := Auto.BF64.natCast.c577.costEq P (by includes) (j₀.choose b)
     rw [ite_self] at hnc
     have := cK_cost P (by includes) (j₀.choose b : K)
     have hC := size_C_le (j₀.choose b : K)

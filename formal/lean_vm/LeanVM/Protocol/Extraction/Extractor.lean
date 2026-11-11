@@ -103,9 +103,9 @@ per lookup, worst-case, keeping evaluations of at most `L = max(64, 8·width)` b
 the cost machine of `Statement/CostMachine.lean` (`Cost/Extractor/Top.lean`), it is the program
 `compiledKnowledgeExtractor` (`Cost/ExtractorProgram.lean`) of the end statement:
 `knowledgeExtractorOf extractorProgram = transcriptExtractor` (`Cost/Efficient.lean`). Its price is
-proved (`LeanVM.Cost.Bounds.extractorC_cost`): at the largest stack, `(μ, R) = (32, 4)`, at most
-about `2^86` for at most `2^40` queries, the list decoder dominating (`extractorPrice_32_4`), and
-`2^156.86` for `2^128` queries, the transcript's index dominating (`extractorPrice_32_4_2_128`).
+proved (`LeanVM.Cost.Bounds.extractorC_cost`): at the largest stack, `(μ, R) = (30, 4)`, at most
+about `2^82` for at most `2^40` queries, the list decoder dominating (`extractorPrice_30_4`), and
+`2^156.86` for `2^128` queries, the transcript's index dominating (`extractorPrice_30_4_2_128`).
 Each lane's list is sorted (`laneListAt`, `coeffsLE`), so it depends only on the set the decoder
 returns, whichever interpolation computes it.
 
@@ -240,13 +240,13 @@ and the proof checks the copy against them for every admissible shape (`certOf_e
 `thrOf_eq_johnsonThreshold` in `LeanVM.Protocol.EndToEnd.Sound`). -/
 def johnsonSlack : List (List ℕ) := [
   [7275, 5527, 5165, 4984, 4765, 4720, 9241, 9214, 9200,
-    9198, 9194, 13737, 13737, 13737, 18248, 18248, 22727],
+    9198, 9194, 13737, 13737, 13737, 18248],
   [14336, 13824, 13312, 13184, 13120, 13056, 13040, 13032, 13024,
-    13022, 13021, 13020, 13019, 25886, 25886, 25886, 25886],
+    13022, 13021, 13020, 13019, 25886, 25886],
   [21557, 21195, 20886, 20796, 20750, 20728, 20716, 20707, 20704,
-    20703, 20701, 20701, 20700, 20700, 20700, 20700, 20700],
+    20703, 20701, 20701, 20700, 20700, 20700],
   [13824, 13440, 13248, 13152, 13104, 13080, 13068, 13064, 13062,
-    13061, 13060, 13059, 13059, 38959, 38959, 38959, 38959]]
+    13061, 13060, 13059, 13059, 38959, 38959]]
 
 /-- Level 0's slack `e` (`η = e/2^22`) for a stack of `2^μ` words at rate `2^-R`. -/
 def johnsonSlackOf (μ R : ℕ) : ℕ := (johnsonSlack.getD (R - 1) []).getD (μ - minLogStack) 0
@@ -261,7 +261,7 @@ agreement `⌈(√(D/n) + η)·n⌉`, the Johnson radius `√(D/n)` plus the sla
 `X = 2^44·D·n`, and `⌈(√X + b)/c⌉ = ⌈(⌈√X⌉ + b)/c⌉` (the real form is equal,
 `johnsonThreshold_eq_real` in `LeanVM.Extraction`). The table's default `0` is never read: the
 extractor reaches the threshold only after `readAnnouncedSizes` accepted the sizes, so `1 ≤ R ≤ 4`
-and `16 ≤ μ ≤ 32`, the table's range. -/
+and `16 ≤ μ ≤ 30`, the table's range. -/
 def johnsonThreshold (μ R : ℕ) : ℕ :=
   let κ := μ - initialFold
   let n := 2 ^ (κ + R)

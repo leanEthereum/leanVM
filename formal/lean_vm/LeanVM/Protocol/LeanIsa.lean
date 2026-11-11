@@ -27,9 +27,9 @@ row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the progra
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
 (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:230-233`): the memory window `[16, 32]`, the
-row cap `2^32`, and the stacked size `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`;
-its floor `15` holds by construction). `validRate` is the WHIR rate check, read off the same
+`crates/verifier/src/layout.rs:497-503`, and `lib.rs:230-233`): the memory window `[1, 30]`, the
+row cap `2^30`, and the stacked size `leanIsaμ prog s ≤ 30` (`MAX_STACKED_LOG`,
+`crates/verifier/src/layout.rs`; its floor `16` holds by construction). `validRate` is the WHIR rate check, read off the same
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
@@ -376,8 +376,8 @@ def blocks : Blocks where
 /-- The minimum stacked size, `MIN_MU` (`pcs.rs:49`). -/
 def minMu : ℕ := 16
 
-/-- The maximum stacked size, `MAX_MU` (`pcs.rs:51`). -/
-def maxMu : ℕ := 32
+/-- The maximum stacked size, `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). -/
+def maxMu : ℕ := 30
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
 `2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/

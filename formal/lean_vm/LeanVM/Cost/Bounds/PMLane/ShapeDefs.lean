@@ -11,8 +11,8 @@ public import LeanVM.Cost.Bounds.PMLane.InterpDefs
 `DecoderLaneSizes`, as for the extractor's decoder; the lanes' interpolation within the model's
 price, `LaneInterpOKPM`: `PMInterpOK` and `interpPMModel ≤ interpPMPrice`,
 `Bounds/PMLane/InterpDefs.lean`) and its value, at the model's prices with their
-margin (`marginPrices`), at most the one at `(32, 3)`, which
-`Bounds/PMLane/Shapes.lean` decides at each of the `68` admissible shapes. Definitions only, so
+margin (`marginPrices`), at most the one at `(30, 3)`, which
+`Bounds/PMLane/Shapes.lean` decides at each of the `60` admissible shapes. Definitions only, so
 that the checks import no proof (`Bounds/PMLane/ShapesFirewall.lean`).
 -/
 

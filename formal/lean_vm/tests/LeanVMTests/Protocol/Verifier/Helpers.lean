@@ -22,7 +22,7 @@ global bases, log-height floors, constraint counts, count columns and padding ro
 `jump_constraints`, `keccak_cell_lanes`, `layout_limb`, the `q_keccak` slots (`qkeccak_slot`) and
 output columns; `build_layout` on a sample bytecode and sizes (log-heights, stack log-size, every
 placement, every bus block's shape and flushed tuple at a sample row), `bus_layout` of the three
-sides; `derive_config` on all 68 admissible pairs (at `aca3ea6a`); `along`, `linear_transpose`,
+sides; `derive_config` on all 60 admissible pairs; `along`, `linear_transpose`,
 `instance_weights`, the slot weights of `open`, the RMFE's factors, `RMFE_EMBED`, `RMFE_PROJECT`,
 the carry-less product and division and the Keccak reduction's constants; `KECCAK_RC`,
 `KECCAK_RHO`, `KECCAK_PI`, `keccak_f`, `keccak_hash` across the block boundary, the sponge's
@@ -160,15 +160,15 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (buildLayout (sampleBytecode.take 24) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 8) 16 sampleRows).isNone
 #guard (buildLayout (sampleBytecode.take 16) 16 sampleRows).isSome
-/- The memory window `[1, 32]` (at `aca3ea6a`). -/
+/- The memory window `[1, 30]`. -/
 #guard (buildLayout sampleBytecode 0 sampleRows).isNone
 #guard (buildLayout sampleBytecode 1 sampleRows).isSome
-#guard (buildLayout sampleBytecode 33 sampleRows).isNone
-#guard (buildLayout sampleBytecode 32 sampleRows).isSome
-/- The row cap `2^32`, on any table. -/
-#guard (buildLayout sampleBytecode 16 [2 ^ 32 + 1, 2, 2, 4, 3, 5]).isNone
-#guard (buildLayout sampleBytecode 16 [2 ^ 32, 2, 2, 4, 3, 5]).isSome
-#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 2 ^ 32]).isSome
+#guard (buildLayout sampleBytecode 31 sampleRows).isNone
+#guard (buildLayout sampleBytecode 30 sampleRows).isSome
+/- The row cap `2^30`, on any table. -/
+#guard (buildLayout sampleBytecode 16 [2 ^ 30 + 1, 2, 2, 4, 3, 5]).isNone
+#guard (buildLayout sampleBytecode 16 [2 ^ 30, 2, 2, 4, 3, 5]).isSome
+#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 2 ^ 30]).isSome
 /- No `KECCAK` row is no rejection: the table's height is its floor. Past the floor it grows. -/
 #guard ((buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 0]).map (·.tableLogHeights)) =
   some [2, 1, 1, 2, 2, 9]
@@ -707,8 +707,6 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (28, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [225, 56, 32, 23, 18, 14]),
    (29, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [225, 56, 32, 23, 18, 14]),
    (30, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [226, 56, 32, 23, 18, 14]),
-   (31, 1, [6, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16], [226, 56, 32, 23, 18, 15]),
-   (32, 1, [6, 4, 4, 4, 4, 4, 4], [1, 4, 7, 10, 13, 16, 19], [227, 56, 32, 23, 18, 15, 12]),
    (16, 2, [6, 4, 4], [2, 5, 8], [112, 45, 27]), (17, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
    (18, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]), (19, 2, [6, 4, 4], [2, 5, 8], [112, 45, 28]),
    (20, 2, [6, 4, 4, 4], [2, 5, 8, 11], [112, 45, 28, 20]),
@@ -722,8 +720,6 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (28, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [112, 45, 28, 21, 16, 13]),
    (29, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [113, 45, 28, 21, 16, 14]),
    (30, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [113, 45, 28, 21, 17, 14]),
-   (31, 2, [6, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17], [113, 45, 28, 21, 17, 14]),
-   (32, 2, [6, 4, 4, 4, 4, 4, 4], [2, 5, 8, 11, 14, 17, 20], [113, 45, 29, 21, 17, 14, 12]),
    (16, 3, [6, 4, 4], [3, 6, 9], [75, 37, 24]), (17, 3, [6, 4, 4], [3, 6, 9], [75, 37, 25]),
    (18, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]), (19, 3, [6, 4, 4], [3, 6, 9], [75, 38, 25]),
    (20, 3, [6, 4, 4, 4], [3, 6, 9, 12], [75, 38, 25, 18]),
@@ -737,8 +733,6 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (28, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 15, 13]),
    (29, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 15, 13]),
    (30, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 16, 13]),
-   (31, 3, [6, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18], [75, 38, 25, 19, 16, 13]),
-   (32, 3, [6, 4, 4, 4, 4, 4, 4], [3, 6, 9, 12, 15, 18, 21], [75, 38, 25, 19, 16, 13, 11]),
    (16, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]), (17, 4, [6, 4, 4], [4, 7, 10], [56, 32, 22]),
    (18, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]), (19, 4, [6, 4, 4], [4, 7, 10], [56, 32, 23]),
    (20, 4, [6, 4, 4, 4], [4, 7, 10, 13], [56, 32, 23, 17]),
@@ -751,11 +745,9 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
    (27, 4, [6, 4, 4, 4, 4], [4, 7, 10, 13, 16], [56, 32, 23, 18, 15]),
    (28, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [56, 32, 23, 18, 15, 12]),
    (29, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 32, 23, 18, 15, 12]),
-   (30, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 33, 23, 18, 15, 12]),
-   (31, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 33, 23, 18, 15, 13]),
-   (32, 4, [6, 4, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19, 22], [57, 33, 23, 18, 15, 13, 11])]
+   (30, 4, [6, 4, 4, 4, 4, 4], [4, 7, 10, 13, 16, 19], [57, 33, 23, 18, 15, 12])]
 
-#guard refConfigs.length = 68
+#guard refConfigs.length = 60
 #guard refConfigs.all fun (n, r, folds, rates, queries) ↦
   decide ((Whir.ladder n r).map (fun ls ↦
     (ls.map (·.fold), ls.map (·.logInvRate), ls.map (·.queries))) = some (folds, rates, queries))
@@ -815,7 +807,7 @@ def refConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      (0x0, 0x5)]
 
 #guard (keccakConstants) =
-    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 16, 32]
+    [12, 2, 1, 6, 9, 1600, 11, 5, 64, 16, 24, 47, 6, 4, 16, 30]
 
 #guard (ringMapShifts) =
     [32, 16, 8, 4, 2, 1]

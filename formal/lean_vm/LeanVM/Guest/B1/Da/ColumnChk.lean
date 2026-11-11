@@ -16,10 +16,10 @@ set_option maxRecDepth 100000 in
 theorem col_ok : colOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l21_ok : l21Ok (coreProgram.getD 396 default) = true := by decide +kernel
+theorem l21_ok : l21Ok (coreProgram.getD 390 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l21_idx : coreProgram.indexOf? "__loop25" = some 396 := by decide +kernel
+theorem l21_idx : coreProgram.indexOf? "__loop25" = some 390 := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Da

@@ -17,7 +17,7 @@ registers with `Registers.final prog` at every step. Here the same search for a 
 * `candidateExecutionVec`: the public boundary checked first, on the two words it reads
   (`boundaryOfStack`), the memory vector built and the halting loop run only when it holds
   (`candidateExecutionVec_eq`, through `filter_boundaryOK_map`);
-* `candidateExecutionIn_eq_none`: above `2^32` words a stack has no execution (`boundaryOK`
+* `candidateExecutionIn_eq_none`: above `2^30` words a stack has no execution (`boundaryOK`
   fails), so above `2^63` words the fast search returns `none` with no hash map;
 * all on the lighter layout (`LayoutLite`, `Fast/AfterRoot.lean`: the fields the extractor reads),
   with `LayoutLite.placement`, `memoryImageLite`, `stepCapLite`, each the statement's at
@@ -169,7 +169,7 @@ theorem boundaryOfStack_of_lt (input : PublicInput) (layout : LayoutLite) {μ : 
     exact absurd hc.2 (Nat.not_le.2 h)
   · rfl
 
-/-- **Above `2^32` words a stack has no execution**: its runs fail the boundary. -/
+/-- **Above `2^30` words a stack has no execution**: its runs fail the boundary. -/
 theorem candidateExecutionIn_eq_none (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram)
     (input : PublicInput) (layout : Verifier.Layout) (h : maxLogMem < layout.logMemory) {μ : ℕ}
     (q : Vector K (2 ^ μ)) : candidateExecutionIn memIdx codeIdx prog input layout q = none := by

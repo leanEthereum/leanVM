@@ -201,8 +201,11 @@ theorem sampleN : ∀ n, Costs height (VerifierProgram.sampleChallenges n) (4 * 
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
 
-theorem grindP (bits : ℕ) : Costs height (VerifierProgram.grindProofOfWork bits) 5 fun _ ↦ True :=
-  ⟨le_rfl, trivial⟩
+theorem grindP (bits : ℕ) : Costs height (VerifierProgram.grindProofOfWork bits) 5 fun _ ↦ True := by
+  unfold VerifierProgram.grindProofOfWork
+  split
+  · trivial
+  · exact ⟨le_rfl, trivial⟩
 
 theorem commitP {ht : ℕ} (w : ℕ) (hht : ht ≤ height) :
     Costs height (VerifierProgram.readCommitment ht w) 2 fun _ ↦ True := ⟨hht, le_rfl, trivial⟩

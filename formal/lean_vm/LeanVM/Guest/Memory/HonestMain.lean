@@ -22,7 +22,7 @@ when the entries lie in `[2, 2^κ)`.
 `KFacts`: the certificate's facts the discharge takes of a tree (the checker's). `dischargeAddr`:
 every equation of a tree valid on a memory image and placed at `0` names a word of it, its loads
 and range checks by validity, its `frameAddr` runs by their certificate cells in their frames.
-`honest_of_relAtIn`: if `main` holds by a tree placed at `0` of `N ≤ 2^32` words on every memory
+`honest_of_relAtIn`: if `main` holds by a tree placed at `0` of `N ≤ 2^30` words on every memory
 holding a consistent layout `L` in `[2, N)` and the header, an honest tree of `N` words exists.
 -/
 

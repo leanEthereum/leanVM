@@ -31,8 +31,8 @@ theorem rc_lt {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ
     ⟨y, t1, t2, h1, by rw [Nat.add_sub_cancel, ← word_pow_eq (by omega)]; exact hk, h2⟩
   exact ⟨e, he, by rw [hx, gen_pow_eq_ofK]⟩
 
-/-- **The stack** (G:3534-3539): the placement certified, the stack's log `μ ∈ [20, 32]`, the size
-selector `g^(μ - 20)` dispatched on, and the committed columns' logs below `33`. -/
+/-- **The stack** (G:3534-3539): the placement certified, the stack's log `μ ∈ [20, 30]`, the size
+selector `g^(μ - 20)` dispatched on, and the committed columns' logs below `31`. -/
 theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
     (hLe : CallRel.Le C (coreProgram.Rel L.read)) (hcpS : Tables.certify_placement_Spec L.read)
     {bytecode : List K}
@@ -41,10 +41,10 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
     (hcp : C "certify_placement" [σ (.n 139), σ (.n 4)] [σ (.n 1682), σ (.n 1683)])
     (hl2 : C "log2_ceil_in_the_exponent__L16_L34" [σ (.n 1682), σ (.n 4)] [σ (.n 1684)])
     (e1686 : σ (.n 1686) = σ (.n 1684) * word 14347465658197868555 0 0)
-    (r1 : LoadHolds L.read (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 4096 0 0 = σ (.n 1686) * σ (.n 1688) ∧
+    (r1 : LoadHolds L.read (σ (.n 1686)) 0 (σ (.n 1689)) ∧ word 1024 0 0 = σ (.n 1686) * σ (.n 1688) ∧
       LoadHolds L.read (σ (.n 1688)) 0 (σ (.n 1690))) :
     B1.Whir.minOpenLog ≤ (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ∧
-      (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ≤ 32 ∧
+      (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog ≤ 30 ∧
       σ (.n 1686) = gen ^ ((Tables.layoutOf bytecode F.logMem F.rowsN).stackLog - B1.Whir.minOpenLog) ∧
       Tables.PCtx L.read (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) (σ (.n 1683)) ∧
       Tables.KappasBelow (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) := by
@@ -66,12 +66,12 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
   rw [← stackLog_eq hbl] at hret hm34
   set μ := (Tables.layoutOf bytecode F.logMem F.rowsN).stackLog with hμ
   -- the size selector
-  obtain ⟨e, he, hx⟩ := rc_lt hκ hκ6 L (a := 12) (by omega) r1.1 (by simpa using r1.2.1) r1.2.2
-  have hμe : μ = e + 20 := size_sel_eq hm34 he (by rw [← hret, ← e1686, hx])
+  obtain ⟨e, he, hx⟩ := rc_lt hκ hκ6 L (a := 10) (by omega) r1.1 (by simpa using r1.2.1) r1.2.2
+  have hμe : μ = e + 20 := size_sel_eq hm34 (by omega) (by rw [← hret, ← e1686, hx])
   refine ⟨by unfold B1.Whir.minOpenLog; omega, by omega,
     by rw [hx]; congr 1; unfold B1.Whir.minOpenLog; omega, hP, Tables.hypKappa_holds _ hP.1 ?_⟩
   have : max 16 (log2Ceil (Tables.stackTotal (columnKappas F.logMem 19
-    (Tables.tableHeightsOf F.rowsN)))) ≤ 32 := by rw [← stackLog_eq hbl]; omega
+    (Tables.tableHeightsOf F.rowsN)))) ≤ 30 := by rw [← stackLog_eq hbl]; omega
   omega
 
 /-- The Keccak table's height is at most `26` once every committed column's log is below `33`:

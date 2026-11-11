@@ -194,7 +194,7 @@ theorem fin_ood {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
   have hle : (lvAt c i).foldsOff + (lvAt c i).folds ≤ c.nFolds := hst.le
   have hnext : (lvAt c (i + 1)).foldsOff = (lvAt c i).foldsOff + (lvAt c i).folds := hF.next i hi'
   have hzf : (lvAt c i).logCols - c.yrLog = (lvAt c i).prefixLen := by omega
-  have hc : (lvAt c i).logCols ≤ 26 := hs.cols i (by omega)
+  have hc : (lvAt c i).logCols ≤ 24 := hs.cols i (by omega)
   refine ⟨?_, fun t ht ↦ ⟨?_, ?_⟩⟩
   · have := readsAt_map_range hm.ood (k := (i + 1) * oodSlots) (by simp only [oodSlots]; nlinarith)
     simp only [oodSlots] at this ⊢
@@ -205,7 +205,7 @@ theorem fin_ood {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg)
   · have := readsAt_map_range hm.oodz (k := (i + 1) * ligColsCap + t) (by
       simp only [ligColsCap]; nlinarith)
     simp only [ligColsCap] at this ⊢
-    simp only [show ((i + 1) * 26 + t) / 26 = i + 1 by omega, show ((i + 1) * 26 + t) % 26 = t by omega,
+    simp only [show ((i + 1) * 24 + t) / 24 = i + 1 by omega, show ((i + 1) * 24 + t) % 24 = t by omega,
       Nat.le_add_left, ↓reduceIte, Nat.add_sub_cancel] at this
     rw [Zof, Nat.add_sub_cancel, rs_get h (by omega)]
     simpa [recOf, hfin] using this

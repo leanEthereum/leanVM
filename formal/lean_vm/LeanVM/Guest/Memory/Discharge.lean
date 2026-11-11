@@ -426,7 +426,7 @@ structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ ×
   region : ∀ i, R i → i < 2 ∨ ∀ I ∈ honestInsts P fs H hdr T, ∀ o < fs I.t.name,
     addressOfIndex i ≠ addressOfIndex (I.fp + o)
   hdr_read : M.read (addressOfIndex 0) = some hdr.1 ∧ M.read (addressOfIndex 1) = some hdr.2
-  size : T.total fs ≤ 2 ^ 32
+  size : T.total fs ≤ 2 ^ 30
   addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = addressOfIndex i
   cells : CellsOk fs C (honestInsts P fs H hdr T)
   cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν 0))

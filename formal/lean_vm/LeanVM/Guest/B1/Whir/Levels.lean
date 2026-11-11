@@ -52,12 +52,10 @@ theorem whirLevelsOpen_eq (logN laneFolds : ℕ) : ∀ (index : ℕ) (cfg : List
 
 /-- The configuration's facts, level by level. -/
 def LevelsOk (c : OsCfg) (logN : ℕ) : ℕ → List OsLv → List Whir.Level → Prop
-  | lvl, [lv], [level] => LvB c lvl lv level lv.logCols ∧ level.fold = lv.folds ∧
-      level.foldGrinding = lv.foldGrind ∧
-      1 ≤ lv.folds ∧ logN - (lv.foldsOff + lv.folds) = lv.logCols ∧
+  | lvl, [lv], [level] => LvB c lvl lv level lv.logCols ∧ level.fold = lv.folds ∧ 1 ≤ lv.folds ∧ logN - (lv.foldsOff + lv.folds) = lv.logCols ∧
       2 ^ lv.logCols = c.yrLen ∧ lvl = c.yrLevel
   | lvl, lv :: lv' :: lvs, level :: next :: cfg => LvB c lvl lv level lv.logCols ∧
-      level.fold = lv.folds ∧ level.foldGrinding = lv.foldGrind ∧ 1 ≤ lv.folds ∧
+      level.fold = lv.folds ∧ 1 ≤ lv.folds ∧
       logN - (lv.foldsOff + lv.folds) = lv.logCols ∧
       1 ≤ lv.logCols ∧ (lvl + 1) * ligColsCap < u128Bound ∧ lvl ≠ c.yrLevel ∧
       lv'.foldsOff = lv.foldsOff + lv.folds ∧
@@ -124,12 +122,12 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le 
       os = (osQCalls c lvl lvs st).map (fun e ↦ lvOs rd σ V (Wf e.1 e.2.1) e.1 e.2.1 e.2.2) ∧
       xs.length = lvsWords c lvl lvs ∧ MatsOk σ (osLevels c lvl lvs st).2.mats
   | [lv], [level], lvl, st, ws, R, root, hok, hcal, hqw, hrat, hin, hwt, hall => by
-    obtain ⟨hcfg, hfold, hfg, h4, hml, hlen, hfin⟩ := hok
+    obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
     have hall' : AllOk C rd σ (osLevel c lvl lv st).1 := by
       have := (allOk_append.mp hall).1
       exact this
     obtain ⟨xs, os, ws', ms, r, hrd, hrun, hmsl, hfm, hgl, hrec, hfl, hfch, hq, ht, hfs, hpad,
-      hco, hcur, hos, hxl, hmt⟩ := osLevel_final_sound hle hU hqw.1 hcal.1 hrat.1 hcfg hfold hfg h4 hml hlen
+      hco, hcur, hos, hxl, hmt⟩ := osLevel_final_sound hle hU hqw.1 hcal.1 hrat.1 hcfg hfold h4 hml hlen
         hfin hin hwt hall'
     exact ⟨xs, [os], R, ms, ws', [r], hrd, hrun, hmsl, hfm, by simpa using hgl, rfl,
       fun i hi _ ↦ by
@@ -138,14 +136,14 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le 
       by rw [hos]; simp [osQCalls], by rw [hxl]; simp [lvsWords, hfin], hmt⟩
   | lv :: lv' :: lvs, level :: next :: cfg, lvl, st, ws, R, root, hok, hcal, hqw, hrat, hin, hwt,
       hall => by
-    obtain ⟨hcfg, hfold, hfg, h4, hml, hm, hlvl, hnf, hoff', hshape, hrest⟩ := hok
+    obtain ⟨hcfg, hfold, h4, hml, hm, hlvl, hnf, hoff', hshape, hrest⟩ := hok
     have e1 : osLevels c lvl (lv :: lv' :: lvs) st =
         ((osLevel c lvl lv st).1 ++ (osLevels c (lvl + 1) (lv' :: lvs) (osLevel c lvl lv st).2).1,
           (osLevels c (lvl + 1) (lv' :: lvs) (osLevel c lvl lv st).2).2) := rfl
     rw [e1] at hall ⊢
     rw [allOk_append] at hall
     obtain ⟨xs1, os1, ws1, root', r, hrd1, hrun1, hin1, hgl1, hrec1, hcur1, hos1, hxl1⟩ :=
-      osLevel_nonfinal_sound (rest := cfg) hle hU hqw.1 hcal.1 hrat.1 hcfg hfold hfg h4 hml hm hlvl
+      osLevel_nonfinal_sound (rest := cfg) hle hU hqw.1 hcal.1 hrat.1 hcfg hfold h4 hml hm hlvl
         hnf hoff' hshape hin hwt hall.1
     obtain ⟨xs2, os2, R', ms, ws', rs, hrd2, hrun2, hmsl, hfm, hgl2, hrl, hrec2, hfl, hfch, hq,
       ht, hfs, hpad, hco, hcur2, hos2, hxl2, hmt⟩ :=

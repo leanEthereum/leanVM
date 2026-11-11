@@ -176,15 +176,16 @@ theorem runsTo_sampleN (n : ℕ) (s : Fs) :
 
 /-- **A proof of work**: the nonce absorbed with `dsPowNonce`, a squeeze, and `powOk` of its
 challenge. -/
-theorem runsTo_grindP (bits : ℕ) (s : Fs) (n : E)
-    (hok : powOk bits n (s.absorb n dsPowNonce).squeeze.1 = true) :
+theorem runsTo_grindP (bits : ℕ) (hb : bits ≠ 0) (s : Fs) (n : E)
+    (hok : powOk bits (s.absorb n dsPowNonce).squeeze.1 = true) :
     RunsTo (VerifierProgram.grindProofOfWork bits) s [n] () (s.absorb n dsPowNonce).squeeze.2 := by
   intro sp hs rest os roots
   have ha := carries_absorb hs n dsPowNonce
   obtain ⟨e1, e2⟩ := carries_squeeze ha
   refine ⟨_, e2, ?_⟩
-  have key : runId (VerifierProgram.grindProofOfWork bits) ⟨sp, [n] ++ rest, os, roots⟩ =
-      (if powOk bits n (Id.run (Compile.squeeze (m := Id) keccakF1600
+  simp only [VerifierProgram.grindProofOfWork, hb, ↓reduceIte]
+  have key : runId (VerifierProgram.grind bits (.ret ())) ⟨sp, [n] ++ rest, os, roots⟩ =
+      (if powOk bits (Id.run (Compile.squeeze (m := Id) keccakF1600
           (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).1 = true then
         some ((), ⟨(Id.run (Compile.squeeze (m := Id) keccakF1600
           (Id.run (Compile.absorb (m := Id) keccakF1600 sp n dsPowNonce)))).2, rest, os, roots⟩)

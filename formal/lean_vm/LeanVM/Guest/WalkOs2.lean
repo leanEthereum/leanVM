@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.WalkOs2
 
-  The cut obligations (`CutsKnown`) of `open_stacked__L8`, `open_stacked__L9`, `open_stacked__L10`, `open_stacked__L11`
+  The cut obligations (`CutsKnown`) of `open_stacked__L8`, `open_stacked__L9`, `open_stacked__L10`
   (`os_cutsKnown`, `WalkOsOk2.lean`'s checks).
 -/
 
@@ -16,16 +16,13 @@ namespace LeanVM.Guest.End
 @[expose] public section
 
 /-- `open_stacked__L8`. -/
-theorem walk_319 : CutsKnown 319 := os_cutsKnown lpTab_ok osOk_319
+theorem walk_315 : CutsKnown 315 := os_cutsKnown lpTab_ok osOk_315
 
 /-- `open_stacked__L9`. -/
-theorem walk_320 : CutsKnown 320 := os_cutsKnown lpTab_ok osOk_320
+theorem walk_316 : CutsKnown 316 := os_cutsKnown lpTab_ok osOk_316
 
 /-- `open_stacked__L10`. -/
-theorem walk_321 : CutsKnown 321 := os_cutsKnown lpTab_ok osOk_321
-
-/-- `open_stacked__L11`. -/
-theorem walk_322 : CutsKnown 322 := os_cutsKnown lpTab_ok osOk_322
+theorem walk_317 : CutsKnown 317 := os_cutsKnown lpTab_ok osOk_317
 
 end
 end LeanVM.Guest.End

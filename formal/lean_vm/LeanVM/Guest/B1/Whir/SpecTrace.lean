@@ -89,7 +89,7 @@ theorem nz_chain {c : OsCfg} {logN lane : ℕ} : ∀ (lvs : List OsLv) (cfg : Li
       ∀ L ∈ Ls, (L.height, L.qs.zip L.os) ∈
         queryStepsOf (whirLevelsOpenNZ logN lane index cfg ws) ⟨F, xs, os, R⟩
   | [lv], [level], index, ws, F, xs, os, R, res, hok, hfo, hF, hR, h => by
-    obtain ⟨hcfg, hfold, -, -, hml, -, -⟩ := hok
+    obtain ⟨hcfg, hfold, -, hml, -, -⟩ := hok
     have hd : 1 ≤ 192 / (logN - (ws.folds.length + level.fold) + level.logInvRate) := by
       simp only [List.headD_cons] at hfo
       rw [hfo, hfold, hml, ← hcfg.depth]; exact hcfg.per
@@ -102,7 +102,7 @@ theorem nz_chain {c : OsCfg} {logN lane : ℕ} : ∀ (lvs : List OsLv) (cfg : Li
     rw [hq]
     exact List.mem_singleton_self _
   | lv :: lv' :: lvs, level :: next :: cfg, index, ws, F, xs, os, R, res, hok, hfo, hF, hR, h => by
-    obtain ⟨hcfg, hfold, -, -, hml, hm, -, -, hoff', -, hrest⟩ := hok
+    obtain ⟨hcfg, hfold, -, hml, hm, -, -, hoff', -, hrest⟩ := hok
     simp only [List.headD_cons] at hfo
     have e : logN - (ws.folds.length + level.fold) = lv.logCols := by rw [hfo, hfold, hml]
     have hd : 1 ≤ 192 / (logN - (ws.folds.length + level.fold) + level.logInvRate) := by

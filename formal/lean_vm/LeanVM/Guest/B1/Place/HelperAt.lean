@@ -13,14 +13,14 @@ public import LeanVM.Guest.Memory.Size
 /-!
 # The helpers' placed form
 
-`open_stacked`'s arm calls four helpers by a dispatch on the rate's selector: `level_positions`,
-`level_queries`, `level_residual` and `opening_fold_round` (`Whir/HelperT.lean`). Each one's
-placed completeness (`Place/Lp.lean`, `Lq.lean`, `Lr.lean`, `Ofr.lean`) takes an optional words
-bound `Bd`: with `none` it is `CompleteAtD`, with `some B`, a bound of every valid tree of the
-helper (`TotalLe`, what `OsLeafBounds` gives the arm), it is `CompleteAtB … B`. One statement gives
-both the arm's `open_stacked_completeAtD` and its `open_stacked_completeAtB`.
+`open_stacked`'s arm calls three helpers by a dispatch on the rate's selector: `level_positions`,
+`level_queries` and `level_residual` (`Whir/HelperT.lean`). Each one's placed completeness
+(`Place/Lp.lean`, `Lq.lean`, `Lr.lean`) takes an optional words bound `Bd`: with `none` it is
+`CompleteAtD`, with `some B`, a bound of every valid tree of the helper (`TotalLe`, what
+`OsLeafBounds` gives the arm), it is `CompleteAtB … B`. One statement gives both the arm's
+`open_stacked_completeAtD` and its `open_stacked_completeAtB`.
 
-* `CompleteAtO … Bd`: `CompleteAtD` or `CompleteAtB`, by `Bd`.
+* `CompleteAtO … Bd`: `CompleteAtD` or `CompleteAtB`, by `Bd` (`toD`, `toB` and back, `toO`).
 * `CompleteAtPO … Lin rets Lout Bd`: the same with the words read (`Lin fp`) and the buffers
   handed back (`Lout fp`) depending on the frame pointer `fp`. `level_positions` takes this form:
   the caller's window pointers point into its decoders' frames.
@@ -67,6 +67,17 @@ theorem CompleteAtO.toB {Lin : Layout} {args : List E} {Out : List E → Layout 
   fun fp ↦
     let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
     ⟨n, Lown, rets, Lout, ho, hw, hd, hn B rfl, hr⟩
+
+theorem CompleteAtD.toO {Lin : Layout} {args : List E} {Out : List E → Layout → Prop}
+    (h : CompleteAtD fs cert k f Lin args Out) : CompleteAtO fs cert k f Lin args Out none := fun fp ↦
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, fun _ h ↦ by simp at h, hr⟩
+
+theorem CompleteAtB.toO {Lin : Layout} {args : List E} {Out : List E → Layout → Prop} {B : ℕ}
+    (h : CompleteAtB fs cert k f Lin args Out B) : CompleteAtO fs cert k f Lin args Out (some B) :=
+  fun fp ↦
+    let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
+    ⟨n, Lown, rets, Lout, ho, hw, hd, fun _ h ↦ by cases h; exact hn, hr⟩
 
 end
 end LeanVM.Guest.B1

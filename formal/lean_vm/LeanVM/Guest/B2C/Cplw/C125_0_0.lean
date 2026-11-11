@@ -25,19 +25,19 @@ theorem cw126_0_0 : cplWin 126 0 0 = true := by decide +kernel
 /-- `padding_weight__L30`, window 0, part 0. -/
 theorem cw127_0_0 : cplWin 127 0 0 = true := by decide +kernel
 
-/-- `padding_weight__L31`, window 0, part 0. -/
+/-- `plus_one_run__L0`, window 0, part 0. -/
 theorem cw128_0_0 : cplWin 128 0 0 = true := by decide +kernel
 
-/-- `padding_weight__L32`, window 0, part 0. -/
+/-- `plus_one_run__L1`, window 0, part 0. -/
 theorem cw129_0_0 : cplWin 129 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L0`, window 0, part 0. -/
+/-- `plus_one_run__L2`, window 0, part 0. -/
 theorem cw130_0_0 : cplWin 130 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L1`, window 0, part 0. -/
+/-- `plus_one_run__L3`, window 0, part 0. -/
 theorem cw131_0_0 : cplWin 131 0 0 = true := by decide +kernel
 
-/-- `plus_one_run__L2`, window 0, part 0. -/
+/-- `plus_one_run__L4`, window 0, part 0. -/
 theorem cw132_0_0 : cplWin 132 0 0 = true := by decide +kernel
 
 theorem ok125 : CplOk 125 := by

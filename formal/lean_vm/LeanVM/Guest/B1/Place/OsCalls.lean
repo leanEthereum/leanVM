@@ -71,16 +71,16 @@ theorem osBodyAc_flatF (c : OsCfg) : (osBodyAc c).all Core.Stmt.flat = true := b
   rw [osBodyAc_eq]; exact flatF_of_flat _ (osBodyA_flat c)
 
 /-- A level's fold rounds. -/
-abbrev lvF (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
-  osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds s
+abbrev lvF (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
+  osFolds osFch lv.foldsOff lv.folds s
 
 /-- A level's commitment, or its final message. -/
 def lvM (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt × ℕ :=
-  if lvl = c.yrLevel then osFinal c (lvF c lvl lv s).2 else osCommit c.plan lvl lv (lvF c lvl lv s).2
+  if lvl = c.yrLevel then osFinal c (lvF lv s).2 else osCommit c.plan lvl lv (lvF lv s).2
 
 /-- A level before its positions. -/
 def lvA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
-  (lvF c lvl lv s).1 ++ (lvM c lvl lv s).1 ++
+  (lvF lv s).1 ++ (lvM c lvl lv s).1 ++
     [.call ("grind_check__L" ++ natStr lv.grind) [.n (lvM c lvl lv s).2.2] []]
 
 /-- A level after its positions. -/

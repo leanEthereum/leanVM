@@ -69,9 +69,9 @@ example : ∀ {μ R q₀ : ℕ} {rest : List Whir.Level}, laneBits ≤ μ → μ
     (claims : List StackClaim), (∀ c ∈ claims, StackClaim.Holds μ c q) →
     (∀ c ∈ claims, IsMultilinearFn μ c.1) →
     Follows (fun _ _ _ ↦ True)
-      (hWhirRun μ (stackTable μ q) (basisTable μ scales claims) (⟨laneBits, R, q₀, 0⟩ :: rest)
+      (hWhirRun μ (stackTable μ q) (basisTable μ scales claims) (⟨laneBits, R, q₀⟩ :: rest)
         (dot scales (claims.map (·.2))))
-      (whirRun μ (⟨laneBits, R, q₀, 0⟩ :: rest) (dot scales (claims.map (·.2)))
+      (whirRun μ (⟨laneBits, R, q₀⟩ :: rest) (dot scales (claims.map (·.2)))
         (batchedBasis scales claims))
       [stackCommit μ R q] :=
   @follows_whirRun
@@ -209,7 +209,7 @@ def tamperFirst {α : Type} : Script α → Script α
 /-- The toy ladder: the lane fold at rate `1` with one query, then one more fold with one query.
 At `2^7` the residual is a single value; at `2^8` it has one variable, so the final level runs a
 tail round. -/
-def toyLadder : List Whir.Level := [⟨6, 1, 1, 0⟩, ⟨1, 1, 1, 0⟩]
+def toyLadder : List Whir.Level := [⟨6, 1, 1⟩, ⟨1, 1, 1⟩]
 
 -- The honest prover, as the strategy the theorems speak of, wins at `2^7`.
 #guard

@@ -3,7 +3,7 @@
 
   The core IR of the helpers `open_stacked`'s dispatches call, generated from their
   specializations' constants as the expansion numbers it: `level_positions`, `level_queries`,
-  `level_residual`, `residual_batch`, `opening_fold_round`, and their loops.
+  `level_residual`, `residual_batch`, and their loops.
 -/
 
 module
@@ -25,9 +25,7 @@ expansion numbers it (`lean_ethereum.py`):
   `loop1` (`lrLoop1Body`, a `residual_batch` call an iteration), then, when `8 ∤ q`, the rest's loop
   `loop2` (`lrLoop2Body`, an inline `residual_query` an iteration);
 * `rbBody cols`: `residual_batch(batch, row_d, mu, h)`: eight inline `residual_query`s over `cols`
-  columns;
-* `ofrZeroBody`: `opening_fold_round` at `0` bits, which calls `opening_fold`; `ofrBody b`: at
-  `b > 0` bits, inline, its nonce ground by `grind_check__L{b}`.
+  columns.
 
 `Whir/HelperData*.lean` check every specialization's body equal to these by kernel evaluation.
 -/
@@ -141,34 +139,6 @@ def lrLoop2Body (cols : ℕ) (name : String) : List Stmt :=
 def rbBody (cols : ℕ) : List Stmt :=
   let r := osResSteps 0 1 0 (cols * (cols + 1) / 2) cols 2 (List.range resBatch) 3 4
   r.1 ++ [.atom (.copy (.n r.2.2) (.n r.2.1)), .ret [.n r.2.2]]
-
-/-- `opening_fold_round` at `0` bits: `opening_fold` on its arguments (values `0 .. 10`), its ten
-returns copied and returned. -/
-def ofrZeroBody : List Stmt :=
-  [.call "opening_fold" ((List.range 11).map V.n) (osRun 11 10)] ++
-    ((List.range 10).map fun i ↦ .atom (.copy (.n (21 + i)) (.n (11 + i)))) ++
-    [.ret (osRun 21 10)]
-
-/-- `opening_fold_round` at `b > 0` bits, at `fs0 .. fs4, w0, w1, cursor, c0, c1, c2` (values
-`0 .. 10`): the capacity copied, `w0`, `w1` and the nonce at the cursor packed (`DS_POW_NONCE`), the
-permutation, its first cell ground to `b` bits, the fold challenge squeezed from its capacity, the
-claim `(c2·r + c1)·r + c0`, the next coefficients after the nonce, the cursor past them. -/
-def ofrBody (b : ℕ) : List Stmt :=
-  ((List.range 5).map fun i ↦ .atom (.copy (.n (11 + i)) (.n i))) ++
-    fsPackT (.n 5) 16 1 ++ fsPackT (.n 6) 25 1 ++
-    [.atom (.load (.n 34) (.n 7) 0)] ++ fsPackT (.n 34) 35 4 ++
-    [.atom (.const (.n 44) (word 0 0 0)), .atom (.const (.n 45) (word 0 0 0)),
-      keccakA ([22, 24, 31, 33, 41, 43, 44, 45, 11, 12, 13, 14, 15].map V.n) (osRun 46 13),
-      .call ("grind_check__L" ++ natStr b) [.n 46] []] ++
-    (osPad none 59).1 ++ osSqueeze0 59 [54, 55, 56, 57, 58] 64 ++
-    [.atom (.mul (.n 84) (.n 10) (.n 83)), .atom (.add (.n 85) (.n 84) (.n 9)),
-      .atom (.mul (.n 86) (.n 85) (.n 83)), .atom (.add (.n 87) (.n 86) (.n 8)),
-      .atom (.load (.n 88) (.n 7) 1), .atom (.load (.n 89) (.n 7) 2)] ++
-    ((List.range 5).map fun i ↦ .atom (.copy (.n (90 + i)) (.n (72 + i)))) ++
-    [.atom (.const (.n 95) (gw 3)), .atom (.mul (.n 96) (.n 7) (.n 95)),
-      .atom (.copy (.n 97) (.n 96)), .atom (.copy (.n 98) (.n 87)), .atom (.copy (.n 99) (.n 88)),
-      .atom (.copy (.n 100) (.n 89)), .atom (.copy (.n 101) (.n 83)),
-      .ret [.n 90, .n 91, .n 92, .n 93, .n 94, .n 97, .n 98, .n 99, .n 100, .n 101]]
 
 end
 end LeanVM.Guest.B1.Whir

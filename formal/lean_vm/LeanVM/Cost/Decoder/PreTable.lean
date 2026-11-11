@@ -18,7 +18,7 @@ open LeanVM.Cost LeanVM.Guest.Fast
 
 @[expose] public section
 
--- The spec's `simp` (`preTableC.costSpec`) unfolds the 1753 entries of the literal table, above
+-- The spec's `simp` (`preTableC.costSpec`) unfolds the 1536 entries of the literal table, above
 -- the default heartbeats (profiled with `tools/profile.py`).
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 2000000 in

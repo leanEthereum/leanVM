@@ -17,8 +17,6 @@ public import LeanVM.Guest.B1.Whir.Data7
 public import LeanVM.Guest.B1.Whir.Data8
 public import LeanVM.Guest.B1.Whir.Data9
 public import LeanVM.Guest.B1.Whir.Data10
-public import LeanVM.Guest.B1.Whir.Data11
-public import LeanVM.Guest.B1.Whir.Data12
 
 namespace LeanVM.Guest.B1.Whir
 
@@ -38,8 +36,6 @@ theorem osData_all (m : Nat) (h : m < ligNSizes) : OsData m := by
   · exact osData_8
   · exact osData_9
   · exact osData_10
-  · exact osData_11
-  · exact osData_12
 
 end
 end LeanVM.Guest.B1.Whir

@@ -29,8 +29,7 @@ static bound of the body covers every rate.
   at its costliest callee; `osKidsB`, their total; `osBos fs Bk name c`: the frame `fs name`, the
   buffers, the calls. `osBosAt fs Bnd μ`: at the arm of `μ`.
 * `OsLeafBounds fs Bnd`: every callee of every arm has its trees within `Bnd` of its name (each is
-  statically bounded: the leaves, `level_positions`, `level_queries`, `level_residual`,
-  `opening_fold_round`).
+  statically bounded: the leaves, `level_positions`, `level_queries`, `level_residual`).
 * `OsOut`, `open_stacked_completeAtD_Spec`, `open_stacked_completeAtB_Spec`: the arm of `μ`,
   called on the rate's selector, is complete placed (within `osBosAt` words) on every accepting
   run of `whirOpen μ r target` with no zero challenge and openings that agree in the caps.
@@ -133,7 +132,7 @@ cursor among the caller's words, the arm of `μ` called on the rate's selector i
 returning the run's claim, its two point buffers' pointers, its glued weight and its residual's
 value (`OsOut`). -/
 def open_stacked_completeAtD_Spec : Prop :=
-  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 32 → 1 ≤ r → r ≤ 4 →
+  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), Lift.RunsFit fs cert →
       RunsConsec cert → 7 ≤ κ →
       ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List (List Opening))
@@ -148,7 +147,7 @@ def open_stacked_completeAtD_Spec : Prop :=
 /-- **`open_stacked` is complete placed within `osBosAt` words**: `open_stacked_completeAtD_Spec`
 by a tree of at most `osBosAt fs Bnd μ` words, given the callees' words bounds `Bnd`. -/
 def open_stacked_completeAtB_Spec : Prop :=
-  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 32 → 1 ≤ r → r ≤ 4 →
+  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd : String → ℕ),
       Lift.RunsFit fs cert → RunsConsec cert → 7 ≤ κ → OsLeafBounds fs Bnd →
       ∀ (S : KeccakState) (root : Digest) (target cur : E) (xs : List E) (os : List (List Opening))

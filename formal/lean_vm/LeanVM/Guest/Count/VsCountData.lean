@@ -18,20 +18,20 @@ set_option maxRecDepth 100000
 
 @[expose] public section
 
-/-- The core indices of `open_stacked__L{c}`, `c < 13`. -/
-def osJ : List ℕ := [310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322]
+/-- The core indices of `open_stacked__L{c}`, `c < 11`. -/
+def osJ : List ℕ := [306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316]
 
 /-- `verify_sub`'s statically bounded callees but its opening arm. -/
 def vsStNames : List String := ["g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "assert_canonical", "ring_switch_target", "certify_placement", "log2_ceil_in_the_exponent__L16_L34"]
 
 /-- Their core indices. -/
-def vsStJ : List ℕ := [3, 308, 1, 13, 15, 309]
+def vsStJ : List ℕ := [3, 304, 1, 13, 15, 305]
 
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
-def cclJ : List ℕ := [344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360]
+def cclJ : List ℕ := [338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354]
 
 /-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/
-def ccmJ : List ℕ := [363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379]
+def ccmJ : List ℕ := [357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373]
 
 /-- The core index of `list_split`. -/
 def lsJ : ℕ := 22
@@ -40,7 +40,7 @@ def lsJ : ℕ := 22
 def ccLpNames : List String := ["__loop17", "__loop18", "__loop19", "__loop20"]
 
 /-- Their core indices. -/
-def ccLpJ : List ℕ := [342, 343, 361, 362]
+def ccLpJ : List ℕ := [336, 337, 355, 356]
 
 /-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
 def omJ : List ℕ := [18, 24, 38, 25, 26]
@@ -50,12 +50,12 @@ def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4"
 
 /-- `open_stacked__L{c}`'s instructions, by `c`. -/
 def kcOsT : Opcode → List ℕ
-  | .xor => [46005, 46572, 47577, 48396, 50532, 51359, 52521, 53553, 55469, 56193, 57295, 58164, 60744]
-  | .mulNative => [52176, 52482, 53614, 54710, 57326, 58504, 60875, 62097, 64475, 65315, 66862, 67721, 72304]
-  | .setConstant => [8660, 8368, 8387, 8746, 9687, 10597, 10428, 10504, 11100, 11112, 11727, 12480, 13047]
-  | .deref => [19797, 19059, 18769, 20038, 22389, 24432, 24045, 24047, 25208, 25418, 26669, 28611, 29994]
-  | .jump => [13175, 13087, 13028, 13187, 14113, 14754, 14816, 14840, 15475, 15429, 15616, 16337, 17124]
-  | .keccak => [5236, 5331, 5406, 5477, 5914, 6231, 7652, 7812, 8214, 8280, 8410, 8758, 10605]
+  | .xor => [46005, 46572, 47577, 48396, 50532, 51359, 52521, 53553, 55469, 56193, 57295]
+  | .mulNative => [52176, 52482, 53614, 54710, 57326, 58504, 60875, 62097, 64475, 65315, 66862]
+  | .setConstant => [8660, 8368, 8387, 8746, 9687, 10597, 10428, 10504, 11100, 11112, 11727]
+  | .deref => [19797, 19059, 18769, 20038, 22389, 24432, 24045, 24047, 25208, 25418, 26669]
+  | .jump => [13175, 13087, 13028, 13187, 14113, 14754, 14816, 14840, 15475, 15429, 15616]
+  | .keccak => [5236, 5331, 5406, 5477, 5914, 6231, 7652, 7812, 8214, 8280, 8410]
 
 /-- The instructions of `vsStNames`. -/
 def kcVsStT : Opcode → List ℕ
@@ -113,10 +113,10 @@ def omT : Opcode → List ℕ
 
 /-- `verify_tables`' instructions (`B1.VerifySub.vtWB Count.vsWords`). -/
 def kcVtW : Opcode → ℕ
-  | .xor => 2788
-  | .mulNative => 14530
-  | .setConstant => 1604
-  | .deref => 13014
+  | .xor => 2752
+  | .mulNative => 14482
+  | .setConstant => 1605
+  | .deref => 13002
   | .jump => 858
   | .keccak => 74
 
@@ -131,16 +131,16 @@ def kcTermW : Opcode → ℕ
 
 /-- `verify_sub`'s instructions at the arm `c`, its two ratio-bounded callees within `50050`, `65770` words. -/
 def vsCountT : Opcode → List ℕ
-  | .xor => [86837, 87404, 88409, 89228, 91364, 92191, 93353, 94385, 96301, 97025, 98127, 98996, 101576]
-  | .mulNative => [166416, 166722, 167854, 168950, 171566, 172744, 175115, 176337, 178715, 179555, 181102, 181961, 186544]
-  | .setConstant => [46755, 46463, 46482, 46841, 47782, 48692, 48523, 48599, 49195, 49207, 49822, 50575, 51142]
-  | .deref => [97931, 97193, 96903, 98172, 100523, 102566, 102179, 102181, 103342, 103552, 104803, 106745, 108128]
-  | .jump => [33279, 33191, 33132, 33291, 34217, 34858, 34920, 34944, 35579, 35533, 35720, 36441, 37228]
-  | .keccak => [7323, 7418, 7493, 7564, 8001, 8318, 9739, 9899, 10301, 10367, 10497, 10845, 12692]
+  | .xor => [86801, 87368, 88373, 89192, 91328, 92155, 93317, 94349, 96265, 96989, 98091]
+  | .mulNative => [166368, 166674, 167806, 168902, 171518, 172696, 175067, 176289, 178667, 179507, 181054]
+  | .setConstant => [46756, 46464, 46483, 46842, 47783, 48693, 48524, 48600, 49196, 49208, 49823]
+  | .deref => [97919, 97181, 96891, 98160, 100511, 102554, 102167, 102169, 103330, 103540, 104791]
+  | .jump => [33279, 33191, 33132, 33291, 34217, 34858, 34920, 34944, 35579, 35533, 35720]
+  | .keccak => [7323, 7418, 7493, 7564, 8001, 8318, 9739, 9899, 10301, 10367, 10497]
 
 /-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
-  (List.range 13).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
+  (List.range 11).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
     kvSBJ op (osJ.getD c 0) == (kcOsT op).getD c 0) &&
   (List.range 6).all (fun i => kvOkB op (vsStJ.getD i 0) (vsStNames.getD i "") &&
     kvSBJ op (vsStJ.getD i 0) == (kcVsStT op).getD i 0) &&

@@ -111,7 +111,7 @@ theorem committedSize_le {prog : LeanIsaProgram} {t : Execution prog} {rf : Regi
 instructions. -/
 theorem committedSize_le_of_caps {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     (hv : ValidExecution prog input t) (hsteps : t.stepCount ≤ 2 ^ 19) (hmem : t.logMemorySize ≤ 23)
-    (hcode : prog.logSize ≤ 23) : t.committedSize ≤ 2 ^ 32 := by
+    (hcode : prog.logSize ≤ 23) : t.committedSize ≤ 2 ^ 30 := by
   have := committedSize_le hv.2 hsteps
   have hm : 2 ^ t.logMemorySize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hmem
   have hc : 2 ^ prog.logSize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hcode
@@ -251,7 +251,7 @@ theorem committedSize_le_of_jumps {prog : LeanIsaProgram} (t : Execution prog)
   omega
 
 /-- **The long run is within the budget**, -/
-theorem longTrace_budget : longTrace.committedSize ≤ 2 ^ 32 := by
+theorem longTrace_budget : longTrace.committedSize ≤ 2 ^ 30 := by
   refine (committedSize_le_of_jumps longTrace (fun _ ↦ count_eq_zero)
     (height_le longTrace_valid.2 (le_rfl : longTrace.stepCount ≤ 2 ^ 20) .jump)).trans ?_
   rw [show longTrace.logMemorySize = 22 from rfl, show loopProg.logSize = 1 from rfl]

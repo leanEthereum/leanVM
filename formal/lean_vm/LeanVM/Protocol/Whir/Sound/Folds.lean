@@ -14,9 +14,9 @@ public import LeanVM.Protocol.Whir.Sound.Generic
 /-!
 # The fold rounds
 
-`foldRounds b ℓ s []` (`LeanVM.Protocol.Verifier.foldRounds`, `verify_whir`'s inner loop,
-`crates/verifier/src/whir.rs:183-194`) checks a proof of work of `b` bits unless `b = 0`, samples
-a challenge `c`, moves the running claim to `q(c)` and reads the next round polynomial.
+`foldRounds ℓ s []` (`LeanVM.Protocol.Verifier.foldRounds`, `verify_whir`'s inner loop,
+`crates/verifier/src/whir.rs:158-165` at leanVM `40f877dc`)
+samples a challenge `c`, moves the running claim to `q(c)` and reads the next round polynomial.
 
 `FoldInv` is the doom of the design note's `A(i, j)`, together with the bookkeeping the step needs:
 the state has `pre + j` folds, `j ≤ ℓ`, the level's code has `κ = μ − pre − ℓ` message variables,
@@ -27,9 +27,8 @@ the glued claims are well formed (`GluedOK`), the round polynomial sums to the t
 
 * `card_foldBad_le_eFold`: one round's escape count, `2·listMax + 2^(ℓ−j−1)·mcaMax`
   (`card_foldStep_bad_le`), at most `eFold P ℓ · |E|`.
-* `foldRoundsSpec`: the rounds keep `FoldInv` with lead `foldLead b (eFold P ℓ)` (the first
-  round's escape, or `0` when a proof of work of `b` bits precedes each challenge and discounts
-  it), and return in `FoldInv` with all `ℓ` challenges.
+* `foldRoundsSpec`: the rounds keep `FoldInv` with lead `eFold P ℓ` (the first round's escape;
+  the later rounds' are smaller), and return in `FoldInv` with all `ℓ` challenges.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -118,37 +117,21 @@ theorem foldInv_step (s : WhirStateT) (lf : List E) (c : E) (cs : List (ℕ × �
 
 variable (μ ℓ₀ w i P ℓ pre)
 
-/-- The fold rounds' lead: a fold challenge's escape `x` when the level grinds nothing before it,
-and `0`, a proof of work's, when it does. -/
-def foldLead (b : ℕ) (x : ENNReal) : ENNReal := if b = 0 then x else 0
-
-omit μ ℓ₀ w i P ℓ pre in
-/-- The lead is at most `εmax` once the discounted escape is. -/
-theorem foldLead_le {b : ℕ} {x εmax : ENNReal} (h : (2 : ENNReal)⁻¹ ^ b * x ≤ εmax) :
-    foldLead b x ≤ εmax := by
-  unfold foldLead
-  split
-  · subst b; simpa using h
-  · exact zero_le
-
 /-- **The fold rounds' specification**: from `FoldInv` with `n` rounds left (and an extra
 invariant `X` of the commitments, which the rounds do not touch), the rounds keep the invariant
-(each challenge escaping at most `eFold P ℓ`, discounted by the `b` bits ground before it) and
-return it with all `ℓ` challenges. -/
-noncomputable def foldRoundsSpec {εmax : ENNReal} (X : CInv) (b : ℕ) (hw : IsMultiaffine μ w)
-    (hℓ₀ : ℓ₀ ≤ μ) (hε : (2 : ENNReal)⁻¹ ^ b * eFold P ℓ ≤ εmax) :
+(each escaping at most `eFold P ℓ`) and return it with all `ℓ` challenges. -/
+noncomputable def foldRoundsSpec {εmax : ENNReal} (X : CInv) (hw : IsMultiaffine μ w)
+    (hℓ₀ : ℓ₀ ≤ μ) (hε : eFold P ℓ ≤ εmax) :
     (n : ℕ) → (s : WhirStateT) → (lf : List E) →
-      Spec (foldRoundsT b n s lf)
+      Spec (foldRoundsT n s lf)
         (fun h ↦ (FoldInv μ ℓ₀ w i P ℓ pre s lf (commits h) ∧ X (commits h)) ∧
           lf.length + n = ℓ)
         (fun r h ↦ (FoldInv μ ℓ₀ w i P ℓ pre r.1 r.2 (commits h) ∧ X (commits h)) ∧
           r.2.length = ℓ)
-        εmax (foldLead b (eFold P ℓ)) 0
+        εmax (eFold P ℓ) 0
   | 0, s, lf => (Spec.ret (s, lf)).mono (fun _ h ↦ ⟨h.1, by simpa using h.2⟩)
       (fun _ _ h ↦ h) le_rfl zero_le le_rfl
   | n + 1, s, lf =>
-    ((foldPowInv (T := eFold P ℓ) (fun cs ↦ (FoldInv μ ℓ₀ w i P ℓ pre s lf cs ∧ X cs) ∧
-          lf.length + (n + 1) = ℓ) b hε).bind' fun _ ↦
     ((Spec.sampleE (Pre := fun h ↦ (FoldInv μ ℓ₀ w i P ℓ pre s lf (commits h) ∧ X (commits h)) ∧
           lf.length + (n + 1) = ℓ)
         (Post := fun c h ↦ (FoldMid μ ℓ₀ w i P ℓ pre s lf c (commits h) ∧ X (commits h)) ∧
@@ -159,15 +142,14 @@ noncomputable def foldRoundsSpec {εmax : ENNReal} (X : CInv) (b : ℕ) (hw : Is
         simp only [commits_sample]
         exact ⟨⟨hm, hp.1.2⟩, hp.2⟩).bind' fun c ↦
       (roundPolyInv (fun cs ↦ (FoldMid μ ℓ₀ w i P ℓ pre s lf c cs ∧ X cs) ∧
-          lf.length + (n + 1) = ℓ) (polyEval s.quad c) (T := foldLead b (eFold P ℓ))
-          (foldLead_le hε)).bind' fun quad ↦
-        (foldRoundsSpec X b hw hℓ₀ hε n
+          lf.length + (n + 1) = ℓ) (polyEval s.quad c) (T := eFold P ℓ) hε).bind' fun quad ↦
+        (foldRoundsSpec X hw hℓ₀ hε n
           { s with target := polyEval s.quad c, quad := quad, folds := s.folds ++ [c] }
           (lf ++ [c])).mono
           (fun h hp ↦ ⟨⟨foldInv_step s lf c (commits h) quad hp.2.1.1 hp.1, hp.2.1.2⟩, by
             simp; omega⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).mono
-      (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (by simp) le_rfl).mono
-      (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+      (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (by simp) le_rfl
+
 end
 
 end

@@ -198,12 +198,12 @@ theorem opening_buildTreeM_id (height : ℕ) (word : Word) (q : ℕ) :
 
 theorem searchM_id (bits : ℕ) (sp : Sponge) :
     ∀ (count n : ℕ), searchM (m := Id) F bits sp n count =
-      ((List.range' n count).find? fun j ↦ powOk bits (nonceOf j) (powStep F sp (nonceOf j)).1).map
+      ((List.range' n count).find? fun j ↦ powOk bits (powStep F sp (nonceOf j)).1).map
         nonceOf
   | 0, _ => rfl
   | count + 1, n => by
     rw [List.range'_succ, List.find?_cons]
-    show (if powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1 then _ else _) = _
+    show (if powOk bits (powStep F sp (nonceOf n)).1 then _ else _) = _
     split <;> rename_i hp
     · simp only [hp, Option.map_some]; rfl
     · simp only [hp]; exact searchM_id bits sp count (n + 1)
@@ -211,9 +211,7 @@ theorem searchM_id (bits : ℕ) (sp : Sponge) :
 theorem findNonceM_id (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     findNonceM (m := Id) F bits sp fuel = findNonce F bits sp fuel := by
   unfold findNonceM findNonce
-  split
-  · rfl
-  · rw [searchM_id, List.range_eq_range']
+  rw [searchM_id, List.range_eq_range']
 
 theorem treesOf_append (h : List Ev) (ht w : ℕ) (W : Word) :
     treesOf H (commits (h ++ [Ev.commit ht w W])) = treesOf H (commits h) ++
@@ -335,9 +333,7 @@ theorem simulateQ_searchM (bits : ℕ) (sp : Sponge) :
 theorem simulateQ_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     simulateQ impl (findNonceM callKeccakF1600 bits sp fuel) = findNonceM (implF impl) bits sp fuel := by
   unfold findNonceM
-  split
-  · simp
-  · exact simulateQ_searchM impl bits sp _ _
+  exact simulateQ_searchM impl bits sp _ _
 
 theorem simulateQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
     ∀ (p : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree),
@@ -510,9 +506,7 @@ theorem isTotalQueryBound_searchM (bits : ℕ) (sp : Sponge) :
 theorem isTotalQueryBound_findNonceM (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
     IsTotalQueryBound (findNonceM callKeccakF1600 bits sp fuel) (2 * fuel) := by
   unfold findNonceM
-  split
-  · trivial
-  · exact isTotalQueryBound_searchM bits sp fuel 0
+  exact isTotalQueryBound_searchM bits sp fuel 0
 
 /-- The query cost of one quarter of a program's cost: a commitment builds a
 tree of height at most `height`, a proof of work searches `fuel` nonces at two queries each. -/

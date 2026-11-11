@@ -63,10 +63,10 @@ shape's, its loop's and its words' bounds. -/
 
 instance (c : OsCall) : Decidable (CallOK c) := by unfold CallOK; infer_instance
 
-theorem callOK_osCallsTab : osCallsTab.length = 52 ∧ (∀ cs ∈ osCallsTab, cs.length ≤ 7) ∧
+theorem callOK_osCallsTab : osCallsTab.length = 44 ∧ (∀ cs ∈ osCallsTab, cs.length ≤ 7) ∧
     ∀ cs ∈ osCallsTab, ∀ c ∈ cs, CallOK c := by decide +kernel
 
-theorem osWordsTab_ok : osWordsTab.length = 52 ∧ ∀ x ∈ osWordsTab, x ≤ 137 := by decide +kernel
+theorem osWordsTab_ok : osWordsTab.length = 44 ∧ ∀ x ∈ osWordsTab, x ≤ 137 := by decide +kernel
 
 /-- `open_stacked`'s tables as arrays: the lanes below `2^64`, each size and rate's words at most
 `137`, its levels at most `7`, each of the table's shapes (`whirTabs_ok`). -/
@@ -95,9 +95,9 @@ theorem whirTabs_ok : WhirTabsOK whirTabs := by
     rw [getD_toArray]
     exact callOK_getD m
 
-/-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `13502`. -/
+/-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `11134`. -/
 theorem whirTabs_cost (hP : Includes P Decoder.whirTabsC.costDeps) :
-    machineCost P Decoder.whirTabsC.costIdx [] ≤ 13502 := by
+    machineCost P Decoder.whirTabsC.costIdx [] ≤ 11134 := by
   rw [Decoder.whirTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
     Decoder.osWordsTabC.costEq P (by includes), Decoder.osCallsTabC.costEq P (by includes),
     osWordsTab_ok.1, callOK_osCallsTab.1]
@@ -1116,7 +1116,7 @@ theorem vsPiOfM_cost (hP : Includes P Decoder.vsPiOfMC.costDeps) (T : WhirTabs)
     machineCost P Decoder.vsPiOfMC.costIdx [encodeValue T, rdV, σV, VnV, clV, encodeValue m,
       encodeValue j] ≤ vsMPrice R S F C L := by
   rw [Decoder.vsPiOfMC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl m j,
-    limbs_of_lt (by omega : m < 2 ^ 64), limbs_of_lt (by omega : 311 + m < 2 ^ 64)]
+    limbs_of_lt (by omega : m < 2 ^ 64), limbs_of_lt (by omega : 307 + m < 2 ^ 64)]
   have hfr : ∀ v : V, RunsApp P (.closure Decoder.vsPiOfMC.lam0.costIdx
       [VnV, encodeValue (VerifySub.vsOsRets σ), encodeValue (openStackedIdx m),
         encodeValue (VerifySub.vsOsArgs σ)]) [encodeValue v]
@@ -1151,10 +1151,10 @@ theorem vsPiOfS_cost (hP : Includes P Decoder.vsPiOfSC.costDeps) (T : WhirTabs)
   have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 122)) 4 (by norm_num)
   have hr := logGTWith_le T.lanes (σ (.n 122)) 4
   have := vsPiOfM_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT m
-    (logGTWith T.lanes (σ (.n 122)) 4 * 13 + m) hm
-  rw [limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 122)) 4 * 13 < 2 ^ 64),
+    (logGTWith T.lanes (σ (.n 122)) 4 * 11 + m) hm
+  rw [limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 122)) 4 * 11 < 2 ^ 64),
     limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 122)) 4 < 2 ^ 64),
-    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 122)) 4 * 13 + m < 2 ^ 64),
+    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n 122)) 4 * 11 + m < 2 ^ 64),
     limbs_of_lt (by omega : m < 2 ^ 64)]
   unfold vsSPrice
   omega
@@ -1171,10 +1171,10 @@ theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) (T : WhirTabs)
       vsPiPrice R S F C L := by
   rw [Decoder.vsPiOfNC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
   have := hS (.n 1686)
-  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1686)) 13 (by norm_num)
-  have := logGTWith_le T.lanes (σ (.n 1686)) 13
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n 1686)) 11 (by norm_num)
+  have := logGTWith_le T.lanes (σ (.n 1686)) 11
   have := vsPiOfS_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT
-    (logGTWith T.lanes (σ (.n 1686)) 13) (by omega)
+    (logGTWith T.lanes (σ (.n 1686)) 11) (by omega)
   unfold vsPiPrice
   omega
 

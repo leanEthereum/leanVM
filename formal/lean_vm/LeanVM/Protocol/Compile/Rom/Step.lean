@@ -68,7 +68,7 @@ theorem powF_avg (pw : Option (ℕ × E)) :
   rcases pw with _ | ⟨b, n⟩
   · simp only [Option.map_none, Option.getD_none, Nat.zero_min, pow_zero]
     exact avg_le_of_le fun _ ↦ le_rfl
-  · exact sum_powOk_div_le b n
+  · exact sum_powOk_div_le b
 
 /-- **The new record averages to at most `εmax`.** -/
 theorem term_step_new (C : Cert P) {εmax : ℝ≥0∞}

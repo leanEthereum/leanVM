@@ -35,7 +35,7 @@ abbrev OsWit : Type := ℕ → ℕ → List E → List E → List E × List (Lis
 
 /-- **`open_stacked`'s calls are sound with the witness `osW`.** -/
 def OsSoundW (C : CallRel) (rd : Reader) (osW : OsWit) : Prop :=
-  ∀ μ r, B1.Whir.minOpenLog ≤ μ → μ ≤ 32 → 1 ≤ r → r ≤ 4 → ∀ (root : Digest) (fs : List E)
+  ∀ μ r, B1.Whir.minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 → ∀ (root : Digest) (fs : List E)
     (target root0 root1 cur : E) (rets : List E), fs.length = 5 →
     (root0, root1) = digestHalves root →
     C (B1.Whir.openName μ) (B1.Whir.rateSel r :: fs ++ [target, root0, root1, cur]) rets →
@@ -55,12 +55,12 @@ theorem osSoundW_of {κ : ℕ} (hκ : κ ≤ 32) {L : MemoryImage κ} {C : CallR
   exact B1.Whir.open_stacked_sound_w hκ L C V hU hLe μ r hμ1 hμ2 hr1 hr2 root fs target root0
     root1 cur rets fn _ hfs hroot hfind hpar hbody
 
-theorem vsOpenNames_length : vsOpenNames.length = 13 := by simp [vsOpenNames]
+theorem vsOpenNames_length : vsOpenNames.length = 11 := by simp [vsOpenNames]
 
 /-- **The dispatch** (G:3542-3544): the `match` on `g^(μ - 20)` calls the size's specialization
 of `open_stacked` on the rate's selector, whose returns are `OpenOutW` at the witness. -/
 theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val} {osW : OsWit} (hos : OsSoundW C rd osW)
-    {μ r : ℕ} (hμ1 : B1.Whir.minOpenLog ≤ μ) (hμ2 : μ ≤ 32) (hr1 : 1 ≤ r) (hr2 : r ≤ 4)
+    {μ r : ℕ} (hμ1 : B1.Whir.minOpenLog ≤ μ) (hμ2 : μ ≤ 30) (hr1 : 1 ≤ r) (hr2 : r ≤ 4)
     (h1686 : σ (.n 1686) = gen ^ (μ - B1.Whir.minOpenLog)) (h122 : σ (.n 122) = B1.Whir.rateSel r)
     (hd : ∃ (j : ℕ) (hj : j < vsOpenNames.length), σ (.n 1686) = ofK (addressOfIndex j) ∧
       C vsOpenNames[j] [σ (.n 122), σ (.n 1100), σ (.n 1101), σ (.n 1102), σ (.n 1103),
@@ -76,7 +76,7 @@ theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val} {osW : OsWit} (hos : 
         σ (.n 1103), σ (.n 1104), σ (.n 1681), σ (.n 324), σ (.n 334), σ (.n 656)]
         [σ (.n 1691), σ (.n 1692), σ (.n 1693), σ (.n 1694), σ (.n 1695)]).2 := by
   obtain ⟨j, hj, hj1686, hc⟩ := hd
-  have hj14 : j < 13 := vsOpenNames_length ▸ hj
+  have hj11 : j < 11 := vsOpenNames_length ▸ hj
   have hjc : j = μ - B1.Whir.minOpenLog := by
     rw [h1686, gen_pow_eq_ofK] at hj1686
     exact (gen_pow_inj (by omega) (by omega)
@@ -92,7 +92,7 @@ theorem vs_dispatch {C : CallRel} {rd : Reader} {σ : Val} {osW : OsWit} (hos : 
 
 /-! ## The stack's configuration -/
 
-theorem cfg_cons {μ r : ℕ} (h1 : B1.Whir.minOpenLog ≤ μ) (h2 : μ ≤ 32) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
+theorem cfg_cons {μ r : ℕ} (h1 : B1.Whir.minOpenLog ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
     ∃ level rest, Whir.ladder μ r = some (level :: rest) := by
   have hadm : Whir.Admissible μ r := ⟨by unfold Whir.minLogStack B1.Whir.minOpenLog at *; omega,
     h2, h3, h4⟩

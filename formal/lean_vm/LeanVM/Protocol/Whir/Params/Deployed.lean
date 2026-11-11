@@ -13,8 +13,8 @@ public import LeanVM.Protocol.Whir.Params.Check
 /-!
 # The deployed codes and their escape bound
 
-For each of the 68 admissible pairs `(μ, R)` (`LeanVM.Parameters.Whir.Admissible`, stacks of
-`2^16` to `2^32`), `certTable` gives one `Cert` per level of the ladder
+For each of the 60 admissible pairs `(μ, R)` (`LeanVM.Parameters.Whir.Admissible`, stacks of
+`2^16` to `2^30`), `certTable` gives one `Cert` per level of the ladder
 `ladder μ R`: the level's `κ` and `R`, its Johnson slack `η = e / 2^22`, and the bracket
 `s / 2^40 ≤ √ρ₋ ≤ (s + 1) / 2^40`. The slacks were chosen offline by `scripts/whir-params/gen.py`.
 From level 1 on, they balance the fold group's exception count (decreasing in `η`) against the
@@ -22,9 +22,7 @@ query group's `((A − 1)/n)^t` (increasing in `η`). Level 0's, the slack the e
 list-decodes at (`LeanVM.Extraction.johnsonSlack`), is the largest at which every group of
 level 0 is at most `2^-128`, the next level's certificate fixed: a larger slack shortens the
 Johnson list and lowers the decoder's multiplicity, and only the query group grows with it. The
-table is untrusted data: `shapeOK_all` checks it by kernel evaluation. A level that grinds `b`
-bits before each fold challenge (`Whir.Level.foldGrinding`, only the last level of `(32, 4)`) has
-its fold group checked at `2^-(128-b)`, the grinding's `2^-b` bringing it to `2^-128`.
+table is untrusted data: `shapeOK_all` checks it by kernel evaluation.
 
 * `deployedCodes μ R`: the codes of the levels.
 * `deployed_spec_hyps`: **for every admissible `(μ, R)` with ladder `config`**, the hypotheses
@@ -55,7 +53,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Sound
 level. -/
 def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
   [
-    -- rate exponent 1, stack sizes 16 to 32
+    -- rate exponent 1, stack sizes 16 to 30
     [
       [(10, 1, 7275, 777092410204), (6, 4, 19, 272721968504), (2, 7, 7, 84163826697)],
       [(11, 1, 5527, 777282292286), (7, 4, 21, 273802059735), (3, 7, 10, 90907322834)],
@@ -82,13 +80,8 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(23, 1, 13737, 777472081652), (19, 4, 303, 274877644799), (15, 7, 163, 97182533077),
         (11, 10, 179, 34351348735), (7, 13, 161, 12100455821), (3, 16, 38, 4017574027)],
       [(24, 1, 18248, 777472104823), (20, 4, 380, 274877775871), (16, 7, 204, 97183274541),
-        (12, 10, 224, 34355543807), (8, 13, 198, 12124252217), (4, 16, 41, 4158584202)],
-      [(25, 1, 18248, 777472116408), (21, 4, 478, 274877841407), (17, 7, 257, 97183645270),
-        (13, 10, 282, 34357641151), (9, 13, 247, 12136132918), (5, 16, 288, 4227325788)],
-      [(26, 1, 22727, 777472122201), (22, 4, 602, 274877874175), (18, 7, 323, 97183830635),
-        (14, 10, 353, 34358689775), (10, 13, 309, 12142068909), (6, 16, 339, 4261280757),
-        (2, 19, 81, 1315059792)]],
-    -- rate exponent 2, stack sizes 16 to 32
+        (12, 10, 224, 34355543807), (8, 13, 198, 12124252217), (4, 16, 41, 4158584202)]],
+    -- rate exponent 2, stack sizes 16 to 30
     [
       [(10, 2, 14336, 549487312863), (6, 5, 22, 192843553308), (2, 8, 14, 59512812588)],
       [(11, 2, 13824, 549621579771), (7, 5, 25, 193607293142), (3, 8, 22, 64281184436)],
@@ -115,13 +108,8 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(23, 2, 25886, 549755781119), (19, 5, 373, 194367846634), (15, 8, 181, 68718428151),
         (11, 11, 223, 24290071633), (7, 14, 57, 8556314366), (3, 17, 201, 2840853838)],
       [(24, 2, 25886, 549755797503), (20, 5, 469, 194367939316), (16, 8, 227, 68718952445),
-        (12, 11, 280, 24293037997), (8, 14, 348, 8573140959), (4, 17, 216, 2940563089)],
-      [(25, 2, 25886, 549755805695), (21, 5, 589, 194367985657), (17, 8, 285, 68719214591),
-        (13, 11, 352, 24294521044), (9, 14, 431, 8581541883), (5, 17, 248, 2989170731)],
-      [(26, 2, 25886, 549755809791), (22, 5, 740, 194368008827), (18, 8, 886, 68719345663),
-        (14, 11, 442, 24295262533), (10, 14, 529, 8585739263), (6, 17, 303, 3013180520),
-        (2, 20, 296, 929887696)]],
-    -- rate exponent 3, stack sizes 16 to 32
+        (12, 11, 280, 24293037997), (8, 14, 348, 8573140959), (4, 17, 216, 2940563089)]],
+    -- rate exponent 3, stack sizes 16 to 30
     [
       [(10, 3, 21557, 388546205102), (6, 6, 16, 136360984252), (2, 9, 13, 42081913348)],
       [(11, 3, 21195, 388641146143), (7, 6, 20, 136901029867), (3, 9, 25, 45453661417)],
@@ -148,13 +136,8 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(23, 3, 20700, 388736040826), (19, 6, 579, 137438822399), (15, 9, 225, 48591266538),
         (11, 12, 177, 17175674367), (7, 15, 72, 6050227910), (3, 18, 139, 2008787013)],
       [(24, 3, 20700, 388736052411), (20, 6, 729, 137438887935), (16, 9, 283, 48591637270),
-        (12, 12, 222, 17177771903), (8, 15, 467, 6062126108), (4, 18, 153, 2079292101)],
-      [(25, 3, 20700, 388736058204), (21, 6, 914, 137438920703), (17, 9, 356, 48591822635),
-        (13, 12, 278, 17178820575), (9, 15, 579, 6068066459), (5, 18, 176, 2113662894)],
-      [(26, 3, 20700, 388736061100), (22, 6, 1145, 137438937087), (18, 9, 446, 48591915317),
-        (14, 12, 349, 17179344887), (10, 15, 724, 6071034454), (6, 18, 214, 2130640378),
-        (2, 21, 126, 657529896)]],
-    -- rate exponent 4, stack sizes 16 to 32
+        (12, 12, 222, 17177771903), (8, 15, 467, 6062126108), (4, 18, 153, 2079292101)]],
+    -- rate exponent 4, stack sizes 16 to 30
     [
       [(10, 4, 13824, 274743656431), (6, 7, 23, 96421776654), (2, 10, 21, 29756406294)],
       [(11, 4, 13440, 274810789885), (7, 7, 27, 96803646571), (3, 10, 15, 32140592218)],
@@ -181,12 +164,7 @@ def certTable : List (List (List (ℕ × ℕ × ℕ × ℕ))) :=
       [(23, 4, 38959, 274877890559), (19, 7, 406, 97183923317), (15, 10, 443, 34359214075),
         (11, 13, 387, 12145035816), (7, 16, 422, 4278157183), (3, 19, 78, 1420426919)],
       [(24, 4, 38959, 274877898751), (20, 7, 1124, 97183969658), (16, 10, 556, 34359476222),
-        (12, 13, 483, 12146518998), (8, 16, 511, 4286570479), (4, 19, 85, 1470281544)],
-      [(25, 4, 38959, 274877902847), (21, 7, 1409, 97183992828), (17, 10, 698, 34359607295),
-        (13, 13, 595, 12147260522), (9, 16, 630, 4290770941), (5, 19, 713, 1494585365)],
-      [(26, 4, 38959, 274877904895), (22, 7, 1766, 97184004413), (18, 10, 874, 34359672831),
-        (14, 13, 748, 12147631266), (10, 16, 745, 4292869631), (6, 19, 788, 1506590260),
-        (2, 22, 222, 464943848)]]]
+        (12, 13, 483, 12146518998), (8, 16, 511, 4286570479), (4, 19, 85, 1470281544)]]]
 
 /-- The certificate of level `i` of the ladder `(μ, R)` (the default certificate off the table). -/
 def certOf (μ R i : ℕ) : Cert :=
@@ -206,7 +184,7 @@ def shapeOK (B μ R : ℕ) : Bool :=
   | none => false
 
 /-- Every admissible shape checks at `2^-128` (kernel evaluation). -/
-theorem shapeOK_all : ∀ μ < 33, ∀ R < 5, Whir.Admissible μ R → shapeOK 128 μ R = true := by
+theorem shapeOK_all : ∀ μ < 31, ∀ R < 5, Whir.Admissible μ R → shapeOK 128 μ R = true := by
   decide +kernel
 
 /-- **The hypotheses of `whirSpec` and `stackedSpec` about the codes**, for every admissible

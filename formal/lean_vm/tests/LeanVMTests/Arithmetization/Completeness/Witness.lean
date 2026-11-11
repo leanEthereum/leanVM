@@ -9,7 +9,7 @@ prover data from its tables (`withDerivedData`), so the `"mem"` table is the mem
 which are the image's words (`memRows_skelWitness`). Every test here is a statement about data
 whose `"mem"` table is an image's, generic in the data, through the lemmas that rewrite and never
 unfold (`imageOf_of_memRows`). The memory log-size at most `maxLogMem` is load-bearing: the data's
-`imageOf` clamps it, so a memory of `2^33` cells is named as one of `2^32`.
+`imageOf` clamps it, so a memory of `2^33` cells is named as one of `2^30`.
 -/
 
 namespace LeanVMTests.Arithmetization.Completeness.Witness

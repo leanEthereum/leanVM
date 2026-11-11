@@ -2,7 +2,7 @@
   LeanVM.Guest.Budget.ClosedN
 
   The guest's completeness within the deployed budget with every number explicit: `verify_sub`'s
-  words per child at its announced stack log, a table of the guest's 13 opening arms
+  words per child at its announced stack log, a table of the guest's 11 opening arms
   (`deployedBvAt`, `Count.vsBoundAt_eq`).
 -/
 
@@ -40,17 +40,17 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
   · exact fun _ => le_rfl
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ`** at the deployed instance:
-entry `μ - 20` for the guest's opening arms (`20 ≤ μ ≤ 32`, whatever the rate `1 ≤ r ≤ 4`); `0`
+entry `μ - 20` for the guest's opening arms (`20 ≤ μ ≤ 30`, whatever the rate `1 ≤ r ≤ 4`); `0`
 elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero challenge, is
 (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
-  if 20 ≤ μ ∧ μ ≤ 32 ∧ 1 ≤ r ∧ r ≤ 4 then
-    [414094, 414656, 416874, 419588, 432638, 437886, 446250, 450581, 461867, 463576, 468391, 472909, 491545].getD (μ - 20) 0
+  if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
+    [413983, 414545, 416763, 419477, 432523, 437771, 446135, 450466, 461748, 463457, 468272].getD (μ - 20) 0
   else 0
 
-/-- `open_stacked`'s words at the 13 arms (`Count/VsOsAll`). -/
-theorem osC_getD {m : ℕ} (hm : m < 13) : Count.osC m =
-    [212528, 213090, 215308, 218022, 231072, 236320, 244684, 249015, 260301, 262010, 266825, 271343, 289979].getD m 0 := by
+/-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/
+theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
+    [212512, 213074, 215292, 218006, 231052, 236300, 244664, 248995, 260277, 261986, 266801].getD m 0 := by
   interval_cases m
   · exact Count.osC_0
   · exact Count.osC_1
@@ -63,11 +63,9 @@ theorem osC_getD {m : ℕ} (hm : m < 13) : Count.osC m =
   · exact Count.osC_8
   · exact Count.osC_9
   · exact Count.osC_10
-  · exact Count.osC_11
-  · exact Count.osC_12
 
 /-- `verify_sub`'s bound at an opening arm is the table's. -/
-theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 32) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
+theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
     B1.VerifySub.vsBoundAt Count.vsWords B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
   rw [Count.vsBoundAt_eq h1 h2, osC_getD (by omega)]
   unfold deployedBvAt
@@ -85,8 +83,8 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds bytecode_length hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
-/-- The largest child's words: `μ = 32`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 491545 := by
+/-- The largest child's words: `μ = 30`. -/
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 468272 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, -, -⟩ := h

@@ -17,9 +17,9 @@ execution (`guestDecoderPrice_le_budget`, `Cost/Bounds/Guest/Budget.lean`).
 /-! ## The extractor's price
 
 At a stack of `2^μ`, about `2^max(81, 2μ + 22) + 2^14.85·N·log²N` for `N` permutation queries
-(`O(N·log³N)` as `N` grows), the list decoder's part taken at its budget: at `μ = 32` with
-`κ = ℓ = 32`, about `2^86` for at most `2^40` queries (the list decoder dominating), `2^87.56` for
-`2^60`, `2^91.18` for `2^64`, `2^107.76` for `2^80` and `2^157.08` for `2^128` queries (the
+(`O(N·log³N)` as `N` grows), the list decoder's part taken at its budget: at `μ = 30` with
+`κ = ℓ = 30`, about `2^81.99` for at most `2^40` queries (the list decoder dominating), `2^86.78`
+for `2^60`, `2^90.91` for `2^64`, `2^107.53` for `2^80` and `2^156.86` for `2^128` queries (the
 transcript's index dominating). -/
 
 namespace LeanVM.Cost
@@ -82,12 +82,12 @@ interpolated by the approximant basis on `pmSolver`, and the pruning), beyond th
 a stack of `2^μ`: the statement's budget term `2^max(81, 2μ + 22)` less `2^75`. It is `lean_vm`'s
 `pmDecoderBudget` (`Cost/Bounds/PMLane/ShapeDefs.lean`), and bounds the decoder at every admissible
 shape of that size (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`): about
-`2^80.49` at `μ = 28`, `2^85.80` at `μ = 32`. -/
+`2^80.49` at `μ = 28`, `2^81.81` at `μ = 30`. -/
 def listDecoderWorstPrice (μ : ℕ) : ℕ := 2 ^ max 81 (2 * μ + 22) - 2 ^ 75
 
 /-- The list decoder's part, at every admissible shape of a stack of `2^μ`: its word's reads and
 `listDecoderWorstPrice μ`. -/
-def listDecoderPrice (μ : ℕ) : ℕ := 1751 * 2 ^ 30 + listDecoderWorstPrice μ + 22
+def listDecoderPrice (μ : ℕ) : ℕ := 1751 * 2 ^ 28 + listDecoderWorstPrice μ + 22
 
 /-- The bytecode's words: `16·2^ℓ` words. -/
 def bytecodeWordsPrice (ℓ : ℕ) : ℕ := 5712 * 2 ^ ℓ + 947
@@ -107,7 +107,7 @@ extractorSortedMapLevels N` levels of the sorted maps, their positions and weigh
 `limbsBelowTwoPow (D + 1)` limbs): the bytecode's words, the replay of the verifier's first two
 steps, the stage and the glue. -/
 def extractorPrice (μ R κ ℓ N : ℕ) : ℕ :=
-  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977131026) +
+  bytecodeWordsPrice ℓ + (128 * 2 ^ ℓ + 977128522) +
     afterRootStagePrice μ R κ ℓ (extractorSortedMapLevels N) N (μ - 6 + R)
       (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) + 69
 
@@ -146,7 +146,7 @@ children's claims (each of the `16` children's priced at `65535` claims of each 
 words at `1338` each, about `2^27.39`. The address tables of the memory and the program
 are priced at the execution's `κ` and the program's `ℓ`
 (`guestDecoderAddressTablesPrice κ ℓ = (74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42`: at the guest's
-`ℓ = 19`, `2^31.21` at `κ = 20`, `2^43.28` at `κ = 32`). A frame lookup (`guestDecoderFramePrice`,
+`ℓ = 19`, `2^31.21` at `κ = 20`, `2^41.19` at `κ = 30`). A frame lookup (`guestDecoderFramePrice`,
 one binary search, growing as `log(steps)`) is paid about `2^25.32` times
 (`guestDecoderFrameLookupCountAtValidCounts`; a search on `__loop2`'s `56` arguments counts as
 four), `2^40.15` in all at `2^20` steps and `2^41.26` at `2^51`.
@@ -154,30 +154,30 @@ four), `2^40.15` in all at `2^20` steps and `2^41.26` at `2^51`.
 So the bound is `O(steps·log steps)` below `2^61` steps (`O(steps·log² steps)` as `steps` grows,
 through the positions' limbs), plus the address tables, `O(κ·2^κ + ℓ·2^ℓ)` in the memory's size
 `2^κ` and the program's `2^ℓ`: per step about `2^20.5` to `2^21` (`2^20.55` at `κ = 16` and no
-step, `2^20.98` at `κ = 32` and `2^60` steps; `κ` and `ℓ` enter the step's price,
+step, `2^20.98` at `κ = 30` and `2^60` steps; `κ` and `ℓ` enter the step's price,
 `runnerStepPrice`). At the guest's `ℓ = 19` it is `2^41.65` at `κ = 20` and `2^20` steps, `2^44.83`
-at `κ = 24` and `2^24`, `2^48.78` at `κ = 28` and `2^28`, `2^50.80` at `κ = 32` and `2^30`,
-`2^71.93` at `κ = 32` and `2^51`, and `2^80.98` at `κ = 32` and `2^60`: the terms besides the steps'
-(the address tables included: `2^40.58` at `κ = 20` and `2^20` steps to `2^43.69` at `κ = 32` and
-`2^60`) dominate up to about `2^20` steps at `κ ≤ 24`, `2^21` at `κ = 28` and `2^23` at `κ = 32`, the per-step price
+at `κ = 24` and `2^24`, `2^48.78` at `κ = 28` and `2^28`, `2^50.79` at `κ = 30` and `2^30`,
+`2^71.93` at `κ = 30` and `2^51`, and `2^80.98` at `κ = 30` and `2^60`: the terms besides the steps'
+(the address tables included: `2^40.58` at `κ = 20` and `2^20` steps to `2^42.46` at `κ = 30` and
+`2^60`) dominate up to about `2^20` steps at `κ ≤ 24`, `2^21` at `κ = 28` and `2^22` at `κ = 30`, the per-step price
 beyond; the log factor enters through the entry table's key exponent,
 `Nat.log2 (2·(steps + 1)) + 1`. A valid execution of the guest program has fewer than `2^51`
 steps: the memory is fixed and every instruction reads a cell at `fp·o` for an offset `o` fixed by
 `pc`, so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is determined by
-`(pc, fp)`, and a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 32`;
+`(pc, fp)`, and a repeated state would loop without halting (`2^ℓ·2^κ` states, `ℓ = 19`, `κ ≤ 30`;
 argued, not a Lean theorem; `lean_vm` proves fewer than `2^128`, `steps_lt_replayFuel`). The
 per-step price and the frame lookup's are `lean_vm`'s bounds on the compiled decoder's own work,
 stated exactly (`entryArrayStatePrice_eq`; `frameAtAPrice_le`, equal at `16` words), at small maxima
-only (a memory read at `1271`, its price at `κ = 32`, whatever `κ`; two functions entered at a pc;
+only (a memory read at `1271`, its price at `κ = 32`, above the deployed `κ ≤ 30`; two functions entered at a pc;
 `16` words a frame). The constant prices the witness at the bounds above, not at the run's: `16`
 children, each with `65535` claims of each scheme (the two regions together hold at most `65535`)
 and a cursor of `8192` words, `65535` declared claims and raw signatures of each scheme, `1024` rows of the DA matrix,
 and the frame lookups these take. So on an execution with fewer children and claims, at `κ ≤ 28` and
-well below `2^22` steps, the budget is several times what the compiled decoder spends (at `κ = 32`
+well below `2^22` steps, the budget is several times what the compiled decoder spends (at `κ = 30`
 the address tables, priced at the run's `κ`, are most of it); that looseness is an accepted
 trade-off.
 
-The literals (`7093`, `41252`, `20785`, `16430885`, `4343`, `4373`, `1584`, the `+ 39`, `+ 36`,
+The literals (`7093`, `41252`, `17940`, `16430885`, `4343`, `4373`, `1584`, the `+ 39`, `+ 36`,
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
@@ -248,19 +248,19 @@ lookups at counts at most `M`. -/
 def guestDecoderPriceAt (M κ ℓ steps : ℕ) : ℕ :=
   (LeanVM.Cost.runnerStepPrice κ ℓ + 46 +
       guestDecoderStateFilingPrice (guestDecoderEntryTableKeyExponent steps)) * (steps + 1) +
-    20785 + 16430885 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAt M +
+    17940 + 16430885 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAt M +
     guestDecoderFrameLookupCountAt M *
       guestDecoderFramePrice (guestDecoderEntryTableKeyExponent steps) + 39
 
 /-- **An upper bound on the guest decoder's price** on a memory of `2^κ` words, the deployed guest
 program (`2^ℓ` instructions, `ℓ = 19`) and a run of `steps` steps: per step the replay and the
-filing of the state, then the guest's tables of preconditions (`20785`) and of entries
+filing of the state, then the guest's tables of preconditions (`17940`) and of entries
 (`16430885`), the address tables, the witness at a valid execution's counts and cursors, and its
 frame lookups. -/
 def guestDecoderPrice (κ ℓ steps : ℕ) : ℕ :=
   (LeanVM.Cost.runnerStepPrice κ ℓ + 46 +
       guestDecoderStateFilingPrice (guestDecoderEntryTableKeyExponent steps)) * (steps + 1) +
-    20785 + 16430885 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
+    17940 + 16430885 + guestDecoderAddressTablesPrice κ ℓ + guestDecoderWitnessPriceAtValidCounts +
     guestDecoderFrameLookupCountAtValidCounts *
       guestDecoderFramePrice (guestDecoderEntryTableKeyExponent steps) + 39
 

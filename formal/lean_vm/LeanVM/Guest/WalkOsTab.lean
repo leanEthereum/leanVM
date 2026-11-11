@@ -117,26 +117,7 @@ def lpTab : List (String × Nat × Nat × Nat × String) :=
     ("level_positions__L5_L27_L3", 5, 27, 3, "__loop470"),
     ("level_positions__L4_L26_L2", 4, 26, 2, "__loop471"),
     ("level_positions__L3_L25_L7", 3, 25, 7, "__loop472"),
-    ("level_positions__L2_L24_L6", 2, 24, 6, "__loop473"),
-    ("level_positions__L33_L26_L8", 33, 26, 8, "__loop509"),
-    ("level_positions__L17_L27_L3", 17, 27, 3, "__loop510"),
-    ("level_positions__L13_L28_L4", 13, 28, 4, "__loop511"),
-    ("level_positions__L10_L29_L5", 10, 29, 5, "__loop512"),
-    ("level_positions__L7_L26_L2", 7, 26, 2, "__loop513"),
-    ("level_positions__L6_L27_L3", 6, 27, 3, "__loop514"),
-    ("level_positions__L6_L28_L4", 6, 28, 4, "__loop515"),
-    ("level_positions__L4_L27_L3", 4, 27, 3, "__loop516"),
-    ("level_positions__L3_L26_L2", 3, 26, 2, "__loop517"),
-    ("level_positions__L33_L27_L3", 33, 27, 3, "__loop553"),
-    ("level_positions__L19_L28_L4", 19, 28, 4, "__loop554"),
-    ("level_positions__L13_L29_L5", 13, 29, 5, "__loop555"),
-    ("level_positions__L10_L30_L6", 10, 30, 6, "__loop556"),
-    ("level_positions__L7_L27_L3", 7, 27, 3, "__loop557"),
-    ("level_positions__L7_L28_L4", 7, 28, 4, "__loop558"),
-    ("level_positions__L6_L29_L5", 6, 29, 5, "__loop559"),
-    ("level_positions__L4_L28_L4", 4, 28, 4, "__loop560"),
-    ("level_positions__L3_L27_L3", 3, 27, 3, "__loop561"),
-    ("level_positions__L2_L25_L7", 2, 25, 7, "__loop562")]
+    ("level_positions__L2_L24_L6", 2, 24, 6, "__loop473")]
 
 end
 end LeanVM.Guest.End

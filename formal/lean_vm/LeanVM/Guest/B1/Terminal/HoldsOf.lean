@@ -121,8 +121,9 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
   refine ⟨hret.symm, ?_⟩
   intro layout bus claims out lam ringPoint coeffs x hpre
   simp only [TermPre] at hpre
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, -, hbus40, hHL, -, hglm, hgtau, hkbR, hgt, hlamC,
+  obtain ⟨hT, hPC, -, hP, hSL, hSL30, hlm1, -, hbus40, hHL, -, hglm, hgtau, hkbR, hgt, hlamC,
     hoc, hopl, hoz, hrpl, hrp, hcfl, hct, hxl, hpt, hpt1⟩ := hpre
+  have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, hzR, hgmu, hchR, hgzc, hchL, -, hcols, hpts⟩ := hT
   obtain ⟨hkap, hOr⟩ := hPC
   simp only [List.getD_cons_succ, List.getD_cons_zero]

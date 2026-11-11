@@ -22,7 +22,7 @@ the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVe
 `crates/verifier/src/whir.rs:142-265`) from `verifyStackedOpening` (V:1854), up to its terminal:
 the terminal's check `(inner + evaluateBasis point) · residual = target` is
 `check_opening_terminal`'s, which evaluates the transparent weight `evaluateBasis`. It has `ligNSizes`
-specializations `open_stacked__L{m}`, one per stack log `μ = minOpenLog + m ≤ 32`, each reading its size's
+specializations `open_stacked__L{m}`, one per stack log `μ = minOpenLog + m ≤ 30`, each reading its size's
 rows of the `LIG_*` tables at compile time; the rate `1 ≤ r ≤ 4` is its first argument
 `rateSel r = g^(r - 1)`, which each level's `match` on the rate dispatches into helpers
 specialized on the rate's shapes.
@@ -74,7 +74,7 @@ structure WhirEnd where
 def whirLevelsOpen (logN laneFolds : ℕ) : ℕ → List Whir.Level → WhirStateT → VerifierProgram WhirEnd
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRoundsT level.foldGrinding level.fold s []
+    let (s, levelFolds) ← foldRoundsT level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
@@ -227,7 +227,7 @@ on the rate's selector, the capacity cells `fs`, the claim `target`, the root's 
 cursor establishes `OpenOut`, on a memory image of at most `2^32` words (`decode_query_windows`'
 range checks). -/
 def open_stacked_sound_Spec : Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 32 → 1 ≤ r → r ≤ 4 →
+  ∀ {κ : ℕ}, κ ≤ 32 → ∀ (L : MemoryImage κ) (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (root : Digest) (fs : List E) (target root0 root1 cur : E) (rets : List E),
       fs.length = 5 → (root0, root1) = digestHalves root →
       coreProgram.Rel L.read (openName μ) (rateSel r :: fs ++ [target, root0, root1, cur]) rets →

@@ -43,18 +43,13 @@ public import LeanVM.Cost.Decoder.GuestTablesCheck.C35
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C36
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C37
 public import LeanVM.Cost.Decoder.GuestTablesCheck.C38
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C39
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C40
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C41
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C42
-public import LeanVM.Cost.Decoder.GuestTablesCheck.C43
 
 /-!
 # The guest decoder's tables, checked
 
 The literal tables of `GuestTables.lean` are the guest's: for every function `j < nFns`, its entry pc,
 its numbers of arguments and of return words (`(glob.sig j).entry`, `nargs`, `nret`), and its
-certificate's frame cells (`(certOf j).locs`), from the checks of `44` chunks of functions
+certificate's frame cells (`(certOf j).locs`), from the checks of `39` chunks of functions
 (`GuestTablesCheck/C*.lean`, each evaluation in a module of its own, under the memory a module
 may take).
 -/
@@ -223,28 +218,8 @@ theorem guestSig_eq : ∀ j < nFns,
   · have := guestSig_eq_37 (j - 1480) (by omega)
     rw [show 1480 + (j - 1480) = j by omega] at this
     exact this
-  by_cases h38 : j < 1560
-  · have := guestSig_eq_38 (j - 1520) (by omega)
-    rw [show 1520 + (j - 1520) = j by omega] at this
-    exact this
-  by_cases h39 : j < 1600
-  · have := guestSig_eq_39 (j - 1560) (by omega)
-    rw [show 1560 + (j - 1560) = j by omega] at this
-    exact this
-  by_cases h40 : j < 1640
-  · have := guestSig_eq_40 (j - 1600) (by omega)
-    rw [show 1600 + (j - 1600) = j by omega] at this
-    exact this
-  by_cases h41 : j < 1680
-  · have := guestSig_eq_41 (j - 1640) (by omega)
-    rw [show 1640 + (j - 1640) = j by omega] at this
-    exact this
-  by_cases h42 : j < 1720
-  · have := guestSig_eq_42 (j - 1680) (by omega)
-    rw [show 1680 + (j - 1680) = j by omega] at this
-    exact this
-  have := guestSig_eq_43 (j - 1720) (by omega)
-  rw [show 1720 + (j - 1720) = j by omega] at this
+  have := guestSig_eq_38 (j - 1520) (by omega)
+  rw [show 1520 + (j - 1520) = j by omega] at this
   exact this
 
 theorem guestEntries_eq : ∀ j < nFns, guestEntries.getD j 0 = (glob.sig j).entry :=
@@ -413,28 +388,8 @@ theorem guestLocsList_eq : ∀ j < nFns, guestLocsList.getD j [] = (certOf j).lo
   · have := guestLocsList_eq_37 (j - 1480) (by omega)
     rw [show 1480 + (j - 1480) = j by omega] at this
     exact this
-  by_cases h38 : j < 1560
-  · have := guestLocsList_eq_38 (j - 1520) (by omega)
-    rw [show 1520 + (j - 1520) = j by omega] at this
-    exact this
-  by_cases h39 : j < 1600
-  · have := guestLocsList_eq_39 (j - 1560) (by omega)
-    rw [show 1560 + (j - 1560) = j by omega] at this
-    exact this
-  by_cases h40 : j < 1640
-  · have := guestLocsList_eq_40 (j - 1600) (by omega)
-    rw [show 1600 + (j - 1600) = j by omega] at this
-    exact this
-  by_cases h41 : j < 1680
-  · have := guestLocsList_eq_41 (j - 1640) (by omega)
-    rw [show 1640 + (j - 1640) = j by omega] at this
-    exact this
-  by_cases h42 : j < 1720
-  · have := guestLocsList_eq_42 (j - 1680) (by omega)
-    rw [show 1680 + (j - 1680) = j by omega] at this
-    exact this
-  have := guestLocsList_eq_43 (j - 1720) (by omega)
-  rw [show 1720 + (j - 1720) = j by omega] at this
+  have := guestLocsList_eq_38 (j - 1520) (by omega)
+  rw [show 1520 + (j - 1520) = j by omega] at this
   exact this
 
 set_option maxRecDepth 100000 in

@@ -17,76 +17,76 @@ open LeanVM.Guest.B1
 @[expose] public section
 
 /-- `opening_queries__L0_L0_L16_L24_L21_L3`. -/
-theorem walkOk_1264 : mainOkS 1264 0 ⟨0, 16, 18, 3⟩ = true := by decide +kernel
+theorem walkOk_1157 : mainOkS 1157 0 ⟨0, 16, 18, 3⟩ = true := by decide +kernel
 
-/-- `__loop623`. -/
-theorem walkOk_1696 : loop0Ok 1696 ⟨0, 16, 18, 3⟩ = true := by decide +kernel
+/-- `__loop532`. -/
+theorem walkOk_1492 : loop0Ok 1492 ⟨0, 16, 18, 3⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L64_L32_L20_L8`. -/
-theorem walkOk_1299 : mainOkS 1299 0 ⟨1, 64, 12, 8⟩ = true := by decide +kernel
+theorem walkOk_1192 : mainOkS 1192 0 ⟨1, 64, 12, 8⟩ = true := by decide +kernel
 
-/-- `__loop624`. -/
-theorem walkOk_1700 : loop1Ok 1700 0 ⟨1, 64, 12, 8⟩ = true := by decide +kernel
+/-- `__loop533`. -/
+theorem walkOk_1496 : loop1Ok 1496 0 ⟨1, 64, 12, 8⟩ = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L64_L32_L22_L4`. -/
-theorem walkOk_1300 : mainOkS 1300 1 ⟨1, 64, 18, 4⟩ = true := by decide +kernel
+theorem walkOk_1193 : mainOkS 1193 1 ⟨1, 64, 18, 4⟩ = true := by decide +kernel
 
-/-- `__loop625`. -/
-theorem walkOk_1702 : loop1Ok 1702 1 ⟨1, 64, 18, 4⟩ = true := by decide +kernel
+/-- `__loop534`. -/
+theorem walkOk_1498 : loop1Ok 1498 1 ⟨1, 64, 18, 4⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L64_L32_L23_L5`. -/
-theorem walkOk_1301 : mainOkS 1301 0 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
+theorem walkOk_1194 : mainOkS 1194 0 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
 
-/-- `__loop626`. -/
-theorem walkOk_1703 : loop1Ok 1703 0 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
+/-- `__loop535`. -/
+theorem walkOk_1499 : loop1Ok 1499 0 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L16_L24_L22_L4`. -/
-theorem walkOk_1304 : mainOkS 1304 0 ⟨0, 16, 18, 4⟩ = true := by decide +kernel
+theorem walkOk_1197 : mainOkS 1197 0 ⟨0, 16, 18, 4⟩ = true := by decide +kernel
 
-/-- `__loop627`. -/
-theorem walkOk_1704 : loop0Ok 1704 ⟨0, 16, 18, 4⟩ = true := by decide +kernel
+/-- `__loop536`. -/
+theorem walkOk_1500 : loop0Ok 1500 ⟨0, 16, 18, 4⟩ = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L64_L32_L23_L5`. -/
-theorem walkOk_1338 : mainOkS 1338 1 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
+theorem walkOk_1231 : mainOkS 1231 1 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
 
-/-- `__loop628`. -/
-theorem walkOk_1708 : loop1Ok 1708 1 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
+/-- `__loop537`. -/
+theorem walkOk_1504 : loop1Ok 1504 1 ⟨1, 64, 18, 5⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L64_L32_L24_L6`. -/
-theorem walkOk_1339 : mainOkS 1339 0 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
+theorem walkOk_1232 : mainOkS 1232 0 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
 
-/-- `__loop629`. -/
-theorem walkOk_1709 : loop1Ok 1709 0 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
+/-- `__loop538`. -/
+theorem walkOk_1505 : loop1Ok 1505 0 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L16_L24_L23_L5`. -/
-theorem walkOk_1342 : mainOkS 1342 0 ⟨0, 16, 18, 5⟩ = true := by decide +kernel
+theorem walkOk_1235 : mainOkS 1235 0 ⟨0, 16, 18, 5⟩ = true := by decide +kernel
 
-/-- `__loop630`. -/
-theorem walkOk_1710 : loop0Ok 1710 ⟨0, 16, 18, 5⟩ = true := by decide +kernel
+/-- `__loop539`. -/
+theorem walkOk_1506 : loop0Ok 1506 ⟨0, 16, 18, 5⟩ = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L64_L32_L24_L6`. -/
-theorem walkOk_1376 : mainOkS 1376 1 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
+theorem walkOk_1269 : mainOkS 1269 1 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
 
-/-- `__loop631`. -/
-theorem walkOk_1714 : loop1Ok 1714 1 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
+/-- `__loop540`. -/
+theorem walkOk_1510 : loop1Ok 1510 1 ⟨1, 64, 18, 6⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L64_L32_L25_L7`. -/
-theorem walkOk_1377 : mainOkS 1377 0 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
+theorem walkOk_1270 : mainOkS 1270 0 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
 
-/-- `__loop632`. -/
-theorem walkOk_1715 : loop1Ok 1715 0 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
+/-- `__loop541`. -/
+theorem walkOk_1511 : loop1Ok 1511 0 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L16_L24_L24_L6`. -/
-theorem walkOk_1381 : mainOkS 1381 0 ⟨0, 16, 18, 6⟩ = true := by decide +kernel
+theorem walkOk_1274 : mainOkS 1274 0 ⟨0, 16, 18, 6⟩ = true := by decide +kernel
 
-/-- `__loop633`. -/
-theorem walkOk_1716 : loop0Ok 1716 ⟨0, 16, 18, 6⟩ = true := by decide +kernel
+/-- `__loop542`. -/
+theorem walkOk_1512 : loop0Ok 1512 ⟨0, 16, 18, 6⟩ = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L64_L32_L25_L7`. -/
-theorem walkOk_1413 : mainOkS 1413 1 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
+theorem walkOk_1306 : mainOkS 1306 1 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
 
-/-- `__loop634`. -/
-theorem walkOk_1720 : loop1Ok 1720 1 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
+/-- `__loop543`. -/
+theorem walkOk_1516 : loop1Ok 1516 1 ⟨1, 64, 18, 7⟩ = true := by decide +kernel
 
 end
 end LeanVM.Guest.End

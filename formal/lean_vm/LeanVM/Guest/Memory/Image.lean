@@ -22,7 +22,7 @@ The honest memory is built as the ISA's write-once memory is filled: a list of w
 `logMem n` is the log of the memory size the prover commits for `n` allocated words, at least
 `20` (`2^20` words, the padding the committed size takes, `Complete.padLog`, and the bound on the
 counts the guest checks against the memory, `DeployedLimits`); it is at most `maxLogMem` for
-`n ≤ 2^32`, and below any `k ≥ 20` with `n ≤ 2^k`, which is how a bound on the allocation bounds
+`n ≤ 2^30`, and below any `k ≥ 20` with `n ≤ 2^k`, which is how a bound on the allocation bounds
 `Execution.committedSize`.
 -/
 
@@ -113,7 +113,7 @@ theorem minLogMem_le_logMem (n : ℕ) : minLogMem ≤ logMem n :=
 theorem logMem_le_iff {n k : ℕ} : logMem n ≤ k ↔ 20 ≤ k ∧ n ≤ 2 ^ k := by
   rw [logMem, max_le_iff, Nat.clog_le_iff_le_pow (by decide)]
 
-theorem logMem_le_maxLogMem {n : ℕ} (h : n ≤ 2 ^ 32) : logMem n ≤ maxLogMem :=
+theorem logMem_le_maxLogMem {n : ℕ} (h : n ≤ 2 ^ 30) : logMem n ≤ maxLogMem :=
   logMem_le_iff.mpr ⟨by decide, h⟩
 
 end

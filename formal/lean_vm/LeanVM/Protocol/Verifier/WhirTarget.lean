@@ -43,14 +43,13 @@ structure WhirStateT where
 def WhirStateT.forget (s : WhirStateT) : WhirState := ⟨s.quad, s.folds, s.glued⟩
 
 /-- `foldRounds`, folding the running claim. -/
-def foldRoundsT (grinding : ℕ) : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
+def foldRoundsT : ℕ → WhirStateT → List E → VerifierProgram (WhirStateT × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
-    VerifierProgram.foldProofOfWork grinding
     let challenge ← VerifierProgram.sampleChallenge
     let target := polyEval s.quad challenge
     let quad ← sumcheckRoundPoly 3 target none
-    foldRoundsT grinding n { s with target, quad, folds := s.folds ++ [challenge] }
+    foldRoundsT n { s with target, quad, folds := s.folds ++ [challenge] }
       (levelFolds ++ [challenge])
 
 /-- `tailRounds` from a running claim, which it returns when there is no round. -/
@@ -79,7 +78,7 @@ def whirLevelsT (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ℕ → List Whir.Level → WhirStateT → VerifierProgram Unit
   | _, [], _ => VerifierProgram.fail
   | index, level :: rest, s => do
-    let (s, levelFolds) ← foldRoundsT level.foldGrinding level.fold s []
+    let (s, levelFolds) ← foldRoundsT level.fold s []
     let messageLog := logN - s.folds.length
     let (residual, pending) ← match rest with
       | [] => do
@@ -128,32 +127,28 @@ def verifyWhirT (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E →
 
 namespace WhirTarget
 
-theorem foldRounds_forget (grinding : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    foldRounds grinding n s.forget levelFolds =
-      (foldRoundsT grinding n s levelFolds).bind fun r ↦ VerifierProgram.ret (r.1.forget, r.2)
+theorem foldRounds_forget : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    foldRounds n s.forget levelFolds =
+      (foldRoundsT n s levelFolds).bind fun r ↦ VerifierProgram.ret (r.1.forget, r.2)
   | 0, _, _ => rfl
   | n + 1, s, levelFolds => by
     unfold foldRounds foldRoundsT
     simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
     congr 1
-    funext _
-    congr 1
     funext challenge
     congr 1
     funext quad
-    exact foldRounds_forget grinding n
-      ⟨polyEval s.quad challenge, quad, s.folds ++ [challenge], s.glued⟩ _
+    exact foldRounds_forget n ⟨polyEval s.quad challenge, quad, s.folds ++ [challenge], s.glued⟩ _
 
-theorem allRet_foldRoundsT (grinding : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    AllRet (foldRoundsT grinding n s levelFolds) fun r ↦ r.1.folds.length = s.folds.length + n
+theorem allRet_foldRoundsT : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    AllRet (foldRoundsT n s levelFolds) fun r ↦ r.1.folds.length = s.folds.length + n
   | 0, _, _ => .ret rfl
   | n + 1, s, levelFolds => by
     unfold foldRoundsT
     simp only [VerifierProgram.bind_eq]
-    refine AllRet.bind (fun _ _ ↦ ?_) _ (allRet_true _)
     refine AllRet.bind (fun challenge _ ↦ ?_) _ (allRet_true _)
     refine AllRet.bind (fun quad _ ↦ ?_) _ (allRet_true _)
-    refine AllRet.mono (fun r hr ↦ ?_) (allRet_foldRoundsT grinding n _ _)
+    refine AllRet.mono (fun r hr ↦ ?_) (allRet_foldRoundsT n _ _)
     rw [hr]
     simp only [List.length_append, List.length_singleton]
     omega
@@ -188,7 +183,7 @@ theorem whirLevels_eq (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     unfold whirLevels whirLevelsT
     simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     rw [foldRounds_forget, VerifierProgram.bind_assoc]
-    refine bind_congr (fun r hr ↦ ?_) _ (allRet_foldRoundsT level.foldGrinding level.fold s [])
+    refine bind_congr (fun r hr ↦ ?_) _ (allRet_foldRoundsT level.fold s [])
     obtain ⟨s', levelFolds⟩ := r
     simp only [VerifierProgram.ret_bind] at hr ⊢
     simp only [List.map_cons, List.sum_cons] at hlt

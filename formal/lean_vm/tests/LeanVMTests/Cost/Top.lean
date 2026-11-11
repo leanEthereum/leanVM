@@ -32,7 +32,7 @@ def extractorRun (s : List E) : Option (MachineValue × ℕ) :=
 #guard (extractorRun (stream 5 0)).map (·.1) ==
   some (MachineEncoding.encodeValue (extractorTop tinyProg tinyInput [] ⟨stream 5 0, []⟩))
 
-/-- info: 702 -/
+/-- info: 700 -/
 #guard_msgs in
 #eval extractorC.costDeps.length
 

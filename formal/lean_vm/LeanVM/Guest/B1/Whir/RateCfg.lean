@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.Flat
 # A size's body at a rate
 
 `open_stacked__L{m}` is `osBody (osCfg m)`, whose levels are the first rate's rows; the columns a
-rate changes (`queries`, `depth`, `capDepth`, `squeezes`, `foldGrind`) reach the body only through
+rate changes (`queries`, `depth`, `capDepth`, `squeezes`) reach the body only through
 the dispatches' names (`OsCfg.lvAt`). So it is also the body at the configuration `osCfgR m ri`
 whose levels are rate `ri`'s rows (`osBody_rate`), and the proof runs at that configuration.
 
@@ -33,7 +33,7 @@ open LeanVM.Guest.Value
 
 /-- A level's row without the columns a rate changes. -/
 def OsLv.rf (lv : OsLv) : OsLv :=
-  { lv with queries := 0, depth := 0, capDepth := 0, squeezes := 0, foldGrind := 0 }
+  { lv with queries := 0, depth := 0, capDepth := 0, squeezes := 0 }
 /-- The configuration with the levels `L`. -/
 abbrev OsCfg.withLevels (c : OsCfg) (L : List OsLv) : OsCfg := { c with levels := L }
 

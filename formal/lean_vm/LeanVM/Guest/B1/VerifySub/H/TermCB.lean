@@ -33,7 +33,7 @@ theorem term_completeB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 33, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs) :
     CompleteAtB fs cert κ ((S.kids bs sqE).getD 12 noKid pv).f

@@ -15,7 +15,7 @@ public import Mathlib.Algebra.Order.Floor.Ring
   `numVars`, `numConstraints`, and the check is `GSParamCert`.
 * `gsParamCert_gsParamsFor`: for message length `k > 1`, agreement `A ≤ n` with `A² > (k−1)·n`,
   the parameters `gsParamsFor k n A` are certified at radius `n − A`.
-* `gsParamCert_gsParams`: at every admissible shape (`16 ≤ μ ≤ 32`, `1 ≤ R ≤ 4`) the decoder's
+* `gsParamCert_gsParams`: at every admissible shape (`16 ≤ μ ≤ 30`, `1 ≤ R ≤ 4`) the decoder's
   parameters `gsParams μ R` are certified at `k = 2^κ`, `n = 2^(κ+R)`, radius
   `n − johnsonThreshold μ R`; the threshold is at most `n` and its square exceeds `D·n`.
 
@@ -220,9 +220,9 @@ theorem gsParamCert_gsParamsFor {k n A : ℕ} (hk : 1 < k) (hA : A ≤ n)
 /-! ## The admissible shapes -/
 
 /-- The slacks of the admissible shapes lie in `[1, 38959]`. -/
-theorem johnsonSlackOf_bounds {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 32) (hR : 1 ≤ R ∧ R ≤ 4) :
+theorem johnsonSlackOf_bounds {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 30) (hR : 1 ≤ R ∧ R ≤ 4) :
     1 ≤ johnsonSlackOf μ R ∧ johnsonSlackOf μ R ≤ 38959 := by
-  have h : ∀ R < 5, ∀ μ < 33, 1 ≤ R → 16 ≤ μ →
+  have h : ∀ R < 5, ∀ μ < 31, 1 ≤ R → 16 ≤ μ →
       1 ≤ johnsonSlackOf μ R ∧ johnsonSlackOf μ R ≤ 38959 := by decide
   exact h R (by omega) μ (by omega) hR.1 hμ.1
 
@@ -270,7 +270,7 @@ theorem threshold_core {D n e : ℕ} (hDn : 2 * (D + 1) ≤ n) (hn : 1024 ≤ n)
     exact Nat.lt_of_mul_lt_mul_left h3
 
 /-- At an admissible shape the threshold is at most `n` and its square exceeds `D·n`. -/
-theorem johnsonThreshold_bounds {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 32) (hR : 1 ≤ R ∧ R ≤ 4) :
+theorem johnsonThreshold_bounds {μ R : ℕ} (hμ : 16 ≤ μ ∧ μ ≤ 30) (hR : 1 ≤ R ∧ R ≤ 4) :
     johnsonThreshold μ R ≤ 2 ^ (μ - initialFold + R) ∧
       (2 ^ (μ - initialFold) - 1) * 2 ^ (μ - initialFold + R) <
         johnsonThreshold μ R * johnsonThreshold μ R := by

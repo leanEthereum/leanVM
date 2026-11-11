@@ -19,70 +19,60 @@ public import LeanVM.Guest.Count.VsOs07
 public import LeanVM.Guest.Count.VsOs08
 public import LeanVM.Guest.Count.VsOs09
 public import LeanVM.Guest.Count.VsOs10
-public import LeanVM.Guest.Count.VsOs11
-public import LeanVM.Guest.Count.VsOs12
 
 namespace LeanVM.Guest.Count
 
 @[expose] public section
 
 /-- `open_stacked`'s words at the arm 0. -/
-theorem osC_0 : osC 0 = 212528 := by
+theorem osC_0 : osC 0 = 212512 := by
   rw [osC_eq_fast, osCF_0]
 
 /-- `open_stacked`'s words at the arm 1. -/
-theorem osC_1 : osC 1 = 213090 := by
+theorem osC_1 : osC 1 = 213074 := by
   rw [osC_eq_fast, osCF_1]
 
 /-- `open_stacked`'s words at the arm 2. -/
-theorem osC_2 : osC 2 = 215308 := by
+theorem osC_2 : osC 2 = 215292 := by
   rw [osC_eq_fast, osCF_2]
 
 /-- `open_stacked`'s words at the arm 3. -/
-theorem osC_3 : osC 3 = 218022 := by
+theorem osC_3 : osC 3 = 218006 := by
   rw [osC_eq_fast, osCF_3]
 
 /-- `open_stacked`'s words at the arm 4. -/
-theorem osC_4 : osC 4 = 231072 := by
+theorem osC_4 : osC 4 = 231052 := by
   rw [osC_eq_fast, osCF_4]
 
 /-- `open_stacked`'s words at the arm 5. -/
-theorem osC_5 : osC 5 = 236320 := by
+theorem osC_5 : osC 5 = 236300 := by
   rw [osC_eq_fast, osCF_5]
 
 /-- `open_stacked`'s words at the arm 6. -/
-theorem osC_6 : osC 6 = 244684 := by
+theorem osC_6 : osC 6 = 244664 := by
   rw [osC_eq_fast, osCF_6]
 
 /-- `open_stacked`'s words at the arm 7. -/
-theorem osC_7 : osC 7 = 249015 := by
+theorem osC_7 : osC 7 = 248995 := by
   rw [osC_eq_fast, osCF_7]
 
 /-- `open_stacked`'s words at the arm 8. -/
-theorem osC_8 : osC 8 = 260301 := by
+theorem osC_8 : osC 8 = 260277 := by
   rw [osC_eq_fast, osCF_8]
 
 /-- `open_stacked`'s words at the arm 9. -/
-theorem osC_9 : osC 9 = 262010 := by
+theorem osC_9 : osC 9 = 261986 := by
   rw [osC_eq_fast, osCF_9]
 
 /-- `open_stacked`'s words at the arm 10. -/
-theorem osC_10 : osC 10 = 266825 := by
+theorem osC_10 : osC 10 = 266801 := by
   rw [osC_eq_fast, osCF_10]
-
-/-- `open_stacked`'s words at the arm 11. -/
-theorem osC_11 : osC 11 = 271343 := by
-  rw [osC_eq_fast, osCF_11]
-
-/-- `open_stacked`'s words at the arm 12. -/
-theorem osC_12 : osC 12 = 289979 := by
-  rw [osC_eq_fast, osCF_12]
 
 /-- Every arm's callees have constant words certificates. -/
 theorem osNames_ok {m : ℕ} (hm : m < B1.osArms) :
     (B1.osCalleeNames (B1.Whir.osCfg m)).all (fun f => wOkB (wIdx f) f) = true := by
   interval_cases m
-  exacts [osNames_ok_0, osNames_ok_1, osNames_ok_2, osNames_ok_3, osNames_ok_4, osNames_ok_5, osNames_ok_6, osNames_ok_7, osNames_ok_8, osNames_ok_9, osNames_ok_10, osNames_ok_11, osNames_ok_12]
+  exacts [osNames_ok_0, osNames_ok_1, osNames_ok_2, osNames_ok_3, osNames_ok_4, osNames_ok_5, osNames_ok_6, osNames_ok_7, osNames_ok_8, osNames_ok_9, osNames_ok_10]
 
 /-- **Every arm's callees within `wSB`.** -/
 theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun _ hm f hf =>

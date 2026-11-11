@@ -37,7 +37,7 @@ time. Both rest on facts about the encodings of `LeanVM.Protocol.Compile.run`, c
   capacity of a uniform state takes a given value with probability `2^-576 ≤ 2^-256`
   (`sum_capOf_div_le`); the proof-of-work predicate on the challenge of a uniform state holds
   with probability at most `2^-min(b, 64)` (`sum_powOk_div_le`), and exactly `2^-b` for
-  `1 ≤ b ≤ 64` (`sum_powOk_div_eq`).
+  `b ≤ 64` (`sum_powOk_div_eq`).
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
@@ -479,25 +479,20 @@ theorem sum_limb0_div (b : ℕ) :
     (fun i : Fin (2 ^ 64) ↦ if i.val % 2 ^ b = 0 then 1 else 0) (fun _ ↦ rfl)]
   rw [Finset.sum_ite, Finset.sum_const_zero, add_zero, Finset.sum_const, nsmul_eq_mul, mul_one]
 
-/-- The proof-of-work predicate reads the first limb's lane. -/
-theorem powOk_eq {b : ℕ} (hb : b ≠ 0) (n c : E) :
-    powOk b n c = decide ((c.limb 0).lane.toNat % 2 ^ b = 0) := by
-  simp [powOk, hb]
-
 /-- **The proof of work on the challenge of a uniform state succeeds with probability at most
 `2^-min(b, 64)`.** -/
-theorem sum_powOk_div_le (b : ℕ) (n : E) :
-    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KeccakState ≤
+theorem sum_powOk_div_le (b : ℕ) :
+    (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) / Fintype.card KeccakState ≤
       2⁻¹ ^ min b 64 := by
   by_cases hb : b = 0
   · subst hb
     rw [min_eq_left (Nat.zero_le _), pow_zero]
     exact avg_le_of_le fun _ ↦ ind_le_one _
-  rw [sum_challengeOf_div (fun c ↦ ind (powOk b n c = true))]
-  have hs : (∑ c : E, ind (powOk b n c = true)) =
+  rw [sum_challengeOf_div (fun c ↦ ind (powOk b c = true))]
+  have hs : (∑ c : E, ind (powOk b c = true)) =
       ∑ c : E, if (c.limb 0).lane.toNat % 2 ^ b = 0 then (1 : ℝ≥0∞) else 0 := by
     refine Finset.sum_congr rfl fun c _ ↦ ?_
-    simp only [ind, powOk_eq hb, decide_eq_true_eq]
+    simp only [ind, powOk, decide_eq_true_eq]
   rw [hs, sum_limb0_div]
   set m := min b 64
   calc (((Finset.univ.filter fun i : Fin (2 ^ 64) ↦ i.val % 2 ^ b = 0).card : ℕ) : ℝ≥0∞)
@@ -513,14 +508,14 @@ theorem sum_powOk_div_le (b : ℕ) (n : E) :
           ENNReal.inv_mul_cancel (by simp) (by simp), mul_one, ENNReal.inv_pow]
 
 /-- **The proof of work on the challenge of a uniform state succeeds with probability exactly
-`2^-b`**, for `1 ≤ b ≤ 64`. -/
-theorem sum_powOk_div_eq {b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ 64) (n : E) :
-    (∑ u : KeccakState, ind (powOk b n (challengeOf u) = true)) / Fintype.card KeccakState = 2⁻¹ ^ b := by
-  rw [sum_challengeOf_div (fun c ↦ ind (powOk b n c = true))]
-  have hs : (∑ c : E, ind (powOk b n c = true)) =
+`2^-b`**, for `b ≤ 64`. -/
+theorem sum_powOk_div_eq {b : ℕ} (hb : b ≤ 64) :
+    (∑ u : KeccakState, ind (powOk b (challengeOf u) = true)) / Fintype.card KeccakState = 2⁻¹ ^ b := by
+  rw [sum_challengeOf_div (fun c ↦ ind (powOk b c = true))]
+  have hs : (∑ c : E, ind (powOk b c = true)) =
       ∑ c : E, if (c.limb 0).lane.toNat % 2 ^ b = 0 then (1 : ℝ≥0∞) else 0 := by
     refine Finset.sum_congr rfl fun c _ ↦ ?_
-    simp only [ind, powOk_eq hb0, decide_eq_true_eq]
+    simp only [ind, powOk, decide_eq_true_eq]
   rw [hs, sum_limb0_div, card_filter_mod_pow_eq_zero hb]
   have h64 : (2 : ℝ≥0∞) ^ 64 = 2 ^ (64 - b) * 2 ^ b := by
     rw [← pow_add, Nat.sub_add_cancel hb]

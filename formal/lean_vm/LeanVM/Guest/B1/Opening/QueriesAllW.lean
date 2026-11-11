@@ -22,7 +22,7 @@ open LeanVM.Protocol.Verifier
 theorem opening_queries_all_sound_w : opening_queries_all_sound_w_Spec := by
   intro p hp
   simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact oqSpecW_1084
   · exact oqSpecW_1086
   · exact oqSpecW_1088
@@ -65,11 +65,6 @@ theorem opening_queries_all_sound_w : opening_queries_all_sound_w_Spec := by
   · exact oqSpecW_1459
   · exact oqSpecW_1498
   · exact oqSpecW_1502
-  · exact oqSpecW_1545
-  · exact oqSpecW_1546
-  · exact oqSpecW_1550
-  · exact oqSpecW_1592
-  · exact oqSpecW_1596
 
 end
 end LeanVM.Guest.B1

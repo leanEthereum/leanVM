@@ -101,7 +101,7 @@ def vsReadsT : List Stmt :=
 def vsSizesT : List Stmt :=
   [vsCall "g_power_of_word" [110] [120], vsConst 121 (word 2 0 0), vsMul 120 122 121,
     vsConst 123 (word 8 0 0), vsRange 122 124 125 126 123, vsAlloc 127 7,
-    vsCall "g_power_of_word" [27] [128], vsConst 129 (word (2 ^ 32) 0 0),
+    vsCall "g_power_of_word" [27] [128], vsConst 129 (word (2 ^ 30) 0 0),
     vsRange 128 130 131 132 129, vsConst 133 (word (2 ^ 32) 0 0), vsConst 134 (word 2 0 0),
     vsMul 128 135 134, vsRange 135 136 137 138 133, vsLd 128 127 0,
     .atom (.hint (.witness "table_logs" (.heap (.n 127) 1 6))), vsAlloc 139 8,
@@ -232,7 +232,7 @@ def vsLamT : List Stmt :=
     [vsMul 1680 1679 657, vsAdd 1681 1678 1680]
 
 /-- `open_stacked`'s specializations, named by `natStr` (which the kernel evaluates). -/
-def vsOpenNames : List String := (List.range 13).map fun m ↦ "open_stacked__L" ++ B1.Whir.natStr m
+def vsOpenNames : List String := (List.range 11).map fun m ↦ "open_stacked__L" ++ B1.Whir.natStr m
 
 theorem vsOpenNames_eq : vsOpenNames = B1.Whir.openNames := by
   simp only [vsOpenNames, B1.Whir.openNames, B1.Whir.natStr_eq]
@@ -242,7 +242,7 @@ selector passed on, the terminal, the deferred claim (G:3534-3557). -/
 def vsTailT : List Stmt :=
   [vsCall "certify_placement" [139, 4] [1682, 1683],
     vsCall "log2_ceil_in_the_exponent__L16_L34" [1682, 4] [1684],
-    vsConst 1685 (word 14347465658197868555 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 4096 0 0),
+    vsConst 1685 (word 14347465658197868555 0 0), vsMul 1686 1684 1685, vsConst 1687 (word 1024 0 0),
     vsRange 1686 1688 1689 1690 1687,
     .dispatch (.n 1686) vsOpenNames
       [.n 122, .n 1100, .n 1101, .n 1102, .n 1103, .n 1104, .n 1681, .n 324, .n 334, .n 656]

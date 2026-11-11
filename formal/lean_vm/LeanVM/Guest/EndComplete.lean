@@ -17,7 +17,7 @@ public import LeanVM.Guest.AcceptableChild
 
 `MainComplete cert cnt b` is what the completeness of `main` (B1) gives for `NodeRelation` within the
 limits, the caps agreeing and no zero challenge where the guest divides: a consistent layout `L`
-in `[2, N)`, `N ≤ 2^32` words within the budget's words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
+in `[2, N)`, `N ≤ 2^30` words within the budget's words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
 a tree placed at `0` (`RelAtIn`'s tree, as `honest_of_relAtIn` takes it) within the budget's
 instruction counts. The counts are bounded on that tree, the one completeness builds, not on every
 valid tree: `main`'s and its children's counts are hints, which a valid tree pins only up to
@@ -47,7 +47,7 @@ instruction counts. -/
 def MainComplete : Prop :=
   ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
-      N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
+      N ≤ 2 ^ 30 ∧ N ≤ b.words.eval (work s w) ∧
       ∀ rd, LowDef (logMem N) rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
         rd g = some (hdrOf (statementDigest seed s)).2 →
           ∃ t : Tree, t.name = "main" ∧ t.Valid coreProgram rd [] [] ∧ t.BufsOk coreProgram ∧

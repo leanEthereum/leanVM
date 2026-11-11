@@ -70,7 +70,7 @@ noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n
 
 /-- `open_stacked`'s bound over the stack logs below `33`. -/
 @[irreducible] noncomputable def osMax (fs Bnd : String → ℕ) : ℕ :=
-  lmax ((List.range 33).map (osBosAt fs Bnd))
+  lmax ((List.range 31).map (osBosAt fs Bnd))
 
 /-- **`verify_sub`'s callees' words facts**, at the frame sizes `fs`: `g_power_of_word`'s and
 `assert_canonical`'s (`Bg`, `Ba`), `verify_bus_gkr`'s loops and rounds (`K29`, `R`, `K8`),
@@ -111,7 +111,7 @@ structure VsWords (fs : String → ℕ) : Type where
   hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ ↦ Beqc
   hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
     fun a ↦ logG (a.getD 1 0) * K15 + fs "__loop14"
-  hCsF : ∀ κ' < 33, fs (Tables.lName "column_selector" κ') ≤ Bcs
+  hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs
   hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
     fun _ ↦ Brs
   ωv : Opcode → String → ℕ
@@ -131,7 +131,7 @@ structure VsWords (fs : String → ℕ) : Type where
   Wrsw : Opcode → ℕ
   hEqcW : ∀ op, WeightLe coreProgram (ωv op) "eq_prefix_chain" fun _ ↦ Weqc op
   hStW : ∀ op, WeightLe coreProgram (ωv op) "selector_tables" fun _ ↦ Wst op
-  hCsW : ∀ op, ∀ κ' < 33, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
+  hCsW : ∀ op, ∀ κ' < 31, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
     fun _ ↦ Wcs op
   h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
@@ -165,7 +165,7 @@ noncomputable def vsBsAt {fs : String → ℕ} (W : VsWords fs) (Bvk μ _r : ℕ
     fs "log2_ceil_in_the_exponent__L16_L34" + 34 + 2 * fs "assert_small_g_power",
     osBosAt fs W.Bnd μ, termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 
-/-- **`verify_sub`'s bound**: its frame, its own buffers (`8644 + μ`, `μ ≤ 32`), its callees. -/
+/-- **`verify_sub`'s bound**: its frame, its own buffers (`8644 + μ`, `μ ≤ 30`), its callees. -/
 noncomputable def vsBound {fs : String → ℕ} (W : VsWords fs) (Bvk : ℕ) : ℕ :=
   fs "verify_sub" + 8678 + (vsBs W Bvk).sum
 
@@ -311,7 +311,7 @@ theorem vs_kidsDepBAt {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
   · have : log2Ceil (Tables.stackTotal S.kappas) ≤ 32 := log2Ceil_le_iff.mpr (S.stackTotal_le hbl)
     exact ⟨fun _ ↦ log2_L16_completeAtB κ (by omega) _ sqE (by have := S.stackTotal_le hbl; omega)
       (by omega), fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ open_stacked_completeAtB S.μs S.rate S.hmu20 S.hmu32 S.hr1 S.hr4 fs cert κ
+  · exact ⟨fun _ ↦ open_stacked_completeAtB S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ
       W.Bnd hrf hcons (by omega) W.hleaf S.s8.perm S.root S.target _ S.xsW c.proof.openings
       S.w S.s' S.roots' S.runW S.nzW S.capsW [(S.cW bs, S.xsW)]
       (fun _ _ hm ↦ hm _ List.mem_cons_self), fun h ↦ by cases h⟩
@@ -329,7 +329,7 @@ theorem vs_kidsDepB {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed :
     KidsDepB fs cert κ (S.kids bs sqE) (vsBs W Bvk) := by
   have hB : osBosAt fs W.Bnd S.μs ≤ osMax fs W.Bnd := by
     unfold osMax
-    exact le_lmax (List.mem_map.2 ⟨S.μs, List.mem_range.2 (by have : S.μs ≤ 32 := S.hmu32; omega),
+    exact le_lmax (List.mem_map.2 ⟨S.μs, List.mem_range.2 (by have : S.μs ≤ 30 := S.hmu30; omega),
       rfl⟩)
   refine KidsDepB.mono ?_ (vs_kidsDepBAt hbl S hκ hrf hcons W hvk bs sqE)
   exact .cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl (.cons le_rfl

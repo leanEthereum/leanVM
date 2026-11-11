@@ -95,7 +95,7 @@ for the honest prover `LeanVM.leanVmHonestProver` (`LeanVm.lean`, `LeanVM.Prover
 oracle calls),
 1. in the random-permutation model, at `2^25` nonces per proof of work, it makes no proof, or
    `verifierRefusingZero` rejects its proof, of a valid execution of committed size at most
-   `2^32`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
+   `2^30`, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with probability at most `2^-126`;
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
    execution of the leanISA guest program on a statement's digest under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it,
    forms with the statement (its deferred claim shaped) and some true claim `freshClaim` on the
@@ -105,7 +105,7 @@ that the deployed Keccak-f[1600] behaves as a random permutation, applied to thi
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildCompleteWithHash : Prop :=
   (∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 32 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← (simulateQ LeanVM.keccakCallsOverRandomPermutation (do
         match ← LeanVM.proverWithHash prog input t ρ (2 ^ 25) with
         | none => pure false

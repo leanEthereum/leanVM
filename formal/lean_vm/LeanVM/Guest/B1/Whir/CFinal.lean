@@ -41,11 +41,11 @@ structure FinalOut (σ : Val) (st st' : OsSt) (S : Fs) (n : ℕ) : Prop where
   w1 : st'.w1 = st.w1
 
 /-- A proof of work's word: the permutation's first cell's low bits. -/
-theorem grind_meaning {bits : ℕ} (hb : bits ≠ 0) {n : E} {S : Fs}
-    (h : powOk bits n S.squeeze.1 = true) :
+theorem grind_meaning {bits : ℕ} {S : Fs}
+    (h : powOk bits S.squeeze.1 = true) :
     MeaningGrindCheck bits [cellsOfState S.perm false 0] [] := by
   refine ⟨rfl, cellsOfState_canonical _ _ _, ?_⟩
-  simp only [powOk, hb, ↓reduceIte, decide_eq_true_eq] at h
+  simp only [powOk, decide_eq_true_eq] at h
   rw [← Keccak.challengeOf_limb0]
   exact h
 
@@ -77,7 +77,7 @@ theorem osFinal_complete {c : OsCfg} {FM : E}
     {ms : List E} {nonce : E}
     (hml : ms.length = c.yrLen) (hrd : ReadsAt rd (st.cur σ) (ms ++ [nonce]))
     (hout : ReadsAt rd (σ (.n osFmsg)) ms)
-    (hpow : powOk Whir.queryGrindingBits nonce
+    (hpow : powOk Whir.queryGrindingBits
       (((st.F σ).absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.1 = true) :
     BlkF C rd σ st.k (osFinal c st).2.1.k (osFinalF σ st ms nonce)
       ((osFinal c st).1 ++ [.call ("grind_check__L" ++ natStr g) [.n (osFinal c st).2.2] []])
@@ -132,7 +132,7 @@ theorem osFinal_complete {c : OsCfg} {FM : E}
     · simp only [allOk_cons, allOk_nil, and_true, StmtOk, List.map_cons, List.map_nil]
       apply hGr
       rw [v0]
-      exact grind_meaning (by decide) hpow
+      exact grind_meaning hpow
   · simp only [OsSt.fsv, osFinal, List.map_cons, List.map_nil, Fs.squeeze, capOf]
     rw [v1, v2, v3, v4, v5]
   · rw [hCe]

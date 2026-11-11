@@ -63,9 +63,6 @@ theorem os_kids_at {Bd : Option (String → ℕ)} {c : OsCfg} {tr : OsTr} {σ0 :
     (hnamed : ∀ f ∈ osCalleeNames c, ∀ K, osKindOf f = some K → ∀ (args rets : List E) (L' : Layout),
       RegPtrs K.spec args (RegionL L') → (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtO fs cert κ f L' args (Returns rets) (Bd.map (· f)))
-    (hofrR : ∀ c' ∈ ((osBodyAc c).filterMap (Stmt.callSF (osSigma c tr σ0 c0 c2 b0))).map
-        (Main.mkCall (osSigma c tr σ0 c0 c2 b0)), c'.taken = true → ∀ b, osKindOf c'.f = some (.ofr b) →
-      RegPtrs [(7, roundLen b)] (c'.args.map (osSigma c tr σ0 c0 c2 b0)) (RegionL (osLk c tr b0 Lin)))
     (hlpK : ∀ l < c.levels.length, osPositionsName (lvAt c l) ∈ osCalleeNames c →
       CompleteAtPO fs cert κ (osPositionsName (lvAt c l))
       (fun p ↦ osLk c tr b0 Lin ++ osW cert c D b0 l p) (osLpArgs c tr (osAtOf c b0) l)
@@ -115,9 +112,8 @@ theorem os_kids_at {Bd : Option (String → ℕ)} {c : OsCfg} {tr : OsTr} {σ0 :
       have h := os_calls_of_allOkF (hall rd hl hm) hdo hfl c' hc' ht
       unfold osCR at h; rw [hK] at h; exact h
     obtain ⟨rd0, hl0, hm0⟩ := hex
-    have hr := kind_region (fun n hn ↦ osKindOf_ood_pos (hn ▸ hK)) ⟨rd0, hl0, hm0⟩
-      (fun rd hl hm ↦ (hpre rd hl hm).1) (hpre rd0 hl0 hm0).2
-      (fun b hb ↦ by subst hb; exact hofrR c' hc' ht b hK)
+    have hr := fixedReads_region (kind_fixed (fun n hn ↦ osKindOf_ood_pos (hn ▸ hK)) ⟨rd0, hl0, hm0⟩
+      (fun rd hl hm ↦ (hpre rd hl hm).1) (hpre rd0 hl0 hm0).2) ⟨rd0, hl0, hm0⟩
     refine hnamed c'.f (osKids_names hdo c' hc') K hK _ _ L' (fun q hq t ht' ↦ ?_)
       (fun rd hl hm ↦ (hpre rd hl (hmono rd hm)).1)
     obtain ⟨i, hi, hi'⟩ := hr q hq t ht'

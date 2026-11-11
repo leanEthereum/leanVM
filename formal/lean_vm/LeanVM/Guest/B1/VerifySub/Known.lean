@@ -18,9 +18,9 @@ public import LeanVM.Guest.B1.VerifySub.Body
 
 `vsKnown_tail`: from `kappa_base = [1, g^logMem, g^h…]` (`logMem ≤ 32`, the six heights below
 `33`) and the exponent table, the first statements of `vsTailT` (`certify_placement`,
-`m = max 16 (log2Ceil total)` in the exponent, and `g^(m - 20)` range-checked below `g^13`) give
-`m ≤ 32`, so every committed column's log is below `33` (`hypKappa_holds`): the Keccak table's
-`τ_5 + 6 ≤ 32` (`q_keccak`, column `5`).
+`m = max 16 (log2Ceil total)` in the exponent, and `g^(m - 20)` range-checked below `g^11`) give
+`m ≤ 30`, so every committed column's log is below `31` (`hypKappa_holds`): the Keccak table's
+`τ_5 + 6 ≤ 30` (`q_keccak`, column `5`).
 `kappa_base`'s entries are then below `kbBound`: what `check_opening_terminal`'s dispatches on
 `kb[i]`, `kb[0]·g^19` and `kb[7]·g^6` need.
 -/
@@ -92,17 +92,17 @@ theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 165) (hk : �
 /-- The bound `check_opening_terminal`'s dispatches need of `kappa_base`'s entry `i`: `kb[0] = g^0`
 (dispatched as `kb[0]·g^19`), the memory's and the tables' logs below `33`, and the Keccak table's
 below `27` (dispatched as `kb[7]·g^6`). -/
-def kbBound (i : ℕ) : ℕ := [1, 33, 33, 33, 33, 33, 33, 27].getD i 0
+def kbBound (i : ℕ) : ℕ := [1, 31, 31, 31, 31, 31, 31, 25].getD i 0
 
 /-- **The tail of `VsKnown`**: the placement and the stack's log check put every committed
-column's log below `33`, so the Keccak table's height is at most `26`. -/
+column's log below `31`, so the Keccak table's height is at most `24`. -/
 theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hcp : Tables.certify_placement_Spec L.read)
     (hexp : B1.ExpTables L.read (σ (.n 4)))
     {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 33)
     (hkb : ReadsAt L.read (σ (.n 139)) (1 :: gen ^ logMem :: hs.map (gen ^ ·)))
     (h : Stmt.HoldsList C L.read σ (vsTailT.take 6) next kret) :
-    hs.getD 5 0 ≤ 26 := by
+    hs.getD 5 0 ≤ 24 := by
   simp only [vsTailT, List.cons_append, List.take_succ_cons, List.take_zero, Stmt.HoldsList,
     Stmt.Holds, vsCall, vsConst, vsMul, vsRange, List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨c1, c2, e1685, m1686, e1687, r1686, -⟩ := h
@@ -120,16 +120,16 @@ theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryI
   rw [h1674, meaningLog2CeilExp_pow (by norm_num) hST0] at hr2
   simp only [List.cons.injEq, and_true] at hr2
   obtain ⟨hlt34, hr2⟩ := hr2
-  obtain ⟨e, he, h1686⟩ := rc_pow hκ L (a := 12) (by norm_num)
-    (by rw [e1687, show (4096 : ℕ) = 2 ^ 12 from rfl, word_pow2 (by norm_num)]) r1686
+  obtain ⟨e, he, h1686⟩ := rc_pow hκ L (a := 10) (by norm_num)
+    (by rw [e1687, show (1024 : ℕ) = 2 ^ 10 from rfl, word_pow2 (by norm_num)]) r1686
   have hm32 : max 16 (log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs)))
       = e + 20 := by
     have := congrArg (· * gen ^ 20) (m1686.symm.trans h1686)
     simp only [hr2, e1685, mul_assoc, kn_word_ginv20_mul, mul_one, ← pow_add] at this
     exact gen_pow_inj (by omega) (by omega) this
-  have h32 : log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs)) ≤ 32 := by
+  have h30 : log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs)) ≤ 30 := by
     omega
-  have hK := Tables.hypKappa_holds _ (Tables.columnKappas_length _ _ _) h32
+  have hK := Tables.hypKappa_holds _ (Tables.columnKappas_length _ _ _) h30
   have hck := Tables.committedKappas_columnKappas logMem hs hl
   have k5 := hK 5 (by decide)
   rw [hck, List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_range]; decide), List.getElem_map, List.getElem_range,
@@ -141,10 +141,10 @@ theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryI
   simp only [List.getD_cons_succ, List.getD_cons_zero] at k5 ⊢
   omega
 
-/-- `kappa_base`'s entries below `kbBound`, from the memory's log at most `32`, the heights below
-`33` and the Keccak table's at most `26`. -/
+/-- `kappa_base`'s entries below `kbBound`, from the memory's log at most `30`, the heights below
+`31` and the Keccak table's at most `24`. -/
 theorem kb_bounds {rd : Reader} {p : E} {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6)
-    (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32) (h5 : hs.getD 5 0 ≤ 26)
+    (hh : ∀ x ∈ hs, x < 31) (hm : logMem ≤ 30) (h5 : hs.getD 5 0 ≤ 24)
     (hkb : ReadsAt rd p (1 :: gen ^ logMem :: hs.map (gen ^ ·))) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds rd p i (ofK (addressOfIndex e)) := by
   match hs, hl with
@@ -156,13 +156,13 @@ theorem kb_bounds {rd : Reader} {p : E} {logMem : ℕ} {hs : List ℕ} (hl : hs.
     simp only [← gen_pow_eq_ofK]
     interval_cases i
     · exact ⟨0, by decide, by simpa using hr⟩
-    · exact ⟨logMem, by show logMem < 33; omega, by simpa using hr⟩
-    · exact ⟨h0, by show h0 < 33; omega, by simpa using hr⟩
-    · exact ⟨h1, by show h1 < 33; omega, by simpa using hr⟩
-    · exact ⟨h2, by show h2 < 33; omega, by simpa using hr⟩
-    · exact ⟨h3, by show h3 < 33; omega, by simpa using hr⟩
-    · exact ⟨h4, by show h4 < 33; omega, by simpa using hr⟩
-    · exact ⟨h5', by show h5' < 27; omega, by simpa using hr⟩
+    · exact ⟨logMem, by show logMem < 31; omega, by simpa using hr⟩
+    · exact ⟨h0, by show h0 < 31; omega, by simpa using hr⟩
+    · exact ⟨h1, by show h1 < 31; omega, by simpa using hr⟩
+    · exact ⟨h2, by show h2 < 31; omega, by simpa using hr⟩
+    · exact ⟨h3, by show h3 < 31; omega, by simpa using hr⟩
+    · exact ⟨h4, by show h4 < 31; omega, by simpa using hr⟩
+    · exact ⟨h5', by show h5' < 25; omega, by simpa using hr⟩
 
 /-- The sections before the tail. -/
 def vsPre : List Stmt :=
@@ -191,7 +191,7 @@ theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1593) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 139)) i (ofK (addressOfIndex e)) := by
-  have hκ : κ ≤ 32 := h32
+  have hκ : κ ≤ 32 := h32.trans (by decide)
   have hκ6 : 6 ≤ κ := by
     obtain ⟨hsq, -, -⟩ := expTablesAt_of hexp
     have hm := mem_size hκ L (n := 34) (by norm_num) fun j hj ↦
@@ -208,7 +208,7 @@ theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h
   rw [vsTailT_take7, holdsList_append] at h'
   have hsL := tableHeights_length F.rowsN F.hrowsL
   have h5 := vsKnown_tail hκ hκ6 L hle hcp hexp F.hm32 hsL F.hh33 F.hkb h'
-  exact kb_bounds hsL F.hh33 F.hm32 h5 F.hkb
+  exact kb_bounds hsL F.hh31 F.hm30 h5 F.hkb
 
 end
 end LeanVM.Guest.B1.VerifySub

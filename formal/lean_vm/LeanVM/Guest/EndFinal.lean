@@ -110,7 +110,8 @@ theorem guest_knowledge : MemoryGuestKnowledge guestProgram decode := by
   show ExplainsPublicInput guestProgram input (decode t.memory)
   rw [decode_eq hκ]
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of b2SoundL hv
-  have hm : MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1, hv.1.2.1, t.memory, rfl⟩
+  have hm : MemOk t.memory.read :=
+    ⟨t.logMemorySize, hv.1.1, hv.1.2.1.trans (by decide), t.memory, rfl⟩
   exact B1.Main.main_sound_V_of_sub subSoundW bytecode_length t.memory.read hm _ _
     (Located.unfoldsV_replay b2SoundL hv) (Located.rlg_le_rel t.memory) _ _ h0 h1 hb
 

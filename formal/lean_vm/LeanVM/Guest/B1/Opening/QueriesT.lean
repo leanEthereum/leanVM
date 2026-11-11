@@ -332,12 +332,9 @@ def walkPathNames : List (ℕ × ℕ × String) :=
     (18, 5, "walk_path__L18_L5"),
     (18, 6, "walk_path__L18_L6"),
     (18, 7, "walk_path__L18_L7"),
-    (18, 8, "walk_path__L18_L8"),
     (24, 2, "walk_path__L24_L2"),
     (24, 3, "walk_path__L24_L3"),
-    (24, 4, "walk_path__L24_L4"),
-    (24, 5, "walk_path__L24_L5"),
-    (24, 6, "walk_path__L24_L6")]
+    (24, 4, "walk_path__L24_L4")]
 
 /-- The specialization of `walk_path` a shape's queries call. -/
 def oqWalkOf (s : Oq) : String :=

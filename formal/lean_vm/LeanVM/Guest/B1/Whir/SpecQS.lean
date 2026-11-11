@@ -40,10 +40,10 @@ theorem qs_sampleE_bind (k : E → VerifierProgram β) (F : Fs) (xs : List E) (o
 
 theorem qs_grindP_bind {bits : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (n : E) (xs : List E)
     (os : List (List Opening)) (R : List (Digest × ℕ × ℕ))
-    (hp : powOk bits n (F.absorb n dsPowNonce).squeeze.1 = true) :
+    (hp : powOk bits (F.absorb n dsPowNonce).squeeze.1 = true) (hb : bits ≠ 0) :
     queryStepsOf ((VerifierProgram.grindProofOfWork bits).bind k) ⟨F, n :: xs, os, R⟩ =
       queryStepsOf (k ()) ⟨(F.absorb n dsPowNonce).squeeze.2, xs, os, R⟩ := by
-  simp only [VerifierProgram.grindProofOfWork, VerifierProgram.bind, queryStepsOf, hp, ↓reduceIte]
+  simp only [VerifierProgram.grindProofOfWork, hb, VerifierProgram.bind, queryStepsOf, hp, ↓reduceIte]
 
 theorem qs_commitP_bind {hh ww : ℕ} (k : Unit → VerifierProgram β) (F : Fs) (x0 x1 : E) (xs :
     List E)
@@ -132,96 +132,38 @@ theorem qs_sampleQueries_bind {d q : ℕ} (hd : 1 ≤ 192 / d) (k : List ℕ →
   qs_sampleQueriesAux_bind d hd q q k F xs os R (ceilDiv_le_self hd)
 
 /-- **The fold rounds query nothing.** -/
-theorem qs_folds {b : ℕ} {K : WhirStateT × List E → VerifierProgram β} :
+theorem qs_folds {K : WhirStateT × List E → VerifierProgram β} :
     ∀ (n : ℕ) (ws : WhirStateT) (lf : List E) (F : Fs) (xs : List E) (os : List (List Opening))
-      (R : List (Digest × ℕ × ℕ)), roundLen b * n ≤ xs.length →
-      (∀ c ∈ (foldsTr b n F ws.quad ws.target xs).2.1, c ≠ 0) →
-      FoldsPow b n F ws.quad ws.target xs →
-      queryStepsOf ((foldRoundsNZ b n ws lf).bind K) ⟨F, xs, os, R⟩ =
+      (R : List (Digest × ℕ × ℕ)), 2 * n ≤ xs.length →
+      (∀ c ∈ (foldsTr n F ws.quad ws.target xs).2.1, c ≠ 0) →
+      queryStepsOf ((foldRoundsNZ n ws lf).bind K) ⟨F, xs, os, R⟩ =
         queryStepsOf (K ({ ws with
-            target := (foldsTr b n F ws.quad ws.target xs).2.2.2
-            quad := (foldsTr b n F ws.quad ws.target xs).2.2.1
-            folds := ws.folds ++ (foldsTr b n F ws.quad ws.target xs).2.1 },
-          lf ++ (foldsTr b n F ws.quad ws.target xs).2.1))
-          ⟨(foldsTr b n F ws.quad ws.target xs).1, xs.drop (roundLen b * n), os, R⟩
-  | 0, ws, lf, F, xs, os, R, _, _, _ => by
+            target := (foldsTr n F ws.quad ws.target xs).2.2.2
+            quad := (foldsTr n F ws.quad ws.target xs).2.2.1
+            folds := ws.folds ++ (foldsTr n F ws.quad ws.target xs).2.1 },
+          lf ++ (foldsTr n F ws.quad ws.target xs).2.1))
+          ⟨(foldsTr n F ws.quad ws.target xs).1, xs.drop (2 * n), os, R⟩
+  | 0, ws, lf, F, xs, os, R, _, _ => by
     simp only [foldsTr, List.append_nil, Nat.mul_zero, List.drop_zero]
-    simp [foldRoundsNZ]
-  | n + 1, ws, lf, F, xs, os, R, hl, hnz, hpw => by
-    obtain ⟨hp0, hpw'⟩ := hpw
-    have e : (foldRoundsNZ b (n + 1) ws lf).bind K =
-        (VerifierProgram.foldProofOfWork b).bind fun _ ↦ VerifierProgram.sampleChallenge.bind fun c ↦
+    rfl
+  | n + 1, ws, lf, F, d0 :: d2 :: xs, os, R, hl, hnz => by
+    have e : (foldRoundsNZ (n + 1) ws lf).bind K = VerifierProgram.sampleChallenge.bind fun c ↦
         (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦
-          VerifierProgram.readScalar.bind fun d2 ↦
-          (foldRoundsNZ b n { ws with
+          VerifierProgram.readScalar.bind fun d2 ↦ (foldRoundsNZ n { ws with
             target := polyEval ws.quad c
             quad := [d0, polyEval ws.quad c + d2, d2]
             folds := ws.folds ++ [c] } (lf ++ [c])).bind K := by
       simp only [foldRoundsNZ, VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
-      congr 1; funext u; congr 1; funext c; congr 1; funext u
+      congr 1; funext c; congr 1; funext u
       rw [sumcheck3_bind]
-    set G := powSponge b F (nonceOf b xs) with hG
-    obtain ⟨ys, hys, hstep⟩ : ∃ ys, xs = powWords b (nonceOf b xs) ++ ys ∧
-        queryStepsOf ((foldRoundsNZ b (n + 1) ws lf).bind K) ⟨F, xs, os, R⟩ =
-        queryStepsOf ((VerifierProgram.sampleChallenge.bind fun c ↦
-          (VerifierProgram.require (c ≠ 0)).bind fun _ ↦ VerifierProgram.readScalar.bind fun d0 ↦
-            VerifierProgram.readScalar.bind fun d2 ↦
-            (foldRoundsNZ b n { ws with
-              target := polyEval ws.quad c
-              quad := [d0, polyEval ws.quad c + d2, d2]
-              folds := ws.folds ++ [c] } (lf ++ [c])).bind K)) ⟨G, ys, os, R⟩ := by
-      rw [e]
-      by_cases hb : b = 0
-      · subst hb
-        exact ⟨xs, by simp [powWords], by simp [VerifierProgram.foldProofOfWork, hG, powSponge]⟩
-      · have hl1 : 1 ≤ xs.length := by
-          have : roundLen b = 3 := by simp [roundLen, hb]
-          rw [this] at hl; nlinarith
-        obtain ⟨n0, xs', rfl⟩ : ∃ n0 xs', xs = n0 :: xs' := by
-          match xs, hl1 with
-          | n0 :: xs', _ => exact ⟨n0, xs', rfl⟩
-        refine ⟨xs', by simp [powWords, nonceOf, hb], ?_⟩
-        simp only [VerifierProgram.foldProofOfWork, hb, ↓reduceIte]
-        rw [qs_grindP_bind _ _ _ _ _ _ (by simpa [nonceOf, hb] using hp0 hb)]
-        simp [hG, powSponge, nonceOf, hb]
-    have hlen : (powWords b (nonceOf b xs)).length = powOff b := by
-      unfold powWords powOff; split_ifs <;> rfl
-    have hl' : 2 ≤ ys.length := by
-      have : xs.length = powOff b + ys.length := by rw [hys]; simp [hlen]
-      have := roundLen_eq b; rw [Nat.mul_succ] at hl; omega
-    rcases ys with _ | ⟨d0, _ | ⟨d2, xs2⟩⟩
-    · simp at hl'
-    · simp at hl'
-    have gen : ∀ (P : List E) (m : ℕ), P.length = m →
-        (P ++ d0 :: d2 :: xs2).getD m 0 = d0 ∧ (P ++ d0 :: d2 :: xs2).getD (m + 1) 0 = d2 ∧
-          (P ++ d0 :: d2 :: xs2).drop (m + 2) = xs2 ∧
-          (P ++ d0 :: d2 :: xs2).length = m + 2 + xs2.length := by
-      intro P m hm; subst hm
-      refine ⟨by simp, by simp, by simp, by simp; omega⟩
-    obtain ⟨hd0, hd2, hdr, hxl⟩ := gen _ _ hlen
-    rw [← hys] at hd0 hd2 hdr hxl
-    rw [← roundLen_eq] at hdr
-    have hc : G.squeeze.1 ≠ 0 := hnz _ (by simp [foldsTr, hG])
-    rw [hstep, qs_sampleE_bind, qs_require_bind _ _ hc, qs_readE_bind, qs_readE_bind,
-      squeeze_absorb_two]
-    have hR : foldsTr b (n + 1) F ws.quad ws.target xs =
-        ((foldsTr b n (foldStep G d0 d2) [d0, polyEval ws.quad G.squeeze.1 + d2, d2]
-          (polyEval ws.quad G.squeeze.1) xs2).1,
-         G.squeeze.1 :: (foldsTr b n (foldStep G d0 d2) [d0, polyEval ws.quad G.squeeze.1 + d2, d2]
-          (polyEval ws.quad G.squeeze.1) xs2).2.1,
-         (foldsTr b n (foldStep G d0 d2) [d0, polyEval ws.quad G.squeeze.1 + d2, d2]
-          (polyEval ws.quad G.squeeze.1) xs2).2.2.1,
-         (foldsTr b n (foldStep G d0 d2) [d0, polyEval ws.quad G.squeeze.1 + d2, d2]
-          (polyEval ws.quad G.squeeze.1) xs2).2.2.2) := by
-      simp only [foldsTr, hd0, hd2, hdr, hG]
-    have hpw2 : FoldsPow b n (foldStep G d0 d2) [d0, polyEval ws.quad G.squeeze.1 + d2, d2]
-        (polyEval ws.quad G.squeeze.1) xs2 := by
-      simp only [hd0, hd2, hdr] at hpw'; exact hpw'
-    rw [qs_folds n _ _ _ xs2 os R (by have := roundLen_eq b; rw [hxl, Nat.mul_succ] at hl; omega)
-      (fun c' hc' ↦ hnz c' (by rw [hR]; exact List.mem_cons_of_mem _ hc')) hpw2, hR]
-    have hdrop : xs.drop (roundLen b * (n + 1)) = xs2.drop (roundLen b * n) := by
-      rw [Nat.mul_succ, Nat.add_comm, ← List.drop_drop, hdr]
-    simp only [List.append_assoc, List.singleton_append, hdrop]
+    have hc : F.squeeze.1 ≠ 0 := hnz _ (by simp [foldsTr])
+    rw [e, qs_sampleE_bind, qs_require_bind _ _ hc, qs_readE_bind, qs_readE_bind,
+      squeeze_absorb_two, qs_folds n _ _ _ xs os R (by simp at hl; omega) (fun c' hc' ↦
+        hnz c' (by simp only [foldsTr, List.mem_cons]; exact Or.inr hc'))]
+    simp only [List.append_assoc, List.singleton_append, show 2 * (n + 1) = 2 * n + 2 by ring]
+    rfl
+  | n + 1, _, _, _, [], _, _, hl, _ => by simp at hl
+  | n + 1, _, _, _, [_], _, _, hl, _ => by simp at hl; omega
 
 /-- **The tail rounds query nothing.** -/
 theorem qs_tail {K : List E × E → VerifierProgram β} :

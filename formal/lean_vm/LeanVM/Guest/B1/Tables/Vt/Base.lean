@@ -93,7 +93,7 @@ theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
 
 /-- The lengths of `verify_tables`' chunks. -/
 def vtLens : List ℕ :=
-  [579, 358, 154, 168, 160, 529, 261, 160, 160, 525, 547, 560, 520, 515, 589, 578, 35]
+  [580, 365, 154, 160, 160, 529, 261, 160, 160, 525, 547, 560, 520, 515, 589, 578, 35]
 
 theorem vtLens_eq : ((List.range 17).map vtChunk).map List.length = vtLens := by decide +kernel
 

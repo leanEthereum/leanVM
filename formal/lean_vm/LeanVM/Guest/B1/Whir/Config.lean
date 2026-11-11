@@ -19,7 +19,7 @@ time it reads the row `m_idx` of the per-size tables (`LIG_N_LEVELS`, `LIG_YR_LE
 `ml = m_idx · LIG_MAX_LEVELS + lvl` of the per-level ones that no rate changes (`LIG_FOLDS`,
 `LIG_INTERLEAVE`, …), and, through a `match` on the rate, the rows
 `(r · LIG_N_LOG_SIZES + m_idx) · LIG_MAX_LEVELS + lvl` of those a rate changes (`LIG_QUERIES`,
-`LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`, `LIG_FOLD_GRIND_BITS`). The tables are the
+`LIG_TREE_DEPTH`, `LIG_CAP_DEPTH`, `LIG_SQUEEZES`). The tables are the
 deployed placeholders, as the source data holds them (`Data.arr_LIG_*`, `Guest/Data/Source.lean`);
 nothing here is trusted: the template of the body built from them (`Whir/Template.lean`) is
 checked equal to the core IR, and their facts against the Spec are decided (`Whir/Facts.lean`).
@@ -39,10 +39,10 @@ namespace LeanVM.Guest.B1.Whir
 def lig (a : List (Nat × Nat × Nat)) (i : Nat) : Nat := (a.getD i (0, 0, 0)).1
 
 /-- `LIG_MAX_LEVELS`: the rows of a candidate in the per-level tables. -/
-abbrev ligMaxLevels : Nat := 7
+abbrev ligMaxLevels : Nat := 6
 
 /-- `LIG_N_LOG_SIZES`: the sizes a rate's rows cover. -/
-abbrev ligNSizes : Nat := 13
+abbrev ligNSizes : Nat := 11
 
 /-- `LIG_N_RATES`. -/
 abbrev ligNRates : Nat := 4
@@ -51,7 +51,7 @@ abbrev ligNRates : Nat := 4
 abbrev ligPosCap : Nat := 232
 
 /-- `LIG_LOG_MSG_COLS_CAP`: the stride of a level's row in `ood_z` and `basis_d`. -/
-abbrev ligColsCap : Nat := 26
+abbrev ligColsCap : Nat := 24
 
 /-- `OOD_SLOTS`: the stride of a sample in `ood`. -/
 abbrev oodSlots : Nat := 4
@@ -93,10 +93,6 @@ structure OsLv where
   resFoldOff : Nat
   /-- The level's first entry in the vanishing tables, `n(n+1)/2` for `n` message columns. -/
   vanish : Nat
-  /-- `LIG_FOLD_GRIND_ANY`: `1` when some rate grinds the level's folds. -/
-  grindAny : Nat
-  /-- `LIG_FOLD_GRIND_BITS`, at the rate: the bits ground before each fold challenge. -/
-  foldGrind : Nat
   deriving Repr, Inhabited, DecidableEq
 
 /-- The row of level `lvl` of size `m` at rate `r` in the tables a rate changes. -/
@@ -117,8 +113,7 @@ def osLvR (m r lvl : Nat) : OsLv :=
     grind := lig Data.arr_LIG_QUERY_GRIND_BITS i,
     prefixLen := lig Data.arr_LIG_RESIDUAL_PREFIX_LEN i,
     resFoldOff := lig Data.arr_LIG_RESIDUAL_FOLD_OFF i,
-    vanish := cols * (cols + 1) / 2, grindAny := lig Data.arr_LIG_FOLD_GRIND_ANY i,
-    foldGrind := lig Data.arr_LIG_FOLD_GRIND_BITS j }
+    vanish := cols * (cols + 1) / 2 }
 
 /-- A size's configuration. -/
 structure OsCfg where

@@ -28,9 +28,8 @@ The prover is transcribed from the pinned leanVM
 
 * the Fiat-Shamir sponge is the one `run` checks (`crates/fiat_shamir/src/lib.rs`, `observe`,
   `sample`): a scalar sent is absorbed with tag `1`, a challenge squeezed by a permutation;
-* the proof of work is `grind_pow`: at `bits = 0` the canonical nonce `0`, otherwise the smallest
-  `u64` nonce `n`, as the scalar with limbs `(n, 0, 0)`, which absorbed with tag `4` makes the
-  next challenge's low `bits` bits zero. Here the search is bounded by a `fuel`: nonces
+* the proof of work is `grind_pow`: the smallest `u64` nonce `n`, as the scalar with limbs
+  `(n, 0, 0)`, which absorbed with tag `4` makes the next challenge's low `bits` bits zero. Here the search is bounded by a `fuel`: nonces
   `0, …, fuel - 1` (`findNonce`);
 * a commitment is the Merkle tree of `merkle_tree` (`crates/pcs/src/merkle.rs:50-61`): the
   `2^height` rows of the word hashed as the little-endian bytes of their `K` words (`:401-404`),
@@ -157,12 +156,10 @@ def squeezeI (sp : Sponge) : E × Sponge := Id.run (squeeze (m := Id) F sp)
 then a challenge squeezed; and the sponge after it (what `run` checks at a `grind` node). -/
 def powStep (sp : Sponge) (n : E) : E × Sponge := squeezeI F (absorbI F sp n dsPowNonce)
 
-/-- The proof-of-work search (`grind_pow`): at `bits = 0` the nonce `0`; otherwise the smallest
-`n < fuel` whose challenge passes `powOk`, if any. -/
+/-- The proof-of-work search (`grind_pow`): the smallest `n < fuel` whose challenge passes
+`powOk`, if any. -/
 def findNonce (bits : ℕ) (sp : Sponge) (fuel : ℕ) : Option E :=
-  if bits = 0 then some (nonceOf 0)
-  else ((List.range fuel).find? fun n ↦ powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1).map
-    nonceOf
+  ((List.range fuel).find? fun n ↦ powOk bits (powStep F sp (nonceOf n)).1).map nonceOf
 
 /-- The leaf hash: the hash of the leaf's words as little-endian bytes (`hash_words`). -/
 def leafHash (leaf : List K) : Digest := H (leaf.flatMap K.toBytes)
@@ -473,16 +470,11 @@ def rootsOf (cs : List (ℕ × ℕ × Word)) : List (Digest × ℕ × ℕ) :=
 
 /-- The proof-of-work search returns a nonce that passes the check `run` makes. -/
 theorem powOk_of_findNonce {bits : ℕ} {sp : Sponge} {fuel : ℕ} {n : E}
-    (hn : findNonce F bits sp fuel = some n) : powOk bits n (powStep F sp n).1 = true := by
+    (hn : findNonce F bits sp fuel = some n) : powOk bits (powStep F sp n).1 = true := by
   unfold findNonce at hn
-  split at hn
-  · rename_i hb
-    cases hn
-    simp only [powOk, hb, ↓reduceIte, decide_eq_true_eq]
-    exact ⟨rfl, rfl, rfl⟩
-  · obtain ⟨m, hm, rfl⟩ := Option.map_eq_some_iff.mp hn
-    have := List.find?_some hm
-    exact this
+  obtain ⟨m, hm, rfl⟩ := Option.map_eq_some_iff.mp hn
+  have := List.find?_some hm
+  exact this
 
 /-- **The simulation.** If the strategy wins from `h`, the words committed in `h` are well
 shaped, and the honest prover's output from `h` at sponge `sp` is `(xs, os)`, then the compiled
@@ -546,7 +538,7 @@ theorem run_proveFrom (S : Strategy) (fuel : ℕ) :
       rw [← hrun]
       simp only [commits_append, commits, List.append_nil] at *
       simp only [runWithHash, List.cons_append]
-      show (if powOk b n (powStep F sp n).1 = true then _ else pure none) = _
+      show (if powOk b (powStep F sp n).1 = true then _ else pure none) = _
       simp only [hpow, ↓reduceIte]
       rfl
   | commit ht w k ih =>
@@ -631,15 +623,10 @@ theorem runProof_prove (H : Bytes → Digest) (F : KeccakState → KeccakState) 
 
 /-! ## When the prover produces a proof -/
 
-/-- The proof-of-work search fails exactly when `bits > 0` and no nonce below `fuel` passes. -/
+/-- The proof-of-work search fails exactly when no nonce below `fuel` passes. -/
 theorem findNonce_eq_none_iff (F : KeccakState → KeccakState) (bits : ℕ) (sp : Sponge) (fuel : ℕ) :
-    findNonce F bits sp fuel = none ↔
-      bits ≠ 0 ∧ ∀ n < fuel, powOk bits (nonceOf n) (powStep F sp (nonceOf n)).1 = false := by
-  unfold findNonce
-  split
-  · simp_all
-  · rename_i hb
-    simp [hb, List.find?_eq_none]
+    findNonce F bits sp fuel = none ↔ ∀ n < fuel, powOk bits (powStep F sp (nonceOf n)).1 = false := by
+  simp [findNonce, List.find?_eq_none]
 
 /-- The honest prover fails only at a failed proof-of-work search: from a history at which the
 program is at `p`, if the search succeeds at every `grind` node the program can reach and every

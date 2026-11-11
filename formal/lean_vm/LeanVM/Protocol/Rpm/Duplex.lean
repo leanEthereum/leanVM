@@ -402,9 +402,7 @@ theorem duplexP_searchM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : 
 theorem duplexP_findNonceM (bits : ℕ) {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h)
     (fuel : ℕ) : DuplexP (findNonceM callKeccakF1600 bits sp fuel) h fun _ h' ↦ sp.state ∈ h' := by
   simp only [findNonceM]
-  split
-  · exact hs
-  · exact duplexP_searchM bits hs _ _
+  exact duplexP_searchM bits hs _ _
 
 /-- **The honest prover keeps the discipline**, from a sponge whose state is an earlier answer. -/
 theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : VerifierProgram α) :

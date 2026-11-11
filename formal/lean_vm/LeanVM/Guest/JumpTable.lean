@@ -23,8 +23,8 @@ public import LeanVM.Guest.JumpTable.Ok7
 /-!
 # The jump table
 
-`__jump_tables` (function `0`, from pc `0`) is `14814` `SET`s of the slots `429 + i` of `main`'s
-frame, then `main` runs from its entry `mainEntry = 14814` at `fp = 1`. `JumpTables L` says each
+`__jump_tables` (function `0`, from pc `0`) is `13952` `SET`s of the slots `429 + i` of `main`'s
+frame, then `main` runs from its entry `mainEntry = 13952` at `fp = 1`. `JumpTables L` says each
 `SET` holds in `L` (each slot of `Memory.tableCells` holds its word). `safe_jumpTables`: a halting
 run from `(g^0, 1)` writes the table and halts from `(g^mainEntry, 1)`; `reach_jumpTables` is the
 converse for completeness.

@@ -141,7 +141,7 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
     hadj (by rw [List.append_nil]; exact h)
   simp only [Stmt.HoldsList, List.map_cons, List.map_nil] at h
   obtain ⟨c34, m35, ⟨j, hj, hkj, hcall⟩, -⟩ := h
-  have hjl : j < 33 := by simpa [colSelNames] using hj
+  have hjl : j < 31 := by simpa [colSelNames] using hj
   have hkv' : σ (.n (selKap c).2.1) = gen ^ κ := hkv.trans hkap
   rw [hkv', ← gen_pow_eq_ofK] at hkj
   have hjκ : κ = j := gen_pow_inj_le (by omega) (by omega) hkj

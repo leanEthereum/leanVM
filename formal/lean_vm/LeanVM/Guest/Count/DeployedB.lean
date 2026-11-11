@@ -22,35 +22,35 @@ theorem dvC_eq : dvC B2C.fs wSB = 186001 := by
   unfold dvC
   rw [fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
     fs_idx (j := 28) (f := "da_row_shape") (by decide +kernel),
-    fs_idx (j := 380) (f := "__loop21") (by decide +kernel),
-    fs_idx (j := 381) (f := "__loop22") (by decide +kernel),
+    fs_idx (j := 374) (f := "__loop21") (by decide +kernel),
+    fs_idx (j := 375) (f := "__loop22") (by decide +kernel),
     fs_idx (j := 29) (f := "da_verify_column") (by decide +kernel),
-    fs_idx (j := 396) (f := "__loop25") (by decide +kernel),
-    fs_idx (j := 382) (f := "__loop23") (by decide +kernel),
-    fs_idx (j := 383) (f := "__loop24") (by decide +kernel),
+    fs_idx (j := 390) (f := "__loop25") (by decide +kernel),
+    fs_idx (j := 376) (f := "__loop23") (by decide +kernel),
+    fs_idx (j := 377) (f := "__loop24") (by decide +kernel),
     wSB_idx (j := 31) (f := "da_vector") (by decide +kernel),
-    wSB_idx (j := 395) (f := "da_expand__L7_L8") (by decide +kernel)]
+    wSB_idx (j := 389) (f := "da_expand__L7_L8") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
 theorem dvS_eq : dvS B2C.fs wSK = 215776 := by
   unfold dvS B1.Main.iterK
-  rw [fs_idx (j := 380) (f := "__loop21") (by decide +kernel),
-    fs_idx (j := 382) (f := "__loop23") (by decide +kernel),
-    fs_idx (j := 383) (f := "__loop24") (by decide +kernel),
-    fs_idx (j := 396) (f := "__loop25") (by decide +kernel),
-    wSK_idx (j := 380) (f := "__loop21") (by decide +kernel),
-    wSK_idx (j := 382) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 383) (f := "__loop24") (by decide +kernel),
-    wSK_idx (j := 396) (f := "__loop25") (by decide +kernel)]
+  rw [fs_idx (j := 374) (f := "__loop21") (by decide +kernel),
+    fs_idx (j := 376) (f := "__loop23") (by decide +kernel),
+    fs_idx (j := 377) (f := "__loop24") (by decide +kernel),
+    fs_idx (j := 390) (f := "__loop25") (by decide +kernel),
+    wSK_idx (j := 374) (f := "__loop21") (by decide +kernel),
+    wSK_idx (j := 376) (f := "__loop23") (by decide +kernel),
+    wSK_idx (j := 377) (f := "__loop24") (by decide +kernel),
+    wSK_idx (j := 390) (f := "__loop25") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
 theorem dvP_eq : dvP B2C.fs wSB wSK = 82 := by
   unfold dvP B1.Main.iterK
   rw [dlK_eq,
-    fs_idx (j := 383) (f := "__loop24") (by decide +kernel),
-    wSK_idx (j := 383) (f := "__loop24") (by decide +kernel)]
+    fs_idx (j := 377) (f := "__loop24") (by decide +kernel),
+    wSK_idx (j := 377) (f := "__loop24") (by decide +kernel)]
   decide +kernel
 
 end

@@ -22,7 +22,7 @@ public import LeanVM.Guest.AcceptableChild
 child `c`'s `verify_sub` call is complete within `vsBoundAt W Bvk` at its announced stack log and
 rate (`childShape`), by a node of `Budget.FlatShape` for `vsTs` (`VerifySubGoalsTB`), from
 `verify_keccak`'s completeness within `Bvk` and the frame runs' certificate facts.
-`childShape_bounds`: every child's announced stack log is in `[20, 32]` and its rate in `[1, 4]`.
+`childShape_bounds`: every child's announced stack log is in `[20, 30]` and its rate in `[1, 4]`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -43,26 +43,26 @@ theorem etL_eq (fs : String → ℕ) (fp : ℕ) (d : MainData) :
     log2Lin (etB fs (mK0 d fs fp)) = etL d fs fp := rfl
 
 /-- **Every child's announced shape is an opening arm of the guest**: its stack log in
-`[20, 32]`, its rate in `[1, 4]`. -/
+`[20, 30]`, its rate in `[1, 4]`. -/
 theorem childShape_bounds (hbl : bytecode.length = 2 ^ 23)
     (hok : ChildrenOk bytecode seed w) {ch : Child}
     (hch : ch ∈ w.children) :
-    20 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 32 ∧
+    20 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 30 ∧
       1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 := by
   obtain ⟨S⟩ := VerifySub.child_segments hbl seed ch (hok _ hch).stackLogAtLeastMinimum
     (Limits.verifyDeferredNZ_of_childOk (hok _ hch)) (hok _ hch).capsAgree
   rw [childShape_of S.hann]
-  exact ⟨S.hmu20, S.hmu32, S.hr1, S.hr4⟩
+  exact ⟨S.hmu20, S.hmu30, S.hr1, S.hr4⟩
 
 /-- **Each child's `verify_sub` call on the honest run, within its own bound**: `vsBoundAt W Bvk`
 at its announced stack log and rate, by a node of `Budget.FlatShape` for `vsTs`, the child's
-stack log among `open_stacked`'s arms, `20` to `32`. -/
+stack log among `open_stacked`'s arms, `20` to `30`. -/
 theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit fs cert)
     (hcons : RunsConsec cert) (W : VsWords fs) {Bvk : ℕ} (hvk : VkCompleteAtB fs cert 16 Bvk)
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTB fs cert fp seed s w
       (fun c t => ∀ hc : c < w.children.length,
-        20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 32 ∧
+        20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
           Budget.FlatShape coreProgram "verify_sub"
             (vsTs fs W Bvk (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t)
       (fun c => (w.children.map fun ch =>
@@ -84,7 +84,7 @@ theorem verifySubGoalsTB_of (hbl : bytecode.length = 2 ^ 23) (hrf : Lift.RunsFit
   rw [hB] at h
   have hcand := childShape_bounds hbl hok hmem
   replace h := h.mono (T' := fun t => ∀ hc : c < w.children.length,
-      20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 32 ∧
+      20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
         Budget.FlatShape coreProgram "verify_sub"
           (vsTs fs W Bvk (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t)
     le_rfl fun t ht _ => ⟨hcand.1, hcand.2.1, ht⟩

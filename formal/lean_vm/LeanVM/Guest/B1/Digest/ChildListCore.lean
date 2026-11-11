@@ -33,15 +33,15 @@ variable {rd : Reader}
 
 /-- `child_claim_list_last__L{k}`'s atoms. -/
 noncomputable def cclAtoms (k : ℕ) : List Atom :=
-  ((splitBody (coreProgram.getD (344 + k) default).body).map (·.1)).getD []
+  ((splitBody (coreProgram.getD (338 + k) default).body).map (·.1)).getD []
 
 set_option maxRecDepth 100000 in
 theorem ccl_shape_all : ∀ k < 17, ((cclAtoms k).all (fun a => !Memory.atomAllocB a &&
-    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (344 + k) default).loop == false)) = true := by
+    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (338 + k) default).loop == false)) = true := by
   decide +kernel
 
 theorem ccl_name {k : ℕ} (hk : k < 17) :
-    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD (344 + k) default) :=
+    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD (338 + k) default) :=
   find_of_idx (ccl_idx k hk) (by rw [coreProgram_length]; omega)
 
 theorem ccl_loop {k : ℕ} (hk : k < 17) : coreProgram.loop (cclNames.getD k "") = false := by
@@ -72,8 +72,8 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     (hrec : RecMem rd region (gen ^ L) entries marks k os cells)
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
-      (coreProgram.getD (344 + k) default).body = (cclAtoms k).map Stmt.atom ++ [.ret vs] ∧
-      (coreProgram.getD (344 + k) default).params.map σ = [sp, entries, region, marks, last] ∧
+      (coreProgram.getD (338 + k) default).body = (cclAtoms k).map Stmt.atom ++ [.ret vs] ∧
+      (coreProgram.getD (338 + k) default).params.map σ = [sp, entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
       vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
       ∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
@@ -83,7 +83,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
           (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c)) := by
   have hok := ccl_all k hk
   have hcok := ccc_all hk
-  set fn := coreProgram.getD (344 + k) default
+  set fn := coreProgram.getD (338 + k) default
   simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [cccOk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok

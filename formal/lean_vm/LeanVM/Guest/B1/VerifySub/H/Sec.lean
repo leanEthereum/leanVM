@@ -313,7 +313,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     hl1 := S.hr1
     hl4 := S.hr4
     hlm1 := S.hlm1
-    hm32 := S.h32
+    hm30 := S.h30
     e112 := by rw [hσ]; have := F.hx 7 (by norm_num); rw [hw8 7 (by norm_num), S.words_getD7] at this; exact this
     e29 := by rw [hσ]; have := F.hx 0 (by norm_num); rw [hw8 0 (by norm_num)] at this; exact this
     e122 := by rw [hσ]; exact e122
@@ -388,7 +388,7 @@ theorem vsSec {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Diges
     m := S.μs
     r := S.rate
     hmu20 := S.hmu20
-    hmu32 := S.hmu32
+    hmu30 := S.hmu30
     hr1 := S.hr1
     hr4 := S.hr4
     e1684 := by rw [hσ]; exact e1890

@@ -61,7 +61,7 @@ theorem termKids_names (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
 theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
-    (hCsW : ∀ i, ∀ κ' < 33, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
+    (hCsW : ∀ i, ∀ κ' < 31, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
     {K15 Brs Beqc Bcs : ℕ}
     (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
@@ -70,7 +70,7 @@ theorem term_weight_le {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wc
     (hrswW : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "ring_switch_weight" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       t.total fs ≤ fs "ring_switch_weight" + 2240 + Brs → t.weight (ω i) ≤ Wrsw i)
-    {D : TermData} (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 33) {t : Tree}
+    {D : TermData} (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31) {t : Tree}
     (h : Budget.FlatShape coreProgram "check_opening_terminal"
       (List.zipWith (Budget.NamedWithin fs) (termNames D) (termBs fs Beqc K15 Bcs Brs)) t)
     {rd : Reader} {args rets : List E} (hv : t.Valid coreProgram rd args rets)
@@ -131,13 +131,13 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 33, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs)
     {ι : Type} (ω : ι → String → ℕ) (Weqc W15 Wst Wcs Wrsw : ι → ℕ)
     (hEqcW : ∀ i, WeightLe coreProgram (ω i) "eq_prefix_chain" fun _ => Weqc i)
     (hStW : ∀ i, WeightLe coreProgram (ω i) "selector_tables" fun _ => Wst i)
-    (hCsW : ∀ i, ∀ κ' < 33, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
+    (hCsW : ∀ i, ∀ κ' < 31, WeightLe coreProgram (ω i) (Tables.lName "column_selector" κ')
       fun _ => Wcs i)
     (h15W : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
@@ -159,8 +159,9 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
   obtain ⟨rd0, hl0, hm0⟩ := hex
   have P0 := hpre rd0 hl0 hm0
   simp only [TermPre, termArgs] at P0
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
+  obtain ⟨hT, hPC, -, hP, hSL, hSL30, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
     -, hrpl, -, hcfl, -, hxl, -, -⟩ := P0
+  have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
@@ -203,8 +204,8 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
   have f5 : D.outPt.length = D.τ + 6 := by
     show out.point.length = τ + 6; rw [hopl, Tables.qkeccakSlotBits_eq]
   have f7 : D.chis.length ≤ 34 := by show chis.length ≤ 34; omega
-  have hKC33 : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 33 := fun c hc => by
-    have := hK c hc; show KC.getD c 0 < 33; omega
+  have hKC31 : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31 := fun c hc => by
+    have := hK c hc; show KC.getD c 0 < 31; omega
   refine (completeAt_flatDepRBT find_term term_not_loop κ Lin _ [] term_body' term_flat term_addrs
     (by decide +kernel)
     [35, 35, 35, 41] (fun _ => termOwn D) (fun _ => ?_)
@@ -214,7 +215,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     (fun fp outs _ => termKids_regions Lin D _ hreg f1 f2 f3 f4 outs)
     (fun fp outs _ rd hl hB hLin hLo => ?_) (fun fp outs hlen' ho rd hl hB hLin _ => ?_)).mono
     (le_of_eq ?_) fun t ht i rd' _ _ hv hb =>
-      term_weight_le ω Weqc W15 Wst Wcs Wrsw hEqcW hStW hCsW h15W hrswW hKC33 ht hv hb i
+      term_weight_le ω Weqc W15 Wst Wcs Wrsw hEqcW hStW hCsW h15W hrswW hKC31 ht hv hb i
   · simp only [termOwn, List.forall₂_cons, eqChain_length, piW_length,
       List.Forall₂.nil, and_true]
     have hol : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
@@ -222,7 +223,7 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
       out.point.length + 1 ≤ 41
     omega
   · refine termKids_completeB κ hκ Lin D _ hreg hbus f7 f4 f1 f5 f2 f3 hgmu hgzc hglm hgtau hlm1
-      hlm32 hKC33 (fun c hc => ?_)
+      hlm32 hKC31 (fun c hc => ?_)
       (fun rd hl hm => ?_) hEqc hL15 hCsF hrs
     · exact ⟨lt_of_lt_of_le (hO c) (Nat.pow_le_pow_right (by decide) hSL28),
         dvd_stackOffset KC (by omega)⟩

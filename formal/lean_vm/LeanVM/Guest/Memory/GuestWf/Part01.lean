@@ -31,5 +31,9 @@ set_option maxRecDepth 100000 in
 theorem wfRange_37 : WfRange 37 51 := by
   unfold WfRange; decide +kernel
 
+set_option maxRecDepth 100000 in
+theorem wfRange_88 : WfRange 88 70 := by
+  unfold WfRange; decide +kernel
+
 end
 end LeanVM.Guest

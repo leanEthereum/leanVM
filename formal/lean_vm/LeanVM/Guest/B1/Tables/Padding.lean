@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Tables.Padding
 
   B1 for `padding_weight`: a table's padding weight at the bus point, and the certificate that
-  its hinted log height is the least holding its rows, at each of its 33 specializations.
+  its hinted log height is the least holding its rows, at each of its 31 specializations.
 -/
 
 module
@@ -889,9 +889,9 @@ noncomputable def pwCheck (τ : ℕ) : Bool :=
   | some fn => decide (fn.params = [.n 0, .n 1]) && tbStmtsEqb fn.body (pwBodyOf τ)
   | none => false
 
-theorem pwCheck_all : (List.range 33).all pwCheck = true := by decide +kernel
+theorem pwCheck_all : (List.range 31).all pwCheck = true := by decide +kernel
 
-theorem pwFound {τ : ℕ} (hτ : τ < 33) : ∃ fn : Fn,
+theorem pwFound {τ : ℕ} (hτ : τ < 31) : ∃ fn : Fn,
     coreProgram.find? (lName "padding_weight" τ) = some fn ∧ fn.params = [.n 0, .n 1] ∧
       fn.body = pwBodyOf τ := by
   have h := List.all_eq_true.mp pwCheck_all τ (List.mem_range.mpr hτ)
@@ -912,7 +912,7 @@ theorem pw_meaning_iff {τ : ℕ} (rd : Reader) (rows zeta : E) (rets : List E) 
     | [_, _, _], ⟨n, zs, hn, hrows, hlen, hread, hp, hl, hr⟩ =>
       exact ⟨n, zs, hn, hrows, hlen, hread, by rw [hp, hl, hr]⟩
 
-/-- **`padding_weight` is sound** at its 33 specializations. -/
+/-- **`padding_weight` is sound** at its 31 specializations. -/
 theorem padding_weight_holds : padding_weight_Spec := by
   intro τ hτ rd args rets h
   obtain ⟨fn, hf, hp, hb⟩ := pwFound hτ
@@ -923,7 +923,7 @@ theorem padding_weight_holds : padding_weight_Spec := by
   exact (pw_meaning_iff rd rows zeta rets).mp
     ((padding_weight_iff τ (by omega) hf hp hb rd rows zeta rets).mp h)
 
-/-- **`padding_weight` is complete** at its 33 specializations. -/
+/-- **`padding_weight` is complete** at its 31 specializations. -/
 theorem padding_weight_complete_holds : padding_weight_complete_Spec := by
   intro τ hτ rd args rets h
   obtain ⟨fn, hf, hp, hb⟩ := pwFound hτ

@@ -24,21 +24,21 @@ open LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem os_run_3_0 : stmtsEqb ((Data.core313.body.drop 0).take 1100)
+theorem os_run_3_0 : stmtsEqb ((Data.core309.body.drop 0).take 1100)
     (((osBody (osCfg 3)).drop 0).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_3_1 : stmtsEqb ((Data.core313.body.drop 1100).take 1100)
+theorem os_run_3_1 : stmtsEqb ((Data.core309.body.drop 1100).take 1100)
     (((osBody (osCfg 3)).drop 1100).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem osData_3 : OsData 3 := by
-  have hb : Data.core313.body.drop 0 = (osBody (osCfg 3)).drop 0 :=
+  have hb : Data.core309.body.drop 0 = (osBody (osCfg 3)).drop 0 :=
     run_step 1100 0 os_run_3_0 <|
     run_step 1100 1100 os_run_3_1 <|
     drop_end (o := 2200) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  exact ⟨Data.core313, Program.find?_of_indexOf? (j := 313) (by decide +kernel) rfl, by decide +kernel, hb⟩
+  exact ⟨Data.core309, Program.find?_of_indexOf? (j := 309) (by decide +kernel) rfl, by decide +kernel, hb⟩
 
 end
 end LeanVM.Guest.B1.Whir

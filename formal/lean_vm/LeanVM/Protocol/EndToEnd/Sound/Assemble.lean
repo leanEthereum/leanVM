@@ -134,9 +134,9 @@ theorem listMax_le {μ R : ℕ} (hw : Whir.Admissible μ R) : (code₀ μ R).lis
   obtain ⟨q₀, rest, hc, -⟩ := Whir.Complete.exists_ladder hw
   exact (Whir.Params.deployed_spec_hyps hw hc).2.2.2.2.1
 
-/-- The bus of the leanISA instance at a built verifier layout has depth at most `38`. -/
+/-- The bus of the leanISA instance at a built verifier layout has depth at most `36`. -/
 theorem μBus_le (hlb : LayoutBounds (verifierLayout prog s)) :
-    (leanIsaInstance prog s).μBus ≤ 38 := by
+    (leanIsaInstance prog s).μBus ≤ 36 := by
   rw [← busLayout_depth_leanIsa]
   exact pushDepth_le hlb
 
@@ -253,7 +253,7 @@ noncomputable def keccakPart (hw : Whir.Admissible (verifierLayout prog s).stack
       (fun h ↦ KeccakPre prog s (Cs prog s ρ) cl h ∧
         StackShape (verifierLayout prog s).stackLog ρ h)
       (fun _ _ ↦ False) εLean ((L₀ : ℝ≥0∞) * KeccakGkr.errE 6) 0 :=
-  have he := phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb) (B_leanIsa_le prog s)
+  have he := phase_errors (leanIsaInstance prog s) ((μBus_le prog s hlb).trans (by norm_num)) (B_leanIsa_le prog s)
   (Spec.frame (Spec.retInv (keccakPhaseSpec prog s (Cs prog s ρ) (cs_stable prog s ρ)
       (cs_ncard prog s ρ hw)
       (T := (∑ _i ∈ Finset.range 6, (L₀ : ℝ≥0∞) * ((overE 1 : ℝ≥0) : ℝ≥0∞)) +
@@ -338,7 +338,7 @@ noncomputable def restSpec
             r.1.map (·.stackClaim (verifierLayout prog s))))
       (fun h ↦ CommitPost prog input (verifierLayout prog s, ρ) () h)
       (fun _ _ ↦ False) εLean (abError (leanIsaInstance prog s) L₀ + 0) 0 :=
-  have he := phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb)
+  have he := phase_errors (leanIsaInstance prog s) ((μBus_le prog s hlb).trans (by norm_num))
     (B_leanIsa_le prog s)
   Spec.congr (VerifierProgram.bind_assoc _ _ _) <|
     ((Spec.frame (Spec.retInv (busTableSpec_leanIsa prog s input
@@ -367,7 +367,7 @@ noncomputable def realSpec
       (fun _ _ ↦ False) εLean 0 0 :=
   (commitSpec (CommitPost prog input (verifierLayout prog s, ρ))
       (verifierLayout prog s).stackLog ρ
-      (phase_errors (leanIsaInstance prog s) (μBus_le prog s hlb)
+      (phase_errors (leanIsaInstance prog s) ((μBus_le prog s hlb).trans (by norm_num))
         (B_leanIsa_le prog s)).1).bind' fun _ ↦
     restSpec input hw hlb
 

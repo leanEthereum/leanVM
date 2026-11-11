@@ -25,8 +25,8 @@ public import LeanVM.Guest.AcceptableChild
 accepts (`ChildrenOk`: its openings agreeing in the guest's Merkle caps, no zero challenge where
 the guest divides, ...) and the node within the budget (`budget s w ≤ 2^28`),
 there is a valid execution of the guest on the statement's digest whose committed size is at most
-`2^28`, within the `2^32` the verifier admits; the guest has an opening arm for every stack log
-the verifier admits of an execution (`19` to `32`), so no lower bound is needed (the memory is
+`2^28`, within the `2^30` the verifier admits; the guest has an opening arm for every stack log
+the verifier admits of an execution (`20` to `30`), so no lower bound is needed (the memory is
 still padded to `2^20` words at least, `padLog`, `Guest/Pad.lean`). The three hypotheses are
 `Guest/Limits.lean`'s; the budget
 is a seventh limit, the size of the run, which the others do not bound. The deployed budget is

@@ -27,12 +27,12 @@ adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
   `completenessError fuel = Q · (1 - 2^-17)^fuel`,
 
-`Q = (1 + 1) + 56097 · (2^31 + 2·fuel + 2) + 14026` the queries of the prover and the verifier
-together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 56097`
+`Q = (1 + 1) + 50689 · (2^29 + 2·fuel + 2) + 12674` the queries of the prover and the verifier
+together (`completenessQueries`): the seed's hash and permutation, `leanVmCost = 50689`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
-2^31 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 14026`
+2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound = 12674`
 (`romComplete_leanVm`); every proof of work asks for at most `maxGrindingBits = 17` bits, the
-query grinding's `17` or a level's fold grinding (`Sound.grind_bits_ok`). At `fuel = 2^25`, it is
+query grinding's `17` (`Sound.grind_bits_ok`). At `fuel = 2^25`, it is
 below `2^-257` (`completenessError_le`): `Q ≤ 2^47`, and a proof of work of at most seventeen bits
 fails with probability at most `(1 - 2^-17)^(2^25) ≤ e^-256 < 2^-320`.
 -/
@@ -91,14 +91,14 @@ theorem romComplete_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execut
   generalize leanVmProver prog s ρ (stackOf prog s w) = S at hrun ⊢
   have h := Rom.romComplete (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) _
     (leanVmSeed (bytecodeWords prog) (publicInputDigest input)) (bits := Sound.maxGrindingBits)
-    (by decide) (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_ok _ _ hg)
+    (by decide) hfuel (fun _ _ _ hg ↦ Sound.grind_bits_ok _ _ hg)
     (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2)
     (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input))
   refine h.trans (le_of_eq ?_)
   rfl
 
 /-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
-most `2^32`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
+most `2^30`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
 prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
     {ρ : ℕ}

@@ -47,9 +47,9 @@ structure LvDat where
   ic2 : E
   deriving Inhabited
 
-/-- The rounds of a level from `F`, `q`, `t`, at the level's fold grinding. -/
+/-- The rounds of a level from `F`, `q`, `t`. -/
 def lvR (lv : OsLv) (D : LvDat) (F : Fs) (q : List E) (t : E) : Fs × List E × List E × E :=
-  foldsTr lv.foldGrind lv.folds F q t D.xs
+  foldsTr lv.folds F q t D.xs
 
 /-- The capacity after the last level's grinding check. -/
 def capFin (lv : OsLv) (D : LvDat) (F : Fs) (q : List E) (t : E) : List E :=
@@ -83,7 +83,7 @@ theorem lvFq_squeezeN (c : OsCfg) (lvl : ℕ) (lv : OsLv) (D : LvDat) (F : Fs) (
 
 /-- The words a level reads. -/
 def lvWords (c : OsCfg) (lvl : ℕ) (lv : OsLv) : ℕ :=
-  roundLen lv.foldGrind * lv.folds + (if lvl = c.yrLevel then c.yrLen + 1 else 6) + 2
+  2 * lv.folds + (if lvl = c.yrLevel then c.yrLen + 1 else 6) + 2
 
 /-- What a level leaves: the sponge, the quadratic, the claim. -/
 def lvOut (c : OsCfg) (lvl : ℕ) (lv : OsLv) (D : LvDat) (F : Fs) (q : List E) (t : E) :
@@ -137,20 +137,19 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl
     (D : LvDat) (F : Fs) (q : List E) (t cur : E) : Prop where
   nf : lvl ≠ c.yrLevel
   f1 : 1 ≤ lv.folds
-  hC : FoldCallC C rd (osFoldNames c lvl lv) lv.foldGrind R
+  hC : FoldCallC C rd
   hCan : ∀ args rets, MeaningAssertCanonical args rets → C "assert_canonical" args rets
   hOod : ∀ args rets, MeaningOpeningOodPoint lv.logCols rd args rets →
     C ("opening_ood_point__L" ++ natStr lv.logCols) args rets
   hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
     C ("grind_check__L" ++ natStr lv.grind) args rets
   hlvl : (lvl + 1) * ligColsCap < u128Bound
-  hxl : D.xs.length = roundLen lv.foldGrind * lv.folds
+  hxl : D.xs.length = 2 * lv.folds
   hrd : ReadsAt rd cur D.xs
-  hpw : FoldsPow lv.foldGrind lv.folds F q t D.xs
   hst : ∀ j, j < lv.folds → LoadHolds rd (P.fch) (lv.foldsOff + j)
     ((lvR lv D F q t).2.1.getD j 0)
   hd : (D.ra, D.rb) = digestHalves D.d
-  hrd2 : ReadsAt rd (cur * gen ^ (roundLen lv.foldGrind * lv.folds)) [D.ra, D.rb, D.y, D.c0, D.c2, D.nonce]
+  hrd2 : ReadsAt rd (cur * gen ^ (2 * lv.folds)) [D.ra, D.rb, D.y, D.c0, D.c2, D.nonce]
   hr0' : LoadHolds rd (P.roots) (2 * lvl + 2) D.ra
   hr1' : LoadHolds rd (P.roots) (2 * lvl + 3) D.rb
   hz : ReadsAt rd (P.oodz * gen ^ ((lvl + 1) * ligColsCap))
@@ -159,7 +158,7 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl
   hy : LoadHolds rd (P.ood) ((lvl + 1) * oodSlots + 1) D.y
   hc0 : LoadHolds rd (P.ood) ((lvl + 1) * oodSlots + 2) D.c0
   hc2 : LoadHolds rd (P.ood) ((lvl + 1) * oodSlots + 3) D.c2
-  hpow : powOk Whir.queryGrindingBits D.nonce
+  hpow : powOk Whir.queryGrindingBits
     (cF2 (lvR lv D F q t).1 D.ra D.rb lv.logCols D.y D.c0 D.c2 D.nonce).squeeze.1 = true
   hD : DispC C rd R ((c.lvAt lvl).map osPositionsName)
     (capNon lv D F q t ++ [P.qpos * gen ^ lv.posOff, P.qbp * gen ^ lv.posOff, P.win])
@@ -174,7 +173,7 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl
     [D.r0, D.r1, D.sum, lamOf lv (capNon lv D F q t) ^ lv.queries]
   hr0 : LoadHolds rd (P.roots) (2 * lvl) D.r0
   hr1 : LoadHolds rd (P.roots) (2 * lvl + 1) D.r1
-  hi : ReadsAt rd (cur * gen ^ (roundLen lv.foldGrind * lv.folds + 6)) [D.ic0, D.ic2]
+  hi : ReadsAt rd (cur * gen ^ (2 * lv.folds + 6)) [D.ic0, D.ic2]
   hlo : LoadHolds rd (P.ood) ((lvl + 1) * oodSlots) (lamOf lv (capNon lv D F q t))
   hbeta : LoadHolds rd (P.betas) lvl (lamOf lv (capNon lv D F q t) * lamOf lv (capNon lv D F q t) *
     lamOf lv (capNon lv D F q t) ^ lv.queries)
@@ -183,20 +182,19 @@ structure LvHN (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl
 structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl : ℕ) (lv : OsLv)
     (D : LvDat) (F : Fs) (q : List E) (t cur : E) : Prop where
   fin : lvl = c.yrLevel
-  hC : FoldCallC C rd (osFoldNames c lvl lv) lv.foldGrind R
+  hC : FoldCallC C rd
   hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets → args.getD 8 0 = P.fmsg →
     C ("opening_final_message__L" ++ natStr c.yrLen) args rets
   hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
     C ("grind_check__L" ++ natStr lv.grind) args rets
-  hxl : D.xs.length = roundLen lv.foldGrind * lv.folds
+  hxl : D.xs.length = 2 * lv.folds
   hrd : ReadsAt rd cur D.xs
-  hpw : FoldsPow lv.foldGrind lv.folds F q t D.xs
   hst : ∀ j, j < lv.folds → LoadHolds rd (P.fch) (lv.foldsOff + j)
     ((lvR lv D F q t).2.1.getD j 0)
   hml : D.ms.length = c.yrLen
-  hrd2 : ReadsAt rd (cur * gen ^ (roundLen lv.foldGrind * lv.folds)) (D.ms ++ [D.nonce])
+  hrd2 : ReadsAt rd (cur * gen ^ (2 * lv.folds)) (D.ms ++ [D.nonce])
   hout : ReadsAt rd (P.fmsg) D.ms
-  hpow : powOk Whir.queryGrindingBits D.nonce
+  hpow : powOk Whir.queryGrindingBits
     ((((lvR lv D F q t).1.absorbAll D.ms dsObserve).absorb D.nonce dsPowNonce).squeeze.1) = true
   hD : DispC C rd R ((c.lvAt lvl).map osPositionsName)
     (capFin lv D F q t ++ [P.qpos * gen ^ lv.posOff, P.qbp * gen ^ lv.posOff, P.win])
@@ -211,7 +209,7 @@ structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (R : E) (c : OsCfg) (lvl
     [D.r0, D.r1, D.sum, lamOf lv (capFin lv D F q t) ^ lv.queries]
   hr0 : LoadHolds rd (P.roots) (2 * lvl) D.r0
   hr1 : LoadHolds rd (P.roots) (2 * lvl + 1) D.r1
-  hi : ReadsAt rd (cur * gen ^ (roundLen lv.foldGrind * lv.folds + c.yrLen + 1)) [D.ic0, D.ic2]
+  hi : ReadsAt rd (cur * gen ^ (2 * lv.folds + c.yrLen + 1)) [D.ic0, D.ic2]
   hbeta : LoadHolds rd (P.betas) lvl (lamOf lv (capFin lv D F q t) *
     lamOf lv (capFin lv D F q t) ^ lv.queries)
 
@@ -256,17 +254,17 @@ theorem osLevel_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : V
     simp only [lvF, lvOut, lvWords, lvLam, lvFq, lvCap, hc, ↓reduceIte]
     refine BlkF.mono (osLevel_final_complete (C := C) (rd := rd) σ hfin hR h.hC
       (fun a r hm h8 ↦ h.hFm a r hm (by rw [h8]; rfl)) h.hGr hfs hco hb hk
-      hcan hpad hpk hmo hmob h.hxl h.hrd h.hpw h.hst h.hml h.hrd2 h.hout h.hpow
+      hcan hpad hpk hmo hmob h.hxl h.hrd h.hst h.hml h.hrd2 h.hout h.hpow
       (sqCaps_length _ (by simp [capOf]) _)
       (sqCaps_canonical _ (capOf_canonical _) _) h.hD h.hl0 h.hmu h.hbo D.wp D.r0 D.r1 D.sum
       _ D.ic0 D.ic2 h.hRW h.hQ h.hr0 h.hr1 h.hi h.hbeta) fun σ' ⟨ho, ha⟩ ↦ ⟨LvOut.congr_cur ho (by
-        rw [show roundLen lv.foldGrind * lv.folds + (c.yrLen + 1) + 2 =
-          roundLen lv.foldGrind * lv.folds + c.yrLen + 3 by omega]), ha⟩
+        rw [show 2 * lv.folds + (c.yrLen + 1) + 2 =
+          2 * lv.folds + c.yrLen + 3 by omega]), ha⟩
   · have hc : (lvl = c.yrLevel) = False := eq_false hfin
     simp only [hc, ↓reduceIte] at h
     simp only [lvF, lvOut, lvWords, lvLam, lvFq, lvCap, hc, ↓reduceIte]
     exact osLevel_nonfinal_complete (C := C) (rd := rd) σ hfin h.f1 hR h.hC h.hCan h.hOod h.hGr hfs
-      hco hb hk hcan hpad hpk hmo hmob h.hlvl h.hxl h.hrd h.hpw h.hst h.hd h.hrd2 h.hr0' h.hr1' h.hz
+      hco hb hk hcan hpad hpk hmo hmob h.hlvl h.hxl h.hrd h.hst h.hd h.hrd2 h.hr0' h.hr1' h.hz
       h.hy h.hc0 h.hc2 h.hpow (sqCaps_length _ (by simp [capOf]) _)
       (sqCaps_canonical _ (capOf_canonical _) _) h.hD h.hl0 h.hmu h.hbo D.wp D.r0 D.r1 D.sum _
       D.ic0 D.ic2 h.hRW h.hQ h.hr0 h.hr1 h.hi h.hlo h.hbeta

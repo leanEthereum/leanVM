@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Bits.QueryWindowsCompleteAll
 
-  `decode_query_windows` is complete at each of its 21 specializations.
+  `decode_query_windows` is complete at each of its 18 specializations.
 -/
 
 module

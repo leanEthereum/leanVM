@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.Whir.DataAll
 public import LeanVM.Guest.B1.Whir.Names
 public import LeanVM.Guest.B1.Bits.AssertCanonical
 public import LeanVM.Guest.B1.Bits.Grind
-public import LeanVM.Guest.B1.Bits.Grind3
 public import LeanVM.Guest.B1.Bits.QueryWindowsAll
 public import LeanVM.Guest.B1.Merkle.CapAll
 public import LeanVM.Guest.B1.Opening.Fold
@@ -27,7 +26,7 @@ public import LeanVM.Guest.B1.Eq.FoldFinal
 # `open_stacked`, soundly (TRIAGE G #42)
 
 `open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW` and
-`open_stacked_sound_holds : open_stacked_sound_Spec`: for every stack log `minOpenLog ≤ μ ≤ 32` and rate
+`open_stacked_sound_holds : open_stacked_sound_Spec`: for every stack log `minOpenLog ≤ μ ≤ 30` and rate
 `1 ≤ r ≤ 4`, a call of `open_stacked__L{μ - minOpenLog}` on the rate's selector establishes `OpenOut`: the
 words it reads and the openings run the Spec's `whirOpen μ r target` (the stacked WHIR opening up
 to its terminal check, `verifyWhir_split`), and it returns the terminal's claim, point, glued
@@ -42,18 +41,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-theorem osFoldRoundName_3 : osFoldRoundName 3 = "opening_fold_round__L3" := by decide +kernel
-
-theorem grindName_3 : "grind_check__L" ++ natStr 3 = "grind_check__L3" := by decide +kernel
-
-/-- `opening_fold_round` at `3` bits and its `grind_check`. -/
-theorem ofr3_callees (rd : Reader) :
-    FnIs (osFoldRoundName 3) (osParams 11) (ofrBody 3) ∧
-      ∀ args rets, coreProgram.Rel rd ("grind_check__L" ++ natStr 3) args rets →
-        MeaningGrindCheck 3 args rets := by
-  rw [osFoldRoundName_3, grindName_3]
-  exact ⟨ofr3_fn, fun a r h ↦ (grind_check3_holds rd a r).mp h⟩
 
 theorem lp_callee {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {lv : OsLv}
     (hlp : (osPositionsName lv, lv.squeezes, lpLoopOf (osPositionsName lv), lv.depth, lv.capDepth) ∈
@@ -94,19 +81,10 @@ theorem rw_callee {rd : Reader} {lvl : ℕ} {lv : OsLv}
   · simp only [h0, ↓reduceIte] at h hfo ⊢
     rw [hfo]; exact opening_row_weights_holds.2 rd args rets |>.mp h
 
-theorem ofr_callee (rd : Reader) {lv : OsLv} (hfg : lv.foldGrind = 0 ∨ lv.foldGrind = 3) :
-    lv.foldGrind ≠ 0 → FnIs (osFoldRoundName lv.foldGrind) (osParams 11)
-      (ofrBody lv.foldGrind) ∧ ∀ args rets, coreProgram.Rel rd ("grind_check__L" ++
-        natStr lv.foldGrind) args rets → MeaningGrindCheck lv.foldGrind args rets := by
-  intro hb
-  have h3 : lv.foldGrind = 3 := hfg.resolve_left hb
-  rw [h3]
-  exact ofr3_callees rd
-
 /-- **A level's callees**, from B1-a's theorems, the helpers' tables and the names' facts. -/
 theorem lvCallees_of {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {c : OsCfg} {lvl : ℕ} {lv : OsLv}
     (hs : LvStatic c lvl lv) (hn : NamesOk c lvl lv) : LvCallees L.read c lvl lv := by
-  obtain ⟨⟨hood, hfm, hgr, hdec, hcap, -, hrw, hfo⟩, hlp, hlq, hlr, hrb, hfg, hany, hpw, hn0, hn,
+  obtain ⟨⟨hood, hfm, hgr, hdec, hcap, -, hrw, hfo⟩, hlp, hlq, hlr, hrb, hpw, hn0, hn,
     hn5, hq8⟩ := hn
   have hlq' := lqTable_ok _ hlq
   exact ⟨fun a r h ↦ (assert_canonical_holds L.read a r).mp h,
@@ -115,7 +93,7 @@ theorem lvCallees_of {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {c : OsCf
     fun a r h ↦ by rw [hgr] at h; exact (grind_check_holds L.read a r).mp h,
     ⟨lp_callee hκ L hlp hdec hpw hn0 hn hn5, hlq', rw_callee hrw hfo,
       fun a r h ↦ (verify_merkle_cap_holds _ hcap L.read a r).mp h⟩,
-    ofr0_fn, ofr_callee L.read hfg, hany, lr_callee hlr hrb hs.ml1 hs.qo hs.qu hq8⟩
+    lr_callee hlr hrb hs.ml1 hs.qo hs.qu hq8⟩
 
 theorem calleesOk_of {rd : Reader} {c : OsCfg} : ∀ (lvs : List OsLv) (lvl : ℕ),
     (∀ i (hi : i < lvs.length), LvCallees rd c (lvl + i) lvs[i]) → CalleesOk rd c lvl lvs
@@ -182,7 +160,7 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
   set rd := L.read
   set m := μ - minOpenLog with hmdef
   set ri := r - 1 with hridef
-  have h20 : minOpenLog + ligNSizes = 33 := rfl
+  have h20 : minOpenLog + ligNSizes = 31 := rfl
   have hm : m < ligNSizes := by omega
   have hri : ri < 4 := by omega
   have hμ : μ = m + minOpenLog := by omega

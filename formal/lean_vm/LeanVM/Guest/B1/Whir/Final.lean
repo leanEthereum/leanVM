@@ -65,11 +65,10 @@ theorem osFinal_sound {c : OsCfg} {m : ℕ} (hlen : 2 ^ m = c.yrLen)
   simp only [capOf, List.cons_append, List.nil_append, List.cons.injEq] at hret
   obtain ⟨e0, e1, e2, e3, e4, e5, e6, e7, -⟩ := hret
   obtain ⟨-, -, hlow⟩ := hGr _ _ hgr
-  have hpow : powOk Whir.queryGrindingBits nonce
+  have hpow : powOk Whir.queryGrindingBits
       (((st.F σ).absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.1 = true := by
     have h17 : ((challengeOf s.perm).limb 0).lane.toNat % 2 ^ Whir.queryGrindingBits = 0 := by
       rw [Keccak.challengeOf_limb0, ← e0]; exact hlow
-    simp only [powOk, show Whir.queryGrindingBits ≠ 0 by decide, ↓reduceIte]
     exact decide_eq_true h17
   have e : (do
         let r ← levelMid m []
@@ -84,7 +83,7 @@ theorem osFinal_sound {c : OsCfg} {m : ℕ} (hlen : 2 ^ m = c.yrLen)
   · rw [e]
     show RunsTo _ (st.F σ) (ms ++ ([nonce] ++ [])) _ _
     refine RunsTo.bind' (runsTo_readN (st.F σ) ms)
-      (RunsTo.bind' (runsTo_grindP Whir.queryGrindingBits _ nonce hpow) ?_)
+      (RunsTo.bind' (runsTo_grindP Whir.queryGrindingBits (by decide) _ nonce hpow) ?_)
     refine RunsTo.of_eq (runsTo_ret (ms, []) _) rfl rfl rfl ?_
     simp only [OsSt.fsv, List.map_cons, List.map_nil, e1, e2, e3, e4, e5, Fs.squeeze, capOf]
     rfl

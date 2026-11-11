@@ -17,8 +17,6 @@ public import LeanVM.Guest.B1.Place.ArmFacts7
 public import LeanVM.Guest.B1.Place.ArmFacts8
 public import LeanVM.Guest.B1.Place.ArmFacts9
 public import LeanVM.Guest.B1.Place.ArmFacts10
-public import LeanVM.Guest.B1.Place.ArmFacts11
-public import LeanVM.Guest.B1.Place.ArmFacts12
 public import LeanVM.Guest.B1.Whir.Data0
 public import LeanVM.Guest.B1.Whir.Data1
 public import LeanVM.Guest.B1.Whir.Data2
@@ -30,8 +28,6 @@ public import LeanVM.Guest.B1.Whir.Data7
 public import LeanVM.Guest.B1.Whir.Data8
 public import LeanVM.Guest.B1.Whir.Data9
 public import LeanVM.Guest.B1.Whir.Data10
-public import LeanVM.Guest.B1.Whir.Data11
-public import LeanVM.Guest.B1.Whir.Data12
 
 namespace LeanVM.Guest.B1
 
@@ -57,8 +53,6 @@ theorem armData_all : ∀ m < osArms, OsData m := by
   · exact Whir.osData_8
   · exact Whir.osData_9
   · exact Whir.osData_10
-  · exact Whir.osData_11
-  · exact Whir.osData_12
 
 /-- armBody_all, at every arm. -/
 theorem armBody_all : ∀ m < osArms, ArmBodyP m := by
@@ -75,8 +69,6 @@ theorem armBody_all : ∀ m < osArms, ArmBodyP m := by
   · exact armBody_8
   · exact armBody_9
   · exact armBody_10
-  · exact armBody_11
-  · exact armBody_12
 
 /-- armRate_all, at every arm and rate. -/
 theorem armRate_all : ∀ m < osArms, ∀ ri < 4, ArmRateP m ri := by
@@ -126,14 +118,6 @@ theorem armRate_all : ∀ m < osArms, ∀ ri < 4, ArmRateP m ri := by
   · exact armRate_10_1
   · exact armRate_10_2
   · exact armRate_10_3
-  · exact armRate_11_0
-  · exact armRate_11_1
-  · exact armRate_11_2
-  · exact armRate_11_3
-  · exact armRate_12_0
-  · exact armRate_12_1
-  · exact armRate_12_2
-  · exact armRate_12_3
 
 /-- kidShapes_all, at every arm and rate. -/
 theorem kidShapes_all : ∀ m < osArms, ∀ ri < 4, KidShapesP (osCfgR m ri) := by
@@ -183,14 +167,6 @@ theorem kidShapes_all : ∀ m < osArms, ∀ ri < 4, KidShapesP (osCfgR m ri) := 
   · exact kidShapes_10_1
   · exact kidShapes_10_2
   · exact kidShapes_10_3
-  · exact kidShapes_11_0
-  · exact kidShapes_11_1
-  · exact kidShapes_11_2
-  · exact kidShapes_11_3
-  · exact kidShapes_12_0
-  · exact kidShapes_12_1
-  · exact kidShapes_12_2
-  · exact kidShapes_12_3
 
 end
 end LeanVM.Guest.B1

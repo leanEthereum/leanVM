@@ -22,7 +22,7 @@ def vals(c):
       and (s+1)*N<=mHi*2*e*S and mHi>=3 and (2*mHi+1)*S<=2*(muHi+1)*s and (2*mHi+1)**2*n<=12*D*(hHi+1)
       and D<thrLo and excNum<(excHi+1)*(thrLo-D))
   return dict(n=n,thrHi=thrHi,listHi=listHi,excHi=excHi,ok=ok)
-def foldb(c,l): v=vals(c); return 192+l['g']-log2(2*v['listHi']+2**(l['fold']-1)*v['excHi'])
+def foldb(c,l): v=vals(c); return 192-log2(2*v['listHi']+2**(l['fold']-1)*v['excHi'])
 def queryb(c,l,nxt):
   v=vals(c); n=v['n']; t=l['t']
   y=(t+1)*vals(nxt)['listHi'] if nxt else t
@@ -71,7 +71,7 @@ def best(l,nxtL=2**18):
 # (23, 4) to (28, 4): within `shapeOK`'s 2^12.
 def lvl0ok(l,c,nxt,B=128):
   k,R,e,s=c; v=vals(c); n=v['n']; t=l['t']; f=l['fold']
-  fold=(2*v['listHi']+2**(f-1)*v['excHi'])*2**(B-l['g'])<=2**192
+  fold=(2*v['listHi']+2**(f-1)*v['excHi'])*2**B<=2**192
   query=((v['thrHi']-1)**t*2**192+(t+1)*vals(nxt)['listHi']*n**t)*2**(B-17)<=n**t*2**192
   ood=vals(nxt)['listHi']**2*k*2**B<=2**192
   return v['ok'] and fold and query and ood
@@ -94,7 +94,7 @@ def best0(l,nxt,B=128):
 table={}
 worst=999
 for R in range(1,5):
-  for mu in range(16,33):
+  for mu in range(16,31):
     lv=ladder(mu,R)
     certs=[]
     for l in lv:

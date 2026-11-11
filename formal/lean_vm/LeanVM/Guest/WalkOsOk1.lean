@@ -17,19 +17,19 @@ namespace LeanVM.Guest.End
 
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L4`. -/
-theorem osOk_315 : osOk lpTab 315 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
+theorem osOk_311 : osOk lpTab 311 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L5`. -/
-theorem osOk_316 : osOk lpTab 316 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
+theorem osOk_312 : osOk lpTab 312 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L6`. -/
-theorem osOk_317 : osOk lpTab 317 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
+theorem osOk_313 : osOk lpTab 313 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L7`. -/
-theorem osOk_318 : osOk lpTab 318 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
+theorem osOk_314 : osOk lpTab 314 [(393, 26), (559, 566), (724, 793), (889, 1020), (964, 1145)] 21 = true := by decide +kernel
 
 end
 end LeanVM.Guest.End

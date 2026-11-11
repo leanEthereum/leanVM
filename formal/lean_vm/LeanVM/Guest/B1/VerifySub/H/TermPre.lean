@@ -25,11 +25,11 @@ open LeanVM.Node
 
 @[expose] public section
 
-/-- **An honest child's committed columns' logs are at most `32`.** -/
+/-- **An honest child's committed columns' logs are at most its stack's log `B`.** -/
 theorem committed_le32 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
-    {rowsN : List ℕ} (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 32) :
+    {rowsN : List ℕ} {B : ℕ} (h28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ B) :
     ∀ c < Tables.nCommittedCols, (Tables.committedKappas
-      (columnKappas logMem Tables.guestLogBytecode (Tables.tableHeightsOf rowsN))).getD c 0 ≤ 32 := by
+      (columnKappas logMem Tables.guestLogBytecode (Tables.tableHeightsOf rowsN))).getD c 0 ≤ B := by
   rw [stackLog_eq hbl] at h28
   intro c hc
   have hcl : c < (Tables.committedKappas (columnKappas logMem Tables.guestLogBytecode

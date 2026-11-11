@@ -71,8 +71,8 @@ theorem osTail_bounds (c : OsCfg) (st : OsSt) (hk : 161 ≤ st.k) :
       (osTail c st).2.2 < (osTail c st).2.1.k ∧ (osTail c st).2.1.t < (osTail c st).2.1.k := by
   rw [osTail_eq]
   dsimp only
-  have h : st.k + 2 ≤ (osFolds none (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k :=
-    osFolds_k none (st.k + 1) (c.yrLog - 1) 0 { st with k := st.k + 2 }
+  have h : st.k + 2 ≤ (osFolds (st.k + 1) 0 (c.yrLog - 1) { st with k := st.k + 2 }).2.k :=
+    osFolds_k (st.k + 1) (c.yrLog - 1) 0 { st with k := st.k + 2 }
   omega
 
 /-- The values of the body. -/
@@ -98,12 +98,12 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
     (hlv : LvsH C rd P R c 0 c.levels Ds (headSponge σ c0 c2) [c0, σ (.n 6) + c2, c2] (σ (.n 6))
       (σ (.n 9) * gen ^ 2))
     -- the tail
-    (hF : FoldCallC C rd none 0 R)
+    (hF : FoldCallC C rd)
     (hxl : xs.length = 2 * (c.yrLog - 1))
     (hrd : ReadsAt rd (bodyLvs c σ c0 c2 Ds).2.2.2 xs)
-    (hT : ∀ j, j < c.yrLog - 1 → LoadHolds rd T j ((foldsTr 0 (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1
+    (hT : ∀ j, j < c.yrLog - 1 → LoadHolds rd T j ((foldsTr (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1
       (bodyLvs c σ c0 c2 Ds).2.1 (bodyLvs c σ c0 c2 Ds).2.2.1 xs).2.1.getD j 0))
-    (hlast : LoadHolds rd T (c.yrLog - 1) (foldsTr 0 (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1
+    (hlast : LoadHolds rd T (c.yrLog - 1) (foldsTr (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1
       (bodyLvs c σ c0 c2 Ds).2.1 (bodyLvs c σ c0 c2 Ds).2.2.1 xs).1.squeeze.1)
     (hzero : ∀ i < yrLogCap - c.yrLog, LoadHolds rd T (c.yrLog + i) 0)
     -- the finish
@@ -120,8 +120,8 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
       (bodyF c σ P c0 c2 Ds T xs Y PT PT1 BD LS ICH In Pp β X M h I L Λ Z Yo)
       (osBodyAc c)
       (fun σ' ↦ (osFinRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
-        [polyEval (foldsTr 0 (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1 (bodyLvs c σ c0 c2 Ds).2.1
-          (bodyLvs c σ c0 c2 Ds).2.2.1 xs).2.2.1 (foldsTr 0 (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1
+        [polyEval (foldsTr (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1 (bodyLvs c σ c0 c2 Ds).2.1
+          (bodyLvs c σ c0 c2 Ds).2.2.1 xs).2.2.1 (foldsTr (c.yrLog - 1) (bodyLvs c σ c0 c2 Ds).1
           (bodyLvs c σ c0 c2 Ds).2.1 (bodyLvs c σ c0 c2 Ds).2.2.1 xs).1.squeeze.1, PT, PT1,
         In + oodSum c Λ Z Yo ((c.levels.headD default).logCols) 1 c.levels.tail, Y] ∧
         AgreeBelow 10 σ σ') := by
@@ -157,13 +157,13 @@ theorem osBodyA_complete {c : OsCfg} (σ : Val) (P : OsPtrs) {c0 c2 : E} {Ds : L
   have hR2 : σ2 (.n osRate) = R := by rw [ha2 _ (by unfold osRate; omega), hR1]
   -- the tail
   refine BlkF.then (k1 := (osTlSt c).2.1.k) b1 (by omega)
-    (osTail_complete σ2 hR2 hF hs2 hp T hxl hrd hT hlast hzero) fun σ3 ha3 hO3 ↦ ?_
+    (osTail_complete σ2 hF hs2 hp T hxl hrd hT hlast hzero) fun σ3 ha3 hO3 ↦ ?_
   obtain ⟨hT3, ht3, -⟩ := hO3
   have hP3 : ptrsOf σ3 = P := (ptrsOf_agree hlk ha3).trans hP2
   have hR3 : σ3 (.n osRate) = R := by rw [ha3 _ (by unfold osRate; omega), hR2]
   have hmT : (osTlSt c).2.1.mats = (osLvSt c).mats := by
     show (osTail c (osLvSt c)).2.1.mats = _
-    rw [osTail_eq]; exact osFolds_mats _ _ _ _ _
+    rw [osTail_eq]; exact osFolds_mats _ _ _ _
   -- the finish
   refine BlkF.mono (osFinA_complete (C := C) (rd := rd) σ3 b2 b3 b4 htail hR3
     (by rw [hmT]; exact matsOk_agree hs2.mats hs2.matsB ha3)

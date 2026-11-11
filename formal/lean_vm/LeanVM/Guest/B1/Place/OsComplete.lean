@@ -14,7 +14,10 @@ public import LeanVM.Guest.B1.Place.HonestProof
 public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.LqProof
 public import LeanVM.Guest.B1.Place.LrProof
-public import LeanVM.Guest.B1.Place.OfrProof
+public import LeanVM.Guest.B1.Place.HelperAt
+public import LeanVM.Guest.B1.Whir.HelperAll
+public import LeanVM.Guest.B1.Tables.Kids.Walk
+public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.B1.Whir.FactsAll
 
 /-!
@@ -23,9 +26,9 @@ public import LeanVM.Guest.B1.Whir.FactsAll
 `open_stacked_completeAtO_of`: the arm of `μ`, called on the rate's selector, is complete placed at
 an optional words bound (`osBosAt`), from the arms' decided facts (`os_arm_facts`,
 `os_kid_shapes`, `ArmFactsAll`), the helpers' placed statements (`level_positions_completeAt`,
-`level_queries_completeAt`, `level_residual_completeAt`, `opening_fold_round_completeAt`), the
-trace's data (`os_helper_facts`), the named callees (`osCalleesRegD_holds`, `kindDB`), the honest
-valuation's values (`os_call_vals_Spec`) and the dispatches on the rate's selector (`OsDispRate`).
+`level_queries_completeAt`, `level_residual_completeAt`), the trace's data (`os_helper_facts`),
+the named callees (`osCalleesRegD_holds`, `kindDB`), the honest valuation's values
+(`os_call_vals_Spec`) and the dispatches on the rate's selector (`OsDispRate`).
 `open_stacked_completeAtD_of`, `open_stacked_completeAtB_of`: the two statements.
 -/
 
@@ -80,7 +83,7 @@ theorem osLpDfp_spec (hlp : ∀ e ∈ lpTable, ∃ dfp : ℕ → ℕ → ℕ, �
 
 /-- **`open_stacked` is complete placed at an optional words bound.** -/
 theorem open_stacked_completeAtO_of (hvals : os_call_vals_Spec) (hdr : OsDispRate) {μ r : ℕ}
-    (hμ1 : minOpenLog ≤ μ) (hμ2 : μ ≤ 32) (hr1 : 1 ≤ r) (hr4 : r ≤ 4)
+    (hμ1 : minOpenLog ≤ μ) (hμ2 : μ ≤ 30) (hr1 : 1 ≤ r) (hr4 : r ≤ 4)
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
     {Bd : Option (String → ℕ)}
     (hkB : ∀ m < osArms, ∀ f ∈ osCalleeNames (osCfg m), ∀ Bk ∈ Bd,
@@ -111,19 +114,16 @@ theorem open_stacked_completeAtO_of (hvals : os_call_vals_Spec) (hdr : OsDispRat
       per := os_perSq_pos m hm ri hri, qs := os_queries_le_sq m hm ri hri,
       cd := os_capDepth_le m hm ri hri, il := os_rowLo_fit m hm ri hri,
       qend := os_posEnd m hm ri hri, lp := hA.lp, lq := fun l hl ↦ ⟨_, hA.lq l hl⟩, lr := hA.lr }
-  have hofrN : ∀ e ∈ ofrTable, OfrAtO fs cert κ e.1 e.2 none :=
-    fun e he ↦ opening_fold_round_completeAt fs cert κ hrf hcons hκ e he none
   have hnamed : ∀ f ∈ osCalleeNames (osCfgR m ri), ∀ K, osKindOf f = some K →
       ∀ (args rets : List E) (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
       CompleteAtO fs cert κ f L' args (Returns rets) (Bd.map (· f)) := by
     intro f hf K hK args rets L' hreg hpre
     cases Bd with
-    | none => exact ((osCalleesRegD_holds κ).kindD hofrN hK args rets L' hreg hpre).toO
+    | none => exact ((osCalleesRegD_holds κ).kindD hK args rets L' hreg hpre).toO
     | some Bk =>
       have hT := hkB m hm f (by rwa [osCalleeNames_rate] at hf) Bk rfl
-      exact ((kindDB (Bnd := Bk) hT (fun e he Bd' ↦ opening_fold_round_completeAt fs cert κ hrf
-        hcons hκ e he Bd') hK args rets L' hreg hpre).toCompleteAtB).toO
+      exact ((kindDB (Bnd := Bk) hT hK args rets L' hreg hpre).toCompleteAtB).toO
   have hB : ∀ f ∈ osCalleeNames (osCfgR m ri), BoundsAt fs f (Bd.map (· f)) := fun f hf B hB ↦ by
     obtain ⟨Bk, hBk, rfl⟩ := Option.mem_map.mp hB
     exact hkB m hm f (by rwa [osCalleeNames_rate] at hf) Bk hBk

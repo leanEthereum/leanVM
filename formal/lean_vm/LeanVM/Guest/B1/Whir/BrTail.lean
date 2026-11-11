@@ -26,12 +26,12 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 theorem tailTr_succ : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E),
-    tailTr (n + 1) F q t xs = ((foldsTr 0 n F q t xs).1.squeeze.2,
-      (foldsTr 0 n F q t xs).2.1 ++ [(foldsTr 0 n F q t xs).1.squeeze.1],
-      polyEval (foldsTr 0 n F q t xs).2.2.1 (foldsTr 0 n F q t xs).1.squeeze.1)
+    tailTr (n + 1) F q t xs = ((foldsTr n F q t xs).1.squeeze.2,
+      (foldsTr n F q t xs).2.1 ++ [(foldsTr n F q t xs).1.squeeze.1],
+      polyEval (foldsTr n F q t xs).2.2.1 (foldsTr n F q t xs).1.squeeze.1)
   | 0, F, q, t, xs => by simp only [tailTr, foldsTr, List.nil_append]
   | n + 1, F, q, t, xs => by
-    simp only [tailTr, foldsTr, powSponge, powOff, roundLen, ↓reduceIte, Nat.zero_add]
+    simp only [tailTr, foldsTr]
     rw [tailTr_succ n]
     simp only [List.cons_append]
 
@@ -52,23 +52,22 @@ theorem tail_sp {rd : Reader} {lane : ℕ} {O : Fs × List E × E × E} {Lf : Sp
     (hm1 : 1 ≤ m) (hcap : m ≤ yrLogCap) {T : E} (hT : ReadsAt rd T (tailC Lf xsR)) :
     (xsR.take (2 * (m - 1))).length = 2 * (m - 1) ∧ ReadsAt rd O.2.2.2 (xsR.take (2 * (m - 1))) ∧
       (∀ j, j < m - 1 → LoadHolds rd T j
-        ((foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).2.1.getD j 0)) ∧
-      LoadHolds rd T (m - 1) (foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).1.squeeze.1 ∧
+        ((foldsTr (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).2.1.getD j 0)) ∧
+      LoadHolds rd T (m - 1) (foldsTr (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).1.squeeze.1 ∧
       (∀ i < yrLogCap - m, LoadHolds rd T (m + i) 0) ∧
-      polyEval (foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).2.2.1
-        (foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).1.squeeze.1 =
+      polyEval (foldsTr (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).2.2.1
+        (foldsTr (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1)))).1.squeeze.1 =
         (tailTr Lf.ml Lf.Fend Lf.wsEnd.quad Lf.wsEnd.target xsR).2.2 := by
   have hlen := hE.len
   rw [hml] at hlen
   have htr : tailTr Lf.ml Lf.Fend Lf.wsEnd.quad Lf.wsEnd.target xsR =
       tailTr (m - 1 + 1) O.1 O.2.1 O.2.2.1 xsR := by
     rw [hE.F, hE.quad, hE.t, hml, Nat.sub_add_cancel hm1]
-  rw [show foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 (xsR.take (2 * (m - 1))) =
-      foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 xsR from foldsTr_take 0 (m - 1) _ _ _ xsR]
-  have hTc : tailC Lf xsR = (foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 xsR).2.1 ++
-      [(foldsTr 0 (m - 1) O.1 O.2.1 O.2.2.1 xsR).1.squeeze.1] ++ List.replicate (yrLogCap - m) 0 := by
+  rw [foldsTr_take]
+  have hTc : tailC Lf xsR = (foldsTr (m - 1) O.1 O.2.1 O.2.2.1 xsR).2.1 ++
+      [(foldsTr (m - 1) O.1 O.2.1 O.2.2.1 xsR).1.squeeze.1] ++ List.replicate (yrLogCap - m) 0 := by
     rw [tailC, tailChs, htr, tailTr_succ, hml]
-  have hfl := foldsTr_chs_length 0 (m - 1) O.1 O.2.1 O.2.2.1 xsR
+  have hfl := foldsTr_chs_length (m - 1) O.1 O.2.1 O.2.2.1 xsR
   rw [hTc] at hT
   refine ⟨by simp; omega, readsAt_left (ys := xsR.drop (2 * (m - 1)))
     (by rw [List.take_append_drop]; exact hE.reads), fun j hj ↦ ?_, ?_, fun i hi ↦ ?_, ?_⟩

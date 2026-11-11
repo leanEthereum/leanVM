@@ -31,8 +31,7 @@ unfoldings and inductions of `LeanVM.Protocol.Verifier.Cost`: the sizes, the bus
 sumcheck, the public input, the Keccak reduction and ring switching make no prover move other than
 reads; the
 stack's root is the one commitment outside WHIR; the stacked opening commits WHIR's levels and
-checks WHIR's proofs of work, of `Whir.queryGrindingBits = 17` bits before the queries and of a
-level's `Whir.Level.foldGrinding` bits, when nonzero, before its fold challenges. Hence
+checks WHIR's query proofs of work, of `Whir.queryGrindingBits = 17` bits. Hence
 `grind_bits_ok`: every proof of work of the leanVM verifier has between `1` and
 `maxGrindingBits = 17` bits (the completeness theorem's one condition on the hash: a search of
 at most `17` bits succeeds), and
@@ -139,8 +138,11 @@ theorem liftOption (o : Option α) : MovesOK g c (Verifier.liftOption o) := by
   cases o <;> trivial
 
 /-- A proof of work is allowed when its bits are. -/
-theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (VerifierProgram.grindProofOfWork b) := ⟨hb,
-    trivial⟩
+theorem grindP {b : ℕ} (hb : g b) : MovesOK g c (VerifierProgram.grindProofOfWork b) := by
+  unfold VerifierProgram.grindProofOfWork
+  split
+  · exact MovesOK.pure _
+  · exact ⟨hb, trivial⟩
 
 /-- A commitment is allowed when commitments are. -/
 theorem commitP (hc : c) (ht w : ℕ) : MovesOK g c (VerifierProgram.readCommitment ht w) := ⟨hc,
@@ -422,8 +424,7 @@ theorem movesOK_ringSwitch (point s : List E) :
 
 /-! ## WHIR -/
 
-/-- The most bits a proof of work of the verifier asks for: the query grinding's `17`, the fold
-grinding of the tables (`Whir.foldGrindingTable`) being at most that. -/
+/-- The most bits a proof of work of the verifier asks for: the query grinding's `17`. -/
 def maxGrindingBits : ℕ := 17
 
 /-- A proof of work's bits, between `1` and `maxGrindingBits`. -/
@@ -431,52 +432,13 @@ def GrindOK (b : ℕ) : Prop := b ≠ 0 ∧ b ≤ maxGrindingBits
 
 theorem queryGrindingBits_ok : GrindOK Whir.queryGrindingBits := ⟨by decide, by decide⟩
 
-/-- Every level of every ladder grinds at most `maxGrindingBits` before a fold challenge; decided
-over the `68` admissible pairs. -/
-theorem ladder_foldGrinding_le (μ logInvRate : ℕ) (levels : List Whir.Level)
-    (h : Whir.ladder μ logInvRate = some levels) :
-    ∀ level ∈ levels, level.foldGrinding ≤ maxGrindingBits := by
-  by_cases hadm : Whir.Admissible μ logInvRate
-  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
-        ∀ levels, Whir.ladder μ r = some levels →
-          levels.all (fun level ↦ decide (level.foldGrinding ≤ maxGrindingBits)) = true := by
-      decide +kernel
-    have hk := key μ (Nat.lt_succ_of_le hadm.2.1) logInvRate (Nat.lt_succ_of_le hadm.2.2.2)
-      hadm levels h
-    intro level hl
-    simpa using List.all_eq_true.1 hk level hl
-  · simp [Whir.ladder, hadm] at h
-
-/-- The proof of work before a fold challenge: none at `0` bits, otherwise one of `b` bits. -/
-theorem movesOK_foldProofOfWork {b : ℕ} (hb : b ≤ maxGrindingBits) :
-    MovesOK GrindOK False (VerifierProgram.foldProofOfWork b) := by
-  unfold VerifierProgram.foldProofOfWork
-  split
-  · exact MovesOK.pure _
-  · exact MovesOK.grindP ⟨by assumption, hb⟩
-
-/-- A WHIR level's fold rounds are reads, samples, and the level's proofs of work. -/
-theorem movesOK_foldRounds {b : ℕ} (hb : b ≤ maxGrindingBits) :
-    ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    MovesOK GrindOK False (foldRoundsT b n s levelFolds)
+/-- A WHIR level's fold rounds are reads and samples. -/
+theorem movesOK_foldRounds : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
+    MovesOK (fun _ ↦ False) False (foldRoundsT n s levelFolds)
   | 0, _, _ => MovesOK.pure _
   | n + 1, _, _ =>
-    MovesOK.seq (movesOK_foldProofOfWork hb) fun _ ↦
-      MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (MovesOK.of_none
-        (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦ movesOK_foldRounds hb n _ _
-
-/-- A WHIR level's fold rounds, whatever their proofs of work ask for. -/
-theorem movesOK_foldRounds_any (b : ℕ) : ∀ (n : ℕ) (s : WhirStateT) (levelFolds : List E),
-    MovesOK (fun _ ↦ True) False (foldRoundsT b n s levelFolds)
-  | 0, _, _ => MovesOK.pure _
-  | n + 1, _, _ =>
-    MovesOK.seq (by
-        unfold VerifierProgram.foldProofOfWork
-        split
-        · exact MovesOK.pure _
-        · exact MovesOK.grindP trivial) fun _ ↦
-      MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (MovesOK.of_none
-        (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦ movesOK_foldRounds_any b n _ _
+    MovesOK.seq MovesOK.sampleE fun _ ↦ MovesOK.seq (movesOK_sumcheckRoundPoly 3 _ none)
+      fun _ ↦ movesOK_foldRounds n _ _
 
 /-- The final WHIR level's tail rounds are reads and samples. -/
 theorem movesOK_tailRounds : ∀ (n : ℕ) (target : E) (quad : List E),
@@ -500,16 +462,13 @@ theorem movesOK_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
 /-- WHIR's query proof of work has at most `64` bits. -/
 theorem queryGrindingBits_le : Whir.queryGrindingBits ≤ 64 := by decide
 
-/-- The WHIR levels: commitments, and proofs of work of at most `maxGrindingBits` bits when the
-levels' fold grinding is. -/
+/-- The WHIR levels: commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirStateT),
-      (∀ level ∈ levels, level.foldGrinding ≤ maxGrindingBits) →
       MovesOK GrindOK True (whirLevelsT logN laneFolds evaluateBasis index levels s)
-  | [], _, _, _ => MovesOK.fail
-  | [level], index, s, hl => by
-    refine MovesOK.seq ((movesOK_foldRounds (hl level (by simp)) level.fold s []).mono
-      (fun _ h ↦ h) False.elim) fun r ↦ ?_
+  | [], _, _ => MovesOK.fail
+  | [level], index, s => by
+    refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
     refine MovesOK.seq (MovesOK.readN _) fun _ ↦ MovesOK.seq (MovesOK.pure _) fun _ ↦
       MovesOK.seq (MovesOK.grindP queryGrindingBits_ok) fun _ ↦
@@ -519,9 +478,8 @@ theorem movesOK_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
               fun intro ↦ MovesOK.seq (MovesOK.of_none (movesOK_tailRounds _ _ _)) fun r ↦ ?_
     obtain ⟨tailFolds, target⟩ := r
     exact MovesOK.require _
-  | level :: next :: rest, index, s, hl => by
-    refine MovesOK.seq ((movesOK_foldRounds (hl level (by simp)) level.fold s []).mono
-      (fun _ h ↦ h) False.elim) fun r ↦ ?_
+  | level :: next :: rest, index, s => by
+    refine MovesOK.seq (MovesOK.of_none (movesOK_foldRounds level.fold s [])) fun r ↦ ?_
     obtain ⟨s', levelFolds⟩ := r
     exact MovesOK.seq (MovesOK.commitP trivial _ _) fun _ ↦
       MovesOK.seq (MovesOK.sampleN _) fun _ ↦ MovesOK.seq MovesOK.readE fun _ ↦
@@ -533,20 +491,14 @@ theorem movesOK_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E)
                   MovesOK.seq (MovesOK.queryP index queries) fun words ↦
                     MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none))
                       fun intro ↦ movesOK_whirLevels logN laneFolds evaluateBasis
-                        (next :: rest) (index + 1) _ fun l hl' ↦ hl l (List.mem_cons_of_mem _ hl')
+                        (next :: rest) (index + 1) _
 
-/-- WHIR: its levels' commitments, and proofs of work of at most `maxGrindingBits` bits. -/
+/-- WHIR: its levels' commitments, and proofs of work of `Whir.queryGrindingBits` bits. -/
 theorem movesOK_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
-    MovesOK GrindOK True (verifyWhirT logN logInvRate target evaluateBasis) := by
-  unfold verifyWhirT
-  cases hc : Whir.ladder logN logInvRate with
-  | none => exact MovesOK.fail
-  | some config =>
-    change MovesOK GrindOK True ((sumcheckRoundPoly 3 target none).bind fun quad ↦
-      whirLevelsT logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
-        ⟨target, quad, [], []⟩)
-    exact MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦
-      movesOK_whirLevels logN _ evaluateBasis config 0 _ (ladder_foldGrinding_le _ _ _ hc)
+    MovesOK GrindOK True (verifyWhirT logN logInvRate target evaluateBasis) :=
+  MovesOK.seq (MovesOK.liftOption _) fun config ↦
+    MovesOK.seq (MovesOK.of_none (movesOK_sumcheckRoundPoly 3 _ none)) fun _ ↦
+      movesOK_whirLevels logN _ evaluateBasis config 0 _
 
 /-- The stack's root: one commitment, no proof of work. -/
 theorem movesOK_commitStack (logN logInvRate : ℕ) :

@@ -9,21 +9,20 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem wsplit_321_1627 : blockR (wlookJ 321) (womLookJ 321) true [(.n 13, 32), (.n 15, 12), (.n 17, 26), (.n 19, 6), (.n 21, 6), (.n 23, 1392), (.n 25, 1392), (.n 27, 128), (.n 157, 156), (.n 159, 24), (.n 376, 64), (.n 599, 64), (.n 826, 64), (.n 1053, 64), (.n 1280, 64), (.n 1405, 64), (.n 1427, 5), (.n 1668, 156), (.n 1670, 6), (.n 2296, 7)] Data.core321.params Data.core321.name (Data.core321.body.drop 1627)
-    ([(.n 1670, 6), (.n 1668, 156), (.n 1427, 5), (.n 1405, 64), (.n 1280, 64), (.n 1053, 64), (.n 826, 64), (.n 599, 64), (.n 376, 64), (.n 159, 24), (.n 157, 156), (.n 27, 128), (.n 25, 1392), (.n 23, 1392), (.n 21, 6), (.n 19, 6), (.n 17, 26), (.n 15, 12), (.n 13, 32)], []) = some (⟨37385, []⟩, []) := by
-  decide +kernel
+theorem wstaticRange_317 : wStaticRange 317 21 := by
+  unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wsplit_322_0 : noTopRet ((Data.core322.body.drop 0).take 1555) = true ∧
-    blockR (wlookJ 322) (womLookJ 322) true [(.n 13, 4), (.n 15, 14), (.n 17, 30), (.n 19, 7), (.n 21, 7), (.n 23, 1624), (.n 25, 1624), (.n 27, 128), (.n 157, 182), (.n 159, 28), (.n 376, 64), (.n 599, 64), (.n 826, 64), (.n 1053, 64), (.n 1280, 64), (.n 1507, 64), (.n 1632, 64), (.n 1654, 5), (.n 1867, 182), (.n 1869, 7), (.n 2550, 8)] Data.core322.params Data.core322.name ((Data.core322.body.drop 0).take 1555)
-      ([], []) = some (⟨247459, []⟩, []) ∧
-    blockEnv true [(.n 13, 4), (.n 15, 14), (.n 17, 30), (.n 19, 7), (.n 21, 7), (.n 23, 1624), (.n 25, 1624), (.n 27, 128), (.n 157, 182), (.n 159, 28), (.n 376, 64), (.n 599, 64), (.n 826, 64), (.n 1053, 64), (.n 1280, 64), (.n 1507, 64), (.n 1632, 64), (.n 1654, 5), (.n 1867, 182), (.n 1869, 7), (.n 2550, 8)] Data.core322.params ([], []) ((Data.core322.body.drop 0).take 1555) = ([(.n 1654, 5), (.n 1632, 64), (.n 1507, 64), (.n 1280, 64), (.n 1053, 64), (.n 826, 64), (.n 599, 64), (.n 376, 64), (.n 159, 28), (.n 157, 182), (.n 27, 128), (.n 25, 1624), (.n 23, 1624), (.n 21, 7), (.n 19, 7), (.n 17, 30), (.n 15, 14), (.n 13, 4)], []) := by
-  decide +kernel
+theorem wstaticRange_338 : wStaticRange 338 22 := by
+  unfold wStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wsplit_322_1555 : blockR (wlookJ 322) (womLookJ 322) true [(.n 13, 4), (.n 15, 14), (.n 17, 30), (.n 19, 7), (.n 21, 7), (.n 23, 1624), (.n 25, 1624), (.n 27, 128), (.n 157, 182), (.n 159, 28), (.n 376, 64), (.n 599, 64), (.n 826, 64), (.n 1053, 64), (.n 1280, 64), (.n 1507, 64), (.n 1632, 64), (.n 1654, 5), (.n 1867, 182), (.n 1869, 7), (.n 2550, 8)] Data.core322.params Data.core322.name (Data.core322.body.drop 1555)
-    ([(.n 1654, 5), (.n 1632, 64), (.n 1507, 64), (.n 1280, 64), (.n 1053, 64), (.n 826, 64), (.n 599, 64), (.n 376, 64), (.n 159, 28), (.n 157, 182), (.n 27, 128), (.n 25, 1624), (.n 23, 1624), (.n 21, 7), (.n 19, 7), (.n 17, 30), (.n 15, 14), (.n 13, 4)], []) = some (⟨39896, []⟩, []) := by
-  decide +kernel
+theorem wstaticRange_360 : wStaticRange 360 23 := by
+  unfold wStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem wstaticRange_383 : wStaticRange 383 14 := by
+  unfold wStaticRange; decide +kernel
 
 end
 end LeanVM.Guest

@@ -116,6 +116,12 @@ theorem stack32 : (Tables.layoutOf bytecode S.logMem S.rowsN).stackLog ≤ 32 :=
 theorem hh33 (hbl : bytecode.length = 2 ^ 23) : ∀ h ∈ S.hs, h < 33 :=
   vsH_heights hbl S.hrowsL S.stack32
 
+theorem stack30 : (Tables.layoutOf bytecode S.logMem S.rowsN).stackLog ≤ 30 := by
+  rw [← S.hlayout]; exact S.hmu30
+
+theorem hh31 (hbl : bytecode.length = 2 ^ 23) : ∀ h ∈ S.hs, h < 31 :=
+  vsH_heights hbl S.hrowsL S.stack30
+
 theorem μ_eq (hbl : bytecode.length = 2 ^ 23) :
     (busLayout [0, S.layout.logMemory, S.layout.logBytecode] S.layout.push).depth = S.μ := by
   rw [S.hlayout]; exact pushDepth_eq hbl S.logMem S.rowsN S.hrowsL

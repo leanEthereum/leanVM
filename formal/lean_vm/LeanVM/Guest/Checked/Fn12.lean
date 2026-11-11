@@ -8,25 +8,26 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F620_0
-public import LeanVM.Guest.Checked.F620_0
-public import LeanVM.Guest.Checked.F620_0
-public import LeanVM.Guest.Checked.F620_0
-public import LeanVM.Guest.Checked.F624_1
-public import LeanVM.Guest.Checked.F624_1
-public import LeanVM.Guest.Checked.F624_1
-public import LeanVM.Guest.Checked.F630_0
-public import LeanVM.Guest.Checked.F630_0
-public import LeanVM.Guest.Checked.F630_0
-public import LeanVM.Guest.Checked.F630_0
-public import LeanVM.Guest.Checked.F634_1
-public import LeanVM.Guest.Checked.F634_1
-public import LeanVM.Guest.Checked.F634_1
-public import LeanVM.Guest.Checked.F634_1
-public import LeanVM.Guest.Checked.F639_0
-public import LeanVM.Guest.Checked.F639_0
-public import LeanVM.Guest.Checked.F639_0
-public import LeanVM.Guest.Checked.F639_0
+public import LeanVM.Guest.Checked.F611_0
+public import LeanVM.Guest.Checked.F611_0
+public import LeanVM.Guest.Checked.F617_0
+public import LeanVM.Guest.Checked.F617_0
+public import LeanVM.Guest.Checked.F617_0
+public import LeanVM.Guest.Checked.F622_1
+public import LeanVM.Guest.Checked.F622_1
+public import LeanVM.Guest.Checked.F622_1
+public import LeanVM.Guest.Checked.F622_1
+public import LeanVM.Guest.Checked.F627_0
+public import LeanVM.Guest.Checked.F627_0
+public import LeanVM.Guest.Checked.F627_0
+public import LeanVM.Guest.Checked.F627_0
+public import LeanVM.Guest.Checked.F631_1
+public import LeanVM.Guest.Checked.F631_1
+public import LeanVM.Guest.Checked.F631_1
+public import LeanVM.Guest.Checked.F631_1
+public import LeanVM.Guest.Checked.F631_1
+public import LeanVM.Guest.Checked.F635_1
+public import LeanVM.Guest.Checked.F635_1
 
 namespace LeanVM.Guest.Checked
 
@@ -60,24 +61,39 @@ theorem plain613 : Plain 613 := plain_of_nil (by decide +kernel)
 
 theorem plain614 : Plain 614 := plain_of_nil (by decide +kernel)
 
-theorem plain615 : Plain 615 := plain_of_nil (by decide +kernel)
+theorem ok615 : CheckOk 615 := fun i hi ↦ by
+  have h : (certOf 615).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w615_0
+  · exact w615_1
 
-theorem plain616 : Plain 616 := plain_of_nil (by decide +kernel)
+theorem ok616 : CheckOk 616 := fun i hi ↦ by
+  have h : (certOf 616).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w616_0
+  · exact w616_1
 
-theorem plain617 : Plain 617 := plain_of_nil (by decide +kernel)
+theorem ok617 : CheckOk 617 := fun i hi ↦ by
+  have h : (certOf 617).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w617_0
+  · exact w617_1
 
-theorem plain618 : Plain 618 := plain_of_nil (by decide +kernel)
+theorem ok618 : CheckOk 618 := fun i hi ↦ by
+  have h : (certOf 618).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w618_0
+  · exact w618_1
 
 theorem plain619 : Plain 619 := plain_of_nil (by decide +kernel)
 
 theorem plain620 : Plain 620 := plain_of_nil (by decide +kernel)
 
-theorem ok621 : CheckOk 621 := fun i hi ↦ by
-  have h : (certOf 621).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w621_0
-  · exact w621_1
+theorem plain621 : Plain 621 := plain_of_nil (by decide +kernel)
 
 theorem ok622 : CheckOk 622 := fun i hi ↦ by
   have h : (certOf 622).cuts.length = 1 := by decide +kernel
@@ -100,11 +116,21 @@ theorem ok624 : CheckOk 624 := fun i hi ↦ by
   · exact w624_0
   · exact w624_1
 
-theorem plain625 : Plain 625 := plain_of_nil (by decide +kernel)
+theorem ok625 : CheckOk 625 := fun i hi ↦ by
+  have h : (certOf 625).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w625_0
+  · exact w625_1
 
 theorem plain626 : Plain 626 := plain_of_nil (by decide +kernel)
 
-theorem plain627 : Plain 627 := plain_of_nil (by decide +kernel)
+theorem ok627 : CheckOk 627 := fun i hi ↦ by
+  have h : (certOf 627).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w627_0
+  · exact w627_1
 
 theorem ok628 : CheckOk 628 := fun i hi ↦ by
   have h : (certOf 628).cuts.length = 1 := by decide +kernel
@@ -120,12 +146,7 @@ theorem ok629 : CheckOk 629 := fun i hi ↦ by
   · exact w629_0
   · exact w629_1
 
-theorem ok630 : CheckOk 630 := fun i hi ↦ by
-  have h : (certOf 630).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w630_0
-  · exact w630_1
+theorem plain630 : Plain 630 := plain_of_nil (by decide +kernel)
 
 theorem ok631 : CheckOk 631 := fun i hi ↦ by
   have h : (certOf 631).cuts.length = 1 := by decide +kernel
@@ -134,7 +155,12 @@ theorem ok631 : CheckOk 631 := fun i hi ↦ by
   · exact w631_0
   · exact w631_1
 
-theorem plain632 : Plain 632 := plain_of_nil (by decide +kernel)
+theorem ok632 : CheckOk 632 := fun i hi ↦ by
+  have h : (certOf 632).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w632_0
+  · exact w632_1
 
 theorem ok633 : CheckOk 633 := fun i hi ↦ by
   have h : (certOf 633).cuts.length = 1 := by decide +kernel
@@ -157,49 +183,24 @@ theorem ok635 : CheckOk 635 := fun i hi ↦ by
   · exact w635_0
   · exact w635_1
 
-theorem plain636 : Plain 636 := plain_of_nil (by decide +kernel)
-
-theorem ok637 : CheckOk 637 := fun i hi ↦ by
-  have h : (certOf 637).cuts.length = 1 := by decide +kernel
+theorem ok636 : CheckOk 636 := fun i hi ↦ by
+  have h : (certOf 636).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w637_0
-  · exact w637_1
+  · exact w636_0
+  · exact w636_1
 
-theorem ok638 : CheckOk 638 := fun i hi ↦ by
-  have h : (certOf 638).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w638_0
-  · exact w638_1
+theorem plain637 : Plain 637 := plain_of_nil (by decide +kernel)
 
-theorem ok639 : CheckOk 639 := fun i hi ↦ by
-  have h : (certOf 639).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w639_0
-  · exact w639_1
+theorem plain638 : Plain 638 := plain_of_nil (by decide +kernel)
 
-theorem ok640 : CheckOk 640 := fun i hi ↦ by
-  have h : (certOf 640).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w640_0
-  · exact w640_1
+theorem plain639 : Plain 639 := plain_of_nil (by decide +kernel)
 
-theorem ok641 : CheckOk 641 := fun i hi ↦ by
-  have h : (certOf 641).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w641_0
-  · exact w641_1
+theorem plain640 : Plain 640 := plain_of_nil (by decide +kernel)
 
-theorem ok642 : CheckOk 642 := fun i hi ↦ by
-  have h : (certOf 642).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w642_0
-  · exact w642_1
+theorem plain641 : Plain 641 := plain_of_nil (by decide +kernel)
+
+theorem plain642 : Plain 642 := plain_of_nil (by decide +kernel)
 
 theorem plain643 : Plain 643 := plain_of_nil (by decide +kernel)
 

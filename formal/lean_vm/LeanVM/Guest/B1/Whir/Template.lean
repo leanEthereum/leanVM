@@ -21,8 +21,7 @@ first free value `k` and returns the next, the running sponge cells, the cursor 
 a word offset), the waiting scalars, the quadratic and the claim in `OsSt`. The body depends on the
 size alone: where a rate changes a level's shape it dispatches on the rate's selector, value `0`
 (`.dispatch`), into a helper specialized on that rate's row (`level_positions`, `level_queries`,
-`level_residual`, and `opening_fold_round` at a level some rate grinds the folds of), the names
-taken from every rate's levels (`OsCfg.lvAt`). The inline Fiat-Shamir helpers are B1-a's
+`level_residual`), the names taken from every rate's levels (`OsCfg.lvAt`). The inline Fiat-Shamir helpers are B1-a's
 templates (`fsPackT`, `fsNextT`, `challengeT`, `keccakA`, `B1/Fs/Templates.lean`).
 
 `Whir/Data*.lean` check every size's body equal to this by kernel evaluation.
@@ -229,44 +228,28 @@ def osHead (c : OsCfg) : List Stmt × OsSt :=
     osHeap (n * oodSlots) 159,
    ⟨161, [1, 2, 3, 4, 5], 10, 11, 9, 2, 10, 12, 11, 6, none, []⟩)
 
-/-- The call of one sumcheck round on its arguments and returns: `opening_fold` itself, or, at a
-level some rate grinds the folds of, the rate's `opening_fold_round` specialization. -/
-def osFoldCall (fr : Option (List String)) (args rets : List V) : Stmt :=
-  match fr with
-  | none => .call "opening_fold" args rets
-  | some names => .dispatch (.n osRate) names args rets
-
 /-- One sumcheck round (`opening_fold`), its challenge stored at `p·g^off`: the cursor
 materialized, the call, the store, `b = claim + a`. -/
-def osFold (fr : Option (List String)) (p off : ℕ) (s : OsSt) : List Stmt × OsSt :=
+def osFold (p off : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let m := osMat s.cb s.co s.k
   let r := m.2.2
-  (m.1 ++ [osFoldCall fr ((s.fs ++ [s.w0, s.w1, m.2.1, s.c, s.b, s.a]).map V.n) (osRun r 10),
+  (m.1 ++ [.call "opening_fold" ((s.fs ++ [s.w0, s.w1, m.2.1, s.c, s.b, s.a]).map V.n) (osRun r 10),
     .atom (.load (.n (r + 9)) (.n p) off), .atom (.add (.n (r + 10)) (.n (r + 6)) (.n (r + 8)))],
    { s with k := r + 11, fs := [r, r + 1, r + 2, r + 3, r + 4], cb := r + 5, co := 0, t := r + 6,
             c := r + 7, a := r + 8, w0 := r + 7, w1 := r + 8, b := r + 10 })
 
 /-- `n` rounds, the challenges stored from `p·g^off`. -/
-def osFolds (fr : Option (List String)) (p : ℕ) : ℕ → ℕ → OsSt → List Stmt × OsSt
+def osFolds (p : ℕ) : ℕ → ℕ → OsSt → List Stmt × OsSt
   | _, 0, s => ([], s)
   | off, n + 1, s =>
-    let r := osFold fr p off s
-    let t := osFolds fr p (off + 1) n r.2
+    let r := osFold p off s
+    let t := osFolds p (off + 1) n r.2
     (r.1 ++ t.1, t.2)
 
 /-- The rounds keep the materialized pointers. -/
-theorem osFolds_mats (fr : Option (List String)) (p : ℕ) :
-    ∀ (n off : ℕ) (st : OsSt), (osFolds fr p off n st).2.mats = st.mats
+theorem osFolds_mats (p : ℕ) : ∀ (n off : ℕ) (st : OsSt), (osFolds p off n st).2.mats = st.mats
   | 0, _, _ => rfl
-  | n + 1, off, st => osFolds_mats fr p n (off + 1) (osFold fr p off st).2
-
-/-- The name of `opening_fold_round`'s specialization at `b` bits. -/
-def osFoldRoundName (b : ℕ) : String := "opening_fold_round__L" ++ natStr b
-
-/-- A level's fold call: `opening_fold`, or, when some rate grinds its folds, the dispatch on the
-rate into `opening_fold_round` at each rate's bits. -/
-def osFoldNames (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Option (List String) :=
-  if lv.grindAny = 0 then none else some ((c.lvAt lvl).map fun l ↦ osFoldRoundName l.foldGrind)
+  | n + 1, off, st => osFolds_mats p n (off + 1) (osFold p off st).2
 
 /-- The final level's message (`opening_final_message`, G:1501): the call, the sponge after the
 nonce's permutation; its first cell (the grinding word) and the nonce. -/
@@ -407,7 +390,7 @@ def osGlue (beta v c0 c1 c2 : ℕ) (s : OsSt) : List Stmt × OsSt :=
 
 /-- One level. -/
 def osLevel (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
-  let f := osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds s
+  let f := osFolds osFch lv.foldsOff lv.folds s
   let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit c.plan lvl lv f.2
   let gr : List Stmt := [.call ("grind_check__L" ++ natStr lv.grind) [.n m.2.2] []]
   let sq := osPositions c lvl lv m.2.1
@@ -442,7 +425,7 @@ rounds, the closing squeeze on the two waiting scalars, its challenge stored, th
 unused entries zeroed. The statements, the state (its claim `t`) and the buffer. -/
 def osTail (c : OsCfg) (s : OsSt) : List Stmt × OsSt × ℕ :=
   let tch := s.k + 1
-  let f := osFolds none tch 0 (c.yrLog - 1) { s with k := s.k + 2 }
+  let f := osFolds tch 0 (c.yrLog - 1) { s with k := s.k + 2 }
   let j := f.2.k
   let p := (f.2.pad.getD 0)
   (osHeap yrLogCap s.k ++ f.1 ++

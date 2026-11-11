@@ -21,7 +21,7 @@ running state `ws`, the words and the openings is described by `SpLv`: the level
 message `ms` (the last), the proof of work's `nonce`, its openings `os` and its intro's words
 `ic0 ic2`. Everything else is a function of these (`SpLv.F1` … `SpLv.Fend`):
 
-* `tr = foldsTr grinding folds F quad claim xf`: the sponge `F1` after the rounds, the challenges `chs`,
+* `tr = foldsTr folds F quad claim xf`: the sponge `F1` after the rounds, the challenges `chs`,
   the state `ws1`; the message log `ml` after them;
 * the commitment (not the last level): `cF1 F1 ra rb` the sponge with the root's two scalars
   waiting, `oodZ` the out-of-domain point (`ml` squeezes), `cRest` its tail, `cF2` the sponge of
@@ -33,7 +33,7 @@ message `ms` (the last), the proof of work's `nonce`, its openings `os` and its 
 * `words`: the level's stream words in order.
 
 `SpLv.Ok`: the facts the run gives (every challenge nonzero, the root's digest, the proofs of
-work (the folds' and the queries'), the openings passing `openOne` under the level's root at `qs`).
+work, the openings passing `openOne` under the level's root at `qs`).
 
 `level_nf_inv` (a level that is not the last), `level_fin_inv` (the last, with its tail rounds
 and `w`) and `head_inv` (the first quadratic): an accepting run splits so.
@@ -96,10 +96,10 @@ theorem absorb_four (cap : List E) (y c0 c2 nonce : E) :
 
 theorem foldStep_pend (F : Fs) (d0 d2 : E) : (foldStep F d0 d2).pend.length = 2 := rfl
 
-theorem foldsTr_pend (b : ℕ) : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E),
-    F.pend.length = 2 → (foldsTr b n F q t xs).1.pend.length = 2
+theorem foldsTr_pend : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E),
+    F.pend.length = 2 → (foldsTr n F q t xs).1.pend.length = 2
   | 0, _, _, _, _, h => h
-  | n + 1, _, _, _, _, _ => foldsTr_pend b n _ _ _ _ (foldStep_pend _ _ _)
+  | n + 1, _, _, _, _, _ => foldsTr_pend n _ _ _ _ (foldStep_pend _ _ _)
 
 /-! ## A level -/
 
@@ -132,8 +132,7 @@ namespace SpLv
 variable (L : SpLv)
 
 /-- The rounds. -/
-def tr : Fs × List E × List E × E :=
-  foldsTr L.level.foldGrinding L.level.fold L.F L.ws.quad L.ws.target L.xf
+def tr : Fs × List E × List E × E := foldsTr L.level.fold L.F L.ws.quad L.ws.target L.xf
 /-- The fold challenges. -/
 def chs : List E := L.tr.2.1
 /-- The sponge after the rounds. -/
@@ -178,14 +177,13 @@ def words : List E :=
 /-- **What an accepting run gives of a level**: `R` the commitments read before it, `d` its
 next commitment's root (not the last level). -/
 structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
-  xf : L.xf.length = roundLen L.level.foldGrinding * L.level.fold
+  xf : L.xf.length = 2 * L.level.fold
   chs : ∀ c ∈ L.chs, c ≠ 0
-  pow : FoldsPow L.level.foldGrinding L.level.fold L.F L.ws.quad L.ws.target L.xf
   digest : L.fin = false → digestFromHalves (L.ra, L.rb) = some d
-  powNf : L.fin = false → powOk Whir.queryGrindingBits L.nonce
+  powNf : L.fin = false → powOk Whir.queryGrindingBits
     (challengeOf (cF2 L.F1 L.ra L.rb L.ml L.y L.c0 L.c2 L.nonce).perm) = true
   ms : L.fin = true → L.ms.length = 2 ^ L.ml
-  powFin : L.fin = true → powOk Whir.queryGrindingBits L.nonce
+  powFin : L.fin = true → powOk Whir.queryGrindingBits
     ((L.F1.absorbAll L.ms dsObserve).absorb L.nonce dsPowNonce).squeeze.1 = true
   lam : L.lam ≠ 0
   root : R[L.index]? = some (L.root, L.height, L.width)
@@ -193,7 +191,7 @@ structure Ok (R : List (Digest × ℕ × ℕ)) (d : Digest) : Prop where
   opens : ∀ k (hk : k < L.qs.length) (ho : k < L.os.length),
     Id.run (Compile.openOneWithHash (m := Id) keccak256 L.root L.height L.width L.qs[k] L.os[k]) = true
 
-theorem chs_length : L.chs.length = L.level.fold := foldsTr_chs_length _ _ _ _ _ _
+theorem chs_length : L.chs.length = L.level.fold := foldsTr_chs_length _ _ _ _ _
 
 theorem Fend_pend : L.Fend.pend.length = 2 := rfl
 
@@ -277,7 +275,7 @@ def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirStateT) : VerifierP
 /-- **The last level**: its folds, its final message, its proof of work, its queries, its tail. -/
 theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : WhirStateT) :
     whirLevelsOpenNZ logN lane index [level] s = (do
-      let (s, levelFolds) ← foldRoundsNZ level.foldGrinding level.fold s []
+      let (s, levelFolds) ← foldRoundsNZ level.fold s []
       let messageLog := logN - s.folds.length
       let residual ← VerifierProgram.readScalars (2 ^ messageLog)
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits

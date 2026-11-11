@@ -52,7 +52,7 @@ def dvCols (σ : Val) (Vn : NFrames) : Array (E × E) := ((List.range 128).map (
 
 /-- Blob `i`'s iteration of column `h`'s blob loop (`dvRowVN`), the column's words `cw` given. -/
 def dvRowVW (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : Val :=
-  Vn 397 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 32), ofK (Parameters.g ^ h), cw.2] []
+  Vn 391 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 32), ofK (Parameters.g ^ h), cw.2] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the blob loop's valuation given. -/
 def cellSymsAt (Vn : NFrames) (c13 : E) (row : Val) : List K :=

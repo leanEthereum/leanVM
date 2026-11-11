@@ -69,8 +69,8 @@ theorem gpow_ne_pcFinal (prog : LeanIsaProgram) {n : ℕ} (hn : n + 1 < 2 ^ prog
     addressOfIndex n ≠ prog.pcFinal := by
   unfold LeanIsaProgram.pcFinal
   intro heq
-  have hL : prog.logSize ≤ 32 := prog.logSize_le
-  have h32 : 2 ^ prog.logSize ≤ 4294967296 := by
+  have hL : prog.logSize ≤ 30 := prog.logSize_le
+  have h32 : 2 ^ prog.logSize ≤ 1073741824 := by
     have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) hL
     simpa using this
   have hc : (2 : ℕ) ^ 64 - 1 = 18446744073709551615 := by norm_num

@@ -15,11 +15,11 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 # The pack rounds' loops (`keccak_layer`, G:2757-2808)
 
 `for xs in mul_range(1, step_g)` in `keccak_layer` is lowered to a helper of parameters
-`[xs, step_g, rounds, prev_point, point]` (`Data.core418`, `Data.core420`: the same body but for
+`[xs, step_g, rounds, prev_point, point]` (`Data.core412`, `Data.core414`: the same body but for
 the self-call's name, `pack8T`). At `x = g^j` it reads the record `rounds·x`, the eight
 coordinates `prev_point[8j ..]` (`prev_point·x⁸`), runs eight equality-mode rounds (`eqRound`, a
 round each `packRoundT`), stores their challenges at `point[8j ..]` and writes the record
-`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core419`, `Data.core421`,
+`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core413`, `Data.core415`,
 `packRemT`) runs one round an iteration on `rounds·g^⌊y/8⌋`, `prev_point·g^(8⌊y/8⌋)`,
 `point·g^(8⌊y/8⌋)` (`PackRemStep`).
 
@@ -389,21 +389,21 @@ def remLoopName : ℕ → String
   | 1 => "__loop38"
   | _ => "__loop40"
 
-theorem pack8_body426 : Data.core418.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
-theorem pack8_body428 : Data.core420.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
-theorem packRem_body427 : Data.core419.body = packRemT "__loop38" :=
+theorem pack8_body426 : Data.core412.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
+theorem pack8_body428 : Data.core414.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
+theorem packRem_body427 : Data.core413.body = packRemT "__loop38" :=
   stmtsEqb_sound (by decide +kernel)
-theorem packRem_body429 : Data.core421.body = packRemT "__loop40" :=
+theorem packRem_body429 : Data.core415.body = packRemT "__loop40" :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem find_pack8_426 : coreProgram.find? "__loop37" = some Data.core418 :=
-  Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl
-theorem find_packRem_427 : coreProgram.find? "__loop38" = some Data.core419 :=
-  Program.find?_of_indexOf? (j := 419) (by decide +kernel) rfl
-theorem find_pack8_428 : coreProgram.find? "__loop39" = some Data.core420 :=
-  Program.find?_of_indexOf? (j := 420) (by decide +kernel) rfl
-theorem find_packRem_429 : coreProgram.find? "__loop40" = some Data.core421 :=
-  Program.find?_of_indexOf? (j := 421) (by decide +kernel) rfl
+theorem find_pack8_426 : coreProgram.find? "__loop37" = some Data.core412 :=
+  Program.find?_of_indexOf? (j := 412) (by decide +kernel) rfl
+theorem find_packRem_427 : coreProgram.find? "__loop38" = some Data.core413 :=
+  Program.find?_of_indexOf? (j := 413) (by decide +kernel) rfl
+theorem find_pack8_428 : coreProgram.find? "__loop39" = some Data.core414 :=
+  Program.find?_of_indexOf? (j := 414) (by decide +kernel) rfl
+theorem find_packRem_429 : coreProgram.find? "__loop40" = some Data.core415 :=
+  Program.find?_of_indexOf? (j := 415) (by decide +kernel) rfl
 
 theorem find_pack8 {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (packLoopName first) = some fn ∧ fn.body = pack8T (packLoopName first) ∧

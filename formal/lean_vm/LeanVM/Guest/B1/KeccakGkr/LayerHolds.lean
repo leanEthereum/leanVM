@@ -18,10 +18,10 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem find_layer264 : coreProgram.find? "keccak_layer__L1" = some Data.core267 :=
-  Program.find?_of_indexOf? (j := 267) (by decide +kernel) rfl
-theorem find_layer265 : coreProgram.find? "keccak_layer__L0" = some Data.core268 :=
-  Program.find?_of_indexOf? (j := 268) (by decide +kernel) rfl
+theorem find_layer264 : coreProgram.find? "keccak_layer__L1" = some Data.core265 :=
+  Program.find?_of_indexOf? (j := 265) (by decide +kernel) rfl
+theorem find_layer265 : coreProgram.find? "keccak_layer__L0" = some Data.core266 :=
+  Program.find?_of_indexOf? (j := 266) (by decide +kernel) rfl
 
 /-- **`keccak_layer`**, given the later claims' weight section. -/
 theorem keccak_layer_holds_of (hW0 : WeightOk 0) : keccak_layer_Spec := by

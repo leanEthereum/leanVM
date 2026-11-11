@@ -39,14 +39,14 @@ theorem seqF_geV {σ : Val} {k k1 : ℕ} {fA : ℕ → E} {fB : Val → ℕ → 
 
 theorem osLvA_kV (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) :
     st.k ≤ (osLvA c lvl lv st).2.1.k := by
-  have h := osFolds_k (osFoldNames c lvl lv) osFch lv.folds lv.foldsOff st
+  have h := osFolds_k osFch lv.folds lv.foldsOff st
   unfold osLvA
   dsimp only
   split_ifs
   · unfold osFinal; dsimp only
-    have := osMat_next (osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds st).2.cb
-      (osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds st).2.co
-      (osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds st).2.k
+    have := osMat_next (osFolds osFch lv.foldsOff lv.folds st).2.cb
+      (osFolds osFch lv.foldsOff lv.folds st).2.co
+      (osFolds osFch lv.foldsOff lv.folds st).2.k
     omega
   · unfold osCommit; dsimp only; omega
 

@@ -27,7 +27,7 @@ words are fs-generic hypotheses, in the forms the words certificates give at `B2
 * `hL15`: `__loop14`'s run within `K15` per unit of its end's exponent and its one phantom frame
   (`TotalLeOn … LoopPre`, as `Count.wSKt_totalLeOn`; its certificate: `19`); its end is `g^m`,
   `m ≤ 32`, so `32·K15` and its frame (its frame alone when skipped, `m = 1`);
-* `hCsF`: each `column_selector__L{κ}`, `κ < 33`, has its frame within `Bcs` (it has no buffer and
+* `hCsF`: each `column_selector__L{κ}`, `κ < 31`, has its frame within `Bcs` (it has no buffer and
   no callee: `cs_completeAtB`; its certificates: at most `157`), `101` calls;
 * `hrs`: `rs_eq_run` on `c ≤ 34` coordinates within `Brs` (`TotalLeOn`; it has no words
   certificate), through `ring_switch_weight` (`rsw_completeAtB`, its chain `64·(τ + 7) ≤ 2240`);
@@ -131,7 +131,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
     (hτ : D.τ + 6 ≤ 34) (hol : D.outPt.length = D.τ + 6) (hrl : D.ringPoint.length = D.τ + 6)
     (hcf : D.coeffs.length = 64) (hgmu : D.gmu = gen ^ D.zs.length)
     (hgz : D.gzcn = gen ^ D.chis.length) (hglm : D.glm = gen ^ D.m) (hgtau : D.gtau = gen ^ D.τ)
-    (_hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 33)
+    (_hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31)
     (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 32 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
     (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.zeta)) D.zs ∧
       ReadsAt rd (ofK (addressOfIndex D.B.chi)) D.chis ∧ ReadsAt rd (ofK (addressOfIndex D.B.zv))
@@ -140,7 +140,7 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 33, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs) :
     KidsDepB fs cert κ (termKids Lin D b0) (termBs fs Beqc K15 Bcs Brs) := by
@@ -240,7 +240,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
     {Beqc K15 Bcs Brs : ℕ} (hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ => Beqc)
     (hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
       fun a => logG (a.getD 1 0) * K15 + fs "__loop14")
-    (hCsF : ∀ κ' < 33, fs (Tables.lName "column_selector" κ') ≤ Bcs)
+    (hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs)
     (hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a => a.getD 3 0 = gen ^ c)
       fun _ => Brs) :
     CompleteAtB fs cert κ "check_opening_terminal" Lin
@@ -255,8 +255,9 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
   obtain ⟨rd0, hl0, hm0⟩ := hex
   have P0 := hpre rd0 hl0 hm0
   simp only [TermPre, termArgs] at P0
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
+  obtain ⟨hT, hPC, -, hP, hSL, hSL30, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
     -, hrpl, -, hcfl, -, hxl, -, -⟩ := P0
+  have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
@@ -316,7 +317,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
   · refine termKids_completeB κ hκ Lin D _ hreg hbus f7 f4 f1 f5 f2 f3 hgmu hgzc hglm hgtau hlm1
       hlm32 (fun c hc => ?_) (fun c hc => ?_)
       (fun rd hl hm => ?_) hEqc hL15 hCsF hrs
-    · have := hK c hc; show KC.getD c 0 < 33; omega
+    · have := hK c hc; show KC.getD c 0 < 31; omega
     · exact ⟨lt_of_lt_of_le (hO c) (Nat.pow_le_pow_right (by decide) hSL28),
         dvd_stackOffset KC (by omega)⟩
     · have P := hpre rd hl hm

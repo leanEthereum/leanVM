@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedS3
 /-!
 # `opening_queries`, `CompleteAtB`, every specialization
 
-`opening_queries_completeAtB`: each of the 47 deployed specializations (`openingQueriesLoops`:
+`opening_queries_completeAtB`: each of the 42 deployed specializations (`openingQueriesLoops`:
 name, loop helper, shape, `odd`) is `CompleteAtB` (`OqCompleteDB`, by a tree of exactly
 `oqBound fs name loop N` words, `CompleteAtE`) at every frame size `fs` and frame certificate `cert` (`OqFits`
 trivial: no frame runs); `opening_queries_completeAtD`, its `CompleteAtD`.
@@ -31,7 +31,7 @@ theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V �
     ∀ p ∈ openingQueriesLoops, OqCompleteDB fs cert p.1 p.2.1 p.2.2.1 p.2.2.2 := by
   intro p hp
   simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact oqD_1084 fs cert
   · exact oqD_1086 fs cert
   · exact oqD_1088 fs cert
@@ -74,11 +74,6 @@ theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V �
   · exact oqD_1459 fs cert
   · exact oqD_1498 fs cert
   · exact oqD_1502 fs cert
-  · exact oqD_1545 fs cert
-  · exact oqD_1546 fs cert
-  · exact oqD_1550 fs cert
-  · exact oqD_1592 fs cert
-  · exact oqD_1596 fs cert
 
 end
 end LeanVM.Guest.B1

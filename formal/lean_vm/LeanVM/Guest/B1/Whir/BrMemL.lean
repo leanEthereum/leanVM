@@ -105,12 +105,12 @@ theorem lvMemB_cont {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r 
     exact this
   · intro k hk
     rw [oodZ_length _ _ _ (by rw [hfit.ml]; exact hst.ml1), hfit.ml] at hk
-    have hc : (lvAt c i).logCols ≤ 26 := hs.cols i hi
+    have hc : (lvAt c i).logCols ≤ 24 := hs.cols i hi
     have := readsAt_map_range hm.oodz (k := (i + 1) * ligColsCap + k) (by
       have := hnf hf; simp only [ligColsCap]; nlinarith)
     simp only [ligColsCap] at this
-    simp only [show ((i + 1) * 26 + k) / 26 = i + 1 by omega,
-      show ((i + 1) * 26 + k) % 26 = k by omega, Nat.le_add_left, ↓reduceIte,
+    simp only [show ((i + 1) * 24 + k) / 24 = i + 1 by omega,
+      show ((i + 1) * 24 + k) % 24 = k by omega, Nat.le_add_left, ↓reduceIte,
       Nat.add_sub_cancel] at this
     rw [loadHolds_mul_gen_pow, ← List.getD_eq_getElem _ 0]
     exact this

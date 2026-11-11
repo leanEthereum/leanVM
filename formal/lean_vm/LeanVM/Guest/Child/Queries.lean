@@ -97,7 +97,7 @@ theorem queriesOf_proveFrom (S : Strategy) (fuel : ℕ) :
         rw [hc]; exact hws
       have hpow := powOk_of_findNonce keccakF1600 hn
       simp only [List.cons_append, Limits.queryStepsOf] at hb
-      rw [show powOk bits n (Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 sp n dsPowNonce)))).1
+      rw [show powOk bits (Id.run (squeeze keccakF1600 (Id.run (absorb keccakF1600 sp n dsPowNonce)))).1
         = true from hpow] at hb
       simp only [↓reduceIte] at hb
       refine ih _ _ t.1 t.2 restS restO hacc hws' (hc ▸ hir) ht b ?_

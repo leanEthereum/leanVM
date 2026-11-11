@@ -27,9 +27,9 @@ theorem osC_eq_fast (m : ℕ) : osC m = osCF m := by
   rw [fsFast_eq, wSBFast_eq]
 
 /-- `osBosAt` at an arm is `osC`. -/
-theorem osBosAt_eq {μ : ℕ} (h1 : minOpenLog ≤ μ) (h2 : μ ≤ 32) :
+theorem osBosAt_eq {μ : ℕ} (h1 : minOpenLog ≤ μ) (h2 : μ ≤ 30) :
     B1.osBosAt B2C.fs wSB μ = osC (μ - minOpenLog) := by
-  have h : μ - minOpenLog < 13 := by simp only [minOpenLog] at h1 h2 ⊢; omega
+  have h : μ - minOpenLog < 11 := by simp only [minOpenLog] at h1 h2 ⊢; omega
   unfold B1.osBosAt osC openName openNames
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range h, Option.map_some,
     Option.getD_some, natStr_eq]

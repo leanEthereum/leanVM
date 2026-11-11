@@ -26,10 +26,10 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vsTs vkBound)
 
 /-- **Child `c`'s `verify_sub` tree at the deployed instance**: its callees calls of their names
 within their bounds at the child's announced stack log and rate (`Budget.FlatShape` for `vsTs`),
-the child's stack log among `open_stacked`'s arms', `20` to `32`. -/
+the child's stack log among `open_stacked`'s arms', `20` to `30`. -/
 def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
   ∀ hc : c < w.children.length,
-    20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 32 ∧
+    20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
       FlatShape coreProgram "verify_sub" (vsTs B2C.fs Count.vsWords vkBound
         (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) t
 

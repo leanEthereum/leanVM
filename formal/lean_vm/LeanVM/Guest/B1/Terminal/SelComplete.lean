@@ -39,7 +39,7 @@ open Finset
 /-! ## The honest valuation (B1-c's `csk_rel` and `column_selector_complete_holds`, on it) -/
 
 /-- **`column_selector__L{κ}`'s statements hold on its honest valuation `cskVal`.** -/
-theorem csk_holdsPre {κ : ℕ} (hκ : κ < 33) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
     (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
     (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) {kret : List E → Prop} :
     Stmt.HoldsList (coreProgram.Rel rd) rd (fun x ↦ cskVal κ o se sg p p1 rd x.idx) (csPre κ) True
@@ -155,7 +155,7 @@ theorem csk_holdsPre {κ : ℕ} (hκ : κ < 33) {rd : Reader} {o : ℕ} {se sg :
     exact e_add_self _
 
 /-- **`column_selector__L{κ}`'s honest return** is the selector. -/
-theorem csk_ret {κ : ℕ} (hκ : κ < 33) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+theorem csk_ret {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
     (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hp : p.length = 32) (hp1 : p1.length = 32) :
     cskVal κ o se sg p p1 rd (csRet κ) =
       bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ) := by
@@ -204,9 +204,9 @@ noncomputable def csBodyOk (κ : ℕ) : Bool :=
     decide ((csPre κ).filterMap Stmt.loadS = csLoads κ) &&
     !coreProgram.loop (lName "column_selector" κ)
 
-theorem csBodyOk_all : (List.range 33).all csBodyOk = true := by decide +kernel
+theorem csBodyOk_all : (List.range 31).all csBodyOk = true := by decide +kernel
 
-theorem cs_body {κ : ℕ} (hκ : κ < 33) :
+theorem cs_body {κ : ℕ} (hκ : κ < 31) :
     (csPre κ).all isAtomS = true ∧ (csPre κ).all Stmt.flat = true ∧
       (csPre κ).all noLoadIte = true ∧ (csPre κ).filterMap Main.Stmt.addrS = [] ∧
       (csPre κ).filterMap Main.Stmt.allocSz = [] ∧ (csPre κ).filterMap Stmt.loadS = csLoads κ ∧
@@ -235,7 +235,7 @@ theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * 
     rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   rw [e, Main.addr_ofK]
 
-theorem colSelNames_mem {κ : ℕ} (hκ : κ < 33) : Tables.lName "column_selector" κ ∈ colSelNames :=
+theorem colSelNames_mem {κ : ℕ} (hκ : κ < 31) : Tables.lName "column_selector" κ ∈ colSelNames :=
   List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩
 
 /-! ## The nibble shares -/
@@ -281,7 +281,7 @@ set_option maxRecDepth 10000 in
 /-- **`column_selector__L{κ}` is complete, placed, within its frame**, on `selector_tables`'
 buffer, the point and the shares, the memory defined below `2^4`: it returns the eq weight of the
 offset's bits above `κ`. -/
-theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 33) {o : ℕ} (ho : o < 2 ^ 32)
+theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
     (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
     (hl1 : p1.length = 32) :
     CompleteAtDTB fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
@@ -361,7 +361,7 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 33) {o 
       rw [e]; exact cs_addr_mul _ _ _
 
 /-- **`column_selector__L{κ}` is complete, placed, within its frame** (`cs_completeAtDTB`). -/
-theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 33) {o : ℕ} (ho : o < 2 ^ 32)
+theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
     (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
     (hl1 : p1.length = 32) :
     CompleteAtB fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
@@ -374,7 +374,7 @@ theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 33) {o : 
   ⟨n, Lown, rets, Lout, ho', hw, hd', hn, fun rd hl' hm => (hr rd hl' hm).relAtIn⟩
 
 /-- **`column_selector__L{κ}` is complete, placed** (`cs_completeAtDTB`). -/
-theorem cs_completeAt (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 33) {o : ℕ} (ho : o < 2 ^ 32)
+theorem cs_completeAt (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
     (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
     (hl1 : p1.length = 32) :
     CompleteAtD fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)

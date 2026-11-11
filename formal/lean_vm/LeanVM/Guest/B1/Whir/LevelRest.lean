@@ -9,7 +9,8 @@ module
 
 public import LeanVM.Guest.B1.Whir.QueriesBlk
 public import LeanVM.Guest.B1.Whir.LamPows
-public import LeanVM.Guest.B1.Whir.FoldRound
+public import LeanVM.Guest.B1.Whir.Squeezes
+public import LeanVM.Guest.B1.Opening.Fold
 public import LeanVM.Guest.B1.Whir.Glue
 public import LeanVM.Guest.B1.Whir.LevelSpec
 
@@ -53,7 +54,7 @@ def osLevelB (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List Stmt × OsSt
 
 /-- The part of a level up to its grinding check. -/
 def osLevelA (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt × ℕ :=
-  let f := osFolds (osFoldNames c lvl lv) osFch lv.foldsOff lv.folds s
+  let f := osFolds osFch lv.foldsOff lv.folds s
   let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit c.plan lvl lv f.2
   (f.1 ++ m.1 ++ [.call ("grind_check__L" ++ natStr lv.grind) [.n m.2.2] []], m.2.1, m.2.2)
 

@@ -83,14 +83,14 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   e112 : σ (.n 110) = eOfNat lir
   e124 : σ (.n 122) = gen ^ (lir - 1)
   hlm1 : 1 ≤ logMem
-  hm32 : logMem ≤ 32
+  hm30 : logMem ≤ 30
   e29 : σ (.n 27) = eOfNat logMem
   e130 : σ (.n 128) = gen ^ logMem
   rowsN : List ℕ
   hrowsL : rowsN.length = 6
   hrows : ReadsAt rd (σ (.n 26)) (rowsN.map eOfNat)
   hdims : ReadsAt rd (σ (.n 127)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
-  hh33 : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 33
+  hh31 : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31
   hkb : ReadsAt rd (σ (.n 139)) (1 :: gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·))
   hkbv : ∀ s < 8, σ (.n (140 + s)) = gen ^ (([0, logMem] ++ Tables.tableHeightsOf rowsN).getD s 0)
   e522 : σ (.n 309) = gen ^ log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN))
@@ -174,6 +174,15 @@ theorem pushTotal_ge (m : ℕ) (hs : List ℕ) : 2 ^ m ≤ pushTotal m hs := by
 
 theorem vsPushT_noRet : Stmt.noRetList vsPushT = true := by decide +kernel
 
+/-- The memory's log-size (`hm30` weakened). -/
+theorem VsFront.hm32 {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
+    (F : VsFront bytecode C rd σ) : F.logMem ≤ 32 := by have := F.hm30; omega
+
+/-- The tables' heights below `33` (`hh31` weakened). -/
+theorem VsFront.hh33 {bytecode : List K} {C : CallRel} {rd : Reader} {σ : Val}
+    (F : VsFront bytecode C rd σ) : ∀ h ∈ Tables.tableHeightsOf F.rowsN, h < 33 :=
+  fun h hh ↦ by have := F.hh31 h hh; omega
+
 /-- The rows certified by a `verify_tables` call, at any point its precondition admits. -/
 theorem tables_heights {bytecode : List K} {rd : Reader} {pi : Digest} {logMem : ℕ}
     {alphas point values : List E} {σ : Val}
@@ -185,7 +194,7 @@ theorem tables_heights {bytecode : List K} {rd : Reader} {pi : Digest} {logMem :
         σ (.n 643), σ (.n 644), σ (.n 645)]) :
     ∃ rowsN : List ℕ, rowsN.length = 6 ∧
       ReadsAt rd (σ (.n 127)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·)) ∧
-      ∀ h ∈ Tables.tableHeightsOf rowsN, h < 33 := by
+      ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31 := by
   obtain ⟨-, -, rowsN, -, -, hl, -, hd, hh, -⟩ := hT
   exact ⟨rowsN, hl, hd, hh⟩
 
@@ -206,7 +215,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
   obtain ⟨h10, h11, h12, h13, hk, h⟩ := vsHeadT_holds h
   obtain ⟨seed, pi, hseed, hpi, hcap0⟩ := vs_seed hk h10 h11 h12 h13
   obtain ⟨hw, hrw, hk50, h⟩ := vsReadsT_holds h
-  obtain ⟨lir, logMem, hl1, hl4, e112, e124, hlm1, hm32, e29, e130, ds, hdsL, hdims0, hkb0, hkbv0,
+  obtain ⟨lir, logMem, hl1, hl4, e112, e124, hlm1, hm30, e29, e130, ds, hdsL, hdims0, hkb0, hkbv0,
     h⟩ := vsSizesT_holds hκ L hC h
   obtain ⟨hP, h⟩ := (holdsList_noRet vsPushT vsPushT_noRet _ _).1 h
   obtain ⟨hk649, w8, w9, ca1, ca2, h⟩ := vsRootsT_holds h
@@ -227,12 +236,12 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
         L.read _ _ := fun point hp hg hl ↦ htab pi logMem (vsAlphas σ) point _ _ _
       (by
         simp only [Tables.TablesPre]
-        exact ⟨hpi, hp, hg, hl, hlm1, hm32, ⟨ds, hdsL, hdims0⟩, expTablesAt_of hexp, rfl,
+        exact ⟨hpi, hp, hg, hl, hlm1, by omega, ⟨ds, hdsL, hdims0⟩, expTablesAt_of hexp, rfl,
           hfpw, trivial⟩) ct'
   -- the push total, once the heights are certified
   have hpush : ∀ rowsN : List ℕ, rowsN.length = 6 →
       ReadsAt L.read (σ (.n 127)) (gen ^ logMem :: (Tables.tableHeightsOf rowsN).map (gen ^ ·)) →
-      (∀ h ∈ Tables.tableHeightsOf rowsN, h < 33) →
+      (∀ h ∈ Tables.tableHeightsOf rowsN, h < 31) →
       ds = (Tables.tableHeightsOf rowsN).map (gen ^ ·) ∧
       σ (.n 309) = gen ^ log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) ∧
         log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) < 34 := by
@@ -241,7 +250,9 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
       have := readsAt_ext (by simp [hdsL, tableHeights_length rowsN hrl]) hdims0 hd
       simpa using this
     subst eds
-    obtain ⟨e, b, -⟩ := vsPushT_holds hκ hκ6 L hC hexp hh hm32
+    have hh33 : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 33 := fun x hx ↦ by have := hh x hx; omega
+    have hm32 : logMem ≤ 32 := by omega
+    obtain ⟨e, b, -⟩ := vsPushT_holds hκ hκ6 L hC hexp hh33 hm32
       (fun s hs ↦ by rw [hkbv0 s hs, kbase_getD (tableHeights_length rowsN hrl) hs]) hP
     exact ⟨rfl, e, b⟩
   have hpos : ∀ rowsN : List ℕ, 0 < log2Ceil (pushTotal logMem (Tables.tableHeightsOf rowsN)) :=
@@ -285,8 +296,8 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage
     (hc547 := hc547) (hab8 := vs_absorb8 hw hk50) (habR := vs_absorbRoot hw hk649)
     (halpha := halpha) (hbeta := hbeta) (halphaR := halphaR) (hfpw := hfpw) (lir := lir)
     (logMem := logMem) (hl1 := hl1) (hl4 := hl4) (e112 := e112) (e124 := e124) (hlm1 := hlm1)
-    (hm32 := hm32) (e29 := e29) (e130 := e130) (rowsN := rowsN) (hrowsL := hrl) (hrows := hrows)
-    (hdims := hdims) (hh33 := hh) (hkb := hkb0) (hkbv := hkbv) (e522 := e522) (hdep := hdlt)
+    (hm30 := hm30) (e29 := e29) (e130 := e130) (rowsN := rowsN) (hrowsL := hrl) (hrows := hrows)
+    (hdims := hdims) (hh31 := hh) (hkb := hkb0) (hkbv := hkbv) (e522 := e522) (hdep := hdlt)
     (xsG := xsG) (r := r) (capG := capG) (hxsG := (by rw [← e838]; exact hxsG)) (hrunG := ?_)
     (hptL := hptL) (hvL := hvL) (hzeta := hzeta)
     (hretG := (by rw [← e838]; exact hretG')) (xsT := xsT) (capT := capT)
