@@ -9,11 +9,11 @@
 
 //! Configuration and round-by-round soundness analysis of the affine-combiner WHIR opening.
 //!
-//! The fold is the equal-degree affine combiner `G + (alpha + beta X)(F + theta G)` of [CYWZ26, preprint], and its
-//! mutual correlated agreement is the finite bound of their Lemma 4.1 (`affine_mca`). Per verifier message, with
-//! `q = |E|` and `ell` a Johnson list at the threshold the message is analysed at:
+//! The fold is the affine combiner `G + (alpha + beta X) F` of [CYWZ26, preprint], and its mutual correlated agreement
+//! is the finite bound of their Lemma 4.1 (`affine_mca`). Every round of a level is analysed at the level's final
+//! degree `d = d_0 + k`, so a fold's two halves both stay within it and no premix is needed. Per verifier message, with
+//! `q = |E|` and `ell` a Johnson list at degree `d` and the agreement the message is analysed at:
 //!
-//! - `theta` of a fold round: `ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - `(gamma, alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
 //! - batching `lambda` entering a level: `(J - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
 //! - OOD points entering a later level: [`OOD_SAMPLES`] independent points, `C(ell, 2) (mu / q)^2`, with no grind;
@@ -54,7 +54,7 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
 /// count only needs to close the remaining `SECURITY_BITS - 17` bits.
 pub const QUERY_GRINDING_BITS: u32 = 17;
 
-/// Grinding before each fold round's `theta` and before its `(gamma, alpha, beta)`: the least for which the fold
+/// Grinding before each fold round's `(gamma, alpha, beta)`: the least for which the fold
 /// rounds never cost a query.
 pub const FOLD_GRINDING_BITS: u32 = 9;
 
@@ -317,9 +317,9 @@ fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> R
 // Security analysis
 // ===================================================================
 //
-// Per level: block length `n`, honest lane degree `d_0 = 2^log_msg_cols - 1`, `k` fold rounds. Round `j = 1..=k` is
-// analysed against degree `d_j = d_0 + j` at agreement `t_j = t_end - (k - j)` (one coordinate of agreement lost per
-// round), and the level starts at `t_0 = t_end - k`. `t_end` is the integer the search picks per level, the smallest
+// Per level: block length `n`, honest lane degree `d_0 = 2^log_msg_cols - 1`, `k` fold rounds. Every round
+// `j = 1..=k` is analysed against the level's final degree `d = d_0 + k` at agreement `t_j = t_end - (k - j)` (one
+// coordinate of agreement lost per round), and the level starts at `t_0 = t_end - k`. `t_end` is the integer the search picks per level, the smallest
 // that clears every term below, which minimises the queries `((t_end - 1) / n)^omega`. `ell(t, d)` is the Johnson list
 // of Lemma 3.11 [CYWZ26, preprint] (`affine_mca::johnson_list(n, t, d)`).
 
@@ -377,16 +377,21 @@ impl WhirLevelConfig {
         (1 << self.log_msg_cols) - 1
     }
 
-    /// Slack above the Johnson radius at the level's last round, `t_end / n - sqrt(d_k / n)`.
+    /// Slack above the Johnson radius at the level's last round, `t_end / n - sqrt(d / n)`.
     pub fn eta(&self) -> f64 {
         let n = self.block_len() as f64;
-        self.agreement as f64 / n - ((self.honest_degree() + self.k as u128) as f64 / n).sqrt()
+        self.agreement as f64 / n - (self.degree() as f64 / n).sqrt()
     }
 
-    /// `ell(t_0, d_0)`, the list the level's batching and OOD terms union over.
+    /// The degree every round of the level is analysed at, `d = d_0 + k`.
+    fn degree(&self) -> u128 {
+        self.honest_degree() + self.k as u128
+    }
+
+    /// `ell(t_0, d)`, the list the level's batching and OOD terms union over.
     pub fn list_bound(&self) -> Option<u128> {
         let start = self.agreement.checked_sub(self.k as u128)?;
-        affine_mca::johnson_list(self.block_len(), start, self.honest_degree())
+        affine_mca::johnson_list(self.block_len(), start, self.degree())
     }
 }
 
@@ -450,20 +455,20 @@ enum Position {
     After { prev_queries: usize },
 }
 
-/// The terms that depend only on `ell(t_0, d_0)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
+/// The terms that depend only on `ell(t_0, d)`: batching (`(J - 1) ell / q`), then OOD. Past L0 the OOD term is
 /// [`OOD_SAMPLES`] independent points' (`C(ell, 2) (mu / q)^2`, Lemma lem:ood per point). At L0 it is the
 /// commitment's OOD sample's (`crate::ood`, `C(ell, 2) mu / q`): its point has `mu` coordinates, and after it every
 /// outer challenge faces a single list member.
 fn check_list_terms(
     n: u128,
-    d0: u128,
+    d: u128,
     a0: u128,
     mu: usize,
     position: Position,
     g: &Grinding,
     target: usize,
 ) -> Result<(), String> {
-    let ell = affine_mca::johnson_list(n, a0, d0).ok_or("level-start threshold below the Johnson radius")?;
+    let ell = affine_mca::johnson_list(n, a0, d).ok_or("level-start threshold below the Johnson radius")?;
     let degree = match position {
         Position::First => MAX_STACKED_CLAIMS - 1 + crate::ring_switch::RING_SWITCH_ERROR_NUMERATOR,
         Position::After { prev_queries } => prev_queries + OOD_SAMPLES,
@@ -486,7 +491,7 @@ fn check_list_terms(
     }
 }
 
-/// The fold round errors for round `j` against its witness.
+/// The `(gamma, alpha, beta)` error of a fold round at agreement `a` against its witness.
 fn check_fold_round(
     n: u128,
     d: u128,
@@ -495,8 +500,6 @@ fn check_fold_round(
     g: &Grinding,
     target: usize,
 ) -> Result<(), String> {
-    let ell = affine_mca::johnson_list(n, a - 1, d).ok_or("theta threshold below the Johnson radius")?;
-    require_count(Some(ell), g.fold, target, || "theta".into())?;
     match affine_mca::combiner_within(n, d, a, w, budget(g.fold, target)) {
         Some(true) => Ok(()),
         Some(false) => Err("(gamma, alpha, beta) over its budget".into()),
@@ -507,7 +510,7 @@ fn check_fold_round(
 /// A witness for every fold round of a level ending at `t_end`, when every round clears the target.
 fn fold_witnesses(
     n: u128,
-    d0: u128,
+    d: u128,
     k: usize,
     t_end: u128,
     g: &Grinding,
@@ -515,10 +518,7 @@ fn fold_witnesses(
 ) -> Option<Vec<affine_mca::AffineWitness>> {
     let mut rounds = Vec::with_capacity(k);
     for j in 1..=k as u128 {
-        let (d, a) = (d0 + j, t_end.checked_sub(k as u128 - j)?);
-        // The cheap `theta` term first: it already rules out thresholds below the Johnson radius.
-        let ell = affine_mca::johnson_list(n, a - 1, d)?;
-        require_count(Some(ell), g.fold, target, String::new).ok()?;
+        let a = t_end.checked_sub(k as u128 - j)?;
         let (w, _) = affine_mca::find_witness(n, d, a)?;
         check_fold_round(n, d, a, &w, g, target).ok()?;
         rounds.push(w);
@@ -548,13 +548,13 @@ fn search_level(
     target: usize,
 ) -> Result<(u128, Vec<affine_mca::AffineWitness>), String> {
     let n: u128 = 1 << (log_msg_cols + log_inv_rate);
-    let d0: u128 = (1 << log_msg_cols) - 1;
+    let d: u128 = (1 << log_msg_cols) - 1 + k as u128;
     let mu = log_msg_cols + k;
     let feasible = |t_end: u128| {
-        check_list_terms(n, d0, t_end - k as u128, mu, position, g, target).ok()?;
-        fold_witnesses(n, d0, k, t_end, g, target)
+        check_list_terms(n, d, t_end - k as u128, mu, position, g, target).ok()?;
+        fold_witnesses(n, d, k, t_end, g, target)
     };
-    let (mut lo, mut hi) = ((n * (d0 + k as u128)).isqrt() + 1, n);
+    let (mut lo, mut hi) = ((n * d).isqrt() + 1, n);
     if feasible(hi).is_none() {
         return Err(format!(
             "no threshold clears {target} bits at n = 2^{}",
@@ -610,7 +610,7 @@ impl WhirSecurityConfig {
                     )));
                 }
             }
-            let (n, d0, k) = (lv.block_len(), lv.honest_degree(), lv.k as u128);
+            let (n, d, k) = (lv.block_len(), lv.degree(), lv.k as u128);
             if lv.rounds.len() != lv.k || lv.agreement > n || lv.agreement <= k {
                 return Err(at("malformed thresholds".into()));
             }
@@ -621,9 +621,9 @@ impl WhirSecurityConfig {
                     prev_queries: self.levels[i - 1].queries,
                 }
             };
-            check_list_terms(n, d0, lv.agreement - k, dim_in, position, g, target).map_err(at)?;
+            check_list_terms(n, d, lv.agreement - k, dim_in, position, g, target).map_err(at)?;
             for (j, w) in (1..=k).zip(&lv.rounds) {
-                check_fold_round(n, d0 + j, lv.agreement - (k - j), w, g, target)
+                check_fold_round(n, d, lv.agreement - (k - j), w, g, target)
                     .map_err(|e| at(format!("round {j}: {e}")))?;
             }
             let queries_log2 = lv.queries as f64 * ((lv.agreement - 1) as f64 / n as f64).log2();
