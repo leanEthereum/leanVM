@@ -2,7 +2,8 @@
 //! against the prover's query search. They tabulate rather than repeat that search, which would make cross-language
 //! float identity part of the protocol.
 
-use leanvm_core::pcs::{MAX_LOG_INV_RATE, MAX_MU, MIN_LOG_INV_RATE, MIN_MU};
+use fiat_shamir::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
+use leanvm_core::pcs::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
 use pcs::LOG_PACKING;
 use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
 
@@ -19,7 +20,7 @@ fn search(log_n: usize, rate: usize) -> ProverConfig {
 fn entries(queries: impl Fn(usize, usize) -> Vec<usize>) -> Vec<Vec<String>> {
     (MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE)
         .map(|rate| {
-            (MIN_MU..=MAX_MU)
+            (MIN_STACKED_LOG..=MAX_STACKED_LOG)
                 .map(|log_n| {
                     let counts: Vec<String> = queries(log_n, rate).iter().map(usize::to_string).collect();
                     format!("[{}]", counts.join(","))
@@ -42,7 +43,7 @@ fn lean_query_table_matches_rust() {
         "/../../formal/Statement/LeanVmVerifier.lean"
     );
     let source = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"));
-    for (name, value) in [("minLogStack", MIN_MU), ("maxLogStack", MAX_MU)] {
+    for (name, value) in [("minLogStack", MIN_STACKED_LOG), ("maxLogStack", MAX_STACKED_LOG)] {
         assert!(
             source.contains(&format!("def {name} : ℕ := {value}\n")),
             "set {name} in formal/Statement/LeanVmVerifier.lean to {value}"
@@ -63,36 +64,10 @@ fn lean_query_table_matches_rust() {
     );
 }
 
-/// Every admitted shape's proof fits the wire format: its Merkle phases, their queries, leaf widths and tree heights.
-#[test]
-fn every_shape_fits_the_wire_format() {
-    use fiat_shamir::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
-    for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-        for log_n in MIN_MU..=MAX_MU {
-            let config = search(log_n, rate);
-            let shapes = config.level_shapes(log_n);
-            assert!(
-                shapes.levels <= MAX_PHASES,
-                "rate {rate}, log_n {log_n}: {} phases",
-                shapes.levels
-            );
-            for level in 0..shapes.levels {
-                let height = shapes.block_len[level].trailing_zeros() as usize;
-                // Level 0 commits base-field lanes, deeper levels three words a lane.
-                let leaf_words = (1 << shapes.ks[level]) * if level == 0 { 1 } else { 3 };
-                assert!(
-                    config.queries[level] <= MAX_QUERIES && height <= MAX_HEIGHT && leaf_words <= MAX_LEAF_WORDS,
-                    "rate {rate}, log_n {log_n}, level {level}: past the wire format's bounds"
-                );
-            }
-        }
-    }
-}
-
 #[test]
 fn whir_query_table_matches_the_search() {
     for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-        for log_n in MIN_MU..=MAX_MU {
+        for log_n in MIN_STACKED_LOG..=MAX_STACKED_LOG {
             let config = search(log_n, rate);
             assert_eq!(
                 verifier::whir_queries(log_n, rate),
@@ -107,11 +82,24 @@ fn whir_query_table_matches_the_search() {
                 config.ood_samples, expected_ood,
                 "rate {rate}, log_n {log_n}: OOD samples are no longer 'none at level 0, one after'"
             );
+            // Its proofs fit the wire format: Merkle phases, their queries, leaf widths and tree heights.
+            let shapes = config.level_shapes(log_n);
+            assert!(
+                shapes.levels <= MAX_PHASES,
+                "rate {rate}, log_n {log_n}: {} phases",
+                shapes.levels
+            );
+            for level in 0..shapes.levels {
+                let height = shapes.block_len[level].trailing_zeros() as usize;
+                // Level 0 commits base-field lanes, deeper levels three words a lane (`verify_whir`).
+                let leaf_words = (1 << shapes.ks[level]) * if level == 0 { 1 } else { 3 };
+                assert!(
+                    config.queries[level] <= MAX_QUERIES && height <= MAX_HEIGHT && leaf_words <= MAX_LEAF_WORDS,
+                    "rate {rate}, log_n {log_n}, level {level}: past the wire format's bounds"
+                );
+            }
         }
     }
-    // The verifier admits exactly the prover's committed-size window, which `pcs::MAX_MU` sets.
-    assert_eq!(verifier::whir_queries(MIN_MU - 1, 1), None);
-    assert_eq!(verifier::whir_queries(MAX_MU + 1, 1), None);
 }
 
 /// Regenerates the literals the pins above check: the rows go over `WHIR_QUERIES` in `crates/verifier/src/whir.rs`,

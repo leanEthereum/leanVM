@@ -62,9 +62,7 @@ pub enum AggregationError {
     BlobsUnpublished,
     /// `log_inv_rate` is outside the range the WHIR configuration accepts.
     InvalidRate { log_inv_rate: usize },
-    /// A child's committed witness falls outside the opening arms the guest was
-    /// compiled with. Small aggregates are padded up to the floor, so this means
-    /// a child too big: more signatures than one node can hold.
+    /// A child's proof outgrows the guest's baked buffers (`MU_CAP`, `STREAM_CAP`).
     ChildOutOfRange { log_committed: usize },
     /// The prover made no proof of this node: the guest rejects its input (a
     /// forged signature fails the guest's run), or its witness is larger than any

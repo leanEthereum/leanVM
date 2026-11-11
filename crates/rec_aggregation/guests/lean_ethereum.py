@@ -44,12 +44,10 @@ RS_CHUNK_BITS = 3
 RES_BATCH = 8  # residual queries per loop iteration
 RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths, wider than the 2^30 caps need: a count's log is below
-# COUNT_BITS; any structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS
-# bits; and a
-# structural LOG (log_mem, log_inv_rate), announced as an integer word and
+# COUNT_BITS; a structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS
+# bits; and a structural LOG announced as an integer word (log_mem, log_inv_rate),
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
-# are enough and the reconstruction IS the bound (a larger announced log cannot
-# reproduce itself from this many bits).
+# make the reconstruction the bound (a larger log cannot reproduce itself from them).
 COUNT_BITS = 33
 SIZE_BITS = 34
 LOG_WORD_BITS = 6
@@ -1489,13 +1487,12 @@ def level_queries(lam, win_ptrs, row_eq_weights, n_queries: Const, base: Const, 
 
 
 def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
-    # The stacked WHIR opening, one specialization per committed log-size, the rate
-    # g^rate_sel at runtime. The LIG_* tables hold a row per (rate, size) candidate,
-    # rate-major, so row m_idx is the size's at the first rate, and a level's row `ml`
-    # is its (`opening_placeholders` checks that only the shapes below vary by rate).
-    # What a rate changes, its query counts and Merkle shapes, each
-    # level reads through a `match` on the rate into a helper specialized on them, and
-    # shared by every size. Only the executed arm pops the opening's hint streams.
+    # The stacked WHIR opening, one specialization per committed log-size m_idx, the
+    # rate g^rate_sel dispatched per level by a `match` into `level_positions`,
+    # `level_queries` and `level_residual`, which read the tables a rate changes (query
+    # counts, tree and cap depths, squeezes) at `ml + r * LIG_RATE_STRIDE`. Every other
+    # LIG_* table is read at the size's first-rate row `ml`, which `opening_placeholders`
+    # checks does not vary by rate. Only the executed arm pops the opening's hint streams.
     #
     # The returned point is in witness order. Round-order challenges stay local
     # for the induced weights, OOD claims, and residual evaluation.
@@ -4593,11 +4590,10 @@ def main():
             lx_tags[LX_TAG_SLOT[i] - 1] = i
     for xi in mul_range(1, n_raw_x_g):
         idx = hint_witness("raw_index")
-        # A runtime bound, whose bound is small by `assert_gpow(n_total_g)` above
-        # (its log below the memory size). Without it this degenerates to what
-        # DEREF alone gives and an index could reach past
-        # `cover`, which is the whole bijection. The bound is the leanXMSS region, so
-        # a raw leanXMSS signature covers no leanSPHINCS claim.
+        # The runtime bound is small by `assert_gpow(n_total_g)` above (its log below
+        # the memory size). Without it this degenerates to what DEREF alone gives and an
+        # index could reach past `cover`, which is the whole bijection. The bound is the
+        # leanXMSS region, so a raw leanXMSS signature covers no leanSPHINCS claim.
         assert log(idx) < log(lx_slots_g)
         cover[idx] = xi
         verify_lean_xmss(lx_table * (idx ** 4), lx_tags)

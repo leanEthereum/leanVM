@@ -176,8 +176,8 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("STREAM_CAP", STREAM_CAP.to_string());
     ps("QW", QUERY_WINDOW_BITS.to_string());
     ps("QUERY_WINDOWS_CAP", QUERY_WINDOWS_CAP.to_string());
-    ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
-    ps("MAX_LOG_MEM", leanvm_core::cpu::MAX_LOG_MEM.to_string());
+    ps("MIN_LOG_MEM", verifier::MIN_LOG_MEMORY.to_string());
+    ps("MAX_LOG_MEM", verifier::MAX_LOG_MEMORY.to_string());
     ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
@@ -658,7 +658,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let groups = col_groups(&cks);
     ps("N_COL_GROUPS", groups.len().to_string());
     ps("COL_GROUP_START", literals(groups.iter().copied().chain([cks.len()])));
-    ps("PCS_MIN_MU", leanvm_core::pcs::MIN_MU.to_string());
+    ps("PCS_MIN_MU", verifier::MIN_STACKED_LOG.to_string());
     ps(
         "LIG_LOG_MSG_COLS_CAP",
         cands

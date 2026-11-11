@@ -907,9 +907,9 @@ impl FnLower<'_> {
     /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^30`, and a negative
     /// `k-1-e` wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size.
     /// The check is complete at the memory an honest prover announces, which holds
-    /// every cell the run touches, the complement included. Both `DEREF` destinations are unconstrained
-    /// touches, back-filled at the end of execution unless a cached read needs
-    /// their value sooner. Only the ADDRESS matters to the range check itself.
+    /// every cell the run touches, the complement included. Both `DEREF` destinations
+    /// are unconstrained touches, back-filled at the end of execution unless a cached
+    /// read needs their value sooner. Only the ADDRESS matters to the range check itself.
     ///
     /// A [`LtBound::Runtime`] bound reaches the same gadget through one extra
     /// `MUL` for `g^{k-1} = Y·g^{-1}`, still back-solved rather than hinted; a small
@@ -920,10 +920,10 @@ impl FnLower<'_> {
                 if *k < 1 {
                     self.fail("range-check bound GEN ** 0 names the empty set")
                 };
-                if *k > 1 << leanvm_core::cpu::MAX_LOG_MEM {
+                if *k > 1 << leanvm_core::cpu::MAX_LOG_MEMORY {
                     self.fail(format!(
                         "range-check bound GEN ** {k} exceeds 2^{} (the largest memory size)",
-                        leanvm_core::cpu::MAX_LOG_MEM
+                        leanvm_core::cpu::MAX_LOG_MEMORY
                     ))
                 };
                 self.bound_cell(*k)
@@ -931,8 +931,8 @@ impl FnLower<'_> {
             LtBound::Runtime(b) => {
                 // A bound that folds only after substitution (`GEN ** i` inside an
                 // `unroll`) reaches here rather than the arm above, and would then
-                // skip its cap and the prover's sizing. Reject it: the author wrote a
-                // compile-time bound and should get the compile-time treatment.
+                // skip its cap. Reject it: the author wrote a compile-time bound and
+                // should get the compile-time treatment.
                 if self.try_field_const(b).is_some() {
                     self.fail(
                         "a compile-time range-check bound must be written as `log GEN ** k` or an \

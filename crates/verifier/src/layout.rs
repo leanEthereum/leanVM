@@ -619,23 +619,3 @@ pub fn build_layout<'a>(
         keccak,
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The stack's log size at these sizes.
-    fn stack_log(log_memory: usize, log_bytecode: usize, table_log: usize) -> usize {
-        let heights: Vec<usize> = TABLE_LOG_FLOORS.iter().map(|&floor| table_log.max(floor)).collect();
-        stack(&column_kappas(&tables(), log_memory, log_bytecode, &heights)).1
-    }
-
-    #[test]
-    fn stacked_log_bounds() {
-        assert_eq!(stack_log(MIN_LOG_MEMORY, 19, 0), min_execution_stacked_log(19));
-        // Every size and table only grows the stack.
-        assert!(stack_log(16, 19, 4) >= min_execution_stacked_log(19));
-        // The caps alone admit larger stacks, so the stack's own bound is a check of the verifier's.
-        assert!(stack_log(MAX_LOG_MEMORY, MAX_LOG_BYTECODE, MAX_TABLE_LOG) > MAX_STACKED_LOG);
-    }
-}

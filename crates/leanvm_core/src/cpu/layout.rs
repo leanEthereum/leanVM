@@ -203,7 +203,7 @@ impl Witness {
 
 /// The committed columns' kappa SOURCES, for the recursion guest's
 /// in-circuit certification of the stacked size m = max(log2_ceil(sum of
-/// 2^kappa), MIN_MU). Per committed column: `Some((source, adj))` with
+/// 2^kappa), MIN_STACKED_LOG). Per committed column: `Some((source, adj))` with
 /// kappa = value(source) + adj, where source 0 is the constant 0 (kappa =
 /// adj; used for the fixed-size columns and the program bytecode length,
 /// which the caller passes as `log_bytecode`), source 1 is log_mem, and
@@ -505,7 +505,7 @@ pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_T
 
 impl Program {
     /// `keccak_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
-    pub(crate) fn build(&self, exec: &Execution, keccak_blocks: crate::keccak::Blocks) -> Witness {
+    pub(crate) fn build(&self, exec: &Execution, l: Layout, keccak_blocks: crate::keccak::Blocks) -> Witness {
         assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
         let tr = &exec.trace;
@@ -523,18 +523,10 @@ impl Program {
             None => std::borrow::Cow::Owned(primitives::field::g_powers(span)),
         };
 
-        // The public layout (flush/count blocks, placements, boundary, taus) is a pure
-        // function of the program + announced sizes + public input, with no committed
-        // witness; reconstruct it here so the prover and verifier share exactly the same
-        // structure. It comes before the fill because it fixes each table's height
-        // `2^tau`, which lets every column be allocated at its final length in one pass.
-        let row_counts = exec.trace.row_counts();
-        assert!(
-            row_counts.iter().all(|&r| r <= 1 << MAX_LOG_ROWS),
-            "a table exceeds 2^{MAX_LOG_ROWS} rows"
-        );
-        let pi = [exec.mem.word(0), exec.mem.word(1)];
-        let l = self.layout(log_mem, row_counts, pi);
+        // `l`, the public layout (flush/count blocks, placements, boundary, taus), is a pure
+        // function of the program, the announced sizes and the public input, so the prover
+        // and the verifier share it; it fixes each table's height `2^tau`, which lets every
+        // column be allocated at its final length in one pass.
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into
@@ -597,8 +589,8 @@ impl Program {
                 let limbs = cell.word.to_limbs().map(F64);
                 [limbs[0], limbs[1], limbs[2], gpow[cell.count as usize]]
             };
-            if cells < LINE {
-                // A memory smaller than a line, cell by cell.
+            if cells < BLOCK {
+                // A memory smaller than a block, cell by cell.
                 let page = exec.mem.page(0);
                 for i in 0..cells {
                     for (column, value) in image.iter().zip(values(page, i)) {
@@ -607,13 +599,12 @@ impl Program {
                     }
                 }
             } else {
-                let block = BLOCK.min(cells);
-                parallel::for_each_chunk(cells / block, |first, end| {
+                parallel::for_each_chunk(cells / BLOCK, |first, end| {
                     let stream = primitives::stream::Stream::new();
                     for b in first..end {
-                        let at = b * block;
+                        let at = b * BLOCK;
                         let page = exec.mem.page(at >> page_log);
-                        for line in (at..at + block).step_by(LINE) {
+                        for line in (at..at + BLOCK).step_by(LINE) {
                             let mut buf = [[F64::ZERO; LINE]; 4];
                             for j in 0..LINE {
                                 let [lo, hi, top, count] = values(page, line + j);
@@ -623,7 +614,7 @@ impl Program {
                                 buf[3][j] = count;
                             }
                             for (column, values) in image.iter().zip(&buf) {
-                                // SAFETY: block `b` owns cells `b·block..(b+1)·block` of every
+                                // SAFETY: block `b` owns cells `b·BLOCK..(b+1)·BLOCK` of every
                                 // column, in bounds as `cells` is a whole number of blocks.
                                 unsafe { stream.copy_uninit(column.add(line), values) };
                             }

@@ -91,12 +91,12 @@ pub(super) fn gen_verify(
     // buffer/stride placeholder is a global cap so the placeholder map is
     // SHAPE-INDEPENDENT (the definition of generic). A child that verifies fits them.
     let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
-    let kbc = program.prog().len().trailing_zeros() as usize;
-    if !(verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG).contains(&layout.shape.mu) || !fits {
+    if !fits {
         return Err(AggregationError::ChildOutOfRange {
             log_committed: layout.shape.mu,
         });
     }
+    let kbc = program.prog().len().trailing_zeros() as usize;
 
     // ---- typed extraction: the proof's stream + the verifier's summary ----
     let scalars = |values: &[verifier::E]| -> Vec<F192> { values.iter().copied().map(from_scalar).collect() };

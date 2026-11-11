@@ -7,10 +7,9 @@ use primitives::field::{F64, div_by_g, mul_by_g};
 /// Frame-relative offset operand (matches the compiler's `ir::Off`).
 pub type Off = u32;
 
-/// The cells THIS PROVER can address, a limit of its implementation only: its [`GPow`]
-/// index covers no more. The protocol admits memories up to `2^verifier::MAX_LOG_MEMORY`
-/// cells; a run reaching past this one is refused here, not by the spec.
-pub(crate) const MAX_CELLS: u32 = 1 << 28;
+/// The cells a provable run can address, which the [`GPow`] index covers: a memory of `2^28`
+/// cells already fills the `2^30` stack with its four columns, so no larger one can be committed.
+pub(crate) const MAX_CELLS: u32 = 1 << (verifier::MAX_STACKED_LOG - 2);
 
 /// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
 /// (recursion depth, and so the address range, is unbounded).

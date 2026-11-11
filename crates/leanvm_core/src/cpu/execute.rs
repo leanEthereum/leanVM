@@ -128,8 +128,8 @@ pub enum Fault {
         new: F192,
         hint: Option<&'static str>,
     },
-    /// A `DEREF` through a word that is no g-power below this prover's `MAX_CELLS`: a
-    /// wild pointer, a failed range check, or an address past this prover's limit.
+    /// A `DEREF` through a word that is no g-power below `MAX_CELLS`: a wild pointer, a
+    /// failed range check, or an address past any memory a stack can hold.
     WildPointer { value: F192 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
     NotInK { what: &'static str, value: F192 },
@@ -142,8 +142,7 @@ pub enum Fault {
     /// The advice does not fit the program: a witness stream is missing or
     /// exhausted, or an entry has the wrong length.
     Witness(String),
-    /// The program allocates or accesses a cell past this prover's address space
-    /// (`MAX_CELLS`), an implementation limit below the protocol's.
+    /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
     /// The halt `pc` reached in a frame other than `main`'s.
     HaltOutsideMain { fp: u32 },
@@ -197,7 +196,7 @@ impl std::fmt::Display for Fault {
             }
             Self::WildPointer { value } => write!(
                 f,
-                "DEREF pointer is not a g-power below 2^{}: a wild pointer, a failed range check, or past this prover's limit (value {})",
+                "DEREF pointer is not a g-power below 2^{}: a wild pointer, a failed range check, or past any memory a stack can hold (value {})",
                 MAX_CELLS.ilog2(),
                 word(*value)
             ),
@@ -212,9 +211,8 @@ impl std::fmt::Display for Fault {
             Self::Witness(problem) => write!(f, "{problem}"),
             Self::OutOfMemory => write!(
                 f,
-                "the program reaches past 2^{} cells, this prover's limit (the protocol admits 2^{})",
-                MAX_CELLS.ilog2(),
-                MAX_LOG_MEM
+                "the program reaches past 2^{} cells, more memory than a stack can hold",
+                MAX_CELLS.ilog2()
             ),
             Self::HaltOutsideMain { fp } => write!(f, "the halt pc reached in frame {fp}, not main's"),
             Self::StepLimit => write!(f, "step limit of {MAX_STEPS} exceeded (runaway recursion?)"),
@@ -1038,8 +1036,7 @@ impl Program {
         // The memory announced: the least power of two covering every cell the run touched
         // (the boundary tables read a dense image).
         let mem_used = m.used;
-        let cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
-        assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
+        let cells = mem_used.next_power_of_two();
         Ok(Execution {
             mem: Memory {
                 pages: m.pages,

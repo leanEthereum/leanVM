@@ -93,9 +93,9 @@ enum Command {
             long,
             default_value_t = 17,
             value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(
-                (leanvm_core::pcs::MIN_MU - leanvm_core::keccak::SLOT_LOG)
+                (leanvm_core::pcs::MIN_STACKED_LOG - leanvm_core::keccak::SLOT_LOG)
                     .max(leanvm_core::keccak::MIN_STEPS.ilog2() as usize) as u64
-                    ..=(leanvm_core::pcs::MAX_MU - leanvm_core::keccak::SLOT_LOG) as u64
+                    ..=(leanvm_core::pcs::MAX_STACKED_LOG - leanvm_core::keccak::SLOT_LOG) as u64
             )
         )]
         log_n: usize,
