@@ -32,79 +32,79 @@ theorem opening_queries_completeAtB (fs : String → ℕ) (cert : String → V �
   intro p hp
   simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact oqD_482 fs cert
-  · exact oqD_489 fs cert
-  · exact oqD_495 fs cert
-  · exact oqD_499 fs cert
+  · exact oqD_481 fs cert
+  · exact oqD_487 fs cert
+  · exact oqD_492 fs cert
+  · exact oqD_496 fs cert
+  · exact oqD_504 fs cert
   · exact oqD_508 fs cert
-  · exact oqD_513 fs cert
-  · exact oqD_518 fs cert
-  · exact oqD_521 fs cert
-  · exact oqD_530 fs cert
+  · exact oqD_512 fs cert
+  · exact oqD_515 fs cert
+  · exact oqD_523 fs cert
+  · exact oqD_527 fs cert
+  · exact oqD_531 fs cert
   · exact oqD_535 fs cert
-  · exact oqD_540 fs cert
-  · exact oqD_546 fs cert
-  · exact oqD_556 fs cert
-  · exact oqD_561 fs cert
+  · exact oqD_544 fs cert
+  · exact oqD_548 fs cert
+  · exact oqD_552 fs cert
+  · exact oqD_557 fs cert
   · exact oqD_566 fs cert
+  · exact oqD_569 fs cert
   · exact oqD_572 fs cert
-  · exact oqD_582 fs cert
-  · exact oqD_585 fs cert
-  · exact oqD_588 fs cert
-  · exact oqD_591 fs cert
-  · exact oqD_600 fs cert
-  · exact oqD_603 fs cert
-  · exact oqD_606 fs cert
-  · exact oqD_609 fs cert
-  · exact oqD_617 fs cert
+  · exact oqD_575 fs cert
+  · exact oqD_583 fs cert
+  · exact oqD_586 fs cert
+  · exact oqD_589 fs cert
+  · exact oqD_592 fs cert
+  · exact oqD_599 fs cert
+  · exact oqD_602 fs cert
+  · exact oqD_605 fs cert
+  · exact oqD_611 fs cert
   · exact oqD_620 fs cert
-  · exact oqD_623 fs cert
-  · exact oqD_629 fs cert
-  · exact oqD_638 fs cert
-  · exact oqD_642 fs cert
-  · exact oqD_648 fs cert
+  · exact oqD_624 fs cert
+  · exact oqD_630 fs cert
+  · exact oqD_634 fs cert
+  · exact oqD_640 fs cert
+  · exact oqD_645 fs cert
   · exact oqD_652 fs cert
-  · exact oqD_658 fs cert
-  · exact oqD_663 fs cert
-  · exact oqD_670 fs cert
-  · exact oqD_675 fs cert
-  · exact oqD_682 fs cert
-  · exact oqD_687 fs cert
+  · exact oqD_657 fs cert
+  · exact oqD_664 fs cert
+  · exact oqD_669 fs cert
+  · exact oqD_676 fs cert
+  · exact oqD_681 fs cert
+  · exact oqD_688 fs cert
+  · exact oqD_691 fs cert
   · exact oqD_694 fs cert
-  · exact oqD_699 fs cert
-  · exact oqD_706 fs cert
-  · exact oqD_709 fs cert
-  · exact oqD_712 fs cert
-  · exact oqD_716 fs cert
+  · exact oqD_698 fs cert
+  · exact oqD_701 fs cert
+  · exact oqD_711 fs cert
   · exact oqD_719 fs cert
-  · exact oqD_729 fs cert
-  · exact oqD_737 fs cert
-  · exact oqD_746 fs cert
-  · exact oqD_756 fs cert
-  · exact oqD_766 fs cert
-  · exact oqD_776 fs cert
-  · exact oqD_783 fs cert
-  · exact oqD_786 fs cert
-  · exact oqD_789 fs cert
+  · exact oqD_728 fs cert
+  · exact oqD_738 fs cert
+  · exact oqD_748 fs cert
+  · exact oqD_758 fs cert
+  · exact oqD_765 fs cert
+  · exact oqD_768 fs cert
+  · exact oqD_771 fs cert
+  · exact oqD_775 fs cert
+  · exact oqD_777 fs cert
+  · exact oqD_784 fs cert
+  · exact oqD_788 fs cert
   · exact oqD_793 fs cert
-  · exact oqD_795 fs cert
+  · exact oqD_797 fs cert
   · exact oqD_802 fs cert
-  · exact oqD_806 fs cert
-  · exact oqD_811 fs cert
-  · exact oqD_815 fs cert
-  · exact oqD_820 fs cert
-  · exact oqD_825 fs cert
-  · exact oqD_831 fs cert
+  · exact oqD_807 fs cert
+  · exact oqD_813 fs cert
+  · exact oqD_818 fs cert
+  · exact oqD_824 fs cert
+  · exact oqD_829 fs cert
   · exact oqD_836 fs cert
-  · exact oqD_842 fs cert
-  · exact oqD_847 fs cert
-  · exact oqD_854 fs cert
-  · exact oqD_857 fs cert
-  · exact oqD_861 fs cert
-  · exact oqD_868 fs cert
-  · exact oqD_871 fs cert
-  · exact oqD_876 fs cert
-  · exact oqD_878 fs cert
+  · exact oqD_839 fs cert
+  · exact oqD_843 fs cert
+  · exact oqD_850 fs cert
+  · exact oqD_853 fs cert
+  · exact oqD_858 fs cert
+  · exact oqD_860 fs cert
 
 end
 end LeanVM.Guest.B1
