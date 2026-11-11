@@ -10,9 +10,9 @@ As `Cost/ExtractorSize.lean` measures the extractor's program (`MachineValue.siz
 functions:
 
 * **`preTable_size`**: the literal table of the functions' preconditions
-  (`Guest.Fast.preTable`, `1038` entries) is a value of size `4838`;
+  (`Guest.Fast.preTable`, `1036` entries) is a value of size `4827`;
 * `preTableC_body_size`: the body that builds it (`preTableC`, its constructors, each natural
-  literal a term `Term.literal`) has size `6736`, what it adds to the decoder's program (and `2` for
+  literal a term `Term.literal`) has size `6721`, what it adds to the decoder's program (and `2` for
   its index);
 * `preTestBodies_size`: the bodies the compiled test adds past the decoder's witness (`preTestAtC`'s
   dependencies from `powBelowAtC` on, `18` of them, the lanes' scan `twoPowScanC` and the table's
@@ -27,15 +27,15 @@ open LeanVM.Cost LeanVM.Guest.Fast
 
 public section
 
-/-- **The table's size**: `4838`. -/
-theorem preTable_size : (encodeValue preTable).size = 4838 := by
+/-- **The table's size**: `4827`. -/
+theorem preTable_size : (encodeValue preTable).size = 4827 := by
   -- an array's encoding maps `Array.map`, whose body the kernel does not see here: by its list
-  show (MachineValue.array (preTable.map encodeValue)).size = 4838
+  show (MachineValue.array (preTable.map encodeValue)).size = 4827
   rw [MachineValue.size, Array.toList_map]
   decide +kernel
 
-/-- The size of the body that builds the table: `6736`. -/
-theorem preTableC_body_size : preTableC.costBody.size = 6736 := by decide +kernel
+/-- The size of the body that builds the table: `6721`. -/
+theorem preTableC_body_size : preTableC.costBody.size = 6721 := by decide +kernel
 
 /-- The sizes of the test's bodies: `274`, `18` bodies. -/
 theorem preTestBodies_size :
