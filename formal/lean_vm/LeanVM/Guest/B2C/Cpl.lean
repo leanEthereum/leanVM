@@ -187,6 +187,7 @@ def locC (L : CLoc) : Core.Atom → LAtom
   | .frameAddr p (r :: rs) => .addr (L.cell p) ((r :: rs).map L.cell)
   | .frameAddr _ [] => .none
   | .hint _ => .none
+  | .touch t p => .load (L.cell t) (L.cell p) 0
 
 /-- The facts by cell. -/
 abbrev BookC := Trie (List LAtom)

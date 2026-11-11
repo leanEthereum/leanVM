@@ -70,48 +70,46 @@ noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 16) (.n 2) (.n 0)) ::
   .atom (.load (.n 17) (.n 16) 0) ::
   .atom (.hint (.witness "child_meta" (.stack [.n 18, .n 19]))) ::
-  .atom (.const (.n 20) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 18) (.n 21) (.n 22) (.n 23) (.n 20)) ::
-  .atom (.const (.n 24) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 19) (.n 25) (.n 26) (.n 27) (.n 24)) ::
-  .atom (.mul (.n 28) (.n 18) (.n 19)) ::
-  .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 29, .n 30] ::
-  .atom (.mul (.n 31) (.n 17) (.n 18)) ::
-  .call "child_claim_list_digest" [.n 6, .n 7, .n 31, .n 8, .n 19] [.n 32, .n 33] ::
+  .atom (.touch (.n 20) (.n 18)) ::
+  .atom (.touch (.n 21) (.n 19)) ::
+  .atom (.mul (.n 22) (.n 18) (.n 19)) ::
+  .call "child_claim_list_digest" [.n 3, .n 4, .n 17, .n 5, .n 18] [.n 23, .n 24] ::
+  .atom (.mul (.n 25) (.n 17) (.n 18)) ::
+  .call "child_claim_list_digest" [.n 6, .n 7, .n 25, .n 8, .n 19] [.n 26, .n 27] ::
+  .atom (.mul (.n 28) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 29) (.n 28) (.n 0)) ::
+  .atom (.mul (.n 30) (.n 29) (.n 29)) ::
+  .atom (.mul (.n 31) (.n 30) (.n 30)) ::
+  .atom (.mul (.n 32) (.n 31) (.n 31)) ::
+  .atom (.mul (.n 33) (.n 9) (.n 32)) ::
+  .atom (.hint (.witness "child_defer" (.heap (.n 33) 0 24))) ::
   .atom (.mul (.n 34) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 35) (.n 34) (.n 0)) ::
-  .atom (.mul (.n 36) (.n 35) (.n 35)) ::
-  .atom (.mul (.n 37) (.n 36) (.n 36)) ::
-  .atom (.mul (.n 38) (.n 37) (.n 37)) ::
-  .atom (.mul (.n 39) (.n 9) (.n 38)) ::
-  .atom (.hint (.witness "child_defer" (.heap (.n 39) 0 24))) ::
+  .atom (.mul (.n 35) (.n 10) (.n 34)) ::
+  .atom (.hint (.witness "child_da" (.heap (.n 35) 0 2))) ::
+  .atom (.load (.n 36) (.n 35) 0) ::
+  .atom (.load (.n 37) (.n 35) 1) ::
+  .call "statement_digest" [.n 11, .n 12, .n 23, .n 24, .n 26, .n 27, .n 36, .n 37, .n 33] [.n 38, .n 39] ::
   .atom (.mul (.n 40) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 41) (.n 10) (.n 40)) ::
-  .atom (.hint (.witness "child_da" (.heap (.n 41) 0 2))) ::
-  .atom (.load (.n 42) (.n 41) 0) ::
-  .atom (.load (.n 43) (.n 41) 1) ::
-  .call "statement_digest" [.n 11, .n 12, .n 29, .n 30, .n 32, .n 33, .n 42, .n 43, .n 39] [.n 44, .n 45] ::
-  .atom (.mul (.n 46) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 47) (.n 13) (.n 46)) ::
-  .atom (.load (.n 44) (.n 47) 0) ::
-  .atom (.mul (.n 48) (.n 13) (.n 46)) ::
-  .atom (.load (.n 45) (.n 48) 1) ::
-  .atom (.mul (.n 49) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 50) (.n 49) (.n 0)) ::
-  .atom (.mul (.n 51) (.n 50) (.n 50)) ::
-  .atom (.mul (.n 52) (.n 51) (.n 51)) ::
-  .atom (.mul (.n 53) (.n 52) (.n 52)) ::
-  .atom (.mul (.n 54) (.n 15) (.n 53)) ::
-  .call "verify_sub" [.n 44, .n 45, .n 11, .n 12, .n 14, .n 54] [] ::
-  .atom (.mul (.n 55) (.n 17) (.n 28)) ::
-  .atom (.mul (.n 56) (.n 2) (.n 0)) ::
-  .atom (.load (.n 55) (.n 56) 1) ::
-  .atom (.const (.n 57) (word 2 0)) ::
-  .atom (.mul (.n 58) (.n 0) (.n 57)) ::
-  .atom (.add (.n 59) (.n 58) (.n 1)) ::
-  .atom (.const (.n 60) (word 2 0)) ::
-  .atom (.mul (.n 61) (.n 0) (.n 60)) ::
-  .callIf (.n 59) "__loop4" [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15] ::
+  .atom (.mul (.n 41) (.n 13) (.n 40)) ::
+  .atom (.load (.n 38) (.n 41) 0) ::
+  .atom (.mul (.n 42) (.n 13) (.n 40)) ::
+  .atom (.load (.n 39) (.n 42) 1) ::
+  .atom (.mul (.n 43) (.n 0) (.n 0)) ::
+  .atom (.mul (.n 44) (.n 43) (.n 0)) ::
+  .atom (.mul (.n 45) (.n 44) (.n 44)) ::
+  .atom (.mul (.n 46) (.n 45) (.n 45)) ::
+  .atom (.mul (.n 47) (.n 46) (.n 46)) ::
+  .atom (.mul (.n 48) (.n 15) (.n 47)) ::
+  .call "verify_sub" [.n 38, .n 39, .n 11, .n 12, .n 14, .n 48] [] ::
+  .atom (.mul (.n 49) (.n 17) (.n 22)) ::
+  .atom (.mul (.n 50) (.n 2) (.n 0)) ::
+  .atom (.load (.n 49) (.n 50) 1) ::
+  .atom (.const (.n 51) (word 2 0)) ::
+  .atom (.mul (.n 52) (.n 0) (.n 51)) ::
+  .atom (.add (.n 53) (.n 52) (.n 1)) ::
+  .atom (.const (.n 54) (word 2 0)) ::
+  .atom (.mul (.n 55) (.n 0) (.n 54)) ::
+  .callIf (.n 53) "__loop4" [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15] ::
   .ret [] ::
   [])
 
@@ -16660,20 +16658,621 @@ noncomputable def core125 : Core.Fn where
 
 namespace core126
 
+/-- `padding_weight__L29`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.const (.n 2) (word 536870911 0)) ::
+  .atom (.add (.n 3) (.n 0) (.n 2)) ::
+  .atom (.hint (.bits (.n 3) 0 30 (.stack [.n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15, .n 16, .n 17, .n 18, .n 19, .n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33]))) ::
+  .atom (.mul (.n 4) (.n 4) (.n 4)) ::
+  .atom (.load (.n 34) (.n 1) 0) ::
+  .atom (.mul (.n 35) (.n 4) (.n 34)) ::
+  .atom (.add (.n 36) (.n 4) (.n 34)) ::
+  .atom (.add (.n 37) (.n 35) (.n 36)) ::
+  .atom (.mul (.n 5) (.n 5) (.n 5)) ::
+  .atom (.load (.n 38) (.n 1) 1) ::
+  .atom (.mul (.n 39) (.n 5) (.n 38)) ::
+  .atom (.add (.n 40) (.n 5) (.n 38)) ::
+  .atom (.mul (.n 41) (.n 40) (.n 37)) ::
+  .atom (.add (.n 42) (.n 39) (.n 41)) ::
+  .atom (.mul (.n 6) (.n 6) (.n 6)) ::
+  .atom (.load (.n 43) (.n 1) 2) ::
+  .atom (.mul (.n 44) (.n 6) (.n 43)) ::
+  .atom (.add (.n 45) (.n 6) (.n 43)) ::
+  .atom (.mul (.n 46) (.n 45) (.n 42)) ::
+  .atom (.add (.n 47) (.n 44) (.n 46)) ::
+  .atom (.mul (.n 7) (.n 7) (.n 7)) ::
+  .atom (.load (.n 48) (.n 1) 3) ::
+  .atom (.mul (.n 49) (.n 7) (.n 48)) ::
+  .atom (.add (.n 50) (.n 7) (.n 48)) ::
+  .atom (.mul (.n 51) (.n 50) (.n 47)) ::
+  .atom (.add (.n 52) (.n 49) (.n 51)) ::
+  .atom (.mul (.n 8) (.n 8) (.n 8)) ::
+  .atom (.load (.n 53) (.n 1) 4) ::
+  .atom (.mul (.n 54) (.n 8) (.n 53)) ::
+  .atom (.add (.n 55) (.n 8) (.n 53)) ::
+  .atom (.mul (.n 56) (.n 55) (.n 52)) ::
+  .atom (.add (.n 57) (.n 54) (.n 56)) ::
+  .atom (.mul (.n 9) (.n 9) (.n 9)) ::
+  .atom (.load (.n 58) (.n 1) 5) ::
+  .atom (.mul (.n 59) (.n 9) (.n 58)) ::
+  .atom (.add (.n 60) (.n 9) (.n 58)) ::
+  .atom (.mul (.n 61) (.n 60) (.n 57)) ::
+  .atom (.add (.n 62) (.n 59) (.n 61)) ::
+  .atom (.mul (.n 10) (.n 10) (.n 10)) ::
+  .atom (.load (.n 63) (.n 1) 6) ::
+  .atom (.mul (.n 64) (.n 10) (.n 63)) ::
+  .atom (.add (.n 65) (.n 10) (.n 63)) ::
+  .atom (.mul (.n 66) (.n 65) (.n 62)) ::
+  .atom (.add (.n 67) (.n 64) (.n 66)) ::
+  .atom (.mul (.n 11) (.n 11) (.n 11)) ::
+  .atom (.load (.n 68) (.n 1) 7) ::
+  .atom (.mul (.n 69) (.n 11) (.n 68)) ::
+  .atom (.add (.n 70) (.n 11) (.n 68)) ::
+  .atom (.mul (.n 71) (.n 70) (.n 67)) ::
+  .atom (.add (.n 72) (.n 69) (.n 71)) ::
+  .atom (.mul (.n 12) (.n 12) (.n 12)) ::
+  .atom (.load (.n 73) (.n 1) 8) ::
+  .atom (.mul (.n 74) (.n 12) (.n 73)) ::
+  .atom (.add (.n 75) (.n 12) (.n 73)) ::
+  .atom (.mul (.n 76) (.n 75) (.n 72)) ::
+  .atom (.add (.n 77) (.n 74) (.n 76)) ::
+  .atom (.mul (.n 13) (.n 13) (.n 13)) ::
+  .atom (.load (.n 78) (.n 1) 9) ::
+  .atom (.mul (.n 79) (.n 13) (.n 78)) ::
+  .atom (.add (.n 80) (.n 13) (.n 78)) ::
+  .atom (.mul (.n 81) (.n 80) (.n 77)) ::
+  .atom (.add (.n 82) (.n 79) (.n 81)) ::
+  .atom (.mul (.n 14) (.n 14) (.n 14)) ::
+  .atom (.load (.n 83) (.n 1) 10) ::
+  .atom (.mul (.n 84) (.n 14) (.n 83)) ::
+  .atom (.add (.n 85) (.n 14) (.n 83)) ::
+  .atom (.mul (.n 86) (.n 85) (.n 82)) ::
+  .atom (.add (.n 87) (.n 84) (.n 86)) ::
+  .atom (.mul (.n 15) (.n 15) (.n 15)) ::
+  .atom (.load (.n 88) (.n 1) 11) ::
+  .atom (.mul (.n 89) (.n 15) (.n 88)) ::
+  .atom (.add (.n 90) (.n 15) (.n 88)) ::
+  .atom (.mul (.n 91) (.n 90) (.n 87)) ::
+  .atom (.add (.n 92) (.n 89) (.n 91)) ::
+  .atom (.mul (.n 16) (.n 16) (.n 16)) ::
+  .atom (.load (.n 93) (.n 1) 12) ::
+  .atom (.mul (.n 94) (.n 16) (.n 93)) ::
+  .atom (.add (.n 95) (.n 16) (.n 93)) ::
+  .atom (.mul (.n 96) (.n 95) (.n 92)) ::
+  .atom (.add (.n 97) (.n 94) (.n 96)) ::
+  .atom (.mul (.n 17) (.n 17) (.n 17)) ::
+  .atom (.load (.n 98) (.n 1) 13) ::
+  .atom (.mul (.n 99) (.n 17) (.n 98)) ::
+  .atom (.add (.n 100) (.n 17) (.n 98)) ::
+  .atom (.mul (.n 101) (.n 100) (.n 97)) ::
+  .atom (.add (.n 102) (.n 99) (.n 101)) ::
+  .atom (.mul (.n 18) (.n 18) (.n 18)) ::
+  .atom (.load (.n 103) (.n 1) 14) ::
+  .atom (.mul (.n 104) (.n 18) (.n 103)) ::
+  .atom (.add (.n 105) (.n 18) (.n 103)) ::
+  .atom (.mul (.n 106) (.n 105) (.n 102)) ::
+  .atom (.add (.n 107) (.n 104) (.n 106)) ::
+  .atom (.mul (.n 19) (.n 19) (.n 19)) ::
+  .atom (.load (.n 108) (.n 1) 15) ::
+  .atom (.mul (.n 109) (.n 19) (.n 108)) ::
+  .atom (.add (.n 110) (.n 19) (.n 108)) ::
+  .atom (.mul (.n 111) (.n 110) (.n 107)) ::
+  .atom (.add (.n 112) (.n 109) (.n 111)) ::
+  .atom (.mul (.n 20) (.n 20) (.n 20)) ::
+  .atom (.load (.n 113) (.n 1) 16) ::
+  .atom (.mul (.n 114) (.n 20) (.n 113)) ::
+  .atom (.add (.n 115) (.n 20) (.n 113)) ::
+  .atom (.mul (.n 116) (.n 115) (.n 112)) ::
+  .atom (.add (.n 117) (.n 114) (.n 116)) ::
+  .atom (.mul (.n 21) (.n 21) (.n 21)) ::
+  .atom (.load (.n 118) (.n 1) 17) ::
+  .atom (.mul (.n 119) (.n 21) (.n 118)) ::
+  .atom (.add (.n 120) (.n 21) (.n 118)) ::
+  .atom (.mul (.n 121) (.n 120) (.n 117)) ::
+  .atom (.add (.n 122) (.n 119) (.n 121)) ::
+  .atom (.mul (.n 22) (.n 22) (.n 22)) ::
+  .atom (.load (.n 123) (.n 1) 18) ::
+  .atom (.mul (.n 124) (.n 22) (.n 123)) ::
+  .atom (.add (.n 125) (.n 22) (.n 123)) ::
+  .atom (.mul (.n 126) (.n 125) (.n 122)) ::
+  .atom (.add (.n 127) (.n 124) (.n 126)) ::
+  .atom (.mul (.n 23) (.n 23) (.n 23)) ::
+  .atom (.load (.n 128) (.n 1) 19) ::
+  .atom (.mul (.n 129) (.n 23) (.n 128)) ::
+  .atom (.add (.n 130) (.n 23) (.n 128)) ::
+  .atom (.mul (.n 131) (.n 130) (.n 127)) ::
+  .atom (.add (.n 132) (.n 129) (.n 131)) ::
+  .atom (.mul (.n 24) (.n 24) (.n 24)) ::
+  .atom (.load (.n 133) (.n 1) 20) ::
+  .atom (.mul (.n 134) (.n 24) (.n 133)) ::
+  .atom (.add (.n 135) (.n 24) (.n 133)) ::
+  .atom (.mul (.n 136) (.n 135) (.n 132)) ::
+  .atom (.add (.n 137) (.n 134) (.n 136)) ::
+  .atom (.mul (.n 25) (.n 25) (.n 25)) ::
+  .atom (.load (.n 138) (.n 1) 21) ::
+  .atom (.mul (.n 139) (.n 25) (.n 138)) ::
+  .atom (.add (.n 140) (.n 25) (.n 138)) ::
+  .atom (.mul (.n 141) (.n 140) (.n 137)) ::
+  .atom (.add (.n 142) (.n 139) (.n 141)) ::
+  .atom (.mul (.n 26) (.n 26) (.n 26)) ::
+  .atom (.load (.n 143) (.n 1) 22) ::
+  .atom (.mul (.n 144) (.n 26) (.n 143)) ::
+  .atom (.add (.n 145) (.n 26) (.n 143)) ::
+  .atom (.mul (.n 146) (.n 145) (.n 142)) ::
+  .atom (.add (.n 147) (.n 144) (.n 146)) ::
+  .atom (.mul (.n 27) (.n 27) (.n 27)) ::
+  .atom (.load (.n 148) (.n 1) 23) ::
+  .atom (.mul (.n 149) (.n 27) (.n 148)) ::
+  .atom (.add (.n 150) (.n 27) (.n 148)) ::
+  .atom (.mul (.n 151) (.n 150) (.n 147)) ::
+  .atom (.add (.n 152) (.n 149) (.n 151)) ::
+  .atom (.mul (.n 28) (.n 28) (.n 28)) ::
+  .atom (.load (.n 153) (.n 1) 24) ::
+  .atom (.mul (.n 154) (.n 28) (.n 153)) ::
+  .atom (.add (.n 155) (.n 28) (.n 153)) ::
+  .atom (.mul (.n 156) (.n 155) (.n 152)) ::
+  .atom (.add (.n 157) (.n 154) (.n 156)) ::
+  .atom (.mul (.n 29) (.n 29) (.n 29)) ::
+  .atom (.load (.n 158) (.n 1) 25) ::
+  .atom (.mul (.n 159) (.n 29) (.n 158)) ::
+  .atom (.add (.n 160) (.n 29) (.n 158)) ::
+  .atom (.mul (.n 161) (.n 160) (.n 157)) ::
+  .atom (.add (.n 162) (.n 159) (.n 161)) ::
+  .atom (.mul (.n 30) (.n 30) (.n 30)) ::
+  .atom (.load (.n 163) (.n 1) 26) ::
+  .atom (.mul (.n 164) (.n 30) (.n 163)) ::
+  .atom (.add (.n 165) (.n 30) (.n 163)) ::
+  .atom (.mul (.n 166) (.n 165) (.n 162)) ::
+  .atom (.add (.n 167) (.n 164) (.n 166)) ::
+  .atom (.mul (.n 31) (.n 31) (.n 31)) ::
+  .atom (.load (.n 168) (.n 1) 27) ::
+  .atom (.mul (.n 169) (.n 31) (.n 168)) ::
+  .atom (.add (.n 170) (.n 31) (.n 168)) ::
+  .atom (.mul (.n 171) (.n 170) (.n 167)) ::
+  .atom (.add (.n 172) (.n 169) (.n 171)) ::
+  .atom (.mul (.n 32) (.n 32) (.n 32)) ::
+  .atom (.load (.n 173) (.n 1) 28) ::
+  .atom (.mul (.n 174) (.n 32) (.n 173)) ::
+  .atom (.add (.n 175) (.n 32) (.n 173)) ::
+  .atom (.mul (.n 176) (.n 175) (.n 172)) ::
+  .atom (.add (.n 177) (.n 174) (.n 176)) ::
+  .atom (.mul (.n 33) (.n 33) (.n 33)) ::
+  .atom (.const (.n 178) (word 2 0)) ::
+  .atom (.mul (.n 179) (.n 31) (.n 178)) ::
+  .atom (.add (.n 180) (.n 179) (.n 30)) ::
+  .atom (.const (.n 181) (word 2 0)) ::
+  .atom (.mul (.n 182) (.n 180) (.n 181)) ::
+  .atom (.add (.n 183) (.n 182) (.n 29)) ::
+  .atom (.const (.n 184) (word 2 0)) ::
+  .atom (.mul (.n 185) (.n 183) (.n 184)) ::
+  .atom (.add (.n 186) (.n 185) (.n 28)) ::
+  .atom (.const (.n 187) (word 2 0)) ::
+  .atom (.mul (.n 188) (.n 186) (.n 187)) ::
+  .atom (.add (.n 189) (.n 188) (.n 27)) ::
+  .atom (.const (.n 190) (word 2 0)) ::
+  .atom (.mul (.n 191) (.n 189) (.n 190)) ::
+  .atom (.add (.n 192) (.n 191) (.n 26)) ::
+  .atom (.const (.n 193) (word 2 0)) ::
+  .atom (.mul (.n 194) (.n 192) (.n 193)) ::
+  .atom (.add (.n 195) (.n 194) (.n 25)) ::
+  .atom (.const (.n 196) (word 2 0)) ::
+  .atom (.mul (.n 197) (.n 195) (.n 196)) ::
+  .atom (.add (.n 198) (.n 197) (.n 24)) ::
+  .atom (.const (.n 199) (word 2 0)) ::
+  .atom (.mul (.n 200) (.n 198) (.n 199)) ::
+  .atom (.add (.n 201) (.n 200) (.n 23)) ::
+  .atom (.const (.n 202) (word 2 0)) ::
+  .atom (.mul (.n 203) (.n 201) (.n 202)) ::
+  .atom (.add (.n 204) (.n 203) (.n 22)) ::
+  .atom (.const (.n 205) (word 2 0)) ::
+  .atom (.mul (.n 206) (.n 204) (.n 205)) ::
+  .atom (.add (.n 207) (.n 206) (.n 21)) ::
+  .atom (.const (.n 208) (word 2 0)) ::
+  .atom (.mul (.n 209) (.n 207) (.n 208)) ::
+  .atom (.add (.n 210) (.n 209) (.n 20)) ::
+  .atom (.const (.n 211) (word 2 0)) ::
+  .atom (.mul (.n 212) (.n 210) (.n 211)) ::
+  .atom (.add (.n 213) (.n 212) (.n 19)) ::
+  .atom (.const (.n 214) (word 2 0)) ::
+  .atom (.mul (.n 215) (.n 213) (.n 214)) ::
+  .atom (.add (.n 216) (.n 215) (.n 18)) ::
+  .atom (.const (.n 217) (word 2 0)) ::
+  .atom (.mul (.n 218) (.n 216) (.n 217)) ::
+  .atom (.add (.n 219) (.n 218) (.n 17)) ::
+  .atom (.const (.n 220) (word 2 0)) ::
+  .atom (.mul (.n 221) (.n 219) (.n 220)) ::
+  .atom (.add (.n 222) (.n 221) (.n 16)) ::
+  .atom (.const (.n 223) (word 2 0)) ::
+  .atom (.mul (.n 224) (.n 222) (.n 223)) ::
+  .atom (.add (.n 225) (.n 224) (.n 15)) ::
+  .atom (.const (.n 226) (word 2 0)) ::
+  .atom (.mul (.n 227) (.n 225) (.n 226)) ::
+  .atom (.add (.n 228) (.n 227) (.n 14)) ::
+  .atom (.const (.n 229) (word 2 0)) ::
+  .atom (.mul (.n 230) (.n 228) (.n 229)) ::
+  .atom (.add (.n 231) (.n 230) (.n 13)) ::
+  .atom (.const (.n 232) (word 2 0)) ::
+  .atom (.mul (.n 233) (.n 231) (.n 232)) ::
+  .atom (.add (.n 234) (.n 233) (.n 12)) ::
+  .atom (.const (.n 235) (word 2 0)) ::
+  .atom (.mul (.n 236) (.n 234) (.n 235)) ::
+  .atom (.add (.n 237) (.n 236) (.n 11)) ::
+  .atom (.const (.n 238) (word 2 0)) ::
+  .atom (.mul (.n 239) (.n 237) (.n 238)) ::
+  .atom (.add (.n 240) (.n 239) (.n 10)) ::
+  .atom (.const (.n 241) (word 2 0)) ::
+  .atom (.mul (.n 242) (.n 240) (.n 241)) ::
+  .atom (.add (.n 243) (.n 242) (.n 9)) ::
+  .atom (.const (.n 244) (word 2 0)) ::
+  .atom (.mul (.n 245) (.n 243) (.n 244)) ::
+  .atom (.add (.n 246) (.n 245) (.n 8)) ::
+  .atom (.const (.n 247) (word 2 0)) ::
+  .atom (.mul (.n 248) (.n 246) (.n 247)) ::
+  .atom (.add (.n 249) (.n 248) (.n 7)) ::
+  .atom (.const (.n 250) (word 2 0)) ::
+  .atom (.mul (.n 251) (.n 249) (.n 250)) ::
+  .atom (.add (.n 252) (.n 251) (.n 6)) ::
+  .atom (.const (.n 253) (word 2 0)) ::
+  .atom (.mul (.n 254) (.n 252) (.n 253)) ::
+  .atom (.add (.n 255) (.n 254) (.n 5)) ::
+  .atom (.const (.n 256) (word 2 0)) ::
+  .atom (.mul (.n 257) (.n 255) (.n 256)) ::
+  .atom (.add (.n 258) (.n 257) (.n 4)) ::
+  .atom (.const (.n 259) (word 268435456 0)) ::
+  .atom (.mul (.n 260) (.n 32) (.n 259)) ::
+  .atom (.add (.n 261) (.n 258) (.n 260)) ::
+  .atom (.const (.n 262) (word 1 0)) ::
+  .atom (.add (.n 263) (.n 33) (.n 262)) ::
+  .atom (.add (.n 264) (.n 263) (.n 32)) ::
+  .atom (.add (.n 265) (.n 33) (.n 258)) ::
+  .atom (.const (.n 266) (word 268435455 0)) ::
+  .atom (.add (.n 267) (.n 265) (.n 266)) ::
+  .atom (.const (.n 268) (word 536870912 0)) ::
+  .atom (.mul (.n 269) (.n 33) (.n 268)) ::
+  .atom (.add (.n 270) (.n 261) (.n 269)) ::
+  .atom (.assertEq (.n 270) (.n 3)) ::
+  .atom (.const (.n 271) (word 536870911 0)) ::
+  .atom (.add (.n 272) (.n 261) (.n 271)) ::
+  .atom (.mul (.n 273) (.n 33) (.n 272)) ::
+  .atom (.const (.n 274) (word 0 0)) ::
+  .atom (.assertEq (.n 273) (.n 274)) ::
+  .atom (.const (.n 275) (word 1 0)) ::
+  .atom (.add (.n 276) (.n 275) (.n 33)) ::
+  .atom (.mul (.n 277) (.n 276) (.n 177)) ::
+  .atom (.copy (.n 278) (.n 264)) ::
+  .atom (.copy (.n 279) (.n 267)) ::
+  .ret [.n 277, .n 278, .n 279] ::
+  [])
+
+end core126
+
+/-- `padding_weight__L29`. -/
+noncomputable def core126 : Core.Fn where
+  name := "padding_weight__L29"
+  params := [.n 0, .n 1]
+  body := core126.body
+
+namespace core127
+
+/-- `padding_weight__L30`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.const (.n 2) (word 1073741823 0)) ::
+  .atom (.add (.n 3) (.n 0) (.n 2)) ::
+  .atom (.hint (.bits (.n 3) 0 31 (.stack [.n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14, .n 15, .n 16, .n 17, .n 18, .n 19, .n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34]))) ::
+  .atom (.mul (.n 4) (.n 4) (.n 4)) ::
+  .atom (.load (.n 35) (.n 1) 0) ::
+  .atom (.mul (.n 36) (.n 4) (.n 35)) ::
+  .atom (.add (.n 37) (.n 4) (.n 35)) ::
+  .atom (.add (.n 38) (.n 36) (.n 37)) ::
+  .atom (.mul (.n 5) (.n 5) (.n 5)) ::
+  .atom (.load (.n 39) (.n 1) 1) ::
+  .atom (.mul (.n 40) (.n 5) (.n 39)) ::
+  .atom (.add (.n 41) (.n 5) (.n 39)) ::
+  .atom (.mul (.n 42) (.n 41) (.n 38)) ::
+  .atom (.add (.n 43) (.n 40) (.n 42)) ::
+  .atom (.mul (.n 6) (.n 6) (.n 6)) ::
+  .atom (.load (.n 44) (.n 1) 2) ::
+  .atom (.mul (.n 45) (.n 6) (.n 44)) ::
+  .atom (.add (.n 46) (.n 6) (.n 44)) ::
+  .atom (.mul (.n 47) (.n 46) (.n 43)) ::
+  .atom (.add (.n 48) (.n 45) (.n 47)) ::
+  .atom (.mul (.n 7) (.n 7) (.n 7)) ::
+  .atom (.load (.n 49) (.n 1) 3) ::
+  .atom (.mul (.n 50) (.n 7) (.n 49)) ::
+  .atom (.add (.n 51) (.n 7) (.n 49)) ::
+  .atom (.mul (.n 52) (.n 51) (.n 48)) ::
+  .atom (.add (.n 53) (.n 50) (.n 52)) ::
+  .atom (.mul (.n 8) (.n 8) (.n 8)) ::
+  .atom (.load (.n 54) (.n 1) 4) ::
+  .atom (.mul (.n 55) (.n 8) (.n 54)) ::
+  .atom (.add (.n 56) (.n 8) (.n 54)) ::
+  .atom (.mul (.n 57) (.n 56) (.n 53)) ::
+  .atom (.add (.n 58) (.n 55) (.n 57)) ::
+  .atom (.mul (.n 9) (.n 9) (.n 9)) ::
+  .atom (.load (.n 59) (.n 1) 5) ::
+  .atom (.mul (.n 60) (.n 9) (.n 59)) ::
+  .atom (.add (.n 61) (.n 9) (.n 59)) ::
+  .atom (.mul (.n 62) (.n 61) (.n 58)) ::
+  .atom (.add (.n 63) (.n 60) (.n 62)) ::
+  .atom (.mul (.n 10) (.n 10) (.n 10)) ::
+  .atom (.load (.n 64) (.n 1) 6) ::
+  .atom (.mul (.n 65) (.n 10) (.n 64)) ::
+  .atom (.add (.n 66) (.n 10) (.n 64)) ::
+  .atom (.mul (.n 67) (.n 66) (.n 63)) ::
+  .atom (.add (.n 68) (.n 65) (.n 67)) ::
+  .atom (.mul (.n 11) (.n 11) (.n 11)) ::
+  .atom (.load (.n 69) (.n 1) 7) ::
+  .atom (.mul (.n 70) (.n 11) (.n 69)) ::
+  .atom (.add (.n 71) (.n 11) (.n 69)) ::
+  .atom (.mul (.n 72) (.n 71) (.n 68)) ::
+  .atom (.add (.n 73) (.n 70) (.n 72)) ::
+  .atom (.mul (.n 12) (.n 12) (.n 12)) ::
+  .atom (.load (.n 74) (.n 1) 8) ::
+  .atom (.mul (.n 75) (.n 12) (.n 74)) ::
+  .atom (.add (.n 76) (.n 12) (.n 74)) ::
+  .atom (.mul (.n 77) (.n 76) (.n 73)) ::
+  .atom (.add (.n 78) (.n 75) (.n 77)) ::
+  .atom (.mul (.n 13) (.n 13) (.n 13)) ::
+  .atom (.load (.n 79) (.n 1) 9) ::
+  .atom (.mul (.n 80) (.n 13) (.n 79)) ::
+  .atom (.add (.n 81) (.n 13) (.n 79)) ::
+  .atom (.mul (.n 82) (.n 81) (.n 78)) ::
+  .atom (.add (.n 83) (.n 80) (.n 82)) ::
+  .atom (.mul (.n 14) (.n 14) (.n 14)) ::
+  .atom (.load (.n 84) (.n 1) 10) ::
+  .atom (.mul (.n 85) (.n 14) (.n 84)) ::
+  .atom (.add (.n 86) (.n 14) (.n 84)) ::
+  .atom (.mul (.n 87) (.n 86) (.n 83)) ::
+  .atom (.add (.n 88) (.n 85) (.n 87)) ::
+  .atom (.mul (.n 15) (.n 15) (.n 15)) ::
+  .atom (.load (.n 89) (.n 1) 11) ::
+  .atom (.mul (.n 90) (.n 15) (.n 89)) ::
+  .atom (.add (.n 91) (.n 15) (.n 89)) ::
+  .atom (.mul (.n 92) (.n 91) (.n 88)) ::
+  .atom (.add (.n 93) (.n 90) (.n 92)) ::
+  .atom (.mul (.n 16) (.n 16) (.n 16)) ::
+  .atom (.load (.n 94) (.n 1) 12) ::
+  .atom (.mul (.n 95) (.n 16) (.n 94)) ::
+  .atom (.add (.n 96) (.n 16) (.n 94)) ::
+  .atom (.mul (.n 97) (.n 96) (.n 93)) ::
+  .atom (.add (.n 98) (.n 95) (.n 97)) ::
+  .atom (.mul (.n 17) (.n 17) (.n 17)) ::
+  .atom (.load (.n 99) (.n 1) 13) ::
+  .atom (.mul (.n 100) (.n 17) (.n 99)) ::
+  .atom (.add (.n 101) (.n 17) (.n 99)) ::
+  .atom (.mul (.n 102) (.n 101) (.n 98)) ::
+  .atom (.add (.n 103) (.n 100) (.n 102)) ::
+  .atom (.mul (.n 18) (.n 18) (.n 18)) ::
+  .atom (.load (.n 104) (.n 1) 14) ::
+  .atom (.mul (.n 105) (.n 18) (.n 104)) ::
+  .atom (.add (.n 106) (.n 18) (.n 104)) ::
+  .atom (.mul (.n 107) (.n 106) (.n 103)) ::
+  .atom (.add (.n 108) (.n 105) (.n 107)) ::
+  .atom (.mul (.n 19) (.n 19) (.n 19)) ::
+  .atom (.load (.n 109) (.n 1) 15) ::
+  .atom (.mul (.n 110) (.n 19) (.n 109)) ::
+  .atom (.add (.n 111) (.n 19) (.n 109)) ::
+  .atom (.mul (.n 112) (.n 111) (.n 108)) ::
+  .atom (.add (.n 113) (.n 110) (.n 112)) ::
+  .atom (.mul (.n 20) (.n 20) (.n 20)) ::
+  .atom (.load (.n 114) (.n 1) 16) ::
+  .atom (.mul (.n 115) (.n 20) (.n 114)) ::
+  .atom (.add (.n 116) (.n 20) (.n 114)) ::
+  .atom (.mul (.n 117) (.n 116) (.n 113)) ::
+  .atom (.add (.n 118) (.n 115) (.n 117)) ::
+  .atom (.mul (.n 21) (.n 21) (.n 21)) ::
+  .atom (.load (.n 119) (.n 1) 17) ::
+  .atom (.mul (.n 120) (.n 21) (.n 119)) ::
+  .atom (.add (.n 121) (.n 21) (.n 119)) ::
+  .atom (.mul (.n 122) (.n 121) (.n 118)) ::
+  .atom (.add (.n 123) (.n 120) (.n 122)) ::
+  .atom (.mul (.n 22) (.n 22) (.n 22)) ::
+  .atom (.load (.n 124) (.n 1) 18) ::
+  .atom (.mul (.n 125) (.n 22) (.n 124)) ::
+  .atom (.add (.n 126) (.n 22) (.n 124)) ::
+  .atom (.mul (.n 127) (.n 126) (.n 123)) ::
+  .atom (.add (.n 128) (.n 125) (.n 127)) ::
+  .atom (.mul (.n 23) (.n 23) (.n 23)) ::
+  .atom (.load (.n 129) (.n 1) 19) ::
+  .atom (.mul (.n 130) (.n 23) (.n 129)) ::
+  .atom (.add (.n 131) (.n 23) (.n 129)) ::
+  .atom (.mul (.n 132) (.n 131) (.n 128)) ::
+  .atom (.add (.n 133) (.n 130) (.n 132)) ::
+  .atom (.mul (.n 24) (.n 24) (.n 24)) ::
+  .atom (.load (.n 134) (.n 1) 20) ::
+  .atom (.mul (.n 135) (.n 24) (.n 134)) ::
+  .atom (.add (.n 136) (.n 24) (.n 134)) ::
+  .atom (.mul (.n 137) (.n 136) (.n 133)) ::
+  .atom (.add (.n 138) (.n 135) (.n 137)) ::
+  .atom (.mul (.n 25) (.n 25) (.n 25)) ::
+  .atom (.load (.n 139) (.n 1) 21) ::
+  .atom (.mul (.n 140) (.n 25) (.n 139)) ::
+  .atom (.add (.n 141) (.n 25) (.n 139)) ::
+  .atom (.mul (.n 142) (.n 141) (.n 138)) ::
+  .atom (.add (.n 143) (.n 140) (.n 142)) ::
+  .atom (.mul (.n 26) (.n 26) (.n 26)) ::
+  .atom (.load (.n 144) (.n 1) 22) ::
+  .atom (.mul (.n 145) (.n 26) (.n 144)) ::
+  .atom (.add (.n 146) (.n 26) (.n 144)) ::
+  .atom (.mul (.n 147) (.n 146) (.n 143)) ::
+  .atom (.add (.n 148) (.n 145) (.n 147)) ::
+  .atom (.mul (.n 27) (.n 27) (.n 27)) ::
+  .atom (.load (.n 149) (.n 1) 23) ::
+  .atom (.mul (.n 150) (.n 27) (.n 149)) ::
+  .atom (.add (.n 151) (.n 27) (.n 149)) ::
+  .atom (.mul (.n 152) (.n 151) (.n 148)) ::
+  .atom (.add (.n 153) (.n 150) (.n 152)) ::
+  .atom (.mul (.n 28) (.n 28) (.n 28)) ::
+  .atom (.load (.n 154) (.n 1) 24) ::
+  .atom (.mul (.n 155) (.n 28) (.n 154)) ::
+  .atom (.add (.n 156) (.n 28) (.n 154)) ::
+  .atom (.mul (.n 157) (.n 156) (.n 153)) ::
+  .atom (.add (.n 158) (.n 155) (.n 157)) ::
+  .atom (.mul (.n 29) (.n 29) (.n 29)) ::
+  .atom (.load (.n 159) (.n 1) 25) ::
+  .atom (.mul (.n 160) (.n 29) (.n 159)) ::
+  .atom (.add (.n 161) (.n 29) (.n 159)) ::
+  .atom (.mul (.n 162) (.n 161) (.n 158)) ::
+  .atom (.add (.n 163) (.n 160) (.n 162)) ::
+  .atom (.mul (.n 30) (.n 30) (.n 30)) ::
+  .atom (.load (.n 164) (.n 1) 26) ::
+  .atom (.mul (.n 165) (.n 30) (.n 164)) ::
+  .atom (.add (.n 166) (.n 30) (.n 164)) ::
+  .atom (.mul (.n 167) (.n 166) (.n 163)) ::
+  .atom (.add (.n 168) (.n 165) (.n 167)) ::
+  .atom (.mul (.n 31) (.n 31) (.n 31)) ::
+  .atom (.load (.n 169) (.n 1) 27) ::
+  .atom (.mul (.n 170) (.n 31) (.n 169)) ::
+  .atom (.add (.n 171) (.n 31) (.n 169)) ::
+  .atom (.mul (.n 172) (.n 171) (.n 168)) ::
+  .atom (.add (.n 173) (.n 170) (.n 172)) ::
+  .atom (.mul (.n 32) (.n 32) (.n 32)) ::
+  .atom (.load (.n 174) (.n 1) 28) ::
+  .atom (.mul (.n 175) (.n 32) (.n 174)) ::
+  .atom (.add (.n 176) (.n 32) (.n 174)) ::
+  .atom (.mul (.n 177) (.n 176) (.n 173)) ::
+  .atom (.add (.n 178) (.n 175) (.n 177)) ::
+  .atom (.mul (.n 33) (.n 33) (.n 33)) ::
+  .atom (.load (.n 179) (.n 1) 29) ::
+  .atom (.mul (.n 180) (.n 33) (.n 179)) ::
+  .atom (.add (.n 181) (.n 33) (.n 179)) ::
+  .atom (.mul (.n 182) (.n 181) (.n 178)) ::
+  .atom (.add (.n 183) (.n 180) (.n 182)) ::
+  .atom (.mul (.n 34) (.n 34) (.n 34)) ::
+  .atom (.const (.n 184) (word 2 0)) ::
+  .atom (.mul (.n 185) (.n 32) (.n 184)) ::
+  .atom (.add (.n 186) (.n 185) (.n 31)) ::
+  .atom (.const (.n 187) (word 2 0)) ::
+  .atom (.mul (.n 188) (.n 186) (.n 187)) ::
+  .atom (.add (.n 189) (.n 188) (.n 30)) ::
+  .atom (.const (.n 190) (word 2 0)) ::
+  .atom (.mul (.n 191) (.n 189) (.n 190)) ::
+  .atom (.add (.n 192) (.n 191) (.n 29)) ::
+  .atom (.const (.n 193) (word 2 0)) ::
+  .atom (.mul (.n 194) (.n 192) (.n 193)) ::
+  .atom (.add (.n 195) (.n 194) (.n 28)) ::
+  .atom (.const (.n 196) (word 2 0)) ::
+  .atom (.mul (.n 197) (.n 195) (.n 196)) ::
+  .atom (.add (.n 198) (.n 197) (.n 27)) ::
+  .atom (.const (.n 199) (word 2 0)) ::
+  .atom (.mul (.n 200) (.n 198) (.n 199)) ::
+  .atom (.add (.n 201) (.n 200) (.n 26)) ::
+  .atom (.const (.n 202) (word 2 0)) ::
+  .atom (.mul (.n 203) (.n 201) (.n 202)) ::
+  .atom (.add (.n 204) (.n 203) (.n 25)) ::
+  .atom (.const (.n 205) (word 2 0)) ::
+  .atom (.mul (.n 206) (.n 204) (.n 205)) ::
+  .atom (.add (.n 207) (.n 206) (.n 24)) ::
+  .atom (.const (.n 208) (word 2 0)) ::
+  .atom (.mul (.n 209) (.n 207) (.n 208)) ::
+  .atom (.add (.n 210) (.n 209) (.n 23)) ::
+  .atom (.const (.n 211) (word 2 0)) ::
+  .atom (.mul (.n 212) (.n 210) (.n 211)) ::
+  .atom (.add (.n 213) (.n 212) (.n 22)) ::
+  .atom (.const (.n 214) (word 2 0)) ::
+  .atom (.mul (.n 215) (.n 213) (.n 214)) ::
+  .atom (.add (.n 216) (.n 215) (.n 21)) ::
+  .atom (.const (.n 217) (word 2 0)) ::
+  .atom (.mul (.n 218) (.n 216) (.n 217)) ::
+  .atom (.add (.n 219) (.n 218) (.n 20)) ::
+  .atom (.const (.n 220) (word 2 0)) ::
+  .atom (.mul (.n 221) (.n 219) (.n 220)) ::
+  .atom (.add (.n 222) (.n 221) (.n 19)) ::
+  .atom (.const (.n 223) (word 2 0)) ::
+  .atom (.mul (.n 224) (.n 222) (.n 223)) ::
+  .atom (.add (.n 225) (.n 224) (.n 18)) ::
+  .atom (.const (.n 226) (word 2 0)) ::
+  .atom (.mul (.n 227) (.n 225) (.n 226)) ::
+  .atom (.add (.n 228) (.n 227) (.n 17)) ::
+  .atom (.const (.n 229) (word 2 0)) ::
+  .atom (.mul (.n 230) (.n 228) (.n 229)) ::
+  .atom (.add (.n 231) (.n 230) (.n 16)) ::
+  .atom (.const (.n 232) (word 2 0)) ::
+  .atom (.mul (.n 233) (.n 231) (.n 232)) ::
+  .atom (.add (.n 234) (.n 233) (.n 15)) ::
+  .atom (.const (.n 235) (word 2 0)) ::
+  .atom (.mul (.n 236) (.n 234) (.n 235)) ::
+  .atom (.add (.n 237) (.n 236) (.n 14)) ::
+  .atom (.const (.n 238) (word 2 0)) ::
+  .atom (.mul (.n 239) (.n 237) (.n 238)) ::
+  .atom (.add (.n 240) (.n 239) (.n 13)) ::
+  .atom (.const (.n 241) (word 2 0)) ::
+  .atom (.mul (.n 242) (.n 240) (.n 241)) ::
+  .atom (.add (.n 243) (.n 242) (.n 12)) ::
+  .atom (.const (.n 244) (word 2 0)) ::
+  .atom (.mul (.n 245) (.n 243) (.n 244)) ::
+  .atom (.add (.n 246) (.n 245) (.n 11)) ::
+  .atom (.const (.n 247) (word 2 0)) ::
+  .atom (.mul (.n 248) (.n 246) (.n 247)) ::
+  .atom (.add (.n 249) (.n 248) (.n 10)) ::
+  .atom (.const (.n 250) (word 2 0)) ::
+  .atom (.mul (.n 251) (.n 249) (.n 250)) ::
+  .atom (.add (.n 252) (.n 251) (.n 9)) ::
+  .atom (.const (.n 253) (word 2 0)) ::
+  .atom (.mul (.n 254) (.n 252) (.n 253)) ::
+  .atom (.add (.n 255) (.n 254) (.n 8)) ::
+  .atom (.const (.n 256) (word 2 0)) ::
+  .atom (.mul (.n 257) (.n 255) (.n 256)) ::
+  .atom (.add (.n 258) (.n 257) (.n 7)) ::
+  .atom (.const (.n 259) (word 2 0)) ::
+  .atom (.mul (.n 260) (.n 258) (.n 259)) ::
+  .atom (.add (.n 261) (.n 260) (.n 6)) ::
+  .atom (.const (.n 262) (word 2 0)) ::
+  .atom (.mul (.n 263) (.n 261) (.n 262)) ::
+  .atom (.add (.n 264) (.n 263) (.n 5)) ::
+  .atom (.const (.n 265) (word 2 0)) ::
+  .atom (.mul (.n 266) (.n 264) (.n 265)) ::
+  .atom (.add (.n 267) (.n 266) (.n 4)) ::
+  .atom (.const (.n 268) (word 536870912 0)) ::
+  .atom (.mul (.n 269) (.n 33) (.n 268)) ::
+  .atom (.add (.n 270) (.n 267) (.n 269)) ::
+  .atom (.const (.n 271) (word 1 0)) ::
+  .atom (.add (.n 272) (.n 34) (.n 271)) ::
+  .atom (.add (.n 273) (.n 272) (.n 33)) ::
+  .atom (.add (.n 274) (.n 34) (.n 267)) ::
+  .atom (.const (.n 275) (word 536870911 0)) ::
+  .atom (.add (.n 276) (.n 274) (.n 275)) ::
+  .atom (.const (.n 277) (word 1073741824 0)) ::
+  .atom (.mul (.n 278) (.n 34) (.n 277)) ::
+  .atom (.add (.n 279) (.n 270) (.n 278)) ::
+  .atom (.assertEq (.n 279) (.n 3)) ::
+  .atom (.const (.n 280) (word 1073741823 0)) ::
+  .atom (.add (.n 281) (.n 270) (.n 280)) ::
+  .atom (.mul (.n 282) (.n 34) (.n 281)) ::
+  .atom (.const (.n 283) (word 0 0)) ::
+  .atom (.assertEq (.n 282) (.n 283)) ::
+  .atom (.const (.n 284) (word 1 0)) ::
+  .atom (.add (.n 285) (.n 284) (.n 34)) ::
+  .atom (.mul (.n 286) (.n 285) (.n 183)) ::
+  .atom (.copy (.n 287) (.n 273)) ::
+  .atom (.copy (.n 288) (.n 276)) ::
+  .ret [.n 286, .n 287, .n 288] ::
+  [])
+
+end core127
+
+/-- `padding_weight__L30`. -/
+noncomputable def core127 : Core.Fn where
+  name := "padding_weight__L30"
+  params := [.n 0, .n 1]
+  body := core127.body
+
+namespace core128
+
 /-- `plus_one_run__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 2) (word 0 0)),
   .ret [.n 2]]
 
-end core126
+end core128
 
 /-- `plus_one_run__L0`. -/
-noncomputable def core126 : Core.Fn where
+noncomputable def core128 : Core.Fn where
   name := "plus_one_run__L0"
   params := [.n 0, .n 1]
-  body := core126.body
+  body := core128.body
 
-namespace core127
+namespace core129
 
 /-- `plus_one_run__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16684,15 +17283,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 5) (word 0 0)),
   .ret [.n 5]]
 
-end core127
+end core129
 
 /-- `plus_one_run__L1`. -/
-noncomputable def core127 : Core.Fn where
+noncomputable def core129 : Core.Fn where
   name := "plus_one_run__L1"
   params := [.n 0, .n 1]
-  body := core127.body
+  body := core129.body
 
-namespace core128
+namespace core130
 
 /-- `plus_one_run__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16707,15 +17306,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 8) (word 0 0)),
   .ret [.n 8]]
 
-end core128
+end core130
 
 /-- `plus_one_run__L2`. -/
-noncomputable def core128 : Core.Fn where
+noncomputable def core130 : Core.Fn where
   name := "plus_one_run__L2"
   params := [.n 0, .n 1]
-  body := core128.body
+  body := core130.body
 
-namespace core129
+namespace core131
 
 /-- `plus_one_run__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16734,15 +17333,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 11) (word 0 0)),
   .ret [.n 11]]
 
-end core129
+end core131
 
 /-- `plus_one_run__L3`. -/
-noncomputable def core129 : Core.Fn where
+noncomputable def core131 : Core.Fn where
   name := "plus_one_run__L3"
   params := [.n 0, .n 1]
-  body := core129.body
+  body := core131.body
 
-namespace core130
+namespace core132
 
 /-- `plus_one_run__L4`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16765,15 +17364,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 14) (word 0 0)),
   .ret [.n 14]]
 
-end core130
+end core132
 
 /-- `plus_one_run__L4`. -/
-noncomputable def core130 : Core.Fn where
+noncomputable def core132 : Core.Fn where
   name := "plus_one_run__L4"
   params := [.n 0, .n 1]
-  body := core130.body
+  body := core132.body
 
-namespace core131
+namespace core133
 
 /-- `plus_one_run__L5`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16800,15 +17399,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 17) (word 0 0)),
   .ret [.n 17]]
 
-end core131
+end core133
 
 /-- `plus_one_run__L5`. -/
-noncomputable def core131 : Core.Fn where
+noncomputable def core133 : Core.Fn where
   name := "plus_one_run__L5"
   params := [.n 0, .n 1]
-  body := core131.body
+  body := core133.body
 
-namespace core132
+namespace core134
 
 /-- `plus_one_run__L6`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16839,15 +17438,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 20) (word 0 0)),
   .ret [.n 20]]
 
-end core132
+end core134
 
 /-- `plus_one_run__L6`. -/
-noncomputable def core132 : Core.Fn where
+noncomputable def core134 : Core.Fn where
   name := "plus_one_run__L6"
   params := [.n 0, .n 1]
-  body := core132.body
+  body := core134.body
 
-namespace core133
+namespace core135
 
 /-- `plus_one_run__L7`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -16882,15 +17481,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 23) (word 0 0)),
   .ret [.n 23]]
 
-end core133
+end core135
 
 /-- `plus_one_run__L7`. -/
-noncomputable def core133 : Core.Fn where
+noncomputable def core135 : Core.Fn where
   name := "plus_one_run__L7"
   params := [.n 0, .n 1]
-  body := core133.body
+  body := core135.body
 
-namespace core134
+namespace core136
 
 /-- `plus_one_run__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -16930,15 +17529,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 26] ::
   [])
 
-end core134
+end core136
 
 /-- `plus_one_run__L8`. -/
-noncomputable def core134 : Core.Fn where
+noncomputable def core136 : Core.Fn where
   name := "plus_one_run__L8"
   params := [.n 0, .n 1]
-  body := core134.body
+  body := core136.body
 
-namespace core135
+namespace core137
 
 /-- `plus_one_run__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -16982,15 +17581,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 29] ::
   [])
 
-end core135
+end core137
 
 /-- `plus_one_run__L9`. -/
-noncomputable def core135 : Core.Fn where
+noncomputable def core137 : Core.Fn where
   name := "plus_one_run__L9"
   params := [.n 0, .n 1]
-  body := core135.body
+  body := core137.body
 
-namespace core136
+namespace core138
 
 /-- `plus_one_run__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17038,15 +17637,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 32] ::
   [])
 
-end core136
+end core138
 
 /-- `plus_one_run__L10`. -/
-noncomputable def core136 : Core.Fn where
+noncomputable def core138 : Core.Fn where
   name := "plus_one_run__L10"
   params := [.n 0, .n 1]
-  body := core136.body
+  body := core138.body
 
-namespace core137
+namespace core139
 
 /-- `plus_one_run__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17098,15 +17697,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 35] ::
   [])
 
-end core137
+end core139
 
 /-- `plus_one_run__L11`. -/
-noncomputable def core137 : Core.Fn where
+noncomputable def core139 : Core.Fn where
   name := "plus_one_run__L11"
   params := [.n 0, .n 1]
-  body := core137.body
+  body := core139.body
 
-namespace core138
+namespace core140
 
 /-- `plus_one_run__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17162,15 +17761,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 38] ::
   [])
 
-end core138
+end core140
 
 /-- `plus_one_run__L12`. -/
-noncomputable def core138 : Core.Fn where
+noncomputable def core140 : Core.Fn where
   name := "plus_one_run__L12"
   params := [.n 0, .n 1]
-  body := core138.body
+  body := core140.body
 
-namespace core139
+namespace core141
 
 /-- `plus_one_run__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17230,15 +17829,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 41] ::
   [])
 
-end core139
+end core141
 
 /-- `plus_one_run__L13`. -/
-noncomputable def core139 : Core.Fn where
+noncomputable def core141 : Core.Fn where
   name := "plus_one_run__L13"
   params := [.n 0, .n 1]
-  body := core139.body
+  body := core141.body
 
-namespace core140
+namespace core142
 
 /-- `plus_one_run__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17302,15 +17901,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 44] ::
   [])
 
-end core140
+end core142
 
 /-- `plus_one_run__L14`. -/
-noncomputable def core140 : Core.Fn where
+noncomputable def core142 : Core.Fn where
   name := "plus_one_run__L14"
   params := [.n 0, .n 1]
-  body := core140.body
+  body := core142.body
 
-namespace core141
+namespace core143
 
 /-- `plus_one_run__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17378,15 +17977,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 47] ::
   [])
 
-end core141
+end core143
 
 /-- `plus_one_run__L15`. -/
-noncomputable def core141 : Core.Fn where
+noncomputable def core143 : Core.Fn where
   name := "plus_one_run__L15"
   params := [.n 0, .n 1]
-  body := core141.body
+  body := core143.body
 
-namespace core142
+namespace core144
 
 /-- `plus_one_run__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17458,15 +18057,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 50] ::
   [])
 
-end core142
+end core144
 
 /-- `plus_one_run__L16`. -/
-noncomputable def core142 : Core.Fn where
+noncomputable def core144 : Core.Fn where
   name := "plus_one_run__L16"
   params := [.n 0, .n 1]
-  body := core142.body
+  body := core144.body
 
-namespace core143
+namespace core145
 
 /-- `plus_one_run__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17542,15 +18141,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 53] ::
   [])
 
-end core143
+end core145
 
 /-- `plus_one_run__L17`. -/
-noncomputable def core143 : Core.Fn where
+noncomputable def core145 : Core.Fn where
   name := "plus_one_run__L17"
   params := [.n 0, .n 1]
-  body := core143.body
+  body := core145.body
 
-namespace core144
+namespace core146
 
 /-- `plus_one_run__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17630,15 +18229,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56] ::
   [])
 
-end core144
+end core146
 
 /-- `plus_one_run__L18`. -/
-noncomputable def core144 : Core.Fn where
+noncomputable def core146 : Core.Fn where
   name := "plus_one_run__L18"
   params := [.n 0, .n 1]
-  body := core144.body
+  body := core146.body
 
-namespace core145
+namespace core147
 
 /-- `plus_one_run__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17722,15 +18321,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 59] ::
   [])
 
-end core145
+end core147
 
 /-- `plus_one_run__L19`. -/
-noncomputable def core145 : Core.Fn where
+noncomputable def core147 : Core.Fn where
   name := "plus_one_run__L19"
   params := [.n 0, .n 1]
-  body := core145.body
+  body := core147.body
 
-namespace core146
+namespace core148
 
 /-- `plus_one_run__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17818,15 +18417,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 62] ::
   [])
 
-end core146
+end core148
 
 /-- `plus_one_run__L20`. -/
-noncomputable def core146 : Core.Fn where
+noncomputable def core148 : Core.Fn where
   name := "plus_one_run__L20"
   params := [.n 0, .n 1]
-  body := core146.body
+  body := core148.body
 
-namespace core147
+namespace core149
 
 /-- `plus_one_run__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -17918,15 +18517,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 65] ::
   [])
 
-end core147
+end core149
 
 /-- `plus_one_run__L21`. -/
-noncomputable def core147 : Core.Fn where
+noncomputable def core149 : Core.Fn where
   name := "plus_one_run__L21"
   params := [.n 0, .n 1]
-  body := core147.body
+  body := core149.body
 
-namespace core148
+namespace core150
 
 /-- `plus_one_run__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18022,15 +18621,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 68] ::
   [])
 
-end core148
+end core150
 
 /-- `plus_one_run__L22`. -/
-noncomputable def core148 : Core.Fn where
+noncomputable def core150 : Core.Fn where
   name := "plus_one_run__L22"
   params := [.n 0, .n 1]
-  body := core148.body
+  body := core150.body
 
-namespace core149
+namespace core151
 
 /-- `plus_one_run__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18130,15 +18729,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 71] ::
   [])
 
-end core149
+end core151
 
 /-- `plus_one_run__L23`. -/
-noncomputable def core149 : Core.Fn where
+noncomputable def core151 : Core.Fn where
   name := "plus_one_run__L23"
   params := [.n 0, .n 1]
-  body := core149.body
+  body := core151.body
 
-namespace core150
+namespace core152
 
 /-- `plus_one_run__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18242,15 +18841,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 74] ::
   [])
 
-end core150
+end core152
 
 /-- `plus_one_run__L24`. -/
-noncomputable def core150 : Core.Fn where
+noncomputable def core152 : Core.Fn where
   name := "plus_one_run__L24"
   params := [.n 0, .n 1]
-  body := core150.body
+  body := core152.body
 
-namespace core151
+namespace core153
 
 /-- `plus_one_run__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18358,15 +18957,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 77] ::
   [])
 
-end core151
+end core153
 
 /-- `plus_one_run__L25`. -/
-noncomputable def core151 : Core.Fn where
+noncomputable def core153 : Core.Fn where
   name := "plus_one_run__L25"
   params := [.n 0, .n 1]
-  body := core151.body
+  body := core153.body
 
-namespace core152
+namespace core154
 
 /-- `plus_one_run__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18478,15 +19077,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 80] ::
   [])
 
-end core152
+end core154
 
 /-- `plus_one_run__L26`. -/
-noncomputable def core152 : Core.Fn where
+noncomputable def core154 : Core.Fn where
   name := "plus_one_run__L26"
   params := [.n 0, .n 1]
-  body := core152.body
+  body := core154.body
 
-namespace core153
+namespace core155
 
 /-- `plus_one_run__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18602,15 +19201,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 83] ::
   [])
 
-end core153
+end core155
 
 /-- `plus_one_run__L27`. -/
-noncomputable def core153 : Core.Fn where
+noncomputable def core155 : Core.Fn where
   name := "plus_one_run__L27"
   params := [.n 0, .n 1]
-  body := core153.body
+  body := core155.body
 
-namespace core154
+namespace core156
 
 /-- `plus_one_run__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18730,15 +19329,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 86] ::
   [])
 
-end core154
+end core156
 
 /-- `plus_one_run__L28`. -/
-noncomputable def core154 : Core.Fn where
+noncomputable def core156 : Core.Fn where
   name := "plus_one_run__L28"
   params := [.n 0, .n 1]
-  body := core154.body
+  body := core156.body
 
-namespace core155
+namespace core157
 
 /-- `plus_one_run__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18862,15 +19461,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 89] ::
   [])
 
-end core155
+end core157
 
 /-- `plus_one_run__L29`. -/
-noncomputable def core155 : Core.Fn where
+noncomputable def core157 : Core.Fn where
   name := "plus_one_run__L29"
   params := [.n 0, .n 1]
-  body := core155.body
+  body := core157.body
 
-namespace core156
+namespace core158
 
 /-- `plus_one_run__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -18998,15 +19597,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 92] ::
   [])
 
-end core156
+end core158
 
 /-- `plus_one_run__L30`. -/
-noncomputable def core156 : Core.Fn where
+noncomputable def core158 : Core.Fn where
   name := "plus_one_run__L30"
   params := [.n 0, .n 1]
-  body := core156.body
+  body := core158.body
 
-namespace core157
+namespace core159
 
 /-- `plus_one_run__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19138,15 +19737,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 95] ::
   [])
 
-end core157
+end core159
 
 /-- `plus_one_run__L31`. -/
-noncomputable def core157 : Core.Fn where
+noncomputable def core159 : Core.Fn where
   name := "plus_one_run__L31"
   params := [.n 0, .n 1]
-  body := core157.body
+  body := core159.body
 
-namespace core158
+namespace core160
 
 /-- `plus_one_run__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19282,15 +19881,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 98] ::
   [])
 
-end core158
+end core160
 
 /-- `plus_one_run__L32`. -/
-noncomputable def core158 : Core.Fn where
+noncomputable def core160 : Core.Fn where
   name := "plus_one_run__L32"
   params := [.n 0, .n 1]
-  body := core158.body
+  body := core160.body
 
-namespace core159
+namespace core161
 
 /-- `plus_one_run__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19430,15 +20029,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 101] ::
   [])
 
-end core159
+end core161
 
 /-- `plus_one_run__L33`. -/
-noncomputable def core159 : Core.Fn where
+noncomputable def core161 : Core.Fn where
   name := "plus_one_run__L33"
   params := [.n 0, .n 1]
-  body := core159.body
+  body := core161.body
 
-namespace core160
+namespace core162
 
 /-- `block_selector__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -19446,15 +20045,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 4) (word 1 0)),
   .ret [.n 3, .n 4]]
 
-end core160
+end core162
 
 /-- `block_selector__L0`. -/
-noncomputable def core160 : Core.Fn where
+noncomputable def core162 : Core.Fn where
   name := "block_selector__L0"
   params := [.n 0, .n 1, .n 2]
-  body := core160.body
+  body := core162.body
 
-namespace core161
+namespace core163
 
 /-- `block_selector__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -19471,15 +20070,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 12) (.n 10)),
   .ret [.n 11, .n 12]]
 
-end core161
+end core163
 
 /-- `block_selector__L1`. -/
-noncomputable def core161 : Core.Fn where
+noncomputable def core163 : Core.Fn where
   name := "block_selector__L1"
   params := [.n 0, .n 1, .n 2]
-  body := core161.body
+  body := core163.body
 
-namespace core162
+namespace core164
 
 /-- `block_selector__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -19507,15 +20106,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 22) (.n 20)),
   .ret [.n 21, .n 22]]
 
-end core162
+end core164
 
 /-- `block_selector__L2`. -/
-noncomputable def core162 : Core.Fn where
+noncomputable def core164 : Core.Fn where
   name := "block_selector__L2"
   params := [.n 0, .n 1, .n 2]
-  body := core162.body
+  body := core164.body
 
-namespace core163
+namespace core165
 
 /-- `block_selector__L3`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19555,15 +20154,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 31, .n 32] ::
   [])
 
-end core163
+end core165
 
 /-- `block_selector__L3`. -/
-noncomputable def core163 : Core.Fn where
+noncomputable def core165 : Core.Fn where
   name := "block_selector__L3"
   params := [.n 0, .n 1, .n 2]
-  body := core163.body
+  body := core165.body
 
-namespace core164
+namespace core166
 
 /-- `block_selector__L4`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19614,15 +20213,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 41, .n 42] ::
   [])
 
-end core164
+end core166
 
 /-- `block_selector__L4`. -/
-noncomputable def core164 : Core.Fn where
+noncomputable def core166 : Core.Fn where
   name := "block_selector__L4"
   params := [.n 0, .n 1, .n 2]
-  body := core164.body
+  body := core166.body
 
-namespace core165
+namespace core167
 
 /-- `block_selector__L5`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19684,15 +20283,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 51, .n 52] ::
   [])
 
-end core165
+end core167
 
 /-- `block_selector__L5`. -/
-noncomputable def core165 : Core.Fn where
+noncomputable def core167 : Core.Fn where
   name := "block_selector__L5"
   params := [.n 0, .n 1, .n 2]
-  body := core165.body
+  body := core167.body
 
-namespace core166
+namespace core168
 
 /-- `block_selector__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19765,15 +20364,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 61, .n 62] ::
   [])
 
-end core166
+end core168
 
 /-- `block_selector__L6`. -/
-noncomputable def core166 : Core.Fn where
+noncomputable def core168 : Core.Fn where
   name := "block_selector__L6"
   params := [.n 0, .n 1, .n 2]
-  body := core166.body
+  body := core168.body
 
-namespace core167
+namespace core169
 
 /-- `block_selector__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19857,15 +20456,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 71, .n 72] ::
   [])
 
-end core167
+end core169
 
 /-- `block_selector__L7`. -/
-noncomputable def core167 : Core.Fn where
+noncomputable def core169 : Core.Fn where
   name := "block_selector__L7"
   params := [.n 0, .n 1, .n 2]
-  body := core167.body
+  body := core169.body
 
-namespace core168
+namespace core170
 
 /-- `block_selector__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -19960,15 +20559,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 81, .n 82] ::
   [])
 
-end core168
+end core170
 
 /-- `block_selector__L8`. -/
-noncomputable def core168 : Core.Fn where
+noncomputable def core170 : Core.Fn where
   name := "block_selector__L8"
   params := [.n 0, .n 1, .n 2]
-  body := core168.body
+  body := core170.body
 
-namespace core169
+namespace core171
 
 /-- `block_selector__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20074,15 +20673,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 91, .n 92] ::
   [])
 
-end core169
+end core171
 
 /-- `block_selector__L9`. -/
-noncomputable def core169 : Core.Fn where
+noncomputable def core171 : Core.Fn where
   name := "block_selector__L9"
   params := [.n 0, .n 1, .n 2]
-  body := core169.body
+  body := core171.body
 
-namespace core170
+namespace core172
 
 /-- `block_selector__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20199,15 +20798,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 101, .n 102] ::
   [])
 
-end core170
+end core172
 
 /-- `block_selector__L10`. -/
-noncomputable def core170 : Core.Fn where
+noncomputable def core172 : Core.Fn where
   name := "block_selector__L10"
   params := [.n 0, .n 1, .n 2]
-  body := core170.body
+  body := core172.body
 
-namespace core171
+namespace core173
 
 /-- `block_selector__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20335,15 +20934,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 111, .n 112] ::
   [])
 
-end core171
+end core173
 
 /-- `block_selector__L11`. -/
-noncomputable def core171 : Core.Fn where
+noncomputable def core173 : Core.Fn where
   name := "block_selector__L11"
   params := [.n 0, .n 1, .n 2]
-  body := core171.body
+  body := core173.body
 
-namespace core172
+namespace core174
 
 /-- `block_selector__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20482,15 +21081,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 121, .n 122] ::
   [])
 
-end core172
+end core174
 
 /-- `block_selector__L12`. -/
-noncomputable def core172 : Core.Fn where
+noncomputable def core174 : Core.Fn where
   name := "block_selector__L12"
   params := [.n 0, .n 1, .n 2]
-  body := core172.body
+  body := core174.body
 
-namespace core173
+namespace core175
 
 /-- `block_selector__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20640,15 +21239,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 131, .n 132] ::
   [])
 
-end core173
+end core175
 
 /-- `block_selector__L13`. -/
-noncomputable def core173 : Core.Fn where
+noncomputable def core175 : Core.Fn where
   name := "block_selector__L13"
   params := [.n 0, .n 1, .n 2]
-  body := core173.body
+  body := core175.body
 
-namespace core174
+namespace core176
 
 /-- `block_selector__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20809,15 +21408,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 141, .n 142] ::
   [])
 
-end core174
+end core176
 
 /-- `block_selector__L14`. -/
-noncomputable def core174 : Core.Fn where
+noncomputable def core176 : Core.Fn where
   name := "block_selector__L14"
   params := [.n 0, .n 1, .n 2]
-  body := core174.body
+  body := core176.body
 
-namespace core175
+namespace core177
 
 /-- `block_selector__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -20989,15 +21588,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 151, .n 152] ::
   [])
 
-end core175
+end core177
 
 /-- `block_selector__L15`. -/
-noncomputable def core175 : Core.Fn where
+noncomputable def core177 : Core.Fn where
   name := "block_selector__L15"
   params := [.n 0, .n 1, .n 2]
-  body := core175.body
+  body := core177.body
 
-namespace core176
+namespace core178
 
 /-- `block_selector__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21180,15 +21779,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 161, .n 162] ::
   [])
 
-end core176
+end core178
 
 /-- `block_selector__L16`. -/
-noncomputable def core176 : Core.Fn where
+noncomputable def core178 : Core.Fn where
   name := "block_selector__L16"
   params := [.n 0, .n 1, .n 2]
-  body := core176.body
+  body := core178.body
 
-namespace core177
+namespace core179
 
 /-- `block_selector__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21382,15 +21981,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 171, .n 172] ::
   [])
 
-end core177
+end core179
 
 /-- `block_selector__L17`. -/
-noncomputable def core177 : Core.Fn where
+noncomputable def core179 : Core.Fn where
   name := "block_selector__L17"
   params := [.n 0, .n 1, .n 2]
-  body := core177.body
+  body := core179.body
 
-namespace core178
+namespace core180
 
 /-- `block_selector__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21595,15 +22194,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 181, .n 182] ::
   [])
 
-end core178
+end core180
 
 /-- `block_selector__L18`. -/
-noncomputable def core178 : Core.Fn where
+noncomputable def core180 : Core.Fn where
   name := "block_selector__L18"
   params := [.n 0, .n 1, .n 2]
-  body := core178.body
+  body := core180.body
 
-namespace core179
+namespace core181
 
 /-- `block_selector__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -21819,15 +22418,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 191, .n 192] ::
   [])
 
-end core179
+end core181
 
 /-- `block_selector__L19`. -/
-noncomputable def core179 : Core.Fn where
+noncomputable def core181 : Core.Fn where
   name := "block_selector__L19"
   params := [.n 0, .n 1, .n 2]
-  body := core179.body
+  body := core181.body
 
-namespace core180
+namespace core182
 
 /-- `block_selector__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22054,15 +22653,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 201, .n 202] ::
   [])
 
-end core180
+end core182
 
 /-- `block_selector__L20`. -/
-noncomputable def core180 : Core.Fn where
+noncomputable def core182 : Core.Fn where
   name := "block_selector__L20"
   params := [.n 0, .n 1, .n 2]
-  body := core180.body
+  body := core182.body
 
-namespace core181
+namespace core183
 
 /-- `block_selector__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22300,15 +22899,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 211, .n 212] ::
   [])
 
-end core181
+end core183
 
 /-- `block_selector__L21`. -/
-noncomputable def core181 : Core.Fn where
+noncomputable def core183 : Core.Fn where
   name := "block_selector__L21"
   params := [.n 0, .n 1, .n 2]
-  body := core181.body
+  body := core183.body
 
-namespace core182
+namespace core184
 
 /-- `block_selector__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22557,15 +23156,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 221, .n 222] ::
   [])
 
-end core182
+end core184
 
 /-- `block_selector__L22`. -/
-noncomputable def core182 : Core.Fn where
+noncomputable def core184 : Core.Fn where
   name := "block_selector__L22"
   params := [.n 0, .n 1, .n 2]
-  body := core182.body
+  body := core184.body
 
-namespace core183
+namespace core185
 
 /-- `block_selector__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -22825,15 +23424,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 231, .n 232] ::
   [])
 
-end core183
+end core185
 
 /-- `block_selector__L23`. -/
-noncomputable def core183 : Core.Fn where
+noncomputable def core185 : Core.Fn where
   name := "block_selector__L23"
   params := [.n 0, .n 1, .n 2]
-  body := core183.body
+  body := core185.body
 
-namespace core184
+namespace core186
 
 /-- `block_selector__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23104,15 +23703,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 241, .n 242] ::
   [])
 
-end core184
+end core186
 
 /-- `block_selector__L24`. -/
-noncomputable def core184 : Core.Fn where
+noncomputable def core186 : Core.Fn where
   name := "block_selector__L24"
   params := [.n 0, .n 1, .n 2]
-  body := core184.body
+  body := core186.body
 
-namespace core185
+namespace core187
 
 /-- `block_selector__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23394,15 +23993,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 251, .n 252] ::
   [])
 
-end core185
+end core187
 
 /-- `block_selector__L25`. -/
-noncomputable def core185 : Core.Fn where
+noncomputable def core187 : Core.Fn where
   name := "block_selector__L25"
   params := [.n 0, .n 1, .n 2]
-  body := core185.body
+  body := core187.body
 
-namespace core186
+namespace core188
 
 /-- `block_selector__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -23695,15 +24294,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 261, .n 262] ::
   [])
 
-end core186
+end core188
 
 /-- `block_selector__L26`. -/
-noncomputable def core186 : Core.Fn where
+noncomputable def core188 : Core.Fn where
   name := "block_selector__L26"
   params := [.n 0, .n 1, .n 2]
-  body := core186.body
+  body := core188.body
 
-namespace core187
+namespace core189
 
 /-- `block_selector__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -24007,15 +24606,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 271, .n 272] ::
   [])
 
-end core187
+end core189
 
 /-- `block_selector__L27`. -/
-noncomputable def core187 : Core.Fn where
+noncomputable def core189 : Core.Fn where
   name := "block_selector__L27"
   params := [.n 0, .n 1, .n 2]
-  body := core187.body
+  body := core189.body
 
-namespace core188
+namespace core190
 
 /-- `block_selector__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -24330,15 +24929,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 281, .n 282] ::
   [])
 
-end core188
+end core190
 
 /-- `block_selector__L28`. -/
-noncomputable def core188 : Core.Fn where
+noncomputable def core190 : Core.Fn where
   name := "block_selector__L28"
   params := [.n 0, .n 1, .n 2]
-  body := core188.body
+  body := core190.body
 
-namespace core189
+namespace core191
 
 /-- `block_selector__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -24664,15 +25263,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 291, .n 292] ::
   [])
 
-end core189
+end core191
 
 /-- `block_selector__L29`. -/
-noncomputable def core189 : Core.Fn where
+noncomputable def core191 : Core.Fn where
   name := "block_selector__L29"
   params := [.n 0, .n 1, .n 2]
-  body := core189.body
+  body := core191.body
 
-namespace core190
+namespace core192
 
 /-- `block_selector__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -25009,15 +25608,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 301, .n 302] ::
   [])
 
-end core190
+end core192
 
 /-- `block_selector__L30`. -/
-noncomputable def core190 : Core.Fn where
+noncomputable def core192 : Core.Fn where
   name := "block_selector__L30"
   params := [.n 0, .n 1, .n 2]
-  body := core190.body
+  body := core192.body
 
-namespace core191
+namespace core193
 
 /-- `block_selector__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -25365,15 +25964,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 311, .n 312] ::
   [])
 
-end core191
+end core193
 
 /-- `block_selector__L31`. -/
-noncomputable def core191 : Core.Fn where
+noncomputable def core193 : Core.Fn where
   name := "block_selector__L31"
   params := [.n 0, .n 1, .n 2]
-  body := core191.body
+  body := core193.body
 
-namespace core192
+namespace core194
 
 /-- `block_selector__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -25732,15 +26331,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 321, .n 322] ::
   [])
 
-end core192
+end core194
 
 /-- `block_selector__L32`. -/
-noncomputable def core192 : Core.Fn where
+noncomputable def core194 : Core.Fn where
   name := "block_selector__L32"
   params := [.n 0, .n 1, .n 2]
-  body := core192.body
+  body := core194.body
 
-namespace core193
+namespace core195
 
 /-- `block_selector__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26110,30 +26709,30 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 331, .n 332] ::
   [])
 
-end core193
+end core195
 
 /-- `block_selector__L33`. -/
-noncomputable def core193 : Core.Fn where
+noncomputable def core195 : Core.Fn where
   name := "block_selector__L33"
   params := [.n 0, .n 1, .n 2]
-  body := core193.body
+  body := core195.body
 
-namespace core194
+namespace core196
 
 /-- `index_mle__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 1) (word 1 0)),
   .ret [.n 1]]
 
-end core194
+end core196
 
 /-- `index_mle__L0`. -/
-noncomputable def core194 : Core.Fn where
+noncomputable def core196 : Core.Fn where
   name := "index_mle__L0"
   params := [.n 0]
-  body := core194.body
+  body := core196.body
 
-namespace core195
+namespace core197
 
 /-- `index_mle__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -26145,15 +26744,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 6) (.n 5)),
   .ret [.n 6]]
 
-end core195
+end core197
 
 /-- `index_mle__L1`. -/
-noncomputable def core195 : Core.Fn where
+noncomputable def core197 : Core.Fn where
   name := "index_mle__L1"
   params := [.n 0]
-  body := core195.body
+  body := core197.body
 
-namespace core196
+namespace core198
 
 /-- `index_mle__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -26171,15 +26770,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 12) (.n 11)),
   .ret [.n 12]]
 
-end core196
+end core198
 
 /-- `index_mle__L2`. -/
-noncomputable def core196 : Core.Fn where
+noncomputable def core198 : Core.Fn where
   name := "index_mle__L2"
   params := [.n 0]
-  body := core196.body
+  body := core198.body
 
-namespace core197
+namespace core199
 
 /-- `index_mle__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -26203,15 +26802,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 18) (.n 17)),
   .ret [.n 18]]
 
-end core197
+end core199
 
 /-- `index_mle__L3`. -/
-noncomputable def core197 : Core.Fn where
+noncomputable def core199 : Core.Fn where
   name := "index_mle__L3"
   params := [.n 0]
-  body := core197.body
+  body := core199.body
 
-namespace core198
+namespace core200
 
 /-- `index_mle__L4`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -26241,15 +26840,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 23)),
   .ret [.n 24]]
 
-end core198
+end core200
 
 /-- `index_mle__L4`. -/
-noncomputable def core198 : Core.Fn where
+noncomputable def core200 : Core.Fn where
   name := "index_mle__L4"
   params := [.n 0]
-  body := core198.body
+  body := core200.body
 
-namespace core199
+namespace core201
 
 /-- `index_mle__L5`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -26285,15 +26884,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 30) (.n 29)),
   .ret [.n 30]]
 
-end core199
+end core201
 
 /-- `index_mle__L5`. -/
-noncomputable def core199 : Core.Fn where
+noncomputable def core201 : Core.Fn where
   name := "index_mle__L5"
   params := [.n 0]
-  body := core199.body
+  body := core201.body
 
-namespace core200
+namespace core202
 
 /-- `index_mle__L6`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26336,15 +26935,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 36] ::
   [])
 
-end core200
+end core202
 
 /-- `index_mle__L6`. -/
-noncomputable def core200 : Core.Fn where
+noncomputable def core202 : Core.Fn where
   name := "index_mle__L6"
   params := [.n 0]
-  body := core200.body
+  body := core202.body
 
-namespace core201
+namespace core203
 
 /-- `index_mle__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26393,15 +26992,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 42] ::
   [])
 
-end core201
+end core203
 
 /-- `index_mle__L7`. -/
-noncomputable def core201 : Core.Fn where
+noncomputable def core203 : Core.Fn where
   name := "index_mle__L7"
   params := [.n 0]
-  body := core201.body
+  body := core203.body
 
-namespace core202
+namespace core204
 
 /-- `index_mle__L8`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26456,15 +27055,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 48] ::
   [])
 
-end core202
+end core204
 
 /-- `index_mle__L8`. -/
-noncomputable def core202 : Core.Fn where
+noncomputable def core204 : Core.Fn where
   name := "index_mle__L8"
   params := [.n 0]
-  body := core202.body
+  body := core204.body
 
-namespace core203
+namespace core205
 
 /-- `index_mle__L9`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26525,15 +27124,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 54] ::
   [])
 
-end core203
+end core205
 
 /-- `index_mle__L9`. -/
-noncomputable def core203 : Core.Fn where
+noncomputable def core205 : Core.Fn where
   name := "index_mle__L9"
   params := [.n 0]
-  body := core203.body
+  body := core205.body
 
-namespace core204
+namespace core206
 
 /-- `index_mle__L10`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26600,15 +27199,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 60] ::
   [])
 
-end core204
+end core206
 
 /-- `index_mle__L10`. -/
-noncomputable def core204 : Core.Fn where
+noncomputable def core206 : Core.Fn where
   name := "index_mle__L10"
   params := [.n 0]
-  body := core204.body
+  body := core206.body
 
-namespace core205
+namespace core207
 
 /-- `index_mle__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26681,15 +27280,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 66] ::
   [])
 
-end core205
+end core207
 
 /-- `index_mle__L11`. -/
-noncomputable def core205 : Core.Fn where
+noncomputable def core207 : Core.Fn where
   name := "index_mle__L11"
   params := [.n 0]
-  body := core205.body
+  body := core207.body
 
-namespace core206
+namespace core208
 
 /-- `index_mle__L12`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26768,15 +27367,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 72] ::
   [])
 
-end core206
+end core208
 
 /-- `index_mle__L12`. -/
-noncomputable def core206 : Core.Fn where
+noncomputable def core208 : Core.Fn where
   name := "index_mle__L12"
   params := [.n 0]
-  body := core206.body
+  body := core208.body
 
-namespace core207
+namespace core209
 
 /-- `index_mle__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26861,15 +27460,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 78] ::
   [])
 
-end core207
+end core209
 
 /-- `index_mle__L13`. -/
-noncomputable def core207 : Core.Fn where
+noncomputable def core209 : Core.Fn where
   name := "index_mle__L13"
   params := [.n 0]
-  body := core207.body
+  body := core209.body
 
-namespace core208
+namespace core210
 
 /-- `index_mle__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -26960,15 +27559,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 84] ::
   [])
 
-end core208
+end core210
 
 /-- `index_mle__L14`. -/
-noncomputable def core208 : Core.Fn where
+noncomputable def core210 : Core.Fn where
   name := "index_mle__L14"
   params := [.n 0]
-  body := core208.body
+  body := core210.body
 
-namespace core209
+namespace core211
 
 /-- `index_mle__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27065,15 +27664,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 90] ::
   [])
 
-end core209
+end core211
 
 /-- `index_mle__L15`. -/
-noncomputable def core209 : Core.Fn where
+noncomputable def core211 : Core.Fn where
   name := "index_mle__L15"
   params := [.n 0]
-  body := core209.body
+  body := core211.body
 
-namespace core210
+namespace core212
 
 /-- `index_mle__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27176,15 +27775,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 96] ::
   [])
 
-end core210
+end core212
 
 /-- `index_mle__L16`. -/
-noncomputable def core210 : Core.Fn where
+noncomputable def core212 : Core.Fn where
   name := "index_mle__L16"
   params := [.n 0]
-  body := core210.body
+  body := core212.body
 
-namespace core211
+namespace core213
 
 /-- `index_mle__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27293,15 +27892,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 102] ::
   [])
 
-end core211
+end core213
 
 /-- `index_mle__L17`. -/
-noncomputable def core211 : Core.Fn where
+noncomputable def core213 : Core.Fn where
   name := "index_mle__L17"
   params := [.n 0]
-  body := core211.body
+  body := core213.body
 
-namespace core212
+namespace core214
 
 /-- `index_mle__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27416,15 +28015,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 108] ::
   [])
 
-end core212
+end core214
 
 /-- `index_mle__L18`. -/
-noncomputable def core212 : Core.Fn where
+noncomputable def core214 : Core.Fn where
   name := "index_mle__L18"
   params := [.n 0]
-  body := core212.body
+  body := core214.body
 
-namespace core213
+namespace core215
 
 /-- `index_mle__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27545,15 +28144,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 114] ::
   [])
 
-end core213
+end core215
 
 /-- `index_mle__L19`. -/
-noncomputable def core213 : Core.Fn where
+noncomputable def core215 : Core.Fn where
   name := "index_mle__L19"
   params := [.n 0]
-  body := core213.body
+  body := core215.body
 
-namespace core214
+namespace core216
 
 /-- `index_mle__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27680,15 +28279,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 120] ::
   [])
 
-end core214
+end core216
 
 /-- `index_mle__L20`. -/
-noncomputable def core214 : Core.Fn where
+noncomputable def core216 : Core.Fn where
   name := "index_mle__L20"
   params := [.n 0]
-  body := core214.body
+  body := core216.body
 
-namespace core215
+namespace core217
 
 /-- `index_mle__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27821,15 +28420,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 126] ::
   [])
 
-end core215
+end core217
 
 /-- `index_mle__L21`. -/
-noncomputable def core215 : Core.Fn where
+noncomputable def core217 : Core.Fn where
   name := "index_mle__L21"
   params := [.n 0]
-  body := core215.body
+  body := core217.body
 
-namespace core216
+namespace core218
 
 /-- `index_mle__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -27968,15 +28567,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 132] ::
   [])
 
-end core216
+end core218
 
 /-- `index_mle__L22`. -/
-noncomputable def core216 : Core.Fn where
+noncomputable def core218 : Core.Fn where
   name := "index_mle__L22"
   params := [.n 0]
-  body := core216.body
+  body := core218.body
 
-namespace core217
+namespace core219
 
 /-- `index_mle__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28121,15 +28720,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 138] ::
   [])
 
-end core217
+end core219
 
 /-- `index_mle__L23`. -/
-noncomputable def core217 : Core.Fn where
+noncomputable def core219 : Core.Fn where
   name := "index_mle__L23"
   params := [.n 0]
-  body := core217.body
+  body := core219.body
 
-namespace core218
+namespace core220
 
 /-- `index_mle__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28280,15 +28879,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 144] ::
   [])
 
-end core218
+end core220
 
 /-- `index_mle__L24`. -/
-noncomputable def core218 : Core.Fn where
+noncomputable def core220 : Core.Fn where
   name := "index_mle__L24"
   params := [.n 0]
-  body := core218.body
+  body := core220.body
 
-namespace core219
+namespace core221
 
 /-- `index_mle__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28445,15 +29044,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 150] ::
   [])
 
-end core219
+end core221
 
 /-- `index_mle__L25`. -/
-noncomputable def core219 : Core.Fn where
+noncomputable def core221 : Core.Fn where
   name := "index_mle__L25"
   params := [.n 0]
-  body := core219.body
+  body := core221.body
 
-namespace core220
+namespace core222
 
 /-- `index_mle__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28616,15 +29215,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 156] ::
   [])
 
-end core220
+end core222
 
 /-- `index_mle__L26`. -/
-noncomputable def core220 : Core.Fn where
+noncomputable def core222 : Core.Fn where
   name := "index_mle__L26"
   params := [.n 0]
-  body := core220.body
+  body := core222.body
 
-namespace core221
+namespace core223
 
 /-- `index_mle__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28793,15 +29392,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 162] ::
   [])
 
-end core221
+end core223
 
 /-- `index_mle__L27`. -/
-noncomputable def core221 : Core.Fn where
+noncomputable def core223 : Core.Fn where
   name := "index_mle__L27"
   params := [.n 0]
-  body := core221.body
+  body := core223.body
 
-namespace core222
+namespace core224
 
 /-- `index_mle__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -28976,15 +29575,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 168] ::
   [])
 
-end core222
+end core224
 
 /-- `index_mle__L28`. -/
-noncomputable def core222 : Core.Fn where
+noncomputable def core224 : Core.Fn where
   name := "index_mle__L28"
   params := [.n 0]
-  body := core222.body
+  body := core224.body
 
-namespace core223
+namespace core225
 
 /-- `index_mle__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29165,15 +29764,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 174] ::
   [])
 
-end core223
+end core225
 
 /-- `index_mle__L29`. -/
-noncomputable def core223 : Core.Fn where
+noncomputable def core225 : Core.Fn where
   name := "index_mle__L29"
   params := [.n 0]
-  body := core223.body
+  body := core225.body
 
-namespace core224
+namespace core226
 
 /-- `index_mle__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29360,15 +29959,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 180] ::
   [])
 
-end core224
+end core226
 
 /-- `index_mle__L30`. -/
-noncomputable def core224 : Core.Fn where
+noncomputable def core226 : Core.Fn where
   name := "index_mle__L30"
   params := [.n 0]
-  body := core224.body
+  body := core226.body
 
-namespace core225
+namespace core227
 
 /-- `index_mle__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29561,15 +30160,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 186] ::
   [])
 
-end core225
+end core227
 
 /-- `index_mle__L31`. -/
-noncomputable def core225 : Core.Fn where
+noncomputable def core227 : Core.Fn where
   name := "index_mle__L31"
   params := [.n 0]
-  body := core225.body
+  body := core227.body
 
-namespace core226
+namespace core228
 
 /-- `index_mle__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29768,15 +30367,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 192] ::
   [])
 
-end core226
+end core228
 
 /-- `index_mle__L32`. -/
-noncomputable def core226 : Core.Fn where
+noncomputable def core228 : Core.Fn where
   name := "index_mle__L32"
   params := [.n 0]
-  body := core226.body
+  body := core228.body
 
-namespace core227
+namespace core229
 
 /-- `index_mle__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -29981,15 +30580,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 198] ::
   [])
 
-end core227
+end core229
 
 /-- `index_mle__L33`. -/
-noncomputable def core227 : Core.Fn where
+noncomputable def core229 : Core.Fn where
   name := "index_mle__L33"
   params := [.n 0]
-  body := core227.body
+  body := core229.body
 
-namespace core228
+namespace core230
 
 /-- `block_selector_tab__L0`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -29997,15 +30596,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.const (.n 4) (word 1 0)),
   .ret [.n 3, .n 4]]
 
-end core228
+end core230
 
 /-- `block_selector_tab__L0`. -/
-noncomputable def core228 : Core.Fn where
+noncomputable def core230 : Core.Fn where
   name := "block_selector_tab__L0"
   params := [.n 0, .n 1, .n 2]
-  body := core228.body
+  body := core230.body
 
-namespace core229
+namespace core231
 
 /-- `block_selector_tab__L1`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30020,15 +30619,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 13) (.n 11)),
   .ret [.n 12, .n 13]]
 
-end core229
+end core231
 
 /-- `block_selector_tab__L1`. -/
-noncomputable def core229 : Core.Fn where
+noncomputable def core231 : Core.Fn where
   name := "block_selector_tab__L1"
   params := [.n 0, .n 1, .n 2]
-  body := core229.body
+  body := core231.body
 
-namespace core230
+namespace core232
 
 /-- `block_selector_tab__L2`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30043,15 +30642,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 13) (.n 11)),
   .ret [.n 12, .n 13]]
 
-end core230
+end core232
 
 /-- `block_selector_tab__L2`. -/
-noncomputable def core230 : Core.Fn where
+noncomputable def core232 : Core.Fn where
   name := "block_selector_tab__L2"
   params := [.n 0, .n 1, .n 2]
-  body := core230.body
+  body := core232.body
 
-namespace core231
+namespace core233
 
 /-- `block_selector_tab__L3`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30066,15 +30665,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 13) (.n 11)),
   .ret [.n 12, .n 13]]
 
-end core231
+end core233
 
 /-- `block_selector_tab__L3`. -/
-noncomputable def core231 : Core.Fn where
+noncomputable def core233 : Core.Fn where
   name := "block_selector_tab__L3"
   params := [.n 0, .n 1, .n 2]
-  body := core231.body
+  body := core233.body
 
-namespace core232
+namespace core234
 
 /-- `block_selector_tab__L4`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30089,15 +30688,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 13) (.n 11)),
   .ret [.n 12, .n 13]]
 
-end core232
+end core234
 
 /-- `block_selector_tab__L4`. -/
-noncomputable def core232 : Core.Fn where
+noncomputable def core234 : Core.Fn where
   name := "block_selector_tab__L4"
   params := [.n 0, .n 1, .n 2]
-  body := core232.body
+  body := core234.body
 
-namespace core233
+namespace core235
 
 /-- `block_selector_tab__L5`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30121,15 +30720,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 22)),
   .ret [.n 23, .n 24]]
 
-end core233
+end core235
 
 /-- `block_selector_tab__L5`. -/
-noncomputable def core233 : Core.Fn where
+noncomputable def core235 : Core.Fn where
   name := "block_selector_tab__L5"
   params := [.n 0, .n 1, .n 2]
-  body := core233.body
+  body := core235.body
 
-namespace core234
+namespace core236
 
 /-- `block_selector_tab__L6`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30153,15 +30752,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 22)),
   .ret [.n 23, .n 24]]
 
-end core234
+end core236
 
 /-- `block_selector_tab__L6`. -/
-noncomputable def core234 : Core.Fn where
+noncomputable def core236 : Core.Fn where
   name := "block_selector_tab__L6"
   params := [.n 0, .n 1, .n 2]
-  body := core234.body
+  body := core236.body
 
-namespace core235
+namespace core237
 
 /-- `block_selector_tab__L7`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30185,15 +30784,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 22)),
   .ret [.n 23, .n 24]]
 
-end core235
+end core237
 
 /-- `block_selector_tab__L7`. -/
-noncomputable def core235 : Core.Fn where
+noncomputable def core237 : Core.Fn where
   name := "block_selector_tab__L7"
   params := [.n 0, .n 1, .n 2]
-  body := core235.body
+  body := core237.body
 
-namespace core236
+namespace core238
 
 /-- `block_selector_tab__L8`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30217,15 +30816,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 24) (.n 22)),
   .ret [.n 23, .n 24]]
 
-end core236
+end core238
 
 /-- `block_selector_tab__L8`. -/
-noncomputable def core236 : Core.Fn where
+noncomputable def core238 : Core.Fn where
   name := "block_selector_tab__L8"
   params := [.n 0, .n 1, .n 2]
-  body := core236.body
+  body := core238.body
 
-namespace core237
+namespace core239
 
 /-- `block_selector_tab__L9`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30258,15 +30857,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 35) (.n 33)),
   .ret [.n 34, .n 35]]
 
-end core237
+end core239
 
 /-- `block_selector_tab__L9`. -/
-noncomputable def core237 : Core.Fn where
+noncomputable def core239 : Core.Fn where
   name := "block_selector_tab__L9"
   params := [.n 0, .n 1, .n 2]
-  body := core237.body
+  body := core239.body
 
-namespace core238
+namespace core240
 
 /-- `block_selector_tab__L10`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30299,15 +30898,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 35) (.n 33)),
   .ret [.n 34, .n 35]]
 
-end core238
+end core240
 
 /-- `block_selector_tab__L10`. -/
-noncomputable def core238 : Core.Fn where
+noncomputable def core240 : Core.Fn where
   name := "block_selector_tab__L10"
   params := [.n 0, .n 1, .n 2]
-  body := core238.body
+  body := core240.body
 
-namespace core239
+namespace core241
 
 /-- `block_selector_tab__L11`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30340,15 +30939,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 35) (.n 33)),
   .ret [.n 34, .n 35]]
 
-end core239
+end core241
 
 /-- `block_selector_tab__L11`. -/
-noncomputable def core239 : Core.Fn where
+noncomputable def core241 : Core.Fn where
   name := "block_selector_tab__L11"
   params := [.n 0, .n 1, .n 2]
-  body := core239.body
+  body := core241.body
 
-namespace core240
+namespace core242
 
 /-- `block_selector_tab__L12`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -30381,15 +30980,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.copy (.n 35) (.n 33)),
   .ret [.n 34, .n 35]]
 
-end core240
+end core242
 
 /-- `block_selector_tab__L12`. -/
-noncomputable def core240 : Core.Fn where
+noncomputable def core242 : Core.Fn where
   name := "block_selector_tab__L12"
   params := [.n 0, .n 1, .n 2]
-  body := core240.body
+  body := core242.body
 
-namespace core241
+namespace core243
 
 /-- `block_selector_tab__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30432,15 +31031,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 45, .n 46] ::
   [])
 
-end core241
+end core243
 
 /-- `block_selector_tab__L13`. -/
-noncomputable def core241 : Core.Fn where
+noncomputable def core243 : Core.Fn where
   name := "block_selector_tab__L13"
   params := [.n 0, .n 1, .n 2]
-  body := core241.body
+  body := core243.body
 
-namespace core242
+namespace core244
 
 /-- `block_selector_tab__L14`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30483,15 +31082,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 45, .n 46] ::
   [])
 
-end core242
+end core244
 
 /-- `block_selector_tab__L14`. -/
-noncomputable def core242 : Core.Fn where
+noncomputable def core244 : Core.Fn where
   name := "block_selector_tab__L14"
   params := [.n 0, .n 1, .n 2]
-  body := core242.body
+  body := core244.body
 
-namespace core243
+namespace core245
 
 /-- `block_selector_tab__L15`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30534,15 +31133,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 45, .n 46] ::
   [])
 
-end core243
+end core245
 
 /-- `block_selector_tab__L15`. -/
-noncomputable def core243 : Core.Fn where
+noncomputable def core245 : Core.Fn where
   name := "block_selector_tab__L15"
   params := [.n 0, .n 1, .n 2]
-  body := core243.body
+  body := core245.body
 
-namespace core244
+namespace core246
 
 /-- `block_selector_tab__L16`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30585,15 +31184,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 45, .n 46] ::
   [])
 
-end core244
+end core246
 
 /-- `block_selector_tab__L16`. -/
-noncomputable def core244 : Core.Fn where
+noncomputable def core246 : Core.Fn where
   name := "block_selector_tab__L16"
   params := [.n 0, .n 1, .n 2]
-  body := core244.body
+  body := core246.body
 
-namespace core245
+namespace core247
 
 /-- `block_selector_tab__L17`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30645,15 +31244,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56, .n 57] ::
   [])
 
-end core245
+end core247
 
 /-- `block_selector_tab__L17`. -/
-noncomputable def core245 : Core.Fn where
+noncomputable def core247 : Core.Fn where
   name := "block_selector_tab__L17"
   params := [.n 0, .n 1, .n 2]
-  body := core245.body
+  body := core247.body
 
-namespace core246
+namespace core248
 
 /-- `block_selector_tab__L18`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30705,15 +31304,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56, .n 57] ::
   [])
 
-end core246
+end core248
 
 /-- `block_selector_tab__L18`. -/
-noncomputable def core246 : Core.Fn where
+noncomputable def core248 : Core.Fn where
   name := "block_selector_tab__L18"
   params := [.n 0, .n 1, .n 2]
-  body := core246.body
+  body := core248.body
 
-namespace core247
+namespace core249
 
 /-- `block_selector_tab__L19`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30765,15 +31364,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56, .n 57] ::
   [])
 
-end core247
+end core249
 
 /-- `block_selector_tab__L19`. -/
-noncomputable def core247 : Core.Fn where
+noncomputable def core249 : Core.Fn where
   name := "block_selector_tab__L19"
   params := [.n 0, .n 1, .n 2]
-  body := core247.body
+  body := core249.body
 
-namespace core248
+namespace core250
 
 /-- `block_selector_tab__L20`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30825,15 +31424,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 56, .n 57] ::
   [])
 
-end core248
+end core250
 
 /-- `block_selector_tab__L20`. -/
-noncomputable def core248 : Core.Fn where
+noncomputable def core250 : Core.Fn where
   name := "block_selector_tab__L20"
   params := [.n 0, .n 1, .n 2]
-  body := core248.body
+  body := core250.body
 
-namespace core249
+namespace core251
 
 /-- `block_selector_tab__L21`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30894,15 +31493,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 67, .n 68] ::
   [])
 
-end core249
+end core251
 
 /-- `block_selector_tab__L21`. -/
-noncomputable def core249 : Core.Fn where
+noncomputable def core251 : Core.Fn where
   name := "block_selector_tab__L21"
   params := [.n 0, .n 1, .n 2]
-  body := core249.body
+  body := core251.body
 
-namespace core250
+namespace core252
 
 /-- `block_selector_tab__L22`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -30963,15 +31562,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 67, .n 68] ::
   [])
 
-end core250
+end core252
 
 /-- `block_selector_tab__L22`. -/
-noncomputable def core250 : Core.Fn where
+noncomputable def core252 : Core.Fn where
   name := "block_selector_tab__L22"
   params := [.n 0, .n 1, .n 2]
-  body := core250.body
+  body := core252.body
 
-namespace core251
+namespace core253
 
 /-- `block_selector_tab__L23`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31032,15 +31631,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 67, .n 68] ::
   [])
 
-end core251
+end core253
 
 /-- `block_selector_tab__L23`. -/
-noncomputable def core251 : Core.Fn where
+noncomputable def core253 : Core.Fn where
   name := "block_selector_tab__L23"
   params := [.n 0, .n 1, .n 2]
-  body := core251.body
+  body := core253.body
 
-namespace core252
+namespace core254
 
 /-- `block_selector_tab__L24`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31101,15 +31700,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 67, .n 68] ::
   [])
 
-end core252
+end core254
 
 /-- `block_selector_tab__L24`. -/
-noncomputable def core252 : Core.Fn where
+noncomputable def core254 : Core.Fn where
   name := "block_selector_tab__L24"
   params := [.n 0, .n 1, .n 2]
-  body := core252.body
+  body := core254.body
 
-namespace core253
+namespace core255
 
 /-- `block_selector_tab__L25`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31179,15 +31778,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 78, .n 79] ::
   [])
 
-end core253
+end core255
 
 /-- `block_selector_tab__L25`. -/
-noncomputable def core253 : Core.Fn where
+noncomputable def core255 : Core.Fn where
   name := "block_selector_tab__L25"
   params := [.n 0, .n 1, .n 2]
-  body := core253.body
+  body := core255.body
 
-namespace core254
+namespace core256
 
 /-- `block_selector_tab__L26`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31257,15 +31856,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 78, .n 79] ::
   [])
 
-end core254
+end core256
 
 /-- `block_selector_tab__L26`. -/
-noncomputable def core254 : Core.Fn where
+noncomputable def core256 : Core.Fn where
   name := "block_selector_tab__L26"
   params := [.n 0, .n 1, .n 2]
-  body := core254.body
+  body := core256.body
 
-namespace core255
+namespace core257
 
 /-- `block_selector_tab__L27`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31335,15 +31934,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 78, .n 79] ::
   [])
 
-end core255
+end core257
 
 /-- `block_selector_tab__L27`. -/
-noncomputable def core255 : Core.Fn where
+noncomputable def core257 : Core.Fn where
   name := "block_selector_tab__L27"
   params := [.n 0, .n 1, .n 2]
-  body := core255.body
+  body := core257.body
 
-namespace core256
+namespace core258
 
 /-- `block_selector_tab__L28`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31413,15 +32012,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 78, .n 79] ::
   [])
 
-end core256
+end core258
 
 /-- `block_selector_tab__L28`. -/
-noncomputable def core256 : Core.Fn where
+noncomputable def core258 : Core.Fn where
   name := "block_selector_tab__L28"
   params := [.n 0, .n 1, .n 2]
-  body := core256.body
+  body := core258.body
 
-namespace core257
+namespace core259
 
 /-- `block_selector_tab__L29`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31500,15 +32099,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 89, .n 90] ::
   [])
 
-end core257
+end core259
 
 /-- `block_selector_tab__L29`. -/
-noncomputable def core257 : Core.Fn where
+noncomputable def core259 : Core.Fn where
   name := "block_selector_tab__L29"
   params := [.n 0, .n 1, .n 2]
-  body := core257.body
+  body := core259.body
 
-namespace core258
+namespace core260
 
 /-- `block_selector_tab__L30`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31587,15 +32186,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 89, .n 90] ::
   [])
 
-end core258
+end core260
 
 /-- `block_selector_tab__L30`. -/
-noncomputable def core258 : Core.Fn where
+noncomputable def core260 : Core.Fn where
   name := "block_selector_tab__L30"
   params := [.n 0, .n 1, .n 2]
-  body := core258.body
+  body := core260.body
 
-namespace core259
+namespace core261
 
 /-- `block_selector_tab__L31`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31674,15 +32273,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 89, .n 90] ::
   [])
 
-end core259
+end core261
 
 /-- `block_selector_tab__L31`. -/
-noncomputable def core259 : Core.Fn where
+noncomputable def core261 : Core.Fn where
   name := "block_selector_tab__L31"
   params := [.n 0, .n 1, .n 2]
-  body := core259.body
+  body := core261.body
 
-namespace core260
+namespace core262
 
 /-- `block_selector_tab__L32`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31761,15 +32360,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 89, .n 90] ::
   [])
 
-end core260
+end core262
 
 /-- `block_selector_tab__L32`. -/
-noncomputable def core260 : Core.Fn where
+noncomputable def core262 : Core.Fn where
   name := "block_selector_tab__L32"
   params := [.n 0, .n 1, .n 2]
-  body := core260.body
+  body := core262.body
 
-namespace core261
+namespace core263
 
 /-- `block_selector_tab__L33`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -31857,15 +32456,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 100, .n 101] ::
   [])
 
-end core261
+end core263
 
 /-- `block_selector_tab__L33`. -/
-noncomputable def core261 : Core.Fn where
+noncomputable def core263 : Core.Fn where
   name := "block_selector_tab__L33"
   params := [.n 0, .n 1, .n 2]
-  body := core261.body
+  body := core263.body
 
-namespace core262
+namespace core264
 
 /-- `__loop9`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -31897,15 +32496,15 @@ noncomputable def body : List Core.Stmt := [
   .callIf (.n 27) "__loop9" [.n 29, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6],
   .ret []]
 
-end core262
+end core264
 
 /-- `__loop9`. -/
-noncomputable def core262 : Core.Fn where
+noncomputable def core264 : Core.Fn where
   name := "__loop9"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
-  body := core262.body
+  body := core264.body
 
-namespace core263
+namespace core265
 
 /-- `__loop10`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -31921,15 +32520,15 @@ noncomputable def body : List Core.Stmt := [
   .callIf (.n 9) "__loop10" [.n 11, .n 1, .n 2, .n 3],
   .ret []]
 
-end core263
+end core265
 
 /-- `__loop10`. -/
-noncomputable def core263 : Core.Fn where
+noncomputable def core265 : Core.Fn where
   name := "__loop10"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core263.body
+  body := core265.body
 
-namespace core264
+namespace core266
 
 /-- `keccak_layer__L1`: statements 0 to 576 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
@@ -33548,15 +34147,15 @@ noncomputable def c2 : List Core.Stmt := (
 /-- `keccak_layer__L1`: the body. -/
 noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2
 
-end core264
+end core266
 
 /-- `keccak_layer__L1`. -/
-noncomputable def core264 : Core.Fn where
+noncomputable def core266 : Core.Fn where
   name := "keccak_layer__L1"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14]
-  body := core264.body
+  body := core266.body
 
-namespace core265
+namespace core267
 
 /-- `keccak_layer__L0`: statements 0 to 580 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
@@ -35520,15 +36119,15 @@ noncomputable def c3 : List Core.Stmt := (
 /-- `keccak_layer__L0`: the body. -/
 noncomputable def body : List Core.Stmt := c0 ++ c1 ++ c2 ++ c3
 
-end core265
+end core267
 
 /-- `keccak_layer__L0`. -/
-noncomputable def core265 : Core.Fn where
+noncomputable def core267 : Core.Fn where
   name := "keccak_layer__L0"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12, .n 13, .n 14]
-  body := core265.body
+  body := core267.body
 
-namespace core266
+namespace core268
 
 /-- `keccak_plain_rounds__L6_L0`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -35638,15 +36237,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 171, .n 172, .n 173, .n 174, .n 175, .n 178, .n 179] ::
   [])
 
-end core266
+end core268
 
 /-- `keccak_plain_rounds__L6_L0`. -/
-noncomputable def core266 : Core.Fn where
+noncomputable def core268 : Core.Fn where
   name := "keccak_plain_rounds__L6_L0"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]
-  body := core266.body
+  body := core268.body
 
-namespace core267
+namespace core269
 
 /-- `__loop11`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -35662,15 +36261,15 @@ noncomputable def body : List Core.Stmt := [
   .callIf (.n 9) "__loop11" [.n 11, .n 1, .n 2, .n 3],
   .ret []]
 
-end core267
+end core269
 
 /-- `__loop11`. -/
-noncomputable def core267 : Core.Fn where
+noncomputable def core269 : Core.Fn where
   name := "__loop11"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core267.body
+  body := core269.body
 
-namespace core268
+namespace core270
 
 /-- `keccak_plain_rounds__L4_L1`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -35756,15 +36355,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [.n 125, .n 126, .n 127, .n 128, .n 129, .n 132, .n 133] ::
   [])
 
-end core268
+end core270
 
 /-- `keccak_plain_rounds__L4_L1`. -/
-noncomputable def core268 : Core.Fn where
+noncomputable def core270 : Core.Fn where
   name := "keccak_plain_rounds__L4_L1"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]
-  body := core268.body
+  body := core270.body
 
-namespace core269
+namespace core271
 
 /-- `__loop12`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -35780,15 +36379,15 @@ noncomputable def body : List Core.Stmt := [
   .callIf (.n 9) "__loop12" [.n 11, .n 1, .n 2, .n 3],
   .ret []]
 
-end core269
+end core271
 
 /-- `__loop12`. -/
-noncomputable def core269 : Core.Fn where
+noncomputable def core271 : Core.Fn where
   name := "__loop12"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core269.body
+  body := core271.body
 
-namespace core270
+namespace core272
 
 /-- `__loop13`: the body. -/
 noncomputable def body : List Core.Stmt := (
@@ -36210,15 +36809,15 @@ noncomputable def body : List Core.Stmt := (
   .ret [] ::
   [])
 
-end core270
+end core272
 
 /-- `__loop13`. -/
-noncomputable def core270 : Core.Fn where
+noncomputable def core272 : Core.Fn where
   name := "__loop13"
   params := [.n 0, .n 1, .n 2, .n 3]
-  body := core270.body
+  body := core272.body
 
-namespace core271
+namespace core273
 
 /-- `__loop14`: the body. -/
 noncomputable def body : List Core.Stmt := [
@@ -36237,1599 +36836,989 @@ noncomputable def body : List Core.Stmt := [
   .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3],
   .ret []]
 
-end core271
-
-/-- `__loop14`. -/
-noncomputable def core271 : Core.Fn where
-  name := "__loop14"
-  params := [.n 0, .n 1, .n 2, .n 3]
-  body := core271.body
-
-namespace core272
-
-/-- `column_selector__L0`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 7 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
-  .atom (.const (.n 10) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
-  .atom (.mul (.n 14) (.n 1) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 48) ::
-  .atom (.mul (.n 16) (.n 2) (.n 3)) ::
-  .atom (.load (.n 17) (.n 16) 0) ::
-  .atom (.const (.n 18) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
-  .atom (.mul (.n 22) (.n 1) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 112) ::
-  .atom (.mul (.n 24) (.n 15) (.n 23)) ::
-  .atom (.mul (.n 25) (.n 2) (.n 4)) ::
-  .atom (.load (.n 26) (.n 25) 16) ::
-  .atom (.mul (.n 27) (.n 17) (.n 26)) ::
-  .atom (.const (.n 28) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
-  .atom (.mul (.n 32) (.n 1) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 176) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.mul (.n 35) (.n 2) (.n 5)) ::
-  .atom (.load (.n 36) (.n 35) 32) ::
-  .atom (.mul (.n 37) (.n 27) (.n 36)) ::
-  .atom (.const (.n 38) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
-  .atom (.mul (.n 42) (.n 1) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 240) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.mul (.n 45) (.n 2) (.n 6)) ::
-  .atom (.load (.n 46) (.n 45) 48) ::
-  .atom (.mul (.n 47) (.n 37) (.n 46)) ::
-  .atom (.const (.n 48) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
-  .atom (.mul (.n 52) (.n 1) (.n 7)) ::
-  .atom (.load (.n 53) (.n 52) 304) ::
-  .atom (.mul (.n 54) (.n 44) (.n 53)) ::
-  .atom (.mul (.n 55) (.n 2) (.n 7)) ::
-  .atom (.load (.n 56) (.n 55) 64) ::
-  .atom (.mul (.n 57) (.n 47) (.n 56)) ::
-  .atom (.const (.n 58) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
-  .atom (.mul (.n 62) (.n 1) (.n 8)) ::
-  .atom (.load (.n 63) (.n 62) 368) ::
-  .atom (.mul (.n 64) (.n 54) (.n 63)) ::
-  .atom (.mul (.n 65) (.n 2) (.n 8)) ::
-  .atom (.load (.n 66) (.n 65) 80) ::
-  .atom (.mul (.n 67) (.n 57) (.n 66)) ::
-  .atom (.const (.n 68) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
-  .atom (.mul (.n 72) (.n 1) (.n 9)) ::
-  .atom (.load (.n 73) (.n 72) 432) ::
-  .atom (.mul (.n 74) (.n 64) (.n 73)) ::
-  .atom (.mul (.n 75) (.n 2) (.n 9)) ::
-  .atom (.load (.n 76) (.n 75) 96) ::
-  .atom (.mul (.n 77) (.n 67) (.n 76)) ::
-  .atom (.assertEq (.n 77) (.n 0)) ::
-  .atom (.copy (.n 78) (.n 74)) ::
-  .ret [.n 78] ::
-  [])
-
-end core272
-
-/-- `column_selector__L0`. -/
-noncomputable def core272 : Core.Fn where
-  name := "column_selector__L0"
-  params := [.n 0, .n 1, .n 2]
-  body := core272.body
-
-namespace core273
-
-/-- `column_selector__L1`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 7 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
-  .atom (.const (.n 10) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
-  .atom (.mul (.n 14) (.n 1) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 32) ::
-  .atom (.mul (.n 16) (.n 2) (.n 3)) ::
-  .atom (.load (.n 17) (.n 16) 0) ::
-  .atom (.const (.n 18) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
-  .atom (.mul (.n 22) (.n 1) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 112) ::
-  .atom (.mul (.n 24) (.n 15) (.n 23)) ::
-  .atom (.mul (.n 25) (.n 2) (.n 4)) ::
-  .atom (.load (.n 26) (.n 25) 16) ::
-  .atom (.mul (.n 27) (.n 17) (.n 26)) ::
-  .atom (.const (.n 28) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
-  .atom (.mul (.n 32) (.n 1) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 176) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.mul (.n 35) (.n 2) (.n 5)) ::
-  .atom (.load (.n 36) (.n 35) 32) ::
-  .atom (.mul (.n 37) (.n 27) (.n 36)) ::
-  .atom (.const (.n 38) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
-  .atom (.mul (.n 42) (.n 1) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 240) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.mul (.n 45) (.n 2) (.n 6)) ::
-  .atom (.load (.n 46) (.n 45) 48) ::
-  .atom (.mul (.n 47) (.n 37) (.n 46)) ::
-  .atom (.const (.n 48) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
-  .atom (.mul (.n 52) (.n 1) (.n 7)) ::
-  .atom (.load (.n 53) (.n 52) 304) ::
-  .atom (.mul (.n 54) (.n 44) (.n 53)) ::
-  .atom (.mul (.n 55) (.n 2) (.n 7)) ::
-  .atom (.load (.n 56) (.n 55) 64) ::
-  .atom (.mul (.n 57) (.n 47) (.n 56)) ::
-  .atom (.const (.n 58) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
-  .atom (.mul (.n 62) (.n 1) (.n 8)) ::
-  .atom (.load (.n 63) (.n 62) 368) ::
-  .atom (.mul (.n 64) (.n 54) (.n 63)) ::
-  .atom (.mul (.n 65) (.n 2) (.n 8)) ::
-  .atom (.load (.n 66) (.n 65) 80) ::
-  .atom (.mul (.n 67) (.n 57) (.n 66)) ::
-  .atom (.const (.n 68) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
-  .atom (.mul (.n 72) (.n 1) (.n 9)) ::
-  .atom (.load (.n 73) (.n 72) 432) ::
-  .atom (.mul (.n 74) (.n 64) (.n 73)) ::
-  .atom (.mul (.n 75) (.n 2) (.n 9)) ::
-  .atom (.load (.n 76) (.n 75) 96) ::
-  .atom (.mul (.n 77) (.n 67) (.n 76)) ::
-  .atom (.assertEq (.n 77) (.n 0)) ::
-  .atom (.copy (.n 78) (.n 74)) ::
-  .ret [.n 78] ::
-  [])
-
 end core273
 
-/-- `column_selector__L1`. -/
+/-- `__loop14`. -/
 noncomputable def core273 : Core.Fn where
-  name := "column_selector__L1"
-  params := [.n 0, .n 1, .n 2]
+  name := "__loop14"
+  params := [.n 0, .n 1, .n 2, .n 3]
   body := core273.body
 
 namespace core274
 
-/-- `column_selector__L2`: the body. -/
+/-- `column_selector__L0`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 7 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
-  .atom (.const (.n 10) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
-  .atom (.mul (.n 14) (.n 1) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 16) ::
-  .atom (.mul (.n 16) (.n 2) (.n 3)) ::
-  .atom (.load (.n 17) (.n 16) 0) ::
-  .atom (.const (.n 18) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
-  .atom (.mul (.n 22) (.n 1) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 112) ::
-  .atom (.mul (.n 24) (.n 15) (.n 23)) ::
-  .atom (.mul (.n 25) (.n 2) (.n 4)) ::
-  .atom (.load (.n 26) (.n 25) 16) ::
-  .atom (.mul (.n 27) (.n 17) (.n 26)) ::
-  .atom (.const (.n 28) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
-  .atom (.mul (.n 32) (.n 1) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 176) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.mul (.n 35) (.n 2) (.n 5)) ::
-  .atom (.load (.n 36) (.n 35) 32) ::
-  .atom (.mul (.n 37) (.n 27) (.n 36)) ::
-  .atom (.const (.n 38) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
-  .atom (.mul (.n 42) (.n 1) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 240) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.mul (.n 45) (.n 2) (.n 6)) ::
-  .atom (.load (.n 46) (.n 45) 48) ::
-  .atom (.mul (.n 47) (.n 37) (.n 46)) ::
-  .atom (.const (.n 48) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
-  .atom (.mul (.n 52) (.n 1) (.n 7)) ::
-  .atom (.load (.n 53) (.n 52) 304) ::
-  .atom (.mul (.n 54) (.n 44) (.n 53)) ::
-  .atom (.mul (.n 55) (.n 2) (.n 7)) ::
-  .atom (.load (.n 56) (.n 55) 64) ::
-  .atom (.mul (.n 57) (.n 47) (.n 56)) ::
-  .atom (.const (.n 58) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
-  .atom (.mul (.n 62) (.n 1) (.n 8)) ::
-  .atom (.load (.n 63) (.n 62) 368) ::
-  .atom (.mul (.n 64) (.n 54) (.n 63)) ::
-  .atom (.mul (.n 65) (.n 2) (.n 8)) ::
-  .atom (.load (.n 66) (.n 65) 80) ::
-  .atom (.mul (.n 67) (.n 57) (.n 66)) ::
-  .atom (.const (.n 68) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
-  .atom (.mul (.n 72) (.n 1) (.n 9)) ::
-  .atom (.load (.n 73) (.n 72) 432) ::
-  .atom (.mul (.n 74) (.n 64) (.n 73)) ::
-  .atom (.mul (.n 75) (.n 2) (.n 9)) ::
-  .atom (.load (.n 76) (.n 75) 96) ::
-  .atom (.mul (.n 77) (.n 67) (.n 76)) ::
-  .atom (.assertEq (.n 77) (.n 0)) ::
-  .atom (.copy (.n 78) (.n 74)) ::
-  .ret [.n 78] ::
+  .atom (.hint (.digitsExp (.n 0) 32 8 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]))) ::
+  .atom (.const (.n 11) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 12) (.n 13) (.n 14) (.n 11)) ::
+  .atom (.mul (.n 15) (.n 1) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 48) ::
+  .atom (.mul (.n 17) (.n 2) (.n 3)) ::
+  .atom (.load (.n 18) (.n 17) 0) ::
+  .atom (.const (.n 19) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 20) (.n 21) (.n 22) (.n 19)) ::
+  .atom (.mul (.n 23) (.n 1) (.n 4)) ::
+  .atom (.load (.n 24) (.n 23) 112) ::
+  .atom (.mul (.n 25) (.n 16) (.n 24)) ::
+  .atom (.mul (.n 26) (.n 2) (.n 4)) ::
+  .atom (.load (.n 27) (.n 26) 16) ::
+  .atom (.mul (.n 28) (.n 18) (.n 27)) ::
+  .atom (.const (.n 29) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 30) (.n 31) (.n 32) (.n 29)) ::
+  .atom (.mul (.n 33) (.n 1) (.n 5)) ::
+  .atom (.load (.n 34) (.n 33) 176) ::
+  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
+  .atom (.mul (.n 36) (.n 2) (.n 5)) ::
+  .atom (.load (.n 37) (.n 36) 32) ::
+  .atom (.mul (.n 38) (.n 28) (.n 37)) ::
+  .atom (.const (.n 39) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 40) (.n 41) (.n 42) (.n 39)) ::
+  .atom (.mul (.n 43) (.n 1) (.n 6)) ::
+  .atom (.load (.n 44) (.n 43) 240) ::
+  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
+  .atom (.mul (.n 46) (.n 2) (.n 6)) ::
+  .atom (.load (.n 47) (.n 46) 48) ::
+  .atom (.mul (.n 48) (.n 38) (.n 47)) ::
+  .atom (.const (.n 49) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 50) (.n 51) (.n 52) (.n 49)) ::
+  .atom (.mul (.n 53) (.n 1) (.n 7)) ::
+  .atom (.load (.n 54) (.n 53) 304) ::
+  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
+  .atom (.mul (.n 56) (.n 2) (.n 7)) ::
+  .atom (.load (.n 57) (.n 56) 64) ::
+  .atom (.mul (.n 58) (.n 48) (.n 57)) ::
+  .atom (.const (.n 59) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 60) (.n 61) (.n 62) (.n 59)) ::
+  .atom (.mul (.n 63) (.n 1) (.n 8)) ::
+  .atom (.load (.n 64) (.n 63) 368) ::
+  .atom (.mul (.n 65) (.n 55) (.n 64)) ::
+  .atom (.mul (.n 66) (.n 2) (.n 8)) ::
+  .atom (.load (.n 67) (.n 66) 80) ::
+  .atom (.mul (.n 68) (.n 58) (.n 67)) ::
+  .atom (.const (.n 69) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 70) (.n 71) (.n 72) (.n 69)) ::
+  .atom (.mul (.n 73) (.n 1) (.n 9)) ::
+  .atom (.load (.n 74) (.n 73) 432) ::
+  .atom (.mul (.n 75) (.n 65) (.n 74)) ::
+  .atom (.mul (.n 76) (.n 2) (.n 9)) ::
+  .atom (.load (.n 77) (.n 76) 96) ::
+  .atom (.mul (.n 78) (.n 68) (.n 77)) ::
+  .atom (.const (.n 79) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 10) (.n 80) (.n 81) (.n 82) (.n 79)) ::
+  .atom (.mul (.n 83) (.n 1) (.n 10)) ::
+  .atom (.load (.n 84) (.n 83) 496) ::
+  .atom (.mul (.n 85) (.n 75) (.n 84)) ::
+  .atom (.mul (.n 86) (.n 2) (.n 10)) ::
+  .atom (.load (.n 87) (.n 86) 112) ::
+  .atom (.mul (.n 88) (.n 78) (.n 87)) ::
+  .atom (.assertEq (.n 88) (.n 0)) ::
+  .atom (.copy (.n 89) (.n 85)) ::
+  .ret [.n 89] ::
   [])
 
 end core274
 
-/-- `column_selector__L2`. -/
+/-- `column_selector__L0`. -/
 noncomputable def core274 : Core.Fn where
-  name := "column_selector__L2"
+  name := "column_selector__L0"
   params := [.n 0, .n 1, .n 2]
   body := core274.body
 
 namespace core275
 
+/-- `column_selector__L1`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 8 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]))) ::
+  .atom (.const (.n 11) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 12) (.n 13) (.n 14) (.n 11)) ::
+  .atom (.mul (.n 15) (.n 1) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 32) ::
+  .atom (.mul (.n 17) (.n 2) (.n 3)) ::
+  .atom (.load (.n 18) (.n 17) 0) ::
+  .atom (.const (.n 19) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 20) (.n 21) (.n 22) (.n 19)) ::
+  .atom (.mul (.n 23) (.n 1) (.n 4)) ::
+  .atom (.load (.n 24) (.n 23) 112) ::
+  .atom (.mul (.n 25) (.n 16) (.n 24)) ::
+  .atom (.mul (.n 26) (.n 2) (.n 4)) ::
+  .atom (.load (.n 27) (.n 26) 16) ::
+  .atom (.mul (.n 28) (.n 18) (.n 27)) ::
+  .atom (.const (.n 29) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 30) (.n 31) (.n 32) (.n 29)) ::
+  .atom (.mul (.n 33) (.n 1) (.n 5)) ::
+  .atom (.load (.n 34) (.n 33) 176) ::
+  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
+  .atom (.mul (.n 36) (.n 2) (.n 5)) ::
+  .atom (.load (.n 37) (.n 36) 32) ::
+  .atom (.mul (.n 38) (.n 28) (.n 37)) ::
+  .atom (.const (.n 39) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 40) (.n 41) (.n 42) (.n 39)) ::
+  .atom (.mul (.n 43) (.n 1) (.n 6)) ::
+  .atom (.load (.n 44) (.n 43) 240) ::
+  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
+  .atom (.mul (.n 46) (.n 2) (.n 6)) ::
+  .atom (.load (.n 47) (.n 46) 48) ::
+  .atom (.mul (.n 48) (.n 38) (.n 47)) ::
+  .atom (.const (.n 49) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 50) (.n 51) (.n 52) (.n 49)) ::
+  .atom (.mul (.n 53) (.n 1) (.n 7)) ::
+  .atom (.load (.n 54) (.n 53) 304) ::
+  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
+  .atom (.mul (.n 56) (.n 2) (.n 7)) ::
+  .atom (.load (.n 57) (.n 56) 64) ::
+  .atom (.mul (.n 58) (.n 48) (.n 57)) ::
+  .atom (.const (.n 59) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 60) (.n 61) (.n 62) (.n 59)) ::
+  .atom (.mul (.n 63) (.n 1) (.n 8)) ::
+  .atom (.load (.n 64) (.n 63) 368) ::
+  .atom (.mul (.n 65) (.n 55) (.n 64)) ::
+  .atom (.mul (.n 66) (.n 2) (.n 8)) ::
+  .atom (.load (.n 67) (.n 66) 80) ::
+  .atom (.mul (.n 68) (.n 58) (.n 67)) ::
+  .atom (.const (.n 69) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 70) (.n 71) (.n 72) (.n 69)) ::
+  .atom (.mul (.n 73) (.n 1) (.n 9)) ::
+  .atom (.load (.n 74) (.n 73) 432) ::
+  .atom (.mul (.n 75) (.n 65) (.n 74)) ::
+  .atom (.mul (.n 76) (.n 2) (.n 9)) ::
+  .atom (.load (.n 77) (.n 76) 96) ::
+  .atom (.mul (.n 78) (.n 68) (.n 77)) ::
+  .atom (.const (.n 79) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 10) (.n 80) (.n 81) (.n 82) (.n 79)) ::
+  .atom (.mul (.n 83) (.n 1) (.n 10)) ::
+  .atom (.load (.n 84) (.n 83) 496) ::
+  .atom (.mul (.n 85) (.n 75) (.n 84)) ::
+  .atom (.mul (.n 86) (.n 2) (.n 10)) ::
+  .atom (.load (.n 87) (.n 86) 112) ::
+  .atom (.mul (.n 88) (.n 78) (.n 87)) ::
+  .atom (.assertEq (.n 88) (.n 0)) ::
+  .atom (.copy (.n 89) (.n 85)) ::
+  .ret [.n 89] ::
+  [])
+
+end core275
+
+/-- `column_selector__L1`. -/
+noncomputable def core275 : Core.Fn where
+  name := "column_selector__L1"
+  params := [.n 0, .n 1, .n 2]
+  body := core275.body
+
+namespace core276
+
+/-- `column_selector__L2`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 8 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]))) ::
+  .atom (.const (.n 11) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 12) (.n 13) (.n 14) (.n 11)) ::
+  .atom (.mul (.n 15) (.n 1) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 16) ::
+  .atom (.mul (.n 17) (.n 2) (.n 3)) ::
+  .atom (.load (.n 18) (.n 17) 0) ::
+  .atom (.const (.n 19) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 20) (.n 21) (.n 22) (.n 19)) ::
+  .atom (.mul (.n 23) (.n 1) (.n 4)) ::
+  .atom (.load (.n 24) (.n 23) 112) ::
+  .atom (.mul (.n 25) (.n 16) (.n 24)) ::
+  .atom (.mul (.n 26) (.n 2) (.n 4)) ::
+  .atom (.load (.n 27) (.n 26) 16) ::
+  .atom (.mul (.n 28) (.n 18) (.n 27)) ::
+  .atom (.const (.n 29) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 30) (.n 31) (.n 32) (.n 29)) ::
+  .atom (.mul (.n 33) (.n 1) (.n 5)) ::
+  .atom (.load (.n 34) (.n 33) 176) ::
+  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
+  .atom (.mul (.n 36) (.n 2) (.n 5)) ::
+  .atom (.load (.n 37) (.n 36) 32) ::
+  .atom (.mul (.n 38) (.n 28) (.n 37)) ::
+  .atom (.const (.n 39) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 40) (.n 41) (.n 42) (.n 39)) ::
+  .atom (.mul (.n 43) (.n 1) (.n 6)) ::
+  .atom (.load (.n 44) (.n 43) 240) ::
+  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
+  .atom (.mul (.n 46) (.n 2) (.n 6)) ::
+  .atom (.load (.n 47) (.n 46) 48) ::
+  .atom (.mul (.n 48) (.n 38) (.n 47)) ::
+  .atom (.const (.n 49) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 50) (.n 51) (.n 52) (.n 49)) ::
+  .atom (.mul (.n 53) (.n 1) (.n 7)) ::
+  .atom (.load (.n 54) (.n 53) 304) ::
+  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
+  .atom (.mul (.n 56) (.n 2) (.n 7)) ::
+  .atom (.load (.n 57) (.n 56) 64) ::
+  .atom (.mul (.n 58) (.n 48) (.n 57)) ::
+  .atom (.const (.n 59) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 60) (.n 61) (.n 62) (.n 59)) ::
+  .atom (.mul (.n 63) (.n 1) (.n 8)) ::
+  .atom (.load (.n 64) (.n 63) 368) ::
+  .atom (.mul (.n 65) (.n 55) (.n 64)) ::
+  .atom (.mul (.n 66) (.n 2) (.n 8)) ::
+  .atom (.load (.n 67) (.n 66) 80) ::
+  .atom (.mul (.n 68) (.n 58) (.n 67)) ::
+  .atom (.const (.n 69) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 70) (.n 71) (.n 72) (.n 69)) ::
+  .atom (.mul (.n 73) (.n 1) (.n 9)) ::
+  .atom (.load (.n 74) (.n 73) 432) ::
+  .atom (.mul (.n 75) (.n 65) (.n 74)) ::
+  .atom (.mul (.n 76) (.n 2) (.n 9)) ::
+  .atom (.load (.n 77) (.n 76) 96) ::
+  .atom (.mul (.n 78) (.n 68) (.n 77)) ::
+  .atom (.const (.n 79) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 10) (.n 80) (.n 81) (.n 82) (.n 79)) ::
+  .atom (.mul (.n 83) (.n 1) (.n 10)) ::
+  .atom (.load (.n 84) (.n 83) 496) ::
+  .atom (.mul (.n 85) (.n 75) (.n 84)) ::
+  .atom (.mul (.n 86) (.n 2) (.n 10)) ::
+  .atom (.load (.n 87) (.n 86) 112) ::
+  .atom (.mul (.n 88) (.n 78) (.n 87)) ::
+  .atom (.assertEq (.n 88) (.n 0)) ::
+  .atom (.copy (.n 89) (.n 85)) ::
+  .ret [.n 89] ::
+  [])
+
+end core276
+
+/-- `column_selector__L2`. -/
+noncomputable def core276 : Core.Fn where
+  name := "column_selector__L2"
+  params := [.n 0, .n 1, .n 2]
+  body := core276.body
+
+namespace core277
+
 /-- `column_selector__L3`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 7 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
+  .atom (.hint (.digitsExp (.n 0) 32 8 4 0 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10]))) ::
+  .atom (.const (.n 11) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 12) (.n 13) (.n 14) (.n 11)) ::
+  .atom (.mul (.n 15) (.n 1) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 0) ::
+  .atom (.mul (.n 17) (.n 2) (.n 3)) ::
+  .atom (.load (.n 18) (.n 17) 0) ::
+  .atom (.const (.n 19) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 20) (.n 21) (.n 22) (.n 19)) ::
+  .atom (.mul (.n 23) (.n 1) (.n 4)) ::
+  .atom (.load (.n 24) (.n 23) 112) ::
+  .atom (.mul (.n 25) (.n 16) (.n 24)) ::
+  .atom (.mul (.n 26) (.n 2) (.n 4)) ::
+  .atom (.load (.n 27) (.n 26) 16) ::
+  .atom (.mul (.n 28) (.n 18) (.n 27)) ::
+  .atom (.const (.n 29) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 30) (.n 31) (.n 32) (.n 29)) ::
+  .atom (.mul (.n 33) (.n 1) (.n 5)) ::
+  .atom (.load (.n 34) (.n 33) 176) ::
+  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
+  .atom (.mul (.n 36) (.n 2) (.n 5)) ::
+  .atom (.load (.n 37) (.n 36) 32) ::
+  .atom (.mul (.n 38) (.n 28) (.n 37)) ::
+  .atom (.const (.n 39) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 40) (.n 41) (.n 42) (.n 39)) ::
+  .atom (.mul (.n 43) (.n 1) (.n 6)) ::
+  .atom (.load (.n 44) (.n 43) 240) ::
+  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
+  .atom (.mul (.n 46) (.n 2) (.n 6)) ::
+  .atom (.load (.n 47) (.n 46) 48) ::
+  .atom (.mul (.n 48) (.n 38) (.n 47)) ::
+  .atom (.const (.n 49) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 50) (.n 51) (.n 52) (.n 49)) ::
+  .atom (.mul (.n 53) (.n 1) (.n 7)) ::
+  .atom (.load (.n 54) (.n 53) 304) ::
+  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
+  .atom (.mul (.n 56) (.n 2) (.n 7)) ::
+  .atom (.load (.n 57) (.n 56) 64) ::
+  .atom (.mul (.n 58) (.n 48) (.n 57)) ::
+  .atom (.const (.n 59) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 60) (.n 61) (.n 62) (.n 59)) ::
+  .atom (.mul (.n 63) (.n 1) (.n 8)) ::
+  .atom (.load (.n 64) (.n 63) 368) ::
+  .atom (.mul (.n 65) (.n 55) (.n 64)) ::
+  .atom (.mul (.n 66) (.n 2) (.n 8)) ::
+  .atom (.load (.n 67) (.n 66) 80) ::
+  .atom (.mul (.n 68) (.n 58) (.n 67)) ::
+  .atom (.const (.n 69) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 70) (.n 71) (.n 72) (.n 69)) ::
+  .atom (.mul (.n 73) (.n 1) (.n 9)) ::
+  .atom (.load (.n 74) (.n 73) 432) ::
+  .atom (.mul (.n 75) (.n 65) (.n 74)) ::
+  .atom (.mul (.n 76) (.n 2) (.n 9)) ::
+  .atom (.load (.n 77) (.n 76) 96) ::
+  .atom (.mul (.n 78) (.n 68) (.n 77)) ::
+  .atom (.const (.n 79) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 10) (.n 80) (.n 81) (.n 82) (.n 79)) ::
+  .atom (.mul (.n 83) (.n 1) (.n 10)) ::
+  .atom (.load (.n 84) (.n 83) 496) ::
+  .atom (.mul (.n 85) (.n 75) (.n 84)) ::
+  .atom (.mul (.n 86) (.n 2) (.n 10)) ::
+  .atom (.load (.n 87) (.n 86) 112) ::
+  .atom (.mul (.n 88) (.n 78) (.n 87)) ::
+  .atom (.assertEq (.n 88) (.n 0)) ::
+  .atom (.copy (.n 89) (.n 85)) ::
+  .ret [.n 89] ::
+  [])
+
+end core277
+
+/-- `column_selector__L3`. -/
+noncomputable def core277 : Core.Fn where
+  name := "column_selector__L3"
+  params := [.n 0, .n 1, .n 2]
+  body := core277.body
+
+namespace core278
+
+/-- `column_selector__L4`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 7 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
   .atom (.const (.n 10) (word 32768 0)) ::
   .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
   .atom (.mul (.n 14) (.n 1) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 0) ::
+  .atom (.load (.n 15) (.n 14) 112) ::
   .atom (.mul (.n 16) (.n 2) (.n 3)) ::
-  .atom (.load (.n 17) (.n 16) 0) ::
+  .atom (.load (.n 17) (.n 16) 16) ::
   .atom (.const (.n 18) (word 32768 0)) ::
   .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
   .atom (.mul (.n 22) (.n 1) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 112) ::
+  .atom (.load (.n 23) (.n 22) 176) ::
   .atom (.mul (.n 24) (.n 15) (.n 23)) ::
   .atom (.mul (.n 25) (.n 2) (.n 4)) ::
-  .atom (.load (.n 26) (.n 25) 16) ::
+  .atom (.load (.n 26) (.n 25) 32) ::
   .atom (.mul (.n 27) (.n 17) (.n 26)) ::
   .atom (.const (.n 28) (word 32768 0)) ::
   .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
   .atom (.mul (.n 32) (.n 1) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 176) ::
+  .atom (.load (.n 33) (.n 32) 240) ::
   .atom (.mul (.n 34) (.n 24) (.n 33)) ::
   .atom (.mul (.n 35) (.n 2) (.n 5)) ::
-  .atom (.load (.n 36) (.n 35) 32) ::
+  .atom (.load (.n 36) (.n 35) 48) ::
   .atom (.mul (.n 37) (.n 27) (.n 36)) ::
   .atom (.const (.n 38) (word 32768 0)) ::
   .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
   .atom (.mul (.n 42) (.n 1) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 240) ::
+  .atom (.load (.n 43) (.n 42) 304) ::
   .atom (.mul (.n 44) (.n 34) (.n 43)) ::
   .atom (.mul (.n 45) (.n 2) (.n 6)) ::
-  .atom (.load (.n 46) (.n 45) 48) ::
+  .atom (.load (.n 46) (.n 45) 64) ::
   .atom (.mul (.n 47) (.n 37) (.n 46)) ::
   .atom (.const (.n 48) (word 32768 0)) ::
   .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
   .atom (.mul (.n 52) (.n 1) (.n 7)) ::
-  .atom (.load (.n 53) (.n 52) 304) ::
+  .atom (.load (.n 53) (.n 52) 368) ::
   .atom (.mul (.n 54) (.n 44) (.n 53)) ::
   .atom (.mul (.n 55) (.n 2) (.n 7)) ::
-  .atom (.load (.n 56) (.n 55) 64) ::
+  .atom (.load (.n 56) (.n 55) 80) ::
   .atom (.mul (.n 57) (.n 47) (.n 56)) ::
   .atom (.const (.n 58) (word 32768 0)) ::
   .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
   .atom (.mul (.n 62) (.n 1) (.n 8)) ::
-  .atom (.load (.n 63) (.n 62) 368) ::
+  .atom (.load (.n 63) (.n 62) 432) ::
   .atom (.mul (.n 64) (.n 54) (.n 63)) ::
   .atom (.mul (.n 65) (.n 2) (.n 8)) ::
-  .atom (.load (.n 66) (.n 65) 80) ::
+  .atom (.load (.n 66) (.n 65) 96) ::
   .atom (.mul (.n 67) (.n 57) (.n 66)) ::
   .atom (.const (.n 68) (word 32768 0)) ::
   .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
   .atom (.mul (.n 72) (.n 1) (.n 9)) ::
-  .atom (.load (.n 73) (.n 72) 432) ::
+  .atom (.load (.n 73) (.n 72) 496) ::
   .atom (.mul (.n 74) (.n 64) (.n 73)) ::
   .atom (.mul (.n 75) (.n 2) (.n 9)) ::
-  .atom (.load (.n 76) (.n 75) 96) ::
+  .atom (.load (.n 76) (.n 75) 112) ::
   .atom (.mul (.n 77) (.n 67) (.n 76)) ::
   .atom (.assertEq (.n 77) (.n 0)) ::
   .atom (.copy (.n 78) (.n 74)) ::
   .ret [.n 78] ::
   [])
 
-end core275
-
-/-- `column_selector__L3`. -/
-noncomputable def core275 : Core.Fn where
-  name := "column_selector__L3"
-  params := [.n 0, .n 1, .n 2]
-  body := core275.body
-
-namespace core276
-
-/-- `column_selector__L4`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 6 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
-  .atom (.const (.n 9) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
-  .atom (.mul (.n 13) (.n 1) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 112) ::
-  .atom (.mul (.n 15) (.n 2) (.n 3)) ::
-  .atom (.load (.n 16) (.n 15) 16) ::
-  .atom (.const (.n 17) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
-  .atom (.mul (.n 21) (.n 1) (.n 4)) ::
-  .atom (.load (.n 22) (.n 21) 176) ::
-  .atom (.mul (.n 23) (.n 14) (.n 22)) ::
-  .atom (.mul (.n 24) (.n 2) (.n 4)) ::
-  .atom (.load (.n 25) (.n 24) 32) ::
-  .atom (.mul (.n 26) (.n 16) (.n 25)) ::
-  .atom (.const (.n 27) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
-  .atom (.mul (.n 31) (.n 1) (.n 5)) ::
-  .atom (.load (.n 32) (.n 31) 240) ::
-  .atom (.mul (.n 33) (.n 23) (.n 32)) ::
-  .atom (.mul (.n 34) (.n 2) (.n 5)) ::
-  .atom (.load (.n 35) (.n 34) 48) ::
-  .atom (.mul (.n 36) (.n 26) (.n 35)) ::
-  .atom (.const (.n 37) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
-  .atom (.mul (.n 41) (.n 1) (.n 6)) ::
-  .atom (.load (.n 42) (.n 41) 304) ::
-  .atom (.mul (.n 43) (.n 33) (.n 42)) ::
-  .atom (.mul (.n 44) (.n 2) (.n 6)) ::
-  .atom (.load (.n 45) (.n 44) 64) ::
-  .atom (.mul (.n 46) (.n 36) (.n 45)) ::
-  .atom (.const (.n 47) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
-  .atom (.mul (.n 51) (.n 1) (.n 7)) ::
-  .atom (.load (.n 52) (.n 51) 368) ::
-  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
-  .atom (.mul (.n 54) (.n 2) (.n 7)) ::
-  .atom (.load (.n 55) (.n 54) 80) ::
-  .atom (.mul (.n 56) (.n 46) (.n 55)) ::
-  .atom (.const (.n 57) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
-  .atom (.mul (.n 61) (.n 1) (.n 8)) ::
-  .atom (.load (.n 62) (.n 61) 432) ::
-  .atom (.mul (.n 63) (.n 53) (.n 62)) ::
-  .atom (.mul (.n 64) (.n 2) (.n 8)) ::
-  .atom (.load (.n 65) (.n 64) 96) ::
-  .atom (.mul (.n 66) (.n 56) (.n 65)) ::
-  .atom (.assertEq (.n 66) (.n 0)) ::
-  .atom (.copy (.n 67) (.n 63)) ::
-  .ret [.n 67] ::
-  [])
-
-end core276
-
-/-- `column_selector__L4`. -/
-noncomputable def core276 : Core.Fn where
-  name := "column_selector__L4"
-  params := [.n 0, .n 1, .n 2]
-  body := core276.body
-
-namespace core277
-
-/-- `column_selector__L5`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 6 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
-  .atom (.const (.n 9) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
-  .atom (.mul (.n 13) (.n 1) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 96) ::
-  .atom (.mul (.n 15) (.n 2) (.n 3)) ::
-  .atom (.load (.n 16) (.n 15) 16) ::
-  .atom (.const (.n 17) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
-  .atom (.mul (.n 21) (.n 1) (.n 4)) ::
-  .atom (.load (.n 22) (.n 21) 176) ::
-  .atom (.mul (.n 23) (.n 14) (.n 22)) ::
-  .atom (.mul (.n 24) (.n 2) (.n 4)) ::
-  .atom (.load (.n 25) (.n 24) 32) ::
-  .atom (.mul (.n 26) (.n 16) (.n 25)) ::
-  .atom (.const (.n 27) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
-  .atom (.mul (.n 31) (.n 1) (.n 5)) ::
-  .atom (.load (.n 32) (.n 31) 240) ::
-  .atom (.mul (.n 33) (.n 23) (.n 32)) ::
-  .atom (.mul (.n 34) (.n 2) (.n 5)) ::
-  .atom (.load (.n 35) (.n 34) 48) ::
-  .atom (.mul (.n 36) (.n 26) (.n 35)) ::
-  .atom (.const (.n 37) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
-  .atom (.mul (.n 41) (.n 1) (.n 6)) ::
-  .atom (.load (.n 42) (.n 41) 304) ::
-  .atom (.mul (.n 43) (.n 33) (.n 42)) ::
-  .atom (.mul (.n 44) (.n 2) (.n 6)) ::
-  .atom (.load (.n 45) (.n 44) 64) ::
-  .atom (.mul (.n 46) (.n 36) (.n 45)) ::
-  .atom (.const (.n 47) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
-  .atom (.mul (.n 51) (.n 1) (.n 7)) ::
-  .atom (.load (.n 52) (.n 51) 368) ::
-  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
-  .atom (.mul (.n 54) (.n 2) (.n 7)) ::
-  .atom (.load (.n 55) (.n 54) 80) ::
-  .atom (.mul (.n 56) (.n 46) (.n 55)) ::
-  .atom (.const (.n 57) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
-  .atom (.mul (.n 61) (.n 1) (.n 8)) ::
-  .atom (.load (.n 62) (.n 61) 432) ::
-  .atom (.mul (.n 63) (.n 53) (.n 62)) ::
-  .atom (.mul (.n 64) (.n 2) (.n 8)) ::
-  .atom (.load (.n 65) (.n 64) 96) ::
-  .atom (.mul (.n 66) (.n 56) (.n 65)) ::
-  .atom (.assertEq (.n 66) (.n 0)) ::
-  .atom (.copy (.n 67) (.n 63)) ::
-  .ret [.n 67] ::
-  [])
-
-end core277
-
-/-- `column_selector__L5`. -/
-noncomputable def core277 : Core.Fn where
-  name := "column_selector__L5"
-  params := [.n 0, .n 1, .n 2]
-  body := core277.body
-
-namespace core278
-
-/-- `column_selector__L6`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 6 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
-  .atom (.const (.n 9) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
-  .atom (.mul (.n 13) (.n 1) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 80) ::
-  .atom (.mul (.n 15) (.n 2) (.n 3)) ::
-  .atom (.load (.n 16) (.n 15) 16) ::
-  .atom (.const (.n 17) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
-  .atom (.mul (.n 21) (.n 1) (.n 4)) ::
-  .atom (.load (.n 22) (.n 21) 176) ::
-  .atom (.mul (.n 23) (.n 14) (.n 22)) ::
-  .atom (.mul (.n 24) (.n 2) (.n 4)) ::
-  .atom (.load (.n 25) (.n 24) 32) ::
-  .atom (.mul (.n 26) (.n 16) (.n 25)) ::
-  .atom (.const (.n 27) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
-  .atom (.mul (.n 31) (.n 1) (.n 5)) ::
-  .atom (.load (.n 32) (.n 31) 240) ::
-  .atom (.mul (.n 33) (.n 23) (.n 32)) ::
-  .atom (.mul (.n 34) (.n 2) (.n 5)) ::
-  .atom (.load (.n 35) (.n 34) 48) ::
-  .atom (.mul (.n 36) (.n 26) (.n 35)) ::
-  .atom (.const (.n 37) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
-  .atom (.mul (.n 41) (.n 1) (.n 6)) ::
-  .atom (.load (.n 42) (.n 41) 304) ::
-  .atom (.mul (.n 43) (.n 33) (.n 42)) ::
-  .atom (.mul (.n 44) (.n 2) (.n 6)) ::
-  .atom (.load (.n 45) (.n 44) 64) ::
-  .atom (.mul (.n 46) (.n 36) (.n 45)) ::
-  .atom (.const (.n 47) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
-  .atom (.mul (.n 51) (.n 1) (.n 7)) ::
-  .atom (.load (.n 52) (.n 51) 368) ::
-  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
-  .atom (.mul (.n 54) (.n 2) (.n 7)) ::
-  .atom (.load (.n 55) (.n 54) 80) ::
-  .atom (.mul (.n 56) (.n 46) (.n 55)) ::
-  .atom (.const (.n 57) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
-  .atom (.mul (.n 61) (.n 1) (.n 8)) ::
-  .atom (.load (.n 62) (.n 61) 432) ::
-  .atom (.mul (.n 63) (.n 53) (.n 62)) ::
-  .atom (.mul (.n 64) (.n 2) (.n 8)) ::
-  .atom (.load (.n 65) (.n 64) 96) ::
-  .atom (.mul (.n 66) (.n 56) (.n 65)) ::
-  .atom (.assertEq (.n 66) (.n 0)) ::
-  .atom (.copy (.n 67) (.n 63)) ::
-  .ret [.n 67] ::
-  [])
-
 end core278
 
-/-- `column_selector__L6`. -/
+/-- `column_selector__L4`. -/
 noncomputable def core278 : Core.Fn where
-  name := "column_selector__L6"
+  name := "column_selector__L4"
   params := [.n 0, .n 1, .n 2]
   body := core278.body
 
 namespace core279
 
+/-- `column_selector__L5`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 7 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
+  .atom (.const (.n 10) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
+  .atom (.mul (.n 14) (.n 1) (.n 3)) ::
+  .atom (.load (.n 15) (.n 14) 96) ::
+  .atom (.mul (.n 16) (.n 2) (.n 3)) ::
+  .atom (.load (.n 17) (.n 16) 16) ::
+  .atom (.const (.n 18) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
+  .atom (.mul (.n 22) (.n 1) (.n 4)) ::
+  .atom (.load (.n 23) (.n 22) 176) ::
+  .atom (.mul (.n 24) (.n 15) (.n 23)) ::
+  .atom (.mul (.n 25) (.n 2) (.n 4)) ::
+  .atom (.load (.n 26) (.n 25) 32) ::
+  .atom (.mul (.n 27) (.n 17) (.n 26)) ::
+  .atom (.const (.n 28) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
+  .atom (.mul (.n 32) (.n 1) (.n 5)) ::
+  .atom (.load (.n 33) (.n 32) 240) ::
+  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
+  .atom (.mul (.n 35) (.n 2) (.n 5)) ::
+  .atom (.load (.n 36) (.n 35) 48) ::
+  .atom (.mul (.n 37) (.n 27) (.n 36)) ::
+  .atom (.const (.n 38) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
+  .atom (.mul (.n 42) (.n 1) (.n 6)) ::
+  .atom (.load (.n 43) (.n 42) 304) ::
+  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
+  .atom (.mul (.n 45) (.n 2) (.n 6)) ::
+  .atom (.load (.n 46) (.n 45) 64) ::
+  .atom (.mul (.n 47) (.n 37) (.n 46)) ::
+  .atom (.const (.n 48) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
+  .atom (.mul (.n 52) (.n 1) (.n 7)) ::
+  .atom (.load (.n 53) (.n 52) 368) ::
+  .atom (.mul (.n 54) (.n 44) (.n 53)) ::
+  .atom (.mul (.n 55) (.n 2) (.n 7)) ::
+  .atom (.load (.n 56) (.n 55) 80) ::
+  .atom (.mul (.n 57) (.n 47) (.n 56)) ::
+  .atom (.const (.n 58) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
+  .atom (.mul (.n 62) (.n 1) (.n 8)) ::
+  .atom (.load (.n 63) (.n 62) 432) ::
+  .atom (.mul (.n 64) (.n 54) (.n 63)) ::
+  .atom (.mul (.n 65) (.n 2) (.n 8)) ::
+  .atom (.load (.n 66) (.n 65) 96) ::
+  .atom (.mul (.n 67) (.n 57) (.n 66)) ::
+  .atom (.const (.n 68) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
+  .atom (.mul (.n 72) (.n 1) (.n 9)) ::
+  .atom (.load (.n 73) (.n 72) 496) ::
+  .atom (.mul (.n 74) (.n 64) (.n 73)) ::
+  .atom (.mul (.n 75) (.n 2) (.n 9)) ::
+  .atom (.load (.n 76) (.n 75) 112) ::
+  .atom (.mul (.n 77) (.n 67) (.n 76)) ::
+  .atom (.assertEq (.n 77) (.n 0)) ::
+  .atom (.copy (.n 78) (.n 74)) ::
+  .ret [.n 78] ::
+  [])
+
+end core279
+
+/-- `column_selector__L5`. -/
+noncomputable def core279 : Core.Fn where
+  name := "column_selector__L5"
+  params := [.n 0, .n 1, .n 2]
+  body := core279.body
+
+namespace core280
+
+/-- `column_selector__L6`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 7 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
+  .atom (.const (.n 10) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
+  .atom (.mul (.n 14) (.n 1) (.n 3)) ::
+  .atom (.load (.n 15) (.n 14) 80) ::
+  .atom (.mul (.n 16) (.n 2) (.n 3)) ::
+  .atom (.load (.n 17) (.n 16) 16) ::
+  .atom (.const (.n 18) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
+  .atom (.mul (.n 22) (.n 1) (.n 4)) ::
+  .atom (.load (.n 23) (.n 22) 176) ::
+  .atom (.mul (.n 24) (.n 15) (.n 23)) ::
+  .atom (.mul (.n 25) (.n 2) (.n 4)) ::
+  .atom (.load (.n 26) (.n 25) 32) ::
+  .atom (.mul (.n 27) (.n 17) (.n 26)) ::
+  .atom (.const (.n 28) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
+  .atom (.mul (.n 32) (.n 1) (.n 5)) ::
+  .atom (.load (.n 33) (.n 32) 240) ::
+  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
+  .atom (.mul (.n 35) (.n 2) (.n 5)) ::
+  .atom (.load (.n 36) (.n 35) 48) ::
+  .atom (.mul (.n 37) (.n 27) (.n 36)) ::
+  .atom (.const (.n 38) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
+  .atom (.mul (.n 42) (.n 1) (.n 6)) ::
+  .atom (.load (.n 43) (.n 42) 304) ::
+  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
+  .atom (.mul (.n 45) (.n 2) (.n 6)) ::
+  .atom (.load (.n 46) (.n 45) 64) ::
+  .atom (.mul (.n 47) (.n 37) (.n 46)) ::
+  .atom (.const (.n 48) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
+  .atom (.mul (.n 52) (.n 1) (.n 7)) ::
+  .atom (.load (.n 53) (.n 52) 368) ::
+  .atom (.mul (.n 54) (.n 44) (.n 53)) ::
+  .atom (.mul (.n 55) (.n 2) (.n 7)) ::
+  .atom (.load (.n 56) (.n 55) 80) ::
+  .atom (.mul (.n 57) (.n 47) (.n 56)) ::
+  .atom (.const (.n 58) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
+  .atom (.mul (.n 62) (.n 1) (.n 8)) ::
+  .atom (.load (.n 63) (.n 62) 432) ::
+  .atom (.mul (.n 64) (.n 54) (.n 63)) ::
+  .atom (.mul (.n 65) (.n 2) (.n 8)) ::
+  .atom (.load (.n 66) (.n 65) 96) ::
+  .atom (.mul (.n 67) (.n 57) (.n 66)) ::
+  .atom (.const (.n 68) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
+  .atom (.mul (.n 72) (.n 1) (.n 9)) ::
+  .atom (.load (.n 73) (.n 72) 496) ::
+  .atom (.mul (.n 74) (.n 64) (.n 73)) ::
+  .atom (.mul (.n 75) (.n 2) (.n 9)) ::
+  .atom (.load (.n 76) (.n 75) 112) ::
+  .atom (.mul (.n 77) (.n 67) (.n 76)) ::
+  .atom (.assertEq (.n 77) (.n 0)) ::
+  .atom (.copy (.n 78) (.n 74)) ::
+  .ret [.n 78] ::
+  [])
+
+end core280
+
+/-- `column_selector__L6`. -/
+noncomputable def core280 : Core.Fn where
+  name := "column_selector__L6"
+  params := [.n 0, .n 1, .n 2]
+  body := core280.body
+
+namespace core281
+
 /-- `column_selector__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 6 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
+  .atom (.hint (.digitsExp (.n 0) 32 7 4 4 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]))) ::
+  .atom (.const (.n 10) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 11) (.n 12) (.n 13) (.n 10)) ::
+  .atom (.mul (.n 14) (.n 1) (.n 3)) ::
+  .atom (.load (.n 15) (.n 14) 64) ::
+  .atom (.mul (.n 16) (.n 2) (.n 3)) ::
+  .atom (.load (.n 17) (.n 16) 16) ::
+  .atom (.const (.n 18) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 19) (.n 20) (.n 21) (.n 18)) ::
+  .atom (.mul (.n 22) (.n 1) (.n 4)) ::
+  .atom (.load (.n 23) (.n 22) 176) ::
+  .atom (.mul (.n 24) (.n 15) (.n 23)) ::
+  .atom (.mul (.n 25) (.n 2) (.n 4)) ::
+  .atom (.load (.n 26) (.n 25) 32) ::
+  .atom (.mul (.n 27) (.n 17) (.n 26)) ::
+  .atom (.const (.n 28) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
+  .atom (.mul (.n 32) (.n 1) (.n 5)) ::
+  .atom (.load (.n 33) (.n 32) 240) ::
+  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
+  .atom (.mul (.n 35) (.n 2) (.n 5)) ::
+  .atom (.load (.n 36) (.n 35) 48) ::
+  .atom (.mul (.n 37) (.n 27) (.n 36)) ::
+  .atom (.const (.n 38) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 39) (.n 40) (.n 41) (.n 38)) ::
+  .atom (.mul (.n 42) (.n 1) (.n 6)) ::
+  .atom (.load (.n 43) (.n 42) 304) ::
+  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
+  .atom (.mul (.n 45) (.n 2) (.n 6)) ::
+  .atom (.load (.n 46) (.n 45) 64) ::
+  .atom (.mul (.n 47) (.n 37) (.n 46)) ::
+  .atom (.const (.n 48) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 49) (.n 50) (.n 51) (.n 48)) ::
+  .atom (.mul (.n 52) (.n 1) (.n 7)) ::
+  .atom (.load (.n 53) (.n 52) 368) ::
+  .atom (.mul (.n 54) (.n 44) (.n 53)) ::
+  .atom (.mul (.n 55) (.n 2) (.n 7)) ::
+  .atom (.load (.n 56) (.n 55) 80) ::
+  .atom (.mul (.n 57) (.n 47) (.n 56)) ::
+  .atom (.const (.n 58) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 59) (.n 60) (.n 61) (.n 58)) ::
+  .atom (.mul (.n 62) (.n 1) (.n 8)) ::
+  .atom (.load (.n 63) (.n 62) 432) ::
+  .atom (.mul (.n 64) (.n 54) (.n 63)) ::
+  .atom (.mul (.n 65) (.n 2) (.n 8)) ::
+  .atom (.load (.n 66) (.n 65) 96) ::
+  .atom (.mul (.n 67) (.n 57) (.n 66)) ::
+  .atom (.const (.n 68) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 9) (.n 69) (.n 70) (.n 71) (.n 68)) ::
+  .atom (.mul (.n 72) (.n 1) (.n 9)) ::
+  .atom (.load (.n 73) (.n 72) 496) ::
+  .atom (.mul (.n 74) (.n 64) (.n 73)) ::
+  .atom (.mul (.n 75) (.n 2) (.n 9)) ::
+  .atom (.load (.n 76) (.n 75) 112) ::
+  .atom (.mul (.n 77) (.n 67) (.n 76)) ::
+  .atom (.assertEq (.n 77) (.n 0)) ::
+  .atom (.copy (.n 78) (.n 74)) ::
+  .ret [.n 78] ::
+  [])
+
+end core281
+
+/-- `column_selector__L7`. -/
+noncomputable def core281 : Core.Fn where
+  name := "column_selector__L7"
+  params := [.n 0, .n 1, .n 2]
+  body := core281.body
+
+namespace core282
+
+/-- `column_selector__L8`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 6 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
   .atom (.const (.n 9) (word 32768 0)) ::
   .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
   .atom (.mul (.n 13) (.n 1) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 64) ::
+  .atom (.load (.n 14) (.n 13) 176) ::
   .atom (.mul (.n 15) (.n 2) (.n 3)) ::
-  .atom (.load (.n 16) (.n 15) 16) ::
+  .atom (.load (.n 16) (.n 15) 32) ::
   .atom (.const (.n 17) (word 32768 0)) ::
   .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
   .atom (.mul (.n 21) (.n 1) (.n 4)) ::
-  .atom (.load (.n 22) (.n 21) 176) ::
+  .atom (.load (.n 22) (.n 21) 240) ::
   .atom (.mul (.n 23) (.n 14) (.n 22)) ::
   .atom (.mul (.n 24) (.n 2) (.n 4)) ::
-  .atom (.load (.n 25) (.n 24) 32) ::
+  .atom (.load (.n 25) (.n 24) 48) ::
   .atom (.mul (.n 26) (.n 16) (.n 25)) ::
   .atom (.const (.n 27) (word 32768 0)) ::
   .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
   .atom (.mul (.n 31) (.n 1) (.n 5)) ::
-  .atom (.load (.n 32) (.n 31) 240) ::
+  .atom (.load (.n 32) (.n 31) 304) ::
   .atom (.mul (.n 33) (.n 23) (.n 32)) ::
   .atom (.mul (.n 34) (.n 2) (.n 5)) ::
-  .atom (.load (.n 35) (.n 34) 48) ::
+  .atom (.load (.n 35) (.n 34) 64) ::
   .atom (.mul (.n 36) (.n 26) (.n 35)) ::
   .atom (.const (.n 37) (word 32768 0)) ::
   .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
   .atom (.mul (.n 41) (.n 1) (.n 6)) ::
-  .atom (.load (.n 42) (.n 41) 304) ::
+  .atom (.load (.n 42) (.n 41) 368) ::
   .atom (.mul (.n 43) (.n 33) (.n 42)) ::
   .atom (.mul (.n 44) (.n 2) (.n 6)) ::
-  .atom (.load (.n 45) (.n 44) 64) ::
+  .atom (.load (.n 45) (.n 44) 80) ::
   .atom (.mul (.n 46) (.n 36) (.n 45)) ::
   .atom (.const (.n 47) (word 32768 0)) ::
   .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
   .atom (.mul (.n 51) (.n 1) (.n 7)) ::
-  .atom (.load (.n 52) (.n 51) 368) ::
+  .atom (.load (.n 52) (.n 51) 432) ::
   .atom (.mul (.n 53) (.n 43) (.n 52)) ::
   .atom (.mul (.n 54) (.n 2) (.n 7)) ::
-  .atom (.load (.n 55) (.n 54) 80) ::
+  .atom (.load (.n 55) (.n 54) 96) ::
   .atom (.mul (.n 56) (.n 46) (.n 55)) ::
   .atom (.const (.n 57) (word 32768 0)) ::
   .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
   .atom (.mul (.n 61) (.n 1) (.n 8)) ::
-  .atom (.load (.n 62) (.n 61) 432) ::
+  .atom (.load (.n 62) (.n 61) 496) ::
   .atom (.mul (.n 63) (.n 53) (.n 62)) ::
   .atom (.mul (.n 64) (.n 2) (.n 8)) ::
-  .atom (.load (.n 65) (.n 64) 96) ::
+  .atom (.load (.n 65) (.n 64) 112) ::
   .atom (.mul (.n 66) (.n 56) (.n 65)) ::
   .atom (.assertEq (.n 66) (.n 0)) ::
   .atom (.copy (.n 67) (.n 63)) ::
   .ret [.n 67] ::
   [])
 
-end core279
-
-/-- `column_selector__L7`. -/
-noncomputable def core279 : Core.Fn where
-  name := "column_selector__L7"
-  params := [.n 0, .n 1, .n 2]
-  body := core279.body
-
-namespace core280
-
-/-- `column_selector__L8`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 5 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7]))) ::
-  .atom (.const (.n 8) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 9) (.n 10) (.n 11) (.n 8)) ::
-  .atom (.mul (.n 12) (.n 1) (.n 3)) ::
-  .atom (.load (.n 13) (.n 12) 176) ::
-  .atom (.mul (.n 14) (.n 2) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 32) ::
-  .atom (.const (.n 16) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 17) (.n 18) (.n 19) (.n 16)) ::
-  .atom (.mul (.n 20) (.n 1) (.n 4)) ::
-  .atom (.load (.n 21) (.n 20) 240) ::
-  .atom (.mul (.n 22) (.n 13) (.n 21)) ::
-  .atom (.mul (.n 23) (.n 2) (.n 4)) ::
-  .atom (.load (.n 24) (.n 23) 48) ::
-  .atom (.mul (.n 25) (.n 15) (.n 24)) ::
-  .atom (.const (.n 26) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 27) (.n 28) (.n 29) (.n 26)) ::
-  .atom (.mul (.n 30) (.n 1) (.n 5)) ::
-  .atom (.load (.n 31) (.n 30) 304) ::
-  .atom (.mul (.n 32) (.n 22) (.n 31)) ::
-  .atom (.mul (.n 33) (.n 2) (.n 5)) ::
-  .atom (.load (.n 34) (.n 33) 64) ::
-  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
-  .atom (.const (.n 36) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 37) (.n 38) (.n 39) (.n 36)) ::
-  .atom (.mul (.n 40) (.n 1) (.n 6)) ::
-  .atom (.load (.n 41) (.n 40) 368) ::
-  .atom (.mul (.n 42) (.n 32) (.n 41)) ::
-  .atom (.mul (.n 43) (.n 2) (.n 6)) ::
-  .atom (.load (.n 44) (.n 43) 80) ::
-  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
-  .atom (.const (.n 46) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 47) (.n 48) (.n 49) (.n 46)) ::
-  .atom (.mul (.n 50) (.n 1) (.n 7)) ::
-  .atom (.load (.n 51) (.n 50) 432) ::
-  .atom (.mul (.n 52) (.n 42) (.n 51)) ::
-  .atom (.mul (.n 53) (.n 2) (.n 7)) ::
-  .atom (.load (.n 54) (.n 53) 96) ::
-  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
-  .atom (.assertEq (.n 55) (.n 0)) ::
-  .atom (.copy (.n 56) (.n 52)) ::
-  .ret [.n 56] ::
-  [])
-
-end core280
-
-/-- `column_selector__L8`. -/
-noncomputable def core280 : Core.Fn where
-  name := "column_selector__L8"
-  params := [.n 0, .n 1, .n 2]
-  body := core280.body
-
-namespace core281
-
-/-- `column_selector__L9`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 5 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7]))) ::
-  .atom (.const (.n 8) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 9) (.n 10) (.n 11) (.n 8)) ::
-  .atom (.mul (.n 12) (.n 1) (.n 3)) ::
-  .atom (.load (.n 13) (.n 12) 160) ::
-  .atom (.mul (.n 14) (.n 2) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 32) ::
-  .atom (.const (.n 16) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 17) (.n 18) (.n 19) (.n 16)) ::
-  .atom (.mul (.n 20) (.n 1) (.n 4)) ::
-  .atom (.load (.n 21) (.n 20) 240) ::
-  .atom (.mul (.n 22) (.n 13) (.n 21)) ::
-  .atom (.mul (.n 23) (.n 2) (.n 4)) ::
-  .atom (.load (.n 24) (.n 23) 48) ::
-  .atom (.mul (.n 25) (.n 15) (.n 24)) ::
-  .atom (.const (.n 26) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 27) (.n 28) (.n 29) (.n 26)) ::
-  .atom (.mul (.n 30) (.n 1) (.n 5)) ::
-  .atom (.load (.n 31) (.n 30) 304) ::
-  .atom (.mul (.n 32) (.n 22) (.n 31)) ::
-  .atom (.mul (.n 33) (.n 2) (.n 5)) ::
-  .atom (.load (.n 34) (.n 33) 64) ::
-  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
-  .atom (.const (.n 36) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 37) (.n 38) (.n 39) (.n 36)) ::
-  .atom (.mul (.n 40) (.n 1) (.n 6)) ::
-  .atom (.load (.n 41) (.n 40) 368) ::
-  .atom (.mul (.n 42) (.n 32) (.n 41)) ::
-  .atom (.mul (.n 43) (.n 2) (.n 6)) ::
-  .atom (.load (.n 44) (.n 43) 80) ::
-  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
-  .atom (.const (.n 46) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 47) (.n 48) (.n 49) (.n 46)) ::
-  .atom (.mul (.n 50) (.n 1) (.n 7)) ::
-  .atom (.load (.n 51) (.n 50) 432) ::
-  .atom (.mul (.n 52) (.n 42) (.n 51)) ::
-  .atom (.mul (.n 53) (.n 2) (.n 7)) ::
-  .atom (.load (.n 54) (.n 53) 96) ::
-  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
-  .atom (.assertEq (.n 55) (.n 0)) ::
-  .atom (.copy (.n 56) (.n 52)) ::
-  .ret [.n 56] ::
-  [])
-
-end core281
-
-/-- `column_selector__L9`. -/
-noncomputable def core281 : Core.Fn where
-  name := "column_selector__L9"
-  params := [.n 0, .n 1, .n 2]
-  body := core281.body
-
-namespace core282
-
-/-- `column_selector__L10`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 5 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7]))) ::
-  .atom (.const (.n 8) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 9) (.n 10) (.n 11) (.n 8)) ::
-  .atom (.mul (.n 12) (.n 1) (.n 3)) ::
-  .atom (.load (.n 13) (.n 12) 144) ::
-  .atom (.mul (.n 14) (.n 2) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 32) ::
-  .atom (.const (.n 16) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 17) (.n 18) (.n 19) (.n 16)) ::
-  .atom (.mul (.n 20) (.n 1) (.n 4)) ::
-  .atom (.load (.n 21) (.n 20) 240) ::
-  .atom (.mul (.n 22) (.n 13) (.n 21)) ::
-  .atom (.mul (.n 23) (.n 2) (.n 4)) ::
-  .atom (.load (.n 24) (.n 23) 48) ::
-  .atom (.mul (.n 25) (.n 15) (.n 24)) ::
-  .atom (.const (.n 26) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 27) (.n 28) (.n 29) (.n 26)) ::
-  .atom (.mul (.n 30) (.n 1) (.n 5)) ::
-  .atom (.load (.n 31) (.n 30) 304) ::
-  .atom (.mul (.n 32) (.n 22) (.n 31)) ::
-  .atom (.mul (.n 33) (.n 2) (.n 5)) ::
-  .atom (.load (.n 34) (.n 33) 64) ::
-  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
-  .atom (.const (.n 36) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 37) (.n 38) (.n 39) (.n 36)) ::
-  .atom (.mul (.n 40) (.n 1) (.n 6)) ::
-  .atom (.load (.n 41) (.n 40) 368) ::
-  .atom (.mul (.n 42) (.n 32) (.n 41)) ::
-  .atom (.mul (.n 43) (.n 2) (.n 6)) ::
-  .atom (.load (.n 44) (.n 43) 80) ::
-  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
-  .atom (.const (.n 46) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 47) (.n 48) (.n 49) (.n 46)) ::
-  .atom (.mul (.n 50) (.n 1) (.n 7)) ::
-  .atom (.load (.n 51) (.n 50) 432) ::
-  .atom (.mul (.n 52) (.n 42) (.n 51)) ::
-  .atom (.mul (.n 53) (.n 2) (.n 7)) ::
-  .atom (.load (.n 54) (.n 53) 96) ::
-  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
-  .atom (.assertEq (.n 55) (.n 0)) ::
-  .atom (.copy (.n 56) (.n 52)) ::
-  .ret [.n 56] ::
-  [])
-
 end core282
 
-/-- `column_selector__L10`. -/
+/-- `column_selector__L8`. -/
 noncomputable def core282 : Core.Fn where
-  name := "column_selector__L10"
+  name := "column_selector__L8"
   params := [.n 0, .n 1, .n 2]
   body := core282.body
 
 namespace core283
 
+/-- `column_selector__L9`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 6 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
+  .atom (.const (.n 9) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
+  .atom (.mul (.n 13) (.n 1) (.n 3)) ::
+  .atom (.load (.n 14) (.n 13) 160) ::
+  .atom (.mul (.n 15) (.n 2) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 32) ::
+  .atom (.const (.n 17) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
+  .atom (.mul (.n 21) (.n 1) (.n 4)) ::
+  .atom (.load (.n 22) (.n 21) 240) ::
+  .atom (.mul (.n 23) (.n 14) (.n 22)) ::
+  .atom (.mul (.n 24) (.n 2) (.n 4)) ::
+  .atom (.load (.n 25) (.n 24) 48) ::
+  .atom (.mul (.n 26) (.n 16) (.n 25)) ::
+  .atom (.const (.n 27) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
+  .atom (.mul (.n 31) (.n 1) (.n 5)) ::
+  .atom (.load (.n 32) (.n 31) 304) ::
+  .atom (.mul (.n 33) (.n 23) (.n 32)) ::
+  .atom (.mul (.n 34) (.n 2) (.n 5)) ::
+  .atom (.load (.n 35) (.n 34) 64) ::
+  .atom (.mul (.n 36) (.n 26) (.n 35)) ::
+  .atom (.const (.n 37) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
+  .atom (.mul (.n 41) (.n 1) (.n 6)) ::
+  .atom (.load (.n 42) (.n 41) 368) ::
+  .atom (.mul (.n 43) (.n 33) (.n 42)) ::
+  .atom (.mul (.n 44) (.n 2) (.n 6)) ::
+  .atom (.load (.n 45) (.n 44) 80) ::
+  .atom (.mul (.n 46) (.n 36) (.n 45)) ::
+  .atom (.const (.n 47) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
+  .atom (.mul (.n 51) (.n 1) (.n 7)) ::
+  .atom (.load (.n 52) (.n 51) 432) ::
+  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
+  .atom (.mul (.n 54) (.n 2) (.n 7)) ::
+  .atom (.load (.n 55) (.n 54) 96) ::
+  .atom (.mul (.n 56) (.n 46) (.n 55)) ::
+  .atom (.const (.n 57) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
+  .atom (.mul (.n 61) (.n 1) (.n 8)) ::
+  .atom (.load (.n 62) (.n 61) 496) ::
+  .atom (.mul (.n 63) (.n 53) (.n 62)) ::
+  .atom (.mul (.n 64) (.n 2) (.n 8)) ::
+  .atom (.load (.n 65) (.n 64) 112) ::
+  .atom (.mul (.n 66) (.n 56) (.n 65)) ::
+  .atom (.assertEq (.n 66) (.n 0)) ::
+  .atom (.copy (.n 67) (.n 63)) ::
+  .ret [.n 67] ::
+  [])
+
+end core283
+
+/-- `column_selector__L9`. -/
+noncomputable def core283 : Core.Fn where
+  name := "column_selector__L9"
+  params := [.n 0, .n 1, .n 2]
+  body := core283.body
+
+namespace core284
+
+/-- `column_selector__L10`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 6 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
+  .atom (.const (.n 9) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
+  .atom (.mul (.n 13) (.n 1) (.n 3)) ::
+  .atom (.load (.n 14) (.n 13) 144) ::
+  .atom (.mul (.n 15) (.n 2) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 32) ::
+  .atom (.const (.n 17) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
+  .atom (.mul (.n 21) (.n 1) (.n 4)) ::
+  .atom (.load (.n 22) (.n 21) 240) ::
+  .atom (.mul (.n 23) (.n 14) (.n 22)) ::
+  .atom (.mul (.n 24) (.n 2) (.n 4)) ::
+  .atom (.load (.n 25) (.n 24) 48) ::
+  .atom (.mul (.n 26) (.n 16) (.n 25)) ::
+  .atom (.const (.n 27) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
+  .atom (.mul (.n 31) (.n 1) (.n 5)) ::
+  .atom (.load (.n 32) (.n 31) 304) ::
+  .atom (.mul (.n 33) (.n 23) (.n 32)) ::
+  .atom (.mul (.n 34) (.n 2) (.n 5)) ::
+  .atom (.load (.n 35) (.n 34) 64) ::
+  .atom (.mul (.n 36) (.n 26) (.n 35)) ::
+  .atom (.const (.n 37) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
+  .atom (.mul (.n 41) (.n 1) (.n 6)) ::
+  .atom (.load (.n 42) (.n 41) 368) ::
+  .atom (.mul (.n 43) (.n 33) (.n 42)) ::
+  .atom (.mul (.n 44) (.n 2) (.n 6)) ::
+  .atom (.load (.n 45) (.n 44) 80) ::
+  .atom (.mul (.n 46) (.n 36) (.n 45)) ::
+  .atom (.const (.n 47) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
+  .atom (.mul (.n 51) (.n 1) (.n 7)) ::
+  .atom (.load (.n 52) (.n 51) 432) ::
+  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
+  .atom (.mul (.n 54) (.n 2) (.n 7)) ::
+  .atom (.load (.n 55) (.n 54) 96) ::
+  .atom (.mul (.n 56) (.n 46) (.n 55)) ::
+  .atom (.const (.n 57) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
+  .atom (.mul (.n 61) (.n 1) (.n 8)) ::
+  .atom (.load (.n 62) (.n 61) 496) ::
+  .atom (.mul (.n 63) (.n 53) (.n 62)) ::
+  .atom (.mul (.n 64) (.n 2) (.n 8)) ::
+  .atom (.load (.n 65) (.n 64) 112) ::
+  .atom (.mul (.n 66) (.n 56) (.n 65)) ::
+  .atom (.assertEq (.n 66) (.n 0)) ::
+  .atom (.copy (.n 67) (.n 63)) ::
+  .ret [.n 67] ::
+  [])
+
+end core284
+
+/-- `column_selector__L10`. -/
+noncomputable def core284 : Core.Fn where
+  name := "column_selector__L10"
+  params := [.n 0, .n 1, .n 2]
+  body := core284.body
+
+namespace core285
+
 /-- `column_selector__L11`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 5 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7]))) ::
+  .atom (.hint (.digitsExp (.n 0) 32 6 4 8 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7, .n 8]))) ::
+  .atom (.const (.n 9) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 10) (.n 11) (.n 12) (.n 9)) ::
+  .atom (.mul (.n 13) (.n 1) (.n 3)) ::
+  .atom (.load (.n 14) (.n 13) 128) ::
+  .atom (.mul (.n 15) (.n 2) (.n 3)) ::
+  .atom (.load (.n 16) (.n 15) 32) ::
+  .atom (.const (.n 17) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 18) (.n 19) (.n 20) (.n 17)) ::
+  .atom (.mul (.n 21) (.n 1) (.n 4)) ::
+  .atom (.load (.n 22) (.n 21) 240) ::
+  .atom (.mul (.n 23) (.n 14) (.n 22)) ::
+  .atom (.mul (.n 24) (.n 2) (.n 4)) ::
+  .atom (.load (.n 25) (.n 24) 48) ::
+  .atom (.mul (.n 26) (.n 16) (.n 25)) ::
+  .atom (.const (.n 27) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 28) (.n 29) (.n 30) (.n 27)) ::
+  .atom (.mul (.n 31) (.n 1) (.n 5)) ::
+  .atom (.load (.n 32) (.n 31) 304) ::
+  .atom (.mul (.n 33) (.n 23) (.n 32)) ::
+  .atom (.mul (.n 34) (.n 2) (.n 5)) ::
+  .atom (.load (.n 35) (.n 34) 64) ::
+  .atom (.mul (.n 36) (.n 26) (.n 35)) ::
+  .atom (.const (.n 37) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 38) (.n 39) (.n 40) (.n 37)) ::
+  .atom (.mul (.n 41) (.n 1) (.n 6)) ::
+  .atom (.load (.n 42) (.n 41) 368) ::
+  .atom (.mul (.n 43) (.n 33) (.n 42)) ::
+  .atom (.mul (.n 44) (.n 2) (.n 6)) ::
+  .atom (.load (.n 45) (.n 44) 80) ::
+  .atom (.mul (.n 46) (.n 36) (.n 45)) ::
+  .atom (.const (.n 47) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 48) (.n 49) (.n 50) (.n 47)) ::
+  .atom (.mul (.n 51) (.n 1) (.n 7)) ::
+  .atom (.load (.n 52) (.n 51) 432) ::
+  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
+  .atom (.mul (.n 54) (.n 2) (.n 7)) ::
+  .atom (.load (.n 55) (.n 54) 96) ::
+  .atom (.mul (.n 56) (.n 46) (.n 55)) ::
+  .atom (.const (.n 57) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 8) (.n 58) (.n 59) (.n 60) (.n 57)) ::
+  .atom (.mul (.n 61) (.n 1) (.n 8)) ::
+  .atom (.load (.n 62) (.n 61) 496) ::
+  .atom (.mul (.n 63) (.n 53) (.n 62)) ::
+  .atom (.mul (.n 64) (.n 2) (.n 8)) ::
+  .atom (.load (.n 65) (.n 64) 112) ::
+  .atom (.mul (.n 66) (.n 56) (.n 65)) ::
+  .atom (.assertEq (.n 66) (.n 0)) ::
+  .atom (.copy (.n 67) (.n 63)) ::
+  .ret [.n 67] ::
+  [])
+
+end core285
+
+/-- `column_selector__L11`. -/
+noncomputable def core285 : Core.Fn where
+  name := "column_selector__L11"
+  params := [.n 0, .n 1, .n 2]
+  body := core285.body
+
+namespace core286
+
+/-- `column_selector__L12`: the body. -/
+noncomputable def body : List Core.Stmt := (
+  .atom (.hint (.digitsExp (.n 0) 32 5 4 12 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7]))) ::
   .atom (.const (.n 8) (word 32768 0)) ::
   .atom (.rangeCheck (.n 3) (.n 9) (.n 10) (.n 11) (.n 8)) ::
   .atom (.mul (.n 12) (.n 1) (.n 3)) ::
-  .atom (.load (.n 13) (.n 12) 128) ::
+  .atom (.load (.n 13) (.n 12) 240) ::
   .atom (.mul (.n 14) (.n 2) (.n 3)) ::
-  .atom (.load (.n 15) (.n 14) 32) ::
+  .atom (.load (.n 15) (.n 14) 48) ::
   .atom (.const (.n 16) (word 32768 0)) ::
   .atom (.rangeCheck (.n 4) (.n 17) (.n 18) (.n 19) (.n 16)) ::
   .atom (.mul (.n 20) (.n 1) (.n 4)) ::
-  .atom (.load (.n 21) (.n 20) 240) ::
+  .atom (.load (.n 21) (.n 20) 304) ::
   .atom (.mul (.n 22) (.n 13) (.n 21)) ::
   .atom (.mul (.n 23) (.n 2) (.n 4)) ::
-  .atom (.load (.n 24) (.n 23) 48) ::
+  .atom (.load (.n 24) (.n 23) 64) ::
   .atom (.mul (.n 25) (.n 15) (.n 24)) ::
   .atom (.const (.n 26) (word 32768 0)) ::
   .atom (.rangeCheck (.n 5) (.n 27) (.n 28) (.n 29) (.n 26)) ::
   .atom (.mul (.n 30) (.n 1) (.n 5)) ::
-  .atom (.load (.n 31) (.n 30) 304) ::
+  .atom (.load (.n 31) (.n 30) 368) ::
   .atom (.mul (.n 32) (.n 22) (.n 31)) ::
   .atom (.mul (.n 33) (.n 2) (.n 5)) ::
-  .atom (.load (.n 34) (.n 33) 64) ::
+  .atom (.load (.n 34) (.n 33) 80) ::
   .atom (.mul (.n 35) (.n 25) (.n 34)) ::
   .atom (.const (.n 36) (word 32768 0)) ::
   .atom (.rangeCheck (.n 6) (.n 37) (.n 38) (.n 39) (.n 36)) ::
   .atom (.mul (.n 40) (.n 1) (.n 6)) ::
-  .atom (.load (.n 41) (.n 40) 368) ::
+  .atom (.load (.n 41) (.n 40) 432) ::
   .atom (.mul (.n 42) (.n 32) (.n 41)) ::
   .atom (.mul (.n 43) (.n 2) (.n 6)) ::
-  .atom (.load (.n 44) (.n 43) 80) ::
+  .atom (.load (.n 44) (.n 43) 96) ::
   .atom (.mul (.n 45) (.n 35) (.n 44)) ::
   .atom (.const (.n 46) (word 32768 0)) ::
   .atom (.rangeCheck (.n 7) (.n 47) (.n 48) (.n 49) (.n 46)) ::
   .atom (.mul (.n 50) (.n 1) (.n 7)) ::
-  .atom (.load (.n 51) (.n 50) 432) ::
+  .atom (.load (.n 51) (.n 50) 496) ::
   .atom (.mul (.n 52) (.n 42) (.n 51)) ::
   .atom (.mul (.n 53) (.n 2) (.n 7)) ::
-  .atom (.load (.n 54) (.n 53) 96) ::
+  .atom (.load (.n 54) (.n 53) 112) ::
   .atom (.mul (.n 55) (.n 45) (.n 54)) ::
   .atom (.assertEq (.n 55) (.n 0)) ::
   .atom (.copy (.n 56) (.n 52)) ::
   .ret [.n 56] ::
   [])
 
-end core283
-
-/-- `column_selector__L11`. -/
-noncomputable def core283 : Core.Fn where
-  name := "column_selector__L11"
-  params := [.n 0, .n 1, .n 2]
-  body := core283.body
-
-namespace core284
-
-/-- `column_selector__L12`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 4 4 12 none (.stack [.n 3, .n 4, .n 5, .n 6]))) ::
-  .atom (.const (.n 7) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 8) (.n 9) (.n 10) (.n 7)) ::
-  .atom (.mul (.n 11) (.n 1) (.n 3)) ::
-  .atom (.load (.n 12) (.n 11) 240) ::
-  .atom (.mul (.n 13) (.n 2) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 48) ::
-  .atom (.const (.n 15) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 16) (.n 17) (.n 18) (.n 15)) ::
-  .atom (.mul (.n 19) (.n 1) (.n 4)) ::
-  .atom (.load (.n 20) (.n 19) 304) ::
-  .atom (.mul (.n 21) (.n 12) (.n 20)) ::
-  .atom (.mul (.n 22) (.n 2) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 64) ::
-  .atom (.mul (.n 24) (.n 14) (.n 23)) ::
-  .atom (.const (.n 25) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 26) (.n 27) (.n 28) (.n 25)) ::
-  .atom (.mul (.n 29) (.n 1) (.n 5)) ::
-  .atom (.load (.n 30) (.n 29) 368) ::
-  .atom (.mul (.n 31) (.n 21) (.n 30)) ::
-  .atom (.mul (.n 32) (.n 2) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 80) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.const (.n 35) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 36) (.n 37) (.n 38) (.n 35)) ::
-  .atom (.mul (.n 39) (.n 1) (.n 6)) ::
-  .atom (.load (.n 40) (.n 39) 432) ::
-  .atom (.mul (.n 41) (.n 31) (.n 40)) ::
-  .atom (.mul (.n 42) (.n 2) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 96) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.assertEq (.n 44) (.n 0)) ::
-  .atom (.copy (.n 45) (.n 41)) ::
-  .ret [.n 45] ::
-  [])
-
-end core284
-
-/-- `column_selector__L12`. -/
-noncomputable def core284 : Core.Fn where
-  name := "column_selector__L12"
-  params := [.n 0, .n 1, .n 2]
-  body := core284.body
-
-namespace core285
-
-/-- `column_selector__L13`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 4 4 12 none (.stack [.n 3, .n 4, .n 5, .n 6]))) ::
-  .atom (.const (.n 7) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 8) (.n 9) (.n 10) (.n 7)) ::
-  .atom (.mul (.n 11) (.n 1) (.n 3)) ::
-  .atom (.load (.n 12) (.n 11) 224) ::
-  .atom (.mul (.n 13) (.n 2) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 48) ::
-  .atom (.const (.n 15) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 16) (.n 17) (.n 18) (.n 15)) ::
-  .atom (.mul (.n 19) (.n 1) (.n 4)) ::
-  .atom (.load (.n 20) (.n 19) 304) ::
-  .atom (.mul (.n 21) (.n 12) (.n 20)) ::
-  .atom (.mul (.n 22) (.n 2) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 64) ::
-  .atom (.mul (.n 24) (.n 14) (.n 23)) ::
-  .atom (.const (.n 25) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 26) (.n 27) (.n 28) (.n 25)) ::
-  .atom (.mul (.n 29) (.n 1) (.n 5)) ::
-  .atom (.load (.n 30) (.n 29) 368) ::
-  .atom (.mul (.n 31) (.n 21) (.n 30)) ::
-  .atom (.mul (.n 32) (.n 2) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 80) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.const (.n 35) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 36) (.n 37) (.n 38) (.n 35)) ::
-  .atom (.mul (.n 39) (.n 1) (.n 6)) ::
-  .atom (.load (.n 40) (.n 39) 432) ::
-  .atom (.mul (.n 41) (.n 31) (.n 40)) ::
-  .atom (.mul (.n 42) (.n 2) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 96) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.assertEq (.n 44) (.n 0)) ::
-  .atom (.copy (.n 45) (.n 41)) ::
-  .ret [.n 45] ::
-  [])
-
-end core285
-
-/-- `column_selector__L13`. -/
-noncomputable def core285 : Core.Fn where
-  name := "column_selector__L13"
-  params := [.n 0, .n 1, .n 2]
-  body := core285.body
-
-namespace core286
-
-/-- `column_selector__L14`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 4 4 12 none (.stack [.n 3, .n 4, .n 5, .n 6]))) ::
-  .atom (.const (.n 7) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 8) (.n 9) (.n 10) (.n 7)) ::
-  .atom (.mul (.n 11) (.n 1) (.n 3)) ::
-  .atom (.load (.n 12) (.n 11) 208) ::
-  .atom (.mul (.n 13) (.n 2) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 48) ::
-  .atom (.const (.n 15) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 16) (.n 17) (.n 18) (.n 15)) ::
-  .atom (.mul (.n 19) (.n 1) (.n 4)) ::
-  .atom (.load (.n 20) (.n 19) 304) ::
-  .atom (.mul (.n 21) (.n 12) (.n 20)) ::
-  .atom (.mul (.n 22) (.n 2) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 64) ::
-  .atom (.mul (.n 24) (.n 14) (.n 23)) ::
-  .atom (.const (.n 25) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 26) (.n 27) (.n 28) (.n 25)) ::
-  .atom (.mul (.n 29) (.n 1) (.n 5)) ::
-  .atom (.load (.n 30) (.n 29) 368) ::
-  .atom (.mul (.n 31) (.n 21) (.n 30)) ::
-  .atom (.mul (.n 32) (.n 2) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 80) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.const (.n 35) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 36) (.n 37) (.n 38) (.n 35)) ::
-  .atom (.mul (.n 39) (.n 1) (.n 6)) ::
-  .atom (.load (.n 40) (.n 39) 432) ::
-  .atom (.mul (.n 41) (.n 31) (.n 40)) ::
-  .atom (.mul (.n 42) (.n 2) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 96) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.assertEq (.n 44) (.n 0)) ::
-  .atom (.copy (.n 45) (.n 41)) ::
-  .ret [.n 45] ::
-  [])
-
 end core286
 
-/-- `column_selector__L14`. -/
+/-- `column_selector__L12`. -/
 noncomputable def core286 : Core.Fn where
-  name := "column_selector__L14"
+  name := "column_selector__L12"
   params := [.n 0, .n 1, .n 2]
   body := core286.body
 
 namespace core287
 
-/-- `column_selector__L15`: the body. -/
+/-- `column_selector__L13`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.digitsExp (.n 0) 28 4 4 12 none (.stack [.n 3, .n 4, .n 5, .n 6]))) ::
-  .atom (.const (.n 7) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 8) (.n 9) (.n 10) (.n 7)) ::
-  .atom (.mul (.n 11) (.n 1) (.n 3)) ::
-  .atom (.load (.n 12) (.n 11) 192) ::
-  .atom (.mul (.n 13) (.n 2) (.n 3)) ::
-  .atom (.load (.n 14) (.n 13) 48) ::
-  .atom (.const (.n 15) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 16) (.n 17) (.n 18) (.n 15)) ::
-  .atom (.mul (.n 19) (.n 1) (.n 4)) ::
-  .atom (.load (.n 20) (.n 19) 304) ::
-  .atom (.mul (.n 21) (.n 12) (.n 20)) ::
-  .atom (.mul (.n 22) (.n 2) (.n 4)) ::
-  .atom (.load (.n 23) (.n 22) 64) ::
-  .atom (.mul (.n 24) (.n 14) (.n 23)) ::
-  .atom (.const (.n 25) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 26) (.n 27) (.n 28) (.n 25)) ::
-  .atom (.mul (.n 29) (.n 1) (.n 5)) ::
-  .atom (.load (.n 30) (.n 29) 368) ::
-  .atom (.mul (.n 31) (.n 21) (.n 30)) ::
-  .atom (.mul (.n 32) (.n 2) (.n 5)) ::
-  .atom (.load (.n 33) (.n 32) 80) ::
-  .atom (.mul (.n 34) (.n 24) (.n 33)) ::
-  .atom (.const (.n 35) (word 32768 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 36) (.n 37) (.n 38) (.n 35)) ::
-  .atom (.mul (.n 39) (.n 1) (.n 6)) ::
-  .atom (.load (.n 40) (.n 39) 432) ::
-  .atom (.mul (.n 41) (.n 31) (.n 40)) ::
-  .atom (.mul (.n 42) (.n 2) (.n 6)) ::
-  .atom (.load (.n 43) (.n 42) 96) ::
-  .atom (.mul (.n 44) (.n 34) (.n 43)) ::
-  .atom (.assertEq (.n 44) (.n 0)) ::
-  .atom (.copy (.n 45) (.n 41)) ::
-  .ret [.n 45] ::
+  .atom (.hint (.digitsExp (.n 0) 32 5 4 12 none (.stack [.n 3, .n 4, .n 5, .n 6, .n 7]))) ::
+  .atom (.const (.n 8) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 3) (.n 9) (.n 10) (.n 11) (.n 8)) ::
+  .atom (.mul (.n 12) (.n 1) (.n 3)) ::
+  .atom (.load (.n 13) (.n 12) 224) ::
+  .atom (.mul (.n 14) (.n 2) (.n 3)) ::
+  .atom (.load (.n 15) (.n 14) 48) ::
+  .atom (.const (.n 16) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 4) (.n 17) (.n 18) (.n 19) (.n 16)) ::
+  .atom (.mul (.n 20) (.n 1) (.n 4)) ::
+  .atom (.load (.n 21) (.n 20) 304) ::
+  .atom (.mul (.n 22) (.n 13) (.n 21)) ::
+  .atom (.mul (.n 23) (.n 2) (.n 4)) ::
+  .atom (.load (.n 24) (.n 23) 64) ::
+  .atom (.mul (.n 25) (.n 15) (.n 24)) ::
+  .atom (.const (.n 26) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 5) (.n 27) (.n 28) (.n 29) (.n 26)) ::
+  .atom (.mul (.n 30) (.n 1) (.n 5)) ::
+  .atom (.load (.n 31) (.n 30) 368) ::
+  .atom (.mul (.n 32) (.n 22) (.n 31)) ::
+  .atom (.mul (.n 33) (.n 2) (.n 5)) ::
+  .atom (.load (.n 34) (.n 33) 80) ::
+  .atom (.mul (.n 35) (.n 25) (.n 34)) ::
+  .atom (.const (.n 36) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 37) (.n 38) (.n 39) (.n 36)) ::
+  .atom (.mul (.n 40) (.n 1) (.n 6)) ::
+  .atom (.load (.n 41) (.n 40) 432) ::
+  .atom (.mul (.n 42) (.n 32) (.n 41)) ::
+  .atom (.mul (.n 43) (.n 2) (.n 6)) ::
+  .atom (.load (.n 44) (.n 43) 96) ::
+  .atom (.mul (.n 45) (.n 35) (.n 44)) ::
+  .atom (.const (.n 46) (word 32768 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 47) (.n 48) (.n 49) (.n 46)) ::
+  .atom (.mul (.n 50) (.n 1) (.n 7)) ::
+  .atom (.load (.n 51) (.n 50) 496) ::
+  .atom (.mul (.n 52) (.n 42) (.n 51)) ::
+  .atom (.mul (.n 53) (.n 2) (.n 7)) ::
+  .atom (.load (.n 54) (.n 53) 112) ::
+  .atom (.mul (.n 55) (.n 45) (.n 54)) ::
+  .atom (.assertEq (.n 55) (.n 0)) ::
+  .atom (.copy (.n 56) (.n 52)) ::
+  .ret [.n 56] ::
   [])
 
 end core287
 
-/-- `column_selector__L15`. -/
+/-- `column_selector__L13`. -/
 noncomputable def core287 : Core.Fn where
-  name := "column_selector__L15"
+  name := "column_selector__L13"
   params := [.n 0, .n 1, .n 2]
   body := core287.body
-
-namespace core288
-
-/-- `column_selector__L16`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 3 4 16 none (.stack [.n 3, .n 4, .n 5]))),
-  .atom (.const (.n 6) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 7) (.n 8) (.n 9) (.n 6)),
-  .atom (.mul (.n 10) (.n 1) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 304),
-  .atom (.mul (.n 12) (.n 2) (.n 3)),
-  .atom (.load (.n 13) (.n 12) 64),
-  .atom (.const (.n 14) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 15) (.n 16) (.n 17) (.n 14)),
-  .atom (.mul (.n 18) (.n 1) (.n 4)),
-  .atom (.load (.n 19) (.n 18) 368),
-  .atom (.mul (.n 20) (.n 11) (.n 19)),
-  .atom (.mul (.n 21) (.n 2) (.n 4)),
-  .atom (.load (.n 22) (.n 21) 80),
-  .atom (.mul (.n 23) (.n 13) (.n 22)),
-  .atom (.const (.n 24) (word 32768 0)),
-  .atom (.rangeCheck (.n 5) (.n 25) (.n 26) (.n 27) (.n 24)),
-  .atom (.mul (.n 28) (.n 1) (.n 5)),
-  .atom (.load (.n 29) (.n 28) 432),
-  .atom (.mul (.n 30) (.n 20) (.n 29)),
-  .atom (.mul (.n 31) (.n 2) (.n 5)),
-  .atom (.load (.n 32) (.n 31) 96),
-  .atom (.mul (.n 33) (.n 23) (.n 32)),
-  .atom (.assertEq (.n 33) (.n 0)),
-  .atom (.copy (.n 34) (.n 30)),
-  .ret [.n 34]]
-
-end core288
-
-/-- `column_selector__L16`. -/
-noncomputable def core288 : Core.Fn where
-  name := "column_selector__L16"
-  params := [.n 0, .n 1, .n 2]
-  body := core288.body
-
-namespace core289
-
-/-- `column_selector__L17`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 3 4 16 none (.stack [.n 3, .n 4, .n 5]))),
-  .atom (.const (.n 6) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 7) (.n 8) (.n 9) (.n 6)),
-  .atom (.mul (.n 10) (.n 1) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 288),
-  .atom (.mul (.n 12) (.n 2) (.n 3)),
-  .atom (.load (.n 13) (.n 12) 64),
-  .atom (.const (.n 14) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 15) (.n 16) (.n 17) (.n 14)),
-  .atom (.mul (.n 18) (.n 1) (.n 4)),
-  .atom (.load (.n 19) (.n 18) 368),
-  .atom (.mul (.n 20) (.n 11) (.n 19)),
-  .atom (.mul (.n 21) (.n 2) (.n 4)),
-  .atom (.load (.n 22) (.n 21) 80),
-  .atom (.mul (.n 23) (.n 13) (.n 22)),
-  .atom (.const (.n 24) (word 32768 0)),
-  .atom (.rangeCheck (.n 5) (.n 25) (.n 26) (.n 27) (.n 24)),
-  .atom (.mul (.n 28) (.n 1) (.n 5)),
-  .atom (.load (.n 29) (.n 28) 432),
-  .atom (.mul (.n 30) (.n 20) (.n 29)),
-  .atom (.mul (.n 31) (.n 2) (.n 5)),
-  .atom (.load (.n 32) (.n 31) 96),
-  .atom (.mul (.n 33) (.n 23) (.n 32)),
-  .atom (.assertEq (.n 33) (.n 0)),
-  .atom (.copy (.n 34) (.n 30)),
-  .ret [.n 34]]
-
-end core289
-
-/-- `column_selector__L17`. -/
-noncomputable def core289 : Core.Fn where
-  name := "column_selector__L17"
-  params := [.n 0, .n 1, .n 2]
-  body := core289.body
-
-namespace core290
-
-/-- `column_selector__L18`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 3 4 16 none (.stack [.n 3, .n 4, .n 5]))),
-  .atom (.const (.n 6) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 7) (.n 8) (.n 9) (.n 6)),
-  .atom (.mul (.n 10) (.n 1) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 272),
-  .atom (.mul (.n 12) (.n 2) (.n 3)),
-  .atom (.load (.n 13) (.n 12) 64),
-  .atom (.const (.n 14) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 15) (.n 16) (.n 17) (.n 14)),
-  .atom (.mul (.n 18) (.n 1) (.n 4)),
-  .atom (.load (.n 19) (.n 18) 368),
-  .atom (.mul (.n 20) (.n 11) (.n 19)),
-  .atom (.mul (.n 21) (.n 2) (.n 4)),
-  .atom (.load (.n 22) (.n 21) 80),
-  .atom (.mul (.n 23) (.n 13) (.n 22)),
-  .atom (.const (.n 24) (word 32768 0)),
-  .atom (.rangeCheck (.n 5) (.n 25) (.n 26) (.n 27) (.n 24)),
-  .atom (.mul (.n 28) (.n 1) (.n 5)),
-  .atom (.load (.n 29) (.n 28) 432),
-  .atom (.mul (.n 30) (.n 20) (.n 29)),
-  .atom (.mul (.n 31) (.n 2) (.n 5)),
-  .atom (.load (.n 32) (.n 31) 96),
-  .atom (.mul (.n 33) (.n 23) (.n 32)),
-  .atom (.assertEq (.n 33) (.n 0)),
-  .atom (.copy (.n 34) (.n 30)),
-  .ret [.n 34]]
-
-end core290
-
-/-- `column_selector__L18`. -/
-noncomputable def core290 : Core.Fn where
-  name := "column_selector__L18"
-  params := [.n 0, .n 1, .n 2]
-  body := core290.body
-
-namespace core291
-
-/-- `column_selector__L19`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 3 4 16 none (.stack [.n 3, .n 4, .n 5]))),
-  .atom (.const (.n 6) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 7) (.n 8) (.n 9) (.n 6)),
-  .atom (.mul (.n 10) (.n 1) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 256),
-  .atom (.mul (.n 12) (.n 2) (.n 3)),
-  .atom (.load (.n 13) (.n 12) 64),
-  .atom (.const (.n 14) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 15) (.n 16) (.n 17) (.n 14)),
-  .atom (.mul (.n 18) (.n 1) (.n 4)),
-  .atom (.load (.n 19) (.n 18) 368),
-  .atom (.mul (.n 20) (.n 11) (.n 19)),
-  .atom (.mul (.n 21) (.n 2) (.n 4)),
-  .atom (.load (.n 22) (.n 21) 80),
-  .atom (.mul (.n 23) (.n 13) (.n 22)),
-  .atom (.const (.n 24) (word 32768 0)),
-  .atom (.rangeCheck (.n 5) (.n 25) (.n 26) (.n 27) (.n 24)),
-  .atom (.mul (.n 28) (.n 1) (.n 5)),
-  .atom (.load (.n 29) (.n 28) 432),
-  .atom (.mul (.n 30) (.n 20) (.n 29)),
-  .atom (.mul (.n 31) (.n 2) (.n 5)),
-  .atom (.load (.n 32) (.n 31) 96),
-  .atom (.mul (.n 33) (.n 23) (.n 32)),
-  .atom (.assertEq (.n 33) (.n 0)),
-  .atom (.copy (.n 34) (.n 30)),
-  .ret [.n 34]]
-
-end core291
-
-/-- `column_selector__L19`. -/
-noncomputable def core291 : Core.Fn where
-  name := "column_selector__L19"
-  params := [.n 0, .n 1, .n 2]
-  body := core291.body
-
-namespace core292
-
-/-- `column_selector__L20`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 2 4 20 none (.stack [.n 3, .n 4]))),
-  .atom (.const (.n 5) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.mul (.n 9) (.n 1) (.n 3)),
-  .atom (.load (.n 10) (.n 9) 368),
-  .atom (.mul (.n 11) (.n 2) (.n 3)),
-  .atom (.load (.n 12) (.n 11) 80),
-  .atom (.const (.n 13) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 14) (.n 15) (.n 16) (.n 13)),
-  .atom (.mul (.n 17) (.n 1) (.n 4)),
-  .atom (.load (.n 18) (.n 17) 432),
-  .atom (.mul (.n 19) (.n 10) (.n 18)),
-  .atom (.mul (.n 20) (.n 2) (.n 4)),
-  .atom (.load (.n 21) (.n 20) 96),
-  .atom (.mul (.n 22) (.n 12) (.n 21)),
-  .atom (.assertEq (.n 22) (.n 0)),
-  .atom (.copy (.n 23) (.n 19)),
-  .ret [.n 23]]
-
-end core292
-
-/-- `column_selector__L20`. -/
-noncomputable def core292 : Core.Fn where
-  name := "column_selector__L20"
-  params := [.n 0, .n 1, .n 2]
-  body := core292.body
-
-namespace core293
-
-/-- `column_selector__L21`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 2 4 20 none (.stack [.n 3, .n 4]))),
-  .atom (.const (.n 5) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.mul (.n 9) (.n 1) (.n 3)),
-  .atom (.load (.n 10) (.n 9) 352),
-  .atom (.mul (.n 11) (.n 2) (.n 3)),
-  .atom (.load (.n 12) (.n 11) 80),
-  .atom (.const (.n 13) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 14) (.n 15) (.n 16) (.n 13)),
-  .atom (.mul (.n 17) (.n 1) (.n 4)),
-  .atom (.load (.n 18) (.n 17) 432),
-  .atom (.mul (.n 19) (.n 10) (.n 18)),
-  .atom (.mul (.n 20) (.n 2) (.n 4)),
-  .atom (.load (.n 21) (.n 20) 96),
-  .atom (.mul (.n 22) (.n 12) (.n 21)),
-  .atom (.assertEq (.n 22) (.n 0)),
-  .atom (.copy (.n 23) (.n 19)),
-  .ret [.n 23]]
-
-end core293
-
-/-- `column_selector__L21`. -/
-noncomputable def core293 : Core.Fn where
-  name := "column_selector__L21"
-  params := [.n 0, .n 1, .n 2]
-  body := core293.body
-
-namespace core294
-
-/-- `column_selector__L22`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 2 4 20 none (.stack [.n 3, .n 4]))),
-  .atom (.const (.n 5) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.mul (.n 9) (.n 1) (.n 3)),
-  .atom (.load (.n 10) (.n 9) 336),
-  .atom (.mul (.n 11) (.n 2) (.n 3)),
-  .atom (.load (.n 12) (.n 11) 80),
-  .atom (.const (.n 13) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 14) (.n 15) (.n 16) (.n 13)),
-  .atom (.mul (.n 17) (.n 1) (.n 4)),
-  .atom (.load (.n 18) (.n 17) 432),
-  .atom (.mul (.n 19) (.n 10) (.n 18)),
-  .atom (.mul (.n 20) (.n 2) (.n 4)),
-  .atom (.load (.n 21) (.n 20) 96),
-  .atom (.mul (.n 22) (.n 12) (.n 21)),
-  .atom (.assertEq (.n 22) (.n 0)),
-  .atom (.copy (.n 23) (.n 19)),
-  .ret [.n 23]]
-
-end core294
-
-/-- `column_selector__L22`. -/
-noncomputable def core294 : Core.Fn where
-  name := "column_selector__L22"
-  params := [.n 0, .n 1, .n 2]
-  body := core294.body
-
-namespace core295
-
-/-- `column_selector__L23`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 2 4 20 none (.stack [.n 3, .n 4]))),
-  .atom (.const (.n 5) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.mul (.n 9) (.n 1) (.n 3)),
-  .atom (.load (.n 10) (.n 9) 320),
-  .atom (.mul (.n 11) (.n 2) (.n 3)),
-  .atom (.load (.n 12) (.n 11) 80),
-  .atom (.const (.n 13) (word 32768 0)),
-  .atom (.rangeCheck (.n 4) (.n 14) (.n 15) (.n 16) (.n 13)),
-  .atom (.mul (.n 17) (.n 1) (.n 4)),
-  .atom (.load (.n 18) (.n 17) 432),
-  .atom (.mul (.n 19) (.n 10) (.n 18)),
-  .atom (.mul (.n 20) (.n 2) (.n 4)),
-  .atom (.load (.n 21) (.n 20) 96),
-  .atom (.mul (.n 22) (.n 12) (.n 21)),
-  .atom (.assertEq (.n 22) (.n 0)),
-  .atom (.copy (.n 23) (.n 19)),
-  .ret [.n 23]]
-
-end core295
-
-/-- `column_selector__L23`. -/
-noncomputable def core295 : Core.Fn where
-  name := "column_selector__L23"
-  params := [.n 0, .n 1, .n 2]
-  body := core295.body
-
-namespace core296
-
-/-- `column_selector__L24`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 1 4 24 none (.stack [.n 3]))),
-  .atom (.const (.n 4) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-  .atom (.mul (.n 8) (.n 1) (.n 3)),
-  .atom (.load (.n 9) (.n 8) 432),
-  .atom (.mul (.n 10) (.n 2) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 96),
-  .atom (.assertEq (.n 11) (.n 0)),
-  .atom (.copy (.n 12) (.n 9)),
-  .ret [.n 12]]
-
-end core296
-
-/-- `column_selector__L24`. -/
-noncomputable def core296 : Core.Fn where
-  name := "column_selector__L24"
-  params := [.n 0, .n 1, .n 2]
-  body := core296.body
-
-namespace core297
-
-/-- `column_selector__L25`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 1 4 24 none (.stack [.n 3]))),
-  .atom (.const (.n 4) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-  .atom (.mul (.n 8) (.n 1) (.n 3)),
-  .atom (.load (.n 9) (.n 8) 416),
-  .atom (.mul (.n 10) (.n 2) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 96),
-  .atom (.assertEq (.n 11) (.n 0)),
-  .atom (.copy (.n 12) (.n 9)),
-  .ret [.n 12]]
-
-end core297
-
-/-- `column_selector__L25`. -/
-noncomputable def core297 : Core.Fn where
-  name := "column_selector__L25"
-  params := [.n 0, .n 1, .n 2]
-  body := core297.body
-
-namespace core298
-
-/-- `column_selector__L26`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 1 4 24 none (.stack [.n 3]))),
-  .atom (.const (.n 4) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-  .atom (.mul (.n 8) (.n 1) (.n 3)),
-  .atom (.load (.n 9) (.n 8) 400),
-  .atom (.mul (.n 10) (.n 2) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 96),
-  .atom (.assertEq (.n 11) (.n 0)),
-  .atom (.copy (.n 12) (.n 9)),
-  .ret [.n 12]]
-
-end core298
-
-/-- `column_selector__L26`. -/
-noncomputable def core298 : Core.Fn where
-  name := "column_selector__L26"
-  params := [.n 0, .n 1, .n 2]
-  body := core298.body
-
-namespace core299
-
-/-- `column_selector__L27`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 1 4 24 none (.stack [.n 3]))),
-  .atom (.const (.n 4) (word 32768 0)),
-  .atom (.rangeCheck (.n 3) (.n 5) (.n 6) (.n 7) (.n 4)),
-  .atom (.mul (.n 8) (.n 1) (.n 3)),
-  .atom (.load (.n 9) (.n 8) 384),
-  .atom (.mul (.n 10) (.n 2) (.n 3)),
-  .atom (.load (.n 11) (.n 10) 96),
-  .atom (.assertEq (.n 11) (.n 0)),
-  .atom (.copy (.n 12) (.n 9)),
-  .ret [.n 12]]
-
-end core299
-
-/-- `column_selector__L27`. -/
-noncomputable def core299 : Core.Fn where
-  name := "column_selector__L27"
-  params := [.n 0, .n 1, .n 2]
-  body := core299.body
-
-namespace core300
-
-/-- `column_selector__L28`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.hint (.digitsExp (.n 0) 28 0 4 28 none (.stack []))),
-  .atom (.const (.n 3) (word 1 0)),
-  .atom (.assertEq (.n 3) (.n 0)),
-  .atom (.const (.n 4) (word 1 0)),
-  .ret [.n 4]]
-
-end core300
-
-/-- `column_selector__L28`. -/
-noncomputable def core300 : Core.Fn where
-  name := "column_selector__L28"
-  params := [.n 0, .n 1, .n 2]
-  body := core300.body
-
-namespace core301
-
-/-- `log2_ceil_in_the_exponent__L0_L34`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.const (.n 2) (word 17179869184 0)),
-  .atom (.hint (.allocDyn (.n 3) (.n 2))),
-  .atom (.hint (.bitsExp (.n 0) 34 (.heap (.n 3) 0 34))),
-  .atom (.hint (.log2Ceil (.heap (.n 3) 0 34) 34 0 (.n 4))),
-  .atom (.const (.n 5) (word 8589934592 0)),
-  .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.const (.n 9) (word 8589934592 0)),
-  .atom (.const (.n 10) (word 1 0)),
-  .atom (.mul (.n 4) (.n 11) (.n 10)),
-  .atom (.rangeCheck (.n 11) (.n 12) (.n 13) (.n 14) (.n 9)),
-  .atom (.mul (.n 15) (.n 1) (.n 4)),
-  .atom (.load (.n 16) (.n 15) 0),
-  .atom (.mul (.n 16) (.n 17) (.n 0)),
-  .call "assert_small_g_power" [.n 17, .n 1] [],
-  .atom (.const (.n 18) (word 1 0)),
-  .atom (.add (.n 19) (.n 4) (.n 18)),
-  .ite (.n 19) [] [
-    .atom (.const (.n 20) (word 9223372036854775821 0)),
-    .atom (.mul (.n 21) (.n 0) (.n 20)),
-    .atom (.const (.n 22) (word 9223372036854775821 0)),
-    .atom (.mul (.n 23) (.n 4) (.n 22)),
-    .atom (.mul (.n 24) (.n 1) (.n 23)),
-    .atom (.load (.n 25) (.n 24) 0),
-    .atom (.mul (.n 21) (.n 26) (.n 25)),
-    .call "assert_small_g_power" [.n 26, .n 1] []],
-  .atom (.copy (.n 27) (.n 4)),
-  .ret [.n 27]]
-
-end core301
-
-/-- `log2_ceil_in_the_exponent__L0_L34`. -/
-noncomputable def core301 : Core.Fn where
-  name := "log2_ceil_in_the_exponent__L0_L34"
-  params := [.n 0, .n 1]
-  body := core301.body
-
-namespace core302
-
-/-- `log2_ceil_in_the_exponent__L15_L34`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.const (.n 2) (word 17179869184 0)),
-  .atom (.hint (.allocDyn (.n 3) (.n 2))),
-  .atom (.hint (.bitsExp (.n 0) 34 (.heap (.n 3) 0 34))),
-  .atom (.hint (.log2Ceil (.heap (.n 3) 0 34) 34 15 (.n 4))),
-  .atom (.const (.n 5) (word 8589934592 0)),
-  .atom (.rangeCheck (.n 4) (.n 6) (.n 7) (.n 8) (.n 5)),
-  .atom (.const (.n 9) (word 8589934592 0)),
-  .atom (.const (.n 10) (word 32768 0)),
-  .atom (.mul (.n 4) (.n 11) (.n 10)),
-  .atom (.rangeCheck (.n 11) (.n 12) (.n 13) (.n 14) (.n 9)),
-  .atom (.mul (.n 15) (.n 1) (.n 4)),
-  .atom (.load (.n 16) (.n 15) 0),
-  .atom (.mul (.n 16) (.n 17) (.n 0)),
-  .call "assert_small_g_power" [.n 17, .n 1] [],
-  .atom (.const (.n 18) (word 32768 0)),
-  .atom (.add (.n 19) (.n 4) (.n 18)),
-  .ite (.n 19) [] [
-    .atom (.const (.n 20) (word 9223372036854775821 0)),
-    .atom (.mul (.n 21) (.n 0) (.n 20)),
-    .atom (.const (.n 22) (word 9223372036854775821 0)),
-    .atom (.mul (.n 23) (.n 4) (.n 22)),
-    .atom (.mul (.n 24) (.n 1) (.n 23)),
-    .atom (.load (.n 25) (.n 24) 0),
-    .atom (.mul (.n 21) (.n 26) (.n 25)),
-    .call "assert_small_g_power" [.n 26, .n 1] []],
-  .atom (.copy (.n 27) (.n 4)),
-  .ret [.n 27]]
-
-end core302
-
-/-- `log2_ceil_in_the_exponent__L15_L34`. -/
-noncomputable def core302 : Core.Fn where
-  name := "log2_ceil_in_the_exponent__L15_L34"
-  params := [.n 0, .n 1]
-  body := core302.body
-
-namespace core303
-
-/-- `grind_check__L15`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.windowsExp (.n 0) 15 11 4 (.stack [.n 2, .n 3, .n 4, .n 5]))) ::
-  .atom (.hint (.windowsExp (.n 0) 59 5 1 (.stack [.n 6]))) ::
-  .atom (.const (.n 7) (word 2147483648 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 8) (.n 9) (.n 10) (.n 7)) ::
-  .atom (.mul (.n 11) (.n 1) (.n 6)) ::
-  .atom (.load (.n 12) (.n 11) 0) ::
-  .atom (.const (.n 13) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 14) (.n 15) (.n 16) (.n 13)) ::
-  .atom (.const (.n 17) (word 2048 0)) ::
-  .atom (.mul (.n 18) (.n 12) (.n 17)) ::
-  .atom (.mul (.n 19) (.n 1) (.n 5)) ::
-  .atom (.load (.n 20) (.n 19) 0) ::
-  .atom (.add (.n 21) (.n 18) (.n 20)) ::
-  .atom (.const (.n 22) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 23) (.n 24) (.n 25) (.n 22)) ::
-  .atom (.const (.n 26) (word 2048 0)) ::
-  .atom (.mul (.n 27) (.n 21) (.n 26)) ::
-  .atom (.mul (.n 28) (.n 1) (.n 4)) ::
-  .atom (.load (.n 29) (.n 28) 0) ::
-  .atom (.add (.n 30) (.n 27) (.n 29)) ::
-  .atom (.const (.n 31) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 32) (.n 33) (.n 34) (.n 31)) ::
-  .atom (.const (.n 35) (word 2048 0)) ::
-  .atom (.mul (.n 36) (.n 30) (.n 35)) ::
-  .atom (.mul (.n 37) (.n 1) (.n 3)) ::
-  .atom (.load (.n 38) (.n 37) 0) ::
-  .atom (.add (.n 39) (.n 36) (.n 38)) ::
-  .atom (.const (.n 40) (word 55834575010 0)) ::
-  .atom (.rangeCheck (.n 2) (.n 41) (.n 42) (.n 43) (.n 40)) ::
-  .atom (.const (.n 44) (word 2048 0)) ::
-  .atom (.mul (.n 45) (.n 39) (.n 44)) ::
-  .atom (.mul (.n 46) (.n 1) (.n 2)) ::
-  .atom (.load (.n 47) (.n 46) 0) ::
-  .atom (.add (.n 48) (.n 45) (.n 47)) ::
-  .atom (.const (.n 49) (word 32768 0)) ::
-  .atom (.mul (.n 50) (.n 48) (.n 49)) ::
-  .atom (.add (.n 51) (.n 0) (.n 50)) ::
-  .atom (.const (.n 52) (word 2 1)) ::
-  .atom (.mul (.n 53) (.n 51) (.n 52)) ::
-  .atom (.const (.n 54) (word 32768 0)) ::
-  .atom (.mul (.n 55) (.n 48) (.n 54)) ::
-  .atom (.assertInK (.n 53) (.n 55)) ::
-  .ret [] ::
-  [])
-
-end core303
-
-/-- `grind_check__L15`. -/
-noncomputable def core303 : Core.Fn where
-  name := "grind_check__L15"
-  params := [.n 0, .n 1]
-  body := core303.body
-
-namespace core304
-
-/-- `squeeze_point_from__L22`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.load (.n 5) (.n 6) 0) ::
-  .atom (.copy (.n 7) (.n 0)) ::
-  .atom (.copy (.n 8) (.n 1)) ::
-  .atom (.copy (.n 9) (.n 2)) ::
-  .atom (.copy (.n 10) (.n 3)) ::
-  .atom (.copy (.n 11) (.n 4)) ::
-  .atom (.const (.n 12) (word 1 0)) ::
-  .atom (.const (.n 13) (word 0 0)) ::
-  .atom (.const (.n 14) (word 0 0)) ::
-  .atom (.const (.n 15) (word 0 0)) ::
-  .atom (.const (.n 16) (word 0 0)) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 7, .n 8, .n 9, .n 10, .n 11] [.n 17, .n 18, .n 19, .n 20, .n 21, .n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29] false false) ::
-  .atom (.copy (.n 30) (.n 17)) ::
-  .atom (.load (.n 30) (.n 6) 1) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 25, .n 26, .n 27, .n 28, .n 29] [.n 31, .n 32, .n 33, .n 34, .n 35, .n 36, .n 37, .n 38, .n 39, .n 40, .n 41, .n 42, .n 43] false false) ::
-  .atom (.copy (.n 44) (.n 31)) ::
-  .atom (.load (.n 44) (.n 6) 2) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 39, .n 40, .n 41, .n 42, .n 43] [.n 45, .n 46, .n 47, .n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57] false false) ::
-  .atom (.copy (.n 58) (.n 45)) ::
-  .atom (.load (.n 58) (.n 6) 3) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 53, .n 54, .n 55, .n 56, .n 57] [.n 59, .n 60, .n 61, .n 62, .n 63, .n 64, .n 65, .n 66, .n 67, .n 68, .n 69, .n 70, .n 71] false false) ::
-  .atom (.copy (.n 72) (.n 59)) ::
-  .atom (.load (.n 72) (.n 6) 4) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 67, .n 68, .n 69, .n 70, .n 71] [.n 73, .n 74, .n 75, .n 76, .n 77, .n 78, .n 79, .n 80, .n 81, .n 82, .n 83, .n 84, .n 85] false false) ::
-  .atom (.copy (.n 86) (.n 73)) ::
-  .atom (.load (.n 86) (.n 6) 5) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 81, .n 82, .n 83, .n 84, .n 85] [.n 87, .n 88, .n 89, .n 90, .n 91, .n 92, .n 93, .n 94, .n 95, .n 96, .n 97, .n 98, .n 99] false false) ::
-  .atom (.copy (.n 100) (.n 87)) ::
-  .atom (.load (.n 100) (.n 6) 6) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 95, .n 96, .n 97, .n 98, .n 99] [.n 101, .n 102, .n 103, .n 104, .n 105, .n 106, .n 107, .n 108, .n 109, .n 110, .n 111, .n 112, .n 113] false false) ::
-  .atom (.copy (.n 114) (.n 101)) ::
-  .atom (.load (.n 114) (.n 6) 7) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 109, .n 110, .n 111, .n 112, .n 113] [.n 115, .n 116, .n 117, .n 118, .n 119, .n 120, .n 121, .n 122, .n 123, .n 124, .n 125, .n 126, .n 127] false false) ::
-  .atom (.copy (.n 128) (.n 115)) ::
-  .atom (.load (.n 128) (.n 6) 8) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 123, .n 124, .n 125, .n 126, .n 127] [.n 129, .n 130, .n 131, .n 132, .n 133, .n 134, .n 135, .n 136, .n 137, .n 138, .n 139, .n 140, .n 141] false false) ::
-  .atom (.copy (.n 142) (.n 129)) ::
-  .atom (.load (.n 142) (.n 6) 9) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 137, .n 138, .n 139, .n 140, .n 141] [.n 143, .n 144, .n 145, .n 146, .n 147, .n 148, .n 149, .n 150, .n 151, .n 152, .n 153, .n 154, .n 155] false false) ::
-  .atom (.copy (.n 156) (.n 143)) ::
-  .atom (.load (.n 156) (.n 6) 10) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 151, .n 152, .n 153, .n 154, .n 155] [.n 157, .n 158, .n 159, .n 160, .n 161, .n 162, .n 163, .n 164, .n 165, .n 166, .n 167, .n 168, .n 169] false false) ::
-  .atom (.copy (.n 170) (.n 157)) ::
-  .atom (.load (.n 170) (.n 6) 11) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 165, .n 166, .n 167, .n 168, .n 169] [.n 171, .n 172, .n 173, .n 174, .n 175, .n 176, .n 177, .n 178, .n 179, .n 180, .n 181, .n 182, .n 183] false false) ::
-  .atom (.copy (.n 184) (.n 171)) ::
-  .atom (.load (.n 184) (.n 6) 12) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 179, .n 180, .n 181, .n 182, .n 183] [.n 185, .n 186, .n 187, .n 188, .n 189, .n 190, .n 191, .n 192, .n 193, .n 194, .n 195, .n 196, .n 197] false false) ::
-  .atom (.copy (.n 198) (.n 185)) ::
-  .atom (.load (.n 198) (.n 6) 13) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 193, .n 194, .n 195, .n 196, .n 197] [.n 199, .n 200, .n 201, .n 202, .n 203, .n 204, .n 205, .n 206, .n 207, .n 208, .n 209, .n 210, .n 211] false false) ::
-  .atom (.copy (.n 212) (.n 199)) ::
-  .atom (.load (.n 212) (.n 6) 14) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 207, .n 208, .n 209, .n 210, .n 211] [.n 213, .n 214, .n 215, .n 216, .n 217, .n 218, .n 219, .n 220, .n 221, .n 222, .n 223, .n 224, .n 225] false false) ::
-  .atom (.copy (.n 226) (.n 213)) ::
-  .atom (.load (.n 226) (.n 6) 15) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 221, .n 222, .n 223, .n 224, .n 225] [.n 227, .n 228, .n 229, .n 230, .n 231, .n 232, .n 233, .n 234, .n 235, .n 236, .n 237, .n 238, .n 239] false false) ::
-  .atom (.copy (.n 240) (.n 227)) ::
-  .atom (.load (.n 240) (.n 6) 16) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 235, .n 236, .n 237, .n 238, .n 239] [.n 241, .n 242, .n 243, .n 244, .n 245, .n 246, .n 247, .n 248, .n 249, .n 250, .n 251, .n 252, .n 253] false false) ::
-  .atom (.copy (.n 254) (.n 241)) ::
-  .atom (.load (.n 254) (.n 6) 17) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 249, .n 250, .n 251, .n 252, .n 253] [.n 255, .n 256, .n 257, .n 258, .n 259, .n 260, .n 261, .n 262, .n 263, .n 264, .n 265, .n 266, .n 267] false false) ::
-  .atom (.copy (.n 268) (.n 255)) ::
-  .atom (.load (.n 268) (.n 6) 18) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 263, .n 264, .n 265, .n 266, .n 267] [.n 269, .n 270, .n 271, .n 272, .n 273, .n 274, .n 275, .n 276, .n 277, .n 278, .n 279, .n 280, .n 281] false false) ::
-  .atom (.copy (.n 282) (.n 269)) ::
-  .atom (.load (.n 282) (.n 6) 19) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 277, .n 278, .n 279, .n 280, .n 281] [.n 283, .n 284, .n 285, .n 286, .n 287, .n 288, .n 289, .n 290, .n 291, .n 292, .n 293, .n 294, .n 295] false false) ::
-  .atom (.copy (.n 296) (.n 283)) ::
-  .atom (.load (.n 296) (.n 6) 20) ::
-  .atom (.keccak [.n 13, .n 13, .n 13, .n 13, .n 13, .n 14, .n 15, .n 16, .n 291, .n 292, .n 293, .n 294, .n 295] [.n 297, .n 298, .n 299, .n 300, .n 301, .n 302, .n 303, .n 304, .n 305, .n 306, .n 307, .n 308, .n 309] false false) ::
-  .atom (.copy (.n 310) (.n 297)) ::
-  .atom (.load (.n 310) (.n 6) 21) ::
-  .atom (.copy (.n 311) (.n 305)) ::
-  .atom (.copy (.n 312) (.n 306)) ::
-  .atom (.copy (.n 313) (.n 307)) ::
-  .atom (.copy (.n 314) (.n 308)) ::
-  .atom (.copy (.n 315) (.n 309)) ::
-  .atom (.copy (.n 316) (.n 311)) ::
-  .atom (.copy (.n 317) (.n 312)) ::
-  .atom (.copy (.n 318) (.n 313)) ::
-  .atom (.copy (.n 319) (.n 314)) ::
-  .atom (.copy (.n 320) (.n 315)) ::
-  .ret [.n 316, .n 317, .n 318, .n 319, .n 320] ::
-  [])
-
-end core304
-
-/-- `squeeze_point_from__L22`. -/
-noncomputable def core304 : Core.Fn where
-  name := "squeeze_point_from__L22"
-  params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
-  body := core304.body
 
 end
 end LeanVM.Guest.Data

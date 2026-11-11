@@ -16,29 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop176`, window 0, part 0. -/
+/-- `level_residual__L23_L11_L4_L2`, window 0, part 0. -/
 theorem cw721_0_0 : cplWin 721 0 0 = true := by decide +kernel
 
-/-- `__loop177`, window 0, part 0. -/
+/-- `level_residual__L21_L7_L4_L2`, window 0, part 0. -/
 theorem cw722_0_0 : cplWin 722 0 0 = true := by decide +kernel
 
-/-- `__loop178`, window 0, part 0. -/
+/-- `level_residual__L19_L7_L4_L2`, window 0, part 0. -/
 theorem cw723_0_0 : cplWin 723 0 0 = true := by decide +kernel
 
-/-- `__loop179`, window 0, part 0. -/
+/-- `level_residual__L18_L7_L4_L2`, window 0, part 0. -/
 theorem cw724_0_0 : cplWin 724 0 0 = true := by decide +kernel
 
-/-- `__loop180`, window 0, part 0. -/
+/-- `level_positions__L37_L21_L3`, window 0, part 0. -/
 theorem cw725_0_0 : cplWin 725 0 0 = true := by decide +kernel
 
-/-- `__loop181`, window 0, part 0. -/
+/-- `level_positions__L22_L22_L4`, window 0, part 0. -/
 theorem cw726_0_0 : cplWin 726 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L1300_L8_L3_L1`, window 0, part 0. -/
+/-- `level_positions__L15_L23_L5`, window 0, part 0. -/
 theorem cw727_0_0 : cplWin 727 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L2_L1300_L8_L3_L1`, window 1, part 0. -/
-theorem cw727_1_0 : cplWin 727 1 0 = true := by decide +kernel
+/-- `level_positions__L11_L24_L6`, window 0, part 0. -/
+theorem cw728_0_0 : cplWin 728 0 0 = true := by decide +kernel
 
 theorem ok721 : CplOk 721 := by
   intro i hi k hk
@@ -102,17 +102,23 @@ theorem ok726 : CplOk 726 := by
 
 theorem ok727 : CplOk 727 := by
   intro i hi k hk
-  have hc : (certOf 727).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 727).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 727 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw727_0_0
-  · have hn : nParts 727 1 = 1 := by decide +kernel
+
+theorem ok728 : CplOk 728 := by
+  intro i hi k hk
+  have hc : (certOf 728).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 728 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw727_1_0
+    · exact cw728_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

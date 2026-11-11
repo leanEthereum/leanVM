@@ -20,15 +20,15 @@ theorem mainFreeRange_37 : MainFreeRange 37 150 := by
   unfold MainFreeRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_187 : MainFreeRange 187 145 := by
+theorem mainFreeRange_187 : MainFreeRange 187 149 := by
   unfold MainFreeRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_332 : MainFreeRange 332 3 := by
+theorem mainFreeRange_336 : MainFreeRange 336 4 := by
   unfold MainFreeRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_335 : MainFreeRange 335 3 := by
+theorem mainFreeRange_340 : MainFreeRange 340 3 := by
   unfold MainFreeRange; decide +kernel
 
 end

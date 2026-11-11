@@ -51,8 +51,8 @@ every equation (`Honest.read_eqn`); the evaluation and every instance in it are 
 image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
 callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
-`Execution.committedSize ≤ 2^28` is the end theorem's: `logMem_le_iff` and `two_pow_logMem_le`
-bound `2^κ` by the words allocated.
+`Execution.committedSize ≤ 2^30` is the end theorem's: `logMem_le_iff` bounds `2^κ` by the words
+allocated.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -134,8 +134,8 @@ noncomputable def honest : MemoryImage (logMem (T.total fs)) :=
 structure Honest (rd : Reader) (args rets : List E) : Prop where
   /-- The evaluation, on some reader. -/
   valid : T.Valid P rd args rets
-  /-- At most `2^32` words are allocated. -/
-  size : T.total fs ≤ 2 ^ 32
+  /-- At most `2^30` words are allocated. -/
+  size : T.total fs ≤ 2 ^ 30
   /-- The cells fit their frames and agree. -/
   cells : CellsOk fs C (honestInsts P fs H hdr T)
   /-- The equations name addresses of the memory. -/
@@ -274,7 +274,7 @@ theorem frameWrites_addr (hok : CellsOk fs C (honestInsts P fs H hdr T)) {a : Wr
 
 /-- **No frame write is in a `HeapBuf`**: an equation there meets no frame. -/
 theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
-    (hsize : T.total fs ≤ 2 ^ 32) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ}
+    (hsize : T.total fs ≤ 2 ^ 30) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ}
     (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 ≠ addressOfIndex i := by
   intro a ha he
   obtain ⟨J, hJ, o, ho, hao⟩ := frameWrites_addr hok ha
@@ -362,12 +362,12 @@ def tableCells : List (ℕ × E) :=
     | _ => none
 
 set_option maxRecDepth 100000 in
-/-- The slots are `445, 446, …`, one per `SET`. -/
-theorem tableCells_offsets : tableCells.map Prod.fst = List.range' 445 16322 := by
+/-- The slots are `430, 431, …`, one per `SET`. -/
+theorem tableCells_offsets : tableCells.map Prod.fst = List.range' 430 13937 := by
   decide +kernel
 
-/-- The slots lie in `main`'s frame past its header, below `445 + 16322`. -/
-theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) : 2 ≤ q.1 ∧ q.1 < 445 + 16322 := by
+/-- The slots lie in `main`'s frame past its header, below `430 + 13937`. -/
+theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) : 2 ≤ q.1 ∧ q.1 < 430 + 13937 := by
   have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
   rw [List.mem_range'_1] at this
   omega

@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop397`, window 1. -/
-theorem w988_1 : shareWin 988 (snapsOf 988) 1 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1`, window 1. -/
+theorem w1291_1 : shareWin 1291 (snapsOf 1291) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop397`, window 2. -/
-theorem w988_2 : shareWin 988 (snapsOf 988) 2 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1`, once. -/
+theorem st1292 : shareStatic 1292 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop397`, window 3. -/
-theorem w988_3 : shareWin 988 (snapsOf 988) 3 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1`, window 0. -/
+theorem w1292_0 : shareWin 1292 (snapsOf 1292) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop398`, once. -/
-theorem st989 : shareStatic 989 = true := by decide +kernel
+/-- `opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1`, window 1. -/
+theorem w1292_1 : shareWin 1292 (snapsOf 1292) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop398`, window 0. -/
-theorem w989_0 : shareWin 989 (snapsOf 989) 0 = true := by decide +kernel
+/-- `__loop315`, once. -/
+theorem st1293 : shareStatic 1293 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop398`, window 1. -/
-theorem w989_1 : shareWin 989 (snapsOf 989) 1 = true := by decide +kernel
+/-- `__loop315`, window 0. -/
+theorem w1293_0 : shareWin 1293 (snapsOf 1293) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop398`, window 2. -/
-theorem w989_2 : shareWin 989 (snapsOf 989) 2 = true := by decide +kernel
+/-- `__loop315`, window 1. -/
+theorem w1293_1 : shareWin 1293 (snapsOf 1293) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L16_L6`, once. -/
-theorem st990 : shareStatic 990 = true := by decide +kernel
+/-- `__loop315`, window 2. -/
+theorem w1293_2 : shareWin 1293 (snapsOf 1293) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

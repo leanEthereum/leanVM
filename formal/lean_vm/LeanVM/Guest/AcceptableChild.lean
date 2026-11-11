@@ -2,7 +2,7 @@
   LeanVM.Guest.AcceptableChild
 
   What the guest program checks of a child (`AcceptableChild`), and the guest program's
-  completeness stated with it (`GuestCompleteCovered`, `GuestChildComplete`): the statement's
+  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): the statement's
   completeness on honest children (`GuestCompleteOnHonestChildren`) follows from them.
 -/
 
@@ -17,10 +17,10 @@ public import LeanVM.Guest.Coverage
 
 `Statement/LeanVmGuestCompleteness.lean` states the guest program's completeness for children
 carrying honest proofs (`HonestChild`). The proofs go through what the guest program checks of a
-child, defined here: `ChildrenProven`'s two conditions, a stack log at least `MU_MIN = 22`, a proof
+child, defined here: `ChildrenProven`'s two conditions, a stack log at least `20`, a proof
 stream of at most `STREAM_CAP = 8192` scalars, its openings agreeing in the guest program's Merkle
-caps, and no zero challenge (`AcceptableChild`). `GuestCompleteCovered` is the guest program's
-completeness on covered nodes whose children are acceptable, for every seed, and
+caps, and no zero challenge (`AcceptableChild`). `GuestCompleteOnAcceptableChildren` is the guest
+program's completeness on nodes within the deployed limits whose children are acceptable, for every seed, and
 `GuestChildComplete` says that an honest proof is an acceptable child (`G:N` is line `N` of
 `crates/rec_aggregation/guests/lean_ethereum.py`, `aggregation/<module>.rs:N` of
 `crates/rec_aggregation/src/aggregation/<module>.rs`, at the pin).
@@ -38,9 +38,9 @@ namespace Coverage
 /-- `STREAM_CAP` (`aggregation/child.rs:268`): a child's proof stream is zero-padded to it. -/
 def childStreamCap : ℕ := 8192
 
-/-- `MU_MIN` (`aggregation/child.rs:259`): the least stack log the guest program has an opening arm
-for. -/
-def minChildStackLog : ℕ := 22
+/-- The least stack log the guest program has an opening arm for (`min_execution_stacked_log` of
+its `2^19` instructions, `crates/verifier`'s `layout.rs`). -/
+def minChildStackLog : ℕ := 20
 
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
@@ -136,22 +136,22 @@ end Limits
 
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
-* its stack log is at least `MU_MIN = 22`: the guest program has one opening arm per stack log in
-  `[22, 28]` (G:3475-3477); the verifier admits stack logs from `Whir.minLogStack`;
-* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3322-3323);
+* its stack log is at least `20`: the guest program has one opening arm per stack log in
+  `[20, 30]` (G:3713-3716); the verifier admits stack logs from `Whir.minLogStack`;
+* its proof stream is at most `STREAM_CAP = 8192` scalars (G:3549-3550);
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
   openings, the honest prover's, agree);
 * no zero challenge: the deferring verifier refusing a zero challenge anywhere accepts its proof
   (`verifyDeferredRefusingZero`), as the guest program divides by some (the WHIR fold and tail
-  challenges and each level's batching challenge `λ`, G:1624, 1757, 1763). -/
+  challenges and each level's batching challenge `λ`, G:1676, 1791, 1797). -/
 structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : Prop where
   /-- Its deferred claim has the bytecode's shape. -/
   deferredClaimShaped : child.statement.deferredClaim.HasBytecodeShape bytecode
   /-- The deferring verifier accepts its proof. -/
   verifies : verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
     child.proof = true
-  /-- Its stack log is at least `MU_MIN = 22`. -/
+  /-- Its stack log is at least `20`. -/
   stackLogAtLeastMinimum : ∀ layout r, announcedLayoutAndRate bytecode child.proof.stream = some
       (layout, r) →
     Coverage.minChildStackLog ≤ layout.stackLog
@@ -170,22 +170,21 @@ namespace Completeness
 
 open Coverage
 
-/-- **Every covered node has a valid execution of the leanISA guest program**: for every seed,
-statement and witness with `NodeRelation`, within the deployed limits (so at most `16` children),
-every child one the guest program accepts (`AcceptableChild`: at one of its opening arms, its
-openings agreeing in the caps, no zero challenge), and in one of the families `CoveredNode` lists,
-there is a valid execution of the guest program on the statement's digest of committed size in
-`[2^22, 2^28]`. Proved by `LeanVM.Guest.Budget.guest_complete_covered`. -/
-abbrev GuestCompleteCovered : Prop :=
+/-- **Every node within the deployed limits has a valid execution of the leanISA guest program**:
+for every seed, statement and witness with `NodeRelation`, within the deployed limits
+(`DeployedLimits`), every child one the guest program accepts
+(`AcceptableChild`: at one of its opening arms, its openings agreeing in the caps, no zero
+challenge), there is a valid execution of the guest program on the statement's digest of committed
+size at most `2^30`. Proved by `LeanVM.Guest.Budget.guest_complete_on_acceptable_children`. -/
+abbrev GuestCompleteOnAcceptableChildren : Prop :=
   ∀ (seed : Digest) (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) seed statement witness →
     DeployedLimits statement witness →
     (∀ child ∈ witness.children, AcceptableChild (bytecodeWords guestProgram) seed child) →
-    CoveredNode witness →
     ∃ execution : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed statement))
         execution ∧
-      2 ^ 22 ≤ execution.committedSize ∧ execution.committedSize ≤ 2 ^ 28
+      execution.committedSize ≤ 2 ^ 30
 
 /-- **An honest prover's proof over the deployed Keccak-f[1600]**, the hash Keccak-256, if it
 makes one (`HonestChild`'s, `Statement/LeanVmGuestCompleteness.lean`, written out). -/
@@ -198,19 +197,17 @@ def honestProofWithDeployedKeccak (honestProver : HonestProver) (program : LeanI
 accepts**:
 1. it is rarely refused (`HonestProofRarelyRefused`);
 2. its proof with the deployed Keccak (`honestProofWithDeployedKeccak`), if it makes one, of an
-   execution of the guest program of committed size above `2^21` on a statement's digest under
-   the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it, forms
+   execution of the guest program on a statement's digest under the deployed seed, wherever `verifierRefusingZero` with the deployed Keccak accepts it, forms
    with the statement (its deferred claim shaped) and some claim `fresh` on the bytecode whose
    value is true (`BytecodeClaim.Holds`) a child the guest program accepts (`AcceptableChild`).
 Proved by `LeanVM.Guest.Budget.guest_child_complete`. -/
 def GuestChildComplete : Prop :=
   HonestProofRarelyRefused ∧
   ∀ (statement : NodeStatement) (execution : Execution guestProgram) (ρ : ℕ),
-    2 ^ 21 < execution.committedSize →
     statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →
     let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
     ∀ proof, honestProofWithDeployedKeccak LeanVM.leanVmHonestProver guestProgram input execution ρ
-        (2 ^ 33) =
+        (2 ^ 35) =
       some proof →
     verifierRefusingZero (m := Id) keccakF1600 guestProgram input proof = true →
     ∃ fresh, fresh.Holds (bytecodeWords guestProgram) ∧

@@ -25,8 +25,5 @@ theorem cw18_2_1 : cplWin 18 2 1 = true := by decide +kernel
 /-- `verify_sub`, window 0, part 0. -/
 theorem cw19_0_0 : cplWin 19 0 0 = true := by decide +kernel
 
-/-- `verify_sub`, window 1, part 0. -/
-theorem cw19_1_0 : cplWin 19 1 0 = true := by decide +kernel
-
 end
 end LeanVM.Guest.B2C.Cplw

@@ -16,14 +16,15 @@ public import Statement.LeanVmGuestCompleteness
 The guest program (`G:N`, lines of `crates/rec_aggregation/guests/lean_ethereum.py` at the pin)
 writes every claim a node makes, its raw signatures' then its children's, into a slot of its
 scheme's region of the coverage table: the declared claims' slots, then duplicate slots
-(G:4209-4215, 4233-4247, 4564-4565, 4569-4570). An honest run takes, for each claim in order, its declared
+(G:4207-4213, 4231-4245, 4563-4564, 4568-4569). An honest run takes, for each claim in order, its declared
 slot if free, else the next duplicate slot (`takeSlot`, `coveragePlan`); the table's slots are
-`planSlots`. `DeployedLimits` states the table's size as the number of claims made
-(`coverageSlots`); `B1/Main/Plan.lean` proves the two equal under it (`planSlots_eq`).
+`planSlots`, under `DeployedLimits` the number of claims made (`coverageSlots`, `B1/Main/Plan.lean`'s
+`planSlots_eq`).
 
 What `DeployedLimits` gives here: each declared claim's count at most its count among the claims
 made (`DeployedLimits.xmssClaimsHeldWithMultiplicity`, `sphincsClaimsHeldWithMultiplicity`, of
-the sub-multiset), and every child's lists below `2^16` (`childClaimListsBelow2Pow16`).
+the sub-multiset). Every child's lists below `2^23` is `GuestLimits.childClaimListsBelow2Pow23`
+(`Limits.lean`), under the coverage table's bound.
 -/
 
 @[expose] public section
@@ -31,6 +32,14 @@ the sub-multiset), and every child's lists below `2^16` (`childClaimListsBelow2P
 namespace LeanVM.Guest
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Node
+
+/-- **The coverage table's slots** (`n_total`, G:4740): one for each raw signature and each entry
+of a child's signature lists, every slot written once (G:4774-4779: the writes G:4799, 4804, 4389,
+4254, counted by `written`, G:4823-4824, 4849-4850). -/
+def coverageSlots (witness : NodeWitness) : ℕ :=
+  witness.xmssSignatures.length + witness.sphincsSignatures.length +
+    (witness.children.map fun child ↦
+      child.statement.claims.xmss.length + child.statement.claims.sphincs.length).sum
 
 namespace Coverage
 
@@ -78,7 +87,7 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
   let (children, slotState) := takeSlotsAll declared slotState children
   ⟨slotState.2, raw, children⟩
 
-/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4505): each
+/-- **The coverage table's slots as an honest run lays them out** (`n_total`, G:4740): each
 region's declared claims and its duplicates, as `coveragePlan` assigns them. Under
 `DeployedLimits`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
 def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=
@@ -111,18 +120,6 @@ theorem sphincsClaimsHeldWithMultiplicity (limits : DeployedLimits statement wit
   intro x
   have h := limits.claimsHeldWithMultiplicity.2.count_le x
   simpa [List.count_append, List.count_flatten, Function.comp_def] using h
-
-/-- Every child's signature lists below `2^16` (G:4277-4278): each at most the coverage table's
-size. -/
-theorem childClaimListsBelow2Pow16 (limits : DeployedLimits statement witness) :
-    ∀ child ∈ witness.children,
-      child.statement.claims.xmss.length < 2 ^ 16 ∧ child.statement.claims.sphincs.length < 2 ^ 16 := by
-  intro child hchild
-  have h1 := List.le_sum_of_mem (List.mem_map_of_mem (f := fun child : Child ↦
-    child.statement.claims.xmss.length + child.statement.claims.sphincs.length) hchild)
-  have h2 := limits.coverageSlotsBelow2Pow16
-  unfold coverageSlots at h2
-  omega
 
 end DeployedLimits
 

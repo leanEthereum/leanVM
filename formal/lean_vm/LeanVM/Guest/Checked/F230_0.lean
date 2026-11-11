@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `block_selector_tab__L1`, window 0. -/
+/-- `index_mle__L33`, window 0. -/
 theorem w230_0 : WinOk 230 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L2`, window 0. -/
+/-- `block_selector_tab__L0`, window 0. -/
 theorem w231_0 : WinOk 231 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L3`, window 0. -/
+/-- `block_selector_tab__L1`, window 0. -/
 theorem w232_0 : WinOk 232 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L4`, window 0. -/
+/-- `block_selector_tab__L2`, window 0. -/
 theorem w233_0 : WinOk 233 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L5`, window 0. -/
+/-- `block_selector_tab__L3`, window 0. -/
 theorem w234_0 : WinOk 234 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L6`, window 0. -/
+/-- `block_selector_tab__L4`, window 0. -/
 theorem w235_0 : WinOk 235 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L7`, window 0. -/
+/-- `block_selector_tab__L5`, window 0. -/
 theorem w236_0 : WinOk 236 0 := winOk_of_C (by decide +kernel)
 
-/-- `block_selector_tab__L8`, window 0. -/
+/-- `block_selector_tab__L6`, window 0. -/
 theorem w237_0 : WinOk 237 0 := winOk_of_C (by decide +kernel)
 
 theorem ok230 : CheckOk 230 := checkOk_one (by decide +kernel) w230_0

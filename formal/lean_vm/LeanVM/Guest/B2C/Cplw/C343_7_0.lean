@@ -16,23 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `open_stacked__L11`, window 7, part 0. -/
+/-- `open_stacked__L7`, window 7, part 0. -/
 theorem cw343_7_0 : cplWin 343 7 0 = true := by decide +kernel
 
-/-- `open_stacked__L11`, window 8, part 0. -/
+/-- `open_stacked__L7`, window 8, part 0. -/
 theorem cw343_8_0 : cplWin 343 8 0 = true := by decide +kernel
 
-/-- `open_stacked__L12`, window 0, part 0. -/
+/-- `open_stacked__L7`, window 9, part 0. -/
+theorem cw343_9_0 : cplWin 343 9 0 = true := by decide +kernel
+
+/-- `open_stacked__L7`, window 10, part 0. -/
+theorem cw343_10_0 : cplWin 343 10 0 = true := by decide +kernel
+
+/-- `open_stacked__L7`, window 11, part 0. -/
+theorem cw343_11_0 : cplWin 343 11 0 = true := by decide +kernel
+
+/-- `open_stacked__L8`, window 0, part 0. -/
 theorem cw344_0_0 : cplWin 344 0 0 = true := by decide +kernel
 
-/-- `open_stacked__L12`, window 1, part 0. -/
+/-- `open_stacked__L8`, window 1, part 0. -/
 theorem cw344_1_0 : cplWin 344 1 0 = true := by decide +kernel
 
-/-- `open_stacked__L12`, window 2, part 0. -/
+/-- `open_stacked__L8`, window 2, part 0. -/
 theorem cw344_2_0 : cplWin 344 2 0 = true := by decide +kernel
-
-/-- `open_stacked__L12`, window 3, part 0. -/
-theorem cw344_3_0 : cplWin 344 3 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

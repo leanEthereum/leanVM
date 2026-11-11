@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L22`, once. -/
+/-- `column_selector__L30`, once. -/
 theorem st305 : shareStatic 305 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L22`, window 0. -/
+/-- `column_selector__L30`, window 0. -/
 theorem w305_0 : shareWin 305 (snapsOf 305) 0 = true := by decide +kernel
 
 theorem ok305 : ShareOk 305 := ⟨st305, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok305 : ShareOk 305 := ⟨st305, fun i hi ↦ by
   exact w305_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L23`, once. -/
+/-- `log2_ceil_in_the_exponent__L0_L34`, once. -/
 theorem st306 : shareStatic 306 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L23`, window 0. -/
+/-- `log2_ceil_in_the_exponent__L0_L34`, window 0. -/
 theorem w306_0 : shareWin 306 (snapsOf 306) 0 = true := by decide +kernel
 
 theorem ok306 : ShareOk 306 := ⟨st306, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok306 : ShareOk 306 := ⟨st306, fun i hi ↦ by
   exact w306_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L24`, once. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, once. -/
 theorem st307 : shareStatic 307 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L24`, window 0. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, window 0. -/
 theorem w307_0 : shareWin 307 (snapsOf 307) 0 = true := by decide +kernel
 
 theorem ok307 : ShareOk 307 := ⟨st307, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok307 : ShareOk 307 := ⟨st307, fun i hi ↦ by
   exact w307_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L25`, once. -/
+/-- `grind_check__L15`, once. -/
 theorem st308 : shareStatic 308 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L25`, window 0. -/
+/-- `grind_check__L15`, window 0. -/
 theorem w308_0 : shareWin 308 (snapsOf 308) 0 = true := by decide +kernel
 
 theorem ok308 : ShareOk 308 := ⟨st308, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok308 : ShareOk 308 := ⟨st308, fun i hi ↦ by
   exact w308_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L26`, once. -/
+/-- `squeeze_point_from__L20`, once. -/
 theorem st309 : shareStatic 309 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L26`, window 0. -/
+/-- `squeeze_point_from__L20`, window 0. -/
 theorem w309_0 : shareWin 309 (snapsOf 309) 0 = true := by decide +kernel
 
 theorem ok309 : ShareOk 309 := ⟨st309, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok309 : ShareOk 309 := ⟨st309, fun i hi ↦ by
   exact w309_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L27`, once. -/
+/-- `squeeze_point_from__L21`, once. -/
 theorem st310 : shareStatic 310 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L27`, window 0. -/
+/-- `squeeze_point_from__L21`, window 0. -/
 theorem w310_0 : shareWin 310 (snapsOf 310) 0 = true := by decide +kernel
 
 theorem ok310 : ShareOk 310 := ⟨st310, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok310 : ShareOk 310 := ⟨st310, fun i hi ↦ by
   exact w310_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L28`, once. -/
+/-- `squeeze_point_from__L22`, once. -/
 theorem st311 : shareStatic 311 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L28`, window 0. -/
+/-- `squeeze_point_from__L22`, window 0. -/
 theorem w311_0 : shareWin 311 (snapsOf 311) 0 = true := by decide +kernel
 
 theorem ok311 : ShareOk 311 := ⟨st311, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok311 : ShareOk 311 := ⟨st311, fun i hi ↦ by
   exact w311_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_message__L1_L1`, once. -/
+/-- `squeeze_point_from__L23`, once. -/
 theorem st312 : shareStatic 312 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_message__L1_L1`, window 0. -/
+/-- `squeeze_point_from__L23`, window 0. -/
 theorem w312_0 : shareWin 312 (snapsOf 312) 0 = true := by decide +kernel
 
 theorem ok312 : ShareOk 312 := ⟨st312, fun i hi ↦ by

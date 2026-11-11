@@ -16,11 +16,11 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L16`, once. -/
+/-- `column_selector__L14`, once. -/
 theorem st289 : shareStatic 289 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L16`, window 0. -/
+/-- `column_selector__L14`, window 0. -/
 theorem w289_0 : shareWin 289 (snapsOf 289) 0 = true := by decide +kernel
 
 theorem ok289 : ShareOk 289 := ⟨st289, fun i hi ↦ by
@@ -29,11 +29,11 @@ theorem ok289 : ShareOk 289 := ⟨st289, fun i hi ↦ by
   exact w289_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L17`, once. -/
+/-- `column_selector__L15`, once. -/
 theorem st290 : shareStatic 290 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L17`, window 0. -/
+/-- `column_selector__L15`, window 0. -/
 theorem w290_0 : shareWin 290 (snapsOf 290) 0 = true := by decide +kernel
 
 theorem ok290 : ShareOk 290 := ⟨st290, fun i hi ↦ by
@@ -42,11 +42,11 @@ theorem ok290 : ShareOk 290 := ⟨st290, fun i hi ↦ by
   exact w290_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L18`, once. -/
+/-- `column_selector__L16`, once. -/
 theorem st291 : shareStatic 291 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L18`, window 0. -/
+/-- `column_selector__L16`, window 0. -/
 theorem w291_0 : shareWin 291 (snapsOf 291) 0 = true := by decide +kernel
 
 theorem ok291 : ShareOk 291 := ⟨st291, fun i hi ↦ by
@@ -55,11 +55,11 @@ theorem ok291 : ShareOk 291 := ⟨st291, fun i hi ↦ by
   exact w291_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L19`, once. -/
+/-- `column_selector__L17`, once. -/
 theorem st292 : shareStatic 292 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L19`, window 0. -/
+/-- `column_selector__L17`, window 0. -/
 theorem w292_0 : shareWin 292 (snapsOf 292) 0 = true := by decide +kernel
 
 theorem ok292 : ShareOk 292 := ⟨st292, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok292 : ShareOk 292 := ⟨st292, fun i hi ↦ by
   exact w292_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L20`, once. -/
+/-- `column_selector__L18`, once. -/
 theorem st293 : shareStatic 293 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L20`, window 0. -/
+/-- `column_selector__L18`, window 0. -/
 theorem w293_0 : shareWin 293 (snapsOf 293) 0 = true := by decide +kernel
 
 theorem ok293 : ShareOk 293 := ⟨st293, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok293 : ShareOk 293 := ⟨st293, fun i hi ↦ by
   exact w293_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L21`, once. -/
+/-- `column_selector__L19`, once. -/
 theorem st294 : shareStatic 294 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L21`, window 0. -/
+/-- `column_selector__L19`, window 0. -/
 theorem w294_0 : shareWin 294 (snapsOf 294) 0 = true := by decide +kernel
 
 theorem ok294 : ShareOk 294 := ⟨st294, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok294 : ShareOk 294 := ⟨st294, fun i hi ↦ by
   exact w294_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L22`, once. -/
+/-- `column_selector__L20`, once. -/
 theorem st295 : shareStatic 295 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L22`, window 0. -/
+/-- `column_selector__L20`, window 0. -/
 theorem w295_0 : shareWin 295 (snapsOf 295) 0 = true := by decide +kernel
 
 theorem ok295 : ShareOk 295 := ⟨st295, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok295 : ShareOk 295 := ⟨st295, fun i hi ↦ by
   exact w295_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L23`, once. -/
+/-- `column_selector__L21`, once. -/
 theorem st296 : shareStatic 296 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `column_selector__L23`, window 0. -/
+/-- `column_selector__L21`, window 0. -/
 theorem w296_0 : shareWin 296 (snapsOf 296) 0 = true := by decide +kernel
 
 theorem ok296 : ShareOk 296 := ⟨st296, fun i hi ↦ by

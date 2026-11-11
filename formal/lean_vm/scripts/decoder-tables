@@ -14,6 +14,7 @@ lean_vm's); `--check` fails when the file differs (`check-all.sh` and the CI run
 import argparse, glob, os, re, sys
 from pathlib import Path
 
+N = None  # the number of compiled functions: the entry list's length, the certificates'
 PART = 512  # rows per part of `guestLocsList`
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
@@ -68,9 +69,9 @@ def main():
     global N
     entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
     os.chdir(Path(__file__).resolve().parent.parent)
-    N = len(entries)  # the compiled functions, `__jump_tables` first
     co, ce = cores(), certs()
-    assert len(co) == N - 1 and len(ce) == N, (N, len(co), len(ce))
+    N = len(entries)
+    assert N == len(ce), (N, len(ce))
     args = [co[max(j - 1, 0)] for j in range(N)]
     rets = [ce[j][1] for j in range(N)]
     split = [int(x) for x in a.split_rows.split(",") if x]

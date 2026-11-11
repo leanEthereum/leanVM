@@ -55,50 +55,48 @@ theorem mainFree_all : ∀ j < coreProgram.length, mainFreeJ j = true := by
     h6.append' (mainFreeRange_36.on) rfl rfl
   have h8 : MainFreeOn 0 187 :=
     h7.append' (mainFreeRange_37.on) rfl rfl
-  have h9 : MainFreeOn 0 332 :=
+  have h9 : MainFreeOn 0 336 :=
     h8.append' (mainFreeRange_187.on) rfl rfl
-  have h10 : MainFreeOn 0 335 :=
-    h9.append' (mainFreeRange_332.on) rfl rfl
-  have h11 : MainFreeOn 0 338 :=
-    h10.append' (mainFreeRange_335.on) rfl rfl
-  have h12 : MainFreeOn 0 342 :=
-    h11.append' (mainFreeRange_338.on) rfl rfl
-  have h13 : MainFreeOn 0 345 :=
-    h12.append' (mainFreeRange_342.on) rfl rfl
-  have h14 : MainFreeOn 0 349 :=
-    h13.append' (mainFreeRange_345.on) rfl rfl
-  have h15 : MainFreeOn 0 352 :=
-    h14.append' (mainFreeRange_349.on) rfl rfl
-  have h16 : MainFreeOn 0 356 :=
-    h15.append' (mainFreeRange_352.on) rfl rfl
-  have h17 : MainFreeOn 0 368 :=
-    h16.append' (mainFreeRange_356.on) rfl rfl
-  have h18 : MainFreeOn 0 467 :=
-    h17.append' (mainFreeRange_368.on) rfl rfl
-  have h19 : MainFreeOn 0 570 :=
-    h18.append' (mainFreeRange_467.on) rfl rfl
-  have h20 : MainFreeOn 0 637 :=
-    h19.append' (mainFreeRange_570.on) rfl rfl
-  have h21 : MainFreeOn 0 702 :=
-    h20.append' (mainFreeRange_637.on) rfl rfl
-  have h22 : MainFreeOn 0 761 :=
-    h21.append' (mainFreeRange_702.on) rfl rfl
-  have h23 : MainFreeOn 0 829 :=
-    h22.append' (mainFreeRange_761.on) rfl rfl
-  have h24 : MainFreeOn 0 932 :=
-    h23.append' (mainFreeRange_829.on) rfl rfl
-  have h25 : MainFreeOn 0 967 :=
-    h24.append' (mainFreeRange_932.on) rfl rfl
-  have h26 : MainFreeOn 0 998 :=
-    h25.append' (mainFreeRange_967.on) rfl rfl
-  have h27 : MainFreeOn 0 1019 :=
-    h26.append' (mainFreeRange_998.on) rfl rfl
-  have h28 : MainFreeOn 0 1031 :=
-    h27.append' (mainFreeRange_1019.on) rfl rfl
-  have h29 : MainFreeOn 0 1035 :=
-    h28.append' (mainFreeRange_1031.on) rfl rfl
+  have h10 : MainFreeOn 0 340 :=
+    h9.append' (mainFreeRange_336.on) rfl rfl
+  have h11 : MainFreeOn 0 343 :=
+    h10.append' (mainFreeRange_340.on) rfl rfl
+  have h12 : MainFreeOn 0 346 :=
+    h11.append' (mainFreeRange_343.on) rfl rfl
+  have h13 : MainFreeOn 0 435 :=
+    h12.append' (mainFreeRange_346.on) rfl rfl
+  have h14 : MainFreeOn 0 585 :=
+    h13.append' (mainFreeRange_435.on) rfl rfl
+  have h15 : MainFreeOn 0 735 :=
+    h14.append' (mainFreeRange_585.on) rfl rfl
+  have h16 : MainFreeOn 0 885 :=
+    h15.append' (mainFreeRange_735.on) rfl rfl
+  have h17 : MainFreeOn 0 1035 :=
+    h16.append' (mainFreeRange_885.on) rfl rfl
+  have h18 : MainFreeOn 0 1114 :=
+    h17.append' (mainFreeRange_1035.on) rfl rfl
+  have h19 : MainFreeOn 0 1181 :=
+    h18.append' (mainFreeRange_1114.on) rfl rfl
+  have h20 : MainFreeOn 0 1251 :=
+    h19.append' (mainFreeRange_1181.on) rfl rfl
+  have h21 : MainFreeOn 0 1309 :=
+    h20.append' (mainFreeRange_1251.on) rfl rfl
+  have h22 : MainFreeOn 0 1380 :=
+    h21.append' (mainFreeRange_1309.on) rfl rfl
+  have h23 : MainFreeOn 0 1434 :=
+    h22.append' (mainFreeRange_1380.on) rfl rfl
+  have h24 : MainFreeOn 0 1487 :=
+    h23.append' (mainFreeRange_1434.on) rfl rfl
+  have h25 : MainFreeOn 0 1525 :=
+    h24.append' (mainFreeRange_1487.on) rfl rfl
+  have h26 : MainFreeOn 0 1561 :=
+    h25.append' (mainFreeRange_1525.on) rfl rfl
+  have h27 : MainFreeOn 0 1591 :=
+    h26.append' (mainFreeRange_1561.on) rfl rfl
+  have h28 : MainFreeOn 0 1601 :=
+    h27.append' (mainFreeRange_1591.on) rfl rfl
   intro j hj
-  exact h29 j (Nat.zero_le _) (by rw [coreProgram_length] at hj; omega)
+  exact h28 j (Nat.zero_le _) (by rw [coreProgram_length] at hj; omega)
 
 /-- **No path of the guest calls `main`.** -/
 theorem coreProgram_callsIn_noMain : CallsIn coreProgram (· ≠ "main") := by

@@ -55,11 +55,11 @@ theorem ok126 : ShareOk 126 := ⟨st126, fun i hi ↦ by
   exact w126_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L0`, once. -/
+/-- `padding_weight__L29`, once. -/
 theorem st127 : shareStatic 127 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L0`, window 0. -/
+/-- `padding_weight__L29`, window 0. -/
 theorem w127_0 : shareWin 127 (snapsOf 127) 0 = true := by decide +kernel
 
 theorem ok127 : ShareOk 127 := ⟨st127, fun i hi ↦ by
@@ -68,11 +68,11 @@ theorem ok127 : ShareOk 127 := ⟨st127, fun i hi ↦ by
   exact w127_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L1`, once. -/
+/-- `padding_weight__L30`, once. -/
 theorem st128 : shareStatic 128 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L1`, window 0. -/
+/-- `padding_weight__L30`, window 0. -/
 theorem w128_0 : shareWin 128 (snapsOf 128) 0 = true := by decide +kernel
 
 theorem ok128 : ShareOk 128 := ⟨st128, fun i hi ↦ by
@@ -81,11 +81,11 @@ theorem ok128 : ShareOk 128 := ⟨st128, fun i hi ↦ by
   exact w128_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L2`, once. -/
+/-- `plus_one_run__L0`, once. -/
 theorem st129 : shareStatic 129 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L2`, window 0. -/
+/-- `plus_one_run__L0`, window 0. -/
 theorem w129_0 : shareWin 129 (snapsOf 129) 0 = true := by decide +kernel
 
 theorem ok129 : ShareOk 129 := ⟨st129, fun i hi ↦ by
@@ -94,11 +94,11 @@ theorem ok129 : ShareOk 129 := ⟨st129, fun i hi ↦ by
   exact w129_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L3`, once. -/
+/-- `plus_one_run__L1`, once. -/
 theorem st130 : shareStatic 130 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L3`, window 0. -/
+/-- `plus_one_run__L1`, window 0. -/
 theorem w130_0 : shareWin 130 (snapsOf 130) 0 = true := by decide +kernel
 
 theorem ok130 : ShareOk 130 := ⟨st130, fun i hi ↦ by
@@ -107,11 +107,11 @@ theorem ok130 : ShareOk 130 := ⟨st130, fun i hi ↦ by
   exact w130_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L4`, once. -/
+/-- `plus_one_run__L2`, once. -/
 theorem st131 : shareStatic 131 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L4`, window 0. -/
+/-- `plus_one_run__L2`, window 0. -/
 theorem w131_0 : shareWin 131 (snapsOf 131) 0 = true := by decide +kernel
 
 theorem ok131 : ShareOk 131 := ⟨st131, fun i hi ↦ by

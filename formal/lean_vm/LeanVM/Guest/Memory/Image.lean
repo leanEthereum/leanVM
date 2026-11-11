@@ -20,8 +20,10 @@ The honest memory is built as the ISA's write-once memory is filled: a list of w
 `image_read`: every write at an address below `2^κ` reads back.
 
 `logMem n` is the log of the memory size the prover commits for `n` allocated words, at least
-`minLogMem`; it is at most `maxLogMem` for `n ≤ 2^32`, and below any `k ≥ minLogMem` with
-`n ≤ 2^k`, which is how a bound on the allocation bounds `Execution.committedSize`.
+`23` (`2^23` words, above the counts the guest checks against the memory, `GuestLimits`); it is
+at most `maxLogMem` for
+`n ≤ 2^30`, and below any `k ≥ 23` with `n ≤ 2^k`, which is how a bound on the allocation bounds
+`Execution.committedSize`.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -96,16 +98,19 @@ theorem Consistent.append {ws' : List Write} (h : Consistent ws) (h' : Consisten
 
 /-! ## The memory size -/
 
-/-- The log of the memory size holding `n` words: `⌈log₂ n⌉`, at least `minLogMem`. -/
-def logMem (n : ℕ) : ℕ := max minLogMem (Nat.clog 2 n)
+/-- The log of the memory size holding `n` words: `⌈log₂ n⌉`, at least `23`. -/
+def logMem (n : ℕ) : ℕ := max 23 (Nat.clog 2 n)
 
 theorem le_two_pow_logMem (n : ℕ) : n ≤ 2 ^ logMem n :=
   (Nat.le_pow_clog (by decide) n).trans (Nat.pow_le_pow_right (by decide) (le_max_right _ _))
 
-theorem minLogMem_le_logMem (n : ℕ) : minLogMem ≤ logMem n := le_max_left _ _
+theorem twentyThree_le_logMem (n : ℕ) : 23 ≤ logMem n := le_max_left _ _
 
-/-- The memory size is the least power of two at least `2^minLogMem` holding the words. -/
-theorem logMem_le_iff {n k : ℕ} : logMem n ≤ k ↔ minLogMem ≤ k ∧ n ≤ 2 ^ k := by
+theorem minLogMem_le_logMem (n : ℕ) : minLogMem ≤ logMem n :=
+  le_trans (by decide) (twentyThree_le_logMem n)
+
+/-- The memory size is the least power of two at least `2^23` holding the words. -/
+theorem logMem_le_iff {n k : ℕ} : logMem n ≤ k ↔ 23 ≤ k ∧ n ≤ 2 ^ k := by
   rw [logMem, max_le_iff, Nat.clog_le_iff_le_pow (by decide)]
 
 theorem logMem_le_maxLogMem {n : ℕ} (h : n ≤ 2 ^ 30) : logMem n ≤ maxLogMem :=

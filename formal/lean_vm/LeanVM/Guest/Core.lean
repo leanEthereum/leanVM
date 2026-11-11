@@ -155,6 +155,9 @@ inductive Atom where
   | frameAddr (p : V) (run : List V)
   /-- A hint. -/
   | hint (h : Hint)
+  /-- `assert_gpow(p)`: a `DEREF` through `p` into the touch cell `t`, which nothing reads: `p` is
+  in `K` and the word at `p` is `t`. -/
+  | touch (t p : V)
   deriving DecidableEq, Inhabited
 
 /-- A statement. -/
@@ -227,6 +230,7 @@ def Atom.Holds (rd : Reader) (σ : Val) : Atom → Prop
       IsInK (σ p) ∧ ∀ (k : Nat) (hk : k < run.length) (w : E),
         rd ((σ p).limb 0 * addressOfIndex k) = some w → w = σ run[k]
   | .hint _ => True
+  | .touch t p => LoadHolds rd (σ p) 0 (σ t)
 
 mutual
 /-- A statement holds, then `next` (the rest of its block) holds; a `ret` hands its words to

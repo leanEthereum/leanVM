@@ -20,752 +20,745 @@ set_option linter.all false
 
 namespace core0
 
-/-- `main`: statements 0 to 624 of the body. -/
+/-- `main`: statements 0 to 633 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.hint (.witness "meta" (.stack [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7]))) ::
-  .atom (.const (.n 8) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 0) (.n 9) (.n 10) (.n 11) (.n 8)) ::
-  .atom (.const (.n 12) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 1) (.n 13) (.n 14) (.n 15) (.n 12)) ::
-  .atom (.const (.n 16) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 2) (.n 17) (.n 18) (.n 19) (.n 16)) ::
-  .atom (.const (.n 20) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 3) (.n 21) (.n 22) (.n 23) (.n 20)) ::
-  .atom (.const (.n 24) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 4) (.n 25) (.n 26) (.n 27) (.n 24)) ::
-  .atom (.const (.n 28) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 5) (.n 29) (.n 30) (.n 31) (.n 28)) ::
-  .atom (.const (.n 32) (word 65536 0)) ::
-  .atom (.rangeCheck (.n 6) (.n 33) (.n 34) (.n 35) (.n 32)) ::
-  .atom (.const (.n 36) (word 2 0)) ::
-  .atom (.rangeCheck (.n 7) (.n 37) (.n 38) (.n 39) (.n 36)) ::
-  .atom (.mul (.n 40) (.n 0) (.n 1)) ::
-  .atom (.mul (.n 41) (.n 3) (.n 4)) ::
-  .atom (.mul (.n 42) (.n 40) (.n 41)) ::
-  .atom (.const (.n 43) (word 9272771591053052074 0)) ::
-  .atom (.rangeCheck (.n 42) (.n 44) (.n 45) (.n 46) (.n 43)) ::
-  .atom (.hint (.witness "fs_seed" (.stack [.n 47, .n 48]))) ::
-  .call "exponent_tables" [] [.n 49] ::
-  .atom (.mul (.n 50) (.n 40) (.n 40)) ::
-  .atom (.mul (.n 51) (.n 50) (.n 50)) ::
-  .atom (.hint (.allocDyn (.n 52) (.n 51))) ::
-  .atom (.mul (.n 53) (.n 41) (.n 41)) ::
-  .atom (.mul (.n 54) (.n 53) (.n 53)) ::
-  .atom (.hint (.allocDyn (.n 55) (.n 54))) ::
-  .call "claim_list_digest" [.n 52, .n 0] [.n 56, .n 57] ::
-  .call "claim_list_digest" [.n 55, .n 3] [.n 58, .n 59] ::
-  .atom (.const (.n 60) (word 1 0)) ::
-  .atom (.add (.n 61) (.n 60) (.n 1)) ::
-  .atom (.const (.n 62) (word 1 0)) ::
-  .callIf (.n 61) "__loop0" [.n 62, .n 1, .n 52, .n 0] ::
-  .atom (.const (.n 63) (word 1 0)) ::
-  .atom (.add (.n 64) (.n 63) (.n 4)) ::
-  .atom (.const (.n 65) (word 1 0)) ::
-  .callIf (.n 64) "__loop1" [.n 65, .n 4, .n 55, .n 3] ::
-  .atom (.hint (.allocDyn (.n 66) (.n 42))) ::
-  .atom (.mul (.n 67) (.n 66) (.n 40)) ::
-  .atom (.hint (.alloc (.n 68) 256)) ::
-  .atom (.const (.n 69) (word 0 0)) ::
-  .atom (.load (.n 69) (.n 68) 0) ::
-  .atom (.const (.n 70) (word 1 0)) ::
-  .atom (.load (.n 70) (.n 68) 1) ::
-  .atom (.const (.n 71) (word 2 0)) ::
-  .atom (.load (.n 71) (.n 68) 2) ::
-  .atom (.const (.n 72) (word 3 0)) ::
-  .atom (.load (.n 72) (.n 68) 3) ::
-  .atom (.const (.n 73) (word 4 0)) ::
-  .atom (.load (.n 73) (.n 68) 4) ::
-  .atom (.const (.n 74) (word 5 0)) ::
-  .atom (.load (.n 74) (.n 68) 5) ::
-  .atom (.const (.n 75) (word 6 0)) ::
-  .atom (.load (.n 75) (.n 68) 6) ::
-  .atom (.const (.n 76) (word 7 0)) ::
-  .atom (.load (.n 76) (.n 68) 7) ::
-  .atom (.const (.n 77) (word 8 0)) ::
-  .atom (.load (.n 77) (.n 68) 8) ::
-  .atom (.const (.n 78) (word 9 0)) ::
-  .atom (.load (.n 78) (.n 68) 9) ::
-  .atom (.const (.n 79) (word 10 0)) ::
-  .atom (.load (.n 79) (.n 68) 10) ::
-  .atom (.const (.n 80) (word 11 0)) ::
-  .atom (.load (.n 80) (.n 68) 11) ::
-  .atom (.const (.n 81) (word 12 0)) ::
-  .atom (.load (.n 81) (.n 68) 12) ::
-  .atom (.const (.n 82) (word 13 0)) ::
-  .atom (.load (.n 82) (.n 68) 13) ::
-  .atom (.const (.n 83) (word 14 0)) ::
-  .atom (.load (.n 83) (.n 68) 14) ::
-  .atom (.const (.n 84) (word 15 0)) ::
-  .atom (.load (.n 84) (.n 68) 15) ::
-  .atom (.const (.n 85) (word 16 0)) ::
-  .atom (.load (.n 85) (.n 68) 16) ::
-  .atom (.const (.n 86) (word 17 0)) ::
-  .atom (.load (.n 86) (.n 68) 17) ::
-  .atom (.const (.n 87) (word 18 0)) ::
-  .atom (.load (.n 87) (.n 68) 18) ::
-  .atom (.const (.n 88) (word 19 0)) ::
-  .atom (.load (.n 88) (.n 68) 19) ::
-  .atom (.const (.n 89) (word 20 0)) ::
-  .atom (.load (.n 89) (.n 68) 20) ::
-  .atom (.const (.n 90) (word 21 0)) ::
-  .atom (.load (.n 90) (.n 68) 21) ::
-  .atom (.const (.n 91) (word 22 0)) ::
-  .atom (.load (.n 91) (.n 68) 22) ::
-  .atom (.const (.n 92) (word 23 0)) ::
-  .atom (.load (.n 92) (.n 68) 23) ::
-  .atom (.const (.n 93) (word 24 0)) ::
-  .atom (.load (.n 93) (.n 68) 24) ::
-  .atom (.const (.n 94) (word 25 0)) ::
-  .atom (.load (.n 94) (.n 68) 25) ::
-  .atom (.const (.n 95) (word 26 0)) ::
-  .atom (.load (.n 95) (.n 68) 26) ::
-  .atom (.const (.n 96) (word 27 0)) ::
-  .atom (.load (.n 96) (.n 68) 27) ::
-  .atom (.const (.n 97) (word 28 0)) ::
-  .atom (.load (.n 97) (.n 68) 28) ::
-  .atom (.const (.n 98) (word 29 0)) ::
-  .atom (.load (.n 98) (.n 68) 29) ::
-  .atom (.const (.n 99) (word 30 0)) ::
-  .atom (.load (.n 99) (.n 68) 30) ::
-  .atom (.const (.n 100) (word 31 0)) ::
-  .atom (.load (.n 100) (.n 68) 31) ::
-  .atom (.const (.n 101) (word 32 0)) ::
-  .atom (.load (.n 101) (.n 68) 32) ::
-  .atom (.const (.n 102) (word 33 0)) ::
-  .atom (.load (.n 102) (.n 68) 33) ::
-  .atom (.const (.n 103) (word 34 0)) ::
-  .atom (.load (.n 103) (.n 68) 34) ::
-  .atom (.const (.n 104) (word 35 0)) ::
-  .atom (.load (.n 104) (.n 68) 35) ::
-  .atom (.const (.n 105) (word 36 0)) ::
-  .atom (.load (.n 105) (.n 68) 36) ::
-  .atom (.const (.n 106) (word 37 0)) ::
-  .atom (.load (.n 106) (.n 68) 37) ::
-  .atom (.const (.n 107) (word 38 0)) ::
-  .atom (.load (.n 107) (.n 68) 38) ::
-  .atom (.const (.n 108) (word 39 0)) ::
-  .atom (.load (.n 108) (.n 68) 39) ::
-  .atom (.const (.n 109) (word 40 0)) ::
-  .atom (.load (.n 109) (.n 68) 40) ::
-  .atom (.const (.n 110) (word 41 0)) ::
-  .atom (.load (.n 110) (.n 68) 41) ::
-  .atom (.const (.n 111) (word 42 0)) ::
-  .atom (.load (.n 111) (.n 68) 42) ::
-  .atom (.const (.n 112) (word 43 0)) ::
-  .atom (.load (.n 112) (.n 68) 43) ::
-  .atom (.const (.n 113) (word 44 0)) ::
-  .atom (.load (.n 113) (.n 68) 44) ::
-  .atom (.const (.n 114) (word 45 0)) ::
-  .atom (.load (.n 114) (.n 68) 45) ::
-  .atom (.const (.n 115) (word 46 0)) ::
-  .atom (.load (.n 115) (.n 68) 46) ::
-  .atom (.const (.n 116) (word 47 0)) ::
-  .atom (.load (.n 116) (.n 68) 47) ::
-  .atom (.const (.n 117) (word 48 0)) ::
-  .atom (.load (.n 117) (.n 68) 48) ::
-  .atom (.const (.n 118) (word 49 0)) ::
-  .atom (.load (.n 118) (.n 68) 49) ::
-  .atom (.const (.n 119) (word 50 0)) ::
-  .atom (.load (.n 119) (.n 68) 50) ::
-  .atom (.const (.n 120) (word 51 0)) ::
-  .atom (.load (.n 120) (.n 68) 51) ::
-  .atom (.const (.n 121) (word 52 0)) ::
-  .atom (.load (.n 121) (.n 68) 52) ::
-  .atom (.const (.n 122) (word 53 0)) ::
-  .atom (.load (.n 122) (.n 68) 53) ::
-  .atom (.const (.n 123) (word 54 0)) ::
-  .atom (.load (.n 123) (.n 68) 54) ::
-  .atom (.const (.n 124) (word 55 0)) ::
-  .atom (.load (.n 124) (.n 68) 55) ::
-  .atom (.const (.n 125) (word 56 0)) ::
-  .atom (.load (.n 125) (.n 68) 56) ::
-  .atom (.const (.n 126) (word 57 0)) ::
-  .atom (.load (.n 126) (.n 68) 57) ::
-  .atom (.const (.n 127) (word 58 0)) ::
-  .atom (.load (.n 127) (.n 68) 58) ::
-  .atom (.const (.n 128) (word 59 0)) ::
-  .atom (.load (.n 128) (.n 68) 59) ::
-  .atom (.const (.n 129) (word 60 0)) ::
-  .atom (.load (.n 129) (.n 68) 60) ::
-  .atom (.const (.n 130) (word 61 0)) ::
-  .atom (.load (.n 130) (.n 68) 61) ::
-  .atom (.const (.n 131) (word 62 0)) ::
-  .atom (.load (.n 131) (.n 68) 62) ::
-  .atom (.const (.n 132) (word 63 0)) ::
-  .atom (.load (.n 132) (.n 68) 63) ::
-  .atom (.const (.n 133) (word 64 0)) ::
-  .atom (.load (.n 133) (.n 68) 64) ::
-  .atom (.const (.n 134) (word 65 0)) ::
-  .atom (.load (.n 134) (.n 68) 65) ::
-  .atom (.const (.n 135) (word 66 0)) ::
-  .atom (.load (.n 135) (.n 68) 66) ::
-  .atom (.const (.n 136) (word 67 0)) ::
-  .atom (.load (.n 136) (.n 68) 67) ::
-  .atom (.const (.n 137) (word 68 0)) ::
-  .atom (.load (.n 137) (.n 68) 68) ::
-  .atom (.const (.n 138) (word 69 0)) ::
-  .atom (.load (.n 138) (.n 68) 69) ::
-  .atom (.const (.n 139) (word 70 0)) ::
-  .atom (.load (.n 139) (.n 68) 70) ::
-  .atom (.const (.n 140) (word 71 0)) ::
-  .atom (.load (.n 140) (.n 68) 71) ::
-  .atom (.const (.n 141) (word 72 0)) ::
-  .atom (.load (.n 141) (.n 68) 72) ::
-  .atom (.const (.n 142) (word 73 0)) ::
-  .atom (.load (.n 142) (.n 68) 73) ::
-  .atom (.const (.n 143) (word 74 0)) ::
-  .atom (.load (.n 143) (.n 68) 74) ::
-  .atom (.const (.n 144) (word 75 0)) ::
-  .atom (.load (.n 144) (.n 68) 75) ::
-  .atom (.const (.n 145) (word 76 0)) ::
-  .atom (.load (.n 145) (.n 68) 76) ::
-  .atom (.const (.n 146) (word 77 0)) ::
-  .atom (.load (.n 146) (.n 68) 77) ::
-  .atom (.const (.n 147) (word 78 0)) ::
-  .atom (.load (.n 147) (.n 68) 78) ::
-  .atom (.const (.n 148) (word 79 0)) ::
-  .atom (.load (.n 148) (.n 68) 79) ::
-  .atom (.const (.n 149) (word 80 0)) ::
-  .atom (.load (.n 149) (.n 68) 80) ::
-  .atom (.const (.n 150) (word 81 0)) ::
-  .atom (.load (.n 150) (.n 68) 81) ::
-  .atom (.const (.n 151) (word 82 0)) ::
-  .atom (.load (.n 151) (.n 68) 82) ::
-  .atom (.const (.n 152) (word 83 0)) ::
-  .atom (.load (.n 152) (.n 68) 83) ::
-  .atom (.const (.n 153) (word 84 0)) ::
-  .atom (.load (.n 153) (.n 68) 84) ::
-  .atom (.const (.n 154) (word 85 0)) ::
-  .atom (.load (.n 154) (.n 68) 85) ::
-  .atom (.const (.n 155) (word 86 0)) ::
-  .atom (.load (.n 155) (.n 68) 86) ::
-  .atom (.const (.n 156) (word 87 0)) ::
-  .atom (.load (.n 156) (.n 68) 87) ::
-  .atom (.const (.n 157) (word 88 0)) ::
-  .atom (.load (.n 157) (.n 68) 88) ::
-  .atom (.const (.n 158) (word 89 0)) ::
-  .atom (.load (.n 158) (.n 68) 89) ::
-  .atom (.const (.n 159) (word 90 0)) ::
-  .atom (.load (.n 159) (.n 68) 90) ::
-  .atom (.const (.n 160) (word 91 0)) ::
-  .atom (.load (.n 160) (.n 68) 91) ::
-  .atom (.const (.n 161) (word 92 0)) ::
-  .atom (.load (.n 161) (.n 68) 92) ::
-  .atom (.const (.n 162) (word 93 0)) ::
-  .atom (.load (.n 162) (.n 68) 93) ::
-  .atom (.const (.n 163) (word 94 0)) ::
-  .atom (.load (.n 163) (.n 68) 94) ::
-  .atom (.const (.n 164) (word 95 0)) ::
-  .atom (.load (.n 164) (.n 68) 95) ::
-  .atom (.const (.n 165) (word 96 0)) ::
-  .atom (.load (.n 165) (.n 68) 96) ::
-  .atom (.const (.n 166) (word 97 0)) ::
-  .atom (.load (.n 166) (.n 68) 97) ::
-  .atom (.const (.n 167) (word 98 0)) ::
-  .atom (.load (.n 167) (.n 68) 98) ::
-  .atom (.const (.n 168) (word 99 0)) ::
-  .atom (.load (.n 168) (.n 68) 99) ::
-  .atom (.const (.n 169) (word 100 0)) ::
-  .atom (.load (.n 169) (.n 68) 100) ::
-  .atom (.const (.n 170) (word 101 0)) ::
-  .atom (.load (.n 170) (.n 68) 101) ::
-  .atom (.const (.n 171) (word 102 0)) ::
-  .atom (.load (.n 171) (.n 68) 102) ::
-  .atom (.const (.n 172) (word 103 0)) ::
-  .atom (.load (.n 172) (.n 68) 103) ::
-  .atom (.const (.n 173) (word 104 0)) ::
-  .atom (.load (.n 173) (.n 68) 104) ::
-  .atom (.const (.n 174) (word 105 0)) ::
-  .atom (.load (.n 174) (.n 68) 105) ::
-  .atom (.const (.n 175) (word 106 0)) ::
-  .atom (.load (.n 175) (.n 68) 106) ::
-  .atom (.const (.n 176) (word 107 0)) ::
-  .atom (.load (.n 176) (.n 68) 107) ::
-  .atom (.const (.n 177) (word 108 0)) ::
-  .atom (.load (.n 177) (.n 68) 108) ::
-  .atom (.const (.n 178) (word 109 0)) ::
-  .atom (.load (.n 178) (.n 68) 109) ::
-  .atom (.const (.n 179) (word 110 0)) ::
-  .atom (.load (.n 179) (.n 68) 110) ::
-  .atom (.const (.n 180) (word 111 0)) ::
-  .atom (.load (.n 180) (.n 68) 111) ::
-  .atom (.const (.n 181) (word 112 0)) ::
-  .atom (.load (.n 181) (.n 68) 112) ::
-  .atom (.const (.n 182) (word 113 0)) ::
-  .atom (.load (.n 182) (.n 68) 113) ::
-  .atom (.const (.n 183) (word 114 0)) ::
-  .atom (.load (.n 183) (.n 68) 114) ::
-  .atom (.const (.n 184) (word 115 0)) ::
-  .atom (.load (.n 184) (.n 68) 115) ::
-  .atom (.const (.n 185) (word 116 0)) ::
-  .atom (.load (.n 185) (.n 68) 116) ::
-  .atom (.const (.n 186) (word 117 0)) ::
-  .atom (.load (.n 186) (.n 68) 117) ::
-  .atom (.const (.n 187) (word 118 0)) ::
-  .atom (.load (.n 187) (.n 68) 118) ::
-  .atom (.const (.n 188) (word 119 0)) ::
-  .atom (.load (.n 188) (.n 68) 119) ::
-  .atom (.const (.n 189) (word 120 0)) ::
-  .atom (.load (.n 189) (.n 68) 120) ::
-  .atom (.const (.n 190) (word 121 0)) ::
-  .atom (.load (.n 190) (.n 68) 121) ::
-  .atom (.const (.n 191) (word 122 0)) ::
-  .atom (.load (.n 191) (.n 68) 122) ::
-  .atom (.const (.n 192) (word 123 0)) ::
-  .atom (.load (.n 192) (.n 68) 123) ::
-  .atom (.const (.n 193) (word 124 0)) ::
-  .atom (.load (.n 193) (.n 68) 124) ::
-  .atom (.const (.n 194) (word 125 0)) ::
-  .atom (.load (.n 194) (.n 68) 125) ::
-  .atom (.const (.n 195) (word 126 0)) ::
-  .atom (.load (.n 195) (.n 68) 126) ::
-  .atom (.const (.n 196) (word 127 0)) ::
-  .atom (.load (.n 196) (.n 68) 127) ::
-  .atom (.const (.n 197) (word 128 0)) ::
-  .atom (.load (.n 197) (.n 68) 128) ::
-  .atom (.const (.n 198) (word 129 0)) ::
-  .atom (.load (.n 198) (.n 68) 129) ::
-  .atom (.const (.n 199) (word 130 0)) ::
-  .atom (.load (.n 199) (.n 68) 130) ::
-  .atom (.const (.n 200) (word 131 0)) ::
-  .atom (.load (.n 200) (.n 68) 131) ::
-  .atom (.const (.n 201) (word 132 0)) ::
-  .atom (.load (.n 201) (.n 68) 132) ::
-  .atom (.const (.n 202) (word 133 0)) ::
-  .atom (.load (.n 202) (.n 68) 133) ::
-  .atom (.const (.n 203) (word 134 0)) ::
-  .atom (.load (.n 203) (.n 68) 134) ::
-  .atom (.const (.n 204) (word 135 0)) ::
-  .atom (.load (.n 204) (.n 68) 135) ::
-  .atom (.const (.n 205) (word 136 0)) ::
-  .atom (.load (.n 205) (.n 68) 136) ::
-  .atom (.const (.n 206) (word 137 0)) ::
-  .atom (.load (.n 206) (.n 68) 137) ::
-  .atom (.const (.n 207) (word 138 0)) ::
-  .atom (.load (.n 207) (.n 68) 138) ::
-  .atom (.const (.n 208) (word 139 0)) ::
-  .atom (.load (.n 208) (.n 68) 139) ::
-  .atom (.const (.n 209) (word 140 0)) ::
-  .atom (.load (.n 209) (.n 68) 140) ::
-  .atom (.const (.n 210) (word 141 0)) ::
-  .atom (.load (.n 210) (.n 68) 141) ::
-  .atom (.const (.n 211) (word 142 0)) ::
-  .atom (.load (.n 211) (.n 68) 142) ::
-  .atom (.const (.n 212) (word 143 0)) ::
-  .atom (.load (.n 212) (.n 68) 143) ::
-  .atom (.const (.n 213) (word 144 0)) ::
-  .atom (.load (.n 213) (.n 68) 144) ::
-  .atom (.const (.n 214) (word 145 0)) ::
-  .atom (.load (.n 214) (.n 68) 145) ::
-  .atom (.const (.n 215) (word 146 0)) ::
-  .atom (.load (.n 215) (.n 68) 146) ::
-  .atom (.const (.n 216) (word 147 0)) ::
-  .atom (.load (.n 216) (.n 68) 147) ::
-  .atom (.const (.n 217) (word 148 0)) ::
-  .atom (.load (.n 217) (.n 68) 148) ::
-  .atom (.const (.n 218) (word 149 0)) ::
-  .atom (.load (.n 218) (.n 68) 149) ::
-  .atom (.const (.n 219) (word 150 0)) ::
-  .atom (.load (.n 219) (.n 68) 150) ::
-  .atom (.const (.n 220) (word 151 0)) ::
-  .atom (.load (.n 220) (.n 68) 151) ::
-  .atom (.const (.n 221) (word 152 0)) ::
-  .atom (.load (.n 221) (.n 68) 152) ::
-  .atom (.const (.n 222) (word 153 0)) ::
-  .atom (.load (.n 222) (.n 68) 153) ::
-  .atom (.const (.n 223) (word 154 0)) ::
-  .atom (.load (.n 223) (.n 68) 154) ::
-  .atom (.const (.n 224) (word 155 0)) ::
-  .atom (.load (.n 224) (.n 68) 155) ::
-  .atom (.const (.n 225) (word 156 0)) ::
-  .atom (.load (.n 225) (.n 68) 156) ::
-  .atom (.const (.n 226) (word 157 0)) ::
-  .atom (.load (.n 226) (.n 68) 157) ::
-  .atom (.const (.n 227) (word 158 0)) ::
-  .atom (.load (.n 227) (.n 68) 158) ::
-  .atom (.const (.n 228) (word 159 0)) ::
-  .atom (.load (.n 228) (.n 68) 159) ::
-  .atom (.const (.n 229) (word 160 0)) ::
-  .atom (.load (.n 229) (.n 68) 160) ::
-  .atom (.const (.n 230) (word 161 0)) ::
-  .atom (.load (.n 230) (.n 68) 161) ::
-  .atom (.const (.n 231) (word 162 0)) ::
-  .atom (.load (.n 231) (.n 68) 162) ::
-  .atom (.const (.n 232) (word 163 0)) ::
-  .atom (.load (.n 232) (.n 68) 163) ::
-  .atom (.const (.n 233) (word 164 0)) ::
-  .atom (.load (.n 233) (.n 68) 164) ::
-  .atom (.const (.n 234) (word 165 0)) ::
-  .atom (.load (.n 234) (.n 68) 165) ::
-  .atom (.const (.n 235) (word 166 0)) ::
-  .atom (.load (.n 235) (.n 68) 166) ::
-  .atom (.const (.n 236) (word 167 0)) ::
-  .atom (.load (.n 236) (.n 68) 167) ::
-  .atom (.const (.n 237) (word 168 0)) ::
-  .atom (.load (.n 237) (.n 68) 168) ::
-  .atom (.const (.n 238) (word 169 0)) ::
-  .atom (.load (.n 238) (.n 68) 169) ::
-  .atom (.const (.n 239) (word 170 0)) ::
-  .atom (.load (.n 239) (.n 68) 170) ::
-  .atom (.const (.n 240) (word 171 0)) ::
-  .atom (.load (.n 240) (.n 68) 171) ::
-  .atom (.const (.n 241) (word 172 0)) ::
-  .atom (.load (.n 241) (.n 68) 172) ::
-  .atom (.const (.n 242) (word 173 0)) ::
-  .atom (.load (.n 242) (.n 68) 173) ::
-  .atom (.const (.n 243) (word 174 0)) ::
-  .atom (.load (.n 243) (.n 68) 174) ::
-  .atom (.const (.n 244) (word 175 0)) ::
-  .atom (.load (.n 244) (.n 68) 175) ::
-  .atom (.const (.n 245) (word 176 0)) ::
-  .atom (.load (.n 245) (.n 68) 176) ::
-  .atom (.const (.n 246) (word 177 0)) ::
-  .atom (.load (.n 246) (.n 68) 177) ::
-  .atom (.const (.n 247) (word 178 0)) ::
-  .atom (.load (.n 247) (.n 68) 178) ::
-  .atom (.const (.n 248) (word 179 0)) ::
-  .atom (.load (.n 248) (.n 68) 179) ::
-  .atom (.const (.n 249) (word 180 0)) ::
-  .atom (.load (.n 249) (.n 68) 180) ::
-  .atom (.const (.n 250) (word 181 0)) ::
-  .atom (.load (.n 250) (.n 68) 181) ::
-  .atom (.const (.n 251) (word 182 0)) ::
-  .atom (.load (.n 251) (.n 68) 182) ::
-  .atom (.const (.n 252) (word 183 0)) ::
-  .atom (.load (.n 252) (.n 68) 183) ::
-  .atom (.const (.n 253) (word 184 0)) ::
-  .atom (.load (.n 253) (.n 68) 184) ::
-  .atom (.const (.n 254) (word 185 0)) ::
-  .atom (.load (.n 254) (.n 68) 185) ::
-  .atom (.const (.n 255) (word 186 0)) ::
-  .atom (.load (.n 255) (.n 68) 186) ::
-  .atom (.const (.n 256) (word 187 0)) ::
-  .atom (.load (.n 256) (.n 68) 187) ::
-  .atom (.const (.n 257) (word 188 0)) ::
-  .atom (.load (.n 257) (.n 68) 188) ::
-  .atom (.const (.n 258) (word 189 0)) ::
-  .atom (.load (.n 258) (.n 68) 189) ::
-  .atom (.const (.n 259) (word 190 0)) ::
-  .atom (.load (.n 259) (.n 68) 190) ::
-  .atom (.const (.n 260) (word 191 0)) ::
-  .atom (.load (.n 260) (.n 68) 191) ::
-  .atom (.const (.n 261) (word 192 0)) ::
-  .atom (.load (.n 261) (.n 68) 192) ::
-  .atom (.const (.n 262) (word 193 0)) ::
-  .atom (.load (.n 262) (.n 68) 193) ::
-  .atom (.const (.n 263) (word 194 0)) ::
-  .atom (.load (.n 263) (.n 68) 194) ::
-  .atom (.const (.n 264) (word 195 0)) ::
-  .atom (.load (.n 264) (.n 68) 195) ::
-  .atom (.const (.n 265) (word 196 0)) ::
-  .atom (.load (.n 265) (.n 68) 196) ::
-  .atom (.const (.n 266) (word 197 0)) ::
-  .atom (.load (.n 266) (.n 68) 197) ::
-  .atom (.const (.n 267) (word 198 0)) ::
-  .atom (.load (.n 267) (.n 68) 198) ::
-  .atom (.const (.n 268) (word 199 0)) ::
-  .atom (.load (.n 268) (.n 68) 199) ::
-  .atom (.const (.n 269) (word 200 0)) ::
-  .atom (.load (.n 269) (.n 68) 200) ::
-  .atom (.const (.n 270) (word 201 0)) ::
-  .atom (.load (.n 270) (.n 68) 201) ::
-  .atom (.const (.n 271) (word 202 0)) ::
-  .atom (.load (.n 271) (.n 68) 202) ::
-  .atom (.const (.n 272) (word 203 0)) ::
-  .atom (.load (.n 272) (.n 68) 203) ::
-  .atom (.const (.n 273) (word 204 0)) ::
-  .atom (.load (.n 273) (.n 68) 204) ::
-  .atom (.const (.n 274) (word 205 0)) ::
-  .atom (.load (.n 274) (.n 68) 205) ::
-  .atom (.const (.n 275) (word 206 0)) ::
-  .atom (.load (.n 275) (.n 68) 206) ::
-  .atom (.const (.n 276) (word 207 0)) ::
-  .atom (.load (.n 276) (.n 68) 207) ::
-  .atom (.const (.n 277) (word 208 0)) ::
-  .atom (.load (.n 277) (.n 68) 208) ::
-  .atom (.const (.n 278) (word 209 0)) ::
-  .atom (.load (.n 278) (.n 68) 209) ::
-  .atom (.const (.n 279) (word 210 0)) ::
-  .atom (.load (.n 279) (.n 68) 210) ::
-  .atom (.const (.n 280) (word 211 0)) ::
-  .atom (.load (.n 280) (.n 68) 211) ::
-  .atom (.const (.n 281) (word 212 0)) ::
-  .atom (.load (.n 281) (.n 68) 212) ::
-  .atom (.const (.n 282) (word 213 0)) ::
-  .atom (.load (.n 282) (.n 68) 213) ::
-  .atom (.const (.n 283) (word 214 0)) ::
-  .atom (.load (.n 283) (.n 68) 214) ::
-  .atom (.const (.n 284) (word 215 0)) ::
-  .atom (.load (.n 284) (.n 68) 215) ::
-  .atom (.const (.n 285) (word 216 0)) ::
-  .atom (.load (.n 285) (.n 68) 216) ::
-  .atom (.const (.n 286) (word 217 0)) ::
-  .atom (.load (.n 286) (.n 68) 217) ::
-  .atom (.const (.n 287) (word 218 0)) ::
-  .atom (.load (.n 287) (.n 68) 218) ::
-  .atom (.const (.n 288) (word 219 0)) ::
-  .atom (.load (.n 288) (.n 68) 219) ::
-  .atom (.const (.n 289) (word 220 0)) ::
-  .atom (.load (.n 289) (.n 68) 220) ::
-  .atom (.const (.n 290) (word 221 0)) ::
-  .atom (.load (.n 290) (.n 68) 221) ::
-  .atom (.const (.n 291) (word 222 0)) ::
-  .atom (.load (.n 291) (.n 68) 222) ::
-  .atom (.const (.n 292) (word 223 0)) ::
-  .atom (.load (.n 292) (.n 68) 223) ::
-  .atom (.const (.n 293) (word 224 0)) ::
-  .atom (.load (.n 293) (.n 68) 224) ::
-  .atom (.const (.n 294) (word 225 0)) ::
-  .atom (.load (.n 294) (.n 68) 225) ::
-  .atom (.const (.n 295) (word 226 0)) ::
-  .atom (.load (.n 295) (.n 68) 226) ::
-  .atom (.const (.n 296) (word 227 0)) ::
-  .atom (.load (.n 296) (.n 68) 227) ::
-  .atom (.const (.n 297) (word 228 0)) ::
-  .atom (.load (.n 297) (.n 68) 228) ::
-  .atom (.const (.n 298) (word 229 0)) ::
-  .atom (.load (.n 298) (.n 68) 229) ::
-  .atom (.const (.n 299) (word 230 0)) ::
-  .atom (.load (.n 299) (.n 68) 230) ::
-  .atom (.const (.n 300) (word 231 0)) ::
-  .atom (.load (.n 300) (.n 68) 231) ::
-  .atom (.const (.n 301) (word 232 0)) ::
-  .atom (.load (.n 301) (.n 68) 232) ::
-  .atom (.const (.n 302) (word 233 0)) ::
-  .atom (.load (.n 302) (.n 68) 233) ::
-  .atom (.const (.n 303) (word 234 0)) ::
-  .atom (.load (.n 303) (.n 68) 234) ::
-  .atom (.const (.n 304) (word 235 0)) ::
-  .atom (.load (.n 304) (.n 68) 235) ::
-  .atom (.const (.n 305) (word 236 0)) ::
-  .atom (.load (.n 305) (.n 68) 236) ::
-  .atom (.const (.n 306) (word 237 0)) ::
-  .atom (.load (.n 306) (.n 68) 237) ::
-  .atom (.const (.n 307) (word 238 0)) ::
-  .atom (.load (.n 307) (.n 68) 238) ::
-  .atom (.const (.n 308) (word 239 0)) ::
-  .atom (.load (.n 308) (.n 68) 239) ::
-  .atom (.const (.n 309) (word 240 0)) ::
-  .atom (.load (.n 309) (.n 68) 240) ::
-  .atom (.const (.n 310) (word 241 0)) ::
-  .atom (.load (.n 310) (.n 68) 241) ::
-  .atom (.const (.n 311) (word 242 0)) ::
-  .atom (.load (.n 311) (.n 68) 242) ::
-  .atom (.const (.n 312) (word 243 0)) ::
-  .atom (.load (.n 312) (.n 68) 243) ::
-  .atom (.const (.n 313) (word 244 0)) ::
-  .atom (.load (.n 313) (.n 68) 244) ::
-  .atom (.const (.n 314) (word 245 0)) ::
-  .atom (.load (.n 314) (.n 68) 245) ::
-  .atom (.const (.n 315) (word 246 0)) ::
-  .atom (.load (.n 315) (.n 68) 246) ::
-  .atom (.const (.n 316) (word 247 0)) ::
-  .atom (.load (.n 316) (.n 68) 247) ::
-  .atom (.const (.n 317) (word 248 0)) ::
-  .atom (.load (.n 317) (.n 68) 248) ::
-  .atom (.const (.n 318) (word 249 0)) ::
-  .atom (.load (.n 318) (.n 68) 249) ::
-  .atom (.const (.n 319) (word 250 0)) ::
-  .atom (.load (.n 319) (.n 68) 250) ::
-  .atom (.const (.n 320) (word 251 0)) ::
-  .atom (.load (.n 320) (.n 68) 251) ::
-  .atom (.const (.n 321) (word 252 0)) ::
-  .atom (.load (.n 321) (.n 68) 252) ::
-  .atom (.const (.n 322) (word 253 0)) ::
-  .atom (.load (.n 322) (.n 68) 253) ::
-  .atom (.const (.n 323) (word 254 0)) ::
-  .atom (.load (.n 323) (.n 68) 254) ::
-  .atom (.const (.n 324) (word 255 0)) ::
-  .atom (.load (.n 324) (.n 68) 255) ::
-  .atom (.const (.n 325) (word 3 0)) ::
-  .atom (.const (.n 326) (word 5 0)) ::
-  .atom (.const (.n 327) (word 6 0)) ::
-  .atom (.const (.n 328) (word 7 0)) ::
-  .atom (.const (.n 329) (word 9 0)) ::
-  .atom (.const (.n 330) (word 10 0)) ::
-  .atom (.const (.n 331) (word 11 0)) ::
-  .atom (.const (.n 332) (word 12 0)) ::
-  .atom (.const (.n 333) (word 13 0)) ::
-  .atom (.const (.n 334) (word 14 0)) ::
-  .atom (.const (.n 335) (word 15 0)) ::
-  .atom (.const (.n 336) (word 17 0)) ::
-  .atom (.const (.n 337) (word 18 0)) ::
-  .atom (.const (.n 338) (word 19 0)) ::
-  .atom (.const (.n 339) (word 20 0)) ::
-  .atom (.const (.n 340) (word 21 0)) ::
-  .atom (.const (.n 341) (word 22 0)) ::
-  .atom (.const (.n 342) (word 23 0)) ::
-  .atom (.const (.n 343) (word 24 0)) ::
-  .atom (.const (.n 344) (word 25 0)) ::
-  .atom (.const (.n 345) (word 26 0)) ::
-  .atom (.const (.n 346) (word 27 0)) ::
-  .atom (.const (.n 347) (word 28 0)) ::
-  .atom (.const (.n 348) (word 29 0)) ::
-  .atom (.const (.n 349) (word 30 0)) ::
-  .atom (.const (.n 350) (word 31 0)) ::
-  .atom (.const (.n 351) (word 33 0)) ::
-  .atom (.const (.n 352) (word 34 0)) ::
-  .atom (.const (.n 353) (word 35 0)) ::
-  .atom (.const (.n 354) (word 36 0)) ::
-  .atom (.const (.n 355) (word 37 0)) ::
-  .atom (.const (.n 356) (word 38 0)) ::
-  .atom (.const (.n 357) (word 39 0)) ::
-  .atom (.const (.n 358) (word 40 0)) ::
-  .atom (.const (.n 359) (word 41 0)) ::
-  .atom (.const (.n 360) (word 42 0)) ::
-  .atom (.const (.n 361) (word 43 0)) ::
-  .atom (.const (.n 362) (word 44 0)) ::
-  .atom (.const (.n 363) (word 45 0)) ::
-  .atom (.const (.n 364) (word 46 0)) ::
-  .atom (.const (.n 365) (word 47 0)) ::
-  .atom (.const (.n 366) (word 48 0)) ::
-  .atom (.const (.n 367) (word 49 0)) ::
-  .atom (.const (.n 368) (word 50 0)) ::
-  .atom (.const (.n 369) (word 51 0)) ::
-  .atom (.const (.n 370) (word 52 0)) ::
-  .atom (.const (.n 371) (word 53 0)) ::
-  .atom (.const (.n 372) (word 54 0)) ::
-  .atom (.const (.n 373) (word 55 0)) ::
-  .atom (.const (.n 374) (word 56 0)) ::
-  .atom (.const (.n 375) (word 57 0)) ::
-  .atom (.const (.n 376) (word 1 0)) ::
-  .atom (.add (.n 377) (.n 376) (.n 2)) ::
-  .atom (.const (.n 378) (word 1 0)) ::
-  .callIf (.n 377) "__loop2" (.n 378 :: .n 2 :: .n 40 :: .n 66 :: .n 52 :: .n 325 :: .n 326 :: .n 327 :: .n 328 :: .n 329 :: .n 330 :: .n 331 :: .n 332 :: .n 333 :: .n 334 :: .n 335 :: .n 336 :: .n 337 :: .n 338 :: .n 339 :: .n 340 :: .n 341 :: .n 342 :: .n 343 :: .n 344 :: .n 345 :: .n 346 :: .n 347 :: .n 348 :: .n 349 :: .n 350 :: .n 351 :: .n 352 :: .n 353 :: .n 354 :: .n 355 :: .n 356 :: .n 357 :: .n 358 :: .n 359 :: .n 360 :: .n 361 :: .n 362 :: .n 363 :: .n 364 :: .n 365 :: .n 366 :: .n 367 :: .n 368 :: .n 369 :: .n 370 :: .n 371 :: .n 372 :: .n 373 :: .n 374 :: .n 375 :: []) ::
-  .atom (.const (.n 379) (word 1 0)) ::
-  .atom (.add (.n 380) (.n 379) (.n 5)) ::
-  .atom (.const (.n 381) (word 1 0)) ::
-  .callIf (.n 380) "__loop3" [.n 381, .n 5, .n 41, .n 67, .n 2, .n 55, .n 68] ::
-  .atom (.const (.n 382) (word 2 0)) ::
-  .atom (.mul (.n 383) (.n 6) (.n 382)) ::
-  .atom (.mul (.n 384) (.n 383) (.n 383)) ::
-  .atom (.hint (.allocDyn (.n 385) (.n 384))) ::
-  .atom (.mul (.n 386) (.n 6) (.n 6)) ::
-  .atom (.mul (.n 387) (.n 385) (.n 386)) ::
-  .atom (.const (.n 388) (word 2 0)) ::
-  .atom (.add (.n 389) (.n 7) (.n 388)) ::
-  .ite (.n 389) [
-    .call "da_verify" [.n 49] [.n 390, .n 391, .n 392],
-    .atom (.const (.n 393) (word 1 0)),
-    .atom (.const (.n 394) (word 0 0)),
-    .atom (.const (.n 395) (word 0 0)),
-    .atom (.const (.n 396) (word 0 0)),
-    .atom (.const (.n 397) (word 0 0)),
-    .atom (.const (.n 398) (word 9223372036854775808 0)),
-    .atom (.keccak [.n 390, .n 391, .n 392, .n 394, .n 393, .n 394, .n 395, .n 396, .n 398, .n 394, .n 395, .n 396, .n 397] [.n 399, .n 400] false false),
-    .atom (.load (.n 399) (.n 387) 0),
-    .atom (.load (.n 400) (.n 387) 1)] [
-    .atom (.const (.n 401) (word 0 0)),
-    .atom (.load (.n 401) (.n 387) 0),
-    .atom (.const (.n 402) (word 0 0)),
-    .atom (.load (.n 402) (.n 387) 1)] ::
-  .atom (.mul (.n 403) (.n 6) (.n 6)) ::
-  .atom (.hint (.allocDyn (.n 404) (.n 403))) ::
+  .atom (.touch (.n 8) (.n 0)) ::
+  .atom (.touch (.n 9) (.n 1)) ::
+  .atom (.touch (.n 10) (.n 2)) ::
+  .atom (.touch (.n 11) (.n 3)) ::
+  .atom (.touch (.n 12) (.n 4)) ::
+  .atom (.touch (.n 13) (.n 5)) ::
+  .atom (.const (.n 14) (word 65536 0)) ::
+  .atom (.rangeCheck (.n 6) (.n 15) (.n 16) (.n 17) (.n 14)) ::
+  .atom (.const (.n 18) (word 2 0)) ::
+  .atom (.rangeCheck (.n 7) (.n 19) (.n 20) (.n 21) (.n 18)) ::
+  .atom (.mul (.n 22) (.n 0) (.n 1)) ::
+  .atom (.mul (.n 23) (.n 3) (.n 4)) ::
+  .atom (.mul (.n 24) (.n 22) (.n 23)) ::
+  .atom (.touch (.n 25) (.n 24)) ::
+  .atom (.hint (.witness "fs_seed" (.stack [.n 26, .n 27]))) ::
+  .call "exponent_tables" [] [.n 28] ::
+  .atom (.mul (.n 29) (.n 22) (.n 22)) ::
+  .atom (.mul (.n 30) (.n 29) (.n 29)) ::
+  .atom (.hint (.allocDyn (.n 31) (.n 30))) ::
+  .atom (.mul (.n 32) (.n 23) (.n 23)) ::
+  .atom (.mul (.n 33) (.n 32) (.n 32)) ::
+  .atom (.hint (.allocDyn (.n 34) (.n 33))) ::
+  .call "claim_list_digest" [.n 31, .n 0] [.n 35, .n 36] ::
+  .call "claim_list_digest" [.n 34, .n 3] [.n 37, .n 38] ::
+  .atom (.const (.n 39) (word 1 0)) ::
+  .atom (.add (.n 40) (.n 39) (.n 1)) ::
+  .atom (.const (.n 41) (word 1 0)) ::
+  .callIf (.n 40) "__loop0" [.n 41, .n 1, .n 31, .n 0] ::
+  .atom (.const (.n 42) (word 1 0)) ::
+  .atom (.add (.n 43) (.n 42) (.n 4)) ::
+  .atom (.const (.n 44) (word 1 0)) ::
+  .callIf (.n 43) "__loop1" [.n 44, .n 4, .n 34, .n 3] ::
+  .atom (.hint (.allocDyn (.n 45) (.n 24))) ::
+  .atom (.mul (.n 46) (.n 45) (.n 22)) ::
+  .atom (.hint (.alloc (.n 47) 256)) ::
+  .atom (.const (.n 48) (word 0 0)) ::
+  .atom (.load (.n 48) (.n 47) 0) ::
+  .atom (.const (.n 49) (word 1 0)) ::
+  .atom (.load (.n 49) (.n 47) 1) ::
+  .atom (.const (.n 50) (word 2 0)) ::
+  .atom (.load (.n 50) (.n 47) 2) ::
+  .atom (.const (.n 51) (word 3 0)) ::
+  .atom (.load (.n 51) (.n 47) 3) ::
+  .atom (.const (.n 52) (word 4 0)) ::
+  .atom (.load (.n 52) (.n 47) 4) ::
+  .atom (.const (.n 53) (word 5 0)) ::
+  .atom (.load (.n 53) (.n 47) 5) ::
+  .atom (.const (.n 54) (word 6 0)) ::
+  .atom (.load (.n 54) (.n 47) 6) ::
+  .atom (.const (.n 55) (word 7 0)) ::
+  .atom (.load (.n 55) (.n 47) 7) ::
+  .atom (.const (.n 56) (word 8 0)) ::
+  .atom (.load (.n 56) (.n 47) 8) ::
+  .atom (.const (.n 57) (word 9 0)) ::
+  .atom (.load (.n 57) (.n 47) 9) ::
+  .atom (.const (.n 58) (word 10 0)) ::
+  .atom (.load (.n 58) (.n 47) 10) ::
+  .atom (.const (.n 59) (word 11 0)) ::
+  .atom (.load (.n 59) (.n 47) 11) ::
+  .atom (.const (.n 60) (word 12 0)) ::
+  .atom (.load (.n 60) (.n 47) 12) ::
+  .atom (.const (.n 61) (word 13 0)) ::
+  .atom (.load (.n 61) (.n 47) 13) ::
+  .atom (.const (.n 62) (word 14 0)) ::
+  .atom (.load (.n 62) (.n 47) 14) ::
+  .atom (.const (.n 63) (word 15 0)) ::
+  .atom (.load (.n 63) (.n 47) 15) ::
+  .atom (.const (.n 64) (word 16 0)) ::
+  .atom (.load (.n 64) (.n 47) 16) ::
+  .atom (.const (.n 65) (word 17 0)) ::
+  .atom (.load (.n 65) (.n 47) 17) ::
+  .atom (.const (.n 66) (word 18 0)) ::
+  .atom (.load (.n 66) (.n 47) 18) ::
+  .atom (.const (.n 67) (word 19 0)) ::
+  .atom (.load (.n 67) (.n 47) 19) ::
+  .atom (.const (.n 68) (word 20 0)) ::
+  .atom (.load (.n 68) (.n 47) 20) ::
+  .atom (.const (.n 69) (word 21 0)) ::
+  .atom (.load (.n 69) (.n 47) 21) ::
+  .atom (.const (.n 70) (word 22 0)) ::
+  .atom (.load (.n 70) (.n 47) 22) ::
+  .atom (.const (.n 71) (word 23 0)) ::
+  .atom (.load (.n 71) (.n 47) 23) ::
+  .atom (.const (.n 72) (word 24 0)) ::
+  .atom (.load (.n 72) (.n 47) 24) ::
+  .atom (.const (.n 73) (word 25 0)) ::
+  .atom (.load (.n 73) (.n 47) 25) ::
+  .atom (.const (.n 74) (word 26 0)) ::
+  .atom (.load (.n 74) (.n 47) 26) ::
+  .atom (.const (.n 75) (word 27 0)) ::
+  .atom (.load (.n 75) (.n 47) 27) ::
+  .atom (.const (.n 76) (word 28 0)) ::
+  .atom (.load (.n 76) (.n 47) 28) ::
+  .atom (.const (.n 77) (word 29 0)) ::
+  .atom (.load (.n 77) (.n 47) 29) ::
+  .atom (.const (.n 78) (word 30 0)) ::
+  .atom (.load (.n 78) (.n 47) 30) ::
+  .atom (.const (.n 79) (word 31 0)) ::
+  .atom (.load (.n 79) (.n 47) 31) ::
+  .atom (.const (.n 80) (word 32 0)) ::
+  .atom (.load (.n 80) (.n 47) 32) ::
+  .atom (.const (.n 81) (word 33 0)) ::
+  .atom (.load (.n 81) (.n 47) 33) ::
+  .atom (.const (.n 82) (word 34 0)) ::
+  .atom (.load (.n 82) (.n 47) 34) ::
+  .atom (.const (.n 83) (word 35 0)) ::
+  .atom (.load (.n 83) (.n 47) 35) ::
+  .atom (.const (.n 84) (word 36 0)) ::
+  .atom (.load (.n 84) (.n 47) 36) ::
+  .atom (.const (.n 85) (word 37 0)) ::
+  .atom (.load (.n 85) (.n 47) 37) ::
+  .atom (.const (.n 86) (word 38 0)) ::
+  .atom (.load (.n 86) (.n 47) 38) ::
+  .atom (.const (.n 87) (word 39 0)) ::
+  .atom (.load (.n 87) (.n 47) 39) ::
+  .atom (.const (.n 88) (word 40 0)) ::
+  .atom (.load (.n 88) (.n 47) 40) ::
+  .atom (.const (.n 89) (word 41 0)) ::
+  .atom (.load (.n 89) (.n 47) 41) ::
+  .atom (.const (.n 90) (word 42 0)) ::
+  .atom (.load (.n 90) (.n 47) 42) ::
+  .atom (.const (.n 91) (word 43 0)) ::
+  .atom (.load (.n 91) (.n 47) 43) ::
+  .atom (.const (.n 92) (word 44 0)) ::
+  .atom (.load (.n 92) (.n 47) 44) ::
+  .atom (.const (.n 93) (word 45 0)) ::
+  .atom (.load (.n 93) (.n 47) 45) ::
+  .atom (.const (.n 94) (word 46 0)) ::
+  .atom (.load (.n 94) (.n 47) 46) ::
+  .atom (.const (.n 95) (word 47 0)) ::
+  .atom (.load (.n 95) (.n 47) 47) ::
+  .atom (.const (.n 96) (word 48 0)) ::
+  .atom (.load (.n 96) (.n 47) 48) ::
+  .atom (.const (.n 97) (word 49 0)) ::
+  .atom (.load (.n 97) (.n 47) 49) ::
+  .atom (.const (.n 98) (word 50 0)) ::
+  .atom (.load (.n 98) (.n 47) 50) ::
+  .atom (.const (.n 99) (word 51 0)) ::
+  .atom (.load (.n 99) (.n 47) 51) ::
+  .atom (.const (.n 100) (word 52 0)) ::
+  .atom (.load (.n 100) (.n 47) 52) ::
+  .atom (.const (.n 101) (word 53 0)) ::
+  .atom (.load (.n 101) (.n 47) 53) ::
+  .atom (.const (.n 102) (word 54 0)) ::
+  .atom (.load (.n 102) (.n 47) 54) ::
+  .atom (.const (.n 103) (word 55 0)) ::
+  .atom (.load (.n 103) (.n 47) 55) ::
+  .atom (.const (.n 104) (word 56 0)) ::
+  .atom (.load (.n 104) (.n 47) 56) ::
+  .atom (.const (.n 105) (word 57 0)) ::
+  .atom (.load (.n 105) (.n 47) 57) ::
+  .atom (.const (.n 106) (word 58 0)) ::
+  .atom (.load (.n 106) (.n 47) 58) ::
+  .atom (.const (.n 107) (word 59 0)) ::
+  .atom (.load (.n 107) (.n 47) 59) ::
+  .atom (.const (.n 108) (word 60 0)) ::
+  .atom (.load (.n 108) (.n 47) 60) ::
+  .atom (.const (.n 109) (word 61 0)) ::
+  .atom (.load (.n 109) (.n 47) 61) ::
+  .atom (.const (.n 110) (word 62 0)) ::
+  .atom (.load (.n 110) (.n 47) 62) ::
+  .atom (.const (.n 111) (word 63 0)) ::
+  .atom (.load (.n 111) (.n 47) 63) ::
+  .atom (.const (.n 112) (word 64 0)) ::
+  .atom (.load (.n 112) (.n 47) 64) ::
+  .atom (.const (.n 113) (word 65 0)) ::
+  .atom (.load (.n 113) (.n 47) 65) ::
+  .atom (.const (.n 114) (word 66 0)) ::
+  .atom (.load (.n 114) (.n 47) 66) ::
+  .atom (.const (.n 115) (word 67 0)) ::
+  .atom (.load (.n 115) (.n 47) 67) ::
+  .atom (.const (.n 116) (word 68 0)) ::
+  .atom (.load (.n 116) (.n 47) 68) ::
+  .atom (.const (.n 117) (word 69 0)) ::
+  .atom (.load (.n 117) (.n 47) 69) ::
+  .atom (.const (.n 118) (word 70 0)) ::
+  .atom (.load (.n 118) (.n 47) 70) ::
+  .atom (.const (.n 119) (word 71 0)) ::
+  .atom (.load (.n 119) (.n 47) 71) ::
+  .atom (.const (.n 120) (word 72 0)) ::
+  .atom (.load (.n 120) (.n 47) 72) ::
+  .atom (.const (.n 121) (word 73 0)) ::
+  .atom (.load (.n 121) (.n 47) 73) ::
+  .atom (.const (.n 122) (word 74 0)) ::
+  .atom (.load (.n 122) (.n 47) 74) ::
+  .atom (.const (.n 123) (word 75 0)) ::
+  .atom (.load (.n 123) (.n 47) 75) ::
+  .atom (.const (.n 124) (word 76 0)) ::
+  .atom (.load (.n 124) (.n 47) 76) ::
+  .atom (.const (.n 125) (word 77 0)) ::
+  .atom (.load (.n 125) (.n 47) 77) ::
+  .atom (.const (.n 126) (word 78 0)) ::
+  .atom (.load (.n 126) (.n 47) 78) ::
+  .atom (.const (.n 127) (word 79 0)) ::
+  .atom (.load (.n 127) (.n 47) 79) ::
+  .atom (.const (.n 128) (word 80 0)) ::
+  .atom (.load (.n 128) (.n 47) 80) ::
+  .atom (.const (.n 129) (word 81 0)) ::
+  .atom (.load (.n 129) (.n 47) 81) ::
+  .atom (.const (.n 130) (word 82 0)) ::
+  .atom (.load (.n 130) (.n 47) 82) ::
+  .atom (.const (.n 131) (word 83 0)) ::
+  .atom (.load (.n 131) (.n 47) 83) ::
+  .atom (.const (.n 132) (word 84 0)) ::
+  .atom (.load (.n 132) (.n 47) 84) ::
+  .atom (.const (.n 133) (word 85 0)) ::
+  .atom (.load (.n 133) (.n 47) 85) ::
+  .atom (.const (.n 134) (word 86 0)) ::
+  .atom (.load (.n 134) (.n 47) 86) ::
+  .atom (.const (.n 135) (word 87 0)) ::
+  .atom (.load (.n 135) (.n 47) 87) ::
+  .atom (.const (.n 136) (word 88 0)) ::
+  .atom (.load (.n 136) (.n 47) 88) ::
+  .atom (.const (.n 137) (word 89 0)) ::
+  .atom (.load (.n 137) (.n 47) 89) ::
+  .atom (.const (.n 138) (word 90 0)) ::
+  .atom (.load (.n 138) (.n 47) 90) ::
+  .atom (.const (.n 139) (word 91 0)) ::
+  .atom (.load (.n 139) (.n 47) 91) ::
+  .atom (.const (.n 140) (word 92 0)) ::
+  .atom (.load (.n 140) (.n 47) 92) ::
+  .atom (.const (.n 141) (word 93 0)) ::
+  .atom (.load (.n 141) (.n 47) 93) ::
+  .atom (.const (.n 142) (word 94 0)) ::
+  .atom (.load (.n 142) (.n 47) 94) ::
+  .atom (.const (.n 143) (word 95 0)) ::
+  .atom (.load (.n 143) (.n 47) 95) ::
+  .atom (.const (.n 144) (word 96 0)) ::
+  .atom (.load (.n 144) (.n 47) 96) ::
+  .atom (.const (.n 145) (word 97 0)) ::
+  .atom (.load (.n 145) (.n 47) 97) ::
+  .atom (.const (.n 146) (word 98 0)) ::
+  .atom (.load (.n 146) (.n 47) 98) ::
+  .atom (.const (.n 147) (word 99 0)) ::
+  .atom (.load (.n 147) (.n 47) 99) ::
+  .atom (.const (.n 148) (word 100 0)) ::
+  .atom (.load (.n 148) (.n 47) 100) ::
+  .atom (.const (.n 149) (word 101 0)) ::
+  .atom (.load (.n 149) (.n 47) 101) ::
+  .atom (.const (.n 150) (word 102 0)) ::
+  .atom (.load (.n 150) (.n 47) 102) ::
+  .atom (.const (.n 151) (word 103 0)) ::
+  .atom (.load (.n 151) (.n 47) 103) ::
+  .atom (.const (.n 152) (word 104 0)) ::
+  .atom (.load (.n 152) (.n 47) 104) ::
+  .atom (.const (.n 153) (word 105 0)) ::
+  .atom (.load (.n 153) (.n 47) 105) ::
+  .atom (.const (.n 154) (word 106 0)) ::
+  .atom (.load (.n 154) (.n 47) 106) ::
+  .atom (.const (.n 155) (word 107 0)) ::
+  .atom (.load (.n 155) (.n 47) 107) ::
+  .atom (.const (.n 156) (word 108 0)) ::
+  .atom (.load (.n 156) (.n 47) 108) ::
+  .atom (.const (.n 157) (word 109 0)) ::
+  .atom (.load (.n 157) (.n 47) 109) ::
+  .atom (.const (.n 158) (word 110 0)) ::
+  .atom (.load (.n 158) (.n 47) 110) ::
+  .atom (.const (.n 159) (word 111 0)) ::
+  .atom (.load (.n 159) (.n 47) 111) ::
+  .atom (.const (.n 160) (word 112 0)) ::
+  .atom (.load (.n 160) (.n 47) 112) ::
+  .atom (.const (.n 161) (word 113 0)) ::
+  .atom (.load (.n 161) (.n 47) 113) ::
+  .atom (.const (.n 162) (word 114 0)) ::
+  .atom (.load (.n 162) (.n 47) 114) ::
+  .atom (.const (.n 163) (word 115 0)) ::
+  .atom (.load (.n 163) (.n 47) 115) ::
+  .atom (.const (.n 164) (word 116 0)) ::
+  .atom (.load (.n 164) (.n 47) 116) ::
+  .atom (.const (.n 165) (word 117 0)) ::
+  .atom (.load (.n 165) (.n 47) 117) ::
+  .atom (.const (.n 166) (word 118 0)) ::
+  .atom (.load (.n 166) (.n 47) 118) ::
+  .atom (.const (.n 167) (word 119 0)) ::
+  .atom (.load (.n 167) (.n 47) 119) ::
+  .atom (.const (.n 168) (word 120 0)) ::
+  .atom (.load (.n 168) (.n 47) 120) ::
+  .atom (.const (.n 169) (word 121 0)) ::
+  .atom (.load (.n 169) (.n 47) 121) ::
+  .atom (.const (.n 170) (word 122 0)) ::
+  .atom (.load (.n 170) (.n 47) 122) ::
+  .atom (.const (.n 171) (word 123 0)) ::
+  .atom (.load (.n 171) (.n 47) 123) ::
+  .atom (.const (.n 172) (word 124 0)) ::
+  .atom (.load (.n 172) (.n 47) 124) ::
+  .atom (.const (.n 173) (word 125 0)) ::
+  .atom (.load (.n 173) (.n 47) 125) ::
+  .atom (.const (.n 174) (word 126 0)) ::
+  .atom (.load (.n 174) (.n 47) 126) ::
+  .atom (.const (.n 175) (word 127 0)) ::
+  .atom (.load (.n 175) (.n 47) 127) ::
+  .atom (.const (.n 176) (word 128 0)) ::
+  .atom (.load (.n 176) (.n 47) 128) ::
+  .atom (.const (.n 177) (word 129 0)) ::
+  .atom (.load (.n 177) (.n 47) 129) ::
+  .atom (.const (.n 178) (word 130 0)) ::
+  .atom (.load (.n 178) (.n 47) 130) ::
+  .atom (.const (.n 179) (word 131 0)) ::
+  .atom (.load (.n 179) (.n 47) 131) ::
+  .atom (.const (.n 180) (word 132 0)) ::
+  .atom (.load (.n 180) (.n 47) 132) ::
+  .atom (.const (.n 181) (word 133 0)) ::
+  .atom (.load (.n 181) (.n 47) 133) ::
+  .atom (.const (.n 182) (word 134 0)) ::
+  .atom (.load (.n 182) (.n 47) 134) ::
+  .atom (.const (.n 183) (word 135 0)) ::
+  .atom (.load (.n 183) (.n 47) 135) ::
+  .atom (.const (.n 184) (word 136 0)) ::
+  .atom (.load (.n 184) (.n 47) 136) ::
+  .atom (.const (.n 185) (word 137 0)) ::
+  .atom (.load (.n 185) (.n 47) 137) ::
+  .atom (.const (.n 186) (word 138 0)) ::
+  .atom (.load (.n 186) (.n 47) 138) ::
+  .atom (.const (.n 187) (word 139 0)) ::
+  .atom (.load (.n 187) (.n 47) 139) ::
+  .atom (.const (.n 188) (word 140 0)) ::
+  .atom (.load (.n 188) (.n 47) 140) ::
+  .atom (.const (.n 189) (word 141 0)) ::
+  .atom (.load (.n 189) (.n 47) 141) ::
+  .atom (.const (.n 190) (word 142 0)) ::
+  .atom (.load (.n 190) (.n 47) 142) ::
+  .atom (.const (.n 191) (word 143 0)) ::
+  .atom (.load (.n 191) (.n 47) 143) ::
+  .atom (.const (.n 192) (word 144 0)) ::
+  .atom (.load (.n 192) (.n 47) 144) ::
+  .atom (.const (.n 193) (word 145 0)) ::
+  .atom (.load (.n 193) (.n 47) 145) ::
+  .atom (.const (.n 194) (word 146 0)) ::
+  .atom (.load (.n 194) (.n 47) 146) ::
+  .atom (.const (.n 195) (word 147 0)) ::
+  .atom (.load (.n 195) (.n 47) 147) ::
+  .atom (.const (.n 196) (word 148 0)) ::
+  .atom (.load (.n 196) (.n 47) 148) ::
+  .atom (.const (.n 197) (word 149 0)) ::
+  .atom (.load (.n 197) (.n 47) 149) ::
+  .atom (.const (.n 198) (word 150 0)) ::
+  .atom (.load (.n 198) (.n 47) 150) ::
+  .atom (.const (.n 199) (word 151 0)) ::
+  .atom (.load (.n 199) (.n 47) 151) ::
+  .atom (.const (.n 200) (word 152 0)) ::
+  .atom (.load (.n 200) (.n 47) 152) ::
+  .atom (.const (.n 201) (word 153 0)) ::
+  .atom (.load (.n 201) (.n 47) 153) ::
+  .atom (.const (.n 202) (word 154 0)) ::
+  .atom (.load (.n 202) (.n 47) 154) ::
+  .atom (.const (.n 203) (word 155 0)) ::
+  .atom (.load (.n 203) (.n 47) 155) ::
+  .atom (.const (.n 204) (word 156 0)) ::
+  .atom (.load (.n 204) (.n 47) 156) ::
+  .atom (.const (.n 205) (word 157 0)) ::
+  .atom (.load (.n 205) (.n 47) 157) ::
+  .atom (.const (.n 206) (word 158 0)) ::
+  .atom (.load (.n 206) (.n 47) 158) ::
+  .atom (.const (.n 207) (word 159 0)) ::
+  .atom (.load (.n 207) (.n 47) 159) ::
+  .atom (.const (.n 208) (word 160 0)) ::
+  .atom (.load (.n 208) (.n 47) 160) ::
+  .atom (.const (.n 209) (word 161 0)) ::
+  .atom (.load (.n 209) (.n 47) 161) ::
+  .atom (.const (.n 210) (word 162 0)) ::
+  .atom (.load (.n 210) (.n 47) 162) ::
+  .atom (.const (.n 211) (word 163 0)) ::
+  .atom (.load (.n 211) (.n 47) 163) ::
+  .atom (.const (.n 212) (word 164 0)) ::
+  .atom (.load (.n 212) (.n 47) 164) ::
+  .atom (.const (.n 213) (word 165 0)) ::
+  .atom (.load (.n 213) (.n 47) 165) ::
+  .atom (.const (.n 214) (word 166 0)) ::
+  .atom (.load (.n 214) (.n 47) 166) ::
+  .atom (.const (.n 215) (word 167 0)) ::
+  .atom (.load (.n 215) (.n 47) 167) ::
+  .atom (.const (.n 216) (word 168 0)) ::
+  .atom (.load (.n 216) (.n 47) 168) ::
+  .atom (.const (.n 217) (word 169 0)) ::
+  .atom (.load (.n 217) (.n 47) 169) ::
+  .atom (.const (.n 218) (word 170 0)) ::
+  .atom (.load (.n 218) (.n 47) 170) ::
+  .atom (.const (.n 219) (word 171 0)) ::
+  .atom (.load (.n 219) (.n 47) 171) ::
+  .atom (.const (.n 220) (word 172 0)) ::
+  .atom (.load (.n 220) (.n 47) 172) ::
+  .atom (.const (.n 221) (word 173 0)) ::
+  .atom (.load (.n 221) (.n 47) 173) ::
+  .atom (.const (.n 222) (word 174 0)) ::
+  .atom (.load (.n 222) (.n 47) 174) ::
+  .atom (.const (.n 223) (word 175 0)) ::
+  .atom (.load (.n 223) (.n 47) 175) ::
+  .atom (.const (.n 224) (word 176 0)) ::
+  .atom (.load (.n 224) (.n 47) 176) ::
+  .atom (.const (.n 225) (word 177 0)) ::
+  .atom (.load (.n 225) (.n 47) 177) ::
+  .atom (.const (.n 226) (word 178 0)) ::
+  .atom (.load (.n 226) (.n 47) 178) ::
+  .atom (.const (.n 227) (word 179 0)) ::
+  .atom (.load (.n 227) (.n 47) 179) ::
+  .atom (.const (.n 228) (word 180 0)) ::
+  .atom (.load (.n 228) (.n 47) 180) ::
+  .atom (.const (.n 229) (word 181 0)) ::
+  .atom (.load (.n 229) (.n 47) 181) ::
+  .atom (.const (.n 230) (word 182 0)) ::
+  .atom (.load (.n 230) (.n 47) 182) ::
+  .atom (.const (.n 231) (word 183 0)) ::
+  .atom (.load (.n 231) (.n 47) 183) ::
+  .atom (.const (.n 232) (word 184 0)) ::
+  .atom (.load (.n 232) (.n 47) 184) ::
+  .atom (.const (.n 233) (word 185 0)) ::
+  .atom (.load (.n 233) (.n 47) 185) ::
+  .atom (.const (.n 234) (word 186 0)) ::
+  .atom (.load (.n 234) (.n 47) 186) ::
+  .atom (.const (.n 235) (word 187 0)) ::
+  .atom (.load (.n 235) (.n 47) 187) ::
+  .atom (.const (.n 236) (word 188 0)) ::
+  .atom (.load (.n 236) (.n 47) 188) ::
+  .atom (.const (.n 237) (word 189 0)) ::
+  .atom (.load (.n 237) (.n 47) 189) ::
+  .atom (.const (.n 238) (word 190 0)) ::
+  .atom (.load (.n 238) (.n 47) 190) ::
+  .atom (.const (.n 239) (word 191 0)) ::
+  .atom (.load (.n 239) (.n 47) 191) ::
+  .atom (.const (.n 240) (word 192 0)) ::
+  .atom (.load (.n 240) (.n 47) 192) ::
+  .atom (.const (.n 241) (word 193 0)) ::
+  .atom (.load (.n 241) (.n 47) 193) ::
+  .atom (.const (.n 242) (word 194 0)) ::
+  .atom (.load (.n 242) (.n 47) 194) ::
+  .atom (.const (.n 243) (word 195 0)) ::
+  .atom (.load (.n 243) (.n 47) 195) ::
+  .atom (.const (.n 244) (word 196 0)) ::
+  .atom (.load (.n 244) (.n 47) 196) ::
+  .atom (.const (.n 245) (word 197 0)) ::
+  .atom (.load (.n 245) (.n 47) 197) ::
+  .atom (.const (.n 246) (word 198 0)) ::
+  .atom (.load (.n 246) (.n 47) 198) ::
+  .atom (.const (.n 247) (word 199 0)) ::
+  .atom (.load (.n 247) (.n 47) 199) ::
+  .atom (.const (.n 248) (word 200 0)) ::
+  .atom (.load (.n 248) (.n 47) 200) ::
+  .atom (.const (.n 249) (word 201 0)) ::
+  .atom (.load (.n 249) (.n 47) 201) ::
+  .atom (.const (.n 250) (word 202 0)) ::
+  .atom (.load (.n 250) (.n 47) 202) ::
+  .atom (.const (.n 251) (word 203 0)) ::
+  .atom (.load (.n 251) (.n 47) 203) ::
+  .atom (.const (.n 252) (word 204 0)) ::
+  .atom (.load (.n 252) (.n 47) 204) ::
+  .atom (.const (.n 253) (word 205 0)) ::
+  .atom (.load (.n 253) (.n 47) 205) ::
+  .atom (.const (.n 254) (word 206 0)) ::
+  .atom (.load (.n 254) (.n 47) 206) ::
+  .atom (.const (.n 255) (word 207 0)) ::
+  .atom (.load (.n 255) (.n 47) 207) ::
+  .atom (.const (.n 256) (word 208 0)) ::
+  .atom (.load (.n 256) (.n 47) 208) ::
+  .atom (.const (.n 257) (word 209 0)) ::
+  .atom (.load (.n 257) (.n 47) 209) ::
+  .atom (.const (.n 258) (word 210 0)) ::
+  .atom (.load (.n 258) (.n 47) 210) ::
+  .atom (.const (.n 259) (word 211 0)) ::
+  .atom (.load (.n 259) (.n 47) 211) ::
+  .atom (.const (.n 260) (word 212 0)) ::
+  .atom (.load (.n 260) (.n 47) 212) ::
+  .atom (.const (.n 261) (word 213 0)) ::
+  .atom (.load (.n 261) (.n 47) 213) ::
+  .atom (.const (.n 262) (word 214 0)) ::
+  .atom (.load (.n 262) (.n 47) 214) ::
+  .atom (.const (.n 263) (word 215 0)) ::
+  .atom (.load (.n 263) (.n 47) 215) ::
+  .atom (.const (.n 264) (word 216 0)) ::
+  .atom (.load (.n 264) (.n 47) 216) ::
+  .atom (.const (.n 265) (word 217 0)) ::
+  .atom (.load (.n 265) (.n 47) 217) ::
+  .atom (.const (.n 266) (word 218 0)) ::
+  .atom (.load (.n 266) (.n 47) 218) ::
+  .atom (.const (.n 267) (word 219 0)) ::
+  .atom (.load (.n 267) (.n 47) 219) ::
+  .atom (.const (.n 268) (word 220 0)) ::
+  .atom (.load (.n 268) (.n 47) 220) ::
+  .atom (.const (.n 269) (word 221 0)) ::
+  .atom (.load (.n 269) (.n 47) 221) ::
+  .atom (.const (.n 270) (word 222 0)) ::
+  .atom (.load (.n 270) (.n 47) 222) ::
+  .atom (.const (.n 271) (word 223 0)) ::
+  .atom (.load (.n 271) (.n 47) 223) ::
+  .atom (.const (.n 272) (word 224 0)) ::
+  .atom (.load (.n 272) (.n 47) 224) ::
+  .atom (.const (.n 273) (word 225 0)) ::
+  .atom (.load (.n 273) (.n 47) 225) ::
+  .atom (.const (.n 274) (word 226 0)) ::
+  .atom (.load (.n 274) (.n 47) 226) ::
+  .atom (.const (.n 275) (word 227 0)) ::
+  .atom (.load (.n 275) (.n 47) 227) ::
+  .atom (.const (.n 276) (word 228 0)) ::
+  .atom (.load (.n 276) (.n 47) 228) ::
+  .atom (.const (.n 277) (word 229 0)) ::
+  .atom (.load (.n 277) (.n 47) 229) ::
+  .atom (.const (.n 278) (word 230 0)) ::
+  .atom (.load (.n 278) (.n 47) 230) ::
+  .atom (.const (.n 279) (word 231 0)) ::
+  .atom (.load (.n 279) (.n 47) 231) ::
+  .atom (.const (.n 280) (word 232 0)) ::
+  .atom (.load (.n 280) (.n 47) 232) ::
+  .atom (.const (.n 281) (word 233 0)) ::
+  .atom (.load (.n 281) (.n 47) 233) ::
+  .atom (.const (.n 282) (word 234 0)) ::
+  .atom (.load (.n 282) (.n 47) 234) ::
+  .atom (.const (.n 283) (word 235 0)) ::
+  .atom (.load (.n 283) (.n 47) 235) ::
+  .atom (.const (.n 284) (word 236 0)) ::
+  .atom (.load (.n 284) (.n 47) 236) ::
+  .atom (.const (.n 285) (word 237 0)) ::
+  .atom (.load (.n 285) (.n 47) 237) ::
+  .atom (.const (.n 286) (word 238 0)) ::
+  .atom (.load (.n 286) (.n 47) 238) ::
+  .atom (.const (.n 287) (word 239 0)) ::
+  .atom (.load (.n 287) (.n 47) 239) ::
+  .atom (.const (.n 288) (word 240 0)) ::
+  .atom (.load (.n 288) (.n 47) 240) ::
+  .atom (.const (.n 289) (word 241 0)) ::
+  .atom (.load (.n 289) (.n 47) 241) ::
+  .atom (.const (.n 290) (word 242 0)) ::
+  .atom (.load (.n 290) (.n 47) 242) ::
+  .atom (.const (.n 291) (word 243 0)) ::
+  .atom (.load (.n 291) (.n 47) 243) ::
+  .atom (.const (.n 292) (word 244 0)) ::
+  .atom (.load (.n 292) (.n 47) 244) ::
+  .atom (.const (.n 293) (word 245 0)) ::
+  .atom (.load (.n 293) (.n 47) 245) ::
+  .atom (.const (.n 294) (word 246 0)) ::
+  .atom (.load (.n 294) (.n 47) 246) ::
+  .atom (.const (.n 295) (word 247 0)) ::
+  .atom (.load (.n 295) (.n 47) 247) ::
+  .atom (.const (.n 296) (word 248 0)) ::
+  .atom (.load (.n 296) (.n 47) 248) ::
+  .atom (.const (.n 297) (word 249 0)) ::
+  .atom (.load (.n 297) (.n 47) 249) ::
+  .atom (.const (.n 298) (word 250 0)) ::
+  .atom (.load (.n 298) (.n 47) 250) ::
+  .atom (.const (.n 299) (word 251 0)) ::
+  .atom (.load (.n 299) (.n 47) 251) ::
+  .atom (.const (.n 300) (word 252 0)) ::
+  .atom (.load (.n 300) (.n 47) 252) ::
+  .atom (.const (.n 301) (word 253 0)) ::
+  .atom (.load (.n 301) (.n 47) 253) ::
+  .atom (.const (.n 302) (word 254 0)) ::
+  .atom (.load (.n 302) (.n 47) 254) ::
+  .atom (.const (.n 303) (word 255 0)) ::
+  .atom (.load (.n 303) (.n 47) 255) ::
+  .atom (.const (.n 304) (word 3 0)) ::
+  .atom (.const (.n 305) (word 5 0)) ::
+  .atom (.const (.n 306) (word 6 0)) ::
+  .atom (.const (.n 307) (word 7 0)) ::
+  .atom (.const (.n 308) (word 9 0)) ::
+  .atom (.const (.n 309) (word 10 0)) ::
+  .atom (.const (.n 310) (word 11 0)) ::
+  .atom (.const (.n 311) (word 12 0)) ::
+  .atom (.const (.n 312) (word 13 0)) ::
+  .atom (.const (.n 313) (word 14 0)) ::
+  .atom (.const (.n 314) (word 15 0)) ::
+  .atom (.const (.n 315) (word 17 0)) ::
+  .atom (.const (.n 316) (word 18 0)) ::
+  .atom (.const (.n 317) (word 19 0)) ::
+  .atom (.const (.n 318) (word 20 0)) ::
+  .atom (.const (.n 319) (word 21 0)) ::
+  .atom (.const (.n 320) (word 22 0)) ::
+  .atom (.const (.n 321) (word 23 0)) ::
+  .atom (.const (.n 322) (word 24 0)) ::
+  .atom (.const (.n 323) (word 25 0)) ::
+  .atom (.const (.n 324) (word 26 0)) ::
+  .atom (.const (.n 325) (word 27 0)) ::
+  .atom (.const (.n 326) (word 28 0)) ::
+  .atom (.const (.n 327) (word 29 0)) ::
+  .atom (.const (.n 328) (word 30 0)) ::
+  .atom (.const (.n 329) (word 31 0)) ::
+  .atom (.const (.n 330) (word 33 0)) ::
+  .atom (.const (.n 331) (word 34 0)) ::
+  .atom (.const (.n 332) (word 35 0)) ::
+  .atom (.const (.n 333) (word 36 0)) ::
+  .atom (.const (.n 334) (word 37 0)) ::
+  .atom (.const (.n 335) (word 38 0)) ::
+  .atom (.const (.n 336) (word 39 0)) ::
+  .atom (.const (.n 337) (word 40 0)) ::
+  .atom (.const (.n 338) (word 41 0)) ::
+  .atom (.const (.n 339) (word 42 0)) ::
+  .atom (.const (.n 340) (word 43 0)) ::
+  .atom (.const (.n 341) (word 44 0)) ::
+  .atom (.const (.n 342) (word 45 0)) ::
+  .atom (.const (.n 343) (word 46 0)) ::
+  .atom (.const (.n 344) (word 47 0)) ::
+  .atom (.const (.n 345) (word 48 0)) ::
+  .atom (.const (.n 346) (word 49 0)) ::
+  .atom (.const (.n 347) (word 50 0)) ::
+  .atom (.const (.n 348) (word 51 0)) ::
+  .atom (.const (.n 349) (word 52 0)) ::
+  .atom (.const (.n 350) (word 53 0)) ::
+  .atom (.const (.n 351) (word 54 0)) ::
+  .atom (.const (.n 352) (word 55 0)) ::
+  .atom (.const (.n 353) (word 56 0)) ::
+  .atom (.const (.n 354) (word 57 0)) ::
+  .atom (.const (.n 355) (word 1 0)) ::
+  .atom (.add (.n 356) (.n 355) (.n 2)) ::
+  .atom (.const (.n 357) (word 1 0)) ::
+  .callIf (.n 356) "__loop2" (.n 357 :: .n 2 :: .n 22 :: .n 45 :: .n 31 :: .n 304 :: .n 305 :: .n 306 :: .n 307 :: .n 308 :: .n 309 :: .n 310 :: .n 311 :: .n 312 :: .n 313 :: .n 314 :: .n 315 :: .n 316 :: .n 317 :: .n 318 :: .n 319 :: .n 320 :: .n 321 :: .n 322 :: .n 323 :: .n 324 :: .n 325 :: .n 326 :: .n 327 :: .n 328 :: .n 329 :: .n 330 :: .n 331 :: .n 332 :: .n 333 :: .n 334 :: .n 335 :: .n 336 :: .n 337 :: .n 338 :: .n 339 :: .n 340 :: .n 341 :: .n 342 :: .n 343 :: .n 344 :: .n 345 :: .n 346 :: .n 347 :: .n 348 :: .n 349 :: .n 350 :: .n 351 :: .n 352 :: .n 353 :: .n 354 :: []) ::
+  .atom (.const (.n 358) (word 1 0)) ::
+  .atom (.add (.n 359) (.n 358) (.n 5)) ::
+  .atom (.const (.n 360) (word 1 0)) ::
+  .callIf (.n 359) "__loop3" [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47] ::
+  .atom (.const (.n 361) (word 2 0)) ::
+  .atom (.mul (.n 362) (.n 6) (.n 361)) ::
+  .atom (.mul (.n 363) (.n 362) (.n 362)) ::
+  .atom (.hint (.allocDyn (.n 364) (.n 363))) ::
+  .atom (.mul (.n 365) (.n 6) (.n 6)) ::
+  .atom (.mul (.n 366) (.n 364) (.n 365)) ::
+  .atom (.const (.n 367) (word 2 0)) ::
+  .atom (.add (.n 368) (.n 7) (.n 367)) ::
+  .ite (.n 368) [
+    .call "da_verify" [.n 28] [.n 369, .n 370, .n 371],
+    .atom (.const (.n 372) (word 1 0)),
+    .atom (.const (.n 373) (word 0 0)),
+    .atom (.const (.n 374) (word 0 0)),
+    .atom (.const (.n 375) (word 0 0)),
+    .atom (.const (.n 376) (word 0 0)),
+    .atom (.const (.n 377) (word 9223372036854775808 0)),
+    .atom (.keccak [.n 369, .n 370, .n 371, .n 373, .n 372, .n 373, .n 374, .n 375, .n 377, .n 373, .n 374, .n 375, .n 376] [.n 378, .n 379] false false),
+    .atom (.load (.n 378) (.n 366) 0),
+    .atom (.load (.n 379) (.n 366) 1)] [
+    .atom (.const (.n 380) (word 0 0)),
+    .atom (.load (.n 380) (.n 366) 0),
+    .atom (.const (.n 381) (word 0 0)),
+    .atom (.load (.n 381) (.n 366) 1)] ::
+  .atom (.mul (.n 382) (.n 6) (.n 6)) ::
+  .atom (.hint (.allocDyn (.n 383) (.n 382))) ::
+  .atom (.mul (.n 384) (.n 6) (.n 6)) ::
+  .atom (.mul (.n 385) (.n 384) (.n 6)) ::
+  .atom (.mul (.n 386) (.n 385) (.n 385)) ::
+  .atom (.mul (.n 387) (.n 386) (.n 386)) ::
+  .atom (.mul (.n 388) (.n 387) (.n 387)) ::
+  .atom (.hint (.allocDyn (.n 389) (.n 388))) ::
+  .atom (.mul (.n 390) (.n 6) (.n 6)) ::
+  .atom (.mul (.n 391) (.n 390) (.n 6)) ::
+  .atom (.mul (.n 392) (.n 391) (.n 391)) ::
+  .atom (.mul (.n 393) (.n 392) (.n 392)) ::
+  .atom (.mul (.n 394) (.n 393) (.n 393)) ::
+  .atom (.hint (.allocDyn (.n 395) (.n 394))) ::
+  .atom (.const (.n 396) (word 2 0)) ::
+  .atom (.mul (.n 397) (.n 6) (.n 396)) ::
+  .atom (.hint (.allocDyn (.n 398) (.n 397))) ::
+  .atom (.mul (.n 399) (.n 2) (.n 5)) ::
   [])
 
-/-- `main`: statements 625 to 674 of the body. -/
+/-- `main`: statements 634 to 667 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
-  .atom (.mul (.n 405) (.n 6) (.n 6)) ::
-  .atom (.mul (.n 406) (.n 405) (.n 6)) ::
-  .atom (.mul (.n 407) (.n 406) (.n 406)) ::
-  .atom (.mul (.n 408) (.n 407) (.n 407)) ::
-  .atom (.mul (.n 409) (.n 408) (.n 408)) ::
-  .atom (.hint (.allocDyn (.n 410) (.n 409))) ::
-  .atom (.mul (.n 411) (.n 6) (.n 6)) ::
-  .atom (.mul (.n 412) (.n 411) (.n 6)) ::
-  .atom (.mul (.n 413) (.n 412) (.n 412)) ::
-  .atom (.mul (.n 414) (.n 413) (.n 413)) ::
-  .atom (.mul (.n 415) (.n 414) (.n 414)) ::
-  .atom (.hint (.allocDyn (.n 416) (.n 415))) ::
-  .atom (.const (.n 417) (word 2 0)) ::
-  .atom (.mul (.n 418) (.n 6) (.n 417)) ::
-  .atom (.hint (.allocDyn (.n 419) (.n 418))) ::
-  .atom (.mul (.n 420) (.n 2) (.n 5)) ::
-  .atom (.load (.n 420) (.n 419) 0) ::
-  .atom (.const (.n 421) (word 1 0)) ::
-  .atom (.add (.n 422) (.n 421) (.n 6)) ::
-  .atom (.const (.n 423) (word 1 0)) ::
-  .callIf (.n 422) "__loop4" [.n 423, .n 6, .n 419, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41, .n 416, .n 385, .n 47, .n 48, .n 404, .n 49, .n 410] ::
-  .atom (.mul (.n 424) (.n 419) (.n 6)) ::
-  .atom (.load (.n 425) (.n 424) 0) ::
-  .atom (.assertEq (.n 425) (.n 42)) ::
-  .atom (.hint (.witness "da_pick" (.stack [.n 426]))) ::
-  .atom (.rangeCheck (.n 426) (.n 427) (.n 428) (.n 429) (.n 6)) ::
-  .atom (.add (.n 430) (.n 426) (.n 6)) ::
-  .atom (.const (.n 431) (word 1 0)) ::
-  .atom (.add (.n 432) (.n 7) (.n 431)) ::
-  .atom (.mul (.n 433) (.n 430) (.n 432)) ::
-  .atom (.const (.n 434) (word 0 0)) ::
-  .atom (.assertEq (.n 433) (.n 434)) ::
-  .atom (.mul (.n 435) (.n 426) (.n 426)) ::
-  .atom (.mul (.n 436) (.n 385) (.n 435)) ::
-  .atom (.hint (.alloc (.n 437) 24)) ::
-  .atom (.const (.n 438) (word 1 0)) ::
-  .atom (.add (.n 439) (.n 6) (.n 438)) ::
-  .ite (.n 439) (
-    .atom (.hint (.witness "leaf_defer" (.stack [.n 440]))) ::
+  .atom (.load (.n 399) (.n 398) 0) ::
+  .atom (.const (.n 400) (word 1 0)) ::
+  .atom (.add (.n 401) (.n 400) (.n 6)) ::
+  .atom (.const (.n 402) (word 1 0)) ::
+  .callIf (.n 401) "__loop4" [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395, .n 364, .n 26, .n 27, .n 383, .n 28, .n 389] ::
+  .atom (.mul (.n 403) (.n 398) (.n 6)) ::
+  .atom (.load (.n 404) (.n 403) 0) ::
+  .atom (.assertEq (.n 404) (.n 24)) ::
+  .atom (.hint (.witness "da_pick" (.stack [.n 405]))) ::
+  .atom (.rangeCheck (.n 405) (.n 406) (.n 407) (.n 408) (.n 6)) ::
+  .atom (.add (.n 409) (.n 405) (.n 6)) ::
+  .atom (.const (.n 410) (word 1 0)) ::
+  .atom (.add (.n 411) (.n 7) (.n 410)) ::
+  .atom (.mul (.n 412) (.n 409) (.n 411)) ::
+  .atom (.const (.n 413) (word 0 0)) ::
+  .atom (.assertEq (.n 412) (.n 413)) ::
+  .atom (.mul (.n 414) (.n 405) (.n 405)) ::
+  .atom (.mul (.n 415) (.n 364) (.n 414)) ::
+  .atom (.hint (.alloc (.n 416) 24)) ::
+  .atom (.const (.n 417) (word 1 0)) ::
+  .atom (.add (.n 418) (.n 6) (.n 417)) ::
+  .ite (.n 418) (
+    .atom (.hint (.witness "leaf_defer" (.stack [.n 419]))) ::
+    .atom (.const (.n 420) (word 0 0)) ::
+    .atom (.load (.n 420) (.n 416) 0) ::
+    .atom (.const (.n 421) (word 0 0)) ::
+    .atom (.load (.n 421) (.n 416) 1) ::
+    .atom (.const (.n 422) (word 0 0)) ::
+    .atom (.load (.n 422) (.n 416) 2) ::
+    .atom (.const (.n 423) (word 0 0)) ::
+    .atom (.load (.n 423) (.n 416) 3) ::
+    .atom (.const (.n 424) (word 0 0)) ::
+    .atom (.load (.n 424) (.n 416) 4) ::
+    .atom (.const (.n 425) (word 0 0)) ::
+    .atom (.load (.n 425) (.n 416) 5) ::
+    .atom (.const (.n 426) (word 0 0)) ::
+    .atom (.load (.n 426) (.n 416) 6) ::
+    .atom (.const (.n 427) (word 0 0)) ::
+    .atom (.load (.n 427) (.n 416) 7) ::
+    .atom (.const (.n 428) (word 0 0)) ::
+    .atom (.load (.n 428) (.n 416) 8) ::
+    .atom (.const (.n 429) (word 0 0)) ::
+    .atom (.load (.n 429) (.n 416) 9) ::
+    .atom (.const (.n 430) (word 0 0)) ::
+    .atom (.load (.n 430) (.n 416) 10) ::
+    .atom (.const (.n 431) (word 0 0)) ::
+    .atom (.load (.n 431) (.n 416) 11) ::
+    .atom (.const (.n 432) (word 0 0)) ::
+    .atom (.load (.n 432) (.n 416) 12) ::
+    .atom (.const (.n 433) (word 0 0)) ::
+    .atom (.load (.n 433) (.n 416) 13) ::
+    .atom (.const (.n 434) (word 0 0)) ::
+    .atom (.load (.n 434) (.n 416) 14) ::
+    .atom (.const (.n 435) (word 0 0)) ::
+    .atom (.load (.n 435) (.n 416) 15) ::
+    .atom (.const (.n 436) (word 0 0)) ::
+    .atom (.load (.n 436) (.n 416) 16) ::
+    .atom (.const (.n 437) (word 0 0)) ::
+    .atom (.load (.n 437) (.n 416) 17) ::
+    .atom (.const (.n 438) (word 0 0)) ::
+    .atom (.load (.n 438) (.n 416) 18) ::
+    .atom (.const (.n 439) (word 0 0)) ::
+    .atom (.load (.n 439) (.n 416) 19) ::
+    .atom (.const (.n 440) (word 0 0)) ::
+    .atom (.load (.n 440) (.n 416) 20) ::
     .atom (.const (.n 441) (word 0 0)) ::
-    .atom (.load (.n 441) (.n 437) 0) ::
+    .atom (.load (.n 441) (.n 416) 21) ::
     .atom (.const (.n 442) (word 0 0)) ::
-    .atom (.load (.n 442) (.n 437) 1) ::
-    .atom (.const (.n 443) (word 0 0)) ::
-    .atom (.load (.n 443) (.n 437) 2) ::
-    .atom (.const (.n 444) (word 0 0)) ::
-    .atom (.load (.n 444) (.n 437) 3) ::
-    .atom (.const (.n 445) (word 0 0)) ::
-    .atom (.load (.n 445) (.n 437) 4) ::
-    .atom (.const (.n 446) (word 0 0)) ::
-    .atom (.load (.n 446) (.n 437) 5) ::
-    .atom (.const (.n 447) (word 0 0)) ::
-    .atom (.load (.n 447) (.n 437) 6) ::
-    .atom (.const (.n 448) (word 0 0)) ::
-    .atom (.load (.n 448) (.n 437) 7) ::
-    .atom (.const (.n 449) (word 0 0)) ::
-    .atom (.load (.n 449) (.n 437) 8) ::
-    .atom (.const (.n 450) (word 0 0)) ::
-    .atom (.load (.n 450) (.n 437) 9) ::
-    .atom (.const (.n 451) (word 0 0)) ::
-    .atom (.load (.n 451) (.n 437) 10) ::
-    .atom (.const (.n 452) (word 0 0)) ::
-    .atom (.load (.n 452) (.n 437) 11) ::
-    .atom (.const (.n 453) (word 0 0)) ::
-    .atom (.load (.n 453) (.n 437) 12) ::
-    .atom (.const (.n 454) (word 0 0)) ::
-    .atom (.load (.n 454) (.n 437) 13) ::
-    .atom (.const (.n 455) (word 0 0)) ::
-    .atom (.load (.n 455) (.n 437) 14) ::
-    .atom (.const (.n 456) (word 0 0)) ::
-    .atom (.load (.n 456) (.n 437) 15) ::
-    .atom (.const (.n 457) (word 0 0)) ::
-    .atom (.load (.n 457) (.n 437) 16) ::
-    .atom (.const (.n 458) (word 0 0)) ::
-    .atom (.load (.n 458) (.n 437) 17) ::
-    .atom (.const (.n 459) (word 0 0)) ::
-    .atom (.load (.n 459) (.n 437) 18) ::
-    .atom (.const (.n 460) (word 0 0)) ::
-    .atom (.load (.n 460) (.n 437) 19) ::
-    .atom (.const (.n 461) (word 0 0)) ::
-    .atom (.load (.n 461) (.n 437) 20) ::
-    .atom (.const (.n 462) (word 0 0)) ::
-    .atom (.load (.n 462) (.n 437) 21) ::
-    .atom (.const (.n 463) (word 0 0)) ::
-    .atom (.load (.n 463) (.n 437) 22) ::
-    .atom (.load (.n 440) (.n 437) 23) ::
+    .atom (.load (.n 442) (.n 416) 22) ::
+    .atom (.load (.n 419) (.n 416) 23) ::
     []) [
-    .atom (.const (.n 464) (word 133823759239872512 0)),
-    .atom (.mul (.n 465) (.n 49) (.n 464)),
-    .call "aggregate_claims" [.n 6, .n 404, .n 410, .n 416, .n 437, .n 465] []] ::
-  .atom (.load (.n 466) (.n 436) 0) ::
-  .atom (.load (.n 467) (.n 436) 1) ::
-  .call "statement_digest" [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 466, .n 467, .n 437] [.n 468, .n 469] ::
-  .atom (.const (.n 470) (word 1 0)) ::
-  .atom (.load (.n 471) (.n 470) 0) ::
-  .atom (.assertEq (.n 471) (.n 468)) ::
-  .atom (.const (.n 472) (word 1 0)) ::
-  .atom (.const (.n 473) (word 2 0)) ::
-  .atom (.mul (.n 474) (.n 472) (.n 473)) ::
-  .atom (.load (.n 475) (.n 474) 0) ::
-  .atom (.assertEq (.n 475) (.n 469)) ::
+    .atom (.const (.n 443) (word 133823759239872512 0)),
+    .atom (.mul (.n 444) (.n 28) (.n 443)),
+    .call "aggregate_claims" [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444] []] ::
+  .atom (.load (.n 445) (.n 415) 0) ::
+  .atom (.load (.n 446) (.n 415) 1) ::
+  .call "statement_digest" [.n 26, .n 27, .n 35, .n 36, .n 37, .n 38, .n 445, .n 446, .n 416] [.n 447, .n 448] ::
+  .atom (.const (.n 449) (word 1 0)) ::
+  .atom (.load (.n 450) (.n 449) 0) ::
+  .atom (.assertEq (.n 450) (.n 447)) ::
+  .atom (.const (.n 451) (word 1 0)) ::
+  .atom (.const (.n 452) (word 2 0)) ::
+  .atom (.mul (.n 453) (.n 451) (.n 452)) ::
+  .atom (.load (.n 454) (.n 453) 0) ::
+  .atom (.assertEq (.n 454) (.n 448)) ::
   .ret [] ::
   [])
 
@@ -6859,65 +6852,65 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.mul (.n 575) (.n 574) (.n 550)) ::
   .atom (.mul (.n 576) (.n 575) (.n 550)) ::
   .atom (.mul (.n 577) (.n 576) (.n 550)) ::
-  .atom (.const (.n 578) (word 268435456 0)) ::
+  .atom (.const (.n 578) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 27) (.n 579) (.n 580) (.n 581) (.n 578)) ::
   .atom (.load (.n 582) (.n 11) 0) ::
-  .dispatch (.n 27) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28"] [.n 582, .n 8] [.n 583, .n 584, .n 585] ::
+  .dispatch (.n 27) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28", "padding_weight__L29", "padding_weight__L30"] [.n 582, .n 8] [.n 583, .n 584, .n 585] ::
   .atom (.const (.n 586) (word 1 0)) ::
   .atom (.assertEq (.n 584) (.n 586)) ::
   .atom (.const (.n 587) (word 0 0)) ::
   .atom (.add (.n 588) (.n 585) (.n 587)) ::
   .atom (.hint (.inverse (.n 588) (.n 589))) ::
   .atom (.assertNe (.n 588) (.n 589) (.n 590)) ::
-  .atom (.const (.n 591) (word 268435456 0)) ::
+  .atom (.const (.n 591) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 28) (.n 592) (.n 593) (.n 594) (.n 591)) ::
   .atom (.load (.n 595) (.n 11) 1) ::
   [])
 
 /-- `verify_tables`: statements 576 to 861 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
-  .dispatch (.n 28) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28"] [.n 595, .n 8] [.n 596, .n 597, .n 598] ::
+  .dispatch (.n 28) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28", "padding_weight__L29", "padding_weight__L30"] [.n 595, .n 8] [.n 596, .n 597, .n 598] ::
   .atom (.const (.n 599) (word 1 0)) ::
   .atom (.assertEq (.n 597) (.n 599)) ::
   .atom (.const (.n 600) (word 0 0)) ::
   .atom (.add (.n 601) (.n 598) (.n 600)) ::
   .atom (.hint (.inverse (.n 601) (.n 602))) ::
   .atom (.assertNe (.n 601) (.n 602) (.n 603)) ::
-  .atom (.const (.n 604) (word 268435456 0)) ::
+  .atom (.const (.n 604) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 29) (.n 605) (.n 606) (.n 607) (.n 604)) ::
   .atom (.load (.n 608) (.n 11) 2) ::
-  .dispatch (.n 29) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28"] [.n 608, .n 8] [.n 609, .n 610, .n 611] ::
+  .dispatch (.n 29) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28", "padding_weight__L29", "padding_weight__L30"] [.n 608, .n 8] [.n 609, .n 610, .n 611] ::
   .atom (.const (.n 612) (word 1 0)) ::
   .atom (.assertEq (.n 610) (.n 612)) ::
   .atom (.const (.n 613) (word 0 0)) ::
   .atom (.add (.n 614) (.n 611) (.n 613)) ::
   .atom (.hint (.inverse (.n 614) (.n 615))) ::
   .atom (.assertNe (.n 614) (.n 615) (.n 616)) ::
-  .atom (.const (.n 617) (word 268435456 0)) ::
+  .atom (.const (.n 617) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 30) (.n 618) (.n 619) (.n 620) (.n 617)) ::
   .atom (.load (.n 621) (.n 11) 3) ::
-  .dispatch (.n 30) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28"] [.n 621, .n 8] [.n 622, .n 623, .n 624] ::
+  .dispatch (.n 30) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28", "padding_weight__L29", "padding_weight__L30"] [.n 621, .n 8] [.n 622, .n 623, .n 624] ::
   .atom (.const (.n 625) (word 1 0)) ::
   .atom (.assertEq (.n 623) (.n 625)) ::
   .atom (.const (.n 626) (word 0 0)) ::
   .atom (.add (.n 627) (.n 624) (.n 626)) ::
   .atom (.hint (.inverse (.n 627) (.n 628))) ::
   .atom (.assertNe (.n 627) (.n 628) (.n 629)) ::
-  .atom (.const (.n 630) (word 268435456 0)) ::
+  .atom (.const (.n 630) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 31) (.n 631) (.n 632) (.n 633) (.n 630)) ::
   .atom (.load (.n 634) (.n 11) 4) ::
-  .dispatch (.n 31) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28"] [.n 634, .n 8] [.n 635, .n 636, .n 637] ::
+  .dispatch (.n 31) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28", "padding_weight__L29", "padding_weight__L30"] [.n 634, .n 8] [.n 635, .n 636, .n 637] ::
   .atom (.const (.n 638) (word 1 0)) ::
   .atom (.assertEq (.n 636) (.n 638)) ::
   .atom (.const (.n 639) (word 0 0)) ::
   .atom (.add (.n 640) (.n 637) (.n 639)) ::
   .atom (.hint (.inverse (.n 640) (.n 641))) ::
   .atom (.assertNe (.n 640) (.n 641) (.n 642)) ::
-  .atom (.const (.n 643) (word 268435456 0)) ::
+  .atom (.const (.n 643) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 32) (.n 644) (.n 645) (.n 646) (.n 643)) ::
   .atom (.load (.n 647) (.n 11) 5) ::
-  .dispatch (.n 32) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28"] [.n 647, .n 8] [.n 648, .n 649, .n 650] ::
-  .atom (.const (.n 651) (word 268435456 0)) ::
+  .dispatch (.n 32) ["padding_weight__L0", "padding_weight__L1", "padding_weight__L2", "padding_weight__L3", "padding_weight__L4", "padding_weight__L5", "padding_weight__L6", "padding_weight__L7", "padding_weight__L8", "padding_weight__L9", "padding_weight__L10", "padding_weight__L11", "padding_weight__L12", "padding_weight__L13", "padding_weight__L14", "padding_weight__L15", "padding_weight__L16", "padding_weight__L17", "padding_weight__L18", "padding_weight__L19", "padding_weight__L20", "padding_weight__L21", "padding_weight__L22", "padding_weight__L23", "padding_weight__L24", "padding_weight__L25", "padding_weight__L26", "padding_weight__L27", "padding_weight__L28", "padding_weight__L29", "padding_weight__L30"] [.n 647, .n 8] [.n 648, .n 649, .n 650] ::
+  .atom (.const (.n 651) (word 1073741824 0)) ::
   .atom (.const (.n 652) (word 512 0)) ::
   .atom (.mul (.n 32) (.n 653) (.n 652)) ::
   .atom (.rangeCheck (.n 653) (.n 654) (.n 655) (.n 656) (.n 651)) ::
@@ -16410,7 +16403,7 @@ namespace core16
 
 /-- `selector_tables`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.alloc (.n 2) 448)) ::
+  .atom (.hint (.alloc (.n 2) 512)) ::
   .atom (.load (.n 3) (.n 1) 3) ::
   .atom (.load (.n 4) (.n 0) 3) ::
   .atom (.load (.n 5) (.n 0) 2) ::
@@ -16873,8 +16866,74 @@ noncomputable def body : List Core.Stmt := (
   .atom (.load (.n 252) (.n 2) 445) ::
   .atom (.load (.n 253) (.n 2) 446) ::
   .atom (.load (.n 254) (.n 2) 447) ::
-  .atom (.copy (.n 255) (.n 2)) ::
-  .ret [.n 255] ::
+  .atom (.load (.n 255) (.n 1) 31) ::
+  .atom (.load (.n 256) (.n 0) 31) ::
+  .atom (.load (.n 257) (.n 0) 30) ::
+  .atom (.load (.n 258) (.n 1) 30) ::
+  .atom (.mul (.n 259) (.n 255) (.n 258)) ::
+  .atom (.mul (.n 260) (.n 255) (.n 257)) ::
+  .atom (.mul (.n 261) (.n 256) (.n 258)) ::
+  .atom (.mul (.n 262) (.n 256) (.n 257)) ::
+  .atom (.load (.n 263) (.n 0) 29) ::
+  .atom (.load (.n 264) (.n 1) 29) ::
+  .atom (.mul (.n 265) (.n 259) (.n 264)) ::
+  .atom (.mul (.n 266) (.n 259) (.n 263)) ::
+  .atom (.mul (.n 267) (.n 260) (.n 264)) ::
+  .atom (.mul (.n 268) (.n 260) (.n 263)) ::
+  .atom (.mul (.n 269) (.n 261) (.n 264)) ::
+  .atom (.mul (.n 270) (.n 261) (.n 263)) ::
+  .atom (.mul (.n 271) (.n 262) (.n 264)) ::
+  .atom (.mul (.n 272) (.n 262) (.n 263)) ::
+  .atom (.load (.n 273) (.n 0) 28) ::
+  .atom (.load (.n 274) (.n 1) 28) ::
+  .atom (.mul (.n 275) (.n 265) (.n 274)) ::
+  .atom (.mul (.n 276) (.n 265) (.n 273)) ::
+  .atom (.mul (.n 277) (.n 266) (.n 274)) ::
+  .atom (.mul (.n 278) (.n 266) (.n 273)) ::
+  .atom (.mul (.n 279) (.n 267) (.n 274)) ::
+  .atom (.mul (.n 280) (.n 267) (.n 273)) ::
+  .atom (.mul (.n 281) (.n 268) (.n 274)) ::
+  .atom (.mul (.n 282) (.n 268) (.n 273)) ::
+  .atom (.mul (.n 283) (.n 269) (.n 274)) ::
+  .atom (.mul (.n 284) (.n 269) (.n 273)) ::
+  .atom (.mul (.n 285) (.n 270) (.n 274)) ::
+  .atom (.mul (.n 286) (.n 270) (.n 273)) ::
+  .atom (.mul (.n 287) (.n 271) (.n 274)) ::
+  .atom (.mul (.n 288) (.n 271) (.n 273)) ::
+  .atom (.mul (.n 289) (.n 272) (.n 274)) ::
+  .atom (.mul (.n 290) (.n 272) (.n 273)) ::
+  .atom (.load (.n 255) (.n 2) 448) ::
+  .atom (.load (.n 256) (.n 2) 456) ::
+  .atom (.load (.n 259) (.n 2) 464) ::
+  .atom (.load (.n 260) (.n 2) 468) ::
+  .atom (.load (.n 261) (.n 2) 472) ::
+  .atom (.load (.n 262) (.n 2) 476) ::
+  .atom (.load (.n 265) (.n 2) 480) ::
+  .atom (.load (.n 266) (.n 2) 482) ::
+  .atom (.load (.n 267) (.n 2) 484) ::
+  .atom (.load (.n 268) (.n 2) 486) ::
+  .atom (.load (.n 269) (.n 2) 488) ::
+  .atom (.load (.n 270) (.n 2) 490) ::
+  .atom (.load (.n 271) (.n 2) 492) ::
+  .atom (.load (.n 272) (.n 2) 494) ::
+  .atom (.load (.n 275) (.n 2) 496) ::
+  .atom (.load (.n 276) (.n 2) 497) ::
+  .atom (.load (.n 277) (.n 2) 498) ::
+  .atom (.load (.n 278) (.n 2) 499) ::
+  .atom (.load (.n 279) (.n 2) 500) ::
+  .atom (.load (.n 280) (.n 2) 501) ::
+  .atom (.load (.n 281) (.n 2) 502) ::
+  .atom (.load (.n 282) (.n 2) 503) ::
+  .atom (.load (.n 283) (.n 2) 504) ::
+  .atom (.load (.n 284) (.n 2) 505) ::
+  .atom (.load (.n 285) (.n 2) 506) ::
+  .atom (.load (.n 286) (.n 2) 507) ::
+  .atom (.load (.n 287) (.n 2) 508) ::
+  .atom (.load (.n 288) (.n 2) 509) ::
+  .atom (.load (.n 289) (.n 2) 510) ::
+  .atom (.load (.n 290) (.n 2) 511) ::
+  .atom (.copy (.n 291) (.n 2)) ::
+  .ret [.n 291] ::
   [])
 
 end core16
@@ -16887,7 +16946,7 @@ noncomputable def core16 : Core.Fn where
 
 namespace core17
 
-/-- `check_opening_terminal`: statements 0 to 139 of the body. -/
+/-- `check_opening_terminal`: statements 0 to 135 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.hint (.alloc (.n 20) 35)) ::
   .atom (.const (.n 21) (word 1 0)) ::
@@ -16921,395 +16980,395 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.load (.n 44) (.n 10) 0) ::
   .atom (.const (.n 45) (word 17179869184 0)) ::
   .atom (.mul (.n 46) (.n 0) (.n 45)) ::
-  .dispatch (.n 36) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 44, .n 43, .n 46] [.n 47] ::
+  .dispatch (.n 36) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 44, .n 43, .n 46] [.n 47] ::
   .atom (.load (.n 48) (.n 10) 1) ::
   .atom (.const (.n 49) (word 17179869184 0)) ::
   .atom (.mul (.n 50) (.n 0) (.n 49)) ::
-  .dispatch (.n 36) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 48, .n 43, .n 50] [.n 51] ::
+  .dispatch (.n 36) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 48, .n 43, .n 50] [.n 51] ::
   .atom (.load (.n 52) (.n 10) 2) ::
   .atom (.const (.n 53) (word 17179869184 0)) ::
   .atom (.mul (.n 54) (.n 0) (.n 53)) ::
-  .dispatch (.n 36) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 52, .n 43, .n 54] [.n 55] ::
+  .dispatch (.n 36) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 52, .n 43, .n 54] [.n 55] ::
   .atom (.load (.n 56) (.n 10) 3) ::
   .atom (.const (.n 57) (word 524288 0)) ::
   .atom (.mul (.n 58) (.n 35) (.n 57)) ::
   .atom (.const (.n 59) (word 17179869184 0)) ::
   .atom (.mul (.n 60) (.n 0) (.n 59)) ::
-  .dispatch (.n 58) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 56, .n 43, .n 60] [.n 61] ::
+  .dispatch (.n 58) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 56, .n 43, .n 60] [.n 61] ::
   .atom (.load (.n 62) (.n 10) 4) ::
   .atom (.const (.n 63) (word 64 0)) ::
   .atom (.mul (.n 64) (.n 42) (.n 63)) ::
   .atom (.const (.n 65) (word 17179869184 0)) ::
   .atom (.mul (.n 66) (.n 0) (.n 65)) ::
-  .dispatch (.n 64) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 62, .n 43, .n 66] [.n 67] ::
+  .dispatch (.n 64) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 62, .n 43, .n 66] [.n 67] ::
   .atom (.load (.n 68) (.n 10) 5) ::
   .atom (.const (.n 69) (word 17179869184 0)) ::
   .atom (.mul (.n 70) (.n 0) (.n 69)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 68, .n 43, .n 70] [.n 71] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 68, .n 43, .n 70] [.n 71] ::
   .atom (.load (.n 72) (.n 10) 6) ::
   .atom (.const (.n 73) (word 17179869184 0)) ::
   .atom (.mul (.n 74) (.n 0) (.n 73)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 72, .n 43, .n 74] [.n 75] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 72, .n 43, .n 74] [.n 75] ::
   .atom (.load (.n 76) (.n 10) 7) ::
   .atom (.const (.n 77) (word 17179869184 0)) ::
   .atom (.mul (.n 78) (.n 0) (.n 77)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 76, .n 43, .n 78] [.n 79] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 76, .n 43, .n 78] [.n 79] ::
   .atom (.load (.n 80) (.n 10) 8) ::
   .atom (.const (.n 81) (word 17179869184 0)) ::
   .atom (.mul (.n 82) (.n 0) (.n 81)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 80, .n 43, .n 82] [.n 83] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 80, .n 43, .n 82] [.n 83] ::
   .atom (.load (.n 84) (.n 10) 9) ::
   .atom (.const (.n 85) (word 17179869184 0)) ::
   .atom (.mul (.n 86) (.n 0) (.n 85)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 84, .n 43, .n 86] [.n 87] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 84, .n 43, .n 86] [.n 87] ::
   .atom (.load (.n 88) (.n 10) 10) ::
   .atom (.const (.n 89) (word 17179869184 0)) ::
   .atom (.mul (.n 90) (.n 0) (.n 89)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 88, .n 43, .n 90] [.n 91] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 88, .n 43, .n 90] [.n 91] ::
   .atom (.load (.n 92) (.n 10) 11) ::
   .atom (.const (.n 93) (word 17179869184 0)) ::
   .atom (.mul (.n 94) (.n 0) (.n 93)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 92, .n 43, .n 94] [.n 95] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 92, .n 43, .n 94] [.n 95] ::
   .atom (.load (.n 96) (.n 10) 12) ::
   .atom (.const (.n 97) (word 17179869184 0)) ::
   .atom (.mul (.n 98) (.n 0) (.n 97)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 96, .n 43, .n 98] [.n 99] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 96, .n 43, .n 98] [.n 99] ::
   .atom (.load (.n 100) (.n 10) 13) ::
   .atom (.const (.n 101) (word 17179869184 0)) ::
   .atom (.mul (.n 102) (.n 0) (.n 101)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 100, .n 43, .n 102] [.n 103] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 100, .n 43, .n 102] [.n 103] ::
   .atom (.load (.n 104) (.n 10) 14) ::
   .atom (.const (.n 105) (word 17179869184 0)) ::
   .atom (.mul (.n 106) (.n 0) (.n 105)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 104, .n 43, .n 106] [.n 107] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 104, .n 43, .n 106] [.n 107] ::
   .atom (.load (.n 108) (.n 10) 15) ::
   .atom (.const (.n 109) (word 17179869184 0)) ::
   .atom (.mul (.n 110) (.n 0) (.n 109)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 108, .n 43, .n 110] [.n 111] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 108, .n 43, .n 110] [.n 111] ::
   .atom (.load (.n 112) (.n 10) 16) ::
   .atom (.const (.n 113) (word 17179869184 0)) ::
   .atom (.mul (.n 114) (.n 0) (.n 113)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 112, .n 43, .n 114] [.n 115] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 112, .n 43, .n 114] [.n 115] ::
   .atom (.load (.n 116) (.n 10) 17) ::
   .atom (.const (.n 117) (word 17179869184 0)) ::
   .atom (.mul (.n 118) (.n 0) (.n 117)) ::
-  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 116, .n 43, .n 118] [.n 119] ::
+  .dispatch (.n 37) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 116, .n 43, .n 118] [.n 119] ::
   .atom (.load (.n 120) (.n 10) 18) ::
   .atom (.const (.n 121) (word 17179869184 0)) ::
   .atom (.mul (.n 122) (.n 0) (.n 121)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 120, .n 43, .n 122] [.n 123] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 120, .n 43, .n 122] [.n 123] ::
   .atom (.load (.n 124) (.n 10) 19) ::
   .atom (.const (.n 125) (word 17179869184 0)) ::
   .atom (.mul (.n 126) (.n 0) (.n 125)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 124, .n 43, .n 126] [.n 127] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 124, .n 43, .n 126] [.n 127] ::
   .atom (.load (.n 128) (.n 10) 20) ::
   .atom (.const (.n 129) (word 17179869184 0)) ::
   .atom (.mul (.n 130) (.n 0) (.n 129)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 128, .n 43, .n 130] [.n 131] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 128, .n 43, .n 130] [.n 131] ::
   .atom (.load (.n 132) (.n 10) 21) ::
   .atom (.const (.n 133) (word 17179869184 0)) ::
   .atom (.mul (.n 134) (.n 0) (.n 133)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 132, .n 43, .n 134] [.n 135] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 132, .n 43, .n 134] [.n 135] ::
   .atom (.load (.n 136) (.n 10) 22) ::
   .atom (.const (.n 137) (word 17179869184 0)) ::
   .atom (.mul (.n 138) (.n 0) (.n 137)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 136, .n 43, .n 138] [.n 139] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 136, .n 43, .n 138] [.n 139] ::
   .atom (.load (.n 140) (.n 10) 23) ::
   .atom (.const (.n 141) (word 17179869184 0)) ::
   .atom (.mul (.n 142) (.n 0) (.n 141)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 140, .n 43, .n 142] [.n 143] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 140, .n 43, .n 142] [.n 143] ::
   .atom (.load (.n 144) (.n 10) 24) ::
   .atom (.const (.n 145) (word 17179869184 0)) ::
   .atom (.mul (.n 146) (.n 0) (.n 145)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 144, .n 43, .n 146] [.n 147] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 144, .n 43, .n 146] [.n 147] ::
   .atom (.load (.n 148) (.n 10) 25) ::
   .atom (.const (.n 149) (word 17179869184 0)) ::
   .atom (.mul (.n 150) (.n 0) (.n 149)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 148, .n 43, .n 150] [.n 151] ::
+  [])
+
+/-- `check_opening_terminal`: statements 136 to 239 of the body. -/
+noncomputable def c1 : List Core.Stmt := (
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 148, .n 43, .n 150] [.n 151] ::
   .atom (.load (.n 152) (.n 10) 26) ::
   .atom (.const (.n 153) (word 17179869184 0)) ::
   .atom (.mul (.n 154) (.n 0) (.n 153)) ::
-  [])
-
-/-- `check_opening_terminal`: statements 140 to 251 of the body. -/
-noncomputable def c1 : List Core.Stmt := (
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 152, .n 43, .n 154] [.n 155] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 152, .n 43, .n 154] [.n 155] ::
   .atom (.load (.n 156) (.n 10) 27) ::
   .atom (.const (.n 157) (word 17179869184 0)) ::
   .atom (.mul (.n 158) (.n 0) (.n 157)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 156, .n 43, .n 158] [.n 159] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 156, .n 43, .n 158] [.n 159] ::
   .atom (.load (.n 160) (.n 10) 28) ::
   .atom (.const (.n 161) (word 17179869184 0)) ::
   .atom (.mul (.n 162) (.n 0) (.n 161)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 160, .n 43, .n 162] [.n 163] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 160, .n 43, .n 162] [.n 163] ::
   .atom (.load (.n 164) (.n 10) 29) ::
   .atom (.const (.n 165) (word 17179869184 0)) ::
   .atom (.mul (.n 166) (.n 0) (.n 165)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 164, .n 43, .n 166] [.n 167] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 164, .n 43, .n 166] [.n 167] ::
   .atom (.load (.n 168) (.n 10) 30) ::
   .atom (.const (.n 169) (word 17179869184 0)) ::
   .atom (.mul (.n 170) (.n 0) (.n 169)) ::
-  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 168, .n 43, .n 170] [.n 171] ::
+  .dispatch (.n 38) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 168, .n 43, .n 170] [.n 171] ::
   .atom (.load (.n 172) (.n 10) 31) ::
   .atom (.const (.n 173) (word 17179869184 0)) ::
   .atom (.mul (.n 174) (.n 0) (.n 173)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 172, .n 43, .n 174] [.n 175] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 172, .n 43, .n 174] [.n 175] ::
   .atom (.load (.n 176) (.n 10) 32) ::
   .atom (.const (.n 177) (word 17179869184 0)) ::
   .atom (.mul (.n 178) (.n 0) (.n 177)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 176, .n 43, .n 178] [.n 179] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 176, .n 43, .n 178] [.n 179] ::
   .atom (.load (.n 180) (.n 10) 33) ::
   .atom (.const (.n 181) (word 17179869184 0)) ::
   .atom (.mul (.n 182) (.n 0) (.n 181)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 180, .n 43, .n 182] [.n 183] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 180, .n 43, .n 182] [.n 183] ::
   .atom (.load (.n 184) (.n 10) 34) ::
   .atom (.const (.n 185) (word 17179869184 0)) ::
   .atom (.mul (.n 186) (.n 0) (.n 185)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 184, .n 43, .n 186] [.n 187] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 184, .n 43, .n 186] [.n 187] ::
   .atom (.load (.n 188) (.n 10) 35) ::
   .atom (.const (.n 189) (word 17179869184 0)) ::
   .atom (.mul (.n 190) (.n 0) (.n 189)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 188, .n 43, .n 190] [.n 191] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 188, .n 43, .n 190] [.n 191] ::
   .atom (.load (.n 192) (.n 10) 36) ::
   .atom (.const (.n 193) (word 17179869184 0)) ::
   .atom (.mul (.n 194) (.n 0) (.n 193)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 192, .n 43, .n 194] [.n 195] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 192, .n 43, .n 194] [.n 195] ::
   .atom (.load (.n 196) (.n 10) 37) ::
   .atom (.const (.n 197) (word 17179869184 0)) ::
   .atom (.mul (.n 198) (.n 0) (.n 197)) ::
-  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 196, .n 43, .n 198] [.n 199] ::
+  .dispatch (.n 39) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 196, .n 43, .n 198] [.n 199] ::
   .atom (.load (.n 200) (.n 10) 38) ::
   .atom (.const (.n 201) (word 17179869184 0)) ::
   .atom (.mul (.n 202) (.n 0) (.n 201)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 200, .n 43, .n 202] [.n 203] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 200, .n 43, .n 202] [.n 203] ::
   .atom (.load (.n 204) (.n 10) 39) ::
   .atom (.const (.n 205) (word 17179869184 0)) ::
   .atom (.mul (.n 206) (.n 0) (.n 205)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 204, .n 43, .n 206] [.n 207] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 204, .n 43, .n 206] [.n 207] ::
   .atom (.load (.n 208) (.n 10) 40) ::
   .atom (.const (.n 209) (word 17179869184 0)) ::
   .atom (.mul (.n 210) (.n 0) (.n 209)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 208, .n 43, .n 210] [.n 211] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 208, .n 43, .n 210] [.n 211] ::
   .atom (.load (.n 212) (.n 10) 41) ::
   .atom (.const (.n 213) (word 17179869184 0)) ::
   .atom (.mul (.n 214) (.n 0) (.n 213)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 212, .n 43, .n 214] [.n 215] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 212, .n 43, .n 214] [.n 215] ::
   .atom (.load (.n 216) (.n 10) 42) ::
   .atom (.const (.n 217) (word 17179869184 0)) ::
   .atom (.mul (.n 218) (.n 0) (.n 217)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 216, .n 43, .n 218] [.n 219] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 216, .n 43, .n 218] [.n 219] ::
   .atom (.load (.n 220) (.n 10) 43) ::
   .atom (.const (.n 221) (word 17179869184 0)) ::
   .atom (.mul (.n 222) (.n 0) (.n 221)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 220, .n 43, .n 222] [.n 223] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 220, .n 43, .n 222] [.n 223] ::
   .atom (.load (.n 224) (.n 10) 44) ::
   .atom (.const (.n 225) (word 17179869184 0)) ::
   .atom (.mul (.n 226) (.n 0) (.n 225)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 224, .n 43, .n 226] [.n 227] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 224, .n 43, .n 226] [.n 227] ::
   .atom (.load (.n 228) (.n 10) 45) ::
   .atom (.const (.n 229) (word 17179869184 0)) ::
   .atom (.mul (.n 230) (.n 0) (.n 229)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 228, .n 43, .n 230] [.n 231] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 228, .n 43, .n 230] [.n 231] ::
   .atom (.load (.n 232) (.n 10) 46) ::
   .atom (.const (.n 233) (word 17179869184 0)) ::
   .atom (.mul (.n 234) (.n 0) (.n 233)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 232, .n 43, .n 234] [.n 235] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 232, .n 43, .n 234] [.n 235] ::
   .atom (.load (.n 236) (.n 10) 47) ::
   .atom (.const (.n 237) (word 17179869184 0)) ::
   .atom (.mul (.n 238) (.n 0) (.n 237)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 236, .n 43, .n 238] [.n 239] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 236, .n 43, .n 238] [.n 239] ::
   .atom (.load (.n 240) (.n 10) 48) ::
   .atom (.const (.n 241) (word 17179869184 0)) ::
   .atom (.mul (.n 242) (.n 0) (.n 241)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 240, .n 43, .n 242] [.n 243] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 240, .n 43, .n 242] [.n 243] ::
   .atom (.load (.n 244) (.n 10) 49) ::
   .atom (.const (.n 245) (word 17179869184 0)) ::
   .atom (.mul (.n 246) (.n 0) (.n 245)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 244, .n 43, .n 246] [.n 247] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 244, .n 43, .n 246] [.n 247] ::
   .atom (.load (.n 248) (.n 10) 50) ::
   .atom (.const (.n 249) (word 17179869184 0)) ::
   .atom (.mul (.n 250) (.n 0) (.n 249)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 248, .n 43, .n 250] [.n 251] ::
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 248, .n 43, .n 250] [.n 251] ::
   .atom (.load (.n 252) (.n 10) 51) ::
   .atom (.const (.n 253) (word 17179869184 0)) ::
   .atom (.mul (.n 254) (.n 0) (.n 253)) ::
-  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 252, .n 43, .n 254] [.n 255] ::
+  [])
+
+/-- `check_opening_terminal`: statements 240 to 343 of the body. -/
+noncomputable def c2 : List Core.Stmt := (
+  .dispatch (.n 40) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 252, .n 43, .n 254] [.n 255] ::
   .atom (.load (.n 256) (.n 10) 52) ::
   .atom (.const (.n 257) (word 17179869184 0)) ::
   .atom (.mul (.n 258) (.n 0) (.n 257)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 256, .n 43, .n 258] [.n 259] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 256, .n 43, .n 258] [.n 259] ::
   .atom (.load (.n 260) (.n 10) 53) ::
   .atom (.const (.n 261) (word 17179869184 0)) ::
   .atom (.mul (.n 262) (.n 0) (.n 261)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 260, .n 43, .n 262] [.n 263] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 260, .n 43, .n 262] [.n 263] ::
   .atom (.load (.n 264) (.n 10) 54) ::
   .atom (.const (.n 265) (word 17179869184 0)) ::
   .atom (.mul (.n 266) (.n 0) (.n 265)) ::
-  [])
-
-/-- `check_opening_terminal`: statements 252 to 363 of the body. -/
-noncomputable def c2 : List Core.Stmt := (
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 264, .n 43, .n 266] [.n 267] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 264, .n 43, .n 266] [.n 267] ::
   .atom (.load (.n 268) (.n 10) 55) ::
   .atom (.const (.n 269) (word 17179869184 0)) ::
   .atom (.mul (.n 270) (.n 0) (.n 269)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 268, .n 43, .n 270] [.n 271] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 268, .n 43, .n 270] [.n 271] ::
   .atom (.load (.n 272) (.n 10) 56) ::
   .atom (.const (.n 273) (word 17179869184 0)) ::
   .atom (.mul (.n 274) (.n 0) (.n 273)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 272, .n 43, .n 274] [.n 275] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 272, .n 43, .n 274] [.n 275] ::
   .atom (.load (.n 276) (.n 10) 57) ::
   .atom (.const (.n 277) (word 17179869184 0)) ::
   .atom (.mul (.n 278) (.n 0) (.n 277)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 276, .n 43, .n 278] [.n 279] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 276, .n 43, .n 278] [.n 279] ::
   .atom (.load (.n 280) (.n 10) 58) ::
   .atom (.const (.n 281) (word 17179869184 0)) ::
   .atom (.mul (.n 282) (.n 0) (.n 281)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 280, .n 43, .n 282] [.n 283] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 280, .n 43, .n 282] [.n 283] ::
   .atom (.load (.n 284) (.n 10) 59) ::
   .atom (.const (.n 285) (word 17179869184 0)) ::
   .atom (.mul (.n 286) (.n 0) (.n 285)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 284, .n 43, .n 286] [.n 287] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 284, .n 43, .n 286] [.n 287] ::
   .atom (.load (.n 288) (.n 10) 60) ::
   .atom (.const (.n 289) (word 17179869184 0)) ::
   .atom (.mul (.n 290) (.n 0) (.n 289)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 288, .n 43, .n 290] [.n 291] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 288, .n 43, .n 290] [.n 291] ::
   .atom (.load (.n 292) (.n 10) 61) ::
   .atom (.const (.n 293) (word 17179869184 0)) ::
   .atom (.mul (.n 294) (.n 0) (.n 293)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 292, .n 43, .n 294] [.n 295] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 292, .n 43, .n 294] [.n 295] ::
   .atom (.load (.n 296) (.n 10) 62) ::
   .atom (.const (.n 297) (word 17179869184 0)) ::
   .atom (.mul (.n 298) (.n 0) (.n 297)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 296, .n 43, .n 298] [.n 299] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 296, .n 43, .n 298] [.n 299] ::
   .atom (.load (.n 300) (.n 10) 63) ::
   .atom (.const (.n 301) (word 17179869184 0)) ::
   .atom (.mul (.n 302) (.n 0) (.n 301)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 300, .n 43, .n 302] [.n 303] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 300, .n 43, .n 302] [.n 303] ::
   .atom (.load (.n 304) (.n 10) 64) ::
   .atom (.const (.n 305) (word 17179869184 0)) ::
   .atom (.mul (.n 306) (.n 0) (.n 305)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 304, .n 43, .n 306] [.n 307] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 304, .n 43, .n 306] [.n 307] ::
   .atom (.load (.n 308) (.n 10) 65) ::
   .atom (.const (.n 309) (word 17179869184 0)) ::
   .atom (.mul (.n 310) (.n 0) (.n 309)) ::
-  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 308, .n 43, .n 310] [.n 311] ::
+  .dispatch (.n 41) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 308, .n 43, .n 310] [.n 311] ::
   .atom (.load (.n 312) (.n 10) 66) ::
   .atom (.const (.n 313) (word 17179869184 0)) ::
   .atom (.mul (.n 314) (.n 0) (.n 313)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 312, .n 43, .n 314] [.n 315] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 312, .n 43, .n 314] [.n 315] ::
   .atom (.load (.n 316) (.n 10) 67) ::
   .atom (.const (.n 317) (word 17179869184 0)) ::
   .atom (.mul (.n 318) (.n 0) (.n 317)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 316, .n 43, .n 318] [.n 319] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 316, .n 43, .n 318] [.n 319] ::
   .atom (.load (.n 320) (.n 10) 68) ::
   .atom (.const (.n 321) (word 17179869184 0)) ::
   .atom (.mul (.n 322) (.n 0) (.n 321)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 320, .n 43, .n 322] [.n 323] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 320, .n 43, .n 322] [.n 323] ::
   .atom (.load (.n 324) (.n 10) 69) ::
   .atom (.const (.n 325) (word 17179869184 0)) ::
   .atom (.mul (.n 326) (.n 0) (.n 325)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 324, .n 43, .n 326] [.n 327] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 324, .n 43, .n 326] [.n 327] ::
   .atom (.load (.n 328) (.n 10) 70) ::
   .atom (.const (.n 329) (word 17179869184 0)) ::
   .atom (.mul (.n 330) (.n 0) (.n 329)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 328, .n 43, .n 330] [.n 331] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 328, .n 43, .n 330] [.n 331] ::
   .atom (.load (.n 332) (.n 10) 71) ::
   .atom (.const (.n 333) (word 17179869184 0)) ::
   .atom (.mul (.n 334) (.n 0) (.n 333)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 332, .n 43, .n 334] [.n 335] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 332, .n 43, .n 334] [.n 335] ::
   .atom (.load (.n 336) (.n 10) 72) ::
   .atom (.const (.n 337) (word 17179869184 0)) ::
   .atom (.mul (.n 338) (.n 0) (.n 337)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 336, .n 43, .n 338] [.n 339] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 336, .n 43, .n 338] [.n 339] ::
   .atom (.load (.n 340) (.n 10) 73) ::
   .atom (.const (.n 341) (word 17179869184 0)) ::
   .atom (.mul (.n 342) (.n 0) (.n 341)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 340, .n 43, .n 342] [.n 343] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 340, .n 43, .n 342] [.n 343] ::
   .atom (.load (.n 344) (.n 10) 74) ::
   .atom (.const (.n 345) (word 17179869184 0)) ::
   .atom (.mul (.n 346) (.n 0) (.n 345)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 344, .n 43, .n 346] [.n 347] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 344, .n 43, .n 346] [.n 347] ::
   .atom (.load (.n 348) (.n 10) 75) ::
   .atom (.const (.n 349) (word 17179869184 0)) ::
   .atom (.mul (.n 350) (.n 0) (.n 349)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 348, .n 43, .n 350] [.n 351] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 348, .n 43, .n 350] [.n 351] ::
   .atom (.load (.n 352) (.n 10) 76) ::
   .atom (.const (.n 353) (word 17179869184 0)) ::
   .atom (.mul (.n 354) (.n 0) (.n 353)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 352, .n 43, .n 354] [.n 355] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 352, .n 43, .n 354] [.n 355] ::
   .atom (.load (.n 356) (.n 10) 77) ::
   .atom (.const (.n 357) (word 17179869184 0)) ::
   .atom (.mul (.n 358) (.n 0) (.n 357)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 356, .n 43, .n 358] [.n 359] ::
+  [])
+
+/-- `check_opening_terminal`: statements 344 to 637 of the body. -/
+noncomputable def c3 : List Core.Stmt := (
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 356, .n 43, .n 358] [.n 359] ::
   .atom (.load (.n 360) (.n 10) 78) ::
   .atom (.const (.n 361) (word 17179869184 0)) ::
   .atom (.mul (.n 362) (.n 0) (.n 361)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 360, .n 43, .n 362] [.n 363] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 360, .n 43, .n 362] [.n 363] ::
   .atom (.load (.n 364) (.n 10) 79) ::
   .atom (.const (.n 365) (word 17179869184 0)) ::
   .atom (.mul (.n 366) (.n 0) (.n 365)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 364, .n 43, .n 366] [.n 367] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 364, .n 43, .n 366] [.n 367] ::
   .atom (.load (.n 368) (.n 10) 80) ::
   .atom (.const (.n 369) (word 17179869184 0)) ::
   .atom (.mul (.n 370) (.n 0) (.n 369)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 368, .n 43, .n 370] [.n 371] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 368, .n 43, .n 370] [.n 371] ::
   .atom (.load (.n 372) (.n 10) 81) ::
   .atom (.const (.n 373) (word 17179869184 0)) ::
   .atom (.mul (.n 374) (.n 0) (.n 373)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 372, .n 43, .n 374] [.n 375] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 372, .n 43, .n 374] [.n 375] ::
   .atom (.load (.n 376) (.n 10) 82) ::
   .atom (.const (.n 377) (word 17179869184 0)) ::
   .atom (.mul (.n 378) (.n 0) (.n 377)) ::
-  [])
-
-/-- `check_opening_terminal`: statements 364 to 769 of the body. -/
-noncomputable def c3 : List Core.Stmt := (
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 376, .n 43, .n 378] [.n 379] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 376, .n 43, .n 378] [.n 379] ::
   .atom (.load (.n 380) (.n 10) 83) ::
   .atom (.const (.n 381) (word 17179869184 0)) ::
   .atom (.mul (.n 382) (.n 0) (.n 381)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 380, .n 43, .n 382] [.n 383] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 380, .n 43, .n 382] [.n 383] ::
   .atom (.load (.n 384) (.n 10) 84) ::
   .atom (.const (.n 385) (word 17179869184 0)) ::
   .atom (.mul (.n 386) (.n 0) (.n 385)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 384, .n 43, .n 386] [.n 387] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 384, .n 43, .n 386] [.n 387] ::
   .atom (.load (.n 388) (.n 10) 85) ::
   .atom (.const (.n 389) (word 17179869184 0)) ::
   .atom (.mul (.n 390) (.n 0) (.n 389)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 388, .n 43, .n 390] [.n 391] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 388, .n 43, .n 390] [.n 391] ::
   .atom (.load (.n 392) (.n 10) 86) ::
   .atom (.const (.n 393) (word 17179869184 0)) ::
   .atom (.mul (.n 394) (.n 0) (.n 393)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 392, .n 43, .n 394] [.n 395] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 392, .n 43, .n 394] [.n 395] ::
   .atom (.load (.n 396) (.n 10) 87) ::
   .atom (.const (.n 397) (word 17179869184 0)) ::
   .atom (.mul (.n 398) (.n 0) (.n 397)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 396, .n 43, .n 398] [.n 399] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 396, .n 43, .n 398] [.n 399] ::
   .atom (.load (.n 400) (.n 10) 88) ::
   .atom (.const (.n 401) (word 17179869184 0)) ::
   .atom (.mul (.n 402) (.n 0) (.n 401)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 400, .n 43, .n 402] [.n 403] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 400, .n 43, .n 402] [.n 403] ::
   .atom (.load (.n 404) (.n 10) 89) ::
   .atom (.const (.n 405) (word 17179869184 0)) ::
   .atom (.mul (.n 406) (.n 0) (.n 405)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 404, .n 43, .n 406] [.n 407] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 404, .n 43, .n 406] [.n 407] ::
   .atom (.load (.n 408) (.n 10) 90) ::
   .atom (.const (.n 409) (word 17179869184 0)) ::
   .atom (.mul (.n 410) (.n 0) (.n 409)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 408, .n 43, .n 410] [.n 411] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 408, .n 43, .n 410] [.n 411] ::
   .atom (.load (.n 412) (.n 10) 91) ::
   .atom (.const (.n 413) (word 17179869184 0)) ::
   .atom (.mul (.n 414) (.n 0) (.n 413)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 412, .n 43, .n 414] [.n 415] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 412, .n 43, .n 414] [.n 415] ::
   .atom (.load (.n 416) (.n 10) 92) ::
   .atom (.const (.n 417) (word 17179869184 0)) ::
   .atom (.mul (.n 418) (.n 0) (.n 417)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 416, .n 43, .n 418] [.n 419] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 416, .n 43, .n 418] [.n 419] ::
   .atom (.load (.n 420) (.n 10) 93) ::
   .atom (.const (.n 421) (word 17179869184 0)) ::
   .atom (.mul (.n 422) (.n 0) (.n 421)) ::
-  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28"] [.n 420, .n 43, .n 422] [.n 423] ::
+  .dispatch (.n 42) ["column_selector__L0", "column_selector__L1", "column_selector__L2", "column_selector__L3", "column_selector__L4", "column_selector__L5", "column_selector__L6", "column_selector__L7", "column_selector__L8", "column_selector__L9", "column_selector__L10", "column_selector__L11", "column_selector__L12", "column_selector__L13", "column_selector__L14", "column_selector__L15", "column_selector__L16", "column_selector__L17", "column_selector__L18", "column_selector__L19", "column_selector__L20", "column_selector__L21", "column_selector__L22", "column_selector__L23", "column_selector__L24", "column_selector__L25", "column_selector__L26", "column_selector__L27", "column_selector__L28", "column_selector__L29", "column_selector__L30"] [.n 420, .n 43, .n 422] [.n 423] ::
   .atom (.mul (.n 424) (.n 20) (.n 36)) ::
   .atom (.load (.n 425) (.n 424) 0) ::
   .atom (.mul (.n 426) (.n 9) (.n 425)) ::
@@ -17539,6 +17598,10 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.mul (.n 650) (.n 647) (.n 649)) ::
   .atom (.mul (.n 651) (.n 650) (.n 203)) ::
   .atom (.add (.n 652) (.n 646) (.n 651)) ::
+  [])
+
+/-- `check_opening_terminal`: statements 638 to 1263 of the body. -/
+noncomputable def c4 : List Core.Stmt := (
   .atom (.mul (.n 653) (.n 647) (.n 9)) ::
   .atom (.mul (.n 654) (.n 22) (.n 40)) ::
   .atom (.load (.n 655) (.n 654) 0) ::
@@ -17671,10 +17734,6 @@ noncomputable def c3 : List Core.Stmt := (
   .atom (.mul (.n 782) (.n 779) (.n 781)) ::
   .atom (.mul (.n 783) (.n 782) (.n 291)) ::
   .atom (.add (.n 784) (.n 778) (.n 783)) ::
-  [])
-
-/-- `check_opening_terminal`: statements 770 to 1393 of the body. -/
-noncomputable def c4 : List Core.Stmt := (
   .atom (.mul (.n 785) (.n 779) (.n 9)) ::
   .atom (.mul (.n 786) (.n 22) (.n 41)) ::
   .atom (.load (.n 787) (.n 786) 0) ::
@@ -18169,6 +18228,10 @@ noncomputable def c4 : List Core.Stmt := (
   .atom (.mul (.n 1276) (.n 1274) (.n 1275)) ::
   .atom (.load (.n 1277) (.n 25) 2) ::
   .atom (.mul (.n 1278) (.n 1276) (.n 1277)) ::
+  [])
+
+/-- `check_opening_terminal`: statements 1264 to 1703 of the body. -/
+noncomputable def c5 : List Core.Stmt := (
   .atom (.load (.n 1279) (.n 24) 1) ::
   .atom (.mul (.n 1280) (.n 1278) (.n 1279)) ::
   .atom (.load (.n 1281) (.n 24) 0) ::
@@ -18299,10 +18362,6 @@ noncomputable def c4 : List Core.Stmt := (
   .atom (.mul (.n 1406) (.n 1404) (.n 1405)) ::
   .atom (.load (.n 1407) (.n 25) 0) ::
   .atom (.mul (.n 1408) (.n 1406) (.n 1407)) ::
-  [])
-
-/-- `check_opening_terminal`: statements 1394 to 1703 of the body. -/
-noncomputable def c5 : List Core.Stmt := (
   .atom (.mul (.n 1409) (.n 22) (.n 42)) ::
   .atom (.load (.n 1410) (.n 1409) 0) ::
   .atom (.mul (.n 1411) (.n 1408) (.n 1410)) ::
@@ -18604,7 +18663,7 @@ noncomputable def c5 : List Core.Stmt := (
   .atom (.add (.n 1706) (.n 1702) (.n 1705)) ::
   .atom (.mul (.n 1707) (.n 1706) (.n 67)) ::
   .atom (.add (.n 1708) (.n 1692) (.n 1707)) ::
-  .atom (.hint (.alloc (.n 1709) 29)) ::
+  .atom (.hint (.alloc (.n 1709) 31)) ::
   .atom (.mul (.n 1710) (.n 1693) (.n 9)) ::
   .call "eq_prefix_chain" [.n 1709, .n 1710, .n 18, .n 14, .n 19] [] ::
   .atom (.mul (.n 1711) (.n 1709) (.n 19)) ::
@@ -18628,7 +18687,7 @@ noncomputable def core17 : Core.Fn where
 
 namespace core18
 
-/-- `verify_sub`: statements 0 to 438 of the body. -/
+/-- `verify_sub`: statements 0 to 437 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.hint (.alloc (.n 6) 159)) ::
   .atom (.const (.n 7) (word 1 0)) ::
@@ -18678,10 +18737,10 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.rangeCheck (.n 66) (.n 68) (.n 69) (.n 70) (.n 67)) ::
   .atom (.hint (.alloc (.n 71) 7)) ::
   .call "g_power_of_word" [.n 27] [.n 72] ::
-  .atom (.const (.n 73) (word 4294967296 0)) ::
+  .atom (.const (.n 73) (word 1073741824 0)) ::
   .atom (.rangeCheck (.n 72) (.n 74) (.n 75) (.n 76) (.n 73)) ::
   .atom (.const (.n 77) (word 4294967296 0)) ::
-  .atom (.const (.n 78) (word 65536 0)) ::
+  .atom (.const (.n 78) (word 2 0)) ::
   .atom (.mul (.n 72) (.n 79) (.n 78)) ::
   .atom (.rangeCheck (.n 79) (.n 80) (.n 81) (.n 82) (.n 77)) ::
   .atom (.load (.n 72) (.n 71) 0) ::
@@ -18874,10 +18933,10 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.copy (.n 272) (.n 271)) ::
   .atom (.const (.n 273) (word 0 1)) ::
   .call "certify_placement" [.n 83, .n 4] [.n 274, .n 275] ::
-  .call "log2_ceil_in_the_exponent__L15_L34" [.n 274, .n 4] [.n 276] ::
-  .atom (.const (.n 277) (word 8198552432976855044 0)) ::
+  .call "log2_ceil_in_the_exponent__L16_L34" [.n 274, .n 4] [.n 276] ::
+  .atom (.const (.n 277) (word 14347465658197868555 0)) ::
   .atom (.mul (.n 278) (.n 276) (.n 277)) ::
-  .atom (.const (.n 279) (word 64 0)) ::
+  .atom (.const (.n 279) (word 1024 0)) ::
   .atom (.rangeCheck (.n 278) (.n 280) (.n 281) (.n 282) (.n 279)) ::
   .atom (.load (.n 283) (.n 25) 10) ::
   .atom (.copy (.n 284) (.n 283)) ::
@@ -18889,19 +18948,19 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.mul (.n 302) (.n 4) (.n 301)) ::
   .call "grind_check__L15" [.n 289, .n 302] [] ::
   .atom (.copy (.n 303) (.n 288)) ::
-  .atom (.hint (.alloc (.n 304) 28)) ::
-  .dispatch (.n 278) ["squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28"] [.n 296, .n 297, .n 298, .n 299, .n 300, .n 303, .n 304] [.n 305, .n 306, .n 307, .n 308, .n 309] ::
+  .atom (.hint (.alloc (.n 304) 30)) ::
+  .dispatch (.n 278) ["squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28", "squeeze_point_from__L29", "squeeze_point_from__L30"] [.n 296, .n 297, .n 298, .n 299, .n 300, .n 303, .n 304] [.n 305, .n 306, .n 307, .n 308, .n 309] ::
   .atom (.hint (.alloc (.n 310) 1)) ::
   .atom (.const (.n 311) (word 2048 0)) ::
   .atom (.mul (.n 312) (.n 25) (.n 311)) ::
   .call "opening_message__L1_L1" [.n 305, .n 306, .n 307, .n 308, .n 309, .n 312, .n 310] [.n 313, .n 314, .n 315, .n 316, .n 317, .n 318, .n 319, .n 320] ::
-  .atom (.const (.n 321) (word 8198521646651277316 0)) ::
+  .atom (.const (.n 321) (word 14347465658197868555 0)) ::
   .atom (.mul (.n 322) (.n 253) (.n 321)) ::
-  .atom (.const (.n 323) (word 131072 0)) ::
+  .atom (.const (.n 323) (word 8192 0)) ::
   .atom (.rangeCheck (.n 322) (.n 324) (.n 325) (.n 326) (.n 323)) ::
   .atom (.const (.n 327) (word 133823759239872512 0)) ::
   .atom (.mul (.n 328) (.n 4) (.n 327)) ::
-  .dispatch (.n 322) ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13", "bus_grind_check__L14", "bus_grind_check__L15", "bus_grind_check__L16", "bus_grind_check__L17"] [.n 314, .n 328] [.n 329] ::
+  .dispatch (.n 322) ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"] [.n 314, .n 328] [.n 329] ::
   .atom (.copy (.n 330) (.n 315)) ::
   .atom (.copy (.n 331) (.n 316)) ::
   .atom (.copy (.n 332) (.n 317)) ::
@@ -19068,11 +19127,11 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.mul (.n 863) (.n 862) (.n 862)) ::
   .atom (.mul (.n 864) (.n 863) (.n 863)) ::
   .atom (.mul (.n 865) (.n 864) (.n 864)) ::
-  .atom (.mul (.n 866) (.n 865) (.n 865)) ::
   [])
 
-/-- `verify_sub`: statements 439 to 1014 of the body. -/
+/-- `verify_sub`: statements 438 to 1012 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
+  .atom (.mul (.n 866) (.n 865) (.n 865)) ::
   .atom (.mul (.n 867) (.n 651) (.n 866)) ::
   .atom (.load (.n 867) (.n 848) 16) ::
   .atom (.mul (.n 868) (.n 866) (.n 866)) ::
@@ -19647,12 +19706,12 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.load (.n 1388) (.n 6) 3) ::
   .atom (.mul (.n 1389) (.n 1387) (.n 1388)) ::
   .atom (.add (.n 1390) (.n 1386) (.n 1389)) ::
-  .atom (.mul (.n 1391) (.n 1387) (.n 1375)) ::
-  .atom (.load (.n 1392) (.n 582) 0) ::
   [])
 
-/-- `verify_sub`: statements 1015 to 1578 of the body. -/
+/-- `verify_sub`: statements 1013 to 1588 of the body. -/
 noncomputable def c2 : List Core.Stmt := (
+  .atom (.mul (.n 1391) (.n 1387) (.n 1375)) ::
+  .atom (.load (.n 1392) (.n 582) 0) ::
   .atom (.mul (.n 1393) (.n 1391) (.n 1392)) ::
   .atom (.add (.n 1394) (.n 1390) (.n 1393)) ::
   .atom (.mul (.n 1395) (.n 1391) (.n 1375)) ::
@@ -20178,69 +20237,62 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.load (.n 1915) (.n 310) 0) ::
   .atom (.mul (.n 1916) (.n 1914) (.n 1915)) ::
   .atom (.add (.n 1917) (.n 1913) (.n 1916)) ::
-  .atom (.mul (.n 1918) (.n 66) (.n 66)) ::
-  .atom (.mul (.n 1919) (.n 1918) (.n 66)) ::
-  .atom (.mul (.n 1920) (.n 1919) (.n 1919)) ::
-  .atom (.mul (.n 1921) (.n 1920) (.n 66)) ::
-  .atom (.mul (.n 1922) (.n 278) (.n 1921)) ::
-  .atom (.const (.n 1923) (word 134217728 0)) ::
-  .atom (.rangeCheck (.n 1922) (.n 1924) (.n 1925) (.n 1926) (.n 1923)) ::
-  .atom (.const (.n 1927) (word 2 0)) ::
-  .atom (.mul (.n 1928) (.n 595) (.n 1927)) ::
-  .atom (.const (.n 1929) (word 133823759239872512 0)) ::
-  .atom (.mul (.n 1930) (.n 4) (.n 1929)) ::
-  .dispatch (.n 1922) ["open_stacked__L0", "open_stacked__L1", "open_stacked__L2", "open_stacked__L3", "open_stacked__L4", "open_stacked__L5", "open_stacked__L6", "open_stacked__L7", "open_stacked__L8", "open_stacked__L9", "open_stacked__L10", "open_stacked__L11", "open_stacked__L12", "open_stacked__L13", "open_stacked__L14", "open_stacked__L15", "open_stacked__L16", "open_stacked__L17", "open_stacked__L18", "open_stacked__L19", "open_stacked__L20", "open_stacked__L21", "open_stacked__L22", "open_stacked__L23", "open_stacked__L24", "open_stacked__L25", "open_stacked__L26", "open_stacked__L27"] [.n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1928, .n 1930] [.n 1931, .n 1932, .n 1933, .n 1934, .n 1935] ::
-  .call "check_opening_terminal" [.n 4, .n 254, .n 569, .n 581, .n 253, .n 579, .n 72, .n 583, .n 83, .n 1375, .n 275, .n 584, .n 848, .n 1932, .n 1933, .n 1934, .n 1935, .n 1931, .n 304, .n 276] [] ::
-  .atom (.load (.n 1936) (.n 254) 0) ::
-  .atom (.load (.n 1936) (.n 5) 0) ::
-  .atom (.load (.n 1937) (.n 254) 1) ::
-  .atom (.load (.n 1937) (.n 5) 1) ::
-  .atom (.load (.n 1938) (.n 254) 2) ::
-  .atom (.load (.n 1938) (.n 5) 2) ::
-  .atom (.load (.n 1939) (.n 254) 3) ::
-  .atom (.load (.n 1939) (.n 5) 3) ::
-  .atom (.load (.n 1940) (.n 254) 4) ::
-  .atom (.load (.n 1940) (.n 5) 4) ::
-  .atom (.load (.n 1941) (.n 254) 5) ::
-  .atom (.load (.n 1941) (.n 5) 5) ::
-  .atom (.load (.n 1942) (.n 254) 6) ::
-  .atom (.load (.n 1942) (.n 5) 6) ::
-  .atom (.load (.n 1943) (.n 254) 7) ::
-  .atom (.load (.n 1943) (.n 5) 7) ::
-  .atom (.load (.n 1944) (.n 254) 8) ::
-  .atom (.load (.n 1944) (.n 5) 8) ::
-  .atom (.load (.n 1945) (.n 254) 9) ::
-  .atom (.load (.n 1945) (.n 5) 9) ::
-  .atom (.load (.n 1946) (.n 254) 10) ::
-  .atom (.load (.n 1946) (.n 5) 10) ::
-  .atom (.load (.n 1947) (.n 254) 11) ::
-  .atom (.load (.n 1947) (.n 5) 11) ::
-  .atom (.load (.n 1948) (.n 254) 12) ::
-  .atom (.load (.n 1948) (.n 5) 12) ::
+  .atom (.const (.n 1918) (word 2 0)) ::
+  .atom (.mul (.n 1919) (.n 595) (.n 1918)) ::
+  .atom (.const (.n 1920) (word 133823759239872512 0)) ::
+  .atom (.mul (.n 1921) (.n 4) (.n 1920)) ::
+  .dispatch (.n 278) ["open_stacked__L0", "open_stacked__L1", "open_stacked__L2", "open_stacked__L3", "open_stacked__L4", "open_stacked__L5", "open_stacked__L6", "open_stacked__L7", "open_stacked__L8", "open_stacked__L9", "open_stacked__L10"] [.n 66, .n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1919, .n 1921] [.n 1922, .n 1923, .n 1924, .n 1925, .n 1926] ::
+  .call "check_opening_terminal" [.n 4, .n 254, .n 569, .n 581, .n 253, .n 579, .n 72, .n 583, .n 83, .n 1375, .n 275, .n 584, .n 848, .n 1923, .n 1924, .n 1925, .n 1926, .n 1922, .n 304, .n 276] [] ::
+  .atom (.load (.n 1927) (.n 254) 0) ::
+  .atom (.load (.n 1927) (.n 5) 0) ::
+  .atom (.load (.n 1928) (.n 254) 1) ::
+  .atom (.load (.n 1928) (.n 5) 1) ::
+  .atom (.load (.n 1929) (.n 254) 2) ::
+  .atom (.load (.n 1929) (.n 5) 2) ::
+  .atom (.load (.n 1930) (.n 254) 3) ::
+  .atom (.load (.n 1930) (.n 5) 3) ::
+  .atom (.load (.n 1931) (.n 254) 4) ::
+  .atom (.load (.n 1931) (.n 5) 4) ::
+  .atom (.load (.n 1932) (.n 254) 5) ::
+  .atom (.load (.n 1932) (.n 5) 5) ::
+  .atom (.load (.n 1933) (.n 254) 6) ::
+  .atom (.load (.n 1933) (.n 5) 6) ::
+  .atom (.load (.n 1934) (.n 254) 7) ::
+  .atom (.load (.n 1934) (.n 5) 7) ::
+  .atom (.load (.n 1935) (.n 254) 8) ::
+  .atom (.load (.n 1935) (.n 5) 8) ::
+  .atom (.load (.n 1936) (.n 254) 9) ::
+  .atom (.load (.n 1936) (.n 5) 9) ::
+  .atom (.load (.n 1937) (.n 254) 10) ::
+  .atom (.load (.n 1937) (.n 5) 10) ::
+  .atom (.load (.n 1938) (.n 254) 11) ::
+  .atom (.load (.n 1938) (.n 5) 11) ::
+  .atom (.load (.n 1939) (.n 254) 12) ::
+  .atom (.load (.n 1939) (.n 5) 12) ::
+  .atom (.load (.n 1940) (.n 254) 13) ::
+  .atom (.load (.n 1940) (.n 5) 13) ::
+  .atom (.load (.n 1941) (.n 254) 14) ::
+  .atom (.load (.n 1941) (.n 5) 14) ::
+  .atom (.load (.n 1942) (.n 254) 15) ::
+  .atom (.load (.n 1942) (.n 5) 15) ::
+  .atom (.load (.n 1943) (.n 254) 16) ::
+  .atom (.load (.n 1943) (.n 5) 16) ::
+  .atom (.load (.n 1944) (.n 254) 17) ::
+  .atom (.load (.n 1944) (.n 5) 17) ::
+  .atom (.load (.n 1945) (.n 254) 18) ::
+  .atom (.load (.n 1945) (.n 5) 18) ::
+  .atom (.load (.n 1946) (.n 570) 0) ::
+  .atom (.load (.n 1946) (.n 5) 19) ::
+  .atom (.load (.n 1947) (.n 570) 1) ::
+  .atom (.load (.n 1947) (.n 5) 20) ::
+  .atom (.load (.n 1948) (.n 570) 2) ::
   [])
 
-/-- `verify_sub`: statements 1579 to 1600 of the body. -/
+/-- `verify_sub`: statements 1589 to 1593 of the body. -/
 noncomputable def c3 : List Core.Stmt := [
-  .atom (.load (.n 1949) (.n 254) 13),
-  .atom (.load (.n 1949) (.n 5) 13),
-  .atom (.load (.n 1950) (.n 254) 14),
-  .atom (.load (.n 1950) (.n 5) 14),
-  .atom (.load (.n 1951) (.n 254) 15),
-  .atom (.load (.n 1951) (.n 5) 15),
-  .atom (.load (.n 1952) (.n 254) 16),
-  .atom (.load (.n 1952) (.n 5) 16),
-  .atom (.load (.n 1953) (.n 254) 17),
-  .atom (.load (.n 1953) (.n 5) 17),
-  .atom (.load (.n 1954) (.n 254) 18),
-  .atom (.load (.n 1954) (.n 5) 18),
-  .atom (.load (.n 1955) (.n 570) 0),
-  .atom (.load (.n 1955) (.n 5) 19),
-  .atom (.load (.n 1956) (.n 570) 1),
-  .atom (.load (.n 1956) (.n 5) 20),
-  .atom (.load (.n 1957) (.n 570) 2),
-  .atom (.load (.n 1957) (.n 5) 21),
-  .atom (.load (.n 1958) (.n 570) 3),
-  .atom (.load (.n 1958) (.n 5) 22),
+  .atom (.load (.n 1948) (.n 5) 21),
+  .atom (.load (.n 1949) (.n 570) 3),
+  .atom (.load (.n 1949) (.n 5) 22),
   .atom (.load (.n 580) (.n 5) 23),
   .ret []]
 

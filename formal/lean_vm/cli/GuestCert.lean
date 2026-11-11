@@ -830,12 +830,12 @@ def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
     | _ => none
   else none
 
-/-- `level_queries__L{n_queries}_L{base}_L{interleave}_L{leaf_cells}_L{depth}_L{cap_depth}`'s
+/-- `level_queries__L{n_queries}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{n_hs}_L{hs_bits}_L{final}`'s
 `(n_queries, base, depth, cap_depth)`. -/
 def lqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "level_queries__L" then
     match (((name.drop 16).toString).splitOn "_L").map String.toNat? with
-    | [some q, some base, some _, some _, some d, some cd] => some (q, base, d, cd)
+    | [some q, some base, some _, some _, some d, some cd, some _, some _, some _, some _] => some (q, base, d, cd)
     | _ => none
   else none
 
@@ -858,7 +858,9 @@ def loopsOf (body : List Core.Stmt) : List String :=
 `__loop4`'s argument 14, which passes it on; the windows of the windowed Merkle walk, at
 `opening_queries`' window pointers and iteration count (arguments 6 and 7, `OqMainWins`) and at
 its loop's `[t, x, N]` (arguments 3, 0, 1: `WinWalk`, `WinWalk2` at level 0), with `x ≠ N`
-(`Check.tagNe`); `open_stacked`'s window table (argument 9, `tagTabs`). -/
+(`Check.tagNe`); `level_queries`' window pointers (argument 5, `lqTag`), which it hands
+`opening_queries` with its iteration count; the window table `tabs` of `open_stacked` (argument
+10, `tagTabs`) and of `level_positions` (argument 8), whose decodes and grinds read it. -/
 def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := Id.run do
   let mut m : Std.HashMap String (List (ℕ × List ℕ)) := {}
   m := m.insert "verify_sub" [(0, [6])]
@@ -882,10 +884,16 @@ def semTab (P : List Core.Fn) : Std.HashMap String (List (ℕ × List ℕ)) := I
   -- (`lean_ethereum.py:1308-1320`); its callers take it as an obligation on the window pointer
     if let some (pd, cd) := wpParams cf.name then
       m := m.insert cf.name [(winsTag (pd + cd) cd, [4])]
-    -- `open_stacked`'s window table `tabs` (argument 9, cell 11), which its decodes and grinds
-    -- read: `verify_sub` hands it on at its dispatch
+    -- `open_stacked`'s window table `tabs` (argument 10, cell 12), which its grinds read and its
+    -- rate dispatch hands `level_positions` (argument 8, cell 10, its decodes'): `verify_sub` hands
+    -- it on at its dispatch
     if cf.name.startsWith "open_stacked__L" then
-      m := m.insert cf.name [(tagTabs, [11])]
+      m := m.insert cf.name [(tagTabs, [12])]
+    if cf.name.startsWith "level_positions__L" then
+      m := m.insert cf.name [(tagTabs, [10])]
+    if let some (q, base, d, cd) := lqParams cf.name then
+      let (n, odd) := if base == 1 then (q / 2, q % 2) else (q, 0)
+      m := m.insert cf.name [(lqTag n odd base d cd, [7])]
   return m
 
 /-- The semantic tuples a function learns from a top-level call, `(statement after it, value)`:
@@ -902,12 +910,17 @@ def defAfter (body : List Core.Stmt) (v : ℕ) : ℕ :=
     | .atom a => (Check.atomVals a).head? == some (Core.V.n v)
     | _ => false).map (· + 1) |>.getD 0
 
-/-- The obligations a function's top-level calls and dispatches (whose targets share them) carry:
-the callee's walk tuples (tags `≥ 2`) on the arguments' values, `(statement of the call,
-statement after its arguments' definitions, the tagged tuples of values)`; a cut before the call
-takes them from the statements before it. -/
-def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body : List Core.Stmt) :
-    Except String (List (ℕ × ℕ × List (ℕ × List ℕ))) := do
+/-- The obligations a function's top-level calls and dispatches carry: the callee's walk tuples
+(tags `≥ 2`) on the arguments' values, `(statement of the call, statement after its arguments'
+definitions, the tagged tuples of values)`; a cut before the call takes them from the statements
+before it. A dispatch whose targets share their tuples carries them as a call does; at any other
+dispatch, arm `e`'s tuples on the arguments' values and the selector's, conditional on that arm
+(`Check.selTag`), after the previous dispatch (whose arm on the same rate wrote what they say) and
+after the earliest definition of a value in each argument's cell (`cell`, write-once), the cut no
+later than just after the last call before the dispatch (so the window before ends at that call's
+return, which the completeness walk joins). -/
+def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body : List Core.Stmt)
+    (cell : ℕ → ℕ := id) : Except String (List (ℕ × ℕ × List (ℕ × List ℕ))) := do
   -- the top-level constants of one limb: an argument that is one takes a conditional tag
   -- (`Check.impTag`), since the compiler sets it in the call's own setup
   let consts : Std.HashMap ℕ ℕ := body.foldl (fun m s => match s with
@@ -925,20 +938,27 @@ def callObligations (semMap : Std.HashMap String (List (ℕ × List ℕ))) (body
   let mut prevDispatch := 0
   let mut lastCall := 0
   for (s, i) in body.zipIdx do
-    if let .dispatch x fs args _ := s then
-      let mut tu : List (ℕ × List ℕ) := []
-      let mut lo := prevDispatch
-      for (g, e) in fs.zipIdx do
-        for (t, os) in (semMap.getD g []).filter (·.1 ≥ 2) do
-          let vs := os.map fun o => (args.getD (o - 2) (.n 0)).idx
-          if vs.any consts.contains then throw s!"statement {i}: a dispatch's tuple with a constant"
-          tu := tu ++ [(Check.selTag t e, vs ++ [x.idx])]
-          lo := vs.foldl (fun acc v => max acc ((cellDef.get? (cell v)).getD (defAfter body v))) lo
-      unless tu.isEmpty do
-        out := out.push (if lastCall ≥ max lo prevDispatch then lastCall else i, lo, tu)
+    let shared := match s with
+      | .dispatch _ (g :: fs) _ _ => fs.all fun f => semMap.getD f [] == semMap.getD g []
+      | _ => false
+    if shared then
       prevDispatch := i + 1
       lastCall := i + 1
-      continue
+    if let .dispatch x fs args _ := s then
+      if !shared then
+        let mut tu : List (ℕ × List ℕ) := []
+        let mut lo := prevDispatch
+        for (g, e) in fs.zipIdx do
+          for (t, os) in (semMap.getD g []).filter (·.1 ≥ 2) do
+            let vs := os.map fun o => (args.getD (o - 2) (.n 0)).idx
+            if vs.any consts.contains then throw s!"statement {i}: a dispatch's tuple with a constant"
+            tu := tu ++ [(Check.selTag t e, vs ++ [x.idx])]
+            lo := vs.foldl (fun acc v => max acc ((cellDef.get? (cell v)).getD (defAfter body v))) lo
+        unless tu.isEmpty do
+          out := out.push (if lastCall ≥ max lo prevDispatch then lastCall else i, lo, tu)
+        prevDispatch := i + 1
+        lastCall := i + 1
+        continue
     if let .call .. := s then lastCall := i + 1
     let some (g, args) := (match s with
       | .call g args _ => some (g, args)
@@ -1189,7 +1209,8 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFunction) (cf : Core.Fn) 
     | some (.call _ _ (_ :: _)) | some (.dispatch _ _ _ (_ :: _)) => true
     | _ => false
   for (i, lo, kn, ki, sm) in forced0 do
-    match (cands.filter fun c => lo ≤ c.1 && c.1 ≤ i && (c.1 == lo || !afterRets c.1)).back? with
+    let inRange := cands.filter fun c => lo ≤ c.1 && c.1 ≤ i
+    match ((inRange.filter fun c => c.1 == lo || !afterRets c.1).back?).orElse fun _ => inRange.back? with
     | some c => forced := forced ++ [(c.1, kn, ki, sm)]
     | none => throw s!"{f.name}: no window can start at statements {lo}..{i} (near: {(cands.filter fun c => c.1 + 40 ≥ lo && c.1 ≤ i + 40).toList.map (·.1)}, marks {(marks.filter fun m => m.1 + 40 ≥ lo && m.1 ≤ i + 40).toList.map (·.1)})"
   let mw := maxWin coarse f.name

@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `open_stacked__L4`, window 2. -/
+/-- `open_stacked__L0`, window 2. -/
 theorem w336_2 : WinOk 336 2 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L4`, window 3. -/
+/-- `open_stacked__L0`, window 3. -/
 theorem w336_3 : WinOk 336 3 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L4`, window 4. -/
+/-- `open_stacked__L0`, window 4. -/
 theorem w336_4 : WinOk 336 4 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L4`, window 5. -/
+/-- `open_stacked__L0`, window 5. -/
 theorem w336_5 : WinOk 336 5 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L4`, window 6. -/
+/-- `open_stacked__L0`, window 6. -/
 theorem w336_6 : WinOk 336 6 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L4`, window 7. -/
+/-- `open_stacked__L0`, window 7. -/
 theorem w336_7 : WinOk 336 7 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L5`, window 0. -/
-theorem w337_0 : WinOk 337 0 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L0`, window 8. -/
+theorem w336_8 : WinOk 336 8 := winOk_of_C (by decide +kernel)
 
-/-- `open_stacked__L5`, window 1. -/
-theorem w337_1 : WinOk 337 1 := winOk_of_C (by decide +kernel)
+/-- `open_stacked__L1`, window 0. -/
+theorem w337_0 : WinOk 337 0 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

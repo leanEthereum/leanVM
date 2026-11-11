@@ -17,11 +17,11 @@ theorem kuxstaticRange_74 : kuxStaticRange 74 30 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_104 : kuxStaticRange 104 25 := by
+theorem kuxstaticRange_104 : kuxStaticRange 104 24 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kuxstaticRange_129 : kuxStaticRange 129 27 := by
+theorem kuxstaticRange_128 : kuxStaticRange 128 28 := by
   unfold kuxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in

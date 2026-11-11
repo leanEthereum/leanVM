@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `squeeze_point_from__L23`, window 0. -/
+/-- `log2_ceil_in_the_exponent__L0_L34`, window 0. -/
 theorem w306_0 : WinOk 306 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L24`, window 0. -/
+/-- `log2_ceil_in_the_exponent__L16_L34`, window 0. -/
 theorem w307_0 : WinOk 307 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L25`, window 0. -/
+/-- `grind_check__L15`, window 0. -/
 theorem w308_0 : WinOk 308 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L26`, window 0. -/
+/-- `squeeze_point_from__L20`, window 0. -/
 theorem w309_0 : WinOk 309 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L27`, window 0. -/
+/-- `squeeze_point_from__L21`, window 0. -/
 theorem w310_0 : WinOk 310 0 := winOk_of_C (by decide +kernel)
 
-/-- `squeeze_point_from__L28`, window 0. -/
+/-- `squeeze_point_from__L22`, window 0. -/
 theorem w311_0 : WinOk 311 0 := winOk_of_C (by decide +kernel)
 
-/-- `opening_message__L1_L1`, window 0. -/
+/-- `squeeze_point_from__L23`, window 0. -/
 theorem w312_0 : WinOk 312 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L0`, window 0. -/
+/-- `squeeze_point_from__L24`, window 0. -/
 theorem w313_0 : WinOk 313 0 := winOk_of_C (by decide +kernel)
 
 theorem ok306 : CheckOk 306 := checkOk_one (by decide +kernel) w306_0

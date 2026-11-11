@@ -6,13 +6,18 @@ count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per op
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os
 
-# `verify_sub`'s statically bounded callees but its opening arm: the static calls, then the arms of its
-# other dispatches (`squeeze_point_from`'s by the stack log, `bus_grind_check`'s by the grinding bits).
-VS_CALLS = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'certify_placement',
-            'log2_ceil_in_the_exponent__L15_L34', 'grind_check__L15', 'opening_message__L1_L1', 'grind_check__L13',
-            'ring_switch_target']
-VS_DISPATCH = [['squeeze_point_from__L%d' % m for m in range(22, 29)], ['bus_grind_check__L%d' % b for b in range(18)]]
-VS_ST = VS_CALLS + [n for d in VS_DISPATCH for n in d]
+def vs_st(g):
+    """`verify_sub`'s statically bounded callees but its opening arm: its static calls, then the arms
+    of its other dispatches (`squeeze_point_from`'s by the stack log, `bus_grind_check`'s by the
+    grinding bits), each once, in order; not the ratio-bounded `RB`, `verify_tables`, the terminal."""
+    skip = {r for r, _ in RB} | {'verify_tables', 'check_opening_terminal'}
+    calls, arms = [], []
+    for st in g.fns[g.by['verify_sub']]['body']:
+        if st[0] == 'call' and st[1] not in skip and st[1] not in calls:
+            calls.append(st[1])
+        elif st[0] == 'dispatch' and not st[2][0].startswith('open_stacked__L'):
+            arms += [f for f in st[2] if f not in arms]
+    return calls + arms
 OM = ['verify_sub', 'child_claim_list_digest', '__loop4', 'child_claim_list_any', 'child_claim_list_mono']
 # A list of `n = 136·bigs + 17·groups + rest` claims (`list_split`, `groups < 8`, `rest < 17`): the
 # claim lists' loops per `136` claims (`CLAIM_BIG`) and per `17` (`CLAIM_GROUP`), `claim_list_digest`'s,
@@ -105,8 +110,9 @@ def tables(g):
         return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
     RA = [ratioA(r) for r, _ in RB]
     vtW, termW = vt_term(g)
-    osN = ['open_stacked__L%d' % c for c in range(28)]
+    osN = g.os_names()
     rbN = [r for r, _ in RB]
+    VS_ST = vs_st(g)
     def vsc(k, c):
         t = om[k]['verify_sub']
         for st in g.fns[g.by['verify_sub']]['body']:
@@ -115,10 +121,10 @@ def tables(g):
                 if n in rbN: i = rbN.index(n); t += RA[i][k] * RB[i][1] // 1000
                 elif n == 'verify_tables': t += vtW[k]
                 elif n == 'check_opening_terminal': t += termW[k]
-                else: assert n in VS_CALLS, n; t += stat(k, n)
+                else: assert n in VS_ST, n; t += stat(k, n)
             elif st[0] == 'dispatch':
                 if st[2] == osN: t += stat(k, osN[c])
-                else: assert st[2] in VS_DISPATCH, st[2]; t += max(stat(k, n) for n in st[2])
+                else: assert all(n in VS_ST for n in st[2]), st[2]; t += max(stat(k, n) for n in st[2])
             else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not __import__('ratio').blk_callees([st])), st[0]
         return t
     vsc.vtW, vsc.termW = vtW, termW
@@ -176,8 +182,8 @@ def write(g, OPS):
     o.append(opdefl('omT', 'The frame weights of `omNames`.', lambda k: [om[k][n] for n in OM]))
     o.append(opdef('kcVtW', '`verify_tables`\' instructions (`B1.VerifySub.vtWB Count.vsWords`).', lambda k: vsc.vtW[k]))
     o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
-    o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at candidate `c`, its two ratio-bounded callees '
-                    'within `37006`, `56391` words.', lambda k: [vsc(k, c) for c in range(28)]))
+    o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at the arm `c`, its two ratio-bounded callees '
+                    'within `%d`, `%d` words.' % (RB[0][1], RB[1][1]), lambda k: [vsc(k, c) for c in range(A)]))
     o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range @A@).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
@@ -193,7 +199,7 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
     kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
   (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
     (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
-''' % len(VS_ST))
+'''.replace('@A@', str(A)) % len(VS_ST))
     open(os.path.join(D, 'VsCountData.lean'), 'w', encoding='utf-8').write(
         HDR % ('VsCountData', 'The instruction counts of `verify_sub`\'s and `child_claim_list_digest`\'s static callees, per opcode.',
                'public import LeanVM.Guest.Count.StaticV\npublic import LeanVM.Guest.B1.Whir.Names\n')

@@ -16,39 +16,43 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop292`, window 0, part 0. -/
+/-- `level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw873_0_0 : cplWin 873 0 0 = true := by decide +kernel
 
-/-- `__loop293`, window 0, part 0. -/
+/-- `level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw873_1_0 : cplWin 873 1 0 = true := by decide +kernel
+
+/-- `level_positions__L4_L24_L6`, window 0, part 0. -/
 theorem cw874_0_0 : cplWin 874 0 0 = true := by decide +kernel
 
-/-- `__loop294`, window 0, part 0. -/
+/-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw875_0_0 : cplWin 875 0 0 = true := by decide +kernel
 
-/-- `__loop295`, window 0, part 0. -/
+/-- `level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw875_1_0 : cplWin 875 1 0 = true := by decide +kernel
+
+/-- `level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw876_0_0 : cplWin 876 0 0 = true := by decide +kernel
 
-/-- `__loop296`, window 0, part 0. -/
+/-- `level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw876_1_0 : cplWin 876 1 0 = true := by decide +kernel
+
+/-- `level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw877_0_0 : cplWin 877 0 0 = true := by decide +kernel
-
-/-- `__loop297`, window 0, part 0. -/
-theorem cw878_0_0 : cplWin 878 0 0 = true := by decide +kernel
-
-/-- `__loop298`, window 0, part 0. -/
-theorem cw879_0_0 : cplWin 879 0 0 = true := by decide +kernel
-
-/-- `__loop299`, window 0, part 0. -/
-theorem cw880_0_0 : cplWin 880 0 0 = true := by decide +kernel
 
 theorem ok873 : CplOk 873 := by
   intro i hi k hk
-  have hc : (certOf 873).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 873).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 873 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw873_0_0
+  · have hn : nParts 873 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw873_1_0
 
 theorem ok874 : CplOk 874 := by
   intro i hi k hk
@@ -62,63 +66,31 @@ theorem ok874 : CplOk 874 := by
 
 theorem ok875 : CplOk 875 := by
   intro i hi k hk
-  have hc : (certOf 875).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 875).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 875 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw875_0_0
+  · have hn : nParts 875 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw875_1_0
 
 theorem ok876 : CplOk 876 := by
   intro i hi k hk
-  have hc : (certOf 876).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 876).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 876 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw876_0_0
-
-theorem ok877 : CplOk 877 := by
-  intro i hi k hk
-  have hc : (certOf 877).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 877 0 = 1 := by decide +kernel
+  · have hn : nParts 876 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw877_0_0
-
-theorem ok878 : CplOk 878 := by
-  intro i hi k hk
-  have hc : (certOf 878).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 878 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw878_0_0
-
-theorem ok879 : CplOk 879 := by
-  intro i hi k hk
-  have hc : (certOf 879).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 879 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw879_0_0
-
-theorem ok880 : CplOk 880 := by
-  intro i hi k hk
-  have hc : (certOf 880).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 880 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw880_0_0
+    · exact cw876_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

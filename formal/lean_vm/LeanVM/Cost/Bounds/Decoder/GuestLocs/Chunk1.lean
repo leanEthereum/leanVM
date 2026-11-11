@@ -6,7 +6,7 @@ module
 
 public import LeanVM.Cost.Decoder.GuestTables
 
-/-! Bound: the guest's frame cells of functions `20` to `36` (`31552` cells) below `2^20`, a kernel
+/-! Bound: the guest's frame cells of functions `20` to `36` (`31549` cells) below `2^20`, a kernel
 evaluation of their certificates' cells in a module of its own (`GuestTablesFirewall.lean` checks
 that it imports the tables alone). -/
 

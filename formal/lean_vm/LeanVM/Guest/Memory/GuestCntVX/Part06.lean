@@ -9,26 +9,32 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kvxstaticRange_338 : kvxStaticRange 338 1 := by
+theorem kvxstaticRange_689 : kvxStaticRange 689 21 := by
   unfold kvxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvxstaticRange_339 : kvxStaticRange 339 1 := by
+theorem kvxstaticRange_710 : kvxStaticRange 710 21 := by
   unfold kvxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvxsplit_340_0 : noTopRet ((Data.core340.body.drop 0).take 1428) = true ∧
-    blockR (kvxlookJ 340) (kvxomLookJ 340) false [(.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 647, 1), (.n 648, 3), (.n 702, 21), (.n 779, 1), (.n 780, 3), (.n 827, 18), (.n 1374, 0), (.n 1375, 13), (.n 2051, 0), (.n 2052, 5), (.n 2473, 0), (.n 2474, 3), (.n 2799, 0), (.n 2800, 2)] Data.core340.params Data.core340.name ((Data.core340.body.drop 0).take 1428)
-      ([], []) = some (⟨23652, []⟩, []) ∧
-    blockEnv false [(.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 647, 1), (.n 648, 3), (.n 702, 21), (.n 779, 1), (.n 780, 3), (.n 827, 18), (.n 1374, 0), (.n 1375, 13), (.n 2051, 0), (.n 2052, 5), (.n 2473, 0), (.n 2474, 3), (.n 2799, 0), (.n 2800, 2)] Data.core340.params ([], []) ((Data.core340.body.drop 0).take 1428) = ([(.n 1375, 13), (.n 1374, 0), (.n 827, 18), (.n 780, 3), (.n 779, 1), (.n 702, 21), (.n 648, 3), (.n 647, 1), (.n 535, 28), (.n 481, 4), (.n 480, 1), (.n 367, 44), (.n 313, 8), (.n 312, 1), (.n 196, 54), (.n 152, 19), (.n 151, 1)], []) := by
-  decide +kernel
+theorem kvxstaticRange_731 : kvxStaticRange 731 21 := by
+  unfold kvxStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvxsplit_340_1428 : noTopRet ((Data.core340.body.drop 1428).take 1428) = true ∧
-    blockR (kvxlookJ 340) (kvxomLookJ 340) false [(.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 647, 1), (.n 648, 3), (.n 702, 21), (.n 779, 1), (.n 780, 3), (.n 827, 18), (.n 1374, 0), (.n 1375, 13), (.n 2051, 0), (.n 2052, 5), (.n 2473, 0), (.n 2474, 3), (.n 2799, 0), (.n 2800, 2)] Data.core340.params Data.core340.name ((Data.core340.body.drop 1428).take 1428)
-      ([(.n 1375, 13), (.n 1374, 0), (.n 827, 18), (.n 780, 3), (.n 779, 1), (.n 702, 21), (.n 648, 3), (.n 647, 1), (.n 535, 28), (.n 481, 4), (.n 480, 1), (.n 367, 44), (.n 313, 8), (.n 312, 1), (.n 196, 54), (.n 152, 19), (.n 151, 1)], []) = some (⟨2202, []⟩, []) ∧
-    blockEnv false [(.n 151, 1), (.n 152, 19), (.n 196, 54), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 480, 1), (.n 481, 4), (.n 535, 28), (.n 647, 1), (.n 648, 3), (.n 702, 21), (.n 779, 1), (.n 780, 3), (.n 827, 18), (.n 1374, 0), (.n 1375, 13), (.n 2051, 0), (.n 2052, 5), (.n 2473, 0), (.n 2474, 3), (.n 2799, 0), (.n 2800, 2)] Data.core340.params ([(.n 1375, 13), (.n 1374, 0), (.n 827, 18), (.n 780, 3), (.n 779, 1), (.n 702, 21), (.n 648, 3), (.n 647, 1), (.n 535, 28), (.n 481, 4), (.n 480, 1), (.n 367, 44), (.n 313, 8), (.n 312, 1), (.n 196, 54), (.n 152, 19), (.n 151, 1)], []) ((Data.core340.body.drop 1428).take 1428) = ([(.n 2800, 2), (.n 2799, 0), (.n 2474, 3), (.n 2473, 0), (.n 2052, 5), (.n 2051, 0), (.n 1375, 13), (.n 1374, 0), (.n 827, 18), (.n 780, 3), (.n 779, 1), (.n 702, 21), (.n 648, 3), (.n 647, 1), (.n 535, 28), (.n 481, 4), (.n 480, 1), (.n 367, 44), (.n 313, 8), (.n 312, 1), (.n 196, 54), (.n 152, 19), (.n 151, 1)], []) := by
-  decide +kernel
+theorem kvxstaticRange_752 : kvxStaticRange 752 21 := by
+  unfold kvxStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kvxstaticRange_773 : kvxStaticRange 773 20 := by
+  unfold kvxStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kvxstaticRange_793 : kvxStaticRange 793 21 := by
+  unfold kvxStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kvxstaticRange_814 : kvxStaticRange 814 21 := by
+  unfold kvxStaticRange; decide +kernel
 
 end
 end LeanVM.Guest

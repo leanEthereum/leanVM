@@ -9,11 +9,11 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_320 : kujStaticRange 320 17 := by
+theorem kujstaticRange_320 : kujStaticRange 320 18 := by
   unfold kujStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kujstaticRange_337 : kujStaticRange 337 6 := by
+theorem kujstaticRange_338 : kujStaticRange 338 3 := by
   unfold kujStaticRange; decide +kernel
 
 end

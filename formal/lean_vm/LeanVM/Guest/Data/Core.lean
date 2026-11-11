@@ -36,9 +36,6 @@ public import LeanVM.Guest.Data.Core25
 public import LeanVM.Guest.Data.Core26
 public import LeanVM.Guest.Data.Core27
 public import LeanVM.Guest.Data.Core28
-public import LeanVM.Guest.Data.Core29
-public import LeanVM.Guest.Data.Core30
-public import LeanVM.Guest.Data.Core31
 
 namespace LeanVM.Guest.Data
 
@@ -114,7 +111,43 @@ noncomputable def coreFunctions : List Core.Fn :=
   core976 :: core977 :: core978 :: core979 :: core980 :: core981 :: core982 :: core983 :: core984 :: core985 :: core986 :: core987 :: core988 :: core989 :: core990 :: core991 ::
   core992 :: core993 :: core994 :: core995 :: core996 :: core997 :: core998 :: core999 :: core1000 :: core1001 :: core1002 :: core1003 :: core1004 :: core1005 :: core1006 :: core1007 ::
   core1008 :: core1009 :: core1010 :: core1011 :: core1012 :: core1013 :: core1014 :: core1015 :: core1016 :: core1017 :: core1018 :: core1019 :: core1020 :: core1021 :: core1022 :: core1023 ::
-  core1024 :: core1025 :: core1026 :: core1027 :: core1028 :: core1029 :: core1030 :: core1031 :: core1032 :: core1033 :: core1034 :: []
+  core1024 :: core1025 :: core1026 :: core1027 :: core1028 :: core1029 :: core1030 :: core1031 :: core1032 :: core1033 :: core1034 :: core1035 :: core1036 :: core1037 :: core1038 :: core1039 ::
+  core1040 :: core1041 :: core1042 :: core1043 :: core1044 :: core1045 :: core1046 :: core1047 :: core1048 :: core1049 :: core1050 :: core1051 :: core1052 :: core1053 :: core1054 :: core1055 ::
+  core1056 :: core1057 :: core1058 :: core1059 :: core1060 :: core1061 :: core1062 :: core1063 :: core1064 :: core1065 :: core1066 :: core1067 :: core1068 :: core1069 :: core1070 :: core1071 ::
+  core1072 :: core1073 :: core1074 :: core1075 :: core1076 :: core1077 :: core1078 :: core1079 :: core1080 :: core1081 :: core1082 :: core1083 :: core1084 :: core1085 :: core1086 :: core1087 ::
+  core1088 :: core1089 :: core1090 :: core1091 :: core1092 :: core1093 :: core1094 :: core1095 :: core1096 :: core1097 :: core1098 :: core1099 :: core1100 :: core1101 :: core1102 :: core1103 ::
+  core1104 :: core1105 :: core1106 :: core1107 :: core1108 :: core1109 :: core1110 :: core1111 :: core1112 :: core1113 :: core1114 :: core1115 :: core1116 :: core1117 :: core1118 :: core1119 ::
+  core1120 :: core1121 :: core1122 :: core1123 :: core1124 :: core1125 :: core1126 :: core1127 :: core1128 :: core1129 :: core1130 :: core1131 :: core1132 :: core1133 :: core1134 :: core1135 ::
+  core1136 :: core1137 :: core1138 :: core1139 :: core1140 :: core1141 :: core1142 :: core1143 :: core1144 :: core1145 :: core1146 :: core1147 :: core1148 :: core1149 :: core1150 :: core1151 ::
+  core1152 :: core1153 :: core1154 :: core1155 :: core1156 :: core1157 :: core1158 :: core1159 :: core1160 :: core1161 :: core1162 :: core1163 :: core1164 :: core1165 :: core1166 :: core1167 ::
+  core1168 :: core1169 :: core1170 :: core1171 :: core1172 :: core1173 :: core1174 :: core1175 :: core1176 :: core1177 :: core1178 :: core1179 :: core1180 :: core1181 :: core1182 :: core1183 ::
+  core1184 :: core1185 :: core1186 :: core1187 :: core1188 :: core1189 :: core1190 :: core1191 :: core1192 :: core1193 :: core1194 :: core1195 :: core1196 :: core1197 :: core1198 :: core1199 ::
+  core1200 :: core1201 :: core1202 :: core1203 :: core1204 :: core1205 :: core1206 :: core1207 :: core1208 :: core1209 :: core1210 :: core1211 :: core1212 :: core1213 :: core1214 :: core1215 ::
+  core1216 :: core1217 :: core1218 :: core1219 :: core1220 :: core1221 :: core1222 :: core1223 :: core1224 :: core1225 :: core1226 :: core1227 :: core1228 :: core1229 :: core1230 :: core1231 ::
+  core1232 :: core1233 :: core1234 :: core1235 :: core1236 :: core1237 :: core1238 :: core1239 :: core1240 :: core1241 :: core1242 :: core1243 :: core1244 :: core1245 :: core1246 :: core1247 ::
+  core1248 :: core1249 :: core1250 :: core1251 :: core1252 :: core1253 :: core1254 :: core1255 :: core1256 :: core1257 :: core1258 :: core1259 :: core1260 :: core1261 :: core1262 :: core1263 ::
+  core1264 :: core1265 :: core1266 :: core1267 :: core1268 :: core1269 :: core1270 :: core1271 :: core1272 :: core1273 :: core1274 :: core1275 :: core1276 :: core1277 :: core1278 :: core1279 ::
+  core1280 :: core1281 :: core1282 :: core1283 :: core1284 :: core1285 :: core1286 :: core1287 :: core1288 :: core1289 :: core1290 :: core1291 :: core1292 :: core1293 :: core1294 :: core1295 ::
+  core1296 :: core1297 :: core1298 :: core1299 :: core1300 :: core1301 :: core1302 :: core1303 :: core1304 :: core1305 :: core1306 :: core1307 :: core1308 :: core1309 :: core1310 :: core1311 ::
+  core1312 :: core1313 :: core1314 :: core1315 :: core1316 :: core1317 :: core1318 :: core1319 :: core1320 :: core1321 :: core1322 :: core1323 :: core1324 :: core1325 :: core1326 :: core1327 ::
+  core1328 :: core1329 :: core1330 :: core1331 :: core1332 :: core1333 :: core1334 :: core1335 :: core1336 :: core1337 :: core1338 :: core1339 :: core1340 :: core1341 :: core1342 :: core1343 ::
+  core1344 :: core1345 :: core1346 :: core1347 :: core1348 :: core1349 :: core1350 :: core1351 :: core1352 :: core1353 :: core1354 :: core1355 :: core1356 :: core1357 :: core1358 :: core1359 ::
+  core1360 :: core1361 :: core1362 :: core1363 :: core1364 :: core1365 :: core1366 :: core1367 :: core1368 :: core1369 :: core1370 :: core1371 :: core1372 :: core1373 :: core1374 :: core1375 ::
+  core1376 :: core1377 :: core1378 :: core1379 :: core1380 :: core1381 :: core1382 :: core1383 :: core1384 :: core1385 :: core1386 :: core1387 :: core1388 :: core1389 :: core1390 :: core1391 ::
+  core1392 :: core1393 :: core1394 :: core1395 :: core1396 :: core1397 :: core1398 :: core1399 :: core1400 :: core1401 :: core1402 :: core1403 :: core1404 :: core1405 :: core1406 :: core1407 ::
+  core1408 :: core1409 :: core1410 :: core1411 :: core1412 :: core1413 :: core1414 :: core1415 :: core1416 :: core1417 :: core1418 :: core1419 :: core1420 :: core1421 :: core1422 :: core1423 ::
+  core1424 :: core1425 :: core1426 :: core1427 :: core1428 :: core1429 :: core1430 :: core1431 :: core1432 :: core1433 :: core1434 :: core1435 :: core1436 :: core1437 :: core1438 :: core1439 ::
+  core1440 :: core1441 :: core1442 :: core1443 :: core1444 :: core1445 :: core1446 :: core1447 :: core1448 :: core1449 :: core1450 :: core1451 :: core1452 :: core1453 :: core1454 :: core1455 ::
+  core1456 :: core1457 :: core1458 :: core1459 :: core1460 :: core1461 :: core1462 :: core1463 :: core1464 :: core1465 :: core1466 :: core1467 :: core1468 :: core1469 :: core1470 :: core1471 ::
+  core1472 :: core1473 :: core1474 :: core1475 :: core1476 :: core1477 :: core1478 :: core1479 :: core1480 :: core1481 :: core1482 :: core1483 :: core1484 :: core1485 :: core1486 :: core1487 ::
+  core1488 :: core1489 :: core1490 :: core1491 :: core1492 :: core1493 :: core1494 :: core1495 :: core1496 :: core1497 :: core1498 :: core1499 :: core1500 :: core1501 :: core1502 :: core1503 ::
+  core1504 :: core1505 :: core1506 :: core1507 :: core1508 :: core1509 :: core1510 :: core1511 :: core1512 :: core1513 :: core1514 :: core1515 :: core1516 :: core1517 :: core1518 :: core1519 ::
+  core1520 :: core1521 :: core1522 :: core1523 :: core1524 :: core1525 :: core1526 :: core1527 :: core1528 :: core1529 :: core1530 :: core1531 :: core1532 :: core1533 :: core1534 :: core1535 ::
+  core1536 :: core1537 :: core1538 :: core1539 :: core1540 :: core1541 :: core1542 :: core1543 :: core1544 :: core1545 :: core1546 :: core1547 :: core1548 :: core1549 :: core1550 :: core1551 ::
+  core1552 :: core1553 :: core1554 :: core1555 :: core1556 :: core1557 :: core1558 :: core1559 :: core1560 :: core1561 :: core1562 :: core1563 :: core1564 :: core1565 :: core1566 :: core1567 ::
+  core1568 :: core1569 :: core1570 :: core1571 :: core1572 :: core1573 :: core1574 :: core1575 :: core1576 :: core1577 :: core1578 :: core1579 :: core1580 :: core1581 :: core1582 :: core1583 ::
+  core1584 :: core1585 :: core1586 :: core1587 :: core1588 :: core1589 :: core1590 :: core1591 :: core1592 :: core1593 :: core1594 :: core1595 :: core1596 :: core1597 :: core1598 :: core1599 ::
+  core1600 :: []
 
 end
 end LeanVM.Guest.Data

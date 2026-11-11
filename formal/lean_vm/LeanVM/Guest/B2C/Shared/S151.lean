@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L18`, window 6. -/
-theorem w350_6 : shareWin 350 (snapsOf 350) 6 = true := by decide +kernel
+/-- `da_factors__L14_L7_L0`, window 1. -/
+theorem w421_1 : shareWin 421 (snapsOf 421) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L18`, window 7. -/
-theorem w350_7 : shareWin 350 (snapsOf 350) 7 = true := by decide +kernel
+/-- `da_expand__L14_L7`, once. -/
+theorem st422 : shareStatic 422 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L18`, window 8. -/
-theorem w350_8 : shareWin 350 (snapsOf 350) 8 = true := by decide +kernel
+/-- `da_expand__L14_L7`, window 0. -/
+theorem w422_0 : shareWin 422 (snapsOf 422) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L18`, window 9. -/
-theorem w350_9 : shareWin 350 (snapsOf 350) 9 = true := by decide +kernel
+/-- `da_expand__L14_L7`, window 1. -/
+theorem w422_1 : shareWin 422 (snapsOf 422) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L18`, window 10. -/
-theorem w350_10 : shareWin 350 (snapsOf 350) 10 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, once. -/
+theorem st423 : shareStatic 423 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L19`, once. -/
-theorem st351 : shareStatic 351 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, window 0. -/
+theorem w423_0 : shareWin 423 (snapsOf 423) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L19`, window 0. -/
-theorem w351_0 : shareWin 351 (snapsOf 351) 0 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, window 1. -/
+theorem w423_1 : shareWin 423 (snapsOf 423) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L19`, window 1. -/
-theorem w351_1 : shareWin 351 (snapsOf 351) 1 = true := by decide +kernel
+/-- `da_factors__L7_L8_L128`, window 2. -/
+theorem w423_2 : shareWin 423 (snapsOf 423) 2 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

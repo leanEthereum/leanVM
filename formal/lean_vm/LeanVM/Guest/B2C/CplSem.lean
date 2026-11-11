@@ -317,6 +317,11 @@ theorem locC_holds (hF : FrameHolds L j fp σ es vs kfps hdr) (hl : LocOk j loc)
       V y (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hKy,
       T t1 (by simp) (by simp [locC, cellsC]), T t2 (by simp) (by simp [locC, cellsC]), h1, h2, ?_⟩
     rw [V k (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hk]
+  | touch t p =>
+    obtain ⟨hK, hr⟩ := hh
+    have ht := inFrame_mem hin (loc.cell t) (by simp [locC, cellsC])
+    exact ⟨σ p, σ t, V p (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hK,
+      tmp_cell hF hl ha (by simp [Ev.tmps, atomTmps]) ht.1 ht.2, hr⟩
   | assertInK x y =>
     obtain ⟨hx, hy⟩ := hh
     exact ⟨σ x, σ y, V x (by simp [Ev.uses, atomUses]) (by simp [locC, cellsC]), hx,

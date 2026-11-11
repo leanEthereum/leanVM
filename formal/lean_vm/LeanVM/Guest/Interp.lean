@@ -277,6 +277,7 @@ def execAtom (fr : Nat) : Atom → IM Unit
       setV fr p p'
       ((List.range run.length).zip run).forM fun (k, c) => do link (← memAt p' k) (.val fr c)
   | .hint h => execHint fr h
+  | .touch t p => do link (← memAt (← needV fr p) 0) (.val fr t)
 
 /-- The arm `x` selects: `j` with `x = g^j`. -/
 def armOf (x : E) (n : Nat) : Option Nat :=
@@ -440,6 +441,7 @@ def showAtom : Atom → String
       let layout := fun (odd : Bool) => if odd then "odd" else "even"
       s!"[{showVs outs}] {layout outOdd} = keccak_f([{showVs ins}] {layout inOdd})"
   | .frameAddr p run => s!"{showV p} = addr [{showVs run}]"
+  | .touch t p => s!"{showV t} = mem[{showV p}] (touch)"
   | .hint h => match h with
     | .witness s d => s!"hint {showDest d} = witness \"{s}\""
     | .bits v st n d => s!"hint {showDest d} = bits {showV v} [{st}..+{n}]"

@@ -34,7 +34,7 @@ noncomputable def fsOf (f : String) : ℕ :=
   | some j => fsAt (j + 1)
   | none => 0
 
-theorem frameSizes_length : Data.frameSizes.length = 1036 := by decide +kernel
+theorem frameSizes_length : Data.frameSizes.length = 1602 := by decide +kernel
 
 /-- Core function `j` is the first of its name. -/
 theorem coreProgram_indexOf?_getElem {j : ℕ} (h : j < coreProgram.length) :

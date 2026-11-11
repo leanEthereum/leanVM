@@ -17,29 +17,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop398`, window 0. -/
+/-- `__loop84`, window 0. -/
 theorem w989_0 : WinOk 989 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop398`, window 1. -/
-theorem w989_1 : WinOk 989 1 := winOk_of_C (by decide +kernel)
-
-/-- `__loop398`, window 2. -/
-theorem w989_2 : WinOk 989 2 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L16_L6`, window 0. -/
+/-- `__loop85`, window 0. -/
 theorem w990_0 : WinOk 990 0 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L16_L6`, window 1. -/
-theorem w990_1 : WinOk 990 1 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L16_L6`, window 2. -/
-theorem w990_2 : WinOk 990 2 := winOk_of_C (by decide +kernel)
-
-/-- `__loop399`, window 0. -/
+/-- `__loop86`, window 0. -/
 theorem w991_0 : WinOk 991 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop399`, window 1. -/
-theorem w991_1 : WinOk 991 1 := winOk_of_C (by decide +kernel)
+/-- `__loop87`, window 0. -/
+theorem w992_0 : WinOk 992 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop88`, window 0. -/
+theorem w993_0 : WinOk 993 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop89`, window 0. -/
+theorem w994_0 : WinOk 994 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop90`, window 0. -/
+theorem w995_0 : WinOk 995 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop91`, window 0. -/
+theorem w996_0 : WinOk 996 0 := winOk_of_C (by decide +kernel)
+
+theorem ok989 : CheckOk 989 := checkOk_one (by decide +kernel) w989_0
+
+theorem ok990 : CheckOk 990 := checkOk_one (by decide +kernel) w990_0
+
+theorem ok991 : CheckOk 991 := checkOk_one (by decide +kernel) w991_0
+
+theorem ok992 : CheckOk 992 := checkOk_one (by decide +kernel) w992_0
+
+theorem ok993 : CheckOk 993 := checkOk_one (by decide +kernel) w993_0
+
+theorem ok994 : CheckOk 994 := checkOk_one (by decide +kernel) w994_0
+
+theorem ok995 : CheckOk 995 := checkOk_one (by decide +kernel) w995_0
+
+theorem ok996 : CheckOk 996 := checkOk_one (by decide +kernel) w996_0
 
 end
 end LeanVM.Guest.Checked

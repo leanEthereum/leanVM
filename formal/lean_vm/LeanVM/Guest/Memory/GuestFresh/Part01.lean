@@ -24,11 +24,11 @@ theorem freshRange_86 : FreshRange 86 31 := by
   unfold FreshRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem freshRange_117 : FreshRange 117 66 := by
+theorem freshRange_117 : FreshRange 117 65 := by
   unfold FreshRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem freshRange_183 : FreshRange 183 68 := by
+theorem freshRange_182 : FreshRange 182 51 := by
   unfold FreshRange; decide +kernel
 
 end

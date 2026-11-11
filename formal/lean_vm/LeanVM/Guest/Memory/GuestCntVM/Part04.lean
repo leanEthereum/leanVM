@@ -9,35 +9,32 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kvmsplit_335_1428 : noTopRet ((Data.core335.body.drop 1428).take 1428) = true ∧
-    blockR (kvmlookJ 335) (kvmomLookJ 335) false [(.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 866, 18), (.n 1495, 0), (.n 1496, 27), (.n 1803, 0), (.n 1804, 6), (.n 2609, 0), (.n 2610, 4), (.n 2631, 0), (.n 2632, 2)] Data.core335.params Data.core335.name ((Data.core335.body.drop 1428).take 1428)
-      ([(.n 866, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 37), (.n 151, 1)], []) = some (⟨14434, []⟩, []) ∧
-    blockEnv false [(.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 866, 18), (.n 1495, 0), (.n 1496, 27), (.n 1803, 0), (.n 1804, 6), (.n 2609, 0), (.n 2610, 4), (.n 2631, 0), (.n 2632, 2)] Data.core335.params ([(.n 866, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 37), (.n 151, 1)], []) ((Data.core335.body.drop 1428).take 1428) = ([(.n 2632, 2), (.n 2631, 0), (.n 2610, 4), (.n 2609, 0), (.n 1804, 6), (.n 1803, 0), (.n 1496, 27), (.n 1495, 0), (.n 866, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 37), (.n 151, 1)], []) := by
-  decide +kernel
+theorem kvmstaticRange_367 : kvmStaticRange 367 22 := by
+  unfold kvmStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvmsplit_335_2856 : blockR (kvmlookJ 335) (kvmomLookJ 335) false [(.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 866, 18), (.n 1495, 0), (.n 1496, 27), (.n 1803, 0), (.n 1804, 6), (.n 2609, 0), (.n 2610, 4), (.n 2631, 0), (.n 2632, 2)] Data.core335.params Data.core335.name (Data.core335.body.drop 2856)
-    ([(.n 2632, 2), (.n 2631, 0), (.n 2610, 4), (.n 2609, 0), (.n 1804, 6), (.n 1803, 0), (.n 1496, 27), (.n 1495, 0), (.n 866, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 37), (.n 151, 1)], []) = some (⟨0, []⟩, []) := by
-  decide +kernel
+theorem kvmstaticRange_389 : kvmStaticRange 389 23 := by
+  unfold kvmStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvmsplit_336_0 : noTopRet ((Data.core336.body.drop 0).take 1428) = true ∧
-    blockR (kvmlookJ 336) (kvmomLookJ 336) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 914, 18), (.n 1584, 0), (.n 1585, 27), (.n 1904, 0), (.n 1905, 6), (.n 2752, 0), (.n 2753, 4), (.n 2774, 0), (.n 2775, 2)] Data.core336.params Data.core336.name ((Data.core336.body.drop 0).take 1428)
-      ([], []) = some (⟨43795, []⟩, []) ∧
-    blockEnv false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 914, 18), (.n 1584, 0), (.n 1585, 27), (.n 1904, 0), (.n 1905, 6), (.n 2752, 0), (.n 2753, 4), (.n 2774, 0), (.n 2775, 2)] Data.core336.params ([], []) ((Data.core336.body.drop 0).take 1428) = ([(.n 914, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 44), (.n 151, 1)], []) := by
-  decide +kernel
+theorem kvmstaticRange_412 : kvmStaticRange 412 14 := by
+  unfold kvmStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvmsplit_336_1428 : noTopRet ((Data.core336.body.drop 1428).take 1428) = true ∧
-    blockR (kvmlookJ 336) (kvmomLookJ 336) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 914, 18), (.n 1584, 0), (.n 1585, 27), (.n 1904, 0), (.n 1905, 6), (.n 2752, 0), (.n 2753, 4), (.n 2774, 0), (.n 2775, 2)] Data.core336.params Data.core336.name ((Data.core336.body.drop 1428).take 1428)
-      ([(.n 914, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 44), (.n 151, 1)], []) = some (⟨15058, []⟩, []) ∧
-    blockEnv false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 914, 18), (.n 1584, 0), (.n 1585, 27), (.n 1904, 0), (.n 1905, 6), (.n 2752, 0), (.n 2753, 4), (.n 2774, 0), (.n 2775, 2)] Data.core336.params ([(.n 914, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 44), (.n 151, 1)], []) ((Data.core336.body.drop 1428).take 1428) = ([(.n 2775, 2), (.n 2774, 0), (.n 2753, 4), (.n 2752, 0), (.n 1905, 6), (.n 1904, 0), (.n 1585, 27), (.n 1584, 0), (.n 914, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 44), (.n 151, 1)], []) := by
-  decide +kernel
+theorem kvmstaticRange_426 : kvmStaticRange 426 30 := by
+  unfold kvmStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kvmsplit_336_2856 : blockR (kvmlookJ 336) (kvmomLookJ 336) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 914, 18), (.n 1584, 0), (.n 1585, 27), (.n 1904, 0), (.n 1905, 6), (.n 2752, 0), (.n 2753, 4), (.n 2774, 0), (.n 2775, 2)] Data.core336.params Data.core336.name (Data.core336.body.drop 2856)
-    ([(.n 2775, 2), (.n 2774, 0), (.n 2753, 4), (.n 2752, 0), (.n 1905, 6), (.n 1904, 0), (.n 1585, 27), (.n 1584, 0), (.n 914, 18), (.n 783, 3), (.n 782, 1), (.n 704, 23), (.n 650, 4), (.n 649, 1), (.n 538, 32), (.n 484, 6), (.n 483, 1), (.n 368, 55), (.n 314, 10), (.n 313, 1), (.n 196, 109), (.n 152, 44), (.n 151, 1)], []) = some (⟨0, []⟩, []) := by
-  decide +kernel
+theorem kvmstaticRange_456 : kvmStaticRange 456 23 := by
+  unfold kvmStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kvmstaticRange_479 : kvmStaticRange 479 21 := by
+  unfold kvmStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kvmstaticRange_500 : kvmStaticRange 500 21 := by
+  unfold kvmStaticRange; decide +kernel
 
 end
 end LeanVM.Guest

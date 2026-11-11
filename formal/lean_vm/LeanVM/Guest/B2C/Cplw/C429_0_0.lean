@@ -16,26 +16,29 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `da_levels__L256_L8`, window 0, part 0. -/
+/-- `__loop31`, window 0, part 0. -/
 theorem cw429_0_0 : cplWin 429 0 0 = true := by decide +kernel
 
-/-- `da_levels__L512_L9`, window 0, part 0. -/
+/-- `__loop32`, window 0, part 0. -/
 theorem cw430_0_0 : cplWin 430 0 0 = true := by decide +kernel
 
-/-- `da_levels__L1024_L10`, window 0, part 0. -/
+/-- `__loop33`, window 0, part 0. -/
 theorem cw431_0_0 : cplWin 431 0 0 = true := by decide +kernel
 
-/-- `da_expand__L7_L8`, window 0, part 0. -/
+/-- `grind_check__L2`, window 0, part 0. -/
 theorem cw432_0_0 : cplWin 432 0 0 = true := by decide +kernel
 
-/-- `da_expand__L7_L8`, window 1, part 0. -/
-theorem cw432_1_0 : cplWin 432 1 0 = true := by decide +kernel
-
-/-- `__loop25`, window 0, part 0. -/
+/-- `__loop34`, window 0, part 0. -/
 theorem cw433_0_0 : cplWin 433 0 0 = true := by decide +kernel
 
-/-- `da_factors__L14_L7_L0`, window 0, part 0. -/
+/-- `batch_sumcheck__L23`, window 0, part 0. -/
 theorem cw434_0_0 : cplWin 434 0 0 = true := by decide +kernel
+
+/-- `__loop35`, window 0, part 0. -/
+theorem cw435_0_0 : cplWin 435 0 0 = true := by decide +kernel
+
+/-- `rs_eq_rows__L8`, window 0, part 0. -/
+theorem cw436_0_0 : cplWin 436 0 0 = true := by decide +kernel
 
 theorem ok429 : CplOk 429 := by
   intro i hi k hk
@@ -69,17 +72,13 @@ theorem ok431 : CplOk 431 := by
 
 theorem ok432 : CplOk 432 := by
   intro i hi k hk
-  have hc : (certOf 432).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 432).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 432 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw432_0_0
-  · have hn : nParts 432 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw432_1_0
 
 theorem ok433 : CplOk 433 := by
   intro i hi k hk
@@ -100,6 +99,16 @@ theorem ok434 : CplOk 434 := by
     rw [hn] at hk
     interval_cases k
     · exact cw434_0_0
+
+theorem ok435 : CplOk 435 := by
+  intro i hi k hk
+  have hc : (certOf 435).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 435 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw435_0_0
 
 end
 end LeanVM.Guest.B2C.Cplw

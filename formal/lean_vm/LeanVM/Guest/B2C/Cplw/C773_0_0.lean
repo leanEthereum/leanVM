@@ -16,39 +16,43 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `decode_query_windows__L21_L4`, window 0, part 0. -/
+/-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw773_0_0 : cplWin 773 0 0 = true := by decide +kernel
 
-/-- `__loop217`, window 0, part 0. -/
+/-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw773_1_0 : cplWin 773 1 0 = true := by decide +kernel
+
+/-- `level_positions__L9_L22_L4`, window 0, part 0. -/
 theorem cw774_0_0 : cplWin 774 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L21_L4_L0_L0_L0_L0_L0`, window 0, part 0. -/
+/-- `level_positions__L8_L23_L5`, window 0, part 0. -/
 theorem cw775_0_0 : cplWin 775 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L21_L4_L0_L0_L0_L0_L0`, window 1, part 0. -/
-theorem cw775_1_0 : cplWin 775 1 0 = true := by decide +kernel
-
-/-- `__loop218`, window 0, part 0. -/
+/-- `level_positions__L7_L24_L6`, window 0, part 0. -/
 theorem cw776_0_0 : cplWin 776 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L20_L4_L2_L1635_L8_L3_L1`, window 0, part 0. -/
+/-- `level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw777_0_0 : cplWin 777 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L0_L0_L4_L16_L20_L4_L2_L1635_L8_L3_L1`, window 1, part 0. -/
+/-- `level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0`, window 1, part 0. -/
 theorem cw777_1_0 : cplWin 777 1 0 = true := by decide +kernel
 
-/-- `__loop219`, window 0, part 0. -/
+/-- `level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw778_0_0 : cplWin 778 0 0 = true := by decide +kernel
 
 theorem ok773 : CplOk 773 := by
   intro i hi k hk
-  have hc : (certOf 773).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 773).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 773 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw773_0_0
+  · have hn : nParts 773 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw773_1_0
 
 theorem ok774 : CplOk 774 := by
   intro i hi k hk
@@ -62,17 +66,13 @@ theorem ok774 : CplOk 774 := by
 
 theorem ok775 : CplOk 775 := by
   intro i hi k hk
-  have hc : (certOf 775).cuts.length = 1 := by decide +kernel
+  have hc : (certOf 775).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 775 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw775_0_0
-  · have hn : nParts 775 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw775_1_0
 
 theorem ok776 : CplOk 776 := by
   intro i hi k hk

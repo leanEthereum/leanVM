@@ -16,97 +16,85 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop263`, window 0, part 0. -/
+/-- `level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw832_0_0 : cplWin 832 0 0 = true := by decide +kernel
 
-/-- `__loop264`, window 0, part 0. -/
+/-- `level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw832_1_0 : cplWin 832 1 0 = true := by decide +kernel
+
+/-- `level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0`, window 0, part 0. -/
 theorem cw833_0_0 : cplWin 833 0 0 = true := by decide +kernel
 
-/-- `decode_query_windows__L25_L6`, window 0, part 0. -/
+/-- `level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0`, window 1, part 0. -/
+theorem cw833_1_0 : cplWin 833 1 0 = true := by decide +kernel
+
+/-- `level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1`, window 0, part 0. -/
 theorem cw834_0_0 : cplWin 834 0 0 = true := by decide +kernel
 
-/-- `__loop265`, window 0, part 0. -/
+/-- `level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1`, window 1, part 0. -/
+theorem cw834_1_0 : cplWin 834 1 0 = true := by decide +kernel
+
+/-- `level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1`, window 0, part 0. -/
 theorem cw835_0_0 : cplWin 835 0 0 = true := by decide +kernel
 
-/-- `opening_queries__L1_L1_L6_L32_L25_L6_L0_L0_L0_L0_L0`, window 0, part 0. -/
-theorem cw836_0_0 : cplWin 836 0 0 = true := by decide +kernel
-
-/-- `opening_queries__L1_L1_L6_L32_L25_L6_L0_L0_L0_L0_L0`, window 1, part 0. -/
-theorem cw836_1_0 : cplWin 836 1 0 = true := by decide +kernel
-
-/-- `opening_queries__L1_L1_L6_L32_L25_L6_L0_L0_L0_L0_L0`, window 2, part 0. -/
-theorem cw836_2_0 : cplWin 836 2 0 = true := by decide +kernel
-
-/-- `decode_query_windows__L24_L5`, window 0, part 0. -/
-theorem cw837_0_0 : cplWin 837 0 0 = true := by decide +kernel
+/-- `level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1`, window 1, part 0. -/
+theorem cw835_1_0 : cplWin 835 1 0 = true := by decide +kernel
 
 theorem ok832 : CplOk 832 := by
   intro i hi k hk
-  have hc : (certOf 832).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 832).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 832 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw832_0_0
+  · have hn : nParts 832 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw832_1_0
 
 theorem ok833 : CplOk 833 := by
   intro i hi k hk
-  have hc : (certOf 833).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 833).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 833 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw833_0_0
+  · have hn : nParts 833 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw833_1_0
 
 theorem ok834 : CplOk 834 := by
   intro i hi k hk
-  have hc : (certOf 834).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 834).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 834 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw834_0_0
+  · have hn : nParts 834 1 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw834_1_0
 
 theorem ok835 : CplOk 835 := by
   intro i hi k hk
-  have hc : (certOf 835).cuts.length = 0 := by decide +kernel
+  have hc : (certOf 835).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · have hn : nParts 835 0 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw835_0_0
-
-theorem ok836 : CplOk 836 := by
-  intro i hi k hk
-  have hc : (certOf 836).cuts.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 836 0 = 1 := by decide +kernel
+  · have hn : nParts 835 1 = 1 := by decide +kernel
     rw [hn] at hk
     interval_cases k
-    · exact cw836_0_0
-  · have hn : nParts 836 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw836_1_0
-  · have hn : nParts 836 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw836_2_0
-
-theorem ok837 : CplOk 837 := by
-  intro i hi k hk
-  have hc : (certOf 837).cuts.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nParts 837 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw837_0_0
+    · exact cw835_1_0
 
 end
 end LeanVM.Guest.B2C.Cplw

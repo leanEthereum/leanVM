@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L17_L7`, window 5. -/
-theorem w967_5 : shareWin 967 (snapsOf 967) 5 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 4. -/
+theorem w1236_4 : shareWin 1236 (snapsOf 1236) 4 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L17_L7`, window 6. -/
-theorem w967_6 : shareWin 967 (snapsOf 967) 6 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 5. -/
+theorem w1236_5 : shareWin 1236 (snapsOf 1236) 5 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, once. -/
-theorem st968 : shareStatic 968 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 6. -/
+theorem w1236_6 : shareWin 1236 (snapsOf 1236) 6 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 0. -/
-theorem w968_0 : shareWin 968 (snapsOf 968) 0 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 7. -/
+theorem w1236_7 : shareWin 1236 (snapsOf 1236) 7 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 1. -/
-theorem w968_1 : shareWin 968 (snapsOf 968) 1 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 8. -/
+theorem w1236_8 : shareWin 1236 (snapsOf 1236) 8 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 2. -/
-theorem w968_2 : shareWin 968 (snapsOf 968) 2 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 9. -/
+theorem w1236_9 : shareWin 1236 (snapsOf 1236) 9 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop380`, window 3. -/
-theorem w968_3 : shareWin 968 (snapsOf 968) 3 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 10. -/
+theorem w1236_10 : shareWin 1236 (snapsOf 1236) 10 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop381`, once. -/
-theorem st969 : shareStatic 969 = true := by decide +kernel
+/-- `verify_merkle_cap__L8`, window 11. -/
+theorem w1236_11 : shareWin 1236 (snapsOf 1236) 11 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

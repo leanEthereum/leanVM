@@ -17,28 +17,28 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `bus_grind_check__L1`, window 0. -/
+/-- `squeeze_point_from__L25`, window 0. -/
 theorem w314_0 : WinOk 314 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L2`, window 0. -/
+/-- `squeeze_point_from__L26`, window 0. -/
 theorem w315_0 : WinOk 315 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L3`, window 0. -/
+/-- `squeeze_point_from__L27`, window 0. -/
 theorem w316_0 : WinOk 316 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L4`, window 0. -/
+/-- `squeeze_point_from__L28`, window 0. -/
 theorem w317_0 : WinOk 317 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L5`, window 0. -/
+/-- `squeeze_point_from__L29`, window 0. -/
 theorem w318_0 : WinOk 318 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L6`, window 0. -/
+/-- `squeeze_point_from__L30`, window 0. -/
 theorem w319_0 : WinOk 319 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L7`, window 0. -/
+/-- `opening_message__L1_L1`, window 0. -/
 theorem w320_0 : WinOk 320 0 := winOk_of_C (by decide +kernel)
 
-/-- `bus_grind_check__L8`, window 0. -/
+/-- `bus_grind_check__L0`, window 0. -/
 theorem w321_0 : WinOk 321 0 := winOk_of_C (by decide +kernel)
 
 theorem ok314 : CheckOk 314 := checkOk_one (by decide +kernel) w314_0
