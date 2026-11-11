@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Selectors.BlockSelectorTab
 /-!
 # `shared_selector_tables` (TRIAGE G #48)
 
-`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:1967-1990) hints the
+`shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)` (G:1965-1988) hints the
 six bits of `len_g`'s exponent, pins them Boolean, rebuilds `r_g = g^r` from the low two and
 `q_g = g^q` from the high four, asserts `q_g^4·r_g = len_g` (so `len_g = g^n`, `n = 4q + r < 64`),
 runs its loop over `x = g^j`, `j < q` (`__loop8`: nibble `j`'s eq levels and `g` table by the

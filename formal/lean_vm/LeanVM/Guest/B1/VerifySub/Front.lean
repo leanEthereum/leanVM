@@ -97,7 +97,7 @@ theorem vsHeadT_holds (h : Stmt.HoldsList C rd σ vsHeadT next kret) :
   simp only [Atom.Holds, word_zero] at h10 h11 h12 h13
   exact ⟨h10, h11, h12, h13, hk, hn⟩
 
-/-- **The seed** (G:3543-3547; V:2346): the four cells are two digests' halves, and the capacity
+/-- **The seed** (G:3541-3545; V:2346): the four cells are two digests' halves, and the capacity
 the atom writes is the seed state's. -/
 theorem vs_seed (hk : vsSeedAtom.Holds rd σ) (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
     (h12 : σ (.n 10) = 0) (h13 : σ (.n 11) = 0) :

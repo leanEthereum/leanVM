@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VecFn
 
-  `da_vector`'s body, checked, and its meaning from its callees' (G:4398-4415).
+  `da_vector`'s body, checked, and its meaning from its callees' (G:4396-4413).
 -/
 
 module
@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Da.Expand
 
 /-!
-# `da_vector` (G:4398-4415)
+# `da_vector` (G:4396-4413)
 
 `da_vector(z)` (`core31`): the powers `zs[j] = z^(2^j)` by squaring, `zs[14] = 0`; the shifts of
 the tree over the cell index (`above_top`, zero at `8 … 14`); then `da_factors__L14_L7_L0(zs)`,

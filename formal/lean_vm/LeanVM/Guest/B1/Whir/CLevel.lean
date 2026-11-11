@@ -185,7 +185,7 @@ theorem osQueries_batched_lt (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osQueries c lvl lv s).2.batched < (osQueries c lvl lv s).2.k := by
   simp only [osQueries]; omega
 
-/-- **A non-final level, honestly** (G:1562-1722). -/
+/-- **A non-final level, honestly** (G:1560-1720). -/
 theorem osLevelMid_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hfin : lvl ≠ c.yrLevel) (W : MidW)
     (hr3 : 2 * (lv.foldsOff + lv.folds) < u128Bound)
@@ -530,7 +530,7 @@ structure FinC (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (l
       σ (.n osCoefs) * gen ^ (2 * lv.foldsOff), W.pH, σ (.n osQpos) * gen ^ lv.posOff,
       σ (.n osQbp) * gen ^ lv.posOff, gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)] [W.batched]
 
-/-- **The final level, honestly** (G:1562-1704 at the final level). -/
+/-- **The final level, honestly** (G:1560-1702 at the final level). -/
 theorem osLevelFin_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hfin : lvl = c.yrLevel) (W : FinWD)
     (hr3 : 2 * (lv.foldsOff + lv.folds) < u128Bound) (hpo : lv.posOff < u128Bound)

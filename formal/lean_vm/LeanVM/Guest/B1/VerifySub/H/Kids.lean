@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Fs.Message
 On the own buffers' first words `bs` (allocation order, `vb bs i`: `claim_pool`, the stream,
 `table_rows`, `dims_g`, `kappa_base`, `zeta`, `ood_z`, `ood_value`, `fp_w`, `chi`, `bc_point`,
 `z_vals`, `slices`, the ring map's challenges, `c_table`) and the exponent tables at `sqE`
-(`vsExpLin`, the window tables at `sqE + winTabAt`), the callees in call order (G:3577-3726):
+(`vsExpLin`, the window tables at `sqE + winTabAt`), the callees in call order (G:3575-3724):
 
 0, 1. `g_power_of_word` on the rate's and the memory's log's words;
 2. `log2_ceil_in_the_exponent__L0_L34` on the push blocks' total `g^pushT`: the bus depth;

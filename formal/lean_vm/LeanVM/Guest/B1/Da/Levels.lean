@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Da.RowShape
 
 /-!
-# `da_levels` (G:4387-4395)
+# `da_levels` (G:4385-4393)
 
 `da_levels(tree, n, log_n)` for `n = 2^k`: the nodes of level `lvl` (two cells each) sit at
 `tree·g^(off k lvl)`, `off k lvl = 4·2^k - 4·2^(k - lvl)`, the leaves at level `0`. Level `lvl`'s

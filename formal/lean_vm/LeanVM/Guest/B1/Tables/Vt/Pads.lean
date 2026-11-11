@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Guest.B1.Tables.Padding
 
 /-!
-# The tables' heights (G:2333-2346)
+# The tables' heights (G:2331-2344)
 
 Table `t`'s statements (`vtPadT`, `vtPad5T` for the `KECCAK` table, whose floor is `9`): its
 `τ_g = kb[2 + t]` below `g^29`, its row count, the `padding_weight` arm `τ` on `(rows, zeta)`,
@@ -70,7 +70,7 @@ theorem vtPad5_check :
     tbStmtsEqb (vtPad5T 643) ((vtAt 613).take (vtPad5T 643).length) = true := by
   decide +kernel
 
-/-- `kappa_base` in the frame (G:2263-2266): `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
+/-- `kappa_base` in the frame (G:2261-2264): `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
 theorem vt_kb {rd : Reader} {σ : Val} (h : VtH rd σ) :
     σ (.n 25) = 1 ∧ ∀ i < 7, LoadHolds rd (σ (.n 10)) i (σ (.n (26 + i))) := by
   have c := h.atomAt 5 (.const (.n 25) (word 1 0)) (by decide +kernel)
@@ -179,7 +179,7 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
     have hlog := (lead_rest_iff (by omega) hn).mp hlr
     omega
 
-/-- **The tables' heights** (G:2333-2346). -/
+/-- **The tables' heights** (G:2331-2344). -/
 theorem vt_pads (σ : Val) (h : VtH Lm.read σ) : ∀ t < 6, VtPadOk Lm.read σ t := by
   intro t ht
   rcases Nat.lt_or_ge t 5 with h5 | h5

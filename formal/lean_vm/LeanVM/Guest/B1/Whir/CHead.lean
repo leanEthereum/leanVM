@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.CBlk
 
 /-!
-# The head, honestly (G:1526-1560)
+# The head, honestly (G:1524-1558)
 
 `headSizes c`: the fixed buffers' sizes in allocation order (`osSizesF c`'s first thirteen);
 `headVals c P`: the values `10 .. 35`, each buffer's size `g^size` then its pointer `P i`.
@@ -55,7 +55,7 @@ theorem osHead_sf (c : OsCfg) : (osHead c).2.Sf := by
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hf'
   omega
 
-/-- **The head, honestly** (G:1526-1560): the fixed buffers at the pointers `P i`, the root's two
+/-- **The head, honestly** (G:1524-1558): the fixed buffers at the pointers `P i`, the root's two
 cells stored in `level_roots` (`P 3`). -/
 theorem osHead_complete (c : OsCfg) (σ : Val) (P : ℕ → E)
     (hr : ∀ C rd, H C rd → LoadHolds rd (P 3) 0 (σ (.n 6)) ∧ LoadHolds rd (P 3) 1 (σ (.n 7))) :

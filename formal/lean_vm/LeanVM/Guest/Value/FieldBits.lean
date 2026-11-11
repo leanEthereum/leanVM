@@ -37,7 +37,7 @@ private theorem ofNat_two_pow_mul {s v : ℕ} :
     Nat.mod_mul_mod, Nat.mul_comm]
 
 /-- **No reduction**: `x^s · v` for `v` of degree below `64 - s` is the shifted word, the
-product the guest's query positions (`decode_query_bits`, G:757-801) rely on. -/
+product the guest's query positions (`decode_query_bits`, G:755-799) rely on. -/
 theorem ofBits_two_pow_mul {s v : ℕ} (h : 2 ^ s * v < 2 ^ 64) :
     K.ofBits (2 ^ s) * K.ofBits v = K.ofBits (2 ^ s * v) := by
   rcases Nat.eq_zero_or_pos v with rfl | hv

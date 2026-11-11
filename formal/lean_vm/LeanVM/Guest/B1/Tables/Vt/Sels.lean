@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Protocol.EndToEnd.Complete.BusSide
 
 /-!
-# The block selectors (G:1967-2054, 2095-2105, 2290-2364)
+# The block selectors (G:1965-2052, 2093-2103, 2288-2362)
 
 Block `b`'s log-size is `kappa_base[BLOCK_KAPPA_SRC[b]]·g^BLOCK_KAPPA_ADJ[b]` in the exponent,
 `vtKap lm τ b` (`Sort`), the side's sizes `vtSizesP` (push: the framework's `0, log_mem, 19`, then each

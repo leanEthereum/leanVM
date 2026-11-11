@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Placement.Common
 /-!
 # `certify_placement` (TRIAGE G #67)
 
-`certify_placement(kappa_base, g_squares)` (G:3337-3381) reads `kb[i] = kappa_base[g^i]`, then
+`certify_placement(kappa_base, g_squares)` (G:3335-3379) reads `kb[i] = kappa_base[g^i]`, then
 for each column group `gi < 9` (`colGroupStart`) builds its `g^κ` from its first column's source
 and adjustment, range-checks `κ < 34`, keys the group by `g^(κ·247)·INV_GEN^c₀` (the rank keys at
 `g_squares·g^178`) and sizes it `g^((#columns)·2^κ)` (an addition chain over `g_squares[g^κ]`).

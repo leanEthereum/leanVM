@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Finish
 
 /-!
-# The finish, soundly (G:1733-1833)
+# The finish, soundly (G:1731-1831)
 
 `osFinish_sound`: from `FinishIn` (the non-final levels' records in memory, every `α` in
 `fold_challenges`, the tail challenges, the final lane, the static facts), the statements of

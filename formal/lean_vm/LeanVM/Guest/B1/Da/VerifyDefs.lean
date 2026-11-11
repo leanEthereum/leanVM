@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VerifyDefs
 
-  The checks of `da_verify`'s body and of its loops (G:4300-4340).
+  The checks of `da_verify`'s body and of its loops (G:4298-4338).
 -/
 
 module
@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Da.ColumnDefs
 public import LeanVM.Guest.B1.Main.Body
 
 /-!
-# `da_verify` (G:4300-4340), checked
+# `da_verify` (G:4298-4338), checked
 
 `da_verify(g_squares)` (`core27`): the shape (`da_row_shape`), the hinted challenge `z`, the dual
 codeword's builders (`da_vector`), the blobs' regions

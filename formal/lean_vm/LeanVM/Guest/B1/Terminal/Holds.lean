@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.Holds
 
-  **`check_opening_terminal` is sound** (G:3437-3524; TRIAGE #70).
+  **`check_opening_terminal` is sound** (G:3435-3522; TRIAGE #70).
 -/
 
 module

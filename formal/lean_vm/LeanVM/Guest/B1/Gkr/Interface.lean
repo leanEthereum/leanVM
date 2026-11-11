@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Fs
 # `verify_bus_gkr`: the interface
 
 `verify_bus_gkr(fs0, …, fs4, cursor, g_bus_mu, zeta, tabs)` (`lean_ethereum.py` at leanVM
-`71205cca`, G below, G:1894-2075) runs the bus's one GKR grand product over the push, pull and
+`010cfb18`, G below, G:1892-2073) runs the bus's one GKR grand product over the push, pull and
 count trees (`verifyGkrGrandProducts`): it reads the shared root and the count root (asserted
 nonzero), runs the root-most layer on its own (binary at an odd depth, else radix four, with
 `gkr_children`, `gkr_product_check`), then the radix-four layers of `__loop6` (`gkrLayers`),

@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Opening.QueriesRow
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# A query's leaf hash (`opening_query`, G:1380-1381)
+# A query's leaf hash (`opening_query`, G:1378-1379)
 
 `keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)` over the `n = R / 2` packed cells is
 `B = 16n/136 + 1` chained `KECCAK`s (`oqLeafT`): block `k` reads the previous output plus the

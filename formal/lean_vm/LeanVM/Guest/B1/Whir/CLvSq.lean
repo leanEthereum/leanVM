@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.CAtoms
 public import LeanVM.Guest.B1.Place.OsCallV
 
 /-!
-# A level's squeezes, honestly (G:1596-1622)
+# A level's squeezes, honestly (G:1594-1620)
 
 * `call0_blk`: a call returning nothing, holding where its relation does.
 * `osSqueezes_complete`: the squeeze run allocated at a given pointer, the carried capacity stored
@@ -42,7 +42,7 @@ def sqEntryVals (S : ℕ) : List E := [gw 1, gw S, gw 1 + gw S, gw 1, gw S]
 def sqTailVals (S : ℕ) (sqz : E) (capS : List E) : List E :=
   [gw (S * 5), sqz * gw (S * 5)] ++ capS
 
-/-- **A level's squeezes, honestly** (G:1596-1622). -/
+/-- **A level's squeezes, honestly** (G:1594-1620). -/
 theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (hw0 : st.word0 < st.k) (pZ : E)
     (hpo : lv.posOff < u128Bound) (hS5 : lv.squeezes * 5 < u128Bound) (hS : lv.squeezes < u128Bound)

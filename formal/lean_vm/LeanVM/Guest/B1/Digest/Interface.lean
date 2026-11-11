@@ -66,7 +66,7 @@ def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
 abbrev ginvW : E := word 9223372036854775821 0
 
-/-! ## `statement_digest` (G:4035-4074, TRIAGE #86) -/
+/-! ## `statement_digest` (G:4033-4072, TRIAGE #86) -/
 
 /-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
 coordinates and the value. -/
@@ -95,7 +95,7 @@ def statement_digest_complete_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     MeaningStatementDigest rd args rets → coreProgram.Rel rd "statement_digest" args rets
 
-/-! ## `list_split` (G:4083-4098, TRIAGE #87) -/
+/-! ## `list_split` (G:4081-4096, TRIAGE #87) -/
 
 /-- `CLAIM_GROUP`: claims hashed a loop frame of a list's rest. -/
 abbrev claimGroup : ℕ := 17
@@ -126,7 +126,7 @@ def list_split_complete_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     MeaningListSplit args rets → coreProgram.Rel rd "list_split" args rets
 
-/-! ## `claim_list_digest` (G:4101-4144, TRIAGE #88) -/
+/-! ## `claim_list_digest` (G:4099-4142, TRIAGE #88) -/
 
 /-- `rets` is the two cells of the Keccak-256 digest of the `4n` cells of `n` claims at `entries`
 (an empty list: the empty string's). -/
@@ -145,7 +145,7 @@ def claim_list_digest_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "claim_list_digest" args rets → MeaningClaimListDigest rd args rets
 
-/-! ## `child_claim_list_digest` (G:4163-4298, TRIAGE #89) -/
+/-! ## `child_claim_list_digest` (G:4161-4296, TRIAGE #89) -/
 
 /-- The slot `e` lies below the log of the region's size `b`: `b = g^L`, `e < L < 2^33`. -/
 def SlotBelow (b : E) (e : ℕ) : Prop := ∃ L < 2 ^ 33, b = gen ^ L ∧ e < L

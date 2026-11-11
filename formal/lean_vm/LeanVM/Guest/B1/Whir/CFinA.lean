@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.CFinO
 public import LeanVM.Guest.B1.Whir.FinishSound
 
 /-!
-# The finish, honestly (G:1733-1833)
+# The finish, honestly (G:1731-1831)
 
 The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
 non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded

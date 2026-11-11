@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
-fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)` (G:2244-2721, `G` the guest
+fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)` (G:2242-2719, `G` the guest
 `crates/rec_aggregation/guests/lean_ethereum.py` and `V` `Statement/LeanVmVerifier.lean`, at the
 commit in `leanvm-rev`) settles the bus against the six tables: it certifies each side's blocks'
 offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
@@ -35,7 +35,7 @@ What it runs is `tablesSeg`: `verifyBusBalance` after the GKR walk (`busRest`), 
 returned, the point left at `bc_point`: the deferred claim `verify_sub` exports. For every check
 `ev` of the fixed polynomial that accepts that value at that point, the run is the specification's.
 
-* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2210-2242) holds exactly when
+* `padding_weight_Spec`: `padding_weight__L{τ}(rows, zeta)` (G:2208-2240) holds exactly when
   `rows` is an integer word `n ≤ 2^τ`; it returns `paddingWeight (zeta[..τ]) n` and the two words
   whose `lead = 1 ∧ rest ≠ 0` says `τ = log2Ceil n` (`PadLead`, `PadRest`).
 * `verify_tables_Spec`: under `TablesPre` (what `verify_sub` establishes before the call), the
@@ -67,7 +67,7 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (G:2210-2242; TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** (G:2208-2240; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
   ∀ n < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -212,12 +212,12 @@ def blockGroupStart : List ℕ :=
   [0, 1, 2, 3, 8, 13, 16, 21, 26, 54, 55, 56, 57, 62, 67, 70, 75, 80, 108, 112, 116, 118, 122, 126,
     153]
 
-/-- Block group `gi`'s side (`exponent_tables`, G:751-753), a word. -/
+/-- Block group `gi`'s side (`exponent_tables`, G:749-751), a word. -/
 def sideTabList : List E :=
   (List.range nBlockGroups).map fun gi ↦
     eOfNat ((List.range 3).filter (fun s ↦ sideGroupStart.getD s 0 ≤ gi)).length.pred
 
-/-- **What `exponent_tables` leaves at `g_squares` that `verify_tables` reads** (G:736-764): the
+/-- **What `exponent_tables` leaves at `g_squares` that `verify_tables` reads** (G:734-762): the
 squares, the rank keys, the block groups' sides and the window table. -/
 def ExpTablesAt (rd : Reader) (sq : E) : Prop :=
   TbReadsAt rd sq gSquaresList ∧ TbReadsAt rd (sq * gen ^ rankKeysAt) rankKeysList ∧
@@ -226,7 +226,7 @@ def ExpTablesAt (rd : Reader) (sq : E) : Prop :=
 /-- `N_TUPLE_SLOTS`: the fingerprint's slot weights. -/
 abbrev nTupleSlots : ℕ := 2 ^ busBits
 
-/-- **What `verify_sub` establishes before `verify_tables`** (G:3617-3656), for the public input
+/-- **What `verify_sub` establishes before `verify_tables`** (G:3615-3654), for the public input
 `pi`, the memory's log-size `logMem`, the slot weights `weights`, the GKR point and values: the
 public input's cells; the point at `zeta`, `g_bus_mu = g^|point|`; `dims_g = [g^log_mem, …]`; the
 exponent tables (`ExpTablesAt`), `tabs` the window table among them; `fp_w` the sixteen slot
@@ -270,7 +270,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (weights point va
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (G:2244-2721; TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound** (G:2242-2719; TRIAGE #52), for the guest's own bytecode words
 `bytecode`. -/
 def verify_tables_Spec (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem weights point values args rets,

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.PushPad
 
 /-!
-# The push side's framework blocks (G:2503-2516)
+# The push side's framework blocks (G:2501-2514)
 
 `vt_push_fw`: the accumulator after the state, memory and bytecode blocks is
 `Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus

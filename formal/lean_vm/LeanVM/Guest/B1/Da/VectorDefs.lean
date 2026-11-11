@@ -11,9 +11,9 @@ public import LeanVM.Guest.B1.Da.Interface
 public import LeanVM.Guest.B1.Da.DualMath
 
 /-!
-# The dual codeword's builders: meanings (G:4398-4462)
+# The dual codeword's builders: meanings (G:4396-4460)
 
-`da_vector(z)` (G:4398-4417, `core31`) returns four pointers: the powers `z_j = z^(2^j)`, `j < 14`,
+`da_vector(z)` (G:4396-4415, `core31`) returns four pointers: the powers `z_j = z^(2^j)`, `j < 14`,
 and `0` at `14` (`zs`, `ZsAt`); the leaves of the product tree over the cell index (`top_leaves`,
 `da_expand__L14_L7`: `topLeaf z h`, the factors `j = 8 … 13` of the dual codeword at the cell
 `h`'s first point); the factors of the tree inside a cell (`cell_factors`,
@@ -23,10 +23,10 @@ and `0` at `14` (`zs`, `ZsAt`); the leaves of the product tree over the cell ind
 
 A product tree over the bits `top, top - 1, …` of depth `D`, in heap order: node `n = 2^d + y` at
 depth `d` splits the bit `j = top - d`, `y` the bits above it. `da_factors(zs, top, D, at)`
-(G:4418-4426) writes node `n`'s factor `1 + z_j Ŵ_j(y · 2^(j + 1))` (`DA_VHAT[at + n]`, the bits
-above `j` of the point, `factorAt`); `da_expand(root, factors, zs, shifts, top, D)` (G:4429-4441)
+(G:4416-4424) writes node `n`'s factor `1 + z_j Ŵ_j(y · 2^(j + 1))` (`DA_VHAT[at + n]`, the bits
+above `j` of the point, `factorAt`); `da_expand(root, factors, zs, shifts, top, D)` (G:4427-4439)
 multiplies down the tree: a node's children are it times its factor plus the shift of its bit and,
-for the child of bit one, `z_j` (`expandLeaf`). `da_column_offsets(zs)` (G:4444-4462) writes
+for the child of bit one, `z_j` (`expandLeaf`). `da_column_offsets(zs)` (G:4442-4460) writes
 `offsets[8h + j] = z_j · Ŵ_j(256 h)`, one doubling per bit of `h` (`DA_VHAT_COLUMN`, `Ŵ_j` at the
 basis elements `e_(8 + b)`).
 -/
@@ -40,7 +40,7 @@ open LeanVM.Protocol.Verifier (gen)
 
 /-! ## The values -/
 
-/-- `zs[j]`: `z^(2^j)` for `j < 14`, `0` at `14` (G:4404-4409). -/
+/-- `zs[j]`: `z^(2^j)` for `j < 14`, `0` at `14` (G:4402-4407). -/
 def zsVal (z : E) (j : ℕ) : E := if j < 14 then z ^ 2 ^ j else 0
 
 /-- The factor at node `n` of a product tree over the bits `top, top - 1, …`, with the bit powers

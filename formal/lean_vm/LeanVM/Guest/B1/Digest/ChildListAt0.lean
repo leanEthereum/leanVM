@@ -15,7 +15,7 @@ public import LeanVM.Guest.Budget.Bounded
 /-!
 # The walk by hinted indices, the parts
 
-* The path: `child_claim_list_any`'s body is flat (G:4187-4207): a straight run `anyP1` (the chain
+* The path: `child_claim_list_any`'s body is flat (G:4185-4205): a straight run `anyP1` (the chain
   buffer's `HeapBuf`, the zero state, `__loop17` over the big frames, `__loop18` over the groups),
   the dispatch on the rest, two copies, the `ret` (`anyFlat_split`).
 * `anyCOk`: the body evaluated in order (`Fwd.ev`), its stores the zero state's thirteen words,

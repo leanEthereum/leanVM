@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.Commit
 
 /-!
-# The query positions (G:1596-1622)
+# The query positions (G:1594-1620)
 
 * `sqPositions d w count`: query `k` is the position `k % P` of sample `k / P`, `P = 128 / d`
   (`qwPosOf`), the samples `w`;
@@ -164,7 +164,7 @@ def sqSample (w0 : E) (cap : List E) (j : ℕ) : E :=
 def decName (lv : OsLv) : String :=
   "decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth
 
-/-- What a level's squeezes leave (G:1596-1622): sample `j < S` decoded at `posOff + j·P` of
+/-- What a level's squeezes leave (G:1594-1620): sample `j < S` decoded at `posOff + j·P` of
 `query_positions` and `query_win_ptrs`; the sponge after the `S - 1` squeezes. -/
 structure SqOut (rd : Reader) (σ : Val) (lv : OsLv) (st st' : OsSt) (w0 : E) (cap : List E) :
     Prop where
@@ -179,7 +179,7 @@ structure SqOut (rd : Reader) (σ : Val) (lv : OsLv) (st st' : OsSt) (w0 : E) (c
   claim : st'.claim = st.claim
   pad : st'.pad = st.pad
 
-/-- **A level's squeezes, soundly** (G:1596-1622): from the capacity `cap` the guest carries (the
+/-- **A level's squeezes, soundly** (G:1594-1620): from the capacity `cap` the guest carries (the
 query grind's permutation's) and its challenge `w0`. -/
 theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
     (hle : CallRel.Le C (coreProgram.Rel rd))

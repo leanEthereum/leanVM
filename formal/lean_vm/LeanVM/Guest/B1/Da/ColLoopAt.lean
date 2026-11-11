@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ColLoopAt
 
-  `da_verify`'s column loop `__loop22` (G:4324-4325) placed, by trees of its honest shape, within
+  `da_verify`'s column loop `__loop22` (G:4322-4323) placed, by trees of its honest shape, within
   its words bound before the memory, for the budget.
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.

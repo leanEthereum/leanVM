@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.Known
 
   `kappa_base` is in range after `verify_sub`'s placement and the stack's log check
-  (G:3618-3621): the facts of `VsKnown`.
+  (G:3616-3619): the facts of `VsKnown`.
 -/
 
 module
@@ -104,7 +104,7 @@ def PlaceKnown (rd : Reader) (σ : Val) (logMem : ℕ) (ds : List E) : Prop :=
         (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs))) ∧
       max 15 (log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs))) ≤ 28
 
-/-- **The placement and the stack's log** (G:3618-3621): the base's table entries are powers
+/-- **The placement and the stack's log** (G:3616-3619): the base's table entries are powers
 `g^τ_t`, and the stack at most `2^28` puts every committed column's log below `29`. -/
 theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hcp : Tables.certify_placement_Spec L.read)

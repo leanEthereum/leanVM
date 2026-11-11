@@ -19,9 +19,9 @@ The guest certifies permutations without sorting: each of `N` writers stores a d
 running count, a g-power) into its slot of a write-once table, so two writers of one slot would
 write two values into one cell, which the memory rejects (`writeOnce_injective`); and a count
 says there are as many writers as slots, so the writers fill every slot exactly once
-(`cover_of_writeOnce`). This is the coverage table of `main` (G:4408-4480, with
-`child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:4035-4178), `sort_order` in
-`verify_tables` (G:1902-1928) and `col_sort_order` in `certify_placement` (G:2931-2955) (G for
+(`cover_of_writeOnce`). This is the coverage table of `main` (G:4406-4478, with
+`child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:4033-4176), `sort_order` in
+`verify_tables` (G:1900-1926) and `col_sort_order` in `certify_placement` (G:2929-2953) (G for
 `crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `542b035`).
 
 The corollaries: a bijection's ranks list `List.range n` up to order
@@ -57,7 +57,7 @@ theorem writeOnce_bijective {ι σ α : Type*} [Fintype ι] [Fintype σ] {slot :
 
 /-- **The coverage certificate**, as the guest runs it: `N` writers, writer `i < N` range-checked
 into a slot below `M` and storing a mark distinct from every other writer's into it, with
-`M ≤ N` (the guest's final count, `written == n_total`, G:4480), fill every slot `s < M` exactly
+`M ≤ N` (the guest's final count, `written == n_total`, G:4478), fill every slot `s < M` exactly
 once. -/
 theorem cover_of_writeOnce {α : Type*} {N M : ℕ} {slot : ℕ → ℕ} {mark : ℕ → α} {mem : ℕ → α}
     (hslot : ∀ i < N, slot i < M) (hmark : ∀ i < N, ∀ j < N, mark i = mark j → i = j)
@@ -106,8 +106,8 @@ def stackLe (size : ℕ → ℕ) (i j : ℕ) : Bool :=
   decide (size j < size i) || (decide (size i = size j) && decide (i ≤ j))
 
 /-- **The certified order is the specification's**: a permutation of `List.range n` whose
-adjacent entries the guest checks (the size does not increase, G:1919 and G:2950; on equal sizes
-the index does not decrease, G:1920-1923 and G:2951-2954) is `stackOffsets`'s `mergeSort` of
+adjacent entries the guest checks (the size does not increase, G:1917 and G:2948; on equal sizes
+the index does not decrease, G:1918-1921 and G:2949-2952) is `stackOffsets`'s `mergeSort` of
 `List.range n` (V:843-848). -/
 theorem eq_mergeSort_of_adjacent {n : ℕ} (size : ℕ → ℕ) {ord : List ℕ}
     (hperm : ord.Perm (List.range n))
