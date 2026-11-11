@@ -176,8 +176,11 @@ theorem wellShaped_stackWord (μ R : ℕ) (q : Column μ) :
 /-- The stack's word is its encoding: it agrees with the encoding of `q` on every column. -/
 theorem stackWord_agrees (μ R : ℕ) (q : Column μ) :
     Agrees μ R (stackWord μ R q) q Finset.univ := by
-  intro v _ u
-  simp only [laneOf, stackWord, List.reverse_reverse, v.isLt, ite_true]
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  refine ⟨fun _ ↦ 0, fun _ ↦ by rw [Polynomial.degree_zero]; exact WithBot.bot_lt_coe _,
+    fun v _ u ↦ ?_⟩
+  simp only [laneOf, laneValue, stackWord, List.reverse_reverse, v.isLt, ite_true,
+    Polynomial.eval_zero, mul_zero, h0, add_zero]
   rw [List.getD_eq_getElem _ _ (by simp), List.getElem_map, List.getElem_range, ofK_encKAt]
   rfl
 

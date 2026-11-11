@@ -83,7 +83,7 @@ structure MidOK (P P' : LevelCode) (t : ℕ) (εmax : ENNReal) : Prop where
   hℓ : 1 ≤ P.ℓ
   hℓκ : P.ℓ ≤ 2 ^ P.κ
   hA : 1 ≤ P.A
-  gap : P'.n * P'.deg 0 < P'.thr 0 * P'.thr 0
+  gap : P'.n * P'.deg < P'.thr 0 * P'.thr 0
   eO : eOod P P' ≤ εmax
   eO1 : eOod P P' < 1
   eQ : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * eQuery P t ≤ εmax
@@ -159,7 +159,7 @@ variable {μ ℓ₀ : ℕ} {w : List E → E} {i : ℕ} {P P' : LevelCode} {pre 
 
 open Classical in
 /-- **The out-of-domain group's escape** is at most `eOod`. -/
-theorem escRet_mid_ood_le (hκ : P.κ = P'.ℓ + P'.κ) (gap : P'.n * P'.deg 0 < P'.thr 0 * P'.thr 0)
+theorem escRet_mid_ood_le (hκ : P.κ = P'.ℓ + P'.κ) (gap : P'.n * P'.deg < P'.thr 0 * P'.thr 0)
     (s : WhirState) (rounds : List FoldRound) (high : List E) (h₀ : List Ev) (hhigh : high.length = P.ℓ)
     (hI : MidI1 μ ℓ₀ w i P P' pre s rounds (commits h₀)) :
     escRet (fun pts h ↦ MidI2 μ ℓ₀ w i P P' pre s rounds high pts (commits h)) h₀ []
@@ -188,7 +188,7 @@ theorem escRet_mid_queries_le (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1 ≤ P.A) (h�
   obtain ⟨⟨hR, hS, hS', hlen, hr⟩, hhigh, hpts, hz₁, hz₂, hsep⟩ := hI
   set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
   have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim (P.thr P.ℓ)
-      (P.deg P.ℓ) := by
+      P.deg := by
     have h5 := hR.2.2.2.2
     rw [tviol_rowsOf_congr (show P.ℓ - rounds.length = 0 by omega), hr] at h5
     have hrow : rowsOf 0 (foldsA P.dom rounds (laneO i (commits h₀) P.n)) =
@@ -231,7 +231,7 @@ open Classical in
 /-- **The batching challenge's escape**: at most `(t + 2) L'` values of `λ` leave the next
 level's doom, the rows being the words' at the positions. -/
 theorem card_mid_lambda_le (hκ : P.κ = P'.ℓ + P'.κ) (hℓκ : P.ℓ ≤ 2 ^ P.κ)
-    (gap : P'.n * P'.deg 0 < P'.thr 0 * P'.thr 0) (s : WhirState) (rounds : List FoldRound)
+    (gap : P'.n * P'.deg < P'.thr 0 * P'.thr 0) (s : WhirState) (rounds : List FoldRound)
     (high : List E) (pts : List (List E)) (ys : List E) (qs : List ℕ)
     (cs : List (ℕ × ℕ × Word)) (hI : MidI3 μ ℓ₀ w i P P' pre hκ s rounds high pts ys qs cs) :
     (univ.filter fun lam ↦ ¬ LevelPre μ ℓ₀ w (i + 1) P' (pre + P.ℓ)

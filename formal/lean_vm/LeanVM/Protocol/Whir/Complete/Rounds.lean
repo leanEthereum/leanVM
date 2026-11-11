@@ -15,16 +15,16 @@ public import LeanVM.Prover.WhirTables
 
 The prover's tables (`Statement/Prover/Whir.lean`) hold `2^(m+1)` lanes, coefficient `c` of lane
 `l` at `c·2^(m+1) + l`; a round pairs lanes `2l` and `2l + 1` (`F`, `G`), and since the stride
-halves, every read is at an adjacent pair: `H[i] = f[2i] + θ f[2i+1]` (`getD_premixA`), the folded
+halves, every read is at an adjacent pair: the half `H[i] = f[2i]` (`getD_halfA`), the folded
 `f'[i] = f[2i+1] + α H[i] + β (XH)[i]` (`getD_foldLanesA`), `(XH)[c·2^m + l]` the rule of
 `mul_x` on lane `l` of `H` (`getD_mulXA`).
 
 * `laneVal t m l x`: lane `l` of a table of `2^m` lanes at the domain point `x`, `Σ_c t[c·2^m + l]
-  X_c(x)`. `laneVal_fold`: the folded lane is `G(x) + (α + β x)(F(x) + θ G(x))`, by `lem:mulx`
+  X_c(x)`. `laneVal_fold`: the folded lane is `G(x) + (α + β x) F(x)`, by `lem:mulx`
   (`sum_mxE`), which is how the verifier folds an opened row (`getD_foldLanes`).
 * `claim_fold`: if the running claim is `Σ w·f` over the weight's coefficients, the verifier's
   next claim from the round's table, `(1 + γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁)` with
-  `u₁ = claim + v₀ + θ u₀`, is `Σ w'·f'` for the folded tables.
+  `u₁ = claim + v₀`, is `Σ w'·f'` for the folded tables.
 -/
 
 namespace LeanVM.Protocol.Whir.Complete
@@ -53,22 +53,20 @@ theorem getD_ofFn_ge {n : ℕ} (f : Fin n → E) {i : ℕ} (h : n ≤ i) : (Arra
 
 /-! ## The tables -/
 
-theorem size_premixA (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1)) (θ : E) :
-    (premixA f (2 ^ (m + 1)) θ).size = cols * 2 ^ m := by
-  simp [premixA, hf, two_pow_succ_div_two, Nat.mul_div_cancel _ (Nat.two_pow_pos (m + 1))]
+theorem size_halfA (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1)) :
+    (halfA f (2 ^ (m + 1))).size = cols * 2 ^ m := by
+  simp [halfA, hf, two_pow_succ_div_two, Nat.mul_div_cancel _ (Nat.two_pow_pos (m + 1))]
 
-theorem getD_premixA (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1)) (θ : E)
-    (i : ℕ) :
-    (premixA f (2 ^ (m + 1)) θ).getD i 0 = f.getD (2 * i) 0 + θ * f.getD (2 * i + 1) 0 := by
+theorem getD_halfA (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1)) (i : ℕ) :
+    (halfA f (2 ^ (m + 1))).getD i 0 = f.getD (2 * i) 0 := by
   by_cases hi : i < cols * 2 ^ m
   · have hn : i < f.size / 2 ^ (m + 1) * (2 ^ (m + 1) / 2) := by
       rwa [hf, Nat.mul_div_cancel _ (Nat.two_pow_pos _), two_pow_succ_div_two]
-    rw [premixA, Enc.getD_ofFn _ _ _ hn]
+    rw [halfA, Enc.getD_ofFn _ _ _ hn]
     simp only [two_pow_succ_div_two, idx_two]
-  · have hs := size_premixA f hf θ
+  · have hs := size_halfA f hf
     have e : f.size = 2 * (cols * 2 ^ m) := by rw [hf, pow_succ]; ring
-    rw [getD_of_size_le (by omega), getD_of_size_le (by omega), getD_of_size_le (by omega)]
-    ring
+    rw [getD_of_size_le (by omega), getD_of_size_le (by omega)]
 
 theorem size_mulXA (h : Array E) (s : ℕ) : (mulXA h s).size = (h.size / s + 1) * s := by
   simp [mulXA]
@@ -123,15 +121,14 @@ theorem getD_foldLanesA (f : Array E) (m : ℕ) (H XH : Array E) (α β : E) {i 
 noncomputable def laneVal (t : Array E) (m l : ℕ) (x : K) : E :=
   ∑ c ∈ range (t.size / 2 ^ m), t.getD (c * 2 ^ m + l) 0 * ofK (novelAt c x)
 
-/-- **The folded lane** is `G(x) + (α + β x)(F(x) + θ G(x))`. -/
+/-- **The folded lane** is `G(x) + (α + β x) F(x)`. -/
 theorem laneVal_fold (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1))
-    (hcols : cols ≤ 2 ^ 62) (θ α β : E) {l : ℕ} (hl : l < 2 ^ m) (x : K) :
-    laneVal (foldLanesA f (2 ^ (m + 1)) (premixA f (2 ^ (m + 1)) θ)
-        (mulXA (premixA f (2 ^ (m + 1)) θ) (2 ^ m)) α β) m l x =
-      laneVal f (m + 1) (2 * l + 1) x +
-        (α + β * ofK x) * (laneVal f (m + 1) (2 * l) x + θ * laneVal f (m + 1) (2 * l + 1) x) := by
-  set H := premixA f (2 ^ (m + 1)) θ
-  have hH := size_premixA f hf θ
+    (hcols : cols ≤ 2 ^ 62) (α β : E) {l : ℕ} (hl : l < 2 ^ m) (x : K) :
+    laneVal (foldLanesA f (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
+        (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β) m l x =
+      laneVal f (m + 1) (2 * l + 1) x + (α + β * ofK x) * laneVal f (m + 1) (2 * l) x := by
+  set H := halfA f (2 ^ (m + 1))
+  have hH := size_halfA f hf
   have hpos := Nat.two_pow_pos m
   have hXH : (mulXA H (2 ^ m)).size = (cols + 1) * 2 ^ m := by
     rw [size_mulXA, hH, Nat.mul_div_cancel _ hpos]
@@ -144,13 +141,12 @@ theorem laneVal_fold (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m +
       laneVal f (m + 1) (2 * l + 1) x := by
     rw [laneVal, hfdiv, sum_range_succ, getD_of_size_le (by rw [hf]; omega), zero_mul, add_zero]
   have hHc : ∑ c ∈ range cols, H.getD (c * 2 ^ m + l) 0 * ofK (novelAt c x) =
-      laneVal f (m + 1) (2 * l) x + θ * laneVal f (m + 1) (2 * l + 1) x := by
-    rw [laneVal, laneVal, hfdiv, mul_sum, ← sum_add_distrib]
+      laneVal f (m + 1) (2 * l) x := by
+    rw [laneVal, hfdiv]
     refine sum_congr rfl fun c _ ↦ ?_
-    rw [getD_premixA f hf θ, hidx, ← add_assoc]
-    ring
+    rw [getD_halfA f hf, hidx]
   have hH1 : ∑ c ∈ range (cols + 1), H.getD (c * 2 ^ m + l) 0 * ofK (novelAt c x) =
-      laneVal f (m + 1) (2 * l) x + θ * laneVal f (m + 1) (2 * l + 1) x := by
+      laneVal f (m + 1) (2 * l) x := by
     rw [sum_range_succ, getD_of_size_le (by rw [hH]; omega), zero_mul, add_zero, hHc]
   have hX := sum_lane_mulXA H hH hcols hl x
   rw [laneVal, hsz, Nat.mul_div_cancel _ hpos]
@@ -179,7 +175,7 @@ theorem length_foldLanes (x : K) (r : FoldRound) : ∀ v : List E,
 
 theorem getD_foldLanes (x : K) (r : FoldRound) : ∀ (v : List E) (l : ℕ), 2 * l + 1 < v.length →
     (foldLanes x r v).getD l 0 = v.getD (2 * l + 1) 0 +
-      (r.alpha + r.beta * ofK x) * (v.getD (2 * l) 0 + r.theta * v.getD (2 * l + 1) 0)
+      (r.alpha + r.beta * ofK x) * v.getD (2 * l) 0
   | f :: g :: rest, 0, _ => by simp [foldLanes]
   | f :: g :: rest, l + 1, h => by
     rw [foldLanes, List.getD_cons_succ, getD_foldLanes x r rest l (by simp at h; omega)]
@@ -191,19 +187,19 @@ theorem getD_foldLanes (x : K) (r : FoldRound) : ∀ (v : List E) (l : ℕ), 2 *
 
 /-- **The running claim through a round.** -/
 theorem claim_fold (f w : Array E) {m cols k : ℕ} (hf : f.size = cols * 2 ^ (m + 1))
-    (hw : w.size = 2 ^ k * 2 ^ (m + 1)) (hk : 2 ^ k ≤ cols) (θ γ α β claim : E)
+    (hw : w.size = 2 ^ k * 2 ^ (m + 1)) (hk : 2 ^ k ≤ cols) (γ α β claim : E)
     (hclaim : claim = ∑ i ∈ range w.size, w.getD i 0 * f.getD i 0) (u₀ v₀ c₀ v₁ c₁ : E)
-    (ht : roundTableA f w (2 ^ (m + 1)) (premixA f (2 ^ (m + 1)) θ)
-      (mulXA (premixA f (2 ^ (m + 1)) θ) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
-    (1 + γ) * (u₀ + α * v₀ + β * c₀) + γ * ((claim + v₀ + θ * u₀) + α * v₁ + β * c₁) =
+    (ht : roundTableA f w (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
+      (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
+    (1 + γ) * (u₀ + α * v₀ + β * c₀) + γ * ((claim + v₀) + α * v₁ + β * c₁) =
       ∑ i ∈ range (foldPairsA γ w).size, (foldPairsA γ w).getD i 0 *
-        (foldLanesA f (2 ^ (m + 1)) (premixA f (2 ^ (m + 1)) θ)
-          (mulXA (premixA f (2 ^ (m + 1)) θ) (2 ^ m)) α β).getD i 0 := by
-  set H := premixA f (2 ^ (m + 1)) θ
+        (foldLanesA f (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
+          (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β).getD i 0 := by
+  set H := halfA f (2 ^ (m + 1))
   set XH := mulXA H (2 ^ m)
   set n := 2 ^ k * 2 ^ m with hn
   have hpos := Nat.two_pow_pos m
-  have hH := size_premixA f hf θ
+  have hH := size_halfA f hf
   have hXH : XH.size = (cols + 1) * 2 ^ m := by
     rw [size_mulXA, hH, Nat.mul_div_cancel _ hpos]
   have hw2 : w.size = 2 * n := by rw [hw, hn, pow_succ]; ring
@@ -223,13 +219,13 @@ theorem claim_fold (f w : Array E) {m cols k : ℕ} (hf : f.size = cols * 2 ^ (m
       (1 + γ) * (w.getD (2 * i) 0 * f.getD (2 * i + 1) 0 + α * (w.getD (2 * i) 0 * H.getD i 0) +
           β * (w.getD (2 * i) 0 * XH.getD i 0)) +
         γ * (((w.getD (2 * i) 0 * f.getD (2 * i) 0 + w.getD (2 * i + 1) 0 * f.getD (2 * i + 1) 0) +
-          w.getD (2 * i) 0 * H.getD i 0 + θ * (w.getD (2 * i) 0 * f.getD (2 * i + 1) 0)) +
+          w.getD (2 * i) 0 * H.getD i 0) +
           α * (w.getD (2 * i + 1) 0 * H.getD i 0) + β * (w.getD (2 * i + 1) 0 * XH.getD i 0)) := by
     intro i hi
     rw [getD_foldPairsA γ w (by rw [hw2]; simpa using mem_range.mp hi),
-      getD_foldLanesA f m H XH α β (hin i hi), getD_premixA f hf θ]
+      getD_foldLanesA f m H XH α β (hin i hi), getD_halfA f hf]
     have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
-    linear_combination (-(γ * w.getD (2 * i) 0 * (f.getD (2 * i) 0 + θ * f.getD (2 * i + 1) 0))) * h2
+    linear_combination (-(γ * w.getD (2 * i) 0 * f.getD (2 * i) 0)) * h2
   rw [sum_congr rfl key]
   simp only [sum_add_distrib, ← mul_sum]
 

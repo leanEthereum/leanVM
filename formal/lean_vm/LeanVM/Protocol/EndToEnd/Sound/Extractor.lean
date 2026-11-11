@@ -395,30 +395,36 @@ theorem encode_eq {μ R : ℕ} (q : Column μ) (u : Fin (2 ^ laneBits))
 theorem mem_candidates {μ R A A' : ℕ} {W : Word} {q : Column μ}
     (hq : q ∈ Candidates μ R A W) (hA : A' ≤ A) :
     (q.values : Vector K (2 ^ μ)) ∈ Extraction.Candidates μ R A' W := by
-  obtain ⟨S, hS, hag⟩ := hq
-  refine hA.trans (hS.trans ?_)
+  obtain ⟨S, hS, H, hH, hag⟩ := hq
+  refine ⟨H, hH, hA.trans (hS.trans ?_)⟩
   rw [← Finset.card_map Fin.valEmbedding]
   refine Finset.card_le_card fun v hv ↦ ?_
   obtain ⟨v, hvS, rfl⟩ := Finset.mem_map.mp hv
   refine Finset.mem_filter.mpr ⟨Finset.mem_range.mpr v.isLt, fun u ↦ ?_⟩
-  have h : laneOf W u v = ofK (Extraction.encode (μ := μ) q.values u v) :=
-    (hag v hvS u).trans (encode_eq q u v)
+  have h : laneOf W u v = ofK (Extraction.encode (μ := μ) q.values u v +
+      Extraction.subspacePoly (μ - Whir.initialFold) (K.ofBits v) * (H u).eval (K.ofBits v)) := by
+    rw [hag v hvS u]
+    unfold laneValue
+    rw [encode_eq q u v, ofK_add]
+    rfl
   exact ofK_injective h
 
-/-- **The specification's candidates are the proof's**: a stack whose encoding agrees with the
-word on at least `A` columns is a candidate of the proof's at `A`. -/
+/-- **The specification's candidates are the proof's**: a stack that agrees, for some high parts,
+with the word on at least `A` columns is a candidate of the proof's at `A`. -/
 theorem candidates_of_values {μ R A : ℕ} {W : Word} {q : Vector K (2 ^ μ)}
     (hq : q ∈ Extraction.Candidates μ R A W) : (⟨q⟩ : Column μ) ∈ Candidates μ R A W := by
+  obtain ⟨H, hH, hq⟩ := hq
   let S : Finset (Fin (2 ^ (μ - laneBits + R))) :=
-    Finset.univ.filter fun v ↦ (v : ℕ) ∈ Extraction.agreement R W q
-  refine ⟨S, hq.trans ?_, fun v hv u ↦ ?_⟩
+    Finset.univ.filter fun v ↦ (v : ℕ) ∈ Extraction.agreementWith R W q H
+  refine ⟨S, hq.trans ?_, H, hH, fun v hv u ↦ ?_⟩
   · rw [← Finset.card_map Fin.valEmbedding]
     refine Finset.card_le_card fun v hv ↦ ?_
     have hlt : v < 2 ^ (μ - laneBits + R) :=
       Finset.mem_range.mp (Finset.mem_filter.mp hv).1
     exact Finset.mem_map.mpr ⟨⟨v, hlt⟩, Finset.mem_filter.mpr ⟨Finset.mem_univ _, hv⟩, rfl⟩
   · have h := (Finset.mem_filter.mp (Finset.mem_filter.mp hv).2).2 u
-    refine Eq.trans ?_ (encode_eq (R := R) ⟨q⟩ u v).symm
+    unfold laneValue
+    rw [encode_eq (R := R) ⟨q⟩ u v, ← ofK_add]
     exact congrArg ofK h
 
 /-- **The specification's candidates are at most level 0's list bound**: at every admissible

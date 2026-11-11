@@ -14,11 +14,12 @@ public import LeanVM.Protocol.Whir.Sound.Tuple
 Annex B of the leanVM specification (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`),
 `sec:soundness`, "Thresholds", for the deployed code: level `i` commits `2^ℓ` lanes, each the
 encoding `enc κ R` of a message on `κ` variables (`κ` the variables left after the level's
-folds), on the domain `D_{κ,R}` of `n = 2^(κ+R)` points (`domain κ R`). Its rounds are analysed
-at the degrees `d_j = 2^κ − 1 + j` and thresholds `A_j = A − (ℓ − j)`, `0 ≤ j ≤ ℓ`, `A` the
-threshold of the last round (the Rust's `agreement`, `crates/pcs/src/whir_config.rs`).
+folds), on the domain `D_{κ,R}` of `n = 2^(κ+R)` points (`domain κ R`). All its rounds, and
+the list it starts on, are analysed at the level's final degree `d = 2^κ − 1 + ℓ`, at the
+thresholds `A_j = A − (ℓ − j)`, `0 ≤ j ≤ ℓ`, `A` the threshold of the last round (the Rust's
+`agreement`, `crates/pcs/src/whir_config.rs`).
 
-* `LevelCode`: `κ`, `R`, `ℓ`, `A`, with `κ + R ≤ 64`; `dom`, `n`, `deg j`, `thr j`.
+* `LevelCode`: `κ`, `R`, `ℓ`, `A`, with `κ + R ≤ 64`; `dom`, `n`, `deg`, `thr j`.
 * Lane oracles are indexed by integers, `O : ℕ → Fin n → E` (lane `j` of column `v`), read on `m`
   lane bits by `rowsOf m O`: lane `⟨u⟩`, bit `0` of `u` lowest, which a fold binds first.
 -/
@@ -55,14 +56,14 @@ abbrev n : ℕ := 2 ^ (P.κ + P.R)
 /-- The domain `D_{κ,R}`. -/
 abbrev dom : Fin P.n ↪ E := domain P.κ P.R P.h64
 
-/-- The degree bound of round `j`, `2^κ − 1 + j`. -/
-abbrev deg (j : ℕ) : ℕ := 2 ^ P.κ - 1 + j
+/-- The degree bound of every round of the level, `2^κ − 1 + ℓ`. -/
+abbrev deg : ℕ := 2 ^ P.κ - 1 + P.ℓ
 
 /-- The threshold of round `j`, `A − (ℓ − j)`. -/
 abbrev thr (j : ℕ) : ℕ := P.A - (P.ℓ - j)
 
-/-- The list bound the level starts on, `jl(n, A_0, d_0)`. -/
-abbrev listMax : ℕ := jl P.n (P.thr 0) (P.deg 0)
+/-- The list bound the level starts on, `jl(n, A_0, d)`. -/
+abbrev listMax : ℕ := jl P.n (P.thr 0) P.deg
 
 /-- The message variables are fewer than `64`. -/
 theorem κ_lt : P.κ < 64 := by have := P.h64; have := P.hR; omega

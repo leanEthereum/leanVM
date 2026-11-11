@@ -194,9 +194,9 @@ theorem laneO_append (cs : List (ℕ × ℕ × Word)) (x : ℕ × ℕ × Word) {
 /-! ## The affine fold of an oracle -/
 
 /-- One affine fold of lanes at a column whose domain point is `y`: lane `k` of the fold is
-`G + (α + β y)(F + θ G)`, `F` and `G` the lanes `2k` and `2k + 1`. -/
+`G + (α + β y) F`, `F` and `G` the lanes `2k` and `2k + 1`. -/
 def foldC (y : E) (r : FoldRound) (o : ℕ → E) : ℕ → E :=
-  fun k ↦ o (2 * k + 1) + (r.alpha + r.beta * y) * (o (2 * k) + r.theta * o (2 * k + 1))
+  fun k ↦ o (2 * k + 1) + (r.alpha + r.beta * y) * o (2 * k)
 
 /-- The folds of a level at one column, first round first. -/
 def foldsC (y : E) (rounds : List FoldRound) (o : ℕ → E) : ℕ → E :=
@@ -211,7 +211,7 @@ def foldsA {n : ℕ} (dom : Fin n ↪ E) (rounds : List FoldRound) (O : ℕ → 
 theorem rowsOf_foldsA_concat {n m : ℕ} (dom : Fin n ↪ E) (rounds : List FoldRound) (r : FoldRound)
     (O : ℕ → Fin n → E) :
     rowsOf m (foldsA dom (rounds ++ [r]) O) =
-      foldQ dom r.theta r.alpha r.beta (rowsOf (m + 1) (foldsA dom rounds O)) := by
+      foldQ dom r.alpha r.beta (rowsOf (m + 1) (foldsA dom rounds O)) := by
   funext u x
   simp only [rowsOf, foldsA, foldsC, List.foldl_append, List.foldl_cons, List.foldl_nil, foldC,
     foldQ, bitsToNat_cons, Bool.toNat_false, Bool.toNat_true]

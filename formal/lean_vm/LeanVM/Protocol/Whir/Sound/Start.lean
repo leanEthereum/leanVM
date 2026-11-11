@@ -29,9 +29,12 @@ the lanes, which are the stack's six high bits, and its weight at a point `p` is
   words reversed) with lanes indexed by their bits.
 * `claimSum_encStack`: the running claim of the encoding of a stack `q` is `Σ_j w(j) q_j`: the
   rotation exactly undoes the stack/lane relayout `f(u, x) = q(x, u)`.
-* `levelPre_zero`: **the starting doom** `LevelPre` of level `0` from the candidates' violation,
-  through the bridge `exists_candidate_of_mem_iList` (a list member is the encoding of a
-  candidate: `K`-valuedness and injectivity of the encoder).
+* `exists_candidate_of_tuple`: a member of level 0's list, at its degree `2^κ − 1 + 6` and a
+  threshold above it, is over `K`, and its low parts are the blocks of a candidate (its high
+  parts `P div W_κ` the candidate's `H`); `candidates_ncard_le`: conversely each candidate has a
+  list member with its blocks as low parts, so there are at most as many candidates as members.
+* `levelPre_zero`: **the starting doom** `LevelPre` of level `0` from the candidates' violation:
+  the claims weigh only the low parts.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -93,84 +96,180 @@ theorem claimSum_encStack {μ : ℕ} (hμ : laneBits ≤ μ) (w : List E → E) 
   rw [hrot, ← bitsL_append, ← boolPoint_bitsToNat, bitsToNat_append]
   simp [EndToEnd.blockOf, bitsEquiv_val]
 
-/-! ## Tuples and codewords -/
+/-! ## Tuples and candidates -/
 
-/-- The level-0 tuple of a stack: lane `u` is the message polynomial of block `⟨u⟩`. -/
-noncomputable def stackTuple {μ : ℕ} (q : Column μ) : (Fin laneBits → Bool) → E[X] :=
-  fun u ↦ msgPoly (μ - laneBits) (blockOf q (bitsEquiv laneBits u))
+/-- `W_κ` over `K` is monic. -/
+theorem vanishing_monic (κ : ℕ) : (vanishing κ).Monic :=
+  monic_prod_of_monic _ _ fun _ _ ↦ monic_X_add_C _
 
-/-- **The tuple of a close candidate.** A tuple of degree below `2^κ` agreeing with the level-0
-word on at least `A ≥ 2^κ` columns is the tuple of a candidate. -/
+/-- A polynomial over `K`, lifted, evaluates at a point of `K` to the lift of its value. -/
+theorem eval_map_ofK (p : K[X]) (x : K) :
+    (p.map (algebraMap K E)).eval (ofK x) = ofK (p.eval x) := by
+  rw [eval_map, show ofK x = algebraMap K E x from rfl, eval₂_hom]
+  rfl
+
+/-- The level-0 lanes as polynomials over `E` at a column: the committed word's value. -/
+theorem eval_of_mem_agreeT {μ R : ℕ} (h : μ - laneBits + R ≤ 64) (cs : List (ℕ × ℕ × Word))
+    {U : (Fin laneBits → Bool) → E[X]} {v : Fin (2 ^ (μ - laneBits + R))}
+    (hv : v ∈ agreeT (domain (μ - laneBits) R h) U
+      (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))) (u : Fin laneBits → Bool) :
+    (U u).eval (ofK (K.ofBits v)) = laneOf (wordOf cs 0) (bitsEquiv laneBits u) v := by
+  rw [mem_agreeT] at hv
+  have := hv u
+  rw [rowsOf_laneO_zero] at this
+  exact this
+
+/-- **The candidate of a close tuple.** A tuple of degree at most `2^κ − 1 + 6` agreeing with the
+level-0 word on at least `A` columns, `A` above the degree, has the blocks of a candidate as its
+low parts: it is over `K`, its low part `P mod W_κ` a `K`-message and its high part `P div W_κ`
+of degree below `6`. -/
 theorem exists_candidate_of_tuple {μ R A : ℕ} (hμ : laneBits ≤ μ) (h : μ - laneBits + R ≤ 64)
-    (hA : 2 ^ (μ - laneBits) ≤ A) (cs : List (ℕ × ℕ × Word))
-    (U : (Fin laneBits → Bool) → E[X]) (hU : DegLE (2 ^ (μ - laneBits) - 1) U)
+    (hA : 2 ^ (μ - laneBits) - 1 + laneBits < A) (cs : List (ℕ × ℕ × Word))
+    (U : (Fin laneBits → Bool) → E[X]) (hU : DegLE (2 ^ (μ - laneBits) - 1 + laneBits) U)
     (hag : A ≤ (agreeT (domain (μ - laneBits) R h) U
       (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))).card) :
     ∃ q ∈ Candidates μ R A (wordOf cs 0), ∀ u, lowMsg (μ - laneBits) (U u) =
       blockOf q (bitsEquiv laneBits u) := by
-  have hκ : μ - laneBits ≤ 64 := by omega
-  set V : Fin (2 ^ laneBits) → Fin (2 ^ (μ - laneBits + R)) → E :=
-    fun u ↦ enc (μ - laneBits) R (lowMsg (μ - laneBits) (U ((bitsEquiv laneBits).symm u)))
-  have hV : ∀ u v, V u v = (U ((bitsEquiv laneBits).symm u)).eval (domain (μ - laneBits) R h v) := by
-    intro u v
-    simp only [V]
-    rw [enc_eq_evalOnPoints h, msgPoly_lowMsg_of_deg hκ (hU _)]
+  classical
+  set κ := μ - laneBits with hκdef
+  have hκ : κ ≤ 64 := by omega
+  have hφ : ∀ a : K, algebraMap K E a = ofK a := fun _ ↦ rfl
+  set S := agreeT (domain κ R h) U (rowsOf laneBits (laneO 0 cs (2 ^ (κ + R))))
+  -- Each lane is over `K`.
+  have hK : ∀ u, ∃ P₀ : K[X], U u = P₀.map (algebraMap K E) := fun u ↦ by
+    refine exists_map_of_isInK (hU u) (S.image fun v : Fin (2 ^ (κ + R)) ↦ K.ofBits v) ?_ fun x hx ↦ ?_
+    · rw [Finset.card_image_of_injOn fun a _ b _ hab ↦
+        (domain κ R h).injective (congrArg ofK hab)]
+      omega
+    · obtain ⟨v, hv, rfl⟩ := Finset.mem_image.mp hx
+      rw [eval_of_mem_agreeT h cs hv u, laneOf, isInK_iff]
+      exact ⟨_, rfl⟩
+  choose P₀ hP₀ using hK
+  have hdeg₀ : ∀ u, (P₀ u).natDegree ≤ 2 ^ κ - 1 + laneBits := fun u ↦ by
+    have := hU u
+    rwa [hP₀, natDegree_map_eq_of_injective (algebraMap K E).injective] at this
+  -- The low parts are `K`-messages.
+  have hlow : ∀ u, msgPoly κ (lowMsg κ (U u)) = (P₀ u %ₘ vanishing κ).map (algebraMap K E) := by
+    intro u
+    rw [msgPoly_lowMsg hκ, hP₀, Polynomial.map_modByMonic _ (vanishing_monic κ)]
     rfl
-  have hmem : V ∈ iList (ReedSolomon.code (domain (μ - laneBits) R h) (2 ^ (μ - laneBits))) A
-      (laneWord μ R (wordOf cs 0)) := by
-    rw [mem_iList]
-    refine ⟨fun u ↦ by rw [← range_enc h]; exact LinearMap.mem_range_self _ _, _, hag, ?_⟩
-    intro u v hv
-    rw [mem_agreeT] at hv
-    have := hv ((bitsEquiv laneBits).symm u)
-    simp only [rowsOf_laneO_zero, Equiv.apply_symm_apply] at this
-    rw [hV, this]
-  obtain ⟨q, hq, hVq⟩ := exists_candidate_of_mem_iList hμ h hA hmem
-  refine ⟨q, hq, fun u ↦ enc_injective h ?_⟩
-  have := congrFun hVq (bitsEquiv laneBits u)
-  simpa [V, encStack] using this
+  have hinK : ∀ u x, IsInK (lowMsg κ (U u) x) := fun u ↦
+    isInK_of_agree h (lowMsg κ (U u)) Finset.univ
+      (by rw [Finset.card_univ, Fintype.card_fin]; exact Nat.pow_le_pow_right two_pos (by omega))
+      fun v _ ↦ by
+        rw [enc_eq_evalOnPoints h, ReedSolomon.evalOnPoints, LinearMap.coe_mk, AddHom.coe_mk, hlow,
+          isInK_iff]
+        refine ⟨(P₀ u %ₘ vanishing κ).eval (K.ofBits v), ?_⟩
+        simp only [domain, Function.Embedding.coeFn_mk]
+        exact eval_map_ofK _ _
+  let a : Fin (2 ^ laneBits) → (Fin κ → Bool) → K :=
+    fun u x ↦ (lowMsg κ (U ((bitsEquiv laneBits).symm u)) x).limb 0
+  have hga : ∀ u, lowMsg κ (U u) = fun x ↦ ofK (a (bitsEquiv laneBits u) x) := fun u ↦
+    funext fun x ↦ by
+      obtain ⟨c, hc⟩ := (isInK_iff _).mp (hinK u x)
+      simp [a, hc]
+  have hblock : ∀ u, blockOf (stackOf hμ a) (bitsEquiv laneBits u) = lowMsg κ (U u) := fun u ↦ by
+    rw [blockOf_stackOf, hga]
+  refine ⟨stackOf hμ a, ⟨S, hag, fun u ↦ P₀ ((bitsEquiv laneBits).symm u) /ₘ vanishing κ,
+    fun u ↦ ?_, fun v hv u ↦ ?_⟩, fun u ↦ (hblock u).symm⟩
+  · -- The high part has degree below `6`.
+    refine (degree_le_natDegree).trans_lt ?_
+    rw [natDegree_divByMonic _ (vanishing_monic κ), natDegree_vanishing]
+    have := hdeg₀ ((bitsEquiv laneBits).symm u)
+    have h1 := Nat.one_le_two_pow (n := κ)
+    have h6 : laneBits = 6 := rfl
+    exact_mod_cast (show (P₀ ((bitsEquiv laneBits).symm u)).natDegree - 2 ^ κ < laneBits by omega)
+  · set u' := (bitsEquiv laneBits).symm u with hu'
+    have hv' := eval_of_mem_agreeT h cs hv u'
+    rw [Equiv.apply_symm_apply] at hv'
+    have hb : blockOf (stackOf hμ a) u = lowMsg κ (U u') := by
+      rw [← hblock u', Equiv.apply_symm_apply]
+    rw [laneValue, hb, ← hv', enc_eq_evalOnPoints h]
+    simp only [ReedSolomon.evalOnPoints, LinearMap.coe_mk, AddHom.coe_mk, domain,
+      Function.Embedding.coeFn_mk]
+    rw [hlow, hP₀ u', eval_map_ofK, eval_map_ofK, ← eval_vanishing, ← eval_mul, ← ofK_add,
+      ← eval_add]
+    exact (congrArg (fun p ↦ ofK (eval (K.ofBits (v : ℕ)) p))
+      (modByMonic_add_div (P₀ u') (vanishing κ))).symm
 
-/-- The tuple of a candidate lies in the level-0 list. -/
+/-- The level-0 tuple of a stack with high parts `H`: lane `u` is the message polynomial of
+block `⟨u⟩` plus `W_κ·H_⟨u⟩`. -/
+noncomputable def stackTuple {μ : ℕ} (q : Column μ) (H : Fin (2 ^ laneBits) → K[X]) :
+    (Fin laneBits → Bool) → E[X] :=
+  fun u ↦ msgPoly (μ - laneBits) (blockOf q (bitsEquiv laneBits u)) +
+    vanE (μ - laneBits) * (H (bitsEquiv laneBits u)).map (algebraMap K E)
+
+/-- The low parts of a stack's tuple are its blocks. -/
+theorem lowMsg_stackTuple {μ : ℕ} (hκ : μ - laneBits ≤ 64) (q : Column μ)
+    (H : Fin (2 ^ laneBits) → K[X]) (u : Fin laneBits → Bool) :
+    lowMsg (μ - laneBits) (stackTuple q H u) = blockOf q (bitsEquiv laneBits u) :=
+  lowMsg_msgPoly_add hκ _ _
+
+/-- The tuple of a candidate lies in the level-0 list at degree `2^κ − 1 + 6`. -/
 theorem stackTuple_mem {μ R A : ℕ} (h : μ - laneBits + R ≤ 64)
-    (cs : List (ℕ × ℕ × Word)) {q : Column μ} (hq : q ∈ Candidates μ R A (wordOf cs 0)) :
-    stackTuple q ∈ tlist (domain (μ - laneBits) R h)
-      (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R)))) A (2 ^ (μ - laneBits) - 1) := by
+    (cs : List (ℕ × ℕ × Word)) {q : Column μ} {S : Finset (Fin (2 ^ (μ - laneBits + R)))}
+    (hS : A ≤ S.card) {H : Fin (2 ^ laneBits) → K[X]} (hH : ∀ u, (H u).degree < laneBits)
+    (hagree : ∀ v ∈ S, ∀ u, laneOf (wordOf cs 0) u v = laneValue μ R q (H u) u v) :
+    stackTuple q H ∈ tlist (domain (μ - laneBits) R h)
+      (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R)))) A
+        (2 ^ (μ - laneBits) - 1 + laneBits) := by
   have hκ : μ - laneBits ≤ 64 := by omega
-  obtain ⟨S, hS, hagree⟩ := hq
+  have hφ : ∀ a : K, algebraMap K E a = ofK a := fun _ ↦ rfl
   rw [mem_tlist]
   refine ⟨fun u ↦ ?_, hS.trans (card_le_card fun v hv ↦ ?_)⟩
-  · have := natDegree_msgPoly_lt hκ (blockOf q (bitsEquiv laneBits u))
-    have h1 := Nat.one_le_two_pow (n := μ - laneBits)
-    by_cases h0 : stackTuple q u = 0
-    · rw [h0, Polynomial.natDegree_zero]; exact Nat.zero_le _
-    · have := (Polynomial.natDegree_lt_iff_degree_lt h0).mpr (by exact_mod_cast this)
+  · have h1 := Nat.one_le_two_pow (n := μ - laneBits)
+    refine (natDegree_add_le _ _).trans (max_le ?_ ?_)
+    · have := natDegree_msgPoly_lt hκ (blockOf q (bitsEquiv laneBits u))
+      by_cases h0 : msgPoly (μ - laneBits) (blockOf q (bitsEquiv laneBits u)) = 0
+      · rw [h0, natDegree_zero]; exact Nat.zero_le _
+      · have := (natDegree_lt_iff_degree_lt h0).mpr (by exact_mod_cast this)
+        omega
+    · refine natDegree_mul_le.trans ?_
+      rw [natDegree_vanE, natDegree_map_eq_of_injective (algebraMap K E).injective]
+      have hd := hH (bitsEquiv laneBits u)
+      have : (H (bitsEquiv laneBits u)).natDegree < laneBits := by
+        by_cases h0 : H (bitsEquiv laneBits u) = 0
+        · rw [h0, natDegree_zero]; decide
+        · exact (natDegree_lt_iff_degree_lt h0).mpr hd
       omega
   · rw [mem_agreeT]
     intro u
     rw [rowsOf_laneO_zero]
-    have := hagree v hv (bitsEquiv laneBits u)
-    simp only [laneWord]
-    rw [this, enc_eq_evalOnPoints h]
-    rfl
+    show _ = laneOf (wordOf cs 0) (bitsEquiv laneBits u) v
+    rw [hagree v hv, laneValue, stackTuple, eval_add, eval_mul, enc_eq_evalOnPoints h]
+    simp only [ReedSolomon.evalOnPoints, LinearMap.coe_mk, AddHom.coe_mk, domain,
+      Function.Embedding.coeFn_mk, vanE]
+    rw [eval_map_ofK, eval_map_ofK, eval_vanishing, ofK_mul]
 
-/-- **The candidates are finite**, as many as the level-0 list. -/
+/-- **The candidates are finite**, at most as many as the level-0 list at degree
+`2^κ − 1 + 6`. -/
 theorem candidates_ncard_le {μ R A : ℕ} (hμ : laneBits ≤ μ) (h : μ - laneBits + R ≤ 64)
     (cs : List (ℕ × ℕ × Word)) :
     (Candidates μ R A (wordOf cs 0)).Finite ∧ (Candidates μ R A (wordOf cs 0)).ncard ≤
       (tlist (domain (μ - laneBits) R h) (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))
-        A (2 ^ (μ - laneBits) - 1)).card := by
+        A (2 ^ (μ - laneBits) - 1 + laneBits)).card := by
+  classical
   have hκ : μ - laneBits ≤ 64 := by omega
-  have hinj : Set.InjOn stackTuple (Candidates μ R A (wordOf cs 0)) := by
-    intro q _ q' _ hqq
+  set L := tlist (domain (μ - laneBits) R h) (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))
+    A (2 ^ (μ - laneBits) - 1 + laneBits)
+  let f : Column μ → (Fin laneBits → Bool) → E[X] := fun q ↦
+    if hq : q ∈ Candidates μ R A (wordOf cs 0) then stackTuple q hq.choose_spec.2.choose else 0
+  have hf : ∀ q ∈ Candidates μ R A (wordOf cs 0), f q ∈ L ∧
+      ∀ u, lowMsg (μ - laneBits) (f q u) = blockOf q (bitsEquiv laneBits u) := by
+    intro q hq
+    simp only [f, hq, dite_true]
+    obtain ⟨hS, hHq⟩ := hq.choose_spec
+    exact ⟨stackTuple_mem h cs hS hHq.choose_spec.1 hHq.choose_spec.2,
+      lowMsg_stackTuple hκ q _⟩
+  have hinj : Set.InjOn f (Candidates μ R A (wordOf cs 0)) := by
+    intro q hq q' hq' hqq
     refine eq_of_blockOf_eq hμ fun u ↦ ?_
-    have := congrFun hqq ((bitsEquiv laneBits).symm u)
-    simp only [stackTuple, Equiv.apply_symm_apply] at this
-    exact msgPoly_injective hκ this
-  have hsub : stackTuple '' Candidates μ R A (wordOf cs 0) ⊆
-      ↑(tlist (domain (μ - laneBits) R h) (rowsOf laneBits (laneO 0 cs (2 ^ (μ - laneBits + R))))
-        A (2 ^ (μ - laneBits) - 1)) := by
+    have := congrArg (fun U ↦ lowMsg (μ - laneBits) (U ((bitsEquiv laneBits).symm u))) hqq
+    simp only [(hf q hq).2, (hf q' hq').2, Equiv.apply_symm_apply] at this
+    exact this
+  have hsub : f '' Candidates μ R A (wordOf cs 0) ⊆ ↑L := by
     rintro _ ⟨q, hq, rfl⟩
-    exact stackTuple_mem h cs hq
+    exact (hf q hq).1
   have hfin : (Candidates μ R A (wordOf cs 0)).Finite :=
     Set.Finite.of_finite_image ((Finset.finite_toSet _).subset hsub) hinj
   refine ⟨hfin, ?_⟩
@@ -182,7 +281,7 @@ theorem candidates_ncard_le {μ R A : ℕ} (hμ : laneBits ≤ μ) (h : μ - lan
 /-- **The starting doom**: from the candidates' violation, `LevelPre` of level `0` for the initial
 state. -/
 theorem levelPre_zero {μ R : ℕ} (P₀ : LevelCode) (hκ : P₀.κ = μ - laneBits) (hR : P₀.R = R)
-    (hℓ : P₀.ℓ = laneBits) (hμ : laneBits ≤ μ) (hthr : 2 ^ P₀.κ ≤ P₀.thr 0) (w : List E → E)
+    (hℓ : P₀.ℓ = laneBits) (hμ : laneBits ≤ μ) (hthr : P₀.deg < P₀.thr 0) (w : List E → E)
     (t : E) (cs : List (ℕ × ℕ × Word)) (hS : ShapeOK 0 P₀ cs) (hlen : cs.length = 1)
     (hcand : ∀ q ∈ Candidates μ R (P₀.thr 0) (wordOf cs 0), ¬ StackClaim.Holds μ (w, t) q) :
     LevelPre μ laneBits w 0 P₀ 0 ⟨t, [], []⟩ cs := by

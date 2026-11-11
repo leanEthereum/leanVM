@@ -24,11 +24,14 @@ folded lane's high part, the two out-of-domain points `z₁, z₂` and answers `
 `λ`, the openings. The level's claims are glued with powers of `λ`: the running claim with `λ⁰`,
 the out-of-domain claims with `λ`, `λ²`, the `t` consistency claims with `λ^(3+q)`.
 
-The next level's members are tuples `U` of `ℓ'` lanes of degree below `2^κ'`; `msgT κ' U` is
-their messages and `joinMsg` the message on the current level's `κ = ℓ' + κ'` variables.
+The next level's members are tuples `U` of `ℓ'` lanes of degree at most the next level's
+`d' = 2^κ' − 1 + ℓ'`; `msgT κ' U` is their messages (the low parts, all the claims weigh) and
+`joinMsg` the message on the current level's `κ = ℓ' + κ'` variables. Members with the same
+messages make the same claims.
 
-* `OodSep2 P' Q' z₁ z₂`: distinct members of the list of `Q'` differ at `z₁` or at `z₂`;
-  `card_oodSep2_bad_le`: at most `L² (κ |E|^(κ−1))²` pairs of points break it.
+* `OodSep2 P' Q' z₁ z₂`: members of the list of `Q'` with distinct messages differ at `z₁` or at
+  `z₂`; `card_oodSep2_bad_le`: at most `L² (κ |E|^(κ−1))²` pairs of points break it, `L` the
+  list's size (a bound on its distinct messages).
 * `QDoom`: after the positions `qs`, every member violates the running claim, an out-of-domain
   claim, or the consistency claim at a queried column, `c' q` being the value the verifier
   derives from the opened row (`P(x_q)` corrected by the high part).
@@ -62,25 +65,17 @@ theorem msgPoly_lowMsg_of_deg {κ : ℕ} (hκ : κ ≤ 64) {P : E[X]} (hP : P.na
   have := Nat.one_le_two_pow (n := κ)
   exact_mod_cast (show P.natDegree < 2 ^ κ by omega)
 
-/-- Tuples of degree below `2^κ` are determined by their messages. -/
-theorem msgT_inj {m κ : ℕ} (hκ : κ ≤ 64) {U U' : (Fin m → Bool) → E[X]}
-    (hU : DegLE (2 ^ κ - 1) U) (hU' : DegLE (2 ^ κ - 1) U') (h : msgT κ U = msgT κ U') :
-    U = U' :=
-  funext fun u ↦ by
-    rw [← msgPoly_lowMsg_of_deg hκ (hU u), ← msgPoly_lowMsg_of_deg hκ (hU' u)]
-    exact congrArg (msgPoly κ) (congrFun h u)
-
 /-! ## Out-of-domain separation -/
 
 /-- The out-of-domain value of a message: its claim against `eq_eval(z, ·)`. -/
 def oodVal {m κ : ℕ} (z : List E) (g : (Fin m → Bool) → (Fin κ → Bool) → E) : E :=
   claimSum (eqEval z) g
 
-/-- Distinct members of the list of `Q'` differ at `z₁` or at `z₂`. -/
+/-- Members of the list of `Q'` with distinct messages differ at `z₁` or at `z₂`. -/
 def OodSep2 (P' : LevelCode) {m : ℕ} (Q : (Fin m → Bool) → Fin P'.n → E) (z₁ z₂ : List E) :
     Prop :=
-  ∀ U ∈ tlist P'.dom Q (P'.thr 0) (P'.deg 0), ∀ U' ∈ tlist P'.dom Q (P'.thr 0) (P'.deg 0),
-    U ≠ U' → oodVal z₁ (msgT P'.κ U) ≠ oodVal z₁ (msgT P'.κ U') ∨
+  ∀ U ∈ tlist P'.dom Q (P'.thr 0) P'.deg, ∀ U' ∈ tlist P'.dom Q (P'.thr 0) P'.deg,
+    msgT P'.κ U ≠ msgT P'.κ U' → oodVal z₁ (msgT P'.κ U) ≠ oodVal z₁ (msgT P'.κ U') ∨
       oodVal z₂ (msgT P'.κ U) ≠ oodVal z₂ (msgT P'.κ U')
 
 /-- The out-of-domain claim against a vector point reads the extension of the table. -/
@@ -166,24 +161,23 @@ theorem card_oodSep2_bad_le (P' : LevelCode) {m κ : ℕ} (hκ : κ = m + P'.κ)
     (Q : (Fin m → Bool) → Fin P'.n → E) :
     (univ.filter fun zz : (Fin κ → E) × (Fin κ → E) ↦
         ¬ OodSep2 P' Q (List.ofFn zz.1) (List.ofFn zz.2)).card ≤
-      (tlist P'.dom Q (P'.thr 0) (P'.deg 0)).card ^ 2 * (κ * Fintype.card E ^ (κ - 1)) ^ 2 := by
-  set L := tlist P'.dom Q (P'.thr 0) (P'.deg 0)
-  let dec : ((Fin m → Bool) → E[X]) → CMlPolynomialEval E κ :=
-    fun U ↦ tableOf (joinMsg hκ (msgT P'.κ U))
+      (tlist P'.dom Q (P'.thr 0) P'.deg).card ^ 2 * (κ * Fintype.card E ^ (κ - 1)) ^ 2 := by
+  set L := tlist P'.dom Q (P'.thr 0) P'.deg
+  set M := L.image (msgT P'.κ)
+  let dec : ((Fin m → Bool) → (Fin P'.κ → Bool) → E) → CMlPolynomialEval E κ :=
+    fun g ↦ tableOf (joinMsg hκ g)
   have hval : ∀ U (f : Fin κ → E), oodVal (List.ofFn f) (msgT P'.κ U) =
-      evalMle (dec U) (Vector.ofFn f) := by
+      evalMle (dec (msgT P'.κ U)) (Vector.ofFn f) := by
     intro U f
     rw [oodVal, ← sum_joinMsg hκ, ← sum_eqEval_vec, Vector.toList_ofFn]
-  have hinj : Set.InjOn dec L := by
-    intro U hU U' hU' h
-    have h64 : P'.κ ≤ 64 := by have := P'.h64; omega
-    exact msgT_inj h64 ((mem_tlist _ _ _ _ _).mp hU).1 ((mem_tlist _ _ _ _ _).mp hU').1
-      (joinMsg_injective hκ (tableOf_injective h))
-  refine (card_le_card fun zz hz ↦ ?_).trans (card_ood2_collision_le L dec hinj)
+  have hinj : Set.InjOn dec M := fun g _ g' _ h ↦ joinMsg_injective hκ (tableOf_injective h)
+  refine (card_le_card fun zz hz ↦ ?_).trans ((card_ood2_collision_le M dec hinj).trans
+    (Nat.mul_le_mul_right _ (Nat.pow_le_pow_left card_image_le 2)))
   simp only [mem_filter, mem_univ, true_and, OodSep2, not_forall, not_or, not_not,
     exists_prop] at hz ⊢
   obtain ⟨U, hU, U', hU', hne, h1, h2⟩ := hz
-  exact ⟨U, hU, U', hU', hne, by rw [← hval, ← hval, h1], by rw [← hval, ← hval, h2]⟩
+  exact ⟨_, mem_image_of_mem _ hU, _, mem_image_of_mem _ hU', hne,
+    by rw [← hval, ← hval, h1], by rw [← hval, ← hval, h2]⟩
 
 /-! ## Batching sums -/
 
@@ -245,7 +239,7 @@ violates the running claim `(Φ, σ)`, an out-of-domain claim `(eq(z_s, ·), y_s
 consistency claim at a queried column, whose value the verifier derives is `c' q`. -/
 def QDoom (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E)
     (Φ : List E → E) (σ : E) (z₁ z₂ : List E) (y₁ y₂ : E) (c' : ℕ → E) (qs : List ℕ) : Prop :=
-  ∀ U ∈ tlist P'.dom Q' (P'.thr 0) (P'.deg 0),
+  ∀ U ∈ tlist P'.dom Q' (P'.thr 0) P'.deg,
     ∑ x, Φ (bitsL x) * joinMsg hκ (msgT P'.κ U) x ≠ σ ∨ oodVal z₁ (msgT P'.κ U) ≠ y₁ ∨
       oodVal z₂ (msgT P'.κ U) ≠ y₂ ∨ ∃ q ∈ qs, encAt P.κ P.R (joinMsg hκ (msgT P'.κ U)) q ≠ c' q
 
@@ -257,26 +251,27 @@ theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1
     (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
     (z₁ z₂ : List E) (y₁ y₂ : E) (H : E[X]) (hH : H.natDegree + 1 ≤ P.ℓ) (c' : ℕ → E)
     (hc' : ∀ q (h : q < P.n), c' q = C ⟨q, h⟩ + (hatE P.κ * H).eval (P.dom ⟨q, h⟩))
-    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) (P.deg P.ℓ))
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) P.deg)
     (hsep : OodSep2 P' Q' z₁ z₂) :
     ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧ ∀ qs : List ℕ,
       ¬ QDoom P P' hκ Q' Φ σ z₁ z₂ y₁ y₂ c' qs → ∀ q ∈ qs, ∀ h : q < P.n,
         (⟨q, h⟩ : Fin P.n) ∈ S := by
   classical
   have h64 := P.κ_lt
-  set L := tlist P'.dom Q' (P'.thr 0) (P'.deg 0)
+  set L := tlist P'.dom Q' (P'.thr 0) P'.deg
   by_cases hex : ∃ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ ∧ oodVal z₂ (msgT P'.κ U) = y₂
   · obtain ⟨U₀, hU₀, ho₁, ho₂⟩ := hex
     set g := joinMsg hκ (msgT P'.κ U₀)
     set Pst := msgPoly P.κ g + hatE P.κ * H
     -- The one member consistent with both answers, as a single polynomial.
-    have huniq : ∀ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ → oodVal z₂ (msgT P'.κ U) = y₂ → U = U₀ := by
+    have huniq : ∀ U ∈ L, oodVal z₁ (msgT P'.κ U) = y₁ → oodVal z₂ (msgT P'.κ U) = y₂ →
+        msgT P'.κ U = msgT P'.κ U₀ := by
       intro U hU h₁ h₂
       by_contra hne
       rcases hsep U hU U₀ hU₀ hne with h | h
       · exact h (h₁.trans ho₁.symm)
       · exact h (h₂.trans ho₂.symm)
-    have hdeg : DegLE (P.deg P.ℓ) (fun _ : Fin 0 → Bool ↦ Pst) := fun _ ↦ by
+    have hdeg : DegLE P.deg (fun _ : Fin 0 → Bool ↦ Pst) := fun _ ↦ by
       refine (natDegree_add_le _ _).trans (max_le ?_ ?_)
       · have := natDegree_msgPoly_lt (show P.κ ≤ 64 by omega) g
         have h1 := Nat.one_le_two_pow (n := P.κ)
@@ -305,8 +300,8 @@ theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1
     · refine ⟨S, by omega, fun qs hqs q hq hlt ↦ ?_⟩
       simp only [QDoom, not_forall, not_or, not_not, exists_prop, not_exists, not_and] at hqs
       obtain ⟨U, hU, -, h₁, h₂, hall⟩ := hqs
-      obtain rfl := huniq U hU h₁ h₂
       have he := hall q hq
+      rw [huniq U hU h₁ h₂] at he
       rw [encAt, dite_eq_left_of_eq_true (eq_true hlt), hc' q hlt,
         enc_eq_evalOnPoints (show P.κ + P.R ≤ 64 from P.h64)] at he
       rw [mem_agreeT]
@@ -342,11 +337,11 @@ theorem card_lambda_bad_le (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
     (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (Φ : List E → E) (σ : E) (z₁ z₂ : List E)
     (y₁ y₂ : E) (c' : ℕ → E) (qs : List ℕ) (hq : ∀ q ∈ qs, q < P.n)
     (hQ : QDoom P P' hκ Q' Φ σ z₁ z₂ y₁ y₂ c' qs) :
-    (univ.filter fun lam : E ↦ ∃ U ∈ tlist P'.dom Q' (P'.thr 0) (P'.deg 0),
+    (univ.filter fun lam : E ↦ ∃ U ∈ tlist P'.dom Q' (P'.thr 0) P'.deg,
         ∑ x, gluedW Φ z₁ z₂ P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
           gluedV σ y₁ y₂ qs c' lam).card ≤
-      (tlist P'.dom Q' (P'.thr 0) (P'.deg 0)).card * (qs.length + 2) := by
-  set L := tlist P'.dom Q' (P'.thr 0) (P'.deg 0)
+      (tlist P'.dom Q' (P'.thr 0) P'.deg).card * (qs.length + 2) := by
+  set L := tlist P'.dom Q' (P'.thr 0) P'.deg
   refine card_filter_exists_le L _ fun U hU ↦ ?_
   set g := joinMsg hκ (msgT P'.κ U)
   have h64 : P.κ ≤ 64 := by have := P.h64; omega

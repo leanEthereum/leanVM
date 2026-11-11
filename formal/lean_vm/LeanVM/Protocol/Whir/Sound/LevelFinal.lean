@@ -127,7 +127,7 @@ theorem terminal_weight (eb : List E → E) (laneFolds : ℕ) (s : WhirState)
 agrees with the folded word on fewer than `A` columns. -/
 theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.κ) (C : Fin P.n → E)
     (Φ : List E → E) (σ : E) (folded : List E) (hlen : folded.length = 2 ^ P.κ + P.ℓ)
-    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) (P.deg P.ℓ)) :
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) P.deg) :
     ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧
       (∑ x : Fin P.κ → Bool, Φ (bitsL x) * folded.getD (bitsToNat x) 0 = σ →
         ∀ v : Fin P.n, (polyOf folded).eval (P.dom v) = C v → v ∈ S) := by
@@ -135,7 +135,7 @@ theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.�
   have h64 := P.κ_lt
   have hlow : lowMsg P.κ (polyOf folded) = fun u ↦ folded.getD (bitsToNat u) 0 := by
     rw [polyOf_split h64 folded hlen hℓκ, lowMsg_msgPoly_add_hat (by omega)]
-  have hdeg : DegLE (P.deg P.ℓ) (fun _ : Fin 0 → Bool ↦ polyOf folded) := fun _ ↦ by
+  have hdeg : DegLE P.deg (fun _ : Fin 0 → Bool ↦ polyOf folded) := fun _ ↦ by
     have := natDegree_polyOf_le folded (by
       rw [hlen]
       calc 2 ^ P.κ + P.ℓ ≤ 2 ^ P.κ + 2 ^ P.κ := by omega
@@ -228,7 +228,7 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
         simpa using isMultiaffine_runW hw hℓ₀ s hmu.2.2.2 hmu.2.2.1
       set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
       have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim
-          (P.thr P.ℓ) (P.deg P.ℓ) := by
+          (P.thr P.ℓ) P.deg := by
         have h5 := hR.2.2.2.2
         rw [tviol_rowsOf_congr (show P.ℓ - rounds.length = 0 by omega), hr] at h5
         have hrow : rowsOf 0 (foldsA P.dom rounds (laneO i (commits h₀) P.n)) =

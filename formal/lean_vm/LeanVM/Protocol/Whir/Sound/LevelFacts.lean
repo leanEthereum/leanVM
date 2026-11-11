@@ -115,7 +115,7 @@ theorem nextInv_of (hκ : P.κ = P'.ℓ + P'.κ) (s : WhirState) (rounds : List 
     (hr : rounds.length = P.ℓ) (z₁ z₂ : List E) (hz₁ : z₁.length = P.κ) (hz₂ : z₂.length = P.κ)
     (y₁ y₂ : E) (qs : List ℕ) (c' : ℕ → E) (lam batched : E)
     (hb : batched = ∑ k : Fin qs.length, lam ^ (k : ℕ) * c' qs[k])
-    (hlam : ¬ ∃ U ∈ tlist P'.dom (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (P'.thr 0) (P'.deg 0),
+    (hlam : ¬ ∃ U ∈ tlist P'.dom (rowsOf P'.ℓ (laneO (i + 1) cs P'.n)) (P'.thr 0) P'.deg,
       ∑ x, gluedW (runW w ℓ₀ s) z₁ z₂ P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
         gluedV s.claim y₁ y₂ qs c' lam) :
     RoundInv μ ℓ₀ w (i + 1) P' (pre + P.ℓ)

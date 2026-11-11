@@ -20,8 +20,8 @@ Level `i` of a shape's fold certificate `(κ, R, k, Aend, rounds)` is the code `
 (`codesOf μ R i`). From `shapeOK μ R = true` (`shapeOK_all`, every admissible shape):
 
 * `roundBoundsOf`: each level's fold rounds, from their certificate (`foldRoundBound_of_ok`),
-  with the premix's count at most the fold budget `2^12` and `(γ, α, β)`'s `2^12 |E|²`, both
-  `2^-125` after the `9`-bit grind;
+  at the level's degree, with `(γ, α, β)`'s count at most `2^12 |E|²` (the fold budget `2^12`
+  times `|E|²`), `2^-125` after the `9`-bit grind;
 * `ladderOK_of_chain`: the ladder's groups (`MidOK`, `FinalOK`) within `εmsg = 2^-125` after
   their grinds;
 * `listMax₀ μ R`, level 0's list bound, at most `166` (`listMax₀_le`), with the out-of-domain and
@@ -167,7 +167,6 @@ def listMax₀ (μ R : ℕ) : ℕ := jlStart ((levelsOf μ R).headD junkLv)
 noncomputable def roundBoundsMk {κ R k A : ℕ} (h64 : κ + R ≤ 64) (hR : 1 ≤ R) {rs : List (ℕ × ℕ × ℕ)}
     (hlv : AffineCombiner.levelOK AffineCombiner.foldBudget (κ, R, k, A, rs) = true)
     (hkA : k < A) : RoundBounds ⟨κ, R, k, A, h64, hR⟩ εmsg where
-  Lθ j := AffineCombiner.jl (2 ^ (κ + R)) (A - (k - (j + 1)) - 1) (2 ^ κ - 1 + (j + 1))
   N _ := AffineCombiner.foldBudget * Fintype.card E ^ 2
   hA := hkA
   bound j hj := by
@@ -177,19 +176,6 @@ noncomputable def roundBoundsMk {κ R k A : ℕ} (h64 : κ + R ≤ 64) (hR : 1 �
       exact h.1
     have hj' : j < k := hj
     exact Sound.foldRoundBound_of_ok h64 (AffineCombiner.levelOK_round hlv j (by omega)).2
-  eθ j hj := by
-    have hlen : rs.length = k := by
-      have h := hlv
-      simp only [AffineCombiner.levelOK, Bool.and_eq_true, beq_iff_eq] at h
-      exact h.1
-    have hj' : j < k := hj
-    have hb := (AffineCombiner.foldRoundOK_sound
-      (AffineCombiner.levelOK_round hlv j (by omega)).2).2.2.1
-    refine grind_div_card_le ?_
-    rw [Whir.foldGrindingBits]
-    calc AffineCombiner.jl (2 ^ (κ + R)) (A - (k - (j + 1)) - 1) (2 ^ κ - 1 + (j + 1)) * 2 ^ 125
-        ≤ 2 ^ 12 * 2 ^ 125 := Nat.mul_le_mul_right _ hb
-      _ = 2 ^ (9 + 128) := by norm_num
   eF j _ := by
     rw [budget_div_card_cube]
     exact grind_div_card_le (by unfold Whir.foldGrindingBits; norm_num)
@@ -200,11 +186,9 @@ noncomputable def roundBoundsMk {κ R k A : ℕ} (h64 : κ + R ≤ 64) (hR : 1 �
 
 /-- The fallback code's rounds: none. -/
 noncomputable def roundBoundsJunk : RoundBounds ⟨0, 1, 0, 1, by omega, le_rfl⟩ εmsg where
-  Lθ _ := 0
   N _ := 0
   hA := by norm_num
   bound j hj := absurd hj (Nat.not_lt_zero _)
-  eθ j hj := absurd hj (Nat.not_lt_zero _)
   eF j hj := absurd hj (Nat.not_lt_zero _)
   eF1 j hj := absurd hj (Nat.not_lt_zero _)
 
@@ -237,7 +221,7 @@ structure LevelFacts (κprev : ℕ) (lv : Lv) (cfg : Whir.Level) : Prop where
   hkA : lv.2.2.1 < lv.2.2.2.1
   hlv : AffineCombiner.levelOK AffineCombiner.foldBudget lv = true
   hq : (lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 108 ≤ (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries
-  hgap : 2 ^ (lv.1 + lv.2.1) * (2 ^ lv.1 - 1) <
+  hgap : 2 ^ (lv.1 + lv.2.1) * (2 ^ lv.1 - 1 + lv.2.2.1) <
     (lv.2.2.2.1 - lv.2.2.1) * (lv.2.2.2.1 - lv.2.2.1)
 
 theorem levelFacts_of {κprev : ℕ} {lv : Lv} {cfg : Whir.Level}
@@ -276,7 +260,7 @@ theorem midOK_of {κprev : ℕ} {lv lv' : Lv} {c c' : Whir.Level} (F : LevelFact
            eO := eO, eO1 := eO1, eQ := eQ_le F.hq, eQ1 := eQuery_lt_one F.hq, eL := eL }
   · have := F'.hκ; dsimp only; omega
   · have := F'.hgap
-    simp only [LevelCode.n, LevelCode.deg, LevelCode.thr, Nat.add_zero, Nat.sub_zero]
+    simp only [LevelCode.n, LevelCode.deg, LevelCode.thr, Nat.sub_zero]
     exact this
 
 theorem levelChecks_of_chain {κp : ℕ} {lv : Lv} {rest : List Lv} {c : Whir.Level}
@@ -350,7 +334,7 @@ theorem chain_mem : ∀ (lvs : List Lv) (cfg : List Whir.Level) (κp : ℕ),
 theorem shapeOK_facts {μ R : ℕ} (hok : shapeOK μ R = true) :
     ∃ cfg lv rest, Whir.ladder μ R = some cfg ∧ levelsOf μ R = lv :: rest ∧
       chainChecks μ (lv :: rest) cfg = true ∧ lv.2.1 = R ∧ lv.2.2.1 = 6 ∧
-      2 ^ lv.1 ≤ lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧ 513 * jlStart lv ≤ 2 ^ 17 ∧
+      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧ 513 * jlStart lv ≤ 2 ^ 17 ∧
       (jlStart lv).choose 2 * μ ≤ 2 ^ 18 := by
   unfold shapeOK at hok
   rcases hc : Whir.ladder μ R with _ | cfg <;> rcases hl : levelsOf μ R with _ | ⟨lv, rest⟩ <;>
@@ -383,11 +367,12 @@ structure Level0Facts (μ R : ℕ) (level : Whir.Level) (rest : List Whir.Level)
   hμ : laneBits ≤ μ
   hκ₀ : (codesOf μ R 0).κ = μ - laneBits
   hR₀ : (codesOf μ R 0).R = R
-  hthr : 2 ^ (codesOf μ R 0).κ ≤ (codesOf μ R 0).thr 0
+  hthr : (codesOf μ R 0).deg < (codesOf μ R 0).thr 0
   hthr₀ : (codesOf μ R 0).thr 0 = thr0Of μ R
   h64 : μ - laneBits + R ≤ 64
-  hgap : 2 ^ (μ - laneBits + R) * (2 ^ (μ - laneBits) - 1) < thr0Of μ R * thr0Of μ R
-  hL : listMax₀ μ R = jl (2 ^ (μ - laneBits + R)) (thr0Of μ R) (2 ^ (μ - laneBits) - 1)
+  hgap : 2 ^ (μ - laneBits + R) * (2 ^ (μ - laneBits) - 1 + laneBits) < thr0Of μ R * thr0Of μ R
+  hL : listMax₀ μ R =
+    jl (2 ^ (μ - laneBits + R)) (thr0Of μ R) (2 ^ (μ - laneBits) - 1 + laneBits)
   hA : LadderOK (codesOf μ R) εmsg 0 (level :: rest)
 
 theorem level0Facts {μ R : ℕ} (hok : shapeOK μ R = true) :
@@ -406,11 +391,16 @@ theorem level0Facts {μ R : ℕ} (hok : shapeOK μ R = true) :
       simp only [codesOf, hl, Nat.zero_add, List.getD_eq_getElem _ _ hj]⟩⟩
   · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]; exact hκ
   · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]; exact hR
-  · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]; exact hthr
+  · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩]
+    simp only [LevelCode.deg, LevelCode.thr, Nat.sub_zero]
+    simpa only [degOf] using hthr
   · rw [h0, mkCode_eq ⟨F.h64, F.hR⟩, hthr0]; rfl
   · have := F.h64; omega
-  · rw [hthr0, ← hκ, ← hR]; exact F.hgap
-  · rw [listMax₀, hl, hthr0, ← hκ, ← hR]; rfl
+  · rw [hthr0, ← hκ, ← hR, show laneBits = lv.2.2.1 from hk.symm]
+    exact F.hgap
+  · rw [listMax₀, hl, hthr0, ← hκ, ← hR]
+    simp only [jlStart, degOf, hk, List.headD_cons]
+    rfl
 
 /-! ## Level 0's list -/
 

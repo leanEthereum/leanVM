@@ -54,9 +54,9 @@ def fes (a n : ℕ) : List E := (List.range n).map fun i ↦ fe (a + i)
 /-- A lifted `K` table of sixteen entries. -/
 def kTable : List E := (List.range 16).map fun i ↦ ofK (K.ofBits (fw i 5))
 
-/-- Three fold rounds, `θ, α, β` the elements `fe(910 + 3r), fe(911 + 3r), fe(912 + 3r)`. -/
+/-- Three fold rounds, `α, β` the elements `fe(910 + 2r), fe(911 + 2r)`. -/
 def sampleRounds : List FoldRound :=
-  (List.range 3).map fun r ↦ ⟨fe (910 + 3 * r), fe (911 + 3 * r), fe (912 + 3 * r)⟩
+  (List.range 3).map fun r ↦ ⟨fe (910 + 2 * r), fe (911 + 2 * r)⟩
 
 /-- A domain point outside the small subspaces: the word `fw(3, 7)`. -/
 def samplePoint : K := K.ofBits (fw 3 7)
@@ -265,7 +265,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
     (e 0x87e252e36d1b76a7 0xe08d5e4b4a5b7a2e)
 
 #guard (foldRow (fes 900 8) (K.ofBits 23) sampleRounds) =
-    (e 0x857260fb5a96ae5c 0x1b5bb2b38a87d10d)
+    (e 0xb8d373c1d29ea65a 0xba103fe1bfbd4c47)
 
 #guard (inducedWeight 5 [3, 17, 30, 0] (powers (fe 60) 4) [fe 61, fe 62, fe 63, fe 64, fe 65]) =
     (e 0x1f414c84d37628a1 0xfc45dc207f904f40)

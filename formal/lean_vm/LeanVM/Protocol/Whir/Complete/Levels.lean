@@ -21,20 +21,20 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 /-- **One fold round follows the verifier's.** -/
 theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : Commits) :
     Follows (fun cs' (a : Array E × Array E) (b : WhirState × FoldRound) ↦ cs' = cs ∧
-        ∃ θ γ α β u₀ v₀ c₀ v₁ c₁,
-          roundTableA f w s (premixA f s θ) (mulXA (premixA f s θ) (s / 2)) = [u₀, v₀, c₀, v₁, c₁] ∧
-          b.2 = ⟨θ, α, β⟩ ∧
+        ∃ γ α β u₀ v₀ c₀ v₁ c₁,
+          roundTableA f w s (halfA f s) (mulXA (halfA f s) (s / 2)) = [u₀, v₀, c₀, v₁, c₁] ∧
+          b.2 = ⟨α, β⟩ ∧
           b.1 = { sv with claim := (1 + γ) * (u₀ + α * v₀ + β * c₀) +
-              γ * ((sv.claim + v₀ + θ * u₀) + α * v₁ + β * c₁), gammas := sv.gammas ++ [γ] } ∧
-          a = (foldLanesA f s (premixA f s θ) (mulXA (premixA f s θ) (s / 2)) α β,
+              γ * ((sv.claim + v₀) + α * v₁ + β * c₁), gammas := sv.gammas ++ [γ] } ∧
+          a = (foldLanesA f s (halfA f s) (mulXA (halfA f s) (s / 2)) α β,
             foldPairsA γ w))
       (foldRoundA f w s) (foldRound sv) cs := by
   simp only [foldRoundA, foldRound, Script.grindBits, VerifierProgram.grindProofOfWork,
     Whir.foldGrindingBits, roundTableA, Script.bind_eq, VerifierProgram.bind_eq, Script.pure_eq,
     VerifierProgram.pure_eq, Script.grindS, Script.sampleE, Script.sendList,
     VerifierProgram.readScalar, VerifierProgram.sampleChallenge, Script.bind, VerifierProgram.bind]
-  intro θ γ α β
-  exact ⟨rfl, θ, γ, α, β, _, _, _, _, _, rfl, rfl, rfl, rfl⟩
+  intro γ α β
+  exact ⟨rfl, γ, α, β, _, _, _, _, _, rfl, rfl, rfl, rfl⟩
 
 /-! ## The invariant of a level's fold rounds -/
 
@@ -69,38 +69,38 @@ theorem runW_fold (B : List E → E) (lf : ℕ) (sv : WhirState) (c γ : E) (x :
 /-- **A round keeps the invariant.** -/
 theorem FoldInv.step {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ → List E} {j m : ℕ}
     {sv : WhirState} {f w : Array E} {rounds : List FoldRound}
-    (hI : FoldInv μ lf B κ P rowOf j (m + 1) sv f w rounds) (θ γ α β u₀ v₀ c₀ v₁ c₁ : E)
-    (ht : roundTableA f w (2 ^ (m + 1)) (premixA f (2 ^ (m + 1)) θ)
-      (mulXA (premixA f (2 ^ (m + 1)) θ) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
+    (hI : FoldInv μ lf B κ P rowOf j (m + 1) sv f w rounds) (γ α β u₀ v₀ c₀ v₁ c₁ : E)
+    (ht : roundTableA f w (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
+      (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) = [u₀, v₀, c₀, v₁, c₁]) :
     FoldInv μ lf B κ P rowOf (j + 1) m
       { sv with claim := (1 + γ) * (u₀ + α * v₀ + β * c₀) +
-          γ * ((sv.claim + v₀ + θ * u₀) + α * v₁ + β * c₁), gammas := sv.gammas ++ [γ] }
-      (foldLanesA f (2 ^ (m + 1)) (premixA f (2 ^ (m + 1)) θ)
-        (mulXA (premixA f (2 ^ (m + 1)) θ) (2 ^ m)) α β) (foldPairsA γ w)
-      (rounds ++ [⟨θ, α, β⟩]) := by
+          γ * ((sv.claim + v₀) + α * v₁ + β * c₁), gammas := sv.gammas ++ [γ] }
+      (foldLanesA f (2 ^ (m + 1)) (halfA f (2 ^ (m + 1)))
+        (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)) α β) (foldPairsA γ w)
+      (rounds ++ [⟨α, β⟩]) := by
   obtain ⟨hw, hf, hcols, hclaim, hlen, hW, hrows⟩ := hI
   have hpos := Nat.two_pow_pos m
-  have hH := size_premixA f hf θ
-  have hXH : (mulXA (premixA f (2 ^ (m + 1)) θ) (2 ^ m)).size = (2 ^ κ + j + 1) * 2 ^ m := by
+  have hH := size_halfA f hf
+  have hXH : (mulXA (halfA f (2 ^ (m + 1))) (2 ^ m)).size = (2 ^ κ + j + 1) * 2 ^ m := by
     rw [size_mulXA, hH, Nat.mul_div_cancel _ hpos]
   refine ⟨?_, ?_, by omega, ?_, ?_, ?_, ?_⟩
   · simp [foldPairsA, hw, pow_succ, ← mul_assoc]
   · simp [foldLanesA, hXH]; ring
-  · exact claim_fold f w hf (k := κ) hw (by omega) θ γ α β _ hclaim u₀ v₀ c₀ v₁ c₁ ht
+  · exact claim_fold f w hf (k := κ) hw (by omega) γ α β _ hclaim u₀ v₀ c₀ v₁ c₁ ht
   · simp only [List.length_append, List.length_singleton]; omega
   · intro x hx
     rw [runW_fold, hW (γ :: x) (by simp [hx]; omega), toList_foldPairsA, multilinearEval_cons]
   · intro p hp
     obtain ⟨hl, hv⟩ := hrows p hp
-    have hfold : vfold (rounds ++ [⟨θ, α, β⟩]) (K.ofBits p) (rowOf p) =
-        foldLanes (K.ofBits p) ⟨θ, α, β⟩ (vfold rounds (K.ofBits p) (rowOf p)) := by
+    have hfold : vfold (rounds ++ [⟨α, β⟩]) (K.ofBits p) (rowOf p) =
+        foldLanes (K.ofBits p) ⟨α, β⟩ (vfold rounds (K.ofBits p) (rowOf p)) := by
       simp [vfold, List.foldl_append]
     rw [hfold]
     refine ⟨by rw [length_foldLanes, hl, pow_succ, Nat.mul_div_cancel _ (by norm_num)], ?_⟩
     intro l hl'
     rw [getD_foldLanes _ _ _ l (by rw [hl, pow_succ]; omega), hv _ (by rw [pow_succ]; omega),
       hv _ (by rw [pow_succ]; omega),
-      laneVal_fold f (cols := 2 ^ κ + j) hf (by omega) θ α β hl' (K.ofBits p)]
+      laneVal_fold f (cols := 2 ^ κ + j) hf (by omega) α β hl' (K.ofBits p)]
 
 /-- **A level's fold rounds follow the verifier's**, keeping the invariant. -/
 theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ → List E}
@@ -114,12 +114,12 @@ theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf
   | n + 1, j, sv, f, w, pre, hI => by
     simp only [foldRoundsA, foldRounds, Script.bind_eq, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (follows_foldRoundA f w (2 ^ (n + 1)) sv cs)
-    obtain ⟨hcs, θ, γ, α, β, u₀, v₀, c₀, v₁, c₁, ht, hb2, hb1, rfl⟩ := h
+    obtain ⟨hcs, γ, α, β, u₀, v₀, c₀, v₁, c₁, ht, hb2, hb1, rfl⟩ := h
     obtain ⟨sv', r⟩ := b
     simp only at hb2 hb1
     subst hb2 hb1
     rw [two_pow_succ_div_two] at ht ⊢
-    have hI' := hI.step θ γ α β u₀ v₀ c₀ v₁ c₁ ht
+    have hI' := hI.step γ α β u₀ v₀ c₀ v₁ c₁ ht
     simp only
     rw [← Script.bind_ret (foldRoundsA n (2 ^ n) _ _)]
     refine Follows.bind (fun cs₂ a' b' h' ↦ ?_) _ _ _

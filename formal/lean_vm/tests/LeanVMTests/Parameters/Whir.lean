@@ -4,7 +4,7 @@ import LeanVM.Parameters.Whir
 # WHIR parameter tests
 
 The ladder against the deployed verifier's (`WHIR_QUERIES` and `derive_config`,
-`crates/verifier/src/whir.rs:25-71` at leanVM's `f128`, `afe891a73`): the smallest stack at rate 1/2, the
+`crates/verifier/src/whir.rs:25-71` at leanVM's `f128`, `bcc8cde74`): the smallest stack at rate 1/2, the
 largest at rate 1/16, and one three-level case, each with its residual; the window's four edges
 rejected; the table's shape; the block lengths of the first ladder; and a nearby false statement,
 the rate exponent of level 1 under a wrong domain reduction.
@@ -14,9 +14,9 @@ namespace LeanVMTests.Parameters.Whir
 
 open LeanVM.Parameters.Whir
 
-/-- `(234, 62)` at `μ = 15`, rate 1/2: level 0 folds six variables at rate exponent 1, level 1
+/-- `(238, 63)` at `μ = 15`, rate 1/2: level 0 folds six variables at rate exponent 1, level 1
 four at exponent `1 + 6 - 3 = 4`, and five remain. -/
-example : ladder 15 1 = some [⟨6, 1, 234⟩, ⟨4, 4, 62⟩] := by decide
+example : ladder 15 1 = some [⟨6, 1, 238⟩, ⟨4, 4, 63⟩] := by decide
 
 example : residualLog 15 1 = 5 := by decide
 
@@ -28,9 +28,9 @@ example : ladder 28 4 =
 
 example : residualLog 28 4 = 2 := by decide
 
-/-- `(228, 59, 41)` at `μ = 16`, rate 1/2: ten variables after level 0 is more than five, so a
+/-- `(230, 60, 42)` at `μ = 16`, rate 1/2: ten variables after level 0 is more than five, so a
 third level folds the last four, and two remain. -/
-example : ladder 16 1 = some [⟨6, 1, 228⟩, ⟨4, 4, 59⟩, ⟨4, 7, 41⟩] := by decide
+example : ladder 16 1 = some [⟨6, 1, 230⟩, ⟨4, 4, 60⟩, ⟨4, 7, 42⟩] := by decide
 
 example : residualLog 16 1 = 2 := by decide
 
@@ -56,7 +56,7 @@ example : oodSamplesAt 0 = 0 ∧ oodSamplesAt 1 = 2 ∧ oodSamplesAt 5 = 2 := by
 
 /-- With the initial domain reduction applied as the subsequent one (one bit), level 1 would sit
 at exponent `1 + 6 - 1 = 6`; with no reduction at all, at `7`. The pinned ladder has `4`. -/
-example : ladder 15 1 ≠ some [⟨6, 1, 234⟩, ⟨4, 6, 62⟩] ∧
-    ladder 15 1 ≠ some [⟨6, 1, 234⟩, ⟨4, 7, 62⟩] := by decide
+example : ladder 15 1 ≠ some [⟨6, 1, 238⟩, ⟨4, 6, 63⟩] ∧
+    ladder 15 1 ≠ some [⟨6, 1, 238⟩, ⟨4, 7, 63⟩] := by decide
 
 end LeanVMTests.Parameters.Whir

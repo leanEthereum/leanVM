@@ -15,24 +15,22 @@ public import LeanVM.Protocol.Whir.Sound.Tuple
 
 Annex B (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`), `lem:fold-list`, and Protocol
 `fig:protocol`, step 1: a round of a level with running claim `(Φ, σ)` on a word of `m + 1` lane
-variables draws the premix `θ` (after a grind), reads `u₀, v₀, c₀, v₁, c₁`, sets
-`u₁ := σ + v₀ + θ u₀`, draws `(γ, α, β)` (after a grind), and continues with the claim
-`(Φ(γ, ·), (1 + γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁))` (`foldClaim`) on the affine fold
-`foldQ dom θ α β Q` (`foldRound`, `Statement/LeanVmVerifier.lean`).
+variables reads `u₀, v₀, c₀, v₁, c₁`, sets `u₁ := σ + v₀`, draws `(γ, α, β)` (after a grind), and
+continues with the claim `(Φ(γ, ·), (1 + γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁))`
+(`foldClaim`) on the affine fold `foldQ dom α β Q` (`foldRound`, `Statement/LeanVmVerifier.lean`).
+Every round of a level is analysed at the level's one degree `d`.
 
-* `FoldRoundBound dom d A Lθ N`: **the fold-round lemma in counting form**, for every word of any
+* `FoldRoundBound dom d A N`: **the fold-round lemma in counting form**, for every word of any
   lane set with halves `f`, `g`, linear functionals `Λ₀`, `Λ₁` and value `c`: if every pair of
-  `lst(f, g; A − 1, d − 1)` violates `Λ₀ F + Λ₁ G = c`, at most `Lθ` premixes admit a table with
-  more than `N` challenges `(γ, α, β)` after which a tuple of `lst(fold; A, d)` satisfies the new
-  claim. It is the conclusion of [CYWZ26, preprint]'s Theorem 5.1 and Corollary 5.2 as the Annex
-  adapts them: part (i) gives `Lθ = jl n (A − 1) d` (bad premixes), part (ii) for a good premix
+  `lst(f, g; A − 1, d)` violates `Λ₀ F + Λ₁ G = c`, every table leaves at most `N` challenges
+  `(γ, α, β)` after which a tuple of `lst(fold; A, d)` satisfies the new claim. It is the
+  conclusion of [CYWZ26, preprint]'s Theorem 1.1 as the Annex applies it, with
   `N = |E| · N_aff + 2 jl n (A − 1) d |E|²`, `N_aff` a bound on the combiner's exceptional pairs
-  (`thm:mca-affine`, `ε_aff = N_aff / |E|²`). `LeanVM.Protocol.ToArkLib.Whir.AffineCombinerMca`
-  proves both parts, the count of exceptional pairs from its `InterpolantCount`; this module takes
-  the lemma as a hypothesis, which the parameters' certificate discharges.
-* `card_premix_bad_le`: on the verifier's word, weight and claim, a round's premix escapes the
-  invariant `TViol κ dom Q Φ σ (A − 1) (d − 1)` (it is not `PremixOK`) for at most `Lθ` values,
-  and after a `PremixOK` premix every table leaves at most `N` escaping triples (`foldEsc`).
+  (`thm:mca-affine`, `ε_aff = N_aff / |E|²`). `LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFold`
+  proves it, the count of exceptional pairs from `AffineCombinerMca`; this module takes the lemma
+  as a hypothesis, which the parameters' certificate discharges.
+* `card_foldEsc_le`: on the verifier's word, weight and claim, from the invariant
+  `TViol κ dom Q Φ σ (A − 1) d`, every table leaves at most `N` escaping triples (`foldEsc`).
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -43,34 +41,30 @@ open LeanVM.Parameters LeanVM.Protocol.Whir Polynomial Finset
 
 open Classical in
 /-- **The fold-round lemma, counting form** (Annex B, `lem:fold-list`): see the module docstring. -/
-def FoldRoundBound {n : ℕ} (dom : Fin n ↪ E) (d A Lθ N : ℕ) : Prop :=
+def FoldRoundBound {n : ℕ} (dom : Fin n ↪ E) (d A N : ℕ) : Prop :=
   ∀ (ρ : Type) [Fintype ρ] (f g : ρ → Fin n → E) (Λ₀ Λ₁ : (ρ → E[X]) →ₗ[E] E) (c : E),
-    (∀ F G : ρ → E[X], DegLE (d - 1) F → DegLE (d - 1) G →
+    (∀ F G : ρ → E[X], DegLE d F → DegLE d G →
       A - 1 ≤ (agreeT dom F f ∩ agreeT dom G g).card → Λ₀ F + Λ₁ G ≠ c) →
-    (univ.filter fun θ : E ↦ ∃ u₀ v₀ c₀ v₁ c₁ : E, N < (univ.filter fun t : E × E × E ↦
+    ∀ u₀ v₀ c₀ v₁ c₁ : E, (univ.filter fun t : E × E × E ↦
       ∃ P : ρ → E[X], DegLE d P ∧
-        A ≤ (agreeT dom P fun r x ↦ g r x + (t.2.1 + t.2.2 * dom x) * (f r x + θ * g r x)).card ∧
+        A ≤ (agreeT dom P fun r x ↦ g r x + (t.2.1 + t.2.2 * dom x) * f r x).card ∧
         (1 - t.1) * Λ₀ P + t.1 * Λ₁ P = (1 - t.1) * (u₀ + t.2.1 * v₀ + t.2.2 * c₀) +
-          t.1 * ((c - v₀ + θ * u₀) + t.2.1 * v₁ + t.2.2 * c₁)).card).card ≤ Lθ
+          t.1 * ((c - v₀) + t.2.1 * v₁ + t.2.2 * c₁)).card ≤ N
 
-/-- The verifier's claim after a fold round (`foldRound`): `u₁ = σ + v₀ + θ u₀`, then
+/-- The verifier's claim after a fold round (`foldRound`): `u₁ = σ + v₀`, then
 `(1 + γ)(u₀ + α v₀ + β c₀) + γ (u₁ + α v₁ + β c₁)`. -/
-def foldClaim (σ θ γ α β u₀ v₀ c₀ v₁ c₁ : E) : E :=
-  (1 + γ) * (u₀ + α * v₀ + β * c₀) + γ * ((σ + v₀ + θ * u₀) + α * v₁ + β * c₁)
+def foldClaim (σ γ α β u₀ v₀ c₀ v₁ c₁ : E) : E :=
+  (1 + γ) * (u₀ + α * v₀ + β * c₀) + γ * ((σ + v₀) + α * v₁ + β * c₁)
 
 variable {n : ℕ} (κ : ℕ) (dom : Fin n ↪ E) {m : ℕ} (Q : (Fin (m + 1) → Bool) → Fin n → E)
   (Φ : List E → E) (σ : E) (A d : ℕ)
 
 open Classical in
 /-- The triples `(γ, α, β)` after which the fold escapes the invariant at `(A, d)`, for the
-premix `θ` and the table `u₀ v₀ c₀ v₁ c₁`. -/
-noncomputable def foldEsc (θ u₀ v₀ c₀ v₁ c₁ : E) : Finset (E × E × E) :=
-  univ.filter fun t ↦ ¬ TViol κ dom (foldQ dom θ t.2.1 t.2.2 Q) (fun r ↦ Φ (t.1 :: r))
-    (foldClaim σ θ t.1 t.2.1 t.2.2 u₀ v₀ c₀ v₁ c₁) A d
-
-/-- A premix after which every table leaves at most `N` escaping triples. -/
-def PremixOK (N : ℕ) (θ : E) : Prop :=
-  ∀ u₀ v₀ c₀ v₁ c₁, (foldEsc κ dom Q Φ σ A d θ u₀ v₀ c₀ v₁ c₁).card ≤ N
+table `u₀ v₀ c₀ v₁ c₁`. -/
+noncomputable def foldEsc (u₀ v₀ c₀ v₁ c₁ : E) : Finset (E × E × E) :=
+  univ.filter fun t ↦ ¬ TViol κ dom (foldQ dom t.2.1 t.2.2 Q) (fun r ↦ Φ (t.1 :: r))
+    (foldClaim σ t.1 t.2.1 t.2.2 u₀ v₀ c₀ v₁ c₁) A d
 
 /-! ## The weight against one half -/
 
@@ -136,30 +130,29 @@ theorem tclaim_head (hΦ : IsMultiaffine (m + 1 + κ) Φ) (γ : E) (P : (Fin m �
   ring
 
 /-- In characteristic two the verifier's claim is the Annex's. -/
-theorem foldClaim_eq (θ γ α β u₀ v₀ c₀ v₁ c₁ : E) :
-    foldClaim σ θ γ α β u₀ v₀ c₀ v₁ c₁ = (1 - γ) * (u₀ + α * v₀ + β * c₀) +
-      γ * ((σ - v₀ + θ * u₀) + α * v₁ + β * c₁) := by
+theorem foldClaim_eq (γ α β u₀ v₀ c₀ v₁ c₁ : E) :
+    foldClaim σ γ α β u₀ v₀ c₀ v₁ c₁ = (1 - γ) * (u₀ + α * v₀ + β * c₀) +
+      γ * ((σ - v₀) + α * v₁ + β * c₁) := by
   rw [foldClaim, CharTwo.sub_eq_add, CharTwo.sub_eq_add]
 
 /-! ## The round -/
 
-open Classical in
-/-- **A fold round's premix**: from the invariant at `(A − 1, d − 1)`, at most `Lθ` premixes are
-not `PremixOK`. -/
-theorem card_premix_bad_le {Lθ N : ℕ} (hB : FoldRoundBound dom d A Lθ N)
-    (hΦ : IsMultiaffine (m + 1 + κ) Φ) (hv : TViol κ dom Q Φ σ (A - 1) (d - 1)) :
-    (univ.filter fun θ ↦ ¬ PremixOK κ dom Q Φ σ A d N θ).card ≤ Lθ := by
+/-- **A fold round**: from the invariant at `(A − 1, d)`, every table leaves at most `N`
+escaping triples. -/
+theorem card_foldEsc_le {N : ℕ} (hB : FoldRoundBound dom d A N)
+    (hΦ : IsMultiaffine (m + 1 + κ) Φ) (hv : TViol κ dom Q Φ σ (A - 1) d)
+    (u₀ v₀ c₀ v₁ c₁ : E) : (foldEsc κ dom Q Φ σ A d u₀ v₀ c₀ v₁ c₁).card ≤ N := by
+  classical
   have h := hB (Fin m → Bool) (fun u ↦ Q (Fin.cons false u)) (fun u ↦ Q (Fin.cons true u))
-    (wlin κ fun r ↦ Φ (0 :: r)) (wlin κ fun r ↦ Φ (1 :: r)) σ fun F G hF hG hag ↦ by
+    (wlin κ fun r ↦ Φ (0 :: r)) (wlin κ fun r ↦ Φ (1 :: r)) σ (fun F G hF hG hag ↦ by
       rw [← tclaim_joinT]
-      exact hv _ (degLE_joinT hF hG) (by rwa [agreeT_joinT])
-  refine (Finset.card_le_card fun θ hθ ↦ ?_).trans h
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and, PremixOK, not_forall, not_le] at hθ ⊢
-  obtain ⟨u₀, v₀, c₀, v₁, c₁, hlt⟩ := hθ
-  refine ⟨u₀, v₀, c₀, v₁, c₁, hlt.trans_le (Finset.card_le_card fun t ht ↦ ?_)⟩
-  simp only [foldEsc, Finset.mem_filter, Finset.mem_univ, true_and, TViol, not_forall,
-    not_not] at ht ⊢
-  obtain ⟨P, hP, hag, hc⟩ := ht
+      exact hv _ (degLE_joinT hF hG) (by rwa [agreeT_joinT])) u₀ v₀ c₀ v₁ c₁
+  refine (Finset.card_le_card fun t ht ↦ ?_).trans h
+  rw [foldEsc, Finset.mem_filter] at ht
+  rw [Finset.mem_filter]
+  refine ⟨Finset.mem_univ _, ?_⟩
+  simp only [TViol, not_forall, not_not] at ht
+  obtain ⟨P, hP, hag, hc⟩ := ht.2
   refine ⟨P, hP, hag, ?_⟩
   rw [← tclaim_head κ Φ hΦ, hc, foldClaim_eq]
 

@@ -23,8 +23,8 @@ open LeanVM.Parameters LeanVM.Protocol.Whir.Params
 
 #guard listMax₀ 19 4 = 166
 #guard (List.range 14).all fun i ↦ (List.range 4).all fun r ↦ listMax₀ (15 + i) (r + 1) ≤ 166
-#guard LeanVM.Extraction.johnsonThreshold 15 1 = 738
-#guard thr0Of 15 1 = 738
+#guard LeanVM.Extraction.johnsonThreshold 15 1 = 742
+#guard thr0Of 15 1 = 742
 
 /-- Level 0's checks with one query fewer. -/
 def dropOne (μ R : ℕ) : Bool :=

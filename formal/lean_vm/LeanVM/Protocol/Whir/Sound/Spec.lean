@@ -106,7 +106,7 @@ within `εmax` after its grind, and the opening never returns in doom. -/
 noncomputable def whirSpec {R : ℕ} {t : E} {level : Whir.Level} {rest : List Whir.Level}
     (hc : Whir.ladder μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
     (hμ : laneBits ≤ μ) (hκ₀ : (codes 0).κ = μ - laneBits) (hR₀ : (codes 0).R = R)
-    (hthr : 2 ^ (codes 0).κ ≤ (codes 0).thr 0) (hw : IsMultiaffine μ w)
+    (hthr : (codes 0).deg < (codes 0).thr 0) (hw : IsMultiaffine μ w)
     (B : ∀ j, RoundBounds (codes j) εmax) (hA : LadderOK codes εmax 0 (level :: rest))
     (T : ENNReal) :
     Spec (verifyWhir μ R t w) (fun h ↦ WhirPre μ R (codes 0) w t (commits h))
@@ -225,7 +225,7 @@ noncomputable def stackedSpec {R : ℕ} {level : Whir.Level} {rest : List Whir.L
     (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1)
     (hc : Whir.ladder μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
     (hμ : laneBits ≤ μ) (hκ₀ : (codes 0).κ = μ - laneBits) (hR₀ : (codes 0).R = R)
-    (hthr : 2 ^ (codes 0).κ ≤ (codes 0).thr 0) (B : ∀ j, RoundBounds (codes j) εmax)
+    (hthr : (codes 0).deg < (codes 0).thr 0) (B : ∀ j, RoundBounds (codes j) εmax)
     (hA : LadderOK codes εmax 0 (level :: rest)) (L₀ : ℕ)
     (hfin : ∀ W, (Candidates μ R ((codes 0).thr 0) W).Finite)
     (hL₀ : ∀ W, (Candidates μ R ((codes 0).thr 0) W).ncard ≤ L₀) (T : ENNReal) :

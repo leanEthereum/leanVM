@@ -32,8 +32,8 @@ domain `D_{κ,R}` (`domain κ R`, `n = 2^(κ+R)` points of `K`), lanes indexed b
 * `agreeT dom U Q`: the columns where every lane of `U` agrees with `Q`; `TViol κ dom Q Φ σ a d`:
   every tuple of degree at most `d` agreeing with `Q` on at least `a` columns violates `(Φ, σ)`,
   the invariant of the Annex's round-by-round argument (`thm:rbr`).
-* `foldQ dom θ α β Q`: the affine fold `G + (α + β x)(F + θ G)`, `F` and `G` the lanes whose first
-  lane bit is `0` and `1` (`def:affine-fold`).
+* `foldQ dom α β Q`: the affine fold `G + (α + β x) F`, `F` and `G` the lanes whose first lane bit
+  is `0` and `1` (`def:affine-fold`).
 * `tlist dom Q a d`: the tuples of degree at most `d` agreeing with `Q` on at least `a` columns, and
   `card_tlist_le_jl`: at most `jl n a d` of them when `a² > n d` (`thm:johnson-interleaved`).
 -/
@@ -142,10 +142,10 @@ theorem TViol.mono {m κ : ℕ} {dom : Fin n ↪ E} {Q : (Fin m → Bool) → Fi
 /-! ## The affine fold -/
 
 /-- **The affine fold** of a word on `m + 1` lane variables: lane `u` of the fold is
-`G_u + (α + β x)(F_u + θ G_u)`, `F_u` and `G_u` the lanes `(0, u)` and `(1, u)`. -/
-def foldQ {m : ℕ} (dom : Fin n ↪ E) (θ α β : E) (Q : (Fin (m + 1) → Bool) → Fin n → E) :
+`G_u + (α + β x) F_u`, `F_u` and `G_u` the lanes `(0, u)` and `(1, u)`. -/
+def foldQ {m : ℕ} (dom : Fin n ↪ E) (α β : E) (Q : (Fin (m + 1) → Bool) → Fin n → E) :
     (Fin m → Bool) → Fin n → E :=
-  fun u x ↦ Q (Fin.cons true u) x + (α + β * dom x) * (Q (Fin.cons false u) x + θ * Q (Fin.cons true u) x)
+  fun u x ↦ Q (Fin.cons true u) x + (α + β * dom x) * Q (Fin.cons false u) x
 
 /-! ## Lists and the Johnson count -/
 

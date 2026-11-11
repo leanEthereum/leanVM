@@ -11,9 +11,9 @@ Regression and negative tests for `LeanVM.Protocol.Compile.Cost` and
   the cost the accounting gives, and the conditions doing the work are load-bearing: a
   commitment taller than the height bound, an opening charged per position and level, and a
   budget one short are refuted.
-* The leanVM constants: the bound is `13261`; the WHIR bound and the height bound are attained
-  by an admissible ladder (`μ = 28` at rates `1` and `4`), so they are not slack in the ladder
-  table.
+* The leanVM constants: the bound is `13261`; the height bound is attained by an admissible
+  ladder (`μ = 28` at rate `4`), and the WHIR bound by the same ladder at rate `1` but for the
+  grind and challenge its `26` fold rounds no longer take (`9` quarters each).
 * The seed: the leanVM seeding has three hash steps.
 * An executed run: the compiled leanVM verifier, its hash and permutation counting their calls,
   rejects a garbage proof at the first GKR layer after exactly the queries the sponge makes,
@@ -66,8 +66,10 @@ example : ¬ (VerifierProgram.queryOpenings 0 [0, 1]).CostLE 3 31 := fun h ↦ a
 
 example : leanVmQueryBound = 13261 := leanVmQueryBound_eq
 
-/-- The WHIR bound is attained by the ladder at `μ = 28`, rate `1`. -/
-example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) = whirBound := by decide +kernel
+/-- The WHIR bound is the ladder at `μ = 28`, rate `1`, with the `26` fold rounds' former grind
+and challenge. -/
+example : whirCost costHeight 28 ((Whir.ladder 28 1).getD []) + 26 * 9 = whirBound := by
+  decide +kernel
 
 /-- The height bound is attained: the stack's commitment at `μ = 28`, rate `4`, has height
 `28 - 6 + 4 = 26`. -/
