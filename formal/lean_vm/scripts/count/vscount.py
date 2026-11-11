@@ -9,7 +9,7 @@ import os
 # `verify_sub`'s statically bounded callees but its opening arm: the static calls, then the arms of its
 # other dispatches (`squeeze_point_from`'s by the stack log, `bus_grind_check`'s by the grinding bits).
 VS_CALLS = ['g_power_of_word', 'log2_ceil_in_the_exponent__L0_L34', 'certify_placement',
-            'log2_ceil_in_the_exponent__L15_L34', 'grind_check__L15', 'opening_message__L1_L1', 'grind_check__L14',
+            'log2_ceil_in_the_exponent__L15_L34', 'grind_check__L15', 'opening_message__L1_L1', 'grind_check__L13',
             'ring_switch_target']
 VS_DISPATCH = [['squeeze_point_from__L%d' % m for m in range(22, 29)], ['bus_grind_check__L%d' % b for b in range(18)]]
 VS_ST = VS_CALLS + [n for d in VS_DISPATCH for n in d]

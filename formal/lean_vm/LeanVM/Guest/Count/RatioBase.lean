@@ -38,7 +38,7 @@ noncomputable def krName (k : ℕ) : String := ((coreProgram[k]?).map Fn.name).g
 /-- Function `i` calls the functions of indices `C i`, all in `J`. -/
 noncomputable def krClosedAt (J : List ℕ) (C : ℕ → List ℕ) (i : ℕ) : Bool :=
   (Stmt.blockCallees ((coreProgram[i]?).getD default).body == (C i).map krName) &&
-    (C i).all fun k => decide (k ∈ J) && Nat.blt k 1055
+    (C i).all fun k => decide (k ∈ J) && Nat.blt k 1037
 
 /-- Function `i` within the ratios `A op / 1000`. -/
 noncomputable def krRatioAt (A : Opcode → ℕ) (i : ℕ) : Bool :=
