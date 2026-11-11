@@ -113,9 +113,9 @@ def queryRounds (depth count : ℕ) : ℕ :=
 def foldRoundCost : ℕ := 4 + 5 + 2 * 4
 
 /-- The cost of the WHIR levels from a message of `μ` variables, following `whirLevels`: per
-level its fold rounds; on a non-final level the commitment, its high part, two out-of-domain
-points and their values, the proofs of work, the query positions and the batching challenge, and
-the openings at `height`; on the final level the folded lane, the proof of work, the query
+level its fold rounds; on a non-final level the commitment, its high part, the out-of-domain
+point and its value, the proofs of work, the query positions and the batching challenge, and the
+openings at `height`; on the final level the folded lane, the proof of work, the query
 positions and the openings, and the tail sumcheck. -/
 def whirCost (height : ℕ) : ℕ → List Whir.Level → ℕ
   | _, [] => 0
@@ -124,9 +124,9 @@ def whirCost (height : ℕ) : ℕ → List Whir.Level → ℕ
       4 * queryRounds (μ - level.fold + level.logInvRate) level.queries +
       VerifierProgram.openCost height level.queries + (μ - level.fold) * roundCost 3
   | μ, level :: next :: rest =>
-    foldRoundCost * level.fold + 2 + level.fold + Whir.oodSamples * (4 * (μ - level.fold)) +
-      Whir.oodSamples + 5 + 4 * queryRounds (μ - level.fold + level.logInvRate) level.queries +
-      5 + 4 + VerifierProgram.openCost height level.queries +
+    foldRoundCost * level.fold + 2 + level.fold + 5 + 4 * (μ - level.fold) + 1 + 5 +
+      4 * queryRounds (μ - level.fold + level.logInvRate) level.queries +
+      4 + VerifierProgram.openCost height level.queries +
       whirCost height (μ - level.fold) (next :: rest)
 
 /-- Every commitment the WHIR levels read from a message of `μ` variables has height at most
@@ -763,15 +763,6 @@ theorem costs_foldRounds : ∀ (n : ℕ) (s : WhirState),
       · rw [Nat.mul_succ]; omega
     · rw [Nat.mul_succ]; omega
 
-/-- The out-of-domain points: `count` points of `mu` challenges. -/
-theorem costs_sampleOodPoints (mu : ℕ) : ∀ count : ℕ,
-    VerifierProgram.Costs height (sampleOodPoints mu count) (count * (4 * mu)) fun _ ↦ True
-  | 0 => trivial
-  | count + 1 => by
-    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
-      VerifierProgram.Costs.seq (costs_sampleOodPoints mu count) (fun _ _ ↦ trivial) ?_) ?_
-    all_goals rw [Nat.add_mul, Nat.one_mul]; omega
-
 /-- The query sampling loop: one challenge per `128 / depth` positions, and at most `remaining`
 positions. -/
 theorem costs_sampleQueriesAux (depth : ℕ) (hd1 : 1 ≤ depth) (hd : depth ≤ 64) :
@@ -816,20 +807,9 @@ theorem costs_sampleQueries (depth count : ℕ) (hd : 1 ≤ depth ∧ depth ≤ 
   costs_sampleQueriesAux depth hd.1 hd.2 count count
 
 /-- Gluing a level's claims keeps the `α`s. -/
-theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (oodPoints : List (List E))
-    (oodValues : List E) (queries : List ℕ) (queryWeights : List E) (batched : E) :
-    (glueLevel s lam mu oodPoints oodValues queries queryWeights batched).alphas = s.alphas := by
-  unfold glueLevel
-  dsimp only
-  generalize List.zip (List.zip oodPoints oodValues) _ = l
-  suffices h : ∀ (t : WhirState), (l.foldl (fun s (x : (List E × E) × E) ↦
-      { s with claim := s.claim + x.2 * x.1.2,
-               glued := s.glued ++ [⟨x.2, s.alphas.length, fun y ↦ eqEval x.1.1 y⟩] }) t).alphas =
-      t.alphas by
-    exact h s
-  induction l with
-  | nil => intro t; rfl
-  | cons x xs ih => intro t; exact ih _
+theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (oodPoint : List E)
+    (oodValue : E) (queries : List ℕ) (queryWeights : List E) (batched : E) :
+    (glueLevel s lam mu oodPoint oodValue queries queryWeights batched).alphas = s.alphas := rfl
 
 theorem openCost_mono {height : ℕ} {k k' : ℕ} (h : k ≤ k') :
     VerifierProgram.openCost height k ≤ VerifierProgram.openCost height k' := by
@@ -879,19 +859,19 @@ theorem costs_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     refine VerifierProgram.Costs.seq (VerifierProgram.Costs.commitP _
         (by rw [hm]; exact hH.1)) (fun _ _ ↦
       VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦
-      VerifierProgram.Costs.seq (costs_sampleOodPoints _ _) (fun _ _ ↦
-      VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦
+      VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
+      VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
+      VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
       VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
       VerifierProgram.Costs.seq
         (costs_sampleQueries _ level.queries (by rw [hm]; exact hD.1)) (fun queries hq ↦ ?_)
-          ?_) ?_) ?_) ?_) ?_) ?_
+          ?_) ?_) ?_) ?_) ?_) ?_) ?_
     · have hqm := openCost_mono (height := height) hq
-      refine VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
-        VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun lam _ ↦
+      refine VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE (fun lam _ ↦
         VerifierProgram.Costs.seq (VerifierProgram.Costs.queryP index queries) (fun words _ ↦
           (costs_whirLevels logN laneFolds evaluateBasis (next :: rest) (index + 1) _
             (μ - level.fold) (by rw [glueLevel_alphas]; exact hm) hH.2 hD.2).mono ?_
-            fun _ h ↦ h) ?_) ?_) ?_
+            fun _ h ↦ h) ?_) ?_
       all_goals (try simp only [hm])
       all_goals omega
     all_goals (try simp only [hm])

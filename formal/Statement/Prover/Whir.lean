@@ -8,9 +8,9 @@ public import Statement.Prover.Mle
 
 The honest prover of ring switching (`ringSwitch`: `ring_switch`,
 `crates/verifier/src/ring_switch.rs:70-87`) and of the stacked opening (`verifyStackedOpening`:
-`verify_stacked_opening`, `crates/verifier/src/lib.rs:135-156`, then `verify_whir`,
-`crates/verifier/src/whir.rs:213-333`), the prover's side being `recursive_prover_with_prepared_basis`
-(`crates/pcs/src/whir.rs:757-959`) at leanVM `f128`, on arrays.
+`verify_stacked_opening`, `crates/verifier/src/lib.rs:136-157`, then `verify_whir`,
+`crates/verifier/src/whir.rs:214-331`), the prover's side being `recursive_prover_with_prepared_basis`
+(`crates/pcs/src/whir.rs:756-953`) at leanVM `f128`, on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built
@@ -211,7 +211,7 @@ def mulXA (h : Array E) (stride : ℕ) : Array E :=
 def dotA (a b : Array E) : E := sumRange (min a.size b.size) fun i ↦ a.getD i 0 * b.getD i 0
 
 /-- The half `F` of a table `f` of `s` lanes, coefficient by coefficient (`Dense::table`,
-`crates/pcs/src/whir.rs:591-626`): `F`, `G` the lanes `2m`, `2m + 1`. -/
+`crates/pcs/src/whir.rs:591-625`): `F`, `G` the lanes `2m`, `2m + 1`. -/
 def halfA (f : Array E) (s : ℕ) : Array E :=
   Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
     f.getD (i.val / (s / 2) * s + 2 * (i.val % (s / 2))) 0
@@ -228,7 +228,7 @@ def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
    sumRange n fun i ↦ w.getD (at_ i + 1) 0 * XH.getD i 0]
 
 /-- The folded lanes `P = G + α F + β X F`, one coefficient longer (`Dense::fold`,
-`crates/pcs/src/whir.rs:628-666`). -/
+`crates/pcs/src/whir.rs:627-665`). -/
 def foldLanesA (f : Array E) (s : ℕ) (H XH : Array E) (α β : E) : Array E :=
   Array.ofFn (n := XH.size) fun i ↦
     let c := i.val / (s / 2)
@@ -269,18 +269,18 @@ def sampleQueriesS (depth : ℕ) : ℕ → ℕ → Script (List ℕ)
 
 /-- The tail sumcheck on the final level's low part: per round the constant and quadratic
 coefficients, then the challenge, both tables folded (`tail_sumcheck`,
-`crates/pcs/src/whir.rs:722-740`). -/
+`crates/pcs/src/whir.rs:721-739`). -/
 def tailA (mu : ℕ) (w g : Array E) : Script Unit :=
   (sumcheckBy (fun st : Array E × Array E ↦ [roundC0A st.1 st.2, 0, roundC2A st.1 st.2])
     (fun st r ↦ (foldPairsA r st.1, foldPairsA r st.2)) (List.replicate mu none) (w, g)).bind
     fun _ ↦ .ret ()
 
-/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:757-959`)
+/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:756-953`)
 from a level whose lanes and weight are the tables `f` and `w`, `mu` the variables before its
 folds: its fold rounds; then on the final level the folded lane, the queries and the tail; on
-another the next level's commitment to the folded lane's low part, its high part, the two
-out-of-domain points and values, the queries, `λ`, the openings, and the claims glued into the
-weight. -/
+another the next level's commitment to the folded lane's low part, its high part, a grind, the
+out-of-domain point and value, a grind, the queries and `λ`, the openings, and the claims glued
+into the weight. -/
 def levelsA : ℕ → List Whir.Level → Array E → Array E → Script Unit
   | _, [], _, _ => return ()
   | mu, level :: rest, f, w => do
@@ -298,17 +298,15 @@ def levelsA : ℕ → List Whir.Level → Array E → Array E → Script Unit
       let low := p.extract 0 (2 ^ mu)
       Script.commitS (levelWordFast (mu - next.fold) next.fold next.logInvRate low)
       Script.sendList (p.extract (2 ^ mu) p.size).toList
-      let z₁ ← Script.sampleN mu
-      let z₂ ← Script.sampleN mu
-      let e₁ := eqTable z₁
-      let e₂ := eqTable z₂
-      Script.sendList [dotA low e₁, dotA low e₂]
+      Script.grindBits Whir.levelOodGrindingBits
+      let z ← Script.sampleN mu
+      let e := eqTable z
+      Script.sendE (dotA low e)
       Script.grindBits Whir.queryGrindingBits
       let queries ← sampleQueriesS depth level.queries level.queries
-      Script.grindBits Whir.batchGrindingBits
       let lam ← Script.sampleE
       let _ ← Script.queryS
-      levelsA mu rest low (glueTablesA lam w [e₁, e₂, queryTableA mu queries (powers lam queries.length)])
+      levelsA mu rest low (glueTablesA lam w [e, queryTableA mu queries (powers lam queries.length)])
 
 /-- **The honest prover of the stacked opening** (`verify_stacked_opening`, then `verify_whir`):
 receive the batching challenge, then run the levels from the stack table and the weight table of

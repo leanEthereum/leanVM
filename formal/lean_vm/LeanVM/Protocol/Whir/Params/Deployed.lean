@@ -20,8 +20,8 @@ Level `i` of a shape's fold certificate `(κ, R, k, Aend, rounds)` is the code `
 (`codesOf μ R i`). From `shapeOK μ R = true` (`shapeOK_all`, every admissible shape):
 
 * `roundBoundsOf`: each level's fold rounds, from their certificate (`foldRoundBound_of_ok`),
-  at the level's degree, with `(α, β)`'s count at most `2^12 |E|` (the fold budget `2^12`
-  times `|E|`), `2^-125` after the `9`-bit grind;
+  at the level's degree, with `(α, β)`'s count at most `2^11 |E|` (the fold budget `2^11`
+  times `|E|`), `2^-125` after the `8`-bit grind;
 * `ladderOK_of_chain`: the ladder's groups (`MidOK`, `FinalOK`) within `εmsg = 2^-125` after
   their grinds;
 * `listMax₀ μ R`, level 0's list bound, at most `166` (`listMax₀_le`), with the out-of-domain and
@@ -62,10 +62,10 @@ theorem natMul_inv_pow_le {N b k : ℕ} (h : N * 2 ^ k ≤ 2 ^ b) :
 theorem div_card (N : ℕ) : (N : ENNReal) / Fintype.card E = N * 2⁻¹ ^ 128 := by
   rw [card_E, Nat.cast_pow, Nat.cast_ofNat, div_eq_mul_inv, ENNReal.inv_pow]
 
-/-- The fold group's count `2^12 |E|` over `|E|²` is `2^12/|E|`. -/
+/-- The fold group's count `2^11 |E|` over `|E|²` is `2^11/|E|`. -/
 theorem budget_div_card_sq :
     (((AffineCombiner.foldBudget * Fintype.card E : ℕ) : ENNReal) / Fintype.card E ^ 2) =
-      ((2 ^ 12 : ℕ) : ENNReal) / Fintype.card E := by
+      ((2 ^ 11 : ℕ) : ENNReal) / Fintype.card E := by
   have hq0 : ((Fintype.card E : ℕ) : ENNReal) ≠ 0 := by simp [Fintype.card_ne_zero]
   have hqt : ((Fintype.card E : ℕ) : ENNReal) ≠ ⊤ := by simp
   rw [show (Fintype.card E : ENNReal) ^ 2 = (Fintype.card E : ENNReal) * (Fintype.card E) by
@@ -109,35 +109,64 @@ theorem eQuery_lt_one {P : LevelCode} {t : ℕ}
   calc (P.A - 1) ^ t * 2 ^ 1 ≤ (P.A - 1) ^ t * 2 ^ 108 := Nat.mul_le_mul_left _ (by norm_num)
     _ ≤ _ := h
 
-/-- The next level's out-of-domain points within `2^-125`, from `L'² κ² ≤ 2^131`. -/
-theorem eOod_le {P P' : LevelCode} (h : P'.listMax ^ 2 * P.κ ^ 2 ≤ 2 ^ 131) (hκ : 1 ≤ P.κ) :
-    eOod P P' ≤ εmsg := by
+/-- The out-of-domain point's escape is `C(L', 2) κ / |E|`. -/
+theorem eOod_eq {P P' : LevelCode} (hκ : 1 ≤ P.κ) :
+    eOod P P' = ((P'.listMax.choose 2 * P.κ : ℕ) : ENNReal) / Fintype.card E := by
   obtain ⟨m, hm⟩ : ∃ m, P.κ = m + 1 := ⟨P.κ - 1, by omega⟩
-  rw [hm] at h
-  set L := P'.listMax
-  rw [eOod, hm, Nat.add_sub_cancel, εmsg, securityBits, card_E]
-  set q : ENNReal := ((2 ^ 128 : ℕ) : ENNReal) with hq
-  have hq1 : q⁻¹ * q = 1 := ENNReal.inv_mul_cancel (by simp [hq]) (by simp [hq])
-  have hcast : ((L ^ 2 * ((m + 1) * (2 ^ 128) ^ m) ^ 2 : ℕ) : ENNReal) =
-      ((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * q ^ (2 * m) := by
-    rw [hq]; push_cast; ring
-  have hq2 : q⁻¹ ^ 2 = 2⁻¹ ^ 256 := by
-    rw [hq, Nat.cast_pow, Nat.cast_ofNat, ENNReal.inv_pow, ← pow_mul]
-  rw [hcast]
-  calc q⁻¹ ^ (m + 1) * q⁻¹ ^ (m + 1) * (((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * q ^ (2 * m)) =
-      ((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * q⁻¹ ^ 2 * (q⁻¹ * q) ^ (2 * m) := by ring
-    _ = ((L ^ 2 * (m + 1) ^ 2 : ℕ) : ENNReal) * 2⁻¹ ^ 256 := by rw [hq1, one_pow, mul_one, hq2]
-    _ ≤ _ := natMul_inv_pow_le (by
-      calc L ^ 2 * (m + 1) ^ 2 * 2 ^ 125 ≤ 2 ^ 131 * 2 ^ 125 := Nat.mul_le_mul_right _ h
-        _ = 2 ^ 256 := by norm_num)
+  have hq1 : (Fintype.card E : ENNReal)⁻¹ * Fintype.card E = 1 :=
+    ENNReal.inv_mul_cancel (by simp [Fintype.card_ne_zero]) (by simp)
+  rw [eOod, hm, Nat.add_sub_cancel, ENNReal.div_eq_inv_mul, Nat.cast_mul, Nat.cast_mul,
+    Nat.cast_mul, Nat.cast_pow]
+  generalize (Fintype.card E : ENNReal) = q at hq1 ⊢
+  generalize ((P'.listMax.choose 2 : ℕ) : ENNReal) = C
+  generalize ((m + 1 : ℕ) : ENNReal) = k
+  calc q⁻¹ ^ (m + 1) * (C * (k * q ^ m)) = q⁻¹ * (C * k) * (q⁻¹ * q) ^ m := by ring
+    _ = q⁻¹ * (C * k) := by rw [hq1, one_pow, mul_one]
 
-/-- The batching group within `2^-125` after its `14`-bit grind. -/
-theorem eLam_le {P' : LevelCode} {t : ℕ} (h : (t + 2) * P'.listMax ≤ 2 ^ 17) :
-    (2 : ENNReal)⁻¹ ^ Whir.batchGrindingBits * eLam P' t ≤ εmsg := by
-  rw [eLam, Whir.batchGrindingBits]
+/-- The next level's out-of-domain point within `2^-125` after its `17`-bit grind, from
+`C(L', 2) κ ≤ 2^20`. -/
+theorem eOod_le {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ 20) (hκ : 1 ≤ P.κ) :
+    (2 : ENNReal)⁻¹ ^ Whir.levelOodGrindingBits * eOod P P' ≤ εmsg := by
+  rw [eOod_eq hκ, Whir.levelOodGrindingBits]
   exact grind_div_card_le (by
-    calc (t + 2) * P'.listMax * 2 ^ 125 ≤ 2 ^ 17 * 2 ^ 125 := Nat.mul_le_mul_right _ h
-      _ = 2 ^ (14 + 128) := by norm_num)
+    calc P'.listMax.choose 2 * P.κ * 2 ^ 125 ≤ 2 ^ 20 * 2 ^ 125 := Nat.mul_le_mul_right _ h
+      _ = 2 ^ (17 + 128) := by norm_num)
+
+theorem eOod_lt_one {P P' : LevelCode} (h : P'.listMax.choose 2 * P.κ ≤ 2 ^ 20) (hκ : 1 ≤ P.κ) :
+    eOod P P' < 1 := by
+  rw [eOod_eq hκ, div_card]
+  refine lt_of_le_of_lt (natMul_inv_pow_le (k := 1) ?_) (by rw [pow_one, ENNReal.inv_lt_one]; norm_num)
+  calc P'.listMax.choose 2 * P.κ * 2 ^ 1 ≤ 2 ^ 20 * 2 ^ 1 := Nat.mul_le_mul_right _ h
+    _ ≤ 2 ^ 128 := by norm_num
+
+/-- A non-final level's query message, its positions and the next level's batching `λ`, within
+`2^-125` after its `17`-bit grind, from `(A − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^20`. -/
+theorem eQL_le {P P' : LevelCode} {t : ℕ}
+    (h : (P.A - 1) ^ t * 2 ^ 128 + (t + 1) * P'.listMax * (2 ^ (P.κ + P.R)) ^ t ≤
+      (2 ^ (P.κ + P.R)) ^ t * 2 ^ 20) :
+    (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits * (eQuery P t + eLam P' t) ≤ εmsg := by
+  rw [eQuery_eq, eLam, div_card]
+  rw [← pow_mul] at h
+  generalize ha : (P.A - 1) ^ t = a at h ⊢
+  generalize hb : (t + 1) * P'.listMax = b at h ⊢
+  generalize hK : (P.κ + P.R) * t = K at h ⊢
+  have hinv (m : ℕ) : (2 : ENNReal) ^ m * 2⁻¹ ^ m = 1 := by
+    rw [← mul_pow, ENNReal.mul_inv_cancel (by norm_num) (by norm_num), one_pow]
+  have hsum : (a : ENNReal) * 2⁻¹ ^ K + (b : ENNReal) * 2⁻¹ ^ 128 =
+      ((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (K + 128) := by
+    rw [Nat.cast_add, Nat.cast_mul, Nat.cast_mul, Nat.cast_pow, Nat.cast_pow, Nat.cast_ofNat]
+    calc (a : ENNReal) * 2⁻¹ ^ K + (b : ENNReal) * 2⁻¹ ^ 128 =
+        (a : ENNReal) * 2⁻¹ ^ K * (2 ^ 128 * 2⁻¹ ^ 128) + (b : ENNReal) * 2⁻¹ ^ 128 *
+          (2 ^ K * 2⁻¹ ^ K) := by rw [hinv, hinv, mul_one, mul_one]
+      _ = _ := by ring
+  rw [hsum, εmsg, securityBits, Whir.queryGrindingBits]
+  calc (2 : ENNReal)⁻¹ ^ 17 * (((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (K + 128)) =
+      ((a * 2 ^ 128 + b * 2 ^ K : ℕ) : ENNReal) * 2⁻¹ ^ (17 + (K + 128)) := by
+        rw [pow_add (2⁻¹ : ENNReal) 17]; ring
+    _ ≤ _ := natMul_inv_pow_le (by
+      calc (a * 2 ^ 128 + b * 2 ^ K) * 2 ^ 125 ≤ 2 ^ K * 2 ^ 20 * 2 ^ 125 :=
+            Nat.mul_le_mul_right _ h
+        _ = 2 ^ (17 + (K + 128)) := by rw [← pow_add, ← pow_add]; congr 1; omega)
 
 /-! ## The codes -/
 
@@ -243,21 +272,25 @@ theorem listMax_mkCode {lv : Lv} (h : lv.1 + lv.2.1 ≤ 64 ∧ 1 ≤ lv.2.1) :
   rfl
 
 theorem midOK_of {κprev : ℕ} {lv lv' : Lv} {c c' : Whir.Level} (F : LevelFacts κprev lv c)
-    (F' : LevelFacts lv.1 lv' c') (hl : (c.queries + 2) * jlStart lv' ≤ 2 ^ 17)
-    (ho : jlStart lv' ^ 2 * lv.1 ^ 2 ≤ 2 ^ 131) (h1 : 1 ≤ lv.1) :
+    (F' : LevelFacts lv.1 lv' c')
+    (hl : (lv.2.2.2.1 - 1) ^ c.queries * 2 ^ 128 +
+        (c.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ c.queries ≤
+      (2 ^ (lv.1 + lv.2.1)) ^ c.queries * 2 ^ 20)
+    (ho : (jlStart lv').choose 2 * lv.1 ≤ 2 ^ 20) (h1 : 1 ≤ lv.1) :
     MidOK (mkCode lv) (mkCode lv') c.queries εmsg := by
   have hL := listMax_mkCode ⟨F'.h64, F'.hR⟩
-  have eO : eOod (mkCode lv) (mkCode lv') ≤ εmsg :=
+  have eO : (2 : ENNReal)⁻¹ ^ Whir.levelOodGrindingBits * eOod (mkCode lv) (mkCode lv') ≤ εmsg :=
     eOod_le (by rw [hL, mkCode_eq ⟨F.h64, F.hR⟩]; exact ho)
       (by rw [mkCode_eq ⟨F.h64, F.hR⟩]; exact h1)
-  have eL : (2 : ENNReal)⁻¹ ^ Whir.batchGrindingBits * eLam (mkCode lv') c.queries ≤ εmsg :=
-    eLam_le (by rw [hL]; exact hl)
-  have eO1 : eOod (mkCode lv) (mkCode lv') < 1 := lt_of_le_of_lt eO (by
-    rw [εmsg, securityBits]
-    exact pow_lt_one₀ (by norm_num) (by rw [ENNReal.inv_lt_one]; norm_num) (by norm_num))
+  have eQL : (2 : ENNReal)⁻¹ ^ Whir.queryGrindingBits *
+      (eQuery (mkCode lv) c.queries + eLam (mkCode lv') c.queries) ≤ εmsg :=
+    eQL_le (by rw [hL, mkCode_eq ⟨F.h64, F.hR⟩]; exact hl)
+  have eO1 : eOod (mkCode lv) (mkCode lv') < 1 :=
+    eOod_lt_one (by rw [hL, mkCode_eq ⟨F.h64, F.hR⟩]; exact ho)
+      (by rw [mkCode_eq ⟨F.h64, F.hR⟩]; exact h1)
   rw [mkCode_eq ⟨F.h64, F.hR⟩, mkCode_eq ⟨F'.h64, F'.hR⟩] at *
   refine { hκ := ?_, hℓ := F.hk1, hℓκ := F.hk2, hA := Nat.one_le_of_lt F.hkA, gap := ?_,
-           eO := eO, eO1 := eO1, eQ := eQ_le F.hq, eQ1 := eQuery_lt_one F.hq, eL := eL }
+           eO := eO, eO1 := eO1, eQ := eQL, eQ1 := eQuery_lt_one F.hq }
   · have := F'.hκ; dsimp only; omega
   · have := F'.hgap
     simp only [LevelCode.n, LevelCode.deg, LevelCode.thr, Nat.sub_zero]
@@ -334,7 +367,7 @@ theorem chain_mem : ∀ (lvs : List Lv) (cfg : List Whir.Level) (κp : ℕ),
 theorem shapeOK_facts {μ R : ℕ} (hok : shapeOK μ R = true) :
     ∃ cfg lv rest, Whir.ladder μ R = some cfg ∧ levelsOf μ R = lv :: rest ∧
       chainChecks μ (lv :: rest) cfg = true ∧ lv.2.1 = R ∧ lv.2.2.1 = 6 ∧
-      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧ 513 * jlStart lv ≤ 2 ^ 17 ∧
+      degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧ 513 * jlStart lv ≤ 2 ^ 16 ∧
       (jlStart lv).choose 2 * μ ≤ 2 ^ 18 := by
   unfold shapeOK at hok
   rcases hc : Whir.ladder μ R with _ | cfg <;> rcases hl : levelsOf μ R with _ | ⟨lv, rest⟩ <;>
@@ -416,8 +449,8 @@ theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) : (listMax₀ μ R).choo
   rw [listMax₀, hl]
   exact ho
 
-/-- The stacked opening's batching row with the ring's map: `513·L₀ ≤ 2^17`. -/
-theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) : 513 * listMax₀ μ R ≤ 2 ^ 17 := by
+/-- The stacked opening's batching row with the ring's map: `513·L₀ ≤ 2^16`. -/
+theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) : 513 * listMax₀ μ R ≤ 2 ^ 16 := by
   obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, hlam, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
   rw [listMax₀, hl]
   exact hlam

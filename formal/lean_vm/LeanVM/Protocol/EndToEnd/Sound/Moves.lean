@@ -35,8 +35,9 @@ phase by phase. Every grind is followed by a challenge: the sumcheck rounds' gri
 challenge, the bus's by the slot weights, a GKR step's by its combiner and its `y`, the table
 phase's by `ξ`, the Keccak reduction's by its segment, `s` and `β`, ring switching's by its map,
 WHIR's fold grinds by `(α, β)`, its query grinds by the first query sample (every
-deployed level queries, `ladder_queries_pos`) and its batching grinds by `λ`, and the commitment's
-OOD grind by its point, which has at least `minLogStack` coordinates (`readAnnouncedSizes`
+deployed level queries, `ladder_queries_pos`; a non-final level's `λ` follows its positions), a
+later level's OOD grind by its point (a non-final level leaves it a variable,
+`ladder_oodVarsPos`), and the commitment's OOD grind by its point, which has at least `minLogStack` coordinates (`readAnnouncedSizes`
 checks it). Every grind has at most `64` bits (`grindingBits_le_sixtyFour`): the theorem
 `grindBits_le_of_reachable` is the cap at which the random-oracle theorem discounts a group.
 
@@ -564,11 +565,52 @@ theorem moves_foldRounds_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : WhirState),
         obtain ⟨s, rounds⟩ := r
         exact Moves.pure trivial
 
-theorem moves_sampleOodPoints_le (mu : ℕ) : ∀ (count : ℕ),
-    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (sampleOodPoints mu count)
-  | 0 => Moves.pure trivial
-  | count + 1 => Moves.seq' (Moves.sampleN _) fun _ _ ↦
-      Moves.seq' (moves_sampleOodPoints_le mu count) fun _ _ ↦ Moves.pure trivial
+/-- A fold round appends one challenge. -/
+theorem moves_foldRound_len_le (hB : 17 ≤ B) (s : WhirState) :
+    Moves (· ≤ B) False (fun r ↦ r.1.alphas.length = s.alphas.length + 1) (fun _ ↦ False)
+      (foldRound s) :=
+  Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+    Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+        Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+          (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+            Moves.pure (by simp))
+          fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
+
+/-- A level's fold rounds append one challenge each. -/
+theorem moves_foldRounds_len_le (hB : 17 ≤ B) : ∀ (n : ℕ) (s : WhirState),
+    Moves (· ≤ B) False (fun r ↦ r.1.alphas.length = s.alphas.length + n) (fun _ ↦ False)
+      (foldRounds n s)
+  | 0, _ => Moves.pure (by simp)
+  | n + 1, s => Moves.seq' (moves_foldRound_len_le hB s) fun r hr ↦ by
+      obtain ⟨s', round⟩ := r
+      exact Moves.seq' (moves_foldRounds_len_le hB n s') fun r' hr' ↦ by
+        obtain ⟨s'', rounds⟩ := r'
+        exact Moves.pure (by simp only at hr hr' ⊢; omega)
+
+/-- Every non-final level of a ladder leaves a variable for its out-of-domain point. -/
+def oodVarsPos : ℕ → List Whir.Level → Bool
+  | _, [] => true
+  | _, [_] => true
+  | μ, level :: rest => decide (μ - level.fold ≠ 0) && oodVarsPos (μ - level.fold) rest
+
+/-- `oodVarsPos` of a shape's ladder, `true` where there is none. -/
+def oodVarsOK (μ R : ℕ) : Bool :=
+  match Whir.ladder μ R with
+  | some config => oodVarsPos μ config
+  | none => true
+
+theorem oodVarsOK_all : ∀ μ < Whir.maxLogStack + 1, ∀ R < 5, oodVarsOK μ R = true := by
+  decide +kernel
+
+/-- **Every deployed ladder leaves its out-of-domain point a variable.** -/
+theorem ladder_oodVarsPos {μ R : ℕ} {config : List Whir.Level}
+    (h : Whir.ladder μ R = some config) : oodVarsPos μ config = true := by
+  have hadm : Whir.Admissible μ R := by
+    unfold Whir.ladder at h
+    split_ifs at h with ha
+    · exact ha
+  have key := oodVarsOK_all μ (Nat.lt_succ_of_le hadm.2.1) R (Nat.lt_succ_of_le hadm.2.2.2)
+  simpa only [oodVarsOK, h] using key
 
 theorem moves_sampleQueriesAux_le (depth : ℕ) : ∀ (fuel remaining : ℕ),
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (sampleQueriesAux depth fuel remaining)
@@ -586,14 +628,16 @@ theorem startsSample_sampleQueries {R : β → Prop} {depth count : ℕ} (hc : c
   trivial
 
 theorem moves_whirLevels_le (hB : 17 ≤ B) (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (index : ℕ) (levels : List Whir.Level), (∀ l ∈ levels, l.queries ≠ 0) → ∀ (s : WhirState),
+    ∀ (index : ℕ) (levels : List Whir.Level), (∀ l ∈ levels, l.queries ≠ 0) → ∀ (μ : ℕ),
+      oodVarsPos μ levels = true → ∀ (s : WhirState), logN - s.alphas.length = μ →
       Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
         (whirLevels logN laneFolds evaluateBasis index levels s)
-  | _, [], _, _ => Moves.fail
-  | index, level :: rest, hq, s => by
+  | _, [], _, _, _, _, _ => Moves.fail
+  | index, level :: rest, hq, μ, hpos, s, hμ => by
     have hq0 : level.queries ≠ 0 := hq level List.mem_cons_self
-    refine Moves.seq' (Moves.liftTrue (moves_foldRounds_le hB level.fold s)) fun r _ ↦ ?_
+    refine Moves.seq' (Moves.liftTrue (moves_foldRounds_len_le hB level.fold s)) fun r hr ↦ ?_
     obtain ⟨s', rounds⟩ := r
+    simp only at hr
     cases rest with
     | nil =>
       exact Moves.seq' (Moves.readN _) fun _ _ ↦
@@ -606,20 +650,22 @@ theorem moves_whirLevels_le (hB : 17 ≤ B) (logN laneFolds : ℕ) (evaluateBasi
                 exact (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h))
           fun _ _ _ ↦ startsSample_sampleQueries hq0 _
     | cons next rest' =>
+      simp only [oodVarsPos, Bool.and_eq_true, decide_eq_true_eq] at hpos
+      have hmu : logN - s'.alphas.length ≠ 0 := by omega
       exact Moves.seq' (Moves.commitP trivial _ _) fun _ _ ↦
         Moves.seq' (Moves.readN _) fun _ _ ↦
-          Moves.seq' (Moves.liftTrue (moves_sampleOodPoints_le _ _)) fun _ _ ↦
-          Moves.seq' (Moves.readN _) fun _ _ ↦
-            Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
-              (fun _ _ ↦ Moves.seq' (Moves.liftTrue (moves_sampleQueriesAux_le _ _ _)) fun _ _ ↦
-                Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
-                  (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
+          Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+            (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
+              Moves.seq (Moves.grindP fun _ ↦ le_of_le_seventeen hB (by decide))
+                (fun _ _ ↦ Moves.seq' (Moves.liftTrue (moves_sampleQueriesAux_le _ _ _))
+                  fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
                     Moves.seq' (Moves.queryP _ _) fun _ _ ↦
                       moves_whirLevels_le hB logN laneFolds evaluateBasis (index + 1)
                         (next :: rest')
-                        (fun l hl ↦ hq l (List.mem_cons_of_mem _ hl)) _)
-                  fun _ _ _ ↦ Moves.startsSample_sampleChallenge _)
-              fun _ _ _ ↦ startsSample_sampleQueries hq0 _
+                        (fun l hl ↦ hq l (List.mem_cons_of_mem _ hl)) _ hpos.2 _
+                        (by show logN - s'.alphas.length = μ - level.fold; omega))
+                fun _ _ _ ↦ startsSample_sampleQueries hq0 _)
+            fun _ _ _ ↦ Moves.startsSample_sampleChallenges hmu _
 
 /-- Every count of the query table is positive. -/
 theorem queryTable_pos : ∀ row ∈ Whir.queryTable, ∀ r ∈ row, ∀ q ∈ r, q ≠ 0 := by
@@ -660,7 +706,7 @@ theorem moves_verifyWhir_le (hB : 17 ≤ B) (logN logInvRate : ℕ) (target : E)
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False)
       (verifyWhir logN logInvRate target evaluateBasis) :=
   Moves.seq' (Moves.liftOption _) fun _ h ↦
-    moves_whirLevels_le hB _ _ _ _ _ (ladder_queries_pos h) _
+    moves_whirLevels_le hB _ _ _ _ _ (ladder_queries_pos h) _ (ladder_oodVarsPos h) _ (by simp)
 
 theorem moves_commitStack_le (logN logInvRate : ℕ) :
     Moves (· ≤ B) True (fun _ ↦ True) (fun _ ↦ False) (commitStack logN logInvRate) := by
@@ -839,20 +885,17 @@ theorem moves_foldRounds (n : ℕ) (s : WhirState) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (foldRounds n s) :=
   moves_foldRounds_le (by norm_num) n s
 
-theorem moves_sampleOodPoints (mu count : ℕ) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sampleOodPoints mu count) :=
-  moves_sampleOodPoints_le mu count
-
 theorem moves_sampleQueriesAux (depth fuel remaining : ℕ) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (sampleQueriesAux depth fuel remaining) :=
   moves_sampleQueriesAux_le depth fuel remaining
 
 /-- **The WHIR levels**, every one of which queries. -/
 theorem moves_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) (index : ℕ)
-    (levels : List Whir.Level) (hq : ∀ l ∈ levels, l.queries ≠ 0) (s : WhirState) :
+    (levels : List Whir.Level) (hq : ∀ l ∈ levels, l.queries ≠ 0) (μ : ℕ)
+    (hpos : oodVarsPos μ levels = true) (s : WhirState) (hμ : logN - s.alphas.length = μ) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
       (whirLevels logN laneFolds evaluateBasis index levels s) :=
-  moves_whirLevels_le (by norm_num) logN laneFolds evaluateBasis index levels hq s
+  moves_whirLevels_le (by norm_num) logN laneFolds evaluateBasis index levels hq μ hpos s hμ
 
 theorem moves_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False)

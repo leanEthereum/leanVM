@@ -306,64 +306,53 @@ theorem laneCodes_eq (κ k : ℕ) (t : List E) (ht : t.length = 2 ^ κ * 2 ^ k) 
 
 /-! ## Gluing a level's claims -/
 
-theorem glueLevel_eq (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) (y₁ y₂ : E)
+theorem glueLevel_eq (sv : WhirState) (lam : E) (mu : ℕ) (z : List E) (y : E)
     (qs : List ℕ) (ws : List E) (b : E) :
-    glueLevel sv lam mu [z₁, z₂] [y₁, y₂] qs ws b =
-      { claim := sv.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * b,
+    glueLevel sv lam mu z y qs ws b =
+      { claim := sv.claim + lam * y + lam * lam * b,
         alphas := sv.alphas,
-        glued := sv.glued ++ [⟨1 * lam, sv.alphas.length, fun x ↦ eqEval z₁ x⟩,
-          ⟨1 * lam * lam, sv.alphas.length, fun x ↦ eqEval z₂ x⟩,
-          ⟨1 * lam * lam * lam, sv.alphas.length, Verifier.inducedWeight mu qs ws⟩] } := by
-  simp [glueLevel, powers, powersFrom, Whir.oodSamples, List.append_assoc]
+        glued := sv.glued ++ [⟨lam, sv.alphas.length, fun x ↦ eqEval z x⟩,
+          ⟨lam * lam, sv.alphas.length, Verifier.inducedWeight mu qs ws⟩] } := rfl
 
-theorem runW_glue (B : List E → E) (lf : ℕ) (sv : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E)
-    (y₁ y₂ : E) (qs : List ℕ) (ws : List E) (b : E) (x : List E) :
-    runW B lf (glueLevel sv lam mu [z₁, z₂] [y₁, y₂] qs ws b) x =
-      runW B lf sv x + 1 * lam * eqEval z₁ x + 1 * lam * lam * eqEval z₂ x +
-        1 * lam * lam * lam * Verifier.inducedWeight mu qs ws x := by
+theorem runW_glue (B : List E → E) (lf : ℕ) (sv : WhirState) (lam : E) (mu : ℕ) (z : List E)
+    (y : E) (qs : List ℕ) (ws : List E) (b : E) (x : List E) :
+    runW B lf (glueLevel sv lam mu z y qs ws b) x =
+      runW B lf sv x + lam * eqEval z x + lam * lam * Verifier.inducedWeight mu qs ws x := by
   rw [glueLevel_eq]
   unfold runW
-  rw [List.foldl_append, List.foldl_cons, List.foldl_cons, List.foldl_cons, List.foldl_nil]
+  rw [List.foldl_append, List.foldl_cons, List.foldl_cons, List.foldl_nil]
   dsimp only
   rw [List.drop_left]
 
-theorem toList_glued (lam : E) (W T₁ T₂ T₃ : Array E) :
-    (glueTablesA lam W [T₁, T₂, T₃]).toList =
-      axpy (1 * lam * lam * lam) (axpy (1 * lam * lam) (axpy (1 * lam) W.toList T₁.toList)
-        T₂.toList) T₃.toList := by
+theorem toList_glued (lam : E) (W T₁ T₂ : Array E) :
+    (glueTablesA lam W [T₁, T₂]).toList =
+      axpy (1 * lam * lam) (axpy (1 * lam) W.toList T₁.toList) T₂.toList := by
   rw [toList_glueTablesA]
   simp [glueTables]
 
-theorem mle_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
-    (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) (x : List E) :
-    multilinearEval (glueTablesA lam W [T₁, T₂, T₃]).toList x =
-      multilinearEval W.toList x + 1 * lam * multilinearEval T₁.toList x +
-        1 * lam * lam * multilinearEval T₂.toList x +
-          1 * lam * lam * lam * multilinearEval T₃.toList x := by
+theorem mle_glued (lam : E) (W T₁ T₂ : Array E) (h₁ : W.size = T₁.size)
+    (h₂ : W.size = T₂.size) (x : List E) :
+    multilinearEval (glueTablesA lam W [T₁, T₂]).toList x =
+      multilinearEval W.toList x + lam * multilinearEval T₁.toList x +
+        lam * lam * multilinearEval T₂.toList x := by
   rw [toList_glued, multilinearEval_axpy _ _ _ _ (by
-      rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
-      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
-    multilinearEval_axpy _ _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
+      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
     multilinearEval_axpy _ _ _ _ (by simpa using h₁)]
+  simp only [one_mul]
 
-theorem dot_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
-    (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) (g : List E) :
-    dot (glueTablesA lam W [T₁, T₂, T₃]).toList g =
-      dot W.toList g + 1 * lam * dot T₁.toList g + 1 * lam * lam * dot T₂.toList g +
-        1 * lam * lam * lam * dot T₃.toList g := by
+theorem dot_glued (lam : E) (W T₁ T₂ : Array E) (h₁ : W.size = T₁.size)
+    (h₂ : W.size = T₂.size) (g : List E) :
+    dot (glueTablesA lam W [T₁, T₂]).toList g =
+      dot W.toList g + lam * dot T₁.toList g + lam * lam * dot T₂.toList g := by
   rw [toList_glued, dot_axpy _ _ _ _ (by
-      rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
-      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
-    dot_axpy _ _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
+      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
     dot_axpy _ _ _ _ (by simpa using h₁)]
+  simp only [one_mul]
 
-theorem size_glued (lam : E) (W T₁ T₂ T₃ : Array E) (h₁ : W.size = T₁.size)
-    (h₂ : W.size = T₂.size) (h₃ : W.size = T₃.size) :
-    (glueTablesA lam W [T₁, T₂, T₃]).size = W.size := by
+theorem size_glued (lam : E) (W T₁ T₂ : Array E) (h₁ : W.size = T₁.size)
+    (h₂ : W.size = T₂.size) :
+    (glueTablesA lam W [T₁, T₂]).size = W.size := by
   rw [← Array.length_toList, toList_glued,
-    length_axpy _ _ _ (by
-      rw [length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂)]
-      rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₃),
     length_axpy _ _ _ (by rw [length_axpy _ _ _ (by simpa using h₁)]; simpa using h₂),
     length_axpy _ _ _ (by simpa using h₁)]
   simp
@@ -488,12 +477,6 @@ theorem zip_map_self {β : Type} (f : ℕ → β) : ∀ l : List ℕ, l.zip (l.m
 def lanesOfV (index : ℕ) (row : List K) : List E :=
   if index = 0 then row.reverse.map ofK else extRow row
 
-theorem sampleOodPoints_two {α : Type} (κ : ℕ) (G : List (List E) → VerifierProgram α) :
-    (sampleOodPoints κ Whir.oodSamples).bind G =
-      (VerifierProgram.sampleChallenges κ).bind fun z₁ ↦
-        (VerifierProgram.sampleChallenges κ).bind fun z₂ ↦ G [z₁, z₂] := by
-  simp [sampleOodPoints, Whir.oodSamples, VerifierProgram.bind_assoc]
-
 theorem ladderOK_cons {mu : ℕ} {l : Whir.Level} {r : List Whir.Level} (h : ladderOK mu (l :: r) = true) :
     l.fold ≤ mu ∧ l.fold ≤ 2 ^ (mu - l.fold) ∧ mu ≤ 28 := by
   cases r with
@@ -519,23 +502,21 @@ theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (h�
     (hclaim : sv'.claim = ∑ i ∈ range w'.size, w'.getD i 0 * p.getD i 0)
     (hlen : sv'.alphas.length + κ = μ)
     (hW : ∀ x, x.length = κ → runW B lf sv' x = multilinearEval w'.toList x)
-    (z₁ z₂ : List E) (hz₁ : z₁.length = κ) (hz₂ : z₂.length = κ) (lam : E) (qs : List ℕ) (b : E)
+    (z : List E) (hz : z.length = κ) (lam : E) (qs : List ℕ) (b : E)
     (hb : b = dot (queryTableA κ qs (powers lam qs.length)).toList (p.extract 0 (2 ^ κ)).toList)
     (rowOf : ℕ → List E)
     (hrow : ∀ q < 2 ^ (κ - ℓ' + R'), rowOf q = laneCodes (κ - ℓ') ℓ' (p.extract 0 (2 ^ κ)).toList q) :
     FoldInv μ lf B (κ - ℓ') (2 ^ (κ - ℓ' + R')) rowOf 0 ℓ'
-      (glueLevel sv' lam κ [z₁, z₂] [dotA (p.extract 0 (2 ^ κ)) (eqTable z₁),
-        dotA (p.extract 0 (2 ^ κ)) (eqTable z₂)] qs (powers lam qs.length) b)
+      (glueLevel sv' lam κ z (dotA (p.extract 0 (2 ^ κ)) (eqTable z)) qs (powers lam qs.length) b)
       (p.extract 0 (2 ^ κ))
-      (glueTablesA lam w' [eqTable z₁, eqTable z₂, queryTableA κ qs (powers lam qs.length)]) [] := by
+      (glueTablesA lam w' [eqTable z, queryTableA κ qs (powers lam qs.length)]) [] := by
   set low := p.extract 0 (2 ^ κ) with hlow
   have hlowsz : low.size = 2 ^ κ := by simp [hlow, hp']
   have hsplit : 2 ^ κ = 2 ^ (κ - ℓ') * 2 ^ ℓ' := by rw [← pow_add, Nat.sub_add_cancel hℓ']
-  have he₁ : (eqTable z₁).size = 2 ^ κ := by rw [size_eqTable, hz₁]
-  have he₂ : (eqTable z₂).size = 2 ^ κ := by rw [size_eqTable, hz₂]
+  have he₁ : (eqTable z).size = 2 ^ κ := by rw [size_eqTable, hz]
   have hT := size_queryTableA (by omega : κ ≤ 64) qs (powers lam qs.length)
-  have hgsz := size_glued lam w' (eqTable z₁) (eqTable z₂) (queryTableA κ qs (powers lam qs.length))
-    (by rw [hw', he₁]) (by rw [hw', he₂]) (by rw [hw', hT])
+  have hgsz := size_glued lam w' (eqTable z) (queryTableA κ qs (powers lam qs.length))
+    (by rw [hw', he₁]) (by rw [hw', hT])
   have hdot : ∀ T : Array E, T.size = 2 ^ κ →
       ∑ i ∈ range T.size, T.getD i 0 * low.getD i 0 = dot T.toList low.toList := fun T hTs ↦ by
     rw [dot_eq_sum _ _ (by simp [hTs, hlowsz])]
@@ -545,7 +526,7 @@ theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (h�
     have : (2 : ℕ) ^ 28 + 28 ≤ 2 ^ 61 := by norm_num
     omega
   · rw [glueLevel_eq, hdot _ (by rw [hgsz, hw']),
-      dot_glued lam w' _ _ _ (by rw [hw', he₁]) (by rw [hw', he₂]) (by rw [hw', hT]), hclaim, hb]
+      dot_glued lam w' _ _ (by rw [hw', he₁]) (by rw [hw', hT]), hclaim, hb]
     have hc : ∑ i ∈ range w'.size, w'.getD i 0 * p.getD i 0 = dot w'.toList low.toList := by
       rw [← hdot w' hw']
       exact sum_congr rfl fun i hi ↦ by
@@ -554,13 +535,12 @@ theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (h�
       rw [dotA, sumRange_eq, dot_eq_sum _ _ (by simp [hTs, hlowsz]), hlowsz, hTs, min_self]
       simp only [Array.length_toList, hTs]
       exact sum_congr rfl fun i _ ↦ by rw [Enc.array_getD_toList, Enc.array_getD_toList, mul_comm]
-    rw [hc, hy _ he₁, hy _ he₂]
+    rw [hc, hy _ he₁]
   · rw [glueLevel_eq]; simp only; omega
   · intro x hx
     rw [runW_glue, hW x (by omega),
-      mle_glued lam w' _ _ _ (by rw [hw', he₁]) (by rw [hw', he₂]) (by rw [hw', hT]),
-      mle_eqTable z₁ x (by omega), mle_eqTable z₂ x (by omega),
-      mle_queryTableA (by omega) qs _ x (by omega)]
+      mle_glued lam w' _ _ (by rw [hw', he₁]) (by rw [hw', hT]),
+      mle_eqTable z x (by omega), mle_queryTableA (by omega) qs _ x (by omega)]
   · intro q hq
     rw [hrow q hq]
     have h := laneCodes_eq (κ - ℓ') ℓ' low.toList (by simp [hlowsz, hsplit]) q
@@ -679,24 +659,20 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
       rw [hhl] at hsend
       refine Follows.bind (fun cs₃ _ high h ↦ ?_) _ _ _ hsend
       obtain ⟨rfl, rfl⟩ := h
-      rw [sampleOodPoints_two]
-      refine Follows.bind (fun cs₄ z₁ z₁' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ κ)
-      obtain ⟨rfl, rfl, hz₁⟩ := h
-      refine Follows.bind (fun cs₅ z₂ z₂' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ κ)
-      obtain ⟨rfl, rfl, hz₂⟩ := h
-      have hood := Follows.sendList_readN (cs₁ ++ [(κ - next.fold + next.logInvRate,
-        2 * 2 ^ next.fold, levelWordFast (κ - next.fold) next.fold next.logInvRate
-          (p.extract 0 (2 ^ κ)))]) [dotA (p.extract 0 (2 ^ κ)) (eqTable z₁),
-        dotA (p.extract 0 (2 ^ κ)) (eqTable z₂)]
-      refine Follows.bind (fun cs₆ _ ys h ↦ ?_) _ _ _ hood
+      refine Follows.bind (fun cs₃' _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
+      subst h
+      refine Follows.bind (fun cs₄ z z' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ κ)
+      obtain ⟨rfl, rfl, hz⟩ := h
+      have hood := Follows.sendE_readE (dotA (p.extract 0 (2 ^ κ)) (eqTable z))
+        (cs₁ ++ [(κ - next.fold + next.logInvRate, 2 * 2 ^ next.fold,
+          levelWordFast (κ - next.fold) next.fold next.logInvRate (p.extract 0 (2 ^ κ)))])
+      refine Follows.bind (fun cs₆ _ y h ↦ ?_) _ _ _ hood
       obtain ⟨rfl, rfl⟩ := h
       refine Follows.bind (fun cs₇ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
       subst h
       rw [sampleQueries]
       refine Follows.bind (fun cs₈ queries queries' h ↦ ?_) _ _ _ (follows_sampleQueriesS _ _ _ _)
       obtain ⟨rfl, rfl, hq⟩ := h
-      refine Follows.bind (fun cs₉ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
-      subst h
       refine Follows.bind (fun cs₁₀ lam lam' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE _)
       obtain ⟨rfl, rfl⟩ := h
       have hans' : answerOf (cs₁ ++ [(κ - next.fold + next.logInvRate,
@@ -715,7 +691,7 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
       subst hl'
       refine ⟨by rw [List.getElem?_append_right (by omega)]; simp [hcs], ?_⟩
       refine foldInv_next hn1 (by omega) hp'' hw'' hclaim (by omega)
-        (fun x hx ↦ hW x (by simpa using hx)) z₁ z₂ hz₁ hz₂ lam queries _ ?_ _ ?_
+        (fun x hx ↦ hW x (by simpa using hx)) z hz lam queries _ ?_ _ ?_
       · exact (batched_eq (lanesOfV index) word rounds p hp'' h2 (by omega) queries _
           fun q hq' ↦ hrow0 q (hq q hq'))
       · intro q hq'

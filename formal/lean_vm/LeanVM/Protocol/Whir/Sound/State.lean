@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Sound.Weights
 /-!
 # The running state of `verify_whir`
 
-`LeanVM.Protocol.Verifier.WhirState` (`verify_whir`'s locals, `crates/verifier/src/whir.rs:222-345`)
+`LeanVM.Protocol.Verifier.WhirState` (`verify_whir`'s locals, `crates/verifier/src/whir.rs:223-343`)
 holds the running claim, every fold round's `α`, and the glued claims, whose weights are only
 evaluated at the terminal point. This module reads it as a weighted claim:
 
@@ -24,8 +24,8 @@ evaluated at the terminal point. This module reads it as a weighted claim:
   `(αs ++ x)[ℓ₀:] ++ (αs ++ x)[:ℓ₀]`, plus each glued claim's scalar times its weight at
   `αs[fold_start:] ++ x`. `runW_fold`: a round's `α` binds the first remaining variable;
   `isMultiaffine_runW`: the running weight is multiaffine in the remaining variables.
-* `glueLevel_eq`: gluing a level's claims adds `λ`, `λ²` times the out-of-domain values and `λ³`
-  times the query batch to the claim, and the matching weights to the glued claims
+* `glueLevel_eq`: gluing a level's claims adds `λ` times the out-of-domain value and `λ²` times
+  the query batch to the claim, and the matching weights to the glued claims
   (`runW_glue`).
 * `laneO i cs`: the lane oracle of commitment `i`: lane `j` of column `v` is entry `j` of the
   reversed leaf (level `0`, `row.reverse.map ofK`) or of the leaf regrouped into `E`, two limbs
@@ -117,17 +117,16 @@ theorem isMultiaffine_runW {μ : ℕ} {w : List E → E} (hw : IsMultiaffine μ 
 
 /-! ## Gluing -/
 
-/-- **Gluing a level's claims** (`glueLevel`): two out-of-domain claims with `λ` and `λ²`, the
-query batch with `λ³`, all at the current fold. -/
-theorem glueLevel_eq (s : WhirState) (lam : E) (mu : ℕ) (z₁ z₂ : List E) (y₁ y₂ : E)
+/-- **Gluing a level's claims** (`glueLevel`): the out-of-domain claim with `λ`, the query
+batch with `λ²`, both at the current fold. -/
+theorem glueLevel_eq (s : WhirState) (lam : E) (mu : ℕ) (z : List E) (y : E)
     (queries : List ℕ) (queryWeights : List E) (batched : E) :
-    glueLevel s lam mu [z₁, z₂] [y₁, y₂] queries queryWeights batched =
-      { claim := s.claim + 1 * lam * y₁ + 1 * lam * lam * y₂ + 1 * lam * lam * lam * batched
+    glueLevel s lam mu z y queries queryWeights batched =
+      { claim := s.claim + lam * y + lam * lam * batched
         alphas := s.alphas
-        glued := s.glued ++ [⟨1 * lam, s.alphas.length, fun x ↦ eqEval z₁ x⟩,
-          ⟨1 * lam * lam, s.alphas.length, fun x ↦ eqEval z₂ x⟩,
-          ⟨1 * lam * lam * lam, s.alphas.length, Verifier.inducedWeight mu queries queryWeights⟩] } := by
-  simp [glueLevel, powers, powersFrom, Whir.oodSamples]
+        glued := s.glued ++ [⟨lam, s.alphas.length, fun x ↦ eqEval z x⟩,
+          ⟨lam * lam, s.alphas.length, Verifier.inducedWeight mu queries queryWeights⟩] } :=
+  rfl
 
 /-- Glued claims at the current fold add their weights. -/
 theorem runW_glue (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (new : List GluedClaim) (c : E)

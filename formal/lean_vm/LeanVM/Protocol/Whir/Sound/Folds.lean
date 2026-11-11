@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Whir.Sound.Group
 /-!
 # The fold rounds
 
-`foldRounds ℓ s` (`LeanVM.Protocol.Verifier.foldRounds`, `crates/verifier/src/whir.rs:231-242`)
+`foldRounds ℓ s` (`LeanVM.Protocol.Verifier.foldRounds`, `crates/verifier/src/whir.rs:232-241`)
 runs the level's affine fold rounds (`foldRound`): four scalars, a grind and `(α, β)`, the claim
 folded at `α` (`foldClaim`).
 
@@ -26,7 +26,7 @@ folded at `α` (`foldClaim`).
   by the level's `j` rounds (`foldsA`, `ℓ − j` lane variables left) on at least `A_j` columns
   violates the running claim `(runW w ℓ₀ s, s.claim)`.
 * `RoundBounds P εmax`: the fold-round lemma at each round of the level with its escape count
-  `N j`, within `εmax` after the `9`-bit grind.
+  `N j`, within `εmax` after the `8`-bit grind.
 * `foldRoundSpec`, `foldRoundsSpec`: the rounds keep `RoundInv` and return in it with all `ℓ`
   rounds, the commitments' extra invariant `X` untouched.
 -/
@@ -84,7 +84,7 @@ def RoundInv (s : WhirState) (rounds : List FoldRound) (cs : List (ℕ × ℕ ×
 end
 
 /-- **The fold-round lemma at every round of a level**, with its escape counts within `εmax`
-after the `9`-bit grinds. -/
+after the `8`-bit grinds. -/
 structure RoundBounds (P : LevelCode) (εmax : ENNReal) where
   /-- The escape count of `(α, β)` of round `j + 1`. -/
   N : ℕ → ℕ

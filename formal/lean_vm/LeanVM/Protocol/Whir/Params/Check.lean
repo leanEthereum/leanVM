@@ -24,12 +24,14 @@ fold rounds' own check (`AffineCombiner.levelOK`, which it includes):
 * the list each level starts on, at the level's degree `d = 2^κ − 1 + k` (every round is analysed
   at it), is defined (`n d < A₀²`) and its bound `jlStart` is `jl n A₀ d`;
 * each level's queries: `((Aend − 1)/n)^t ≤ 2^-108`, i.e. `2^-125` after the `17`-bit grind;
-* each level with a next one: its batching `λ`, `(t + 2) L' ≤ 2^17` (`2^-125` after the `14`-bit
-  grind), and the next level's out-of-domain points, `L'² κ² ≤ 2^131` (`L'² (κ/|E|)² ≤ 2^-125`,
-  no grind, a bound twice the Annex's `C(L', 2)`), with `1 ≤ κ`;
+* each level with a next one: its query message, which also draws the next level's batching `λ`,
+  `((Aend − 1)/n)^t + (t + 1) L'/|E| ≤ 2^-108`, as
+  `(Aend − 1)^t 2^128 + (t + 1) L' n^t ≤ n^t 2^20` (`2^-125` after the `17`-bit grind), and the
+  next level's out-of-domain point, `C(L', 2) κ ≤ 2^20` (`2^-125` after its `17`-bit grind), with
+  `1 ≤ κ`;
 * level `0`: its rate is the shape's and it folds the `2^6` lanes (`k₀ = 6`), the threshold exceeds the degree (`d₀ < A₀`),
   its list bound is at most `166`, the stacked opening's batching with the ring's map,
-  `513 L₀ ≤ 2^17`, and the commitment's out-of-domain sample, `C(L₀, 2) μ ≤ 2^18` (`2^-125` after
+  `513 L₀ ≤ 2^16`, and the commitment's out-of-domain sample, `C(L₀, 2) μ ≤ 2^18` (`2^-125` after
   its `15`-bit grind).
 
 `shapeOK_all`: every admissible shape passes, by kernel evaluation.
@@ -71,12 +73,16 @@ def levelChecks (κprev : ℕ) (lv : Lv) (cfg : Whir.Level) : Bool :=
     decide ((A - 1) ^ cfg.queries * 2 ^ 108 ≤ (2 ^ (κ + R)) ^ cfg.queries) &&
     decide (2 ^ (κ + R) * (2 ^ κ - 1 + k) < (A - k) * (A - k))
 
-/-- The levels' checks, and between consecutive levels the batching and out-of-domain rows. -/
+/-- The levels' checks, and between consecutive levels the query message with the next batching
+and the out-of-domain rows. -/
 def chainChecks : ℕ → List Lv → List Whir.Level → Bool
   | κprev, [lv], [cfg] => levelChecks κprev lv cfg
   | κprev, lv :: lv' :: rest, cfg :: cfg' :: crest =>
-    levelChecks κprev lv cfg && decide ((cfg.queries + 2) * jlStart lv' ≤ 2 ^ 17) &&
-      decide (jlStart lv' ^ 2 * lv.1 ^ 2 ≤ 2 ^ 131) && decide (1 ≤ lv.1) &&
+    levelChecks κprev lv cfg &&
+      decide ((lv.2.2.2.1 - 1) ^ cfg.queries * 2 ^ 128 +
+          (cfg.queries + 1) * jlStart lv' * (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries ≤
+        (2 ^ (lv.1 + lv.2.1)) ^ cfg.queries * 2 ^ 20) &&
+      decide ((jlStart lv').choose 2 * lv.1 ≤ 2 ^ 20) && decide (1 ≤ lv.1) &&
       chainChecks lv.1 (lv' :: rest) (cfg' :: crest)
   | _, _, _ => false
 
@@ -86,7 +92,7 @@ def shapeOK (μ R : ℕ) : Bool :=
   | some cfg, lv :: rest =>
     chainChecks μ (lv :: rest) cfg && decide (lv.2.1 = R) && decide (lv.2.2.1 = 6) &&
       decide (degOf lv < lv.2.2.2.1 - lv.2.2.1) && decide (jlStart lv ≤ 166) &&
-      decide (513 * jlStart lv ≤ 2 ^ 17) && decide ((jlStart lv).choose 2 * μ ≤ 2 ^ 18)
+      decide (513 * jlStart lv ≤ 2 ^ 16) && decide ((jlStart lv).choose 2 * μ ≤ 2 ^ 18)
   | _, _ => false
 
 /-- **Every admissible shape passes.** -/

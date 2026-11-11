@@ -39,8 +39,8 @@ in doom, every group of challenges at most `εmsg = 2^-125` after the grind befo
    (`FrontIface.frontSpec`, W3's), on that one candidate (`L₀ = 1`), ending in "it does not meet the
    column claims with true slices";
 5. ring switching (`ringSpec`), its sixteen challenges and the opening's `λ` one group under the
-   `14`-bit grind: `2/|E|` for the candidate and `(J − 1)·L₀/|E|` for `λ`, at most
-   `513·L₀/|E| ≤ 2^-125·2^14` (`OpeningIface.lambda_row`);
+   `13`-bit grind: `2/|E|` for the candidate and `(J − 1)·L₀/|E|` for `λ`, at most
+   `513·L₀/|E| ≤ 2^-125·2^13` (`OpeningIface.lambda_row`);
 6. the stacked opening (`OpeningIface.stackedSpec`, W2's), from `StackedPreOf`: every member of the
    level-0 list violates one of `ring :: claims ++ [ood]`, the one left by the OOD sample a front
    claim or the ring claim, every other the OOD claim (`exists_violated_of_ood`).
@@ -123,7 +123,7 @@ structure OpeningIface : Type where
   /-- The OOD row: `C(L₀, 2)·μ ≤ 2^18`. -/
   ood_row : ∀ {μ R : ℕ}, Whir.Admissible μ R → (listMax₀ μ R).choose 2 * μ ≤ 2 ^ 18
   /-- The batching row with the ring's `2/|E|`: `513·L₀ ≤ 2^17`. -/
-  lambda_row : ∀ {μ R : ℕ}, Whir.Admissible μ R → 513 * listMax₀ μ R ≤ 2 ^ 17
+  lambda_row : ∀ {μ R : ℕ}, Whir.Admissible μ R → 513 * listMax₀ μ R ≤ 2 ^ 16
   multiaffine_eqEval : ∀ z : List E, IsMultiaffine z.length (eqEval z)
   multiaffine_of_multilinear : ∀ {μ : ℕ} {w : List E → E}, IsMultilinearFn μ w → IsMultiaffine μ w
   /-- **The stacked opening**. -/
@@ -419,7 +419,7 @@ theorem ring_eps (hadm : Whir.Admissible (μs prog s) ρ) {J : ℕ} (hJ : J ≤ 
       ((2 + (J - 1) * O.listMax₀ (μs prog s) ρ : ℕ) : ℝ≥0∞) / Fintype.card E := by
     rw [eBatchOf, Nat.cast_one, one_mul, ENNReal.div_add_div_same, Nat.cast_add, Nat.cast_ofNat]
   rw [hsum]
-  refine discount_le 14 _ ?_
+  refine discount_le 13 _ ?_
   simp only [maxStackedClaims] at hJ
   have : (J - 1) * O.listMax₀ (μs prog s) ρ ≤ 511 * O.listMax₀ (μs prog s) ρ :=
     Nat.mul_le_mul_right _ (by omega)

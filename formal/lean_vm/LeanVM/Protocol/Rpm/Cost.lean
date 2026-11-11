@@ -233,14 +233,15 @@ theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E
       fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
         (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (moves_sampleOodPoints _ _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
-        (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
+      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
+        (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
+      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
+        (Moves.sampleN _)) fun _ ↦
+      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
+        Moves.readE) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
         (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (moves_sampleQueriesAux _ _ _)) fun queries ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
-        (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
       WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
         Moves.sampleE) fun lam ↦
       WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)

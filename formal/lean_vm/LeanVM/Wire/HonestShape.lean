@@ -485,14 +485,6 @@ theorem noOpen_foldRounds : ∀ (n : ℕ) (s : WhirState), NoOpen (foldRounds n 
     obtain ⟨_, _⟩ := y
     exact noOpen_ret _
 
-theorem noOpen_sampleOodPoints (mu : ℕ) : ∀ count : ℕ, NoOpen (sampleOodPoints mu count)
-  | 0 => noOpen_ret _
-  | count + 1 => by
-    unfold sampleOodPoints
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    exact NoOpen.bind (noOpen_sampleN _) fun _ ↦ NoOpen.bind (noOpen_sampleOodPoints mu count)
-      fun _ ↦ noOpen_ret _
-
 theorem noOpen_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
     NoOpen (sampleQueriesAux depth fuel remaining)
   | 0, _ => noOpen_ret _
@@ -603,14 +595,14 @@ theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
       refine Wired.no_bind (noOpen_readN _) fun _ _ ↦ ?_
-      refine Wired.no_bind (noOpen_sampleOodPoints _ _) fun _ _ ↦ ?_
-      refine Wired.no_bind (noOpen_readN _) fun _ _ ↦ ?_
+      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits)
+        (noOpen_grind _) fun _ _ ↦ ?_
+      refine Wired.no_bind (noOpen_sampleN _) fun _ _ ↦ ?_
+      refine Wired.no_bind noOpen_readE fun _ _ ↦ ?_
       refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
         (noOpen_grind _) fun _ _ ↦ ?_
       refine Wired.no_bind (p := sampleQueries _ level.queries)
         (noOpen_sampleQueriesAux _ _ _) fun queries hqs ↦ ?_
-      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.batchGrindingBits)
-        (noOpen_grind _) fun _ _ ↦ ?_
       refine Wired.no_bind (p := VerifierProgram.sampleChallenge) noOpen_sampleE fun lam _ ↦ ?_
       refine ⟨hn1, by rw [hgi]; exact hq queries hqs, fun words ↦ ?_⟩
       refine wired_whirLevels logN laneFolds evaluateBasis (next :: rest') (index + 1) _ _ _

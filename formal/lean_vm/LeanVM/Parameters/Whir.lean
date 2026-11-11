@@ -29,16 +29,15 @@ namespace LeanVM.Parameters.Whir
 /-! ## Parameters no end statement reaches, moved here from the statement -/
 
 /-- Out-of-domain points taken inside the opening after a level's commitment: none at level 0,
-whose commitment's single point the caller takes (`read_ood`, `crates/verifier/src/lib.rs:158-165`),
-and `oodSamples` at every later level (`crates/verifier/src/whir.rs:307-309`; the prover's
-`whir_config.rs:618-623, 697`). -/
-def oodSamplesAt (level : ℕ) : ℕ := if level = 0 then 0 else oodSamples
+whose commitment's single point the caller takes (`read_ood`, `crates/verifier/src/lib.rs:159-166`),
+and one at every later level (`crates/verifier/src/whir.rs:295-297`). -/
+def oodSamplesAt (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-- The variables left after every fold: the size of the residual sent in the clear. -/
 def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((ladderShape μ logInvRate).map Prod.fst).sum
 
 /-- The log block lengths `κ_i + R_i` of the levels' codes: the message log after a level's fold
-plus its rate exponent (`LevelShapes.block_len`, `whir_config.rs:121-156`). -/
+plus its rate exponent (`LevelShapes.block_len`, `whir_config.rs:119-154`). -/
 def blockLogs (μ : ℕ) : List Level → List ℕ
   | [] => []
   | l :: rest => (μ - l.fold + l.logInvRate) :: blockLogs (μ - l.fold) rest
@@ -62,7 +61,7 @@ theorem ladder_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
   obtain ⟨h1, h2⟩ := admissible_bounded h
   exact key μ h1 logInvRate h2 h
 
-/-- Every ladder has at least two levels (`whir_config.rs:281-283`). -/
+/-- Every ladder has at least two levels (`whir_config.rs:278-280`). -/
 theorem ladder_length {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     ∀ levels, ladder μ logInvRate = some levels → 2 ≤ levels.length := by
   have key : ∀ μ < maxLogStack + 1, ∀ r < 5, Admissible μ r →
