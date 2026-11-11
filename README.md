@@ -50,7 +50,7 @@ leanVM is designed for security:
 
 ## work in progress
 
-- leanVM is not yet stable (Keccak-256 is a placeholder: SHA2 is another option).
+- leanVM is not yet stable
 - Formal statements are still under review
 - The Lean statements only describe the spec. Proving the Rust implem is faithful to the spec is still WIP.
 
@@ -119,7 +119,8 @@ cargo leanvm recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-in
 ```
 
 ```
-recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recursion rate = 1/2  cycles (VM steps)           : 459,768 = 2^18.811
+recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recursion rate = 1/2
+    cycles (VM steps)           : 459,768 = 2^18.811
     details                   : MUL 2^17.264 (34.2%)  XOR 2^16.962 (27.8%)  DEREF 2^16.554 (20.9%)  SET 2^15.259 (8.5%)  JUMP 2^14.676 (5.7%)  KECCAK 2^13.682 (2.9%)  MEMORY 2^19.445  BYTECODE2^18.902  TOTAL_COMMITTED 2^23.845
   proof size                  : 321.3 KiB
   proving time                : 0.159 s ± 0.6%      peak memory 1.117 GiB
