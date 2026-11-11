@@ -41,21 +41,21 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ` and rate `r`** at the deployed
 instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ ≤ 28`, `1 ≤ r ≤ 4`,
-`lean_ethereum.py:3718-3720`); `0` elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero
+`lean_ethereum.py:3716-3718`); `0` elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero
 challenge, is (`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
   if 22 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ r ∧ r ≤ 4 then
-    ([[378762, 382614, 391750, 396498, 402121, 408548, 415536],
-      [300190, 304059, 313140, 315263, 318734, 322097, 328089],
-      [272647, 277776, 284268, 286559, 288671, 291633, 297310],
-      [257960, 261080, 266994, 268089, 270391, 274620, 281017]].getD (r - 1) []).getD (μ - 22) 0
+    ([[378762, 382614, 391750, 396498, 402450, 408883, 415877],
+      [300190, 304059, 313140, 315263, 319065, 322434, 328909],
+      [272647, 277776, 284268, 286559, 288671, 291633, 297620],
+      [258289, 261415, 267335, 268436, 270744, 274979, 281699]].getD (r - 1) []).getD (μ - 22) 0
   else 0
 
 /-- `open_stacked`'s words at the 28 candidates (`Count/VsOsAll`). -/
 theorem osC_getD {c : ℕ} (hc : c < 28) : Count.osC c =
-    [202706, 206558, 215694, 220442, 226065, 232492, 239480, 124134, 128003, 137084, 139207, 142678,
-      146041, 152033, 96591, 101720, 108212, 110503, 112615, 115577, 121254, 81904, 85024, 90938,
-      92033, 94335, 98564, 104961].getD c 0 := by
+    [202706, 206558, 215694, 220442, 226394, 232827, 239821, 124134, 128003, 137084, 139207, 143009,
+      146378, 152853, 96591, 101720, 108212, 110503, 112615, 115577, 121564, 82233, 85359, 91279,
+      92380, 94688, 98923, 105643].getD c 0 := by
   interval_cases c
   · exact Count.osC_0
   · exact Count.osC_1
@@ -105,7 +105,7 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 28` at rate `1`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 415536 := by
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 415877 := by
   unfold deployedBvAt
   split_ifs with h
   · obtain ⟨h1, h2, h3, h4⟩ := h
