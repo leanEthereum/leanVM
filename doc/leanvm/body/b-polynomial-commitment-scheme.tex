@@ -3,7 +3,7 @@
 
 A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed-Solomon codes of Annex~\ref{app:ntt}, which gives the novel polynomial basis and additive NTT used for encoding. The commitment takes one out-of-domain (OOD) sample, and each later level two. The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$, with $|\K|=2^{64}$ and $|\E|=2^{128}$.
 
-A fold round combines two halves with the \emph{affine combiner} of~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, Remark~\ref{rem:scalar-fold}), so $128$-bit security is now possible with a $128$-bit field. We target 125 for practical reasons. 
+A fold round combines two halves with the \emph{affine combiner} of~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 for practical reasons. 
 
 \paragraph{Symbols.}
 
@@ -161,6 +161,17 @@ At level $0$ the lanes are $\K$-valued, so a table entry pairs an $\E$-valued we
 Completeness is perfect. In characteristic $2$ the honest table has $(v_0+\premix_ju_0)+u_1=\inner{W_0}{F}+\inner{W_1}{G}=\rc{j-1}$, and by linearity $\inner{\mle{W}(\wch_j,\cdot)}{G+(\afa_j+\afb_jX)H}=\sum_\iota\eq(\wch_j,\iota)(u_\iota+\afa_jv_\iota+\afb_j\tabx{\iota})$. The folded column is $P(x_q)$, as evaluation commutes with the fold, and the correction leaves $P_{\mathrm{low}}(x_q)=\inner{W^{(i)}_{x_q}}{f^{(i+1)}}$ (Lemma~\ref{lem:colweight}). The final checks are identities.
 
 %=====================================================================
+\subsection{Why an affine fold}\label{sec:affine-intuition}
+%=====================================================================
+
+Let $f,g:\dom\to\E$ be two words and $u,v$ two codewords, with errors $e:=f-u$ and $e':=g-v$. Say $x$ is a \emph{bad point} if $e(x)\neq0$ or $e'(x)\neq0$. A fold challenge \emph{repairs} a bad point $x$ if the folded error is zero at $x$.
+
+\paragraph{Scalar fold.} The folded error of $f+\fc g$ is $e+\fc e'$, so $\fc$ repairs $x$ exactly when $e'(x)\neq0$ and $\fc=-e(x)/e'(x)$. Each bad point has at most one repairing challenge, and the prover chooses it through $f$ and $g$. Suppose $f,g$ agree with $u,v$ on the same $\agr-1$ points, and no pair of codewords agrees with $f,g$ on $\agr$ common points. The prover gives each of the $\blen-\agr+1$ bad points a different repairing challenge. Each such challenge brings the fold to agreement $\agr$ with $u+\fc v$, so with probability $(\blen-\agr+1)/|\E|$ the fold looks close although $f,g$ are not. Tolerating a loss of $s$ coordinates does not help: the prover gives $s+1$ bad points the same repairing challenge, and the error stays at least $\bigl(1+\lfloor(\blen-\agr)/(s+1)\rfloor\bigr)/|\E|$ \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}.
+
+\paragraph{Affine fold.} The folded error of $f+(\afa+\afb x)g$ is $e+(\afa+\afb x)e'$, so $(\afa,\afb)$ repairs $x$ exactly when $e'(x)\neq0$ and $\afa+x\afb=-e(x)/e'(x)$. These challenges form a line in $\E^2$, so a random challenge repairs $x$ with probability $1/|\E|$. The prover sets the line's position, but $x$ sets its slope. So the lines of two different points cross at exactly one challenge. A random challenge thus repairs one bad point with probability up to $(\blen-\agr+1)/|\E|$, but two with probability at most $\binom{\blen}{2}/|\E|^2$. 
+
+
+%=====================================================================
 \subsection{Round-by-round soundness}\label{sec:soundness}
 %=====================================================================
 
@@ -228,10 +239,6 @@ Let $\dom\subseteq\K$ have size $\blen$, let $1\le\dgr<\agr\le\blen$, $h\ge1$, a
 \end{theorem}
 
 For $h=1$ this is \cite[Thm.~1.1]{CYWZ26}, with the finite count of its Lemma~4.1 in place of its closed form. The count holds for every admissible triple, as the proofs of \cite[Lemmas~4.2 to 4.7]{CYWZ26} use the specific $\imul$, $\iyz$ and $\ithr$ only through (i) to (iii). For $h>1$, \cite[\S5.1, Interleaving and shared agreement]{CYWZ26} packs the $h$ lanes into one word over the degree-$h$ extension of $\E$, with $(\afa,\afb)$ still drawn from $\E$ and acting lane by lane. Interpolation and the degree bounds are unchanged over the extension, a nonzero affine constraint on $(\afa,\afb)$ still has at most $|\E|$ solutions, and the Johnson count depends only on agreement sets, so the same error bounds simultaneous agreement of all lanes, with no union over lanes.
-
-\begin{remark}[Why not a scalar fold]\label{rem:scalar-fold}
-A scalar fold, $\orc[(0,u'),\cdot]+\fc\,\orc[(1,u'),\cdot]$ or the multilinear fold of the original schemes, cannot have an MCA error much below $\blen/|\E|$: for every agreement loss $s\ge0$ with $\agr-s-1>\dgr$, some words give an exceptional $\fc$ with probability at least $\bigl(1+\lfloor(\blen-\agr)/(s+1)\rfloor\bigr)/|\E|$ \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}. Over $|\E|=2^{128}$, a fold round on a block of $\blen\ge2^{20}$ would then need more than $15$ bits of grinding to reach $2^{-125}$, and the bound of \cite[Thm.~4.6]{BCHKS25} more. The affine combiner's error is of order $1/|\E|+\blen^2/|\E|^2$, and its loss of one coordinate is necessary: with no loss, affine combiners too have error at least $(\blen-\agr+1)/(2|\E|)$ \cite[Prop.~6.2]{CYWZ26}.
-\end{remark}
 
 \begin{lemma}[An affine fold round]\label{lem:fold-list}
 Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain of size $\blen$, $f:=\orc[(0,\cdot),\cdot]$ and $g:=\orc[(1,\cdot),\cdot]$ its two halves, of $h=2^{\ell-1}$ lanes each. Let $1\le\dgr<\agr\le\blen$ with $(\agr-1)^2>\blen\dgr$, and $L:=\jl(\agr-1,\dgr)$. Let $W:\cube{\ell}\times\cube{\kappa}\to\E$ be a weight, $W_\iota:=W(\iota,\cdot)$, $c\in\E$, and suppose every tuple of $\lst(\orc;\agr-1,\dgr-1)$, as a pair $(F,G)$ of halves, has $\inner{W_0}{F}+\inner{W_1}{G}\neq c$. Call $\premix\in\E$ \emph{good} if no $(F,G)\in\lst(\orc;\agr-1,\dgr)$ has a nonzero coefficient of $X^{\dgr}$ in some lane of $G$ while $F+\premix G$ has none in any lane.
