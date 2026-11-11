@@ -227,7 +227,7 @@ theorem oqRK_le (F : ℕ) : ∀ j, oqRK s F j ≤ F + 73 * j
   | j + 1 => by
     have := oqRK_le F j
     have := two_pow_fold_le hs j
-    simp only [oqRK]; split_ifs <;> omega
+    simp only [oqRK]; omega
 
 /-- The fold's rounds' first values (`oqRKC`), from `F < 2^24`, `j ≤ 6` rounds: `31·j + 5`. -/
 theorem oqRK_cost (hP : Includes P Decoder.oqRKC.costDeps) (F : ℕ) (hF : F < 2 ^ 24) :
@@ -241,19 +241,21 @@ theorem oqRK_cost (hP : Includes P Decoder.oqRKC.costDeps) (F : ℕ) (hF : F < 2
     have h2 := two_pow_fold_le hs j
     have : 1 <<< (s.folds - 1 - j) ≤ 32 := by rw [Nat.one_shiftLeft]; exact h2
     have := hs.2.1
-    limbs_one; split_ifs <;> limbs_one <;> omega
+    limbs_one; omega
 
 theorem oqVal_le (F : ℕ) : oqVal s F ≤ F + 438 := by
-  have := oqRK_le hs F s.folds
+  have := oqRK_le hs F (s.folds - 1)
   have := hs.2.1
-  unfold oqVal; omega
+  unfold oqVal oqAcc oqRO; omega
 
 theorem oqVal_cost (hP : Includes P Decoder.oqValC.costDeps) (F : ℕ) (hF : F < 2 ^ 24) :
     machineCost P Decoder.oqValC.costIdx [encodeValue s, encodeValue F] ≤ 196 := by
-  have := oqRK_cost P hs (by includes) F hF s.folds hs.2.1
+  have := oqRK_cost P hs (by includes) F hF (s.folds - 1) (by have := hs.2.1; omega)
+  have := oqRK_le hs F (s.folds - 1)
   have := hs.2.1
-  rw [Decoder.oqValC.costEq P hP]
-  omega
+  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.c865.costEq P (by includes)]
+  unfold oqRO
+  limbs_one; omega
 
 theorem oqRes_le (hf : s.final = 0) (b : ℕ) (emit : Bool) :
     oqRes s b emit ≤ oqCh s b emit + 438 := by
