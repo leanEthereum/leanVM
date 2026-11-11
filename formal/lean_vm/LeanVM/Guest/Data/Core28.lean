@@ -18,7 +18,7 @@ set_option linter.all false
 
 @[expose] public section
 
-namespace core1000
+namespace core998
 
 /-- `walk_path__L19_L6`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -3523,17 +3523,17 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 3560) (.n 3572) 129),
   .ret []]
 
-end core1000
+end core998
 
 /-- `walk_path__L19_L6`. -/
-noncomputable def core1000 : Core.Fn where
+noncomputable def core998 : Core.Fn where
   name := "walk_path__L19_L6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1000.body
+  body := core998.body
 
-namespace core1001
+namespace core999
 
-/-- `__loop406`: statements 0 to 554 of the body. -/
+/-- `__loop405`: statements 0 to 554 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.mul (.n 11) (.n 10) (.n 0)) ::
@@ -4092,7 +4092,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.add (.n 698) (.n 402) (.n 697)) ::
   [])
 
-/-- `__loop406`: statements 555 to 651 of the body. -/
+/-- `__loop405`: statements 555 to 651 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
   .atom (.load (.n 699) (.n 6) 2) ::
   .atom (.load (.n 700) (.n 6) 3) ::
@@ -4189,24 +4189,24 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.add (.n 790) (.n 789) (.n 1)) ::
   .atom (.const (.n 791) (word 2 0)) ::
   .atom (.mul (.n 792) (.n 0) (.n 791)) ::
-  .callIf (.n 790) "__loop406" [.n 792, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 790) "__loop405" [.n 792, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-/-- `__loop406`: the body. -/
+/-- `__loop405`: the body. -/
 noncomputable def body : List Core.Stmt := c0 ++ c1
 
-end core1001
+end core999
 
-/-- `__loop406`. -/
-noncomputable def core1001 : Core.Fn where
-  name := "__loop406"
+/-- `__loop405`. -/
+noncomputable def core999 : Core.Fn where
+  name := "__loop405"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1001.body
+  body := core999.body
 
-namespace core1002
+namespace core1000
 
-/-- `__loop407`: the body. -/
+/-- `__loop406`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.load (.n 11) (.n 10) 0) ::
@@ -4288,21 +4288,21 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 113) (.n 112) (.n 1)) ::
   .atom (.const (.n 114) (word 2 0)) ::
   .atom (.mul (.n 115) (.n 0) (.n 114)) ::
-  .callIf (.n 113) "__loop407" [.n 115, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 113) "__loop406" [.n 115, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-end core1002
+end core1000
 
-/-- `__loop407`. -/
-noncomputable def core1002 : Core.Fn where
-  name := "__loop407"
+/-- `__loop406`. -/
+noncomputable def core1000 : Core.Fn where
+  name := "__loop406"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1002.body
+  body := core1000.body
 
-namespace core1003
+namespace core1001
 
-/-- `__loop408`: the body. -/
+/-- `__loop407`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.load (.n 11) (.n 10) 0) ::
@@ -4505,19 +4505,19 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 234) (.n 233) (.n 1)) ::
   .atom (.const (.n 235) (word 2 0)) ::
   .atom (.mul (.n 236) (.n 0) (.n 235)) ::
-  .callIf (.n 234) "__loop408" [.n 236, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 234) "__loop407" [.n 236, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-end core1003
+end core1001
 
-/-- `__loop408`. -/
-noncomputable def core1003 : Core.Fn where
-  name := "__loop408"
+/-- `__loop407`. -/
+noncomputable def core1001 : Core.Fn where
+  name := "__loop407"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1003.body
+  body := core1001.body
 
-namespace core1004
+namespace core1002
 
 /-- `walk_path__L20_L6`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -8040,17 +8040,17 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 3567) (.n 3594) 129),
   .ret []]
 
-end core1004
+end core1002
 
 /-- `walk_path__L20_L6`. -/
-noncomputable def core1004 : Core.Fn where
+noncomputable def core1002 : Core.Fn where
   name := "walk_path__L20_L6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1004.body
+  body := core1002.body
 
-namespace core1005
+namespace core1003
 
-/-- `__loop409`: statements 0 to 554 of the body. -/
+/-- `__loop408`: statements 0 to 554 of the body. -/
 noncomputable def c0 : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.mul (.n 11) (.n 10) (.n 0)) ::
@@ -8609,7 +8609,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.add (.n 698) (.n 402) (.n 697)) ::
   [])
 
-/-- `__loop409`: statements 555 to 651 of the body. -/
+/-- `__loop408`: statements 555 to 651 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
   .atom (.load (.n 699) (.n 6) 2) ::
   .atom (.load (.n 700) (.n 6) 3) ::
@@ -8706,24 +8706,24 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.add (.n 790) (.n 789) (.n 1)) ::
   .atom (.const (.n 791) (word 2 0)) ::
   .atom (.mul (.n 792) (.n 0) (.n 791)) ::
-  .callIf (.n 790) "__loop409" [.n 792, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 790) "__loop408" [.n 792, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-/-- `__loop409`: the body. -/
+/-- `__loop408`: the body. -/
 noncomputable def body : List Core.Stmt := c0 ++ c1
 
-end core1005
+end core1003
 
-/-- `__loop409`. -/
-noncomputable def core1005 : Core.Fn where
-  name := "__loop409"
+/-- `__loop408`. -/
+noncomputable def core1003 : Core.Fn where
+  name := "__loop408"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1005.body
+  body := core1003.body
 
-namespace core1006
+namespace core1004
 
-/-- `__loop410`: the body. -/
+/-- `__loop409`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.load (.n 11) (.n 10) 0) ::
@@ -8805,21 +8805,21 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 113) (.n 112) (.n 1)) ::
   .atom (.const (.n 114) (word 2 0)) ::
   .atom (.mul (.n 115) (.n 0) (.n 114)) ::
-  .callIf (.n 113) "__loop410" [.n 115, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 113) "__loop409" [.n 115, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-end core1006
+end core1004
 
-/-- `__loop410`. -/
-noncomputable def core1006 : Core.Fn where
-  name := "__loop410"
+/-- `__loop409`. -/
+noncomputable def core1004 : Core.Fn where
+  name := "__loop409"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1006.body
+  body := core1004.body
 
-namespace core1007
+namespace core1005
 
-/-- `__loop411`: the body. -/
+/-- `__loop410`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.load (.n 11) (.n 10) 0) ::
@@ -8901,21 +8901,21 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 113) (.n 112) (.n 1)) ::
   .atom (.const (.n 114) (word 2 0)) ::
   .atom (.mul (.n 115) (.n 0) (.n 114)) ::
-  .callIf (.n 113) "__loop411" [.n 115, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 113) "__loop410" [.n 115, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-end core1007
+end core1005
 
-/-- `__loop411`. -/
-noncomputable def core1007 : Core.Fn where
-  name := "__loop411"
+/-- `__loop410`. -/
+noncomputable def core1005 : Core.Fn where
+  name := "__loop410"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1007.body
+  body := core1005.body
 
-namespace core1008
+namespace core1006
 
-/-- `__loop412`: the body. -/
+/-- `__loop411`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 10) (.n 2) (.n 0)) ::
   .atom (.load (.n 11) (.n 10) 0) ::
@@ -9022,19 +9022,19 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 138) (.n 137) (.n 1)) ::
   .atom (.const (.n 139) (word 2 0)) ::
   .atom (.mul (.n 140) (.n 0) (.n 139)) ::
-  .callIf (.n 138) "__loop412" [.n 140, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 138) "__loop411" [.n 140, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
-end core1008
+end core1006
 
-/-- `__loop412`. -/
-noncomputable def core1008 : Core.Fn where
-  name := "__loop412"
+/-- `__loop411`. -/
+noncomputable def core1006 : Core.Fn where
+  name := "__loop411"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
-  body := core1008.body
+  body := core1006.body
 
-namespace core1009
+namespace core1007
 
 /-- `walk_path__L9_L8`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -10289,15 +10289,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1214) (.n 1286) 513),
   .ret []]
 
-end core1009
+end core1007
 
 /-- `walk_path__L9_L8`. -/
-noncomputable def core1009 : Core.Fn where
+noncomputable def core1007 : Core.Fn where
   name := "walk_path__L9_L8"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1009.body
+  body := core1007.body
 
-namespace core1010
+namespace core1008
 
 /-- `walk_path__L10_L6`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -11704,15 +11704,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1221) (.n 1410) 129),
   .ret []]
 
-end core1010
+end core1008
 
 /-- `walk_path__L10_L6`. -/
-noncomputable def core1010 : Core.Fn where
+noncomputable def core1008 : Core.Fn where
   name := "walk_path__L10_L6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1010.body
+  body := core1008.body
 
-namespace core1011
+namespace core1009
 
 /-- `walk_path__L10_L5`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -13119,15 +13119,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1221) (.n 1410) 65),
   .ret []]
 
-end core1011
+end core1009
 
 /-- `walk_path__L10_L5`. -/
-noncomputable def core1011 : Core.Fn where
+noncomputable def core1009 : Core.Fn where
   name := "walk_path__L10_L5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1011.body
+  body := core1009.body
 
-namespace core1012
+namespace core1010
 
 /-- `walk_path__L9_L5`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -14382,15 +14382,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1214) (.n 1286) 65),
   .ret []]
 
-end core1012
+end core1010
 
 /-- `walk_path__L9_L5`. -/
-noncomputable def core1012 : Core.Fn where
+noncomputable def core1010 : Core.Fn where
   name := "walk_path__L9_L5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1012.body
+  body := core1010.body
 
-namespace core1013
+namespace core1011
 
 /-- `walk_path__L10_L8`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -15797,15 +15797,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1221) (.n 1410) 513),
   .ret []]
 
-end core1013
+end core1011
 
 /-- `walk_path__L10_L8`. -/
-noncomputable def core1013 : Core.Fn where
+noncomputable def core1011 : Core.Fn where
   name := "walk_path__L10_L8"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1013.body
+  body := core1011.body
 
-namespace core1014
+namespace core1012
 
 /-- `walk_path__L11_L6`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -17501,15 +17501,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1228) (.n 1702) 129),
   .ret []]
 
-end core1014
+end core1012
 
 /-- `walk_path__L11_L6`. -/
-noncomputable def core1014 : Core.Fn where
+noncomputable def core1012 : Core.Fn where
   name := "walk_path__L11_L6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1014.body
+  body := core1012.body
 
-namespace core1015
+namespace core1013
 
 /-- `walk_path__L11_L5`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -19205,13 +19205,13 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1228) (.n 1702) 65),
   .ret []]
 
-end core1015
+end core1013
 
 /-- `walk_path__L11_L5`. -/
-noncomputable def core1015 : Core.Fn where
+noncomputable def core1013 : Core.Fn where
   name := "walk_path__L11_L5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1015.body
+  body := core1013.body
 
 end
 end LeanVM.Guest.Data

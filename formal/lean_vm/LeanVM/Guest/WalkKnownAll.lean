@@ -58,15 +58,15 @@ theorem walkKnown_of_gkr (h10 : CutsKnown 10) (h91 : CutsKnown 91) : WalkKnown :
       fun _ _ ↦ walk_621, fun _ _ ↦ walk_625, fun _ _ ↦ walk_631, fun _ _ ↦ walk_635,
       fun _ _ ↦ walk_641, fun _ _ ↦ walk_646, fun _ _ ↦ walk_653, fun _ _ ↦ walk_658,
       fun _ _ ↦ walk_665, fun _ _ ↦ walk_670, fun _ _ ↦ walk_677, fun _ _ ↦ walk_682,
-      fun _ _ ↦ walk_689, fun _ _ ↦ walk_692, fun _ _ ↦ walk_695, fun _ _ ↦ walk_699,
-      fun _ _ ↦ walk_702, fun _ _ ↦ walk_712, fun _ _ ↦ walk_720, fun _ _ ↦ walk_729,
-      fun _ _ ↦ walk_739, fun _ _ ↦ walk_749, fun _ _ ↦ walk_759, fun _ _ ↦ walk_766,
-      fun _ _ ↦ walk_769, fun _ _ ↦ walk_772, fun _ _ ↦ walk_776, fun _ _ ↦ walk_778,
-      fun _ _ ↦ walk_785, fun _ _ ↦ walk_789, fun _ _ ↦ walk_794, fun _ _ ↦ walk_798,
-      fun _ _ ↦ walk_803, fun _ _ ↦ walk_808, fun _ _ ↦ walk_814, fun _ _ ↦ walk_819,
-      fun _ _ ↦ walk_825, fun _ _ ↦ walk_830, fun _ _ ↦ walk_837, fun _ _ ↦ walk_840,
-      fun _ _ ↦ walk_844, fun _ _ ↦ walk_851, fun _ _ ↦ walk_854, fun _ _ ↦ walk_859,
-      fun _ _ ↦ walk_861, fun _ _ ↦ walk_922, fun _ _ ↦ walk_923, fun _ _ ↦ walk_924,
+      fun _ _ ↦ walk_689, fun _ _ ↦ walk_692, fun _ _ ↦ walk_695, fun _ _ ↦ walk_700,
+      fun _ _ ↦ walk_710, fun _ _ ↦ walk_718, fun _ _ ↦ walk_727, fun _ _ ↦ walk_737,
+      fun _ _ ↦ walk_747, fun _ _ ↦ walk_758, fun _ _ ↦ walk_765, fun _ _ ↦ walk_768,
+      fun _ _ ↦ walk_771, fun _ _ ↦ walk_775, fun _ _ ↦ walk_777, fun _ _ ↦ walk_784,
+      fun _ _ ↦ walk_788, fun _ _ ↦ walk_793, fun _ _ ↦ walk_797, fun _ _ ↦ walk_802,
+      fun _ _ ↦ walk_807, fun _ _ ↦ walk_813, fun _ _ ↦ walk_818, fun _ _ ↦ walk_824,
+      fun _ _ ↦ walk_829, fun _ _ ↦ walk_836, fun _ _ ↦ walk_839, fun _ _ ↦ walk_843,
+      fun _ _ ↦ walk_850, fun _ _ ↦ walk_853, fun _ _ ↦ walk_858, fun _ _ ↦ walk_860,
+      fun _ _ ↦ walk_921, fun _ _ ↦ walk_922, fun _ _ ↦ walk_923, fun _ _ ↦ walk_924,
       fun _ _ ↦ walk_925, fun _ _ ↦ walk_926, fun _ _ ↦ walk_927, fun _ _ ↦ walk_928,
       fun _ _ ↦ walk_929, fun _ _ ↦ walk_930, fun _ _ ↦ walk_931, fun _ _ ↦ walk_932,
       fun _ _ ↦ walk_933, fun _ _ ↦ walk_934, fun _ _ ↦ walk_935, fun _ _ ↦ walk_936,
@@ -94,8 +94,7 @@ theorem walkKnown_of_gkr (h10 : CutsKnown 10) (h91 : CutsKnown 91) : WalkKnown :
       fun _ _ ↦ walk_1021, fun _ _ ↦ walk_1022, fun _ _ ↦ walk_1023, fun _ _ ↦ walk_1024,
       fun _ _ ↦ walk_1025, fun _ _ ↦ walk_1026, fun _ _ ↦ walk_1027, fun _ _ ↦ walk_1028,
       fun _ _ ↦ walk_1029, fun _ _ ↦ walk_1030, fun _ _ ↦ walk_1031, fun _ _ ↦ walk_1032,
-      fun _ _ ↦ walk_1033, fun _ _ ↦ walk_1034, fun _ _ ↦ walk_1035, fun _ _ ↦ walk_1036,
-      fun _ _ ↦ walk_1037⟩
+      fun _ _ ↦ walk_1033, fun _ _ ↦ walk_1034, fun _ _ ↦ walk_1035⟩
   exact List.forall_iff_forall_mem.mp key
 
 /-- **The walks' obligations, proved.** -/

@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.GuestWf.Big358_1
 public import LeanVM.Guest.Memory.GuestWf.Big358_2
 public import LeanVM.Guest.Memory.GuestWf.Big358_3
 public import LeanVM.Guest.Memory.GuestWf.Big358_4
+public import LeanVM.Guest.Memory.GuestWf.Big358_5
 
 namespace LeanVM.Guest
 
@@ -22,10 +23,12 @@ open Core Memory
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L27` is well formed. -/
 theorem core358_wf : Stmt.wfList coreProgram Data.core358.body = true := by
-  have h4406 : Stmt.wfList coreProgram (Data.core358.body.drop 4406) = true :=
+  have h4507 : Stmt.wfList coreProgram (Data.core358.body.drop 4507) = true :=
     wfStmts_end (by decide +kernel)
+  have h4500 : Stmt.wfList coreProgram (Data.core358.body.drop 4500) = true :=
+    wfStmts_drop (a := 4500) (n := 7) wf358_4500 h4507
   have h4350 : Stmt.wfList coreProgram (Data.core358.body.drop 4350) = true :=
-    wfStmts_drop (a := 4350) (n := 56) wf358_4350 h4406
+    wfStmts_drop (a := 4350) (n := 150) wf358_4350 h4500
   have h4200 : Stmt.wfList coreProgram (Data.core358.body.drop 4200) = true :=
     wfStmts_drop (a := 4200) (n := 150) wf358_4200 h4350
   have h4050 : Stmt.wfList coreProgram (Data.core358.body.drop 4050) = true :=

@@ -24,10 +24,9 @@ public import LeanVM.Guest.Checked.F358_8
 public import LeanVM.Guest.Checked.F358_8
 public import LeanVM.Guest.Checked.F359_7
 public import LeanVM.Guest.Checked.F359_7
-public import LeanVM.Guest.Checked.F372_0
-public import LeanVM.Guest.Checked.F379_1
-public import LeanVM.Guest.Checked.F393_0
-public import LeanVM.Guest.Checked.F398_3
+public import LeanVM.Guest.Checked.F379_0
+public import LeanVM.Guest.Checked.F392_0
+public import LeanVM.Guest.Checked.F398_2
 
 namespace LeanVM.Guest.Checked
 
@@ -139,7 +138,7 @@ theorem ok358 : CheckOk 358 := fun i hi ↦ by
   · exact w358_8
 
 theorem ok359 : CheckOk 359 := fun i hi ↦ by
-  have h : (certOf 359).cuts.length = 9 := by decide +kernel
+  have h : (certOf 359).cuts.length = 10 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w359_0
@@ -152,6 +151,7 @@ theorem ok359 : CheckOk 359 := fun i hi ↦ by
   · exact w359_7
   · exact w359_8
   · exact w359_9
+  · exact w359_10
 
 theorem ok360 : CheckOk 360 := fun i hi ↦ by
   have h : (certOf 360).cuts.length = 1 := by decide +kernel

@@ -20,7 +20,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Whir
 /-- The core indices of `osKindTable`'s names. -/
 def osKindIdx : List ℕ :=
   [7, 8, 482, 476, 555, 493, 513, 532, 553, 488, 509, 528, 549, 483, 505, 524, 545, 477, 501, 520,
-    541, 563, 580, 304, 462, 610, 491, 486, 619, 480, 536, 558, 497, 516]
+    541, 563, 580, 304, 462, 303, 610, 491, 486, 619, 480, 536, 558, 497, 516]
 
 /-- `open_stacked`'s named callees' words (`osBnd`) by the tree: `wSB` at the indices of
 `osKindTable`'s names, `0` elsewhere. -/

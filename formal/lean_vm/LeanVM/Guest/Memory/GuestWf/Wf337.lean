@@ -22,10 +22,10 @@ open Core Memory
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L6` is well formed. -/
 theorem core337_wf : Stmt.wfList coreProgram Data.core337.body = true := by
-  have h3948 : Stmt.wfList coreProgram (Data.core337.body.drop 3948) = true :=
+  have h4025 : Stmt.wfList coreProgram (Data.core337.body.drop 4025) = true :=
     wfStmts_end (by decide +kernel)
   have h3900 : Stmt.wfList coreProgram (Data.core337.body.drop 3900) = true :=
-    wfStmts_drop (a := 3900) (n := 48) wf337_3900 h3948
+    wfStmts_drop (a := 3900) (n := 125) wf337_3900 h4025
   have h3750 : Stmt.wfList coreProgram (Data.core337.body.drop 3750) = true :=
     wfStmts_drop (a := 3750) (n := 150) wf337_3750 h3900
   have h3600 : Stmt.wfList coreProgram (Data.core337.body.drop 3600) = true :=

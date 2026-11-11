@@ -8,19 +8,20 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F653_0
-public import LeanVM.Guest.Checked.F653_0
-public import LeanVM.Guest.Checked.F658_1
-public import LeanVM.Guest.Checked.F658_1
-public import LeanVM.Guest.Checked.F665_1
-public import LeanVM.Guest.Checked.F665_1
-public import LeanVM.Guest.Checked.F671_0
-public import LeanVM.Guest.Checked.F677_2
-public import LeanVM.Guest.Checked.F677_2
-public import LeanVM.Guest.Checked.F684_0
-public import LeanVM.Guest.Checked.F690_0
-public import LeanVM.Guest.Checked.F690_0
-public import LeanVM.Guest.Checked.F696_0
+public import LeanVM.Guest.Checked.F652_0
+public import LeanVM.Guest.Checked.F658_0
+public import LeanVM.Guest.Checked.F665_0
+public import LeanVM.Guest.Checked.F665_0
+public import LeanVM.Guest.Checked.F670_1
+public import LeanVM.Guest.Checked.F670_1
+public import LeanVM.Guest.Checked.F677_1
+public import LeanVM.Guest.Checked.F677_1
+public import LeanVM.Guest.Checked.F683_0
+public import LeanVM.Guest.Checked.F689_2
+public import LeanVM.Guest.Checked.F689_2
+public import LeanVM.Guest.Checked.F689_2
+public import LeanVM.Guest.Checked.F695_1
+public import LeanVM.Guest.Checked.F695_1
 
 namespace LeanVM.Guest.Checked
 
@@ -171,14 +172,14 @@ theorem plain697 : Plain 697 := plain_of_nil (by decide +kernel)
 
 theorem plain698 : Plain 698 := plain_of_nil (by decide +kernel)
 
-theorem ok699 : CheckOk 699 := fun i hi ↦ by
-  have h : (certOf 699).cuts.length = 1 := by decide +kernel
+theorem plain699 : Plain 699 := plain_of_nil (by decide +kernel)
+
+theorem ok700 : CheckOk 700 := fun i hi ↦ by
+  have h : (certOf 700).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w699_0
-  · exact w699_1
-
-theorem plain700 : Plain 700 := plain_of_nil (by decide +kernel)
+  · exact w700_0
+  · exact w700_1
 
 end
 end LeanVM.Guest.Checked

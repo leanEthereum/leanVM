@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L19_L5_L5_L1000_L36_L6_L1`, window 1. -/
-theorem w682_1 : shareWin 682 (snapsOf 682) 1 = true := by decide +kernel
+/-- `__loop140`, once. -/
+theorem st672 : shareStatic 672 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, once. -/
-theorem st683 : shareStatic 683 = true := by decide +kernel
+/-- `__loop140`, window 0. -/
+theorem w672_0 : shareWin 672 (snapsOf 672) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, window 0. -/
-theorem w683_0 : shareWin 683 (snapsOf 683) 0 = true := by decide +kernel
+/-- `__loop140`, window 1. -/
+theorem w672_1 : shareWin 672 (snapsOf 672) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, window 1. -/
-theorem w683_1 : shareWin 683 (snapsOf 683) 1 = true := by decide +kernel
+/-- `__loop141`, once. -/
+theorem st673 : shareStatic 673 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop148`, window 2. -/
-theorem w683_2 : shareWin 683 (snapsOf 683) 2 = true := by decide +kernel
+/-- `__loop141`, window 0. -/
+theorem w673_0 : shareWin 673 (snapsOf 673) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop149`, once. -/
-theorem st684 : shareStatic 684 = true := by decide +kernel
+/-- `__loop141`, window 1. -/
+theorem w673_1 : shareWin 673 (snapsOf 673) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop149`, window 0. -/
-theorem w684_0 : shareWin 684 (snapsOf 684) 0 = true := by decide +kernel
+/-- `__loop142`, once. -/
+theorem st674 : shareStatic 674 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop149`, window 1. -/
-theorem w684_1 : shareWin 684 (snapsOf 684) 1 = true := by decide +kernel
+/-- `__loop142`, window 0. -/
+theorem w674_0 : shareWin 674 (snapsOf 674) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

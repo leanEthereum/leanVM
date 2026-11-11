@@ -22,8 +22,8 @@ theorem cw359_8_1 : cplWin 359 8 1 = true := by decide +kernel
 /-- `open_stacked__L27`, window 9, part 0. -/
 theorem cw359_9_0 : cplWin 359 9 0 = true := by decide +kernel
 
-/-- `open_stacked__L27`, window 9, part 1. -/
-theorem cw359_9_1 : cplWin 359 9 1 = true := by decide +kernel
+/-- `open_stacked__L27`, window 10, part 0. -/
+theorem cw359_10_0 : cplWin 359 10 0 = true := by decide +kernel
 
 /-- `__loop15`, window 0, part 0. -/
 theorem cw360_0_0 : cplWin 360 0 0 = true := by decide +kernel

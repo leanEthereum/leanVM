@@ -9,47 +9,47 @@ open Core Memory Data
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_477 : kwkStaticRange 477 30 := by
+theorem kwkstaticRange_414 : kwkStaticRange 414 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_507 : kwkStaticRange 507 30 := by
+theorem kwkstaticRange_444 : kwkStaticRange 444 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_537 : kwkStaticRange 537 30 := by
+theorem kwkstaticRange_474 : kwkStaticRange 474 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_567 : kwkStaticRange 567 30 := by
+theorem kwkstaticRange_504 : kwkStaticRange 504 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_597 : kwkStaticRange 597 30 := by
+theorem kwkstaticRange_534 : kwkStaticRange 534 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_627 : kwkStaticRange 627 30 := by
+theorem kwkstaticRange_564 : kwkStaticRange 564 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_657 : kwkStaticRange 657 30 := by
+theorem kwkstaticRange_594 : kwkStaticRange 594 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_687 : kwkStaticRange 687 30 := by
+theorem kwkstaticRange_624 : kwkStaticRange 624 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_717 : kwkStaticRange 717 30 := by
+theorem kwkstaticRange_654 : kwkStaticRange 654 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_747 : kwkStaticRange 747 30 := by
+theorem kwkstaticRange_684 : kwkStaticRange 684 30 := by
   unfold kwkStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kwkstaticRange_777 : kwkStaticRange 777 30 := by
+theorem kwkstaticRange_714 : kwkStaticRange 714 30 := by
   unfold kwkStaticRange; decide +kernel
 
 end

@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L19_L4_L4_L1464_L20_L5_L1`, once. -/
-theorem st749 : shareStatic 749 = true := by decide +kernel
+/-- `__loop191`, window 0. -/
+theorem w738_0 : shareWin 738 (snapsOf 738) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L19_L4_L4_L1464_L20_L5_L1`, window 0. -/
-theorem w749_0 : shareWin 749 (snapsOf 749) 0 = true := by decide +kernel
+/-- `__loop191`, window 1. -/
+theorem w738_1 : shareWin 738 (snapsOf 738) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L19_L4_L4_L1464_L20_L5_L1`, window 1. -/
-theorem w749_1 : shareWin 749 (snapsOf 749) 1 = true := by decide +kernel
+/-- `__loop191`, window 2. -/
+theorem w738_2 : shareWin 738 (snapsOf 738) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop200`, once. -/
-theorem st750 : shareStatic 750 = true := by decide +kernel
+/-- `__loop192`, once. -/
+theorem st739 : shareStatic 739 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop200`, window 0. -/
-theorem w750_0 : shareWin 750 (snapsOf 750) 0 = true := by decide +kernel
+/-- `__loop192`, window 0. -/
+theorem w739_0 : shareWin 739 (snapsOf 739) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop200`, window 1. -/
-theorem w750_1 : shareWin 750 (snapsOf 750) 1 = true := by decide +kernel
+/-- `__loop192`, window 1. -/
+theorem w739_1 : shareWin 739 (snapsOf 739) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop200`, window 2. -/
-theorem w750_2 : shareWin 750 (snapsOf 750) 2 = true := by decide +kernel
+/-- `__loop193`, once. -/
+theorem st740 : shareStatic 740 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop201`, once. -/
-theorem st751 : shareStatic 751 = true := by decide +kernel
+/-- `__loop193`, window 0. -/
+theorem w740_0 : shareWin 740 (snapsOf 740) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildList
 
-  B1 for `child_claim_list_any` (G:4146-4208, 4282-4297; TRIAGE #89): a child's claim list
+  B1 for `child_claim_list_any` (G:4144-4206, 4280-4295; TRIAGE #89): a child's claim list
   rebuilt from this node's table through hinted slots, each marked in the coverage table, and its
   digest.
 -/
@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Digest.ChildListLasts
 # `child_claim_list_any`
 
 As `claim_list_digest`, but claim `j` of a frame is read at a hinted slot `o` of the table
-(`child_claims`, G:4146-4160): `o` passes a range check against `last = limit · g⁻¹`, the region's
+(`child_claims`, G:4144-4158): `o` passes a range check against `last = limit · g⁻¹`, the region's
 coverage slot `region · g^o` holds the mark `marks · g^j` (the marks stepped by `g`), and the four
 cells are read at `entries · g^(4o)`. `claimOk` checks one such record in a list of atoms, by
 evaluation, and `claimOk_sound` gives it on a memory image. The records sit at fixed value offsets
@@ -339,7 +339,7 @@ def ChildGroupStep (rd : Reader) (m nb : ℕ) (chain entries region base limit x
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem any_step {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1037)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1035)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
@@ -431,7 +431,7 @@ theorem childGroups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of `m` child claims**, called as
 `callIf (1 + N) f [1, N, chain, entries, region, base, last]` with `N = g^a`, `a < 2^34`. -/
 theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p0 mk st0 nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1037)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1035)
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries region base last : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
@@ -484,7 +484,7 @@ theorem find_child_claim_list_any :
     coreProgram.find? "child_claim_list_any" = some Data.core25 :=
   Program.find?_of_indexOf? (j := 25) (by decide +kernel) rfl
 
-/-- **`child_claim_list_any`** (G:4187-4207): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
+/-- **`child_claim_list_any`** (G:4185-4205): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims read at hinted slots of the region below the log of `limit`, marked
 `base · g^j`, and their digest. -/
 theorem child_claim_list_any_sound {rd : Reader} (hm : MemOk rd) {args rets : List E}

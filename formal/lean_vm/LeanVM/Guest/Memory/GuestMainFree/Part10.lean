@@ -16,19 +16,19 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_826 : MainFreeRange 826 107 := by
+theorem mainFreeRange_829 : MainFreeRange 829 103 := by
   unfold MainFreeRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_933 : MainFreeRange 933 35 := by
+theorem mainFreeRange_932 : MainFreeRange 932 35 := by
   unfold MainFreeRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_968 : MainFreeRange 968 32 := by
+theorem mainFreeRange_967 : MainFreeRange 967 31 := by
   unfold MainFreeRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mainFreeRange_1000 : MainFreeRange 1000 21 := by
+theorem mainFreeRange_998 : MainFreeRange 998 21 := by
   unfold MainFreeRange; decide +kernel
 
 end

@@ -25,7 +25,7 @@ theorem cw89_1_0 : cplWin 89 1 0 = true := by decide +kernel
 /-- `rs_eq_rows__L7`, window 2, part 0. -/
 theorem cw89_2_0 : cplWin 89 2 0 = true := by decide +kernel
 
-/-- `grind_check__L8`, window 0, part 0. -/
+/-- `grind_check__L7`, window 0, part 0. -/
 theorem cw90_0_0 : cplWin 90 0 0 = true := by decide +kernel
 
 /-- `__loop6`, window 0, part 0. -/

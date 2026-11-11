@@ -23,7 +23,7 @@ theorem w89_1 : WinOk 89 1 := winOk_of_C (by decide +kernel)
 /-- `rs_eq_rows__L7`, window 2. -/
 theorem w89_2 : WinOk 89 2 := winOk_of_C (by decide +kernel)
 
-/-- `grind_check__L8`, window 0. -/
+/-- `grind_check__L7`, window 0. -/
 theorem w90_0 : WinOk 90 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop6`, window 0. -/

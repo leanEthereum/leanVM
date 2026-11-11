@@ -18,7 +18,7 @@ set_option linter.all false
 
 @[expose] public section
 
-namespace core1016
+namespace core1014
 
 /-- `walk_path__L11_L8`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -1714,15 +1714,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1228) (.n 1702) 513),
   .ret []]
 
-end core1016
+end core1014
 
 /-- `walk_path__L11_L8`. -/
-noncomputable def core1016 : Core.Fn where
+noncomputable def core1014 : Core.Fn where
   name := "walk_path__L11_L8"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1016.body
+  body := core1014.body
 
-namespace core1017
+namespace core1015
 
 /-- `walk_path__L12_L6`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -4058,15 +4058,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1235) (.n 2378) 129),
   .ret []]
 
-end core1017
+end core1015
 
 /-- `walk_path__L12_L6`. -/
-noncomputable def core1017 : Core.Fn where
+noncomputable def core1015 : Core.Fn where
   name := "walk_path__L12_L6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1017.body
+  body := core1015.body
 
-namespace core1018
+namespace core1016
 
 /-- `walk_path__L12_L5`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -6402,15 +6402,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1235) (.n 2378) 65),
   .ret []]
 
-end core1018
+end core1016
 
 /-- `walk_path__L12_L5`. -/
-noncomputable def core1018 : Core.Fn where
+noncomputable def core1016 : Core.Fn where
   name := "walk_path__L12_L5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1018.body
+  body := core1016.body
 
-namespace core1019
+namespace core1017
 
 /-- `walk_path__L12_L8`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -8746,15 +8746,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 1235) (.n 2378) 513),
   .ret []]
 
-end core1019
+end core1017
 
 /-- `walk_path__L12_L8`. -/
-noncomputable def core1019 : Core.Fn where
+noncomputable def core1017 : Core.Fn where
   name := "walk_path__L12_L8"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1019.body
+  body := core1017.body
 
-namespace core1020
+namespace core1018
 
 /-- `walk_path__L13_L6`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -11103,15 +11103,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 2380) (.n 2392) 129),
   .ret []]
 
-end core1020
+end core1018
 
 /-- `walk_path__L13_L6`. -/
-noncomputable def core1020 : Core.Fn where
+noncomputable def core1018 : Core.Fn where
   name := "walk_path__L13_L6"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1020.body
+  body := core1018.body
 
-namespace core1021
+namespace core1019
 
 /-- `walk_path__L13_L5`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -13460,15 +13460,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 2380) (.n 2392) 65),
   .ret []]
 
-end core1021
+end core1019
 
 /-- `walk_path__L13_L5`. -/
-noncomputable def core1021 : Core.Fn where
+noncomputable def core1019 : Core.Fn where
   name := "walk_path__L13_L5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1021.body
+  body := core1019.body
 
-namespace core1022
+namespace core1020
 
 /-- `walk_path__L13_L8`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -15817,15 +15817,15 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 2380) (.n 2392) 513),
   .ret []]
 
-end core1022
+end core1020
 
 /-- `walk_path__L13_L8`. -/
-noncomputable def core1022 : Core.Fn where
+noncomputable def core1020 : Core.Fn where
   name := "walk_path__L13_L8"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1022.body
+  body := core1020.body
 
-namespace core1023
+namespace core1021
 
 /-- `walk_path__L14_L5`: block s8_a0. -/
 noncomputable def s8_a0 : List Core.Stmt := [
@@ -18192,13 +18192,13 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 2387) (.n 2414) 65),
   .ret []]
 
-end core1023
+end core1021
 
 /-- `walk_path__L14_L5`. -/
-noncomputable def core1023 : Core.Fn where
+noncomputable def core1021 : Core.Fn where
   name := "walk_path__L14_L5"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4]
-  body := core1023.body
+  body := core1021.body
 
 end
 end LeanVM.Guest.Data

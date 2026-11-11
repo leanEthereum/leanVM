@@ -71,32 +71,32 @@ theorem mainFree_all : ∀ j < coreProgram.length, mainFreeJ j = true := by
     h14.append' (mainFreeRange_349.on) rfl rfl
   have h16 : MainFreeOn 0 356 :=
     h15.append' (mainFreeRange_352.on) rfl rfl
-  have h17 : MainFreeOn 0 370 :=
+  have h17 : MainFreeOn 0 368 :=
     h16.append' (mainFreeRange_356.on) rfl rfl
-  have h18 : MainFreeOn 0 472 :=
-    h17.append' (mainFreeRange_370.on) rfl rfl
+  have h18 : MainFreeOn 0 467 :=
+    h17.append' (mainFreeRange_368.on) rfl rfl
   have h19 : MainFreeOn 0 570 :=
-    h18.append' (mainFreeRange_472.on) rfl rfl
+    h18.append' (mainFreeRange_467.on) rfl rfl
   have h20 : MainFreeOn 0 637 :=
     h19.append' (mainFreeRange_570.on) rfl rfl
-  have h21 : MainFreeOn 0 703 :=
+  have h21 : MainFreeOn 0 702 :=
     h20.append' (mainFreeRange_637.on) rfl rfl
   have h22 : MainFreeOn 0 761 :=
-    h21.append' (mainFreeRange_703.on) rfl rfl
-  have h23 : MainFreeOn 0 826 :=
+    h21.append' (mainFreeRange_702.on) rfl rfl
+  have h23 : MainFreeOn 0 829 :=
     h22.append' (mainFreeRange_761.on) rfl rfl
-  have h24 : MainFreeOn 0 933 :=
-    h23.append' (mainFreeRange_826.on) rfl rfl
-  have h25 : MainFreeOn 0 968 :=
-    h24.append' (mainFreeRange_933.on) rfl rfl
-  have h26 : MainFreeOn 0 1000 :=
-    h25.append' (mainFreeRange_968.on) rfl rfl
-  have h27 : MainFreeOn 0 1021 :=
-    h26.append' (mainFreeRange_1000.on) rfl rfl
-  have h28 : MainFreeOn 0 1033 :=
-    h27.append' (mainFreeRange_1021.on) rfl rfl
-  have h29 : MainFreeOn 0 1037 :=
-    h28.append' (mainFreeRange_1033.on) rfl rfl
+  have h24 : MainFreeOn 0 932 :=
+    h23.append' (mainFreeRange_829.on) rfl rfl
+  have h25 : MainFreeOn 0 967 :=
+    h24.append' (mainFreeRange_932.on) rfl rfl
+  have h26 : MainFreeOn 0 998 :=
+    h25.append' (mainFreeRange_967.on) rfl rfl
+  have h27 : MainFreeOn 0 1019 :=
+    h26.append' (mainFreeRange_998.on) rfl rfl
+  have h28 : MainFreeOn 0 1031 :=
+    h27.append' (mainFreeRange_1019.on) rfl rfl
+  have h29 : MainFreeOn 0 1035 :=
+    h28.append' (mainFreeRange_1031.on) rfl rfl
   intro j hj
   exact h29 j (Nat.zero_le _) (by rw [coreProgram_length] at hj; omega)
 

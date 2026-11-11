@@ -11433,11 +11433,11 @@ noncomputable def core88 : Core.Fn where
 
 namespace core89
 
-/-- `grind_check__L8`: the body. -/
+/-- `grind_check__L7`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.windowsExp (.n 0) 8 11 5 (.stack [.n 2, .n 3, .n 4, .n 5, .n 6]))) ::
-  .atom (.hint (.windowsExp (.n 0) 63 1 1 (.stack [.n 7]))) ::
-  .atom (.const (.n 8) (word 2 0)) ::
+  .atom (.hint (.windowsExp (.n 0) 7 11 5 (.stack [.n 2, .n 3, .n 4, .n 5, .n 6]))) ::
+  .atom (.hint (.windowsExp (.n 0) 62 2 1 (.stack [.n 7]))) ::
+  .atom (.const (.n 8) (word 8 0)) ::
   .atom (.rangeCheck (.n 7) (.n 9) (.n 10) (.n 11) (.n 8)) ::
   .atom (.mul (.n 12) (.n 1) (.n 7)) ::
   .atom (.load (.n 13) (.n 12) 0) ::
@@ -11476,12 +11476,12 @@ noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 56) (.n 1) (.n 2)) ::
   .atom (.load (.n 57) (.n 56) 0) ::
   .atom (.add (.n 58) (.n 55) (.n 57)) ::
-  .atom (.const (.n 59) (word 256 0)) ::
+  .atom (.const (.n 59) (word 128 0)) ::
   .atom (.mul (.n 60) (.n 58) (.n 59)) ::
   .atom (.add (.n 61) (.n 0) (.n 60)) ::
   .atom (.const (.n 62) (word 2 1)) ::
   .atom (.mul (.n 63) (.n 61) (.n 62)) ::
-  .atom (.const (.n 64) (word 256 0)) ::
+  .atom (.const (.n 64) (word 128 0)) ::
   .atom (.mul (.n 65) (.n 58) (.n 64)) ::
   .atom (.assertInK (.n 63) (.n 65)) ::
   .ret [] ::
@@ -11489,9 +11489,9 @@ noncomputable def body : List Core.Stmt := (
 
 end core89
 
-/-- `grind_check__L8`. -/
+/-- `grind_check__L7`. -/
 noncomputable def core89 : Core.Fn where
-  name := "grind_check__L8"
+  name := "grind_check__L7"
   params := [.n 0, .n 1]
   body := core89.body
 

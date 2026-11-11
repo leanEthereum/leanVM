@@ -16,63 +16,63 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop237`, window 1. -/
-theorem w801_1 : shareWin 801 (snapsOf 801) 1 = true := by decide +kernel
+/-- `opening_queries__L1_L1_L6_L32_L21_L6_L0_L0_L0_L0_L0`, window 0. -/
+theorem w793_0 : shareWin 793 (snapsOf 793) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop238`, once. -/
-theorem st802 : shareStatic 802 = true := by decide +kernel
+/-- `opening_queries__L1_L1_L6_L32_L21_L6_L0_L0_L0_L0_L0`, window 1. -/
+theorem w793_1 : shareWin 793 (snapsOf 793) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop238`, window 0. -/
-theorem w802_0 : shareWin 802 (snapsOf 802) 0 = true := by decide +kernel
+/-- `opening_queries__L1_L1_L6_L32_L21_L6_L0_L0_L0_L0_L0`, window 2. -/
+theorem w793_2 : shareWin 793 (snapsOf 793) 2 = true := by decide +kernel
 
-theorem ok802 : ShareOk 802 := ⟨st802, fun i hi ↦ by
-  have h : (snapsOf 802).length = 0 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `__loop232`, once. -/
+theorem st794 : shareStatic 794 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop232`, window 0. -/
+theorem w794_0 : shareWin 794 (snapsOf 794) 0 = true := by decide +kernel
+
+theorem ok794 : ShareOk 794 := ⟨st794, fun i hi ↦ by
+  have h : (snapsOf 794).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w802_0⟩
+  exact w794_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L22_L6_L0_L0_L0_L0_L0`, once. -/
-theorem st803 : shareStatic 803 = true := by decide +kernel
+/-- `__loop233`, once. -/
+theorem st795 : shareStatic 795 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L22_L6_L0_L0_L0_L0_L0`, window 0. -/
-theorem w803_0 : shareWin 803 (snapsOf 803) 0 = true := by decide +kernel
+/-- `__loop233`, window 0. -/
+theorem w795_0 : shareWin 795 (snapsOf 795) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L22_L6_L0_L0_L0_L0_L0`, window 1. -/
-theorem w803_1 : shareWin 803 (snapsOf 803) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L22_L6_L0_L0_L0_L0_L0`, window 2. -/
-theorem w803_2 : shareWin 803 (snapsOf 803) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop239`, once. -/
-theorem st804 : shareStatic 804 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop239`, window 0. -/
-theorem w804_0 : shareWin 804 (snapsOf 804) 0 = true := by decide +kernel
-
-theorem ok804 : ShareOk 804 := ⟨st804, fun i hi ↦ by
-  have h : (snapsOf 804).length = 0 := by decide +kernel
+theorem ok795 : ShareOk 795 := ⟨st795, fun i hi ↦ by
+  have h : (snapsOf 795).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w804_0⟩
+  exact w795_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop240`, once. -/
-theorem st805 : shareStatic 805 = true := by decide +kernel
+/-- `__loop234`, once. -/
+theorem st796 : shareStatic 796 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop240`, window 0. -/
-theorem w805_0 : shareWin 805 (snapsOf 805) 0 = true := by decide +kernel
+/-- `__loop234`, window 0. -/
+theorem w796_0 : shareWin 796 (snapsOf 796) 0 = true := by decide +kernel
 
-theorem ok805 : ShareOk 805 := ⟨st805, fun i hi ↦ by
-  have h : (snapsOf 805).length = 0 := by decide +kernel
+theorem ok796 : ShareOk 796 := ⟨st796, fun i hi ↦ by
+  have h : (snapsOf 796).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w805_0⟩
+  exact w796_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L18_L5_L5_L1758_L36_L6_L1`, once. -/
+theorem st797 : shareStatic 797 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L18_L5_L5_L1758_L36_L6_L1`, window 0. -/
+theorem w797_0 : shareWin 797 (snapsOf 797) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -108,7 +108,7 @@ theorem sigSem_args {j : ℕ} (hj : j < nFns) :
 
 theorem nameIndex_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : nameIndex (coreOf j).name = j := by
   have hl : j - 1 < coreProgram.length := by
-    have : coreProgram.length = 1037 := coreProgram_length
+    have : coreProgram.length = 1035 := coreProgram_length
     simp only [nFns] at h2
     omega
   unfold nameIndex coreOf
@@ -125,14 +125,14 @@ theorem sig_name_inj {j j' : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (h1' : 1 ≤ j'
 
 theorem vs_cuts : (certOf 19).cuts.length = 3 := by decide +kernel
 
-/-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3246-3254`): `kb[0] = g^0`, the
+/-- The bound of entry `c` of `kappa_base` (`lean_ethereum.py:3244-3252`): `kb[0] = g^0`, the
 memory's log and the six tables' heights `kb[1..6]` below `g^29`, and `kb[7]`, keccak's `τ`,
 below `g^23` (`τ + 6` is a column's log, at most `28`). -/
 def vsKbBound (c : ℕ) : ℕ := [1, 29, 29, 29, 29, 29, 29, 23].getD c 0
 
 /-- `verify_sub`'s bound of the memory's log: entry `0` of `dims_g` (the value `71`) among `g^e`,
 `e < 34`, which `verify_tables` dispatches on (the tables' logs, entries `1` to `6`, are range
-checked in `verify_tables` itself, `lean_ethereum.py:2180`). -/
+checked in `verify_tables` itself, `lean_ethereum.py:2178`). -/
 def vsDimsKnown (c : ℕ) : List (ℕ × ℕ × ℕ) := [(c, 0, 34)]
 
 /-- `verify_sub`'s second window starts at its call of `verify_tables` (statement `333`) and takes

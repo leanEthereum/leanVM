@@ -114,15 +114,15 @@ theorem osC_3 : osC 3 = 220442 := by
   rw [osC_eq_fast, osCF_split 3 22 22, osC3_a, osC3_b, osC3_c]
 
 /-- `open_stacked`'s words at candidate 4. -/
-theorem osC_4 : osC 4 = 226065 := by
+theorem osC_4 : osC 4 = 226394 := by
   rw [osC_eq_fast, osCF_split 4 23 23, osC4_a, osC4_b, osC4_c]
 
 /-- `open_stacked`'s words at candidate 5. -/
-theorem osC_5 : osC 5 = 232492 := by
+theorem osC_5 : osC 5 = 232827 := by
   rw [osC_eq_fast, osCF_split 5 23 23, osC5_a, osC5_b, osC5_c]
 
 /-- `open_stacked`'s words at candidate 6. -/
-theorem osC_6 : osC 6 = 239480 := by
+theorem osC_6 : osC 6 = 239821 := by
   rw [osC_eq_fast, osCF_split 6 26 26, osC6_a, osC6_b, osC6_c]
 
 /-- `open_stacked`'s words at candidate 7. -/
@@ -142,15 +142,15 @@ theorem osC_10 : osC 10 = 139207 := by
   rw [osC_eq_fast, osCF_split 10 22 22, osC10_a, osC10_b, osC10_c]
 
 /-- `open_stacked`'s words at candidate 11. -/
-theorem osC_11 : osC 11 = 142678 := by
+theorem osC_11 : osC 11 = 143009 := by
   rw [osC_eq_fast, osCF_split 11 23 23, osC11_a, osC11_b, osC11_c]
 
 /-- `open_stacked`'s words at candidate 12. -/
-theorem osC_12 : osC 12 = 146041 := by
+theorem osC_12 : osC 12 = 146378 := by
   rw [osC_eq_fast, osCF_split 12 23 23, osC12_a, osC12_b, osC12_c]
 
 /-- `open_stacked`'s words at candidate 13. -/
-theorem osC_13 : osC 13 = 152033 := by
+theorem osC_13 : osC 13 = 152853 := by
   rw [osC_eq_fast, osCF_split 13 26 26, osC13_a, osC13_b, osC13_c]
 
 /-- `open_stacked`'s words at candidate 14. -/
@@ -178,35 +178,35 @@ theorem osC_19 : osC 19 = 115577 := by
   rw [osC_eq_fast, osCF_split 19 23 23, osC19_a, osC19_b, osC19_c]
 
 /-- `open_stacked`'s words at candidate 20. -/
-theorem osC_20 : osC 20 = 121254 := by
+theorem osC_20 : osC 20 = 121564 := by
   rw [osC_eq_fast, osCF_split 20 26 26, osC20_a, osC20_b, osC20_c]
 
 /-- `open_stacked`'s words at candidate 21. -/
-theorem osC_21 : osC 21 = 81904 := by
+theorem osC_21 : osC 21 = 82233 := by
   rw [osC_eq_fast, osCF_split 21 18 18, osC21_a, osC21_b, osC21_c]
 
 /-- `open_stacked`'s words at candidate 22. -/
-theorem osC_22 : osC 22 = 85024 := by
+theorem osC_22 : osC 22 = 85359 := by
   rw [osC_eq_fast, osCF_split 22 19 19, osC22_a, osC22_b, osC22_c]
 
 /-- `open_stacked`'s words at candidate 23. -/
-theorem osC_23 : osC 23 = 90938 := by
+theorem osC_23 : osC 23 = 91279 := by
   rw [osC_eq_fast, osCF_split 23 22 22, osC23_a, osC23_b, osC23_c]
 
 /-- `open_stacked`'s words at candidate 24. -/
-theorem osC_24 : osC 24 = 92033 := by
+theorem osC_24 : osC 24 = 92380 := by
   rw [osC_eq_fast, osCF_split 24 22 22, osC24_a, osC24_b, osC24_c]
 
 /-- `open_stacked`'s words at candidate 25. -/
-theorem osC_25 : osC 25 = 94335 := by
+theorem osC_25 : osC 25 = 94688 := by
   rw [osC_eq_fast, osCF_split 25 23 23, osC25_a, osC25_b, osC25_c]
 
 /-- `open_stacked`'s words at candidate 26. -/
-theorem osC_26 : osC 26 = 98564 := by
+theorem osC_26 : osC 26 = 98923 := by
   rw [osC_eq_fast, osCF_split 26 23 23, osC26_a, osC26_b, osC26_c]
 
 /-- `open_stacked`'s words at candidate 27. -/
-theorem osC_27 : osC 27 = 104961 := by
+theorem osC_27 : osC 27 = 105643 := by
   rw [osC_eq_fast, osCF_split 27 26 26, osC27_a, osC27_b, osC27_c]
 
 end

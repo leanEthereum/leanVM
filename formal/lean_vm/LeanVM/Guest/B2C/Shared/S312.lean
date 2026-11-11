@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop370`, window 2. -/
-theorem w954_2 : shareWin 954 (snapsOf 954) 2 = true := by decide +kernel
+/-- `walk_path__L11_L7`, window 2. -/
+theorem w949_2 : shareWin 949 (snapsOf 949) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop370`, window 3. -/
-theorem w954_3 : shareWin 954 (snapsOf 954) 3 = true := by decide +kernel
+/-- `walk_path__L11_L7`, window 3. -/
+theorem w949_3 : shareWin 949 (snapsOf 949) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop371`, once. -/
-theorem st955 : shareStatic 955 = true := by decide +kernel
+/-- `__loop368`, once. -/
+theorem st950 : shareStatic 950 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop371`, window 0. -/
-theorem w955_0 : shareWin 955 (snapsOf 955) 0 = true := by decide +kernel
+/-- `__loop368`, window 0. -/
+theorem w950_0 : shareWin 950 (snapsOf 950) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop371`, window 1. -/
-theorem w955_1 : shareWin 955 (snapsOf 955) 1 = true := by decide +kernel
+/-- `__loop368`, window 1. -/
+theorem w950_1 : shareWin 950 (snapsOf 950) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop371`, window 2. -/
-theorem w955_2 : shareWin 955 (snapsOf 955) 2 = true := by decide +kernel
+/-- `__loop368`, window 2. -/
+theorem w950_2 : shareWin 950 (snapsOf 950) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L13_L7`, once. -/
-theorem st956 : shareStatic 956 = true := by decide +kernel
+/-- `__loop368`, window 3. -/
+theorem w950_3 : shareWin 950 (snapsOf 950) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L13_L7`, window 0. -/
-theorem w956_0 : shareWin 956 (snapsOf 956) 0 = true := by decide +kernel
+/-- `__loop369`, once. -/
+theorem st951 : shareStatic 951 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

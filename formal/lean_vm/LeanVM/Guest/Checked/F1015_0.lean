@@ -17,29 +17,29 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `walk_path__L11_L6`, window 0. -/
+/-- `walk_path__L11_L8`, window 0. -/
 theorem w1015_0 : WinOk 1015 0 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L11_L6`, window 1. -/
+/-- `walk_path__L11_L8`, window 1. -/
 theorem w1015_1 : WinOk 1015 1 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L11_L5`, window 0. -/
+/-- `walk_path__L12_L6`, window 0. -/
 theorem w1016_0 : WinOk 1016 0 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L11_L5`, window 1. -/
+/-- `walk_path__L12_L6`, window 1. -/
 theorem w1016_1 : WinOk 1016 1 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L11_L8`, window 0. -/
+/-- `walk_path__L12_L6`, window 2. -/
+theorem w1016_2 : WinOk 1016 2 := winOk_of_C (by decide +kernel)
+
+/-- `walk_path__L12_L5`, window 0. -/
 theorem w1017_0 : WinOk 1017 0 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L11_L8`, window 1. -/
+/-- `walk_path__L12_L5`, window 1. -/
 theorem w1017_1 : WinOk 1017 1 := winOk_of_C (by decide +kernel)
 
-/-- `walk_path__L12_L6`, window 0. -/
-theorem w1018_0 : WinOk 1018 0 := winOk_of_C (by decide +kernel)
-
-/-- `walk_path__L12_L6`, window 1. -/
-theorem w1018_1 : WinOk 1018 1 := winOk_of_C (by decide +kernel)
+/-- `walk_path__L12_L5`, window 2. -/
+theorem w1017_2 : WinOk 1017 2 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

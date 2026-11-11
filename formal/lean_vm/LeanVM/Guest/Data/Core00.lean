@@ -5696,7 +5696,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.const (.n 46) (word 0 0)) ::
   .atom (.const (.n 47) (word 0 0)) ::
   .atom (.keccak [.n 41, .n 42, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 35, .n 36, .n 37, .n 38, .n 39] [.n 48, .n 49, .n 50, .n 51, .n 52, .n 53, .n 54, .n 55, .n 56, .n 57, .n 58, .n 59, .n 60] false false) ::
-  .call "grind_check__L8" [.n 49, .n 7] [] ::
+  .call "grind_check__L7" [.n 49, .n 7] [] ::
   .atom (.copy (.n 61) (.n 48)) ::
   .atom (.keccak [.n 44, .n 44, .n 44, .n 44, .n 44, .n 45, .n 46, .n 47, .n 56, .n 57, .n 58, .n 59, .n 60] [.n 62, .n 63, .n 64, .n 65, .n 66, .n 67, .n 68, .n 69, .n 70, .n 71, .n 72, .n 73, .n 74] false false) ::
   .atom (.copy (.n 75) (.n 62)) ::

@@ -72,7 +72,7 @@ theorem kvjchkIdx_334 : kvjchkIdx 334 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_335 : kvjchkIdx 335 = true := by
-  have hb : blockB (kvjlookJ 335) (kvjomLookJ 335) false [(.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 22), (.n 781, 1), (.n 782, 3), (.n 865, 18), (.n 1494, 0), (.n 1495, 27), (.n 1802, 0), (.n 1803, 6), (.n 2608, 0), (.n 2609, 4), (.n 2630, 0), (.n 2631, 2)] Data.core335.params Data.core335.name ([], []) Data.core335.body = some (⟨11422, []⟩, []) := by
+  have hb : blockB (kvjlookJ 335) (kvjomLookJ 335) false [(.n 151, 1), (.n 152, 37), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 866, 18), (.n 1495, 0), (.n 1496, 27), (.n 1803, 0), (.n 1804, 6), (.n 2609, 0), (.n 2610, 4), (.n 2631, 0), (.n 2632, 2)] Data.core335.params Data.core335.name ([], []) Data.core335.body = some (⟨11432, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core335.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_335_0.1 rfl kvjsplit_335_0.2.2,
       ← blockR_eq ((Data.core335.body.drop 0).take 1428), kvjsplit_335_0.2.1]
@@ -84,7 +84,7 @@ theorem kvjchkIdx_335 : kvjchkIdx 335 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_336 : kvjchkIdx 336 = true := by
-  have hb : blockB (kvjlookJ 336) (kvjomLookJ 336) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 22), (.n 781, 1), (.n 782, 3), (.n 913, 18), (.n 1583, 0), (.n 1584, 27), (.n 1903, 0), (.n 1904, 6), (.n 2751, 0), (.n 2752, 4), (.n 2773, 0), (.n 2774, 2)] Data.core336.params Data.core336.name ([], []) Data.core336.body = some (⟨11487, []⟩, []) := by
+  have hb : blockB (kvjlookJ 336) (kvjomLookJ 336) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 10), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 782, 1), (.n 783, 3), (.n 914, 18), (.n 1584, 0), (.n 1585, 27), (.n 1904, 0), (.n 1905, 6), (.n 2752, 0), (.n 2753, 4), (.n 2774, 0), (.n 2775, 2)] Data.core336.params Data.core336.name ([], []) Data.core336.body = some (⟨11497, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core336.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_336_0.1 rfl kvjsplit_336_0.2.2,
       ← blockR_eq ((Data.core336.body.drop 0).take 1428), kvjsplit_336_0.2.1]
@@ -96,7 +96,7 @@ theorem kvjchkIdx_336 : kvjchkIdx 336 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_337 : kvjchkIdx 337 = true := by
-  have hb : blockB (kvjlookJ 337) (kvjomLookJ 337) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 11), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 22), (.n 816, 1), (.n 817, 3), (.n 871, 18), (.n 947, 1), (.n 948, 3), (.n 995, 16), (.n 1724, 0), (.n 1725, 27), (.n 2056, 0), (.n 2057, 6), (.n 2946, 0), (.n 2947, 4), (.n 2968, 0), (.n 2969, 2), (.n 3446, 0), (.n 3447, 2)] Data.core337.params Data.core337.name ([], []) Data.core337.body = some (⟨11714, []⟩, []) := by
+  have hb : blockB (kvjlookJ 337) (kvjomLookJ 337) false [(.n 151, 1), (.n 152, 44), (.n 196, 109), (.n 313, 1), (.n 314, 11), (.n 368, 55), (.n 483, 1), (.n 484, 6), (.n 538, 32), (.n 649, 1), (.n 650, 4), (.n 704, 23), (.n 817, 1), (.n 818, 3), (.n 872, 18), (.n 948, 1), (.n 949, 3), (.n 996, 16), (.n 1725, 0), (.n 1726, 27), (.n 2057, 0), (.n 2058, 6), (.n 2947, 0), (.n 2948, 4), (.n 2969, 0), (.n 2970, 2), (.n 3523, 0), (.n 3524, 2)] Data.core337.params Data.core337.name ([], []) Data.core337.body = some (⟨11724, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core337.body)]
     rw [blockB_dropE _ _ _ 0 1186 1186 kvjsplit_337_0.1 rfl kvjsplit_337_0.2.2,
       ← blockR_eq ((Data.core337.body.drop 0).take 1186), kvjsplit_337_0.2.1]
@@ -134,7 +134,7 @@ theorem kvjchkIdx_341 : kvjchkIdx 341 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_342 : kvjchkIdx 342 = true := by
-  have hb : blockB (kvjlookJ 342) (kvjomLookJ 342) false [(.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 647, 1), (.n 648, 4), (.n 702, 20), (.n 778, 1), (.n 779, 3), (.n 862, 17), (.n 1491, 0), (.n 1492, 13), (.n 2228, 0), (.n 2229, 5), (.n 2698, 0), (.n 2699, 3), (.n 3072, 0), (.n 3073, 2)] Data.core342.params Data.core342.name ([], []) Data.core342.body = some (⟨6448, []⟩, []) := by
+  have hb : blockB (kvjlookJ 342) (kvjomLookJ 342) false [(.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 312, 1), (.n 313, 8), (.n 367, 44), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 647, 1), (.n 648, 4), (.n 702, 21), (.n 779, 1), (.n 780, 3), (.n 863, 17), (.n 1492, 0), (.n 1493, 13), (.n 2229, 0), (.n 2230, 5), (.n 2699, 0), (.n 2700, 3), (.n 3073, 0), (.n 3074, 2)] Data.core342.params Data.core342.name ([], []) Data.core342.body = some (⟨6458, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core342.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_342_0.1 rfl kvjsplit_342_0.2.2,
       ← blockR_eq ((Data.core342.body.drop 0).take 1428), kvjsplit_342_0.2.1]
@@ -146,7 +146,7 @@ theorem kvjchkIdx_342 : kvjchkIdx 342 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_343 : kvjchkIdx 343 = true := by
-  have hb : blockB (kvjlookJ 343) (kvjomLookJ 343) false [(.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 312, 1), (.n 313, 9), (.n 367, 44), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 647, 1), (.n 648, 4), (.n 702, 20), (.n 778, 1), (.n 779, 3), (.n 910, 17), (.n 1580, 0), (.n 1581, 13), (.n 2347, 0), (.n 2348, 5), (.n 2841, 0), (.n 2842, 3), (.n 3239, 0), (.n 3240, 2)] Data.core343.params Data.core343.name ([], []) Data.core343.body = some (⟨6453, []⟩, []) := by
+  have hb : blockB (kvjlookJ 343) (kvjomLookJ 343) false [(.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 312, 1), (.n 313, 9), (.n 367, 44), (.n 480, 1), (.n 481, 5), (.n 535, 28), (.n 647, 1), (.n 648, 4), (.n 702, 21), (.n 779, 1), (.n 780, 3), (.n 911, 17), (.n 1581, 0), (.n 1582, 13), (.n 2348, 0), (.n 2349, 5), (.n 2842, 0), (.n 2843, 3), (.n 3240, 0), (.n 3241, 2)] Data.core343.params Data.core343.name ([], []) Data.core343.body = some (⟨6463, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core343.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_343_0.1 rfl kvjsplit_343_0.2.2,
       ← blockR_eq ((Data.core343.body.drop 0).take 1428), kvjsplit_343_0.2.1]
@@ -158,7 +158,7 @@ theorem kvjchkIdx_343 : kvjchkIdx 343 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_344 : kvjchkIdx 344 = true := by
-  have hb : blockB (kvjlookJ 344) (kvjomLookJ 344) false [(.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 312, 1), (.n 313, 9), (.n 367, 44), (.n 480, 1), (.n 481, 6), (.n 535, 28), (.n 647, 1), (.n 648, 4), (.n 702, 20), (.n 813, 1), (.n 814, 3), (.n 868, 16), (.n 943, 1), (.n 944, 3), (.n 991, 15), (.n 1720, 0), (.n 1721, 13), (.n 2517, 0), (.n 2518, 5), (.n 3035, 0), (.n 3036, 3), (.n 3457, 0), (.n 3458, 2), (.n 3783, 0), (.n 3784, 2)] Data.core344.params Data.core344.name ([], []) Data.core344.body = some (⟨6628, []⟩, []) := by
+  have hb : blockB (kvjlookJ 344) (kvjomLookJ 344) false [(.n 151, 1), (.n 152, 22), (.n 196, 54), (.n 312, 1), (.n 313, 9), (.n 367, 44), (.n 480, 1), (.n 481, 6), (.n 535, 28), (.n 647, 1), (.n 648, 4), (.n 702, 21), (.n 814, 1), (.n 815, 3), (.n 869, 17), (.n 945, 1), (.n 946, 3), (.n 993, 15), (.n 1722, 0), (.n 1723, 13), (.n 2519, 0), (.n 2520, 5), (.n 3037, 0), (.n 3038, 3), (.n 3459, 0), (.n 3460, 2), (.n 3861, 0), (.n 3862, 2)] Data.core344.params Data.core344.name ([], []) Data.core344.body = some (⟨6680, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core344.body)]
     rw [blockB_dropE _ _ _ 0 1186 1186 kvjsplit_344_0.1 rfl kvjsplit_344_0.2.2,
       ← blockR_eq ((Data.core344.body.drop 0).take 1186), kvjsplit_344_0.2.1]
@@ -196,7 +196,7 @@ theorem kvjchkIdx_350 : kvjchkIdx 350 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_351 : kvjchkIdx 351 = true := by
-  have hb : blockB (kvjlookJ 351) (kvjomLookJ 351) false [(.n 151, 1), (.n 152, 15), (.n 196, 36), (.n 310, 1), (.n 311, 8), (.n 365, 37), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 645, 1), (.n 646, 4), (.n 700, 19), (.n 812, 1), (.n 813, 3), (.n 867, 16), (.n 942, 1), (.n 943, 3), (.n 990, 14), (.n 1719, 0), (.n 1720, 9), (.n 1896, 0), (.n 1897, 4), (.n 2538, 0), (.n 2539, 3), (.n 2660, 0), (.n 2661, 2), (.n 2910, 0), (.n 2911, 2)] Data.core351.params Data.core351.name ([], []) Data.core351.body = some (⟨4986, []⟩, []) := by
+  have hb : blockB (kvjlookJ 351) (kvjomLookJ 351) false [(.n 151, 1), (.n 152, 15), (.n 196, 36), (.n 310, 1), (.n 311, 8), (.n 365, 37), (.n 478, 1), (.n 479, 5), (.n 533, 25), (.n 645, 1), (.n 646, 4), (.n 700, 19), (.n 812, 1), (.n 813, 3), (.n 867, 16), (.n 942, 1), (.n 943, 3), (.n 990, 15), (.n 1719, 0), (.n 1720, 9), (.n 1896, 0), (.n 1897, 4), (.n 2538, 0), (.n 2539, 3), (.n 2660, 0), (.n 2661, 2), (.n 2910, 0), (.n 2911, 2)] Data.core351.params Data.core351.name ([], []) Data.core351.body = some (⟨4996, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core351.body)]
     rw [blockB_dropE _ _ _ 0 1186 1186 kvjsplit_351_0.1 rfl kvjsplit_351_0.2.2,
       ← blockR_eq ((Data.core351.body.drop 0).take 1186), kvjsplit_351_0.2.1]
@@ -208,7 +208,7 @@ theorem kvjchkIdx_351 : kvjchkIdx 351 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_354 : kvjchkIdx 354 = true := by
-  have hb : blockB (kvjlookJ 354) (kvjomLookJ 354) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 6), (.n 366, 32), (.n 477, 1), (.n 478, 4), (.n 532, 22), (.n 644, 1), (.n 645, 3), (.n 699, 18), (.n 775, 1), (.n 776, 3), (.n 823, 16), (.n 1370, 0), (.n 1371, 6), (.n 2309, 0), (.n 2310, 4), (.n 2331, 0), (.n 2332, 2), (.n 2809, 0), (.n 2810, 2)] Data.core354.params Data.core354.name ([], []) Data.core354.body = some (⟨3720, []⟩, []) := by
+  have hb : blockB (kvjlookJ 354) (kvjomLookJ 354) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 6), (.n 366, 32), (.n 477, 1), (.n 478, 4), (.n 532, 23), (.n 645, 1), (.n 646, 3), (.n 700, 18), (.n 776, 1), (.n 777, 3), (.n 824, 16), (.n 1371, 0), (.n 1372, 6), (.n 2310, 0), (.n 2311, 4), (.n 2332, 0), (.n 2333, 2), (.n 2886, 0), (.n 2887, 2)] Data.core354.params Data.core354.name ([], []) Data.core354.body = some (⟨3730, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core354.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_354_0.1 rfl kvjsplit_354_0.2.2,
       ← blockR_eq ((Data.core354.body.drop 0).take 1428), kvjsplit_354_0.2.1]
@@ -220,7 +220,7 @@ theorem kvjchkIdx_354 : kvjchkIdx 354 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_355 : kvjchkIdx 355 = true := by
-  have hb : blockB (kvjlookJ 355) (kvjomLookJ 355) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 4), (.n 532, 22), (.n 644, 1), (.n 645, 3), (.n 699, 18), (.n 775, 1), (.n 776, 3), (.n 835, 15), (.n 1423, 0), (.n 1424, 6), (.n 2404, 0), (.n 2405, 4), (.n 2426, 0), (.n 2427, 2), (.n 2940, 0), (.n 2941, 2)] Data.core355.params Data.core355.name ([], []) Data.core355.body = some (⟨3715, []⟩, []) := by
+  have hb : blockB (kvjlookJ 355) (kvjomLookJ 355) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 4), (.n 532, 23), (.n 645, 1), (.n 646, 3), (.n 700, 18), (.n 776, 1), (.n 777, 3), (.n 836, 15), (.n 1424, 0), (.n 1425, 6), (.n 2405, 0), (.n 2406, 4), (.n 2427, 0), (.n 2428, 2), (.n 3023, 0), (.n 3024, 2)] Data.core355.params Data.core355.name ([], []) Data.core355.body = some (⟨3725, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core355.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_355_0.1 rfl kvjsplit_355_0.2.2,
       ← blockR_eq ((Data.core355.body.drop 0).take 1428), kvjsplit_355_0.2.1]
@@ -232,7 +232,7 @@ theorem kvjchkIdx_355 : kvjchkIdx 355 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_356 : kvjchkIdx 356 = true := by
-  have hb : blockB (kvjlookJ 356) (kvjomLookJ 356) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 5), (.n 532, 22), (.n 644, 1), (.n 645, 3), (.n 699, 18), (.n 775, 1), (.n 776, 3), (.n 859, 15), (.n 1488, 0), (.n 1489, 6), (.n 2511, 0), (.n 2512, 4), (.n 2533, 0), (.n 2534, 2), (.n 3083, 0), (.n 3084, 2)] Data.core356.params Data.core356.name ([], []) Data.core356.body = some (⟨3720, []⟩, []) := by
+  have hb : blockB (kvjlookJ 356) (kvjomLookJ 356) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 5), (.n 532, 23), (.n 645, 1), (.n 646, 3), (.n 700, 18), (.n 776, 1), (.n 777, 3), (.n 860, 15), (.n 1489, 0), (.n 1490, 6), (.n 2512, 0), (.n 2513, 4), (.n 2534, 0), (.n 2535, 2), (.n 3172, 0), (.n 3173, 2)] Data.core356.params Data.core356.name ([], []) Data.core356.body = some (⟨3730, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core356.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_356_0.1 rfl kvjsplit_356_0.2.2,
       ← blockR_eq ((Data.core356.body.drop 0).take 1428), kvjsplit_356_0.2.1]
@@ -244,7 +244,7 @@ theorem kvjchkIdx_356 : kvjchkIdx 356 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_357 : kvjchkIdx 357 = true := by
-  have hb : blockB (kvjlookJ 357) (kvjomLookJ 357) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 5), (.n 532, 22), (.n 644, 1), (.n 645, 4), (.n 699, 18), (.n 775, 1), (.n 776, 3), (.n 907, 15), (.n 1577, 0), (.n 1578, 6), (.n 2642, 0), (.n 2643, 4), (.n 2664, 0), (.n 2665, 2), (.n 3250, 0), (.n 3251, 2)] Data.core357.params Data.core357.name ([], []) Data.core357.body = some (⟨3899, []⟩, []) := by
+  have hb : blockB (kvjlookJ 357) (kvjomLookJ 357) false [(.n 151, 1), (.n 152, 11), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 5), (.n 532, 23), (.n 645, 1), (.n 646, 4), (.n 700, 18), (.n 776, 1), (.n 777, 3), (.n 908, 15), (.n 1578, 0), (.n 1579, 6), (.n 2643, 0), (.n 2644, 4), (.n 2665, 0), (.n 2666, 2), (.n 3345, 0), (.n 3346, 2)] Data.core357.params Data.core357.name ([], []) Data.core357.body = some (⟨3909, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core357.body)]
     rw [blockB_dropE _ _ _ 0 1428 1428 kvjsplit_357_0.1 rfl kvjsplit_357_0.2.2,
       ← blockR_eq ((Data.core357.body.drop 0).take 1428), kvjsplit_357_0.2.1]
@@ -256,7 +256,7 @@ theorem kvjchkIdx_357 : kvjchkIdx 357 = true := by
 
 set_option maxRecDepth 100000 in
 theorem kvjchkIdx_358 : kvjchkIdx 358 = true := by
-  have hb : blockB (kvjlookJ 358) (kvjomLookJ 358) false [(.n 151, 1), (.n 152, 14), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 5), (.n 532, 22), (.n 644, 1), (.n 645, 4), (.n 699, 18), (.n 810, 1), (.n 811, 3), (.n 865, 15), (.n 942, 1), (.n 943, 3), (.n 990, 13), (.n 1719, 0), (.n 1720, 6), (.n 2826, 0), (.n 2827, 4), (.n 2848, 0), (.n 2849, 2), (.n 3470, 0), (.n 3471, 2), (.n 3644, 0), (.n 3645, 1)] Data.core358.params Data.core358.name ([], []) Data.core358.body = some (⟨4146, []⟩, []) := by
+  have hb : blockB (kvjlookJ 358) (kvjomLookJ 358) false [(.n 151, 1), (.n 152, 14), (.n 196, 27), (.n 311, 1), (.n 312, 7), (.n 366, 32), (.n 477, 1), (.n 478, 5), (.n 532, 23), (.n 645, 1), (.n 646, 4), (.n 700, 18), (.n 811, 1), (.n 812, 3), (.n 866, 15), (.n 943, 1), (.n 944, 3), (.n 991, 14), (.n 1720, 0), (.n 1721, 6), (.n 2827, 0), (.n 2828, 4), (.n 2849, 0), (.n 2850, 2), (.n 3571, 0), (.n 3572, 2), (.n 3745, 0), (.n 3746, 1)] Data.core358.params Data.core358.name ([], []) Data.core358.body = some (⟨4168, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core358.body)]
     rw [blockB_dropE _ _ _ 0 1186 1186 kvjsplit_358_0.1 rfl kvjsplit_358_0.2.2,
       ← blockR_eq ((Data.core358.body.drop 0).take 1186), kvjsplit_358_0.2.1]
@@ -268,7 +268,7 @@ theorem kvjchkIdx_358 : kvjchkIdx 358 = true := by
     rfl
   exact kvjchkIdx_of_split (fn := Data.core358) rfl rfl (by decide +kernel) hb (by decide +kernel) (by decide +kernel)
 
-theorem kvjchkIdx_all : ∀ j < 1037, kvjchkIdx j = true := by
+theorem kvjchkIdx_all : ∀ j < 1035, kvjchkIdx j = true := by
   intro j hj
   by_cases h1000 : j = 333
   · subst h1000; exact kvjchkIdx_333
@@ -384,51 +384,49 @@ theorem kvjchkIdx_all : ∀ j < 1037, kvjchkIdx j = true := by
   · exact kvjstaticRange_660.get (by omega) (by omega)
   by_cases h38 : j < 695
   · exact kvjstaticRange_677.get (by omega) (by omega)
-  by_cases h39 : j < 712
+  by_cases h39 : j < 711
   · exact kvjstaticRange_695.get (by omega) (by omega)
-  by_cases h40 : j < 729
-  · exact kvjstaticRange_712.get (by omega) (by omega)
-  by_cases h41 : j < 742
-  · exact kvjstaticRange_729.get (by omega) (by omega)
-  by_cases h42 : j < 759
-  · exact kvjstaticRange_742.get (by omega) (by omega)
-  by_cases h43 : j < 778
-  · exact kvjstaticRange_759.get (by omega) (by omega)
-  by_cases h44 : j < 790
-  · exact kvjstaticRange_778.get (by omega) (by omega)
-  by_cases h45 : j < 808
-  · exact kvjstaticRange_790.get (by omega) (by omega)
-  by_cases h46 : j < 821
-  · exact kvjstaticRange_808.get (by omega) (by omega)
-  by_cases h47 : j < 838
-  · exact kvjstaticRange_821.get (by omega) (by omega)
-  by_cases h48 : j < 856
-  · exact kvjstaticRange_838.get (by omega) (by omega)
-  by_cases h49 : j < 875
-  · exact kvjstaticRange_856.get (by omega) (by omega)
-  by_cases h50 : j < 899
-  · exact kvjstaticRange_875.get (by omega) (by omega)
-  by_cases h51 : j < 922
-  · exact kvjstaticRange_899.get (by omega) (by omega)
-  by_cases h52 : j < 939
-  · exact kvjstaticRange_922.get (by omega) (by omega)
-  by_cases h53 : j < 954
-  · exact kvjstaticRange_939.get (by omega) (by omega)
-  by_cases h54 : j < 966
-  · exact kvjstaticRange_954.get (by omega) (by omega)
-  by_cases h55 : j < 980
-  · exact kvjstaticRange_966.get (by omega) (by omega)
-  by_cases h56 : j < 993
-  · exact kvjstaticRange_980.get (by omega) (by omega)
-  by_cases h57 : j < 1004
-  · exact kvjstaticRange_993.get (by omega) (by omega)
-  by_cases h58 : j < 1016
-  · exact kvjstaticRange_1004.get (by omega) (by omega)
-  by_cases h59 : j < 1025
-  · exact kvjstaticRange_1016.get (by omega) (by omega)
-  by_cases h60 : j < 1033
-  · exact kvjstaticRange_1025.get (by omega) (by omega)
-  exact kvjstaticRange_1033.get (by omega) (by omega)
+  by_cases h40 : j < 728
+  · exact kvjstaticRange_711.get (by omega) (by omega)
+  by_cases h41 : j < 745
+  · exact kvjstaticRange_728.get (by omega) (by omega)
+  by_cases h42 : j < 760
+  · exact kvjstaticRange_745.get (by omega) (by omega)
+  by_cases h43 : j < 779
+  · exact kvjstaticRange_760.get (by omega) (by omega)
+  by_cases h44 : j < 797
+  · exact kvjstaticRange_779.get (by omega) (by omega)
+  by_cases h45 : j < 813
+  · exact kvjstaticRange_797.get (by omega) (by omega)
+  by_cases h46 : j < 830
+  · exact kvjstaticRange_813.get (by omega) (by omega)
+  by_cases h47 : j < 846
+  · exact kvjstaticRange_830.get (by omega) (by omega)
+  by_cases h48 : j < 864
+  · exact kvjstaticRange_846.get (by omega) (by omega)
+  by_cases h49 : j < 887
+  · exact kvjstaticRange_864.get (by omega) (by omega)
+  by_cases h50 : j < 911
+  · exact kvjstaticRange_887.get (by omega) (by omega)
+  by_cases h51 : j < 930
+  · exact kvjstaticRange_911.get (by omega) (by omega)
+  by_cases h52 : j < 947
+  · exact kvjstaticRange_930.get (by omega) (by omega)
+  by_cases h53 : j < 959
+  · exact kvjstaticRange_947.get (by omega) (by omega)
+  by_cases h54 : j < 972
+  · exact kvjstaticRange_959.get (by omega) (by omega)
+  by_cases h55 : j < 986
+  · exact kvjstaticRange_972.get (by omega) (by omega)
+  by_cases h56 : j < 997
+  · exact kvjstaticRange_986.get (by omega) (by omega)
+  by_cases h57 : j < 1010
+  · exact kvjstaticRange_997.get (by omega) (by omega)
+  by_cases h58 : j < 1020
+  · exact kvjstaticRange_1010.get (by omega) (by omega)
+  by_cases h59 : j < 1028
+  · exact kvjstaticRange_1020.get (by omega) (by omega)
+  exact kvjstaticRange_1028.get (by omega) (by omega)
 
 end
 end LeanVM.Guest

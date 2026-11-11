@@ -8,83 +8,82 @@
 module
 
 public import LeanVM.Guest.CheckWinC
-public import LeanVM.Guest.Checked.F951_0
-public import LeanVM.Guest.Checked.F951_0
-public import LeanVM.Guest.Checked.F951_0
-public import LeanVM.Guest.Checked.F953_1
-public import LeanVM.Guest.Checked.F953_1
-public import LeanVM.Guest.Checked.F953_1
-public import LeanVM.Guest.Checked.F955_2
-public import LeanVM.Guest.Checked.F955_2
-public import LeanVM.Guest.Checked.F955_2
-public import LeanVM.Guest.Checked.F958_0
-public import LeanVM.Guest.Checked.F958_0
-public import LeanVM.Guest.Checked.F958_0
-public import LeanVM.Guest.Checked.F960_2
-public import LeanVM.Guest.Checked.F960_2
-public import LeanVM.Guest.Checked.F960_2
-public import LeanVM.Guest.Checked.F963_0
-public import LeanVM.Guest.Checked.F963_0
-public import LeanVM.Guest.Checked.F963_0
-public import LeanVM.Guest.Checked.F965_1
-public import LeanVM.Guest.Checked.F965_1
-public import LeanVM.Guest.Checked.F965_1
-public import LeanVM.Guest.Checked.F967_2
-public import LeanVM.Guest.Checked.F967_2
-public import LeanVM.Guest.Checked.F967_2
-public import LeanVM.Guest.Checked.F969_3
-public import LeanVM.Guest.Checked.F969_3
-public import LeanVM.Guest.Checked.F969_3
-public import LeanVM.Guest.Checked.F969_3
-public import LeanVM.Guest.Checked.F972_1
-public import LeanVM.Guest.Checked.F972_1
-public import LeanVM.Guest.Checked.F972_1
-public import LeanVM.Guest.Checked.F975_0
-public import LeanVM.Guest.Checked.F975_0
-public import LeanVM.Guest.Checked.F975_0
-public import LeanVM.Guest.Checked.F977_2
-public import LeanVM.Guest.Checked.F977_2
-public import LeanVM.Guest.Checked.F977_2
-public import LeanVM.Guest.Checked.F977_2
-public import LeanVM.Guest.Checked.F980_1
-public import LeanVM.Guest.Checked.F980_1
-public import LeanVM.Guest.Checked.F980_1
-public import LeanVM.Guest.Checked.F982_1
-public import LeanVM.Guest.Checked.F982_1
-public import LeanVM.Guest.Checked.F982_1
-public import LeanVM.Guest.Checked.F985_0
-public import LeanVM.Guest.Checked.F985_0
-public import LeanVM.Guest.Checked.F985_0
-public import LeanVM.Guest.Checked.F987_2
-public import LeanVM.Guest.Checked.F987_2
-public import LeanVM.Guest.Checked.F987_2
-public import LeanVM.Guest.Checked.F990_0
-public import LeanVM.Guest.Checked.F990_0
-public import LeanVM.Guest.Checked.F990_0
-public import LeanVM.Guest.Checked.F992_1
-public import LeanVM.Guest.Checked.F992_1
-public import LeanVM.Guest.Checked.F992_1
-public import LeanVM.Guest.Checked.F994_2
-public import LeanVM.Guest.Checked.F994_2
-public import LeanVM.Guest.Checked.F994_2
-public import LeanVM.Guest.Checked.F996_3
-public import LeanVM.Guest.Checked.F996_3
-public import LeanVM.Guest.Checked.F996_3
-public import LeanVM.Guest.Checked.F999_0
-public import LeanVM.Guest.Checked.F999_0
+public import LeanVM.Guest.Checked.F950_1
+public import LeanVM.Guest.Checked.F950_1
+public import LeanVM.Guest.Checked.F952_2
+public import LeanVM.Guest.Checked.F952_2
+public import LeanVM.Guest.Checked.F952_2
+public import LeanVM.Guest.Checked.F955_0
+public import LeanVM.Guest.Checked.F955_0
+public import LeanVM.Guest.Checked.F955_0
+public import LeanVM.Guest.Checked.F957_1
+public import LeanVM.Guest.Checked.F957_1
+public import LeanVM.Guest.Checked.F957_1
+public import LeanVM.Guest.Checked.F959_3
+public import LeanVM.Guest.Checked.F959_3
+public import LeanVM.Guest.Checked.F959_3
+public import LeanVM.Guest.Checked.F959_3
+public import LeanVM.Guest.Checked.F962_1
+public import LeanVM.Guest.Checked.F962_1
+public import LeanVM.Guest.Checked.F962_1
+public import LeanVM.Guest.Checked.F964_2
+public import LeanVM.Guest.Checked.F964_2
+public import LeanVM.Guest.Checked.F964_2
+public import LeanVM.Guest.Checked.F967_0
+public import LeanVM.Guest.Checked.F967_0
+public import LeanVM.Guest.Checked.F969_0
+public import LeanVM.Guest.Checked.F969_0
+public import LeanVM.Guest.Checked.F969_0
+public import LeanVM.Guest.Checked.F971_2
+public import LeanVM.Guest.Checked.F971_2
+public import LeanVM.Guest.Checked.F971_2
+public import LeanVM.Guest.Checked.F971_2
+public import LeanVM.Guest.Checked.F974_1
+public import LeanVM.Guest.Checked.F974_1
+public import LeanVM.Guest.Checked.F974_1
+public import LeanVM.Guest.Checked.F977_0
+public import LeanVM.Guest.Checked.F977_0
+public import LeanVM.Guest.Checked.F977_0
+public import LeanVM.Guest.Checked.F979_1
+public import LeanVM.Guest.Checked.F979_1
+public import LeanVM.Guest.Checked.F979_1
+public import LeanVM.Guest.Checked.F981_2
+public import LeanVM.Guest.Checked.F981_2
+public import LeanVM.Guest.Checked.F981_2
+public import LeanVM.Guest.Checked.F981_2
+public import LeanVM.Guest.Checked.F984_1
+public import LeanVM.Guest.Checked.F984_1
+public import LeanVM.Guest.Checked.F984_1
+public import LeanVM.Guest.Checked.F986_2
+public import LeanVM.Guest.Checked.F986_2
+public import LeanVM.Guest.Checked.F986_2
+public import LeanVM.Guest.Checked.F989_0
+public import LeanVM.Guest.Checked.F989_0
+public import LeanVM.Guest.Checked.F989_0
+public import LeanVM.Guest.Checked.F991_2
+public import LeanVM.Guest.Checked.F991_2
+public import LeanVM.Guest.Checked.F991_2
+public import LeanVM.Guest.Checked.F993_3
+public import LeanVM.Guest.Checked.F993_3
+public import LeanVM.Guest.Checked.F993_3
+public import LeanVM.Guest.Checked.F996_0
+public import LeanVM.Guest.Checked.F996_0
+public import LeanVM.Guest.Checked.F998_0
+public import LeanVM.Guest.Checked.F998_0
+public import LeanVM.Guest.Checked.F998_0
+public import LeanVM.Guest.Checked.F1000_1
 
 namespace LeanVM.Guest.Checked
 
 @[expose] public section
 
 theorem ok951 : CheckOk 951 := fun i hi ↦ by
-  have h : (certOf 951).cuts.length = 3 := by decide +kernel
+  have h : (certOf 951).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w951_0
   · exact w951_1
   · exact w951_2
-  · exact w951_3
 
 theorem ok952 : CheckOk 952 := fun i hi ↦ by
   have h : (certOf 952).cuts.length = 2 := by decide +kernel
@@ -95,21 +94,21 @@ theorem ok952 : CheckOk 952 := fun i hi ↦ by
   · exact w952_2
 
 theorem ok953 : CheckOk 953 := fun i hi ↦ by
-  have h : (certOf 953).cuts.length = 2 := by decide +kernel
+  have h : (certOf 953).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w953_0
   · exact w953_1
   · exact w953_2
+  · exact w953_3
 
 theorem ok954 : CheckOk 954 := fun i hi ↦ by
-  have h : (certOf 954).cuts.length = 3 := by decide +kernel
+  have h : (certOf 954).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w954_0
   · exact w954_1
   · exact w954_2
-  · exact w954_3
 
 theorem ok955 : CheckOk 955 := fun i hi ↦ by
   have h : (certOf 955).cuts.length = 2 := by decide +kernel
@@ -120,21 +119,21 @@ theorem ok955 : CheckOk 955 := fun i hi ↦ by
   · exact w955_2
 
 theorem ok956 : CheckOk 956 := fun i hi ↦ by
-  have h : (certOf 956).cuts.length = 2 := by decide +kernel
+  have h : (certOf 956).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w956_0
   · exact w956_1
   · exact w956_2
+  · exact w956_3
 
 theorem ok957 : CheckOk 957 := fun i hi ↦ by
-  have h : (certOf 957).cuts.length = 3 := by decide +kernel
+  have h : (certOf 957).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w957_0
   · exact w957_1
   · exact w957_2
-  · exact w957_3
 
 theorem ok958 : CheckOk 958 := fun i hi ↦ by
   have h : (certOf 958).cuts.length = 2 := by decide +kernel
@@ -145,21 +144,21 @@ theorem ok958 : CheckOk 958 := fun i hi ↦ by
   · exact w958_2
 
 theorem ok959 : CheckOk 959 := fun i hi ↦ by
-  have h : (certOf 959).cuts.length = 2 := by decide +kernel
+  have h : (certOf 959).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w959_0
   · exact w959_1
   · exact w959_2
+  · exact w959_3
 
 theorem ok960 : CheckOk 960 := fun i hi ↦ by
-  have h : (certOf 960).cuts.length = 3 := by decide +kernel
+  have h : (certOf 960).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w960_0
   · exact w960_1
   · exact w960_2
-  · exact w960_3
 
 theorem ok961 : CheckOk 961 := fun i hi ↦ by
   have h : (certOf 961).cuts.length = 2 := by decide +kernel
@@ -170,21 +169,21 @@ theorem ok961 : CheckOk 961 := fun i hi ↦ by
   · exact w961_2
 
 theorem ok962 : CheckOk 962 := fun i hi ↦ by
-  have h : (certOf 962).cuts.length = 2 := by decide +kernel
+  have h : (certOf 962).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w962_0
   · exact w962_1
   · exact w962_2
+  · exact w962_3
 
 theorem ok963 : CheckOk 963 := fun i hi ↦ by
-  have h : (certOf 963).cuts.length = 3 := by decide +kernel
+  have h : (certOf 963).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w963_0
   · exact w963_1
   · exact w963_2
-  · exact w963_3
 
 theorem ok964 : CheckOk 964 := fun i hi ↦ by
   have h : (certOf 964).cuts.length = 2 := by decide +kernel
@@ -195,29 +194,30 @@ theorem ok964 : CheckOk 964 := fun i hi ↦ by
   · exact w964_2
 
 theorem ok965 : CheckOk 965 := fun i hi ↦ by
-  have h : (certOf 965).cuts.length = 2 := by decide +kernel
+  have h : (certOf 965).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w965_0
   · exact w965_1
   · exact w965_2
+  · exact w965_3
 
 theorem ok966 : CheckOk 966 := fun i hi ↦ by
-  have h : (certOf 966).cuts.length = 3 := by decide +kernel
+  have h : (certOf 966).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w966_0
   · exact w966_1
   · exact w966_2
-  · exact w966_3
 
 theorem ok967 : CheckOk 967 := fun i hi ↦ by
-  have h : (certOf 967).cuts.length = 2 := by decide +kernel
+  have h : (certOf 967).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w967_0
   · exact w967_1
   · exact w967_2
+  · exact w967_3
 
 theorem ok968 : CheckOk 968 := fun i hi ↦ by
   have h : (certOf 968).cuts.length = 3 := by decide +kernel
@@ -229,13 +229,12 @@ theorem ok968 : CheckOk 968 := fun i hi ↦ by
   · exact w968_3
 
 theorem ok969 : CheckOk 969 := fun i hi ↦ by
-  have h : (certOf 969).cuts.length = 3 := by decide +kernel
+  have h : (certOf 969).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w969_0
   · exact w969_1
   · exact w969_2
-  · exact w969_3
 
 theorem ok970 : CheckOk 970 := fun i hi ↦ by
   have h : (certOf 970).cuts.length = 2 := by decide +kernel
@@ -302,38 +301,38 @@ theorem ok977 : CheckOk 977 := fun i hi ↦ by
   · exact w977_2
 
 theorem ok978 : CheckOk 978 := fun i hi ↦ by
-  have h : (certOf 978).cuts.length = 2 := by decide +kernel
+  have h : (certOf 978).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w978_0
   · exact w978_1
   · exact w978_2
+  · exact w978_3
 
 theorem ok979 : CheckOk 979 := fun i hi ↦ by
-  have h : (certOf 979).cuts.length = 2 := by decide +kernel
+  have h : (certOf 979).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w979_0
   · exact w979_1
   · exact w979_2
+  · exact w979_3
 
 theorem ok980 : CheckOk 980 := fun i hi ↦ by
-  have h : (certOf 980).cuts.length = 3 := by decide +kernel
+  have h : (certOf 980).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w980_0
   · exact w980_1
   · exact w980_2
-  · exact w980_3
 
 theorem ok981 : CheckOk 981 := fun i hi ↦ by
-  have h : (certOf 981).cuts.length = 3 := by decide +kernel
+  have h : (certOf 981).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w981_0
   · exact w981_1
   · exact w981_2
-  · exact w981_3
 
 theorem ok982 : CheckOk 982 := fun i hi ↦ by
   have h : (certOf 982).cuts.length = 2 := by decide +kernel
@@ -360,12 +359,13 @@ theorem ok984 : CheckOk 984 := fun i hi ↦ by
   · exact w984_2
 
 theorem ok985 : CheckOk 985 := fun i hi ↦ by
-  have h : (certOf 985).cuts.length = 2 := by decide +kernel
+  have h : (certOf 985).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w985_0
   · exact w985_1
   · exact w985_2
+  · exact w985_3
 
 theorem ok986 : CheckOk 986 := fun i hi ↦ by
   have h : (certOf 986).cuts.length = 2 := by decide +kernel
@@ -376,21 +376,21 @@ theorem ok986 : CheckOk 986 := fun i hi ↦ by
   · exact w986_2
 
 theorem ok987 : CheckOk 987 := fun i hi ↦ by
-  have h : (certOf 987).cuts.length = 3 := by decide +kernel
+  have h : (certOf 987).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w987_0
   · exact w987_1
   · exact w987_2
-  · exact w987_3
 
 theorem ok988 : CheckOk 988 := fun i hi ↦ by
-  have h : (certOf 988).cuts.length = 2 := by decide +kernel
+  have h : (certOf 988).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w988_0
   · exact w988_1
   · exact w988_2
+  · exact w988_3
 
 theorem ok989 : CheckOk 989 := fun i hi ↦ by
   have h : (certOf 989).cuts.length = 2 := by decide +kernel
@@ -401,21 +401,21 @@ theorem ok989 : CheckOk 989 := fun i hi ↦ by
   · exact w989_2
 
 theorem ok990 : CheckOk 990 := fun i hi ↦ by
-  have h : (certOf 990).cuts.length = 3 := by decide +kernel
+  have h : (certOf 990).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w990_0
   · exact w990_1
   · exact w990_2
-  · exact w990_3
 
 theorem ok991 : CheckOk 991 := fun i hi ↦ by
-  have h : (certOf 991).cuts.length = 2 := by decide +kernel
+  have h : (certOf 991).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w991_0
   · exact w991_1
   · exact w991_2
+  · exact w991_3
 
 theorem ok992 : CheckOk 992 := fun i hi ↦ by
   have h : (certOf 992).cuts.length = 2 := by decide +kernel
@@ -435,21 +435,21 @@ theorem ok993 : CheckOk 993 := fun i hi ↦ by
   · exact w993_3
 
 theorem ok994 : CheckOk 994 := fun i hi ↦ by
-  have h : (certOf 994).cuts.length = 2 := by decide +kernel
+  have h : (certOf 994).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w994_0
   · exact w994_1
   · exact w994_2
+  · exact w994_3
 
 theorem ok995 : CheckOk 995 := fun i hi ↦ by
-  have h : (certOf 995).cuts.length = 3 := by decide +kernel
+  have h : (certOf 995).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w995_0
   · exact w995_1
   · exact w995_2
-  · exact w995_3
 
 theorem ok996 : CheckOk 996 := fun i hi ↦ by
   have h : (certOf 996).cuts.length = 3 := by decide +kernel
@@ -461,21 +461,21 @@ theorem ok996 : CheckOk 996 := fun i hi ↦ by
   · exact w996_3
 
 theorem ok997 : CheckOk 997 := fun i hi ↦ by
-  have h : (certOf 997).cuts.length = 2 := by decide +kernel
+  have h : (certOf 997).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w997_0
   · exact w997_1
   · exact w997_2
+  · exact w997_3
 
 theorem ok998 : CheckOk 998 := fun i hi ↦ by
-  have h : (certOf 998).cuts.length = 3 := by decide +kernel
+  have h : (certOf 998).cuts.length = 2 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w998_0
   · exact w998_1
   · exact w998_2
-  · exact w998_3
 
 theorem ok999 : CheckOk 999 := fun i hi ↦ by
   have h : (certOf 999).cuts.length = 3 := by decide +kernel
@@ -487,12 +487,13 @@ theorem ok999 : CheckOk 999 := fun i hi ↦ by
   · exact w999_3
 
 theorem ok1000 : CheckOk 1000 := fun i hi ↦ by
-  have h : (certOf 1000).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1000).cuts.length = 3 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1000_0
   · exact w1000_1
   · exact w1000_2
+  · exact w1000_3
 
 end
 end LeanVM.Guest.Checked

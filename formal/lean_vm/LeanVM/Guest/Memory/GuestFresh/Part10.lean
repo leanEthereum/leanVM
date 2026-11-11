@@ -16,11 +16,11 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem freshRange_749 : FreshRange 749 14 := by
+theorem freshRange_748 : FreshRange 748 17 := by
   unfold FreshRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem freshRange_763 : FreshRange 763 26 := by
+theorem freshRange_765 : FreshRange 765 24 := by
   unfold FreshRange; decide +kernel
 
 set_option maxRecDepth 100000 in

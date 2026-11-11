@@ -26,6 +26,9 @@ theorem w359_8 : WinOk 359 8 := winOk_of_C (by decide +kernel)
 /-- `open_stacked__L27`, window 9. -/
 theorem w359_9 : WinOk 359 9 := winOk_of_C (by decide +kernel)
 
+/-- `open_stacked__L27`, window 10. -/
+theorem w359_10 : WinOk 359 10 := winOk_of_C (by decide +kernel)
+
 /-- `__loop15`, window 0. -/
 theorem w360_0 : WinOk 360 0 := winOk_of_C (by decide +kernel)
 
@@ -38,14 +41,9 @@ theorem w361_0 : WinOk 361 0 := winOk_of_C (by decide +kernel)
 /-- `claim_list_last__L0`, window 0. -/
 theorem w362_0 : WinOk 362 0 := winOk_of_C (by decide +kernel)
 
-/-- `claim_list_last__L1`, window 0. -/
-theorem w363_0 : WinOk 363 0 := winOk_of_C (by decide +kernel)
-
 theorem ok361 : CheckOk 361 := checkOk_one (by decide +kernel) w361_0
 
 theorem ok362 : CheckOk 362 := checkOk_one (by decide +kernel) w362_0
-
-theorem ok363 : CheckOk 363 := checkOk_one (by decide +kernel) w363_0
 
 end
 end LeanVM.Guest.Checked

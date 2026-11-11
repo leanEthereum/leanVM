@@ -17,35 +17,33 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop337`, window 0. -/
+/-- `__loop338`, window 0. -/
 theorem w919_0 : WinOk 919 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop338`, window 0. -/
+/-- `__loop339`, window 0. -/
 theorem w920_0 : WinOk 920 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop339`, window 0. -/
+/-- `__loop340`, window 0. -/
 theorem w921_0 : WinOk 921 0 := winOk_of_C (by decide +kernel)
 
-/-- `__loop340`, window 0. -/
-theorem w922_0 : WinOk 922 0 := winOk_of_C (by decide +kernel)
-
 /-- `__loop340`, window 1. -/
-theorem w922_1 : WinOk 922 1 := winOk_of_C (by decide +kernel)
+theorem w921_1 : WinOk 921 1 := winOk_of_C (by decide +kernel)
 
 /-- `__loop340`, window 2. -/
-theorem w922_2 : WinOk 922 2 := winOk_of_C (by decide +kernel)
+theorem w921_2 : WinOk 921 2 := winOk_of_C (by decide +kernel)
 
 /-- `__loop340`, window 3. -/
-theorem w922_3 : WinOk 922 3 := winOk_of_C (by decide +kernel)
+theorem w921_3 : WinOk 921 3 := winOk_of_C (by decide +kernel)
 
 /-- `__loop341`, window 0. -/
-theorem w923_0 : WinOk 923 0 := winOk_of_C (by decide +kernel)
+theorem w922_0 : WinOk 922 0 := winOk_of_C (by decide +kernel)
+
+/-- `__loop341`, window 1. -/
+theorem w922_1 : WinOk 922 1 := winOk_of_C (by decide +kernel)
 
 theorem ok919 : CheckOk 919 := checkOk_one (by decide +kernel) w919_0
 
 theorem ok920 : CheckOk 920 := checkOk_one (by decide +kernel) w920_0
-
-theorem ok921 : CheckOk 921 := checkOk_one (by decide +kernel) w921_0
 
 end
 end LeanVM.Guest.Checked

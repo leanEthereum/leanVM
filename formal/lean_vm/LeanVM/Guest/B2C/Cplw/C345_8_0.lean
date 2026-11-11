@@ -22,14 +22,14 @@ theorem cw345_8_0 : cplWin 345 8 0 = true := by decide +kernel
 /-- `open_stacked__L13`, window 9, part 0. -/
 theorem cw345_9_0 : cplWin 345 9 0 = true := by decide +kernel
 
+/-- `open_stacked__L13`, window 9, part 1. -/
+theorem cw345_9_1 : cplWin 345 9 1 = true := by decide +kernel
+
 /-- `open_stacked__L14`, window 0, part 0. -/
 theorem cw346_0_0 : cplWin 346 0 0 = true := by decide +kernel
 
 /-- `open_stacked__L14`, window 1, part 0. -/
 theorem cw346_1_0 : cplWin 346 1 0 = true := by decide +kernel
-
-/-- `open_stacked__L14`, window 2, part 0. -/
-theorem cw346_2_0 : cplWin 346 2 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Cplw

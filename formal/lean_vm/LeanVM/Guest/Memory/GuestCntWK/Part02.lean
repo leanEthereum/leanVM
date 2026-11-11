@@ -13,7 +13,7 @@ theorem kukstaticRange_320 : kukStaticRange 320 17 := by
   unfold kukStaticRange; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem kukstaticRange_337 : kukStaticRange 337 7 := by
+theorem kukstaticRange_337 : kukStaticRange 337 6 := by
   unfold kukStaticRange; decide +kernel
 
 end
