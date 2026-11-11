@@ -26,7 +26,7 @@ The form `CompleteRelRegD` and its lift `completeRelRegD_of_iff` are in `Lift/Re
 `verify_merkle_cap__L{D}`, `fold_final_msg__L{n}`, with their meanings (B1's `*_holds`) and the
 loads a kernel check of each body bounds (`*Spec`); `grind_check__L{bits}` by its own placed
 form (`grind_check_completeD`, its table reads forced into the caller's words).
-`opening_round` calls `grind_check__L8`, so it is not a leaf: its placed form is a field of its
+`opening_round` calls `grind_check__L7`, so it is not a leaf: its placed form is a field of its
 own (`OsRoundRegD`). `decode_query_windows`, which writes its own frame run, has its own form
 (`QwDecodeAtD`, `B1/Bits/QueryWindowsAt.lean`).
 -/

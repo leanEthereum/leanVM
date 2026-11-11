@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `exponent_tables` (lean_ethereum.py:717-742) -/
+/-! ## `exponent_tables` (lean_ethereum.py:715-740) -/
 
 /-- **`exponent_tables()`**: it returns a pointer holding the exponent table (`ExpTables`) and its
 bit windows (`ExpWinTab`, read as `WinTabs` at `q·g^236`, `winTabs_of_expWinTab`). -/
@@ -51,7 +51,7 @@ def exponent_tables_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "exponent_tables" args rets ↔ MeaningExponentTables rd args rets
 
-/-! ## `g_power_of_word` (lean_ethereum.py:745-758) -/
+/-! ## `g_power_of_word` (lean_ethereum.py:743-756) -/
 
 /-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
 returns `g^n`. -/
@@ -64,7 +64,7 @@ def g_power_of_word_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "g_power_of_word" args rets ↔ MeaningGPowerOfWord args rets
 
-/-! ## `assert_small_g_power` (lean_ethereum.py:761-776) -/
+/-! ## `assert_small_g_power` (lean_ethereum.py:759-774) -/
 
 /-- **`assert_small_g_power(x, g_squares)`**: `x = g^e` with `e < 2^36` (nine hinted nibbles,
 each range checked below `16`, their shares multiplied over the table); it returns nothing. -/
@@ -79,7 +79,7 @@ def assert_small_g_power_Spec : Prop :=
     ∀ rets : List E, coreProgram.Rel L.read "assert_small_g_power" [x, q] rets ↔
       MeaningAssertSmallGPower [x, q] rets
 
-/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:779-794) -/
+/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:777-792) -/
 
 /-- **`log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)`**: the hinted `L`, `floor ≤ L < 34`,
 pinned by `g^(2^L) / g_N = g^e` and, above the floor, `g_N / g^(2^(L-1) + 1) = g^e'`, both
@@ -120,7 +120,7 @@ def grind_check_Spec (bits : ℕ) : Prop :=
 
 /-- The grinds the deployed guest checks (`grind_check__L{bits}` in the core IR). -/
 def grindBitsDeployed : List ℕ :=
-  [2, 3, 8, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+  [2, 3, 7, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
 /-- Every deployed `grind_check` is its meaning. -/
 def grind_check_all_Spec : Prop := ∀ bits ∈ grindBitsDeployed, grind_check_Spec bits

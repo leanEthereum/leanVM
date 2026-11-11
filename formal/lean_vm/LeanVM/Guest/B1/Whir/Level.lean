@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Opening.QueriesAllW
 
 /-!
-# A non-final level (G:1558-1696)
+# A non-final level (G:1556-1694)
 
 `LvIn` is the guest's state at a level's start against the Spec's: the sponge it carries, the
 claim the guest's plus the deficit `recsDeficit` of the levels so far (each level's high-part
@@ -330,6 +330,8 @@ structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ
     MeaningSqueezePointFrom lv.logCols rd a r
   g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
     (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
+  g15 : ∀ w, C ("grind_check__L" ++ natStr levelOodGrind) [w, σ (.n osTabs)] [] →
+    (w.limb 0).lane.toNat % 2 ^ levelOodGrind = 0
   dec : ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd (decName lv) a r →
     MeaningDecodeQueryWindows lv.depth lv.capDepth rd a r
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →

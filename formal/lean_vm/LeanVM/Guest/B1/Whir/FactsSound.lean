@@ -35,6 +35,8 @@ structure Callees (rd : Reader) (C : CallRel) (σ : Val) : Prop where
   spf : ∀ n ∈ spfDeployed, ∀ a r, C (spfName n) a r → MeaningSqueezePointFrom n rd a r
   g17 : ∀ w, C ("grind_check__L" ++ natStr queryGrind) [w, σ (.n osTabs)] [] →
     (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
+  g15 : ∀ w, C ("grind_check__L" ++ natStr levelOodGrind) [w, σ (.n osTabs)] [] →
+    (w.limb 0).lane.toNat % 2 ^ levelOodGrind = 0
   dec : ∀ p ∈ queryWindowsShapes, ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd p.1 a r →
     MeaningDecodeQueryWindows p.2.1 p.2.2 rd a r
   cap : ∀ p ∈ merkleCapNames, ∀ a r, C p.1 a r → MeaningVerifyMerkleCap p.2 rd a r
@@ -118,7 +120,7 @@ theorem levelsOk_of {rd : Reader} {C : CallRel} {σ : Val} {c : OsCfg} {logN : �
     · obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hom, homn,
         hspf, hspfn, hdec, hcap, -⟩ := hm
       refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, fun a r hc ↦ ?_,
-        hcal.g17, fun a r ha hc ↦ hcal.dec _ hdec a r ha hc,
+        hcal.g17, hcal.g15, fun a r ha hc ↦ hcal.dec _ hdec a r ha hc,
         fun a r hc ↦ hcal.cap _ hcap a r hc, ?_⟩
       · rw [← homn] at hc; exact hcal.msg _ hom a r hc
       · rw [← hspfn] at hc; exact hcal.spf _ hspf a r hc

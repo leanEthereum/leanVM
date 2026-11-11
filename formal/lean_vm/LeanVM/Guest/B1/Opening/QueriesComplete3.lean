@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesComplete2
 
 /-!
-# `walk_path`, completeness (lean_ethereum.py:1305-1340 at 40f877dc)
+# `walk_path`, completeness (lean_ethereum.py:1303-1338 at 40f877dc)
 
 The honest nodes are the climb's (`arm_nodes`: each step's pair hash, `level_out`); with the
 memory holding the position's windows, the cap leaf and the parent's flag (`WD.MemOk`), at the

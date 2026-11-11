@@ -51,7 +51,7 @@ def levelNext (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
   VerifierProgram.readCommitment (levelShape mu next (2 * 2 ^ next.fold)).1
     (levelShape mu next (2 * 2 ^ next.fold)).2
   let high ← VerifierProgram.readScalars level.fold
-  VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits
+  VerifierProgram.grindProofOfWork Whir.oodGrindingBits
   let oodPoint ← VerifierProgram.sampleChallenges mu
   let oodValue ← VerifierProgram.readScalar
   VerifierProgram.grindProofOfWork Whir.queryGrindingBits

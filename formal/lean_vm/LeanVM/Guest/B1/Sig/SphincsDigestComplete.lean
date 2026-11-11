@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsDigestComplete
 
-  The message and `H_msg` of `verify_sig_lean_sphincs` (`lean_ethereum.py:3942-3957` at leanVM main 40f877dc) are complete: the claim's keys and message cells loaded, the randomizer hinted and both
+  The message and `H_msg` of `verify_sig_lean_sphincs` (`lean_ethereum.py:3940-3955` at leanVM main 40f877dc) are complete: the claim's keys and message cells loaded, the randomizer hinted and both
   calls hashed.
 -/
 

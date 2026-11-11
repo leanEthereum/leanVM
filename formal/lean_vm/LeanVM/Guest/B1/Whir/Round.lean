@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.Flat
 public import LeanVM.Guest.CoreData
 
 /-!
-# `opening_round` (`lean_ethereum.py:1231-1248` at leanVM `71205cca`, G below)
+# `opening_round` (`lean_ethereum.py:1229-1246` at leanVM `010cfb18`, G below)
 
 One fold round of CYWZ26's affine combiner (`foldRound`, `Statement/LeanVmVerifier.lean`): the
 four scalars `u0, w, c0, c1`, a grind and `α`, then `β`; `α` stored for the point and, with
@@ -22,7 +22,7 @@ four scalars `u0, w, c0, c1`, a grind and `α`, then `β`; `α` stored for the p
 * `roundBody`: its core IR (`core7_body`, by kernel evaluation);
 * `MeaningOpeningRound`: what a call establishes, over the carried sponge (`rdS2`, `rdG2`,
   `Fs.squeeze`);
-* `opening_round_sound`: the core IR gives the meaning, under `grind_check_Spec 8`, on a memory
+* `opening_round_sound`: the core IR gives the meaning, under `grind_check_Spec 7`, on a memory
   image whose `tabs` holds the bit windows;
 * `opening_round_run`: the meaning runs `foldRound st` for every `st` with that claim.
 -/
@@ -36,7 +36,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## The template -/
 
-/-- `opening_round`'s body (G:1231-1248): the capacity copied, the four scalars `u0, w, c0, c1`
+/-- `opening_round`'s body (G:1229-1246): the capacity copied, the four scalars `u0, w, c0, c1`
 and their permutation, the grind's nonce and permutation, `α`, the squeeze of `β`, the stores,
 the claim. -/
 def roundBody : List Stmt :=
@@ -46,7 +46,7 @@ def roundBody : List Stmt :=
     (osRun 27 13)] ++
   fsNonceT (.n 5) 4 40 ++ padRunT 43 ++
   [keccakA (permIns 1 [.n 41, .n 42] 44 (osRun 35 5)) (osRun 48 13),
-    .call "grind_check__L8" [.n 49, .n 7] []] ++
+    .call "grind_check__L7" [.n 49, .n 7] []] ++
   challengeT (.n 48) 61 ++
   [keccakA (permIns 0 [] 44 (osRun 56 5)) (osRun 62 13)] ++ challengeT (.n 62) 75 ++
   [osLd 61 8 0, osLd 61 9 0, osLd 75 9 1,
@@ -73,11 +73,11 @@ def rdS2 (fs : List E) (m : List E) : Fs := (⟨fs, []⟩ : Fs).absorbAll m dsOb
 def rdG2 (fs : List E) (m : List E) (n2 : E) : E × Fs :=
   (rdS2 fs m).grindSqueeze _root_.LeanVM.Parameters.Whir.foldGrindingBits n2
 
-/-- The fold round's claim (G:1246-1247): `u0 + β c0 + α (u0 + claim + α w + β (c0 + c1))`. -/
+/-- The fold round's claim (G:1244-1245): `u0 + β c0 + α (u0 + claim + α w + β (c0 + c1))`. -/
 def roundClaim (claim alpha beta u0 w c0 c1 : E) : E :=
   u0 + beta * c0 + alpha * (u0 + claim + alpha * w + beta * (c0 + c1))
 
-/-- **`opening_round(fs0..fs4, cursor, claim, tabs, alphas, coefs)`** (G:1231-1248): the five
+/-- **`opening_round(fs0..fs4, cursor, claim, tabs, alphas, coefs)`** (G:1229-1246): the five
 stream words at the cursor `u0, w, c0, c1, n2`; from the carried capacity with nothing waiting,
 the four scalars are absorbed, the grind passes and draws `α`, then `β` is squeezed; `α` is stored
 at `alphas`, `α, β` at `coefs`; the function returns the capacity after `β`, the cursor five words
@@ -98,7 +98,7 @@ def MeaningOpeningRound (rd : Reader) : List E → List E → Prop
 
 variable {rd : Reader} {σ : Val}
 
-theorem grindCheckName_eight : grindCheckName 8 = "grind_check__L8" := rfl
+theorem grindCheckName_seven : grindCheckName 7 = "grind_check__L7" := rfl
 
 /-- Four scalars absorbed from an empty queue: all four waiting. -/
 theorem absorbAll_four (cap : List E) (a b c d : E) (t : ℕ) :
@@ -118,7 +118,7 @@ theorem outCell {σ : Val} {k : ℕ} {f : Fin 13 → E} (h : cells13 ((osRun k 1
 
 /-- **`opening_round`'s core IR gives its meaning**, on a memory image of `2^κ` words,
 `11 ≤ κ ≤ 32`, whose `tabs` holds the bit windows. -/
-theorem opening_round_sound (hg : grind_check_Spec 8) {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ)
+theorem opening_round_sound (hg : grind_check_Spec 7) {κ : ℕ} (hκ : κ ≤ 32) (hw : winTabBits ≤ κ)
     (L : MemoryImage κ) (args rets : List E) (ht : WinTabs L.read (args.getD 7 0))
     (h : coreProgram.Rel L.read "opening_round" args rets) : MeaningOpeningRound L.read args rets := by
   rw [rel_iff_sem find_opening_round, core7_body, core7_params] at h
@@ -166,7 +166,7 @@ theorem opening_round_sound (hg : grind_check_Spec 8) {κ : ℕ} (hκ : κ ≤ 3
       (σ (.n 40)) = (⟨capOf S1, [(σ (.n 40), dsPowNonce)]⟩ : Fs).perm := by
     rw [hs2]; simp [Fs.nonceState, Fs.absorb, rateScalars, hS1]
   rw [← hn2] at K2
-  have G2 := ((hg hκ hw L _ _ ht) []).mp (grindCheckName_eight ▸ g2)
+  have G2 := ((hg hκ hw L _ _ ht) []).mp (grindCheckName_seven ▸ g2)
   obtain ⟨gok2, hα, hs3⟩ := grindSqueeze_cells hb (σ (.n 40)) _ _ (outCell K2 0) (outCell K2 1) G2.2
   set S3 := (rdS2 fs [σ (.n 15), σ (.n 18), σ (.n 21), σ (.n 24)]).nonceState
     (σ (.n 40)) with hS3

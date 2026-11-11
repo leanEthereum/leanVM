@@ -3,7 +3,7 @@
 
   leanXMSS's leaf index, a window at a time (`lx_window`, `lx_top_window`, `lean_ethereum.py:
   3613-3653`): the windows pin the hinted shifts, and the path's addresses and bits are the index's.
-  The chain indices a chain step hashes (`walk`, `lean_ethereum.py:3536-3561`).
+  The chain indices a chain step hashes (`walk`, `lean_ethereum.py:3534-3559`).
 -/
 
 module
@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 /-!
 # The leaf index's windows, and the chain indices
 
-`verify_lean_xmss` (`lean_ethereum.py:3647-3719`, inline in `main`'s `__loop2`) hints the leaf
+`verify_lean_xmss` (`lean_ethereum.py:3645-3717`, inline in `main`'s `__loop2`) hints the leaf
 index's shifts `his[v] = L >>> 8v` (`lx_index`) and its four 8-bit windows in the exponent
 (`lx_windows`), and dispatches the path a window at a time: arm `k` of window `w` walks the
 window's eight levels, its bit `r` the order of level `r`'s node against its hinted sibling, and
@@ -28,7 +28,7 @@ writes `his[w + 1] · g^8 + k` (the top window `k`) where the hinted `his[w]` is
 * `lx_bit`: arm `k`'s bit `r` is the index's bit `8w + r`;
 * `lx_layer_idx`: a layer's index cell (`his[0]`, `his[2] + LX_TOP`) is the index's key with the
   layer's bit;
-* `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`, `aggregation/placeholders.rs:900-914`):
+* `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`, `aggregation/placeholders.rs:895-909`):
   chain `i`'s index cell is the zero cell (`i = 0`), `powers[log₂ i]` (a power of two) or carried
   tag `lxTagSlot i - 1` (`LX_N_TAGS = 51` of them); `lx_tag`: each holds `i`.
 -/
@@ -229,7 +229,7 @@ theorem lx_layer_idx {L : Nat} (hL : L < 2 ^ 32) :
 /-! ## The chain indices -/
 
 /-- Whether chain `i`'s index is carried as a tag: neither `0` nor a power of two
-(`aggregation/placeholders.rs:905-910`). -/
+(`aggregation/placeholders.rs:900-905`). -/
 def lxTagCarried (i : Nat) : Bool := i != 0 && (i &&& (i - 1)) != 0
 
 /-- Chain `i`'s tag slot, one past its carried tag (`LX_TAG_SLOT`), `0` if not carried. -/
@@ -261,7 +261,7 @@ tag `tags[slot - 1]`. -/
 def lxTagOf (z : E) (powers tags : Nat → E) (i : Nat) : E :=
   if i = 0 then z else if lxTagCarried i then tags (lxTagSlot i - 1) else powers (lxTagLog i)
 
-/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4567-4572`). -/
+/-- **The carried tags hold their indices** (`main`'s `lx_tags`, `lean_ethereum.py:4565-4570`). -/
 def LxTagsHold (tags : Nat → E) : Prop :=
   ∀ i < 58, lxTagCarried i = true → tags (lxTagSlot i - 1) = eOfNat i
 

@@ -59,7 +59,7 @@ def rangeS (x : V) (bound : E) (b : Nat) : List Stmt :=
 def booleans (base n : Nat) : List Stmt :=
   (List.range n).map fun j => mulS (.n (base + j)) (.n (base + j)) (.n (base + j))
 
-/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py:3499-3505`): out `l` at `outBase + 3·(n - 1 - l)`,
+/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py:3497-3503`): out `l` at `outBase + 3·(n - 1 - l)`,
 over the bits from `bitBase`. -/
 def shifts (bitBase n outBase : Nat) : List Stmt :=
   copyS (.n outBase) (.n (bitBase + n - 1)) ::

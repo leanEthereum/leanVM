@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Body
 
-  `main`'s body (G:4468-4644): its shape and its facts checked by evaluation.
+  `main`'s body (G:4466-4642): its shape and its facts checked by evaluation.
 -/
 
 module
@@ -76,7 +76,7 @@ theorem rcDir_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Atom}
   obtain ⟨e, e', he, he', hx, hk⟩ := rc_sound hm ⟨h1, h2, h3⟩
   exact ⟨e, hx, he, e', he', by rw [hk, ← pow_succ]⟩
 
-/-- `lx_tags` (lean_ethereum.py:4555-4558): the `LX_N_TAGS = 51` constants `.n 325 ..< .n 376`,
+/-- `lx_tags` (lean_ethereum.py:4553-4556): the `LX_N_TAGS = 51` constants `.n 325 ..< .n 376`,
 the carried chain indices, passed whole to `__loop2` after its four parameters. -/
 def lxTagsV : List V := (List.range 51).map fun j => .n (325 + j)
 

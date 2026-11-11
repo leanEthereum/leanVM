@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsComplete
 
-  `verify_sig_lean_sphincs` (`lean_ethereum.py:3928-4028` at leanVM main 40f877dc) is complete, loading
+  `verify_sig_lean_sphincs` (`lean_ethereum.py:3926-4026` at leanVM main 40f877dc) is complete, loading
   only the claim and the byte table (`verify_sig_lean_sphincs_complete_loads_of`), given its
   blocks' completeness (`SphincsBlocksComplete`).
 -/
@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.SphincsLoads
 `G` is `lean_ethereum.py`. The body (`sBody_splitC`) is the statements before the root's check
 (`sPre`): the digest and FORS (`sBottom_complete`), the bottom layer, the middle layer's address
 (`sMidAddrs_vals`), the middle layer, the top layer's address (`sTopAddrs_vals`) and the top layer
-(`layer_stage`); then `root[0] == pk_root` (`G:4028`) and the return. The statement's verification
+(`layer_stage`); then `root[0] == pk_root` (`G:4026`) and the return. The statement's verification
 by stages (`verifyWithKeccak_iff_stages`) gives each layer's root from the one below, the FORS key
 at the bottom (`sForsKeyOf_eq`), the key's root at the top. The loads are the claim's and the byte
 table's (`listLoadsB` of `loadPtrs sPre`, `sBody_loads`).

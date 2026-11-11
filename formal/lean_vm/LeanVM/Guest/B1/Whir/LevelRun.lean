@@ -83,7 +83,7 @@ theorem RunsW.toWith {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List
 
 /-! ## The level -/
 
-theorem levelOodGrind_eq : levelOodGrind = Whir.levelOodGrindingBits := rfl
+theorem levelOodGrind_eq : levelOodGrind = Whir.oodGrindingBits := rfl
 
 /-- The OOD point, from the OOD grind's ground challenge. -/
 theorem oodPt_eq (F : Fs) (xs : List E) (n1 : E) (mu : ℕ) :
@@ -147,7 +147,7 @@ theorem levelNext_run (logN index : ℕ) (level next : Whir.Level) (s : WhirStat
   set F1 := F.absorbAll (x0 :: x1 :: high) dsObserve with hF1
   have hF1' : ((F.absorb x0 dsObserve).absorb x1 dsObserve).absorbAll high dsObserve = F1 := rfl
   rw [hF1'] at h2
-  have hb0 : Whir.levelOodGrindingBits ≠ 0 := by decide
+  have hb0 : Whir.oodGrindingBits ≠ 0 := by decide
   have hb1 : Whir.queryGrindingBits ≠ 0 := by decide
   have h3 := RunsToG.toW (runsToG_grind hb0 F1 n1 (hok0.resolve_left hb0)) R'
   set S1 := F1.nonceState n1 with hS1

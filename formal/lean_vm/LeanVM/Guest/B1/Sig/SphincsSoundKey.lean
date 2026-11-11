@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundKey
 
-  The FORS block of `verify_sig_lean_sphincs` (`lean_ethereum.py:4022-4027` at leanVM main 40f877dc)
+  The FORS block of `verify_sig_lean_sphincs` (`lean_ethereum.py:4020-4025` at leanVM main 40f877dc)
   against the statement: the FORS key the guest computes is the statement's `fors_pkFromSig` of the
   openings `sphincsSigOf` reads, at the digest's index and leaves.
 -/

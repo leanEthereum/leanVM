@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Place.OsRound
 
   `opening_round` complete placed on its regions: a flat body whose one callee is
-  `grind_check__L8`, placed by its own form.
+  `grind_check__L7`, placed by its own form.
 -/
 
 module
@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 `osRoundRegD_holds`: on memories defined below `2^κ`, `11 ≤ κ`, `opening_round` is
 `OsRoundRegD`. Its body is flat (`completeAt_flatD`), with no buffer; the words at the cursor are
 the caller's (`RegPtrs roundSpec`), so every memory holding them reads the same six words and the
-honest values (`Whir.rdVals`) are one valuation; its callee is `grind_check__L8` on the nonce's
+honest values (`Whir.rdVals`) are one valuation; its callee is `grind_check__L7` on the nonce's
 permutation's cell `1`, which passes (`Whir.round_complete`), placed by `grind_check_completeD`;
 its loads are the cursor's words and the three stores, the spec's.
 -/
@@ -55,7 +55,7 @@ theorem roundPre_disp (σ : Val) : ∀ s ∈ roundPre, DispOk σ s := by
   cases s <;> simp_all [DispOk]
 
 theorem roundPre_calls (σ : Val) : roundPre.filterMap (Stmt.callSF σ) =
-    [(none, "grind_check__L8", [.n 49, .n 7], [])] :=
+    [(none, "grind_check__L7", [.n 49, .n 7], [])] :=
   rfl
 
 /-- A statement other than a branch. -/
@@ -116,8 +116,8 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
   obtain ⟨hm0, -⟩ := hpre rd0 hl0 hL0
   obtain ⟨xs, hxl, hrd0, p2, -, -⟩ := Whir.round_complete (C := fun _ _ _ ↦ True) hm0
     (fun _ _ ↦ trivial)
-  have h9 : (8 : ℕ) ∈ grindBitsDeployed := by decide
-  have hname : grindCheckName 8 = "grind_check__L8" := rfl
+  have h9 : (7 : ℕ) ∈ grindBitsDeployed := by decide
+  have hname : grindCheckName 7 = "grind_check__L7" := rfl
   -- every memory holding the caller's words reads `xs` and its honest values hold
   have hall : ∀ rd, LowDef κ rd → MemL rd Lin →
       Stmt.HoldsList (coreProgram.Rel rd) rd (fun v ↦ Whir.rdVals args xs v.idx) Whir.roundBody False
@@ -136,7 +136,7 @@ theorem osRoundRegD_holds {κ : ℕ} (hκ : 11 ≤ κ) : OsRoundRegD fs cert κ 
     refine completeAt_flatD Whir.find_opening_round round_not_loop κ Lin args rets
       (pre := roundPre) (by rw [Whir.core7_body]; exact roundBody_eq) roundPre_flat roundPre_addrs []
       (fun _ ↦ []) (fun _ ↦ List.Forall₂.nil)
-      (fun _ ↦ [⟨"grind_check__L8", true, [Whir.rdCell (Whir.rdS3 args xs) 1, args.getD 7 0], Lin,
+      (fun _ ↦ [⟨"grind_check__L7", true, [Whir.rdCell (Whir.rdS3 args xs) 1, args.getD 7 0], Lin,
         Returns []⟩]) ?_ ?_ ?_ ?_
     · intro fp k hk _
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hk

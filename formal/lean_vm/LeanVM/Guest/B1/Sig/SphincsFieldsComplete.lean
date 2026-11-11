@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsFieldsComplete
 
-  The digest's fields and check in `verify_sig_lean_sphincs` (`lean_ethereum.py:3964-4015` at
+  The digest's fields and check in `verify_sig_lean_sphincs` (`lean_ethereum.py:3962-4013` at
   leanVM main 40f877dc) are complete: the bits hinted from `H_msg`'s cells, every field and byte rebuilt,
   the cells checked, the second call's unused bytes read and its high lane checked; and the whole
   message digest block completes on a claim.

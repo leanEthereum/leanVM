@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Whir.RoundComplete
 
   `opening_round`'s completeness: on its meaning, its honest values make its body hold, its
-  `grind_check__L8` call on a passing word.
+  `grind_check__L7` call on a passing word.
 -/
 
 module
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Whir.Round
 `rdVals as xs`: the honest values of `roundBody` on the arguments `as` and the five words `xs` at
 the cursor, value by value (the sponge's three permutations `rdS1`, `rdS3`, `rdS4`).
 `round_complete`: on its meaning (`MeaningOpeningRound`), with `xs` the words it reads, the body
-holds at those values under any call relation in which `grind_check__L8` holds of a passing word
+holds at those values under any call relation in which `grind_check__L7` holds of a passing word
 and the tables; the grind's word is cell `1` of the nonce's permutation (`rdVals_52`).
 -/
 
@@ -83,7 +83,7 @@ theorem rdVals_7 (as xs : List E) : rdVals as xs 7 = as.getD 7 0 := by simp [rdV
 
 /-! ## The meaning's sponges -/
 
-theorem foldGrindingBits_eq : _root_.LeanVM.Parameters.Whir.foldGrindingBits = 8 := rfl
+theorem foldGrindingBits_eq : _root_.LeanVM.Parameters.Whir.foldGrindingBits = 7 := rfl
 
 theorem rdCell_eq (S : KeccakState) (c : Fin 13) : rdCell S c.val = cellsOfState S false c := by
   unfold rdCell
@@ -117,12 +117,12 @@ theorem roundBody_split : roundBody = roundBody.dropLast ++ [.ret [.n 86, .n 87,
   rfl
 
 /-- **`opening_round`'s body holds at its honest values** on its meaning, under a call relation
-in which `grind_check__L8` holds of a passing word and the tables. -/
+in which `grind_check__L7` holds of a passing word and the tables. -/
 theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
     (hm : MeaningOpeningRound rd args rets)
-    (hg : ∀ w : E, (w.limb 0).lane.toNat % 2 ^ 8 = 0 → C "grind_check__L8" [w, args.getD 7 0] []) :
+    (hg : ∀ w : E, (w.limb 0).lane.toNat % 2 ^ 7 = 0 → C "grind_check__L7" [w, args.getD 7 0] []) :
     ∃ xs : List E, xs.length = 5 ∧ ReadsAt rd (args.getD 5 0) xs ∧
-      ((rdCell (rdS3 args xs) 1).limb 0).lane.toNat % 2 ^ 8 = 0 ∧
+      ((rdCell (rdS3 args xs) 1).limb 0).lane.toNat % 2 ^ 7 = 0 ∧
       (Fn.params Data.core7).map (fun v ↦ rdVals args xs v.idx) = args ∧
       Stmt.HoldsList C rd (fun v ↦ rdVals args xs v.idx) roundBody False (fun rs ↦ rs = rets) := by
   obtain ⟨f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp, rfl⟩ :
@@ -137,7 +137,7 @@ theorem round_complete {C : CallRel} {rd : Reader} {args rets : List E}
   have p2 := (grindOk_iff hb n2).mp g2
   rw [en2, foldGrindingBits_eq] at p2
   rw [← rdCell_eq _ 1] at p2
-  replace p2 : ((rdCell (rdS3 as xs) 1).limb 0).lane.toNat % 2 ^ 8 = 0 := p2
+  replace p2 : ((rdCell (rdS3 as xs) 1).limb 0).lane.toNat % 2 ^ 7 = 0 := p2
   refine ⟨xs, rfl, hrd, p2, by simp [core7_params, rdVals, List.range_succ, has], ?_⟩
   set σ : Val := fun v ↦ rdVals as xs v.idx with hσ
   have ev : ∀ k, σ (.n k) = rdVals as xs k := fun _ ↦ rfl

@@ -180,7 +180,7 @@ grinds (a table, not `toString`, whose body a `module`'s kernel cannot unfold). 
 def grindCheckName : ℕ → String
   | 2 => "grind_check__L2"
   | 3 => "grind_check__L3"
-  | 8 => "grind_check__L8"
+  | 7 => "grind_check__L7"
   | 13 => "grind_check__L13"
   | 14 => "grind_check__L14"
   | 15 => "grind_check__L15"

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Level
 
 /-!
-# A non-final level, soundly (G:1558-1696)
+# A non-final level, soundly (G:1556-1694)
 
 `osLevelMid_sound`: from `LvIn`, a non-final level's template runs `foldRounds` then
 `levelNext`, reading `lvWords` words at the cursor and one phase of openings (the witness's,
@@ -111,7 +111,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       hin.claim hoF
   -- the message
   obtain ⟨x0, x1, high, n1, y0, nn, hC⟩ :=
-    osCommit_sound hcal.msg hcal.g17 hcal.spf hfs0 hm0 (by rw [hpad0]; exact hin.pad) hco0
+    osCommit_sound hcal.msg hcal.g15 hcal.spf hfs0 hm0 (by rw [hpad0]; exact hin.pad) hco0
       hF.ood hoM
   set S := (oodPt (f.2.F σ) (x0 :: x1 :: high) n1 lv.logCols).2.absorbAll [y0] dsObserve with hS
   -- the query grind

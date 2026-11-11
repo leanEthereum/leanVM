@@ -103,8 +103,8 @@ theorem grind_check_found_3 : coreProgram.find? (grindCheckName 3) = some Data.c
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem grind_check_found_8 : coreProgram.find? (grindCheckName 8) = some Data.core89 ∧
-    Data.core89.params = [.n 0, .n 1] ∧ Data.core89.body = gcBodyT 8 :=
+theorem grind_check_found_7 : coreProgram.find? (grindCheckName 7) = some Data.core89 ∧
+    Data.core89.params = [.n 0, .n 1] ∧ Data.core89.body = gcBodyT 7 :=
   ⟨Program.find?_of_indexOf? (j := 89) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
@@ -226,7 +226,7 @@ theorem grind_check_found : ∀ b ∈ grindBitsDeployed, ∃ fn : Fn,
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact ⟨_, grind_check_found_2⟩
   · exact ⟨_, grind_check_found_3⟩
-  · exact ⟨_, grind_check_found_8⟩
+  · exact ⟨_, grind_check_found_7⟩
   · exact ⟨_, grind_check_found_13⟩
   · exact ⟨_, grind_check_found_14⟩
   · exact ⟨_, grind_check_found_15⟩

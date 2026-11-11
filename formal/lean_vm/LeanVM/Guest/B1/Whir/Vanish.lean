@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Whir.VanishCert
 
 A level of message log `μ` reads `μ + 1` entries of each table from its offset `vanish`
 (`open_stacked`, `residual_query`, `opening_query`): `LIG_VANISH_VALS[vanish + i]` is root `i` of
-`subspaceRoots μ` (the normalizers `W_i(β_i)`, `whir.rs:95-107`) and `LIG_VANISH_INVS` its
+`subspaceRoots μ` (the normalizers `W_i(β_i)`, `whir.rs:93-105`) and `LIG_VANISH_INVS` its
 inverse.
 
 * `subspaceRoots_cert`: `subspaceRoots μ` is `1` then the first `μ` certified roots

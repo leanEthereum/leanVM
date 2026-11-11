@@ -2,7 +2,7 @@
   LeanVM.Guest.NZProgram
 
   The verifier refusing what makes the guest divide by zero: a zero fold challenge `α`, a zero
-  closing-round challenge and a zero batching challenge `λ` of a non-final level (G:1626, 1759,
+  closing-round challenge and a zero batching challenge `λ` of a non-final level (G:1624, 1757,
   1778; G = `lean_ethereum.py` at the pin), as copies of the verifier's programs with a `require`
   at each. The statement's honest child refuses a zero challenge anywhere (`verifierRefusingZero`,
   `Statement/LeanVmGuestCompleteness.lean`).
@@ -27,7 +27,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 namespace Limits
 
 /-- `foldRound` refusing a zero `α`: the guest divides by the `α`s past level 0 in its residual
-pass (G:1759). -/
+pass (G:1757). -/
 def foldRoundNZ (s : WhirState) : VerifierProgram (WhirState × FoldRound) := do
   let u0 ← VerifierProgram.readScalar
   let w ← VerifierProgram.readScalar
@@ -50,7 +50,7 @@ def foldRoundsNZ : ℕ → WhirState → VerifierProgram (WhirState × List Fold
     return (s, round :: rounds)
 
 /-- `sumcheck` refusing a zero challenge: the closing rounds' challenges, which the residual pass
-divides by (G:1765). -/
+divides by (G:1763). -/
 def sumcheckNZ (claim : E) (count : ℕ) : List (Option E) → VerifierProgram (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
@@ -89,7 +89,7 @@ def whirLevelsNZ (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
       let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
       VerifierProgram.readCommitment height width
       let high ← VerifierProgram.readScalars level.fold
-      VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits
+      VerifierProgram.grindProofOfWork Whir.oodGrindingBits
       let oodPoint ← VerifierProgram.sampleChallenges mu
       let oodValue ← VerifierProgram.readScalar
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits
@@ -141,7 +141,7 @@ def whirLevelsOpenNZ (logN laneFolds : ℕ) :
       let (height, width) := levelShape mu next (2 * 2 ^ next.fold)
       VerifierProgram.readCommitment height width
       let high ← VerifierProgram.readScalars level.fold
-      VerifierProgram.grindProofOfWork Whir.levelOodGrindingBits
+      VerifierProgram.grindProofOfWork Whir.oodGrindingBits
       let oodPoint ← VerifierProgram.sampleChallenges mu
       let oodValue ← VerifierProgram.readScalar
       VerifierProgram.grindProofOfWork Whir.queryGrindingBits

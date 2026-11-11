@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsT
 
   The body of `verify_sig_lean_sphincs` as a template, written from the guest's structure
-  (`lean_ethereum.py:3712-4028` at leanVM main 40f877dc) with the values numbered as the renumbered
+  (`lean_ethereum.py:3710-4026` at leanVM main 40f877dc) with the values numbered as the renumbered
   expansion numbers them: the digest block (`SphincsDigestT`), then FORS and the hypertree
   (`SphincsForsT`'s templates, instantiated here).
 -/
@@ -15,19 +15,19 @@ public import LeanVM.Guest.B1.Sig.SphincsForsT
 /-!
 # `verify_sig_lean_sphincs` as a template
 
-`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3928-4028`; `G` is `lean_ethereum.py` at leanVM main 40f877dc). Its first 1358 statements, through the digest's check, are `sDigestBlock`
+`verify_sig_lean_sphincs(signer, byte_bits)` (`G:3926-4026`; `G` is `lean_ethereum.py` at leanVM main 40f877dc). Its first 1358 statements, through the digest's check, are `sDigestBlock`
 (`SphincsDigestT`); the next value is `n1372`. After them:
 
-* `sForsAddrs` (`G:4005-4006`): `a0_b` at `n1379` (`sA0B`), `key_b` at `n1381` (`sKeyB`);
-* `sForsB` (`G:4008-4013`): `SphincsForsT.sForsBlock` from `n1382`: `fors_at` at `n1383`
+* `sForsAddrs` (`G:4003-4004`): `a0_b` at `n1379` (`sA0B`), `key_b` at `n1381` (`sKeyB`);
+* `sForsB` (`G:4006-4011`): `SphincsForsT.sForsBlock` from `n1382`: `fors_at` at `n1383`
   (`sForsA1`), the 24 trees (tree `c` from `sForsBase c`, its root at `sRootOf c`), `T_k` over the
   roots, the FORS key at `n5248` (`sForsPk`); the trees read the digest's bits through `sForsBit`
   and the values `vals[k]` through `sVals`;
-* `sLayerAt l` (`sp_layer`, `G:3914-3925`), layer `l` from `sLayerBase l`: its counter hinted
+* `sLayerAt l` (`sp_layer`, `G:3912-3923`), layer `l` from `sLayerBase l`: its counter hinted
   (`sp_counter`) and read (`sFromMarks`, 4 bytes, `sCtrOf l`), then `SphincsForsT.sHtLayer`: the
   encoding digest (`sEncOf l`), the call of `sp_wots` (`sWotsCall`, its leaf `sLeafOf l`) and the
   path of `sHeightOf l` levels from leaf bit `sOffOf l` up to the layer's root;
-* `sLayerB`, `sMidAddrs`, `sLayerM`, `sTopAddrs`, `sLayerT` (`G:4018-4028`): the three layers with
+* `sLayerB`, `sMidAddrs`, `sLayerM`, `sTopAddrs`, `sLayerT` (`G:4016-4026`): the three layers with
   their addresses (`sA0Of l`, `sA1Of l`) between them, then `root[0] == pk_root`;
 * `sBody = sDigestBlock ++ sAfterDigest`.
 -/
@@ -44,7 +44,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 def sVals (k : Nat) : V := sFVal (k / 10) (k % 10)
 
 /-- The bit FORS tree `k / 10`'s level `k % 10` checks its node against:
-`sp_md_bit(bits0, bits1, 10 c + 9 - z)` (`G:3832`). -/
+`sp_md_bit(bits0, bits1, 10 c + 9 - z)` (`G:3830`). -/
 def sForsBit (k : Nat) : V := sMdBit (10 * (k / 10) + 9 - k % 10)
 
 /-- `a0_b` (the bottom key's layer `0` and tree: `lvals[8] · 2^120 + tree_mid · 2^112 + lvals[24] ·
@@ -53,14 +53,14 @@ def sA0B : V := .n 1379
 def sKeyB : V := .n 1381
 def sForsA1 : V := .n 1383
 
-/-- `a0_b`, `key_b` (`G:4005-4006`), from `n1372`. -/
+/-- `a0_b`, `key_b` (`G:4003-4004`), from `n1372`. -/
 def sForsAddrs : List Stmt :=
   [cst 1372 (lit (2 ^ 120)), mulS (.n 1373) (sLVal 8) (.n 1372), cst 1374 (lit (2 ^ 112)),
     mulS (.n 1375) sTreeMid (.n 1374), addS (.n 1376) (.n 1373) (.n 1375), cst 1377 (lit (2 ^ 104)),
     mulS (.n 1378) (sLVal 24) (.n 1377), addS sA0B (.n 1376) (.n 1378),
     cst 1380 (lit (2 ^ 56)), mulS sKeyB (sLVal 0) (.n 1380)]
 
-/-- FORS (`G:4008-4013`) from `n1382`: the statements, the next base (`n5249`) and the FORS key's
+/-- FORS (`G:4006-4011`) from `n1382`: the statements, the next base (`n5249`) and the FORS key's
 output run's base. -/
 def sForsB : List Stmt × Nat × Nat := sForsBlock sPad sPP sA0B sKeyB sForsBit sVals 1382
 
@@ -94,7 +94,7 @@ def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47)
 `SphincsForsT.sHtLayer` writes. -/
 def sWotsCall (a0 a1 enc : V) (b : Nat) : Stmt := .call "sp_wots" [sPP, a0, a1, enc] [.n b]
 
-/-- Layer `l` (`sp_layer`, `G:3914-3925`) signing `signed`, at `a0` with its key pair `a1`: the
+/-- Layer `l` (`sp_layer`, `G:3912-3923`) signing `signed`, at `a0` with its key pair `a1`: the
 counter's four bytes hinted at `sLayerBase l …` and read, then the layer. The statements, the next
 base and the root. -/
 def sLayerAt (l : Nat) (a0 a1 signed : V) : List Stmt × Nat × V :=
@@ -102,34 +102,34 @@ def sLayerAt (l : Nat) (a0 a1 signed : V) : List Stmt × Nat × V :=
   let L := sHtLayer sPad sPP a0 a1 signed c.2.2 sLeafBit sLVal (sOffOf l) (sHeightOf l) c.2.1
   ([hintW "sp_counter" (runV (sLayerBase l) 4)] ++ c.1 ++ L.1, L.2.1, L.2.2)
 
-/-- The bottom layer (`G:4018-4019`): `a0_b`, `key_b`, signing the FORS key. -/
+/-- The bottom layer (`G:4016-4017`): `a0_b`, `key_b`, signing the FORS key. -/
 def sLayerB : List Stmt × Nat × V := sLayerAt 0 sA0B sKeyB sForsPk
 
 /-- `a0_m = SP_LAYER_MUL + tree_mid · 2^120 + lvals[24] · 2^112`, `key_m = lvals[8] · 2^56`
-(`G:4020-4021`), from `n5398`. -/
+(`G:4018-4019`), from `n5398`. -/
 def sMidAddrs : List Stmt :=
   [cst 5398 (lit (2 ^ 24)), cst 5399 (lit (2 ^ 120)), mulS (.n 5400) sTreeMid (.n 5399),
     addS (.n 5401) (.n 5398) (.n 5400), cst 5402 (lit (2 ^ 112)),
     mulS (.n 5403) (sLVal 24) (.n 5402), addS (sA0Of 1) (.n 5401) (.n 5403),
     cst 5405 (lit (2 ^ 56)), mulS (sA1Of 1) (sLVal 8) (.n 5405)]
 
-/-- The middle layer (`G:4022-4023`), signing the bottom root. -/
+/-- The middle layer (`G:4020-4021`), signing the bottom root. -/
 def sLayerM : List Stmt × Nat × V := sLayerAt 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2
 
-/-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48` (`G:4025`), from `n5556`, then `a0_t = 2 ·
-SP_LAYER_MUL` (`G:4024`): a constant, bound to a value as `sp_layer`'s argument. -/
+/-- `key_t = tree_mid · 2^56 + lvals[24] · 2^48` (`G:4023`), from `n5556`, then `a0_t = 2 ·
+SP_LAYER_MUL` (`G:4022`): a constant, bound to a value as `sp_layer`'s argument. -/
 def sTopAddrs : List Stmt :=
   [cst 5556 (lit (2 ^ 56)), mulS (.n 5557) sTreeMid (.n 5556), cst 5558 (lit (2 ^ 48)),
     mulS (.n 5559) (sLVal 24) (.n 5558), addS (sA1Of 2) (.n 5557) (.n 5559),
     cst 5561 (lit (2 ^ 25))]
 
-/-- The top layer (`G:4026-4027`), signing the middle root. -/
+/-- The top layer (`G:4024-4025`), signing the middle root. -/
 def sLayerT : List Stmt × Nat × V := sLayerAt 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2
 
 /-! ## The body -/
 
 /-- The statements after the digest block: FORS, the three layers, `root[0] == pk_root`
-(`G:4028`). -/
+(`G:4026`). -/
 def sAfterDigest : List Stmt :=
   sForsAddrs ++ sForsB.1 ++ sLayerB.1 ++ sMidAddrs ++ sLayerM.1 ++ sTopAddrs ++ sLayerT.1 ++
     [.atom (.assertEq sLayerT.2.2 sRoot), .ret []]
