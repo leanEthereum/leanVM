@@ -130,6 +130,18 @@ fn range_check_empty_bound_rejected() {
     let _ = compile(&parse(src).expect("parse"));
 }
 
+/// A bound past this prover's address space compiles (the protocol admits it) and the
+/// run is refused with an error, not a panic.
+#[test]
+fn range_check_bound_past_the_prover_is_an_error() {
+    let src = "def main():\n    x = GEN ** 5\n    assert log x < 268435457\n    return\n";
+    let program = compile(&parse(src).expect("parse"));
+    match program.execute([F192::ZERO; 2]) {
+        Err(err) => assert!(matches!(err.fault, leanvm_core::cpu::Fault::OutOfMemory), "{err}"),
+        Ok(_) => panic!("a run past the prover's address space"),
+    }
+}
+
 /// Bounds beyond `2^32`, the largest memory, could never be complete: rejected at
 /// compile time.
 #[test]

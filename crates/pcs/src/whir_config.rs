@@ -999,7 +999,7 @@ mod tests {
         let mut min_pg_bits = f64::INFINITY;
         for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
             // The stacking window, `leanvm_core::pcs::{MIN_MU, MAX_MU}`.
-            for m in 15 + crate::LOG_PACKING..=32 + crate::LOG_PACKING {
+            for m in 16 + crate::LOG_PACKING..=32 + crate::LOG_PACKING {
                 let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
                 assert_eq!(cfg.target_security_bits, 128);
                 assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);

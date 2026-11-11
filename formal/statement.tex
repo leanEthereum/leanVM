@@ -145,7 +145,7 @@ costs are included in the bounds below.
 
 \paragraph{What a proof claims.} A proof claims that a program $\mathit{prog}$ (leanVM bytecode) runs to
 completion on a public input $x$. A \emph{valid execution} of $\mathit{prog}$ on $x$ (\lean{ValidExecution},
-\lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2^{16} \le 2^\kappa \le 2^{32}$,
+\lean{Statement/LeanIsa.lean}) is a memory of $2^\kappa$ words, $2 \le 2^\kappa \le 2^{32}$,
 holding $x$ in words $0$ and $1$, together with a number of steps that run $\mathit{prog}$ on it from
 $(\mathit{pc}, \mathit{fp}) = (1, 1)$ to the final state $(g^{N_{\mathit{prog}}-1}, 1)$, where $N_{\mathit{prog}}$ is the
 bytecode's size: the last bytecode slot, in \texttt{main}'s frame. The machine halts when both
@@ -531,7 +531,7 @@ with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 \paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
-(sorted, no repeats, fewer than $2^{16}$ signature claims). Of these, \lean{AggregateSound} below
+(sorted, no repeats, fewer than $2^{20}$ signature claims). Of these, \lean{AggregateSound} below
 assumes only that the deferred claim holds (\lean{DeferredClaim.HoldsWithShape}); no end statement
 models the DA digest's derivation or the lists' form. Without the derivation, the DA condition says
 nothing of the blob: \lean{MatrixWitness.Opens} accepts any challenge the digest binds, $z = 0$
@@ -703,7 +703,7 @@ $\mathrm{NodeRel}(B, iv_G, s, w)$, under the deployed seed:
 is a sub-multiset of the raw signatures' claims and the children's lists (a claim declared $n$ times
 is held $n$ times, each raw signature or child's entry used once); at most $16$ children; the
 coverage table, one slot per raw signature and per entry of a child's lists
-(\lean{coverageSlots}), shorter than $2^{16}$.
+(\lean{coverageSlots}), shorter than $2^{20}$.
 \item Every child carries an honest proof (\lean{HonestChild}): its fresh claim is true of the
 bytecode (\lean{BytecodeClaim.Holds}); its proof is the one the named honest prover
 \lean{LeanVM.leanVmHonestProver} makes with the deployed Keccak
@@ -844,9 +844,9 @@ and \lean{LeanVM.Guest.End.decode} (\lean{LeanVM.Cost.compiledKnowledgeExtractor
 asks only for some valid execution of $\mathit{prog}$ on $x$, and \lean{AggregateSound} decodes that one.
 \item That a valid execution of $G$ has fewer than $2^{51}$ steps (Section~\ref{sec:guest}): argued,
 not a Lean theorem (\lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}); the
-decoder's budget has no cap on the steps, and its constant prices the witness at the bounds a valid
-execution's asserts and its children's accepted proofs give ($16$ children, each with claims below the memory size
-claims of each scheme and a cursor of $8192$ words), not at the run's.
+decoder's budget has no cap on the steps, and it prices the witness at the bounds a valid
+execution's asserts and its children's accepted proofs give ($16$ children, claims of each scheme
+below the memory's size, a cursor of $8192$ words each), not at the run's.
 \item That the size bounds exclude a table of witnesses for every program: literals count toward
 size, and the bounds are tight only for programs written like the compiled ones (a decoder
 written differently could pack the guest's frame-cell table about three times tighter, freeing

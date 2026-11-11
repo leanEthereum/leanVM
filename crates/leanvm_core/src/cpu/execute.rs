@@ -278,12 +278,18 @@ impl Program {
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
 
-        // g^j, covering the pcs and return targets, the main frame and the range-check
-        // floor, then grown by each reservation, and its reverse index g^j ↦ j.
+        // A range check's complement reaches up to g^{k-1}, `k` the largest constant bound:
+        // past this prover's address space, no run is found.
+        let range_top = self.range_bound.saturating_sub(1);
+        if range_top >= MAX_CELLS as usize {
+            return Err(ExecError::new(self, 0, Fault::OutOfMemory));
+        }
+        // g^j, covering the pcs and return targets, the main frame and the range checks'
+        // complements, then grown by each reservation, and its reverse index g^j ↦ j.
         let seed = (self.prog.len() + 2)
             .max(self.main_frame as usize)
             .max(1 << PAD_LOG_MEM)
-            .max(self.range_bound);
+            .max(range_top);
         let mut g = GPow::new(seed);
 
         // The write-once data memory, each cell's access count and write state with its word.

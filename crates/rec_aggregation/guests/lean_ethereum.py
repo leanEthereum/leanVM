@@ -4300,8 +4300,9 @@ def child_claims_mono(cov, ent, mark, blk, out, n: Const):
 
 def child_claim_list_mono(entries_ptr, region, base, limit_g, bigs, groups, rest):
     # The walk of a list at strictly increasing offsets o_j = e_0 + ... + e_j + j, every
-    # e_j in [0, 2^h): its first offset is at least zero, and the count of claims keeps
-    # the sum far from wrapping, so bounding its last offset below the region's size
+    # e_j in [0, 2^h): its first offset is at least zero, and the count of claims, a
+    # memory address (`assert_gpow`, below 2^32), keeps the sum below 2^64 - 2^32, short
+    # of wrapping, so bounding its last offset below the region's size
     # (child_claim_list_mono_last) bounds them all. A record carries the sponge state,
     # then the walk's coverage slot and table entry.
     chain = HeapBuf((bigs * groups * GEN) ** MONO_REC)

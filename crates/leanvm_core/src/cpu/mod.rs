@@ -120,8 +120,8 @@ pub struct Program {
     /// check reports a line rather than a pc to disassemble around. Empty for a
     /// hand-assembled program, and shorter than `prog`, which is padded.
     pub src_lines: Vec<u32>,
-    /// The largest compile-time range-check bound: the run touches `g^{k-1}`, and the
-    /// prover's g-power index covers it. Prover-side only.
+    /// The largest compile-time range-check bound `k`: a check's complement reaches up to
+    /// `g^{k-1}`, which the prover's g-power index covers. Prover-side only.
     pub range_bound: usize,
 }
 

@@ -418,7 +418,7 @@ extractor's run may cost, in the machine's price (the sum of its steps' prices, 
 so also the most steps it may execute), `2^max(81, 2μ + 22) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
 with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
-(stack log-size `15` to `32`, rate exponent `1` to `4`, memory and program log-sizes at most `32`):
+(stack log-size `16` to `32`, rate exponent `1` to `4`, memory and program log-sizes at most `32`):
 the first term bounds the list decoder (its `64` lanes' Guruswami–Sudan decoding at the stack's
 worst rate, each lane interpolated by an approximant basis: about `2^80.49` at `μ = 28`, `2^85.80`
 at `μ = 32`, the term `2^81` up to `μ = 29`, then `2^82`, `2^84`, `2^86`) and the runs of the

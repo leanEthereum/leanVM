@@ -894,9 +894,8 @@ impl FnLower<'_> {
     ///
     /// Then `e + f ≡ k-1 (mod 2^64-1)` with `e, f < 2^h ≤ 2^32`, and a negative
     /// `k-1-e` wraps to `≈ 2^64 ≫ 2^h`, so `e ≤ k-1` for ANY announced memory size.
-    /// An honest complement is a memory address only if `k ≤ 2^h`, which the code
-    /// at pc 0 makes hold by touching `g^{k-1}` for the largest constant bound
-    /// (`JumpTables::range_bound`). Both `DEREF` destinations are unconstrained
+    /// The check is complete at the memory an honest prover announces, which holds
+    /// every cell the run touches, the complement included. Both `DEREF` destinations are unconstrained
     /// touches, back-filled at the end of execution unless a cached read needs
     /// their value sooner. Only the ADDRESS matters to the range check itself.
     ///
@@ -920,12 +919,12 @@ impl FnLower<'_> {
             LtBound::Runtime(b) => {
                 // A bound that folds only after substitution (`GEN ** i` inside an
                 // `unroll`) reaches here rather than the arm above, and would then
-                // skip the memory touch. Reject it: the author wrote a compile-time
-                // bound and should get the compile-time treatment.
+                // skip its cap and the prover's sizing. Reject it: the author wrote a
+                // compile-time bound and should get the compile-time treatment.
                 if self.try_field_const(b).is_some() {
                     self.fail(
                         "a compile-time range-check bound must be written as `log GEN ** k` or an \
-                     integer, so that the memory is made to hold it",
+                     integer, so that its cap applies",
                     )
                 };
                 // A bound `c·g^j` with `j ≥ 1` has `c·g^{j-1}` as its target, at no `g^{-1}`.

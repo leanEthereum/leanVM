@@ -49,6 +49,7 @@ const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usiz
 pub const MIN_MU: usize = 16;
 /// Largest committed size accepted by all verifiers and compiled into the recursion guest.
 pub const MAX_MU: usize = 32;
+const _: () = assert!(MIN_MU == verifier::MIN_STACKED_LOG && MAX_MU == verifier::MAX_STACKED_LOG);
 
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
 fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {

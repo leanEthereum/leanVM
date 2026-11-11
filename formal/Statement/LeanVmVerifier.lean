@@ -51,7 +51,7 @@ fold grinding that admits a candidate, subject to the 128-bit round-by-round tar
 Theorem B.2 under a floating-point MCA formula (`paper_thm_ca_johnson_log_a`,
 `whir_config.rs:444-457`), and this module does not restate that search. The tables are the Rust
 verifier's `WHIR_QUERIES` and `WHIR_FOLD_GRINDING` (`whir.rs:17-32`), indexed by rate exponent
-`1..4` and stack size `15..32`; outside that window `ladder` is `none`, as the verifier rejects
+`1..4` and stack size `16..32`; outside that window `ladder` is `none`, as the verifier rejects
 (`whir_queries`, `whir_fold_grinding`, `whir.rs:41-57`; the prover's `validate_log_inv_rate`,
 `whir_config.rs:48-55`). `ladder` takes the stack size `μ`, as the verifier's `derive_config`
 does (the PCS crate's API takes `m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs:5`), and the rate
