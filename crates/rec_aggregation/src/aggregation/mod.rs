@@ -69,11 +69,3 @@ pub type LeanSphincsClaim = (LeanSphincsPublicKey, lean_sphincs::Message);
 /// The most earlier aggregates one [`aggregate`] call can take, so the arity of
 /// an aggregation tree.
 pub const MAX_RECURSIONS: usize = 16;
-
-/// Exclusive cap on coverage slots: signatures of both schemes, including duplicates
-/// and omitted claims. Exactly this many is already too many.
-///
-/// A host policy: the guest bounds the counts by the memory instead, each one a
-/// memory address (`assert_gpow`), which an honest node's coverage table already
-/// makes it.
-pub const MAX_KEYS: usize = 1 << 20;

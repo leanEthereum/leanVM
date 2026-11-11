@@ -3,7 +3,7 @@
 use super::deferred::{DeferredClaim, scalar_bytecode};
 use super::error::{AggregateVerifyError, SnarkVerifyError};
 use super::statement::statement_digest;
-use super::{LeanSphincsClaim, LeanXmssClaim, MAX_KEYS};
+use super::{LeanSphincsClaim, LeanXmssClaim};
 use leanvm_core::cpu::{public_input_bytes, scalar_proof};
 use primitives::field::F192;
 
@@ -14,8 +14,8 @@ use primitives::field::F192;
 ///
 /// The two lists remain separate because the proof says which scheme verified which claim (the
 /// module docs give the coverage argument). A proof's lists are each strictly sorted and deduplicated
-/// on the whole `(pubkey, message)` pair, together strictly fewer than [`MAX_KEYS`], and
-/// [`EthereumProof::from_proof_bytes`] and [`EthereumProof::verify`] reject claims that are not. Either list
+/// on the whole `(pubkey, message)` pair, and [`EthereumProof::from_proof_bytes`] and
+/// [`EthereumProof::verify`] reject claims that are not. Either list
 /// may be empty, and both are in a blob-only proof.
 ///
 /// **Neither length counts signers, only claims.** One pubkey may appear under several messages, so a
@@ -75,13 +75,10 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F192>, &[u8])> {
 /// Reject a signer set that the coverage argument does not cover: strict sorting
 /// within each list is what stops one claim being counted many times, so each
 /// list's length is a count of distinct `(pubkey, message)` claims. Either list may be
-/// empty; both may be empty for a blob proof. [`MAX_KEYS`] is exclusive here, a host
-/// policy: the guest bounds the counts by its memory only.
+/// empty; both may be empty for a blob proof. Their sizes are the guest's to bound, by its
+/// memory.
 pub(super) fn check_signer_set(claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
-    if claims.num_signature_claims() >= MAX_KEYS
-        || !claims.xmss.windows(2).all(|w| w[0] < w[1])
-        || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1])
-    {
+    if !claims.xmss.windows(2).all(|w| w[0] < w[1]) || !claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]) {
         return Err(AggregateVerifyError::MalformedSignerSet);
     }
     Ok(())

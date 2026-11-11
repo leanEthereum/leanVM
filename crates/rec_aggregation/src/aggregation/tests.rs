@@ -1,12 +1,11 @@
 use super::cells::{count, pack_16_bytes};
-use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
 use super::guest::{compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::node::aggregate;
 use super::placeholders::placeholder_map;
-use super::proof::{EthereumClaims, EthereumProof, check_signer_set, decode, encode};
+use super::proof::{EthereumClaims, EthereumProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir::merkle::hash_to_scalars;
@@ -42,17 +41,6 @@ fn signing(
         .collect()
 }
 
-/// Distinct pubkeys, strictly increasing, without generating any.
-fn signer_set(len: usize) -> Vec<LeanXmssPublicKey> {
-    (0..len)
-        .map(|i| {
-            let mut bytes = [0; lean_xmss::PUB_KEY_SIZE];
-            bytes[..16].copy_from_slice(&(i as u128).to_be_bytes());
-            LeanXmssPublicKey::from_bytes(&bytes)
-        })
-        .collect()
-}
-
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
@@ -85,43 +73,6 @@ fn guest_compiles_reproducibly() {
         format!("{:?}", two.prog()),
         "two compilations of the guest produced different bytecode, \
              so the compiler is reading a hash seed"
-    );
-}
-
-/// `MAX_KEYS` is exclusive at both host checks: one claim short of it passes,
-/// the cap itself is the documented error. The cap counts both schemes, so
-/// one leanXMSS claim short of it plus one leanSPHINCS claim is already over. No proof
-/// involved.
-#[test]
-fn max_keys_bound_is_exclusive() {
-    let claims: Vec<LeanXmssClaim> = signer_set(MAX_KEYS).into_iter().map(|pk| (pk, message())).collect();
-    let lean_sphincs = [(
-        LeanSphincsPublicKey::from_bytes(&[0; lean_sphincs::PUB_KEY_SIZE]),
-        [0; lean_sphincs::MESSAGE_LEN],
-    )];
-    let short = &claims[..MAX_KEYS - 1];
-    let set = |xmss: &[LeanXmssClaim], lean_sphincs: &[LeanSphincsClaim]| EthereumClaims {
-        xmss: xmss.to_vec(),
-        lean_sphincs: lean_sphincs.to_vec(),
-        da_commitment: None,
-    };
-    check_signer_set(&set(short, &[])).expect("one short of the cap");
-    assert_eq!(
-        check_signer_set(&set(&claims, &[])),
-        Err(AggregateVerifyError::MalformedSignerSet)
-    );
-    assert_eq!(
-        check_signer_set(&set(short, &lean_sphincs)),
-        Err(AggregateVerifyError::MalformedSignerSet)
-    );
-    plan_coverage(short, &[], &[], None).expect("one short of the cap");
-    assert_eq!(
-        plan_coverage(&claims, &[], &[], None).err(),
-        Some(AggregationError::TooLarge)
-    );
-    assert_eq!(
-        plan_coverage(short, &lean_sphincs, &[], None).err(),
-        Some(AggregationError::TooLarge)
     );
 }
 
