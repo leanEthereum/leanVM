@@ -274,3 +274,116 @@ fn a_broken_committed_state_is_rejected() {
 fn an_extent_too_large_to_address_is_refused() {
     Extent::new(0, 1 << 55);
 }
+
+/// The input opening's pack fold as it was, a subset-sum table per byte of a run: the oracle of
+/// [`crate::open::fold_packs`].
+fn fold_packs_by_tables(witness: &Witness, point: &[F192]) -> Vec<F192> {
+    use primitives::field::F192Unreduced;
+    let shape = witness.shape;
+    let written = witness.written();
+    let padding = eq_table(&point[5..])[written..].iter().sum();
+    let run_vars = (point.len() - 5).min(3);
+    let (low, runs) = (eq_table(&point[..5 + run_vars]), eq_table(&point[5 + run_vars..]));
+    let tables: Vec<[F192; 256]> = (0..4 << run_vars)
+        .map(|t| crate::basis::byte_sums(&std::array::from_fn(|w| low[t % 4 + 4 * w + 32 * (t / 4)])))
+        .collect();
+    let mut out = vec![F192::ZERO; (16 * 64) << shape.slot_log()];
+    for lane in 0..shape.slots() {
+        let round = shape.depth() * (lane / LANES);
+        for z in 0..64 {
+            let j = 64 * (lane % LANES) + z;
+            let mut acc = [F192Unreduced::ZERO; 16];
+            for (run, &scale) in runs.iter().enumerate().take(written.div_ceil(1 << run_vars)) {
+                let mut sums = [F192::ZERO; 16];
+                for block in 0..(1 << run_vars).min(written - (run << run_vars)) {
+                    let words = state_words(witness, round, (run << run_vars) + block, j);
+                    let mut bytes = [0u8; 64];
+                    for (b, w) in bytes.as_chunks_mut::<8>().0.iter_mut().zip(&words) {
+                        *b = w.to_le_bytes();
+                    }
+                    let mut gathered = [0u8; 64];
+                    primitives::bits::bit_transpose_64bytes(&bytes, &mut gathered);
+                    for (i, sum) in sums.iter_mut().enumerate() {
+                        for p in 0..4 {
+                            *sum += tables[4 * block + p][gathered[16 * p + i] as usize];
+                        }
+                    }
+                }
+                for (acc, sum) in acc.iter_mut().zip(sums) {
+                    *acc ^= scale.mul_unreduced(sum);
+                }
+            }
+            let pad = written < shape.n_blocks() && state_words(witness, round, written, j)[0] & 1 == 1;
+            for (i, acc) in acc.iter().enumerate() {
+                out[(i + 16 * lane) * 64 + z] = if pad { acc.reduce() + padding } else { acc.reduce() };
+            }
+        }
+    }
+    out
+}
+
+/// The pack fold by [`primitives::bit_fold::BitFold`] gives the byte tables' values, at every
+/// run length and with or without the padding block.
+#[test]
+fn fold_packs_equal_the_byte_tables() {
+    let mut rng = Rng::new(83);
+    for (n, depth) in [(0, 12), (600, 8), (1100, 12), (4700, 6), (20000, 12), (70000, 24)] {
+        let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let shape = Shape::new(n, depth);
+        let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+        let witness = Witness::generate(shape, &inputs, &mut committed);
+        let point = rng.ext_vec(shape.pack_vars());
+        assert!(
+            crate::open::fold_packs(&witness, &point) == fold_packs_by_tables(&witness, &point),
+            "{n} instances, depth {depth}"
+        );
+    }
+}
+
+/// The spare slots' slices as they were, a subset-sum table of the `eq` table per eight steps:
+/// the oracle of [`crate::open::spare_slices`].
+fn spare_slices_by_tables(shape: Shape, committed: &[primitives::field::F64], instance: &[F192]) -> Vec<[F192; 64]> {
+    let (n, spare) = (shape.n(), (1 << shape.slot_log()) - shape.slots());
+    let eq = eq_table(instance);
+    let slots = &committed[shape.slots() * n..];
+    let mut out = vec![[F192::ZERO; 64]; spare];
+    for (group, weights) in eq.as_chunks::<8>().0.iter().enumerate() {
+        let table = crate::basis::byte_sums(weights);
+        for (slot, out) in out.iter_mut().enumerate() {
+            let mut bytes = [0u8; 64];
+            for (b, w) in bytes
+                .as_chunks_mut::<8>()
+                .0
+                .iter_mut()
+                .zip(&slots[slot * n + 8 * group..][..8])
+            {
+                *b = w.0.to_le_bytes();
+            }
+            let mut gathered = [0u8; 64];
+            primitives::bits::bit_transpose_64bytes(&bytes, &mut gathered);
+            for (out, &byte) in out.iter_mut().zip(&gathered) {
+                *out += table[byte as usize];
+            }
+        }
+    }
+    out
+}
+
+/// The spare slots' slices by one fold over a split `eq` table give the byte tables' values, at
+/// the counts of spare slots of depths 6, 8, 12 and 24.
+#[test]
+fn spare_slices_equal_the_byte_tables() {
+    let mut rng = Rng::new(84);
+    for (n, depth) in [(0, 12), (600, 8), (1100, 12), (4700, 6), (20000, 12), (70000, 24)] {
+        let shape = Shape::new(n, depth);
+        let committed: Vec<_> = (0..1usize << shape.stack_log())
+            .map(|_| primitives::field::F64(rng.next_u64()))
+            .collect();
+        let instance = rng.ext_vec(shape.n_log());
+        assert!(
+            crate::open::spare_slices(shape, &committed, &instance)
+                == spare_slices_by_tables(shape, &committed, &instance),
+            "{n} instances, depth {depth}"
+        );
+    }
+}
