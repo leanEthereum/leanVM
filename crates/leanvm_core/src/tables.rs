@@ -129,19 +129,20 @@ impl FlushBuilder {
     /// whatever the form says, which removes both the value columns and the
     /// identity that used to tie them (§sec:m3).
     pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 3]) {
-        self.memory_pushing(GCol(count, 1), addr, count, vals);
+        self.memory_pushing(GCol(count, 1), addr, Col(count), vals);
     }
 
-    /// [`Self::memory_coords`] when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`:
-    /// `g·count` at 1, and the pull's `count` at 0, so the pair cancels and touches no cell.
-    pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, count: usize, vals: [Coord; 3]) {
-        let counter = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
-        self.memory_pushing(counter, addr, count, vals);
+    /// A write to a cell when the column `flag` is 1, counting the public constant 1, its cell's first count, so it
+    /// commits no count column. The push's counter is `1 + flag·(g + 1)`: `g` at 1, and the pull's 1 at 0, so the
+    /// pair cancels and touches no cell.
+    pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, vals: [Coord; 3]) {
+        let counter = Coord::Sum(vec![Const(F64::ONE), GCol(flag, 1), Col(flag)]);
+        self.memory_pushing(counter, addr, Const(F64::ONE), vals);
     }
 
-    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 3]) {
+    fn memory_pushing(&mut self, counter: Coord, addr: Coord, pulled: Coord, vals: [Coord; 3]) {
         let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
-        let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
+        let mut pull = vec![Const(SEP_MEM), addr, pulled];
         push.extend_from_slice(&vals);
         pull.extend(vals);
         self.pair(push, pull);
@@ -878,7 +879,7 @@ impl Table for JumpTable {
 struct KeccakTable;
 
 pub(crate) mod keccakt {
-    use crate::keccak::ROW_CELLS;
+    use crate::keccak::STATE_CELLS;
     use primitives::hash::STATE_LANES;
 
     pub const PC: usize = 0;
@@ -891,8 +892,8 @@ pub(crate) mod keccakt {
     pub const FREE: usize = OUT_ALL + 1; // the read limb that holds no lane
     pub const V_IN: usize = FREE + 1; // the 25 input lanes, in lane order …
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
-    pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
-    pub const RBC: usize = R0 + ROW_CELLS;
+    pub const R0: usize = V_OUT + STATE_LANES; // a read count per cell read and for output cell 0, in flush order
+    pub const RBC: usize = R0 + STATE_CELLS + 1;
     pub const N: usize = RBC + 1;
 }
 
@@ -917,14 +918,14 @@ impl Table for KeccakTable {
         keccakt::N
     }
     fn count_columns(&self) -> &'static [usize] {
-        const COUNTS: [usize; crate::keccak::ROW_CELLS + 1] = {
-            let mut c = [0usize; crate::keccak::ROW_CELLS + 1];
+        const COUNTS: [usize; keccakt::RBC - keccakt::R0 + 1] = {
+            let mut c = [0usize; keccakt::RBC - keccakt::R0 + 1];
             let mut i = 0;
-            while i < crate::keccak::ROW_CELLS {
+            while i < keccakt::RBC - keccakt::R0 {
                 c[i] = keccakt::R0 + i;
                 i += 1;
             }
-            c[crate::keccak::ROW_CELLS] = keccakt::RBC;
+            c[keccakt::RBC - keccakt::R0] = keccakt::RBC;
             c
         };
         &COUNTS
@@ -947,7 +948,8 @@ impl Table for KeccakTable {
         let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
         f.bytecode(PC, RBC, OP_KECCAK, &operands);
         // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
-        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
+        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power. A gated write counts
+        // the constant 1, which the executor makes true by giving it its cell's first count.
         let (even, odd) = (cell_lanes(false), cell_lanes(true));
         for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
             let (s, values, flag, free) = if c < STATE_CELLS {
@@ -960,8 +962,8 @@ impl Table for KeccakTable {
             let (addr, vals) = (Prod(FP, O_M0 + operand, step), [lo, hi, Const(F64::ZERO)]);
             match c.checked_sub(STATE_CELLS) {
                 None | Some(0) => f.memory_coords(addr, R0 + c, vals),
-                Some(1) => f.memory_coords_if(OUT_TWO, addr, R0 + c, vals),
-                Some(_) => f.memory_coords_if(OUT_ALL, addr, R0 + c, vals),
+                Some(1) => f.memory_coords_if(OUT_TWO, addr, vals),
+                Some(_) => f.memory_coords_if(OUT_ALL, addr, vals),
             }
         }
     }
@@ -1004,7 +1006,9 @@ impl Table for KeccakTable {
             primitives::hash::keccak_f(&mut lanes);
             lanes.map(F64)
         });
-        ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
+        ctx.cols(out, rows, R0, |r| {
+            std::array::from_fn::<_, { RBC - R0 }, _>(|c| ctx.g_at(r.r[c]))
+        });
         ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
@@ -1040,6 +1044,24 @@ mod tests {
         let (x, y) = (C, C * C + F192::ONE);
         let got = [0, 1, 2].map(|i| tower_lane(i, lanes(x), lanes(y)).0);
         assert_eq!(F192::from_limbs(got), x * y);
+    }
+
+    /// A gated write with no count column: at flag 0 its push and pull are one tuple, so the pair cancels; at flag 1
+    /// it is the read of a cell whose count is the constant 1.
+    #[test]
+    fn gated_write_counts_the_constant_one() {
+        use crate::leaf::coord_at;
+        let vals = [Col(2), Col(3), Const(F64::ZERO)];
+        let mut gated = FlushBuilder::new();
+        gated.memory_coords_if(0, Col(1), vals.clone());
+        let mut read = FlushBuilder::new();
+        read.memory_coords(Col(1), 4, vals);
+        let at = |side: &[Coord], row: &[F64]| -> Vec<F64> { side.iter().map(|c| coord_at(c, row)).collect() };
+        let row = |flag| [flag, F64(0x1234), F64(5), F64(7), F64::ONE];
+        assert_eq!(at(&gated.push[0], &row(F64::ZERO)), at(&gated.pull[0], &row(F64::ZERO)));
+        for (gated, read) in [(&gated.push[0], &read.push[0]), (&gated.pull[0], &read.pull[0])] {
+            assert_eq!(at(gated, &row(F64::ONE)), at(read, &row(F64::ONE)));
+        }
     }
 
     /// `JUMP`'s two identities vanish on an honest row, taken or not.

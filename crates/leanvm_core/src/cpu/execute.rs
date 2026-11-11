@@ -137,6 +137,9 @@ pub enum Fault {
     NotAGPower { what: &'static str, value: F64 },
     /// A `KECCAK` input cell outside the 128-bit embedding.
     NotCanonical { cell: usize, value: F192 },
+    /// A cell two `KECCAK`s write as an output past the first: such a write counts the constant
+    /// 1, its cell's first count, which only one access can take.
+    KeccakOutputTwice { cell: u32 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing or
@@ -207,6 +210,11 @@ impl std::fmt::Display for Fault {
                 f,
                 "KECCAK input cell {cell} is not a canonical 128-bit embedding ({})",
                 word(*value)
+            ),
+            Self::KeccakOutputTwice { cell } => write!(
+                f,
+                "two KECCAKs write cell {cell} as an output past the first, and only one such write can count as \
+                 the cell's first access"
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
@@ -352,6 +360,9 @@ impl Program {
         let mut deref: Rows<Drow> = Rows::new();
         let mut jump: Rows<Jrow> = Rows::new();
         let mut keccak: Rows<Krow> = Rows::new();
+        // The gated `KECCAK` writes that were not their cell's first access: by cell, the count
+        // the write took and its pc.
+        let mut late_writes = std::collections::BTreeMap::<u32, (u32, u32)>::new();
 
         // The memory's pages, grown as the run reaches them. Every method on the hot
         // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
@@ -972,6 +983,13 @@ impl Program {
                     for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
                         *count = m.bump_access_count(cell);
                     }
+                    // The table counts a gated output cell's write as the constant 1, the first
+                    // access. One that came later trades counts with the first, after the run.
+                    for (&cell, &count) in cells[STATE_CELLS + 1..written].iter().zip(&r[STATE_CELLS + 1..written]) {
+                        if count != 0 && late_writes.insert(cell, (count, pc)).is_some() {
+                            return Err(fail(Fault::KeccakOutputTwice { cell }));
+                        }
+                    }
                     keccak.push(Krow {
                         pc,
                         fp,
@@ -1023,6 +1041,64 @@ impl Program {
                     pretty_integer(c),
                     pretty_f64(100.0 * *c as f64 / steps as f64)
                 );
+            }
+        }
+
+        // A late gated write takes the count 0 and its cell's first access the count the write
+        // took: the counts at the cell are still 0, 1, .. each once, which is all the bus asks.
+        if !late_writes.is_empty() {
+            let mut marked = vec![0u64; m.used.div_ceil(64)];
+            for &cell in late_writes.keys() {
+                marked[cell as usize / 64] |= 1 << (cell % 64);
+            }
+            let mut first = |cell: u32, count: &mut u32| {
+                if *count == 0
+                    && marked[cell as usize / 64] >> (cell % 64) & 1 == 1
+                    && let Some((taken, _)) = late_writes.remove(&cell)
+                {
+                    *count = taken;
+                }
+            };
+            // Each row's cells, as its arm of the run addressed them.
+            for r in xor.iter_mut().chain(mul.iter_mut()) {
+                if let Op::Xor { a, b, c } | Op::Mul { a, b, c } = self.prog[r.pc as usize] {
+                    first(r.fp + a, &mut r.ra);
+                    first(r.fp + b, &mut r.rb);
+                    first(r.fp + c, &mut r.rc);
+                }
+            }
+            for r in set.iter_mut() {
+                if let Op::Set { o, .. } = self.prog[r.pc as usize] {
+                    first(r.fp + o, &mut r.r);
+                }
+            }
+            for r in deref.iter_mut() {
+                if let Op::Deref { o1, o2, o3, .. } = self.prog[r.pc as usize] {
+                    first(r.fp + o1, &mut r.r1);
+                    if r.r2 == 0
+                        && let Some(base) = m.get(r.fp + o1).as_base().and_then(|p| g.log(p))
+                    {
+                        first(base + o2, &mut r.r2);
+                    }
+                    first(r.fp + o3, &mut r.r3);
+                }
+            }
+            for r in jump.iter_mut() {
+                if let Op::Jump { oc, od, of } = self.prog[r.pc as usize] {
+                    first(r.fp + oc, &mut r.rc);
+                    first(r.fp + od, &mut r.rd);
+                    first(r.fp + of, &mut r.rf);
+                }
+            }
+            for r in keccak.iter_mut() {
+                let k = crate::tables::KeccakOp::of(&self.prog[r.pc as usize]);
+                for (c, count) in r.r[..=crate::keccak::STATE_CELLS].iter_mut().enumerate() {
+                    first(k.cell(r.fp, c), count);
+                }
+            }
+            // A write left over found no first access to trade with: a gated write was first.
+            if let Some((&cell, &(_, pc))) = late_writes.first_key_value() {
+                return Err(ExecError::new(self, pc, Fault::KeccakOutputTwice { cell }));
             }
         }
 
