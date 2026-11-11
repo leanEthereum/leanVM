@@ -4,12 +4,13 @@ import LeanVM.Protocol.Verifier
 # Verifier helper tests: differential against the verifier at its pin
 
 Every expected value below is the Rust verifier's (`crates/verifier`) at leanVM's `f128` branch
-(`afe891a73`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
+(`71205cca4`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
 driver is the verifier crate's sources with their items made crate-visible and a module printing
 each probe, kept in the port's scratch, not in the repository. Values that no change of the
 protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)
-are those of the earlier pins (`4af2cdddd`, `990b93526`); `fold_row` and `derive_config`'s query
-counts are at `71205cca4`. The line citations are to
+are those of the earlier pins (`4af2cdddd`, `990b93526`), the others the driver's at `afe891a73`
+but `fold_row` and `derive_config`'s query counts, which are at the pin: nothing else they read
+changed since. The line citations are to
 `crates/verifier/src/` at the pin. Compiled checks (`#guard`): `E` multiplication does not reduce
 in the kernel from module files.
 
