@@ -17,6 +17,12 @@ FORKS = ["amsterdam", "osaka"]
 PREDEPLOY = "0x0000000000000000000000000000000000008483"
 RUNTIME = open(os.path.join(HERE, "test/fixtures/eip8483.hex")).read().strip()
 FIXTURE = json.load(open(os.path.join(HERE, "test/fixtures/registration.json")))
+# Where the wrappers go, each with its contract in src/PossessionWrapper.sol.
+WRAPPERS = {
+    "C0": ("0x000000000000000000000000000000000000C000", "UncheckedWrapper"),
+    "C": ("0x000000000000000000000000000000000000C001", "PossessionWrapper"),
+}
+PATHS = ["add", "C0", "C"]
 
 SLOT_EXCESS, SLOT_COUNT, SLOT_HEAD, SLOT_TAIL, SLOT_LAST_BLOCK, QUEUE_OFFSET = range(6)
 SLOTS_PER_ITEM = 5
@@ -68,11 +74,11 @@ class Anvil:
         tx = {"from": self.sender, "to": to, "data": data, "value": hex(value), "gas": hex(3_000_000)}
         return self.rpc("eth_sendTransaction", tx)
 
-    def receipt(self, tx):
+    def receipt(self, tx, status=1):
         for _ in range(100):
             r = self.rpc("eth_getTransactionReceipt", tx)
             if r is not None:
-                assert r["status"] == "0x1", r
+                assert int(r["status"], 16) == status, r
                 return r
             time.sleep(0.05)
         raise RuntimeError(f"{tx} was not mined")
@@ -113,22 +119,46 @@ def check_landed(node, target, data, receipts, tail):
     assert node.storage(target, SLOT_TAIL) == tail
 
 
+def check_tampered(node, target, data):
+    """An add whose signature has its last byte flipped reverts and changes none of the slots an add writes."""
+    data = data[:-2] + f"{int(data[-2:], 16) ^ 1:02x}"
+    slots = range(QUEUE_OFFSET + 3 * SLOTS_PER_ITEM)
+    before = [node.storage(target, slot) for slot in slots]
+    node.receipt(node.send(target, data, node.fee(target)), status=0)
+    assert [node.storage(target, slot) for slot in slots] == before
+
+
+def runtime(contract):
+    with open(os.path.join(HERE, f"out/PossessionWrapper.sol/{contract}.json")) as f:
+        return json.load(f)["deployedBytecode"]["object"]
+
+
 def main():
-    data = "0x" + FIXTURE["bls_pubkey"][2:] + FIXTURE["pq_data"][2:]
-    assert len(data) == 2 + 2 * 112
+    subprocess.run(["forge", "build", "--root", HERE], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    add = "0x" + FIXTURE["bls_pubkey"][2:] + FIXTURE["pq_data"][2:]
+    assert len(add) == 2 + 2 * 112
+    proof = add + FIXTURE["signature"][2:]
     gas = {}
     for fork in FORKS:
         node = Anvil(fork)
         try:
+            assert int(node.rpc("eth_chainId"), 16) == FIXTURE["chain_id"]
             node.rpc("anvil_setCode", PREDEPLOY, RUNTIME)
-            for scenario, r in scenarios(node, PREDEPLOY, data).items():
-                gas[fork, scenario] = int(r["gasUsed"], 16)
+            targets = {"add": (PREDEPLOY, add)}
+            for path, (address, contract) in WRAPPERS.items():
+                node.rpc("anvil_setCode", address, runtime(contract))
+                targets[path] = (address, proof)
+            for path, (target, data) in targets.items():
+                for scenario, r in scenarios(node, target, data).items():
+                    gas[fork, path, scenario] = int(r["gasUsed"], 16)
+            check_tampered(node, WRAPPERS["C"][0], proof)
         finally:
             node.close()
-    print("gasUsed of an add without the proof")
-    print(f"{'':10}" + "".join(f"{fork:>12}" for fork in FORKS))
+    print("gasUsed")
+    print(f"{'':4}" + "".join(f"{fork:>{8 * len(PATHS)}}" for fork in FORKS))
+    print(f"{'':4}" + "".join(f"{path:>8}" for fork in FORKS for path in PATHS))
     for scenario in ["S1", "S2", "S3"]:
-        print(f"{scenario:10}" + "".join(f"{gas[fork, scenario]:>12}" for fork in FORKS))
+        print(f"{scenario:4}" + "".join(f"{gas[fork, path, scenario]:>8}" for fork in FORKS for path in PATHS))
 
 
 if __name__ == "__main__":
