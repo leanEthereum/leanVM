@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::hints::{MAX_CELLS, bounded_dlog};
+use super::hints::{MAX_CELLS, MAX_INDEX, bounded_dlog};
 use super::*;
 use primitives::{
     field::{F64, F192},
@@ -151,8 +151,8 @@ pub enum Fault {
 }
 
 /// The longest run the interpreter executes, the longest a stack can commit: every step is a row
-/// of at least `SET`'s eight committed columns, so `2^30 / 8` steps fill the `2^30` stack.
-const MAX_STEPS: usize = 1 << (verifier::MAX_STACKED_LOG - 3);
+/// of at least `MIN_COMMITTED_COLUMNS` committed columns.
+const MAX_STEPS: usize = (1 << verifier::MAX_STACKED_LOG) / crate::tables::MIN_COMMITTED_COLUMNS;
 // A row touches at most a `KECCAK` row's cells, so every access count fits the `u32` exponent.
 const _: () = assert!(crate::keccak::ROW_CELLS * MAX_STEPS < u32::MAX as usize);
 
@@ -279,6 +279,9 @@ impl Program {
         use super::hints::{BitsDest, GPow, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
+        if self.main_frame >= MAX_CELLS {
+            return Err(ExecError::new(self, 0, Fault::OutOfMemory));
+        }
 
         // g^j, covering the pcs and return targets and the main frame, then grown by each
         // reservation and each lookup past it, and its reverse index g^j ↦ j.
@@ -625,7 +628,7 @@ impl Program {
                                 // = g^3): show every reading that applies. Only a
                                 // K-valued word (extension limbs 0) can be a g-power. Read
                                 // without growing the address table.
-                                let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_CELLS.ilog2()));
+                                let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
                                 let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
                                 match (k, small) {
                                     (Some(k), true) => eprintln!(

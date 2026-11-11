@@ -11,9 +11,9 @@ pub type Off = u32;
 /// cells already fills the `2^30` stack with its four columns, so no larger one can be committed.
 pub(crate) const MAX_CELLS: u32 = 1 << (verifier::MAX_STACKED_LOG - 2);
 
-/// The exponents the [`GPow`] table can cover: an address below [`MAX_CELLS`] or a `pc` below the
-/// largest bytecode.
-const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
+/// The exponents the [`GPow`] table can cover: an address below [`MAX_CELLS`], or a `pc` (a return
+/// target `pc + 2` too) of a bytecode a stack commits, below `2^30`.
+pub(crate) const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
 
 /// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
 /// (recursion depth, and so the address range, is unbounded).
@@ -149,7 +149,8 @@ impl GPow {
 
     /// The discrete log of `x`, if it is a g-power below `bound` (at most `MAX_INDEX`), covering it.
     #[inline]
-    pub fn log_below(&mut self, x: F64, bound: usize) -> Option<u32> {
+    pub(crate) fn log_below(&mut self, x: F64, bound: usize) -> Option<u32> {
+        debug_assert!(bound <= MAX_INDEX);
         match self.lookup(x) {
             Some(k) => ((k as usize) < bound).then_some(k),
             None => self.log_miss(x, bound),
@@ -347,5 +348,16 @@ mod tests {
         assert_eq!(g.log(past), Some(10_001));
         assert_eq!(g.pow(10_001), past);
         assert_eq!(g.log(F64::ZERO), None);
+    }
+
+    /// An announced exponent at or past the bound is refused, so a return target past `MAX_CELLS`
+    /// never reads as an address.
+    #[test]
+    fn log_below_refuses_exponents_past_its_bound() {
+        let mut g = GPow::new(200);
+        g.note(100);
+        assert_eq!(g.log_below(g.pow(100), 100), None);
+        assert_eq!(g.log_below(g.pow(100), 101), Some(100));
+        assert_eq!(g.log(F64::G.pow(MAX_CELLS as u128 + 5)), None);
     }
 }

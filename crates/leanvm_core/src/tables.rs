@@ -1009,6 +1009,21 @@ impl Table for KeccakTable {
     }
 }
 
+/// The fewest committed columns of a table's row: a run of `n` steps commits at least `n` times
+/// it, which bounds the steps of a provable run (the interpreter's step limit).
+pub(crate) const MIN_COMMITTED_COLUMNS: usize = {
+    let widths = [arith::N, set::N, deref::N, jump::N, keccakt::N];
+    let mut min = widths[0];
+    let mut i = 1;
+    while i < widths.len() {
+        if widths[i] < min {
+            min = widths[i];
+        }
+        i += 1;
+    }
+    min
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;
