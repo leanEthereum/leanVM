@@ -212,7 +212,6 @@ pub fn compile(ast: &Ast) -> Program {
     prog.resize(bytecode_size, Op::Set { o: 0, k: F192::ZERO });
     let mut program = Program::assemble(prog, hints, frame_size["main"]);
     program.src_lines = src_lines;
-    program.range_bound = tables.range_bound as usize;
     program.fn_ranges = lowered
         .iter()
         .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))

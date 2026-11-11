@@ -75,8 +75,8 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F192>, &[u8])> {
 /// Reject a signer set that the coverage argument does not cover: strict sorting
 /// within each list is what stops one claim being counted many times, so each
 /// list's length is a count of distinct `(pubkey, message)` claims. Either list may be
-/// empty; both may be empty for a blob proof. [`MAX_KEYS`] is exclusive here, as in
-/// the guest.
+/// empty; both may be empty for a blob proof. [`MAX_KEYS`] is exclusive here, a host
+/// policy: the guest bounds the counts by its memory only.
 pub(super) fn check_signer_set(claims: &EthereumClaims) -> Result<(), AggregateVerifyError> {
     if claims.num_signature_claims() >= MAX_KEYS
         || !claims.xmss.windows(2).all(|w| w[0] < w[1])

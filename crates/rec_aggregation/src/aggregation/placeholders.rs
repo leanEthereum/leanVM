@@ -3,8 +3,7 @@
 use super::MAX_RECURSIONS;
 use super::cells::{dsl_u128, pack_16_bytes};
 use super::child::{
-    MU_CAP, MU_MAX, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth,
-    mu_min, whir_shape,
+    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape,
 };
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
@@ -176,6 +175,8 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         rep.insert(format!("{k}_PLACEHOLDER"), v);
     };
     ps("STREAM_CAP", STREAM_CAP.to_string());
+    ps("QW", QUERY_WINDOW_BITS.to_string());
+    ps("QUERY_WINDOWS_CAP", QUERY_WINDOWS_CAP.to_string());
     ps("MIN_LOG_MEM", leanvm_core::cpu::MIN_LOG_MEM.to_string());
     ps("INV_GEN", dsl_u128(F192::from(F64::G.inv())).to_string());
     ps("MU_CAP", MU_CAP.to_string());
@@ -590,7 +591,8 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
     ps("QKECCAK_SLOT_LOG", leanvm_core::keccak::SLOT_LOG.to_string());
 }
 
-/// The stacked opening's candidate tables, one per committed size in `mu_min(kbc)..=MU_MAX` and rate.
+/// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
+/// an execution of the guest's bytecode, `min_execution_stacked_log(kbc)..=MAX_STACKED_LOG`.
 fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let oshape = |m: usize, log_inv_rate: usize| {
         let shape = whir_shape(m, log_inv_rate);
@@ -641,7 +643,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             ood_samples: shape.config.ood_samples,
         }
     };
-    let (minm, maxm) = (mu_min(kbc), MU_MAX);
+    let (minm, maxm) = (verifier::min_execution_stacked_log(kbc), verifier::MAX_STACKED_LOG);
     let rates = pcs::whir::MIN_LOG_INV_RATE..=pcs::whir::MAX_LOG_INV_RATE;
     let cands: Vec<_> = rates.flat_map(|r| (minm..=maxm).map(move |m| oshape(m, r))).collect();
     let maxlev = cands.iter().map(|c| c.n_levels).max().unwrap();
@@ -651,7 +653,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
     let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
-    ps("N_COLUMN_LOGS", (MU_MAX + 1).to_string());
+    ps("N_COLUMN_LOGS", (verifier::MAX_STACKED_LOG + 1).to_string());
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));
     ps("COL_KAPPA_ADJ", literals(cks.iter().map(|&(_, a)| a)));
     let groups = col_groups(&cks);
@@ -716,7 +718,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             (0..c.n_levels).map(|lv| {
                 let (depth, cap) = (c.tree_depths[lv], c.cap_depths[lv]);
                 assert!((2..=8).contains(&cap), "a cap of {cap} levels");
-                (192 / depth) * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
+                c.positions_per_squeeze[lv] * ((depth - cap).div_ceil(QUERY_WINDOW_BITS) + 2)
             })
         });
         assert!(
@@ -775,23 +777,18 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let n_log_sizes = maxm - minm + 1;
     let n_rates = MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1;
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
-    let size_only = |c: &OpeningShape| {
+    fn size_only(c: &OpeningShape) -> (usize, usize, usize, [&Vec<usize>; 7]) {
         let lists = [
             &c.folds,
             &c.log_message_columns,
             &c.interleaving,
             &c.fold_offsets,
             &c.residual_fold_offsets,
+            &c.ood_samples,
+            &c.query_grinding_bits,
         ];
-        let more = [&c.ood_samples, &c.query_grinding_bits];
-        (
-            c.n_levels,
-            c.yr_level,
-            c.yr_log_len,
-            lists.map(Vec::clone),
-            more.map(Vec::clone),
-        )
-    };
+        (c.n_levels, c.yr_level, c.yr_log_len, lists)
+    }
     for (i, c) in cands.iter().enumerate() {
         assert!(
             size_only(c) == size_only(&cands[i % n_log_sizes]),

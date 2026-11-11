@@ -91,13 +91,13 @@ fn any_number_of_steps_proves() {
 }
 
 /// The memory announced is the least power of two covering the cells a run touches,
-/// with no floor but the protocol's: a program touching a handful of cells proves on
-/// a memory of a few cells, far below the memory columns' fill block.
+/// with no floor but the protocol's: the empty program proves on a memory of a few
+/// cells, smaller than a line of the memory columns' fill.
 #[test]
 fn a_tiny_memory_proves() {
-    let program = compile(&parse("def main():\n    p = 1\n    p[1] = 5\n    p[GEN] = 7\n    return\n").expect("parse"));
-    let pi = [F192::new(5, 0, 0), F192::new(7, 0, 0)];
+    let program = compile(&parse("def main():\n    return\n").expect("parse"));
+    let pi = [F192::ZERO; 2];
     let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    assert!(stats.log_mem <= 3, "memory of 2^{} cells", stats.log_mem);
+    assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
     verify(&program, &pi, &proof).expect("honest proof verifies");
 }

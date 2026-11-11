@@ -13,7 +13,9 @@
 
 pub mod merkle;
 pub mod transcript;
-pub mod wire;
+mod wire;
+
+pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;

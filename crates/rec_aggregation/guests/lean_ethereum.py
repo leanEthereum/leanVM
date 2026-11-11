@@ -29,8 +29,8 @@ INV_GEN = INV_GEN_PLACEHOLDER
 FIELD_BITS = 192
 # A query position's path bits are dispatched on QW at a time (`walk_path`), and the windows one
 # squeezed word's positions take fill at most QUERY_WINDOWS_CAP cells (`decode_query_windows`).
-QW = 6
-QUERY_WINDOWS_CAP = 56
+QW = QW_PLACEHOLDER
+QUERY_WINDOWS_CAP = QUERY_WINDOWS_CAP_PLACEHOLDER
 BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
@@ -275,6 +275,8 @@ COL_GROUP_START = COL_GROUP_START_PLACEHOLDER  # a column group's first column, 
 PCS_MIN_MU = PCS_MIN_MU_PLACEHOLDER
 # Global maxima; StackBuf frame sizes are parse-time, so they must be baked.
 LIG_MAX_LEVELS = LIG_MAX_LEVELS_PLACEHOLDER
+# A rate's tables follow the previous rate's, every size and level of it.
+LIG_RATE_STRIDE = LIG_N_LOG_SIZES * LIG_MAX_LEVELS
 LIG_MAX_OOD_SAMPLES = LIG_MAX_OOD_SAMPLES_PLACEHOLDER
 LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
@@ -508,8 +510,7 @@ SP_UNUSED_BYTES = 8 - SP_TAIL_BYTES
 # The coverage table's slots, both schemes' declared claims and their duplicates, are
 # bounded by the memory itself: each count is a g-power address (`assert_gpow`), so its
 # log is below the announced memory size, at most 2^32, and sums of a few never wrap.
-# The host's MAX_KEYS caps them further. MAX_RECURSIONS is the arity of an aggregation
-# tree.
+# MAX_RECURSIONS is the arity of an aggregation tree.
 MAX_RECURSIONS = MAX_RECURSIONS_PLACEHOLDER
 
 
@@ -1584,7 +1585,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
             if const(LIG_FOLD_GRIND_ANY[ml] == 0):
                 fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
             else:
-                fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: opening_fold_round(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a, LIG_FOLD_GRIND_BITS[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
+                fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: opening_fold_round(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a, LIG_FOLD_GRIND_BITS[ml + r * LIG_RATE_STRIDE]))
             w0 = round_quad_c
             w1 = round_quad_a
             fold_challenges[GEN ** (folds_off + j)] = fold_challenge
@@ -1646,7 +1647,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         else:
             assert q_nonce == 0
 
-        fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(fs0, fs1, fs2, fs3, fs4, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, win_tabs, LIG_SQUEEZES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_TREE_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_CAP_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
+        fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(fs0, fs1, fs2, fs3, fs4, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, win_tabs, LIG_SQUEEZES[ml + r * LIG_RATE_STRIDE], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE]))
         sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
 
         # One batching challenge for the level, drawn once every claim it batches is
@@ -1665,7 +1666,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         row_eq_weights = HeapBuf(GEN ** (LIG_MAX_INTERLEAVE[m_idx]))
         opening_row_weights(fold_challenges * GEN ** folds_off, row_eq_weights, LIG_FOLDS[ml], 1 // (lvl + 1))
 
-        root_0, root_1, level_query_sum, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, query_win_ptrs * GEN ** pos_off, row_eq_weights, LIG_QUERIES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_CAP_DEPTH[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl]))
+        root_0, root_1, level_query_sum, lam_pow = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_queries(lam, query_win_ptrs * GEN ** pos_off, row_eq_weights, LIG_QUERIES[ml + r * LIG_RATE_STRIDE], 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE]))
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
@@ -1787,7 +1788,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         # level_betas carries the lam^n that the residual chain's 1/lam steps leave out.
-        h = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_mus[GEN ** lvl], LIG_QUERIES[(r * LIG_N_LOG_SIZES + m_idx) * LIG_MAX_LEVELS + lvl], LIG_LOG_MSG_COLS[ml]))
+        h = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_mus[GEN ** lvl], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_LOG_MSG_COLS[ml]))
         # accumulate beta_lvl * lam^n * prod_t b_t * (per-level residual chain) into the grand residual
         inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * h
 
@@ -4630,8 +4631,8 @@ def main():
     for xi in mul_range(1, n_raw_x_g):
         idx = hint_witness("raw_index")
         # A runtime bound, whose bound is small by `assert_gpow(n_total_g)` above
-        # (its log below the memory size). Without it this
-        # degenerates to what DEREF alone gives and an index could reach past
+        # (its log below the memory size). Without it this degenerates to what
+        # DEREF alone gives and an index could reach past
         # `cover`, which is the whole bijection. The bound is the leanXMSS region, so
         # a raw leanXMSS signature covers no leanSPHINCS claim.
         assert log(idx) < log(lx_slots_g)

@@ -1,5 +1,4 @@
 use super::cells::{count, pack_16_bytes};
-use super::child::{MU_MAX, mu_min};
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredClaim, bytecode_sums, bytecode_value, bytecode_vars, stacked_bytecode};
 use super::error::{AggregateVerifyError, AggregationError};
@@ -337,7 +336,8 @@ def main():
     return
 "#
     );
-    let guest = compile(&parse_with_replacements(&source, &placeholder_map(18)).unwrap());
+    let kbc = 18;
+    let guest = compile(&parse_with_replacements(&source, &placeholder_map(kbc)).unwrap());
     let run = |point: &[F192], offset: usize, kappa: usize, expected: F192| {
         let mut hints = Hints::default();
         hints.push("point", point.to_vec());
@@ -348,14 +348,14 @@ def main():
         program.execute([expected, F192::ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
-    for mu in mu_min(18)..=MU_MAX {
+    for mu in verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG {
         let mut point: Vec<F192> = (0..mu)
             .map(|_| {
                 let (c0, c1, c2) = rand::Rng::random(&mut rng);
                 F192::new(c0, c1, c2)
             })
             .collect();
-        point.resize(MU_MAX, F192::ZERO);
+        point.resize(verifier::MAX_STACKED_LOG, F192::ZERO);
         for kappa in 0..=mu {
             let mask = ((1usize << mu) - 1) & !((1usize << kappa) - 1);
             for offset in [0, mask, 0x0555_5555 & mask] {

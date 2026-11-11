@@ -8,8 +8,8 @@ use primitives::field::{F64, div_by_g, mul_by_g};
 pub type Off = u32;
 
 /// The cells THIS PROVER can address, a limit of its implementation only: its [`GPow`]
-/// index covers no more. The protocol admits memories up to `2^32` cells
-/// (`verifier::build_layout`); a run reaching past this one is refused here, not by the spec.
+/// index covers no more. The protocol admits memories up to `2^verifier::MAX_LOG_MEMORY`
+/// cells; a run reaching past this one is refused here, not by the spec.
 pub(crate) const MAX_CELLS: u32 = 1 << 28;
 
 /// The `g^k` table paired with a reverse index `g^k ↦ k`, both grown on demand
@@ -33,7 +33,9 @@ pub(crate) const MAX_CELLS: u32 = 1 << 28;
 /// A lookup that misses divides the address by `g` until it meets a coarse index
 /// of every `STRIDE`th exponent, then announces the result, so an address the
 /// interpreter could not label, a jump target or a pointer into a buffer, costs at
-/// most `STRIDE` probes once.
+/// most `STRIDE` probes once. One past the table, a hinted g-power or a range
+/// check's complement, is found by `bounded_dlog` below `MAX_CELLS`, and the
+/// table grows to cover it.
 pub struct GPow {
     pow: Vec<F64>,
     /// `k + 1` at the slot `g^k` mixes to, for the announced `k`; 0 marks an empty
@@ -136,10 +138,10 @@ impl GPow {
         self.announced += 1;
     }
 
-    /// The discrete log of `x`, if it is a covered g-power.
+    /// The discrete log of `x`, if it is a g-power below `MAX_CELLS`, covering it.
     #[inline]
     pub fn log(&mut self, x: F64) -> Option<u32> {
-        self.lookup(x).or_else(|| self.resolve(x))
+        self.lookup(x).or_else(|| self.resolve(x)).or_else(|| self.discover(x))
     }
 
     /// The exponent of `x` if announced: any covered one, for a table built by [`Self::dense`].
@@ -165,6 +167,41 @@ impl GPow {
         }
         None
     }
+
+    /// `log` past the covered range: a bounded discrete log, then cover and announce it.
+    #[cold]
+    fn discover(&mut self, x: F64) -> Option<u32> {
+        let k = bounded_dlog(x, MAX_CELLS.ilog2())? as usize;
+        self.note(k);
+        Some(k as u32)
+    }
+}
+
+/// Find `n < 2^nbits` with `g^n = x` (for `nbits` below 17, any `n < 2^17`), by
+/// baby-step giant-step: a baby table of `g^j` for `j < 2^17`, built once per
+/// process, and the giant step `×g^(-2^17)`.
+pub(crate) fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
+    const LOG_BABY: u32 = 17;
+    static TABLE: std::sync::OnceLock<(GPow, F64)> = std::sync::OnceLock::new();
+    let (baby, giant) = TABLE.get_or_init(|| {
+        let baby = GPow::dense((1usize << LOG_BABY) - 1);
+        // g^(2^17), one past the table; its inverse is the giant step.
+        let giant = mul_by_g(baby.pow((1usize << LOG_BABY) - 1)).inv();
+        (baby, giant)
+    });
+    let mut y = x;
+    let max_giant = if nbits > LOG_BABY {
+        1u64 << (nbits - LOG_BABY)
+    } else {
+        1
+    };
+    for a in 0..max_giant {
+        if let Some(j) = baby.lookup(y) {
+            return Some((a as u128) << LOG_BABY | j as u128);
+        }
+        y *= *giant;
+    }
+    None
 }
 
 /// The `k` of a slot of `table` that holds `x = pow[k]`.
@@ -291,6 +328,10 @@ mod tests {
         for k in [0, 1, 63, 64, 65, 4_095, 9_999, 10_000] {
             assert_eq!(g.log(g.pow(k)), Some(k as u32));
         }
-        assert_eq!(g.log(mul_by_g(g.pow(10_000))), None);
+        // Past the covered range, a bounded discrete log finds it and the table grows.
+        let past = mul_by_g(g.pow(10_000));
+        assert_eq!(g.log(past), Some(10_001));
+        assert_eq!(g.pow(10_001), past);
+        assert_eq!(g.log(F64::ZERO), None);
     }
 }

@@ -920,12 +920,12 @@ impl FnLower<'_> {
                 if *k < 1 {
                     self.fail("range-check bound GEN ** 0 names the empty set")
                 };
-                if *k > 1 << 32 {
+                if *k > 1 << leanvm_core::cpu::MAX_LOG_MEM {
                     self.fail(format!(
-                        "range-check bound GEN ** {k} exceeds 2^32 (the largest memory size)"
+                        "range-check bound GEN ** {k} exceeds 2^{} (the largest memory size)",
+                        leanvm_core::cpu::MAX_LOG_MEM
                     ))
                 };
-                self.tables.range_bound = self.tables.range_bound.max(*k);
                 self.bound_cell(*k)
             }
             LtBound::Runtime(b) => {

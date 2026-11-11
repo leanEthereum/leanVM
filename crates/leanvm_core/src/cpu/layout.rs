@@ -584,41 +584,53 @@ impl Program {
             const _: () = assert!(N_SHARED == 6, "a new shared column needs a fill here");
             // One pass over the image fills all four of its columns, streamed out a
             // cache line of each at a time: nothing reads them before the commitment.
-            // A memory smaller than a block or a line is one block of it.
             const LINE: usize = 8;
             const BLOCK: usize = 1 << 10;
-            let block = BLOCK.min(cells);
-            let line_len = LINE.min(block);
             let page_log = Memory::page_log();
             let image = [MEM_LO, MEM_HI, MEM_TOP, MFCNT].map(|c| {
                 assert_eq!(windows[c].len(), cells, "a memory column spans the image");
                 parallel::SendPtr(windows[c].as_mut_ptr())
             });
-            parallel::for_each_chunk(cells / block, |first, end| {
-                let stream = primitives::stream::Stream::new();
-                for b in first..end {
-                    let at = b * block;
-                    let page = exec.mem.page(at >> page_log);
-                    for line in (at..at + block).step_by(line_len) {
-                        let mut buf = [[F64::ZERO; LINE]; 4];
-                        for j in 0..line_len {
-                            let i = line + j;
-                            let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
-                            // counts ended at g^{A[i]}
-                            let values = cell.word.to_limbs().map(F64);
-                            buf[0][j] = values[0];
-                            buf[1][j] = values[1];
-                            buf[2][j] = values[2];
-                            buf[3][j] = gpow[cell.count as usize];
-                        }
-                        for (column, values) in image.iter().zip(&buf) {
-                            // SAFETY: block `b` owns cells `b·block..(b+1)·block` of every
-                            // column, in bounds as `cells` is a whole number of blocks.
-                            unsafe { stream.copy_uninit(column.add(line), &values[..line_len]) };
-                        }
+            // Cell `i`'s three limbs and its count, which ended at g^{A[i]}.
+            let values = |page: Option<&[Cell]>, i: usize| {
+                let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
+                let limbs = cell.word.to_limbs().map(F64);
+                [limbs[0], limbs[1], limbs[2], gpow[cell.count as usize]]
+            };
+            if cells < LINE {
+                // A memory smaller than a line, cell by cell.
+                let page = exec.mem.page(0);
+                for i in 0..cells {
+                    for (column, value) in image.iter().zip(values(page, i)) {
+                        // SAFETY: `i` is below `cells`, every column's length.
+                        unsafe { column.add(i).write(value) };
                     }
                 }
-            });
+            } else {
+                let block = BLOCK.min(cells);
+                parallel::for_each_chunk(cells / block, |first, end| {
+                    let stream = primitives::stream::Stream::new();
+                    for b in first..end {
+                        let at = b * block;
+                        let page = exec.mem.page(at >> page_log);
+                        for line in (at..at + block).step_by(LINE) {
+                            let mut buf = [[F64::ZERO; LINE]; 4];
+                            for j in 0..LINE {
+                                let [lo, hi, top, count] = values(page, line + j);
+                                buf[0][j] = lo;
+                                buf[1][j] = hi;
+                                buf[2][j] = top;
+                                buf[3][j] = count;
+                            }
+                            for (column, values) in image.iter().zip(&buf) {
+                                // SAFETY: block `b` owns cells `b·block..(b+1)·block` of every
+                                // column, in bounds as `cells` is a whole number of blocks.
+                                unsafe { stream.copy_uninit(column.add(line), values) };
+                            }
+                        }
+                    }
+                });
+            }
             parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
         });
         // The committed Keccak states q_keccak, ALWAYS in this same stack: built from

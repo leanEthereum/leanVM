@@ -14,8 +14,11 @@ const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const RESIDUAL_MAX_LOG: usize = 5;
 const QUERY_GRINDING_BITS: u32 = 17;
 
+/// A row per rate, then per stacked size from `MIN_STACKED_LOG`, of one entry per WHIR level.
+type ShapeTable = [[&'static [usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4];
+
 #[rustfmt::skip]
-const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
+const WHIR_QUERIES: ShapeTable = [
     [&[223,56,30], &[223,56,31], &[223,56,32], &[223,56,32], &[223,56,32,22], &[223,56,32,22], &[224,56,32,23], &[224,56,32,23], &[224,56,32,23,17], &[224,56,32,23,17], &[224,56,32,23,18], &[225,56,32,23,18], &[225,56,32,23,18,14], &[225,56,32,23,18,14], &[226,56,32,23,18,14], &[226,56,32,23,18,15], &[227,56,32,23,18,15,12]],
     [&[112,45,27], &[112,45,28], &[112,45,28], &[112,45,28], &[112,45,28,20], &[112,45,28,20], &[112,45,28,21], &[112,45,28,21], &[112,45,28,21,16], &[112,45,28,21,16], &[112,45,28,21,16], &[112,45,28,21,16], &[112,45,28,21,16,13], &[113,45,28,21,16,14], &[113,45,28,21,17,14], &[113,45,28,21,17,14], &[113,45,29,21,17,14,12]],
     [&[75,37,24], &[75,37,25], &[75,38,25], &[75,38,25], &[75,38,25,18], &[75,38,25,19], &[75,38,25,19], &[75,38,25,19], &[75,38,25,19,15], &[75,38,25,19,15], &[75,38,25,19,15], &[75,38,25,19,15], &[75,38,25,19,15,13], &[75,38,25,19,15,13], &[75,38,25,19,16,13], &[75,38,25,19,16,13], &[75,38,25,19,16,13,11]],
@@ -24,7 +27,7 @@ const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
 
 /// The bits ground before each fold challenge of a level, zero where its proximity gap reaches the target alone.
 #[rustfmt::skip]
-const WHIR_FOLD_GRINDING: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
+const WHIR_FOLD_GRINDING: ShapeTable = [
     [&[0,0,0], &[0,0,0], &[0,0,0], &[0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0,0]],
     [&[0,0,0], &[0,0,0], &[0,0,0], &[0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0,0]],
     [&[0,0,0], &[0,0,0], &[0,0,0], &[0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0], &[0,0,0,0,0,0,0]],
@@ -38,22 +41,24 @@ struct WhirConfig {
     fold_grinding: &'static [usize],
 }
 
-/// The tabulated query counts at stacked size `log_n` and rate, `None` outside the admitted shapes.
-#[doc(hidden)]
-pub fn whir_queries(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
-    WHIR_QUERIES
+/// A table's row at stacked size `log_n` and rate, `None` outside the admitted shapes.
+fn tabulated(table: &ShapeTable, log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
+    table
         .get(log_inv_rate.checked_sub(1)?)?
         .get(log_n.checked_sub(MIN_STACKED_LOG)?)
         .copied()
 }
 
+/// The tabulated query counts at stacked size `log_n` and rate, `None` outside the admitted shapes.
+#[doc(hidden)]
+pub fn whir_queries(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
+    tabulated(&WHIR_QUERIES, log_n, log_inv_rate)
+}
+
 /// The tabulated fold grinding bits at stacked size `log_n` and rate, `None` outside the admitted shapes.
 #[doc(hidden)]
 pub fn whir_fold_grinding(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
-    WHIR_FOLD_GRINDING
-        .get(log_inv_rate.checked_sub(1)?)?
-        .get(log_n.checked_sub(MIN_STACKED_LOG)?)
-        .copied()
+    tabulated(&WHIR_FOLD_GRINDING, log_n, log_inv_rate)
 }
 
 /// The opening shape at this size and rate: the ladder geometry, then the tabulated query counts and fold grinding.

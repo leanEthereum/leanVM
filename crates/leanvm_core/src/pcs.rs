@@ -45,11 +45,10 @@ pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 // The PCS and the unground F192 bus argument both target `SECURITY_BITS`.
 const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
-/// Minimum committed-witness log-size accepted by the WHIR level ladder, with one level of margin.
-pub const MIN_MU: usize = 16;
-/// Largest committed size accepted by all verifiers and compiled into the recursion guest.
-pub const MAX_MU: usize = 32;
-const _: () = assert!(MIN_MU == verifier::MIN_STACKED_LOG && MAX_MU == verifier::MAX_STACKED_LOG);
+/// The committed stack's least log size, the protocol's.
+pub const MIN_MU: usize = verifier::MIN_STACKED_LOG;
+/// The committed stack's largest log size, the protocol's.
+pub const MAX_MU: usize = verifier::MAX_STACKED_LOG;
 
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
 fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {

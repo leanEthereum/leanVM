@@ -86,6 +86,8 @@ pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at leas
 pub const MAX_TABLE_LOG: usize = 32;
 /// The least memory a proof announces, as a log: the public input's two cells.
 pub const MIN_LOG_MEMORY: usize = 1;
+/// The largest memory a proof announces, as a log.
+pub const MAX_LOG_MEMORY: usize = 32;
 pub const MIN_STACKED_LOG: usize = 16;
 /// The largest stack the verifier admits, below the `2^40` the caps alone would: past `2^32` the knowledge extractor's
 /// decoder outgrows the sizes its proof covers (`formal/`).
@@ -493,12 +495,16 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK.
 const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
 
-/// Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
-fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table_log_heights: &[usize]) -> Vec<usize> {
-    let keccak = KeccakShape {
+fn keccak_shape(table_log_heights: &[usize]) -> KeccakShape {
+    KeccakShape {
         log_steps: table_log_heights[OP_KECCAK],
         depth: KECCAK_DEPTH,
-    };
+    }
+}
+
+/// Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
+fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table_log_heights: &[usize]) -> Vec<usize> {
+    let keccak = keccak_shape(table_log_heights);
     let mut kappas = vec![
         log_memory,
         log_memory,
@@ -524,15 +530,27 @@ fn stacked_blocks(columns: usize) -> Vec<usize> {
         .collect()
 }
 
+/// The stack of columns of these log sizes: each stacked column's offset, and its log size, floored at the PCS minimum.
+fn stack(kappas: &[usize]) -> (BTreeMap<usize, u64>, usize) {
+    let blocks = stacked_blocks(kappas.len());
+    let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
+    let (block_offsets, total_log) = stack_offsets(&block_kappas);
+    (
+        blocks.into_iter().zip(block_offsets).collect(),
+        MIN_STACKED_LOG.max(total_log),
+    )
+}
+
 /// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at
 /// its floor. A recursion guest, whose children are proofs of its own bytecode, need open no smaller one.
 pub fn min_execution_stacked_log(log_bytecode: usize) -> usize {
-    let kappas = column_kappas(&tables(), MIN_LOG_MEMORY, log_bytecode, &TABLE_LOG_FLOORS);
-    let blocks: Vec<usize> = stacked_blocks(kappas.len())
-        .iter()
-        .map(|&column| kappas[column])
-        .collect();
-    stack_offsets(&blocks).1.max(MIN_STACKED_LOG)
+    stack(&column_kappas(
+        &tables(),
+        MIN_LOG_MEMORY,
+        log_bytecode,
+        &TABLE_LOG_FLOORS,
+    ))
+    .1
 }
 
 pub fn build_layout<'a>(
@@ -542,7 +560,7 @@ pub fn build_layout<'a>(
 ) -> Result<Layout<'a>, VerifierError> {
     let log_bytecode = log2_strict(bytecode.len() as u64)?;
     require(
-        (MIN_LOG_MEMORY as u64..=32).contains(&log_memory)
+        (MIN_LOG_MEMORY as u64..=MAX_LOG_MEMORY as u64).contains(&log_memory)
             && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
             && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
@@ -572,16 +590,9 @@ pub fn build_layout<'a>(
         count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
     }
 
-    let keccak = KeccakShape {
-        log_steps: table_log_heights[OP_KECCAK],
-        depth: KECCAK_DEPTH,
-    };
+    let keccak = keccak_shape(&table_log_heights);
     let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
-    let blocks = stacked_blocks(kappas.len());
-    let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
-    let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
-    let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
+    let (offsets, stack_log) = stack(&kappas);
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
             Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
@@ -612,15 +623,10 @@ pub fn build_layout<'a>(
 mod tests {
     use super::*;
 
-    /// The stack's log size at these sizes, the PCS floor aside.
+    /// The stack's log size at these sizes.
     fn stack_log(log_memory: usize, log_bytecode: usize, table_log: usize) -> usize {
         let heights: Vec<usize> = TABLE_LOG_FLOORS.iter().map(|&floor| table_log.max(floor)).collect();
-        let kappas = column_kappas(&tables(), log_memory, log_bytecode, &heights);
-        let blocks: Vec<usize> = stacked_blocks(kappas.len())
-            .iter()
-            .map(|&column| kappas[column])
-            .collect();
-        stack_offsets(&blocks).1
+        stack(&column_kappas(&tables(), log_memory, log_bytecode, &heights)).1
     }
 
     #[test]
@@ -629,6 +635,6 @@ mod tests {
         // Every size and table only grows the stack.
         assert!(stack_log(16, 19, 4) >= min_execution_stacked_log(19));
         // The caps alone admit larger stacks, so the stack's own bound is a check of the verifier's.
-        assert!(stack_log(32, 32, MAX_TABLE_LOG) > MAX_STACKED_LOG);
+        assert!(stack_log(MAX_LOG_MEMORY, 32, MAX_TABLE_LOG) > MAX_STACKED_LOG);
     }
 }

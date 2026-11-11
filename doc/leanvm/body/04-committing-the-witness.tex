@@ -7,7 +7,7 @@ Suppose we want to commit to $T$ multilinears $P_1,\dots,P_T$ over boolean hyper
 \[
   q \;=\; P_1 \,\Vert\, P_2 \,\Vert\,\dots\,\Vert\, P_T \,\Vert\, 0,
 \]
-zero-padded to length $2^{M}$, with $\nstack:=\textstyle\sum_i 2^{\kappa_i}$ the number of placed field elements and $M=\lceil\log_2\nstack\rceil$. Placed largest first, $P_i$ starts at an offset that is a multiple of $2^{\kappa_i}$; writing $\mathsf{sel}_i\in\cube{M-\kappa_i}$ for the high bits of that offset,
+zero-padded to length $2^{M}$, with $\nstack:=\textstyle\sum_i 2^{\kappa_i}$ the number of placed field elements and $M=\max(16,\lceil\log_2\nstack\rceil)$, the PCS's least size (Annex~\ref{annex:pcs}). Placed largest first, $P_i$ starts at an offset that is a multiple of $2^{\kappa_i}$; writing $\mathsf{sel}_i\in\cube{M-\kappa_i}$ for the high bits of that offset,
 \[
   \widetilde P_i(z)\;=\;\widetilde q(z,\mathsf{sel}_i)\qquad(z\in\cube{\kappa_i}).
 \]
