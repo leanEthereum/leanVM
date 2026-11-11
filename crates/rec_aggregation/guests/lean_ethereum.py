@@ -43,9 +43,9 @@ RS_CHUNK = 8  # ring-switch rows (target) or coordinates (weight) per loop itera
 RS_CHUNK_BITS = 3
 RES_BATCH = 8  # residual queries per loop iteration
 RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
-# Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
-# its top bit constrained to zero so the native strict 32-bit bound holds; any
-# structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
+# Exponent bit-widths, wider than the 2^30 caps need: a count's log is below
+# COUNT_BITS; any structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS
+# bits; and a
 # structural LOG (log_mem, log_inv_rate), announced as an integer word and
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
 # are enough and the reconstruction IS the bound (a larger announced log cannot

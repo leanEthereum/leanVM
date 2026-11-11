@@ -452,15 +452,24 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     if !exec.unconstrained_reads.is_empty() {
         return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
     }
+    // The committed size follows from the run's sizes alone: a run past the window is
+    // refused before its witness is built.
+    let log_mem = crate::log2_strict_usize(exec.mem.len());
+    let mu = layout::layout_of(
+        &program.bytecode_columns,
+        log_mem,
+        exec.trace.row_counts(),
+        public_input,
+    )
+    .shape
+    .mu;
+    if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&mu) {
+        return Err(ProveError::WitnessOutOfRange { log_committed: mu });
+    }
     let cycles = exec.cycles;
     let mut w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
     let mem_used = exec.mem_used;
     drop(exec);
-    if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&w.layout.shape.mu) {
-        return Err(ProveError::WitnessOutOfRange {
-            log_committed: w.layout.shape.mu,
-        });
-    }
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.

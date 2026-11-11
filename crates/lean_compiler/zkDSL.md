@@ -372,7 +372,7 @@ A proof-enforced inequality, in **3 instructions and no branch**: `XOR` for `x =
 
 ### Range checks: `assert log x < log Y` and `assert log x < k`
 
-The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^30` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included. `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
+The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^30` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included, as long as the run's committed witness fits the `2^30` stack (four memory columns, so a memory of at most about `2^27` cells). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
 
 ```python
 assert log(x) < log(GEN ** 8)

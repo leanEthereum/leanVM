@@ -612,7 +612,9 @@ impl Program {
                                 g.grow_to(next_free as usize);
                                 // The base is about to become a pointer in memory.
                                 g.note(base as usize);
-                                m.ensure(next_free as usize);
+                                if next_free > base {
+                                    m.ensure(next_free as usize - 1);
+                                }
                                 m.put(cell, F192::from(g.pow(base as usize)))?;
                             }
                         }

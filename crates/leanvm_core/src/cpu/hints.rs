@@ -157,8 +157,10 @@ impl GPow {
         let mut y = x;
         for j in 0..STRIDE {
             if let Some(k) = find(&self.coarse, &self.pow, y) {
+                // Past the table by fewer than `STRIDE` too: covering it keeps a run of
+                // addresses climbing past the table off the discrete log.
                 let k = k as usize + j;
-                return (k < self.pow.len()).then(|| {
+                return (k < MAX_CELLS as usize).then(|| {
                     self.note(k);
                     k as u32
                 });
