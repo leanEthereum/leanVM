@@ -26,9 +26,9 @@ and leanSPHINCS are strongly unforgeable; and LeanDA's commitments are position 
 binding for arguments whose relation is evaluated over the model's permutation. Each is a Lean~4
 proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classical.choice},
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
-leanVM at commit \texttt{40f877dc} of its \texttt{main} branch, with pull request \#724 squash-merged
+leanVM as of this document's tree: commit \texttt{40f877dc} of its \texttt{main} branch, with pull request \#724 squash-merged
 (\texttt{KECCAK} writes only the output cells its bytecode requests, one, two or all thirteen, and
-the guest program writes each digest as one or two cells).
+the guest program writes each digest as one or two cells), then the committed stack raised to $2^{32}$ with WHIR fold grinding, no memory floor, and the guest's announced counts bounded by its memory.
 
 \paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
 of definitions and end statements, which import Mathlib,
@@ -430,7 +430,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} at \texttt{40f877dc}),
+program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} in this tree),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -631,7 +631,7 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $505245$)
-limits any program; it is the compiled decoder's size at the pin (\texttt{leanvm-rev}), $504815$ (proved
+limits any program; it is the compiled decoder's size in this tree, $504815$ (proved
 at most that, measured exactly; the guest's frame-cell table is $452833$ of it), and a slack of
 $430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
@@ -789,7 +789,7 @@ $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a nod
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM
 \texttt{990b9352}, \texttt{93ebecc5}, \texttt{c445e3d5} and \texttt{1e9d8cff} alike); at
-\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{5e3ade21}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$, and at \texttt{40f877dc}, whose \texttt{KECCAK} table commits two more columns, $2^{26.496}$ and $2^{27.484}$ (not re-evaluated at this tree's pin, where the opening arms changed and the constant term fell to $29683$ words).
+\texttt{1a379148}, \texttt{9d8bce81}, \texttt{834e6614}, \texttt{d1c4c8f7} and \texttt{5e3ade21}, not re-measured, the budget gives $2^{26.494}$ and $2^{27.482}$, and at \texttt{40f877dc}, whose \texttt{KECCAK} table commits two more columns, $2^{26.496}$ and $2^{27.484}$ (not re-evaluated in this tree, where the opening arms changed and the constant term fell to $29683$ words).
 \item \lean{aggregate_complete_of} (\lean{lean_vm}, in the RPM): the execution so obtained,
 proved by the honest prover at $\rho \in [1,4]$ with $f \le 2^{64}$ nonces, is rejected with
 probability at most $\delta(f)$ of Section~\ref{sec:zkvm}.
