@@ -42,7 +42,7 @@ def decodesFast {μ : ℕ} (R A : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List 
   let l := decodeStacksAtFast μ R A fun v ↦ w.getD v []
   (l.any fun d ↦ d.toList == q.toList, l.length)
 
-#guard decodesFast 1 3 (randomStack 1 7) (corrupt 1 [2] (wordOf 1 (randomStack 1 7))) = (true, 1)
+#guard decodesFast 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1)
 
 /-! ## The restated decoder steps, run -/
 

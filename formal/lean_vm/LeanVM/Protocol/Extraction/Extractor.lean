@@ -66,9 +66,10 @@ linear in the bytecode; it is infeasible at deployed sizes except on a word with
    the public input at its boundary, a valid execution; `none` if there is none.
 
 **Cost**, in operations of `K`, 64-bit words and byte comparisons; `N` the number of evaluations
-given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ`, `L` the list size (at most
+given, `n = 2^(κ+R)` the columns (`κ = μ − 6 ≤ 22`, `R ≤ 4`), `k = 2^κ + 6` the message length,
+`L` the list size (at most
 `2^12` candidates, `LeanVM.candidates_ncard_le`, and at most `2^12` prefixes kept after any number
-of lanes, `pruneUpTo_length_le`), `m ≤ 256` the decoder's multiplicity, `ℓ ≤ 513` its
+of lanes, `pruneUpTo_length_le`), `m ≤ 107` the decoder's multiplicity, `ℓ ≤ 169` its
 `Y`-degree, `w = m·A − 1` its weighted degree and `|Q| ≈ n·m(m+1)/2` its coefficients
 (`gsMultiplicityAt`), `M = 2^logMemory`, `B = 2^logBytecode`. The figures are at the worst shape
 over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, not a proof):
@@ -78,16 +79,16 @@ over all 64 lanes, from `lean_vm/scripts/extractor-cost` (a model of the code, n
 | sizes and root (`afterRoot`) | the stream's first `10` scalars; the bytecode's length | |
 | the evaluations (`keccakEvaluationsOfTranscript`, `lookupEvaluation`) | linear lookups on byte strings: a chain of `N` padded blocks makes `136·N³/6` byte comparisons | in `N` |
 | Merkle inversion (`committedLeaves`) | `N` evaluations, then `2^(height+1)` scans of `N` pairs | `2^27·N` |
-| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^88.6` |
-| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^103.6` to `2^110.6` |
-| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^79.7` |
-| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `κ·2^(κ+R)` butterflies | `2^60.9` |
+| interpolation (`gsLaneAt`: Lee–O'Sullivan, Mulders–Storjohann) | `(ℓ+1)³·(m·n)²` per lane | `2^89.5` |
+| roots (Roth–Ruckenstein, `substituteYRootPlusXY`) | per substitution, `|Q|·ℓ/2` monomials added one by one to a dense accumulator (`|Q|²·ℓ/2`) and as many bignum binomials; `k` substitutions per path, `1` to `ℓ` paths | `2^104.6` to `2^111.8` |
+| final root check (`isRootYDegreeLtBool`) | `ℓ·(w + ℓ·k)²` per candidate (quadratic `mulRaw`), at most `ℓ` per lane | `2^80.5` |
+| distance filter, novel coefficients (`toNovel`, `novelInv`, `novelFwd`) | `n·k` per candidate; `(κ+1)·2^(κ+R)` butterflies | `2^61.1` |
 | pruning (`pruneUpTo`), 64 lanes | `64·L²·n` comparisons | `2^56` |
 | a candidate's execution | `M + B` to index the addresses, at most `stepCap ≤ 2^μ` steps of a fetch and at most 26 reads | `2^52` for all |
 
 The whole is dominated by Roth–Ruckenstein's substitution as implemented, then the interpolation,
 and, in `N`, by the lookups, cubic. Polynomial, but not a meaningful concrete bound: an extractor
-of `2^111` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
+of `2^112` operations, or `N³` for an adversary of `N` queries, makes a reduction no better than
 generic search.
 
 **The same function, faster** (proof side, `lean_vm/LeanVM/Protocol/Extraction/Fast/`):

@@ -29,7 +29,7 @@ interpolation's part `interpPMPrice`, the rest the bounds of `Bounds/Decoder/Sha
   - the least row (`leastShiftedDegreeChoice?`) and the normalization (`normBound`, existing, and
     the row as a bivariate polynomial);
 * **the rest of the lane's run** (`gsRunBoundPM`): the truncation, Roth–Ruckenstein's search
-  (`rrBound`, `≈ 2^86.38` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
+  (`rrBound`, `≈ 2^75.16` per lane at `(28, 4)`, evaluated in `LeanVMTests/Cost/RrBound.lean`), the candidates' filter;
 * **the lane and the decoder** (`decoderLaneRunBoundPM`, `decoderLaneBoundPM`, `decoderBoundPM`),
   on `gsRunBoundPM`: the parameter search, the lane's points, its candidates encoded (`laneExtraBound`), the `64` lanes pruned
   (`pruneBound`), a stack per survivor.
@@ -127,15 +127,15 @@ model's margin at the smallest shapes). -/
 /-- **A lane's run on `pmSolver`** (`gsLaneWith pmSolver κ R A`): the parameter search, the
 lane's `n = 2^(κ+R)` points (`BS` per symbol), the run (`gsRunBoundPM`). -/
 @[expose] def decoderLaneRunBoundPM (p : PMPrices) (κ R A BS : ℕ) : ℕ :=
-  138 * gsMultiplicityBoundAt (2 ^ κ) (2 ^ (κ + R)) A + (BS + 30) * 2 ^ (κ + R) +
-    gsRunBoundPM p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp + 131
+  138 * gsMultiplicityBoundAt (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A + (BS + 30) * 2 ^ (κ + R) +
+    gsRunBoundPM p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp + 136
 
 /-- **A lane's candidates on `pmSolver`** (`laneEncodedWith pmSolver κ R A`): the run, then at
-most `max 1 ℓ` candidates of at most `2^κ` coefficients (`laneExtraBound`). -/
+most `max 1 ℓ` candidates of at most `2^κ + 6` coefficients (`laneExtraBound`). -/
 @[expose] def decoderLaneBoundPM (p : PMPrices) (κ R A BS : ℕ) : ℕ :=
   decoderLaneRunBoundPM p κ R A BS +
-    laneExtraBound κ R (max 1 (interpolationYCap (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp))
-      (2 ^ κ)
+    laneExtraBound κ R (max 1 (interpolationYCap (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp))
+      (2 ^ κ + Whir.initialFold)
 
 /-- **The decoder on `pmSolver`** (`decodeStacksDistinctPM μ R`) at the shape `(μ, R)`
 (`κ = μ − 6`, `n = 2^(κ+R)`, the Johnson threshold `A`): the `2^6` lanes pruned (`pruneBound`: the
@@ -144,10 +144,10 @@ word's table, `BW` per column and `Lw` symbols per column; a lane `decoderLaneBo
 @[expose] def decoderBoundPM (p : PMPrices) (μ R BW Lw : ℕ) : ℕ :=
   pruneBound (μ - Whir.initialFold) R (2 ^ Whir.initialFold) BW Lw
       (decoderLaneBoundPM p (μ - Whir.initialFold) R (johnsonThreshold μ R) 13)
-      (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold))
+      (max 1 (interpolationYCap (gsParamsFor (2 ^ (μ - Whir.initialFold) + Whir.initialFold)
         (2 ^ (μ - Whir.initialFold + R)) (johnsonThreshold μ R)).interp))
       (2 ^ 12) +
-    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 + 14098
+    ((15 * 2 ^ Whir.initialFold + 48) * 2 ^ μ + 34) * 2 ^ 12 + 14101
 
 end
 

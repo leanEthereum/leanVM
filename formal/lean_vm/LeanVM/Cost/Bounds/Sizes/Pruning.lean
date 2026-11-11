@@ -10,13 +10,15 @@ public import LeanVM.Protocol.ToArkLib.Whir.Johnson
 
 At every admissible shape (`Whir.Admissible μ R`), after any `U ≥ 1` lanes at most `2^12` prefixes
 survive the pruning the extractor runs (`pruneUpToDistinct_length_le_johnson`), and the decoder
-returns at most `2^12` stacks (`decodeStacksDistinct_length_le_johnson`). The survivors' encodings
-are distinct interleaved Reed–Solomon codewords on `U` lanes, close to the word's first `U` lanes
-at the extractor's threshold (`length_pruneUpTo_le`, `evalTuple_mem_code`), so the Johnson bound on
-`U` lanes (`card_le_jl`) caps them by level 0's list bound `listMax₀ ≤ 166`, as the soundness
-statement's `card_candidates_le` does for all `2^6` lanes (`pruneUpTo_length_le`); the stacks by
-`decodeStacks_length_le` at the deployed opening (`Whir.Params.openingIface`). Both are transported
-along `pruneUpToDistinct_eq`/`pruneUpToFast_eq` and `decodeStacksDistinct_eq`/`decodeStacksFast_eq`.
+returns at most `2^12` stacks, one per survivor of the `64` lanes
+(`decodeStacksDistinct_length_le_johnson`). The survivors' encodings are distinct interleaved
+Reed–Solomon codewords on `U` lanes at level 0's degree `2^κ − 1 + 6` (each lane's list holds the
+coefficients of polynomials of degree `< 2^κ + 6`, `laneListAt_sound`), close to the word's first
+`U` lanes at the extractor's threshold (`length_pruneUpTo_le`, `evalTuple_mem_code`), so the
+Johnson bound on `U` lanes (`card_le_jl`) caps them by level 0's list bound
+`listMax₀ = jl(n, A₀, 2^κ − 1 + 6) ≤ 166` (`pruneUpTo_length_le`), as the soundness statement's
+`candidates_ncard_le` does for all `2^6` lanes. Both are transported along
+`pruneUpToDistinct_eq`/`pruneUpToFast_eq`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -36,20 +38,29 @@ theorem pruneUpTo_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ →
   have hthr := Protocol.Whir.Params.johnsonThreshold_eq_thr0Of h
   have hlb : Protocol.EndToEnd.laneBits = Whir.initialFold := rfl
   have hn64 : μ - Whir.initialFold + R ≤ 64 := hlb ▸ F.h64
-  have hdim : 2 ^ (μ - Whir.initialFold) - 1 + 1 = 2 ^ (μ - Whir.initialFold) :=
-    Nat.sub_add_cancel Nat.one_le_two_pow
+  have hadm := h
+  obtain ⟨h1, h2, h3, h4⟩ := hadm
+  unfold Whir.minLogStack at h1
+  unfold Whir.maxLogStack at h2
+  obtain ⟨hA, hcap⟩ := johnsonThreshold_bounds ⟨h1, h2⟩ ⟨h3, h4⟩
+  have hdim : 2 ^ (μ - Whir.initialFold) - 1 + Whir.initialFold + 1 =
+      2 ^ (μ - Whir.initialFold) + Whir.initialFold := by
+    have := Nat.one_le_two_pow (n := μ - Whir.initialFold); omega
   set κ := μ - Whir.initialFold with hκ
+  have hκ3 : 3 ≤ κ := by simp only [hκ, Whir.initialFold]; omega
   let dom := LaneProofs.domainEmb (2 ^ (κ + R)) (Nat.pow_le_pow_right (by norm_num) hn64)
   let O : Fin U → Fin (2 ^ (κ + R)) → K := fun u v ↦ laneSymbol W u v
-  let T := Protocol.Whir.iList (ReedSolomon.code dom (2 ^ κ - 1 + 1)) (johnsonThreshold μ R) O
-  have hT : ∀ cs : List (Array K), cs.length = U → (∀ u < U, (cs.getD u #[]).size = 2 ^ κ) →
+  let T := Protocol.Whir.iList (ReedSolomon.code dom (2 ^ κ - 1 + Whir.initialFold + 1))
+    (johnsonThreshold μ R) O
+  have hT : ∀ cs : List (Array K), cs.length = U →
+      (∀ u < U, cs.getD u #[] ∈ laneListAt κ R (johnsonThreshold μ R) W u) →
       johnsonThreshold μ R ≤ (PruneProofs.commonCols κ R W cs U).length →
         PruneProofs.evalTuple κ R U cs ∈ T := by
-    intro cs _ _ hA'
+    intro cs _ hcs hA'
     rw [Protocol.Whir.mem_iList]
     refine ⟨fun u ↦ ?_, ?_⟩
     · rw [hdim]
-      exact PruneProofs.evalTuple_mem_code hn64 cs u
+      exact PruneProofs.evalTuple_mem_code hκ3 h3 hn64 hA hcap W hcs u
     · refine ⟨Finset.univ.filter fun v : Fin (2 ^ (κ + R)) ↦
           v.val ∈ PruneProofs.commonCols κ R W cs U, ?_, ?_⟩
       · refine hA'.trans (le_of_eq ?_)
@@ -69,14 +80,14 @@ theorem pruneUpTo_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ →
         simp only [PruneProofs.commonCols, List.mem_filter, List.mem_range,
           decide_eq_true_eq] at hv'
         exact (hv'.2 u u.isLt).symm
-  have hgap : Fintype.card (Fin (2 ^ (κ + R))) * (2 ^ κ - 1) <
+  have hgap : Fintype.card (Fin (2 ^ (κ + R))) * (2 ^ κ - 1 + Whir.initialFold) <
       johnsonThreshold μ R * johnsonThreshold μ R := by
     rw [Fintype.card_fin, hthr]
     exact F.hgap
   have hJ : T.card ≤ Protocol.Whir.jl (Fintype.card (Fin (2 ^ (κ + R))))
-      (johnsonThreshold μ R) (2 ^ κ - 1) :=
+      (johnsonThreshold μ R) (2 ^ κ - 1 + Whir.initialFold) :=
     Protocol.Whir.card_le_jl T (Protocol.Whir.agreeSet O) (johnsonThreshold μ R)
-      (2 ^ κ - 1)
+      (2 ^ κ - 1 + Whir.initialFold)
       (fun _ hV ↦ Protocol.Whir.le_card_agreeSet_of_mem_iList hV)
       (fun V hV V' hV' hne ↦ (Finset.card_le_card (Protocol.Whir.agreeSet_inter_subset O V V')).trans
         (Nat.lt_succ_iff.mp (Protocol.Whir.card_agreeSet_lt dom
@@ -84,10 +95,10 @@ theorem pruneUpTo_length_le {μ R : ℕ} (h : Whir.Admissible μ R) (W : ℕ →
           hne)))
       hgap
   have hL : Protocol.Whir.jl (Fintype.card (Fin (2 ^ (κ + R))))
-      (johnsonThreshold μ R) (2 ^ κ - 1) = Protocol.Whir.Params.listMax₀ μ R := by
+      (johnsonThreshold μ R) (2 ^ κ - 1 + Whir.initialFold) = Protocol.Whir.Params.listMax₀ μ R := by
     rw [Fintype.card_fin, hthr, F.hL]
     rfl
-  calc _ ≤ T.card := PruneProofs.length_pruneUpTo_le (by omega) W hU T hT
+  calc _ ≤ T.card := PruneProofs.length_pruneUpTo_le h3 (by omega) W hU T hT
     _ ≤ Protocol.Whir.Params.listMax₀ μ R := hL ▸ hJ
     _ ≤ 166 := Protocol.Whir.Params.listMax₀_le h
     _ ≤ 2 ^ 12 := by norm_num
@@ -99,13 +110,12 @@ theorem pruneUpToDistinct_length_le_johnson {μ R : ℕ} (h : Whir.Admissible μ
   rw [pruneUpToDistinct_eq (checkRedundant_johnson h), pruneUpToFast_eq]
   exact pruneUpTo_length_le h W hU
 
-/-- **At most `2^12` decoded stacks**, at every admissible shape. -/
+/-- **At most `2^12` decoded stacks**, at every admissible shape: one per survivor of the `64`
+lanes. -/
 theorem decodeStacksDistinct_length_le_johnson {μ R : ℕ} (h : Whir.Admissible μ R)
     (W : ℕ → List K) : (decodeStacksDistinct μ R W).length ≤ 2 ^ 12 := by
-  rw [decodeStacksDistinct_eq h, decodeStacksFast_eq]
-  exact (LeanVM.Protocol.EndToEnd.Sound.decodeStacks_length_le
-    Protocol.Whir.Params.openingIface h W).trans
-    ((Protocol.Whir.Params.listMax₀_le h).trans (by norm_num))
+  rw [decodeStacksDistinct, List.length_map]
+  exact pruneUpToDistinct_length_le_johnson h W (Nat.two_pow_pos _)
 
 end
 

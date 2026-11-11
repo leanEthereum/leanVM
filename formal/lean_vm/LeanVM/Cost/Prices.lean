@@ -44,7 +44,7 @@ def runnerTablesPrice (κ ℓ : ℕ) : ℕ :=
 /-- The fast path (interpolation alone, for a word without errors), a column of `w` words read at
 `15·w + cW`. -/
 def fastPathPrice (μ R w cW : ℕ) : ℕ :=
-  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15013) +
+  64 * ((μ - 6) * (345 * 2 ^ (μ - 6 + R) + 5845) + 108 * 2 ^ (μ - 6 + R) + 15016) +
     (15 * w + cW + 12 * w + 44) * 2 ^ (μ - 6 + R) + 1008 * 2 ^ μ + 1071
 
 /-- One step of the transcript's replay, amortized: two lookups among `25`-word keys, one among
@@ -83,7 +83,7 @@ the worst admissible shape `(28, 3)`: about `2^81.25`. It is `lean_vm`'s `pmDeco
 (`Cost/Bounds/PMLane/ShapeDefs.lean`, `decoderBoundPM marginPrices 28 3 0 0`), evaluated
 (`pmDecoderWorstPrice_eq`), and bounds the decoder at every admissible shape
 (`decodeStacksPMC_cost_worst`, `Cost/Bounds/PMLane/Decode.lean`). -/
-def listDecoderWorstPrice : ℕ := 2878560092845958798122512
+def listDecoderWorstPrice : ℕ := 2878573462722405709726035
 
 /-- The list decoder's part, at every admissible shape: its word's reads and
 `listDecoderWorstPrice`. -/

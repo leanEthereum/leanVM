@@ -30,9 +30,9 @@ model's prices with their margin. -/
 symbols, `2^(κ+R)` points, threshold `A`: the interpolation bound's per-shape conditions
 (`PMSolve.PMInterpOK`, `PMSolve.interpPMModel ≤ interpPMPrice`). -/
 @[expose] def LaneInterpOKPM (p : PMPrices) (κ R A : ℕ) : Prop :=
-  PMSolve.PMInterpOK (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ∧
-    PMSolve.interpPMModel p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp ≤
-      interpPMPrice p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ) (2 ^ (κ + R)) A).interp
+  PMSolve.PMInterpOK (2 ^ (κ + R)) (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp ∧
+    PMSolve.interpPMModel p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp ≤
+      interpPMPrice p (2 ^ (κ + R)) (gsParamsFor (2 ^ κ + Whir.initialFold) (2 ^ (κ + R)) A).interp
 
 instance (p : PMPrices) (κ R A : ℕ) : Decidable (LaneInterpOKPM p κ R A) := by
   unfold LaneInterpOKPM; infer_instance

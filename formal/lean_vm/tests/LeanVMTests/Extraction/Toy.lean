@@ -4,13 +4,16 @@ import LeanVM.Protocol.Extraction.Defs
 # Tests: the extractor's decoder and Merkle inversion on toy codes
 
 Executable checks (`#guard`) of the knowledge extractor's pieces (`LeanVM/Protocol/Extraction/Extractor.lean`) on
-toy shapes, `κ = μ − 6 ≤ 2` message variables (the deployed shapes, `κ ≥ 9`, are far too large for
-the list decoder, as its cost table says, but not for the fast path). A toy stack of `2^μ` pseudo-random words is encoded on
-the `n = 2^(κ+R)` columns of its `64` lanes, and some whole columns are replaced by random leaves:
+toy shapes, `κ = μ − 6 ≤ 3` message variables (the deployed shapes, `κ ≥ 9`, are far too large for
+the list decoder, as its cost table says, but not for the fast path; the list decoder needs
+`κ ≥ 3`, as it decodes at level 0's degree `2^κ + 5`). A toy stack of `2^μ` pseudo-random words is
+encoded on the `n = 2^(κ+R)` columns of its `64` lanes, and some whole columns are replaced by
+random leaves:
 
-* the list decoder (`decodeStacksAt`: Guruswami–Sudan on every lane, `toNovel`, pruning, `stackOf`)
-  finds the stack when the errors are within the radius `n − A`, including past the unique
-  decoding radius `⌊(n − 2^κ)/2⌋`, and finds nothing when they are not;
+* the list decoder (`decodeStacksAt`: Guruswami–Sudan at message length `2^κ + 6` on every lane,
+  `toNovel (κ + 1)`, pruning, `stackOf`) finds the stack when the errors are within the radius
+  `n − A`, including past the unique decoding radius `⌊(n − 2^κ − 6)/2⌋`, and finds nothing when
+  they are not; it finds it also when the lanes carry high parts `W_κ·H_u` (`wordHighOf`);
 * the fast path (`fastStacks`) decodes a word without errors by interpolation alone, also at the
   smallest deployed shape (`μ = 15`, `R = 1`), and gives up on a word with an error among its first
   `2^κ` columns, which the list decoder still decodes;
@@ -54,6 +57,18 @@ def wordOf {μ : ℕ} (R : ℕ) (q : Vector K (2 ^ μ)) : Array (List K) :=
   let lanes := (List.range 64).map fun u ↦ novelFwd κ R (laneCoeffs q u)
   Array.ofFn fun v : Fin (2 ^ (κ + R)) ↦ (lanes.map fun e ↦ e.getD v.val 0).reverse
 
+/-- The word of a stack with random high parts: lane `u` at column `v` is the encoding plus
+`W_κ(x_v)·H_u(x_v)`, `H_u` of degree `< 6` drawn from the seed (level 0's polynomials at its
+degree `2^κ + 5`, of low part the lane). -/
+def wordHighOf {μ : ℕ} (R seed : ℕ) (q : Vector K (2 ^ μ)) : Array (List K) :=
+  let κ := μ - initialFold
+  let lanes := (List.range 64).map fun u ↦ novelFwd κ R (laneCoeffs q u)
+  let hs := (List.range 64).map fun u ↦ (randoms (seed + 500 + u) 6).toList.map K.ofBits
+  Array.ofFn fun v : Fin (2 ^ (κ + R)) ↦
+    let x := K.ofBits v.val
+    ((lanes.zip hs).map fun eh ↦
+      eh.1.getD v.val 0 + subspacePoly κ x * eh.2.foldr (fun c acc ↦ c + x * acc) 0).reverse
+
 /-- The word with the columns `cols` replaced by random leaves. -/
 def corrupt (seed : ℕ) (cols : List ℕ) (w : Array (List K)) : Array (List K) :=
   cols.foldl (fun w v ↦ w.set! v ((randoms (seed + 1000 + v) 64).toList.map K.ofBits)) w
@@ -69,27 +84,34 @@ def fastDecodes {μ : ℕ} (R : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List K)
 
 /-! ## The list decoder -/
 
--- `κ = 1`, `R = 1`: `n = 4`, `A = 3`; one error.
-#guard johnsonThreshold 7 1 = 3
-#guard decodes 1 3 (randomStack 1 7) (corrupt 1 [2] (wordOf 1 (randomStack 1 7))) = (true, 1)
+-- `κ = 3`, `R = 1`: `n = 16` columns, messages of `2^3 + 6 = 14` coefficients, `A = 15`; one
+-- error.
+#guard johnsonThreshold 9 1 = 15
+#guard decodes 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1)
 
--- `κ = 1`, `R = 2`: `n = 8`, `A = 4`; four errors, past the unique decoding radius `3`, within
--- the radius `n − A = 4`.
-#guard decodes 2 4 (randomStack 3 7) (corrupt 3 [1, 3, 5, 7] (wordOf 2 (randomStack 3 7))) = (true, 1)
+-- `κ = 3`, `R = 2`: `n = 32`, `A = 22`; ten errors, past the unique decoding radius
+-- `⌊(32 − 14)/2⌋ = 9`, within the radius `n − A = 10`.
+#guard decodes 2 22 (randomStack 3 9)
+  (corrupt 3 [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] (wordOf 2 (randomStack 3 9))) = (true, 1)
 
--- Five errors: past the radius, nothing is decoded.
-#guard decodes 2 4 (randomStack 3 7) (corrupt 3 [0, 1, 3, 5, 7] (wordOf 2 (randomStack 3 7))) =
-  (false, 0)
+-- Eleven errors: past the radius, nothing is decoded.
+#guard decodes 2 22 (randomStack 3 9)
+  (corrupt 3 [0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19] (wordOf 2 (randomStack 3 9))) = (false, 0)
+
+-- A word with high parts (`enc(block u) + W_3·H_u`, `deg H_u < 6`), the candidates of level 0's
+-- list at its degree `2^3 + 5`: the decoder lists the stack, its lanes' low parts.
+#guard decodes 2 22 (randomStack 5 9) (corrupt 5 [4, 30] (wordHighOf 2 5 (randomStack 5 9))) =
+  (true, 1)
 
 /-! ## The fast path -/
 
 -- `κ = 2`, `R = 2`: a word without errors.
 #guard fastDecodes 2 (randomStack 2 8) (wordOf 2 (randomStack 2 8))
 
--- An error in column `0`, among the interpolated ones: the fast path finds nothing, the list
--- decoder (at `A = 9`, `9² > (2^2 − 1)·16`) the stack.
+-- An error in column `0`, among the interpolated ones: the fast path finds nothing; at `κ = 3`
+-- the list decoder (at `A = 22`) finds the stack.
 #guard (fastStacks 8 2 fun v ↦ (corrupt 2 [0] (wordOf 2 (randomStack 2 8))).getD v []).isEmpty
-#guard decodes 2 9 (randomStack 2 8) (corrupt 2 [0] (wordOf 2 (randomStack 2 8))) = (true, 1)
+#guard decodes 2 22 (randomStack 2 9) (corrupt 2 [0] (wordOf 2 (randomStack 2 9))) = (true, 1)
 
 -- An error past them: the fast path still finds the stack (it agrees on `15` of `16` columns).
 #guard fastDecodes 2 (randomStack 2 8) (corrupt 2 [13] (wordOf 2 (randomStack 2 8)))
@@ -100,19 +122,19 @@ def fastDecodes {μ : ℕ} (R : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List K)
 
 /-! ## The parameters at the deployed shapes
 
-The Johnson threshold `A`, the multiplicity `m` and the `Y`-degree `ℓ = ⌊(m·A − 1)/(2^κ − 1)⌋` at
-`R = 1`, `μ = 15, …, 28`, and the multiplicities at `R = 2` (computed offline with exact
-integers). -/
+The Johnson threshold `A` at level 0's degree `2^κ + 5`, the multiplicity `m` and the `Y`-degree
+`ℓ = ⌊(m·A − 1)/(2^κ + 5)⌋` at `R = 1`, `μ = 15, …, 28`, and the multiplicities at `R = 2`
+(computed offline with exact integers). -/
 
-#guard johnsonThreshold 15 1 = 738
+#guard johnsonThreshold 15 1 = 742
 #guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 1) =
-  [7, 10, 15, 20, 29, 42, 59, 83, 107, 105, 102, 100, 98, 97]
+  [7, 10, 15, 21, 29, 42, 59, 84, 107, 105, 102, 100, 98, 97]
 #guard (List.range 14).map (fun i ↦
     let p := gsParams (15 + i) 1
-    p.interp.weightedDegreeBound / (2 ^ (9 + i) - 1)) =
-  [10, 14, 21, 28, 41, 59, 83, 117, 151, 148, 144, 141, 138, 137]
+    p.interp.weightedDegreeBound / (2 ^ (9 + i) + 5)) =
+  [10, 14, 21, 29, 41, 59, 83, 118, 151, 148, 144, 141, 138, 137]
 #guard (List.range 14).map (fun i ↦ gsMultiplicity (15 + i) 2) =
-  [9, 13, 19, 27, 39, 55, 77, 77, 76, 74, 73, 71, 70, 69]
+  [10, 14, 19, 28, 39, 55, 78, 77, 76, 74, 73, 71, 70, 69]
 
 /-! ## Merkle inversion -/
 
@@ -135,30 +157,30 @@ def merklize (leaves : Array (List K)) (ht : ℕ) : Digest × List (Bytes × Dig
     level := next
   return (level.getD 0 default, table)
 
-/-- The toy word of `κ = 2`, `R = 2` with two errors, its tree of height `4`, and the table. -/
-def toyWord : Array (List K) := corrupt 4 [3, 9] (wordOf 2 (randomStack 4 8))
+/-- The toy word of `κ = 3`, `R = 2` with two errors, its tree of height `5`, and the table. -/
+def toyWord : Array (List K) := corrupt 4 [3, 9] (wordOf 2 (randomStack 4 9))
 
-def toyTree : Digest × List (Bytes × Digest) := merklize toyWord 4
+def toyTree : Digest × List (Bytes × Digest) := merklize toyWord 5
 
 def toyAnswers (x : Bytes) : Option Digest := (toyTree.2.find? (·.1 == x)).map (·.2)
 
 -- The inversion recovers every leaf.
-#guard committedLeaves toyAnswers (toyTree.2.map (·.1)) toyTree.1 4 64 = toyWord
+#guard committedLeaves toyAnswers (toyTree.2.map (·.1)) toyTree.1 5 64 = toyWord
 
 -- Leaf `0` unanswered: zeros there, the other leaves unchanged.
 #guard
   let keys := toyTree.2.map (·.1) |>.filter (· != (toyWord.getD 0 []).flatMap K.toBytes)
   let answers : Bytes → Option Digest := fun x ↦ if keys.contains x then toyAnswers x else none
-  committedLeaves answers keys toyTree.1 4 64 = toyWord.set! 0 (List.replicate 64 0)
+  committedLeaves answers keys toyTree.1 5 64 = toyWord.set! 0 (List.replicate 64 0)
 
 -- The keys reversed and repeated: the same leaves.
 #guard
   let keys := toyTree.2.map (·.1)
-  committedLeaves toyAnswers (keys.reverse ++ keys) toyTree.1 4 64 = toyWord
+  committedLeaves toyAnswers (keys.reverse ++ keys) toyTree.1 5 64 = toyWord
 
--- The decoder on the inverted word (`A = 9`, two errors).
-#guard decodes 2 9 (randomStack 4 8)
-  (Array.ofFn fun v : Fin 16 ↦ leafAt (committedLeaves toyAnswers (toyTree.2.map (·.1)) toyTree.1 4 64) 4 64 v) =
+-- The decoder on the inverted word (`A = 22`, two errors).
+#guard decodes 2 22 (randomStack 4 9)
+  (Array.ofFn fun v : Fin 32 ↦ leafAt (committedLeaves toyAnswers (toyTree.2.map (·.1)) toyTree.1 5 64) 5 64 v) =
   (true, 1)
 
 end LeanVMTests.Extraction
