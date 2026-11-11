@@ -1,0 +1,18 @@
+{
+  "A execution verify_valid_first_leaf": "289244",
+  "A execution verify_valid_known_answer": "289431",
+  "A execution verify_valid_last_leaf": "289596",
+  "A execution verify_valid_second_tree": "289255",
+  "A transaction verify_valid_first_leaf": "344044",
+  "A transaction verify_valid_known_answer": "344267",
+  "A transaction verify_valid_last_leaf": "344420",
+  "A transaction verify_valid_second_tree": "344007",
+  "B execution verify_valid_first_leaf": "43947",
+  "B execution verify_valid_known_answer": "43902",
+  "B execution verify_valid_last_leaf": "43945",
+  "B execution verify_valid_second_tree": "43972",
+  "B transaction verify_valid_first_leaf": "179096",
+  "B transaction verify_valid_known_answer": "179096",
+  "B transaction verify_valid_last_leaf": "179096",
+  "B transaction verify_valid_second_tree": "179096"
+}
