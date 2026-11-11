@@ -501,7 +501,7 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4655-4659}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4652-4655}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
@@ -525,7 +525,7 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:152-169})
+\paragraph{The outer verifier} (\texttt{EthereumProof::verify}, \texttt{aggregation/proof.rs:149-166})
 additionally checks that the DA digest is that of its root with the root's membership
 challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
 (sorted, no repeats). Of these, \lean{AggregateSound} below
@@ -785,7 +785,7 @@ leaf & $0$ & $\le 2048$ & $0$ & $2048$\\
 any $\mu \in [20,30]$ and $r \in [1,4]$.
 \item \lean{guest_complete_numeric} (\lean{lean_vm}): under hypothesis 1 and \lean{AcceptableChild}
 for every child, at any seed,
-whenever the budget's size is at most $2^{28}$. Evaluating the budget also places under $2^{28}$ a leaf of up to
+whenever the budget's size is at most $2^{28}$, not the $2^{30}$ the verifier admits: no theorem here covers a node whose budget lies between the two. Evaluating the budget also places under $2^{28}$ a leaf of up to
 $2752$ leanXMSS or $1002$ leanSPHINCS signatures (each declared once), and a node holding one DA
 matrix directly with up to $58$ rows. On leanVM's own aggregations of $16$ and $32$ blobs the
 budget's size was the measured committed size, $2^{26.486}$ and $2^{27.482}$ (at leanVM

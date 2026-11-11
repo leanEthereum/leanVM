@@ -78,8 +78,8 @@ def residualMaxLog : ℕ := 5
 `whir_config.rs:60`). -/
 def queryGrindingBits : ℕ := 17
 
-/-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_MU`
-(`pcs.rs:49`; `MIN_STACKED_LOG`, `crates/verifier/src/layout.rs:94`). -/
+/-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_STACKED_LOG`
+(`crates/verifier/src/layout.rs:94`). -/
 def minLogStack : ℕ := 16
 
 /-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs:95`), the

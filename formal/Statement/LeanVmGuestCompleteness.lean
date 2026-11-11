@@ -25,10 +25,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4542`): one for each raw
+/-- **The coverage table's slots** (`n_total`, `lean_ethereum.py:4539`): one for each raw
 signature and each entry of a child's signature lists, every slot written once
-(`lean_ethereum.py:4576-4579`: the writes `:4602, 4607, 4189, 4257`, counted by `written`,
-`:4614-4615, 4640-4641`). -/
+(`lean_ethereum.py:4573-4578`: the writes `:4598, 4603, 4186, 4254`, counted by `written`,
+`:4622-4623, 4648-4649`). -/
 def coverageSlots (witness : NodeWitness) : ℕ :=
   witness.xmssSignatures.length + witness.sphincsSignatures.length +
     (witness.children.map fun child ↦
@@ -42,16 +42,16 @@ counts of `meta` and of a child's lists are at most `coverageSlots`, which `Cove
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4601-4602, 4606-4607`; a
-  child's list by hinted indices, `:4178-4179`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4243-4247, 4301`; the count, `:4641`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4597-4598, 4602-4603`; a
+  child's list by hinted indices, `:4184-4186`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4249-4254, 4309`; the count, `:4649`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4535`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4532`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
 
 /-! ## The guest program's completeness on the covered nodes -/
@@ -90,7 +90,7 @@ nonce within its fuel, a zero challenge where the guest program divides) is boun
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each level's batching challenge `λ`, `lean_ethereum.py:1395, 1741, 1746`), so a zero one makes
+and each level's batching challenge `λ`, `lean_ethereum.py:1393, 1738, 1743`), so a zero one makes
 it reject a child the verifier accepts; the honest child's hypothesis refuses a zero challenge
 anywhere (`VerifierProgram.refusingZeroChallenge`), a slightly stronger one, each challenge being
 zero with probability `2^-192`. -/

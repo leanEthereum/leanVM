@@ -420,11 +420,10 @@ with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the 
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
 (stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program log-sizes at most `30`):
 the first term bounds the list decoder (its `64` lanes' Guruswami–Sudan decoding at the stack's
-worst rate, each lane interpolated by an approximant basis: about `2^80.49` at `μ = 28`, the
-term `2^81` up to `μ = 29`, then `2^82`) and the runs of the
-candidate executions (about `2^65.6`); the second term bounds the transcript's index (about
-`2^14.85` per query and level squared, a level's positions growing by a limb per `64` levels) and
-the committed leaves (`2^30` at most). So, at a stack of `2^29` or less, about `2^81` for at most
+worst rate, each lane interpolated by an approximant basis: the term is `2^81` up to `μ = 29`,
+then `2^82`) and the runs of the candidate executions; the second term bounds the transcript's
+index (per query and level squared, a level's positions growing by a limb per `64` levels) and the
+committed leaves (`2^30` at most). So, at a stack of `2^29` or less, about `2^81` for at most
 `2^50` queries, `2^86.98` for `2^60`, `2^107.76` for `2^80` and `2^157.08` for `2^128` (at a
 stack of `2^30`, about `2^82` for at most `2^50` queries and `2^87.01` for `2^60`): past
 `2^128` from about `2^100` queries, where the soundness bound is still `2^-28` (`statement.tex`,

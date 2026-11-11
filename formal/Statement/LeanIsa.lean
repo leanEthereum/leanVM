@@ -48,8 +48,8 @@ def Opcode.busCode : Opcode → K
   | .jump => addressOfIndex 4
   | .keccak => addressOfIndex 5
 
-/-- The least memory log-size, `2^1` cells, the public input's two (`crates/leanvm_core/src/cpu/mod.rs`,
-`MIN_LOG_MEM`; `crates/verifier/src/layout.rs`, `MIN_LOG_MEMORY`). -/
+/-- The least memory log-size, `2^1` cells, the public input's two (`MIN_LOG_MEMORY`,
+`crates/verifier/src/layout.rs:89`). -/
 def minLogMem : ℕ := 1
 
 /-- The greatest memory log-size, `2^30` cells (`crates/verifier/src/layout.rs`,
@@ -215,7 +215,7 @@ def cellsOfState (s : KeccakState) (odd : Bool) (c : Fin 13) : E :=
 /-- What `KECCAK` checks: the thirteen cells read have no `y²` term, and the first
 `outCells.cellCount` cells written are those cells, in the layout `outOdd`, of Keccak-f[1600] of
 the state the cells read hold in the layout `inOdd`; nothing is asked of a cell past them, which
-the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:940-980`). -/
+the instruction does not write (`crates/leanvm_core/src/cpu/execute.rs:938-978`). -/
 def KeccakCellsRelation (input : Fin 13 → E) (inOdd : Bool) (output : Fin 13 → E) (outOdd : Bool)
     (outCells : KeccakOutputCells) : Prop :=
   (∀ c, IsCanonical128 (input c)) ∧
@@ -283,8 +283,8 @@ return the next registers; `none` if a read or a check fails. A taken `JUMP` mov
 `(d, f)` of `K`, as in the specification and the verifier; the Rust executor also requires both to
 be powers `g^k` with `k < 2^28`, the target inside the bytecode: it finds `k` in its table of powers
 or by a discrete logarithm bounded below `MAX_CELLS = 2^28`, its own address space
-(`crates/leanvm_core/src/cpu/execute.rs:896-939`, `cpu/hints.rs:13, 141-145, 182-207`), and stops
-after `MAX_STEPS` (`10^8`, `execute.rs:155`) steps, which nothing here bounds: those are the
+(`crates/leanvm_core/src/cpu/execute.rs:894-937`, `cpu/hints.rs:12, 140-144, 181-206`), and stops
+after `MAX_STEPS` (`10^8`, `execute.rs:154`) steps, which nothing here bounds: those are the
 executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
@@ -356,7 +356,7 @@ def Registers.final (program : LeanIsaProgram) : Registers K := ⟨program.pcFin
 
 /-- `n` steps from `r`, halting in the final state: `none` if a step fails or the machine halts
 first. The machine halts when both registers are the final state's, checked before each step, as
-the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:511-522`): the last slot reached in
+the Rust's loop does (`crates/leanvm_core/src/cpu/execute.rs:509-520`): the last slot reached in
 another frame executes like any other slot, and a step that falls through it, to
 `g^(2^logSize)`, which is no bytecode address, fails. The specification's loop
 (`doc/leanvm/body/02-vm-specification.tex`, §2) executes an instruction before it checks for the
@@ -474,7 +474,7 @@ def bytecodeWords (program : LeanIsaProgram) : List K :=
     (List.finRange (2 ^ program.logSize)).map fun i ↦ (instructionSlots (program.instructions i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:629-636`; `Digest::halves`,
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:616-623`; `Digest::halves`,
 `crates/verifier/src/hash.rs:110-113`). -/
 def publicInputDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
