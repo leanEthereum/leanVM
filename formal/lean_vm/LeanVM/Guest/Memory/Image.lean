@@ -108,7 +108,7 @@ theorem minLogMem_le_logMem (n : ℕ) : minLogMem ≤ logMem n := le_max_left _ 
 theorem logMem_le_iff {n k : ℕ} : logMem n ≤ k ↔ minLogMem ≤ k ∧ n ≤ 2 ^ k := by
   rw [logMem, max_le_iff, Nat.clog_le_iff_le_pow (by decide)]
 
-theorem logMem_le_maxLogMem {n : ℕ} (h : n ≤ 2 ^ 32) : logMem n ≤ maxLogMem :=
+theorem logMem_le_maxLogMem {n : ℕ} (h : n ≤ 2 ^ 30) : logMem n ≤ maxLogMem :=
   logMem_le_iff.mpr ⟨by decide, h⟩
 
 end
