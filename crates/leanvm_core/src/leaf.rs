@@ -328,17 +328,17 @@ fn padded_products(src: &[F192], dst: &mut [F192]) {
     }
 }
 
-/// Build the three sides' leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
+/// Build the push and pull leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
 /// side's fingerprint weights `w = eq(α⃗, ·)`, followed implicitly by the identity `1`
 /// up to `2^μ`. The row-invariant weights and constant coordinates are folded once
 /// per block into its `const_part`.
 ///
-/// The blocks of one height and row count (a table's push, pull and count blocks,
+/// The blocks of one height and row count (a table's push and pull blocks,
 /// which read the same columns) are built together, a chunk of rows at a time, so a
 /// column is read from memory once however many blocks flush it. Each chunk's
 /// four- and sixteen-tuple products, the GKR's levels two and four, are formed while
 /// it is in cache.
-pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F64]]) -> [gkr::Leaves; 3] {
+pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 2], cols: &[&[F64]]) -> [gkr::Leaves; 2] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
     /// Leaves per task, whatever the group's block count, so that tasks balance.
@@ -348,7 +348,7 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
     const CHUNKED: usize = 4;
 
     let mut blocks: Vec<LeafBlock> = Vec::new();
-    let mut lens = [1usize; 3];
+    let mut lens = [1usize; 2];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
         // `stack_offsets` packs the power-of-two blocks contiguously from zero,
         // largest first, so they tile `0..len`, and the blocks of height `CHUNKED` or
@@ -380,11 +380,11 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
 
     // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
     // without blocks, below) before anything reads it.
-    let mut values: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n) });
+    let mut values: [Vec<F192>; 2] = lens.map(|n| unsafe { gkr::level(n) });
     // SAFETY: the chunks write the products of the tuples inside blocks of height
     // `CHUNKED` or more, and the serial pass below the rest.
-    let mut fours: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
-    let mut sixteens: [Vec<F192>; 3] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
+    let mut fours: [Vec<F192>; 2] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
+    let mut sixteens: [Vec<F192>; 2] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
 
     let mut shapes: Vec<(usize, usize)> = blocks
         .iter()
@@ -458,10 +458,10 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
         padded_products(&v[tail..], &mut fours[side][tail / 4..]);
         padded_products(&fours[side][tail / 4..], &mut sixteens[side][tail / 16..]);
     }
-    let [v0, v1, v2] = values;
-    let [f0, f1, f2] = fours;
-    let [s0, s1, s2] = sixteens;
-    [(0, v0, f0, s0), (1, v1, f1, s1), (2, v2, f2, s2)].map(|(side, values, fours, sixteens)| {
+    let [v0, v1] = values;
+    let [f0, f1] = fours;
+    let [s0, s1] = sixteens;
+    [(0, v0, f0, s0), (1, v1, f1, s1)].map(|(side, values, fours, sixteens)| {
         // The padding rows of the chunked blocks, by offset.
         let mut ones: Vec<_> = blocks
             .iter()
@@ -476,6 +476,46 @@ pub(crate) fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols:
             ones,
         }
     })
+}
+
+/// The count tree's leaves: each count block's column, stacked, its padding rows the identity.
+/// They stay in `K`, as do the levels above them.
+pub(crate) fn build_count_leaves(blocks: &[Block], lay: &Layout, cols: &[&[F64]]) -> gkr::Leaves<F64> {
+    /// Leaves per task.
+    const CHUNK: usize = 1 << 14;
+    let len = blocks.iter().map(|blk| 1usize << blk.kappa).sum::<usize>().max(1);
+    let columns: Vec<(usize, &[F64])> = blocks
+        .iter()
+        .zip(&lay.offsets)
+        .map(|(blk, &offset)| {
+            let [Coord::Col(c)] = blk.coords[..] else {
+                unreachable!("a count block is its count column")
+            };
+            (offset, &cols[c][..blk.rows])
+        })
+        .collect();
+    // SAFETY: each chunk is filled with the identity before its counts are copied in.
+    let mut values: Vec<F64> = unsafe { gkr::level(len) };
+    parallel::chunks_mut(&mut values, CHUNK, |task, out| {
+        let start = task * CHUNK;
+        out.fill(F64::ONE);
+        for &(offset, column) in &columns {
+            let (lo, hi) = (offset.max(start), (offset + column.len()).min(start + out.len()));
+            if lo < hi {
+                out[lo - start..hi - start].copy_from_slice(&column[lo - offset..hi - offset]);
+            }
+        }
+    });
+    let mut ones: Vec<_> = blocks
+        .iter()
+        .zip(&lay.offsets)
+        .filter(|(blk, _)| blk.rows < 1 << blk.kappa)
+        .map(|(blk, &offset)| offset + blk.rows..offset + (1 << blk.kappa))
+        .collect();
+    ones.sort_unstable_by_key(|r| r.start);
+    let mut leaves = gkr::Leaves::new(values);
+    leaves.ones = ones;
+    leaves
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed
@@ -832,25 +872,6 @@ pub(crate) fn prove_balance(
     let beta = ps.sample();
     // The leaves keep the all-one padding implicit; decomposition uses the full logical depth.
     count_lay.mu = push_lay.mu;
-    let leaves = crate::stage!("Bus leaves", || {
-        build_leaves(
-            sides(
-                [push, pull, count],
-                [&push_lay, &pull_lay, &count_lay],
-                &w,
-                &count_w,
-                beta,
-            ),
-            cols,
-        )
-    });
-    // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
-    // block-for-block, count is padded), so every claim lands on ONE point ζ.
-    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_product_triple(leaves, ps));
-
-    // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
-    // every table block becomes a form for the zerocheck instead.
-    let mut claims: Vec<ColumnClaim> = Vec::new();
     let sides = sides(
         [push, pull, count],
         [&push_lay, &pull_lay, &count_lay],
@@ -858,6 +879,20 @@ pub(crate) fn prove_balance(
         &count_w,
         beta,
     );
+    let (leaves, count_leaves) = crate::stage!("Bus leaves", || {
+        let [push_side, pull_side, _] = sides;
+        (
+            build_leaves([push_side, pull_side], cols),
+            build_count_leaves(count, &count_lay, cols),
+        )
+    });
+    // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
+    // block-for-block, count is padded), so every claim lands on ONE point ζ.
+    let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_product_triple(leaves, count_leaves, ps));
+
+    // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
+    // every table block becomes a form for the zerocheck instead.
+    let mut claims: Vec<ColumnClaim> = Vec::new();
     // Each table's columns at ζ[..τ], computed once and shared by the three sides
     // (a form's linear part factors through them). Nothing here travels, neither the
     // evaluations nor any total: the verifier derives each side's table share as `Ṽ₀(ζ)` less the
@@ -1096,7 +1131,8 @@ mod tests {
         );
         let want: [Vec<F192>; 3] = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, w, beta));
 
-        let built = build_leaves(sides, &cols);
+        let [push_side, pull_side, _] = sides;
+        let built = build_leaves([push_side, pull_side], &cols);
         for (got, want) in built.iter().zip(&want) {
             let reference = Leaves::new(want.clone());
             assert_eq!(
@@ -1111,14 +1147,33 @@ mod tests {
             );
         }
         assert!(built.iter().all(|leaves| !leaves.ones.is_empty()));
+        let as_k = |v: &[F192]| -> Vec<F64> { v.iter().map(|x| x.as_base().unwrap()).collect() };
+        let count_built = build_count_leaves(&count, &lays[2], &cols);
+        let count_reference = Leaves::new(as_k(&want[2]));
+        assert_eq!(
+            (&count_built.values, &count_built.fours, &count_built.sixteens),
+            (
+                &count_reference.values,
+                &count_reference.fours,
+                &count_reference.sixteens
+            )
+        );
+        assert!(!count_built.ones.is_empty());
+        assert!(
+            count_built
+                .ones
+                .iter()
+                .flat_map(Clone::clone)
+                .all(|i| count_built.values[i] == F64::ONE)
+        );
         // The GKR wants its first two products equal, so each side is paired with itself.
-        let reference = want.map(Leaves::new);
+        let reference = [Leaves::new(want[0].clone()), Leaves::new(want[1].clone())];
         for side in [0, 1] {
-            let pick = |l: &[Leaves; 3]| [l[side].clone(), l[side].clone(), l[2].clone()];
+            let pick = |l: &[Leaves; 2]| [l[side].clone(), l[side].clone()];
             let mut proofs = [ProverState::from_label(b"leaves"), ProverState::from_label(b"leaves")];
             let [ps0, ps1] = &mut proofs;
-            let planned = prove_product_triple(pick(&built), ps0);
-            let reference = prove_product_triple(pick(&reference), ps1);
+            let planned = prove_product_triple(pick(&built), count_built.clone(), ps0);
+            let reference = prove_product_triple(pick(&reference), count_reference.clone(), ps1);
             assert_eq!((planned.point, planned.values), (reference.point, reference.values));
             let [a, b] = proofs.map(|ps| ps.into_proof().stream);
             assert_eq!(a, b);
