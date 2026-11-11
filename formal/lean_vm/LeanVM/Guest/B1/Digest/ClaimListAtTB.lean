@@ -48,7 +48,7 @@ def clB (fs : String → ℕ) (SB SK : String → ℕ) (n : ℕ) : ℕ :=
 
 /-- `list_split` within its static bound. -/
 theorem list_split_completeAtDTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {a b c : ℕ}
-    (hκ : 16 ≤ κ) (ha : a < maxKeys) (hb : b < bigGroups) (hc : c < claimGroup) {Bls : ℕ}
+    (hκ : 20 ≤ κ) (ha : a < bigFramesCap) (hb : b < bigGroups) (hc : c < claimGroup) {Bls : ℕ}
     (hT : TotalLe coreProgram fs "list_split" (fun _ => Bls)) :
     CompleteAtDTB fs cert κ "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
       (Returns [gen ^ a, gen ^ b, gen ^ c]) (fun _ => True) Bls :=
@@ -64,11 +64,11 @@ theorem list_split_completeAtDTB (fs : String → ℕ) (cert : String → V → 
       (list_split_complete' rd (hl.mono hκ) _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)
 
 set_option maxRecDepth 20000 in
-/-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^16`
+/-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^20`
 canonical claims' cells at `g^eP` among the caller's words, its chain buffer after its frame
 holding the states after each frame; it returns their digest's cells. -/
 theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
-    {eP n : ℕ} {cells : List E} (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
+    {eP n : ℕ} {cells : List E} (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hc : AllCanonical cells) (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells)
     (hLr : ∀ k < cells.length, RegionL Lin (eP + k)) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
@@ -77,12 +77,12 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     (hL16 : TotalLeOn coreProgram fs "__loop16" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
-    CompleteAtDTB fs cert 16 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
+    CompleteAtDTB fs cert 20 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
       (Returns (digestCells (keccak256 (cellsBytes cells))))
       (NodeHonest coreProgram "claim_list_digest" (clQ n) (clCalls n) (clBufs n) clTs)
       (clB fs SB SK n) := by
   intro fp
-  simp only [claimBig, maxKeys] at hn
+  simp only [claimBig, bigFramesCap] at hn
   have mH : ∀ s ∈ clHead, isAtomS s = true := by decide
   have mTl : ∀ s ∈ clTail, isAtomS s = true := by decide
   rcases Nat.eq_zero_or_pos n with rfl | hn0
@@ -173,7 +173,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
     set b := n % 136 / 17 with hbdef
     set r := n % 17 with hrdef
     have hnm : n = 136 * a + 17 * b + r := by omega
-    have ha16 : a < 65536 := by omega
+    have ha20 : a < 1048576 := by omega
     have hb8 : b < 8 := by omega
     have hr17 : r < 17 := Nat.mod_lt _ (by norm_num)
     set b0 := fp + fs "claim_list_digest" with hb0
@@ -196,13 +196,13 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
           Lin ++ Own, Returns (digestCells D)⟩]
     set Bs : List ℕ := [SB "list_split", a * iterK fs SK "__loop15" + fs "__loop15",
       b * iterK fs SK "__loop16" + fs "__loop16", SB clNames[r]!] with hBs
-    have hokB : KidsDTB fs cert 16 ks clTs Bs := by
+    have hokB : KidsDTB fs cert 20 ks clTs Bs := by
       refine ⟨fun _ => ?_, fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
       · have := list_split_completeAtDTB fs cert (a := a) (b := b) (c := r) le_rfl
-          (by simp [maxKeys]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega) hLS
+          (by simp [bigFramesCap]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega) hLS
         rwa [show claimBig * a + claimGroup * b + r = n by simp [claimBig, claimGroup]; omega] at this
       · simp only [decide_eq_true_eq] at ht
-        refine (completeAt_of_rel_pureBat big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 16
+        refine (completeAt_of_rel_pureBat big_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
           (B := a * iterK fs SK "__loop15" + fs "__loop15") (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
@@ -211,7 +211,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         · have := hL15 rd t _ _ hn (loopPre_gen (m := a) (by omega) (by omega) _) hv hb
           simpa [logG_gen_pow (show a < 2 ^ 64 - 1 by omega)] using this
       · simp only [decide_eq_true_eq] at ht
-        refine (completeAt_of_rel_pureBat grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 16
+        refine (completeAt_of_rel_pureBat grp_pure (List.mem_singleton_self _) (fun rd hm => ?_) 20
           (B := b * iterK fs SK "__loop16" + fs "__loop16") (fun rd t hn hv hb => ?_)).toDTB
         · have hr := hLe rd (memL_append.mp hm).1
           have hmem := claimChainMem_of_reads hl hr (hmOwn rd (memL_append.mp hm).2)
@@ -220,9 +220,9 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         · have := hL16 rd t _ _ hn (loopPre_gen (m := b) (by omega) (by omega) _) hv hb
           simpa [logG_gen_pow (show b < 2 ^ 64 - 1 by omega)] using this
       · have hT := hCL r hr17
-        show CompleteAtDTB fs cert 16 clNames[r]! (Lin ++ Own) _ _ _ (SB clNames[r]!)
+        show CompleteAtDTB fs cert 20 clNames[r]! (Lin ++ Own) _ _ _ (SB clNames[r]!)
         rw [clNames_get hr17] at hT ⊢
-        refine (completeAt_of_rel_pureB (cl_pure hr17) (List.mem_singleton_self _) (fun rd hm => ?_) 16
+        refine (completeAt_of_rel_pureB (cl_pure hr17) (List.mem_singleton_self _) (fun rd hm => ?_) 20
           (B := fun _ => SB (clNames.getD r "")) hT).toDTB
         have hr := hLe rd (memL_append.mp hm).1
         have hS := state_of_reads (hmOwn rd (memL_append.mp hm).2) (le_refl (a + b))
@@ -236,7 +236,7 @@ theorem claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → 
         rw [show 544 * a + 68 * b = 68 * (8 * a + b) by ring]
         exact this
     obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
-      kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 ks clTs Bs hokB (b0 + 13 * (a + b + 1))
+      kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 20 ks clTs Bs hokB (b0 + 13 * (a + b + 1))
     have hl0 : outs.length = 4 := hoo.length
     obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
     obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1

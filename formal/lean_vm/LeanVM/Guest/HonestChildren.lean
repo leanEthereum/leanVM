@@ -64,7 +64,7 @@ theorem acceptableChildren_of_honest {statement : NodeStatement} {witness : Node
 
 /-- **Every covered node whose children carry honest proofs has a valid execution of the guest
 program** (`GuestCompleteOnHonestChildren`): `guest_complete_covered`'s execution, of committed
-size at most `2^32`. -/
+size at most `2^30`. -/
 theorem guest_complete_on_honest_children : GuestCompleteOnHonestChildren := by
   intro statement witness hRelation hLimits hCovered hHonest
   exact Budget.guest_complete_covered (deployedSeed guestProgram) statement witness hRelation

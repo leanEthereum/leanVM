@@ -110,7 +110,7 @@ theorem mainGoalStB {bytecode : List K} (hR : NodeRelation bytecode seed s w)
       (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _) rfl hlen)
 
 /-- **`__loop2` on an honest run.** -/
-theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop2" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop2" + fs "__loop2")) :
@@ -118,14 +118,14 @@ theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl
+  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.toDeployedLimits
   have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
   have h := rawX_completeAtB fs cert hc (rawXD fs fp hn (hRawX s w)[0]) (by omega) (by omega) hT 0 hpos
   rw [pow_zero] at h
   exact h
 
 /-- **`__loop3` on an honest run.** -/
-theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.SphincsCompleteSpecs) {SK : String → ℕ}
     (hT : TotalLeOn coreProgram fs "__loop3" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop3" + fs "__loop3")) :
@@ -133,7 +133,7 @@ theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl
+  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.toDeployedLimits
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAtB fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) hT 0 hpos
   rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h

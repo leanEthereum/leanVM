@@ -54,17 +54,17 @@ theorem mainComplete_of_bounds (fs : String → ℕ) (cert : String → V → �
     (cnt : Tree → Opcode → ℕ) (b : Budget)
     (T : Digest → NodeStatement → NodeWitness → Reader → Tree → Prop) (Bm : Digest → NodeStatement → NodeWitness → ℕ)
     (hfs : 2 ≤ fs "main")
-    (hmain : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w →
+    (hmain : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bm seed s w ∧ Within L 0 n ∧ (∀ q ∈ L, fs "main" ≤ q.1) ∧
         DisjL L ∧ ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →
           LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
           LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
           RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 n "main" [] []
             (T seed s w rd))
-    (hcnt : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
+    (hcnt : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ∀ (rd : Reader) (t : Tree), T seed s w rd t → t.Valid coreProgram rd [] [] →
         t.BufsOk coreProgram → ∀ op, cnt t op ≤ (b.instrs op).eval (work s w))
-    (hwords : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
+    (hwords : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       Bm seed s w ≤ b.words.eval (work s w)) :
     MainComplete fs cert cnt b := by
   intro seed s w hrel hlim hok hbs

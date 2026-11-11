@@ -121,8 +121,8 @@ theorem hW_eq (c : ℕ) : hW s w c = (hRawX s w).length + (hRawS s w).length +
 theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = l.length := by simp
 
 /-- **After the last child, the running count is the coverage table's size.** -/
-theorem hW_total (hl : DeployedLimits s w) : hW s w w.children.length = planSlots s w := by
-  rw [hW_eq, List.take_length, coverage_made hl, length_made, length_made]
+theorem hW_total (hl : GuestLimits s w) : hW s w w.children.length = planSlots s w := by
+  rw [hW_eq, List.take_length, coverage_made hl.toDeployedLimits, length_made, length_made]
   simp only [hRawX, hRawS, length_raw, List.map_map]
   simp only [Function.comp_def]
   omega
@@ -214,15 +214,15 @@ theorem readsAt_digests {rd : Reader} {p : E} {L : List Digest}
   exact h.2.1
 
 /-- **`main`'s honest counts are within its bounds**, under the deployed limits. -/
-theorem hData_bounds (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) :
+theorem hData_bounds (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) :
     MainBounds (2 ^ 20) ((hData seed s w).toIn fs fp) := by
   have hc := hl.planSlotsBelow2Pow20
   rw [coverage_eq] at hc
   have hx : w.xmssSignatures.length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
-    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl)
+    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl.toDeployedLimits)
   have hs : w.sphincsSignatures.length ≤
       (s.claims.sphincs ++ (sPlan s w).duplicates).length :=
-    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl)
+    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl.toDeployedLimits)
   simp only [List.length_append] at hc hx hs
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.atMostSixteenChildren, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
   · show s.claims.xmss.length < 2 ^ 20; omega
@@ -262,7 +262,7 @@ theorem mem_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} (hlen :
 
 /-- **`main`'s header-free reads hold on a memory holding its honest buffers.** -/
 theorem hMainMem (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
-    (hf : FreshShaped w) (hl : DeployedLimits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
+    (hf : FreshShaped w) (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) (rd : Reader)
     (hM : B1.Main.MemL rd (bufL (fp + fs "main") (mSizes (hData seed s w)) (hOwn seed s w)))
     (h0 : LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1)
     (h1 : LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2) :

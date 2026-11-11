@@ -43,7 +43,7 @@ theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytec
 
 /-- **`main`'s callees on the honest run**, but the children's loop and the aggregation. -/
 theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : GuestLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs)
     (hdv : MainGoalDv fs cert fp seed s w) (hl5 : MainGoalL5 fs cert fp seed s w)
     (hag : MainGoalAg fs cert fp seed s w) : MainGoals fs cert fp seed s w where

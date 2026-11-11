@@ -29,7 +29,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits ChildrenOk)
+open LeanVM.Guest (GuestLimits ChildrenOk)
 open LeanVM.Guest.B1 (CompleteAtDTB Returns log2Lin)
 open LeanVM.Guest.B1.VerifySub (VsWords vsBoundAt vsTs VkCompleteAtB verify_sub_completeBT)
 

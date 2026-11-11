@@ -131,7 +131,7 @@ variable {bytecode : List K}
 /-- **`main` at `fp` on the honest run within its words**: its size at most `mainBH`, its
 callees' trees satisfying `p`. -/
 theorem main_honest_relAtInTB {SB SK : String → ℕ} {p : MainPreds} {b : MainBs}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hg : MainStaticGoalsB fs cert fp seed s w SB SK) (hT : MainGoalsTB fs cert fp seed s w p b) :
     ∃ (n : ℕ) (L : B1.Main.Layout),
       n ≤ mainBH fs SB SK (hData seed s w) (hm fs fp seed s w) (hLmain fs fp seed s w) b ∧
@@ -163,7 +163,7 @@ structure MainStaticsMain (fs : String → ℕ) (SB SK : String → ℕ) : Prop 
 
 /-- **`main`'s static callees on the honest run, within their bounds.** -/
 theorem mainStaticGoalsB_of {SB SK : String → ℕ} (hbl : bytecode.length = 2 ^ 23)
-    (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs) (hS : MainStaticsMain fs SB SK) :
     MainStaticGoalsB fs cert fp seed s w SB SK := by

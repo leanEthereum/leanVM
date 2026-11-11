@@ -27,7 +27,7 @@ open LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds regionL_of_mem limb0_gen_pow_mul exists_of_length_succ
   fn_name_of_find)
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtDTB KidsDTB kidsBoundL Returns Kid OutsOk CallsMatch RegionsOk outRegion
@@ -387,7 +387,7 @@ theorem mainGoalL5TB (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
-    (hrel : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hrel : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv)
     (hX : ChildListGoalsTB fs cert fp seed s w Pxs Pss Bxs Bss) :
     MainGoalL5TB fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) (l5B fs SB Bxs Bss Bv w) := by

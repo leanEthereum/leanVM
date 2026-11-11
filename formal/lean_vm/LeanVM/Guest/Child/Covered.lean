@@ -226,6 +226,7 @@ theorem coveredW_of {s : NodeStatement} {w : NodeWitness} (hlim : DeployedLimits
 /-- **Every covered node has a valid execution of the guest.** -/
 theorem guest_complete_covered : GuestCompleteCovered := by
   intro seed s w hrel hlim hok hcov
+  have hgl := GuestLimits.of_coveredNode hlim hcov
   replace hcov := coveredW_of hlim hcov
   have hlen : (work s w).childShapes.length = (work s w).children := by simp [work]
   have hch : (work s w).children ≤ 16 := by simpa [work] using hlim.atMostSixteenChildren
@@ -247,7 +248,7 @@ theorem guest_complete_covered : GuestCompleteCovered := by
     simp only [work, List.length_eq_zero_iff] at h0 ⊢
     simp [h0]
   suffices h : (deployedBudget deployedBvAt).size (work s w) ≤ 2 ^ 28 by
-    obtain ⟨t, hv, hle⟩ := guest_complete_numeric seed s w hrel hlim hok h
+    obtain ⟨t, hv, hle⟩ := guest_complete_numeric seed s w hrel hgl hok h
     exact ⟨t, hv, hle.trans (by norm_num)⟩
   rcases hcov with ⟨hraw, hd, hdecl, hcov, hcc⟩ | ⟨h0, hd, hraw, hdecl, hcov⟩ |
     ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ | ⟨hk, hraw, hd, hdecl, hcov, hcc⟩ |

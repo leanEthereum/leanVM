@@ -16,7 +16,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.B1 (CompleteAtDT CompleteAtDTB CompleteAtD Returns bufL)
 
 @[expose] public section
@@ -36,7 +36,7 @@ theorem mainGoalAgTB (cert : String → V → ℕ) (SB SK : String → ℕ)
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23"))
     {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
+    (hl : GuestLimits s w) : (hm fs fp seed s w).nc ≠ 0 →
       CompleteAtDTB fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)
         [gen ^ (hm fs fp seed s w).nc, (hm fs fp seed s w).a394, (hm fs fp seed s w).a400,
           (hm fs fp seed s w).a406, (hm fs fp seed s w).a417] (Returns [])

@@ -80,7 +80,7 @@ its callees' completeness on the run: a layout `L` within `[fp, fp + n)`, pairwi
 above `main`'s frame, containing `main`'s honest words, on every memory holding which and the statement's digest at
 words `0`, `1` `main` holds by its node at `fp`, at a valuation with the honest values. -/
 theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
+    (hl : GuestLimits s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
       ∀ rd, LowDef 20 rd → B1.Main.MemL rd L →

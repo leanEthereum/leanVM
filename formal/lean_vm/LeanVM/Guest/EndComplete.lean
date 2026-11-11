@@ -45,7 +45,7 @@ on every memory of `2^logMem N` words holding which with the statement's digest 
 placed at `0`, of `N` words, loading from its own data or its header, within the budget's
 instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 30 ∧ N ≤ b.words.eval (work s w) ∧
       ∀ rd, LowDef (logMem N) rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
@@ -90,7 +90,7 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by

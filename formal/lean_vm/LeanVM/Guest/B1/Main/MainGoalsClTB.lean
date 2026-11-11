@@ -60,7 +60,7 @@ theorem MainGoalClSTB.toT {SB SK : String → ℕ} (h : MainGoalClSTB fs cert fp
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape, within
 `clB`.** -/
-theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
+theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
@@ -68,10 +68,10 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClXTB fs cert fp seed s w SB SK := by
-  have hn : s.claims.xmss.length < claimBig * maxKeys := by
+  have hn : s.claims.xmss.length < claimBig * bigFramesCap := by
     have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 0 [] =
       s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
@@ -98,7 +98,7 @@ theorem mainGoalClXTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
 
 /-- **`claim_list_digest` on the leanSPHINCS table's declared claims, by a tree of honest shape,
 within `clB`.** -/
-theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
+theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split"))
     (hL15 : TotalLeOn coreProgram fs "__loop15" LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop15" + fs "__loop15"))
@@ -106,10 +106,10 @@ theorem mainGoalClSTB (hL : DeployedLimits s w) {SB SK : String → ℕ}
       (fun a => logG (a.getD 1 0) * iterK fs SK "__loop16" + fs "__loop16"))
     (hCL : ∀ j < 17, TotalLe coreProgram fs clNames[j]! (fun _ => SB clNames[j]!)) :
     MainGoalClSTB fs cert fp seed s w SB SK := by
-  have hn : s.claims.sphincs.length < claimBig * maxKeys := by
+  have hn : s.claims.sphincs.length < claimBig * bigFramesCap := by
     have := hL.planSlotsBelow2Pow20
     simp only [Coverage.planSlots] at this
-    simp only [claimBig, maxKeys]
+    simp only [claimBig, bigFramesCap]
     omega
   have e : (hOwn seed s w).getD 1 [] =
       s.claims.sphincs.flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2) ++

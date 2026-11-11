@@ -21,7 +21,7 @@ The honest memory is built as the ISA's write-once memory is filled: a list of w
 
 `logMem n` is the log of the memory size the prover commits for `n` allocated words, at least
 `20` (`2^20` words, the padding the committed size takes, `Complete.padLog`, and the bound on the
-counts the guest checks against the memory, `DeployedLimits`); it is at most `maxLogMem` for
+counts the guest checks against the memory, `GuestLimits`); it is at most `maxLogMem` for
 `n ≤ 2^30`, and below any `k ≥ 20` with `n ≤ 2^k`, which is how a bound on the allocation bounds
 `Execution.committedSize`.
 -/

@@ -109,7 +109,7 @@ theorem mainKidsDT {p : MainPreds} (hg : MainGoals fs cert fp seed s w)
 
 /-- **`main` at `fp` on the honest run, its callees' trees satisfying `p`.** -/
 theorem main_honest_relAtInT {p : MainPreds} (hbl : bytecode.length = 2 ^ 23)
-    (hr : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+    (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs)
     (hT : MainGoalsT fs cert fp seed s w p) :

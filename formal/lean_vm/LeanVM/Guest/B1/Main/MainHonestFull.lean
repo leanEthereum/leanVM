@@ -41,7 +41,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 loop's iterations `L5Hinted w Pxs Pss Pvs` (each child's claim lists' digests' and `verify_sub`'s
 trees satisfying `Pxs c`, `Pss c`, `Pvs c`). -/
 theorem main_honest_fullT (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : GuestLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs)
     {Px Ps Pd Pa : Tree → Prop} {Pxs Pss Pvs : ℕ → Tree → Prop}
     (hV : VerifySubGoalsT fs cert fp seed s w Pvs) (hX : ChildListGoalsT fs cert fp seed s w Pxs Pss)

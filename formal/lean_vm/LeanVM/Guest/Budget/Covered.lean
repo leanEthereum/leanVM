@@ -154,7 +154,7 @@ theorem guest_complete_recursion_acceptable (seed : Digest) (s : NodeStatement) 
     ∃ t : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
       t.committedSize ≤ 2 ^ 28 := by
-  refine guest_complete_numeric seed s w hrel hlim hok (recursion_size_le _ hx hs
+  refine guest_complete_numeric seed s w hrel ⟨hlim, by omega⟩ hok (recursion_size_le _ hx hs
     (by simp [work, hd]) (by simp [work, hd]) (by simp [work, hd]) hdecl
     ((B1.Main.planSlots_eq hlim).trans_le hcov) hcc ?_ ?_)
   · simpa [work] using hlim.atMostSixteenChildren
@@ -175,7 +175,7 @@ theorem guest_complete_leaf_acceptable (seed : Digest) (s : NodeStatement) (w : 
     ∃ t : Execution guestProgram,
       ValidExecution guestProgram (PublicInput.ofDigest (statementDigest seed s)) t ∧
       t.committedSize ≤ 2 ^ 28 := by
-  refine guest_complete_numeric seed s w hrel hlim hok (leaf_size_le _ hxs (by simp [work, hd])
+  refine guest_complete_numeric seed s w hrel ⟨hlim, by omega⟩ hok (leaf_size_le _ hxs (by simp [work, hd])
     (by simp [work, hd]) (by simp [work, hd]) hdecl ((B1.Main.planSlots_eq hlim).trans_le hcov) ?_ ?_
     ?_)
   · simp [work, hch]

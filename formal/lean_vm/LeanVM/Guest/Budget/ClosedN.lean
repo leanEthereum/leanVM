@@ -23,7 +23,7 @@ open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
 
 /-- **Completeness within a larger budget**, larger on the nodes the hypotheses admit. -/
 theorem guestComplete_mono {b b' : NodeStatement → NodeWitness → ℕ} (h : End.GuestComplete b)
-    (hle : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
+    (hle : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ChildrenOk bytecode seed w → b s w ≤ b' s w) :
     End.GuestComplete b' :=
   fun seed s w hr hl hok hb => h seed s w hr hl hok ((hle seed s w hr hl hok).trans hb)

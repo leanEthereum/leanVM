@@ -288,7 +288,7 @@ theorem iterSum_getD : ∀ (l : List ℕ) (c : ℕ) (f : ℕ → ℕ),
       simpa using this]
 
 theorem hEx_lt {s : NodeStatement} {w : NodeWitness}
-    (hl : DeployedLimits s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 20 := by
+    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEx w c < 2 ^ 20 := by
   unfold B1.Main.hEx
   by_cases hc : c < w.children.length
   · rw [B1.Main.getD_map_lt _ _ _ hc]
@@ -297,7 +297,7 @@ theorem hEx_lt {s : NodeStatement} {w : NodeWitness}
     norm_num
 
 theorem hEs_lt {s : NodeStatement} {w : NodeWitness}
-    (hl : DeployedLimits s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 20 := by
+    (hl : GuestLimits s w) (c : ℕ) : B1.Main.hEs w c < 2 ^ 20 := by
   unfold B1.Main.hEs
   by_cases hc : c < w.children.length
   · rw [B1.Main.getD_map_lt _ _ _ hc]
@@ -310,7 +310,7 @@ it (`mainPredsH`'s `T5`), each child's `verify_sub` within `vsCnt op` at its ann
 and rate, at most `l5C op` per child, `ccS op` per child's claim and `vsCnt op μ r` per child of
 announced shape `(μ, r)`. -/
 theorem l5_honest_weight_le (op : Opcode) {s : NodeStatement} {w : NodeWitness}
-    {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hl : DeployedLimits s w)
+    {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hl : GuestLimits s w)
     (hPv : ∀ c (hc : c < w.children.length) (rd : Reader) (t : Tree) (args rets : List E),
       Pvs c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
         t.weight (B2C.ωArm B2C.xmssArmC op) ≤

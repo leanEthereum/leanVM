@@ -43,17 +43,18 @@ theorem rc_holds' (hm : Sig.MemOK rd (2 ^ 16)) {k K : ℕ} (hk : k ≤ K) (hK : 
     rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show K - k < 2 ^ 16 by omega)
   exact ⟨t1, t2, h1, by rw [← pow_add]; congr 1; omega, h2⟩
 
-/-- **`list_split` is complete** on a memory defined below `2^16`. -/
-theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (args rets : List E)
+/-- **`list_split` is complete** on a memory defined below `2^20`. -/
+theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 20)) (args rets : List E)
     (h : MeaningListSplitC args rets) : coreProgram.Rel rd "list_split" args rets := by
   match args, h with
   | [ng], h =>
     obtain ⟨a, ha, b, hb, c, hc, hng, hrets⟩ := h
-    simp only [maxKeys, bigGroups, claimGroup, claimBig] at ha hb hc hng
-    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm (k := c) (K := 16) (by omega) (by norm_num)
-    obtain ⟨t5, t6, h5, e3, h6⟩ := rc_holds' hm (k := b) (K := 7) (by omega) (by norm_num)
+    simp only [bigFramesCap, bigGroups, claimGroup, claimBig] at ha hb hc hng
+    have hm16 : Sig.MemOK rd (2 ^ 16) := fun i hi => hm i (lt_of_lt_of_le hi (by norm_num))
+    obtain ⟨t1, t2, h1, e1, h2⟩ := rc_holds' hm16 (k := c) (K := 16) (by omega) (by norm_num)
+    obtain ⟨t5, t6, h5, e3, h6⟩ := rc_holds' hm16 (k := b) (K := 7) (by omega) (by norm_num)
     obtain ⟨t3, h3⟩ : ∃ w, LoadHolds rd (gen ^ a) 0 w := by
-      rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show a < 2 ^ 16 by omega)
+      rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show a < 2 ^ 20 by omega)
     refine (rel_iff_sem find_list_split _ _).mpr ⟨Val.ofArgs [ng, gen ^ a, gen ^ b, gen ^ c,
       word 65536 0 0, gen ^ (16 - c), t1, t2, word 128 0 0, gen ^ (7 - b), t5, t6,
       t3, gen ^ (2 * a), gen ^ (4 * a),

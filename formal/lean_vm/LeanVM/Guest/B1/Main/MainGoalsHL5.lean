@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.Coverage (planSlots)
 open LeanVM.Guest.Hints (claimCells)
 open LeanVM.Guest.Coverage (coveragePlan CoverageRegion)
@@ -163,7 +163,7 @@ variable {fs : String → ℕ} {fp : ℕ} {seed : Digest}
 theorem belowLog_of {o L : ℕ} (h : o < L) (hL : L < 2 ^ 32) : B1.Digest.BelowLog (gen ^ L) o :=
   ⟨by omega, L - o - 1, by omega, by congr 1; omega⟩
 
-theorem cover_bound (hl : DeployedLimits s w) :
+theorem cover_bound (hl : GuestLimits s w) :
     s.claims.xmss.length + (xPlan s w).duplicates.length +
       (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 20 := by
   have hcov := hl.planSlotsBelow2Pow20
@@ -185,7 +185,7 @@ theorem length_daDigests : ((w.children.map (·.statement.claims.daDigest) ++ [h
 /-- **Child `c` is as `__loop4` needs it**, at `main`'s honest words. -/
 theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w)
+    (hl : GuestLimits s w)
     (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 20 "verify_sub" (hLmain fs fp seed s w)
       [(digestHalves (statementDigest seed w.children[c].statement)).1,
         (digestHalves (statementDigest seed w.children[c].statement)).2,
