@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Placement.Common
 /-!
 # `column_selector` (TRIAGE G #68)
 
-`column_selector(offset, sel_eq, sel_g, κ)` (G:3172-3199) hints the `g`-power digits `g^u_k` of
+`column_selector(offset, sel_eq, sel_g, κ)` (G:3158-3185) hints the `g`-power digits `g^u_k` of
 `offset`'s exponent's nibbles `κ / 4 .. 6` (`hint_decompose_digits_exponent`) and, for each
 (`j = κ / 4 + k`, the first `4j + 4 - κ` wide, the others four), range-checks `u_k < 16`, reads
 the nibble's eq weight at `sel_eq·g^u` (offset `64j + 16(w - 1)`, the strided level-`w - 1`

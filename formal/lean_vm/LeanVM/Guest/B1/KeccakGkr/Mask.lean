@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 /-!
 # Polynomials in `s` over the bits
 
-The instance weights of a layer (G:2720-2739) are sums of powers of the challenge `s`, combined at
+The instance weights of a layer (G:2706-2725) are sums of powers of the challenge `s`, combined at
 compile time by `x·` (a product with `s`), `+` and products of such polynomials. A polynomial over `GF(2)` is a bit mask `m`;
 its value at `s` is `pe m s = Σ_b [bit b of m] s^b`, and `+` is `xor` (characteristic two) and `s·`
 a shift (`pe_xor`, `pe_shl`), a product of two a carry-less product (`clmul`, `pe_clmul`).

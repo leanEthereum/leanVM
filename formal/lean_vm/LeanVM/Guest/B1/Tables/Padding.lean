@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.Basic
 /-!
 # `padding_weight` (TRIAGE G #51)
 
-`padding_weight(rows, zeta, tau)` (G:2061-2092, the same source as the BLAKE2s-era guest's) hints
+`padding_weight(rows, zeta, tau)` (G:2047-2078, the same source as the BLAKE2s-era guest's) hints
 the `τ + 1` bits of the word `W = rows + (2^τ - 1)`, pins them Boolean, reconstructs `W` from them
 and checks that the top bit `n_τ` is set only alone: that is `rows = E(n)` for an integer
 `n ≤ 2^τ`, the `τ` low bits being `n`'s complements (`pw_bits`). From the complements it folds
@@ -144,7 +144,7 @@ theorem sum_testBit_gen_pow (W j : ℕ) (hj : j ≤ 64) :
     rw [coordBasis_of_lt (by have := Finset.mem_range.mp hk; omega),
       gen_pow_eq_eOfNat (by have := Finset.mem_range.mp hk; omega)]
 
-/-- **The hinted bits are `n`'s** (G:1579-1606): Boolean `b_k` reconstructing
+/-- **The hinted bits are `n`'s** (G:1574-1597): Boolean `b_k` reconstructing
 `rows + E(2^τ - 1)`, the top one set only with every bit below it, make `rows = E(n)` with
 `n ≤ 2^τ`, `b_k` bit `k` of `pwW τ n`. -/
 theorem pw_bits {τ : ℕ} (hτ : τ < 63) {b : ℕ → E} (hb : ∀ k ≤ τ, b k * b k = b k) {rows : E}
@@ -266,7 +266,7 @@ abbrev pwLead (τ n : ℕ) : E := PadLead τ n
 /-- `rest`: the top bit and the bits below `τ - 1`. -/
 abbrev pwRest (τ n : ℕ) : E := PadRest τ n
 
-/-- **`lead = 1 ∧ rest ≠ 0` certifies the height** (G:1690-1692): for `n ≤ 2^τ`, `τ` is the
+/-- **`lead = 1 ∧ rest ≠ 0` certifies the height** (G:1681-1683): for `n ≤ 2^τ`, `τ` is the
 least height holding `n` rows, `log2Ceil n` (V:695). -/
 theorem lead_rest_iff {τ n : ℕ} (hτ : τ < 64) (hn : n ≤ 2 ^ τ) :
     pwLead τ n = 1 ∧ pwRest τ n ≠ 0 ↔ log2Ceil n = τ := by
@@ -312,7 +312,7 @@ theorem lead_rest_iff {τ n : ℕ} (hτ : τ < 64) (hn : n ≤ 2 ^ τ) :
 
 /-! ## The meaning -/
 
-/-- **`padding_weight(rows, zeta, τ)`** (G:1433-1457; TRIAGE #38): `rows` is a row count
+/-- **`padding_weight(rows, zeta, τ)`** (G:1429-1453; TRIAGE #38): `rows` is a row count
 `n ≤ 2^τ`, the `τ` words `zs` lie at `zeta`, and the function returns `paddingWeight zs n`
 (V:713) with `lead` and `rest` (`lead_rest_iff`). -/
 def MeaningPaddingWeight (τ : ℕ) (rd : Reader) : List E → List E → Prop

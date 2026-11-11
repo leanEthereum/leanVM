@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Gkr.Loop29Complete
 public import LeanVM.Guest.B1.Sumcheck.Gkr
 
 /-!
-# `__loop6`, completely (G:2038-2082)
+# `__loop6`, completely (G:2024-2068)
 
 An iteration at `x = g^j` from the slot of `L = 2j + 2 - sh` (`GkSlot`, the slot's words, nothing
 waiting) runs one step of two levels (`GkStepD`, read back from the walk by `gkrStep_invT`). On a

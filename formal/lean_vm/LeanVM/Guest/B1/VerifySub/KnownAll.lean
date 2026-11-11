@@ -47,7 +47,7 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) :=
   vsKnown_of L h16 h32 (Tables.certify_placement_holds h32 L) σ hexp h
 
-/-- **`dims_g`'s first word** (the memory's log, G:3594-3597): the body's first `333` statements
+/-- **`dims_g`'s first word** (the memory's log, G:3580-3583): the body's first `333` statements
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`. -/
 theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val)

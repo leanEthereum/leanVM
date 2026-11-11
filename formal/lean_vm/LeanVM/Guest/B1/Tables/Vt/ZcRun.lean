@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Rounds
 public import LeanVM.Guest.B1.Eq.EqPrefix
 
 /-!
-# The table sumcheck (G:2587-2628)
+# The table sumcheck (G:2573-2614)
 
 `vt_xi`: `ξ = zc_xi` is squeezed with the bytecode's value waiting (`vtXiFs`). `vt_zc_run`: with
 the sides' totals `T_s`, the target `ξ²·T_0 + ξ³·T_1 + ξ⁴·T_2` runs `n` plain rounds from the sponge

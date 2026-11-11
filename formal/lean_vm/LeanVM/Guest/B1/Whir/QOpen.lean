@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Opening.QueriesW
 public import LeanVM.Protocol.WithHash
 
 /-!
-# The queries' openings (G:1649-1653, 1710-1717)
+# The queries' openings (G:1640-1644, 1697-1704)
 
 `cap_climb_w`: up the cap by the siblings `capSibsOf` reads off the cap's cells, a node whose cells
 the cap check (`verify_merkle_cap`) holds and whose parent is flagged reaches the root.

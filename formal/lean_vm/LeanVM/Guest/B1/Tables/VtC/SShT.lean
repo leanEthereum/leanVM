@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SShared
 
 /-!
-# The shared selector tables, honestly (G:2192-2202)
+# The shared selector tables, honestly (G:2178-2188)
 
 `vtc_shptr`: table `t`'s nibble tables' pointers, `shared_eq·g^(288 t)` and `shared_g·g^(144 t)`.
 `vtc_sh{t}`: with `kappa_base[2 + t] = g^τ`, `g_bus_mu = g^μ`, the bus point at `zeta`, `1 + ζ` at

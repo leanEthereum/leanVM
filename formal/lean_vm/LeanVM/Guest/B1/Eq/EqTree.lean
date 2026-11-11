@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Common.Atoms
 `eqtree(point_ptr, out, n)` writes `1 + r0`, `r0` at `out[0]`, `out[1]`, then for each coordinate
 `t = 1 .. n-1` doubles the previous level (the `2^t` words at `out[2^t - 2 ..]`) by `1 + r_t` and
 `r_t` into the next (`out[2^(t+1) - 2 ..]`). Its expansion from the value `b`, the point read at
-`p` from the offset `po` (`verify_keccak`, G:2971-3040, numbers it):
+`p` from the offset `po` (`verify_keccak`, G:2957-3026, numbers it):
 
 * `eqtreeT p o po b n`: `r0` at `b`, `1 + r0` at `b + 2`; level `t` from `eqtreeS b t`
   (`r_t`, `1 + r_t`, then five values per word of the previous level).

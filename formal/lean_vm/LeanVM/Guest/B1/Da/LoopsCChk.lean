@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.LoopsCChk
 
   The bodies of `da_verify`'s loops and of its columns' row loop, as blocks then the closing
-  tail call (G:4333-4352, G:4375-4382), by kernel evaluation.
+  tail call (G:4319-4338, G:4361-4368), by kernel evaluation.
 -/
 
 module

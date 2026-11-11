@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Fs
 
 /-!
-# The final point's copy (`__loop7`, G:2083-2085)
+# The final point's copy (`__loop7`, G:2069-2071)
 
 `__loop7(x, g^depth, zeta, row)` asserts `zeta[x] = row[x]` and runs on to `x·g` below the bound:
 from `x = 1`, the point of `depth` coordinates at `row` is at `zeta` (`l8_loop`).

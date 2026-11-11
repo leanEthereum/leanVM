@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.OffLoopsComplete
 
-  `da_column_offsets`' seven doubling loops, completely (G:4471-4475): each block holds on the words
+  `da_column_offsets`' seven doubling loops, completely (G:4457-4461): each block holds on the words
   an honest run leaves in memory, so each loop runs to its end.
 -/
 

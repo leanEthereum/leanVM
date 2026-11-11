@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Opening.Residual
 public import LeanVM.Guest.B1.Opening.NovelSum
 
 /-!
-# `residual_query` inline (G:1500-1517)
+# `residual_query` inline (G:1496-1513)
 
 `osResQuery pos bd ro hp ho vo ncols nhs hbits k` (`Template.lean`) walks the chain
 `chain_0 = x` (the position), `chain_(t+1) = chain_t·(chain_t + VALS[vo + t])` (`osVals vo n`, the

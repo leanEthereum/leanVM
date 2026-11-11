@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Main.Loops
 
 /-!
-# `da_row_shape` (G:4357-4366)
+# `da_row_shape` (G:4343-4352)
 
 `da_row_shape(n_blob_g, g_log_pad, g_squares)` (`core28`): `n_blob_g ≠ 1` (an inverse),
 `n_blob_g = g^r` with `r ≤ 1024`, `g_log_pad = g^L` with `L ≤ 10` (range checks against

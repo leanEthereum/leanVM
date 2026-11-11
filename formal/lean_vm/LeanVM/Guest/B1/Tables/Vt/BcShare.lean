@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Protocol.EndToEnd.Complete.BusShare
 
 /-!
-# The bytecode share (G:2463-2510)
+# The bytecode share (G:2449-2496)
 
 After the framework's four words, the share `S` and the first round's `c0`, `c2` ride the stream
 (`vt_fresh`); the first round's challenge is squeezed after them, its claim

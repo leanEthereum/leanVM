@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmClaims
 public import LeanVM.Guest.B1.Tables.Vt.BcShare
 
 /-!
-# `verify_tables_holds` (G:2258-2735)
+# `verify_tables_holds` (G:2244-2721)
 
 For a bytecode of `2^23` words and a memory image of at most `2^32` words: the row counts are the
 ones `table_rows` holds, their heights the ones `dims_g` holds; `bc_point` holds the slot
@@ -37,7 +37,7 @@ section
 variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
-/-- **`verify_tables` is sound** (G:2258-2735; TRIAGE #52), for a bytecode of `2^23` words. -/
+/-- **`verify_tables` is sound** (G:2244-2721; TRIAGE #52), for a bytecode of `2^23` words. -/
 theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     verify_tables_Spec bc Lm.read := by
   intro pi lm weights point values args rets hpre hrel

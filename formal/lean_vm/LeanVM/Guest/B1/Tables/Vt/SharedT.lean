@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Base
 
 /-!
-# The shared tables' statements (G:2359-2369)
+# The shared tables' statements (G:2345-2355)
 
 `vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
 `27 + t`), its range check below `g^34`, and its `shared_selector_tables` call at

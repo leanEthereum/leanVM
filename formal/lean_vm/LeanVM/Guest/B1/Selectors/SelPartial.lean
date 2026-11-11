@@ -12,9 +12,9 @@ public import LeanVM.Guest.B1.Selectors.SelectorTables
 /-!
 # `sel_partial_nibble` (TRIAGE G #45-47)
 
-`sel_partial_nibble(eq_out, g_out, z, z1, gs, w)` (G:1974-1978) runs, for `w > 0`, the inline
-`sel_eq_nibble` (G:1942-1956: the eq levels over `z[0 .. w]`, level `t` from level `t - 1`, entry
-`i` times `z1[t]`, then times `z[t]`, stored at `eq_out[0 ..]`) and `sel_g_nibble` (G:1965-1976:
+`sel_partial_nibble(eq_out, g_out, z, z1, gs, w)` (G:1960-1964) runs, for `w > 0`, the inline
+`sel_eq_nibble` (G:1928-1942: the eq levels over `z[0 .. w]`, level `t` from level `t - 1`, entry
+`i` times `z1[t]`, then times `z[t]`, stored at `eq_out[0 ..]`) and `sel_g_nibble` (G:1951-1962:
 `vals[2^t + i] = vals[i]·gs[t]`, stored at `g_out[0 ..]`), and returns `0`.
 
 The body of `sel_partial_nibble__L{w}` is `spBody w` (`spFound`, by kernel evaluation): the eq
