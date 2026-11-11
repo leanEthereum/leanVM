@@ -417,7 +417,7 @@ least `1`, so also the most steps it may execute), `2^82 + (N + 2^30)·(D + 2)²
 `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript. `lean_vm`
 proves the compiled extractor's price at most this at every shape the replay admits (stack log-size
 `15` to `28`, rate exponent `1` to `4`, memory and program log-sizes at most `32`): `2^82` bounds
-the list decoder (about `2^81.25`, its `64` lanes' Guruswami–Sudan decoding at the worst shape, each
+the list decoder (about `2^80.93`, its `64` lanes' Guruswami–Sudan decoding at the worst shape, each
 lane interpolated by an approximant basis) and the runs of the candidate executions (about
 `2^65.6`); the second term bounds the transcript's index (about `2^14.85` per query and level
 squared, a level's positions growing by a limb per `64` levels) and the committed leaves (`2^26` at
