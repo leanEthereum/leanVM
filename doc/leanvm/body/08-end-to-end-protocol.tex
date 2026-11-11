@@ -71,7 +71,7 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is the first three lanes of its output, read as an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{KECCAK} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
 
-\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
+\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. A proof of work of $0$ bits is nothing: no nonce, no challenge.
 
 Merkle trees hash with Keccak-256, apart from the sponge.
 

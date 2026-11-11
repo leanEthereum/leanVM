@@ -1642,10 +1642,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
             fs3 = sp[11]
             fs4 = sp[12]
         # The nonce, a raw transport word, is bound by its DS_POW_NONCE absorb above.
-        if LIG_QUERY_GRIND_BITS[ml] != 0:
-            grind_check(word0, LIG_QUERY_GRIND_BITS[ml])
-        else:
-            assert q_nonce == 0
+        grind_check(word0, LIG_QUERY_GRIND_BITS[ml])
 
         fs0, fs1, fs2, fs3, fs4 = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_positions(fs0, fs1, fs2, fs3, fs4, query_positions * GEN ** pos_off, query_win_ptrs * GEN ** pos_off, win_tabs, LIG_SQUEEZES[ml + r * LIG_RATE_STRIDE], LIG_TREE_DEPTH[ml + r * LIG_RATE_STRIDE], LIG_CAP_DEPTH[ml + r * LIG_RATE_STRIDE]))
         sp = fs_cap(fs0, fs1, fs2, fs3, fs4)

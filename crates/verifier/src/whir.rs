@@ -187,11 +187,7 @@ pub fn verify_whir(
     for (level, (&fold_count, &level_rate)) in config.folds.iter().zip(&config.log_inv_rates).enumerate() {
         let mut level_folds = Vec::new();
         for _ in 0..fold_count {
-            // A level whose proximity gap reaches the target alone grinds nothing and sends no nonce.
-            let grinding = config.fold_grinding[level];
-            if grinding > 0 {
-                transcript.grind_check(grinding as u32)?;
-            }
+            transcript.grind_check(config.fold_grinding[level] as u32)?;
             let challenge = transcript.sample();
             folds.push(challenge);
             level_folds.push(challenge);

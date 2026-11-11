@@ -739,6 +739,11 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
                 .unwrap()
                 .to_string(),
         );
+        // The guest reads every level's query nonce, which a grind of no bits would not send.
+        assert!(
+            cands.iter().all(|c| c.query_grinding_bits.iter().all(|&bits| bits > 0)),
+            "a query phase grinds no bits"
+        );
         ps("LIG_QUERY_GRIND_BITS", flat(&|c| c.query_grinding_bits.clone()));
         ps("LIG_FOLD_GRIND_BITS", flat(&|c| c.fold_grinding_bits.clone()));
         ps("LIG_OOD_SAMPLES", flat(&|c| c.ood_samples.clone()));
