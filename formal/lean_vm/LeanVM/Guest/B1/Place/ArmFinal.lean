@@ -151,12 +151,13 @@ theorem open_stacked_completeAtD_of (hH : os_honest_Spec) (hLR : level_residual_
 /-- **`open_stacked` is complete placed within `osBosAt` words**, given also the helpers within
 the bounds of their trees. -/
 theorem open_stacked_completeAtB_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hHB : ∀ fs cert κ, Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → HelperBounds fs cert κ) :
+    (hHB : ∀ fs cert κ, Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → (∀ f, fs f < 2 ^ 32) →
+      HelperBounds fs cert κ) :
     open_stacked_completeAtB_Spec := by
-  intro μ r hμ1 hμ2 hr1 hr4 fs cert κ Bnd hrf hcons hκ hleaf S root target cur tabs xs os w s'
+  intro μ r hμ1 hμ2 hr1 hr4 fs cert κ Bnd hrf hcons hκ hleaf hfs S root target cur tabs xs os w s'
     roots' hrun hnz hcaps Lin hLin
   exact (open_stacked_completeAtO_of (Bd := some Bnd) hH hLR hμ1 hμ2 hr1 hr4 hrf hcons hκ
-    (fun _ h ↦ by cases h; exact hleaf) (fun _ _ ↦ hHB fs cert κ hrf hcons hκ) hrun hnz hcaps
+    (fun _ h ↦ by cases h; exact hleaf) (fun _ _ ↦ hHB fs cert κ hrf hcons hκ hfs) hrun hnz hcaps
     hLin).toB
 
 end

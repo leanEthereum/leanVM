@@ -29,7 +29,7 @@ defined below `2^κ`, `11 ≤ κ` (the grinds' range checks): on an accepting ru
 `whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings agreeing in the
 caps, where every memory holding the caller's words reads `xs` at the cursor and the window tables
 at `tabs`, the arm of `μ` called on the rate's selector is complete placed returning `OsOut μ w`.
-`open_stacked_completeAtB_Spec`: within `osBosAt` words.
+`open_stacked_completeAtB_Spec`: within `osBosAt` words, every frame below `2^32`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -88,6 +88,7 @@ def open_stacked_completeAtB_Spec : Prop :=
   ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd : String → ℕ),
       Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → OsLeafBounds fs Bnd →
+      (∀ f, fs f < 2 ^ 32) →
       ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
         (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
         RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
