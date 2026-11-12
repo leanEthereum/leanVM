@@ -21,9 +21,9 @@ pub mod lean_da {
 
 pub mod lean_xmss {
     pub use signatures::lean_xmss::{
-        Digest, LOG_LIFETIME, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError, LeanXmssSignature,
-        LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE, Seed, key_gen,
-        key_gen_from_seed, sign, verify,
+        MAX_CACHED_BOTTOM_TREES, Digest, LOG_LIFETIME, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError,
+        LeanXmssSignature, LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PublicParam, SEED_LEN, SIG_SIZE,
+        Seed, key_gen, key_gen_from_seed, sign, verify,
     };
 }
 

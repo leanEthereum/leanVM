@@ -5,15 +5,20 @@ fn test_message() -> Message {
     std::array::from_fn(|i| (i * 3 + 7) as u8)
 }
 
-/// A full key: the whole top tree, and signatures in two bottom trees, each with
-/// its own top-layer signature.
+/// A full key: the whole top tree, and signatures in two bottom trees, prepared at
+/// once on two threads, each with its own top-layer signature.
 #[test]
 fn full_key_signs_and_verifies() {
     let (sk, pk) = key_gen_from_seed([1; SEED_LEN]);
     let message = test_message();
+    let other = (7 << LAYER_HEIGHT) + 3;
+    std::thread::scope(|s| {
+        s.spawn(|| sk.prepare(other).unwrap());
+        sk.prepare(5).unwrap();
+    });
     let first = sign(&sk, &message, 5).unwrap();
     verify(&pk, &message, &first).unwrap();
-    let other_tree = sign(&sk, &message, (7 << LAYER_HEIGHT) + 3).unwrap();
+    let other_tree = sign(&sk, &message, other).unwrap();
     verify(&pk, &message, &other_tree).unwrap();
     assert_ne!(first.top(), other_tree.top());
     assert_eq!(sign(&sk, &message, 5).unwrap(), first, "signing is deterministic");
