@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CHonAllocAll
 
-  Every candidate's body allocations.
+  Every arm's body allocations at every rate.
 -/
 
 module
@@ -15,36 +15,53 @@ namespace LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-theorem bodyStatic_all (m : ℕ) (h : m < 28) : BodyStatic (osCfg m) := by
-  interval_cases m
-  · exact bodyStatic_0
-  · exact bodyStatic_1
-  · exact bodyStatic_2
-  · exact bodyStatic_3
-  · exact bodyStatic_4
-  · exact bodyStatic_5
-  · exact bodyStatic_6
-  · exact bodyStatic_7
-  · exact bodyStatic_8
-  · exact bodyStatic_9
-  · exact bodyStatic_10
-  · exact bodyStatic_11
-  · exact bodyStatic_12
-  · exact bodyStatic_13
-  · exact bodyStatic_14
-  · exact bodyStatic_15
-  · exact bodyStatic_16
-  · exact bodyStatic_17
-  · exact bodyStatic_18
-  · exact bodyStatic_19
-  · exact bodyStatic_20
-  · exact bodyStatic_21
-  · exact bodyStatic_22
-  · exact bodyStatic_23
-  · exact bodyStatic_24
-  · exact bodyStatic_25
-  · exact bodyStatic_26
-  · exact bodyStatic_27
+/-- **Every arm at every rate.** -/
+theorem bodyStatic_all (m ri : ℕ) (hm : m < 11) (hr : ri < 4) : BodyStatic (osCfgR m ri) := by
+  interval_cases m <;> interval_cases ri
+  · exact bodyStatic_0_0
+  · exact bodyStatic_0_1
+  · exact bodyStatic_0_2
+  · exact bodyStatic_0_3
+  · exact bodyStatic_1_0
+  · exact bodyStatic_1_1
+  · exact bodyStatic_1_2
+  · exact bodyStatic_1_3
+  · exact bodyStatic_2_0
+  · exact bodyStatic_2_1
+  · exact bodyStatic_2_2
+  · exact bodyStatic_2_3
+  · exact bodyStatic_3_0
+  · exact bodyStatic_3_1
+  · exact bodyStatic_3_2
+  · exact bodyStatic_3_3
+  · exact bodyStatic_4_0
+  · exact bodyStatic_4_1
+  · exact bodyStatic_4_2
+  · exact bodyStatic_4_3
+  · exact bodyStatic_5_0
+  · exact bodyStatic_5_1
+  · exact bodyStatic_5_2
+  · exact bodyStatic_5_3
+  · exact bodyStatic_6_0
+  · exact bodyStatic_6_1
+  · exact bodyStatic_6_2
+  · exact bodyStatic_6_3
+  · exact bodyStatic_7_0
+  · exact bodyStatic_7_1
+  · exact bodyStatic_7_2
+  · exact bodyStatic_7_3
+  · exact bodyStatic_8_0
+  · exact bodyStatic_8_1
+  · exact bodyStatic_8_2
+  · exact bodyStatic_8_3
+  · exact bodyStatic_9_0
+  · exact bodyStatic_9_1
+  · exact bodyStatic_9_2
+  · exact bodyStatic_9_3
+  · exact bodyStatic_10_0
+  · exact bodyStatic_10_1
+  · exact bodyStatic_10_2
+  · exact bodyStatic_10_3
 
 end
 end LeanVM.Guest.B1.Whir

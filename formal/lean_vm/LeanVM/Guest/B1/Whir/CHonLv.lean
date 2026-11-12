@@ -95,5 +95,10 @@ end LvAt
 /-- The records of the levels before `i`. -/
 def lvsRecs (logN : ℕ) (Ls : List LvAt) (i : ℕ) : List OsRec := (Ls.take i).map (·.osRec logN)
 
+theorem lvsRecs_succ {logN : ℕ} {Ls : List LvAt} {l : ℕ} (hl : l < Ls.length) :
+    lvsRecs logN Ls (l + 1) = lvsRecs logN Ls l ++ [(Ls.getD l default).osRec logN] := by
+  rw [lvsRecs, lvsRecs, List.take_add_one, List.map_append, List.getElem?_eq_getElem hl]
+  simp [List.getElem?_eq_getElem hl]
+
 end
 end LeanVM.Guest.B1.Whir

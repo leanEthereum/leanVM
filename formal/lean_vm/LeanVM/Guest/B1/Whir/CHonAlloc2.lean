@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CHonAlloc2
 
-  Candidates 14..20's body allocations, by kernel evaluation.
+  The arms' body allocations at rate 2, by kernel evaluation.
 -/
 
 module
@@ -13,25 +13,37 @@ namespace LeanVM.Guest.B1.Whir
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_14 : BodyStatic (osCfg 14) := by decide +kernel
+theorem bodyStatic_0_2 : BodyStatic (osCfgR 0 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_15 : BodyStatic (osCfg 15) := by decide +kernel
+theorem bodyStatic_1_2 : BodyStatic (osCfgR 1 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_16 : BodyStatic (osCfg 16) := by decide +kernel
+theorem bodyStatic_2_2 : BodyStatic (osCfgR 2 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_17 : BodyStatic (osCfg 17) := by decide +kernel
+theorem bodyStatic_3_2 : BodyStatic (osCfgR 3 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_18 : BodyStatic (osCfg 18) := by decide +kernel
+theorem bodyStatic_4_2 : BodyStatic (osCfgR 4 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_19 : BodyStatic (osCfg 19) := by decide +kernel
+theorem bodyStatic_5_2 : BodyStatic (osCfgR 5 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem bodyStatic_20 : BodyStatic (osCfg 20) := by decide +kernel
+theorem bodyStatic_6_2 : BodyStatic (osCfgR 6 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem bodyStatic_7_2 : BodyStatic (osCfgR 7 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem bodyStatic_8_2 : BodyStatic (osCfgR 8 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem bodyStatic_9_2 : BodyStatic (osCfgR 9 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem bodyStatic_10_2 : BodyStatic (osCfgR 10 2) := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Whir
