@@ -775,6 +775,133 @@ mod tests {
         verify(&program, &pi, &proof).expect("partial outputs verify");
     }
 
+    /// A KECCAK output cell past the first counts the constant 1, its cell's first count. When another access came
+    /// first (a SET of the very word, an XOR that computes it, a DEREF that only links the cell, as a range check
+    /// does), that access takes the count the write had, and the run proves. Two such writes to one cell cannot
+    /// both take the first count: the run is refused, whether or not the first of them was its cell's first access.
+    #[test]
+    fn keccak_gated_output_takes_its_cells_first_count() {
+        let input = std::array::from_fn(|c| w(if c < 4 { 3 + c as u64 % 2 } else { c as u64 }));
+        let out = crate::keccak::permute_cells(&input, false, false);
+        let program = |before: [Op; 2], outs: [(u32, OutCells); 2]| {
+            let mut prog = vec![Op::Set { o: 2, k: w(3) }, Op::Set { o: 3, k: w(4) }];
+            for c in 4..13u32 {
+                prog.push(Op::Set {
+                    o: c,
+                    k: w(u64::from(c)),
+                });
+            }
+            prog.extend(before);
+            for (out, out_cells) in outs {
+                prog.push(Op::Keccak {
+                    m: [2, 3, 2, 3],
+                    tail: 4,
+                    b8: 8,
+                    cap: 9,
+                    out,
+                    in_odd: false,
+                    out_odd: false,
+                    out_cells,
+                });
+            }
+            prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
+            assert_eq!(prog.len(), 16);
+            Program::from_bytecode(prog, 64)
+        };
+        let pi = [w(7), w(11)];
+        let (one_then_two, two_twice) = ([(13, OutCells::One), (26, OutCells::Two)], [(26, OutCells::Two); 2]);
+
+        // Cell 27 is the second KECCAK's output cell 1, and pc 12 its first access.
+        let firsts = [
+            [Op::Set { o: 13, k: out[0] }, Op::Set { o: 27, k: out[1] }],
+            [
+                Op::Set {
+                    o: 41,
+                    k: out[1] + w(4),
+                },
+                Op::Xor { a: 41, b: 3, c: 27 },
+            ],
+            [
+                Op::Set {
+                    o: 41,
+                    k: F192::from(g_pow(27)),
+                },
+                Op::Deref {
+                    o1: 41,
+                    o2: 0,
+                    o3: 42,
+                    mode: DerefMode::Cell,
+                },
+            ],
+        ];
+        for first in firsts {
+            let program = program(first, one_then_two);
+            let trace = program.execute(pi).unwrap().trace;
+            let at_12 = (trace.set.iter().filter(|r| r.pc == 12).map(|r| r.r))
+                .chain(trace.xor.iter().filter(|r| r.pc == 12).map(|r| r.rc))
+                .chain(trace.deref.iter().filter(|r| r.pc == 12).map(|r| r.r2));
+            assert_eq!(
+                at_12.collect::<Vec<_>>(),
+                [1],
+                "pc 12's access has the count the write took"
+            );
+            let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+            verify(&program, &pi, &proof).expect("a gated write after its cell's first access verifies");
+        }
+
+        let filler = Op::Set { o: 41, k: F192::ONE };
+        for before in [[filler, filler], [Op::Set { o: 27, k: out[1] }, filler]] {
+            let err = program(before, two_twice).execute(pi).err().expect("the run must fail");
+            assert_eq!((err.pc, err.fault), (14, Fault::KeccakOutputTwice { cell: 27 }));
+        }
+    }
+
+    /// The bus catches a run edited after execution so that a gated KECCAK write is not what memory counts.
+    /// `partial_keccak_program`'s 2-cell KECCAK writes cell 27, which the XOR at pc 13 then reads: (n1) the cell's word
+    /// replaced; (n2) the XOR's read given the count the gated write took, the cell's final count one less; (n3) the
+    /// row filled with `OUT_TWO` 0, its instruction's flag being 1. The honest run balances.
+    #[test]
+    fn miscounted_gated_output_unbalances_the_bus() {
+        let (program, pi) = (partial_keccak_program(), [w(7), w(11)]);
+        let run = || {
+            let (exec, blocks) = crate::keccak::while_executing(|step| program.execute_with(pi, step));
+            (exec.unwrap(), blocks)
+        };
+        // The program's bus over the columns `filled` gives the run.
+        let balances = |filled: &Program, (exec, blocks): (Execution, crate::keccak::Blocks)| {
+            let log_mem = crate::log2_strict_usize(exec.mem.len());
+            let w = filled.build(&exec, filled.layout(log_mem, exec.trace.row_counts(), pi), blocks);
+            let l = program.layout(w.log_mem, w.layout.rows, w.layout.pi);
+            crate::leaf::tests::balances(&l.push, &l.pull, &w.columns())
+        };
+        assert!(balances(&program, run()), "the honest run balances");
+
+        let (mut exec, blocks) = run();
+        exec.mem.cell_mut(27).word += F192::ONE;
+        assert!(!balances(&program, (exec, blocks)), "n1");
+
+        let (mut exec, blocks) = run();
+        let cell = exec.mem.cell_mut(27);
+        assert_eq!(cell.count, 2, "the KECCAK writes cell 27, then the XOR reads it");
+        cell.count = 1;
+        let mut xor = trace::Rows::new();
+        for r in exec.trace.xor.iter() {
+            xor.push(trace::Xrow {
+                rb: if r.pc == 13 { 0 } else { r.rb },
+                ..*r
+            });
+        }
+        exec.trace.xor = xor;
+        assert!(!balances(&program, (exec, blocks)), "n2");
+
+        let mut filled = program.clone();
+        let Op::Keccak { out_cells, .. } = &mut filled.prog[12] else {
+            panic!("pc 12 is the 2-cell KECCAK")
+        };
+        *out_cells = OutCells::One;
+        assert!(!balances(&filled, run()), "n3");
+    }
+
     /// The opcode's execution semantics: the output cells hold the permutation of the lanes the
     /// input cells hold, each side in its layout, the two `m` pairs aliasing one another and
     /// `b8`'s free high limb ignored. With a zero `cap` and the padding in `tail` and `b8`, the

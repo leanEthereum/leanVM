@@ -63,8 +63,9 @@ pub struct BusBlock {
 
 /// The proof system's version, leading the Fiat-Shamir IV's preimage so that no two versions share a
 /// transcript. Its length is fixed and Keccak's padding binds the preimage's, so the bytecode that
-/// follows needs no length field of its own. Nothing derives it from the constants below: any change
-/// to the constraint system bumps it by hand. Mirrored in `formal/Statement/LeanVmVerifier.lean`.
+/// follows needs no length field of its own. Nothing derives it from the constants below: it stays
+/// `leanvm-v1` until leanVM ships (AGENTS.md), and after that any change to the constraint system
+/// bumps it by hand. Mirrored in `formal/Statement/LeanVmVerifier.lean`.
 pub const TAG: &[u8] = b"leanvm-v1";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.
@@ -161,26 +162,31 @@ impl Flushes {
         self.state_derived(pc, fp, col(pc, 1), col(fp, 0));
     }
 
-    /// A pull at `count` and a push at `counter`, the same otherwise.
-    fn counted(&mut self, prefix: &[Form; 2], counter: Form, count: usize, suffix: &[Form]) {
+    /// A pull at `pulled` and a push at `counter`, the same otherwise.
+    fn counted(&mut self, prefix: &[Form; 2], counter: Form, pulled: Form, suffix: &[Form]) {
         let side = |counter: Form| [&prefix[..], &[counter], suffix].concat();
-        self.pair(side(counter), side(col(count, 0)));
+        self.pair(side(counter), side(pulled));
     }
 
     fn bytecode(&mut self, pc: usize, count: usize, opcode: usize, operands: Vec<Form>) {
         let suffix = [vec![constant(gpow(opcode as u64))], operands].concat();
-        self.counted(&[constant(SEP_BYTECODE), col(pc, 0)], col(count, 1), count, &suffix);
+        self.counted(
+            &[constant(SEP_BYTECODE), col(pc, 0)],
+            col(count, 1),
+            col(count, 0),
+            &suffix,
+        );
     }
 
     fn memory(&mut self, address: Form, count: usize, values: &[Form; 3]) {
-        self.counted(&[constant(SEP_MEM), address], col(count, 1), count, values);
+        self.counted(&[constant(SEP_MEM), address], col(count, 1), col(count, 0), values);
     }
 
-    /// `memory` when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`: `g·count` at 1, and
-    /// the pull's `count` at 0, so the pair cancels and touches no cell.
-    fn memory_if(&mut self, flag: usize, address: Form, count: usize, values: &[Form; 3]) {
-        let counter = col(count, 0) + prod(flag, count, 1) + prod(flag, count, 0);
-        self.counted(&[constant(SEP_MEM), address], counter, count, values);
+    /// A write to a cell when the column `flag` is 1, counting the public constant 1. The push's counter is
+    /// `1 + flag·(g + 1)`: `g` at 1, and the pull's 1 at 0, so the pair cancels and touches no cell.
+    fn memory_if(&mut self, flag: usize, address: Form, values: &[Form; 3]) {
+        let counter = constant(ONE) + col(flag, 1) + col(flag, 0);
+        self.counted(&[constant(SEP_MEM), address], counter, constant(ONE), values);
     }
 
     /// The cell's limbs are the named columns, the missing top ones zero.
@@ -346,7 +352,8 @@ fn flushes_keccak() -> Flushes {
     flushes.bytecode(pc, KECCAK_CNT_BC, OP_KECCAK, operands.map(|i| col(i, 0)).collect());
     // The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the thirteen written, each
     // holding its lanes in the layout its flag names: a read cell's free lane is the column `free`, a written one's zero.
-    // Output cell 0 is always written, cell 1 when `out_two` is 1, and cells 2..13 when `out_all` is 1.
+    // Output cell 0 is always written, cell 1 when `out_two` is 1, and cells 2..13 when `out_all` is 1, each of those
+    // counting the constant 1.
     let address = |cell: usize| match cell {
         0..4 => prod(fp, o_m[cell], 0),
         4..8 => prod(fp, o_tail, cell as u64 - 4),
@@ -369,7 +376,7 @@ fn flushes_keccak() -> Flushes {
                 (_, 0) => flushes.memory(prod(fp, o_out, 0), count, &values),
                 _ => {
                     let flag = if cell == 1 { out_two } else { out_all };
-                    flushes.memory_if(flag, prod(fp, o_out, cell as u64), count, &values);
+                    flushes.memory_if(flag, prod(fp, o_out, cell as u64), &values);
                 }
             }
         }
@@ -393,15 +400,15 @@ const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "
 #[rustfmt::skip]
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
 // KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell
-// read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
-// q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
+// read and for output cell 0, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one
+// of q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
 #[rustfmt::skip]
 const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
 const KECCAK_CELLS: usize = 13; // a sponge state, read then written
 pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
 const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
-const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
+const KECCAK_CNT_BC: usize = KECCAK_CNT + KECCAK_CELLS + 1;
 
 /// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
 /// committed columns in local order, the ones before the value lanes then the read counts
@@ -440,7 +447,7 @@ fn qkeccak_slot(column: usize) -> Option<usize> {
 
 fn keccak_columns() -> Vec<String> {
     let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| format!("{prefix}_{lane}"));
-    let counts = (0..2 * KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
+    let counts = (0..=KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
     let head = KECCAK_HEAD.iter().map(|name| name.to_string());
     head.chain(lanes("in"))
         .chain(lanes("out"))

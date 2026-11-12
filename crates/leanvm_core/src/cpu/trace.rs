@@ -95,6 +95,10 @@ impl<T> Rows<T> {
     pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
         self.chunks.iter().flatten()
     }
+
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.chunks.iter_mut().flatten()
+    }
 }
 
 pub(crate) struct Trace {
