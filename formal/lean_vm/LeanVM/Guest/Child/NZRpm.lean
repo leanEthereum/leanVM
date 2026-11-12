@@ -64,11 +64,11 @@ theorem allQ_verifierRZ (prog : LeanIsaProgram) (input : PublicInput) (proof : P
     allQ_runProof _ seed proof (widthsLE_of_refines (Limits.refusingZeroProgram_refines _ _)
       (widthsLE_leanVmProgram _ _))
 
-/-- **A prover of at most `2 + 53036 · (2^27 + 2·fuel + 2)` short queries and the refusing
+/-- **A prover of at most `2 + 54825 · (2^29 + 2·fuel + 2)` short queries and the refusing
 verifier make at most `completenessPermCalls fuel` permutation calls.** -/
 theorem isWeightBound_proverRZ {X : OracleComp KeccakCalls Proof} (prog : LeanIsaProgram)
     (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (2 + 53036 * (2 ^ 27 + 2 * fuel + 2)))
+    (hX : IsTotalQueryBound X (2 + 54825 * (2 ^ 29 + 2 * fuel + 2)))
     (hXq : AllQueriesSatisfy X Short) :
     Common.QueryCostAtMost (X >>= fun proof ↦
       Budget.verifierRefusingZeroWithHash callKeccak256 callKeccakF1600 prog input proof)
@@ -85,10 +85,10 @@ theorem isWeightBound_proverRZ {X : OracleComp KeccakCalls Proof} (prog : LeanIs
       rw [← verifierRZ_eq_comp] at this
       exact this
     refine h.mono ?_
-    have : leanVmCost / 4 = 13259 := by decide
+    have : leanVmCost / 4 = 13706 := by decide
     simp only [leanVmSeed, List.length_cons, List.length_nil, this, LeanVM.completenessQueries]
     omega
-  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 32) hN
+  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifierRZ prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
 
@@ -119,49 +119,49 @@ theorem rpmChild_at {prog : LeanIsaProgram} {input : PublicInput} {t : Execution
 
 /-! ## The numbers -/
 
-/-- **At a fuel of `2^33` nonces per proof of work, at most `2^-100`**: the ideal failure at most
+/-- **At a fuel of `2^35` nonces per proof of work, at most `2^-100`**: the ideal failure at most
 `2^14 · 2^-128`, the misses and the transfer below `2^-257` each, the collisions below
-`2^-154`. -/
+`2^-152`. -/
 theorem rpmChild_le :
-    childCompletenessError (2 ^ 33) + rpmError (completenessPermCalls (2 ^ 33)) ≤
+    childCompletenessError (2 ^ 35) + rpmError (completenessPermCalls (2 ^ 35)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 100 := by
-  have hc : leanVmCost = 53036 := by decide
-  have hQ : EndToEnd.Complete.completenessQueries (2 ^ 33) = LeanVM.completenessQueries (2 ^ 33) := by
+  have hc : leanVmCost = 54825 := by decide
+  have hQ : EndToEnd.Complete.completenessQueries (2 ^ 35) = LeanVM.completenessQueries (2 ^ 35) := by
     rw [EndToEnd.Complete.completenessQueries, proverFactor, costHeight, hc, leanVmQueryBound_eq,
       LeanVM.completenessQueries]
     norm_num
-  have hQle : LeanVM.completenessQueries (2 ^ 33) ≤ 2 ^ 51 := by
+  have hQle : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 52 := by
     norm_num [LeanVM.completenessQueries]
   -- the ideal failure
   have h1 : ((leanVmCost / 4 : ℕ) : ℝ≥0∞) * epsE ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
     rw [hc, epsE_eq]
-    calc ((53036 / 4 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128
+    calc ((54825 / 4 : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 128
         ≤ (2 : ℝ≥0∞) ^ 14 * (2 : ℝ≥0∞)⁻¹ ^ (14 + 114) := by
           gcongr
           norm_num
       _ = (2 : ℝ≥0∞)⁻¹ ^ 114 := Common.two_pow_mul_inv_pow 14 114
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := Common.inv_two_pow_le_of_le (by norm_num)
   -- the misses
-  have h2 : (leanVmCost : ℝ≥0∞) * missProb 25 ^ (2 ^ 33) ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
-    have hle : (leanVmCost : ℝ≥0∞) * missProb 25 ^ (2 ^ 33) ≤ LeanVM.completenessError (2 ^ 33) := by
+  have h2 : (leanVmCost : ℝ≥0∞) * missProb 27 ^ (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := by
+    have hle : (leanVmCost : ℝ≥0∞) * missProb 27 ^ (2 ^ 35) ≤ LeanVM.completenessError (2 ^ 35) := by
       rw [completenessError_eq, EndToEnd.Complete.completenessError]
       gcongr
       rw [hQ, hc]
       norm_num [LeanVM.completenessQueries]
     exact hle.trans (completenessError_le.trans (Common.inv_two_pow_le_of_le (by norm_num)))
   -- the collisions
-  have h3 : (EndToEnd.Complete.completenessQueries (2 ^ 33) : ℝ≥0∞) *
-      ((EndToEnd.Complete.completenessQueries (2 ^ 33) : ℝ≥0∞) * 2⁻¹ ^ 256) ≤
+  have h3 : (EndToEnd.Complete.completenessQueries (2 ^ 35) : ℝ≥0∞) *
+      ((EndToEnd.Complete.completenessQueries (2 ^ 35) : ℝ≥0∞) * 2⁻¹ ^ 256) ≤
         (2 : ℝ≥0∞)⁻¹ ^ 102 := by
     rw [hQ]
-    calc (LeanVM.completenessQueries (2 ^ 33) : ℝ≥0∞) *
-          ((LeanVM.completenessQueries (2 ^ 33) : ℝ≥0∞) * 2⁻¹ ^ 256)
-        ≤ (2 : ℝ≥0∞) ^ 51 * ((2 : ℝ≥0∞) ^ 51 * (2 : ℝ≥0∞)⁻¹ ^ (51 + (51 + 154))) := by
+    calc (LeanVM.completenessQueries (2 ^ 35) : ℝ≥0∞) *
+          ((LeanVM.completenessQueries (2 ^ 35) : ℝ≥0∞) * 2⁻¹ ^ 256)
+        ≤ (2 : ℝ≥0∞) ^ 52 * ((2 : ℝ≥0∞) ^ 52 * (2 : ℝ≥0∞)⁻¹ ^ (52 + (52 + 152))) := by
           gcongr <;> exact_mod_cast hQle
-      _ = (2 : ℝ≥0∞)⁻¹ ^ 154 := by
-          rw [Common.two_pow_mul_inv_pow 51 (51 + 154), Common.two_pow_mul_inv_pow 51 154]
+      _ = (2 : ℝ≥0∞)⁻¹ ^ 152 := by
+          rw [Common.two_pow_mul_inv_pow 52 (52 + 152), Common.two_pow_mul_inv_pow 52 152]
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 := Common.inv_two_pow_le_of_le (by norm_num)
-  have h4 : rpmError (completenessPermCalls (2 ^ 33)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 :=
+  have h4 : rpmError (completenessPermCalls (2 ^ 35)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 :=
     rpmError_completenessPermCalls_le.trans (Common.inv_two_pow_le_of_le (by norm_num))
   unfold childCompletenessError
   calc _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 102 + (2 : ℝ≥0∞)⁻¹ ^ 102 + (2 : ℝ≥0∞)⁻¹ ^ 102 +

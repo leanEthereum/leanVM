@@ -31,8 +31,8 @@ value lanes, `94` of the `158` (`committedCols`), in global order. `columnKappas
 * `certify_placement_Spec`: under its precondition the function's relation gives the table
   logs (each below `34`, from its own range checks: `kappa_base`'s table entries are hinted words
   when `verify_sub` calls it, before `verify_tables` certifies them), `PCtx` and the total;
-* `HypKappa`: once the stack is at most `2^28`, every committed column's `κ` is below `29` (the
-  range of `column_selector`'s 29 specializations, which `check_opening_terminal` dispatches on).
+* `HypKappa`: once the stack is at most `2^32`, every committed column's `κ` is below `33` (the
+  range of `column_selector`'s 33 specializations, which `check_opening_terminal` dispatches on).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -99,13 +99,13 @@ def certify_placement_Spec (rd : Reader) : Prop :=
         ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧
           PCtx rd (columnKappas logMem guestLogBytecode hs) off
 
-/-- Every committed column's log is below `N_COLUMN_LOGS = 29`. -/
+/-- Every committed column's log is below `N_COLUMN_LOGS = 31`. -/
 def KappasBelow (kappas : List ℕ) : Prop :=
-  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 29
+  ∀ c < nCommittedCols, (committedKappas kappas).getD c 0 < 31
 
-/-- **The columns' logs are in range** once the stack is at most `2^28`. -/
+/-- **The columns' logs are in range** once the stack is at most `2^30`. -/
 def HypKappa : Prop :=
-  ∀ kappas : List ℕ, kappas.length = 158 → log2Ceil (stackTotal kappas) ≤ 28 → KappasBelow kappas
+  ∀ kappas : List ℕ, kappas.length = 158 → log2Ceil (stackTotal kappas) ≤ 30 → KappasBelow kappas
 
 end
 end LeanVM.Guest.B1.Tables

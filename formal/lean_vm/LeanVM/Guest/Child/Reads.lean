@@ -22,8 +22,8 @@ proof of work `1` (its nonce), a commitment `2` (its root's two scalars), and a 
 opening `0`. A run of a program of `n` reads consumes at most `n` scalars of the stream
 (`run_reads`), and an accepted run consumes the whole stream (`runProofWithHash`), so its proof's
 stream has at most `n` scalars. The verifier's phases are read as `Verifier/Cost.lean` costs them,
-with the same crude bounds (the bus's GKR walk over at most `38` levels, at most `32` table
-rounds, the Keccak reduction at a point of at most `29` coordinates, the WHIR levels over the 56
+with the same crude bounds (the bus's GKR walk over at most `36` levels, at most `30` table
+rounds, the Keccak reduction at a point of at most `27` coordinates, the WHIR levels over the 60
 admissible ladders, every proof of work charged a nonce). In total `childReads ≤ 8192`
 (`childReads_le`), for every check of the fixed polynomial's value that reads nothing (the deployed
 and the claimed ones), so every proof the deferring verifier accepts has a stream of at most
@@ -250,17 +250,17 @@ def gkrReads : ℕ → ℕ → ℕ
     if n % 2 = 1 then gkrStepReads 1 L + gkrReads (n + 1) (1 + L)
     else gkrStepReads 2 L + gkrReads n (2 + L)
 
-/-- The GKR walk over at most `38` levels. -/
-def gkrReadsBound : ℕ := gkrReads 38 0
+/-- The GKR walk over at most `36` levels. -/
+def gkrReadsBound : ℕ := gkrReads 36 0
 
-/-- The GKR walk over at most `38` levels reads at most `gkrReadsBound`. -/
-theorem gkrReads_le : ∀ D ≤ 38, gkrReads D 0 ≤ gkrReadsBound := by decide
+/-- The GKR walk over at most `36` levels reads at most `gkrReadsBound`. -/
+theorem gkrReads_le : ∀ D ≤ 36, gkrReads D 0 ≤ gkrReadsBound := by decide
 
 /-- The bus phase. -/
 def busReads : ℕ := 1 + 0 + 0 + (2 + gkrReadsBound) + 4 + (1 + busBits * roundReads 3 + 1)
 
 /-- The table phase. -/
-def tableReads : ℕ := 1 + 0 + (32 * roundReads 4 + tableWidthSum)
+def tableReads : ℕ := 1 + 0 + (30 * roundReads 4 + tableWidthSum)
 
 /-- One fold round: four reads and a proof of work. -/
 def foldRoundReads : ℕ := 4 + 1 + 0
@@ -295,7 +295,7 @@ def ringReads : ℕ := 1 + 0
 
 /-- **The reads of the leanVM verifier program**, phase by phase. -/
 def childReads : ℕ :=
-  8 + 2 + oodReads + busReads + tableReads + 0 + keccakReads 29 + ringReads + (0 + whirReadsBound)
+  8 + 2 + oodReads + busReads + tableReads + 0 + keccakReads 27 + ringReads + (0 + whirReadsBound)
 
 section Phases
 
@@ -397,7 +397,7 @@ theorem reads_bytecodeShare (weights bytecodeLow : List E) :
 
 theorem reads_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit)
     (hev : ∀ w p v, Reads (ev w p v) 0 fun _ ↦ True) (layout : Layout)
-    (hm : layout.logMemory ≤ 32) (hb : layout.logBytecode ≤ 32) :
+    (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30) :
     Reads (verifyBusBalance ev layout)
       (1 + 0 + 0 + (2 + gkrReads (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0) + 4 + (1 + busBits * roundReads 3 + 1))
@@ -441,7 +441,7 @@ theorem reads_readSizes (bytecode : List K) :
   · exact ⟨layoutBounds_of_buildLayout hl, hr.1, hr.2, hs.1, hs.2⟩
   all_goals simp [tables]
 
-/-- The push side of a built layout has depth at most `38`. -/
+/-- The push side of a built layout has depth at most `36`. -/
 
 theorem reads_verifyBusBalance_le (ev : List K → List E → E → VerifierProgram Unit)
     (hev : ∀ w p v, Reads (ev w p v) 0 fun _ ↦ True) {layout : Layout}
@@ -454,13 +454,13 @@ theorem reads_verifyBusBalance_le (ev : List K → List E → E → VerifierProg
 
 theorem reads_tableTerms (constraintPowers formPowers point : List E) :
     ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 32) →
+      (claims : List ColumnClaim), ClaimsShort claims → (∀ r ∈ rows, r.2.1 ≤ 30) →
       Reads
         (tableTermsClaims constraintPowers formPowers point rows cursor final claims)
         (rows.map (·.1.width)).sum fun r ↦ ClaimsShort r.2
   | [], _, _, claims, hc, _ => hc
   | (table, h, forms, weight) :: rest, cursor, final, claims, hc, hh => by
-    have h0 : h ≤ 32 := hh _ List.mem_cons_self
+    have h0 : h ≤ 30 := hh _ List.mem_cons_self
     refine Reads.seq (Reads.readN _) (fun evals _ ↦
       (reads_tableTerms constraintPowers formPowers point rest _ _ _ ?_
         fun r hr ↦ hh r (List.mem_cons_of_mem _ hr)).mono ?_ fun _ h ↦ h) ?_
@@ -485,16 +485,16 @@ private theorem foldl_max_le (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc ≤
 
 theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E)
-    (hh : ∀ h ∈ heights, h ≤ 32) :
+    (hh : ∀ h ∈ heights, h ≤ 30) :
     Reads
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
-      (32 * roundReads 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le 32 heights 0 (Nat.zero_le _) hh
+      (30 * roundReads 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
+  have hmax := foldl_max_le 30 heights 0 (Nat.zero_le _) hh
   have hr4 : roundReads 4 = 4 := rfl
   refine Reads.seq (reads_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
     have hrows : ∀ r ∈ List.zip tables (List.zip heights (List.zip busForms
-        (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 32 := by
+        (tableWeights heights equalityPoint challenges.reverse))), r.2.1 ≤ 30 := by
       intro r hr
       exact hh _ (List.of_mem_zip (List.of_mem_zip hr).2).1
     refine Reads.seq (reads_tableTerms _ _ _ _ 0 0 [] (fun _ h ↦
@@ -605,11 +605,11 @@ theorem reads_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : �
   Reads.seq (reads_sumcheck 3 _ _) (fun _ _ ↦ trivial)
     (by simp only [List.length_replicate]; omega)
 
-/-- **The Keccak reduction** at an instance point of at most `32` coordinates. -/
-theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 32) :
-    Reads (verifyKeccak logSteps inst output) (keccakReads 29) fun _ ↦
+/-- **The Keccak reduction** at an instance point of at most `30` coordinates. -/
+theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.length ≤ 30) :
+    Reads (verifyKeccak logSteps inst output) (keccakReads 27) fun _ ↦
         True := by
-  have hL : (inst.drop 4).length + keccakSegmentBits ≤ 29 := by
+  have hL : (inst.drop 4).length + keccakSegmentBits ≤ 27 := by
     simp only [List.length_drop, keccakSegmentBits]
     have : log2Ceil keccakSegments = 1 := by decide
     omega
@@ -623,10 +623,10 @@ theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
     (Reads.sampleN _) (fun _ _ ↦ Reads.seq
         Reads.readE (fun committed _ ↦ ?_) ?_)
     ?_) ?_) ?_
-  · have hpl : (inst.drop 4 ++ segment).length ≤ 29 := by
+  · have hpl : (inst.drop 4 ++ segment).length ≤ 27 := by
       rw [List.length_append, hseg]; exact hL
     have hlay : keccakDepth * keccakLayerReads (inst.drop 4 ++ segment).length ≤
-        keccakDepth * keccakLayerReads 29 := by
+        keccakDepth * keccakLayerReads 27 := by
       refine Nat.mul_le_mul_left _ ?_
       unfold keccakLayerReads
       have := Nat.mul_le_mul_right (roundReads 3) hpl
@@ -648,11 +648,11 @@ theorem reads_verifyKeccak (logSteps : ℕ) (inst output : List E) (hi : inst.le
     all_goals omega
   all_goals simp only [keccakReads, hr3]; omega
 
-/-- The first claim on a `KECCAK` output lane is at a point of at most `32` coordinates. -/
+/-- The first claim on a `KECCAK` output lane is at a point of at most `30` coordinates. -/
 
 theorem reads_keccakPhase (layout : Layout) (claims : List ColumnClaim)
     (hc : ClaimsShort claims) :
-    Reads (keccakPhaseClaims layout claims) (keccakReads 29) fun _ ↦
+    Reads (keccakPhaseClaims layout claims) (keccakReads 27) fun _ ↦
         True := by
   exact Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦
       Reads.seq

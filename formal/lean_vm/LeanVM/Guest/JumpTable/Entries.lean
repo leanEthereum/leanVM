@@ -14,7 +14,7 @@ public import LeanVM.Guest.Code
 /-!
 # The entries of the jump table
 
-`entryOk s t` says entry `(s, t)` of `Data.jtTrie` is the `SET` at instruction `s - 445` of
+`entryOk s t` says entry `(s, t)` of `Data.jtTrie` is the `SET` at instruction `s - 430` of
 `__jump_tables`, and `allEntries p t a b` that `p` holds at every entry of a subtree. The
 subtrees are checked by the kernel in `JumpTable.Ok*`.
 -/
@@ -25,10 +25,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- The entry `(s, t)` is the `SET` at instruction `s - 445` of `__jump_tables`. -/
+/-- The entry `(s, t)` is the `SET` at instruction `s - 430` of `__jump_tables`. -/
 noncomputable def entryOk (s t : ℕ) : Bool :=
-  Nat.blt (s - 445) Data.f0.instructionCount &&
-    match Data.f0.instructionAt (s - 445) with
+  Nat.blt (s - 430) Data.f0.instructionCount &&
+    match Data.f0.instructionAt (s - 430) with
     | .set o k0 k1 => o == s && k1 == 0 && Data.powTree.find k0 == some t
     | _ => false
 

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Common.MemSize
 public import LeanVM.Guest.B1.VerifySub.Template
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.Value.KeccakSponge
@@ -293,38 +294,6 @@ theorem vsSqzT_holds {capb o : ℕ} (h10 : σ (.n 8) = 0) (h11 : σ (.n 9) = 0)
   simp only [Fs.squeeze] at e1 e2 ⊢
   rw [← e1, ← e2]
   exact ⟨rfl, hn⟩
-
-/-! ## The memory's size -/
-
-/-- **A memory image holding `n` words at one pointer has at least `n` words.** -/
-theorem mem_size_big {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 33)
-    (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ := by
-  have hκ64 : κ < 64 := by omega
-  have hidx : ∀ j : Fin n, ∃ i : Fin (2 ^ κ), p.limb 0 * Parameters.addressOfIndex j =
-      Parameters.addressOfIndex i := by
-    intro j
-    obtain ⟨v, -, hv⟩ := h j j.isLt
-    obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp hv
-    exact ⟨i, hi⟩
-  choose f hf using hidx
-  have hinj : Function.Injective f := by
-    intro a b hab
-    have ea := hf a
-    have eb := hf b
-    rw [hab, ← eb] at ea
-    have hp : p.limb 0 ≠ 0 := by
-      intro h0
-      have := hf a
-      rw [h0, zero_mul] at this
-      exact Parameters.gpow_ne_zero _ this.symm
-    have := mul_left_cancel₀ hp ea
-    have hlt : ∀ x : Fin n, (x : ℕ) < 2 ^ 64 - 1 := fun x ↦ by have := x.isLt; omega
-    exact Fin.ext (gpow_injOn (hlt a) (hlt b) this)
-  simpa using Fintype.card_le_of_injective f hinj
-
-theorem mem_size {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {n : ℕ} (hn : n ≤ 2 ^ 32)
-    (h : ∀ j < n, ∃ v, LoadHolds L.read p j v) : n ≤ 2 ^ κ :=
-  mem_size_big hκ L (by omega) h
 
 /-- A run of words read at one pointer is at most `2^32` long. -/
 theorem mem_size_le {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {p : E} {xs : List E}

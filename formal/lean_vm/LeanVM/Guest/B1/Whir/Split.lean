@@ -157,18 +157,25 @@ theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List
 
 /-! ## The specializations -/
 
-/-- `open_stacked`'s 28 specializations, in dispatch order. -/
+/-- `ligNSizes`: `open_stacked`'s specializations, one per stack log. -/
+abbrev openArms : ℕ := 11
+
+/-- `open_stacked`'s specializations, in dispatch order. -/
 def openNames : List String :=
-  (List.range 28).map fun m ↦ "open_stacked__L" ++ toString m
+  (List.range openArms).map fun m ↦ "open_stacked__L" ++ toString m
 
-/-- The candidate of the stack log `μ` and the rate `r`, rate-major (G:3730):
-`(μ - 22) + 7·(r - 1)`. -/
-def candidate (μ r : ℕ) : ℕ := μ - 22 + 7 * (r - 1)
+/-- The smallest stack log a child's opening takes (`verifier::min_execution_stacked_log` of the
+guest's bytecode). -/
+abbrev minOpenLog : ℕ := 20
 
-/-- The specialization of `open_stacked` for the stack log `μ` and the rate `r`. -/
-def openName (μ r : ℕ) : String := openNames.getD (candidate μ r) ""
+/-- The specialization of `open_stacked` for the stack log `μ`: `μ - minOpenLog` in dispatch
+order. -/
+def openName (μ : ℕ) : String := openNames.getD (μ - minOpenLog) ""
 
-/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG` (G:1731-1732). -/
+/-- The rate's selector, `open_stacked`'s first argument: `g^(r - 1)`. -/
+def rateSel (r : ℕ) : E := ofK (addressOfIndex (r - 1))
+
+/-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG`. -/
 abbrev pointCap : ℕ := 40
 
 end

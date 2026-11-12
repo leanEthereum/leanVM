@@ -33,7 +33,7 @@ noncomputable def certByName (f : String) : Cert := certOf (nameIndex f)
 theorem certByName_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     certByName (coreOf j).name = certOf j := by
   have hl : j - 1 < coreProgram.length := by
-    have : coreProgram.length = 1035 := coreProgram_length
+    have : coreProgram.length = 1601 := coreProgram_length
     simp only [nFns] at h2
     omega
   unfold certByName nameIndex coreOf

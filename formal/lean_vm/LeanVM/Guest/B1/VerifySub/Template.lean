@@ -23,11 +23,11 @@ The sections, in order (G = `lean_ethereum.py` at the commit in `leanvm-rev`):
 * `vsPushT`: the push blocks' total `g_squares[kb[src]·g^adj]`, the bus depth `g^μ`, `zeta`
   (G:3597-3601);
 * `vsRootsT`: the last four announced words absorbed, the root's two words read (G:3605-3612);
-* `vsPlaceT`: `certify_placement`, the stack's log `g^m` and `g^(m - 22)` range-checked
+* `vsPlaceT`: `certify_placement`, the stack's log `g^m` and `g^(m - 20)` range-checked
   (G:3616-3619);
 * `vsOodT`: the out-of-domain grind and point (`squeeze_point_from`), its value and the bus
   grind's nonce (`opening_message`) (G:3624-3629);
-* `vsBusGrindT`: the bus grind, dispatched on `μ - 16` (G:3636-3638);
+* `vsBusGrindT`: the bus grind, dispatched on `μ - 20` (G:3636-3638);
 * `vsFpwT`: the sixteen slot weights, then `β` (G:3639-3646);
 * `vsCallsT`: `verify_bus_gkr`, `verify_tables`, `verify_keccak` (G:3649-3660);
 * `vsMapsT`: the ring map's sixteen challenges after a grind (G:3661-3678);
@@ -35,7 +35,7 @@ The sections, in order (G = `lean_ethereum.py` at the commit in `leanvm-rev`):
 * `vsLamT`: the batching challenge and the target, the pooled values read from `claim_pool` and
   `col_eval_words` (the output lanes' left out), the Keccak reduction's and the out-of-domain
   claims last (G:3697-3712);
-* `vsTailT`: the candidate, the dispatch to `open_stacked`, the terminal, the deferred claim
+* `vsTailT`: the dispatch to `open_stacked` on the stack's size, the terminal, the deferred claim
   (G:3716-3731).
 -/
 
@@ -112,8 +112,8 @@ def vsReadsT : List Stmt :=
 def vsSizesT : List Stmt :=
   [vsCall "g_power_of_word" [61] [64], vsConst 65 (word 2 0), vsMul 64 66 65,
     vsConst 67 (word 8 0), vsRange 66 68 69 70 67, vsAlloc 71 7,
-    vsCall "g_power_of_word" [27] [72], vsConst 73 (word 4294967296 0),
-    vsRange 72 74 75 76 73, vsConst 77 (word 4294967296 0), vsConst 78 (word 65536 0),
+    vsCall "g_power_of_word" [27] [72], vsConst 73 (word 1073741824 0),
+    vsRange 72 74 75 76 73, vsConst 77 (word 4294967296 0), vsConst 78 (word 2 0),
     vsMul 72 79 78, vsRange 79 80 81 82 77, vsLd 72 71 0,
     .atom (.hint (.witness "table_logs" (.heap (.n 71) 1 6))), vsAlloc 83 8,
     vsConst 84 (word 1 0), vsCopy 85 72] ++
@@ -142,20 +142,21 @@ def vsRootsT : List Stmt :=
     .n 50, .n 51] (vsRun 255 13)] ++
   fsNextT (.n 25) 8 268 ++ fsNextT (.n 25) 9 271
 
-/-- `LIG_MIN_SHIFT_INV = g^-22`. -/
-def vsGinv22 : E := word 8198552432976855044 0
+/-- `LIG_MIN_SHIFT_INV = g^-20`. -/
+def vsGinv20 : E := word 14347465658197868555 0
 
-/-- The placement, the stack's log `g^m`, `size_sel = g^(m - 22)` below `g^7` (G:3616-3619). -/
+/-- The placement, the stack's log `g^m`, `size_sel = g^(m - 20)` below `g^10` (G:3616-3619). -/
 def vsPlaceT : List Stmt :=
   [vsCall "certify_placement" [83, 4] [274, 275],
-    vsCall "log2_ceil_in_the_exponent__L15_L34" [274, 4] [276], vsConst 277 vsGinv22,
-    vsMul 278 276 277, vsConst 279 (word 64 0), vsRange 278 280 281 282 279]
+    vsCall "log2_ceil_in_the_exponent__L16_L34" [274, 4] [276], vsConst 277 vsGinv20,
+    vsMul 278 276 277, vsConst 279 (word 1024 0), vsRange 278 280 281 282 279]
 
-/-- `squeeze_point_from`'s specializations for the stack logs `22 .. 28`. -/
+/-- `squeeze_point_from`'s specializations for the stack logs `20 .. 30`. -/
 def vsSqpNames : List String :=
-  ["squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24",
-    "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27",
-    "squeeze_point_from__L28"]
+  ["squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22",
+    "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25",
+    "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28",
+    "squeeze_point_from__L29", "squeeze_point_from__L30"]
 
 /-- The out-of-domain sample: the root's two words and the grind's nonce in one permutation, the
 grind, the point at `ood_z` from its challenge, the value and the bus grind's nonce
@@ -164,27 +165,26 @@ def vsOodT : List Stmt :=
   fsNonceT (.n 25) 10 283 ++ zero2T 286 ++
   [keccakA [.n 269, .n 270, .n 272, .n 273, .n 284, .n 285, .n 286, .n 287, .n 263, .n 264,
     .n 265, .n 266, .n 267] (vsRun 288 13)] ++ vsTabsT 301 302 ++
-  [grindCallT 15 (.n 289) (.n 302), vsCopy 303 288, vsAlloc 304 28,
+  [grindCallT 15 (.n 289) (.n 302), vsCopy 303 288, vsAlloc 304 30,
     .dispatch (.n 278) vsSqpNames [.n 296, .n 297, .n 298, .n 299, .n 300, .n 303, .n 304]
       (vsRun 305 5),
     vsAlloc 310 1, vsConst 311 (word 2048 0), vsMul 312 25 311,
     vsCall "opening_message__L1_L1" [305, 306, 307, 308, 309, 312, 310]
       ((List.range 8).map (313 + ·))]
 
-/-- `INV_GEN^MIN_LOG_MEM = g^-16`. -/
-def vsGinv16 : E := word 8198521646651277316 0
+/-- `INV_GEN^BUS_MIN_MU = g^-20`. -/
+def vsGinvBus : E := word 14347465658197868555 0
 
-/-- `bus_grind_check`'s specializations for `μ - 16 < 18`. -/
+/-- `bus_grind_check`'s specializations for `μ - 20 < 14`. -/
 def vsBgNames : List String :=
   ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3",
     "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7",
     "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11",
-    "bus_grind_check__L12", "bus_grind_check__L13", "bus_grind_check__L14",
-    "bus_grind_check__L15", "bus_grind_check__L16", "bus_grind_check__L17"]
+    "bus_grind_check__L12", "bus_grind_check__L13"]
 
-/-- The bus grind: `g^(μ - 16)` below `g^18`, its check dispatched on it (G:3636-3638). -/
+/-- The bus grind: `g^(μ - 20)` below `g^13`, its check dispatched on it (G:3636-3638). -/
 def vsBusGrindT : List Stmt :=
-  [vsConst 321 vsGinv16, vsMul 322 253 321, vsConst 323 (word 131072 0),
+  [vsConst 321 vsGinvBus, vsMul 322 253 321, vsConst 323 (word 8192 0),
     vsRange 322 324 325 326 323] ++ vsTabsT 327 328 ++
   [.dispatch (.n 322) vsBgNames [.n 314, .n 328] [.n 329]]
 
@@ -273,25 +273,20 @@ def vsLamT : List Stmt :=
 def vsOpenNames : List String :=
   ["open_stacked__L0", "open_stacked__L1", "open_stacked__L2", "open_stacked__L3",
     "open_stacked__L4", "open_stacked__L5", "open_stacked__L6", "open_stacked__L7",
-    "open_stacked__L8", "open_stacked__L9", "open_stacked__L10", "open_stacked__L11",
-    "open_stacked__L12", "open_stacked__L13", "open_stacked__L14", "open_stacked__L15",
-    "open_stacked__L16", "open_stacked__L17", "open_stacked__L18", "open_stacked__L19",
-    "open_stacked__L20", "open_stacked__L21", "open_stacked__L22", "open_stacked__L23",
-    "open_stacked__L24", "open_stacked__L25", "open_stacked__L26", "open_stacked__L27"]
+    "open_stacked__L8", "open_stacked__L9", "open_stacked__L10"]
 
-/-- The candidate `size_sel · rate_sel^7` below `g^28`, the dispatch to `open_stacked`, the
-terminal, the deferred claim (G:3716-3731). -/
+/-- The dispatch to `open_stacked` on the stack's size `size_sel`, the rate `rate_sel` its first
+argument, the terminal, the deferred claim (G:3716-3731). -/
 def vsTailT : List Stmt :=
-  [vsMul 1918 66 66, vsMul 1919 1918 66, vsMul 1920 1919 1919, vsMul 1921 1920 66,
-    vsMul 1922 278 1921, vsConst 1923 (word 134217728 0), vsRange 1922 1924 1925 1926 1923,
-    vsConst 1927 (word 2 0), vsMul 1928 595 1927] ++ vsTabsT 1929 1930 ++
-  [.dispatch (.n 1922) vsOpenNames
-      [.n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1928, .n 1930]
-      (vsRun 1931 5),
+  [vsConst 1918 (word 2 0), vsMul 1919 595 1918] ++ vsTabsT 1920 1921 ++
+  [.dispatch (.n 278) vsOpenNames
+      [.n 66, .n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1919,
+        .n 1921]
+      (vsRun 1922 5),
     vsCall "check_opening_terminal" [4, 254, 569, 581, 253, 579, 72, 583, 83, 1375, 275, 584, 848,
-      1932, 1933, 1934, 1935, 1931, 304, 276] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1936 + k) 254 k, vsLd (1936 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (1955 + k) 570 k, vsLd (1955 + k) 5 (19 + k)]) ++
+      1923, 1924, 1925, 1926, 1922, 304, 276] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1927 + k) 254 k, vsLd (1927 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (1946 + k) 570 k, vsLd (1946 + k) 5 (19 + k)]) ++
   [vsLd 580 5 23, .ret []]
 
 /-- **`verify_sub`'s body as a template.** -/

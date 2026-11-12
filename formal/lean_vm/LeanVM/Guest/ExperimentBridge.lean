@@ -126,7 +126,7 @@ theorem honestProofWithDeployedKeccak_eq_withHash (prog : LeanIsaProgram) (input
 
 /-- **`GuestChildComplete`, from the statement with the two calls.** -/
 theorem guestChildComplete_of_withHash (h : GuestChildCompleteWithHash) : GuestChildComplete := by
-  refine ⟨fun prog input t ρ hv hs hρ ↦ ?_, fun s t ρ hs hshape ↦ ?_⟩
+  refine ⟨fun prog input t ρ hv hs hρ ↦ ?_, fun s t ρ hshape ↦ ?_⟩
   · convert h.1 prog input t ρ hv hs hρ using 3
     rw [← simulateQ_lazy_keccakCallsOverQueryPermutation]
     simp only [runWithRandomPermutation, prover_queryPermutation, simulateQ_bind]
@@ -137,7 +137,7 @@ theorem guestChildComplete_of_withHash (h : GuestChildCompleteWithHash) : GuestC
     · simp only [simulateQ_verifierRefusingZeroWithHash, verifierRefusingZero_eq_withHash]
       rfl
   · intro input proof hsome hacc
-    have key := h.2 s t ρ hs hshape
+    have key := h.2 s t ρ hshape
     simp only at key
     rw [honestProofWithDeployedKeccak_eq_withHash] at hsome
     rw [verifierRefusingZero_eq_withHash] at hacc

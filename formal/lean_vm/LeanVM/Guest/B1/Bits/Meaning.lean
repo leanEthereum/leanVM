@@ -97,10 +97,10 @@ def log2_ceil_in_the_exponent_Spec (name : String) (fl : ℕ) : Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → 6 ≤ κ → ∀ (L : MemoryImage κ) (gN q : E), ExpTables L.read q →
     ∀ rets : List E, coreProgram.Rel L.read name [gN, q] rets ↔ MeaningLog2CeilExp fl [gN, q] rets
 
-/-- The deployed specializations: floors `0` and `15`, 34 bits. -/
+/-- The deployed specializations: floors `0` and `16`, 34 bits. -/
 def log2_Spec : Prop :=
   log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L0_L34" 0 ∧
-    log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L15_L34" 15
+    log2_ceil_in_the_exponent_Spec "log2_ceil_in_the_exponent__L16_L34" 16
 
 /-! ## `grind_check` (TRIAGE #21) -/
 
@@ -120,7 +120,7 @@ def grind_check_Spec (bits : ℕ) : Prop :=
 
 /-- The grinds the deployed guest checks (`grind_check__L{bits}` in the core IR). -/
 def grindBitsDeployed : List ℕ :=
-  [2, 3, 7, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+  [2, 3, 7, 13, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
 
 /-- Every deployed `grind_check` is its meaning. -/
 def grind_check_all_Spec : Prop := ∀ bits ∈ grindBitsDeployed, grind_check_Spec bits

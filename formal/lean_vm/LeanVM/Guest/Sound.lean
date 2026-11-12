@@ -51,23 +51,23 @@ open LeanVM.Guest.Exec
 /-! ## B1's obligations -/
 
 /-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `1552` statements, up to its call of
+`verify_sub`'s argument `4` (`g_squares`), its first `1545` statements, up to its call of
 `check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `83`) among the powers
 `g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
 def VsKbKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1552) True (fun _ ↦ True) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1545) True (fun _ ↦ True) →
       ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n 83)) c (ofK (addressOfIndex e))
 
 /-- **`verify_sub`'s obligation at its dispatch to `open_stacked`** (B1's): over the window section
-of the exponent table at its argument `4`, its first `1551` statements, up to the dispatch, put the
-window table at `tabs` (the value `1930`), which `open_stacked` assumes (`tagTabs`). -/
+of the exponent table at its argument `4`, its first `1544` statements, up to the dispatch, put the
+window table at `tabs` (the value `1921`), which `open_stacked` assumes (`tagTabs`). -/
 def VsTabsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpWinTab L.read (σ (.n 4)) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1551) True (fun _ ↦ True) →
-      B1.WinTabs L.read (σ (.n 1930))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf 19).body.take 1544) True (fun _ ↦ True) →
+      B1.WinTabs L.read (σ (.n 1921))
 
 /-- **`verify_sub`'s obligations**: `kappa_base`'s bounds and the window table. -/
 def VsKnown : Prop := VsKbKnown ∧ VsTabsKnown
@@ -134,10 +134,10 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
     rw [vsDimsKnown, List.mem_singleton] at hm
     subst hm
     exact hvd L h16 h32 _ (vs_take hn hl)
-  have htabs (n : ℕ) (hn : 1551 ≤ n)
+  have htabs (n : ℕ) (hn : 1544 ≤ n)
       (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf 19))
         ((coreOf 19).body.take n) True (fun _ ↦ True)) :
-      SemHolds glob L fp [(tagTabs, [(certOf 19).locs.getD 1930 0])] := by
+      SemHolds glob L fp [(tagTabs, [(certOf 19).locs.getD 1921 0])] := by
     intro t ht'
     simp only [List.mem_singleton] at ht'
     subst ht'
@@ -152,13 +152,13 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cutT
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    exact ⟨hdims 1551 (by omega) hl, fun _ h ↦ by simp at h, htabs 1551 le_rfl hl⟩
+    exact ⟨hdims 1544 (by omega) hl, fun _ h ↦ by simp at h, htabs 1544 le_rfl hl⟩
   · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
     rw [hkn, hki, hsm]
     rw [hst] at hl
-    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, htabs 1552 (by omega) hl⟩
+    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, htabs 1545 (by omega) hl⟩
     rcases List.mem_append.mp hm with hm | hm
-    · exact hdims 1552 (by omega) hl m hm
+    · exact hdims 1545 (by omega) hl m hm
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
     exact hvs.1 L h16 h32 _ ht.1 hl c (List.mem_range.mp hc)
 
@@ -230,7 +230,8 @@ theorem b2_step (hcuts : ∀ j, 2 ≤ j → j < nFns → CutsKnown j) :
   rw [h1] at hc
   have hfp := checkWin_fpOne (hc 0 (Nat.zero_le _))
   obtain ⟨hbody, hpost, hret, hin, -⟩ := checkWins_run (Prog := coreProgram) hc (fnOf_mem hj.2)
-    (coreOf_find (by omega) hj.2) (certOf_pows_ok j) h32 (fun h ↦ by rw [← hfp] at h; cases h)
+    (coreOf_find (by omega) hj.2) (certOf_pows_ok j) (h32.trans (by decide))
+    (fun h ↦ by rw [← hfp] at h; cases h)
     (certByName_coreOf (by omega) hj.2)
     (fun i ↦ (hlt i).mono (by omega)) hjt henv hbnd hmem hsem
     (fun i hi h0 hl ↦ hcuts j hj.1 hj.2 L h16 h32 fp hmem hsem i hi h0
@@ -253,7 +254,8 @@ theorem b2_mainL (hexp : ExpTablesSound) :
   have hc := winOk_of (j := 1) le_rfl (by decide)
   obtain ⟨henv, hpre, hmem, hsem, hnret, hparams, hname⟩ := main_facts
   obtain ⟨-, -, -, -, -, hbody⟩ := checkWins_run (Prog := coreProgram) (fp := 1) hc
-    (fnOf_mem (by decide)) (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl)
+    (fnOf_mem (by decide)) (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1)
+    (h32.trans (by decide)) (fun _ ↦ rfl)
     (certByName_coreOf le_rfl (by decide)) hlt
     (jtHolds_of hjtab) (by rw [Facts.entryEnv, henv]; exact EnvHolds.nil)
     (by rw [hpre]; intro _ h; simp at h) (by rw [hmem]; intro _ h; simp at h)

@@ -209,6 +209,11 @@ theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS :
       rcases hta with rfl | rfl
       · have := listedT_spec hla.1; rw [hc] at this; exact this
       · have := listedT_spec hla.2; rw [hc] at this; exact this
+    | touch t' p =>
+      simp only [atomTmps, List.mem_cons, List.not_mem_nil, or_false] at hta
+      simp only [atomListed] at hla
+      subst hta
+      have := listedT_spec hla; rw [hc] at this; exact this
     | _ => simp [atomTmps] at hta
   · obtain ⟨i, hi, ha⟩ := mem_windows lAtoms lAtoms_append hS _ 0 (Nat.zero_add _)
       (by rw [fromW_zero]; exact ha)
@@ -246,7 +251,7 @@ theorem mem_runsE {f : String} {σ : Val} {es : List Ev} {x : ℕ × E} (h : x �
       x = (cert f r + k, σ (r :: rs)[k]) := by
   simp only [runsE, List.mem_flatMap] at h
   obtain ⟨e, he, hx⟩ := h
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨p, _ | ⟨r, rs⟩⟩ | _⟩ | _ | _ | _ <;>
+  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨p, _ | ⟨r, rs⟩⟩ | _ | _⟩ | _ | _ | _ <;>
     simp only [List.not_mem_nil] at hx
   obtain ⟨k, hk, rfl⟩ := List.mem_mapIdx.mp hx
   exact ⟨p, r, rs, he, k, hk, rfl⟩

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Whir.Interface
 
   The interface of `open_stacked` (B1-b): the Spec's stacked WHIR opening split at the terminal
-  the guest checks elsewhere, what a call of each of the 28 specializations establishes about it,
+  the guest checks elsewhere, what a call of each of the specializations establishes about it,
   and the statement that every specialization's core IR establishes it.
 -/
 
@@ -16,17 +16,18 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # `open_stacked` (TRIAGE G #42): the interface
 
-`open_stacked(m_idx, fs0..fs4, target, commit_root_0, commit_root_1, cursor, tabs)`
-(`crates/rec_aggregation/guests/lean_ethereum.py:1514-1831` at leanVM `010cfb18`, G below) runs
+`open_stacked(m_idx, rate_sel, fs0..fs4, target, commit_root_0, commit_root_1, cursor, tabs)`
+(`crates/rec_aggregation/guests/lean_ethereum.py`, `open_stacked`) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`;
 `crates/verifier/src/whir.rs:215-329`) from `verifyStackedOpening`, up to its terminal: the
 fold rounds of CYWZ26's affine combiner (`foldRound`), each non-final level's commitment, high
 part, out-of-domain points and values, query grind, batching grind and `λ`, the final level's
 lane and its query checks, and the closing sumcheck. The terminal's check
-`(inner + evaluateBasis point) · residual = claim` is `check_opening_terminal`'s (G:3435), which
-evaluates the transparent weight `evaluateBasis`. It has 28 specializations `open_stacked__L{m}`,
-one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 28` and the rate
-`1 ≤ r ≤ 4` (G:3716-3718, rate-major), each reading its row of the `LIG_*` tables at compile time.
+`(inner + evaluateBasis point) · residual = claim` is `check_opening_terminal`'s, which evaluates
+the transparent weight `evaluateBasis`. It has `openArms` specializations `open_stacked__L{m}`, one
+per stack log `μ = minOpenLog + m ≤ 30`, each reading its size's rows of the `LIG_*` tables at
+compile time; the rate `1 ≤ r ≤ 4` is its first argument `rateSel r = g^(r - 1)`, which each
+level's `match` on the rate dispatches into helpers specialized on the rate's shapes.
 
 * `WhirEnd`, `whirLevelsOpen`, `whirOpen`: `whirLevels` and `verifyWhir` without the final
   `require`, returning what the terminal reads; `WhirEnd.Accepts` the terminal's check;
@@ -41,13 +42,13 @@ one per candidate `m = (μ - 22) + 7·(r - 1)` of the stack log `22 ≤ μ ≤ 2
   returns `w`'s claim, two buffers holding `w`'s point (`μ` coordinates, witness order) and its
   coordinates plus one, zero-padded (one-padded) to `pointCap = 40`, `w`'s glued weight and its
   final lane's low part at the tail challenges.
-* `open_stacked_sound_Spec`: every specialization's call relation gives `OpenOut`, on a memory
+* `open_stacked_sound_Spec`: every specialization's call relation at `rateSel r` gives `OpenOut`, on a memory
   image of `2^κ` words, `11 ≤ κ ≤ 32` (the query windows' range checks, `decode_query_windows`) whose
   window tables are at `tabs` (`WinTabs`: the grinds' and the query windows' lookups).
 
 The guest's claim differs from the Spec's between a non-final level and the end by the high
-part's share of the level's queries times the challenges drawn after it (G:1691-1702): the guest
-adds it back in its residual pass (G:1799-1802), so the returned claim is the Spec's.
+part's share of the level's queries times the challenges drawn after it: the guest adds it back in
+its residual pass, so the returned claim is the Spec's.
 
 The guest's completeness statement (an honest run with no zero fold, tail or batching challenge,
 on a memory holding the hinted caps and rows, gives the call relation; DESIGN §5.2.1) follows the
@@ -74,9 +75,9 @@ def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : L
 
 /-! ## What a call establishes -/
 
-/-- **`open_stacked__L{candidate μ r}(fs0..fs4, target, root_0, root_1, cursor, tabs)`**
-(G:1514-1831; TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing
-waiting (the batching challenge of `verifyStackedOpening` was just squeezed, G:3697), the stack's
+/-- **`open_stacked__L{μ - minOpenLog}(rateSel r, fs0..fs4, target, root_0, root_1, cursor, tabs)`**
+(TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing waiting (the
+batching challenge of `verifyStackedOpening` was just squeezed), the stack's
 root `root` committed with its shape and nothing else, the words `xs` at the cursor and some
 openings `os` run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer
 holding its point (`μ` coordinates, zero-padded to `pointCap`), a buffer holding one plus each of
@@ -91,15 +92,17 @@ def OpenOut (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - μ) 0) ∧
       ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
 
-/-- **`open_stacked` is sound** at every candidate: a call of the specialization of `μ`, `r` on
-the capacity cells `fs`, the claim `target`, the root's two cells, the cursor and the exponent
+/-- **`open_stacked` is sound** at every stack log and rate: a call of the specialization of `μ`
+on the rate's selector, the capacity cells `fs`, the claim `target`, the root's two cells, the
+cursor and the exponent
 table `tabs` establishes `OpenOut`, on a memory image of `2^κ` words, `11 ≤ κ ≤ 32`,
 (`decode_query_windows`' range checks) holding the window tables at `tabs` (`WinTabs`). -/
 def open_stacked_sound_Spec : Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
+  ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 →
+    1 ≤ r → r ≤ 4 →
     ∀ (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E),
       fs.length = 5 → (root0, root1) = digestHalves root → WinTabs L.read tabs →
-      coreProgram.Rel L.read (openName μ r) (fs ++ [target, root0, root1, cur, tabs]) rets →
+      coreProgram.Rel L.read (openName μ) (rateSel r :: fs ++ [target, root0, root1, cur, tabs]) rets →
         OpenOut L.read μ r root fs target cur rets
 
 end
