@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CFinA
+public import LeanVM.Guest.B1.Whir.CFinRes
 
 /-!
 # The finish, honestly, assembled
@@ -14,8 +15,8 @@ public import LeanVM.Guest.B1.Whir.CFinA
 `fin0_complete`: `fold_final_msg` and the two point buffers; `finHeaps_complete`: `basis_d`,
 `level_scale`, `level_after`; `finIch0_complete`: `inner_chain` started at `0` and the claim;
 `finRet_complete`: the returns' loads and copies. `osFinishA_complete`: the finish's blocks in
-sequence; `osFinishA_completeR` with its returns, `osFinishA_completeC` with its loop calls' values
-too (`FinCallV`).
+sequence; `osFinishA_completeR` with its returns, `osFinishA_completeC` with its dispatches into
+`level_residual` too (`FinCallV`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -29,7 +30,7 @@ variable {H : CallRel → Reader → Prop}
 
 /-- **`fold_final_msg` and the point buffers, honestly.** -/
 theorem fin0_complete {f : String} {k tch : ℕ} {σ : Val} {Y PT PT1 : E} (htch : tch < k)
-    (hk : 36 ≤ k) (hC : ∀ C rd, H C rd → C f [σ (.n osFmsg), σ (.n tch)] [Y]) :
+    (hk : 33 ≤ k) (hC : ∀ C rd, H C rd → C f [σ (.n osFmsg), σ (.n tch)] [Y]) :
     BlkA H σ k (k + 3) [.call f [.n osFmsg, .n tch] [.n k], .atom (.hint (.alloc (.n (k + 1)) pointCap)),
       .atom (.hint (.alloc (.n (k + 1 + 1)) pointCap))]
       (fun σ' ↦ σ' (.n k) = Y ∧ σ' (.n (k + 1)) = PT ∧ σ' (.n (k + 1 + 1)) = PT1 ∧
@@ -54,7 +55,7 @@ theorem fin0_complete {f : String} {k tch : ℕ} {σ : Val} {Y PT PT1 : E} (htch
     rw [e1, e2]
   · intro C rd hH σ' ha hr
     simp only [SidesOk, Side, List.map_cons, List.map_nil, ↓reduceIte, and_true]
-    rw [ha _ (by show 15 < k; omega), ha _ htch]
+    rw [ha _ (by show 12 < k; omega), ha _ htch]
     exact hC C rd hH
 
 /-- **`basis_d`, `level_scale`, `level_after` allocated**, at `BD`, `LS`, `LA`. -/
@@ -78,7 +79,7 @@ theorem finHeaps_complete {n p : ℕ} {σ : Val} {BD LS LA : E} (hn6 : n ≤ 6) 
   have e5 := hr (p + 5) (by omega) (by omega)
   simp +arith [evalV, stepV, stepW, osHeap] at e0 e1 e2 e3 e4 e5
   refine ⟨e1, e3, e5, ?_⟩
-  rw [allocsAt_append, allocsAt_append, allocsAt_heap σ' _ _ (by show n * 22 < _; omega) e0,
+  rw [allocsAt_append, allocsAt_append, allocsAt_heap σ' _ _ (by show n * 24 < _; omega) e0,
     allocsAt_heap σ' _ _ (by omega) e2, allocsAt_heap σ' _ _ (by omega) e4, e1, e3, e5]
   rfl
 
@@ -185,9 +186,9 @@ theorem osBases_allocs (σ : Val) (c : OsCfg) (tch bd ls la : ℕ) :
 /-- **The words the out-of-domain weights read are fixed**: each level's scalars and points
 (its record), and its coordinates' sources. -/
 theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {recs : List OsRec}
-    {li : ℕ → E} {cl Y PT PT1 BD LS LA ICH : E} {RC : ℕ → E} (hS : FinStatic c G T recs)
-    (htch : tch < k) (hk : 36 ≤ k)
-    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li cl Y PT PT1 BD LS LA ICH RC) {p o : ℕ} :
+    {li : ℕ → E} {cl Y PT PT1 BD LS LA ICH : E} (hS : FinStatic c G T recs)
+    (htch : tch < k) (hk : 33 ≤ k)
+    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li cl Y PT PT1 BD LS LA ICH) {p o : ℕ} :
     ∀ (lvs : List OsLv) (ol : ℕ), 1 ≤ ol → lvs = c.levels.drop ol →
       OodLoads c tch (finLv c (ol - 1)).logCols ol lvs p o →
       p < k ∧ ∃ v, ∀ C rd, H C rd → LoadHolds rd (σ (.n p)) o v
@@ -206,7 +207,7 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
     simp only [OodLoads] at h
     rcases h with hh | h
     · rcases hh with ⟨rfl, ho⟩ | ⟨rfl, x, hx, rfl⟩ | ⟨x, hx, he⟩
-      · refine ⟨by show 31 < k; omega, (recs.getD (ol - 1) default).lam, fun C rd hH ↦ ?_⟩
+      · refine ⟨by show 28 < k; omega, (recs.getD (ol - 1) default).lam, fun C rd hH ↦ ?_⟩
         have hR := (hm C rd hH).stored (ol - 1) hi
         rw [ho]
         simpa [show ol - 1 + 1 = ol by omega] using hR.lam1
@@ -215,7 +216,7 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
         have hcl : (finLv c (ol - 1)).logCols - c.yrLog + c.yrLog = (finLv c (ol - 1)).logCols := by
           have := hL.pre; omega
         rw [hcl] at ht
-        refine ⟨by show 29 < k; omega, (recs.getD (ol - 1) default).z0.getD t 0, fun C rd hH ↦ ?_⟩
+        refine ⟨by show 26 < k; omega, (recs.getD (ol - 1) default).z0.getD t 0, fun C rd hH ↦ ?_⟩
         have hR := (hm C rd hH).stored (ol - 1) hi
         have := readsAt_getD' hR.z0 (by rw [hR.z0len]; exact ht)
         rw [loadHolds_mul_gen_pow] at this
@@ -234,7 +235,7 @@ theorem oodLoads_pinned {c : OsCfg} {tch k : ℕ} {σ : Val} {G T : List E} {rec
         split_ifs at he with h1
         · simp only [Prod.mk.injEq] at he
           obtain ⟨rfl, rfl⟩ := he
-          refine ⟨by show 19 < k; omega, G.getD (lv.foldsOff + t) 0, fun C rd hH ↦ ?_⟩
+          refine ⟨by show 16 < k; omega, G.getD (lv.foldsOff + t) 0, fun C rd hH ↦ ?_⟩
           have hj : lv.foldsOff + t < G.length := by rw [hlv]; omega
           have := (hm C rd hH).fch _ hj
           rwa [List.getD_eq_getElem _ _ hj]
@@ -258,22 +259,26 @@ theorem take_getElem {c : OsCfg} {i : ℕ} (hi : i < (c.levels.take c.yrLevel).l
   rw [← List.getD_eq_getElem _ default hi]
   simp only [finLv, List.getD_eq_getElem?_getD, List.getElem?_take, hi', ↓reduceIte]
 
-/-- The first free value of non-final level `l`'s residual chain in the finish at `st`. -/
-def finResK (c : OsCfg) (st : OsSt) (tch l : ℕ) : ℕ :=
-  let pt := st.k + 1
-  let pts := osPtBlks c pt (pt + 1) tch 0 pointCap (pt + 2)
-  let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) (pts.2 + 6)
-  (osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 ((c.levels.take c.yrLevel).take l)
-    (bs.2 + 3)).2
-
 /-- The finish's `basis_d` value. -/
 def finBdV (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
   (osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)).2 + 1
 
-/-- The values the finish's residual loop calls read under `σ'`. -/
-def FinCallV (c : OsCfg) (st : OsSt) (tch : ℕ) (σ σ' : Val) (li RC : ℕ → E) (BD : E) : Prop :=
-  σ' (.n (finBdV c st tch)) = BD ∧ σ' (.n osQpos) = σ (.n osQpos) ∧ σ' (.n osHs) = σ (.n osHs) ∧
-    ∀ l < c.yrLevel, ResCallV σ' (finResK c st tch l) (finLv c l).queries (li l) (RC l)
+/-- The finish's dispatches into `level_residual`, their arguments and returns. -/
+def finResCalls (c : OsCfg) (st : OsSt) (tch : ℕ) : List (List V × List V) :=
+  let pt := st.k + 1
+  let pts := osPtBlks c pt (pt + 1) tch 0 pointCap (pt + 2)
+  let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) (pts.2 + 6)
+  osResCallsL c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) st.mats (bs.2 + 3)
+
+/-- The values the finish's dispatches into `level_residual` take and return under `σ'`. -/
+def FinCallV (c : OsCfg) (st : OsSt) (tch : ℕ) (σ σ' : Val) (G T : List E) (recs : List OsRec) (li : ℕ → E)
+    (BD : E) : Prop :=
+  σ' (.n (finBdV c st tch)) = BD ∧
+    ∀ l < c.yrLevel, ((finResCalls c st tch).getD l ([], [])).1.map σ' =
+      [σ (.n osQpos) * gen ^ (finLv c l).posOff, BD * gen ^ (l * ligColsCap),
+        σ (.n osHs) * gen ^ (l * hsStride), li l] ∧
+      ((finResCalls c st tch).getD l ([], [])).2.map σ' =
+        [(finRes c G T recs li l).1, (finRes c G T recs li l).2]
 
 /-- **The finish before its return, honestly, what it returns and its loop calls' values**: its
 statements hold at values fixed before the memory and the callees, allocating its buffers at the
@@ -281,14 +286,15 @@ given pointers; the returns are the closing claim plus the deficit times the clo
 the point buffers, the glued weight at the terminal point and `fold_final_msg`'s value
 (`osFinish_sound`'s). -/
 theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
-    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E} {RC : ℕ → E}
-    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 36 ≤ st.k)
-    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH RC) :
+    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E}
+    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 33 ≤ st.k)
+    (hmb : MatsBelow st.k st.mats) (hmo : ∀ C rd, H C rd → MatsOk σ st.mats)
+    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH) :
     BlkA H σ st.k (finEnd c st tch) (osFinishA c st tch).1
-      (fun σ' ↦ (AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC ∧
+      (fun σ' ↦ (AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH ∧
         (osFinishA c st tch).2.map σ' = [σ (.n st.claim) + T.prod * recsDeficit recs G, PT, PT1,
           (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
-          Y]) ∧ FinCallV c st tch σ σ' li RC BD) := by
+          Y]) ∧ FinCallV c st tch σ σ' G T recs li BD) := by
   set n := c.levels.length with hn
   set y := c.yrLevel with hy
   set mid := c.levels.take y with hmid
@@ -297,7 +303,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
   set P2 := pts.2 with hP2
   set bs := osBases c tch (P2 + 1) (P2 + 3) (P2 + 5) 0 mid (P2 + 6) with hbs
   set B := bs.2 with hB
-  set rs := osResiduals c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid (B + 3) with hrs
+  set rs := osResiduals c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3) with hrs
   set od := osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2 with hod
   set K := od.2.2 with hK
   have hyn : y = n - 1 := hS.yr
@@ -307,11 +313,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
   -- the watermarks
   have w1 : k0 + 1 + 2 ≤ P2 := osPtBlks_next c _ _ tch pointCap 0 _
   have w2 : P2 + 6 ≤ B := osBases_next c tch _ _ _ mid 0 _
-  have hrsS : ∀ i (hi : i < mid.length), ResStatic mid[i]
-      (hsvOf (finLv c (0 + i)) (recs.getD (0 + i) default)) := fun i hi ↦ by
-    rw [take_getElem hi, Nat.zero_add]; exact hS.rs i (by omega)
-  have w3 : B + 3 ≤ rs.2 := osResiduals_next c _ _ _ _ (fun i ↦ hsvOf (finLv c i) (recs.getD i default))
-    mid 0 (B + 3) (by omega) (by omega) hrsS
+  have w3 : B + 3 ≤ rs.2 := osResiduals_next c _ _ _ _ mid 0 st.mats (B + 3)
   obtain ⟨o1, o2, o3⟩ := osOodWeights_ssa c tch (c.levels.headD default).logCols 1 c.levels.tail none
     rs.2 (by omega) (by omega) (by simp)
   have w4 : rs.2 ≤ K := o1.le
@@ -321,12 +323,12 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
   have s1 := BlkA.seq (H := H) (by omega) (show k0 + 1 + 2 ≤ P2 from w1) b0 fun σ1 ha1 hO1 ↦
     osPtBlks_complete (H := H) (c := c) (pt := k0 + 1) (pt1 := k0 + 1 + 1) (tch := tch)
       (fun i ↦ (rotPt G T (c.levels.headD default).folds).getD i 0) pointCap 0 (k0 + 1 + 2) σ1
-      (by omega) (by omega) (by show 19 < k0 + 1 + 2; omega) (by omega) fun j hj C rd hH ↦ by
+      (by omega) (by omega) (by show 16 < k0 + 1 + 2; omega) (by omega) fun j hj C rd hH ↦ by
         obtain ⟨-, e1, e2, -⟩ := hO1 C rd hH
         have hM := hm C rd hH
         refine ⟨?_, ?_, ?_⟩
         · have := ptSrc_ok (rd := rd) (σ := σ1) (c := c) (tch := tch) hS.Gl hS.Tl hS.lane
-            (by rw [ha1 _ (by show 19 < k0; omega)]; exact hM.fch)
+            (by rw [ha1 _ (by show 16 < k0; omega)]; exact hM.fch)
             (by rw [ha1 _ htch]; exact hM.tchs) (0 + j)
           exact this
         · rw [e1, ← finPtC_getD hS]
@@ -353,9 +355,9 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         rw [take_getElem hi, Nat.zero_add]
         refine ⟨⟨?_, fun t ht ↦ ⟨invW_ne hL.mu64 hL.inv t (by have := hL.pre; omega), ?_⟩⟩,
           fun t ht ↦ ⟨finX_ne hS hi' (hS.recF i hi') t ht, ?_⟩, ?_, ?_⟩
-        · rw [ha3 osBetas (by show 23 < k0; omega)]; exact hR.beta
+        · rw [ha3 osBetas (by show 20 < k0; omega)]; exact hR.beta
         · have := finX_src hS hM.fch hM.tchs hi' (hS.recF i hi') t ht
-          rwa [ha3 _ (coordSrc_lt (by show 19 < k0; omega) htch)]
+          rwa [ha3 _ (coordSrc_lt (by show 16 < k0; omega) htch)]
         · obtain ⟨-, eb⟩ := finBdC_get (G := G) (T := T) (recs := recs) hi' (by omega) ht
             (by have := hS.cols i hi'; have := hL.pre; omega)
           rw [e1]
@@ -388,21 +390,42 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           rwa [g0] at this
         · have := readsAt_getD' hM.ich (j := 1) (by rw [hl]; omega)
           rwa [g1] at this
-  have s5 := BlkA.seq (H := H) (show k0 ≤ B + 3 by omega) w3 s4 fun σ5 ha5 hO5 ↦
-    osResiduals_complete (H := H) (c := c) (ich := B + 1) (bd := P2 + 1) (ls := P2 + 3) (la := P2 + 5)
-      RC (finD c G T recs) (fun i ↦ hsvOf (finLv c i) (recs.getD i default))
-      (fun i k ↦ eOfNat ((recs.getD i default).qs.getD k 0)) li
-      (fun i ↦ (finIch c G T recs li (σ (.n st.claim)) i).1)
+  have s5 := BlkA.seq (H := H) (show k0 ≤ B + 3 by omega) w3 s4
+    (B := rs.1) (OutB := fun σ' ↦ AllocsAt σ' rs.1 = [] ∧ ∀ i < mid.length,
+      ((osResCallsL c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).getD i ([], [])).1.map σ' =
+        [σ (.n osQpos) * gen ^ (mid.getD i default).posOff, BD * gen ^ ((0 + i) * ligColsCap),
+          σ (.n osHs) * gen ^ ((0 + i) * hsStride), li (0 + i)] ∧
+      ((osResCallsL c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).getD i ([], [])).2.map σ' =
+        [(finRes c G T recs li (0 + i)).1, (finRes c G T recs li (0 + i)).2]) fun σ5 ha5 hO5 ↦
+    BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
+    obtain ⟨⟨⟨⟨-, -⟩, e1, -, -, -⟩, -⟩, -, -⟩ := hO5 C0 rd0 hH0
+    have q5 : σ5 (.n osQpos) = σ (.n osQpos) := ha5 osQpos (by show 30 < k0; omega)
+    have h5 : σ5 (.n osHs) = σ (.n osHs) := ha5 osHs (by show 24 < k0; omega)
+    have h := osResiduals_complete (H := H) (c := c) (ich := B + 1) (bd := P2 + 1) (ls := P2 + 3) (la := P2 + 5)
+      li (fun i ↦ (finIch c G T recs li (σ (.n st.claim)) i).1)
       (fun i ↦ (finIch c G T recs li (σ (.n st.claim)) i).2)
       (fun i ↦ (finLsC c G T recs).getD i 0) (finBeta c recs) (fun i ↦ (finLaC c G T recs).getD i 0)
-      mid 0 (B + 3) σ5 (by omega) (by omega) (by omega) (by omega) (by omega) hrsS
+      (fun i ↦ (finRes c G T recs li i).1) (fun i ↦ (finRes c G T recs li i).2)
+      mid 0 st.mats (B + 3) σ5 (by omega) (by omega) (by omega) (by omega) (by omega)
+      (fun m hm' ↦ by obtain ⟨x, y, z⟩ := hmb m hm'; exact ⟨by omega, by omega, by omega⟩)
+      (fun C rd hH ↦ matsOk_agree (hmo C rd hH) hmb fun i hi ↦ ha5 i hi)
+      (fun i hi ↦ by
+        have hi' : i < y := by rw [← hmidl]; exact hi
+        rw [Nat.zero_add, take_getD hi']
+        have := hS.n6
+        exact ⟨(hS.lv i hi').posOff, by unfold u128Bound ligColsCap; omega,
+          by unfold u128Bound hsStride; omega⟩)
+      (fun i hi C rd hH ↦ by
+        have hi' : i < y := by rw [← hmidl]; exact hi
+        obtain ⟨ri, hri, hx, hlen, hlv⟩ := (hm C rd hH).rate i hi'
+        rw [Nat.zero_add, take_getD hi']
+        exact ⟨ri, hri, by rw [ha5 _ (show 0 < k0 by omega)]; exact hx, hlen, hlv⟩)
       (fun i hi C rd hH ↦ by
         have hi' : i < y := by rw [← hmidl]; exact hi
         obtain ⟨⟨⟨⟨-, -⟩, e1, e3, e5, -⟩, -⟩, eI, -⟩ := hO5 C rd hH
         have hM := hm C rd hH
-        have hL := hS.lv i hi'
         have hR := hM.stored i hi'
-        rw [take_getElem hi, Nat.zero_add]
+        rw [Nat.zero_add]
         obtain ⟨hl, g0, g1⟩ := finIchC_get (c := c) (G := G) (T := T) (recs := recs) (li := li)
           (cl := σ (.n st.claim)) (j := i) (by omega)
         obtain ⟨-, g2, g3⟩ := finIchC_get (c := c) (G := G) (T := T) (recs := recs) (li := li)
@@ -410,30 +433,12 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         have hich : ∀ j < 2 * n, LoadHolds rd (σ5 (.n (B + 1))) j
             ((finIchC c G T recs li (σ (.n st.claim))).getD j 0) := fun j hj ↦ by
           rw [eI]; exact readsAt_getD' hM.ich (by rw [hl]; exact hj)
-        refine ⟨?_, ?_, fun t ht ↦ ?_, fun c' hc ↦ ?_, hM.rc i hi', ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-        · rw [ha5 osMus (by show 25 < k0; omega)]; exact hM.mus i hi'
-        · rw [ha5 osQpos (by show 33 < k0; omega)]; exact hR.pos
-        · have ht' : t < (finLv c i).prefixLen + c.yrLog := by have := hL.pre; omega
-          obtain ⟨hbl, eb⟩ := finBdC_get (G := G) (T := T) (recs := recs) hi' (by omega) ht'
-            (by have := hS.cols i hi'; have := hL.pre; omega)
-          rw [e1]
-          have := readsAt_getD' hM.bd (j := i * ligColsCap + t) (by
-            rw [hbl]
-            have : (i + 1) * ligColsCap ≤ n * ligColsCap := Nat.mul_le_mul_right _ (by omega)
-            rw [Nat.add_mul, Nat.one_mul] at this
-            have := hS.cols i hi'; have := hL.pre; unfold ligColsCap at *; omega)
-          rwa [eb] at this
-        · rw [ha5 osHs (by show 27 < k0; omega),
-            show (hsvOf (finLv c i) (recs.getD i default)).getD c' 0 = (recs.getD i default).high.getD c' 0 *
-              word (hsScale (finLv c i).vanish (finLv c i).highBits c'
-                (vanishInv ((finLv c i).vanish + (finLv c i).logCols))) 0 by
-            simp only [hsvOf]
-            rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]]
-          exact hR.hs c' hc
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · rw [ha5 osMus (by show 22 < k0; omega)]; exact hM.mus i hi'
         · have := hich (2 * i) (by omega); rwa [g0] at this
         · have := hich (2 * i + 1) (by omega); rwa [g1] at this
         · rw [e3]; exact readsAt_getD' hM.ls (by rw [(finLsC_get (G := G) (T := T) (recs := recs) hi' (by omega)).1]; omega)
-        · rw [ha5 osBetas (by show 23 < k0; omega)]; exact hR.beta
+        · rw [ha5 osBetas (by show 20 < k0; omega)]; exact hR.beta
         · rw [e5]; exact readsAt_getD' hM.la (by rw [(finLaC_get (G := G) (T := T) (recs := recs) hi' (by omega)).1]; omega)
         · have := hich (2 * i + 2) (by omega)
           rw [show 2 * i + 2 = 2 * (i + 1) by ring, g2] at this
@@ -443,13 +448,16 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           rw [show 2 * i + 3 = 2 * (i + 1) + 1 by ring, g3] at this
           convert this using 2
           simp only [finIch, Finset.sum_range_succ, finRes, add_assoc])
-      fun i hi C rd hH hne ↦ by
+      (fun i hi C rd hH ↦ by
         have hi' : i < y := by rw [← hmidl]; exact hi
-        obtain ⟨⟨⟨⟨-, -⟩, e1, -, -, -⟩, -⟩, -, -⟩ := hO5 C rd hH
-        have e : mid[i] = finLv c i := take_getElem hi
-        simp only [e, Nat.zero_add] at hne ⊢
-        rw [ha5 osQpos (by show 33 < k0; omega), ha5 osHs (by show 27 < k0; omega), e1]
-        exact (hm C rd hH).loops i hi' hne
+        rw [Nat.zero_add, take_getD hi', e1, q5, h5]
+        exact (hm C rd hH).res i hi')
+    refine h.mono fun σ' hv ↦ ⟨by
+      show AllocsAt σ' (osResiduals c (B + 1) (P2 + 1) (P2 + 3) (P2 + 5) 0 mid st.mats (B + 3)).1 = []
+      simp only [AllocsAt, osResiduals_allocs, List.map_nil], fun i hi ↦ ?_⟩
+    obtain ⟨v1, v2⟩ := hv i hi
+    rw [q5, h5, e1] at v1
+    exact ⟨v1, v2⟩
   have s6 := BlkA.seq (H := H) (show k0 ≤ rs.2 by omega) w4 s5 fun σ6 ha6 _ ↦
     BlkA.okOut <| pure_blk (H := H) o1 fun p o hpo ↦ by
       have hhead : (c.levels.headD default).logCols = (finLv c (1 - 1)).logCols := by
@@ -489,17 +497,12 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
   · obtain ⟨⟨⟨⟨⟨⟨⟨⟨-, -, -, a0⟩, -⟩, ⟨-, -, -, a2⟩⟩, -⟩, ⟨-, a4⟩⟩, a5, -⟩, ⟨a6, -⟩⟩, -⟩ := hσ'
     have p1 : AllocsAt σ' pts.1 = [] := osPtBlks_allocs σ' c _ _ tch pointCap 0 _
     have p3 : AllocsAt σ' bs.1 = [] := osBases_allocs σ' c tch _ _ _ 0 mid _
-    have p5 : AllocsAt σ' rs.1 = (List.range mid.length).map fun i ↦
-        (RC (0 + i), 2 * ((mid.getD i default).queries / resBatch + 1)) := a5
+    have p5 : AllocsAt σ' rs.1 = [] := a5
     have p6 : AllocsAt σ' od.1 = [] := a6
     simp only [allocsAt_append, a0, a2, a4, p1, p3, p5, p6]
     rw [show AllocsAt σ' [osLd K (B + 1) (2 * y + 1), osCp (K + 1) (k0 + 1), osCp (K + 2) (k0 + 1 + 1),
         osLd (K + 3) (B + 1) (2 * y), osAdd (K + 4) (K + 3) (od.2.1.getD 0), osCp (K + 5) k0] = [] from rfl]
-    simp only [finAllocs, List.nil_append, List.append_nil, List.cons_append, hmidl, List.cons.injEq,
-      true_and]
-    refine ⟨rfl, rfl, rfl, rfl, List.map_congr_left fun i hi ↦ ?_⟩
-    simp only [List.mem_range] at hi
-    rw [Nat.zero_add, take_getD (by omega)]
+    simp only [finAllocs, List.nil_append, List.append_nil, List.cons_append, hn]
   · obtain ⟨⟨⟨⟨⟨⟨⟨⟨y0, e1, e2, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, ⟨-, okod⟩⟩, r0, r1, r2, r4, r5⟩ := hσ'
     have hM := hm C rd hH
     have hok := okod C rd hH
@@ -532,11 +535,11 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         have hv := osOodWeight_val (lam := (r i).lam) (z := fun t ↦ (r i).z0.getD t 0)
           (p := finX G T recs i) (C := C) ?_ ?_ ?_ hok''
         · rw [hv, hcl]
-        · rw [ha osOodSc (by show 31 < k0; omega)]
+        · rw [ha osOodSc (by show 28 < k0; omega)]
           simpa [add_comm 1 i] using hR.lam1
         · intro t ht
           rw [hcl] at ht
-          rw [ha osOodz (by show 29 < k0; omega)]
+          rw [ha osOodz (by show 26 < k0; omega)]
           have := hR.z0 t (by rw [hR.z0len]; exact ht)
           rw [loadHolds_mul_gen_pow] at this
           simp only [List.getD_eq_getElem _ _ (show t < (r i).z0.length by rw [hR.z0len]; exact ht)]
@@ -549,7 +552,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
           simp only [coordSrc] at hx
           rw [hpre, hL.next, ← hL.rfo]
           split_ifs at hx ⊢
-          · rw [ha osFch (by show 19 < k0; omega)]; exact hx
+          · rw [ha osFch (by show 16 < k0; omega)]; exact hx
           · rw [ha _ htch]; exact hx)
       (fun i hi ↦ by rw [htail]) hok'
     obtain ⟨x, hx⟩ := osOodWeights_some (c := c) (tch := tch) c.levels.tail ((fun i ↦ (finLv c i).logCols) 0) 1
@@ -600,32 +603,34 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
       refine Finset.sum_congr rfl fun i hi ↦ ?_
       exact (hterms i (Finset.mem_range.mp hi)).1
   · obtain ⟨⟨⟨⟨⟨⟨-, eBD, -⟩, -⟩, -⟩, -, hcalls⟩, -⟩, -⟩ := hσ'
-    refine ⟨eBD, ha osQpos (by show 33 < k0; omega), ha osHs (by show 27 < k0; omega), fun l hl ↦ ?_⟩
+    refine ⟨eBD, fun l hl ↦ ?_⟩
     have := hcalls l (by omega)
     rw [Nat.zero_add, take_getD (by omega)] at this
     exact this
 
 /-- **The finish before its return, honestly, and what it returns.** -/
 theorem osFinishA_completeR {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
-    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E} {RC : ℕ → E}
-    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 36 ≤ st.k)
-    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH RC) :
+    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E}
+    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 33 ≤ st.k)
+    (hmb : MatsBelow st.k st.mats) (hmo : ∀ C rd, H C rd → MatsOk σ st.mats)
+    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH) :
     BlkA H σ st.k (finEnd c st tch) (osFinishA c st tch).1
-      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC ∧
+      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH ∧
         (osFinishA c st tch).2.map σ' = [σ (.n st.claim) + T.prod * recsDeficit recs G, PT, PT1,
           (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
           Y]) :=
-  (osFinishA_completeC hS htch hcl hk hm).mono fun _ h ↦ h.1
+  (osFinishA_completeC hS htch hcl hk hmb hmo hm).mono fun _ h ↦ h.1
 
 /-- **The finish before its return, honestly**: its statements hold at values fixed before the
 memory and the callees, allocating its buffers at the given pointers. -/
 theorem osFinishA_complete {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T : List E}
-    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E} {RC : ℕ → E}
-    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 36 ≤ st.k)
-    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH RC) :
+    {recs : List OsRec} {li : ℕ → E} {Y PT PT1 BD LS LA ICH : E}
+    (hS : FinStatic c G T recs) (htch : tch < st.k) (hcl : st.claim < st.k) (hk : 33 ≤ st.k)
+    (hmb : MatsBelow st.k st.mats) (hmo : ∀ C rd, H C rd → MatsOk σ st.mats)
+    (hm : ∀ C rd, H C rd → FinMem C rd σ c tch G T recs li (σ (.n st.claim)) Y PT PT1 BD LS LA ICH) :
     BlkA H σ st.k (finEnd c st tch) (osFinishA c st tch).1
-      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH RC) :=
-  (osFinishA_completeC hS htch hcl hk hm).mono fun _ h ↦ h.1.1
+      (fun σ' ↦ AllocsAt σ' (osFinishA c st tch).1 = finAllocs c PT PT1 BD LS LA ICH) :=
+  (osFinishA_completeC hS htch hcl hk hmb hmo hm).mono fun _ h ↦ h.1.1
 
 end
 end LeanVM.Guest.B1.Whir

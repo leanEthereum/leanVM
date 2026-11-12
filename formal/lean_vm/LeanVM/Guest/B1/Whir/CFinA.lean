@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Whir.CFinB
 public import LeanVM.Guest.B1.Whir.CFinRs
 public import LeanVM.Guest.B1.Whir.CFinO
 public import LeanVM.Guest.B1.Whir.FinishSound
+public import LeanVM.Guest.B1.Whir.RateCfg
 
 /-!
 # The finish, honestly (G:1731-1831)
@@ -132,6 +133,7 @@ structure FinMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (tch : ℕ) 
   la : ReadsAt rd LA (finLaC c G T recs)
   ich : ReadsAt rd ICH (finIchC c G T recs li cl)
   ffm : C ("fold_final_msg__L" ++ natStr c.yrLog) [σ (.n osFmsg), σ (.n tch)] [Y]
+  rate : ∀ i < c.yrLevel, LvRate σ c i (finLv c i)
   res : ∀ i < c.yrLevel, C (osResidualName (finLv c i))
     [σ (.n osQpos) * gen ^ (finLv c i).posOff, BD * gen ^ (i * ligColsCap),
       σ (.n osHs) * gen ^ (i * hsStride), li i] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]

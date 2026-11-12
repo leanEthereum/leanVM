@@ -67,7 +67,8 @@ def OutT (h : OsHD) (b : ℕ) (tabs cur : E) (xs : List E) (σ' : Val) : Prop :=
     σ' (.n s.k) = gw yrLogCap ∧ σ' (.n (osTail c s).2.2) = osPtrA c b (12 + c.yrLevel) ∧
     t.F σ' = ⟨(tailRun h.Lf.fw.pairs (h.capAt c.levels.length) (h.claimAt c.levels.length)).2.2, []⟩ ∧
     σ' (.n t.claim) = (tailRun h.Lf.fw.pairs (h.capAt c.levels.length) (h.claimAt c.levels.length)).2.1 ∧
-    t.cur σ' = cur * gen ^ (xs.length - (h.xsAt c.levels.length).length + 2 * c.yrLog)
+    t.cur σ' = cur * gen ^ (xs.length - (h.xsAt c.levels.length).length + 2 * c.yrLog) ∧
+    ∀ l < c.levels.length, LvRate σ' c l (c.levels.getD l default)
 
 /-- **The body, composed.** -/
 theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E}
@@ -92,7 +93,9 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       (cur * gen ^ (xs.length - (h.xsAt h.c.levels.length).length)))
     (hz : ∀ C rd, H C rd → ∀ i < yrLogCap - h.c.yrLog,
       LoadHolds rd (osPtrA h.c b (12 + h.c.yrLevel)) (h.c.yrLog + i) 0)
-    (hfin : ∀ σ, (osLvsEnd h.c).Sf → (∀ i < 11, σ (.n (12 + 2 * i)) = osPtrA h.c b i) →
+    (hfin : ∀ σ, (osLvsEnd h.c).Sf → (osFinSt h.c).Ok σ →
+      (∀ l < h.c.levels.length, LvRate σ h.c l (h.c.levels.getD l default)) →
+      (∀ i < 11, σ (.n (12 + 2 * i)) = osPtrA h.c b i) →
       σ (.n osTabs) = tabs → σ (.n (osFinTch h.c)) = osPtrA h.c b (12 + h.c.yrLevel) →
       σ (.n (osFinSt h.c).claim) = (tailRun h.Lf.fw.pairs (h.capAt h.c.levels.length)
         (h.claimAt h.c.levels.length)).2.1 →
@@ -158,11 +161,13 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
       refine h0.monoH fun C rd hH σ' _ ⟨hstep, e0, e1, e2, eF, ecl, ecur, _⟩ ↦ ?_
       rw [hfs, hcl] at eF ecl
       rw [hcu] at ecur
-      refine ⟨hstep.ok, hstep.le, fun i hi ↦ ?_, ?_, e1, ?_, eF, ecl, ?_⟩
+      refine ⟨hstep.ok, hstep.le, fun i hi ↦ ?_, ?_, e1, ?_, eF, ecl, ?_, fun l hl ↦ ?_⟩
       · rw [hstep.agree _ (by have := hq.ok.sf.k; omega)]; exact hq.ptr i hi
       · rw [hstep.agree _ (by have := hq.ok.sf.k; show 10 < _; omega)]; exact hq.tabs
       · exact (congrArg (fun k ↦ σ' (.n k)) e0).trans e2
       · exact ecur.trans (by rw [mul_assoc, ← pow_add])
+      · obtain ⟨ri, hri, hx, hlen, hlv⟩ := hq.rate l hl
+        exact ⟨ri, hri, by rw [hstep.agree _ (by have := hq.ok.sf.k; show 0 < _; omega)]; exact hx, hlen, hlv⟩
   have b2 := BlkA.seqK b1 (fun σ' ho ↦ by
     have := ho.2.1; have e : (osHead c).2.k = 33 := rfl; omega) bT (fun σ' ho ↦ ho.2.1)
   -- the finish
@@ -171,8 +176,8 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
     have a' : (osLevels c 0 c.levels (osHead c).2).2.k ≤ (osTail c (osLvsEnd c)).2.1.k := ho.2.2.1
     show 11 ≤ (osTail c (osLvsEnd c)).2.1.k
     omega) (fun σ3 _ ho ↦ BlkA.of_ne (H := H) fun ⟨C0, rd0, hH0⟩ ↦ by
-      obtain ⟨-, -, hp, ht, -, htc, -, hcl, -⟩ := (ho C0 rd0 hH0).2
-      exact hfin σ3 (ho C0 rd0 hH0).1.2.2.1.ok.sf hp ht htc hcl) (fun σ' ho ↦ by exact ho.1)
+      obtain ⟨hok3, -, hp, ht, -, htc, -, hcl, -, hrt⟩ := (ho C0 rd0 hH0).2
+      exact hfin σ3 (ho C0 rd0 hH0).1.2.2.1.ok.sf hok3 hrt hp ht htc hcl) (fun σ' ho ↦ by exact ho.1)
   refine ⟨_, BlkA.mono b3 fun σ' ⟨⟨⟨⟨_, hv, _⟩, _, _, hR⟩, hOT⟩, _, hFA, hFR, hFC⟩ ↦ ?_⟩
   have hal : AllocsAt σ' (osBodyA c) = bufsAt c b 0 (osSizesL c).length := by
     show AllocsAt σ' ((osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++
