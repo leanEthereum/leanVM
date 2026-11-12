@@ -11,7 +11,8 @@ The compiler (`Cost/Compiler.lean`) states each function's price recurrence (`co
 right side folded by `foldPrice`: a fixed `simp` set (no `0 +`, lengths of literal lists, fields of
 literal pairs, `limbCount` of literals, `max` with `limbCount 0`, …) and `foldSum`, which gathers a sum's
 literals at its end (`2 + (a + (b + 1))` becomes `a + b + 3`). The folded equation is proved from
-the raw one by `simp`'s proof, so nothing here is trusted.
+the raw one by `simp`'s proof, or by `rfl` for a closed price (`closedValue?`), so nothing here is
+trusted.
 -/
 
 namespace LeanVM.Cost
@@ -103,9 +104,34 @@ def foldContext (iota : Bool) : MetaM (Simp.Context × SimprocsArray) := do
   let s := s.addCore anyKeys `LeanVM.Cost.Fold.guardData false (.inl guardData)
   return (ctx, #[s])
 
+/-- The length of a literal list (`List.cons`, `List.nil`). -/
+partial def listLength? (e : Expr) : Option Nat :=
+  match e.getAppFnArgs with
+  | (``List.nil, #[_]) => some 0
+  | (``List.cons, #[_, _, t]) => (· + 1) <$> listLength? t
+  | _ => none
+
+/-- **A closed price's value**: a price made of literals, sums, products and lengths of literal
+lists only, which the fold's `simp` would reduce to that literal. -/
+partial def closedValue? (e : Expr) : Option Nat :=
+  match litVal? e with
+  | some n => some n
+  | none => match e.getAppFnArgs with
+    | (``HAdd.hAdd, #[α, _, _, _, a, b]) =>
+      if α.isConstOf ``Nat then (· + ·) <$> closedValue? a <*> closedValue? b else none
+    | (``HMul.hMul, #[α, _, _, _, a, b]) =>
+      if α.isConstOf ``Nat then (· * ·) <$> closedValue? a <*> closedValue? b else none
+    | (``List.length, #[_, l]) => listLength? l
+    | _ => none
+
 /-- **The fold** of a price `e`: the folded price and a proof `e = e'` (`none`: unchanged); with
-`iota`, a `casesOn` on a constructor reduced. -/
+`iota`, a `casesOn` on a constructor reduced. A closed price (`closedValue?`) is its literal at
+once, by `rfl`: `simp` on a large literal's price is slow. -/
 def foldPrice (e : Expr) (iota := false) : MetaM Simp.Result := do
+  if let some n := closedValue? e then
+    if (litVal? e).isSome then return { expr := e }
+    let v := mkNatLit n
+    return { expr := v, proof? := ← mkExpectedTypeHint (← mkEqRefl v) (← mkEq e v) }
   let (ctx, s) ← foldContext iota
   let (r, _) ← Meta.simp e ctx s
   return r

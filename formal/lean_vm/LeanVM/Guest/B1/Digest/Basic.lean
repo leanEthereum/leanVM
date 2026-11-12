@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Digest.Interface
 * `padCells_getD_lt`, `padCells_getD_last`: the cells a whole-cell message of `16 m` bytes is
   absorbed from are its cells, then the padding cell `0x01 … 0x80` (`padCellWord`).
 * `digestScalars_ofCells`: two cells' lanes are the digest of those cells.
+* `VDec.vDecEq` (scoped): equality of values by their indices first, for the checkers.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -25,6 +26,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
+
+namespace VDec
+
+/-- Equality of values by their indices first: the checkers' searches pass over most atoms on a
+differing index, which the derived instance compares last. -/
+scoped instance (priority := high) vDecEq : DecidableEq V := fun a b =>
+  decidable_of_iff (a.idx = b.idx ∧ a.tag = b.tag ∧ a.path = b.path) (by
+    cases a; cases b; simp only [V.mk.injEq]; tauto)
+
+end VDec
 
 /-! ## Straight-line bodies -/
 

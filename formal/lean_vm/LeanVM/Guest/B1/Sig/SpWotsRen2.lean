@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsRen2
 
-  The guest's numbering of `sp_wots`'s template is undone by `spUn` on the values of digit groups 11 to 16:
+  The guest's numbering of `sp_wots`'s template is undone by `spUn` on the values of statements 64 to 95, in runs of 8:
   no value the template names is one its steps without an address constant leave unused.
 -/
 
@@ -15,22 +15,20 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-theorem spRen_slice_72 : (Stmt.valsList ((spBodyT.drop 72).take 5)).all spUnOK = true := by
+set_option maxRecDepth 100000 in
+theorem spRen_run_64 : (Stmt.valsList ((spBodyT.drop 64).take 8)).all spUnOK = true := by
   decide +kernel
 
-theorem spRen_slice_77 : (Stmt.valsList ((spBodyT.drop 77).take 5)).all spUnOK = true := by
+set_option maxRecDepth 100000 in
+theorem spRen_run_72 : (Stmt.valsList ((spBodyT.drop 72).take 8)).all spUnOK = true := by
   decide +kernel
 
-theorem spRen_slice_82 : (Stmt.valsList ((spBodyT.drop 82).take 5)).all spUnOK = true := by
+set_option maxRecDepth 100000 in
+theorem spRen_run_80 : (Stmt.valsList ((spBodyT.drop 80).take 8)).all spUnOK = true := by
   decide +kernel
 
-theorem spRen_slice_87 : (Stmt.valsList ((spBodyT.drop 87).take 5)).all spUnOK = true := by
-  decide +kernel
-
-theorem spRen_slice_92 : (Stmt.valsList ((spBodyT.drop 92).take 5)).all spUnOK = true := by
-  decide +kernel
-
-theorem spRen_slice_97 : (Stmt.valsList ((spBodyT.drop 97).take 5)).all spUnOK = true := by
+set_option maxRecDepth 100000 in
+theorem spRen_run_88 : (Stmt.valsList ((spBodyT.drop 88).take 8)).all spUnOK = true := by
   decide +kernel
 
 end

@@ -27,7 +27,7 @@ def maxDef : Nat := 24000
 def maxNested : Nat := 6000
 
 /-- A file is closed once longer than this. -/
-def maxFile : Nat := 1500000
+def maxFile : Nat := 750000
 
 def dataDir : System.FilePath := "LeanVM/Guest/Data"
 
@@ -321,13 +321,17 @@ def ordered (f : FnDefs) : List (List Def) := Id.run do
   return (List.range (top + 1)).map fun l => f.body.filter (lvl.getD ·.name 0 == l)
 
 /-- Pack the functions into files in order, a file closed once longer than `maxFile`, a function
-that fits kept in one file; a file imports those holding the definitions it refers to. -/
+that fits kept in one file; a file imports those holding the definitions it refers to. The
+functions after one split over files start a file of their own, which so imports none of them. -/
 def pack (fns : List FnDefs) : Array File := Id.run do
   let mut files : Array File := #[{}]
+  let mut split := false
   for f in fns do
     let whole := f.body.foldl (· + ·.size) 0 + f.fn.length
     let groups := if whole ≤ maxFile then [f.body] else ordered f
-    if files.back!.size + whole > maxFile && files.back!.size > 0 then files := files.push {}
+    if (split || files.back!.size + whole > maxFile) && files.back!.size > 0 then
+      files := files.push {}
+    split := whole > maxFile
     let mut loc : Std.HashMap String Nat := {}
     for g in groups do
       if whole > maxFile && files.back!.size > 0 then files := files.push {}

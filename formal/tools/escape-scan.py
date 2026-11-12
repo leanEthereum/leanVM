@@ -31,6 +31,10 @@ PATTERN = re.compile(
     r"|\+native\b"
     r"|^\s*(?:@\[[^\]]*\]\s*)*" + MODIFIERS + r"axiom\b")
 
+# Every hit contains one of these words, and blanking comments only removes text: a file without
+# any of them needs no scan.
+QUICK = re.compile(r"(?:" + WORDS + r"|#exit|\+native|axiom)")
+
 CHAR = re.compile(r"'(?:\\[^']{1,8}|[^'\\\n])'")
 
 
@@ -81,6 +85,8 @@ def strip_comments(text: str) -> str:
 def scan(path: str) -> list[str]:
     with open(path, encoding="utf-8") as f:
         text = f.read()
+    if not QUICK.search(text):
+        return []
     hits = []
     original = text.split("\n")
     for k, line in enumerate(strip_comments(text).split("\n")):

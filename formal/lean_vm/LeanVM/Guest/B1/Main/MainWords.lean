@@ -339,7 +339,7 @@ theorem aggB_le {m : ℕ} (hm : 1 ≤ m) : aggB fs SB SK m ≤ agA0 fs SB + agA1
 /-! ## `main`'s callees' words -/
 
 /-- Child `c`'s `verify_sub` words, `Bvf` at its announced stack log and rate (`childShape`). -/
-def childBv (Bvf : ℕ → ℕ → ℕ) (w : NodeWitness) (c : ℕ) : ℕ :=
+noncomputable def childBv (Bvf : ℕ → ℕ → ℕ) (w : NodeWitness) (c : ℕ) : ℕ :=
   (w.children.map fun ch => Bvf (childShape End.bytecode ch).1 (childShape End.bytecode ch).2).getD c 0
 
 theorem sum_childBv (Bvf : ℕ → ℕ → ℕ) (s : NodeStatement) (w : NodeWitness) :

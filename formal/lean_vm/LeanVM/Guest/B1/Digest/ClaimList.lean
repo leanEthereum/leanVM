@@ -133,7 +133,8 @@ theorem big_ok : grpOk (coreProgram.getD 346 default) "__loop15" 136 21 565 20 =
       bigWin_8, bigWin_9, bigWin_10, bigWin_11, bigWin_12, bigWin_13, bigWin_14, bigWin_15]
   simp only [bigWin, bigSpec, bigAtoms, Bool.and_eq_true] at hw
   exact grpOk_of_parts (w := 4) (W := 16) (v := 34) (U := 16) big_head (by rw [big_nb])
-    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
+    (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num)
+    (fun i hi => loadsWin_of_from (hw i hi).2)
 
 set_option maxRecDepth 100000 in
 theorem big_idx : coreProgram.indexOf? "__loop15" = some 346 :=

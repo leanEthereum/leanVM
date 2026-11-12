@@ -310,7 +310,7 @@ theorem any136_ok : anyOk (coreProgram.getD 365 default) "__loop17" 136 22 15 21
       anyWin_8, anyWin_9, anyWin_10, anyWin_11, anyWin_12, anyWin_13, anyWin_14, anyWin_15]
   simp only [anyWin, any136Spec, any136Atoms, Bool.and_eq_true] at hw
   exact anyOk_of_parts (w := 4) (W := 16) (v := 9) (U := 16) any136_head (by rw [any136_nb])
-    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
+    (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
 theorem any136_idx : coreProgram.indexOf? "__loop17" = some 365 :=

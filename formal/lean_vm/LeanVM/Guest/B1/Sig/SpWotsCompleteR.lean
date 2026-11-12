@@ -50,29 +50,22 @@ theorem spUn_spRen : ∀ v ∈ Stmt.valsList spBodyT, spUn (spRen v) = v := by
   have h127 : ∀ v ∈ Stmt.valsList (spBodyT.drop 127), spUnOK v = true := by
     rw [spBodyT_split, List.drop_left' (by rw [spHeadT_length]), spLeafK_of, spPadCell]
     exact List.all_eq_true.mp spRen_tail
-  have h122 := vals_drop_step spRen_slice_122 h127
-  have h117 := vals_drop_step spRen_slice_117 h122
-  have h112 := vals_drop_step spRen_slice_112 h117
-  have h107 := vals_drop_step spRen_slice_107 h112
-  have h102 := vals_drop_step spRen_slice_102 h107
-  have h97 := vals_drop_step spRen_slice_97 h102
-  have h92 := vals_drop_step spRen_slice_92 h97
-  have h87 := vals_drop_step spRen_slice_87 h92
-  have h82 := vals_drop_step spRen_slice_82 h87
-  have h77 := vals_drop_step spRen_slice_77 h82
-  have h72 := vals_drop_step spRen_slice_72 h77
-  have h67 := vals_drop_step spRen_slice_67 h72
-  have h62 := vals_drop_step spRen_slice_62 h67
-  have h57 := vals_drop_step spRen_slice_57 h62
-  have h52 := vals_drop_step spRen_slice_52 h57
-  have h47 := vals_drop_step spRen_slice_47 h52
-  have h42 := vals_drop_step spRen_slice_42 h47
-  have h37 := vals_drop_step spRen_slice_37 h42
-  have h32 := vals_drop_step spRen_slice_32 h37
-  have h27 := vals_drop_step spRen_slice_27 h32
-  have h22 := vals_drop_step spRen_slice_22 h27
-  have h12 := vals_drop_step spRen_slice_12 h22
-  have h0 := vals_drop_step spRen_slice_0 h12
+  have h120 := vals_drop_step spRen_run_120 h127
+  have h112 := vals_drop_step spRen_run_112 h120
+  have h104 := vals_drop_step spRen_run_104 h112
+  have h96 := vals_drop_step spRen_run_96 h104
+  have h88 := vals_drop_step spRen_run_88 h96
+  have h80 := vals_drop_step spRen_run_80 h88
+  have h72 := vals_drop_step spRen_run_72 h80
+  have h64 := vals_drop_step spRen_run_64 h72
+  have h56 := vals_drop_step spRen_run_56 h64
+  have h48 := vals_drop_step spRen_run_48 h56
+  have h40 := vals_drop_step spRen_run_40 h48
+  have h32 := vals_drop_step spRen_run_32 h40
+  have h24 := vals_drop_step spRen_run_24 h32
+  have h16 := vals_drop_step spRen_run_16 h24
+  have h8 := vals_drop_step spRen_run_8 h16
+  have h0 := vals_drop_step spRen_run_0 h8
   intro v hv
   exact spUnOK_iff (h0 v (by rwa [List.drop_zero]))
 

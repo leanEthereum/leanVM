@@ -5,8 +5,8 @@ A check too slow for the interpreter is a run: `test_runs X := [(name, fun _ ↦
 test module defines `X`, which `cli/TestRuns.lean` lists, and `lake exe test-runs` evaluates it
 compiled (check-all runs it after the build). Each run is evaluated when called, not when the
 executable starts (`compiler.extract_closed`), so the executable times it and can run one alone.
-A module importing `LeanVM.Facts.Guest` (as `LeanVM.Cost.Decoder.*` do) keeps its checks as
-`#guard`s: the executable's start would evaluate the guest's bytecode words.
+A closed definition a run's module imports is evaluated when the executable starts: keep a costly
+one `noncomputable` where nothing runs it (as `LeanVM.Guest.End.bytecode`).
 -/
 
 namespace LeanVMTests

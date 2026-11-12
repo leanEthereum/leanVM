@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core17
+public import LeanVM.Guest.Data.Core32
 public import LeanVM.Guest.B1.Sig.XmssSegT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Sig.XmssSegData1
@@ -44,6 +44,7 @@ import LeanVM.Guest.B1.Sig.XmssSegData31
 import LeanVM.Guest.B1.Sig.XmssSegData32
 import LeanVM.Guest.B1.Sig.XmssSegData33
 import LeanVM.Guest.B1.Sig.XmssSegData34
+import LeanVM.Guest.B1.Common.Basic
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -51,41 +52,41 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-open scoped Dec in
-theorem l2Pre_eq : Data.core36.body.take 9 = l2Pre := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem l2Pre_eq : Data.core36.body.take 9 = l2Pre :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_drop_313 : (Data.core36.body.drop 9).drop 313 = (xSeg ++ l2Post).drop 313 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_drop_313 : (Data.core36.body.drop 9).drop 313 = (xSeg ++ l2Post).drop 313 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_0 : ((Data.core36.body.drop 9).drop 0).take 70 = ((xSeg ++ l2Post).drop 0).take 70 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_0 : ((Data.core36.body.drop 9).drop 0).take 70 = ((xSeg ++ l2Post).drop 0).take 70 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_85 : ((Data.core36.body.drop 9).drop 85).take 78 = ((xSeg ++ l2Post).drop 85).take 78 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_85 : ((Data.core36.body.drop 9).drop 85).take 78 = ((xSeg ++ l2Post).drop 85).take 78 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_164 : ((Data.core36.body.drop 9).drop 164).take 3 = ((xSeg ++ l2Post).drop 164).take 3 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_164 : ((Data.core36.body.drop 9).drop 164).take 3 = ((xSeg ++ l2Post).drop 164).take 3 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_168 : ((Data.core36.body.drop 9).drop 168).take 45 = ((xSeg ++ l2Post).drop 168).take 45 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_168 : ((Data.core36.body.drop 9).drop 168).take 45 = ((xSeg ++ l2Post).drop 168).take 45 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_228 : ((Data.core36.body.drop 9).drop 228).take 78 = ((xSeg ++ l2Post).drop 228).take 78 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_228 : ((Data.core36.body.drop 9).drop 228).take 78 = ((xSeg ++ l2Post).drop 228).take 78 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_307 : ((Data.core36.body.drop 9).drop 307).take 3 = ((xSeg ++ l2Post).drop 307).take 3 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_307 : ((Data.core36.body.drop 9).drop 307).take 3 = ((xSeg ++ l2Post).drop 307).take 3 :=
+  stmtsEqb_sound (by decide +kernel)
 
-open scoped Dec in
-theorem xSeg_slice_311 : ((Data.core36.body.drop 9).drop 311).take 2 = ((xSeg ++ l2Post).drop 311).take 2 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_311 : ((Data.core36.body.drop 9).drop 311).take 2 = ((xSeg ++ l2Post).drop 311).take 2 :=
+  stmtsEqb_sound (by decide +kernel)
 
 /-- **`__loop2`'s body**, checked by the kernel in slices: the check `xSeg` between `l2Pre` and
 `l2Post`. -/

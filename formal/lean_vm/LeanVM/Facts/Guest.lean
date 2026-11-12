@@ -30,8 +30,9 @@ def childShape (bytecode : List K) (c : Child) : ℕ × ℕ :=
 
 namespace End
 
-/-- The guest's bytecode, as the verifier and `NodeRelation` read it. -/
-abbrev bytecode : List K := bytecodeWords guestProgram
+/-- The guest's bytecode, as the verifier and `NodeRelation` read it. Noncomputable: compiled, it
+would be evaluated when a program importing it starts. -/
+noncomputable abbrev bytecode : List K := bytecodeWords guestProgram
 
 /-- The public input a digest is: its four words, the digest's halves in memory words `0` and `1`
 (`PublicInput.ofDigest`). -/
@@ -60,8 +61,8 @@ structure Work where
   /-- Each child's announced stack log and rate (`childShape`). -/
   childShapes : List (ℕ × ℕ)
 
-/-- The work of the node `s` with the witness `w`. -/
-def work (s : NodeStatement) (w : NodeWitness) : Work where
+/-- The work of the node `s` with the witness `w` (noncomputable, as `bytecode`). -/
+noncomputable def work (s : NodeStatement) (w : NodeWitness) : Work where
   declared := s.claims.xmss.length + s.claims.sphincs.length
   coverage := Coverage.planSlots s w
   rawXmss := w.xmssSignatures.length

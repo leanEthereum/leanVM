@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core17
+public import LeanVM.Guest.Data.Core32
 public import LeanVM.Guest.Memory.LiftPure
 
 /-!

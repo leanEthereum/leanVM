@@ -10,6 +10,8 @@ public import LeanVM.Guest.B1.Place.ArmCalls
 public import LeanVM.Guest.B1.Whir.HelperAll
 public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Whir.TableMem
+public import LeanVM.Guest.B1.Whir.OqKey
+public import LeanVM.Guest.B1.Whir.TableKeys
 
 /-!
 # The arms' decided facts
@@ -97,10 +99,43 @@ def LvFacts (c : OsCfg) (l : ℕ) : Prop :=
   (osLvA c l).logCols ≤ ligColsCap ∧ (osLvA c l).folds ≤ hsStride ∧
   oqQA c l = (osLvA c l).queries
 
+/-- `LvFacts` by numbers, at the `opening_queries` shape `S`: `LvFacts c l` is it at the shape of
+level `l`'s name (`lvFacts_iff`: the tables' names are their numbers, `Whir/TableKeys`), which
+the kernel finds by its numbers too (`oqShapeOf_osOqName`). -/
+def LvFactsS (S : OqShape) (c : OsCfg) (l : ℕ) : Prop :=
+  ((osLvA c l).squeezes, lpLoopA c l, (osLvA c l).depth, (osLvA c l).capDepth) ∈ lpTable.map (·.2) ∧
+  ((osLvA c l).queries, lvBase l, (osLvA c l).folds, (osLvA c l).leafCells, (osLvA c l).depth,
+    (osLvA c l).capDepth, (if l = c.yrLevel then (osLvA c l).logCols else 0),
+    (if l = c.yrLevel then c.yrLen + (osLvA c l).folds else 0),
+    (if l = c.yrLevel then c.yrLog + 1 else 0), (if l = c.yrLevel then 1 else 0)) ∈ lqTable.map (·.2) ∧
+  (l < c.yrLevel → ((osLvA c l).queries, (osLvA c l).logCols, (osLvA c l).folds,
+    (osLvA c l).highBits, (lrLoopsA c l).1, (lrLoopsA c l).2) ∈ lrTable.map (·.2)) ∧
+  (osLvA c l).posOff = l * ligPosCap ∧
+  (osLvA c l).squeezes * (128 / (osLvA c l).depth) ≤ ligPosCap ∧
+  (osLvA c l).queries ≤ (osLvA c l).squeezes * (128 / (osLvA c l).depth) ∧
+  0 < 128 / (osLvA c l).depth ∧ 1 ≤ (osLvA c l).squeezes ∧
+  S.oq.pd + S.oq.cd = (osLvA c l).depth ∧ S.oq.cd = (osLvA c l).capDepth ∧
+  (S.oq.final = 1 ↔ l = c.yrLevel) ∧
+  2 * (osLvA c l).foldsOff + 2 * S.oq.folds ≤ 2 * c.nFolds ∧
+  (l = c.yrLevel → S.oq.nHs ≤ c.yrLen + (osLvA c l).folds) ∧
+  (osLvA c l).logCols ≤ ligColsCap ∧ (osLvA c l).folds ≤ hsStride ∧
+  oqCount S.odd S.oq.base (oqNA c l) = (osLvA c l).queries
+
+theorem lvFacts_iff (c : OsCfg) (l : ℕ) :
+    LvFacts c l ↔ LvFactsS (oqShapeOf (osOqName c l (osLvA c l))) c l := by
+  unfold LvFacts LvFactsS
+  rw [lp_mem, lq_mem, lr_mem]
+  exact Iff.rfl
+
 open scoped LeanVM.Guest.B1.Whir.TableMem in
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 2048 in
-instance (c : OsCfg) (l : ℕ) : Decidable (LvFacts c l) := by unfold LvFacts; infer_instance
+instance (S : OqShape) (c : OsCfg) (l : ℕ) : Decidable (LvFactsS S c l) := by
+  unfold LvFactsS; infer_instance
+
+instance (c : OsCfg) (l : ℕ) : Decidable (LvFacts c l) :=
+  decidable_of_iff (LvFactsS (oqShapeK (osOqKey c l (osLvA c l))) c l) <| by
+    rw [lvFacts_iff, oqShapeOf_osOqName]
 
 set_option maxRecDepth 100000 in
 theorem armBody_0 : BodyOk (osCfg 0) := by decide +kernel

@@ -36,6 +36,35 @@ public import LeanVM.Guest.Data.Core25
 public import LeanVM.Guest.Data.Core26
 public import LeanVM.Guest.Data.Core27
 public import LeanVM.Guest.Data.Core28
+public import LeanVM.Guest.Data.Core29
+public import LeanVM.Guest.Data.Core30
+public import LeanVM.Guest.Data.Core31
+public import LeanVM.Guest.Data.Core32
+public import LeanVM.Guest.Data.Core33
+public import LeanVM.Guest.Data.Core34
+public import LeanVM.Guest.Data.Core35
+public import LeanVM.Guest.Data.Core36
+public import LeanVM.Guest.Data.Core37
+public import LeanVM.Guest.Data.Core38
+public import LeanVM.Guest.Data.Core39
+public import LeanVM.Guest.Data.Core40
+public import LeanVM.Guest.Data.Core41
+public import LeanVM.Guest.Data.Core42
+public import LeanVM.Guest.Data.Core43
+public import LeanVM.Guest.Data.Core44
+public import LeanVM.Guest.Data.Core45
+public import LeanVM.Guest.Data.Core46
+public import LeanVM.Guest.Data.Core47
+public import LeanVM.Guest.Data.Core48
+public import LeanVM.Guest.Data.Core49
+public import LeanVM.Guest.Data.Core50
+public import LeanVM.Guest.Data.Core51
+public import LeanVM.Guest.Data.Core52
+public import LeanVM.Guest.Data.Core53
+public import LeanVM.Guest.Data.Core54
+public import LeanVM.Guest.Data.Core55
+public import LeanVM.Guest.Data.Core56
+public import LeanVM.Guest.Data.Core57
 
 namespace LeanVM.Guest.Data
 

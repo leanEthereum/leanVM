@@ -386,7 +386,7 @@ theorem mono136_ok :
       monoWin_15]
   simp only [monoWinOk, mono136Spec, mono136Atoms, Bool.and_eq_true] at hw
   exact monoOk_of_parts (w := 4) (W := 16) (v := 9) (U := 16) mono136_head (by rw [mono136_nb])
-    (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
+    (fun i hi => ChainSpec.blocksOk_of_from (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 -- `__loop20`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in

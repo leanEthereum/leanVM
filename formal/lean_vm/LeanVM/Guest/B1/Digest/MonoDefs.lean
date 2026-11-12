@@ -196,9 +196,10 @@ noncomputable def mono136Atoms : List Atom := loopAtoms (coreProgram.getD 384 de
 /-- `__loop19`'s chain. -/
 noncomputable def mono136Spec : ChainSpec := monoSpec 136 1377 mono136Atoms
 
-/-- Window `i` of `__loop19`: blocks `4i … 4i + 3`, claims `9i … 9i + 8`. -/
+/-- Window `i` of `__loop19`: blocks `4i … 4i + 3` (searched from their atoms on), claims
+`9i … 9i + 8`. -/
 noncomputable def monoWinOk (i : ℕ) : Bool :=
-  mono136Spec.blocksOk mono136Atoms (4 * i) 4 &&
+  mono136Spec.blocksFrom mono136Atoms (4 * i) 4 &&
     monoRecs mono136Atoms 9 13 11 12 (.n 3) 136 (9 * i) 9
 
 end

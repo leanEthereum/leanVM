@@ -1,5 +1,8 @@
 import LeanVMTests.Cost.DecOf
 import LeanVMTests.Cost.Decoder
+import LeanVMTests.Cost.DecoderChain
+import LeanVMTests.Cost.DecoderPreTest
+import LeanVMTests.Cost.DecoderReaders
 import LeanVMTests.Cost.PMChain
 import LeanVMTests.Cost.PMChainFFT
 import LeanVMTests.Extraction.FFT
@@ -30,6 +33,9 @@ open Lean LeanVMTests
 def modules : List (String × Runs) := [
   ("Cost.DecOf", Cost.DecOf.runs),
   ("Cost.Decoder", Cost.Decoder.runs),
+  ("Cost.DecoderChain", Cost.DecoderChain.runs ++ Cost.DecoderChain.frameRuns),
+  ("Cost.DecoderPreTest", Cost.DecoderPreTest.runs),
+  ("Cost.DecoderReaders", Cost.DecoderReaders.runs),
   ("Cost.PMChain", Cost.PMChain.runs ++ Cost.PMChain.prices),
   ("Cost.PMChainFFT", Cost.PMChainFFT.runs),
   ("Extraction.FFT", Extraction.FFT.runs),

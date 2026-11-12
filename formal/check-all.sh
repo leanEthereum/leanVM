@@ -134,17 +134,12 @@ EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff 
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
 # below then find everything built and replay its warnings.
 together() {
-  local p pids=() failed=()
+  local p
   lakefiles
-  step "all six projects: forbid proof escapes, at once"
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do
-    once "escapes:$p"
-    python3 -I tools/escape-scan.py "$p" > "$log/escapes-$p.txt" 2>&1 & pids+=($!)
+    no_escapes "$p"
+    cache_get "$p"
   done
-  for p in "${!pids[@]}"; do wait "${pids[$p]}" || failed+=("$p"); done
-  cat "$log"/escapes-*.txt
-  [ ${#failed[@]} -eq 0 ] || fail "proof escape"
-  for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do cache_get "$p"; done
   step "all six projects: one build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
     @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \

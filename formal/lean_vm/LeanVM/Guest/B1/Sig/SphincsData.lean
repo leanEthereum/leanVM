@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Core04
+public import LeanVM.Guest.Data.Core08
 public import LeanVM.Guest.B1.Sig.SphincsT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Sig.SphincsDigestData

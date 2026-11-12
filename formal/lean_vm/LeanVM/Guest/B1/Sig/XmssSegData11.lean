@@ -6,9 +6,10 @@
 
 module
 
-public import LeanVM.Guest.Data.Core17
+public import LeanVM.Guest.Data.Core32
 public import LeanVM.Guest.B1.Sig.XmssSegT
 import LeanVM.Guest.B1.Sig.Decide
+import LeanVM.Guest.B1.Common.Basic
 
 namespace LeanVM.Guest.B1.Sig
 
@@ -16,9 +17,9 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-open scoped Dec in
-theorem xSeg_slice_80 : ((Data.core36.body.drop 9).drop 80).take 1 = ((xSeg ++ l2Post).drop 80).take 1 := by
-  decide +kernel
+set_option maxRecDepth 100000 in
+theorem xSeg_slice_80 : ((Data.core36.body.drop 9).drop 80).take 1 = ((xSeg ++ l2Post).drop 80).take 1 :=
+  stmtsEqb_sound (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Sig

@@ -13,6 +13,8 @@ public import LeanVM.Guest.B1.Fs.Message
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Merkle.Meaning
 public import LeanVM.Guest.B1.Whir.TableMem
+public import LeanVM.Guest.B1.Whir.OqKey
+public import LeanVM.Guest.B1.Whir.TableKeys
 
 /-!
 # A candidate's facts, decided
@@ -20,7 +22,8 @@ public import LeanVM.Guest.B1.Whir.TableMem
 `CandOk m ri μ r cfg`: the configuration `Whir.ladder μ r = cfg` against size `m`'s rows at rate
 `ri` (`osCfgR m ri`) level by level (`MidOk`, `FinOkF`: the arithmetic `MidFacts`, `FinFacts`,
 `LvFin` and the finish need, the names of the level's callees in B1-a's tables and the helpers'
-(`lpTable`, `lqTable`, `lrTable`), the `opening_queries` specialization's shape). `candB m ri`
+(`lpTable`, `lqTable`, `lrTable`), the `opening_queries` specialization's shape), decided by
+the entries' numbers (`Whir/TableKeys`, `Whir/OqKey`). `candB m ri`
 decides it at `μ = m + minOpenLog`, `r = ri + 1`; `Whir/Facts{m}.lean` decide it, one size a
 module.
 -/
@@ -49,8 +52,27 @@ def QshOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Prop :=
     oqCount (oqShapeOf (osOqName c lvl lv)).odd (oqShapeOf (osOqName c lvl lv)).base
       (lv.queries / (1 + if lvl = 0 then 1 else 0)) = lv.queries
 
-instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Decidable (QshOk c lvl lv fin) := by
-  unfold QshOk; infer_instance
+/-- `QshOk` by numbers: the entry and shape of the level's numbers (`Whir/OqKey`). -/
+def QshOkK (k : List ℕ) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Prop :=
+  (oqEntryK k).isSome ∧
+    (oqShapeK k).odd = lv.queries % 2 * (if lvl = 0 then 1 else 0) ∧
+    (oqShapeK k).base = (if lvl = 0 then 1 else 0) ∧
+    (oqShapeK k).folds = lv.folds ∧
+    (oqShapeK k).depth = lv.depth ∧
+    (oqShapeK k).cd = lv.capDepth ∧
+    (oqShapeK k).final = fin ∧
+    2 ≤ (oqShapeK k).cd ∧ (oqShapeK k).cd ≤ 8 ∧
+    (oqShapeK k).cd ≤ (oqShapeK k).depth ∧
+    oqCount (oqShapeK k).odd (oqShapeK k).base
+      (lv.queries / (1 + if lvl = 0 then 1 else 0)) = lv.queries
+
+instance (k : List ℕ) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Decidable (QshOkK k lvl lv fin) := by
+  unfold QshOkK; infer_instance
+
+instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) : Decidable (QshOk c lvl lv fin) :=
+  decidable_of_iff (QshOkK (osOqKey c lvl lv) lvl lv fin) <| by
+    unfold QshOk QshOkK
+    rw [oqEntry_name_iff, oqShapeOf_osOqName]
 
 theorem qshOk_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {fin : ℕ} (h : QshOk c lvl lv fin) :
     QShapeOk c lvl lv fin (oqLoopOf (osOqName c lvl lv)) (oqShapeOf (osOqName c lvl lv)) := by
@@ -75,7 +97,11 @@ def LpOk (lv : OsLv) : Prop :=
   (osPositionsName lv, lv.squeezes, lpLoopOf (osPositionsName lv), lv.depth, lv.capDepth) ∈ lpTable ∧
     (dqwName lv.depth lv.capDepth, lv.depth, lv.capDepth) ∈ queryWindowsShapes
 
-instance (lv : OsLv) : Decidable (LpOk lv) := by unfold LpOk; infer_instance
+instance (lv : OsLv) : Decidable (LpOk lv) :=
+  decidable_of_iff ((lv.squeezes, lpLoopK lv, lv.depth, lv.capDepth) ∈ lpTable.map (·.2) ∧
+      (dqwName lv.depth lv.capDepth, lv.depth, lv.capDepth) ∈ queryWindowsShapes) <| by
+    unfold LpOk
+    rw [lp_mem, lpLoopOf_eq]
 
 /-- `level_queries`' specialization at level `lvl`'s row, in `lqTable`. -/
 def LqOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop :=
@@ -83,8 +109,8 @@ def LqOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Prop :=
     (if lvl = c.yrLevel then lv.logCols else 0), (if lvl = c.yrLevel then c.yrLen + lv.folds else 0),
     (if lvl = c.yrLevel then c.yrLog + 1 else 0), (if lvl = c.yrLevel then 1 else 0)) ∈ lqTable
 
-instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Decidable (LqOk c lvl lv) := by
-  unfold LqOk; infer_instance
+instance (c : OsCfg) (lvl : ℕ) (lv : OsLv) : Decidable (LqOk c lvl lv) :=
+  decidable_of_iff _ (lq_mem c lvl lv).symm
 
 /-- `level_residual`'s specialization at the row, in `lrTable`, its query count in range. -/
 def LrOk (lv : OsLv) : Prop :=
@@ -92,7 +118,11 @@ def LrOk (lv : OsLv) : Prop :=
     (lrLoopsOf (osResidualName lv)).1, (lrLoopsOf (osResidualName lv)).2) ∈ lrTable ∧
     resBatch ≤ lv.queries ∧ lv.queries < ordG
 
-instance (lv : OsLv) : Decidable (LrOk lv) := by unfold LrOk; infer_instance
+instance (lv : OsLv) : Decidable (LrOk lv) :=
+  decidable_of_iff ((lv.queries, lv.logCols, lv.folds, lv.highBits, (lrLoopsK lv).1, (lrLoopsK lv).2) ∈
+      lrTable.map (·.2) ∧ resBatch ≤ lv.queries ∧ lv.queries < ordG) <| by
+    unfold LrOk
+    rw [lr_mem, lrLoopsOf_eq]
 
 theorem lpOk_fn {lv : OsLv} (h : LpOk lv) :
     FnIs (osPositionsName lv) (osParams 9)

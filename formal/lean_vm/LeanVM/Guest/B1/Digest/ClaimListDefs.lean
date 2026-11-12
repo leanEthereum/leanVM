@@ -115,9 +115,10 @@ noncomputable def bigAtoms : List Atom := loopAtoms (coreProgram.getD 346 defaul
 /-- `__loop15`'s chain. -/
 noncomputable def bigSpec : ChainSpec := grpSpec 136 21 565 bigAtoms
 
-/-- Window `i` of `__loop15`: blocks `4i … 4i + 3`, cells `34i … 34i + 33`. -/
+/-- Window `i` of `__loop15`: blocks `4i … 4i + 3` and cells `34i … 34i + 33`, each searched
+from their atoms on. -/
 noncomputable def bigWin (i : ℕ) : Bool :=
-  bigSpec.blocksOk bigAtoms (4 * i) 4 && loadsWin bigAtoms (V.n 20) bigSpec.msg (34 * i) 34
+  bigSpec.blocksFrom bigAtoms (4 * i) 4 && loadsFrom bigAtoms (V.n 20) bigSpec.msg (34 * i) 34
 
 end
 end LeanVM.Guest.B1.Digest

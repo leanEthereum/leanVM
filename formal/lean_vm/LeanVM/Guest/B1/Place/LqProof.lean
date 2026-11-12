@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.B1.Opening.QueriesPlacedAll
+public import LeanVM.Guest.B1.Whir.OqKey
 
 /-!
 # `level_queries`, placed
@@ -461,9 +462,21 @@ def LqFacts (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
     1 ≤ cd ∧ cd ≤ 8 ∧ osKindOf ("verify_merkle_cap__L" ++ natStr cd) = some (.cap cd) ∧
     digitsVal (osPowDigits q) 1 = q
 
+/-- `LqFacts` by numbers: the entry and shape of the numbers `k` (`Whir/OqKey`). -/
+def LqFactsK (k : List ℕ) (q base cd : ℕ) : Prop :=
+  (oqEntryK k).isSome ∧ oqCount (oqShapeK k).odd (oqShapeK k).oq.base (lqIters q base) = q ∧
+    lqIters q base + 1 < ordG ∧ (oqShapeK k).oq.cd = cd ∧
+    1 ≤ cd ∧ cd ≤ 8 ∧ osKindOf ("verify_merkle_cap__L" ++ natStr cd) = some (.cap cd) ∧
+    digitsVal (osPowDigits q) 1 = q
+
+instance (k : List ℕ) (q base cd : ℕ) : Decidable (LqFactsK k q base cd) := by
+  unfold LqFactsK; infer_instance
+
 instance (q base folds leaf d cd mu nhs hbits fin : ℕ) :
-    Decidable (LqFacts q base folds leaf d cd mu nhs hbits fin) := by
-  unfold LqFacts; infer_instance
+    Decidable (LqFacts q base folds leaf d cd mu nhs hbits fin) :=
+  decidable_of_iff (LqFactsK (oqKey q base folds leaf d cd mu nhs hbits fin) q base cd) <| by
+    unfold LqFacts LqFactsK lqOqS lqOdd lqOqN
+    rw [oqEntry_name_iff', oqShapeOf_oqName]
 
 set_option maxRecDepth 100000 in
 /-- **Every entry of `lqTable` has its facts**, by the kernel. -/

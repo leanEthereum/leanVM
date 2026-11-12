@@ -41,6 +41,8 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
+open scoped VDec
+
 @[expose] public section
 
 /-! ## Atom matchers -/
@@ -129,14 +131,26 @@ def srcVal (σ : Val) : Option V → E
   | some v => σ v
   | none => 0
 
+/-- Some `XOR` into `x` of operands passing `f`: a membership test, so a check of a sublist is a
+check of the list (`addWith_sub`). -/
+def addWith (atoms : List Atom) (x : V) (f : V → V → Bool) : Bool :=
+  atoms.any fun a => match a with
+    | .add d p q => decide (d = x) && f p q
+    | _ => false
+
+theorem addWith_sound {atoms : List Atom} {x : V} {f : V → V → Bool} (h : addWith atoms x f = true)
+    (hat : ∀ a ∈ atoms, a.Holds rd σ) : ∃ p q, f p q = true ∧ σ x = σ p + σ q := by
+  obtain ⟨a, hp, ha⟩ := any_holds h hat
+  cases a <;> simp only [Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hp
+  obtain ⟨rfl, hf⟩ := hp
+  exact ⟨_, _, hf, ha⟩
+
 /-- **`x` is the message cell `src` plus the padding constant** `word lo hi`. -/
 def evalP (atoms : List Atom) (x : V) (src : Option V) (lo hi : ℕ) : Bool :=
   match src with
   | some v => (lo == 0 && hi == 0 && decide (x = v)) ||
-      (match addOf atoms x with
-       | some (p, q) => (decide (p = v) && atoms.any (isConstAt q lo hi)) ||
-           (decide (q = v) && atoms.any (isConstAt p lo hi))
-       | none => false)
+      addWith atoms x fun p q => (decide (p = v) && atoms.any (isConstAt q lo hi)) ||
+        (decide (q = v) && atoms.any (isConstAt p lo hi))
   | none => atoms.any (isConstAt x lo hi)
 
 theorem evalP_sound {atoms : List Atom} {x : V} {src : Option V} {lo hi : ℕ}
@@ -150,14 +164,11 @@ theorem evalP_sound {atoms : List Atom} {x : V} {src : Option V} {lo hi : ℕ}
     simp only [evalP, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
     rcases h with ⟨⟨rfl, rfl⟩, rfl⟩ | h
     · rw [srcVal, word_zero, add_zero]
-    · split at h
-      · rename_i p q hpq
-        have hx := addOf_sound hpq hat
-        simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
-        rcases h with ⟨rfl, hc⟩ | ⟨rfl, hc⟩
-        · rw [hx, const_sound hc hat, srcVal]
-        · rw [hx, const_sound hc hat, srcVal, add_comm]
-      · exact absurd h (by simp)
+    · obtain ⟨p, q, h, hx⟩ := addWith_sound h hat
+      simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+      rcases h with ⟨rfl, hc⟩ | ⟨rfl, hc⟩
+      · rw [hx, const_sound hc hat, srcVal]
+      · rw [hx, const_sound hc hat, srcVal, add_comm]
 
 /-- **The rate cell `x` is the previous output's cell `y` (`none`: zero) plus the padded
 message cell.** -/
@@ -166,10 +177,8 @@ def rateOk (atoms : List Atom) (x : V) (y : Option V) (src : Option V) (lo hi : 
   | none => evalP atoms x src lo hi
   | some y =>
     (src.isNone && lo == 0 && hi == 0 && (decide (x = y) || atoms.any (isCopyAt x y))) ||
-    (match addOf atoms x with
-     | some (p, q) => (decide (p = y) && evalP atoms q src lo hi) ||
-         (decide (q = y) && evalP atoms p src lo hi)
-     | none => false)
+    addWith atoms x fun p q => (decide (p = y) && evalP atoms q src lo hi) ||
+      (decide (q = y) && evalP atoms p src lo hi)
 
 theorem rateOk_sound {atoms : List Atom} {x : V} {y src : Option V} {lo hi : ℕ}
     (h : rateOk atoms x y src lo hi = true) (hat : ∀ a ∈ atoms, a.Holds rd σ) :
@@ -186,14 +195,49 @@ theorem rateOk_sound {atoms : List Atom} {x : V} {y src : Option V} {lo hi : ℕ
       rcases h with rfl | h
       · rfl
       · exact copy_sound h hat
-    · split at h
-      · rename_i p q hpq
-        have hx := addOf_sound hpq hat
-        simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
-        rcases h with ⟨rfl, he⟩ | ⟨rfl, he⟩
-        · rw [hx, evalP_sound he hat, srcVal]
-        · rw [hx, evalP_sound he hat, srcVal, add_comm]
-      · exact absurd h (by simp)
+    · obtain ⟨p, q, h, hx⟩ := addWith_sound h hat
+      simp only [Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
+      rcases h with ⟨rfl, he⟩ | ⟨rfl, he⟩
+      · rw [hx, evalP_sound he hat, srcVal]
+      · rw [hx, evalP_sound he hat, srcVal, add_comm]
+
+/-! ## Checks of a sublist
+
+Every check above is a membership test, so it holds of a list when it holds of a sublist: a window
+of the checks searches a slice of the atoms. -/
+
+theorem any_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {p : Atom → Bool} (h : l.any p = true) :
+    l'.any p = true := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  exact List.any_eq_true.mpr ⟨a, hs a ha, hp⟩
+
+theorem addWith_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {x : V} {f f' : V → V → Bool}
+    (hf : ∀ p q, f p q = true → f' p q = true) (h : addWith l x f = true) :
+    addWith l' x f' = true := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  refine List.any_eq_true.mpr ⟨a, hs a ha, ?_⟩
+  cases a <;> simp only [Bool.false_eq_true, Bool.and_eq_true] at hp ⊢
+  exact ⟨hp.1, hf _ _ hp.2⟩
+
+theorem evalP_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {x : V} {src : Option V} {lo hi : ℕ}
+    (h : evalP l x src lo hi = true) : evalP l' x src lo hi = true := by
+  cases src with
+  | none => exact any_sub hs h
+  | some v =>
+    simp only [evalP, Bool.or_eq_true] at h ⊢
+    refine h.imp id (addWith_sub hs fun p q hpq => ?_)
+    simp only [Bool.or_eq_true, Bool.and_eq_true] at hpq ⊢
+    exact hpq.imp (fun h => ⟨h.1, any_sub hs h.2⟩) (fun h => ⟨h.1, any_sub hs h.2⟩)
+
+theorem rateOk_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {x : V} {y src : Option V}
+    {lo hi : ℕ} (h : rateOk l x y src lo hi = true) : rateOk l' x y src lo hi = true := by
+  cases y with
+  | none => exact evalP_sub hs h
+  | some y =>
+    simp only [rateOk, Bool.or_eq_true, Bool.and_eq_true] at h ⊢
+    refine h.imp (fun h => ⟨h.1, h.2.imp id (any_sub hs)⟩) (addWith_sub hs fun p q hpq => ?_)
+    simp only [Bool.or_eq_true, Bool.and_eq_true] at hpq ⊢
+    exact hpq.imp (fun h => ⟨h.1, evalP_sub hs h.2⟩) (fun h => ⟨h.1, evalP_sub hs h.2⟩)
 
 /-! ## The padding constants -/
 
@@ -325,6 +369,22 @@ def check (atoms : List Atom) : Bool :=
   s.shapeOk && (List.range s.nb).all fun k =>
     s.blockOk atoms k && (List.range 9).all (s.rateAt atoms k) &&
       (List.range 4).all fun j => s.capAt atoms k (9 + j)
+
+theorem blockOk_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {k : ℕ} (h : s.blockOk l k = true) :
+    s.blockOk l' k = true := by
+  simp only [blockOk, Bool.and_eq_true] at h ⊢
+  exact ⟨h.1, any_sub hs h.2⟩
+
+theorem rateAt_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {k c : ℕ} (h : s.rateAt l k c = true) :
+    s.rateAt l' k c = true :=
+  rateOk_sub hs h
+
+theorem capAt_sub {l l' : List Atom} (hs : ∀ a ∈ l, a ∈ l') {k c : ℕ} (h : s.capAt l k c = true) :
+    s.capAt l' k c = true := by
+  unfold capAt at h ⊢
+  split at h
+  · exact any_sub hs h
+  · exact h
 
 /-- The message's values. -/
 def vals (σ : Val) : List E := s.msg.map (srcVal σ)

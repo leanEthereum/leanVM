@@ -333,15 +333,42 @@ theorem eEqb_sound {a b : E} (h : eEqb a b = true) : a = b := by
   simp only [eEqb, Bool.and_eq_true, decide_eq_true_eq] at h
   rw [← ofLimbs_limb a, ← ofLimbs_limb b, h.1, h.2]
 
-/-- Atoms compared, words limb by limb. -/
+/-- Values compared, their indices first (`Nat.beq`, which the kernel evaluates on literals). -/
+def vEqb (a b : V) : Bool := a.idx == b.idx && a.tag == b.tag && decide (a.path = b.path)
+
+theorem vEqb_iff {a b : V} : vEqb a b = true ↔ a = b := by
+  cases a; cases b
+  simp only [vEqb, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, V.mk.injEq]
+  tauto
+
+/-- Value lists compared value by value. -/
+def vsEqb : List V → List V → Bool
+  | [], [] => true
+  | a :: as, b :: bs => vEqb a b && vsEqb as bs
+  | _, _ => false
+
+theorem vsEqb_iff : ∀ {as bs : List V}, vsEqb as bs = true ↔ as = bs
+  | [], [] => by simp [vsEqb]
+  | [], _ :: _ => by simp [vsEqb]
+  | _ :: _, [] => by simp [vsEqb]
+  | a :: as, b :: bs => by simp only [vsEqb, Bool.and_eq_true, vEqb_iff, vsEqb_iff, List.cons.injEq]
+
+/-- Atoms compared, words limb by limb and values by `vEqb`; the rarer atoms by `decide`. -/
 def atomEqb : Atom → Atom → Bool
-  | .const d c, .const d' c' => decide (d = d') && eEqb c c'
+  | .const d c, .const d' c' => vEqb d d' && eEqb c c'
   | .const .., _ => false
+  | .add d a b, .add d' a' b' => vEqb d d' && vEqb a a' && vEqb b b'
+  | .mul d a b, .mul d' a' b' => vEqb d d' && vEqb a a' && vEqb b b'
+  | .copy d a, .copy d' a' => vEqb d d' && vEqb a a'
+  | .load d p o, .load d' p' o' => vEqb d d' && vEqb p p' && o == o'
+  | .keccak i o x y, .keccak i' o' x' y' => vsEqb i i' && vsEqb o o' && x == x' && y == y'
   | a, b => decide (a = b)
 
 theorem atomEqb_sound {a b : Atom} (h : atomEqb a b = true) : a = b := by
-  cases a <;> cases b <;> simp only [atomEqb, Bool.and_eq_true, decide_eq_true_eq,
-    Bool.false_eq_true] at h <;> first | exact h | (rw [h.1, eEqb_sound h.2])
+  cases a <;> cases b <;> simp only [atomEqb, Bool.and_eq_true, decide_eq_true_eq, vEqb_iff,
+    vsEqb_iff, beq_iff_eq, Bool.false_eq_true] at h <;>
+    first | exact h | (rw [h.1, eEqb_sound h.2]) | (obtain ⟨⟨h1, h2⟩, h3⟩ := h; subst h1 h2 h3; rfl) |
+      (obtain ⟨h1, h2⟩ := h; subst h1 h2; rfl) | (obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h; subst h1 h2 h3 h4; rfl)
 
 mutual
 /-- Statements compared structurally. -/
