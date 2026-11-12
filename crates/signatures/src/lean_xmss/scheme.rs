@@ -8,8 +8,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::lean_xmss::*;
 
-/// Ordered lexicographically on `to_bytes()`, which is what an aggregate's claims are
-/// sorted by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
     pub(crate) merkle_root: Digest,
@@ -17,11 +15,11 @@ pub struct LeanXmssPublicKey {
 }
 
 impl LeanXmssPublicKey {
-    pub fn public_param(&self) -> &PublicParam {
+    #[doc(hidden)]
+    pub fn __public_param(&self) -> &PublicParam {
         &self.public_param
     }
 
-    /// The specification's serialization, exactly [`PUB_KEY_SIZE`] bytes.
     pub fn to_bytes(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0u8; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.merkle_root);
@@ -37,8 +35,6 @@ impl LeanXmssPublicKey {
     }
 }
 
-/// One layer's signature: the randomizer, the value each digit opens, and the
-/// authentication path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LayerSignature {
     pub(crate) randomizer: Randomizer,
@@ -70,11 +66,13 @@ impl LeanXmssSignature {
         self.leaf_index
     }
 
-    pub fn bottom(&self) -> &LayerSignature {
+    #[doc(hidden)]
+    pub fn __bottom(&self) -> &LayerSignature {
         &self.bottom
     }
 
-    pub fn top(&self) -> &LayerSignature {
+    #[doc(hidden)]
+    pub fn __top(&self) -> &LayerSignature {
         &self.top
     }
 
@@ -162,8 +160,7 @@ impl std::error::Error for LeanXmssSignError {}
 /// Every leaf index: what a key signs at, but for a mock key.
 pub(crate) const ALL_LEAVES: RangeInclusive<LeafIndex> = 0..=LeafIndex::MAX;
 
-/// A fresh key pair, its seed from the operating system's randomness. Generates
-/// the whole top tree.
+/// A fresh key pair, its seed from the operating system's randomness.
 pub fn key_gen() -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     key_gen_from_seed(rand::random())
 }

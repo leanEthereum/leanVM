@@ -949,7 +949,7 @@ fn malformed_raw_signature_is_an_error() {
     let randomizer = (0..=u8::MAX)
         .map(|byte| [byte; lean_xmss::RANDOMIZER_LEN])
         .find(|r| {
-            let digest = lean_xmss::message_digest(pk.public_param(), 0, 0, r, &message);
+            let digest = lean_xmss::message_digest(pk.__public_param(), 0, 0, r, &message);
             lean_xmss::codeword(&digest).is_none()
         })
         .expect("some randomizer fails the codeword");

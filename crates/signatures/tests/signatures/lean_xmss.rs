@@ -20,7 +20,7 @@ fn full_key_signs_and_verifies() {
     verify(&pk, &message, &first).unwrap();
     let other_tree = sign(&sk, &message, other).unwrap();
     verify(&pk, &message, &other_tree).unwrap();
-    assert_ne!(first.top(), other_tree.top());
+    assert_ne!(first.__top(), other_tree.__top());
     assert_eq!(sign(&sk, &message, 5).unwrap(), first, "signing is deterministic");
 }
 

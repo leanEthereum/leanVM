@@ -17,11 +17,13 @@ pub struct LeanSphincsPublicKey {
 }
 
 impl LeanSphincsPublicKey {
-    pub fn pk_seed(&self) -> &PkSeed {
+    #[doc(hidden)]
+    pub fn __pk_seed(&self) -> &PkSeed {
         &self.pk_seed
     }
 
-    pub fn root(&self) -> &Digest {
+    #[doc(hidden)]
+    pub fn __root(&self) -> &Digest {
         &self.root
     }
 
@@ -70,7 +72,7 @@ impl LeanSphincsSecretKey {
 }
 
 /// What a signature carries for one layer: the one-time signature of what the
-/// layer below gives. Its key's path is [`LeanSphincsSignature::path`].
+/// layer below gives. Its key's path is [`LeanSphincsSignature::__path`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LayerSignature {
     pub(crate) counter: u32,
@@ -93,7 +95,7 @@ pub struct LeanSphincsSignature {
     pub(crate) fors: ForsOpening,
     /// Bottom first.
     pub(crate) layers: [LayerSignature; LAYERS],
-    /// The layers' paths one after the other, bottom first ([`Self::path`]).
+    /// The layers' paths one after the other, bottom first ([`Self::__path`]).
     pub(crate) paths: [Digest; H],
 }
 
@@ -105,21 +107,25 @@ fn path_range(layer: usize) -> std::ops::Range<usize> {
 
 impl LeanSphincsSignature {
     /// `R`.
-    pub fn randomizer(&self) -> &Digest {
+    #[doc(hidden)]
+    pub fn __randomizer(&self) -> &Digest {
         &self.randomizer
     }
 
-    pub fn fors(&self) -> &ForsOpening {
+    #[doc(hidden)]
+    pub fn __fors(&self) -> &ForsOpening {
         &self.fors
     }
 
     /// Bottom first.
-    pub fn layers(&self) -> &[LayerSignature; LAYERS] {
+    #[doc(hidden)]
+    pub fn __layers(&self) -> &[LayerSignature; LAYERS] {
         &self.layers
     }
 
     /// Layer `layer`'s path in its tree, from the leaf up.
-    pub fn path(&self, layer: usize) -> &[Digest] {
+    #[doc(hidden)]
+    pub fn __path(&self, layer: usize) -> &[Digest] {
         &self.paths[path_range(layer)]
     }
 
@@ -141,7 +147,7 @@ impl LeanSphincsSignature {
         for (layer, signed) in self.layers.iter().enumerate() {
             put(&signed.counter.to_be_bytes());
             put(signed.wots.as_flattened());
-            put(self.path(layer).as_flattened());
+            put(self.__path(layer).as_flattened());
         }
         debug_assert_eq!(at, SIG_SIZE);
         out
@@ -357,7 +363,7 @@ pub fn verify(
         let key = OtsKey::of_index(layer, idx);
         let (_, leaf) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots)
             .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
-        signed = tree_fold(pk_seed, &key, leaf, signature.path(layer), |_| ());
+        signed = tree_fold(pk_seed, &key, leaf, signature.__path(layer), |_| ());
     }
     if signed == pk.root {
         Ok(())
