@@ -97,23 +97,23 @@ For $\ell \in \cube{d}$ let $\mpoly^{(d)}_{\ell} := \sum_{j < 2^{\kappa-d}} a_{\
 The affine fold of Annex~\ref{annex:pcs} multiplies a lane by $X$. In the novel basis this is not a shift of the coefficients, but each coefficient of the product reads only two coefficients of the factor.
 
 \begin{lemma}[Multiplication by $X$ in the novel basis]\label{lem:mulx}
-For $0\le d<63$ put $\nbc_d:=\vansub_{d+1}(e_{d+1})/\vansub_d(e_d)^2\in\K^\times$, so that $\ntmap_d=\nbc_d^{-1}X(X+1)$, and $\nbc_{<t}:=\prod_{d<t}\nbc_d$. Let $H=\sum_ch_c\novel_c$ have degree below $2^{62}$, with $h_c:=0$ past its degree. Then $XH=\sum_ch'_c\novel_c$ with $h'_0=0$ and, for $c\ge1$ with $t$ trailing zeros,
+For $0\le d<63$ put $\nbc_d:=\vansub_{d+1}(e_{d+1})/\vansub_d(e_d)^2\in\K^\times$, so that $\ntmap_d=\nbc_d^{-1}X(X+1)$, and $\nbc_{<s}:=\prod_{d<s}\nbc_d$. Let $H=\sum_ch_c\novel_c$ have degree below $2^{62}$, with $h_c:=0$ past its degree. Then $XH=\sum_ch'_c\novel_c$ with $h'_0=0$ and, for $c\ge1$ with $s$ trailing zeros,
 \[
-h'_c=\nbc_{<t}\bigl(h_{c-1}+h_{c+2^t-1}\bigr).
+h'_c=\nbc_{<s}\bigl(h_{c-1}+h_{c+2^s-1}\bigr).
 \]
 In particular, for every $\kappa$ the coefficients of $XH$ of index below $2^\kappa$ depend only on the $h_c$ with $c<2^\kappa$.
 \end{lemma}
 
 \begin{proof}
-We prove the formula in every basis $(\novel^{(d)}_c)_c$ of Lemma~\ref{lem:evenodd} (with $\kappa=63$), with $\nbc_d\cdots\nbc_{d+t-1}$ in place of $\nbc_{<t}$, by induction on the degree of $H$, the case $H=0$ being clear. By Lemma~\ref{lem:evenodd}, $H=H_0(\ntmap_d)+X\,H_1(\ntmap_d)$ with $H_\iota:=\sum_mh_{2m+\iota}\novel^{(d+1)}_m$. As $X^2=X+\nbc_d\ntmap_d$,
+We prove the formula in every basis $(\novel^{(d)}_c)_c$ of Lemma~\ref{lem:evenodd} (with $\kappa=63$), with $\nbc_d\cdots\nbc_{d+s-1}$ in place of $\nbc_{<s}$, by induction on the degree of $H$, the case $H=0$ being clear. By Lemma~\ref{lem:evenodd}, $H=H_0(\ntmap_d)+X\,H_1(\ntmap_d)$ with $H_\iota:=\sum_mh_{2m+\iota}\novel^{(d+1)}_m$. As $X^2=X+\nbc_d\ntmap_d$,
 \[
 XH=\nbc_d\,(XH_1)(\ntmap_d)+X\,(H_0+H_1)(\ntmap_d).
 \]
-By Lemma~\ref{lem:evenodd} again, the odd coefficients of $XH$ are those of $H_0+H_1$, so $h'_{2m+1}=h_{2m}+h_{2m+1}$: the formula for $t=0$. The even ones are $\nbc_d$ times those of $XH_1$ in the basis $(\novel^{(d+1)}_m)_m$. As $H_1$ has lower degree than $H$, induction gives $h'_0=0$, and for $m\ge1$ with $t'$ trailing zeros,
+By Lemma~\ref{lem:evenodd} again, the odd coefficients of $XH$ are those of $H_0+H_1$, so $h'_{2m+1}=h_{2m}+h_{2m+1}$: the formula for $s=0$. The even ones are $\nbc_d$ times those of $XH_1$ in the basis $(\novel^{(d+1)}_m)_m$. As $H_1$ has lower degree than $H$, induction gives $h'_0=0$, and for $m\ge1$ with $s'$ trailing zeros,
 \[
-h'_{2m}=\nbc_d\,\nbc_{d+1}\cdots\nbc_{d+t'}\bigl(h_{2m-1}+h_{2m+2^{t'+1}-1}\bigr),
+h'_{2m}=\nbc_d\,\nbc_{d+1}\cdots\nbc_{d+s'}\bigl(h_{2m-1}+h_{2m+2^{s'+1}-1}\bigr),
 \]
-the formula for $c=2m$, $t=t'+1$. For the last claim, an index $c<2^\kappa$ with $t$ trailing zeros is a multiple of $2^t$ below $2^\kappa$, so $c+2^t-1<2^\kappa$.
+the formula for $c=2m$, $s=s'+1$. For the last claim, an index $c<2^\kappa$ with $s$ trailing zeros is a multiple of $2^s$ below $2^\kappa$, so $c+2^s-1<2^\kappa$.
 \end{proof}
 
 So $XH$ costs one pass over $H$: one addition per coefficient, and one multiplication by a constant of $\K$ at each even index.

@@ -3087,9 +3087,9 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
     # openings of q_keccak, at the two points written to `z_vals` (tau +
     # QKECCAK_SLOT_LOG coordinates each, QKECCAK_VARS_CAP apart): the committed
     # outputs as words at the first, returned, and the 64 `slices` at the second.
-    # tau >= FLOORS[TABLE_KECCAK] is certified, so the pack count is a real count. It
-    # also draws the ring-switching map's first challenge, which the last slices wait
-    # for, and returns it.
+    # tau >= FLOORS[TABLE_KECCAK] is certified, so the pack count is a real count.
+    # The ring-switching map's challenges are drawn after it, by the caller, under
+    # the batch grind.
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     no_rate = StackBuf(8)
     pack_g = tau_g * INV_GEN ** KECCAK_PACK_LOG

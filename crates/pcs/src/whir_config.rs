@@ -15,7 +15,7 @@
 //! Johnson list at degree `d` and the agreement the message is analysed at:
 //!
 //! - `(alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
-//! - level 0's batching `lambda`: `(J_0 - 1) ell / q`, after [`BATCH_GRINDING_BITS`];
+//! - level 0's batching `lambda` with the ring switch's map: `(J_0 + 1) ell / q`, after [`BATCH_GRINDING_BITS`];
 //! - the OOD point after each commitment, level 0's (`crate::ood`) included: `C(ell, 2) mu / q`, after
 //!   [`OOD_GRINDING_BITS`];
 //! - a level's queries, with the next level's batching `lambda` in the same message: `((t_end - 1) / n)^omega +

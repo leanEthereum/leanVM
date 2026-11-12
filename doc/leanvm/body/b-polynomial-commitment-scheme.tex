@@ -135,7 +135,7 @@ Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that t
 \textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} ,
 \end{array}
 \]
-the second query term being absent at the last level, $i=\nlev-1$. Each row is divided by $2^{b}$ for the grind of $b$ bits before its message, which the protocol leaves implicit; the \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest result, held to $2^{-125}$ (\S\ref{sec:grinding}).
+the second query term being absent at the last level, $i=\nlev-1$. In leanVM, the ring-switching map (Annex~\ref{annex:rs}) is drawn in the same message as level $0$'s $\lambda$ (\S\ref{sec:e2e}), adding $2/|\E|$ to that row: after the commitment's OOD sample at most one list member answers its value (Lemma~\ref{lem:ood}), every other violates the OOD claim whatever the map, and the map fails on that one with probability at most $2/|\E|$. The parameters check the larger $(J_0+1)L_0/|\E|$. Each row is divided by $2^{b}$ for the grind of $b$ bits before its message, which the protocol leaves implicit; the \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest result, held to $2^{-125}$ (\S\ref{sec:grinding}).
 \end{theorem}
 
 \subsubsection{Proximity tools}\label{sec:tools}
