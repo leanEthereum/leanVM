@@ -1,12 +1,13 @@
 /-
   LeanVM.Guest.B1.Whir.CHonBodyRun1
 
-  OsHonest's body on an accepting run.
+  open_stacked's body on an accepting run: the run's honest data has the body's facts.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.CHonBodyRun0
+public import LeanVM.Guest.B1.Whir.CHonBodyRun
 public import LeanVM.Guest.B1.Whir.CHonAllocAll
 public import LeanVM.Guest.B1.Whir.CHonStaticAll
 public import LeanVM.Guest.B1.Whir.CHonNamesAll
@@ -14,9 +15,10 @@ public import LeanVM.Guest.B1.Whir.CHonNamesAll
 /-!
 # The body on a run
 
-`HonRun.bodyFacts`: an accepting run's honest data (`hdOf`) has the body's facts (`BodyFacts`) at
-the call's arguments `capOf S ++ [target, root's cells, cur, tabs]`. `HonRun.body_run`: OsHonest's
-`body` field on the run.
+`HonRun.bodyFacts`: the run's honest data (`hdOf`) has `BodyFacts` at the arm's arguments, the
+rate's selector `rateSel r` first, the configuration's facts decided (`*_all`), every other fact
+from the run (`Whir/CHonBodyRun0`, `CHonFinRun`, `CHonRes`). `HonRun.body_run`: the body on the
+run (`body_gen`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -36,22 +38,18 @@ include hR
 
 /-- **The run's honest data has the body's facts.** -/
 theorem bodyFacts (cur tabs : E) :
-    BodyFacts (hdOf μ r Ls) (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]) xs
+    BodyFacts (hdOf μ r Ls)
+      (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]) xs
       ((cfg.head?.map (·.fold)).getD 0) w := by
   have hy := hR.yr
-  have hm := hR.m28
-  refine ⟨bodyStatic_all _ hm, honStatic_all _ hm, honNames_all _ hm,
-    (honNames_all _ hm).2.2.2.2.2.2.2.1, hR.len, fun l hl ↦ hR.step hl,
-    fun l hl ↦ hR.mid hl, hR.last, hR.fin, hR.alphas, fun l hl ↦ (hR.recs l hl).1,
+  have hm : μ - minOpenLog < 11 := hR.m11
+  have hr4 : r - 1 < 4 := hR.r4
+  refine ⟨⟨bodyStatic_all _ _ hm hr4, honStatic_all _ _ hm hr4, honNames_all _ _ hm hr4, hR.len,
+    fun l hl ↦ hR.step hl, fun l hl ↦ hR.mid hl, hR.last, hR.fin, hR.alphas, fun l hl ↦ (hR.recs l hl).1,
     fun l hl ↦ lvsAt_suffix hR.run l (by rw [hR.len]; exact hl), hR.br_cap5, fun l hl ↦ hR.br_rootN hl,
-    hR.br_G, hR.br_rl, hR.br_ht, fun l hl ↦ ?_, fun l hl ↦ ?_, hR.br_ag, hR.br_ps, hR.br_q0, hR.br_lane,
-    hR.br_tsuf, hR.br_pl, br_f3, hR.finStatic_run, hR.recRun_run, hR.hylen, hR.hfold, hR.hffm, ?_, ?_, ?_, ?_⟩
-  · show capCellH (heightAt Ls l) _ _ = _
-    rw [heightAt, hR.br_ht l hl]
-    rfl
-  · show capFlH (heightAt Ls l) _ _ _ = _
-    rw [heightAt, hR.br_ht l hl]
-    rfl
+    hR.br_G, hR.br_rl, fun l hl ↦ (hR.recRun_run l hl).z0, hR.br_lane⟩,
+    hR.br_tsuf, hR.br_pl, br_f3, hR.finStatic_run, hR.recRun_run, hR.hylen, hR.hfold, hR.hffm,
+    hR.fld_resEq, ?_, ?_, ?_, ?_, fun l _ ↦ ?_⟩
   · rw [OsHD.capAt_of _ (Nat.zero_le _)]
     show _ = (Ls.getD 0 default).cap
     rw [hR.start.2.1]
@@ -67,19 +65,22 @@ theorem bodyFacts (cur tabs : E) :
   · show _ = digestHalves ((Ls.getD 0 default).R.getD 0 default).1
     rw [hR.start.2.2.1]
     rfl
+  · refine ⟨r - 1, hr4, rfl, osCfgR_lvAt_length _ _ l, osCfgR_lvAt_getD l hr4⟩
 
-/-- **OsHonest's body on the run.** -/
+/-- **The body on the run.** -/
 theorem body_run {cur tabs : E} (b : ℕ) :
     ∃ (kEnd : ℕ) (f : ℕ → E), ∀ (C : CallRel) (rd : Reader),
-      OsH C rd (osCfg (candidate μ r)) b (hdOf μ r Ls).own cur tabs xs →
-      BlkF C rd (Val.ofArgs (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]))
-        10 kEnd f (osBodyA (osCfg (candidate μ r)))
-        (OsOutF (osCfg (candidate μ r)) b tabs
+      OsHA C rd (osCfgR (μ - minOpenLog) (r - 1)) b (hdOf μ r Ls).own cur tabs xs →
+      BlkF C rd (Val.ofArgs (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2,
+          cur, tabs]))
+        11 kEnd f (osBodyA (osCfgR (μ - minOpenLog) (r - 1)))
+        (OsOutA (osCfgR (μ - minOpenLog) (r - 1)) b tabs
           ((hdOf μ r Ls).tr.2.1 + (hdOf μ r Ls).T.prod * recsDeficit (hdOf μ r Ls).recs (hdOf μ r Ls).G)
           (((hdOf μ r Ls).recs.flatMap recGlued).foldl
             (fun w g ↦ w + g.scalar * g.weightAt (((hdOf μ r Ls).G ++ (hdOf μ r Ls).T).drop g.foldStart)) 0)
-          (multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (osCfg (candidate μ r)).yrLen) (hdOf μ r Ls).T)
-          (hdOf μ r Ls).word (hdOf μ r Ls).lamInv (hdOf μ r Ls).bat (hdOf μ r Ls).li) :=
+          (multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (osCfgR (μ - minOpenLog) (r - 1)).yrLen)
+            (hdOf μ r Ls).T)
+          (hdOf μ r Ls).own (hdOf μ r Ls).D) :=
   body_gen (hR.bodyFacts cur tabs) rfl rfl b
 
 end HonRun

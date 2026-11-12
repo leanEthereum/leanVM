@@ -6,7 +6,6 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.CHonBodyRun
 public import LeanVM.Guest.B1.Whir.CHonFinRun
 public import LeanVM.Guest.B1.Whir.CHonFields0
 
@@ -35,14 +34,14 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
   (hR : HonRun μ r target S root xs os w cfg Ls)
 include hR
 
-theorem br_cap5 : ∀ l < (osCfg (candidate μ r)).levels.length, (Ls.getD l default).cap.length = 5
+theorem br_cap5 : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, (Ls.getD l default).cap.length = 5
   | 0, _ => by rw [hR.start.2.1]; rfl
   | l + 1, hl => by
     have hy := hR.yr
     obtain ⟨rw, W, -, -, -, -, -, -, -, hc, -⟩ := hR.step (l := l) (by omega)
     rw [hc]; rfl
 
-theorem br_Rlen : ∀ l < (osCfg (candidate μ r)).levels.length, (Ls.getD l default).R.length = l + 1
+theorem br_Rlen : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, (Ls.getD l default).R.length = l + 1
   | 0, _ => by rw [hR.start.2.2.1]; rfl
   | l + 1, hl => by
     have hy := hR.yr
@@ -51,7 +50,7 @@ theorem br_Rlen : ∀ l < (osCfg (candidate μ r)).levels.length, (Ls.getD l def
     rfl
 
 /-- The next level's root entry. -/
-theorem br_Rnext {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
+theorem br_Rnext {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) :
     ∃ (rw : List E) (W : NextW), (Ls.getD l default).d = .next rw W ∧
       (Ls.getD (l + 1) default).R.getD (l + 1) default =
         (digestFromHalves (W.x0, W.x1), levelShape (μ - (Ls.getD l default).s1.alphas.length)
@@ -64,7 +63,7 @@ theorem br_Rnext {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
     (by rw [br_Rlen hR l (by omega)]), br_Rlen hR l (by omega), Nat.sub_self]
   simp only [List.getElem?_cons_zero, Option.getD_some, LvAt.s1, hrw]
 
-theorem br_rootN {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
+theorem br_rootN {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) :
     digestHalves ((hdOf μ r Ls).root (l + 1)) =
       (((hdOf μ r Ls).L l).nw.x0, ((hdOf μ r Ls).L l).nw.x1) := by
   obtain ⟨rw, W, hd, he⟩ := hR.br_Rnext hl
@@ -76,14 +75,14 @@ theorem br_rootN {l : ℕ} (hl : l < (osCfg (candidate μ r)).yrLevel) :
   exact digestScalars_digestOfScalars _
 
 /-- A level's `μ` and depth against its row. -/
-theorem br_dep {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
-    (osLvAt (osCfg (candidate μ r)) l).depth = (Ls.getD l default).dp μ ∧
-      (Ls.getD l default).level.fold = (osLvAt (osCfg (candidate μ r)) l).folds ∧
-      (Ls.getD l default).level.queries = (osLvAt (osCfg (candidate μ r)) l).queries ∧
-      0 < (osLvAt (osCfg (candidate μ r)) l).queries := by
+theorem br_dep {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length) :
+    (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth = (Ls.getD l default).dp μ ∧
+      (Ls.getD l default).level.fold = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).folds ∧
+      (Ls.getD l default).level.queries = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).queries ∧
+      0 < (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).queries := by
   have hy := hR.yr
   have hg := hR.alphas l hl
-  by_cases hf : l = (osCfg (candidate μ r)).yrLevel
+  by_cases hf : l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel
   · subst hf
     obtain ⟨-, hfold, hlog, -, hdepth, hqueries, hq0, -⟩ := hR.fin
     refine ⟨?_, hfold, hqueries, hq0⟩
@@ -96,32 +95,32 @@ theorem br_dep {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
     show _ = μ - (Ls.getD l default).s1.alphas.length + _
     rw [LvAt.s1, roundsSpec_alphas_length, hg, hfold, hcols]
 
-theorem br_ht : ∀ l < (osCfg (candidate μ r)).levels.length,
-    ((Ls.getD l default).R.getD l default).2.1 = (osLvAt (osCfg (candidate μ r)) l).depth
+theorem br_ht : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
+    ((Ls.getD l default).R.getD l default).2.1 = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth
   | 0, hl => by
     rw [hR.start.2.2.1]
     have hs := hR.cand.2.1
     show (stackShape μ r).1 = _
     rw [hs]
-    simp [osLvAt, List.headD_eq_head?_getD, List.head?_eq_getElem?, List.getD_eq_getElem?_getD]
+    simp [List.headD_eq_head?_getD, List.head?_eq_getElem?, List.getD_eq_getElem?_getD]
   | l + 1, hl => by
     have hy := hR.yr
     obtain ⟨rw, W, hd, he⟩ := hR.br_Rnext (l := l) (by omega)
     obtain ⟨-, hfold, hcols, -⟩ := hR.mid (l := l) (by omega)
-    have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+    have hshape := (hR.mid (l := l) (by omega)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
     rw [he]
     show (levelShape (μ - (Ls.getD l default).s1.alphas.length) _ _).1 = _
     rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l (by omega), hfold, hcols, hshape]
 
-theorem br_rl : ∀ i < (osCfg (candidate μ r)).levels.length,
-    (Ls.getD i default).rounds.length = (osLvAt (osCfg (candidate μ r)) i).folds := by
+theorem br_rl : ∀ i < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
+    (Ls.getD i default).rounds.length = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD i default)).folds := by
   intro i hi
   rw [LvAt.rounds, rsRounds, roundsSpec_rounds_length]
   exact (hR.br_dep hi).2.1
 
 /-- **Each level's challenges begin the final level's.** -/
-theorem br_prefix : ∀ d l, l + d = (osCfg (candidate μ r)).yrLevel →
-    (Ls.getD l default).s1.alphas <+: (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas
+theorem br_prefix : ∀ d l, l + d = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel →
+    (Ls.getD l default).s1.alphas <+: (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).s1.alphas
   | 0, l, h => by rw [Nat.add_zero] at h; subst h; exact List.prefix_refl _
   | d + 1, l, h => by
     have ih := br_prefix d (l + 1) (by omega)
@@ -132,40 +131,40 @@ theorem br_prefix : ∀ d l, l + d = (osCfg (candidate μ r)).yrLevel →
     rw [LvAt.s1, rsSt, hg, e]
     exact List.prefix_append _ _
 
-theorem br_G : ∀ l < (osCfg (candidate μ r)).levels.length, ∀ j < (osLvAt (osCfg (candidate μ r)) l).folds,
-    (hdOf μ r Ls).G.getD ((osLvAt (osCfg (candidate μ r)) l).foldsOff + j) 0 =
-      (roundsSpec (osLvAt (osCfg (candidate μ r)) l).folds (Ls.getD l default).s (Ls.getD l default).cap
+theorem br_G : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, ∀ j < (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).folds,
+    (hdOf μ r Ls).G.getD ((((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).foldsOff + j) 0 =
+      (roundsSpec (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).folds (Ls.getD l default).s (Ls.getD l default).cap
         (Ls.getD l default).rw).1.alphas.getD ((Ls.getD l default).s.alphas.length + j) 0 := by
   intro l hl j hj
   have hy := hR.yr
   have hfold := (hR.br_dep hl).2.1
-  have hp := hR.br_prefix ((osCfg (candidate μ r)).yrLevel - l) l (by omega)
+  have hp := hR.br_prefix ((osCfgR (μ - minOpenLog) (r - 1)).yrLevel - l) l (by omega)
   have hlen : (Ls.getD l default).s1.alphas.length = (Ls.getD l default).s.alphas.length +
-      (osLvAt (osCfg (candidate μ r)) l).folds := by
+      (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).folds := by
     rw [LvAt.s1, roundsSpec_alphas_length, hfold]
   have e1 : (Ls.getD l default).s1 =
-      (roundsSpec (osLvAt (osCfg (candidate μ r)) l).folds (Ls.getD l default).s (Ls.getD l default).cap
+      (roundsSpec (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).folds (Ls.getD l default).s (Ls.getD l default).cap
         (Ls.getD l default).rw).1 := by rw [LvAt.s1, rsSt, hfold]
   rw [← e1, ← hR.alphas l hl]
-  show (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.getD _ 0 = _
+  show (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).s1.alphas.getD _ 0 = _
   obtain ⟨t, ht⟩ := hp
   rw [← ht, List.getD_append _ _ _ _ (by omega)]
 
-theorem br_ps : ∀ l < (osCfg (candidate μ r)).levels.length, ∀ q ∈ (Ls.getD l default).qs μ,
-    q < 2 ^ (osLvAt (osCfg (candidate μ r)) l).depth := by
+theorem br_ps : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, ∀ q ∈ (Ls.getD l default).qs μ,
+    q < 2 ^ (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth := by
   intro l hl q hq
   rw [LvAt.qs_eq_sq, sqPositions, List.mem_map] at hq
   obtain ⟨k, -, rfl⟩ := hq
   rw [(hR.br_dep hl).1, qwPosOf]
   exact Nat.mod_lt _ (by positivity)
 
-theorem br_q0 : ∀ l < (osCfg (candidate μ r)).levels.length, 0 < ((Ls.getD l default).qs μ).length := by
+theorem br_q0 : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length, 0 < ((Ls.getD l default).qs μ).length := by
   intro l hl
   rw [LvAt.qs_length, (hR.br_dep hl).2.2.1]
   exact (hR.br_dep hl).2.2.2
 
-theorem br_ag : ∀ l < (osCfg (candidate μ r)).levels.length,
-    Guest.Limits.OpeningsAgree (osLvAt (osCfg (candidate μ r)) l).depth
+theorem br_ag : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
+    Guest.Limits.OpeningsAgree (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth
       (((Ls.getD l default).qs μ).zip (Ls.getD l default).phase) := by
   intro l hl
   have hRl := hR.br_Rlen l hl
@@ -178,36 +177,36 @@ theorem br_ag : ∀ l < (osCfg (candidate μ r)).levels.length,
 /-! ## The final level -/
 
 theorem br_lane : (hdOf μ r Ls).Lf.fw.fold.length =
-    (osCfg (candidate μ r)).yrLen + (osLvAt (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel).folds := by
+    (osCfgR (μ - minOpenLog) (r - 1)).yrLen + ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).folds := by
   obtain ⟨cF, -, -, -, -, -, cyl, cylen, -⟩ := hR.cand
   obtain ⟨rw, W, hd, -, -, -, -, hok, -⟩ := hR.last
   obtain ⟨-, ffold, -⟩ := hR.fin
-  have hrw : (Ls.getD (osCfg (candidate μ r)).yrLevel default).rw = rw := by unfold LvAt.rw; rw [hd]
-  have hfw : (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw = W := by unfold LvAt.fw; rw [hd]
+  have hrw : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).rw = rw := by unfold LvAt.rw; rw [hd]
+  have hfw : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).fw = W := by unfold LvAt.fw; rw [hd]
   rw [← hrw] at hok
-  show (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.fold.length = _
+  show (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).fw.fold.length = _
   rw [hfw, hok.flen]
-  show 2 ^ (μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.length) + _ = _
-  rw [hR.fin_s1, show μ - (osCfg (candidate μ r)).nFolds = (osCfg (candidate μ r)).yrLog by omega, cylen,
+  show 2 ^ (μ - (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).s1.alphas.length) + _ = _
+  rw [hR.fin_s1, show μ - (osCfgR (μ - minOpenLog) (r - 1)).nFolds = (osCfgR (μ - minOpenLog) (r - 1)).yrLog by omega, cylen,
     ffold]
 
-theorem br_pl : (hdOf μ r Ls).Lf.fw.pairs.length = (osCfg (candidate μ r)).yrLog := by
+theorem br_pl : (hdOf μ r Ls).Lf.fw.pairs.length = (osCfgR (μ - minOpenLog) (r - 1)).yrLog := by
   obtain ⟨cF, -⟩ := hR.cand
   obtain ⟨rw, W, hd, -, -, -, -, hok, -⟩ := hR.last
-  have hrw : (Ls.getD (osCfg (candidate μ r)).yrLevel default).rw = rw := by unfold LvAt.rw; rw [hd]
-  have hfw : (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw = W := by unfold LvAt.fw; rw [hd]
+  have hrw : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).rw = rw := by unfold LvAt.rw; rw [hd]
+  have hfw : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).fw = W := by unfold LvAt.fw; rw [hd]
   rw [← hrw] at hok
-  show (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.pairs.length = _
+  show (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).fw.pairs.length = _
   rw [hfw, hok.plen2]
-  show μ - (Ls.getD (osCfg (candidate μ r)).yrLevel default).s1.alphas.length = _
+  show μ - (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).s1.alphas.length = _
   rw [hR.fin_s1]; omega
 
 theorem br_tsuf : tailWords (hdOf μ r Ls).Lf.fw.pairs <:+ xs := by
   have hy := hR.yr
   obtain ⟨rw, W, hd, -, -, hxs, -⟩ := hR.last
-  have hfw : (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw = W := by unfold LvAt.fw; rw [hd]
-  obtain ⟨p, hp⟩ := lvsAt_suffix hR.run (osCfg (candidate μ r)).yrLevel (by rw [hR.len]; omega)
-  show tailWords (Ls.getD (osCfg (candidate μ r)).yrLevel default).fw.pairs <:+ xs
+  have hfw : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).fw = W := by unfold LvAt.fw; rw [hd]
+  obtain ⟨p, hp⟩ := lvsAt_suffix hR.run (osCfgR (μ - minOpenLog) (r - 1)).yrLevel (by rw [hR.len]; omega)
+  show tailWords (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).fw.pairs <:+ xs
   rw [hfw]
   refine ⟨p ++ rw ++ W.fold ++ [W.nn], ?_⟩
   rw [hp, hxs]
@@ -215,7 +214,7 @@ theorem br_tsuf : tailWords (hdOf μ r Ls).Lf.fw.pairs <:+ xs := by
 
 omit hR in
 theorem br_f3 : ((hdOf μ r Ls).Lf.F3 (hdOf μ r Ls).logN).cap.length = 5 := by
-  show ((Ls.getD (osCfg (candidate μ r)).yrLevel default).F3 μ).cap.length = 5
+  show ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).F3 μ).cap.length = 5
   unfold LvAt.F3
   split <;> exact squeezeN_cap_length _ _ rfl
 

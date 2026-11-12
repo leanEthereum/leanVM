@@ -1,22 +1,21 @@
 /-
   LeanVM.Guest.B1.Whir.CHonRes
 
-  The residual loops on memory holding the honest buffers.
+  The residual chains the finish computes are `level_residual`'s over the honest buffers' words.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.CHonFinRun
-public import LeanVM.Guest.B1.Whir.CHonFields1
-public import LeanVM.Guest.B1.Whir.CResLoop
-public import LeanVM.Guest.B1.Whir.DataAll
+public import LeanVM.Guest.B1.Whir.CHonFields0
 
 /-!
-# The residual loops, honestly
+# The residual chains, honestly
 
-`resRel_gen`: on memory holding the honest buffers, a non-final level's residual loop runs at the
-values the finish calls it with (`resLoop_complete`), from the finish's static facts and the
-level's record facts. `HonRun.fld_resRel`: OsHonest's `resRel` on a run.
+`OsHD.own_word`: a word of an honest buffer within its size is its unfitted word.
+`OsHD.finRes_eq`: a non-final level's chains (`finRes`, from its basis row, high part and positions)
+are `osLrRetA`'s, `level_residual`'s chains over `basis_d`'s, `level_hs`'s and `query_positions`'
+words at `μ = λ⁻¹`. `HonRun.fld_resEq`: on a run.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -27,51 +26,95 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- **A non-final level's residual loop** on memory holding the honest buffers. -/
-theorem resRel_gen {h : OsHD} {b : ℕ} {rd : Reader} (hHS : HonStatic h.c)
-    (hF : FinStatic h.c h.G h.T h.recs) (hL : h.Ls.length = h.c.levels.length)
-    (hrun : ∀ i < h.c.yrLevel, RecRun h i) (hm : OsMemF rd h.c b h.own) {l : ℕ} (hl : l < h.c.yrLevel)
-    (hfn : FnIs (h.c.resLoop l) (osParams 7) (resLoopBody l (osLvAt h.c l) (h.c.resLoop l)))
-    (hn0 : 0 < (osLvAt h.c l).queries / resBatch) :
-    coreProgram.Rel rd (h.c.resLoop l) [1, gen ^ ((osLvAt h.c l).queries / resBatch), osPtrF h.c b 11,
-      osPtrF h.c b (osIxBD h.c), osPtrF h.c b 8, osPtrF h.c b (osIxRC h.c l), h.li l] [] := by
+theorem residualProd_congr' (vals : List E) (x : E) {d d' : ℕ → E} :
+    ∀ n, (∀ t < n, d t = d' t) → residualProd vals x d n = residualProd vals x d' n
+  | 0, _ => rfl
+  | n + 1, h => by
+    simp only [residualProd]
+    rw [residualProd_congr' vals x n (fun t ht ↦ h t (by omega)), h n (by omega)]
+
+namespace OsHD
+
+variable (h : OsHD)
+
+/-- **A word of an honest buffer** within its size. -/
+theorem own_word {j e : ℕ} (hj : j < (osSizesL h.c).length) (he : e < (osSizesL h.c).getD j 0) :
+    (osOwnA h.own j).getD e 0 = (h.ownW j).getD e 0 := by
+  show (h.own.getD j []).getD e 0 = _
+  rw [h.own_getD hj, ownAt, fitTo_getD he]
+
+/-- **A non-final level's chains are `level_residual`'s** over the honest buffers' words. -/
+theorem finRes_eq (hHS : HonStatic h.c) (hF : FinStatic h.c h.G h.T h.recs)
+    (hL : h.Ls.length = h.c.levels.length) (hrun : ∀ i < h.c.yrLevel, RecRun h i) {l : ℕ}
+    (hl : l < h.c.yrLevel) :
+    finRes h.c h.G h.T h.recs h.li l = osLrRetA h.c h.own l (h.li l) := by
   have hy := hHS.yr
   have lf := hF.lv l hl
-  have hst := hF.rs l hl
   have hR := hrun l hl
   have hr : h.recs.getD l default = (h.L l).osRec h.logN := h.recs_getD hL hy hl
-  refine resLoop_complete (D := finD h.c h.G h.T h.recs l)
-    (Pos := fun k ↦ eOfNat ((h.recs.getD l default).qs.getD k 0)) hfn hst lf.posOff hn0
-    (fun k hk ↦ ?_) (fun t ht ↦ ?_) (fun c hc ↦ ?_) ?_ ?_
-  · show LoadHolds rd (osPtrF h.c b 11) ((osLvAt h.c l).posOff + k) (eOfNat ((h.recs.getD l default).qs.getD k 0))
-    rw [hr, hR.qs k hk]
-    exact h.pos_load hHS hm (by omega) (by have := hR.Q; omega)
-  · have ht' : t < (finLv h.c l).prefixLen + h.c.yrLog := by rw [lf.pre]; exact ht
+  have hn6 := hF.n6
+  -- the basis row
+  have hD : ∀ t < (h.c.levels.getD l default).logCols, finD h.c h.G h.T h.recs l t =
+      (osOwnA h.own (osIxBdA h.c)).getD (l * ligColsCap + t) 0 := fun t ht ↦ by
+    have ht' : t < (finLv h.c l).prefixLen + h.c.yrLog := by rw [lf.pre]; exact ht
     obtain ⟨hbl, eb⟩ := finBdC_get (G := h.G) (T := h.T) (recs := h.recs) hl (by omega) ht'
       (by rw [lf.pre]; exact hF.cols l hl)
-    have hrd := h.bd_reads hHS hm
-    rw [show 13 + 2 * h.c.levels.length + 3 = osIxBD h.c by unfold osIxBD; omega] at hrd
-    have := readsAt_getD' hrd (j := l * ligColsCap + t) (by
-      rw [hbl]
+    have hsz := hHS.fin (k := 3) (by omega)
+    have hcl : (h.c.levels.getD l default).logCols ≤ ligColsCap := hF.cols l hl
+    have hlt : l * ligColsCap + t < h.c.levels.length * ligColsCap := by
       have : (l + 1) * ligColsCap ≤ h.c.levels.length * ligColsCap := Nat.mul_le_mul_right _ (by omega)
       rw [Nat.add_mul, Nat.one_mul] at this
-      have : (osLvAt h.c l).logCols ≤ ligColsCap := hF.cols l hl
-      omega)
-    rwa [eb] at this
-  · rw [show (hsvOf (finLv h.c l) (h.recs.getD l default)).getD c 0 = (h.recs.getD l default).high.getD c 0 *
-        word (hsScale (finLv h.c l).vanish (finLv h.c l).highBits c
-          (vanishInv ((finLv h.c l).vanish + (finLv h.c l).logCols))) 0 by
-      simp only [hsvOf]
-      rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]]
-    rw [hr, (h.L l).osRec_high h.logN]
-    exact (h.mid_hs hHS hm hl hc).2
-  · have := h.rc_reads hHS hm hl (by simp only [finRcC, rcC_length]; exact le_rfl)
-    exact this
-  · intro h0
-    have e := (e_add_eq_zero_iff.mp h0).symm
-    have hn0' : 0 < (finLv h.c l).queries / resBatch := hn0
-    rw [gen_pow_eq_one_iff lf.nbo] at e
-    omega
+      omega
+    rw [show osIxBdA h.c = 12 + h.c.yrLevel + 3 by unfold osIxBdA; omega,
+      h.own_word (hHS.finLt (k := 3) (by omega)) (by rw [hsz]; exact hlt), h.ownW_fin (by omega)]
+    exact eb.symm
+  -- the high part
+  have hH : hsvOf (finLv h.c l) (h.recs.getD l default) =
+      (List.range (h.c.levels.getD l default).folds).map fun i ↦ (osOwnA h.own osIxHsA).getD (l * hsStride + i) 0 := by
+    refine List.map_congr_left fun i hi ↦ ?_
+    have hi' := List.mem_range.mp hi
+    have hj8 : i < hsStride := lt_of_lt_of_le hi' (hHS.mid hl).2
+    have hlt : l * hsStride + i < h.c.levels.length * hsStride := by
+      have : (l + 1) * hsStride ≤ h.c.levels.length * hsStride := Nat.mul_le_mul_right _ (by omega)
+      rw [Nat.add_mul, Nat.one_mul] at this
+      omega
+    have h6 := hHS.head (j := 6) (by omega)
+    rw [h.own_word (hHS.headLt (j := 6) (by omega)) (by rw [h6]; simpa [headSizes] using hlt),
+      ownW_hs, hsC, getD_mapRange _ hlt]
+    have e1 : (l * hsStride + i) / hsStride = l := by unfold hsStride at *; omega
+    have e2 : (l * hsStride + i) % hsStride = i := by unfold hsStride at *; omega
+    simp only [e1, e2, hl, hi', and_self, ↓reduceIte, hr, LvAt.osRec_high]
+  -- the positions
+  have hP : (List.range (h.c.levels.getD l default).queries).map (fun k ↦ eOfNat ((h.recs.getD l default).qs.getD k 0)) =
+      (List.range (h.c.levels.getD l default).queries).map fun k ↦ (osOwnA h.own osIxQposA).getD ((h.c.levels.getD l default).posOff + k) 0 := by
+    refine List.map_congr_left fun k hk ↦ ?_
+    have hk' := List.mem_range.mp hk
+    have hQ : k < (h.c.levels.getD l default).squeezes * sqPer (h.c.levels.getD l default) := lt_of_lt_of_le hk' hR.Q
+    obtain ⟨-, htop⟩ := chain_disj hHS.pos
+    have := htop l (by omega)
+    have h9 := hHS.head (j := 9) (by omega)
+    rw [h.own_word (hHS.headLt (j := 9) (by omega)) (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+      ownW_qpos, h.qpos_seg hHS (by omega) hQ, hr, hR.qs k hk']
+  -- the chains
+  have eP : resP (finLv h.c l) (finD h.c h.G h.T h.recs l) =
+      lrP (h.c.levels.getD l default).logCols (fun s ↦ (osOwnA h.own (osIxBdA h.c)).getD (l * ligColsCap + s) 0) := by
+    funext x
+    unfold resP lrP
+    rw [show (finLv h.c l).vanish = lrVo (finLv h.c l).logCols from lf.van]
+    exact residualProd_congr' _ x _ fun t ht ↦ hD t ht
+  have eH : resH (finLv h.c l) (hsvOf (finLv h.c l) (h.recs.getD l default)) =
+      lrH (h.c.levels.getD l default).logCols (h.c.levels.getD l default).folds (h.c.levels.getD l default).highBits
+        ((List.range (h.c.levels.getD l default).folds).map fun i ↦ (osOwnA h.own osIxHsA).getD (l * hsStride + i) 0) := by
+    funext x
+    unfold resH lrH
+    rw [show (finLv h.c l).vanish = lrVo (finLv h.c l).logCols from lf.van, hH]
+  show resFold (resP (finLv h.c l) (finD h.c h.G h.T h.recs l))
+      (resH (finLv h.c l) (hsvOf (finLv h.c l) (h.recs.getD l default))) (h.li l) (0, 0)
+      ((List.range (finLv h.c l).queries).map fun k ↦ eOfNat ((h.recs.getD l default).qs.getD k 0)) = _
+  rw [eP, eH, hP]
+  rfl
+
+end OsHD
 
 namespace HonRun
 
@@ -80,19 +123,11 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
   (hR : HonRun μ r target S root xs os w cfg Ls)
 include hR
 
-/-- **OsHonest's `resRel`** on a run. -/
-theorem fld_resRel : ∀ b rd, OsMemF rd (osCfg (candidate μ r)) b (hdOf μ r Ls).own →
-    ∀ l < (osCfg (candidate μ r)).yrLevel,
-      coreProgram.Rel rd ((osCfg (candidate μ r)).resLoop l)
-        [1, gen ^ ((osLvAt (osCfg (candidate μ r)) l).queries / resBatch), osPtrF (osCfg (candidate μ r)) b 11,
-          osPtrF (osCfg (candidate μ r)) b (osIxBD (osCfg (candidate μ r))), osPtrF (osCfg (candidate μ r)) b 8,
-          osPtrF (osCfg (candidate μ r)) b (osIxRC (osCfg (candidate μ r)) l), (hdOf μ r Ls).li l] [] := by
-  intro b rd hm l hl
-  have hy := hR.yr
-  have hfn := (osData_all _ hR.m28).2.2 l hl
-  rw [← osLvAt_osCfg (by rw [← osCfg_len]; omega)] at hfn
-  exact resRel_gen (h := hdOf μ r Ls) (honStatic_all _ hR.m28) hR.finStatic_run hR.len hR.recRun_run hm hl
-    hfn (fieldStatic_all _ hR.m28 l hl)
+/-- **The chains on a run.** -/
+theorem fld_resEq : ∀ l < (hdOf μ r Ls).c.yrLevel,
+    finRes (hdOf μ r Ls).c (hdOf μ r Ls).G (hdOf μ r Ls).T (hdOf μ r Ls).recs (hdOf μ r Ls).li l =
+      osLrRetA (hdOf μ r Ls).c (hdOf μ r Ls).own l ((hdOf μ r Ls).li l) := fun _ hl ↦
+  (hdOf μ r Ls).finRes_eq (honStatic_all _ _ hR.m11 hR.r4) hR.finStatic_run hR.len hR.recRun_run hl
 
 end HonRun
 
