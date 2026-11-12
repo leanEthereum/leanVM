@@ -177,13 +177,13 @@ theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p52 p55 : E) (c : 
   have m1 := Nat.mul_le_mul_left (4 * R + 15012 + 13) hsx
   have m2 := Nat.mul_le_mul_left (4 * R + 15012 + 13) hss
   have h3 := daDigestAt_cost P hrd hR hσ hS (by includes) c (by omega)
-  have h4 := hS (.n 416)
+  have h4 := hS (.n 395)
   have h5 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num)
     (by omega)
-  have h6 := readCellsK_cost P hrd hR (by includes) ((σ (.n 416)).limb 0 * Parameters.g ^ (24 * c))
+  have h6 := readCellsK_cost P hrd hR (by includes) ((σ (.n 395)).limb 0 * Parameters.g ^ (24 * c))
     24 (by norm_num)
   have h7 := deferOfCells_cost P (by includes)
-    (readCellsK rd ((σ (.n 416)).limb 0 * Parameters.g ^ (24 * c)) 24)
+    (readCellsK rd ((σ (.n 395)).limb 0 * Parameters.g ^ (24 * c)) 24)
   limbs_one
   unfold kidStmtAtPrice
   have : (4 * R + 15012 + 13) * N + (4 * R + 15012 + 13) * N = (8 * R + 30050) * N := by ring
@@ -239,12 +239,12 @@ theorem kidStmt_cost (D : DiscreteLogTables) (hP : Includes P kidStmtC.costDeps)
 theorem subArgs_cost (hP : Includes P subArgsC.costDeps) (c : ℕ) (hc : c < 2 ^ 34) :
     machineCost P subArgsC.costIdx [rdV, σV, encodeValue c] ≤ 7 * S + 2 * R + 8989 := by
   rw [subArgsC.costEq P hP rd rdV hrd σ σV hσ]
-  have h1 := cellAt_cost P hrd hR (by includes) (σ (.n 404)) (2 * c) (by omega)
-  have h2 := cellAt_cost P hrd hR (by includes) (σ (.n 404)) (2 * c + 1) (by omega)
+  have h1 := cellAt_cost P hrd hR (by includes) (σ (.n 383)) (2 * c) (by omega)
+  have h2 := cellAt_cost P hrd hR (by includes) (σ (.n 383)) (2 * c + 1) (by omega)
   have h3 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
-  have h4 := mulK_cost P (by includes) (σ (.n 410)) (Parameters.g ^ (24 * c))
-  have := hS (.n 404); have := hS (.n 47); have := hS (.n 48); have := hS (.n 49)
-  have := hS (.n 410)
+  have h4 := mulK_cost P (by includes) (σ (.n 389)) (Parameters.g ^ (24 * c))
+  have := hS (.n 383); have := hS (.n 26); have := hS (.n 27); have := hS (.n 28)
+  have := hS (.n 389)
   limbs_one
   omega
 
@@ -270,12 +270,12 @@ theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
   have h1 := kidStmt_cost P hrd hR hσ hS D (by includes) hG w380 p53 p56 tx ts htx hts N hN htxN htsN c
     hc
   have h2 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
-  have h3 := readCellsK_cost P hrd hR (by includes) ((σ (.n 410)).limb 0 * Parameters.g ^ (24 * c)) 24
+  have h3 := readCellsK_cost P hrd hR (by includes) ((σ (.n 389)).limb 0 * Parameters.g ^ (24 * c)) 24
     (by norm_num)
   have h4 := fixedOfCells_cost P (by includes)
-    (readCellsK rd ((σ (.n 410)).limb 0 * Parameters.g ^ (24 * c)) 24)
+    (readCellsK rd ((σ (.n 389)).limb 0 * Parameters.g ^ (24 * c)) 24)
   have h5 := subArgs_cost P hrd hR hσ hS (by includes) c hc
-  have := hS (.n 410)
+  have := hS (.n 389)
   limbs_one
   unfold decKidPrice
   omega

@@ -109,7 +109,7 @@ theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnes
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
   have := nDirect_cost P hσ hS D (by includes) hG
   have := dvClaim_cost P hσ hS (by includes)
-  have := hWD [σ (.n 49)] [σ (.n 390), σ (.n 391), σ (.n 392)] (by simp)
+  have := hWD [σ (.n 28)] [σ (.n 369), σ (.n 370), σ (.n 371)] (by simp)
   have : Decoder.nDirectD D σ < 2 ^ 34 := gLogD_lt D _
   cost_facts [hS]
   limbs_one
@@ -223,11 +223,11 @@ theorem decWitAt_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitAtC
   have h1 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 45)) 0 lx (by norm_num) hlx.le
   have h2 := regionTable_cost P hrd hR D (by includes) hG (σ (.n 45)) lx ls hlx.le hls
   have := decWitTab_cost P hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA D (by includes) hG
-    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 419)) (σ (.n 52)) (σ (.n 55)) _ _
-    (regionTable_good (rd := rd) D (σ (.n 66)) 0 lx hlx.le)
-    (regionTable_good (rd := rd) D (σ (.n 66)) lx ls hls)
-    ((regionTable_size_le (rd := rd) D (σ (.n 66)) 0 lx).trans hlxN)
-    ((regionTable_size_le (rd := rd) D (σ (.n 66)) lx ls).trans hlsN) (Decoder.l2ArgsD σ)
+    K N X hK hN hX nk nrx nrs hnk hnrx hnrs (σ (.n 398)) (σ (.n 31)) (σ (.n 34)) _ _
+    (regionTable_good (rd := rd) D (σ (.n 45)) 0 lx hlx.le)
+    (regionTable_good (rd := rd) D (σ (.n 45)) lx ls hls)
+    ((regionTable_size_le (rd := rd) D (σ (.n 45)) 0 lx).trans hlxN)
+    ((regionTable_size_le (rd := rd) D (σ (.n 45)) lx ls).trans hlsN) (Decoder.l2ArgsD σ)
     (by simp [Decoder.l2ArgsD]) hWV
   have := l2ArgsD_cost P hσ hS (by includes)
   have e1 : regionTablePrice G R lx ≤ regionTablePrice G R N := by
@@ -312,7 +312,7 @@ theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabs
     {WS : ℕ} (hWS : ∀ a : E, appCost P wSV [encodeValue a] ≤ WS) {K N X : ℕ}
     (hc : CountsWithin D σ K N X)
     (hLk : ∀ c < Decoder.nKidsD D σ, cl (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 25))
-      (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 1928)) ≤ L) :
+      (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, wXV, wSV,
       clV] ≤ decWitNPrice G R S F C L DW WX WS K N X := by
   rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn wX wXV hwX wS wSV hwS cl clV

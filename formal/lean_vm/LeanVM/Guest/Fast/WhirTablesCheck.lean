@@ -7,12 +7,17 @@ public import LeanVM.Guest.B1.Whir.Witness
 /-!
 # `open_stacked`'s tables, checked
 
-* `callMatch m r c`: the `OsCall` `r` is candidate `m`'s `opening_queries` call `c` of the template
-  (`osQCalls`, with its level's index) in numbers: its callee, its loop and its queries'
-  `walk_path` the functions of `r`'s indices (`decoderFunctionName`, `Fast/FunctionNames.lean`),
-  its iterations, its level's depth and cap depth, its arguments' and returns' cells (cells all);
-* `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's,
-  by kernel evaluation, a candidate at a time (`callsOK_m`).
+* `osQCalls c`: each level's `level_queries` dispatch of the template at the configuration `c`,
+  with the level's index and row, from the state before its queries (`osPreQ`, `osQCallOf`), the
+  states threaded as `osLevelsW` threads them (`osLevelsW_eq`);
+* `callMatch c r q`: the `OsCall` `r` is the dispatch `q` in numbers: its `opening_queries`
+  callee's shape, the indices of `level_queries`' specialization, of its `opening_queries`
+  callee, of that callee's loop and of its queries' `walk_path` (`decoderFunctionName`,
+  `Fast/FunctionNames.lean`), the loop's iterations, the level's depth and cap depth, the
+  dispatch's arguments' and returns' cells (cells all);
+* `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's at
+  every size and rate (`osCfgAt j`: size `j % 11`, rate index `j / 11`), by kernel evaluation, a
+  configuration at a time (`callsOK_j`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -41,27 +46,45 @@ theorem eq_of_shapeBEq {a b : OqShape} (h : shapeBEq a b = true) : a = b := by
   subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
   rfl
 
-/-- **The table's call `r` is candidate `m`'s call `c`** of level `c.2`. -/
-noncomputable def callMatch (m : ℕ) (r : OsCall) : (String × List V × List V) × ℕ → Bool
-  | ((name, args, rets), l) =>
-    shapeBEq (oqShapeAt r.sh) (oqShapeOf name) &&
-      decoderFunctionName r.fn == name && decoderFunctionName r.loop == oqLoopOf name &&
-      decoderFunctionName r.walk == oqWalkOf (oqShapeOf name).oq &&
-      r.N == ((osCfg m).levels.getD l default).queries / (1 + if l = 0 then 1 else 0) &&
-      r.depth == ((osCfg m).levels.getD l default).depth &&
-      r.cd == ((osCfg m).levels.getD l default).capDepth &&
+/-- The levels' `level_queries` dispatches from level `lvl` on, with the levels' indices and
+rows, the state threaded as `osLevelsW` threads it. -/
+def osQCallsFrom (c : OsCfg) : ℕ → List OsLv → OsSt → List (ℕ × OsLv × List V × List V)
+  | _, [], _ => []
+  | lvl, lv :: rest, s =>
+    (lvl, lv, osQCallOf c lvl lv (osPreQ c lvl lv s)) :: osQCallsFrom c (lvl + 1) rest (osLevel c lvl lv s).2
+
+/-- **The levels' `level_queries` dispatches** of the template at the configuration `c`. -/
+def osQCalls (c : OsCfg) : List (ℕ × OsLv × List V × List V) := osQCallsFrom c 0 c.levels (osHead c).2
+
+theorem osLevelsW_eq (rd : Reader) (V : FrameMap) (σ : Val) (c : OsCfg) :
+    ∀ lvl lvs s, osLevelsW rd V σ c lvl lvs s =
+      (osQCallsFrom c lvl lvs s).map fun q ↦ osLevelW rd V c q.1 q.2.1 (q.2.2.1.map σ) (q.2.2.2.map σ)
+  | _, [], _ => rfl
+  | lvl, lv :: rest, s => by
+    rw [osLevelsW, osQCallsFrom, List.map_cons, osLevelsW_eq rd V σ c (lvl + 1) rest]
+
+/-- **The table's call `r` is the dispatch `q`** of the configuration `c`. -/
+noncomputable def callMatch (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × List V → Bool
+  | (lvl, lv, args, rets) =>
+    shapeBEq (oqShapeAt r.sh) (oqShapeOf (osOqName c lvl lv)) &&
+      decoderFunctionName r.lq == osQueriesName c lvl lv &&
+      decoderFunctionName r.fn == osOqName c lvl lv &&
+      decoderFunctionName r.loop == oqLoopOf (osOqName c lvl lv) &&
+      decoderFunctionName r.walk == oqWalkOf (oqShapeOf (osOqName c lvl lv)).oq &&
+      r.N == lv.queries / (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
 
-/-- Candidate `m`'s `opening_queries` calls, with their levels' indices. -/
-def osCallsOf (m : ℕ) : List ((String × List V × List V) × ℕ) := (osQCalls (osCfg m)).zipIdx
+/-- The configuration at the table's index `j`: the size `j % 11` at the rate index `j / 11`. -/
+def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)
 
-theorem osWordsTab_eq : osWordsTab = (List.range 28).map fun m ↦ osWordsLen (osCfg m) := by
+theorem osWordsTab_eq : osWordsTab = (List.range 44).map fun j ↦ osWordsLen (osCfgAt j) := by
   decide +kernel
 
-/-- Candidate `m`'s calls are the table's. -/
-def CallsOK (m : ℕ) : Prop :=
-  (osCallsTab.getD m []).length = (osCallsOf m).length ∧
-    ((osCallsTab.getD m []).zip (osCallsOf m)).all (fun p ↦ callMatch m p.1 p.2) = true
+/-- Configuration `j`'s dispatches are the table's. -/
+def CallsOK (j : ℕ) : Prop :=
+  (osCallsTab.getD j []).length = (osQCalls (osCfgAt j)).length ∧
+    ((osCallsTab.getD j []).zip (osQCalls (osCfgAt j))).all
+      (fun p ↦ callMatch (osCfgAt j) p.1 p.2) = true
 
 theorem callsOK_0 : CallsOK 0 := by unfold CallsOK; decide +kernel
 
@@ -119,8 +142,40 @@ theorem callsOK_26 : CallsOK 26 := by unfold CallsOK; decide +kernel
 
 theorem callsOK_27 : CallsOK 27 := by unfold CallsOK; decide +kernel
 
-/-- **Every candidate's calls are the table's.** -/
-theorem callsOK : ∀ m < 28, CallsOK m
+theorem callsOK_28 : CallsOK 28 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_29 : CallsOK 29 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_30 : CallsOK 30 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_31 : CallsOK 31 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_32 : CallsOK 32 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_33 : CallsOK 33 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_34 : CallsOK 34 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_35 : CallsOK 35 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_36 : CallsOK 36 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_37 : CallsOK 37 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_38 : CallsOK 38 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_39 : CallsOK 39 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_40 : CallsOK 40 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_41 : CallsOK 41 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_42 : CallsOK 42 := by unfold CallsOK; decide +kernel
+
+theorem callsOK_43 : CallsOK 43 := by unfold CallsOK; decide +kernel
+
+/-- **Every configuration's dispatches are the table's.** -/
+theorem callsOK : ∀ j < 44, CallsOK j
   | 0, _ => callsOK_0
   | 1, _ => callsOK_1
   | 2, _ => callsOK_2
@@ -149,7 +204,23 @@ theorem callsOK : ∀ m < 28, CallsOK m
   | 25, _ => callsOK_25
   | 26, _ => callsOK_26
   | 27, _ => callsOK_27
-  | _ + 28, h => absurd h (by omega)
+  | 28, _ => callsOK_28
+  | 29, _ => callsOK_29
+  | 30, _ => callsOK_30
+  | 31, _ => callsOK_31
+  | 32, _ => callsOK_32
+  | 33, _ => callsOK_33
+  | 34, _ => callsOK_34
+  | 35, _ => callsOK_35
+  | 36, _ => callsOK_36
+  | 37, _ => callsOK_37
+  | 38, _ => callsOK_38
+  | 39, _ => callsOK_39
+  | 40, _ => callsOK_40
+  | 41, _ => callsOK_41
+  | 42, _ => callsOK_42
+  | 43, _ => callsOK_43
+  | _ + 44, h => absurd h (by omega)
 
 end
 end LeanVM.Guest.Fast
