@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.Padding
 # The tables' heights (G:2331-2344)
 
 Table `t`'s statements (`vtPadT`, `vtPad5T` for the `KECCAK` table, whose floor is `9`): its
-`τ_g = kb[2 + t]` below `g^29`, its row count, the `padding_weight` arm `τ` on `(rows, zeta)`,
+`τ_g = kb[2 + t]` below `g^31`, its row count, the `padding_weight` arm `τ` on `(rows, zeta)`,
 and `lead = 1 ∧ rest ≠ 0` (at the `KECCAK` table only when `τ ≠ 9`). `vt_pads`: every table's
 `τ` is `max (log2Ceil n) floor` for its row count `n`, and its padding weight is `paddingWeight`
 at the first `τ` words at `zeta`.
@@ -27,16 +27,16 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- `padding_weight`'s 29 arms. -/
-def vtPadNames : List String := (List.range 29).map (lName "padding_weight")
+/-- `padding_weight`'s 31 arms. -/
+def vtPadNames : List String := (List.range 31).map (lName "padding_weight")
 
-/-- `g^28`, as the data writes it. -/
-abbrev vtW28 : E := word 268435456 0
+/-- `g^30`, as the data writes it. -/
+abbrev vtW30 : E := word 1073741824 0
 
 /-- Table `t`'s height statements, `t < 5`, values from `v`: `τ_g = kb[2 + t]` (variable
-`27 + t`) below `g^29`. -/
+`27 + t`) below `g^31`. -/
 def vtPadT (v t : ℕ) : List Stmt :=
-  [.atom (.const (.n v) vtW28),
+  [.atom (.const (.n v) vtW30),
     .atom (.rangeCheck (.n (27 + t)) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
     .atom (.load (.n (v + 4)) (.n 11) t),
     .dispatch (.n (27 + t)) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
@@ -47,11 +47,11 @@ def vtPadT (v t : ℕ) : List Stmt :=
 
 /-- The `KECCAK` table's height statements, values from `v`. -/
 def vtPad5T (v : ℕ) : List Stmt :=
-  [.atom (.const (.n v) vtW28),
+  [.atom (.const (.n v) vtW30),
     .atom (.rangeCheck (.n 32) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
     .atom (.load (.n (v + 4)) (.n 11) 5),
     .dispatch (.n 32) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
-    .atom (.const (.n (v + 8)) vtW28), .atom (.const (.n (v + 9)) (word 512 0)),
+    .atom (.const (.n (v + 8)) vtW30), .atom (.const (.n (v + 9)) (word 512 0)),
     .atom (.mul (.n 32) (.n (v + 10)) (.n (v + 9))),
     .atom (.rangeCheck (.n (v + 10)) (.n (v + 11)) (.n (v + 12)) (.n (v + 13)) (.n (v + 8))),
     .atom (.const (.n (v + 14)) (word 512 0)), .atom (.add (.n (v + 15)) (.n 32) (.n (v + 14))),
@@ -80,29 +80,28 @@ theorem vt_kb {rd : Reader} {σ : Val} (h : VtH rd σ) :
   refine ⟨by simpa [Atom.Holds, tb_word_one] using c, fun i hi => ?_⟩
   simpa [Atom.Holds] using hl i hi
 
-theorem vtW28_eq : vtW28 = ofK (Parameters.addressOfIndex 28) := by
-  rw [vtW28, tb_word_eOfNat]
-  show ofK (K.ofBits 268435456) = ofK (Parameters.addressOfIndex 28)
-  rw [show K.ofBits 268435456 = Parameters.addressOfIndex 28 by decide +kernel]
+theorem vtW30_eq : vtW30 = ofK (Parameters.addressOfIndex 30) := by
+  rw [vtW30, show (1073741824 : ℕ) = 2 ^ 30 by norm_num, tb_word_two_pow (by norm_num),
+    gen_pow_eq_ofK]
 
 /-- Table `t`'s padding weight's value. -/
 def vtPadV (t : ℕ) : ℕ := 583 + 13 * t
 
 /-- What table `t`'s height statements give. -/
 def VtPadOk (rd : Reader) (σ : Val) (t : ℕ) : Prop :=
-  ∃ (τ n : ℕ) (zs : List E), τ < 29 ∧ LoadHolds rd (σ (.n 10)) (t + 1) (gen ^ τ) ∧
+  ∃ (τ n : ℕ) (zs : List E), τ < 31 ∧ LoadHolds rd (σ (.n 10)) (t + 1) (gen ^ τ) ∧
     LoadHolds rd (σ (.n 11)) t (eOfNat n) ∧ n ≤ 2 ^ τ ∧ zs.length = τ ∧
     TbReadsAt rd (σ (.n 8)) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs n ∧
     τ = max (log2Ceil n) (tableLogFloors.getD t 0)
 
 /-- The dispatch on `τ_g = g^τ` runs arm `τ`. -/
-theorem vt_pad_arm {rd : Reader} {σ : Val} {v : ℕ} {τ : ℕ} (hτ : τ < 29) (hv : σ (.n v) = gen ^ τ)
+theorem vt_pad_arm {rd : Reader} {σ : Val} {v : ℕ} {τ : ℕ} (hτ : τ < 31) (hv : σ (.n v) = gen ^ τ)
     {args rets : List V}
     (hd : ∃ (j : ℕ) (h : j < vtPadNames.length), σ (.n v) = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd vtPadNames[j] (args.map σ) (rets.map σ)) :
     PadWeightOut τ rd (args.map σ) (rets.map σ) := by
   obtain ⟨j, hj, hjv, hrel⟩ := hd
-  have hj29 : j < 29 := by simpa [vtPadNames] using hj
+  have hj31 : j < 31 := by simpa [vtPadNames] using hj
   rw [hv, ← gen_pow_eq_ofK] at hjv
   obtain rfl := gen_pow_inj (by omega) (by omega) hjv
   simp only [vtPadNames, List.getElem_map, List.getElem_range] at hrel
@@ -119,7 +118,7 @@ theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk 
   simp only [Atom.Holds] at c1 l5 c9 q c10 a11 n13
   have l0 : LoadHolds Lm.read (σ (.n 10)) (t + 1) (σ (.n (27 + t))) := by
     have := (vt_kb h).2 (t + 1) (by omega); rwa [show 26 + (t + 1) = 27 + t by omega] at this
-  obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 29) (by omega) (by norm_num) (by rw [c1, vtW28_eq]) rc
+  obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 31) (by omega) (by norm_num) (by rw [c1, vtW30_eq]) rc
   have hp := vt_pad_arm hτ hv hd
   simp only [List.map_cons, List.map_nil, PadWeightOut] at hp
   obtain ⟨n, zs, hn, hrows, hzl, hzs, hpad, hlead, hrest⟩ := hp
@@ -145,8 +144,8 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
   obtain ⟨c1, rc, l5, hd, c9, c10, m11, rc11, c15, a16, ⟨-, -, hne⟩⟩ := hs
   simp only [Atom.Holds] at c1 l5 c9 c10 m11 c15 a16
   have l0 : LoadHolds Lm.read (σ (.n 10)) 6 (σ (.n 32)) := (vt_kb h).2 6 (by omega)
-  obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 29) (by omega) (by norm_num) (by rw [c1, vtW28_eq]) rc
-  obtain ⟨d, hd29, hdv⟩ := vt_rc hμ Lm (K := 29) (by omega) (by norm_num) (by rw [c9, vtW28_eq])
+  obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 31) (by omega) (by norm_num) (by rw [c1, vtW30_eq]) rc
+  obtain ⟨d, hd31, hdv⟩ := vt_rc hμ Lm (K := 31) (by omega) (by norm_num) (by rw [c9, vtW30_eq])
     rc11
   have hp := vt_pad_arm hτ hv hd
   simp only [List.map_cons, List.map_nil, PadWeightOut] at hp

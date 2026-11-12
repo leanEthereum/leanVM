@@ -95,7 +95,7 @@ structure ClaimsCtx (rd : Reader) (σ : Val) (layout : Layout) (kappas : List �
       Tables.colKappaAdj c
   hP : layout.placements = (placementsOf kappas).1
   hx : x.length = layout.stackLog
-  hL : layout.stackLog ≤ 28
+  hL : layout.stackLog ≤ 32
   hK : ∀ c < Tables.nCommittedCols, (Tables.committedKappas kappas).getD c 0 ≤ layout.stackLog
   hq : 2 ^ (Tables.committedKappas kappas).getD 4 0 ∣
     (stackOffsets (Tables.committedKappas kappas)).1.getD 4 0

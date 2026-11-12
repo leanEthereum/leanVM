@@ -90,18 +90,11 @@ def MeaningSqueezePointFrom (n : ℕ) (rd : Reader) : List E → List E → Prop
   | _, _ => False
 
 /-- The deployed `squeeze_point_from__L{n}`. -/
-def spfDeployed : List ℕ := (List.range 23).map (· + 6)
+def spfDeployed : List ℕ := (List.range 25).map (· + 6)
 
 /-- `squeeze_point_from__L{n}`, from `n = 6`. -/
 def spfName (n : ℕ) : String :=
-  ["squeeze_point_from__L6", "squeeze_point_from__L7", "squeeze_point_from__L8",
-    "squeeze_point_from__L9", "squeeze_point_from__L10", "squeeze_point_from__L11",
-    "squeeze_point_from__L12", "squeeze_point_from__L13", "squeeze_point_from__L14",
-    "squeeze_point_from__L15", "squeeze_point_from__L16", "squeeze_point_from__L17",
-    "squeeze_point_from__L18", "squeeze_point_from__L19", "squeeze_point_from__L20",
-    "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23",
-    "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26",
-    "squeeze_point_from__L27", "squeeze_point_from__L28"].getD (n - 6) ""
+  ["squeeze_point_from__L6", "squeeze_point_from__L7", "squeeze_point_from__L8", "squeeze_point_from__L9", "squeeze_point_from__L10", "squeeze_point_from__L11", "squeeze_point_from__L12", "squeeze_point_from__L13", "squeeze_point_from__L14", "squeeze_point_from__L15", "squeeze_point_from__L16", "squeeze_point_from__L17", "squeeze_point_from__L18", "squeeze_point_from__L19", "squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28", "squeeze_point_from__L29", "squeeze_point_from__L30"].getD (n - 6) ""
 
 /-- `squeeze_point_from__L{n}`'s core IR is its meaning, for every deployed `n`. -/
 def squeeze_point_from_Spec : Prop :=

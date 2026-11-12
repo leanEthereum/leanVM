@@ -88,7 +88,7 @@ theorem frame_block {j : ℕ} {f : String} {m c0 st0 ep nb d : ℕ}
 /-- The big frames: `__loop15`'s block at every big frame below `a = n / 136`. -/
 theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
     (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ q < n / 136, LoopBlock rd (coreProgram.getD 359 default) (gen ^ q) (gen ^ (n / 136))
+    ∀ q < n / 136, LoopBlock rd (coreProgram.getD 346 default) (gen ^ q) (gen ^ (n / 136))
       [chain, entries] := by
   intro q hq
   have hS := hmem q (by omega)
@@ -109,7 +109,7 @@ theorem cl_bigBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.
 `chain · g^(13a)` and `entries · g^(544a)`. -/
 theorem cl_grpBlocks {chain entries : E} {n : ℕ} {cells : List E} (hl : cells.length = 4 * n)
     (hr : ReadsAt rd entries cells) (hmem : ClaimChainMem rd chain entries n) :
-    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD 360 default) (gen ^ q) (gen ^ (n % 136 / 17))
+    ∀ q < n % 136 / 17, LoopBlock rd (coreProgram.getD 347 default) (gen ^ q) (gen ^ (n % 136 / 17))
       [chain * gen ^ (13 * (n / 136)), entries * gen ^ (544 * (n / 136))] := by
   intro q hq
   set a := n / 136 with ha

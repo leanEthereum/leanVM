@@ -28,13 +28,13 @@ open LeanVM.Guest.B1 (CompleteAtDTB Returns completeAt_of_rel_pureBat)
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- **`statement_digest` within its static bound.** -/
-theorem statement_completeAtB {Lin : Layout} {args rets : List E} (SB : String → ℕ)
+theorem statement_completeAtB {κ : ℕ} {Lin : Layout} {args rets : List E} (SB : String → ℕ)
     (hT : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     (h : ∀ rd, MemL rd Lin → MeaningStatementDigest rd args rets) :
-    CompleteAtDTB fs cert 16 "statement_digest" Lin args (Returns rets) (fun _ => True)
+    CompleteAtDTB fs cert κ "statement_digest" Lin args (Returns rets) (fun _ => True)
       (SB "statement_digest") :=
   (completeAt_of_rel_pureBat sd_pure (List.mem_singleton_self _)
-    (fun rd hm => statement_digest_complete rd args rets (h rd hm)) 16
+    (fun rd hm => statement_digest_complete rd args rets (h rd hm)) κ
     (fun rd t hn hv hb => hT rd t _ _ hn hv hb)).toDTB
 
 end

@@ -39,11 +39,11 @@ open LeanVM.Guest.B1.Da (limb0_gen_pow_mul)
 
 variable {rd : Reader}
 
-theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (380 + k) default) = true := by
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (367 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 389 + (k - 9) = 380 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 376 + (k - 9) = 367 + k by omega] at this
 
 /-- The records' message is their cells. -/
 theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K)
@@ -255,7 +255,7 @@ theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
 /-! ## The two frame loops -/
 
 theorem any136c_recs : ∀ i < 136,
-    recW (ccOwn (loopAtoms (coreProgram.getD 378 default)) 15 i) (anyP 21) 22 i = true :=
+    recW (ccOwn (loopAtoms (coreProgram.getD 365 default)) 15 i) (anyP 21) 22 i = true :=
   recs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => by
     have hw : ∀ i < 16, anycWin i = true := by
       intro i hi
@@ -265,9 +265,9 @@ theorem any136c_recs : ∀ i < 136,
         anycWin_14, anycWin_15]
     exact hw i hi
 
-theorem any17c_parts : anycHead (coreProgram.getD 379 default) "__loop18" = true ∧
-    anycEdge (coreProgram.getD 379 default) 17 19 12 18 255 = true ∧
-    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 379 default)) 12 i) (anyP 18) 19 i = true := by
+theorem any17c_parts : anycHead (coreProgram.getD 366 default) "__loop18" = true ∧
+    anycEdge (coreProgram.getD 366 default) 17 19 12 18 255 = true ∧
+    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD 366 default)) 12 i) (anyP 18) 19 i = true := by
   have h := any17c_ok
   simp only [anycOk, Bool.and_eq_true] at h
   exact ⟨h.1.1, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by

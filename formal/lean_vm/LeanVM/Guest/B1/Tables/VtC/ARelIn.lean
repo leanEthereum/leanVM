@@ -304,11 +304,11 @@ theorem vt_e2500 (I : VtIn H B w rd) : σv (.n 2544) = gen ^ H.n := by
 theorem vt_pw_up (I : VtIn H B w rd) {t : ℕ} (ht : t < 6)
     (h : VSH (coreProgram.Rel rd) rd σv (pwCall t)) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv (pwCall t) := by
-  have h29 : H.τ t < 29 := I.hs.hτ29 t ht
-  have hl : vtPadNames.length = 29 := by simp [vtPadNames]
-  refine vsh_disp (vt_kbt I ht) (by rw [hl]; exact h29) (by rw [hl]; norm_num) (fun hc ↦ ?_) h
+  have h31 : H.τ t < 31 := I.hs.hτ31 t ht
+  have hl : vtPadNames.length = 31 := by simp [vtPadNames]
+  refine vsh_disp (vt_kbt I ht) (by rw [hl]; exact h31) (by rw [hl]; norm_num) (fun hc ↦ ?_) h
   simp only [vtPadNames, List.getElem_map, List.getElem_range, List.map_cons, List.map_nil] at hc ⊢
-  refine padding_weight_relIn h29 ?_ hc
+  refine padding_weight_relIn h31 ?_ hc
   rw [vt_s8]
   exact ptr_lin0 (q := (B.zeta, H.point)) (by simp [VtHonest.linL]) (I.hs.hτμ t ht)
 

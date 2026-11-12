@@ -55,31 +55,31 @@ structure KidRec where
 
 /-- **What child `c` establishes.** -/
 structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : Prop where
-  base : LoadHolds rd (σ (.n 419)) c k.base
-  next : LoadHolds rd (σ (.n 419)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
-  bounds : k.ex ≤ 65535 ∧ k.es ≤ 65535
+  base : LoadHolds rd (σ (.n 398)) c k.base
+  next : LoadHolds rd (σ (.n 398)) (c + 1) (k.base * (gen ^ k.ex * gen ^ k.es))
+  bounds : k.ex < 2 ^ 32 ∧ k.es < 2 ^ 32
   xlen : k.cellsx.length = 4 * k.ex
-  xrec : ∀ j < k.ex, SlotBelow (σ (.n 40)) (k.ox j) ∧
-    LoadHolds rd (σ (.n 66)) (k.ox j) (k.base * gen ^ (if k.mx then 0 else j)) ∧
-    ∀ i < 4, LoadHolds rd (σ (.n 52)) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
+  xrec : ∀ j < k.ex, SlotBelow (σ (.n 22)) (k.ox j) ∧
+    LoadHolds rd (σ (.n 45)) (k.ox j) (k.base * gen ^ (if k.mx then 0 else j)) ∧
+    ∀ i < 4, LoadHolds rd (σ (.n 31)) (4 * k.ox j + i) (k.cellsx.getD (4 * j + i) 0)
   xmono : k.mx = true → ∀ i j, i < j → j < k.ex → k.ox i < k.ox j
   xdig : [k.cx0, k.cx1] = digestCells (keccak256 (cellsBytes k.cellsx))
   slen : k.cellss.length = 4 * k.es
-  srec : ∀ j < k.es, SlotBelow (σ (.n 41)) (k.os j) ∧
-    LoadHolds rd (σ (.n 67)) (k.os j) (k.base * gen ^ k.ex * gen ^ (if k.ms then 0 else j)) ∧
-    ∀ i < 4, LoadHolds rd (σ (.n 55)) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
+  srec : ∀ j < k.es, SlotBelow (σ (.n 23)) (k.os j) ∧
+    LoadHolds rd (σ (.n 46)) (k.os j) (k.base * gen ^ k.ex * gen ^ (if k.ms then 0 else j)) ∧
+    ∀ i < 4, LoadHolds rd (σ (.n 34)) (4 * k.os j + i) (k.cellss.getD (4 * j + i) 0)
   smono : k.ms = true → ∀ i j, i < j → j < k.es → k.os i < k.os j
   sdig : [k.cs0, k.cs1] = digestCells (keccak256 (cellsBytes k.cellss))
-  da0 : LoadHolds rd (σ (.n 385)) (2 * c) k.d0
-  da1 : LoadHolds rd (σ (.n 385)) (2 * c + 1) k.d1
+  da0 : LoadHolds rd (σ (.n 364)) (2 * c) k.d0
+  da1 : LoadHolds rd (σ (.n 364)) (2 * c + 1) k.d1
   deflen : k.defer.length = 24
-  defreads : ReadsAt rd (σ (.n 416) * gen ^ (24 * c)) k.defer
+  defreads : ReadsAt rd (σ (.n 395) * gen ^ (24 * c)) k.defer
   pdig : [k.p0, k.p1] = digestCells (keccak256
-    (stmtBytes [σ (.n 47), σ (.n 48), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
-  pi0 : LoadHolds rd (σ (.n 404)) (2 * c) k.p0
-  pi1 : LoadHolds rd (σ (.n 404)) (2 * c + 1) k.p1
+    (stmtBytes [σ (.n 26), σ (.n 27), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
+  pi0 : LoadHolds rd (σ (.n 383)) (2 * c) k.p0
+  pi1 : LoadHolds rd (σ (.n 383)) (2 * c + 1) k.p1
   sub : C "verify_sub"
-    [k.p0, k.p1, σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 410) * gen ^ (24 * c)] []
+    [k.p0, k.p1, σ (.n 26), σ (.n 27), σ (.n 28), σ (.n 389) * gen ^ (24 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ c) k w ↔ LoadHolds rd p (c + k) w :=
@@ -92,17 +92,11 @@ theorem kid_rec {rd : Reader} (hm : MemOk rd) {σ : Val} (MF : MainFacts C rd σ
   obtain ⟨base, cx0, cx1, cs0, cs1, d0, d1, p0, p1, ex, es, hb, hex, hes, hcx, hcs, hd0, hd1, hsd,
     hp0, hp1, hsub, hnext⟩ := MF.children c hc
   -- the leanXMSS records
-  obtain ⟨nx, hnx, hgx, mx, ox, cellsx, hlx, hmonox, hrecx, hdigx⟩ :=
-    child_claim_list_digest_sound rd hm _ _ hcx
-  have hnx' : nx < 8912896 := hnx
-  have hexn := gen_pow_inj34 (by omega) (by omega) hgx
-  subst hexn
+  obtain ⟨mx, ox, cellsx, hlx, hmonox, hrecx, hdigx⟩ :=
+    child_claim_list_digest_sound rd hm _ _ hcx ex (by omega) rfl
   -- the leanSPHINCS records
-  obtain ⟨ns, hns, hgs, ms, os, cellss, hls, hmonos, hrecs, hdigs⟩ :=
-    child_claim_list_digest_sound rd hm _ _ hcs
-  have hns' : ns < 8912896 := hns
-  have hesn := gen_pow_inj34 (by omega) (by omega) hgs
-  subst hesn
+  obtain ⟨ms, os, cellss, hls, hmonos, hrecs, hdigs⟩ :=
+    child_claim_list_digest_sound rd hm _ _ hcs es (by omega) rfl
   -- the statement's digest
   obtain ⟨defer, hdlen, hdefr, hpdig⟩ := statement_digest_sound rd _ _ hsd
   refine ⟨⟨base, cx0, cx1, cs0, cs1, d0, d1, p0, p1, ex, es, ox, cellsx, os, cellss, defer, mx, ms⟩,

@@ -28,17 +28,17 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 /-- The specializations: `k`, the name, the core function, the level loops. -/
 def dlTab : List (ℕ × String × ℕ × List String) :=
-  [(0, "da_levels__L1_L0", 420, []),
-    (1, "da_levels__L2_L1", 421, ["__loop285"]),
-    (2, "da_levels__L4_L2", 422, ["__loop286", "__loop287"]),
-    (3, "da_levels__L8_L3", 423, ["__loop288", "__loop289", "__loop290"]),
-    (4, "da_levels__L16_L4", 424, ["__loop291", "__loop292", "__loop293", "__loop294"]),
-    (5, "da_levels__L32_L5", 425, ["__loop295", "__loop296", "__loop297", "__loop298", "__loop299"]),
-    (6, "da_levels__L64_L6", 426, ["__loop300", "__loop301", "__loop302", "__loop303", "__loop304", "__loop305"]),
-    (7, "da_levels__L128_L7", 427, ["__loop306", "__loop307", "__loop308", "__loop309", "__loop310", "__loop311", "__loop312"]),
-    (8, "da_levels__L256_L8", 428, ["__loop313", "__loop314", "__loop315", "__loop316", "__loop317", "__loop318", "__loop319", "__loop320"]),
-    (9, "da_levels__L512_L9", 429, ["__loop321", "__loop322", "__loop323", "__loop324", "__loop325", "__loop326", "__loop327", "__loop328", "__loop329"]),
-    (10, "da_levels__L1024_L10", 430, ["__loop330", "__loop331", "__loop332", "__loop333", "__loop334", "__loop335", "__loop336", "__loop337", "__loop338", "__loop339"])]
+  [(0, "da_levels__L1_L0", 407, []),
+    (1, "da_levels__L2_L1", 408, ["__loop41"]),
+    (2, "da_levels__L4_L2", 409, ["__loop42", "__loop43"]),
+    (3, "da_levels__L8_L3", 410, ["__loop44", "__loop45", "__loop46"]),
+    (4, "da_levels__L16_L4", 411, ["__loop47", "__loop48", "__loop49", "__loop50"]),
+    (5, "da_levels__L32_L5", 412, ["__loop51", "__loop52", "__loop53", "__loop54", "__loop55"]),
+    (6, "da_levels__L64_L6", 413, ["__loop56", "__loop57", "__loop58", "__loop59", "__loop60", "__loop61"]),
+    (7, "da_levels__L128_L7", 414, ["__loop62", "__loop63", "__loop64", "__loop65", "__loop66", "__loop67", "__loop68"]),
+    (8, "da_levels__L256_L8", 415, ["__loop69", "__loop70", "__loop71", "__loop72", "__loop73", "__loop74", "__loop75", "__loop76"]),
+    (9, "da_levels__L512_L9", 416, ["__loop77", "__loop78", "__loop79", "__loop80", "__loop81", "__loop82", "__loop83", "__loop84", "__loop85"]),
+    (10, "da_levels__L1024_L10", 417, ["__loop86", "__loop87", "__loop88", "__loop89", "__loop90", "__loop91", "__loop92", "__loop93", "__loop94", "__loop95"])]
 /-- A level loop, found and checked. -/
 noncomputable def loopOk (f : String) (offA offB : ℕ) : Bool :=
   match coreProgram.indexOf? f with

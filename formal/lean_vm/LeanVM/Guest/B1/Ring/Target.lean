@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 # `ring_switch_target` (TRIAGE G #64, #65)
 
 `ring_switch_target(slices, map_challenges)` (`Data.core13`) zeroes the eight Horner chains'
-first row of `rs_chain` and runs `__loop13` (`Data.core270`) for `x = g^j`, `j < 8`. The loop
+first row of `rs_chain` and runs `__loop13` (`Data.core272`) for `x = g^j`, `j < 8`. The loop
 body reads `g_0 .. g_7` (`map_challenges[8 ..]`), computes `Ψ` (`ring_psi`, inline: `psRow`) of
 the eight slices at `slices·x^8`, and steps each chain `p` by eight Horner steps in
 `w_p = RING_W[p]` (`hzRow`), from row `x^8` of `rs_chain` to the next. Chain `p` ends at
@@ -182,10 +182,10 @@ def loop13T : List Stmt :=
     .atom (.const (.n 408) (word 2 0)), .atom (.mul (.n 409) (.n 0) (.n 408)),
     .callIf (.n 407) "__loop13" [.n 409, .n 1, .n 2, .n 3], .ret []]
 
-theorem loop13_body : Data.core270.body = loop13T := stmtsEqb_sound (by decide +kernel)
+theorem loop13_body : Data.core272.body = loop13T := stmtsEqb_sound (by decide +kernel)
 
-theorem find_loop13 : coreProgram.find? "__loop13" = some Data.core270 :=
-  Program.find?_of_indexOf? (j := 270) (by decide +kernel) rfl
+theorem find_loop13 : coreProgram.find? "__loop13" = some Data.core272 :=
+  Program.find?_of_indexOf? (j := 272) (by decide +kernel) rfl
 
 /-- **The loop body's meaning at `x`**: `g_0 .. g_7` at `map_challenges[8 ..]`, the eight slices
 at `slices·x^8`, and each chain `p`'s entry `p` of row `rs_chain·x^8` stepped by the chunk's images
@@ -206,7 +206,7 @@ theorem loop13_step (d : ℕ) (x mc sl ch : E)
   obtain ⟨fn, hf, σ, hpar, hb⟩ := h
   rw [find_loop13] at hf
   cases hf
-  simp only [Data.core270, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
+  simp only [Data.core272, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar hb
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hpar
   rw [loop13_body] at hb
   simp only [loop13T, holdsList_append] at hb

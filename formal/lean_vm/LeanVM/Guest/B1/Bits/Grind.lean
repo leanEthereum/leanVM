@@ -403,7 +403,7 @@ theorem grind_check_holds : grind_check_all_Spec := by
   have hW : 1 ≤ gcW b := by
     simp only [grindBitsDeployed, List.mem_cons, List.not_mem_nil, or_false] at hb
     rcases hb with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+      rfl | rfl | rfl | rfl | rfl | rfl <;> decide
   rw [rel_iff_sem hfind, hpar, hbody]
   simp only [holds_gcBodyT, List.map_cons, List.map_nil, MeaningGrindCheck]
   constructor

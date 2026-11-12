@@ -208,7 +208,7 @@ theorem head_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
 its `g^κ` from the base, `sel_g = g_squares·g^34`, the dispatch to `column_selector__L{κ}`. -/
 theorem sel_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Main.Layout)} {c : ℕ}
     (hc : c < Tables.nCommittedCols) (hg : ∀ s ∈ selBlockT c, GoodS rd S (termW b0 outs) σ s)
-    {o κ : ℕ} (hκ : κ < 29)
+    {o κ : ℕ} (hκ : κ < 31)
     (hoff : LoadHolds rd (σ (.n 10)) c (gen ^ o)) (aoff : AddrIn R (σ (.n 10)) c)
     (hkap : σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ κ) :
     (∀ s ∈ selBlockT c, Fwd.SHolds TrivC rd σ s) ∧ (∀ s ∈ selBlockT c, DispOk σ s) ∧
@@ -237,7 +237,7 @@ theorem sel_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Main
     rw [r3]; exact termW_sel b0 outs hc
   have hw34 : word 17179869184 0 = gen ^ 34 := word_two_pow (a := 34) (by decide)
   have ek : σ (.n (selKap c).2.1) = gen ^ κ := by rw [selKap, k3, hkap]
-  have hl : colSelNames.length = 29 := by simp [colSelNames]
+  have hl : colSelNames.length = 31 := by simp [colSelNames]
   have hd : σ (.n (selKap c).2.1) = ofK (addressOfIndex κ) := by rw [ek, gen_pow_eq_ofK]
   refine ⟨fun s hs => ?_, fun s hs => ?_, fun q hq => ?_, e0, ek, by rw [e2, e1, hw34], e3⟩
   · simp only [selBlockT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hs
@@ -276,7 +276,7 @@ theorem termTailPre_eq : termTailPre =
       .atom (.mul (.n 1703) (.n 1694) (.n 7)), .atom (.load (.n 1704) (.n 1703) 6),
       .atom (.mul (.n 1705) (.n 1693) (.n 1704)), .atom (.add (.n 1706) (.n 1702) (.n 1705)),
       .atom (.mul (.n 1707) (.n 1706) (.n (selV 4))), .atom (.add (.n 1708) (.n 1692) (.n 1707)),
-      .atom (.hint (.alloc (.n 1709) 29)), .atom (.mul (.n 1710) (.n 1693) (.n 9)),
+      .atom (.hint (.alloc (.n 1709) 31)), .atom (.mul (.n 1710) (.n 1693) (.n 9)),
       .call "eq_prefix_chain" [.n 1709, .n 1710, .n 18, .n 14, .n 19] [],
       .atom (.mul (.n 1711) (.n 1709) (.n 19)), .atom (.load (.n 1712) (.n 1711) 0),
       .atom (.add (.n 1713) (.n 1708) (.n 1712)), .atom (.mul (.n 1714) (.n 1713) (.n 16)),

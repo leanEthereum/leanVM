@@ -29,7 +29,7 @@ guest's IR.
 `verifySubGoalsTB_of`: for `NodeRelation` within `Limits`, the caps agreeing and no zero challenge,
 child `c`'s `verify_sub` call is complete within `B` at its announced stack log and rate
 (`childShape`), by a tree of `T` (`VerifySubGoalsTB`). `childShape_bounds`: every child's
-announced stack log is in `[22, 28]` and its rate in `[1, 4]`.
+announced stack log is in `[20, 30]` and its rate in `[1, 4]`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -73,7 +73,7 @@ structure VsCompleteHyp (bytecode : List K) (fs : String → ℕ) (cert : String
       (T (childShape bytecode c).1 (childShape bytecode c).2)
       (B (childShape bytecode c).1 (childShape bytecode c).2)
   shape : ∀ (seed : Digest) (c : Child), VsChildOk bytecode seed c →
-    22 ≤ (childShape bytecode c).1 ∧ (childShape bytecode c).1 ≤ 28 ∧
+    20 ≤ (childShape bytecode c).1 ∧ (childShape bytecode c).1 ≤ 30 ∧
       1 ≤ (childShape bytecode c).2 ∧ (childShape bytecode c).2 ≤ 4
 
 /-- `exponent_tables`' tables are `vsExpLin`'s. -/
@@ -81,25 +81,25 @@ theorem etL_eq (fs : String → ℕ) (fp : ℕ) (d : MainData) :
     vsExpLin (etB fs (mK0 d fs fp)) = etL d fs fp := rfl
 
 /-- **Every child's announced shape is an opening arm of the guest**: its stack log in
-`[22, 28]`, its rate in `[1, 4]`. -/
+`[20, 30]`, its rate in `[1, 4]`. -/
 theorem childShape_bounds {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ → ℕ} {κ : ℕ}
     (hvs : VsCompleteHyp bytecode fs cert κ T B) (hok : ChildrenOk bytecode seed w) {ch : Child}
     (hch : ch ∈ w.children) :
-    22 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 28 ∧
+    20 ≤ (childShape bytecode ch).1 ∧ (childShape bytecode ch).1 ≤ 30 ∧
       1 ≤ (childShape bytecode ch).2 ∧ (childShape bytecode ch).2 ≤ 4 :=
   hvs.shape seed ch ⟨(hok _ hch).stackLogAtLeastMinimum, (hok _ hch).streamWithinCap,
     (hok _ hch).noZeroChallenge, (hok _ hch).capsAgree⟩
 
 /-- **Each child's `verify_sub` call on the honest run, within its own bound**: `B` at its
-announced stack log and rate, by a tree of `T`, the child's candidate among `open_stacked`'s
-28. -/
+announced stack log and rate, by a tree of `T`, the child's stack log among `open_stacked`'s
+arms. -/
 theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ → ℕ}
     (hbl : bytecode.length = 2 ^ 23) (hvs : VsCompleteHyp bytecode fs cert 16 T B)
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTB fs cert fp seed s w
       (fun c t => ∀ hc : c < w.children.length,
-        B1.Whir.candidate (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2
-          < 28 ∧ T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
+        (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
+          T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
       (fun c => (w.children.map fun ch =>
         B (childShape bytecode ch).1 (childShape bytecode ch).2).getD c 0) := by
   intro c hc
@@ -118,16 +118,16 @@ theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ
   rw [hB] at h
   have hcand := childShape_bounds hvs hok hmem
   replace h := h.mono (T' := fun t => ∀ hc : c < w.children.length,
-      B1.Whir.candidate (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2
-        < 28 ∧ T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
-    le_rfl fun t ht _ => ⟨by unfold B1.Whir.candidate; omega, ht⟩
+      (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
+        T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
+    le_rfl fun t ht _ => ⟨by unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht⟩
   have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by
     simp [DeferredClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
   have e1 : (hm fs fp seed s w).et = ofK (addressOfIndex e) := gen_pow_eq_ofK _
   have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
     rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl
   rw [e1, e3]
-  refine completeAtDTB_lin_mono (fun rd hM q hq => ?_) (fun i hi => ?_) h
+  refine completeAtDTB_lin_mono (fun rd hM q hq => ?_) (fun i hi => ?_) (h.lowMono (by norm_num))
   · rcases List.mem_append.mp hq with hq | hq
     · rw [etL_eq] at hq
       exact hM q (List.mem_append_right _ hq)

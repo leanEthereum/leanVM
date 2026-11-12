@@ -71,7 +71,7 @@ out-of-domain point (`nm` words). -/
 def TermRegion (B : TermBases) (nz nc τ nm : ℕ) (i : ℕ) : Prop :=
   (B.zeta ≤ i ∧ i < B.zeta + nz) ∨ (B.chi ≤ i ∧ i < B.chi + nc) ∨
     (B.kb ≤ i ∧ i < B.kb + 8) ∨ (B.off ≤ i ∧ i < B.off + Tables.nCommittedCols) ∨
-    (B.gsq + 34 ≤ i ∧ i < B.gsq + 34 + 112) ∨
+    (B.gsq + 34 ≤ i ∧ i < B.gsq + 34 + 128) ∨
     (B.zv ≤ i ∧ i < B.zv + (τ + 6)) ∨ (B.zv + 39 ≤ i ∧ i < B.zv + 39 + (τ + 6)) ∨
     (B.ct ≤ i ∧ i < B.ct + 64) ∨ (B.pt ≤ i ∧ i < B.pt + 40) ∨ (B.pt1 ≤ i ∧ i < B.pt1 + 40) ∨
     (B.oz ≤ i ∧ i < B.oz + nm)
@@ -104,10 +104,10 @@ structure TermData where
 def p1Of (x : List E) : List E := (padPoint x).map (1 + ·)
 
 /-- The selector tables' point. -/
-def pt28 (x : List E) : List E := (padPoint x).take 28
+def pt32 (x : List E) : List E := (padPoint x).take 32
 
 /-- The selector tables' complements. -/
-def pt128 (x : List E) : List E := (p1Of x).take 28
+def pt132 (x : List E) : List E := (p1Of x).take 32
 
 /-- The prefix products `eq_prefix_chain(chain, s, a, b1, g^|as|)` writes. -/
 def eqChain (s : E) (as bs : List E) : List E := (List.range (as.length + 1)).map (prefixProd s as bs)
@@ -147,8 +147,8 @@ theorem regionL_head {L : Main.Layout} {b : ℕ} {xs : List E} {i : ℕ} (h1 : b
 /-- The value of committed column `c`'s selector: the eq weight of its offset's bits above its log
 against the point's. -/
 def selRet (x : List E) (KC OF : List ℕ) (c : ℕ) : E :=
-  Tables.bitsEq ((List.range (28 - KC.getD c 0)).map fun i => (OF.getD c 0).testBit (KC.getD c 0 + i))
-    ((pt28 x).drop (KC.getD c 0)) ((pt128 x).drop (KC.getD c 0))
+  Tables.bitsEq ((List.range (32 - KC.getD c 0)).map fun i => (OF.getD c 0).testBit (KC.getD c 0 + i))
+    ((pt32 x).drop (KC.getD c 0)) ((pt132 x).drop (KC.getD c 0))
 
 /-- `selector_tables`' result among the results before. -/
 def stRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 3 ([], [])
@@ -157,10 +157,10 @@ def stRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD
 noncomputable def selKid (D : TermData) (c : ℕ) : KidD := fun pv =>
   open Classical in
   ⟨Tables.lName "column_selector" (D.KC.getD c 0),
-    decide (Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes pv).1 (stRes pv).2),
+    decide (Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes pv).1 (stRes pv).2),
     [gen ^ D.OF.getD c 0, (stRes pv).1.getD 0 0, ofK (addressOfIndex (D.B.gsq + 34))],
-    if Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes pv).1 (stRes pv).2 then
-      (stRes pv).2 ++ Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) ++
+    if Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes pv).1 (stRes pv).2 then
+      (stRes pv).2 ++ Tables.stLin D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) ++
         [(D.B.gsq + 34, gTabW)] else [],
     Returns [selRet D.x D.KC D.OF c]⟩
 
@@ -178,8 +178,8 @@ noncomputable def termKids (Lin : Main.Layout) (D : TermData) (b0 : ℕ) : List 
       [word 2 0, D.glm, ofK (addressOfIndex (b0 + 70)), ofK (addressOfIndex D.B.pt1)],
       (b0 + 70, piW D.rm (p1Of D.x) D.m) :: Lin, Returns []⟩,
     fun _ => ⟨"selector_tables", true, [ofK (addressOfIndex D.B.pt), ofK (addressOfIndex D.B.pt1)],
-      Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x),
-      Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)⟩] ++
+      Tables.stLin D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x),
+      Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x)⟩] ++
   (List.range Tables.nCommittedCols).map (selKid D) ++
   [fun _ => ⟨"eq_prefix_chain", true,
       [ofK (addressOfIndex (b0 + 105)), word 1 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0],
@@ -272,17 +272,17 @@ set_option maxHeartbeats 1000000 in
 /-- **The terminal's callees are complete, placed**, on the honest data. -/
 theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
     (hreg : ∀ i, TermRegion D.B D.zs.length D.chis.length D.τ D.ood.length i → RegionL Lin i)
-    (hzl : D.zs.length ≤ 34) (hcl : D.chis.length ≤ 34) (hxl : D.x.length ≤ 28)
+    (hzl : D.zs.length ≤ 34) (hcl : D.chis.length ≤ 34) (hxl : D.x.length ≤ 32)
     (hτ : D.τ + 6 ≤ 34) (hol : D.outPt.length = D.τ + 6) (hrl : D.ringPoint.length = D.τ + 6)
     (hcf : D.coeffs.length = 64) (hgmu : D.gmu = gen ^ D.zs.length)
     (hgz : D.gzcn = gen ^ D.chis.length) (hglm : D.glm = gen ^ D.m) (hgtau : D.gtau = gen ^ D.τ)
-    (hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 29)
-    (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 28 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
+    (hm1 : 1 ≤ D.m) (hm : D.m ≤ 32) (hKC : ∀ c < Tables.nCommittedCols, D.KC.getD c 0 < 31)
+    (hOF : ∀ c < Tables.nCommittedCols, D.OF.getD c 0 < 2 ^ 32 ∧ 2 ^ D.KC.getD c 0 ∣ D.OF.getD c 0)
     (hrd : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.zeta)) D.zs ∧
       ReadsAt rd (ofK (addressOfIndex D.B.chi)) D.chis ∧ ReadsAt rd (ofK (addressOfIndex D.B.zv))
           D.outPt ∧
       ReadsAt rd (ofK (addressOfIndex D.B.pt1)) (p1Of D.x))
-    (hodl : D.ood.length ≤ 28) (hgm : D.gm = gen ^ D.ood.length)
+    (hodl : D.ood.length ≤ 30) (hgm : D.gm = gen ^ D.ood.length)
     (hrdO : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex D.B.oz)) D.ood) :
     ∀ k ∈ termKids Lin D b0, ∀ pv, (k pv).taken = true →
       CompleteAtD fs cert κ (k pv).f (k pv).Lin (k pv).args (k pv).Out := by
@@ -310,13 +310,13 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
       exact e_add_self _
     exact l15_kid_complete κ hm2 hglm (by omega) (fun rd hl hm => (hrd rd hl hm).2.2.2)
       (fun i hi => hreg i (by simp only [TermRegion]; omega))
-  · exact Tables.selector_tables_completeAt fs cert κ _ _ _ _ (by simp [pt28]; omega)
-      (by simp [pt128]; omega)
-  · have hst : Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes pv).1 (stRes pv).2 :=
+  · exact Tables.selector_tables_completeAt fs cert κ _ _ _ _ (by simp [pt32]; omega)
+      (by simp [pt132]; omega)
+  · have hst : Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes pv).1 (stRes pv).2 :=
       @of_decide_eq_true _ (Classical.propDecidable _) ht
     obtain ⟨ese, h1, h2⟩ := hst
     have hL : (selKid D c pv).Lin =
-        csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt28 D.x) (pt128 D.x) := by
+        csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
       show @ite _ _ (Classical.propDecidable _) _ _ = _
       rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
     have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
@@ -324,8 +324,8 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
       show [_, (stRes pv).1.getD 0 0, _] = _
       rw [h1]; rfl
     rw [hL, ha]
-    exact cs_completeAt κ (by omega) (hKC c hc) (hOF c hc).1 (hOF c hc).2 (by simp [pt28]; omega)
-      (by simp [pt128]; omega)
+    exact cs_completeAt κ (by omega) (hKC c hc) (hOF c hc).1 (hOF c hc).2 (by simp [pt32]; omega)
+      (by simp [pt132]; omega)
   · have e : D.gtau * word 64 0 = gen ^ D.outPt.length := by rw [hgtau, hw64, ← pow_add, hol]
     show CompleteAtD fs cert κ "eq_prefix_chain" _
       [ofK (addressOfIndex (b0 + 105)), word 1 0, ofK (addressOfIndex D.B.zv), ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0]
@@ -364,7 +364,7 @@ def termBufs (D : TermData) (b0 : ℕ) : Main.Layout :=
     (b0 + 105, eqChain (word 1 0) D.outPt ((p1Of D.x).take D.outPt.length)),
     (b0 + 146, eqChain D.sO D.ood ((p1Of D.x).take D.ood.length))]
 
-theorem termBuf_eq (D : TermData) (b0 : ℕ) : bufL b0 [35, 35, 35, 41, 29] (termOwn D) =
+theorem termBuf_eq (D : TermData) (b0 : ℕ) : bufL b0 [35, 35, 35, 41, 31] (termOwn D) =
     termBufs D b0 := by
   simp [bufL, bases, termOwn, termBufs, Nat.add_assoc]
 
@@ -384,8 +384,8 @@ theorem stOut_nil {a b : ℕ} {p p1 : List E} : ¬ Tables.stOut a b p p1 [] [] :
 theorem selKid_taken {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)} {j : ℕ}
     (ht : (selKid D c (outs.take j)).taken = true) :
     3 < j ∧ stRes (outs.take j) = stRes outs ∧
-      Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes outs).1 (stRes outs).2 := by
-  have hst : Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes (outs.take j)).1
+      Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes outs).1 (stRes outs).2 := by
+  have hst : Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes (outs.take j)).1
       (stRes (outs.take j)).2 := @of_decide_eq_true _ (Classical.propDecidable _) ht
   rw [stRes_take] at hst ⊢
   split at hst
@@ -395,7 +395,7 @@ theorem selKid_taken {D : TermData} {c : ℕ} {outs : List (List E × Main.Layou
 theorem selKid_lin {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)} {j : ℕ}
     (ht : (selKid D c (outs.take j)).taken = true) :
     (selKid D c (outs.take j)).Lin =
-      (stRes outs).2 ++ Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) ++
+      (stRes outs).2 ++ Tables.stLin D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) ++
         [(D.B.gsq + 34, gTabW)] := by
   obtain ⟨-, e, hst⟩ := selKid_taken ht
   show @ite _ _ (Classical.propDecidable _) _ _ = _
@@ -417,27 +417,27 @@ theorem regionL_cons_iff {q : ℕ × List E} {L : Main.Layout} {i : ℕ} (h : Re
 
 theorem termKid3 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) (outs : List (List E × Main.Layout)) :
     kidAt (termKids Lin D b0) [] outs 3 = ⟨"selector_tables", true,
-      [ofK (addressOfIndex D.B.pt), ofK (addressOfIndex D.B.pt1)], Tables.stLin D.B.pt D.B.pt1 (pt28
-          D.x) (pt128 D.x),
-      Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)⟩ := rfl
+      [ofK (addressOfIndex D.B.pt), ofK (addressOfIndex D.B.pt1)], Tables.stLin D.B.pt D.B.pt1 (pt32
+          D.x) (pt132 D.x),
+      Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x)⟩ := rfl
 
 /-- **The callees read the caller's words, the buffers and `selector_tables`' result.** -/
 theorem termKids_regions (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
     (hreg : ∀ i, TermRegion D.B D.zs.length D.chis.length D.τ D.ood.length i → RegionL Lin i)
     (hτ : D.τ + 6 ≤ 34) (hrl : D.ringPoint.length = D.τ + 6) (hcf : D.coeffs.length = 64)
-    (hxl : D.x.length ≤ 28) (outs : List (List E × Main.Layout)) :
-    RegionsOk (fun i => RegionL Lin i ∨ RegionL (bufL b0 [35, 35, 35, 41, 29] (termOwn D)) i)
+    (hxl : D.x.length ≤ 32) (outs : List (List E × Main.Layout)) :
+    RegionsOk (fun i => RegionL Lin i ∨ RegionL (bufL b0 [35, 35, 35, 41, 31] (termOwn D)) i)
       (fun _ => False) (kidsAt (termKids Lin D b0) [] outs) outs := by
   have hpl : (p1Of D.x).length = 40 := p1Of_length (by simp only [termPointCap]; omega)
   have hpt : (padPoint D.x).length = 40 := padPoint_length (by simp only [termPointCap]; omega)
-  have hst : ∀ i, RegionL (Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)) i → RegionL Lin i := by
+  have hst : ∀ i, RegionL (Tables.stLin D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x)) i → RegionL Lin i := by
     intro i hi
     obtain ⟨q, hq, h⟩ := hi
     simp only [Tables.stLin, List.mem_cons, List.not_mem_nil, or_false] at hq
     refine hreg i ?_
     rcases hq with rfl | rfl
-    · simp only [pt28, List.length_take, hpt] at h; simp only [TermRegion]; omega
-    · simp only [pt128, List.length_take, hpl] at h; simp only [TermRegion]; omega
+    · simp only [pt32, List.length_take, hpt] at h; simp only [TermRegion]; omega
+    · simp only [pt132, List.length_take, hpl] at h; simp only [TermRegion]; omega
   rw [termBuf_eq]
   refine regionsOk_kidsAt _ _ _ _ fun j hj _ ht i hi => ?_
   unfold kidAt at ht hi
@@ -491,9 +491,9 @@ theorem termKids_regions (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
 results. -/
 theorem termKids_mem (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {rd : Reader}
     (outs : List (List E × Main.Layout))
-    (hB : MemL rd (bufL b0 [35, 35, 35, 41, 29] (termOwn D))) (hL : MemL rd Lin)
+    (hB : MemL rd (bufL b0 [35, 35, 35, 41, 31] (termOwn D))) (hL : MemL rd Lin)
     (hO : MemL rd (outsL (kidsAt (termKids Lin D b0) [] outs) outs))
-    (hst : MemL rd (Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)))
+    (hst : MemL rd (Tables.stLin D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x)))
     (hgt : MemL rd [(D.B.gsq + 34, gTabW)])
     (hrs : MemL rd [(D.B.zv + 39, D.ringPoint), (D.B.pt1, (p1Of D.x).take (D.τ + 6)),
       (D.B.ct, D.coeffs)]) :
@@ -523,7 +523,7 @@ theorem termKids_mem (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {rd : Reader}
       have := memL_outsL_at hO 3 (by rw [termKids_length]; omega) (by omega)
         (by rw [termKid3])
       exact Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨by simpa [stRes] using this, hst⟩, hgt⟩
-    · have hn : ¬ Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes (outs.take j)).1
+    · have hn : ¬ Tables.stOut D.B.pt D.B.pt1 (pt32 D.x) (pt132 D.x) (stRes (outs.take j)).1
           (stRes (outs.take j)).2 := fun h => ht (@decide_eq_true _ (Classical.propDecidable _) h)
       show MemL rd (@ite _ _ (Classical.propDecidable _) _ _)
       rw [@ite_neg' _ _ (Classical.propDecidable _) _ _ hn]

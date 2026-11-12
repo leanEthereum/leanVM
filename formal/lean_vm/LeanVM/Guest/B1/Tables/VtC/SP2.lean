@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SSortAll
 # Statements `563 ..< 765` (G:2331-2353)
 
 `vtS_p2`: for the bus point (`|point| = μ < 33`), the tables' heights at `kappa_base[2 + t]`,
-`τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ μ`, on a memory holding `table_rows`, the squares,
+`τ t = max (log2Ceil (n t)) floor < 31`, `τ t ≤ μ`, on a memory holding `table_rows`, the squares,
 `idxc_tab`, `zeta1` and the shared tables, the oracle returning `padding_weight`'s outcomes and
 `plus_one_run`'s `0`, every statement holds; the padding weights and `shared_len` are the honest
 ones.
@@ -61,7 +61,7 @@ set_option maxRecDepth 10000 in
 theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
-    (hτ29 : ∀ t < 6, τ t < 29) (hτμ : ∀ t < 6, τ t ≤ point.length)
+    (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
     (hkb : ∀ t < 6, σv (.n (27 + t)) = gen ^ τ t)
     (hz : TbReadsAt rd (σv (.n 8)) point) (h9 : σv (.n 9) = gen ^ point.length)
     (hrows : ∀ t < 6, LoadHolds rd (σv (.n 11)) t (eOfNat (n t)))
@@ -94,7 +94,7 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     rw [show vtPadV t = 578 + 13 * t + 5 by unfold vtPadV; ring] at w5 w6 w7
     exact pad_ok hlow (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad_check t ht)) (vtPad_read t ht)
       (hkb t (by omega)) (hrows t (by omega))
-      (tbReadsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ29 t (by omega))
+      (tbReadsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
       (by omega) w5 w6 (by rw [show 578 + 13 * t + 7 = 578 + 13 * t + 5 + 2 by ring]; exact w7)
   have hpad5 : (∀ st ∈ vtPad5T 643, VSH (coreProgram.Rel rd) rd σv st) ∧
       σv (.n (643 + 5)) = paddingWeight (point.take (τ 5)) (n 5) := by
@@ -110,7 +110,7 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     rw [List.nil_append] at hgb
     exact pad5_ok hlow (by norm_num) (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad5_check)) hgb vtPad5_read
       (hkb 5 (by norm_num)) (hrows 5 (by norm_num))
-      (tbReadsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ29 5 (by norm_num))
+      (tbReadsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ31 5 (by norm_num))
       (hτ 5 (by norm_num)) w5 w6 w7
   -- the shared tables
   have hsh : ∀ t < 6, (∀ s ∈ (vtPre.drop ([697, 705, 717, 729, 741, 753].getD t 0)).take

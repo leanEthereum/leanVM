@@ -223,6 +223,7 @@ theorem FlatFn.call_vals (F : FlatFn) {s : Stmt} (hs : s ∈ F.pre) (hc : callB 
     rwa [hfix] at this
   have hd := List.all_eq_true.mp F.hdead s hm
   exact dead_vals hd (fun x y t1 t2 k h ↦ by subst h; simp [callB] at hc)
+    (fun t p h ↦ by subst h; simp [callB] at hc)
 
 theorem regionL_append {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
     RegionL L i ∨ RegionL L' i := by

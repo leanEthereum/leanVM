@@ -390,7 +390,7 @@ theorem l13_loadIn : (rtAtoms l13A).all l13LoadIn = true := by decide +kernel
 /-- `__loop13`'s statements before its `ret`. -/
 def l13Pre : List Stmt := l13A ++ [Stmt.callIf (.n 407) "__loop13" [.n 409, .n 1, .n 2, .n 3]]
 
-theorem l13_body_pre : Data.core270.body = l13Pre ++ [.ret []] := by
+theorem l13_body_pre : Data.core272.body = l13Pre ++ [.ret []] := by
   rw [loop13_body, loop13T_split, l13Pre, List.append_assoc]
   rfl
 

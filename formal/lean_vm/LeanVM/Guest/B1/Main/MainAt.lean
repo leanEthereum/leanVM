@@ -48,14 +48,14 @@ theorem walk_ite_straight (σ : Val) (c : V) (z n rest : List Stmt) (hz : z.all 
 
 /-- `main`'s events under `σ`. -/
 noncomputable def mEvs (σ : Val) : List Ev :=
-  mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) :: (if σ (.n 389) = 0 then mDa else mDaZ).flatMap
-    (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++ (.inK (.n 439) :: (if σ (.n 439) = 0 then mLeaf
+  mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) :: (if σ (.n 368) = 0 then mDa else mDaZ).flatMap
+    (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++ (.inK (.n 418) :: (if σ (.n 418) = 0 then mLeaf
       else mAgg).flatMap (Main.slEvs σ) ++ mPost.flatMap (Main.slEvs σ))))
 
 theorem walk_main (σ : Val) : walk σ (Fn.body Data.core0) = .ret (mEvs σ) [] := by
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
-  rw [core0_shape, show mPre ++ [.ite (.n 389) mDa mDaZ] ++ mMid ++ [.ite (.n 439) mLeaf mAgg] ++
-      mPost ++ [.ret []] = mPre ++ (.ite (.n 389) mDa mDaZ :: (mMid ++ (.ite (.n 439) mLeaf mAgg ::
+  rw [core0_shape, show mPre ++ [.ite (.n 368) mDa mDaZ] ++ mMid ++ [.ite (.n 418) mLeaf mAgg] ++
+      mPost ++ [.ret []] = mPre ++ (.ite (.n 368) mDa mDaZ :: (mMid ++ (.ite (.n 418) mLeaf mAgg ::
         (mPost ++ [.ret []])))) by simp,
     B1.walk_pre_straight σ _ mPre s1, walk_ite_straight σ _ _ _ _ s2 s2',
     B1.walk_pre_straight σ _ mMid s3, walk_ite_straight σ _ _ _ _ s4 s5,
@@ -135,22 +135,22 @@ theorem taken_eq {σ : Val} {c : V} {a : ℕ} (ha : a < 2 ^ 64 - 1) (h : σ c = 
 
 /-- `main`'s frames, in call order. -/
 def mCalls (σ : Val) (m : MainIn) : List Call :=
-  (⟨"exponent_tables", [], [.n 49], true⟩ : Call) ::
-    ([⟨"claim_list_digest", [.n 52, .n 0], [.n 56, .n 57], true⟩,
-      ⟨"claim_list_digest", [.n 55, .n 3], [.n 58, .n 59], true⟩,
-      ⟨"__loop0", [.n 62, .n 1, .n 52, .n 0], [], decide (σ (.n 61) ≠ 0)⟩,
-      ⟨"__loop1", [.n 65, .n 4, .n 55, .n 3], [], decide (σ (.n 64) ≠ 0)⟩,
-      ⟨"__loop2", [.n 378, .n 2, .n 40, .n 66, .n 52] ++ lxTagsV, [], decide (σ (.n 377) ≠ 0)⟩,
-      ⟨"__loop3", [.n 381, .n 5, .n 41, .n 67, .n 2, .n 55, .n 68], [],
-        decide (σ (.n 380) ≠ 0)⟩] ++
-    (if m.nd = 1 then [(⟨"da_verify", [.n 49], [.n 390, .n 391, .n 392], true⟩ : Call)]
+  (⟨"exponent_tables", [], [.n 28], true⟩ : Call) ::
+    ([⟨"claim_list_digest", [.n 31, .n 0], [.n 35, .n 36], true⟩,
+      ⟨"claim_list_digest", [.n 34, .n 3], [.n 37, .n 38], true⟩,
+      ⟨"__loop0", [.n 41, .n 1, .n 31, .n 0], [], decide (σ (.n 40) ≠ 0)⟩,
+      ⟨"__loop1", [.n 44, .n 4, .n 34, .n 3], [], decide (σ (.n 43) ≠ 0)⟩,
+      ⟨"__loop2", [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, [], decide (σ (.n 356) ≠ 0)⟩,
+      ⟨"__loop3", [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [],
+        decide (σ (.n 359) ≠ 0)⟩] ++
+    (if m.nd = 1 then [(⟨"da_verify", [.n 28], [.n 369, .n 370, .n 371], true⟩ : Call)]
       else []) ++
-    [⟨"__loop4", [.n 423, .n 6, .n 419, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41, .n 416,
-      .n 385, .n 47, .n 48, .n 404, .n 49, .n 410], [], decide (σ (.n 422) ≠ 0)⟩] ++
-    (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 404, .n 410, .n 416, .n 437, .n 465], [],
+    [⟨"__loop4", [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395,
+      .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [], decide (σ (.n 401) ≠ 0)⟩] ++
+    (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444], [],
       true⟩ : Call)]) ++
-    [⟨"statement_digest", [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 466, .n 467, .n 437],
-      [.n 468, .n 469], true⟩])
+    [⟨"statement_digest", [.n 26, .n 27, .n 35, .n 36, .n 37, .n 38, .n 445, .n 446, .n 416],
+      [.n 447, .n 448], true⟩])
 
 set_option maxRecDepth 40000 in
 /-- **`main` at `fp`**: its honest valuation on a memory holding its buffers `own`,
@@ -159,13 +159,13 @@ loading outside its own data only its header (words `0`, `1`); the tree is `main
 valuation with `main`'s honest values (`MVals`). -/
 theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : List (Tree → Prop)) (Nk : ℕ) (Lk : B1.Main.Layout) (outs : List (List E × B1.Main.Layout))
     (hoo : OutsOk (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs)
     (hW : Within Lk (etB fs (mK0 d fs fp) + 2284) Nk) (hD : DisjL Lk)
     (hKids : ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
       CallsMatch σ cs (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
-      LowDef 16 rd → B1.Main.MemL rd Lk →
+      LowDef 23 rd → B1.Main.MemL rd Lk →
       B1.Main.MemL rd (Kid.lins (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp))) →
       RegionsOk R Dacc (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) outs →
       KidsFromInT coreProgram fs cert rd σ R Dacc cs Ts (etB fs (mK0 d fs fp) + 2284) Nk
@@ -177,7 +177,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     ∃ (L : B1.Main.Layout),
       Within L fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284 + Nk)) ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284 + Nk)) "main"
           [] []
@@ -211,23 +211,23 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     rw [B1.Main.memL_append, B1.Main.memL_append] at hL; exact hL
   have hmem := hmm rd hLo h0 h1
   obtain ⟨σ, hσ⟩ : ∃ σ, σ = mσ rd m := ⟨_, rfl⟩
-  have hv : MVals rd σ m := by rw [hσ]; exact main_core hlow hb hmem
+  have hv : MVals rd σ m := by rw [hσ]; exact main_core hlow (by norm_num) hb hmem
   have hO : ∀ {j : ℕ}, j ∈ mOrcIdx → σ (.n j) = mOrc m j := fun hj => hv.orc _ hj
   -- the branches
   have hnc : m.nc ≤ 16 := hb.nc
   have hnd : m.nd ≤ 1 := hb.nd
-  have h338 : σ (.n 389) = 0 ↔ m.nd = 1 := by
+  have h338 : σ (.n 368) = 0 ↔ m.nd = 1 := by
     rw [hv.v389, e_add_eq_zero_iff]
     constructor
     · intro h
       exact gen_pow_inj' (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
     · intro h; rw [h, pow_one]
-  have h404 : σ (.n 439) = 0 ↔ m.nc = 0 := by
+  have h404 : σ (.n 418) = 0 ↔ m.nc = 0 := by
     rw [hv.v451, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]
   have hw := walk_main σ
-  have hes : mEvs σ = (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) ::
+  have hes : mEvs σ = (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
-        (.inK (.n 439) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
+        (.inK (.n 418) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ))))) := by
     unfold mEvs
     by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0
@@ -241,9 +241,9 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have sDa : (if m.nd = 1 then mDa else mDaZ).all Main.Stmt.straight = true := by split <;> simp_all
   have sBr : (if m.nc = 0 then mLeaf else mAgg).all Main.Stmt.straight = true := by split <;> simp_all
   -- the events hold
-  have hev : ∀ x ∈ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) ::
+  have hev : ∀ x ∈ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
-        (.inK (.n 439) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
+        (.inK (.n 418) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ))))), x.Holds rd σ := by
     intro x hx
     simp only [List.mem_append, List.mem_cons] at hx
@@ -255,7 +255,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · rw [hv.g64]; exact one_add_isInK _
       · rw [hv.g377]; exact one_add_isInK _
       · rw [hv.g380]; exact one_add_isInK _
-    · show IsInK (σ (.n 389))
+    · show IsInK (σ (.n 368))
       rw [hv.v389]
       exact isInK_add (gen_pow_isInK _) (by simpa using gen_pow_isInK 1)
     · split at hx
@@ -266,7 +266,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     · refine blk_holds k3 hv.mid (fun j hj => ?_) x hx
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hj
       subst hj; rw [hv.g434]; exact one_add_isInK _
-    · show IsInK (σ (.n 439))
+    · show IsInK (σ (.n 418))
       rw [hv.v451, add_comm]; exact one_add_isInK _
     · split at hx
       · rename_i h0'
@@ -284,12 +284,12 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     split <;> simp_all
   have aBr : (if m.nc = 0 then mLeaf else mAgg).filterMap Main.Stmt.allocSz = [] := by
     split <;> simp_all
-  have hX : m.nlx + m.nxd ≤ 65535 := by have := hb.total; simp only [MainIn.total] at this; omega
-  have hY : m.nls + m.nsd ≤ 65535 := by have := hb.total; simp only [MainIn.total] at this; omega
-  have hT : m.total ≤ 65535 := hb.total
-  have hal : allocs σ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) ::
+  have hX : m.nlx + m.nxd < 2 ^ 23 := by have := hb.total; simp only [MainIn.total] at this; omega
+  have hY : m.nls + m.nsd < 2 ^ 23 := by have := hb.total; simp only [MainIn.total] at this; omega
+  have hT : m.total < 2 ^ 23 := hb.total
+  have hal : allocs σ (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
-        (.inK (.n 439) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
+        (.inK (.n 418) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ))))) = mSizes d := by
     rw [allocs_append, allocs_append, allocs_inK, allocs_append, allocs_append, allocs_inK, pa1, pa2,
       pa3, pa4, pa5, a1, aDa, a3, aBr, a6]
@@ -303,19 +303,19 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       logG_g (show 24 * m.nc < 2 ^ 64 - 1 by omega), logG_g (show m.nc + 1 < 2 ^ 64 - 1 by omega)]
     rfl
   -- the pointers
-  have o53 : σ (.n 52) = gen ^ (Memory.bases b0 (mSizes d)).getD 0 0 := by rw [hO (by decide)]; rfl
-  have o56 : σ (.n 55) = gen ^ (Memory.bases b0 (mSizes d)).getD 1 0 := by rw [hO (by decide)]; rfl
-  have o67 : σ (.n 66) = gen ^ (Memory.bases b0 (mSizes d)).getD 2 0 := by rw [hO (by decide)]; rfl
-  have o68 : σ (.n 68) = gen ^ (Memory.bases b0 (mSizes d)).getD 3 0 := by rw [hO (by decide)]; rfl
-  have o334 : σ (.n 385) = gen ^ (Memory.bases b0 (mSizes d)).getD 4 0 := by rw [hO (by decide)]; rfl
-  have o365 : σ (.n 404) = gen ^ (Memory.bases b0 (mSizes d)).getD 5 0 := by rw [hO (by decide)]; rfl
-  have o371 : σ (.n 410) = gen ^ (Memory.bases b0 (mSizes d)).getD 6 0 := by rw [hO (by decide)]; rfl
-  have o377 : σ (.n 416) = gen ^ (Memory.bases b0 (mSizes d)).getD 7 0 := by rw [hO (by decide)]; rfl
-  have o380 : σ (.n 419) = gen ^ (Memory.bases b0 (mSizes d)).getD 8 0 := by rw [hO (by decide)]; rfl
-  have o402 : σ (.n 437) = gen ^ (Memory.bases b0 (mSizes d)).getD 9 0 := by rw [hO (by decide)]; rfl
-  have hbuf : (allocDsts (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) ::
+  have o53 : σ (.n 31) = gen ^ (Memory.bases b0 (mSizes d)).getD 0 0 := by rw [hO (by decide)]; rfl
+  have o56 : σ (.n 34) = gen ^ (Memory.bases b0 (mSizes d)).getD 1 0 := by rw [hO (by decide)]; rfl
+  have o67 : σ (.n 45) = gen ^ (Memory.bases b0 (mSizes d)).getD 2 0 := by rw [hO (by decide)]; rfl
+  have o68 : σ (.n 47) = gen ^ (Memory.bases b0 (mSizes d)).getD 3 0 := by rw [hO (by decide)]; rfl
+  have o334 : σ (.n 364) = gen ^ (Memory.bases b0 (mSizes d)).getD 4 0 := by rw [hO (by decide)]; rfl
+  have o365 : σ (.n 383) = gen ^ (Memory.bases b0 (mSizes d)).getD 5 0 := by rw [hO (by decide)]; rfl
+  have o371 : σ (.n 389) = gen ^ (Memory.bases b0 (mSizes d)).getD 6 0 := by rw [hO (by decide)]; rfl
+  have o377 : σ (.n 395) = gen ^ (Memory.bases b0 (mSizes d)).getD 7 0 := by rw [hO (by decide)]; rfl
+  have o380 : σ (.n 398) = gen ^ (Memory.bases b0 (mSizes d)).getD 8 0 := by rw [hO (by decide)]; rfl
+  have o402 : σ (.n 416) = gen ^ (Memory.bases b0 (mSizes d)).getD 9 0 := by rw [hO (by decide)]; rfl
+  have hbuf : (allocDsts (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
-        (.inK (.n 439) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
+        (.inK (.n 418) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ)))))).map σ = (Memory.bases b0 (mSizes d)).map fun b => ofK (addressOfIndex b) := by
     rw [allocDsts_append, allocDsts_append, allocDsts_inK, allocDsts_append, allocDsts_append,
       allocDsts_inK, pd1, pd2, pd3, pd4, pd5, a1, aDa, a3, aBr, a6]
@@ -324,19 +324,19 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     rfl
   -- the calls
   have cDa : (if m.nd = 1 then mDa else mDaZ).filterMap Main.Stmt.callS =
-      if m.nd = 1 then [(none, "da_verify", [.n 49], [.n 390, .n 391, .n 392])]
+      if m.nd = 1 then [(none, "da_verify", [.n 28], [.n 369, .n 370, .n 371])]
       else [] := by
     split
     · exact mDa_calls
     · exact mDaZ_calls
   have cBr : (if m.nc = 0 then mLeaf else mAgg).filterMap Main.Stmt.callS =
-      if m.nc = 0 then [] else [(none, "aggregate_claims", [.n 6, .n 404, .n 410, .n 416, .n 437, .n 465], [])] := by
+      if m.nc = 0 then [] else [(none, "aggregate_claims", [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444], [])] := by
     split
     · exact mLeaf_calls
     · exact mAgg_calls
-  have hcalls : calls (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) ::
+  have hcalls : calls (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
-        (.inK (.n 439) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
+        (.inK (.n 418) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ))))) = mCalls σ m := by
     unfold mCalls
     rw [calls_append, calls_append, calls_inK, calls_append, calls_append, calls_inK, pc1, pc2, pc3, pc4,
@@ -347,15 +347,15 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       (mSizes d).zip (Memory.bases b0 (mSizes d)) := by
     intro j hj
     interval_cases j <;> simp [mSizes, Memory.bases]
-  set es := (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 389) ::
+  set es := (mPre.flatMap (Main.slEvs σ) ++ (.inK (.n 368) ::
       (if m.nd = 1 then mDa else mDaZ).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
-        (.inK (.n 439) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
+        (.inK (.n 418) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ))))) with hesd
   have hown : ∀ j < 10, ∀ k < (mSizes d).getD j 0,
       ownData cert fp b0 "main" (mSizes d) es ((Memory.bases b0 (mSizes d)).getD j 0 + k) :=
     fun j hj k hk => Or.inl ⟨_, hzip j hj, by simp only; omega, by simp only; omega⟩
   -- the callees
-  have o49 : σ (.n 49) = gen ^ etB fs (mK0 d fs fp) := by rw [hO (by decide)]; rfl
+  have o49 : σ (.n 28) = gen ^ etB fs (mK0 d fs fp) := by rw [hO (by decide)]; rfl
   have hExp : ExpTables rd (gen ^ etB fs (mK0 d fs fp)) ∧ ExpWinTab rd (gen ^ etB fs (mK0 d fs fp)) :=
     expTables_of_reads (reads_of_memL' hLe List.mem_cons_self)
   have hlenK := hoo.length
@@ -383,21 +383,21 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have hrs := hb.rs
   have hxd := hb.xd
   have hsd := hb.sd
-  have hCM : CallsMatch σ ([⟨"claim_list_digest", [.n 52, .n 0], [.n 56, .n 57], true⟩,
-          ⟨"claim_list_digest", [.n 55, .n 3], [.n 58, .n 59], true⟩,
-          ⟨"__loop0", [.n 62, .n 1, .n 52, .n 0], [], decide (σ (.n 61) ≠ 0)⟩,
-          ⟨"__loop1", [.n 65, .n 4, .n 55, .n 3], [], decide (σ (.n 64) ≠ 0)⟩,
-          ⟨"__loop2", [.n 378, .n 2, .n 40, .n 66, .n 52] ++ lxTagsV, [], decide (σ (.n 377) ≠ 0)⟩,
-          ⟨"__loop3", [.n 381, .n 5, .n 41, .n 67, .n 2, .n 55, .n 68], [],
-            decide (σ (.n 380) ≠ 0)⟩] ++
-        (if m.nd = 1 then [(⟨"da_verify", [.n 49], [.n 390, .n 391, .n 392], true⟩ : Call)]
+  have hCM : CallsMatch σ ([⟨"claim_list_digest", [.n 31, .n 0], [.n 35, .n 36], true⟩,
+          ⟨"claim_list_digest", [.n 34, .n 3], [.n 37, .n 38], true⟩,
+          ⟨"__loop0", [.n 41, .n 1, .n 31, .n 0], [], decide (σ (.n 40) ≠ 0)⟩,
+          ⟨"__loop1", [.n 44, .n 4, .n 34, .n 3], [], decide (σ (.n 43) ≠ 0)⟩,
+          ⟨"__loop2", [.n 357, .n 2, .n 22, .n 45, .n 31] ++ lxTagsV, [], decide (σ (.n 356) ≠ 0)⟩,
+          ⟨"__loop3", [.n 360, .n 5, .n 23, .n 46, .n 2, .n 34, .n 47], [],
+            decide (σ (.n 359) ≠ 0)⟩] ++
+        (if m.nd = 1 then [(⟨"da_verify", [.n 28], [.n 369, .n 370, .n 371], true⟩ : Call)]
           else []) ++
-        [⟨"__loop4", [.n 423, .n 6, .n 419, .n 52, .n 66, .n 40, .n 55, .n 67, .n 41, .n 416,
-          .n 385, .n 47, .n 48, .n 404, .n 49, .n 410], [], decide (σ (.n 422) ≠ 0)⟩] ++
-        (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 404, .n 410, .n 416, .n 437, .n 465], [],
+        [⟨"__loop4", [.n 402, .n 6, .n 398, .n 31, .n 45, .n 22, .n 34, .n 46, .n 23, .n 395,
+          .n 364, .n 26, .n 27, .n 383, .n 28, .n 389], [], decide (σ (.n 401) ≠ 0)⟩] ++
+        (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 383, .n 389, .n 395, .n 416, .n 444], [],
           true⟩ : Call)]) ++
-        [⟨"statement_digest", [.n 47, .n 48, .n 56, .n 57, .n 58, .n 59, .n 466, .n 467, .n 437],
-          [.n 468, .n 469], true⟩])
+        [⟨"statement_digest", [.n 26, .n 27, .n 35, .n 36, .n 37, .n 38, .n 445, .n 446, .n 416],
+          [.n 447, .n 448], true⟩])
       (mKids m Lmain) ([a1, a2, a3, a4, a5, a6] ++ oB ++ [c5] ++ oD ++ [e1]) := by
     unfold mKids
     refine callsMatch_append _ _ _ _ _ _ (callsMatch_append _ _ _ _ _ _ (callsMatch_append _ _ _ _ _ _
@@ -406,24 +406,24 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
         rfl, taken_eq (by omega) hv.g61, fun _ => ⟨?_, ?_⟩, rfl, taken_eq (by omega) hv.g64,
         fun _ => ⟨?_, ?_⟩, rfl, taken_eq (by omega) hv.g377, fun _ => ⟨?_, ?_⟩, rfl,
         taken_eq (by omega) hv.g380, fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 52), σ (.n 0)] = _
+      · show [σ (.n 31), σ (.n 0)] = _
         rw [hO (by decide), hO (by decide)]; rfl
-      · rw [(q1 rfl).1]; show [σ (.n 56), σ (.n 57)] = _
+      · rw [(q1 rfl).1]; show [σ (.n 35), σ (.n 36)] = _
         rw [hO (by decide), hO (by decide)]; rfl
-      · show [σ (.n 55), σ (.n 3)] = _
+      · show [σ (.n 34), σ (.n 3)] = _
         rw [hO (by decide), hO (by decide)]; rfl
-      · rw [(q2 rfl).1]; show [σ (.n 58), σ (.n 59)] = _
+      · rw [(q2 rfl).1]; show [σ (.n 37), σ (.n 38)] = _
         rw [hO (by decide), hO (by decide)]; rfl
-      · show [σ (.n 62), σ (.n 1), σ (.n 52), σ (.n 0)] = _
+      · show [σ (.n 41), σ (.n 1), σ (.n 31), σ (.n 0)] = _
         rw [hv.g62, hO (by decide), hO (by decide), hO (by decide)]; rfl
       · rw [(q3 (by assumption)).1]; rfl
-      · show [σ (.n 65), σ (.n 4), σ (.n 55), σ (.n 3)] = _
+      · show [σ (.n 44), σ (.n 4), σ (.n 34), σ (.n 3)] = _
         rw [hv.g65, hO (by decide), hO (by decide), hO (by decide)]; rfl
       · rw [(q4 (by assumption)).1]; rfl
-      · show [σ (.n 378), σ (.n 2), σ (.n 40), σ (.n 66), σ (.n 52)] ++ lxTagsV.map σ = _
+      · show [σ (.n 357), σ (.n 2), σ (.n 22), σ (.n 45), σ (.n 31)] ++ lxTagsV.map σ = _
         rw [hv.g378, hO (by decide), hv.v40, hO (by decide), hO (by decide), hv.tags]; rfl
       · rw [(q5 (by assumption)).1]; rfl
-      · show [σ (.n 381), σ (.n 5), σ (.n 41), σ (.n 67), σ (.n 2), σ (.n 55), σ (.n 68)] = _
+      · show [σ (.n 360), σ (.n 5), σ (.n 23), σ (.n 46), σ (.n 2), σ (.n 34), σ (.n 47)] = _
         rw [hv.g381, hO (by decide), hv.v41, hv.v67, hO (by decide), hO (by decide),
           hO (by decide)]; rfl
       · rw [(q6 (by assumption)).1]; rfl
@@ -435,8 +435,8 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
         obtain rfl := List.eq_nil_of_length_eq_zero lB1
         obtain ⟨r1, -⟩ := hoB
         refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-        · show [σ (.n 49)] = _; rw [hO (by decide)]; rfl
-        · rw [(r1 rfl).1]; show [σ (.n 390), σ (.n 391), σ (.n 392)] = _
+        · show [σ (.n 28)] = _; rw [hO (by decide)]; rfl
+        · rw [(r1 rfl).1]; show [σ (.n 369), σ (.n 370), σ (.n 371)] = _
           rw [hO (by decide), hO (by decide), hO (by decide)]
           have hl4 := hb.daR hnd1
           obtain ⟨x0, u0, h0', l0⟩ := exists_of_length_succ hl4
@@ -451,9 +451,9 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
         trivial
     · obtain ⟨r5, -⟩ := hoC
       refine ⟨rfl, taken_eq (by omega) hv.g434, fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 423), σ (.n 6), σ (.n 419), σ (.n 52), σ (.n 66), σ (.n 40), σ (.n 55), σ (.n 67),
-          σ (.n 41), σ (.n 416), σ (.n 385), σ (.n 47), σ (.n 48), σ (.n 404), σ (.n 49),
-          σ (.n 410)] = _
+      · show [σ (.n 402), σ (.n 6), σ (.n 398), σ (.n 31), σ (.n 45), σ (.n 22), σ (.n 34), σ (.n 46),
+          σ (.n 23), σ (.n 395), σ (.n 364), σ (.n 26), σ (.n 27), σ (.n 383), σ (.n 28),
+          σ (.n 389)] = _
         rw [hv.g435, hO (by decide), hO (by decide), hO (by decide), hO (by decide), hv.v40,
           hO (by decide), hv.v67, hv.v41, hO (by decide), hO (by decide), hO (by decide),
           hO (by decide), hO (by decide), hO (by decide), hO (by decide)]
@@ -471,17 +471,17 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
         obtain rfl := List.eq_nil_of_length_eq_zero lD1
         obtain ⟨r6, -⟩ := hoD
         refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-        · show [σ (.n 6), σ (.n 404), σ (.n 410), σ (.n 416), σ (.n 437), σ (.n 465)] = _
+        · show [σ (.n 6), σ (.n 383), σ (.n 389), σ (.n 395), σ (.n 416), σ (.n 444)] = _
           rw [hO (by decide), hO (by decide), hO (by decide), hO (by decide), hO (by decide),
             hv.v465]; rfl
         · rw [(r6 rfl).1]; rfl
     · obtain ⟨r7, -⟩ := hoE
       refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
-      · show [σ (.n 47), σ (.n 48), σ (.n 56), σ (.n 57), σ (.n 58), σ (.n 59), σ (.n 466), σ (.n 467),
-          σ (.n 437)] = _
+      · show [σ (.n 26), σ (.n 27), σ (.n 35), σ (.n 36), σ (.n 37), σ (.n 38), σ (.n 445), σ (.n 446),
+          σ (.n 416)] = _
         rw [hO (by decide), hO (by decide), hO (by decide), hO (by decide), hO (by decide),
           hO (by decide), hv.r476, hv.r477, hO (by decide)]; rfl
-      · rw [(r7 rfl).1]; show [σ (.n 468), σ (.n 469)] = _
+      · rw [(r7 rfl).1]; show [σ (.n 447), σ (.n 448)] = _
         rw [hO (by decide), hO (by decide)]; rfl
   -- the placed relation
   have hbase : fp + fs "main" + (mSizes d).sum + (fs "exponent_tables" + 2284) =
@@ -496,7 +496,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
   have h := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := fun i => i < 2) (D := fun _ => False) (fp := fp) (N := fs "exponent_tables" + 2284 + Nk)
     (args := []) (rets := [])
-    (Dk := fun i => ((fun _ => False) i ∨ ((⟨"exponent_tables", [], [.n 49], true⟩ : Call).taken
+    (Dk := fun i => ((fun _ => False) i ∨ ((⟨"exponent_tables", [], [.n 28], true⟩ : Call).taken
       = true ∧ (etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 2284))) ∨
       outRegion (mKids m Lmain) ([a1, a2, a3, a4, a5, a6] ++ oB ++ [c5] ++ oD ++ [e1]) i)
     coreProgram_wf find_main (Or.inl main_loop) rfl hw rfl hev (by rw [hal]; exact hbuf)
@@ -524,7 +524,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 2284, rfl, fun i hi => hi.elim, ?_, ?_⟩
     · show RelAtInT coreProgram fs cert rd (fun _ => False)
         (fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 2284) (mK0 d fs fp)
-        (fs "exponent_tables" + 2284) "exponent_tables" [] [σ (.n 49)] fun _ => True
+        (fs "exponent_tables" + 2284) "exponent_tables" [] [σ (.n 28)] fun _ => True
       rw [o49]
       exact (et_at fs cert hExp).relAtInT
     · rw [hbase]
@@ -543,16 +543,16 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       B1.loadAddrs_straight σ _ s3, B1.loadAddrs_straight σ _ sBr, B1.loadAddrs_straight σ _ s6] at hA
     rw [hal]
     obtain ⟨l1, l2, l2', l3, l4, l5, l6⟩ := mBlocks_loads
-    have lDa : (if m.nd = 1 then mDa else mDaZ).filterMap B1.Stmt.loadS = [(.n 387, 0), (.n 387, 1)] := by
+    have lDa : (if m.nd = 1 then mDa else mDaZ).filterMap B1.Stmt.loadS = [(.n 366, 0), (.n 366, 1)] := by
       split
       · exact l2
       · exact l2'
     have hpk : d.pick ≤ d.nc := hb.pick
     have hmn : m.nc = d.nc := rfl
     have hmp : m.pick = d.pick := rfl
-    have h336 : σ (.n 387) = gen ^ ((Memory.bases b0 (mSizes d)).getD 4 0 + 2 * m.nc) := by
+    have h336 : σ (.n 366) = gen ^ ((Memory.bases b0 (mSizes d)).getD 4 0 + 2 * m.nc) := by
       rw [hv.v387, pow_add]; rfl
-    have h401 : σ (.n 436) = gen ^ ((Memory.bases b0 (mSizes d)).getD 4 0 + 2 * m.pick) := by
+    have h401 : σ (.n 415) = gen ^ ((Memory.bases b0 (mSizes d)).getD 4 0 + 2 * m.pick) := by
       rw [hv.v448, pow_add]; rfl
     simp only [List.mem_append] at hA
     rcases hA with h | h | h | h | h
@@ -571,7 +571,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at h
       rcases h with rfl | rfl
       · exact ⟨_, by rw [o380, limb0_gen_pow_mul], Or.inl (hown 8 (by norm_num) 0 (by simp [mSizes]))⟩
-      · have h385 : σ (.n 424) = gen ^ ((Memory.bases b0 (mSizes d)).getD 8 0 + m.nc) := by
+      · have h385 : σ (.n 403) = gen ^ ((Memory.bases b0 (mSizes d)).getD 8 0 + m.nc) := by
           rw [hv.v436, pow_add]; rfl
         refine ⟨_, by rw [h385, limb0_gen_pow_mul]; rfl,
           Or.inl (hown 8 (by norm_num) m.nc (by simp [mSizes]; rfl))⟩
@@ -596,22 +596,22 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
 /-- **`main` at `fp`, its callees' trees satisfying `Ts`.** -/
 theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : List (Tree → Prop))
-    (hok : KidsDT fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
+    (hok : KidsDT fs cert 23 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 _ Ts hok (etB fs (mK0 d fs fp) + 2284)
+    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 _ Ts hok (etB fs (mK0 d fs fp) + 2284)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb Ts Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, h⟩
 
@@ -624,23 +624,23 @@ def mainB (fs : String → ℕ) (d : MainData) (ks : List Kid) (Bs : List ℕ) :
 size at most `mainB`. -/
 theorem main_relAtInTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (Ts : List (Tree → Prop)) (Bs : List ℕ)
-    (hok : KidsDTB fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
+    (hok : KidsDTB fs cert 23 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ mainB fs d (mKids (d.toIn fs fp)
         (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Bs ∧ Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
             KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
             calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
   obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 16 _ Ts Bs hok (etB fs (mK0 d fs fp) + 2284)
+    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + 2284)
   obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb Ts Nk Lk outs hoo hW hD hKids hmm
   exact ⟨_, L, by unfold mainB; omega, h⟩
 
@@ -652,15 +652,15 @@ theorem kidsDT_nil {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ
 /-- **`main` at `fp`**, its node at a valuation with `main`'s honest values (`MVals`). -/
 theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (d.toIn fs fp))
+    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
     (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
-      k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
+      k.taken = true → CompleteAtD fs cert 23 k.f k.Lin k.args k.Out)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
     ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
+      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
         LoadHolds rd gen 0 (digestHalves d.sdg).2 →
         RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
           (fun σ => MVals rd σ (d.toIn fs fp)) :=

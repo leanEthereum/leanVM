@@ -45,23 +45,23 @@ theorem kidsAt_of_kidsDTB {fs : String → ℕ} {cert : String → V → ℕ} {�
   ⟨N, L, outs, hN, ho, hW, hD, hI, hK⟩
 
 /-- `list_split` on `g^n`, within its static bound. -/
-theorem list_split_nB (fs : String → ℕ) (cert : String → V → ℕ) {κ n : ℕ} (hκ : 16 ≤ κ)
-    (hn : n < claimBig * maxKeys) {Bls : ℕ}
+theorem list_split_nB (fs : String → ℕ) (cert : String → V → ℕ) {κ n : ℕ} (hκ : 20 ≤ κ)
+    (hn : n < claimBig * bigFramesCap) {Bls : ℕ}
     (hT : TotalLe coreProgram fs "list_split" (fun _ => Bls)) :
     CompleteAtDTB fs cert κ "list_split" [] [gen ^ n]
       (Returns [gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]) (fun _ => True) Bls := by
-  simp only [claimBig, maxKeys] at hn
+  simp only [claimBig, bigFramesCap] at hn
   have := list_split_completeAtDTB fs cert (a := n / 136) (b := n % 136 / 17) (c := n % 17) hκ
-    (by simp [maxKeys]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega) hT
+    (by simp [bigFramesCap]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega) hT
   rwa [show claimBig * (n / 136) + claimGroup * (n % 136 / 17) + n % 17 = n by
     simp [claimBig, claimGroup]; omega] at this
 
 /-- **`child_claim_list_digest` is complete, placed, by a tree of honest shape, within
-`ccB fs SB n`**: `n < 136 · 2^16` honest records among the caller's words; it returns their
+`ccB fs SB n`**: `n < 136 · 2^20` honest records among the caller's words; it returns their
 cells' digest. -/
 theorem child_claim_list_digest_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    (hκ : 16 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
-    (hn : n < claimBig * maxKeys) (hl : cells.length = 4 * n)
+    (hκ : 20 ≤ κ) {Lin : Main.Layout} {eP rg L n : ℕ} {base : E} {o : ℕ → ℕ} {cells : List E}
+    (hn : n < claimBig * bigFramesCap) (hl : cells.length = 4 * n)
     (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
     (hrec : ∀ rd, MemL rd Lin → RecMem rd (gen ^ rg) (gen ^ L) (gen ^ eP) base n o cells)
     (hR2 : ∀ j < n, RegionL Lin (rg + o j))

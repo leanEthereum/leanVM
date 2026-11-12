@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest (DeployedLimits)
+open LeanVM.Guest (GuestLimits)
 open LeanVM.Guest.Coverage (planSlots)
 open LeanVM.Guest.Hints (claimCells)
 open LeanVM.Guest.Coverage (coveragePlan CoverageRegion)
@@ -163,10 +163,10 @@ variable {fs : String → ℕ} {fp : ℕ} {seed : Digest}
 theorem belowLog_of {o L : ℕ} (h : o < L) (hL : L < 2 ^ 32) : B1.Digest.BelowLog (gen ^ L) o :=
   ⟨by omega, L - o - 1, by omega, by congr 1; omega⟩
 
-theorem cover_bound (hl : DeployedLimits s w) :
+theorem cover_bound (hl : GuestLimits s w) :
     s.claims.xmss.length + (xPlan s w).duplicates.length +
-      (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 16 := by
-  have hcov := hl.planSlotsBelow2Pow16
+      (s.claims.sphincs.length + (sPlan s w).duplicates.length) < 2 ^ 23 := by
+  have hcov := hl.planSlotsBelow2Pow23
   rw [coverage_eq] at hcov
   simp only [List.length_append] at hcov
   omega
@@ -185,18 +185,18 @@ theorem length_daDigests : ((w.children.map (·.statement.claims.daDigest) ++ [h
 /-- **Child `c` is as `__loop4` needs it**, at `main`'s honest words. -/
 theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hrel : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w)
-    (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
+    (hl : GuestLimits s w)
+    (hV : ∀ c (hc : c < w.children.length), CompleteAtD fs cert 20 "verify_sub" (hLmain fs fp seed s w)
       [(digestHalves (statementDigest seed w.children[c].statement)).1,
         (digestHalves (statementDigest seed w.children[c].statement)).2,
         (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,
         (hm fs fp seed s w).a400 * gen ^ (24 * c)] (Returns []))
     {c : ℕ}
-    (hX : CompleteAtD fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
+    (hX : CompleteAtD fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, (hm fs fp seed s w).a117, (hKid s w c).base,
         gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd), gen ^ (hKid s w c).ex]
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]))
-    (hS : CompleteAtD fs cert 16 "child_claim_list_digest" (hLmain fs fp seed s w)
+    (hS : CompleteAtD fs cert 23 "child_claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a80,
         (hm fs fp seed s w).a117 * gen ^ ((hm fs fp seed s w).nlx + (hm fs fp seed s w).nxd),
         (hKid s w c).base * gen ^ (hKid s w c).ex,
@@ -221,8 +221,8 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     simp only [hW]
   refine ⟨?_, ?_, by rw [hKid_defer hc]; exact hdl, fun rd hM => ?_, ?_, hX, hS,
     by rw [hpi]; exact hV c hc⟩
-  · rw [hKid_ex hc]; have := (hl.childClaimListsBelow2Pow16 _ hmem).1; omega
-  · rw [hKid_es hc]; have := (hl.childClaimListsBelow2Pow16 _ hmem).2; omega
+  · rw [hKid_ex hc]; have := (hl.childClaimListsBelow2Pow23 _ hmem).1; omega
+  · rw [hKid_es hc]; have := (hl.childClaimListsBelow2Pow23 _ hmem).2; omega
   · -- the memory
     obtain ⟨-, -, -, r4, r5, r7, r8⟩ := reads_buf fs fp seed s w hM
     have p4 := readsAt_flatMap_of (w := 2) _ (fun _ _ => rfl) r4 c (by simp; omega)

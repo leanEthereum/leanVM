@@ -39,10 +39,10 @@ def l15Pre : List Stmt :=
     .atom (.const (.n 13) (word 2 0)), .atom (.mul (.n 14) (.n 0) (.n 13)),
     .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3]]
 
-theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core271 :=
-  Program.find?_of_indexOf? (j := 271) (by decide +kernel) rfl
+theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core273 :=
+  Program.find?_of_indexOf? (j := 273) (by decide +kernel) rfl
 
-theorem l15_body : Fn.body Data.core271 = l15Pre ++ [.ret []] := by
+theorem l15_body : Fn.body Data.core273 = l15Pre ++ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := loop15Found
   rw [find_loop15, Option.some.injEq] at hf
   subst hf

@@ -309,7 +309,7 @@ theorem cpKs_getD (hl : hs.length = 6) {c : ℕ} (hc : c < 94) :
   rw [cpKs_eq hl, List.getD_eq_getElem _ _ (by simpa using hc)]
   simp
 
-theorem cp_base_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29) {s : ℕ}
+theorem cp_base_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33) {s : ℕ}
     (hs8 : s < 8) : cpEb lm hs s < 33 := by
   unfold cpEb
   rcases Nat.lt_or_ge s 2 with h2 | h2
@@ -324,7 +324,7 @@ theorem cp_base_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h
 
 theorem colKappaSrc_lt {c : ℕ} : colKappaSrc c < 8 := by unfold colKappaSrc; split_ifs <;> omega
 
-theorem cpKc_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
+theorem cpKc_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33)
     (h5 : hs.getD 5 0 ≤ 27) (c : ℕ) : cpKc lm hs c < 34 := by
   unfold cpKc
   have hb := cp_base_lt hl hlm hhs (colKappaSrc_lt (c := c))
@@ -386,7 +386,7 @@ theorem cpGP_succ (r : ℕ) : cpGP lm hs (r + 1) = cpGP lm hs r + cpSize lm hs (
   rw [cpGP, tb_groupPrefix_succ]; rfl
 
 /-- **The key step**: between adjacent ranks it is a natural below `8398`. -/
-theorem cpE_spec (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
+theorem cpE_spec (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33)
     (h5 : hs.getD 5 0 ≤ 27) {r : ℕ} (hr : r + 1 < 9) :
     cpE lm hs (r + 1) ≤ 8397 ∧
       cpKg lm hs (cpPi lm hs r) * rankStride + cpC0 (cpPi lm hs (r + 1)) =
@@ -416,7 +416,7 @@ theorem cpE_spec (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h <
     constructor <;> omega
 
 /-- **The keys of adjacent ranks**: `key_prev = g^(e+1)·key`. -/
-theorem cpKey_step (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
+theorem cpKey_step (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33)
     (h5 : hs.getD 5 0 ≤ 27) {r : ℕ} (hr : r + 1 < 9) :
     cpKey lm hs (cpPi lm hs r) = gen ^ (cpE lm hs (r + 1) + 1) * cpKey lm hs (cpPi lm hs (r + 1)) := by
   obtain ⟨-, hE⟩ := cpE_spec hl hlm hhs h5 hr
@@ -601,7 +601,7 @@ variable {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : ℕ} {rd :
 variable {C : CallRel} {kret : List E → Prop}
 
 /-- Group `gi`'s statements hold. -/
-theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
+theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33)
     (h5 : hs.getD 5 0 ≤ 27) (hlow : LowDefB 14 rd)
     (R : CpReads lm hs ekb esq e10 e11 e136 e137 e293 rd) {gi : ℕ} (hgi : gi < 9) :
     Stmt.HoldsList C rd (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd) (cpGroup gi) True kret := by
@@ -742,7 +742,7 @@ theorem cp_rankKey {r : ℕ} (hr : r < 9) :
       cpσ_rank lm hs ekb esq e10 e11 e136 e137 e293 rd hr0 (by omega) (by norm_num)⟩
 
 /-- Rank `r + 1`'s statements hold. -/
-theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
+theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33)
     (h5 : hs.getD 5 0 ≤ 27) (hlow : LowDefB 14 rd)
     (R : CpReads lm hs ekb esq e10 e11 e136 e137 e293 rd) {r : ℕ} (hr : r < 8) :
     CpRankOk rd (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd) (r + 1) := by
@@ -782,7 +782,7 @@ theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
   · rw [cpGP_succ, pow_add]
 
 /-- Group `gi`'s columns' statements hold. -/
-theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
+theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 33)
     (h5 : hs.getD 5 0 ≤ 27) (R : CpReads lm hs ekb esq e10 e11 e136 e137 e293 rd) {gi : ℕ}
     (hgi : gi < 9) :
     Stmt.HoldsList C rd (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd) (cpCols gi) True kret := by
@@ -837,7 +837,7 @@ squares table and rank keys, its five buffers holding the groups' keys, sizes, o
 the columns' `g^offset`, defined below `2^14`, the relation holds with the stack's total and the
 offsets' buffer. -/
 theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e10 e11 e136 e137 e293 : ℕ)
+    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e10 e11 e136 e137 e293 : ℕ)
     (rd : Reader)
     (hm : MemLay rd (cpOwn lm hs e10 e11 e136 e137 e293 ++ cpLin lm hs ekb esq))
     (hlow : LowDefB 14 rd) :

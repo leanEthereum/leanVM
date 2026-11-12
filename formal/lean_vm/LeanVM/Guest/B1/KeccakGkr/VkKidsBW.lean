@@ -39,23 +39,23 @@ theorem copyLoop_totalLeOn_fs : ∀ name ∈ ["__loop10", "__loop11", "__loop12"
   intro name hn
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl
-  · exact loop_totalLeOn_at (j := 263) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  · exact loop_totalLeOn_at (j := 267) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 265) (by decide +kernel) (by decide +kernel) (by decide +kernel)
   · exact loop_totalLeOn_at (j := 269) (by decide +kernel) (by decide +kernel) (by decide +kernel)
+  · exact loop_totalLeOn_at (j := 271) (by decide +kernel) (by decide +kernel) (by decide +kernel)
 
 /-- **`keccak_plain_rounds__L6_L0`'s words at `B2C.fs`**: `250`. -/
 theorem plain0_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 0) fun _ ↦ 250 := by
-  have h1 := wSB_totalLe (j := 266) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel)
-  rwa [wSB_idx (j := 266) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel),
-    show wSBJ 266 = 250 by decide +kernel] at h1
+  have h1 := wSB_totalLe (j := 268) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel)
+  rwa [wSB_idx (j := 268) (f := "keccak_plain_rounds__L6_L0") (by decide +kernel),
+    show wSBJ 268 = 250 by decide +kernel] at h1
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `B2C.fs`**: `178`. -/
 theorem plain1_totalLe_fs :
     TotalLe coreProgram LeanVM.Guest.B2C.fs (plainName 1) fun _ ↦ 178 := by
-  have h1 := wSB_totalLe (j := 268) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel)
-  rwa [wSB_idx (j := 268) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel),
-    show wSBJ 268 = 178 by decide +kernel] at h1
+  have h1 := wSB_totalLe (j := 270) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel)
+  rwa [wSB_idx (j := 270) (f := "keccak_plain_rounds__L4_L1") (by decide +kernel),
+    show wSBJ 270 = 178 by decide +kernel] at h1
 
 namespace VkData
 
@@ -94,9 +94,9 @@ theorem kidsB_fs_le (h : D.Ok) :
     exact layerWords_fs_le_y (by unfold firstOf; split <;> omega) _
   have hF : LeanVM.Guest.B2C.fs "__loop10" + LeanVM.Guest.B2C.fs "__loop11" +
       LeanVM.Guest.B2C.fs "__loop12" = 51 := by
-    rw [fs_idx (j := 263) (f := "__loop10") (by decide +kernel),
-      fs_idx (j := 267) (f := "__loop11") (by decide +kernel),
-      fs_idx (j := 269) (f := "__loop12") (by decide +kernel)]
+    rw [fs_idx (j := 265) (f := "__loop10") (by decide +kernel),
+      fs_idx (j := 269) (f := "__loop11") (by decide +kernel),
+      fs_idx (j := 271) (f := "__loop12") (by decide +kernel)]
     decide +kernel
   rw [kidsB_sum, hF]
   refine ⟨by omega, ?_⟩

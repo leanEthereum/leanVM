@@ -36,7 +36,7 @@ variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ)
 include hμ
 
 /-- **The round count.** -/
-theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 29)
+theorem vt_zc_n {σ : Val} (h : VtH Lm.read σ) {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hkbt : ∀ t < 6, σ (.n (27 + t)) = gen ^ τ t) {m : ℕ} (hm : m < 33)
     (hmu : σ (.n 9) = gen ^ m) :
     ∃ n, σ (.n 2544) = gen ^ n ∧ (∀ t < 6, τ t ≤ n) ∧ (∃ t < 6, τ t = n) ∧ n ≤ m := by

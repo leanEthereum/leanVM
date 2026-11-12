@@ -255,7 +255,7 @@ def vtBk (b : ℕ) : ℕ := ((List.range 15).filter (fun k ↦ vtB0 k ≤ b)).le
 /-- Block `b`'s offset variable (`block_off[b]`). -/
 def vtBoffV (b : ℕ) : ℕ := (vtBoffData.getD (vtBk b) default).2.2.2 + (b - vtB0 (vtBk b))
 
-theorem vt_kap_lt (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 29) {b : ℕ}
+theorem vt_kap_lt (lm : ℕ) (τ : ℕ → ℕ) (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33) {b : ℕ}
     (hb : b < 153) : vtKap lm τ b < 34 := by
   have hadj : ∀ b < 153, blockKappaAdj b = 0 ∨
       (blockKappaAdj b = 19 ∧ blockKappaSrc.getD b 0 = 0) := by decide
@@ -283,7 +283,7 @@ include hμ
 and the tables' heights and the exponent tables in place, the push side's `54` blocks and the
 count side's `45` hold `g^` the `stackOffsets` offsets of their side's log-sizes in `block_off`. -/
 theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (hlm : lm ≤ 32)
-    (hτ : ∀ t < 6, τ t < 29)
+    (hτ : ∀ t < 6, τ t < 33)
     (hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
     (hE : ExpTablesAt Lm.read (σ (.n 12))) :
     (∀ x < 54, σ (.n (vtBoffV x)) =

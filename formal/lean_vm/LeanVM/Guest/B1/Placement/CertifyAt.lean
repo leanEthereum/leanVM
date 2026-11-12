@@ -135,7 +135,7 @@ theorem cp_regionL {L : Layout} {q : ℕ × List E} (hq : q ∈ L) {k : ℕ} (hk
 
 /-- **Every load of the honest valuation lies in the inputs or the buffers.** -/
 theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e10 e11 e136 e137 e293 : ℕ)
+    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq e10 e11 e136 e137 e293 : ℕ)
     (rd : Reader) {q : V × ℕ} (hq : q ∈ cpPre.filterMap Stmt.loadS) :
     ∃ i, (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd q.1).limb 0 * addressOfIndex q.2 =
         addressOfIndex i ∧
@@ -229,7 +229,7 @@ frame pointer, on memories defined below `2^κ`, `κ ≥ 14`, its buffers at the
 positions, the offsets' returned. -/
 theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
     (hk : 14 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
+    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
     CompleteAtD fs cert k "certify_placement" (cpLin lm hs ekb esq)
       [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) := by
   obtain ⟨fn, hf, hp, hb⟩ := cpFound
@@ -271,7 +271,7 @@ squares and rank-key runs, at every frame pointer, on memories defined below `2^
 buffers at the bump allocator's positions, the offsets' returned. -/
 theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ}
     (hk : 14 ≤ k) {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm ≤ 32)
-    (hhs : ∀ h ∈ hs, h < 29) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
+    (hhs : ∀ h ∈ hs, h < 33) (h5 : hs.getD 5 0 ≤ 27) (ekb esq : ℕ) :
     CompleteAtDTB fs cert k "certify_placement" (cpLin lm hs ekb esq)
       [ofK (addressOfIndex ekb), ofK (addressOfIndex esq)] (cpOut lm hs) (fun _ ↦ True)
       (fs "certify_placement" + cpSizes.sum) := by

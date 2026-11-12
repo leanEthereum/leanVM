@@ -78,7 +78,7 @@ theorem offLoop_rel {b : ℕ} (hb : b < 7) {Z : ℕ → E} {b0 bs : ℕ}
   simp only [offLoopOk, Bool.and_eq_true] at hok
   have hb64 : 2 ^ b ≤ 64 :=
     le_trans (Nat.pow_le_pow_right (n := 2) (by norm_num) (show b ≤ 6 by omega)) (by norm_num)
-  have hblk : ∀ j < 2 ^ b, Digest.LoopBlock rd (coreProgram.getD (436 + b) default) (gen ^ j)
+  have hblk : ∀ j < 2 ^ b, Digest.LoopBlock rd (coreProgram.getD (423 + b) default) (gen ^ j)
       (gen ^ 2 ^ b) [gen ^ b0, gen ^ bs] := by
     intro j hj
     have hl : ∀ i < 8, 8 * j + i < 1024 := fun i hi => by omega

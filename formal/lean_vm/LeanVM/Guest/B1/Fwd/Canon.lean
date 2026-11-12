@@ -31,7 +31,7 @@ variable {rd : Reader} {S : List Atom} {w : Nat → E}
 
 /-- The atoms whose side condition is not automatic. -/
 def needsSide : Atom → Bool
-  | .load .. | .assertEq .. | .assertInK .. | .assertNe .. | .rangeCheck .. | .frameAddr .. => true
+  | .load .. | .assertEq .. | .assertInK .. | .assertNe .. | .rangeCheck .. | .frameAddr .. | .touch .. => true
   | .mul d x y => !(decide (x.idx < d.idx) && decide (y.idx < d.idx))
   | _ => false
 
@@ -49,7 +49,7 @@ theorem atoms_holds {σ : Val} {atoms : List Atom} (hg : ∀ a ∈ atoms, Good r
       simp only [Side]
       rw [ite_pos' hns]
       trivial
-    | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at hns
+    | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
     | _ => trivial
   · rcases hn a ha hns with h | h
     · exact h

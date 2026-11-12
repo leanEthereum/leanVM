@@ -152,22 +152,22 @@ theorem find_da_column_offsets : coreProgram.find? "da_column_offsets" = some Da
   Program.find?_of_indexOf? (j := 32) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core431 :=
-  Program.find?_of_indexOf? (j := 431) (by decide +kernel) rfl
+theorem find_da_expand_L7_L8 : coreProgram.find? "da_expand__L7_L8" = some Data.core418 :=
+  Program.find?_of_indexOf? (j := 418) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L14_L7_L0 :
-    coreProgram.find? "da_factors__L14_L7_L0" = some Data.core433 :=
-  Program.find?_of_indexOf? (j := 433) (by decide +kernel) rfl
+    coreProgram.find? "da_factors__L14_L7_L0" = some Data.core420 :=
+  Program.find?_of_indexOf? (j := 420) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
-theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core434 :=
-  Program.find?_of_indexOf? (j := 434) (by decide +kernel) rfl
+theorem find_da_expand_L14_L7 : coreProgram.find? "da_expand__L14_L7" = some Data.core421 :=
+  Program.find?_of_indexOf? (j := 421) (by decide +kernel) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_da_factors_L7_L8_L128 :
-    coreProgram.find? "da_factors__L7_L8_L128" = some Data.core435 :=
-  Program.find?_of_indexOf? (j := 435) (by decide +kernel) rfl
+    coreProgram.find? "da_factors__L7_L8_L128" = some Data.core422 :=
+  Program.find?_of_indexOf? (j := 422) (by decide +kernel) rfl
 
 end
 end LeanVM.Guest.B1.Da

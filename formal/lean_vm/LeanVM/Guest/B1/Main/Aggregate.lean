@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Main.AggBody
 public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.B1.Sumcheck.Batch
 public import LeanVM.Guest.B1.Bits.Grind
+public import LeanVM.Guest.B1.Common.MemSize
 
 /-!
 # `aggregate_claims` (TRIAGE G #97)
@@ -302,8 +303,8 @@ theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
 windows. -/
 theorem agg_grind {rd : Reader} (hm : MemOk rd) {w tabs : E} {rets : List E} (hW : WinTabs rd tabs)
     (h : coreProgram.Rel rd "grind_check__L2" [w, tabs] rets) : MeaningGrindCheck 2 [w, tabs] rets := by
-  obtain ⟨κ, h16, hκ, L, rfl⟩ := hm
-  exact (grind_check_holds 2 (by decide) hκ (by unfold winTabBits; omega) L w tabs hW rets).mp h
+  obtain ⟨κ, -, hκ, L, rfl⟩ := hm
+  exact (grind_check_holds 2 (by decide) hκ (winTabBits_le_of_winTabs hκ L hW) L w tabs hW rets).mp h
 
 /-- **`aggregate_claims`, its hints named**: on a valuation of its body (its calls under a
 relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd σ`. -/

@@ -153,7 +153,7 @@ theorem vt_kbList_getD {lm : ℕ} {τ : ℕ → ℕ} {i : ℕ} (hi : i < 7) :
 set_option maxRecDepth 100000 in
 /-- **`verify_tables`' statements `0 ..< 563`, honestly.** -/
 theorem vtS_sort (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} {τ : ℕ → ℕ}
-    (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 29)
+    (hlm : lm ≤ 32) (hτ : ∀ t < 6, τ t < 33)
     (hdims : TbReadsAt rd (σv (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
     (hE : ExpTablesAt rd (σv (.n 12)))
     (hkeyW : TbReadsAt rd (w 33) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 34) (vtGSizeW lm τ))

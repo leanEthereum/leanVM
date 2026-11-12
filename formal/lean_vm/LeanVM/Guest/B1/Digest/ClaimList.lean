@@ -36,11 +36,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `claim_list_last__L{k}` -/
 
 set_option maxRecDepth 100000 in
-theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (361 + k) default) = true := by
+theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (348 + k) default) = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (361 + k) := by
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (348 + k) := by
   decide +kernel
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
@@ -54,7 +54,7 @@ theorem claimLast_sound {k : ℕ} (hk : k < 17) {rd : Reader} {args rets : List 
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := cl_all k hk
-  set f := coreProgram.getD (361 + k) default
+  set f := coreProgram.getD (348 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -90,7 +90,7 @@ def GroupStep (rd : Reader) (m nb : ℕ) (chain entries x : E) : Prop :=
       StateAt rd (chain * x ^ 13) 13 (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))
 
 theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1035)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1601)
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {x : E} {ps : List E} (h : coreProgram.Rel rd f (x :: ps) []) :
@@ -116,16 +116,16 @@ theorem grp_step {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
     by simp [ChainSpec.vals, grpSpec], by rwa [← hE], by rwa [← h9]⟩
 
 set_option maxRecDepth 100000 in
-theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 359 default))).nb = 64 := by
+theorem big_nb : (grpSpec 136 21 565 (loopAtoms (coreProgram.getD 346 default))).nb = 64 := by
   decide +kernel
 
 -- The big frame loop `__loop15` (136 claims, 64 blocks): its head here, its sixteen windows in
 -- `ClaimListBig{q}`.
 set_option maxRecDepth 100000 in
-theorem big_head : grpHead (coreProgram.getD 359 default) "__loop15" 136 21 565 20 = true := by
+theorem big_head : grpHead (coreProgram.getD 346 default) "__loop15" 136 21 565 20 = true := by
   decide +kernel
 
-theorem big_ok : grpOk (coreProgram.getD 359 default) "__loop15" 136 21 565 20 = true := by
+theorem big_ok : grpOk (coreProgram.getD 346 default) "__loop15" 136 21 565 20 = true := by
   have hw : ∀ i < 16, bigWin i = true := by
     intro i hi
     interval_cases i
@@ -136,19 +136,19 @@ theorem big_ok : grpOk (coreProgram.getD 359 default) "__loop15" 136 21 565 20 =
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem big_idx : coreProgram.indexOf? "__loop15" = some 359 := by decide +kernel
+theorem big_idx : coreProgram.indexOf? "__loop15" = some 346 := by decide +kernel
 
 
 -- The group frame loop `__loop16` (17 claims, 8 blocks).
 set_option maxRecDepth 100000 in
-theorem grp_ok : grpOk (coreProgram.getD 360 default) "__loop16" 17 18 86 17 = true := by
+theorem grp_ok : grpOk (coreProgram.getD 347 default) "__loop16" 17 18 86 17 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_idx : coreProgram.indexOf? "__loop16" = some 360 := by decide +kernel
+theorem grp_idx : coreProgram.indexOf? "__loop16" = some 347 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 360 default))).nb = 8 := by
+theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 347 default))).nb = 8 := by
   decide +kernel
 
 theorem mono2Is_sound {rd : Reader} {σ : Val} {atoms : List Atom} {x base y y' : V} {e e' : ℕ}
@@ -201,7 +201,7 @@ theorem groups_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb) {chain
 /-- **A loop of frames of `m` claims**: called as `callIf (1 + N) f [1, N, chain, entries]` with
 `N = g^a`, `a < 2^34`, it gives every frame's step. -/
 theorem frames_of_loop {rd : Reader} {f : String} {j m c0 st0 ep nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1035)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1601)
     (hok : grpOk (coreProgram.getD j default) f m c0 st0 ep = true)
     (hnb : (grpSpec m c0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
     {N chain entries : E} {a : ℕ} (ha : a < 2 ^ 34) (hN : N = gen ^ a)
@@ -316,7 +316,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
       list_split_sound rd hm _ _ (call_of_flat hall hls)
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at habc
     obtain ⟨h23, h24, h25⟩ := habc
-    simp only [maxKeys, claimGroup, bigGroups] at ha hb hc
+    simp only [claimGroup, bigGroups] at hb hc
     -- the zero state
     have h0 : StateAt rd (σ (.n 23)) 0 (absorbChunks 0 zeroState []) := by
       intro c
@@ -369,7 +369,7 @@ theorem claim_list_digest_sound : claim_list_digest_sound_Spec := by
       show 16 * (4 * 136 * a) + 16 * (4 * 17 * b) = 136 * (0 + 64 * a + 8 * b)
       ring
     obtain ⟨cc, hlc, hrc, hd⟩ := hlast _ _ hpre (by rw [← hsp, h76]; exact hSb)
-    refine ⟨136 * a + 17 * b + j, by simp only [claimBig, maxKeys]; omega,
+    refine ⟨136 * a + 17 * b + j, by simp only [claimBig]; omega,
       by rw [hn], ca ++ cb ++ cc, by rw [List.length_append, List.length_append, hla, hlb, hlc]; ring,
       ?_, ?_⟩
     · rw [readsAt_append, readsAt_append, List.length_append, hla, hlb]

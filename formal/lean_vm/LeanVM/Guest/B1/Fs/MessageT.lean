@@ -127,45 +127,45 @@ def omRets (n nonce : ℕ) : List V :=
 def omBody (n nonce : ℕ) : List Stmt := (omAtoms n nonce).map Stmt.atom ++ [.ret (omRets n nonce)]
 
 set_option maxRecDepth 100000 in
-theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some Data.core311 ∧
-    Data.core311.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core311.body = omBody 1 1 :=
-  ⟨Program.find?_of_indexOf? (j := 311) (by decide +kernel) rfl, rfl,
+theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some Data.core319 ∧
+    Data.core319.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core319.body = omBody 1 1 :=
+  ⟨Program.find?_of_indexOf? (j := 319) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_6_1 : coreProgram.find? (omName (6, 1)) = some Data.core482 ∧
-    Data.core482.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core482.body = omBody 6 1 :=
-  ⟨Program.find?_of_indexOf? (j := 482) (by decide +kernel) rfl, rfl,
+theorem om_found_6_1 : coreProgram.find? (omName (6, 1)) = some Data.core471 ∧
+    Data.core471.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core471.body = omBody 6 1 :=
+  ⟨Program.find?_of_indexOf? (j := 471) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_8_1 : coreProgram.find? (omName (8, 1)) = some Data.core476 ∧
-    Data.core476.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core476.body = omBody 8 1 :=
-  ⟨Program.find?_of_indexOf? (j := 476) (by decide +kernel) rfl, rfl,
+theorem om_found_8_1 : coreProgram.find? (omName (8, 1)) = some Data.core461 ∧
+    Data.core461.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core461.body = omBody 8 1 :=
+  ⟨Program.find?_of_indexOf? (j := 461) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_12_1 : coreProgram.find? (omName (12, 1)) = some Data.core555 ∧
-    Data.core555.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core555.body = omBody 12 1 :=
-  ⟨Program.find?_of_indexOf? (j := 555) (by decide +kernel) rfl, rfl,
+theorem om_found_12_1 : coreProgram.find? (omName (12, 1)) = some Data.core536 ∧
+    Data.core536.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core536.body = omBody 12 1 :=
+  ⟨Program.find?_of_indexOf? (j := 536) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_20_1 : coreProgram.find? (omName (20, 1)) = some Data.core493 ∧
-    Data.core493.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core493.body = omBody 20 1 :=
-  ⟨Program.find?_of_indexOf? (j := 493) (by decide +kernel) rfl, rfl,
+theorem om_found_20_1 : coreProgram.find? (omName (20, 1)) = some Data.core578 ∧
+    Data.core578.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core578.body = omBody 20 1 :=
+  ⟨Program.find?_of_indexOf? (j := 578) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem om_found_36_1 : coreProgram.find? (omName (36, 1)) = some Data.core513 ∧
-    Data.core513.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
-      Data.core513.body = omBody 36 1 :=
-  ⟨Program.find?_of_indexOf? (j := 513) (by decide +kernel) rfl, rfl,
+theorem om_found_36_1 : coreProgram.find? (omName (36, 1)) = some Data.core621 ∧
+    Data.core621.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
+      Data.core621.body = omBody 36 1 :=
+  ⟨Program.find?_of_indexOf? (j := 621) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 end

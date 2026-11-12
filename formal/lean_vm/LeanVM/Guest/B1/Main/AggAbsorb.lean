@@ -173,10 +173,10 @@ def l25Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 57) (.n 58) 0) && isMul A (.n 58) (.n 6) (.n 0)
 
 set_option maxRecDepth 100000 in
-theorem l25_ok : l25Ok (coreProgram.getD 443 default) = true := by decide +kernel
+theorem l25_ok : l25Ok (coreProgram.getD 430 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l25_idx : coreProgram.indexOf? "__loop33" = some 443 := by decide +kernel
+theorem l25_idx : coreProgram.indexOf? "__loop33" = some 430 := by decide +kernel
 
 /-! ## One child -/
 
@@ -215,7 +215,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N absorb cfresh lfT ccarried lcT cpi hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 443 default).params =
+  have hpar : (coreProgram.getD 430 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -234,7 +234,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop33" (x :: 
   · have := load_sound hl57 hat
     rwa [isMul_sound hm58 hat, h6, hx, p57] at this
   -- the chain
-  set A := atomsIn (loopPre (coreProgram.getD 443 default))
+  set A := atomsIn (loopPre (coreProgram.getD 430 default))
   set s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
   obtain ⟨-, hwl, -, hP, -⟩ := DupSpec.check_facts hchk hat
   have hin := rowIn_sound hrin hat

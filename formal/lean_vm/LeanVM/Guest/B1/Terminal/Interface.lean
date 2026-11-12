@@ -105,9 +105,9 @@ def TermPre (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Col
       TermCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn] ∧
       Tables.PCtx rd kappas off ∧ Tables.KappasBelow kappas ∧
       layout.placements = (placementsOf kappas).1 ∧ layout.stackLog = (placementsOf kappas).2 ∧
-      layout.stackLog ≤ 28 ∧ 1 ≤ layout.logMemory ∧ layout.logMemory ≤ 32 ∧
+      layout.stackLog ≤ 30 ∧ 1 ≤ layout.logMemory ∧ layout.logMemory ≤ 32 ∧
       bus.point.length ≤ 40 ∧ layout.tableLogHeights.length = 6 ∧
-      (∀ h ∈ layout.tableLogHeights, h < 29) ∧
+      (∀ h ∈ layout.tableLogHeights, h < 33) ∧
       glm = gen ^ layout.logMemory ∧ gtau = gen ^ τ ∧
       Tables.TbReadsAt rd kb (1 :: gen ^ layout.logMemory :: layout.tableLogHeights.map (gen ^ ·)) ∧
       Tables.GTabsAt rd (gsq * gen ^ 34) ∧ lamCl = lam ∧

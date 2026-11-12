@@ -27,9 +27,9 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- `da_row_shape`'s meaning gives its core IR, on a memory image. -/
+/-- `da_row_shape`'s meaning gives its core IR, on a memory defined below `2^16`. -/
 def da_row_shape_complete_Spec : Prop :=
-  ∀ (rd : Reader), MemOk rd → ∀ gsq : E, SquaresAt rd gsq → ∀ r L : ℕ, 1 ≤ r →
+  ∀ (rd : Reader), Sig.MemOK rd (2 ^ 16) → ∀ gsq : E, SquaresAt rd gsq → ∀ r L : ℕ, 1 ≤ r →
     r ≤ LeanDa.maxRows → 2 ^ L = LeanDa.paddedRowCount r →
       coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
 
@@ -124,7 +124,7 @@ theorem da_row_shape_complete : da_row_shape_complete_Spec := by
         _ ≤ 2 ^ 11 := by norm_num; omega
     have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
     omega
-  exact da_row_shape_complete' rd (memOK_of_memOk hm) gsq r L (hsq L (by omega)) hr1 hr hL
+  exact da_row_shape_complete' rd hm gsq r L (hsq L (by omega)) hr1 hr hL
 
 end
 end LeanVM.Guest.B1.Da

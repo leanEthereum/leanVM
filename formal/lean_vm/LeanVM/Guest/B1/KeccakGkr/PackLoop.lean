@@ -15,11 +15,11 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 # The pack rounds' loops (`keccak_layer`, G:2732-2783)
 
 `for xs in mul_range(1, step_g)` in `keccak_layer` is lowered to a helper of parameters
-`[xs, step_g, rounds, prev_point, point, tabs]` (`Data.core456`, `Data.core458`: the same body but
+`[xs, step_g, rounds, prev_point, point, tabs]` (`Data.core443`, `Data.core445`: the same body but
 for the self-call's name, `pack8T`). At `x = g^j` it reads the record `rounds·x`, the eight
 coordinates `prev_point[8j ..]` (`prev_point·x⁸`), runs eight equality-mode rounds (`eqRound`, a
 round each `packRoundT`), stores their challenges at `point[8j ..]` and writes the record
-`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core457`, `Data.core459`,
+`rounds·x·g` (`Pack8Step`). `for x1 in mul_range(1, rem_g)` (`Data.core444`, `Data.core446`,
 `packRemT`, parameters `[x1, rem_g, rounds, prev_point, tabs, point]`) runs one round an iteration
 on `rounds·g^⌊y/8⌋`, `prev_point·g^(8⌊y/8⌋)`, `point·g^(8⌊y/8⌋)` (`PackRemStep`). Every grind of
 these rounds is of `0` bits: `tabs` is passed along, never read.
@@ -370,21 +370,21 @@ def remLoopName : ℕ → String
   | 1 => "__loop38"
   | _ => "__loop40"
 
-theorem pack8_body456 : Data.core456.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
-theorem pack8_body458 : Data.core458.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
-theorem packRem_body457 : Data.core457.body = packRemT "__loop38" :=
+theorem pack8_body456 : Data.core443.body = pack8T "__loop37" := stmtsEqb_sound (by decide +kernel)
+theorem pack8_body458 : Data.core445.body = pack8T "__loop39" := stmtsEqb_sound (by decide +kernel)
+theorem packRem_body457 : Data.core444.body = packRemT "__loop38" :=
   stmtsEqb_sound (by decide +kernel)
-theorem packRem_body459 : Data.core459.body = packRemT "__loop40" :=
+theorem packRem_body459 : Data.core446.body = packRemT "__loop40" :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem find_pack8_456 : coreProgram.find? "__loop37" = some Data.core456 :=
-  Program.find?_of_indexOf? (j := 456) (by decide +kernel) rfl
-theorem find_packRem_457 : coreProgram.find? "__loop38" = some Data.core457 :=
-  Program.find?_of_indexOf? (j := 457) (by decide +kernel) rfl
-theorem find_pack8_458 : coreProgram.find? "__loop39" = some Data.core458 :=
-  Program.find?_of_indexOf? (j := 458) (by decide +kernel) rfl
-theorem find_packRem_459 : coreProgram.find? "__loop40" = some Data.core459 :=
-  Program.find?_of_indexOf? (j := 459) (by decide +kernel) rfl
+theorem find_pack8_456 : coreProgram.find? "__loop37" = some Data.core443 :=
+  Program.find?_of_indexOf? (j := 443) (by decide +kernel) rfl
+theorem find_packRem_457 : coreProgram.find? "__loop38" = some Data.core444 :=
+  Program.find?_of_indexOf? (j := 444) (by decide +kernel) rfl
+theorem find_pack8_458 : coreProgram.find? "__loop39" = some Data.core445 :=
+  Program.find?_of_indexOf? (j := 445) (by decide +kernel) rfl
+theorem find_packRem_459 : coreProgram.find? "__loop40" = some Data.core446 :=
+  Program.find?_of_indexOf? (j := 446) (by decide +kernel) rfl
 
 /-- The loops' parameters: `[x, bound, rounds, prev_point, point, tabs]` for the eight-round
 loop, `[x, bound, rounds, prev_point, tabs, point]` for the remainder loop. -/

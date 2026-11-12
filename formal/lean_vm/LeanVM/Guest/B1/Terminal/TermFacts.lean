@@ -67,7 +67,7 @@ theorem term_flat : termPre.all Stmt.flat = true := by decide +kernel
 theorem term_addrs : termPre.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
 theorem term_allocs : termPre.filterMap Main.Stmt.allocSz =
-    [(.n 20, .inl 35), (.n 22, .inl 35), (.n 26, .inl 35), (.n 1694, .inl 41), (.n 1709, .inl 29)] := by
+    [(.n 20, .inl 35), (.n 22, .inl 35), (.n 26, .inl 35), (.n 1694, .inl 41), (.n 1709, .inl 31)] := by
   decide +kernel
 
 theorem term_not_loop : coreProgram.loop "check_opening_terminal" = false := by decide +kernel

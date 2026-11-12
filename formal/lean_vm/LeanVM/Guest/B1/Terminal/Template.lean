@@ -56,8 +56,8 @@ def slotBit (j k : ℕ) : Bool := (Data.arr_CLAIM_QKECCAK_SLOT_BITS.getD (6 * j 
 /-- The `q_keccak` slot of claim `j` of kind `3`. -/
 def termSlot (j : ℕ) : ℕ := ((List.range 6).map fun k ↦ if slotBit j k then 2 ^ k else 0).sum
 
-/-- The selectors' specializations, `column_selector__L{κ}`, `κ < 29`. -/
-def colSelNames : List String := (List.range 29).map (Tables.lName "column_selector")
+/-- The selectors' specializations, `column_selector__L{κ}`, `κ < 31`. -/
+def colSelNames : List String := (List.range 31).map (Tables.lName "column_selector")
 
 /-- The value holding `kappa_base[i]`, read in the head (G:3455-3457). -/
 abbrev kbV (i : ℕ) : ℕ := 35 + i
@@ -193,7 +193,7 @@ def termTailT (b acc lo : ℕ) : List Stmt :=
     .atom (.add (.n (b + 12)) (.n (b + 8)) (.n (b + 11))),
     .atom (.mul (.n (b + 13)) (.n (b + 12)) (.n (selV 4))),
     .atom (.add (.n (b + 14)) (.n acc) (.n (b + 13))),
-    .atom (.hint (.alloc (.n (b + 15)) 29)), .atom (.mul (.n (b + 16)) (.n lo) (.n 9)),
+    .atom (.hint (.alloc (.n (b + 15)) 31)), .atom (.mul (.n (b + 16)) (.n lo) (.n 9)),
     .call "eq_prefix_chain" [.n (b + 15), .n (b + 16), .n 18, .n 14, .n 19] [],
     .atom (.mul (.n (b + 17)) (.n (b + 15)) (.n 19)), .atom (.load (.n (b + 18)) (.n (b + 17)) 0),
     .atom (.add (.n (b + 19)) (.n (b + 14)) (.n (b + 18))),

@@ -85,8 +85,9 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
   obtain ⟨rd0, hl0, hm0⟩ := hex
   have P0 := hpre rd0 hl0 hm0
   simp only [TermPre, termArgs] at P0
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
+  obtain ⟨hT, hPC, -, hP, hSL, hSL30, hlm1, hlm32, hbus40, hHL, -, hglm, hgtau, -, -, -, -, hopl,
     -, hrpl, -, hcfl, -, hxl, -, -, hodl, -, hgm⟩ := P0
+  have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
   have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
@@ -114,30 +115,30 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
   set D := termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm gtau gm lamCl
     with hD
   have hst : ∀ rd, LowDef κ rd → MemL rd Lin →
-      MemL rd (Tables.stLin B.pt B.pt1 (pt28 x) (pt128 x)) := fun rd hl hm q hq => by
+      MemL rd (Tables.stLin B.pt B.pt1 (pt32 x) (pt132 x)) := fun rd hl hm q hq => by
     have P := hpre rd hl hm
     simp only [TermPre, termArgs] at P
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hpt, hpt1, -⟩ := P
     simp only [Tables.stLin, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl
-    · exact readsAt_take hpt 28
-    · exact readsAt_take hpt1 28
+    · exact readsAt_take hpt 32
+    · exact readsAt_take hpt1 32
   have f1 : D.τ + 6 ≤ 34 := by show τ + 6 ≤ 34; omega
   have f2 : D.ringPoint.length = D.τ + 6 := by
     show ringPoint.length = τ + 6; rw [hrpl, Tables.qkeccakSlotBits_eq]
   have f3 : D.coeffs.length = 64 := by show coeffs.length = 64; rw [hcfl]; rfl
-  have f4 : D.x.length ≤ 28 := by show x.length ≤ 28; omega
+  have f4 : D.x.length ≤ 32 := by show x.length ≤ 32; omega
   have f5 : D.outPt.length = D.τ + 6 := by
     show out.point.length = τ + 6; rw [hopl, Tables.qkeccakSlotBits_eq]
   have f7 : D.chis.length ≤ 34 := by show chis.length ≤ 34; omega
-  have f8 : D.ood.length ≤ 28 := by show oodPoint.length ≤ 28; omega
+  have f8 : D.ood.length ≤ 30 := by show oodPoint.length ≤ 30; omega
   have f9 : D.gm = gen ^ D.ood.length := by show gm = gen ^ oodPoint.length; rw [hgm, hodl]
   have hreg' : ∀ i, TermRegion D.B D.zs.length D.chis.length D.τ D.ood.length i → RegionL Lin i := by
     show ∀ i, TermRegion B bus.point.length chis.length τ oodPoint.length i → RegionL Lin i
     rw [hodl]; exact hreg
   refine completeAt_flatDepR find_term term_not_loop κ Lin _ [] term_body' term_flat term_addrs
     (by decide +kernel)
-    [35, 35, 35, 41, 29] (fun _ => termOwn D) (fun _ => ?_)
+    [35, 35, 35, 41, 31] (fun _ => termOwn D) (fun _ => ?_)
     (fun fp => termKids Lin D (fp + fs "check_opening_terminal")) (fun fp => ?_)
     (fun fp outs _ => termKids_regions Lin D _ hreg' f1 f2 f3 f4 outs)
     (fun fp outs _ rd hl hB hLin hLo => ?_) (fun fp outs hlen' ho rd hl hB hLin _ => ?_)
@@ -145,12 +146,12 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
       List.Forall₂.nil, and_true]
     have hol : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
     show bus.point.length + 1 ≤ 35 ∧ chis.length + 1 ≤ 35 ∧ layout.logMemory + 1 ≤ 35 ∧
-      out.point.length + 1 ≤ 41 ∧ oodPoint.length + 1 ≤ 29
+      out.point.length + 1 ≤ 41 ∧ oodPoint.length + 1 ≤ 31
     omega
   · refine termKids_complete κ hκ Lin D _ hreg' hbus f7 f4 f1 f5 f2 f3 hgmu hgzc hglm hgtau hlm1
       hlm32 (fun c hc => ?_) (fun c hc => ?_)
       (fun rd hl hm => ?_) f8 f9 (fun rd hl hm => ?_)
-    · have := hK c hc; show KC.getD c 0 < 29; omega
+    · have := hK c hc; show KC.getD c 0 < 31; omega
     · exact ⟨lt_of_lt_of_le (hO c) (Nat.pow_le_pow_right (by decide) hSL28),
         dvd_stackOffset KC (by omega)⟩
     · have P := hpre rd hl hm

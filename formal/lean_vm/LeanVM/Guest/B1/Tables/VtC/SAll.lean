@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SP2
 # Statements `0 ..< 765` (G:2242-2353)
 
 `vtS_complete`: for the memory's log-size `lm ≤ 32`, the bus point (`|point| < 33`) and the
-tables' heights `τ t = max (log2Ceil (n t)) floor < 29`, `τ t ≤ |point|`, on a memory defined
+tables' heights `τ t = max (log2Ceil (n t)) floor < 31`, `τ t ≤ |point|`, on a memory defined
 below `2^14` holding `dims_g` (`g^lm` and the heights), `table_rows`, the exponent tables, the
 bus point, the group buffers, `idxc_tab`, `zeta1` and the shared tables, the oracle returning
 `padding_weight`'s outcomes and `plus_one_run`'s `0`: every statement before the bus sides holds,
@@ -40,7 +40,7 @@ theorem vtTauList_getD {τ : ℕ → ℕ} {t : ℕ} (ht : t < 6) : (vtTauList τ
 theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (hlm : lm ≤ 32)
     (point : List E) (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
-    (hτ29 : ∀ t < 6, τ t < 29) (hτμ : ∀ t < 6, τ t ≤ point.length)
+    (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
     -- the arguments' buffers
     (hz : TbReadsAt rd (σv (.n 8)) point) (h9 : σv (.n 9) = gen ^ point.length)
     (hdims : TbReadsAt rd (σv (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
@@ -69,7 +69,7 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
       σv (.n 664) = w 664 ∧ σv (.n 699) = w 699 ∧
       σv (.n 701) = w 701 ∧ σv (.n 702) = w 702 := by
-  have hτ' : ∀ t < 6, τ t < 29 := hτ29
+  have hτ' : ∀ t < 6, τ t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   obtain ⟨h1, hcp, hkb, hal, hP, hC⟩ :=
     vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW
   have hkbt : ∀ t < 6, σv (.n (27 + t)) = gen ^ τ t := by
@@ -80,7 +80,7 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
     rw [show 2 + t = t + 1 + 1 by omega]
     simp only [List.cons_append, List.nil_append, List.getD_cons_succ]
     rw [vtTauList_getD ht]
-  obtain ⟨h2, hpw, hsl, e668, e703, e705, e706⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ29
+  obtain ⟨h2, hpw, hsl, e668, e703, e705, e706⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ31
     hτμ hkbt hz h9 hrows hE.1 hwp hidxc hz1 hw704 hrun
   exact ⟨forall_slice_join (a := 0) (l1 := 563) (l2 := 202) h1 h2, hcp, hkb, hal, hP, hC,
     hpw, hsl, e668, e703, e705, e706⟩

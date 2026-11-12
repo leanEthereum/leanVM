@@ -45,9 +45,9 @@ variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitnes
 
 /-! ## Bounds -/
 
-/-- The coverage table is below `2^16`. -/
-theorem regions_lt (hl : DeployedLimits s w) : rX s w + rY s w < 2 ^ 16 := by
-  have := hl.planSlotsBelow2Pow16
+/-- The coverage table is below `2^23`. -/
+theorem regions_lt (hl : GuestLimits s w) : rX s w + rY s w < 2 ^ 23 := by
+  have := hl.planSlotsBelow2Pow23
   rw [coverage_eq] at this
   simp only [List.length_append] at this
   simp only [rX, rY]
@@ -147,12 +147,12 @@ def rawXD (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.
   regClaim _ hi _ hk := xs_regClaim hi hk
 
 /-- **`__loop2` on an honest run.** -/
-theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.verify_lean_xmss_complete_Spec) : MainGoalL3 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl
+  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.toDeployedLimits
   have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
   have h := rawX_completeAt fs cert hc (rawXD fs fp hn (hRawX s w)[0]) (by omega) (by omega) 0 hpos
   rw [pow_zero] at h
@@ -225,12 +225,12 @@ def rawSD (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphinc
   regBytes _ hv := bytes_region hv
 
 /-- **`__loop3` on an honest run.** -/
-theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : DeployedLimits s w)
+theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (hc : Sig.SphincsCompleteSpecs) : MainGoalL4 fs cert fp seed s w := by
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl
+  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.toDeployedLimits
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAt fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) 0 hpos
   rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h

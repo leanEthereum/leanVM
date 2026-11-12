@@ -47,7 +47,7 @@ noncomputable abbrev LXS (σ : Val) : ℕ := lg σ 0 + lg σ 1
 noncomputable abbrev LSS (σ : Val) : ℕ := lg σ 3 + lg σ 4
 
 theorem a_le (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
-    ∀ c ≤ lg σ 6, (segsOf σ K).a c ≤ 131070 + c * 131070 := by
+    ∀ c ≤ lg σ 6, (segsOf σ K).a c ≤ 2 ^ 33 + c * 2 ^ 33 := by
   intro c
   induction c with
   | zero =>
@@ -65,7 +65,7 @@ theorem a_le (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K 
 
 /-- **The running counts**: `written[c] = g^(a c)`. -/
 theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
-    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 419)) c (gen ^ (segsOf σ K).a c) := by
+    ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 398)) c (gen ^ (segsOf σ K).a c) := by
   intro c
   induction c with
   | zero => intro _; rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]; exact MF.written0
@@ -78,6 +78,32 @@ theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     rw [Segs.a.eq_2, segsOf_ex, segsOf_es]
     exact this
 
+/-- **The last running count is the coverage table's size.** -/
+theorem a_total (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
+    (segsOf σ K).a (lg σ 6) = LXS σ + LSS σ := by
+  have hT := MF.total
+  have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
+  have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
+  have h2 := MF.writtenN
+  rw [hT.1] at h2
+  have := loadHolds_unique (written_eq MF hK (lg σ 6) le_rfl) h2
+  have hb := a_le MF hK (lg σ 6) le_rfl
+  have hk6 := MF.kids.2
+  have hb' : (segsOf σ K).a (lg σ 6) < 2 ^ 64 - 1 := by
+    have : lg σ 6 * 2 ^ 33 ≤ 16 * 2 ^ 33 := Nat.mul_le_mul_right _ hk6
+    omega
+  exact gen_pow_inj hb' (by omega) this
+
+/-- **Every running count is below `2^32`**: at most the last. -/
+theorem a_lt (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c : ℕ}
+    (hc : c ≤ lg σ 6) : (segsOf σ K).a c < 2 ^ 32 := by
+  have h := (segsOf σ K).a_mono hc
+  rw [a_total MF hK] at h
+  have hT := MF.total.2
+  have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
+  have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
+  omega
+
 /-- `SlotBelow` against a known power: the slot is below. -/
 theorem slotBelow_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 34) (hb : b = gen ^ M) (h : SlotBelow b e) :
     e < M := by
@@ -87,21 +113,21 @@ theorem slotBelow_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 34) (hb : b = gen ^ M) (h
 
 /-- **The raw signatures' slots**: one slot of its region per raw signature, holding its mark. -/
 theorem raw_slots (MF : MainFacts C rd σ) :
-    ∃ rx rs : ℕ → ℕ, (∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n 66)) (rx i) (gen ^ i)) ∧
+    ∃ rx rs : ℕ → ℕ, (∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n 45)) (rx i) (gen ^ i)) ∧
       ∀ j < lg σ 5, rs j < LSS σ ∧
-        LoadHolds rd (σ (.n 66)) (LXS σ + rs j) (gen ^ (lg σ 2 + j)) := by
+        LoadHolds rd (σ (.n 45)) (LXS σ + rs j) (gen ^ (lg σ 2 + j)) := by
   have hT := MF.total
   have h40 := MF.lxs
   have h41 := MF.lss
   have hc2 := (MF.counts 2 (by simp)).1
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
-  have hx : ∀ i, i < lg σ 2 → ∃ s, s < LXS σ ∧ LoadHolds rd (σ (.n 66)) s (gen ^ i) := by
+  have hx : ∀ i, i < lg σ 2 → ∃ s, s < LXS σ ∧ LoadHolds rd (σ (.n 45)) s (gen ^ i) := by
     intro i hi
     obtain ⟨-, s, hbl, hl⟩ := MF.rawx i hi
     exact ⟨s, belowLog_lt (by omega) h40 hbl, hl⟩
   have hs : ∀ j, j < lg σ 5 → ∃ s, s < LSS σ ∧
-      LoadHolds rd (σ (.n 66)) (LXS σ + s) (gen ^ (lg σ 2 + j)) := by
+      LoadHolds rd (σ (.n 45)) (LXS σ + s) (gen ^ (lg σ 2 + j)) := by
     intro j hj
     obtain ⟨s, hbl, hl, -⟩ := MF.raws j hj
     refine ⟨s, belowLog_lt (by omega) h41 hbl, ?_⟩
@@ -163,7 +189,7 @@ theorem kid_base (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c
 /-- **Child `c`'s leanXMSS claim `j`**: its slot below `LXS`, holding its writer's mark. -/
 theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).ex) :
-    (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n 66)) ((K c).ox j)
+    (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n 45)) ((K c).ox j)
       (gen ^ (segsOf σ K).wmark ((segsOf σ K).a c + j)) := by
   have hT := MF.total.2
   obtain ⟨hbl, hl, -⟩ := (hK c hc).xrec j hj
@@ -178,7 +204,7 @@ theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (
 mark. -/
 theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).es) :
-    (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n 66)) (LXS σ + (K c).os j)
+    (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n 45)) (LXS σ + (K c).os j)
       (gen ^ (segsOf σ K).wmark ((segsOf σ K).a c + (K c).ex + j)) := by
   have hT := MF.total.2
   obtain ⟨hbl, hl, -⟩ := (hK c hc).srec j hj
@@ -192,23 +218,16 @@ theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (
 set_option maxRecDepth 20000 in
 /-- **The writers of the coverage table.** -/
 theorem writers (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {rx rs : ℕ → ℕ}
-    (hrx : ∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n 66)) (rx i) (gen ^ i))
+    (hrx : ∀ i < lg σ 2, rx i < LXS σ ∧ LoadHolds rd (σ (.n 45)) (rx i) (gen ^ i))
     (hrs : ∀ j < lg σ 5, rs j < LSS σ ∧
-      LoadHolds rd (σ (.n 66)) (LXS σ + rs j) (gen ^ (lg σ 2 + j))) :
-    Writers rd (σ (.n 66)) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs) := by
+      LoadHolds rd (σ (.n 45)) (LXS σ + rs j) (gen ^ (lg σ 2 + j))) :
+    Writers rd (σ (.n 45)) (segsOf σ K) (LXS σ) (LSS σ) (slOf σ K rx rs) := by
   have hT := MF.total
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
   have hw := written_eq MF hK
   have htot : (segsOf σ K).a (segsOf σ K).NC = LXS σ + LSS σ := by
-    rw [segsOf_NC]
-    have h1 := hw (lg σ 6) le_rfl
-    have h2 := MF.writtenN
-    rw [hT.1] at h2
-    have := loadHolds_unique h1 h2
-    have hb := a_le MF hK (lg σ 6) le_rfl
-    have hk6 := MF.kids.2
-    exact gen_pow_inj34 (by omega) (by omega) this
+    rw [segsOf_NC]; exact a_total MF hK
   set S := segsOf σ K with hS
   have hRX : S.RX = lg σ 2 := rfl
   have hRS : S.RS = lg σ 5 := rfl

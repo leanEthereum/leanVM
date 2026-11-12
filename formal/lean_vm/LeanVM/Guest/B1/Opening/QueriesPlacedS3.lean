@@ -17,166 +17,175 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L14_L5_L4_L39_L20_L5_L1` is `CompleteAtB`. -/
-theorem oqD_496 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L14_L5_L4_L39_L20_L5_L1" "__loop343" (⟨0, 0, 4, 16, 14, 5, 4, 39, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 14, 5, 4, 39, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L9_L5
-    (Program.find?_of_indexOf? (j := 496) (by decide +kernel) rfl) rfl oqBody_496
-    (Program.find?_of_indexOf? (j := 923) (by decide +kernel) rfl) rfl oqLoopBody_496
+/-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1015 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0" "__loop505" (⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
+  oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L12_L6
+    (Program.find?_of_indexOf? (j := 1015) (by decide +kernel) rfl) rfl oqBody_1015
+    (Program.find?_of_indexOf? (j := 1514) (by decide +kernel) rfl) rfl oqLoopBody_1015
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L15_L5_L5_L120_L36_L6_L1` is `CompleteAtB`. -/
-theorem oqD_515 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L15_L5_L5_L120_L36_L6_L1" "__loop347" (⟨0, 0, 4, 16, 15, 5, 5, 120, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 15, 5, 5, 120, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L10_L5
-    (Program.find?_of_indexOf? (j := 515) (by decide +kernel) rfl) rfl oqBody_515
-    (Program.find?_of_indexOf? (j := 927) (by decide +kernel) rfl) rfl oqLoopBody_515
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L15_L5_L2_L208_L8_L3_L1` is `CompleteAtB`. -/
-theorem oqD_535 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L15_L5_L2_L208_L8_L3_L1" "__loop351" (⟨0, 0, 4, 16, 15, 5, 2, 208, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 15, 5, 2, 208, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L10_L5
-    (Program.find?_of_indexOf? (j := 535) (by decide +kernel) rfl) rfl oqBody_535
-    (Program.find?_of_indexOf? (j := 931) (by decide +kernel) rfl) rfl oqLoopBody_535
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L16_L5_L3_L290_L12_L4_L1` is `CompleteAtB`. -/
-theorem oqD_557 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L16_L5_L3_L290_L12_L4_L1" "__loop355" (⟨0, 0, 4, 16, 16, 5, 3, 290, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 16, 5, 3, 290, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L11_L5
-    (Program.find?_of_indexOf? (j := 557) (by decide +kernel) rfl) rfl oqBody_557
-    (Program.find?_of_indexOf? (j := 935) (by decide +kernel) rfl) rfl oqLoopBody_557
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L4_L372_L20_L5_L1` is `CompleteAtB`. -/
-theorem oqD_575 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L17_L5_L4_L372_L20_L5_L1" "__loop359" (⟨0, 0, 4, 16, 17, 5, 4, 372, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 17, 5, 4, 372, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+/-- `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1025 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0" "__loop509" (⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
     (by decide) (by decide +kernel) wpFn_L12_L5
-    (Program.find?_of_indexOf? (j := 575) (by decide +kernel) rfl) rfl oqBody_575
-    (Program.find?_of_indexOf? (j := 939) (by decide +kernel) rfl) rfl oqLoopBody_575
+    (Program.find?_of_indexOf? (j := 1025) (by decide +kernel) rfl) rfl oqBody_1025
+    (Program.find?_of_indexOf? (j := 1518) (by decide +kernel) rfl) rfl oqLoopBody_1025
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L18_L5_L5_L454_L36_L6_L1` is `CompleteAtB`. -/
-theorem oqD_592 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L18_L5_L5_L454_L36_L6_L1" "__loop363" (⟨0, 0, 4, 16, 18, 5, 5, 454, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 18, 5, 5, 454, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L13_L5
-    (Program.find?_of_indexOf? (j := 592) (by decide +kernel) rfl) rfl oqBody_592
-    (Program.find?_of_indexOf? (j := 943) (by decide +kernel) rfl) rfl oqLoopBody_592
+/-- `opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1` is `CompleteAtB`. -/
+theorem oqD_1040 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1" "__loop513" (⟨0, 0, 4, 16, 14, 2, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 14, 2, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L2
+    (Program.find?_of_indexOf? (j := 1040) (by decide +kernel) rfl) rfl oqBody_1040
+    (Program.find?_of_indexOf? (j := 1522) (by decide +kernel) rfl) rfl oqLoopBody_1040
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L18_L4_L2_L543_L8_L3_L1` is `CompleteAtB`. -/
-theorem oqD_611 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L18_L4_L2_L543_L8_L3_L1" "__loop367" (⟨0, 0, 4, 16, 18, 4, 2, 543, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 18, 4, 2, 543, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L14_L4
-    (Program.find?_of_indexOf? (j := 611) (by decide +kernel) rfl) rfl oqBody_611
-    (Program.find?_of_indexOf? (j := 947) (by decide +kernel) rfl) rfl oqLoopBody_611
+/-- `opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1076 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0" "__loop517" (⟨0, 0, 4, 16, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L6
+    (Program.find?_of_indexOf? (j := 1076) (by decide +kernel) rfl) rfl oqBody_1076
+    (Program.find?_of_indexOf? (j := 1527) (by decide +kernel) rfl) rfl oqLoopBody_1076
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L16_L5_L5_L666_L36_L6_L1` is `CompleteAtB`. -/
-theorem oqD_634 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L16_L5_L5_L666_L36_L6_L1" "__loop371" (⟨0, 0, 4, 16, 16, 5, 5, 666, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 16, 5, 5, 666, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L11_L5
-    (Program.find?_of_indexOf? (j := 634) (by decide +kernel) rfl) rfl oqBody_634
-    (Program.find?_of_indexOf? (j := 953) (by decide +kernel) rfl) rfl oqLoopBody_634
+/-- `opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1` is `CompleteAtB`. -/
+theorem oqD_1082 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1" "__loop521" (⟨0, 0, 4, 16, 16, 4, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 16, 4, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L4
+    (Program.find?_of_indexOf? (j := 1082) (by decide +kernel) rfl) rfl oqBody_1082
+    (Program.find?_of_indexOf? (j := 1531) (by decide +kernel) rfl) rfl oqLoopBody_1082
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L836_L12_L4_L1` is `CompleteAtB`. -/
-theorem oqD_657 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L17_L5_L3_L836_L12_L4_L1" "__loop375" (⟨0, 0, 4, 16, 17, 5, 3, 836, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 17, 5, 3, 836, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+/-- `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1` is `CompleteAtB`. -/
+theorem oqD_1119 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1" "__loop525" (⟨0, 0, 4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 14, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L2
+    (Program.find?_of_indexOf? (j := 1119) (by decide +kernel) rfl) rfl oqBody_1119
+    (Program.find?_of_indexOf? (j := 1536) (by decide +kernel) rfl) rfl oqLoopBody_1119
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1150 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0" "__loop529" (⟨0, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 :=
+  oqCompleteDB1 fs cert (s := ((⟨0, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide : 0 ≤ 1) (by decide +kernel) wpFn_L12_L6
+    (Program.find?_of_indexOf? (j := 1150) (by decide +kernel) rfl) rfl oqBody_1150
+    (Program.find?_of_indexOf? (j := 1540) (by decide +kernel) rfl) rfl oqLoopBody_1150
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1` is `CompleteAtB`. -/
+theorem oqD_1160 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L16_L4_L5_L15_L36_L6_L1" "__loop533" (⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 16, 4, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L4
+    (Program.find?_of_indexOf? (j := 1160) (by decide +kernel) rfl) rfl oqBody_1160
+    (Program.find?_of_indexOf? (j := 1545) (by decide +kernel) rfl) rfl oqLoopBody_1160
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1191 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0" "__loop537" (⟨1, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
+  oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L18_L4
+    (Program.find?_of_indexOf? (j := 1191) (by decide +kernel) rfl) rfl oqBody_1191
+    (Program.find?_of_indexOf? (j := 1550) (by decide +kernel) rfl) rfl oqLoopBody_1191
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1` is `CompleteAtB`. -/
+theorem oqD_1201 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1" "__loop541" (⟨0, 0, 4, 16, 18, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 18, 6, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L6
+    (Program.find?_of_indexOf? (j := 1201) (by decide +kernel) rfl) rfl oqBody_1201
+    (Program.find?_of_indexOf? (j := 1554) (by decide +kernel) rfl) rfl oqLoopBody_1201
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1` is `CompleteAtB`. -/
+theorem oqD_1245 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1" "__loop545" (⟨0, 0, 4, 16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 17, 5, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
     (by decide) (by decide +kernel) wpFn_L12_L5
-    (Program.find?_of_indexOf? (j := 657) (by decide +kernel) rfl) rfl oqBody_657
-    (Program.find?_of_indexOf? (j := 959) (by decide +kernel) rfl) rfl oqLoopBody_657
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L19_L5_L5_L1000_L36_L6_L1` is `CompleteAtB`. -/
-theorem oqD_681 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L19_L5_L5_L1000_L36_L6_L1" "__loop379" (⟨0, 0, 4, 16, 19, 5, 5, 1000, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 19, 5, 5, 1000, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L14_L5
-    (Program.find?_of_indexOf? (j := 681) (by decide +kernel) rfl) rfl oqBody_681
-    (Program.find?_of_indexOf? (j := 965) (by decide +kernel) rfl) rfl oqLoopBody_681
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L19_L4_L2_L1089_L8_L3_L1` is `CompleteAtB`. -/
-theorem oqD_699 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L19_L4_L2_L1089_L8_L3_L1" "__loop383" (⟨0, 0, 4, 16, 19, 4, 2, 1089, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 19, 4, 2, 1089, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L15_L4
-    (Program.find?_of_indexOf? (j := 699) (by decide +kernel) rfl) rfl oqBody_699
-    (Program.find?_of_indexOf? (j := 970) (by decide +kernel) rfl) rfl oqLoopBody_699
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L18_L4_L3_L1382_L12_L4_L1` is `CompleteAtB`. -/
-theorem oqD_736 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L18_L4_L3_L1382_L12_L4_L1" "__loop387" (⟨0, 0, 4, 16, 18, 4, 3, 1382, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 18, 4, 3, 1382, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L14_L4
-    (Program.find?_of_indexOf? (j := 736) (by decide +kernel) rfl) rfl oqBody_736
-    (Program.find?_of_indexOf? (j := 974) (by decide +kernel) rfl) rfl oqLoopBody_736
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
-theorem oqD_767 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0" "__loop391" (⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L18_L6
-    (Program.find?_of_indexOf? (j := 767) (by decide +kernel) rfl) rfl oqBody_767
-    (Program.find?_of_indexOf? (j := 979) (by decide +kernel) rfl) rfl oqLoopBody_767
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L20_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
-theorem oqD_783 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L20_L6_L0_L0_L0_L0_L0" "__loop395" (⟨1, 1, 6, 32, 20, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
-  oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 20, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L14_L6
-    (Program.find?_of_indexOf? (j := 783) (by decide +kernel) rfl) rfl oqBody_783
-    (Program.find?_of_indexOf? (j := 984) (by decide +kernel) rfl) rfl oqLoopBody_783
-
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L22_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
-theorem oqD_801 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L22_L6_L0_L0_L0_L0_L0" "__loop399" (⟨1, 1, 6, 32, 22, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
-  oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 22, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L16_L6
-    (Program.find?_of_indexOf? (j := 801) (by decide +kernel) rfl) rfl oqBody_801
-    (Program.find?_of_indexOf? (j := 990) (by decide +kernel) rfl) rfl oqLoopBody_801
+    (Program.find?_of_indexOf? (j := 1245) (by decide +kernel) rfl) rfl oqBody_1245
+    (Program.find?_of_indexOf? (j := 1559) (by decide +kernel) rfl) rfl oqLoopBody_1245
 
 set_option maxRecDepth 100000 in
 /-- `opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
-theorem oqD_823 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0" "__loop403" (⟨1, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
+theorem oqD_1281 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0" "__loop549" (⟨1, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
   oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
     (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L18_L6
-    (Program.find?_of_indexOf? (j := 823) (by decide +kernel) rfl) rfl oqBody_823
-    (Program.find?_of_indexOf? (j := 996) (by decide +kernel) rfl) rfl oqLoopBody_823
+    (Program.find?_of_indexOf? (j := 1281) (by decide +kernel) rfl) rfl oqBody_1281
+    (Program.find?_of_indexOf? (j := 1564) (by decide +kernel) rfl) rfl oqLoopBody_1281
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L21_L4_L5_L2092_L36_L6_L1` is `CompleteAtB`. -/
-theorem oqD_842 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L21_L4_L5_L2092_L36_L6_L1" "__loop407" (⟨0, 0, 4, 16, 21, 4, 5, 2092, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 21, 4, 5, 2092, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L17_L4
-    (Program.find?_of_indexOf? (j := 842) (by decide +kernel) rfl) rfl oqBody_842
-    (Program.find?_of_indexOf? (j := 1001) (by decide +kernel) rfl) rfl oqLoopBody_842
+/-- `opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1` is `CompleteAtB`. -/
+theorem oqD_1291 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1" "__loop553" (⟨0, 0, 4, 16, 20, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 20, 2, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L18_L2
+    (Program.find?_of_indexOf? (j := 1291) (by decide +kernel) rfl) rfl oqBody_1291
+    (Program.find?_of_indexOf? (j := 1568) (by decide +kernel) rfl) rfl oqLoopBody_1291
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L0_L4_L16_L21_L4_L2_L2181_L8_L3_L1` is `CompleteAtB`. -/
-theorem oqD_859 (fs : String → ℕ) (cert : String → V → ℕ) :
-    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L21_L4_L2_L2181_L8_L3_L1" "__loop411" (⟨0, 0, 4, 16, 21, 4, 2, 2181, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
-  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 21, 4, 2, 2181, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
-    (by decide) (by decide +kernel) wpFn_L17_L4
-    (Program.find?_of_indexOf? (j := 859) (by decide +kernel) rfl) rfl oqBody_859
-    (Program.find?_of_indexOf? (j := 1006) (by decide +kernel) rfl) rfl oqLoopBody_859
+/-- `opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1` is `CompleteAtB`. -/
+theorem oqD_1332 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1" "__loop557" (⟨0, 0, 4, 16, 19, 7, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 19, 7, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L12_L7
+    (Program.find?_of_indexOf? (j := 1332) (by decide +kernel) rfl) rfl oqBody_1332
+    (Program.find?_of_indexOf? (j := 1573) (by decide +kernel) rfl) rfl oqLoopBody_1332
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1368 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0" "__loop561" (⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
+  oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 26, 2, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L24_L2
+    (Program.find?_of_indexOf? (j := 1368) (by decide +kernel) rfl) rfl oqBody_1368
+    (Program.find?_of_indexOf? (j := 1578) (by decide +kernel) rfl) rfl oqLoopBody_1368
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1` is `CompleteAtB`. -/
+theorem oqD_1379 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1" "__loop565" (⟨0, 0, 4, 16, 21, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 21, 3, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L18_L3
+    (Program.find?_of_indexOf? (j := 1379) (by decide +kernel) rfl) rfl oqBody_1379
+    (Program.find?_of_indexOf? (j := 1582) (by decide +kernel) rfl) rfl oqLoopBody_1379
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1` is `CompleteAtB`. -/
+theorem oqD_1426 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1" "__loop569" (⟨0, 0, 4, 16, 20, 2, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 20, 2, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L18_L2
+    (Program.find?_of_indexOf? (j := 1426) (by decide +kernel) rfl) rfl oqBody_1426
+    (Program.find?_of_indexOf? (j := 1587) (by decide +kernel) rfl) rfl oqLoopBody_1426
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0` is `CompleteAtB`. -/
+theorem oqD_1465 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0" "__loop573" (⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq 1 :=
+  oqCompleteDB1 fs cert (s := ((⟨1, 1, 6, 32, 28, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide : 1 ≤ 1) (by decide +kernel) wpFn_L24_L4
+    (Program.find?_of_indexOf? (j := 1465) (by decide +kernel) rfl) rfl oqBody_1465
+    (Program.find?_of_indexOf? (j := 1592) (by decide +kernel) rfl) rfl oqLoopBody_1465
+
+set_option maxRecDepth 100000 in
+/-- `opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1` is `CompleteAtB`. -/
+theorem oqD_1476 (fs : String → ℕ) (cert : String → V → ℕ) :
+    OqCompleteDB fs cert "opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1" "__loop577" (⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq 0 :=
+  oqCompleteDB0 fs cert (s := ((⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq)) (by decide) (by decide) rfl (by decide)
+    (by decide) (by decide +kernel) wpFn_L18_L5
+    (Program.find?_of_indexOf? (j := 1476) (by decide +kernel) rfl) rfl oqBody_1476
+    (Program.find?_of_indexOf? (j := 1596) (by decide +kernel) rfl) rfl oqLoopBody_1476
 
 end
 end LeanVM.Guest.B1

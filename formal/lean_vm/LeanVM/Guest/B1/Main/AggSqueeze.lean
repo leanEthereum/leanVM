@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.AggAbsorb
 /-!
 # `__loop34` and `__loop35`
 
-* `l26_step` (`__loop34`, core function `445`): iteration `x = g^c` reads record `c` of
+* `l26_step` (`__loop34`, core function `430`): iteration `x = g^c` reads record `c` of
   `bc_chain` (`chain·x^2`, two words: `λ`'s power `λ^(2c)` and the running claim), writes the
   power times `λ²` into word `2` (record `c + 1`'s power) and the running claim plus the power
   times `fresh[23] + λ · carried[23]` of the child's claims (through the pointer tables `lf`,
@@ -73,10 +73,10 @@ def l26Ok (fn : Fn) : Bool :=
   A.any (isAddAt (.n 21) (.n 15) (.n 20)) && A.any (isLoadAt (.n 21) (.n 8) 3)
 
 set_option maxRecDepth 100000 in
-theorem l26_ok : l26Ok (coreProgram.getD 445 default) = true := by decide +kernel
+theorem l26_ok : l26Ok (coreProgram.getD 432 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l26_idx : coreProgram.indexOf? "__loop34" = some 445 := by decide +kernel
+theorem l26_idx : coreProgram.indexOf? "__loop34" = some 432 := by decide +kernel
 
 /-- **Child `x`'s record**: the record at `chain·x^2` holds `λ`'s power and the running claim;
 the next record holds the power times `λ²` and the running claim plus the power times
@@ -99,7 +99,7 @@ theorem l26_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop34" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N chainT lfT lcT lamSq lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 445 default).params =
+  have hpar : (coreProgram.getD 432 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs
@@ -217,10 +217,10 @@ def l27Ok (fn : Fn) : Bool :=
   A.any (isLoadAt (.n 179) (.n 180) 1)
 
 set_option maxRecDepth 100000 in
-theorem l27_ok : l27Ok (coreProgram.getD 447 default) = true := by decide +kernel
+theorem l27_ok : l27Ok (coreProgram.getD 434 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l27_idx : coreProgram.indexOf? "__loop35" = some 447 := by decide +kernel
+theorem l27_idx : coreProgram.indexOf? "__loop35" = some 434 := by decide +kernel
 
 /-- **Child `x`'s weight**: `w[x·g] = w[x] + p · (eq(fresh, r) + λ · eq(carried, r))`, `p` the
 power of `λ` at `chain·x^2`, the claims' points through the pointer tables, `r = 1 + r1`, `r1`
@@ -242,7 +242,7 @@ theorem l27_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop35" (x :: 
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepF hf hshape h
   refine ⟨fun N lfT lcT pt1 chainT wT lam hN => ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 447 default).params =
+  have hpar : (coreProgram.getD 434 default).params =
       [V.n 0, V.n 1, V.n 2, V.n 3, V.n 4, V.n 5, V.n 6, V.n 7] := by
     have hs := hshape
     simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs

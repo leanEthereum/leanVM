@@ -43,7 +43,7 @@ theorem freshShaped_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytec
 
 /-- **`main`'s callees on the honest run**, but the children's loop and the aggregation. -/
 theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w)
-    (hl : DeployedLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hl : GuestLimits s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
     (hsc : Sig.SphincsCompleteSpecs)
     (hdv : MainGoalDv fs cert fp seed s w) (hl5 : MainGoalL5 fs cert fp seed s w)
     (hag : MainGoalAg fs cert fp seed s w) : MainGoals fs cert fp seed s w where
@@ -62,7 +62,7 @@ theorem mainGoals_of (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecod
 it (B1-d's `verify_sub` completeness, per honest child). -/
 def VerifySubGoals (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) : Prop :=
-  ∀ c (hc : c < w.children.length), CompleteAtD fs cert 16 "verify_sub" (hLmain fs fp seed s w)
+  ∀ c (hc : c < w.children.length), CompleteAtD fs cert 20 "verify_sub" (hLmain fs fp seed s w)
     [(digestHalves (statementDigest seed w.children[c].statement)).1,
       (digestHalves (statementDigest seed w.children[c].statement)).2,
       (digestHalves seed).1, (digestHalves seed).2, (hm fs fp seed s w).et,

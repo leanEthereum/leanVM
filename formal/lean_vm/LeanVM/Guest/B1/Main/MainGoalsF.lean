@@ -190,10 +190,10 @@ theorem mf_region {i : ℕ} (hi : i < 10) {k : ℕ} (hk : k < ((hOwn seed s w).g
 /-! ## The goals -/
 
 theorem mainGoalL1 : MainGoalL1 fs cert fp seed s w := fun hne =>
-  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 16
+  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 20
 
 theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
-  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 16
+  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 20
 
 /-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
 `2^23` words making the deferred claim `24` cells. -/

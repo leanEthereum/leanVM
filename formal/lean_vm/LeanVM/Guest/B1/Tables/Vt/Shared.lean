@@ -127,7 +127,7 @@ theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} 
     (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
     (hz1 : TbReadsAt Lm.read (σ (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList)
-    {t τ : ℕ} (ht : t < 6) (hτ : τ < 29) (hkbt : σ (.n (27 + t)) = gen ^ τ) :
+    {t τ : ℕ} (ht : t < 6) (hτ : τ < 33) (hkbt : σ (.n (27 + t)) = gen ^ τ) :
     ∃ d, σ (.n (vtShLen t)) = gen ^ d ∧ point.length = d + τ ∧
       RunTables Lm.read (σ (.n 701) * gen ^ (288 * t)) (σ (.n 702) * gen ^ (144 * t)) d
         (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d) := by

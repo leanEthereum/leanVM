@@ -128,10 +128,10 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
     refine ⟨w17, ?_, ?_⟩
     · rw [a20, c19, w17, tb_word_one]
     · rw [c21, tb_word_one]
-  have hn28 : H.n < 29 := by
-    have := hs.hτ29
+  have hn32 : H.n < 33 := by
+    have := hs.hτ33
     unfold VtHonest.n
-    have hall : ∀ x ∈ tableHeightsOf H.rows, x < 29 := by
+    have hall : ∀ x ∈ tableHeightsOf H.rows, x < 33 := by
       intro x hx
       obtain ⟨t, ht, rfl⟩ := List.getElem_of_mem hx
       have ht6 : t < 6 := by
@@ -140,12 +140,12 @@ theorem verify_tables_completeAtTB {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (
         unfold tableHeightsOf at ht'
         rw [List.length_zipWith] at ht'
         omega
-      have := hs.hτ29 t ht6
+      have := hs.hτ33 t ht6
       rw [vtHt, List.getD_eq_getElem _ _ ht] at this
       exact this
     clear this
     generalize tableHeightsOf H.rows = l at hall
-    have : ∀ a, a < 29 → l.foldl max a < 29 := by
+    have : ∀ a, a < 33 → l.foldl max a < 33 := by
       induction l with
       | nil => intro a ha; exact ha
       | cons x l ih =>

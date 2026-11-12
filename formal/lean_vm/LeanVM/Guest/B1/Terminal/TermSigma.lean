@@ -174,22 +174,22 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     (hol : outs.length = 101)
     (ho : OutsOk (kidsAt (termKids Lin (termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu
       gzcn glm gtau gm lamCl) b0) [] outs) outs)
-    (hB : MemL rd (bufL b0 [35, 35, 35, 41, 29]
+    (hB : MemL rd (bufL b0 [35, 35, 35, 41, 31]
       (termOwn (termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm gtau gm
         lamCl)))) :
     ∃ σ : Val, Data.core17.params.map σ = termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm ∧
       (∀ s ∈ termPre, DispOk σ s) ∧
       Stmt.HoldsList (fun _ _ _ => True) rd σ Data.core17.body False (fun r => r = []) ∧
       (termPre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) =
-        [35, 35, 35, 41, 29] ∧
+        [35, 35, 35, 41, 31] ∧
       ((termPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-        (bases b0 [35, 35, 35, 41, 29]).map (fun b => ofK (addressOfIndex b)) ∧
+        (bases b0 [35, 35, 35, 41, 31]).map (fun b => ofK (addressOfIndex b)) ∧
       CallsMatch σ ((termPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
         (kidsAt (termKids Lin (termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm
           gtau gm lamCl) b0) [] outs) outs ∧
       ∀ q ∈ termPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 =
           addressOfIndex i ∧
-        (RegionL Lin i ∨ RegionL (bufL b0 [35, 35, 35, 41, 29]
+        (RegionL Lin i ∨ RegionL (bufL b0 [35, 35, 35, 41, 31]
           (termOwn (termD B layout bus out ringPoint coeffs x chis oodPoint rm gmu gzcn glm gtau gm
             lamCl))) i ∨
           outRegion (kidsAt (termKids Lin (termD B layout bus out ringPoint coeffs x chis oodPoint rm
@@ -199,8 +199,9 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   set args := termArgs B rm gmu gzcn glm gtau lamCl inner yr target gm with hargs
   -- the precondition
   simp only [TermPre, hargs, termArgs] at P
-  obtain ⟨hT, hPC, -, hP, hSL, hSL28, hlm1, -, hbus40, hHL, -, hglm, hgtau, hkbR, -, hlamC,
+  obtain ⟨hT, hPC, -, hP, hSL, hSL30, hlm1, -, hbus40, hHL, -, hglm, hgtau, hkbR, -, hlamC,
     hoc, hopl, hoz, hrpl, hrp, hcfl, hct, hxl, hpt, hpt1, hodl, hodR, hgm⟩ := P
+  have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis', hzR, hgmu, hchR, hgzc, hchL, -, hcols, hpts⟩ := hT
   obtain ⟨hkap, hOr⟩ := hPC
   have hcc : chis' = chis := by
@@ -317,7 +318,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   have hoL : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
   -- the regions
   set R : ℕ → Prop := fun i => RegionL Lin i ∨
-    RegionL (bufL b0 [35, 35, 35, 41, 29] (termOwn D)) i ∨
+    RegionL (bufL b0 [35, 35, 35, 41, 31] (termOwn D)) i ∨
     outRegion (kidsAt (termKids Lin D b0) [] outs) outs i with hR
   have aL : ∀ b k, TermRegion B bus.point.length chis'.length τ layout.stackLog (b + k) →
       AddrIn R (ofK (addressOfIndex b)) k := fun b k h
@@ -356,11 +357,11 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n (kbV (Tables.colKappaSrc c))) * gen ^ Tables.colKappaAdj c = gen ^ KC.getD c 0 :=
     fun c hc ↦ by rw [hkb _ (hsrc8 c), hKCv c hc, pow_add]
   -- the selectors
-  have hst3 : Tables.stOut B.pt B.pt1 (pt28 x) (pt128 x) (stRes outs).1 (stRes outs).2 := by
+  have hst3 : Tables.stOut B.pt B.pt1 (pt32 x) (pt132 x) (stRes outs).1 (stRes outs).2 := by
     have := outsOk_at ho 3 (by rw [termKids_length]; omega) (by omega) (by rw [termKid3])
     rw [termKid3] at this
     exact this
-  have hKC29 : ∀ c < Tables.nCommittedCols, KC.getD c 0 < 29 := fun c hc => by
+  have hKC31 : ∀ c < Tables.nCommittedCols, KC.getD c 0 < 31 := fun c hc => by
     have := hK c hc; omega
   have hsl : ∀ c, c < Tables.nCommittedCols →
       (∀ s ∈ selBlockT c, Fwd.SHolds TrivC rd σ s) ∧ (∀ s ∈ selBlockT c, DispOk σ s) ∧
@@ -370,7 +371,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n ((selKap c).2.2 + 1)) = σ (.n 0) * gen ^ 34 ∧
       σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := fun c hc =>
     sel_complete hS hc (fun s hs => gS s (List.mem_flatMap.mpr ⟨c, List.mem_range.mpr hc, hs⟩))
-      (hKC29 c hc) (by rw [e10]; exact hoff' c hc)
+      (hKC31 c hc) (by rw [e10]; exact hoff' c hc)
       (by rw [e10]; exact aL _ _ (by simp only [TermRegion]; omega))
       (hkapc c hc)
   have hselv : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =
@@ -390,7 +391,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rw [(hsl c hc).2.2.2.2.2.2, h1]
     rw [List.getD_cons_zero]
     show selRet x KC (stackOffsets KC).1 c = _
-    unfold selRet pt28 pt128 p1Of
+    unfold selRet pt32 pt132 p1Of
     rw [bitsEq_sel _ (by have := hK c hc; omega) hxl40,
       selProd_pad hxl (hO c) (hK c hc) (by omega)]
   -- the claims
@@ -604,11 +605,11 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       rw [termKids_getD_sel Lin D b0 hc] at hOK ⊢
       obtain ⟨-, -, -, e36, e37, e38, esel⟩ := hsl c hc
       have hlog : logG (σ (.n (selKap c).2.1)) = KC.getD c 0 := by
-        rw [e37, gen_pow_eq_ofK]; exact logG_spec (by have := hKC29 c hc; omega)
+        rw [e37, gen_pow_eq_ofK]; exact logG_spec (by have := hKC31 c hc; omega)
       refine ⟨?_, ?_, fun ht => ⟨?_, ?_⟩⟩
       · show colSelNames.getD (logG (σ (.n (selKap c).2.1))) "" =
           Tables.lName "column_selector" (KC.getD c 0)
-        rw [hlog, colSelNames, List.getD_eq_getElem _ _ (by simp; exact hKC29 c hc),
+        rw [hlog, colSelNames, List.getD_eq_getElem _ _ (by simp; exact hKC31 c hc),
           List.getElem_map, List.getElem_range]
       · show true = @decide _ (Classical.propDecidable _)
         refine (@decide_eq_true _ (Classical.propDecidable _) ?_).symm

@@ -72,7 +72,7 @@ def qwTop (d t : ℕ) : ℕ := if t < 128 / d then t * d else min 128 (128 / d *
 
 /-- What the proof needs of a shape, decided for the deployed ones. -/
 def QwShape (d cd : ℕ) : Prop :=
-  14 ≤ d ∧ d ≤ 26 ∧ 128 / d * qwN d cd ≤ 36 ∧ qwOff d cd 0 = 0 ∧ qwN d cd ≤ 8 ∧
+  12 ≤ d ∧ d ≤ 28 ∧ 128 / d * qwN d cd ≤ 36 ∧ qwOff d cd 0 = 0 ∧ qwN d cd ≤ 8 ∧
     (∀ i < qwN d cd, 1 ≤ (qwWin d cd i).2 ∧ (qwWin d cd i).2 ≤ 7 ∧
       qwOff d cd i + (qwWin d cd i).2 = qwOff d cd (i + 1) ∧
       (qwWin d cd i).1 + (qwWin d cd i).2 ≤ d) ∧
@@ -349,7 +349,7 @@ theorem qwSums {d cd cut : ℕ} (hs : QwShape d cd) (hc : cut ≤ 64) {ns : ℕ 
 
 theorem qwPr_sound {rd : Reader} {σ : Val} {j base cut d k : ℕ} {lo hi : V} {recon : Option V}
     (h : qwAH rd σ (qwPr j base cut d k lo hi recon).1) (hrec : recon = none → base = 0)
-    {P : ℕ} (hP : P < 2 ^ d) (hd : 1 ≤ d) (hd26 : d ≤ 26) (hbase : base + d ≤ 128)
+    {P : ℕ} (hP : P < 2 ^ d) (hd : 1 ≤ d) (hd26 : d ≤ 28) (hbase : base + d ≤ 128)
     (hcut : cut = 64 - base % 64) (hlo : σ lo = eOfNat (P % 2 ^ cut))
     (hhi : cut < d → σ hi = eOfNat (P / 2 ^ cut)) :
     LoadHolds rd (σ (.n 1)) j (eOfNat P) ∧

@@ -104,7 +104,7 @@ theorem block_holds {B : List Stmt} (hall : B.all isAtom = true)
         simp only [Side]
         rw [ite_pos' hns]
         trivial
-      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr => simp [needsSide] at hns
+      | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
       | _ => trivial
     · cases hik : inkB (inKVals (atomsL B)) a
       · rcases hR a (List.mem_filter.mpr ⟨ha, by simp [hns, hik]⟩) with h | h

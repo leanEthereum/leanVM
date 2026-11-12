@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Bits.BusGrind
 
-  `bus_grind_check__L{d}`: the bus's grind at a push depth of `MIN_LOG_MEM + d`, a call of
+  `bus_grind_check__L{d}`: the bus's grind at a push depth of `BUS_MIN_MU + d`, a call of
   `grind_check` returning `0`.
 -/
 
@@ -13,9 +13,9 @@ public import LeanVM.Guest.B1.Bits.Grind
 # `bus_grind_check`
 
 `bus_grind_check(word, tabs, d)` (`lean_ethereum.py`) calls `grind_check(word, tabs,
-BUS_GRIND_BITS[MIN_LOG_MEM + d])` and returns `0`; one specialization per `d < 18`, the push
-depths from `minLogMem` below `SIZE_BITS`. Its bits are `busGrindingBits (minLogMem + d)`, which
-is `13 + d` (`busGrindBits_eq`), a deployed `grind_check` (`busGrindBits_mem`).
+BUS_GRIND_BITS[BUS_MIN_MU + d])` and returns `0`; one specialization per `d < 14`, the push
+depths from `busMinMu` below `SIZE_BITS`. Its bits are `busGrindingBits (busMinMu + d)`, which
+is `17 + d` (`busGrindBits_eq`), a deployed `grind_check` (`busGrindBits_mem`).
 
 `bus_grind_check_found`: every specialization is `bgBody d` (a kernel check each).
 `bus_grind_check_holds`: its relation is its meaning (`MeaningBusGrindCheck`), from
@@ -30,14 +30,18 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The deployed `bus_grind_check__L{d}`. -/
-def busGrindDeployed : List ℕ := List.range 18
+def busGrindDeployed : List ℕ := List.range 14
 
 /-- `bus_grind_check__L{d}` (a table: `toString`'s body is not exposed to a `module`'s kernel). -/
 def busGrindName (d : ℕ) : String :=
-  ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13", "bus_grind_check__L14", "bus_grind_check__L15", "bus_grind_check__L16", "bus_grind_check__L17"].getD d ""
+  ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"].getD d ""
 
-/-- `BUS_GRIND_BITS[MIN_LOG_MEM + d]`: the protocol's grind at push depth `minLogMem + d`. -/
-def busGrindBits (d : ℕ) : ℕ := busGrindingBits (minLogMem + d)
+/-- `BUS_MIN_MU`: the least push depth of an execution of the guest's bytecode, where the bus
+grind's arms start (`placeholders.rs`). -/
+abbrev busMinMu : ℕ := 20
+
+/-- `BUS_GRIND_BITS[BUS_MIN_MU + d]`: the protocol's grind at push depth `busMinMu + d`. -/
+def busGrindBits (d : ℕ) : ℕ := busGrindingBits (busMinMu + d)
 
 /-- From a depth of `4`, a bus grind is three bits short of it. -/
 theorem busGrindingBits_of {mu : ℕ} (h : 4 ≤ mu) : busGrindingBits mu = mu - 3 := by
@@ -52,9 +56,9 @@ theorem busGrindingBits_of {mu : ℕ} (h : 4 ≤ mu) : busGrindingBits mu = mu -
   have hle : mu - 1 ≤ Nat.log2 (2 ^ mu - 1) := (Nat.le_log2 (by omega)).2 (by omega)
   omega
 
-theorem busGrindBits_eq (d : ℕ) : busGrindBits d = 13 + d := by
-  rw [busGrindBits, busGrindingBits_of (by simp only [minLogMem]; omega)]
-  simp only [minLogMem]
+theorem busGrindBits_eq (d : ℕ) : busGrindBits d = 17 + d := by
+  rw [busGrindBits, busGrindingBits_of (by simp only [busMinMu]; omega)]
+  simp only [busMinMu]
   omega
 
 theorem busGrindBits_mem : ∀ d ∈ busGrindDeployed, busGrindBits d ∈ grindBitsDeployed := by
@@ -69,111 +73,87 @@ def bgBody (d : ℕ) : List Stmt :=
     .ret [.n 2]]
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_0 : coreProgram.find? (busGrindName 0) = some Data.core312 ∧
-    Data.core312.params = [.n 0, .n 1] ∧ Data.core312.body = bgBody 0 :=
-  ⟨Program.find?_of_indexOf? (j := 312) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_1 : coreProgram.find? (busGrindName 1) = some Data.core313 ∧
-    Data.core313.params = [.n 0, .n 1] ∧ Data.core313.body = bgBody 1 :=
-  ⟨Program.find?_of_indexOf? (j := 313) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_2 : coreProgram.find? (busGrindName 2) = some Data.core314 ∧
-    Data.core314.params = [.n 0, .n 1] ∧ Data.core314.body = bgBody 2 :=
-  ⟨Program.find?_of_indexOf? (j := 314) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_3 : coreProgram.find? (busGrindName 3) = some Data.core315 ∧
-    Data.core315.params = [.n 0, .n 1] ∧ Data.core315.body = bgBody 3 :=
-  ⟨Program.find?_of_indexOf? (j := 315) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_4 : coreProgram.find? (busGrindName 4) = some Data.core316 ∧
-    Data.core316.params = [.n 0, .n 1] ∧ Data.core316.body = bgBody 4 :=
-  ⟨Program.find?_of_indexOf? (j := 316) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_5 : coreProgram.find? (busGrindName 5) = some Data.core317 ∧
-    Data.core317.params = [.n 0, .n 1] ∧ Data.core317.body = bgBody 5 :=
-  ⟨Program.find?_of_indexOf? (j := 317) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_6 : coreProgram.find? (busGrindName 6) = some Data.core318 ∧
-    Data.core318.params = [.n 0, .n 1] ∧ Data.core318.body = bgBody 6 :=
-  ⟨Program.find?_of_indexOf? (j := 318) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_7 : coreProgram.find? (busGrindName 7) = some Data.core319 ∧
-    Data.core319.params = [.n 0, .n 1] ∧ Data.core319.body = bgBody 7 :=
-  ⟨Program.find?_of_indexOf? (j := 319) (by decide +kernel) rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_8 : coreProgram.find? (busGrindName 8) = some Data.core320 ∧
-    Data.core320.params = [.n 0, .n 1] ∧ Data.core320.body = bgBody 8 :=
+theorem bus_grind_check_found_0 : coreProgram.find? (busGrindName 0) = some Data.core320 ∧
+    Data.core320.params = [.n 0, .n 1] ∧ Data.core320.body = bgBody 0 :=
   ⟨Program.find?_of_indexOf? (j := 320) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_9 : coreProgram.find? (busGrindName 9) = some Data.core321 ∧
-    Data.core321.params = [.n 0, .n 1] ∧ Data.core321.body = bgBody 9 :=
+theorem bus_grind_check_found_1 : coreProgram.find? (busGrindName 1) = some Data.core321 ∧
+    Data.core321.params = [.n 0, .n 1] ∧ Data.core321.body = bgBody 1 :=
   ⟨Program.find?_of_indexOf? (j := 321) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_10 : coreProgram.find? (busGrindName 10) = some Data.core322 ∧
-    Data.core322.params = [.n 0, .n 1] ∧ Data.core322.body = bgBody 10 :=
+theorem bus_grind_check_found_2 : coreProgram.find? (busGrindName 2) = some Data.core322 ∧
+    Data.core322.params = [.n 0, .n 1] ∧ Data.core322.body = bgBody 2 :=
   ⟨Program.find?_of_indexOf? (j := 322) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_11 : coreProgram.find? (busGrindName 11) = some Data.core323 ∧
-    Data.core323.params = [.n 0, .n 1] ∧ Data.core323.body = bgBody 11 :=
+theorem bus_grind_check_found_3 : coreProgram.find? (busGrindName 3) = some Data.core323 ∧
+    Data.core323.params = [.n 0, .n 1] ∧ Data.core323.body = bgBody 3 :=
   ⟨Program.find?_of_indexOf? (j := 323) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_12 : coreProgram.find? (busGrindName 12) = some Data.core324 ∧
-    Data.core324.params = [.n 0, .n 1] ∧ Data.core324.body = bgBody 12 :=
+theorem bus_grind_check_found_4 : coreProgram.find? (busGrindName 4) = some Data.core324 ∧
+    Data.core324.params = [.n 0, .n 1] ∧ Data.core324.body = bgBody 4 :=
   ⟨Program.find?_of_indexOf? (j := 324) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_13 : coreProgram.find? (busGrindName 13) = some Data.core325 ∧
-    Data.core325.params = [.n 0, .n 1] ∧ Data.core325.body = bgBody 13 :=
+theorem bus_grind_check_found_5 : coreProgram.find? (busGrindName 5) = some Data.core325 ∧
+    Data.core325.params = [.n 0, .n 1] ∧ Data.core325.body = bgBody 5 :=
   ⟨Program.find?_of_indexOf? (j := 325) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_14 : coreProgram.find? (busGrindName 14) = some Data.core326 ∧
-    Data.core326.params = [.n 0, .n 1] ∧ Data.core326.body = bgBody 14 :=
+theorem bus_grind_check_found_6 : coreProgram.find? (busGrindName 6) = some Data.core326 ∧
+    Data.core326.params = [.n 0, .n 1] ∧ Data.core326.body = bgBody 6 :=
   ⟨Program.find?_of_indexOf? (j := 326) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_15 : coreProgram.find? (busGrindName 15) = some Data.core327 ∧
-    Data.core327.params = [.n 0, .n 1] ∧ Data.core327.body = bgBody 15 :=
+theorem bus_grind_check_found_7 : coreProgram.find? (busGrindName 7) = some Data.core327 ∧
+    Data.core327.params = [.n 0, .n 1] ∧ Data.core327.body = bgBody 7 :=
   ⟨Program.find?_of_indexOf? (j := 327) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_16 : coreProgram.find? (busGrindName 16) = some Data.core328 ∧
-    Data.core328.params = [.n 0, .n 1] ∧ Data.core328.body = bgBody 16 :=
+theorem bus_grind_check_found_8 : coreProgram.find? (busGrindName 8) = some Data.core328 ∧
+    Data.core328.params = [.n 0, .n 1] ∧ Data.core328.body = bgBody 8 :=
   ⟨Program.find?_of_indexOf? (j := 328) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
-theorem bus_grind_check_found_17 : coreProgram.find? (busGrindName 17) = some Data.core329 ∧
-    Data.core329.params = [.n 0, .n 1] ∧ Data.core329.body = bgBody 17 :=
+theorem bus_grind_check_found_9 : coreProgram.find? (busGrindName 9) = some Data.core329 ∧
+    Data.core329.params = [.n 0, .n 1] ∧ Data.core329.body = bgBody 9 :=
   ⟨Program.find?_of_indexOf? (j := 329) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem bus_grind_check_found_10 : coreProgram.find? (busGrindName 10) = some Data.core330 ∧
+    Data.core330.params = [.n 0, .n 1] ∧ Data.core330.body = bgBody 10 :=
+  ⟨Program.find?_of_indexOf? (j := 330) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem bus_grind_check_found_11 : coreProgram.find? (busGrindName 11) = some Data.core331 ∧
+    Data.core331.params = [.n 0, .n 1] ∧ Data.core331.body = bgBody 11 :=
+  ⟨Program.find?_of_indexOf? (j := 331) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem bus_grind_check_found_12 : coreProgram.find? (busGrindName 12) = some Data.core332 ∧
+    Data.core332.params = [.n 0, .n 1] ∧ Data.core332.body = bgBody 12 :=
+  ⟨Program.find?_of_indexOf? (j := 332) (by decide +kernel) rfl, rfl,
+    stmtsEqb_sound (by decide +kernel)⟩
+
+set_option maxRecDepth 100000 in
+theorem bus_grind_check_found_13 : coreProgram.find? (busGrindName 13) = some Data.core333 ∧
+    Data.core333.params = [.n 0, .n 1] ∧ Data.core333.body = bgBody 13 :=
+  ⟨Program.find?_of_indexOf? (j := 333) (by decide +kernel) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 /-- **Every deployed `bus_grind_check` is the template.** -/
@@ -197,10 +177,6 @@ theorem bus_grind_check_found : ∀ d ∈ busGrindDeployed, ∃ fn : Fn,
   · exact ⟨_, bus_grind_check_found_11⟩
   · exact ⟨_, bus_grind_check_found_12⟩
   · exact ⟨_, bus_grind_check_found_13⟩
-  · exact ⟨_, bus_grind_check_found_14⟩
-  · exact ⟨_, bus_grind_check_found_15⟩
-  · exact ⟨_, bus_grind_check_found_16⟩
-  · exact ⟨_, bus_grind_check_found_17⟩
 
 /-- **`bus_grind_check__L{d}`**: the word's low limb passes the proof of work of
 `busGrindBits d` bits; it returns `0`. -/

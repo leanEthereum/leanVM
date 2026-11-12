@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Digest.CompleteSmall
   walk the run's events, the condition, the arm's events, then the run's.
 * `pure_one`: a function whose body places nothing and calls only itself is pure on its own.
 * `list_split_completeAt`: `list_split` (a leaf without loads, its range checks reading below
-  `2^16`) is `CompleteAtD` with its split's returns, reading no caller's word.
+  `2^20`) is `CompleteAtD` with its split's returns, reading no caller's word.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -79,8 +79,8 @@ theorem list_split_pure : coreProgram.PureIn ["list_split"] :=
 
 /-- **`list_split` is complete, placed**: its split's returns, no caller's word read. -/
 theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {a b c : ℕ}
-    (ha : a < maxKeys) (hb : b < bigGroups) (hc : c < claimGroup) :
-    CompleteAtD fs cert 16 "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
+    (ha : a < bigFramesCap) (hb : b < bigGroups) (hc : c < claimGroup) :
+    CompleteAtD fs cert 20 "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
       (Returns [gen ^ a, gen ^ b, gen ^ c]) :=
   Lift.completeAtD_of_relIn list_split_pure (List.mem_singleton_self _) fun rd hl _ =>
     Lift.relIn_of_leaf find_list_split list_split_leafOk

@@ -107,7 +107,7 @@ theorem digestOfCells_zero : digestOfCells 0 0 = zeroDigest := by
 /-- A DA digest slot of `da_digests` holding the cells `d0`, `d1` decodes to their digest, whose
 bytes are theirs. -/
 theorem daDigestAt_of_loads {σ : Val} {k : ℕ} {d0 d1 : E}
-    (h0 : LoadHolds rd (σ (.n 385)) (2 * k) d0) (h1 : LoadHolds rd (σ (.n 385)) (2 * k + 1) d1) :
+    (h0 : LoadHolds rd (σ (.n 364)) (2 * k) d0) (h1 : LoadHolds rd (σ (.n 364)) (2 * k + 1) d1) :
     daDigestAt rd σ k = digestOfCells d0 d1 ∧
       digestBytes (daDigestAt rd σ k) = cellsBytes [d0, d1] := by
   have e : daDigestAt rd σ k = digestOfCells d0 d1 := by

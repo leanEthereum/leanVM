@@ -343,7 +343,7 @@ region `spc` below `lss`), its DA digest's cells at `da_digests · x^2`, its sta
 def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst spc lss carried dadig s0 s1
     cpi gsq cfresh x : E) : Prop :=
   ∃ (base cx0 cx1 cs0 cs1 d0 d1 p0 p1 : E) (ex es : ℕ),
-    LoadHolds rd (written * x) 0 base ∧ ex ≤ 65535 ∧ es ≤ 65535 ∧
+    LoadHolds rd (written * x) 0 base ∧ ex < 2 ^ 32 ∧ es < 2 ^ 32 ∧
     coreProgram.Rel rd "child_claim_list_digest" [lxt, cover, base, lxs, gen ^ ex] [cx0, cx1] ∧
     coreProgram.Rel rd "child_claim_list_digest" [lst, spc, base * gen ^ ex, lss, gen ^ es]
       [cs0, cs1] ∧
@@ -365,7 +365,7 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   have hf := find_of_idx l5_idx (by rw [coreProgram_length]; omega)
   have hok := l5_ok
   simp only [l5Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm16⟩, hl17⟩, hrc18⟩, hrc19⟩, hm28⟩, hcx⟩,
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, hlen⟩, hm16⟩, hl17⟩, hg18⟩, hg19⟩, hm28⟩, hcx⟩,
     hm31⟩, hcs⟩, hm39⟩, hm41⟩, hl42⟩, hl43⟩, hsd⟩, hm47⟩, hl44⟩, hm48⟩, hl45⟩, hm54⟩, hvs⟩,
     hm55⟩, hm56⟩, hl55⟩ := hok
   obtain ⟨σ, hx, hps, hall, hnext⟩ := loop_stepC hC hf hshape h
@@ -381,12 +381,12 @@ theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
     List.map_nil, List.cons_append, List.tail_cons, List.cons.injEq, and_true] at hps
   obtain ⟨-, hwr, hlxt, hcov, hlxs, hlst, hspc, hlss, hcar, hdad, hs0, hs1, hcpi, hgsq,
     hcf⟩ := hps
-  obtain ⟨ex, hex, hnx⟩ := rcConst_sound hm (by norm_num) word_gmax hrc18 hat
-  obtain ⟨es, hes, hns⟩ := rcConst_sound hm (by norm_num) word_gmax hrc19 hat
+  obtain ⟨ex, hex, hnx⟩ := load_gpow hm (touch_sound hg18 hat)
+  obtain ⟨es, hes, hns⟩ := load_gpow hm (touch_sound hg19 hat)
   have h16 : σ (.n 16) = written * x := by rw [isMul_sound hm16 hat, hwr, hx]
-  have h28 : σ (.n 28) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
-  refine ⟨σ (.n 17), σ (.n 29), σ (.n 30), σ (.n 32), σ (.n 33), σ (.n 42), σ (.n 43),
-    σ (.n 44), σ (.n 45), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  have h28 : σ (.n 22) = gen ^ ex * gen ^ es := by rw [isMul_sound hm28 hat, hnx, hns]
+  refine ⟨σ (.n 17), σ (.n 23), σ (.n 24), σ (.n 26), σ (.n 27), σ (.n 36), σ (.n 37),
+    σ (.n 38), σ (.n 39), ex, es, ?_, hex, hes, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · have := load_sound hl17 hat; rwa [h16] at this
   · have := hle _ _ _ (call_of_flat hall hcx)
     simpa [hlxt, hcov, hlxs, hnx] using this

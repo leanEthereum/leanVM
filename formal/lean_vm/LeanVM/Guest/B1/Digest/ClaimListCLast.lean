@@ -31,11 +31,11 @@ open LeanVM.Guest.B1.Fwd
 
 variable {rd : Reader}
 
-theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (361 + k) default) = true := by
+theorem clc_all {k : ℕ} (hk : k < 17) : clcOk k (coreProgram.getD (348 + k) default) = true := by
   rcases Nat.lt_or_ge k 9 with h | h
   · exact clc_lo k h
   · have := clc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 370 + (k - 9) = 361 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show 357 + (k - 9) = 348 + k by omega] at this
 
 /-- A load found in the atoms, not a store, reads memory. -/
 theorem load_val {S : List Atom} {w : ℕ → E} {σ : Val} {atoms : List Atom} {x p : V} {o : ℕ}
@@ -58,6 +58,13 @@ theorem load_holds_of {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {o : 
   · show LoadHolds rd (σ p) o (σ d)
     rw [h, rdAt_of_load hv]; exact hv
 
+theorem touch_holds_of {S : List Atom} {w : ℕ → E} {σ : Val} {t p : V} {v : E}
+    (hg : Good rd S w σ (.touch t p)) (hv : LoadHolds rd (σ p) 0 v) :
+    (Atom.touch t p).Holds rd σ := by
+  have h : σ t = rdAt rd (σ p) 0 := hg
+  show LoadHolds rd (σ p) 0 (σ t)
+  rw [h, rdAt_of_load hv]; exact hv
+
 theorem cl_cells_unique {blk : E} {cells cells' : List E} (h : ReadsAt rd blk cells)
     (h' : ReadsAt rd blk cells') (hl : cells.length = cells'.length) : cells' = cells := by
   rw [readsAt_memRun h, readsAt_memRun h', hl]
@@ -73,7 +80,7 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
   have hf := find_of_idx (cl_idx k hk) (by rw [coreProgram_length]; omega)
   have hok := cl_all k hk
   have hcok := clc_all hk
-  set fn := coreProgram.getD (361 + k) default
+  set fn := coreProgram.getD (348 + k) default
   simp only [clOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   simp only [clcOk, Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff] at hcok

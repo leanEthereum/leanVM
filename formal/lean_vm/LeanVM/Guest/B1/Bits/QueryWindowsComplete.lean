@@ -438,7 +438,7 @@ theorem qwWindows_complete {d cd base cut at0 : ℕ} {ns : ℕ → ℕ} : ∀ (i
 /-! ## A position's store and pointer -/
 
 omit hT hlow in
-theorem qwPos_eq {P cut d : ℕ} (hP : P < 2 ^ d) (hc : cut < d) (hd26 : d ≤ 26) :
+theorem qwPos_eq {P cut d : ℕ} (hP : P < 2 ^ d) (hc : cut < d) (hd26 : d ≤ 28) :
     eOfNat (P % 2 ^ cut) + cbWord cut * eOfNat (P / 2 ^ cut) = eOfNat P := by
   have hY : P / 2 ^ cut < 2 ^ (d - cut) := by
     rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add, Nat.sub_add_cancel hc.le]
@@ -450,7 +450,7 @@ theorem qwPos_eq {P cut d : ℕ} (hP : P < 2 ^ d) (hc : cut < d) (hd26 : d ≤ 2
 omit hT hlow in
 theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d : ℕ} {lo hi : V}
     {recon : Option V} {P : ℕ} {R : E} (hrec : recon = none → base = 0) (hP : P < 2 ^ d)
-    (hd : 1 ≤ d) (hd26 : d ≤ 26) (hbase : base + d ≤ 128) (hcut : cut = 64 - base % 64)
+    (hd : 1 ≤ d) (hd26 : d ≤ 28) (hbase : base + d ≤ 128) (hcut : cut = 64 - base % 64)
     (hj : j < Q.np) (hpos : LoadHolds rd Q.pos j (eOfNat P))
     (hpre : QwStab l fun σ ↦ σ lo = eOfNat (P % 2 ^ cut) ∧ (cut < d → σ hi = eOfNat (P / 2 ^ cut)) ∧
       σ (.n 1) = Q.pos ∧ qwOpt σ recon = R) :

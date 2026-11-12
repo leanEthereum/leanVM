@@ -117,9 +117,8 @@ theorem isDerefOf_sound {rd : Reader} {σ : Val} {atoms : List Atom} {p : V}
     ∃ t, LoadHolds rd (σ p) 0 t := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have := hat a ha
-  cases a <;> simp only [isDerefOf, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq,
-    beq_iff_eq] at hp
-  obtain ⟨rfl, rfl⟩ := hp
+  cases a <;> simp only [isDerefOf, Bool.false_eq_true, decide_eq_true_eq] at hp
+  subst hp
   exact ⟨_, this⟩
 
 /-- **Claim `j` of the walk**: from the pointers `region · g^P`, `entries · g^(4P)`, a gap
@@ -256,7 +255,7 @@ def MonoStep (rd : Reader) (m nb : ℕ) (chain mark x : E) : Prop :=
       LoadHolds rd (chain * x ^ 15) 29 (entries * gen ^ (4 * O'))
 
 theorem mono_step {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1035)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1601)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
@@ -347,7 +346,7 @@ theorem monoFrames_sound {rd : Reader} {m nb : ℕ} (hmn : 64 * m = 136 * nb)
 /-- **A loop of frames of the walk**, called as `callIf (1 + N) f [1, N, chain, mark]` with
 `N = g^a`, `a < 2^34`. -/
 theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st0 cw ew nb : ℕ}
-    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1035)
+    (hidx : coreProgram.indexOf? f = some j) (hj : j < 1601)
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
     (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
@@ -365,19 +364,19 @@ theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st
 
 -- `__loop19`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
 set_option maxRecDepth 100000 in
-theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 397 := by decide +kernel
+theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 384 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 397 default))).nb = 64 := by
+theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 384 default))).nb = 64 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mono136_head :
-    monoHead (coreProgram.getD 397 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
+    monoHead (coreProgram.getD 384 default) "__loop19" 136 1377 83200 72058697844523035 = true := by
   decide +kernel
 
 theorem mono136_ok :
-    monoOk (coreProgram.getD 397 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
+    monoOk (coreProgram.getD 384 default) "__loop19" 136 9 1377 83200 72058697844523035 = true := by
   have hw : ∀ i < 16, monoWinOk i = true := by
     intro i hi
     interval_cases i
@@ -390,14 +389,14 @@ theorem mono136_ok :
 
 -- `__loop20`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 398 := by decide +kernel
+theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 385 := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 398 default))).nb = 8 := by
+theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 385 default))).nb = 8 := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mono17_ok : monoOk (coreProgram.getD 398 default) "__loop20" 17 9 187 131072 432 = true := by
+theorem mono17_ok : monoOk (coreProgram.getD 385 default) "__loop20" 17 9 187 131072 432 = true := by
   decide +kernel
 
 theorem word_g17 : word 131072 0 = gen ^ 17 := word_two_pow (a := 17) (by decide)
@@ -449,7 +448,7 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
   have hf := find_of_idx (ml_idx k hk) (by rw [coreProgram_length]; omega)
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem hf args rets).mp h
   have hok := ml_all k hk
-  set f := coreProgram.getD (399 + k) default
+  set f := coreProgram.getD (386 + k) default
   simp only [mlOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hpar, hok⟩ := hok
   rw [hpar] at hp
@@ -553,7 +552,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
     (h : coreProgram.Rel rd "child_claim_list_mono" args rets) :
     ∃ entries region base limit bigs groups rest,
       args = [entries, region, base, limit, bigs, groups, rest] ∧
-      ∀ a b c, a < 2 ^ 16 → b < 8 → c < 17 → bigs = gen ^ a → groups = gen ^ b → rest = gen ^ c →
+      ∀ a b c, a < 2 ^ 32 → b < 8 → c < 17 → bigs = gen ^ a → groups = gen ^ b → rest = gen ^ c →
         ∃ (os : List ℕ) (cells : List E) (O : ℕ), os.length = 136 * a + 17 * b + c ∧
           MonoWalk 0 os O ∧ MonoAt rd region entries base os cells ∧
           rets = digestCells (keccak256 (cellsBytes cells)) ∧
@@ -642,7 +641,7 @@ theorem child_claim_list_mono_sound {rd : Reader} (hm : MemOk rd) {args rets : L
 the log of `limit = g^(e + e')`. -/
 theorem monoSlots {rd : Reader} (hm : MemOk rd) {region entries mark limit : E} {os : List ℕ}
     {cells : List E} {O : ℕ} (hw : MonoWalk 0 os O) (hat : MonoAt rd region entries mark os cells)
-    (hn : os.length < 2 ^ 24)
+    (hn : os.length < 2 ^ 32)
     (hb : ∃ e e', e < 2 ^ 32 ∧ e' < 2 ^ 32 ∧ region * gen ^ O = gen ^ e * region ∧
       limit = gen ^ (e + e')) :
     ∀ j < os.length, SlotBelow limit (os.getD j 0) := by
@@ -658,11 +657,8 @@ theorem monoSlots {rd : Reader} (hm : MemOk rd) {region entries mark limit : E} 
   have hO : gen ^ O = gen ^ e := by
     rw [mul_comm] at hreg
     exact mul_right_cancel₀ hr0 hreg
-  have hOb : O < 2 ^ 56 := by
+  have hOb : O < 2 ^ 64 - 1 := by
     have := hw.2.2.2
-    have h56 : os.length * 2 ^ 32 < 2 ^ 56 := by
-      calc os.length * 2 ^ 32 < 2 ^ 24 * 2 ^ 32 := Nat.mul_lt_mul_of_pos_right hn (by positivity)
-        _ = 2 ^ 56 := by norm_num
     omega
   have hOe : O = e := gen_pow_inj (by omega) (by omega) hO
   have := (hw.2.1 j hj).2

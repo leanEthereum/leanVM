@@ -51,7 +51,7 @@ def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ 
 def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (SB SK : String → ℕ) : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 16 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
       (Returns (hm fs fp seed s w).daR) (hDvNH w) (hDvB fs SB SK w)
 
 theorem MainGoalDvTB.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
@@ -76,7 +76,7 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
   have hq : (etB fs (mK0 (hData seed s w) fs fp), expTabAllWords) ∈ hLmain fs fp seed s w :=
     List.mem_append_right _ (by simp [etL])
   have hlen : expTabAllWords.length = 2284 := length_expTabAllWords
-  refine completeAtDTB_lin_mono (fun rd hM => ?_) (fun i hi => ?_) h
+  refine completeAtDTB_lin_mono (fun rd hM => ?_) (fun i hi => ?_) (h.lowMono (by norm_num))
   · have hr := reads_of_memL hM hq (wLog p.2) (by omega)
     rw [expTabAllWords_sq (by omega)] at hr
     intro q hq'

@@ -26,16 +26,16 @@ def copyLoopT (name : String) : List Stmt :=
     .atom (.const (.n 10) (word 2 0)), .atom (.mul (.n 11) (.n 0) (.n 10)),
     .callIf (.n 9) name [.n 11, .n 1, .n 2, .n 3], .ret []]
 
-theorem copyLoop_body11 : Data.core263.body = copyLoopT "__loop10" := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body12 : Data.core267.body = copyLoopT "__loop11" := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body13 : Data.core269.body = copyLoopT "__loop12" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body11 : Data.core265.body = copyLoopT "__loop10" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body12 : Data.core269.body = copyLoopT "__loop11" := stmtsEqb_sound (by decide +kernel)
+theorem copyLoop_body13 : Data.core271.body = copyLoopT "__loop12" := stmtsEqb_sound (by decide +kernel)
 
-theorem find_copyLoop11 : coreProgram.find? "__loop10" = some Data.core263 :=
-  Program.find?_of_indexOf? (j := 263) (by decide +kernel) rfl
-theorem find_copyLoop12 : coreProgram.find? "__loop11" = some Data.core267 :=
-  Program.find?_of_indexOf? (j := 267) (by decide +kernel) rfl
-theorem find_copyLoop13 : coreProgram.find? "__loop12" = some Data.core269 :=
+theorem find_copyLoop11 : coreProgram.find? "__loop10" = some Data.core265 :=
+  Program.find?_of_indexOf? (j := 265) (by decide +kernel) rfl
+theorem find_copyLoop12 : coreProgram.find? "__loop11" = some Data.core269 :=
   Program.find?_of_indexOf? (j := 269) (by decide +kernel) rfl
+theorem find_copyLoop13 : coreProgram.find? "__loop12" = some Data.core271 :=
+  Program.find?_of_indexOf? (j := 271) (by decide +kernel) rfl
 
 /-- **A copy loop's step.** -/
 theorem copyLoop_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)

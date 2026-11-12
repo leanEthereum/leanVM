@@ -25,7 +25,7 @@ With `L = 2^D` leaves, the expansion of `verify_merkle_cap__L{D}` is `mcBody L`:
 * the root's cells returned.
 
 `mc_keccak_hash` is what one node's `KECCAK` gives (`keccak_one`), `merkle_cap_iff` the meaning at
-every depth, and `verify_merkle_cap_holds` the five deployed depths.
+every depth, and `verify_merkle_cap_holds` the seven deployed depths.
 -/
 
 namespace LeanVM.Guest.B1
@@ -200,7 +200,7 @@ def mcVal (L : ℕ) (cap flags : E) (cell fl : ℕ → E) (i : ℕ) : E :=
     nodeVal L fl (L / 2 + (i - mcBase L (L / 2)) / 2) ((i - mcBase L (L / 2)) % 2)
   else cell (i - mcBase L L + 2)
 
-theorem mcVal_node (L : ℕ) (hL : 16 ≤ L) (hL2 : L % 2 = 0) (cap flags : E) (cell fl : ℕ → E)
+theorem mcVal_node (L : ℕ) (hL : 4 ≤ L) (hL2 : L % 2 = 0) (cap flags : E) (cell fl : ℕ → E)
     {k o : ℕ} (hk : 2 ≤ k) (hkL : k < L) (ho : o < mcOc L k + 1) :
     mcVal L cap flags cell fl (mcBase L k + o) = nodeVal L fl k o := by
   have hb2 : mcBase L (L / 2) = 4 * L + 6 + 4 * (L / 2 - 2) := by
@@ -240,7 +240,7 @@ theorem meaningCapL_iff (D : ℕ) (rd : Reader) (args rets : List E) :
   split <;> simp only [h4L]
 
 /-- **`verify_merkle_cap` at `L` leaves**, for a compiled function whose body is `mcBody L`. -/
-theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 16 ≤ L) (hL2 : L % 2 = 0)
+theorem merkle_cap_iffL {name : String} {f : Fn} (L : ℕ) (hL : 4 ≤ L) (hL2 : L % 2 = 0)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1])
     (hbody : f.body = mcBody L) (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd name args rets ↔ MeaningCapL L rd args rets := by

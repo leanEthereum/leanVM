@@ -54,7 +54,7 @@ theorem l17_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop21" (x :: 
     loop_stepF (find_of_idx dv_loops_idx.1 (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N bl rb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 416 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 403 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -79,7 +79,7 @@ theorem l19_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop23" (x :: 
     loop_stepF (find_of_idx dv_loops_idx.2.2.1 (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N rb roots hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 418 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 405 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
@@ -108,7 +108,7 @@ theorem l20_step {x : E} {ps : List E} (h : coreProgram.Rel rd "__loop24" (x :: 
     loop_stepF (find_of_idx dv_loops_idx.2.2.2 (by rw [coreProgram_length]; omega)) hshape h
   refine ⟨fun N roots nb hN ↦ ?_, hnext⟩
   have hat := atoms_of_flat hall
-  have hpar : (coreProgram.getD 419 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
+  have hpar : (coreProgram.getD 406 default).params = [V.n 0, V.n 1, V.n 2, V.n 3] := by
     rw [loop_params hshape hlen]; rfl
   rw [hpar, hN] at hps
   simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
