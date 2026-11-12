@@ -125,7 +125,7 @@ impl Out {
         }
         for (layer, height) in LAYER_HEIGHTS.into_iter().enumerate() {
             let counter = u32::from_be_bytes(at.take(COUNTER_LEN).try_into().unwrap());
-            assert_eq!(counter, sig.layers()[layer].counter());
+            assert_eq!(counter, sig.__layers()[layer].counter());
             self.n(counter as usize);
             self.digests(at.take(V * N).as_chunks::<N>().0);
             self.digests(at.take(height * N).as_chunks::<N>().0);
@@ -293,7 +293,7 @@ fn blob(seed: u64) -> Vec<u64> {
 #[test]
 #[ignore]
 fn guest_diff() {
-    leanvm_core::init_prover();
+    parallel::init();
     let wide = CLAIM_GROUP + 3;
     let xmss: Vec<_> = get_signers(wide + 2)
         .into_iter()
@@ -311,7 +311,7 @@ fn guest_diff() {
 #[test]
 #[ignore]
 fn guest_diff_leaf() {
-    leanvm_core::init_prover();
+    parallel::init();
     let xmss: Vec<_> = get_signers(1)
         .into_iter()
         .map(|(pk, sig)| (pk, message(), sig))

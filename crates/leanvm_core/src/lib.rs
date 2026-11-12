@@ -31,17 +31,6 @@ pub mod transcript;
 pub mod vmhash;
 pub mod witness;
 
-/// Prepare the process for proving: spawn the worker pool up front, so no kernel
-/// pays the spawn cost inside a timed region. Idempotent.
-///
-/// Thread placement is the pool's own business: performance-core workers run at
-/// `USER_INTERACTIVE` and (on Apple silicon) efficiency-core workers at `UTILITY`,
-/// all drawing from one claim counter. `LEANVM_NUM_THREADS` sets the
-/// performance-worker count. See the `parallel` crate.
-pub fn init_prover() {
-    parallel::init();
-}
-
 /// Target soundness of the whole proof, in bits. Every algebraic challenge is
 /// sampled in F192, and the PCS derives a WHIR configuration whose query,
 /// proximity-gap, and OOD-binding terms each clear this target.

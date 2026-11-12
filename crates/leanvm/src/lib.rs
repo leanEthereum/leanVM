@@ -42,6 +42,6 @@ pub mod lean_sphincs {
 /// dirty pages that never decay, which the `leanvm` CLI installs. glibc's default
 /// is the slow case, since it unmaps a large block on free.
 pub fn setup() {
-    leanvm_core::init_prover();
+    parallel::init();
     rec_aggregation::warm_up();
 }
