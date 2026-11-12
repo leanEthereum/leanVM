@@ -1,4 +1,5 @@
 import LeanVM.Cost.Extractor.Top
+import LeanVMTests.Runs
 
 /-!
 # Tests: the compiled list decoder, end to end
@@ -10,7 +11,8 @@ directly) on a toy word: `μ = 9`, `R = 1` (`2^9` stack entries, `64` lanes of `
 messages of `2^3 + 6 = 14` coefficients, agreement `15`, multiplicity `1`), each lane a polynomial
 of degree `< 14` with at most one corrupted symbol (the same column), so every lane decodes and
 the pruning runs over all `64` lanes. The admissible shapes (`μ ≥ 15`) are out of reach of a
-test: at `(15, 1)` a lane already interpolates at multiplicity `7` on `1024` points.
+test: at `(15, 1)` a lane already interpolates at multiplicity `7` on `1024` points. The run is
+compiled (`runs`, run by `lake exe test-runs`): interpreted, it is the slowest test.
 -/
 
 namespace LeanVMTests.Cost.DecOf
@@ -30,16 +32,16 @@ def sym (u v : ℕ) : K :=
 def leaves : Array (List K) :=
   Array.ofFn fun v : Fin 16 ↦ (List.ofFn fun u : Fin 64 ↦ sym u v.val).reverse
 
-/-- The reference decoding: one stack, the survivor of every lane. -/
-def ref : List (Vector K (2 ^ 9)) := decodeStacksDistinct 9 1 (leafAt leaves 4 64)
-
-#guard
-  let r := ref
-  r.length == 1 &&
-    (evaluateFunctionBody (MachineProgram.ofList decOfC.costDeps) 1000000000 decOfC.costIdx
-      [MachineEncoding.encodeValue (9 : ℕ), MachineEncoding.encodeValue (1 : ℕ),
-        MachineEncoding.encodeValue leaves, MachineEncoding.encodeValue (4 : ℕ),
-        MachineEncoding.encodeValue (64 : ℕ)]).map (·.1) ==
-      some (MachineEncoding.encodeValue r)
+/-- The reference decoding is one stack, the survivor of every lane, and the compiled decoder's
+value. -/
+test_runs runs := [
+  ("decOfC is the reference decoder on a toy word", fun _ ↦
+    let r := decodeStacksDistinct 9 1 (leafAt leaves 4 64)
+    r.length == 1 &&
+      (evaluateFunctionBody (MachineProgram.ofList decOfC.costDeps) 1000000000 decOfC.costIdx
+        [MachineEncoding.encodeValue (9 : ℕ), MachineEncoding.encodeValue (1 : ℕ),
+          MachineEncoding.encodeValue leaves, MachineEncoding.encodeValue (4 : ℕ),
+          MachineEncoding.encodeValue (64 : ℕ)]).map (·.1) ==
+        some (MachineEncoding.encodeValue r))]
 
 end LeanVMTests.Cost.DecOf

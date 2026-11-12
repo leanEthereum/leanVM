@@ -1,5 +1,6 @@
 import LeanVM.Protocol.Extraction.Fast.PMShape
 import LeanVMTests.Extraction.ToyWords
+import LeanVMTests.Runs
 
 /-!
 # Tests: the lanes by the approximant-basis interpolation
@@ -11,10 +12,8 @@ lists, on a word of a degree-`< 4` polynomial with errors:
 * 16 points, multiplicity 1: on `pmSolver` (additive-FFT products, the ordered-weak-Popov PM-basis
   on evaluation-domain products) and on `pmSolverKaratsuba`.
 
-At 32 points, multiplicity 3 (14 rows, maximal order 130), the interpreter takes about 70 s for
-the approximant runner and 30 s for Mulders–Storjohann's (≈ 8 µs per multiply-add in `K`
-interpreted; the PM-basis's 130 leaves at `8r³` operations each and its 129 nodes' products, as
-its price model counts them), so the larger shape is only checked to list `msg`.
+At 32 points, multiplicity 3 (14 rows, maximal order 130), the larger shape is only checked to
+list `msg`. The runners' runs are compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Extraction.LanePM
@@ -49,13 +48,17 @@ def sameSet (a b : Array (CPolynomial K)) : Bool := a.all (b.contains ·) && b.a
 -- 16 points, agreement 10 (multiplicity 1, `W = 9`), 4 errors.
 #guard (gsParamsFor 4 16 10).interp.multiplicity == 1
 #guard (gsRunDistinctNF (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6).contains msg
-#guard sameSet (gsRunDistinctWith pmSolver (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)
-  (gsRunDistinctNF (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)
-#guard sameSet (gsRunDistinctWith pmSolverKaratsuba (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)
-  (gsRunDistinctNF (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)
-
 -- 32 points, agreement 11 (multiplicity 3, `W = 32`), 11 errors.
 #guard (gsParamsFor 4 32 11).interp.multiplicity == 3
-#guard (gsRunDistinctNF (wordPoints 32 3) (gsParamsFor 4 32 11).interp 21).contains msg
+
+test_runs runs := [
+  ("16 points: pmSolver lists what Mulders–Storjohann lists", fun _ ↦
+    sameSet (gsRunDistinctWith pmSolver (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)
+      (gsRunDistinctNF (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)),
+  ("16 points: pmSolverKaratsuba lists what Mulders–Storjohann lists", fun _ ↦
+    sameSet (gsRunDistinctWith pmSolverKaratsuba (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)
+      (gsRunDistinctNF (wordPoints 16 5) (gsParamsFor 4 16 10).interp 6)),
+  ("32 points: Mulders–Storjohann lists msg", fun _ ↦
+    (gsRunDistinctNF (wordPoints 32 3) (gsParamsFor 4 32 11).interp 21).contains msg)]
 
 end LeanVMTests.Extraction.LanePM

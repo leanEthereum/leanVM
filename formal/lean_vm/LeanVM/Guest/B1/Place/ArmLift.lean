@@ -98,7 +98,7 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
           Lout = [(b, pt), (b1, pt1)])
       (Bd.map fun Bk ↦ osBos fs Bk name (osCfgR m ri)) := by
   set c := osCfgR m ri with hc
-  obtain ⟨hB, haddrs, hyr⟩ := armBody_ok hm hri
+  obtain ⟨hB, haddrs, hyr⟩ := armBody_ok ri hm
   have hLv := armLv_ok hm hri
   have hl : H.own.length = (osSizesL c).length := H.own_len.length_eq
   have hSL := osSizesL_length (c := c) hyr.le

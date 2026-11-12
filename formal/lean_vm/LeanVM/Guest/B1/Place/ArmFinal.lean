@@ -46,9 +46,9 @@ def HelperBounds (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) 
   (∀ e ∈ lrTable, ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
     LrAtO fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 (some B))
 
-theorem osCalleeNames_rate {m ri : ℕ} (hm : m < ligNSizes) (hri : ri < ligNRates) :
+theorem osCalleeNames_rate {m ri : ℕ} :
     osCalleeNames (osCfgR m ri) = osCalleeNames (osCfg m) := by
-  unfold osCalleeNames osCallees; rw [← osBody_rate hm hri]
+  unfold osCalleeNames osCallees; rw [← osBody_rate m ri]
 
 theorem osSizesL_rate (m ri : ℕ) : osSizesL (osCfgR m ri) = osSizesL (osCfg m) := by
   have hmap : (osCfgR m ri).levels.map OsLv.folds = (osCfg m).levels.map OsLv.folds := by
@@ -67,9 +67,9 @@ theorem osSizesL_rate (m ri : ℕ) : osSizesL (osCfgR m ri) = osSizesL (osCfg m)
   rw [hg (osCfgR m ri), hg (osCfg m), ht (osCfgR m ri), ht (osCfg m), hmap, hlen]
   rfl
 
-theorem osBos_rate {m ri : ℕ} (hm : m < ligNSizes) (hri : ri < ligNRates) (fs' Bk : String → ℕ)
+theorem osBos_rate {m ri : ℕ} (fs' Bk : String → ℕ)
     (name : String) : osBos fs' Bk name (osCfgR m ri) = osBos fs' Bk name (osCfg m) := by
-  unfold osBos osKidsB osCallees; rw [osSizesL_rate, ← osBody_rate hm hri]
+  unfold osBos osKidsB osCallees; rw [osSizesL_rate, ← osBody_rate m ri]
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
@@ -95,11 +95,11 @@ theorem open_stacked_completeAtO_of (hH : os_honest_Spec) (hLR : level_residual_
   have hd : FnIs ("open_stacked__L" ++ natStr m) (osParams 11) (osBody (osCfgR m ri)) := by
     have := osData_all m hm
     unfold OsData at this
-    rwa [osBody_rate hm hri] at this
+    rwa [osBody_rate m ri] at this
   obtain ⟨fn, hf, hps, hbody⟩ := hd
   have hf' : coreProgram.find? (openName μ) = some fn := by rw [openName_eq hm]; exact hf
   have hTot : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames (osCfgR m ri), TotalLe coreProgram fs f (fun _ ↦ Bk f) :=
-    fun Bk hBk f hf ↦ hleaf Bk hBk m hm f (by rwa [osCalleeNames_rate hm hri] at hf)
+    fun Bk hBk f hf ↦ hleaf Bk hBk m hm f (by rwa [osCalleeNames_rate] at hf)
   have hnamed : ∀ f ∈ osCalleeNames (osCfgR m ri), ∀ K, osKindOf f = some K →
       ∀ (args rets : List E) (L' : Layout), RegPtrs K.spec args (RegionL L') →
       (∀ rd, LowDef κ rd → MemL rd L' → K.Pre rd args rets) →
@@ -135,7 +135,7 @@ theorem open_stacked_completeAtO_of (hH : os_honest_Spec) (hLR : level_residual_
   have h := arm_completeAtO (Bd := Bd) hm hri hf' hps hbody hnamed hlp hlq hlr hargs rfl H hLin
   have e : (Bd.map fun Bk ↦ osBos fs Bk (openName μ) (osCfgR m ri)) =
       Bd.map fun Bk ↦ osBosAt fs Bk μ := by
-    cases Bd <;> simp [osBosAt, osBos_rate hm hri, m]
+    cases Bd <;> simp [osBosAt, osBos_rate, m]
   rw [e] at h
   exact h
 

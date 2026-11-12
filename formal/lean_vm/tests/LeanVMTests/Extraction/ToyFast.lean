@@ -1,4 +1,5 @@
 import LeanVMTests.Extraction.ToyWords
+import LeanVMTests.Runs
 
 /-!
 # Tests: the extractor's fast path on toy codes
@@ -29,7 +30,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 #guard fastDecodes 2 (randomStack 2 8) (corrupt 2 [13] (wordOf 2 (randomStack 2 8)))
 
 -- The smallest deployed shape, `μ = 16`, `R = 1`: a stack of `2^16` words on `2048` columns,
--- decoded by the fast path (interpreted, the word's encoding included).
-#guard fastDecodes 1 (randomStack 5 16) (wordOf 1 (randomStack 5 16))
+-- decoded by the fast path (the word's encoding included), compiled.
+test_runs ToyFast.runs := [
+  ("the fast path at μ = 16, R = 1", fun _ ↦ fastDecodes 1 (randomStack 5 16) (wordOf 1 (randomStack 5 16)))]
 
 end LeanVMTests.Extraction

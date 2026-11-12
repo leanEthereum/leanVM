@@ -37,11 +37,6 @@ def osParams (n : Nat) : List V := (List.range n).map V.n
 def OsData (m : Nat) : Prop :=
   FnIs ("open_stacked__L" ++ natStr m) (osParams 11) (osBody (osCfg m))
 
-/-- **Size `m`'s body is its body at every rate's levels**: the body reads the levels' rate-free
-columns alone (the rate's reach the dispatches' names only, through `OsCfg.lvAt`). -/
-def OsRate (m : Nat) : Prop :=
-  ∀ ri < ligNRates, osBody (osCfg m) = osBody (osCfgR m ri)
-
 /-- Two lists agree from `o` on if they agree on the run of `n` from `o` (by `stmtsEqb`) and from
 `o + n` on: the data's bodies are checked a run at a time, each run its own kernel evaluation. -/
 theorem run_step {a b : List Stmt} (n o : Nat)
@@ -49,11 +44,6 @@ theorem run_step {a b : List Stmt} (n o : Nat)
     (h' : a.drop (o + n) = b.drop (o + n)) : a.drop o = b.drop o := by
   rw [← List.take_append_drop n (a.drop o), ← List.take_append_drop n (b.drop o),
     stmtsEqb_sound h, List.drop_drop, List.drop_drop, h']
-
-/-- Two lists of at most `o` statements agree from `o` on. -/
-theorem drop_end {a b : List Stmt} {o : Nat} (ha : a.length ≤ o) (hb : b.length ≤ o) :
-    a.drop o = b.drop o := by
-  rw [List.drop_eq_nil_of_le ha, List.drop_eq_nil_of_le hb]
 
 end
 end LeanVM.Guest.B1.Whir

@@ -13,7 +13,6 @@ import re, subprocess, sys
 from pathlib import Path
 
 RUN = 1100  # statements a kernel evaluation of the body compares
-RATES = 4  # `ligNRates`
 PER_FILE = 60  # theorems per helper data module
 WHIR = Path("LeanVM/Guest/B1/Whir")
 
@@ -76,7 +75,7 @@ def data(m, j):
     n = body_len(f"open_stacked__L{m}")
     runs = (n + RUN - 1) // RUN
     out = [HDR.format(mod=f"Data{m}", doc=f"`open_stacked__L{m}` is its template, by kernel evaluation.",
-                      imports="public import LeanVM.Guest.B1.Whir.DataSpec\npublic import Mathlib.Tactic.IntervalCases\n")]
+                      imports="public import LeanVM.Guest.B1.Whir.DataSpec\n")]
     out.append(f"""
 /-!
 # Size {m}
@@ -86,48 +85,33 @@ equal to the template (`stmtsEqb_sound`), the body in runs of {RUN} statements, 
 kernel evaluation (`run_step`), to bound the kernel's memory.
 -/
 """)
-    for r in range(runs):
+    for r in range(runs):  # the last run compares the rest, so no length is evaluated
+        take = (lambda x: f"(({x}).take {RUN})") if r < runs - 1 else (lambda x: f"({x})")
         out.append(f"""
 set_option maxRecDepth 100000 in
-theorem os_run_{m}_{r} : stmtsEqb ((Data.core{j}.body.drop {r * RUN}).take {RUN})
-    (((osBody (osCfg {m})).drop {r * RUN}).take {RUN}) = true := by decide +kernel
+theorem os_run_{m}_{r} : stmtsEqb {take(f"Data.core{j}.body.drop {r * RUN}")}
+    {take(f"(osBody (osCfg {m})).drop {r * RUN}")} = true := by decide +kernel
 """)
-    steps = "".join(f"    run_step {RUN} {r * RUN} os_run_{m}_{r} <|\n" for r in range(runs))
+    steps = "".join(f"    run_step {RUN} {r * RUN} os_run_{m}_{r} <|\n" for r in range(runs - 1))
     out.append(f"""
 set_option maxRecDepth 100000 in
 theorem osData_{m} : OsData {m} := by
   have hb : Data.core{j}.body.drop 0 = (osBody (osCfg {m})).drop 0 :=
-{steps}    drop_end (o := {runs * RUN}) (by decide +kernel) (by decide +kernel)
+{steps}    stmtsEqb_sound os_run_{m}_{runs - 1}
   rw [List.drop_zero, List.drop_zero] at hb
   exact ⟨Data.core{j}, coreProgram_find?_at (j := {j}) rfl, by decide +kernel, hb⟩
-""")
-    for ri in range(1, RATES):  # rate 0's levels are `osCfg`'s: `rfl`
-        out.append(f"""
-set_option maxRecDepth 100000 in
-theorem os_rate_{m}_{ri} : stmtsEqb (osBody (osCfg {m})) (osBody (osCfgR {m} {ri})) = true := by
-  decide +kernel
-""")
-    cases = "\n  · rfl" + "".join(f"\n  · exact stmtsEqb_sound os_rate_{m}_{ri}" for ri in range(1, RATES))
-    out.append(f"""
-theorem osRate_{m} : OsRate {m} := by
-  intro ri h
-  interval_cases ri{cases}
 """)
     out.append(FTR)
     return "".join(out)
 
 
 def data_all(arms):
-    imports = "".join(f"public import LeanVM.Guest.B1.Whir.Data{m}\n" for m in range(arms))
+    imports = "".join(f"public import LeanVM.Guest.B1.Whir.Data{m}\n" for m in range(arms)) + "public import Mathlib.Tactic.IntervalCases\n"
     cases = "".join(f"\n  · exact osData_{m}" for m in range(arms))
     return (HDR.format(mod="DataAll", doc="Every size's core IR is its template.", imports=imports) + f"""
 /-- **Every size's core IR is its template.** -/
 theorem osData_all (m : Nat) (h : m < ligNSizes) : OsData m := by
   interval_cases m{cases}
-
-/-- **Every size's body is its body at every rate's levels.** -/
-theorem osRate_all (m : Nat) (h : m < ligNSizes) : OsRate m := by
-  interval_cases m{cases.replace("osData_", "osRate_")}
 """ + FTR)
 
 

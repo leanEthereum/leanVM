@@ -101,7 +101,7 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
   have hd : FnIs ("open_stacked__L" ++ natStr m) (osParams 11) (osBody (osCfgR m ri)) := by
     have := osData_all m hm
     unfold OsData at this
-    rwa [osBody_rate hm hri] at this
+    rwa [osBody_rate m ri] at this
   obtain ⟨fn', hf', hps, hbody⟩ := hd
   rw [openName_eq hm, hf'] at hfind
   cases hfind

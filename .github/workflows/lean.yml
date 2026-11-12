@@ -342,11 +342,15 @@ jobs:
           done
       # Every executable in one build, before the cache is saved, so a cache hit holds them all.
       - name: Build the executables
-        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove
+        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
         run: .lake/build/bin/node-vectors
+      # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`); `lake env` for the
+      # `.olean` they read.
+      - name: The tests' compiled runs
+        run: lake env .lake/build/bin/test-runs
       - name: The guest's core IR data is current
         run: .lake/build/bin/guest-core --check
       - name: The guest's certificates are current

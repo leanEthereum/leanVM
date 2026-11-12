@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Place.Lr
 public import LeanVM.Guest.B1.Place.LrLoops
 public import LeanVM.Guest.B1.Place.LpProof
+public import LeanVM.Guest.B1.Place.LrPure
 public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.Restrict
 
@@ -22,8 +23,8 @@ memory holding its words (`relAtIn_pure_uniform`, `guarded_uniform`).
 
 * `lr_relAtIn0`, `lr_relAtIn1`: the body at `fp`, `8 ∣ q` and `8 ∤ q`, its loops' trees given.
 * `lr_loop1_rel`, `lr_loop2_rel`: the loops' relations on the honest buffers (`Place/LrLoops`).
-* `lrAtD_of`, `level_residual_completeAt`: `LrAtD` at every entry of `lrTable`, from its decided
-  facts (`LrFacts`).
+* `lrAtD_of`, `level_residual_completeAt`: `LrAtD` at every entry of `lrTable`, from its facts
+  (`LrFacts`: its sizes decided, `lrTable_sizes`; its loops pure at every row, `Place/LrPure`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -462,11 +463,25 @@ def LrFacts (q cols nhs hbits : ℕ) (l1 l2 : String) : Prop :=
 instance (q cols nhs hbits : ℕ) (l1 l2 : String) : Decidable (LrFacts q cols nhs hbits l1 l2) := by
   unfold LrFacts; infer_instance
 
+/-- An entry's sizes: `LrFacts` but the loops' purity, which holds at every row. -/
+def LrSizes (q cols nhs hbits : ℕ) : Prop :=
+  1 ≤ cols ∧ 1 ≤ nhs ∧ hbits ≤ 3 ∧ hbits ≤ cols + 1 ∧ 0 < q / resBatch ∧ 2 * q + 2 < 2 ^ 64 - 1 ∧
+    q + cols + nhs ≤ 2 ^ 20
+
+instance (q cols nhs hbits : ℕ) : Decidable (LrSizes q cols nhs hbits) := by
+  unfold LrSizes; infer_instance
+
 set_option maxRecDepth 100000 in
-/-- **Every entry of `lrTable` has its facts**, by the kernel. -/
+/-- Every entry of `lrTable` has its sizes, by the kernel. -/
+theorem lrTable_sizes : ∀ e ∈ lrTable, LrSizes e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 := by
+  decide +kernel
+
+/-- **Every entry of `lrTable` has its facts.** -/
 theorem lrTable_facts : ∀ e ∈ lrTable,
     LrFacts e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2 := by
-  decide +kernel
+  intro e he
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := lrTable_sizes e he
+  exact ⟨h1, h2, h3, h4, h5, h6, lrLoop1_pure .., fun _ ↦ lrLoop2_pure .., h7⟩
 
 /-! ## The statement -/
 

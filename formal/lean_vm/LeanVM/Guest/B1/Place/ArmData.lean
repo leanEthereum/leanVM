@@ -8,7 +8,6 @@ module
 
 public import LeanVM.Guest.B1.Place.ArmCalls
 public import LeanVM.Guest.B1.Whir.HelperAll
-public import LeanVM.Guest.B1.Whir.DataAll
 public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Whir.TableMem
 
@@ -62,13 +61,19 @@ def BodyOk (c : OsCfg) : Prop :=
 
 instance (c : OsCfg) : Decidable (BodyOk c) := by unfold BodyOk; infer_instance
 
-/-- Level `l`'s `level_positions` loop, from `lpTable`. -/
+/-- Level `l`'s `level_positions` loop, from `lpTable`'s entry of its squeezes and depths (`LvFacts`
+checks the entry's name). -/
 def lpLoopA (c : OsCfg) (l : ℕ) : String :=
-  ((lpTable.find? fun e ↦ e.1 == osPositionsName (osLvA c l)).map (·.2.2.1)).getD ""
+  let lv := osLvA c l
+  ((lpTable.find? fun e ↦ e.2.1 == lv.squeezes && e.2.2.2.1 == lv.depth && e.2.2.2.2 == lv.capDepth).map
+    (·.2.2.1)).getD ""
 
-/-- Level `l`'s `level_residual` loops, from `lrTable`. -/
+/-- Level `l`'s `level_residual` loops, from `lrTable`'s entry of its queries, columns and high
+part. -/
 def lrLoopsA (c : OsCfg) (l : ℕ) : String × String :=
-  ((lrTable.find? fun e ↦ e.1 == osResidualName (osLvA c l)).map (·.2.2.2.2.2)).getD ("", "")
+  let lv := osLvA c l
+  ((lrTable.find? fun e ↦ e.2.1 == lv.queries && e.2.2.1 == lv.logCols && e.2.2.2.1 == lv.folds &&
+    e.2.2.2.2.1 == lv.highBits).map (·.2.2.2.2.2)).getD ("", "")
 
 /-- **Level `l`'s decided facts.** -/
 def LvFacts (c : OsCfg) (l : ℕ) : Prop :=
@@ -188,19 +193,19 @@ theorem armBody_cfg (m : ℕ) (hm : m < 11) : BodyOk (osCfg m) := by
   · exact armBody_9
   · exact armBody_10
 
-theorem osBodyA_rate {m ri : ℕ} (hm : m < ligNSizes) (hri : ri < ligNRates) :
+theorem osBodyA_rate (m ri : ℕ) :
     osBodyA (osCfgR m ri) = osBodyA (osCfg m) := by
-  have h := osBody_rate hm hri
+  have h := osBody_rate m ri
   rw [osBody_eq, osBody_eq] at h
   have hl : [Stmt.ret (osBodyRet (osCfg m))].length = [Stmt.ret (osBodyRet (osCfgR m ri))].length := by
     rw [List.length_singleton, List.length_singleton]
   exact (List.append_inj' h hl).1.symm
 
 /-- **Every arm's body has its decided facts at every rate.** -/
-theorem armBody_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) : BodyOk (osCfgR m ri) := by
+theorem armBody_ok {m : ℕ} (ri : ℕ) (hm : m < 11) : BodyOk (osCfgR m ri) := by
   have h := armBody_cfg m hm
   unfold BodyOk at h ⊢
-  rw [osBodyA_rate hm hri]
+  rw [osBodyA_rate m ri]
   refine ⟨h.1, h.2.1, ?_⟩
   have e : (osCfgR m ri).yrLevel = (osCfg m).yrLevel := rfl
   have e3 : (osCfgR m ri).levels.length = (osCfg m).levels.length := by

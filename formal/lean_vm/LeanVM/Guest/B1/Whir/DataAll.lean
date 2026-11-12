@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Whir.Data7
 public import LeanVM.Guest.B1.Whir.Data8
 public import LeanVM.Guest.B1.Whir.Data9
 public import LeanVM.Guest.B1.Whir.Data10
+public import Mathlib.Tactic.IntervalCases
 
 namespace LeanVM.Guest.B1.Whir
 
@@ -38,21 +39,6 @@ theorem osData_all (m : Nat) (h : m < ligNSizes) : OsData m := by
   · exact osData_8
   · exact osData_9
   · exact osData_10
-
-/-- **Every size's body is its body at every rate's levels.** -/
-theorem osRate_all (m : Nat) (h : m < ligNSizes) : OsRate m := by
-  interval_cases m
-  · exact osRate_0
-  · exact osRate_1
-  · exact osRate_2
-  · exact osRate_3
-  · exact osRate_4
-  · exact osRate_5
-  · exact osRate_6
-  · exact osRate_7
-  · exact osRate_8
-  · exact osRate_9
-  · exact osRate_10
 
 end
 end LeanVM.Guest.B1.Whir

@@ -43,6 +43,7 @@ cache_get() {
 # from the modules matching $2. Its last step, a plain `lake build`, replays a cached module's
 # warnings, so the log lists every one.
 build() {
+  once "build:$1" || return 0
   step "$1: build, its modules admitted by memory"
   python3 -I lake-build.py "$1" 2>&1 | tee "$log/build.txt"
   if grep -E "^warning: $2.*has been deprecated" "$log/build.txt"; then
@@ -81,8 +82,10 @@ statement() {
     fail "Statement imports more than Mathlib, VCVio, CompPoly and itself"
   fi
   cache_get Statement
-  step "Statement: build, its modules admitted by memory"
-  python3 -I lake-build.py Statement
+  if once "build:Statement"; then
+    step "Statement: build, its modules admitted by memory"
+    python3 -I lake-build.py Statement
+  fi
 }
 
 common() {
@@ -125,22 +128,32 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove)
+EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
 # below then find everything built and replay its warnings.
 together() {
-  local p
+  local p pids=() failed=()
   lakefiles
+  step "all six projects: forbid proof escapes, at once"
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do
-    no_escapes "$p"
-    cache_get "$p"
+    once "escapes:$p"
+    python3 -I tools/escape-scan.py "$p" > "$log/escapes-$p.txt" 2>&1 & pids+=($!)
   done
+  for p in "${!pids[@]}"; do wait "${pids[$p]}" || failed+=("$p"); done
+  cat "$log"/escapes-*.txt
+  [ ${#failed[@]} -eq 0 ] || fail "proof escape"
+  for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do cache_get "$p"; done
   step "all six projects: one build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
     @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \
-    @lean-sphincs-security/Sphincs @lean-sphincs-security/FORS @lean-da-security/LeanDa
+    @lean-sphincs-security/Sphincs @lean-sphincs-security/FORS @lean-da-security/LeanDa 2>&1 | tee "$log/build.txt"
+  # Its last step replays every module's warnings: the projects' own builds would only repeat them.
+  if grep -E "^warning: (Common|LeanXmss|XmssSecurity|Sphincs|FORS|LeanDa|PqDas).*has been deprecated" "$log/build.txt"; then
+    fail "deprecated API"
+  fi
+  for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do once "build:$p"; done
 }
 
 executables() {
@@ -152,14 +165,16 @@ lean_vm() {
   no_escapes lean_vm
   cache_get lean_vm
   # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
-  step "lean_vm: build, its modules admitted by memory"
-  python3 -I lake-build.py lean_vm LeanVM LeanVMTests
+  if once "build:lean_vm"; then
+    step "lean_vm: build, its modules admitted by memory"
+    python3 -I lake-build.py lean_vm LeanVM LeanVMTests
+  fi
   axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
     LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
   executables
   # The compiled checks are independent: run together, each one's output printed when all are done.
-  step "lean_vm: the Rust vectors' costly checks, and the guest's core IR, certificates, memory-layer checks and decoder tables current"
-  local k pids=() names=(node-vectors guest-core guest-cert guest-memory decoder-tables)
+  step "lean_vm: the Rust vectors' costly checks, and the guest's core IR, certificates, memory-layer checks and decoder tables current, the tests' runs"
+  local k pids=() names=(node-vectors guest-core guest-cert guest-memory decoder-tables test-runs)
   (cd lean_vm && capped .lake/build/bin/node-vectors) > "$log/node-vectors.out" 2>&1 & pids+=($!)
   for k in guest-core guest-cert guest-memory; do
     (cd lean_vm && capped ".lake/build/bin/$k" --check) > "$log/$k.out" 2>&1 & pids+=($!)
@@ -171,6 +186,9 @@ lean_vm() {
     python3 -I lean_vm/scripts/decoder-tables --entries "$log/entries.txt" --check
     python3 -I lean_vm/scripts/decoder-table-chunks --row-lengths "$log/rows.txt" --split-lengths "$log/split.txt" --check
   ) > "$log/decoder-tables.out" 2>&1 & pids+=($!)
+  # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
+  # for the `.olean` it reads.
+  (cd lean_vm && capped lake env .lake/build/bin/test-runs) > "$log/test-runs.out" 2>&1 & pids+=($!)
   local i failed=()
   for i in "${!pids[@]}"; do
     wait "${pids[$i]}" || failed+=("${names[$i]}")

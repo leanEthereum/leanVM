@@ -9,7 +9,8 @@ import LeanVM.Guest.Code
 `coreProgram`'s definitions (`Guest/Data/Core*`, noncomputable) read back from their elaborated
 terms, and compared with `(Expand.expandProgram Data.guest).map (·.map Fn.renumber)`, both
 evaluated without the kernel: the data cannot drift from the source. And the expansion against
-the compiled functions (`Data.functions`), `KECCAK` by `KECCAK`.
+the compiled functions (`Data.functions`), `KECCAK` by `KECCAK`. Both are `check`, compiled
+(`lake exe test-runs`, on the environment of `LeanVM.Guest.CoreData`'s `.olean`).
 -/
 
 namespace LeanVMTests.Guest.CoreData
@@ -206,20 +207,18 @@ def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
 
 /-! ## The data against the expansion -/
 
-run_meta do
-  let some (.defnInfo d) := (← getEnv).find? ``coreProgram | throwError "no coreProgram"
-  let P ← match (list fn d.value).run (← getEnv) with
-    | .ok P => pure P
-    | .error e => throwError e
-  match Expand.expandProgram Data.guest with
-  | .ok Q =>
-    unless P.length == 1601 && P == Q.map Fn.renumber do
-      throwError "coreProgram is not the renumbered expansion"
-    unless Q.head?.map (·.name) == some "main" && Q.getLast?.map (·.name) == some "walk_path__L12_L8" &&
-        Q.map (·.name) == Data.functions.tail.map (·.name) &&
-        (Q.zip Data.functions.tail).all fun (f, c) => keccakAgree f c do
-      throwError "the expansion is not the compiled functions"
-  | .error e => throwError e
+set_option compiler.extract_closed false in
+/-- The data against the expansion, in an environment holding `coreProgram`. -/
+def check (env : Environment) : Except String Unit := do
+  let some (.defnInfo d) := env.find? ``coreProgram | throw "no coreProgram"
+  let P ← (list fn d.value).run env
+  let Q ← Expand.expandProgram Data.guest
+  unless P.length == 1601 && P == Q.map Fn.renumber do
+    throw "coreProgram is not the renumbered expansion"
+  unless Q.head?.map (·.name) == some "main" && Q.getLast?.map (·.name) == some "walk_path__L12_L8" &&
+      Q.map (·.name) == Data.functions.tail.map (·.name) &&
+      (Q.zip Data.functions.tail).all fun (f, c) => keccakAgree f c do
+    throw "the expansion is not the compiled functions"
 
 /-! ## Access
 

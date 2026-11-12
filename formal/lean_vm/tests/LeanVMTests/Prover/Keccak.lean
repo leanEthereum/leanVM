@@ -1,4 +1,5 @@
 import Statement.Prover.Keccak
+import LeanVMTests.Runs
 
 /-!
 # Tests: the executable Keccak prover against the verifier
@@ -8,6 +9,7 @@ middle state twelve rounds further (slots `25 .. 49`), zeros above; the output l
 point are the true ones. The verifier's own program `verifyKeccak` is run against the prover's
 script with fixed challenges (`drive`): every read meets a scalar sent, every challenge is given
 to both, and every check passes. Then the same with a wrong output claim: the verifier rejects.
+Both are runs, compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Prover.Keccak
@@ -49,11 +51,11 @@ def inst : List E := [el 1, el 2, el 3, el 4]
 def output : List E := (List.range 25).map fun l ↦
   sumRange 16 fun x ↦ (eqKernel inst).getD x 0 * ofK (K.ofLane (Keccak.lane (keccakF1600 (input x)) l))
 
--- The verifier accepts the honest prover's proof.
-#guard (drive chal (verifyKeccak 4 inst output) (keccakProve col 0 inst output) 0).isSome
-
--- The verifier rejects a wrong output claim.
-#guard (drive chal (verifyKeccak 4 inst (output.set 3 0)) (keccakProve col 0 inst (output.set 3 0))
-  0).isNone
+test_runs runs := [
+  ("the verifier accepts the honest prover's proof", fun _ ↦
+    (drive chal (verifyKeccak 4 inst output) (keccakProve col 0 inst output) 0).isSome),
+  ("the verifier rejects a wrong output claim", fun _ ↦
+    (drive chal (verifyKeccak 4 inst (output.set 3 0)) (keccakProve col 0 inst (output.set 3 0))
+      0).isNone)]
 
 end LeanVMTests.Prover.Keccak

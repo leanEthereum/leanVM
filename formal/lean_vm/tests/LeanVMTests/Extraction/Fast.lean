@@ -1,5 +1,6 @@
 import LeanVM.Protocol.Extraction.Fast.Transcript
 import LeanVMTests.Extraction.ToyWords
+import LeanVMTests.Runs
 
 /-!
 # Tests: the fast extractor's decoder
@@ -17,6 +18,8 @@ import LeanVMTests.Extraction.ToyWords
   `Fast/LeeRows.lean`, `Fast/DecoderFast.lean`), each proved equal to the statement's or
   CompPoly's, run against them on small inputs;
 * the axiom footprint of `transcriptExtractorFast_eq`.
+
+The decoding and the field's roots are runs, compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Extraction
@@ -36,12 +39,15 @@ def decodesFast {μ : ℕ} (R A : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List 
   let l := decodeStacksAtFast μ R A fun v ↦ w.getD v []
   (l.any fun d ↦ d.toList == q.toList, l.length)
 
-#guard decodesFast 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1)
-
 /-! ## The restated decoder steps, run -/
 
-#guard (rootsInFieldFast rootPoly).size = 5
-#guard rootsInFieldFast rootPoly == fieldRootCtx.rootsInField rootPoly
+test_runs Fast.runs := [
+  ("decodeStacksAtFast decodes a toy word", fun _ ↦
+    decide (decodesFast 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1))),
+  ("rootsInFieldFast: the five roots, CompPoly's", fun _ ↦
+    decide ((rootsInFieldFast rootPoly).size = 5) &&
+      rootsInFieldFast rootPoly == fieldRootCtx.rootsInField rootPoly)]
+
 #guard (List.range 4).all fun s ↦
   let Q := randomBivariate (s + 11) 6 5
   initialCoeffFast Q == initialCoefficientPolynomial Q &&

@@ -44,7 +44,6 @@ theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = 61 := by
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 /-- **`verify_sub`'s words for a child of stack log `μ`** at the deployed instance: its frame
 `2022` and buffers `8710`, `g_power_of_word` (`49`, twice), the two `log2_ceil` placements (`205`,
 `206`), `certify_placement` (`486`), the grind checks (`53`, twice), the squeeze dispatch (`532`),
@@ -63,6 +62,7 @@ theorem vsBoundAt_eq {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
   rewrite [h1, h2, h3, h4, h5, h6, k1, k2, k3, k4, busGrindMax_eq]
   simp only [List.sum_cons, List.sum_nil, B1.Whir.minOpenLog]
   generalize osC (μ - 20) = x
+  clear * -
   omega
 
 end

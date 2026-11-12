@@ -1,4 +1,5 @@
 import LeanVMTests.Extraction.ToyWords
+import LeanVMTests.Runs
 
 /-!
 # Tests: the extractor's list decoder on toy codes
@@ -15,7 +16,8 @@ when the lanes carry high parts `W_κ·H_u` (`wordHighOf`). Then the parameters 
 shapes: the natural Johnson threshold and the decoder's multiplicities, against the table computed
 offline with exact integers; and the Merkle inversion (`committedLeaves`): under an injective toy
 hash, the leaves are recovered from the answer table, an unanswered leaf is zeros, and the keys'
-order and repetitions do not matter. The fast path is `ToyFast.lean`.
+order and repetitions do not matter. The fast path is `ToyFast.lean`. The decoder's runs are
+compiled (`lake exe test-runs`).
 -/
 
 namespace LeanVMTests.Extraction
@@ -25,19 +27,24 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 
 /-! ## The list decoder -/
 
--- `κ = 3`, `R = 1`: `n = 16` columns, messages of `2^3 + 6 = 14` coefficients, `A = 15`; one
--- error, in column `2`, among the first `2^κ` columns, on which the fast path gives up.
+-- `κ = 3`, `R = 1`: `A = 15`.
 #guard johnsonThreshold 9 1 = 15
-#guard decodes 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1)
 
--- `κ = 3`, `R = 2`: `n = 32`, `A = 22`; eleven errors, past the radius `n − A = 10`: nothing
--- is decoded (ten, within it, in `ToyRadius.lean`).
-#guard decodes 2 22 (randomStack 3 9)
-  (corrupt 3 [0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19] (wordOf 2 (randomStack 3 9))) = (false, 0)
-
--- A word with high parts (`enc(block u) + W_3·H_u`, `deg H_u < 6`), the candidates of level 0's
--- list at its degree `2^3 + 5`: the decoder lists the stack, its lanes' low parts.
-#guard decodes 1 15 (randomStack 5 9) (corrupt 5 [4] (wordHighOf 1 5 (randomStack 5 9))) = (true, 1)
+/-- The decoder's runs, compiled. -/
+test_runs Toy.runs := [
+  -- `κ = 3`, `R = 1`: `n = 16` columns, messages of `2^3 + 6 = 14` coefficients, `A = 15`; one
+  -- error, in column `2`, among the first `2^κ` columns, on which the fast path gives up.
+  ("one error, in column 2: the stack", fun _ ↦
+    decide (decodes 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1))),
+  -- `κ = 3`, `R = 2`: `n = 32`, `A = 22`; eleven errors, past the radius `n − A = 10`: nothing
+  -- is decoded (ten, within it, in `ToyRadius.lean`).
+  ("eleven errors, past the radius: nothing", fun _ ↦
+    decide (decodes 2 22 (randomStack 3 9)
+      (corrupt 3 [0, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19] (wordOf 2 (randomStack 3 9))) = (false, 0))),
+  -- A word with high parts (`enc(block u) + W_3·H_u`, `deg H_u < 6`), the candidates of level 0's
+  -- list at its degree `2^3 + 5`: the decoder lists the stack, its lanes' low parts.
+  ("a word with high parts: the stack", fun _ ↦
+    decide (decodes 1 15 (randomStack 5 9) (corrupt 5 [4] (wordHighOf 1 5 (randomStack 5 9))) = (true, 1)))]
 
 /-! ## The parameters at the deployed shapes
 

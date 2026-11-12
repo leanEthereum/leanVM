@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Whir.DataSpec
-public import Mathlib.Tactic.IntervalCases
 
 namespace LeanVM.Guest.B1.Whir
 
@@ -28,37 +27,16 @@ theorem os_run_1_0 : stmtsEqb ((Data.core336.body.drop 0).take 1100)
     (((osBody (osCfg 1)).drop 0).take 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem os_run_1_1 : stmtsEqb ((Data.core336.body.drop 1100).take 1100)
-    (((osBody (osCfg 1)).drop 1100).take 1100) = true := by decide +kernel
+theorem os_run_1_1 : stmtsEqb (Data.core336.body.drop 1100)
+    ((osBody (osCfg 1)).drop 1100) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem osData_1 : OsData 1 := by
   have hb : Data.core336.body.drop 0 = (osBody (osCfg 1)).drop 0 :=
     run_step 1100 0 os_run_1_0 <|
-    run_step 1100 1100 os_run_1_1 <|
-    drop_end (o := 2200) (by decide +kernel) (by decide +kernel)
+    stmtsEqb_sound os_run_1_1
   rw [List.drop_zero, List.drop_zero] at hb
   exact ⟨Data.core336, coreProgram_find?_at (j := 336) rfl, by decide +kernel, hb⟩
-
-set_option maxRecDepth 100000 in
-theorem os_rate_1_1 : stmtsEqb (osBody (osCfg 1)) (osBody (osCfgR 1 1)) = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem os_rate_1_2 : stmtsEqb (osBody (osCfg 1)) (osBody (osCfgR 1 2)) = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem os_rate_1_3 : stmtsEqb (osBody (osCfg 1)) (osBody (osCfgR 1 3)) = true := by
-  decide +kernel
-
-theorem osRate_1 : OsRate 1 := by
-  intro ri h
-  interval_cases ri
-  · rfl
-  · exact stmtsEqb_sound os_rate_1_1
-  · exact stmtsEqb_sound os_rate_1_2
-  · exact stmtsEqb_sound os_rate_1_3
 
 end
 end LeanVM.Guest.B1.Whir

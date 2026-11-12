@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Flat
-public import LeanVM.Guest.B1.Whir.DataAll
+public import LeanVM.Guest.B1.Whir.RateFree
 
 /-!
 # A size's body at a rate
@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Whir.DataAll
 `open_stacked__L{m}` is `osBody (osCfg m)`, whose levels are the first rate's rows; the columns a
 rate changes (`queries`, `depth`, `capDepth`, `squeezes`) reach the body only through the
 dispatches' names (`OsCfg.lvAt`). So it is also the body at the configuration `osCfgR m ri`
-whose levels are rate `ri`'s rows (`osBody_rate`, `OsRate` decided by the kernel in
-`Whir/Data*.lean`), and the proof runs at that configuration.
+whose levels are rate `ri`'s rows (`osBody_rate`, `Whir/RateFree.lean`), and the proof runs at
+that configuration.
 
 * `LvRate σ c lvl lv`: the selector `σ 0` is `g^ri` for a rate `ri < 4` whose row of level `lvl`
   is `lv`; `dispatch_rate`: a dispatch on it over `(c.lvAt lvl).map f` calls `f lv`.
@@ -29,11 +29,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 open LeanVM.Guest.Value
 
 @[expose] public section
-
-/-- **A size's body is its body at any rate's levels.** -/
-theorem osBody_rate {m ri : ℕ} (hm : m < ligNSizes) (hri : ri < ligNRates) :
-    osBody (osCfg m) = osBody (osCfgR m ri) :=
-  osRate_all m hm ri hri
 
 theorem osCfgR_lvAt (m ri lvl : ℕ) : (osCfgR m ri).lvAt lvl = (osCfg m).lvAt lvl := rfl
 
