@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Place.OsSpec
+public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Place.SqAt
 public import LeanVM.Guest.Budget.LiftB
 public import LeanVM.Guest.Budget.Bounded
@@ -14,14 +15,11 @@ public import LeanVM.Guest.Budget.Bounded
 /-!
 # The named callees within their bounds
 
-`OsLeafBounds fs Bnd` (`Place/OsSpec`): each named callee `f`'s valid trees total at most `Bnd f`
-words. **`kindDB`**: a named callee is complete placed on its meaning and regions within that
-bound: the leaves by `completeRelRegDB_of_iff`, `grind_check` by `grind_check_completeB_of`, and
+**`kindDB`**: a named callee whose valid trees total at most `B` words (`TotalLe`) is complete
+placed on its meaning and regions within `B`: the leaves by `completeRelRegDB_of_iff`, `grind_check` by `grind_check_completeB_of`, and
 `opening_round`, which calls `grind_check__L7`, as a pure function (`completeAtDTB_of_relIn`: it
 and `grind_check__L7` place nothing, `round_pureIn`) from its relation loading only the caller's
 words on every memory holding them (`round_relIn`, its grinds' by `grind_relIn`).
-**`os_kid_namedB`**: a named call of a body proved at `osCR` on every memory holding `Lk` is
-`CompleteAtB` on `Lk` within its bound.
 -/
 
 namespace LeanVM.Guest.B1
@@ -144,7 +142,7 @@ theorem round_relIn (hκ : 11 ≤ κ) {args rets : List E} {Lin : Layout}
         (fun rd' hl' hL' ↦ ⟨rfl, w, args.getD 7 0, rfl, (hpre rd' hl' hL').2, hw⟩) hlow hLin
       rwa [hname] at this)
   set σ : Val := fun v ↦ Whir.rdVals args xs v.idx with hσ
-  have hst : roundPre.all Main.Stmt.straight = true := straight_of_flat _ roundPre_flat
+  have hst : roundPre.all Main.Stmt.straight = true := by decide
   have hbody := Whir.core7_body.trans roundBody_eq
   have hw := Main.walk_straight σ [.n 86, .n 87, .n 88, .n 89, .n 90, .n 93, .n 94] roundPre hst
   rw [← hbody] at hw
@@ -199,10 +197,9 @@ theorem round_pureIn : coreProgram.PureIn ["opening_round", "grind_check__L7"] :
 /-! ## The named callees within their bounds -/
 
 /-- **A named callee is complete placed on its meaning and regions, within its bound.** -/
-theorem kindDB (hκ : 11 ≤ κ) {Bnd : String → ℕ} (hT : OsLeafBounds fs Bnd) {f : String}
+theorem kindDB (hκ : 11 ≤ κ) {B : ℕ} {f : String} (hb : TotalLe coreProgram fs f (fun _ ↦ B))
     {K : OsKind} (hK : osKindOf f = some K) :
-    CompleteRelRegDB fs cert κ f K.Pre (RegPtrs K.spec) (fun _ ↦ Bnd f) := by
-  have hb := hT f K hK
+    CompleteRelRegDB fs cert κ f K.Pre (RegPtrs K.spec) (fun _ ↦ B) := by
   have he := osKindEntry_ok hK
   cases K with
   | round =>
@@ -238,23 +235,6 @@ theorem kindDB (hκ : 11 ≤ κ) {Bnd : String → ℕ} (hT : OsLeafBounds fs Bn
     simp only [osKindEntryOk, decide_eq_true_eq] at he
     exact completeRelRegDB_of_iff (leafSpecOk_all foldFinal_leafSpec _ he)
       (fold_final_msg_holds _ he) κ hb
-
-/-- **A named call of a body proved at `osCR` on every memory holding `Lk`** is complete placed on
-`Lk` within its bound. -/
-theorem os_kid_namedB (hκ : 11 ≤ κ) {Bnd : String → ℕ} (hT : OsLeafBounds fs Bnd) {Lk : Layout}
-    {σ : Val} {pre : List Stmt} {Sp : String → List E → List E → Prop}
-    (hall : ∀ rd, LowDef κ rd → MemL rd Lk → AllOk (osCR rd Sp (OsXOk κ Lk)) rd σ pre)
-    (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lk)
-    {c : Call} (hc : c ∈ (pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (ht : c.taken = true)
-    {K : OsKind} (hK : osKindOf c.f = some K) :
-    CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (Bnd c.f) := by
-  have hpre : ∀ rd, LowDef κ rd → MemL rd Lk → K.Pre rd (c.args.map σ) (c.rets.map σ) ∧
-      OsXOk κ Lk K (c.args.map σ) := fun rd hl hm ↦ by
-    have h := os_calls_of_allOk (hall rd hl hm) c hc ht
-    unfold osCR at h; rw [hK] at h; exact h
-  obtain ⟨rd0, hl0, hm0⟩ := hex
-  exact (kindDB (cert := cert) hκ hT hK _ _ Lk (fixedReads_region (hpre rd0 hl0 hm0).2 ⟨rd0, hl0, hm0⟩)
-    fun rd hl hm ↦ (hpre rd hl hm).1).toCompleteAtB
 
 end
 end LeanVM.Guest.B1
