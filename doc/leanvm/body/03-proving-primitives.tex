@@ -125,7 +125,5 @@ A \emph{weighted claim} about a multilinear $g:\cube{M}\to\K$ is a pair $(W,c)$ 
 \[
   \inner{W}{g}=\sum_{w\in\cube{M}}W(w)\,g(w)=c .
 \]
-The commitment is over $\K$, the opening over $\E$. An evaluation claim $\mle{g}(r)=c$ is the case $W=\eq(r,\cdot)$, by Fact~\ref{fact:eq}.
+The commitment is over $\K$, the opening over $\E$ (see Annex~\ref{annex:pcs}). An evaluation claim $\mle{g}(r)=c$ is the case $W=\eq(r,\cdot)$, by Fact~\ref{fact:eq}.
 \end{definition}
-
-We use WHIR~\cite{ACFY25} / Ligerito~\cite{NA25}, folding with the affine combiner of~\cite{CYWZ26}, as inner-product commitment scheme (see Annex~\ref{annex:pcs}). The two are essentially the same scheme when WHIR is instantiated with an interleaved code and Ligerito with a Reed-Solomon code.
