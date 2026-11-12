@@ -14,7 +14,7 @@
 //! Representations:
 //! - committed message / L0 codeword / L0 opened rows: `F64` (8 bytes)
 //! - challenges, sumcheck messages, folded witnesses, deeper-level codewords
-//!   and opened rows, `b_initial`, betas, alphas, `yr`: `F128` (16 bytes)
+//!   and opened rows, `b_initial`, betas, alphas: `F128` (16 bytes)
 //! - the RS-encoding evaluation domain and all LCH twiddles stay in K, so the
 //!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
 //!   [`F128::mul_base`] (2 PMULL) instead of a full E multiplication.
@@ -27,9 +27,7 @@ use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{
-    Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, powers,
-};
+use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
 use primitives::multilinear::{eq_table, interp};
 
 use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
@@ -69,7 +67,7 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F128]) -> F128 {
 
 /// Derive the shared prover/verifier config for a K-witness of `2^log_n` F64
 /// elements at L0 inverse-rate logarithm `log_inv_rate`, using the production
-/// Production Johnson/OOD profile at `m = log_n + LOG_PACKING`.
+/// Johnson/OOD profile at `m = log_n + LOG_PACKING`.
 pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, String> {
     let sec = WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + crate::LOG_PACKING, log_inv_rate)?;
     sec.to_config()
@@ -315,41 +313,32 @@ fn deinterleave(x: &[F128; 16]) -> ([F128; 8], [F128; 8]) {
     (even.to_array(), odd.to_array())
 }
 
-/// `(sum f0*b0, sum (f0+f1)*(b0+b1))` over the adjacent pairs `(f[2j], f[2j + 1])`, unreduced, plus,
-/// when `ODD`, `sum f1*b1` over the same pairs (the other half of the inner product `sum f*b` once
-/// `u_0 = sum f0*b0` is added). A trailing odd element contributes nothing.
+/// `(sum f0*b0, sum (f0+f1)*(b0+b1))` over the adjacent pairs `(f[2j], f[2j + 1])`, unreduced. A trailing odd
+/// element contributes nothing.
 #[inline]
-pub(crate) fn adjacent_dots<const ODD: bool>(f: &[F128], b: &[F128]) -> (Acc8, Acc8, Acc8) {
+pub(crate) fn adjacent_dots(f: &[F128], b: &[F128]) -> (Acc8, Acc8) {
     let (f16, f_r) = f.as_chunks::<16>();
     let (b16, b_r) = b.as_chunks::<16>();
-    let (mut u_0, mut u_2, mut odd) = (Acc8::ZERO, Acc8::ZERO, Acc8::ZERO);
+    let (mut u_0, mut u_2) = (Acc8::ZERO, Acc8::ZERO);
     for (x, y) in f16.iter().zip(b16) {
         let ((f0, f1), (b0, b1)) = (deinterleave(x), deinterleave(y));
         let (t_0, t_2) = msg_terms8_ext(&f0, &f1, &b0, &b1);
         u_0 ^= t_0;
         u_2 ^= t_2;
-        if ODD {
-            odd ^= msg_lone8_ext(&f1, &b1);
-        }
     }
     // Fewer than eight pairs are left: scalar products, summed before they enter an accumulator.
-    let (mut r_0, mut r_2, mut r_odd) = (F128Unreduced::ZERO, F128Unreduced::ZERO, F128Unreduced::ZERO);
+    let (mut r_0, mut r_2) = (F128Unreduced::ZERO, F128Unreduced::ZERO);
     for (p, q) in f_r.as_chunks::<2>().0.iter().zip(b_r.as_chunks::<2>().0.iter()) {
         r_0 ^= p[0].mul_unreduced(q[0]);
         r_2 ^= (p[0] + p[1]).mul_unreduced(q[0] + q[1]);
-        if ODD {
-            r_odd ^= p[1].mul_unreduced(q[1]);
-        }
     }
     u_0 ^= Acc8::from(r_0);
     u_2 ^= Acc8::from(r_2);
-    odd ^= Acc8::from(r_odd);
-    (u_0, u_2, odd)
+    (u_0, u_2)
 }
 
-/// The round message of `f` against `b`, and with `EVAL` their inner product: for an OOD basis
-/// `b = eq(z, ·)`, the claimed MLE evaluation.
-fn round_msg_lsb<const EVAL: bool>(f: &[F128], b: &[F128]) -> (SumcheckMessage, F128) {
+/// The round message of `f` against `b`.
+fn round_msg_lsb(f: &[F128], b: &[F128]) -> SumcheckMessage {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
@@ -357,29 +346,23 @@ fn round_msg_lsb<const EVAL: bool>(f: &[F128], b: &[F128]) -> (SumcheckMessage, 
     // `ROUND_CHUNK` is even, so no pair straddles two tasks.
     let dots = |c: usize| {
         let at = c * ROUND_CHUNK..(c * ROUND_CHUNK + ROUND_CHUNK).min(n);
-        adjacent_dots::<EVAL>(&f[at.clone()], &b[at])
+        adjacent_dots(&f[at.clone()], &b[at])
     };
-    let add = |(mut a0, mut a2, mut ao): (Acc8, Acc8, Acc8), (c0, c2, co): (Acc8, Acc8, Acc8)| {
+    let add = |(mut a0, mut a2): (Acc8, Acc8), (c0, c2): (Acc8, Acc8)| {
         a0 ^= c0;
         a2 ^= c2;
-        ao ^= co;
-        (a0, a2, ao)
+        (a0, a2)
     };
-    let (n_tasks, zero) = (n.div_ceil(ROUND_CHUNK), (Acc8::ZERO, Acc8::ZERO, Acc8::ZERO));
-    let (u_0, u_2, odd) = if n / 2 < PAR_THRESHOLD {
+    let (n_tasks, zero) = (n.div_ceil(ROUND_CHUNK), (Acc8::ZERO, Acc8::ZERO));
+    let (u_0, u_2) = if n / 2 < PAR_THRESHOLD {
         (0..n_tasks).map(dots).fold(zero, add)
     } else {
         parallel::map_reduce(n_tasks, || zero, dots, add)
     };
-    let mut y = u_0;
-    y ^= odd;
-    (
-        SumcheckMessage {
-            u_0: u_0.reduce(),
-            u_2: u_2.reduce(),
-        },
-        y.reduce(),
-    )
+    SumcheckMessage {
+        u_0: u_0.reduce(),
+        u_2: u_2.reduce(),
+    }
 }
 
 /// Outputs a fused fold writes before its message reads them, so the reads hit settled stores rather than stores
@@ -410,14 +393,14 @@ fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, S
         let fold = |fo: &mut [F128], bo: &mut [F128], at: std::ops::Range<usize>| {
             fold_adjacent(fo, &f[at.clone()], r);
             fold_adjacent(bo, &b[at], r);
-            adjacent_dots::<false>(fo, bo)
+            adjacent_dots(fo, bo)
         };
         let (mut sf, mut sb) = ([F128::ZERO; FOLD_STAGE], [F128::ZERO; FOLD_STAGE]);
         let st = primitives::stream::Stream::new();
         for s in (0..len).step_by(FOLD_STAGE) {
             let k = FOLD_STAGE.min(len - s);
             let at = 2 * (base + s)..2 * (base + s + k);
-            let (u_0, u_2, _) = if stream {
+            let (u_0, u_2) = if stream {
                 // Folded in L1, then streamed: an output this large is not read back from cache.
                 let d = fold(&mut sf[..k], &mut sb[..k], at);
                 st.copy(&mut fc[s..s + k], &sf[..k]);
@@ -720,7 +703,7 @@ fn glue<const N: usize>(w: &mut [F128], claim: &mut F128, pending: [(Vec<F128>, 
 /// challenge. Returns the claim it ends on, with `f` and `w` folded to one value each.
 fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut claim: F128) -> (F128, F128, F128) {
     let rounds = f.len().ilog2();
-    let (mut msg, _) = round_msg_lsb::<false>(&f, &w);
+    let mut msg = round_msg_lsb(&f, &w);
     for j in 0..rounds {
         let _span = tracing::info_span!("Tail round", round = j).entered();
         send_msg(ps, msg);
@@ -1195,15 +1178,7 @@ mod tests {
         for log in [1usize, 2, 3, 4, 5, 6, 8, 12, 13, 14] {
             let n = 1usize << log;
             let (f, b) = (rng.ext_vec(n), rng.ext_vec(n));
-            assert_eq!(
-                round_msg_lsb::<false>(&f, &b).0,
-                msg_ref(&f, &b),
-                "round_msg_lsb, n={n}"
-            );
-
-            let (msg, y) = round_msg_lsb::<true>(&f, &b);
-            assert_eq!(msg, msg_ref(&f, &b), "eval message, n={n}");
-            assert_eq!(y, f.iter().zip(&b).map(|(&x, &y)| x * y).sum(), "eval, n={n}");
+            assert_eq!(round_msg_lsb(&f, &b), msg_ref(&f, &b), "round_msg_lsb, n={n}");
 
             let fold =
                 |x: &[F128]| -> Vec<F128> { x.as_chunks::<2>().0.iter().map(|p| interp(p[0], p[1], r)).collect() };

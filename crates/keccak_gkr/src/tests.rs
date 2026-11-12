@@ -5,7 +5,7 @@ use primitives::test_rng::Rng;
 use verifier::VerifierError;
 
 use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
-use crate::keccak::{BITS, LANES, LOCAL_VARS};
+use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS};
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
@@ -133,7 +133,8 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     // A sumcheck round of degree 2 or 3 sends two scalars; the bit position's, of degree 3 with no eq factor, three.
     let (round2, round3) = (2 + nonce(2), 2 + nonce(3));
     let layer = PROD_BITS + nonce(PROD_BITS - 1) + round3 * shape.y_vars() + (round3 + 1) * LOCAL_VARS + 3 + nonce(2);
-    let first = 2 + 1 + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + 5);
+    let ood = usize::from(pcs::whir_config::OOD_GRINDING_BITS > 0);
+    let first = 2 + ood + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + LANE_VARS);
     let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
     let word = outputs + committed * round2 * shape.slot_log();

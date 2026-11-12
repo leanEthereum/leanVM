@@ -41,11 +41,8 @@ fn signing(
         .collect()
 }
 
-/// The native verifier derives the DA challenge's grind from its own copy of the blob size.
-#[test]
-fn da_block_size_matches_the_verifier() {
-    assert_eq!(verifier::da::DA_LOG_K, DA_LOG_K);
-}
+// The native verifier derives the DA challenge's grind from its own copy of the blob size.
+const _: () = assert!(verifier::da::DA_LOG_K == DA_LOG_K);
 
 #[test]
 fn the_wire_layout_is_pinned() {
@@ -501,6 +498,26 @@ fn forged_da_hints_are_rejected() {
         assert!(
             matches!(result, Err(AggregationError::ProofError(_))),
             "a forged DA hint is rejected"
+        );
+    }
+}
+
+/// The child's opening rides in as hints: a forged opened row or cap node fails the guest's Merkle check.
+#[test]
+fn forged_opening_hints_are_rejected() {
+    leanvm_core::init_prover();
+    let signers = get_signers(SMALL_LEAF_SIZE);
+    let child = aggregate(&[], signing(&signers, 0), vec![], &[], None, LOG_INV_RATE).unwrap();
+    let forgeries: [Forgery; 2] = [
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += F128::ONE),
+    ];
+    for forgery in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let result = aggregate(std::slice::from_ref(&child), vec![], vec![], &[], None, LOG_INV_RATE);
+        assert!(
+            matches!(result, Err(AggregationError::ProofError(_))),
+            "a forged opening hint is rejected"
         );
     }
 }

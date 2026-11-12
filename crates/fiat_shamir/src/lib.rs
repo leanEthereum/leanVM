@@ -292,9 +292,6 @@ mod tests {
             assert_eq!(clone.sample(), expected_state.sample());
             assert_eq!(clone.sample(), expected_state.sample());
         }
-        let mut clone = sp.clone();
-        assert_eq!(clone.grind(0), None);
-        assert_eq!(clone.sample(), sp.clone().sample());
     }
 
     /// A grind of no bits is nothing: no nonce sent, the next challenge unchanged.

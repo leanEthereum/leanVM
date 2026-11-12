@@ -141,6 +141,7 @@ fn grinding_constants_match_the_prover() {
         prover::OOD_GRINDING_BITS,
     ];
     assert_eq!(rust, expected, "crates/verifier's grinding constants");
+    assert_eq!(verifier::MAX_STACKED_CLAIMS, prover::MAX_STACKED_CLAIMS);
     assert_lean_constants(
         &lean_verifier(),
         &[

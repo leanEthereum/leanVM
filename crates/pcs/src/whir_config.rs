@@ -50,9 +50,7 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
     Ok(())
 }
 
-/// Per-level query-phase proof-of-work budget. These bits are ground after the
-/// level commitment and before its query positions are sampled, so the query
-/// count only needs to close the remaining `SECURITY_BITS - 17` bits.
+/// The grind before each level's query message: its positions and, below the final level, the next level's lambda.
 pub const QUERY_GRINDING_BITS: u32 = 17;
 
 /// Grinding before each fold round's `(alpha, beta)`: the least for which the fold
@@ -85,9 +83,8 @@ const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 const _: () = assert!(RS_DOMAIN_INITIAL_REDUCTION_FACTOR <= INITIAL_FOLDING_FACTOR);
 const _: () = assert!(RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR <= SUBSEQUENT_FOLDING_FACTOR);
 
-/// Folding stops once at most this many variables remain: the residual
-/// polynomial (`yr`, at most `2^RESIDUAL_MAX_LOG` coefficients) is sent in
-/// clear instead of committed and folded further.
+/// Folding stops once at most this many variables remain: the final level is sent in clear instead of committed and
+/// folded further.
 pub const RESIDUAL_MAX_LOG: usize = 5;
 
 // The recursion guest rotates the terminal point left by the lane fold to index it
@@ -119,7 +116,7 @@ pub struct LevelShapes {
     pub levels: usize,
     /// Fold count per level: `initial_k` then `level_ks`.
     pub ks: Vec<usize>,
-    /// Log message columns entering each level's fold (`log_n - initial_k`,
+    /// Log message columns after each level's fold (`log_n - initial_k`,
     /// then descending by each level's `k`).
     pub log_msg_cols: Vec<usize>,
     /// Committed block length per level (`msg_cols * inv_rate`).
@@ -152,14 +149,13 @@ impl ProverConfig {
     }
 }
 
-/// Soundness (in bits) the query phase must close on its own at every level
-/// (the "100 bits from queries always" policy).
+/// The query bits of the test-only unique-decoding configuration, for sizes below the PCS window.
 #[cfg(test)]
 const UDR_TARGET_BITS: f64 = 100.0;
 
 /// Number of queries for 100-bit soundness in the **unique-decoding regime**
 /// at rate `2^(-log_inv_rate)`: `γ = δ/2 = (1−ρ)/2`, per-query soundness
-/// `log₂(1/(1−γ))` (see [`udr_per_query_bits`]). Within the unique decoding
+/// `log₂(1/(1−γ))` (see [`udr_per_query_bits_asymptotic`]). Within the unique decoding
 /// radius the prover is pinned to a single codeword, so there is no list and
 /// no union-bound term: queries close the full target by themselves.
 /// Per-query soundness saturates below 1 bit (`γ < 1/2`), so slimmer codes

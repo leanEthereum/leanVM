@@ -270,7 +270,6 @@ version = "0.1.0"
 dependencies = [
  "leanvm_core",
  "primitives",
- "rand",
 ]
 
 [[package]]

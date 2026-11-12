@@ -217,7 +217,7 @@ mod sum {
     }
 
     /// The unreduced sum of eight-element products: one sum, where [`Prod8`](super::Prod8) keeps
-    /// eight. A NEON register file cannot hold eight lanes of three 128-bit coefficients, and on
+    /// eight. Eight unreduced lanes crowd the NEON register file, and on
     /// AVX2 the dot products it sums take their operands straight from memory, with no plane
     /// transpose, so a sum read only whole is kept as one.
     #[derive(Clone, Copy, Debug)]

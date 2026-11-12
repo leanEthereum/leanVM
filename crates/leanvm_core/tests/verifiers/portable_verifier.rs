@@ -101,7 +101,7 @@ fn tampers_fail_their_check() {
         (bytecode_share, VerifierError::BytecodeShare),
         (bytecode_value, VerifierError::BytecodeShare),
         (end - tail - final_coefficients - 3, VerifierError::GrindingNonce),
-        (end - final_level - 2, VerifierError::GrindingNonce),
+        (end - final_level - 4, VerifierError::GrindingNonce),
         (end - tail - 1, VerifierError::GrindingNonce),
         (end - nonce(2) - 1, VerifierError::WhirTerminal),
         (

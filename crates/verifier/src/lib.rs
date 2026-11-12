@@ -125,7 +125,7 @@ fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
 
 /// The stacked opening's batching is accounted for up to this many claims, the ring-switched one included. The count
 /// follows from the announced shape, so a replay checks it too, like the committed size.
-const MAX_STACKED_CLAIMS: usize = 512;
+pub const MAX_STACKED_CLAIMS: usize = 512;
 
 /// The weight a claim puts on the stack, and the value it claims for it.
 type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);

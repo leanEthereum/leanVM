@@ -253,13 +253,6 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
-/// Why [`verify`] rejected a proof.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CpuError {
-    /// The `verifier` crate rejected the proof.
-    Verifier(verifier::VerifierError),
-}
-
 /// Per side, which table (if any) owns each bus block, as `(table, column base)`.
 type BlockOwners = [Vec<Option<(usize, usize)>>; 3];
 /// Each table's `(column base, committed column count)` in the global schema.
@@ -618,14 +611,17 @@ pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
 ///
 /// The stacked bytecode is rebuilt and rehashed on every call. A caller verifying many proofs of one program prepares a [`verifier::Bytecode`] once instead.
 #[tracing::instrument(name = "Verify", skip_all)]
-pub fn verify(program: &Program, public_input: &[F128; 2], proof: &Proof) -> Result<verifier::Summary, CpuError> {
+pub fn verify(
+    program: &Program,
+    public_input: &[F128; 2],
+    proof: &Proof,
+) -> Result<verifier::Summary, verifier::VerifierError> {
     let table: Vec<u64> = layout::bytecode_table(&program.prog)
         .iter()
         .map(|word| word.0)
         .collect();
     let bytecode = verifier::Bytecode::new(&table);
     verifier::verify_execution(&bytecode, &public_input_bytes(public_input), &scalar_proof(proof))
-        .map_err(CpuError::Verifier)
 }
 
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in

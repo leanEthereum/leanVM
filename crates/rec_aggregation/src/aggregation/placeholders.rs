@@ -460,7 +460,7 @@ fn claim_placeholders(
         == (out_pool..out_pool + primitives::hash::STATE_LANES).contains(&j)));
     ps("KECCAK_OUT_POOL", out_pool.to_string());
     // The stacked opening batches the ring-switched claim, the pool's on-stack claims and the
-    // Keccak reduction's claim on its output word; the batching is accounted for up to a cap.
+    // Keccak reduction's claim on its output word and level 0's OOD claim; the batching is accounted for up to a cap.
     let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + 1;
     assert!(
         stacked <= pcs::whir_config::MAX_STACKED_CLAIMS,
@@ -507,6 +507,8 @@ fn grind_placeholders(bus_min_mu: usize, ps: &mut impl FnMut(&str, String)) {
     // The bus grind's bits by the push depth mu, from `bus_min_mu` on. It sends a nonce at every depth the guest
     // admits, which it absorbs with the OOD sample's value.
     assert!(bus_grinding_bits(bus_min_mu) > 0);
+    // The root-most layer is binary and never the last.
+    assert!(bus_min_mu > 2);
     ps("BUS_MIN_MU", bus_min_mu.to_string());
     ps("BUS_GRIND_BITS", literals((0..64).map(bus_grinding_bits)));
     for degree in [2, 3] {
@@ -846,6 +848,8 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     }
     let n_log_sizes = maxm - minm + 1;
     let n_rates = MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1;
+    // The guest's rate selector is `g^rate / g`.
+    const _: () = assert!(MIN_LOG_INV_RATE == 1);
     // `open_stacked` has one arm per size and reads these at the size's first-rate row: a rate changes none of them.
     fn size_only(c: &OpeningShape) -> (usize, usize, usize, [&Vec<usize>; 5]) {
         let lists = [

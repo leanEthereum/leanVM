@@ -129,7 +129,7 @@ unsafe impl Plain for u128 {}
 unsafe impl<T: Plain, const N: usize> Plain for [T; N] {}
 // SAFETY: `repr(transparent)` over `u64`.
 unsafe impl Plain for field::F64 {}
-// SAFETY: `repr(C)` over three `u64`.
+// SAFETY: `repr(C)` over two `u64`.
 unsafe impl Plain for field::F128 {}
 // SAFETY: vectors of 16, 32 and 64 bytes with no padding, and every bit pattern is a valid vector.
 #[cfg(target_arch = "x86_64")]

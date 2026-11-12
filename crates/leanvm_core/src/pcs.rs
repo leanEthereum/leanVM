@@ -44,7 +44,7 @@ pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
 pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
 /// The `log_inv_rate` values a WHIR configuration can be derived for.
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-// The PCS and the unground F128 bus argument both target `SECURITY_BITS`.
+// The PCS and the bus argument both target `SECURITY_BITS`.
 const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
 /// The committed stack's log-size bounds, the protocol's.
 pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};

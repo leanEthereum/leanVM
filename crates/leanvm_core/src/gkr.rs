@@ -514,12 +514,8 @@ fn fold_and_message(trees: &mut [QuaternaryLayerState; TREES], challenge: F128, 
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     {
         if trees[0].logical_rows >= VERTICAL_ROWS {
-            let (inputs, outs): (Vec<_>, Vec<_>) =
-                trees.each_mut().map(QuaternaryLayerState::split).into_iter().unzip();
-            let (Ok(inputs), Ok(outs)) = (inputs.try_into(), outs.try_into()) else {
-                unreachable!("one input and one output per tree")
-            };
-            let messages = vertical::fold(inputs, challenge, eq, outs);
+            let [a, b, c] = trees.each_mut().map(QuaternaryLayerState::split);
+            let messages = vertical::fold([a.0, b.0, c.0], challenge, eq, [a.1, b.1, c.1]);
             for tree in trees.iter_mut() {
                 std::mem::swap(&mut tree.groups, &mut tree.spare);
                 tree.values = Vec::new();
