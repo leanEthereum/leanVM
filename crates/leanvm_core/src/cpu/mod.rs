@@ -310,21 +310,21 @@ fn table_spans() -> TableSpans {
 }
 
 /// The per-table inputs to the table sumcheck (§constraints), in schema order: each
-/// table's committed columns, its summand as one form over them (its identities
+/// table's committed columns and its summand as one form over them (its identities
 /// weighted by its own `ξ`-range, its three bus forms by the shared powers at
-/// [`xi_form_base`]), and what that summand sums to, its bus forms' `ξ`-weighted
-/// shares, since its identities vanish.
+/// [`xi_form_base`]); then what the summands sum to, the bus's `ξ`-weighted shares,
+/// since the identities vanish.
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
     cols: &'a [&'a [F64]],
     spans: &[(usize, usize)],
     xi: F192,
-) -> Vec<constraints::Air<'a>> {
+) -> (Vec<constraints::Air<'a>>, F192) {
     let base = xi_form_base();
     let pows = primitives::field::powers(xi, base + 3);
     let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
-    tables::tables()
+    let airs = tables::tables()
         .iter()
         .zip(taus.iter().zip(spans))
         .enumerate()
@@ -335,10 +335,10 @@ fn airs<'a>(
                 tau,
                 cols: &cols[start..start + n],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
-                sigma: (0..3).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
         })
-        .collect()
+        .collect();
+    (airs, (0..3).map(|s| pows[base + s] * bus.shares[s]).sum())
 }
 
 /// Where the three bus forms sit in the batch's `ξ`-powers: the last three, AFTER
@@ -493,7 +493,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
             // The eq point is the bus GKR's ζ, not a fresh one: that is what lets the
             // batch settle the bus forms alongside the constraints.
             let xi = ps.sample();
-            constraints::prove(&airs(&l.taus, &bus, &cols, &spans, xi), &bus.point, &mut ps)
+            let (airs, target) = airs(&l.taus, &bus, &cols, &spans, xi);
+            constraints::prove(&airs, &bus.point, target, &mut ps)
         });
         (bus, table_claims)
     };
