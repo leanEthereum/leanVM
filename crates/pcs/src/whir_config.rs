@@ -866,17 +866,18 @@ mod tests {
 
     /// Parameter-report helper:
     /// `WHIR_LOG_INV_RATE=2 WHIR_NUM_VARS=22 cargo test --release -p pcs print_whir_query_counts -- --ignored --nocapture`
+    /// (those are the defaults).
     #[test]
     #[ignore = "manual parameter report; configure it through environment variables"]
     fn print_whir_query_counts() {
-        let env_usize = |name: &str| {
-            std::env::var(name)
-                .unwrap_or_else(|_| panic!("missing {name}"))
-                .parse::<usize>()
-                .unwrap_or_else(|_| panic!("{name} must be a non-negative integer"))
+        let env_usize = |name: &str, default: usize| {
+            std::env::var(name).map_or(default, |v| {
+                v.parse::<usize>()
+                    .unwrap_or_else(|_| panic!("{name} must be a non-negative integer"))
+            })
         };
-        let log_inv_rate = env_usize("WHIR_LOG_INV_RATE");
-        let num_vars = env_usize("WHIR_NUM_VARS");
+        let log_inv_rate = env_usize("WHIR_LOG_INV_RATE", 2);
+        let num_vars = env_usize("WHIR_NUM_VARS", 22);
         let start = std::time::Instant::now();
         let cfg =
             WhirSecurityConfig::derive_config_with_log_inv_rate(num_vars + crate::LOG_PACKING, log_inv_rate).unwrap();

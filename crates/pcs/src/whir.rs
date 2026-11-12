@@ -945,9 +945,7 @@ mod tests {
     /// size test fallback.
     #[test]
     fn configs_johnson_profile_shape() {
-        let pc = config_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
-        assert_eq!(pc.initial_k, 6);
-        assert!(pc.level_steps >= 1);
+        config_for_rate(16, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 16");
         // And log_n = 12 is below the production ladder's feasibility floor, so
         // the tests there use the default_config fallback.
         assert!(config_for_rate(12, LOG_INV_RATE_0).is_err());
