@@ -17,7 +17,7 @@ public import LeanVM.Guest.AcceptableChild
 
 `MainComplete cert cnt b` is what the completeness of `main` (B1) gives for `NodeRelation` within the
 limits, the caps agreeing and no zero challenge where the guest divides: a consistent layout `L`
-in `[2, N)`, `N ≤ 2^32` words within the budget's words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
+in `[2, N)`, `N ≤ 2^30` words within the budget's words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
 a tree placed at `0` (`RelAtIn`'s tree, as `honest_of_relAtIn` takes it) within the budget's
 instruction counts. The counts are bounded on that tree, the one completeness builds, not on every
 valid tree: `main`'s and its children's counts are hints, which a valid tree pins only up to
@@ -39,15 +39,15 @@ variable (fs : String → ℕ) (H : Inst → ℕ → E × E) (C : Inst → List 
   (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget)
 
 /-- **`main`'s completeness within the budget** (B1, `main` last): for `NodeRelation` within the
-limits, the caps and no zero challenge, the budget's size within `2^28`, a consistent layout of `N` words, `N` within the budget,
-on every memory holding which with the statement's digest as its header `main` holds by a tree
-placed at `0`, of `N` words, loading from its own data or its header, within the budget's
-instruction counts. -/
+limits, the caps and no zero challenge, the budget's size within `2^30`, a consistent layout of
+`N` words, `N` within the budget, on every memory of `2^logMem N` words holding which with the
+statement's digest as its header `main` holds by a tree placed at `0`, of `N` words, loading from
+its own data or its header, within the budget's instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
-      N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
-      ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
+      N ≤ 2 ^ 30 ∧ N ≤ b.words.eval (work s w) ∧
+      ∀ rd, LowDef (logMem N) rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
         rd g = some (hdrOf (statementDigest seed s)).2 →
           ∃ t : Tree, t.name = "main" ∧ t.Valid coreProgram rd [] [] ∧ t.BufsOk coreProgram ∧
             t.Placed coreProgram fs cert 0 ∧ t.total fs = N ∧
@@ -89,23 +89,20 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 28 →
+    ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w → b.size (work s w) ≤ 2 ^ 30 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by
   intro seed s w hrel hlim hok hbs
   obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hok hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
-  have h16 : 16 ≤ logMem N := minLogMem_le_logMem N
   have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega
   set M := imageOf (logMem N) L hdr with hM
-  have hlow : LowDef 16 M.read := fun i hi => by
-    have hi' : i < 2 ^ logMem N :=
-      lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) h16)
-    rw [MemoryImage.read_gpow h64 M ⟨i, hi'⟩]; rfl
+  have hlow : LowDef (logMem N) M.read := fun i hi => by
+    rw [MemoryImage.read_gpow h64 M ⟨i, hi⟩]; rfl
   have hL := B1.Main.memL_imageOf h64 hcons (fun q hq => ⟨(hin q hq).1,
     le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
-  obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (by omega) L hdr
+  obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (le_trans (by decide) (twentyThree_le_logMem N)) L hdr
   have e0 : (1 : K) = Parameters.addressOfIndex 0 := by simp [Parameters.addressOfIndex]
   have e1 : Parameters.g = Parameters.addressOfIndex 1 := by simp [Parameters.addressOfIndex]
   obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)

@@ -60,7 +60,7 @@ def mainInstrs (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → ℕ) (
 claim lists within their affine bounds on their claims, `da_verify` on its rows, the children's
 loop within `l5Lin c5 s5 v5`. -/
 theorem mainCount_le (H : MainCounts ω fs) (c5 s5 : ℕ) (v5 : ℕ → ℕ → ℕ) (jt : ℕ)
-    {seed : Digest} {s : NodeStatement} {w : NodeWitness} (hl : DeployedLimits s w) :
+    {seed : Digest} {s : NodeStatement} {w : NodeWitness} (hl : GuestLimits s w) :
     mainCount H (hm fs 0 seed s w) (H.clA + H.clS * s.claims.xmss.length)
       (H.clA + H.clS * s.claims.sphincs.length)
       (H.dvA + H.dvR * (work s w).rawDaRows + H.dvP * (work s w).rawDaPad)

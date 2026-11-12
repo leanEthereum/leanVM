@@ -383,6 +383,7 @@ theorem get?_fileState (pre : ℕ → K → Bool) (rd : Reader) (r : Registers K
     · rw [ite_eq_right hp]
       simp [hp]
 
+set_option maxRecDepth 100000 in
 theorem get?_entryTable_foldl (pre : ℕ → K → Bool) (rd : Reader) (k : CallKey) :
     ∀ (states : List (Registers K)) (m : SortedMap CallKey K),
       (states.foldl (fileState pre rd) m).get? k =
