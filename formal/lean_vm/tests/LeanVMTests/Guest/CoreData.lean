@@ -149,7 +149,7 @@ run_meta do
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 1035 && P == Q.map Fn.renumber do
+  | .ok Q => unless P.length == 1601 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
   | .error e => throwError e
 
@@ -162,7 +162,7 @@ function 21). -/
 
 set_option maxRecDepth 100000
 
-example : coreProgram.length = 1035 := coreProgram_length
+example : coreProgram.length = 1601 := coreProgram_length
 
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
@@ -176,11 +176,11 @@ example : coreProgram.find? "sp_wots" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "squeeze_point_from__L18" = some Data.core520 :=
-  Program.find?_of_indexOf? (j := 520) (by decide +kernel) rfl
+example : coreProgram.find? "squeeze_point_from__L18" = some Data.core640 :=
+  Program.find?_of_indexOf? (j := 640) (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core1034 :=
-  Program.find?_of_indexOf? (j := 1034) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core1549 :=
+  Program.find?_of_indexOf? (j := 1549) (by decide +kernel) rfl
 
 example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 
@@ -188,6 +188,11 @@ example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
 example : Data.core36.name = Data.f37.name := name_eq_compiled (j := 36) rfl rfl
 
-example : Data.core965.name = Data.f966.name := name_eq_compiled (j := 965) rfl rfl
+example : coreProgram.find? "walk_path__L12_L8" = some Data.core1600 :=
+  Program.find?_of_indexOf? (j := 1600) (by decide +kernel) rfl
+
+example : Data.core1549.name = Data.f1550.name := name_eq_compiled (j := 1549) rfl rfl
+
+example : Data.core1600.name = Data.f1601.name := name_eq_compiled (j := 1600) rfl rfl
 
 end LeanVMTests.Guest.CoreData
