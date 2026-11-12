@@ -66,7 +66,7 @@ def Cubic.add (a b : Cubic) : Cubic :=
 /-! ## A table's polynomial -/
 
 /-- `JUMP`'s constraints batched by `cp`, as monomials: `cp₀·(b + cond·w) + cp₁·cond·(b + 1)`
-(`jump_constraints`, `crates/verifier/src/layout.rs:289-292`; `jumpConstraints`). -/
+(`jump_constraints`, `crates/verifier/src/layout.rs:296-299`; `jumpConstraints`). -/
 def jumpTerms (cp : List E) : List (List ℕ × E) :=
   let c := columnIndexByName jumpColumns
   [([c "b"], cp.getD 0 0), ([c "v_cond", c "w"], cp.getD 0 0),

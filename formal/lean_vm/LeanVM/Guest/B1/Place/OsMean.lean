@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Place.OsRound
 # The callees' meanings, by name
 
 `osKindOf f`: the kind of callee `f` names, read from `osKindTable` (the named callees of
-`open_stacked__L{m}` at f128: `opening_round`, `opening_tail_round`, `opening_message`,
+`open_stacked__L{m}`: `opening_round`, `opening_tail_round`, `opening_message`,
 `squeeze_point_from`, `grind_check`, `verify_merkle_cap`, `fold_final_msg`; each
 with its meaning `OsKind.Pre` and its loads `OsKind.spec`). `decode_query_windows`, the
 `opening_queries` specializations and the loop helpers are the other callees, placed apart.

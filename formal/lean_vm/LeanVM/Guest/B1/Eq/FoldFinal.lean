@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 /-!
 # `fold_final_msg` (TRIAGE #24)
 
-`fold_final_msg(msg, point, log_len)` (G:943-959) reads `log_len` coordinates, keeps the weights
+`fold_final_msg(msg, point, log_len)` (G:932-948) reads `log_len` coordinates, keeps the weights
 `1 + p_j` and `p_j`, folds the `2^log_len` message words pairwise at `p_0`, then each level at
 `p_j`, and returns the last value: `multilinearEval msg point` (V:687). Its expansion: `ffW j`
 per weight, `ff0` per pair of the first level (with its loads), `ffPairs` per later level

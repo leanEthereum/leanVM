@@ -121,7 +121,7 @@ theorem stateOfCells_duplex {S : KeccakState} {pending : List (E × ℕ)} {I : F
     rw [hcap _ hc, limb_cellsOfState, lane_ofLane]
     simp [h]
 
-/-- **The guest's duplex step is the Spec's** (`keccak(…, cap=sp)`, `fs_perm`, `fs_perm4`,
+/-- **The guest's duplex step is the Spec's** (`keccak(…, cap=sp)`, `fs_perm`,
 `fs_perm_pending`): a `KECCAK` in the even layouts whose rate cells `0..7` are the waiting
 scalars' (`rateCell`) and whose cells `8..12` are those of a state `S` writes the cells of
 `keccakF (duplexInput ⟨S, pending⟩)`. -/

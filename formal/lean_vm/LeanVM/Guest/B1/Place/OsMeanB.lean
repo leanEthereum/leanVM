@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.OsMeanB
 
-  open_stacked's named callees placed within their words bounds on f128.
+  open_stacked's named callees placed within their words bounds.
 -/
 
 module

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.Bus
 
-  `verify_sub`'s bus challenges (G:3636-3646): the bus grind, the sixteen slot weights and `β`.
+  `verify_sub`'s bus challenges (G:3611-3621): the bus grind, the sixteen slot weights and `β`.
 -/
 
 module
@@ -80,7 +80,7 @@ theorem fpw_loop (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0
       · refine ⟨?_, hl⟩
         rw [hs, hsq, ← e13]
 
-/-- **The bus challenges** (G:3636-3646). -/
+/-- **The bus challenges** (G:3611-3621). -/
 theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n 4)))
     (h8 : σ (.n 8) = 0) (h9 : σ (.n 9) = 0) (h10 : σ (.n 10) = 0) (h11 : σ (.n 11) = 0)

@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Opening.QueriesFlat
 /-!
 # Flat blocks with calls
 
-At 40f877dc a query of `opening_queries` calls `walk_path` (a function of its own, lean_ethereum.py:1303-1338)
+A query of `opening_queries` calls `walk_path` (a function of its own, lean_ethereum.py:1303-1338)
 instead of walking its path inline. `FlatC ss`: every statement is an atom, a `match` of atom arms or
 a call. `holdsList_flatC`: such a block holds exactly when every statement does (`StmtOkC C`: a call
 holds in the call relation `C`), then `next`. `blockOkC_relN`: a block holding under the program's

@@ -90,7 +90,7 @@ def searchM (bits : ℕ) (sp : Sponge) : ℕ → ℕ → m (Option E)
     let r ← absorbNonce F sp (nonceOf n)
     if powOk bits r.1 then pure (some (nonceOf n)) else searchM bits sp (n + 1) count
 
-/-- The proof-of-work search (`FiatShamirState::grind`, `crates/fiat_shamir/src/lib.rs:170-215`):
+/-- The proof-of-work search (`FiatShamirState::grind`, `crates/fiat_shamir/src/lib.rs:172-217`):
 the smallest nonce below `fuel` that passes, if one does. The Rust's parallel search returns the
 smallest passing nonce too: the first matching batch of the first matching block, and its first
 match. -/

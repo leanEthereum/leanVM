@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SGrpT
 
 /-!
-# The block certification, honestly (G:2258-2300)
+# The block certification, honestly (G:2240-2277)
 
 The honest buffers, for the memory's log-size `lm` and the tables' heights `τ` (`vtKg`: a group's
 log-size, `vtGsz`: its size in the exponent): `vtGKeyW` (`group_key`: `g^(247 κ - b0)`),

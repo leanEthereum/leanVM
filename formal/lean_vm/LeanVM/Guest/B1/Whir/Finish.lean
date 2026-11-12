@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Whir.HsScale
 
 /-!
-# The finish (G:1731-1831)
+# The finish (G:1706-1806)
 
 `osFinish_sound`: from the levels' records in memory (`RecStored`), every `α` in
 `fold_challenges`, the tail challenges at `tch`, the final lane at `final_msg` and the guest's

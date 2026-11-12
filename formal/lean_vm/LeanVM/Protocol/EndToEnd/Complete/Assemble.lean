@@ -41,9 +41,10 @@ sequence of the phases' honest scripts (`honestRun`), and the simulation compose
 proved steps (`follows_readSizes`, `follows_commitStack`, `follows_readOod`,
 `follows_publicInputPhase`, `follows_verifyStackedOpening`). The stacked opening's completeness is
 `Whir.Complete.openingComplete` (`Whir.Complete.OpeningProof`); the opening receives
-at most `maxStackedClaims` claims (`length_openingClaims_le`). The bus's and the public input's claims are on the framework's
-columns whatever the run (`retOK_busColumns`, `retOK_publicColumns`, through `follows_retOK`), so
-the claims on the output lanes the Keccak phase checks are the table's. Between the commitment and
+at most `maxStackedClaims` claims (counted in `follows_verifyExecution`). The bus's and the public
+input's claims are on the framework's columns whatever the run (`retOK_busColumns`,
+`retOK_publicColumns`, through `follows_retOK`), so the claims on the output lanes the Keccak phase
+checks are the table's. Between the commitment and
 the opening no phase commits, so the opening runs from the commitments `[stackCommit μ ρ q]` it
 needs.
 -/

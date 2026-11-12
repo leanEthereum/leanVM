@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.OsSqGroup
 
-  A level's query positions placed on f128: the first squeeze's `decode_query_windows`, then the
+  A level's query positions placed: the first squeeze's `decode_query_windows`, then the
   squeeze loop, as one group of callees whose window runs depend on where it is placed.
 -/
 

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsCompleteConv
 
   FORS's roots and key in the forms `SphincsSoundFors` computes them (`fRootE` at `key + FORS_TREE`)
-  are the statement-shaped cells of `SphincsBridgeCells` (`forsRootCell`), at leanVM main 40f877dc.
+  are the statement-shaped cells of `SphincsBridgeCells` (`forsRootCell`).
 -/
 
 module

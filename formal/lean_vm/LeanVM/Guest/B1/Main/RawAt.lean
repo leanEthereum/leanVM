@@ -33,7 +33,7 @@ counter below the count, with the arguments `main` passes (`__loop2`'s: `l2ArgsA
 words and `main`'s tags `lxTagWords`).
 
 An iteration of `__loop2` (`rawX_step`) starts from `l2σ`, every value outside the check set
-(parameters, prelude, epilogue: `lean_ethereum.py:4571-4580`); the check's completeness
+(parameters, prelude, epilogue: `lean_ethereum.py:4546-4555`); the check's completeness
 (`Sig.verify_lean_xmss_complete_Spec`, the tags holding by `lxTagWords_hold`) changes only
 `.n 66 ..< .n 120764`, so the prelude and the epilogue still hold (`offSeg`); its loads are the
 cover word and the claim's four words (`l2_loads`, by `Lift.xSeg_leafOk` for the check), its one
@@ -112,7 +112,7 @@ def l2ArgsAt (i nrx X cv tb : ℕ) : List E :=
   [gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords
 
 /-- `__loop2`'s valuation at the counter `g^i`, outside the check (`.n 66 ..< .n 120764`): its
-parameters, its prelude's values (`lean_ethereum.py:4571-4579`: slot `s`, its range check, the
+parameters, its prelude's values (`lean_ethereum.py:4546-4554`: slot `s`, its range check, the
 cover word's pointer, the claim's pointer `lx_table · (g^s)^4`), its epilogue's (the next counter
 and the self-call's guard). -/
 noncomputable def l2σ (rd : Reader) (i nrx X cv tb s : ℕ) : Val := fun v =>

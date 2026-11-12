@@ -418,13 +418,13 @@ so also the most steps it may execute), `2^max(80, 2μ + 25) + (N + 2^30)·(D + 
 with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
 `lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
 (stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program log-sizes at most `30`):
-the first term bounds the list decoder (its `64` lanes' Guruswami–Sudan decoding at the stack's
+the first term bounds the list decoder (its `64` lanes' Guruswami-Sudan decoding at the stack's
 worst rate, each lane interpolated by an approximant basis: about `2^78.96` at `μ = 27`, `2^80.93`
 at `28`, `2^82.91` at `29` and `2^84.91` at `30`, so the term is `2^80` up to `μ = 27`, then
 `2^81`, `2^83`, `2^85`) and the runs of the candidate executions; the second term bounds the
 transcript's index (per query and level squared, a level's positions growing by a limb per `64`
 levels) and the committed leaves (`2^30` at most). Past `2^128` from about `2^100` queries, where
-the soundness bound is still `2^-28` (`statement.tex`, *What is not proved*, says what the regime
+the soundness bound is still about `2^-25` (`statement.tex`, *What is not proved*, says what the regime
 leaves out). A proof announcing no layout is given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
   2 ^ max 80 (2 * stackLog + 25) +

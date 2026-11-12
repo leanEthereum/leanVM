@@ -38,7 +38,7 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 /-- **`open_stacked`'s heap buffers' sizes**, in allocation order (`Whir.osHead`, `osLevel`,
 `osTail`, `osFinish`): the head's eleven (`final_msg`, `level_roots`, `fold_challenges`,
-`round_coefs`, `level_betas`, `level_mus`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`,
+`round_coefs`, `level_scales`, `level_lam_invs`, `level_hs`, `ood_z`, `ood_scalars`, `query_positions`,
 `query_win_ptrs`); each non-final level's message `sent`; the final level's normalized lane `hs`;
 `tail_challenges`, `point`, `point1`, `basis_d`, `level_scale`, `level_after`, `inner_chain`. -/
 def osSizesL (c : OsCfg) : List ℕ :=

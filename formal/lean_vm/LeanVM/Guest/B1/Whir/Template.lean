@@ -501,8 +501,8 @@ def osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt
    { wp.2.2 with k := r + 4, batched := r + 2, lamPow := r + 3 })
 
 /-- A non-final level's claims glued: the out-of-domain claim with `λ` (stored in
-`ood_scalars`), the query batch with `λ^2·λ^n` (stored in `level_betas`), `1/λ` into
-`level_mus`. -/
+`ood_scalars`), the query batch with `λ^2·λ^n` (stored in `level_scales`), `1/λ` into
+`level_lam_invs`. -/
 def osGlue (lvl : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let k := s.k
   let lam := s.lam
@@ -638,8 +638,8 @@ def osResidualName (lv : OsLv) : String :=
     "_L" ++ natStr lv.highBits
 
 /-- Non-final level `lvl`'s residual chains, from `k` and the materializations `mats`: the level's
-slots of `query_positions`, its row of `basis_d` and its high part materialized, `μ` read from
-`level_mus`, the dispatch on the rate into `level_residual`, the level's sums into `inner_chain`.
+slots of `query_positions`, its row of `basis_d` and its high part materialized, `λ⁻¹` read from
+`level_lam_invs`, the dispatch on the rate into `level_residual`, the level's sums into `inner_chain`.
 The statements, the materializations after it and the next free value. -/
 def osResidual (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
     List Stmt × List OsMat × ℕ :=

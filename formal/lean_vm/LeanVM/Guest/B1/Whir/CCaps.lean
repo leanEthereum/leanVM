@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CCaps
 
-  A level's honest Merkle cap on f128: the cells and flags one query step's openings give, when
+  A level's honest Merkle cap: the cells and flags one query step's openings give, when
   they agree wherever they meet (`Limits.OpeningsAgree`).
 -/
 

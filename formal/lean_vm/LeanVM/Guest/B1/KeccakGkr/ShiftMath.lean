@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.ShiftMath
 
-  The carry ripple of `keccak_shifts_eq` (G:2545-2598): the multilinear extension of
+  The carry ripple of `keccak_shifts_eq` (G:2726-2779): the multilinear extension of
   "x = y + r mod 64", bit by bit with the carry.
 -/
 
@@ -79,7 +79,7 @@ theorem sum4_factor (f g : ℕ → ℕ → E) (m n : ℕ) :
   refine Finset.sum_congr rfl fun x _ ↦ ?_
   rw [Finset.mul_sum]
 
-/-- **One step of the carry chain** (`carry_step`, G:2514-2528). -/
+/-- **One step of the carry chain** (`carry_step`, G:2695-2709). -/
 theorem carryK_snoc (as bs : List E) (hl : bs.length = as.length) (α β : E) {p r c' : ℕ}
     (hp : p < 2 ^ as.length) (hr : r < 2) (hc : c' < 2) :
     carryK (as ++ [α]) (bs ++ [β]) c' (p + 2 ^ as.length * r) =
@@ -190,7 +190,7 @@ theorem split_cond {xl yl xh yh q : ℕ} (hxl : xl < 8) (hyl : yl < 8) (hxh : xh
         (xh = (yh + (q / 8 + 1) % 8) % 8 ∧ xl + 1 * 8 = yl + q % 8) := by
   omega
 
-/-- **Low and high bits** (G:2583-2588): with the low three bits' carry `c`, the high three bits
+/-- **Low and high bits** (G:2558-2563): with the low three bits' carry `c`, the high three bits
 add `q / 8 + c`. -/
 theorem modK_split (aL bL aH bH : List E) (hal : aL.length = 3) (hbl : bL.length = 3)
     (hah : aH.length = 3) (q : ℕ) :

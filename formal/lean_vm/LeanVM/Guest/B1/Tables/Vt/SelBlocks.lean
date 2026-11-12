@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SelMath
 
 /-!
-# The table blocks' selectors (G:2384-2397)
+# The table blocks' selectors (G:2353-2364)
 
 A table block `b` of table `t` (`vtSelT`): the hinted `g`-power digits of its certified offset
 `block_off[b]` (`vtBoffV b`) above `τ_t`, the `block_selector_tab` arm `μ - τ_t` (dispatched on

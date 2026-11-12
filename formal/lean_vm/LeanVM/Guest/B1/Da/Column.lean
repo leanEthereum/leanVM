@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.Column
 
   `da_verify_column` and its blob loop `__loop25`: what a run of a column establishes
-  (G:4353-4367).
+  (G:4562-4576).
 -/
 
 module
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Da.VectorHolds
 public import LeanVM.Guest.B1.Main.LoopsC
 
 /-!
-# `da_verify_column` (G:4353-4367)
+# `da_verify_column` (G:4562-4576)
 
 `da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)` (`core29`), at
 `xb = g^h`: the column's weights `lvals`, `da_expand__L7_L8` from the top leaf `h` with the cell

@@ -45,7 +45,7 @@ The proof is the preprint's, in the coordinates `(Y, V, Z)` of its Claim 4.9, ov
 * A positive-dimensional component containing more than `B` cuts has a second point, so the
   linear system of its `B + 1` agreement equations has a nonzero solution over `k`, hence over `L`
   (`exists_ne_zero_mulVec_of_map`), which makes every counted triple on it persistent
-  (`not_mem_component`).
+  (`persistent_of_two_points`).
 * ArkLib's `MvPolynomial.card_le_of_agreement_off_excluded_of_hypersurface` (the induction of
   Claim 4.8 with Bézout for the cuts) bounds the remaining points by
   `deg(surface) · (n · deg(cut) / (A - B))²`.

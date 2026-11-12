@@ -27,7 +27,7 @@ What is proved is [`statement.tex`](statement.tex), the one document a reviewer 
 ## lean_vm
 
 - Speed comes from proved `@[csimp]` lemmas (`Statement/Fast/`: a `@[csimp]` lemma acts where a definition is compiled, so the statement's own definitions must see them); lemmas about the statement's definitions are in `LeanVM/Facts/`.
-- A word of `E` has two limbs (`E.limb : Fin 2 → K`), and a numeral index wraps: `x.limb 2` elaborates and reads limb `0`. Write limbs `0` and `1` only, and grep for `limb 2` after porting code from a three-limb version.
+- A word of `E` has two limbs (`E.limb : Fin 2 → K`), and a numeral index wraps: `x.limb 2` elaborates and reads limb `0`. Write limbs `0` and `1` only.
 - `leanvm-prove` runs the prover recompiled with `E`'s arithmetic on machine words (`LeanVM/Prover/Fast/`: every prover and verifier definition that multiplies in `E` copied, `@[csimp]` by `rfl`). A recursive prover definition is copied by hand there, its text with `mulE` and proved equal by induction; when the prover gains one, the build of `LeanVM.Prover.Fast.Prover` names it.
 - `lake build` builds every module under `LeanVM/` (the lakefile's globs), and `LeanVM.lean` pins the end theorems' axioms. `lake test` builds every module under `tests/LeanVMTests/`. Use `lake build <Module>` to check one module, not `lake env lean`.
 - Lake has no job limit, so a cold parallel `lake build` can exceed a 16 GB machine. `python3 -I ../lake-build.py . LeanVM LeanVMTests` runs one `lake build` whose modules, the statement package's included, it admits by their recorded memory, the cores busy (CI uses it; `lake-build.tsv` holds the heavy modules, `--seed` rewrites it). Keep a new module under about 3.5 GB.

@@ -16,7 +16,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployed
 then the level, lists `(κ, R, k, Aend, rounds)`: the level's message variables, rate exponent,
 fold rounds and final threshold, and the witness `(m, D, B)` of each round `j = 1..k`. It was
 exported from `WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + LOG_PACKING, R)`
-(`crates/pcs/src/whir_config.rs`, `affine_mca::find_witness`) at leanVM `4cc016e5c`. The table is
+(`crates/pcs/src/whir_config.rs`, `affine_mca::find_witness`) at leanVM `feb9561c0`. The table is
 untrusted data; `foldTable_ok` checks every round with `foldRoundOK` at the fold budget
 `2^10 = 2^(128 - (125 - 7))` (`budget(FOLD_GRINDING_BITS, SECURITY_BITS)`) by kernel evaluation,
 and `levelOK_round` reads one round's check off a level's.

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CHonBuf
 
-  The honest words of open_stacked's own buffers on f128, from the run's levels.
+  The honest words of open_stacked's own buffers, from the run's levels.
 -/
 
 module
@@ -136,11 +136,11 @@ def coefsC : List E := (List.range (2 * h.c.nFolds)).map fun e ↦
   let r := h.allRounds.getD (e / 2) ⟨0, 0⟩
   if e % 2 = 0 then r.alpha else r.beta
 
-/-- `level_betas`: `λ²·λ^Q`. -/
+/-- `level_scales`: `λ²·λ^Q`. -/
 def betasC : List E := (List.range h.c.levels.length).map fun i ↦
   if i < h.c.yrLevel then ((h.L i).lam h.logN) ^ 2 * ((h.L i).lam h.logN) ^ (h.lv i).queries else 0
 
-/-- `level_mus`: `λ⁻¹`. -/
+/-- `level_lam_invs`: `λ⁻¹`. -/
 def musC : List E := (List.range h.c.levels.length).map fun i ↦
   if i < h.c.yrLevel then h.li i else 0
 

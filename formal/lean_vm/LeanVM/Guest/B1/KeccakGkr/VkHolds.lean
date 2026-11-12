@@ -37,7 +37,7 @@ theorem readsAt_single {rd : Reader} {p a : E} (h : LoadHolds rd p 0 a) : ReadsA
   interval_cases k
   exact h
 
-/-- **`verify_keccak`** on a reader where `keccak_layer` has its meaning (G:2898-3064). -/
+/-- **`verify_keccak`** on a reader where `keccak_layer` has its meaning (G:3081-3251). -/
 theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     verify_keccak_Spec rd := by
   intro args rets hrel
@@ -195,7 +195,7 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
       and_true, true_and]
     ring
 
-/-- **`verify_keccak`** (G:2898-3064; TRIAGE #53): its core IR computes its meaning on a memory
+/-- **`verify_keccak`** (G:3081-3251; TRIAGE #53): its core IR computes its meaning on a memory
 image, given `grind_check`'s meaning at `3` bits (the layers' grind before `s`). -/
 theorem verify_keccak_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ)
     (hg : grind_check_Spec 3) : verify_keccak_Spec L.read :=

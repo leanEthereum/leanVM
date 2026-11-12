@@ -34,16 +34,16 @@ declared claims at most the claims held. -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
   signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`lean_ethereum.py:4597-4598, 4602-4603`; a
-  child's list by hinted indices, `:4184-4186`, or by strictly increasing hinted gaps, every claim
-  of the list writing one mark, `:4249-4254, 4309`; the count, `:4649`), where `NodeRelation` lets
+  once and the declared claims have one slot each (`lean_ethereum.py:4773-4774, 4778-4779`; a
+  child's list by hinted indices, `:4362-4364`, or by strictly increasing hinted gaps, every claim
+  of the list writing one mark, `:4427-4432, 4487`; the count, `:4825`), where `NodeRelation` lets
   two equal claims share one holder. -/
   claimsHeldWithMultiplicity :
     statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.xmss)).flatten) ∧
     statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
       (witness.children.map (·.statement.claims.sphincs)).flatten)
-  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4532`). -/
+  /-- At most `MAX_RECURSIONS = 16` children (`lean_ethereum.py:4708`). -/
   atMostSixteenChildren : witness.children.length ≤ 16
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :
@@ -71,7 +71,7 @@ nonce within its fuel, a zero where the guest program divides) is bounded in the
 random-permutation model for the same prover and check (`verifierRefusingZero`).
 
 The guest program divides by some of the verifier's challenges (the WHIR fold and tail challenges
-and each non-final level's batching challenge `λ`, `lean_ethereum.py:1635, 1772, 1778`), so a zero
+and each non-final level's batching challenge `λ`, `lean_ethereum.py:1651, 1766, 1772`), so a zero
 there makes it reject a child the verifier accepts. The honest child's hypothesis refuses a zero
 challenge anywhere (`VerifierProgram.refusingZeroChallenge`, a slightly stronger one, each
 challenge being zero with probability `2^-128`). -/
@@ -87,8 +87,8 @@ def _root_.LeanVM.Protocol.Compile.VerifierProgram.refusingZeroChallenge {α : T
   | .commit height width k => .commit height width k.refusingZeroChallenge
   | .query i ps k => .query i ps fun rows ↦ (k rows).refusingZeroChallenge
 
-/-- **The leanVM verifier refusing a zero where the guest program divides**: the leanVM verifier
-refusing a zero challenge anywhere (`VerifierProgram.refusingZeroChallenge`). -/
+/-- **The leanVM verifier refusing every zero challenge** (`VerifierProgram.refusingZeroChallenge`),
+slightly stronger than refusing a zero only where the guest program divides. -/
 def verifierRefusingZero {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
     (program : LeanIsaProgram) (input : PublicInput) (proof : Proof) : m Bool := do
   let seed ← spongeSeedWith π (bytecodeWords program) (publicInputDigest input)
@@ -252,7 +252,7 @@ of whose claims is false is at most `(QA + QV + 1) · M · 2^-127 + 5 (QA + QV)�
 `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
 adversary's private coins are free. The factor `M` is the batching's one challenge `λ`: the
 children's `2n` claims, `n < M`, are combined with its powers, and a nonzero combination of degree
-below `2M` vanishes at fewer than `2M` values of `λ` (a sumcheck round's challenge at at most `2`).
+below `2M` vanishes at fewer than `2M` values of `λ` (a sumcheck round's challenge at no more than `2`).
 
 This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
 the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed

@@ -386,6 +386,11 @@ jobs:
         run: |
           cargo build --release --manifest-path scripts/guest-export/Cargo.toml
           scripts/guest-export/target/release/guest-export . --check
+      # The fold rounds' table is what `scripts/whir-fold-table` exports from `whir_config.rs`.
+      - name: The fold rounds' table is the prover's
+        run: |
+          cargo run --release --manifest-path scripts/whir-fold-table/Cargo.toml -- \
+            LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
       # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
       # list, a node over them): the witness holds the statement, the honest hint generator gives
       # the Rust's installed streams entry for entry, and the interpreter runs `main` on them.

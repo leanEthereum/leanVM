@@ -199,7 +199,7 @@ def posFold (st : PosState) (c : E) : PosState :=
 
 /-! ## A layer -/
 
-/-- The verifier's batched weights (`keccak.rs:184-189`) from an equality table. -/
+/-- The verifier's batched weights (`keccak.rs:188-193`) from an equality table. -/
 def batchWeights (p : List E) (beta : E) : List E :=
   let e := eqTable p
   (List.range keccakBits).map fun j ↦

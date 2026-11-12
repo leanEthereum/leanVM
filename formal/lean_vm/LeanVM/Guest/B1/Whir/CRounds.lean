@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CRounds
 
-  The template's fold rounds on f128, honestly: the materialized pointers and the
+  The template's fold rounds, honestly: the materialized pointers and the
   `opening_round` calls, block by block.
 -/
 

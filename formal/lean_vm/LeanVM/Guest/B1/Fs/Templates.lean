@@ -172,7 +172,7 @@ def grindCallT (bits : ℕ) (w tabs : V) : Stmt := .call (grindCheckName bits) [
 /-- One `KECCAK` atom in the even layouts. -/
 def keccakA (ins outs : List V) : Stmt := .atom (.keccak ins outs false false)
 
-/-- **A permutation** (`fs_perm`, `fs_perm4`, `fs_perm_pending`): a `KECCAK` atom in the even
+/-- **A permutation** (`fs_perm`, `fs_perm_pending`): a `KECCAK` atom in the even
 layouts writing the thirteen cells of the state writes the cells of `permOf` of the cells it
 reads. -/
 theorem keccakA_perm {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ)

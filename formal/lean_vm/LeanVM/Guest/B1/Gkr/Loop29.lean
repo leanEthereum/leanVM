@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Rounds
 
 /-!
-# `__loop36` (G:2005-2026)
+# `__loop36` (G:1980-2001)
 
 `for x8 in mul_range(1, half)` in a layer of `verify_bus_gkr`: the record at
 `rd = rounds·pos·x8^8`, the point row `pt = point_row·x8^8`, eight rounds (`gkRoundT`, from values

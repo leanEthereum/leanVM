@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.KeccakGkr.EqFrame
 /-!
 # `keccak_layer` as a template
 
-The specializations `keccak_layer__L{first}` (G:2669-2850) compile to one statement list up to
+The specializations `keccak_layer__L{first}` (G:2644-2825) compile to one statement list up to
 the head (`first = 1` copies the waiting word's two cells), the product's table (`prodTab first`),
 the grind before `s` (`sqT first`: at `first = 1` a full queue's permutation, then the nonce's
 with the padding run; at `first = 0` the nonce the fourth scalar waiting), and the first layer's
@@ -22,7 +22,7 @@ weight section; from the nonce's permutation on, `__L1`'s values are `__L0`'s pl
 
 * `headT`: the carried capacity (and, first, the waiting word's cells) copied, the claim's sixteen
   instance weights read (`KC_MU`), and the readers, a straight line of sums over them
-  (`KECCAK_PROJ_A`, `KECCAK_PROJ_B`, G:2685-2689);
+  (`KECCAK_PROJ_A`, `KECCAK_PROJ_B`, G:2660-2664);
 * `prodT` (`Prod`): the product's 47 coefficients read and absorbed, and their projection, each
   coefficient times its reader (`KECCAK_PROJ_OUT`);
 * `checkT`: the projection plus `ι·κ` against the claim's value;
@@ -325,7 +325,7 @@ def lanesEqT (lp loc : V) (f : ℕ → ℕ) (B : ℕ) : List Stmt :=
 /-- Bit `t` of the two points from `B`: `a_t`, `b_t`, `1`, `1 + a_t`, `1`, `1 + b_t`,
 `(1 + a_t)(1 + b_t)`, `a_t b_t`, then the weights `e_t = (1 + a_t)(1 + b_t) + a_t b_t`, and below
 the top bit `u_t = a_t (1 + b_t)`, `v_t = (1 + a_t) b_t`, at the top bit `s_t = a_t + b_t`
-(G:2561-2579). -/
+(G:2536-2554). -/
 def bitT (aP bP : V) (t B : ℕ) : List Stmt :=
   [.atom (.load (.n B) aP t), .atom (.load (.n (B + 1)) bP t),
     .atom (.const (.n (B + 2)) (word 1 0)), .atom (.add (.n (B + 3)) (.n (B + 2)) (.n B)),
@@ -536,7 +536,7 @@ def flipOffs (i : ℕ) : List (ℕ × ℕ) :=
 `1 + top` (`top1`). -/
 def topOf (top top1 z : ℕ) : ℕ := if z / 32 = 1 then top else top1
 
-/-- Flip `i` from `b` (G:2843-2848): over `flipOffs i`, the lane weight read at `lp`, the slice
+/-- Flip `i` from `b` (G:2818-2823): over `flipOffs i`, the lane weight read at `lp`, the slice
 weight `slices[z % 32]·top(z)`, their product, summed; the flip at `b + 42`. -/
 def lflipT (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) : List Stmt :=
   match flipOffs i with

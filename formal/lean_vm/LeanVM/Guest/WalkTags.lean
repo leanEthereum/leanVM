@@ -17,17 +17,17 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 * `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `__loop4`);
 * `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
 * `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
-  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1382-1404` at `40f877dc`): `kind` `0`
+  `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py:1431-1460`): `kind` `0`
   `WinWalk` on `[t, x, N]` (a deeper loop, `odd = 0`), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop),
   `2 + base` `OqMainWins` on `[t, N]` (the function's window pointers and iteration count);
   `winsTag d cd = walkTag 0 1 d cd`: `WinsAt` on `[wins]`, the windows `walk_path__L{pd}_L{cd}`
   dispatches on (`lean_ethereum.py:1297-1332` at `40f877dc`), which its callers hand it.
 
 * `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
-  argument (`lean_ethereum.py:1597`), which its decodes and grinds read.
+  argument (`lean_ethereum.py:1572`), which its decodes and grinds read.
 
 * `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
-  radix-four layer loop `__loop6` (`lean_ethereum.py:1995-2078`): the parity word
+  radix-four layer loop `__loop6` (`lean_ethereum.py:1970-2053`): the parity word
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 * `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
   windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which

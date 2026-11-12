@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.Prod
 
-  The product polynomial in `keccak_layer` (G:2684-2698): its 47 coefficients read, packed and
+  The product polynomial in `keccak_layer` (G:2659-2673): its 47 coefficients read, packed and
   absorbed, and the projection onto the claim's instance weights; a template over a table of
   value numbers.
 -/

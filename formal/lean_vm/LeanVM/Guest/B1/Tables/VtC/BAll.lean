@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Tables.VtC.BAll
 
-  `verify_tables`' statements `765 ..< 2593` (the bus sides and the bytecode share, G:2397-2555)
+  `verify_tables`' statements `765 ..< 2593` (the bus sides and the bytecode share, G:2372-2530)
   hold on the honest valuation.
 -/
 
@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Fw
 public import LeanVM.Guest.B1.Selectors.IndexMleComplete
 
 /-!
-# The bus sides (G:2397-2555)
+# The bus sides (G:2372-2530)
 
 `VtBIn`: the honest data: the bus point, the memory's log-size, the tables' row counts (heights
 `vtHt rows`), the sixteen slot weights at `fp_w`, the four framework words and the bytecode share's

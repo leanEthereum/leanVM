@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.LoopComplete
 /-!
 # `main`'s first loops, checked
 
-`__loop0`, `__loop1` (G:4531-4536) write the hinted duplicate signature claims: each block is atoms
+`__loop0`, `__loop1` (G:4506-4511) write the hinted duplicate signature claims: each block is atoms
 and one heap hint, no load. `mfLoop_pure`: the two place nothing and call only each other.
 -/
 

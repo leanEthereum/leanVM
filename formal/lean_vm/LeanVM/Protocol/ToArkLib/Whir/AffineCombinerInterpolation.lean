@@ -28,7 +28,7 @@ The unknowns are the coefficients `c_{i,t,j}`, `j ≤ M`, `i < m A - D - d j`, `
 `E_{x, r, s} = 0` for `r + s < m` (`eqSet`, `D - s + 1` coefficients each, `equations` in all,
 since `deg E_{x, r, s} ≤ D - s` and `E_{x, r, s} = 0` for `s > M`). Then `(X - x)^m` divides
 `Q(X, a + b X, P(X))` at every agreement point `x`, since `X - x` divides
-`P - f_x - (a + b X) g_x` there (`dvd_eval_of_constraints`), and a nonzero `Q(X, a + bX, P(X))` has
+`P - f_x - (a + b X) g_x` there (`dvd_evalSum_of_ePoly`), and a nonzero `Q(X, a + bX, P(X))` has
 degree below `m A`.
 
 The proof is univariate: `E_{x, r, s}` is written out (`ePoly`), and the identity above is the

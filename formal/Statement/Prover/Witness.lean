@@ -125,7 +125,7 @@ def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) 
 
 /-- The cells an instruction reads, in the order its row's reads carry them (`readAddrs`,
 computed): a `KECCAK`'s thirteen cells read, then the output cells it writes, the first
-`outCells.cellCount` (a cell it does not write keeps its count, `execute.rs:969-974`). -/
+`outCells.cellCount` (a cell it does not write keeps its count, `execute.rs:951-956`). -/
 def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K) :
     LeanIsaInstruction → List K
   | .xor oA oB oC | .mulNative oA oB oC | .jump oA oB oC => [fp * oA, fp * oB, fp * oC]

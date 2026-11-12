@@ -19,7 +19,7 @@ Compiled checks (`#guard`) at `κ = 3`, `R = 1` (a 16-point domain):
 * `K`-valued messages give `K`-valued words;
 * `inducedWeight` against the naive `Σ_q w_q Σ_u W_{x_q}(u)·eq(p, u)`, its `none` branch, and the
   column weight's evaluator against CompPoly's `evalMle` and `Weight.pair`;
-* constants of the verifier on f128 (leanVM `5ec8b7dfe`, `crates/verifier/src/whir.rs`'s
+* constants of the verifier (`crates/verifier/src/whir.rs`'s
   `subspace_roots` and `induced_weight`, `field.rs`'s `powers`): `subspace_roots(3)`
   and `subspace_roots(4)`, and `induced_weight(3, [0, 1, 5, 13], powers(E(2, 3), 4), p)` at
   `p = [E(5, 7), E(0x1234, 0), E(3, 1)]`.
@@ -179,7 +179,7 @@ def naive (p : Vector E 3) : E :=
 -- With the factor `1 + p(1 + Ŵ)` read as `1 + p·Ŵ` the sum would differ.
 #guard (naive point) ≠ ((weights.zip queries).map fun wq ↦ wq.1 * ∏ i : Fin 3,
   (1 + point[i] * ofK (normVanishingAt i (K.ofBits wq.2)))).sum
--- The `require` on the point's length (`whir.rs:111`), and weights not one per query.
+-- The `require` on the point's length (`whir.rs:181`), and weights not one per query.
 #guard inducedWeight 2 queries weights point.toList = none
 #guard inducedWeight 3 queries weights.tail point.toList = none
 -- The evaluator of `colWeightE` is CompPoly's extension of its cube values.

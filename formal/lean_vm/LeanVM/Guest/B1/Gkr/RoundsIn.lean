@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Kids.Loop8
 public import LeanVM.Guest.B1.Gkr.Loop29Complete
 
 /-!
-# The GKR rounds, loading from a region (G:1119-1142, 1846-1868)
+# The GKR rounds, loading from a region (G:1108-1131, 1821-1843)
 
 A round record holds its fields `862` words apart (`gkCap`), its cursor at `5·862 = 4310`.
 

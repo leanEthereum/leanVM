@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 /-!
 # The residuals
 
-A non-final level's residual (`osResidual`): its positions, row and high part materialized, `μ`
-read from `level_mus`, the dispatch on the rate into `level_residual` (`MeaningLevelResidual`,
+A non-final level's residual (`osResidual`): its positions, row and high part materialized, `λ⁻¹`
+read from `level_lam_invs`, the dispatch on the rate into `level_residual` (`MeaningLevelResidual`,
 `Whir/LrSound.lean`): the chains over all its positions (`osResidual_sound`). The
 level's sums go into `inner_chain`: `ich[2l + 2] = ich[2l] + scale_l·h_l` and
 `ich[2l + 3] = ich[2l + 1] + β_l·after_l·hh_l`.

@@ -242,7 +242,7 @@ smallest slack whose threshold is the deployed level 0's,
 `A₀ = A_end − k` of the WHIR parameters' certificate (`AffineCombiner.foldTable`, exported from
 `derive_config_with_log_inv_rate`), at which the soundness proof bounds every group of the opening
 by `2^-125` after its grind. The table is copied from that certificate, and the proof checks the
-copy against it for every admissible shape (`Whir.Params.johnsonThreshold_eq_thr₀`). -/
+copy against it for every admissible shape (`Whir.Params.johnsonThreshold_eq_thr0Of`). -/
 def johnsonSlack : List (List ℕ) := [
   [10126143, 7119110, 5091727, 3684926, 2588336, 1843440, 1323537, 1231522,
     1232619, 1234191, 1233953, 1234090, 1234287, 1234257, 1234274],

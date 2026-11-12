@@ -32,12 +32,12 @@ aggregate's in-circuit verifier of its children does
 
 The Rust verifier carries its WHIR constants, the ladder geometry (`derive_config`) and the query
 counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs:10-70`); they are the prover's
-(`crates/pcs/src/whir_config.rs:32-91`, its ladder `derive_ladder` and `derive_ladder_shape`,
+(`crates/pcs/src/whir_config.rs:32-88`, its ladder `derive_ladder` and `derive_ladder_shape`,
 `:265-316`), as the tests `whir_query_table_matches_the_search` and
 `grinding_constants_match_the_prover` (`crates/leanvm_core/tests/verifiers/whir_query_table.rs`)
 check, the latter on this file's constants too. The stacking window is `MIN_STACKED_LOG` and
 `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). The specification describes the protocol these
-parameters instantiate (Annex B, Protocol B.1, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
+parameters instantiate (Annex B, `fig:protocol`, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
 and gives no numbers.
 
 An opening of a stack of `2^μ` elements of `K` at rate `2^-R` runs a *ladder* of levels. Level 0
@@ -53,9 +53,9 @@ every commitment, the stack's and each level's, takes one out-of-domain point af
 opening's batching grinds `batchGrindingBits = 13` bits.
 
 The query counts are the Rust's *output*, not its derivation: the prover's search (`search_level`,
-`whir_config.rs:602-632`) minimises the queries of each level subject to the round-by-round target
+`whir_config.rs:597-628`) minimises the queries of each level subject to the round-by-round target
 `2^-125` of Annex B's Theorem `thm:rbr`, through an exact integer check of each count
-(`query_count`, `whir_config.rs:551-564`), and this module does not restate that search. The table is the Rust
+(`query_count`, `whir_config.rs:547-560`), and this module does not restate that search. The table is the Rust
 verifier's `WHIR_QUERIES` (`whir.rs:24-30`), indexed by rate exponent `1..4` and stack size
 `16..30`; outside that window `ladder` is `none`, as the verifier rejects (`whir_queries`,
 `whir.rs:38-45`; the prover's `validate_log_inv_rate`, `whir_config.rs:44-52`). `ladder` takes
@@ -101,30 +101,30 @@ level's (`OOD_GRINDING_BITS`, `whir.rs:21-22`). -/
 def oodGrindingBits : ℕ := 15
 
 /-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_STACKED_LOG`
-(`crates/verifier/src/layout.rs:94`). -/
+(`crates/verifier/src/layout.rs:93`). -/
 def minLogStack : ℕ := 16
 
-/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs:95`), the
+/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs:94`), the
 cap every size shares. -/
 def maxLogStack : ℕ := 30
 
-/-- One level of an opening: the number of sumcheck rounds it folds (`ℓ_i`), the rate exponent
-of the code its commitment is in (`R_i`), and the number of positions queried (`t_i`), in the
+/-- One level of an opening: the number of fold rounds it makes (`ℓ_i`), the rate exponent of
+the code its commitment is in (`ν_i`), and the number of positions queried (`ω_i`), in the
 notation of Annex B. -/
 structure Level where
-  /-- `ℓ_i`: the sumcheck rounds it folds. -/
+  /-- `ℓ_i`: the fold rounds it makes. -/
   fold : ℕ
-  /-- `R_i`: the rate exponent of its commitment's code. -/
+  /-- `ν_i`: the rate exponent of its commitment's code. -/
   logInvRate : ℕ
-  /-- `t_i`: the positions queried. -/
+  /-- `ω_i`: the positions queried. -/
   queries : ℕ
   deriving DecidableEq
 
 /-- The levels after the first, as pairs (fold, rate exponent): while more than `residualMaxLog`
 variables remain, fold `subsequentFold` of them (or all that remain) at the rate exponent the
 previous level's fold and the pending domain reduction give (`derive_config`, `whir.rs:52-63`;
-the prover's `derive_ladder`, `whir_config.rs:253-286`, with `derive_ladder_shape`'s rate rule,
-`:305-316`). `fuel` bounds the
+the prover's `derive_ladder`, `whir_config.rs:244-283`, with `derive_ladder_shape`'s rate rule,
+`:285-298`). `fuel` bounds the
 recursion; every level folds at least one variable, so `remaining` fuel is enough. -/
 def levelsFrom : (fuel remaining prevFold prevRate reduction : ℕ) → List (ℕ × ℕ)
   | 0, _, _, _, _ => []
@@ -473,7 +473,7 @@ reads (`whir.rs:83`). -/
 def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1)
 
-/-- `gpow(index) = GEN.pow(index)` (`layout.rs:113-115`): `Parameters.addressOfIndex index`, the
+/-- `gpow(index) = GEN.pow(index)` (`layout.rs:120-122`): `Parameters.addressOfIndex index`, the
 same power in `K`, in limb `0`. -/
 def gpow (index : ℕ) : E := gen ^ index
 
@@ -558,7 +558,7 @@ def selectorPoint (selector length : ℕ) : List E :=
 
 /-! ## The verifier's layout (`multilinear.rs:114-148`, `layout.rs`, `bus.rs:77-117`) -/
 
-/-! ### Constants (`layout.rs:12, 70-87, 129-131, 364-370`;
+/-! ### Constants (`layout.rs:12, 70-94, 136-138, 371-377`;
 `crates/verifier/src/keccak.rs:18-20, 55-67`) -/
 
 /-- `BUS_BITS`: the bus communicates tuples of `2^BUS_BITS` field elements (`layout.rs:12`). -/
@@ -576,7 +576,7 @@ def memoryFinalCounters : ℕ := 2
 def bytecodeFinalCounters : ℕ := 3
 /-- Global column `QKECCAK`, the Keccak reduction's committed column: per step, its input state's
 lanes and the state after every `KECCAK_DEPTH` rounds but the last, a lane per slot, and in the
-slots left over the `KECCAK` table's own first committed columns (`keccakSlot`; `layout.rs:76`). -/
+slots left over the `KECCAK` table's own first committed columns (`keccakSlot`; `layout.rs:80-81`). -/
 def qkeccak : ℕ := 4
 
 /-- `K_BITS`: a `K` word's bits (`layout.rs:78`). -/
@@ -610,13 +610,13 @@ def keccakLocalBits : ℕ := 11
 /-- `LANE_BITS`: the bits of a lane's index, `25 ≤ 2^5` (`keccak.rs:20`). -/
 def keccakLaneBits : ℕ := 5
 
-/-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs:129-131`). -/
+/-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs:136-138`). -/
 def sepState : E := 1
 def sepMem : E := gen
 def sepBytecode : E := gen ^ 2
 
 /-- The opcodes' numbers `OP_XOR`, `OP_MUL`, `OP_SET`, `OP_DEREF`, `OP_JUMP`, `OP_KECCAK`
-(`layout.rs:364-369`). -/
+(`layout.rs:371-376`). -/
 def opXor : ℕ := 0
 def opMul : ℕ := 1
 def opSet : ℕ := 2
@@ -655,7 +655,7 @@ def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
     (acc.1.set i acc.2, acc.2 + 2 ^ size i)) (List.replicate sizes.length 0, 0)
   (placed.1, log2Ceil placed.2)
 
-/-! ### Forms (`Form`, `layout.rs:14-53, 117-127`) -/
+/-! ### Forms (`Form`, `layout.rs:14-53, 120-134`) -/
 
 /-- A polynomial of degree at most two in a table's columns: monomial (sorted column indices) to
 coefficient, in insertion order (the Rust's `BTreeMap` orders them by monomial; a form's value does
@@ -747,26 +747,26 @@ def memoryCols (f : Flushes) (address : Form) (count : ℕ) (columns : List ℕ)
 
 end Flushes
 
-/-! ### The instruction tables (`layout.rs:185-481`) -/
+/-! ### The instruction tables (`layout.rs:192-488`) -/
 
 /-- `cols(columns, names)`, one name: the index of a column by name (every name the tables use is
 in its list, as the Rust's `expect` checks, `layout.rs:104-111`). -/
 def columnIndexByName (columns : List String) (name : String) : ℕ := columns.idxOf name
 
-/-- `ARITH_COLUMNS` (`layout.rs:373`). -/
+/-- `ARITH_COLUMNS` (`layout.rs:380`). -/
 def arithColumns : List String :=
   ["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c",
     "cnt_bc"]
 
-/-- `SET_COLUMNS` (`layout.rs:374`). -/
+/-- `SET_COLUMNS` (`layout.rs:381`). -/
 def setColumns : List String := ["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"]
 
-/-- `DEREF_COLUMNS` (`layout.rs:376`). -/
+/-- `DEREF_COLUMNS` (`layout.rs:383`). -/
 def derefColumns : List String :=
   ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target",
     "cnt_local", "cnt_bc"]
 
-/-- `JUMP_COLUMNS` (`layout.rs:378`). -/
+/-- `JUMP_COLUMNS` (`layout.rs:385`). -/
 def jumpColumns : List String :=
   ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc",
     "w", "b"]
@@ -782,7 +782,7 @@ def decimalNumeral (n : ℕ) : String :=
 def laneNames (namePrefix : String) : List String :=
   (List.range 25).map fun l ↦ namePrefix ++ "_" ++ decimalNumeral l
 
-/-- `keccak_columns()` (`layout.rs:379-383, 425-434`): the operands, the layout flags, the
+/-- `keccak_columns()` (`layout.rs:432-442, 425-434`): the operands, the layout flags, the
 bytecode's flags for the output cells written (`out_two`: cell `1`; `out_all`: cells `2…12`), the
 read limb that holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots
 each; `out_l`, claimed by the Keccak reduction, committed nowhere), then the read counts. The
@@ -793,20 +793,20 @@ def keccakColumns : List String :=
     "odd_out", "out_two", "out_all", "free"] ++ laneNames "in" ++ laneNames "out" ++
     (List.range 26).map (fun c ↦ "cnt_" ++ decimalNumeral c) ++ ["cnt_bc"]
 
-/-- `KECCAK_IN` (`layout.rs:385`): the local column of input lane `0`. -/
+/-- `KECCAK_IN` (`layout.rs:392`): the local column of input lane `0`. -/
 def keccakIn : ℕ := columnIndexByName keccakColumns "in_0"
 
-/-- `KECCAK_OUT` (`layout.rs:386`): the local column of output lane `0`. -/
+/-- `KECCAK_OUT` (`layout.rs:393`): the local column of output lane `0`. -/
 def keccakOut : ℕ := columnIndexByName keccakColumns "out_0"
 
-/-- `KECCAK_CNT` (`layout.rs:387`): the local column of the first read count. -/
+/-- `KECCAK_CNT` (`layout.rs:394`): the local column of the first read count. -/
 def keccakCnt : ℕ := columnIndexByName keccakColumns "cnt_0"
 
-/-- `QKECCAK_SLOTS = STATE_LANES * (ROUNDS / KECCAK_DEPTH)` (`layout.rs:397-398`): the slots of
+/-- `QKECCAK_SLOTS = STATE_LANES * (ROUNDS / KECCAK_DEPTH)` (`layout.rs:404-405`): the slots of
 `q_keccak` the states take. -/
 def qkeccakSlots : ℕ := 25 * keccakSegments
 
-/-- `QKECCAK_SPARE`, `2^qkeccakSlotBits - QKECCAK_SLOTS` (`layout.rs:399`): the slots of
+/-- `QKECCAK_SPARE`, `2^qkeccakSlotBits - QKECCAK_SLOTS` (`layout.rs:406`): the slots of
 `q_keccak` left over, which carry `KECCAK` columns. -/
 def qkeccakSpare : ℕ := 2 ^ qkeccakSlotBits - qkeccakSlots
 
@@ -816,7 +816,7 @@ def keccakCommitted : List ℕ :=
   (List.range keccakColumns.length).filter fun l ↦ ¬ (keccakIn ≤ l ∧ l < keccakCnt)
 
 /-- The `q_keccak` slot of a local `KECCAK` column, if it has one (`qkeccak_slot`,
-`layout.rs:413-423`, past the table's base): input lane `l` (local column `KECCAK_IN + l`) is
+`layout.rs:420-430`, past the table's base): input lane `l` (local column `KECCAK_IN + l`) is
 slot `l`, and the first `QKECCAK_SPARE` committed columns take the slots from `QKECCAK_SLOTS` on,
 in order. The Rust tries the spare slots first; the two parts have disjoint keys
 (`keccakSlotOf_disjoint`), so the order in which they are tried does not matter. -/
@@ -825,7 +825,7 @@ def keccakSlotOf (l : ℕ) : Option ℕ :=
   else ((keccakCommitted.take qkeccakSpare).idxOf? l).map (qkeccakSlots + ·)
 
 /-- `TOWER_LANES`: each limb of an `E` product, its terms `g^e · va_j · vb_k` as `(j, k, e)`,
-folded by `y² = x·y + 1` and `x = g` (`layout.rs:221-222`). -/
+folded by `y² = x·y + 1` and `x = g` (`layout.rs:228-229`). -/
 def towerLanes : List (List (ℕ × ℕ × ℕ)) :=
   [[(0, 0, 0), (1, 1, 0)], [(0, 1, 0), (1, 0, 0), (1, 1, 1)]]
 
@@ -894,7 +894,7 @@ def flushesJump : Flushes :=
   let f := f.memoryCols (Form.prod fp (c "o_d")) (c "cnt_d") [c "v_pc"]
   f.memoryCols (Form.prod fp (c "o_f")) (c "cnt_f") [c "v_fp"]
 
-/-- `jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`layout.rs:289-292`). -/
+/-- `jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`layout.rs:296-299`). -/
 def jumpConstraints (columns : List E) : List E :=
   let c := columnIndexByName jumpColumns
   let condition := columns.getD (c "v_cond") 0
@@ -956,7 +956,7 @@ def flushesKeccak : Flushes :=
         (Form.prod fp (c "o_out") cell) count values) f) f
 
 /-- One instruction's table: its columns, its bus flushes, its constraints
-(`layout.rs:185-206`). -/
+(`layout.rs:192-213`). -/
 structure Table where
   /-- Its opcode, also its index in `tables()`. -/
   opcode : ℕ
@@ -987,7 +987,7 @@ def tables : List Table :=
     ⟨opJump, jumpColumns, flushesJump, jumpConstraints⟩,
     ⟨opKeccak, keccakColumns, flushesKeccak, fun _ ↦ []⟩]
 
-/-- `Table::padding` (`layout.rs:439, 446-451`): the row a padding row holds, zero but for
+/-- `Table::padding` (`layout.rs:446, 453-458`): the row a padding row holds, zero but for
 `KECCAK`'s output lanes `KECCAK_OUT …`, a padding row permuting zeros (`keccak_f` of the zero
 state). -/
 def Table.padding (t : Table) : List E :=
@@ -1004,7 +1004,7 @@ def tableWidths : List ℕ := tables.map Table.width
 def globalColumnBases : List ℕ :=
   (List.range tables.length).map fun t ↦ globalColumnCount + (tableWidths.take t).sum
 
-/-- `TABLE_LOG_FLOORS` (`layout.rs:480-481`): each table's least log-height, `0` but for
+/-- `TABLE_LOG_FLOORS` (`layout.rs:487-488`): each table's least log-height, `0` but for
 `KECCAK`, the Keccak reduction's block of steps. -/
 def tableLogFloors : List ℕ := [0, 0, 0, 0, 0, keccakMinStepsLog]
 
@@ -1056,7 +1056,7 @@ structure ColumnClaim where
 (`StackClaim`, `lib.rs:130-131`). -/
 abbrev StackClaim : Type := (List E → E) × E
 
-/-! ### `build_layout` (`layout.rs:89-102, 483-567`) -/
+/-! ### `build_layout` (`layout.rs:96-109, 490-611`) -/
 
 /-- The layout the verifier derives from the bytecode and the announced sizes. -/
 structure Layout where
@@ -1092,7 +1092,7 @@ def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : Option StackClaim 
     (fun x ↦ eqEval (placement.stackPoint c.point layout.stackLog) x, c.value)
 
 /-- The bus blocks of every table, side by side: pushes, pulls, counts, each block at its
-table's log-height and row count (`layout.rs:504-518`). -/
+table's log-height and row count (`layout.rs:568-581`). -/
 def busBlocks (tableLogHeights tableRows : List ℕ) :
     List BusBlock × List BusBlock × List BusBlock :=
   let rows := List.zip tables (List.zip tableLogHeights tableRows)
@@ -1100,7 +1100,7 @@ def busBlocks (tableLogHeights tableRows : List ℕ) :
     rows.flatMap fun (t, h, n) ↦ t.flushes.pull.map fun c ↦ ⟨h, n, c, t.opcode⟩,
     rows.flatMap fun (t, h, n) ↦ t.countColumns.map fun l ↦ ⟨h, n, [Form.col l], t.opcode⟩)
 
-/-- The `q_keccak` slot of a global column (`qkeccak_slot`, `layout.rs:413-423`): a `KECCAK`
+/-- The `q_keccak` slot of a global column (`qkeccak_slot`, `layout.rs:420-430`): a `KECCAK`
 input lane's, or a spare slot's column's; `none` for every other column, those of the other tables
 (below the `KECCAK` base, where `checked_sub` fails) among them. -/
 def keccakSlot (column : ℕ) : Option ℕ :=
@@ -1109,7 +1109,7 @@ def keccakSlot (column : ℕ) : Option ℕ :=
   else none
 
 /-- The global columns of the `KECCAK` output lanes, in lane order (`outputs`,
-`layout.rs:534-535`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
+`layout.rs:517-518`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
 `lib.rs:324`). -/
 def keccakOutputColumns : List ℕ :=
   (List.range 25).map (globalColumnBases.getD opKeccak 0 + keccakOut + ·)
@@ -1121,7 +1121,7 @@ def columnKappas (logMemory logBytecode : ℕ) (tableLogHeights : List ℕ) : Li
   [logMemory, logMemory, logMemory, logBytecode, qkeccakKappa] ++
     tables.flatMap fun t ↦ List.replicate t.width (tableLogHeights.getD t.opcode 0)
 
-/-- The placements of every column, and the stack's log-size (`layout.rs:531-553`): the
+/-- The placements of every column, and the stack's log-size (`layout.rs:511-532, 585-597`): the
 committed columns (every column but those with a `q_keccak` slot, the `KECCAK` input lanes and
 the table's first fourteen committed columns, and the `KECCAK` output lanes: `101` of `165`)
 stacked by `stack_offsets`, a column with a slot at `q_keccak`'s offset plus its slot's `2^κ`
@@ -1430,7 +1430,7 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-!
 ## The WHIR opening (`whir.rs`, `lib.rs:126-163`)
 
-The opening of [CYWZ26, preprint]'s affine folds (Annex B, Protocol B.1): a level's rounds fold its
+The opening of [CYWZ26, preprint]'s affine folds (Annex B, `fig:protocol`): a level's rounds fold its
 lanes by the affine combiner `G + (α + β·X)·F`, the claim carried by four scalars a round
 and the weight folded by the same `α`, so the `α`s are the weight's point. A non-final level then commits
 the folded lane's low part, sends its high part, and glues its out-of-domain claim and its queries,
@@ -1439,7 +1439,7 @@ whole folded lane, checks the queries against it, and closes with a sumcheck ove
 
 **Commitments.** The Rust reads a Merkle root as two scalars (`Digest::from_halves` of
 `next_scalars(2)`, `whir.rs:292-293`) and opens it a level later with
-`transcript.merkle(current_root, block_length, &queries, leaf_words)` (`whir.rs:265, 303`). The
+`transcript.merkle(current_root, block_length, &queries, leaf_words)` (`whir.rs:265, 301`). The
 language's `commit height width` fixes the matrix shape when the root is read, so the shape is
 computed from the ladder there:
 
@@ -1696,7 +1696,7 @@ def readOod (stackLog : ℕ) : VerifierProgram StackClaim := do
   return (fun x ↦ eqEval z x, value)
 
 /-- `MAX_STACKED_CLAIMS`: the stacked opening's batching is accounted for up to this many claims,
-the ring-switched one included (`lib.rs:126-128`; the prover's `whir_config.rs:321`). -/
+the ring-switched one included (`lib.rs:126-128`; the prover's `whir_config.rs:317`). -/
 def maxStackedClaims : ℕ := 512
 
 /-- `verify_stacked_opening(transcript, root, stack_log, log_inv_rate, claims)`: at most
@@ -2057,7 +2057,7 @@ def ringSwitch (point s : List E) : VerifierProgram (E × (List E → E)) := do
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 /-!
-## The leanVM verifier (`lib.rs:178-188, 245-365`; `layout.rs:64-68`; `transcript.rs:34-49`)
+## The leanVM verifier (`lib.rs:178-193, 243-363`; `layout.rs:64-68`; `transcript.rs:34-49`)
 
 `leanVmVerifierProgram bytecode publicInput` is `verify_execution` in the verifier language, one
 `VerifierProgram` function per numbered step of the Rust's `walk` (the steps of `verifyExecution`).

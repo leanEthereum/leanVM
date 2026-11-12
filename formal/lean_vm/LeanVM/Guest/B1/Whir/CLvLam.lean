@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.CLvCommit
 
 /-!
-# The batching challenge, honestly (G:1618-1628)
+# The batching challenge, honestly (G:1593-1603)
 
 `osLam_complete`: the squeeze's permutation `lamS cap` of the carried capacity; `λ` its cell `0`
 and `1/λ` (`λ ≠ 0`); the zero run allocated if it was not.
@@ -30,7 +30,7 @@ def lamS (cap : List E) : KeccakState := (⟨cap, []⟩ : Fs).perm
 /-- The values after the squeeze's permutation: `λ`, one and `1/λ`. -/
 def lamVals (S : KeccakState) : List E := [rdCell S 0, word 1 0, (rdCell S 0)⁻¹]
 
-/-- **The batching challenge, honestly** (G:1618-1628). -/
+/-- **The batching challenge, honestly** (G:1593-1603). -/
 theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C rd → st.Ok σ)
     (hco : st.co < u128Bound) (hlam : rdCell (lamS (st.fsv σ)) 0 ≠ 0) :
     BlkA H σ st.k (osLam st).2.k (osLam st).1 (fun σ' ↦

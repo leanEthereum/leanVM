@@ -13,17 +13,19 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # `verifyWhir`, split at its terminal
 
-`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1514-1831` at leanVM `010cfb18`)
-runs `verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:215-329`) up to
-its last `require`, the terminal's check, which `check_opening_terminal` makes (G:3449).
+`open_stacked` (`crates/rec_aggregation/guests/lean_ethereum.py:1565-1806`, G below) runs
+`verifyWhir` (`Statement/LeanVmVerifier.lean`; `crates/verifier/src/whir.rs:215-329`) up to its
+last `require`, the terminal's check, which `check_opening_terminal` makes (G:3497).
 
 * `WhirEnd`, `whirLevelsOpen`, `whirOpen`: `whirLevels` and `verifyWhir` without the final
   `require`, returning what the terminal reads (the final level's query checks stay);
 * `WhirEnd.Accepts`: the terminal's check, `(inner + evaluateBasis point) · residual = claim`;
 * `verifyWhir_split`: `verifyWhir` is `whirOpen`, then `require Accepts`;
 * `stackShape μ r`, `commitStack_eq`: the shape `commitStack` gives the stack's root;
-* `openNames`, `candidate`, `openName`, `pointCap`: the 28 specializations, rate-major
-  (G:3730-3732), and the length of the point buffers (G:1731-1732).
+* `openArms`, `openNames`, `minOpenLog`, `openName`: `open_stacked`'s specializations, one per
+  stack log from `minOpenLog`, as `verify_sub` dispatches them (G:3691);
+* `rateSel`: the rate's selector, `open_stacked`'s argument (G:3550);
+* `pointCap`: the length of the point buffers (G:1727-1728).
 
 Only the Statement is imported, so the split builds apart from the guest's proofs.
 -/
@@ -172,7 +174,7 @@ abbrev minOpenLog : ℕ := 20
 order. -/
 def openName (μ : ℕ) : String := openNames.getD (μ - minOpenLog) ""
 
-/-- The rate's selector, `open_stacked`'s first argument: `g^(r - 1)`. -/
+/-- The rate's selector, an argument of `open_stacked`: `g^(r - 1)`. -/
 def rateSel (r : ℕ) : E := ofK (addressOfIndex (r - 1))
 
 /-- The length of the point buffers, `SIZE_BITS + QKECCAK_SLOT_LOG`. -/

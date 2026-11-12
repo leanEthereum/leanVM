@@ -25,7 +25,7 @@ public import LeanVM.Facts.Verifier
 /-!
 # `verify_sub` (TRIAGE G #71): the interface
 
-`verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out)` (G:3296-3488) runs
+`verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out)` (G:3506-3705) runs
 `verifyDeferredWith` (V:2328) on one child's proof: the seed `keccakF (seedInput iv pi)` by
 `keccak_cells(…, final=0)`, the announced sizes (`readAnnouncedSizes`), the stack's root
 (`commitStack`), the bus challenges and GKR (`verify_bus_gkr`), the bus leaves, the table
@@ -78,7 +78,7 @@ def VerifySubPre (rd : Reader) : List E → Prop
   | [_, _, _, _, sq, _] => ExpTables rd sq ∧ ExpWinTab rd sq
   | _ => False
 
-/-- **`verify_sub` is sound** (G:3296-3488; TRIAGE #71): on a memory image of at most `2^32`
+/-- **`verify_sub` is sound** (G:3506-3705; TRIAGE #71): on a memory image of at most `2^32`
 words holding the exponent tables, for a bytecode of `2^23` words. -/
 def verify_sub_Spec (bytecode : List K) : Prop :=
   bytecode.length = 2 ^ bytecodeVars →

@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SBase
 public import LeanVM.Guest.B1.Selectors.SharedTablesComplete
 
 /-!
-# The index factors, `1 + ζ` and the shared tables (G:2335-2353)
+# The index factors, `1 + ζ` and the shared tables (G:2310-2328)
 
 `vtIdxcW`: `idxc_tab`'s words `1 + g^(2^t)`; `idxc_ok`: its stores hold on a memory holding them.
 `zeta1_ok`: `plus_one_run` on `g^μ` holds when `zeta1` holds `1 + ζ_k`. `sh_call`: a table's

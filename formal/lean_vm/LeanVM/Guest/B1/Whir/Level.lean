@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.LpSound
 public import LeanVM.Guest.B1.Whir.LqSound
 
 /-!
-# A non-final level (G:1556-1694)
+# A non-final level (G:1531-1669)
 
 `LvIn` is the guest's state at a level's start against the Spec's: the sponge it carries, the
 claim the guest's plus the deficit `recsDeficit` of the levels so far (each level's high-part

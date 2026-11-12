@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.KeccakGkr.FormT
 * `laterWeights_low`: a later claim's weight at `2^i - 1` of lane `0` is the sum over
   `flipOffs i` of the lane weight times the slice weight;
 * `eqAt_six`: the slice weight `eqAt a₆ z` is `eqAt a₅ (z % 32)` times the top coordinate's
-  factor (`slice_weight`, G:2660-2666);
-* `lflipT_holds`: the block `lflipT` (G:2831-2837) sums those products.
+  factor (`slice_weight`, G:2841-2847);
+* `lflipT_holds`: the block `lflipT` (G:2806-2812) sums those products.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -86,7 +86,7 @@ theorem flipOffs_lt (i : ℕ) : ∀ o ∈ flipOffs i, o.1 < 25 ∧ o.2 < 64 := b
   · exact ⟨keccakPi_lt _ (by omega), Nat.mod_lt _ (by norm_num)⟩
   · exact ⟨keccakPi_lt _ (by omega), Nat.mod_lt _ (by norm_num)⟩
 
-/-- **The slice weight split at the top coordinate** (`slice_weight`, G:2660-2666). -/
+/-- **The slice weight split at the top coordinate** (`slice_weight`, G:2841-2847). -/
 theorem eqAt_six (a6 : List E) (ha : a6.length = 6) {z : ℕ} (hz : z < 64) :
     eqAt a6 z = eqAt (a6.take 5) (z % 32) *
       (if z / 32 = 1 then a6.getD 5 0 else 1 + a6.getD 5 0) := by

@@ -151,6 +151,9 @@ leanvm() {
   step "leanvm: the guest's data is leanVM's"
   cargo build --release --manifest-path lean_vm/scripts/guest-export/Cargo.toml
   capped lean_vm/scripts/guest-export/target/release/guest-export lean_vm --check
+  step "leanvm: the fold rounds' table is the prover's (whir-fold-table)"
+  cargo run --release --manifest-path lean_vm/scripts/whir-fold-table/Cargo.toml -- \
+    lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
   step "leanvm: the honest hints are the Rust's, and the guest runs on them (guest-diff)"
   local gd
   gd=$(mktemp -d)

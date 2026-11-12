@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CSqLoop
 
-  One iteration of `open_stacked`'s squeeze loop at its honest values, on f128.
+  One iteration of `open_stacked`'s squeeze loop at its honest values.
 -/
 
 module

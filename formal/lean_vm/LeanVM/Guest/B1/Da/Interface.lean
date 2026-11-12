@@ -12,18 +12,18 @@ public import LeanVM.Guest.B1.Digest.Interface
 /-!
 # LeanDA: meanings (TRIAGE G #90-93)
 
-For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`40f877dc`, G below) its meaning on its argument and return words, and `…_sound_Spec`: its core
+For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py`, G
+below) its meaning on its argument and return words, and `…_sound_Spec`: its core
 IR relation (`coreProgram.Rel`) gives the meaning. A `…_Spec` is a definition (a `Prop`); its
 proof is the theorem `…_holds` of the family's modules. The functions building the dual codeword
 (`da_vector` and its callees) have their meanings in `VectorDefs`.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `da_verify` | 4560-4598 | `core27` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
-| `da_row_shape` | 3964-3973 | `core28` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
-| `da_verify_cell` | 3993-4005 | `core30` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
-| `da_levels__L{n}_L{k}` | 4008-4016 | `core420-430` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
+| `da_verify` | 4509-4547 | `core27` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..1024` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
+| `da_row_shape` | 4550-4559 | `core28` | `n_blob = g^r`, `1 ≤ r ≤ 1024`, the padded count `2^L = LeanDa.nPad r` |
+| `da_verify_cell` | 4579-4591 | `core30` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
+| `da_levels__L{n}_L{k}` | 4594-4602 | `core420-430` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
 
 `da_verify` reads the padded row count's power off the exponent table `g_squares`
 (`exponent_tables`, `SquaresAt`).
@@ -61,7 +61,7 @@ def cellRoot : ℕ → List (E × E) → E × E
 /-- The cells of a list of nodes, two a node. -/
 def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, p.2]
 
-/-! ## `da_verify` (G:4298-4338, TRIAGE #90) -/
+/-! ## `da_verify` (G:4509-4547, TRIAGE #90) -/
 
 /-- **`da_verify(g_squares)`**: with the exponent table at `g_squares`, a witness opens the claim
 of the returned root and challenge `z` (`Da.MatrixWitness.Opens`), the three returned words the
@@ -77,7 +77,7 @@ def da_verify_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_verify" args rets → MeaningDaVerify rd args rets
 
-/-! ## `da_row_shape` (G:4341-4350, TRIAGE #91) -/
+/-! ## `da_row_shape` (G:4550-4559, TRIAGE #91) -/
 
 /-- **`da_row_shape(n_blob_g, g_log_pad, g_squares)`**: with the exponent table at `g_squares`,
 `n_blob = g^r` for `1 ≤ r ≤ 1024`, `g_log_pad = g^L` with `2^L` the padded count
@@ -93,7 +93,7 @@ def da_row_shape_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_row_shape" args rets → MeaningDaRowShape rd args rets
 
-/-! ## `da_verify_cell` (G:4370-4382, TRIAGE #92) -/
+/-! ## `da_verify_cell` (G:4579-4591, TRIAGE #92) -/
 
 /-- **`da_verify_cell(lvals)`**: some `256` symbols of `K` (the hint), their digest's two cells
 (LeanDA's cell digest, eight bytes a symbol) and their dot product with the `256` weights at
@@ -110,7 +110,7 @@ def da_verify_cell_sound_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "da_verify_cell" args rets → MeaningDaVerifyCell rd args rets
 
-/-! ## `da_levels` (G:4385-4393, TRIAGE #92) -/
+/-! ## `da_levels` (G:4594-4602, TRIAGE #92) -/
 
 /-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`. -/
 def daLevelsName (k : ℕ) : String :=

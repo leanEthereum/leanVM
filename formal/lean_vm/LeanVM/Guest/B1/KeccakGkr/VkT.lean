@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkT
 
-  `verify_keccak`'s body as a template (G:2898-3064), section by section.
+  `verify_keccak`'s body as a template (G:3081-3251), section by section.
 -/
 
 module
@@ -104,7 +104,7 @@ def iotaUsed (s : ℕ) : List ℕ :=
 def flipSz (s : ℕ) : ℕ := if s = 0 then 3 else 2
 
 /-- Flip `i` of step `s` from `b`: the first claim's word bit (`x^(2^i - 1)` on lane `0`), a later
-claim's from its record (`KC_FLIPS`, G:2991-2995). -/
+claim's from its record (`KC_FLIPS`, G:2966-2970). -/
 def flipT (s i b : ℕ) : List Stmt :=
   if s = 0 then
     [.atom (.load (.n b) (.n 234) 30), .atom (.const (.n (b + 1)) (word (2 ^ (2 ^ i - 1)) 0)),
@@ -123,7 +123,7 @@ def flipsT (s b : ℕ) : List Stmt :=
 def flipOf (s b i : ℕ) : ℕ := flipV s b ((iotaUsed s).idxOf i)
 
 /-- The `ι` term from `c`, the segment weights `w0`, `w1`: per segment the flips summed, times
-its weight, the two added (G:2997-3002). -/
+its weight, the two added (G:2972-2977). -/
 def iotaSegT (s b c w0 w1 : ℕ) : List Stmt :=
   let v0 := (iotaIdx s 0).map (flipOf s b)
   let v1 := (iotaIdx s 1).map (flipOf s b)
@@ -161,7 +161,7 @@ def stepTailT (s b : ℕ) (cap : List ℕ) (cur cb pn io : ℕ) : List Stmt :=
 /-- The size of `stepTailT`'s values. -/
 def stepTailSz (s : ℕ) : ℕ := if s = 0 then 12 else 14
 
-/-- **Step `s`** from `b` (G:2975-3006): the claim's point, its segment weights (`eqtree_frame` of
+/-- **Step `s`** from `b` (G:2950-2981): the claim's point, its segment weights (`eqtree_frame` of
 one coordinate, `1 + r` at `b + 4`, `r` at `b + 5`), the flips, the `ι` term, the call. -/
 def stepT (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) : List Stmt :=
   let f0 := b + 6
@@ -260,7 +260,7 @@ def vkFirstT : List Stmt :=
 
 /-- An opening's lane weights at the slot point `slot` and segment point `segp` from `b`: the
 slot's equality weights (`eqfT`, the first 50), the segment's, and per lane the segments'
-`first .. first + count` weighted (`keccak_slot_lanes`, G:2882-2895). -/
+`first .. first + count` weighted (`keccak_slot_lanes`, G:3065-3078). -/
 def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
   eqfT (.n slot) 0 6 50 b ++ eqfLevel0T (.n segp) 0 (b + 129) ++
   ((List.range 25).map fun lane ↦
@@ -295,8 +295,8 @@ def slCap (capb b g : ℕ) : ℕ := if g = 0 then capb else slP b g + 8
 def slCells (b g : ℕ) : List V :=
   ((List.range 4).map fun j ↦ [V.n (slB b (4 * g + j) + 1), .n (slB b (4 * g + j) + 2)]).flatten
 
-/-- **The 64 slices** (G:3039-3046): read at the cursor and stored, four to a permutation, the
-last four's permutation (`fs_perm4`, the full queue) at `slP b 16`. -/
+/-- **The 64 slices** (G:3014-3021): read at the cursor and stored, four to a permutation, the
+last four's permutation (the full queue) at `slP b 16`. -/
 def slicesT (cur : V) (capb b : ℕ) : List Stmt :=
   ((List.range 16).map fun g ↦
     (if g = 0 then [] else
@@ -320,7 +320,7 @@ where
   foldPos' (t q : ℕ) : ℕ := ((List.range (2 ^ (t + 1))).filter fun q' ↦
     t + 1 < 6 || shiftUsed.contains (q' / 2 + 2 ^ t * (q' % 2))).idxOf (q % 2 ^ t * 2 + q / 2 ^ t)
 
-/-- **`fold_shifts`, level `t`** (G:2613-2627, `fold_node` G:2602-2610) from `B`, the coordinate
+/-- **`fold_shifts`, level `t`** (G:2794-2807, `fold_node` G:2783-2790) from `B`, the coordinate
 `a_t` at `a·g^t`, `1 + a_t` at `B + 2`: each node `(1 + a_t)·x₀ + a_t·x₁`. -/
 def foldLevelT (src : ℕ → ℕ) (b : ℕ) (a : V) (t : ℕ) : List Stmt :=
   let n := 2 ^ (6 - t)
@@ -359,7 +359,7 @@ def vkStepsT : List Stmt :=
   stepT 10 840 [834, 835, 836, 837, 838] 839 790 833 ++
   stepT 11 881 [875, 876, 877, 878, 879] 880 833 874
 
-/-- The committed outputs' opening (G:2835-2848). -/
+/-- The committed outputs' opening (G:2810-2823). -/
 def vkOutT : List Stmt :=
   [.atom (.mul (.n 921) (.n 9) (.n 6)), .atom (.const (.n 922) (word 0 0)),
     .atom (.const (.n 923) (word 0 0)),
@@ -373,7 +373,7 @@ def vkOutT : List Stmt :=
     .atom (.mul (.n 1197) (.n 9) (.n 1196)),
     .callIf (.n 1194) "__loop11" [.n 1195, .n 18, .n 1197, .n 61]]
 
-/-- The inputs' opening up to the slices (G:2850-2902). -/
+/-- The inputs' opening up to the slices (G:2825-2877). -/
 def vkInT : List Stmt :=
   [.atom (.const (.n 1198) (word 2 0)), .atom (.mul (.n 1199) (.n 929) (.n 1198)),
     .atom (.load (.n 1200) (.n 161) 264), .atom (.const (.n 1201) (word 549755813888 0)),
@@ -393,7 +393,7 @@ def vkInT : List Stmt :=
 /-- The shifts of the slices' values. -/
 def vkSh (r : ℕ) : ℕ := foldVal (fun j ↦ 1981 + j) 2045 6 r
 
-/-- The inputs' check, the copy of their pack coordinates, the return (G:3048-3060). -/
+/-- The inputs' check, the copy of their pack coordinates, the return (G:3023-3035). -/
 def vkFinT : List Stmt :=
   [.atom (.load (.n 1745) (.n 161) 266), .atom (.mul (.n 1746) (.n 1745) (.n 18))] ++
   slotLanesT 1330 1746 1747 0 2 ++ [.atom (.load (.n 1980) (.n 161) 268)] ++

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ExpAt
 
-  `da_expand` placed (G:4429-4442): its product tree in its frame run, the run returned at its
+  `da_expand` placed (G:4638-4651): its product tree in its frame run, the run returned at its
   leaves, within its frame, by its evaluated valuation.
 -/
 

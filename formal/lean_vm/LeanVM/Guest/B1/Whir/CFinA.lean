@@ -15,14 +15,14 @@ public import LeanVM.Guest.B1.Whir.FinishSound
 public import LeanVM.Guest.B1.Whir.RateCfg
 
 /-!
-# The finish, honestly (G:1731-1831)
+# The finish, honestly (G:1706-1806)
 
 The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
 non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded
 (`finPtC`, `finPt1C`), each level's basis row (`finBdC`), scale (`finLsC`), product of
 coordinates (`finLaC`) and the inner chain (`finIchC`).
 
-`osFinishA_complete`: on memory holding the levels' records (`RecStored`), `λ⁻¹` in `level_mus`,
+`osFinishA_complete`: on memory holding the levels' records (`RecStored`), `λ⁻¹` in `level_lam_invs`,
 `G` and `T`, and those buffers at the pointers `PT`, `PT1`, `BD`, `LS`, `LA`, `ICH`, with
 `fold_final_msg` returning `Y` and each `level_residual` returning its level's chains, the
 statements of `osFinishA` hold at values fixed before the memory and the callees, allocating

@@ -20,7 +20,7 @@ The building blocks of `PqDas`, instantiated with LeanDA (`LeanDa.Scheme`) for `
   (`merkleVC_perfectlyComplete`), and its position binding reduces to finding an `H` collision
   through the explicit `merkleCollider` (`posBindingExp_le_hashCollisionExp`);
 * the code checker `checker r`: the membership test, complete (`checker_complete`) and
-  `(2^14 - 1) / 2^192`-sound over a uniform `z ∈ E` (`checker_sound`).
+  `(2^14 - 1) / 2^128`-sound over a uniform `z ∈ E` (`checker_sound`).
 
 `leanDa r H ps` is the scheme with the hash `H` and an argument of knowledge `ps` for the relation
 `Relation r H`: the cells commit to the root and pass the membership test on the challenge.

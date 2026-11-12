@@ -1,4 +1,4 @@
-"""Write B1/Opening/QueriesBody{0..3}.lean, QueriesW{0..3}.lean, QueriesAll.lean, QueriesAllW.lean."""
+"""Write B1/Opening/QueriesBody{0..3}.lean, QueriesW{0..3}.lean, QueriesAllW.lean."""
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen

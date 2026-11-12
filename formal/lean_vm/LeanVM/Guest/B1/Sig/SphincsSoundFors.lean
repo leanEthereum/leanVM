@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.SphincsSoundFors
 
-  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:3831-3852`, and
-  `T_k`, `lean_ethereum.py:4020-4025`, at leanVM main 40f877dc) is sound: whatever secrets and children
+  The FORS block of `verify_sig_lean_sphincs` (`sp_fors_tree`, `lean_ethereum.py:4034-4055`, and
+  `T_k`, `lean_ethereum.py:4226-4228`) is sound: whatever secrets and children
   are hinted, each tree's root is the fold of its hinted secret and siblings, and the FORS key their
   `T_k`.
 -/

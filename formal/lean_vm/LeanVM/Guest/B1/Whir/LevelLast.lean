@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Fs.TailRound
 public import LeanVM.Guest.B1.Opening.NovelEval
 
 /-!
-# The final level and the closing rounds, soundly (G:1560-1730)
+# The final level and the closing rounds, soundly (G:1535-1705)
 
 * `osTailRounds_sound`, `osTail_sound`: the closing rounds (`opening_tail_round` calls) run
   `tailRun` over their words, the challenges stored in `tail_challenges`.
@@ -35,7 +35,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The closing rounds -/
 
-/-- **One `opening_tail_round` call** (G:1724-1726), its challenge stored at `tch·g^j`. -/
+/-- **One `opening_tail_round` call** (G:1699-1701), its challenge stored at `tch·g^j`. -/
 theorem osTailRound_sound (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r)
     {tch j : ℕ} {s : OsSt} (hfs : s.fs.length = 5) (hco : s.co < u128Bound)
     (hok : AllOk C rd σ (osTailRound tch j s).1) :
@@ -119,7 +119,7 @@ theorem osTailRounds_mats (tch : ℕ) : ∀ (j n : ℕ) (s : OsSt), (osTailRound
 theorem osTail_mats (c : OsCfg) (s : OsSt) : (osTail c s).2.1.mats = s.mats :=
   osTailRounds_mats _ 0 c.yrLog _
 
-/-- **The closing rounds** (G:1722-1730) into `tail_challenges` at `tch`. -/
+/-- **The closing rounds** (G:1697-1705) into `tail_challenges` at `tch`. -/
 theorem osTail_sound (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r)
     {c : OsCfg} {s : OsSt} (hfs : s.fs.length = 5) (hco : s.co < u128Bound)
     (hok : AllOk C rd σ (osTail c s).1) :

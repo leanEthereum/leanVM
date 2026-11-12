@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CFinRes
 
-  A non-final level's residual in the finish, honestly: its pointers materialized, `μ` read, the
+  A non-final level's residual in the finish, honestly: its pointers materialized, `λ⁻¹` read, the
   dispatch into `level_residual` on the rate's selector, its sums into `inner_chain`.
 -/
 
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Place.OsProtoSpec
 # The residuals, honestly
 
 `osMatP_blkA`: a fixed buffer's shifted pointer, materialized from the materializations `mats`.
-`ResMemD`: what memory holds for a level's residual: `μ` in `level_mus`, the inner chain's entries
+`ResMemD`: what memory holds for a level's residual: `λ⁻¹` in `level_lam_invs`, the inner chain's entries
 before and after, the scale, `β` and the product of the coordinates, at the dispatch's returns
 `P`, `Q`. `osResidual_complete`: one level; `osResiduals_complete`: the levels `lvl ..`, each
 dispatch's arguments and returns (`osResCallsL`).

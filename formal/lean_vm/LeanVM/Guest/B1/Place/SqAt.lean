@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.SqAt
 
-  `open_stacked`'s squeeze loop placed (`RelAtIn`) on f128: one iteration, its decode call before
+  `open_stacked`'s squeeze loop placed (`RelAtIn`): one iteration, its decode call before
   its tail, and the loop from its first iteration `g^e`, its decoders' frame runs its data.
 -/
 

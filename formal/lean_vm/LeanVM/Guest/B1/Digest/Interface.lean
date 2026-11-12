@@ -22,8 +22,8 @@ public import LeanVM.Facts.Verifier
 /-!
 # The digests: meanings (TRIAGE G #86-89, #94, #95)
 
-For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM
-`40f877dc`, G below) its meaning `Meaning…` on its argument and return words, and two
+For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py`, G
+below) its meaning `Meaning…` on its argument and return words, and two
 statements on its core IR relation (`coreProgram.Rel`): `…_sound_Spec`, the relation gives the
 meaning, and `…_complete_Spec`, the meaning (with what memory an honest run holds) gives the
 relation. A `…_Spec` is a definition (a `Prop`); its proof is the theorem `…_holds` of the
@@ -31,10 +31,10 @@ family's modules.
 
 | function | G | core | meaning |
 | --- | --- | --- | --- |
-| `statement_digest` | 4302-4326 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
-| `list_split` | 3982-3997 | `core22` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
-| `claim_list_digest` | 4000-4043 | `core23` | Keccak-256 of the `4n` cells of the list (`claimListDigest`, N:172-180) |
-| `child_claim_list_digest` | 4062-4197 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
+| `statement_digest` | 4250-4274 | `core21` | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
+| `list_split` | 4291-4306 | `core22` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
+| `claim_list_digest` | 4309-4340 | `core23` | Keccak-256 of the `4n` cells of the list (`claimListDigest`, N:172-180) |
+| `child_claim_list_digest` | 4371-4392 | `core24` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
 
 **Cells and bytes.** A cell holds sixteen bytes, its two limbs (`Value.Keccak.cellsBytes`, the
 cell's `E.toBytes`). A digest's two cells are `digestHalves` (`digestCells`).
@@ -66,7 +66,7 @@ def BelowLog (b : E) (e : ℕ) : Prop := e < 2 ^ 32 ∧ ∃ e' < 2 ^ 32, b = gen
 /-- `g⁻¹`, the word a runtime range bound is multiplied by (`assert log x < log b`). -/
 abbrev ginvW : E := word 9223372036854775821 0
 
-/-! ## `statement_digest` (G:4033-4072, TRIAGE #86) -/
+/-! ## `statement_digest` (G:4250-4274, TRIAGE #86) -/
 
 /-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
 coordinates and the value. -/
@@ -95,7 +95,7 @@ def statement_digest_complete_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     MeaningStatementDigest rd args rets → coreProgram.Rel rd "statement_digest" args rets
 
-/-! ## `list_split` (G:4081-4096, TRIAGE #87) -/
+/-! ## `list_split` (G:4291-4306, TRIAGE #87) -/
 
 /-- `CLAIM_GROUP`: claims hashed a loop frame of a list's rest. -/
 abbrev claimGroup : ℕ := 17
@@ -135,7 +135,7 @@ def list_split_complete_Spec : Prop :=
   ∀ (rd : Reader), (∀ i < 2 ^ 20, (rd (addressOfIndex i)).isSome) → ∀ (args rets : List E),
     MeaningListSplitC args rets → coreProgram.Rel rd "list_split" args rets
 
-/-! ## `claim_list_digest` (G:4099-4142, TRIAGE #88) -/
+/-! ## `claim_list_digest` (G:4309-4351, TRIAGE #88) -/
 
 /-- `rets` is the two cells of the Keccak-256 digest of the `4n` cells of `n` claims at `entries`
 (an empty list: the empty string's). -/
@@ -154,7 +154,7 @@ def claim_list_digest_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "claim_list_digest" args rets → MeaningClaimListDigest rd args rets
 
-/-! ## `child_claim_list_digest` (G:4161-4296, TRIAGE #89) -/
+/-! ## `child_claim_list_digest` (G:4371-4506, TRIAGE #89) -/
 
 /-- The slot `e` lies below the log of the region's size `b`: `b = g^L`, `e < L < 2^33`. -/
 def SlotBelow (b : E) (e : ℕ) : Prop := ∃ L < 2 ^ 33, b = gen ^ L ∧ e < L

@@ -30,7 +30,7 @@ it is the product the verifier checks (`shareClaim_full`, `multilinearEval_eq_do
 
 * `follows_bytecodeShare`: the honest prover `hShare` follows `bytecodeShare`, to the share
   `bcShare prog w z`, the point `z ++ r` and the value `P(z, r)`, which is the stacked bytecode's
-  extension there, so `computedBytecodeValue` accepts it (`follows_bytecodeShare_value`).
+  extension there, so `computedBytecodeValue` accepts it (`follows_bytecodeShare`).
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete

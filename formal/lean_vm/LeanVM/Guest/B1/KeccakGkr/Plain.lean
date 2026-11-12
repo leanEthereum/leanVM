@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 /-!
 # `keccak_plain_rounds`
 
-`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)` (G:3061-3087): its
+`keccak_plain_rounds(fs0..fs4, p0, p1, cursor, value, point, tabs, n, k0)` (G:3036-3062): its
 specializations `__L6_L0` (`Data.core268`) and `__L4_L1` (`Data.core270`) copy the capacity, run
 `n` rounds, each a template `plainRoundT` (`c₀`, `c₂` read and packed by `fs_next`, one `KECCAK`
 atom on the waiting scalars' rate cells and the capacity, the round's grind of `0` bits,

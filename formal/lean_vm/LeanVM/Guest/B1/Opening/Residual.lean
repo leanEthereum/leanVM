@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# `residual_query` (G:1494-1511)
+# `residual_query` (G:1463-1480)
 
 `residual_query(position, row_d, hs, vanish, n_cols, n_hs, hs_bits)` walks the chain
 `chain_0 = x` (the position), `chain_(t+1) = chain_t·(chain_t + VALS[vanish + t])` (`LIG_VANISH_VALS`,
@@ -45,7 +45,7 @@ def residualProd (vals : List E) (x : E) (d : ℕ → E) : ℕ → E
 
 /-! ## The factoring -/
 
-/-- **A coordinate's factor** (G:1664-1672): `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)`. -/
+/-- **A coordinate's factor** (G:1639-1647): `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)`. -/
 theorem residual_factor {c inv x : E} (h : c * inv ≠ 0) :
     1 + c * (1 + x * inv) = c * inv * ((1 + c) / (c * inv) + x) := by
   have e : c * inv * ((1 + c) / (c * inv)) = 1 + c := mul_div_cancel₀ _ h

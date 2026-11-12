@@ -14,7 +14,7 @@ degree below `2^14`, its exponents distinct. A codeword is orthogonal to every `
 (`rsCode_le_orthogonal`), so it passes for every `z` (`dot_dual_eq_zero`). A row that is not a
 codeword is not orthogonal to some `Xᵤ` (`mem_rsCode_of_orthogonal`), so the polynomial is
 nonzero and has at most `2^14 - 1` roots (`card_acceptSet_le`): at most `2^14 - 1` of the
-`|E| = 2^192` challenges accept it.
+`|E| = 2^128` challenges accept it.
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.

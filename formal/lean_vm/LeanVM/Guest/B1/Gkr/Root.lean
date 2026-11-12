@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Gkr.LayerStep
 
 /-!
-# The root-most layer (G:1960-2019)
+# The root-most layer (G:1935-1994)
 
 The root-most layer has no rounds: the combiner, drawn from the two roots waiting in the sponge,
 batches the three trees' roots into the claim the children's products check. `verify_bus_gkr`

@@ -1,5 +1,5 @@
 # usage: python3 -I genshared.py  — writes Tables/Vt/SharedT.lean (verify_tables' shared selector
-# tables, G:2368-2378 at the commit in leanvm-rev: each table's `shared_len` and its `shared_selector_tables` call,
+# tables, G:2318-2325 at the commit in leanvm-rev: each table's `shared_len` and its `shared_selector_tables` call,
 # the tables' pointers stepped one from another) from vt_ir.txt (dump.py).
 import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -114,7 +114,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.Base
 
 /-!
-# The shared tables' statements (G:2368-2378)
+# The shared tables' statements (G:2318-2325)
 
 `vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
 `27 + t`), its range check below `g^34`, and its `shared_selector_tables` call at

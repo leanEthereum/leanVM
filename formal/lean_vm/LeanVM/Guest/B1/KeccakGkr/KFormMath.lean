@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.KFormMath
 
-  `keccak_form`'s identity (G:2630-2656): a later claim's weights at the local point, through the
+  `keccak_form`'s identity (G:2811-2837): a later claim's weights at the local point, through the
   transpose of θ, ρ, π, factor as lane weights times shift sums of the slice weights.
 -/
 
@@ -81,7 +81,7 @@ theorem colL_later (lanes a6 : List E) (ha : a6.length = 6) {x z' : ℕ} (hx : x
   have := Finset.mem_range.1 hy
   exact gOf_later lanes a6 ha (by omega) hz
 
-/-- **`keccak_form`'s identity** (G:2630-2656 against V:2016-2019). -/
+/-- **`keccak_form`'s identity** (G:2811-2837 against V:2016-2019). -/
 theorem later_dot (locPt a6 lanes : List E) (hl : locPt.length = 11) (ha : a6.length = 6) :
     dot ((eqKernel locPt).take keccakBits) (laterWeights lanes (eqKernel a6)) =
       formVal (eqAt (locPt.drop 6)) (kLane lanes) (kS a6 (locPt.take 6)) := by

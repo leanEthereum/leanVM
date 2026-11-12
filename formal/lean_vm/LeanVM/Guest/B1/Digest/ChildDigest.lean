@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.ChildDigest
 
-  B1 for `child_claim_list_digest` (G:4161-4182; TRIAGE #89): the digest of a child's claim list,
+  B1 for `child_claim_list_digest` (G:4371-4392; TRIAGE #89): the digest of a child's claim list,
   rebuilt by either walk, the prover's hint `child_mono` choosing.
 -/
 

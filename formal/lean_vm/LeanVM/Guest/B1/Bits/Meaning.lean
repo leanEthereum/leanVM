@@ -21,9 +21,9 @@ the theorem `…_holds : …_Spec` of the family's modules.
 | function | meaning |
 | --- | --- |
 | `exponent_tables` | `ExpTables`: squares, nibble shares, rank keys, groups' sides; `ExpWinTab`: the bit windows |
-| `g_power_of_word` | 745-758 (40f877dc) | `v = E(n)`, `n < 64`, returns `g^n` |
-| `assert_small_g_power` | 761-776 (40f877dc) | `x = g^e`, `e < 2^36` |
-| `log2_ceil_in_the_exponent` | 779-794 (40f877dc) | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
+| `g_power_of_word` | 748-761 | `v = E(n)`, `n < 64`, returns `g^n` |
+| `assert_small_g_power` | 764-779 | `x = g^e`, `e < 2^36` |
+| `log2_ceil_in_the_exponent` | 782-797 | the hinted `L` within its two bounds; `max floor (log2Ceil N)` (V:661) on `g^N` |
 | `grind_check__L{bits}` | `powOk`: the low `bits` bits of the word's low limb (the permutation's lane `2`) are zero |
 
 The range checks (`assert_small_g_power`, `log2_ceil_in_the_exponent`, `grind_check`'s windows)
@@ -38,7 +38,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `exponent_tables` (lean_ethereum.py:715-740) -/
+/-! ## `exponent_tables` (lean_ethereum.py:717-745) -/
 
 /-- **`exponent_tables()`**: it returns a pointer holding the exponent table (`ExpTables`) and its
 bit windows (`ExpWinTab`, read as `WinTabs` at `q·g^236`, `winTabs_of_expWinTab`). -/
@@ -51,7 +51,7 @@ def exponent_tables_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "exponent_tables" args rets ↔ MeaningExponentTables rd args rets
 
-/-! ## `g_power_of_word` (lean_ethereum.py:743-756) -/
+/-! ## `g_power_of_word` (lean_ethereum.py:748-761) -/
 
 /-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
 returns `g^n`. -/
@@ -64,7 +64,7 @@ def g_power_of_word_Spec : Prop :=
   ∀ (rd : Reader) (args rets : List E),
     coreProgram.Rel rd "g_power_of_word" args rets ↔ MeaningGPowerOfWord args rets
 
-/-! ## `assert_small_g_power` (lean_ethereum.py:759-774) -/
+/-! ## `assert_small_g_power` (lean_ethereum.py:764-779) -/
 
 /-- **`assert_small_g_power(x, g_squares)`**: `x = g^e` with `e < 2^36` (nine hinted nibbles,
 each range checked below `16`, their shares multiplied over the table); it returns nothing. -/
@@ -79,7 +79,7 @@ def assert_small_g_power_Spec : Prop :=
     ∀ rets : List E, coreProgram.Rel L.read "assert_small_g_power" [x, q] rets ↔
       MeaningAssertSmallGPower [x, q] rets
 
-/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:777-792) -/
+/-! ## `log2_ceil_in_the_exponent` (lean_ethereum.py:782-797) -/
 
 /-- **`log2_ceil_in_the_exponent(g_N, g_squares, floor, 34)`**: the hinted `L`, `floor ≤ L < 34`,
 pinned by `g^(2^L) / g_N = g^e` and, above the floor, `g_N / g^(2^(L-1) + 1) = g^e'`, both

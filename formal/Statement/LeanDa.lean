@@ -109,7 +109,7 @@ The erasure code commitment of `crates/lean_da` at the leanVM commit `../leanvm-
 specified in `doc/leanvm/body/10-ethereum.tex`
 §sec:leanda, for a matrix of `r` rows.
 
-* **The code** (`encode.rs:13-37`). A row's payload is `2^14` symbols of `K`, the evaluations on
+* **The code** (`encode.rs:13-41`). A row's payload is `2^14` symbols of `K`, the evaluations on
   the domain points `0 … 2^14 - 1` of the polynomial of degree below `2^14` they determine. Its
   codeword is that polynomial's evaluations on all `2^15` points (`encodeRow`): the inverse
   additive NTT interpolates, the forward one evaluates, so the payload is the codeword's first
@@ -117,7 +117,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   transcribed here.
 * **Cells** (`lib.rs:23-38`). A codeword is `128` cells of `256` symbols; cell `j` of row `i` is
   at position `128 i + j`, the positions of the erasure code commitment.
-* **The commitment** (`commit.rs:1-130`). The rows are padded to `2^⌈log₂ r⌉` with zero
+* **The commitment** (`commit.rs:1-134`). The rows are padded to `2^⌈log₂ r⌉` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes (`blob_trees`). Each
   padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
   commitment is the Merkle root of the padded rows' blob roots (`commit_codewords`). A tree hashes
@@ -146,7 +146,7 @@ The row count `r` is a parameter: the crate takes `1 ≤ r ≤ 1024` (`row_count
 completeness and position binding hold for every `r`, code binding for `1 ≤ r ≤ 1024`
 (`maxRows`). The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
-hash Keccak-256 (`verifier/src/hash.rs:77-97`); in the end statements `π` is the random
+hash Keccak-256 (`verifier/src/hash.rs:76-96`); in the end statements `π` is the random
 permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
 -/
 

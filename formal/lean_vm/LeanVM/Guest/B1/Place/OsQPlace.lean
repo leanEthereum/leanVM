@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.OsQPlace
 
-  A level's `opening_queries` call placed on f128: its window pointers and windows read from the
+  A level's `opening_queries` call placed: its window pointers and windows read from the
   level's decoders, wherever their group is placed.
 -/
 

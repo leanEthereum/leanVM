@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.B1.Selectors.BlockSelectorTab
 
 /-!
-# A block's selector (G:2352-2408)
+# A block's selector (G:2327-2383)
 
 Both selector paths of `verify_tables` (`block_selector`, `block_selector_tab`) return the eq
 weight of `n = μ - κ` pinned bits against the bus point above `κ`, and the `g`-power

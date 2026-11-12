@@ -10,11 +10,11 @@ public import LeanVM.Guest.B1.Whir.CFinEval
 public import LeanVM.Guest.B1.Whir.Bases
 
 /-!
-# The basis rows, honestly (G:1776-1799)
+# The basis rows, honestly (G:1751-1774)
 
 `osBasisBlk_complete`: one coordinate: its challenge loaded, its coefficient (times the vanishing
 inverse), `d = (1 + c)/coefficient` stored in `basis_d`, the scale and the product advanced.
-`osBases_complete`: every non-final level's row, its `β` loaded from `level_betas`, its scale and
+`osBases_complete`: every non-final level's row, its `β` loaded from `level_scales`, its scale and
 product stored in `level_scale` and `level_after`.
 -/
 

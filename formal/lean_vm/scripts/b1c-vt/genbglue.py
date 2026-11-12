@@ -1,5 +1,5 @@
 # usage: python3 -I genbglue.py > ../../LeanVM/Guest/B1/Tables/VtC/BGlueGen.lean
-# verify_tables' bus sides outside the selectors (statements 765 ..< 2593 of the f128 guest): one
+# verify_tables' bus sides outside the selectors (statements 765 ..< 2593 of the guest): one
 # lemma per slice, the statements beyond evaluation by kind (reads of the cursor, fp_w, claim_pool,
 # block_index_mle, bc_point and gkr_leaves; the KECCAKs), the others (stores, dispatches, calls, the
 # bytecode share's value and its closing check) taken as hypotheses.
