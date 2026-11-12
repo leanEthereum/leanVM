@@ -82,7 +82,7 @@ After the $\ell_i$ rounds, $P$ is one polynomial, $w:=\orc^{(i)}_{\ell_i}\in\E^{
 \[
 P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\textstyle\sum_{j<\ell_i}\phigh_j\novel_j,\qquad \sum_{x\in\cube{\kappa}}W(x)\,f^{(i+1)}(x)=\rc{\ell_i}.
 \]
-The claim ignores the high part $\phigh$, as the low coefficients of $XF$ depend only on those of $F$ (Lemma~\ref{lem:mulx}(ii)); step 2(d) removes it from the queried values.
+The claim ignores the high part $\phigh$, as the low coefficients of $XF$ depend only on those of $F$ (Lemma~\ref{lem:mulx}); step 2(d) removes it from the queried values.
 \item If $i < \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
 \item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, row $u$ evaluating the new lane $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$, then $\phigh$.
