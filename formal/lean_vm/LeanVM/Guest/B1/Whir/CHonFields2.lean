@@ -26,14 +26,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- **A level against its row.** -/
 structure LvB (c : OsCfg) (logN l : ℕ) (L : LvAt) : Prop where
-  fold : L.level.fold = (osLvAt c l).folds
-  dep : (osLvAt c l).depth = L.dp logN
-  q : L.level.queries = (osLvAt c l).queries
-  sq : (osLvAt c l).squeezes = sqCount (128 / (osLvAt c l).depth) (osLvAt c l).queries
-  g1 : L.s1.alphas.length = (osLvAt c l).foldsOff + (osLvAt c l).folds
-  mu : L.mu logN = (osLvAt c l).logCols
-  qsh : QshOk c l (osLvAt c l) (if l = c.yrLevel then 1 else 0)
-  P1 : 1 ≤ 128 / (osLvAt c l).depth
+  fold : L.level.fold = ((c.levels.getD l default)).folds
+  dep : ((c.levels.getD l default)).depth = L.dp logN
+  q : L.level.queries = ((c.levels.getD l default)).queries
+  sq : ((c.levels.getD l default)).squeezes = sqCount (128 / ((c.levels.getD l default)).depth) ((c.levels.getD l default)).queries
+  g1 : L.s1.alphas.length = ((c.levels.getD l default)).foldsOff + ((c.levels.getD l default)).folds
+  mu : L.mu logN = ((c.levels.getD l default)).logCols
+  qsh : QshOk c l ((c.levels.getD l default)) (if l = c.yrLevel then 1 else 0)
+  P1 : 1 ≤ 128 / ((c.levels.getD l default)).depth
 
 namespace HonRun
 
@@ -42,31 +42,31 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
   (hR : HonRun μ r target S root xs os w cfg Ls)
 include hR
 
-theorem s1_alphas {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
+theorem s1_alphas {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length) :
     (Ls.getD l default).s1.alphas.length =
-      (osLvAt (osCfg (candidate μ r)) l).foldsOff + (Ls.getD l default).level.fold := by
+      (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).foldsOff + (Ls.getD l default).level.fold := by
   rw [LvAt.s1, roundsSpec_alphas_length, hR.alphas l hl]
 
 /-- **Every level of the run against its row.** -/
-theorem lvb {l : ℕ} (hl : l < (osCfg (candidate μ r)).levels.length) :
-    LvB (osCfg (candidate μ r)) μ l (Ls.getD l default) := by
+theorem lvb {l : ℕ} (hl : l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length) :
+    LvB (osCfgR (μ - minOpenLog) (r - 1)) μ l (Ls.getD l default) := by
   have hy := hR.yr
   have hg := hR.s1_alphas hl
-  by_cases hlt : l < (osCfg (candidate μ r)).yrLevel
-  · obtain ⟨hne, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, -, -, hqsh,
+  by_cases hlt : l < (osCfgR (μ - minOpenLog) (r - 1)).yrLevel
+  · obtain ⟨hne, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, -, hqsh,
       -⟩ := hR.mid hlt
     rw [hfold] at hg
-    have hmu : (Ls.getD l default).mu μ = (osLvAt (osCfg (candidate μ r)) l).logCols := by
+    have hmu : (Ls.getD l default).mu μ = (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).logCols := by
       simp only [LvAt.mu]; rw [hg, hcols]
     refine ⟨hfold, ?_, hq, hsq, hg, hmu, by simpa [hne] using hqsh, hP1⟩
     rw [hdep, LvAt.dp, hmu]
-  · have he : l = (osCfg (candidate μ r)).yrLevel := by omega
+  · have he : l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel := by omega
     subst he
-    obtain ⟨-, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, hqsh, -, -, -, -, -,
+    obtain ⟨-, hfold, hcols, -, hdep, hq, -, -, hP1, hsq, -, -, -, -, -, -, -, -, -, -, hqsh, -, -, -, -, -,
       hlc, -⟩ := hR.fin
     rw [hfold] at hg
-    have hmu : (Ls.getD (osCfg (candidate μ r)).yrLevel default).mu μ =
-        (osLvAt (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel).logCols := by
+    have hmu : (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).mu μ =
+        ((osCfgR (μ - minOpenLog) (r - 1)).levels.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).logCols := by
       simp only [LvAt.mu]; rw [hg, hcols, hlc]
     refine ⟨hfold, ?_, hq, hsq, hg, hmu, by simpa using hqsh, hP1⟩
     rw [hdep, LvAt.dp, hmu, hlc]

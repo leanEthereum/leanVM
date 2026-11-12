@@ -33,7 +33,7 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
 include hR
 
 /-- `μ` is the folds and the closing rounds. -/
-theorem mu_eq : μ = (osCfg (candidate μ r)).nFolds + (osCfg (candidate μ r)).yrLog := hR.cand.1.symm
+theorem mu_eq : μ = (osCfgR (μ - minOpenLog) (r - 1)).nFolds + (osCfgR (μ - minOpenLog) (r - 1)).yrLog := hR.cand.1.symm
 
 /-- **The terminal, in the honest data's terms.** -/
 theorem end_eq :
@@ -41,23 +41,23 @@ theorem end_eq :
     w.inner = ((hdOf μ r Ls).recs.flatMap recGlued).foldl
       (fun x g ↦ x + g.scalar * g.weightAt (((hdOf μ r Ls).G ++ (hdOf μ r Ls).T).drop g.foldStart)) 0 ∧
     w.residual = multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (hdOf μ r Ls).c.yrLen) (hdOf μ r Ls).T ∧
-    w.point = rotPt (hdOf μ r Ls).G (hdOf μ r Ls).T ((osCfg (candidate μ r)).levels.headD default).folds := by
+    w.point = rotPt (hdOf μ r Ls).G (hdOf μ r Ls).T ((osCfgR (μ - minOpenLog) (r - 1)).levels.headD default).folds := by
   have hy := hR.yr
   obtain ⟨cF, -, -, clane, -, -, cyl, cylen, -⟩ := hR.cand
   obtain ⟨-, hfold, hlog, -, hdepth, hqueries, -, -, -, hsq, -⟩ := hR.fin
-  obtain ⟨hrecF, hglued⟩ := hR.recs (osCfg (candidate μ r)).yrLevel (by omega)
+  obtain ⟨hrecF, hglued⟩ := hR.recs (osCfgR (μ - minOpenLog) (r - 1)).yrLevel (by omega)
   have hs1 := hR.fin_s1
-  set Lf := Ls.getD (osCfg (candidate μ r)).yrLevel default with hLf
-  set lv := osLvAt (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel with hlv
-  have hmu : Lf.mu μ = (osCfg (candidate μ r)).yrLog := by
+  set Lf := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hLf
+  set lv := (osCfgR (μ - minOpenLog) (r - 1)).levels.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hlv
+  have hmu : Lf.mu μ = (osCfgR (μ - minOpenLog) (r - 1)).yrLog := by
     show μ - Lf.s1.alphas.length = _; rw [hs1]; omega
   have hdep : lv.depth = Lf.dp μ := by rw [hdepth]; show _ = Lf.mu μ + _; rw [hmu]
   have hF := hR.last
   rw [clane] at hF
-  have E := finEqs hF hfold hdep hqueries hsq 0 0 0 0 0 (Lf.gcl (lvsRecs μ Ls (osCfg (candidate μ r)).yrLevel))
-  obtain ⟨e1, e2, e3, e4, -⟩ := finEnd_w hF hfold hdep hqueries hsq hrecF hglued 0 0 0 0 0
-  have htr : tailRun Lf.fw.pairs ((Lf.finWD 0 0 0 0 0).cap3 lv Lf.cap (Lf.gcl (lvsRecs μ Ls (osCfg (candidate μ r)).yrLevel)))
-      ((Lf.finWD 0 0 0 0 0).cl1 lv Lf.cap (Lf.gcl (lvsRecs μ Ls (osCfg (candidate μ r)).yrLevel))) =
+  have E := finEqs hF hfold hdep hqueries hsq 0 0 0 0 (Lf.gcl (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel))
+  obtain ⟨e1, e2, e3, e4, -⟩ := finEnd_w hF hfold hdep hqueries hsq hrecF hglued 0 0 0 0
+  have htr : tailRun Lf.fw.pairs ((Lf.finWD 0 0 0 0).cap3 lv Lf.cap (Lf.gcl (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel)))
+      ((Lf.finWD 0 0 0 0).cl1 lv Lf.cap (Lf.gcl (lvsRecs μ Ls (osCfgR (μ - minOpenLog) (r - 1)).yrLevel))) =
       (hdOf μ r Ls).tr := by
     rw [E.cap3]; rfl
   rw [htr] at e1 e2 e3 e4
@@ -79,7 +79,7 @@ theorem residual_eq :
   hR.end_eq.2.2.1
 
 theorem point_eq :
-    w.point = rotPt (hdOf μ r Ls).G (hdOf μ r Ls).T ((osCfg (candidate μ r)).levels.headD default).folds :=
+    w.point = rotPt (hdOf μ r Ls).G (hdOf μ r Ls).T ((osCfgR (μ - minOpenLog) (r - 1)).levels.headD default).folds :=
   hR.end_eq.2.2.2
 
 end HonRun

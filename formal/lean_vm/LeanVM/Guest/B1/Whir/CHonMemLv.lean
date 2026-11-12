@@ -192,6 +192,28 @@ theorem pos_load (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l k : ℕ} (
     (e := ((h.c.levels.getD l default)).posOff + k) (by rw [h11]; omega)
   rwa [ownW_qpos, h.qpos_seg hS hl hk] at a
 
+/-- **A level's stored position**, squeeze `j`'s window `i`. -/
+theorem posW_at (hS : HonStatic h.c) {l j i : ℕ} (hl : l < h.c.levels.length)
+    (hj : j < (h.c.levels.getD l default).squeezes) (hi : i < sqPer (h.c.levels.getD l default)) :
+    (osOwnA h.own osIxQposA).getD ((h.c.levels.getD l default).posOff + j * sqPer (h.c.levels.getD l default) + i) 0 =
+      eOfNat (qwPosOf (h.c.levels.getD l default).depth ((h.L l).word h.logN j) i) := by
+  have hk : j * sqPer (h.c.levels.getD l default) + i <
+      (h.c.levels.getD l default).squeezes * sqPer (h.c.levels.getD l default) := by
+    have : (j + 1) * sqPer (h.c.levels.getD l default) ≤
+        (h.c.levels.getD l default).squeezes * sqPer (h.c.levels.getD l default) :=
+      Nat.mul_le_mul_right _ (by omega)
+    rw [Nat.add_mul, Nat.one_mul] at this
+    omega
+  obtain ⟨-, htop⟩ := chain_disj hS.pos
+  have htl := htop l hl
+  have h9 := hS.head (j := 9) (by omega)
+  show (h.own.getD 9 []).getD _ 0 = _
+  rw [h.own_getD (hS.headLt (j := 9) (by omega)), ownAt, fitTo_getD (by rw [h9]; show _ < h.c.levels.length * ligPosCap; omega),
+    ownW_qpos, Nat.add_assoc, h.qpos_seg hS hl hk]
+  have hP : 0 < sqPer (h.c.levels.getD l default) := by omega
+  rw [Nat.add_comm (j * _) i, Nat.add_mul_div_right _ _ hP, Nat.div_eq_of_lt hi, Nat.zero_add,
+    Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]
+
 /-- OsHonest's `posMem` at level `l`. -/
 theorem posMem_at (hS : HonStatic h.c) (hm : OsMemA rd h.c b h.own) {l : ℕ} (hl : l < h.c.levels.length)
     {j : ℕ} (hj : j < ((h.c.levels.getD l default)).squeezes) {i : ℕ} (hi : i < sqPer ((h.c.levels.getD l default))) :

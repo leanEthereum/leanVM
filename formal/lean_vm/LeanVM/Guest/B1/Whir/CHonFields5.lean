@@ -23,11 +23,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem osCfg_getD {m l : ℕ} (h : l < osNLevels m) : osLvAt (osCfg m) l = osLv m l := by
-  simp [osLvAt, osCfg, List.getD_eq_getElem?_getD, h]
-
-theorem osCfg_len (m : ℕ) : (osCfg m).levels.length = osNLevels m := by simp [osCfg]
-
 theorem word0_ofK (n : ℕ) : word n 0 = ofK (K.ofBits n) := by
   simp only [word, Value.ofBits_zero]
   exact (ofK_eq_ofLimbs _).symm
@@ -40,28 +35,28 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
 include hR
 
 /-- **The final level's folds are the final polynomial's normalized evaluations.** -/
-theorem finFold : ∀ k < ((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs μ).length,
-    foldRow (lanesOf (oqS (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel).base
-        (((Ls.getD (osCfg (candidate μ r)).yrLevel default).phase.map (·.leaf)).getD k []))
-      (K.ofBits (((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs μ).getD k 0))
-      (Ls.getD (osCfg (candidate μ r)).yrLevel default).rounds =
+theorem finFold : ∀ k < ((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).qs μ).length,
+    foldRow (lanesOf (oqSA (osCfgR (μ - minOpenLog) (r - 1)) (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).base
+        (((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).phase.map (·.leaf)).getD k []))
+      (K.ofBits (((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).qs μ).getD k 0))
+      (Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).rounds =
     novelSum (hdOf μ r Ls).hsFC
-      (wsChain ((oqS (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel).vs.map K.ofBits)
-        (eOfNat (((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs μ).getD k 0)))
-      (oqS (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel).nHs
-      (oqS (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel).hsBits := by
+      (wsChain ((oqSA (osCfgR (μ - minOpenLog) (r - 1)) (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).vs.map K.ofBits)
+        (eOfNat (((Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default).qs μ).getD k 0)))
+      (oqSA (osCfgR (μ - minOpenLog) (r - 1)) (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).nHs
+      (oqSA (osCfgR (μ - minOpenLog) (r - 1)) (osCfgR (μ - minOpenLog) (r - 1)).yrLevel).hsBits := by
   intro k hk
   have hy := hR.yr
-  have hm := hR.m28
-  have hyl : (osCfg (candidate μ r)).yrLevel < osNLevels (candidate μ r) := by
-    rw [← osCfg_len]; omega
-  have hB := hR.lvb (l := (osCfg (candidate μ r)).yrLevel) (by omega)
+  have hm := hR.m11
+  have hyl : (osCfgR (μ - minOpenLog) (r - 1)).yrLevel < osNLevels (μ - minOpenLog) := by
+    rw [← osCfgR_len _ (r - 1)]; omega
+  have hB := hR.lvb (l := (osCfgR (μ - minOpenLog) (r - 1)).yrLevel) (by omega)
   obtain ⟨-, -, hbase, -, -, -, -, -⟩ := hB.qsh
-  obtain ⟨-, -, -, hylen, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, hhsb, hvs, h64, hle, hlc, -⟩ :=
+  obtain ⟨-, -, -, hylen, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnHs, hhsb, hvs, h64, hle, hlc, -⟩ :=
     hR.fin
   obtain ⟨rw, W, hd, -, -, -, -, hfin, -⟩ := hR.last
-  set L := Ls.getD (osCfg (candidate μ r)).yrLevel default with hL
-  set lv := osLvAt (osCfg (candidate μ r)) (osCfg (candidate μ r)).yrLevel with hlv
+  set L := Ls.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hL
+  set lv := (osCfgR (μ - minOpenLog) (r - 1)).levels.getD (osCfgR (μ - minOpenLog) (r - 1)).yrLevel default with hlv
   have hrw : L.rw = rw := by unfold LvAt.rw; rw [hd]
   have hfw : L.fw = W := by unfold LvAt.fw; rw [hd]
   have hqs : L.qs μ = W.qs (rsF L.level L.cap rw)
@@ -69,7 +64,7 @@ theorem finFold : ∀ k < ((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs
     unfold LvAt.qs; rw [hd]; simp only [LvAt.F, LvAt.mu, LvAt.dp, LvAt.s1, hrw]
   have hph : L.phase = W.phase := by unfold LvAt.phase; rw [hd]
   have hrd : L.rounds = rsRounds L.level L.s L.cap rw := by simp only [LvAt.rounds, hrw]
-  have hmu : μ - (rsSt L.level L.s L.cap rw).alphas.length = (osCfg (candidate μ r)).yrLog := by
+  have hmu : μ - (rsSt L.level L.s L.cap rw).alphas.length = (osCfgR (μ - minOpenLog) (r - 1)).yrLog := by
     have := hB.mu
     simp only [LvAt.mu, LvAt.s1, hrw] at this
     rw [this, hlc]
@@ -80,13 +75,15 @@ theorem finFold : ∀ k < ((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs
   have hreq := (hfin.req k hk' ho).trans
     (congrArg (fun m ↦ Verifier.novelEval W.fold (Verifier.subspaceAt m _)) hmu)
   -- the fold
-  rw [hqs, hph, hrd, List.getD_eq_getElem _ _ hk', map_getD_eq _ _ _ ho, oqS, oq_base, hbase,
+  rw [hqs, hph, hrd, List.getD_eq_getElem _ _ hk', map_getD_eq _ _ _ ho, oqSA, oq_base, hbase,
     lanesOf_base, hreq]
   -- the final polynomial
-  have hflen : W.fold.length = (osCfg (candidate μ r)).yrLen + lv.folds := by
+  have hflen : W.fold.length = (osCfgR (μ - minOpenLog) (r - 1)).yrLen + lv.folds := by
     rw [hfin.flen, hmu, hylen, ← hB.fold]
-  have hlv' : lv = osLv (candidate μ r) (osCfg (candidate μ r)).yrLevel := osCfg_getD hyl
-  have hvan := vanish_all (candidate μ r) hm _ hyl
+  have hlv' : lv = osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel := osCfgR_getD hyl
+  have hvan : vanishOk (osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel).vanish
+      ((osLvR (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel).logCols + 1) = true :=
+    vanish_allR (ri := r - 1) hm hyl
   rw [← hlv', hlc] at hvan
   rw [oq_vs, oq_nHs, oq_hsBits, hvs, hnHs, hhsb, ← hflen]
   refine (novelSum_eq_novelEval h64 _ _ (fun i hi ↦ ?_) W.fold (hdOf μ r Ls).hsFC (by rw [hflen]; exact hle)
@@ -95,25 +92,27 @@ theorem finFold : ∀ k < ((Ls.getD (osCfg (candidate μ r)).yrLevel default).qs
     exact vanish_val hvan i hi.le
   · simp only [OsHD.hsFC, List.length_map, List.length_range, hflen]
     rfl
-  · have hc' : c' < (osCfg (candidate μ r)).yrLen + lv.folds := by rw [← hflen]; exact hc
+  · have hc' : c' < (osCfgR (μ - minOpenLog) (r - 1)).yrLen + lv.folds := by rw [← hflen]; exact hc
     simp only [OsHD.hsFC]
     rw [map_getD_eq _ _ _ (by simp only [List.length_range]; exact hc'), List.getElem_range, word0_ofK]
-    have hs := hsScale_final hm (c := c') (by rw [osLvFin, ← hlv']; exact hc')
-    rw [osLvFin, ← hlv'] at hs
-    show (hdOf μ r Ls).Lf.fw.fold.getD c' 0 * ofK (K.ofBits (hsScale (osLvAt (osCfg (candidate μ r))
-      (osCfg (candidate μ r)).yrLevel).vanish ((osCfg (candidate μ r)).yrLog + 1) c' 1)) = _
+    obtain ⟨rf1, rf2, -⟩ := osLvR_rateFree (μ - minOpenLog) (r - 1) (osCfg (μ - minOpenLog)).yrLevel
+    have hs := hsScale_final hm (c := c') (by rw [osLvFin, ← rf1, ← hlv']; exact hc')
+    rw [osLvFin, ← rf2, ← hlv'] at hs
+    show (hdOf μ r Ls).Lf.fw.fold.getD c' 0 * ofK (K.ofBits (hsScale lv.vanish
+      ((osCfg (μ - minOpenLog)).yrLog + 1) c' 1)) = _
     rw [hs]
     show L.fw.fold.getD c' 0 * _ = _
     rw [hfw]
+    rfl
 
 /-- **OsHonest's `static`.** -/
-theorem fld_static : ∀ l < (osCfg (candidate μ r)).levels.length,
-    OqStatic (oqS (osCfg (candidate μ r)) l) (Ls.getD l default).rounds
-      (if l = (osCfg (candidate μ r)).yrLevel then (hdOf μ r Ls).hsFC else [])
+theorem fld_static : ∀ l < (osCfgR (μ - minOpenLog) (r - 1)).levels.length,
+    OqStatic (oqSA (osCfgR (μ - minOpenLog) (r - 1)) l) (Ls.getD l default).rounds
+      (if l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel then (hdOf μ r Ls).hsFC else [])
       (fun k ↦ ((Ls.getD l default).qs μ).getD k 0)
       (fun k ↦ ((Ls.getD l default).phase.map (·.leaf)).getD k [])
-      (fun k ↦ ((Ls.getD l default).phase.map (fun o ↦ o.path.take ((osLvAt (osCfg (candidate μ r)) l).depth -
-        (osLvAt (osCfg (candidate μ r)) l).capDepth))).getD k []) (oqQ (osCfg (candidate μ r)) l) := by
+      (fun k ↦ ((Ls.getD l default).phase.map (fun o ↦ o.path.take ((((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).depth -
+        (((osCfgR (μ - minOpenLog) (r - 1)).levels.getD l default)).capDepth))).getD k []) (oqQA (osCfgR (μ - minOpenLog) (r - 1)) l) := by
   intro l hl k hk
   have hy := hR.yr
   obtain ⟨hcdq, hpd, hcd2, hcdd, hQ⟩ := hR.cdpd hl
@@ -129,13 +128,13 @@ theorem fld_static : ∀ l < (osCfg (candidate μ r)).levels.length,
     rw [hpd, hcdq, Nat.sub_add_cancel hcdd]
     exact hR.qs_lt hl _ hmem
   · show (((Ls.getD l default).phase.map (·.leaf)).getD k []).length = _
-    rw [hp, map_getD_eq _ _ _ ho, hw, oqS, oq_base, oq_folds, hbase, hfolds]
+    rw [hp, map_getD_eq _ _ _ ho, hw, oqSA, oq_base, oq_folds, hbase, hfolds]
     rfl
   · show (((Ls.getD l default).phase.map _).getD k []).length = _
     rw [hp, map_getD_eq _ _ _ ho, List.length_take, hpl, hpd]
     omega
-  · rw [oqS, oq_final, hfinal] at hf
-    have he : l = (osCfg (candidate μ r)).yrLevel := by
+  · rw [oqSA, oq_final, hfinal] at hf
+    have he : l = (osCfgR (μ - minOpenLog) (r - 1)).yrLevel := by
       by_contra hne
       simp [hne] at hf
     subst he
