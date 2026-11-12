@@ -1,5 +1,7 @@
 //! Hint streams and the raw signatures' witnesses.
 
+use std::collections::HashMap;
+
 use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::error::AggregationError;
 use leanvm_core::cpu::Program;
@@ -71,6 +73,11 @@ impl Hints {
     pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F192> {
         let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
         &mut entries[i]
+    }
+
+    /// The streams, as [`leanvm_core::cpu::Late`] takes them.
+    pub(super) fn into_witness(self) -> HashMap<String, Vec<Vec<F192>>> {
+        self.0.into_iter().collect()
     }
 
     pub(super) fn install(self, guest: &mut Program) {
