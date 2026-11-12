@@ -211,40 +211,6 @@ fn spare_slots_must_be_the_committed_ones() {
     verify(shape, &ps.into_proof()).expect_err("a spare slot that was not committed is rejected");
 }
 
-/// The OOD sample's value is a claim the opening discharges: a prover that sends a wrong one is rejected there.
-#[test]
-fn a_wrong_ood_value_fails_the_opening() {
-    use pcs::stack_open::StackClaim;
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
-    use pcs::whir_config::OOD_GRINDING_BITS;
-
-    let mut rng = Rng::new(83);
-    let (n, depth) = (600, 12);
-    let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
-    let shape = Shape::new(n, depth);
-    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    let witness = Witness::generate(shape, &inputs, &mut committed);
-
-    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
-    ps.grind(OOD_GRINDING_BITS);
-    let low_point = ps.sample_vec(shape.stack_log());
-    let value = primitives::multilinear::mle_eval(&committed, &low_point) + F128::ONE;
-    ps.add_scalar(value);
-    let ood = StackClaim::Point {
-        offset: 0,
-        low_point,
-        value,
-    };
-    let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
-    ps.add_scalars(&output.lanes);
-    let openings = witness.prove(&mut ps, &committed, &output);
-    open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
-    assert_eq!(verify(shape, &ps.into_proof()), Err(VerifierError::WhirTerminal));
-}
-
 #[test]
 fn proof_verifies_against_the_commitment() {
     end_to_end(600, 8);

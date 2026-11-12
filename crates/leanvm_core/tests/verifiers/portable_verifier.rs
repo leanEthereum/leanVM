@@ -41,10 +41,10 @@ fn verifies_at_every_rate() {
 }
 
 /// A tampered scalar fails the check that reads it: a high limb on an announced size, an OOD sample value at the first
-/// grind after it (a wrong value sent honestly fails the opening, `keccak_gkr`'s OOD test), the bus's bytecode share
-/// and the evaluation its sumcheck ends on at that sumcheck's terminal check, each check of the Keccak reduction
-/// tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar, a high-part scalar and a grinding
-/// nonce, each caught by the grind that follows it, and the last tail scalar by the terminal check.
+/// grind after it, the bus's bytecode share and the evaluation its sumcheck ends on at that sumcheck's terminal check,
+/// each check of the Keccak reduction tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar,
+/// a high-part scalar and a grinding nonce, each caught by the grind that follows it, and the last tail scalar by the
+/// terminal check.
 #[test]
 fn tampers_fail_their_check() {
     let fixture = fixture();
