@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CHonNames2
 
-  Candidates 14..20's callees' kinds, by kernel evaluation.
+  The arms' callees' kinds at rate 2, by kernel evaluation.
 -/
 
 module
@@ -13,25 +13,37 @@ namespace LeanVM.Guest.B1.Whir
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem honNames_14 : HonNames (osCfg 14) := by decide +kernel
+theorem honNames_0_2 : HonNames (osCfgR 0 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honNames_15 : HonNames (osCfg 15) := by decide +kernel
+theorem honNames_1_2 : HonNames (osCfgR 1 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honNames_16 : HonNames (osCfg 16) := by decide +kernel
+theorem honNames_2_2 : HonNames (osCfgR 2 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honNames_17 : HonNames (osCfg 17) := by decide +kernel
+theorem honNames_3_2 : HonNames (osCfgR 3 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honNames_18 : HonNames (osCfg 18) := by decide +kernel
+theorem honNames_4_2 : HonNames (osCfgR 4 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honNames_19 : HonNames (osCfg 19) := by decide +kernel
+theorem honNames_5_2 : HonNames (osCfgR 5 2) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honNames_20 : HonNames (osCfg 20) := by decide +kernel
+theorem honNames_6_2 : HonNames (osCfgR 6 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honNames_7_2 : HonNames (osCfgR 7 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honNames_8_2 : HonNames (osCfgR 8 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honNames_9_2 : HonNames (osCfgR 9 2) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honNames_10_2 : HonNames (osCfgR 10 2) := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Whir

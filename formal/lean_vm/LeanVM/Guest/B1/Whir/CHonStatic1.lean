@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CHonStatic1
 
-  Candidates 7..13's honest buffers' configuration facts, by kernel evaluation.
+  The arms' buffer facts at rate 1, by kernel evaluation.
 -/
 
 module
@@ -13,25 +13,37 @@ namespace LeanVM.Guest.B1.Whir
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem honStatic_7 : HonStatic (osCfg 7) := by decide +kernel
+theorem honStatic_0_1 : HonStatic (osCfgR 0 1) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honStatic_8 : HonStatic (osCfg 8) := by decide +kernel
+theorem honStatic_1_1 : HonStatic (osCfgR 1 1) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honStatic_9 : HonStatic (osCfg 9) := by decide +kernel
+theorem honStatic_2_1 : HonStatic (osCfgR 2 1) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honStatic_10 : HonStatic (osCfg 10) := by decide +kernel
+theorem honStatic_3_1 : HonStatic (osCfgR 3 1) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honStatic_11 : HonStatic (osCfg 11) := by decide +kernel
+theorem honStatic_4_1 : HonStatic (osCfgR 4 1) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honStatic_12 : HonStatic (osCfg 12) := by decide +kernel
+theorem honStatic_5_1 : HonStatic (osCfgR 5 1) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem honStatic_13 : HonStatic (osCfg 13) := by decide +kernel
+theorem honStatic_6_1 : HonStatic (osCfgR 6 1) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honStatic_7_1 : HonStatic (osCfgR 7 1) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honStatic_8_1 : HonStatic (osCfgR 8 1) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honStatic_9_1 : HonStatic (osCfgR 9 1) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem honStatic_10_1 : HonStatic (osCfgR 10 1) := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Whir

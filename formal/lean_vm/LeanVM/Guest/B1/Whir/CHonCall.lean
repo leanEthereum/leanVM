@@ -1,12 +1,13 @@
 /-
   LeanVM.Guest.B1.Whir.CHonCall
 
-  open_stacked's named callees at their honest arguments, from `OsH`.
+  open_stacked's named callees at their honest arguments, from `OsHA`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.CHonBuf
+public import LeanVM.Guest.B1.Place.OsProtoSpec
 public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Whir.CTail
 public import LeanVM.Guest.B1.Whir.CRoundsA
@@ -14,8 +15,8 @@ public import LeanVM.Guest.B1.Whir.CRoundsA
 /-!
 # The named callees, honestly
 
-Under `OsH C rd c b own cur tabs xs`, a named callee holds in `C` on its meaning when its loads
-are fixed (`OsFixedF`): `FixedAt p m`, the `m` words at `p` the same on every memory holding the
+Under `OsHA C rd c b own cur tabs xs`, a named callee holds in `C` on its meaning when its loads
+are fixed (`OsFixedA`): `FixedAt p m`, the `m` words at `p` the same on every memory holding the
 caller's words, from the cursor's words (`fixedAt_cur`) or a buffer's (`fixedAt_buf`).
 
 Per kind, its meaning at the guest's honest arguments and returns: `om_pre` (`opening_message`),
@@ -60,31 +61,31 @@ theorem readsAt_cons_iff {p x : E} {ys : List E} :
 /-- **`m` words at `p` fixed** on every memory holding the caller's words. -/
 def FixedAt (c : OsCfg) (b : ℕ) (own : List (List E)) (cur tabs : E) (xs : List E) (p : E) (m : ℕ) :
     Prop :=
-  ∃ ws : List E, ws.length = m ∧ ∀ rd', ReadsAt rd' cur xs → WinTabs rd' tabs → OsMemF rd' c b own →
+  ∃ ws : List E, ws.length = m ∧ ∀ rd', ReadsAt rd' cur xs → WinTabs rd' tabs → OsMemA rd' c b own →
     ReadsAt rd' p ws
 
 theorem fixedAt_cur {o m : ℕ} (h : o + m ≤ xs.length) : FixedAt c b own cur tabs xs (cur * gen ^ o) m :=
   ⟨(xs.drop o).take m, by simp only [List.length_take, List.length_drop]; omega, fun _ hr _ _ ↦ readsAt_shift hr o m h⟩
 
-theorem fixedAt_buf {j o m : ℕ} (hj : j < (osSizesF c).length) (hne : j ≠ osIxQbp)
-    (h : o + m ≤ (own.getD j []).length) : FixedAt c b own cur tabs xs (osPtrF c b j * gen ^ o) m :=
+theorem fixedAt_buf {j o m : ℕ} (hj : j < (osSizesL c).length) (hne : j ≠ osIxQbpA)
+    (h : o + m ≤ (own.getD j []).length) : FixedAt c b own cur tabs xs (osPtrA c b j * gen ^ o) m :=
   ⟨((own.getD j []).drop o).take m, by simp only [List.length_take, List.length_drop]; omega, fun _ _ _ hm ↦ readsAt_shift (hm j hj hne) o m h⟩
 
-theorem fixedAt_buf0 {j m : ℕ} (hj : j < (osSizesF c).length) (hne : j ≠ osIxQbp)
-    (h : m ≤ (own.getD j []).length) : FixedAt c b own cur tabs xs (osPtrF c b j) m := by
+theorem fixedAt_buf0 {j m : ℕ} (hj : j < (osSizesL c).length) (hne : j ≠ osIxQbpA)
+    (h : m ≤ (own.getD j []).length) : FixedAt c b own cur tabs xs (osPtrA c b j) m := by
   have := fixedAt_buf (own := own) (cur := cur) (tabs := tabs) (xs := xs) (b := b) (o := 0) (m := m) hj hne (by omega)
   simpa using this
 
 theorem fixedAt_nil (p : E) : FixedAt c b own cur tabs xs p 0 := ⟨[], rfl, fun _ _ _ _ ↦ readsAt_nil _ _⟩
 
 /-- **A named callee holds** on its meaning, its loads fixed. -/
-theorem osH_named (hH : OsH C rd c b own cur tabs xs) {f : String} {K : OsKind}
+theorem osH_named (hH : OsHA C rd c b own cur tabs xs) {f : String} {K : OsKind}
     (hK : osKindOf f = some K) {a r : List E} (hp : K.Pre rd a r)
     (hx : ∀ q ∈ K.spec, FixedAt c b own cur tabs xs (a.getD q.1 0) q.2) : C f a r :=
   hH.2.2.2.1 f K hK a r hp hx
 
 /-- **A special callee holds**. -/
-theorem osH_special (hH : OsH C rd c b own cur tabs xs) {f : String} (hK : osKindOf f = none)
+theorem osH_special (hH : OsHA C rd c b own cur tabs xs) {f : String} (hK : osKindOf f = none)
     (a r : List E) : C f a r :=
   hH.2.2.2.2 f a r hK
 
@@ -143,7 +144,7 @@ theorem roundRets_take_length (fs : List E) (cur cl : E) (w : List E) :
 theorem mul_gen_pow_add (p : E) (a b : ℕ) : p * gen ^ a * gen ^ b = p * gen ^ (a + b) := by
   rw [mul_assoc, ← pow_add]
 
-/-- **The fold rounds' calls**, from their memory and `OsH`'s named-callee clause. -/
+/-- **The fold rounds' calls**, from their memory and `OsHA`'s named-callee clause. -/
 theorem roundsC_of {cur0 : E} {xs0 : List E} {fch coefs : E}
     (hR : ∀ a r, MeaningOpeningRound rd a r → WinTabs rd (a.getD 7 0) →
       (∀ q ∈ OsKind.round.spec, FixedAt c b own cur0 tabs xs0 (a.getD q.1 0) q.2) →

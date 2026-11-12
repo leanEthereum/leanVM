@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Whir.CHonNamesAll
 
-  Every candidate's callees' kinds.
+  Every arm's callees' kinds at every rate.
 -/
 
 module
@@ -15,37 +15,53 @@ namespace LeanVM.Guest.B1.Whir
 
 @[expose] public section
 
-/-- **Every candidate's callees' kinds.** -/
-theorem honNames_all (m : ℕ) (h : m < 28) : HonNames (osCfg m) := by
-  interval_cases m
-  · exact honNames_0
-  · exact honNames_1
-  · exact honNames_2
-  · exact honNames_3
-  · exact honNames_4
-  · exact honNames_5
-  · exact honNames_6
-  · exact honNames_7
-  · exact honNames_8
-  · exact honNames_9
-  · exact honNames_10
-  · exact honNames_11
-  · exact honNames_12
-  · exact honNames_13
-  · exact honNames_14
-  · exact honNames_15
-  · exact honNames_16
-  · exact honNames_17
-  · exact honNames_18
-  · exact honNames_19
-  · exact honNames_20
-  · exact honNames_21
-  · exact honNames_22
-  · exact honNames_23
-  · exact honNames_24
-  · exact honNames_25
-  · exact honNames_26
-  · exact honNames_27
+/-- **Every arm at every rate.** -/
+theorem honNames_all (m ri : ℕ) (hm : m < 11) (hr : ri < 4) : HonNames (osCfgR m ri) := by
+  interval_cases m <;> interval_cases ri
+  · exact honNames_0_0
+  · exact honNames_0_1
+  · exact honNames_0_2
+  · exact honNames_0_3
+  · exact honNames_1_0
+  · exact honNames_1_1
+  · exact honNames_1_2
+  · exact honNames_1_3
+  · exact honNames_2_0
+  · exact honNames_2_1
+  · exact honNames_2_2
+  · exact honNames_2_3
+  · exact honNames_3_0
+  · exact honNames_3_1
+  · exact honNames_3_2
+  · exact honNames_3_3
+  · exact honNames_4_0
+  · exact honNames_4_1
+  · exact honNames_4_2
+  · exact honNames_4_3
+  · exact honNames_5_0
+  · exact honNames_5_1
+  · exact honNames_5_2
+  · exact honNames_5_3
+  · exact honNames_6_0
+  · exact honNames_6_1
+  · exact honNames_6_2
+  · exact honNames_6_3
+  · exact honNames_7_0
+  · exact honNames_7_1
+  · exact honNames_7_2
+  · exact honNames_7_3
+  · exact honNames_8_0
+  · exact honNames_8_1
+  · exact honNames_8_2
+  · exact honNames_8_3
+  · exact honNames_9_0
+  · exact honNames_9_1
+  · exact honNames_9_2
+  · exact honNames_9_3
+  · exact honNames_10_0
+  · exact honNames_10_1
+  · exact honNames_10_2
+  · exact honNames_10_3
 
 end
 end LeanVM.Guest.B1.Whir
