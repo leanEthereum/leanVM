@@ -70,6 +70,9 @@ def busGrindMax (fs : String → ℕ) : ℕ :=
 structure VsWordsOs (fs : String → ℕ) extends VsWords fs where
   Bnd : String → ℕ
   hleaf : OsLeafBounds fs Bnd
+  /-- Every frame below `2^32`, so `open_stacked`'s helpers' fresh instances fit
+  (`open_stacked_completeAtB_Spec`). -/
+  hfs : ∀ f, fs f < 2 ^ 32
 
 /-- **The callees' bounds**, in call order, `open_stacked`'s `os`. -/
 noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : ℕ) : List ℕ :=

@@ -18,7 +18,7 @@ public import LeanVM.Guest.AcceptableChild
 
 The callees' names, bounds and predicates are `VerifySub/BoundsB`'s (`vsNames`, `vsBsAt`, `vsPs`,
 `vsTs`, `vsTsAny`, `vsBoundAt`). `vs_names`: the honest child's callees are calls of
-`vsNames μ r (d - 16)`, the bus depth `d`.
+`vsNames μ r (d - 20)`, the bus depth `d`.
 
 `verify_sub_completeBT`: on an honest child (`child_segments`), `verify_sub` is complete within
 the bound at its announced stack log and rate (`childShape`), by a node of `vsTsAny`
@@ -37,7 +37,7 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 theorem vs_names {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
     (bs : List ℕ) (sqE : ℕ) :
-    List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (S.kids bs sqE) (vsNames S.μs S.rate (S.d - 16)) :=
+    List.Forall₂ (fun k n ↦ ∀ pv, (k pv).f = n) (S.kids bs sqE) (vsNames S.μs S.rate (S.d - 20)) :=
   .cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
     (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
       (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl) (.cons (fun _ ↦ rfl)
@@ -68,16 +68,16 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
   obtain ⟨S⟩ := child_segments hbl seed c hmu hrz hcaps
   rw [childShape_of S.hann]
   have hd := S.d_bounds hbl
-  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs hκ hexp hout (vs_callsMatch hbl S hexp)
+  obtain ⟨hkr, hkm, hσ⟩ := vs_obligations hbl S fs (κ := κ) (by omega) hexp hout (vs_callsMatch hbl S hexp)
   have h := completeAt_flatDepRBP (fs := fs) (cert := cert) find_vs vs_not_loop κ Lin _ []
     (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.d) (fun _ ↦ S.ownW)
     (fun _ ↦ S.ownW_fits hbl hst)
     (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.d)) sqE)
-    (vsNames S.μs S.rate (S.d - 16)) (vsBsAt W Bvk S.μs S.rate) (vsPs W)
+    (vsNames S.μs S.rate (S.d - 20)) (vsBsAt W Bvk S.μs S.rate) (vsPs W)
     (fun _ ↦ vs_names S _ sqE)
     (fun _ ↦ vs_kidsDepBP hbl S hκ hrf hcons W hvk open_stacked_completeAtB _ sqE)
     hkr hkm hσ
-  refine h.mono ?_ fun t ht ↦ ⟨S.d - 16, by omega, ht⟩
+  refine h.mono ?_ fun t ht ↦ ⟨S.d - 20, by omega, ht⟩
   simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]
   omega
 

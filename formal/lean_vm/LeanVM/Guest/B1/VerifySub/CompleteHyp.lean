@@ -38,7 +38,7 @@ theorem vsCompleteHyp_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
   shape seed c hc := by
     obtain ⟨S⟩ := child_segments hbl seed c hc.1 hc.2.2.1 hc.2.2.2
     rw [childShape_of S.hann]
-    exact ⟨S.hmu22, S.hmu28, S.hr1, S.hr4⟩
+    exact ⟨S.hmu20, S.hmu30, S.hr1, S.hr4⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

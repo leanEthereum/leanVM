@@ -2,7 +2,7 @@
   LeanVM.Guest.Budget.ClosedN
 
   The guest's completeness within the deployed budget with every number explicit: `verify_sub`'s
-  words per child at its announced stack log and rate, a table of the guest's 28 opening arms
+  words per child at its announced stack log, a table of the guest's 11 opening arms
   (`deployedBvAt`, `Count.vsBoundAt_eq`).
 -/
 
@@ -23,7 +23,7 @@ open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
 
 /-- **Completeness within a larger budget**, larger on the nodes the hypotheses admit. -/
 theorem guestComplete_mono {b b' : NodeStatement → NodeWitness → ℕ} (h : End.GuestComplete b)
-    (hle : ∀ seed s w, NodeRelation bytecode seed s w → DeployedLimits s w →
+    (hle : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ChildrenOk bytecode seed w → b s w ≤ b' s w) :
     End.GuestComplete b' :=
   fun seed s w hr hl hok hb => h seed s w hr hl hok ((hle seed s w hr hl hok).trans hb)
@@ -39,24 +39,19 @@ theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
     omega
   · exact fun _ => le_rfl
 
-/-- **`verify_sub`'s words for a child of announced stack log `μ` and rate `r`** at the deployed
-instance: row `r - 1`, column `μ - 22` for the guest's opening arms (`22 ≤ μ ≤ 28`, `1 ≤ r ≤ 4`,
-`lean_ethereum.py:3716-3718`); `0` elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero
-challenge, is (`B1.Main.childShape_bounds`). -/
+/-- **`verify_sub`'s words for a child of announced stack log `μ`** at the deployed instance:
+entry `μ - 20` for the guest's opening arms (`20 ≤ μ ≤ 30`, whatever the rate `1 ≤ r ≤ 4`); `0`
+elsewhere, where no child of a node within `Limits`, its caps agreeing and no zero challenge, is
+(`B1.Main.childShape_bounds`). -/
 def deployedBvAt (μ r : ℕ) : ℕ :=
-  if 22 ≤ μ ∧ μ ≤ 28 ∧ 1 ≤ r ∧ r ≤ 4 then
-    ([[378762, 382614, 391750, 396498, 402450, 408883, 415877],
-      [300190, 304059, 313140, 315263, 319065, 322434, 328909],
-      [272647, 277776, 284268, 286559, 288671, 291633, 297620],
-      [258289, 261415, 267335, 268436, 270744, 274979, 281699]].getD (r - 1) []).getD (μ - 22) 0
+  if 20 ≤ μ ∧ μ ≤ 30 ∧ 1 ≤ r ∧ r ≤ 4 then
+    [388016, 387619, 390584, 394633, 405250, 410562, 419149, 425180, 432727, 436026, 439001].getD (μ - 20) 0
   else 0
 
-/-- `open_stacked`'s words at the 28 candidates (`Count/VsOsAll`). -/
-theorem osC_getD {c : ℕ} (hc : c < 28) : Count.osC c =
-    [202706, 206558, 215694, 220442, 226394, 232827, 239821, 124134, 128003, 137084, 139207, 143009,
-      146378, 152853, 96591, 101720, 108212, 110503, 112615, 115577, 121564, 82233, 85359, 91279,
-      92380, 94688, 98923, 105643].getD c 0 := by
-  interval_cases c
+/-- `open_stacked`'s words at the 11 arms (`Count/VsOsAll`). -/
+theorem osC_getD {m : ℕ} (hm : m < 11) : Count.osC m =
+    [208731, 208334, 211299, 215348, 225965, 231277, 239864, 245895, 253442, 256741, 259716].getD m 0 := by
+  interval_cases m
   · exact Count.osC_0
   · exact Count.osC_1
   · exact Count.osC_2
@@ -68,30 +63,14 @@ theorem osC_getD {c : ℕ} (hc : c < 28) : Count.osC c =
   · exact Count.osC_8
   · exact Count.osC_9
   · exact Count.osC_10
-  · exact Count.osC_11
-  · exact Count.osC_12
-  · exact Count.osC_13
-  · exact Count.osC_14
-  · exact Count.osC_15
-  · exact Count.osC_16
-  · exact Count.osC_17
-  · exact Count.osC_18
-  · exact Count.osC_19
-  · exact Count.osC_20
-  · exact Count.osC_21
-  · exact Count.osC_22
-  · exact Count.osC_23
-  · exact Count.osC_24
-  · exact Count.osC_25
-  · exact Count.osC_26
-  · exact Count.osC_27
 
 /-- `verify_sub`'s bound at an opening arm is the table's. -/
-theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
+theorem vsBoundAt_eq_deployedBvAt {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
     B1.VerifySub.vsBoundAt Count.vsWordsOs B1.VerifySub.vkBound μ r = deployedBvAt μ r := by
-  have hc : B1.Whir.candidate μ r < 28 := by unfold B1.Whir.candidate; omega
-  rw [Count.vsBoundAt_eq hc, osC_getD hc]
-  interval_cases μ <;> interval_cases r <;> decide
+  rw [Count.vsBoundAt_eq h1 h2, osC_getD (by omega)]
+  unfold deployedBvAt
+  rw [ite_eq_left ⟨h1, h2, h3, h4⟩]
+  interval_cases μ <;> decide
 
 /-- **The aggregation guest is complete within the deployed budget**, `verify_sub`'s words for a
 child of announced stack log `μ` and rate `r` `deployedBvAt μ r`: the budget's words
@@ -104,12 +83,12 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds vsCompleteHyp_deployed hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
-/-- The largest child's words: `μ = 28` at rate `1`. -/
-theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 415877 := by
+/-- The largest child's words: `μ = 30`. -/
+theorem deployedBvAt_le (μ r : ℕ) : deployedBvAt μ r ≤ 439001 := by
   unfold deployedBvAt
   split_ifs with h
-  · obtain ⟨h1, h2, h3, h4⟩ := h
-    interval_cases μ <;> interval_cases r <;> decide
+  · obtain ⟨h1, h2, -, -⟩ := h
+    interval_cases μ <;> decide
   · exact Nat.zero_le _
 
 end
