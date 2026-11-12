@@ -15,36 +15,36 @@ namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `__loop2`, window 13, arms 1 to 16. -/
-theorem sg37_13_0 : shareWinS 37 (snapsOf 37) 13 1 17 30 215 0 30 = true := by
+/-- `__loop2`, window 13, arms 1 to 32. -/
+theorem sg37_13_0 : shareWinS 37 (snapsOf 37) 13 1 33 30 414 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 17 to 32. -/
-theorem sg37_13_1 : shareWinS 37 (snapsOf 37) 13 17 33 245 199 0 30 = true := by
+/-- `__loop2`, window 13, arms 33 to 64. -/
+theorem sg37_13_1 : shareWinS 37 (snapsOf 37) 13 33 65 444 337 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 33 to 48. -/
-theorem sg37_13_2 : shareWinS 37 (snapsOf 37) 13 33 49 444 182 0 30 = true := by
+/-- `__loop2`, window 13, arms 65 to 96. -/
+theorem sg37_13_2 : shareWinS 37 (snapsOf 37) 13 65 97 781 382 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 49 to 64. -/
-theorem sg37_13_3 : shareWinS 37 (snapsOf 37) 13 49 65 626 155 0 30 = true := by
+/-- `__loop2`, window 13, arms 97 to 128. -/
+theorem sg37_13_3 : shareWinS 37 (snapsOf 37) 13 97 129 1163 305 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 65 to 80. -/
-theorem sg37_13_4 : shareWinS 37 (snapsOf 37) 13 65 81 781 199 0 30 = true := by
+/-- `__loop2`, window 13, arms 129 to 160. -/
+theorem sg37_13_4 : shareWinS 37 (snapsOf 37) 13 129 161 1468 350 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 81 to 96. -/
-theorem sg37_13_5 : shareWinS 37 (snapsOf 37) 13 81 97 980 183 0 30 = true := by
+/-- `__loop2`, window 13, arms 161 to 192. -/
+theorem sg37_13_5 : shareWinS 37 (snapsOf 37) 13 161 193 1818 272 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 97 to 112. -/
-theorem sg37_13_6 : shareWinS 37 (snapsOf 37) 13 97 113 1163 166 0 30 = true := by
+/-- `__loop2`, window 13, arms 193 to 224. -/
+theorem sg37_13_6 : shareWinS 37 (snapsOf 37) 13 193 225 2090 286 0 30 = true := by
   decide +kernel
 
-/-- `__loop2`, window 13, arms 113 to 128. -/
-theorem sg37_13_7 : shareWinS 37 (snapsOf 37) 13 113 129 1329 139 0 30 = true := by
+/-- `__loop2`, window 13, arms 225 to 255. -/
+theorem sg37_13_7 : shareWinS 37 (snapsOf 37) 13 225 256 2376 197 0 30 = true := by
   decide +kernel
 
 end

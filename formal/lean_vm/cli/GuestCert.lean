@@ -29,8 +29,9 @@ A `match` of many straight-line arms (`verify_sig_lean_sphincs`'s dispatches on 
 inlined arms) is a window of its own, too large for one kernel evaluation: its three checks are
 split into groups of `armGroup` arms (`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
 `B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
-check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`); a `match` whose arms
-jump to the next one's (`__loop2`'s) has only its sharing check split. The kernel's time on one
+check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share
+computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2`'s, whose arms jump to
+the next one's) as well. The kernel's time on one
 declaration grows faster than its work, so many small checks beat one large one. A certificate too
 large for one module has its cells in modules of their own (`Data/Cert{j}_{k}`).
 -/
@@ -1112,8 +1113,10 @@ structure CutG where
   succ : List ℕ := []
 
 /-- The arms per group of a window split by arms (`Check.checkWinS`): `8` in
-`verify_sig_lean_sphincs`, whose groups' arms hash most, `16` elsewhere. -/
-def armGroup (name : String) : ℕ := if name == "verify_sig_lean_sphincs" then 8 else 16
+`verify_sig_lean_sphincs`, whose groups' arms hash most, `32` in `__loop2`, whose groups' fixed
+part (arm `0`, the start, the cells) outweighs their arms, `16` elsewhere. -/
+def armGroup (name : String) : ℕ :=
+  if name == "verify_sig_lean_sphincs" then 8 else if name == "__loop2" then 32 else 16
 
 /-- The instructions a window that is one `match` runs over at least to be split by arms. -/
 def splitSize (name : String) : ℕ := if name == "verify_sig_lean_sphincs" then 500 else 1500
@@ -2821,12 +2824,14 @@ def checkedName (p : ℕ × ℕ) : String := s!"F{p.1}_{p.2}"
 
 def powName (k : ℕ) : String := if k < 10 then s!"Pow0{k}" else s!"Pow{k}"
 
-/-- A proof for `j` from `lo` to `lo + n`, by halving the range, `leaf k` at `j = k`. -/
-partial def okTree (leaf : ℕ → String) (lo n : ℕ) : String :=
-  if n ≤ 1 then s!"(by obtain rfl : j = {lo} := (by omega); exact {leaf lo})"
+/-- A proof of `motive j` for `j` from `lo` to `lo + n`, by halving the range, `lb : lo ≤ j` and
+`ub : j < lo + n` named: `leaf k` at `j = k` (`at_of_bounds`). -/
+partial def okTree (motive : String) (leaf : ℕ → String) (lo n : ℕ) (lb ub : String) : String :=
+  if n ≤ 1 then s!"(at_of_bounds (P := {motive}) {lb} {ub} {leaf lo})"
   else
     let m := lo + n / 2
-    s!"(if h : j < {m} then {okTree leaf lo (n / 2)} else {okTree leaf m (n - n / 2)})"
+    s!"(if hb{m} : j < {m} then {okTree motive leaf lo (n / 2) lb s!"hb{m}"} else " ++
+      s!"{okTree motive leaf m (n - n / 2) s!"(Nat.le_of_not_lt hb{m})" ub})"
 
 /-- The functions per declaration of an index's `∀ j` proofs (`okSplit`): one `okTree` over many
 more times out in the elaborator. -/
@@ -2834,14 +2839,15 @@ def okBlock : ℕ := 256
 
 /-- A theorem `thm : ∀ j, 1 ≤ j → j < nFns → hyps P j` for `j` from `1` to `n`, `leaf k` at
 `j = k`: one theorem `thm_b` per `okBlock` functions (`okTree`), and `thm` from them by halving
-the blocks. `intro` names the further hypotheses, `args` passes them on. -/
+the blocks. `leaf k` proves `hyps P k`; `intro` names the further hypotheses of `thm`, `args` passes
+them on. -/
 partial def okSplit (doc thm hyps P intro args : String) (leaf : ℕ → String) (n : ℕ) : String :=
   let nb := (n + okBlock - 1) / okBlock
   let lo (b : ℕ) : ℕ := 1 + b * okBlock
   let hi (b : ℕ) : ℕ := min (n + 1) (lo (b + 1))
   let blocks := String.join ((List.range nb).map fun b =>
-    s!"theorem {thm}_{b} : ∀ j, {lo b} ≤ j → j < {hi b} → {hyps}{P} j := fun j h1 h2 {intro}↦\n  " ++
-      okTree leaf (lo b) (hi b - lo b) ++ "\n\n")
+    s!"theorem {thm}_{b} : ∀ j, {lo b} ≤ j → j < {hi b} → {hyps}{P} j := fun j h1 h2 ↦\n  " ++
+      okTree s!"fun j ↦ {hyps}{P} j" leaf (lo b) (hi b - lo b) "h1" "h2" ++ "\n\n")
   let rec tree (b k : ℕ) : String :=
     if k ≤ 1 then s!"({thm}_{b} j (by omega) (by omega){args})"
     else s!"(if h : j < {lo (b + k / 2)} then {tree b (k / 2)} else {tree (b + k / 2) (k - k / 2)})"
@@ -2872,8 +2878,8 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
     groups := groups.modify (groups.size - 1) (·.push (j, w))
     size := if split then maxChecked + 1 else size + l + winFixed
   let key (js : Array (ℕ × ℕ)) : String := checkedName (js[0]?.getD (0, 0))
-  -- a large window's kernel check passes the default budget (`__loop2`'s chained `match`es:
-  -- about 140 s each, the executor and walk of 2816 instructions and 256 arms)
+  -- a large window's kernel check passes the default budget (`__loop2`'s first chained `match`es,
+  -- the executor and walk of many instructions and `256` arms)
   let winThm (j w : ℕ) : String :=
     (if ((wins.find? fun x => x.1 == j && x.2.1 == w).map (·.2.2)).getD 0 > bigWin then
       "set_option maxHeartbeats 1000000 in\n" else "") ++
@@ -2885,10 +2891,11 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
     let xfile := (xname, checkedHeader xname "What the groups of arms of a window of one `match` compute alike, once." ++
       "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.KernelLit\n\n" ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.B2C\n\n@[expose] public section\n\n" ++
-      -- the executor over a window of many instructions (`__loop2`'s path windows: 8960, about
-      -- 35 s) passes the default budget
-      (if ((wins.find? fun x => x.1 == j && x.2.1 == w).map (·.2.2)).getD 0 > 4000 then
-        "set_option maxHeartbeats 2000000 in\n" else "") ++
+      -- the executor over a window of many instructions (`__loop2`'s path windows and chained
+      -- `match`es) passes the default budget
+      (let l := ((wins.find? fun x => x.1 == j && x.2.1 == w).map (·.2.2)).getD 0
+        if l > 4000 then "set_option maxHeartbeats 2000000 in\n"
+        else if l > bigWin then "set_option maxHeartbeats 1000000 in\n" else "") ++
       s!"/-- `{fns[j]!.name}`, window {w}: what its groups of arms compute alike. -/\n" ++
       s!"kernel_lit x{j}_{w} : WinPre := winPre {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
     let chunks := chunksOf groupsPerFile gs.zipIdx
@@ -2975,7 +2982,7 @@ def checkedFiles (obl : List ℕ) (wins : Array (ℕ × ℕ × ℕ)) (ps : Array
     "`open_stacked`) and the GKR layers' (`verify_bus_gkr`, its layer loop). -/\n" ++
     s!"def oblFns : List ℕ := {listText (obl.map toString)}\n\n" ++
     okSplit "No other function takes anything from obligations." "all_plain" "j ∉ oblFns → " "Plain"
-      "hn " " hn" (fun k => if obl.contains k then "absurd (by decide) hn" else s!"plain{k}")
+      "hn " " hn" (fun k => if obl.contains k then "fun hn ↦ absurd (by decide) hn" else s!"fun _ ↦ plain{k}")
       (fns.size - 1) ++ "\n\n" ++
     "/-- Every power of `g` the guest names is one. -/\ntheorem powTree_ok : Data.powTree.OkW :=\n  " ++
     (powTopProof ps powCut 0).1 ++ "\n\nend\nend LeanVM.Guest.Checked\n")
@@ -3622,9 +3629,7 @@ def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (Syst
       let sp := (List.range nw).filterMap fun w =>
         let a := starts[w]!
         let b := if w + 1 < nw then starts[w + 1]! else cf.body.length
-        -- a chained `match`'s window is not split (`Check.checkWinS` takes a `match` ending at a join)
-        let chained := entW.any fun e => e.1 == w || e.1 == w + 1
-        match if chained then [] else splitOf cf a b (sizes.getD w 0) los[w]! ((insW[w]!).map (·.1)) with
+        match splitOf cf a b (sizes.getD w 0) los[w]! ((insW[w]!).map (·.1)) with
         | [] => none
         | gs => some (w, gs)
       -- the sharing windows of one `match` split by arms, chained or not (`B2C.shareWinS` reads no

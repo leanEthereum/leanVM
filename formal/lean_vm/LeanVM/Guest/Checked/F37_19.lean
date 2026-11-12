@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.CheckSplit
 public import LeanVM.Guest.Checked.G37_19_0
-public import LeanVM.Guest.Checked.G37_19_8
 
 namespace LeanVM.Guest.Checked
 
@@ -17,12 +16,12 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop2`, window 19: one `match`, by 16 groups of arms. -/
+/-- `__loop2`, window 19: one `match`, by 8 groups of arms. -/
 theorem w37_19 : WinOk 37 19 :=
-  winOk_of_split [(1, 17, [(0, 47), (47, 768)]), (17, 33, [(0, 47), (815, 768)]), (33, 49, [(0, 47), (1583, 768)]), (49, 65, [(0, 47), (2351, 768)]), (65, 81, [(0, 47), (3119, 768)]), (81, 97, [(0, 47), (3887, 768)]), (97, 113, [(0, 47), (4655, 768)]), (113, 129, [(0, 47), (5423, 768)]), (129, 145, [(0, 47), (6191, 768)]), (145, 161, [(0, 47), (6959, 768)]), (161, 177, [(0, 47), (7727, 768)]), (177, 193, [(0, 47), (8495, 768)]), (193, 209, [(0, 47), (9263, 768)]), (209, 225, [(0, 47), (10031, 768)]), (225, 241, [(0, 47), (10799, 768)]), (241, 256, [(0, 47), (11567, 720)])]
-    (1, 17, [(0, 47), (47, 768)]) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  winOk_of_split [(1, 33, [(0, 47), (47, 1536)]), (33, 65, [(0, 47), (1583, 1536)]), (65, 97, [(0, 47), (3119, 1536)]), (97, 129, [(0, 47), (4655, 1536)]), (129, 161, [(0, 47), (6191, 1536)]), (161, 193, [(0, 47), (7727, 1536)]), (193, 225, [(0, 47), (9263, 1536)]), (225, 256, [(0, 47), (10799, 1488)])]
+    (1, 33, [(0, 47), (47, 1536)]) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact wg37_19_0
       · exact wg37_19_1
       · exact wg37_19_2
@@ -31,14 +30,6 @@ theorem w37_19 : WinOk 37 19 :=
       · exact wg37_19_5
       · exact wg37_19_6
       · exact wg37_19_7
-      · exact wg37_19_8
-      · exact wg37_19_9
-      · exact wg37_19_10
-      · exact wg37_19_11
-      · exact wg37_19_12
-      · exact wg37_19_13
-      · exact wg37_19_14
-      · exact wg37_19_15
 
 end
 end LeanVM.Guest.Checked

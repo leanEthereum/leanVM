@@ -9,18 +9,17 @@ module
 
 public import LeanVM.Guest.B2C.ShareSplit
 public import LeanVM.Guest.B2C.Shared.H37_21_0
-public import LeanVM.Guest.B2C.Shared.H37_21_8
 
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `__loop2`, window 21: one `match`, by 16 groups of arms. -/
+/-- `__loop2`, window 21: one `match`, by 8 groups of arms. -/
 theorem w37_21 : shareWin 37 (snapsOf 37) 21 = true :=
-  shareWin_of_split [(1, 17, 31, 231, 0, 31), (17, 33, 262, 215, 0, 31), (33, 49, 477, 198, 0, 31), (49, 65, 675, 171, 0, 31), (65, 81, 846, 215, 0, 31), (81, 97, 1061, 199, 0, 31), (97, 113, 1260, 182, 0, 31), (113, 129, 1442, 155, 0, 31), (129, 145, 1597, 199, 0, 31), (145, 161, 1796, 183, 0, 31), (161, 177, 1979, 166, 0, 31), (177, 193, 2145, 138, 0, 31), (193, 209, 2283, 167, 0, 31), (209, 225, 2450, 151, 0, 31), (225, 241, 2601, 134, 0, 31), (241, 256, 2735, 94, 0, 31)]
-    (1, 17, 31, 231, 0, 31) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  shareWin_of_split [(1, 33, 31, 446, 0, 31), (33, 65, 477, 369, 0, 31), (65, 97, 846, 414, 0, 31), (97, 129, 1260, 337, 0, 31), (129, 161, 1597, 382, 0, 31), (161, 193, 1979, 304, 0, 31), (193, 225, 2283, 318, 0, 31), (225, 256, 2601, 228, 0, 31)]
+    (1, 33, 31, 446, 0, 31) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact sg37_21_0
       · exact sg37_21_1
       · exact sg37_21_2
@@ -29,14 +28,6 @@ theorem w37_21 : shareWin 37 (snapsOf 37) 21 = true :=
       · exact sg37_21_5
       · exact sg37_21_6
       · exact sg37_21_7
-      · exact sg37_21_8
-      · exact sg37_21_9
-      · exact sg37_21_10
-      · exact sg37_21_11
-      · exact sg37_21_12
-      · exact sg37_21_13
-      · exact sg37_21_14
-      · exact sg37_21_15
 
 end
 end LeanVM.Guest.B2C.Shared

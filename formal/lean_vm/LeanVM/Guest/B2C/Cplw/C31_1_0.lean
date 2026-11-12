@@ -37,6 +37,9 @@ theorem cw36_0_0 : cplWin 36 0 0 = true := by decide +kernel
 /-- `__loop2`, window 0, part 0. -/
 theorem cw37_0_0 : cplWin 37 0 0 = true := by decide +kernel
 
+/-- `__loop2`, window 16, part 0. -/
+theorem cw37_16_0 : cplWin 37 16 0 = true := by decide +kernel
+
 theorem ok32 : CplOk 32 := by
   intro i hi k hk
   have hc : (certOf 32).cuts.length = 0 := by decide +kernel

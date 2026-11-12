@@ -46,6 +46,7 @@ public import LeanVM.Guest.Checked.F37_12
 public import LeanVM.Guest.Checked.F37_13
 public import LeanVM.Guest.Checked.F37_14
 public import LeanVM.Guest.Checked.F37_15
+public import LeanVM.Guest.Checked.F37_16
 public import LeanVM.Guest.Checked.F37_17
 public import LeanVM.Guest.Checked.F37_18
 public import LeanVM.Guest.Checked.F37_19
@@ -65,6 +66,7 @@ public import LeanVM.Guest.Checked.F37_32
 public import LeanVM.Guest.Checked.F37_33
 public import LeanVM.Guest.Checked.F37_34
 public import LeanVM.Guest.Checked.F37_35
+public import LeanVM.Guest.Checked.F37_36
 public import LeanVM.Guest.Checked.F37_37
 public import LeanVM.Guest.Checked.F37_38
 public import LeanVM.Guest.Checked.F37_39

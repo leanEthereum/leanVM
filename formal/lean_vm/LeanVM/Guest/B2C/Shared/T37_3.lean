@@ -9,18 +9,17 @@ module
 
 public import LeanVM.Guest.B2C.ShareSplit
 public import LeanVM.Guest.B2C.Shared.H37_3_0
-public import LeanVM.Guest.B2C.Shared.H37_3_8
 
 namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `__loop2`, window 3: one `match`, by 16 groups of arms. -/
+/-- `__loop2`, window 3: one `match`, by 8 groups of arms. -/
 theorem w37_3 : shareWin 37 (snapsOf 37) 3 = true :=
-  shareWin_of_split [(1, 17, 30, 215, 0, 30), (17, 33, 245, 199, 0, 30), (33, 49, 444, 182, 0, 30), (49, 65, 626, 155, 0, 30), (65, 81, 781, 199, 0, 30), (81, 97, 980, 183, 0, 30), (97, 113, 1163, 166, 0, 30), (113, 129, 1329, 139, 0, 30), (129, 145, 1468, 183, 0, 30), (145, 161, 1651, 167, 0, 30), (161, 177, 1818, 150, 0, 30), (177, 193, 1968, 122, 0, 30), (193, 209, 2090, 151, 0, 30), (209, 225, 2241, 135, 0, 30), (225, 241, 2376, 118, 0, 30), (241, 256, 2494, 79, 0, 30)]
-    (1, 17, 30, 215, 0, 30) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
+  shareWin_of_split [(1, 33, 30, 414, 0, 30), (33, 65, 444, 337, 0, 30), (65, 97, 781, 382, 0, 30), (97, 129, 1163, 305, 0, 30), (129, 161, 1468, 350, 0, 30), (161, 193, 1818, 272, 0, 30), (193, 225, 2090, 286, 0, 30), (225, 256, 2376, 197, 0, 30)]
+    (1, 33, 30, 414, 0, 30) List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hg
-      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       · exact sg37_3_0
       · exact sg37_3_1
       · exact sg37_3_2
@@ -29,14 +28,6 @@ theorem w37_3 : shareWin 37 (snapsOf 37) 3 = true :=
       · exact sg37_3_5
       · exact sg37_3_6
       · exact sg37_3_7
-      · exact sg37_3_8
-      · exact sg37_3_9
-      · exact sg37_3_10
-      · exact sg37_3_11
-      · exact sg37_3_12
-      · exact sg37_3_13
-      · exact sg37_3_14
-      · exact sg37_3_15
 
 end
 end LeanVM.Guest.B2C.Shared

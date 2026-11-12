@@ -88,6 +88,12 @@ noncomputable instance (j i : ℕ) : Decidable (WinOk j i) := inferInstanceAs (D
 /-- **The check of function `j`**: every window's. -/
 noncomputable def CheckOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, WinOk j i
 
+/-- `P j` from `P k` at `j = k`, by its bounds: a leaf of the generated proofs over all functions
+(`Checked.all_ok` and the like). -/
+theorem at_of_bounds {P : ℕ → Prop} {j k : ℕ} (h1 : k ≤ j) (h2 : j < k + 1) (h : P k) : P j := by
+  obtain rfl : j = k := by omega
+  exact h
+
 theorem checkOk_one {j : ℕ} (h : (certOf j).cuts.length = 0) (w : WinOk j 0) : CheckOk j := by
   intro i hi
   obtain rfl : i = 0 := by omega

@@ -15,36 +15,36 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `__loop2`, window 17, arms 1 to 16. -/
-theorem cg37_17_0 : cplWinS 37 17 1 17 47 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 1 to 32. -/
+theorem cg37_17_0 : cplWinS 37 17 1 33 47 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 17 to 32. -/
-theorem cg37_17_1 : cplWinS 37 17 17 33 815 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 33 to 64. -/
+theorem cg37_17_1 : cplWinS 37 17 33 65 1583 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 33 to 48. -/
-theorem cg37_17_2 : cplWinS 37 17 33 49 1583 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 65 to 96. -/
+theorem cg37_17_2 : cplWinS 37 17 65 97 3119 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 49 to 64. -/
-theorem cg37_17_3 : cplWinS 37 17 49 65 2351 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 97 to 128. -/
+theorem cg37_17_3 : cplWinS 37 17 97 129 4655 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 65 to 80. -/
-theorem cg37_17_4 : cplWinS 37 17 65 81 3119 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 129 to 160. -/
+theorem cg37_17_4 : cplWinS 37 17 129 161 6191 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 81 to 96. -/
-theorem cg37_17_5 : cplWinS 37 17 81 97 3887 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 161 to 192. -/
+theorem cg37_17_5 : cplWinS 37 17 161 193 7727 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 97 to 112. -/
-theorem cg37_17_6 : cplWinS 37 17 97 113 4655 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 193 to 224. -/
+theorem cg37_17_6 : cplWinS 37 17 193 225 9263 1536 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
-/-- `__loop2`, window 17, arms 113 to 128. -/
-theorem cg37_17_7 : cplWinS 37 17 113 129 5423 768 0 47 = true :=
+/-- `__loop2`, window 17, arms 225 to 255. -/
+theorem cg37_17_7 : cplWinS 37 17 225 256 10799 1488 0 47 = true :=
   cplWinS_of_pre Checked.x37_17_eq (by decide +kernel)
 
 end
