@@ -215,11 +215,11 @@ theorem vsT_pre249 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRoot
   simp only [vsT, List.append_assoc]
 
 /-- **`VsKnown`** from `certify_placement`'s specification: `kappa_base`'s entries below
-`kbBound`, from the body's first `1552` statements (only its first `249` are read). -/
+`kbBound`, from the body's first `1545` statements (only its first `249` are read). -/
 theorem vsKnown_of {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (hcp : Tables.certify_placement_Spec L.read)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1552) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1545) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) := by
   have hκ : κ ≤ 32 := h32.trans (by decide)

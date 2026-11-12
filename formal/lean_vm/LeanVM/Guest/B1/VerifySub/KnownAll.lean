@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.KnownAll
 
-  `VsKnown`: the first `1552` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
+  `VsKnown`: the first `1545` statements of `verify_sub` put `kappa_base`'s entries among `g^e`,
   `e < kbBound i`; `VsDimsKnown`: the first `333` put `dims_g[g^0]` below `g^34`.
 -/
 
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Placement.Certify
 
 `vsKnown_holds`: `vsKnown_of` with `certify_placement`'s soundness (`certify_placement_holds`):
 on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, over the exponent table at
-`verify_sub`'s argument `4`, its first `1552` statements (up to the call of
+`verify_sub`'s argument `4`, its first `1545` statements (up to the call of
 `check_opening_terminal`) put the `8` entries of `kappa_base` (`83`) among `g^e`, `e < kbBound i`.
 
 `vsDimsKnown0_holds`: on a memory image of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`, the body's
@@ -42,7 +42,7 @@ theorem vsT_front73 : vsT = (vsHeadT ++ vsReadsT ++ vsSizesT) ++ (vsPushT ++ vsR
 /-- **`VsKnown`**: `kappa_base`'s entries below `kbBound`. -/
 theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val) (hexp : B1.ExpTables L.read (σ (.n 4)))
-    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1552) True
+    (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1545) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) :=
   vsKnown_of L h16 h32 (Tables.certify_placement_holds (h32.trans (by decide)) L) σ hexp h
