@@ -121,3 +121,11 @@ fn programs_compile_as_written() {
             .unwrap(),
     );
 }
+
+/// A `return` nested in `main` was ignored, the code after it running anyway.
+#[test]
+#[should_panic(expected = "`return` in `main` is allowed only as its last statement")]
+fn nested_return_in_main_is_rejected() {
+    let src = "def main():\n    x = 1\n    if x == 1:\n        return\n    assert x == 2\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}

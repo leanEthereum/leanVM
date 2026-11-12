@@ -129,7 +129,7 @@ z = f(p, q)               # expression position: first return
 f(p, q)                   # statement: returns discarded
 ```
 
-Functions may recurse. Each call gets a **fresh frame**: the frame pointer is prover-hinted (write-once memory makes an unconstrained cell prover-chosen), arguments and the return address/frame are stored with `DEREF`s, and control transfers with one `JUMP`. Cost: about `n_args + n_returns + 4` instructions per call. A function's result count is that of its top-level `return`, so one that returns values must end in an explicit `return`; one that returns nothing may leave it out, the compiler closing it with a bare `return`. In `main`, `return` is a no-op (main halts at a sentinel automatically).
+Functions may recurse. Each call gets a **fresh frame**: the frame pointer is prover-hinted (write-once memory makes an unconstrained cell prover-chosen), arguments and the return address/frame are stored with `DEREF`s, and control transfers with one `JUMP`. Cost: about `n_args + n_returns + 4` instructions per call. A function's result count is that of its top-level `return`, so one that returns values must end in an explicit `return`; one that returns nothing may leave it out, the compiler closing it with a bare `return`. In `main`, a `return` may only be the last statement, where it is a no-op (main halts at a sentinel automatically); one in a `mul_range` body leaves the loop.
 
 ### `StackBuf` parameters
 

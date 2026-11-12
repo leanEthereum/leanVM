@@ -1654,6 +1654,17 @@ fn plus_k(lo: &Expr, hi: &Expr) -> Option<u128> {
 }
 
 /// Lower one function to its instruction list and frame size.
+/// Whether a `return` of this function occurs in `stmts`: nested `if` and `unroll` bodies included, a
+/// `mul_range` body not, since it becomes a helper function whose `return` leaves the loop.
+fn has_return(stmts: &[Stmt]) -> bool {
+    stmts.iter().any(|s| match &s.kind {
+        StmtKind::Return(_) => true,
+        StmtKind::If { then, els, .. } => has_return(then) || has_return(els),
+        StmtKind::Unroll { body, .. } => has_return(body),
+        _ => false,
+    })
+}
+
 pub(crate) fn lower_func(
     f: &Func,
     queue: &mut Vec<Func>,
@@ -1718,6 +1729,17 @@ pub(crate) fn lower_func(
         const_arrays,
         tables,
     };
+    if f.name == "main" {
+        // `main` halts at its end, so a `return` anywhere else would read as an early exit that does not happen.
+        for (i, s) in f.body.iter().enumerate() {
+            let trailing = i + 1 == f.body.len() && matches!(s.kind, StmtKind::Return(_));
+            assert!(
+                trailing || !has_return(std::slice::from_ref(s)),
+                "line {}: `return` in `main` is allowed only as its last statement",
+                s.line
+            );
+        }
+    }
     for (i, s) in f.body.iter().enumerate() {
         // Tail position: a conditional call whose only successor is a bare
         // `return`, in a function that returns nothing. The `mul_range` helper
