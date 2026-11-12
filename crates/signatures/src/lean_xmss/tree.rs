@@ -1,6 +1,7 @@
-//! One layer's Merkle tree, over the leaves `first..=last` of its `2^16`. A full
-//! key's trees hold every leaf; a mock key's hold a range, every node outside it a
-//! pseudorandom filler.
+//! One layer's Merkle tree, over a range of its `2^16` leaves. A full key's trees
+//! hold every leaf; a mock key's hold a range, every node outside it a pseudorandom
+//! filler. Nodes are indexed on the layer, as their addresses are: a bottom tree's
+//! leaves by their leaf indices.
 
 use crate::lean_xmss::*;
 
@@ -19,25 +20,20 @@ fn filler(pp: &PublicParam, seed: &SchemeSeed, layer: usize, level: usize, j: u3
 
 pub(crate) struct LayerTree {
     layer: usize,
-    /// The index of leaf 0 on its layer: the bottom tree's first leaf index, or 0.
-    base: u32,
+    /// The first leaf held.
     first: u32,
-    last: u32,
-    /// Level `l` holds the nodes `first >> l ..= last >> l`.
+    /// Level `l` holds the nodes from `first >> l` on.
     levels: Vec<Vec<Digest>>,
 }
 
 impl LayerTree {
-    pub(crate) fn build(pp: &PublicParam, seed: &SchemeSeed, layer: usize, base: u32, first: u32, last: u32) -> Self {
-        debug_assert!(first <= last && last >> LAYER_HEIGHT == 0);
-        let leaves = (first..=last)
-            .map(|j| wots_public_leaf(pp, seed, layer, base + j))
-            .collect();
+    /// The tree over the leaves `first..=last`, all in one tree.
+    pub(crate) fn build(pp: &PublicParam, seed: &SchemeSeed, layer: usize, first: u32, last: u32) -> Self {
+        debug_assert!(first <= last && first >> LAYER_HEIGHT == last >> LAYER_HEIGHT);
+        let leaves = (first..=last).map(|j| wots_public_leaf(pp, seed, layer, j)).collect();
         let mut tree = Self {
             layer,
-            base,
             first,
-            last,
             levels: vec![leaves],
         };
         for level in 1..=LAYER_HEIGHT {
@@ -47,7 +43,7 @@ impl LayerTree {
                         tree.at(pp, seed, level - 1, 2 * j),
                         tree.at(pp, seed, level - 1, 2 * j + 1),
                     ];
-                    node(pp, layer, level, (base >> level) + j, &children)
+                    node(pp, layer, level, j, &children)
                 })
                 .collect();
             tree.levels.push(up);
@@ -55,12 +51,14 @@ impl LayerTree {
         tree
     }
 
-    /// Node `j` of `level`, stored if it is over a leaf in range, else a filler.
+    /// Node `j` of `level`, stored if it is over a leaf held, else a filler.
     fn at(&self, pp: &PublicParam, seed: &SchemeSeed, level: usize, j: u32) -> Digest {
-        if (self.first >> level..=self.last >> level).contains(&j) {
-            self.levels[level][(j - (self.first >> level)) as usize]
-        } else {
-            filler(pp, seed, self.layer, level, (self.base >> level) + j)
+        match j
+            .checked_sub(self.first >> level)
+            .and_then(|k| self.levels[level].get(k as usize))
+        {
+            Some(&node) => node,
+            None => filler(pp, seed, self.layer, level, j),
         }
     }
 
@@ -69,7 +67,10 @@ impl LayerTree {
     }
 
     pub(crate) fn path(&self, pp: &PublicParam, seed: &SchemeSeed, leaf: u32) -> [Digest; LAYER_HEIGHT] {
-        debug_assert!((self.first..=self.last).contains(&leaf));
+        debug_assert!(
+            leaf.checked_sub(self.first)
+                .is_some_and(|k| (k as usize) < self.levels[0].len())
+        );
         std::array::from_fn(|level| self.at(pp, seed, level, (leaf >> level) ^ 1))
     }
 }

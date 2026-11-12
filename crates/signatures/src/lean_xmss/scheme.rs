@@ -1,6 +1,6 @@
 //! Keys, signing and verification. The secret key holds the top tree and builds
 //! a bottom tree, with the top layer's signature of its root, the first time it
-//! signs in it or prepares it, keeping the [`CACHED_BOTTOM_TREES`] it used last.
+//! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
 
 use std::collections::VecDeque;
 use std::ops::RangeInclusive;
@@ -180,7 +180,7 @@ pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (Le
     let seed = scheme_seed(&key_seed);
     let public_param = public_param(&seed);
     let (first, last) = (layer_index(*leaves.start(), 1), layer_index(*leaves.end(), 1));
-    let top = LayerTree::build(&public_param, &seed, 1, 0, first, last);
+    let top = LayerTree::build(&public_param, &seed, 1, first, last);
     let sk = LeanXmssSecretKey {
         key_seed,
         public_param,
@@ -221,7 +221,7 @@ impl LeanXmssSecretKey {
 
     /// Builds the bottom tree `leaf_index` is in, and signs its root, ahead of
     /// [`sign`]: the first signature in a bottom tree pays for both. The key keeps
-    /// the [`CACHED_BOTTOM_TREES`] it used last, and threads may prepare different
+    /// the [`MAX_CACHED_BOTTOM_TREES`] it used last, and threads may prepare different
     /// trees at once.
     pub fn prepare(&self, leaf_index: LeafIndex) -> Result<(), LeanXmssSignError> {
         self.bottom_tree(leaf_index, ALL_LEAVES).map(drop)
@@ -243,7 +243,7 @@ impl LeanXmssSecretKey {
             bottom: LayerSignature {
                 randomizer,
                 chain_values,
-                path: bottom.tree.path(&self.public_param, &seed, tree_leaf(leaf_index)),
+                path: bottom.tree.path(&self.public_param, &seed, leaf_index),
             },
             top: bottom.top_signature.clone(),
         })
@@ -263,9 +263,9 @@ impl LeanXmssSecretKey {
         }
         let (pp, seed) = (&self.public_param, &scheme_seed(&self.key_seed));
         let base = index << LAYER_HEIGHT;
-        let first = (*leaves.start()).max(base) - base;
-        let last = (*leaves.end()).min(base | tree_leaf(LeafIndex::MAX)) - base;
-        let tree = LayerTree::build(pp, seed, 0, base, first, last);
+        let first = (*leaves.start()).max(base);
+        let last = (*leaves.end()).min(base | ((1 << LAYER_HEIGHT) - 1));
+        let tree = LayerTree::build(pp, seed, 0, first, last);
         let (randomizer, chain_values) =
             wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
         let bottom = Arc::new(BottomTree {

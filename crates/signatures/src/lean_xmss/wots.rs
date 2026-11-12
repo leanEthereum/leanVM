@@ -16,11 +16,6 @@ pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
     (leaf_index as u64 >> (layer * LAYER_HEIGHT)) as u32
 }
 
-/// `leaf_index`'s leaf within its bottom tree.
-pub(crate) fn tree_leaf(leaf_index: LeafIndex) -> u32 {
-    leaf_index & ((1 << LAYER_HEIGHT) - 1)
-}
-
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
 /// two of them: chains `2t` and `2t + 1` are its two halves.
 pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
