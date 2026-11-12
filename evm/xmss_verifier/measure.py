@@ -24,6 +24,7 @@ WRAPPERS = {
     "C": ("0x000000000000000000000000000000000000C001", "PossessionWrapper"),
 }
 PATHS = ["add", "C0", "C"]
+VERIFIER = "0x000000000000000000000000000000000000B000"
 SCENARIOS = ["S1", "S2", "S3"]
 # Calldata gas per zero and nonzero byte: the standard cost, then the floor (EIP-7623, raised on Amsterdam).
 CALLDATA = {"amsterdam": ((4, 16), (64, 64)), "osaka": ((4, 16), (10, 40))}
@@ -141,9 +142,9 @@ def base_gas(node):
     return [int(node.receipt(node.send(stop, "0x", value))["gasUsed"], 16) for value in (0, 1)]
 
 
-def execution(node, tx):
+def execution(node, tx, stack=False):
     """The gas the transaction's execution used, from its trace, and the trace's steps."""
-    steps = node.rpc("debug_traceTransaction", tx, TRACE)["structLogs"]
+    steps = node.rpc("debug_traceTransaction", tx, {**TRACE, "disableStack": not stack})["structLogs"]
     first, last = steps[0], steps[-1]
     # Below EIP-7825's transaction gas cap, EIP-8037 state gas comes out of the regular counter.
     assert first.get("stateGasReservoir", 0) == last.get("stateGasReservoir", 0) == 0
@@ -165,9 +166,30 @@ def breakdown(node, fork, base, receipt, data):
     return dict(zeros=zeros, nonzeros=nonzeros, intrinsic=intrinsic, floor=floor, execution=exe, gas=gas_used, pays=pays)
 
 
-def runtime(contract):
-    with open(os.path.join(HERE, f"out/PossessionWrapper.sol/{contract}.json")) as f:
-        return json.load(f)["deployedBytecode"]["object"]
+def artifact(source, contract):
+    with open(os.path.join(HERE, f"out/{source}/{contract}.json")) as f:
+        return json.load(f)
+
+
+def verify_breakdown(node, fork, base):
+    """Splits the execution of a transaction calling B's verify on the fixture into its KECCAK256 opcodes, by input
+    length, and everything else."""
+    b = artifact("XmssVerifierB.sol", "XmssVerifierB")
+    node.rpc("anvil_setCode", VERIFIER, b["deployedBytecode"]["object"])
+    sig = FIXTURE["signature"][2:]
+    data = "0x" + b["methodIdentifiers"]["verify(bytes32,bytes32,bytes)"] + FIXTURE["pq_data"][2:66]
+    data += FIXTURE["message"][2:] + word(0x60)[2:] + word(len(sig) // 2)[2:] + sig + "0" * (-len(sig) % 64)
+    r = node.receipt(node.send(VERIFIER, data, 0))
+    tx = breakdown(node, fork, base, r, data)
+    exe, steps = execution(node, r["transactionHash"], stack=True)
+    assert node.rpc("debug_traceTransaction", r["transactionHash"], TRACE)["returnValue"].endswith("1")
+    keccak = {}
+    for step in steps:
+        if step["op"] == "KECCAK256":
+            # The stack is listed bottom first: offset on top, then the length.
+            n, g = keccak.get(int(step["stack"][-2], 16), (0, 0))
+            keccak[int(step["stack"][-2], 16)] = (n + 1, g + step["gasCost"])
+    return dict(tx=tx, keccak=keccak, rest=exe - sum(g for _, g in keccak.values()))
 
 
 def main():
@@ -175,7 +197,7 @@ def main():
     add = "0x" + FIXTURE["bls_pubkey"][2:] + FIXTURE["pq_data"][2:]
     assert len(add) == 2 + 2 * 112
     proof = add + FIXTURE["signature"][2:]
-    bases, rows = {}, {}
+    bases, rows, verifies = {}, {}, {}
     for fork in FORKS:
         node = Anvil(fork)
         try:
@@ -186,12 +208,13 @@ def main():
             node.rpc("anvil_setCode", PREDEPLOY, RUNTIME)
             targets = {"add": (PREDEPLOY, add)}
             for path, (address, contract) in WRAPPERS.items():
-                node.rpc("anvil_setCode", address, runtime(contract))
+                node.rpc("anvil_setCode", address, artifact("PossessionWrapper.sol", contract)["deployedBytecode"]["object"])
                 targets[path] = (address, proof)
             for path, (target, data) in targets.items():
                 for scenario, r in scenarios(node, target, data).items():
                     rows[fork, path, scenario] = breakdown(node, fork, base, r, data)
             breakdown(node, fork, base, *check_tampered(node, WRAPPERS["C"][0], proof))
+            verifies[fork] = verify_breakdown(node, fork, bases[fork][0])
         finally:
             node.close()
 
@@ -207,6 +230,18 @@ def main():
                     f"{r['execution']:>10}{r['gas']:>9}  {r['pays']}"
                 )
         print()
+
+    print("B's verify of the fixture as a transaction: execution, its KECCAK256 opcodes by input length, the rest")
+    print(f"{'':22}" + "".join(f"{fork:>10}" for fork in FORKS))
+    v = verifies[FORKS[0]]
+    print(f"{'gasUsed':22}" + "".join(f"{verifies[f]['tx']['gas']:>10}" for f in FORKS))
+    print(f"{'pays':22}" + "".join(f"{verifies[f]['tx']['pays']:>10}" for f in FORKS))
+    print(f"{'execution':22}" + "".join(f"{verifies[f]['tx']['execution']:>10}" for f in FORKS))
+    total = sum(n for n, _ in v["keccak"].values())
+    print(f"{f'KECCAK256 x{total}':22}" + "".join(f"{sum(g for _, g in verifies[f]['keccak'].values()):>10}" for f in FORKS))
+    for size, (n, _) in sorted(v["keccak"].items()):
+        print(f"{f'  {size} bytes x{n}':22}" + "".join(f"{verifies[f]['keccak'][size][1]:>10}" for f in FORKS))
+    print(f"{'everything else':22}" + "".join(f"{verifies[f]['rest']:>10}" for f in FORKS))
 
 
 if __name__ == "__main__":
