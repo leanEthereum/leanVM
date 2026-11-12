@@ -109,13 +109,13 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 \subsection{\texttt{KECCAK}}\label{sec:tab-keccak}
 
-One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $117$ columns:
+One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $92$ columns:
 \begin{itemize}
 \item $\pc$, $\fp$, the eight operand offsets, the two layout flags, the two output flags $\mathit{out}_{\mathit{two}}$ and $\mathit{out}_{\mathit{all}}$, and $\mathit{free}$, then $27$ read counts, one per cell read or written and one for the bytecode.
 \item $\kin{\ell}$, the $25$ lanes of the state the row reads from memory.
-\item $\kmid{\ell}$, the $25$ lanes of the state after $12$ rounds. Committing it is an optimization and nothing more: it halves the depth of the reduction. No flush reads it.
 \item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on them are deferred to the GKR, which reduces them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
 \end{itemize}
+The $25$ lanes $\kmid{\ell}$ of the state after $12$ rounds are committed too, in $\qkeccak$ (Annex~\ref{annex:keccak}), but are not columns: no constraint or flush reads them, and the table sumcheck sends nothing for them. Committing them is an optimization and nothing more: it halves the depth of the reduction.
 
 A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. A cell is exactly its two limbs.
 \begin{itemize}
