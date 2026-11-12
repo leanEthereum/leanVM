@@ -106,7 +106,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
   set S1 := omState cap msg (some n1) with hS1
   set spf := spfRets cap msg n1 lv.logCols with hspf'
   set S := commitS cap msg n1 lv.logCols y0 nq with hS
-  have k36 : 36 ≤ k := hsf.k
+  have k36 : 33 ≤ k := hsf.k
   have kr : k + 2 ≤ r := osCurS_k s0
   have kq : r + 10 ≤ q := osMatS_k c.plan osOodz row0 s1
   have bj : b + 6 ≤ j := osPad_next _ _
@@ -115,7 +115,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
     rcases osPad_ptr o0.2.2.pad (b + 6) (fun q' hq' ↦ by
       rw [hpad0] at hq'; have := hsf.padB q' hq'; omega) with h | h <;> omega
   have pcu : cu.2.1 < r := osMat_ptr_lt _ _ _ (show st.cb < k + 2 by have := hsf.below.cb; omega)
-  have po0 : o0.2.1 < q := osMatS_ptr_lt _ _ _ _ (show 29 < r + 10 by omega)
+  have po0 : o0.2.1 < q := osMatS_ptr_lt _ _ _ _ (show 26 < r + 10 by omega)
   have hmb1 : MatsBelow s1.k s1.mats := show MatsBelow (r + 10) st.mats from fun m hm ↦ by
     obtain ⟨a, b, d⟩ := hsf.below.mats m hm; exact ⟨by omega, by omega, by omega⟩
   -- the heap and the cursor
@@ -155,16 +155,16 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hi
           rcases hi with rfl | rfl
           · omega
-          · show 9 < r + 8; omega) fun C rd hH ↦ by
+          · show 10 < r + 8; omega) fun C rd hH ↦ by
         obtain ⟨-, e2⟩ := ho1 C rd hH
         simp only [List.map_cons, List.map_nil]
-        rw [e2 1 (by omega), ha1 _ (show 9 < k by omega)]
+        rw [e2 1 (by omega), ha1 _ (show 10 < k by omega)]
         simpa [omRets] using hg C rd hH
       refine h.monoH fun C rd hH σ' ha e ↦ ?_
       obtain ⟨-, e2⟩ := ho1 C rd hH
       rw [e]
       simp only [List.map_cons, List.map_nil]
-      rw [e2 1 (by omega), ha1 _ (show 9 < k by omega)]
+      rw [e2 1 (by omega), ha1 _ (show 10 < k by omega)]
       simp [omRets, hS1]
   have b3 := BlkA.seq (H := H) (show k ≤ r + 8 by omega) (show r + 8 ≤ r + 10 by omega) b2g
     (B := [osLd (r + 8) (k + 1) 0, osLd (r + 8) osRoots (2 * lvl + 2), osLd (r + 9) (k + 1) 1,
@@ -179,7 +179,7 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
       obtain ⟨l0, l1, l2, l3⟩ := hsent C rd hH
       have ep : σ' (.n (k + 1)) = pS := by rw [ha _ (by omega), e1]
       have er : σ' (.n osRoots) = σ (.n osRoots) := by
-        rw [ha _ (show 17 < r + 8 by omega), ha1 _ (by show 17 < k; omega)]
+        rw [ha _ (show 14 < r + 8 by omega), ha1 _ (by show 14 < k; omega)]
       refine ⟨?_, v0, v1⟩
       simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd, ep, er, v0, v1]
       exact ⟨l0, l2, l1, l3⟩
@@ -188,9 +188,9 @@ theorem osCommit_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : 
     (OutB := fun σ' ↦ σ' (.n o0.2.1) = σ (.n osOodz) * gen ^ row0 ∧ MatsOk σ' o0.2.2.mats ∧
       MatsBelow o0.2.2.k o0.2.2.mats) fun σ1 ha1 _ ↦ by
       have h := osMatS_blkA (H := H) (P := c.plan) (base := osOodz) (off := row0) (s := s1) σ1
-        (show 29 < r + 10 by omega) hmb1 (fun C rd hH ↦
+        (show 26 < r + 10 by omega) hmb1 (fun C rd hH ↦
           matsOk_agree (hok C rd hH).mats hsf.below.mats fun i hi ↦ ha1 i hi) hoff
-      rw [ha1 osOodz (by show 29 < k; omega)] at h
+      rw [ha1 osOodz (by show 26 < k; omega)] at h
       exact h
   have b5 := BlkA.seq (H := H) (show k ≤ q by omega) (show q ≤ q + 5 by omega) b4
     (B := [.call ("squeeze_point_from__L" ++ natStr lv.logCols)

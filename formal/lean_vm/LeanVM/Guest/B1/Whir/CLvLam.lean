@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.CLvSq
+public import LeanVM.Guest.B1.Whir.CLvCommit
 
 /-!
 # The batching challenge, honestly (G:1618-1628)
@@ -43,35 +43,58 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
   set k := st.k with hk
   set cap := st.fsv σ with hcap
   set S := lamS cap with hS
-  set p := (osPad st.pad k).2.1 with hp
-  set j := (osPad st.pad k).2.2 with hj
-  have k36 : 36 ≤ k := hsf.k
-  have kj : k ≤ j := osPad_next _ _
+  set p := (osPad st.pad (k + 5)).2.1 with hp
+  set j := (osPad st.pad (k + 5)).2.2 with hj
+  have k33 : 33 ≤ k := hsf.k
+  have kj : k + 5 ≤ j := osPad_next _ _
   have hpj : p + 4 < j := by
-    rcases osPad_ptr st.pad k (fun q hq ↦ hsf.padB q hq) with h | h <;> omega
+    rcases osPad_ptr st.pad (k + 5) (fun q hq ↦ by have := hsf.padB q hq; omega) with h | h <;> omega
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hsf.fs
   have hfb : ∀ f ∈ st.fs, f < k := hsf.below.fs
   have hc : cap = [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] := by
     simp [hcap, OsSt.fsv, hf]
+  -- the capacity copied
+  have b1 : BlkA H σ k (k + 5) (st.fs.zipIdx.map fun (f, i) ↦ osCp (k + i) f)
+      (fun σ' ↦ ∀ i < 5, σ' (.n (k + i)) = cap.getD i 0) := by
+    refine ⟨lstF k cap, fun C rd hH σ' ha hr ↦ ?_⟩
+    have hcl : cap.length = 5 := by simp [hcap, OsSt.fsv, hsf.fs]
+    have v : ∀ i < 5, σ' (.n (k + i)) = cap.getD i 0 := fun i hi ↦
+      lstF_at hr (by omega) i (by omega)
+    refine ⟨?_, v⟩
+    have u : ∀ f ∈ st.fs, σ' (.n f) = σ (.n f) := fun f hf' ↦ ha f (hfb f hf')
+    rw [hf] at u ⊢
+    simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at u
+    simp only [List.zipIdx_cons, List.zipIdx_nil, List.map_cons, List.map_nil, allOk_cons, allOk_nil,
+      and_true, stmtOk_atom, holds_copy, osCp, Nat.zero_add, Nat.reduceAdd]
+    rw [show k = k + 0 from rfl, v 0 (by omega), v 1 (by omega), v 2 (by omega), v 3 (by omega),
+      v 4 (by omega), u.1, u.2.1, u.2.2.1, u.2.2.2.1, u.2.2.2.2, hc]
+    exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   -- the zero run
-  have b2 : BlkA H σ k j (osPad st.pad k).1 (fun σ' ↦ PadOk σ' (some p)) :=
-    osPad_blk σ st.pad k (fun C rd hH ↦ (hok C rd hH).pad) (fun q hq ↦ hsf.padB q hq)
+  have b2 := BlkA.seq (H := H) (show k ≤ k + 5 by omega) kj b1 (B := (osPad st.pad (k + 5)).1)
+    (OutB := fun σ' ↦ PadOk σ' (some p)) fun σ1 ha1 _ ↦
+    osPad_blk σ1 st.pad (k + 5) (fun C rd hH ↦ by
+      have := ((hok C rd hH).agree (fun i hi ↦ ha1 i hi)).pad
+      intro q hq
+      obtain ⟨z1, z2, z3, z4⟩ := (hok C rd hH).pad q hq
+      have hb := hsf.padB q hq
+      rw [ha1 _ (by omega), ha1 _ (by omega), ha1 _ (by omega), ha1 _ (by omega)]
+      exact ⟨z1, z2, z3, z4⟩) (fun q hq ↦ by have := hsf.padB q hq; omega)
   -- the permutation
-  have b3 := BlkA.seq (H := H) (show k ≤ j from kj) (show j ≤ j + 13 by omega) b2
-    (B := [osKeccak ([p + 1, p + 1, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4] ++ st.fs) j])
+  have b3 := BlkA.seq (H := H) (show k ≤ j by omega) (show j ≤ j + 13 by omega) b2
+    (B := [osKeccak ([p + 1, p + 1, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4] ++ [k, k + 1, k + 2, k + 3, k + 4]) j])
     (OutB := fun σ' ↦ ∀ i < 13, σ' (.n (j + i)) = rdCell S i) fun σ1 ha1 ho1 ↦ by
-      refine (keccak_blk ⟨cap, []⟩ (by simp) (by simp [hf]) (fun i hi ↦ ?_)
+      refine (keccak_blk ⟨cap, []⟩ (by simp) (by simp) (fun i hi ↦ ?_)
         (fun C rd hH ↦ ?_)).mono fun σ' h i hi ↦ by
           rw [h i hi, hS, lamS]
       · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hi
-        rcases hi with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | hi
-        all_goals first | omega | (have := hfb i hi; omega)
-      · obtain ⟨z1, z2, z3, z4⟩ := ho1 C rd hH p rfl
-        have v : ∀ f ∈ st.fs, σ1 (.n f) = σ (.n f) := fun f hf' ↦ ha1 f (hfb f hf')
-        rw [hf] at v
-        simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at v
-        simp only [List.map_append, List.map_cons, List.map_nil, hf, z1, z2, z3, z4, v.1,
-          v.2.1, v.2.2.1, v.2.2.2.1, v.2.2.2.2, hc]
+        rcases hi with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | (rfl | rfl | rfl | rfl | rfl)
+        all_goals omega
+      · obtain ⟨w, z⟩ := ho1 C rd hH
+        obtain ⟨z1, z2, z3, z4⟩ := z p rfl
+        have hcl : cap.length = 5 := by simp [hcap, OsSt.fsv, hsf.fs]
+        simp only [List.map_append, List.map_cons, List.map_nil, z1, z2, z3, z4]
+        rw [show k = k + 0 from rfl, w 0 (by omega), w 1 (by omega),
+          w 2 (by omega), w 3 (by omega), w 4 (by omega), hc]
         simp [pendCells]
   -- `λ` and `1/λ`
   have b5 := BlkA.seq (H := H) (show k ≤ j + 13 by omega) (show j + 13 ≤ j + 13 + 3 by omega) b3
@@ -95,7 +118,7 @@ theorem osLam_complete {st : OsSt} (σ : Val) (hsf : st.Sf) (hok : ∀ C rd, H C
   rw [ek]
   refine BlkA.congr (BlkA.monoH b5.agree fun C rd hH σ' ha ⟨ho, hag⟩ ↦ ?_) (by
     simp only [osLam, List.append_assoc, List.cons_append, List.nil_append]; rfl)
-  obtain ⟨⟨hpad, e3⟩, e5⟩ := ho
+  obtain ⟨⟨⟨-, hpad⟩, e3⟩, e5⟩ := ho
   have hok' := hok C rd hH
   refine ⟨⟨⟨⟨rfl, ⟨?_, ?_, ?_, ?_⟩, hco, fun q hq ↦ ?_, by omega⟩,
     matsOk_agree hok'.mats hsf.below.mats fun i hi ↦ hag i hi, hpad⟩, by omega, hag⟩,

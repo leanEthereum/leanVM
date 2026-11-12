@@ -82,14 +82,14 @@ theorem osFinalMsg_complete {c : OsCfg} {lv : OsLv} {st : OsSt} (σ : Val) (hsf 
       rcases hi with hi | rfl | rfl
       · have := hsf.below.fs i hi; omega
       · exact pcu
-      · have := hsf.k; show 15 < r; omega
+      · have := hsf.k; show 12 < r; omega
     · have e := ho1 C rd hH
       have hargs : (st.fs ++ [cu.2.1, osFmsg]).map (fun i ↦ σ1 (.n i)) =
           st.fsv σ ++ [st.cur σ, σ (.n osFmsg)] := by
         simp only [List.map_append, List.map_cons, List.map_nil, OsSt.fsv]
         congr 1
         · exact List.map_congr_left fun f hf ↦ ha1 f (hsf.below.fs f hf)
-        · rw [e, ha1 osFmsg (by have := hsf.k; show 15 < st.k; omega)]; rfl
+        · rw [e, ha1 osFmsg (by have := hsf.k; show 12 < st.k; omega)]; rfl
       rw [hargs]
       exact hC C rd hH
   refine BlkA.congr (BlkA.monoH hall.agree fun C rd hH σ' ha ⟨⟨_, hret⟩, hag⟩ ↦ ?_) rfl

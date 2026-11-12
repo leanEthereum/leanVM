@@ -192,7 +192,7 @@ def osRoundF (P : List (ℕ × ℕ × ℕ)) (i : ℕ) (st : OsSt) (xs : List E) 
 /-- **One round, honestly.** -/
 theorem osRound_complete {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {st : OsSt} (σ : Val) (xs : List E)
     (hco : st.co < u128Bound) (hi : 2 * i < u128Bound) (hb : st.Below)
-    (hm : MatsOk σ st.mats) (hk : 36 ≤ st.k)
+    (hm : MatsOk σ st.mats) (hk : 33 ≤ st.k)
     (hC : C "opening_round" (st.fsv σ ++ [st.cur σ, σ (.n st.claim), σ (.n osTabs),
       σ (.n osFch) * gen ^ i, σ (.n osCoefs) * gen ^ (2 * i)])
       (roundRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) xs)) :
@@ -212,14 +212,14 @@ theorem osRound_complete {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {st : OsSt} (�
   have h12 := BlkF.seq k1 k2 hA (OutB := fun σ' ↦ σ' (.n fp.2.1) = σ (.n osFch) * gen ^ i ∧
       MatsOk σ' fp.2.2.mats ∧ MatsBelow fp.2.2.k fp.2.2.mats) fun σ1 ha1 _ ↦
     BlkF.mono (osMatS_blk (C := C) (rd := rd) (P := P) (base := osFch) (off := i) (s := cu.2.2) σ1
-      (by show 19 < cu.2.2.k; omega) hmb1 (by rw [hcuk]; exact matsOk_agree hm hb.mats ha1) hi1)
-      fun σ' h ↦ by rw [ha1 _ (by show 19 < st.k; omega)] at h; exact h
+      (by show 16 < cu.2.2.k; omega) hmb1 (by rw [hcuk]; exact matsOk_agree hm hb.mats ha1) hi1)
+      fun σ' h ↦ by rw [ha1 _ (by show 16 < st.k; omega)] at h; exact h
   have h123 := BlkF.seq (le_trans k1 k2) k3 h12 (OutB := fun σ' ↦
       σ' (.n cp.2.1) = σ (.n osCoefs) * gen ^ (2 * i) ∧
       MatsOk σ' cp.2.2.mats ∧ MatsBelow cp.2.2.k cp.2.2.mats) fun σ2 ha2 ho2 ↦
     BlkF.mono (osMatS_blk (C := C) (rd := rd) (P := P) (base := osCoefs) (off := 2 * i) (s := fp.2.2)
-      σ2 (by show 21 < fp.2.2.k; omega) ho2.2.2.2 ho2.2.2.1 hi)
-      fun σ' h ↦ by rw [ha2 _ (by show 21 < st.k; omega)] at h; exact h
+      σ2 (by show 18 < fp.2.2.k; omega) ho2.2.2.2 ho2.2.2.1 hi)
+      fun σ' h ↦ by rw [ha2 _ (by show 18 < st.k; omega)] at h; exact h
   have hall := BlkF.seq (le_trans (le_trans k1 k2) k3) (by show cp.2.2.k ≤ cp.2.2.k + 7; omega)
     h123 (fB := fun _ j ↦ (roundRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) xs).getD (j - cp.2.2.k) 0)
     (B := [.call "opening_round" ((st.fs ++ [cu.2.1, st.claim, osTabs, fp.2.1, cp.2.1]).map V.n)
@@ -234,8 +234,8 @@ theorem osRound_complete {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {st : OsSt} (�
     refine ⟨?_, hv'⟩
     obtain ⟨⟨hcur, hfpv, -⟩, hcpv, -⟩ := ho3
     have pcu : cu.2.1 < cp.2.2.k := lt_of_lt_of_le (osMat_ptr_lt _ _ _ hb.cb) (le_trans k2 k3)
-    have pfp : fp.2.1 < cp.2.2.k := lt_of_lt_of_le (osMatS_ptr_lt _ _ _ _ (by show 19 < cu.2.2.k; omega)) k3
-    have pcp : cp.2.1 < cp.2.2.k := osMatS_ptr_lt _ _ _ _ (by show 21 < fp.2.2.k; omega)
+    have pfp : fp.2.1 < cp.2.2.k := lt_of_lt_of_le (osMatS_ptr_lt _ _ _ _ (by show 16 < cu.2.2.k; omega)) k3
+    have pcp : cp.2.1 < cp.2.2.k := osMatS_ptr_lt _ _ _ _ (by show 18 < fp.2.2.k; omega)
     simp only [allOk_cons, allOk_nil, and_true, stmtOk_call]
     have eargs : ((st.fs ++ [cu.2.1, st.claim, osTabs, fp.2.1, cp.2.1]).map V.n).map σ' =
         st.fsv σ ++ [st.cur σ, σ (.n st.claim), σ (.n osTabs), σ (.n osFch) * gen ^ i,
@@ -247,7 +247,7 @@ theorem osRound_complete {P : List (ℕ × ℕ × ℕ)} {i : ℕ} {st : OsSt} (�
           rw [ha f (by have := hb.fs f hf; omega), ha3 f (hb.fs f hf)]
       · have pcl : st.claim < cp.2.2.k := by have := hb.claim; omega
         rw [ha _ pcu, hcur, ha _ pfp, hfpv, ha _ pcp, hcpv, ha st.claim pcl, ha3 _ hb.claim,
-          ha osTabs (by show 9 < cp.2.2.k; omega), ha3 osTabs (by show 9 < st.k; omega)]
+          ha osTabs (by show 10 < cp.2.2.k; omega), ha3 osTabs (by show 10 < st.k; omega)]
         rfl
     rw [eargs]
     have erets : (osRun cp.2.2.k 7).map σ' = roundRets (st.fsv σ) (st.cur σ) (σ (.n st.claim)) xs := by
@@ -360,7 +360,7 @@ def roundsF (P : List (ℕ × ℕ × ℕ)) : ℕ → ℕ → OsSt → List E →
 theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
     (hC : ∀ a r, MeaningOpeningRound rd a r → C "opening_round" a r) :
     ∀ (n i : ℕ) (st : OsSt) (σ : Val) (xs : List E), st.co < u128Bound → 2 * (i + n) < u128Bound →
-      st.Below → MatsOk σ st.mats → 36 ≤ st.k → st.fs.length = 5 → xs.length = 5 * n →
+      st.Below → MatsOk σ st.mats → 33 ≤ st.k → st.fs.length = 5 → xs.length = 5 * n →
       ReadsAt rd (st.cur σ) xs →
       RoundsMem rd (σ (.n osFch)) (σ (.n osCoefs)) n i (st.fsv σ) (σ (.n st.claim)) xs →
       BlkF C rd σ st.k (osRounds P i n st).2.k (roundsF P n i st xs σ) (osRounds P i n st).1
@@ -427,7 +427,7 @@ theorem osRounds_complete {P : List (ℕ × ℕ × ℕ)}
       have hih := ih (i + 1) st1 σ1 (xs.drop 5) (by rw [ro.co]; unfold u128Bound; positivity)
         (by omega) ro.below ro.mats (le_trans hk hk1) ro.fs (by simp [hxl]; omega)
         (by rw [ro.cur]; exact hrd1) (by
-          rw [ef, ec, ha1 osFch (by show 19 < st.k; omega), ha1 osCoefs (by show 21 < st.k; omega)]
+          rw [ef, ec, ha1 osFch (by show 16 < st.k; omega), ha1 osCoefs (by show 18 < st.k; omega)]
           exact hmem')
       rw [ef, ec, ← hR] at hih
       refine BlkF.mono hih fun σ' ⟨ho, _⟩ ↦ ⟨ho.F, ?_, ho.claim, ho.fs, ho.co, ho.below, ho.mats,
