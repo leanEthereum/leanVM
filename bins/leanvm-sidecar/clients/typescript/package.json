@@ -1,0 +1,16 @@
+{
+  "name": "leanvm-sidecar-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Client of leanvm-sidecar: send a request, tryRecv its response",
+  "main": "dist/client.js",
+  "types": "dist/client.d.ts",
+  "scripts": {
+    "build": "./build.sh",
+    "test": "node --test dist/client.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "typescript": "^5.4.0"
+  }
+}

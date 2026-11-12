@@ -1,0 +1,19 @@
+[package]
+name = "leanvm-sidecar"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+leanvm = { path = "../../crates/leanvm" }
+bench.workspace = true
+libc.workspace = true
+tracing.workspace = true
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+leanvm_sidecar_client = { path = "../../crates/leanvm_sidecar_client" }
+signatures = { workspace = true, features = ["mock"] }

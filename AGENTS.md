@@ -67,7 +67,7 @@ cargo fmt --all                   # max_width = 120
 cargo machete --with-metadata     # unused dependencies, dev ones included
 ```
 
-An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench` and the CLI are left out because jemalloc's build script wants a cross `gcc`):
+An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench` and the binaries are left out because jemalloc's build script wants a cross `gcc`):
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \

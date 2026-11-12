@@ -1,0 +1,11 @@
+[package]
+name = "leanvm_sidecar_client"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+libc.workspace = true

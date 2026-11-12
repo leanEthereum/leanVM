@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "declaration": true,
+    "outDir": "dist",
+    "types": ["node"]
+  },
+  "files": ["client.ts", "client.test.ts", "e2e.ts"]
+}
