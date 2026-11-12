@@ -36,7 +36,7 @@ variable {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
 valid execution within the cap at a valid rate, `proveWithHash callKeccak256 callKeccakF1600` is
 `Rom.honestComp?` of the specification's honest strategy at `skelWitness`, its sizes and its
 stack. -/
-theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 28)
+theorem prove_eq_honestComp (hv : ValidExecution prog input t) (hcap : t.committedSize ≤ 2 ^ 30)
     {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (fuel : ℕ) :
     proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel =
       Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest input))

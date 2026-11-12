@@ -104,7 +104,7 @@ def SpecOnValid (A : HonestProverWithHash)
 (`noProof_evalDistEq`). -/
 theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A HonestFor) :
     ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-      ValidExecution prog input t → t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 →
+      ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
       Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 35)}[v = false] ≤
         (2 : ℝ≥0∞)⁻¹ ^ 256 := by
   intro prog input t ρ hv hbudget hρ

@@ -39,7 +39,7 @@ theorem specOnValid_prove : SpecOnValid oracleProver ChildFor :=
 theorem childSpec_prove (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ
     fuel : ℕ) :
     ChildSpec oracleProver prog input t ρ fuel := by
-  by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 28 ∧ 1 ≤ ρ ∧ ρ ≤ 4
+  by_cases h : ValidExecution prog input t ∧ t.committedSize ≤ 2 ^ 30 ∧ 1 ≤ ρ ∧ ρ ≤ 4
   · exact .inr (specOnValid_prove prog input t ρ fuel h.1 h.2.1 h.2.2)
   · left
     show proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel = pure none
