@@ -34,9 +34,9 @@ them for the whole proof:
 **The statement** (`open_stacked_complete_Spec`): for every base `b`, the function's own memory is
 one layout `L` of `(exponent, words)` runs within `[b, b + n)` (`LayoutWithin`), its two point
 buffers among them; on every memory holding `L` (`HoldsLayout`), the words `xs` at the cursor and
-the window tables at `tabs`, the call of the candidate's specialization on
-`capOf S ++ [target, root's two cells, cursor, tabs]` returns the run's claim, the pointers of the
-point buffers, its glued weight and its residual's value.
+the window tables at `tabs`, the call of the size's arm on `rateSel r :: capOf S ++ [target,
+root's two cells, cursor, tabs]` returns the run's claim, the pointers of the point buffers, its
+glued weight and its residual's value.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -80,7 +80,7 @@ def LayoutWithin (L : OsLayout) (b n : ℕ) : Prop :=
 
 /-! ## The statement -/
 
-/-- **`open_stacked` is complete** at every candidate: on an accepting run of `whirOpen μ r target`
+/-- **`open_stacked` is complete** at every stack log and rate: on an accepting run of `whirOpen μ r target`
 from the caller's sponge state `S` (nothing waiting), the words `xs` and the openings `os`, with
 no zero challenge and openings that agree in the caps, for every base `b` the function's own
 memory is a layout `L` within `[b, b + n)` holding its two point buffers (the run's point,
@@ -88,7 +88,7 @@ zero-padded, and one plus each of its coordinates, one-padded); on every memory 
 words `xs` at the cursor and the window tables at `tabs`, the call returns the run's claim, the
 point buffers' pointers, its glued weight and its residual's value. -/
 def open_stacked_complete_Spec : Prop :=
-  ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
+  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
       (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
       RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
@@ -97,8 +97,8 @@ def open_stacked_complete_Spec : Prop :=
         (pt, w.point ++ List.replicate (pointCap - μ) 0) ∈ L ∧
         (pt1, w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1) ∈ L ∧
         ∀ rd : Reader, HoldsLayout rd L → ReadsAt rd cur xs → WinTabs rd tabs →
-          coreProgram.Rel rd (openName μ r)
-            (capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
+          coreProgram.Rel rd (openName μ)
+            (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
             [w.target, ofK (addressOfIndex pt), ofK (addressOfIndex pt1), w.inner, w.residual]
 
 end
