@@ -1,86 +1,57 @@
 % !TeX root = ../drafts/b-polynomial-commitment-scheme.tex
-\section{The polynomial commitment scheme: WHIR \slash Ligerito with affine folds}\label{annex:pcs}
+\section{Our PCS: WHIR \slash Ligerito with affine folds}\label{annex:pcs}
 
-A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme \cite{ACFY25,NA25} over binary fields, with a round-by-round soundness analysis in the Johnson list-decoding regime. The two schemes coincide when WHIR is instantiated with interleaved codes and Ligerito with the Reed-Solomon codes of Annex~\ref{app:ntt}, which gives the novel polynomial basis and additive NTT used for encoding. Each commitment takes one out-of-domain (OOD) sample. The two fields are those of \S\ref{sec:vm}: we commit to a $\K$-valued multilinear, and opening claims are in $\E$, with $|\K|=2^{64}$ and $|\E|=2^{128}$.
+A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme (PCS) \cite{ACFY25,NA25} over binary fields, in the Johnson list-decoding regime.
 
-A fold round combines two halves with the \emph{affine combiner} of~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 for practical reasons. 
-
-\paragraph{Symbols.}
-
-\begin{center}\small
-\begin{tabular}{@{}lll@{}}
-\hline
-here & in \cite{ACFY25,NA25,CYWZ26} & meaning\\
-\hline
-$\nv_i$        & $m_i$        & variables of the message at level $i$\\
-$\nlev$        & $r$          & number of levels\\
-$\ell_i$       & $\ell_i$, $k$ & fold factor (fold rounds of level $i$)\\
-$\rate_i$      & $\rho_i$     & code rate\\
-$\rexp_i$      & $R_i$        & rate exponent, $\rate_i=2^{-\rexp_i}$\\
-$\slack_i$     & $\eta_i$, $\eta$ & Johnson slack\\
-$\dgr$         & $d$          & a degree bound\\
-$\agr$, $\aset$ & $A$, $S$    & agreement (a number of points), agreement set\\
-$\jl(\agr,\dgr)$ & $\ell$, $\ell_0$ & Johnson count of Theorem~\ref{thm:johnson-general}\\
-$\afa_j,\afb_j$ & $\alpha,\beta$ & affine combiner of fold round $j$\\
-$u,v,\tabx{\iota}$ & $u_\iota,v_\iota,c_\iota$ & values a fold round sends\\
-$\epsaff$      & $\varepsilon_{\mathrm{aff}}$ & affine MCA error\\
-$\imul,\iyz,\iz,\ithr$ & $m,D,M,B$ & interpolation parameters of $\epsaff$\\
-$\lambda$      & $\lambda$, $\alpha$ & batching challenge, as in \S\ref{sec:stacking}\\
-$\fc_j$        & $s_j$        & sumcheck challenge (tail rounds)\\
-$\rc{j}$       & $\sigma_j$   & running claim after round $j$\\
-$J_i$          & $T_i$        & number of claims, as in \S\ref{sec:e2e-unrolled}\\
-$\nq_i$        & $t_i$, $t$   & query count\\
-$\qset_i$      & $J_i$        & the sampled columns\\
-$\blen$        & $n$          & code block length\\
-$\dom$         & $S$, $D$     & evaluation domain\\
-$\orc^{(i)}$   & $C^{(i)}$    & oracle, an interleaved word\\
-$\nrows$       & (none)       & committed rows of $\orc^{(0)}$, $\nrows \le 2^{\ell_0}$\\
-$\nstack$      & (none)       & elements placed in the stack, \S\ref{sec:stacking}\\
-$\lst$         & $\lambda_\gamma$, $L$ & list of polynomial tuples close to a word\\
-$W$, $c$       & $w$, $v$, $\Lambda$ & weight and value of a claim, as in \S\ref{sec:stacking}\\
-$\cood{i}$     & $y$          & out-of-domain answer at $z_i$\\
-$\phigh$       & (none)       & high coefficients of a folded lane, sent in the clear\\
-$\vansub_i$, $\Wn{i}$ & $W_i$, $\widehat W_i$ & subspace polynomial, normalized\\
-$\novel_j$     & $X_j$        & novel-basis polynomial ($X$ is the indeterminate)\\
-$\ntmap_d$     & $q_d$        & linearized map of the NTT\\
-$\bfarr$       & $B$          & butterfly array\\
-$\mpoly$       & $P$          & message polynomial\\
-$e_c$          & $\beta_c$    & the fixed $\Ftwo$-basis, as in Annex \ref{annex:rs}\\
-\hline
-\end{tabular}
-\end{center}
+A fold round combines two halves with the \emph{affine combiner} of the brilliant~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 for practical reasons (due to grand product GKR elsewhere in the protocol).
 
 %=====================================================================
 \subsection{Preliminaries}\label{sec:prelims}
 %=====================================================================
 
-\subsubsection{Codes, interleaving, and list decoding}\label{sec:codes}
+\subsubsection{Codes, interleaving, and list decoding}\label{sec:codes}\label{sec:binary-rs}
 
-We use the Reed-Solomon code $\RS[\E,\dom,\kdim]$ of Definition~\ref{def:rs-code}, with $|\dom|=\blen$, dimension $\kdim=2^\kappa$, and rate $\rate=\kdim/\blen$. Messages are indexed by $\cube{\kappa}$; the linear encoder $\Enc$ of \S\ref{sec:binary-rs} maps them onto the code and preserves $\K$-valued words. Polynomials are written in the novel basis $(\novel_c)_c$ of Annex~\ref{app:ntt}: one of degree below $2^\kappa$ is a message $g:\cube{\kappa}\to\E$, with coefficient $g(u)$ on $\novel_{\langle u\rangle}$. A fold round raises degrees by one, so the analysis also uses tuples of polynomials of degree at most some $\dgr\ge2^\kappa$.
+The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc}, with $\rexp\ge1$ and $\kappa+\rexp\le64$, reads a message $g:\cube{\kappa}\to\E$ as the novel-basis polynomial $\mpoly_g$, of coefficient $g(u)$ on $\novel_{\langle u\rangle}$, and evaluates it on an additive domain $\dom$ of size $\blen=2^{\kappa+\rexp}$. It is a linear injection onto $\RS[\E,\dom,2^\kappa]$ (Definition~\ref{def:rs-code}) of rate $\rate=2^{-\rexp}$. The verifier uses its \emph{column weights}: for $x\in\dom$, $\Enc_{\kappa,\rexp}(g)[x]=\inner{W_x}{g}$ for every $g$, where the MLE $\mle{W_x}$ can be evluated in $O(\kappa)$ field operations anywhere in $\E^\kappa$ (Lemma~\ref{lem:colweight}). A fold round raises degrees by one, so the analysis also uses polynomials of degree at most some $\dgr\ge2^\kappa$.
 
 \begin{definition}[Interleaved words, lists]\label{def:interleaved}
 An \emph{interleaved word} is a matrix $\orc \in \E^{\cube{\ell} \times \dom}$, of $2^\ell$ \emph{lanes}. A \emph{polynomial tuple} $U=(U_u)_{u\in\cube{\ell}}$ has degree at most $\dgr$ if every $U_u$ does; it \emph{agrees} with $\orc$ on $\aset\subseteq\dom$ if $U_u(x)=\orc[u,x]$ for all $u$ and all $x\in\aset$. For an agreement $\agr$, $\lst(\orc;\agr,\dgr)$ is the set of polynomial tuples of degree at most $\dgr$ agreeing with $\orc$ on at least $\agr$ coordinates. A tuple \emph{decodes} to the message $g_U:\cube{\ell+\kappa}\to\E$, where $g_U(u,\cdot)$ are the coefficients of $U_u$ below $2^\kappa$, its \emph{low part}; tuples of degree below $2^\kappa$ decode to distinct messages.
 \end{definition}
 
 \begin{definition}[Weighted claims on tuples]\label{def:tuple-claim}
-For a weight $W:\cube{\ell}\times\cube{\kappa}\to\E$ and a polynomial tuple $P$ whose lane $P_u$ has coefficients $p_{u,c}$ on $\novel_c$, put $\inner{W}{P}:=\sum_{u\in\cube{\ell}}\sum_{c<2^\kappa}W(u,c)\,p_{u,c}$: coefficients of index $2^\kappa$ and above carry no weight. On a tuple of degree below $2^\kappa$ this is $\inner{W}{g_P}$ (Definition~\ref{def:inner}).
+For a weight $W:\cube{\ell}\times\cube{\kappa}\to\E$ and a polynomial tuple $P$, put $\inner{W}{P}:=\inner{W}{g_P}$ (Definition~\ref{def:inner}): a claim weighs only the low part, and coefficients of index $2^\kappa$ and above carry no weight.
 \end{definition}
 
 \begin{definition}[Affine fold]\label{def:affine-fold}
-Let $\orc$ have $\ell\ge1$ lane variables, and split a lane index as $(\iota,u')$, with $\iota\in\{0,1\}$ the variable folded first. For $\afa,\afb\in\E$, the \emph{affine fold} is the interleaved word with $\ell-1$ lane variables whose column at $x\in\dom$, the evaluation point of that column, is
+Let $\orc$ have $\ell\ge1$ lane variables, split a lane index as $(\iota,u')$, with $\iota\in\{0,1\}$ the variable folded first, and call $\orc_\iota:=\orc[(\iota,\cdot),\cdot]$ the two \emph{halves}. For $\afa,\afb\in\E$, the \emph{affine fold} is the interleaved word with $\ell-1$ lane variables whose column at $x\in\dom$ is
 \[
-\orc_{\afa,\afb}[u',x]\;:=\;\orc[(1,u'),x]+(\afa+\afb x)\,\orc[(0,u'),x].
+\orc_{\afa,\afb}[u',x]\;:=\;\orc_1[u',x]+(\afa+\afb x)\,\orc_0[u',x].
 \]
 The same formula, with the indeterminate $X$ for $x$, folds a polynomial tuple $U$ into $U_{\afa,\afb}$, of degree at most one more. Evaluation commutes with the fold, so a tuple agreeing with $\orc$ on $\aset$ folds to one agreeing with $\orc_{\afa,\afb}$ on $\aset$.
 \end{definition}
 
 In a fold round, $F:=U_{(0,\cdot)}$ and $G:=U_{(1,\cdot)}$ are the halves whose folded bit is $0$ and $1$, and the fold is $G+(\afa+\afb X)F$.
 
-\begin{theorem}[Johnson bound]\label{thm:johnson-interleaved}
-For every interleaved word $\orc$ over a domain of size $\blen$, every degree bound $\dgr<\blen$ and every agreement $\agr$ with $\agr^2>\blen\dgr$: $\ |\lst(\orc;\agr,\dgr)| \le \jl(\agr,\dgr) := \bigl\lfloor \blen(\agr-\dgr)/(\agr^2-\blen\dgr) \bigr\rfloor$. If $\agr\ge(\sqrt{\rate}+\slack)\blen$ with $\rate:=\dgr/\blen$, this is at most $\frac{1}{2\slack\sqrt{\rate}}$. (Proof in \S\ref{app:johnson}.)
+\begin{theorem}[Johnson bound]\label{thm:johnson-general}
+Let $\mathcal{C} \subseteq \Sigma^\blen$ be a code, over any alphabet $\Sigma$, in which two distinct codewords agree on at most $\dgr$ coordinates, and let $\agr$ be an integer with $\agr^2>\blen\dgr$. Then every word $\mathbf{c} \in \Sigma^\blen$ has at most $\jl(\agr,\dgr):=\bigl\lfloor\blen(\agr-\dgr)/(\agr^2-\blen\dgr)\bigr\rfloor$ codewords agreeing with it on at least $\agr$ coordinates.
 \end{theorem}
 
-\subsubsection{Round-by-round soundness, and grinding}\label{sec:iopcs}
+\begin{proof}
+Let $U_1, \dots, U_L$ be distinct codewords, each agreeing with $\mathbf{c}$ on at least $\agr$ coordinates, and fix for each $j$ a set $\aset_j$ of exactly $\agr$ such coordinates. For a coordinate $x$ let $N_x := |\{ j : x \in \aset_j \}|$, so that $\sum_x N_x = L \agr$. Two codewords that both agree with $\mathbf{c}$ at $x$ agree with each other there, so $|\aset_j \cap \aset_{j'}| \le \dgr$ for $j \neq j'$, and counting ordered pairs,
+\[
+\sum_x N_x (N_x - 1) \;=\; \sum_{j \neq j'} |\aset_j \cap \aset_{j'}| \;\le\; L(L-1)\, \dgr .
+\]
+By Cauchy-Schwarz, $\sum_x N_x^2 \ge \bigl(\sum_x N_x\bigr)^2/\blen = L^2\agr^2/\blen$, so the left side is at least $L^2\agr^2/\blen - L\agr$. Dividing by $L$ and multiplying by $\blen$ gives $L\agr^2-\blen\agr\le(L-1)\,\blen\dgr$, that is $L\,(\agr^2-\blen\dgr)\le\blen(\agr-\dgr)$. As $\agr^2>\blen\dgr$, $L\le\blen(\agr-\dgr)/(\agr^2-\blen\dgr)$, and $L$ is an integer.
+\end{proof}
+
+\begin{corollary}[Johnson bound for interleaved words]\label{thm:johnson-interleaved}
+For every interleaved word $\orc$ over a domain of size $\blen$, every degree bound $\dgr<\blen$ and every agreement $\agr$ with $\agr^2>\blen\dgr$: $\ |\lst(\orc;\agr,\dgr)| \le \jl(\agr,\dgr)$.
+\end{corollary}
+
+\begin{proof}
+Polynomial tuples of degree at most $\dgr$ are a code as in Theorem~\ref{thm:johnson-general} over $\Sigma=\E^{2^\ell}$: two distinct ones differ in some lane, and two distinct polynomials of degree at most $\dgr$ agree on at most $\dgr$ points.
+\end{proof}
+
+\subsubsection{Round-by-round soundness}\label{sec:iopcs}
 
 \begin{definition}[RBR soundness, informal; cf.~\cite{CCHLRR19,ACFY25}]\label{def:rbr}
 A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varepsilon_1, \varepsilon_2, \dots)$, one per verifier message, if there is an \emph{invariant} on partial transcripts (not necessarily efficiently computable) marking the positions where a cheating prover has already lost:
@@ -94,112 +65,80 @@ A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varep
 
 Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
 
-\paragraph{Grinding.} The security target is $2^{-125}$ per verifier message. A message whose RBR error $\varepsilon_i$ exceeds it is preceded by a grind of $b_i$ bits, which counts the error as $\varepsilon_i\,2^{-b_i}\le2^{-125}$ (\S\ref{sec:grinding}); the protocol below leaves these grinds implicit.
-
-%=====================================================================
-\subsection{Reed-Solomon codes over binary fields}\label{sec:binary-rs}
-%=====================================================================
-
-The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc} evaluates $2^\kappa$ novel-basis coefficients on an additive domain of size $\blen=2^{\kappa+\rexp}$. Here $\rexp\ge1$ and $\kappa+\rexp\le64$. The protocol uses three properties, proved in Annex~\ref{app:ntt}:
-\begin{itemize}[itemsep=2pt]
-\item \emph{fast encoding, for the prover:} $\Enc_{\kappa,\rexp}$ is computed by the additive NTT with $\tfrac12 \kappa \blen$ multiplications and fewer than $(\kappa + 1)\, \blen$ additions (Proposition~\ref{prop:ntt});
-\item \emph{MLE-friendly columns, for the verifier:} for every $x \in \dom$, the weight $W_x : \cube{\kappa} \to \K$, defined by $\Enc_{\kappa,\rexp}(g)[x] = \inner{W_x}{g}$ (the relation being valid for arbitrary $g$), admits an MLE efficiently evaluable anywhere in $\E^{\kappa}$ in $O(\kappa)$ field operations (Lemma~\ref{lem:colweight});
-\item \emph{multiplication by $X$, for the prover:} $X\cdot\novel_c$ is a short combination of $\novel_{c+1}$ and of the $\novel_{c'}$ whose index $c'$ is $c$ with low bits cleared, so the low $2^\kappa$ coefficients of $XH$, the only ones a claim weighs, depend only on those of $H$ (Lemma~\ref{lem:mulx}).
-\end{itemize}
-Since $\novel_{2^\kappa+j}=\Wn{\kappa}\,\novel_j$ for $j<2^\kappa$ (Definition~\ref{def:enc}), a polynomial of degree below $2^{\kappa+1}$ splits as
-\[
-P=P_{\mathrm{low}}+\Wn{\kappa}\cdot\textstyle\sum_{j<2^\kappa}p_{2^\kappa+j}\,\novel_j :
-\]
-its low part $P_{\mathrm{low}}$ is a message of the code, and its high part costs one evaluation of $\Wn{\kappa}$ and of a few $\novel_j$.
-
 %=====================================================================
 \subsection{The protocol}\label{sec:protocol}
 %=====================================================================
 
 \begin{protocol}[WHIR/Ligerito with affine folds]\label{fig:protocol}
 \ \par\smallskip
-\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1} \ge 1$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ has a rate $\rate_i = 2^{-\rexp_i}$, $\rexp_i \ge 1$, giving the encoder $\Enc_i := \Enc_{\kappa_i, \rexp_i}$ of \S\ref{sec:binary-rs} with $\kappa_i := \nv_{i+1}$, i.e.\ the code $\mathcal{C}_i := \RS[\E, \dom_i, 2^{\kappa_i}]$ over its domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$ and $\ell_i\le2^{\kappa_i}$), and a query count $\nq_i$. (The agreement thresholds appear only in the analysis.)
+\emph{Parameters.} The scheme commits to $f : \cube{\nv} \to \K$ across $\nlev \ge 1$ \emph{levels} $i = 0, \dots, \nlev-1$, with variable counts $\nv = \nv_0 > \nv_1 > \dots > \nv_\nlev \ge 0$, fold factors $\ell_i := \nv_i - \nv_{i+1}$ and $\nv_\nlev$ small (e.g.\ $\nv_\nlev \le 5$). Level $i$ encodes with $\Enc_i := \Enc_{\kappa_i, \rexp_i}$, $\kappa_i := \nv_{i+1}$, of rate $\rate_i = 2^{-\rexp_i}$ over a domain $\dom_i \subseteq \K$ of size $\blen_i = 2^{\kappa_i + \rexp_i}$ (requires $\kappa_i + \rexp_i \le 64$ and $\ell_i\le2^{\kappa_i}$), and takes $\nq_i$ queries. (The agreement thresholds appear only in the analysis.)
 
 \smallskip
-\textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. $\mathbf{V}$ sends $z_0\leftarrow\E^{\nv}$; $\mathbf{P}$ sends $\cood{0}\in\E$ (honestly $\mle{f}(z_0)$). The \emph{OOD claim} $(\eq(z_0,\cdot),\cood{0})$ joins the claims the opening proves.
+\textbf{Commit}$(f : \cube{\nv} \to \K)$: $\mathbf{P}$ sends the oracle $\orc^{(0)}[u, \cdot] := \Enc_0(f(u, \cdot))$, $u \in \cube{\ell_0}$, whose entries are $\K$ elements. Row $u$ evaluates on $\dom_0$ the \emph{lane} $P_u:=\mpoly_{f(u,\cdot)}$, the polynomial whose novel-basis coefficients are $f(u,\cdot)$, and the lanes form the polynomial tuple $P:=(P_u)_{u\in\cube{\ell_0}}$ (Definition~\ref{def:interleaved}), of message $g_P=f$. $\mathbf{V}$ sends $z_0\leftarrow\E^{\nv}$; $\mathbf{P}$ sends $\cood{0}\in\E$ (honestly $\mle{f}(z_0)$). The \emph{OOD claim} $(\eq(z_0,\cdot),\cood{0})$ joins the claims the opening proves.
 
 \smallskip
-\textbf{Open}$\bigl(\{(W_k, c_k)\}_{k = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: $\mathbf{V}$ sends $\lambda \leftarrow \E$. The running claim is $(W, \rc{0}) := \bigl(\sum_{k} \lambda^{k-1} W_k,\; \sum_{k} \lambda^{k-1} c_k\bigr)$, on the lanes $P_u:=\mpoly_{f(u,\cdot)}$, $u\in\cube{\ell_0}$. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
+\textbf{Open}$\bigl(\{(W_k, c_k)\}_{k = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: $\mathbf{V}$ sends $\lambda \leftarrow \E$. The running claim is $(W, \rc{0}) := \bigl(\sum_{k} \lambda^{k-1} W_k,\; \sum_{k} \lambda^{k-1} c_k\bigr)$, a weighted claim (Definition~\ref{def:tuple-claim}) about the lanes $P$, which the prover folds below. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
 \begin{enumerate}[itemsep=0.5pt,topsep=2pt]
 \item \emph{(fold rounds)} For $j = 1, \dots, \ell_i$, with running claim $(W, \rc{j-1})$, $W:\cube{\ell_i-j+1}\times\cube{\kappa}\to\E$, and lanes $P$ with $\ell_i-j+1$ lane variables, split as $F$, $G$ by the first:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
-\item $\mathbf{P}$ sends $u, v, \tabx{0}, \tabx{1} \in \E$, honestly $u = \inner{W_0}{G}$, $v=\inner{W_0+W_1}{F}$ and $\tabx{\iota}=\inner{W_\iota}{XF}$, with $W_\iota:=W(\iota,\cdot)$.
+\item $\mathbf{P}$ sends $v_G, v_F, \tabx{0}, \tabx{1} \in \E$, honestly $v_G = \inner{W(0,\cdot)}{G}$, $v_F=\inner{W(0,\cdot)+W(1,\cdot)}{F}$ and $\tabx{\iota}=\inner{W(\iota,\cdot)}{XF}$.
 \item $\mathbf{V}$ sends $\afa_j, \afb_j \leftarrow \E$.
-\item Both set $\rc{j} := u+\afa_j\bigl(u+\rc{j-1}\bigr)+\afa_j^2v+\afb_j\tabx{0}+\afa_j\afb_j\bigl(\tabx{0}+\tabx{1}\bigr)$ and $W \gets \mle{W}(\afa_j,\cdot)$; $\mathbf{P}$ sets $P \gets P_{\afa_j,\afb_j} = G+(\afa_j+\afb_jX)F$.
+\item Both set $\rc{j} := v_G+\afa_j\bigl(v_G+\rc{j-1}\bigr)+\afa_j^2v_F+\afb_j\tabx{0}+\afa_j\afb_j\bigl(\tabx{0}+\tabx{1}\bigr)$ and $W \gets \mle{W}(\afa_j,\cdot)$; $\mathbf{P}$ sets $P \gets P_{\afa_j,\afb_j} = G+(\afa_j+\afb_jX)F$.
 \end{enumerate}
-After the rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$. Its low $2^\kappa$ coefficients are a message $f^{(i+1)}:\cube{\nv_{i+1}}\to\E$ and its high ones are $\phigh\in\E^{\ell_i}$: $P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\sum_{j<\ell_i}\phigh_j\novel_j$. The running claim $(W,\rc{\ell_i})$ is a weighted claim about $f^{(i+1)}$.
+After the $\ell_i$ rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$, and the oracle folded by the same challenges (Definition~\ref{def:affine-fold}) is one word $w:=\orc^{(i)}_{\ell_i}\in\E^{\dom_i}$, honestly $P$ on $\dom_i$, where $\orc^{(i)}_j$ denotes $\orc^{(i)}$ folded by the first $j$ rounds. As $\novel_{2^\kappa+j}=\Wn{\kappa}\,\novel_j$ for $j<2^\kappa$ (Definition~\ref{def:enc}), $P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\sum_{j<\ell_i}\phigh_j\novel_j$: its low part is a message $f^{(i+1)}:\cube{\nv_{i+1}}\to\E$ and its high part is $\phigh\in\E^{\ell_i}$. The running claim $(W,\rc{\ell_i})$ is a weighted claim about $f^{(i+1)}$.
 \item If $i < \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
-\item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, then $\phigh$.
+\item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, row $u$ evaluating the new lane $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$, then $\phigh$.
 \item \emph{(ood)} $\mathbf{V}$ sends $z_{i+1} \leftarrow \E^{\nv_{i+1}}$; $\mathbf{P}$ sends $\cood{i+1} \in \E$ (honestly $\mle{f^{(i+1)}}(z_{i+1})$).
-\item \emph{(query)} $\mathbf{V}$ sends $\nq_i$ i.i.d.\ columns $\qset_i = (x_q)_{q < \nq_i} \leftarrow \dom_i$ and $\lambda\leftarrow\E$, one message.
-\item \emph{(read)} $\mathbf{V}$ reads $\orc^{(i)}[\cdot, x_q]$ and folds it as the rounds folded the lanes, $c_q := \orc^{(i)}_{\afa_1,\afb_1,\dots}[x_q]$ (honestly $P(x_q)$), then removes the high part, $c'_q := c_q + \Wn{\kappa}(x_q)\sum_{j<\ell_i}\phigh_j\,\novel_j(x_q)$ (honestly $\Enc_i(f^{(i+1)})[x_q]$).
-\item \emph{(next level)} The $J_{i+1}:=\nq_i+2$ claims of level $i+1$, the residual, the OOD and the $\nq_i$ consistency claims, are batched into one running claim on the lanes $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$:
+\item \emph{(query)} $\mathbf{V}$ sends $\nq_i$ i.i.d.\ queries $x_q \leftarrow \dom_i$, $q<\nq_i$, and $\lambda\leftarrow\E$, one message.
+\item \emph{(read)} $\mathbf{V}$ reads the columns $\orc^{(i)}[\cdot, x_q]$, folds each to $w(x_q)$, and removes the high part, $c_q := w(x_q) + \Wn{\kappa}(x_q)\sum_{j<\ell_i}\phigh_j\,\novel_j(x_q)$ (honestly $\Enc_i(f^{(i+1)})[x_q]$).
+\item \emph{(next level)} The $J_{i+1}:=\nq_i+2$ claims of level $i+1$, the residual, the OOD and the $\nq_i$ consistency claims, are batched into one running claim about the new lanes:
 \[
 W \gets W + \lambda\,\eq(z_{i+1},\cdot) + \lambda^2\textstyle\sum_q \lambda^{q} W^{(i)}_{x_q},
 \qquad
-\rc{0} := \rc{\ell_i} + \lambda\,\cood{i+1} + \lambda^2\textstyle\sum_{q}\lambda^{q}c'_q,
+\rc{0} := \rc{\ell_i} + \lambda\,\cood{i+1} + \lambda^2\textstyle\sum_{q}\lambda^{q}c_q,
 \]
-where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:binary-rs}).
+where $W^{(i)}_x$ are the column weights of $\Enc_i$ (\S\ref{sec:codes}).
 \end{enumerate}
-\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ sends $\nq_{\nlev-1}$ i.i.d.\ columns $\qset_{\nlev-1} \leftarrow \dom_{\nlev-1}$, computes $c_q$ from $\orc^{(\nlev-1)}$ as in 2(d) and checks $c_q\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
+\item If $i = \nlev - 1$: \emph{(final)} $\mathbf{P}$ sends the $2^{\nv_\nlev}+\ell_i$ coefficients of $P$. $\mathbf{V}$ sends $\nq_{\nlev-1}$ i.i.d.\ queries $x_q \leftarrow \dom_{\nlev-1}$, computes $w(x_q)$ as in 2(d) and checks $w(x_q)\qeq P(x_q)$. Then $\nv_\nlev$ sumcheck rounds of degree two (Fact~\ref{fact:sumcheck}) reduce $\sum_x W(x)\,f^{(\nlev)}(x)\qeq\rc{\ell_i}$ to a point $\fc\in\E^{\nv_\nlev}$, and $\mathbf{V}$ checks the last running claim against $\mle{W}(\fc)\cdot\mle{f^{(\nlev)}}(\fc)$, from the coefficients it holds.
 \end{enumerate}
-$\mathbf{V}$ evaluates $\mle{W}$ itself, at the point $(\afa,\fc)$ of all rounds' $\afa_j$ and tail challenges: every weight is MLE-friendly, and $\mle{W}$ there is the sum of the input weights at that point and of each later level's batched weights at its suffix. $\mathbf{V}$ accepts iff every check above passed.
+$\mathbf{V}$ evaluates $\mle{W}$ itself (MLE-friendly), at the point $(\afa,\fc)$ of all rounds' $\afa_j$ and tail challenges. $\mathbf{V}$ accepts iff every check above passed.
 \end{protocol}
-
-The verifier never forms the weight of $XF$: the prover sends its values $\tabx{\iota}$, and the analysis binds it (Lemma~\ref{lem:fold-list}).
-
-Completeness is perfect. The formula of step 1(c) is the honest $\inner{\mle{W}(\afa_j,\cdot)}{G+\afa_jF+\afb_jXF}$, as $\inner{\mle{W}(\afa_j,\cdot)}{H}=\inner{W_0}{H}+\afa_j\inner{W_0+W_1}{H}$ (characteristic $2$) and honestly $\inner{W_0}{F}+\inner{W_1}{G}=\rc{j-1}$; every other check is an identity on honest values.
 
 %=====================================================================
 \subsection{Why an affine fold}\label{sec:affine-intuition}
 %=====================================================================
 
-Let $f,g:\dom\to\E$ be two words and $u,v$ two codewords, with errors $e:=f-u$ and $e':=g-v$. Say $x$ is a \emph{bad point} if $e(x)\neq0$ or $e'(x)\neq0$. A fold challenge \emph{repairs} a bad point $x$ if the folded error is zero at $x$.
+Let $\orc_0,\orc_1:\dom\to\E$ be two words and $F,G$ two codewords, with errors $e_0:=\orc_0-F$ and $e_1:=\orc_1-G$. A point $x$ is \emph{bad} if $e_0(x)\neq0$ or $e_1(x)\neq0$, and a fold challenge \emph{repairs} it if the folded error vanishes at $x$.
 
-\paragraph{Scalar fold.} The folded error of $f+\fc g$ is $e+\fc e'$, so $\fc$ repairs $x$ exactly when $e'(x)\neq0$ and $\fc=-e(x)/e'(x)$. Each bad point has at most one repairing challenge, and the prover chooses it through $f$ and $g$. Suppose $f,g$ agree with $u,v$ on the same $\agr-1$ points, and no pair of codewords agrees with $f,g$ on $\agr$ common points. The prover gives each of the $\blen-\agr+1$ bad points a different repairing challenge. Each such challenge brings the fold to agreement $\agr$ with $u+\fc v$, so with probability $(\blen-\agr+1)/|\E|$ the fold looks close although $f,g$ are not. Tolerating a loss of $s$ coordinates does not help: the prover gives $s+1$ bad points the same repairing challenge, and the error stays at least $\bigl(1+\lfloor(\blen-\agr)/(s+1)\rfloor\bigr)/|\E|$ \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}.
+\paragraph{Scalar fold.} The folded error of $\orc_1+\afa\,\orc_0$ is $e_1+\afa e_0$, so each bad point has at most one repairing challenge, $\afa=-e_1(x)/e_0(x)$, which the prover chooses through the words. If they agree with $F,G$ on $\agr-1$ common points and with no pair of codewords on $\agr$, the prover gives the other $\blen-\agr+1$ points distinct repairing challenges, and the fold agrees with $G+\afa F$ on $\agr$ points with probability $(\blen-\agr+1)/|\E|$; tolerating the loss of a few coordinates does not help \cite[Prop.~6.1]{CYWZ26}, after \cite[Remark~1.1]{BCIKS20}.
 
-\paragraph{Affine fold.} The folded error of $f+(\afa+\afb x)g$ is $e+(\afa+\afb x)e'$, so $(\afa,\afb)$ repairs $x$ exactly when $e'(x)\neq0$ and $\afa+x\afb=-e(x)/e'(x)$. These challenges form a line in $\E^2$, so a random challenge repairs $x$ with probability $1/|\E|$. The prover sets the line's position, but $x$ sets its slope. So the lines of two different points cross at exactly one challenge. A random challenge thus repairs one bad point with probability up to $(\blen-\agr+1)/|\E|$, but two with probability at most $\binom{\blen}{2}/|\E|^2$. 
-
+\paragraph{Affine fold.} The folded error of $\orc_1+(\afa+\afb x)\orc_0$ is $e_1+(\afa+\afb x)e_0$, so $(\afa,\afb)$ repairs $x$ exactly when $e_0(x)\neq0$ and $\afa+x\afb=-e_1(x)/e_0(x)$. These challenges form a line in $\E^2$ whose position the prover sets but whose slope $x$ sets, so the lines of two different points cross at exactly one challenge. A random challenge thus repairs one bad point with probability up to $(\blen-\agr+1)/|\E|$, but two with probability at most $\binom{\blen}{2}/|\E|^2$: tolerating the loss of one coordinate (Theorem~\ref{thm:mca-affine}) leaves an error of order $1/|\E|$.
 
 %=====================================================================
 \subsection{Round-by-round soundness}\label{sec:soundness}
 %=====================================================================
 
-\paragraph{Thresholds.} At level $i$, with $\blen:=\blen_i$ and $\ell:=\ell_i$, every round is analysed at the level's final degree $\dgr$, and round $j$ at the agreement $\agr_j$, for $0\le j\le\ell$:
+\paragraph{Thresholds.} At level $i$, with $\blen:=\blen_i$ and $\ell:=\ell_i$, every round is analysed at the level's final degree $\dgr$, and round $j$, $0\le j\le\ell$, at the agreement $\agr_j$:
 \[
 \dgr := 2^{\kappa_i}-1+\ell,
 \qquad
 \agr_j := \agr_\ell-(\ell-j),
-\qquad
-\agr_{\ell}:=\bigl\lceil(\sqrt{\dgr/\blen}+\slack_i)\,\blen\bigr\rceil\le\blen,
 \]
-for a slack $\slack_i>0$. The honest lanes start at degree $2^{\kappa_i}-1$ and gain one degree per round, so they stay within $\dgr$; each round loses one coordinate of agreement. Write $\agr^{(i)}_j$, $\dgr^{(i)}$ when the level matters, and $L_i:=\jl(\agr^{(i)}_0,\dgr^{(i)})$, the size of the list the level starts on (Theorem~\ref{thm:johnson-interleaved}).
-
-Fix a commitment $\mathsf{cm} = \orc^{(0)}$ and input claims $\{(W_k, c_k)\}_k$, and define the relation
-\[
-\relopen \;:=\; \Bigl\{ \bigl(\orc^{(0)}, \{(W_k, c_k)\}_k\bigr) \;:\; \exists\, U \in \lst\bigl(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)}\bigr) \text{ with } \inner{W_k}{g_U} = c_k \text{ for all } k \Bigr\}.
-\]
-The commitment's list is $\lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$, of size at most $L_0$, so its members decode to at most $L_0$ messages. Their multilinears are pairwise distinct at $z_0$ except with probability at most $\binom{L_0}{2}\nv/|\E|$ (Lemma~\ref{lem:sz}), which the grind before $z_0$ brings below $2^{-125}$. Then at most one message answers the OOD claim, so the commitment is binding.
+where $\agr_\ell\le\blen$, the agreement at the level's last round, is a parameter. The honest lanes start at degree $2^{\kappa_i}-1$ and gain one degree per round, so they stay within $\dgr$; each round loses one coordinate of agreement. Write $\agr^{(i)}_j$, $\dgr^{(i)}$ when the level matters, and $L_i:=\jl(\agr^{(i)}_0,\dgr^{(i)})$, the size of the list the level starts on (Corollary~\ref{thm:johnson-interleaved}).
 
 \begin{theorem}[RBR soundness]\label{thm:rbr}
-Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that the Johnson counts below are defined (as $\agr^{(i)}_j-1\ge\agr^{(i)}_0$ for $j\ge1$), and let $\epsaff$ be the affine MCA error of Definition~\ref{def:epsaff}. Then the opening phase of Protocol~\ref{fig:protocol} for $\relopen$ has the following RBR soundness error at each verifier message, with $\blen:=\blen_i$, $\agr_j:=\agr^{(i)}_j$, $\dgr:=\dgr^{(i)}$:
+Suppose that $(\agr^{(i)}_0)^2>\blen_i\dgr^{(i)}$ for every level $i$, so that the Johnson counts below are defined (as $\agr^{(i)}_j-1\ge\agr^{(i)}_0$ for $j\ge1$), and let $\epsaff$ be the affine MCA error of Definition~\ref{def:epsaff}. Call the input claims $\{(W_k, c_k)\}_k$ \emph{false} if no $U \in \lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$ has $\inner{W_k}{g_U} = c_k$ for all $k$. Then Protocol~\ref{fig:protocol} has the following RBR soundness error at each verifier message, with $\blen:=\blen_i$, $\agr_j:=\agr^{(i)}_j$, $\dgr:=\dgr^{(i)}$:
 \[
 \begin{array}{llcl}
 \textnormal{batching } \lambda \textnormal{ of level } 0: & \varepsilon^{\mathrm{batch}} &=& \dfrac{(J_0 - 1)\, L_0}{|\E|} , \\[2ex]
 \textnormal{fold } (\afa_j,\afb_j), \textnormal{ level } i: & \varepsilon^{\mathrm{fold}}_{i,j} &=& \epsaff(\blen,\dgr,\agr_j) + \dfrac{2\,\jl(\agr_j-1,\dgr)}{|\E|} , \\[2ex]
-\textnormal{OOD point } z_i,\ i\ge1: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \dfrac{\nv_i}{|\E|} , \\[2ex]
-(\qset_i,\lambda),\ i<\nlev-1: & \varepsilon^{\mathrm{query}}_i &=& \Bigl(\dfrac{\agr^{(i)}_{\ell_i}-1}{\blen_i}\Bigr)^{\nq_i} + \dfrac{(J_{i+1} - 1)\, L_{i+1}}{|\E|} , \\[2ex]
-\textnormal{final query message } \qset_{\nlev-1}: & \varepsilon^{\mathrm{query}}_{\nlev-1} &=& \Bigl(\dfrac{\agr^{(\nlev-1)}_{\ell_{\nlev-1}}-1}{\blen_{\nlev-1}}\Bigr)^{\nq_{\nlev-1}} , \\[2ex]
-\textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} .
+\textnormal{OOD point } z_i: & \varepsilon^{\mathrm{ood}}_i &=& \dbinom{L_i}{2} \dfrac{\nv_i}{|\E|} , \\[2ex]
+\textnormal{query message of level } i: & \varepsilon^{\mathrm{query}}_i &=& \Bigl(\dfrac{\agr_{\ell_i}-1}{\blen}\Bigr)^{\nq_i} + \dfrac{(J_{i+1} - 1)\, L_{i+1}}{|\E|} , \\[2ex]
+\textnormal{each of the } \nv_\nlev \textnormal{ tail rounds}: & \varepsilon^{\mathrm{tail}} &=& \dfrac{2}{|\E|} ,
 \end{array}
 \]
-Here $J_0\le512$ is the number of input claims and $J_i = \nq_{i-1} + 2$ for $i \ge 1$. The \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest row over all rounds, each divided by $2^{b}$ for the grind of $b$ bits before its message.
+the second query term being absent at the last level, $i=\nlev-1$. Each row is divided by $2^{b}$ for the grind of $b$ bits before its message, which the protocol leaves implicit; the \emph{RBR error}, which governs the Fiat-Shamir compilation, is the largest result, held to $2^{-125}$ (\S\ref{sec:grinding}).
 \end{theorem}
 
 \subsubsection{Proximity tools}\label{sec:tools}
@@ -223,24 +162,24 @@ Then
 \end{definition}
 
 \begin{theorem}[Affine MCA; {\cite[Thm.~1.1, Lemma~4.1, \S5.1]{CYWZ26}}]\label{thm:mca-affine}
-Let $\dom\subseteq\K$ have size $\blen$, let $1\le\dgr<\agr\le\blen$, $h\ge1$, and let $f,g:\dom\to\E^h$ be words of $h$ lanes. For $\afa,\afb\in\E$ and an $h$-tuple $P$ of polynomials let $\aset_{\afa,\afb}(P):=\{x\in\dom:P(x)=f(x)+(\afa+\afb x)g(x)\}$. Then, for uniform $\afa,\afb\leftarrow\E$, except with probability at most $\epsaff(\blen,\dgr,\agr)$: every $h$-tuple $P$ of degree at most $\dgr$ with $|\aset_{\afa,\afb}(P)|\ge\agr$ has $h$-tuples $U$, $V$ with $\deg U\le\dgr$, $\deg V\le\dgr-1$ and $P=U+(\afa+\afb X)V$, such that $U=f$ and $V=g$ on all but at most one point of $\aset_{\afa,\afb}(P)$ (agreement loss one).
+Let $\dom\subseteq\K$ have size $\blen$, let $1\le\dgr<\agr\le\blen$, $h\ge1$, and let $\orc_0,\orc_1:\dom\to\E^h$ be words of $h$ lanes. For $\afa,\afb\in\E$ and an $h$-tuple $P$ of polynomials let $\aset_{\afa,\afb}(P):=\{x\in\dom:P(x)=\orc_1(x)+(\afa+\afb x)\orc_0(x)\}$. Then, for uniform $\afa,\afb\leftarrow\E$, except with probability at most $\epsaff(\blen,\dgr,\agr)$: every $h$-tuple $P$ of degree at most $\dgr$ with $|\aset_{\afa,\afb}(P)|\ge\agr$ has $h$-tuples $G$, $F$ with $\deg G\le\dgr$, $\deg F\le\dgr-1$ and $P=G+(\afa+\afb X)F$, such that $G=\orc_1$ and $F=\orc_0$ on all but at most one point of $\aset_{\afa,\afb}(P)$ (agreement loss one).
 \end{theorem}
 
 For $h=1$ this is \cite[Thm.~1.1, Lemma~4.1]{CYWZ26}, which holds for every admissible triple; \cite[\S5.1]{CYWZ26} extends it to $h$ lanes, packed into one word over an extension of $\E$, with the same error.
 
 \begin{lemma}[An affine fold round]\label{lem:fold-list}
-Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain of size $\blen$, $f:=\orc[(0,\cdot),\cdot]$ and $g:=\orc[(1,\cdot),\cdot]$ its two halves, of $h=2^{\ell-1}$ lanes each. Let $1\le\dgr<\agr\le\blen$ with $(\agr-1)^2>\blen\dgr$, and $L:=\jl(\agr-1,\dgr)$. Let $W:\cube{\ell}\times\cube{\kappa}\to\E$ be a weight, $W_\iota:=W(\iota,\cdot)$, $c\in\E$, and suppose every tuple of $\lst(\orc;\agr-1,\dgr)$, as a pair $(F,G)$ of halves, has $\inner{W_0}{F}+\inner{W_1}{G}\neq c$. Let $u,v,\tabx{0},\tabx{1}\in\E$ be arbitrary. Except with probability at most $\epsaff(\blen,\dgr,\agr)+2L/|\E|$ over uniform $(\afa,\afb)$, every $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$ has
+Let $\orc$ be an interleaved word with $\ell\ge1$ lane variables over a domain of size $\blen$, with halves $\orc_0,\orc_1$ of $h=2^{\ell-1}$ lanes each. Let $1\le\dgr<\agr\le\blen$ with $(\agr-1)^2>\blen\dgr$, and $L:=\jl(\agr-1,\dgr)$. Let $W:\cube{\ell}\times\cube{\kappa}\to\E$ be a weight, $W_\iota:=W(\iota,\cdot)$, $c\in\E$, and suppose every tuple of $\lst(\orc;\agr-1,\dgr)$, as a pair $(F,G)$ of halves, has $\inner{W_0}{F}+\inner{W_1}{G}\neq c$. Let $v_G,v_F,\tabx{0},\tabx{1}\in\E$ be arbitrary. Except with probability at most $\epsaff(\blen,\dgr,\agr)+2L/|\E|$ over uniform $(\afa,\afb)$, every $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$ has
 \[
-\inner{\mle{W}(\afa,\cdot)}{P}\;\neq\;u+\afa(u+c)+\afa^2v+\afb\tabx{0}+\afa\afb(\tabx{0}+\tabx{1}).
+\inner{\mle{W}(\afa,\cdot)}{P}\;\neq\;v_G+\afa(v_G+c)+\afa^2v_F+\afb\tabx{0}+\afa\afb(\tabx{0}+\tabx{1}).
 \]
 \end{lemma}
 
 This is \cite[Thm.~5.1]{CYWZ26} without its premix challenge, which a degree fixed for the whole level makes unnecessary.
 
 \begin{proof}
-The list $\lst(\orc;\agr-1,\dgr)$ has at most $L$ members (Theorem~\ref{thm:johnson-interleaved}) and is fixed before the challenges. There are two bad events. $B_1$ is the event of Theorem~\ref{thm:mca-affine} for $g$ and $f$, of probability at most $\epsaff(\blen,\dgr,\agr)$. $B_2$ is that some pair $(F,G)$ of the list satisfies the new claim for $P_{F,G}:=G+(\afa+\afb X)F$. For a fixed pair, by the completeness argument, the true value $\inner{\mle{W}(\afa,\cdot)}{P_{F,G}}$ has the same form as the claimed one, with the pair's own values in place of $u,v,\tabx{0},\tabx{1}$ and $c^\ast:=\inner{W_0}{F}+\inner{W_1}{G}\neq c$ in place of $c$. The difference is a polynomial of degree at most $2$ in $(\afa,\afb)$. Its constant term and its coefficient of $\afa$ both vanish only if $c^\ast=c$, so it is nonzero and vanishes with probability at most $2/|\E|$ (Lemma~\ref{lem:sz}). A union bound over the list gives $\Pr[B_2]\le2L/|\E|$.
+The list $\lst(\orc;\agr-1,\dgr)$ has at most $L$ members (Corollary~\ref{thm:johnson-interleaved}) and is fixed before the challenges. There are two bad events. $B_1$ is the event of Theorem~\ref{thm:mca-affine} for $\orc_0$ and $\orc_1$, of probability at most $\epsaff(\blen,\dgr,\agr)$. $B_2$ is that some pair $(F,G)$ of the list satisfies the new claim for $P_{F,G}:=G+(\afa+\afb X)F$. For a fixed pair, by the completeness argument, the true value $\inner{\mle{W}(\afa,\cdot)}{P_{F,G}}$ has the same form as the claimed one, with the pair's own values in place of $v_G,v_F,\tabx{0},\tabx{1}$ and $c^\ast:=\inner{W_0}{F}+\inner{W_1}{G}\neq c$ in place of $c$. The difference is a polynomial of degree at most $2$ in $(\afa,\afb)$. Its constant term and its coefficient of $\afa$ both vanish only if $c^\ast=c$, so it is nonzero and vanishes with probability at most $2/|\E|$ (Lemma~\ref{lem:sz}). A union bound over the list gives $\Pr[B_2]\le2L/|\E|$.
 
-Outside both events, let $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$. By Theorem~\ref{thm:mca-affine}, $P=U+(\afa+\afb X)V$ with $\deg U\le\dgr$, $\deg V\le\dgr-1$, and $U=g$, $V=f$ on all but one of its agreement points. So $(F,G):=(V,U)$ is in $\lst(\orc;\agr-1,\dgr)$ and $P=P_{F,G}$, which violates the new claim as $B_2$ failed.
+Outside both events, let $P\in\lst(\orc_{\afa,\afb};\agr,\dgr)$. By Theorem~\ref{thm:mca-affine}, $P=G+(\afa+\afb X)F$ with $\deg G\le\dgr$, $\deg F\le\dgr-1$, and $G=\orc_1$, $F=\orc_0$ on all but one of its agreement points. So $(F,G)$ is in $\lst(\orc;\agr-1,\dgr)$ and $P=P_{F,G}$, which violates the new claim as $B_2$ failed.
 \end{proof}
 
 \begin{lemma}[OOD separation]\label{lem:ood}
@@ -253,85 +192,44 @@ The list decodes to at most $L$ messages, and distinct messages have distinct mu
 
 \subsubsection{Proof of the main theorem}\label{pcs:proof}
 
-At level $i$, write $\orc^{(i)}_{j}$ for the oracle folded by the first $j$ rounds ($\orc^{(i)}_0=\orc^{(i)}$), so that $c_q=\orc^{(i)}_{\ell_i}[x_q]$, and $(W^{(j)},\rc{j})$ for the running claim after round $j$, a weighted claim about polynomial tuples with $\ell_i-j$ lane variables (Definition~\ref{def:tuple-claim}). A tuple \emph{violates} the claim if $\inner{W^{(j)}}{P}\neq\rc{j}$.
+At level $i$, write $(W^{(j)},\rc{j})$ for the running claim after round $j$, a weighted claim about polynomial tuples with $\ell_i-j$ lane variables (Definition~\ref{def:tuple-claim}). A tuple \emph{violates} the claim if $\inner{W^{(j)}}{P}\neq\rc{j}$.
 
-We now define the invariant required by Definition~\ref{def:rbr}, a condition on the partial transcripts of the opening. In one phrase: \emph{every polynomial tuple close to the current fold violates the current claim}. Precisely, the list below gives the condition just after each verifier message; a transcript ending with prover messages inherits the condition of its last verifier message. Every condition also includes one implicit disjunct, the \emph{escape clause}: \emph{``some verifier check has already failed''} (such transcripts are rejected no matter what follows).
-\begin{itemize}[itemsep=1pt]
-\item \emph{Before any opening message:} every $U \in \lst(\orc^{(0)};\agr_0,\dgr)$ violates at least one input claim.
-\item \emph{After the batching challenge $\lambda$ of level $i$ (alone at level $0$, with the queries $\qset_{i-1}$ otherwise), and after each fold message $(\afa_j,\afb_j)$:} every $P \in \lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violates the round-$j$ claim ($\lambda$ being the case $j = 0$).
-\item \emph{After the OOD point $z_{i+1}$:} the round-$\ell_i$ condition holds, and no two distinct messages decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$ have multilinear extensions agreeing at $z_{i+1}$.
-\item \emph{After the final query message $\qset_{\nlev-1}$:} the low part $f^{(\nlev)}$ of the sent $P$ violates the running claim $(W,\rc{\ell_{\nlev-1}})$.
-\item \emph{After each of the $\nv_\nlev$ tail rounds (complete transcript):} $f^{(\nlev)}$ violates the running sumcheck claim. The terminal one $\mathbf{V}$ checks against $\mle{f^{(\nlev)}}$ itself, so it rejects.
-\end{itemize}
-Conditions (i), (ii), (iv) of Definition~\ref{def:rbr} hold by inspection: on a false statement, the first item is exactly the failure of $\relopen$; a prover message changes nothing an instance depends on, except possibly failing a check, which only switches the escape clause on; and the last item is precisely ``some check failed'', so such a complete transcript is rejected. The separation clause of the OOD instance is there because the next message consumes it. It remains to bound the escape probabilities (iii); in the proof below we assume all checks so far pass, since otherwise the escape clause already holds.
+The invariant of Definition~\ref{def:rbr} is, in one phrase: \emph{every polynomial tuple close to the current fold violates the current claim}. Each paragraph below states it after one verifier message and bounds the probability that the message lets the prover escape it, (iii); a transcript ending with prover messages inherits the invariant of its last verifier message. Every invariant carries one more disjunct, \emph{some verifier check has already failed}, so a prover message, which changes nothing the invariant depends on but may fail a check, never escapes it, (ii); below we assume that all checks so far pass.
 
 \begin{proof}[Proof of Theorem~\ref{thm:rbr}]
-If the statement lies outside $\relopen$, then before any opening message is sent every $U \in \lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$ violates at least one input claim, so the invariant holds. We follow the protocol and bound, for each verifier message, the probability that the invariant fails to carry over.
+\emph{Before the opening, (i).} On false input claims, every $U \in \lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$ violates at least one of them.
 
 \medskip\noindent\emph{Batching challenge $\lambda$.}
-Assume that every $U \in \lst(\orc^{(i)};\agr_0,\dgr)$ violates at least one of the $J_i$ claims $(W_k, c_k)$: the input claims at level $0$, the claims of step 2(e) at a later level, as the query step below shows. Fix such a $U$. Its discrepancy against the batched claim is $\sum_{k} \lambda^{k - 1} d_k$ with $d_k := \inner{W_k}{g_U} - c_k$, a polynomial in $\lambda$ of degree less than $J_i$, nonzero because the $d_k$ are not all zero. By Lemma~\ref{lem:sz} it vanishes with probability at most $(J_i - 1)/|\E|$, so a union bound over the at most $L_i$ list members leaves every $U$ violating the round-$0$ claim except with probability $(J_i - 1) L_i / |\E|$.
+Assume that every $U \in \lst(\orc^{(i)};\agr_0,\dgr)$ violates at least one of the $J_i$ claims $(W_k, c_k)$: the input claims at level $0$, the claims of step 2(e) at a later level, as the query step below shows. After $\lambda$, every such $U$ violates the round-$0$ claim. Fix one: its discrepancy against the batched claim is $\sum_{k} \lambda^{k - 1} d_k$ with $d_k := \inner{W_k}{g_U} - c_k$, a polynomial in $\lambda$ of degree less than $J_i$, nonzero because the $d_k$ are not all zero. By Lemma~\ref{lem:sz} it vanishes with probability at most $(J_i - 1)/|\E|$, and a union bound over the at most $L_i$ list members gives $(J_i - 1) L_i / |\E|$.
 
 \medskip\noindent\emph{Fold message $(\afa_j,\afb_j)$.}
-Assume that every $P \in \lst(\orc^{(i)}_{j-1};\agr_{j-1},\dgr)$ violates the round-$(j{-}1)$ claim. As $\agr_{j-1}=\agr_j-1$, this is the hypothesis of Lemma~\ref{lem:fold-list} for the word $\orc^{(i)}_{j-1}$, the weight $W^{(j-1)}$ and $c=\rc{j-1}$, at degree $\dgr$ and agreement $\agr_j$. Whatever table the prover sends, the lemma makes every $P\in\lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violate the round-$j$ claim, $W^{(j)}=\mle{W^{(j-1)}}(\afa_j,\cdot)$ and $\rc{j}$ as in step 1(c), except with probability $\epsaff(\blen,\dgr,\agr_j)+2\jl(\agr_j-1,\dgr)/|\E|$.
+Assume that every $P \in \lst(\orc^{(i)}_{j-1};\agr_{j-1},\dgr)$ violates the round-$(j{-}1)$ claim. As $\agr_{j-1}=\agr_j-1$, this is the hypothesis of Lemma~\ref{lem:fold-list} for the word $\orc^{(i)}_{j-1}$, the weight $W^{(j-1)}$ and $c=\rc{j-1}$, at degree $\dgr$ and agreement $\agr_j$. Whatever values the prover sends, the lemma makes every $P\in\lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violate the round-$j$ claim, except with probability $\epsaff(\blen,\dgr,\agr_j)+2\jl(\agr_j-1,\dgr)/|\E|$. After the last round, every polynomial of degree at most $\dgr$ agreeing with the folded word $w=\orc^{(i)}_{\ell_i}$ on at least $\agr_{\ell_i}$ coordinates violates the residual claim $(W,\rc{\ell_i})$.
 
-\medskip\noindent\emph{The level interface.}
-After the last fold round of level $i < \nlev - 1$, every polynomial $P$ of degree at most $\dgr$ agreeing with the single word $w := \orc^{(i)}_{\ell_i} \in \E^{\dom_i}$, the level's oracle folded by all its rounds, on at least $\agr_{\ell_i}$ coordinates violates the residual claim $(W,\rc{\ell_i})$. The prover now sends the new oracle $\orc^{(i+1)}$ and $\phigh$.
+\medskip\noindent\emph{OOD point $z_i$.}
+The list $\lst(\orc^{(i)};\agr^{(i)}_0,\dgr^{(i)})$ is fixed by the prover's commitment. After $z_i$, no two distinct messages decoded from it have multilinear extensions agreeing at $z_i$, except with probability $\binom{L_i}{2}\, \nv_i / |\E|$ (Lemma~\ref{lem:ood}). At $i=0$ this makes the commitment binding: at most one message answers the OOD claim. At $i\ge1$ the invariant after $z_i$ is this separation together with the residual condition of level $i-1$, which $z_i$ does not involve.
 
-\medskip\noindent\emph{OOD point $z_{i+1}$.}
-After it, two properties must hold: the one above, which does not involve it; and that no two distinct messages decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$, a list already determined by the prover's message, have multilinear extensions agreeing at $z_{i+1}$. The latter fails with probability at most $\binom{L_{i+1}}{2}\, \nv_{i+1} / |\E|$, by Lemma~\ref{lem:ood}.
-
-\medskip\noindent\emph{Query message $(\qset_i,\lambda)$.}
-Assume both properties of the previous step; the prover has since sent its answer $\cood{i+1}$. By the separation property, at most one message $g^\ast$ decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$ can satisfy $\mle{g^\ast}(z_{i+1}) = \cood{i+1}$: every member decoding to another message violates the OOD claim $(\eq(z_{i+1}, \cdot),\, \cood{i+1})$, whatever $\qset_i$ is. If no such $g^\ast$ exists, we are done. Otherwise, several members may decode to $g^\ast$, differing only in their coefficients of index $2^\kappa$ and above; claims weigh only the low part, so they all make the same claims, and it suffices to show that $g^\ast$ violates one. Let $P^\ast:=\mpoly_{g^\ast}+\Wn{\kappa_i}\sum_{j<\ell_i}\phigh_j\novel_j$ be the polynomial with low part $g^\ast$ and the sent high part: the folded lane the prover claims, of degree at most $\dgr$. There are two cases.
+\medskip\noindent\emph{Query message of level $i<\nlev-1$.}
+Assume both parts of the previous invariant; the prover has since sent $\cood{i+1}$. By separation, at most one message $g^\ast$ decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$ can satisfy $\mle{g^\ast}(z_{i+1}) = \cood{i+1}$: every member decoding to another message violates the OOD claim, whatever the queries are. If no such $g^\ast$ exists, we are done. Otherwise, the members decoding to $g^\ast$ differ only in coefficients that claims do not weigh, so it suffices to show that $g^\ast$ violates one claim. Let $P^\ast:=\mpoly_{g^\ast}+\Wn{\kappa_i}\sum_{j<\ell_i}\phigh_j\novel_j$, the folded lane the prover claims, of degree at most $\dgr$. There are two cases.
 \begin{itemize}[itemsep=1pt]
-\item \emph{$P^\ast$ agrees with the folded word $w=\orc^{(i)}_{\ell_i}$ on at least $\agr_{\ell_i}$ coordinates.} Then $P^\ast$ violates the residual claim by assumption, and $\inner{W}{P^\ast}=\inner{W}{g^\ast}$ as the claim does not weigh the high part: $g^\ast$ violates the residual claim, whatever $\qset_i$ is.
-\item \emph{Otherwise.} A uniform column $x \leftarrow \dom_i$ satisfies $P^\ast(x) = w(x)$ with probability at most $(\agr_{\ell_i}-1)/\blen_i$, so all $\nq_i$ i.i.d.\ queries do so simultaneously with probability at most $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$; and any disagreeing query $x_q$ makes $g^\ast$ violate the consistency claim $(W^{(i)}_{x_q},\, c'_q)$, since $\Enc_i(g^\ast)[x_q]$ and $c'_q$ are $P^\ast(x_q)\neq w(x_q)=c_q$, each corrected by the same high part.
+\item \emph{$P^\ast$ agrees with $w$ on at least $\agr_{\ell_i}$ coordinates.} Then $P^\ast$, hence its low part $g^\ast$, violates the residual claim, whatever the queries are.
+\item \emph{Otherwise.} A uniform $x \leftarrow \dom_i$ has $P^\ast(x) = w(x)$ with probability at most $(\agr_{\ell_i}-1)/\blen_i$, so all $\nq_i$ i.i.d.\ queries do with probability at most $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$; and a query with $P^\ast(x_q)\neq w(x_q)$ makes $g^\ast$ violate the consistency claim $(W^{(i)}_{x_q},\, c_q)$, since $\Enc_i(g^\ast)[x_q]$ and $c_q$ are $P^\ast(x_q)$ and $w(x_q)$, each corrected by the same high part.
 \end{itemize}
-Except with probability $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$ over $\qset_i$, every member of $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$ thus violates at least one of the $J_{i+1}$ claims. These claims are fixed once $\qset_i$ is: the opened columns are the committed oracle's. So, conditioned on $\qset_i$, $\lambda$ is uniform, and the batching step at level $i+1$ adds $(J_{i+1}-1)L_{i+1}/|\E|$.
+So, except with probability $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$, every member of the level-$(i+1)$ list violates one of the $J_{i+1}$ claims. These claims are fixed once the queries are, the opened columns being the committed oracle's, and $\lambda$ is uniform given them: the batching step adds $(J_{i+1}-1)L_{i+1}/|\E|$.
 
-\medskip\noindent\emph{Final level.}
-At level $\nlev - 1$ the fold rounds end as above: every polynomial of degree at most $\dgr$ agreeing with $w := \orc^{(\nlev-1)}_{\ell}$ on at least $\agr_{\ell}$ coordinates violates the running claim. The prover sends $P$, of degree at most $\dgr$. If it agrees with $w$ on at least $\agr_\ell$ coordinates, it violates the claim, so its low part $f^{(\nlev)}$ does; otherwise, except with probability $((\agr_\ell-1)/\blen_{\nlev-1})^{\nq_{\nlev-1}}$, some query has $c_q\neq P(x_q)$ and the verifier rejects. No list is involved: $P$ is transmitted. The $\nv_\nlev$ rounds that follow are a plain sumcheck (Fact~\ref{fact:sumcheck}) of degree two on a polynomial that $\mathbf{V}$ holds, $2/|\E|$ per round, so the terminal check against $\mle{f^{(\nlev)}}$ fails.
+\medskip\noindent\emph{Final query message.}
+At level $\nlev - 1$ the prover sends $P$ itself, so no list is involved, and the two cases above apply to $P$ in place of $P^\ast$. If $P$ agrees with $w$ on at least $\agr_{\ell}$ coordinates, its low part $f^{(\nlev)}$ violates the running claim; otherwise, except with probability $((\agr_\ell-1)/\blen_{\nlev-1})^{\nq_{\nlev-1}}$, some query has $w(x_q)\neq P(x_q)$ and the verifier rejects.
+
+\medskip\noindent\emph{Tail rounds, (iv).}
+The $\nv_\nlev$ rounds are a plain sumcheck (Fact~\ref{fact:sumcheck}) of degree two on $f^{(\nlev)}$, which $\mathbf{V}$ holds: after each, $f^{(\nlev)}$ violates the running sumcheck claim except with probability $2/|\E|$. The terminal claim is then false, and $\mathbf{V}$ checks it against $\mle{f^{(\nlev)}}$ itself, so it rejects.
 \end{proof}
-
 
 %=====================================================================
 \subsection{Optimizations}\label{sec:pcs-opt}
 %=====================================================================
 
-The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements in $\K$, then zeros up to $2^{\nv}$. Let the row index be the stack's most significant $\ell_0$ coordinates: $f(u, x) := q(x, u)$ for $u \in \cube{\ell_0}$ and $x \in \cube{\nv - \ell_0}$, \S\ref{app:ntt}. Row $u$ is then the block of $2^{\nv - \ell_0}$ consecutive elements of $q$ at offset $\langle u \rangle 2^{\nv - \ell_0}$, the padding is whole rows, and only $\nrows=\lceil\nstack/2^{\nv-\ell_0}\rceil$ of the $2^{\ell_0}$ rows hold data. Claims on the stack, the commitment's OOD claim included, are taken in $q$'s variable order and rotated to $f$'s. So we get the following optimizations at commitment:
+The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ elements of $\K$, then zeros up to $2^{\nv}$. Its row index is the stack's most significant $\ell_0$ coordinates, $f(u, x) := q(x, u)$ for $u \in \cube{\ell_0}$ and $x \in \cube{\nv - \ell_0}$, so row $u$ is the block of $2^{\nv - \ell_0}$ consecutive elements of $q$ at offset $\langle u \rangle 2^{\nv - \ell_0}$ (\S\ref{app:ntt}), the padding is whole rows, and only $\nrows=\lceil\nstack/2^{\nv-\ell_0}\rceil$ of the $2^{\ell_0}$ rows hold data. Claims on the stack, the commitment's OOD claim included, are taken in $q$'s variable order and rotated to $f$'s. At commitment:
 \begin{itemize}[itemsep=1pt,topsep=2pt]
-\item the FFT-encoder only runs on $\nrows$ rows (and not the full $2^{\ell_0}$), since FFT-ing zeros gives zeros;
-\item a Merkle leaf only contains $\nrows$ elements of $\K$ (proof size optimization), we keep the convention of hashing the full $2^{\ell_0}$ values for simplicity, but we hash them in reverse order, starting from the padding zeros;
-\item the prover can thus preprocess the sponge state after hashing the whole $136$-byte blocks of those zeros, and then hash the rest of each leaf starting from this state.
+\item the encoder runs on the $\nrows$ data rows only, as encoding zeros gives zeros;
+\item a Merkle leaf hashes all $2^{\ell_0}$ values of its column, but in reverse order, padding zeros first: the prover hashes the whole $136$-byte blocks of zeros once, shared by every leaf, and continues each leaf from that sponge state, and the proof stores only the $\nrows$ data values (\S\ref{sec:e2e-merkle-pruning}).
 \end{itemize}
-
-Conclusion: at commitment, both the FFT and the Merkle leaf hashing cost are proportional to $\nstack$ (not its next power of two). Unfortunately we still pay for the padding inside the $\nstack$ field elements, because some instruction counts are not powers of two. This could be prevented using the Jagged PCS \cite{jagged_pcs}.
-
-At opening, the prover never materializes the level-$0$ weight over the stack. A round's table entries are inner products of the weight with $G$, $H$ and $XH$, linear in the lanes, so the prover keeps the weight factored and projects the lanes, and $X$ times them (Lemma~\ref{lem:mulx}), onto its factors. The table needs only the low $2^\kappa$ coefficients of $XH$; the high part is one coefficient per round, kept to evaluate the folded lane.
-
-%=====================================================================
-\subsection{The Johnson bound}\label{app:johnson}
-%=====================================================================
-
-We prove Theorem~\ref{thm:johnson-interleaved} in its general form (arbitrary code).
-
-\begin{theorem}[Johnson bound, agreement form]\label{thm:johnson-general}
-Let $\mathcal{C} \subseteq \Sigma^\blen$ be a code, over any alphabet $\Sigma$, in which two distinct codewords agree on at most $\dgr$ coordinates, and let $\agr$ be an integer with $\agr^2>\blen\dgr$. Then every word $\mathbf{c} \in \Sigma^\blen$ has at most $\jl(\agr,\dgr)=\bigl\lfloor\blen(\agr-\dgr)/(\agr^2-\blen\dgr)\bigr\rfloor$ codewords agreeing with it on at least $\agr$ coordinates. With $\rate:=\dgr/\blen$ and $\agr\ge(\sqrt{\rate}+\slack)\blen$, $\slack \in (0, 1 - \sqrt{\rate})$, this is at most $\tfrac{1}{2\slack\sqrt{\rate}}$.
-\end{theorem}
-
-Polynomial tuples of degree at most $\dgr<\blen$ are such a code over $\Sigma=\E^{2^\ell}$: two distinct ones differ in some lane, and two distinct polynomials of degree at most $\dgr$ agree on at most $\dgr$ points. This gives Theorem~\ref{thm:johnson-interleaved}.
-
-\begin{proof}
-Let $U_1, \dots, U_L$ be distinct codewords, each agreeing with $\mathbf{c}$ on at least $\agr$ coordinates. For each $j$, fix a set $\aset_j$ of exactly $\agr$ coordinates on which $U_j$ agrees with $\mathbf{c}$, and write $\varphi := \agr/\blen$ and $\rate:=\dgr/\blen$. For a coordinate $i$, let $d_i := |\{ j : i \in \aset_j \}|$; then $\sum_i d_i = L \agr = L \varphi \blen$.
-
-Wherever two codewords both agree with $\mathbf{c}$ they agree with each other, so $|\aset_j \cap \aset_{j'}| \le \dgr=\rate \blen$ for $j \neq j'$, and counting ordered pairs,
-\[
-\sum_i d_i (d_i - 1) \;=\; \sum_{j \neq j'} |\aset_j \cap \aset_{j'}| \;\le\; L(L-1)\, \rate \blen .
-\]
-Cauchy-Schwarz on the vectors $(d_1, \dots, d_\blen)$ and $(1, \dots, 1)$ gives $\bigl(\sum_i d_i\bigr)^2 \le \blen \sum_i d_i^2$, i.e.\ $\sum_i d_i^2 \ge (L \varphi \blen)^2 / \blen = L^2 \varphi^2 \blen$; the left side above, which equals $\sum_i d_i^2 - \sum_i d_i$, is therefore at least $L^2 \varphi^2 \blen - L \varphi \blen$. Dividing by $L\blen$ and rearranging,
-\[
-L \varphi^2 - \varphi \;\le\; (L-1)\, \rate
-\qquad\Longleftrightarrow\qquad
-L\, (\varphi^2 - \rate) \;\le\; \varphi - \rate .
-\]
-As $\varphi^2>\rate$, $L\le(\varphi-\rate)/(\varphi^2-\rate)=\blen(\agr-\dgr)/(\agr^2-\blen\dgr)$, and $L$ is an integer. Finally, if $\varphi\ge\sqrt{\rate}+\slack$, then $\varphi^2 - \rate \ge 2\slack\sqrt{\rate} + \slack^2 > 2\slack\sqrt{\rate}$ while $\varphi - \rate \le 1$, so $L \le \tfrac{1}{2\slack\sqrt{\rate}}$.
-\end{proof}
+Both costs are thus proportional to $\nstack$, not to its next power of two. The padding inside the $\nstack$ elements, from instruction counts that are not powers of two, remains; the Jagged PCS \cite{jagged_pcs} would remove it.
