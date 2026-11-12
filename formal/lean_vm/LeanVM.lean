@@ -7,7 +7,6 @@ import LeanVM.Guest.Budget.ClosedN
 import LeanVM.Guest.Budget.Fits
 import LeanVM.Prover.End
 import LeanVM.Prover.EndChild
-import LeanVM.Guest.Child.Covered
 import LeanVM.Guest.HonestChildren
 import XmssSecurity.Rpm
 import Sphincs.Security

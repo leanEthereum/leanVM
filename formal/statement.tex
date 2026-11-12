@@ -518,7 +518,7 @@ under its claim's key and message (Keccak-256 as the schemes' hash, at any leaf 
 claim of $s$ is a raw signature's claim or occurs in the corresponding list of some child's $s_i$.
 \item The DA digest is accounted for (\lean{DaDigestHeld}): with a direct matrix,
 $\mathit{da} = H(\rho \,\|\, z)$ of the claim it opens; without one, $\mathit{da}$ is zero or
-some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4878-4882}).
+some child's DA digest (the guest program's \texttt{da\_pick}, \texttt{lean\_ethereum.py:4853-4856}).
 \item Every child is proven (\lean{ChildrenProven}): its deferred claim has the bytecode's shape,
 and the \emph{deferring verifier} accepts its proof: $\mathrm{verifyDeferred}(B, \sigma,
 \mathrm{dig}_\sigma(s_i), f_i, p_i) = \mathsf{true}$. The deferring verifier is the zkVM verifier
