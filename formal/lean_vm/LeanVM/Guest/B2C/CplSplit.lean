@@ -670,7 +670,7 @@ noncomputable def cplWinS (j i lo hi gm gn am an : ℕ) : Bool :=
       (clocG (certOf j) i gm gn am an).seq fun loc ↦
       (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
       (partC j i 0).seq fun c ↦ natSeq (partU j i 0) fun u ↦ natSeq (partJ j i 0) fun J ↦
-      natSeq (nvOf (coreOf j).body 0) fun nv ↦
+      natSeq (plumbOf j).nv fun nv ↦
       (stmtsVals (selStmts lo hi [.match_ v (a0 :: as)])).all (fun x ↦ (loc.get? x.idx).isSome) &&
       match getF idx J with
       | some s => bif Nat.beq s.start J then
@@ -734,7 +734,7 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
         ((clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2).get? x.idx).isSome = true) ∧
       ∃ s, getF (index segs) (partJ j i 0) = some s ∧ s.start = partJ j i 0 ∧
         partEnd j i 0 (cwMatchS (cxOf j (index segs) (clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1
-          g.2.2.2.2.2) (statT (fsN j) (plumbOf j).stat .nil) (nvOf (coreOf j).body 0) (stopOf j i 0))
+          g.2.2.2.2.2) (statT (fsN j) (plumbOf j).stat .nil) (plumbOf j).nv (stopOf j i 0))
           g.1 g.2.1 v (a0 :: as) ⟨s, s.items, .nil, [], [], [], partC j i 0, partU j i 0,
             some (partJ j i 0), 0⟩) = true := by
     intro g hg
@@ -792,7 +792,7 @@ theorem cplWin_of_split {j i : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × ℕ 
     exact List.all_eq_true.mpr this
   obtain ⟨c, u, hw, hgood⟩ := cw_of_groups
     (cxOf j (index segs) (clocW (certOf j) i) (statT (fsN j) (plumbOf j).stat .nil)
-      (nvOf (coreOf j).body 0) (stopOf j i 0)) v a0 as _
+      (plumbOf j).nv (stopOf j i 0)) v a0 as _
     (gs.map fun g ↦ (g.1, g.2.1, clocG (certOf j) i g.2.2.1 g.2.2.2.1 g.2.2.2.2.1 g.2.2.2.2.2))
     _ (List.mem_map.mpr ⟨g0, hg0, rfl⟩)
     (fun e he ↦ by

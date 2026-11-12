@@ -52,7 +52,7 @@ noncomputable def winSegs (j i : ℕ) : List Exec.Seg :=
 
 /-- **What every group of window `i` of function `j` computes alike.** -/
 noncomputable def winPre (j i : ℕ) : WinPre :=
-  ⟨winSegs j i, index (winSegs j i), statT (fsN j) (plumbOf j).stat .nil, nvOf (coreOf j).body 0,
+  ⟨winSegs j i, index (winSegs j i), statT (fsN j) (plumbOf j).stat .nil, (plumbOf j).nv,
     partStmts j i 0, (certOf j).stmtsAt (coreOf j) i,
     linkedWeak (index (winSegs j i)) (winSegs j i)
       (bif Nat.blt i (certOf j).cuts.length then ((certOf j).cutAt (i + 1)).J else 0)

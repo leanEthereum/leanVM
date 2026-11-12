@@ -8,8 +8,7 @@ public import LeanVM.Cost.Decoder.PreTest
 `preTableC`: `Guest.Fast.preTable` (`Fast/PreTable.lean`, the functions' preconditions
 `fnPreOf (glob.sig j)` the kernel wrote out), compiled as a function of no argument, its body the
 table's constructors: a literal of the decoder's program. The decoder's top level calls it once
-and passes the table to `preTestAtC` (`PreTest.lean`). Its size is measured in
-`Cost/Decoder/PreTableSize.lean`.
+and passes the table to `preTestAtC` (`PreTest.lean`).
 -/
 
 namespace LeanVM.Cost.Decoder

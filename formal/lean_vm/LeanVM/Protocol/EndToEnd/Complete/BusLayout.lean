@@ -12,7 +12,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusTables
 /-!
 # The verifier's bus blocks
 
-The tail of `verify_bus_balance` (`crates/verifier/src/bus.rs:130-247` at leanVM `f128`)
+The tail of `verify_bus_balance` (`crates/verifier/src/bus.rs`)
 after its reads (`busOut`, `verifyBusBalance_eq`);
 the table blocks of the three sides at the leanISA instance's sizes (`pushBlocks`, `pullBlocks`,
 `countBlocks`: each table's at its log-height and row count, `layout_push`, …), the bus's depth

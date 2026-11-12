@@ -594,8 +594,7 @@ noncomputable def shareWinS (j : ℕ) (snaps : List Snap) (k lo hi gm gn am an :
   match stmtsW (coreOf j).body snaps k with
   | [.match_ x (a0 :: as)] =>
       matchAtoms lo hi [.match_ x (a0 :: as)] &&
-      (Memory.Stmt.usesList (selStmts lo hi [.match_ x (a0 :: as)]) ++
-        Memory.Stmt.tmpsList (selStmts lo hi [.match_ x (a0 :: as)])).all (valOk loc tt tc fc (fsN j)) &&
+      valsAll (valOk loc tt tc fc (fsN j)) (selStmts lo hi [.match_ x (a0 :: as)]) &&
       (nameStep loc sh (snapAt snaps k).st [x]).seq fun st1 ↦
         st1.pend.isEmpty && refinesPre st1 (snapAt snaps (k + 1)) &&
         armsRef loc sh tt (plumbOf j) st1 (snapAt snaps (k + 1)) lo hi 0 (a0 :: as)
@@ -645,7 +644,7 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     have hc := h g hg
     unfold shareWinS at hc
     rw [hss] at hc
-    simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, SSt.seq_eq, Bool.and_eq_true,
+    simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, SSt.seq_eq, valsAll_eq, Bool.and_eq_true,
       Bool.not_eq_true', beq_eq_false_iff_ne, Nat.blt_eq, List.all_eq_true] at hc
     exact hc
   obtain ⟨⟨⟨hk0, hkl⟩, -⟩, -⟩ := hG g0 hg0
@@ -741,7 +740,7 @@ theorem shareWin_of_split {j k : ℕ} (gs : List (ℕ × ℕ × ℕ × ℕ × �
     rwa [hn g0 hg0] at this
   -- the window's check
   unfold shareWin
-  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true]
+  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, valsAll_eq, Bool.and_eq_true, List.all_eq_true]
   rw [hss]
   refine ⟨⟨?_, ?_⟩, ?_⟩
   · simp only [shareFits, Bool.and_eq_true, List.all_eq_true] at hf

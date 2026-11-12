@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `gkr_rounds` (TRIAGE #31)
@@ -780,15 +781,15 @@ set_option maxRecDepth 100000 in
 returns `0`. -/
 theorem gkr_rounds_holds : gkr_rounds_Spec := by
   have h1 : coreProgram.find? "gkr_rounds__L1" = some Data.core441 :=
-    Program.find?_of_indexOf? (j := 441) (by decide +kernel) rfl
+    coreProgram_find?_at (j := 441) rfl
   have h2 : coreProgram.find? "gkr_rounds__L2" = some Data.core438 :=
-    Program.find?_of_indexOf? (j := 438) (by decide +kernel) rfl
+    coreProgram_find?_at (j := 438) rfl
   have h4 : coreProgram.find? "gkr_rounds__L4" = some Data.core439 :=
-    Program.find?_of_indexOf? (j := 439) (by decide +kernel) rfl
+    coreProgram_find?_at (j := 439) rfl
   have h6 : coreProgram.find? "gkr_rounds__L6" = some Data.core440 :=
-    Program.find?_of_indexOf? (j := 440) (by decide +kernel) rfl
+    coreProgram_find?_at (j := 440) rfl
   have h0 : coreProgram.find? "gkr_rounds__L0" = some Data.core437 :=
-    Program.find?_of_indexOf? (j := 437) (by decide +kernel) rfl
+    coreProgram_find?_at (j := 437) rfl
   refine ⟨fun n hn rd args rets ↦ ?_, fun rd args rets ↦ ?_⟩
   · simp only [gkrRoundsCounts, List.mem_cons, List.not_mem_nil, or_false] at hn
     rcases hn with rfl | rfl | rfl | rfl

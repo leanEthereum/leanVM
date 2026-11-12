@@ -1630,7 +1630,7 @@ theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
         (stmtsW (coreOf j).body (snapsOf j) i) = some m ∧
       (i < (snapsOf j).length → refines m (snapAt (snapsOf j) (i + 1)) = true) := by
   unfold shareWin at h
-  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true,
+  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, valsAll_eq, Bool.and_eq_true, List.all_eq_true,
     Nat.blt_eq] at h
   obtain ⟨⟨hc, hv⟩, hw⟩ := h
   refine ⟨hc, hv, ?_⟩

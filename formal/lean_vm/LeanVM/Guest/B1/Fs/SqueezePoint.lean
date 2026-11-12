@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Fs.Message
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `squeeze_point_from`
@@ -408,175 +409,175 @@ set_option maxRecDepth 100000 in
 theorem spf_found_6 : coreProgram.find? (spfName 6) = some Data.core481 ∧
     Data.core481.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core481.body = spfBody 5 :=
-  ⟨Program.find?_of_indexOf? (j := 481) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 481) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_7 : coreProgram.find? (spfName 7) = some Data.core529 ∧
     Data.core529.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core529.body = spfBody 6 :=
-  ⟨Program.find?_of_indexOf? (j := 529) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 529) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_8 : coreProgram.find? (spfName 8) = some Data.core572 ∧
     Data.core572.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core572.body = spfBody 7 :=
-  ⟨Program.find?_of_indexOf? (j := 572) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 572) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_9 : coreProgram.find? (spfName 9) = some Data.core615 ∧
     Data.core615.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core615.body = spfBody 8 :=
-  ⟨Program.find?_of_indexOf? (j := 615) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 615) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_10 : coreProgram.find? (spfName 10) = some Data.core472 ∧
     Data.core472.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core472.body = spfBody 9 :=
-  ⟨Program.find?_of_indexOf? (j := 472) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 472) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_11 : coreProgram.find? (spfName 11) = some Data.core520 ∧
     Data.core520.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core520.body = spfBody 10 :=
-  ⟨Program.find?_of_indexOf? (j := 520) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 520) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_12 : coreProgram.find? (spfName 12) = some Data.core563 ∧
     Data.core563.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core563.body = spfBody 11 :=
-  ⟨Program.find?_of_indexOf? (j := 563) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 563) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_13 : coreProgram.find? (spfName 13) = some Data.core606 ∧
     Data.core606.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core606.body = spfBody 12 :=
-  ⟨Program.find?_of_indexOf? (j := 606) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 606) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_14 : coreProgram.find? (spfName 14) = some Data.core462 ∧
     Data.core462.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core462.body = spfBody 13 :=
-  ⟨Program.find?_of_indexOf? (j := 462) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 462) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_15 : coreProgram.find? (spfName 15) = some Data.core511 ∧
     Data.core511.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core511.body = spfBody 14 :=
-  ⟨Program.find?_of_indexOf? (j := 511) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 511) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_16 : coreProgram.find? (spfName 16) = some Data.core554 ∧
     Data.core554.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core554.body = spfBody 15 :=
-  ⟨Program.find?_of_indexOf? (j := 554) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 554) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_17 : coreProgram.find? (spfName 17) = some Data.core597 ∧
     Data.core597.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core597.body = spfBody 16 :=
-  ⟨Program.find?_of_indexOf? (j := 597) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 597) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_18 : coreProgram.find? (spfName 18) = some Data.core640 ∧
     Data.core640.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core640.body = spfBody 17 :=
-  ⟨Program.find?_of_indexOf? (j := 640) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 640) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_19 : coreProgram.find? (spfName 19) = some Data.core682 ∧
     Data.core682.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core682.body = spfBody 18 :=
-  ⟨Program.find?_of_indexOf? (j := 682) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 682) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_20 : coreProgram.find? (spfName 20) = some Data.core308 ∧
     Data.core308.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core308.body = spfBody 19 :=
-  ⟨Program.find?_of_indexOf? (j := 308) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 308) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_21 : coreProgram.find? (spfName 21) = some Data.core309 ∧
     Data.core309.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core309.body = spfBody 20 :=
-  ⟨Program.find?_of_indexOf? (j := 309) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 309) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_22 : coreProgram.find? (spfName 22) = some Data.core310 ∧
     Data.core310.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core310.body = spfBody 21 :=
-  ⟨Program.find?_of_indexOf? (j := 310) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 310) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_23 : coreProgram.find? (spfName 23) = some Data.core311 ∧
     Data.core311.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core311.body = spfBody 22 :=
-  ⟨Program.find?_of_indexOf? (j := 311) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 311) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_24 : coreProgram.find? (spfName 24) = some Data.core312 ∧
     Data.core312.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core312.body = spfBody 23 :=
-  ⟨Program.find?_of_indexOf? (j := 312) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 312) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_25 : coreProgram.find? (spfName 25) = some Data.core313 ∧
     Data.core313.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core313.body = spfBody 24 :=
-  ⟨Program.find?_of_indexOf? (j := 313) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 313) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_26 : coreProgram.find? (spfName 26) = some Data.core314 ∧
     Data.core314.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core314.body = spfBody 25 :=
-  ⟨Program.find?_of_indexOf? (j := 314) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 314) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_27 : coreProgram.find? (spfName 27) = some Data.core315 ∧
     Data.core315.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core315.body = spfBody 26 :=
-  ⟨Program.find?_of_indexOf? (j := 315) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 315) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_28 : coreProgram.find? (spfName 28) = some Data.core316 ∧
     Data.core316.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core316.body = spfBody 27 :=
-  ⟨Program.find?_of_indexOf? (j := 316) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 316) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_29 : coreProgram.find? (spfName 29) = some Data.core317 ∧
     Data.core317.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core317.body = spfBody 28 :=
-  ⟨Program.find?_of_indexOf? (j := 317) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 317) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem spf_found_30 : coreProgram.find? (spfName 30) = some Data.core318 ∧
     Data.core318.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧
       Data.core318.body = spfBody 29 :=
-  ⟨Program.find?_of_indexOf? (j := 318) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 318) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 /-- **`squeeze_point_from`'s core IR is its meaning**, at every deployed `n`. -/

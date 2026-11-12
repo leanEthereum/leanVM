@@ -1,6 +1,6 @@
 import LeanVM.Cost.Extractor.GsRun
 import LeanVMTests.Cost.Samples
-import LeanVMTests.Extraction.Fast
+import LeanVMTests.Extraction.ToyWords
 
 /-!
 # Tests: the compiled decoder runs

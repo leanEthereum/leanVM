@@ -446,19 +446,6 @@ theorem NTree.find_all {α : Type} {p : α → Bool} : ∀ {t : NTree α} {k : �
       · exact NTree.find_all ha.1.2 h
       · exact NTree.find_all ha.2 h
 
-/-- A name as a number, for a search tree: its characters in base `2^21`, shifted by one. -/
-def nameKey (s : String) : ℕ := s.toList.foldr (fun c acc => c.toNat + 1 + 2 ^ 21 * acc) 0
-
-/-- A search tree by name. -/
-inductive STree (α : Type) where
-  | leaf
-  | node (k : String) (v : α) (l r : STree α)
-
-/-- The value of a name. -/
-def STree.find {α : Type} : STree α → String → Option α
-  | .leaf, _ => none
-  | .node k v l r, s => if s = k then some v else if s < k then l.find s else r.find s
-
 /-- `a`'s constant and terms are at most `b`'s, term by term. -/
 def Aff.leB (a b : Aff) : Bool := decide (a.c ≤ b.c) && a.cs == b.cs
 

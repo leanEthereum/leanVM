@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `rs_eq_rows` (lean_ethereum.py:1018-1037)
@@ -444,7 +445,7 @@ theorem rr_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
 
 theorem rr0_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "rs_eq_rows__L0" args rets ↔ MeaningRsEqRows 0 rd args rets := by
-  rw [rel_iff_sem (Program.find?_of_indexOf? (j := 81) (by decide +kernel) rfl), core81_body,
+  rw [rel_iff_sem (coreProgram_find?_at (j := 81) rfl), core81_body,
     show Fn.params Data.core81 = [.n 0, .n 1, .n 2] from rfl]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
   constructor
@@ -464,21 +465,21 @@ theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
   intro n hn rd args rets
   interval_cases n
   · exact rr0_iff rd args rets
-  · exact rr_iff 1 (by decide) (Program.find?_of_indexOf? (j := 82) (by decide +kernel) rfl) rfl
+  · exact rr_iff 1 (by decide) (coreProgram_find?_at (j := 82) rfl) rfl
       core82_body rd args rets
-  · exact rr_iff 2 (by decide) (Program.find?_of_indexOf? (j := 83) (by decide +kernel) rfl) rfl
+  · exact rr_iff 2 (by decide) (coreProgram_find?_at (j := 83) rfl) rfl
       core83_body rd args rets
-  · exact rr_iff 3 (by decide) (Program.find?_of_indexOf? (j := 84) (by decide +kernel) rfl) rfl
+  · exact rr_iff 3 (by decide) (coreProgram_find?_at (j := 84) rfl) rfl
       core84_body rd args rets
-  · exact rr_iff 4 (by decide) (Program.find?_of_indexOf? (j := 85) (by decide +kernel) rfl) rfl
+  · exact rr_iff 4 (by decide) (coreProgram_find?_at (j := 85) rfl) rfl
       core85_body rd args rets
-  · exact rr_iff 5 (by decide) (Program.find?_of_indexOf? (j := 86) (by decide +kernel) rfl) rfl
+  · exact rr_iff 5 (by decide) (coreProgram_find?_at (j := 86) rfl) rfl
       core86_body rd args rets
-  · exact rr_iff 6 (by decide) (Program.find?_of_indexOf? (j := 87) (by decide +kernel) rfl) rfl
+  · exact rr_iff 6 (by decide) (coreProgram_find?_at (j := 87) rfl) rfl
       core87_body rd args rets
-  · exact rr_iff 7 (by decide) (Program.find?_of_indexOf? (j := 88) (by decide +kernel) rfl) rfl
+  · exact rr_iff 7 (by decide) (coreProgram_find?_at (j := 88) rfl) rfl
       core88_body rd args rets
-  · exact rr_iff 8 (by decide) (Program.find?_of_indexOf? (j := 435) (by decide +kernel) rfl) rfl
+  · exact rr_iff 8 (by decide) (coreProgram_find?_at (j := 435) rfl) rfl
       core448_body rd args rets
 
 end

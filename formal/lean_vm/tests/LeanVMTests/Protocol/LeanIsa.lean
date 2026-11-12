@@ -97,8 +97,11 @@ def verifierOffsets (s : Sizes) : List (Option ℕ) :=
     (l.col == memCol 0, l.col == memCol 1, l.cell0, l.cell1, l.sent)) =
   [(true, false, 1, 3, false), (false, true, 2, 4, false)]
 
-#guard (boundary prog4 s₁).map (fun b ↦ (b.κ, b.side)) =
-  [(0, .push), (16, .push), (2, .push), (0, .pull), (16, .pull), (2, .pull)]
+-- In the kernel, which reads the blocks' sizes and sides alone (the compiled code would build their
+-- index columns, `2^16` powers of `g`).
+example : (boundary prog4 s₁).map (fun b ↦ (b.κ, b.side)) =
+    [(0, .push), (16, .push), (2, .push), (0, .pull), (16, .pull), (2, .pull)] := by
+  decide +kernel
 
 #guard (keccakRegion prog4 s₂).logSteps = 9
 #guard (keccakRegion prog4 s₂).col == keccakCol

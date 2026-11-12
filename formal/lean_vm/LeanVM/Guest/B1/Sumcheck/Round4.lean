@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `sumcheck_round4` (TRIAGE #30)
@@ -27,7 +28,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 theorem find_sumcheck_round4 : coreProgram.find? "sumcheck_round4" = some Data.core6 :=
-  Program.find?_of_indexOf? (j := 6) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 6) rfl
 
 theorem core6_params : Fn.params Data.core6 = [.n 0, .n 1, .n 2, .n 3] := rfl
 

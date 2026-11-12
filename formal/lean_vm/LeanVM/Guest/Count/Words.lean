@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Count.Static
+public import LeanVM.Guest.Memory.GuestCalleesOk
 
 /-!
 # Words by name
@@ -17,7 +18,8 @@ public import LeanVM.Guest.Count.Static
 run's one phantom frame apart (`wSKt_totalLeOn`), and `wSK f` with that frame charged to each
 iteration (`0` otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
 constant (a loop's per iteration); then `wSB_totalLe` (`wSK_totalLeOn`) bounds `f`'s words.
-`wIdxN` gives the core index of some functions by name, `wIdxLoop` of each loop helper
+`wNameIdx f` is the core index of function `f`, by its name's `encS` (`wNameT`) and checked
+against `Data.nameT`, `wIdx f` the same or `0`, `wIdxLoop` the core index of each loop helper
 `__loop{n}` by `n`, for the checks that range over names.
 -/
 
@@ -57,20 +59,25 @@ def certLoopB : Cert → Bool
   | .loop endc pre b _ => endc.isNone && pre.isEmpty && b.cs.isEmpty
   | _ => false
 
+/-- Core function `j` is `f`. -/
+def wNameB (j : ℕ) (f : String) : Bool := Nat.blt j 1601 && decide (Data.nameT.find j = some f)
+
+theorem wNameB_spec {j : ℕ} {f : String} (h : wNameB j f = true) : (coreProgram[j]?).map Fn.name = some f := by
+  simp only [wNameB, Bool.and_eq_true, Nat.blt_eq, decide_eq_true_eq] at h
+  exact Data.nameT_spec (by rw [coreProgram_length]; exact h.1) h.2
+
 /-- Core function `j` is `f`, its words certificate constant. -/
-noncomputable def wOkB (j : ℕ) (f : String) : Bool :=
-  decide ((coreProgram[j]?).map Fn.name = some f) && certConstB (wcertJ j)
+noncomputable def wOkB (j : ℕ) (f : String) : Bool := wNameB j f && certConstB (wcertJ j)
 
 /-- Core function `j` is `f`, its words certificate a loop's, constant per iteration. -/
-noncomputable def wOkK (j : ℕ) (f : String) : Bool :=
-  decide ((coreProgram[j]?).map Fn.name = some f) && certLoopB (wcertJ j)
+noncomputable def wOkK (j : ℕ) (f : String) : Bool := wNameB j f && certLoopB (wcertJ j)
 
 /-- **`f`'s words within `wSB f`.** -/
 theorem wSB_totalLe {j : ℕ} {f : String} (h : wOkB j f = true) :
     TotalLe coreProgram B2C.fs f fun _ => wSB f := by
-  simp only [wOkB, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [wOkB, Bool.and_eq_true] at h
   obtain ⟨hn, hk⟩ := h
-  have hc := wcertOf_of_idx hn
+  have hc := wcertOf_of_idx (wNameB_spec hn)
   rcases hw : wcertJ j with _ | ⟨pre, ⟨B, cs⟩, ks⟩ | _
   · rw [hw] at hk; cases hk
   · rw [hw] at hk
@@ -84,9 +91,9 @@ theorem wSB_totalLe {j : ℕ} {f : String} (h : wOkB j f = true) :
 
 /-- **Loop helper `f`'s run within `wSKt f` words per iteration and its phantom frame.** -/
 theorem wSKt_loopRunLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopRunLe B2C.fs f (wSKt f) := by
-  simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [wOkK, Bool.and_eq_true] at h
   obtain ⟨hn, hk⟩ := h
-  have hc := wcertOf_of_idx hn
+  have hc := wcertOf_of_idx (wNameB_spec hn)
   rcases hw : wcertJ j with _ | _ | ⟨endc, pre, ⟨K, cs⟩, ks⟩
   · rw [hw] at hk; cases hk
   · rw [hw] at hk; cases hk
@@ -111,9 +118,9 @@ theorem wSKt_eq (f : String) : wSKt f = wSK f - B2C.fs f := by
 
 /-- **Loop helper `f`'s words within `wSK f` per iteration**, its run's phantom charged to each. -/
 theorem wSK_loopTotalLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopTotalLe B2C.fs f (wSK f) := by
-  simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [wOkK, Bool.and_eq_true] at h
   obtain ⟨hn, hk⟩ := h
-  have hc := wcertOf_of_idx hn
+  have hc := wcertOf_of_idx (wNameB_spec hn)
   rcases hw : wcertJ j with _ | _ | ⟨endc, pre, ⟨K, cs⟩, ks⟩
   · rw [hw] at hk; cases hk
   · rw [hw] at hk; cases hk
@@ -177,375 +184,3243 @@ theorem wSKt_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = som
   unfold wSKt wSKtJ; rw [wcertOf_of_idx h]
 
 
-/-- The core indices of the functions the checks name, by name. -/
-def wIdxN : List (String × ℕ) := [("batch_sumcheck__L23", 433), ("claim_list_last__L0", 348),
-    ("claim_list_last__L1", 349), ("claim_list_last__L10", 358), ("claim_list_last__L11", 359),
-    ("claim_list_last__L12", 360), ("claim_list_last__L13", 361), ("claim_list_last__L14", 362),
-    ("claim_list_last__L15", 363), ("claim_list_last__L16", 364), ("claim_list_last__L2", 350),
-    ("claim_list_last__L3", 351), ("claim_list_last__L4", 352), ("claim_list_last__L5", 353),
-    ("claim_list_last__L6", 354), ("claim_list_last__L7", 355), ("claim_list_last__L8", 356),
-    ("claim_list_last__L9", 357), ("da_levels__L1024_L10", 417), ("da_levels__L128_L7", 414),
-    ("da_levels__L16_L4", 411), ("da_levels__L1_L0", 407), ("da_levels__L256_L8", 415),
-    ("da_levels__L2_L1", 408), ("da_levels__L32_L5", 412), ("da_levels__L4_L2", 409),
-    ("da_levels__L512_L9", 416), ("da_levels__L64_L6", 413), ("da_levels__L8_L3", 410),
-    ("eq_prefix_chain", 4), ("exponent_tables", 1), ("fold_final_msg__L2", 498),
-    ("fold_final_msg__L3", 541), ("fold_final_msg__L4", 584), ("fold_final_msg__L5", 627),
-    ("g_power_of_word", 2), ("gkr_rounds__L0", 437), ("gkr_rounds__L1", 441),
-    ("gkr_rounds__L2", 438), ("gkr_rounds__L4", 439), ("gkr_rounds__L6", 440),
-    ("grind_check__L13", 334), ("grind_check__L15", 307), ("grind_check__L17", 447),
-    ("grind_check__L18", 448), ("grind_check__L19", 449), ("grind_check__L2", 431),
-    ("grind_check__L20", 450), ("grind_check__L21", 451), ("grind_check__L22", 452),
-    ("grind_check__L23", 453), ("grind_check__L24", 454), ("grind_check__L25", 455),
-    ("grind_check__L26", 456), ("grind_check__L27", 457), ("grind_check__L28", 458),
-    ("grind_check__L29", 459), ("grind_check__L3", 442), ("grind_check__L30", 460),
-    ("grind_check__L7", 89), ("level_positions__L10_L19_L7", 515),
-    ("level_positions__L10_L20_L2", 558), ("level_positions__L10_L21_L3", 601),
-    ("level_positions__L10_L26_L2", 908), ("level_positions__L11_L17_L5", 465),
-    ("level_positions__L11_L18_L6", 514), ("level_positions__L11_L22_L4", 644),
-    ("level_positions__L11_L23_L5", 686), ("level_positions__L11_L24_L6", 727),
-    ("level_positions__L11_L25_L7", 768), ("level_positions__L13_L19_L7", 557),
-    ("level_positions__L13_L20_L2", 600), ("level_positions__L13_L21_L3", 643),
-    ("level_positions__L14_L16_L4", 464), ("level_positions__L14_L26_L2", 808),
-    ("level_positions__L14_L27_L3", 856), ("level_positions__L14_L28_L4", 902),
-    ("level_positions__L15_L22_L4", 685), ("level_positions__L15_L23_L5", 726),
-    ("level_positions__L15_L24_L6", 767), ("level_positions__L15_L25_L7", 807),
-    ("level_positions__L16_L17_L5", 513), ("level_positions__L16_L18_L6", 556),
-    ("level_positions__L19_L19_L7", 599), ("level_positions__L19_L20_L2", 642),
-    ("level_positions__L19_L21_L3", 684), ("level_positions__L19_L26_L2", 855),
-    ("level_positions__L19_L27_L3", 901), ("level_positions__L22_L22_L4", 725),
-    ("level_positions__L22_L23_L5", 766), ("level_positions__L22_L24_L6", 806),
-    ("level_positions__L22_L25_L7", 854), ("level_positions__L28_L15_L3", 463),
-    ("level_positions__L28_L16_L4", 512), ("level_positions__L28_L26_L2", 900),
-    ("level_positions__L32_L17_L5", 555), ("level_positions__L32_L18_L6", 598),
-    ("level_positions__L37_L19_L7", 641), ("level_positions__L37_L20_L8", 683),
-    ("level_positions__L37_L21_L3", 724), ("level_positions__L3_L12_L6", 490),
-    ("level_positions__L3_L13_L7", 491), ("level_positions__L3_L14_L2", 492),
-    ("level_positions__L3_L15_L3", 493), ("level_positions__L3_L16_L4", 485),
-    ("level_positions__L3_L17_L5", 579), ("level_positions__L3_L18_L6", 622),
-    ("level_positions__L3_L19_L7", 661), ("level_positions__L3_L20_L2", 703),
-    ("level_positions__L3_L21_L3", 744), ("level_positions__L3_L22_L4", 829),
-    ("level_positions__L3_L23_L5", 925), ("level_positions__L44_L22_L4", 765),
-    ("level_positions__L44_L23_L5", 805), ("level_positions__L44_L24_L6", 853),
-    ("level_positions__L44_L25_L7", 899), ("level_positions__L4_L13_L7", 482),
-    ("level_positions__L4_L14_L2", 483), ("level_positions__L4_L15_L3", 484),
-    ("level_positions__L4_L16_L4", 530), ("level_positions__L4_L17_L5", 531),
-    ("level_positions__L4_L18_L6", 573), ("level_positions__L4_L19_L7", 616),
-    ("level_positions__L4_L20_L2", 657), ("level_positions__L4_L21_L3", 699),
-    ("level_positions__L4_L22_L4", 784), ("level_positions__L4_L23_L5", 825),
-    ("level_positions__L4_L24_L6", 873), ("level_positions__L4_L25_L7", 919),
-    ("level_positions__L5_L16_L4", 475), ("level_positions__L5_L17_L5", 476),
-    ("level_positions__L5_L18_L6", 524), ("level_positions__L5_L19_L7", 656),
-    ("level_positions__L5_L20_L2", 698), ("level_positions__L5_L21_L3", 739),
-    ("level_positions__L5_L22_L4", 740), ("level_positions__L5_L23_L5", 780),
-    ("level_positions__L5_L24_L6", 821), ("level_positions__L5_L25_L7", 869),
-    ("level_positions__L6_L15_L3", 474), ("level_positions__L6_L16_L4", 522),
-    ("level_positions__L6_L17_L5", 523), ("level_positions__L6_L18_L6", 566),
-    ("level_positions__L6_L19_L7", 567), ("level_positions__L6_L20_L2", 610),
-    ("level_positions__L6_L21_L3", 651), ("level_positions__L6_L22_L4", 820),
-    ("level_positions__L6_L23_L5", 868), ("level_positions__L6_L24_L6", 914),
-    ("level_positions__L6_L26_L2", 915), ("level_positions__L7_L14_L2", 473),
-    ("level_positions__L7_L15_L3", 521), ("level_positions__L7_L16_L4", 564),
-    ("level_positions__L7_L17_L5", 565), ("level_positions__L7_L18_L6", 608),
-    ("level_positions__L7_L19_L7", 609), ("level_positions__L7_L20_L2", 650),
-    ("level_positions__L7_L21_L3", 692), ("level_positions__L7_L22_L4", 693),
-    ("level_positions__L7_L23_L5", 734), ("level_positions__L7_L24_L6", 775),
-    ("level_positions__L7_L25_L7", 815), ("level_positions__L8_L17_L5", 607),
-    ("level_positions__L8_L18_L6", 466), ("level_positions__L8_L19_L7", 649),
-    ("level_positions__L8_L20_L2", 691), ("level_positions__L8_L21_L3", 732),
-    ("level_positions__L8_L22_L4", 733), ("level_positions__L8_L23_L5", 774),
-    ("level_positions__L8_L24_L6", 814), ("level_positions__L8_L25_L7", 862),
-    ("level_positions__L8_L26_L2", 863), ("level_positions__L8_L27_L3", 909),
-    ("level_positions__L9_L22_L4", 773), ("level_positions__L9_L23_L5", 813),
-    ("level_positions__L9_L24_L6", 861), ("level_positions__L9_L25_L7", 907),
-    ("level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0", 468),
-    ("level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0", 517),
-    ("level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0", 560),
-    ("level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0", 603),
-    ("level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0", 646),
-    ("level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0", 688),
-    ("level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0", 729),
-    ("level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0", 770),
-    ("level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0", 810),
-    ("level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0", 858),
-    ("level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0", 904),
-    ("level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1", 835),
-    ("level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1", 881),
-    ("level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1", 882),
-    ("level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1", 928),
-    ("level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1", 833),
-    ("level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1", 709),
-    ("level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1", 834),
-    ("level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1", 880),
-    ("level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1", 750),
-    ("level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1", 926),
-    ("level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1", 790),
-    ("level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0", 832),
-    ("level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1", 927),
-    ("level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1", 667),
-    ("level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1", 708),
-    ("level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1", 749),
-    ("level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1", 789),
-    ("level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0", 831),
-    ("level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0", 878),
-    ("level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0", 879),
-    ("level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0", 924),
-    ("level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1", 666),
-    ("level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1", 707),
-    ("level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1", 748),
-    ("level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1", 788),
-    ("level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0", 830),
-    ("level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0", 877),
-    ("level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0", 923),
-    ("level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1", 665),
-    ("level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1", 583),
-    ("level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1", 626),
-    ("level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0", 664),
-    ("level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0", 706),
-    ("level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0", 747),
-    ("level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0", 787),
-    ("level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0", 828),
-    ("level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0", 876),
-    ("level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0", 922),
-    ("level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1", 540),
-    ("level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1", 625),
-    ("level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0", 663),
-    ("level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0", 705),
-    ("level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0", 746),
-    ("level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0", 786),
-    ("level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0", 827),
-    ("level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0", 875),
-    ("level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0", 921),
-    ("level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1", 497),
-    ("level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1", 539),
-    ("level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1", 582),
-    ("level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0", 516),
-    ("level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0", 559),
-    ("level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0", 602),
-    ("level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0", 645),
-    ("level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0", 687),
-    ("level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0", 728),
-    ("level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0", 769),
-    ("level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0", 809),
-    ("level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0", 857),
-    ("level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0", 903),
-    ("level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0", 467),
-    ("level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1", 624),
-    ("level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0", 662),
-    ("level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0", 704),
-    ("level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0", 745),
-    ("level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0", 785),
-    ("level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0", 826),
-    ("level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0", 874),
-    ("level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0", 920),
-    ("level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1", 496),
-    ("level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1", 581),
-    ("level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1", 538),
-    ("level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1", 623),
-    ("level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0", 489),
-    ("level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0", 535),
-    ("level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0", 577),
-    ("level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0", 620),
-    ("level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0", 660),
-    ("level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0", 702),
-    ("level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0", 743),
-    ("level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0", 783),
-    ("level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0", 824),
-    ("level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0", 872),
-    ("level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0", 918),
-    ("level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1", 495),
-    ("level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1", 580),
-    ("level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1", 537),
-    ("level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0", 488),
-    ("level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0", 534),
-    ("level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0", 576),
-    ("level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0", 619),
-    ("level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0", 659),
-    ("level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0", 701),
-    ("level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0", 742),
-    ("level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0", 782),
-    ("level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0", 823),
-    ("level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0", 871),
-    ("level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0", 917),
-    ("level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1", 494),
-    ("level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0", 533),
-    ("level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0", 575),
-    ("level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0", 618),
-    ("level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0", 658),
-    ("level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0", 700),
-    ("level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0", 741),
-    ("level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0", 781),
-    ("level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0", 822),
-    ("level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0", 870),
-    ("level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0", 916),
-    ("level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0", 487),
-    ("level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0", 532),
-    ("level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0", 574),
-    ("level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0", 617),
-    ("level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0", 480),
-    ("level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0", 528),
-    ("level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0", 571),
-    ("level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0", 614),
-    ("level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0", 655),
-    ("level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0", 697),
-    ("level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0", 738),
-    ("level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0", 779),
-    ("level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0", 819),
-    ("level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0", 867),
-    ("level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0", 913),
-    ("level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0", 486),
-    ("level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0", 479),
-    ("level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0", 527),
-    ("level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0", 570),
-    ("level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0", 613),
-    ("level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0", 654),
-    ("level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0", 696),
-    ("level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0", 737),
-    ("level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0", 778),
-    ("level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0", 818),
-    ("level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0", 866),
-    ("level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0", 912),
-    ("level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0", 478),
-    ("level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0", 526),
-    ("level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0", 569),
-    ("level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0", 612),
-    ("level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0", 653),
-    ("level_queries__L44_L0_L4_L16_L20_L2_L0_L0_L0_L0", 695),
-    ("level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0", 736),
-    ("level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0", 777),
-    ("level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0", 817),
-    ("level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0", 865),
-    ("level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0", 911),
-    ("level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0", 477),
-    ("level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0", 525),
-    ("level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0", 568),
-    ("level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0", 611),
-    ("level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0", 652),
-    ("level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0", 694),
-    ("level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0", 735),
-    ("level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0", 776),
-    ("level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0", 816),
-    ("level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0", 864),
-    ("level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0", 910),
-    ("level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0", 470),
-    ("level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0", 519),
-    ("level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0", 562),
-    ("level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0", 605),
-    ("level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0", 648),
-    ("level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0", 690),
-    ("level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0", 731),
-    ("level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0", 772),
-    ("level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0", 812),
-    ("level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0", 860),
-    ("level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0", 906),
-    ("level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0", 469),
-    ("level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0", 518),
-    ("level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0", 561),
-    ("level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0", 604),
-    ("level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0", 647),
-    ("level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0", 689),
-    ("level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0", 730),
-    ("level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0", 771),
-    ("level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0", 811),
-    ("level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0", 859),
-    ("level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0", 905),
-    ("level_residual__L109_L14_L6_L3", 500), ("level_residual__L109_L15_L6_L3", 543),
-    ("level_residual__L109_L16_L6_L3", 586), ("level_residual__L109_L17_L6_L3", 629),
-    ("level_residual__L109_L18_L6_L3", 669), ("level_residual__L109_L19_L6_L3", 711),
-    ("level_residual__L109_L20_L6_L3", 752), ("level_residual__L109_L21_L6_L3", 792),
-    ("level_residual__L109_L22_L6_L3", 837), ("level_residual__L109_L23_L6_L3", 884),
-    ("level_residual__L109_L24_L6_L3", 930), ("level_residual__L15_L6_L4_L2", 852),
-    ("level_residual__L16_L6_L4_L2", 851), ("level_residual__L16_L7_L4_L2", 898),
-    ("level_residual__L16_L8_L4_L2", 944), ("level_residual__L17_L6_L4_L2", 850),
-    ("level_residual__L17_L7_L4_L2", 897), ("level_residual__L17_L8_L4_L2", 943),
-    ("level_residual__L18_L10_L4_L2", 849), ("level_residual__L18_L11_L4_L2", 896),
-    ("level_residual__L18_L12_L4_L2", 942), ("level_residual__L18_L6_L4_L2", 681),
-    ("level_residual__L18_L7_L4_L2", 723), ("level_residual__L18_L8_L4_L2", 764),
-    ("level_residual__L18_L9_L4_L2", 804), ("level_residual__L19_L10_L4_L2", 848),
-    ("level_residual__L19_L11_L4_L2", 895), ("level_residual__L19_L12_L4_L2", 941),
-    ("level_residual__L19_L6_L4_L2", 680), ("level_residual__L19_L7_L4_L2", 722),
-    ("level_residual__L19_L8_L4_L2", 763), ("level_residual__L19_L9_L4_L2", 803),
-    ("level_residual__L218_L15_L6_L3", 542), ("level_residual__L218_L16_L6_L3", 585),
-    ("level_residual__L218_L17_L6_L3", 628), ("level_residual__L218_L18_L6_L3", 668),
-    ("level_residual__L218_L19_L6_L3", 710), ("level_residual__L218_L20_L6_L3", 751),
-    ("level_residual__L218_L21_L6_L3", 791), ("level_residual__L218_L22_L6_L3", 836),
-    ("level_residual__L218_L23_L6_L3", 883), ("level_residual__L218_L24_L6_L3", 929),
-    ("level_residual__L219_L14_L6_L3", 499), ("level_residual__L21_L10_L4_L2", 847),
-    ("level_residual__L21_L11_L4_L2", 894), ("level_residual__L21_L12_L4_L2", 940),
-    ("level_residual__L21_L6_L4_L2", 679), ("level_residual__L21_L7_L4_L2", 721),
-    ("level_residual__L21_L8_L4_L2", 762), ("level_residual__L21_L9_L4_L2", 802),
-    ("level_residual__L23_L10_L4_L2", 678), ("level_residual__L23_L11_L4_L2", 720),
-    ("level_residual__L23_L12_L4_L2", 761), ("level_residual__L23_L13_L4_L2", 801),
-    ("level_residual__L23_L14_L4_L2", 846), ("level_residual__L23_L15_L4_L2", 893),
-    ("level_residual__L23_L16_L4_L2", 939), ("level_residual__L23_L6_L4_L2", 510),
-    ("level_residual__L23_L7_L4_L2", 553), ("level_residual__L23_L8_L4_L2", 596),
-    ("level_residual__L23_L9_L4_L2", 639), ("level_residual__L25_L10_L4_L2", 677),
-    ("level_residual__L25_L11_L4_L2", 719), ("level_residual__L25_L12_L4_L2", 760),
-    ("level_residual__L25_L13_L4_L2", 800), ("level_residual__L25_L14_L4_L2", 845),
-    ("level_residual__L25_L15_L4_L2", 892), ("level_residual__L25_L16_L4_L2", 938),
-    ("level_residual__L25_L6_L4_L2", 509), ("level_residual__L25_L7_L4_L2", 552),
-    ("level_residual__L25_L8_L4_L2", 595), ("level_residual__L25_L9_L4_L2", 638),
-    ("level_residual__L28_L10_L4_L2", 676), ("level_residual__L28_L11_L4_L2", 718),
-    ("level_residual__L28_L12_L4_L2", 759), ("level_residual__L28_L13_L4_L2", 799),
-    ("level_residual__L28_L14_L4_L2", 844), ("level_residual__L28_L15_L4_L2", 891),
-    ("level_residual__L28_L16_L4_L2", 937), ("level_residual__L28_L7_L4_L2", 551),
-    ("level_residual__L28_L8_L4_L2", 594), ("level_residual__L28_L9_L4_L2", 637),
-    ("level_residual__L29_L6_L4_L2", 508), ("level_residual__L32_L10_L4_L2", 506),
-    ("level_residual__L32_L11_L4_L2", 549), ("level_residual__L32_L12_L4_L2", 592),
-    ("level_residual__L32_L13_L4_L2", 635), ("level_residual__L32_L14_L4_L2", 675),
-    ("level_residual__L32_L15_L4_L2", 717), ("level_residual__L32_L16_L4_L2", 758),
-    ("level_residual__L32_L17_L4_L2", 798), ("level_residual__L32_L18_L4_L2", 843),
-    ("level_residual__L32_L19_L4_L2", 890), ("level_residual__L32_L20_L4_L2", 936),
-    ("level_residual__L32_L7_L4_L2", 550), ("level_residual__L32_L8_L4_L2", 593),
-    ("level_residual__L32_L9_L4_L2", 636), ("level_residual__L33_L6_L4_L2", 507),
-    ("level_residual__L37_L10_L4_L2", 505), ("level_residual__L37_L11_L4_L2", 548),
-    ("level_residual__L37_L12_L4_L2", 591), ("level_residual__L37_L13_L4_L2", 634),
-    ("level_residual__L37_L14_L4_L2", 674), ("level_residual__L37_L15_L4_L2", 716),
-    ("level_residual__L37_L16_L4_L2", 757), ("level_residual__L37_L17_L4_L2", 797),
-    ("level_residual__L37_L18_L4_L2", 842), ("level_residual__L37_L19_L4_L2", 889),
-    ("level_residual__L37_L20_L4_L2", 935), ("level_residual__L44_L10_L4_L2", 504),
-    ("level_residual__L44_L11_L4_L2", 547), ("level_residual__L44_L12_L4_L2", 590),
-    ("level_residual__L44_L13_L4_L2", 633), ("level_residual__L44_L14_L4_L2", 673),
-    ("level_residual__L44_L15_L4_L2", 715), ("level_residual__L44_L16_L4_L2", 756),
-    ("level_residual__L44_L17_L4_L2", 796), ("level_residual__L44_L18_L4_L2", 841),
-    ("level_residual__L44_L19_L4_L2", 888), ("level_residual__L44_L20_L4_L2", 934),
-    ("level_residual__L55_L10_L4_L2", 503), ("level_residual__L55_L11_L4_L2", 546),
-    ("level_residual__L55_L12_L4_L2", 589), ("level_residual__L55_L13_L4_L2", 632),
-    ("level_residual__L55_L14_L4_L2", 672), ("level_residual__L55_L14_L6_L3", 502),
-    ("level_residual__L55_L15_L4_L2", 714), ("level_residual__L55_L15_L6_L3", 545),
-    ("level_residual__L55_L16_L4_L2", 755), ("level_residual__L55_L16_L6_L3", 588),
-    ("level_residual__L55_L17_L4_L2", 795), ("level_residual__L55_L17_L6_L3", 631),
-    ("level_residual__L55_L18_L4_L2", 840), ("level_residual__L55_L18_L6_L3", 671),
-    ("level_residual__L55_L19_L4_L2", 887), ("level_residual__L55_L19_L6_L3", 713),
-    ("level_residual__L55_L20_L4_L2", 933), ("level_residual__L55_L20_L6_L3", 754),
-    ("level_residual__L55_L21_L6_L3", 794), ("level_residual__L55_L22_L6_L3", 839),
-    ("level_residual__L55_L23_L6_L3", 886), ("level_residual__L55_L24_L6_L3", 932),
-    ("level_residual__L73_L14_L6_L3", 501), ("level_residual__L73_L15_L6_L3", 544),
-    ("level_residual__L73_L16_L6_L3", 587), ("level_residual__L73_L17_L6_L3", 630),
-    ("level_residual__L73_L18_L6_L3", 670), ("level_residual__L73_L19_L6_L3", 712),
-    ("level_residual__L73_L20_L6_L3", 753), ("level_residual__L73_L21_L6_L3", 793),
-    ("level_residual__L73_L22_L6_L3", 838), ("level_residual__L73_L23_L6_L3", 885),
-    ("level_residual__L73_L24_L6_L3", 931), ("list_split", 22), ("opening_message__L12_L1", 536),
-    ("opening_message__L1_L1", 319), ("opening_message__L20_L1", 578),
-    ("opening_message__L36_L1", 621), ("opening_message__L6_L1", 471),
-    ("opening_message__L8_L1", 461), ("opening_round", 7), ("opening_tail_round", 8),
-    ("sel_partial_nibble__L0", 93), ("sel_partial_nibble__L1", 94), ("sel_partial_nibble__L2", 95),
-    ("sel_partial_nibble__L3", 96), ("selector_tables", 16), ("squeeze_point_from__L10", 472),
-    ("squeeze_point_from__L11", 520), ("squeeze_point_from__L12", 563),
-    ("squeeze_point_from__L13", 606), ("squeeze_point_from__L14", 462),
-    ("squeeze_point_from__L15", 511), ("squeeze_point_from__L16", 554),
-    ("squeeze_point_from__L17", 597), ("squeeze_point_from__L18", 640),
-    ("squeeze_point_from__L19", 682), ("squeeze_point_from__L20", 308),
-    ("squeeze_point_from__L21", 309), ("squeeze_point_from__L22", 310),
-    ("squeeze_point_from__L23", 311), ("squeeze_point_from__L24", 312),
-    ("squeeze_point_from__L25", 313), ("squeeze_point_from__L26", 314),
-    ("squeeze_point_from__L27", 315), ("squeeze_point_from__L28", 316),
-    ("squeeze_point_from__L29", 317), ("squeeze_point_from__L30", 318),
-    ("squeeze_point_from__L6", 481), ("squeeze_point_from__L7", 529),
-    ("squeeze_point_from__L8", 572), ("squeeze_point_from__L9", 615), ("statement_digest", 21),
-    ("verify_merkle_cap__L2", 1021), ("verify_merkle_cap__L3", 1008),
-    ("verify_merkle_cap__L4", 1010), ("verify_merkle_cap__L5", 1012),
-    ("verify_merkle_cap__L6", 1014), ("verify_merkle_cap__L7", 1031),
-    ("verify_merkle_cap__L8", 1235)]
+/-- A subtree. -/
+def wNameTTlll : NTree (ℕ) :=
+  (.node 535986382398305910880 (993)
+    (.node 489779450221484621920 (432)
+    (.node 462145362907939258464 (955)
+    (.node 452849933277046554720 (265)
+    (.node 976761065200468064 (80)
+    (.node 922717869672022112 (36)
+    (.node 886689072653058144 (34)
+    (.node 14926005358 (0)
+    .leaf
+    .leaf)
+    (.node 904703471162540128 (35)
+    .leaf
+    .leaf))
+    (.node 958746666690986080 (38)
+    (.node 940732268181504096 (37)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1030804260728914016 (92)
+    (.node 1012789862219432032 (91)
+    (.node 994775463709950048 (90)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2093794511347049076 (19)
+    (.node 1048818659238396000 (264)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 452976034066612928608 (984)
+    (.node 452921990871084482656 (954)
+    (.node 452885962074065518688 (427)
+    (.node 452867947675556036704 (385)
+    .leaf
+    .leaf)
+    (.node 452903976472575000672 (446)
+    .leaf
+    .leaf))
+    (.node 452958019668103446624 (974)
+    (.node 452940005269593964640 (964)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 462091319712410812512 (403)
+    (.node 462073305313901330528 (269)
+    (.node 452994048465122410592 (994)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 462127348509429776480 (945)
+    (.node 462109334110920294496 (428)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 471440792538831962208 (996)
+    (.node 471332706147775070304 (429)
+    (.node 462217420501977186400 (995)
+    (.node 462181391704958222432 (975)
+    (.node 462163377306448740448 (965)
+    .leaf
+    .leaf)
+    (.node 462199406103467704416 (985)
+    .leaf
+    .leaf))
+    (.node 471314691749265588320 (404)
+    (.node 471296677350756106336 (271)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 471386749343303516256 (966)
+    (.node 471368734944794034272 (956)
+    (.node 471350720546284552288 (946)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 471422778140322480224 (986)
+    (.node 471404763741812998240 (976)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 480610121380158292064 (967)
+    (.node 480556078184629846112 (430)
+    (.node 480538063786120364128 (405)
+    (.node 480520049387610882144 (272)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 480592106981648810080 (957)
+    (.node 480574092583139328096 (947)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 480664164575686738016 (997)
+    (.node 480646150177177256032 (987)
+    (.node 480628135778667774048 (977)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 489761435822975139936 (406)
+    (.node 489743421424465657952 (273)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 517413537535029985376 (365)
+    (.node 499074879852377325664 (979)
+    (.node 498966793461320433760 (346)
+    (.node 489851507815522549856 (978)
+    (.node 489815479018503585888 (958)
+    (.node 489797464619994103904 (948)
+    .leaf
+    .leaf)
+    (.node 489833493417013067872 (968)
+    .leaf
+    .leaf))
+    (.node 489887536612541513824 (998)
+    (.node 489869522214032031840 (988)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 499020836656848879712 (949)
+    (.node 499002822258339397728 (434)
+    (.node 498984807859829915744 (419)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 499056865453867843680 (969)
+    (.node 499038851055358361696 (959)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 508244208693703655520 (950)
+    (.node 508190165498175209568 (347)
+    (.node 499110908649396289632 (999)
+    (.node 499092894250886807648 (989)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 508226194295194173536 (436)
+    (.node 508208179896684691552 (423)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 508298251889232101472 (980)
+    (.node 508280237490722619488 (970)
+    (.node 508262223092213137504 (960)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 508334280686251065440 (1001)
+    (.node 508316266287741583456 (990)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 526708967165922689120 (962)
+    (.node 517539638324596359264 (991)
+    (.node 517485595129067913312 (961)
+    (.node 517449566332048949344 (443)
+    (.node 517431551933539467360 (424)
+    .leaf
+    .leaf)
+    (.node 517467580730558431328 (951)
+    .leaf
+    .leaf))
+    (.node 517521623926086877280 (981)
+    (.node 517503609527577395296 (971)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 526654923970394243168 (425)
+    (.node 526636909571884761184 (366)
+    (.node 517557652723105841248 (1003)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 526690952767413207136 (952)
+    (.node 526672938368903725152 (444)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 535878296007249018976 (426)
+    (.node 526763010361451135072 (992)
+    (.node 526744995962941653088 (982)
+    (.node 526726981564432171104 (972)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 535860281608739536992 (384)
+    (.node 526781024759960617056 (1005)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 535932339202777464928 (963)
+    (.node 535914324804267982944 (953)
+    (.node 535896310405758500960 (445)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 535968367999796428896 (983)
+    (.node 535950353601286946912 (973)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 236571174076759307239520 (1018)
+    (.node 231885755125232609575008 (1438)
+    (.node 231867272352361881059424 (1174)
+    (.node 231858030965926516801632 (1036)
+    (.node 231848843622686680989792 (1270)
+    (.node 231848807593889662025824 (1017)
+    (.node 536004396796815392864 (1007)
+    .leaf
+    .leaf)
+    (.node 231848825608288171507808 (1146)
+    .leaf
+    .leaf))
+    (.node 231848879651483699953760 (1505)
+    (.node 231848861637085190471776 (1391)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 231858085009122045247584 (1401)
+    (.node 231858066994723535765600 (1283)
+    (.node 231858048980325026283616 (1164)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 231867254337963371577440 (1050)
+    (.node 231858103023520554729568 (1519)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 231876513738797245317216 (1307)
+    (.node 231867326395557409505376 (1530)
+    (.node 231867308381158900023392 (1411)
+    (.node 231867290366760390541408 (1297)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 231876495724398735835232 (1184)
+    (.node 231876477710000226353248 (1060)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 231885701082037081129056 (1073)
+    (.node 231876549767594264281184 (1542)
+    (.node 231876531753195754799200 (1425)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 231885737110834100093024 (1317)
+    (.node 231885719096435590611040 (1198)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 231913389212546154938464 (1232)
+    (.node 231904147826110790680672 (1098)
+    (.node 231894960482870954868832 (1331)
+    (.node 231894924454073935904864 (1088)
+    (.node 231885773139631119056992 (1553)
+    .leaf
+    .leaf)
+    (.node 231894942468472445386848 (1211)
+    .leaf
+    .leaf))
+    (.node 231894996511667973832800 (1565)
+    (.node 231894978497269464350816 (1448)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 231904201869306319126624 (1458)
+    (.node 231904183854907809644640 (1344)
+    (.node 231904165840509300162656 (1221)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 231913371198147645456480 (1109)
+    (.node 231904219883704828608608 (1576)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 231922630598981519196256 (1364)
+    (.node 231913443255741683384416 (1588)
+    (.node 231913425241343173902432 (1472)
+    (.node 231913407226944664420448 (1354)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 231922612584583009714272 (1250)
+    (.node 231922594570184500232288 (1126)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 231931835956619864490080 (1260)
+    (.node 231931817942221355008096 (1136)
+    (.node 231922648613380028678240 (1485)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 231931871985416883454048 (1495)
+    (.node 231931853971018373972064 (1381)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 236617290936943581118560 (1089)
+    (.node 236589674864028545237088 (1412)
+    (.node 236580433477593180979296 (1284)
+    (.node 236571246134353345167456 (1506)
+    (.node 236571210105556326203488 (1271)
+    (.node 236571192091157816721504 (1147)
+    .leaf
+    .leaf)
+    (.node 236571228119954835685472 (1392)
+    .leaf
+    .leaf))
+    (.node 236580415463194671497312 (1165)
+    (.node 236580397448796162015328 (1037)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 236589620820833016791136 (1051)
+    (.node 236580469506390199943264 (1520)
+    (.node 236580451491991690461280 (1402)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 236589656849630035755104 (1298)
+    (.node 236589638835231526273120 (1175)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 236598916250463909494880 (1543)
+    (.node 236598862207268381048928 (1185)
+    (.node 236598844192869871566944 (1061)
+    (.node 236589692878427054719072 (1531)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 236598898236065400012896 (1429)
+    (.node 236598880221666890530912 (1308)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 236608103593703745306720 (1318)
+    (.node 236608085579305235824736 (1202)
+    (.node 236608067564906726342752 (1074)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 236608139622500764270688 (1554)
+    (.node 236608121608102254788704 (1439)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 236635791724212819116128 (1473)
+    (.node 236626550337777454858336 (1345)
+    (.node 236617362994537619046496 (1566)
+    (.node 236617326965740600082528 (1335)
+    (.node 236617308951342090600544 (1212)
+    .leaf
+    .leaf)
+    (.node 236617344980139109564512 (1449)
+    .leaf
+    .leaf))
+    (.node 236626532323378945376352 (1222)
+    (.node 236626514308980435894368 (1099)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 236635737681017290670176 (1112)
+    (.node 236626586366574473822304 (1578)
+    (.node 236626568352175964340320 (1459)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 236635773709814309634144 (1355)
+    (.node 236635755695415800152160 (1234)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 236654184425091000221792 (1137)
+    (.node 236644979067452654927968 (1251)
+    (.node 236644961053054145445984 (1127)
+    (.node 236635809738611328598112 (1589)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 236645015096249673891936 (1486)
+    (.node 236644997081851164409952 (1366)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 236654238468286528667744 (1496)
+    (.node 236654220453888019185760 (1382)
+    (.node 236654202439489509703776 (1261)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 241293558574027461935200 (1149)
+    (.node 241293540559628952453216 (1019)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTllr : NTree (ℕ) :=
+  (.node 250747514911803607138400 (1168)
+    (.node 246015979100092635594848 (1510)
+    (.node 241339693448610245296224 (1336)
+    (.node 241321210675739516780640 (1062)
+    (.node 241302835989259845156960 (1521)
+    (.node 241302781946064316711008 (1166)
+    (.node 241293612617222990381152 (1508)
+    (.node 241293594602824480899168 (1393)
+    .leaf
+    .leaf)
+    (.node 241302763931665807229024 (1042)
+    .leaf
+    .leaf))
+    (.node 241302817974861335674976 (1403)
+    (.node 241302799960462826192992 (1286)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 241312023332499680968800 (1299)
+    (.node 241312005318101171486816 (1176)
+    (.node 241311987303702662004832 (1052)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 241312059361296699932768 (1532)
+    (.node 241312041346898190450784 (1413)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 241330452062174881038432 (1203)
+    (.node 241321264718935045226592 (1430)
+    (.node 241321246704536535744608 (1309)
+    (.node 241321228690138026262624 (1186)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 241330434047776371556448 (1075)
+    (.node 241321282733333554708576 (1544)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 241330506105370409484384 (1555)
+    (.node 241330488090971900002400 (1440)
+    (.node 241330470076573390520416 (1319)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 241339675434211735814240 (1213)
+    (.node 241339657419813226332256 (1090)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 241367327535923790659680 (1128)
+    (.node 241348952849444119036000 (1579)
+    (.node 241348898806248590590048 (1223)
+    (.node 241339729477407264260192 (1567)
+    (.node 241339711463008754778208 (1450)
+    .leaf
+    .leaf)
+    (.node 241348880791850081108064 (1100)
+    .leaf
+    .leaf))
+    (.node 241348934835045609554016 (1460)
+    (.node 241348916820647100072032 (1346)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 241358140192683954847840 (1356)
+    (.node 241358122178285445365856 (1238)
+    (.node 241358104163886935883872 (1113)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 241358176221480973811808 (1590)
+    (.node 241358158207082464329824 (1477)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 241376586936757664399456 (1383)
+    (.node 241367381579119319105632 (1487)
+    (.node 241367363564720809623648 (1369)
+    (.node 241367345550322300141664 (1252)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 241376568922359154917472 (1262)
+    (.node 241376550907960645435488 (1138)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 246015925056897107148896 (1152)
+    (.node 246015907042498597666912 (1020)
+    (.node 241376604951156173881440 (1497)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 246015961085694126112864 (1394)
+    (.node 246015943071295616630880 (1273)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 246062095960276909473888 (1568)
+    (.node 246043613187406180958304 (1310)
+    (.node 246034371800970816700512 (1177)
+    (.node 246025184457730980888672 (1404)
+    (.node 246025148428933961924704 (1167)
+    (.node 246025130414535452442720 (1043)
+    .leaf
+    .leaf)
+    (.node 246025166443332471406688 (1287)
+    .leaf
+    .leaf))
+    (.node 246034353786572307218528 (1053)
+    (.node 246025202472129490370656 (1522)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 246034425844166345146464 (1534)
+    (.node 246034407829767835664480 (1414)
+    (.node 246034389815369326182496 (1300)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 246043595173007671476320 (1187)
+    (.node 246043577158609161994336 (1063)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 246052854573841545216096 (1441)
+    (.node 246052800530646016770144 (1077)
+    (.node 246043649216203199922272 (1545)
+    (.node 246043631201804690440288 (1431)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 246052836559443035734112 (1320)
+    (.node 246052818545044526252128 (1204)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 246062041917081381027936 (1214)
+    (.node 246062023902682871545952 (1091)
+    (.node 246052872588240054698080 (1557)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 246062077945878399991904 (1451)
+    (.node 246062059931479890509920 (1337)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 246089730047590454837344 (1370)
+    (.node 246080488661155090579552 (1239)
+    (.node 246071301317915254767712 (1461)
+    (.node 246071265289118235803744 (1224)
+    (.node 246071247274719726321760 (1101)
+    .leaf
+    .leaf)
+    (.node 246071283303516745285728 (1347)
+    .leaf
+    .leaf))
+    (.node 246080470646756581097568 (1114)
+    (.node 246071319332313764249696 (1580)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 246080542704350619025504 (1592)
+    (.node 246080524689952109543520 (1478)
+    (.node 246080506675553600061536 (1357)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 246089712033191945355360 (1253)
+    (.node 246089694018793435873376 (1129)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 250738273525368242880608 (1027)
+    (.node 246098935405228800131168 (1263)
+    (.node 246098917390830290649184 (1139)
+    (.node 246089748061988964319328 (1488)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 246098971434025819095136 (1498)
+    (.node 246098953419627309613152 (1384)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 250738327568563771326560 (1395)
+    (.node 250738309554165261844576 (1274)
+    (.node 250738291539766752362592 (1153)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 250747496897405097656416 (1044)
+    (.node 250738345582962280808544 (1512)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 255469917423470271316064 (1406)
+    (.node 250793631771987881017440 (1225)
+    (.node 250766015699072845135968 (1546)
+    (.node 250756774312637480878176 (1416)
+    (.node 250756720269441952432224 (1054)
+    (.node 250747550940600626102368 (1405)
+    (.node 250747532926202116620384 (1288)
+    .leaf
+    .leaf)
+    (.node 250747568954999135584352 (1523)
+    .leaf
+    .leaf))
+    (.node 250756756298238971396192 (1301)
+    (.node 250756738283840461914208 (1178)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 250765961655877316690016 (1189)
+    (.node 250765943641478807208032 (1064)
+    (.node 250756792327035990360160 (1535)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 250765997684674335653984 (1432)
+    (.node 250765979670275826172000 (1311)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 250784390385552516759648 (1092)
+    (.node 250775203042312680947808 (1321)
+    (.node 250775185027914171465824 (1205)
+    (.node 250775167013515661983840 (1078)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 250775239071109699911776 (1558)
+    (.node 250775221056711190429792 (1442)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 250784444428748045205600 (1452)
+    (.node 250784426414349535723616 (1338)
+    (.node 250784408399951026241632 (1215)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 250793613757589371535456 (1102)
+    (.node 250784462443146554687584 (1569)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 250821283873699935862880 (1140)
+    (.node 250802891172821754757216 (1479)
+    (.node 250802837129626226311264 (1115)
+    (.node 250793667800784899981408 (1463)
+    (.node 250793649786386390499424 (1348)
+    .leaf
+    .leaf)
+    (.node 250793685815183409463392 (1581)
+    .leaf
+    .leaf))
+    (.node 250802873158423245275232 (1358)
+    (.node 250802855144024735793248 (1240)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 250812078516061590569056 (1254)
+    (.node 250812060501663081087072 (1130)
+    (.node 250802909187220264239200 (1593)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 250812114544858609533024 (1489)
+    (.node 250812096530460100051040 (1371)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 255460676037034907058272 (1275)
+    (.node 250821337916895464308832 (1499)
+    (.node 250821319902496954826848 (1385)
+    (.node 250821301888098445344864 (1264)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 255460658022636397576288 (1154)
+    (.node 255460640008237888094304 (1028)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 255469863380274742870112 (1045)
+    (.node 255460712065831926022240 (1514)
+    (.node 255460694051433416540256 (1396)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 255469899409071761834080 (1292)
+    (.node 255469881394673252352096 (1169)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 255516034283654545195104 (1466)
+    (.node 255497551510783816679520 (1206)
+    (.node 255488310124348452421728 (1065)
+    (.node 255479122781108616609888 (1302)
+    (.node 255479086752311597645920 (1055)
+    (.node 255469935437868780798048 (1524)
+    .leaf
+    .leaf)
+    (.node 255479104766710107127904 (1179)
+    .leaf
+    .leaf))
+    (.node 255479158809905635573856 (1536)
+    (.node 255479140795507126091872 (1419)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 255488364167543980867680 (1433)
+    (.node 255488346153145471385696 (1312)
+    (.node 255488328138746961903712 (1192)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 255497533496385307197536 (1083)
+    (.node 255488382181942490349664 (1547)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 255506792897219180937312 (1339)
+    (.node 255497605553979345125472 (1559)
+    (.node 255497587539580835643488 (1443)
+    (.node 255497569525182326161504 (1323)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 255506774882820671455328 (1216)
+    (.node 255506756868422161973344 (1093)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 255515980240459016749152 (1103)
+    (.node 255506828926016199901280 (1571)
+    (.node 255506810911617690419296 (1453)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 255516016269256035713120 (1349)
+    (.node 255515998254857526231136 (1226)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 255543686385366600040544 (1386)
+    (.node 255534426984532726300768 (1131)
+    (.node 255525239641292890488928 (1359)
+    (.node 255525203612495871524960 (1117)
+    (.node 255516052298053054677088 (1582)
+    .leaf
+    .leaf)
+    (.node 255525221626894381006944 (1242)
+    .leaf
+    .leaf))
+    (.node 255525275670089909452896 (1594)
+    (.node 255525257655691399970912 (1480)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 255534481027728254746720 (1490)
+    (.node 255534463013329745264736 (1373)
+    (.node 255534444998931235782752 (1255)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 255543668370968090558560 (1265)
+    (.node 255543650356569581076576 (1141)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 260183078548701571235936 (1515)
+    (.node 260183024505506042789984 (1155)
+    (.node 260183006491107533308000 (1029)
+    (.node 255543704399765109522528 (1500)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 260183060534303061753952 (1397)
+    (.node 260183042519904552271968 (1276)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 260192265891941407047776 (1293)
+    (.node 260192247877542897565792 (1170)
+    (.node 260192229863144388083808 (1046)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 260192301920738426011744 (1526)
+    (.node 260192283906339916529760 (1407)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTlrl : NTree (ℕ) :=
+  (.node 269646258258514571214944 (1539)
+    (.node 264923855746847907037280 (1304)
+    (.node 260247570095365516738656 (1118)
+    (.node 260219954022450480857184 (1444)
+    (.node 260210712636015116599392 (1313)
+    (.node 260201525292775280787552 (1537)
+    (.node 260201489263978261823584 (1303)
+    (.node 260201471249579752341600 (1180)
+    .leaf
+    .leaf)
+    (.node 260201507278376771305568 (1420)
+    .leaf
+    .leaf))
+    (.node 260210694621616607117408 (1193)
+    (.node 260210676607218097635424 (1066)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 260219899979254952411232 (1084)
+    (.node 260210748664812135563360 (1548)
+    (.node 260210730650413626081376 (1434)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 260219936008051971375200 (1326)
+    (.node 260219917993653461893216 (1207)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 260229195408885845114976 (1572)
+    (.node 260229141365690316669024 (1217)
+    (.node 260229123351291807187040 (1094)
+    (.node 260219972036848990339168 (1560)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 260229177394487335632992 (1454)
+    (.node 260229159380088826151008 (1340)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 260238382752125680926816 (1350)
+    (.node 260238364737727171444832 (1227)
+    (.node 260238346723328661962848 (1104)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 260238418780922699890784 (1583)
+    (.node 260238400766524190408800 (1467)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 264905372973977178521696 (1030)
+    (.node 260256829496199390478432 (1374)
+    (.node 260247642152959554666592 (1595)
+    (.node 260247606124162535702624 (1360)
+    (.node 260247588109764026220640 (1243)
+    .leaf
+    .leaf)
+    (.node 260247624138561045184608 (1481)
+    .leaf
+    .leaf))
+    (.node 260256811481800880996448 (1256)
+    (.node 260256793467402371514464 (1132)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 260266034853837735772256 (1266)
+    (.node 260266016839439226290272 (1142)
+    (.node 260256847510597899960416 (1491)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 260266070882634754736224 (1501)
+    (.node 260266052868236245254240 (1387)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 264914614360412542779488 (1171)
+    (.node 264905427017172706967648 (1398)
+    (.node 264905409002774197485664 (1277)
+    (.node 264905390988375688003680 (1157)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 264914596346014033297504 (1047)
+    (.node 264905445031571216449632 (1516)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 264914668403608071225440 (1527)
+    (.node 264914650389209561743456 (1408)
+    (.node 264914632374811052261472 (1294)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 264923837732449397555296 (1181)
+    (.node 264923819718050888073312 (1057)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 264969972607032180916320 (1361)
+    (.node 264951489834161452400736 (1095)
+    (.node 264933115147681780777056 (1550)
+    (.node 264933061104486252331104 (1194)
+    (.node 264923891775644926001248 (1538)
+    (.node 264923873761246416519264 (1421)
+    .leaf
+    .leaf)
+    (.node 264933043090087742849120 (1067)
+    .leaf
+    .leaf))
+    (.node 264933097133283271295072 (1435)
+    (.node 264933079118884761813088 (1314)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 264942302490921616588896 (1327)
+    (.node 264942284476523107106912 (1208)
+    (.node 264942266462124597624928 (1085)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 264942338519718635552864 (1561)
+    (.node 264942320505320126070880 (1445)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 264960731220596816658528 (1228)
+    (.node 264951543877356980846688 (1455)
+    (.node 264951525862958471364704 (1341)
+    (.node 264951507848559961882720 (1218)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 264960713206198307176544 (1105)
+    (.node 264951561891755490328672 (1573)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 264960785263792345104480 (1585)
+    (.node 264960767249393835622496 (1468)
+    (.node 264960749234995326140512 (1351)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 264969954592633671434336 (1244)
+    (.node 264969936578235161952352 (1123)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 269627775485643842699360 (1279)
+    (.node 264988383322308871503968 (1143)
+    (.node 264979177964670526210144 (1257)
+    (.node 264970008635829199880288 (1596)
+    (.node 264969990621430690398304 (1482)
+    .leaf
+    .leaf)
+    (.node 264979159950272016728160 (1133)
+    .leaf
+    .leaf))
+    (.node 264979213993467545174112 (1492)
+    (.node 264979195979069035692128 (1375)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 264988437365504399949920 (1502)
+    (.node 264988419351105890467936 (1388)
+    (.node 264988401336707380985952 (1267)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 269627757471245333217376 (1158)
+    (.node 269627739456846823735392 (1034)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 269637016872079206957152 (1409)
+    (.node 269636962828883678511200 (1048)
+    (.node 269627811514440861663328 (1517)
+    (.node 269627793500042352181344 (1399)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 269636998857680697475168 (1295)
+    (.node 269636980843282187993184 (1172)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 269646204215319042768992 (1182)
+    (.node 269646186200920533287008 (1058)
+    (.node 269637034886477716439136 (1528)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 269646240244116061732960 (1423)
+    (.node 269646222229717552250976 (1305)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 274377812084624052240480 (1316)
+    (.node 269701526433141661941856 (1134)
+    (.node 269673892345828116578400 (1342)
+    (.node 269664650959392752320608 (1209)
+    (.node 269655463616152916508768 (1436)
+    (.node 269655427587355897544800 (1196)
+    (.node 269655409572957388062816 (1069)
+    .leaf
+    .leaf)
+    (.node 269655445601754407026784 (1315)
+    .leaf
+    .leaf))
+    (.node 269664632944994242838624 (1086)
+    (.node 269655481630551425990752 (1551)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 269664705002588280766560 (1562)
+    (.node 269664686988189771284576 (1446)
+    (.node 269664668973791261802592 (1328)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 269673874331429607096416 (1219)
+    (.node 269673856317031097614432 (1096)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 269683133732263480836192 (1470)
+    (.node 269683079689067952390240 (1106)
+    (.node 269673928374625135542368 (1574)
+    (.node 269673910360226626060384 (1456)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 269683115717864971354208 (1352)
+    (.node 269683097703466461872224 (1230)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 269692321075503316648032 (1248)
+    (.node 269692303061104807166048 (1124)
+    (.node 269683151746661990318176 (1586)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 269692357104300335612000 (1483)
+    (.node 269692339089901826130016 (1362)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 274359329311753323724896 (1049)
+    (.node 269710803848374045163616 (1503)
+    (.node 269710749805178516717664 (1144)
+    (.node 269701562461938680905824 (1376)
+    (.node 269701544447540171423840 (1258)
+    .leaf
+    .leaf)
+    (.node 269701580476337190387808 (1493)
+    .leaf
+    .leaf))
+    (.node 269710785833975535681632 (1389)
+    (.node 269710767819577026199648 (1268)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 274350141968513487913056 (1282)
+    (.node 274350123954114978431072 (1163)
+    (.node 274350105939716468949088 (1035)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 274350177997310506877024 (1518)
+    (.node 274350159982911997395040 (1400)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 274368570698188687982688 (1183)
+    (.node 274359383354948852170848 (1410)
+    (.node 274359365340550342688864 (1296)
+    (.node 274359347326151833206880 (1173)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 274368552683790178500704 (1059)
+    (.node 274359401369347361652832 (1529)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 274368624741384216428640 (1540)
+    (.node 274368606726985706946656 (1424)
+    (.node 274368588712587197464672 (1306)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 274377794070225542758496 (1197)
+    (.node 274377776055827033276512 (1072)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 274423946959206835601504 (1494)
+    (.node 274405446171937597603936 (1107)
+    (.node 274387071485457925980256 (1564)
+    (.node 274387017442262397534304 (1210)
+    (.node 274377848113421071204448 (1552)
+    (.node 274377830099022561722464 (1437)
+    .leaf
+    .leaf)
+    (.node 274386999427863888052320 (1087)
+    .leaf
+    .leaf))
+    (.node 274387053471059416498272 (1447)
+    (.node 274387035456660907016288 (1330)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 274396258828697761792096 (1343)
+    (.node 274396240814299252310112 (1220)
+    (.node 274396222799900742828128 (1097)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 274396294857494780756064 (1575)
+    (.node 274396276843096271274080 (1457)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 274414687558372961861728 (1249)
+    (.node 274405500215133126049888 (1471)
+    (.node 274405482200734616567904 (1353)
+    (.node 274405464186336107085920 (1231)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 274414669543974452379744 (1125)
+    (.node 274405518229531635531872 (1587)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 274423892916011307155552 (1135)
+    (.node 274414723587169980825696 (1484)
+    (.node 274414705572771471343712 (1363)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 274423928944808326119520 (1380)
+    (.node 274423910930409816637536 (1259)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 16599369859528767374188357501640298 (198)
+    (.node 577080631809362937037925 (27)
+    (.node 274433170331243690377312 (1504)
+    (.node 274433134302446671413344 (1269)
+    (.node 274433116288048161931360 (1145)
+    .leaf
+    .leaf)
+    (.node 274433152316845180895328 (1390)
+    .leaf
+    .leaf))
+    (.node 544107274408225136493669 (31)
+    (.node 525273112540255529003123 (5)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 64790305282459717384395210933349 (28)
+    (.node 283390220024274457981932653 (22)
+    (.node 239925623173513312549522551 (18)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 16274851305870340647405201481064042 (197)
+    (.node 15950332752211913920622045460487786 (196)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 18546481181479327734887293625097834 (204)
+    (.node 17572925520504047554537825563369066 (201)
+    (.node 17248406966845620827754669542792810 (200)
+    (.node 16923888413187194100971513522216554 (199)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 18221962627820901008104137604521578 (203)
+    (.node 17897444074162474281320981583945322 (202)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 35110242710793041433322040329030775 (12)
+    (.node 32846874876081744872086955072479856 (7)
+    (.node 18870999735137754461670449645674090 (205)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 8157796325488480062183223445698174570 (206)
+    (.node 37708937580284607180000350754884727 (11)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTlrr : NTree (ℕ) :=
+  (.node 1117221633492348622842317152585911112060951153 (139)
+    (.node 2140817422845227565260048496715539114680944 (335)
+    (.node 9154717322327166966861078740908433002 (212)
+    (.node 8498877368112630783353099084680456307 (83)
+    (.node 8332723868639426565108182855432591464 (441)
+    (.node 8323949824961594546296199328233217642 (207)
+    (.node 8166570369166312080995206972897548392 (437)
+    (.node 8158445362595796915636789757739327082 (226)
+    .leaf
+    .leaf)
+    (.node 8166570369166401815127147319610370163 (81)
+    .leaf
+    .leaf))
+    (.node 8324598862068911399749765640274370154 (227)
+    (.node 8324274343515252973022982484253793898 (217)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 8490427842988367457135958366788836970 (218)
+    (.node 8490103324434709030409175210768260714 (208)
+    (.node 8332723868639516299240123202145413235 (82)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 8498877368112541049221158737967634536 (438)
+    (.node 8490752361542025883862741522809413226 (228)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 8822734841934596425361910131858923114 (220)
+    (.node 8656905861015140367975717405344456298 (229)
+    (.node 8656581342461481941248934249323880042 (219)
+    (.node 8656256823907823514522151093303303786 (209)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 8822410323380937998635126975838346858 (210)
+    (.node 8665030867585745267466074967215499379 (84)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 8988563822854052482748102858373389930 (211)
+    (.node 8831184367058859751579050849750542451 (85)
+    (.node 8831184367058770017447110503037720680 (439)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 8997337866531974235692026732285585523 (86)
+    (.node 8988888341407710909474886014393966186 (221)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 19142766480157760343053277638593137783 (9)
+    (.node 9487024321273395935087030505978519146 (214)
+    (.node 9320870821800281450974054623443476074 (213)
+    (.node 9163491366004998985673062268107806824 (440)
+    (.node 9155041840880825393587861896929009258 (222)
+    .leaf
+    .leaf)
+    (.node 9163491366005088719805002614820628595 (87)
+    .leaf
+    .leaf))
+    (.node 9329644865478203203917978497355671667 (88)
+    (.node 9321195340353939877700837779464052330 (223)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 9653177820746510419200006388513562218 (215)
+    (.node 9495798364951317688030954379890714739 (435)
+    (.node 9487348839827054361813813661999095402 (224)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 18146168739125553687769057188819027045 (30)
+    (.node 9653502339300168845926789544534138474 (225)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 9460479822494134224297674106842711647334 (4)
+    (.node 4525558961638988494300917258081778855028 (6)
+    (.node 4436495804193949652279735630991786042984 (442)
+    (.node 4351425212463715036413891979133843990120 (431)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 8611273839449241937893167037254744719464 (2)
+    (.node 4776778171114888115743110238423554254440 (89)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2138602430540589757878699429791184066242152 (450)
+    (.node 9885171733046128064548039062281278255718 (1)
+    (.node 9885171733046128064529610859614402038900 (16)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2140817407902154833190883979547959388849253 (407)
+    (.node 2138687501132319992494565273443042008295016 (460)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 2402154267320028341371016995366953500853368 (1599)
+    (.node 2269270859438230127848635279044983059441256 (453)
+    (.node 2184373565819981276625537347029857658260588 (266)
+    (.node 2184373551192553510172622656082381740491877 (408)
+    (.node 2140817422854101153302225397278591327194220 (267)
+    (.node 2140817422851585642207927003741770430863985 (128)
+    .leaf
+    .leaf)
+    (.node 2182158573506469881202011379542450397308520 (451)
+    .leaf
+    .leaf))
+    (.node 2184373565817465765531238953493036761930353 (129)
+    (.node 2184373565811107688583360446466805445747312 (336)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2227929708776987811906672396218071776813680 (337)
+    (.node 2227929694807470740812788059399960112710757 (409)
+    (.node 2225714716472350004525323329293716728374888 (452)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2269185788846499893232769435393125117388392 (334)
+    (.node 2227929708783345888854550903244303092996721 (130)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2315041994715106135501174802746835755129457 (132)
+    (.node 2271485851749226012177862852995569424063089 (131)
+    (.node 2271485851742867935229984345969338107880048 (338)
+    (.node 2271485839071425078769806916283850526082149 (410)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2315041994708748058553296295720604438946416 (339)
+    (.node 2312827002404110251171947228796249390507624 (454)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2358598137674628181876608245471870770012784 (340)
+    (.node 2356383145369990374495259178547515721573992 (455)
+    (.node 2356298074778260139879393334895657779521128 (307)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2399939288335870497818571128298782052640360 (456)
+    (.node 2358598137680986258824486752498102086195825 (133)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 2530522646641780633172641133900723103786600 (449)
+    (.node 2445710423612746505471110652000634748328561 (135)
+    (.node 2443495431301750621141883078050048383706728 (457)
+    (.node 2402154280646866382147798702249368417262193 (134)
+    (.node 2402154280640508305199920195223137101079152 (341)
+    .leaf
+    .leaf)
+    (.node 2443410360710020386526017234398190441653864 (447)
+    .leaf
+    .leaf))
+    (.node 2445710423606388428523232144974403432145520 (342)
+    (.node 2445710410285908464694328945118219831919736 (1598)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2489266553576307141657122815490659652256869 (418)
+    (.node 2487051574267630744465195027801314714773096 (458)
+    (.node 2486966503675900509849329184149456772720232 (448)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2489266566578626628794422601751901079394929 (136)
+    (.node 2489266566572268551846544094725669763211888 (343)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 5105953897122868228845058955335611735140980 (21)
+    (.node 2532822709544506752117734551503167410461297 (137)
+    (.node 2532822709538148675169856044476936094278256 (344)
+    (.node 2530607717233510867788506977552581045839464 (459)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 5061887993275393506223450864320237837275234 (33)
+    (.node 4844109275859592133218055156942551524623461 (29)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1094964444436783879824104746263014016886037105 (148)
+    (.node 1094920888293817999700781434313262750554970737 (138)
+    (.node 1094920888293811641623833555806236519238787696 (345)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1096098520500011848810548304600182249840764006 (39)
+    (.node 1095008000579749759947428058212765283217103473 (158)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 2591991208264213515573722354287306135511811173 (32)
+    (.node 1206424614286471115408460025676504558084872817 (143)
+    (.node 1161910236175341629372035213030710367735044721 (161)
+    (.node 1140700003400343976672063044106516056308499576 (1597)
+    (.node 1139522378690879245983852870858559473566931569 (140)
+    (.node 1117308745778280383088963776485413644723083889 (159)
+    (.node 1117265189635314502965640464535662378392017521 (149)
+    .leaf
+    .leaf)
+    (.node 1118399265698542471952084022872830611346744422 (40)
+    .leaf
+    .leaf))
+    (.node 1139609490976811006230499494758062006229064305 (160)
+    (.node 1139565934833845126107176182808310739897997937 (150)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1140700010897073095093619741145478972852724838 (41)
+    (.node 1140700004397264973510749948784371351518758008 (1533)
+    (.node 1140700003732975494171950439059250977399161976 (1577)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1161866680032375749248711901080959101403978353 (151)
+    (.node 1161823123889409869125388589131207835072911985 (141)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 1184167425230906372390247619353607462909958769 (152)
+    (.node 1163000749595795596652285667057019713024738424 (1541)
+    (.node 1163000748931506117313486157331899338905142392 (1584)
+    (.node 1163000748598874599813598762379164417814479992 (1507)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1184123869087940492266924307403856196578892401 (142)
+    (.node 1163000756095603718235155459418127334358705254 (42)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1185301494462019220847644289420320693437908069 (411)
+    (.node 1185301494130036740455021875604547700411122808 (1591)
+    (.node 1185301493797405222955134480651812779320460408 (1509)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1185301501294134341376691177690775695864685670 (43)
+    (.node 1185301494794326219793821385329668074530718840 (1549)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 1251069660826498241814854774171552547427900017 (155)
+    (.node 1228768915627967618673319055898904185921919601 (154)
+    (.node 1207602239992856842935357103602316436036699256 (1556)
+    (.node 1207602238995935846096670198924461140826440824 (1511)
+    (.node 1206468170429436995531783337626255824415939185 (153)
+    .leaf
+    .leaf)
+    (.node 1207602238996584883204038924694631836844868709 (412)
+    .leaf
+    .leaf))
+    (.node 1228725359485001738549995743949152919590853233 (144)
+    (.node 1207602246492664964518226895963424057370666086 (44)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1229902985191387466076892821874964797542679672 (1563)
+    (.node 1229902984528396060952778891373581431482664037 (413)
+    (.node 1229902984194466469238205917197109502332421240 (1513)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1251026104683532361691531462221801281096833649 (145)
+    (.node 1229902991691195587659762614236072418876646502 (45)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 1273370406025028864956390492444200908933880433 (156)
+    (.node 1252203730389918089218428540147613159048660088 (1570)
+    (.node 1252203729725304091325951658889547646377182309 (421)
+    (.node 1252203729392997092379741635469757863838401656 (1525)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1273326849882062984833067180494449642602814065 (146)
+    (.node 1252203736889726210801298332508720780382626918 (46)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1295627595080593607974602898767098004108794481 (147)
+    (.node 1274504482088256833942834050781369141888607334 (47)
+    (.node 1274504474591527715521277353742406225344382072 (1600)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1296805227286787457084369769054017503394587750 (48)
+    (.node 1295671151223559488097926210716849270439860849 (157)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 595456387121941799032295948584360651563296146545 (100)
+    (.node 572620424038646440935363373073168729381172200561 (98)
+    (.node 561202442496668734750127674693737692505231645283 (162)
+    (.node 560621795551633346469941719765347572434889401446 (59)
+    (.node 2614248395326908533168693833839509719327758948 (23)
+    (.node 2614030615607701423807353364104966013799156836 (15)
+    .leaf
+    .leaf)
+    (.node 560599494806434815846800184047074924073383421030 (49)
+    .leaf
+    .leaf))
+    (.node 560666397042030407716224791201892869157901362278 (79)
+    (.node 560644096296831877093083255483620220796395381862 (69)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 572039777093281025518408007520943533525951374438 (60)
+    (.node 572017476348082494895266471802670885164445394022 (50)
+    (.node 561202442496998761886897085317572768290110227569 (97)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 572620424038316413798593962449333653596293618275 (163)
+    (.node 572062077838479556141549543239216181887457354854 (70)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 584038405580294119983829660828764690472234173553 (99)
+    (.node 583480059380127235190015830994812142978519327846 (71)
+    (.node 583457758634928704566874295276539494617013347430 (61)
+    (.node 583435457889730173943732759558266846255507367014 (51)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 584038405579964092847060250204929614687355591267 (164)
+    (.node 584038405578137697985358636728923329320545738855 (498)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 594898040921774914238482118750408104069581300838 (72)
+    (.node 594875740176576383615340583032135455708075320422 (62)
+    (.node 594853439431377852992199047313862807346569340006 (52)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 595456387121611771895526537960525575778417564259 (165)
+    (.node 595456387119785377033824924484519290411607711847 (541)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 629107384056320890137597910580650690619755258982 (55)
+    (.node 617689402514673211089131622825054729528693285990 (54)
+    (.node 606874368661433056082291212240115251502669684839 (584)
+    (.node 606293721718224062663806870787731416799137293414 (63)
+    (.node 606271420973025532040665335069458768437631312998 (53)
+    .leaf
+    .leaf)
+    (.node 606316022463422593286948406506004065160643273830 (73)
+    .leaf
+    .leaf))
+    (.node 606874368663589478080762236339956612654358119537 (101)
+    (.node 606874368663259450943992825716121536869479537251 (166)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 618292350203080735130757499995711212593731657831 (627)
+    (.node 617734004005070272335414694261600026251705246822 (74)
+    (.node 617711703259871741712273158543327377890199266406 (64)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 618292350205237157129228524095552573745420092529 (102)
+    (.node 618292350204907129992459113471717497960541510243 (167)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 640547666343167099809205734054519300072323212390 (66)
+    (.node 629710331746554809040925401227313459051603483235 (168)
+    (.node 629151985546717951383880982017195987342767219814 (75)
+    (.node 629129684801519420760739446298923338981261239398 (65)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 640525365597968569186064198336246651710817231974 (56)
+    (.node 629710331746884836177694811851148534836482065521 (103)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 641128313288202488089391688982909420142665456227 (169)
+    (.node 641128309959795441135657282064028650539461952613 (414)
+    (.node 640569967088365630432347269772791948433829192806 (76)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 651943347139616248234530486091842612801879204966 (57)
+    (.node 641128313288532515226161099606744495927544038513 (104)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTrll : NTree (ℕ) :=
+  (.node 152944104673045766004403353516324387667770385697661028 (286)
+    (.node 310422385519731712779165014196680764857529933284465 (121)
+    (.node 292884365871760877760720796204085368621658742768753 (118)
+    (.node 1338249957491961999188263366372915147009267913843 (14)
+    (.node 663405930171660988529279845283983870615953138790 (78)
+    (.node 652546294830180194274627387362340457018606011505 (105)
+    (.node 652546291331800721740627339967003018718265525349 (415)
+    (.node 651987948630013309480813557528387909524891165798 (77)
+    .leaf
+    .leaf)
+    (.node 652546294829850167137857976738505381233727429219 (170)
+    .leaf
+    .leaf))
+    (.node 663383629426462457906138309565711222254447158374 (68)
+    (.node 663361328681263927282996773847438573892941177958 (58)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 663964276371827873323093675117936418109667984497 (106)
+    (.node 663964276371497846186324264494101342324789402211 (171)
+    (.node 663964272532502393425923681602952818315480843365 (416)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1338183056021336145337396868794057815648026547315 (13)
+    (.node 1155696667595367606143610889934375884834404360816 (8)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 287335650557696899343348364065574925352070208875619 (320)
+    (.node 287038359322437266087906056873220236543035012596849 (117)
+    (.node 287026941340895618408857590585464640581943950623857 (107)
+    (.node 287026941340895288381720821174840805506159072041571 (172)
+    .leaf
+    .leaf)
+    (.node 287038359322436936060769287462596401467250134014563 (182)
+    .leaf
+    .leaf))
+    (.node 287049777303978913766954523160975832504126074569841 (127)
+    (.node 287049777303978583739817753750351997428341195987555 (192)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 292872947890218900054535560505705937584782802213475 (173)
+    (.node 287335650558465191829368231092379593554573830707812 (348)
+    (.node 287335650558294392192065369443193698668919718731876 (274)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 292884365871760547733584026793461533545873864186467 (183)
+    (.node 292872947890219230081672329916329772660567680795761 (108)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 304564960988866123400165039167436201742030262557283 (175)
+    (.node 298730372421084159406398766124326665624497594358371 (184)
+    (.node 293181657107788803502182970423244725633197560879716 (349)
+    (.node 293181657107020511016163103396440057430693939047523 (321)
+    (.node 292895783853302195412632493081217129506964926159459 (193)
+    .leaf
+    .leaf)
+    (.node 293181657107618003864880108774058830747543448903780 (275)
+    .leaf
+    .leaf))
+    (.node 298718954439542841754487069247194904739191410967665 (109)
+    (.node 298718954439542511727350299836571069663406532385379 (174)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 299027663656344122688977842727305189509317669219427 (322)
+    (.node 298741790402625807085447232412082261585588656331363 (194)
+    (.node 298730372421084489433535535534950500700282472940657 (119)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 299027663657112415174997709754109857711821291051620 (350)
+    (.node 299027663656941615537694848104923962826167179075684 (276)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 304873670205667734361792582058170321587941399391331 (323)
+    (.node 304576378970407771079213505455191797703121324530275 (185)
+    (.node 304576378970406604100993355120333653840957019571299 (433)
+    (.node 304564960988866453427301808578060036817815141139569 (110)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 304587796951949418758261971742947393664212386503267 (195)
+    (.node 304576378970408101106350274865815632778906203112561 (120)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 310410967538189735072979778498301333820653992729187 (176)
+    (.node 304873670206436026847812449084974989790445021223524 (351)
+    (.node 304873670206265227210509587435789094904790909247588 (277)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 310422385519731382752028244786056929781745054702179 (186)
+    (.node 310410967538190065100116547908925168896438871311473 (111)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 333794993735484181764238735821761862135148913416803 (180)
+    (.node 322114398618378606097657723447787193938992515045987 (188)
+    (.node 316268392069055324451979753527545896936153663456369 (122)
+    (.node 316256974087513346745794517829166465899277722901091 (177)
+    (.node 310719676755588838883324326766654226983414639419492 (278)
+    (.node 310719676754991346034607321389035453666565129563235 (324)
+    .leaf
+    .leaf)
+    (.node 310719676755759638520627188415840121869068751395428 (352)
+    .leaf
+    .leaf))
+    (.node 316268392069054994424842984116922061860368784874083 (187)
+    (.node 316256974087513676772931287239790300975062601483377 (112)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 316565683305083250193441927746705253947692481567332 (353)
+    (.node 316565683304912450556139066097519359062038369591396 (279)
+    (.node 316565683304314957707422060719900585745188859735139 (325)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 322102980636837288445746026570655433053686331655281 (113)
+    (.node 322102980636836958418609257160031597977901453072995 (178)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 327948987186160900118560765901520565132310061827185 (114)
+    (.node 322411689854236062228953805428384491140662099763300 (280)
+    (.node 322411689853638569380236800050765717823812589907043 (326)
+    (.node 322114398618378936124794492858411029014777393628273 (123)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 327948987186160570091423996490896730056525183244899 (179)
+    (.node 322411689854406861866256667077570386026316211739236 (354)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 328257696402962181053051539381630849902436320078947 (327)
+    (.node 327960405167702547797609232189276161093401123800177 (124)
+    (.node 327960405167702217770472462778652326017616245217891 (189)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 328257696403730473539071406408435518104939941911140 (355)
+    (.node 328257696403559673901768544759249623219285829935204 (281)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 339949709502377696884700885070165782262187402254948 (357)
+    (.node 339641000284807793437053475152626994213772643588707 (181)
+    (.node 334103702952285792725866278712495981981060050250851 (328)
+    (.node 333806411717025829443287202109517458096239975389795 (190)
+    (.node 333794993735484511791375505232385697210933791999089 (115)
+    .leaf
+    .leaf)
+    (.node 333806411717026159470423971520141293172024853972081 (125)
+    .leaf
+    .leaf))
+    (.node 334103702953054085211886145739300650183563672083044 (356)
+    (.node 334103702952883285574583284090114755297909560107108 (282)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 339652418266349771143238710851006425250648584143985 (126)
+    (.node 339652418266349441116101941440382590174863705561699 (191)
+    (.node 339641000284808123464190244563250829289557522170993 (116)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 339949709502206897247398023420979887376533290279012 (283)
+    (.node 339949709501609404398681018043361114059683780422755 (329)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 146969485979637034874786689920180222683416933461975140 (304)
+    (.node 146957793966538387651441060441518492419259686001631332 (284)
+    (.node 146957793966537790158592343436140873645942836491775075 (330)
+    (.node 146957793964660018496609684780964691789428284480078949 (417)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 146963639973087711263113875180849357551338309731803236 (294)
+    (.node 146957793966538558451078363303167678314145340113607268 (358)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 149950949319792247627559509840570625938400689961622116 (359)
+    (.node 149950949319792076827922206978921440043515035849646180 (285)
+    (.node 149950949319791479335073489973543821270198186339789923 (331)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 152944104673045168511554636510946768894453536187804771 (332)
+    (.node 149956795326341400439595021718252305175593659579818084 (295)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 44802657246221828488956806460710415965302217438359212573797 (422)
+    (.node 78388307861640090140250221289151912560263485742113410167 (1021)
+    (.node 164916726086060522710327939665936178164791785089720420 (290)
+    (.node 158930415379553144357365646591130282916281085393690724 (288)
+    (.node 155937260026299455180884500053727335292025735545675876 (287)
+    (.node 152949950679595089616076168255655252799849009427832932 (296)
+    (.node 152944104673045936804040656377973573562656039809636964 (360)
+    .leaf
+    .leaf)
+    (.node 155937260026298857688035783048349716518708886035819619 (333)
+    .leaf
+    .leaf))
+    (.node 155943106032848778792557314793058200424104359275847780 (297)
+    (.node 155937260026299625980521802915376521186911389657651812 (361)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 161923570732806833533846793128533230540536435241705572 (289)
+    (.node 158936261386102467969038461330461148048359709123862628 (298)
+    (.node 158930415379553315157002949452779468811166739505666660 (362)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 161929416739356157145519607867864095672615058971877476 (299)
+    (.node 161923570732807004333484095990182416435422089353681508 (363)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 170908882799117224674963047480072938545381108515922020 (302)
+    (.node 167909881439314211886809086203339125789047134937735268 (291)
+    (.node 164922572092609846322000754405267043296870408819892324 (300)
+    (.node 164916726086060693509965242527585364059677439201696356 (364)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 170903036792567901063290232740742073413302484785750116 (292)
+    (.node 167915727445863535498481900942669990921125758667907172 (301)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 344810530952603751886012067964037736357556022177491042 (3)
+    (.node 173902038152370913851444194017475886169636458363936868 (303)
+    (.node 173896192145821590239771379278145021037557834633764964 (293)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 75323316322386132812224337587644476161766719066581550181 (420)
+    (.node 365814980932093575521222016714657756806731995214828132 (25)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 39350175908076540055202163510163059455911178641014767278691 (231)
+    (.node 171972396832048182954098617841972637830522316547923956324 (26)
+    (.node 84518290025103645573683609397753149294738442230847818871 (1014)
+    (.node 81453298943371867856966915343452530927500963986480614519 (1010)
+    (.node 79920803402505978998608568316302221743882224864297012343 (1008)
+    .leaf
+    .leaf)
+    (.node 82985794484237756715325262370602840111119703108664216695 (1012)
+    .leaf
+    .leaf))
+    (.node 87583281106835423290400303452053767661975920475215023223 (1235)
+    (.node 86050785565969534432041956424903458478357181353031421047 (1031)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 39350175638908997676738969594903353007581408008405383701104 (319)
+    (.node 38565538191187703428787959376297529721786699070370036894836 (93)
+    (.node 38565538191153204959722689832262101153898384210456762964579 (230)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 39350175679831043522004251304606528323637332558771494904432 (461)
+    (.node 39350175668139030423357027958977049661907068401524034560624 (471)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 41704089058846545341640584543865934361949561932688780221027 (234)
+    (.node 40134813625034373619746906732099446325812287931486045523060 (95)
+    (.node 40134813624999875150681637188064017757923973071572771592803 (232)
+    (.node 39350175908111038524267433054198488023799493500928041208948 (94)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 40919451341957708715226380410000404627825082362044049837172 (96)
+    (.node 40919451341923210246161110865964976059936767502130775906915 (233)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 43273364492819125453470488710583636449616307694339521832052 (481)
+    (.node 43273364492693215532599531899667850965975150793804788849251 (236)
+    (.node 42488726775769880437120058221766892663962356363246784535139 (235)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 44058002209742460548949962388484594751629102124897526146164 (529)
+    (.node 44058002209616550628079005577568809267987945224362793163363 (237)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 20529379515644049223406177788215788158218024938232739425999459 (262)
+    (.node 20126075729145454984329728317774695590983448600925925208545891 (241)
+    (.node 19724341218080707415444237794689404940352897852480226999720547 (240)
+    (.node 45627277643589130739908909744286511355654690986013534774388 (615)
+    (.node 44842639926665795644429436066385553053641896555455530460276 (572)
+    (.node 44842639926539885723558479255469767570000739654920797477475 (238)
+    .leaf
+    .leaf)
+    (.node 45627277643463220819037952933370725872013534085478801791587 (239)
+    .leaf
+    .leaf))
+    (.node 91174616542084920343790480714159171770905852214540933583476 (10)
+    (.node 85676028568827834911158077651060901601062025184348944781924 (17)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 19725125855797756660460588225178221684138551803811319737017460 (308)
+    (.node 19725125855797630750539717268367305898654910646910785004034659 (250)
+    (.node 19724341218080833325365108751500320725836539009380761732703348 (472)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 19725910493514679995556067698856122642440564598241877741331572 (318)
+    (.node 19725910493514554085635196742045206856956923441341343008348771 (260)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 20147289929956503045001506780104683431431309944470960269222512 (536)
+    (.node 20126860366862504229346078748263512334769102552257017945842804 (309)
+    (.node 20126860366862378319425207791452596549285461395356483212860003 (251)
+    (.node 20126075729145580894250599274585611376467089757826459941528692 (520)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 20147289923976038345043452038815205095956279828038884303364720 (578)
+    (.node 20127645004579301654520687265130497507587474189787041217174115 (261)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 20527810240210328463136089797670902027097640506272158150354036 (563)
+    (.node 20527810240210202553215218840859986241613999349371623417371235 (242)
+    (.node 20147289941940816471114910709374899059704830705649607121625712 (621)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 20528594877927251798231569271348802985399653300702716154668148 (310)
+    (.node 20528594877927125888310698314537887199916012143802181421685347 (252)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 21733798411121494504888040840604674937291305546039810781144180 (313)
+    (.node 21331279262339823600907070843841483328358742003163554568004724 (462)
+    (.node 20930329388991999367117059794434093636030204049148414363493492 (311)
+    (.node 20929544751275076032021580320756192677728191254717856359179380 (606)
+    (.node 20929544751274950122100709363945276892244550097817321626196579 (243)
+    .leaf
+    .leaf)
+    (.node 20930329388991873457196188837623177850546562892247879630510691 (253)
+    .leaf
+    .leaf))
+    (.node 21331279262339697690986199887030567542875100846263019835021923 (244)
+    (.node 20931114026708796792291668311301078808848575686678437634824803 (263)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 21733013773404445259871690410115858193505651594708718043847267 (245)
+    (.node 21332063900056746936002550317519384286660754797594112572318836 (312)
+    (.node 21332063900056621026081679360708468501177113640693577839336035 (254)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 21733798411121368594967169883793759151807664389139276048161379 (255)
+    (.node 21733013773404571169792561366926773978989292751609252776830068 (511)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 22536482795534066307563542413097355280250394248500649194480756 (597)
+    (.node 22135532922186116163852660406879049802438215137584974256986723 (256)
+    (.node 22134748284469318738678051890012064629619843500054950985655412 (554)
+    (.node 22134748284469192828757180933201148844136202343154416252672611 (246)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 22536482795533940397642671456286439494766753091600114461497955 (247)
+    (.node 22135532922186242073773531363689965587921856294485508989969524 (314)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 22938217306598687966528161979371730145397303840045812670323299 (248)
+    (.node 22537267433250989642659021886775256238552407042931207198794868 (315)
+    (.node 22537267433250863732738150929964340453068765886030672465812067 (257)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 22939001944315611301623641453049631103699316634476370674637411 (258)
+    (.node 22938217306598813876449032936182645930880944996946347403306100 (640)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTrlr : NTree (ℕ) :=
+  (.node 1412118206611280830691393330524899969584607570473990814859437014333049965 (600)
+    (.node 2865883159759729453775983532215283109455310295698675139826270743612525 (693)
+    (.node 2758043372287657872461974327546899928917365677416546220931836154793069 (610)
+    (.node 5808052665152794675405649497723239202799740884456332672853093175908 (373)
+    (.node 5176178915141451555218141331621216608886370312053038005327227310692 (367)
+    (.node 23340736455380484780430002932945837539813508539822603616445556 (317)
+    (.node 23339951817663561445334523459267936581511495745392045612131444 (682)
+    (.node 23339951817663435535413652502457020796027854588491510879148643 (249)
+    .leaf
+    .leaf)
+    (.node 23340736455380358870509131976134921754329867382922068883462755 (259)
+    .leaf
+    .leaf))
+    (.node 47094112396192729546066739928246737361958291531107734146044516 (24)
+    (.node 46679837480097678569489655848755261462469984848684486367169655 (20)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 5492115790147123115311895414672227905843055598254685339090160243300 (370)
+    (.node 5386803498478565928613977386988557473524160502854136227835849265764 (369)
+    (.node 5281491206810008741916059359304887041205265407453587116581538288228 (368)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 5702740373484237488707731470039568770480845789055783561598782198372 (372)
+    (.node 5597428081815680302009813442355898338161950693655234450344471220836 (371)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2701276157921873988208617568061267954404919707661510835226942563209828 (378)
+    (.node 6123989540158466235499403580774250499756426170657980006616026108516 (376)
+    (.node 6018677248489909048801485553090580067437531075257430895361715130980 (375)
+    (.node 5913364956821351862103567525406909635118635979856881784107404153444 (374)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2650203588049892078083955611417353025559009486717977298455839537941612 (268)
+    (.node 2647356264587572708619283537887228693057645418816429690264735342711396 (377)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2758043372287657872444436307898929093898921459423950824695964964277357 (703)
+    (.node 2755196051256175267797951598235307215752193996506591980189149783708260 (379)
+    (.node 2704123480580724335543794503820411240735702474301956946526650340789356 (270)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2758043372287657872456128320997576317244550938085681088853212424621165 (698)
+    (.node 2758043372287657872450282314448252705571736198754815956774588694449261 (657)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 2811963266023693663121901933155753325022745356223043246418365314288749 (692)
+    (.node 2758043374698064938862151753958490290774739059861580975763272868088941 (863)
+    (.node 2758043373893811278992349254894735324234997842975006156126823525436525 (483)
+    (.node 2758043372287657872473666340645547152262995156078276485089083615136877 (691)
+    (.node 2758043372287657872467820334096223540590180416747411353010459884964973 (650)
+    .leaf
+    .leaf)
+    (.node 2758043373893811278986503248345411712562183103644141024048199795264621 (492)
+    .leaf
+    .leaf))
+    (.node 2758043374698064938850459740859843067429109581199850711606025407745133 (915)
+    (.node 2758043373893811279009887274542706159253442060967601552362694715952237 (473)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2811963266023693663104363913507782490004301138230447850182494123773037 (699)
+    (.node 2811963266023693663098517906958458878331486398899582718103870393601133 (744)
+    (.node 2809115944590476547387285628409346477099468285351673125151357004206692 (380)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2811963266023693663116055926606429713349930616892178114339741584116845 (651)
+    (.node 2811963266023693663110209920057106101677115877561312982261117853944941 (739)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2811963268434100729516233353018020075207303999337212869171178297412717 (909)
+    (.node 2811963267629847069646430853954265108667562782450638049534728954760301 (484)
+    (.node 2811963267629847069640584847404941496994748043119772917456105224588397 (493)
+    (.node 2811963266023693663127747939705076936695560095553908378496989044460653 (732)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2811963267629847069663968873602235943686007000443233445770600145276013 (521)
+    (.node 2811963267629847069658122867052912332013192261112368313691976415104109 (474)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2865883159759729453758445512567312274436866077706079743590399553096813 (784)
+    (.node 2865883159759729453752599506017988662764051338375214611511775822924909 (829)
+    (.node 2863035837924777826976619658583385738446742574196754270113564224705124 (381)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2865883159759729453770137525665959497782495556367810007747647013440621 (820)
+    (.node 2865883159759729453764291519116635886109680817036944875669023283268717 (740)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 2973722947231801035072454717235695454974810695988208662484834141916269 (821)
+    (.node 2919803053495765244430065131274812893887875235174307033234176172936301 (734)
+    (.node 2865883161365882860318050472661765728118571939918865339178505574599789 (564)
+    (.node 2865883161365882860300512453013794893100127721926269942942634384084077 (530)
+    (.node 2865883159759729453787675545313930332800939774360405403983518203956333 (773)
+    (.node 2865883159759729453781829538764606721128125035029540271904894473784429 (733)
+    .leaf
+    .leaf)
+    (.node 2865883161365882860294666446464471281427312982595404810864010653912173 (485)
+    .leaf
+    .leaf))
+    (.node 2865883161365882860312204466112442116445757200588000207099881844427885 (522)
+    (.node 2865883161365882860306358459563118504772942461257135075021258114255981 (475)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2919803053495765244412527111626842058869431017181711636998304982420589 (825)
+    (.node 2919803053495765244406681105077518447196616277850846504919681252248685 (925)
+    (.node 2916955731259079106565953688757424999794016863041835415075771445203556 (382)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2919803053495765244424219124725489282215060495843441901155552442764397 (868)
+    (.node 2919803053495765244418373118176165670542245756512576769076928712592493 (780)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2919803055101918650966286065171971900878322140063632100507787273751661 (523)
+    (.node 2919803055101918650948748045524001065859877922071036704271916083235949 (579)
+    (.node 2919803053495765244441757144373460117233504713836037297391423633280109 (813)
+    (.node 2919803053495765244435911137824136505560689974505172165312799903108205 (774)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2919803055101918650960440058622648289205507400732766968429163543579757 (476)
+    (.node 2919803055101918650954594052073324677532692661401901836350539813407853 (531)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2970875624593380386155287718931464261141291151886916560037978665701988 (383)
+    (.node 2919803055101918650977978078270619124223951618725362364665034734095469 (607)
+    (.node 2919803055101918650972132071721295512551136879394497232586411003923565 (565)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2973722947231801035066608710686371843301995956657343530406210411744365 (873)
+    (.node 2973722946427547375214344231270587711780698957763364107005632259607661 (490)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 3027642840967836825720690309745901627734560896132975423814115841068141 (919)
+    (.node 2973722948837954441614521657682178073638072340208398861837068972903533 (524)
+    (.node 2973722947231801035095838743432989901666069653311669190799329062603885 (861)
+    (.node 2973722947231801035084146730334342678320440174649938926642081602260077 (775)
+    (.node 2973722947231801035078300723785019066647625435319073794563457872088173 (914)
+    .leaf
+    .leaf)
+    (.node 2973722947231801035089992736883666289993254913980804058720705332431981 (814)
+    .leaf
+    .leaf))
+    (.node 2973722948837954441608675651132854461965257600877533729758445242731629 (573)
+    (.node 2973722948837954441602829644583530850292442861546668597679821512559725 (622)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2973722948837954441632059677330148908656516558200994258072940163419245 (466)
+    (.node 2973722948837954441626213670780825296983701818870129125994316433247341 (608)
+    (.node 2973722948837954441620367664231501685310887079539263993915692703075437 (566)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 3027642840163583165874271836879441107886078636569861132492161419103341 (482)
+    (.node 3027642840163583165868425830330117496213263897238996000413537688931437 (491)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 3027642842573990232262757250192384246397822540353165623166350672055405 (616)
+    (.node 3027642840967836825744074335943196074425819853456435952128610761755757 (862)
+    (.node 3027642840967836825738228329393872462753005114125570820049987031583853 (815)
+    (.node 3027642840967836825726536316295225239407375635463840555892739571240045 (869)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 3027642842573990232256911243643060634725007801022300491087726941883501 (661)
+    (.node 3027642840967836825749920342492519686098634592787301084207234491927661 (907)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 3027642842573990232280295269840355081416266758345761019402221862571117 (609)
+    (.node 3027642842573990232274449263291031469743452019014895887323598132399213 (567)
+    (.node 3027642842573990232268603256741707858070637279684030755244974402227309 (656)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1412118206611280830682413864465138902055164130861781971986670964789005421 (558)
+    (.node 3027642842573990232286141276389678693089081497676626151480845592743021 (649)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 723004522211580442623529832534595523234465459933380864153713278093130255469 (851)
+    (.node 1494939164212182349282619476848781777275481762290557567842225884852178029 (555)
+    (.node 1467332177796981480315186577255351090490591775422231978460621474264566893 (644)
+    (.node 1439725192204131155506283109243379219214080819485514344284284594146823277 (643)
+    (.node 1412118207845409248697269484913944625996698996637388317337977284814752877 (900)
+    (.node 1412118207845409248673318396081365788973177009598833871211855862300462189 (908)
+    (.node 1412118206611280830709352262644422104643494449698408500604969113421139053 (642)
+    .leaf
+    .leaf)
+    (.node 1412118207845409248685291017494380545679101595748445661708877261692521581 (808)
+    .leaf
+    .leaf))
+    (.node 1439725192204131155497303643183618151684637379873305501411518544602778733 (601)
+    (.node 1412118207845409248700256794260648991561507328435460399830154010932595821 (855)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1439725193026481699670793005524796089463749328752597329605984200582548589 (463)
+    (.node 1439725192204131155524242041362901354272967698709932030029816693234912365 (684)
+    (.node 1439725192204131155518267422669492623143351035113787865045463240999226477 (724)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1439725193438259573515146572979128241190980577446983929255001590746369133 (901)
+    (.node 1439725193438259573500180796212859795308574844759969191133724841506294893 (856)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 1467332179031109898315070574931339044938048093771492720558572421320068205 (902)
+    (.node 1467332177796981480327159198668365847196516361571843768957642873656626285 (685)
+    (.node 1467332177796981480324183581334760128855053659252433416729623394999127149 (765)
+    (.node 1467332177796981480318185578615154103278745736698965791216955447842753645 (725)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1467332178619332024485682784243275339093222577764120859030831780396321901 (512)
+    (.node 1467332178619332024473704316823711258775625176875178203401731757274090605 (464)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1494939163389831805139073360053239378484526908263956946154470974812900461 (805)
+    (.node 1494939163389831805133075357333633352908218985710489320641803027656526957 (766)
+    (.node 1494939163389831805130076355973830340120065024433755507885469054078340205 (686)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1494939164212182349279614629482429440875654986274492889953813287543819373 (465)
+    (.node 1494939163389831805142048977386845096825989610583367298382490453470399597 (726)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 1550153135397882998906401031566134250958120337760137001179253097323351149 (515)
+    (.node 1522546149805032674097509255567261026904955011302081097267073464665951341 (598)
+    (.node 1522546148982682129953963138771718628114000157275480475579318554626673773 (853)
+    (.node 1522546148982682129944966134692309589749538273445279037310316633892113517 (727)
+    (.node 1494939164212182349294580406248697886758060718961507628075090036783893613 (513)
+    .leaf
+    .leaf)
+    (.node 1522546148982682129947965136052112602537692234722012850066650607470300269 (806)
+    .leaf
+    .leaf))
+    (.node 1522546149805032674094504408200908690505128235286016419378660867357592685 (514)
+    (.node 1522546148982682129956938756105324346455462859594890827807338033284172909 (767)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1550153134575532454762854914770591852167165483733536379491498187284073581 (854)
+    (.node 1550153134575532454759855913410788839379011522456802566735164213705886829 (768)
+    (.node 1522546149805032674109470184967177136387533967973031157499937616597666925 (556)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1550153134575532454771828534823803596084936108606414357232185613097946221 (807)
+    (.node 1550153134575532454768852917490197877743473406287004005004166134440447085 (899)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 723004522206019263986184584877645988370511808274875320392311072795942505573 (1016)
+    (.node 1550153135397882998933339429745417453546450656596763529797551245955484781 (599)
+    (.node 1550153135397882998927364811052008722416833993000619364813197793719798893 (641)
+    (.node 1550153135397882998915380497625895318487563777372345844052019146867395693 (557)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 723004521784975785381620988841243248783649747812417780773318825261617171557 (1108)
+    (.node 1577760118934254361601811784645661984372704401434353612944516242556636269 (683)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 723004522211580442623529815019411838346925799586095447069508964404063685741 (507)
+    (.node 723004522211580442623529815007993856805278120537629159313913003313001712749 (510)
+    (.node 723004522211580442623529803315980758158054774908150497583648846065541368941 (679)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 723004522211580442623529826700006955452501466167107821044177160560462056557 (509)
+    (.node 723004522211580442623529826688588973910853787118641533288581199469400083565 (852)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 723004522211580444977442965777999143243699154240504065352296294987014655085 (639)
+    (.node 723004522211580443408167566995950266684774156278557158761903944522325085293 (722)
+    (.node 723004522211580443408167531931328952284751798438587461326707433871006026861 (553)
+    (.node 723004522211580442623529850084033152746948157426065144504705475055382744173 (508)
+    (.node 723004522211580442623529844226608621881688805562859525883977435340590599277 (681)
+    (.node 723004522211580442623529838380602072558077132748120195018845356716860427373 (850)
+    .leaf
+    .leaf)
+    (.node 723004522211580442623529850072615171205300478377598856749109513964320771181 (680)
+    .leaf
+    .leaf))
+    (.node 723004522211580443408167526096740384502787804672314418217171316338337827949 (550)
+    (.node 723004522211580443408167520239315853637528452809108799596443276623545683053 (721)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 723004522211580443408167555303937168037550810649078497031639787274864741485 (897)
+    (.node 723004522211580443408167549457930618713939137834339166166507708651134569581 (898)
+    (.node 723004522211580443408167543623342050931975144068066123056971591118466370669 (552)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 723004522211580443408167561161361698902810162512284115652367826989656886381 (551)
+    (.node 723004522211580443408167561149943717361162483463817827896771865898594913389 (723)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 723004522211580444192805272227272263517024488550036799044434217832869055597 (943)
+    (.node 723004522211580444192805248854664047764225476339545763339501864429010340973 (596)
+    (.node 723004522211580444192805243020075479982261482573272720229965746896342142061 (593)
+    (.node 723004522211580444192805237162650949117002130710067101609237707181549997165 (762)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 723004522211580444192805266381265714193412815735297468179302139209138883693 (944)
+    (.node 723004522211580444192805260546677146411448821969024425069766021676470684781 (595)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 723004522211580444192805283919285362164247834179515460774698375080329399405 (763)
+    (.node 723004522211580444192805278084696794382283840413242417665162257547661200493 (594)
+    (.node 723004522211580444192805278073278812840636161364776129909566296456599227501 (764)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 723004522211580444977442959943410575461735160474231022242760177454346456173 (636)
+    (.node 723004522211580444977442954085986044596475808611025403622032137739554311277 (802)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 765408852076637362901855284989230115801382718756575461588876955389898312805 (1004)
+    (.node 737139298829558630291408151581507364180802111768775367457833033660594441317 (1000)
+    (.node 723004522211580444977443000842620457643721512080473762787492805638333713517 (803)
+    (.node 723004522211580444977442994996613908320109839265734431922360727014603541613 (804)
+    (.node 723004522211580444977442977470012241890922499869982727082560452234474998893 (638)
+    .leaf
+    .leaf)
+    (.node 723004522211580444977442995008031889861757518314200719677956688105665514605 (637)
+    .leaf
+    .leaf))
+    (.node 737139298408515151686844555545104624593940051306317827838840786126269107301 (1148)
+    (.node 723004522416849535392964109028751414885672341725788353176613492787483036773 (1365)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 751274075453097996596631718285368739991092415262675414523354994525246377061 (1002)
+    (.node 751274075032054517992068122248966000404230354800217874904362746990921043045 (1188)
+    (.node 737139299040388901698187675732612790695962645219688400242135453652134972517 (1415)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 765408851655593884297291688952827376214520658294117921969884707855572978789 (1233)
+    (.node 751274075663928268003411242436474166506252948713588447307657414516786908261 (1462)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 793678405323716095512302418396952867421963325744375555719920877119202184293 (1068)
+    (.node 779543628700176729207078851693091491611673022250475508654398916254550248549 (1006)
+    (.node 779543628279133250602515255656688752024810961788017969035406668720224914533 (1278)
+    (.node 779543628068302979195735731505583325509650428337104936251104248728684383333 (1033)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 793678404902672616907738822360550127835101265281918016100928629584876850277 (1322)
+    (.node 793678404691842345500959298209444701319940731831004983316626209593336319077 (1026)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 370178315372329184191625994821950611813624365935475692487498588299475906514029 (506)
+    (.node 370178315372329184191625994816093187282759106583612486868877860259761114369133 (847)
+    (.node 807813180894338233201619268876903337543368974862447490763155922923662920805 (1229)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329184191625994833654042893813236960153637436984448417814428830829 (504)
+    (.node 370178315372329184191625994827785200381406329929241965530608124417008574712941 (678)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTrrl : NTree (ℕ) :=
+  (.node 193236644381440631745769165030895272049635270694745673438793274637065540316482669 (837)
+    (.node 370178315372329186200298550180753077555477003719768915337687527038618269699181 (891)
+    (.node 370178315372329184995095016969006605195659542482598144316706673348925638626413 (589)
+    (.node 370178315372329184593360505898401611779303760045444288067535196863512637656173 (547)
+    (.node 370178315372329184192410632550577377989292710638054595738997242848372433144941 (934)
+    (.node 370178315372329184191625994857015233128024388293315662184933784810127225572461 (676)
+    (.node 370178315372329184191625994851180644560242424299549389141824248692594557373549 (505)
+    (.node 370178315372329184191625994839511467424678496312016843055605176457529220975725 (503)
+    .leaf
+    .leaf)
+    (.node 370178315372329184191625994857003815146482740614267195897178188849036163599469 (849)
+    .leaf
+    .leaf))
+    (.node 370178315372329184192410632538873946909103839613376650789511382730033910828141 (936)
+    (.node 370178315372329184191625994862849821695806352287081935228043320927659893771373 (848)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 370178315372329184593360505880840756168249629668903137499428608705459323194477 (894)
+    (.node 370178315372329184192410632568103979655721897977450347443837043123152561687661 (935)
+    (.node 370178315372329184192410632556434802520157969989917801357617970888087225289837 (933)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329184593360505892532769266896853014532616161158872862706783538285 (720)
+    (.node 370178315372329184593360505886698180699114889020766343118049336745174115339373 (549)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 370178315372329184593360505927597390581296875372372585858594069373358102596717 (895)
+    (.node 370178315372329184593360505915928213445732947384840039772374997138292766198893 (548)
+    (.node 370178315372329184593360505904259036310169019397307493686155924903227429801069 (546)
+    (.node 370178315372329184593360505904224782365544076360162094822889137019954243882093 (719)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329184593360505921762802013514911378606312815484533255825434397805 (718)
+    (.node 370178315372329184593360505921751384031973263699557846527728937294734372424813 (896)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 370178315372329184995095016957280338152387376099823266791709621308404992363629 (761)
+    (.node 370178315372329184995095016951445749584605412106056993748600085190872324164717 (592)
+    (.node 370178315372329184995095016945588325053740152754193788129979357151157532019821 (940)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329184995095016968972351251034599445452745453439885465652452707437 (760)
+    (.node 370178315372329184995095016963149180664794283130734938698085945309210846481517 (590)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 370178315372329185798564039086775475923368422270404568052811118199801410014317 (846)
+    (.node 370178315372329185396829528027896749550284806216025589328636693754909055306861 (633)
+    (.node 370178315372329184995095016992344959466787398457663236489144817819056311422061 (941)
+    (.node 370178315372329184995095016986498952917463786784848497158279685740432581250157 (942)
+    (.node 370178315372329184995095016980675782331223470470130690402925745583990975024237 (591)
+    .leaf
+    .leaf)
+    (.node 370178315372329184995095016986510370899005434463896963446035281701523643223149 (759)
+    .leaf
+    .leaf))
+    (.node 370178315372329185396829528022027907037877899185113917422260369754103201188973 (801)
+    (.node 370178315372329185396829528016193318470095935191347644379150833636570532990061 (635)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 370178315372329185396829528045423351216713993555421341033476494029689183849581 (634)
+    (.node 370178315372329185396829528033754174081150065567888794947257421794623847451757 (632)
+    (.node 370178315372329185396829528033719920136525122530743396083990633911350661532781 (800)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329185798564039080940887355586458276638295009701582082268741815405 (675)
+    (.node 370178315372329185396829528051257939784495957549187614076586030147221852048493 (799)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 370178315372329186200298550145688456241076981361928945640252330527966950640749 (717)
+    (.node 370178315372329185798564039098501742966640588653179445577808170240322056277101 (672)
+    (.node 370178315372329185798564039098467489022015645616034046714541382357048870358125 (845)
+    (.node 370178315372329185798564039092644318435775329301316239959187442200607264132205 (673)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329185798564039116005508669986480634478264707136778592920060873837 (844)
+    (.node 370178315372329185798564039110170920102204516640711991664027242475387392674925 (674)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 370178315372329186200298550163215057907506168701324697345092130802747079183469 (892)
+    (.node 370178315372329186200298550157391887321265852386606890589738190646305472957549 (715)
+    (.node 370178315372329186200298550151523044808858945355695218683361866645499618839661 (893)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329186200298550174918488987695039726002642294577990921085601500269 (716)
+    (.node 370178315372329186200298550163249311852131111738470096208358918686020265102445 (714)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 377415321057501233878455400427640994880046912896650215561347856704392654539885 (839)
+    (.node 370178315372329187405502083351634593977737421642478842481390435983400099433581 (841)
+    (.node 370178315372329186602033061245500646440967526805059565968238275484316478524525 (937)
+    (.node 370178315372329186602033061227962626792996691786615347975642879248445288008813 (938)
+    (.node 370178315372329186602033061216270613694349468440985869313912615091197827665005 (939)
+    (.node 370178315372329186602033061210436025126567504447219596270803078973665159466093 (758)
+    .leaf
+    .leaf)
+    (.node 370178315372329186602033061222139456206756375471897541220288939092003681782893 (756)
+    .leaf
+    .leaf))
+    (.node 370178315372329186602033061239666057873185562811293292925128739366783810325613 (757)
+    (.node 370178315372329186602033061227996880737621634823760746838909667131718473927789 (755)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 370178315372329187003767572292744449623112157909051397469460415577416682753133 (795)
+    (.node 370178315372329187003767572286887025092246898557188191850839687537701890608237 (796)
+    (.node 370178315372329187003767572275183594012058027532510246901353827419363368291437 (798)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329187405502083339931162897548550617800897531904575865061577116781 (843)
+    (.node 370178315372329187003767572304413626758676085896583943555679487812482019150957 (797)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 370178315372329187807236594433908764529657132067165244816780984703878436801645 (889)
+    (.node 370178315372329187807236594404678731783039073703091548162455324310759785942125 (890)
+    (.node 370178315372329187405502083369161195644166608981874594186230236258180227976301 (842)
+    (.node 370178315372329187405502083357492018508602680994342048100011164023114891578477 (840)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 370178315372329187807236594422239587394093204079632698730561912468813100403821 (887)
+    (.node 370178315372329187807236594416382162863227944727769493111941184429098308258925 (888)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 377415321057501233476720889351224248858992461823827018844578036023629109316717 (793)
+    (.node 377415321057501233074986378298145857109065866726068914300246359812996236889197 (754)
+    (.node 377415321057501233074986378286476679973501938738536368214027287577930900491373 (753)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 377415321057501233878455400415971817744482984909117669475128784469327318142061 (838)
+    (.node 377415321057501233476720889362893425994556389811359564930797108258694445714541 (794)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 377415321057501236288077829087533895961946649742960614956420480712958566780013 (670)
+    (.node 377415321057501235082874295893291189305475080487088663064768235375863940303981 (544)
+    (.node 377415321057501234681139784840212797555548485389330558520436559165231067876461 (502)
+    (.node 377415321057501234280189911492388563765537435981940866191898605150090863365229 (886)
+    (.node 377415321057501234280189911480719386629973507994408320105679532915025526967405 (885)
+    .leaf
+    .leaf)
+    (.node 377415321057501234681139784828543620419984557401798012434217486930165731478637 (501)
+    .leaf
+    .leaf))
+    (.node 377415321057501234681924422557136132651027959067231516822449353595789072190573 (932)
+    (.node 377415321057501234681924422545466955515464031079698970736230281360723735792749 (931)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 377415321057501235484608806969707935326529531559911859781538056056627485527149 (588)
+    (.node 377415321057501235484608806958038758190965603572379313695318983821562149129325 (587)
+    (.node 377415321057501235082874295904960366441039008474621209150987307610929276701805 (545)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 377415321057501235886343318034455504212020054645202510412088804502325694352493 (631)
+    (.node 377415321057501235886343318022786327076456126657669964325869732267260357954669 (630)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 189531298659891826035727585676621811494692242287704226068439343336992496171930212 (388)
+    (.node 377415321057501236689812340163950641983001100815783811673190301393722112003181 (713)
+    (.node 377415321057501236689812340152281464847437172828251265586971229158656775605357 (712)
+    (.node 377415321057501236288077829099203073097510577730493161042639552948023903177837 (671)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 185825951804297707782173314156343798443387602778403728019176700648739276023452260 (387)
+    (.node 182120604948703589528619042636065785392082963269103229969914057960486055874974308 (386)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 193236644381440631540081095362757218851541298957947576984166964536652422342036589 (791)
+    (.node 193236644381440631334393025700593761510892975055408047193109308228670574479330413 (752)
+    (.node 193236644381440631334393025697606463582170151138278763861324981332454939423460461 (751)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 193236644381440631745769165027907974120912446777616390107008947740849905260612717 (836)
+    (.node 193236644381440631540081095365744516780264122875076860315951291432868057397906541 (792)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 2079449690818201789219004249613621812390709348808751022495112985879178427865339354764058126523007519329203520823230106810764397 (812)
+    (.node 95042705455013724998771524233273477911842159040871153789142829519931175077059023460 (397)
+    (.node 193236644381440632979495848507747758168253843172543978193430296217589104563244141 (668)
+    (.node 193236644381440632362431639512295492360140399713537538824904346604996655807515757 (542)
+    (.node 193236644381440632156743569850137892444022941070349872239465311025054522736954477 (499)
+    (.node 193236644381440631951457234696046027319006418514414486561635257841263023235058797 (884)
+    (.node 193236644381440631951457234693058729390283594597285203229850930945047388179188845 (883)
+    .leaf
+    .leaf)
+    (.node 193236644381440632156743569850132035019492075810998009033846690297014807944809581 (500)
+    .leaf
+    .leaf))
+    (.node 193236644381440632157145304361196782588377566334083299684477241045460506153634925 (930)
+    (.node 193236644381440632157145304358209484659654742416954016352692914149244871097764973 (929)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 193236644381440632568119709180433545558234371450335635279530656705409773781961837 (586)
+    (.node 193236644381440632568119709177446247629511547533206351947746329809194138726091885 (585)
+    (.node 193236644381440632362431639515282790288863223630666822156688673501212290863385709 (543)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 193236644381440632773807778845584300827605519270004448402372639909607256700537965 (629)
+    (.node 193236644381440632773807778842597002898882695352875165070588313013391621644668013 (628)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 200647339226674180796390400237455850648606160815605720216227271401752156617364068 (391)
+    (.node 193236644381440633185183918175885811366347814909342074648056606318002222537690221 (711)
+    (.node 193236644381440633185183918172898513437624990992212791316272279421786587481820269 (710)
+    (.node 193236644381440632979495848510735056096976667089673261525214623113804739619114093 (669)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 196941992371080062542836128717177837597301521306305222166964628713498936468886116 (390)
+    (.node 193236645515485944289281857196899824545996881797004724117701986025245716320408164 (389)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 211763379793456535557053214798289889802520079343507214364015199466511817062797924 (394)
+    (.node 208058032937862417303498943278011876751215439834206716314752556778258596914319972 (393)
+    (.node 204352686082268299049944671757733863699910800324906218265489914090005376765842020 (392)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 93145567864949536452951737214891135229574183612109298787920356463545526361038312036 (396)
+    (.node 215468726649050653810607486318567902853824718852807712413277842154765037211275876 (395)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864341573803832120425267130601247664729198170000493 (695)
+    (.node 13521299126590995582021657632477896645220426600450404632589686408850583442905380655516934253 (306)
+    (.node 102631255815270479182050672306802848640914060755918573794032721745473769941141869156 (401)
+    (.node 98836980635142102090411098270038163276378109898394863791587775632702472509100446308 (399)
+    (.node 96939843045077913544591311251655820594110134469633008790365302576316823793079734884 (398)
+    .leaf
+    .leaf)
+    (.node 100734118225206290636230885288420505958646085327156718792810248689088121225121157732 (400)
+    .leaf
+    .leaf))
+    (.node 26408787356579998376172981297635664988540447496602412130714542457106567958778372444708973 (305)
+    (.node 104528393405334667727870459325185191323182036184680428795255194801859418657162580580 (402)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864307275257716780326875448666544331549201972120685 (785)
+    (.node 2079449690818201789219004249613621812390703520802074345307900227493457957308619427543540970104443763891974304110374491185269869 (562)
+    (.node 2079449690818201789219004249613621812390703520802074345307900227493457957308619404752179377206146913242470229463749032073284717 (604)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864330111220800075684972381242055523471384096066669 (660)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864318715540003626536547056490018200158654540074093 (614)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864387201128508314080214712680833503276839405931629 (741)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864375760846221467870543104857359634667386837978221 (830)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864353014086118966634938738424721533338650737953901 (735)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864352947183883371043069313817566715393566220012653 (701)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864387178827763115549591571145115230628477899951213 (706)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864375805447711864931789387928796179964109849939053 (654)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613621812390707404242721263185745622320082481467334955559788794483822441140771142956260345134238829 (477)
+    (.node 2079449690818201789219004249613621812390707404242721263185745622320082481467334921261242679143724049458836439623080348936359021 (532)
+    (.node 2079449690818201789219004249613621812390703520802074401791792329216055852811864398596809304763228640037432870826589568961924205 (746)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613621812390709348808751022495112985879178427865339331972696533624710668679699446176604647698779245 (859)
+    (.node 2079449690818201789219004249613621812390707404242721263185745622320082481467335001164812725478946765581315010522159624864189549 (487)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 2079449690818201789219004249613621942761012805550306713024064605532932042422014761759396726827849687080327289218706068507249773 (913)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294891584185788250619927691465413940359185179659373 (877)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294834538879570409285931643098072505850452881755245 (655)
+    (.node 2079449690818201789219004249613621942761006977543629979352959745424613676362049920575518943988896297829078283769440830414965869 (647)
+    (.node 2079449690818201789219004249613621812390709348808751078979005087601776323368584257331737956494248727818471272236326999721561197 (918)
+    (.node 2079449690818201789219004249613621812390709348808751078979005087601776323368584245936057160045100302493719234913014270165568621 (867)
+    .leaf
+    .leaf)
+    (.node 2079449690818201789219004249613621812390709348808751078979005087601776323368584303025964868283495544825158012892819725475433581 (912)
+    .leaf
+    .leaf))
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294823098597283563076260035274598637241000313801837 (826)
+    (.node 2079449690818201789219004249613621942761006977543629979352959745424613676362049943366880536887193148478582358416066289526951021 (605)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294868770523450153792453900425621021085364561693805 (742)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294857397143398903174651717209301970420996511681645 (736)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294845934560366858434356967850109829163182437747821 (702)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294880166204246602940879225177658344398094117686381 (831)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294868837425685749384323325032775839030449079635053 (776)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2079449690818201789219004249613621942761010860984276897230805140251238200520765459942846074420362154119555723393342690907966573 (478)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294903024468075096829599299288887808968637747612781 (781)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294903002167329898298976157753169536320276241632365 (747)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294891628787278647681173974536850485655908191620205 (696)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613621942761010860984276897230805140251238200520765437084582245926473434045444493928772147278040173 (574)
+    (.node 2079449690818201789219004249613621942761006977543630035836851847147211571865294914420148871545978024624040925132281367303605357 (786)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613621942761010860984276897230805140251238200520765505570170750614017101701635309231890332143897709 (533)
+    (.node 2079449690818201789219004249613621942761010860984276897230805140251238200520765471383128361266571825727379197261952143475919981 (525)
+    (.node 2079449690818201789219004249613621942761010860984276897230805140251238200520765471316226125670979956302772042444007058957978733 (488)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613621942761012805550306656540172503810334146918769870587397693305756903915811575128921905152445549 (860)
+    (.node 2079449690818201789219004249613621942761012805550306656540172503810334146918769847796036100407460053266307500482296446040460397 (905)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725418825506896681048360744361223842012074583313517 (787)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725384571562271738011215345497957054128801397394541 (832)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725350362219137192035316229706126811542251223436397 (697)
+    (.node 2079449690818201789219004249613622073131310434285185613398019263355769395415480459190220103669942533065190412721758087868632173 (648)
+    (.node 2079449690818201789219004249613622073131310434285185613398019263355769395415480436398858510771645682415686338075132628756647021 (689)
+    .leaf
+    .leaf)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725338921936850345825644621882652942932798655482989 (874)
+    .leaf
+    .leaf))
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725373220482965685924036303817356276112794853362797 (777)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725361757899933641183741554458164134854980779428973 (743)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725395989543813385690263811785712650089892459367533 (878)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725384660765252532133707911640830144722247421316205 (816)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725384593863016936541838487033675326777162903374957 (782)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725407452126845430430558561144904791347706533301357 (737)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725407407525355033369312278073468246050983521340525 (923)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574195987139565692453729340889380096749698857299659885 (534)
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574195952907921812709222818632052548234463945619721325 (617)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725430243488438328727409210648979437973165645286509 (827)
+    (.node 2079449690818201789219004249613622073131310434285185669881911365078367290918725418847807641879578983885896942114660436089293933 (822)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574195975766185641203111538706163777699034489249647725 (526)
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574195964303602609158371243956804585557776675175713901 (489)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574196021393510317396766486288243363537582130485578861 (575)
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574196009997829520947618060963491326214269400929586285 (479)
+    (.node 2079449690818201789219004249613622073131314317725832531275864658182393919574195987206467928049321210313987251567643941817601133 (568)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622203501613891026741247443078781286925114468910952222198077554395067002294392380824427098328173 (730)
+    (.node 2079449690818201789219004249613622073131316262291862290585232021741489865972200386410737260088506288502419629434613703494126701 (906)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- A subtree. -/
+def wNameTTrrr : NTree (ℕ) :=
+  (.node 1086339724329800654033723906741791152745627641204662864844167940220255707739068278884241737473904986854155187976899814694456183917 (539)
+    (.node 2079449690818201789219004249613622464242220804509852572017089918871834448079016932063881717284789992246857838243852557928418413 (917)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586404867162099251422805477033464887496391536725101 (865)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626457290979092645762531610837128671546291393449069 (662)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155911812883380168439648398393766955781690801048685 (879)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155889043822532468673420890425410581804593195043949 (817)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155866185558703974784700816314181117234049565117549 (738)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155854745276417128575029208490707248624596997164141 (920)
+    .leaf
+    .leaf)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155877581239500423933126141066218440546779121110125 (783)
+    .leaf
+    .leaf))
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155900484104819314883092498248884450414045762997357 (864)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155900417202583719291223073641729632468961245056109 (823)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155934671147208662328368472504996420352234430975085 (870)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155934648846463463797745330969278147703872924994669 (828)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155923275466412213179943147752959097039504874982509 (778)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622203501617774467388108837032074390951743124381554767900753071582569404640813803746121494613101 (469)
+    (.node 2079449690818201789219004249613622203501613891026741303926970883009523009972155946066828005111476793797257033743664963986967661 (875)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626525821169087730367445550099380519961199271267437 (527)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626491589525207985860923292771832004726287591328877 (569)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626480126942175941120628543412639863468473517395053 (535)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626468731261379491972203218660602540155743961402477 (480)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626503029807494832070594900595305873335740159282285 (611)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626502962905259236478725475988151055390655641341037 (576)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622333871917347768296881488138299218080833522341490836899237235441302238406521333141684551994477 (731)
+    (.node 2079449690818201789219004249613622333871917347768296881488138299218080833522341468045537644337144451588902446686516225440009325 (771)
+    (.node 2079449690818201789219004249613622203501617774467388165320924176113549638627626537216849884179515870874851417843273928827260013 (618)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586393404579067206682510727674272746238577462791277 (824)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586382008898270757534085402922235422925847906798701 (779)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681057007412864774768610307879379886310418085933010029 (612)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586461890167571894226178383865088049356762328648813 (921)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586439098805978995929327734361013402731303216663661 (818)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586416307444386097632477084856938756105844104678509 (910)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586416240542150502040607660249783938160759586737261 (871)
+    .leaf
+    .leaf)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586427636222946951189032985001821261473489142729837 (924)
+    .leaf
+    .leaf))
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586450494486775445077753059113050726044032772656237 (916)
+    (.node 2079449690818201789219004249613622333871917347768296937972030400940678729025586450472186030246547129917577332453395671266675821 (876)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681056973114318659428511916197445182977238089735130221 (704)
+    (.node 2079449690818201789219004249613622333871921231208943742882091592322107462177812093382601912752628804640752942756063378948279405 (470)
+    (.node 2079449690818201789219004249613622333871921231208943742882091592322107462177812070591240319854331953991248868109437919836294253 (518)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681056995950281742723870013130020694169160271859076205 (577)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681056984554600946274721587805268656845847542303083629 (528)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2079449690818201789219004249613622464242218859943822756223830453590140606177767584575404898286586265420935250034644816081243245 (486)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681057041644508654513116830136707434825652997612948589 (570)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681057018853147061614819979487203360179027538500963437 (652)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681057018786244826019228110062596205361082453983022189 (619)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681057064435870247411413680786211509472278456724933741 (663)
+    (.node 2079449690818201789219004249613622333871921231208943799365983694044705357681057053040189450962265255461459472148965727168941165 (658)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622464242220804509852572017089918871834448079016897832237837540283469989530289728617646248479853 (819)
+    (.node 2079449690818201789219004249613622464242220804509852515533197817149236552575772006660238804018190686825014575638833482893675629 (772)
+    (.node 2079449690818201789219004249613622464242220804509852515533197817149236552575771983868877211119893836175510500992208023781690477 (811)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622464242220804509852572017089918871834448079016920690501666034172190063641519193188189878406253 (911)
+    (.node 2079449690818201789219004249613622464242220804509852572017089918871834448079016909227918633989431895314282327051930375804472429 (872)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 1064678241698919316080130175802174367944040202650662064797644916476650474142013170228626318589288295306029745099205234618336595053 (646)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487568863529017745014640048067526454657525510622317 (700)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487511773621309506619397716628748474852070200757357 (620)
+    (.node 2079449690818201789219004249613622464242224687950499376927151110253263181231242609205941479535378189227360997061755177289960557 (519)
+    (.node 2079449690818201789219004249613622464242220804509852572017089918871834448079016966295525597029296514504185386759087469608356973 (922)
+    (.node 2079449690818201789219004249613622464242220804509852572017089918871834448079016954922145545778678712320969067708423101558344813 (866)
+    .leaf
+    .leaf)
+    (.node 2079449690818201789219004249613622464242224687950499376927151110253263181231242586414579886637081338577856922415129718177975405 (561)
+    .leaf
+    .leaf))
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487500377940513057470972391876711151539340644764781 (571)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487488937658226211261300784053237282929888076811373 (745)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487534676486628397569364073811414484719336842644589 (694)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487534609584392801977494649204259666774252324703341 (659)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487523236204341551359692465987940616109884274691181 (653)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487568841228272546484016906531808182009164004641901 (664)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487557467848221295866214723315489131344795954629741 (613)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 2121757273766425867053735027609093801727814513032192124688655138027984791864944025089956639816435566393798216868254792302775405 (665)
+    (.node 2121757273766425867053735027609093540987207599549080856598536102165673353758082924957689001563393129564391292953753010753555565 (496)
+    (.node 2121757273766425867053735027609093540987203716108433995204582809061646725102612356643630205790712149419372420046066228037209197 (834)
+    (.node 2079449690818201789219004249613622464242224687950499433411043211975861076734487580259209814194163065372819563777970255066614893 (705)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2121757273766425867053735027609093671357511056290636490643595620096829072811513417945065485050784417218423836067522626971290733 (497)
+    (.node 2121757273766425867053735027609093671357507172849989629249642326992802444156042861048988230925782485539692718755796935316917357 (835)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 2121757273766425867053735027609094062468421426515303392778774173890296229971805033900672690086576238634438814287716206862191725 (667)
+    (.node 2121757273766425867053735027609094062468415598508626715591561415504575759415085118120437820514222154805033071443470043804650605 (494)
+    (.node 2121757273766425867053735027609093932098117969773747758733714655959140510918374529495314664951505902514118515577985499582483565 (666)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 2121757273766425867053735027609094192838724883256859026823833691821451949025235538306030715221646574754759112997446914141899885 (833)
+    (.node 2121757273766425867053735027609094192838719055250182349636620933435731478468515599689832762353934393992777858961278568960412781 (495)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 1064678241698919316080130175802174634942421682057368003321926809199657386763438860800259484323593571796271532925998568450937375853 (857)
+    (.node 1064678241698919316080130175802174501443232930675626227093489948907415564324326961100559537802858203209586253085506074479953759341 (516)
+    (.node 1064678241698919316080130175802174434693637560823949742462419475726663836168970542845016228933702191115982260146123952352743181421 (467)
+    (.node 1064678241698919316080130175802174434693635572502338549428715389657402202297369588495609909745290517071241561512455966198115126381 (728)
+    (.node 1064678241698919316080130175802174367944043186590080523517497848770139355067053772965531102675592938089891104056187309818589793389 (904)
+    .leaf
+    .leaf)
+    (.node 1064678241698919316080130175802174434693635572502338549428715389657402202297369594330176176782055980214373068903719435369277344877 (688)
+    .leaf
+    .leaf))
+    (.node 1064678241698919316080130175802174501443230942354015034059785862838153930452726018431726034974823665122716392708233636120218094701 (729)
+    (.node 1064678241698919316080130175802174501443230942354015034059785862838153930452726012597159767938058201979584885316970166949055876205 (769)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1064678241698919316080130175802174568192826312205691518690856336018905658608082442533275893167591350031059716512747836871158844525 (770)
+    (.node 1064678241698919316080130175802174568192826312205691518690856336018905658608082436698709626130825886887928209121484367699996626029 (809)
+    (.node 1064678241698919316080130175802174501443232930675626227093489948907415564324326966935125804839623666352717760476769543651115977837 (468)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1064678241698919316080130175802174568192828300527302711724560422088167292479683391036675663032391351261061084281283744402056727661 (517)
+    (.node 1064678241698919316080130175802174568192828300527302711724560422088167292479683385202109395995625888117929576890020275230894509165 (559)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 1064678241698919316080130175802174701692019040230655680986701368449670748790396233405209112381161257934616224499048676732776008813 (645)
+    (.node 1064678241698919316080130175802174634942423670378979196355630895268919020635039815138225521225159036169404408085797945152997477485 (560)
+    (.node 1064678241698919316080130175802174634942423670378979196355630895268919020635039809303659254188393573026272900694534475981835258989 (602)
+    (.node 1064678241698919316080130175802174634942421682057368003321926809199657386763438866634825751360359034939403040317262037622099594349 (810)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1064678241698919316080130175802174701692017051909044487952997282380409114918795290736375609553126719847746364121776238373040344173 (858)
+    (.node 1064678241698919316080130175802174701692017051909044487952997282380409114918795284901809342516361256704614856730512769201878125677 (903)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1086339724329800654033723906741791152615257333864480662348728927409220525391359377822940302194644914586356136560878358295522102381 (880)
+    (.node 1064678241698919316080130175802174768441609437821302513864214823267671962149111106266454416622824298829096821578044894752565677165 (687)
+    (.node 1064678241698919316080130175802174701692019040230655680986701368449670748790396239239775379417926721077747731890312145903938227309 (603)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1086339724329800654033723906741791152745627637321222217982773986927151681110412808327345660219779984922476456859588089002801810541 (881)
+    (.node 1086339724329800654033723906741791152615257337747921309210122880702324552020014848402672342532065274614967443189382006169300421741 (538)
+    .leaf
+    .leaf)
+    .leaf))))))
+    (.node 142898694651863810659588938140408403207327573610011430956743031773435669006221293033862425281518104720270034653634057372941254523973329520 (1281)
+    (.node 142898694651863810659588938140408403207327306611629951550037122168906532365184502910098124870231238843029503726904045010310022587454382704 (1156)
+    (.node 1086339724491191269011596631435152714923881931259800180114308298904544330045897181349001246176733504601889219471113143062296841325 (928)
+    (.node 1086339724491191269011596631435152714532771020889575513212173120350750862888736889812949209018032935496595683063792028758333770861 (750)
+    (.node 1086339724329800654033723906741791153136738551574887531746303118774049174896228570500197344678940778675571202955120008274347084909 (708)
+    (.node 1086339724329800654033723906741791152875997944661404420478212999738186863458121709502804610170318317051796850113296507950849641581 (540)
+    (.node 1086339724329800654033723906741791152875997940777963773616819046445082836829466238843168999786562734307063064913893780801143491693 (882)
+    .leaf
+    .leaf)
+    (.node 1086339724329800654033723906741791153006368248118145976112258059256118019177175139995791986653805708339450882656410277567067376749 (707)
+    .leaf
+    .leaf))
+    (.node 1086339724329800654033723906741791153267108855031629087380348178291980330615282001004602702704075849011691523253829738981626793069 (709)
+    (.node 1086339724329800654033723906741791153267108849203622410703160965533594610144725281077404486292855815879395829755389531727507278957 (537)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1086339724491191269011596631435152714663141328229757715707612133161786045236445790897086607380588365861327309991005407339391798381 (581)
+    (.node 1086339724491191269011596631435152714663141324346317068846218179868682018607790320328772548584815684881182291118097720556675452013 (926)
+    (.node 1086339724491191269011596631435152714532771024773016160073567073643854889517392360404099230897100974573673277447891637723174063213 (580)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1086339724491191269011596631435152714793511631686499271341657192679717200955499221390073983864075757148981342534119176955609533549 (582)
+    (.node 1086339724491191269011596631435152714793511627803058624480263239386613174326843750844595888151598434265768899172403412355017133165 (927)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 1086339724652581893609099775170135178015967539703977030701852046431794573150887122294441662615060250247344241633527646512071101549 (623)
+    (.node 1086339724491191269011596631435152715184622542056723938243792371233510668112659513006029591069111548970397357512339370535500434541 (749)
+    (.node 1086339724491191269011596631435152715054252238599982382609747311715579512393606082501624233043976478634277037213629639828220726381 (748)
+    (.node 1086339724491191269011596631435152714923881935143240826975702252197648356674552651997218875018841408298156716914919909120941018221 (583)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1086339724652581893609099775170135178015967535820536383840458093138690546522231651714709622277639890218732935005023998638292782189 (790)
+    (.node 1086339724652581893609099775170135177885597232363794828206413033620759390803178221210304264252504819882612614706314267931013074029 (789)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 1086339724652581893609099775170135178407078450074201697603987224985588040308047413898979288278448363020293968856151879000900029549 (626)
+    (.node 1086339724652581893609099775170135178276708146617460141969942165467656884588993983394573930253313292684173648557442148293620321389 (625)
+    (.node 1086339724652581893609099775170135178146337843160718586335897105949725728869940552787429039098547641534998274176641416128288836717 (624)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 142898694651863810659588938140408403207327306611629951550037093249153776283214380412436728875318671949199295020260762154884451520210330224 (1111)
+    (.node 1086339724652581893609099775170135178537448753530943253238032284503519196027100844403384646303583433356414289154861609708179737709 (788)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 142898694651863810659588938140408403207327440110820691253390091431047478726687959220810973073330955228564873543590692619338424089335882352 (1241)
+    (.node 142898694651863810659588938140408403207327373361227309723324770913928335533227742439394101480268300006766981158605453727934559802048963184 (1009)
+    (.node 142898694651863810659588938140408403207327373361225321401713577880224249463966108567793147130861980818355307113864755094266573647420908144 (1280)
+    (.node 142898694651863810659588938140408403207327306611632935489455551969006708576703261337477331612223456035503937804122121111866526720463528560 (1368)
+    (.node 142898694651863810659588938140408403207327306611631939871648315202610618434446136781699073373631008707829504956905412778845930118352265840 (1022)
+    .leaf
+    .leaf)
+    (.node 142898694651863810659588938140408403207327306611632935489455580888759464658673383835138727607136022929334146510765403967292097787707581040 (1422)
+    .leaf
+    .leaf))
+    (.node 142898694651863810659588938140408403207327373361225321401713606799977005545936231065454548971781097035797188635247368814824223338395132528 (1195)
+    (.node 142898694651863810659588938140408403207327373361225321401713577880224249463966108567793152976868530141966979928604085959398652271151080048 (1151)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 142898694651863810659588938140408403207327373361228305341132065519829937839425111990495151708685881122101831419108727771806298538648330864 (1469)
+    (.node 142898694651863810659588938140408403207327373361228305341132036600077181757454989492833755713773314228271622712465444916380727471404278384 (1418)
+    (.node 142898694651863810659588938140408403207327373361227309723324799833681091615197864937055497475180866900597189865248736583360130869293015664 (1023)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 142898694651863810659588938140408403207327440110820691253390062511294722644717836723149577078418388334734664836947409763912853022091829872 (1191)
+    (.node 142898694651863810659588938140408403207327440110820691253390062511294722644717836723149571232411839011122992022208078898780774398361657968 (1324)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 142898694651863810659588938140408403207327506860416061105066547142365195825469564878506001179968246527502349745290733568427053773032579696 (1237)
+    (.node 142898694651863810659588938140408403207327440110822679575001284464751564795949593092411921576730725093364874773592060387874331620233765488 (1024)
+    (.node 142898694651863810659588938140408403207327440110822679575001255544998808713979470594750525581818158199534666066948777532448760552989713008 (1011)
+    (.node 142898694651863810659588938140408403207327440110822679575001255544998808713979470594750519735811608875922993252209446667316681929259541104 (1070)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 142898694651863810659588938140408403207327506860416061105066547142365195825469564878505995333961697203890676930551402703294975149302407792 (1367)
+    (.node 142898694651863810659588938140408403207327440110823675192808521231147654938206717648190179815323172421039307620808768720894928222345028208 (1465)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 142898694651863810659588938140408403207327506860418049426677740176069281894731198750106949683368016392302350975292101336962961303930462832 (1013)
+    (.node 142898694651863810659588938140408403207327506860418049426677740176069281894731198750106943837361467068690678160552770471830882680200290928 (1110)
+    (.node 142898694651863810659588938140408403207327506860416061105066576062117951907439687376167397174880813421332558451934016423852624840276632176 (1285)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 142898694651863810659588938140408403207327573610011430956743031773435669006221293033862419435511555396658361838894726507809175900243157616 (1417)
+    (.node 142898694651863810659588938140408403207327506860418049426677769095822037976701321247768345678280583286132559681935384192388532371174515312 (1025)
+    .leaf
+    .leaf)
+    .leaf)))))
+    (.node 74652697413474389236388074572396912087214388923546250453840319104255213381359098026421019123457669680275739226631443458596041102156396814960 (1427)
+    (.node 145806049614030685468867774294145223672120757815852536038096598957401581199966259059016262094892160849534540416584856512928317224993219184 (1378)
+    (.node 142898694651863810659588938140408403207327640359606800808419516404506142186973021189218849383067962913037719561977381177455455274914079344 (1325)
+    (.node 142898694651863810659588938140408403207327573610013419278354253726892511157453049403124769779830441478900244590278707996902733122115265136 (1076)
+    (.node 142898694651863810659588938140408403207327573610013419278354224807139755075482926905463367938911325261458363068896094276345083431141040752 (1150)
+    (.node 142898694651863810659588938140408403207327573610011430956743060693188425088191415531523821276430671614100243360277340228366825591217382000 (1329)
+    .leaf
+    .leaf)
+    (.node 142898694651863810659588938140408403207327573610013419278354224807139755075482926905463373784917874585070035883635425141477162054871212656 (1015)
+    .leaf
+    .leaf))
+    (.node 142898694651863810659588938140408403207327640359606800808419516404506142186973021189218843537061413589426046747238050312323376651183907440 (1464)
+    (.node 142898694651863810659588938140408403207327640359605805190612279638110052044715896633440591144475515585363286714760672844434858672802816624 (1032)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 142898694651863810659588938140408403207327640359608789130030709438210228256234655060819797886467732777837720791978748945991362805811962480 (1071)
+    (.node 142898694651863810659588938140408403207327640359608789130030709438210228256234655060819792040461183454226047977239418080859284182081790576 (1190)
+    (.node 142898694651863810659588938140408403207327640359606800808419545324258898268943143686880245377980529806867928268620664032881026342158131824 (1372)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 142898694651863810659588938140408403207327707109199186720677542315723683074235868419534664901706487695889088871720015159855502201871458928 (1236)
+    (.node 142898694651863810659588938140408403207327640359608789130030738357962984338204777558481193881380299671667929498622031801416933873056014960 (1116)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 145806049614030685468867774294145223672121024814233019826995271795534627698745924627002304267586579399100638496098160542538952559400903280 (1038)
+    (.node 145806049614030685468867774294145223672120824565449894211384276622176140449979621085973634699841788907102226554929548085978425506831852144 (1041)
+    (.node 145806049614030685468867774294145223672120824565447905889773083588472054380717987214372686196442019042302225324928180317442517975933969008 (1379)
+    (.node 145806049614030685468867774294145223672120757815854524359707791991105667269227892930617210598291930714334541646586224281464224755891102320 (1040)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 145806049614030685468867774294145223672120958064640633914737245884317086811483077396686482902941505292637596371616195695006827008713351792 (1200)
+    (.node 145806049614030685468867774294145223672120891315045264063060761253246613630731349241330058801391647099869911463272871890492626257772601968 (1199)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 145806049614030685468867774294145223672121091563831373618090215146458033172986533707399331106041221678172966188302843304035228510594851440 (1377)
+    (.node 145806049614030685468867774294145223672121091563828389678671756426605100879497652782358728369136437591868323404441484347053153310341653104 (1039)
+    (.node 145806049614030685468867774294145223672121024814236003766413730515387559992234805552042907004491363485405281279959519499521027759654101616 (1201)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 74652697413474389236388074572396912087214388856796657072310253812657846994247607932137263647859519591947771542953101502560062808936353948272 (1080)
+    (.node 74652697413474389236388074572396912087214388856796655083988642619624142908178346298265662699356119822082971541723100134791526901405456065136 (1426)
+    .leaf
+    .leaf)
+    .leaf))))
+    (.node 38222181081377314738057591000704322892529843691175547045667755668332742077137663906611634766873631405545006661091187081258394179151217689158256 (1121)
+    (.node 74652697413474389236388074572396912087214389190544633921568636235813199360151366572914045768367268882911609967494818121582633812691057697392 (1247)
+    (.node 74652697413474389236388074572396912087214389057045443181865283266551058413789863116603332920164169166526074597678131473973605411189176197744 (1245)
+    (.node 74652697413474389236388074572396912087214388990295845823691995588886283854539849754576375547559219538468506911539786782400555302907337564784 (1428)
+    (.node 74652697413474389236388074572396912087214388923546252442161930297288917467428359660292620071961069450140539227861444826364577009687294698096 (1081)
+    .leaf
+    .leaf)
+    (.node 74652697413474389236388074572396912087214388990295847812013606781919987940609111388447976496062619308333306912769788150169091210438235447920 (1082)
+    .leaf
+    .leaf))
+    (.node 74652697413474389236388074572396912087214389190544630937629217777093346427857877691989005165630364098825305324710956762625651737490804499056 (1079)
+    (.node 74652697413474389236388074572396912087214389123795038551716959751182128886970614844758689344265719024718842282586474797778119611940116947568 (1246)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 38222181081377314738057591000704322892529843691108797448309582380655077302578413893249607809501026455916949093405048736566821129042935850525296 (1474)
+    (.node 38222181081377314738057591000704322892529843691042047854928052315363479936191302403155324054025428305828621125721370394610785150749715807658608 (1119)
+    (.node 38222181081377314738057591000704322892529843691042047852939730704170446232105233141521452453076924906058756325720140393243016614842184909775472 (1291)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 38222181081377314738057591000704322892529843691175547043679434057139708373051594644977763165925128005775141861089957079890625643243686791275120 (1475)
+    (.node 38222181081377314738057591000704322892529843691108797450297903991848111006664483154883479410449529855686813893406278737934589664950466748408432 (1120)
+    .leaf
+    .leaf)
+    .leaf)))
+    (.node 38222181087055742525545143847753439948161624481262807477431153167902871249010476419339052664481286724521107156005599923641157507671876674577008 (1334)
+    (.node 38222181081377314738057591000704322892529843691309046236407459021302004218084025410067945479721834505261392196461003767906003207552719570657904 (1289)
+    (.node 38222181081377314738057591000704322892529843691242296641037607344817373147610844658339790123297732955403199428776095424582198693351968629908080 (1122)
+    (.node 38222181081377314738057591000704322892529843691242296639049285733624339443524775396705918522349229555633334628774865423214430157444437732024944 (1476)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 38222181087055742525545143847753439948161624481196057882061301491418240178537295667610897308057185174662914388320691580317352993471125733827184 (1333)
+    (.node 38222181081377314738057591000704322892529843691375795831777310697786635288557206161796100836145936055119584964145912111229807721753470511407728 (1290)
+    .leaf
+    .leaf)
+    .leaf))
+    (.node 38222181087055742525545143847753439948161624481396306670159178132065167094042907184429234978277993224007357491376646611656535071980909453959792 (1161)
+    (.node 38222181087055742525545143847753439948161624481329557074789326455580536023569726432701079621853891674149164723691738268332730557780158513209968 (1160)
+    (.node 38222181087055742525545143847753439948161624481262807479419474779095904953096545680972924265429790124290971956006829925008926043579407572460144 (1159)
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 38222181087055742525545143847753439948161624481529805860898881485034429234989268687885545691126196323723743026746463298304144100382411335459440 (1332)
+    (.node 38222181087055742525545143847753439948161624481463056265529029808549798164516087936157390334702094773865550259061554954980339586181660394709616 (1162)
+    .leaf
+    .leaf)
+    .leaf)))))))
+
+/-- Every function's core index, by its name's `encS`. -/
+def wNameT : NTree (ℕ) :=
+  (.node 651965647884814778857672021810115261163385185382 (67)
+    (.node 260201453235181242859616 (1056)
+    (.node 241293576588425971417184 (1272)
+    wNameTTlll
+    wNameTTllr)
+    (.node 8158120844042138488910006601718750826 (216)
+    wNameTTlrl
+    wNameTTlrr))
+    (.node 370178315372329184191625994839477213480053553274871444192338388574256035056749 (677)
+    (.node 22939001944315737211544512409860546889182957791376905407620212 (316)
+    wNameTTrll
+    wNameTTrlr)
+    (.node 2079449690818201789219004249613622203501613891026741247443078781286925114468910975013559670452691917651798467027449886210313325 (690)
+    wNameTTrrl
+    wNameTTrrr)))
 
 /-- The core indices of the loop helpers `__loop{n}`, by `n`. -/
 def wIdxLoop : List (ℕ × ℕ) := [(0, 34), (1, 35), (2, 36), (3, 37), (5, 80), (7, 91), (8, 92),
@@ -630,8 +3505,27 @@ def wIdxLoop : List (ℕ × ℕ) := [(0, 34), (1, 35), (2, 36), (3, 37), (5, 80)
     (566, 1583), (567, 1585), (568, 1586), (569, 1587), (570, 1588), (571, 1589), (572, 1590),
     (573, 1592), (574, 1593), (575, 1594), (576, 1595), (577, 1596)]
 
-/-- The core index of a function by name, from `wIdxN`. -/
-def wIdx (f : String) : ℕ := (wIdxN.lookup f).getD 0
+/-- **The core index of function `f`**, if the tree has it under its name's `encS`. -/
+def wNameIdx (f : String) : Option ℕ :=
+  match wNameT.find (encS f) with
+  | some j => if wNameB j f then some j else none
+  | none => none
+
+theorem wNameIdx_spec {f : String} {j : ℕ} (h : wNameIdx f = some j) :
+    (coreProgram[j]?).map Fn.name = some f := by
+  unfold wNameIdx at h
+  rcases hf : wNameT.find (encS f) with _ | k
+  · rw [hf] at h; cases h
+  · rw [hf] at h
+    dsimp only at h
+    split at h
+    · rename_i hk
+      cases h
+      exact wNameB_spec hk
+    · cases h
+
+/-- The core index of a function the checks name, `0` if none. -/
+def wIdx (f : String) : ℕ := (wNameIdx f).getD 0
 
 /-- The core index of the loop helper `__loop{n}`, from `wIdxLoop`. -/
 def wIdxL (n : ℕ) : ℕ := (wIdxLoop.lookup n).getD 0

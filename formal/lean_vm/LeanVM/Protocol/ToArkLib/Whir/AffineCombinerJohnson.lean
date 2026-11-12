@@ -13,7 +13,7 @@ public import Mathlib.Tactic
 /-!
 # The Johnson count
 
-Annex B of the leanVM specification (branch `f128`, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`),
+Annex B of the leanVM specification (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`),
 `thm:johnson-general`, and [CYWZ26, preprint], Lemma 3.11, in the integer form the Rust analysis
 evaluates (`crates/pcs/src/whir_config/affine_mca.rs`, `johnson_list(n, a, r)`):
 

@@ -29,7 +29,7 @@ open LeanVM.Protocol.KeccakGkr Finset
 @[expose] public section
 
 theorem find_vk : coreProgram.find? "verify_keccak" = some Data.core12 :=
-  Program.find?_of_indexOf? (j := 12) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 12) rfl
 
 theorem readsAt_single {rd : Reader} {p a : E} (h : LoadHolds rd p 0 a) : ReadsAt rd p [a] := by
   intro k hk

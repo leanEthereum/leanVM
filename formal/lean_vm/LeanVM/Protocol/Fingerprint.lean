@@ -17,7 +17,7 @@ public import LeanVM.Protocol.ToArkLib.GrandProductPoly
 # Fingerprints and the products of the bus
 
 Specification §5.2 (`doc/leanvm/body/05-arithmetization.tex`, "Fingerprint" to the proof of
-Theorem `th:product_check`, at leanVM `f128`; the verifier's `crates/verifier/src/bus.rs`,
+Theorem `th:product_check`; the verifier's `crates/verifier/src/bus.rs`,
 `verify_bus_balance`, and the prover's `crates/leanvm_core/src/leaf.rs`). A bus tuple is sixteen
 elements of `K`. After a grind the verifier draws one weight per slot, `α ∈ E^16`, and maps a
 tuple `t` to `π_α(t) = Σ_{ι<16} α_ι·t_ι` (`fingerprint`), linear in the challenges. It then draws

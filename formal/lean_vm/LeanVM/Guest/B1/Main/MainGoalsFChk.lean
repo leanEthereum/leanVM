@@ -24,10 +24,12 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1.Digest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem mfL1_idx : coreProgram.indexOf? "__loop0" = some 34 := by decide +kernel
+theorem mfL1_idx : coreProgram.indexOf? "__loop0" = some 34 :=
+  coreProgram_indexOf?_at (j := 34) rfl
 
 set_option maxRecDepth 100000 in
-theorem mfL2_idx : coreProgram.indexOf? "__loop1" = some 35 := by decide +kernel
+theorem mfL2_idx : coreProgram.indexOf? "__loop1" = some 35 :=
+  coreProgram_indexOf?_at (j := 35) rfl
 
 set_option maxRecDepth 100000 in
 theorem mfL1_shape : loopShapeF (coreProgram.getD 34 default) "__loop0" = true := by decide +kernel

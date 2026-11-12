@@ -1,4 +1,4 @@
-"""Write B1/Opening/QueriesBody{0..3}.lean, QueriesW{0..3}.lean, QueriesAllW.lean."""
+"""Write B1/Opening/QueriesBody{0..3}.lean and `QueriesFns.lean`'s `oqFns_all` cases."""
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen
@@ -48,56 +48,33 @@ theorem oqLoopBody_%d : Data.core%d.body = %s :=
 ''' % (d['name'], d['idx'], d['idx'], sh, d['odd'], sh, d['loop'], d['loop'], d['idx'], d['loopidx'], loopT))
     out.append('end\nend LeanVM.Guest.B1\n')
     open(D + 'QueriesBody%d.lean' % k, 'w').write('\n'.join(out))
-    out = [HEAD % ('QueriesW%d' % k,
-                   "A quarter of `opening_queries`' specializations, sound with their queries named.",
-                   'public import LeanVM.Guest.B1.Opening.QueriesBody%d\npublic import LeanVM.Guest.B1.Opening.QueriesMainW\npublic import LeanVM.Guest.B1.Opening.WalkFns' % k)]
-    for d in part:
-        sh = shape(d)
-        pd = d['depth'] - d['cd']
-        hdr = '''set_option maxRecDepth 100000 in
-/-- `%s` is sound with its queries named. -/
-theorem oqSpecW_%d : opening_queries_sound_w_Spec "%s" "%s" %s :=
-''' % (d['name'], d['idx'], d['name'], d['loop'], sh)
-        common_tail = '''(by decide) (by decide) (by decide) (by decide) (wpFn_L%d_L%d)
-    (Program.find?_of_indexOf? (j := %d) (by decide +kernel) rfl) rfl oqBody_%d
-    (Program.find?_of_indexOf? (j := %d) (by decide +kernel) rfl) rfl oqLoopBody_%d
-''' % (pd, d['cd'], d['idx'], d['idx'], d['loopidx'], d['idx'])
-        if d['base'] == 1:
-            body = '  oqMain1_sound_w (sh := %s) (by decide) (by decide) rfl rfl (by decide)\n    %s' % (sh, common_tail)
-        else:
-            body = '  oqMain0_sound_w (sh := %s) (by decide) (by decide) rfl rfl\n    %s' % (sh, common_tail)
-        out.append(hdr + body)
-    out.append('end\nend LeanVM.Guest.B1\n')
-    open(D + 'QueriesW%d.lean' % k, 'w').write('\n'.join(out))
-
-n = len(sp)
-out = ['''/-
-  LeanVM.Guest.B1.Opening.QueriesAllW
-
-  Every deployed specialization of `opening_queries` is sound with its queries named.
--/
-
-module
-
-public import LeanVM.Guest.B1.Opening.QueriesW0
-public import LeanVM.Guest.B1.Opening.QueriesW1
-public import LeanVM.Guest.B1.Opening.QueriesW2
-public import LeanVM.Guest.B1.Opening.QueriesW3
-
-namespace LeanVM.Guest.B1
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
-open LeanVM.Protocol.Verifier
-
-@[expose] public section
-
-/-- **Every deployed `opening_queries` is sound with its queries named.** -/
-theorem opening_queries_all_sound_w : opening_queries_all_sound_w_Spec := by
+# QueriesFns.lean: from `oqFns_` on, each entry of `openingQueriesLoops` (in `gen.oq_specs`' order)
+# found with its walk, functions and bodies, one theorem each, and `oqFns_all`.
+p = D + 'QueriesFns.lean'
+s = open(p).read()
+i = s.index('set_option maxRecDepth 100000 in\n/-- Entry ')
+out = [s[:i].rstrip() + '\n']
+for k, d in enumerate(sp):
+    out.append('''set_option maxRecDepth 100000 in
+/-- Entry %d, `%s`. -/
+theorem oqFns_%d : OqFns (openingQueriesLoops.getD %d oqNone) := by
+  unfold OqFns
+  exact ⟨wpFn_L%d_L%d, Data.core%d, Data.core%d,
+    coreProgram_find?_at (j := %d) rfl, rfl, oqBody_%d,
+    coreProgram_find?_at (j := %d) rfl, rfl, oqLoopBody_%d⟩
+''' % (k, d['name'], d['idx'], k, d['depth'] - d['cd'], d['cd'], d['idx'], d['loopidx'], d['idx'], d['idx'],
+       d['loopidx'], d['idx']))
+out.append('''/-- **Every entry's functions are found with the templates' bodies.** -/
+theorem oqFns_all : ∀ p ∈ openingQueriesLoops, OqFns p := by
   intro p hp
-  simp only [openingQueriesLoops, List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with %s
-''' % ' | '.join(['rfl'] * n)]
-for d in sp:
-    out.append('  · exact oqSpecW_%d' % d['idx'])
-out.append('\nend\nend LeanVM.Guest.B1\n')
-open(D + 'QueriesAllW.lean', 'w').write('\n'.join(out))
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hp
+  rw [List.getElem_eq_getD oqNone]
+  have hi' : i < %d := hi
+  interval_cases i
+  exacts [%s]
+
+end
+end LeanVM.Guest.B1
+''' % (len(sp), ',\n    '.join(', '.join('oqFns_%d' % d['idx'] for d in sp[r:r + 7])
+                                  for r in range(0, len(sp), 7))))
+open(p, 'w').write('\n'.join(out))

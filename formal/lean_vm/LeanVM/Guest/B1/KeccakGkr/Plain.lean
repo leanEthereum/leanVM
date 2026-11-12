@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.Lib
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `keccak_plain_rounds`
@@ -222,7 +223,7 @@ def plain41T : List Stmt :=
 theorem body41 : Data.core270.body = plain41T := stmtsEqb_sound (by decide +kernel)
 
 theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some Data.core268 :=
-  Program.find?_of_indexOf? (j := 268) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 268) rfl
 
 theorem plain60_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L6_L0" args rets) :
@@ -312,7 +313,7 @@ theorem plain60_sound (rd : Reader) (args rets : List E)
         List.cons_append, List.nil_append, word_4096]
 
 theorem find_plain41 : coreProgram.find? "keccak_plain_rounds__L4_L1" = some Data.core270 :=
-  Program.find?_of_indexOf? (j := 270) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 270) rfl
 
 theorem plain41_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "keccak_plain_rounds__L4_L1" args rets) :

@@ -18,6 +18,7 @@ public import Statement.Fast.Keccak
 public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # The digests: meanings (TRIAGE G #86-89, #94, #95)
@@ -190,17 +191,17 @@ def child_claim_list_digest_sound_Spec : Prop :=
 /-! ## The functions, found -/
 
 theorem find_statement_digest : coreProgram.find? "statement_digest" = some Data.core21 :=
-  Program.find?_of_indexOf? (j := 21) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 21) rfl
 
 theorem find_list_split : coreProgram.find? "list_split" = some Data.core22 :=
-  Program.find?_of_indexOf? (j := 22) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 22) rfl
 
 theorem find_claim_list_digest : coreProgram.find? "claim_list_digest" = some Data.core23 :=
-  Program.find?_of_indexOf? (j := 23) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 23) rfl
 
 theorem find_child_claim_list_digest :
     coreProgram.find? "child_claim_list_digest" = some Data.core24 :=
-  Program.find?_of_indexOf? (j := 24) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 24) rfl
 
 end
 end LeanVM.Guest.B1.Digest

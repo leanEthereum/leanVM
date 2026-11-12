@@ -19,7 +19,7 @@ import Mathlib.Algebra.Polynomial.BigOperators
 # Honest sumcheck rounds on the wire
 
 The verifier program's `sumcheck claim count modes` (`LeanVM.Protocol.Verifier.sumcheck`,
-`crates/verifier/src/transcript.rs:214-237, 252-266` at leanVM `f128`) reads,
+`crates/verifier/src/transcript.rs`) reads,
 per round, a polynomial of `count` coefficients with one coefficient left out: in plain mode
 (`none`) the linear one, in equality mode (`some r`) the constant one, which it derives from the
 running claim. Then it checks the grind for the round's degree (`roundBits`, zero bits at every

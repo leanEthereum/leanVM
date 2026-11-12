@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `exponent_tables`
@@ -319,7 +320,7 @@ def etBody : List Stmt :=
 theorem core1_body : Fn.body Data.core1 = etBody := stmtsEqb_sound (by decide +kernel)
 
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some Data.core1 :=
-  Program.find?_of_indexOf? (j := 1) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 1) rfl
 
 theorem etOff_lt {t : ℕ} (ht : t < 2284) : etOff t < 2284 := by
   simp only [etOff]; split_ifs <;> omega

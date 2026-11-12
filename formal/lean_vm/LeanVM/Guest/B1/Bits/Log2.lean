@@ -74,12 +74,12 @@ theorem core306_body : Fn.body Data.core306 = lcBody 16 := stmtsEqb_sound (by de
 
 set_option maxRecDepth 100000 in
 theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = some Data.core305 :=
-  Program.find?_of_indexOf? (j := 305) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 305) rfl
 
 set_option maxRecDepth 100000 in
 theorem find_lce_L16 :
     coreProgram.find? "log2_ceil_in_the_exponent__L16_L34" = some Data.core306 :=
-  Program.find?_of_indexOf? (j := 306) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 306) rfl
 
 /-- The body, unfolded to its conditions. -/
 theorem lc_unfold {name : String} {f : Fn} (fl : ℕ) (hfind : coreProgram.find? name = some f)

@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Keep `namesMod` (`LeanVM/Guest/CoreNames.lean`) a modulus under which the core functions' name codes
+(`encS`) are pairwise distinct, read from the core IR (`LeanVM/Guest/Data/Core*.lean`): a modulus that still
+works is kept (no rebuild), else the smallest that works is written. With `--check`, write nothing and fail
+unless the file's modulus works. Run from `lean_vm` after the guest's data changes (`scripts/regen-guest.sh`):
+
+    python3 -I scripts/core-names-modulus [--check]
+
+The kernel checks the modulus (`coreProgram_codes_nodup`): a wrong one fails there.
+"""
+import re, sys
+from pathlib import Path
+
+
+def names():
+    out = {}
+    for p in Path("LeanVM/Guest/Data").glob("Core[0-9]*.lean"):
+        for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "([^"]+)"', p.read_text()):
+            out[int(m.group(1))] = m.group(2)
+    return [out[j] for j in range(len(out))]
+
+
+def enc(s):
+    return sum((b + 1) << (9 * k) for k, b in enumerate(s.encode()))
+
+
+def distinct(codes, m):
+    return len({c % m for c in codes}) == len(codes)
+
+
+codes = [enc(s) for s in names()]
+assert len(set(codes)) == len(codes), "two core functions share a name"
+path = Path("LeanVM/Guest/CoreNames.lean")
+text = path.read_text(encoding="utf-8")
+old = int(re.search(r"def namesMod : ℕ := (\d+)", text).group(1))
+if distinct(codes, old):
+    sys.exit(0)
+if "--check" in sys.argv:
+    sys.exit(f"namesMod = {old} maps two names to one code; rerun without --check")
+m = len(codes)
+while not distinct(codes, m):
+    m += 1
+path.write_text(text.replace(f"def namesMod : ℕ := {old}", f"def namesMod : ℕ := {m}"), encoding="utf-8")
+print(f"namesMod: {old} -> {m}")

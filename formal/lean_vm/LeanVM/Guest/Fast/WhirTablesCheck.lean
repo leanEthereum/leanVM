@@ -3,6 +3,7 @@ module
 public import LeanVM.Guest.Fast.WhirTables
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Whir.Witness
+public import LeanVM.Guest.Memory.GuestCalleesOk
 
 /-!
 # `open_stacked`'s tables, checked
@@ -17,7 +18,7 @@ public import LeanVM.Guest.B1.Whir.Witness
   dispatch's arguments' and returns' cells (cells all);
 * `osWordsTab_eq`, `callsOK`: the literal tables of `Fast/WhirTables.lean` are the template's at
   every size and rate (`osCfgAt j`: size `j % 11`, rate index `j / 11`), by kernel evaluation, a
-  configuration at a time (`callsOK_j`).
+  configuration at a time (`callsOK_j`), the names read off `Data.nameT` (`nameIs`, `callMatchN`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -74,6 +75,40 @@ noncomputable def callMatch (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × 
       r.N == lv.queries / (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
 
+/-- `decoderFunctionName j = f`, read off `Data.nameT`. -/
+def nameIs (j : ℕ) (f : String) : Bool := isFunctionIndex j && decide (Data.nameT.find (j - 1) = some f)
+
+theorem nameIs_spec {j : ℕ} {f : String} (h : nameIs j f = true) : decoderFunctionName j = f := by
+  simp only [nameIs, Bool.and_eq_true, decide_eq_true_eq] at h
+  have hj := h.1
+  simp only [isFunctionIndex, Bool.and_eq_true, decide_eq_true_eq] at hj
+  have hl : j - 1 < coreProgram.length := by rw [coreProgram_length]; omega
+  have hn := Data.nameT_spec hl h.2
+  unfold decoderFunctionName
+  simp only [h.1, ↓reduceIte, List.getD_eq_getElem _ _ hl]
+  rw [List.getElem?_eq_getElem hl, Option.map_some, Option.some.injEq] at hn
+  exact hn
+
+/-- `callMatch`, the names read off `Data.nameT`. -/
+noncomputable def callMatchN (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × List V → Bool
+  | (lvl, lv, args, rets) =>
+    shapeBEq (oqShapeAt r.sh) (oqShapeOf (osOqName c lvl lv)) &&
+      nameIs r.lq (osQueriesName c lvl lv) &&
+      nameIs r.fn (osOqName c lvl lv) &&
+      nameIs r.loop (oqLoopOf (osOqName c lvl lv)) &&
+      nameIs r.walk (oqWalkOf (oqShapeOf (osOqName c lvl lv)).oq) &&
+      r.N == lv.queries / (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
+      r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
+
+theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × List V}
+    (h : callMatchN c r q = true) : callMatch c r q = true := by
+  obtain ⟨lvl, lv, args, rets⟩ := q
+  simp only [callMatchN, Bool.and_eq_true] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
+  simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4,
+    nameIs_spec h5]
+  simp_all
+
 /-- The configuration at the table's index `j`: the size `j % 11` at the rate index `j / 11`. -/
 def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)
 
@@ -86,93 +121,102 @@ def CallsOK (j : ℕ) : Prop :=
     ((osCallsTab.getD j []).zip (osQCalls (osCfgAt j))).all
       (fun p ↦ callMatch (osCfgAt j) p.1 p.2) = true
 
-theorem callsOK_0 : CallsOK 0 := by unfold CallsOK; decide +kernel
+/-- `CallsOK`, the names read off `Data.nameT`. -/
+def CallsOKN (j : ℕ) : Prop :=
+  (osCallsTab.getD j []).length = (osQCalls (osCfgAt j)).length ∧
+    ((osCallsTab.getD j []).zip (osQCalls (osCfgAt j))).all
+      (fun p ↦ callMatchN (osCfgAt j) p.1 p.2) = true
 
-theorem callsOK_1 : CallsOK 1 := by unfold CallsOK; decide +kernel
+theorem CallsOKN.ok {j : ℕ} (h : CallsOKN j) : CallsOK j :=
+  ⟨h.1, List.all_eq_true.mpr fun p hp => callMatch_of_N (List.all_eq_true.mp h.2 p hp)⟩
 
-theorem callsOK_2 : CallsOK 2 := by unfold CallsOK; decide +kernel
+theorem callsOK_0 : CallsOK 0 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_3 : CallsOK 3 := by unfold CallsOK; decide +kernel
+theorem callsOK_1 : CallsOK 1 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_4 : CallsOK 4 := by unfold CallsOK; decide +kernel
+theorem callsOK_2 : CallsOK 2 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_5 : CallsOK 5 := by unfold CallsOK; decide +kernel
+theorem callsOK_3 : CallsOK 3 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_6 : CallsOK 6 := by unfold CallsOK; decide +kernel
+theorem callsOK_4 : CallsOK 4 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_7 : CallsOK 7 := by unfold CallsOK; decide +kernel
+theorem callsOK_5 : CallsOK 5 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_8 : CallsOK 8 := by unfold CallsOK; decide +kernel
+theorem callsOK_6 : CallsOK 6 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_9 : CallsOK 9 := by unfold CallsOK; decide +kernel
+theorem callsOK_7 : CallsOK 7 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_10 : CallsOK 10 := by unfold CallsOK; decide +kernel
+theorem callsOK_8 : CallsOK 8 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_11 : CallsOK 11 := by unfold CallsOK; decide +kernel
+theorem callsOK_9 : CallsOK 9 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_12 : CallsOK 12 := by unfold CallsOK; decide +kernel
+theorem callsOK_10 : CallsOK 10 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_13 : CallsOK 13 := by unfold CallsOK; decide +kernel
+theorem callsOK_11 : CallsOK 11 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_14 : CallsOK 14 := by unfold CallsOK; decide +kernel
+theorem callsOK_12 : CallsOK 12 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_15 : CallsOK 15 := by unfold CallsOK; decide +kernel
+theorem callsOK_13 : CallsOK 13 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_16 : CallsOK 16 := by unfold CallsOK; decide +kernel
+theorem callsOK_14 : CallsOK 14 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_17 : CallsOK 17 := by unfold CallsOK; decide +kernel
+theorem callsOK_15 : CallsOK 15 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_18 : CallsOK 18 := by unfold CallsOK; decide +kernel
+theorem callsOK_16 : CallsOK 16 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_19 : CallsOK 19 := by unfold CallsOK; decide +kernel
+theorem callsOK_17 : CallsOK 17 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_20 : CallsOK 20 := by unfold CallsOK; decide +kernel
+theorem callsOK_18 : CallsOK 18 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_21 : CallsOK 21 := by unfold CallsOK; decide +kernel
+theorem callsOK_19 : CallsOK 19 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_22 : CallsOK 22 := by unfold CallsOK; decide +kernel
+theorem callsOK_20 : CallsOK 20 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_23 : CallsOK 23 := by unfold CallsOK; decide +kernel
+theorem callsOK_21 : CallsOK 21 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_24 : CallsOK 24 := by unfold CallsOK; decide +kernel
+theorem callsOK_22 : CallsOK 22 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_25 : CallsOK 25 := by unfold CallsOK; decide +kernel
+theorem callsOK_23 : CallsOK 23 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_26 : CallsOK 26 := by unfold CallsOK; decide +kernel
+theorem callsOK_24 : CallsOK 24 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_27 : CallsOK 27 := by unfold CallsOK; decide +kernel
+theorem callsOK_25 : CallsOK 25 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_28 : CallsOK 28 := by unfold CallsOK; decide +kernel
+theorem callsOK_26 : CallsOK 26 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_29 : CallsOK 29 := by unfold CallsOK; decide +kernel
+theorem callsOK_27 : CallsOK 27 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_30 : CallsOK 30 := by unfold CallsOK; decide +kernel
+theorem callsOK_28 : CallsOK 28 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_31 : CallsOK 31 := by unfold CallsOK; decide +kernel
+theorem callsOK_29 : CallsOK 29 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_32 : CallsOK 32 := by unfold CallsOK; decide +kernel
+theorem callsOK_30 : CallsOK 30 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_33 : CallsOK 33 := by unfold CallsOK; decide +kernel
+theorem callsOK_31 : CallsOK 31 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_34 : CallsOK 34 := by unfold CallsOK; decide +kernel
+theorem callsOK_32 : CallsOK 32 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_35 : CallsOK 35 := by unfold CallsOK; decide +kernel
+theorem callsOK_33 : CallsOK 33 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_36 : CallsOK 36 := by unfold CallsOK; decide +kernel
+theorem callsOK_34 : CallsOK 34 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_37 : CallsOK 37 := by unfold CallsOK; decide +kernel
+theorem callsOK_35 : CallsOK 35 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_38 : CallsOK 38 := by unfold CallsOK; decide +kernel
+theorem callsOK_36 : CallsOK 36 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_39 : CallsOK 39 := by unfold CallsOK; decide +kernel
+theorem callsOK_37 : CallsOK 37 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_40 : CallsOK 40 := by unfold CallsOK; decide +kernel
+theorem callsOK_38 : CallsOK 38 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_41 : CallsOK 41 := by unfold CallsOK; decide +kernel
+theorem callsOK_39 : CallsOK 39 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_42 : CallsOK 42 := by unfold CallsOK; decide +kernel
+theorem callsOK_40 : CallsOK 40 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
-theorem callsOK_43 : CallsOK 43 := by unfold CallsOK; decide +kernel
+theorem callsOK_41 : CallsOK 41 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
+
+theorem callsOK_42 : CallsOK 42 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
+
+theorem callsOK_43 : CallsOK 43 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
 /-- **Every configuration's dispatches are the table's.** -/
 theorem callsOK : ∀ j < 44, CallsOK j

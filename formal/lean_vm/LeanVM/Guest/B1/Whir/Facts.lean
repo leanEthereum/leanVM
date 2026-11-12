@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Whir.LrSound
 public import LeanVM.Guest.B1.Fs.Message
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Merkle.Meaning
+public import LeanVM.Guest.B1.Whir.TableMem
 
 /-!
 # A candidate's facts, decided
@@ -28,6 +29,7 @@ namespace LeanVM.Guest.B1.Whir
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Verifier
+open scoped TableMem
 
 @[expose] public section
 

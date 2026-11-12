@@ -70,7 +70,7 @@ def rsBody : List Stmt :=
 theorem core5_body : Fn.body Data.core5 = rsBody := stmtsEqb_sound (by decide +kernel)
 
 theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some Data.core5 :=
-  Program.find?_of_indexOf? (j := 5) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 5) rfl
 
 theorem rs_consts : word 3 0 = gen ^ 2 ^ 0 + 1 ∧ word 5 0 = gen ^ 2 ^ 1 + 1 ∧
     word 17 0 = gen ^ 2 ^ 2 + 1 :=

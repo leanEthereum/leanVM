@@ -66,9 +66,9 @@ noncomputable def lvlCOk (fn : Fn) (offA offB : ℕ) : Bool :=
   ptrOk (A.filter pureB) (.n pb) (.n 2) (.n 0) offB 2 &&
   (lvlSp fn c0).check (lvlA' fn)
 
-/-- A level loop, found and evaluated. -/
-noncomputable def loopCOk (f : String) (offA offB : ℕ) : Bool :=
-  match coreProgram.indexOf? f with
+/-- A level loop, at core function `j0`, found and evaluated. -/
+noncomputable def loopCOk (f : String) (j0 offA offB : ℕ) : Bool :=
+  match coreIdx? f j0 with
   | some j => lvlCOk (coreProgram.getD j default) offA offB
   | none => false
 
@@ -91,7 +91,8 @@ noncomputable def dlCEntryOk (k : ℕ) : Bool :=
        | .callIf .. => (List.range k).any fun lvl => stmtEqb s (lvlCall lvl (e.2.2.2.getD lvl ""))
        | _ => false)
    | none => false) &&
-  (List.range k).all fun lvl => loopCOk (e.2.2.2.getD lvl "") (off k lvl) (off k (lvl + 1))
+  (List.range k).all fun lvl =>
+    loopCOk (e.2.2.2.getD lvl "") (dlLoopAt k lvl) (off k lvl) (off k (lvl + 1))
 
 end
 end LeanVM.Guest.B1.Da

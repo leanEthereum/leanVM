@@ -16,108 +16,108 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L24`, once. -/
-theorem st313 : shareStatic 313 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L9`, once. -/
+theorem st396 : shareStatic 396 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L24`, window 0. -/
-theorem w313_0 : shareWin 313 (snapsOf 313) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L9`, window 0. -/
+theorem w396_0 : shareWin 396 (snapsOf 396) 0 = true := by decide +kernel
 
-theorem ok313 : ShareOk 313 := ⟨st313, fun i hi ↦ by
-  have h : (snapsOf 313).length = 0 := by decide +kernel
+theorem ok396 : ShareOk 396 := ⟨st396, fun i hi ↦ by
+  have h : (snapsOf 396).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w313_0⟩
+  exact w396_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L25`, once. -/
-theorem st314 : shareStatic 314 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L10`, once. -/
+theorem st397 : shareStatic 397 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L25`, window 0. -/
-theorem w314_0 : shareWin 314 (snapsOf 314) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L10`, window 0. -/
+theorem w397_0 : shareWin 397 (snapsOf 397) 0 = true := by decide +kernel
 
-theorem ok314 : ShareOk 314 := ⟨st314, fun i hi ↦ by
-  have h : (snapsOf 314).length = 0 := by decide +kernel
+theorem ok397 : ShareOk 397 := ⟨st397, fun i hi ↦ by
+  have h : (snapsOf 397).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w314_0⟩
+  exact w397_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L26`, once. -/
-theorem st315 : shareStatic 315 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L11`, once. -/
+theorem st398 : shareStatic 398 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L26`, window 0. -/
-theorem w315_0 : shareWin 315 (snapsOf 315) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L11`, window 0. -/
+theorem w398_0 : shareWin 398 (snapsOf 398) 0 = true := by decide +kernel
 
-theorem ok315 : ShareOk 315 := ⟨st315, fun i hi ↦ by
-  have h : (snapsOf 315).length = 0 := by decide +kernel
+theorem ok398 : ShareOk 398 := ⟨st398, fun i hi ↦ by
+  have h : (snapsOf 398).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w315_0⟩
+  exact w398_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L27`, once. -/
-theorem st316 : shareStatic 316 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L12`, once. -/
+theorem st399 : shareStatic 399 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L27`, window 0. -/
-theorem w316_0 : shareWin 316 (snapsOf 316) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L12`, window 0. -/
+theorem w399_0 : shareWin 399 (snapsOf 399) 0 = true := by decide +kernel
 
-theorem ok316 : ShareOk 316 := ⟨st316, fun i hi ↦ by
-  have h : (snapsOf 316).length = 0 := by decide +kernel
+theorem ok399 : ShareOk 399 := ⟨st399, fun i hi ↦ by
+  have h : (snapsOf 399).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w316_0⟩
+  exact w399_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L28`, once. -/
-theorem st317 : shareStatic 317 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L13`, once. -/
+theorem st400 : shareStatic 400 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L28`, window 0. -/
-theorem w317_0 : shareWin 317 (snapsOf 317) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L13`, window 0. -/
+theorem w400_0 : shareWin 400 (snapsOf 400) 0 = true := by decide +kernel
 
-theorem ok317 : ShareOk 317 := ⟨st317, fun i hi ↦ by
-  have h : (snapsOf 317).length = 0 := by decide +kernel
+theorem ok400 : ShareOk 400 := ⟨st400, fun i hi ↦ by
+  have h : (snapsOf 400).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w317_0⟩
+  exact w400_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L29`, once. -/
-theorem st318 : shareStatic 318 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L14`, once. -/
+theorem st401 : shareStatic 401 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L29`, window 0. -/
-theorem w318_0 : shareWin 318 (snapsOf 318) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L14`, window 0. -/
+theorem w401_0 : shareWin 401 (snapsOf 401) 0 = true := by decide +kernel
 
-theorem ok318 : ShareOk 318 := ⟨st318, fun i hi ↦ by
-  have h : (snapsOf 318).length = 0 := by decide +kernel
+theorem ok401 : ShareOk 401 := ⟨st401, fun i hi ↦ by
+  have h : (snapsOf 401).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w318_0⟩
+  exact w401_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L30`, once. -/
-theorem st319 : shareStatic 319 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L15`, once. -/
+theorem st402 : shareStatic 402 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L30`, window 0. -/
-theorem w319_0 : shareWin 319 (snapsOf 319) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L15`, window 0. -/
+theorem w402_0 : shareWin 402 (snapsOf 402) 0 = true := by decide +kernel
 
-theorem ok319 : ShareOk 319 := ⟨st319, fun i hi ↦ by
-  have h : (snapsOf 319).length = 0 := by decide +kernel
+theorem ok402 : ShareOk 402 := ⟨st402, fun i hi ↦ by
+  have h : (snapsOf 402).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w319_0⟩
+  exact w402_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_message__L1_L1`, once. -/
-theorem st320 : shareStatic 320 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L16`, once. -/
+theorem st403 : shareStatic 403 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_message__L1_L1`, window 0. -/
-theorem w320_0 : shareWin 320 (snapsOf 320) 0 = true := by decide +kernel
+/-- `child_claim_list_mono_last__L16`, window 0. -/
+theorem w403_0 : shareWin 403 (snapsOf 403) 0 = true := by decide +kernel
 
-theorem ok320 : ShareOk 320 := ⟨st320, fun i hi ↦ by
-  have h : (snapsOf 320).length = 0 := by decide +kernel
+theorem ok403 : ShareOk 403 := ⟨st403, fun i hi ↦ by
+  have h : (snapsOf 403).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w320_0⟩
+  exact w403_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

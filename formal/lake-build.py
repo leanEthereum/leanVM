@@ -18,7 +18,8 @@ peak RSS and peak anonymous memory, over `DIR/lake-build.tsv` (the heavy modules
 rewrites); an unknown module is taken at 2 GB.
 
 The run is a systemd scope capped at `--cap` (default: the machine's memory less 1 GB, without `OOMPolicy=stop`): a
-module killed by the kernel there is run again, alone. After the first module that fails nothing more is admitted
+module killed by the kernel there is run again, alone; one that crashes, or runs past a multiple of its recorded
+time (`HANG_FACTOR`), is run again (`RETRIES`). After the first module that fails nothing more is admitted
 and the run fails; otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
 them, which replays the warnings, ends the run.
 
@@ -52,6 +53,11 @@ GB = 1 << 30
 MB = 1 << 20
 DEFAULT_NEED = 2 * GB  # an unknown module's anonymous memory
 DEFAULT_WALL = 5.0  # an unknown module's time, for the priorities
+# Lean 4.35 now and then crashes (SIGSEGV) or stalls in a kernel cache's hash table on a module that otherwise builds
+# in seconds: a module past `HANG_FACTOR` times its recorded CPU time plus `HANG_SLACK` CPU seconds (`HANG_UNKNOWN`
+# without a record), doubled at each attempt, is stopped and, like a crashed one, run again, up to `RETRIES` times.
+# CPU time, not wall time, so that a module slowed by a busy machine is left alone.
+HANG_FACTOR, HANG_SLACK, HANG_UNKNOWN, RETRIES = 4.0, 180.0, 1800.0, 2
 TABLE = "lake-build.tsv"
 HEADER = "# module\twall s\tcpu s\tpeak rss MB\tpeak anon MB\n"
 ENV = ("LEAN_SYSROOT", "LAKE_OVERRIDE_LEAN", "LEAN_NUM_THREADS")  # what the run changes for Lake
@@ -90,9 +96,9 @@ def wrap(tool: str, args: list[str]) -> None:
             stream.write(line + "\n")
             stream.flush()
 
-        alone = False
+        alone, attempt = False, 0
         while True:
-            say(f"want {int(alone)} {name}")
+            say(f"want {int(alone)} {name} {attempt}")
             if stream.readline().strip() != "go":
                 print(f"lake-build: {name} not started: an earlier module failed", file=sys.stderr)
                 sys.exit(1)
@@ -105,6 +111,9 @@ def wrap(tool: str, args: list[str]) -> None:
                 say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {usage.ru_maxrss}")
                 if code == -signal.SIGKILL and not alone:  # most likely the scope's memory cap: once more, alone
                     alone = True
+                    continue
+                if code in (-signal.SIGTERM, -signal.SIGSEGV) and attempt < RETRIES:  # the watchdog, or a crash
+                    attempt += 1
                     continue
                 for source, sink in ((out, sys.stdout.buffer), (err, sys.stderr.buffer)):
                     source.seek(0)
@@ -158,14 +167,18 @@ def header_imports(path: Path) -> list[str]:
 
 
 def priorities(pkg: Path, table: dict[str, list[float]]) -> dict[str, float]:
-    """Each module's longest path to the end of the build, its own time included, over the package's import graph."""
+    """Each module's longest path to the end of the build, its own time included, over the import graph of the package
+    and its path dependencies (named from their parent, so `Statement/X.lean` is `Statement.X`)."""
     files = {}
-    for root, dirs, names in os.walk(pkg):
-        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("target", "node_modules")]
-        for name in names:
-            if name.endswith(".lean"):
-                path = Path(root) / name
-                files[path.relative_to(pkg).with_suffix("").parts] = header_imports(path)
+    deps = [Path(r["path"]) for r in tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8")).get("require", [])
+            if "path" in r] if (pkg / "lakefile.toml").exists() else []
+    for src, base in [(pkg, pkg), *(((pkg / d).resolve(), (pkg / d).resolve().parent) for d in deps)]:
+        for root, dirs, names in os.walk(src):
+            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("target", "node_modules")]
+            for name in names:
+                if name.endswith(".lean"):
+                    path = Path(root) / name
+                    files[path.relative_to(base).with_suffix("").parts] = header_imports(path)
     known = {m for imports in files.values() for m in imports} | set(table)
     importers: dict[str, list[str]] = {}
     for parts, imports in files.items():
@@ -216,6 +229,16 @@ def proc_status(pid: int) -> tuple[int, int]:
     return anon, file_backed
 
 
+def cpu_seconds(pid: int) -> float:
+    """A process's user and system CPU time."""
+    try:
+        with open(f"/proc/{pid}/stat", encoding="ascii") as file:
+            fields = file.read().rsplit(")", 1)[1].split()
+        return (int(fields[11]) + int(fields[12])) / os.sysconf("SC_CLK_TCK")
+    except (OSError, IndexError, ValueError):
+        return 0.0
+
+
 def cgroup_file(name: str) -> Path | None:
     try:
         line = Path("/proc/self/cgroup").read_text(encoding="ascii").splitlines()[0]
@@ -232,9 +255,10 @@ def cpu_ticks() -> tuple[int, int]:
 
 
 class Run:
-    def __init__(self, name: str, need: int, ticket: int, alone: bool) -> None:
-        self.name, self.need, self.ticket, self.alone = name, need, ticket, alone
+    def __init__(self, name: str, need: int, ticket: int, alone: bool, limit: float) -> None:
+        self.name, self.need, self.ticket, self.alone, self.limit = name, need, ticket, alone, limit
         self.pid = self.anon = self.peak = self.file = 0
+        self.stopped = False
 
 
 class Scheduler:
@@ -277,7 +301,11 @@ class Scheduler:
             held = held or need
         return None
 
-    def admit(self, name: str, alone: bool) -> Run | None:
+    def limit(self, name: str, attempt: int) -> float:
+        base = HANG_FACTOR * self.table[name][1] + HANG_SLACK if name in self.table else HANG_UNKNOWN
+        return base * 2 ** attempt
+
+    def admit(self, name: str, alone: bool, attempt: int = 0) -> Run | None:
         with self.cv:
             ticket = self.tickets
             self.tickets += 1
@@ -285,7 +313,7 @@ class Scheduler:
             try:
                 while not self.failed:
                     if self.choose() == ticket:
-                        run = self.running[ticket] = Run(name, self.waiting[ticket][1], ticket, alone)
+                        run = self.running[ticket] = Run(name, self.waiting[ticket][1], ticket, alone, self.limit(name, attempt))
                         return run
                     self.cv.wait(1.0)
                 return None
@@ -305,8 +333,8 @@ class Scheduler:
             if code == 0:
                 self.done += 1
                 self.table[run.name] = [wall, cpu, maxrss / 1024, max(run.peak, run.anon) / MB]
-            elif code == -signal.SIGKILL and not run.alone:
-                self.killed.append(run.name)
+            elif code == -signal.SIGKILL and not run.alone or code in (-signal.SIGTERM, -signal.SIGSEGV):
+                self.killed.append(run.name)  # run again by its wrapper, which fails the build if it gives up
             else:
                 self.failed.append(run.name)
 
@@ -319,6 +347,13 @@ class Scheduler:
                     if run.pid:
                         run.anon, run.file = proc_status(run.pid)
                         run.peak = max(run.peak, run.anon)
+                        if not run.stopped and cpu_seconds(run.pid) > run.limit:
+                            run.stopped = True
+                            log(f"{run.name}: past {run.limit:.0f} CPU s, stopped to be run again")
+                            try:
+                                os.kill(run.pid, signal.SIGTERM)
+                            except OSError:
+                                pass
                 self.peak_committed = max(self.peak_committed, self.committed())
                 self.peak_anon = max(self.peak_anon, sum(r.anon for r in self.running.values()))
                 self.peak_used = max(self.peak_used, meminfo("MemTotal") - meminfo("MemAvailable"))
@@ -337,7 +372,8 @@ def serve(scheduler: Scheduler, path: str) -> socketserver.UnixStreamServer:
                 for line in self.rfile:
                     words = line.decode().split()
                     if words[0] == "want":
-                        run, reply = scheduler.admit(words[2], words[1] == "1"), None
+                        attempt = int(words[3]) if len(words) > 3 else 0
+                        run, reply = scheduler.admit(words[2], words[1] == "1", attempt), None
                         self.wfile.write(b"go\n" if run else b"stop\n")
                         self.wfile.flush()
                         if run is None:
@@ -484,7 +520,7 @@ def main() -> None:
         f"committed, {scheduler.peak_anon / GB:.1f} GB anonymous in the modules, {scheduler.peak_used / GB:.1f} GB used on the machine"
         + (f", {int(peak.read_text()) / GB:.1f} GB in the scope" if peak else ""))
     if scheduler.killed:
-        log(f"killed and run again alone: {', '.join(scheduler.killed)}")
+        log(f"killed or stopped, and run again: {', '.join(scheduler.killed)}")
     if scheduler.failed or code:
         sys.exit(f"lake-build: failed: {', '.join(scheduler.failed) or f'lake build exited with {code}'}")
     if subprocess.run([*lake, "build", "--no-build", "-q", *opts.targets], cwd=pkg, check=False).returncode:

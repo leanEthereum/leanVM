@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Eq.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `fold_final_msg` (TRIAGE #24)
@@ -466,25 +467,25 @@ theorem fold_final_msg_iff {name : String} {f : Fn} (L fin : ℕ)
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L2_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L2" args rets ↔ MeaningFoldFinalMsg 2 rd args rets :=
-  fold_final_msg_iff 1 22 (Program.find?_of_indexOf? (j := 498) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 1 22 (coreProgram_find?_at (j := 498) rfl) rfl
     core547_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L3_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L3" args rets ↔ MeaningFoldFinalMsg 3 rd args rets :=
-  fold_final_msg_iff 2 42 (Program.find?_of_indexOf? (j := 541) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 2 42 (coreProgram_find?_at (j := 541) rfl) rfl
     core573_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L4_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L4" args rets ↔ MeaningFoldFinalMsg 4 rd args rets :=
-  fold_final_msg_iff 3 78 (Program.find?_of_indexOf? (j := 584) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 3 78 (coreProgram_find?_at (j := 584) rfl) rfl
     core500_body (by decide) (by decide) rd args rets
 
 set_option maxRecDepth 100000 in
 theorem fold_final_msg_L5_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "fold_final_msg__L5" args rets ↔ MeaningFoldFinalMsg 5 rd args rets :=
-  fold_final_msg_iff 4 146 (Program.find?_of_indexOf? (j := 627) (by decide +kernel) rfl) rfl
+  fold_final_msg_iff 4 146 (coreProgram_find?_at (j := 627) rfl) rfl
     core522_body (by decide) (by decide) rd args rets
 
 /-- **`fold_final_msg`'s core IR is its meaning**, every specialization. -/

@@ -364,7 +364,8 @@ theorem monoFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m p0 st
 
 -- `__loop19`: 136 claims a frame, 64 blocks; its head here, its sixteen windows in `Mono{q}`.
 set_option maxRecDepth 100000 in
-theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 384 := by decide +kernel
+theorem mono136_idx : coreProgram.indexOf? "__loop19" = some 384 :=
+  coreProgram_indexOf?_at (j := 384) rfl
 
 set_option maxRecDepth 100000 in
 theorem mono136_nb : (monoSpec 136 1377 (loopAtoms (coreProgram.getD 384 default))).nb = 64 := by
@@ -389,7 +390,8 @@ theorem mono136_ok :
 
 -- `__loop20`: 17 claims a frame, 8 blocks.
 set_option maxRecDepth 100000 in
-theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 385 := by decide +kernel
+theorem mono17_idx : coreProgram.indexOf? "__loop20" = some 385 :=
+  coreProgram_indexOf?_at (j := 385) rfl
 
 set_option maxRecDepth 100000 in
 theorem mono17_nb : (monoSpec 17 187 (loopAtoms (coreProgram.getD 385 default))).nb = 8 := by
@@ -543,7 +545,7 @@ theorem monoBody_ok : monoBodyOk = true := by decide +kernel
 
 theorem find_child_claim_list_mono :
     coreProgram.find? "child_claim_list_mono" = some Data.core26 :=
-  Program.find?_of_indexOf? (j := 26) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 26) rfl
 
 /-- **`child_claim_list_mono`** (G:4440-4472): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims walked by hinted gaps from slot 0 to `O`, every claim marked `base`, their

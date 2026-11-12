@@ -72,8 +72,8 @@ theorem ml_all : ∀ k < 17, mlOk k (coreProgram.getD (386 + k) default) = true 
     ml_14, ml_15, ml_16]
 
 set_option maxRecDepth 100000 in
-theorem ml_idx : ∀ k < 17, coreProgram.indexOf? (mlNames.getD k "") = some (386 + k) := by
-  decide +kernel
+theorem ml_idx : ∀ k < 17, coreProgram.indexOf? (mlNames.getD k "") = some (386 + k) :=
+  coreProgram_indexOf?_run (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Digest

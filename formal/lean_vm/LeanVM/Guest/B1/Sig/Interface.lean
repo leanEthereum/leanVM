@@ -21,6 +21,7 @@ public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.B1.Main.Frames
 public import LeanVM.Guest.B1.Sig.XmssSegT
 public import LeanVM.Guest.B1.Sig.Frame
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # The signature verifiers' interface
@@ -170,7 +171,7 @@ theorem core20_params : Data.core20.params = [.n 0, .n 1] := rfl
 
 theorem find_verify_sig_lean_sphincs :
     coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
-  Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 20) rfl
 
 /-! ## The call relation, from the statements -/
 

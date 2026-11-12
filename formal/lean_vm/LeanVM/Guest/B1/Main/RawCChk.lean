@@ -49,7 +49,8 @@ theorem l4_params : (coreProgram.getD 37 default).params =
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 37 := by decide +kernel
+theorem l4_idx' : coreProgram.indexOf? "__loop3" = some 37 :=
+  coreProgram_indexOf?_at (j := 37) rfl
 
 theorem l4_find : coreProgram.find? "__loop3" = some (coreProgram.getD 37 default) :=
   find_of_idx l4_idx' (by rw [coreProgram_length]; omega)

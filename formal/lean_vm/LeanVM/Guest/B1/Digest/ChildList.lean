@@ -248,8 +248,8 @@ theorem getD_map_range {α : Type} (f : ℕ → α) {n c : ℕ} (h : c < n) (d :
 
 
 set_option maxRecDepth 100000 in
-theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (367 + k) := by
-  decide +kernel
+theorem ccl_idx : ∀ k < 17, coreProgram.indexOf? (cclNames.getD k "") = some (367 + k) :=
+  coreProgram_indexOf?_run (by decide +kernel)
 
 /-- **`child_claim_list_last__L{k}`**: from a state at its first argument after whole blocks
 `pre`, `k` claims read at hinted slots and marked, and the digest of `pre ++` their cells. -/
@@ -313,7 +313,8 @@ theorem any136_ok : anyOk (coreProgram.getD 365 default) "__loop17" 136 22 15 21
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem any136_idx : coreProgram.indexOf? "__loop17" = some 365 := by decide +kernel
+theorem any136_idx : coreProgram.indexOf? "__loop17" = some 365 :=
+  coreProgram_indexOf?_at (j := 365) rfl
 
 
 -- `__loop18`: 17 claims a frame, 8 blocks.
@@ -322,7 +323,8 @@ theorem any17_ok : anyOk (coreProgram.getD 366 default) "__loop18" 17 19 12 18 2
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem any17_idx : coreProgram.indexOf? "__loop18" = some 366 := by decide +kernel
+theorem any17_idx : coreProgram.indexOf? "__loop18" = some 366 :=
+  coreProgram_indexOf?_at (j := 366) rfl
 
 set_option maxRecDepth 100000 in
 theorem any17_nb : (anySpec 17 19 255 (loopAtoms (coreProgram.getD 366 default))).nb = 8 := by
@@ -482,7 +484,7 @@ theorem anyBody_ok : anyBodyOk = true := by decide +kernel
 
 theorem find_child_claim_list_any :
     coreProgram.find? "child_claim_list_any" = some Data.core25 :=
-  Program.find?_of_indexOf? (j := 25) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 25) rfl
 
 /-- **`child_claim_list_any`** (G:4395-4415): on `bigs = g^a`, `groups = g^b`, `rest = g^c`, the
 `136a + 17b + c` claims read at hinted slots of the region below the log of `limit`, marked

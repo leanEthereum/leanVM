@@ -333,10 +333,10 @@ def main_sound_Spec (bytecode : List K) : Prop :=
 /-! ## The functions, found -/
 
 theorem find_main : coreProgram.find? "main" = some Data.core0 :=
-  Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 0) rfl
 
 theorem find_aggregate_claims : coreProgram.find? "aggregate_claims" = some Data.core33 :=
-  Program.find?_of_indexOf? (j := 33) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 33) rfl
 
 end
 end LeanVM.Guest.B1.Main

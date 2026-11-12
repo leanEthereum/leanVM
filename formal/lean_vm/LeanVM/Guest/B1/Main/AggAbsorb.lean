@@ -176,7 +176,8 @@ set_option maxRecDepth 100000 in
 theorem l25_ok : l25Ok (coreProgram.getD 430 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l25_idx : coreProgram.indexOf? "__loop33" = some 430 := by decide +kernel
+theorem l25_idx : coreProgram.indexOf? "__loop33" = some 430 :=
+  coreProgram_indexOf?_at (j := 430) rfl
 
 /-! ## One child -/
 

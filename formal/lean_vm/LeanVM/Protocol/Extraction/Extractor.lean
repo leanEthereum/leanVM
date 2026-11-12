@@ -122,7 +122,7 @@ boundary (`powIndex`, `gLogIn`, `boundaryOK`, `Statement/Prover/Witness.lean`), 
 statement keeps for the honest prover. The budget reads the announced shape off the stream
 (`announced`, `Statement/LeanVmVerifier.lean`), the shape `afterRoot` returns.
 
-The Annexes are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+The Annexes are cited at `leanvm-rev`.
 
 **Credits.** The list decoder over `K` is CompPoly's (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, "Copyright (c) 2026 CompPoly

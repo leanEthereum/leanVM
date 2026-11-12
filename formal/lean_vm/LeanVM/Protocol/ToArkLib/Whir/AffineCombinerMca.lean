@@ -15,7 +15,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerInterpolation
 /-!
 # Affine MCA and the fold round, assembled
 
-Annex B of the leanVM specification (branch `f128`), `thm:mca-affine` and `lem:fold-list`, in
+Annex B of the leanVM specification, `thm:mca-affine` and `lem:fold-list`, in
 counting form, over a finite field `F` with `q = |F|`, a domain of `n` points, and words with any
 finite number of lanes.
 
@@ -26,7 +26,7 @@ finite number of lanes.
   `D² + 4 d² M² D³ (n/(A - B))²` non-persistent exceptional pairs ([CYWZ26, Lemmas 4.2, 4.3 and
   4.7]); `nonpersistentCount_of_interpolant` derives it, through Lemma 4.2
   (`exists_interpolant`), from `InterpolantCount`, the statement of Lemmas 4.3 and 4.7 for the
-  interpolant, the one input not proved here.
+  interpolant, proved as `lemma43` (`AffineCombinerLemma43.lean`).
 * `card_excSet_le_nAff` (`thm:mca-affine`): under `InterpolantCount` over the algebraic closure,
   at most `nAff q n d A m D B = q² ε_aff` exceptional pairs.
 * `card_foldBad_le_nAff` (`lem:fold-list`): the escapes `(α, β)` of a fold round number at most

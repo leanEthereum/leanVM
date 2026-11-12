@@ -81,9 +81,9 @@ def data(m, j):
 /-!
 # Size {m}
 
-`osData_{m} : OsData {m}`: the function found by name (its index in the core IR checked by the
-kernel), its body equal to the template (`stmtsEqb_sound`), the body in runs of {RUN} statements,
-each its own kernel evaluation (`run_step`), to bound the kernel's memory.
+`osData_{m} : OsData {m}`: the function found by its position (`coreProgram_find?_at`), its body
+equal to the template (`stmtsEqb_sound`), the body in runs of {RUN} statements, each its own
+kernel evaluation (`run_step`), to bound the kernel's memory.
 -/
 """)
     for r in range(runs):
@@ -99,15 +99,15 @@ theorem osData_{m} : OsData {m} := by
   have hb : Data.core{j}.body.drop 0 = (osBody (osCfg {m})).drop 0 :=
 {steps}    drop_end (o := {runs * RUN}) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  exact ⟨Data.core{j}, Program.find?_of_indexOf? (j := {j}) (by decide +kernel) rfl, by decide +kernel, hb⟩
+  exact ⟨Data.core{j}, coreProgram_find?_at (j := {j}) rfl, by decide +kernel, hb⟩
 """)
-    for ri in range(RATES):
+    for ri in range(1, RATES):  # rate 0's levels are `osCfg`'s: `rfl`
         out.append(f"""
 set_option maxRecDepth 100000 in
 theorem os_rate_{m}_{ri} : stmtsEqb (osBody (osCfg {m})) (osBody (osCfgR {m} {ri})) = true := by
   decide +kernel
 """)
-    cases = "".join(f"\n  · exact stmtsEqb_sound os_rate_{m}_{ri}" for ri in range(RATES))
+    cases = "\n  · rfl" + "".join(f"\n  · exact stmtsEqb_sound os_rate_{m}_{ri}" for ri in range(1, RATES))
     out.append(f"""
 theorem osRate_{m} : OsRate {m} := by
   intro ri h
@@ -138,7 +138,7 @@ def nums(name, pre):
 def thm(tname, fname, nparams, body, j):
     return (f'\nset_option maxRecDepth 100000 in\n/-- `{fname}`. -/\n'
             f'theorem {tname} : FnIs "{fname}" (osParams {nparams}) ({body}) :=\n'
-            f'  ⟨Data.core{j}, Program.find?_of_indexOf? (j := {j}) (by decide +kernel) rfl, by decide +kernel,\n'
+            f'  ⟨Data.core{j}, coreProgram_find?_at (j := {j}) rfl, by decide +kernel,\n'
             f'    stmtsEqb_sound (by decide +kernel)⟩\n')
 
 

@@ -66,6 +66,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
   unfold dlEntryOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨-, hname⟩, hidx⟩, hlen⟩, hdl⟩, hloops⟩ := hok
+  replace hidx := coreIdx?_eq hidx
   intro rd args rets hrel
   rw [← hname] at hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem (find_of_idx hidx hlen) _ _).mp hrel
@@ -91,6 +92,7 @@ theorem dl_sound {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) :
       unfold loopOk at hlo
       split at hlo
       · rename_i j hj
+        replace hj := coreIdx?_eq hj
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hlo
         have hm : 2 ^ (k - lvl - 1) ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) (by omega)
         exact loop_sound (ps := [gen ^ 2 ^ (k - lvl - 1), σ (.n 0)])

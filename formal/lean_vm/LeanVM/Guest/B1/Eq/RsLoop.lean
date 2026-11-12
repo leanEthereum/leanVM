@@ -135,7 +135,7 @@ def l5Body : List Stmt :=
 theorem core80_body : Fn.body Data.core80 = l5Body := stmtsEqb_sound (by decide +kernel)
 
 theorem find_loop5 : coreProgram.find? "__loop5" = some Data.core80 :=
-  Program.find?_of_indexOf? (j := 80) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 80) rfl
 
 /-- The loop's body at `x`: one row from `chain·x^64`, the coordinates from `z·x^8`, `p·x^8`. -/
 def L5Body (rd : Reader) (chain z p x : E) : Prop :=

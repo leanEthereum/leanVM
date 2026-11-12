@@ -19,7 +19,7 @@ import Mathlib.LinearAlgebra.Vandermonde
 # Field facts for ring switching
 
 Ring switching (`doc/leanvm/body/a-ring-switching.tex`, §A.3 and §A.4;
-`crates/verifier/src/ring_switch.rs` at leanVM `f128`) packs the `64` bit slices of `q_keccak` by
+`crates/verifier/src/ring_switch.rs`) packs the `64` bit slices of `q_keccak` by
 the powers of `x = g` and draws a random `F_2`-linear map `Φ` of support `{0, …, 63}`. Its
 soundness rests on facts about `K = GF(2^64)` and `E = K[y]/(y^2 + x·y + 1)`
 (`LeanVM.Parameters.Field`):

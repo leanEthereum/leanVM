@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Place.ArmCalls
 public import LeanVM.Guest.B1.Whir.HelperAll
 public import LeanVM.Guest.B1.Whir.DataAll
 public import LeanVM.Guest.B1.Whir.RateCfg
+public import LeanVM.Guest.B1.Whir.TableMem
 
 /-!
 # The arms' decided facts
@@ -91,6 +92,7 @@ def LvFacts (c : OsCfg) (l : ℕ) : Prop :=
   (osLvA c l).logCols ≤ ligColsCap ∧ (osLvA c l).folds ≤ hsStride ∧
   oqQA c l = (osLvA c l).queries
 
+open scoped LeanVM.Guest.B1.Whir.TableMem in
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 2048 in
 instance (c : OsCfg) (l : ℕ) : Decidable (LvFacts c l) := by unfold LvFacts; infer_instance

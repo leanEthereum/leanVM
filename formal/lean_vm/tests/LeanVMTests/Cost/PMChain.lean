@@ -58,9 +58,7 @@ def meq (s r c d : ℕ) : ModularEquation K :=
 -- below the schedule's `4096`, Karatsuba's product; above, the transform
 #guard (check mulViaFFTC.costDeps mulViaFFTC.costIdx [encodeValue (poly 1 100), encodeValue (poly 2 90)]
   (encodeValue (poly 1 100 * poly 2 90))).1
--- the transform's branch at its least size: a factor above `4096`, the other above `32`, `2^13` points
-#guard (check mulViaFFTC.costDeps mulViaFFTC.costIdx [encodeValue (poly 1 4097), encodeValue (poly 2 33)]
-  (encodeValue (poly 1 4097 * poly 2 33))).1
+-- the transform's branch: `PMChainFFT.lean`
 #guard (check mulEvalPC.costDeps mulEvalPC.costIdx [encodeValue (mat 1 3 2 3), encodeValue (mat 2 2 4 5)]
   (encodeValue (mulEvalP novelTransform fftMulContext (mat 1 3 2 3) (mat 2 2 4 5)))).1
 #guard (check mulTruncEvalPC.costDeps mulTruncEvalPC.costIdx

@@ -3,8 +3,7 @@ import LeanVM.Protocol.Verifier
 /-!
 # Verifier helper tests: differential against the verifier at its pin
 
-Every expected value below is the Rust verifier's (`crates/verifier`) at leanVM's `f128` branch
-(`010cfb186`), on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
+Every expected value below is the Rust verifier's (`crates/verifier`) at `leanvm-rev`, on inputs drawn from the word generator `fw`, which the driver mirrors exactly; the
 driver is the verifier crate's sources with their items made crate-visible and a module printing
 each probe, kept in the port's scratch, not in the repository. Values that no change of the
 protocol touched (the RMFE, the carry-less arithmetic, Keccak-f, Keccak-256, the IV and the seed)

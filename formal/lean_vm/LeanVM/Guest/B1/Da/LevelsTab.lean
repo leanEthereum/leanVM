@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Da.Levels
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # The specializations of `da_levels`
@@ -39,9 +40,15 @@ def dlTab : List (ℕ × String × ℕ × List String) :=
     (8, "da_levels__L256_L8", 415, ["__loop69", "__loop70", "__loop71", "__loop72", "__loop73", "__loop74", "__loop75", "__loop76"]),
     (9, "da_levels__L512_L9", 416, ["__loop77", "__loop78", "__loop79", "__loop80", "__loop81", "__loop82", "__loop83", "__loop84", "__loop85"]),
     (10, "da_levels__L1024_L10", 417, ["__loop86", "__loop87", "__loop88", "__loop89", "__loop90", "__loop91", "__loop92", "__loop93", "__loop94", "__loop95"])]
-/-- A level loop, found and checked. -/
-noncomputable def loopOk (f : String) (offA offB : ℕ) : Bool :=
-  match coreProgram.indexOf? f with
+/-- Entry `k`'s first level loop's core function; the others follow it. -/
+def dlLoop0 : List ℕ := [0, 945, 946, 948, 951, 955, 960, 966, 973, 981, 990]
+
+/-- Entry `k`'s level loop `lvl`'s core function. -/
+def dlLoopAt (k lvl : ℕ) : ℕ := dlLoop0.getD k 0 + lvl
+
+/-- A level loop, at core function `j0`, found and checked. -/
+noncomputable def loopOk (f : String) (j0 offA offB : ℕ) : Bool :=
+  match coreIdx? f j0 with
   | some j => decide (j < coreProgram.length) && lvlOk (coreProgram.getD j default) f offA offB
   | none => false
 
@@ -49,9 +56,10 @@ noncomputable def loopOk (f : String) (offA offB : ℕ) : Bool :=
 noncomputable def dlEntryOk (k : ℕ) : Bool :=
   let e := dlTab.getD k (0, "", 0, [])
   decide (e.1 = k) && decide (e.2.1 = daLevelsName k) &&
-  decide (coreProgram.indexOf? e.2.1 = some e.2.2.1) && decide (e.2.2.1 < coreProgram.length) &&
+  decide (coreIdx? e.2.1 e.2.2.1 = some e.2.2.1) && decide (e.2.2.1 < coreProgram.length) &&
   dlOk (coreProgram.getD e.2.2.1 default) k e.2.2.2 &&
-  (List.range k).all fun lvl => loopOk (e.2.2.2.getD lvl "") (off k lvl) (off k (lvl + 1))
+  (List.range k).all fun lvl =>
+    loopOk (e.2.2.2.getD lvl "") (dlLoopAt k lvl) (off k lvl) (off k (lvl + 1))
 
 end
 end LeanVM.Guest.B1.Da

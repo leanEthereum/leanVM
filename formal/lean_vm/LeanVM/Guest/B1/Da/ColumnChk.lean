@@ -19,7 +19,8 @@ set_option maxRecDepth 100000 in
 theorem l21_ok : l21Ok (coreProgram.getD 419 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l21_idx : coreProgram.indexOf? "__loop25" = some 419 := by decide +kernel
+theorem l21_idx : coreProgram.indexOf? "__loop25" = some 419 :=
+  coreProgram_indexOf?_at (j := 419) rfl
 
 end
 end LeanVM.Guest.B1.Da

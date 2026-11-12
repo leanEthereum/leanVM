@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Terminal.PiChain
 public import LeanVM.Guest.Memory.Uniform
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `__loop14`, completely
@@ -40,7 +41,7 @@ def l15Pre : List Stmt :=
     .callIf (.n 12) "__loop14" [.n 14, .n 1, .n 2, .n 3]]
 
 theorem find_loop15 : coreProgram.find? "__loop14" = some Data.core273 :=
-  Program.find?_of_indexOf? (j := 273) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 273) rfl
 
 theorem l15_body : Fn.body Data.core273 = l15Pre ++ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := loop15Found

@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Whir.Complete.Script
 
 About the transcription of `crates/verifier/src/ring_switch.rs:10-87` (`ring_psi`,
 `ring_target`, `ring_coefficients`, `ring_weight`, `ring_switch`) and `lib.rs:338-344` (the ring
-claim on the stack) at leanVM `f128` (`Verifier.ringSwitch`, `Verifier.ringSwitchClaim`;
+claim on the stack) (`Verifier.ringSwitch`, `Verifier.ringSwitchClaim`;
 `crates/pcs/src/ring_switch.rs`).
 
 `ringSwitch point s` reads nothing: after a grind it draws sixteen challenges, `f` then `g`, of

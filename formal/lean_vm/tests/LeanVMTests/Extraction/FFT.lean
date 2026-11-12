@@ -1,6 +1,6 @@
 import LeanVM.Protocol.Extraction.Fast.FFT.Additive
 import LeanVM.Protocol.Extraction.Fast.FFT.PlannedEval
-import LeanVMTests.Extraction.Toy
+import LeanVMTests.Extraction.ToyWords
 
 /-!
 # Tests: the additive-FFT product over `K`

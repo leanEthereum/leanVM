@@ -12,7 +12,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerJohnson
 /-!
 # Interpolation parameters
 
-Annex B of the leanVM specification (branch `f128`), `def:epsaff`, and the Rust that checks the
+Annex B of the leanVM specification, `def:epsaff`, and the Rust that checks the
 deployed parameters (`crates/pcs/src/whir_config/affine_mca.rs`: `interpolation_m`,
 `interpolation_holds`, `hypotheses`, `affine_error_log2`, `combiner_within`). For integers
 `1 ≤ d < A ≤ n` and positive `m, D, B`:

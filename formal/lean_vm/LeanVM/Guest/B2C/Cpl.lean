@@ -1021,7 +1021,7 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
     (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
-    natSeq (nvOf (coreOf j).body 0) fun nv ↦ natSeq (partM j i k) fun m ↦
+    natSeq (plumbOf j).nv fun nv ↦ natSeq (partM j i k) fun m ↦
     match getF idx J with
     | some s => bif Nat.beq s.start J then
         match partEnt j i k with
@@ -1039,8 +1039,8 @@ def lastOkC : List Core.Stmt → Bool
   | s :: ss => Stmt.noRet s && lastOkC ss
 
 /-- What a window's first part also checks: its cells pack, and the function's first window
-starts with nothing handed on, its parameters `V.n 0, V.n 1, …` and its self frame pointer cells
-fixed. -/
+starts with nothing handed on, its parameters `V.n 0, V.n 1, …`, its self frame pointer cells
+fixed, and its values the top-level atoms name as `Plumb.nv` says, which every part reads. -/
 noncomputable def winOkC (j i : ℕ) : Bool :=
   (listElementOrDefault (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.beq (partS j i 0) 0 && Nat.beq (partM j i 0) 0 &&
@@ -1050,7 +1050,8 @@ noncomputable def winOkC (j i : ℕ) : Bool :=
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
-        decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0)))
+        decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0))) &&
+      Nat.beq (nvOf (coreOf j).body 0) (plumbOf j).nv
     else true)
 
 /-- The last part of the function's last window. -/

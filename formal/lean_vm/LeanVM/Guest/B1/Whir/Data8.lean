@@ -18,9 +18,9 @@ open LeanVM.Guest.Core LeanVM.Guest
 /-!
 # Size 8
 
-`osData_8 : OsData 8`: the function found by name (its index in the core IR checked by the
-kernel), its body equal to the template (`stmtsEqb_sound`), the body in runs of 1100 statements,
-each its own kernel evaluation (`run_step`), to bound the kernel's memory.
+`osData_8 : OsData 8`: the function found by its position (`coreProgram_find?_at`), its body
+equal to the template (`stmtsEqb_sound`), the body in runs of 1100 statements, each its own
+kernel evaluation (`run_step`), to bound the kernel's memory.
 -/
 
 set_option maxRecDepth 100000 in
@@ -38,11 +38,7 @@ theorem osData_8 : OsData 8 := by
     run_step 1100 1100 os_run_8_1 <|
     drop_end (o := 2200) (by decide +kernel) (by decide +kernel)
   rw [List.drop_zero, List.drop_zero] at hb
-  exact ⟨Data.core343, Program.find?_of_indexOf? (j := 343) (by decide +kernel) rfl, by decide +kernel, hb⟩
-
-set_option maxRecDepth 100000 in
-theorem os_rate_8_0 : stmtsEqb (osBody (osCfg 8)) (osBody (osCfgR 8 0)) = true := by
-  decide +kernel
+  exact ⟨Data.core343, coreProgram_find?_at (j := 343) rfl, by decide +kernel, hb⟩
 
 set_option maxRecDepth 100000 in
 theorem os_rate_8_1 : stmtsEqb (osBody (osCfg 8)) (osBody (osCfgR 8 1)) = true := by
@@ -59,7 +55,7 @@ theorem os_rate_8_3 : stmtsEqb (osBody (osCfg 8)) (osBody (osCfgR 8 3)) = true :
 theorem osRate_8 : OsRate 8 := by
   intro ri h
   interval_cases ri
-  · exact stmtsEqb_sound os_rate_8_0
+  · rfl
   · exact stmtsEqb_sound os_rate_8_1
   · exact stmtsEqb_sound os_rate_8_2
   · exact stmtsEqb_sound os_rate_8_3

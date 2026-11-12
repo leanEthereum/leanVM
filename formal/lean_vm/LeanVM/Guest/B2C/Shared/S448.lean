@@ -16,36 +16,36 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop547`, window 1. -/
-theorem w1562_1 : shareWin 1562 (snapsOf 1562) 1 = true := by decide +kernel
+/-- `__loop573`, window 2. -/
+theorem w1593_2 : shareWin 1593 (snapsOf 1593) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop547`, window 2. -/
-theorem w1562_2 : shareWin 1562 (snapsOf 1562) 2 = true := by decide +kernel
+/-- `__loop573`, window 3. -/
+theorem w1593_3 : shareWin 1593 (snapsOf 1593) 3 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop548`, once. -/
-theorem st1563 : shareStatic 1563 = true := by decide +kernel
+/-- `__loop574`, once. -/
+theorem st1594 : shareStatic 1594 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop548`, window 0. -/
-theorem w1563_0 : shareWin 1563 (snapsOf 1563) 0 = true := by decide +kernel
+/-- `__loop574`, window 0. -/
+theorem w1594_0 : shareWin 1594 (snapsOf 1594) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop548`, window 1. -/
-theorem w1563_1 : shareWin 1563 (snapsOf 1563) 1 = true := by decide +kernel
+/-- `__loop574`, window 1. -/
+theorem w1594_1 : shareWin 1594 (snapsOf 1594) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop548`, window 2. -/
-theorem w1563_2 : shareWin 1563 (snapsOf 1563) 2 = true := by decide +kernel
+/-- `__loop574`, window 2. -/
+theorem w1594_2 : shareWin 1594 (snapsOf 1594) 2 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop548`, window 3. -/
-theorem w1563_3 : shareWin 1563 (snapsOf 1563) 3 = true := by decide +kernel
+/-- `__loop575`, once. -/
+theorem st1595 : shareStatic 1595 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L18_L6`, once. -/
-theorem st1564 : shareStatic 1564 = true := by decide +kernel
+/-- `__loop575`, window 0. -/
+theorem w1595_0 : shareWin 1595 (snapsOf 1595) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

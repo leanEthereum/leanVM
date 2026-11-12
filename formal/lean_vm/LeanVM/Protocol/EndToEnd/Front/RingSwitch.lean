@@ -13,7 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Front.OodBind
 /-!
 # Ring switching as a specification
 
-`ringSwitch point s` (`crates/verifier/src/ring_switch.rs:70-87` at leanVM `f128`; Annex A) grinds
+`ringSwitch point s` (`crates/verifier/src/ring_switch.rs`; Annex A) grinds
 `batchGrindingBits = 13` bits, draws sixteen challenges `f_0..f_7, g_0..g_7`, and returns the
 target `Σ_i x^i Φ(s_i)` and the weight of `Φ(eq(point, ·))`, `Φ = frobPhi 8 f g`
 (`Ring.ringSwitch_eq`). The stacked opening's batching challenge `λ` is drawn right after, under

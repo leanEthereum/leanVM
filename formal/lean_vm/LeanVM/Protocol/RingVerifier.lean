@@ -15,7 +15,7 @@ public import Statement.LeanVmVerifier
 # The verifier's ring switching
 
 `LeanVM.Protocol.Verifier.ringSwitch point s` (`crates/verifier/src/ring_switch.rs:70-87` at
-leanVM `f128`) grinds `batchGrindingBits`, draws sixteen challenges, `f` the first eight and `g`
+leanVM at `leanvm-rev`) grinds `batchGrindingBits`, draws sixteen challenges, `f` the first eight and `g`
 the last eight, and returns the target and the weight. Its helpers transcribe the Rust as
 `RingMap`'s do, `frobenius8` by a power rather than by squarings:
 

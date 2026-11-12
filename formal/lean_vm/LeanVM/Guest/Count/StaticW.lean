@@ -3,17 +3,12 @@
 
   The instruction counts of `verify_tables`' and `check_opening_terminal`'s statically bounded
   callees, `__loop9`, `__loop8` and `__loop14`, by name, read off the `W` count certificates
-  (`Memory/GuestCntW*`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
+  (`Memory/GuestCnt`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
 -/
 
 module
 
-public import LeanVM.Guest.Memory.GuestCntWX
-public import LeanVM.Guest.Memory.GuestCntWM
-public import LeanVM.Guest.Memory.GuestCntWS
-public import LeanVM.Guest.Memory.GuestCntWD
-public import LeanVM.Guest.Memory.GuestCntWJ
-public import LeanVM.Guest.Memory.GuestCntWK
+public import LeanVM.Guest.Memory.GuestCnt
 public import LeanVM.Guest.Count.Words
 
 /-!
@@ -33,43 +28,19 @@ open LeanVM.Guest.Data
 @[expose] public section
 
 /-- The `W` certificates counting `op`'s instructions, by name. -/
-noncomputable def kuCert : Opcode → String → Cert
-  | .xor => kuxcertOf
-  | .mulNative => kumcertOf
-  | .setConstant => kuscertOf
-  | .deref => kudcertOf
-  | .jump => kujcertOf
-  | .keccak => kukcertOf
+noncomputable def kuCert (op : Opcode) : String → Cert := cntCert op
 
 /-- The `W` certificates counting `op`'s instructions, by core index. -/
-noncomputable def kuCertJ : Opcode → ℕ → Cert
-  | .xor => kuxcertJ
-  | .mulNative => kumcertJ
-  | .setConstant => kuscertJ
-  | .deref => kudcertJ
-  | .jump => kujcertJ
-  | .keccak => kukcertJ
+noncomputable def kuCertJ (op : Opcode) : ℕ → Cert := cntCertJ op
 
 /-- **The `W` certificates counting `op`'s instructions check** at `B2C.ωArm B2C.xmssArmC op`. -/
 theorem ku_checked (op : Opcode) :
-    Checked coreProgram false (kuCert op) (B2C.ωArm B2C.xmssArmC op) := by
-  cases op
-  · exact kux_checked
-  · exact kum_checked
-  · exact kus_checked
-  · exact kud_checked
-  · exact kuj_checked
-  · exact kuk_checked
+    Checked coreProgram false (kuCert op) (B2C.ωArm B2C.xmssArmC op) :=
+  cnt_checked op
 
 theorem kuCert_idx {op : Opcode} {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) :
-    kuCert op f = kuCertJ op j := by
-  cases op
-  · exact kuxcertOf_of_idx h
-  · exact kumcertOf_of_idx h
-  · exact kuscertOf_of_idx h
-  · exact kudcertOf_of_idx h
-  · exact kujcertOf_of_idx h
-  · exact kukcertOf_of_idx h
+    kuCert op f = kuCertJ op j :=
+  cntCert_idx h
 
 /-- The constant of `f`'s certificate counting `op`'s instructions, `0` if none. -/
 noncomputable def kuSB (op : Opcode) (f : String) : ℕ :=

@@ -215,7 +215,8 @@ theorem interpolantCount_of_factorization {p : ℕ} [Fact p.Prime] [CharP L p] (
 
 /-- **Lemma 4.3 for the interpolants over the algebraic closure** ([CYWZ26, Lemma 4.3] with (4.6)
 and (4.7)): every nonzero `Q ∈ F̄[X, Y, Z]` with `deg_{Y,Z} Q ≤ D` and `deg_Z Q ≤ M` has an
-excluded factorization. This is the one statement the affine MCA count below still assumes. -/
+excluded factorization. The affine MCA count below takes it as a hypothesis, which `lemma43`
+(`AffineCombinerLemma43.lean`) discharges. -/
 def Lemma43 (F : Type*) [Field F] [Fintype F] (p D M : ℕ) : Prop :=
   ∀ Q : MvPolynomial (Fin 3) (AlgebraicClosure F), Q ≠ 0 →
     (∀ s ∈ Q.support, s 1 + s 2 ≤ D ∧ s 2 ≤ M) →

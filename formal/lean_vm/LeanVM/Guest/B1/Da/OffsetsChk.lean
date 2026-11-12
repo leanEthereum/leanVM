@@ -20,8 +20,8 @@ theorem offLoop_ok : ∀ b < 7, offLoopOk (coreProgram.getD (423 + b) default) b
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem offLoop_idx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (423 + b) := by
-  decide +kernel
+theorem offLoop_idx : ∀ b < 7, coreProgram.indexOf? (offLoopName b) = some (423 + b) :=
+  coreProgram_indexOf?_run (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Da

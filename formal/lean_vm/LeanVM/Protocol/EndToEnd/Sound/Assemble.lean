@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.EndToEnd.Sound.Assemble
 
-  The specification of the whole leanVM verifier program at leanVM `f128`, composed from the
+  The specification of the whole leanVM verifier program, composed from the
   phase specifications, every verifier message held to `2^-125` after its grind, and the doom
   certificate it gives.
 -/

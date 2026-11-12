@@ -1,5 +1,5 @@
 import LeanVM.Protocol.Extraction.Fast.PMShape
-import LeanVMTests.Extraction.Toy
+import LeanVMTests.Extraction.ToyWords
 
 /-!
 # Tests: the lanes by the approximant-basis interpolation

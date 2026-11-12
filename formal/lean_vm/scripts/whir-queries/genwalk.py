@@ -45,7 +45,7 @@ for (pd, cd), n, i in ws:
     out.append('''set_option maxRecDepth 100000 in
 /-- `%s` is its template. -/
 theorem wpFn_L%d_L%d : WalkFn "%s" %d %d :=
-  ⟨_, Program.find?_of_indexOf? (j := %d) (by decide +kernel) rfl, rfl, wpBody_L%d_L%d⟩
+  ⟨_, coreProgram_find?_at (j := %d) rfl, rfl, wpBody_L%d_L%d⟩
 ''' % (n, pd, cd, n, pd, cd, i, pd, cd))
 out.append('''/-- **Every deployed `walk_path` is its template.** -/
 theorem walkFn_all : ∀ p ∈ walkPathNames, WalkFn p.2.2 p.1 p.2.1 := by

@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `batch_sumcheck` (TRIAGE #32)
@@ -745,7 +746,7 @@ set_option maxRecDepth 100000 in
 theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   intro rd args rets
   have hfind : coreProgram.find? "batch_sumcheck__L23" = some Data.core433 :=
-    Program.find?_of_indexOf? (j := 433) (by decide +kernel) rfl
+    coreProgram_find?_at (j := 433) rfl
   exact ⟨bs_sound 23 (by decide) hfind rfl bs23_body rd args rets,
     bs_complete 23 (by decide) hfind rfl bs23_body rd args rets⟩
 

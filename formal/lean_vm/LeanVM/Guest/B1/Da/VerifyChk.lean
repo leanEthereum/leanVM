@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Da.VerifyDefs
+public import LeanVM.Guest.B1.Common.Find
 
 namespace LeanVM.Guest.B1.Da
 
@@ -30,8 +31,9 @@ theorem l20_ok : l20Ok (coreProgram.getD 406 default) = true := by decide +kerne
 set_option maxRecDepth 100000 in
 theorem dv_loops_idx : coreProgram.indexOf? "__loop21" = some 403 ∧
     coreProgram.indexOf? "__loop22" = some 404 ∧ coreProgram.indexOf? "__loop23" = some 405 ∧
-    coreProgram.indexOf? "__loop24" = some 406 := by
-  decide +kernel
+    coreProgram.indexOf? "__loop24" = some 406 :=
+  ⟨coreProgram_indexOf?_at (j := 403) rfl, coreProgram_indexOf?_at (j := 404) rfl,
+    coreProgram_indexOf?_at (j := 405) rfl, coreProgram_indexOf?_at (j := 406) rfl⟩
 
 end
 end LeanVM.Guest.B1.Da

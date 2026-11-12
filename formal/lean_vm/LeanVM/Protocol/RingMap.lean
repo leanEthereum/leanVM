@@ -15,7 +15,7 @@ public import LeanVM.Protocol.RingFields
 # Ring switching's map, target and weight
 
 Annex A of the specification (`doc/leanvm/body/a-ring-switching.tex`, §A.2 to §A.6) and
-`crates/verifier/src/ring_switch.rs` at leanVM `f128`. The verifier draws `f_0, …, f_7` then
+`crates/verifier/src/ring_switch.rs`. The verifier draws `f_0, …, f_7` then
 `g_0, …, g_7` in `E` and uses
 
 ```text

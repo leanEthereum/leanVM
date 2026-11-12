@@ -25,7 +25,7 @@ public import LeanVM.Protocol.WithHash
 
 The verifier is the program `leanVmVerifierProgram` (`LeanVM.Protocol.Verifier`), the transcription
 (`Statement/LeanVmVerifier.lean`) of `verify_execution`, `crates/verifier/src/lib.rs:243-363` at
-leanVM `f128`. Its honest prover (`honestStrategy`) is assembled
+leanVM at `leanvm-rev`. Its honest prover (`honestStrategy`) is assembled
 (`Complete.Assemble`) from the phases' honest scripts: the announcement, the commitment and its
 out-of-domain sample (`Complete.Sizes`), the bus (`Complete.Bus`, its depth below `64` by
 `Complete.BusDepth`), the table sumcheck (`Complete.Table`), the public input

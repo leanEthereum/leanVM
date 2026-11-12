@@ -14,7 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 /-!
 # The depth of the bus
 
-The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs:130-247` at leanVM `f128`) grinds
+The bus phase (`verify_bus_balance`, `crates/verifier/src/bus.rs`) grinds
 `busGrindingBits(D) = grindingBits(2^D)` bits before its fingerprint, `D` the push tree's depth
 (`bus_grinding_bits`, `bus.rs:14-18`), and requires `D < 64`.
 

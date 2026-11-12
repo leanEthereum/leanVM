@@ -93,7 +93,8 @@ set_option maxRecDepth 100000 in
 theorem l3_ok : l3Ok l2Fn = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l3_idx : coreProgram.indexOf? "__loop2" = some 36 := by decide +kernel
+theorem l3_idx : coreProgram.indexOf? "__loop2" = some 36 :=
+  coreProgram_indexOf?_at (j := 36) rfl
 
 /-! ## `__loop3`: raw leanSPHINCS signatures -/
 
@@ -110,7 +111,8 @@ set_option maxRecDepth 100000 in
 theorem l4_ok : l4Ok (coreProgram.getD 37 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l4_idx : coreProgram.indexOf? "__loop3" = some 37 := by decide +kernel
+theorem l4_idx : coreProgram.indexOf? "__loop3" = some 37 :=
+  coreProgram_indexOf?_at (j := 37) rfl
 
 /-! ## A two-digest hash in a block -/
 
@@ -194,7 +196,8 @@ set_option maxRecDepth 100000 in
 theorem l5_ok : l5Ok (coreProgram.getD 38 default) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem l5_idx : coreProgram.indexOf? "__loop4" = some 38 := by decide +kernel
+theorem l5_idx : coreProgram.indexOf? "__loop4" = some 38 :=
+  coreProgram_indexOf?_at (j := 38) rfl
 
 end
 end LeanVM.Guest.B1.Main

@@ -282,6 +282,70 @@ noncomputable def nameStep (st : SSt) (vs : List V) : SSt :=
 
 end Steps
 
+/-! ## A window's values -/
+
+section ValsAll
+
+variable (p : V → Bool)
+
+/-- An atom's values and temporaries pass `p`. -/
+noncomputable def vaAtom (a : Core.Atom) : Bool := (Memory.atomUses a).all p && (Memory.atomTmps a).all p
+
+/-- `(Memory.Stmt.usesList ss ++ Memory.Stmt.tmpsList ss).all p` (`valsAll_eq`), by the
+recursor, which the kernel reduces faster than it builds the lists. -/
+noncomputable def valsAll (ss : List Stmt) : Bool :=
+  Stmt.rec_1 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
+    (vaAtom p) (fun c _ _ bz bn ↦ p c && bz && bn) (fun x _ ba ↦ p x && ba)
+    (fun _ args rets ↦ args.all p && rets.all p) (fun c _ args ↦ p c && args.all p)
+    (fun x _ args rets ↦ p x && args.all p && rets.all p) (fun vs ↦ vs.all p)
+    true (fun _ _ b bs ↦ b && bs) true (fun _ _ b bs ↦ b && bs) ss
+
+theorem valsAll_eq (ss : List Stmt) :
+    valsAll p ss = (Memory.Stmt.usesList ss ++ Memory.Stmt.tmpsList ss).all p := by
+  rw [List.all_append]
+  exact Stmt.rec_1
+    (motive_1 := fun s ↦ Stmt.rec (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool)
+        (motive_3 := fun _ ↦ Bool)
+        (vaAtom p) (fun c _ _ bz bn ↦ p c && bz && bn) (fun x _ ba ↦ p x && ba)
+        (fun _ args rets ↦ args.all p && rets.all p) (fun c _ args ↦ p c && args.all p)
+        (fun x _ args rets ↦ p x && args.all p && rets.all p) (fun vs ↦ vs.all p)
+        true (fun _ _ b bs ↦ b && bs) true (fun _ _ b bs ↦ b && bs) s =
+      ((Memory.Stmt.uses s).all p && (Memory.Stmt.tmps s).all p))
+    (motive_2 := fun ss ↦ valsAll p ss = ((Memory.Stmt.usesList ss).all p && (Memory.Stmt.tmpsList ss).all p))
+    (motive_3 := fun as ↦ Stmt.rec_2 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool)
+        (motive_3 := fun _ ↦ Bool)
+        (vaAtom p) (fun c _ _ bz bn ↦ p c && bz && bn) (fun x _ ba ↦ p x && ba)
+        (fun _ args rets ↦ args.all p && rets.all p) (fun c _ args ↦ p c && args.all p)
+        (fun x _ args rets ↦ p x && args.all p && rets.all p) (fun vs ↦ vs.all p)
+        true (fun _ _ b bs ↦ b && bs) true (fun _ _ b bs ↦ b && bs) as =
+      ((Memory.Stmt.usesArms as).all p && (Memory.Stmt.tmpsArms as).all p))
+    (fun a ↦ by simp only [Memory.Stmt.uses, Memory.Stmt.tmps]; rfl)
+    (fun c z n hz hn ↦ by
+      simp only [Memory.Stmt.uses, Memory.Stmt.tmps, List.all_cons, List.all_append]
+      refine (congrArg₂ (fun x y ↦ p c && x && y) hz hn).trans ?_
+      cases p c <;> simp [Bool.and_comm, Bool.and_left_comm, Bool.and_assoc])
+    (fun x as ha ↦ by
+      simp only [Memory.Stmt.uses, Memory.Stmt.tmps, List.all_cons]
+      refine (congrArg (fun y ↦ p x && y) ha).trans ?_
+      cases p x <;> simp)
+    (fun f args rets ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps])
+    (fun c f args ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps])
+    (fun x fs args rets ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps, Bool.and_assoc])
+    (fun vs ↦ by simp [Memory.Stmt.uses, Memory.Stmt.tmps])
+    (by simp only [Memory.Stmt.usesList, Memory.Stmt.tmpsList, List.all_nil, Bool.and_self]; rfl)
+    (fun s ss hs hss ↦ by
+      simp only [Memory.Stmt.usesList, Memory.Stmt.tmpsList, List.all_append]
+      refine (congrArg₂ (· && ·) hs hss).trans ?_
+      cases (Memory.Stmt.uses s).all p <;> cases (Memory.Stmt.tmps s).all p <;> simp)
+    (by simp [Memory.Stmt.usesArms, Memory.Stmt.tmpsArms])
+    (fun a as ha has ↦ by
+      simp only [Memory.Stmt.usesArms, Memory.Stmt.tmpsArms, List.all_append]
+      refine (congrArg₂ (· && ·) ha has).trans ?_
+      cases (Memory.Stmt.usesList a).all p <;> cases (Memory.Stmt.tmpsList a).all p <;> simp)
+    ss
+
+end ValsAll
+
 /-! ## What the certificate lists -/
 
 /-- The certificate lists a value with its cell. -/
@@ -503,8 +567,7 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
   (listElementOrDefault (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
-  (Memory.Stmt.usesList (stmtsW (coreOf j).body snaps k) ++
-    Memory.Stmt.tmpsList (stmtsW (coreOf j).body snaps k)).all (valOk loc tt tc fc (fsN j)) &&
+  valsAll (valOk loc tt tc fc (fsN j)) (stmtsW (coreOf j).body snaps k) &&
   (match swL loc sh tt (plumbOf j)
       (bif k == 0 then nameStep loc sh (initSt (plumbOf j)) (coreOf j).params else (snapAt snaps k).st)
       (stmtsW (coreOf j).body snaps k) with

@@ -16,63 +16,63 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_merkle_cap__L6`, window 1. -/
-theorem w1015_1 : shareWin 1015 (snapsOf 1015) 1 = true := by decide +kernel
+/-- `__loop195`, window 0. -/
+theorem w1142_0 : shareWin 1142 (snapsOf 1142) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`, once. -/
-theorem st1016 : shareStatic 1016 = true := by decide +kernel
+/-- `__loop195`, window 1. -/
+theorem w1142_1 : shareWin 1142 (snapsOf 1142) 1 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`, window 0. -/
-theorem w1016_0 : shareWin 1016 (snapsOf 1016) 0 = true := by decide +kernel
+/-- `__loop196`, once. -/
+theorem st1143 : shareStatic 1143 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`, window 1. -/
-theorem w1016_1 : shareWin 1016 (snapsOf 1016) 1 = true := by decide +kernel
+/-- `__loop196`, window 0. -/
+theorem w1143_0 : shareWin 1143 (snapsOf 1143) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`, window 2. -/
-theorem w1016_2 : shareWin 1016 (snapsOf 1016) 2 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L14_L2`, once. -/
-theorem st1017 : shareStatic 1017 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `decode_query_windows__L14_L2`, window 0. -/
-theorem w1017_0 : shareWin 1017 (snapsOf 1017) 0 = true := by decide +kernel
-
-theorem ok1017 : ShareOk 1017 := ⟨st1017, fun i hi ↦ by
-  have h : (snapsOf 1017).length = 0 := by decide +kernel
+theorem ok1143 : ShareOk 1143 := ⟨st1143, fun i hi ↦ by
+  have h : (snapsOf 1143).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1017_0⟩
+  exact w1143_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop100`, once. -/
-theorem st1018 : shareStatic 1018 = true := by decide +kernel
+/-- `__loop197`, once. -/
+theorem st1144 : shareStatic 1144 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop100`, window 0. -/
-theorem w1018_0 : shareWin 1018 (snapsOf 1018) 0 = true := by decide +kernel
+/-- `__loop197`, window 0. -/
+theorem w1144_0 : shareWin 1144 (snapsOf 1144) 0 = true := by decide +kernel
 
-theorem ok1018 : ShareOk 1018 := ⟨st1018, fun i hi ↦ by
-  have h : (snapsOf 1018).length = 0 := by decide +kernel
+set_option maxRecDepth 100000 in
+/-- `__loop197`, window 1. -/
+theorem w1144_1 : shareWin 1144 (snapsOf 1144) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop198`, once. -/
+theorem st1145 : shareStatic 1145 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop198`, window 0. -/
+theorem w1145_0 : shareWin 1145 (snapsOf 1145) 0 = true := by decide +kernel
+
+theorem ok1145 : ShareOk 1145 := ⟨st1145, fun i hi ↦ by
+  have h : (snapsOf 1145).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1018_0⟩
+  exact w1145_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop101`, once. -/
-theorem st1019 : shareStatic 1019 = true := by decide +kernel
+/-- `__loop199`, once. -/
+theorem st1146 : shareStatic 1146 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop101`, window 0. -/
-theorem w1019_0 : shareWin 1019 (snapsOf 1019) 0 = true := by decide +kernel
+/-- `__loop199`, window 0. -/
+theorem w1146_0 : shareWin 1146 (snapsOf 1146) 0 = true := by decide +kernel
 
-theorem ok1019 : ShareOk 1019 := ⟨st1019, fun i hi ↦ by
-  have h : (snapsOf 1019).length = 0 := by decide +kernel
+theorem ok1146 : ShareOk 1146 := ⟨st1146, fun i hi ↦ by
+  have h : (snapsOf 1146).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w1019_0⟩
+  exact w1146_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

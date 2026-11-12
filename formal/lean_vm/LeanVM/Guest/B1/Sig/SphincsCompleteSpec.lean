@@ -62,7 +62,7 @@ theorem sp_wots_params : Data.core19.params = [.n 0, .n 1, .n 2, .n 3] := rfl
 theorem verify_sig_lean_sphincs_params : Data.core20.params = [.n 0, .n 1] := rfl
 
 theorem find_sp_wots : coreProgram.find? "sp_wots" = some Data.core19 :=
-  Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 19) rfl
 
 /-! ## The statements -/
 

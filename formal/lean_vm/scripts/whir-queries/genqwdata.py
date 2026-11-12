@@ -15,7 +15,7 @@ out = ['''/-
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
-public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `decode_query_windows`' specializations
@@ -36,7 +36,7 @@ for (d, cd), n, i in shapes:
     t = 'qw_L%d_L%d' % (d, cd); names.append(t)
     out.append('''set_option maxRecDepth 100000 in
 theorem %s : QwIs "%s" (qwBody %d %d) :=
-  ⟨Data.core%d, Program.find?_of_indexOf? (j := %d) (by decide +kernel) rfl, rfl,
+  ⟨Data.core%d, coreProgram_find?_at (j := %d) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 ''' % (t, n, d, cd, i, i))
 out.append('''/-- **Every deployed specialization is its template.** -/

@@ -3,17 +3,12 @@
 
   The instruction counts of `verify_sub`'s statically bounded callees and of
   `child_claim_list_digest`'s callees, by name, read off the `V` count certificates
-  (`Memory/GuestCntV*`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
+  (`Memory/GuestCnt`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
 -/
 
 module
 
-public import LeanVM.Guest.Memory.GuestCntVX
-public import LeanVM.Guest.Memory.GuestCntVM
-public import LeanVM.Guest.Memory.GuestCntVS
-public import LeanVM.Guest.Memory.GuestCntVD
-public import LeanVM.Guest.Memory.GuestCntVJ
-public import LeanVM.Guest.Memory.GuestCntVK
+public import LeanVM.Guest.Memory.GuestCnt
 public import LeanVM.Guest.Count.Words
 
 /-!
@@ -34,43 +29,19 @@ open LeanVM.Guest.Data
 @[expose] public section
 
 /-- The `V` certificates counting `op`'s instructions, by name. -/
-noncomputable def kvCert : Opcode → String → Cert
-  | .xor => kvxcertOf
-  | .mulNative => kvmcertOf
-  | .setConstant => kvscertOf
-  | .deref => kvdcertOf
-  | .jump => kvjcertOf
-  | .keccak => kvkcertOf
+noncomputable def kvCert (op : Opcode) : String → Cert := cntCert op
 
 /-- The `V` certificates counting `op`'s instructions, by core index. -/
-noncomputable def kvCertJ : Opcode → ℕ → Cert
-  | .xor => kvxcertJ
-  | .mulNative => kvmcertJ
-  | .setConstant => kvscertJ
-  | .deref => kvdcertJ
-  | .jump => kvjcertJ
-  | .keccak => kvkcertJ
+noncomputable def kvCertJ (op : Opcode) : ℕ → Cert := cntCertJ op
 
 /-- **The `V` certificates counting `op`'s instructions check** at `B2C.ωArm B2C.xmssArmC op`. -/
 theorem kv_checked (op : Opcode) :
-    Checked coreProgram false (kvCert op) (B2C.ωArm B2C.xmssArmC op) := by
-  cases op
-  · exact kvx_checked
-  · exact kvm_checked
-  · exact kvs_checked
-  · exact kvd_checked
-  · exact kvj_checked
-  · exact kvk_checked
+    Checked coreProgram false (kvCert op) (B2C.ωArm B2C.xmssArmC op) :=
+  cnt_checked op
 
 theorem kvCert_idx {op : Opcode} {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) :
-    kvCert op f = kvCertJ op j := by
-  cases op
-  · exact kvxcertOf_of_idx h
-  · exact kvmcertOf_of_idx h
-  · exact kvscertOf_of_idx h
-  · exact kvdcertOf_of_idx h
-  · exact kvjcertOf_of_idx h
-  · exact kvkcertOf_of_idx h
+    kvCert op f = kvCertJ op j :=
+  cntCert_idx h
 
 /-- The constant of `f`'s certificate counting `op`'s instructions, `0` if none. -/
 noncomputable def kvSB (op : Opcode) (f : String) : ℕ :=
@@ -159,7 +130,7 @@ theorem ωArm_idx {C : Opcode → ℕ} {op : Opcode} {j : ℕ} {f : String}
   · rw [hj] at h
     obtain ⟨hlt, hfn⟩ := List.getElem?_eq_some_iff.mp hj
     simp only [Option.map_some, Option.some.injEq] at h
-    have hi := kcv_idxOf hlt
+    have hi := cnt_idxOf hlt
     rw [hfn, h] at hi
     unfold B2C.ωArm B2C.pathMax
     rw [hi]

@@ -16,7 +16,7 @@ public import Mathlib.Data.Set.Finite.Lattice
 # Affine combiners: definitions
 
 The objects of [CYWZ26, preprint], Section 1.1 and Definition 3.1, for interleaved words, as Annex B
-of the leanVM specification (branch `f128`, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
+of the leanVM specification (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
 uses them in `thm:mca-affine` and `lem:fold-list`. Fix a field `F`, a domain `dom : ι ↪ F` of
 `n = |ι|` points and a finite lane index `ρ`.
 

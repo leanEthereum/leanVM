@@ -30,7 +30,7 @@ the follower of a return right after a proof of work must start with a challenge
 * `Moves.grindBits_le`: on a program whose proofs of work have at most `B` bits, every reachable
   history ends with a proof of work of at most `B` bits.
 
-The instances follow `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`, leanVM `f128`)
+The instances follow `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`)
 phase by phase. Every grind is followed by a challenge: the sumcheck rounds' grinds by the round's
 challenge, the bus's by the slot weights, a GKR step's by its combiner and its `y`, the table
 phase's by `ξ`, the Keccak reduction's by its segment, `s` and `β`, ring switching's by its map,

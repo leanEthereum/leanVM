@@ -27,9 +27,9 @@ row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the progra
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
 (`TABLE_LOG_FLOORS`, `crates/verifier/src/layout.rs:489-490`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:228-231`): the memory window `[16, 32]`, the
-row cap `2^32`, and the stacked size `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`;
-its floor `15` holds by construction). `validRate` is the WHIR rate check, read off the same
+`crates/verifier/src/layout.rs`, and `lib.rs`): the memory window `[minLogMem, maxLogMem]`
+(`MIN_LOG_MEMORY`, `MAX_LOG_MEMORY`), the row cap `2^maxLogRows` (`MAX_TABLE_LOG`), and the stacked
+size `leanIsaμ prog s ≤ maxMu` (`MAX_STACKED_LOG`; its floor holds by construction). `validRate` is the WHIR rate check, read off the same
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
@@ -614,7 +614,7 @@ namespace LeanIsa
 /-! ## Admissible sizes -/
 
 /-- The checks the verifier makes of the announced sizes (`build_layout`,
-`crates/verifier/src/layout.rs:497-503`, and `lib.rs:228-231`): the memory window, the row cap,
+`crates/verifier/src/layout.rs`, and `lib.rs`): the memory window, the row cap,
 and the stacked size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor
 holds by construction (`leanIsaμ`). -/
 def Sizes.Admissible (prog : LeanIsaProgram) (s : Sizes) : Prop :=

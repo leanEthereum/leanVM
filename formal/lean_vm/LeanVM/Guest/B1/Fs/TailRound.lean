@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Sumcheck.Run
 public import LeanVM.Guest.B1.Fs.Templates
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `opening_tail_round` (TRIAGE G)
@@ -67,7 +68,7 @@ theorem tailRound_run (cap : List E) (c0 c2 claim : E) :
   rfl
 
 theorem find_opening_tail_round : coreProgram.find? "opening_tail_round" = some Data.core8 :=
-  Program.find?_of_indexOf? (j := 8) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 8) rfl
 
 theorem core8_params : Fn.params Data.core8 = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7] :=
   rfl

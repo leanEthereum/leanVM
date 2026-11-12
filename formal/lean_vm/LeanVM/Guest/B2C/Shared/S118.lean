@@ -16,99 +16,99 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L8`, once. -/
-theorem st329 : shareStatic 329 = true := by decide +kernel
+/-- `da_levels__L16_L4`, once. -/
+theorem st412 : shareStatic 412 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L8`, window 0. -/
-theorem w329_0 : shareWin 329 (snapsOf 329) 0 = true := by decide +kernel
+/-- `da_levels__L16_L4`, window 0. -/
+theorem w412_0 : shareWin 412 (snapsOf 412) 0 = true := by decide +kernel
 
-theorem ok329 : ShareOk 329 := ⟨st329, fun i hi ↦ by
-  have h : (snapsOf 329).length = 0 := by decide +kernel
+theorem ok412 : ShareOk 412 := ⟨st412, fun i hi ↦ by
+  have h : (snapsOf 412).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w329_0⟩
+  exact w412_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L9`, once. -/
-theorem st330 : shareStatic 330 = true := by decide +kernel
+/-- `da_levels__L32_L5`, once. -/
+theorem st413 : shareStatic 413 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L9`, window 0. -/
-theorem w330_0 : shareWin 330 (snapsOf 330) 0 = true := by decide +kernel
+/-- `da_levels__L32_L5`, window 0. -/
+theorem w413_0 : shareWin 413 (snapsOf 413) 0 = true := by decide +kernel
 
-theorem ok330 : ShareOk 330 := ⟨st330, fun i hi ↦ by
-  have h : (snapsOf 330).length = 0 := by decide +kernel
+theorem ok413 : ShareOk 413 := ⟨st413, fun i hi ↦ by
+  have h : (snapsOf 413).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w330_0⟩
+  exact w413_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L10`, once. -/
-theorem st331 : shareStatic 331 = true := by decide +kernel
+/-- `da_levels__L64_L6`, once. -/
+theorem st414 : shareStatic 414 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L10`, window 0. -/
-theorem w331_0 : shareWin 331 (snapsOf 331) 0 = true := by decide +kernel
+/-- `da_levels__L64_L6`, window 0. -/
+theorem w414_0 : shareWin 414 (snapsOf 414) 0 = true := by decide +kernel
 
-theorem ok331 : ShareOk 331 := ⟨st331, fun i hi ↦ by
-  have h : (snapsOf 331).length = 0 := by decide +kernel
+theorem ok414 : ShareOk 414 := ⟨st414, fun i hi ↦ by
+  have h : (snapsOf 414).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w331_0⟩
+  exact w414_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L11`, once. -/
-theorem st332 : shareStatic 332 = true := by decide +kernel
+/-- `da_levels__L128_L7`, once. -/
+theorem st415 : shareStatic 415 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L11`, window 0. -/
-theorem w332_0 : shareWin 332 (snapsOf 332) 0 = true := by decide +kernel
+/-- `da_levels__L128_L7`, window 0. -/
+theorem w415_0 : shareWin 415 (snapsOf 415) 0 = true := by decide +kernel
 
-theorem ok332 : ShareOk 332 := ⟨st332, fun i hi ↦ by
-  have h : (snapsOf 332).length = 0 := by decide +kernel
+theorem ok415 : ShareOk 415 := ⟨st415, fun i hi ↦ by
+  have h : (snapsOf 415).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w332_0⟩
+  exact w415_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L12`, once. -/
-theorem st333 : shareStatic 333 = true := by decide +kernel
+/-- `da_levels__L256_L8`, once. -/
+theorem st416 : shareStatic 416 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L12`, window 0. -/
-theorem w333_0 : shareWin 333 (snapsOf 333) 0 = true := by decide +kernel
+/-- `da_levels__L256_L8`, window 0. -/
+theorem w416_0 : shareWin 416 (snapsOf 416) 0 = true := by decide +kernel
 
-theorem ok333 : ShareOk 333 := ⟨st333, fun i hi ↦ by
-  have h : (snapsOf 333).length = 0 := by decide +kernel
+theorem ok416 : ShareOk 416 := ⟨st416, fun i hi ↦ by
+  have h : (snapsOf 416).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w333_0⟩
+  exact w416_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L13`, once. -/
-theorem st334 : shareStatic 334 = true := by decide +kernel
+/-- `da_levels__L512_L9`, once. -/
+theorem st417 : shareStatic 417 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `bus_grind_check__L13`, window 0. -/
-theorem w334_0 : shareWin 334 (snapsOf 334) 0 = true := by decide +kernel
+/-- `da_levels__L512_L9`, window 0. -/
+theorem w417_0 : shareWin 417 (snapsOf 417) 0 = true := by decide +kernel
 
-theorem ok334 : ShareOk 334 := ⟨st334, fun i hi ↦ by
-  have h : (snapsOf 334).length = 0 := by decide +kernel
+theorem ok417 : ShareOk 417 := ⟨st417, fun i hi ↦ by
+  have h : (snapsOf 417).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w334_0⟩
+  exact w417_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L13`, once. -/
-theorem st335 : shareStatic 335 = true := by decide +kernel
+/-- `da_levels__L1024_L10`, once. -/
+theorem st418 : shareStatic 418 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `grind_check__L13`, window 0. -/
-theorem w335_0 : shareWin 335 (snapsOf 335) 0 = true := by decide +kernel
+/-- `da_levels__L1024_L10`, window 0. -/
+theorem w418_0 : shareWin 418 (snapsOf 418) 0 = true := by decide +kernel
 
-theorem ok335 : ShareOk 335 := ⟨st335, fun i hi ↦ by
-  have h : (snapsOf 335).length = 0 := by decide +kernel
+theorem ok418 : ShareOk 418 := ⟨st418, fun i hi ↦ by
+  have h : (snapsOf 418).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w335_0⟩
+  exact w418_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L0`, once. -/
-theorem st336 : shareStatic 336 = true := by decide +kernel
+/-- `da_expand__L7_L8`, once. -/
+theorem st419 : shareStatic 419 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.EndToEnd.Sound.Front
 
-  The front phases of leanVM's verifier at `f128`, composed: the bus and the table sumcheck, the
+  The front phases of leanVM's verifier, composed: the bus and the table sumcheck, the
   public input and the Keccak reduction, on the one candidate the commitment's OOD sample leaves
   (`FrontIface`).
 -/

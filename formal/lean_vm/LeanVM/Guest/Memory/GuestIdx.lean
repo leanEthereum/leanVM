@@ -2,7 +2,7 @@
   LeanVM.Guest.Memory.GuestIdx
 
   The index of a guest function by name, for the generated certificate families
-  (`Memory/GuestWords`, `Memory/GuestCnt*`).
+  (`Memory/GuestWords`, `Memory/GuestCnt`).
 -/
 
 module

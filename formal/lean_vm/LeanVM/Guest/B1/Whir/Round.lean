@@ -62,7 +62,7 @@ theorem core7_body : Fn.body Data.core7 = roundBody := stmtsEqb_sound (by decide
 theorem core7_params : Fn.params Data.core7 = (List.range 10).map V.n := rfl
 
 theorem find_opening_round : coreProgram.find? "opening_round" = some Data.core7 :=
-  Program.find?_of_indexOf? (j := 7) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 7) rfl
 
 /-! ## The meaning -/
 

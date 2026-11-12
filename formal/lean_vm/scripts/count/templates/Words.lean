@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Count.Static
+public import LeanVM.Guest.Memory.GuestCalleesOk
 
 /-!
 # Words by name
@@ -17,7 +18,8 @@ public import LeanVM.Guest.Count.Static
 run's one phantom frame apart (`wSKt_totalLeOn`), and `wSK f` with that frame charged to each
 iteration (`0` otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
 constant (a loop's per iteration); then `wSB_totalLe` (`wSK_totalLeOn`) bounds `f`'s words.
-`wIdxN` gives the core index of some functions by name, `wIdxLoop` of each loop helper
+`wNameIdx f` is the core index of function `f`, by its name's `encS` (`wNameT`) and checked
+against `Data.nameT`, `wIdx f` the same or `0`, `wIdxLoop` the core index of each loop helper
 `__loop{n}` by `n`, for the checks that range over names.
 -/
 
@@ -57,20 +59,25 @@ def certLoopB : Cert → Bool
   | .loop endc pre b _ => endc.isNone && pre.isEmpty && b.cs.isEmpty
   | _ => false
 
+/-- Core function `j` is `f`. -/
+def wNameB (j : ℕ) (f : String) : Bool := Nat.blt j NFNS && decide (Data.nameT.find j = some f)
+
+theorem wNameB_spec {j : ℕ} {f : String} (h : wNameB j f = true) : (coreProgram[j]?).map Fn.name = some f := by
+  simp only [wNameB, Bool.and_eq_true, Nat.blt_eq, decide_eq_true_eq] at h
+  exact Data.nameT_spec (by rw [coreProgram_length]; exact h.1) h.2
+
 /-- Core function `j` is `f`, its words certificate constant. -/
-noncomputable def wOkB (j : ℕ) (f : String) : Bool :=
-  decide ((coreProgram[j]?).map Fn.name = some f) && certConstB (wcertJ j)
+noncomputable def wOkB (j : ℕ) (f : String) : Bool := wNameB j f && certConstB (wcertJ j)
 
 /-- Core function `j` is `f`, its words certificate a loop's, constant per iteration. -/
-noncomputable def wOkK (j : ℕ) (f : String) : Bool :=
-  decide ((coreProgram[j]?).map Fn.name = some f) && certLoopB (wcertJ j)
+noncomputable def wOkK (j : ℕ) (f : String) : Bool := wNameB j f && certLoopB (wcertJ j)
 
 /-- **`f`'s words within `wSB f`.** -/
 theorem wSB_totalLe {j : ℕ} {f : String} (h : wOkB j f = true) :
     TotalLe coreProgram B2C.fs f fun _ => wSB f := by
-  simp only [wOkB, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [wOkB, Bool.and_eq_true] at h
   obtain ⟨hn, hk⟩ := h
-  have hc := wcertOf_of_idx hn
+  have hc := wcertOf_of_idx (wNameB_spec hn)
   rcases hw : wcertJ j with _ | ⟨pre, ⟨B, cs⟩, ks⟩ | _
   · rw [hw] at hk; cases hk
   · rw [hw] at hk
@@ -84,9 +91,9 @@ theorem wSB_totalLe {j : ℕ} {f : String} (h : wOkB j f = true) :
 
 /-- **Loop helper `f`'s run within `wSKt f` words per iteration and its phantom frame.** -/
 theorem wSKt_loopRunLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopRunLe B2C.fs f (wSKt f) := by
-  simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [wOkK, Bool.and_eq_true] at h
   obtain ⟨hn, hk⟩ := h
-  have hc := wcertOf_of_idx hn
+  have hc := wcertOf_of_idx (wNameB_spec hn)
   rcases hw : wcertJ j with _ | _ | ⟨endc, pre, ⟨K, cs⟩, ks⟩
   · rw [hw] at hk; cases hk
   · rw [hw] at hk; cases hk
@@ -111,9 +118,9 @@ theorem wSKt_eq (f : String) : wSKt f = wSK f - B2C.fs f := by
 
 /-- **Loop helper `f`'s words within `wSK f` per iteration**, its run's phantom charged to each. -/
 theorem wSK_loopTotalLe {j : ℕ} {f : String} (h : wOkK j f = true) : LoopTotalLe B2C.fs f (wSK f) := by
-  simp only [wOkK, Bool.and_eq_true, decide_eq_true_eq] at h
+  simp only [wOkK, Bool.and_eq_true] at h
   obtain ⟨hn, hk⟩ := h
-  have hc := wcertOf_of_idx hn
+  have hc := wcertOf_of_idx (wNameB_spec hn)
   rcases hw : wcertJ j with _ | _ | ⟨endc, pre, ⟨K, cs⟩, ks⟩
   · rw [hw] at hk; cases hk
   · rw [hw] at hk; cases hk
@@ -178,8 +185,27 @@ theorem wSKt_idx {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = som
 
 
 @TABLES@
-/-- The core index of a function by name, from `wIdxN`. -/
-def wIdx (f : String) : ℕ := (wIdxN.lookup f).getD 0
+/-- **The core index of function `f`**, if the tree has it under its name's `encS`. -/
+def wNameIdx (f : String) : Option ℕ :=
+  match wNameT.find (encS f) with
+  | some j => if wNameB j f then some j else none
+  | none => none
+
+theorem wNameIdx_spec {f : String} {j : ℕ} (h : wNameIdx f = some j) :
+    (coreProgram[j]?).map Fn.name = some f := by
+  unfold wNameIdx at h
+  rcases hf : wNameT.find (encS f) with _ | k
+  · rw [hf] at h; cases h
+  · rw [hf] at h
+    dsimp only at h
+    split at h
+    · rename_i hk
+      cases h
+      exact wNameB_spec hk
+    · cases h
+
+/-- The core index of a function the checks name, `0` if none. -/
+def wIdx (f : String) : ℕ := (wNameIdx f).getD 0
 
 /-- The core index of the loop helper `__loop{n}`, from `wIdxLoop`. -/
 def wIdxL (n : ℕ) : ℕ := (wIdxLoop.lookup n).getD 0

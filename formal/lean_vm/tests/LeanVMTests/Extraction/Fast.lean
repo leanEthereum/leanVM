@@ -1,12 +1,12 @@
 import LeanVM.Protocol.Extraction.Fast.Transcript
-import LeanVMTests.Extraction.Toy
+import LeanVMTests.Extraction.ToyWords
 
 /-!
 # Tests: the fast extractor's decoder
 
 * Roth–Ruckenstein's substitution `Y := a + X·Y`: `substituteFast` (proved equal to CompPoly's
   `substituteYRootPlusXY`) agrees with it on pseudo-random polynomials over `K`;
-* `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `Toy.lean`;
+* `decodeStacksAtFast` (proved equal to `decodeStacksAt`) decodes a toy word of `ToyWords.lean`;
 * the indexed replay (`keccakEvaluationsFast`, proved equal to the statement's evaluations of at
   most `L` bytes) on a transcript holding the sponge paths of three messages, and inverse queries;
 * the address table (`powTable`, `gLogTable`): the index of `g^i` by binary search, `none` off
@@ -22,12 +22,6 @@ import LeanVMTests.Extraction.Toy
 namespace LeanVMTests.Extraction
 
 open CompPoly CompPoly.GuruswamiSudan LeanVM.Parameters LeanVM.Extraction LeanVM.Extraction.Fast
-
-/-- A pseudo-random bivariate polynomial over `K` of `Y`-degree `< ny` and `X`-degree `< nx`. -/
-def randomBivariate (seed nx ny : ℕ) : CBivariate K :=
-  let r := randoms seed (nx * ny)
-  CPolynomial.ofArray (Array.ofFn fun y : Fin ny ↦
-    CPolynomial.ofArray (Array.ofFn fun x : Fin nx ↦ K.ofBits (r.getD (y.val * nx + x.val) 0)))
 
 #guard (List.range 4).all fun s ↦
   let Q := randomBivariate s 12 9
@@ -45,12 +39,6 @@ def decodesFast {μ : ℕ} (R A : ℕ) (q : Vector K (2 ^ μ)) (w : Array (List 
 #guard decodesFast 1 15 (randomStack 1 9) (corrupt 1 [2] (wordOf 1 (randomStack 1 9))) = (true, 1)
 
 /-! ## The restated decoder steps, run -/
-
-/-- `(X − 3)(X − 5)(X − 7)(X² + X + 1)`: five roots in `K` (`X² + X + 1` splits: `GF(4) ⊆ K`). -/
-def rootPoly : CPolynomial K :=
-  CPolynomial.linearFactor (K.ofBits 3) * CPolynomial.linearFactor (K.ofBits 5) *
-    CPolynomial.linearFactor (K.ofBits 7) *
-    (CPolynomial.X * CPolynomial.X + CPolynomial.X + CPolynomial.C 1)
 
 #guard (rootsInFieldFast rootPoly).size = 5
 #guard rootsInFieldFast rootPoly == fieldRootCtx.rootsInField rootPoly

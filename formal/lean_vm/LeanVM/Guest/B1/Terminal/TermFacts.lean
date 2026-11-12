@@ -43,7 +43,7 @@ theorem termT_split : termT = termPre ++ [.ret []] := by
   simp only [List.append_assoc]
 
 theorem find_term : coreProgram.find? "check_opening_terminal" = some Data.core17 :=
-  Program.find?_of_indexOf? (j := 17) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 17) rfl
 
 theorem term_body' : Data.core17.body = termPre ++ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := termFound

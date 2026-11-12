@@ -101,10 +101,10 @@ level's (`OOD_GRINDING_BITS`, `whir.rs:21-22`). -/
 def oodGrindingBits : ℕ := 15
 
 /-- The smallest stack the PCS commits, a smaller witness padded up to it: `MIN_STACKED_LOG`
-(`crates/verifier/src/layout.rs:93`). -/
+(`crates/verifier/src/layout.rs`). -/
 def minLogStack : ℕ := 16
 
-/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs:94`), the
+/-- The largest stack the PCS commits: `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`), the
 cap every size shares. -/
 def maxLogStack : ℕ := 30
 
@@ -473,7 +473,7 @@ reads (`whir.rs:83`). -/
 def eToNat (e : E) : ℕ :=
   kToNat (e.limb 0) + 2 ^ 64 * kToNat (e.limb 1)
 
-/-- `gpow(index) = GEN.pow(index)` (`layout.rs:120-122`): `Parameters.addressOfIndex index`, the
+/-- `gpow(index) = GEN.pow(index)` (`layout.rs`): `Parameters.addressOfIndex index`, the
 same power in `K`, in limb `0`. -/
 def gpow (index : ℕ) : E := gen ^ index
 
@@ -558,17 +558,17 @@ def selectorPoint (selector length : ℕ) : List E :=
 
 /-! ## The verifier's layout (`multilinear.rs:114-148`, `layout.rs`, `bus.rs:77-117`) -/
 
-/-! ### Constants (`layout.rs:12, 70-94, 136-138, 371-377`;
+/-! ### Constants (`layout.rs`;
 `crates/verifier/src/keccak.rs:18-20, 55-67`) -/
 
-/-- `BUS_BITS`: the bus communicates tuples of `2^BUS_BITS` field elements (`layout.rs:12`). -/
+/-- `BUS_BITS`: the bus communicates tuples of `2^BUS_BITS` field elements (`layout.rs`). -/
 def busBits : ℕ := 4
 
 /-- `NUM_GLOBAL_COLUMNS`: the columns no instruction table owns, first in the global numbering
-(`layout.rs:70-71`). -/
+(`layout.rs`). -/
 def globalColumnCount : ℕ := 5
 
-/-- Global column `MEMORY_0` (`layout.rs:72`), the memory's low limb; then `MEMORY_1`, its high
+/-- Global column `MEMORY_0` (`layout.rs`), the memory's low limb; then `MEMORY_1`, its high
 limb, `MEMORY_FINAL_COUNTERS`, `BYTECODE_FINAL_COUNTERS`. -/
 def memory0 : ℕ := 0
 def memory1 : ℕ := 1
@@ -576,13 +576,13 @@ def memoryFinalCounters : ℕ := 2
 def bytecodeFinalCounters : ℕ := 3
 /-- Global column `QKECCAK`, the Keccak reduction's committed column: per step, its input state's
 lanes and the state after every `KECCAK_DEPTH` rounds but the last, a lane per slot, and in the
-slots left over the `KECCAK` table's own first committed columns (`keccakSlot`; `layout.rs:80-81`). -/
+slots left over the `KECCAK` table's own first committed columns (`keccakSlot`; `layout.rs`). -/
 def qkeccak : ℕ := 4
 
-/-- `K_BITS`: a `K` word's bits (`layout.rs:78`). -/
+/-- `K_BITS`: a `K` word's bits (`layout.rs`). -/
 def kBits : ℕ := 64
 
-/-- `KECCAK_DEPTH`: the reduction commits a step's state every `12` rounds (`layout.rs:82`). -/
+/-- `KECCAK_DEPTH`: the reduction commits a step's state every `12` rounds (`layout.rs`). -/
 def keccakDepth : ℕ := 12
 
 /-- `KeccakShape::segments`, `ROUNDS / depth` at `depth = KECCAK_DEPTH`, `ROUNDS = 24`
@@ -598,7 +598,7 @@ def keccakSegmentBits : ℕ := log2Ceil keccakSegments
 def qkeccakSlotBits : ℕ := log2Ceil (25 * keccakSegments)
 
 /-- `KECCAK_MIN_STEPS_LOG`: the reduction is sized for at least one block of `512` steps
-(`layout.rs:83`). -/
+(`layout.rs`). -/
 def keccakMinStepsLog : ℕ := 9
 
 /-- `BITS = 64 * STATE_LANES`: a state's bits (`keccak.rs:18`). -/
@@ -610,13 +610,13 @@ def keccakLocalBits : ℕ := 11
 /-- `LANE_BITS`: the bits of a lane's index, `25 ≤ 2^5` (`keccak.rs:20`). -/
 def keccakLaneBits : ℕ := 5
 
-/-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs:136-138`). -/
+/-- The bus separators `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE` (`layout.rs`). -/
 def sepState : E := 1
 def sepMem : E := gen
 def sepBytecode : E := gen ^ 2
 
 /-- The opcodes' numbers `OP_XOR`, `OP_MUL`, `OP_SET`, `OP_DEREF`, `OP_JUMP`, `OP_KECCAK`
-(`layout.rs:371-376`). -/
+(`layout.rs`). -/
 def opXor : ℕ := 0
 def opMul : ℕ := 1
 def opSet : ℕ := 2
@@ -655,7 +655,7 @@ def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
     (acc.1.set i acc.2, acc.2 + 2 ^ size i)) (List.replicate sizes.length 0, 0)
   (placed.1, log2Ceil placed.2)
 
-/-! ### Forms (`Form`, `layout.rs:14-53, 120-134`) -/
+/-! ### Forms (`Form`, `layout.rs`) -/
 
 /-- A polynomial of degree at most two in a table's columns: monomial (sorted column indices) to
 coefficient, in insertion order (the Rust's `BTreeMap` orders them by monomial; a form's value does
@@ -695,7 +695,7 @@ def Form.col (index : ℕ) (exponent : ℕ := 0) : Form := ⟨[([index], gpow ex
 /-- `prod(a, b, exponent)`: `g^exponent · x_a · x_b`. -/
 def Form.prod (a b : ℕ) (exponent : ℕ := 0) : Form := ⟨[([min a b, max a b], gpow exponent)]⟩
 
-/-! ### Flushes (`Flushes`, `layout.rs:133-183`) -/
+/-! ### Flushes (`Flushes`, `layout.rs`) -/
 
 /-- A table's bus flushes: the tuples it pushes and pulls, in pairs. -/
 structure Flushes where
@@ -747,26 +747,26 @@ def memoryCols (f : Flushes) (address : Form) (count : ℕ) (columns : List ℕ)
 
 end Flushes
 
-/-! ### The instruction tables (`layout.rs:192-488`) -/
+/-! ### The instruction tables (`layout.rs`) -/
 
 /-- `cols(columns, names)`, one name: the index of a column by name (every name the tables use is
-in its list, as the Rust's `expect` checks, `layout.rs:104-111`). -/
+in its list, as the Rust's `expect` checks, `layout.rs`). -/
 def columnIndexByName (columns : List String) (name : String) : ℕ := columns.idxOf name
 
-/-- `ARITH_COLUMNS` (`layout.rs:380`). -/
+/-- `ARITH_COLUMNS` (`layout.rs`). -/
 def arithColumns : List String :=
   ["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c",
     "cnt_bc"]
 
-/-- `SET_COLUMNS` (`layout.rs:381`). -/
+/-- `SET_COLUMNS` (`layout.rs`). -/
 def setColumns : List String := ["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"]
 
-/-- `DEREF_COLUMNS` (`layout.rs:383`). -/
+/-- `DEREF_COLUMNS` (`layout.rs`). -/
 def derefColumns : List String :=
   ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target",
     "cnt_local", "cnt_bc"]
 
-/-- `JUMP_COLUMNS` (`layout.rs:385`). -/
+/-- `JUMP_COLUMNS` (`layout.rs`). -/
 def jumpColumns : List String :=
   ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc",
     "w", "b"]
@@ -782,7 +782,7 @@ def decimalNumeral (n : ℕ) : String :=
 def laneNames (namePrefix : String) : List String :=
   (List.range 25).map fun l ↦ namePrefix ++ "_" ++ decimalNumeral l
 
-/-- `keccak_columns()` (`layout.rs:432-442, 425-434`): the operands, the layout flags, the
+/-- `keccak_columns()` (`layout.rs`): the operands, the layout flags, the
 bytecode's flags for the output cells written (`out_two`: cell `1`; `out_all`: cells `2…12`), the
 read limb that holds no lane (`free`), the fifty value lanes (`in_l`, one of `q_keccak`'s slots
 each; `out_l`, claimed by the Keccak reduction, committed nowhere), then the read counts. The
@@ -793,30 +793,30 @@ def keccakColumns : List String :=
     "odd_out", "out_two", "out_all", "free"] ++ laneNames "in" ++ laneNames "out" ++
     (List.range 26).map (fun c ↦ "cnt_" ++ decimalNumeral c) ++ ["cnt_bc"]
 
-/-- `KECCAK_IN` (`layout.rs:392`): the local column of input lane `0`. -/
+/-- `KECCAK_IN` (`layout.rs`): the local column of input lane `0`. -/
 def keccakIn : ℕ := columnIndexByName keccakColumns "in_0"
 
-/-- `KECCAK_OUT` (`layout.rs:393`): the local column of output lane `0`. -/
+/-- `KECCAK_OUT` (`layout.rs`): the local column of output lane `0`. -/
 def keccakOut : ℕ := columnIndexByName keccakColumns "out_0"
 
-/-- `KECCAK_CNT` (`layout.rs:394`): the local column of the first read count. -/
+/-- `KECCAK_CNT` (`layout.rs`): the local column of the first read count. -/
 def keccakCnt : ℕ := columnIndexByName keccakColumns "cnt_0"
 
-/-- `QKECCAK_SLOTS = STATE_LANES * (ROUNDS / KECCAK_DEPTH)` (`layout.rs:404-405`): the slots of
+/-- `QKECCAK_SLOTS = STATE_LANES * (ROUNDS / KECCAK_DEPTH)` (`layout.rs`): the slots of
 `q_keccak` the states take. -/
 def qkeccakSlots : ℕ := 25 * keccakSegments
 
-/-- `QKECCAK_SPARE`, `2^qkeccakSlotBits - QKECCAK_SLOTS` (`layout.rs:406`): the slots of
+/-- `QKECCAK_SPARE`, `2^qkeccakSlotBits - QKECCAK_SLOTS` (`layout.rs`): the slots of
 `q_keccak` left over, which carry `KECCAK` columns. -/
 def qkeccakSpare : ℕ := 2 ^ qkeccakSlotBits - qkeccakSlots
 
 /-- The local `KECCAK` columns outside the value lanes, `KECCAK_IN ≤ local < KECCAK_CNT`, in
-order: the `k`-th is `spare_local(k)` (`layout.rs:390-395`). -/
+order: the `k`-th is `spare_local(k)` (`layout.rs`). -/
 def keccakCommitted : List ℕ :=
   (List.range keccakColumns.length).filter fun l ↦ ¬ (keccakIn ≤ l ∧ l < keccakCnt)
 
 /-- The `q_keccak` slot of a local `KECCAK` column, if it has one (`qkeccak_slot`,
-`layout.rs:420-430`, past the table's base): input lane `l` (local column `KECCAK_IN + l`) is
+`layout.rs`, past the table's base): input lane `l` (local column `KECCAK_IN + l`) is
 slot `l`, and the first `QKECCAK_SPARE` committed columns take the slots from `QKECCAK_SLOTS` on,
 in order. The Rust tries the spare slots first; the two parts have disjoint keys
 (`keccakSlotOf_disjoint`), so the order in which they are tried does not matter. -/
@@ -825,11 +825,11 @@ def keccakSlotOf (l : ℕ) : Option ℕ :=
   else ((keccakCommitted.take qkeccakSpare).idxOf? l).map (qkeccakSlots + ·)
 
 /-- `TOWER_LANES`: each limb of an `E` product, its terms `g^e · va_j · vb_k` as `(j, k, e)`,
-folded by `y² = x·y + 1` and `x = g` (`layout.rs:228-229`). -/
+folded by `y² = x·y + 1` and `x = g` (`layout.rs`). -/
 def towerLanes : List (List (ℕ × ℕ × ℕ)) :=
   [[(0, 0, 0), (1, 1, 0)], [(0, 1, 0), (1, 0, 0), (1, 1, 1)]]
 
-/-- `flushes_arith(opcode, multiply)` (`layout.rs:208-230`). -/
+/-- `flushes_arith(opcode, multiply)` (`layout.rs`). -/
 def flushesArith (opcode : ℕ) (multiply : Bool) : Flushes :=
   let c := columnIndexByName arithColumns
   let va := [c "va_0", c "va_1"]
@@ -847,7 +847,7 @@ def flushesArith (opcode : ℕ) (multiply : Bool) : Flushes :=
   let f := f.memoryCols (Form.prod (c "fp") (c "o_b")) (c "cnt_b") vb
   f.memory (Form.prod (c "fp") (c "o_c")) (c "cnt_c") result
 
-/-- `flushes_set()` (`layout.rs:232-241`). -/
+/-- `flushes_set()` (`layout.rs`). -/
 def flushesSet : Flushes :=
   let c := columnIndexByName setColumns
   let k := [c "k_0", c "k_1"]
@@ -857,7 +857,7 @@ def flushesSet : Flushes :=
     (Form.col (c "o") :: k.map (Form.col ·) ++ [Form.const 0, Form.const 0])
   f.memoryCols (Form.prod (c "fp") (c "o")) (c "cnt") k
 
-/-- `flushes_deref()` (`layout.rs:243-265`). -/
+/-- `flushes_deref()` (`layout.rs`). -/
 def flushesDeref : Flushes :=
   let c := columnIndexByName derefColumns
   let pc := c "pc"
@@ -877,7 +877,7 @@ def flushesDeref : Flushes :=
   let f := f.memory (Form.prod (c "ptr") (c "o2")) (c "cnt_target") store
   f.memoryCols (Form.prod fp (c "o3")) (c "cnt_local") v3
 
-/-- `flushes_jump()` (`layout.rs:267-287`): `next_pc = b·dest + (b + 1)·g·pc`,
+/-- `flushes_jump()` (`layout.rs`): `next_pc = b·dest + (b + 1)·g·pc`,
 `next_fp = b·frame + (b + 1)·fp`. -/
 def flushesJump : Flushes :=
   let c := columnIndexByName jumpColumns
@@ -894,7 +894,7 @@ def flushesJump : Flushes :=
   let f := f.memoryCols (Form.prod fp (c "o_d")) (c "cnt_d") [c "v_pc"]
   f.memoryCols (Form.prod fp (c "o_f")) (c "cnt_f") [c "v_fp"]
 
-/-- `jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`layout.rs:296-299`). -/
+/-- `jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`layout.rs`). -/
 def jumpConstraints (columns : List E) : List E :=
   let c := columnIndexByName jumpColumns
   let condition := columns.getD (c "v_cond") 0
@@ -902,7 +902,7 @@ def jumpConstraints (columns : List E) : List E :=
   let flag := columns.getD (c "b") 0
   [flag + condition * inverse, condition * (flag + 1)]
 
-/-- `layout_limb(even, odd, flag, missing)` (`layout.rs:306-322`): a cell limb holding the
+/-- `layout_limb(even, odd, flag, missing)` (`layout.rs`): a cell limb holding the
 column `even` in the even layout and `odd` in the odd one, as the column `flag` selects,
 `a + flag·(a + b)`; a missing column is `missing`. -/
 def layoutLimb (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : Form :=
@@ -920,10 +920,10 @@ def layoutLimb (even odd : Option ℕ) (flag : ℕ) (missing : Option ℕ) : For
       | some b => [Form.prod flag b]
       | none => []))
 
-/-- `flushes_keccak()` (`layout.rs:324-362`): the state step, the bytecode read, then the
+/-- `flushes_keccak()` (`layout.rs`): the state step, the bytecode read, then the
 thirteen cells read (four addressed ones, the tail run, `b8`, the cap run) and the thirteen
 written, each holding its lanes in the layout its flag names (`keccak_cell_lanes`,
-`layout.rs:294-304`, which is `cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column
+`layout.rs`, which is `cellLanes`, `LeanIsa.lean`): a read cell's free limb is the column
 `free`, a written one's zero. Output cell `0` is always written, cell `1` when `out_two` is `1`,
 and cells `2…12` when `out_all` is `1` (`memoryIf`). -/
 def flushesKeccak : Flushes :=
@@ -956,7 +956,7 @@ def flushesKeccak : Flushes :=
         (Form.prod fp (c "o_out") cell) count values) f) f
 
 /-- One instruction's table: its columns, its bus flushes, its constraints
-(`layout.rs:192-213`). -/
+(`layout.rs`). -/
 structure Table where
   /-- Its opcode, also its index in `tables()`. -/
   opcode : ℕ
@@ -978,7 +978,7 @@ def Table.nConstraints (t : Table) : ℕ := (t.constraints (List.replicate t.wid
 def Table.countColumns (t : Table) : List ℕ :=
   (t.columns.zipIdx.filter fun (name, _) ↦ name.startsWith "cnt").map (·.2)
 
-/-- `tables()`, in opcode order (`layout.rs:436-460`). -/
+/-- `tables()`, in opcode order (`layout.rs`). -/
 def tables : List Table :=
   [⟨opXor, arithColumns, flushesArith opXor false, fun _ ↦ []⟩,
     ⟨opMul, arithColumns, flushesArith opMul true, fun _ ↦ []⟩,
@@ -987,7 +987,7 @@ def tables : List Table :=
     ⟨opJump, jumpColumns, flushesJump, jumpConstraints⟩,
     ⟨opKeccak, keccakColumns, flushesKeccak, fun _ ↦ []⟩]
 
-/-- `Table::padding` (`layout.rs:446, 453-458`): the row a padding row holds, zero but for
+/-- `Table::padding` (`layout.rs`): the row a padding row holds, zero but for
 `KECCAK`'s output lanes `KECCAK_OUT …`, a padding row permuting zeros (`keccak_f` of the zero
 state). -/
 def Table.padding (t : Table) : List E :=
@@ -997,20 +997,20 @@ def Table.padding (t : Table) : List E :=
       eOfNat (Keccak.lane output (i - keccakOut)).toNat
     else 0
 
-/-- `TABLE_WIDTHS` (`layout.rs:462-469`). -/
+/-- `TABLE_WIDTHS` (`layout.rs`). -/
 def tableWidths : List ℕ := tables.map Table.width
 
-/-- `GLOBAL_COLUMN_BASES`: each table's first global column (`layout.rs:470-478`). -/
+/-- `GLOBAL_COLUMN_BASES`: each table's first global column (`layout.rs`). -/
 def globalColumnBases : List ℕ :=
   (List.range tables.length).map fun t ↦ globalColumnCount + (tableWidths.take t).sum
 
-/-- `TABLE_LOG_FLOORS` (`layout.rs:487-488`): each table's least log-height, `0` but for
+/-- `TABLE_LOG_FLOORS` (`layout.rs`): each table's least log-height, `0` but for
 `KECCAK`, the Keccak reduction's block of steps. -/
 def tableLogFloors : List ℕ := [0, 0, 0, 0, 0, keccakMinStepsLog]
 
-/-! ### The bus layout (`layout.rs:55-62`, `bus.rs:77-117`, `lib.rs:130-131`) -/
+/-! ### The bus layout (`layout.rs`, `bus.rs:77-117`, `lib.rs:130-131`) -/
 
-/-- One block of a bus side, owned by a table (`BusBlock`, `layout.rs:55-62`). -/
+/-- One block of a bus side, owned by a table (`BusBlock`, `layout.rs`). -/
 structure BusBlock where
   /-- The owner's log-height: the block spans `2 ^ logRows` rows. -/
   logRows : ℕ
@@ -1056,7 +1056,7 @@ structure ColumnClaim where
 (`StackClaim`, `lib.rs:130-131`). -/
 abbrev StackClaim : Type := (List E → E) × E
 
-/-! ### `build_layout` (`layout.rs:96-109, 490-611`) -/
+/-! ### `build_layout` (`layout.rs`) -/
 
 /-- The layout the verifier derives from the bytecode and the announced sizes. -/
 structure Layout where
@@ -1092,7 +1092,7 @@ def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : Option StackClaim 
     (fun x ↦ eqEval (placement.stackPoint c.point layout.stackLog) x, c.value)
 
 /-- The bus blocks of every table, side by side: pushes, pulls, counts, each block at its
-table's log-height and row count (`layout.rs:568-581`). -/
+table's log-height and row count (`layout.rs`). -/
 def busBlocks (tableLogHeights tableRows : List ℕ) :
     List BusBlock × List BusBlock × List BusBlock :=
   let rows := List.zip tables (List.zip tableLogHeights tableRows)
@@ -1100,7 +1100,7 @@ def busBlocks (tableLogHeights tableRows : List ℕ) :
     rows.flatMap fun (t, h, n) ↦ t.flushes.pull.map fun c ↦ ⟨h, n, c, t.opcode⟩,
     rows.flatMap fun (t, h, n) ↦ t.countColumns.map fun l ↦ ⟨h, n, [Form.col l], t.opcode⟩)
 
-/-- The `q_keccak` slot of a global column (`qkeccak_slot`, `layout.rs:420-430`): a `KECCAK`
+/-- The `q_keccak` slot of a global column (`qkeccak_slot`, `layout.rs`): a `KECCAK`
 input lane's, or a spare slot's column's; `none` for every other column, those of the other tables
 (below the `KECCAK` base, where `checked_sub` fails) among them. -/
 def keccakSlot (column : ℕ) : Option ℕ :=
@@ -1109,19 +1109,19 @@ def keccakSlot (column : ℕ) : Option ℕ :=
   else none
 
 /-- The global columns of the `KECCAK` output lanes, in lane order (`outputs`,
-`layout.rs:517-518`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
+`layout.rs`; the columns of `values[KECCAK_OUT..KECCAK_OUT + STATE_LANES]`,
 `lib.rs:324`). -/
 def keccakOutputColumns : List ℕ :=
   (List.range 25).map (globalColumnBases.getD opKeccak 0 + keccakOut + ·)
 
 /-- Every column's log-size, in global order: the framework's, `q_keccak`'s, then each table's
-block (`kappas`, `layout.rs:520-529`). -/
+block (`column_kappas`, `layout.rs`). -/
 def columnKappas (logMemory logBytecode : ℕ) (tableLogHeights : List ℕ) : List ℕ :=
   let qkeccakKappa := tableLogHeights.getD opKeccak 0 + qkeccakSlotBits
   [logMemory, logMemory, logMemory, logBytecode, qkeccakKappa] ++
     tables.flatMap fun t ↦ List.replicate t.width (tableLogHeights.getD t.opcode 0)
 
-/-- The placements of every column, and the stack's log-size (`layout.rs:511-532, 585-597`): the
+/-- The placements of every column, and the stack's log-size (`layout.rs`): the
 committed columns (every column but those with a `q_keccak` slot, the `KECCAK` input lanes and
 the table's first fourteen committed columns, and the `KECCAK` output lanes: `101` of `165`)
 stacked by `stack_offsets`, a column with a slot at `q_keccak`'s offset plus its slot's `2^κ`
@@ -1140,7 +1140,7 @@ def placementsOf (kappas : List ℕ) : List (Option Placement) × ℕ :=
       else some { variableCount := kappa, index := offsetOf column }
   (placements, max Whir.minLogStack totalLog)
 
-/-- `build_layout(bytecode, log_memory, table_rows)` (`layout.rs:483-567`); `none` exactly where
+/-- `build_layout(bytecode, log_memory, table_rows)` (`layout.rs`); `none` exactly where
 the Rust returns an error: a bytecode whose length is not a power of two (`log2_strict`) or whose
 log-length is outside `BUS_BITS ..= 30 + BUS_BITS`, and sizes outside the window. It is also `none`
 on row counts not one per table, which the verifier never passes (it reads `N_TABLES` of them). A
@@ -2057,7 +2057,7 @@ def ringSwitch (point s : List E) : VerifierProgram (E × (List E → E)) := do
 open LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
 /-!
-## The leanVM verifier (`lib.rs:178-193, 243-363`; `layout.rs:64-68`; `transcript.rs:34-49`)
+## The leanVM verifier (`lib.rs:178-193, 243-363`; `layout.rs`; `transcript.rs:34-49`)
 
 `leanVmVerifierProgram bytecode publicInput` is `verify_execution` in the verifier language, one
 `VerifierProgram` function per numbered step of the Rust's `walk` (the steps of `verifyExecution`).
@@ -2206,7 +2206,7 @@ def deferringVerifierProgram (claim : BytecodeClaim) (bytecode : List K) (public
 
 /-! ### The seed and the compiled verifier -/
 
-/-- `TAG`, the proof system's version (`layout.rs:64-68`), as
+/-- `TAG`, the proof system's version (`layout.rs`), as
 bytes. -/
 def versionTag : Bytes := "leanvm-v1".toUTF8.toList
 

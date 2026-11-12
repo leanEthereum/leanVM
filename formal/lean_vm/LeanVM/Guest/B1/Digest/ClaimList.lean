@@ -40,8 +40,8 @@ theorem cl_all : ∀ k < 17, clOk k (coreProgram.getD (348 + k) default) = true 
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (348 + k) := by
-  decide +kernel
+theorem cl_idx : ∀ k < 17, coreProgram.indexOf? (clNames.getD k "") = some (348 + k) :=
+  coreProgram_indexOf?_run (by decide +kernel)
 
 /-- **`claim_list_last__L{k}`**: from a state at its first argument after whole blocks `pre`, it
 returns the digest of `pre ++` the `4k` cells at its second. -/
@@ -136,7 +136,8 @@ theorem big_ok : grpOk (coreProgram.getD 346 default) "__loop15" 136 21 565 20 =
     (fun i hi => (hw i hi).1) (by norm_num) (fun i hi => (hw i hi).2)
 
 set_option maxRecDepth 100000 in
-theorem big_idx : coreProgram.indexOf? "__loop15" = some 346 := by decide +kernel
+theorem big_idx : coreProgram.indexOf? "__loop15" = some 346 :=
+  coreProgram_indexOf?_at (j := 346) rfl
 
 
 -- The group frame loop `__loop16` (17 claims, 8 blocks).
@@ -145,7 +146,8 @@ theorem grp_ok : grpOk (coreProgram.getD 347 default) "__loop16" 17 18 86 17 = t
   decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem grp_idx : coreProgram.indexOf? "__loop16" = some 347 := by decide +kernel
+theorem grp_idx : coreProgram.indexOf? "__loop16" = some 347 :=
+  coreProgram_indexOf?_at (j := 347) rfl
 
 set_option maxRecDepth 100000 in
 theorem grp_nb : (grpSpec 17 18 86 (loopAtoms (coreProgram.getD 347 default))).nb = 8 := by

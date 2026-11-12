@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `assert_small_g_power`
@@ -77,7 +78,7 @@ def asgBody : List Stmt :=
 theorem core3_body : Fn.body Data.core3 = asgBody := stmtsEqb_sound (by decide +kernel)
 
 theorem find_assert_small_g_power : coreProgram.find? "assert_small_g_power" = some Data.core3 :=
-  Program.find?_of_indexOf? (j := 3) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 3) rfl
 
 /-- Digit `j + 1`'s conditions. -/
 def AsgOk (rd : Reader) (σ : Val) (j : ℕ) : Prop :=

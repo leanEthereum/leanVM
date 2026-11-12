@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Library
 public meta import Lean.Elab.Tactic
+meta import LeanVM.Cost.Compiler
 
 /-!
 # Bounds on prices: the method and its library
@@ -79,7 +80,9 @@ meta def depsLiteral (e : Expr) : MetaM Expr := do
   | some e' => return e'
   | none => return e
 
-/-- `Includes P l'` from `hP : Includes P l`, when `l` holds every body of `l'`. -/
+/-- `Includes P l'` from `hP : Includes P l`, when `l` holds every body of `l'`: by a sublist proof
+(`Includes.ofSublist`, one constructor per body of `l`: the compiler sorts the bodies by index), else
+by a membership proof per body of `l'`. -/
 meta def includesFrom (hP goalTy : Expr) : MetaM Expr := do
   let hTy ← whnfR (← instantiateMVars (← inferType hP))
   let gTy ← whnfR (← instantiateMVars goalTy)
@@ -88,8 +91,13 @@ meta def includesFrom (hP goalTy : Expr) : MetaM Expr := do
   unless ← isDefEq hTy.appFn!.appArg! gTy.appFn!.appArg! do throwError "includes: other program"
   let l ← depsLiteral hTy.appArg!
   let l' ← depsLiteral gTy.appArg!
-  let fa ← forallMemProof l l'
-  return mkAppN (mkConst ``Includes.ofForall) #[hTy.appFn!.appArg!, l, l', hP, fa]
+  try
+    let pairTy ← mkAppM ``Prod #[mkConst ``Nat, mkConst ``LeanVM.Cost.Term]
+    let hs ← LeanVM.Cost.Compiler.sublistProof pairTy l' l
+    return mkAppN (mkConst ``Includes.ofSublist) #[hTy.appFn!.appArg!, l, l', hP, hs]
+  catch _ =>
+    let fa ← forallMemProof l l'
+    return mkAppN (mkConst ``Includes.ofForall) #[hTy.appFn!.appArg!, l, l', hP, fa]
 
 /-- Close `Includes P l'` from an `Includes P l` of the context. -/
 meta def includesAuto (g : MVarId) : MetaM Bool := g.withContext do

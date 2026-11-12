@@ -42,7 +42,7 @@ noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd :
     (fun args => aggHints rd (V "aggregate_claims" args []))
 
 theorem find_verify_sub : coreProgram.find? "verify_sub" = some Data.core18 :=
-  Program.find?_of_indexOf? (j := 18) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 18) rfl
 
 /-- **`verify_sub`'s statement, its proof named by `piOf`**: on a memory image of at most `2^32`
 words, under a call relation that unfolds at `V` and lies below `coreProgram.Rel`, a run of its

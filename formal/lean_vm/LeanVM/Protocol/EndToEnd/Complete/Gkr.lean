@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Verifier
 # Completeness of the batched GKR
 
 The verifier is `verifyGkrGrandProducts` (`LeanVM.Protocol.Verifier`,
-`crates/verifier/src/bus.rs:29-75` at leanVM `f128`). It
+`crates/verifier/src/bus.rs`). It
 reads one root shared by the first two trees and the third tree's root, then walks the three trees
 from the root to the leaves, one level first when the remaining depth is odd and two at a time
 after, each step drawing its combiner `λ` first. Nothing here is specific to the bus: the trees

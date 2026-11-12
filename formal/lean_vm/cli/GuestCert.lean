@@ -29,7 +29,9 @@ A `match` of many straight-line arms (`verify_sig_lean_sphincs`'s dispatches on 
 inlined arms) is a window of its own, too large for one kernel evaluation: its three checks are
 split into groups of `armGroup` arms (`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
 `B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
-check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`). A certificate too
+check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`); a `match` whose arms
+jump to the next one's (`__loop2`'s) has only its sharing check split. The kernel's time on one
+declaration grows faster than its work, so many small checks beat one large one. A certificate too
 large for one module has its cells in modules of their own (`Data/Cert{j}_{k}`).
 -/
 
@@ -747,8 +749,12 @@ def T.text : T → String
       | none => "none"
     s!"(.node {v} {l.text} {r.text})"
 
+/-- A tree literal one node a line: Lean's `.ilean` positions cost the length of their line, so a
+literal on one long line builds slowly. -/
+def nodeLines (s : String) : String := s.replace " (.node" "\n  (.node"
+
 def trieLit (kvs : List (ℕ × String)) : String :=
-  (kvs.foldl (fun t (k, v) => t.ins k v) T.nil).text
+  nodeLines (kvs.foldl (fun t (k, v) => t.ins k v) T.nil).text
 
 def symText : Sym → String
   | .zero => ".zero"
@@ -2605,6 +2611,11 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFunction) (selfByEntry : Std.Has
   let pmax := out.best
   let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
   let statL := plumb.toList.mergeSort (·.1 ≤ ·.1)
+  -- the values the body's top-level atoms name (`B2C.nvOf`)
+  let nv := cf.body.foldl (fun s st => match st with
+    | .atom a => (LeanVM.Guest.Memory.atomUses a).foldl (fun s v =>
+        if v.path.isEmpty && v.tag == 0 then s ||| (1 <<< v.idx) else s) s
+    | _ => s) 0
   return (·, statL, sh, tmps.map (fun v => (v.idx, cell v.idx)), runs.map (fun v => (v.idx, cell v.idx)),
     out.marks, fun t => Cpl.midStop ctx st0 (out.flight.getD t ({}, {})), out.armCosts, out.entered) <|
     s!"/-- `{f.name}`. -/
@@ -2617,6 +2628,7 @@ noncomputable def plumb{j} : B2C.Plumb where
   pmax := {listText (pmax.map toString)}
   sh := {listText (sh.map toString)}
 " ++ (if chains.isEmpty then "" else s!"  chains := {listText (chains.map chainText)}
+") ++ (if nv == 0 then "" else s!"  nv := 0x{String.ofList (Nat.toDigits 16 nv)}
 ")
 
 end GuestCert
@@ -2714,7 +2726,7 @@ def powsFile (T : Tables) : String :=
   header "Pows" "The powers of `g` the guest's constants name, and its jump table." ++
   "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
   String.join (subs.zipIdx.map fun (sub, i) =>
-    s!"/-- Subtree {i} of `powTree`. -/\nnoncomputable def powT{i} : PowTree := {powTreeText sub}\n\n") ++
+    s!"/-- Subtree {i} of `powTree`. -/\nnoncomputable def powT{i} : PowTree := {nodeLines (powTreeText sub)}\n\n") ++
   s!"/-- The powers of `g` the guest's `SET`s name, bits to exponent, a search tree. -/
 noncomputable def powTree : PowTree := {top}
 
@@ -3595,7 +3607,8 @@ def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (Syst
   let mut shareSplits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut bigStatics : Std.HashMap ℕ (Array ℕ × List ℕ) := {}
   let mut chainedFns : Array (ℕ × String × ℕ) := #[]
-  for (cf, i) in P.zipIdx do
+  -- each function's certificate and data, which depend on no other function's, in a task of its own
+  let job (cf : Core.Fn) (i : ℕ) : Except String _ := do
     -- the smaller windows, or the larger ones where the sharing check cannot cut the smaller, and
     -- for `main` and `verify_sub`, whose windows `Sound`'s obligations name
     let attempt (coarse : Bool) := do
@@ -3614,32 +3627,41 @@ def files (P : Core.Program) (kOnly : Bool := false) : Except String (List (Syst
         match if chained then [] else splitOf cf a b (sizes.getD w 0) los[w]! ((insW[w]!).map (·.1)) with
         | [] => none
         | gs => some (w, gs)
-      -- the sharing windows of one split `match`: those whose statements are the split window's
+      -- the sharing windows of one `match` split by arms, chained or not (`B2C.shareWinS` reads no
+      -- code): those whose statements are such a soundness window's, neither the first nor the last
       let ssp := (wpos.zipIdx).filterMap fun ((a, w), k) =>
         let b := match wpos[k + 1]? with
           | some (b, _) => b
           | none => cf.body.length
-        match sp.find? (·.1 == w) with
-        | some (_, gs) => if starts[w]! == a && b == a + 1 then some (k, gs) else none
-        | none => none
+        if k == 0 || k + 1 ≥ wpos.length || starts[w]! != a || b != a + 1 then none
+        else match splitOf cf a b (sizes.getD w 0) los[w]! ((insW[w]!).map (·.1)) with
+          | [] => none
+          | gs => some (k, gs)
       -- the bit sets of the values' cells, window by window
       let chain := (List.range nw).foldl (fun (acc : Array ℕ) w =>
         acc.push (((locs.drop los[w]!).take (his[w]! - los[w]!)).foldl (fun s c => s ||| (1 <<< c)) acc.back!)) #[0]
       let counts := (List.range nw).map fun w => his[w]! - los[w]!
       pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, entW, ent)
-    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts, entW, ent) ←
-      if i + 1 == 1 || i + 1 == vsIdx then attempt true
+    let r ← if i + 1 == 1 || i + 1 == vsIdx then attempt true
       else match attempt false with
         | .ok r => pure r
         | .error _ => attempt true
+    let (_, sizes, _, _, segs, starts, offs, _, marks, stopAt, _, _, _, _, _, _, _, entW, ent) := r
+    let parts ← if kOnly then pure none else some <$>
+      (CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs sizes marks stopAt ent
+        entW)
+    pure (r, parts)
+  -- Sequential: tasks gained little here and exhaust the gate's address-space cap (`ulimit -v`).
+  let tasks := P.zipIdx.map fun (cf, i) => Task.pure (job cf i)
+  for ((cf, i), t) in P.zipIdx.zip tasks do
+    let ((c, sizes, fsz, locs, _, starts, _, pt, _, _, acs, sts, costs, sp, ssp, chain, counts, _, ent), parts) ←
+      t.get
     certs := certs.push c
     if !ent.isEmpty then chainedFns := chainedFns.push (i + 1, cf.name, starts.size)
     for (w, gs) in sp do splits := splits.insert (i + 1, w) gs
     for (k, gs) in ssp do shareSplits := shareSplits.insert (i + 1, k) gs
     armRows := armRows.push acs
-    unless kOnly do
-      cplFns := cplFns.push (← CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs
-        sizes marks stopAt ent entW)
+    if let some fp := parts then cplFns := cplFns.push fp
     plumbs := plumbs.push pt
     snapTexts := snapTexts.push (i + 1, sts)
     frames := frames.push fsz

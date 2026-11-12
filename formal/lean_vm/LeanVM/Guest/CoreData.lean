@@ -27,8 +27,9 @@ the proofs, never compiled.
 * `coreProgram[j]? = some Data.core{j}` is `rfl` (under a `maxRecDepth` above the default for a
   large `j`), unfolding the function list only;
 * `coreProgram.find? name = some f` is `Program.find?_of_indexOf?`, from `coreProgram[j]? = some f`
-  and `coreProgram.indexOf? name = some j` by `decide +kernel`, which compares `name` with the
-  names before it;
+  and `coreProgram.indexOf? name = some j`; deciding the latter compares `name` with the names
+  before it in the kernel, slowly, so the proofs use `coreProgram_find?_at` (`B1/Common/Find.lean`)
+  instead, from `coreProgram[j]? = some f` and the names' distinctness (`CoreNames.lean`);
 * `name_eq_compiled`: function `j` has the name of compiled function `j + 1` of
   `Data.functions`, after `__jump_tables`.
 -/

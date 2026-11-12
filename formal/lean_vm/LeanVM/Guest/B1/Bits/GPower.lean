@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `g_power_of_word` (TRIAGE #17)
@@ -26,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 theorem find_g_power_of_word : coreProgram.find? "g_power_of_word" = some Data.core2 :=
-  Program.find?_of_indexOf? (j := 2) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 2) rfl
 
 /-- The folded factor constant `1 + g^(2^j)`. -/
 theorem word_gpow_one (j : ℕ) (hj : 2 ^ j < 64) (c : ℕ) (hc : c = 2 ^ 2 ^ j ^^^ 1) :

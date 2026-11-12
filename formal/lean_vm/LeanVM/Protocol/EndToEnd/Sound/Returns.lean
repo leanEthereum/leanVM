@@ -21,7 +21,7 @@ returns.
 
 The instances bound the column claims the front phases of `verifyExecutionClaims`
 (`LeanVM.Protocol.Verifier.Claims`, the claim-list form of `Statement/LeanVmVerifier.lean`'s
-`verifyExecution` at leanVM `f128`) return:
+`verifyExecution`) return:
 
 * `retOK_verifyBusBalance`: the bus phase returns four framework claims (the two memory limbs'
   columns and the two final counters);

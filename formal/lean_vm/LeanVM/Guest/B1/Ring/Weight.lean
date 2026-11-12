@@ -143,7 +143,7 @@ def rswT : List Stmt :=
 theorem rsw_body : Data.core14.body = rswT := stmtsEqb_sound (by decide +kernel)
 
 theorem find_rsw : coreProgram.find? "ring_switch_weight" = some Data.core14 :=
-  Program.find?_of_indexOf? (j := 14) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 14) rfl
 
 theorem rswInit_noRet (k : ℕ) : Stmt.noRetList (rswInit k) = true := rfl
 

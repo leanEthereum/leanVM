@@ -378,13 +378,13 @@ theorem packRem_body459 : Data.core446.body = packRemT "__loop40" :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem find_pack8_456 : coreProgram.find? "__loop37" = some Data.core443 :=
-  Program.find?_of_indexOf? (j := 443) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 443) rfl
 theorem find_packRem_457 : coreProgram.find? "__loop38" = some Data.core444 :=
-  Program.find?_of_indexOf? (j := 444) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 444) rfl
 theorem find_pack8_458 : coreProgram.find? "__loop39" = some Data.core445 :=
-  Program.find?_of_indexOf? (j := 445) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 445) rfl
 theorem find_packRem_459 : coreProgram.find? "__loop40" = some Data.core446 :=
-  Program.find?_of_indexOf? (j := 446) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 446) rfl
 
 /-- The loops' parameters: `[x, bound, rounds, prev_point, point, tabs]` for the eight-round
 loop, `[x, bound, rounds, prev_point, tabs, point]` for the remainder loop. -/

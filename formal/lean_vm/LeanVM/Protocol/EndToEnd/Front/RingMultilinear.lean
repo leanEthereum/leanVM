@@ -12,8 +12,7 @@ public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
 /-!
 # The ring claim's weight is multilinear
 
-The program's ring claim (`ringSwitchClaim`, `crates/verifier/src/lib.rs:338-344` at leanVM
-`f128`) has the weight
+The program's ring claim (`ringSwitchClaim`, `crates/verifier/src/lib.rs`) has the weight
 `W(u) = eqAbove(u) · Σ_k c_k Π_n (1 + r_n^(2^k) + u_n)`, `eqAbove` the equality kernel of the
 coordinates above the placement's window. On points of `μ` coordinates every summand is a product
 of one affine function per coordinate (`eq_eval` reads the window's coordinates, `eqAbove` the

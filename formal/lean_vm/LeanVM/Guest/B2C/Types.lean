@@ -47,7 +47,8 @@ the frame runs' values with their cells `(value, cell)`, the most instructions o
 (in `Opcode`'s order) a path through the function's code runs (`pmax`), the cells holding
 several values (`sh`), and the chained `match`es `(p, x, ts, y, b)`: top-level statement `p` of the
 body is a `match` on `V.n x` whose arm `k` ends in the table jump through cell `ts[k]`, from the
-table at base `b`, into the arms of the next `match`, on `V.n y` (`chains`). -/
+table at base `b`, into the arms of the next `match`, on `V.n y` (`chains`); and the bit set of the
+values the body's top-level atoms name (`nv`, `B2C.nvOf` of the body, checked once in `cplWin`). -/
 structure Plumb where
   stat : List (ℕ × PC) := []
   sites : List Site := []
@@ -57,6 +58,7 @@ structure Plumb where
   pmax : List ℕ := []
   sh : List ℕ := []
   chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ) := []
+  nv : ℕ := 0
   deriving Repr
 
 /-- What the sharing check's window `k + 1` starts from: its first statement, the soundness window

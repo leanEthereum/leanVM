@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Merkle.Cap
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `verify_merkle_cap__L2 .. L8` (TRIAGE #34)
@@ -47,19 +48,19 @@ theorem verify_merkle_cap_holds : verify_merkle_cap_Spec := by
   intro p hp
   simp only [merkleCapNames, List.mem_cons, List.not_mem_nil, or_false] at hp
   rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact merkle_cap_at 2 le_rfl (Program.find?_of_indexOf? (j := 1021) (by decide +kernel) rfl)
+  · exact merkle_cap_at 2 le_rfl (coreProgram_find?_at (j := 1021) rfl)
       rfl core1122_body
-  · exact merkle_cap_at 3 (by omega) (Program.find?_of_indexOf? (j := 1008) (by decide +kernel) rfl)
+  · exact merkle_cap_at 3 (by omega) (coreProgram_find?_at (j := 1008) rfl)
       rfl core1110_body
-  · exact merkle_cap_at 4 (by omega) (Program.find?_of_indexOf? (j := 1010) (by decide +kernel) rfl)
+  · exact merkle_cap_at 4 (by omega) (coreProgram_find?_at (j := 1010) rfl)
       rfl core1112_body
-  · exact merkle_cap_at 5 (by omega) (Program.find?_of_indexOf? (j := 1012) (by decide +kernel) rfl)
+  · exact merkle_cap_at 5 (by omega) (coreProgram_find?_at (j := 1012) rfl)
       rfl core1114_body
-  · exact merkle_cap_at 6 (by omega) (Program.find?_of_indexOf? (j := 1014) (by decide +kernel) rfl)
+  · exact merkle_cap_at 6 (by omega) (coreProgram_find?_at (j := 1014) rfl)
       rfl core1130_body
-  · exact merkle_cap_at 7 (by omega) (Program.find?_of_indexOf? (j := 1031) (by decide +kernel) rfl)
+  · exact merkle_cap_at 7 (by omega) (coreProgram_find?_at (j := 1031) rfl)
       rfl core1120_body
-  · exact merkle_cap_at 8 (by omega) (Program.find?_of_indexOf? (j := 1235) (by decide +kernel) rfl)
+  · exact merkle_cap_at 8 (by omega) (coreProgram_find?_at (j := 1235) rfl)
       rfl core1108_body
 
 end

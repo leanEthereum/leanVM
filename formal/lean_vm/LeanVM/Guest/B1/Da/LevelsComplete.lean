@@ -256,6 +256,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
   unfold dlEntryOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
   obtain ⟨⟨⟨⟨⟨-, hname⟩, hidx⟩, hlt⟩, hdl⟩, hloops⟩ := hok
+  replace hidx := coreIdx?_eq hidx
   unfold dlCEntryOk at hcok
   simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.isEmpty_iff, List.all_eq_true,
     List.mem_range] at hcok
@@ -320,7 +321,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
         rw [hj] at hclo
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hlo
         obtain ⟨hjl, hlok⟩ := hlo
-        have hfl := find_of_idx hj hjl
+        have hfl := find_of_idx (coreIdx?_eq hj) hjl
         simp only [guardPowOk, Bool.and_eq_true] at hg'
         obtain ⟨⟨⟨-, ha⟩, h1⟩, hN⟩ := hg'
         split at ha

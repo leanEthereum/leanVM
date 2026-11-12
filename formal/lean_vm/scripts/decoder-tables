@@ -7,9 +7,9 @@ cells (`(certOf j).locs`, by reference to the certificate data `Data.cert{j}_w{i
 the generated sources (`LeanVM/Guest/Data/Core*.lean`, `Cert*.lean`) and an entry list
 (`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
 `lake env lean scripts/decoder-tables-inputs.lean` prints after `lake build`);
-`Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions by kernel
-evaluation. `python3 -I scripts/decoder-tables --entries FILE`, from any directory (the paths are
-lean_vm's); `--check` fails when the file differs (`check-all.sh` and the CI run it).
+`Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions in the kernel.
+`python3 -I scripts/decoder-tables --entries FILE`, from any directory (the paths are lean_vm's);
+`--check` fails when the file differs (`check-all.sh` and the CI run it).
 """
 import argparse, glob, os, re, sys
 from pathlib import Path

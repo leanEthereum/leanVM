@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.EndToEnd.Sound.Theorem
 
-  The end-to-end, random-oracle-model knowledge soundness of leanVM's verifier at `f128`, at
+  The end-to-end, random-oracle-model knowledge soundness of leanVM's verifier, at
   `2^-125` per oracle query: the certificate of a statement and its bound, the extractor, and the
   step from an accepted proof without a witness to doom.
 -/

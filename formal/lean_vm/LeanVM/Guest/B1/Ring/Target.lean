@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.Ring.TargetMath
 public import LeanVM.Guest.B1.KeccakGkr.Lib
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `ring_switch_target` (TRIAGE G #64, #65)
@@ -185,7 +186,7 @@ def loop13T : List Stmt :=
 theorem loop13_body : Data.core272.body = loop13T := stmtsEqb_sound (by decide +kernel)
 
 theorem find_loop13 : coreProgram.find? "__loop13" = some Data.core272 :=
-  Program.find?_of_indexOf? (j := 272) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 272) rfl
 
 /-- **The loop body's meaning at `x`**: `g_0 .. g_7` at `map_challenges[8 ..]`, the eight slices
 at `slices·x^8`, and each chain `p`'s entry `p` of row `rs_chain·x^8` stepped by the chunk's images
@@ -316,7 +317,7 @@ def rstT : List Stmt :=
 theorem rst_body : Data.core13.body = rstT := stmtsEqb_sound (by decide +kernel)
 
 theorem find_rst : coreProgram.find? "ring_switch_target" = some Data.core13 :=
-  Program.find?_of_indexOf? (j := 13) (by decide +kernel) rfl
+  coreProgram_find?_at (j := 13) rfl
 
 
 theorem word_27 : word 27 0 = gen ^ 64 := by

@@ -49,7 +49,7 @@ def Opcode.busCode : Opcode → K
   | .keccak => addressOfIndex 5
 
 /-- The least memory log-size, `2^1` cells, the public input's two (`MIN_LOG_MEMORY`,
-`crates/verifier/src/layout.rs:88`). -/
+`crates/verifier/src/layout.rs`). -/
 def minLogMem : ℕ := 1
 
 /-- The greatest memory log-size, `2^30` cells (`crates/verifier/src/layout.rs`,
@@ -174,7 +174,7 @@ noncomputable def LeanIsaProgram.fetch (program : LeanIsaProgram) (pc : K) : Opt
 
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, one lane per limb (specification §2, the `KECCAK` paragraph;
-`keccak_cell_lanes`, `layout.rs:302-309`; `cell_lanes`,
+`keccak_cell_lanes`, `layout.rs`; `cell_lanes`,
 `crates/leanvm_core/src/keccak.rs:60-81`):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
@@ -184,7 +184,7 @@ words' limbs `0` and `1`, one lane per limb (specification §2, the `KECCAK` par
 A limb `·` holds no lane: it is ignored when read and zero when written. -/
 
 /-- The lanes cell `c` holds in limbs `0` and `1`, in the layout `odd`; `none` marks a limb that
-holds no lane (`keccak_cell_lanes`, `layout.rs:301-311`, which the verifier's flushes read
+holds no lane (`keccak_cell_lanes`, `layout.rs`, which the verifier's flushes read
 too). -/
 def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   if 9 ≤ c ∨ (odd ∧ 1 ≤ c) then (some (2 * c - 1), some (2 * c))
@@ -227,7 +227,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
 
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
 (`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`flushes_keccak`'s `address`,
-`layout.rs:350-355`). -/
+`layout.rs`). -/
 def keccakInputCellOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
   if h : c.val < 4 then om ⟨c.val, h⟩
   else if c.val < 8 then g ^ (c.val - 4) * otail

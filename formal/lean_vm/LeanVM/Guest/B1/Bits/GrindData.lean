@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.Meaning
+public import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `grind_check`'s body (TRIAGE #21)
@@ -93,115 +94,115 @@ theorem gc_shape : ∀ b ∈ grindBitsDeployed,
 set_option maxRecDepth 100000 in
 theorem grind_check_found_2 : coreProgram.find? (grindCheckName 2) = some Data.core431 ∧
     Data.core431.params = [.n 0, .n 1] ∧ Data.core431.body = gcBodyT 2 :=
-  ⟨Program.find?_of_indexOf? (j := 431) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 431) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_3 : coreProgram.find? (grindCheckName 3) = some Data.core442 ∧
     Data.core442.params = [.n 0, .n 1] ∧ Data.core442.body = gcBodyT 3 :=
-  ⟨Program.find?_of_indexOf? (j := 442) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 442) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_7 : coreProgram.find? (grindCheckName 7) = some Data.core89 ∧
     Data.core89.params = [.n 0, .n 1] ∧ Data.core89.body = gcBodyT 7 :=
-  ⟨Program.find?_of_indexOf? (j := 89) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 89) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_13 : coreProgram.find? (grindCheckName 13) = some Data.core334 ∧
     Data.core334.params = [.n 0, .n 1] ∧ Data.core334.body = gcBodyT 13 :=
-  ⟨Program.find?_of_indexOf? (j := 334) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 334) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_15 : coreProgram.find? (grindCheckName 15) = some Data.core307 ∧
     Data.core307.params = [.n 0, .n 1] ∧ Data.core307.body = gcBodyT 15 :=
-  ⟨Program.find?_of_indexOf? (j := 307) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 307) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_17 : coreProgram.find? (grindCheckName 17) = some Data.core447 ∧
     Data.core447.params = [.n 0, .n 1] ∧ Data.core447.body = gcBodyT 17 :=
-  ⟨Program.find?_of_indexOf? (j := 447) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 447) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_18 : coreProgram.find? (grindCheckName 18) = some Data.core448 ∧
     Data.core448.params = [.n 0, .n 1] ∧ Data.core448.body = gcBodyT 18 :=
-  ⟨Program.find?_of_indexOf? (j := 448) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 448) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_19 : coreProgram.find? (grindCheckName 19) = some Data.core449 ∧
     Data.core449.params = [.n 0, .n 1] ∧ Data.core449.body = gcBodyT 19 :=
-  ⟨Program.find?_of_indexOf? (j := 449) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 449) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_20 : coreProgram.find? (grindCheckName 20) = some Data.core450 ∧
     Data.core450.params = [.n 0, .n 1] ∧ Data.core450.body = gcBodyT 20 :=
-  ⟨Program.find?_of_indexOf? (j := 450) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 450) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_21 : coreProgram.find? (grindCheckName 21) = some Data.core451 ∧
     Data.core451.params = [.n 0, .n 1] ∧ Data.core451.body = gcBodyT 21 :=
-  ⟨Program.find?_of_indexOf? (j := 451) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 451) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_22 : coreProgram.find? (grindCheckName 22) = some Data.core452 ∧
     Data.core452.params = [.n 0, .n 1] ∧ Data.core452.body = gcBodyT 22 :=
-  ⟨Program.find?_of_indexOf? (j := 452) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 452) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_23 : coreProgram.find? (grindCheckName 23) = some Data.core453 ∧
     Data.core453.params = [.n 0, .n 1] ∧ Data.core453.body = gcBodyT 23 :=
-  ⟨Program.find?_of_indexOf? (j := 453) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 453) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_24 : coreProgram.find? (grindCheckName 24) = some Data.core454 ∧
     Data.core454.params = [.n 0, .n 1] ∧ Data.core454.body = gcBodyT 24 :=
-  ⟨Program.find?_of_indexOf? (j := 454) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 454) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_25 : coreProgram.find? (grindCheckName 25) = some Data.core455 ∧
     Data.core455.params = [.n 0, .n 1] ∧ Data.core455.body = gcBodyT 25 :=
-  ⟨Program.find?_of_indexOf? (j := 455) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 455) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_26 : coreProgram.find? (grindCheckName 26) = some Data.core456 ∧
     Data.core456.params = [.n 0, .n 1] ∧ Data.core456.body = gcBodyT 26 :=
-  ⟨Program.find?_of_indexOf? (j := 456) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 456) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_27 : coreProgram.find? (grindCheckName 27) = some Data.core457 ∧
     Data.core457.params = [.n 0, .n 1] ∧ Data.core457.body = gcBodyT 27 :=
-  ⟨Program.find?_of_indexOf? (j := 457) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 457) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_28 : coreProgram.find? (grindCheckName 28) = some Data.core458 ∧
     Data.core458.params = [.n 0, .n 1] ∧ Data.core458.body = gcBodyT 28 :=
-  ⟨Program.find?_of_indexOf? (j := 458) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 458) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_29 : coreProgram.find? (grindCheckName 29) = some Data.core459 ∧
     Data.core459.params = [.n 0, .n 1] ∧ Data.core459.body = gcBodyT 29 :=
-  ⟨Program.find?_of_indexOf? (j := 459) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 459) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 set_option maxRecDepth 100000 in
 theorem grind_check_found_30 : coreProgram.find? (grindCheckName 30) = some Data.core460 ∧
     Data.core460.params = [.n 0, .n 1] ∧ Data.core460.body = gcBodyT 30 :=
-  ⟨Program.find?_of_indexOf? (j := 460) (by decide +kernel) rfl, rfl,
+  ⟨coreProgram_find?_at (j := 460) rfl, rfl,
     stmtsEqb_sound (by decide +kernel)⟩
 
 /-- **Every deployed `grind_check` is the template.** -/

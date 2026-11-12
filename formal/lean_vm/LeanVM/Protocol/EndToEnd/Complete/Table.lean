@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Verifier
 # The table phase
 
 Step 4 of `verify_execution` (`tablePhase`, `crates/verifier/src/lib.rs:272-299`, and
-`table_sumcheck`, `bus.rs:256-297`, at leanVM `f128`). The verifier
+`table_sumcheck`, `bus.rs`). The verifier
 samples `ξ`, splits its powers into the constraint powers and the three form powers, and runs one
 plain sumcheck of four coefficients per round over `n = max_t τ_t` coordinates against the target
 `Σ_side ξ^side · total_side`; it then reads every table's row evaluations at the point (the

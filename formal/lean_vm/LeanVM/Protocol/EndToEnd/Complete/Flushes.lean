@@ -14,8 +14,7 @@ public import LeanVM.Protocol.Verifier
 /-!
 # The verifier tables are the instance's
 
-Fidelity of the six instruction tables of `crates/verifier/src/layout.rs:133-460` at leanVM
-`f128` (`Flushes`, `flushes_arith`, `flushes_set`, `flushes_deref`, `flushes_jump`,
+Fidelity of the six instruction tables of `crates/verifier/src/layout.rs` (`Flushes`, `flushes_arith`, `flushes_set`, `flushes_deref`, `flushes_jump`,
 `jump_constraints`, `keccak_cell_lanes`, `layout_limb`, `flushes_keccak`, `tables`), transcribed as
 `LeanVM.Protocol.Verifier.tables`, against the leanISA instance's opcode tables (`LeanIsa.flushes`,
 `LeanIsa.counts`, `LeanIsa.constraints` at `opIdx t`), which are Clean's components through

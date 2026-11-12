@@ -1,13 +1,15 @@
 import LeanVM.Guest.CoreData
 import LeanVM.Guest.Data.Source
 import LeanVM.Guest.Expand
+import LeanVM.Guest.Code
 
 /-!
 # The core IR's data
 
 `coreProgram`'s definitions (`Guest/Data/Core*`, noncomputable) read back from their elaborated
 terms, and compared with `(Expand.expandProgram Data.guest).map (·.map Fn.renumber)`, both
-evaluated without the kernel: the data cannot drift from the source.
+evaluated without the kernel: the data cannot drift from the source. And the expansion against
+the compiled functions (`Data.functions`), `KECCAK` by `KECCAK`.
 -/
 
 namespace LeanVMTests.Guest.CoreData
@@ -143,14 +145,80 @@ def fn (e : Expr) : R Fn := do
   | (``Fn.mk, #[n, ps, b]) => return ⟨← str n, ← vals ps, ← list stmt b⟩
   | _ => bad "a function" e
 
+/-! ## The whole guest against its bytecode
+
+The guest expands to one core function per compiled function, in the compiler's order (after
+`__jump_tables`), with the compiled function's name; and its `KECCAK` atoms are the compiled
+function's `KECCAK` instructions, one for one and in order: the same layouts, as many written
+cells as the instruction's `outCells`, and every value an atom reads or writes at one frame offset
+of the instructions (`keccakIns`, `keccakOuts`) throughout the function, each constant among them
+`SET` at its offset to its word (checked below with the data, the expansion run once). -/
+
+mutual
+/-- The atoms of a statement, every branch and arm. -/
+def atomsOf : Core.Stmt → List Core.Atom
+  | .atom a => [a]
+  | .ite _ z n => atomsList z ++ atomsList n
+  | .match_ _ arms => atomsArms arms
+  | _ => []
+def atomsList : List Core.Stmt → List Core.Atom
+  | [] => []
+  | s :: ss => atomsOf s ++ atomsList ss
+def atomsArms : List (List Core.Stmt) → List Core.Atom
+  | [] => []
+  | a :: as => atomsList a ++ atomsArms as
+end
+
+/-- The `KECCAK` atoms of a core function: their read and written values and layouts. -/
+def keccakAtoms (f : Core.Fn) : List (List Core.V × List Core.V × Bool × Bool) :=
+  (atomsList f.body).filterMap fun
+    | .keccak ins outs i o => some (ins, outs, i, o)
+    | _ => none
+
+/-- The `KECCAK` instructions of a compiled function: their read and written offsets and
+layouts. -/
+def keccakInstrs (c : CompiledFunction) : List (List Nat × List Nat × Bool × Bool) :=
+  c.chunks.flatten.filterMap fun
+    | .keccak m0 m1 m2 m3 tail b8 cap out i o oC =>
+        some (keccakIns m0 m1 m2 m3 tail b8 cap, keccakOuts out oC.cellCount, i, o)
+    | _ => none
+
+/-- Whether a core function's `KECCAK` atoms are a compiled function's `KECCAK` instructions. -/
+def keccakAgree (f : Core.Fn) (c : CompiledFunction) : Bool := Id.run do
+  let as := keccakAtoms f
+  let is := keccakInstrs c
+  if as.length != is.length then return false
+  let mut off : Std.HashMap Core.V Nat := {}
+  for ((ins, outs, i, o), (ci, co, i', o')) in as.zip is do
+    if i != i' || o != o' || ins.length != 13 || outs.length != co.length then return false
+    for (v, k) in (ins ++ outs).zip (ci ++ co) do
+      match off[v]? with
+      | some k' => if k != k' then return false
+      | none => off := off.insert v k
+  let code := c.chunks.flatten
+  return (atomsList f.body).all fun
+    | .const v x => match off[v]? with
+      | some k => code.any fun
+          | .set k' c0 c1 => k' == k && limbsOf x == (c0, c1)
+          | _ => false
+      | none => true
+    | _ => true
+
+/-! ## The data against the expansion -/
+
 run_meta do
   let some (.defnInfo d) := (← getEnv).find? ``coreProgram | throwError "no coreProgram"
   let P ← match (list fn d.value).run (← getEnv) with
     | .ok P => pure P
     | .error e => throwError e
   match Expand.expandProgram Data.guest with
-  | .ok Q => unless P.length == 1601 && P == Q.map Fn.renumber do
+  | .ok Q =>
+    unless P.length == 1601 && P == Q.map Fn.renumber do
       throwError "coreProgram is not the renumbered expansion"
+    unless Q.head?.map (·.name) == some "main" && Q.getLast?.map (·.name) == some "walk_path__L12_L8" &&
+        Q.map (·.name) == Data.functions.tail.map (·.name) &&
+        (Q.zip Data.functions.tail).all fun (f, c) => keccakAgree f c do
+      throwError "the expansion is not the compiled functions"
   | .error e => throwError e
 
 /-! ## Access
