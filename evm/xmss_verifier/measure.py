@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Measures the gas of an EIP-8483 add on anvil, for each scenario and hardfork.
+"""Measures the gas of an EIP-8483 add on anvil, with and without the leanXMSS proof of possession, for each scenario
+and hardfork, and checks each transaction's gasUsed against its intrinsic gas, calldata floor and traced execution.
 
 Run from anywhere, with anvil on the PATH: `python3 evm/xmss_verifier/measure.py`.
 """
@@ -23,6 +24,10 @@ WRAPPERS = {
     "C": ("0x000000000000000000000000000000000000C001", "PossessionWrapper"),
 }
 PATHS = ["add", "C0", "C"]
+SCENARIOS = ["S1", "S2", "S3"]
+# Calldata gas per zero and nonzero byte: the standard cost, then the floor (EIP-7623, raised on Amsterdam).
+CALLDATA = {"amsterdam": ((4, 16), (64, 64)), "osaka": ((4, 16), (10, 40))}
+TRACE = {"disableStack": True, "disableMemory": True, "disableStorage": True}
 
 SLOT_EXCESS, SLOT_COUNT, SLOT_HEAD, SLOT_TAIL, SLOT_LAST_BLOCK, QUEUE_OFFSET = range(6)
 SLOTS_PER_ITEM = 5
@@ -124,8 +129,40 @@ def check_tampered(node, target, data):
     data = data[:-2] + f"{int(data[-2:], 16) ^ 1:02x}"
     slots = range(QUEUE_OFFSET + 3 * SLOTS_PER_ITEM)
     before = [node.storage(target, slot) for slot in slots]
-    node.receipt(node.send(target, data, node.fee(target)), status=0)
+    r = node.receipt(node.send(target, data, node.fee(target)), status=0)
     assert [node.storage(target, slot) for slot in slots] == before
+    return r, data
+
+
+def base_gas(node):
+    """The intrinsic base of a contract call, without value and with 1 wei: the gasUsed of an empty call to a STOP."""
+    stop = "0x000000000000000000000000000000000000BEEF"
+    node.rpc("anvil_setCode", stop, "0x00")
+    return [int(node.receipt(node.send(stop, "0x", value))["gasUsed"], 16) for value in (0, 1)]
+
+
+def execution(node, tx):
+    """The gas the transaction's execution used, from its trace, and the trace's steps."""
+    steps = node.rpc("debug_traceTransaction", tx, TRACE)["structLogs"]
+    first, last = steps[0], steps[-1]
+    # Below EIP-7825's transaction gas cap, EIP-8037 state gas comes out of the regular counter.
+    assert first.get("stateGasReservoir", 0) == last.get("stateGasReservoir", 0) == 0
+    assert last["refund"] == 0
+    return first["gas"] - (last["gas"] - last["gasCost"]), steps
+
+
+def breakdown(node, fork, base, receipt, data):
+    """Splits a transaction's gasUsed into intrinsic gas and execution, or the floor, and checks the sum."""
+    b = bytes.fromhex(data[2:])
+    zeros, nonzeros = b.count(0), len(b) - b.count(0)
+    (sz, snz), (fz, fnz) = CALLDATA[fork]
+    intrinsic = base + sz * zeros + snz * nonzeros
+    floor = base + fz * zeros + fnz * nonzeros
+    exe, _ = execution(node, receipt["transactionHash"])
+    gas_used = int(receipt["gasUsed"], 16)
+    assert gas_used == max(intrinsic + exe, floor), (fork, gas_used, intrinsic, exe, floor)
+    pays = "floor" if floor > intrinsic + exe else "standard"
+    return dict(zeros=zeros, nonzeros=nonzeros, intrinsic=intrinsic, floor=floor, execution=exe, gas=gas_used, pays=pays)
 
 
 def runtime(contract):
@@ -138,11 +175,14 @@ def main():
     add = "0x" + FIXTURE["bls_pubkey"][2:] + FIXTURE["pq_data"][2:]
     assert len(add) == 2 + 2 * 112
     proof = add + FIXTURE["signature"][2:]
-    gas = {}
+    bases, rows = {}, {}
     for fork in FORKS:
         node = Anvil(fork)
         try:
             assert int(node.rpc("eth_chainId"), 16) == FIXTURE["chain_id"]
+            bases[fork] = base_gas(node)
+            # Every add sends 1 wei.
+            base = bases[fork][1]
             node.rpc("anvil_setCode", PREDEPLOY, RUNTIME)
             targets = {"add": (PREDEPLOY, add)}
             for path, (address, contract) in WRAPPERS.items():
@@ -150,15 +190,23 @@ def main():
                 targets[path] = (address, proof)
             for path, (target, data) in targets.items():
                 for scenario, r in scenarios(node, target, data).items():
-                    gas[fork, path, scenario] = int(r["gasUsed"], 16)
-            check_tampered(node, WRAPPERS["C"][0], proof)
+                    rows[fork, path, scenario] = breakdown(node, fork, base, r, data)
+            breakdown(node, fork, base, *check_tampered(node, WRAPPERS["C"][0], proof))
         finally:
             node.close()
-    print("gasUsed")
-    print(f"{'':4}" + "".join(f"{fork:>{8 * len(PATHS)}}" for fork in FORKS))
-    print(f"{'':4}" + "".join(f"{path:>8}" for fork in FORKS for path in PATHS))
-    for scenario in ["S1", "S2", "S3"]:
-        print(f"{scenario:4}" + "".join(f"{gas[fork, path, scenario]:>8}" for fork in FORKS for path in PATHS))
+
+    for fork in FORKS:
+        no_value, value = bases[fork]
+        print(f"{fork}: base {value} for a call with 1 wei ({no_value} without value)")
+        print(f"{'':9}{'zeros':>6}{'nonzero':>8}{'intrinsic':>10}{'floor':>8}{'execution':>10}{'gasUsed':>9}  pays")
+        for path in PATHS:
+            for scenario in SCENARIOS:
+                r = rows[fork, path, scenario]
+                print(
+                    f"{path:4}{scenario:5}{r['zeros']:>6}{r['nonzeros']:>8}{r['intrinsic']:>10}{r['floor']:>8}"
+                    f"{r['execution']:>10}{r['gas']:>9}  {r['pays']}"
+                )
+        print()
 
 
 if __name__ == "__main__":
