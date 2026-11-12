@@ -1,0 +1,197 @@
+/-
+  LeanVM.Guest.WalkLqOk0
+
+  The certificates of `level_queries`' specializations hand on, at their call of
+  `opening_queries`, the walk their windows' tag (`lqTag`) says (`lqOk`), by kernel evaluation.
+-/
+
+module
+
+public import LeanVM.Guest.WalkKnownDefs
+
+namespace LeanVM.Guest.End
+
+@[expose] public section
+
+/-- `level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0`. -/
+theorem lqOk_468 : lqOk (certOf 468) 109 1 1 15 3 = true := by decide +kernel
+
+/-- `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_469 : lqOk (certOf 469) 54 1 1 16 4 = true := by decide +kernel
+
+/-- `level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_470 : lqOk (certOf 470) 36 1 1 17 5 = true := by decide +kernel
+
+/-- `level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_471 : lqOk (certOf 471) 27 1 1 18 6 = true := by decide +kernel
+
+/-- `level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0`. -/
+theorem lqOk_478 : lqOk (certOf 478) 55 0 0 14 2 = true := by decide +kernel
+
+/-- `level_queries__L44_L0_L4_L16_L15_L3_L0_L0_L0_L0`. -/
+theorem lqOk_479 : lqOk (certOf 479) 44 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_480 : lqOk (certOf 480) 37 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_481 : lqOk (certOf 481) 32 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0`. -/
+theorem lqOk_487 : lqOk (certOf 487) 33 0 0 13 7 = true := by decide +kernel
+
+/-- `level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0`. -/
+theorem lqOk_488 : lqOk (certOf 488) 29 0 0 14 2 = true := by decide +kernel
+
+/-- `level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0`. -/
+theorem lqOk_489 : lqOk (certOf 489) 25 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_490 : lqOk (certOf 490) 23 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1`. -/
+theorem lqOk_495 : lqOk (certOf 495) 27 0 0 12 6 = true := by decide +kernel
+
+/-- `level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1`. -/
+theorem lqOk_496 : lqOk (certOf 496) 24 0 0 13 7 = true := by decide +kernel
+
+/-- `level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1`. -/
+theorem lqOk_497 : lqOk (certOf 497) 22 0 0 14 2 = true := by decide +kernel
+
+/-- `level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1`. -/
+theorem lqOk_498 : lqOk (certOf 498) 20 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_517 : lqOk (certOf 517) 109 0 1 16 4 = true := by decide +kernel
+
+/-- `level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_518 : lqOk (certOf 518) 54 1 1 17 5 = true := by decide +kernel
+
+/-- `level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_519 : lqOk (certOf 519) 36 1 1 18 6 = true := by decide +kernel
+
+/-- `level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0`. -/
+theorem lqOk_520 : lqOk (certOf 520) 27 1 1 19 7 = true := by decide +kernel
+
+/-- `level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0`. -/
+theorem lqOk_526 : lqOk (certOf 526) 55 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_527 : lqOk (certOf 527) 44 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_528 : lqOk (certOf 528) 37 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_529 : lqOk (certOf 529) 32 0 0 18 6 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0`. -/
+theorem lqOk_533 : lqOk (certOf 533) 32 0 0 14 2 = true := by decide +kernel
+
+/-- `level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0`. -/
+theorem lqOk_534 : lqOk (certOf 534) 28 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_535 : lqOk (certOf 535) 25 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_536 : lqOk (certOf 536) 23 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1`. -/
+theorem lqOk_538 : lqOk (certOf 538) 25 0 0 13 7 = true := by decide +kernel
+
+/-- `level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1`. -/
+theorem lqOk_539 : lqOk (certOf 539) 23 0 0 14 2 = true := by decide +kernel
+
+/-- `level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1`. -/
+theorem lqOk_540 : lqOk (certOf 540) 20 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1`. -/
+theorem lqOk_541 : lqOk (certOf 541) 19 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_560 : lqOk (certOf 560) 109 0 1 17 5 = true := by decide +kernel
+
+/-- `level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_561 : lqOk (certOf 561) 54 1 1 18 6 = true := by decide +kernel
+
+/-- `level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0`. -/
+theorem lqOk_562 : lqOk (certOf 562) 36 1 1 19 7 = true := by decide +kernel
+
+/-- `level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0`. -/
+theorem lqOk_563 : lqOk (certOf 563) 27 1 1 20 2 = true := by decide +kernel
+
+/-- `level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_569 : lqOk (certOf 569) 55 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_570 : lqOk (certOf 570) 44 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_571 : lqOk (certOf 571) 37 0 0 18 6 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0`. -/
+theorem lqOk_572 : lqOk (certOf 572) 32 0 0 19 7 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0`. -/
+theorem lqOk_575 : lqOk (certOf 575) 32 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_576 : lqOk (certOf 576) 28 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_577 : lqOk (certOf 577) 25 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_578 : lqOk (certOf 578) 23 0 0 18 6 = true := by decide +kernel
+
+/-- `level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1`. -/
+theorem lqOk_581 : lqOk (certOf 581) 24 0 0 14 2 = true := by decide +kernel
+
+/-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`. -/
+theorem lqOk_582 : lqOk (certOf 582) 22 0 0 15 3 = true := by decide +kernel
+
+/-- `level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1`. -/
+theorem lqOk_583 : lqOk (certOf 583) 20 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1`. -/
+theorem lqOk_584 : lqOk (certOf 584) 18 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_603 : lqOk (certOf 603) 109 0 1 18 6 = true := by decide +kernel
+
+/-- `level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0`. -/
+theorem lqOk_604 : lqOk (certOf 604) 54 1 1 19 7 = true := by decide +kernel
+
+/-- `level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0`. -/
+theorem lqOk_605 : lqOk (certOf 605) 36 1 1 20 2 = true := by decide +kernel
+
+/-- `level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0`. -/
+theorem lqOk_606 : lqOk (certOf 606) 27 1 1 21 3 = true := by decide +kernel
+
+/-- `level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_612 : lqOk (certOf 612) 55 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_613 : lqOk (certOf 613) 44 0 0 18 6 = true := by decide +kernel
+
+/-- `level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0`. -/
+theorem lqOk_614 : lqOk (certOf 614) 37 0 0 19 7 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0`. -/
+theorem lqOk_615 : lqOk (certOf 615) 32 0 0 20 2 = true := by decide +kernel
+
+/-- `level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0`. -/
+theorem lqOk_618 : lqOk (certOf 618) 32 0 0 16 4 = true := by decide +kernel
+
+/-- `level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
+theorem lqOk_619 : lqOk (certOf 619) 28 0 0 17 5 = true := by decide +kernel
+
+/-- `level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0`. -/
+theorem lqOk_620 : lqOk (certOf 620) 25 0 0 18 6 = true := by decide +kernel
+
+/-- `level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0`. -/
+theorem lqOk_621 : lqOk (certOf 621) 23 0 0 19 7 = true := by decide +kernel
+
+end
+end LeanVM.Guest.End
