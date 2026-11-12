@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end run of leanvm-sidecar through one language's client:
 #
-#   e2e.sh <rust|go|java|ts> <threads> [aggregate-log-inv-rate=2] [recurse-log-inv-rate=1]
+#   e2e.sh <rust|go|java|ts|nim> <threads> [aggregate-log-inv-rate=2] [recurse-log-inv-rate=1]
 #
 # Starts the server with <threads> prover threads, aggregates 16 batches of 1500 leanXMSS
 # signatures one after the other, then recurses the 16 proofs into one. Each step prints its
@@ -10,7 +10,8 @@
 # The signatures are testdata/signatures-24000.bin: 24000 signers, each signing one of 4 messages;
 # examples/gen_signatures.rs regenerates the file if it is missing. Java uses the JDK on PATH, or
 # else the eclipse-temurin:21-jdk container through docker. TypeScript needs node, npm and a C
-# compiler (clients/typescript/build.sh).
+# compiler (clients/typescript/build.sh). Nim uses the nim on PATH, or else the nimlang/nim:2.2.0
+# container through docker.
 set -euo pipefail
 
 usage() {
@@ -22,7 +23,7 @@ lang=$1
 threads=$2
 aggregate_rate=${3:-2}
 recurse_rate=${4:-1}
-[[ $lang == rust || $lang == go || $lang == java || $lang == ts ]] || usage
+[[ $lang == rust || $lang == go || $lang == java || $lang == ts || $lang == nim ]] || usage
 
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
@@ -60,6 +61,18 @@ java)
 ts)
     "$here/clients/typescript/build.sh"
     runner=(node "$here/clients/typescript/dist/e2e.js")
+    ;;
+nim)
+    build=(nim c -d:release --hints:off --nimcache:"$work/nimcache" -o:"$work/e2e-nim" "$here/clients/nim/e2e.nim")
+    if command -v nim >/dev/null; then
+        "${build[@]}"
+        runner=("$work/e2e-nim")
+    else
+        # Built against the container's libc, so run there too.
+        box=(docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v /dev/shm:/dev/shm -v "$root:$root" -w "$root" nimlang/nim:2.2.0)
+        "${box[@]}" "${build[@]}"
+        runner=("${box[@]}" "$work/e2e-nim")
+    fi
     ;;
 esac
 

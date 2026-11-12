@@ -2,7 +2,7 @@
 
 `leanvm-sidecar` serves leanXMSS aggregation, recursion and verification to one client process over one shared file. The server creates the file; the client opens it read-write and maps all of it `MAP_SHARED`. Every integer is little-endian. Every offset is in bytes from the start of the file.
 
-Clients that implement this document: `crates/leanvm_sidecar_client` (Rust), `clients/go`, `clients/java` and `clients/typescript`. Each exposes `send`, which places a payload in the arena and queues its request, and `try_recv`, which returns the next response if there is one.
+Clients that implement this document: `crates/leanvm_sidecar_client` (Rust), `clients/go`, `clients/java`, `clients/typescript` and `clients/nim`. Each exposes `send`, which places a payload in the arena and queues its request, and `try_recv`, which returns the next response if there is one.
 
 The file holds a header, a request ring, a response ring and an arena. Payloads live in the arena; the rings carry 64-byte messages that point into it.
 
