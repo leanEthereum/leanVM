@@ -28,7 +28,7 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 **Knowledge soundness** (`knowledgeSoundnessRpm_coins`): for an adversary of at most `Q` queries
 to `π` and `π⁻¹`, its coins free, the probability that the verifier accepts while the extractor `transcriptExtractor` (the extractor of
 `Extractor.lean` on the Keccak-256 evaluations of the adversary's transcript) does not return a valid execution is at most
-`soundnessError Q + (Q + 13708 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-124` for
+`soundnessError Q + (Q + 13708 · 2^30)² / 2^508`, which is at most `(Q + 2^14) · 2^-124` for
 `Q ≤ 2^120` (`soundnessRpm_le_bits`), at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256` for
 `Q ≤ 2^128` (`soundnessRpm_le_statement`, the end statement `KnowledgeSoundness`) and at most
 `2^-60` for `Q ≤ 2^64` (`soundnessRpm_le`), all in `LeanVM.Protocol.ErrorBounds`. The proof:
