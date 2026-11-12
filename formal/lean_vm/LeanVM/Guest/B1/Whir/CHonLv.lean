@@ -59,7 +59,7 @@ def F3 : Fs := match L.d with
 def word (j : ℕ) : E := sqSample (challengeOf (L.qS logN)) (capOf (L.qS logN)) j
 
 /-- The capacity before sample `j ≥ 1`. -/
-def capSq (j : ℕ) : List E := sqCap (capOf (L.qS logN)) (j - 1)
+def capSq (j : ℕ) : List E := sqCapD (capOf (L.qS logN)) (j - 1)
 
 /-- `λ`, `0` at the final level. -/
 def lam : E := match L.d with
@@ -76,15 +76,15 @@ def osRec : OsRec := match L.d with
   | .next _ W => W.osRec logN L.level L.s1 L.F
   | .fin _ _ => default
 
-/-- **The guest's data of a non-final level**, given the cap's root cells, the batch and the
-pointers of `sent` and the squeeze run. -/
-def midW (r0 r1 batched pS pZ : E) : MidW :=
-  ⟨L.rw, L.nw.x0, L.nw.x1, L.nw.high, L.nw.n1, L.nw.y0, L.nw.nn, r0, r1, batched, pS, pZ⟩
+/-- **The guest's data of a non-final level**, given the root's cells, the batch and the
+pointer of `sent`. -/
+def midW (r0 r1 batched pS : E) : MidW :=
+  ⟨L.rw, L.nw.x0, L.nw.x1, L.nw.high, L.nw.n1, L.nw.y0, L.nw.nn, r0, r1, batched, pS⟩
 
-/-- **The guest's data of the final level**, given the cap's root cells, the batch and the
-pointers of the squeeze run and the normalized lane. -/
-def finWD (r0 r1 batched pZ pH : E) : FinWD :=
-  ⟨L.rw, L.fw.fold, L.fw.nn, r0, r1, batched, pZ, pH⟩
+/-- **The guest's data of the final level**, given the root's cells, the batch and the
+pointer of the normalized lane. -/
+def finWD (r0 r1 batched pH : E) : FinWD :=
+  ⟨L.rw, L.fw.fold, L.fw.nn, r0, r1, batched, pH⟩
 
 /-- **The guest's claim at the level's start**: the Spec's plus the deficit of the records
 `recs` before it. -/

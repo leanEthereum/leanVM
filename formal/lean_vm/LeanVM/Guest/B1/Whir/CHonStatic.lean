@@ -7,15 +7,14 @@
 module
 
 public import LeanVM.Guest.B1.Whir.CHead
-public import LeanVM.Guest.B1.Place.OsHonest
+public import LeanVM.Guest.B1.Place.OsBos
 
 /-!
 # The honest buffers' configuration facts
 
-`HonStatic c`: the levels' segments of `merkle_caps`, `merkle_cap_active` and `query_positions`
-in order within their buffers, the squeeze runs within `sqz`, the out-of-domain rows and the high
-parts within their strides, the fold rounds' offsets, and the buffers' sizes (`osSizesF`) at the
-indices the reads use. `Whir/CHonStatic{0..3}.lean` decide it for the 28 candidates.
+`HonStatic c`: the levels' segments of `query_positions` in order within its buffer, the
+out-of-domain rows and the high parts within their strides, the fold rounds' offsets, and the
+buffers' sizes (`osSizesL`) at the indices the reads use. `Whir/CHonStatic{0..3}.lean` decide it for the 28 candidates.
 `chain_disj`: segments in order are disjoint.
 -/
 
@@ -25,29 +24,26 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Gu
 
 @[expose] public section
 
+/-- The positions one squeeze decodes at a level. -/
+abbrev sqPer (lv : OsLv) : ℕ := 128 / lv.depth
+
 /-- **The honest buffers' configuration facts.** -/
 def HonStatic (c : OsCfg) : Prop :=
   let n := c.levels.length
-  let lv := osLvAt c
+  let lv := fun l ↦ c.levels.getD l default
   2 ≤ n ∧ c.yrLevel + 1 = n ∧ c.yrLog ≤ yrLogCap ∧
-  (∀ l < n, 4 * (lv l).capOff + 2 ^ ((lv l).capDepth + 2) ≤
-    (if l + 1 < n then 4 * (lv (l + 1)).capOff else 4 * c.capLen)) ∧
-  (∀ l < n, (lv l).capOff + 2 ^ (lv l).capDepth ≤ (if l + 1 < n then (lv (l + 1)).capOff else c.capLen)) ∧
   (∀ l < n, (lv l).posOff + (lv l).squeezes * sqPer (lv l) ≤
-    (if l + 1 < n then (lv (l + 1)).posOff else c.posLen)) ∧
-  (∀ l < n, (lv l).squeezes ≤ c.maxSq ∧ 1 ≤ sqPer (lv l)) ∧
+    (if l + 1 < n then (lv (l + 1)).posOff else n * ligPosCap)) ∧
+  (∀ l < n, 1 ≤ sqPer (lv l)) ∧
   (∀ l < c.yrLevel, (lv l).logCols ≤ ligColsCap ∧ (lv l).folds ≤ hsStride) ∧
   (lv 0).foldsOff = 0 ∧ (∀ l < c.yrLevel, (lv (l + 1)).foldsOff = (lv l).foldsOff + (lv l).folds) ∧
   (lv c.yrLevel).foldsOff + (lv c.yrLevel).folds = c.nFolds ∧
-  (osSizesF c).length = 20 + 2 * n + c.yrLevel ∧
-  (∀ j < 13, (osSizesF c).getD j 0 = (headSizes c).getD j 0) ∧
-  (∀ l < n, (osSizesF c).getD (13 + 2 * l) 0 =
-      (if l = c.yrLevel then (c.maxSq + 1) * 5 else 2 + (lv l).folds) ∧
-    (osSizesF c).getD (14 + 2 * l) 0 =
-      (if l = c.yrLevel then c.yrLen + (lv l).folds else (c.maxSq + 1) * 5)) ∧
-  (∀ k < 7, (osSizesF c).getD (13 + 2 * n + k) 0 =
-    [yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n].getD k 0) ∧
-  (∀ l < c.yrLevel, (osSizesF c).getD (20 + 2 * n + l) 0 = 2 * ((lv l).queries / resBatch + 1))
+  (osSizesL c).length = 19 + c.yrLevel ∧
+  (∀ j < 11, (osSizesL c).getD j 0 = (headSizes c).getD j 0) ∧
+  (∀ l < c.yrLevel, (osSizesL c).getD (11 + l) 0 = 2 + (lv l).folds) ∧
+  (osSizesL c).getD (11 + c.yrLevel) 0 = c.yrLen + (lv c.yrLevel).folds ∧
+  (∀ k < 7, (osSizesL c).getD (12 + c.yrLevel + k) 0 =
+    [yrLogCap, pointCap, pointCap, n * ligColsCap, n, n, 2 * n].getD k 0)
 
 instance (c : OsCfg) : Decidable (HonStatic c) := by
   unfold HonStatic; dsimp only; infer_instance

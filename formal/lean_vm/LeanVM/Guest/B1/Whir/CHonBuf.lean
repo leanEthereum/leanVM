@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CHonLv
 public import LeanVM.Guest.B1.Whir.CFinA
-public import LeanVM.Guest.B1.Place.OsHonest
+public import LeanVM.Guest.B1.Place.OsBos
 
 /-!
 # The buffers' honest words
@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Place.OsHonest
 `OsHD`: the honest data, the configuration, the stack log, the run's levels (`Whir/CHon`) and
 each level's Merkle cap cells and flags. From it: the levels' records `recs`, every fold
 challenge `G`, the guest's claims `gclAt`, the closing rounds `tr` and their challenges `T`,
-`λ⁻¹`, and each buffer's words (`ownAt j`, of buffer `j`'s size, `osSizesF` order: the head's
-thirteen, each level's two, the finish's seven, each non-final level's residual chain); `own`.
+`λ⁻¹`, and each buffer's words (`ownAt j`, of buffer `j`'s size, `osSizesL` order: the head's
+eleven, each non-final level's message, the final lane, the finish's seven); `own`.
 
 `fitTo n xs`: `xs` cut or zero-padded to `n` words. `segAt`: a buffer split by levels at offsets,
 `segAt_at` reading a level's word back where the segments are disjoint.
@@ -87,7 +87,7 @@ variable (h : OsHD)
 abbrev L (i : ℕ) : LvAt := h.Ls.getD i default
 
 /-- Level `i`'s row. -/
-abbrev lv (i : ℕ) : OsLv := osLvAt h.c i
+abbrev lv (i : ℕ) : OsLv := h.c.levels.getD i default
 
 /-- The final level. -/
 abbrev Lf : LvAt := h.L h.c.yrLevel
@@ -120,16 +120,6 @@ def allRounds : List FoldRound := h.Ls.flatMap (·.rounds)
 def root (i : ℕ) : Digest := ((h.L i).R.getD i default).1
 
 /-! ## The head's buffers -/
-
-/-- `merkle_caps`. -/
-def capsC : List E :=
-  (List.range (4 * h.c.capLen)).map
-    (segAt h.c.levels.length (fun l ↦ 4 * (h.lv l).capOff) (fun l ↦ 2 ^ ((h.lv l).capDepth + 2)) h.cv)
-
-/-- `merkle_cap_active`. -/
-def flagsC : List E :=
-  (List.range h.c.capLen).map
-    (segAt h.c.levels.length (fun l ↦ (h.lv l).capOff) (fun l ↦ 2 ^ (h.lv l).capDepth) h.fv)
 
 /-- `final_msg`: the final lane. -/
 def fmsgC : List E := h.Lf.fw.fold
@@ -175,19 +165,15 @@ def oodC : List E := (List.range h.c.levels.length).map fun e ↦
 
 /-- `query_positions`: each level's positions from its offset. -/
 def qposC : List E :=
-  (List.range h.c.posLen).map
-    (segAt h.c.levels.length (fun l ↦ (h.lv l).posOff) (fun l ↦ (h.lv l).squeezes * sqPer (h.lv l))
-      fun l k ↦ eOfNat (qwPosOf (h.lv l).depth ((h.L l).word h.logN (k / sqPer (h.lv l)))
-        (k % sqPer (h.lv l))))
+  (List.range (h.c.levels.length * ligPosCap)).map
+    (segAt h.c.levels.length (fun l ↦ (h.lv l).posOff) (fun l ↦ (h.lv l).squeezes * (128 / (h.lv l).depth))
+      fun l k ↦ eOfNat (qwPosOf (h.lv l).depth ((h.L l).word h.logN (k / (128 / (h.lv l).depth)))
+        (k % (128 / (h.lv l).depth))))
 
 /-! ## Each level's buffers -/
 
 /-- `sent`: a non-final level's message. -/
 def sentC (i : ℕ) : List E := (h.L i).nw.x0 :: (h.L i).nw.x1 :: (h.L i).nw.high
-
-/-- `sqz`: row `j ≥ 1` the capacity before sample `j`. -/
-def sqzC (i : ℕ) : List E := (List.range ((h.c.maxSq + 1) * 5)).map fun e ↦
-  if 1 ≤ e / 5 ∧ e / 5 ≤ (h.lv i).squeezes then ((h.L i).capSq h.logN (e / 5)).getD (e % 5) 0 else 0
 
 /-- The final level's normalized lane. -/
 def hsFC : List E := (List.range (h.c.yrLen + (h.lv h.c.yrLevel).folds)).map fun j ↦
@@ -197,31 +183,26 @@ def hsFC : List E := (List.range (h.c.yrLen + (h.lv h.c.yrLevel).folds)).map fun
 
 /-- Buffer `j`'s honest words, before fitting to its size. -/
 def ownW (j : ℕ) : List E :=
-  let n := h.c.levels.length
-  if j < 13 then
-    [h.capsC, h.flagsC, h.fmsgC, h.rootsC, h.fchC, h.coefsC, h.betasC, h.musC, h.hsC, h.oodzC,
-      h.oodC, h.qposC, []].getD j []
-  else if j < 13 + 2 * n then
-    let l := (j - 13) / 2
-    if (j - 13) % 2 = 0 then (if l = h.c.yrLevel then h.sqzC l else h.sentC l)
-    else (if l = h.c.yrLevel then h.hsFC else h.sqzC l)
-  else if j < 20 + 2 * n then
-    [h.T, finPtC h.c h.G h.T, finPt1C h.c h.G h.T, finBdC h.c h.G h.T h.recs, finLsC h.c h.G h.T h.recs,
-      finLaC h.c h.G h.T h.recs, finIchC h.c h.G h.T h.recs h.li h.tr.2.1].getD (j - (13 + 2 * n)) []
-  else finRcC h.c h.G h.T h.recs h.li (j - (20 + 2 * n))
+  let y := h.c.yrLevel
+  if j < 11 then
+    [h.fmsgC, h.rootsC, h.fchC, h.coefsC, h.betasC, h.musC, h.hsC, h.oodzC, h.oodC, h.qposC, []].getD j []
+  else if j < 11 + y then h.sentC (j - 11)
+  else if j = 11 + y then h.hsFC
+  else [h.T, finPtC h.c h.G h.T, finPt1C h.c h.G h.T, finBdC h.c h.G h.T h.recs, finLsC h.c h.G h.T h.recs,
+      finLaC h.c h.G h.T h.recs, finIchC h.c h.G h.T h.recs h.li h.tr.2.1].getD (j - (12 + y)) []
 
 /-- **Buffer `j`'s honest words**, of its size. -/
-def ownAt (j : ℕ) : List E := fitTo ((osSizesF h.c).getD j 0) (h.ownW j)
+def ownAt (j : ℕ) : List E := fitTo ((osSizesL h.c).getD j 0) (h.ownW j)
 
 /-- **The buffers' honest words.** -/
-def own : List (List E) := (List.range (osSizesF h.c).length).map h.ownAt
+def own : List (List E) := (List.range (osSizesL h.c).length).map h.ownAt
 
-theorem own_len : List.Forall₂ (fun w s ↦ w.length = s) h.own (osSizesF h.c) := by
+theorem own_len : List.Forall₂ (fun w s ↦ w.length = s) h.own (osSizesL h.c) := by
   rw [List.forall₂_iff_get]
   refine ⟨by simp [own], fun i h1 h2 ↦ ?_⟩
   simp [own, ownAt, fitTo_length, List.getElem?_eq_getElem h2]
 
-theorem own_getD {j : ℕ} (hj : j < (osSizesF h.c).length) : h.own.getD j [] = h.ownAt j := by
+theorem own_getD {j : ℕ} (hj : j < (osSizesL h.c).length) : h.own.getD j [] = h.ownAt j := by
   simp [own, hj]
 
 end OsHD

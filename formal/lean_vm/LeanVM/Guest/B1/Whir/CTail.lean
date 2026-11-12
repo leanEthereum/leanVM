@@ -101,14 +101,14 @@ theorem osTailRound_complete {tch j : ℕ} {st : OsSt} (σ : Val) (hsf : st.Sf)
       · have := hsf.below.fs i hi; omega
       · exact pcu
       · have := hsf.below.claim; omega
-      · have := hsf.k; show 9 < r; omega
+      · have := hsf.k; show 10 < r; omega
     · have e := ho1 C rd hH
       have hargs : (st.fs ++ [cu.2.1, st.claim, osTabs]).map (fun i ↦ σ1 (.n i)) =
           st.fsv σ ++ [st.cur σ, σ (.n st.claim), σ (.n osTabs)] := by
         simp only [List.map_append, List.map_cons, List.map_nil, OsSt.fsv]
         congr 1
         · exact List.map_congr_left fun f hf ↦ ha1 f (hsf.below.fs f hf)
-        · rw [e, ha1 _ hsf.below.claim, ha1 osTabs (by have := hsf.k; show 9 < st.k; omega)]; rfl
+        · rw [e, ha1 _ hsf.below.claim, ha1 osTabs (by have := hsf.k; show 10 < st.k; omega)]; rfl
       rw [hargs]
       exact (hC C rd hH).1
   have b2 := BlkA.seq (show st.k ≤ r + 8 by omega) (show r + 8 ≤ r + 8 from le_rfl) b1
@@ -186,7 +186,7 @@ theorem osTailRounds_completeA {tch : ℕ} : ∀ (pairs : List (E × E)) (j : �
       (lt_of_lt_of_le htch hk1) fun C rd hH ↦ by
         obtain ⟨_, eF, ecl, ecur, _⟩ := ho1 C rd hH
         have ef : st1.fsv σ1 = rets.take 5 := congrArg Fs.cap eF
-        rw [ef, ecl, ecur, ha1 _ htch, ha1 osTabs (by have := hsf.k; show 9 < st.k; omega)]
+        rw [ef, ecl, ecur, ha1 _ htch, ha1 osTabs (by have := hsf.k; show 10 < st.k; omega)]
         exact (hT C rd hH).2.2
     refine BlkA.monoH hih fun C rd hH σ' ha ⟨ho, eF, ecl, ecur, epad⟩ ↦ ?_
     obtain ⟨st1o, eF1, ecl1, ecur1, epad1⟩ := ho1 C rd hH
@@ -232,7 +232,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
       obtain ⟨a, b, d⟩ := hsf.below.mats x hx
       exact ⟨show x.out < k + 2 by omega, show x.src < k + 2 by omega, show x.base < k + 2 by omega⟩⟩,
     hsf.co, fun p hp ↦ by have := hsf.padB p hp; show p + 4 < k + 2; omega,
-    by have := hsf.k; show 36 ≤ k + 2; omega⟩
+    by have := hsf.k; show 33 ≤ k + 2; omega⟩
   have kj : k + 2 ≤ j := by
     have := osTailRounds_k (k + 1) c.yrLog 0 s0
     exact this
@@ -251,7 +251,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
         (σ1 (.n s0.claim)) (s0.cur σ1) := fun C rd hH ↦ by
       obtain ⟨-, e1⟩ := ho1 C rd hH
       rw [e1, efs, show s0.cur σ1 = st.cur σ from ec, show σ1 (.n s0.claim) = σ (.n st.claim) from ecl,
-        ha1 osTabs (by have := hsf.k; show 9 < k; omega)]
+        ha1 osTabs (by have := hsf.k; show 10 < k; omega)]
       exact hT C rd hH
     have h := osTailRounds_completeA (H := H) (tch := k + 1) pairs 0 s0 σ1 hsf0 hok0
       (show k + 1 < k + 2 by omega) hT0
@@ -286,7 +286,7 @@ theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
       by have := hsfj.below.claim; show f.2.claim < j + m; omega,
       fun m' hm' ↦ by obtain ⟨a, b, d⟩ := hsfj.below.mats m' hm'; exact ⟨by omega, by omega, by omega⟩⟩,
       hsfj.co, fun p hp ↦ by have := hsfj.padB p hp; show p + 4 < j + m; omega,
-      by have := hsfj.k; show 36 ≤ j + m; omega⟩, hO.mats, hO.pad⟩, by omega, hag⟩,
+      by have := hsfj.k; show 33 ≤ j + m; omega⟩, hO.mats, hO.pad⟩, by omega, hag⟩,
     rfl, e0, e1, eF, ecl, ecur, epad⟩
 
 end

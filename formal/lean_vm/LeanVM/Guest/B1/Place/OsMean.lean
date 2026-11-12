@@ -86,7 +86,8 @@ def osKindTable : List (String × OsKind) :=
     ("squeeze_point_from__L16", .spf 16), ("squeeze_point_from__L17", .spf 17),
     ("squeeze_point_from__L18", .spf 18), ("squeeze_point_from__L19", .spf 19),
     ("squeeze_point_from__L20", .spf 20), ("squeeze_point_from__L21", .spf 21),
-    ("squeeze_point_from__L22", .spf 22),
+    ("squeeze_point_from__L22", .spf 22), ("squeeze_point_from__L23", .spf 23),
+    ("squeeze_point_from__L24", .spf 24),
     ("grind_check__L17", .grind 17), ("grind_check__L15", .grind 15)] ++
   merkleCapNames.map (fun p ↦ (p.1, .cap p.2)) ++
   foldFinalMsgNames.map (fun p ↦ (p.1, .ffm p.2))

@@ -19,11 +19,11 @@ public import LeanVM.Guest.B1.Whir.FinishSound
 The finish's own buffers' honest words, from all `α`s `G`, the tail challenges `T` and the
 non-final levels' records (S1a-3's `OsRec`): the point zero-padded and one plus it one-padded
 (`finPtC`, `finPt1C`), each level's basis row (`finBdC`), scale (`finLsC`), product of
-coordinates (`finLaC`), the inner chain (`finIchC`) and the residual chains (`finRcC`).
+coordinates (`finLaC`) and the inner chain (`finIchC`).
 
 `osFinishA_complete`: on memory holding the levels' records (`RecStored`), `λ⁻¹` in `level_mus`,
-`G` and `T`, and those buffers at the pointers `PT`, `PT1`, `BD`, `LS`, `LA`, `ICH`, `RC i`, with
-`fold_final_msg` returning `Y` and each residual loop holding at its honest arguments, the
+`G` and `T`, and those buffers at the pointers `PT`, `PT1`, `BD`, `LS`, `LA`, `ICH`, with
+`fold_final_msg` returning `Y` and each `level_residual` returning its level's chains, the
 statements of `osFinishA` hold at values fixed before the memory and the callees, allocating
 exactly those buffers in order (`AllocsAt`). What they return is `osFinish_sound`'s.
 -/
@@ -97,11 +97,6 @@ def finIchC (c : OsCfg) (G T : List E) (recs : List OsRec) (li : ℕ → E) (cl 
   (List.range (2 * c.levels.length)).map fun e ↦
     if e % 2 = 0 then (finIch c G T recs li cl (e / 2)).1 else (finIch c G T recs li cl (e / 2)).2
 
-/-- Non-final level `i`'s chains' buffer. -/
-def finRcC (c : OsCfg) (G T : List E) (recs : List OsRec) (li : ℕ → E) (i : ℕ) : List E :=
-  rcC (finLv c i) (finD c G T recs i) (hsvOf (finLv c i) (recs.getD i default))
-    (fun k ↦ eOfNat ((recs.getD i default).qs.getD k 0)) (li i)
-
 /-! ## What the finish reads and calls -/
 
 /-- **The finish's static facts.** -/
@@ -125,7 +120,7 @@ structure FinStatic (c : OsCfg) (G T : List E) (recs : List OsRec) : Prop where
 /-- **What memory holds and the callees do for the finish**, at the valuation `σ` it starts
 from. -/
 structure FinMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (tch : ℕ) (G T : List E)
-    (recs : List OsRec) (li : ℕ → E) (cl Y PT PT1 BD LS LA ICH : E) (RC : ℕ → E) : Prop where
+    (recs : List OsRec) (li : ℕ → E) (cl Y PT PT1 BD LS LA ICH : E) : Prop where
   stored : ∀ i < c.yrLevel, RecStored rd σ i (finLv c i) (recs.getD i default)
   mus : ∀ i < c.yrLevel, LoadHolds rd (σ (.n osMus)) i (li i)
   fch : ∀ j (h : j < G.length), LoadHolds rd (σ (.n osFch)) j G[j]
@@ -136,24 +131,22 @@ structure FinMem (C : CallRel) (rd : Reader) (σ : Val) (c : OsCfg) (tch : ℕ) 
   ls : ReadsAt rd LS (finLsC c G T recs)
   la : ReadsAt rd LA (finLaC c G T recs)
   ich : ReadsAt rd ICH (finIchC c G T recs li cl)
-  rc : ∀ i < c.yrLevel, ReadsAt rd (RC i) (finRcC c G T recs li i)
   ffm : C ("fold_final_msg__L" ++ natStr c.yrLog) [σ (.n osFmsg), σ (.n tch)] [Y]
-  loops : ∀ i < c.yrLevel, 1 + gen ^ ((finLv c i).queries / resBatch) ≠ 0 →
-    C (c.resLoop i) [1, gen ^ ((finLv c i).queries / resBatch), σ (.n osQpos), BD, σ (.n osHs), RC i,
-      li i] []
+  res : ∀ i < c.yrLevel, C (osResidualName (finLv c i))
+    [σ (.n osQpos) * gen ^ (finLv c i).posOff, BD * gen ^ (i * ligColsCap),
+      σ (.n osHs) * gen ^ (i * hsStride), li i] [(finRes c G T recs li i).1, (finRes c G T recs li i).2]
 
 /-- The finish's buffers and their sizes, in allocation order. -/
-def finAllocs (c : OsCfg) (PT PT1 BD LS LA ICH : E) (RC : ℕ → E) : List (E × ℕ) :=
+def finAllocs (c : OsCfg) (PT PT1 BD LS LA ICH : E) : List (E × ℕ) :=
   [(PT, pointCap), (PT1, pointCap), (BD, c.levels.length * ligColsCap), (LS, c.levels.length),
-    (LA, c.levels.length), (ICH, 2 * c.levels.length)] ++
-  (List.range c.yrLevel).map fun i ↦ (RC i, 2 * ((finLv c i).queries / resBatch + 1))
+    (LA, c.levels.length), (ICH, 2 * c.levels.length)]
 
 /-- The finish's last value plus one. -/
 def finEnd (c : OsCfg) (st : OsSt) (tch : ℕ) : ℕ :=
   let pts := osPtBlks c (st.k + 1) (st.k + 1 + 1) tch 0 pointCap (st.k + 1 + 2)
   let bs := osBases c tch (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel) (pts.2 + 6)
   let rs := osResiduals c (bs.2 + 1) (pts.2 + 1) (pts.2 + 3) (pts.2 + 5) 0 (c.levels.take c.yrLevel)
-    (bs.2 + 3)
+    st.mats (bs.2 + 3)
   (osOodWeights c tch (c.levels.headD default).logCols 1 c.levels.tail none rs.2).2.2 + 6
 
 

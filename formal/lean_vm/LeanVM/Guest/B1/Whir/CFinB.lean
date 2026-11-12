@@ -268,11 +268,11 @@ theorem coordSrc_lt {tch : ℕ} {lv : OsLv} {t k : ℕ} (hf : osFch < k) (ht : t
   unfold coordSrc; split_ifs <;> assumption
 
 theorem basisIn_agree {rd : Reader} {σ σ' : Val} {c : OsCfg} {tch L k : ℕ} {lv : OsLv} {β : E}
-    {X : ℕ → E} (hk : 36 ≤ k) (htch : tch < k) (ha : AgreeBelow k σ σ')
+    {X : ℕ → E} (hk : 33 ≤ k) (htch : tch < k) (ha : AgreeBelow k σ σ')
     (h : BasisIn rd σ c tch L lv β X) : BasisIn rd σ' c tch L lv β X := by
   obtain ⟨h1, h2⟩ := h
-  refine ⟨by rwa [ha _ (by show 23 < k; omega)], fun t ht ↦ ⟨(h2 t ht).1, ?_⟩⟩
-  rw [ha _ (coordSrc_lt (by show 19 < k; omega) htch)]
+  refine ⟨by rwa [ha _ (by show 20 < k; omega)], fun t ht ↦ ⟨(h2 t ht).1, ?_⟩⟩
+  rw [ha _ (coordSrc_lt (by show 16 < k; omega) htch)]
   exact (h2 t ht).2
 
 theorem basisOut_agree {rd : Reader} {σ σ' : Val} {c : OsCfg} {bd ls la L k : ℕ} {lv : OsLv} {β : E}
@@ -286,7 +286,7 @@ theorem basisOut_agree {rd : Reader} {σ σ' : Val} {c : OsCfg} {bd ls la L k : 
 (`BasisIn`) and what it stores (`BasisOut`), the coefficients not zero. -/
 theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : ℕ → ℕ → E)
     (hpos : ∀ lv : OsLv, 1 ≤ lv.prefixLen + c.yrLog) :
-    ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), bd < k → ls < k → la < k → tch < k → 36 ≤ k →
+    ∀ (levels : List OsLv) (lvl k : ℕ) (σ : Val), bd < k → ls < k → la < k → tch < k → 33 ≤ k →
       (∀ i (hi : i < levels.length), ∀ t < levels[i].prefixLen + c.yrLog,
         X (lvl + i) t * invW levels[i] t ≠ 0) →
       (∀ i (hi : i < levels.length), ∀ C rd, H C rd →
@@ -304,13 +304,13 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
       simp [osBasisCoords]
     -- β, then the row from the scale `k`
     have hL : BlkA H σ k (k + 1) [osLd k osBetas lvl] (fun σ' ↦ σ' (.n k) = β lvl) := by
-      have hS : Ssa k [osLd k osBetas lvl] (k + 1) := .cons (.load le_rfl (by show 23 < k; omega)) .nil
+      have hS : Ssa k [osLd k osBetas lvl] (k + 1) := .cons (.load le_rfl (by show 20 < k; omega)) .nil
       refine ssa_blk (Pt := fun _ ↦ 0) hS (fun C rd hH σ' ha hr _ ↦ ?_) fun C rd hH σ' ha hr ↦ ?_
       · have e0 := hr k le_rfl (by omega)
         simp [evalV, stepV] at e0
         rw [e0, memOf_eq (fun C rd hH ↦ (hm0 C rd hH).1.1) hH]
       · simp only [SidesOk, Side, V.n, le_refl, ↓reduceIte, and_true]
-        rw [ha _ (by show 23 < k; omega), memOf_eq (fun C rd hH ↦ (hm0 C rd hH).1.1) hH]
+        rw [ha _ (by show 20 < k; omega), memOf_eq (fun C rd hH ↦ (hm0 C rd hH).1.1) hH]
         exact (hm0 C rd hH).1.1
     set r := osBasisRow bd (osBasisCoords c tch lvl lv) k none (k + 1) with hr
     have hrn : k + 1 ≤ r.2.2.2 := osBasisRow_next bd (osBasisCoords c tch lvl lv) k none (k + 1)
@@ -319,10 +319,10 @@ theorem osBases_complete {c : OsCfg} {tch bd ls la : ℕ} (β : ℕ → E) (X : 
         (by omega) (by simp) fun t ht ↦ by
           rw [hlen] at ht
           rw [osBasisCoords_getD ht]
-          refine ⟨coordSrc_lt (by show 19 < k + 1; omega) (by omega), hne0 t ht, fun C rd hH ↦ ?_⟩
+          refine ⟨coordSrc_lt (by show 16 < k + 1; omega) (by omega), hne0 t ht, fun C rd hH ↦ ?_⟩
           obtain ⟨⟨-, hx⟩, ⟨hd, -⟩⟩ := hm0 C rd hH
           have hs := (hx t ht).2
-          rw [← ha1 _ (coordSrc_lt (by show 19 < k; omega) htch)] at hs
+          rw [← ha1 _ (coordSrc_lt (by show 16 < k; omega) htch)] at hs
           have hd' := (hd t ht).2
           rw [← ha1 _ hbd] at hd'
           exact ⟨hs, hd'⟩

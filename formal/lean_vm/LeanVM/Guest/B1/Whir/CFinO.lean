@@ -23,7 +23,7 @@ open LeanVM.Guest.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 36 ≤ k → sc < k →
+theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 33 ≤ k → sc < k →
     (∀ x ∈ cs, x.2.1 < k) →
     SsaP k (osOodFacs sc cs k).1 (osOodFacs sc cs k).2.2 ∧
       (osOodFacs sc cs k).2.1 < (osOodFacs sc cs k).2.2 ∧
@@ -34,7 +34,7 @@ theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 36 ≤
     have hsrc : src.1 < k := hs _ (List.mem_cons_self ..)
     obtain ⟨r1, r2, r3⟩ := osOodFacs_ssa rest (k + 5) (k + 6) (by omega) (by omega)
       (fun x hx ↦ lt_trans (hs x (List.mem_cons_of_mem _ hx)) (by omega))
-    refine ⟨.const le_rfl (.load (by omega) (by show 29 < k + 1; omega) (.add (by omega) (by omega)
+    refine ⟨.const le_rfl (.load (by omega) (by show 26 < k + 1; omega) (.add (by omega) (by omega)
       (by omega) (.load (by omega) (by omega) (.add (by omega) (by omega) (by omega)
         (.mul (by omega) (by omega) (by omega) r1))))), r2, fun p o hm ↦ ?_⟩
     simp only [osOodFacs, List.cons_append, loadsOf, List.mem_cons, Prod.mk.injEq] at hm
@@ -46,7 +46,7 @@ theorem osOodFacs_ssa : ∀ (cs : List (ℕ × ℕ × ℕ)) (sc k : ℕ), 36 ≤
       · exact Or.inr ⟨x, List.mem_cons_of_mem _ hx, he⟩
 
 theorem osOodWeight_ssa (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ) (htch : tch < k)
-    (hk : 36 ≤ k) :
+    (hk : 33 ≤ k) :
     SsaP k (osOodWeight c tch prevCols ol lv k).1 (osOodWeight c tch prevCols ol lv k).2.2 ∧
       (osOodWeight c tch prevCols ol lv k).2.1 < (osOodWeight c tch prevCols ol lv k).2.2 ∧
       (∀ p o, (p, o) ∈ loadsOf (osOodWeight c tch prevCols ol lv k).1 →
@@ -58,9 +58,9 @@ theorem osOodWeight_ssa (c : OsCfg) (tch prevCols ol : ℕ) (lv : OsLv) (k : ℕ
     (by omega) (fun x hx ↦ by
       simp only [oodCoords, List.mem_map, List.mem_range] at hx
       obtain ⟨t, -, rfl⟩ := hx
-      have h19 : osFch < k + 1 := by show 19 < k + 1; omega
+      have h19 : osFch < k + 1 := by show 16 < k + 1; omega
       split_ifs <;> simp only <;> omega)
-  refine ⟨.load le_rfl (by show 31 < k; omega) r1, r2, fun p o hm ↦ ?_⟩
+  refine ⟨.load le_rfl (by show 28 < k; omega) r1, r2, fun p o hm ↦ ?_⟩
   simp only [loadsOf, List.mem_cons, Prod.mk.injEq] at hm
   rcases hm with ⟨rfl, rfl⟩ | hm
   · exact Or.inl ⟨rfl, rfl⟩
@@ -86,7 +86,7 @@ def OodLoads (c : OsCfg) (tch : ℕ) : ℕ → ℕ → List OsLv → ℕ → ℕ
     OodLoads c tch lv.logCols (ol + 1) rest p o
 
 theorem osOodWeights_ssa (c : OsCfg) (tch : ℕ) :
-    ∀ (prevCols ol : ℕ) (lvs : List OsLv) (acc : Option ℕ) (k : ℕ), tch < k → 36 ≤ k →
+    ∀ (prevCols ol : ℕ) (lvs : List OsLv) (acc : Option ℕ) (k : ℕ), tch < k → 33 ≤ k →
       (∀ x, acc = some x → x < k) →
       SsaP k (osOodWeights c tch prevCols ol lvs acc k).1 (osOodWeights c tch prevCols ol lvs acc k).2.2 ∧
         (∀ x, (osOodWeights c tch prevCols ol lvs acc k).2.1 = some x →

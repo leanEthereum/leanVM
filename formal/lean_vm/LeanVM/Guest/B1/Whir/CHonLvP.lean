@@ -62,12 +62,12 @@ structure MidEqs (logN : ℕ) (L L' : LvAt) (lv : OsLv) (cl : E) (M : MidW) : Pr
 theorem midEqs {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index L L') {lv : OsLv}
     (hfold : L.level.fold = lv.folds) (hmu : L.mu logN = lv.logCols) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
-    (_hcols : 1 ≤ lv.logCols) (r0 r1 batched pS pZ cl : E) :
-    MidEqs logN L L' lv cl (L.midW r0 r1 batched pS pZ) := by
+    (_hcols : 1 ≤ lv.logCols) (r0 r1 batched pS cl : E) :
+    MidEqs logN L L' lv cl (L.midW r0 r1 batched pS) := by
   obtain ⟨rw, W, hd, -, -, -, -, -, -, hcap', -⟩ := hN
   have hrw : L.rw = rw := by simp [LvAt.rw, hd]
   have hnw : L.nw = W := by simp [LvAt.nw, hd]
-  set M := L.midW r0 r1 batched pS pZ with hM
+  set M := L.midW r0 r1 batched pS with hM
   have hc1 : M.cap1 lv L.cap cl = L.cap1 := by
     simp only [hM, MidW.cap1, LvAt.midW, LvAt.cap1, roundsTr_cap, hfold]
   have hF : L.F = ⟨L.cap1, []⟩ := by simp [LvAt.F, LvAt.cap1]
@@ -89,7 +89,7 @@ theorem midEqs {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index L
     simp [hM, LvAt.midW, hnw]
   have hqS : L.qS logN = W.qS L.F (L.mu logN) := by simp [LvAt.qS, hd]
   have hF3 : L.F3 logN = ⟨M.cap3 lv L.cap cl, []⟩ := by
-    simp only [LvAt.F3, hd, NextW.F3, MidW.cap3, sqCap]
+    simp only [LvAt.F3, hd, NextW.F3, MidW.cap3, sqCapD]
     rw [← hqS, ← hS2, hsq, hdep, hq]
     exact squeezeN_mk _ _
   have hSL : M.SL lv L.cap cl = (L.F3 logN).perm := by
@@ -117,9 +117,9 @@ theorem lvAt_words (L : LvAt) (logN : ℕ) {lv : OsLv} (hdep : lv.depth = L.dp l
       L.capSq logN 1 = capOf (L.qS logN) ∧ L.capSq logN lv.squeezes = (L.F3 logN).cap := by
   refine ⟨?_, fun j hj ↦ ?_, rfl, ?_⟩
   · rw [rdCell_zero]; rfl
-  · simp only [LvAt.word, LvAt.capSq, sqSample, show j ≠ 0 by omega, ↓reduceIte, sqCap]
+  · simp only [LvAt.word, LvAt.capSq, sqSample, show j ≠ 0 by omega, ↓reduceIte, sqCapD]
     rw [← squeezeN_mk]
-  · simp only [LvAt.capSq, sqCap, LvAt.F3]
+  · simp only [LvAt.capSq, sqCapD, LvAt.F3]
     rcases hd : L.d with ⟨rw, W⟩ | ⟨rw, W⟩
     · simp only [NextW.F3, LvAt.qS, hd, hsq, hdep, hq]
     · simp only [FinW.F3, LvAt.qS, hd, hsq, hdep, hq]
@@ -221,14 +221,14 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
     (hfold : L.level.fold = lv.folds) (hmu : L.mu logN = lv.logCols) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
     (hcols : 1 ≤ lv.logCols) {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.alphas.length)
-    (r0 r1 batched pS pZ : E)
+    (r0 r1 batched pS : E)
     (hbat : (L.lam logN) ^ L.level.queries * batched = ∑ k ∈ Finset.range (L.qs logN).length,
       (L.lam logN) ^ k * foldRow (specLanes index ((L.phase.map (·.leaf)).getD k []))
         (K.ofBits ((L.qs logN).getD k 0)) L.rounds) :
-    (L.midW r0 r1 batched pS pZ).claimOut lv L.cap (L.gcl recs) = L'.gcl (recs ++ [L.osRec logN]) ∧
+    (L.midW r0 r1 batched pS).claimOut lv L.cap (L.gcl recs) = L'.gcl (recs ++ [L.osRec logN]) ∧
       L'.s.alphas = L.s1.alphas ∧ L'.s.glued = L.s.glued ++ recGlued (L.osRec logN) ∧
       (L.osRec logN).F = L.s1.alphas.length := by
-  have hE := midEqs hN hfold hmu hdep hq hsq hcols r0 r1 batched pS pZ (L.gcl recs)
+  have hE := midEqs hN hfold hmu hdep hq hsq hcols r0 r1 batched pS (L.gcl recs)
   obtain ⟨rw, W, hd, -, -, -, -, hok, hs', -, -⟩ := hN
   have hrw : L.rw = rw := by simp [LvAt.rw, hd]
   have hnw : L.nw = W := by simp [LvAt.nw, hd]
@@ -261,7 +261,7 @@ theorem midClaim {logN index : ℕ} {L L' : LvAt} (hN : LvAt.NextStep logN index
   -- the claims
   obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas L.level.fold L.s L.cap rw
   have hs1g : L.s1.alphas = L.s.alphas ++ gs := by rw [hs1]; exact hgs
-  have hcl1 : (L.midW r0 r1 batched pS pZ).cl1 lv L.cap (L.gcl recs) =
+  have hcl1 : (L.midW r0 r1 batched pS).cl1 lv L.cap (L.gcl recs) =
       L.s1.claim + gs.prod * recsDeficit recs L.s.alphas := by
     simp only [MidW.cl1, LvAt.midW, LvAt.gcl, hrw, ← hfold]
     have hs1' : L.s1 = (roundsSpec L.level.fold L.s L.cap rw).1 := hs1
@@ -303,10 +303,10 @@ structure FinEqs (logN : ℕ) (L : LvAt) (lv : OsLv) (cl : E) (M : FinWD) : Prop
 theorem finEqs {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinStep logN lane index L w)
     {lv : OsLv} (hfold : L.level.fold = lv.folds) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
-    (r0 r1 batched pZ pH cl : E) : FinEqs logN L lv cl (L.finWD r0 r1 batched pZ pH) := by
+    (r0 r1 batched pH cl : E) : FinEqs logN L lv cl (L.finWD r0 r1 batched pH) := by
   obtain ⟨rw, W, hd, -⟩ := hF
   have hfw : L.fw = W := by simp [LvAt.fw, hd]
-  set M := L.finWD r0 r1 batched pZ pH with hM
+  set M := L.finWD r0 r1 batched pH with hM
   have hc1 : M.cap1 lv L.cap cl = L.cap1 := by
     simp only [hM, FinWD.cap1, LvAt.finWD, LvAt.cap1, roundsTr_cap, hfold]
   have hF : L.F = ⟨L.cap1, []⟩ := by simp [LvAt.F, LvAt.cap1]
@@ -315,7 +315,7 @@ theorem finEqs {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.FinSt
     rw [hqS, FinWD.S2, hc1, hF]
     simp [hM, LvAt.finWD, hfw, omState, FinW.qS]
   have hF3 : L.F3 logN = ⟨M.cap3 lv L.cap cl, []⟩ := by
-    simp only [LvAt.F3, hd, FinW.F3, FinWD.cap3, sqCap]
+    simp only [LvAt.F3, hd, FinW.F3, FinWD.cap3, sqCapD]
     rw [← hqS, ← hS2, hsq, hdep, hq]
     exact squeezeN_mk _ _
   exact ⟨hc1, hS2, by rw [hF3], by rw [hF3]⟩
@@ -331,23 +331,23 @@ theorem finEnd_w {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.Fin
     {lv : OsLv} (hfold : L.level.fold = lv.folds) (hdep : lv.depth = L.dp logN)
     (hq : L.level.queries = lv.queries) (hsq : lv.squeezes = sqCount (128 / lv.depth) lv.queries)
     {recs : List OsRec} (hrecF : ∀ r ∈ recs, r.F ≤ L.s.alphas.length)
-    (hglued : L.s.glued = recs.flatMap recGlued) (r0 r1 batched pZ pH : E) :
-    w.target = (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).2.1 +
-      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1.prod * recsDeficit recs L.s1.alphas ∧
+    (hglued : L.s.glued = recs.flatMap recGlued) (r0 r1 batched pH : E) :
+    w.target = (tailRun L.fw.pairs ((L.finWD r0 r1 batched pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs))).2.1 +
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs))).1.prod * recsDeficit recs L.s1.alphas ∧
     w.inner = (recs.flatMap recGlued).foldl (fun x g ↦ x + g.scalar * g.weightAt ((L.s1.alphas ++
-      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1).drop g.foldStart)) 0 ∧
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs))).1).drop g.foldStart)) 0 ∧
     w.residual = multilinearEval (L.fw.fold.take (2 ^ L.mu logN))
-      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1 ∧
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs))).1 ∧
     w.point = rotPt L.s1.alphas
-      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1 lane ∧
-    (tailRun L.fw.pairs ((L.finWD r0 r1 batched pZ pH).cap3 lv L.cap (L.gcl recs))
-        ((L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs))).1.length = L.mu logN := by
-  have hE := finEqs hF hfold hdep hq hsq r0 r1 batched pZ pH (L.gcl recs)
+      (tailRun L.fw.pairs ((L.finWD r0 r1 batched pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs))).1 lane ∧
+    (tailRun L.fw.pairs ((L.finWD r0 r1 batched pH).cap3 lv L.cap (L.gcl recs))
+        ((L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs))).1.length = L.mu logN := by
+  have hE := finEqs hF hfold hdep hq hsq r0 r1 batched pH (L.gcl recs)
   obtain ⟨rw, W, hd, -, -, -, -, hok, hw⟩ := hF
   have hrw : L.rw = rw := by simp [LvAt.rw, hd]
   have hfw : L.fw = W := by simp [LvAt.fw, hd]
@@ -355,7 +355,7 @@ theorem finEnd_w {logN lane index : ℕ} {L : LvAt} {w : WhirEnd} (hF : LvAt.Fin
   have hF3 : L.F3 logN = W.F3 L.F (L.dp logN) L.level.queries := by simp [LvAt.F3, hd]
   obtain ⟨gs, hgs, -⟩ := roundsSpec_alphas L.level.fold L.s L.cap L.rw
   have hs1g : L.s1.alphas = L.s.alphas ++ gs := hgs
-  have hcl1 : (L.finWD r0 r1 batched pZ pH).cl1 lv L.cap (L.gcl recs) =
+  have hcl1 : (L.finWD r0 r1 batched pH).cl1 lv L.cap (L.gcl recs) =
       L.s1.claim + recsDeficit recs L.s1.alphas := by
     simp only [FinWD.cl1, LvAt.finWD, LvAt.gcl, ← hfold]
     rw [roundsTr_claim, hs1g, List.drop_left, recsDeficit_append_alphas _ _ _ hrecF]
