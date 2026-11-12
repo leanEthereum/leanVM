@@ -406,19 +406,24 @@ def isEnd (pre : List Stmt) (p1 : Option V) (endc : Option ℕ) (y : V) : Bool :
     | some (.const _ w) => constOk w e
     | _ => false
 
-/-- **A loop helper's shape**: its body `pre ++ [callIf c f (i' :: rest), ret []]`, `pre` without
-`ret`, `i' = i·g`, `c = i·g + end`, the other parameters passed through. -/
-def loopShape (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
+/-- A loop helper's shape but its `ret`-freedom (`loopShape`): its body
+`pre ++ [callIf c f (i' :: rest), ret []]`, `i' = i·g`, `c = i·g + end`, the other parameters passed
+through. -/
+def loopTail (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
   match fn.body.reverse, fn.params with
   | .ret [] :: .callIf c g (i' :: rest) :: rpre, p0 :: prest =>
       let pre := rpre.reverse
-      if g = fn.name ∧ rest = prest ∧ Stmt.noRetListS pre = true ∧ isStep pre p0 i' = true ∧
+      if g = fn.name ∧ rest = prest ∧ isStep pre p0 i' = true ∧
           (match defAtom c pre with
             | some (.add _ x y) => (isStep pre p0 x && isEnd pre prest.head? endc y) ||
                 (isStep pre p0 y && isEnd pre prest.head? endc x)
             | _ => false) = true
       then some pre else none
   | _, _ => none
+
+/-- **A loop helper's shape** (`loopTail`), `pre` without `ret`. -/
+def loopShape (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
+  (loopTail fn endc).filter Stmt.noRetListS
 
 /-- A search tree by index. -/
 inductive NTree (α : Type) where

@@ -14,8 +14,8 @@ public import LeanVM.Guest.Memory.GuestFresh
 
 The compiled functions with table jumps (`armsCheck`, by the kernel over `Data.plumbs`: at leanVM
 `1a379148`, `verify_lean_xmss`, `sp_wots`, the `opening_queries` variants and their window loops)
-(and the chained `match`es) have their selectors outside their temporaries: a function's temporaries are the freshness
-certificates' list for the large functions (`temps19`, …, by `tmps19`, …; `bigTemps`), and computed
+(and the chained `match`es) have their selectors outside their temporaries: a function's temporaries are the memory
+check's list for the large functions (`temps19`, …, by `tmps19`, …; `bigTemps`), and computed
 from its body for the others (`armTemps`). So `ArmsFresh` holds (`armsFresh`), and with it `keep`
 (`kfacts_keep_all`).
 -/
@@ -42,7 +42,7 @@ theorem armsCheck_spec {q : ℕ → ℕ × ℕ × ℕ → Bool} : ∀ {l : List 
       have := armsCheck_spec h.2 j a ha
       rwa [show j + (k + 1) = j + 1 + k by omega] at this
 
-/-- The large functions' temporaries, from the freshness certificates (`GuestFresh.Temps*`), by
+/-- The large functions' temporaries, from the memory check's data (`Memory/GuestMem/Data.lean`), by
 compiled function index (core index `+ 1`). -/
 def bigTemps : List (ℕ × List ℕ) :=
   [(20, temps19), (37, temps36)]

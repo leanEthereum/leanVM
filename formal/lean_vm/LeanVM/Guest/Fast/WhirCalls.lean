@@ -4,6 +4,7 @@ public import LeanVM.Guest.Fast.WhirTables
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.Memory.GuestCalleesOk
+public import LeanVM.Guest.CoreNames
 
 /-!
 # `open_stacked`'s tables, checked
@@ -19,7 +20,9 @@ public import LeanVM.Guest.Memory.GuestCalleesOk
 * `osWordsTab_eq`, `CallsOKN`: the literal tables of `Fast/WhirTables.lean` are the template's at
   every size and rate (`osCfgAt j`: size `j % 11`, rate index `j / 11`), by kernel evaluation, a
   configuration at a time (`callsOK_j`, `Fast/WhirCalls/R*.lean`, a module per rate, joined in
-  `Fast/WhirTablesCheck.lean`), the names read off `Data.nameT` (`nameIs`, `callMatchN`).
+  `Fast/WhirTablesCheck.lean`), the names read off `Data.nameT` (`nameIs`, `callMatchN`) and the
+  `opening_queries` specialization found by its entry in the table (`oqAt`), not by its name, the
+  table's names being distinct (`oqNames_nodup`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -90,25 +93,61 @@ theorem nameIs_spec {j : ℕ} {f : String} (h : nameIs j f = true) : decoderFunc
   rw [List.getElem?_eq_getElem hl, Option.map_some, Option.some.injEq] at hn
   exact hn
 
-/-- `callMatch`, the names read off `Data.nameT`. -/
+/-- Entry `i` of the specializations' table. -/
+def oqAt (i : ℕ) : Option (String × String × OqShape) := openingQueriesLoops[i]?
+
+/-- The loop helper of entry `i`. -/
+def oqLoopAt (i : ℕ) : String := ((oqAt i).map (·.2.1)).getD ""
+
+/-- **The specializations' names are distinct**, by their codes. -/
+theorem oqNames_nodup : (openingQueriesLoops.map (·.1)).Nodup := by
+  have h : ((openingQueriesLoops.map (·.1)).map encS).Nodup := by decide +kernel
+  exact h.of_map _
+
+theorem find_fst_of_nodup {β : Type} : ∀ {l : List (String × β)} {i : ℕ} {p : String × β},
+    (l.map (·.1)).Nodup → l[i]? = some p → l.find? (·.1 == p.1) = some p
+  | [], _, _, _, h => by simp at h
+  | q :: l, 0, p, _, h => by simp only [List.getElem?_cons_zero, Option.some.injEq] at h; subst h; simp
+  | q :: l, i + 1, p, hn, h => by
+      rw [List.map_cons, List.nodup_cons] at hn
+      simp only [List.getElem?_cons_succ] at h
+      have hne : (q.1 == p.1) = false := by
+        simp only [beq_eq_false_iff_ne]
+        rintro he
+        exact hn.1 (he ▸ List.mem_map_of_mem (List.mem_of_getElem? h))
+      rw [List.find?_cons, hne]
+      exact find_fst_of_nodup hn.2 h
+
+/-- An entry found by its name is entry `i`. -/
+theorem oqEntry_of_at {i : ℕ} {n : String} (h : ((oqAt i).map (·.1)) = some n) : oqEntry n = oqAt i := by
+  rcases hp : oqAt i with _ | p
+  · rw [hp] at h; cases h
+  rw [hp, Option.map_some, Option.some.injEq] at h
+  subst h
+  exact find_fst_of_nodup oqNames_nodup hp
+
+/-- `callMatch`, the names read off `Data.nameT`, the specialization by its entry in the table. -/
 noncomputable def callMatchN (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × List V → Bool
   | (lvl, lv, args, rets) =>
-    shapeBEq (oqShapeAt r.sh) (oqShapeOf (osOqName c lvl lv)) &&
+    decide (((oqAt r.sh).map (·.1)) = some (osOqName c lvl lv)) &&
       nameIs r.lq (osQueriesName c lvl lv) &&
       nameIs r.fn (osOqName c lvl lv) &&
-      nameIs r.loop (oqLoopOf (osOqName c lvl lv)) &&
-      nameIs r.walk (oqWalkOf (oqShapeOf (osOqName c lvl lv)).oq) &&
+      nameIs r.loop (oqLoopAt r.sh) &&
+      nameIs r.walk (oqWalkOf (oqShapeAt r.sh).oq) &&
       r.N == lv.queries / (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
 
 theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × List V}
     (h : callMatchN c r q = true) : callMatch c r q = true := by
   obtain ⟨lvl, lv, args, rets⟩ := q
-  simp only [callMatchN, Bool.and_eq_true] at h
+  simp only [callMatchN, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
+  have he := oqEntry_of_at h1
+  have hl : oqLoopOf (osOqName c lvl lv) = oqLoopAt r.sh := by rw [oqLoopOf, oqLoopAt, he]
+  have hs : oqShapeOf (osOqName c lvl lv) = oqShapeAt r.sh := by rw [oqShapeOf, oqShapeAt, he, oqAt]
   simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4,
-    nameIs_spec h5]
-  simp_all
+    nameIs_spec h5, hl, hs]
+  simp_all [shapeBEq]
 
 /-- The configuration at the table's index `j`: the size `j % 11` at the rate index `j / 11`. -/
 def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)

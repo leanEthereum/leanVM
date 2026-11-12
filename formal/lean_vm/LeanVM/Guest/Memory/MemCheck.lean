@@ -320,13 +320,6 @@ theorem memF_of {tt : NTree ℕ} {j : ℕ} {fn : Fn} {ts : List ℕ} (h : tmpsR 
     (hh : memHead tt j fn ts = true) (hb : memBody tt j ts fn.body = true) : memF tt j fn = true := by
   rw [memF, h, hh, hb]; rfl
 
-/-- A function checked alone is a range. -/
-theorem RangeOk.one {chk : ℕ → Fn → Bool} {j : ℕ} {fn : Fn} (hj : coreProgram[j]? = some fn)
-    (h : chk j fn = true) : RangeOk chk j 1 := by
-  obtain ⟨hlt, rfl⟩ := List.getElem?_eq_some_iff.mp hj
-  unfold RangeOk
-  rw [List.drop_eq_getElem_cons hlt, List.take_succ_cons, List.take_zero, walkOk, walkOk, h]; rfl
-
 /-! ## Soundness -/
 
 theorem fresh_of_memF {tt : NTree ℕ} {j : ℕ} {fn : Fn} (h : memF tt j fn = true) : fn.Fresh := by

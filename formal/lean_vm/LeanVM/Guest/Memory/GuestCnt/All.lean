@@ -30,7 +30,8 @@ public import LeanVM.Guest.Memory.GuestCnt.Part19
 public import LeanVM.Guest.Memory.GuestCnt.Part20
 public import LeanVM.Guest.Memory.GuestCnt.Part21
 public import LeanVM.Guest.Memory.GuestCnt.Part22
-public import LeanVM.Guest.Memory.GuestCnt.Part23
+public import LeanVM.Guest.Memory.GuestCnt.Fn19
+public import LeanVM.Guest.Memory.GuestCnt.Fn36
 
 namespace LeanVM.Guest.Memory
 
@@ -41,7 +42,7 @@ public section
 /-- **Every function passes.** -/
 theorem cnt_all : RangeOk (chkV Data.cntJ Data.cntOmJ) 0 coreProgram.length := by
   rw [coreProgram_length]
-  have h := ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((cntRange_0.append cntRange_19).append cntRange_20).append cntRange_36).append cntRange_37).append cntRange_71).append cntRange_113).append cntRange_143).append cntRange_175).append cntRange_201).append cntRange_232).append cntRange_273).append cntRange_309).append cntRange_336).append cntRange_340).append cntRange_343).append cntRange_346).append cntRange_370).append cntRange_394).append cntRange_420).append cntRange_460).append cntRange_494).append cntRange_528).append cntRange_562).append cntRange_596).append cntRange_630).append cntRange_664).append cntRange_698).append cntRange_732).append cntRange_766).append cntRange_800).append cntRange_834).append cntRange_868).append cntRange_902).append cntRange_936).append cntRange_971).append cntRange_1004).append cntRange_1031).append cntRange_1052).append cntRange_1077).append cntRange_1097).append cntRange_1123).append cntRange_1140).append cntRange_1166).append cntRange_1184).append cntRange_1208).append cntRange_1227).append cntRange_1250).append cntRange_1266).append cntRange_1292).append cntRange_1307).append cntRange_1332).append cntRange_1349).append cntRange_1371).append cntRange_1390).append cntRange_1407).append cntRange_1432).append cntRange_1447).append cntRange_1471).append cntRange_1488).append cntRange_1505).append cntRange_1517).append cntRange_1534).append cntRange_1549).append cntRange_1563).append cntRange_1577).append cntRange_1590)
+  have h := ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((cntRange_0.append cntRange_16).append cntRange_19).append cntRange_20).append cntRange_36).append cntRange_37).append cntRange_122).append cntRange_190).append cntRange_278).append cntRange_335).append cntRange_336).append cntRange_337).append cntRange_338).append cntRange_339).append cntRange_340).append cntRange_341).append cntRange_342).append cntRange_343).append cntRange_344).append cntRange_345).append cntRange_346).append cntRange_383).append cntRange_415).append cntRange_460).append cntRange_511).append cntRange_561).append cntRange_611).append cntRange_659).append cntRange_706).append cntRange_752).append cntRange_798).append cntRange_844).append cntRange_890).append cntRange_937).append cntRange_1002).append cntRange_1035).append cntRange_1057).append cntRange_1087).append cntRange_1108).append cntRange_1133).append cntRange_1163).append cntRange_1178).append cntRange_1206).append cntRange_1222).append cntRange_1248).append cntRange_1262).append cntRange_1292).append cntRange_1306).append cntRange_1334).append cntRange_1347).append cntRange_1368).append cntRange_1388).append cntRange_1403).append cntRange_1431).append cntRange_1443).append cntRange_1462).append cntRange_1484).append cntRange_1498).append cntRange_1510).append cntRange_1525).append cntRange_1538).append cntRange_1549).append cntRange_1559).append cntRange_1570).append cntRange_1578).append cntRange_1591).append cntRange_1600)
   exact h
 
 end

@@ -180,10 +180,9 @@ def tpl(name):
 
 
 def fam_cost(fns, cert, i):
-    """A function's check's cost, by its body: its statements and call sites if certified."""
+    """A function's check's cost if certified: a little, and its body's (`family.walk_cost`)."""
     if fns[i]['name'] not in cert: return 0.05
-    body = fns[i]['body']
-    return 1 + family.size(body) / 400 + family.sites(body) / 20
+    return 0.1 + family.walk_cost(fns[i]['body'])
 
 
 def cmd_callees(g):
@@ -206,30 +205,51 @@ def cmd_words(g):
     data += ('/-- The certificate of function `j`. -/\ndef wcertJ (j : ℕ) : Cert := (wcertT.find j).getD .none\n\n'
              '/-- The frame size of function `j`. -/\ndef womegaJ (j : ℕ) : ℕ := (womegaT.find j).getD 0\n\n'
              'end\nend LeanVM.Guest.Data\n')
+    def ctx(j):
+        fn = g.fns[j]; c = cert[fn['name']]
+        return checker.Ctx(cert, cert_ks(c), fn['params'], fn['name'], True, fs)
+    cut = family.Cut('stepS true Data.wcertJ Data.womegaJ', 'Acc.add', 'Acc.zero', 'Acc.add_assoc', 'Data.wcertJ',
+                     'chkS_of_run', lambda j: walked(g.fns[j], cert[g.fns[j]['name']]),
+                     lambda j, rho, ss: checker.run_range(checker.stmt_step, checker.add, ctx(j), rho, ss),
+                     writelean.lean_acc)
     rs, mods = family.write_family(g.LD, g.fns, 'GuestWords', 'w', data, 'chkS true Data.wcertJ Data.womegaJ',
                                    lambda i: fam_cost(g.fns, cert, i), RB=40, MB=120,
-                                   doc='Every function of the guest\'s core IR passes its check counting words.')
+                                   doc='Every function of the guest\'s core IR passes its check counting words.', cut=cut)
     write_tpl(os.path.join(g.LD, 'GuestWords.lean'), tpl('GuestWords.lean').replace('NFNS', str(g.N)))
     print('words: certified %d of %d; %d ranges, %d parts' % (len(cert), g.N, len(rs), len(mods)))
     return cert
 
 
-def vec(l): return '[' + ', '.join(map(str, l)) + ']'
+vec = writelean.lean_vec
+
+
+def certv(cs):
+    """The vector certificate of the six opcodes' certificates `cs`, of one shape."""
+    c0 = cs[0]
+    if c0[0] == 'stat':
+        assert all(c[0] == 'stat' and c[1] == c0[1] and c[3] == c0[3] and [k for k, _ in c[2][1]] == [k for k, _ in c0[2][1]]
+                   for c in cs), cs
+    else:
+        assert all(c[0] == 'loop' and c[1] == c0[1] and c[2] == c0[2] and c[4] == c0[4] and
+                   [k for k, _ in c[3][1]] == [k for k, _ in c0[3][1]] for c in cs), cs
+    return checker.certv(cs)
 
 
 def lean_certv(cs):
     """The vector certificate of the six opcodes' certificates `cs`, of one shape."""
-    c0 = cs[0]
-    def aff(bs): return '⟨%s, [%s]⟩' % (vec([b[0] for b in bs]), ', '.join(
-        '(%d, %s)' % (q[0], vec([b[1][t][1] for b in bs])) for t, q in enumerate(bs[0][1])))
-    if c0[0] == 'stat':
-        assert all(c[0] == 'stat' and c[1] == c0[1] and c[3] == c0[3] and [k for k, _ in c[2][1]] == [k for k, _ in c0[2][1]]
-                   for c in cs), cs
-        return '.stat %s %s %s' % (writelean.lean_pairs(c0[1]), aff([c[2] for c in cs]), writelean.lean_ks(c0[3]))
-    assert all(c[0] == 'loop' and c[1] == c0[1] and c[2] == c0[2] and c[4] == c0[4] and
-               [k for k, _ in c[3][1]] == [k for k, _ in c0[3][1]] for c in cs), cs
-    endc = 'none' if c0[1] is None else '(some %d)' % c0[1]
-    return '.loop %s %s %s %s' % (endc, writelean.lean_pairs(c0[2]), aff([c[3] for c in cs]), writelean.lean_ks(c0[4]))
+    c = certv(cs)
+    if c[0] == 'stat':
+        return '.stat %s %s %s' % (writelean.lean_pairs(c[1]), writelean.lean_affv(c[2]), writelean.lean_ks(c[3]))
+    endc = 'none' if c[1] is None else '(some %d)' % c[1]
+    return '.loop %s %s %s %s' % (endc, writelean.lean_pairs(c[2]), writelean.lean_affv(c[3]), writelean.lean_ks(c[4]))
+
+
+def cert_ks(c): return c[3] if c[0] == 'stat' else c[4]
+
+
+def walked(fn, c):
+    """The statements a certificate's check walks (`Cert.walk`): a loop helper's without its tail."""
+    return fn['body'][:-2] if c[0] == 'loop' else fn['body']
 
 
 def ntree(items, name, defs, depth=0):
@@ -263,9 +283,17 @@ def cmd_cnt(g):
              'def cntJ (j : ℕ) : CertV := ((cntT.find j).map (·.1)).getD .none\n\n'
              '/-- The frame weights of function `j`. -/\n'
              'def cntOmJ (j : ℕ) : Vec := ((cntT.find j).map (·.2)).getD []\n\nend\nend LeanVM.Guest.Data\n')
+    cv = {n: certv([c[n] for c in certs]) for _, n in items}
+    def ctx(j):
+        fn = g.fns[j]
+        return checker.Ctx(cv, cert_ks(cv[fn['name']]), fn['params'], fn['name'])
+    cut = family.Cut('stepV Data.cntJ', 'AccV.add', 'AccV.zero', 'AccV.add_assoc', 'Data.cntJ', 'chkV_of_run',
+                     lambda j: walked(g.fns[j], cv[g.fns[j]['name']]),
+                     lambda j, rho, ss: checker.run_range(checker.stmt_stepV, checker.addv, ctx(j), rho, ss),
+                     writelean.lean_accv)
     rs, mods = family.write_family(g.LD, g.fns, 'GuestCnt', 'cnt', data, 'chkV Data.cntJ Data.cntOmJ',
                                    lambda i: fam_cost(g.fns, certs[0], i), RB=40, MB=120,
-                                   doc='Every function of the guest\'s core IR passes its check counting instructions.')
+                                   doc='Every function of the guest\'s core IR passes its check counting instructions.', cut=cut)
     write_tpl(os.path.join(g.LD, 'GuestCnt.lean'),
               tpl('GuestCnt.lean').replace('@XJ@', str(g.xj)).replace('@ARMS@', vec(g.C)))
     print('cnt: certified %d; %d ranges, %d parts' % (len(S), len(rs), len(mods)))

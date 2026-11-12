@@ -85,6 +85,13 @@ theorem RangeOk.get {chk : ℕ → Fn → Bool} {a n j : ℕ} {fn : Fn} (h : Ran
   have := walkOk_get h hk
   rwa [Nat.add_sub_cancel' h1] at this
 
+/-- A function checked alone is a range. -/
+theorem RangeOk.one {chk : ℕ → Fn → Bool} {j : ℕ} {fn : Fn} (hj : coreProgram[j]? = some fn)
+    (h : chk j fn = true) : RangeOk chk j 1 := by
+  obtain ⟨hlt, rfl⟩ := List.getElem?_eq_some_iff.mp hj
+  unfold RangeOk
+  rw [List.drop_eq_getElem_cons hlt, List.take_succ_cons, List.take_zero, walkOk, walkOk, h]; rfl
+
 /-- **Every function passes** a check whose ranges cover the core IR. -/
 theorem RangeOk.all {chk : ℕ → Fn → Bool} (h : RangeOk chk 0 coreProgram.length) {j : ℕ}
     (hj : j < coreProgram.length) : chk j coreProgram[j] = true :=

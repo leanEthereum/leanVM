@@ -17,15 +17,11 @@ open LeanVM.Guest
 public section
 
 set_option maxRecDepth 100000 in
-theorem cntRange_143 : RangeOk (chkV Data.cntJ Data.cntOmJ) 143 32 := by
+theorem cntRange_341 : RangeOk (chkV Data.cntJ Data.cntOmJ) 341 1 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cntRange_175 : RangeOk (chkV Data.cntJ Data.cntOmJ) 175 26 := by
-  unfold RangeOk; decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem cntRange_201 : RangeOk (chkV Data.cntJ Data.cntOmJ) 201 31 := by
+theorem cntRange_342 : RangeOk (chkV Data.cntJ Data.cntOmJ) 342 1 := by
   unfold RangeOk; decide +kernel
 
 end

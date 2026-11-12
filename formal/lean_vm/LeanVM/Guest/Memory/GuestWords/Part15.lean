@@ -17,15 +17,15 @@ open LeanVM.Guest
 public section
 
 set_option maxRecDepth 100000 in
-theorem wRange_1056 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 1056 27 := by
+theorem wRange_1235 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 1235 19 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wRange_1083 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 1083 18 := by
+theorem wRange_1254 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 1254 17 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wRange_1101 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 1101 26 := by
+theorem wRange_1271 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 1271 27 := by
   unfold RangeOk; decide +kernel
 
 end
