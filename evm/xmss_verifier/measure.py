@@ -5,6 +5,7 @@ and hardfork, and checks each transaction's gasUsed against its intrinsic gas, c
 Run from anywhere, with anvil on the PATH: `python3 evm/xmss_verifier/measure.py`.
 """
 
+import hashlib
 import json
 import os
 import socket
@@ -25,7 +26,13 @@ WRAPPERS = {
 }
 PATHS = ["add", "C0", "C"]
 VERIFIER = "0x000000000000000000000000000000000000B000"
-SCENARIOS = ["S1", "S2", "S3"]
+SIGNING_ROOT = "0x000000000000000000000000000000000000D000"
+SCENARIOS = {
+    "S1": "the first request ever",
+    "S2": "the first request of a block, on a queue used before",
+    "S3": "a later request in the same block",
+}
+GWEI = [1, 5, 20]
 # Calldata gas per zero and nonzero byte: the standard cost, then the floor (EIP-7623, raised on Amsterdam).
 CALLDATA = {"amsterdam": ((4, 16), (64, 64)), "osaka": ((4, 16), (10, 40))}
 TRACE = {"disableStack": True, "disableMemory": True, "disableStorage": True}
@@ -163,7 +170,27 @@ def breakdown(node, fork, base, receipt, data):
     gas_used = int(receipt["gasUsed"], 16)
     assert gas_used == max(intrinsic + exe, floor), (fork, gas_used, intrinsic, exe, floor)
     pays = "floor" if floor > intrinsic + exe else "standard"
-    return dict(zeros=zeros, nonzeros=nonzeros, intrinsic=intrinsic, floor=floor, execution=exe, gas=gas_used, pays=pays)
+    return dict(
+        hash=receipt["transactionHash"],
+        zeros=zeros,
+        nonzeros=nonzeros,
+        intrinsic=intrinsic,
+        floor=floor,
+        execution=exe,
+        gas=gas_used,
+        pays=pays,
+    )
+
+
+def message_gas(node, tx):
+    """The gas C spends computing M, from loading the free memory pointer before CHAINID to the KECCAK256 over 112
+    bytes, whose output must be the fixture's message."""
+    _, steps = execution(node, tx, stack=True)
+    i = next(k for k, step in enumerate(steps) if step["op"] == "CHAINID")
+    j = next(k for k in range(i, len(steps)) if steps[k]["op"] == "KECCAK256")
+    assert [step["op"] for step in steps[i - 2 : i]] == ["PUSH1", "MLOAD"] and int(steps[j]["stack"][-2], 16) == 112
+    assert int(steps[j + 1]["stack"][-1], 16) == int(FIXTURE["message"], 16)
+    return sum(step["gasCost"] for step in steps[i - 2 : j + 1])
 
 
 def artifact(source, contract):
@@ -192,12 +219,57 @@ def verify_breakdown(node, fork, base):
     return dict(tx=tx, keccak=keccak, rest=exe - sum(g for _, g in keccak.values()))
 
 
+def signing_root_gas(node, add):
+    """The gas of computing EIP-8450's signing root instead of M, measured on test/SigningRoot.sol: from loading the
+    free memory pointer to the success check of the third SHA-256 call, the same span as M's."""
+    a = artifact("SigningRoot.sol", "SigningRoot")
+    node.rpc("anvil_setCode", SIGNING_ROOT, a["deployedBytecode"]["object"])
+    r = node.receipt(node.send(SIGNING_ROOT, add, 0))
+    _, steps = execution(node, r["transactionHash"], stack=True)
+    i = next(k for k, step in enumerate(steps) if step["op"] == "MLOAD")
+    calls = [k for k, step in enumerate(steps) if step["op"] == "STATICCALL"]
+    j = next(k for k in range(calls[-1], len(steps)) if steps[k]["op"] == "JUMPI")
+    assert steps[i - 1]["op"] == "PUSH1" and int(steps[i]["stack"][-1], 16) == 0x40 and len(calls) == 3
+    sha = lambda b: hashlib.sha256(b).digest()
+    b = bytes.fromhex(add[2:])
+    domain = bytes.fromhex("13000000" + "ee" * 28)
+    root = sha(sha(sha(b[:48] + bytes(16)) + b[48:80]) + domain)
+    assert node.rpc("debug_traceTransaction", r["transactionHash"], TRACE)["returnValue"].removeprefix("0x") == root.hex()
+    return sum(step["gasCost"] for step in steps[i - 1 : j + 1] if step["op"] != "STATICCALL") + sum(
+        steps[k]["gas"] - steps[k + 1]["gas"] for k in calls
+    )
+
+
+def snapshots():
+    """Runs the verify gas test on each hardfork and returns, per hardfork, verifier and kind, the min and max over the
+    valid vectors of its snapshot."""
+    out = {}
+    for fork in FORKS:
+        cmd = ["forge", "test", "--root", HERE, "--isolate", "--hardfork", fork, "--match-contract", "VerifyGasTest"]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        with open(os.path.join(HERE, f"snapshots/verify-{fork}.json")) as f:
+            snap = json.load(f)
+        for name, value in snap.items():
+            verifier, kind, _ = name.split()
+            lo, hi = out.get((fork, verifier, kind), (None, None))
+            v = int(value)
+            out[fork, verifier, kind] = (v if lo is None else min(lo, v), v if hi is None else max(hi, v))
+    return out
+
+
 def main():
     subprocess.run(["forge", "build", "--root", HERE], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    snaps = snapshots()
+    print("verify alone, min and max over the 4 valid vectors: a transaction calling it, and its execution")
+    print(f"{'':16}" + "".join(f"{fork:>20}" for fork in FORKS))
+    for verifier in "AB":
+        for kind in ["transaction", "execution"]:
+            print(f"{verifier + ' ' + kind:16}" + "".join(f"{'%d to %d' % snaps[f, verifier, kind]:>20}" for f in FORKS))
+    print()
     add = "0x" + FIXTURE["bls_pubkey"][2:] + FIXTURE["pq_data"][2:]
     assert len(add) == 2 + 2 * 112
     proof = add + FIXTURE["signature"][2:]
-    bases, rows, verifies = {}, {}, {}
+    bases, rows, verifies, messages, roots = {}, {}, {}, {}, {}
     for fork in FORKS:
         node = Anvil(fork)
         try:
@@ -215,6 +287,8 @@ def main():
                     rows[fork, path, scenario] = breakdown(node, fork, base, r, data)
             breakdown(node, fork, base, *check_tampered(node, WRAPPERS["C"][0], proof))
             verifies[fork] = verify_breakdown(node, fork, bases[fork][0])
+            messages[fork] = message_gas(node, rows[fork, "C", "S1"]["hash"])
+            roots[fork] = signing_root_gas(node, add)
         finally:
             node.close()
 
@@ -242,6 +316,34 @@ def main():
     for size, (n, _) in sorted(v["keccak"].items()):
         print(f"{f'  {size} bytes x{n}':22}" + "".join(f"{verifies[f]['keccak'][size][1]:>10}" for f in FORKS))
     print(f"{'everything else':22}" + "".join(f"{verifies[f]['rest']:>10}" for f in FORKS))
+    print()
+
+    print("The message: M in C, against EIP-8450's signing root in test/SigningRoot.sol")
+    print(f"{'':22}" + "".join(f"{fork:>10}" for fork in FORKS))
+    print(f"{'M':22}" + "".join(f"{messages[f]:>10}" for f in FORKS))
+    print(f"{'signing root':22}" + "".join(f"{roots[f]:>10}" for f in FORKS))
+
+    for scenario, title in SCENARIOS.items():
+        print()
+        print(f"{scenario}, {title}")
+        print(f"{'':36}" + "".join(f"{fork:>12}" for fork in FORKS))
+        gas = {(f, p): rows[f, p, scenario]["gas"] for f in FORKS for p in PATHS}
+        exe = {(f, p): rows[f, p, scenario]["execution"] for f in FORKS for p in PATHS}
+        lines = [
+            ("add without the proof", lambda f: gas[f, "add"]),
+            ("C0, the proof unchecked", lambda f: gas[f, "C0"]),
+            ("C, the proof checked", lambda f: gas[f, "C"]),
+            ("C - add", lambda f: gas[f, "C"] - gas[f, "add"]),
+            ("C0 - add", lambda f: gas[f, "C0"] - gas[f, "add"]),
+            ("C - C0", lambda f: gas[f, "C"] - gas[f, "C0"]),
+            ("C - C0 in execution", lambda f: exe[f, "C"] - exe[f, "C0"]),
+        ]
+        for label, value in lines:
+            print(f"{label:36}" + "".join(f"{value(f):>12}" for f in FORKS))
+        for path, label in [("add", "without"), ("C", "with")]:
+            for gwei in GWEI:
+                eth = lambda f: f"{gas[f, path] * gwei / 1e9:.6f}"
+                print(f"{f'ETH {label} the proof at {gwei} gwei':36}" + "".join(f"{eth(f):>12}" for f in FORKS))
 
 
 if __name__ == "__main__":
