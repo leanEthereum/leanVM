@@ -451,12 +451,13 @@ theorem lr_pureIn {loop : String} {body : List Stmt} (hl : FnIs loop (osParams 7
 
 /-! ## The decided facts -/
 
-/-- An entry's static facts: its row's (`ResStatic`), its sizes in range, a batch, and its loops
-placing nothing. -/
+/-- An entry's static facts: its row's (`ResStatic`), its sizes in range, a batch, its loops
+placing nothing, and its words few. -/
 def LrFacts (q cols nhs hbits : ℕ) (l1 l2 : String) : Prop :=
   1 ≤ cols ∧ 1 ≤ nhs ∧ hbits ≤ 3 ∧ hbits ≤ cols + 1 ∧ 0 < q / resBatch ∧
     2 * q + 2 < 2 ^ 64 - 1 ∧ Stmt.pureList [l1] (lrLoop1Body cols nhs hbits l1) = true ∧
-    (q % resBatch ≠ 0 → Stmt.pureList [l2] (lrLoop2Body cols nhs hbits l2) = true)
+    (q % resBatch ≠ 0 → Stmt.pureList [l2] (lrLoop2Body cols nhs hbits l2) = true) ∧
+    q + cols + nhs ≤ 2 ^ 20
 
 instance (q cols nhs hbits : ℕ) (l1 l2 : String) : Decidable (LrFacts q cols nhs hbits l1 l2) := by
   unfold LrFacts; infer_instance
@@ -469,16 +470,44 @@ theorem lrTable_facts : ∀ e ∈ lrTable,
 
 /-! ## The statement -/
 
+/-- `level_residual`'s chains' buffers' words: the batches', and the rest's when `8 ∤ q`. -/
+def lrWords (q cols nhs hbits : ℕ) (D : ℕ → E) (hsv : List E) (p : ℕ → E) (M : E) :
+    List (List E) :=
+  if q % resBatch = 0 then [rcC (lrRow q cols nhs hbits) D hsv p M]
+  else [rcC (lrRow q cols nhs hbits) D hsv p M,
+    rsC (lrRow q cols nhs hbits) D hsv p M (q / resBatch) (q % resBatch)]
+
+/-- `level_residual`'s buffers at `fp`. -/
+def lrLb (fs : String → ℕ) (name : String) (q cols nhs hbits : ℕ) (D : ℕ → E) (hsv : List E)
+    (p : ℕ → E) (M : E) (fp : ℕ) : Layout :=
+  bufL (fp + fs name) (lrSizes q) (lrWords q cols nhs hbits D hsv p M)
+
+theorem lrWords_fit (q cols nhs hbits : ℕ) (D : ℕ → E) (hsv : List E) (p : ℕ → E) (M : E) :
+    List.Forall₂ (fun c s ↦ c.length ≤ s) (lrWords q cols nhs hbits D hsv p M) (lrSizes q) := by
+  by_cases h0 : q % resBatch = 0
+  · simp only [lrWords, lrSizes, h0, ↓reduceIte]
+    exact .cons (le_of_eq (by rw [rcC_length]; rfl)) .nil
+  · simp only [lrWords, lrSizes, h0, ↓reduceIte]
+    exact .cons (le_of_eq (by rw [rcC_length]; rfl)) (.cons (le_of_eq (by rw [rsC_length])) .nil)
+
 set_option maxHeartbeats 1600000 in
-/-- **`level_residual` at an entry is `LrAtD`.** -/
-theorem lrAtD_of {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
+/-- **`level_residual` at `fp`, its buffers' words honest**: by its frame, its buffers and its
+loops' trees of `m` words, on every memory holding the buffers and the caller's words. -/
+theorem lr_key {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
     (hlr : FnIs name (osParams 4) (lrBody q loop1 loop2))
     (hl1 : FnIs loop1 (osParams 7) (lrLoop1Body cols nhs hbits loop1))
     (hl2 : q % resBatch ≠ 0 → FnIs loop2 (osParams 7) (lrLoop2Body cols nhs hbits loop2))
     (hF : LrFacts q cols nhs hbits loop1 loop2) (fs : String → ℕ) (cert : String → V → ℕ)
-    (κ : ℕ) : LrAtD fs cert κ name q cols nhs hbits := by
-  obtain ⟨hc1, hn1, hb3, hbn, hq8, hq64, hp1, hp2⟩ := hF
-  intro Lin P BD HS M D p hsv hlen hreg hmem fp
+    (κ : ℕ) {Lin : Layout} {P BD HS M : E} {D p : ℕ → E} {hsv : List E} (hlen : hsv.length = nhs)
+    (hreg : RegPtrs [(0, q), (1, cols), (2, nhs)] [P, BD, HS, M] (RegionL Lin))
+    (hmem : ∀ rd, LowDef κ rd → MemL rd Lin →
+      (∀ i < q, LoadHolds rd P i (p i)) ∧ (∀ s < cols, LoadHolds rd BD s (D s)) ∧
+        ∀ c < nhs, LoadHolds rd HS c (hsv.getD c 0)) (fp : ℕ) :
+    ∃ m, ∀ rd, LowDef κ rd → MemL rd (lrLb fs name q cols nhs hbits D hsv p M fp ++ Lin) →
+      RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ ↦ False) fp
+        (fs name + (lrSizes q).sum + m) name [P, BD, HS, M]
+        [(lrRet q cols nhs hbits D hsv p M).1, (lrRet q cols nhs hbits D hsv p M).2] := by
+  obtain ⟨hc1, hn1, hb3, hbn, hq8, hq64, hp1, hp2, -⟩ := hF
   classical
   have hqd : resBatch * (q / resBatch) + (q % resBatch) = q := Nat.div_add_mod q resBatch
   have hq : 2 * q + 2 < 2 ^ 64 - 1 := hq64
@@ -610,9 +639,26 @@ theorem lrAtD_of {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
       exact lr_relAtIn1 hlr hq h0 fs cert (hCHm rd hB) (by rw [hCHw, rcC_length]; rfl) hz.1 hz.2
         (hRSm h0 rd hB) (by rw [hRSw, rsC_length]) (by rw [hRSw, hCHw, g0, c0]; rfl)
         (by rw [hRSw, hCHw, g1, c1]; rfl) (hm1 _ rd hl hL) (hm2b rd hl hL h0) hregK hregK
-  refine ⟨fs name + (lrSizes q).sum + (m1 + m2), Lb, _, [], ⟨rfl, rfl⟩, ?_, by simpa using hDb,
-    fun rd hl hL ↦ relAtIn_dmono (key rd hl (by rw [hLk]; simpa using hL)) (fun i hi ↦ ?_)⟩
-  · simpa using hWb.mono (b' := fp) (n' := fs name + (lrSizes q).sum + (m1 + m2)) (Nat.le_add_right _ _) (by omega)
+  refine ⟨m1 + m2, fun rd hl hL ↦ key rd hl ?_⟩
+  rw [hLk, hLb, hwords, hCHw, hRSw]
+  exact hL
+
+/-- **`level_residual` at an entry is `LrAtD`.** -/
+theorem lrAtD_of {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
+    (hlr : FnIs name (osParams 4) (lrBody q loop1 loop2))
+    (hl1 : FnIs loop1 (osParams 7) (lrLoop1Body cols nhs hbits loop1))
+    (hl2 : q % resBatch ≠ 0 → FnIs loop2 (osParams 7) (lrLoop2Body cols nhs hbits loop2))
+    (hF : LrFacts q cols nhs hbits loop1 loop2) (fs : String → ℕ) (cert : String → V → ℕ)
+    (κ : ℕ) : LrAtD fs cert κ name q cols nhs hbits := by
+  intro Lin P BD HS M D p hsv hlen hreg hmem fp
+  obtain ⟨m, hm⟩ := lr_key hlr hl1 hl2 hF fs cert κ hlen hreg hmem fp
+  have hW : Within (lrLb fs name q cols nhs hbits D hsv p M fp) (fp + fs name) (lrSizes q).sum :=
+    bufL_within _ _ _ (lrWords_fit _ _ _ _ _ _ _ _)
+  refine ⟨fs name + (lrSizes q).sum + m, lrLb fs name q cols nhs hbits D hsv p M fp, _, [],
+    ⟨rfl, rfl⟩, ?_, by rw [List.nil_append]; exact bufL_disj _ _ _ (lrWords_fit q cols nhs hbits D hsv p M),
+    fun rd hl hL ↦ relAtIn_dmono (hm rd hl (by simpa using hL)) (fun i hi ↦ ?_)⟩
+  · simpa using hW.mono (b' := fp) (n' := fs name + (lrSizes q).sum + m) (Nat.le_add_right _ _)
+      (by omega)
   · obtain ⟨e, he, _⟩ := hi; simp at he
 
 /-- **`level_residual` is complete placed at every specialization.** -/
