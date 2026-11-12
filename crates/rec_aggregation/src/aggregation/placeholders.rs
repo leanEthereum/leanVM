@@ -770,7 +770,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         ps("LIG_YR_LOG_LEN", scal(&|c| c.yr_log_len));
         ps("LIG_YR_LEN", scal(&|c| 1usize << c.yr_log_len));
         ps("LIG_TOTAL_FOLDS", scal(&|c| c.folds.iter().sum()));
-        ps("LIG_MAX_INTERLEAVE", scal(&|c| *c.interleaving.iter().max().unwrap()));
         // A row is its hinted words, one a lane: K at level 0, packed two to a cell, E deeper.
         let row_cap = cands.iter().flat_map(|c| c.interleaving.iter().copied()).max().unwrap();
         let packed_cap = cands.iter().map(|c| c.interleaving[0] / 2).max().unwrap();
@@ -805,7 +804,6 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         );
         ps("LIG_QUERIES", flat(&|c| c.queries.clone()));
         ps("LIG_FOLDS", flat(&|c| c.folds.clone()));
-        ps("LIG_INTERLEAVE", flat(&|c| c.interleaving.clone()));
         // 128-bit cells per leaf row: level 0's committed rows are base-field
         // F64 (8 bytes/lane, two lanes a cell); deeper levels are native F128,
         // one word a cell.

@@ -35,7 +35,7 @@ BASE_FIELD_BITS = 64
 Y_TOWER = Y_TOWER_PLACEHOLDER
 Y_INV = Y_INV_PLACEHOLDER
 COORD_BASIS = COORD_BASIS_PLACEHOLDER
-# Phi, the F2-linear map that batches the 128 transposed ring-switch coordinates, is
+# Phi, the F2-linear map that batches the 64 ring-switch slice claims, is
 # drawn as two rows of RING_MAP_WIDTH challenges, f_p then g_b. RING_W[p] = x^(-2^(64 - 8p)),
 # the inverse of the target's Horner point z_p.
 RING_MAP_WIDTH = 8
@@ -325,14 +325,12 @@ LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
 LIG_YR_LEN = LIG_YR_LEN_PLACEHOLDER
 LIG_TOTAL_FOLDS = LIG_TOTAL_FOLDS_PLACEHOLDER
-LIG_MAX_INTERLEAVE = LIG_MAX_INTERLEAVE_PLACEHOLDER
 LIG_CAP_DEPTH = LIG_CAP_DEPTH_PLACEHOLDER
 LIG_LEVEL_POSITIONS_CAP = LIG_LEVEL_POSITIONS_CAP_PLACEHOLDER
 VANISH_BY_COLS = VANISH_BY_COLS_PLACEHOLDER  # the subspace-vanishing values of n columns at n(n+1)/2
 VANISH_INVS_BY_COLS = VANISH_INVS_BY_COLS_PLACEHOLDER  # and their inverses
 LIG_QUERIES = LIG_QUERIES_PLACEHOLDER
 LIG_FOLDS = LIG_FOLDS_PLACEHOLDER
-LIG_INTERLEAVE = LIG_INTERLEAVE_PLACEHOLDER
 LIG_LEAF_CELLS = LIG_LEAF_CELLS_PLACEHOLDER
 LIG_PACKED_ROW_CAP = LIG_PACKED_ROW_CAP_PLACEHOLDER
 LIG_ROW_CAP = LIG_ROW_CAP_PLACEHOLDER
@@ -628,15 +626,6 @@ def fs_perm(sp, rate, k: Const):
         keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
     if k == 4:
         keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
-    return nxt
-
-
-@inline
-def fs_perm4(sp, r0, r1, r2, r3):
-    # The permutation whose rate is r0..r3 then zero: up to two waiting scalars, held as
-    # cells rather than in a rate run.
-    nxt = StackBuf(KECCAK_STATE)
-    keccak([r0, r1], [r2, r3], nxt, cap=sp)
     return nxt
 
 
@@ -1267,20 +1256,6 @@ def opening_message(fs0, fs1, fs2, fs3, fs4, cursor, out, n: Const, nonce: Const
     return sp[0], sp[1], sp[8], sp[9], sp[10], sp[11], sp[12], cursor
 
 
-def squeeze_point(fs0, fs1, fs2, fs3, fs4, point, n: Const):
-    # n challenges, nothing waiting in the sponge.
-    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
-    no_rate = StackBuf(8)
-    for x in unroll(0, n):
-        sp, r = squeeze(sp, no_rate, 0)
-        point[GEN ** x] = r
-    if const(n == 0):
-        out = sp
-    else:
-        out = [sp[8], sp[9], sp[10], sp[11], sp[12]]
-    return out[0], out[1], out[2], out[3], out[4]
-
-
 def squeeze_point_from(fs0, fs1, fs2, fs3, fs4, first, point, n: Const):
     # n challenges whose first, `first`, a permutation already drew, the sponge its
     # capacity: the other n - 1 are fresh squeezes.
@@ -1505,10 +1480,10 @@ def residual_query(basis_chain, row_d, hs, n_cols: Const, n_hs: Const, hs_bits: 
     return prefix_eq, basis_chain * novel_eval(hs, ws, n_hs, hs_bits)
 
 
-def level_residual(positions, row_d, hs, mu, n_queries: Const, n_cols: Const, n_hs: Const, hs_bits: Const):
+def level_residual(positions, row_d, hs, lam_inv, n_queries: Const, n_cols: Const, n_hs: Const, hs_bits: Const):
     # A non-final level's residual chains at the terminal point, RES_BATCH queries an
     # iteration sharing the row's reads and constants, then the rest one at a time. Query
-    # q is weighted lam^q: each chain runs h <- (h + term_q) * mu with mu = 1/lam, ending
+    # q is weighted lam^q: each chain runs h <- (h + term_q) * lam_inv, ending
     # at lam^-n * sum_q lam^q term_q.
     chain = HeapBuf(GEN ** (2 * (n_queries // RES_BATCH + 1)))
     chain[GEN ** 0] = 0
@@ -1520,8 +1495,8 @@ def level_residual(positions, row_d, hs, mu, n_queries: Const, n_cols: Const, n_
         h_high = rec[GEN ** 1]
         for k in unroll(0, RES_BATCH):
             eq_q, high_q = residual_query(batch[GEN ** k], row_d, hs, n_cols, n_hs, hs_bits)
-            h = (h + eq_q) * mu
-            h_high = (h_high + high_q) * mu
+            h = (h + eq_q) * lam_inv
+            h_high = (h_high + high_q) * lam_inv
         rec[GEN ** 2] = h
         rec[GEN ** 3] = h_high
     rec = chain * GEN ** (2 * (n_queries // RES_BATCH))
@@ -1535,8 +1510,8 @@ def level_residual(positions, row_d, hs, mu, n_queries: Const, n_cols: Const, n_
         for xq in mul_range(1, GEN ** (n_queries % RES_BATCH)):
             rq = rest * xq * xq
             eq_q, high_q = residual_query(tail[xq], row_d, hs, n_cols, n_hs, hs_bits)
-            rq[GEN ** 2] = (rq[GEN ** 0] + eq_q) * mu
-            rq[GEN ** 3] = (rq[GEN ** 1] + high_q) * mu
+            rq[GEN ** 2] = (rq[GEN ** 0] + eq_q) * lam_inv
+            rq[GEN ** 3] = (rq[GEN ** 1] + high_q) * lam_inv
         end = rest * GEN ** (2 * (n_queries % RES_BATCH))
         h = end[GEN ** 0]
         h_high = end[GEN ** 1]
@@ -1618,8 +1593,8 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     round_coefs = HeapBuf(GEN ** (2 * n_folds))
     # Per non-final level: its glued query batch's scalar lam^2 times lam^n (the inverse
     # chains' correction), 1/lam, and its OOD claim's point and scalar lam, at row lvl + 1.
-    level_betas = HeapBuf(GEN ** n_levels)
-    level_mus = HeapBuf(GEN ** n_levels)
+    level_scales = HeapBuf(GEN ** n_levels)
+    level_lam_invs = HeapBuf(GEN ** n_levels)
     level_hs = HeapBuf(GEN ** (n_levels * 2 ** HIGH_BITS_CAP))  # each high part, normalizers in
     ood_z = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
     ood_scalars = HeapBuf(GEN ** n_levels)
@@ -1724,8 +1699,8 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
             claim = claim + lam * ood_y
             scale = lam * lam * lam_pow
             claim = claim + scale * batched
-            level_betas[GEN ** lvl] = scale
-            level_mus[GEN ** lvl] = lam_inv
+            level_scales[GEN ** lvl] = scale
+            level_lam_invs[GEN ** lvl] = lam_inv
 
     # ---- the closing sumcheck over the final lane's low part ----
     tail_challenges = HeapBuf(GEN ** YR_LOG_CAP)
@@ -1783,7 +1758,7 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
         ml = m_idx * LIG_MAX_LEVELS + lvl
         prefix_len = LIG_RESIDUAL_PREFIX_LEN[ml]
         vanish = LIG_LOG_MSG_COLS[ml] * (LIG_LOG_MSG_COLS[ml] + 1) // 2
-        scale = level_betas[GEN ** lvl]
+        scale = level_scales[GEN ** lvl]
         after = GEN ** 0
         for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
@@ -1805,13 +1780,13 @@ def open_stacked(m_idx: Const, rate_sel, fs0, fs1, fs2, fs3, fs4, target, commit
     inner_chain[GEN ** 1] = claim
     for lvl in unroll(0, last):
         ml = m_idx * LIG_MAX_LEVELS + lvl
-        # level_betas carries the lam^(n + 2) that the chains' 1/lam steps leave out.
-        h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_mus[GEN ** lvl], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
+        # level_scales carries the lam^(n + 2) that the chains' 1/lam steps leave out.
+        h, h_high = match(log(rate_sel), range(0, LIG_N_RATES), lambda r: level_residual(query_positions * GEN ** (lvl * LIG_LEVEL_POSITIONS_CAP), basis_d * GEN ** (lvl * LIG_LOG_MSG_COLS_CAP), level_hs * GEN ** (lvl * 2 ** HIGH_BITS_CAP), level_lam_invs[GEN ** lvl], LIG_QUERIES[ml + r * LIG_RATE_STRIDE], LIG_LOG_MSG_COLS[ml], LIG_FOLDS[ml], LIG_HIGH_BITS[ml]))
         # accumulate lam^(n+2) * prod_t b_t * (the level's residual chain) into the total,
         # and lam^(n+2) * (the challenges after the level) * (its high chain) into the claim
         acc = inner_chain * GEN ** (2 * lvl)
         acc[GEN ** 2] = acc[GEN ** 0] + level_scale[GEN ** lvl] * h
-        acc[GEN ** 3] = acc[GEN ** 1] + level_betas[GEN ** lvl] * level_after[GEN ** lvl] * h_high
+        acc[GEN ** 3] = acc[GEN ** 1] + level_scales[GEN ** lvl] * level_after[GEN ** lvl] * h_high
 
     # The OOD claims' eq weights at the same terminal point, each glued with its level's
     # lam.
