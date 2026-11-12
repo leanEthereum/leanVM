@@ -4,7 +4,7 @@ public import LeanVM.Guest.Fast.WhirTablesCheck
 public import LeanVM.Guest.B1.Whir.Names
 public import LeanVM.Guest.Fast.LogG
 public import LeanVM.Guest.Fast.Common
-public import LeanVM.Guest.Fast.FunctionNames
+public import LeanVM.Guest.Fast.FunctionIdx
 public import LeanVM.Guest.B1.VerifySub.Proof
 
 /-!

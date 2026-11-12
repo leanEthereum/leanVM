@@ -27,7 +27,9 @@ written under `LeanVM/Guest/`. `CMD` is one of
   and `Count/Words.lean`, every function's words by name (`wSB`, `wSK`; `Count/Instances.lean`
   instantiates the budget's hypotheses with them);
 * `deployed`: `Count/Deployed*.lean`, the numbers of `Budget.deployedBudget Bv` (`deployed.py`);
-* `all`: `callees`, `words`, `cnt`, `static`, `ratiov`, `vscount` and `deployed`.
+* `fnidx`: `Fast/FunctionIdx.lean`, the indices of the functions the decoder's readers name
+  (`FAST_FNS`) and of `open_stacked`'s specializations;
+* `all`: `callees`, `fnidx`, `words`, `cnt`, `static`, `ratiov`, `vscount` and `deployed`.
 
 The checker is `checker.py`, a mirror of `Memory/Static.lean`; `--cache` keeps the parsed core IR.
 """
@@ -45,6 +47,15 @@ XMSS = '__loop2'  # leanXMSS's check, inline in __loop2 (lean_ethereum.py:4444-4
 CONST_ROOTS = [('Exp', 'exponent_tables'), ('Sd', 'statement_digest')]
 LOOP_ROOTS = [('L1', '__loop0'), ('L2', '__loop1'), ('L3', '__loop2'), ('L4', '__loop3')]
 AGG = 'aggregate_claims'
+DA_BLOB = '__loop25'  # `da_verify_column`'s blob loop
+# The functions the decoder's readers name by index (`Fast/FunctionIdx.lean`): the abbreviation's
+# suffix, the function, the theorem naming it.
+FAST_FNS = [('Main', 'main', 'name_main'), ('VerifySub', 'verify_sub', 'name_verify_sub'),
+            ('Xmss', XMSS, 'name_xmss'), ('SpWots', 'sp_wots', 'name_sp_wots'),
+            ('Sphincs', 'verify_sig_lean_sphincs', 'name_verify_sig_lean_sphincs'),
+            ('DaVerify', 'da_verify', 'name_da_verify'), ('DaColumn', 'da_verify_column', 'name_da_verify_column'),
+            ('DaCell', 'da_verify_cell', 'name_da_verify_cell'), ('Aggregate', AGG, 'name_aggregate_claims'),
+            ('DaBlobLoop', DA_BLOB, 'name_da_blob_loop')]
 ROOTS = [n for _, n in CONST_ROOTS] + [n for _, n in LOOP_ROOTS] + [AGG]
 # `verify_sub`'s statically bounded callees (each child's opening arm among them),
 # `child_claim_list_digest`'s callees (its two walks' loops and last digests), and the statically bounded callees of `main`'s
@@ -67,6 +78,8 @@ def WROOTS(g):
 # families), within ratios of their words (`Count/RatioV*`).
 RATIOV_ROOTS = [('Vbg', 'verify_bus_gkr'), ('Vk', 'verify_keccak'), ('Vl15', '__loop14'),
                 ('Vrsw', 'ring_switch_weight')]
+# `verify_tables`' callees `Count/VsWords` bounds apart from the others (`vtPairs`).
+VT_APART = ['__loop9', '__loop8', 'shared_selector_tables']
 MAIN_CALLEES = ['exponent_tables', 'claim_list_digest', '__loop0', '__loop1', '__loop2', '__loop3',
                 'da_verify', '__loop4', AGG, 'statement_digest']
 
@@ -397,13 +410,35 @@ def encS(s):
     return k
 
 
+def cmd_fnidx(g):
+    """`Fast/FunctionIdx.lean`: the indices of `FAST_FNS` and of `open_stacked`'s specializations."""
+    t = family.header('LeanVM.Guest.Fast.FunctionIdx',
+                      'The indices of the functions the decoder\'s readers name (`Fast/FunctionNames.lean`).',
+                      'public import LeanVM.Guest.Fast.FunctionNames\n')
+    t += '\nnamespace LeanVM.Guest.Fast\n\n@[expose] public section\n'
+    for suf, n, thm in FAST_FNS:
+        t += ('\n/-- `%s`\'s index. -/\nabbrev idx%s : ℕ := %d\n\ntheorem %s : decoderFunctionName idx%s = "%s" := by\n'
+              '  decide +kernel\n' % (n, suf, g.by[n] + 1, thm, suf, n))
+    os0 = g.by[g.os_names()[0]]
+    assert all(g.by[n] == os0 + m for m, n in enumerate(g.os_names())), 'open_stacked\'s arms are not consecutive'
+    t += ('\n/-- `open_stacked__L{m}` is function `%d + m`. -/\ndef openStackedIdx (m : ℕ) : ℕ := %d + m\n'
+          '\nend\nend LeanVM.Guest.Fast\n' % (os0 + 1, os0 + 1))
+    write_tpl(os.path.join(g.lv, 'LeanVM', 'Guest', 'Fast', 'FunctionIdx.lean'), t)
+    print('fnidx: %d functions' % len(FAST_FNS))
+
+
 def cmd_words_by_name(g, wcert):
     loops = sorted((int(n[6:]), g.by[n]) for n in g.by if re.fullmatch(r'__loop\d+', n) and n in wcert)
     items = sorted((encS(f['name']), i) for i, f in g.fns.items())
     assert len(set(k for k, _ in items)) == len(items)
+    # `verify_tables`' callees, directly or not, but those `Count/VsWords` bounds apart, by name
+    vt = sorted(g.closure(['verify_tables']) - {'verify_tables'} - set(VT_APART))
     tab = (family.tree_defs('wNameT', 'ℕ', items, str, 'Every function\'s core index, by its name\'s `encS`.') + '\n'
            + '/-- The core indices of the loop helpers `__loop{n}`, by `n`. -/\n'
-           + ratio.wrap('def wIdxLoop : List (ℕ × ℕ) := [', ['(%d, %d)' % q for q in loops]) + '\n')
+           + ratio.wrap('def wIdxLoop : List (ℕ × ℕ) := [', ['(%d, %d)' % q for q in loops]) + '\n\n'
+           + '/-- `verify_tables`\' callees, directly or not, with their core indices, but those\n'
+           + '`Count/VsWords` bounds apart (`VT_APART`). -/\n'
+           + ratio.wrap('def vtPairs : List (String × ℕ) := [', ['("%s", %d)' % (n, g.by[n]) for n in vt]) + '\n')
     path = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count', 'Words.lean')
     write_tpl(path, tpl('Words.lean').replace('@TABLES@', tab).replace('NFNS', str(g.N)))
     print('words by name: %d functions, %d loops' % (g.N, len(loops)))
@@ -444,7 +479,7 @@ def cmd_report(g):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('lean_vm')
-    ap.add_argument('cmd', choices=['report', 'callees', 'words', 'cnt', 'static', 'ratiov', 'vscount', 'deployed',
+    ap.add_argument('cmd', choices=['report', 'callees', 'fnidx', 'words', 'cnt', 'static', 'ratiov', 'vscount', 'deployed',
                                     'all'])
     ap.add_argument('--cache', default=None)
     a = ap.parse_args()
@@ -459,8 +494,10 @@ def main():
         vscount.write(g, OPS)
         vscount.write_main(g, OPS)
     elif a.cmd == 'deployed': cmd_deployed(g)
+    elif a.cmd == 'fnidx': cmd_fnidx(g)
     else:
         cmd_callees(g)
+        cmd_fnidx(g)
         w = cmd_words(g)
         cmd_cnt(g)
         fams = g.cnt_certs()[1]

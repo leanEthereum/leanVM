@@ -1,6 +1,6 @@
 """Build a Lake package's targets in one `lake build`, its modules admitted by memory.
 
-  python3 -I lake-build.py DIR [TARGET ...] [--jobs N] [--mem GB] [--cap GB] [--no-scope] [--seed] [--dev]
+  python3 -I lake-build.py DIR [TARGET ...] [--jobs N] [--mem GB] [--cap GB] [--no-scope] [--seed] [--dev] [--keep-going]
 
 Lake has no job limit, and a parallel build of lean_vm's generated kernel-checked families runs more of them at once than
 a machine holds. Lake still decides what is built, with which options, and writes every trace: it runs `lean` and
@@ -20,7 +20,8 @@ rewrites); an unknown module is taken at 2 GB.
 The run is a systemd scope capped at `--cap` (default: the machine's memory less 1 GB, without `OOMPolicy=stop`): a
 module killed by the kernel there is run again, alone; one that crashes, or runs past a multiple of its recorded
 time (`HANG_FACTOR`), is run again (`RETRIES`). After the first module that fails nothing more is admitted
-and the run fails; otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
+and the run fails (with `--keep-going`, every module that does not import a failed one is still built, so one run
+lists every failure, as when adapting the proofs to a spec change); otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
 them, which replays the warnings, ends the run.
 
 `--dev` is for development only, never for a gate or CI: it builds from `DIR/.lake/lakefile.dev.toml`, written from
@@ -262,8 +263,10 @@ class Run:
 
 
 class Scheduler:
-    def __init__(self, slots: int, budget: int, table: dict[str, list[float]], tail: dict[str, float]) -> None:
+    def __init__(self, slots: int, budget: int, table: dict[str, list[float]], tail: dict[str, float],
+                 keep_going: bool = False) -> None:
         self.slots, self.budget, self.table, self.tail = slots, budget, table, tail
+        self.keep_going = keep_going
         self.cv = threading.Condition()
         self.waiting: dict[int, tuple[float, int]] = {}  # ticket -> (priority, need)
         self.running: dict[int, Run] = {}
@@ -311,7 +314,7 @@ class Scheduler:
             self.tickets += 1
             self.waiting[ticket] = (float("inf") if alone else self.priority(name), self.need(name, alone))
             try:
-                while not self.failed:
+                while self.keep_going or not self.failed:
                     if self.choose() == ticket:
                         run = self.running[ticket] = Run(name, self.waiting[ticket][1], ticket, alone, self.limit(name, attempt))
                         return run
@@ -468,6 +471,7 @@ def main() -> None:
     parser.add_argument("--no-scope", action="store_true", help="no systemd scope")
     parser.add_argument("--seed", action="store_true", help=f"rewrite DIR/{TABLE} from the run's table")
     parser.add_argument("--dev", action="store_true", help="development only: skip the kernel, in .lake/build-dev")
+    parser.add_argument("--keep-going", action="store_true", help="after a failure, still build what does not import it")
     opts = parser.parse_args()
     if opts.dev and opts.seed:
         sys.exit("lake-build: --seed records the real build, not a --dev one")
@@ -485,7 +489,7 @@ def main() -> None:
     # A dev run's modules are lighter: its records stay apart, so they never understate the real build's.
     local, seed = pkg / ".lake" / ("lake-build-dev.tsv" if opts.dev else TABLE), pkg / TABLE
     table = {**read_table(seed), **read_table(local)}
-    scheduler = Scheduler(opts.jobs, budget, table, priorities(pkg, table))
+    scheduler = Scheduler(opts.jobs, budget, table, priorities(pkg, table), opts.keep_going)
     real = Path(subprocess.run(["lean", "--print-prefix"], cwd=pkg, capture_output=True, text=True, check=True).stdout.strip())
     work = Path(tempfile.mkdtemp(prefix="lake-build-"))
     try:

@@ -568,6 +568,9 @@ def guestLocsRow37 : List (List ℕ) := [
     Data.cert37_w39_0,
     Data.cert37_w40_0]
 
+/-- The largest row's lists (`decoder-tables-inputs.lean`, `decoder-table-chunks`). -/
+def guestLocsSplit : List (List ℕ) := guestLocsRow37
+
 /-- Functions 0 to 511's frame cells. -/
 def guestLocsList0 : List (List ℕ) := [
     [],

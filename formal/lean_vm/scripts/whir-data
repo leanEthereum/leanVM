@@ -15,6 +15,8 @@ from pathlib import Path
 RUN = 1100  # statements a kernel evaluation of the body compares
 PER_FILE = 60  # theorems per helper data module
 WHIR = Path("LeanVM/Guest/B1/Whir")
+# `RES_BATCH`, as the templates mirror it.
+RES_BATCH = int(re.search(r"^abbrev resBatch : ℕ := (\d+)$", (WHIR / "Template.lean").read_text(), re.M).group(1))
 
 
 def core_indices():
@@ -148,8 +150,8 @@ def helpers(idx):
         elif name.startswith("level_residual__L"):
             q, cols, nhs, hbits = nums(name, "level_residual__L")
             ls = loops(name)
-            assert len(ls) == (2 if q % 8 != 0 else 1), (name, ls)
-            l1, l2 = ls[0], (ls[1] if q % 8 != 0 else "")
+            assert len(ls) == (2 if q % RES_BATCH != 0 else 1), (name, ls)
+            l1, l2 = ls[0], (ls[1] if q % RES_BATCH != 0 else "")
             thms.append(thm(f"lr_{j}", name, 4, f'lrBody {q} "{l1}" "{l2}"', j))
             thms.append(thm(f"lrl1_{idx[l1]}", l1, 7, f'lrLoop1Body {cols} {nhs} {hbits} "{l1}"', idx[l1]))
             t2 = None

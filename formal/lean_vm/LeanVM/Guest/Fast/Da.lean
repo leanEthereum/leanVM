@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Guest.Fast.FunctionNames
+public import LeanVM.Guest.Fast.FunctionIdx
 public import LeanVM.Guest.B1.Da.Verify
 
 /-!
@@ -8,7 +8,7 @@ public import LeanVM.Guest.B1.Da.Verify
 
 `dvWit σ Vm` (`B1/Da/Verify.lean`) reads the DA matrix off `da_verify`'s callees' frames, which it
 names by string literals (`"da_verify_column"`, `"__loop25"`, `"da_verify_cell"`). `dvWitN σ Vn`
-reads the same frames by the functions' indices (`Fast/FunctionNames.lean`: `30`, `420`, `31`);
+reads the same frames by the functions' indices (`Fast/FunctionIdx.lean`: `30`, `420`, `31`);
 `dvWitN_eq`: at `Vn k = Vm (decoderFunctionName k)` they are equal.
 -/
 
@@ -42,7 +42,7 @@ noncomputable def dvWitN (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
 theorem dvWitN_eq (σ : Val) (Vm : FrameMap) :
     dvWitN σ (fun k ↦ Vm (decoderFunctionName k)) = dvWit σ Vm := by
   unfold dvWitN dvWit dvSymsPN dvSymsP dvSyms colSyms colRowV dvRowVN dvColVN
-  simp only [name_da_verify_column, name_loop25, name_da_verify_cell, dvColArgs, List.getD_cons_succ,
+  simp only [name_da_verify_column, name_da_blob_loop, name_da_verify_cell, dvColArgs, List.getD_cons_succ,
     List.getD_cons_zero]
 
 end

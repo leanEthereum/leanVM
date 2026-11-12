@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Guest.Fast.WhirTables
+public import LeanVM.Guest.Fast.WhirTemplate
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.Memory.GuestCalleesOk
@@ -9,9 +10,8 @@ public import LeanVM.Guest.CoreNames
 /-!
 # `open_stacked`'s tables, checked
 
-* `osQCalls c`: each level's `level_queries` dispatch of the template at the configuration `c`,
-  with the level's index and row, from the state before its queries (`osPreQ`, `osQCallOf`), the
-  states threaded as `osLevelsW` threads them (`osLevelsW_eq`);
+* `osQCalls c` (`Fast/WhirTemplate.lean`): each level's `level_queries` dispatch of the template at
+  the configuration `c`, the states threaded as `osLevelsW` threads them (`osLevelsW_eq`);
 * `callMatch c r q`: the `OsCall` `r` is the dispatch `q` in numbers: its `opening_queries`
   callee's shape, the indices of `level_queries`' specialization, of its `opening_queries`
   callee, of that callee's loop and of its queries' `walk_path` (`decoderFunctionName`,
@@ -50,16 +50,6 @@ theorem eq_of_shapeBEq {a b : OqShape} (h : shapeBEq a b = true) : a = b := by
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
   subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
   rfl
-
-/-- The levels' `level_queries` dispatches from level `lvl` on, with the levels' indices and
-rows, the state threaded as `osLevelsW` threads it. -/
-def osQCallsFrom (c : OsCfg) : ℕ → List OsLv → OsSt → List (ℕ × OsLv × List V × List V)
-  | _, [], _ => []
-  | lvl, lv :: rest, s =>
-    (lvl, lv, osQCallOf c lvl lv (osPreQ c lvl lv s)) :: osQCallsFrom c (lvl + 1) rest (osLevel c lvl lv s).2
-
-/-- **The levels' `level_queries` dispatches** of the template at the configuration `c`. -/
-def osQCalls (c : OsCfg) : List (ℕ × OsLv × List V × List V) := osQCallsFrom c 0 c.levels (osHead c).2
 
 theorem osLevelsW_eq (rd : Reader) (V : FrameMap) (σ : Val) (c : OsCfg) :
     ∀ lvl lvs s, osLevelsW rd V σ c lvl lvs s =
@@ -148,9 +138,6 @@ theorem callMatch_of_N {c : OsCfg} {r : OsCall} {q : ℕ × OsLv × List V × Li
   simp only [callMatch, Bool.and_eq_true, beq_iff_eq, nameIs_spec h2, nameIs_spec h3, nameIs_spec h4,
     nameIs_spec h5, hl, hs]
   simp_all [shapeBEq]
-
-/-- The configuration at the table's index `j`: the size `j % 11` at the rate index `j / 11`. -/
-def osCfgAt (j : ℕ) : OsCfg := osCfgR (j % 11) (j / 11)
 
 theorem osWordsTab_eq : osWordsTab = (List.range 44).map fun j ↦ osWordsLen (osCfgAt j) := by
   decide +kernel

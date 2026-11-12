@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Guest.Fast.SpWots
 public import LeanVM.Guest.Fast.Common
-public import LeanVM.Guest.Fast.FunctionNames
+public import LeanVM.Guest.Fast.FunctionIdx
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.B1.Sig.SphincsSig
 public import LeanVM.Guest.B1.Sig.Bytes

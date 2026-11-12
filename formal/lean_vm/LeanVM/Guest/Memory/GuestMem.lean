@@ -58,5 +58,13 @@ theorem memAll : RangeOk (memF Data.takesT) 0 coreProgram.length := by
   have h23 : RangeOk (memF Data.takesT) 0 1601 := h22.append (m := 2) memRange_1599
   rw [coreProgram_length]; exact h23
 
+set_option maxRecDepth 100000 in
+/-- **The large functions' temporaries**: those `Data.bigTemps` lists. -/
+theorem bigTemps_spec :
+    ∀ p ∈ Data.bigTemps, (Stmt.tmpsList (coreProgram.getD p.1 default).body).map V.idx = p.2 := by
+  rw [← List.forall_iff_forall_mem]
+  simp only [Data.bigTemps, List.Forall]
+  exact ⟨tmps19, tmps36⟩
+
 end
 end LeanVM.Guest

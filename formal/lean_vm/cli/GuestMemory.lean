@@ -16,7 +16,8 @@ guest's core IR (`coreProgram`, computed here as `guest-core` computes it:
   and `temps{j}`, the temporaries of each function too large for one check;
 * `GuestMem/Part*.lean`: `memRange_{a} : RangeOk (memF Data.takesT) a n`, ranges of functions;
 * `GuestMem/Big{j}_*.lean`, `GuestMem/Fn{j}.lean`: a function too large for one check, by ranges
-  of its statements (`mem{j}_{a}`), joined into `memRange_{j}`; `tmps{j}` its temporaries;
+  of its statements (`mem{j}_{a}`), joined into `memRange_{j}`; `tmps{j}` its temporaries, all of
+  them listed in `Data.bigTemps` (`bigTemps_spec`), which is what other modules read;
 * `GuestMem.lean`: `memAll`, the ranges joined over the whole core IR, from which
   `Memory/GuestFresh.lean`, `GuestWf.lean` and `GuestMainFree.lean` derive their facts.
 
@@ -131,6 +132,16 @@ def natList (l : List Nat) : String :=
 
 def pad2 (k : Nat) : String := if k < 10 then s!"0{k}" else toString k
 
+/-- `Data.bigTemps`: the large functions `js` and their temporaries. -/
+def bigList (js : List Nat) : String := s!"[{", ".intercalate (js.map fun j => s!"({j}, temps{j})")}]"
+
+/-- `bigTemps_spec`'s last step, after `simp`: nothing, one function's `tmps`, or their tuple. -/
+def bigProof (js : List Nat) : String :=
+  match js with
+  | [] => ""
+  | [j] => s!"\n  exact tmps{j}"
+  | _ => s!"\n  exact ⟨{", ".intercalate (js.map fun j => s!"tmps{j}")}⟩"
+
 /-- A balanced `NTree ℕ` of the sorted items, a node per line. -/
 partial def ntree (items : Array (Nat × Nat)) (lo hi : Nat) : String :=
   if lo ≥ hi then ".leaf" else
@@ -167,7 +178,7 @@ def files (P : Program) : Array (System.FilePath × String) := Id.run do
     "The arities of the functions `callIf` names, and the large functions' temporaries." ++
     "public import LeanVM.Guest.Memory.MemCheck\n\n" ++ nsOpen ++
     s!"\n/-- The arity of every function a `callIf` names, by index. -/\ndef Data.takesT : NTree ℕ :=\n  {ntree arities 0 arities.size}\n" ++
-    temps ++ nsClose)
+    temps ++ s!"\n/-- The large functions' temporaries, by core index (`bigTemps_spec`). -/\ndef Data.bigTemps : List (ℕ × List ℕ) := {bigList big}\n" ++ nsClose)
   -- small ranges
   let decls := small.map fun (a, n, w) =>
     (s!"\nset_option maxRecDepth 100000 in\ntheorem memRange_{a} : RangeOk {chk} {a} {n} := by\n  unfold RangeOk; decide +kernel\n", w)
@@ -236,6 +247,13 @@ set_option maxRecDepth 100000 in
 theorem memAll : RangeOk {chk} 0 coreProgram.length := by
 " ++ "\n".intercalate steps.toList ++ s!"
   rw [coreProgram_length]; exact h{pieces.length - 1}
+
+set_option maxRecDepth 100000 in
+/-- **The large functions' temporaries**: those `Data.bigTemps` lists. -/
+theorem bigTemps_spec :
+    ∀ p ∈ Data.bigTemps, (Stmt.tmpsList (coreProgram.getD p.1 default).body).map V.idx = p.2 := by
+  rw [← List.forall_iff_forall_mem]
+  simp only [Data.bigTemps, List.Forall]{bigProof big}
 " ++ nsClose)
   return out
 

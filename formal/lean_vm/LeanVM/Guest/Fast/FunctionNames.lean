@@ -18,10 +18,10 @@ no function, `Guest/NameIndex.lean`).
   indices, `1` off them), so a frame map keyed by name `V` and one keyed by index agree when the
   latter is `V` re-keyed (`fun j ↦ V (decoderFunctionName j)`) and reads its index through
   `canonIndex`; `decoderFunctionName_nameIndex`: a function's name is that of its index;
-* the indices the readers name: `name_*` (`main`'s callees whose witness is read, `da_verify`'s
-  callees), `openStackedIdx m` (`open_stacked`'s specializations); the `opening_queries`
-  specializations and their loop helpers are the table `osCallsTab`'s
-  (`Fast/WhirTablesCheck.lean`).
+* the indices the readers name are generated (`Fast/FunctionIdx.lean`, `scripts/count/gen.py`):
+  `idx*` and `name_*` (`main`'s callees whose witness is read, `da_verify`'s callees),
+  `openStackedIdx m` (`open_stacked`'s specializations); the `opening_queries` specializations
+  and their loop helpers are the table `osCallsTab`'s (`Fast/WhirTablesCheck.lean`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -71,24 +71,6 @@ theorem decoderFunctionName_nameIndex {f : String} (hf : f ∈ coreProgram.map (
   rw [findIdx_name_of_nodup coreProgram_names_nodup hi]
   simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ 1601 by omega, decide_true, Bool.and_self,
     ↓reduceIte, Nat.add_sub_cancel, List.getD_eq_getElem _ _ hi]
-
-/-! ## The indices the readers name -/
-
-theorem name_main : decoderFunctionName 1 = "main" := by decide +kernel
-theorem name_verify_sub : decoderFunctionName 19 = "verify_sub" := by decide +kernel
-theorem name_loop2 : decoderFunctionName 37 = "__loop2" := by decide +kernel
-theorem name_sp_wots : decoderFunctionName 20 = "sp_wots" := by decide +kernel
-theorem name_verify_sig_lean_sphincs : decoderFunctionName 21 = "verify_sig_lean_sphincs" := by
-  decide +kernel
-theorem name_da_verify : decoderFunctionName 28 = "da_verify" := by decide +kernel
-theorem name_da_verify_column : decoderFunctionName 30 = "da_verify_column" := by decide +kernel
-theorem name_da_verify_cell : decoderFunctionName 31 = "da_verify_cell" := by decide +kernel
-theorem name_aggregate_claims : decoderFunctionName 34 = "aggregate_claims" := by decide +kernel
-theorem name_da_expand_L7_L8 : decoderFunctionName 419 = "da_expand__L7_L8" := by decide +kernel
-theorem name_loop25 : decoderFunctionName 420 = "__loop25" := by decide +kernel
-
-/-- `open_stacked__L{m}` is function `336 + m`. -/
-def openStackedIdx (m : ℕ) : ℕ := 336 + m
 
 end
 end LeanVM.Guest.Fast
