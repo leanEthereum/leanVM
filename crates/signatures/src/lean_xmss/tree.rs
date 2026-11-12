@@ -30,9 +30,9 @@ pub(crate) struct LayerTree {
 impl LayerTree {
     pub(crate) fn build(pp: &PublicParam, seed: &SchemeSeed, layer: usize, base: u32, first: u32, last: u32) -> Self {
         debug_assert!(first <= last && last >> LAYER_HEIGHT == 0);
-        let leaves = parallel::map_collect((last - first + 1) as usize, |j| {
-            wots_public_leaf(pp, seed, layer, base + first + j as u32)
-        });
+        let leaves = (first..=last)
+            .map(|j| wots_public_leaf(pp, seed, layer, base + j))
+            .collect();
         let mut tree = Self {
             layer,
             base,
@@ -41,15 +41,15 @@ impl LayerTree {
             levels: vec![leaves],
         };
         for level in 1..=LAYER_HEIGHT {
-            let start = first >> level;
-            let up = parallel::map_collect(((last >> level) - start + 1) as usize, |k| {
-                let j = start + k as u32;
-                let children = [
-                    tree.at(pp, seed, level - 1, 2 * j),
-                    tree.at(pp, seed, level - 1, 2 * j + 1),
-                ];
-                node(pp, layer, level, (base >> level) + j, &children)
-            });
+            let up = (first >> level..=last >> level)
+                .map(|j| {
+                    let children = [
+                        tree.at(pp, seed, level - 1, 2 * j),
+                        tree.at(pp, seed, level - 1, 2 * j + 1),
+                    ];
+                    node(pp, layer, level, (base >> level) + j, &children)
+                })
+                .collect();
             tree.levels.push(up);
         }
         tree

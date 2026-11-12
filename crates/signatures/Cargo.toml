@@ -13,7 +13,6 @@ mock = []
 
 [dependencies]
 primitives.workspace = true
-parallel.workspace = true
 rand.workspace = true
 
 [dev-dependencies]

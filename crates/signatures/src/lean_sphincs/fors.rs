@@ -62,23 +62,25 @@ fn fors_key(pk_seed: &PkSeed, idx: u64, roots: &[Digest; FORS_TREES]) -> Digest 
 /// of instance `idx`, and its opening at `leaves`.
 pub(crate) fn fors_open(sk: &ExpandedKey, idx: u64, leaves: &[usize; FORS_TREES]) -> (Digest, ForsOpening) {
     let pk_seed = &sk.pk_seed;
-    let trees = parallel::map_collect(FORS_TREES, |c| {
-        let secrets: Vec<Digest> = (0..1 << FORS_HEIGHT).map(|s| fors_secret(sk, idx, c, s)).collect();
-        let leaf_hashes = secrets
-            .iter()
-            .enumerate()
-            .map(|(s, secret)| fors_leaf(pk_seed, idx, c, s, secret))
-            .collect();
-        let levels = merkle_levels(leaf_hashes, FORS_HEIGHT, |z, j, pair| {
-            fors_node(pk_seed, idx, c, z, j, pair)
-        });
-        let s = leaves[c];
-        let opening = ForsTreeOpening {
-            secret: secrets[s],
-            path: std::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
-        };
-        (levels[FORS_HEIGHT][0], opening)
-    });
+    let trees: Vec<_> = (0..FORS_TREES)
+        .map(|c| {
+            let secrets: Vec<Digest> = (0..1 << FORS_HEIGHT).map(|s| fors_secret(sk, idx, c, s)).collect();
+            let leaf_hashes = secrets
+                .iter()
+                .enumerate()
+                .map(|(s, secret)| fors_leaf(pk_seed, idx, c, s, secret))
+                .collect();
+            let levels = merkle_levels(leaf_hashes, FORS_HEIGHT, |z, j, pair| {
+                fors_node(pk_seed, idx, c, z, j, pair)
+            });
+            let s = leaves[c];
+            let opening = ForsTreeOpening {
+                secret: secrets[s],
+                path: std::array::from_fn(|z| levels[z][(s >> z) ^ 1]),
+            };
+            (levels[FORS_HEIGHT][0], opening)
+        })
+        .collect();
     let roots = std::array::from_fn(|c| trees[c].0);
     (fors_key(pk_seed, idx, &roots), std::array::from_fn(|c| trees[c].1))
 }

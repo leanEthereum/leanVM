@@ -6,8 +6,6 @@
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
 //! randomizer `R` until it is, one permutation a trial.
 
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use primitives::hash::RATE;
 
 use crate::lean_xmss::*;
@@ -78,40 +76,29 @@ fn is_codeword(d: u128) -> bool {
     d >> (W * V) == 0 && (d & LOW).count_ones() + 2 * (d & !LOW).count_ones() == TARGET_SUM as u32
 }
 
-/// Trials a grinding worker claims and hashes at once.
+/// Trials hashed at once.
 const GRIND_BATCH: usize = 64;
 
 /// The least `c` below `MAX_RANDOMIZER_TRIALS` whose randomizer `base + c`, as the last
-/// 16 bytes of `input`, makes its digest a codeword. Those bytes are zero in `input` and
-/// lie in its last block, so the blocks before are absorbed once and a trial costs one
-/// permutation. Workers claim batches in ascending order and stop at the first claim past
-/// the least hit so far, so every batch below the answer is searched however the pool
-/// interleaves: the least trial, which keeps one key to one codeword.
+/// 16 bytes of `input`, makes its digest a codeword: the least, which keeps one key to one
+/// codeword. Those bytes are zero in `input` and lie in its last block, so the blocks before
+/// are absorbed once and a trial costs one permutation.
 fn least_trial(input: &[u8], base: u128) -> Option<u64> {
     let at = input.len() - RANDOMIZER_LEN;
     assert!(at.is_multiple_of(8) && at / RATE == input.len() / RATE);
     let template = primitives::hash::final_state(input);
-    let (next, least) = (AtomicU64::new(0), AtomicU64::new(u64::MAX));
-    parallel::for_each(parallel::num_threads(), |_| {
-        let (mut values, mut digests) = ([0; GRIND_BATCH], [0; GRIND_BATCH]);
-        loop {
-            let first = next.fetch_add(GRIND_BATCH as u64, Ordering::Relaxed);
-            if first >= MAX_RANDOMIZER_TRIALS.min(least.load(Ordering::Relaxed)) {
-                return;
-            }
-            let n = (MAX_RANDOMIZER_TRIALS - first).min(GRIND_BATCH as u64) as usize;
-            for (c, value) in (first..).zip(&mut values[..n]) {
-                *value = base.wrapping_add(u128::from(c));
-            }
-            primitives::hash::digest_halves_from(&template, at % RATE / 8, &values[..n], &mut digests[..n]);
-            if let Some(hit) = digests[..n].iter().position(|&d| is_codeword(d)) {
-                least.fetch_min(first + hit as u64, Ordering::Relaxed);
-                return;
-            }
+    let (mut values, mut digests) = ([0; GRIND_BATCH], [0; GRIND_BATCH]);
+    (0..MAX_RANDOMIZER_TRIALS).step_by(GRIND_BATCH).find_map(|first| {
+        let n = (MAX_RANDOMIZER_TRIALS - first).min(GRIND_BATCH as u64) as usize;
+        for (c, value) in (first..).zip(&mut values[..n]) {
+            *value = base.wrapping_add(u128::from(c));
         }
-    });
-    let least = least.into_inner();
-    (least != u64::MAX).then_some(least)
+        primitives::hash::digest_halves_from(&template, at % RATE / 8, &values[..n], &mut digests[..n]);
+        digests[..n]
+            .iter()
+            .position(|&d| is_codeword(d))
+            .map(|hit| first + hit as u64)
+    })
 }
 
 /// `Ots.sign`: the randomizer of the LEAST admissible trial `R_0 + c`, `R_0` a hash

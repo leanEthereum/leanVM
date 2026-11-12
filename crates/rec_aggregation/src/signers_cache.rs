@@ -13,6 +13,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 use primitives::{pretty_f64, pretty_integer};
@@ -125,19 +126,27 @@ fn write_cache(path: &Path, bytes: &[u8]) {
     }
 }
 
-fn generate_range(start: usize, end: usize, message_id: u32) -> Vec<CachedSignature> {
+/// `f` over `start..end` on `parallel`, with a progress line naming `what`.
+fn generate<T: Send>(start: usize, end: usize, what: &str, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
     let total = end - start;
-    let started = Instant::now();
-    let mut signers = Vec::with_capacity(total);
-    for (done, index) in (start..end).enumerate() {
-        signers.push(compute_signer(index, message_id));
+    let done = AtomicUsize::new(0);
+    parallel::map_collect(total, |k| {
+        let signer = f(start + k);
+        let done = done.fetch_add(1, Ordering::Relaxed) + 1;
         print!(
-            "\r  generating leanXMSS signers (one-time, then cached): {}/{}",
-            pretty_integer(done + 1),
+            "\r  generating {what} signers (one-time, then cached): {}/{}",
+            pretty_integer(done),
             pretty_integer(total)
         );
         let _ = std::io::stdout().flush();
-    }
+        signer
+    })
+}
+
+fn generate_range(start: usize, end: usize, message_id: u32) -> Vec<CachedSignature> {
+    let total = end - start;
+    let started = Instant::now();
+    let signers = generate(start, end, "leanXMSS", |index| compute_signer(index, message_id));
     println!(
         "\r  generated {} leanXMSS in {} s (cached to disk)                ",
         pretty_integer(total),
@@ -206,8 +215,7 @@ fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
 }
 
 /// Keyed, as the leanXMSS cache is, by signer 0's key, message and signature, so any
-/// change to the scheme invalidates the file. Signing fans out, so this is computed
-/// once, outside any `parallel` task.
+/// change to the scheme invalidates the file. Computed once.
 fn lean_sphincs_cache_path() -> PathBuf {
     static PATH: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
     PATH.get_or_init(|| {
@@ -270,20 +278,11 @@ pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
         {
             *pool = disk;
         }
-        // Key generation and signing build whole trees, and fan out
-        // internally, so this loop stays sequential.
-        let started = Instant::now();
-        let missing = n.saturating_sub(pool.len());
-        for index in pool.len()..n {
-            pool.push(compute_lean_sphincs_signer(index));
-            print!(
-                "\r  generating leanSPHINCS signers (one-time, then cached): {}/{}",
-                pretty_integer(index + 1 - (n - missing)),
-                pretty_integer(missing)
-            );
-            let _ = std::io::stdout().flush();
-        }
-        if missing > 0 {
+        if pool.len() < n {
+            let started = Instant::now();
+            let missing = n - pool.len();
+            let mut fresh = generate(pool.len(), n, "leanSPHINCS", compute_lean_sphincs_signer);
+            pool.append(&mut fresh);
             println!(
                 "\r  generated {} leanSPHINCS in {} s (cached to disk)              ",
                 pretty_integer(missing),

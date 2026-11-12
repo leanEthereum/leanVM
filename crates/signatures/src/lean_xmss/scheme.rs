@@ -189,8 +189,7 @@ pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (Le
 }
 
 /// Never use the same key and leaf index to sign two different messages.
-/// Signing is deterministic. The first signature in a bottom tree builds it with
-/// `parallel`, so never sign from inside a `parallel` task.
+/// Signing is deterministic. The first signature in a bottom tree builds that tree.
 pub fn sign(
     sk: &LeanXmssSecretKey,
     message: &Message,

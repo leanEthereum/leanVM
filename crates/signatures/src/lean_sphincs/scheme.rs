@@ -54,8 +54,7 @@ impl std::fmt::Debug for LeanSphincsSecretKey {
 }
 
 impl LeanSphincsSecretKey {
-    /// The public key, rebuilt as key generation builds it: the whole top tree, on
-    /// `parallel`, so never from inside a `parallel` task.
+    /// The public key, rebuilt as key generation builds it: the whole top tree.
     pub fn public_key(&self) -> LeanSphincsPublicKey {
         keygen(&expand_key(&self.sk_seed)).0
     }
@@ -262,20 +261,13 @@ fn node(pk_seed: &PkSeed, key: &OtsKey, z: usize, j: usize, children: &[Digest; 
 /// The levels of the tree holding `key`, its leaves first and its root last.
 fn tree_levels(sk: &ExpandedKey, key: &OtsKey) -> Vec<Vec<Digest>> {
     let height = LAYER_HEIGHTS[key.layer];
-    let leaves = parallel::map_collect(1 << height, |leaf| {
-        wots_public_leaf(
-            sk,
-            &OtsKey {
-                leaf: leaf as u32,
-                ..*key
-            },
-        )
-    });
+    let leaves = (0..1 << height)
+        .map(|leaf| wots_public_leaf(sk, &OtsKey { leaf, ..*key }))
+        .collect();
     merkle_levels(leaves, height, |z, j, pair| node(&sk.pk_seed, key, z, j, pair))
 }
 
 /// `Gen`, deterministic: the seed is `SK.seed`, and the top tree gives `PK.root`.
-/// It builds the tree on `parallel`, so never call it from inside a `parallel` task.
 pub fn key_gen_from_seed(seed: Seed) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     (LeanSphincsSecretKey { sk_seed: seed }, keygen(&expand_key(&seed)).0)
 }
@@ -298,8 +290,7 @@ pub fn key_gen() -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
 
 /// `Sign`. Deterministic and stateless: the digest picks the FORS instance,
 /// which opens the message, and each layer signs what the layer below gives. A
-/// key signs at most `2^30` messages (`doc/lean_sphincs`). It builds its trees on
-/// `parallel`, so never sign from inside a `parallel` task.
+/// key signs at most `2^30` messages (`doc/lean_sphincs`).
 pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
     sign_with(&expand_key(&sk.sk_seed), message)
 }
