@@ -108,7 +108,6 @@ structure FinStatic (c : OsCfg) (G T : List E) (recs : List OsRec) : Prop where
   ylog : 1 ≤ c.yrLog
   recl : recs.length = c.yrLevel
   lv : ∀ i < c.yrLevel, LvFin c (finLv c i) (finLv c (i + 1))
-  rs : ∀ i < c.yrLevel, ResStatic (finLv c i) (hsvOf (finLv c i) (recs.getD i default))
   Gl : G.length = c.nFolds
   Tl : T.length = c.yrLog
   lane : (c.levels.headD default).folds ≤ c.nFolds

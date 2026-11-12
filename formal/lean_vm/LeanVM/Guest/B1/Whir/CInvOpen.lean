@@ -141,7 +141,7 @@ theorem runTz_liftOption {α β : Type} {o : Option α} {f : α → VerifierProg
 def LadderOk (μ r : ℕ) : Prop := ∀ cfg, Whir.ladder μ r = some cfg → ∀ l ∈ cfg, LvOk μ l
 
 /-- **Every candidate's levels' static facts.** -/
-theorem ladderOk_of {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
+theorem ladderOk_of {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4) :
     LadderOk μ r := by
   intro cfg hcfg l hl
   have h := ladderRunOk_at h1 h2 h3 h4
@@ -184,7 +184,7 @@ theorem whirOpen_end {μ r : ℕ} {target : E} {S : KeccakState} {xs : List E}
   exact e3.1
 
 /-- **An accepting run with no zero challenge, level by level**, at every candidate. -/
-theorem whirOpen_honest {μ r : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) (h3 : 1 ≤ r) (h4 : r ≤ 4)
+theorem whirOpen_honest {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4)
     {target : E} {S : KeccakState} {xs : List E} {os : List (List Opening)} {root : Digest}
     {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
