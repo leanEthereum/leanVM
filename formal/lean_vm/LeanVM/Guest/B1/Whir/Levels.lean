@@ -47,17 +47,6 @@ def lvsFolds : List OsLv → ℕ
   | [] => 0
   | lv :: rest => lv.folds + lvsFolds rest
 
-/-- **The witness's openings** of the levels from `lvl`: each level's at its `opening_queries`
-call. -/
-def osLevelsW (rd : Reader) (V : FrameMap) (σ : Val) (c : OsCfg) :
-    ℕ → List OsLv → OsSt → List (List Opening)
-  | _, [], _ => []
-  | lvl, lv :: rest, s =>
-    osLevelW rd V lvl lv (osQCallOf c lvl lv (osPreQ c lvl lv s)).1
-        ((osQCallOf c lvl lv (osPreQ c lvl lv s)).2.1.map σ)
-        ((osQCallOf c lvl lv (osPreQ c lvl lv s)).2.2.map σ) ::
-      osLevelsW rd V σ c (lvl + 1) rest (osLevel c lvl lv s).2
-
 /-- The last level's row. -/
 def lvsLast (lvs : List OsLv) : OsLv := lvs.getLastD default
 
@@ -95,14 +84,15 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
         (∀ j (h : j < (ws.alphas ++ gs).length), LoadHolds rd (σ (.n osFch)) j (ws.alphas ++ gs)[j]) ∧
         ReadsAt rd (σ (.n osFmsg)) fold ∧ fold.length = c.yrLen + (lvsLast (lv :: lvs)).folds ∧
         ReadsAt rd (σ (.n (osTail c (osLevels c lvl (lv :: lvs) st).2).2.2)) T ∧
-        T.length = c.yrLog
+        T.length = c.yrLog ∧ MatsOk σ (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.mats
   | lvl, lv, [], [level], st, ws, recs, R, root, hok, hin, hA, hT => by
     obtain ⟨hF, hcal⟩ := hok
     simp only [osLevels, List.append_nil] at hA hT
-    obtain ⟨xs, gs, fold, T, hxl, hrd, hgl, hfl, hTl, hrun, hfm, hTr, lg⟩ :=
+    obtain ⟨xs, gs, fold, T, hxl, hrd, hgl, hfl, hTl, hrun, hfm, hTr, lg, hmT⟩ :=
       osLevelLast_sound hU hle hwt hF hcal hin hA hT lane
     refine ⟨xs, [], gs, fold, T, R, by simp [hxl, lvsWords], hrd, ?_, rfl,
-      fun i hi ↦ absurd hi (by simp), hin.recF, by simp [hgl, lvsFolds], ?_, hfm, hfl, hTr, hTl⟩
+      fun i hi ↦ absurd hi (by simp), hin.recF, by simp [hgl, lvsFolds], ?_, hfm, hfl, hTr, hTl,
+      by simpa [osLevels] using hmT⟩
     · rw [whirLevelsOpen_last]
       simp only [osLevelsW, List.append_nil, osLevels]
       refine RunsWith.of_eq hrun rfl rfl rfl rfl ?_ rfl rfl
@@ -123,14 +113,14 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     obtain ⟨xs1, ws1, r, root', hxl1, hrd1, hrun1, hin1, hrec, hcur1, gs1, hgs1, hgl1⟩ :=
       osLevelMid_sound hU hle hwt hF hcal hin hA.1
     obtain ⟨xs2, recs', gs2, fold, T, R', hxl2, hrd2, hrun2, hrl, hrecs, -, hgl2, hfch, hfm,
-      hfl, hTr, hTl⟩ :=
+      hfl, hTr, hTl, hmT⟩ :=
       osLevels_sound hU hle hwt lane (lvl + 1) lv' lvs (next :: cfg) (osLevel c lvl lv st).2 ws1
         (recs ++ [r]) _ root' hrest hin1 hA.2 hT
     have eG : ws1.alphas ++ gs2 = ws.alphas ++ (gs1 ++ gs2) := by rw [hgs1, List.append_assoc]
     rw [eG] at hrun2 hfch
     rw [List.append_assoc] at hrun2
     refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, by simp [hrl], ?_,
-      hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl⟩
+      hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl, hmT⟩
     · simp only [List.length_append, hxl1, hxl2, lvsWords]; ring
     · exact readsAt_append hrd1 (by rw [← hcur1]; exact hrd2)
     · rw [whirLevelsOpen_next]

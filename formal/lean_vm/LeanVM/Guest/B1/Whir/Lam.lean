@@ -44,19 +44,22 @@ theorem osLam_sound {st : OsSt} (hfs : st.fs.length = 5)
   obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
   unfold osLam at hok ⊢
   simp only [allOk_append] at hok
-  obtain ⟨hpd, hrest⟩ := hok
+  obtain ⟨⟨hcp, hpd⟩, hrest⟩ := hok
+  rw [hf] at hcp
+  simp only [List.zipIdx_cons, List.zipIdx_nil, List.map_cons, List.map_nil, allOk_cons, allOk_nil,
+    and_true, stmtOk_atom, holds_copy, osCp, Nat.zero_add] at hcp
+  obtain ⟨c0, c1, c2, c3, c4⟩ := hcp
   have hP := osPad_ok hpad hpd
-  set p := (osPad st.pad st.k).2.1 with hp
-  set j := (osPad st.pad st.k).2.2 with hj
+  set p := (osPad st.pad (st.k + 5)).2.1 with hp
+  set j := (osPad st.pad (st.k + 5)).2.2 with hj
   obtain ⟨z1, z2, z3, z4⟩ := hP p rfl
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_copy, holds_const, holds_mul,
     osCp, osCst, osMul, osKeccak] at hrest
   obtain ⟨hK, cl, one, hinv⟩ := hrest
-  rw [hf] at hK
   have hF : st.F σ = ⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ := by
     simp [OsSt.F, hf]
   have hout := keccakA_fs (s := (⟨[σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)], []⟩ : Fs))
-    hK (by simp) (by simp [pendCells, z1, z2, z3, z4])
+    hK (by simp) (by simp [pendCells, z1, z2, z3, z4]; exact ⟨by simpa using c0, c1, c2, c3, c4⟩)
   rw [← hF] at hout
   have o : ∀ i : Fin 13, σ (.n (j + i.val)) = cellsOfState (st.F σ).perm false i := outCellK hout
   refine ⟨?_, ?_, ?_, rfl, rfl, rfl, ?_, rfl, rfl⟩

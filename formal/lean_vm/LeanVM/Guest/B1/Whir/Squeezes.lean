@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.Commit
 
 /-!
-# The query positions (G:1594-1620)
+# The query positions
 
 * `sqPositions d w count`: query `k` is the position `k % P` of sample `k / P`, `P = 128 / d`
   (`qwPosOf`), the samples `w`;
@@ -164,8 +164,9 @@ def sqSample (w0 : E) (cap : List E) (j : ℕ) : E :=
 def decName (lv : OsLv) : String :=
   "decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth
 
-/-- What a level's squeezes leave (G:1594-1620): sample `j < S` decoded at `posOff + j·P` of
-`query_positions` and `query_win_ptrs`; the sponge after the `S - 1` squeezes. -/
+/-- What a level's squeezes leave (`level_positions`' dispatch, `osPositions_sound` in
+`Whir/LpSound.lean`): sample `j < S` decoded at `posOff + j·P` of `query_positions` and
+`query_win_ptrs`; the sponge after the `S - 1` squeezes. -/
 structure SqOut (rd : Reader) (σ : Val) (lv : OsLv) (st st' : OsSt) (w0 : E) (cap : List E) :
     Prop where
   dec : ∀ j < lv.squeezes, MeaningDecodeQueryWindows lv.depth lv.capDepth rd
@@ -178,87 +179,6 @@ structure SqOut (rd : Reader) (σ : Val) (lv : OsLv) (st st' : OsSt) (w0 : E) (c
   co : st'.co = st.co
   claim : st'.claim = st.claim
   pad : st'.pad = st.pad
-
-/-- **A level's squeezes, soundly** (G:1594-1620): from the capacity `cap` the guest carries (the
-query grind's permutation's) and its challenge `w0`. -/
-theorem osSqueezes_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hle : CallRel.Le C (coreProgram.Rel rd))
-    (hdec : ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd (decName lv) a r →
-      MeaningDecodeQueryWindows lv.depth lv.capDepth rd a r)
-    (hsq : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl)))
-    (hpw : digitsVal (osPowDigits (128 / lv.depth)) 1 = 128 / lv.depth)
-    (hpo : lv.posOff < u128Bound) (hS : 1 ≤ lv.squeezes) (hSo : lv.squeezes < ordG)
-    (hS5 : lv.squeezes * 5 < u128Bound) (hwt : WinTabs rd (σ (.n osTabs)))
-    (hm : MatsOk σ st.mats) (hfs : st.fs.length = 5) {cap : List E} (hF : st.F σ = ⟨cap, []⟩) {w0 : E}
-    (hw0 : σ (.n st.word0) = w0) (hok : AllOk C rd σ (osSqueezes c lvl lv st).1) :
-    SqOut rd σ lv st (osSqueezes c lvl lv st).2 w0 cap := by
-  unfold osSqueezes at hok ⊢
-  simp only [allOk_append, and_assoc] at hok
-  obtain ⟨-, hst, hqp, hwp, hdc, hlp, hlast⟩ := hok
-  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := fs_five st hfs
-  have hcap : cap = [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] := by
-    have := congrArg Fs.cap hF
-    simp only [OsSt.F, hf, List.map_cons, List.map_nil] at this
-    exact this.symm
-  subst hcap
-  rw [hf] at hst
-  simp only [List.zipIdx_cons, List.zipIdx_nil, List.map_cons, List.map_nil, allOk_cons, allOk_nil,
-    and_true, stmtOk_atom, holds_load, osLd, Nat.zero_add] at hst
-  obtain ⟨l0, l1, l2, l3, l4⟩ := hst
-  set sqz := st.k + 1 with hsqz
-  obtain ⟨eqp, hmq⟩ := osMatS_val' hqp hm hpo
-  obtain ⟨ewp, hmw⟩ := osMatS_val' hwp hmq hpo
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, List.map_cons, List.map_nil] at hdc
-  have hD0 := hdec _ _ (by simpa using hwt) (hle _ _ _ hdc)
-  rw [eqp, ewp, hw0] at hD0
-  set l := (osMatS c.plan osQbp lv.posOff (osMatS c.plan osQpos lv.posOff
-    { st with k := st.k + 2 }).2.2).2.2.k with hl
-  simp only [osLoopCall, allOk_cons, allOk_nil, and_true, holds_const, holds_add, osCst, osAdd,
-    StmtOk, List.map_cons, List.map_nil] at hlp
-  obtain ⟨g1, gS, gsum, g3, g4, -, hcall⟩ := hlp
-  have hg1 : gw 1 = gen ^ 1 := gw_eq (by decide)
-  have hgS : gw lv.squeezes = gen ^ lv.squeezes := gw_eq (lt_trans (by omega) hS5)
-  set cap := [σ (.n f0), σ (.n f1), σ (.n f2), σ (.n f3), σ (.n f4)] with hcapd
-  have h0 : ∀ i < 5, LoadHolds rd (σ (.n sqz)) (5 * 1 + i) (cap.getD i 0) := by
-    intro i hi
-    interval_cases i
-    exacts [l0, l1, l2, l3, l4]
-  have hit : ∀ j, 1 ≤ j → j < 1 + (lv.squeezes - 1) →
-      SqIter rd lv.depth lv.capDepth lv.posOff (σ (.n sqz)) (σ (.n osQpos)) (σ (.n osQbp))
-        (σ (.n osTabs)) (gen ^ j) := by
-    intro j h1 h2
-    obtain ⟨fn, hfind, hps, hbody⟩ := hsq
-    refine sqLoop_sound hfind lv hps hbody hpw hpo hdec (e := 1) (by omega) hSo _ _ _ _ hwt
-      (fun hne ↦ ?_) j h1 (by omega)
-    have := hle _ _ _ (hcall (by rw [gsum, g1, gS, hg1, hgS]; exact hne))
-    rwa [g3, g4, hg1, hgS] at this
-  obtain ⟨hrows, hdecs⟩ := sqChain cap rfl h0 hit
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, holds_mul,
-    holds_load, osCst, osMul, osLd, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
-    List.nil_append, List.cons_append, and_assoc] at hlast
-  obtain ⟨e5, e6, m0, m1, m2, m3, m4⟩ := hlast
-  have hS5' : gw (lv.squeezes * 5) = gen ^ (lv.squeezes * 5) := gw_eq hS5
-  have hoff : 5 * (1 + (lv.squeezes - 1)) = lv.squeezes * 5 := by omega
-  have hrowE : ∀ i < 5, LoadHolds rd (σ (.n sqz)) (5 * (1 + (lv.squeezes - 1)) + i)
-      ([σ (.n (l + 7)), σ (.n (l + 8)), σ (.n (l + 9)), σ (.n (l + 10)), σ (.n (l + 11))].getD i 0) := by
-    intro i hi
-    rw [hoff, ← loadHolds_mul_gen_pow, ← hS5', ← e5, ← e6]
-    interval_cases i
-    exacts [m0, m1, m2, m3, m4]
-  have hcl : ((⟨cap, []⟩ : Fs).squeezeN (lv.squeezes - 1)).2.cap.length = 5 := by
-    rcases h : lv.squeezes - 1 with _ | n
-    · rfl
-    · rw [squeezeN_snoc]; simp [Fs.squeeze, capOf]
-  have hfin := five_eq (by rfl) hcl hrowE (hrows _ le_rfl)
-  dsimp only
-  refine ⟨fun j hj ↦ ?_, ?_, rfl, hmw, rfl, rfl, rfl, rfl⟩
-  · rcases j with _ | j
-    · simpa [sqSample] using hD0
-    · have := hdecs j (by omega)
-      simpa [sqSample, Nat.add_comm 1 j] using this
-  · refine (fs_mk_eq ?_ (squeezeN_pend rfl _)).symm
-    rw [← hfin]
-    rfl
 
 end
 end LeanVM.Guest.B1.Whir

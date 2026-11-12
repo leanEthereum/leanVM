@@ -89,8 +89,7 @@ structure LvFin (c : OsCfg) (lv lv' : OsLv) : Prop where
   bn : lv.highBits ≤ lv.logCols + 1
   hn : lv.folds ≤ 2 ^ lv.highBits
   posOff : lv.posOff < u128Bound
-  nbo : lv.queries / resBatch < ordG
-  nbu : lv.queries / resBatch < u128Bound
+  van : lv.vanish = lv.logCols * (lv.logCols + 1) / 2
   val : ∀ t ≤ lv.logCols, K.ofBits (vanishVal (lv.vanish + t)) = (subspaceRoots lv.logCols).getD t 0
   inv : ∀ t ≤ lv.logCols,
     K.ofBits (vanishInv (lv.vanish + t)) = ((subspaceRoots lv.logCols).getD t 0)⁻¹

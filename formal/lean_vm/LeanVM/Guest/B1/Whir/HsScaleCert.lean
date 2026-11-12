@@ -50,7 +50,7 @@ def hsScaleOk (m : ℕ) : Bool :=
   ((List.range (osNLevels m)).all fun l ↦ hsMidOk m l) && hsFinOk m (osLv m (osCfg m).yrLevel)
 
 /-- **Every candidate's normalizers.** -/
-theorem hsScale_all : ∀ m < 28, hsScaleOk m = true := by
+theorem hsScale_all : ∀ m < ligNSizes, hsScaleOk m = true := by
   decide +kernel
 
 end

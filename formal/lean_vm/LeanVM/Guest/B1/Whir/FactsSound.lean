@@ -15,10 +15,9 @@ public import LeanVM.Guest.B1.Whir.Open
 
 * `Callees rd C σ`: the meanings of every deployed callee `open_stacked` calls, under a call
   relation `C`;
-* `SemOk c`: the semantic facts of candidate `c`'s levels (`vanishOk`, `hsScale`'s values, the
-  loop helpers' bodies);
-* `levelsOk_of`: `levelsB` and the two give `LevelsOk`; `finStatic_of`: `CandOk` and them give
-  `FinStaticS`.
+* `SemOk c`: the semantic facts of configuration `c`'s levels (`vanishOk`, `hsScale`'s values);
+* `levelsOk_of`: `levelsB`, the two and the rows at the rate's selector give `LevelsOk`;
+  `finStatic_of`: `CandOk` and them give `FinStaticS`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -55,10 +54,6 @@ structure SemOk (c : OsCfg) : Prop where
   hsn : ∀ i < c.yrLen + (c.levels.getD c.yrLevel default).folds,
     K.ofBits (hsScale (c.levels.getD c.yrLevel default).vanish (c.yrLog + 1) i 1) =
       hsNorm c.yrLog (c.yrLog + 1) i
-  sq : ∀ l < c.levels.length,
-    FnIs (c.sqLoop l) (osParams 6) (sqLoopBody (c.levels.getD l default) (c.sqLoop l))
-  res : ∀ l < c.yrLevel,
-    FnIs (c.resLoop l) (osParams 7) (resLoopBody l (c.levels.getD l default) (c.resLoop l))
 
 theorem drop_cons_getD {l : List OsLv} {k : ℕ} {lv : OsLv} {rest : List OsLv}
     (h : l.drop k = lv :: rest) : l.getD k default = lv ∧ k < l.length ∧ l.drop (k + 1) = rest := by
@@ -78,53 +73,57 @@ theorem lvFin_of {c : OsCfg} {logN lvl : ℕ} {lv lv' : OsLv} {level next : Whir
     (hs : ∀ c' < lv.folds, K.ofBits (hsScale lv.vanish lv.highBits c' (vanishInv (lv.vanish + lv.logCols))) =
       ((subspaceRoots lv.logCols).getD lv.logCols 0)⁻¹ * hsNorm lv.logCols lv.highBits c') :
     LvFin c lv lv' := by
-  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -,
-    -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩ := h
-  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, h14, vanish_val hv,
-    vanish_inv hv, hs⟩
+  obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, h2, -, -, -, -, -, -, -, h3, -, -, -, -, -, -, -, -, -,
+    -, -, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
+  exact ⟨h4, h5, h6, h7, h3, h1, h8, h9, h10, h11, h12, h2, h13, vanish_val hv, vanish_inv hv, hs⟩
 
-/-- **The levels' facts and callees** from the checked facts. -/
+/-- **The levels' facts and callees** from the checked facts and the rows at the rate's
+selector. -/
 theorem levelsOk_of {rd : Reader} {C : CallRel} {σ : Val} {c : OsCfg} {logN : ℕ}
-    (hcal : Callees rd C σ) (hsem : SemOk c) (hle : CallRel.Le C (coreProgram.Rel rd)) :
+    (hcal : Callees rd C σ) (hsem : SemOk c) (hle : CallRel.Le C (coreProgram.Rel rd))
+    (hrate : ∀ i < c.levels.length, LvRate σ c i (c.levels.getD i default)) :
     ∀ (lvl : ℕ) (lvs : List OsLv) (cfg : List Whir.Level), c.levels.drop lvl = lvs →
       levelsB c logN lvl lvs cfg = true → LevelsOk rd C σ c logN lvl lvs cfg
   | lvl, [lv], [level], hd, hb => by
     simp only [levelsB, decide_eq_true_eq] at hb
     obtain ⟨hlv, hk, -⟩ := drop_cons_getD hd
     obtain ⟨hfin, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18,
-      hq, hnhs, hhsb, hvs, h64, hn2, hlc, hom, homn, hdec, hcap⟩ := hb
+      h19, hq, hnhs, hhsb, hvs, h64, hn2, hlc, hom, homn, hlp, hlq, hcap⟩ := hb
     have hvan := hsem.van lvl hk
     rw [hlv] at hvan
+    have hr := hrate lvl hk
+    rw [hlv] at hr
     refine ⟨⟨hfin, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18,
-      ⟨_, _, qshOk_sound hq, hnhs, hhsb, fun i hi ↦ ?_⟩, h64, hn2, fun i hi ↦ ?_⟩, ?_⟩
+      h19, ⟨_, _, qshOk_sound hq, hnhs, hhsb, fun i hi ↦ ?_⟩, h64, hn2, fun i hi ↦ ?_⟩, ?_⟩
     · rw [hvs, List.map_map, List.getD_eq_getElem _ _ (by simpa using hi), List.getElem_map,
         List.getElem_range, Function.comp_apply]
       rw [hlc] at hvan
       exact vanish_val hvan i (by omega)
     · have := hsem.hsn i (by rw [← hfin, hlv]; exact hi)
       rwa [← hfin, hlv] at this
-    · refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, hcal.g17, fun a r ha hc ↦ ?_,
-        fun a r hc ↦ hcal.cap _ hcap a r hc, ?_, hcal.tail⟩
-      · rw [← homn] at hc; exact hcal.msg _ hom a r hc
-      · exact hcal.dec _ hdec a r ha hc
-      · have := hsem.sq lvl hk; rwa [hlv] at this
+    · refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, hcal.g17, hr,
+        fun a r hw hc ↦ lp_sound (lpOk_fn hlp).1 (lpOk_fn hlp).2 h10 h12 h13 h14
+          (fun a r ha hc ↦ hcal.dec _ hlp.2 a r ha hc) hw (hle _ _ _ hc),
+        lqOk_fn hlq, fun a r hc ↦ hcal.cap _ hcap a r hc, hcal.tail⟩
+      rw [← homn] at hc; exact hcal.msg _ hom a r hc
   | lvl, lv :: lv' :: lvs, level :: next :: cfg, hd, hb => by
     simp only [levelsB, Bool.and_eq_true, decide_eq_true_eq] at hb
     obtain ⟨hm, hrest⟩ := hb
     obtain ⟨hlv, hk, hd'⟩ := drop_cons_getD hd
-    refine ⟨?_, ?_, levelsOk_of hcal hsem hle (lvl + 1) (lv' :: lvs) (next :: cfg) hd' hrest⟩
-    · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
-        h20, h21, h22, hq, h23, -⟩ := hm
-      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
-        h20, h21, h22, ⟨_, _, qshOk_sound hq⟩, h23⟩
-    · obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hom, homn,
-        hspf, hspfn, hdec, hcap, -⟩ := hm
-      refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, fun a r hc ↦ ?_,
-        hcal.g17, hcal.g15, fun a r ha hc ↦ hcal.dec _ hdec a r ha hc,
-        fun a r hc ↦ hcal.cap _ hcap a r hc, ?_⟩
-      · rw [← homn] at hc; exact hcal.msg _ hom a r hc
-      · rw [← hspfn] at hc; exact hcal.spf _ hspf a r hc
-      · have := hsem.sq lvl hk; rwa [hlv] at this
+    have hr := hrate lvl hk
+    rw [hlv] at hr
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+      h20, h21, hq, h22, h23, hom, homn, hspf, hspfn, hlp, hlq, hcap, -⟩ := hm
+    refine ⟨⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19,
+        h20, h21, ⟨_, _, qshOk_sound hq⟩, h22, h23⟩, ?_,
+      levelsOk_of hcal hsem hle hrate (lvl + 1) (lv' :: lvs) (next :: cfg) hd' hrest⟩
+    refine ⟨fun a r ha hc ↦ hcal.round a r ha hc, fun a r hc ↦ ?_, fun a r hc ↦ ?_,
+      hcal.g17, hcal.g15, hr,
+      fun a r hw hc ↦ lp_sound (lpOk_fn hlp).1 (lpOk_fn hlp).2 h11 h14 h15 h16
+        (fun a r ha hc ↦ hcal.dec _ hlp.2 a r ha hc) hw (hle _ _ _ hc),
+      lqOk_fn hlq, fun a r hc ↦ hcal.cap _ hcap a r hc⟩
+    · rw [← homn] at hc; exact hcal.msg _ hom a r hc
+    · rw [← hspfn] at hc; exact hcal.spf _ hspf a r hc
   | _, [], _, _, hb => by simp [levelsB] at hb
   | _, [_], [], _, hb => by simp [levelsB] at hb
   | _, [_], _ :: _ :: _, _, hb => by simp [levelsB] at hb
@@ -152,15 +151,21 @@ theorem midOk_of {c : OsCfg} {logN : ℕ} :
   | _, _ :: _ :: _, [_], hb, _, _ => by simp [levelsB] at hb
 
 /-- **The finish's static facts** from the checked facts. -/
-theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m μ r : ℕ} {cfg : List Whir.Level}
-    (hcal : Callees rd C σ) (hsem : SemOk (osCfg m)) (h : CandOk m μ r cfg) :
-    FinStaticS rd C (osCfg m) := by
-  obtain ⟨-, -, -, -, hn2, hyr, hyl, hyn, hnF, hla, h40, hffm, hlv⟩ := h
-  refine ⟨hn2, hyr, hyl, hyn, fun i hi ↦ ?_, hsem.res, hnF, hla, h40,
+theorem finStatic_of {rd : Reader} {C : CallRel} {σ : Val} {m ri μ r : ℕ} {cfg : List Whir.Level}
+    (hcal : Callees rd C σ) (hsem : SemOk (osCfgR m ri)) (hle : CallRel.Le C (coreProgram.Rel rd))
+    (h : CandOk m ri μ r cfg) : FinStaticS rd C (osCfgR m ri) := by
+  obtain ⟨-, -, -, -, hn2, hyr, hyl, hyn, hnF, hla, h40, hffm, hlen, hlv⟩ := h
+  refine ⟨hn2, hyr, hyl, hyn, fun i hi ↦ ?_, fun i hi a r hc ↦ ?_, hlen, hnF, hla, h40,
     fun a r hc ↦ hcal.ffm _ hffm a r hc⟩
-  obtain ⟨level, next, hm⟩ := midOk_of 0 _ cfg hlv i (by omega)
-  rw [Nat.zero_add] at hm
-  exact lvFin_of hm (hsem.van i (by omega)) (hsem.hsm i hi)
+  · obtain ⟨level, next, hm⟩ := midOk_of 0 _ cfg hlv i (by omega)
+    rw [Nat.zero_add] at hm
+    exact lvFin_of hm (hsem.van i (by omega)) (hsem.hsm i hi)
+  · obtain ⟨level, next, hm⟩ := midOk_of 0 _ cfg hlv i (by omega)
+    rw [Nat.zero_add] at hm
+    obtain ⟨-, -, -, h1, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+      -, hlr, -, -, -, -, -, h2, h3, h4, -, -⟩ := hm
+    exact lr_sound (lrOk_fn hlr).1 (lrOk_fn hlr).2.1 (lrOk_fn hlr).2.2 hlr.2.1 hlr.2.2 h1 h2 h3 h4
+      (hle _ _ _ hc)
 
 end
 end LeanVM.Guest.B1.Whir

@@ -33,7 +33,7 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt × List V :=
   let la := pts.2 + 5
   let bs := osBases c tch bd ls la 0 mid (pts.2 + 6)
   let ich := bs.2 + 1
-  let rs := osResiduals c ich bd ls la 0 mid (bs.2 + 3)
+  let rs := osResiduals c ich bd ls la 0 mid st.mats (bs.2 + 3)
   let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
   let k := od.2.2
   ([.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],

@@ -15,14 +15,14 @@ public import LeanVM.Guest.B1.Main.Frames
 
 The witness convention (G6, 2026-10-23, `B1/Main/Frames.lean`): a witness is a function of the
 function's own valuation `σ` and the frame map `V`, reading words only. `open_stacked`'s witness
-`osW rd m σ V` at the candidate `m` is the stream words at the cursor `σ 8` and the openings, one
-phase per level, read off the frames of its `opening_queries` calls and the cap's cells; it is
-defined with the template of the body (`Whir/Witness.lean`).
+`osW rd m r σ V` at the size `m` and the rate `r` is the stream words at the cursor `σ 9` and the openings, one phase
+per level, read off the frames of its `level_queries` dispatches' `opening_queries` calls and the
+caps' cells; it is defined with the template of the body (`Whir/Witness.lean`).
 
 `OpenOutW` is `OpenOut` at given words and openings. `open_stacked_sound_w_Spec osW`: under a call
-relation `C ≤ Rel` unfolding at `V`, a valuation `σ` holding the candidate's body on the arguments
-`fs ++ [target, root0, root1, cur, tabs]`, the window tables at `tabs`, gives `OpenOutW` at
-`osW rd (candidate μ r) σ V`.
+relation `C ≤ Rel` unfolding at `V`, a valuation `σ` holding the size's body on the arguments
+`rateSel r :: fs ++ [target, root0, root1, cur, tabs]`, the window tables at `tabs`, gives
+`OpenOutW` at `osW rd (μ - minOpenLog) r σ V`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -54,24 +54,24 @@ theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E
 /-! ## The statement -/
 
 /-- **`open_stacked` is sound with its witness `osW`**: under a call relation `C ≤ Rel` unfolding
-at the frame map `V`, a valuation `σ` holding the body of the candidate of `μ`, `r` on the
-capacity cells `fs`, the claim `target`, the root's two cells, the cursor and the window tables
+at the frame map `V`, a valuation `σ` holding the body of the size of `μ` on the rate's selector,
+the capacity cells `fs`, the claim `target`, the root's two cells, the cursor and the window tables
 `tabs`, returning `rets`, on a memory image of `2^κ` words, `11 ≤ κ ≤ 32`, (the query windows' range
-checks), gives `OpenOutW` at the words and openings `osW L.read (candidate μ r) σ V`. -/
+checks), gives `OpenOutW` at the words and openings `osW L.read (μ - minOpenLog) r σ V`. -/
 def open_stacked_sound_w_Spec
-    (osW : Reader → ℕ → Val → FrameMap → List E × List (List Opening)) :
+    (osW : Reader → ℕ → ℕ → Val → FrameMap → List E × List (List Opening)) :
     Prop :=
   ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (C : CallRel) (V : FrameMap),
     UnfoldsV L.read C V →
     CallRel.Le C (coreProgram.Rel L.read) →
-    ∀ (μ r : ℕ), 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
+    ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
       ∀ (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E) (fn : Fn)
         (σ : Val), fs.length = 5 → (root0, root1) = digestHalves root →
-        WinTabs L.read tabs → coreProgram.find? (openName μ r) = some fn →
-        fn.params.map σ = fs ++ [target, root0, root1, cur, tabs] →
+        WinTabs L.read tabs → coreProgram.find? (openName μ) = some fn →
+        fn.params.map σ = rateSel r :: fs ++ [target, root0, root1, cur, tabs] →
         Stmt.HoldsList C L.read σ fn.body False (fun rs ↦ rs = rets) →
-        OpenOutW L.read μ r root fs target cur rets (osW L.read (candidate μ r) σ V).1
-          (osW L.read (candidate μ r) σ V).2
+        OpenOutW L.read μ r root fs target cur rets (osW L.read (μ - minOpenLog) r σ V).1
+          (osW L.read (μ - minOpenLog) r σ V).2
 
 end
 end LeanVM.Guest.B1.Whir

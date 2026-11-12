@@ -43,7 +43,7 @@ theorem subspaceRootsAux_prefix : ∀ (n N : ℕ) (last : K) (layer : List K), n
   | n + 1, N + 1, _, [], _, h2 => absurd h2 (by simp)
 
 /-- The certified layers compute the certified roots. -/
-theorem subspaceRootsAux_cert : ∀ (n k : ℕ), k + n ≤ 22 →
+theorem subspaceRootsAux_cert : ∀ (n k : ℕ), k + n ≤ 26 →
     subspaceRootsAux n (lastOf k) (layerK k) = (rootK.drop k).take n
   | 0, _, _ => by simp [subspaceRootsAux]
   | n + 1, k, h => by
@@ -57,21 +57,21 @@ theorem subspaceRootsAux_cert : ∀ (n k : ℕ), k + n ≤ 22 →
     rw [hl, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hlt, Option.getD_some,
       List.drop_eq_getElem_cons hlt, List.take_succ_cons]
 
-/-- **The subspace roots of `μ ≤ 22` coordinates are the certified ones.** -/
-theorem subspaceRoots_cert {μ : ℕ} (h : μ ≤ 22) : subspaceRoots μ = (1 :: rootK).take (μ + 1) := by
+/-- **The subspace roots of `μ ≤ 26` coordinates are the certified ones.** -/
+theorem subspaceRoots_cert {μ : ℕ} (h : μ ≤ 26) : subspaceRoots μ = (1 :: rootK).take (μ + 1) := by
   have e : (List.range μ).map (fun i ↦ K.ofBits (2 ^ (i + 1))) = (layerK 0).take μ := by
     rw [layerK_zero, ← List.map_take, List.take_range, min_eq_left h]
-  rw [subspaceRoots, e, subspaceRootsAux_prefix μ 22 _ _ h (by rw [layerK_zero]; simp),
-    show (1 : K) = lastOf 0 from rfl, subspaceRootsAux_cert 22 0 (by omega), List.drop_zero,
+  rw [subspaceRoots, e, subspaceRootsAux_prefix μ 26 _ _ h (by rw [layerK_zero]; simp),
+    show (1 : K) = lastOf 0 from rfl, subspaceRootsAux_cert 26 0 (by omega), List.drop_zero,
     List.take_take, min_eq_left h, List.take_succ_cons]
 
 /-- A level's vanishing tables: the `n` entries from `vo` of each are the certified roots (`1`
 first) and their inverses. -/
 def vanishOk (vo n : ℕ) : Bool :=
-  decide (n ≤ 23) && decide (vo + n ≤ Data.arr_LIG_VANISH_VALS.length) &&
-  decide (vo + n ≤ Data.arr_LIG_VANISH_INVS.length) &&
-  ((Data.arr_LIG_VANISH_VALS.drop vo).take n).map (fun e ↦ K.ofBits e.1) == (1 :: rootK).take n &&
-  ((Data.arr_LIG_VANISH_INVS.drop vo).take n).map (fun e ↦ K.ofBits e.1) == (1 :: invK).take n
+  decide (n ≤ 27) && decide (vo + n ≤ Data.arr_VANISH_BY_COLS.length) &&
+  decide (vo + n ≤ Data.arr_VANISH_INVS_BY_COLS.length) &&
+  ((Data.arr_VANISH_BY_COLS.drop vo).take n).map (fun e ↦ K.ofBits e.1) == (1 :: rootK).take n &&
+  ((Data.arr_VANISH_INVS_BY_COLS.drop vo).take n).map (fun e ↦ K.ofBits e.1) == (1 :: invK).take n
 
 /-- A run of a table, read entry by entry (`lig`) or at once. -/
 theorem lig_run (a : List (ℕ × ℕ)) {vo n : ℕ} (h : vo + n ≤ a.length) :
@@ -120,9 +120,14 @@ theorem vanish_inv {vo μ : ℕ} (h : vanishOk vo (μ + 1) = true) :
     exact eq_inv_of_mul_eq_one_left hs
 
 /-- **Every level's vanishing tables**, `μ + 1` entries from its offset. -/
-theorem vanish_all : ∀ m < 28, ∀ l < osNLevels m,
-    vanishOk (osLv m l).vanish ((osLv m l).logCols + 1) = true := by
+theorem vanish_all : ∀ m < ligNSizes, ∀ l < osNLevels m,
+    vanishOk (osLvR m 0 l).vanish ((osLvR m 0 l).logCols + 1) = true := by
   decide +kernel
+
+/-- **Every level's vanishing tables at every rate**: the rate does not change them. -/
+theorem vanish_allR {m ri l : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) :
+    vanishOk (osLvR m ri l).vanish ((osLvR m ri l).logCols + 1) = true :=
+  vanish_all m hm l hl
 
 end
 end LeanVM.Guest.B1.Whir

@@ -1,27 +1,27 @@
 /-
   LeanVM.Guest.B1.Whir.LevelB
 
-  A level's cap, high part, queries and glue (`osCap`, `osHsMid`, `osHsFinal`, `osQueries`,
-  `osGlue`), soundly, block by block.
+  A level's high part, queries and glue (`osHsMid`, `osHsFinal`, `osQueries`, `osGlue`), soundly,
+  block by block.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Whir.Lam
 public import LeanVM.Guest.B1.Whir.QOpen
+public import LeanVM.Guest.B1.Whir.RateCfg
 
 /-!
-# A level's cap, high part, queries and glue (G:1632-1720)
+# A level's high part, queries and glue
 
-* `osCap_sound`: `verify_merkle_cap` on the level's cap and flags, its root's cells stored in
-  `level_roots` (`2·lvl`, `2·lvl + 1`).
 * `osHsCoefs_val`: each coefficient read from `src` and stored at `dst` times its normalizer
   `word (sc c) 0`; `osHsMid_sound`, `osHsFinal_sound`: a non-final level's high part (from `sent`
   into `level_hs`) and the final lane (from `final_msg` into a fresh `hs`).
-* `osQueries_sound`: the `opening_queries` call on the cap, the flags, `1/λ` (`0` at the final
-  level), the round coefficients, the high part, the positions and windows, `g^pairs`.
-* `osGlue_sound`: the claim plus `λ·y0 + λ²·y1 + λ³·λ^Q·batched`, `λ`, `λ²` into `ood_scalars`,
-  `λ³·λ^Q` into `level_betas`, `1/λ` into `level_mus`.
+* `osQueries_sound`: the dispatch on the rate into `level_queries` on `λ`, `1/λ` (both `0` at the
+  final level), the round coefficients, the high part, the positions and windows; its returned
+  root's cells those in `level_roots`.
+* `osGlue_sound`: the claim plus `λ·y0 + λ²·λ^n·batched`, `λ` into `ood_scalars`, `λ²·λ^n`
+  into `level_betas`, `1/λ` into `level_mus`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -33,34 +33,6 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
-
-/-! ## The cap -/
-
-/-- **The level's cap** (G:1638-1642): `verify_merkle_cap`'s meaning on the cap and the flags,
-the root's cells stored in `level_roots`. -/
-theorem osCap_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hcap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →
-      MeaningVerifyMerkleCap lv.capDepth rd a r)
-    (hm : MatsOk σ st.mats) (hco : 4 * lv.capOff < u128Bound)
-    (hok : AllOk C rd σ (osCap c lvl lv st).1) :
-    ∃ r0 r1 : E, MeaningVerifyMerkleCap lv.capDepth rd
-        [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff] [r0, r1] ∧
-      LoadHolds rd (σ (.n osRoots)) (2 * lvl) r0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) r1 ∧
-      MatsOk σ (osCap c lvl lv st).2.mats ∧
-      (osCap c lvl lv st).2 = { st with
-        k := (osCap c lvl lv st).2.k
-        mats := (osCap c lvl lv st).2.mats } := by
-  unfold osCap at hok ⊢
-  simp only [allOk_append] at hok
-  obtain ⟨⟨hcp, hfl⟩, hrest⟩ := hok
-  obtain ⟨ecp, hm1⟩ := osMatS_val' hcp hm hco
-  obtain ⟨efl, hm2⟩ := osMatS_val' hfl hm1 (lt_of_le_of_lt (by omega) hco)
-  simp only [allOk_cons, allOk_nil, and_true, stmtOk_call, stmtOk_atom, holds_load, osLd,
-    List.map_cons, List.map_nil] at hrest
-  obtain ⟨hcall, l0, l1⟩ := hrest
-  have hM := hcap _ _ hcall
-  rw [ecp, efl] at hM
-  exact ⟨_, _, hM, l0, l1, hm2, rfl⟩
 
 /-! ## The high part -/
 
@@ -114,84 +86,78 @@ theorem osHsFinal_sound {c : OsCfg} {lv : OsLv} {st : OsSt}
 
 /-! ## The glue -/
 
-/-- **A non-final level's claims glued** (G:1704-1720). -/
-theorem osGlue_sound {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hpwQ : digitsVal (osPowDigits lv.queries) 1 = lv.queries) (hok : AllOk C rd σ (osGlue lvl lv st).1) :
-    σ (.n (osGlue lvl lv st).2.claim) = σ (.n st.claim) + σ (.n st.lam) * σ (.n (st.ys.getD 0 0)) +
-        σ (.n st.lam) ^ 2 * σ (.n st.lam) ^ lv.queries * σ (.n st.batched) ∧
+/-- **A non-final level's claims glued.** -/
+theorem osGlue_sound {lvl : ℕ} {st : OsSt} (hok : AllOk C rd σ (osGlue lvl st).1) :
+    σ (.n (osGlue lvl st).2.claim) = σ (.n st.claim) + σ (.n st.lam) * σ (.n (st.ys.getD 0 0)) +
+        σ (.n st.lam) ^ 2 * σ (.n st.lamPow) * σ (.n st.batched) ∧
       LoadHolds rd (σ (.n osOodSc)) (lvl + 1) (σ (.n st.lam)) ∧
-      LoadHolds rd (σ (.n osBetas)) lvl (σ (.n st.lam) ^ 2 * σ (.n st.lam) ^ lv.queries) ∧
+      LoadHolds rd (σ (.n osBetas)) lvl (σ (.n st.lam) ^ 2 * σ (.n st.lamPow)) ∧
       LoadHolds rd (σ (.n osMus)) lvl (σ (.n st.lamInv)) ∧
-      (osGlue lvl lv st).2 = { st with
-        k := (osGlue lvl lv st).2.k
-        claim := (osGlue lvl lv st).2.claim } := by
+      (osGlue lvl st).2 = { st with
+        k := (osGlue lvl st).2.k
+        claim := (osGlue lvl st).2.claim } := by
   unfold osGlue at hok ⊢
-  simp only [allOk_append] at hok
-  obtain ⟨⟨h1, hpw⟩, h2⟩ := hok
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_mul, holds_add, osLd,
-    osMul, osAdd] at h1 h2
-  obtain ⟨l0, m0, a1, m2⟩ := h1
-  obtain ⟨m6, m7, a8, l9, l10⟩ := h2
-  have hpv := osPowSteps_val (C := C) (rd := rd) (σ := σ) st.lam (osPowDigits lv.queries) st.lam
-    (st.k + 3) 1 (by rw [pow_one]) hpw
-  rw [hpwQ] at hpv
-  refine ⟨?_, l0, ?_, l10, rfl⟩
-  · rw [a8, m7, m6, hpv, a1, m0, m2]; ring
-  · rw [← show σ (.n (st.k + 3 + osPowLen lv.queries)) = σ (.n st.lam) ^ 2 * σ (.n st.lam) ^ lv.queries
-      by rw [m6, hpv, m2]; ring]
-    exact l9
+    osMul, osAdd] at hok
+  obtain ⟨l0, m0, a1, m2, m3, m4, a5, l6, l7⟩ := hok
+  refine ⟨?_, l0, ?_, l7, rfl⟩
+  · rw [a5, a1, m0, m4, m3, m2]; ring
+  · rw [m3, m2, ← sq] at l6; exact l6
 
 /-! ## The queries -/
 
-/-- The `opening_queries` call's arguments (G:1695-1702). -/
+/-- The `level_queries` call's arguments. -/
 def osQArgs (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (st : OsSt) : List E :=
-  [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
-    if lvl = c.yrLevel then 0 else σ (.n st.lamInv), σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
+  [if lvl = c.yrLevel then 0 else σ (.n st.lam), if lvl = c.yrLevel then 0 else σ (.n st.lamInv),
+    σ (.n osCoefs) * gen ^ (2 * lv.foldsOff),
     if lvl = c.yrLevel then σ (.n st.hs) else σ (.n osHs) * gen ^ (lvl * hsStride),
-    σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff,
-    gen ^ (if lvl = 0 then lv.queries / 2 else lv.queries)]
+    σ (.n osQpos) * gen ^ lv.posOff, σ (.n osQbp) * gen ^ lv.posOff]
 
-/-- **The level's queries** (G:1695-1702): the `opening_queries` call on its arguments. -/
-theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hm : MatsOk σ st.mats) (hb : 4 * lv.capOff < u128Bound) (hf : 2 * lv.foldsOff < u128Bound)
+/-- **The level's queries**: the dispatch on the rate into `level_queries` on its arguments,
+the root it returns that in `level_roots`. -/
+theorem osQueries_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (hr : LvRate σ c lvl lv)
+    (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
     (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
-    (hq : lv.queries < u128Bound) (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
-    C (osQueriesName c lvl lv) (osQArgs σ c lvl lv st) [σ (.n (osQueries c lvl lv st).2.batched)] ∧
+    (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
+    (osQCallOf c lvl lv st).1.map σ = osQArgs σ c lvl lv st ∧
+      C (osQueriesName c lvl lv) (osQArgs σ c lvl lv st) ((osQCallOf c lvl lv st).2.map σ) ∧
+      (∃ r0 r1 : E, (osQCallOf c lvl lv st).2.map σ =
+          [r0, r1, σ (.n (osQueries c lvl lv st).2.batched), σ (.n (osQueries c lvl lv st).2.lamPow)] ∧
+        LoadHolds rd (σ (.n osRoots)) (2 * lvl) r0 ∧ LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) r1) ∧
       MatsOk σ (osQueries c lvl lv st).2.mats ∧
       (osQueries c lvl lv st).2 = { st with
         k := (osQueries c lvl lv st).2.k
         mats := (osQueries c lvl lv st).2.mats
-        batched := (osQueries c lvl lv st).2.batched } := by
-  have hpairs : (if lvl = 0 then lv.queries / 2 else lv.queries) < u128Bound := by
-    split_ifs <;> omega
+        batched := (osQueries c lvl lv st).2.batched
+        lamPow := (osQueries c lvl lv st).2.lamPow } := by
   unfold osQueries at hok ⊢
+  unfold osQCallOf
   simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨hcp, hfl⟩, hli⟩, hcf⟩, hhp⟩, hqp⟩, hwp⟩, hcall⟩ := hok
-  obtain ⟨ecp, hm1⟩ := osMatS_val' hcp hm hb
-  obtain ⟨efl, hm2⟩ := osMatS_val' hfl hm1 (lt_of_le_of_lt (by omega) hb)
+  obtain ⟨⟨⟨⟨⟨hli, hcf⟩, hhp⟩, hqp⟩, hwp⟩, hrest⟩ := hok
+  simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, osLd] at hrest
+  obtain ⟨hd, l0, l1⟩ := hrest
+  have hC := dispatch_rate hr (osQueriesName c lvl) hd
   by_cases hfin : lvl = c.yrLevel
   · subst hfin
-    simp only [↓reduceIte] at hcf hhp hqp hwp hli hcall ⊢
-    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, osCst,
-      List.map_cons, List.map_nil] at hli hcall
-    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm2 hf
+    simp only [↓reduceIte] at hcf hhp hqp hwp hli hC l0 l1 ⊢
+    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_const, osCst] at hli
+    obtain ⟨z0, z1⟩ := hli
+    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm hf
     obtain ⟨eqp, hm4⟩ := osMatS_val' hqp hm3 hp
     obtain ⟨ewp, hm5⟩ := osMatS_val' hwp hm4 hp
-    obtain ⟨eg, hc⟩ := hcall
-    refine ⟨?_, hm5, rfl⟩
-    rw [ecp, efl, hli, ecf, eqp, ewp, eg, gw_eq hpairs, word_zero] at hc
-    simpa [osQArgs] using hc
-  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp hli hcall ⊢
-    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, osCst,
-      List.map_cons, List.map_nil] at hcall
-    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm2 hf
+    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm5, rfl⟩) ?_
+    · simp only [List.map_cons, List.map_nil, osQArgs, ↓reduceIte]
+      rw [z0, z1, ecf, eqp, ewp, word_zero]
+    · simp [osRun, List.range_succ]
+  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp hli hC l0 l1 ⊢
+    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm hf
     obtain ⟨ehp, hm4⟩ := osMatS_val' hhp hm3 hh
     obtain ⟨eqp, hm5⟩ := osMatS_val' hqp hm4 hp
     obtain ⟨ewp, hm6⟩ := osMatS_val' hwp hm5 hp
-    obtain ⟨eg, hc⟩ := hcall
-    refine ⟨?_, hm6, rfl⟩
-    rw [ecp, efl, ecf, ehp, eqp, ewp, eg, gw_eq hpairs] at hc
-    simpa [osQArgs, hfin] using hc
+    refine (fun ha ↦ ⟨ha, ha ▸ hC, ⟨_, _, ?_, l0, l1⟩, hm6, rfl⟩) ?_
+    · simp only [List.map_cons, List.map_nil, osQArgs, hfin, ↓reduceIte]
+      rw [ecf, ehp, eqp, ewp]
+    · simp [osRun, List.range_succ]
 
 end
 end LeanVM.Guest.B1.Whir

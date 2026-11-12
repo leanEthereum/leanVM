@@ -9,6 +9,8 @@ module
 public import LeanVM.Guest.B1.Whir.LevelRun
 public import LeanVM.Guest.B1.Whir.LevelB
 public import LeanVM.Guest.B1.Opening.QueriesAllW
+public import LeanVM.Guest.B1.Whir.LpSound
+public import LeanVM.Guest.B1.Whir.LqSound
 
 /-!
 # A non-final level (G:1556-1694)
@@ -21,7 +23,7 @@ after it), the `α`s stored in `fold_challenges`, the commitments so far and the
 
 `osLevelMid_sound`: a non-final level's template runs `foldRounds` then `levelNext` from `LvIn`,
 reading `lvWords` words at the cursor and one phase of openings, the witness's (`osLevelW` at
-the level's `opening_queries` call, `osQCallOf`), and leaves the next level's `LvIn` with the
+the level's `level_queries` call, `osQCallOf`), and leaves the next level's `LvIn` with the
 level's record appended, whose values the finish rereads (`RecStored`).
 -/
 
@@ -35,81 +37,50 @@ open LeanVM.Protocol.Verifier
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-/-! ## The level's `opening_queries` call -/
+/-! ## The level's `level_queries` call -/
 
-/-- The state before a level's queries. -/
-def osPreQ (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : OsSt :=
-  let fin := lvl = c.yrLevel
-  let f := osRounds c.plan lv.foldsOff lv.folds s
-  let m := if fin then osFinalMsg c lv f.2 else osCommit c lvl lv f.2
-  let sq := osSqueezes c lvl lv m.2
-  let la := if fin then (([] : List Stmt), sq.2) else osLam sq.2
-  let cp := osCap c lvl lv la.2
-  let h := if fin then osHsFinal c lv cp.2 else osHsMid lvl lv cp.2
-  h.2
+theorem lqIters_base (q lvl : ℕ) : lqIters q (lvBase lvl) = q / (1 + lvBase lvl) := by
+  by_cases h : lvl = 0 <;> simp [lqIters, lvBase, h]
 
-/-- The `opening_queries` call of `osQueries c lvl lv s`: its name, arguments and returns. -/
-def osQCallOf (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V × List V :=
-  let fin := lvl = c.yrLevel
-  let cp := osMatS c.plan osCaps (4 * lv.capOff) s
-  let fl := osMatS c.plan osFlags lv.capOff cp.2.2
-  let li : List Stmt × ℕ × OsSt :=
-    if fin then ([osCst fl.2.2.k (word 0 0)], fl.2.2.k, { fl.2.2 with k := fl.2.2.k + 1 })
-    else ([], s.lamInv, fl.2.2)
-  let cf := osMatS c.plan osCoefs (2 * lv.foldsOff) li.2.2
-  let hp : List Stmt × ℕ × OsSt :=
-    if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
-  let qp := osMatS c.plan osQpos lv.posOff hp.2.2
-  let wp := osMatS c.plan osQbp lv.posOff qp.2.2
-  let g := wp.2.2.k
-  (osQueriesName c lvl lv, [cp.2.1, fl.2.1, li.2.1, cf.2.1, hp.2.1, qp.2.1, wp.2.1, g].map V.n,
-    [.n (g + 1)])
-
-/-- The levels' `opening_queries` calls, in order. -/
-def osQCallsL (c : OsCfg) : ℕ → List OsLv → OsSt → List (String × List V × List V)
-  | _, [], _ => []
-  | lvl, lv :: rest, s =>
-    osQCallOf c lvl lv (osPreQ c lvl lv s) :: osQCallsL c (lvl + 1) rest (osLevel c lvl lv s).2
-
-/-- **The call's arguments and returns** through the valuation. -/
-theorem osQCallOf_val {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt}
-    (hm : MatsOk σ st.mats) (hb : 4 * lv.capOff < u128Bound) (hf : 2 * lv.foldsOff < u128Bound)
+/-- **The level's queries, unfolded**: the `level_queries` call's frame `Vq` holds the cap and its
+flags (cells `7`, `9`), checked to the root it returns, which is that in `level_roots`, and its
+`opening_queries` call, whose return is the batch; `λ^n` is `λ`'s power. -/
+theorem osLq_sound {V : FrameMap} (hU : UnfoldsV rd C V) {c : OsCfg} {lvl : ℕ} {lv : OsLv}
+    {st : OsSt} (hr : LvRate σ c lvl lv)
+    (hlq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv))
+    (hit : lv.queries / (1 + lvBase lvl) < u128Bound)
+    (hpwQ : digitsVal (osPowDigits lv.queries) 1 = lv.queries)
+    (hm : MatsOk σ st.mats) (hf : 2 * lv.foldsOff < u128Bound)
     (hh : lvl * hsStride < u128Bound) (hp : lv.posOff < u128Bound)
-    (hq : lv.queries < u128Bound) (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
-    (osQCallOf c lvl lv st).1 = osQueriesName c lvl lv ∧
-      (osQCallOf c lvl lv st).2.1.map σ = osQArgs σ c lvl lv st ∧
-      (osQCallOf c lvl lv st).2.2.map σ = [σ (.n (osQueries c lvl lv st).2.batched)] := by
-  have hpairs : (if lvl = 0 then lv.queries / 2 else lv.queries) < u128Bound := by
-    split_ifs <;> omega
-  unfold osQueries at hok ⊢
-  unfold osQCallOf
-  simp only [allOk_append] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨hcp, hfl⟩, hli⟩, hcf⟩, hhp⟩, hqp⟩, hwp⟩, hcall⟩ := hok
-  obtain ⟨ecp, hm1⟩ := osMatS_val' hcp hm hb
-  obtain ⟨efl, hm2⟩ := osMatS_val' hfl hm1 (lt_of_le_of_lt (by omega) hb)
-  by_cases hfin : lvl = c.yrLevel
-  · subst hfin
-    simp only [↓reduceIte] at hcf hhp hqp hwp hli hcall ⊢
-    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, osCst,
-      List.map_cons, List.map_nil] at hli hcall
-    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm2 hf
-    obtain ⟨eqp, hm4⟩ := osMatS_val' hqp hm3 hp
-    obtain ⟨ewp, hm5⟩ := osMatS_val' hwp hm4 hp
-    obtain ⟨eg, -⟩ := hcall
-    refine ⟨trivial, ?_, rfl⟩
-    simp only [List.map_cons, List.map_nil, osQArgs, ↓reduceIte]
-    rw [ecp, efl, hli, ecf, eqp, ewp, eg, gw_eq hpairs, word_zero]
-  · simp only [hfin, ↓reduceIte] at hcf hhp hqp hwp hli hcall ⊢
-    simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, stmtOk_call, holds_const, osCst,
-      List.map_cons, List.map_nil] at hcall
-    obtain ⟨ecf, hm3⟩ := osMatS_val' hcf hm2 hf
-    obtain ⟨ehp, hm4⟩ := osMatS_val' hhp hm3 hh
-    obtain ⟨eqp, hm5⟩ := osMatS_val' hqp hm4 hp
-    obtain ⟨ewp, hm6⟩ := osMatS_val' hwp hm5 hp
-    obtain ⟨eg, -⟩ := hcall
-    refine ⟨trivial, ?_, rfl⟩
-    simp only [List.map_cons, List.map_nil, osQArgs, hfin, ↓reduceIte]
-    rw [ecp, efl, ecf, ehp, eqp, ewp, eg, gw_eq hpairs]
+    (hok : AllOk C rd σ (osQueries c lvl lv st).1) :
+    let A := osQArgs σ c lvl lv st
+    let Vq := V (osQueriesName c lvl lv) A ((osQCallOf c lvl lv st).2.map σ)
+    (osQCallOf c lvl lv st).1.map σ = A ∧
+      C ("verify_merkle_cap__L" ++ natStr lv.capDepth) [Vq (.n 7), Vq (.n 9)]
+        [Vq (.n 10), Vq (.n 11)] ∧
+      C (osOqName c lvl lv) (osOqArgs Vq A (lv.queries / (1 + lvBase lvl))) [Vq (.n 13)] ∧
+      σ (.n (osQueries c lvl lv st).2.batched) = Vq (.n 13) ∧
+      σ (.n (osQueries c lvl lv st).2.lamPow) = A.getD 0 0 ^ lv.queries ∧
+      LoadHolds rd (σ (.n osRoots)) (2 * lvl) (Vq (.n 10)) ∧
+      LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (Vq (.n 11)) ∧
+      MatsOk σ (osQueries c lvl lv st).2.mats ∧
+      (osQueries c lvl lv st).2 = { st with
+        k := (osQueries c lvl lv st).2.k
+        mats := (osQueries c lvl lv st).2.mats
+        batched := (osQueries c lvl lv st).2.batched
+        lamPow := (osQueries c lvl lv st).2.lamPow } := by
+  intro A Vq
+  obtain ⟨ha, hC, ⟨r0, r1, hR, l0, l1⟩, hm', hst⟩ := osQueries_sound hr hm hf hh hp hok
+  simp only [osLqBody] at hlq
+  have hU' := lq_unfold hU hlq (by rw [lqIters_base]; exact hit) hpwQ hC
+  obtain ⟨-, hcap, hoq, hret⟩ := hU'
+  rw [lqIters_base] at hoq
+  have hret' := hR.symm.trans hret
+  simp only [List.cons.injEq, and_true] at hret'
+  obtain ⟨e0, e1, e2, e3⟩ := hret'
+  rw [e0] at l0
+  rw [e1] at l1
+  exact ⟨ha, hcap, hoq, e2, e3, l0, l1, hm', hst⟩
 
 /-! ## The positions -/
 
@@ -285,8 +256,8 @@ structure RecStored (rd : Reader) (σ : Val) (lvl : ℕ) (lv : OsLv) (r : OsRec)
 
 /-- The level's `opening_queries` specialization: its entry and its shape against the row. -/
 def QShapeOk (c : OsCfg) (lvl : ℕ) (lv : OsLv) (fin : ℕ) (loop : String) (sh : OqShape) : Prop :=
-  (osQueriesName c lvl lv, loop, sh) ∈ openingQueriesLoops ∧
-    oqEntry (osQueriesName c lvl lv) = some (osQueriesName c lvl lv, loop, sh) ∧
+  (osOqName c lvl lv, loop, sh) ∈ openingQueriesLoops ∧
+    oqEntry (osOqName c lvl lv) = some (osOqName c lvl lv, loop, sh) ∧
     sh.odd = lv.queries % 2 * (if lvl = 0 then 1 else 0) ∧ sh.base = (if lvl = 0 then 1 else 0) ∧
     sh.folds = lv.folds ∧ sh.depth = lv.depth ∧ sh.cd = lv.capDepth ∧ sh.final = fin ∧
     2 ≤ sh.cd ∧ sh.cd ≤ 8 ∧ sh.cd ≤ sh.depth ∧
@@ -313,12 +284,12 @@ structure MidFacts (c : OsCfg) (logN lvl : ℕ) (lv : OsLv) (level next : Whir.L
   sq5 : lv.squeezes * 5 < u128Bound
   r3 : 2 * (lv.foldsOff + lv.folds) < u128Bound
   ood : (lvl + 1) * ligColsCap < u128Bound
-  cap4 : 4 * lv.capOff < u128Bound
   hs8 : lvl * hsStride < u128Bound
   shape : levelShape lv.logCols next (2 * 2 ^ next.fold) = (lv'.depth, lvWidth (lvl + 1) lv')
   off' : lv'.foldsOff = lv.foldsOff + lv.folds
   qsh : ∃ loop sh, QShapeOk c lvl lv 0 loop sh
   N : lv.queries / (1 + if lvl = 0 then 1 else 0) < ordG
+  it : lv.queries / (1 + lvBase lvl) < u128Bound
 
 /-- A non-final level's callees, by their meanings. -/
 structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) :
@@ -332,11 +303,12 @@ structure MidCalls (rd : Reader) (C : CallRel) (σ : Val) (c : OsCfg) (lvl : ℕ
     (w.limb 0).lane.toNat % 2 ^ queryGrind = 0
   g15 : ∀ w, C ("grind_check__L" ++ natStr levelOodGrind) [w, σ (.n osTabs)] [] →
     (w.limb 0).lane.toNat % 2 ^ levelOodGrind = 0
-  dec : ∀ a r, WinTabs rd (a.getD 3 0) → coreProgram.Rel rd (decName lv) a r →
-    MeaningDecodeQueryWindows lv.depth lv.capDepth rd a r
+  rate : LvRate σ c lvl lv
+  lp : ∀ a r, WinTabs rd (a.getD 8 0) → C (osPositionsName lv) a r →
+    MeaningLevelPositions lv.squeezes lv.depth lv.capDepth rd a r
+  lq : FnIs (osQueriesName c lvl lv) (osParams 6) (osLqBody c lvl lv)
   cap : ∀ a r, C ("verify_merkle_cap__L" ++ natStr lv.capDepth) a r →
     MeaningVerifyMerkleCap lv.capDepth rd a r
-  sqLoop : FnIs (c.sqLoop lvl) (osParams 6) (sqLoopBody lv (c.sqLoop lvl))
 
 theorem lanesOf_base (lvl : ℕ) : lanesOf (if lvl = 0 then 1 else 0) = specLanes lvl := by
   funext row

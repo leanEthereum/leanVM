@@ -52,20 +52,20 @@ theorem ofBits_hsScale_norm {v mu bits c init : ℕ} (hv : vanishOk v (mu + 1) =
   refine Finset.prod_congr rfl fun i hi ↦ ?_
   rw [vanish_inv hv i (by have := Finset.mem_range.1 hi; omega)]
 
-theorem hsScaleOk_mid {m l : ℕ} (hm : m < 28) (hl : l < osNLevels m) : hsMidOk m l = true := by
+theorem hsScaleOk_mid {m l : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) : hsMidOk m l = true := by
   have h := hsScale_all m hm
   simp only [hsScaleOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at h
   exact h.1 l hl
 
 /-- A mid level's high bits are at most `logCols + 1`. -/
-theorem hsMid_bits {m l : ℕ} (hm : m < 28) (hl : l < osNLevels m) :
+theorem hsMid_bits {m l : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) :
     (osLv m l).highBits ≤ (osLv m l).logCols + 1 := by
   have h := hsScaleOk_mid hm hl
   simp only [hsMidOk, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.1
 
 /-- **A mid level's normalizer** (`osHsMid`): `W_μ(β_μ)⁻¹ · hsNorm μ highBits c`, `μ = logCols`. -/
-theorem hsScale_mid {m l c : ℕ} (hm : m < 28) (hl : l < osNLevels m) (hc : c < (osLv m l).folds) :
+theorem hsScale_mid {m l c : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) (hc : c < (osLv m l).folds) :
     K.ofBits (hsScale (osLv m l).vanish (osLv m l).highBits c
         (vanishInv ((osLv m l).vanish + (osLv m l).logCols))) =
       ((Verifier.subspaceRoots (osLv m l).logCols).getD (osLv m l).logCols 0)⁻¹ *
@@ -79,20 +79,20 @@ theorem hsScale_mid {m l c : ℕ} (hm : m < 28) (hl : l < osNLevels m) (hc : c <
 /-- The final level's row. -/
 abbrev osLvFin (m : ℕ) : OsLv := osLv m (osCfg m).yrLevel
 
-theorem hsScaleOk_fin {m : ℕ} (hm : m < 28) : hsFinOk m (osLvFin m) = true := by
+theorem hsScaleOk_fin {m : ℕ} (hm : m < ligNSizes) : hsFinOk m (osLvFin m) = true := by
   have h := hsScale_all m hm
   simp only [hsScaleOk, Bool.and_eq_true] at h
   exact h.2
 
 /-- The final level's tables hold `yrLog + 1` roots. -/
-theorem hsFinal_vanishOk {m : ℕ} (hm : m < 28) :
+theorem hsFinal_vanishOk {m : ℕ} (hm : m < ligNSizes) :
     vanishOk (osLvFin m).vanish ((osCfg m).yrLog + 1) = true := by
   have h := hsScaleOk_fin hm
   simp only [hsFinOk, Bool.and_eq_true] at h
   exact h.1
 
 /-- **The final lane's normalizer** (`osHsFinal`): `hsNorm yrLog (yrLog + 1) c`. -/
-theorem hsScale_final {m c : ℕ} (hm : m < 28) (hc : c < (osCfg m).yrLen + (osLvFin m).folds) :
+theorem hsScale_final {m c : ℕ} (hm : m < ligNSizes) (hc : c < (osCfg m).yrLen + (osLvFin m).folds) :
     K.ofBits (hsScale (osLvFin m).vanish ((osCfg m).yrLog + 1) c 1) =
       hsNorm (osCfg m).yrLog ((osCfg m).yrLog + 1) c := by
   have h := hsScaleOk_fin hm

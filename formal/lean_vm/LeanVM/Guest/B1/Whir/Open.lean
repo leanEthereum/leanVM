@@ -16,9 +16,9 @@ public import LeanVM.Guest.B1.Whir.Witness
 # A candidate, soundly
 
 `open_generic`: a specialization whose body is the template at `c` (`osBody c`), whose levels
-have their facts and callees (`LevelsOk`), whose finish has its static facts (`FinStaticS`) and
-whose `opening_queries` calls are the levels' (`osQCalls c = osQCallsL …`): a call establishes
-`OpenOutW` at the witness's words and openings. The head stores the root's halves and starts
+have their facts and callees (`LevelsOk`) and their rows at the rate's selector (`LvRate`), and
+whose finish has its static facts (`FinStaticS`): a call establishes `OpenOutW` at the
+witness's words and openings. The head stores the root's halves and starts
 level `0` (`osHead_lvIn`); the levels and the closing rounds run `whirLevelsOpen`
 (`osLevels_sound`); the finish returns the terminal (`osFinish_sound`).
 -/
@@ -56,31 +56,16 @@ theorem osReadN_of_readsAt {p : E} {xs : List E} (h : ReadsAt rd p xs) :
   rw [(h i h2).2]
   rfl
 
-theorem osQCallsL_openings (Vm : FrameMap) (c : OsCfg) (L : ℕ → OsLv) :
-    ∀ (lvs : List OsLv) (k : ℕ) (st : OsSt), (∀ i < lvs.length, L (k + i) = lvs.getD i default) →
-      ((osQCallsL c k lvs st).zipIdx k).map (fun (p : (String × List V × List V) × ℕ) ↦
-        osLevelW rd Vm p.2 (L p.2) p.1.1 (p.1.2.1.map σ) (p.1.2.2.map σ)) =
-        osLevelsW rd Vm σ c k lvs st
-  | [], _, _, _ => rfl
-  | lv :: rest, k, st, h => by
-    simp only [osQCallsL, List.zipIdx_cons, List.map_cons, osLevelsW]
-    rw [osQCallsL_openings Vm c L rest (k + 1) _ fun i hi ↦ by
-        have := h (i + 1) (by simp; omega)
-        rwa [show k + (i + 1) = k + 1 + i by ring] at this]
-    have h0 := h 0 (by simp)
-    simp only [Nat.add_zero, List.getD_cons_zero] at h0
-    simp only [h0]
-
 /-! ## The head -/
 
 theorem osHead_roots {c : OsCfg} (h : AllOk C rd σ (osHead c).1) :
-    LoadHolds rd (σ (.n osRoots)) 0 (σ (.n 6)) ∧ LoadHolds rd (σ (.n osRoots)) 1 (σ (.n 7)) := by
-  have m1 : osLd 6 osRoots 0 ∈ (osHead c).1 := by simp [osHead]
-  have m2 : osLd 7 osRoots 1 ∈ (osHead c).1 := by simp [osHead]
+    LoadHolds rd (σ (.n osRoots)) 0 (σ (.n 7)) ∧ LoadHolds rd (σ (.n osRoots)) 1 (σ (.n 8)) := by
+  have m1 : osLd 7 osRoots 0 ∈ (osHead c).1 := by simp [osHead]
+  have m2 : osLd 8 osRoots 1 ∈ (osHead c).1 := by simp [osHead]
   exact ⟨(holds_load _ _ _).mp (h _ m1), (holds_load _ _ _).mp (h _ m2)⟩
 
 theorem osHead_st (c : OsCfg) : (osHead c).2 =
-    { k := 36, fs := [0, 1, 2, 3, 4], cb := 8, co := 0, claim := 5, pad := none, mats := [] } := rfl
+    { k := 33, fs := [1, 2, 3, 4, 5], cb := 9, co := 0, claim := 6, pad := none, mats := [] } := rfl
 
 /-! ## A candidate -/
 
@@ -91,15 +76,17 @@ structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
   ylog : 1 ≤ c.yrLog
   ylen : 2 ^ c.yrLog = c.yrLen
   lv : ∀ i < c.yrLevel, LvFin c (c.levels.getD i default) (c.levels.getD (i + 1) default)
-  loops : ∀ i < c.yrLevel,
-    FnIs (c.resLoop i) (osParams 7) (resLoopBody i (c.levels.getD i default) (c.resLoop i))
+  res : ∀ i < c.yrLevel, ∀ a r, C (osResidualName (c.levels.getD i default)) a r →
+    MeaningLevelResidual (c.levels.getD i default).queries (c.levels.getD i default).logCols
+      (c.levels.getD i default).folds (c.levels.getD i default).highBits rd a r
+  nlen : c.levels.length ≤ 64
   nF : lvsFolds c.levels = c.nFolds
   lane : (c.levels.headD default).folds ≤ c.nFolds
   mu40 : c.nFolds + c.yrLog ≤ pointCap
   ffm : ∀ a r, C ("fold_final_msg__L" ++ natStr c.yrLog) a r → MeaningFoldFinalMsg c.yrLog rd a r
 
-/-- **A candidate, soundly**: from its body, its levels' facts and callees, its finish's facts
-and its `opening_queries` calls, a call establishes `OpenOutW` at the witness's words and
+/-- **A candidate, soundly**: from its body, its levels' facts, callees and rows at the rate's
+selector, and its finish's facts, a call establishes `OpenOutW` at the witness's words and
 openings. -/
 theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (coreProgram.Rel rd))
     {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hdc : Whir.ladder μ r = some cfg)
@@ -108,12 +95,13 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     (hoff0 : (c.levels.headD default).foldsOff = 0)
     (hlane : (cfg.head?.map (·.fold)).getD 0 = (c.levels.headD default).folds)
     (hLOk : LevelsOk rd C σ c μ 0 c.levels cfg) (hFS : FinStaticS rd C c)
-    {fn : Fn} (hfp : fn.params = osParams 10) (hfb : fn.body = osBody c)
-    {root : Digest} {fs : List E} {target root0 root1 cur tabs : E} {rets : List E}
+    (hrate : ∀ i < c.levels.length, LvRate σ c i (c.levels.getD i default))
+    {fn : Fn} (hfp : fn.params = osParams 11) (hfb : fn.body = osBody c)
+    {root : Digest} {sel : E} {fs : List E} {target root0 root1 cur tabs : E} {rets : List E}
     (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root) (hwt : WinTabs rd tabs)
-    (hp : fn.params.map σ = fs ++ [target, root0, root1, cur, tabs])
+    (hp : fn.params.map σ = sel :: fs ++ [target, root0, root1, cur, tabs])
     (hh : Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets)) :
-    OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n 8)) (osWordsLen c))
+    OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n 9)) (osWordsLen c))
       (osLevelsW rd V σ c 0 c.levels (osHead c).2) := by
   -- the parameters
   obtain ⟨f0, f1, f2, f3, f4, rfl⟩ : ∃ f0 f1 f2 f3 f4, fs = [f0, f1, f2, f3, f4] := by
@@ -122,7 +110,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
   rw [hfp] at hp
   simp only [osParams, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, List.cons.injEq, and_true] at hp
-  obtain ⟨p0, p1, p2, p3, p4, p5, p6, p7, p8, p9⟩ := hp
+  obtain ⟨-, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9⟩ := hp
   -- the body
   rw [hfb, osBody_eq, holdsList_flat_ret _ (osBodyA_flat c)] at hh
   obtain ⟨hA, hret⟩ := hh
@@ -136,7 +124,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
   rw [hhead] at hshape hoff0 hlane
   -- level 0's start
   obtain ⟨hr0, hr1⟩ := osHead_roots hH
-  have hwt' : WinTabs rd (σ (.n osTabs)) := by rw [show osTabs = 9 from rfl, p9]; exact hwt
+  have hwt' : WinTabs rd (σ (.n osTabs)) := by rw [show osTabs = 10 from rfl, p9]; exact hwt
   have hin : LvIn rd σ 0 lv0 (osHead c).2 ⟨target, [], []⟩ [] [(root, stackShape μ r)] root := by
     rw [osHead_st]
     refine ⟨rfl, by unfold u128Bound; positivity, fun p hp ↦ by simp at hp, matsOk_nil σ, ?_, ?_,
@@ -147,14 +135,16 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     · rw [p6] at hr0; rw [← hroot]; exact hr0
     · rw [p7] at hr1; rw [← hroot]; exact hr1
   rw [hlv] at hL hT hLOk
-  obtain ⟨xs, recs', gs, fold, T, R', hxl, hrd, hrun, hrl, hrecs, -, hgl, hfch, hfm, hfl, hTr, hTl⟩ :=
+  obtain ⟨xs, recs', gs, fold, T, R', hxl, hrd, hrun, hrl, hrecs, -, hgl, hfch, hfm, hfl, hTr, hTl,
+    hmT⟩ :=
     osLevels_sound hU hle hwt' lv0.folds 0 lv0 rest cfg _ _ [] _ root hLOk hin hL hT
   simp only [List.nil_append] at hrun hfch hfch
   -- the finish
   have hy : c.yrLevel = rest.length := by rw [hFS.yr, hlv]; simp
   have hFI : FinishIn rd C σ c (osTail c (osLevels c 0 (lv0 :: rest) (osHead c).2).2).2.2 gs T fold
       recs' := by
-    refine ⟨hFS.n2, hFS.yr, hFS.ylog, hFS.ylen, by rw [hrl, hy], fun i hi ↦ ?_, hFS.lv, hFS.loops,
+    refine ⟨hFS.n2, hFS.yr, hFS.ylog, hFS.ylen, by rw [hrl, hy], fun i hi ↦ ?_, hFS.lv,
+      fun i hi ↦ hrate i (by have := hFS.yr; omega), hFS.res, hFS.nlen,
       by rw [hgl, ← hFS.nF, hlv], hfch, hTl, hTr, hfm, by rw [hfl]; omega, hFS.lane,
       hFS.mu40, hFS.ffm⟩
     have hi' : i < recs'.length := by rw [hrl, ← hy]; exact hi
@@ -163,13 +153,13 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     rw [List.getD_eq_getElem recs' default hi']
     exact this
   rw [hlv] at hFin
-  obtain ⟨pt, pt1, hrv, hpt, hpt1⟩ := osFinish_sound hle hFI hFin
+  obtain ⟨pt, pt1, hrv, hpt, hpt1⟩ := osFinish_sound hFI hmT hFin
   rw [hhead, hmu] at hpt hpt1
   -- the words and the openings
   have hcur : (osHead c).2.cur σ = cur := by
     rw [osHead_st]; simp [OsSt.cur, p8]
   rw [hcur] at hrd
-  have hwords : osReadN rd (σ (.n 8)) (osWordsLen c) = xs := by
+  have hwords : osReadN rd (σ (.n 9)) (osWordsLen c) = xs := by
     rw [p8, osWordsLen_eq, hlv, ← hxl]
     exact osReadN_of_readsAt hrd
   rw [hwords, hlv]

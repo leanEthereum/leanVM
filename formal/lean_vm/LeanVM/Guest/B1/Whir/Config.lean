@@ -106,6 +106,9 @@ def osLvR (m r lvl : Nat) : OsLv :=
     prefixLen := lig Data.arr_LIG_RESIDUAL_PREFIX_LEN i,
     resFoldOff := lig Data.arr_LIG_RESIDUAL_FOLD_OFF i, vanish := cols * (cols + 1) / 2 }
 
+/-- Level `lvl`'s row of size `m` at the first rate: its rate-free columns are every rate's. -/
+abbrev osLv (m lvl : Nat) : OsLv := osLvR m 0 lvl
+
 /-- A size's configuration. -/
 structure OsCfg where
   /-- The size, `μ - 20`, `minOpenLog` in `Interface`. -/

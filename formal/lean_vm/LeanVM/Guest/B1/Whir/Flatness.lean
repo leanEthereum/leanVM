@@ -70,22 +70,16 @@ theorem osCommit_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osC
     osHeap_flat _ _, osCurS_flat _, osMatS_flat _ _ _ _, osPad_flat _ _, Bool.and_true, Bool.true_and]
   simp [Stmt.flat, osKeccak]
 
-theorem osSqueezes_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
-    Flat (osSqueezes c lvl lv s).1 := by
-  unfold osSqueezes
-  simp only [Flat, List.all_append, osHeap_flat _ _, osMatS_flat _ _ _ _, osLoopCall_flat _ _ _ _ _,
-    Bool.and_true, Bool.true_and]
-  simp [Stmt.flat]
+theorem osPositions_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
+    Flat (osPositions c lvl lv s).1 := by
+  unfold osPositions
+  simp only [Flat, List.all_append, osMatS_flat _ _ _ _, Bool.true_and]
+  rfl
 
 theorem osLam_flat (s : OsSt) : Flat (osLam s).1 := by
   unfold osLam
   simp only [Flat, List.all_append, osPad_flat _ _]
   simp [Stmt.flat, osKeccak]
-
-theorem osCap_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osCap c lvl lv s).1 := by
-  unfold osCap
-  simp only [Flat, List.all_append, osMatS_flat _ _ _ _, Bool.true_and]
-  rfl
 
 theorem osHsCoefs_flat (src dst : ℕ) (sc : ℕ → ℕ) (si di : ℕ) :
     ∀ n i k, Flat (osHsCoefs src dst sc si di n i k).1
@@ -107,18 +101,15 @@ theorem osQueries_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (os
   split_ifs <;> simp only [Flat, List.all_append, hm, List.all_cons, List.all_nil, Stmt.flat,
     Bool.and_true]
 
-theorem osGlue_flat (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osGlue lvl lv s).1 := by
-  unfold osGlue
-  simp only [Flat, List.all_append, osPowSteps_flat, Bool.and_true]
-  simp [Stmt.flat]
+theorem osGlue_flat (lvl : ℕ) (s : OsSt) : Flat (osGlue lvl s).1 := rfl
 
 theorem osLevel_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osLevel c lvl lv s).1 := by
   unfold osLevel
   simp only [Flat, List.all_append]
   refine Bool.and_eq_true_iff.mpr ⟨Bool.and_eq_true_iff.mpr ⟨Bool.and_eq_true_iff.mpr ⟨
     Bool.and_eq_true_iff.mpr ⟨Bool.and_eq_true_iff.mpr ⟨Bool.and_eq_true_iff.mpr ⟨
-    Bool.and_eq_true_iff.mpr ⟨Bool.and_eq_true_iff.mpr ⟨osRounds_flat _ _ _ _, ?_⟩, rfl⟩,
-    osSqueezes_flat _ _ _ _⟩, ?_⟩, osCap_flat _ _ _ _⟩, ?_⟩, osQueries_flat _ _ _ _⟩, ?_⟩
+    Bool.and_eq_true_iff.mpr ⟨osRounds_flat _ _ _ _, ?_⟩, rfl⟩,
+    osPositions_flat _ _ _ _⟩, ?_⟩, ?_⟩, osQueries_flat _ _ _ _⟩, ?_⟩
   · split_ifs
     · exact osFinalMsg_flat _ _ _
     · exact osCommit_flat _ _ _ _
@@ -130,7 +121,7 @@ theorem osLevel_flat (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : Flat (osLe
     · exact osHsMid_flat _ _ _
   · split_ifs
     · rfl
-    · exact osGlue_flat _ _ _
+    · exact osGlue_flat _ _
 
 theorem osLevels_flat (c : OsCfg) : ∀ lvl lvs s, Flat (osLevels c lvl lvs s).1
   | _, [], _ => rfl
@@ -169,17 +160,20 @@ theorem osBases_flat (c : OsCfg) (tch bd ls la : ℕ) : ∀ lvl lvs k, Flat (osB
   | lvl, _ :: rest, _ => flat_cons rfl (flat_append (flat_append (osBasisRow_flat _ _ _ _ _) rfl)
       (osBases_flat c tch bd ls la (lvl + 1) rest _))
 
-theorem osResidual_flat (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (k : ℕ) :
-    Flat (osResidual c ich bd ls la lvl lv k).1 := by
+theorem osResidual_flat (c : OsCfg) (ich bd ls la lvl : ℕ) (lv : OsLv) (mats : List OsMat) (k : ℕ) :
+    Flat (osResidual c ich bd ls la lvl lv mats k).1 := by
   unfold osResidual
-  simp only [Flat, List.all_append, osResSteps_flat, Bool.and_true]
+  simp only [Flat, List.all_append]
+  have hm : ∀ P ms b o k, (osMatP P ms b o k).1.all Stmt.flat = true := by
+    intro P ms b o k; unfold osMatP; split_ifs <;> rfl
+  simp only [hm, Bool.true_and]
   rfl
 
 theorem osResiduals_flat (c : OsCfg) (ich bd ls la : ℕ) :
-    ∀ lvl lvs k, Flat (osResiduals c ich bd ls la lvl lvs k).1
-  | _, [], _ => rfl
-  | lvl, _ :: rest, _ => flat_append (osResidual_flat _ _ _ _ _ _ _ _)
-      (osResiduals_flat c ich bd ls la (lvl + 1) rest _)
+    ∀ lvl lvs mats k, Flat (osResiduals c ich bd ls la lvl lvs mats k).1
+  | _, [], _, _ => rfl
+  | lvl, _ :: rest, _, _ => flat_append (osResidual_flat _ _ _ _ _ _ _ _ _)
+      (osResiduals_flat c ich bd ls la (lvl + 1) rest _ _)
 
 theorem osOodFacs_flat (sc : ℕ) : ∀ cs k, Flat (osOodFacs sc cs k).1
   | [], _ => rfl
@@ -203,7 +197,7 @@ theorem osFinishA_flat (c : OsCfg) (st : OsSt) (tch : ℕ) : Flat (osFinishA c s
   refine flat_append (flat_append (flat_append (flat_append (flat_append (flat_append
     (flat_append (flat_append (flat_append (flat_append rfl (osPtBlks_flat _ _ _ _ _ _ _))
     (osHeap_flat _ _)) (osHeap_flat _ _)) (osHeap_flat _ _)) (osBases_flat _ _ _ _ _ _ _ _))
-    (osHeap_flat _ _)) rfl) (osResiduals_flat _ _ _ _ _ _ _ _)) (osOodWeights_flat _ _ _ _ _ _ _))
+    (osHeap_flat _ _)) rfl) (osResiduals_flat _ _ _ _ _ _ _ _ _)) (osOodWeights_flat _ _ _ _ _ _ _))
     rfl
 
 /-- **The body before its `ret` is flat.** -/
