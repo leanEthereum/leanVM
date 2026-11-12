@@ -67,21 +67,26 @@ theorem sqLoopBody_pre (lv : OsLv) (name : String) :
   rw [sqLoopBody_split, sqLoopPre, sqTailArgs]
   simp only [List.append_assoc, List.cons_append, List.nil_append]
 
-theorem straight_of_flat : ∀ l : List Stmt, l.all Stmt.flat = true → l.all Main.Stmt.straight = true
-  | [], _ => rfl
-  | s :: l, h => by
-    simp only [List.all_cons, Bool.and_eq_true] at h ⊢
-    refine ⟨?_, straight_of_flat l h.2⟩
-    have h1 := h.1
-    cases s <;> simp_all [Stmt.flat, Main.Stmt.straight]
+theorem os_powSteps_straight (x : ℕ) : ∀ ds acc k,
+    (osPowSteps x ds acc k).1.all Main.Stmt.straight = true := by
+  intro ds
+  induction ds with
+  | nil => intro _ _; rfl
+  | cons d ds ih =>
+    intro acc k
+    cases d <;> simp [osPowSteps, ih, Main.Stmt.straight]
+
+theorem os_mat_straight (b o k : ℕ) : (osMat b o k).1.all Main.Stmt.straight = true := by
+  unfold osMat; split_ifs <;> rfl
 
 theorem sqLoopPre_flat (lv : OsLv) (name : String) : (sqLoopPre lv name).all Stmt.flat = true := by
   rw [sqLoopPre, List.all_append, sqLoopA_flat lv]
   rfl
 
 theorem sqLoopPre_straight (lv : OsLv) (name : String) :
-    (sqLoopPre lv name).all Main.Stmt.straight = true :=
-  straight_of_flat _ (sqLoopPre_flat lv name)
+    (sqLoopPre lv name).all Main.Stmt.straight = true := by
+  rw [sqLoopPre, List.all_append]
+  simp [sqLoopA, osKeccak, osLoopTailA, os_powSteps_straight, os_mat_straight, Main.Stmt.straight]
 
 theorem osPowSteps_mem_mul (x : ℕ) : ∀ (ds : List Bool) (acc k : ℕ), ∀ s ∈ (osPowSteps x ds acc k).1,
     ∃ d a b, s = osMul d a b
