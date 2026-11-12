@@ -101,8 +101,8 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     (h : runId (readAnnouncedSizes bytecode) st = some ((L, r), st')) :
     ∃ (logMem : ℕ) (rowsN : List ℕ),
       st.stream = (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat r]) ++ st'.stream ∧
-      L = Tables.layoutOf bytecode logMem rowsN ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧
-      rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 32) ∧ 1 ≤ r ∧ r ≤ 4 ∧
+      L = Tables.layoutOf bytecode logMem rowsN ∧ 1 ≤ logMem ∧ logMem ≤ 30 ∧
+      rowsN.length = 6 ∧ (∀ n ∈ rowsN, n ≤ 2 ^ 30) ∧ 1 ≤ r ∧ r ≤ 4 ∧
       Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := by
   unfold readAnnouncedSizes at h
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq] at h
@@ -133,13 +133,13 @@ theorem readSizes_inv {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
     simp only at hcond
     split at hcond
     · rename_i hc
-      obtain ⟨-, h16, h32, hall32, -, hlen⟩ := hc
+      obtain ⟨-, h16, h30, hall30, -, hlen⟩ := hc
       have hlen' : rowsN.length = 6 := by rw [hlen]; rfl
-      have hr32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32 := by simpa using hall32
-      have hLe := buildLayout_eq hbl h16 h32 hlen' hr32
+      have hr30 : ∀ n ∈ rowsN, n ≤ 2 ^ 30 := by simpa using hall30
+      have hLe := buildLayout_eq hbl h16 h30 hlen' hr30
       rw [hL'] at hLe
       obtain rfl := Option.some.inj hLe
-      refine ⟨kToNat (v0.limb 0), rowsN, ?_, rfl, h16, h32, hlen', hr32, hr.1, hr.2, hst.1, hst.2⟩
+      refine ⟨kToNat (v0.limb 0), rowsN, ?_, rfl, h16, h30, hlen', hr30, hr.1, hr.2, hst.1, hst.2⟩
       rw [hs1, ← word_eOfNat_of a0, ← word_eOfNat_of a7]
       simp only [hrowsN, List.map_cons, List.map_nil, ← word_eOfNat_of a1,
         ← word_eOfNat_of a2, ← word_eOfNat_of a3, ← word_eOfNat_of a4,
@@ -314,14 +314,14 @@ structure ChildSegs (bytecode : List K) (seed : Digest) (c : Node.Child) : Type 
   /-- The layout. -/
   layout : Layout
   hlayout : layout = Tables.layoutOf bytecode logMem rowsN
-  h16 : 16 ≤ logMem
-  h32 : logMem ≤ 32
+  hlm1 : 1 ≤ logMem
+  h30 : logMem ≤ 30
   hrowsL : rowsN.length = 6
-  hrows32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32
+  hrows30 : ∀ n ∈ rowsN, n ≤ 2 ^ 30
   hr1 : 1 ≤ rate
   hr4 : rate ≤ 4
-  hmu22 : 22 ≤ layout.stackLog
-  hmu28 : layout.stackLog ≤ 28
+  hmu20 : 20 ≤ layout.stackLog
+  hmu30 : layout.stackLog ≤ 30
   /-- The announced sizes. -/
   s1 : Fs
   runS : RunsTo (readAnnouncedSizes bytecode) (seedFs seed (Node.statementDigest seed c.statement))
@@ -413,6 +413,14 @@ theorem carries_fsOfT {sp : Sponge} (hg : sp.ground = none) : (Tables.fsOfT sp).
 theorem fs_eq_of_carries {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = Tables.fsOfT sp :=
   (Tables.eq_fsOfT h).1
 
+/-- The memory's log-size (`h30` weakened). -/
+theorem ChildSegs.h32 {bytecode : List K} {seed : Digest} {c : Node.Child}
+    (S : ChildSegs bytecode seed c) : S.logMem ≤ 32 := by have := S.h30; omega
+
+/-- The stack's log-size (`hmu30` weakened). -/
+theorem ChildSegs.hmu32 {bytecode : List K} {seed : Digest} {c : Node.Child}
+    (S : ChildSegs bytecode seed c) : S.layout.stackLog ≤ 32 := by have := S.hmu30; omega
+
 /-- **An honest child's run, in segments** (the per-child hypotheses; the guest's bytecode of
 `2^23` words). -/
 theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (seed : Digest)
@@ -431,7 +439,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   -- the announced sizes
   obtain ⟨ls, st1, hA, h⟩ := runId_bind_some hpre
   obtain ⟨L, r⟩ := ls
-  obtain ⟨logMem, rowsN, hsA, hL, h16, h32, hrowsL, hrows32, hr1, hr4, -, hst28⟩ :=
+  obtain ⟨logMem, rowsN, hsA, hL, hlm1, h30, hrowsL, hrows30, hr1, hr4, -, hst30⟩ :=
     readSizes_inv hbl hA
   obtain ⟨xs1, hxs1, hO1, hR1, hg1, runS⟩ :=
     seg_runsTo (noCommit_readSizes _) (endsClear_readSizes _) rfl hA
@@ -442,7 +450,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
   have hann : Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (L, r) :=
     announced_eq (sp := ⟨keccakF1600 (seedInput seed (Node.statementDigest seed c.statement)), [],
       none⟩) rfl hA
-  have hmu22 : 22 ≤ L.stackLog := hmu L r hann
+  have hmu20 : 20 ≤ L.stackLog := hmu L r hann
   -- the stack's root
   obtain ⟨u, st2, hB, h⟩ := runId_bind_some h
   obtain ⟨x0, x1, hsB, -, hspB, hrB, hoB⟩ := commitStack_runId hB
@@ -533,7 +541,7 @@ theorem child_segments {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (see
       ⟨(Id.run (squeeze keccakF1600 sp8)).2, stream8, c.proof.openings, _⟩
     rw [hsq, queryStepsOf_bind _ _ _ _ _ hW]
     exact List.mem_append_left _ hb
-  refine ⟨⟨logMem, rowsN, r, L, hL, h16, h32, hrowsL, hrows32, hr1, hr4, hmu22, hst28,
+  refine ⟨⟨logMem, rowsN, r, L, hL, hlm1, h30, hrowsL, hrows30, hr1, hr4, hmu20, hst30,
     Tables.fsOfT st1.sponge, runS, x0, x1, _, rfl, xsO, ood, Tables.fsOfT st3.sponge,
     hc2 ▸ runO, hdepth, xsB, wb, _, runB, xsG, rG, _, runG, xsT, bus, claims, _, runT, xsK, kc, _,
     runK, xsR, rs, s7, runR, hcl, stream8, w, _, _, runW, ⟨w, _, _, nzW⟩,

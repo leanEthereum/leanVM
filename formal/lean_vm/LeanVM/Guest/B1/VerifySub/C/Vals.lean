@@ -26,7 +26,7 @@ arguments and the words read. In the carried sponge's terms (`Fs`):
   absorbed;
 * `vs_ood`: the out-of-domain grind's permutation of the nonce `ws[10]` (`vsOodSt`), its cells,
   the point's challenge, `tabs` and the value's pointer;
-* `vs_busGrind`: `g^(d - 16)`, the bus grind's index;
+* `vs_busGrind`: `g^(d - 20)`, the bus grind's index;
 * `vs_fpw`: the fifteen slot weights squeezed from `opening_message`'s capacity, then `β`
   (`vsFpwFs`);
 * `vs_calls`: the three calls' extra arguments.
@@ -108,16 +108,15 @@ theorem vsg_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x :
 
 /-- The tail but its `ret`. -/
 def vsTailP : List Stmt :=
-  [vsMul 1918 66 66, vsMul 1919 1918 66, vsMul 1920 1919 1919, vsMul 1921 1920 66,
-    vsMul 1922 278 1921, vsConst 1923 (word 134217728 0), vsRange 1922 1924 1925 1926 1923,
-    vsConst 1927 (word 2 0), vsMul 1928 595 1927] ++ vsTabsT 1929 1930 ++
-  [.dispatch (.n 1922) vsOpenNames
-      [.n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1928, .n 1930]
-      (vsRun 1931 5),
+  [vsConst 1918 (word 2 0), vsMul 1919 595 1918] ++ vsTabsT 1920 1921 ++
+  [.dispatch (.n 278) vsOpenNames
+      [.n 66, .n 1370, .n 1371, .n 1372, .n 1373, .n 1374, .n 1917, .n 268, .n 271, .n 1919,
+        .n 1921]
+      (vsRun 1922 5),
     vsCall "check_opening_terminal" [4, 254, 569, 581, 253, 579, 72, 583, 83, 1375, 275, 584, 848,
-      1932, 1933, 1934, 1935, 1931, 304, 276] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1936 + k) 254 k, vsLd (1936 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (1955 + k) 570 k, vsLd (1955 + k) 5 (19 + k)]) ++
+      1923, 1924, 1925, 1926, 1922, 304, 276] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1927 + k) 254 k, vsLd (1927 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (1946 + k) 570 k, vsLd (1946 + k) 5 (19 + k)]) ++
   [vsLd 580 5 23]
 
 theorem vsTailT_split : vsTailT = vsTailP ++ [.ret []] := by
@@ -327,20 +326,20 @@ theorem vs_ood (hl : args.length = 6) {ws : List E}
 
 /-! ## The bus grind -/
 
-/-- **The bus grind's index** (G:3636-3638): `g^(d - 16)`, and `tabs`. -/
-theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 16 ≤ d) (h253 : w 253 = gen ^ d) :
-    ς (.n 322) = gen ^ (d - 16) ∧ ς (.n 323) = gen ^ 17 ∧
+/-- **The bus grind's index** (G:3636-3638): `g^(d - 20)`, and `tabs`. -/
+theorem vs_busGrind (hl : args.length = 6) {d : ℕ} (hd : 20 ≤ d) (h253 : w 253 = gen ^ d) :
+    ς (.n 322) = gen ^ (d - 20) ∧ ς (.n 323) = gen ^ 13 ∧
       ς (.n 328) = ς (.n 4) * gen ^ winTabAt := by
   have hG := vsBusGrindT_good (rd := rd) (w := w) hl
-  have h321 : ς (.n 321) = vsGinv16 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
+  have h321 : ς (.n 321) = vsGinvBus := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
   have h322 : ς (.n 322) = ς (.n 253) * ς (.n 321) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsBusGrindT, vsMul]))
-  have h323 : ς (.n 323) = word 131072 0 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
+  have h323 : ς (.n 323) = word 8192 0 := vsg_const (hG _ (by simp [vsBusGrindT, vsConst]))
   have h328 : ς (.n 328) = ς (.n 4) * gen ^ winTabAt := vsg_tabs (c := 327) (by decide) fun s hs ↦ hG s (by
     rw [vsBusGrindT]; exact List.mem_append_left _ (List.mem_append_right _ hs))
-  refine ⟨?_, by rw [h323, word_g17], h328⟩
-  rw [h322, h321, vs_w hl (by decide), h253, show d = (d - 16) + 16 by omega, pow_add,
-    Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 16), vsGinv16_mul, mul_one]
+  refine ⟨?_, by rw [h323, word_g13], h328⟩
+  rw [h322, h321, vs_w hl (by decide), h253, show d = (d - 20) + 20 by omega, pow_add,
+    Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 20), vsGinvBus_mul, mul_one]
 
 /-! ## The slot weights and `β` -/
 

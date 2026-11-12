@@ -217,7 +217,7 @@ theorem keccak_run (hbl : bytecode.length = 2 ^ 23) :
 
 /-- **The Keccak reduction's bounds and lengths.** -/
 theorem keccak_facts (hbl : bytecode.length = 2 ^ 23) :
-    9 ≤ S.τ ∧ S.τ ≤ 22 ∧ S.τ ≤ S.H.chiW.length ∧ S.outs.length = 25 ∧
+    9 ≤ S.τ ∧ S.τ ≤ 24 ∧ S.τ ≤ S.H.chiW.length ∧ S.outs.length = 25 ∧
       S.H.s3.squeeze.2.cap.length = 5 ∧ S.kOut.point.length = S.τ + 6 ∧
       S.kc.2.1.length = S.τ + 6 ∧ S.kc.2.2.length = 64 := by
   have h22 := (S.hs_bounds hbl).2

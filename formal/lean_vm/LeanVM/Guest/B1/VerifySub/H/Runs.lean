@@ -219,7 +219,7 @@ theorem d_eq (hbl : bytecode.length = 2 ^ 23) : S.d = log2Ceil S.pushT := by
 
 /-- **The bus depth**: at least `20`, at most `29`: the push side's total is at most the
 stack's plus one. -/
-theorem d_bounds (hbl : bytecode.length = 2 ^ 23) : 20 ≤ S.d ∧ S.d ≤ 29 := by
+theorem d_bounds (hbl : bytecode.length = 2 ^ 23) : 20 ≤ S.d ∧ S.d ≤ 31 := by
   rw [S.d_eq hbl]
   have hh := heights_length6 S.rowsN S.hrowsL
   have hpT : S.pushT = pushTot S.logMem (Tables.tableHeightsOf S.rowsN) := rfl
@@ -227,22 +227,22 @@ theorem d_bounds (hbl : bytecode.length = 2 ^ 23) : 20 ≤ S.d ∧ S.d ≤ 29 :=
     have := pushTot_ge S.logMem hh
     have := Nat.one_le_two_pow (n := S.logMem)
     omega), ?_⟩
-  have h28 := S.hmu28
+  have h28 := S.hmu30
   rw [S.hlayout, stackLog_eq hbl] at h28
   have hst : Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN)) ≤
-      2 ^ 28 := log2Ceil_le_iff.mp (by omega)
+      2 ^ 30 := log2Ceil_le_iff.mp (by omega)
   have hp := pushTot_le_stack S.logMem hh
   exact log2Ceil_le_iff.mpr (by
-    calc S.pushT ≤ 2 ^ 28 + 1 := by
+    calc S.pushT ≤ 2 ^ 30 + 1 := by
           rw [hpT]; omega
-      _ ≤ 2 ^ 29 := by norm_num)
+      _ ≤ 2 ^ 31 := by norm_num)
 
-/-- The stack's total is at most `2^28`. -/
-theorem stackTotal_le (hbl : bytecode.length = 2 ^ 23) : Tables.stackTotal S.kappas ≤ 2 ^ 28 := by
-  have h28 := S.hmu28
+/-- The stack's total is at most `2^30`. -/
+theorem stackTotal_le (hbl : bytecode.length = 2 ^ 23) : Tables.stackTotal S.kappas ≤ 2 ^ 30 := by
+  have h28 := S.hmu30
   rw [S.hlayout, stackLog_eq hbl] at h28
   exact log2Ceil_le_iff.mp (by
-    show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN))) ≤ 28
+    show log2Ceil (Tables.stackTotal (columnKappas S.logMem 19 (Tables.tableHeightsOf S.rowsN))) ≤ 30
     omega)
 
 theorem pow_le_bound {a b k : ℕ} (hk : 0 < k) (h : k * 2 ^ a ≤ 2 ^ b) : a ≤ b := by
@@ -250,7 +250,7 @@ theorem pow_le_bound {a b k : ℕ} (hk : 0 < k) (h : k * 2 ^ a ≤ 2 ^ b) : a �
   exact (Nat.pow_le_pow_iff_right (by norm_num)).mp this
 
 /-- **The tables' heights are below `29`, the `KECCAK` table's at most `22`.** -/
-theorem hs_bounds (hbl : bytecode.length = 2 ^ 23) : (∀ h ∈ S.hs, h < 29) ∧ S.hs.getD 5 0 ≤ 22 := by
+theorem hs_bounds (hbl : bytecode.length = 2 ^ 23) : (∀ h ∈ S.hs, h < 31) ∧ S.hs.getD 5 0 ≤ 24 := by
   have hst := S.stackTotal_le hbl
   have hh := heights_length6 S.rowsN S.hrowsL
   unfold ChildSegs.kappas at hst
@@ -259,16 +259,19 @@ theorem hs_bounds (hbl : bytecode.length = 2 ^ 23) : (∀ h ∈ S.hs, h < 29) �
   match l, hh, hst with
   | [h0, h1, h2, h3, h4, h5], _, hst =>
     rw [show Tables.guestLogBytecode = 19 from rfl, stackTotal_eq] at hst
-    have e0 := pow_le_bound (a := h0) (b := 28) (k := 13) (by norm_num) (by omega)
-    have e1 := pow_le_bound (a := h1) (b := 28) (k := 13) (by norm_num) (by omega)
-    have e2 := pow_le_bound (a := h2) (b := 28) (k := 7) (by norm_num) (by omega)
-    have e3 := pow_le_bound (a := h3) (b := 28) (k := 14) (by norm_num) (by omega)
-    have e4 := pow_le_bound (a := h4) (b := 28) (k := 14) (by norm_num) (by omega)
-    have e5 : h5 ≤ 22 := pow_le_bound (a := h5) (b := 22) (k := 1) (by norm_num)
-      (by rw [show (2 : ℕ) ^ 28 = 64 * 2 ^ 22 by norm_num] at hst; omega)
+    have e0 := pow_le_bound (a := h0) (b := 30) (k := 13) (by norm_num) (by omega)
+    have e1 := pow_le_bound (a := h1) (b := 30) (k := 13) (by norm_num) (by omega)
+    have e2 := pow_le_bound (a := h2) (b := 30) (k := 7) (by norm_num) (by omega)
+    have e3 := pow_le_bound (a := h3) (b := 30) (k := 14) (by norm_num) (by omega)
+    have e4 := pow_le_bound (a := h4) (b := 30) (k := 14) (by norm_num) (by omega)
+    have e5 : h5 ≤ 24 := pow_le_bound (a := h5) (b := 24) (k := 1) (by norm_num)
+      (by rw [show (2 : ℕ) ^ 30 = 64 * 2 ^ 24 by norm_num] at hst; omega)
     refine ⟨fun h hm ↦ ?_, e5⟩
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
     omega
+
+theorem hs_lt33 (hbl : bytecode.length = 2 ^ 23) : ∀ h ∈ S.hs, h < 33 :=
+  fun h hm ↦ by have := (S.hs_bounds hbl).1 h hm; omega
 
 /-! ## The out-of-domain sample -/
 
@@ -279,7 +282,7 @@ theorem ood_inv : S.xsO = [S.oodN, S.oodV] ∧ S.sR.GrindOk Whir.oodGrindingBits
   have h := Tables.RunsTo.toT S.runO hsp []
   rw [List.append_nil] at h
   obtain ⟨m, hm⟩ : ∃ m, S.layout.stackLog = m + 1 :=
-    ⟨S.layout.stackLog - 1, by have := S.hmu22; omega⟩
+    ⟨S.layout.stackLog - 1, by have := S.hmu20; omega⟩
   have hμ : S.μs - 1 = m := by show S.layout.stackLog - 1 = m; omega
   generalize hp : readOod S.layout.stackLog = p at h
   rw [hm] at hp
@@ -316,7 +319,7 @@ theorem oodPow : ((cellsOfState S.oodSt false 1).limb 0).lane.toNat % 2 ^ 15 = 0
 theorem oodZ_length : S.oodZ.length = S.μs := by
   show (challengeOf S.oodSt :: ((⟨capOf S.oodSt, []⟩ : Fs).squeezeN (S.μs - 1)).1).length = _
   rw [List.length_cons, squeezeN_length]
-  have := S.hmu22
+  have := S.hmu20
   show S.layout.stackLog - 1 + 1 = S.layout.stackLog
   omega
 
@@ -363,12 +366,12 @@ theorem bus_inv (hbl : bytecode.length = 2 ^ 23) : S.xsB = [S.busN] ∧
   have hS : S.busSt = S.s2.nonceState n := by rw [S.busSt_eq, hN]
   refine ⟨by rw [hxs, hN], by rw [hN]; exact hok, by rw [hS]; exact e1, by rw [hS]; exact e3⟩
 
-/-- The bus grind's proof of work, as `bus_grind_check__L{d - 16}` reads it. -/
+/-- The bus grind's proof of work, as `bus_grind_check__L{d - 20}` reads it. -/
 theorem busPow (hbl : bytecode.length = 2 ^ 23) :
-    ((cellsOfState S.busSt false 1).limb 0).lane.toNat % 2 ^ busGrindBits (S.d - 16) = 0 := by
+    ((cellsOfState S.busSt false 1).limb 0).lane.toNat % 2 ^ busGrindBits (S.d - 20) = 0 := by
   have hd := S.d_bounds hbl
-  have e : busGrindBits (S.d - 16) = busGrindingBits S.d := by
-    unfold busGrindBits; congr 1; show 16 + (S.d - 16) = S.d; omega
+  have e : busGrindBits (S.d - 20) = busGrindingBits S.d := by
+    unfold busGrindBits; congr 1; show 20 + (S.d - 20) = S.d; omega
   have hb0 : busGrindingBits S.d ≠ 0 := by rw [busGrindingBits_of (by omega)]; omega
   rw [e, S.busSt_eq]
   exact (grindOk_iff hb0 S.busN).1 (S.bus_inv hbl).2.1

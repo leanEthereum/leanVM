@@ -53,9 +53,9 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   lir : ℕ
   rowsN : List ℕ
   hrowsL : rowsN.length = 6
-  hh29 : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29
-  hm16 : 16 ≤ logMem
-  hm32 : logMem ≤ 32
+  hh31 : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31
+  hm1 : 1 ≤ logMem
+  hm30 : logMem ≤ 30
   hl1 : 1 ≤ lir
   hl4 : lir ≤ 4
   h66 : σ (.n 66) = gen ^ (lir - 1)
@@ -80,10 +80,10 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   -- the placement and the stack's log
   hP : Tables.PCtx rd (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)) (σ (.n 275))
   hKB : Tables.KappasBelow (columnKappas logMem 19 (Tables.tableHeightsOf rowsN))
-  hst22 : 22 ≤ (Tables.layoutOf bytecode logMem rowsN).stackLog
-  hst28 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28
+  hst20 : 20 ≤ (Tables.layoutOf bytecode logMem rowsN).stackLog
+  hst30 : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 30
   h276 : σ (.n 276) = gen ^ (Tables.layoutOf bytecode logMem rowsN).stackLog
-  h278 : σ (.n 278) = gen ^ ((Tables.layoutOf bytecode logMem rowsN).stackLog - 22)
+  h278 : σ (.n 278) = gen ^ ((Tables.layoutOf bytecode logMem rowsN).stackLog - 20)
   -- the out-of-domain sample
   z : List E
   v : E
@@ -107,7 +107,7 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   hB : RunsTo (busChallenges (busDepth (Tables.layoutOf bytecode logMem rowsN)))
     ⟨[σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)], [(v, dsObserve)]⟩ [nn]
     (weights, σ (.n 559)) ⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩
-  hdep16 : 16 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
+  hdep20 : 20 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
   hdep34 : busDepth (Tables.layoutOf bytecode logMem rowsN) < 34
   hdep19 : 19 ≤ busDepth (Tables.layoutOf bytecode logMem rowsN)
   h253 : σ (.n 253) = gen ^ busDepth (Tables.layoutOf bytecode logMem rowsN)
@@ -151,19 +151,19 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
 
 /-! ## Facts the assembly ties the sections with -/
 
-/-- The size selector: `g^m·g^-22` below `g^7` gives `22 ≤ m`, `size_sel = g^(m - 22)`. -/
-theorem vsPlaceT_size {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
-    {σ : Val} {next : Prop} {kret : List E → Prop} {m : ℕ} (hm : m ≤ 28)
+/-- The size selector: `g^m·g^-20` below `g^11` gives `20 ≤ m`, `size_sel = g^(m - 20)`. -/
+theorem vsPlaceT_size {κ : ℕ} (hκ : κ ≤ 32) (_hκ6 : 6 ≤ κ) (L : MemoryImage κ) {C : CallRel}
+    {σ : Val} {next : Prop} {kret : List E → Prop} {m : ℕ} (hm : m ≤ 30)
     (h276 : σ (.n 276) = gen ^ m) (h : Stmt.HoldsList C L.read σ vsPlaceT next kret) :
-    22 ≤ m ∧ σ (.n 278) = gen ^ (m - 22) := by
+    20 ≤ m ∧ σ (.n 278) = gen ^ (m - 20) := by
   simp only [vsPlaceT, Stmt.HoldsList, Stmt.Holds, vsCall, vsConst, vsMul, vsRange,
     List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨-, -, e277, m278, e279, r278, -⟩ := h
-  obtain ⟨e, he, h278⟩ := rc_pow hκ hκ6 L (a := 6) (by norm_num)
-    (by rw [e279, show (64 : ℕ) = 2 ^ 6 from rfl, word_pow2 (by norm_num)]) r278
-  have hme : m = e + 22 := by
-    have := congrArg (· * gen ^ 22) (m278.symm.trans h278)
-    simp only [h276, e277, mul_assoc, vsGinv22_mul, mul_one, ← pow_add] at this
+  obtain ⟨e, he, h278⟩ := rc_pow hκ L (a := 10) (by norm_num)
+    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_pow2 (by norm_num)]) r278
+  have hme : m = e + 20 := by
+    have := congrArg (· * gen ^ 20) (m278.symm.trans h278)
+    simp only [h276, e277, mul_assoc, vsGinv20_mul, mul_one, ← pow_add] at this
     exact gen_pow_inj (by omega) (by omega) this
   exact ⟨by omega, by rw [h278, hme, Nat.add_sub_cancel]⟩
 
@@ -197,20 +197,20 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
   obtain ⟨h8, h9, h10, h11, hk, hb⟩ := vsHeadT_holds hb
   obtain ⟨seed, pi, hseed, hpi, hcap0⟩ := vs_seed hk h8 h9 h10 h11
   obtain ⟨hw, hrw, hk39, hb⟩ := vsReadsT_holds hb
-  obtain ⟨lir, logMem, hl1, hl4, h61, h66, hm16, hm32, h27, h72, ds, hdsL, hdims, hkb, hkbv, hb⟩ :=
-    vsSizesT_holds hκ hκ6 L hC hb
+  obtain ⟨lir, logMem, hl1, hl4, h61, h66, hm1, hm30, h27, h72, ds, hdsL, hdims, hkb, hkbv, hb⟩ :=
+    vsSizesT_holds hκ L hC hb
   -- the push side, the root
   obtain ⟨hpush, hb⟩ := (holdsList_noRet _ vsPushT_noRet _ _).1 hb
   obtain ⟨μ, hμ34, h253, -⟩ := vsPushT_depth hκ hκ6 L hC hexp hpush
   obtain ⟨hk255, w268, w271, hb⟩ := vsRootsT_holds hb
   -- the placement
   obtain ⟨hplace, hb⟩ := (holdsList_noRet _ vsPlaceT_noRet _ _).1 hb
-  obtain ⟨⟨hs, -, hds, -, hhs29, -, off, -, h275, hPC, h276, hM28⟩, -⟩ :=
-    vsPlaceT_known hκ hκ6 L hC (Tables.certify_placement_holds hκ L) hexp hm32 hdsL hkb hplace
-  obtain ⟨hM22, h278⟩ := vsPlaceT_size hκ hκ6 L hM28 h276 hplace
+  obtain ⟨⟨hs, -, hds, -, hhs29, -, off, -, h275, hPC, h276, hM30⟩, -⟩ :=
+    vsPlaceT_known hκ hκ6 L hC (Tables.certify_placement_holds hκ L) hexp (hm30.trans (by norm_num)) hdsL hkb hplace
+  obtain ⟨hM22, h278⟩ := vsPlaceT_size hκ hκ6 L hM30 h276 hplace
   -- the out-of-domain sample
   obtain ⟨z, v, nn, hO, hzL, hz, hv, hn283, h312, hv312, hnn, hom, hb⟩ :=
-    vsOodT_holds hκ hκw L hC hwin hM22 hM28 h278 w268 w271 hb
+    vsOodT_holds hκ hκw L hC hwin hM22 hM30 h278 w268 w271 hb
   have hS := (List.append_inj' (show [σ (.n 313), σ (.n 314), σ (.n 315), σ (.n 316), σ (.n 317),
     σ (.n 318), σ (.n 319)] ++ [σ (.n 320)] = _ from hom) rfl)
   -- the bus's challenges
@@ -237,9 +237,9 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 0), σ (.n 1),
         σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335), σ (.n 559), σ (.n 6),
         σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)] :=
-    ⟨hpi, hzeta, by rw [h253, hrL], by omega, hm16, hm32, ⟨ds, hdsL, hdims⟩,
+    ⟨hpi, hzeta, by rw [h253, hrL], by omega, hm1, hm30.trans (by norm_num), ⟨ds, hdsL, hdims⟩,
       expTablesAt_of hexp hwin, h572, hwL, hw335, hvL, by rw [hcurG.2]; exact hleaves⟩
-  obtain ⟨xsT, capT, rowsN, bus, claims, hrowsL, hrows, hdims', hh29, hxsT, ⟨slots, hslL, hsl, hbp⟩,
+  obtain ⟨xsT, capT, rowsN, bus, claims, hrowsL, hrows, hdims', hh31, hxsT, ⟨slots, hslL, hsl, hbp⟩,
       hT, hcl, hpool, hcew, hpiv, hctx, hcapT, h578⟩ :=
     Tables.verify_tables_holds hκ L bytecode hbl pi logMem weights r.2.1 r.2.2 _ _ hTP
       (hC _ _ _ htab)
@@ -250,20 +250,21 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
     have := readsAt_ext (by simp [hdsL, hHL]) hdims hdims'
     simpa using this
   have ehs : hs = Tables.tableHeightsOf rowsN :=
-    map_gpow_inj (fun x hx ↦ by have := hhs29 x hx; omega) (fun x hx ↦ by have := hh29 x hx; omega)
+    map_gpow_inj (fun x hx ↦ by have := hhs29 x hx; omega) (fun x hx ↦ by have := hh31 x hx; omega)
       (hds.symm.trans eds)
   subst ehs
   -- the bus depth is the push side's
   have hkbv' : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ Tables.tableHeightsOf rowsN).getD s 0) :=
     fun s hs ↦ by rw [hkbv s hs, eds, kbase_getD hHL hs]
-  obtain ⟨hpd, hpd34, -⟩ := vsPushT_holds hκ hκ6 L hC hexp hh29 hm32 hkbv' hpush
+  obtain ⟨hpd, hpd34, -⟩ := vsPushT_holds hκ hκ6 L hC hexp (fun x hx ↦ by have := hh31 x hx; omega)
+    (hm30.trans (by norm_num)) hkbv' hpush
   have hdep : busDepth (Tables.layoutOf bytecode logMem rowsN) = μ := by
     have e := pushDepth_eq hbl logMem rowsN hrowsL
     exact (gen_pow_inj (by omega) (by omega) (hgm.symm.trans hpd)).trans e.symm |>.symm
   -- the stack's log
   have hstk := stackLog_eq hbl logMem rowsN
-  have h28 : log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN))) ≤ 28 :=
-    le_trans (le_max_right _ _) hM28
+  have h30 : log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN))) ≤ 30 :=
+    le_trans (le_max_right _ _) hM30
   -- the announced words
   have hwords : vsWords σ = eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir] := by
     have hr : [σ (.n 30), σ (.n 33), σ (.n 36), σ (.n 52), σ (.n 55), σ (.n 58)] =
@@ -294,9 +295,9 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       lir := lir,
       rowsN := rowsN,
       hrowsL := hrowsL,
-      hh29 := hh29,
-      hm16 := hm16,
-      hm32 := hm32,
+      hh31 := hh31,
+      hm1 := hm1,
+      hm30 := hm30,
       hl1 := hl1,
       hl4 := hl4,
       h66 := h66,
@@ -310,9 +311,9 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       hkb := by rw [← eds]; exact hkb,
       hdims := by rw [← eds]; exact hdims,
       hP := by rw [h275]; exact hPC,
-      hKB := Tables.hypKappa_holds _ (Tables.columnKappas_length _ _ _) h28,
-      hst22 := by rw [hstk]; exact hM22,
-      hst28 := by rw [hstk]; exact hM28,
+      hKB := Tables.hypKappa_holds _ (Tables.columnKappas_length _ _ _) h30,
+      hst20 := by rw [hstk]; exact hM22,
+      hst30 := by rw [hstk]; exact hM30,
       h276 := by rw [hstk]; exact h276,
       h278 := by rw [hstk]; exact h278,
       z := z,
@@ -330,7 +331,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       weights := weights,
       hwL := hwL,
       hB := by rw [hdep]; exact hBus,
-      hdep16 := by rw [hdep]; exact hμ16,
+      hdep20 := by rw [hdep]; exact hμ16,
       hdep34 := by rw [hdep]; exact hμ34,
       hdep19 := by
         have e := pushDepth_eq hbl logMem rowsN hrowsL

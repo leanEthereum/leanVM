@@ -157,12 +157,12 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 /-- The table sumcheck has at most `28` rounds. -/
-theorem nT_le (hbl : bytecode.length = 2 ^ 23) : S.nT ≤ 28 := by
+theorem nT_le (hbl : bytecode.length = 2 ^ 23) : S.nT ≤ 30 := by
   rcases Tables.foldl_max_mem S.hs 0 with h | h
-  · show S.hs.foldl max 0 ≤ 28
+  · show S.hs.foldl max 0 ≤ 30
     omega
   · have := (S.hs_bounds hbl).1 _ h
-    show S.hs.foldl max 0 ≤ 28
+    show S.hs.foldl max 0 ≤ 30
     omega
 
 /-- **`verify_tables`' context on an honest child**, on a memory holding the bus point at `zeta`

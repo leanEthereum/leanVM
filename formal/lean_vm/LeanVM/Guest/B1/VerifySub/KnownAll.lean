@@ -45,23 +45,22 @@ theorem vsKnown_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 1552) True
       (fun _ ↦ True)) :
     ∀ i < 8, ∃ e < kbBound i, LoadHolds L.read (σ (.n 83)) i (ofK (addressOfIndex e)) :=
-  vsKnown_of L h16 h32 (Tables.certify_placement_holds h32 L) σ hexp h
+  vsKnown_of L h16 h32 (Tables.certify_placement_holds (h32.trans (by decide)) L) σ hexp h
 
 /-- **`dims_g`'s first word** (the memory's log, G:3578-3581): the body's first `333` statements
 (up to the call of `verify_tables`) put `dims_g[g^0] = g^logMem`, `logMem ≤ 32`, below `g^34`. -/
-theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
+theorem vsDimsKnown0_holds {κ : ℕ} (L : MemoryImage κ) (_hmin : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (σ : Val)
     (h : Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((Fn.body Data.core18).take 333) True
       (fun _ ↦ True)) :
     ∃ e < 34, LoadHolds L.read (σ (.n 71)) 0 (ofK (addressOfIndex e)) := by
-  have hκ : κ ≤ 32 := h32
-  have hκ6 : 6 ≤ κ := by have : 16 ≤ κ := h16; omega
+  have hκ : κ ≤ 32 := h32.trans (by decide)
   have hle : CallRel.Le (coreProgram.Rel L.read) (coreProgram.Rel L.read) := fun _ _ _ h ↦ h
   rw [show Fn.body Data.core18 = vsT from vs_body, vsT_front73, List.take_append, List.take_of_length_le (by rw [vsFront73_length]; omega),
     holdsList_append, holdsList_append, holdsList_append] at h
   have h := ((holdsList_noRet _ vsHeadT_noRet _ _).1 h).2
   have h := ((holdsList_noRet _ vsReadsT_noRet _ _).1 h).2
-  obtain ⟨-, logMem, -, -, -, -, -, hm32, -, -, ds, -, hd, -⟩ := vsSizesT_holds hκ hκ6 L hle h
+  obtain ⟨-, logMem, -, -, -, -, -, hm32, -, -, ds, -, hd, -⟩ := vsSizesT_holds hκ L hle h
   exact ⟨logMem, by omega, by rw [← gen_pow_eq_ofK]; exact hd 0 (by simp)⟩
 
 end

@@ -23,31 +23,31 @@ set_option maxRecDepth 100000
 def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [28, 31, 431]
+def dvStJ : List ℕ := [28, 31, 418]
 
 /-- `da_verify`'s row loops and its columns' row loop. -/
 def dvLpNames : List String := ["__loop21", "__loop23", "__loop24", "__loop25"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [416, 418, 419, 432]
+def dvLpJ : List ℕ := [403, 405, 406, 419]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430]
+def dlJ : List ℕ := [407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417]
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
-def clJ : List ℕ := [361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377]
+def clJ : List ℕ := [348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364]
 
 /-- `claim_list_digest`'s loops, per `136` and per `17` claims. -/
 def clLpNames : List String := ["__loop15", "__loop16"]
 
 /-- Their core indices. -/
-def clLpJ : List ℕ := [359, 360]
+def clLpJ : List ℕ := [346, 347]
 
 /-- The functions whose frames the counts weigh. -/
 def mvOmNames : List String := ["da_verify", "__loop22", "da_verify_column", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [27, 417, 29, 23]
+def mvOmJ : List ℕ := [27, 404, 29, 23]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
@@ -133,9 +133,9 @@ def kcDvP : Opcode → ℕ
 /-- `claim_list_digest`'s instructions on `n` claims within `kcClA + kcClS · n`: the constant. -/
 def kcClA : Opcode → ℕ
   | .xor => 584
-  | .mulNative => 221
-  | .setConstant => 47
-  | .deref => 783
+  | .mulNative => 220
+  | .setConstant => 46
+  | .deref => 782
   | .jump => 22
   | .keccak => 65
 

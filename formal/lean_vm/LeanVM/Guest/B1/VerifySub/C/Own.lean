@@ -38,13 +38,13 @@ def vsAllocVars : List ℕ := [6, 25, 26, 71, 83, 254, 304, 310, 335, 569, 570, 
 
 /-- **The allocations, by the kernel**: their values and sizes (the dynamic one by `253`). -/
 theorem vs_allocs : vsCPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz =
-    (vsAllocVars.zip [.inl 159, .inl 8192, .inl 6, .inl 7, .inl 8, .inr (.n 253), .inl 28, .inl 1,
+    (vsAllocVars.zip [.inl 159, .inl 8192, .inl 6, .inl 7, .inl 8, .inr (.n 253), .inl 30, .inl 1,
       .inl 16, .inl 34, .inl 4, .inl 78, .inl 64, .inl 16, .inl 64]).map
       (fun x ↦ (V.n x.1, x.2)) := by decide +kernel
 
 /-- The own buffers' sizes, the bus depth `d`. -/
 def vsSizes (d : ℕ) : List ℕ :=
-  [159, 8192, 6, 7, 8, d, 28, 1, 16, 34, 4, 78, 64, 16, 64]
+  [159, 8192, 6, 7, 8, d, 30, 1, 16, 34, 4, 78, 64, 16, 64]
 
 /-- The stream buffer's words: the stream, padded to `childStreamCap` (`Hints.childHints`' `"stream"`). -/
 def vsStreamW (stream : List E) : List E :=

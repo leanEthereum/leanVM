@@ -73,7 +73,7 @@ theorem stream_rows (hbl : bytecode.length = 2 ^ 23) {i : ℕ} (hi : i < 6) :
 
 /-- The stack's log, as `log2_ceil_in_the_exponent` returns it. -/
 theorem μs_eq (hbl : bytecode.length = 2 ^ 23) :
-    S.μs = max 15 (log2Ceil (Tables.stackTotal S.kappas)) := by
+    S.μs = max 16 (log2Ceil (Tables.stackTotal S.kappas)) := by
   show S.layout.stackLog = _
   rw [S.hlayout, stackLog_eq hbl]
   rfl
@@ -98,7 +98,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     {c : Child} (S : ChildSegs bytecode seed c) (b sqE outE : ℕ) {Lin : Main.Layout}
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin)
     {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes S.d)) sqE outs)
-    {rd : Reader} {κ : ℕ} (hκ : 16 ≤ κ) (hlow : LowDef κ rd)
+    {rd : Reader} {κ : ℕ} (hκ : 14 ≤ κ) (hlow : LowDef κ rd)
     (hB : Main.MemL rd (bufL b (vsSizes S.d) S.ownW)) (hL : Main.MemL rd Lin) :
     Nonempty (VsSecData rd (vsW (bases b (vsSizes S.d)) outs) (vsArgs seed c sqE outE)) := by
   set bs := bases b (vsSizes S.d) with hbs
@@ -106,7 +106,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
   have own : ∀ i < 15, ReadsAt rd (ptr (bs.getD i 0)) (S.ownW.getD i []) :=
     fun i hi ↦ hB _ (vs_own_mem S b hi)
   have hd := S.d_bounds hbl
-  have hhs := (S.hs_bounds hbl).1
+  have hhs := S.hs_lt33 hbl
   have wa : ∀ {i a : ℕ}, i < 15 → vsAllocVars.getD i 0 = a → w a = ptr (bs.getD i 0) :=
     fun hi ha ↦ vsW_a hi ha
   have wr : ∀ {j k a : ℕ}, j < 16 → k < (vsRetVars.getD j []).length →
@@ -134,7 +134,7 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
         (Tables.blockKappaSrc.getD bk 0) 0) (Tables.blockKappaAdj bk) v := by
     intro bk hbk
     have hsrc : Tables.blockKappaSrc.getD bk 0 < 8 := blockKappaSrc_lt bk (by show bk < 153; omega)
-    have he := kbase_le hhs S.h32 (Tables.blockKappaSrc.getD bk 0)
+    have he := kbase_le hhs (S.h30.trans (by norm_num)) (Tables.blockKappaSrc.getD bk 0)
     have hadj : Tables.blockKappaAdj bk ≤ 19 := by unfold Tables.blockKappaAdj; split <;> omega
     have h0 : Tables.blockKappaAdj bk ≠ 0 → Tables.blockKappaSrc.getD bk 0 = 0 := push_adj bk hbk
     rw [h72, S.kb_pow hbl hsrc, show (vsArgs seed c sqE outE).getD 4 0 = ptr sqE from rfl]
@@ -241,8 +241,8 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     logMem := S.logMem
     hr1 := S.hr1
     hr4 := S.hr4
-    hm16 := S.h16
-    hm32 := S.h32
+    hlm1 := S.hlm1
+    hlm30 := S.h30
     h64 := h64
     h72 := h72
     hsW := S.hs.map Hints.count
@@ -252,10 +252,10 @@ theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dige
     hpush := hpush
     d := S.d
     m := S.μs
-    hd16 := by omega
+    hd20 := by omega
     hd33 := by omega
-    hm22 := S.hmu22
-    hm28 := S.hmu28
+    hm20 := S.hmu20
+    hm30 := S.hmu30
     h253 := h253
     h276 := h276
     hood := hood

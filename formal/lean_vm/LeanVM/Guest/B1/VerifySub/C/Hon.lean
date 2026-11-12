@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Terminal.KidsDep
 # The honest valuation
 
 `vsσ rd w args`: `vsEvL` evaluated (`Fwd.ev`) on the memory `rd` and the oracle `w` from the
-arguments `args` (`vs_chk'`: `1959` values). `verify_sub` has no `ite` and no `assertNe`, so each
+arguments `args` (`vs_chk'`: `1950` values). `verify_sub` has no `ite` and no `assertNe`, so each
 statement of `vsCPre` satisfies its equations (`GoodS`) with the stores `vsSL` (`vs_goodS`); the
 parameters are the arguments (`vsC_param`), an allocation's or a callee's value is the oracle's
 (`vs_w`). `vs_goodL`: the equations of a slice, by its position.
@@ -58,7 +58,7 @@ theorem vsSL_ptrs : vsSL.all (ptrInB vsStorePtrs) = true := by decide +kernel
 instance (priority := high) instDecidableNotMemVsSL (a : Atom) : Decidable (a ∉ vsSL) :=
   decidable_of_iff _ (notStoredB_iff vsSL_ptrs a)
 
-theorem vs_chk' : chk 6 vsEvL = some 1959 := by decide +kernel
+theorem vs_chk' : chk 6 vsEvL = some 1950 := by decide +kernel
 
 /-- **The honest valuation** of `verify_sub`. -/
 noncomputable def vsσ (rd : Reader) (w : ℕ → E) (args : List E) : Val :=
@@ -110,7 +110,7 @@ def vsWVars : List ℕ :=
   [6, 25, 26, 64, 71, 72, 83, 253, 254, 274, 275, 276, 304, 305, 306, 307, 308, 309, 310, 313,
     314, 315, 316, 317, 318, 319, 320, 329, 335, 562, 563, 564, 565, 566, 567, 568, 569, 570, 573,
     574, 575, 576, 577, 578, 579, 580, 581, 582, 584, 585, 590, 591, 592, 593, 594, 595, 596, 847,
-    848, 1361, 1931, 1932, 1933, 1934, 1935]
+    848, 1361, 1922, 1923, 1924, 1925, 1926]
 
 theorem vs_defW : vsCPre.flatMap vsDefW = vsWVars.map V.n := by decide +kernel
 

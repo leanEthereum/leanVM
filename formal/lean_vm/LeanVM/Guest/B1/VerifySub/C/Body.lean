@@ -48,8 +48,7 @@ def vsSPrng : List Atom :=
     .rangeCheck (.n 72) (.n 74) (.n 75) (.n 76) (.n 73),
     .rangeCheck (.n 79) (.n 80) (.n 81) (.n 82) (.n 77),
     .rangeCheck (.n 278) (.n 280) (.n 281) (.n 282) (.n 279),
-    .rangeCheck (.n 322) (.n 324) (.n 325) (.n 326) (.n 323),
-    .rangeCheck (.n 1922) (.n 1924) (.n 1925) (.n 1926) (.n 1923)]
+    .rangeCheck (.n 322) (.n 324) (.n 325) (.n 326) (.n 323)]
 def vsSPdims : List Atom :=
   .load (.n 72) (.n 71) 0 :: .load (.n 583) (.n 71) 6 ::
     (List.range 6).map fun t ↦ .load (.n (86 + t)) (.n 71) (1 + t)
@@ -66,10 +65,10 @@ def vsSPctab : List Atom :=
 def vsSPlam : List Atom :=
   .load (.n 1915) (.n 310) 0 :: (List.range 134).map fun i ↦
     .load (.n (1376 + 4 * i)) (.n (vsClaimAt (vsKept i)).1) (vsClaimAt (vsKept i)).2
-def vsSPz : List Atom := (List.range 19).map fun k ↦ .load (.n (1936 + k)) (.n 254) k
-def vsSPzo : List Atom := (List.range 19).map fun k ↦ .load (.n (1936 + k)) (.n 5) k
-def vsSPal : List Atom := (List.range 4).map fun k ↦ .load (.n (1955 + k)) (.n 570) k
-def vsSPalo : List Atom := (List.range 4).map fun k ↦ .load (.n (1955 + k)) (.n 5) (19 + k)
+def vsSPz : List Atom := (List.range 19).map fun k ↦ .load (.n (1927 + k)) (.n 254) k
+def vsSPzo : List Atom := (List.range 19).map fun k ↦ .load (.n (1927 + k)) (.n 5) k
+def vsSPal : List Atom := (List.range 4).map fun k ↦ .load (.n (1946 + k)) (.n 570) k
+def vsSPalo : List Atom := (List.range 4).map fun k ↦ .load (.n (1946 + k)) (.n 5) (19 + k)
 def vsSPlast : List Atom := [.load (.n 580) (.n 5) 23]
 
 /-- The atoms of the body needing a side condition, piece by piece. -/
@@ -97,7 +96,7 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   hl : args.length = 6
   /-- The memory is defined below `2^κ`. -/
   κ : ℕ
-  hκ : 16 ≤ κ
+  hκ : 14 ≤ κ
   hlow : LowDef κ rd
   /-- The stream's first eleven words: the eight sizes, the root's two, the nonce. -/
   ws : List E
@@ -109,8 +108,8 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   logMem : ℕ
   hr1 : 1 ≤ rate
   hr4 : rate ≤ 4
-  hm16 : 16 ≤ logMem
-  hm32 : logMem ≤ 32
+  hlm1 : 1 ≤ logMem
+  hlm30 : logMem ≤ 30
   h64 : w 64 = gen ^ rate
   h72 : w 72 = gen ^ logMem
   /-- `dims_g` and `kappa_base`. -/
@@ -125,10 +124,10 @@ structure VsSecData (rd : Reader) (w : ℕ → E) (args : List E) : Type where
   /-- The bus depth and the stack's log, as `log2_ceil_in_the_exponent` returns them. -/
   d : ℕ
   m : ℕ
-  hd16 : 16 ≤ d
+  hd20 : 20 ≤ d
   hd33 : d ≤ 33
-  hm22 : 22 ≤ m
-  hm28 : m ≤ 28
+  hm20 : 20 ≤ m
+  hm30 : m ≤ 30
   h253 : w 253 = gen ^ d
   h276 : w 276 = gen ^ m
   /-- `ood_value`, `fp_w`, `col_eval_words`, `claim_pool`. -/
@@ -239,7 +238,7 @@ theorem vs_param5 (hl : args.length = 6) : ς (.n 5) = args.getD 5 0 := vsC_para
 theorem vs_kbV (D : VsSecData rd w args) :
     ∀ i < 8, ς (.n (84 + i)) = (1 :: w 72 :: D.hsW).getD i 0 := by
   obtain ⟨h65, -, -, h72, -, -, -, -, h84, h85, h86⟩ :=
-    vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hm16 D.h64 D.h72
+    vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hlm1 D.h64 D.h72
   intro i hi
   rcases i with _ | _ | t
   · exact h84
@@ -268,37 +267,35 @@ theorem vsSProws_holds (D : VsSecData rd w args) :
 
 theorem vsSPquot_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPquot, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
-  obtain ⟨h65, -, -, -, -, h78, -⟩ := vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hm16 D.h64 D.h72
+  obtain ⟨h65, -, -, -, -, h78, -⟩ := vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hlm1 D.h64 D.h72
   intro a ha hs
   have hg := vs_goodS (rd := rd) (w := w) D.hl hs
   simp only [vsSPquot, List.mem_cons, List.not_mem_nil, or_false] at ha
   rcases ha with rfl | rfl
   · exact vs_quot_holds (S := vsSL) (w := w) (by simp) (by rw [h65]; exact gen_ne_zero) hg
-  · exact vs_quot_holds (S := vsSL) (w := w) (by simp) (by rw [h78]; exact pow_ne_zero _ gen_ne_zero) hg
+  · exact vs_quot_holds (S := vsSL) (w := w) (by simp) (by rw [h78]; exact gen_ne_zero) hg
 
 theorem vsSPrng_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPrng, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
   obtain ⟨-, h66, h67, h72, h73, -, h79, h77, -⟩ :=
-    vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hm16 D.h64 D.h72
-  obtain ⟨h278, h279⟩ := vs_placeV (rd := rd) (w := w) D.hl D.hm22 D.h276
-  obtain ⟨h322, h323, -⟩ := vs_busGrind (rd := rd) (w := w) D.hl D.hd16 D.h253
-  obtain ⟨h1922, h1923, -⟩ := vs_tailV (rd := rd) (w := w) D.hl D.hr1 D.hm22 D.h64 D.h276
+    vs_sizesV (rd := rd) (w := w) D.hl D.hr1 D.hlm1 D.h64 D.h72
+  obtain ⟨h278, h279⟩ := vs_placeV (rd := rd) (w := w) D.hl D.hm20 D.h276
+  obtain ⟨h322, h323, -⟩ := vs_busGrind (rd := rd) (w := w) D.hl D.hd20 D.h253
   have hκ : (40 : ℕ) < 2 ^ D.κ :=
     lt_of_lt_of_le (by norm_num) (Nat.pow_le_pow_right (by norm_num) D.hκ)
   have hr := D.hr4
-  have hm := D.hm32
-  have hm28 := D.hm28
+  have hm := D.hlm30
+  have hm30 := D.hm30
   have hd := D.hd33
   intro a ha hs
   have hg := vs_goodS (rd := rd) (w := w) D.hl hs
   simp only [vsSPrng, List.mem_cons, List.not_mem_nil, or_false] at ha
-  rcases ha with rfl | rfl | rfl | rfl | rfl | rfl
+  rcases ha with rfl | rfl | rfl | rfl | rfl
   · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h66 h67 hg
-  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) D.hm32 (by omega) h72 h73 hg
+  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) D.hlm30 (by omega) h72 h73 hg
   · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h79 h77 hg
   · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h278 h279 hg
   · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h322 h323 hg
-  · exact vs_rc_holds (S := vsSL) (w := w) D.hlow (by simp) (by omega) (by omega) h1922 h1923 hg
 
 theorem vsSPdims_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPdims, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -409,9 +406,9 @@ theorem vsSPlam_holds (D : VsSecData rd w args) :
     obtain ⟨v, hv⟩ := hex
     exact vs_ld_new (vs_goodS D.hl hs) (vsLamT_notS i hi) hv
 
-theorem vsSPz_notS : ∀ k < 19, Atom.load (.n (1936 + k)) (.n 254) k ∉ vsSL := by decide +kernel
+theorem vsSPz_notS : ∀ k < 19, Atom.load (.n (1927 + k)) (.n 254) k ∉ vsSL := by decide +kernel
 
-theorem vsSPal_notS : ∀ k < 4, Atom.load (.n (1955 + k)) (.n 570) k ∉ vsSL := by decide +kernel
+theorem vsSPal_notS : ∀ k < 4, Atom.load (.n (1946 + k)) (.n 570) k ∉ vsSL := by decide +kernel
 
 theorem vsSPz_holds (D : VsSecData rd w args) :
     ∀ a ∈ vsSPz, Stmt.atom a ∈ vsCPre → a.Holds rd ς := by
@@ -430,8 +427,8 @@ theorem vsSPal_holds (D : VsSecData rd w args) :
     (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hal (by have := D.hall; omega))
 
 theorem vs_zv (D : VsSecData rd w args) {k : ℕ} (hk : k < 19) :
-    ς (.n (1936 + k)) = D.zs.getD k 0 := by
-  have hm : Stmt.atom (.load (.n (1936 + k)) (.n 254) k) ∈ vsTailP := by
+    ς (.n (1927 + k)) = D.zs.getD k 0 := by
+  have hm : Stmt.atom (.load (.n (1927 + k)) (.n 254) k) ∈ vsTailP := by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.2 ⟨k, List.mem_range.2 hk, List.mem_cons_self⟩)))
@@ -439,8 +436,8 @@ theorem vs_zv (D : VsSecData rd w args) {k : ℕ} (hk : k < 19) :
     (by rw [vs_w D.hl (by decide)]; exact vs_rdg D.hz (by have := D.hzl; omega))
 
 theorem vs_alv (D : VsSecData rd w args) {k : ℕ} (hk : k < 4) :
-    ς (.n (1955 + k)) = D.al.getD k 0 := by
-  have hm : Stmt.atom (.load (.n (1955 + k)) (.n 570) k) ∈ vsTailP := by
+    ς (.n (1946 + k)) = D.al.getD k 0 := by
+  have hm : Stmt.atom (.load (.n (1946 + k)) (.n 570) k) ∈ vsTailP := by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_right _
       (List.mem_flatMap.2 ⟨k, List.mem_range.2 hk, List.mem_cons_self⟩))
@@ -511,24 +508,23 @@ def vsDispOf : Stmt → Option (V × ℕ)
   | .dispatch x fs _ _ => some (x, fs.length)
   | _ => none
 
-theorem vs_disps : vsCPre.filterMap vsDispOf = [(.n 278, 7), (.n 322, 18), (.n 1922, 28)] := by
+theorem vs_disps : vsCPre.filterMap vsDispOf = [(.n 278, 11), (.n 322, 14), (.n 278, 11)] := by
   decide +kernel
 
-/-- **The dispatches' indices**: `g^(m - 22)`, `g^(d - 16)` and the candidate. -/
+/-- **The dispatches' indices**: `g^(m - 20)` (twice) and `g^(d - 20)`. -/
 theorem vs_dispIdx (D : VsSecData rd w args) : ∀ x fs as rs, Stmt.dispatch x fs as rs ∈ vsCPre →
     ∃ j < fs.length, j < 2 ^ 64 - 1 ∧ ς x = ofK (addressOfIndex j) := by
-  obtain ⟨h278, -⟩ := vs_placeV (rd := rd) (w := w) D.hl D.hm22 D.h276
-  obtain ⟨h322, -⟩ := vs_busGrind (rd := rd) (w := w) D.hl D.hd16 D.h253
-  obtain ⟨h1922, -⟩ := vs_tailV (rd := rd) (w := w) D.hl D.hr1 D.hm22 D.h64 D.h276
-  have := D.hm28; have := D.hd33; have := D.hr4
+  obtain ⟨h278, -⟩ := vs_placeV (rd := rd) (w := w) D.hl D.hm20 D.h276
+  obtain ⟨h322, -⟩ := vs_busGrind (rd := rd) (w := w) D.hl D.hd20 D.h253
+  have := D.hm30; have := D.hd33; have := D.hr4
   intro x fs as rs h
   have hm : (x, fs.length) ∈ vsCPre.filterMap vsDispOf := List.mem_filterMap.2 ⟨_, h, rfl⟩
   rw [vs_disps] at hm
   simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hm
   rcases hm with ⟨rfl, hl⟩ | ⟨rfl, hl⟩ | ⟨rfl, hl⟩
-  · exact ⟨D.m - 22, by omega, by omega, by rw [h278, gen_pow_eq_ofK]⟩
-  · exact ⟨D.d - 16, by omega, by omega, by rw [h322, gen_pow_eq_ofK]⟩
-  · exact ⟨D.m - 22 + 7 * (D.rate - 1), by omega, by omega, by rw [h1922, gen_pow_eq_ofK]⟩
+  · exact ⟨D.m - 20, by omega, by omega, by rw [h278, gen_pow_eq_ofK]⟩
+  · exact ⟨D.d - 20, by omega, by omega, by rw [h322, gen_pow_eq_ofK]⟩
+  · exact ⟨D.m - 20, by omega, by omega, by rw [h278, gen_pow_eq_ofK]⟩
 
 /-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepR`'s `DispOk`). -/
 theorem vs_dispOk (D : VsSecData rd w args) : ∀ s ∈ vsCPre, DispOk ς s := by

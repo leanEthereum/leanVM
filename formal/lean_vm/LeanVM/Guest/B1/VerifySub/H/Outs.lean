@@ -32,7 +32,7 @@ structure VsOuts {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs 
   o1 : (outs.getD 1 ([], [])).1 = [gen ^ S.logMem]
   o2 : (outs.getD 2 ([], [])).1 = [gen ^ max 0 (log2Ceil S.pushT)]
   o3 : Tables.cpOut S.logMem S.hs (outs.getD 3 ([], [])).1 (outs.getD 3 ([], [])).2
-  o4 : (outs.getD 4 ([], [])).1 = [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]
+  o4 : (outs.getD 4 ([], [])).1 = [gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))]
   o5 : (outs.getD 5 ([], [])).1 = []
   o6 : (outs.getD 6 ([], [])).1 = S.sZ.cap
   o7 : (outs.getD 7 ([], [])).1 = [cellsOfState S.busSt false 0, cellsOfState S.busSt false 1] ++

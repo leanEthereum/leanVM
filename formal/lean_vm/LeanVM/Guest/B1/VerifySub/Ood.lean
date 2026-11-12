@@ -94,11 +94,11 @@ abbrev vsRootFs (σ : Val) : Fs :=
 theorem vsRun305 : (vsRun 305 5).map σ =
     [σ (.n 305), σ (.n 306), σ (.n 307), σ (.n 308), σ (.n 309)] := rfl
 
-theorem spfName_eq {m : ℕ} (h1 : 22 ≤ m) (h2 : m ≤ 28) (h : m - 22 < vsSqpNames.length) :
-    vsSqpNames[m - 22] = spfName m := by
+theorem spfName_eq {m : ℕ} (h1 : 20 ≤ m) (h2 : m ≤ 30) (h : m - 20 < vsSqpNames.length) :
+    vsSqpNames[m - 20] = spfName m := by
   interval_cases m <;> rfl
 
-theorem spf_mem {m : ℕ} (h1 : 22 ≤ m) (h2 : m ≤ 28) : m ∈ spfDeployed :=
+theorem spf_mem {m : ℕ} (h1 : 20 ≤ m) (h2 : m ≤ 30) : m ∈ spfDeployed :=
   List.mem_map.2 ⟨m - 6, List.mem_range.2 (by omega), by omega⟩
 
 theorem word_g11 : word 2048 0 = gen ^ 11 := by
@@ -107,7 +107,7 @@ theorem word_g11 : word 2048 0 = gen ^ 11 := by
 /-- **The out-of-domain sample** (G:3624-3629). -/
 theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hwin : ExpWinTab L.read (σ (.n 4)))
-    {m : ℕ} (hm22 : 22 ≤ m) (hm28 : m ≤ 28) (h278 : σ (.n 278) = gen ^ (m - 22))
+    {m : ℕ} (hm20 : 20 ≤ m) (hm30 : m ≤ 30) (h278 : σ (.n 278) = gen ^ (m - 20))
     (w268 : WordAt L.read σ 8 268) (w271 : WordAt L.read σ 9 271)
     (h : Stmt.HoldsList C L.read σ vsOodT next kret) :
     ∃ (z : List E) (v nn : E),
@@ -160,14 +160,14 @@ theorem vsOodT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L 
   rw [hS] at hG
   have h303 : σ (.n 303) = challengeOf S := by rw [c303, e288, Keccak.challengeOf_cells]
   -- the point
-  have hj7 : j < 7 := by simpa [vsSqpNames] using hj
-  have hjm : j = m - 22 := by
+  have hj7 : j < 11 := by simpa [vsSqpNames] using hj
+  have hjm : j = m - 20 := by
     rw [h278, gen_pow_eq_ofK] at hj278
     exact (gen_pow_inj (by omega) (by omega)
       (by rw [gen_pow_eq_ofK, gen_pow_eq_ofK]; exact hj278)).symm
   subst hjm
-  rw [spfName_eq hm22 hm28 hj, vsRun305] at hsp
-  obtain ⟨hz, hret⟩ := (squeeze_point_from_holds m (spf_mem hm22 hm28) L.read _ _).1 (hC _ _ _ hsp)
+  rw [spfName_eq hm20 hm30 hj, vsRun305] at hsp
+  obtain ⟨hz, hret⟩ := (squeeze_point_from_holds m (spf_mem hm20 hm30) L.read _ _).1 (hC _ _ _ hsp)
   obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
   simp only [Nat.add_sub_cancel] at hz hret
   rw [h303, hcapS] at hz

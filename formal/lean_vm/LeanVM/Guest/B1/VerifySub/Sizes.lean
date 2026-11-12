@@ -63,7 +63,7 @@ theorem log2_bytecode {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) :
   rw [hbl, Nat.log2_two_pow]; rfl
 
 theorem sz_placementsOf_snd (kappas : List ℕ) :
-    (placementsOf kappas).2 = max 15 (log2Ceil (Tables.stackTotal kappas)) := by
+    (placementsOf kappas).2 = max 16 (log2Ceil (Tables.stackTotal kappas)) := by
   unfold placementsOf
   simp only []
   rw [stackOffsets_snd]
@@ -77,10 +77,10 @@ theorem logBytecode_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (log
   simp only []
   exact log2_bytecode hbl
 
-/-- **The stack's log-size**: at least `15`, else `log2Ceil` of the committed columns' total. -/
+/-- **The stack's log-size**: at least `16`, else `log2Ceil` of the committed columns' total. -/
 theorem stackLog_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
     (rowsN : List ℕ) : (Tables.layoutOf bytecode logMem rowsN).stackLog =
-      max 15 (log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)))) := by
+      max 16 (log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)))) := by
   unfold Tables.layoutOf
   simp only []
   rw [sz_placementsOf_snd, log2_bytecode hbl]
@@ -173,13 +173,13 @@ theorem kToNat_eOfNat {n : ℕ} (h : n < 2 ^ 64) : kToNat ((eOfNat n).limb 0) = 
 
 /-- `buildLayout` accepts the honest sizes, with the layout `layoutOf`. -/
 theorem buildLayout_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem : ℕ}
-    {rowsN : List ℕ} (h16 : 16 ≤ logMem) (h32 : logMem ≤ 32) (hlen : rowsN.length = 6)
-    (hrows : ∀ r ∈ rowsN, r ≤ 2 ^ 32) :
+    {rowsN : List ℕ} (hlm1 : 1 ≤ logMem) (h30 : logMem ≤ 30) (hlen : rowsN.length = 6)
+    (hrows : ∀ r ∈ rowsN, r ≤ 2 ^ 30) :
     buildLayout bytecode logMem rowsN = some (Tables.layoutOf bytecode logMem rowsN) := by
   have hls : log2Strict bytecode.length = some 23 := by rw [hbl]; decide
-  have hc : busBits ≤ 23 ∧ 16 ≤ logMem ∧ logMem ≤ 32 ∧ rowsN.all (· ≤ 2 ^ 32) ∧
-      23 - busBits ≤ 32 ∧ rowsN.length = tables.length :=
-    ⟨by decide, h16, h32, by simpa using hrows, by decide, by rw [hlen]; rfl⟩
+  have hc : busBits ≤ 23 ∧ 1 ≤ logMem ∧ logMem ≤ 30 ∧ rowsN.all (· ≤ 2 ^ 30) ∧
+      23 - busBits ≤ 30 ∧ rowsN.length = tables.length :=
+    ⟨by decide, hlm1, h30, by simpa using hrows, by decide, by rw [hlen]; rfl⟩
   unfold buildLayout
   rw [hls]
   simp only [hc, and_self, ↓reduceIte]
@@ -187,7 +187,7 @@ theorem buildLayout_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {log
   rw [hbl, Nat.log2_two_pow]
 
 theorem rows_le {rowsN : List ℕ} (hlen : rowsN.length = 6)
-    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29) : ∀ r ∈ rowsN, r ≤ 2 ^ 28 := by
+    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31) : ∀ r ∈ rowsN, r ≤ 2 ^ 30 := by
   match rowsN, hlen with
   | [r0, r1, r2, r3, r4, r5], _ =>
     simp only [Tables.tableHeightsOf, tableLogFloors, List.zipWith_cons_cons,
@@ -203,9 +203,9 @@ theorem rows_le {rowsN : List ℕ} (hlen : rowsN.length = 6)
 layout
 `layoutOf` and `lir`. -/
 theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {logMem lir : ℕ}
-    {rowsN : List ℕ} (h16 : 16 ≤ logMem) (h32 : logMem ≤ 32) (hlen : rowsN.length = 6)
-    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 29) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4)
-    (hst : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 28) (s : Fs) :
+    {rowsN : List ℕ} (hlm1 : 1 ≤ logMem) (h30 : logMem ≤ 30) (hlen : rowsN.length = 6)
+    (hh : ∀ h ∈ Tables.tableHeightsOf rowsN, h < 31) (hl1 : 1 ≤ lir) (hl4 : lir ≤ 4)
+    (hst : (Tables.layoutOf bytecode logMem rowsN).stackLog ≤ 30) (s : Fs) :
     RunsTo (readAnnouncedSizes bytecode) s (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir])
       (Tables.layoutOf bytecode logMem rowsN, lir)
       (s.absorbAll (eOfNat logMem :: rowsN.map eOfNat ++ [eOfNat lir]) dsObserve) := by
@@ -223,7 +223,7 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
     refine List.map_congr_left fun r hr ↦ ?_
     have := hrows r hr
     exact kToNat_eOfNat (by
-      calc r ≤ 2 ^ 28 := this
+      calc r ≤ 2 ^ 30 := this
         _ < 2 ^ 64 := by norm_num)
   have e3 : kToNat ((xs.getLastD 0).limb 0) = lir := by
     rw [hxs, List.getLastD_eq_getLast?, List.getLast?_append, List.getLast?_singleton]
@@ -234,9 +234,9 @@ theorem readSizes_runsTo {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {l
   refine (r.bind ?_).of_eq rfl (List.append_nil _) rfl rfl
   simp only [e1, e2, e3]
   refine sz_runsTo_require_bind hall (sz_runsTo_require_bind ⟨hl1, hl4⟩
-    (sz_runsTo_liftOption_bind (buildLayout_eq hbl h16 h32 hlen fun r hr ↦ ?_)
+    (sz_runsTo_liftOption_bind (buildLayout_eq hbl hlm1 h30 hlen fun r hr ↦ ?_)
       (sz_runsTo_require_bind ⟨?_, hst⟩ (runsTo_ret _ _))))
-  · exact (hrows r hr).trans (Nat.pow_le_pow_right (by norm_num) (by norm_num))
+  · exact hrows r hr
   · rw [stackLog_eq hbl]; exact le_max_left _ _
 
 end

@@ -57,7 +57,7 @@ theorem vs_regionL {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) {i : ℕ
 /-- **`verify_sub`'s lift obligations on an honest child.** -/
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {sqE outE : ℕ}
-    {Lin : Main.Layout} {κ : ℕ} (hκ : 16 ≤ κ) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
+    {Lin : Main.Layout} {κ : ℕ} (hκ : 14 ≤ κ) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
     (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) (hcm : VsCallsMatch S sqE outE Lin) :
     let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.d)) sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes S.d) S.ownW

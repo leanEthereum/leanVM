@@ -71,7 +71,7 @@ theorem ownW_fits (hbl : bytecode.length = 2 ^ 23)
   obtain ⟨-, -, -, -, hpl, -⟩ := S.gkr_inv hbl
   have hnT := S.nT_le hbl
   have hzl := S.zvW_length hbl
-  have hμ : S.μs ≤ 28 := S.hmu28
+  have hμ : S.μs ≤ 30 := S.hmu30
   simp only [ChildSegs.ownW, vsSizes, List.forall₂_cons, List.forall₂_nil_left_iff, and_true]
   refine ⟨?_, ?_, by simp [S.hrowsL], ?_, ?_, hpl.le, by rw [S.oodZ_length]; exact hμ, by simp,
     (S.wb_length hbl).le, ?_, S.slots_length.le, by rw [hzl]; simp only [qkeccakVarsCap]; omega,

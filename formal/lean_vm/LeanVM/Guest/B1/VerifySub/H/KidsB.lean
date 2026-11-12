@@ -78,7 +78,7 @@ theorem busGrind_kidB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 
       (Returns [0]) (fs (busGrindName d) + fs (grindCheckName (busGrindBits d))) :=
   bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦ ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
 
-theorem le_busGrindMax {d : ℕ} (hd : d < 18) :
+theorem le_busGrindMax {d : ℕ} (hd : d < 14) :
     fs (busGrindName d) + fs (grindCheckName (busGrindBits d)) ≤ busGrindMax fs := by
   rw [busGrindBits_eq]
   exact le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)

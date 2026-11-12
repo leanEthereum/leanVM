@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Verifier.WhirTarget
 fold round draws one `α` (`always_foldRounds`), the levels glue without drawing any
 (`glueLevel_alphas`), the final sumcheck draws the rest, and the ladder's folds leave the final
 level a variable (`ladder_sum_lt`). `ChildSegs.w_point_length`: the honest opening's.
-`ChildSegs.os_kidB`: `open_stacked`'s candidate, within `osBosAt`, from its placed completeness
+`ChildSegs.os_kidB`: `open_stacked`'s arm, within `osBosAt`, from its placed completeness
 (`open_stacked_completeAtB_Spec`).
 -/
 
@@ -163,17 +163,17 @@ theorem w_point_length : S.w.point.length = S.μs :=
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **`open_stacked` on an honest child**, as `verify_sub` calls it, within its candidate's
-bound. -/
+/-- **`open_stacked` on an honest child**, as `verify_sub` calls it on the rate's selector,
+within its arm's bound. -/
 theorem os_kidB (hos : open_stacked_completeAtB_Spec) {κ : ℕ} (hκ : 11 ≤ κ)
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) (bs : List ℕ)
     (sqE : ℕ) :
-    CompleteAtB fs cert κ (B1.Whir.openName S.μs S.rate) [(S.cW bs, S.xsW), (sqE, expTabAllWords)]
-      (capOf S.s7.perm ++ [S.target, (digestHalves S.root).1, (digestHalves S.root).2,
-        ptr (S.cW bs), ptr sqE * gen ^ winTabAt]) (vsOsOut S.μs S.w)
-      (osBosAt fs W.Bnd W.Kr S.μs S.rate) :=
-  hos S.μs S.rate S.hmu22 S.hmu28 S.hr1 S.hr4 fs cert κ W.Bnd W.Kr hrf hcons hκ W.hleaf
-    (W.hloop _ _ S.hmu22 S.hmu28 S.hr1 S.hr4) S.s7.perm S.root S.target (ptr (S.cW bs))
+    CompleteAtB fs cert κ (B1.Whir.openName S.μs) [(S.cW bs, S.xsW), (sqE, expTabAllWords)]
+      (B1.Whir.rateSel S.rate :: capOf S.s7.perm ++ [S.target, (digestHalves S.root).1,
+        (digestHalves S.root).2, ptr (S.cW bs), ptr sqE * gen ^ winTabAt]) (vsOsOut S.μs S.w)
+      (osBosAt fs W.Bnd S.μs) :=
+  hos S.μs S.rate S.hmu20 S.hmu30 S.hr1 S.hr4 fs cert κ W.Bnd hrf hcons hκ W.hleaf
+    S.s7.perm S.root S.target (ptr (S.cW bs))
     (ptr sqE * gen ^ winTabAt) S.xsW c.proof.openings S.w S.s' S.roots' S.runW S.nzW
     S.capsW _ fun _ _ hL ↦ ⟨hL _ List.mem_cons_self, winTabs_vsExp fun q hq ↦ hL q (by
       simp only [vsExpLin, List.mem_singleton] at hq

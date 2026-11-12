@@ -33,17 +33,24 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 
 /-! ## Range checks on `g`-powers -/
 
-/-- A range check against `g^a` (`a ≤ 32`): the value is `g^e`, `e ≤ a`. -/
-theorem rc_pow {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ) {x y t1 t2 k : V} {a : ℕ}
+/-- A range check against `g^a` (`a ≤ 32`): the value is `g^e`, `e ≤ a`, on any memory (the two
+reads put both factors among the memory's `g`-powers, so their exponents add up to `a`). -/
+theorem rc_pow {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {x y t1 t2 k : V} {a : ℕ}
     (ha : a ≤ 32) (hk : σ k = gen ^ a) (h : (Atom.rangeCheck x y t1 t2 k).Holds L.read σ) :
     ∃ e ≤ a, σ x = gen ^ e := by
-  obtain ⟨l1, m, l2⟩ := h
-  have hK : a + 1 ≤ 2 ^ κ :=
-    calc a + 1 ≤ 2 ^ 6 := by omega
-      _ ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ6
-  obtain ⟨e, he, hx⟩ := (rangeCheck_iff hκ L (σ x) (K := a + 1) (by omega) hK).1
-    ⟨σ y, σ t1, σ t2, l1, by rw [show a + 1 - 1 = a by omega, ← gen_pow_eq_ofK, ← hk, m], l2⟩
-  exact ⟨e, by omega, by rw [hx, gen_pow_eq_ofK]⟩
+  obtain ⟨⟨hx, h1⟩, m, ⟨hy, h2⟩⟩ := h
+  have hκ64 : κ < 64 := by omega
+  have h32 : 2 ^ κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) hκ
+  rw [addressOfIndex, pow_zero, mul_one] at h1 h2
+  obtain ⟨i, hi, -⟩ := (read_some_iff hκ64 L _ _).mp h1
+  obtain ⟨j, hj, -⟩ := (read_some_iff hκ64 L _ _).mp h2
+  have ex : σ x = ofK (addressOfIndex i) := by rw [eq_ofK_limb hx, hi]
+  have ey : σ y = ofK (addressOfIndex j) := by rw [eq_ofK_limb hy, hj]
+  rw [hk, ex, ey, ← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add, gen_pow_eq_ofK,
+    addressOfIndex] at m
+  have hij := gpow_injOn (by simp only [Set.mem_Iio]; omega)
+    (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega) (ofK_injective m)
+  exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
 
 theorem gen_pow_eq_iff {a b : ℕ} (ha : a < 2 ^ 40) (hb : b < 2 ^ 40) (h : gen ^ a = gen ^ b) :
     a = b :=
@@ -55,11 +62,11 @@ theorem word_pow2 {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := word_two_
 
 /-- **The sizes** (G:3575-3594): the rate exponent and the memory's log-size, `dims`, `kb` in the
 frame (`84 .. 91`) and `kappa_base`. -/
-theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
+theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read))
     (h : Stmt.HoldsList C L.read σ vsSizesT next kret) :
     ∃ lir logMem : ℕ, 1 ≤ lir ∧ lir ≤ 4 ∧ σ (.n 61) = eOfNat lir ∧ σ (.n 66) = gen ^ (lir - 1) ∧
-      16 ≤ logMem ∧ logMem ≤ 32 ∧ σ (.n 27) = eOfNat logMem ∧ σ (.n 72) = gen ^ logMem ∧
+      1 ≤ logMem ∧ logMem ≤ 30 ∧ σ (.n 27) = eOfNat logMem ∧ σ (.n 72) = gen ^ logMem ∧
       ∃ ds : List E, ds.length = 6 ∧ ReadsAt L.read (σ (.n 71)) (gen ^ logMem :: ds) ∧
         ReadsAt L.read (σ (.n 83)) (1 :: gen ^ logMem :: ds) ∧
         (∀ s < 8, σ (.n (84 + s)) = (1 :: gen ^ logMem :: ds).getD s 0) ∧ next := by
@@ -72,7 +79,7 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   -- the rate
   obtain ⟨n, hn64, h61, hr64⟩ := (g_power_of_word_holds _ _ _).1 (hC _ _ _ c64)
   simp only [List.cons.injEq, and_true] at hr64
-  obtain ⟨e, he, h66⟩ := rc_pow hκ hκ6 L (a := 3) (by norm_num)
+  obtain ⟨e, he, h66⟩ := rc_pow hκ L (a := 3) (by norm_num)
     (by rw [e67, show (8 : ℕ) = 2 ^ 3 from rfl, word_pow2 (by norm_num)]) r66
   have hne : n = e + 1 := by
     rw [hr64, h66, e65, word_gen, ← pow_succ] at m64
@@ -80,13 +87,13 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   -- the memory's log-size
   obtain ⟨m, hm64, h27, hr72⟩ := (g_power_of_word_holds _ _ _).1 (hC _ _ _ c72)
   simp only [List.cons.injEq, and_true] at hr72
-  obtain ⟨e1, he1, h72⟩ := rc_pow hκ hκ6 L (a := 32) le_rfl
-    (by rw [e73, show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_pow2 (by norm_num)]) r72
-  obtain ⟨e2, he2, h79⟩ := rc_pow hκ hκ6 L (a := 32) le_rfl
+  obtain ⟨e1, he1, h72⟩ := rc_pow hκ L (a := 30) (by norm_num)
+    (by rw [e73, show (1073741824 : ℕ) = 2 ^ 30 from rfl, word_pow2 (by norm_num)]) r72
+  obtain ⟨e2, he2, h79⟩ := rc_pow hκ L (a := 32) (by norm_num)
     (by rw [e77, show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_pow2 (by norm_num)]) r79
   have hm1 : m = e1 := by rw [hr72] at h72; exact gen_pow_eq_iff (by omega) (by omega) h72
-  have hm2 : m = e2 + 16 := by
-    rw [hr72, h79, e78, show (65536 : ℕ) = 2 ^ 16 from rfl, word_pow2 (by norm_num),
+  have hm2 : m = e2 + 1 := by
+    rw [hr72, h79, e78, show (2 : ℕ) = 2 ^ 1 from rfl, word_pow2 (by norm_num),
       ← pow_add] at m72
     exact gen_pow_eq_iff (by omega) (by omega) m72
   have h84 : σ (.n 84) = 1 := by rw [e84, word_one]
@@ -130,7 +137,7 @@ theorem kbase_getD {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6) {i : ℕ}
   match hs, hl with
   | [h0, h1, h2, h3, h4, h5], _ => interval_cases i <;> simp
 
-theorem kbase_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32) (s : ℕ) :
+theorem kbase_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32) (s : ℕ) :
     ([0, logMem] ++ hs).getD s 0 ≤ 32 := by
   rw [List.getD_eq_getElem?_getD]
   rcases hx : ([0, logMem] ++ hs)[s]? with _ | x
@@ -146,7 +153,7 @@ theorem kbase_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm 
 theorem push_adj : ∀ b < 54, Tables.blockKappaAdj b ≠ 0 → Tables.blockKappaSrc.getD b 0 = 0 := by
   decide +kernel
 
-theorem pushKappa_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
+theorem pushKappa_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
     {b : ℕ} (hb : b < 54) : pushKappa logMem hs b < 34 := by
   unfold pushKappa
   by_cases h0 : Tables.blockKappaAdj b = 0
@@ -166,7 +173,7 @@ theorem push_read {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (�
   exact loadHolds_unique hq (hexp.1 _ hk)
 
 theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)))
-    {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
+    {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
     (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     {b : ℕ} (hb : b < 54) {q a : V}
     (ha : σ a = σ (.n 4) * σ (.n (84 + Tables.blockKappaSrc.getD b 0)))
@@ -175,7 +182,7 @@ theorem push_block {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (
   push_read hexp (pushKappa_lt hh hm hb) (hkbv _ (blockKappaSrc_lt b (by show b < 153; omega))) ha hq
 
 theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (σ (.n 4)))
-    {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
+    {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
     (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0)) :
     ∀ n < 54, ∀ {nx : Prop},
       Stmt.HoldsList C L.read σ ((List.range (n + 1)).flatMap vsPushStep) nx kret →
@@ -203,7 +210,7 @@ theorem push_loop {κ : ℕ} {L : MemoryImage κ} (hexp : B1.ExpTables L.read (�
       List.range_succ (n := n + 1), List.map_append, List.sum_append]
     simp
 
-theorem push_sum_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32) :
+theorem push_sum_lt {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32) :
     ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum < 2 ^ 40 := by
   have hle := List.sum_le_length_nsmul ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b)
     (2 ^ 33) (by
@@ -237,7 +244,7 @@ theorem vsPushT_depth {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memory
 `Σ 2^κ_b`. -/
 theorem vsPushT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemoryImage κ)
     (hC : CallRel.Le C (coreProgram.Rel L.read)) (hexp : B1.ExpTables L.read (σ (.n 4)))
-    {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32)
+    {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 33) (hm : logMem ≤ 32)
     (hkbv : ∀ s < 8, σ (.n (84 + s)) = gen ^ (([0, logMem] ++ hs).getD s 0))
     (h : Stmt.HoldsList C L.read σ vsPushT next kret) :
     σ (.n 253) = gen ^ log2Ceil ((List.range 54).map fun b ↦ 2 ^ pushKappa logMem hs b).sum ∧

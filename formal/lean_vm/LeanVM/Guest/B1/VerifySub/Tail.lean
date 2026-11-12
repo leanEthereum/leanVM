@@ -17,8 +17,8 @@ public import LeanVM.Guest.B1.Whir.Names
 
 * `vsCallsT_holds` (G:3649-3660): the three calls on their argument words, `tabs` three times,
   the Keccak table's `g^τ` read off `dims_g`, the output lanes at `col_eval_words·g^101`.
-* `vsTailT_holds` (G:3716-3731): the candidate `size_sel·rate_sel^7 = g^candidate`, the call of
-  its `open_stacked` specialization (the dispatch), the cursor past the ring grind's nonce,
+* `vsTailT_holds` (G:3716-3731): the call of the stack size's `open_stacked` specialization (the
+  dispatch on `size_sel`, the rate's selector its first argument), the cursor past the ring grind's nonce,
   `check_opening_terminal`'s call, the deferred claim's words, and the return.
 -/
 
@@ -65,23 +65,23 @@ theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
 
 /-- `vsOpenNames` is `open_stacked`'s specializations in dispatch order. -/
 theorem vsOpenNames_natStr :
-    vsOpenNames = (List.range 28).map fun m ↦ "open_stacked__L" ++ Whir.natStr m := by
+    vsOpenNames = (List.range Whir.openArms).map fun m ↦ "open_stacked__L" ++ Whir.natStr m := by
   decide +kernel
 
 theorem vsOpenNames_eq : vsOpenNames = Whir.openNames := by
   rw [vsOpenNames_natStr, Whir.openNames]
   simp only [Whir.natStr_eq]
 
-/-- **The tail** (G:3716-3731): the candidate, the call of its `open_stacked`, the terminal, the
-deferred claim's words, the return. -/
-theorem vsTailT_holds {m lir : ℕ} (hm22 : 22 ≤ m) (hm28 : m ≤ 28) (hl1 : 1 ≤ lir)
-    (hl4 : lir ≤ 4) (h278 : σ (.n 278) = gen ^ (m - 22)) (h66 : σ (.n 66) = gen ^ (lir - 1))
+/-- **The tail** (G:3716-3731): the call of the stack size's `open_stacked` on the rate's selector
+(the dispatch on `size_sel = g^(m - 20)`), the terminal, the deferred claim's words, the return. -/
+theorem vsTailT_holds {m : ℕ} (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30)
+    (h278 : σ (.n 278) = gen ^ (m - Whir.minOpenLog))
     {rets : List E} (h : Stmt.HoldsList C rd σ vsTailT False (fun rs ↦ rs = rets)) :
-    rets = [] ∧ σ (.n 1922) = gen ^ Whir.candidate m lir ∧ σ (.n 1928) = σ (.n 595) * gen ∧
-    σ (.n 1930) = σ (.n 4) * gen ^ winTabAt ∧ C (Whir.openName m lir) (vsOsArgs σ) (vsOsRets σ) ∧
+    rets = [] ∧ σ (.n 1919) = σ (.n 595) * gen ∧
+    σ (.n 1921) = σ (.n 4) * gen ^ winTabAt ∧ C (Whir.openName m) (vsOsArgs σ) (vsOsRets σ) ∧
     C "check_opening_terminal" [σ (.n 4), σ (.n 254), σ (.n 569), σ (.n 581), σ (.n 253),
       σ (.n 579), σ (.n 72), σ (.n 583), σ (.n 83), σ (.n 1375), σ (.n 275), σ (.n 584),
-      σ (.n 848), σ (.n 1932), σ (.n 1933), σ (.n 1934), σ (.n 1935), σ (.n 1931), σ (.n 304),
+      σ (.n 848), σ (.n 1923), σ (.n 1924), σ (.n 1925), σ (.n 1926), σ (.n 1922), σ (.n 304),
       σ (.n 276)] [] ∧
     (∀ k < 19, ∃ w, LoadHolds rd (σ (.n 254)) k w ∧ LoadHolds rd (σ (.n 5)) k w) ∧
     (∀ k < 4, ∃ w, LoadHolds rd (σ (.n 570)) k w ∧ LoadHolds rd (σ (.n 5)) (19 + k) w) ∧
@@ -90,28 +90,23 @@ theorem vsTailT_holds {m lir : ℕ} (hm22 : 22 ≤ m) (hm28 : m ≤ 28) (hl1 : 1
   simp only [holdsList_append] at h
   rw [Tables.tb_holdsList_range_flatten 19 _ (fun _ ↦ rfl), Tables.tb_holdsList_range_flatten 4 _ (fun _ ↦ rfl)]
     at h
-  simp only [vsTabsT, Stmt.HoldsList, Stmt.Holds, vsMul, vsConst, vsRange, vsLd, Atom.Holds,
-    List.map_nil] at h
-  obtain ⟨m1918, m1919, m1920, m1921, m1922, -, -, e1927, m1928, c1929, m1930,
-    ⟨j, hj, hj1922, hc⟩, cT, hz, hb, l580, hr⟩ := h
-  have h1930 : σ (.n 1930) = σ (.n 4) * gen ^ winTabAt := by rw [m1930, c1929, vsWinWord_eq]
-  -- the candidate
-  have h1922 : σ (.n 1922) = gen ^ Whir.candidate m lir := by
-    have e : σ (.n 1922) = gen ^ (m - 22) * (gen ^ (lir - 1)) ^ 7 := by
-      rw [m1922, m1921, m1920, m1919, m1918, h278, h66]; ring
-    rw [e, ← pow_mul, ← pow_add, Whir.candidate, mul_comm (lir - 1) 7]
-  have hcand : Whir.candidate m lir < 28 := by unfold Whir.candidate; omega
-  have hlen : vsOpenNames.length = 28 := by rw [vsOpenNames_eq]; simp [Whir.openNames]
-  have hjc : j = Whir.candidate m lir := by
-    rw [h1922] at hj1922
-    exact (gen_pow_inj (by omega) (by omega)
-      (by rw [hj1922, gen_pow_eq_ofK])).symm
+  simp only [vsTabsT, Stmt.HoldsList, Stmt.Holds, vsMul, vsConst, vsLd, Atom.Holds, List.map_nil] at h
+  obtain ⟨e1918, m1919, c1920, m1921, ⟨j, hj, hj278, hc⟩, cT, hz, hb, l580, hr⟩ := h
+  have h1921 : σ (.n 1921) = σ (.n 4) * gen ^ winTabAt := by rw [m1921, c1920, vsWinWord_eq]
+  -- the size's arm
+  have hlen : vsOpenNames.length = Whir.openArms := by rw [vsOpenNames_eq]; simp [Whir.openNames]
+  have hA : Whir.openArms = 11 := rfl
+  have hM : Whir.minOpenLog = 20 := rfl
+  have harm : m - Whir.minOpenLog < Whir.openArms := by omega
+  have hjc : j = m - Whir.minOpenLog := by
+    rw [h278] at hj278
+    exact (gen_pow_inj (by omega) (by omega) (by rw [hj278, gen_pow_eq_ofK])).symm
   subst hjc
-  have hname : vsOpenNames[Whir.candidate m lir] = Whir.openName m lir := by
+  have hname : vsOpenNames[m - Whir.minOpenLog] = Whir.openName m := by
     rw [Whir.openName, List.getD_eq_getElem _ _ (by rw [← vsOpenNames_eq]; omega)]
     simp only [vsOpenNames_eq]
   rw [hname] at hc
-  refine ⟨hr.symm, h1922, by rw [m1928, e1927, word_gen], h1930, hc, cT, fun k hk ↦ ?_,
+  refine ⟨hr.symm, by rw [m1919, e1918, word_gen], h1921, hc, cT, fun k hk ↦ ?_,
     fun k hk ↦ ?_, l580⟩
   · have := hz k hk
     simp only [and_true] at this

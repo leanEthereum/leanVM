@@ -205,7 +205,7 @@ theorem H_shape (hbl : bytecode.length = 2 ^ 23) : Tables.VtShape S.H := by
     exact List.getElem_mem _
   have hfit : pushTot S.logMem (Tables.tableHeightsOf S.rowsN) ≤ 2 ^ S.H.point.length := by
     rw [hpl']; exact le_two_pow_log2Ceil _
-  refine ⟨S.h32, ?_, ?_, ?_, S.hrowsL, fun t ht ↦ h29 _ (hht t ht), fun t ht ↦ ?_,
+  refine ⟨(S.h30.trans (by norm_num)), ?_, ?_, ?_, S.hrowsL, fun t ht ↦ h29 _ (hht t ht), fun t ht ↦ ?_,
     S.wb_length hbl, hvl, hf5, ?_, ?_, hbl⟩
   · rw [hpl']
     refine Tables.tb_le_log2Ceil_of_two_pow_le ?_

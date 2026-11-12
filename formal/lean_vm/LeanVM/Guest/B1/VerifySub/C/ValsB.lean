@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.VerifySub.Lam
   grind's challenge, fifteen squeezed), the capacity after them;
 * `vs_ctabV`: `c_table`'s products `f_p · g_b^(2^(8p))` of the challenges;
 * `vs_lam`: `λ` squeezed after the challenges, and the target over the pooled claims;
-* `vs_tailV`: the candidate `g^(m - 22 + 7 (rate - 1))`, the stream's next pointer and `tabs`.
+* `vs_tailV`: the stream's next pointer and `tabs`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -218,13 +218,13 @@ theorem vs_rateSel (hl : args.length = 6) {rate : ℕ} (hr : 1 ≤ rate) (h64 : 
   rw [h66, h65, vs_w hl (by decide), h64, show gen⁻¹ = (gen ^ 1)⁻¹ by rw [pow_one],
     ← pow_sub₀ _ gen_ne_zero hr]
 
-/-- **The sizes** (G:3575-3594): `g^(rate - 1)` and its bound `g^3`, `g^logMem` and its bound
-`g^32`, `g^(logMem - 16)`, and `kb` in the frame: `1`, `g^logMem`, `dims_g[1 .. 6]`. -/
-theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (hm : 16 ≤ logMem)
+/-- **The sizes**: `g^(rate - 1)` and its bound `g^3`, `g^logMem` and its bound `g^30`,
+`g^(logMem - 1)` and its bound `g^32`, and `kb` in the frame: `1`, `g^logMem`, `dims_g[1 .. 6]`. -/
+theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (hm : 1 ≤ logMem)
     (h64 : w 64 = gen ^ rate) (h72 : w 72 = gen ^ logMem) :
     ς (.n 65) = gen ∧ ς (.n 66) = gen ^ (rate - 1) ∧ ς (.n 67) = gen ^ 3 ∧
-      ς (.n 72) = gen ^ logMem ∧ ς (.n 73) = gen ^ 32 ∧ ς (.n 78) = gen ^ 16 ∧
-      ς (.n 79) = gen ^ (logMem - 16) ∧ ς (.n 77) = gen ^ 32 ∧
+      ς (.n 72) = gen ^ logMem ∧ ς (.n 73) = gen ^ 30 ∧ ς (.n 78) = gen ∧
+      ς (.n 79) = gen ^ (logMem - 1) ∧ ς (.n 77) = gen ^ 32 ∧
       ς (.n 84) = 1 ∧ ς (.n 85) = gen ^ logMem ∧
       ∀ t < 6, ς (.n (86 + t)) = rdAt rd (w 71) (1 + t) := by
   have hG := vsSizesT_good (rd := rd) (w := w) hl
@@ -233,40 +233,43 @@ theorem vs_sizesV (hl : args.length = 6) {rate logMem : ℕ} (hr : 1 ≤ rate) (
   have h66 : ς (.n 66) = ς (.n 64) * (ς (.n 65))⁻¹ :=
     vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
   have h67 : ς (.n 67) = word 8 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h73 : ς (.n 73) = word 4294967296 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h73 : ς (.n 73) = word 1073741824 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
   have h77 : ς (.n 77) = word 4294967296 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
-  have h78 : ς (.n 78) = word 65536 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
+  have h78 : ς (.n 78) = word 2 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
   have h79 : ς (.n 79) = ς (.n 72) * (ς (.n 78))⁻¹ :=
     vsg_quot (by norm_num) (hG _ (by simp [vsSizesT, vsMul]))
   have h84 : ς (.n 84) = word 1 0 := vsg_const (hG _ (by simp [vsSizesT, vsConst]))
   have h85 : ς (.n 85) = ς (.n 72) := vsg_copy (hG _ (by simp [vsSizesT, vsCopy]))
   have e72 : ς (.n 72) = gen ^ logMem := by rw [vs_w hl (by decide), h72]
-  have e78 : ς (.n 78) = gen ^ 16 := by
-    rw [h78, show (65536 : ℕ) = 2 ^ 16 from rfl, word_two_pow (by norm_num)]
+  have e78 : ς (.n 78) = gen := by rw [h78, vs_word_gen1]
+  have e30 : word 1073741824 0 = gen ^ 30 := by
+    rw [show (1073741824 : ℕ) = 2 ^ 30 from rfl, word_two_pow (by norm_num)]
   have e32 : word 4294967296 0 = gen ^ 32 := by
     rw [show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_two_pow (by norm_num)]
-  refine ⟨h65, ?_, ?_, e72, by rw [h73, e32], e78, ?_, by rw [h77, e32], by rw [h84, word_one],
+  refine ⟨h65, ?_, ?_, e72, by rw [h73, e30], e78, ?_, by rw [h77, e32], by rw [h84, word_one],
     by rw [h85, e72], fun t ht ↦ ?_⟩
   · exact vs_rateSel hl hr h64
   · rw [h67, show (8 : ℕ) = 2 ^ 3 from rfl, word_two_pow (by norm_num)]
-  · rw [h79, e72, e78, ← pow_sub₀ _ gen_ne_zero hm]
+  · rw [h79, e72, e78]
+    nth_rewrite 2 [← pow_one gen]
+    rw [← pow_sub₀ _ gen_ne_zero hm]
   · rw [vsg_rdAt (hG _ (by
       rw [vsSizesT]
       exact List.mem_append_left _ (List.mem_append_right _
         (List.mem_map.2 ⟨t, List.mem_range.2 ht, rfl⟩)))) (by interval_cases t <;> decide +kernel),
       vs_w hl (by decide)]
 
-/-- **The stack's log's selector** (G:3616-3619): `g^(m - 22)` and its bound `g^6`. -/
-theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 22 ≤ m) (h276 : w 276 = gen ^ m) :
-    ς (.n 278) = gen ^ (m - 22) ∧ ς (.n 279) = gen ^ 6 := by
+/-- **The stack's log's selector** (G:3616-3619): `g^(m - 20)` and its bound `g^10`. -/
+theorem vs_placeV (hl : args.length = 6) {m : ℕ} (hm : 20 ≤ m) (h276 : w 276 = gen ^ m) :
+    ς (.n 278) = gen ^ (m - 20) ∧ ς (.n 279) = gen ^ 10 := by
   have hG := vsPlaceT_good (rd := rd) (w := w) hl
-  have h277 : ς (.n 277) = vsGinv22 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
+  have h277 : ς (.n 277) = vsGinv20 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
   have h278 : ς (.n 278) = ς (.n 276) * ς (.n 277) :=
     vsg_mul (by norm_num) (by norm_num) (hG _ (by simp [vsPlaceT, vsMul]))
-  have h279 : ς (.n 279) = word 64 0 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
-  refine ⟨?_, by rw [h279, show (64 : ℕ) = 2 ^ 6 from rfl, word_two_pow (by norm_num)]⟩
-  rw [h278, h277, vs_w hl (by decide), h276, show m = (m - 22) + 22 by omega, pow_add,
-    Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 22), vsGinv22_mul, mul_one]
+  have h279 : ς (.n 279) = word 1024 0 := vsg_const (hG _ (by simp [vsPlaceT, vsConst]))
+  refine ⟨?_, by rw [h279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)]⟩
+  rw [h278, h277, vs_w hl (by decide), h276, show m = (m - 20) + 20 by omega, pow_add,
+    Nat.add_sub_cancel, mul_assoc, mul_comm (gen ^ 20), vsGinv20_mul, mul_one]
 
 /-- The pointer push block `b` reads through. -/
 def vsPushP (b : ℕ) : ℕ := if b = 0 then 92 else 91 + 3 * b
@@ -296,37 +299,24 @@ theorem vs_pushP (hl : args.length = 6) {b : ℕ} (hb : b < 54) :
 
 /-! ## The tail -/
 
-/-- **The tail's values** (G:3716-3724): the candidate `g^(m - 22 + 7 (rate - 1))` and its bound
-`g^27`, the stream's pointer past `verify_keccak`'s cursor, `tabs`. -/
-theorem vs_tailV (hl : args.length = 6) {rate m : ℕ} (hr : 1 ≤ rate) (hm : 22 ≤ m)
-    (h64 : w 64 = gen ^ rate) (h276 : w 276 = gen ^ m) :
-    ς (.n 1922) = gen ^ (m - 22 + 7 * (rate - 1)) ∧ ς (.n 1923) = gen ^ 27 ∧
-      ς (.n 1928) = w 595 * gen ∧ ς (.n 1930) = ς (.n 4) * gen ^ winTabAt := by
+/-- **The tail's values** (G:3716-3724): the stream's pointer past `verify_keccak`'s cursor,
+`tabs`. -/
+theorem vs_tailV (hl : args.length = 6) :
+    ς (.n 1919) = w 595 * gen ∧ ς (.n 1921) = ς (.n 4) * gen ^ winTabAt := by
   have hG := vsTailP_good (rd := rd) (w := w) hl
-  have hP : ∀ s ∈ [vsMul 1918 66 66, vsMul 1919 1918 66, vsMul 1920 1919 1919, vsMul 1921 1920 66,
-      vsMul 1922 278 1921, vsConst 1923 (word 134217728 0), vsRange 1922 1924 1925 1926 1923,
-      vsConst 1927 (word 2 0), vsMul 1928 595 1927], GoodS rd vsSL w ς s := fun s hs ↦ hG s (by
-    rw [vsTailP]
-    exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
-      (List.mem_append_left _ (List.mem_append_left _ hs)))))
-  have h66 := vs_rateSel (rd := rd) (w := w) hl hr h64
-  have h278 := (vs_placeV (rd := rd) (w := w) hl hm h276).1
-  have m18 : ς (.n 1918) = ς (.n 66) * ς (.n 66) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m19 : ς (.n 1919) = ς (.n 1918) * ς (.n 66) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m20 : ς (.n 1920) = ς (.n 1919) * ς (.n 1919) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m21 : ς (.n 1921) = ς (.n 1920) * ς (.n 66) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have m22 : ς (.n 1922) = ς (.n 278) * ς (.n 1921) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have c23 : ς (.n 1923) = word 134217728 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
-  have c27 : ς (.n 1927) = word 2 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
-  have m28 : ς (.n 1928) = ς (.n 595) * ς (.n 1927) := vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
-  have h30 := vsg_tabs (c := 1929) (d := 1930) (by decide) fun s hs ↦ hG s (by
+  have hP : ∀ s ∈ [vsConst 1918 (word 2 0), vsMul 1919 595 1918], GoodS rd vsSL w ς s :=
+    fun s hs ↦ hG s (by
+      rw [vsTailP]
+      exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
+        (List.mem_append_left _ (List.mem_append_left _ hs)))))
+  have c27 : ς (.n 1918) = word 2 0 := vsg_const (hP _ (by simp [vsMul, vsConst]))
+  have m28 : ς (.n 1919) = ς (.n 595) * ς (.n 1918) :=
+    vsg_mul (by norm_num) (by norm_num) (hP _ (by simp [vsMul, vsConst]))
+  have h30 := vsg_tabs (c := 1920) (d := 1921) (by decide) fun s hs ↦ hG s (by
     rw [vsTailP]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ hs)))))
-  refine ⟨?_, by rw [c23, show (134217728 : ℕ) = 2 ^ 27 from rfl, word_two_pow (by norm_num)],
-    by rw [m28, c27, vs_word_gen1, vs_w hl (by decide)], h30⟩
-  rw [m22, m21, m20, m19, m18, h66, h278, pow_add, pow_mul]
-  ring
+  exact ⟨by rw [m28, c27, vs_word_gen1, vs_w hl (by decide)], h30⟩
 
 /-! ## `λ` and the target -/
 

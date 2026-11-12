@@ -58,7 +58,7 @@ theorem ringCoefficients_length {f g : List E} (hf : f.length = 8) (hg : g.lengt
   rw [ringCoeffs_fold_length, hf, hg]; rfl
 
 /-- A committed column's log is at most the log of the stack's total. -/
-theorem committed_lt29 {kappas : List ℕ} (h : Tables.stackTotal kappas ≤ 2 ^ 28) :
+theorem committed_lt31 {kappas : List ℕ} (h : Tables.stackTotal kappas ≤ 2 ^ 30) :
     Tables.KappasBelow kappas := by
   intro c _
   rw [List.getD_eq_getElem?_getD]
@@ -68,7 +68,7 @@ theorem committed_lt29 {kappas : List ℕ} (h : Tables.stackTotal kappas ≤ 2 ^
     have hm := List.mem_of_getElem? hc
     have : 2 ^ x ≤ Tables.stackTotal kappas :=
       List.le_sum_of_mem (List.mem_map.2 ⟨x, hm, rfl⟩)
-    have : 2 ^ x ≤ 2 ^ 28 := this.trans h
+    have : 2 ^ x ≤ 2 ^ 30 := this.trans h
     have := (Nat.pow_le_pow_iff_right (by norm_num)).mp this
     simp only [Option.getD_some]
     omega
@@ -92,7 +92,7 @@ theorem layout_logMemory : S.layout.logMemory = S.logMem := by rw [S.hlayout]; r
 theorem layout_heights : S.layout.tableLogHeights = S.hs := by rw [S.hlayout]; rfl
 
 theorem stackLog_eq' (hbl : bytecode.length = 2 ^ 23) :
-    S.layout.stackLog = max 15 (log2Ceil (Tables.stackTotal S.kappas)) := by
+    S.layout.stackLog = max 16 (log2Ceil (Tables.stackTotal S.kappas)) := by
   rw [S.hlayout, stackLog_eq hbl]; rfl
 
 /-- The terminal's bases at `certify_placement`'s offsets `e` and `open_stacked`'s points. -/
@@ -102,7 +102,7 @@ def termBases (bs : List ℕ) (sqE e pb pb1 : ℕ) : TermBases :=
 /-- The terminal's arguments at its bases. -/
 noncomputable def termArgsH (B : TermBases) : List E :=
   termArgs B S.H.rm (gen ^ S.d) (gen ^ S.nT) (gen ^ S.logMem) (gen ^ S.τ) S.lam S.w.inner
-    S.w.residual S.w.target (gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas)))
+    S.w.residual S.w.target (gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas)))
 
 /-- **The terminal's precondition on the honest child.** -/
 theorem termPre (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE e10 e11 e136 e137 e293 pb pb1 : ℕ)
@@ -126,7 +126,7 @@ theorem termPre (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE e10 e11 e1
   have hd := S.d_bounds hbl
   obtain ⟨-, -, -, -, hpl, -⟩ := S.gkr_inv hbl
   obtain ⟨hbus, -, -⟩ := S.H_spec hbl
-  obtain ⟨hhs, -⟩ := S.hs_bounds hbl
+  have hhs := S.hs_lt33 hbl
   have hwl := S.w_point_length
   -- `z_vals`
   have mV' := Main.readsAt_append'.mp mV
@@ -151,8 +151,8 @@ theorem termPre (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE e10 e11 e1
   have hμ : S.μs = S.layout.stackLog := rfl
   simp only [TermPre, ChildSegs.termArgsH, termArgs, termBases]
   rw [S.layout_logMemory, S.layout_heights]
-  refine ⟨hct, hP, committed_lt29 (S.stackTotal_le hbl), ?_, ?_, S.hmu28,
-    by have := S.h16; omega, S.h32, ?_, heights_length6 S.rowsN S.hrowsL, hhs, by trivial, by rw [hτ],
+  refine ⟨hct, hP, committed_lt31 (S.stackTotal_le hbl), ?_, ?_, S.hmu30,
+    by have := S.hlm1; omega, (S.h30.trans (by norm_num)), ?_, heights_length6 S.rowsN S.hrowsL, hhs, by trivial, by rw [hτ],
     mK, gTabs_of_exp hexp, by trivial, by rw [hkO], ?_, mOp, ?_, mKp,
     by rw [ChildSegs.ctab, ringCoefficients_length (by simp [S.rchs_length, ringMapWidth])
       (by simp [S.rchs_length, ringMapWidth])]; rfl, mT, hwl, ?_, ?_, S.oodZ_length, mO,
@@ -206,7 +206,7 @@ theorem term_via (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE : ℕ)
   have hbp : S.bus.point.length = S.d := by rw [hbus]; exact hpl
   obtain ⟨-, -, -, -, -, hopl, hkpl, -⟩ := S.keccak_facts hbl
   have hwl := S.w_point_length
-  have hμ28 : S.μs ≤ 28 := S.hmu28
+  have hμ28 : S.μs ≤ 32 := S.hmu32
   refine hQ _ (termBases bs sqE e293 pb pb1) (fun rd hm ↦ ?_) (fun i hi ↦ ?_)
   · obtain ⟨h12, hT⟩ := Main.memL_append.mp hm
     obtain ⟨hC, hO⟩ := Main.memL_append.mp h12

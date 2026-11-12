@@ -75,7 +75,7 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have hxl := (S.H_run hbl).2.2.2
   have hd := S.d_bounds hbl
   obtain ⟨-, -, -, -, hzl, -⟩ := S.gkr_inv hbl
-  have hhs := (S.hs_bounds hbl).1
+  have hhs := S.hs_lt33 hbl
   have hSl0 := vs_streamW_length c.proof.stream
   have hSl0' : 8192 ≤ (vsStreamW c.proof.stream).length := hSl0
   -- the pointers
@@ -86,7 +86,7 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
   have hp4 : σ (.n 4) = ptr sqE := vsC_param hl (by norm_num)
   have hp5 : σ (.n 5) = ptr outE := vsC_param hl (by norm_num)
   obtain ⟨-, -, -, -, -, -, -, -, h84, h85, h86⟩ :=
-    vs_sizesV (rd := rd) (w := w) (args := vsArgs seed c sqE outE) hl S.hr1 S.h16
+    vs_sizesV (rd := rd) (w := w) (args := vsArgs seed c sqE outE) hl S.hr1 S.hlm1
       (by rw [← h64, hσ, vs_w hl (by decide)]) (by rw [← h72, hσ, vs_w hl (by decide)])
   rw [← hσ] at h84 h85 h86
   have hdims : ReadsAt rd (w 71) (vsDimsW S.logMem S.hs) := by
@@ -164,7 +164,7 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
         obtain ⟨-, rfl, rfl⟩ := he
         rw [List.mem_range] at hbk
         have hsrc : Tables.blockKappaSrc.getD bk 0 < 8 := blockKappaSrc_lt bk (by show bk < 153; omega)
-        have he := kbase_le hhs S.h32 (Tables.blockKappaSrc.getD bk 0)
+        have he := kbase_le hhs (S.h30.trans (by norm_num)) (Tables.blockKappaSrc.getD bk 0)
         have hadj : Tables.blockKappaAdj bk ≤ 19 := by unfold Tables.blockKappaAdj; split <;> omega
         have h0 : Tables.blockKappaAdj bk ≠ 0 → Tables.blockKappaSrc.getD bk 0 = 0 := push_adj bk hbk
         refine vs_regAt (x := sqE + ([0, S.logMem] ++ S.hs).getD (Tables.blockKappaSrc.getD bk 0) 0)

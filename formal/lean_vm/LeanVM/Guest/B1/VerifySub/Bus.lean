@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Bits.BusGrind
 /-!
 # The bus challenges
 
-`vsBusFpw_holds`: the bus depth `g^μ` is at least `g^16` (`g^(μ - 16)` range-checked below
-`g^18`), `bus_grind_check__L{μ - 16}` checks the proof of work of the nonce's permutation, whose
+`vsBusFpw_holds`: the bus depth `g^μ` is at least `g^20` (`g^(μ - 20)` range-checked below
+`g^14`), `bus_grind_check__L{μ - 20}` checks the proof of work of the nonce's permutation, whose
 challenge is the first slot weight; fifteen squeezes give the others, one more `β`:
 `busChallenges μ` runs on the nonce.
 -/
@@ -29,16 +29,16 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E → Prop}
 
-theorem vsGinv16_mul : vsGinv16 * gen ^ 16 = 1 := by
-  rw [show vsGinv16 = ofK (K.ofBits 8198521646651277316) by rw [vsGinv16, word_eOfNat]; rfl,
+theorem vsGinvBus_mul : vsGinvBus * gen ^ 20 = 1 := by
+  rw [show vsGinvBus = ofK (K.ofBits 14347465658197868555) by rw [vsGinvBus, word_eOfNat]; rfl,
     gen_pow_eq_ofK, ← kn_ofK_mul,
-    show K.ofBits 8198521646651277316 * Parameters.addressOfIndex 16 = 1 by decide +kernel]
+    show K.ofBits 14347465658197868555 * Parameters.addressOfIndex 20 = 1 by decide +kernel]
   exact map_one (algebraMap K E)
 
-theorem word_g17 : word 131072 0 = gen ^ 17 := by
-  rw [show (131072 : ℕ) = 2 ^ 17 from rfl]; exact word_two_pow (by norm_num)
+theorem word_g13 : word 8192 0 = gen ^ 13 := by
+  rw [show (8192 : ℕ) = 2 ^ 13 from rfl]; exact word_two_pow (by norm_num)
 
-theorem vsBgName_eq {d : ℕ} (hd : d < 18) (h : d < vsBgNames.length) :
+theorem vsBgName_eq {d : ℕ} (hd : d < 14) (h : d < vsBgNames.length) :
     vsBgNames[d] = busGrindName d := by
   interval_cases d <;> rfl
 
@@ -90,7 +90,7 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
       [cellsOfState (s.nonceState nn) false 0, cellsOfState (s.nonceState nn) false 1] ++
         capOf (s.nonceState nn))
     (h : Stmt.HoldsList C L.read σ (vsBusGrindT ++ vsFpwT) next kret) :
-    16 ≤ μ ∧ ∃ weights : List E, weights.length = 16 ∧ ReadsAt L.read (σ (.n 335)) weights ∧
+    20 ≤ μ ∧ ∃ weights : List E, weights.length = 16 ∧ ReadsAt L.read (σ (.n 335)) weights ∧
       RunsTo (busChallenges μ) s [nn] (weights, σ (.n 559))
         ⟨[σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558)], []⟩ ∧ next := by
   have hκ6 : 6 ≤ κ := by simp only [winTabBits] at hκw; omega
@@ -101,10 +101,10 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
   simp only [List.map_cons, List.map_nil] at h
   obtain ⟨⟨j, hj, hj322, hbg⟩, h⟩ := h
   -- the depth
-  obtain ⟨e, he, h322⟩ := rc_pow hκ hκ6 L (a := 17) (by norm_num) (by rw [e323, word_g17]) r322
-  have hμe : μ = e + 16 := by
-    have h1 : gen ^ (e + 16) = gen ^ μ := by
-      rw [pow_add, ← h322, m322, h253, e321, mul_assoc, vsGinv16_mul, mul_one]
+  obtain ⟨e, he, h322⟩ := rc_pow hκ L (a := 13) (by norm_num) (by rw [e323, word_g13]) r322
+  have hμe : μ = e + 20 := by
+    have h1 : gen ^ (e + 20) = gen ^ μ := by
+      rw [pow_add, ← h322, m322, h253, e321, mul_assoc, vsGinvBus_mul, mul_one]
     exact (gen_pow_inj (by omega) (by omega) h1).symm
   have hje : j = e := by
     rw [h322, gen_pow_eq_ofK] at hj322
@@ -117,7 +117,7 @@ theorem vsBusFpw_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (
   obtain ⟨-, hpow⟩ := (bus_grind_check_holds j (List.mem_range.2 (by omega)) hκ hκw L _ _ hwt _).1
     (hC _ _ _ hbg)
   have hbits : busGrindBits j = busGrindingBits μ := by
-    rw [busGrindBits, show minLogMem + j = μ by simp only [minLogMem]; omega]
+    rw [busGrindBits, show busMinMu + j = μ by simp only [busMinMu]; omega]
   have hb0 : busGrindingBits μ ≠ 0 := by rw [← hbits, busGrindBits_eq]; omega
   simp only [List.cons_append, List.nil_append, List.cons.injEq] at hS
   obtain ⟨e313, e314, ecap⟩ := hS

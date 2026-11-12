@@ -57,19 +57,13 @@ theorem le_lmax2 (f : ℕ → ℕ → ℕ) {A B a b : ℕ} (ha : a < A) (hb : b 
 
 /-! ## The statically bounded callees -/
 
-/-- `squeeze_point_from`'s arms, by the stack log `22 .. 28`. -/
+/-- `squeeze_point_from`'s arms, by the stack log `20 .. 30`. -/
 def squeezeNames : List String :=
-  ["squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24",
-    "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27",
-    "squeeze_point_from__L28"]
+  ["squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28", "squeeze_point_from__L29", "squeeze_point_from__L30"]
 
-/-- `bus_grind_check`'s arms, by the push depth's excess `0 .. 17`. -/
+/-- `bus_grind_check`'s arms, by the push depth's excess `0 .. 13`. -/
 def busGrindNames : List String :=
-  ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3",
-    "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7",
-    "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11",
-    "bus_grind_check__L12", "bus_grind_check__L13", "bus_grind_check__L14", "bus_grind_check__L15",
-    "bus_grind_check__L16", "bus_grind_check__L17"]
+  ["bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"]
 
 /-- **`verify_sub`'s statically bounded callees** but `g_power_of_word`, `log2_ceil_in_the_exponent`
 and `certify_placement`: the grind checks, the opening message and the two dispatches' arms. -/
@@ -122,7 +116,7 @@ structure VsWords (fs : String → ℕ) : Type where
   hEqc : TotalLe coreProgram fs "eq_prefix_chain" fun _ ↦ Beqc
   hL15 : TotalLeOn coreProgram fs "__loop14" LoopPre
     fun a ↦ logG (a.getD 1 0) * K15 + fs "__loop14"
-  hCsF : ∀ κ' < 29, fs (Tables.lName "column_selector" κ') ≤ Bcs
+  hCsF : ∀ κ' < 31, fs (Tables.lName "column_selector" κ') ≤ Bcs
   hrs : ∀ c ≤ 34, TotalLeOn coreProgram fs "rs_eq_run" (fun a ↦ a.getD 3 0 = gen ^ c)
     fun _ ↦ Brs
   ωv : Opcode → String → ℕ
@@ -142,7 +136,7 @@ structure VsWords (fs : String → ℕ) : Type where
   Wrsw : Opcode → ℕ
   hEqcW : ∀ op, WeightLe coreProgram (ωv op) "eq_prefix_chain" fun _ ↦ Weqc op
   hStW : ∀ op, WeightLe coreProgram (ωv op) "selector_tables" fun _ ↦ Wst op
-  hCsW : ∀ op, ∀ κ' < 29, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
+  hCsW : ∀ op, ∀ κ' < 31, WeightLe coreProgram (ωv op) (Tables.lName "column_selector" κ')
     fun _ ↦ Wcs op
   h15W : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "__loop14" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
@@ -155,7 +149,7 @@ structure VsWords (fs : String → ℕ) : Type where
 
 /-- **`verify_tables`' weight bound** at `W.ωv op`: its frame's and its calls' (`vtBs`). -/
 noncomputable def vtWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
-  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (28 * W.Kw10 op)).sum
+  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (32 * W.Kw10 op)).sum
 
 /-- **The terminal's weight bound** at `W.ωv op`: its frame's and its calls' (`termWs`). -/
 noncomputable def termWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=

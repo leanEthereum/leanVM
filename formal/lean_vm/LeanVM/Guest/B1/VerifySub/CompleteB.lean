@@ -51,14 +51,14 @@ theorem kidsDepB_of {κ : ℕ} : ∀ (ks : List KidD) (Bs : List ℕ), ks.length
   | _ :: ks, _ :: Bs, hl, h =>
     ⟨h 0 (by simp), kidsDepB_of ks Bs (by simpa using hl) fun j hj ↦ h (j + 1) (by simp; omega)⟩
 
-theorem squeezeName_eq {μ : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) :
-    squeezeNames.getD (μ - 22) "" = spfName μ := by
+theorem squeezeName_eq {μ : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
+    squeezeNames.getD (μ - 20) "" = spfName μ := by
   interval_cases μ <;> rfl
 
 theorem busGrindName_eq (d : ℕ) : busGrindNames.getD d "" = busGrindName d := rfl
 
-theorem squeezeName_mem {μ : ℕ} (h1 : 22 ≤ μ) (h2 : μ ≤ 28) :
-    squeezeNames.getD (μ - 22) "" ∈ squeezeNames := by
+theorem squeezeName_mem {μ : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
+    squeezeNames.getD (μ - 20) "" ∈ squeezeNames := by
   interval_cases μ <;> decide
 
 theorem squeezeN_cap_length : ∀ (n : ℕ) (s : Fs), s.cap.length = 5 → (s.squeezeN n).2.cap.length = 5
@@ -85,14 +85,14 @@ theorem om_kid (κ : ℕ) (W : VsWordsOs fs) (bs : List ℕ) :
 
 /-- `squeeze_point_from` on the honest child, at its stack log's arm. -/
 theorem spf_kid (κ : ℕ) (W : VsWordsOs fs) (bs : List ℕ) :
-    CompleteAtB fs cert κ (squeezeNames.getD (S.μs - 22) "") [(vb bs 6, S.oodZ)]
+    CompleteAtB fs cert κ (squeezeNames.getD (S.μs - 20) "") [(vb bs 6, S.oodZ)]
       (capOf S.oodSt ++ [challengeOf S.oodSt, ptr (vb bs 6)]) (Returns S.sZ.cap)
       (armMax W.Kst squeezeNames) := by
-  have hμ1 : 22 ≤ S.μs := S.hmu22
-  have hμ2 : S.μs ≤ 28 := S.hmu28
+  have hμ1 : 20 ≤ S.μs := S.hmu20
+  have hμ2 : S.μs ≤ 30 := S.hmu30
   have hm := squeezeName_mem hμ1 hμ2
   have e := squeezeName_eq hμ1 hμ2
-  have hT : TotalLe coreProgram fs (spfName S.μs) fun _ ↦ W.Kst (squeezeNames.getD (S.μs - 22) "") := by
+  have hT : TotalLe coreProgram fs (spfName S.μs) fun _ ↦ W.Kst (squeezeNames.getD (S.μs - 20) "") := by
     rw [← e]; exact W.hst _ (List.mem_append_left _ (List.mem_append_right _ hm))
   have h := spf_kidB (cert := cert) (n := S.μs) (List.mem_map.2 ⟨S.μs - 6, List.mem_range.2 (by omega), by omega⟩) κ hT S.oodSt (vb bs 6)
   rw [← e] at h
@@ -100,11 +100,11 @@ theorem spf_kid (κ : ℕ) (W : VsWordsOs fs) (bs : List ℕ) :
 
 /-- The bus grind's arm on the honest child. -/
 theorem busGrind_kid (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 11 ≤ κ) (sqE : ℕ) :
-    CompleteAtB fs cert κ (busGrindNames.getD (S.d - 16) "") (vsExpLin sqE)
+    CompleteAtB fs cert κ (busGrindNames.getD (S.d - 20) "") (vsExpLin sqE)
       [cellsOfState S.busSt false 1, ptr sqE * gen ^ winTabAt] (Returns [0]) (busGrindMax fs) := by
   have hd := S.d_bounds hbl
   rw [busGrindName_eq]
-  exact (busGrind_kidB (d := S.d - 16) (List.mem_range.2 (by omega)) hκ sqE
+  exact (busGrind_kidB (d := S.d - 20) (List.mem_range.2 (by omega)) hκ sqE
     (S.busPow hbl)).mono le_rfl (le_busGrindMax (by omega))
 
 theorem sZ_cap_length : S.sZ.cap.length = 5 := squeezeN_cap_length _ _ (by simp [capOf])
@@ -129,8 +129,8 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
     KidsDepB fs cert κ (S.kids bs sqE) (vsBsAt W Bvk S.μs S.rate) := by
   refine kidsDepB_of _ _ (by rw [ChildSegs.kids_length]; rfl) fun j hj pv ↦ ?_
   have hj16 : j < 16 := by simpa [ChildSegs.kids_length] using hj
-  have hμ1 := S.hmu22
-  have hμ2 := S.hmu28
+  have hμ1 := S.hmu20
+  have hμ2 := S.hmu30
   have hd := S.d_bounds hbl
   have hdE : S.d = log2Ceil S.pushT := S.d_eq hbl
   have hst := S.stackTotal_le hbl
@@ -138,17 +138,17 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
   have hstat : ∀ g ∈ vsStaticS, TotalLe coreProgram fs g fun _ ↦ W.Kst g := W.hst
   interval_cases j <;> simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
   · exact ⟨fun _ ↦ vs_gpw_completeAtB κ [] (by have := S.hr4; omega) W.hg, fun h ↦ by cases h⟩
-  · exact ⟨fun _ ↦ vs_gpw_completeAtB κ [] (by have := S.h32; omega) W.hg, fun h ↦ by cases h⟩
+  · exact ⟨fun _ ↦ vs_gpw_completeAtB κ [] (by have := S.h30; omega) W.hg, fun h ↦ by cases h⟩
   · refine ⟨fun _ ↦ log2_L0_completeAtB κ (by omega) S.pushT sqE ?_ ?_, fun h ↦ by cases h⟩
-    · have := log2Ceil_le_iff.mp (show log2Ceil S.pushT ≤ 29 by omega)
-      calc S.pushT ≤ 2 ^ 29 := this
+    · have := log2Ceil_le_iff.mp (show log2Ceil S.pushT ≤ 31 by omega)
+      calc S.pushT ≤ 2 ^ 31 := this
         _ < 2 ^ 34 := by norm_num
     · show max 0 (log2Ceil S.pushT) < 34; omega
   · exact ⟨fun _ ↦ (Tables.certify_placement_completeAtB fs cert (by omega)
-      (heights_length6 S.rowsN S.hrowsL) S.h32 hhs (show S.hs.getD 5 0 ≤ 27 by omega) _ _).toCompleteAtB,
+      (heights_length6 S.rowsN S.hrowsL) (S.h30.trans (by norm_num)) (S.hs_lt33 hbl) (show S.hs.getD 5 0 ≤ 27 by omega) _ _).toCompleteAtB,
       fun h ↦ by cases h⟩
-  · have hl : log2Ceil (Tables.stackTotal S.kappas) ≤ 28 := log2Ceil_le_iff.mpr hst
-    exact ⟨fun _ ↦ log2_L15_completeAtB κ (by omega) _ sqE
+  · have hl : log2Ceil (Tables.stackTotal S.kappas) ≤ 30 := log2Ceil_le_iff.mpr hst
+    exact ⟨fun _ ↦ log2_L16_completeAtB κ (by omega) _ sqE
       (lt_of_le_of_lt hst (by norm_num)) (by omega), fun h ↦ by cases h⟩
   · exact ⟨fun _ ↦ grind_kidB (bits := 15) (κ := κ) (by decide) (by omega)
       (hstat _ mem_st15) sqE S.oodPow, fun h ↦ by cases h⟩
@@ -184,8 +184,8 @@ theorem vt_bound_le (hbl : bytecode.length = 2 ^ 23) (W : VsWordsOs fs) :
       vtMax fs W.Kf W.Ksh W.K10 := by
   have hd := S.d_bounds hbl
   obtain ⟨-, -, -, -, hpl, -⟩ := S.gkr_inv hbl
-  have hHμ : S.H.μ < 30 := by show S.rG.2.1.length < 30; omega
-  have hn : S.H.n < 29 := by have := S.nT_le hbl; show S.nT < 29; omega
+  have hHμ : S.H.μ < 32 := by show S.rG.2.1.length < 32; omega
+  have hn : S.H.n < 31 := by have := S.nT_le hbl; show S.nT < 31; omega
   rw [S.vt_sizes_sum]
   unfold vtMax
   exact le_lmax2 (vtBnd fs W.Kf W.Ksh W.K10) hHμ hn

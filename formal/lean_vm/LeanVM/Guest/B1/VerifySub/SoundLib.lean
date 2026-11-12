@@ -99,8 +99,25 @@ theorem tau_ge {rowsN : List ℕ} (h : rowsN.length = 6) :
     simp [Tables.tableHeightsOf, tableLogFloors, keccakMinStepsLog]
 
 theorem tau_lt {rowsN : List ℕ} (h : rowsN.length = 6)
-    (hh : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 29) : (Tables.tableHeightsOf rowsN).getD 5 0 < 29 :=
+    (hh : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 33) : (Tables.tableHeightsOf rowsN).getD 5 0 < 33 :=
   hh _ (getD_mem' (by rw [tableHeights_length rowsN h]; omega))
+
+/-- The Keccak table's height is at most `24` once every committed column's log is below `31`:
+its column `q_keccak` has the log `τ + 6`. -/
+theorem tau_le_of_kappasBelow {logMem : ℕ} {hs : List ℕ} (hl : hs.length = 6)
+    (hKB : Tables.KappasBelow (columnKappas logMem 19 hs)) : hs.getD 5 0 ≤ 24 := by
+  have hck := Tables.committedKappas_columnKappas logMem hs hl
+  have k4 := hKB 4 (by decide)
+  simp only [Tables.guestLogBytecode] at hck
+  rw [hck, List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_range]; decide),
+    List.getElem_map, List.getElem_range,
+    show Tables.colKappaSrc 4 = 7 from rfl, show Tables.colKappaAdj 4 = 6 from rfl] at k4
+  clear * - k4 hl
+  obtain ⟨h0, h1, h2, h3, h4, h5, rfl⟩ : ∃ h0 h1 h2 h3 h4 h5, hs = [h0, h1, h2, h3, h4, h5] := by
+    match hs, hl with
+    | [h0, h1, h2, h3, h4, h5], _ => exact ⟨_, _, _, _, _, _, rfl⟩
+  simp only [List.getD_cons_succ, List.getD_cons_zero] at k4 ⊢
+  omega
 
 theorem layoutOf_heights (bytecode : List K) (m : ℕ) (rowsN : List ℕ) :
     (Tables.layoutOf bytecode m rowsN).tableLogHeights = Tables.tableHeightsOf rowsN := rfl

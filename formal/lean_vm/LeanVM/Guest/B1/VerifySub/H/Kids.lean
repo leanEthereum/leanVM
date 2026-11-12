@@ -28,12 +28,12 @@ On the own buffers' first words `bs` (allocation order, `vb bs i`: `claim_pool`,
 0, 1. `g_power_of_word` on the rate's and the memory's log's words;
 2. `log2_ceil_in_the_exponent__L0_L34` on the push blocks' total `g^pushT`: the bus depth;
 3. `certify_placement` on `kappa_base`;
-4. `log2_ceil_in_the_exponent__L15_L34` on the stack's total: `g^m`;
+4. `log2_ceil_in_the_exponent__L16_L34` on the stack's total: `g^m`;
 5. `grind_check__L15` on the out-of-domain grind's permutation (`oodSt`);
 6. `squeeze_point_from__L{m}`: the out-of-domain point at `ood_z`;
 7. `opening_message__L1_L1`: the point's value (stored at `ood_value`) and the bus grind's nonce,
    their permutation `busSt`;
-8. `bus_grind_check__L{d - 16}` on `busSt`;
+8. `bus_grind_check__L{d - 20}` on `busSt`;
 9. `verify_bus_gkr` on the stream past the out-of-domain and bus words, `zeta`;
 10. `verify_tables` (`VtHonest.args`, `linL`), its GKR leaves where `verify_bus_gkr` returned them
     (`leavesB`);
@@ -41,7 +41,8 @@ On the own buffers' first words `bs` (allocation order, `vb bs i`: `claim_pool`,
     tables' evaluations), `z_vals`, `slices`;
 12. `grind_check__L13` on the ring map's grind's permutation (`ringSt`);
 13. `ring_switch_target` on `slices` and the ring map's challenges;
-14. `open_stacked`'s candidate on the stream past the ring switch's nonce;
+14. `open_stacked`'s arm of the stack log, on the rate's selector and the stream past the ring
+    switch's nonce;
 15. `check_opening_terminal`, on `certify_placement`'s offsets and `open_stacked`'s point buffers
     when they are what those return (`termOk`).
 -/
@@ -59,7 +60,7 @@ def vb (bs : List ℕ) (i : ℕ) : ℕ := bs.getD i 0
 
 /-- The own buffers' sizes, the bus depth `d`. -/
 def vsBufSizes (d : ℕ) : List ℕ :=
-  [159, 8192, 6, 7, 8, d, 28, 1, 16, 34, 4, 78, 64, 16, 64]
+  [159, 8192, 6, 7, 8, d, 30, 1, 16, 34, 4, 78, 64, 16, 64]
 
 /-- What `open_stacked` returns and the buffers it hands back (`Place/OsSpec`'s `OsOut`). -/
 def vsOsOut (μ : ℕ) (w : Whir.WhirEnd) : List E → Main.Layout → Prop := fun rets Lout ↦
@@ -221,18 +222,18 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
       Returns [gen ^ max 0 (log2Ceil S.pushT)]⟩,
     fun _ ↦ ⟨"certify_placement", true, [ptr (vb bs 4), ptr sqE],
       Tables.cpLin S.logMem S.hs (vb bs 4) sqE, Tables.cpOut S.logMem S.hs⟩,
-    fun _ ↦ ⟨"log2_ceil_in_the_exponent__L15_L34", true,
+    fun _ ↦ ⟨"log2_ceil_in_the_exponent__L16_L34", true,
       [gen ^ Tables.stackTotal S.kappas, ptr sqE], log2Lin sqE,
-      Returns [gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))]⟩,
+      Returns [gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))]⟩,
     fun _ ↦ ⟨"grind_check__L15", true, [cellsOfState S.oodSt false 1, ptr sqE * gen ^ winTabAt],
       vsExpLin sqE, Returns []⟩,
-    fun _ ↦ ⟨squeezeNames.getD (S.μs - 22) "", true,
+    fun _ ↦ ⟨squeezeNames.getD (S.μs - 20) "", true,
       capOf S.oodSt ++ [challengeOf S.oodSt, ptr (vb bs 6)], [(vb bs 6, S.oodZ)], Returns S.sZ.cap⟩,
     fun _ ↦ ⟨"opening_message__L1_L1", true, S.sZ.cap ++ [ptr (vb bs 1) * gen ^ 11, ptr (vb bs 7)],
       [(vb bs 1 + 11, [S.oodV, S.busN]), (vb bs 7, [S.oodV])],
       Returns ([cellsOfState S.busSt false 0, cellsOfState S.busSt false 1] ++ capOf S.busSt ++
         [ptr (vb bs 1) * gen ^ 11 * gen ^ 2])⟩,
-    fun _ ↦ ⟨busGrindNames.getD (S.d - 16) "", true,
+    fun _ ↦ ⟨busGrindNames.getD (S.d - 20) "", true,
       [cellsOfState S.busSt false 1, ptr sqE * gen ^ winTabAt], vsExpLin sqE, Returns [0]⟩,
     fun _ ↦ ⟨"verify_bus_gkr", true,
       S.s3.cap ++ [ptr (cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt],
@@ -252,16 +253,16 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
     fun _ ↦ ⟨"ring_switch_target", true, [ptr (vb bs 12), ptr (vb bs 13)],
       [(vb bs 12, S.kc.2.2), (vb bs 13, S.rchs)],
       Returns [ringTarget S.kc.2.2 (S.rchs.take ringMapWidth) (S.rchs.drop ringMapWidth)]⟩,
-    fun _ ↦ ⟨Whir.openName S.μs S.rate, true,
-      capOf S.s7.perm ++ [S.target, (digestHalves S.root).1, (digestHalves S.root).2,
-        ptr (S.cW bs), ptr sqE * gen ^ winTabAt],
+    fun _ ↦ ⟨Whir.openName S.μs, true,
+      Whir.rateSel S.rate :: capOf S.s7.perm ++ [S.target, (digestHalves S.root).1,
+        (digestHalves S.root).2, ptr (S.cW bs), ptr sqE * gen ^ winTabAt],
       [(S.cW bs, S.xsW), (sqE, expTabAllWords)], vsOsOut S.μs S.w⟩,
     fun pv ↦
       open Classical in
       ⟨"check_opening_terminal", decide (S.termOk pv),
         termArgs (termB bs sqE pv) S.H.rm (gen ^ S.d) (gen ^ S.nT) (gen ^ S.logMem)
           (gen ^ S.τ) S.lam S.w.inner S.w.residual S.w.target
-          (gen ^ max 15 (log2Ceil (Tables.stackTotal S.kappas))),
+          (gen ^ max 16 (log2Ceil (Tables.stackTotal S.kappas))),
         if S.termOk pv then (cpRes pv).2 ++ (osRes pv).2 ++ S.termLin bs sqE else [],
         Returns []⟩]
 
