@@ -64,20 +64,20 @@ Expand each error in the $\F_2$-basis of $\E$, say $\delta_i=\sum_{w=0}^{127}\de
 \end{equation}
 The $x^i$ are an $\F_2$-basis of $\K$, so some $\Delta_w\neq0$. The cheating prover succeeds if $\sum_{w=0}^{127}\Phi(e_w)\,\Delta_w=0$. We must thus draw $\Phi$ to make this event unlikely.
 
-\paragraph{Linear maps are Frobenius sums.} Squaring is additive in characteristic $2$, so
+\paragraph{Frobenius sums.} Squaring is additive in characteristic $2$, so
 \[
 \Phi(a)=\sum_{k=0}^{127}c_k\,a^{2^k},\qquad a\in\E,\quad c_k\in\E,
 \]
-is $\F_2$-linear for any choice of coefficients. Every $\F_2$-linear map $\E\to\E$ arises this way, and exactly once. Distinct tuples of $(c_k)$ give distinct maps: their difference would be a nonzero polynomial of degree at most $2^{127}$ with $2^{128}$ roots. There are $|\E|^{128}$ tuples and as many maps. Call $\supp=\{k:c_k\neq0\}\subseteq\{0,\dots,127\}$ the \emph{support} of $\Phi$. Substituting into the check above,
+is $\F_2$-linear for any choice of coefficients. Call $\supp=\{k:c_k\neq0\}\subseteq\{0,\dots,127\}$ the \emph{support} of $\Phi$. Substituting into the check above,
 \begin{equation}
 \sum_{w=0}^{127}\Phi(e_w)\,\Delta_w=\sum_{w=0}^{127}\sum_{k\in\supp}c_k\,e_w^{2^k}\,\Delta_w=\sum_{k\in\supp}c_k\,\pair_k,
 \qquad
 \pair_k:=\sum_{w=0}^{127}e_w^{2^k}\,\Delta_w\in\E.
 \label{eq:pairing}
 \end{equation}
-The $\pair_k$ depend only on the error, the $c_k$ only on the randomness. So we need the map $\K^{128}\to\E^{|\supp|}$, $\Delta\mapsto(\pair_k)_{k\in\supp}$, to be injective: a nonzero error has to leave some $\pair_k\neq0$ for the coefficients to act on.
+The $\pair_k$ depend only on the error, the $c_k$ only on the randomness.
 
-\paragraph{Sixty-four terms.} That map is $\K$-linear, since the $\Delta_w$ enter linearly and the Frobenius touches only the constants $e_w$. It sends $\K^{128}$, of $\K$-dimension $128$, into $\E^{|\supp|}$, of $\K$-dimension $2|\supp|$, so injectivity needs $|\supp|\ge\lceil128/2\rceil=64$. Take $\supp=\{0,\dots,63\}$ and suppose $\pair_k=0$ for all $k<64$. Two steps force $\Delta=0$.
+\paragraph{Sixty-four terms.} We take $\supp=\{0,\dots,63\}$ and show that a nonzero $\Delta$ leaves some $\pair_k\neq0$, $k<64$. Suppose $\pair_k=0$ for all $k<64$; two steps force $\Delta=0$.
 
 First, split $\pair_k$ over $\K$. Write $w=64j+i$, so that $e_w^{2^k}=x^{i2^k}\,\bigl(y^{2^k}\bigr)^{j}$ and
 \[
@@ -95,35 +95,30 @@ D_j(v)=\sum_{i=0}^{63}\Delta_{64j+i}\,v^i\in\K[v],
 \]
 Then $D_j$ has degree at most $63$ and vanishes at the $64$ points $x,x^2,x^4,\dots,x^{2^{63}}$. Those are distinct, because $x$ has degree $64$ over $\F_2$ and so has $64$ distinct conjugates. A nonzero polynomial of degree at most $63$ cannot have $64$ roots, so $D_j=0$ and every $\Delta_{64j+i}$ vanishes. A nonzero error therefore leaves some $\pair_k\neq0$.
 
-The count is tight on both sides: $64$ terms give $64$ equations $\pair_k=0$ over $\E$, which is $128$ equations over $\K$, against exactly $128$ unknowns $\Delta_w\in\K$.
-
 \subsection{The map we draw}\label{rs:map}
 
-We need a random $\Phi$ of support $\{0,\dots,63\}$, cheap to apply. Instead of drawing its $64$ coefficients independently, we derive them from sixteen challenges, in two stages of eight.
-
-Draw $f_0,\dots,f_7,g_0,\dots,g_7\leftarrow\E$, in this order, once the $s_i$ are fixed, and put, for $a\in\E$,
+We derive the $64$ coefficients from sixteen challenges. Once the $s_i$ are fixed, the verifier draws $f_0,\dots,f_7,g_0,\dots,g_7\leftarrow\E$, in this order and in one message with the opening's batching challenge, and sets
 \begin{equation}
 \Psi(a)=\sum_{b<8}g_b\,a^{2^b},
 \qquad
 \Phi(a)=\sum_{p<8}f_p\,\Psi(a)^{2^{8p}}.
 \label{eq:phi}
 \end{equation}
-Both stages are $\F_2$-linear, so $\Phi$ is. Squaring is additive, so $\Psi(a)^{2^{8p}}=\sum_bg_b^{2^{8p}}a^{2^{8p+b}}$, and with $k=8p+b$ the composition expands to
+Squaring is additive, so
 \begin{equation}
 \Phi(a)=\sum_{k=0}^{63}c_k\,a^{2^k},
 \qquad
 c_{8p+b}=f_p\,g_b^{\,2^{8p}}\qquad(p,b<8).
 \label{eq:ck}
 \end{equation}
-Each $k$ from $0$ to $63$ occurs exactly once, one term for every Frobenius power the previous section requires.
 
-\paragraph{Soundness.} Fix a nonzero error before the challenges are drawn. The previous section gives some $\pair_{8p+b}\neq0$. Group the check by $p$:
+\paragraph{Soundness.} Fix a nonzero error. Some $\pair_{8p+b}\neq0$ (\S\ref{rs:sound-maps}), and
 \[
 \sum_{k=0}^{63}c_k\,\pair_k=\sum_{p<8}f_p\,M_p,
 \qquad
 M_p:=\sum_{b<8}g_b^{\,2^{8p}}\,\pair_{8p+b}.
 \]
-The Frobenius permutes $\E$, so the $g_b^{2^{8p}}$ are uniform and independent, and for that $p$, $M_p=0$ with probability $1/|\E|$. When $M_p\neq0$, the check is a nonzero linear form in the independent $f_0,\dots,f_7$, zero with probability $1/|\E|$. So the check passes with probability at most $2/|\E|$, a bound on the sixteen challenges jointly: the protocol draws them in one verifier message, with the opening's batching challenge. Against the list of the committed oracle (Annex~\ref{annex:pcs}), a union bound pays it once per member.
+The Frobenius permutes $\E$, so the $g_b^{2^{8p}}$ are uniform and independent, and $M_p=0$ with probability $1/|\E|$. Otherwise the sum vanishes with probability $1/|\E|$ over the $f$. So the check passes with probability at most $2/|\E|$. Against the list of the committed oracle (Annex~\ref{annex:pcs}), a union bound pays this once per member.
 
 Two stages of eight take sixteen challenges instead of sixty-four, and the target shares the outer Frobenius powers across the $64$ slices (\S\ref{rs:cost}).
 
