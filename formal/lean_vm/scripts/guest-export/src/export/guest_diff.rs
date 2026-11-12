@@ -79,8 +79,8 @@ impl Out {
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
     fn statement(&mut self, p: &EthereumProof) {
         self.tag("xmss");
-        self.n(p.claims.xmss.len());
-        for (pk, m) in &p.claims.xmss {
+        self.n(p.claims.lean_xmss.len());
+        for (pk, m) in &p.claims.lean_xmss {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }

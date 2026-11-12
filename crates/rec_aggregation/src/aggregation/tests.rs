@@ -115,7 +115,7 @@ fn aggregate_one_lean_sphincs_signer() {
     parallel::init();
     let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
     aggregate.verify().expect("verifies");
-    assert!(aggregate.claims.xmss.is_empty());
+    assert!(aggregate.claims.lean_xmss.is_empty());
     assert_eq!(aggregate.claims.lean_sphincs.len(), 1);
 }
 
@@ -174,7 +174,7 @@ fn aggregate_one_signer() {
     parallel::init();
     let aggregate = prove_leaf(&get_signers(1));
     aggregate.verify().expect("verifies");
-    assert_eq!(aggregate.claims.xmss[0].1, message());
+    assert_eq!(aggregate.claims.lean_xmss[0].1, message());
 }
 
 /// A leaf holding claims of both schemes, each list in its own region.
@@ -192,7 +192,7 @@ fn aggregate_mixed_leaf() {
     .expect("leaf aggregates");
     aggregate.verify().expect("verifies");
     assert_eq!(
-        (aggregate.claims.xmss.len(), aggregate.claims.lean_sphincs.len()),
+        (aggregate.claims.lean_xmss.len(), aggregate.claims.lean_sphincs.len()),
         (3, 3)
     );
 }
@@ -212,8 +212,8 @@ fn aggregate_mixed_two_to_one() {
     let right = leaf(&xmss[3..], &lean_sphincs[2..]);
     let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
     node.verify().expect("node verifies");
-    assert_eq!((node.claims.xmss.len(), node.claims.lean_sphincs.len()), (6, 4));
-    assert!(node.claims.xmss.windows(2).all(|w| w[0] < w[1]));
+    assert_eq!((node.claims.lean_xmss.len(), node.claims.lean_sphincs.len()), (6, 4));
+    assert!(node.claims.lean_xmss.windows(2).all(|w| w[0] < w[1]));
     assert!(node.claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
 }
 
@@ -236,7 +236,7 @@ fn aggregate_one_scheme_per_child() {
     )
     .expect("node aggregates");
     node.verify().expect("node verifies");
-    assert_eq!((node.claims.xmss.len(), node.claims.lean_sphincs.len()), (3, 2));
+    assert_eq!((node.claims.lean_xmss.len(), node.claims.lean_sphincs.len()), (3, 2));
 }
 
 /// The repeat the statement allows: one pubkey signing two messages is two
@@ -344,7 +344,7 @@ fn aggregate_two_to_one() {
     node.verify().expect("node verifies");
     // `cpu::verify` accepts the same proof of the same statement.
     verify(unified_guest(), &node.vm_public_input(), &node.proof).expect("node verifies natively");
-    assert_eq!(node.claims.xmss.len(), SMALL_LEAF_SIZE + big);
+    assert_eq!(node.claims.lean_xmss.len(), SMALL_LEAF_SIZE + big);
 }
 
 fn da_rows(n_rows: usize, seed: u64) -> Vec<u64> {
@@ -393,7 +393,7 @@ fn aggregate_with_a_da_payload() {
         [0; lean_xmss::MESSAGE_LEN],
     );
     let unsorted = EthereumClaims {
-        xmss: vec![claim, claim],
+        lean_xmss: vec![claim, claim],
         ..expected.clone()
     };
     let malformed = EthereumProof::from_proof_bytes(&bytes, unsorted);
@@ -443,7 +443,7 @@ fn a_node_passes_on_one_childs_da_root() {
     assert_ne!(first, second);
     let pass_on = |selected: Option<Option<[u8; 32]>>, blobs: &[u64]| {
         let declare = selected.map(|da_commitment| EthereumClaims {
-            xmss: children[0].claims.xmss.clone(),
+            lean_xmss: children[0].claims.lean_xmss.clone(),
             lean_sphincs: vec![],
             da_commitment,
         });
@@ -638,7 +638,7 @@ fn a_node_may_publish_less_than_it_covers() {
     raw.extend(signing(&at_b, MESSAGE_B));
     let wide = aggregate(&[], raw, vec![], &[], None, LOG_INV_RATE).expect("the wide leaf aggregates");
     wide.verify().expect("the wide leaf verifies");
-    assert_eq!(wide.claims.xmss.len(), 5);
+    assert_eq!(wide.claims.lean_xmss.len(), 5);
 
     let narrowed = |wide: &EthereumProof, declare: &EthereumClaims| {
         aggregate(
@@ -650,13 +650,13 @@ fn a_node_may_publish_less_than_it_covers() {
             LOG_INV_RATE,
         )
     };
-    let only = |xmss: Vec<LeanXmssClaim>| EthereumClaims {
-        xmss,
+    let only = |lean_xmss: Vec<LeanXmssClaim>| EthereumClaims {
+        lean_xmss,
         ..EthereumClaims::default()
     };
     let on_b: Vec<LeanXmssClaim> = wide
         .claims
-        .xmss
+        .lean_xmss
         .iter()
         .filter(|(_, message)| *message == message_for(MESSAGE_B))
         .cloned()
@@ -665,12 +665,12 @@ fn a_node_may_publish_less_than_it_covers() {
 
     let narrow = narrowed(&wide, &only(on_b.clone())).expect("narrows to one message");
     narrow.verify().expect("the one-message narrowing verifies");
-    assert_eq!(narrow.claims.xmss, on_b);
+    assert_eq!(narrow.claims.lean_xmss, on_b);
 
     let one = vec![(at_a[0].0, message())];
     let part = narrowed(&wide, &only(one.clone())).expect("narrows to one claim");
     part.verify().expect("the one-claim narrowing verifies");
-    assert_eq!(part.claims.xmss, one);
+    assert_eq!(part.claims.lean_xmss, one);
 
     assert_eq!(
         narrowed(&wide, &EthereumClaims::default()).err(),
@@ -704,14 +704,14 @@ fn raw_signatures_may_go_undeclared() {
         vec![],
         &[],
         Some(&EthereumClaims {
-            xmss: claim_b.clone(),
+            lean_xmss: claim_b.clone(),
             ..EthereumClaims::default()
         }),
         LOG_INV_RATE,
     )
     .expect("the narrowing leaf aggregates");
     sig.verify().expect("it verifies");
-    assert_eq!(sig.claims.xmss, claim_b);
+    assert_eq!(sig.claims.lean_xmss, claim_b);
 }
 
 /// Two messages in one tree. Signer `i` holds the same pubkey under both, at
@@ -743,13 +743,13 @@ fn aggregate_two_messages() {
     crossed.verify().expect("the crossed node verifies");
     let of_first: Vec<lean_xmss::Message> = crossed
         .claims
-        .xmss
+        .lean_xmss
         .iter()
         .filter(|(pubkey, _)| *pubkey == at_a[0].0)
         .map(|(_, message)| *message)
         .collect();
     assert_eq!(of_first, vec![message(), message_for(MESSAGE_B)]);
-    assert_eq!(crossed.claims.xmss.len(), 4);
+    assert_eq!(crossed.claims.lean_xmss.len(), 4);
     let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node");
     node.verify().expect("the two-message node verifies");
     let mut expected = signing(&at_a, 0);
@@ -759,7 +759,7 @@ fn aggregate_two_messages() {
         .map(|(pubkey, message, _)| (pubkey, message))
         .collect();
     expected.sort();
-    assert_eq!(node.claims.xmss, expected);
+    assert_eq!(node.claims.lean_xmss, expected);
 }
 
 #[test]
@@ -770,8 +770,8 @@ fn aggregate_overlapping_signers() {
     let right = prove_leaf(&signers[15..]);
     let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
     node.verify().expect("node verifies");
-    assert_eq!(node.claims.xmss.len(), 40);
-    assert!(node.claims.xmss.windows(2).all(|w| w[0] < w[1]));
+    assert_eq!(node.claims.lean_xmss.len(), 40);
+    assert!(node.claims.lean_xmss.windows(2).all(|w| w[0] < w[1]));
 }
 
 /// A child list walked by gaps (`child_claim_list_mono`) moves strictly forward. A
@@ -861,13 +861,13 @@ fn aggregate_three_levels() {
     )
     .expect("root aggregates");
     root.verify().expect("root verifies");
-    assert_eq!(root.claims.xmss.len(), 4 * SMALL_LEAF_SIZE + 2);
+    assert_eq!(root.claims.lean_xmss.len(), 4 * SMALL_LEAF_SIZE + 2);
     assert_eq!(
         root.claims.lean_sphincs.len(),
         4,
         "claims 0, 1, 2 and 4, the repeat merged"
     );
-    assert!(root.claims.xmss.windows(2).all(|w| w[0] < w[1]));
+    assert!(root.claims.lean_xmss.windows(2).all(|w| w[0] < w[1]));
     assert!(root.claims.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
 }
 

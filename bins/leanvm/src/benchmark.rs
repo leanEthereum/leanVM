@@ -266,8 +266,8 @@ fn write_leaves(
 /// a 0/1 byte for whether there is a DA root and 32 root bytes, zero without one. The proof carries
 /// no claims; the parent trusts its subprocess for them, standing in for a receiver that knows them.
 fn write_claims(out: &mut Vec<u8>, claims: &EthereumClaims) {
-    out.extend((claims.xmss.len() as u64).to_le_bytes());
-    for (pk, message) in &claims.xmss {
+    out.extend((claims.lean_xmss.len() as u64).to_le_bytes());
+    for (pk, message) in &claims.lean_xmss {
         out.extend(pk.to_bytes());
         out.extend(message);
     }
@@ -301,7 +301,7 @@ impl<'a> LeavesFile<'a> {
     /// The inverse of [`write_claims`].
     fn claims(&mut self) -> EthereumClaims {
         let n = self.count();
-        let xmss = (0..n)
+        let lean_xmss = (0..n)
             .map(|_| (LeanXmssPublicKey::from_bytes(&self.array()), self.array()))
             .collect();
         let n = self.count();
@@ -316,7 +316,7 @@ impl<'a> LeavesFile<'a> {
         let [has_root] = self.array();
         let root = self.array();
         EthereumClaims {
-            xmss,
+            lean_xmss,
             lean_sphincs,
             da_commitment: (has_root == 1).then_some(root),
         }

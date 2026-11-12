@@ -65,20 +65,27 @@ fn public_api_end_to_end() {
     let bytes = root.proof_bytes();
     let received = EthereumProof::from_proof_bytes(&bytes, root.claims().clone()).unwrap();
     received.verify().unwrap();
-    let on = |message| received.claims().xmss.iter().filter(|(_, m)| *m == message).count();
+    let on = |message| {
+        received
+            .claims()
+            .lean_xmss
+            .iter()
+            .filter(|(_, m)| *m == message)
+            .count()
+    };
     assert_eq!((on(MSG_0), on(MSG_1), on(MSG_2)), (3, 4, 1));
     // Claims the proof does not prove fail, here one signature claim short.
     let mut fewer = root.claims().clone();
-    fewer.xmss.pop();
+    fewer.lean_xmss.pop();
     let wrong = EthereumProof::from_proof_bytes(&bytes, fewer).unwrap();
     assert!(matches!(wrong.verify(), Err(AggregateVerifyError::Snark(_))));
 
     // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here every claim on MSG_1 goes,
     //    and one leanSPHINCS claim.
     let retained = EthereumClaims {
-        xmss: received
+        lean_xmss: received
             .claims()
-            .xmss
+            .lean_xmss
             .iter()
             .filter(|(_, m)| *m != MSG_1)
             .cloned()
