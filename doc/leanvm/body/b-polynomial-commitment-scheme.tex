@@ -3,7 +3,7 @@
 
 A self-contained description of the WHIR\slash Ligerito polynomial commitment scheme (PCS) \cite{ACFY25,NA25} over binary fields, in the Johnson list-decoding regime.
 
-A fold round combines two halves with the \emph{affine combiner} of the brilliant~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 for practical reasons (due to grand product GKR elsewhere in the protocol).
+A fold round combines two halves with the \emph{affine combiner} of the brilliant~\cite{CYWZ26}: the coefficient is a random polynomial $\afa+\afb X$ of degree one, not a random scalar as in the original schemes. Its mutual correlated agreement error is of order $1/|\E|$ instead of $\blen/|\E|$ for block length $\blen$ (Theorem~\ref{thm:mca-affine}, \S\ref{sec:affine-intuition}), so $128$-bit security is now possible with a $128$-bit field. We target 125 bits of security for practical reasons (due to grand product GKR elsewhere in the protocol).
 
 %=====================================================================
 \subsection{Preliminaries}\label{sec:prelims}
@@ -11,7 +11,7 @@ A fold round combines two halves with the \emph{affine combiner} of the brillian
 
 \subsubsection{Codes, interleaving, and list decoding}\label{sec:codes}\label{sec:binary-rs}
 
-The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc}, with $\rexp\ge1$ and $\kappa+\rexp\le64$, reads a message $g:\cube{\kappa}\to\E$ as the novel-basis polynomial $\mpoly_g$, of coefficient $g(u)$ on $\novel_{\langle u\rangle}$, and evaluates it on an additive domain $\dom$ of size $\blen=2^{\kappa+\rexp}$. It is a linear injection onto $\RS[\E,\dom,2^\kappa]$ (Definition~\ref{def:rs-code}) of rate $\rate=2^{-\rexp}$. The verifier uses its \emph{column weights}: for $x\in\dom$, $\Enc_{\kappa,\rexp}(g)[x]=\inner{W_x}{g}$ for every $g$, where the MLE $\mle{W_x}$ can be evluated in $O(\kappa)$ field operations anywhere in $\E^\kappa$ (Lemma~\ref{lem:colweight}). A fold round raises degrees by one, so the analysis also uses polynomials of degree at most some $\dgr\ge2^\kappa$.
+The encoder $\Enc_{\kappa,\rexp}$ of Definition~\ref{def:enc}, with $\rexp\ge1$ and $\kappa+\rexp\le64$, reads a message $g:\cube{\kappa}\to\E$ as the novel-basis polynomial $\mpoly_g$, of coefficient $g(u)$ on $\novel_{\langle u\rangle}$, and evaluates it on an additive domain $\dom$ of size $\blen=2^{\kappa+\rexp}$. It is a linear injection onto $\RS[\E,\dom,2^\kappa]$ (Definition~\ref{def:rs-code}) of rate $\rate=2^{-\rexp}$. The verifier uses its \emph{column weights}: for $x\in\dom$, $\Enc_{\kappa,\rexp}(g)[x]=\inner{W_x}{g}$ for every $g$, where the MLE $\mle{W_x}$ can be evaluated in $O(\kappa)$ field operations anywhere in $\E^\kappa$ (Lemma~\ref{lem:colweight}). A fold round raises degrees by one, so the analysis also uses polynomials of degree at most some $\dgr\ge2^\kappa$.
 
 \begin{definition}[Interleaved words, lists]\label{def:interleaved}
 An \emph{interleaved word} is a matrix $\orc \in \E^{\cube{\ell} \times \dom}$, of $2^\ell$ \emph{lanes}. A \emph{polynomial tuple} $U=(U_u)_{u\in\cube{\ell}}$ has degree at most $\dgr$ if every $U_u$ does; it \emph{agrees} with $\orc$ on $\aset\subseteq\dom$ if $U_u(x)=\orc[u,x]$ for all $u$ and all $x\in\aset$. For an agreement $\agr$, $\lst(\orc;\agr,\dgr)$ is the set of polynomial tuples of degree at most $\dgr$ agreeing with $\orc$ on at least $\agr$ coordinates. A tuple \emph{decodes} to the message $g_U:\cube{\ell+\kappa}\to\E$, where $g_U(u,\cdot)$ are the coefficients of $U_u$ below $2^\kappa$, its \emph{low part}; tuples of degree below $2^\kappa$ decode to distinct messages.
@@ -51,19 +51,6 @@ For every interleaved word $\orc$ over a domain of size $\blen$, every degree bo
 Polynomial tuples of degree at most $\dgr$ are a code as in Theorem~\ref{thm:johnson-general} over $\Sigma=\E^{2^\ell}$: two distinct ones differ in some lane, and two distinct polynomials of degree at most $\dgr$ agree on at most $\dgr$ points.
 \end{proof}
 
-\subsubsection{Round-by-round soundness}\label{sec:iopcs}
-
-\begin{definition}[RBR soundness, informal; cf.~\cite{CCHLRR19,ACFY25}]\label{def:rbr}
-A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varepsilon_1, \varepsilon_2, \dots)$, one per verifier message, if there is an \emph{invariant} on partial transcripts (not necessarily efficiently computable) marking the positions where a cheating prover has already lost:
-\begin{enumerate}[itemsep=1pt,label=(\roman*)]
-\item on a false statement, the invariant holds before any message is sent;
-\item the prover alone cannot escape it: it survives every prover message;
-\item the $i$-th verifier message lets it escape with probability at most $\varepsilon_i$;
-\item if it survives to the end of the interaction, the verifier rejects.
-\end{enumerate}
-\end{definition}
-
-Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
 
 %=====================================================================
 \subsection{The protocol}\label{sec:protocol}
@@ -79,13 +66,23 @@ Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-S
 \smallskip
 \textbf{Open}$\bigl(\{(W_k, c_k)\}_{k = 1, \dots, J_0}\bigr)$, $1\le J_0\le512$ weighted claims about $f$: $\mathbf{V}$ sends $\lambda \leftarrow \E$. The running claim is $(W, \rc{0}) := \bigl(\sum_{k} \lambda^{k-1} W_k,\; \sum_{k} \lambda^{k-1} c_k\bigr)$, a weighted claim (Definition~\ref{def:tuple-claim}) about the lanes $P$, which the prover folds below. For $i = 0, 1, \dots, \nlev - 1$, with $\kappa:=\kappa_i$:
 \begin{enumerate}[itemsep=0.5pt,topsep=2pt]
-\item \emph{(fold rounds)} For $j = 1, \dots, \ell_i$, with running claim $(W, \rc{j-1})$, $W:\cube{\ell_i-j+1}\times\cube{\kappa}\to\E$, and lanes $P$ with $\ell_i-j+1$ lane variables, split as $F$, $G$ by the first:
+\item \emph{(fold rounds)} For $j = 1, \dots, \ell_i$, with running claim $(W, \rc{j-1})$, $W:\cube{\ell_i-j+1}\times\cube{\kappa}\to\E$, and lanes
+\[
+\begin{gathered}
+P=(P_u)_{u\in\cube{\ell_i-j+1}},\qquad P_u\in\E[X],\qquad \deg P_u<2^\kappa+j-1,\\
+F:=(P_{(0,u')})_{u'\in\cube{\ell_i-j}},\qquad G:=(P_{(1,u')})_{u'\in\cube{\ell_i-j}}:
+\end{gathered}
+\]
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
-\item $\mathbf{P}$ sends $v_G, v_F, \tabx{0}, \tabx{1} \in \E$, honestly $v_G = \inner{W(0,\cdot)}{G}$, $v_F=\inner{W(0,\cdot)+W(1,\cdot)}{F}$ and $\tabx{\iota}=\inner{W(\iota,\cdot)}{XF}$.
+\item $\mathbf{P}$ sends $v_G, v_F, \tabx{0}, \tabx{1} \in \E$, honestly $v_G = \inner{W(0,\cdot)}{G}$, $v_F=\inner{W(0,\cdot)+W(1,\cdot)}{F}$ and $\tabx{\iota}=\inner{W(\iota,\cdot)}{XF}$, with $XF:=(X F_{u'})_{u'}$.
 \item $\mathbf{V}$ sends $\afa_j, \afb_j \leftarrow \E$.
 \item Both set $\rc{j} := v_G+\afa_j\bigl(v_G+\rc{j-1}\bigr)+\afa_j^2v_F+\afb_j\tabx{0}+\afa_j\afb_j\bigl(\tabx{0}+\tabx{1}\bigr)$ and $W \gets \mle{W}(\afa_j,\cdot)$; $\mathbf{P}$ sets $P \gets P_{\afa_j,\afb_j} = G+(\afa_j+\afb_jX)F$.
 \end{enumerate}
-After the $\ell_i$ rounds, $P$ is one polynomial of degree below $2^{\kappa}+\ell_i$, and the oracle folded by the same challenges (Definition~\ref{def:affine-fold}) is one word $w:=\orc^{(i)}_{\ell_i}\in\E^{\dom_i}$, honestly $P$ on $\dom_i$, where $\orc^{(i)}_j$ denotes $\orc^{(i)}$ folded by the first $j$ rounds. As $\novel_{2^\kappa+j}=\Wn{\kappa}\,\novel_j$ for $j<2^\kappa$ (Definition~\ref{def:enc}), $P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\sum_{j<\ell_i}\phigh_j\novel_j$: its low part is a message $f^{(i+1)}:\cube{\nv_{i+1}}\to\E$ and its high part is $\phigh\in\E^{\ell_i}$. The running claim $(W,\rc{\ell_i})$ is a weighted claim about $f^{(i+1)}$.
+After the $\ell_i$ rounds, $P$ is one polynomial, $w:=\orc^{(i)}_{\ell_i}\in\E^{\dom_i}$ is the oracle folded by the same challenges (Definition~\ref{def:affine-fold}; $\orc^{(i)}_j$ is $\orc^{(i)}$ folded by the first $j$ rounds), honestly $P$ on $\dom_i$, and
+\[
+P=\mpoly_{f^{(i+1)}}+\Wn{\kappa}\textstyle\sum_{j<\ell_i}\phigh_j\novel_j,\qquad \sum_{x\in\cube{\kappa}}W(x)\,f^{(i+1)}(x)=\rc{\ell_i}.
+\]
+The claim ignores the high part $\phigh$, as the low coefficients of $XF$ depend only on those of $F$ (Lemma~\ref{lem:mulx}(ii)); step 2(d) removes it from the queried values.
 \item If $i < \nlev - 1$:
 \begin{enumerate}[itemsep=0.5pt,topsep=1pt,label=(\alph*)]
 \item \emph{(commit)} $\mathbf{P}$ sends the oracle $\orc^{(i+1)}[u, \cdot] := \Enc_{i+1}(f^{(i+1)}(u, \cdot))$, $u \in \cube{\ell_{i+1}}$, row $u$ evaluating the new lane $P_u:=\mpoly_{f^{(i+1)}(u,\cdot)}$, then $\phigh$.
