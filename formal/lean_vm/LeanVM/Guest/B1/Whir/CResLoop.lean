@@ -230,8 +230,8 @@ theorem resLoop_iter {lvl : ℕ} {lv : OsLv} {hsv : List E} (hst : ResStatic lv 
 /-- **The residual loop of a non-final level holds at its honest arguments**: entered at `1` with
 the bound `g^(Q/8)`, on memory holding the positions at `qpos·g^posOff`, the basis row at `bd`,
 the high part at `hs` and the chains' buffer (`rcC`) at `chain`. -/
-theorem resLoop_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {hsv : List E}
-    (hfn : FnIs (c.resLoop lvl) (osParams 7) (resLoopBody lvl lv (c.resLoop lvl)))
+theorem resLoop_complete {name : String} {lvl : ℕ} {lv : OsLv} {hsv : List E}
+    (hfn : FnIs name (osParams 7) (resLoopBody lvl lv name))
     (hst : ResStatic lv hsv) (hpo : lv.posOff < u128Bound) (hn0 : 0 < lv.queries / resBatch)
     {rd : Reader} {qpos bd hs chain mu : E} {D Pos : ℕ → E}
     (hpos : ∀ k < lv.queries, LoadHolds rd qpos (lv.posOff + k) (Pos k))
@@ -239,7 +239,7 @@ theorem resLoop_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {hsv : List E}
     (hhs : ∀ c < lv.folds, LoadHolds rd hs (lvl * hsStride + c) (hsv.getD c 0))
     (hrc : ReadsAt rd chain (rcC lv D hsv Pos mu)) :
     1 + gen ^ (lv.queries / resBatch) ≠ 0 →
-      coreProgram.Rel rd (c.resLoop lvl) [1, gen ^ (lv.queries / resBatch), qpos, bd, hs, chain, mu] [] := by
+      coreProgram.Rel rd name [1, gen ^ (lv.queries / resBatch), qpos, bd, hs, chain, mu] [] := by
   obtain ⟨fn, hf, hps, hb⟩ := hfn
   rw [resLoopBody_split] at hb
   have h := loop_complete (rd := rd) hf (resLoopA_flat lvl lv) hb (N := gen ^ (lv.queries / resBatch))
