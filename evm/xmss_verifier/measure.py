@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Measures the gas of an EIP-8483 add on anvil, with and without the leanXMSS proof of possession, for each scenario
-and hardfork, and checks each transaction's gasUsed against its intrinsic gas, calldata floor and traced execution.
+"""Prints every number of the leanXMSS verifier's gas measurement, on Amsterdam and Osaka: verify alone, from the
+forge snapshot test, then on anvil an EIP-8483 add with and without the proof of possession in each scenario, each
+transaction's gasUsed checked against its intrinsic gas, calldata floor and traced execution, the split of B's verify
+and the cost of the message.
 
-Run from anywhere, with anvil on the PATH: `python3 evm/xmss_verifier/measure.py`.
+Run from anywhere, with forge and anvil on the PATH: `python3 evm/xmss_verifier/measure.py`.
 """
 
 import hashlib
