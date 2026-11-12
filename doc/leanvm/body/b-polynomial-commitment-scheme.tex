@@ -189,35 +189,48 @@ The list decodes to at most $L$ messages, and distinct messages have distinct mu
 
 \subsubsection{Proof of the main theorem}\label{pcs:proof}
 
-At level $i$, write $(W^{(j)},\rc{j})$ for the running claim after round $j$, a weighted claim about polynomial tuples with $\ell_i-j$ lane variables (Definition~\ref{def:tuple-claim}). A tuple \emph{violates} the claim if $\inner{W^{(j)}}{P}\neq\rc{j}$.
-
-The invariant of Definition~\ref{def:rbr} is, in one phrase: \emph{every polynomial tuple close to the current fold violates the current claim}. Each paragraph below states it after one verifier message and bounds the probability that the message lets the prover escape it, (iii); a transcript ending with prover messages inherits the invariant of its last verifier message. Every invariant carries one more disjunct, \emph{some verifier check has already failed}, so a prover message, which changes nothing the invariant depends on but may fail a check, never escapes it, (ii); below we assume that all checks so far pass.
-
 \begin{proof}[Proof of Theorem~\ref{thm:rbr}]
-\emph{Before the opening, (i).} On false input claims, every $U \in \lst(\orc^{(0)};\agr^{(0)}_0,\dgr^{(0)})$ violates at least one of them.
+We say that a polynomial tuple $U$ \emph{violates} a claim $(W,c)$ if $\inner{W}{U}\neq c$. Since a claim only weighs the low part, whether $U$ violates it depends only on its message $g_U$. For a level $i$ and $0\le j\le\ell_i$, let
+\[
+\lst^{(i)}_j:=\lst\bigl(\orc^{(i)}_j;\,\agr^{(i)}_j,\,\dgr^{(i)}\bigr)
+\]
+be the list of the level-$i$ oracle folded by its first $j$ rounds. It has at most $L_i$ members.
 
-\medskip\noindent\emph{Batching challenge $\lambda$.}
-Assume that every $U \in \lst(\orc^{(i)};\agr_0,\dgr)$ violates at least one of the $J_i$ claims $(W_k, c_k)$: the input claims at level $0$, the claims of step 2(e) at a later level, as the query step below shows. After $\lambda$, every such $U$ violates the round-$0$ claim. Fix one: its discrepancy against the batched claim is $\sum_{k} \lambda^{k - 1} d_k$ with $d_k := \inner{W_k}{g_U} - c_k$, a polynomial in $\lambda$ of degree less than $J_i$, nonzero because the $d_k$ are not all zero. By Lemma~\ref{lem:sz} it vanishes with probability at most $(J_i - 1)/|\E|$, and a union bound over the at most $L_i$ list members gives $(J_i - 1) L_i / |\E|$.
-
-\medskip\noindent\emph{Fold message $(\afa_j,\afb_j)$.}
-Assume that every $P \in \lst(\orc^{(i)}_{j-1};\agr_{j-1},\dgr)$ violates the round-$(j{-}1)$ claim. As $\agr_{j-1}=\agr_j-1$, this is the hypothesis of Lemma~\ref{lem:fold-list} for the word $\orc^{(i)}_{j-1}$, the weight $W^{(j-1)}$ and $c=\rc{j-1}$, at degree $\dgr$ and agreement $\agr_j$. Whatever values the prover sends, the lemma makes every $P\in\lst(\orc^{(i)}_{j};\agr_j,\dgr)$ violate the round-$j$ claim, except with probability $\epsaff(\blen,\dgr,\agr_j)+2\jl(\agr_j-1,\dgr)/|\E|$. After the last round, every polynomial of degree at most $\dgr$ agreeing with the folded word $w=\orc^{(i)}_{\ell_i}$ on at least $\agr_{\ell_i}$ coordinates violates the residual claim $(W,\rc{\ell_i})$.
-
-\medskip\noindent\emph{OOD point $z_i$.}
-The list $\lst(\orc^{(i)};\agr^{(i)}_0,\dgr^{(i)})$ is fixed by the prover's commitment. After $z_i$, no two distinct messages decoded from it have multilinear extensions agreeing at $z_i$, except with probability $\binom{L_i}{2}\, \nv_i / |\E|$ (Lemma~\ref{lem:ood}). At $i=0$ this makes the commitment binding: at most one message answers the OOD claim. At $i\ge1$ the invariant after $z_i$ is this separation together with the residual condition of level $i-1$, which $z_i$ does not involve.
-
-\medskip\noindent\emph{Query message of level $i<\nlev-1$.}
-Assume both parts of the previous invariant; the prover has since sent $\cood{i+1}$. By separation, at most one message $g^\ast$ decoded from $\lst(\orc^{(i+1)};\agr^{(i+1)}_0,\dgr^{(i+1)})$ can satisfy $\mle{g^\ast}(z_{i+1}) = \cood{i+1}$: every member decoding to another message violates the OOD claim, whatever the queries are. If no such $g^\ast$ exists, we are done. Otherwise, the members decoding to $g^\ast$ differ only in coefficients that claims do not weigh, so it suffices to show that $g^\ast$ violates one claim. Let $P^\ast:=\mpoly_{g^\ast}+\Wn{\kappa_i}\sum_{j<\ell_i}\phigh_j\novel_j$, the folded lane the prover claims, of degree at most $\dgr$. There are two cases.
+\medskip\noindent\emph{The invariant.} At each point of the protocol, the invariant is that some check of $\mathbf{V}$ has already failed, or that the condition attached to the last verifier message holds:
 \begin{itemize}[itemsep=1pt]
-\item \emph{$P^\ast$ agrees with $w$ on at least $\agr_{\ell_i}$ coordinates.} Then $P^\ast$, hence its low part $g^\ast$, violates the residual claim, whatever the queries are.
-\item \emph{Otherwise.} A uniform $x \leftarrow \dom_i$ has $P^\ast(x) = w(x)$ with probability at most $(\agr_{\ell_i}-1)/\blen_i$, so all $\nq_i$ i.i.d.\ queries do with probability at most $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$; and a query with $P^\ast(x_q)\neq w(x_q)$ makes $g^\ast$ violate the consistency claim $(W^{(i)}_{x_q},\, c_q)$, since $\Enc_i(g^\ast)[x_q]$ and $c_q$ are $P^\ast(x_q)$ and $w(x_q)$, each corrected by the same high part.
+\item at the start of the opening: every $U\in\lst^{(0)}_0$ violates at least one input claim;
+\item after the batching challenge of level $i$ ($j=0$) and after its $j$-th fold challenge:
+\[
+(\mathrm{I}_{i,j})\qquad\text{every } U\in\lst^{(i)}_j \text{ violates the running claim } (W,\rc{j});
+\]
+\item after the OOD point $z_{i+1}$: $(\mathrm{I}_{i,\ell_i})$ holds, and distinct messages $g$ of $\lst^{(i+1)}_0$ have distinct values $\mle{g}(z_{i+1})$;
+\item after the final query message: $f^{(\nlev)}$ violates the running claim;
+\item after each tail round: the running sumcheck claim is false.
 \end{itemize}
-So, except with probability $((\agr_{\ell_i}-1)/\blen_i)^{\nq_i}$, every member of the level-$(i+1)$ list violates one of the $J_{i+1}$ claims. These claims are fixed once the queries are, the opened columns being the committed oracle's, and $\lambda$ is uniform given them: the batching step adds $(J_{i+1}-1)L_{i+1}/|\E|$.
+Property (i) is the definition of false input claims. For (ii), each condition only involves messages sent up to the last verifier message, so the prover's next message cannot break it. For (iv), at the end either a check has failed, or the last sumcheck claim is false; $\mathbf{V}$ holds $f^{(\nlev)}$ and checks that claim itself, so it rejects. It remains to prove (iii): each verifier message breaks the invariant with at most the probability of the theorem.
 
-\medskip\noindent\emph{Final query message.}
-At level $\nlev - 1$ the prover sends $P$ itself, so no list is involved, and the two cases above apply to $P$ in place of $P^\ast$. If $P$ agrees with $w$ on at least $\agr_{\ell}$ coordinates, its low part $f^{(\nlev)}$ violates the running claim; otherwise, except with probability $((\agr_\ell-1)/\blen_{\nlev-1})^{\nq_{\nlev-1}}$, some query has $w(x_q)\neq P(x_q)$ and the verifier rejects.
+\medskip\noindent\emph{Batching challenge $\lambda$.} Suppose every $U\in\lst^{(i)}_0$ violates at least one of $J$ claims $(W_k,c_k)$; at level $0$ this is the starting condition, with $J=J_0$. Fix such a $U$ and put $d_k:=\inner{W_k}{U}-c_k$. Then $U$ satisfies the batched claim only if $\sum_k\lambda^{k-1}d_k=0$. This is a nonzero polynomial in $\lambda$ of degree less than $J$, so by Lemma~\ref{lem:sz} it vanishes with probability at most $(J-1)/|\E|$. A union bound over the at most $L_i$ members gives $(\mathrm{I}_{i,0})$, except with probability $(J-1)L_i/|\E|$.
 
-\medskip\noindent\emph{Tail rounds, (iv).}
-The $\nv_\nlev$ rounds are a plain sumcheck (Fact~\ref{fact:sumcheck}) of degree two on $f^{(\nlev)}$, which $\mathbf{V}$ holds: after each, $f^{(\nlev)}$ violates the running sumcheck claim except with probability $2/|\E|$. The terminal claim is then false, and $\mathbf{V}$ checks it against $\mle{f^{(\nlev)}}$ itself, so it rejects.
+\medskip\noindent\emph{Fold challenge $(\afa_j,\afb_j)$.} Since $\agr^{(i)}_{j-1}=\agr^{(i)}_j-1$, the condition $(\mathrm{I}_{i,j-1})$ is the hypothesis of Lemma~\ref{lem:fold-list} with $\agr=\agr^{(i)}_j$, whatever four values the prover sent. The lemma gives $(\mathrm{I}_{i,j})$, except with probability $\epsaff(\blen_i,\dgr^{(i)},\agr^{(i)}_j)+2\jl(\agr^{(i)}_j-1,\dgr^{(i)})/|\E|$.
+
+\medskip\noindent\emph{OOD point $z_{i+1}$.} The list $\lst^{(i+1)}_0$ is fixed by the prover's commitment, which comes before $z_{i+1}$. By Lemma~\ref{lem:ood}, its distinct messages have distinct values at $z_{i+1}$, except with probability $\binom{L_{i+1}}{2}\nv_{i+1}/|\E|$. The condition $(\mathrm{I}_{i,\ell_i})$ does not involve $z_{i+1}$, so it still holds. (The same bound at $z_0$ makes the commitment binding; the opening does not use it.)
+
+\medskip\noindent\emph{Query message of level $i<\nlev-1$.} Before it, the prover has sent $\cood{i+1}$. By separation, at most one message $g^\ast$ of $\lst^{(i+1)}_0$ has $\mle{g^\ast}(z_{i+1})=\cood{i+1}$, and $g^\ast$ and the high part $\phigh$ are fixed before the queries. We first show that, except with probability $\bigl((\agr^{(i)}_{\ell_i}-1)/\blen_i\bigr)^{\nq_i}$, every $U\in\lst^{(i+1)}_0$ violates at least one of the $J_{i+1}$ claims of step 2(e).
+
+Take $U\in\lst^{(i+1)}_0$. If $g_U\neq g^\ast$, $U$ violates the OOD claim. Otherwise it is enough to show that $g^\ast$ violates a claim. Let
+\[
+P^\ast:=\mpoly_{g^\ast}+\Wn{\kappa_i}\sum_{j<\ell_i}\phigh_j\novel_j,
+\]
+the polynomial of degree at most $\dgr^{(i)}$ with low part $g^\ast$ and high part $\phigh$.
+\begin{itemize}[itemsep=1pt]
+\item If $P^\ast$ agrees with $w$ on at least $\agr^{(i)}_{\ell_i}$ points, then $P^\ast$ violates $(W,\rc{\ell_i})$ by $(\mathrm{I}_{i,\ell_i})$. As this depends only on the low part, $g^\ast$ violates the residual claim.
+\item Otherwise $P^\ast$ and $w$ agree on fewer than $\agr^{(i)}_{\ell_i}$ points, and all $\nq_i$ independent queries land on such points with probability at most $\bigl((\agr^{(i)}_{\ell_i}-1)/\blen_i\bigr)^{\nq_i}$. If some query has $P^\ast(x_q)\neq w(x_q)$, subtract $\Wn{\kappa_i}(x_q)\sum_{j<\ell_i}\phigh_j\novel_j(x_q)$ from both sides: the left side becomes $\mpoly_{g^\ast}(x_q)=\Enc_i(g^\ast)[x_q]$ and the right side becomes $c_q$. So $g^\ast$ violates the consistency claim $(W^{(i)}_{x_q},c_q)$.
+\end{itemize}
+The claims of step 2(e) are fixed by the queries, and $\lambda$ is uniform and independent of them. The batching argument then gives $(\mathrm{I}_{i+1,0})$, except with a further $(J_{i+1}-1)L_{i+1}/|\E|$.
+
+\medskip\noindent\emph{Final query message.} At the last level $i=\nlev-1$, the prover has sent $P$ itself, a polynomial of degree at most $\dgr^{(i)}$ with low part $f^{(\nlev)}$. The two cases above apply to $P$ in place of $P^\ast$. If $P$ agrees with $w$ on at least $\agr^{(i)}_{\ell_i}$ points, $f^{(\nlev)}$ violates the running claim. Otherwise, except with probability $\bigl((\agr^{(i)}_{\ell_i}-1)/\blen_i\bigr)^{\nq_i}$, some query has $P(x_q)\neq w(x_q)$, and the check of $\mathbf{V}$ fails.
+
+\medskip\noindent\emph{Tail round.} The tail is a sumcheck of degree two (Fact~\ref{fact:sumcheck}): if a round starts from a false claim, the claim after its challenge is false except with probability $2/|\E|$.
 \end{proof}
 
 %=====================================================================
