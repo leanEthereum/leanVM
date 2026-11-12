@@ -254,7 +254,9 @@ theorem os_allOk_mono {C C' : CallRel} {rd : Reader} {σ : Val} (hC : ∀ f a r,
   | .ret _, h0 => exact h0
   | .ite .., h0 => exact h0
   | .match_ .., h0 => exact h0
-  | .dispatch .., h0 => exact h0
+  | .dispatch .., h0 =>
+    obtain ⟨j, hj, hx, hc⟩ := h0
+    exact ⟨j, hj, hx, hC _ _ _ hc⟩
 
 /-- The facts of a named callee's loads its meaning does not fix: its read words, fixed on every
 memory holding `M`. -/
