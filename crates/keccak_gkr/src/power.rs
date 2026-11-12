@@ -9,6 +9,7 @@
 //! A table row is laid out by word: word `k` of entry `j` at `k * width + j`.
 
 use primitives::field::F192;
+use primitives::field::gf2_64::mul_wide;
 
 use crate::basis::{PolyEval, PowerBasis, add_mul};
 
@@ -109,9 +110,51 @@ impl PowerField {
         [p[0] ^ r[0], p[1] ^ r[1], p[2] ^ r[2]]
     }
 
-    #[inline(always)]
+    /// The product of two elements, six words fully reduced: what the rows' products by split
+    /// constants are tested against.
+    #[cfg(test)]
     pub fn mul(&self, a: &Element, b: &Element) -> Element {
         self.reduce(&mul_wide3(a, b))
+    }
+
+    /// [`reduce`](Self::reduce) of a polynomial of four words, whose high half is its word 3 alone.
+    #[inline(always)]
+    fn reduce4(&self, p: &[u64; 4]) -> Element {
+        let q = p[3] ^ (mul_wide(p[3], self.barrett[2]) >> 64) as u64;
+        let mut r = [0u64; 4];
+        add_mul(&mut r, &[q], &self.modulus);
+        [p[0] ^ r[0], p[1] ^ r[1], p[2] ^ r[2]]
+    }
+
+    /// The split constants of `c`: `c * x^(64 k)` reduced, for `k` = 0, 1, 2. A product by `c` is
+    /// then the sum of the other factor's words times these, four words reduced once, where a
+    /// product of two elements is six words and a full reduction. The rows are multiplied this
+    /// way: a fold by its challenge, a round's factors by the position weights.
+    pub fn split(&self, c: &Element) -> [Element; 3] {
+        let c1 = self.reduce4(&[0, c[0], c[1], c[2]]);
+        let c2 = self.reduce4(&[0, c1[0], c1[1], c1[2]]);
+        [*c, c1, c2]
+    }
+
+    /// The split constants of a row's entries, a row each: what [`Self::mul_row`] multiplies by.
+    pub fn split_row(&self, row: &[u64], width: usize) -> Vec<u64> {
+        let mut out = vec![0u64; 9 * width];
+        for j in 0..width {
+            for (out, c) in out.chunks_exact_mut(3 * width).zip(self.split(&get(row, width, j))) {
+                set(out, width, j, &c);
+            }
+        }
+        out
+    }
+
+    /// `a` times the element whose split constants are `split`.
+    #[inline(always)]
+    fn mul_split(&self, a: &Element, split: &[Element; 3]) -> Element {
+        let mut product = [0u64; 4];
+        for (&a, c) in a.iter().zip(split) {
+            add_mul(&mut product, &[a], c);
+        }
+        self.reduce4(&product)
     }
 
     /// `sum of a[j] * b[j]` and `sum of (a[j] + a'[j]) * (b[j] + b'[j])` over two pairs of rows,
@@ -148,9 +191,9 @@ impl PowerField {
         }
     }
 
-    /// `dst[j] = a[j] * b[j] + c[j]`.
+    /// `dst[j] = a[j] * b[j] + c[j]`, for `a` as its split constants ([`Self::split_row`]).
     pub fn mul_row(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        assert!(dst.len() >= 3 * width && [a, b, c].iter().all(|row| row.len() >= 3 * width));
+        assert!(a.len() >= 9 * width && [&*dst, b, c].iter().all(|row| row.len() >= 3 * width));
         row_kernel!(
             width,
             mul_row(self, dst, a, b, c, width),
@@ -160,16 +203,17 @@ impl PowerField {
 
     pub fn mul_row_portable(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
         for j in 0..width {
-            let (p, c) = (self.mul(&get(a, width, j), &get(b, width, j)), get(c, width, j));
+            let split = std::array::from_fn(|k| get(&a[3 * k * width..], width, j));
+            let (p, c) = (self.mul_split(&get(b, width, j), &split), get(c, width, j));
             set(dst, width, j, &[p[0] ^ c[0], p[1] ^ c[1], p[2] ^ c[2]]);
         }
     }
 
     pub fn fold_row_portable(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], challenge: &Element, width: usize) {
+        let split = self.split(challenge);
         for j in 0..width {
             let (l, h) = (get(lo, width, j), get(hi, width, j));
-            let delta = [l[0] ^ h[0], l[1] ^ h[1], l[2] ^ h[2]];
-            let folded = self.mul(challenge, &delta);
+            let folded = self.mul_split(&[l[0] ^ h[0], l[1] ^ h[1], l[2] ^ h[2]], &split);
             for k in 0..3 {
                 dst[k * width + j] = l[k] ^ folded[k];
             }
@@ -274,28 +318,7 @@ mod x86 {
         low.xor(high)
     }
 
-    /// Reduce the products given by their words in the low word of each lane.
-    #[inline(always)]
-    fn reduce(field: &PowerField, p: &[V; 6]) -> [V; 3] {
-        let barrett: [V; 3] = std::array::from_fn(|k| V::splat(field.barrett[k]));
-        let modulus: [V; 3] = std::array::from_fn(|k| V::splat(field.modulus[k]));
-        let high = [p[3], p[4], p[5]];
-        // The top three words of `high * barrett`: sums at offsets 2, 3 and 4.
-        let mut t = [V::zero(); 5];
-        for (i, k) in [(0, 2), (1, 1), (2, 0), (1, 2), (2, 1), (2, 2)] {
-            t[i + k] = t[i + k].xor(high[i].clmul::<0x00>(barrett[k]));
-        }
-        let q: [V; 3] = std::array::from_fn(|k| high[k].xor(word(&t, 3 + k)));
-        // The low three words of `q * modulus`: sums at offsets 0, 1 and 2.
-        let mut r = [V::zero(); 5];
-        for (i, k) in [(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (2, 0)] {
-            r[i + k] = r[i + k].xor(q[i].clmul::<0x00>(modulus[k]));
-        }
-        std::array::from_fn(|k| p[k].xor(word(&r, k)))
-    }
-
-    /// [`reduce`] of products of four words, whose high half is their word 3 alone: most of
-    /// the products vanish.
+    /// [`PowerField::reduce4`] of the polynomials given by their words in the low word of each lane.
     #[inline(always)]
     fn reduce4(field: &PowerField, p: &[V; 4]) -> [V; 3] {
         let q = p[3].xor(p[3].clmul::<0x00>(V::splat(field.barrett[2])).high());
@@ -303,10 +326,19 @@ mod x86 {
         std::array::from_fn(|k| word(&[r[0], r[1], r[2], V::zero(), V::zero()], k).xor(p[k]))
     }
 
-    /// The even and the odd entries' reductions, interleaved back.
+    /// The entries of `a` times the elements whose split constants are `split`
+    /// ([`PowerField::split`]): word `k` of an entry times constant `k`, summed by word offset for
+    /// the even and the odd entries, reduced and interleaved back.
     #[inline(always)]
-    fn reduce_pair(field: &PowerField, sums: &[[V; 5]; 2]) -> [V; 3] {
-        let [even, odd] = [0, 1].map(|half| reduce(field, &std::array::from_fn(|w| word(&sums[half], w))));
+    fn mul_split(field: &PowerField, a: &[V; 3], split: &[[V; 3]; 3]) -> [V; 3] {
+        let mut acc = [[V::zero(); 5]; 2];
+        for (a, c) in a.iter().zip(split) {
+            for (m, &c) in c.iter().enumerate() {
+                acc[0][m] = acc[0][m].xor(a.clmul::<0x00>(c));
+                acc[1][m] = acc[1][m].xor(a.clmul::<0x11>(c));
+            }
+        }
+        let [even, odd] = acc.map(|acc| reduce4(field, &std::array::from_fn(|w| word(&acc, w))));
         std::array::from_fn(|k| even[k].unpacklo(odd[k]))
     }
 
@@ -355,9 +387,11 @@ mod x86 {
 
     pub unsafe fn mul_row(field: &PowerField, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
         for j in (0..width).step_by(STEP) {
-            let (a, b, c) = unsafe { (load3(a, width, j), load3(b, width, j), load3(c, width, j)) };
-            let product = reduce_pair(field, &partial(&a, &b));
-            unsafe { store3(dst, width, j, xor3(&c, &product)) };
+            // SAFETY: the caller bounds the rows, `a` at three rows, one to each constant, and
+            // `width` is whole registers.
+            let split = std::array::from_fn(|k| unsafe { load3(&a[3 * k * width..], width, j) });
+            let (b, c) = unsafe { (load3(b, width, j), load3(c, width, j)) };
+            unsafe { store3(dst, width, j, xor3(&c, &mul_split(field, &b, &split))) };
         }
     }
 
@@ -369,12 +403,10 @@ mod x86 {
         challenge: &Element,
         width: usize,
     ) {
-        let challenge: [V; 3] = std::array::from_fn(|k| V::splat(challenge[k]));
-        let challenge_sums = sums(&challenge);
+        let split = field.split(challenge).map(|c| c.map(V::splat));
         for j in (0..width).step_by(STEP) {
             let (l, h) = unsafe { (load3(lo, width, j), load3(hi, width, j)) };
-            let delta = xor3(&l, &h);
-            let folded = reduce_pair(field, &karatsuba(&delta, &sums(&delta), &challenge, &challenge_sums));
+            let folded = mul_split(field, &xor3(&l, &h), &split);
             unsafe { store3(dst, width, j, xor3(&l, &folded)) };
         }
     }
@@ -438,18 +470,33 @@ mod neon {
         }
     }
 
-    /// Reduce two products, a lane each, given by their six words.
+    /// [`PowerField::reduce4`] of two polynomials, a lane each, given by their four words.
     #[inline(always)]
-    unsafe fn reduce(field: &PowerField, p: &[uint64x2_t; 6]) -> [uint64x2_t; 3] {
+    unsafe fn reduce4(field: &PowerField, p: &[uint64x2_t; 4]) -> [uint64x2_t; 3] {
+        // SAFETY: registers only, and PMULL's feature is enabled at compile time.
         unsafe {
-            let barrett: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(field.barrett[k]));
+            let barrett = vdupq_n_u64(field.barrett[2]);
+            let q = veorq_u64(p[3], vzip2q_u64(mul_lo(p[3], barrett), mul_hi(p[3], barrett)));
             let modulus: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(field.modulus[k]));
-            let high = [p[3], p[4], p[5]];
-            // The top three words of `high * barrett`, then the low three of `q * modulus`.
-            let t = partial(&high, &barrett, [(0, 2), (1, 1), (2, 0), (1, 2), (2, 1), (2, 2)]);
-            let q: [uint64x2_t; 3] = std::array::from_fn(|k| veorq_u64(high[k], word(&t, 3 + k)));
-            let r = partial(&q, &modulus, [(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (2, 0)]);
+            let r = partial(&[q; 3], &modulus, [(0, 0), (0, 1), (0, 2)]);
             std::array::from_fn(|k| veorq_u64(p[k], word(&r, k)))
+        }
+    }
+
+    /// Two entries of `a`, a lane each, times the elements whose split constants are `split`
+    /// ([`PowerField::split`]): word `k` of an entry times constant `k`, summed by word offset.
+    #[inline(always)]
+    unsafe fn mul_split(field: &PowerField, a: &[uint64x2_t; 3], split: &[[uint64x2_t; 3]; 3]) -> [uint64x2_t; 3] {
+        // SAFETY: registers only, and PMULL's feature is enabled at compile time.
+        unsafe {
+            let mut sums = [[vdupq_n_u64(0); 5]; 2];
+            for (&a, c) in a.iter().zip(split) {
+                for (m, &c) in c.iter().enumerate() {
+                    sums[0][m] = veorq_u64(sums[0][m], mul_lo(a, c));
+                    sums[1][m] = veorq_u64(sums[1][m], mul_hi(a, c));
+                }
+            }
+            reduce4(field, &std::array::from_fn(|w| word(&sums, w)))
         }
     }
 
@@ -495,10 +542,9 @@ mod neon {
 
     pub unsafe fn reduce_row(field: &PowerField, dst: &mut [u64], wide: &[u64], width: usize) {
         unsafe {
-            let zero = vdupq_n_u64(0);
             for j in (0..width).step_by(2) {
                 let w: [uint64x2_t; 4] = std::array::from_fn(|k| vld1q_u64(wide.as_ptr().add(k * width + j)));
-                store3(dst, width, j, &reduce(field, &[w[0], w[1], w[2], w[3], zero, zero]));
+                store3(dst, width, j, &reduce4(field, &w));
             }
         }
     }
@@ -506,8 +552,9 @@ mod neon {
     pub unsafe fn mul_row(field: &PowerField, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
         unsafe {
             for j in (0..width).step_by(2) {
-                let sums = partial(&load3(a, width, j), &load3(b, width, j), ALL);
-                let product = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
+                // The caller bounds `a` at three rows, one to each constant.
+                let split = std::array::from_fn(|k| load3(&a[3 * k * width..], width, j));
+                let product = mul_split(field, &load3(b, width, j), &split);
                 store3(dst, width, j, &xor3(&product, &load3(c, width, j)));
             }
         }
@@ -522,11 +569,10 @@ mod neon {
         width: usize,
     ) {
         unsafe {
-            let challenge: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(challenge[k]));
+            let split = field.split(challenge).map(|c| c.map(|x| vdupq_n_u64(x)));
             for j in (0..width).step_by(2) {
                 let l = load3(lo, width, j);
-                let sums = partial(&xor3(&l, &load3(hi, width, j)), &challenge, ALL);
-                let folded = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
+                let folded = mul_split(field, &xor3(&l, &load3(hi, width, j)), &split);
                 store3(dst, width, j, &xor3(&l, &folded));
             }
         }
@@ -584,11 +630,51 @@ mod tests {
         field.reduce_row(&mut fast, &wide, width);
         field.reduce_row_portable(&mut slow, &wide, width);
         assert_eq!(fast, slow);
-        field.mul_row(&mut fast, &ra0, &rb0, &rb1, width);
-        field.mul_row_portable(&mut slow, &ra0, &rb0, &rb1, width);
+        let split = field.split_row(&ra0, width);
+        field.mul_row(&mut fast, &split, &rb0, &rb1, width);
+        field.mul_row_portable(&mut slow, &split, &rb0, &rb1, width);
         assert_eq!(fast, slow);
         for j in 0..width {
             assert_eq!(field.to_field(&get(&fast, width, j)), a0[j] * b0[j] + b1[j]);
+        }
+    }
+
+    /// The rows multiplied through split constants are the full product, fully reduced: the
+    /// kernels and the portable forms, on widths of whole vectors and not, and on multipliers
+    /// with every word and none set.
+    #[test]
+    fn split_constants_multiply_as_the_full_product() {
+        let mut rng = Rng::new(43);
+        for _ in 0..4 {
+            let field = PowerField::new(rng.ext()).unwrap();
+            for width in [1, 2, 6, 8, 64, 1600] {
+                let mut row = || -> Vec<u64> { (0..3 * width).map(|_| rng.next_u64()).collect() };
+                let (lo, hi, b, c) = (row(), row(), row(), row());
+                let random = [rng.next_u64(), rng.next_u64(), rng.next_u64()];
+                for challenge in [[0; 3], [1, 0, 0], [0, 0, 1 << 63], [u64::MAX; 3], random] {
+                    // The fold by `challenge`, and the product by a row that is `challenge` at even entries.
+                    let mut a = lo.clone();
+                    for j in (0..width).step_by(2) {
+                        set(&mut a, width, j, &challenge);
+                    }
+                    let (mut folded, mut product) = (vec![0u64; 3 * width], vec![0u64; 3 * width]);
+                    for j in 0..width {
+                        let (l, h) = (get(&lo, width, j), get(&hi, width, j));
+                        let p = field.mul(&challenge, &[l[0] ^ h[0], l[1] ^ h[1], l[2] ^ h[2]]);
+                        set(&mut folded, width, j, &[l[0] ^ p[0], l[1] ^ p[1], l[2] ^ p[2]]);
+                        let (p, c) = (field.mul(&get(&a, width, j), &get(&b, width, j)), get(&c, width, j));
+                        set(&mut product, width, j, &[p[0] ^ c[0], p[1] ^ c[1], p[2] ^ c[2]]);
+                    }
+                    let (mut fast, mut slow) = (vec![0u64; 3 * width], vec![0u64; 3 * width]);
+                    field.fold_row(&mut fast, &lo, &hi, &challenge, width);
+                    field.fold_row_portable(&mut slow, &lo, &hi, &challenge, width);
+                    assert!(fast == folded && slow == folded, "fold, width {width}");
+                    let split = field.split_row(&a, width);
+                    field.mul_row(&mut fast, &split, &b, &c, width);
+                    field.mul_row_portable(&mut slow, &split, &b, &c, width);
+                    assert!(fast == product && slow == product, "product, width {width}");
+                }
+            }
         }
     }
 }

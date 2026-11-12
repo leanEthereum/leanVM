@@ -81,6 +81,64 @@ fn layers_reduce_outputs_to_inputs() {
     layers_round_trip(700, 8);
 }
 
+/// The tail's two rounds a pass send what its one round a pass does, on the first `layers` layers
+/// of each `(instances, depth)`: every message, and every layer's claim.
+fn tails_agree(cases: &[(usize, usize)], layers: usize) {
+    use crate::prover::{Scratch, Tail, prove_layer_with};
+
+    for &(n, depth) in cases {
+        let mut rng = Rng::new(83 + n as u64);
+        let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let shape = Shape::new(n, depth);
+        let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+        let witness = Witness::generate(shape, &inputs, &mut committed);
+        let prove = |tail: Tail| {
+            let mut ps = ProverState::from_label(LABEL);
+            let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
+            let mut claim = first_claim(shape, &r_low, point, &r_lane);
+            let mut scratch = Scratch::new(shape);
+            let claims: Vec<Claim> = (0..layers.min(depth))
+                .map(|step| {
+                    claim = prove_layer_with(&mut ps, &witness, &mut scratch, step, &claim, tail);
+                    claim.clone()
+                })
+                .collect();
+            (claims, ps.into_proof())
+        };
+        assert!(
+            prove(Tail::TwoRounds) == prove(Tail::OneRound),
+            "{n} instances, depth {depth}"
+        );
+    }
+}
+
+/// [`tails_agree`] from 2^9 to 2^15 instances: every block written, or a padding block after an
+/// odd or an even number of them, at one to four segments, three leaving a segment that does not
+/// exist. The first layer's claim is the output claim, the later ones' are dense.
+#[test]
+fn two_rounds_a_pass_prove_as_one() {
+    let mut cases = vec![(0, 8), (300, 12), (300, 24)];
+    for n_log in 10..=15 {
+        let depth = [12, 8, 6, 24][n_log % 4];
+        cases.extend([
+            (1 << n_log, depth),
+            ((1 << n_log) - 700, depth),
+            ((1 << (n_log - 1)) + 600, 12),
+        ]);
+    }
+    tails_agree(&cases, 3);
+}
+
+/// [`tails_agree`] from 2^16 to 2^18 instances, the aggregates' sizes, at the VM's depth.
+#[test]
+#[ignore = "slow without GFNI"]
+fn two_rounds_a_pass_prove_as_one_at_scale() {
+    let cases: Vec<_> = (16..=18)
+        .flat_map(|n_log| [(1 << n_log, 12), ((1 << n_log) - 700, 12)])
+        .collect();
+    tails_agree(&cases, 2);
+}
+
 const LABEL: &[u8] = b"keccak-gkr-test";
 
 fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
