@@ -1,7 +1,7 @@
-## The run e2e.sh drives: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate>
+## The run e2e.sh drives: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>
 ##
-## Sixteen AGGREGATE requests of 1500 signatures each, one after the other, then one RECURSE over
-## the sixteen proofs. The file is records of pubkey | message | signature.
+## Sixteen AGGREGATE requests of signatures-per-batch signatures each, one after the other, then one RECURSE over
+## the sixteen proofs and one VERIFY of the result. The file is records of pubkey | message | signature.
 
 import std/[monotimes, options, os, strformat, strutils, times]
 from std/posix import usleep
@@ -9,7 +9,6 @@ import leanvmsidecar
 
 const
   batches = 16
-  perBatch = 1500
   respCap = 16'u64 shl 20
 
 proc fatal(text: string) {.noreturn.} =
@@ -41,21 +40,25 @@ proc call(client: var Client, op, flags, rate: uint32, payload: openArray[byte])
     if response.get.id != id.get: fatal(&"response {response.get.id} to request {id.get}")
     return (response.get, seconds(started))
 
-# Cuts a proof | claims body into the two, each with its length prefix.
-proc split(response: Response): (seq[byte], seq[byte]) =
+proc check(response: Response) =
   if response.status != StOk:
     let text = cast[string](response.body)
     fatal(&"  FAILED: status {response.status} detail {response.detail}: {text}")
+
+# Cuts a proof | claims body into the two, each with its length prefix.
+proc split(response: Response): (seq[byte], seq[byte]) =
+  check(response)
   let cut = 8 + int(u64(response.body, 0))
   (response.body[0 ..< cut], response.body[cut .. ^1])
 
 proc main() =
-  if paramCount() != 4:
-    stderr.writeLine("usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate>")
+  if paramCount() != 5:
+    stderr.writeLine("usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>")
     quit(2)
   let
     aggregateRate = uint32(parseUInt(paramStr(3)))
     recurseRate = uint32(parseUInt(paramStr(4)))
+    perBatch = parseInt(paramStr(5))
   var client = openClient(paramStr(1))
   let
     record = client.pubKeySize + client.messageLen + client.sigSize
@@ -68,7 +71,7 @@ proc main() =
   recurse.putU32(batches)
   for batch in 0 ..< batches:
     var payload = newSeqOfCap[byte](4 + batchLen)
-    payload.putU32(perBatch)
+    payload.putU32(uint32(perBatch))
     payload.setLen(4 + batchLen)
     copyMem(addr payload[4], addr signatures[batch * batchLen], batchLen)
     let
@@ -83,6 +86,11 @@ proc main() =
     (proof, claims) = split(response)
   echo &"recurse {batches} -> 1: {batches} proofs, {recurse.len} bytes, rate {recurseRate}",
     &" -> proof {proof.len - 8} bytes, {u32(claims, 0)} claims, {elapsed:.3f} s"
+  let
+    verify = claims & proof
+    (verdict, verifyElapsed) = client.call(OpVerify, 0, 0, verify)
+  check(verdict)
+  echo &"verify: proof {proof.len - 8} bytes, {u32(claims, 0)} claims, {verify.len} bytes -> valid, {verifyElapsed:.3f} s"
   echo &"total: {seconds(total):.3f} s"
   client.close()
 

@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # End-to-end run of leanvm-sidecar through one language's client:
 #
-#   e2e.sh <rust|go|java|ts|nim> <threads> [aggregate-log-inv-rate=2] [recurse-log-inv-rate=1]
+#   e2e.sh <rust|go|java|ts|nim> <threads> [--signatures N] [--aggregate-rate R] [--recurse-rate R]
 #
-# Starts the server with <threads> prover threads, aggregates 16 batches of 1500 leanXMSS
-# signatures one after the other, then recurses the 16 proofs into one. Each step prints its
-# request, its response and the time it took, as the client sees it.
+#   --signatures      signatures per batch, 1 to 1500 (default 1440)
+#   --aggregate-rate  log_inv_rate of the aggregations (default 2)
+#   --recurse-rate    log_inv_rate of the recursion (default 1)
+#
+# Starts the server with <threads> prover threads, aggregates 16 batches of leanXMSS signatures
+# one after the other, then recurses the 16 proofs into one and verifies it. Each step
+# prints its request, its response and the time it took, as the client sees it.
 #
 # The signatures are testdata/signatures-24000.bin: 24000 signers, each signing one of 4 messages;
 # examples/gen_signatures.rs regenerates the file if it is missing. Java uses the JDK on PATH, or
@@ -15,14 +19,28 @@
 set -euo pipefail
 
 usage() {
-    sed -n '2,4p' "$0" >&2
+    sed -n '2,8p' "$0" >&2
     exit 2
 }
-[[ $# -ge 2 && $# -le 4 ]] || usage
+[[ $# -ge 2 ]] || usage
 lang=$1
 threads=$2
-aggregate_rate=${3:-2}
-recurse_rate=${4:-1}
+shift 2
+per_batch=1440
+aggregate_rate=2
+recurse_rate=1
+while [[ $# -gt 0 ]]; do
+    [[ $# -ge 2 ]] || usage
+    case $1 in
+    --signatures) per_batch=$2 ;;
+    --aggregate-rate) aggregate_rate=$2 ;;
+    --recurse-rate) recurse_rate=$2 ;;
+    *) usage ;;
+    esac
+    shift 2
+done
+# The test file holds 16 batches of at most 1500.
+[[ $per_batch =~ ^[0-9]+$ ]] && ((per_batch >= 1 && per_batch <= 1500)) || usage
 [[ $lang == rust || $lang == go || $lang == java || $lang == ts || $lang == nim ]] || usage
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -87,5 +105,5 @@ until [[ -f $channel ]]; do
     sleep 0.1
 done
 
-echo "client $lang, $threads threads, aggregate rate $aggregate_rate, recurse rate $recurse_rate"
-"${runner[@]}" "$channel" "$signatures" "$aggregate_rate" "$recurse_rate"
+echo "client $lang, $threads threads, $per_batch signatures per batch, aggregate rate $aggregate_rate, recurse rate $recurse_rate"
+"${runner[@]}" "$channel" "$signatures" "$aggregate_rate" "$recurse_rate" "$per_batch"

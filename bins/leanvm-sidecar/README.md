@@ -62,14 +62,20 @@ The clients build no payloads and parse no bodies. The end-to-end runners below 
 ## End-to-end test
 
 ```bash
-bins/leanvm-sidecar/e2e.sh <rust|go|java|ts|nim> <threads> [aggregate-log-inv-rate=2] [recurse-log-inv-rate=1]
+bins/leanvm-sidecar/e2e.sh <rust|go|java|ts|nim> <threads> [--signatures N] [--aggregate-rate R] [--recurse-rate R]
 ```
 
-The script builds the sidecar and the chosen language's runner, starts the sidecar with `<threads>` prover threads, and has the runner make sixteen `AGGREGATE` requests of 1500 signatures each, one after the other, then one `RECURSE` over the sixteen proofs. Each step prints its request, its response and the time from `send` to the response, as the client sees it. The script stops the sidecar and removes the channel file when the runner exits.
+| option | default | meaning |
+| --- | --- | --- |
+| `--signatures` | 1440 | signatures per batch, 1 to 1500 |
+| `--aggregate-rate` | 2 | `log_inv_rate` of the aggregations |
+| `--recurse-rate` | 1 | `log_inv_rate` of the recursion |
+
+The script builds the sidecar and the chosen language's runner, starts the sidecar with `<threads>` prover threads, and has the runner make sixteen `AGGREGATE` requests of `--signatures` signatures each, one after the other, then one `RECURSE` over the sixteen proofs and one `VERIFY` of the result. Each step prints its request, its response and the time from `send` to the response, as the client sees it. The script stops the sidecar and removes the channel file when the runner exits.
 
 ```bash
-bins/leanvm-sidecar/e2e.sh go 16        # Go client, 16 threads, default rates
-bins/leanvm-sidecar/e2e.sh java 32 1 2  # Java client, aggregate at rate 1, recurse at rate 2
+bins/leanvm-sidecar/e2e.sh go 16                                        # Go client, 16 threads, defaults
+bins/leanvm-sidecar/e2e.sh java 32 --signatures 1500 --aggregate-rate 1  # Java client, full batches, aggregate at rate 1
 ```
 
 The signatures are `testdata/signatures-24000.bin`: 24000 records of `pubkey | message | signature`, every record a different signer, signer `i` on message `i mod 4`. The signers are mock keys, real only at the leaf index they sign at; their signatures verify like any other. If the file is missing the script regenerates it with `examples/gen_signatures.rs`, which takes a minute or two.

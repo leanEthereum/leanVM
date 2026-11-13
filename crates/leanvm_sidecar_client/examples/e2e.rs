@@ -1,13 +1,12 @@
-//! The run `bins/leanvm-sidecar/e2e.sh` drives: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate>
+//! The run `bins/leanvm-sidecar/e2e.sh` drives: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>
 //!
-//! Sixteen `AGGREGATE` requests of 1500 signatures each, one after the other, then one `RECURSE`
-//! over the sixteen proofs. The file is records of `pubkey | message | signature`.
+//! Sixteen `AGGREGATE` requests of `signatures-per-batch` signatures each, one after the other, then one `RECURSE`
+//! over the sixteen proofs and one `VERIFY` of the result. The file is records of `pubkey | message | signature`.
 
-use leanvm_sidecar_client::{Client, OP_AGGREGATE, OP_RECURSE, Response, ST_OK};
+use leanvm_sidecar_client::{Client, OP_AGGREGATE, OP_RECURSE, OP_VERIFY, Response, ST_OK};
 use std::time::{Duration, Instant};
 
 const BATCHES: usize = 16;
-const PER_BATCH: usize = 1500;
 const RESP_CAP: usize = 16 << 20;
 
 /// Send one request and wait for its response.
@@ -24,13 +23,17 @@ fn call(client: &mut Client, op: u32, flags: u32, rate: u32, payload: &[u8]) -> 
     (response, started.elapsed())
 }
 
-/// A `proof | claims` body as `(proof, claims)`, each with its length prefix.
-fn split(response: &Response) -> (&[u8], &[u8]) {
+fn check(response: &Response) {
     if response.status != ST_OK {
         let text = String::from_utf8_lossy(&response.body);
         println!("  FAILED: status {} detail {}: {text}", response.status, response.detail);
         std::process::exit(1);
     }
+}
+
+/// A `proof | claims` body as `(proof, claims)`, each with its length prefix.
+fn split(response: &Response) -> (&[u8], &[u8]) {
+    check(response);
     let proof_len = u64::from_le_bytes(response.body[..8].try_into().unwrap()) as usize;
     response.body.split_at(8 + proof_len)
 }
@@ -41,26 +44,27 @@ fn claim_count(claims: &[u8]) -> u32 {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let [_, channel, signatures, aggregate_rate, recurse_rate] = args.as_slice() else {
-        eprintln!("usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate>");
+    let [_, channel, signatures, aggregate_rate, recurse_rate, per_batch] = args.as_slice() else {
+        eprintln!("usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>");
         std::process::exit(2);
     };
     let aggregate_rate: u32 = aggregate_rate.parse().expect("aggregate rate");
     let recurse_rate: u32 = recurse_rate.parse().expect("recurse rate");
+    let per_batch: usize = per_batch.parse().expect("signatures per batch");
     let mut client = Client::open(channel.as_ref()).expect("open channel");
     let record = client.pub_key_size() + client.message_len() + client.sig_size();
     let signatures = std::fs::read(signatures).expect("read signatures");
-    assert!(signatures.len() >= BATCHES * PER_BATCH * record, "signature file too short");
+    assert!(signatures.len() >= BATCHES * per_batch * record, "signature file too short");
 
     let total = Instant::now();
     let mut recurse = (BATCHES as u32).to_le_bytes().to_vec();
-    for (batch, records) in signatures.chunks_exact(PER_BATCH * record).take(BATCHES).enumerate() {
-        let mut payload = (PER_BATCH as u32).to_le_bytes().to_vec();
+    for (batch, records) in signatures.chunks_exact(per_batch * record).take(BATCHES).enumerate() {
+        let mut payload = (per_batch as u32).to_le_bytes().to_vec();
         payload.extend(records);
         let (response, elapsed) = call(&mut client, OP_AGGREGATE, 0, aggregate_rate, &payload);
         let (proof, claims) = split(&response);
         println!(
-            "aggregate {:2}/{BATCHES}: {PER_BATCH} signatures, {} bytes, rate {aggregate_rate} -> \
+            "aggregate {:2}/{BATCHES}: {per_batch} signatures, {} bytes, rate {aggregate_rate} -> \
              proof {} bytes, {} claims, {:.3} s",
             batch + 1,
             payload.len(),
@@ -78,6 +82,16 @@ fn main() {
         recurse.len(),
         proof.len() - 8,
         claim_count(claims),
+        elapsed.as_secs_f64(),
+    );
+    let verify = [claims, proof].concat();
+    let (verdict, elapsed) = call(&mut client, OP_VERIFY, 0, 0, &verify);
+    check(&verdict);
+    println!(
+        "verify: proof {} bytes, {} claims, {} bytes -> valid, {:.3} s",
+        proof.len() - 8,
+        claim_count(claims),
+        verify.len(),
         elapsed.as_secs_f64(),
     );
     println!("total: {:.3} s", total.elapsed().as_secs_f64());

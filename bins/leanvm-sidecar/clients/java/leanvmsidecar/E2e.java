@@ -9,13 +9,13 @@ import java.nio.file.Path;
 
 /**
  * The run e2e.sh drives: E2e &lt;channel&gt; &lt;signatures-file&gt; &lt;aggregate-rate&gt; &lt;recurse-rate&gt;
+ * &lt;signatures-per-batch&gt;
  *
- * <p>Sixteen AGGREGATE requests of 1500 signatures each, one after the other, then one RECURSE over the
- * sixteen proofs. The file is records of pubkey | message | signature.
+ * <p>Sixteen AGGREGATE requests of signatures-per-batch signatures each, one after the other, then one RECURSE over the
+ * sixteen proofs and one VERIFY of the result. The file is records of pubkey | message | signature.
  */
 public final class E2e {
     private static final int BATCHES = 16;
-    private static final int PER_BATCH = 1500;
     private static final int RESP_CAP = 16 << 20;
 
     private static long elapsedNanos;
@@ -39,13 +39,17 @@ public final class E2e {
         return response;
     }
 
-    /** The length of the proof, prefix included, at the start of a proof | claims body. */
-    private static int proofEnd(Client.Response response) {
+    private static void check(Client.Response response) {
         if (response.status() != Client.ST_OK) {
             String text = new String(response.body(), StandardCharsets.UTF_8);
             System.out.printf("  FAILED: status %d detail %d: %s%n", response.status(), response.detail(), text);
             System.exit(1);
         }
+    }
+
+    /** The length of the proof, prefix included, at the start of a proof | claims body. */
+    private static int proofEnd(Client.Response response) {
+        check(response);
         return 8 + (int) le(response.body()).getLong(0);
     }
 
@@ -58,16 +62,17 @@ public final class E2e {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 4) {
-            System.err.println("usage: E2e <channel> <signatures-file> <aggregate-rate> <recurse-rate>");
+        if (args.length != 5) {
+            System.err.println("usage: E2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch>");
             System.exit(2);
         }
         int aggregateRate = Integer.parseInt(args[2]);
         int recurseRate = Integer.parseInt(args[3]);
+        int perBatch = Integer.parseInt(args[4]);
         Client client = Client.open(Path.of(args[0]));
         int record = client.pubKeySize() + client.messageLen() + client.sigSize();
         byte[] signatures = Files.readAllBytes(Path.of(args[1]));
-        if (signatures.length < BATCHES * PER_BATCH * record) {
+        if (signatures.length < BATCHES * perBatch * record) {
             throw new IllegalArgumentException("signature file too short");
         }
 
@@ -76,14 +81,14 @@ public final class E2e {
         recurse.write(u32(BATCHES));
         for (int batch = 0; batch < BATCHES; batch++) {
             ByteArrayOutputStream payload = new ByteArrayOutputStream();
-            payload.write(u32(PER_BATCH));
-            payload.write(signatures, batch * PER_BATCH * record, PER_BATCH * record);
+            payload.write(u32(perBatch));
+            payload.write(signatures, batch * perBatch * record, perBatch * record);
             Client.Response response = call(client, Client.OP_AGGREGATE, 0, aggregateRate, payload.toByteArray());
             int proofEnd = proofEnd(response);
             byte[] body = response.body();
             System.out.printf(
                     "aggregate %2d/%d: %d signatures, %d bytes, rate %d -> proof %d bytes, %d claims, %.3f s%n",
-                    batch + 1, BATCHES, PER_BATCH, payload.size(), aggregateRate, proofEnd - 8,
+                    batch + 1, BATCHES, perBatch, payload.size(), aggregateRate, proofEnd - 8,
                     le(body).getInt(proofEnd), elapsedNanos / 1e9);
             recurse.write(body, proofEnd, body.length - proofEnd);
             recurse.write(body, 0, proofEnd);
@@ -95,6 +100,14 @@ public final class E2e {
                 "recurse %d -> 1: %d proofs, %d bytes, rate %d -> proof %d bytes, %d claims, %.3f s%n",
                 BATCHES, BATCHES, recurse.size(), recurseRate, proofEnd - 8,
                 le(response.body()).getInt(proofEnd), elapsedNanos / 1e9);
+        byte[] body = response.body();
+        ByteArrayOutputStream verify = new ByteArrayOutputStream();
+        verify.write(body, proofEnd, body.length - proofEnd);
+        verify.write(body, 0, proofEnd);
+        check(call(client, Client.OP_VERIFY, 0, 0, verify.toByteArray()));
+        System.out.printf(
+                "verify: proof %d bytes, %d claims, %d bytes -> valid, %.3f s%n",
+                proofEnd - 8, le(body).getInt(proofEnd), verify.size(), elapsedNanos / 1e9);
         System.out.printf("total: %.3f s%n", (System.nanoTime() - total) / 1e9);
     }
 }
