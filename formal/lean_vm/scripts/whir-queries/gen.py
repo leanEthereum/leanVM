@@ -4,13 +4,14 @@
   python3 -I gen.py LEAN_VM specs    the specializations, one per line
   python3 -I gen.py LEAN_VM walk     the walk_path (index, pd, cd) list
 """
-import os, re, sys, glob
+import os, re, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import coredata
 D = os.path.join(sys.argv[1], 'LeanVM') + '/' + 'Guest/Data/'
 fns = {}   # name -> (idx, file)
 bodies = {}  # coreN -> namespace text
 order = []
-for f in sorted(glob.glob(D + 'Core*.lean')):
-    t = open(f).read()
+for t in coredata.legacy_texts(D):
     for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "([^"]*)"', t):
         fns[m.group(2)] = int(m.group(1))
     for m in re.finditer(r'^namespace (core\d+)\n(.*?)^end \1$', t, re.M | re.S):

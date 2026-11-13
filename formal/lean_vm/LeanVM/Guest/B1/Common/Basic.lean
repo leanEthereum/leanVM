@@ -8,7 +8,9 @@
 
 module
 
-public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.CoreFind
+public import LeanVM.Guest.Renumber
+public import LeanVM.Guest.Word
 public import LeanVM.Guest.CoreLemmas
 public import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.Value.Bits

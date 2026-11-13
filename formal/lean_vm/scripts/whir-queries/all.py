@@ -2,7 +2,7 @@
 
     python3 -I scripts/whir-queries/all.py LEAN_VM
 
-`gen.py` reads the core IR (`LeanVM/Guest/Data/Core*.lean`); the others write
+`gen.py` reads the core IR (through `scripts/coredata.py`); the others write
 `B1/Bits/QueryWindowsData.lean` (`genqwdata`), `B1/Opening/WalkBody0-2.lean` and `WalkFns.lean`
 (`genwalk`), `B1/Opening/QueriesBody0-3.lean` and `QueriesFns.lean`'s cases (`genoq`),
 `Guest/WalkWp.lean`, `WalkWpOk.lean` (`genwp`), `Guest/WalkOq0-3.lean`, `WalkOqOk0-3.lean`

@@ -1,6 +1,6 @@
 import os, sys
 # Library for mk.py: the per-block and per-side lemmas of Tables/Vt/FormsT*.lean from the body and FormsData.
-# First run: python3 -I dump.py ../../LeanVM/Guest/Data/Core00.lean vt_ir.txt (from this directory).
+# First run: python3 -I dump.py ../../LeanVM/Guest/Data vt_ir.txt (from this directory).
 import sys,re,json,ast
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import *

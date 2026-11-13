@@ -170,25 +170,25 @@ theorem sphincsAtFp_cost (hP : Includes P Decoder.sphincsAtFpC.costDeps) (Rt : R
       encodeValue o] ≤ 3 * F + 1507 * (R + 1551) + 351500 := by
   rw [Decoder.sphincsAtFpC.costEq P hP Rt table rd rdV hrd o]
   have hs : ∀ v : V, RunsApp P (.closure Decoder.sphincsAtFpC.lam0.costIdx [rdV, encodeValue o])
-      [encodeValue v] (encodeValue (Decoder.frameValAt rd o 21 v)) :=
+      [encodeValue v] (encodeValue (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs) v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.sphincsAtFpC.lam0.costSpec P (by includes) rd rdV hrd o v)
   have hS : ∀ v : V, appCost P (.closure Decoder.sphincsAtFpC.lam0.costIdx [rdV, encodeValue o])
       [encodeValue v] ≤ R + 1551 := fun v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
       Decoder.sphincsAtFpC.lam0.costEq P (by includes) rd rdV hrd]
-    have := frameValAt_cost P rd rdV hrd R hR (by includes) o 21 (by norm_num) v
+    have := frameValAt_cost P rd rdV hrd R hR (by includes) o (fn_idx% verify_sig_lean_sphincs) (by norm_num) v
     simp only [List.length_cons, List.length_nil]
     omega
   have hw : ∀ (o' : Option K) (v : V), RunsApp P
       (.closure Decoder.sphincsAtFpC.lam1.costIdx [rdV, encodeValue o'])
-      [encodeValue v] (encodeValue (Decoder.frameValAt rd o' 20 v)) :=
+      [encodeValue v] (encodeValue (Decoder.frameValAt rd o' (fn_idx% sp_wots) v)) :=
     fun o' v ↦ RunsApp.of_spec (Decoder.sphincsAtFpC.lam1.costSpec P (by includes) rd rdV hrd o' v)
   have hW : ∀ (o' : Option K) (v : V), appCost P
       (.closure Decoder.sphincsAtFpC.lam1.costIdx [rdV, encodeValue o']) [encodeValue v] ≤
         R + 1551 := fun o' v ↦ by
     rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
       Decoder.sphincsAtFpC.lam1.costEq P (by includes) rd rdV hrd]
-    have := frameValAt_cost P rd rdV hrd R hR (by includes) o' 20 (by norm_num) v
+    have := frameValAt_cost P rd rdV hrd R hR (by includes) o' (fn_idx% sp_wots) (by norm_num) v
     simp only [List.length_cons, List.length_nil]
     omega
   have a0 := spWotsArgs_cost P hs hS (by includes) 0 (by norm_num)
@@ -197,19 +197,19 @@ theorem sphincsAtFp_cost (hP : Includes P Decoder.sphincsAtFpC.costDeps) (Rt : R
   have r0 := spWotsRets_cost P hs hS (by includes) 0 (by norm_num)
   have r1 := spWotsRets_cost P hs hS (by includes) 1 (by norm_num)
   have r2 := spWotsRets_cost P hs hS (by includes) 2 (by norm_num)
-  have f0 := hFp 20 (spWotsArgs (Decoder.frameValAt rd o 21) 0)
-    (spWotsRets (Decoder.frameValAt rd o 21) 0) (by norm_num) (by simp [spWotsArgs, spWotsRets])
-  have f1 := hFp 20 (spWotsArgs (Decoder.frameValAt rd o 21) 1)
-    (spWotsRets (Decoder.frameValAt rd o 21) 1) (by norm_num) (by simp [spWotsArgs, spWotsRets])
-  have f2 := hFp 20 (spWotsArgs (Decoder.frameValAt rd o 21) 2)
-    (spWotsRets (Decoder.frameValAt rd o 21) 2) (by norm_num) (by simp [spWotsArgs, spWotsRets])
+  have f0 := hFp (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0)
+    (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0) (by norm_num) (by simp [spWotsArgs, spWotsRets])
+  have f1 := hFp (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1)
+    (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1) (by norm_num) (by simp [spWotsArgs, spWotsRets])
+  have f2 := hFp (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2)
+    (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2) (by norm_num) (by simp [spWotsArgs, spWotsRets])
   have := sphincsSigOfA_cost P hs hS (by includes) Rt.sphincs hRt
-    (hw (Decoder.frameFpA table 20 (spWotsArgs (Decoder.frameValAt rd o 21) 0)
-      (spWotsRets (Decoder.frameValAt rd o 21) 0))) (hW _)
-    (hw (Decoder.frameFpA table 20 (spWotsArgs (Decoder.frameValAt rd o 21) 1)
-      (spWotsRets (Decoder.frameValAt rd o 21) 1))) (hW _)
-    (hw (Decoder.frameFpA table 20 (spWotsArgs (Decoder.frameValAt rd o 21) 2)
-      (spWotsRets (Decoder.frameValAt rd o 21) 2))) (hW _)
+    (hw (Decoder.frameFpA table (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0)
+      (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0))) (hW _)
+    (hw (Decoder.frameFpA table (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1)
+      (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1))) (hW _)
+    (hw (Decoder.frameFpA table (fn_idx% sp_wots) (spWotsArgs (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2)
+      (spWotsRets (Decoder.frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2))) (hW _)
   omega
 
 /-- **The leanSPHINCS signature checked at slot address `p`** (`sphincsAtFrameTC`), at `main`'s
@@ -223,9 +223,9 @@ theorem sphincsAtFrameT_cost (hP : Includes P Decoder.sphincsAtFrameTC.costDeps)
       encodeValue p] ≤ 2 * S + 4 * F + 1507 * (R + 1551) + 351525 := by
   rw [Decoder.sphincsAtFrameTC.costEq P hP Rt table rd rdV hrd σ σV hσ p]
   have := hS (.n 47)
-  have := hFp 21 [p, σ (.n 47)] [] (by norm_num) (by simp)
+  have := hFp (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] [] (by norm_num) (by simp)
   have := sphincsAtFp_cost P hrd hR table hFp (by includes) Rt hRt
-    (Decoder.frameFpA table 21 [p, σ (.n 47)] [])
+    (Decoder.frameFpA table (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] [])
   omega
 
 omit hR hFp in
@@ -261,7 +261,7 @@ variable {rd : Reader} {rdV : MachineValue}
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
   (table : Array (CallKey × K)) {F4 : ℕ}
   (hFp4 : ∀ (args rets : List E), args.length + rets.length ≤ 64 →
-    machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue 37, encodeValue args,
+    machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue (fn_idx% main_loop2), encodeValue args,
       encodeValue rets] ≤ F4)
 include hrd hR hFp4
 
@@ -275,16 +275,16 @@ theorem xmssAtFrameT_cost (hP : Includes P Decoder.xmssAtFrameTC.costDeps) (Rt :
       encodeValue args] ≤ F4 + xmssPrice (R + 1551) + 12 := by
   rw [Decoder.xmssAtFrameTC.costEq P hP Rt table rd rdV hrd args]
   have hs : ∀ v : V, RunsApp P (.closure Decoder.xmssAtFrameTC.lam0.costIdx
-      [rdV, encodeValue (Decoder.frameFpA table 37 args [])]) [encodeValue v]
-      (encodeValue (Decoder.frameValAt rd (Decoder.frameFpA table 37 args []) 37 v)) :=
+      [rdV, encodeValue (Decoder.frameFpA table (fn_idx% main_loop2) args [])]) [encodeValue v]
+      (encodeValue (Decoder.frameValAt rd (Decoder.frameFpA table (fn_idx% main_loop2) args []) (fn_idx% main_loop2) v)) :=
     fun v ↦ RunsApp.of_spec (Decoder.xmssAtFrameTC.lam0.costSpec P (by includes) rd rdV hrd _ v)
   have hS : ∀ v : V, appCost P (.closure Decoder.xmssAtFrameTC.lam0.costIdx
-      [rdV, encodeValue (Decoder.frameFpA table 37 args [])]) [encodeValue v] ≤ R + 1551 :=
+      [rdV, encodeValue (Decoder.frameFpA table (fn_idx% main_loop2) args [])]) [encodeValue v] ≤ R + 1551 :=
     fun v ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.xmssAtFrameTC.lam0.costEq P (by includes) rd rdV hrd]
-      have := frameValAt_cost P rd rdV hrd R hR (by includes) (Decoder.frameFpA table 37 args [])
-        37 (by norm_num) v
+      have := frameValAt_cost P rd rdV hrd R hR (by includes) (Decoder.frameFpA table (fn_idx% main_loop2) args [])
+        (fn_idx% main_loop2) (by norm_num) v
       simp only [List.length_cons, List.length_nil]
       omega
   have := xmssSigOfN_cost P hs hS (by includes) Rt.xmss hRt
@@ -347,14 +347,14 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
       machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue j, encodeValue args,
         encodeValue rets] ≤ F) (F4 : ℕ)
     (hFp4 : ∀ (args rets : List E), args.length + rets.length ≤ 64 →
-      machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue 37, encodeValue args,
+      machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue (fn_idx% main_loop2), encodeValue args,
         encodeValue rets] ≤ F4)
     (C : ℕ) (hC : ∀ p q : E, machineCost P Decoder.cursorLengthC.costIdx
       [encodeValue D, encodeValue p, encodeValue q] ≤ C)
     {Kc N X : ℕ} (hc : CountsWithin D σ Kc N X) (L : ℕ) (hL32 : L ≤ 2 ^ 32)
     (hLk : ∀ c < Decoder.nKidsD D σ,
-      Decoder.cursorLength D (Decoder.frameAtA table rd 19 (Decoder.subArgsK rd σ c) [] (.n 25))
-        (Decoder.frameAtA table rd 19 (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
+      Decoder.cursorLength D (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 25))
+        (Decoder.frameAtA table rd (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV,
       .closure Decoder.decTopFramesC.lam0.costIdx [rdV, encodeValue table],
       .closure Decoder.decTopFramesC.lam1.costIdx [encodeValue Tb, rdV, encodeValue table],

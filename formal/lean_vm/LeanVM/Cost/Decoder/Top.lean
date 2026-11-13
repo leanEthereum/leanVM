@@ -32,26 +32,26 @@ attribute [local instance] lexOrd
 
 @[expose] public section
 
-/-- The leanSPHINCS signature off `verify_sig_lean_sphincs`' frame pointer `o` (`21`): each layer's
-`sp_wots` frame (`20`) looked up once (`frameFpA`), the words read off the frame pointers
-(`frameValAt`). A function of the pointer, so that the search of `21` is not repeated at each word
+/-- The leanSPHINCS signature off `verify_sig_lean_sphincs`' frame pointer `o`: each layer's
+`sp_wots` frame looked up once (`frameFpA`), the words read off the frame pointers
+(`frameValAt`). A function of the pointer, so that the search of that frame is not repeated at each word
 of that frame the reader reads. -/
 noncomputable def sphincsAtFp (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (o : Option K) : Sphincs.Signature :=
-  sphincsSigOfA R.sphincs (frameValAt rd o 21)
-    (frameValAt rd (frameFpA table 20 (spWotsArgs (frameValAt rd o 21) 0)
-      (spWotsRets (frameValAt rd o 21) 0)) 20)
-    (frameValAt rd (frameFpA table 20 (spWotsArgs (frameValAt rd o 21) 1)
-      (spWotsRets (frameValAt rd o 21) 1)) 20)
-    (frameValAt rd (frameFpA table 20 (spWotsArgs (frameValAt rd o 21) 2)
-      (spWotsRets (frameValAt rd o 21) 2)) 20)
+  sphincsSigOfA R.sphincs (frameValAt rd o (fn_idx% verify_sig_lean_sphincs))
+    (frameValAt rd (frameFpA table (fn_idx% sp_wots) (spWotsArgs (frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0)
+      (spWotsRets (frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 0)) (fn_idx% sp_wots))
+    (frameValAt rd (frameFpA table (fn_idx% sp_wots) (spWotsArgs (frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1)
+      (spWotsRets (frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 1)) (fn_idx% sp_wots))
+    (frameValAt rd (frameFpA table (fn_idx% sp_wots) (spWotsArgs (frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2)
+      (spWotsRets (frameValAt rd o (fn_idx% verify_sig_lean_sphincs)) 2)) (fn_idx% sp_wots))
 
 /-- **The leanSPHINCS signature checked at slot address `p`, its frames looked up once**
 (`sphincsAtFrame` at `frameAtA table rd`, `sphincsAtFrameT_eq`): `verify_sig_lean_sphincs`' frame
-(`21`) one binary search (`frameFpA`), then `sphincsAtFp`. -/
+one binary search (`frameFpA`), then `sphincsAtFp`. -/
 noncomputable def sphincsAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) (p : E) : Sphincs.Signature :=
-  sphincsAtFp R table rd (frameFpA table 21 [p, σ (.n 47)] [])
+  sphincsAtFp R table rd (frameFpA table (fn_idx% verify_sig_lean_sphincs) [p, σ (.n 47)] [])
 
 theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (σ : Val) : sphincsAtFrameT R table rd σ = sphincsAtFrame R σ (frameAtA table rd) := by
@@ -59,11 +59,11 @@ theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd :
   simp only [sphincsAtFrameT, sphincsAtFp, sphincsAtFrame, frameAtA_eq_frameValAt]
 
 /-- **The leanXMSS signature `__loop2`'s iteration on `args` checks, its frame looked up once**
-(`xmssAtFrame` at `frameAtA table rd`, `xmssAtFrameT_eq`): `__loop2`'s frame (`37`) one binary
+(`xmssAtFrame` at `frameAtA table rd`, `xmssAtFrameT_eq`): `__loop2`'s frame one binary
 search (`frameFpA`, its key the `56` arguments), then the reader off the frame pointer. -/
 noncomputable def xmssAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
     (args : List E) : LeanXmss.Signature :=
-  xmssSigOfA R.xmss (frameValAt rd (frameFpA table 37 args []) 37)
+  xmssSigOfA R.xmss (frameValAt rd (frameFpA table (fn_idx% main_loop2) args []) (fn_idx% main_loop2))
 
 theorem xmssAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader) :
     xmssAtFrameT R table rd = xmssAtFrame R (frameAtA table rd) := by

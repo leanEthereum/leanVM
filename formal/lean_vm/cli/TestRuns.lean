@@ -11,7 +11,7 @@ import LeanVMTests.Extraction.LanePM
 import LeanVMTests.Extraction.Toy
 import LeanVMTests.Extraction.ToyFast
 import LeanVMTests.Extraction.ToyRadius
-import LeanVMTests.Guest.CoreData
+import LeanVMTests.Guest.CoreDataCheck
 import LeanVMTests.Protocol.EndToEnd.Front.Layout
 import LeanVMTests.Prover.Keccak
 import LeanVMTests.Prover.Whir
@@ -48,7 +48,7 @@ def modules : List (String × Runs) := [
   ("Prover.Keccak", Prover.Keccak.runs),
   ("Prover.Whir", Prover.Whir.runs)]
 
-/-- `Guest/CoreData.lean`'s check, on the environment of `LeanVM.Guest.CoreData`. -/
+/-- `Guest/CoreDataCheck.lean`'s check, on the environment of `LeanVM.Guest.CoreData`. -/
 def coreData : IO Bool := do
   initSearchPath (← findSysroot)
   let env ← importModules #[{ module := `LeanVM.Guest.CoreData }] {} 0 (loadExts := false)

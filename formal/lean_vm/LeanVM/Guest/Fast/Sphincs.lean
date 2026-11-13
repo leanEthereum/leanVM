@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Guest.Fast.SpWots
 public import LeanVM.Guest.Fast.Common
-public import LeanVM.Guest.Fast.FunctionIdx
+public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.B1.Sig.SphincsSig
 public import LeanVM.Guest.B1.Sig.Bytes
@@ -11,10 +11,10 @@ public import LeanVM.Cost.Rules
 /-!
 # leanSPHINCS's signature reader, computable
 
-`verify_sig_lean_sphincs` (`Data.core20`, compiled function `21`, its template
+`verify_sig_lean_sphincs` (its template
 `B1/Sig/SphincsT.lean`, at leanVM main 40f877dc) hints the randomizer, each FORS tree's secret and the
 ordered children on its climb, each layer's counter and the ordered children on its path into its
-own frame, at cells its body fixes, and calls `sp_wots` (`Data.core19`, function `20`) once a
+own frame, at cells its body fixes, and calls `sp_wots` once a
 layer, whose frame holds the layer's chain starts at cells its digit words select (`spStartAt`,
 `Fast/SpWots.lean`). The reader takes `verify_sig_lean_sphincs`' valuation `σ` and the three
 `sp_wots` frames `w0`, `w1`, `w2`:
@@ -184,10 +184,10 @@ def sphincsSigOfA (T : SpTabs) (σ w0 w1 w2 : Val) : Sphincs.Signature :=
   ⟨cellVal (σ (.n 6)), fun c ↦ forsOpeningA T σ c.val,
     LeanVM.Cost.depFin3 (layerA T σ w0 0 0) (layerA T σ w1 1 1) (layerA T σ w2 2 2)⟩
 
-/-- **The signature off the frame map keyed by index**: `sp_wots` is function `20`. -/
+/-- **The signature off the frame map keyed by index**: `sp_wots` is function `fn_idx% sp_wots`. -/
 def sphincsSigOfN (σ : Val) (Vn : NFrames) : Sphincs.Signature :=
-  sphincsSigOfA spTabs σ (Vn 20 (spWotsArgs σ 0) (spWotsRets σ 0))
-    (Vn 20 (spWotsArgs σ 1) (spWotsRets σ 1)) (Vn 20 (spWotsArgs σ 2) (spWotsRets σ 2))
+  sphincsSigOfA spTabs σ (Vn (fn_idx% sp_wots) (spWotsArgs σ 0) (spWotsRets σ 0))
+    (Vn (fn_idx% sp_wots) (spWotsArgs σ 1) (spWotsRets σ 1)) (Vn (fn_idx% sp_wots) (spWotsArgs σ 2) (spWotsRets σ 2))
 
 /-! ## The reader is the witness's -/
 

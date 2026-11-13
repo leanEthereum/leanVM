@@ -1,6 +1,6 @@
 import os, sys
 # Library: verify_tables' body (vt_ir.txt from dump.py, or $VT_IR) parsed into atoms and definitions.
-# First run: python3 -I dump.py ../../LeanVM/Guest/Data/Core00.lean vt_ir.txt (from this directory).
+# First run: python3 -I dump.py ../../LeanVM/Guest/Data vt_ir.txt (from this directory).
 import re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 # The B1-c verify_tables modules, and verify_tables' body as `dump.py` writes it.

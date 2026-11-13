@@ -243,9 +243,9 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
         [encodeValue (Decoder.entryArrayT Decoder.pcTableT
           (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
           states (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory))),
-          encodeValue 37, encodeValue args, encodeValue rets] ≤ 4 * guestDecoderFramePrice e :=
+          encodeValue (fn_idx% main_loop2), encodeValue args, encodeValue rets] ≤ 4 * guestDecoderFramePrice e :=
     fun args rets hl ↦ (frameFpA_cost compiledGuestWitnessDecoder includes_budget_frameFpA e _
-      hok (by omega) 37 (by norm_num) args rets).trans (frameFpAPrice_le64 e _ hl)
+      hok (by omega) (fn_idx% main_loop2) (by norm_num) args rets).trans (frameFpAPrice_le64 e _ hl)
   have hσ : ∀ v : V, RunsApp compiledGuestWitnessDecoder
       (.closure Decoder.decTopStatesC.lam0.costIdx [readerV t.logMemorySize (Decoder.memoryVector t.memory)]) [encodeValue v]
       (encodeValue (Decoder.mainVal (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)) v)) := fun v ↦

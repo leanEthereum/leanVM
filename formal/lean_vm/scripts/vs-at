@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Write `LeanVM/Guest/VsAt.lean`: where `verify_sub`'s obligations (`Guest/Sound.lean`) sit in its body,
-its statements' indices and values' numbers, read off the core IR (`Data/Core*.lean`) and the callees'
+its statements' indices and values' numbers, read off the core IR (`scripts/coredata.py`) and the callees'
 parameters (`Data/Source.lean`). Run from `lean_vm` after `guest-core` (`scripts/regen-guest.sh` does):
 
     python3 -I scripts/vs-at [--check]
@@ -9,13 +9,15 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
+
 OUT = Path("LeanVM/Guest/VsAt.lean")
 D = Path("LeanVM/Guest/Data")
 
 
 def body(name):
-    for p in sorted(D.glob("Core[0-9]*.lean")):
-        t = p.read_text(encoding="utf-8")
+    for t in coredata.legacy_texts(D):
         m = re.search(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "%s"' % re.escape(name), t)
         if m:
             b = re.search(r"^namespace core%s\n(.*?)^end core%s$" % (m.group(1), m.group(1)), t, re.M | re.S)

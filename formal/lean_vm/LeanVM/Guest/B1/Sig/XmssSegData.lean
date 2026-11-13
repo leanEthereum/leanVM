@@ -1,13 +1,13 @@
 /-
   LeanVM.Guest.B1.Sig.XmssSegData
 
-  `main_loop2` (`fn% «main_loop2»`) in the guest's core IR is `l2Pre`, the leanXMSS check `xSeg`,
-  then `l2Post`.
+  `main_loop2` (`Fn.«main_loop2».core`) in the guest's core IR is `l2Pre`, the leanXMSS check
+  `xSeg`, then `l2Post`.
 -/
 
 module
 
-public import LeanVM.Guest.Data.Names
+public import LeanVM.Guest.Pack.main_loop2.Core
 public import LeanVM.Guest.B1.Sig.XmssSegT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Sig.XmssSegData1
@@ -53,51 +53,53 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem l2Pre_eq : (fn% «main_loop2»).body.take 9 = l2Pre :=
+theorem l2Pre_eq : (Fn.«main_loop2».core).body.take 9 = l2Pre :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_drop_313 : ((fn% «main_loop2»).body.drop 9).drop 313 = (xSeg ++ l2Post).drop 313 :=
+theorem xSeg_drop_313 : ((Fn.«main_loop2».core).body.drop 9).drop 313 = (xSeg ++ l2Post).drop 313 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_0 : (((fn% «main_loop2»).body.drop 9).drop 0).take 70 = ((xSeg ++ l2Post).drop
+theorem xSeg_slice_0 : (((Fn.«main_loop2».core).body.drop 9).drop 0).take 70 = ((xSeg ++
+    l2Post).drop
     0).take 70 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_85 : (((fn% «main_loop2»).body.drop 9).drop 85).take 78 = ((xSeg ++ l2Post).drop
+theorem xSeg_slice_85 : (((Fn.«main_loop2».core).body.drop 9).drop 85).take 78 = ((xSeg ++
+    l2Post).drop
     85).take 78 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_164 : (((fn% «main_loop2»).body.drop 9).drop 164).take 3 = ((xSeg ++
+theorem xSeg_slice_164 : (((Fn.«main_loop2».core).body.drop 9).drop 164).take 3 = ((xSeg ++
     l2Post).drop 164).take 3 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_168 : (((fn% «main_loop2»).body.drop 9).drop 168).take 45 = ((xSeg ++
+theorem xSeg_slice_168 : (((Fn.«main_loop2».core).body.drop 9).drop 168).take 45 = ((xSeg ++
     l2Post).drop 168).take 45 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_228 : (((fn% «main_loop2»).body.drop 9).drop 228).take 78 = ((xSeg ++
+theorem xSeg_slice_228 : (((Fn.«main_loop2».core).body.drop 9).drop 228).take 78 = ((xSeg ++
     l2Post).drop 228).take 78 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_307 : (((fn% «main_loop2»).body.drop 9).drop 307).take 3 = ((xSeg ++
+theorem xSeg_slice_307 : (((Fn.«main_loop2».core).body.drop 9).drop 307).take 3 = ((xSeg ++
     l2Post).drop 307).take 3 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_311 : (((fn% «main_loop2»).body.drop 9).drop 311).take 2 = ((xSeg ++
+theorem xSeg_slice_311 : (((Fn.«main_loop2».core).body.drop 9).drop 311).take 2 = ((xSeg ++
     l2Post).drop 311).take 2 :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- **`main_loop2`'s body**, checked by the kernel in slices: the check `xSeg` between `l2Pre` and
 `l2Post`. -/
-theorem loop2_split : (fn% «main_loop2»).body = l2Pre ++ (xSeg ++ l2Post) := by
+theorem loop2_split : (Fn.«main_loop2».core).body = l2Pre ++ (xSeg ++ l2Post) := by
   have h313 := xSeg_drop_313
   have h311 := drop_eq_of_take xSeg_slice_311 h313
   have h310 := drop_eq_of_take xSeg_slice_310 h311
@@ -141,7 +143,7 @@ theorem loop2_split : (fn% «main_loop2»).body = l2Pre ++ (xSeg ++ l2Post) := b
   have h70 := drop_eq_of_take xSeg_slice_70 h71
   have h0 := drop_eq_of_take xSeg_slice_0 h70
   rw [List.drop_zero, List.drop_zero] at h0
-  rw [← List.take_append_drop 9 (fn% «main_loop2»).body, l2Pre_eq, h0]
+  rw [← List.take_append_drop 9 (Fn.«main_loop2».core).body, l2Pre_eq, h0]
 
 end
 end LeanVM.Guest.B1.Sig

@@ -63,6 +63,8 @@ def main(check):
         shutil.copytree(HERE, gen, ignore=shutil.ignore_patterns('vt_ir.txt', '__pycache__'))
         shutil.copytree(ROOT / TABLES, mirror / TABLES)
         (mirror / 'LeanVM/Guest/Data').symlink_to(ROOT / 'LeanVM/Guest/Data')
+        (mirror / 'LeanVM/Guest/Pack').symlink_to(ROOT / 'LeanVM/Guest/Pack')
+        shutil.copy(HERE.parent / 'coredata.py', mirror / 'scripts' / 'coredata.py')
         def run(args, out=None):
             r = subprocess.run([sys.executable, '-I', *args], cwd=gen, capture_output=True, text=True)
             if r.returncode:

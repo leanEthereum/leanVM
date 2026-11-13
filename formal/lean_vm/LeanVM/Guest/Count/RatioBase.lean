@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Memory.WeightRatio
 public import LeanVM.Guest.B2C.ArmBound
@@ -95,8 +96,8 @@ theorem kr_ratio {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = 
   exact Nat.le_of_ble_eq_true hr
 
 /-- Core function `j` is `__loop2` exactly when `j` is its index `x`. -/
-theorem kr_name_xmss {x j : ℕ} (hx : (coreProgram[x]?).map Fn.name = some "__loop2")
-    (hj : j < coreProgram.length) : coreProgram[j].name = "__loop2" ↔ j = x := by
+theorem kr_name_xmss {x j : ℕ} (hx : (coreProgram[x]?).map Fn.name = some (name% main_loop2))
+    (hj : j < coreProgram.length) : coreProgram[j].name = (name% main_loop2) ↔ j = x := by
   constructor
   · intro h
     have := coreIdx_getElem hj
@@ -108,11 +109,11 @@ theorem kr_name_xmss {x j : ℕ} (hx : (coreProgram[x]?).map Fn.name = some "__l
 
 /-- **Off `__loop2`, the frame weights are the path maxima.** -/
 theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = true) {x : ℕ}
-    (hxn : (coreProgram[x]?).map Fn.name = some "__loop2") (hx : x ∉ J)
+    (hxn : (coreProgram[x]?).map Fn.name = some (name% main_loop2)) (hx : x ∉ J)
     (op : Opcode) : ∀ g, krIn J g → 1000 * ωArm xmssArmC op g ≤ A op * fs g := by
   intro g hg
   obtain ⟨i, hJ, hi, rfl⟩ := kr_of_in hg
-  have hne : ¬ coreProgram[i].name = "__loop2" := fun e => hx ((kr_name_xmss hxn hi).mp e ▸ hJ)
+  have hne : ¬ coreProgram[i].name = (name% main_loop2) := fun e => hx ((kr_name_xmss hxn hi).mp e ▸ hJ)
   have := kr_ratio h op coreProgram[i].name ⟨i, hJ, by simp [List.getElem?_eq_getElem hi]⟩
   unfold ωArm
   simp only [hne, ↓reduceIte, Nat.add_zero]
@@ -120,7 +121,7 @@ theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A)
 
 /-- **A valid tree of a function of `J` within the ratios of its words.** -/
 theorem kr_weight {J : List ℕ} {C : ℕ → List ℕ} {A : Opcode → ℕ} (hc : J.all (krClosedAt J C) = true)
-    (hr : J.all (krRatioAt A) = true) {x : ℕ} (hxn : (coreProgram[x]?).map Fn.name = some "__loop2")
+    (hr : J.all (krRatioAt A) = true) {x : ℕ} (hxn : (coreProgram[x]?).map Fn.name = some (name% main_loop2))
     (hx : x ∉ J) {f : String} (hf : krIn J f) (op : Opcode)
     {rd : Reader} {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid coreProgram rd args rets) :
     1000 * t.weight (ωArm xmssArmC op) ≤ A op * t.total fs :=

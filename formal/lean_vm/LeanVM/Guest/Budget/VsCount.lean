@@ -9,6 +9,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.VsCountChkX
 public import LeanVM.Guest.Count.VsCountChkM
 public import LeanVM.Guest.Count.VsCountChkS
@@ -146,11 +147,11 @@ def kcL17 (op : Opcode) : ℕ := (kcCcLpT op).getD 0 0
 def kcL18 (op : Opcode) : ℕ := (kcCcLpT op).getD 1 0
 
 /-- **`__loop17`, per iteration.** -/
-theorem l17_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop17" (kcL17 op) :=
+theorem l17_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% child_claim_list_any_loop0) (kcL17 op) :=
   loopWeightLe_tab (by simpa [ccLpNames, kcL17] using (vsTab_parts op).2.2.2.2.1 0 (by norm_num))
 
 /-- **`__loop18`, per iteration.** -/
-theorem l18_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop18" (kcL18 op) :=
+theorem l18_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% child_claim_list_any_loop1) (kcL18 op) :=
   loopWeightLe_tab (by simpa [ccLpNames, kcL18] using (vsTab_parts op).2.2.2.2.1 1 (by norm_num))
 
 /-- **The frame weights** of `verify_sub`, `child_claim_list_digest`, `__loop4`,

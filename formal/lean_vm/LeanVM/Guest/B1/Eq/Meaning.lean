@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
 
 /-!
 # Multilinear primitives: meanings (TRIAGE G #25-29)

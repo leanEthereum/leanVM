@@ -1,7 +1,7 @@
 import os, sys
 # usage: python3 -I gentotal.py  writes Tables/Vt/{PushPad,PushFw,PullTotal,CountTotal}.lean: the three
 # sides' totals (`bus_table_total`, G:2471-2530) from verify_tables' second loop over the sides.
-# First run: python3 -I dump.py ../../LeanVM/Guest/Data/Core00.lean vt_ir.txt (from this directory).
+# First run: python3 -I dump.py ../../LeanVM/Guest/Data vt_ir.txt (from this directory).
 import re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN

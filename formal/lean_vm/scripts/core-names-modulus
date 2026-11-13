@@ -10,12 +10,14 @@ The kernel checks the modulus (`coreProgram_codes_nodup`): a wrong one fails the
 """
 import re, sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
 
 
 def names():
     out = {}
-    for p in Path("LeanVM/Guest/Data").glob("Core[0-9]*.lean"):
-        for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "([^"]+)"', p.read_text()):
+    for t in coredata.legacy_texts("LeanVM/Guest/Data"):
+        for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "([^"]+)"', t):
             out[int(m.group(1))] = m.group(2)
     return [out[j] for j in range(len(out))]
 

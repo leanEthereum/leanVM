@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
 
 /-!
 # The inline field-packing helpers (TRIAGE G #1-4)

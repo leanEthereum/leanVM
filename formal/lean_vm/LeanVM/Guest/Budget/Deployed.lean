@@ -10,6 +10,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Budget.Final
 public import LeanVM.Guest.B2C.B2Final
 public import LeanVM.Guest.B2C.RunsFit
@@ -41,7 +42,7 @@ theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → �
       VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ∀ op (rd : Reader)
-      (t : Tree) (args rets : List E), t.name = "__loop4" → t.Valid coreProgram rd args rets →
+      (t : Tree) (args rets : List E), t.name = name% main_loop4 → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (B2C.ωArm C op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (End.work s w)) :
     GuestCompleteWithin (mainBudget B2C.fs SB SK Bvf (B2C.ωArm C) H c5 s5 v5 B2C.jtSets) :=

@@ -10,6 +10,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.StaticW
 public import LeanVM.Guest.B1.VerifySub.WordsB
 public import LeanVM.Guest.B1.Terminal.TermWordsFs
@@ -24,10 +25,10 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 theorem vtPairs_ok : (vtPairs.all fun p => wOkB p.2 p.1) = true := by decide +kernel
 
-theorem vtPairs_names : B1.Tables.vtKidS.filter (fun g => g != "__loop9" && g != "shared_selector_tables" && g != "__loop8") =
+theorem vtPairs_names : B1.Tables.vtKidS.filter (fun g => g != (name% verify_tables_loop0) && g != "shared_selector_tables" && g != (name% shared_selector_tables_loop0)) =
     vtPairs.map Prod.fst := by decide +kernel
 
-theorem vt_kids_totalLe : ∀ g ∈ B1.Tables.vtKidS, g ≠ "__loop9" → g ≠ "__loop8" →
+theorem vt_kids_totalLe : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) → g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" → TotalLe coreProgram B2C.fs g (fun _ => wSB g) := by
   intro g hg h1 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
@@ -84,7 +85,7 @@ theorem gr_totalLe : ∀ n ∈ [0, 1, 2, 4, 6],
 theorem vtPairs_okW (op : Opcode) : (vtPairs.all fun p => kuOkB op p.2 p.1) = true := by
   cases op <;> decide +kernel
 
-theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ "__loop9" → g ≠ "__loop8" →
+theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) → g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" →
       WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) g (fun _ => kuSB op g) := by
   intro g hg h1 h3 h2
@@ -127,7 +128,7 @@ noncomputable def kCsW (op : Opcode) : ℕ :=
   B1.VerifySub.lmax ((List.range 31).map fun κ => kuSB op (B1.Tables.lName "column_selector" κ))
 
 theorem cs_okW (op : Opcode) : (List.range 31).all (fun κ =>
-    kuOkB op (274 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
+    kuOkB op (idx% column_selector__L0 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
   cases op <;> decide +kernel
 
 theorem cs_weightLe (op : Opcode) : ∀ κ < 31, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
@@ -140,29 +141,11 @@ theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤
   (Nat.le_div_iff_mul_le (by norm_num)).mpr (by
     have := Nat.mul_le_mul_left A ht; rw [Nat.mul_comm w]; omega)
 
-/-- `verify_sub`'s statically bounded callees (`vsStaticS`), with their core indices. -/
-def stPairs : List (String × ℕ) :=
-  [("grind_check__L15", 307), ("opening_message__L1_L1", 319), ("grind_check__L13", 334),
-    ("squeeze_point_from__L20", 308), ("squeeze_point_from__L21", 309),
-    ("squeeze_point_from__L22", 310), ("squeeze_point_from__L23", 311),
-    ("squeeze_point_from__L24", 312), ("squeeze_point_from__L25", 313),
-    ("squeeze_point_from__L26", 314), ("squeeze_point_from__L27", 315),
-    ("squeeze_point_from__L28", 316), ("squeeze_point_from__L29", 317),
-    ("squeeze_point_from__L30", 318), ("bus_grind_check__L0", 320), ("bus_grind_check__L1", 321),
-    ("bus_grind_check__L2", 322), ("bus_grind_check__L3", 323), ("bus_grind_check__L4", 324),
-    ("bus_grind_check__L5", 325), ("bus_grind_check__L6", 326), ("bus_grind_check__L7", 327),
-    ("bus_grind_check__L8", 328), ("bus_grind_check__L9", 329), ("bus_grind_check__L10", 330),
-    ("bus_grind_check__L11", 331), ("bus_grind_check__L12", 332), ("bus_grind_check__L13", 333)]
+/-- `verify_sub`'s statically bounded callees (`vsStaticS`), each found by `wIdx` and checked. -/
+theorem st_ok : (B1.VerifySub.vsStaticS.all fun g => wOkB (wIdx g) g) = true := by decide +kernel
 
-theorem stPairs_ok : (stPairs.all fun p => wOkB p.2 p.1) = true := by decide +kernel
-
-theorem stPairs_names : B1.VerifySub.vsStaticS = stPairs.map Prod.fst := by decide +kernel
-
-theorem st_totalLe : ∀ g ∈ B1.VerifySub.vsStaticS, TotalLe coreProgram B2C.fs g (fun _ => wSB g) := by
-  intro g hg
-  rw [stPairs_names] at hg
-  obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hg
-  exact wSB_totalLe (List.all_eq_true.mp stPairs_ok p hp)
+theorem st_totalLe : ∀ g ∈ B1.VerifySub.vsStaticS, TotalLe coreProgram B2C.fs g (fun _ => wSB g) :=
+  fun g hg => wSB_totalLe (List.all_eq_true.mp st_ok g hg)
 
 /-- **`verify_sub`'s callees' words at `B2C.fs`.** -/
 noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
@@ -170,20 +153,20 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hg := wSB_totalLe (j := wIdx "g_power_of_word") (by decide +kernel)
   Kst := wSB
   hst := st_totalLe
-  K29 := wSK "__loop36" - B2C.fs "__loop36"
+  K29 := wSK (name% verify_bus_gkr_loop0_loop0) - B2C.fs (name% verify_bus_gkr_loop0_loop0)
   R := kGr
-  K8 := wSK "__loop7" - B2C.fs "__loop7"
-  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 36) (by decide +kernel)
+  K8 := wSK (name% verify_bus_gkr_loop1) - B2C.fs (name% verify_bus_gkr_loop1)
+  h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop0_loop0) (by decide +kernel)
   hR := gr_totalLe
-  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 7) (by decide +kernel)
+  h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop1) (by decide +kernel)
   Kf := wSB
   Ksh := B2C.fs "shared_selector_tables" +
-    (B2C.fs "__loop8" + 15 * (wSK "__loop8" - B2C.fs "__loop8")) + kSp
-  K10 := wSK "__loop9" - B2C.fs "__loop9"
+    (B2C.fs (name% shared_selector_tables_loop0) + 15 * (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0))) + kSp
+  K10 := wSK (name% verify_tables_loop0) - B2C.fs (name% verify_tables_loop0)
   hKf := vt_kids_totalLe
-  hsh := B1.Tables.ss_totalLeOn (wSK "__loop8" - B2C.fs "__loop8") kSp
-    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 8) (by decide +kernel)) sp_totalLe
-  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := wIdxL 9) (by decide +kernel)
+  hsh := B1.Tables.ss_totalLeOn (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0)) kSp
+    (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% shared_selector_tables_loop0) (by decide +kernel)) sp_totalLe
+  h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop0) (by decide +kernel)
   B14 := 3204
   hl14 := B1.VerifySub.l14_totalLeOn_fs
   Beqc := 184
@@ -196,15 +179,15 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hrs := B1.VerifySub.rs_totalLeOn_fs
   ωv := fun op => B2C.ωArm B2C.xmssArmC op
   Kvw := kuSB
-  Wss := fun op => B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op "__loop8" +
+  Wss := fun op => B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) +
     kSpW op
-  Kw10 := fun op => kuSK op "__loop9"
+  Kw10 := fun op => kuSK op (name% verify_tables_loop0)
   hKvw := vt_kids_weightLe
   hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
-    (loopW_of (kuSK_loop (j := wIdxL 8) (by cases op <;> decide +kernel))) (sp_weightLe op)
-  h10w := fun op => loopW_of (kuSK_loop (j := wIdxL 9) (by cases op <;> decide +kernel))
+    (loopW_of (kuSK_loop (j := idx% shared_selector_tables_loop0) (by cases op <;> decide +kernel))) (sp_weightLe op)
+  h10w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop0) (by cases op <;> decide +kernel))
   Weqc := fun op => kuSB op "eq_prefix_chain"
-  W15 := fun op => krVl15A op * max (B2C.fs "__loop14") (32 * 38) / 1000
+  W15 := fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
   Wst := fun op => kuSB op "selector_tables"
   Wcs := kCsW
   Wrsw := fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000

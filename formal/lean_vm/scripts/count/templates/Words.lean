@@ -19,8 +19,8 @@ run's one phantom frame apart (`wSKt_totalLeOn`), and `wSK f` with that frame ch
 iteration (`0` otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
 constant (a loop's per iteration); then `wSB_totalLe` (`wSK_totalLeOn`) bounds `f`'s words.
 `wNameIdx f` is the core index of function `f`, by its name's `encS` (`wNameT`) and checked
-against `Data.nameT`, `wIdx f` the same or `0`, `wIdxLoop` the core index of each loop helper
-`__loop{n}` by `n`, for the checks that range over names.
+against `Data.nameT`, and `wIdx f` the same or `0`, for the checks that range over names; a loop
+helper is named by `idx%` (`Guest/CoreRef.lean`).
 -/
 
 namespace LeanVM.Guest.Count
@@ -206,9 +206,6 @@ theorem wNameIdx_spec {f : String} {j : ℕ} (h : wNameIdx f = some j) :
 
 /-- The core index of a function the checks name, `0` if none. -/
 def wIdx (f : String) : ℕ := (wNameIdx f).getD 0
-
-/-- The core index of the loop helper `__loop{n}`, from `wIdxLoop`. -/
-def wIdxL (n : ℕ) : ℕ := (wIdxLoop.lookup n).getD 0
 
 end
 end LeanVM.Guest.Count

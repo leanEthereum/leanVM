@@ -8,7 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.ExpTables
+public import LeanVM.Guest.B1.Bits.MeaningP
 
 /-!
 # Bits, logs and the exponent: meanings (TRIAGE G #16-21)
@@ -53,16 +55,8 @@ def exponent_tables_Spec : Prop :=
 
 /-! ## `g_power_of_word` (lean_ethereum.py:748-761) -/
 
-/-- **`g_power_of_word(value)`**: the value is the integer `n < 2^6` (`E(n)`), and the function
-returns `g^n`. -/
-def MeaningGPowerOfWord : List E → List E → Prop
-  | [v], rets => ∃ n < 2 ^ 6, v = eOfNat n ∧ rets = [gen ^ n]
-  | _, _ => False
-
-/-- `g_power_of_word`'s core IR is its meaning. -/
-def g_power_of_word_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "g_power_of_word" args rets ↔ MeaningGPowerOfWord args rets
+/-- `g_power_of_word`'s core IR is its meaning (`MeaningGPowerOfWord`, `MeaningP.lean`). -/
+def g_power_of_word_Spec : Prop := g_power_of_word_SpecP coreProgram
 
 /-! ## `assert_small_g_power` (lean_ethereum.py:764-779) -/
 

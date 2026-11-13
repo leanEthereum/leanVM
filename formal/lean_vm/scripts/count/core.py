@@ -112,15 +112,17 @@ def stmt(e, defs):
 def block(e, defs): return [stmt(x, defs) for x in tolist(e, defs)]
 
 
-def _files(D):
-    return sorted(glob.glob(os.path.join(D, 'Core[0-9][0-9].lean')))
+def _texts(D):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import coredata
+    return coredata.legacy_texts(D)
 
 
 def _load(D):
     raw = {}; hdr = {}; cur = None; name = None; hcur = None
-    for f in _files(D):
-        for line in open(f, encoding='utf-8'):
-            s = line.rstrip('\n')
+    for text in _texts(D):
+        for line in text.split('\n'):
+            s = line
             m = re.match(r'namespace core(\d+)$', s)
             if m: cur = int(m.group(1)); raw.setdefault(cur, {}); name = None; continue
             if re.match(r'end core\d+$', s): cur = None; name = None; continue
@@ -150,7 +152,7 @@ def load(D, cache=None):
     if cache is None:
         return _load(D)
     h = hashlib.sha256()
-    for f in _files(D): h.update(open(f, 'rb').read())
+    for t in _texts(D): h.update(t.encode('utf-8'))
     p = os.path.join(cache, 'core-%s.pickle' % h.hexdigest()[:16])
     if os.path.exists(p):
         return pickle.load(open(p, 'rb'))
@@ -208,3 +210,17 @@ if __name__ == '__main__':
     D = sys.argv[1]
     fns = load(D)
     print(len(fns), fns[0]['name'], len(fns[0]['body']))
+
+
+_STABLE = None
+
+
+def L(s):
+    """The compiler's name of the core function of stable name `s` (`Data/NameStrings.lean`): a loop
+    helper is `{caller}_loop{k}` there, which no added or removed function renumbers."""
+    global _STABLE
+    if _STABLE is None:
+        lv = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        t = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'NameStrings.lean'), encoding='utf-8').read()
+        _STABLE = dict(re.findall(r'abbrev «([^»]+)» : String := "([^"]+)"', t))
+    return _STABLE[s]

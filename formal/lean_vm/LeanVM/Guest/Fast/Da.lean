@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Guest.Fast.FunctionIdx
+public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Da.Verify
 
 /-!
@@ -8,7 +8,7 @@ public import LeanVM.Guest.B1.Da.Verify
 
 `dvWit σ Vm` (`B1/Da/Verify.lean`) reads the DA matrix off `da_verify`'s callees' frames, which it
 names by string literals (`"da_verify_column"`, `"__loop25"`, `"da_verify_cell"`). `dvWitN σ Vn`
-reads the same frames by the functions' indices (`Fast/FunctionIdx.lean`: `30`, `420`, `31`);
+reads the same frames by the functions' indices (`fn_idx%`, `Guest/CoreRef.lean`);
 `dvWitN_eq`: at `Vn k = Vm (decoderFunctionName k)` they are equal.
 -/
 
@@ -19,18 +19,18 @@ open LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- Column `h`'s valuation (`da_verify_column`, function `30`). -/
-def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn 30 (dvColArgs σ h) []
+/-- Column `h`'s valuation (`da_verify_column`). -/
+def dvColVN (σ : Val) (Vn : NFrames) (h : ℕ) : Val := Vn (fn_idx% da_verify_column) (dvColArgs σ h) []
 
-/-- Blob `i`'s iteration of column `h`'s blob loop (`__loop25`, function `420`), its valuation
+/-- Blob `i`'s iteration of column `h`'s blob loop (`da_verify_column_loop0`), its valuation
 (`colRowV`). -/
 def dvRowVN (σ : Val) (Vn : NFrames) (i h : ℕ) : Val :=
-  Vn 420 [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 22), gen ^ h, dvColVN σ Vn h (.n 14)] []
+  Vn (fn_idx% da_verify_column_loop0) [gen ^ i, σ (.n 1), dvColVN σ Vn h (.n 13), σ (.n 22), gen ^ h, dvColVN σ Vn h (.n 14)] []
 
-/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function `31`'s. -/
+/-- The symbols, padded outside the matrix (`dvSymsP`), the cell check function's. -/
 noncomputable def dvSymsPN (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
   if i < dvRows σ ∧ h < 128 then
-    cellSymsOf (Vn 31 [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 13)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
   else List.replicate 256 0
 

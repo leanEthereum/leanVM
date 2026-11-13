@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Memory.GuestCnt
 public import LeanVM.Guest.Count.Words
 
@@ -123,7 +124,7 @@ theorem kvSK_loop {op : Opcode} {j : ℕ} {f : String} (h : kvOkK op j f = true)
 
 /-- **A frame's weight by its core index**: `B2C.pathMax`'s entry, but at `__loop2`. -/
 theorem ωArm_idx {C : Opcode → ℕ} {op : Opcode} {j : ℕ} {f : String}
-    (h : (coreProgram[j]?).map Fn.name = some f) (hx : f ≠ "__loop2") :
+    (h : (coreProgram[j]?).map Fn.name = some f) (hx : f ≠ (name% main_loop2)) :
     B2C.ωArm C op f = (B2C.plumbOf (j + 1)).pmax.getD (B2C.opIdx op) 0 := by
   rcases hj : coreProgram[j]? with _ | fn
   · rw [hj] at h; cases h

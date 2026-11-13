@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
+public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.WalkWindows
 
 /-!

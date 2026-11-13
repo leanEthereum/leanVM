@@ -1,17 +1,18 @@
-# usage: python3 -I dump.py <lean_vm>/LeanVM/Guest/Data[/CoreNN.lean] vt_ir.txt
+# usage: python3 -I dump.py <lean_vm>/LeanVM/Guest/Data vt_ir.txt
 # Writes verify_tables' body (its namespace `core{j}`, chunks c0, c1, …) one statement a line, indexed;
-# the function is found by its name in the data directory's Core*.lean.
+# the function is found by its name in the core IR (`scripts/coredata.py`).
 import re, sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import coredata
 data = Path(sys.argv[1])
 data = data if data.is_dir() else data.parent
-for f in sorted(data.glob('Core[0-9]*.lean')):
-    src = f.read_text()
+for src in coredata.legacy_texts(data):
     m = re.search(r'^noncomputable def (core\d+) : Core\.Fn where\n  name := "verify_tables"$', src, re.M)
     if m:
         break
 else:
-    sys.exit(f'dump.py: no verify_tables in {data}/Core*.lean')
+    sys.exit(f'dump.py: no verify_tables in the core IR of {data}')
 i = src.index(f'namespace {m.group(1)}\n')
 j = src.index(f'end {m.group(1)}', i)
 sec = src[i:j]

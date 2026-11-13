@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.MvCountChkX
 public import LeanVM.Guest.Count.MvCountChkM
 public import LeanVM.Guest.Count.MvCountChkS
@@ -111,11 +112,11 @@ def kcL15 : ℕ := (kcClLpT op).getD 0 0
 def kcL16 : ℕ := (kcClLpT op).getD 1 0
 
 /-- **`__loop15`, per iteration.** -/
-theorem l15_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop15" (kcL15 op) :=
+theorem l15_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_digest_loop0) (kcL15 op) :=
   loopWeightLe_tab (by simpa [clLpNames, kcL15] using (mvTab_parts op).2.2.2.2.1 0 (by norm_num))
 
 /-- **`__loop16`, per iteration.** -/
-theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop16" (kcL16 op) :=
+theorem l16_loop : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% claim_list_digest_loop1) (kcL16 op) :=
   loopWeightLe_tab (by simpa [clLpNames, kcL16] using (mvTab_parts op).2.2.2.2.1 1 (by norm_num))
 
 /-- **The frame weights** of `mvOmNames`. -/
@@ -132,8 +133,8 @@ theorem clNames_bang {k : ℕ} (hk : k < 17) :
   interval_cases k <;> decide
 
 theorem clNames_ne {k : ℕ} (hk : k < 17) :
-    B1.Digest.clNames[k]! ≠ "list_split" ∧ B1.Digest.clNames[k]! ≠ "__loop15" ∧
-      B1.Digest.clNames[k]! ≠ "__loop16" := by
+    B1.Digest.clNames[k]! ≠ "list_split" ∧ B1.Digest.clNames[k]! ≠ (name% claim_list_digest_loop0) ∧
+      B1.Digest.clNames[k]! ≠ (name% claim_list_digest_loop1) := by
   interval_cases k <;> decide
 
 /-- A loop of `r` iterations from the counter `1`, at most `r` per-iteration counts. -/
@@ -183,13 +184,13 @@ theorem l18From_weight_le {Tc : Tree → Prop} {Kc : ℕ}
       t.BufsOk coreProgram → t.weight (B2C.ωArm B2C.xmssArmC op) ≤ Kc) :
     ∀ (n k : ℕ) (rd : Reader) (t : Tree) (args rets : List E), B1.Da.l18From Tc n k t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ n * (B2C.ωArm B2C.xmssArmC op "__loop22" + Kc)
+        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ n * (B2C.ωArm B2C.xmssArmC op (name% da_verify_loop1) + Kc)
   | 0, _, _, _, _, _, h, _, _ => h.elim
   | n + 1, k, rd, t, args, rets, h, hv, hb => by
     obtain ⟨σ, ks, rfl, -, hcl, hl, hT⟩ := h
     obtain ⟨hk, hbk⟩ := node_kids hv hb hcl
     have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (B1.Da.l18Calls k)
-      [Tc, B1.Da.l18From Tc n (k + 1)] [Kc, n * (B2C.ωArm B2C.xmssArmC op "__loop22" + Kc)] ks hk
+      [Tc, B1.Da.l18From Tc n (k + 1)] [Kc, n * (B2C.ωArm B2C.xmssArmC op (name% da_verify_loop1) + Kc)] ks hk
       hbk hT (by simp [B1.Da.l18Calls]) (by simp [B1.Da.l18Calls])
       (fun i hi _ _ _ t' rets' _ hv' hb' hT' => by
         have hi2 : i < 2 := by simpa [B1.Da.l18Calls] using hi
@@ -224,7 +225,7 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 
   obtain ⟨hk, hbk⟩ := node_kids hv hb hc
   have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) _ (B1.Da.dvTs r)
     [(kcDvStT op).getD 0 0, (kcDvStT op).getD 1 0, r * (kcDvLpT op).getD 0 0,
-      128 * (B2C.ωArm B2C.xmssArmC op "__loop22" + colW op r), r * (kcDvLpT op).getD 1 0,
+      128 * (B2C.ωArm B2C.xmssArmC op (name% da_verify_loop1) + colW op r), r * (kcDvLpT op).getD 1 0,
       (2 ^ L - r) * (kcDvLpT op).getD 2 0, (kcDlT op).getD L 0] ks hk hbk hT
     (by simp [B1.Da.dvCallsS, B1.Da.dvTs]) (by simp [B1.Da.dvCallsS])
     (fun i hi _ _ ht t' rets' hn hv' hb' hT' => by
@@ -253,7 +254,7 @@ theorem dv_weight_le {r L : ℕ} (hr : 0 < r) (hr' : r ≤ 1024) (hrL : r ≤ 2 
   rw [Tree.weight]
   simp only [List.sum_cons, List.sum_nil] at hk'
   rw [show B2C.ωArm B2C.xmssArmC op "da_verify" = (mvOmT op).getD 0 0 from hom]
-  rw [show B2C.ωArm B2C.xmssArmC op "__loop22" = (mvOmT op).getD 1 0 from hom1] at hk'
+  rw [show B2C.ωArm B2C.xmssArmC op (name% da_verify_loop1) = (mvOmT op).getD 1 0 from hom1] at hk'
   unfold dvW
   omega
 
@@ -280,8 +281,8 @@ theorem cl_weight_le {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tre
     (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ clW op n := by
   let W : Call → ℕ := fun c =>
     if c.f = "list_split" then kcLs op
-    else if c.f = "__loop15" then n / 136 * kcL15 op
-    else if c.f = "__loop16" then n % 136 / 17 * kcL16 op else (kcClT op).getD (n % 17) 0
+    else if c.f = (name% claim_list_digest_loop0) then n / 136 * kcL15 op
+    else if c.f = (name% claim_list_digest_loop1) then n % 136 / 17 * kcL16 op else (kcClT op).getD (n % 17) 0
   obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _

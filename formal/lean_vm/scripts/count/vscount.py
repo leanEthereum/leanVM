@@ -5,6 +5,7 @@ of `verify_sub`, `child_claim_list_digest` and `__loop4`, as tables checked agai
 count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
 import os
+from core import L
 
 def vs_st(g):
     """`verify_sub`'s statically bounded callees but its opening arm: its static calls, then the arms
@@ -18,12 +19,12 @@ def vs_st(g):
         elif st[0] == 'dispatch' and not st[2][0].startswith('open_stacked__L'):
             arms += [f for f in st[2] if f not in arms]
     return calls + arms
-OM = ['verify_sub', 'child_claim_list_digest', '__loop4', 'child_claim_list_any', 'child_claim_list_mono']
+OM = ['verify_sub', 'child_claim_list_digest', L('main_loop4'), 'child_claim_list_any', 'child_claim_list_mono']
 # A list of `n = 136·bigs + 17·groups + rest` claims (`list_split`, `groups < 8`, `rest < 17`): the
 # claim lists' loops per `136` claims (`CLAIM_BIG`) and per `17` (`CLAIM_GROUP`), `claim_list_digest`'s,
 # and `child_claim_list_any`'s and `child_claim_list_mono`'s (the hinted gap walk), the prover's choice.
-CL_LP = ['__loop15', '__loop16']
-CC_LP = ['__loop17', '__loop18', '__loop19', '__loop20']
+CL_LP = [L('claim_list_digest_loop0'), L('claim_list_digest_loop1')]
+CC_LP = [L('child_claim_list_any_loop0'), L('child_claim_list_any_loop1'), L('child_claim_list_mono_loop0'), L('child_claim_list_mono_loop1')]
 CCL = ['child_claim_list_last__L%d' % k for k in range(17)]
 CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
 BIG, GROUP, GROUPS = 136, 17, 8
@@ -50,23 +51,23 @@ def vt_term(g):
     def ratioA(r):
         J = sorted(g.by[n] for n in g.closure([r]))
         return [max(-(-1000 * g.pm[j + 1][k] // fsN(j + 1)) for j in J) for k in range(6)]
-    A15, Arsw = ratioA('__loop14'), ratioA('ring_switch_weight')
+    A15, Arsw = ratioA(L('check_opening_terminal_loop0')), ratioA('ring_switch_weight')
     vtW, termW = [], []
     for k in range(6):
-        wss = om[k]['shared_selector_tables'] + 15 * loop(k, '__loop8') + max(stat(k, 'sel_partial_nibble__L%d' % j) for j in range(4))
+        wss = om[k]['shared_selector_tables'] + 15 * loop(k, L('shared_selector_tables_loop0')) + max(stat(k, 'sel_partial_nibble__L%d' % j) for j in range(4))
         t = om[k]['verify_tables']
         for st in g.fns[g.by['verify_tables']]['body']:
             if st[0] == 'call': t += wss if st[1] == 'shared_selector_tables' else stat(k, st[1])
-            elif st[0] == 'callIf': assert st[2] == '__loop9'; t += 32 * loop(k, '__loop9')
+            elif st[0] == 'callIf': assert st[2] == L('verify_tables_loop0'); t += 32 * loop(k, L('verify_tables_loop0'))
             elif st[0] == 'dispatch': t += max(stat(k, f) for f in st[2])
             else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), st[0]
         vtW.append(t)
-        w15 = A15[k] * max(fs('__loop14'), 32 * 38) // 1000
+        w15 = A15[k] * max(fs(L('check_opening_terminal_loop0')), 32 * 38) // 1000
         wrsw = Arsw[k] * (fs('ring_switch_weight') + 2240 + 16433) // 1000
         u = om[k]['check_opening_terminal']
         for st in g.fns[g.by['check_opening_terminal']]['body']:
             if st[0] == 'call': u += wrsw if st[1] == 'ring_switch_weight' else stat(k, st[1])
-            elif st[0] == 'callIf': assert st[2] == '__loop14'; u += w15
+            elif st[0] == 'callIf': assert st[2] == L('check_opening_terminal_loop0'); u += w15
             elif st[0] == 'dispatch': u += max(stat(k, f) for f in st[2])
             else: assert st[0] in ('atom', 'ret'), st[0]
         termW.append(u)
@@ -140,7 +141,7 @@ def l5_parts(tbl, k):
     ccA = (om[k]['child_claim_list_digest'] + stat(k, 'list_split') + om[k]['child_claim_list_any']
            + (GROUPS - 1) * loop(k, CC_LP[1]) + max(stat(k, n) for n in CCL))
     ccS = -(-loop(k, CC_LP[0]) // BIG)
-    return om[k]['__loop4'], ccA, ccS, [vsc(k, c) for c in range(len(tbl[4]))]
+    return om[k][L('main_loop4')], ccA, ccS, [vsc(k, c) for c in range(len(tbl[4]))]
 
 
 def write(g, OPS):
@@ -219,10 +220,10 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 # `__loop22` and `da_verify_column` are counted by their frames: the column loop's 128 iterations,
 # each a column, its weights' expansion and its row loop's `r` iterations.
 MV_ST = ['da_row_shape', 'da_vector', 'da_expand__L7_L8']
-MV_LP = ['__loop21', '__loop23', '__loop24', '__loop25']
+MV_LP = [L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')]
 MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(11)]
 MV_CL = ['claim_list_last__L%d' % k for k in range(17)]
-MV_OM = ['da_verify', '__loop22', 'da_verify_column', 'claim_list_digest']
+MV_OM = ['da_verify', L('da_verify_loop1'), 'da_verify_column', 'claim_list_digest']
 MV_MAXROWS = 1024
 MV_COLS = 128  # `DA_CELLS`: the columns `__loop22` runs
 

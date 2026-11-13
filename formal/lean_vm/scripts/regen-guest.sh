@@ -37,7 +37,9 @@ if run export; then
   step "export: bytecode, source, programs (guest-export, from leanVM's sources)"
   # The core IR before the change, for the `changes` step.
   if [ ${#check[@]} -eq 0 ]; then
-    rm -rf .lake/guest-before && mkdir -p .lake/guest-before && cp LeanVM/Guest/Data/Core*.lean .lake/guest-before/
+    rm -rf .lake/guest-before && mkdir -p .lake/guest-before/Data && cp LeanVM/Guest/Data/Core*.lean .lake/guest-before/Data/
+    if [ -d LeanVM/Guest/Fn ]; then cp -R LeanVM/Guest/Fn .lake/guest-before/Fn; fi
+    if [ -d LeanVM/Guest/Pack ]; then cp -R LeanVM/Guest/Pack .lake/guest-before/Pack; fi
   fi
   cargo build --release --manifest-path scripts/guest-export/Cargo.toml
   capped scripts/guest-export/target/release/guest-export . "${check[@]}"

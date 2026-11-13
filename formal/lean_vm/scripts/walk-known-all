@@ -3,7 +3,7 @@
 (`Guest/Checked.lean`, by `guest-cert`), each the walk theorem `walk_{j}` its generator writes
 (`WalkOq*`, `WalkLq*`, `WalkOs*`, `WalkWp`), but `main` and `verify_sub`, excluded by `WalkKnown`, and
 `verify_bus_gkr` and its layer loop, whose obligations are hypotheses (`WalkGkr.lean`). Function `j` is core
-function `j - 1` (`LeanVM/Guest/Data/Core*.lean`). Run from `lean_vm` after `guest-cert`
+function `j - 1` (the core IR, through `scripts/coredata.py`). Run from `lean_vm` after `guest-cert`
 (`scripts/regen-guest.sh` does):
 
     python3 -I scripts/walk-known-all [--check]
@@ -12,13 +12,15 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
+
 OUT = Path("LeanVM/Guest/WalkKnownAll.lean")
 
 
 def core():
     fns, bodies = {}, {}
-    for p in sorted(Path("LeanVM/Guest/Data").glob("Core[0-9]*.lean")):
-        t = p.read_text(encoding="utf-8")
+    for t in coredata.legacy_texts("LeanVM/Guest/Data"):
         for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "([^"]+)"', t):
             fns[int(m.group(1))] = m.group(2)
         for m in re.finditer(r"^namespace core(\d+)\n(.*?)^end core\1$", t, re.M | re.S):

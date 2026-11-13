@@ -311,8 +311,8 @@ theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabs
     (hwS : ∀ a : E, RunsApp P wSV [encodeValue a] (encodeValue (wS a)))
     {WS : ℕ} (hWS : ∀ a : E, appCost P wSV [encodeValue a] ≤ WS) {K N X : ℕ}
     (hc : CountsWithin D σ K N X)
-    (hLk : ∀ c < Decoder.nKidsD D σ, cl (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 25))
-      (Vn 19 (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
+    (hLk : ∀ c < Decoder.nKidsD D σ, cl (Vn (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 25))
+      (Vn (fn_idx% verify_sub) (Decoder.subArgsK rd σ c) [] (.n 1919)) ≤ L) :
     machineCost P Decoder.decWitNC.costIdx [encodeValue D, encodeValue Tb, σV, rdV, VnV, wXV, wSV,
       clV] ≤ decWitNPrice G R S F C L DW WX WS K N X := by
   rw [Decoder.decWitNC.costEq P hP D Tb σ σV hσ rd rdV hrd Vn VnV hVn wX wXV hwX wS wSV hwS cl clV

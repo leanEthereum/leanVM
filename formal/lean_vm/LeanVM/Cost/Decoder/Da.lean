@@ -35,7 +35,7 @@ open LeanVM.Guest.B1.Da LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
 /-- The symbols, padded outside the matrix of `r` rows (`dvSymsPN`, `r` its logarithm). -/
 def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
   if i < r ∧ h < 128 then
-    cellSymsOf (Vn 31 [dvColVN σ Vn h (.n 13)]
+    cellSymsOf (Vn (fn_idx% da_verify_cell) [dvColVN σ Vn h (.n 13)]
       [dvRowVN σ Vn i h (.n 6), dvRowVN σ Vn i h (.n 7), dvRowVN σ Vn i h (.n 8)])
   else List.replicate 256 0
 
@@ -52,11 +52,11 @@ def dvCols (σ : Val) (Vn : NFrames) : Array (E × E) := ((List.range 128).map (
 
 /-- Blob `i`'s iteration of column `h`'s blob loop (`dvRowVN`), the column's words `cw` given. -/
 def dvRowVW (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : Val :=
-  Vn 420 [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ h), cw.2] []
+  Vn (fn_idx% da_verify_column_loop0) [ofK (Parameters.g ^ i), σ (.n 1), cw.1, σ (.n 22), ofK (Parameters.g ^ h), cw.2] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the blob loop's valuation given. -/
 def cellSymsAt (Vn : NFrames) (c13 : E) (row : Val) : List K :=
-  cellSymsOf (Vn 31 [c13] [row (.n 6), row (.n 7), row (.n 8)])
+  cellSymsOf (Vn (fn_idx% da_verify_cell) [c13] [row (.n 6), row (.n 7), row (.n 8)])
 
 /-- Cell `(i, h)`'s symbols, the column's words given: its blob loop's frame looked up once. -/
 def dvSymsCell (σ : Val) (Vn : NFrames) (cw : E × E) (i h : ℕ) : List K :=

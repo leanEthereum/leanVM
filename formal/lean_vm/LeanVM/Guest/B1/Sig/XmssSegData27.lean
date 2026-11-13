@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Data.Names
+public import LeanVM.Guest.Pack.main_loop2.Core
 public import LeanVM.Guest.B1.Sig.XmssSegT
 import LeanVM.Guest.B1.Sig.Decide
 import LeanVM.Guest.B1.Common.Basic
@@ -18,7 +18,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem xSeg_slice_222 : (((fn% «main_loop2»).body.drop 9).drop 222).take 1 = ((xSeg ++
+theorem xSeg_slice_222 : (((Fn.«main_loop2».core).body.drop 9).drop 222).take 1 = ((xSeg ++
     l2Post).drop 222).take 1 :=
   stmtsEqb_sound (by decide +kernel)
 

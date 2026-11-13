@@ -4,8 +4,8 @@
 For each compiled function `j < nFns`: its entry pc (`(fnOf j).entryPc`), its number of arguments
 (`(coreOf j).params.length`), of return words (`(certOf j).nret`), and its certificate's frame
 cells (`(certOf j).locs`, by reference to the certificate data `Data.cert{j}_w{i}_{k}`). Read off
-the generated sources (`LeanVM/Guest/Data/Core*.lean`, `Cert*.lean`) and an entry list
-(`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
+the generated sources (the core IR through `scripts/coredata.py`, `LeanVM/Guest/Data/Cert*.lean`)
+and an entry list (`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
 `lake env lean scripts/decoder-tables-entries.lean` prints after `lake build LeanVM.Guest.Glob`, as
 `scripts/regen-guest.sh` runs it, or `decoder-tables-inputs.lean` once the tables are built);
 `Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions in the kernel.
@@ -14,6 +14,8 @@ the generated sources (`LeanVM/Guest/Data/Core*.lean`, `Cert*.lean`) and an entr
 """
 import argparse, glob, os, re, sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
 
 N = None  # the number of compiled functions: the entry list's length, the certificates'
 PART = 512  # rows per part of `guestLocsList`
@@ -22,8 +24,7 @@ OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
 
 def cores():
     out = {}
-    for f in sorted(glob.glob("LeanVM/Guest/Data/Core*.lean")):
-        s = open(f).read()
+    for s in coredata.legacy_texts("LeanVM/Guest/Data"):
         for m in re.finditer(r"noncomputable def core(\d+) : Core\.Fn where\n  name := \"[^\"]*\"\n"
                              r"  params := (.*?)\n  body", s, re.S):
             p = m.group(2).strip()

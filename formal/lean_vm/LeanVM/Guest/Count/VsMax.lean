@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Count.VsWords
 public import LeanVM.Guest.Count.Fast
 public import LeanVM.Guest.B1.KeccakGkr.VkCW
@@ -38,7 +39,7 @@ theorem vkBound_eq : B1.VerifySub.vkBound = 56391 := by
 
 set_option maxRecDepth 100000 in
 theorem termBound_eq : B1.VerifySub.termBound B2C.fs vsWords.Beqc vsWords.K15 vsWords.Bcs vsWords.Brs = 29266 := by
-  show B2C.fs "check_opening_terminal" + 177 + 4 * 184 + (32 * 19 + B2C.fs "__loop14") +
+  show B2C.fs "check_opening_terminal" + 177 + 4 * 184 + (32 * 19 + B2C.fs (name% check_opening_terminal_loop0)) +
     (B2C.fs "selector_tables" + 512) + 94 * 157 + (B2C.fs "ring_switch_weight" + 2240 + 8142) = 29266
   rw [← fsFast_eq]; decide +kernel
 

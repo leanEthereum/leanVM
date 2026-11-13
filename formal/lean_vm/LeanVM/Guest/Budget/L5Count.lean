@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Budget.VsCount
 public import LeanVM.Guest.Budget.Chain
 public import LeanVM.Guest.Budget.Static
@@ -57,7 +58,7 @@ theorem cclNames_eq {k : ℕ} (hk : k < 17) :
   interval_cases k <;> decide +kernel
 
 theorem ccl_ne {k : ℕ} (hk : k < 17) :
-    B1.Digest.cclNames[k]! ≠ "__loop17" ∧ B1.Digest.cclNames[k]! ≠ "__loop18" := by
+    B1.Digest.cclNames[k]! ≠ (name% child_claim_list_any_loop0) ∧ B1.Digest.cclNames[k]! ≠ (name% child_claim_list_any_loop1) := by
   interval_cases k <;> decide
 
 /-- **`child_claim_list_any`'s instructions** on a tree of honest shape (`anyHonest n`). -/
@@ -65,8 +66,8 @@ theorem any_weight_le (op : Opcode) {n : ℕ} (hn : n / 136 < 2 ^ 64 - 1) {rd : 
     {args rets : List E} (h : B1.Digest.anyHonest n t) (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ anyW op n := by
   let W : Call → ℕ := fun c =>
-    if c.f = "__loop17" then n / 136 * kcL17 op
-    else if c.f = "__loop18" then n % 136 / 17 * kcL18 op else (kcCclT op).getD (n % 17) 0
+    if c.f = (name% child_claim_list_any_loop0) then n / 136 * kcL17 op
+    else if c.f = (name% child_claim_list_any_loop1) then n % 136 / 17 * kcL18 op else (kcCclT op).getD (n % 17) 0
   obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _
@@ -147,7 +148,7 @@ def l5B (op : Opcode) (X S V : ℕ → ℕ) (c : ℕ) : ℕ :=
   (omT op).getD 2 0 + ccW op (X c) + ccW op (S c) + kcSd op + V c
 
 theorem l5_walk {σ : Val} {fn : Fn} {es : List Ev} {vs : List V}
-    (hf : coreProgram.find? "__loop4" = some fn) (hw : walk σ fn.body = .ret es vs) :
+    (hf : coreProgram.find? (name% main_loop4) = some fn) (hw : walk σ fn.body = .ret es vs) :
     es = l5Evs σ := by
   rw [find_l5, Option.some.injEq] at hf
   subst hf

@@ -4,9 +4,9 @@ removed, each with the hand-written modules that state its body or name it.
 
     python3 -I scripts/guest-changes BEFORE
 
-`BEFORE` holds the core IR's modules (`Core*.lean`) before the change: `scripts/regen-guest.sh` copies
-`LeanVM/Guest/Data/Core*.lean` to `.lake/guest-before` before it exports, and runs this after
-`guest-core`. Functions are matched by name, a loop helper (`__loop{k}`, named by the compiler's counter)
+`BEFORE` holds the core IR before the change: `scripts/regen-guest.sh` copies `LeanVM/Guest/Data/Core*.lean`
+to `.lake/guest-before/Data` and `LeanVM/Guest/Pack` to `.lake/guest-before/Pack` before it exports, and runs
+this after `guest-core` (a snapshot of the packed `Data/Core{k}.lean`, directly in `BEFORE`, is read too). Functions are matched by name, a loop helper (`__loop{k}`, named by the compiler's counter)
 by its first caller and its rank among that caller's loops, so a renumbering or a loop renamed is no
 change. A changed body is what `--dev` cannot show: its template's `decide +kernel` passes there, so
 build the modules listed under `states its body` with the kernel first (formal/AGENTS.md, Changing
@@ -16,6 +16,8 @@ import hashlib
 import re
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
 
 ROOTS = [Path("LeanVM"), Path("tests")]
 
@@ -24,8 +26,9 @@ def read_core(data):
     """The core IR's functions, in order: (name, body text)."""
     fns, parts = {}, {}
     # A long body's parts (`namespace core{j}`) may sit in modules before its definition's.
-    for p in sorted(Path(data).glob("Core[0-9]*.lean")):
-        text = p.read_text(encoding="utf-8")
+    if (Path(data) / "Data").is_dir():
+        data = Path(data) / "Data"
+    for text in coredata.legacy_texts(data):
         for m in re.finditer(r"^namespace core(\d+)\n(.*?)^end core\1$", text, re.M | re.S):
             parts[int(m.group(1))] = parts.get(int(m.group(1)), "") + m.group(2)
         for m in re.finditer(r"^noncomputable def core(\d+) : Core\.Fn where\n  name := \"([^\"]+)\"\n(.*?)(?=\n\n|\Z)",
