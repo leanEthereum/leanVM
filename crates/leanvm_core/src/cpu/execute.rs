@@ -494,12 +494,23 @@ impl Program {
             g.log(p).ok_or(Fault::NotAGPower { what, value: p })
         }
 
+        // Cell `base + offset`, if it lies in the address space: what every hint write goes through, as an
+        // instruction's operands do (`at` below).
+        fn cell_at(base: u32, offset: u32) -> Result<u32, Fault> {
+            let cell = u64::from(base) + u64::from(offset);
+            if cell < u64::from(MAX_CELLS) {
+                Ok(cell as u32)
+            } else {
+                Err(Fault::OutOfMemory)
+            }
+        }
+
         // Where a computed-advice bit buffer starts: a frame run needs no lookup
         // at all, which is the point of having one.
         fn bits_base(m: &Mem<'_>, g: &mut GPow, fp: u32, dest: BitsDest, what: &'static str) -> Result<u32, Fault> {
             match dest {
-                BitsDest::Stack(base) => Ok(fp + base),
-                BitsDest::Heap(ptr) => heap_base(m, g, fp + ptr, what),
+                BitsDest::Stack(base) => cell_at(fp, base),
+                BitsDest::Heap(ptr) => heap_base(m, g, cell_at(fp, ptr)?, what),
             }
         }
 
@@ -600,7 +611,7 @@ impl Program {
                                 }
                                 _ => unreachable!(),
                             };
-                            let cell = fp + ptr;
+                            let cell = at(fp, ptr)?;
                             if !m.written(cell) {
                                 let base = next_free;
                                 next_free = at(base, size)?;
@@ -646,14 +657,14 @@ impl Program {
                         RHint::WitnessStack { base, len, .. } => {
                             let values = streams[stream as usize].pop(*len).map_err(fail)?;
                             for (k, &value) in values.iter().enumerate() {
-                                m.put(fp + base + k as u32, value)?;
+                                m.put(at(at(fp, *base)?, k as u32)?, value)?;
                             }
                         }
                         RHint::WitnessHeap { ptr, lo, len, .. } => {
-                            let b = heap_base(&m, &mut g, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
+                            let b = heap_base(&m, &mut g, at(fp, *ptr)?, "hint_witness heap pointer").map_err(fail)?;
                             let values = streams[stream as usize].pop(*len).map_err(fail)?;
                             for (k, &value) in values.iter().enumerate() {
-                                m.put(b + lo + k as u32, value)?;
+                                m.put(at(at(b, *lo)?, k as u32)?, value)?;
                             }
                         }
                         RHint::Log2Ceil {
@@ -675,14 +686,14 @@ impl Program {
                                 u128::BITS - (word - 1).leading_zeros()
                             };
                             let mu = cl.max(*floor);
-                            m.put(fp + dst, F128::from(primitives::field::g_pow(mu as usize)))?;
+                            m.put(at(fp, *dst)?, F128::from(primitives::field::g_pow(mu as usize)))?;
                         }
                         RHint::BitDecompose { value, bits, nbits } => {
                             assert!(*nbits <= 128, "a machine word has 128 bits");
                             let v = u128::from(m.get(fp + value));
                             let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
                             for j in 0..*nbits {
-                                m.put(bb + j, F128::from((v >> j) & 1))?;
+                                m.put(at(bb, j)?, F128::from((v >> j) & 1))?;
                             }
                         }
                         RHint::BitDecomposeExp { value, bits, nbits } => {
@@ -694,13 +705,13 @@ impl Program {
                                 .map_err(fail)?;
                             for j in 0..*nbits {
                                 let bit = ((n >> j) & 1) as u64;
-                                m.put(bb + j, F128::new(bit, 0))?;
+                                m.put(at(bb, j)?, F128::new(bit, 0))?;
                             }
                         }
                         RHint::WindowsExp {
                             value,
                             dest,
-                            at,
+                            at: pos,
                             start,
                             width,
                             count,
@@ -713,7 +724,7 @@ impl Program {
                                 for j in 0..*width {
                                     n |= (((v >> (start + i * width + j)) & 1) as usize) << j;
                                 }
-                                m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
+                                m.put(at(at(bb, *pos)?, i)?, F128::from(primitives::field::g_pow(n)))?;
                             }
                         }
                         RHint::DigitDecomposeExp {
@@ -743,9 +754,9 @@ impl Program {
                                 .map_err(fail)?;
                             let mask = (1u128 << digit_bits) - 1;
                             for j in 0..*ndigits {
-                                let at = s + digit_bits * j;
-                                let d = if at >= 128 { 0 } else { (n >> at) & mask };
-                                m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
+                                let from = s + digit_bits * j;
+                                let d = if from >= 128 { 0 } else { (n >> from) & mask };
+                                m.put(at(bb, j)?, F128::from(primitives::field::g_pow(d as usize)))?;
                             }
                         }
                         RHint::FieldLimbs { value, base, len } => {
@@ -753,12 +764,12 @@ impl Program {
                             let v = m.get(fp + value);
                             let limbs = v.to_limbs();
                             for j in 0..*len {
-                                m.put(fp + base + j, F128::new(limbs[j as usize], 0))?;
+                                m.put(at(at(fp, *base)?, j)?, F128::new(limbs[j as usize], 0))?;
                             }
                         }
                         RHint::Inverse { value, dst } => {
                             let v = m.get(fp + value);
-                            m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
+                            m.put(at(fp, *dst)?, if v.is_zero() { F128::ZERO } else { v.inv() })?;
                         }
                     }
                     m.dbg_hint = None;
