@@ -11,8 +11,7 @@ public import LeanVM.Guest.B1.Place.LqProofP
 /-!
 # `level_queries` with its pops, within a words bound
 
-`LqAtOP`: `LqAtDP` at an optional words bound (`CompleteAtOP`). `lqAtOP_of_EP`: `LqAtEP` gives it at every words bound
-of its trees, frames below `2^32` (`lq_bound` on `LqAtEP.toE`). `level_queries_completeAtBP`: every entry of `lqTable`.
+`lqAtOP_of_EP`: `LqAtEP` gives `LqAtOP` at every words bound of its trees, frames below `2^32` (`lq_bound` on `LqAtEP.toE`). `level_queries_completeAtBP`: every entry of `lqTable`; `level_queries_completeAtOP`: at no bound.
 -/
 
 namespace LeanVM.Guest.B1
@@ -24,25 +23,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
-
-/-- **`LqAtDP` at an optional words bound.** -/
-def LqAtOP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q base folds leaf d cd mu nhs hbits fin : ℕ) (Bd : Option ℕ) : Prop :=
-  let s := lqOqS q base folds leaf d cd mu nhs hbits fin
-  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
-    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
-    (capW flW : List E) (r0 r1 : E),
-    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s rounds hsv qs rows sibs q →
-    LqCaps s q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s q ecoefs ehs epos eqp rounds hsv eb qs) →
-    CompleteAtOP fs cert κ name Lin
-      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
-        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (lqOdd q base folds leaf d cd mu nhs hbits fin) (lqIters q base)
-        lamInv rounds qs rows, lam ^ q]) Bd
-      (fun _ => lqCapE capW flW ++ oqPops s (oqW qs rows sibs) q)
 
 /-- **`LqAtEP` gives `LqAtOP` within every words bound of its trees**, frames below `2^32`. -/
 theorem lqAtOP_of_EP {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name : String}
@@ -64,6 +44,15 @@ theorem level_queries_completeAtBP (fs : String → ℕ) (cert : String → V �
       LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
         e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 (some B) :=
   fun e he _ hT ↦ lqAtOP_of_EP (level_queries_completeAtEP fs cert κ e he) hfs (lqTable_small e he) hT
+
+/-- **`level_queries` with its pops at no words bound.** -/
+theorem level_queries_completeAtOP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
+    ∀ e ∈ lqTable,
+      LqAtOP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
+        e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 none :=
+  fun e he Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg
+    hmem ↦ (level_queries_completeAtEP fs cert κ e he Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs
+      capW flW r0 r1 hrl hhs hst hcaps hreg hmem).toOP fun _ h ↦ by cases h
 
 end
 end LeanVM.Guest.B1

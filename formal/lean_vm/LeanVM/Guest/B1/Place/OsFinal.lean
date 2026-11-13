@@ -34,7 +34,7 @@ theorem open_stacked_completeAtD : open_stacked_completeAtD_Spec :=
 theorem helperBounds (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (hrf : Lift.RunsFit fs cert)
     (hcons : RunsConsec cert) (hκ : 11 ≤ κ) (hfs : ∀ f, fs f < 2 ^ 32) : Arm.HelperBounds fs cert κ :=
   ⟨level_positions_completeAtB fs cert κ hrf hcons (by omega) hfs,
-    level_queries_completeAtB fs cert κ hfs, level_residual_completeAtB fs cert κ hfs⟩
+    level_queries_completeAtBP fs cert κ hfs, level_residual_completeAtB fs cert κ hfs⟩
 
 /-- **`open_stacked` is complete placed at every stack log and rate, within `osBosAt` words**,
 every frame below `2^32`. -/

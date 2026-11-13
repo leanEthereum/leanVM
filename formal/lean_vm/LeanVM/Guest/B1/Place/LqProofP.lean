@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Place.LqProof
+public import LeanVM.Guest.B1.Place.LqAtOP
 public import LeanVM.Guest.B1.Merkle.CapPops
 public import LeanVM.Guest.B1.Merkle.CapAll
 public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
@@ -18,7 +19,6 @@ public import LeanVM.Guest.B1.Opening.CapPlacedE
 
 `LqProof`'s proof with `kidsFromInP_of_kidsD` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
 
-* `lqCapE`: the cap's and the flags' entries, the honest words;
 * `LqAtDP`: `LqAtD` popping `lqCapE` then `oqPops` of its `q` queries;
 * `LqAtEP`: `LqAtDP` by a tree of exactly `lqN` words (`toDP`, `toE`);
 * `lq_placedEP`, `level_queries_completeAtEP`, `level_queries_completeAtP`: every entry of `lqTable`.
@@ -33,9 +33,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
-
-/-- **The cap's and the flags' entries**: the honest words. -/
-def lqCapE (capW flW : List E) : List Pop := [("merkle_caps", capW), ("merkle_cap_active", flW)]
 
 /-- **`level_queries` at an entry of `lqTable`, placed, with its pops**: `LqAtD`, its tree popping the honest cap
 and flags (`lqCapE`), then its `q` queries' rows and walks' children (`oqPops`). -/
